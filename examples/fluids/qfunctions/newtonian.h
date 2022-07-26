@@ -454,14 +454,6 @@ CEED_QFUNCTION(BoundaryIntegral)(void *ctx, CeedInt Q,
 
   const NewtonianIdealGasContext context = (NewtonianIdealGasContext) ctx;
   const bool is_implicit  = context->is_implicit;
-  State (*StateFromQi)(NewtonianIdealGasContext gas,
-                       const CeedScalar qi[5], const CeedScalar x[3]);
-  State (*StateFromQi_fwd)(NewtonianIdealGasContext gas,
-                           State s, const CeedScalar dqi[5],
-                           const CeedScalar x[3], const CeedScalar dx[3]);
-  StateFromQi     = context->use_primitive ? &StateFromY     : &StateFromU;
-  StateFromQi_fwd = context->use_primitive ? &StateFromY_fwd : &StateFromU_fwd;
-
 
   CeedPragmaSIMD
   for(CeedInt i=0; i<Q; i++) {
@@ -530,13 +522,6 @@ CEED_QFUNCTION(BoundaryIntegral_Jacobian)(void *ctx, CeedInt Q,
 
   const NewtonianIdealGasContext context = (NewtonianIdealGasContext)ctx;
   const bool implicit     = context->is_implicit;
-  State (*StateFromQi)(NewtonianIdealGasContext gas,
-                       const CeedScalar qi[5], const CeedScalar x[3]);
-  State (*StateFromQi_fwd)(NewtonianIdealGasContext gas,
-                           State s, const CeedScalar dqi[5],
-                           const CeedScalar x[3], const CeedScalar dx[3]);
-  StateFromQi     = context->use_primitive ? &StateFromY     : &StateFromU;
-  StateFromQi_fwd = context->use_primitive ? &StateFromY_fwd : &StateFromU_fwd;
 
   CeedPragmaSIMD
   // Quadrature Point Loop
@@ -608,14 +593,6 @@ CEED_QFUNCTION(PressureOutflow)(void *ctx, CeedInt Q,
   const NewtonianIdealGasContext context = (NewtonianIdealGasContext)ctx;
   const bool       implicit = context->is_implicit;
   const CeedScalar P0       = context->P0;
-
-  State (*StateFromQi)(NewtonianIdealGasContext gas,
-                       const CeedScalar qi[5], const CeedScalar x[3]);
-  State (*StateFromQi_fwd)(NewtonianIdealGasContext gas,
-                           State s, const CeedScalar dqi[5],
-                           const CeedScalar x[3], const CeedScalar dx[3]);
-  StateFromQi     = context->use_primitive ? &StateFromY     : &StateFromU;
-  StateFromQi_fwd = context->use_primitive ? &StateFromY_fwd : &StateFromU_fwd;
 
   CeedPragmaSIMD
   // Quadrature Point Loop
@@ -693,14 +670,6 @@ CEED_QFUNCTION(PressureOutflow_Jacobian)(void *ctx, CeedInt Q,
 
   const NewtonianIdealGasContext context = (NewtonianIdealGasContext)ctx;
   const bool implicit     = context->is_implicit;
-
-  State (*StateFromQi)(NewtonianIdealGasContext gas,
-                       const CeedScalar qi[5], const CeedScalar x[3]);
-  State (*StateFromQi_fwd)(NewtonianIdealGasContext gas,
-                           State s, const CeedScalar dQi[5],
-                           const CeedScalar x[3], const CeedScalar dx[3]);
-  StateFromQi     = context->use_primitive ? &StateFromY     : &StateFromU;
-  StateFromQi_fwd = context->use_primitive ? &StateFromY_fwd : &StateFromU_fwd;
 
   CeedPragmaSIMD
   // Quadrature Point Loop

@@ -166,6 +166,24 @@ CEED_QFUNCTION_HELPER State StateFromY_fwd(NewtonianIdealGasContext gas,
   return ds;
 }
 
+// Generic State converters based on gas->use_primitive
+CEED_QFUNCTION_HELPER State StateFromQi(NewtonianIdealGasContext gas,
+                                        const CeedScalar Qi[5], const CeedScalar x[3]) {
+  if (gas->use_primitive) return StateFromY(gas, Qi, x);
+  else                    return StateFromU(gas, Qi, x);
+}
+
+// Generic State converter based on gas->use_primitive
+CEED_QFUNCTION_HELPER State StateFromQi_fwd(NewtonianIdealGasContext gas,
+    State s, const CeedScalar dQi[5],
+    const CeedScalar x[3], const CeedScalar dx[3]) {
+  if (gas->use_primitive) {
+    return StateFromY_fwd(gas, s, dQi, x, dx);
+  } else {
+    return StateFromU_fwd(gas, s, dQi, x, dx);
+  }
+}
+
 CEED_QFUNCTION_HELPER void FluxInviscid(NewtonianIdealGasContext gas, State s,
                                         StateConservative Flux[3]) {
   for (CeedInt i=0; i<3; i++) {
@@ -202,7 +220,7 @@ CEED_QFUNCTION_HELPER void FluxInviscidStrong(NewtonianIdealGasContext gas,
   }
 }
 
-CEED_QFUNCTION_HELPER void FluxTotal(StateConservative F_inviscid[3],
+CEED_QFUNCTION_HELPER void FluxTotal(const StateConservative F_inviscid[3],
                                      CeedScalar stress[3][3], CeedScalar Fe[3], CeedScalar Flux[5][3]) {
   for (CeedInt j=0; j<3; j++) {
     Flux[0][j] = F_inviscid[j].density;
