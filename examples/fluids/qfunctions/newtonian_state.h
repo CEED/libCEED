@@ -212,6 +212,20 @@ CEED_QFUNCTION_HELPER void FluxTotal(StateConservative F_inviscid[3],
   }
 }
 
+CEED_QFUNCTION_HELPER void FluxTotal_Boundary(
+  const StateConservative F_inviscid[3], const CeedScalar stress[3][3],
+  const CeedScalar Fe[3], const CeedScalar normal[3], CeedScalar Flux[5]) {
+
+  for(CeedInt j=0; j<5; j++) Flux[j] = 0.;
+  for (CeedInt j=0; j<3; j++) {
+    Flux[0] += F_inviscid[j].density * normal[j];
+    for (CeedInt k=0; k<3; k++) {
+      Flux[k+1] += (F_inviscid[j].momentum[k] - stress[k][j]) * normal[j];
+    }
+    Flux[4] += (F_inviscid[j].E_total + Fe[j]) * normal[j];
+  }
+}
+
 // Kelvin-Mandel notation
 CEED_QFUNCTION_HELPER void KMStrainRate(const State grad_s[3],
                                         CeedScalar strain_rate[6]) {
