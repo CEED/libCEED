@@ -426,15 +426,19 @@ PetscErrorCode SetupLibceed(Ceed ceed, CeedData ceed_data, DM dm, User user,
                           CEED_EVAL_NONE);
     CeedQFunctionAddInput(ceed_data->qf_ifunction_vol, "x", num_comp_x,
                           CEED_EVAL_INTERP);
-    if (user->phys->use_fluxproj)
-      CeedQFunctionAddInput(ceed_data->qf_ifunction_vol, "divFdiff", num_comp_q,
-                            CEED_EVAL_INTERP);
     CeedQFunctionAddOutput(ceed_data->qf_ifunction_vol, "v", num_comp_q,
                            CEED_EVAL_INTERP);
     CeedQFunctionAddOutput(ceed_data->qf_ifunction_vol, "Grad_v", num_comp_q*dim,
                            CEED_EVAL_GRAD);
-    CeedQFunctionAddOutput(ceed_data->qf_ifunction_vol, "jac_data",
-                           jac_data_size_vol, CEED_EVAL_NONE);
+    if (user->phys->use_fluxproj) {
+      CeedQFunctionAddInput(ceed_data->qf_ifunction_vol, "divFdiff", num_comp_q,
+                            CEED_EVAL_INTERP);
+      CeedQFunctionAddInput(ceed_data->qf_ifunction_vol, "jac_data",
+                            jac_data_size_vol, CEED_EVAL_NONE);
+    } else {
+      CeedQFunctionAddOutput(ceed_data->qf_ifunction_vol, "jac_data",
+                             jac_data_size_vol, CEED_EVAL_NONE);
+    }
   }
 
   CeedQFunction qf_ijacobian_vol = NULL;
@@ -477,6 +481,8 @@ PetscErrorCode SetupLibceed(Ceed ceed, CeedData ceed_data, DM dm, User user,
                           CEED_EVAL_INTERP);
     CeedQFunctionAddOutput(ceed_data->qf_fluxproj, "Grad_v", num_comp_q*dim,
                            CEED_EVAL_GRAD);
+    CeedQFunctionAddOutput(ceed_data->qf_fluxproj, "jac_data",
+                           jac_data_size_vol, CEED_EVAL_NONE);
   }
 
   // ---------------------------------------------------------------------------
@@ -568,9 +574,10 @@ PetscErrorCode SetupLibceed(Ceed ceed, CeedData ceed_data, DM dm, User user,
                          CEED_BASIS_COLLOCATED, ceed_data->q_data);
     CeedOperatorSetField(op, "x", ceed_data->elem_restr_x, ceed_data->basis_x,
                          ceed_data->x_coord);
-    if (user->phys->use_fluxproj)
+    if (user->phys->use_fluxproj) {
       CeedOperatorSetField(op, "divFdiff", ceed_data->elem_restr_q,
                            ceed_data->basis_q, user->flux_ceed);
+    }
     CeedOperatorSetField(op, "v", ceed_data->elem_restr_q, ceed_data->basis_q,
                          CEED_VECTOR_ACTIVE);
     CeedOperatorSetField(op, "Grad_v", ceed_data->elem_restr_q, ceed_data->basis_q,
@@ -595,6 +602,8 @@ PetscErrorCode SetupLibceed(Ceed ceed, CeedData ceed_data, DM dm, User user,
                          ceed_data->x_coord);
     CeedOperatorSetField(op, "Grad_v", ceed_data->elem_restr_q, ceed_data->basis_q,
                          CEED_VECTOR_ACTIVE);
+    CeedOperatorSetField(op, "jac_data", elem_restr_jd_i,
+                         CEED_BASIS_COLLOCATED, jac_data);
 
     user->op_fluxproj = op;
   }

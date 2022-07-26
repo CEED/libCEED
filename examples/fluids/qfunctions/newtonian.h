@@ -250,16 +250,17 @@ CEED_QFUNCTION_HELPER int IFunction_Newtonian(void *ctx, CeedInt Q,
     StateFromQi_t StateFromQi, StateFromQi_fwd_t StateFromQi_fwd) {
   // *INDENT-OFF*
   // Inputs
-  const CeedScalar (*q)[CEED_Q_VLA]         = (const CeedScalar(*)[CEED_Q_VLA])in[0],
-                   (*Grad_q)[5][CEED_Q_VLA] = (const CeedScalar(*)[5][CEED_Q_VLA])in[1],
-                   (*q_dot)[CEED_Q_VLA]     = (const CeedScalar(*)[CEED_Q_VLA])in[2],
-                   (*q_data)[CEED_Q_VLA]    = (const CeedScalar(*)[CEED_Q_VLA])in[3],
-                   (*x)[CEED_Q_VLA]         = (const CeedScalar(*)[CEED_Q_VLA])in[4],
-                   (*divFdiff)[CEED_Q_VLA]  = (const CeedScalar(*)[CEED_Q_VLA])in[5];
+  const CeedScalar (*q)[CEED_Q_VLA]           = (const CeedScalar(*)[CEED_Q_VLA])in[0],
+                   (*Grad_q)[5][CEED_Q_VLA]   = (const CeedScalar(*)[5][CEED_Q_VLA])in[1],
+                   (*q_dot)[CEED_Q_VLA]       = (const CeedScalar(*)[CEED_Q_VLA])in[2],
+                   (*q_data)[CEED_Q_VLA]      = (const CeedScalar(*)[CEED_Q_VLA])in[3],
+                   (*x)[CEED_Q_VLA]           = (const CeedScalar(*)[CEED_Q_VLA])in[4],
+                   (*divFdiff)[CEED_Q_VLA]    = (const CeedScalar(*)[CEED_Q_VLA])in[5],
+                   (*jac_data_in)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[6];
   // Outputs
-  CeedScalar (*v)[CEED_Q_VLA]         = (CeedScalar(*)[CEED_Q_VLA])out[0],
-             (*Grad_v)[5][CEED_Q_VLA] = (CeedScalar(*)[5][CEED_Q_VLA])out[1],
-             (*jac_data)[CEED_Q_VLA]  = (CeedScalar(*)[CEED_Q_VLA])out[2];
+  CeedScalar (*v)[CEED_Q_VLA]            = (CeedScalar(*)[CEED_Q_VLA])out[0],
+             (*Grad_v)[5][CEED_Q_VLA]    = (CeedScalar(*)[5][CEED_Q_VLA])out[1],
+             (*jac_data_out)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA])out[2];
   // *INDENT-ON*
   // Context
   NewtonianIdealGasContext context = (NewtonianIdealGasContext)ctx;
@@ -296,8 +297,12 @@ CEED_QFUNCTION_HELPER int IFunction_Newtonian(void *ctx, CeedInt Q,
     }
 
     CeedScalar strain_rate[6], kmstress[6], stress[3][3], Fe[3];
-    KMStrainRate(grad_s, strain_rate);
-    NewtonianStress(context, strain_rate, kmstress);
+    if (context->use_fluxproj) {
+      for (int j=0; j<6; j++) kmstress[j] = jac_data_in[5+j][i];
+    } else {
+      KMStrainRate(grad_s, strain_rate);
+      NewtonianStress(context, strain_rate, kmstress);
+    }
     KMUnpack(kmstress, stress);
     ViscousEnergyFlux(context, s.Y, grad_s, stress, Fe);
 
@@ -328,8 +333,10 @@ CEED_QFUNCTION_HELPER int IFunction_Newtonian(void *ctx, CeedInt Q,
     CeedScalar divFdiff_i[5] = {0.};
     if (context->use_fluxproj) {
       for (CeedInt j=0; j<5; j++) divFdiff_i[j] = divFdiff[j][i];
+      for (CeedInt j=0; j<3; j++) Tau_d[j] = jac_data_in[5+6+j][i];
+    } else {
+      Tau_diagPrim(context, s, dXdx, dt, Tau_d);
     }
-    Tau_diagPrim(context, s, dXdx, dt, Tau_d);
     Stabilization(context, s, Tau_d, grad_s, U_dot, body_force, divFdiff_i, x_i,
                   stab);
 
@@ -339,9 +346,11 @@ CEED_QFUNCTION_HELPER int IFunction_Newtonian(void *ctx, CeedInt Q,
                                   stab[j][1] * dXdx[k][1] +
                                   stab[j][2] * dXdx[k][2]);
 
-    for (CeedInt j=0; j<5; j++) jac_data[j][i]     = qi[j];
-    for (CeedInt j=0; j<6; j++) jac_data[5+j][i]   = kmstress[j];
-    for (CeedInt j=0; j<3; j++) jac_data[5+6+j][i] = Tau_d[j];
+    if (!context->use_fluxproj) {
+      for (CeedInt j=0; j<5; j++) jac_data_out[j][i]     = qi[j];
+      for (CeedInt j=0; j<6; j++) jac_data_out[5+j][i]   = kmstress[j];
+      for (CeedInt j=0; j<3; j++) jac_data_out[5+6+j][i] = Tau_d[j];
+    }
 
   } // End Quadrature Point Loop
 
@@ -808,11 +817,13 @@ CEED_QFUNCTION_HELPER int DivDiffusiveFlux(void *ctx, CeedInt Q,
                    (*q_data)[CEED_Q_VLA]    = (const CeedScalar(*)[CEED_Q_VLA])in[2],
                    (*x)[CEED_Q_VLA]         = (const CeedScalar(*)[CEED_Q_VLA])in[3];
   // Outputs
-  CeedScalar (*Grad_v)[5][CEED_Q_VLA] = (CeedScalar(*)[5][CEED_Q_VLA])out[0];
+  CeedScalar (*Grad_v)[5][CEED_Q_VLA] = (CeedScalar(*)[5][CEED_Q_VLA])out[0],
+             (*jac_data)[CEED_Q_VLA]  = (CeedScalar(*)[CEED_Q_VLA])out[1];
   // *INDENT-ON*
   // Context
-  const NewtonianIdealGasContext context = (NewtonianIdealGasContext)ctx;
-  const StateConservative ZeroFlux = {0., {0., 0., 0.}, 0.};
+  const NewtonianIdealGasContext context        = (NewtonianIdealGasContext)ctx;
+  const CeedScalar dt                           = context->dt;
+  const StateConservative ZeroFlux              = {0., {0., 0., 0.}, 0.};
   const StateConservative ZeroInviscidFluxes[3] = {ZeroFlux, ZeroFlux, ZeroFlux};
 
   CeedPragmaSIMD
@@ -861,6 +872,12 @@ CEED_QFUNCTION_HELPER int DivDiffusiveFlux(void *ctx, CeedInt Q,
       }
     }
 
+    CeedScalar Tau_d[5];
+    Tau_diagPrim(context, s, dXdx, dt, Tau_d);
+
+    for (CeedInt j=0; j<5; j++) jac_data[j][i]     = qi[j];
+    for (CeedInt j=0; j<6; j++) jac_data[5+j][i]   = kmstress[j];
+    for (CeedInt j=0; j<3; j++) jac_data[5+6+j][i] = Tau_d[j];
   } // End Quadrature Point Loop
 
   // Return
