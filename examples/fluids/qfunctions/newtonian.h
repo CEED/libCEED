@@ -470,7 +470,7 @@ CEED_QFUNCTION(BoundaryIntegral)(void *ctx, CeedInt Q,
     State s = StateFromQi(context, qi, x_i);
 
     const CeedScalar wdetJb  = (is_implicit ? -1. : 1.) * q_data_sur[0][i];
-    // ---- Normal vect
+    // ---- Normal vector
     const CeedScalar norm[3] = {q_data_sur[1][i],
                                 q_data_sur[2][i],
                                 q_data_sur[3][i]
@@ -500,33 +500,12 @@ CEED_QFUNCTION(BoundaryIntegral)(void *ctx, CeedInt Q,
     StateConservative F_inviscid[3];
     FluxInviscid(context, s, F_inviscid);
 
-    CeedScalar Flux[5] = {0.};
-    for (int j=0; j<3; j++) {
-      Flux[0] += F_inviscid[j].density * norm[j];
-      for (int k=0; k<3; k++)
-        Flux[k+1] += (F_inviscid[j].momentum[k] - stress[k][j]) * norm[j];
-      Flux[4] += (F_inviscid[j].E_total + Fe[j]) * norm[j];
-    }
+    CeedScalar Flux[5];
+    FluxTotal_Boundary(F_inviscid, stress, Fe, norm, Flux);
 
-    // -- Density
-    v[0][i] = -wdetJb * Flux[0];
+    for (CeedInt j=0; j<5; j++) v[j][i] = -wdetJb * Flux[j];
 
-    // -- Momentum
-    for (CeedInt j=0; j<3; j++)
-      v[j+1][i] = -wdetJb * Flux[j+1];
-
-    // -- Total Energy Density
-    v[4][i] = -wdetJb * Flux[4];
-
-    if (context->use_primitive) {
-      jac_data_sur[0][i] = s.Y.pressure;
-      for (int j=0; j<3; j++) jac_data_sur[j+1][i] = s.Y.velocity[j];
-      jac_data_sur[4][i] = s.Y.temperature;
-    } else {
-      jac_data_sur[0][i] = s.U.density;
-      for (int j=0; j<3; j++) jac_data_sur[j+1][i] = s.U.momentum[j];
-      jac_data_sur[4][i] = s.U.E_total;
-    }
+    for (int j=0; j<5; j++) jac_data_sur[j][i]   = qi[j];
     for (int j=0; j<6; j++) jac_data_sur[5+j][i] = kmstress[j];
   }
   return 0;
@@ -601,16 +580,10 @@ CEED_QFUNCTION(BoundaryIntegral_Jacobian)(void *ctx, CeedInt Q,
     StateConservative dF_inviscid[3];
     FluxInviscid_fwd(context, s, ds, dF_inviscid);
 
-    CeedScalar dFlux[5] = {0.};
-    for (int j=0; j<3; j++) {
-      dFlux[0] += dF_inviscid[j].density * norm[j];
-      for (int k=0; k<3; k++)
-        dFlux[k+1] += (dF_inviscid[j].momentum[k] - dstress[k][j]) * norm[j];
-      dFlux[4] += (dF_inviscid[j].E_total + dFe[j]) * norm[j];
-    }
+    CeedScalar dFlux[5];
+    FluxTotal_Boundary(dF_inviscid, dstress, dFe, norm, dFlux);
 
-    for (int j=0; j<5; j++)
-      v[j][i] = -wdetJb * dFlux[j];
+    for (int j=0; j<5; j++) v[j][i] = -wdetJb * dFlux[j];
   } // End Quadrature Point Loop
   return 0;
 }
@@ -660,7 +633,7 @@ CEED_QFUNCTION(PressureOutflow)(void *ctx, CeedInt Q,
     // We can effect this by swapping the sign on this weight
     const CeedScalar wdetJb  = (implicit ? -1. : 1.) * q_data_sur[0][i];
 
-    // ---- Normal vect
+    // ---- Normal vector
     const CeedScalar norm[3] = {q_data_sur[1][i],
                                 q_data_sur[2][i],
                                 q_data_sur[3][i]
@@ -690,34 +663,13 @@ CEED_QFUNCTION(PressureOutflow)(void *ctx, CeedInt Q,
     StateConservative F_inviscid[3];
     FluxInviscid(context, s, F_inviscid);
 
-    CeedScalar Flux[5] = {0.};
-    for (int j=0; j<3; j++) {
-      Flux[0] += F_inviscid[j].density * norm[j];
-      for (int k=0; k<3; k++)
-        Flux[k+1] += (F_inviscid[j].momentum[k] - stress[k][j]) * norm[j];
-      Flux[4] += (F_inviscid[j].E_total + Fe[j])*norm[j];
-    }
+    CeedScalar Flux[5];
+    FluxTotal_Boundary(F_inviscid, stress, Fe, norm, Flux);
 
-    // -- Density
-    v[0][i] = -wdetJb * Flux[0];
-
-    // -- Momentum
-    for (CeedInt j=0; j<3; j++)
-      v[j+1][i] = -wdetJb * Flux[j+1];
-
-    // -- Total Energy Density
-    v[4][i] = -wdetJb * Flux[4];
+    for (CeedInt j=0; j<5; j++) v[j][i] = -wdetJb * Flux[j];
 
     // Save values for Jacobian
-    if (context->use_primitive) {
-      jac_data_sur[0][i] = s.Y.pressure;
-      for (int j=0; j<3; j++) jac_data_sur[j+1][i] = s.Y.velocity[j];
-      jac_data_sur[4][i] = s.Y.temperature;
-    } else {
-      jac_data_sur[0][i] = s.U.density;
-      for (int j=0; j<3; j++) jac_data_sur[j+1][i] = s.U.momentum[j];
-      jac_data_sur[4][i] = s.U.E_total;
-    }
+    for (int j=0; j<5; j++) jac_data_sur[j][i]   = qi[j];
     for (int j=0; j<6; j++) jac_data_sur[5+j][i] = kmstress[j];
   } // End Quadrature Point Loop
   return 0;
@@ -794,16 +746,10 @@ CEED_QFUNCTION(PressureOutflow_Jacobian)(void *ctx, CeedInt Q,
     StateConservative dF_inviscid[3];
     FluxInviscid_fwd(context, s, ds, dF_inviscid);
 
-    CeedScalar dFlux[5] = {0.};
-    for (int j=0; j<3; j++) {
-      dFlux[0] += dF_inviscid[j].density * norm[j];
-      for (int k=0; k<3; k++)
-        dFlux[k+1] += (dF_inviscid[j].momentum[k] - dstress[k][j]) * norm[j];
-      dFlux[4] += (dF_inviscid[j].E_total + dFe[j]) * norm[j];
-    }
+    CeedScalar dFlux[5];
+    FluxTotal_Boundary(dF_inviscid, dstress, dFe, norm, dFlux);
 
-    for (int j=0; j<5; j++)
-      v[j][i] = -wdetJb * dFlux[j];
+    for (int j=0; j<5; j++) v[j][i] = -wdetJb * dFlux[j];
   } // End Quadrature Point Loop
   return 0;
 }
