@@ -437,9 +437,9 @@ CEED_QFUNCTION(IJacobian_Newtonian)(void *ctx, CeedInt Q,
 // *****************************************************************************
 // Compute boundary integral (ie. for strongly set inflows)
 // *****************************************************************************
-CEED_QFUNCTION(BoundaryIntegral)(void *ctx, CeedInt Q,
-                                 const CeedScalar *const *in,
-                                 CeedScalar *const *out) {
+CEED_QFUNCTION_HELPER int BoundaryIntegral(void *ctx, CeedInt Q,
+    const CeedScalar *const *in, CeedScalar *const *out,
+    StateFromQi_t StateFromQi, StateFromQi_fwd_t StateFromQi_fwd) {
 
   //*INDENT-OFF*
   const CeedScalar (*q)[CEED_Q_VLA]          = (const CeedScalar(*)[CEED_Q_VLA])in[0],
@@ -454,14 +454,6 @@ CEED_QFUNCTION(BoundaryIntegral)(void *ctx, CeedInt Q,
 
   const NewtonianIdealGasContext context = (NewtonianIdealGasContext) ctx;
   const bool is_implicit  = context->is_implicit;
-  State (*StateFromQi)(NewtonianIdealGasContext gas,
-                       const CeedScalar qi[5], const CeedScalar x[3]);
-  State (*StateFromQi_fwd)(NewtonianIdealGasContext gas,
-                           State s, const CeedScalar dqi[5],
-                           const CeedScalar x[3], const CeedScalar dx[3]);
-  StateFromQi     = context->use_primitive ? &StateFromY     : &StateFromU;
-  StateFromQi_fwd = context->use_primitive ? &StateFromY_fwd : &StateFromU_fwd;
-
 
   CeedPragmaSIMD
   for(CeedInt i=0; i<Q; i++) {
@@ -511,12 +503,22 @@ CEED_QFUNCTION(BoundaryIntegral)(void *ctx, CeedInt Q,
   return 0;
 }
 
+CEED_QFUNCTION(BoundaryIntegral_Conserv)(void *ctx, CeedInt Q,
+    const CeedScalar *const *in, CeedScalar *const *out) {
+  return BoundaryIntegral(ctx, Q, in, out, StateFromU, StateFromU_fwd);
+}
+
+CEED_QFUNCTION(BoundaryIntegral_Prim)(void *ctx, CeedInt Q,
+                                      const CeedScalar *const *in, CeedScalar *const *out) {
+  return BoundaryIntegral(ctx, Q, in, out, StateFromY, StateFromY_fwd);
+}
+
 // *****************************************************************************
 // Jacobian for "set nothing" boundary integral
 // *****************************************************************************
-CEED_QFUNCTION(BoundaryIntegral_Jacobian)(void *ctx, CeedInt Q,
-    const CeedScalar *const *in,
-    CeedScalar *const *out) {
+CEED_QFUNCTION_HELPER int BoundaryIntegral_Jacobian(void *ctx, CeedInt Q,
+    const CeedScalar *const *in, CeedScalar *const *out,
+    StateFromQi_t StateFromQi, StateFromQi_fwd_t StateFromQi_fwd) {
   // *INDENT-OFF*
   // Inputs
   const CeedScalar (*dq)[CEED_Q_VLA]           = (const CeedScalar(*)[CEED_Q_VLA])in[0],
@@ -530,13 +532,6 @@ CEED_QFUNCTION(BoundaryIntegral_Jacobian)(void *ctx, CeedInt Q,
 
   const NewtonianIdealGasContext context = (NewtonianIdealGasContext)ctx;
   const bool implicit     = context->is_implicit;
-  State (*StateFromQi)(NewtonianIdealGasContext gas,
-                       const CeedScalar qi[5], const CeedScalar x[3]);
-  State (*StateFromQi_fwd)(NewtonianIdealGasContext gas,
-                           State s, const CeedScalar dqi[5],
-                           const CeedScalar x[3], const CeedScalar dx[3]);
-  StateFromQi     = context->use_primitive ? &StateFromY     : &StateFromU;
-  StateFromQi_fwd = context->use_primitive ? &StateFromY_fwd : &StateFromU_fwd;
 
   CeedPragmaSIMD
   // Quadrature Point Loop
@@ -588,12 +583,22 @@ CEED_QFUNCTION(BoundaryIntegral_Jacobian)(void *ctx, CeedInt Q,
   return 0;
 }
 
+CEED_QFUNCTION(BoundaryIntegral_Jacobian_Conserv)(void *ctx, CeedInt Q,
+    const CeedScalar *const *in, CeedScalar *const *out) {
+  return BoundaryIntegral_Jacobian(ctx, Q, in, out, StateFromU, StateFromU_fwd);
+}
+
+CEED_QFUNCTION(BoundaryIntegral_Jacobian_Prim)(void *ctx, CeedInt Q,
+    const CeedScalar *const *in, CeedScalar *const *out) {
+  return BoundaryIntegral_Jacobian(ctx, Q, in, out, StateFromY, StateFromY_fwd);
+}
+
 // *****************************************************************************
 // Outflow boundary condition, weakly setting a constant pressure
 // *****************************************************************************
-CEED_QFUNCTION(PressureOutflow)(void *ctx, CeedInt Q,
-                                const CeedScalar *const *in,
-                                CeedScalar *const *out) {
+CEED_QFUNCTION_HELPER int PressureOutflow(void *ctx, CeedInt Q,
+    const CeedScalar *const *in, CeedScalar *const *out,
+    StateFromQi_t StateFromQi, StateFromQi_fwd_t StateFromQi_fwd) {
   // *INDENT-OFF*
   // Inputs
   const CeedScalar (*q)[CEED_Q_VLA]          = (const CeedScalar(*)[CEED_Q_VLA])in[0],
@@ -608,14 +613,6 @@ CEED_QFUNCTION(PressureOutflow)(void *ctx, CeedInt Q,
   const NewtonianIdealGasContext context = (NewtonianIdealGasContext)ctx;
   const bool       implicit = context->is_implicit;
   const CeedScalar P0       = context->P0;
-
-  State (*StateFromQi)(NewtonianIdealGasContext gas,
-                       const CeedScalar qi[5], const CeedScalar x[3]);
-  State (*StateFromQi_fwd)(NewtonianIdealGasContext gas,
-                           State s, const CeedScalar dqi[5],
-                           const CeedScalar x[3], const CeedScalar dx[3]);
-  StateFromQi     = context->use_primitive ? &StateFromY     : &StateFromU;
-  StateFromQi_fwd = context->use_primitive ? &StateFromY_fwd : &StateFromU_fwd;
 
   CeedPragmaSIMD
   // Quadrature Point Loop
@@ -634,10 +631,7 @@ CEED_QFUNCTION(PressureOutflow)(void *ctx, CeedInt Q,
     const CeedScalar wdetJb  = (implicit ? -1. : 1.) * q_data_sur[0][i];
 
     // ---- Normal vector
-    const CeedScalar norm[3] = {q_data_sur[1][i],
-                                q_data_sur[2][i],
-                                q_data_sur[3][i]
-                               };
+    const CeedScalar norm[3] = {q_data_sur[1][i], q_data_sur[2][i], q_data_sur[3][i]};
 
     const CeedScalar dXdx[2][3] = {
       {q_data_sur[4][i], q_data_sur[5][i], q_data_sur[6][i]},
@@ -675,11 +669,22 @@ CEED_QFUNCTION(PressureOutflow)(void *ctx, CeedInt Q,
   return 0;
 }
 
+CEED_QFUNCTION(PressureOutflow_Conserv)(void *ctx, CeedInt Q,
+                                        const CeedScalar *const *in, CeedScalar *const *out) {
+  return PressureOutflow(ctx, Q, in, out, StateFromU, StateFromU_fwd);
+}
+
+CEED_QFUNCTION(PressureOutflow_Prim)(void *ctx, CeedInt Q,
+                                     const CeedScalar *const *in, CeedScalar *const *out) {
+  return PressureOutflow(ctx, Q, in, out, StateFromY, StateFromY_fwd);
+}
+
 // *****************************************************************************
 // Jacobian for weak-pressure outflow boundary condition
 // *****************************************************************************
-CEED_QFUNCTION(PressureOutflow_Jacobian)(void *ctx, CeedInt Q,
-    const CeedScalar *const *in, CeedScalar *const *out) {
+CEED_QFUNCTION_HELPER int PressureOutflow_Jacobian(void *ctx, CeedInt Q,
+    const CeedScalar *const *in, CeedScalar *const *out,
+    StateFromQi_t StateFromQi, StateFromQi_fwd_t StateFromQi_fwd) {
   // *INDENT-OFF*
   // Inputs
   const CeedScalar (*dq)[CEED_Q_VLA]           = (const CeedScalar(*)[CEED_Q_VLA])in[0],
@@ -694,23 +699,12 @@ CEED_QFUNCTION(PressureOutflow_Jacobian)(void *ctx, CeedInt Q,
   const NewtonianIdealGasContext context = (NewtonianIdealGasContext)ctx;
   const bool implicit     = context->is_implicit;
 
-  State (*StateFromQi)(NewtonianIdealGasContext gas,
-                       const CeedScalar qi[5], const CeedScalar x[3]);
-  State (*StateFromQi_fwd)(NewtonianIdealGasContext gas,
-                           State s, const CeedScalar dQi[5],
-                           const CeedScalar x[3], const CeedScalar dx[3]);
-  StateFromQi     = context->use_primitive ? &StateFromY     : &StateFromU;
-  StateFromQi_fwd = context->use_primitive ? &StateFromY_fwd : &StateFromU_fwd;
-
   CeedPragmaSIMD
   // Quadrature Point Loop
   for (CeedInt i=0; i<Q; i++) {
     const CeedScalar x_i[3]  = {x[0][i], x[1][i], x[2][i]};
     const CeedScalar wdetJb  = (implicit ? -1. : 1.) * q_data_sur[0][i];
-    const CeedScalar norm[3] = {q_data_sur[1][i],
-                                q_data_sur[2][i],
-                                q_data_sur[3][i]
-                               };
+    const CeedScalar norm[3] = {q_data_sur[1][i], q_data_sur[2][i], q_data_sur[3][i]};
     const CeedScalar dXdx[2][3] = {
       {q_data_sur[4][i], q_data_sur[5][i], q_data_sur[6][i]},
       {q_data_sur[7][i], q_data_sur[8][i], q_data_sur[9][i]}
@@ -752,6 +746,16 @@ CEED_QFUNCTION(PressureOutflow_Jacobian)(void *ctx, CeedInt Q,
     for (int j=0; j<5; j++) v[j][i] = -wdetJb * dFlux[j];
   } // End Quadrature Point Loop
   return 0;
+}
+
+CEED_QFUNCTION(PressureOutflow_Jacobian_Conserv)(void *ctx, CeedInt Q,
+    const CeedScalar *const *in, CeedScalar *const *out) {
+  return PressureOutflow_Jacobian(ctx, Q, in, out, StateFromU, StateFromU_fwd);
+}
+
+CEED_QFUNCTION(PressureOutflow_Jacobian_Prim)(void *ctx, CeedInt Q,
+    const CeedScalar *const *in, CeedScalar *const *out) {
+  return PressureOutflow_Jacobian(ctx, Q, in, out, StateFromY, StateFromY_fwd);
 }
 
 // *****************************************************************************
