@@ -11,6 +11,53 @@
 #include "../navierstokes.h"
 #include "../qfunctions/channel.h"
 
+
+static PetscErrorCode ModifyMesh(MPI_Comm comm, DM dm, PetscInt dim) {
+  PetscInt ierr, narr, ncoords;
+  PetscReal domain_min[3], domain_max[3], domain_size[3];
+  PetscScalar *arr_coords;
+  Vec vec_coords;
+  PetscFunctionBeginUser;
+
+  // Get domain boundary information
+  ierr = DMGetBoundingBox(dm, domain_min, domain_max); CHKERRQ(ierr);
+  for (PetscInt i=0; i<3; i++) domain_size[i] = domain_max[i] - domain_min[i];
+
+  // Get coords array from DM
+  ierr = DMGetCoordinatesLocal(dm, &vec_coords); CHKERRQ(ierr);
+  ierr = VecGetLocalSize(vec_coords, &narr); CHKERRQ(ierr);
+  ierr = VecGetArray(vec_coords, &arr_coords); CHKERRQ(ierr);
+
+  PetscScalar (*coords)[dim] = (PetscScalar(*)[dim]) arr_coords;
+  ncoords = narr/dim;
+
+  // Get mesh information
+  PetscInt nmax = 3, faces[3];
+  ierr = PetscOptionsGetIntArray(NULL, NULL, "-dm_plex_box_faces", faces, &nmax,
+                                 NULL); CHKERRQ(ierr);
+  // Get element size of the box mesh, for indexing each node
+  const PetscReal dxbox = domain_size[0]/faces[0];
+
+  for (PetscInt i=0; i<ncoords; i++) {
+    PetscInt x_box_index = round(coords[i][0]/dxbox);
+    PetscInt y_box_index = round(coords[i][1]/dxbox);
+      // coords[i][0] = 0.;
+      // coords[i][1] = 0.;
+      coords[i][2] *= 10.;
+    if (x_box_index % 2) {
+      coords[i][0] = (x_box_index-1)*dxbox + 0.5*dxbox;
+    }
+    if (y_box_index % 2) {
+      coords[i][1] = (y_box_index-1)*dxbox + 0.5*dxbox;
+    }
+  }
+
+  ierr = VecRestoreArray(vec_coords, &arr_coords); CHKERRQ(ierr);
+  ierr = DMSetCoordinatesLocal(dm, vec_coords); CHKERRQ(ierr);
+
+  PetscFunctionReturn(0);
+}
+
 PetscErrorCode NS_CHANNEL(ProblemData *problem, DM dm, void *ctx) {
 
   PetscInt ierr;
@@ -23,6 +70,8 @@ PetscErrorCode NS_CHANNEL(ProblemData *problem, DM dm, void *ctx) {
   PetscFunctionBeginUser;
   ierr = NS_NEWTONIAN_IG(problem, dm, ctx); CHKERRQ(ierr);
   ierr = PetscCalloc1(1, &channel_ctx); CHKERRQ(ierr);
+
+  ierr = ModifyMesh(comm, dm, problem->dim); CHKERRQ(ierr);
 
   // ------------------------------------------------------
   //               SET UP Channel
