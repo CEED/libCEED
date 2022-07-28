@@ -427,9 +427,9 @@ ifneq ($(wildcard $(MAGMA_DIR)/lib/libmagma.*),)
       magma_link_shared = -L$(MAGMA_DIR)/lib -Wl,-rpath,$(abspath $(MAGMA_DIR)/lib) -lmagma
       magma_link := $(if $(wildcard $(MAGMA_DIR)/lib/libmagma.${SO_EXT}),$(magma_link_shared),$(magma_link_static))
       PKG_LIBS += $(magma_link)
-      libceed.c  += $(magma.c)
-      libceed.c  += $(magma.cpp)
-      libceed.cu += $(magma.cu)
+      libceed.c   += $(magma.c)
+      libceed.cpp += $(magma.cpp)
+      libceed.cu  += $(magma.cu)
       $(magma.c:%.c=$(OBJDIR)/%.o) $(magma.c:%=%.tidy) : CPPFLAGS += -DADD_ -I$(MAGMA_DIR)/include -I$(CUDA_DIR)/include
       $(magma.cpp:%.cpp=$(OBJDIR)/%.o) $(magma.cpp:%=%.tidy) : CPPFLAGS += -DADD_ -I$(MAGMA_DIR)/include -I$(CUDA_DIR)/include
       $(magma.cu:%.cu=$(OBJDIR)/%.o) : CPPFLAGS += --compiler-options=-fPIC -DADD_ -I$(MAGMA_DIR)/include -I$(MAGMA_DIR)/magmablas -I$(CUDA_DIR)/include
@@ -443,8 +443,8 @@ ifneq ($(wildcard $(MAGMA_DIR)/lib/libmagma.*),)
       magma_link_shared = -L$(MAGMA_DIR)/lib -Wl,-rpath,$(abspath $(MAGMA_DIR)/lib) -lmagma
       magma_link := $(if $(wildcard $(MAGMA_DIR)/lib/libmagma.${SO_EXT}),$(magma_link_shared),$(magma_link_static))
       PKG_LIBS += $(magma_link)
-      libceed.c  += $(magma.c)
-      libceed.c  += $(magma.cpp)
+      libceed.c   += $(magma.c)
+      libceed.cpp += $(magma.cpp)
       libceed.hip += $(magma.hip)
       ifneq ($(CXX), $(HIPCC))
         $(magma.c:%.c=$(OBJDIR)/%.o) $(magma.c:%=%.tidy) : CPPFLAGS += -I$(MAGMA_DIR)/include -I$(HIP_DIR)/include -DCEED_MAGMA_USE_HIP -DADD_
