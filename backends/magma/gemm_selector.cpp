@@ -5,16 +5,23 @@
 #include "ceed-magma.h"
 
 #include"./gemm_tuning/indices.h"
-#include"./gemm_tuning/a100.h"
-#include"./gemm_tuning/v100.h"
+#ifdef CEED_MAGMA_USE_HIP
 #include"./gemm_tuning/mi100.h"
 #include"./gemm_tuning/mi250x.h"
+#else
+#include"./gemm_tuning/a100.h"
+#include"./gemm_tuning/v100.h"
+#endif
 
 ////////////////////////////////////////////////////////////////////////////////
 static void* gemm_selector_get_data(int gpu_arch, char precision, char transA)
 {
   // a default
+  #ifdef CEED_MAGMA_USE_HIP
   void* data = (void*)&sgemm_nn_mi250x;
+  #else
+  void* data = (void*)&sgemm_nn_a100;
+  #endif
 
   #ifdef CEED_MAGMA_USE_HIP
   // TODO: choose between mi250x and mi100
