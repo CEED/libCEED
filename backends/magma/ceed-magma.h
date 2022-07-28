@@ -239,6 +239,13 @@ CEED_INTERN {
     float beta,  float *dC, magma_int_t lddc,
     magma_queue_t queue );
 
+  CEED_INTERN  void
+  gemm_selector(
+    int gpu_arch,
+    char precision, char transA,
+    int m, int n, int k,
+    int* nbatch, int* use_magma );
+
   magma_int_t
   magma_isdevptr(const void *A);
 
