@@ -24,8 +24,7 @@ magma_dgemm_nontensor(
   double alpha, const double *dA, magma_int_t ldda,
   const double *dB, magma_int_t lddb,
   double beta,  double *dC, magma_int_t lddc,
-  magma_queue_t queue )
-{
+  magma_queue_t queue ) {
   magma_int_t nbatch, use_magmablas;
   magma_int_t arch = magma_getdevice_arch();
 
@@ -37,7 +36,7 @@ magma_dgemm_nontensor(
     magma_dgemm(
       transA, transB, m, n, k,
       alpha, dA, ldda,
-             dB, lddb,
+      dB, lddb,
       beta,  dC, lddc, queue);
     return 0;
   }
@@ -48,7 +47,8 @@ magma_dgemm_nontensor(
   gemm_selector( arch, precision, trans, m, n, k, &nbatch, &use_magmablas );
 
   #if 0
-  printf("%c %c -- (%3d, %3d, %3d) -- nbatch = %3d, use_magma = %d\n", trans, precision, m, n, k, nbatch, use_magmablas);
+  printf("%c %c -- (%3d, %3d, %3d) -- nbatch = %3d, use_magma = %d\n", trans,
+         precision, m, n, k, nbatch, use_magmablas);
   #endif
 
   // perform the dgemm operation
@@ -57,7 +57,7 @@ magma_dgemm_nontensor(
     magma_dgemm(
       transA, transB, m, n, k,
       alpha, dA, ldda,
-             dB, lddb,
+      dB, lddb,
       beta,  dC, lddc, queue);
   } else {
     // use batch kernels
