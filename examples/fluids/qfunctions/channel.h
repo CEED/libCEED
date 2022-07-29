@@ -142,7 +142,7 @@ CEED_QFUNCTION(Channel_Inflow)(void *ctx, CeedInt Q,
 
     // Find pressure using state inside the domain
     CeedScalar q_inside[5] = {0};
-    for (CeedInt j; j<5; j++)
+    for (CeedInt j=0; j<5; j++)
       q_inside[j] = q[j][i];
     State s_inside = StateFromU(gas, q_inside, x);
     const CeedScalar P = s_inside.Y.pressure;
