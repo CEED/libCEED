@@ -1006,18 +1006,20 @@ int CeedOperatorCheckReady(CeedOperator op) {
 
   CeedQFunction qf = op->qf;
   if (op->is_composite) {
-    if (!op->num_suboperators)
-      // LCOV_EXCL_START
-      return CeedError(ceed, CEED_ERROR_INCOMPLETE, "No sub_operators set");
-    // LCOV_EXCL_STOP
-    for (CeedInt i = 0; i < op->num_suboperators; i++) {
-      ierr = CeedOperatorCheckReady(op->sub_operators[i]); CeedChk(ierr);
+    if (!op->num_suboperators) {
+      // Empty operator setup
+      op->input_size = 0;
+      op->output_size = 0;
+    } else {
+      for (CeedInt i = 0; i < op->num_suboperators; i++) {
+        ierr = CeedOperatorCheckReady(op->sub_operators[i]); CeedChk(ierr);
+      }
+      // Sub-operators could be modified after adding to composite operator
+      // Need to verify no lvec incompatibility from any changes
+      CeedSize input_size, output_size;
+      ierr = CeedOperatorGetActiveVectorLengths(op, &input_size, &output_size);
+      CeedChk(ierr);
     }
-    // Sub-operators could be modified after adding to composite operator
-    // Need to verify no lvec incompatibility from any changes
-    CeedSize input_size, output_size;
-    ierr = CeedOperatorGetActiveVectorLengths(op, &input_size, &output_size);
-    CeedChk(ierr);
   } else {
     if (op->num_fields == 0)
       // LCOV_EXCL_START
