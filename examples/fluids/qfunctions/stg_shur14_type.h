@@ -8,7 +8,7 @@
 #ifndef stg_shur14_type_h
 #define stg_shur14_type_h
 
-#include <ceed.h>
+#include <ceed/types.h>
 #include "newtonian_types.h"
 
 /* Access data arrays via:

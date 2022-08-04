@@ -11,6 +11,7 @@
 #ifndef ELAS_FSCurrentNH2_H
 #define ELAS_FSCurrentNH2_H
 
+#include <ceed/types.h>
 #include <math.h>
 
 #ifndef PHYSICS_STRUCT

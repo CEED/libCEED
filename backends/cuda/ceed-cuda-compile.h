@@ -17,7 +17,7 @@ static inline CeedInt CeedDivUpInt(CeedInt numerator, CeedInt denominator) {
 }
 
 CEED_INTERN int CeedCompileCuda(Ceed ceed, const char *source, CUmodule *module,
-                                const CeedInt num_opts, ...);
+                                const CeedInt num_defines, ...);
 
 CEED_INTERN int CeedGetKernelCuda(Ceed ceed, CUmodule module, const char *name,
                                   CUfunction *kernel);

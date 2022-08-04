@@ -12,6 +12,8 @@
 #ifndef mass3dbuild_h
 #define mass3dbuild_h
 
+#include <ceed/types.h>
+
 CEED_QFUNCTION(Mass3DBuild)(void *ctx, const CeedInt Q,
                             const CeedScalar *const *in, CeedScalar *const *out) {
   // *INDENT-OFF*

@@ -7,6 +7,7 @@
 
 // Note: intentionally testing strange spacing in '#include's
 #include  <math.h>
+#include <ceed/types.h>
 #include "./t406-qfunction-scales.h"
 # include   "t406-qfunction-helper.h"
 

@@ -12,8 +12,8 @@
 #ifndef blasius_h
 #define blasius_h
 
+#include <ceed/types.h>
 #include <math.h>
-#include <ceed.h>
 #include "newtonian_types.h"
 #include "utils.h"
 

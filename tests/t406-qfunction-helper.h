@@ -8,6 +8,7 @@
 #ifndef _helper_h
 #define _helper_h
 
+#include <ceed/types.h>
 #include "t406-qfunction-scales.h"
 
 CEED_QFUNCTION_HELPER CeedScalar times_two(CeedScalar x) {

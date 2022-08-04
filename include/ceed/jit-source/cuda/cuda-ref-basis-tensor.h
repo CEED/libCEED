@@ -5,7 +5,7 @@
 //
 // This file is part of CEED:  http://github.com/ceed
 
-#include <ceed/ceed.h>
+#include <ceed/types.h>
 
 //------------------------------------------------------------------------------
 // Tensor Basis Kernels

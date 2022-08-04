@@ -11,6 +11,8 @@
 #ifndef common_h
 #define common_h
 
+#include <ceed/types.h>
+
 // -----------------------------------------------------------------------------
 CEED_QFUNCTION(Error)(void *ctx, CeedInt Q,
                       const CeedScalar *const *in, CeedScalar *const *out) {

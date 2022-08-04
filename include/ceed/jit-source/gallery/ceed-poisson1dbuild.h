@@ -12,6 +12,8 @@
 #ifndef poisson1dbuild_h
 #define poisson1dbuild_h
 
+#include <ceed/types.h>
+
 CEED_QFUNCTION(Poisson1DBuild)(void *ctx, const CeedInt Q,
                                const CeedScalar *const *in,
                                CeedScalar *const *out) {

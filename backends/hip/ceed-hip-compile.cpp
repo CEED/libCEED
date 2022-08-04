@@ -7,6 +7,7 @@
 
 #include <ceed/ceed.h>
 #include <ceed/backend.h>
+#include <ceed/jit-tools.h>
 #include <sstream>
 #include <stdarg.h>
 #include <string.h>
@@ -25,12 +26,13 @@ do { \
 // Compile HIP kernel
 //------------------------------------------------------------------------------
 int CeedCompileHip(Ceed ceed, const char *source, hipModule_t *module,
-                    const CeedInt num_opts, ...) {
+                    const CeedInt num_defines, ...) {
   int ierr;
-  hipFree(0); // Make sure a Context exists for hiprtc 
+  hipFree(0); // Make sure a Context exists for hiprtc
   hiprtcProgram prog;
 
   std::ostringstream code;
+
   // Add hip runtime include statement for generation if runtime < 40400000
   // (implies ROCm < 4.5)
   int runtime_version;
@@ -46,16 +48,13 @@ int CeedCompileHip(Ceed ceed, const char *source, hipModule_t *module,
     code << "#define HIP_DYNAMIC_SHARED(type, var) extern __shared__ type var[];\n";
   }
 
-  // Macro definitions
-  // Get kernel specific options, such as kernel constants
-  const int opts_size = 3;
-  const char *opts[opts_size];
-  if (num_opts > 0) {
+  // Kernel specific options, such as kernel constants
+  if (num_defines > 0) {
     va_list args;
-    va_start(args, num_opts);
+    va_start(args, num_defines);
     char *name;
     int val;
-    for (int i = 0; i < num_opts; i++) {
+    for (int i = 0; i < num_defines; i++) {
       name = va_arg(args, char *);
       val = va_arg(args, int);
       code << "#define " << name << " " << val << "\n";
@@ -63,17 +62,21 @@ int CeedCompileHip(Ceed ceed, const char *source, hipModule_t *module,
     va_end(args);
   }
 
-  // Standard backend options
-  if (CEED_SCALAR_TYPE == CEED_SCALAR_FP32) { 
-    code << "#define CeedScalar float\n";
-  }
-  else {
-    code << "#define CeedScalar double\n";
-  }
-  code << "#define CeedInt int\n";
-  code << "#define CEED_ERROR_SUCCESS 0\n\n";
+  // Standard libCEED definitions for HIP backends
+  char *jit_defs_path, *jit_defs_source;
+  ierr = CeedGetJitAbsolutePath(ceed,
+                                "ceed/jit-source/hip/hip-jit.h",
+                                &jit_defs_path); CeedChkBackend(ierr);
+  ierr = CeedLoadSourceToBuffer(ceed, jit_defs_path, &jit_defs_source);
+  CeedChkBackend(ierr);
+  code << jit_defs_source;
+  code << "\n\n";
+  ierr = CeedFree(&jit_defs_path); CeedChkBackend(ierr);
+  ierr = CeedFree(&jit_defs_source); CeedChkBackend(ierr);
  
-  // Non-macro options     
+  // Non-macro options
+  const int num_opts = 3;
+  const char *opts[num_opts];
   opts[0] = "-default-device";
   struct hipDeviceProp_t prop;
   Ceed_Hip *ceed_data;
@@ -90,7 +93,7 @@ int CeedCompileHip(Ceed ceed, const char *source, hipModule_t *module,
   CeedChk_hiprtc(ceed, hiprtcCreateProgram(&prog, code.str().c_str(), NULL, 0, NULL, NULL));
 
   // Compile kernel
-  hiprtcResult result = hiprtcCompileProgram(prog, opts_size, opts);
+  hiprtcResult result = hiprtcCompileProgram(prog, num_opts, opts);
   if (result != HIPRTC_SUCCESS) {
     size_t log_size;
     CeedChk_hiprtc(ceed, hiprtcGetProgramLogSize(prog, &log_size));

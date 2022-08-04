@@ -12,8 +12,8 @@
 #ifndef stabilization_h
 #define stabilization_h
 
+#include <ceed/types.h>
 #include "newtonian_state.h"
-#include <ceed.h>
 
 // *****************************************************************************
 // Helper function for computing the variation in primitive variables,

@@ -12,12 +12,12 @@
 #ifndef newtonian_h
 #define newtonian_h
 
+#include <ceed/types.h>
 #include <math.h>
-#include <ceed.h>
-#include "newtonian_types.h"
 #include "newtonian_state.h"
-#include "utils.h"
+#include "newtonian_types.h"
 #include "stabilization.h"
+#include "utils.h"
 
 // *****************************************************************************
 // This QFunction sets a "still" initial condition for generic Newtonian IG problems

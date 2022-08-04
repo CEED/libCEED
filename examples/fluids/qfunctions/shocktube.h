@@ -25,8 +25,8 @@
 #ifndef shocktube_h
 #define shocktube_h
 
+#include <ceed/types.h>
 #include <math.h>
-#include <ceed.h>
 #include "utils.h"
 
 typedef struct SetupContext_ *SetupContext;

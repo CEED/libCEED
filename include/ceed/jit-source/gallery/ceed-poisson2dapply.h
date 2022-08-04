@@ -12,6 +12,8 @@
 #ifndef poisson2dapply_h
 #define poisson2dapply_h
 
+#include <ceed/types.h>
+
 CEED_QFUNCTION(Poisson2DApply)(void *ctx, const CeedInt Q,
                                const CeedScalar *const *in,
                                CeedScalar *const *out) {
