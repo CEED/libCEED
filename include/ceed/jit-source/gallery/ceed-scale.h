@@ -12,7 +12,7 @@
 #ifndef scale_h
 #define scale_h
 
-#include <ceed/types.h>
+#include <ceed.h>
 
 CEED_QFUNCTION(Scale)(void *ctx, const CeedInt Q, const CeedScalar *const *in,
                       CeedScalar *const *out) {

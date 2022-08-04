@@ -13,7 +13,7 @@
 #ifndef vectormassapply_h
 #define vectormassapply_h
 
-#include <ceed/types.h>
+#include <ceed.h>
 
 CEED_QFUNCTION(Vector3MassApply)(void *ctx, const CeedInt Q,
                                  const CeedScalar *const *in, CeedScalar *const *out) {

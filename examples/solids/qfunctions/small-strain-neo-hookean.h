@@ -11,7 +11,7 @@
 #ifndef ELAS_SS_NH_H
 #define ELAS_SS_NH_H
 
-#include <ceed/types.h>
+#include <ceed.h>
 #include <math.h>
 
 #ifndef PHYSICS_STRUCT

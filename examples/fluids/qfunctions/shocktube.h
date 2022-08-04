@@ -25,7 +25,7 @@
 #ifndef shocktube_h
 #define shocktube_h
 
-#include <ceed/types.h>
+#include <ceed.h>
 #include <math.h>
 #include "utils.h"
 

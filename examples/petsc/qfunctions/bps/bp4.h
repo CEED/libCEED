@@ -11,7 +11,7 @@
 #ifndef bp4_h
 #define bp4_h
 
-#include <ceed/types.h>
+#include <ceed.h>
 #include <math.h>
 
 // -----------------------------------------------------------------------------

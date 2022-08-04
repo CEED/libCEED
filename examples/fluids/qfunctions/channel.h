@@ -12,7 +12,7 @@
 #ifndef channel_h
 #define channel_h
 
-#include <ceed/types.h>
+#include <ceed.h>
 #include <math.h>
 #include "newtonian_state.h"
 #include "newtonian_types.h"

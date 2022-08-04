@@ -8,7 +8,7 @@
 #ifndef dirichlet_boundary_h
 #define dirichlet_boundary_h
 
-#include <ceed/types.h>
+#include <ceed.h>
 
 CEED_QFUNCTION(SetupDirichletBC)(void *ctx, CeedInt Q,
                                  const CeedScalar *const *in,

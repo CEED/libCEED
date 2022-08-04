@@ -20,7 +20,7 @@
 #ifndef bp3sphere_h
 #define bp3sphere_h
 
-#include <ceed/types.h>
+#include <ceed.h>
 #include <math.h>
 
 // -----------------------------------------------------------------------------

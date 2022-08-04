@@ -8,7 +8,7 @@
 #ifndef utils_h
 #define utils_h
 
-#include <ceed/types.h>
+#include <ceed.h>
 #include <math.h>
 
 #ifndef M_PI

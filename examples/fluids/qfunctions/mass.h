@@ -11,7 +11,7 @@
 #ifndef mass_h
 #define mass_h
 
-#include <ceed/types.h>
+#include <ceed.h>
 #include <math.h>
 
 // *****************************************************************************

@@ -11,7 +11,7 @@
 #ifndef bp4sphere_h
 #define bp4sphere_h
 
-#include <ceed/types.h>
+#include <ceed.h>
 #include <math.h>
 
 // -----------------------------------------------------------------------------

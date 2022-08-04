@@ -8,7 +8,7 @@
 #ifndef newtonian_types_h
 #define newtonian_types_h
 
-#include <ceed/types.h>
+#include <ceed.h>
 #include "stabilization_types.h"
 
 typedef struct SetupContext_ *SetupContext;

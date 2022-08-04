@@ -12,7 +12,7 @@
 #ifndef newtonian_state_h
 #define newtonian_state_h
 
-#include <ceed/types.h>
+#include <ceed.h>
 #include <math.h>
 #include "newtonian_types.h"
 #include "utils.h"

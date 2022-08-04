@@ -13,7 +13,7 @@
 #ifndef poisson3dapply_h
 #define poisson3dapply_h
 
-#include <ceed/types.h>
+#include <ceed.h>
 
 CEED_QFUNCTION(Poisson3DApply)(void *ctx, const CeedInt Q,
                                const CeedScalar *const *in,

@@ -8,7 +8,7 @@
 #ifndef ex2_surface_h
 #define ex2_surface_h
 
-#include <ceed/types.h>
+#include <ceed.h>
 
 /// A structure used to pass additional data to f_build_diff
 struct BuildContext { CeedInt dim, space_dim; };

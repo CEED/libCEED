@@ -12,7 +12,7 @@
 #ifndef mass2dbuild_h
 #define mass2dbuild_h
 
-#include <ceed/types.h>
+#include <ceed.h>
 
 CEED_QFUNCTION(Mass2DBuild)(void *ctx, const CeedInt Q,
                             const CeedScalar *const *in, CeedScalar *const *out) {

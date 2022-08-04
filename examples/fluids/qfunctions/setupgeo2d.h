@@ -11,7 +11,7 @@
 #ifndef setup_geo_2d_h
 #define setup_geo_2d_h
 
-#include <ceed/types.h>
+#include <ceed.h>
 #include <math.h>
 
 // *****************************************************************************

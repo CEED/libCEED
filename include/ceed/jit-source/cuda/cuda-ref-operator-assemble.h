@@ -5,7 +5,7 @@
 //
 // This file is part of CEED:  http://github.com/ceed
 
-#include <ceed/types.h>
+#include <ceed.h>
 
 //------------------------------------------------------------------------------
 // Matrix assembly kernel for low-order elements (2D thread block)

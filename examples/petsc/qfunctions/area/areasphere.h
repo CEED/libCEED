@@ -11,7 +11,7 @@
 #ifndef areasphere_h
 #define areasphere_h
 
-#include <ceed/types.h>
+#include <ceed.h>
 #include <math.h>
 
 // -----------------------------------------------------------------------------
