@@ -146,8 +146,10 @@ int CeedLoadSourceToInitializedBuffer(Ceed ceed,
       char *next_left_chevron = strchr(first_hash, '<');
       bool is_ceed_header = is_hash_include && next_left_chevron &&
                             (next_new_line - next_left_chevron > 0) &&
-                            !strncmp(next_left_chevron, "<ceed/", 6) &&
-                            strncmp(next_left_chevron, "<ceed/ceed.h>", 13);
+                            (!strncmp(next_left_chevron, "<ceed/jit-source/", 17) ||
+                             !strncmp(next_left_chevron, "<ceed/types.h>", 14) ||
+                             !strncmp(next_left_chevron, "<ceed/ceed-f32.h>", 17) ||
+                             !strncmp(next_left_chevron, "<ceed/ceed-f64.h>", 17));
       if (is_local_header || is_ceed_header) {
         // ---- Build source path
         char *include_source_path;
