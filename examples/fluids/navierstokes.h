@@ -117,6 +117,8 @@ struct AppCtx_private {
   PetscInt          output_freq;
   PetscInt          viz_refine;
   PetscInt          cont_steps;
+  char              cont_file[PETSC_MAX_PATH_LEN];
+  char              cont_time_file[PETSC_MAX_PATH_LEN];
   char              output_dir[PETSC_MAX_PATH_LEN];
   // Problem type arguments
   PetscFunctionList problems;

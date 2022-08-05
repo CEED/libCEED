@@ -90,6 +90,14 @@ PetscErrorCode ProcessCommandLineOptions(MPI_Comm comm, AppCtx app_ctx,
   ierr = PetscOptionsInt("-continue", "Continue from previous solution",
                          NULL, app_ctx->cont_steps, &app_ctx->cont_steps, NULL); CHKERRQ(ierr);
 
+  ierr = PetscOptionsString("-continue_filename", "Filename to get ICs from",
+                            NULL, app_ctx->cont_file, app_ctx->cont_file,
+                            sizeof(app_ctx->cont_file), NULL); CHKERRQ(ierr);
+
+  ierr = PetscOptionsString("-continue_time_filename", "Filename to get ICs time from",
+                            NULL, app_ctx->cont_time_file, app_ctx->cont_time_file,
+                            sizeof(app_ctx->cont_time_file), NULL); CHKERRQ(ierr);
+
   app_ctx->degree = 1;
   ierr = PetscOptionsInt("-degree", "Polynomial degree of finite elements",
                          NULL, app_ctx->degree, &app_ctx->degree, NULL); CHKERRQ(ierr);
