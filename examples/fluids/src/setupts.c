@@ -533,8 +533,13 @@ PetscErrorCode TSSolve_NS(DM dm, User user, AppCtx app_ctx, Physics phys,
     PetscInt    count;
     PetscViewer viewer;
     char        file_path[PETSC_MAX_PATH_LEN];
+  if (!strcmp(app_ctx->cont_time_file, "")) {
     ierr = PetscSNPrintf(file_path, sizeof file_path, "%s/ns-time.bin",
                          app_ctx->output_dir); CHKERRQ(ierr);
+  } else {
+    ierr = PetscSNPrintf(file_path, sizeof file_path, "%s/%s",
+                         app_ctx->output_dir, app_ctx->cont_time_file); CHKERRQ(ierr);
+  }
     ierr = PetscViewerBinaryOpen(comm, file_path, FILE_MODE_READ, &viewer);
     CHKERRQ(ierr);
     ierr = PetscViewerBinaryRead(viewer, &time, 1, &count, PETSC_REAL);

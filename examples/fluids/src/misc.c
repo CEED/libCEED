@@ -231,8 +231,13 @@ PetscErrorCode SetupICsFromBinary(MPI_Comm comm, AppCtx app_ctx, Vec Q) {
   PetscFunctionBegin;
 
   // Read input
-  ierr = PetscSNPrintf(file_path, sizeof file_path, "%s/ns-solution.bin",
-                       app_ctx->output_dir); CHKERRQ(ierr);
+  if (!strcmp(app_ctx->cont_file, "")) {
+    ierr = PetscSNPrintf(file_path, sizeof file_path, "%s/ns-solution.bin",
+                         app_ctx->output_dir); CHKERRQ(ierr);
+  } else {
+    ierr = PetscSNPrintf(file_path, sizeof file_path, "%s/%s",
+                         app_ctx->output_dir, app_ctx->cont_file); CHKERRQ(ierr);
+  }
   ierr = PetscViewerBinaryOpen(comm, file_path, FILE_MODE_READ, &viewer);
   CHKERRQ(ierr);
 
