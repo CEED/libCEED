@@ -392,14 +392,24 @@ PetscErrorCode WriteOutput(User user, Vec Q, PetscInt step_no,
   PetscCall(DMGlobalToLocal(user->dm, Q, INSERT_VALUES, Q_loc));
 
   // Output
+  // PetscCall(PetscSNPrintf(file_path, sizeof file_path,
+  //                         "%s/ns-%03" PetscInt_FMT ".vtu",
+  //                         user->app_ctx->output_dir, step_no + user->app_ctx->cont_steps));
+  //
+  // PetscCall(PetscViewerVTKOpen(PetscObjectComm((PetscObject)Q), file_path,
+  //                              FILE_MODE_WRITE, &viewer));
+
   PetscCall(PetscSNPrintf(file_path, sizeof file_path,
-                          "%s/ns-%03" PetscInt_FMT ".vtu",
+                          "%s/ns-%03" PetscInt_FMT ".cgns",
                           user->app_ctx->output_dir, step_no + user->app_ctx->cont_steps));
 
-  PetscCall(PetscViewerVTKOpen(PetscObjectComm((PetscObject)Q), file_path,
-                               FILE_MODE_WRITE, &viewer));
+  PetscCall(PetscViewerCreate(PetscObjectComm((PetscObject)Q), &viewer));
+  PetscCall(PetscViewerSetType(viewer, PETSCVIEWERCGNS));
+  PetscCall(PetscViewerFileSetMode(viewer, FILE_MODE_WRITE));
+  PetscCall(PetscViewerFileSetName(viewer, file_path));
   PetscCall(VecView(Q_loc, viewer));
   PetscCall(PetscViewerDestroy(&viewer));
+
   if (user->dm_viz) {
     Vec         Q_refined, Q_refined_loc;
     char        file_path_refined[PETSC_MAX_PATH_LEN];
