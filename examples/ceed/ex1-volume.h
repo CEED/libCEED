@@ -8,6 +8,8 @@
 #ifndef ex1_volume_h
 #define ex1_volume_h
 
+#include <ceed.h>
+
 /// A structure used to pass additional data to f_build_mass
 struct BuildContext { CeedInt dim, space_dim; };
 

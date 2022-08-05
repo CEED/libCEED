@@ -16,8 +16,8 @@
 #ifndef stg_shur14_h
 #define stg_shur14_h
 
-#include <math.h>
 #include <ceed.h>
+#include <math.h>
 #include <stdlib.h>
 #include "stg_shur14_type.h"
 #include "utils.h"

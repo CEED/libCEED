@@ -15,10 +15,10 @@
 #ifndef densitycurrent_h
 #define densitycurrent_h
 
-#include <math.h>
 #include <ceed.h>
-#include "newtonian_types.h"
+#include <math.h>
 #include "newtonian_state.h"
+#include "newtonian_types.h"
 #include "utils.h"
 
 typedef struct DensityCurrentContext_ *DensityCurrentContext;

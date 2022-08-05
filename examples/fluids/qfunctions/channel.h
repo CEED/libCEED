@@ -12,10 +12,10 @@
 #ifndef channel_h
 #define channel_h
 
+#include <ceed.h>
 #include <math.h>
-#include <ceed/ceed.h>
-#include "newtonian_types.h"
 #include "newtonian_state.h"
+#include "newtonian_types.h"
 #include "utils.h"
 
 typedef struct ChannelContext_ *ChannelContext;

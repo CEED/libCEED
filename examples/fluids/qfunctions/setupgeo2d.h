@@ -11,8 +11,8 @@
 #ifndef setup_geo_2d_h
 #define setup_geo_2d_h
 
-#include <math.h>
 #include <ceed.h>
+#include <math.h>
 
 // *****************************************************************************
 // This QFunction sets up the geometric factors required for integration and

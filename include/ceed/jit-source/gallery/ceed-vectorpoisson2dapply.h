@@ -13,6 +13,8 @@
 #ifndef vectorpoisson2dapply_h
 #define vectorpoisson2dapply_h
 
+#include <ceed.h>
+
 CEED_QFUNCTION(Vector3Poisson2DApply)(void *ctx, const CeedInt Q,
                                       const CeedScalar *const *in,
                                       CeedScalar *const *out) {

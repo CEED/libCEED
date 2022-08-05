@@ -12,6 +12,8 @@
 #ifndef identity_h
 #define identity_h
 
+#include <ceed.h>
+
 typedef struct {
   CeedInt size;
 } IdentityCtx;

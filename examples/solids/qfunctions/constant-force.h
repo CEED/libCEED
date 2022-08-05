@@ -11,6 +11,7 @@
 #ifndef CONSTANT_H
 #define CONSTANT_H
 
+#include <ceed.h>
 #include <math.h>
 
 #ifndef PHYSICS_STRUCT
