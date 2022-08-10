@@ -8,6 +8,7 @@
 /// @file
 /// Time-stepping functions for Navier-Stokes example using PETSc
 
+#include <petsctime.h>
 #include "../navierstokes.h"
 #include "../qfunctions/mass.h"
 
@@ -407,7 +408,7 @@ PetscErrorCode WriteOutput(User user, Vec Q, PetscInt step_no,
   PetscCall(PetscViewerSetType(viewer, PETSCVIEWERCGNS));
   PetscCall(PetscViewerFileSetMode(viewer, FILE_MODE_WRITE));
   PetscCall(PetscViewerFileSetName(viewer, file_path));
-  PetscCall(VecView(Q_loc, viewer));
+  // PetscCall(VecView(Q_loc, viewer));
   PetscCall(PetscViewerDestroy(&viewer));
 
   if (user->dm_viz) {
@@ -424,13 +425,27 @@ PetscErrorCode WriteOutput(User user, Vec Q, PetscInt step_no,
     PetscCall(DMGlobalToLocal(user->dm_viz, Q_refined, INSERT_VALUES,
                               Q_refined_loc));
 
+    PetscLogDouble timewall1, timewall2;
+    PetscCall(PetscTime(&timewall1));
+    PetscCall(PetscPrintf(PetscObjectComm((PetscObject)Q), "Current Wall Time (s): %.17g\n", timewall1));
+
     PetscCall(PetscSNPrintf(file_path_refined, sizeof file_path_refined,
-                            "%s/nsrefined-%03" PetscInt_FMT ".vtu", user->app_ctx->output_dir,
+                            "%s/nsrefined-%03" PetscInt_FMT ".cgns", user->app_ctx->output_dir,
                             step_no + user->app_ctx->cont_steps));
 
-    PetscCall(PetscViewerVTKOpen(PetscObjectComm((PetscObject)Q_refined),
-                                 file_path_refined, FILE_MODE_WRITE, &viewer_refined));
+    PetscViewerFormat refined_format;
+    PetscCall(PetscOptionsGetViewer(PetscObjectComm((PetscObject)Q_refined), NULL, NULL, "-ns_refined_viewer",
+        &viewer_refined, &refined_format, NULL));
+    PetscCall(PetscViewerPushFormat(viewer_refined, refined_format));
+
+    // PetscCall(PetscViewerVTKOpen(PetscObjectComm((PetscObject)Q_refined),
+    //                              file_path_refined, FILE_MODE_WRITE, &viewer_refined));
     PetscCall(VecView(Q_refined_loc, viewer_refined));
+
+    PetscCall(PetscTime(&timewall2));
+    PetscCall(PetscPrintf(PetscObjectComm((PetscObject)Q), "Current Wall Time (s): %.17g\n", timewall2));
+    PetscCall(PetscPrintf(PetscObjectComm((PetscObject)Q), "Time Taken: %.17g\n", timewall2 - timewall1));
+
     PetscCall(DMRestoreLocalVector(user->dm_viz, &Q_refined_loc));
     PetscCall(DMRestoreGlobalVector(user->dm_viz, &Q_refined));
     PetscCall(PetscViewerDestroy(&viewer_refined));
@@ -438,34 +453,34 @@ PetscErrorCode WriteOutput(User user, Vec Q, PetscInt step_no,
   PetscCall(DMRestoreLocalVector(user->dm, &Q_loc));
 
   // Save data in a binary file for continuation of simulations
-  PetscCall(PetscSNPrintf(file_path, sizeof file_path,
-                          "%s/ns-solution-%" PetscInt_FMT ".bin",
-                          user->app_ctx->output_dir, step_no + user->app_ctx->cont_steps));
+  // PetscCall(PetscSNPrintf(file_path, sizeof file_path,
+  //                         "%s/ns-solution-%" PetscInt_FMT ".bin",
+  //                         user->app_ctx->output_dir, step_no + user->app_ctx->cont_steps));
   // PetscCall(PetscSNPrintf(file_path, sizeof file_path, "%s/ns-solution.bin",
   //                         user->app_ctx->output_dir));
-  PetscCall(PetscViewerBinaryOpen(user->comm, file_path, FILE_MODE_WRITE,
-                                  &viewer));
+  // PetscCall(PetscViewerBinaryOpen(user->comm, file_path, FILE_MODE_WRITE,
+  //                                 &viewer));
 
-  PetscCall(VecView(Q, viewer));
-  PetscCall(PetscViewerDestroy(&viewer));
+//   PetscCall(VecView(Q, viewer));
+//   PetscCall(PetscViewerDestroy(&viewer));
 
   // Save time stamp
   // Dimensionalize time back
-  time /= user->units->second;
-  PetscCall(PetscSNPrintf(file_path, sizeof file_path,
-                          "%s/ns-time-%" PetscInt_FMT ".bin",
-                          user->app_ctx->output_dir, step_no + user->app_ctx->cont_steps));
-  // PetscCall(PetscSNPrintf(file_path, sizeof file_path, "%s/ns-time.bin",
-  //                         user->app_ctx->output_dir));
-  PetscCall(PetscViewerBinaryOpen(user->comm, file_path, FILE_MODE_WRITE,
-                                  &viewer));
+  // time /= user->units->second;
+  // PetscCall(PetscSNPrintf(file_path, sizeof file_path,
+  //                         "%s/ns-time-%" PetscInt_FMT ".bin",
+  //                         user->app_ctx->output_dir, step_no + user->app_ctx->cont_steps));
+  // // PetscCall(PetscSNPrintf(file_path, sizeof file_path, "%s/ns-time.bin",
+  // //                         user->app_ctx->output_dir));
+  // PetscCall(PetscViewerBinaryOpen(user->comm, file_path, FILE_MODE_WRITE,
+  //                                 &viewer));
 
-  #if PETSC_VERSION_GE(3,13,0)
-  PetscCall(PetscViewerBinaryWrite(viewer, &time, 1, PETSC_REAL));
-  #else
-  PetscCall(PetscViewerBinaryWrite(viewer, &time, 1, PETSC_REAL, true));
-  #endif
-  PetscCall(PetscViewerDestroy(&viewer));
+  // #if PETSC_VERSION_GE(3,13,0)
+  // PetscCall(PetscViewerBinaryWrite(viewer, &time, 1, PETSC_REAL));
+  // #else
+  // PetscCall(PetscViewerBinaryWrite(viewer, &time, 1, PETSC_REAL, true));
+  // #endif
+  // PetscCall(PetscViewerDestroy(&viewer));
 
   PetscFunctionReturn(0);
 }
