@@ -32,6 +32,7 @@ NVCC ?= $(CUDA_DIR)/bin/nvcc
 NVCC_CXX ?= $(CXX)
 HIPCC ?= $(HIP_DIR)/bin/hipcc
 SED ?= sed
+EXE_SUFFIX = $(if $(EMSCRIPTEN),.wasm)
 
 # ASAN must be left empty if you don't want to use it
 ASAN ?=
@@ -193,14 +194,14 @@ TEST_BACKENDS := /cpu/self/tmpl /cpu/self/tmpl/sub
 # Tests
 tests.c   := $(sort $(wildcard tests/t[0-9][0-9][0-9]-*.c))
 tests.f   := $(if $(FC),$(sort $(wildcard tests/t[0-9][0-9][0-9]-*.f90)))
-tests     := $(tests.c:tests/%.c=$(OBJDIR)/%)
+tests     := $(tests.c:tests/%.c=$(OBJDIR)/%$(EXE_SUFFIX))
 ctests    := $(tests)
-tests     += $(tests.f:tests/%.f90=$(OBJDIR)/%)
+tests     += $(tests.f:tests/%.f90=$(OBJDIR)/%$(EXE_SUFFIX))
 # Examples
 examples.c := $(sort $(wildcard examples/ceed/*.c))
 examples.f := $(if $(FC),$(sort $(wildcard examples/ceed/*.f)))
-examples  := $(examples.c:examples/ceed/%.c=$(OBJDIR)/%)
-examples  += $(examples.f:examples/ceed/%.f=$(OBJDIR)/%)
+examples  := $(examples.c:examples/ceed/%.c=$(OBJDIR)/%$(EXE_SUFFIX))
+examples  += $(examples.f:examples/ceed/%.f=$(OBJDIR)/%$(EXE_SUFFIX))
 # MFEM Examples
 mfemexamples.cpp := $(sort $(wildcard examples/mfem/*.cpp))
 mfemexamples  := $(mfemexamples.cpp:examples/mfem/%.cpp=$(OBJDIR)/mfem-%)
@@ -510,16 +511,16 @@ $(OBJDIR)/%.o : $(CURDIR)/%.cu | $$(@D)/.DIR
 $(OBJDIR)/%.o : $(CURDIR)/%.hip.cpp | $$(@D)/.DIR
 	$(call quiet,HIPCC) $(HIPCCFLAGS) -c -o $@ $(abspath $<)
 
-$(OBJDIR)/% : tests/%.c | $$(@D)/.DIR
+$(OBJDIR)/%$(EXE_SUFFIX) : tests/%.c | $$(@D)/.DIR
 	$(call quiet,LINK.c) $(CEED_LDFLAGS) -o $@ $(abspath $<) $(CEED_LIBS) $(CEED_LDLIBS) $(LDLIBS)
 
-$(OBJDIR)/% : tests/%.f90 | $$(@D)/.DIR
+$(OBJDIR)/%$(EXE_SUFFIX) : tests/%.f90 | $$(@D)/.DIR
 	$(call quiet,LINK.F) -DSOURCE_DIR='"$(abspath $(<D))/"' $(CEED_LDFLAGS) -o $@ $(abspath $<) $(CEED_LIBS) $(CEED_LDLIBS) $(LDLIBS)
 
-$(OBJDIR)/% : examples/ceed/%.c | $$(@D)/.DIR
+$(OBJDIR)/%$(EXE_SUFFIX) : examples/ceed/%.c | $$(@D)/.DIR
 	$(call quiet,LINK.c) $(CEED_LDFLAGS) -o $@ $(abspath $<) $(CEED_LIBS) $(CEED_LDLIBS) $(LDLIBS)
 
-$(OBJDIR)/% : examples/ceed/%.f | $$(@D)/.DIR
+$(OBJDIR)/%$(EXE_SUFFIX) : examples/ceed/%.f | $$(@D)/.DIR
 	$(call quiet,LINK.F) -DSOURCE_DIR='"$(abspath $(<D))/"' $(CEED_LDFLAGS) -o $@ $(abspath $<) $(CEED_LIBS) $(CEED_LDLIBS) $(LDLIBS)
 
 $(OBJDIR)/mfem-% : examples/mfem/%.cpp $(libceed) | $$(@D)/.DIR
