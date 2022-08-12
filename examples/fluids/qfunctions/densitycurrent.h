@@ -213,6 +213,9 @@ CEED_QFUNCTION(ICsDC)(void *ctx, CeedInt Q,
 //   E   - Total Energy Density,  E  = rho (cv T + (u u)/2 + g z)
 //
 // Navier-Stokes Equations:
+
+// grad(U) * dXdref => div_ref(U) == fwddiff(U, X, dXdRef)
+//  (d/dx U , d/dy U , d/dz U ) * (dXdref, dYdref, dZdRef)
 //   drho/dt + div( U )                               = 0
 //   dU/dt   + div( rho (u x u) + P I3 ) + rho g khat = div( Fu )
 //   dE/dt   + div( (E + P) u )                       = div( Fe )

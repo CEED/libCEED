@@ -50,10 +50,10 @@ struct DCContext_ {
 // *****************************************************************************
 // True Solutions for the Method of Manufactured Solutions
 // *****************************************************************************
-CEED_QFUNCTION_HELPER int ExactSolution(CeedScalar q[], CeedScalar *time,
-                                        CeedScalar X[]) {
+CEED_QFUNCTION_HELPER int ExactSolution(CeedScalar* __restrict__ q, CeedScalar time,
+                                        CeedScalar* __restrict__ X) {
   // -- Time
-  double t = time[0];
+  double t = time;
   // -- Coordinates
   double x = X[0];
   double y = X[1];
@@ -75,19 +75,84 @@ CEED_QFUNCTION_HELPER int ExactSolution(CeedScalar q[], CeedScalar *time,
 // *****************************************************************************
 // -- Enzyme functions and variables
 void __enzyme_autodiff(void *, ...);
+double __enzyme_autodiffDouble(void *, ...);
 int enzyme_const;
+int enzyme_dupnoneed;
 
 // -- q_diff
 CEED_QFUNCTION_HELPER void q_diff(double q[5], double q_dot[5], double dq[5][3],
                                   double *t, double x[]) {
   for (int i=0; i<5; i++) {
     double q_[5] = {0.}; q_[i] = 1.;
-    __enzyme_autodiff((void *)ExactSolution,
+    q_dot[i] = __enzyme_autodiffDouble((void *)ExactSolution,
                       q, q_,
-                      t, &q_dot[i],
-                      x, dq[i]);
+                      *t,
+                      x, &dq[i]);
   }
 }
+
+void __enzyme_fwddiff(void *, ...);
+
+CEED_QFUNCTION_HELPER void grad_u_wrt_X(double du_dx[5][3], double X[3], double t) {
+  for (int i=0; i<3; i++) {
+    double dX[3] = {0.}; dX[i] = 1.;
+    double dQ[5];
+     __enzyme_fwddiff((void *)ExactSolution,
+                      enzyme_dupnoneed, (void*)0, dQ,
+                      X, dX, enzyme_const, t);
+    // If transpose desired, can swap
+    for (int j=0; j<5; j++) {
+      flux_x[j][i] = dQ[j];
+    }
+  }
+}
+
+/*
+// State Variables: q = ( rho, U1, U2, U3, E )
+//   rho - Mass Density
+//   Ui  - Momentum Density,      Ui = rho ui
+//   E   - Total Energy Density,  E  = rho (cv T + (u u)/2 + g z)
+//
+// Navier-Stokes Equations:
+//   drho/dt + div( U )                               = 0
+//   dU/dt   + div( rho (u x u) + P I3 ) + rho g khat = div( Fu )
+//   dE/dt   + div( (E + P) u )                       = div( Fe )
+//
+// Viscous Stress:
+//   Fu = mu (grad( u ) + grad( u )^T + lambda div ( u ) I3)
+//
+// Thermal Stress:
+//   Fe = u Fu + k grad( T )
+//
+// Equation of State:
+//   P = (gamma - 1) (E - rho (u u) / 2 - rho g z)
+*/
+
+
+// u (x) u ?=
+// [u1 u1   u1 u2   u1 u3 ]
+// [u2 u1   u2 u2   u2 u3 ]
+// [u3 u1   u3 u2   u3 u3 ]
+
+// Compute "flux" = rho (u x u) + P I3 => 3x3 Matrix
+CEED_QFUNCTION_HELPER void flux(double flux_output[3][3], double q[5], double x[3], double cv, double cp, double g) {
+  double rho = q[0];
+  double u[3] = {q[1]/rho, q[2]/rho, q[3]/rho};
+  double E = q[4];
+
+  double gamma = cp/cv;
+  double kinetic_energy = (u[0]*u[0] + u[1]*u[1] + u[2]*u[2]) / 2.;
+  double P = (E - kinetic_energy * rho - rho*g*x[2]) * (gamma - 1.);
+
+  for (int i=0; i<3; i++) {
+    for (int j=0; j<3; j++) {
+      flux_output[i][j] = rho*u[i]*u[j] + ((i == j) ? P : 0);
+    }
+  }
+}
+
+// d/dx Flux => 3x3 Matrix,    \grad Flux => 3x(3x3)
+
 
 // -- dFlux[0]/dx
 CEED_QFUNCTION_HELPER void Fi0(double f0[5], double *t, double x[],
