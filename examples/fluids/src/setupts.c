@@ -379,6 +379,8 @@ PetscErrorCode FormIJacobian_NS(TS ts, PetscReal t, Vec Q, Vec Q_dot,
   PetscFunctionReturn(0);
 }
 
+PetscViewer viewer_refined;
+
 PetscErrorCode WriteOutput(User user, Vec Q, PetscInt step_no,
                            PetscScalar time)  {
   Vec            Q_loc;
@@ -448,7 +450,7 @@ PetscErrorCode WriteOutput(User user, Vec Q, PetscInt step_no,
 
     PetscCall(DMRestoreLocalVector(user->dm_viz, &Q_refined_loc));
     PetscCall(DMRestoreGlobalVector(user->dm_viz, &Q_refined));
-    PetscCall(PetscViewerDestroy(&viewer_refined));
+    // PetscCall(PetscViewerDestroy(&viewer_refined));
   }
   PetscCall(DMRestoreLocalVector(user->dm, &Q_loc));
 
@@ -616,6 +618,7 @@ PetscErrorCode TSSolve_NS(DM dm, User user, AppCtx app_ctx, Physics phys,
       PetscCall(TSGetStepNumber(*ts, &step_no));
       PetscCall(WriteOutput(user, *Q, step_no, final_time));
     }
+    PetscCall(PetscViewerDestroy(&viewer_refined));
 
     PetscLogEvent stage_id;
     PetscStageLog stage_log;
