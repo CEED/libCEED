@@ -11,5 +11,6 @@
 #include "include/setup-matops.h"
 #include "include/setup-solvers.h"
 #include "include/setup-ts.h"
+#include "include/post-processing.h"
 
 #endif // MAIN_H

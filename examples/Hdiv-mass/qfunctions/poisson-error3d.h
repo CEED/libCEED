@@ -21,23 +21,7 @@
 #define ERROR3D_H
 
 #include <math.h>
-
-// -----------------------------------------------------------------------------
-// Compute determinant of 3x3 matrix
-// -----------------------------------------------------------------------------
-#ifndef DetMat
-#define DetMat
-CEED_QFUNCTION_HELPER CeedScalar ComputeDetMat(const CeedScalar A[3][3]) {
-  // Compute det(A)
-  const CeedScalar B11 = A[1][1]*A[2][2] - A[1][2]*A[2][1];
-  const CeedScalar B12 = A[0][2]*A[2][1] - A[0][1]*A[2][2];
-  const CeedScalar B13 = A[0][1]*A[1][2] - A[0][2]*A[1][1];
-  CeedScalar detA = A[0][0]*B11 + A[1][0]*B12 + A[2][0]*B13;
-
-  return detA;
-};
-#endif
-
+#include "utils.h"
 // -----------------------------------------------------------------------------
 // Compuet error
 // -----------------------------------------------------------------------------
@@ -58,18 +42,14 @@ CEED_QFUNCTION(SetupError3D)(void *ctx, const CeedInt Q,
     const CeedScalar J[3][3] = {{dxdX[0][0][i], dxdX[1][0][i], dxdX[2][0][i]},
                                 {dxdX[0][1][i], dxdX[1][1][i], dxdX[2][1][i]},
                                 {dxdX[0][2][i], dxdX[1][2][i], dxdX[2][2][i]}};
-    const CeedScalar detJ = ComputeDetMat(J);
+    const CeedScalar det_J = MatDet3x3(J);            
     // Compute Piola map:uh = J*u/detJ
-    CeedScalar uh[3];
-    for (CeedInt k = 0; k < 3; k++) {
-      uh[k] = 0;
-      for (CeedInt m = 0; m < 3; m++)
-        uh[k] += J[k][m] * u[m][i]/detJ;
-    }
+    CeedScalar u1[3]   = {u[0][i], u[1][i], u[2][i]}, uh[3];
+    AlphaMatVecMult3x3(1/det_J, J, u1, uh);
     // Error
-    error[i+0*Q] = (uh[0] - target[i+0*Q])*(uh[0] - target[i+0*Q])*w[i]*detJ;
-    error[i+1*Q] = (uh[1] - target[i+1*Q])*(uh[1] - target[i+1*Q])*w[i]*detJ;
-    error[i+2*Q] = (uh[2] - target[i+2*Q])*(uh[2] - target[i+2*Q])*w[i]*detJ;
+    error[i+0*Q] = (uh[0] - target[i+0*Q])*(uh[0] - target[i+0*Q])*w[i]*det_J;
+    error[i+1*Q] = (uh[1] - target[i+1*Q])*(uh[1] - target[i+1*Q])*w[i]*det_J;
+    error[i+2*Q] = (uh[2] - target[i+2*Q])*(uh[2] - target[i+2*Q])*w[i]*det_J;
 
   } // End of Quadrature Point Loop
 

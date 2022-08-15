@@ -33,6 +33,8 @@ declare -A run_flags
         run_flags[problem]=mass2d
         run_flags[dm_plex_dim]=$dim
         run_flags[dm_plex_box_faces]=2,2
+        run_flags[dm_plex_box_lower]=0,0
+        run_flags[dm_plex_box_upper]=1,0.1
     else
         run_flags[problem]=mass3d
         run_flags[dm_plex_dim]=$dim
@@ -42,7 +44,7 @@ declare -A run_flags
 declare -A test_flags
     test_flags[res_start]=2
     test_flags[res_stride]=1
-    test_flags[res_end]=5
+    test_flags[res_end]=10
 
 file_name=conv_test_result.csv
 

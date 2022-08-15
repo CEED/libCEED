@@ -75,6 +75,7 @@ struct RICHARDContext_ {
   CeedScalar beta, p0;
   CeedScalar t, t_final, dt;
   CeedScalar gamma;
+  CeedScalar lx, ly;
 };
 #endif
 // -----------------------------------------------------------------------------

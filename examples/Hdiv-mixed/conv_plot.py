@@ -46,6 +46,7 @@ def plot():
     E_p = data['error_p']
     #E_hdiv = data['error_hdiv']
     h = 1/data['mesh_res']
+    N = data['mesh_res']
     H1 =  amin(E_p)* (h/amin(h)) # H = C h^1
     H2 =  amin(E_u)* (h/amin(h))**2  # H = C h^2
 
@@ -62,6 +63,18 @@ def plot():
     #xlim(.06, .3)
     fig.tight_layout()
     plt.savefig('convrate_mixed.png', bbox_inches='tight')
+
+    conv_u = []
+    conv_p = []
+    conv_u.append(0)
+    conv_p.append(0)
+    for i in range(1,len(E_u)):
+        conv_u.append(log10(E_u[i]/E_u[i-1])/log10(h[i]/h[i-1]))
+        conv_p.append(log10(E_p[i]/E_p[i-1])/log10(h[i]/h[i-1]))
+
+    result = {'Number of element':N, 'order of u':conv_u, 'order of p':conv_p}
+    df = pd.DataFrame(result)
+    print(df)
     
 
 

@@ -21,6 +21,7 @@
 #define POISSON_RHS2D_H
 
 #include <math.h>
+#include "utils.h"
 
 #ifndef M_PI
 #define M_PI    3.14159265358979323846
@@ -63,11 +64,8 @@ CEED_QFUNCTION(SetupRhs2D)(void *ctx, const CeedInt Q,
     CeedScalar ue[2] = {-M_PI*cos(M_PI*x) *sin(M_PI*y), -M_PI*sin(M_PI*x) *cos(M_PI*y)};
     //CeedScalar ue[2] = {x-y, x+y};
     CeedScalar rhs1[2];
-    for (CeedInt k = 0; k < 2; k++) {
-      rhs1[k] = 0;
-      for (CeedInt m = 0; m < 2; m++)
-        rhs1[k] += J[m][k] * ue[m];
-    }
+    AlphaMatTransposeVecMult2x2(1, J, ue, rhs1);
+
     // Component 1
     true_soln[i+0*Q] = ue[0];
     rhs[i+0*Q] = rhs1[0] * w[i];

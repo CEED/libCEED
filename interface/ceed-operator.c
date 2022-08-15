@@ -76,10 +76,6 @@ static int CeedOperatorCheckField(Ceed ceed, CeedQFunctionField qf_field, CeedEl
                      CeedEvalModes[eval_mode]);
     // LCOV_EXCL_STOP
   }
-  bool is_oriented;
-  ierr = CeedElemRestrictionIsOriented(r, &is_oriented); CeedChk(ierr);
-  CeedInt scale_r;
-  scale_r = is_oriented ? qf_field->size : 1;
   // Field size
   switch (eval_mode) {
     case CEED_EVAL_NONE:

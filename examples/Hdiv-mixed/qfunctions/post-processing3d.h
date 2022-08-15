@@ -15,28 +15,59 @@
 // testbed platforms, in support of the nation's exascale computing imperative.
 
 /// @file
-/// Mixed poisson 3D hex element using PETSc
+/// Force of Richard problem 2D (quad element) using PETSc
 
-#ifndef POISSON_MASS3D_H
-#define POISSON_MASS3D_H
+#ifndef POST_PROCESSING3D_H
+#define POST_PROCESSING3D_H
 
 #include <math.h>
+#include <ceed.h>
+#include "ceed/ceed-f64.h"
 #include "utils.h"
+
 // -----------------------------------------------------------------------------
-// This QFunction applies the mass operator for a vector field of 2 components.
-//
-// Inputs:
-//   w     - weight of quadrature
-//   J     - dx/dX. x physical coordinate, X reference coordinate [-1,1]^dim
-//   u     - Input basis at quadrature points
-//
-// Output:
-//   v     - Output vector (test functions) at quadrature points
-// Note we need to apply Piola map on the basis, which is J*u/detJ
-// So (v,u) = \int (v^T * u detJ*w) ==> \int (v^T J^T*J*u*w/detJ)
+// We solve (v, u) = (v, uh), to project Hdiv to L2 space
+// This QFunction create post_rhs = (v, uh)
 // -----------------------------------------------------------------------------
-CEED_QFUNCTION(SetupMass3D)(void *ctx, CeedInt Q, const CeedScalar *const *in,
-                            CeedScalar *const *out) {
+CEED_QFUNCTION(PostProcessingRhs3D)(void *ctx, const CeedInt Q,
+                                    const CeedScalar *const *in,
+                                    CeedScalar *const *out) {
+  // *INDENT-OFF*
+  // Inputs
+  const CeedScalar (*w) = in[0],
+                   (*dxdX)[3][CEED_Q_VLA] = (const CeedScalar(*)[3][CEED_Q_VLA])in[1],
+                   (*u)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[2];
+  // Outputs
+  CeedScalar (*post_rhs) = out[0];
+
+  // Quadrature Point Loop
+  CeedPragmaSIMD
+  for (CeedInt i=0; i<Q; i++) {
+    const CeedScalar J[3][3] = {{dxdX[0][0][i], dxdX[1][0][i], dxdX[2][0][i]},
+                                {dxdX[0][1][i], dxdX[1][1][i], dxdX[2][1][i]},
+                                {dxdX[0][2][i], dxdX[1][2][i], dxdX[2][2][i]}};
+
+    // 1) Compute Piola map: uh = J*u/detJ
+    // 2) rhs = (v, uh) = uh*w*det_J
+    // ==> rhs = J*u*w
+    CeedScalar u1[3] = {u[0][i], u[1][i], u[2][i]}, rhs[3];
+    AlphaMatVecMult3x3(w[i], J, u1, rhs);
+
+    post_rhs[i+0*Q] = rhs[0];
+    post_rhs[i+1*Q] = rhs[1];
+    post_rhs[i+2*Q] = rhs[2];
+  } // End of Quadrature Point Loop
+  return 0;
+}
+
+// -----------------------------------------------------------------------------
+// We solve (v, u) = (v, uh), to project Hdiv to L2 space
+// This QFunction create mass matrix (v, u), then we solve using ksp to have 
+// projected uh in L2 space and use it for post-processing
+// -----------------------------------------------------------------------------
+CEED_QFUNCTION(PostProcessingMass3D)(void *ctx, const CeedInt Q,
+                              const CeedScalar *const *in,
+                              CeedScalar *const *out) {
   // *INDENT-OFF*
   // Inputs
   const CeedScalar (*w) = in[0],
@@ -45,7 +76,6 @@ CEED_QFUNCTION(SetupMass3D)(void *ctx, CeedInt Q, const CeedScalar *const *in,
 
   // Outputs
   CeedScalar (*v)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA])out[0];
-  // *INDENT-ON*
 
   // Quadrature Point Loop
   CeedPragmaSIMD
@@ -56,22 +86,15 @@ CEED_QFUNCTION(SetupMass3D)(void *ctx, CeedInt Q, const CeedScalar *const *in,
                                 {dxdX[0][1][i], dxdX[1][1][i], dxdX[2][1][i]},
                                 {dxdX[0][2][i], dxdX[1][2][i], dxdX[2][2][i]}};
     const CeedScalar det_J = MatDet3x3(J);
-    CeedScalar u1[3] = {u[0][i], u[1][i], u[2][i]}, v1[3];
+
     // *INDENT-ON*
-    // Piola map: J^T*J*u*w/detJ
-    // 1) Compute J^T * J
-    CeedScalar JT_J[3][3];
-    AlphaMatTransposeMatMult3x3(1., J, J, JT_J);
-    // 2) Compute J^T*J*u * w /detJ
-    AlphaMatVecMult3x3(w[i]/det_J, JT_J, u1, v1);
+    // (v, u): v = u*w*detJ
     for (CeedInt k = 0; k < 3; k++) {
-      v[k][i] = v1[k];
+      v[k][i] = u[k][i]*w[i]*det_J;
     }
   } // End of Quadrature Point Loop
-
   return 0;
 }
-
 // -----------------------------------------------------------------------------
 
-#endif //End of POISSON_MASS3D_H
+#endif //End of POST_PROCESSING3D_H

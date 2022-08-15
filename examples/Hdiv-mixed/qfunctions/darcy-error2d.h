@@ -35,6 +35,7 @@ struct DARCYContext_ {
   CeedScalar g;
   CeedScalar rho_a0;
   CeedScalar alpha_a, b_a;
+  CeedScalar lx, ly;
 };
 #endif
 CEED_QFUNCTION(DarcyError2D)(void *ctx, const CeedInt Q,

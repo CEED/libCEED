@@ -15,18 +15,18 @@
 // testbed platforms, in support of the nation's exascale computing imperative.
 
 /// @file
-/// Utility functions for setting up Richard problem in 2D
+/// Utility functions for setting up Richard problem in 3D
 
 #include "../include/register-problem.h"
-#include "../qfunctions/richard-system2d.h"
-#include "../qfunctions/richard-true2d.h"
-#include "../qfunctions/richard-ics2d.h"
-#include "../qfunctions/darcy-error2d.h"
-#include "../qfunctions/post-processing2d.h"
+#include "../qfunctions/richard-system3d.h"
+#include "../qfunctions/richard-true3d.h"
+#include "../qfunctions/richard-ics3d.h"
+#include "../qfunctions/darcy-error3d.h"
+#include "../qfunctions/post-processing3d.h"
 //#include "../qfunctions/pressure-boundary2d.h"
 #include "petscsystypes.h"
 
-PetscErrorCode Hdiv_RICHARD2D(Ceed ceed, ProblemData problem_data, DM dm,
+PetscErrorCode Hdiv_RICHARD3D(Ceed ceed, ProblemData problem_data, DM dm,
                               void *ctx) {
   AppCtx               app_ctx = *(AppCtx *)ctx;
   RICHARDContext       richard_ctx;
@@ -39,32 +39,32 @@ PetscErrorCode Hdiv_RICHARD2D(Ceed ceed, ProblemData problem_data, DM dm,
   // ------------------------------------------------------
   //               SET UP POISSON_QUAD2D
   // ------------------------------------------------------
-  problem_data->dim                     = 2;
-  problem_data->elem_node               = 4;
-  problem_data->q_data_size_face        = 3;
+  problem_data->dim                     = 3;
+  problem_data->elem_node               = 8;
+  problem_data->q_data_size_face        = 4;
   problem_data->quadrature_mode         = CEED_GAUSS;
-  problem_data->true_solution           = RichardTrue2D;
-  problem_data->true_solution_loc       = RichardTrue2D_loc;
-  problem_data->rhs_u0                  = RichardRhsU02D;
-  problem_data->rhs_u0_loc              = RichardRhsU02D_loc;
-  problem_data->ics_u                   = RichardICsU2D;
-  problem_data->ics_u_loc               = RichardICsU2D_loc;
-  problem_data->rhs_p0                  = RichardRhsP02D;
-  problem_data->rhs_p0_loc              = RichardRhsP02D_loc;
-  problem_data->ics_p                   = RichardICsP2D;
-  problem_data->ics_p_loc               = RichardICsP2D_loc;
-  problem_data->residual                = RichardSystem2D;
-  problem_data->residual_loc            = RichardSystem2D_loc;
+  problem_data->true_solution           = RichardTrue3D;
+  problem_data->true_solution_loc       = RichardTrue3D_loc;
+  problem_data->rhs_u0                  = RichardRhsU03D;
+  problem_data->rhs_u0_loc              = RichardRhsU03D_loc;
+  problem_data->ics_u                   = RichardICsU3D;
+  problem_data->ics_u_loc               = RichardICsU3D_loc;
+  problem_data->rhs_p0                  = RichardRhsP03D;
+  problem_data->rhs_p0_loc              = RichardRhsP03D_loc;
+  problem_data->ics_p                   = RichardICsP3D;
+  problem_data->ics_p_loc               = RichardICsP3D_loc;
+  problem_data->residual                = RichardSystem3D;
+  problem_data->residual_loc            = RichardSystem3D_loc;
   //problem_data->jacobian                = JacobianRichardSystem2D;
   //problem_data->jacobian_loc            = JacobianRichardSystem2D_loc;
-  problem_data->error                   = DarcyError2D;
-  problem_data->error_loc               = DarcyError2D_loc;
+  problem_data->error                   = DarcyError3D;
+  problem_data->error_loc               = DarcyError3D_loc;
   //problem_data->bc_pressure             = BCPressure2D;
   //problem_data->bc_pressure_loc         = BCPressure2D_loc;
-  problem_data->post_rhs                = PostProcessingRhs2D;
-  problem_data->post_rhs_loc            = PostProcessingRhs2D_loc;
-  problem_data->post_mass               = PostProcessingMass2D;
-  problem_data->post_mass_loc           = PostProcessingMass2D_loc;
+  problem_data->post_rhs                = PostProcessingRhs3D;
+  problem_data->post_rhs_loc            = PostProcessingRhs3D_loc;
+  problem_data->post_mass               = PostProcessingMass3D;
+  problem_data->post_mass_loc           = PostProcessingMass3D_loc;
   problem_data->has_ts                  = PETSC_TRUE;
   problem_data->view_solution           = app_ctx->view_solution;
 
@@ -92,9 +92,9 @@ PetscErrorCode Hdiv_RICHARD2D(Ceed ceed, ProblemData problem_data, DM dm,
                                 app_ctx->t_final, &app_ctx->t_final, NULL));
   PetscOptionsEnd();
 
-  PetscReal domain_min[2], domain_max[2], domain_size[2];
+  PetscReal domain_min[3], domain_max[3], domain_size[3];
   PetscCall( DMGetBoundingBox(dm, domain_min, domain_max) );
-  for (PetscInt i=0; i<2; i++) domain_size[i] = domain_max[i] - domain_min[i];
+  for (PetscInt i=0; i<3; i++) domain_size[i] = domain_max[i] - domain_min[i];
 
   richard_ctx->kappa = kappa;
   richard_ctx->alpha_a = alpha_a;
@@ -108,6 +108,7 @@ PetscErrorCode Hdiv_RICHARD2D(Ceed ceed, ProblemData problem_data, DM dm,
   richard_ctx->t_final = app_ctx->t_final;
   richard_ctx->lx = domain_size[0];
   richard_ctx->ly = domain_size[1];
+  richard_ctx->lz = domain_size[2];
 
   CeedQFunctionContextCreate(ceed, &richard_context);
   CeedQFunctionContextSetData(richard_context, CEED_MEM_HOST, CEED_COPY_VALUES,

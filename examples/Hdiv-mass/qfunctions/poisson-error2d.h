@@ -21,7 +21,7 @@
 #define ERROR2D_H
 
 #include <math.h>
-
+#include "utils.h"
 // -----------------------------------------------------------------------------
 // Compuet error
 // -----------------------------------------------------------------------------
@@ -41,17 +41,13 @@ CEED_QFUNCTION(SetupError2D)(void *ctx, const CeedInt Q,
     // Setup, J = dx/dX
     const CeedScalar J[2][2] = {{dxdX[0][0][i], dxdX[1][0][i]},
                                 {dxdX[0][1][i], dxdX[1][1][i]}};
-    const CeedScalar detJ = J[0][0]*J[1][1] - J[0][1]*J[1][0];             
+    const CeedScalar det_J = MatDet2x2(J);            
     // Compute Piola map:uh = J*u/detJ
-    CeedScalar uh[2];
-    for (CeedInt k = 0; k < 2; k++) {
-      uh[k] = 0;
-      for (CeedInt m = 0; m < 2; m++)
-        uh[k] += J[k][m] * u[m][i]/detJ;
-    }
+    CeedScalar u1[2]   = {u[0][i], u[1][i]}, uh[2];
+    AlphaMatVecMult2x2(1/det_J, J, u1, uh);
     // Error
-    error[i+0*Q] = (uh[0] - target[i+0*Q])*(uh[0] - target[i+0*Q])*w[i]*detJ;
-    error[i+1*Q] = (uh[1] - target[i+1*Q])*(uh[1] - target[i+1*Q])*w[i]*detJ;
+    error[i+0*Q] = (uh[0] - target[i+0*Q])*(uh[0] - target[i+0*Q])*w[i]*det_J;
+    error[i+1*Q] = (uh[1] - target[i+1*Q])*(uh[1] - target[i+1*Q])*w[i]*det_J;
 
   } // End of Quadrature Point Loop
 

@@ -10,6 +10,7 @@
 // ---------------------------------------------------------------------------
 // Setup FE
 // ---------------------------------------------------------------------------
-PetscErrorCode SetupFE(MPI_Comm comm, DM dm, DM dm_u0, DM dm_p0);
-
+PetscErrorCode SetupFEHdiv(MPI_Comm comm, DM dm, DM dm_u0, DM dm_p0);
+PetscErrorCode SetupFEH1(ProblemData problem_data,
+                         AppCtx app_ctx, DM dm_H1);
 #endif // setupfe_h

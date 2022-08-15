@@ -21,7 +21,7 @@
 #define POISSON_RHS3D_H
 
 #include <math.h>
-
+#include "utils.h"
 #ifndef M_PI
 #define M_PI    3.14159265358979323846
 #endif
@@ -66,11 +66,7 @@ CEED_QFUNCTION(SetupRhs3D)(void *ctx, const CeedInt Q,
                        };
     //CeedScalar ue[3] = {x,y,z};
     CeedScalar rhs1[3];
-    for (CeedInt k = 0; k < 3; k++) {
-      rhs1[k] = 0;
-      for (CeedInt m = 0; m < 3; m++)
-        rhs1[k] += J[m][k] * ue[m];
-    }
+    AlphaMatTransposeVecMult3x3(1, J, ue, rhs1);
     // Component 1
     true_soln[i+0*Q] = ue[0];
     rhs[i+0*Q] = rhs1[0] * w[i];

@@ -21,9 +21,11 @@
 #include "../qfunctions/darcy-true3d.h"
 #include "../qfunctions/darcy-system3d.h"
 #include "../qfunctions/darcy-error3d.h"
+#include "../qfunctions/post-processing3d.h"
 //#include "../qfunctions/pressure-boundary3d.h"
 
-PetscErrorCode Hdiv_DARCY3D(Ceed ceed, ProblemData problem_data, void *ctx) {
+PetscErrorCode Hdiv_DARCY3D(Ceed ceed, ProblemData problem_data, DM dm,
+                            void *ctx) {
   AppCtx            app_ctx = *(AppCtx *)ctx;
   DARCYContext         darcy_ctx;
   CeedQFunctionContext darcy_context;
@@ -49,8 +51,12 @@ PetscErrorCode Hdiv_DARCY3D(Ceed ceed, ProblemData problem_data, void *ctx) {
   problem_data->error_loc               = DarcyError3D_loc;
   //problem_data->bc_pressure             = BCPressure3D;
   //problem_data->bc_pressure_loc         = BCPressure3D_loc;
+  problem_data->post_rhs                = PostProcessingRhs3D;
+  problem_data->post_rhs_loc            = PostProcessingRhs3D_loc;
+  problem_data->post_mass               = PostProcessingMass3D;
+  problem_data->post_mass_loc           = PostProcessingMass3D_loc;
   problem_data->has_ts                  = PETSC_FALSE;
-
+  problem_data->view_solution           = app_ctx->view_solution;
   // ------------------------------------------------------
   //              Command line Options
   // ------------------------------------------------------
@@ -68,11 +74,18 @@ PetscErrorCode Hdiv_DARCY3D(Ceed ceed, ProblemData problem_data, void *ctx) {
                                 b_a, &b_a, NULL));
   PetscOptionsEnd();
 
+  PetscReal domain_min[3], domain_max[3], domain_size[3];
+  PetscCall( DMGetBoundingBox(dm, domain_min, domain_max) );
+  for (PetscInt i=0; i<3; i++) domain_size[i] = domain_max[i] - domain_min[i];
+
   darcy_ctx->kappa = kappa;
   darcy_ctx->rho_a0 = rho_a0;
   darcy_ctx->g = g;
   darcy_ctx->alpha_a = alpha_a;
   darcy_ctx->b_a = b_a;
+  darcy_ctx->lx = domain_size[0];
+  darcy_ctx->ly = domain_size[1];
+  darcy_ctx->lz = domain_size[2];
 
   CeedQFunctionContextCreate(ceed, &darcy_context);
   CeedQFunctionContextSetData(darcy_context, CEED_MEM_HOST, CEED_COPY_VALUES,

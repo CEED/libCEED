@@ -17,12 +17,11 @@
 /// @file
 /// Darcy problem 2D (quad element) using PETSc
 
-#ifndef DARCY_SYSTEM2D_H
-#define DARCY_SYSTEM2D_H
+#ifndef DARCY_SYSTEM_QUARTIC2D_H
+#define DARCY_SYSTEM_QUARTIC2D_H
 
 #include <math.h>
 #include <ceed.h>
-#include "ceed/ceed-f64.h"
 #include "utils.h"
 
 // -----------------------------------------------------------------------------
@@ -30,20 +29,14 @@
 // https://www.sciencedirect.com/science/article/pii/S0309170802001872
 // -----------------------------------------------------------------------------
 // Strong form:
-//  u        = -rho*k_r*K *[grad(\psi) - rho*g_u]   in \Omega
+//  u        = -grad(\psi)   in \Omega
 //  -\div(u) = -f                                   in \Omega
 //  p        = p_b                                  on \Gamma_D
 //  u.n      = u_b                                  on \Gamma_N
 //
-//  Where rho = rho_a/rho_a0, rho_a = rho_a0*exp(\beta * (p - p0)), p0 = 101325 Pa is atmospheric pressure
-//  rho_a0 is the density at p_0, g_u = g/norm(g) where g is gravity.
-//  k_r = b_a + alpha_a * (\psi - x2), where \psi = p / (rho_a0 * norm(g)) and x2 is vertical axis
-//
 // Weak form: Find (u, \psi) \in VxQ (V=H(div), Q=L^2) on \Omega
-//  (v, K^{-1}/rho*k_r * u) -(v, rho*g_u) -(\div(v), \psi) = -<v, p_b*n>_{\Gamma_D}
-// -(q, \div(u))  + (q, f)                                 = 0
-//
-// We solve MMS for  K = kappa*I and beta=0 ==> rho=1 and \theta = alpha_a*\psi, so
+//  (v, u) -(\div(v), \psi) = -<v, p_b*n>_{\Gamma_D}
+// -(q, \div(u))  + (q, f)  = 0
 //
 // This QFunction setup the mixed form of the above equation
 // Inputs:
@@ -75,9 +68,9 @@ struct DARCYContext_ {
 // -----------------------------------------------------------------------------
 // Residual evaluation for Darcy problem
 // -----------------------------------------------------------------------------
-CEED_QFUNCTION(DarcySystem2D)(void *ctx, CeedInt Q,
-                              const CeedScalar *const *in,
-                              CeedScalar *const *out) {
+CEED_QFUNCTION(DarcySystemQuartic2D)(void *ctx, CeedInt Q,
+                                     const CeedScalar *const *in,
+                                     CeedScalar *const *out) {
   // *INDENT-OFF*
   // Inputs
   const CeedScalar (*w) = in[0],
@@ -85,66 +78,37 @@ CEED_QFUNCTION(DarcySystem2D)(void *ctx, CeedInt Q,
                    (*u)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[2],
                    (*div_u) = (const CeedScalar(*))in[3],
                    (*p) = (const CeedScalar(*))in[4],
-                   (*f) = in[5],
-                   (*coords) = in[6];
+                   (*f) = in[5];
 
   // Outputs
   CeedScalar (*v)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA])out[0],
              (*div_v) = (CeedScalar(*))out[1],
              (*q) = (CeedScalar(*))out[2];
-  // Context
-  DARCYContext  context = (DARCYContext)ctx;
-  const CeedScalar kappa    = context->kappa;
-  const CeedScalar rho_a0   = context->rho_a0;
-  const CeedScalar g        = context->g;
-  const CeedScalar alpha_a  = context->alpha_a;
-  const CeedScalar b_a      = context->b_a;
-
   // Quadrature Point Loop
   CeedPragmaSIMD
   for (CeedInt i=0; i<Q; i++) {
     // *INDENT-OFF*
     // Setup, J = dx/dX
-    CeedScalar x = coords[i+0*Q], y = coords[i+1*Q];
     const CeedScalar J[2][2] = {{dxdX[0][0][i], dxdX[1][0][i]},
                                 {dxdX[0][1][i], dxdX[1][1][i]}};
     const CeedScalar det_J = MatDet2x2(J);
 
     // *INDENT-ON*
-    // k_r = b_a + alpha_a * (\psi - x2)
-    CeedScalar k_r = b_a + alpha_a*(1-x*y);
-    // rho = rho_a/rho_a0
-    CeedScalar rho = 1.0;
-    // (v, K^{-1}/rho*k_r u): v = J^T* (K^{-1}/rho*k_r) *J*u*w/detJ
-    // 1) Compute K^{-1}, note K = kappa*I
-    CeedScalar K[2][2] = {{kappa, 0.},{0., kappa}};
-    const CeedScalar det_K = MatDet2x2(K);
-    CeedScalar K_inv[2][2];
-    MatInverse2x2(K, det_K, K_inv);
+    // (v, u): v = J^T*J*u*w/detJ
+    // 1) J^T*J
+    CeedScalar JT_J[2][2];
+    AlphaMatTransposeMatMult2x2(1, J, J, JT_J);
 
-    // 2) (K^{-1}/rho*k_r) *J
-    CeedScalar Kinv_J[2][2];
-    AlphaMatMatMult2x2(1/(rho*k_r), K_inv, J, Kinv_J);
-
-    // 3) Compute J^T* (K^{-1}/rho*k_r) *J
-    CeedScalar JT_Kinv_J[2][2];
-    AlphaMatTransposeMatMult2x2(1, J, Kinv_J, JT_Kinv_J);
-
-    // 4) Compute v1 = J^T* (K^{-1}/rho*k_r) *J*u*w/detJ
+    // 2) Compute v1 = (J^T*J)*u*w/detJ
     CeedScalar u1[2] = {u[0][i], u[1][i]}, v1[2];
-    AlphaMatVecMult2x2(w[i]/det_J, JT_Kinv_J, u1, v1);
+    AlphaMatVecMult2x2(w[i]/det_J, JT_J, u1, v1);
 
-    // 5) -(v, rho*g_u): v2 = -J^T*rho*g_u*w, g_u = g/norm(g)
-    CeedScalar g_u[2] = {0., 1.}, v2[2];
-    AlphaMatTransposeVecMult2x2(-rho*w[i], J, g_u, v2);
-
-    // Output at quadrature points: (v, K^{-1}/rho*k_r u) -(v, rho*g_u)
+    // Output at quadrature points: (v, u)
     for (CeedInt k = 0; k < 2; k++) {
-      v[k][i] = v1[k] + v2[k];
+      v[k][i] = v1[k];
     }
     // Output at quadrature points: -(\div(v), \psi)
-    CeedScalar psi = p[i] / (rho_a0 * g);
-    div_v[i] = -psi * w[i];
+    div_v[i] = -p[i] * w[i];
     // Output at quadrature points:-(q, \div(u))  + (q, f)
     q[i] = -div_u[i] * w[i] + f[i+0*Q]*w[i]*det_J;
   } // End of Quadrature Point Loop
@@ -155,73 +119,45 @@ CEED_QFUNCTION(DarcySystem2D)(void *ctx, CeedInt Q,
 // -----------------------------------------------------------------------------
 // Jacobian evaluation for Darcy problem
 // -----------------------------------------------------------------------------
-CEED_QFUNCTION(JacobianDarcySystem2D)(void *ctx, CeedInt Q,
-                                      const CeedScalar *const *in,
-                                      CeedScalar *const *out) {
+CEED_QFUNCTION(JacobianDarcySystemQuartic2D)(void *ctx, CeedInt Q,
+    const CeedScalar *const *in,
+    CeedScalar *const *out) {
   // *INDENT-OFF*
   // Inputs
   const CeedScalar (*w) = in[0],
                    (*dxdX)[2][CEED_Q_VLA] = (const CeedScalar(*)[2][CEED_Q_VLA])in[1],
                    (*du)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[2],
                    (*div_du) = (const CeedScalar(*))in[3],
-                   (*dp) = (const CeedScalar(*))in[4],
-                   (*coords) = in[5];
+                   (*dp) = (const CeedScalar(*))in[4];
 
   // Outputs
   CeedScalar (*dv)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA])out[0],
              (*div_dv) = (CeedScalar(*))out[1],
              (*dq) = (CeedScalar(*))out[2];
-
-  // *INDENT-ON*
-  DARCYContext  context = (DARCYContext)ctx;
-  const CeedScalar kappa    = context->kappa;
-  const CeedScalar rho_a0   = context->rho_a0;
-  const CeedScalar g        = context->g;
-  const CeedScalar alpha_a  = context->alpha_a;
-  const CeedScalar b_a      = context->b_a;
   // Quadrature Point Loop
   CeedPragmaSIMD
   for (CeedInt i=0; i<Q; i++) {
     // *INDENT-OFF*
     // Setup, J = dx/dX
-    CeedScalar x = coords[i+0*Q], y = coords[i+1*Q];
     const CeedScalar J[2][2] = {{dxdX[0][0][i], dxdX[1][0][i]},
                                 {dxdX[0][1][i], dxdX[1][1][i]}};
     const CeedScalar det_J = MatDet2x2(J);
 
     // *INDENT-ON*
-    // k_r = b_a + alpha_a * (\psi - x2)
-    CeedScalar k_r = b_a + alpha_a*(1-x*y);
-    // rho = rho_a/rho_a0
-    CeedScalar rho = 1.0;
-    // (dv, K^{-1}/rho*k_r du): dv = J^T* (K^{-1}/rho*k_r) *J*du*w/detJ
-    // 1) Compute K^{-1}, note K = kappa*I
-    CeedScalar K[2][2] = {{kappa, 0.},{0., kappa}};
-    const CeedScalar det_K = MatDet2x2(K);
-    CeedScalar K_inv[2][2];
-    MatInverse2x2(K, det_K, K_inv);
+    // 1) Compute J^T *J
+    CeedScalar JT_J[2][2];
+    AlphaMatTransposeMatMult2x2(1, J, J, JT_J);
 
-    // 2) (K^{-1}/rho*k_r) *J
-    CeedScalar Kinv_J[2][2];
-    AlphaMatMatMult2x2(1/(rho*k_r), K_inv, J, Kinv_J);
-
-    // 3) Compute J^T* (K^{-1}/rho*k_r) *J
-    CeedScalar JT_Kinv_J[2][2];
-    AlphaMatTransposeMatMult2x2(1, J, Kinv_J, JT_Kinv_J);
-
-    // 4) Compute dv1 = J^T* (K^{-1}/rho*k_r) *J*du*w/detJ
+    // 2) Compute dv1 = J^T *J*du*w/detJ
     CeedScalar du1[2] = {du[0][i], du[1][i]}, dv1[2];
-    AlphaMatVecMult2x2(w[i]/det_J, JT_Kinv_J, du1, dv1);
-
-    // 5) -(dv, rho*g_u): dv2 = 0
+    AlphaMatVecMult2x2(w[i]/det_J, JT_J, du1, dv1);
 
     // Output at quadrature points: (dv, K^{-1}/rho*k_r u) -(dv, rho*g_u)
     for (CeedInt k = 0; k < 2; k++) {
       dv[k][i] = dv1[k];
     }
     // Output at quadrature points: -(\div(dv), d\psi)
-    CeedScalar dpsi = dp[i] / (rho_a0 * g);
-    div_dv[i] = -dpsi * w[i];
+    div_dv[i] = -dp[i] * w[i];
     // Output at quadrature points:-(dq, \div(du))
     dq[i] = -div_du[i] * w[i];
   } // End of Quadrature Point Loop

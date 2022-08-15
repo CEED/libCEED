@@ -34,6 +34,8 @@ PetscErrorCode RegisterProblems_Hdiv(AppCtx app_ctx) {
   // 4) richard
   PetscCall( PetscFunctionListAdd(&app_ctx->problems, "richard2d",
                                   Hdiv_RICHARD2D) );
+  PetscCall( PetscFunctionListAdd(&app_ctx->problems, "richard3d",
+                                  Hdiv_RICHARD3D) );
   PetscFunctionReturn(0);
 }
 
