@@ -11,6 +11,7 @@
 #ifndef ELAS_FSInitialMR1_H
 #define ELAS_FSInitialMR1_H
 
+#include <ceed.h>
 #include <math.h>
 
 // -----------------------------------------------------------------------------

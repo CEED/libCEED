@@ -18,7 +18,7 @@
 
 #define CeedChk_Cu(ceed, x) \
 do { \
-  CUresult cuda_result = x; \
+  CUresult cuda_result = (CUresult)x; \
   if (cuda_result != CUDA_SUCCESS) { \
     const char *msg; \
     cuGetErrorName(cuda_result, &msg); \

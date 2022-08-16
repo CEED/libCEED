@@ -12,10 +12,10 @@
 #ifndef channel_h
 #define channel_h
 
+#include <ceed.h>
 #include <math.h>
-#include <ceed/ceed.h>
-#include "newtonian_types.h"
 #include "newtonian_state.h"
+#include "newtonian_types.h"
 #include "utils.h"
 
 typedef struct ChannelContext_ *ChannelContext;
@@ -142,7 +142,7 @@ CEED_QFUNCTION(Channel_Inflow)(void *ctx, CeedInt Q,
 
     // Find pressure using state inside the domain
     CeedScalar q_inside[5] = {0};
-    for (CeedInt j; j<5; j++)
+    for (CeedInt j=0; j<5; j++)
       q_inside[j] = q[j][i];
     State s_inside = StateFromU(gas, q_inside, x);
     const CeedScalar P = s_inside.Y.pressure;

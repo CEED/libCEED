@@ -11,6 +11,7 @@
 #ifndef MANUFACTURED_TRUE_H
 #define MANUFACTURED_TRUE_H
 
+#include <ceed.h>
 #include <math.h>
 
 // -----------------------------------------------------------------------------

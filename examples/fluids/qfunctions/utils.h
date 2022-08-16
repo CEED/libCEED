@@ -8,8 +8,8 @@
 #ifndef utils_h
 #define utils_h
 
-#include <math.h>
 #include <ceed.h>
+#include <math.h>
 
 #ifndef M_PI
 #define M_PI    3.14159265358979323846

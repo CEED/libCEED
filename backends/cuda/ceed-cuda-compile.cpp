@@ -7,16 +7,19 @@
 
 #include <ceed/ceed.h>
 #include <ceed/backend.h>
+#include <ceed/jit-tools.h>
 #include <cuda.h>
 #include <cuda_runtime.h>
 #include <nvrtc.h>
+#include <sstream>
+#include <stdarg.h>
 #include <string.h>
 #include "ceed-cuda-common.h"
 #include "ceed-cuda-compile.h"
 
 #define CeedChk_Nvrtc(ceed, x) \
 do { \
-  nvrtcResult result = x; \
+  nvrtcResult result = static_cast<nvrtcResult>(x); \
   if (result != NVRTC_SUCCESS) \
     return CeedError((ceed), CEED_ERROR_BACKEND, nvrtcGetErrorString(result)); \
 } while (0)
@@ -25,50 +28,60 @@ do { \
 // Compile CUDA kernel
 //------------------------------------------------------------------------------
 int CeedCompileCuda(Ceed ceed, const char *source, CUmodule *module,
-                    const CeedInt num_opts, ...) {
+                    const CeedInt num_defines, ...) {
   int ierr;
   cudaFree(0); // Make sure a Context exists for nvrtc
   nvrtcProgram prog;
-  CeedChk_Nvrtc(ceed, nvrtcCreateProgram(&prog, source, NULL, 0, NULL, NULL));
+
+  std::ostringstream code;
 
   // Get kernel specific options, such as kernel constants
-  const int opts_len = 32;
-  const int opts_extra = 4;
-  const char *opts[num_opts + opts_extra];
-  char buf[num_opts][opts_len];
-  if (num_opts > 0) {
+  if (num_defines > 0) {
     va_list args;
-    va_start(args, num_opts);
+    va_start(args, num_defines);
     char *name;
     int val;
-    for (int i = 0; i < num_opts; i++) {
+    for (int i = 0; i < num_defines; i++) {
       name = va_arg(args, char *);
       val = va_arg(args, int);
-      snprintf(&buf[i][0], opts_len,"-D%s=%d", name, val);
-      opts[i] = &buf[i][0];
+      code << "#define " << name << " " << val << "\n";
     }
     va_end(args);
   }
 
-  // Standard backend options
-  if (CEED_SCALAR_TYPE == CEED_SCALAR_FP32) {
-    opts[num_opts]   = "-DCeedScalar=float";
-  } else {
-    opts[num_opts]   = "-DCeedScalar=double";
-  }
-  opts[num_opts + 1] = "-DCeedInt=int";
-  opts[num_opts + 2] = "-default-device";
+  // Standard libCEED definitions for CUDA backends
+  char *jit_defs_path, *jit_defs_source;
+  ierr = CeedGetJitAbsolutePath(ceed,
+                                "ceed/jit-source/cuda/cuda-jit.h",
+                                &jit_defs_path); CeedChkBackend(ierr);
+  ierr = CeedLoadSourceToBuffer(ceed, jit_defs_path, &jit_defs_source);
+  CeedChkBackend(ierr);
+  code << jit_defs_source;
+  code << "\n\n";
+  ierr = CeedFree(&jit_defs_path); CeedChkBackend(ierr);
+  ierr = CeedFree(&jit_defs_source); CeedChkBackend(ierr);
+
+  // Non-macro options
+  const int num_opts = 3;
+  const char *opts[num_opts];
+  opts[0] = "-default-device";
   struct cudaDeviceProp prop;
   Ceed_Cuda *ceed_data;
   ierr = CeedGetData(ceed, &ceed_data); CeedChkBackend(ierr);
   ierr = cudaGetDeviceProperties(&prop, ceed_data->device_id);
   CeedChk_Cu(ceed, ierr);
-  char buff[opts_len];
-  snprintf(buff, opts_len,"-arch=compute_%d%d", prop.major, prop.minor);
-  opts[num_opts + 3] = buff;
+  std::string arch_arg = "-arch=compute_"  + std::to_string(prop.major) + std::to_string(prop.minor);
+  opts[1] = arch_arg.c_str();
+  opts[2] = "-Dint32_t=int";
+
+  // Add string source argument provided in call
+  code << source;
+
+  // Create Program
+  CeedChk_Nvrtc(ceed, nvrtcCreateProgram(&prog, code.str().c_str(), NULL, 0, NULL, NULL));
 
   // Compile kernel
-  nvrtcResult result = nvrtcCompileProgram(prog, num_opts + opts_extra, opts);
+  nvrtcResult result = nvrtcCompileProgram(prog, num_opts, opts);
   if (result != NVRTC_SUCCESS) {
     size_t log_size;
     CeedChk_Nvrtc(ceed, nvrtcGetProgramLogSize(prog, &log_size));

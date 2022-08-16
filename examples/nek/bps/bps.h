@@ -8,6 +8,7 @@
 #ifndef bps_h
 #define bps_h
 
+#include <ceed.h>
 #include <math.h>
 
 #ifndef M_PI

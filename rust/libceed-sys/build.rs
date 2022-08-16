@@ -47,6 +47,7 @@ fn main() {
 
     // Tell cargo to invalidate the built crate whenever the wrapper changes
     println!("cargo:rerun-if-changed=c-src/include/ceed/ceed.h");
+    println!("cargo:rerun-if-changed=c-src/include/ceed/types.h");
     println!("cargo:rerun-if-changed=c-src/Makefile");
     if Path::new("c-src/config.mk").is_file() {
         println!("cargo:rerun-if-changed=c-src/config.mk");
