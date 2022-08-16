@@ -1,5 +1,8 @@
 ////////////////////////////////////////////////////////////////////////////////
-std::vector< std::vector<int> > sgemm_nn_mi250x =
+// auto-generated from data on mi250x-rocm5.1.0
+
+////////////////////////////////////////////////////////////////////////////////
+std::vector< std::array<int, RECORD_LENGTH> > sgemm_nn_mi250x = 
 {
   {3      , 512    , 1      , 128    , 0      },
   {3      , 1024   , 1      , 64     , 1      },
@@ -612,7 +615,7 @@ std::vector< std::vector<int> > sgemm_nn_mi250x =
 };
 
 ////////////////////////////////////////////////////////////////////////////////
-std::vector< std::vector<int> > sgemm_tn_mi250x =
+std::vector< std::array<int, RECORD_LENGTH> > sgemm_tn_mi250x = 
 {
   {1      , 512    , 3      , 32     , 0      },
   {1      , 1024   , 3      , 32     , 0      },
@@ -1225,7 +1228,7 @@ std::vector< std::vector<int> > sgemm_tn_mi250x =
 };
 
 ////////////////////////////////////////////////////////////////////////////////
-std::vector< std::vector<int> > dgemm_nn_mi250x =
+std::vector< std::array<int, RECORD_LENGTH> > dgemm_nn_mi250x = 
 {
   {3      , 512    , 1      , 32     , 1      },
   {3      , 1024   , 1      , 512    , 1      },
@@ -1838,7 +1841,7 @@ std::vector< std::vector<int> > dgemm_nn_mi250x =
 };
 
 ////////////////////////////////////////////////////////////////////////////////
-std::vector< std::vector<int> > dgemm_tn_mi250x =
+std::vector< std::array<int, RECORD_LENGTH> > dgemm_tn_mi250x = 
 {
   {1      , 512    , 3      , 32     , 1      },
   {1      , 1024   , 3      , 128    , 1      },

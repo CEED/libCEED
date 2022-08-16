@@ -1,5 +1,8 @@
 ////////////////////////////////////////////////////////////////////////////////
-std::vector< std::vector<int> > sgemm_nn_a100 =
+// auto-generated from data on a100-cuda11.2
+
+////////////////////////////////////////////////////////////////////////////////
+std::vector< std::array<int, RECORD_LENGTH> > sgemm_nn_a100 = 
 {
   {3      , 512    , 1      , 256    , 0      },
   {3      , 1024   , 1      , 32     , 0      },
@@ -612,7 +615,7 @@ std::vector< std::vector<int> > sgemm_nn_a100 =
 };
 
 ////////////////////////////////////////////////////////////////////////////////
-std::vector< std::vector<int> > sgemm_tn_a100 =
+std::vector< std::array<int, RECORD_LENGTH> > sgemm_tn_a100 = 
 {
   {1      , 512    , 3      , 512    , 0      },
   {1      , 1024   , 3      , 1024   , 0      },
@@ -1225,7 +1228,7 @@ std::vector< std::vector<int> > sgemm_tn_a100 =
 };
 
 ////////////////////////////////////////////////////////////////////////////////
-std::vector< std::vector<int> > dgemm_nn_a100 =
+std::vector< std::array<int, RECORD_LENGTH> > dgemm_nn_a100 = 
 {
   {3      , 512    , 1      , 64     , 0      },
   {3      , 1024   , 1      , 512    , 0      },
@@ -1838,7 +1841,7 @@ std::vector< std::vector<int> > dgemm_nn_a100 =
 };
 
 ////////////////////////////////////////////////////////////////////////////////
-std::vector< std::vector<int> > dgemm_tn_a100 =
+std::vector< std::array<int, RECORD_LENGTH> > dgemm_tn_a100 = 
 {
   {1      , 512    , 3      , 512    , 0      },
   {1      , 1024   , 3      , 256    , 0      },

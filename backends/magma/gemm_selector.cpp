@@ -1,8 +1,9 @@
 #include<stdio.h>
 #include<vector>
-#include <limits>
-#include <sys/time.h>
-#include "ceed-magma.h"
+#include<array>
+#include<limits>
+#include<sys/time.h>
+#include"ceed-magma.h"
 
 #include"./gemm_tuning/indices.h"
 #ifdef CEED_MAGMA_USE_HIP
@@ -57,8 +58,8 @@ void gemm_selector(
     // defaults
     *nbatch    = n;
     *use_magma = 0;
-    std::vector< std::vector<int> > *data = NULL;
-    data =  (std::vector< std::vector<int> >*)
+    std::vector< std::array<int, RECORD_LENGTH> > *data = NULL;
+    data =  (std::vector< std::array<int, RECORD_LENGTH> >*)
             gemm_selector_get_data(gpu_arch, precision, transA);
 
     int ir = -1;
