@@ -25,20 +25,27 @@ static void* gemm_selector_get_data(int gpu_arch, char precision, char transA)
   #endif
 
   #ifdef CEED_MAGMA_USE_HIP
-  // TODO: choose between mi250x and mi100
-  //if( gpu_arch >= 908 ) {
-  data = ( precision == 's' ) ?
-         (( transA == 'n') ? (void*)&sgemm_nn_mi250x : (void*)&sgemm_tn_mi250x ):
-         (( transA == 'n') ? (void*)&dgemm_nn_mi250x : (void*)&dgemm_tn_mi250x );
-  //}
+  if( gpu_arch >= 910 ) {
+    // gfx90a or newer
+    data = ( precision == 's' ) ?
+           (( transA == 'n') ? (void*)&sgemm_nn_mi250x : (void*)&sgemm_tn_mi250x ):
+           (( transA == 'n') ? (void*)&dgemm_nn_mi250x : (void*)&dgemm_tn_mi250x );
+  }
+  else{
+    // gfx908 or older
+    data = ( precision == 's' ) ?
+           (( transA == 'n') ? (void*)&sgemm_nn_mi100 : (void*)&sgemm_tn_mi100 ):
+           (( transA == 'n') ? (void*)&dgemm_nn_mi100 : (void*)&dgemm_tn_mi100 );
+  }
   #else
-  // CUDA: A100 GPU or newer
   if( gpu_arch >= 800 ) {
+    // sm80 or newer
     data = ( precision == 's' ) ?
            (( transA == 'n') ? (void*)&sgemm_nn_a100 : (void*)&sgemm_tn_a100 ):
            (( transA == 'n') ? (void*)&dgemm_nn_a100 : (void*)&dgemm_tn_a100 );
   }
-  else { // CUDA: V100 GPU or older
+  else {
+    // sm70 or older
     data = ( precision == 's' ) ?
            (( transA == 'n') ? (void*)&sgemm_nn_v100 : (void*)&sgemm_tn_v100 ):
            (( transA == 'n') ? (void*)&dgemm_nn_v100 : (void*)&dgemm_tn_v100 );
