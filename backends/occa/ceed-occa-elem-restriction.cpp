@@ -55,8 +55,6 @@ namespace ceed {
       }
 
       setupTransposeIndices();
-
-      // setupKernelBuilders();
     }
 
     void ElemRestriction::setupFromHostMemory(CeedCopyMode copyMode,
@@ -303,6 +301,7 @@ namespace ceed {
       // Todo: refactor
       if (rIsTransposed) {
         if(!restrictionTransposeKernel.isInitialized()) {
+          setKernelProperties();
           restrictionTransposeKernel = getDevice().buildKernelFromString(
             occa_elem_restriction_source,
             "applyRestrictionTranspose", 
@@ -316,6 +315,7 @@ namespace ceed {
                                   v.getKernelArg());
       } else {
         if(!restrictionKernel.isInitialized()) {
+          setKernelProperties();
           restrictionKernel = getDevice().buildKernelFromString(
             occa_elem_restriction_source, 
             "applyRestriction", 
