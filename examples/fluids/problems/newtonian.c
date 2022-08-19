@@ -159,10 +159,10 @@ PetscErrorCode NS_NEWTONIAN_IG(ProblemData *problem, DM dm, void *ctx) {
     problem->ics.qfunction_loc                    = ICsNewtonianIG_loc;
     problem->apply_vol_rhs.qfunction              = RHSFunction_Newtonian;
     problem->apply_vol_rhs.qfunction_loc          = RHSFunction_Newtonian_loc;
-    problem->apply_vol_ifunction.qfunction        = IFunction_Newtonian;
-    problem->apply_vol_ifunction.qfunction_loc    = IFunction_Newtonian_loc;
-    problem->apply_vol_ijacobian.qfunction        = IJacobian_Newtonian;
-    problem->apply_vol_ijacobian.qfunction_loc    = IJacobian_Newtonian_loc;
+    problem->apply_vol_ifunction.qfunction        = IFunction_Newtonian_Conserv;
+    problem->apply_vol_ifunction.qfunction_loc    = IFunction_Newtonian_Conserv_loc;
+    problem->apply_vol_ijacobian.qfunction        = IJacobian_Newtonian_Conserv;
+    problem->apply_vol_ijacobian.qfunction_loc    = IJacobian_Newtonian_Conserv_loc;
     problem->apply_inflow.qfunction               = BoundaryIntegral_Conserv;
     problem->apply_inflow.qfunction_loc           = BoundaryIntegral_Conserv_loc;
     problem->apply_inflow_jacobian.qfunction      = BoundaryIntegral_Jacobian_Conserv;
