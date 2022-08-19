@@ -14,6 +14,8 @@
 // software, applications, hardware, advanced system engineering and early
 // testbed platforms, in support of the nation's exascale computing imperative.
 
+#include <cstring>
+
 #include "ceed-occa-qfunctioncontext.hpp"
 
 namespace ceed {
@@ -120,7 +122,7 @@ namespace ceed {
       switch (mtype) {
         case CEED_MEM_HOST:
           setCurrentHostCtxBufferIfNeeded();
-          ::memcpy(currentHostBuffer, data, ctxSize);
+          std::memcpy(currentHostBuffer, data, ctxSize);
           syncState = SyncState::host;
           return CEED_ERROR_SUCCESS;
         case CEED_MEM_DEVICE:
