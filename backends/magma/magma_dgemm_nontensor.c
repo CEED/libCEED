@@ -53,12 +53,21 @@ magma_dgemm_nontensor(
 
   // perform the dgemm operation
   if ( nbatch == n) {
-    // no batching, do not use magmablas
-    magma_dgemm(
-      transA, transB, m, n, k,
-      alpha, dA, ldda,
-      dB, lddb,
-      beta,  dC, lddc, queue);
+    // no batching
+    if( use_magmablas ) {
+      magmablas_dgemm(
+        transA, transB, m, n, k,
+        alpha, dA, ldda,
+        dB, lddb,
+        beta,  dC, lddc, queue);
+    }
+    else {
+      magma_dgemm(
+        transA, transB, m, n, k,
+        alpha, dA, ldda,
+        dB, lddb,
+        beta,  dC, lddc, queue);
+    }
   } else {
     // use batch kernels
     magma_int_t batchCount = n/nbatch;
