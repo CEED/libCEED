@@ -25,7 +25,8 @@ namespace ceed {
     ::occa::memory arrayToMemory(const TM *array) {
       if (array) {
         ::occa::memory mem((::occa::modeMemory_t*) array);
-        return mem.as(::occa::dtype::get<TM>());
+        mem.setDtype(::occa::dtype::get<TM>());
+        return mem;
       }
       return ::occa::null;
     }
