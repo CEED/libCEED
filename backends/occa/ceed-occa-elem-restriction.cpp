@@ -15,6 +15,7 @@
 // testbed platforms, in support of the nation's exascale computing imperative.
 
 #include <map>
+#include <cstring>
 
 #include "./ceed-occa-elem-restriction.hpp"
 #include "./ceed-occa-kernels.hpp"
@@ -69,7 +70,7 @@ namespace ceed {
       } else {
         const size_t bytes = entries * sizeof(CeedInt);
         hostIndices = (CeedInt*) ::malloc(bytes);
-        ::memcpy(hostIndices, indices_h, bytes);
+        std::memcpy(hostIndices, indices_h, bytes);
       }
 
       if (hostIndices) {
@@ -102,7 +103,7 @@ namespace ceed {
       const CeedInt elementEntryCount = ceedElementCount * ceedElementSize;
 
       bool *indexIsUsed = new bool[ceedLVectorSize];
-      ::memset(indexIsUsed, 0, ceedLVectorSize * sizeof(bool));
+      std::memset(indexIsUsed, 0, ceedLVectorSize * sizeof(bool));
 
       for (CeedInt i = 0; i < elementEntryCount; ++i) {
         indexIsUsed[hostIndices[i]] = true;
@@ -119,7 +120,7 @@ namespace ceed {
       CeedInt *transposeDofOffsets_h  = new CeedInt[dofOffsetCount];
       CeedInt *transposeDofIndices_h  = new CeedInt[elementEntryCount];
 
-      ::memset(transposeDofOffsets_h, 0, dofOffsetCount * sizeof(CeedInt));
+      std::memset(transposeDofOffsets_h, 0, dofOffsetCount * sizeof(CeedInt));
 
       // Compute ids
       CeedInt offsetId = 0;
