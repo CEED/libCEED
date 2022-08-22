@@ -44,6 +44,8 @@ namespace ceed {
       CeedSize hostBufferLength;
       CeedScalar *hostBuffer;
 
+      ::occa::kernel setValueKernel;
+
       // Current resources
       ::occa::memory currentMemory;
       CeedScalar *currentHostBuffer;

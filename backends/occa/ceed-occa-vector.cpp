@@ -14,6 +14,9 @@
 // software, applications, hardware, advanced system engineering and early
 // testbed platforms, in support of the nation's exascale computing imperative.
 
+#include <cstring>
+
+#include "ceed-occa-kernels.hpp"
 #include "ceed-occa-vector.hpp"
 
 namespace ceed {
@@ -107,7 +110,19 @@ namespace ceed {
       // Prioritize keeping data in the device
       if (syncState & SyncState::device) {
         setCurrentMemoryIfNeeded();
-        ::occa::linalg::operator_eq(currentMemory, value);
+        // ::occa::linalg::operator_eq(currentMemory, value);
+        if(!setValueKernel.isInitialized()) {
+          ::occa::json kernelProperties;
+          CeedInt constexpr block_size{256};
+          kernelProperties["defines/CeedInt"]    = ::occa::dtype::get<CeedInt>().name();
+          kernelProperties["defines/CeedScalar"] = ::occa::dtype::get<CeedScalar>().name();
+          kernelProperties["defines/BLOCK_SIZE"] = block_size;
+
+          std::string kernelSource = occa_set_value_source;
+          setValueKernel = getDevice().buildKernelFromString(
+            kernelSource,"setValue",kernelProperties
+          ); 
+        }
         syncState = SyncState::device;
       } else {
         setCurrentHostBufferIfNeeded();

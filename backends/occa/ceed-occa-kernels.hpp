@@ -18,6 +18,7 @@
 #define CEED_OCCA_KERNELS_HEADER
 
 #include "./kernels/elem-restriction.hpp"
+#include "./kernels/set-value.hpp"
 #include "./kernels/simplex-basis.hpp"
 #include "./kernels/tensor-basis.hpp"
 
