@@ -167,7 +167,7 @@ namespace ceed {
         case CEED_MEM_HOST:
           setCurrentHostBufferIfNeeded();
           if (array) {
-            ::memcpy(currentHostBuffer, array, length * sizeof(CeedScalar));
+            std::memcpy(currentHostBuffer, array, length * sizeof(CeedScalar));
           }
           syncState = SyncState::host;
           return CEED_ERROR_SUCCESS;
