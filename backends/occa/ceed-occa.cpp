@@ -225,7 +225,7 @@ namespace ceed {
         mode = (std::string) deviceProps["mode"];
       } else {
         mode = defaultMode;
-        deviceProps["mode"] = mode;
+        deviceProps.set("mode",mode);
       }
 
       // Set default device id
@@ -331,11 +331,15 @@ namespace ceed {
 
       try {
         ierr = ceed::occa::initCeed(resource, ceed); CeedChkBackend(ierr);
-        ierr = ceed::occa::registerMethods(ceed); CeedChkBackend(ierr);
-      } catch (::occa::exception &exc) {
-        CeedHandleOccaException(exc);
+      } catch (const ::occa::exception &e) {
+        CeedHandleOccaException(e);
       }
-
+      try {
+        ierr = ceed::occa::registerMethods(ceed); CeedChkBackend(ierr);
+      }
+      catch (const ::occa::exception &e) {
+        CeedHandleOccaException(e);
+      }
       return CEED_ERROR_SUCCESS;
     }
   }
