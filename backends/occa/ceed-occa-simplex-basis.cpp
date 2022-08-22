@@ -61,7 +61,7 @@ namespace ceed {
       kernelProperties["defines/MAX_PQ"]     = P > Q ? P : Q;
       kernelProperties["defines/BASIS_COMPONENT_COUNT"] = ceedComponentCount;
       if(usingGpuDevice()) {
-        kernelProperties["defines/ELEMENTS_PER_BLOCK"] = Q <= 1024 ? (1024 / Q) : 1;
+        kernelProperties["defines/ELEMENTS_PER_BLOCK"] = (Q <= 1024) ? (1024 / Q) : 1;
       }
     }
 
