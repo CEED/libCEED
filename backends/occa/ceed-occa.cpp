@@ -86,7 +86,7 @@ namespace ceed {
         mode = "HIP";
         return CEED_ERROR_SUCCESS;
       }
-      if (match == "dcppp") {
+      if (match == "dpcpp") {
         mode = "dpcpp";
         return CEED_ERROR_SUCCESS;
       }
