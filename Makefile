@@ -369,7 +369,8 @@ OCCA_BACKENDS = /cpu/self/occa
 ifneq ($(wildcard $(OCCA_DIR)/lib/libocca.*),)
   OCCA_MODES := $(shell $(OCCA_DIR)/bin/occa modes)
   OCCA_BACKENDS += $(if $(filter OpenMP,$(OCCA_MODES)),/cpu/openmp/occa)
-# OCCA_BACKENDS += $(if $(filter OpenCL,$(OCCA_MODES)),/gpu/opencl/occa)
+	OCCA_BACKENDS += $(if $(filter dpcpp,$(OCCA_MODES)),/gpu/dpcpp/occa)
+	OCCA_BACKENDS += $(if $(filter OpenCL,$(OCCA_MODES)),/gpu/opencl/occa)
   OCCA_BACKENDS += $(if $(filter HIP,$(OCCA_MODES)),/gpu/hip/occa)
   OCCA_BACKENDS += $(if $(filter CUDA,$(OCCA_MODES)),/gpu/cuda/occa)
 
