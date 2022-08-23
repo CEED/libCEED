@@ -141,7 +141,8 @@ namespace ceed {
           std::string kernelSource = occa_set_value_source;
           setValueKernel = getDevice().buildKernelFromString(
             kernelSource,"setValue",kernelProperties
-          ); 
+          );
+          setValueKernel(currentMemory,value,length);
         }
         syncState = SyncState::device;
       } else {
