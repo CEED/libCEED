@@ -164,6 +164,9 @@ html_sidebars = {
 # hoverxref options
 hoverxref_auto_ref = True
 hoverxref_mathjax = True
+hoverxref_role_types = {
+    'ref': 'modal',
+}
 
 latex_macros = r"""
 \def \diff {\operatorname{d}\!}
