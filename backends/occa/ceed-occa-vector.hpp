@@ -57,6 +57,10 @@ namespace ceed {
 
       ~Vector();
 
+      int hasValidArray(bool* has_valid_array);
+
+      int hasBorrowedArrayOfType(CeedMemType mem_type,bool *has_borrowed_array_of_type);
+
       static Vector* getVector(CeedVector vec,
                                const bool assertValid = true);
 
@@ -94,6 +98,9 @@ namespace ceed {
 
       int getReadOnlyArray(CeedMemType mtype,
                            CeedScalar **array);
+      
+      int getWriteOnlyArray(CeedMemType mtype,
+                            CeedScalar **array);
 
       int restoreArray(CeedScalar **array);
 
@@ -111,6 +118,12 @@ namespace ceed {
       static int registerCeedFunction(Ceed ceed, CeedVector vec,
                                       const char *fname, ceed::occa::ceedFunction f);
 
+      static int ceedHasValidArray(CeedVector vec, bool* has_valid_array);
+
+      static int ceedHasBorrowedArrayOfType(CeedVector vec,
+                                            CeedMemType mem_type,
+                                            bool *has_borrowed_array_of_type);
+
       static int ceedCreate(CeedSize length, CeedVector vec);
 
       static int ceedSetValue(CeedVector vec, CeedScalar value);
@@ -124,6 +137,9 @@ namespace ceed {
                               CeedScalar **array);
 
       static int ceedGetArrayRead(CeedVector vec, CeedMemType mtype,
+                                  CeedScalar **array);
+
+      static int ceedGetArrayWrite(CeedVector vec, CeedMemType mtype,
                                   CeedScalar **array);
 
       static int ceedRestoreArray(CeedVector vec, CeedScalar **array);

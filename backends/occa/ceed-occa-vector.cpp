@@ -33,6 +33,27 @@ namespace ceed {
       freeHostBuffer();
     }
 
+    int Vector::hasValidArray(bool* has_valid_array) {
+      (*has_valid_array) = (!!hostBuffer) 
+                        || (!!currentHostBuffer)
+                        || (memory.isInitialized()) 
+                        || (currentMemory.isInitialized());
+      return CEED_ERROR_SUCCESS;
+    }
+
+    int Vector::hasBorrowedArrayOfType(CeedMemType mem_type,
+                                       bool *has_borrowed_array_of_type) {
+      switch (mem_type) {
+        case CEED_MEM_HOST:
+          (*has_borrowed_array_of_type) = !!currentHostBuffer;
+          break;
+        case CEED_MEM_DEVICE:
+          (*has_borrowed_array_of_type) = currentMemory.isInitialized();
+          break;
+      }
+      return CEED_ERROR_SUCCESS;
+    }
+
     Vector* Vector::getVector(CeedVector vec,
                               const bool assertValid) {
       if (!vec || vec == CEED_VECTOR_NONE) {
@@ -110,7 +131,6 @@ namespace ceed {
       // Prioritize keeping data in the device
       if (syncState & SyncState::device) {
         setCurrentMemoryIfNeeded();
-        // ::occa::linalg::operator_eq(currentMemory, value);
         if(!setValueKernel.isInitialized()) {
           ::occa::json kernelProperties;
           CeedInt constexpr block_size{256};
@@ -272,6 +292,22 @@ namespace ceed {
       return error;
     }
 
+    int Vector::getWriteOnlyArray(CeedMemType mtype,
+                                 CeedScalar **array) {
+      // const bool willBeFullySynced = (
+      //   (syncState == SyncState::device && mtype == CEED_MEM_HOST) ||
+      //   (syncState == SyncState::host && mtype == CEED_MEM_DEVICE)
+      // );
+
+      const int error = getArray(mtype, const_cast<CeedScalar**>(array));
+      // // Take advantage the vector will be fully synced
+      // if (!error && willBeFullySynced) {
+      //   syncState = SyncState::all;
+      // }
+
+      return error;
+    }
+
     int Vector::restoreArray(CeedScalar **array) {
       return CEED_ERROR_SUCCESS;
     }
@@ -360,11 +396,14 @@ namespace ceed {
       Ceed ceed;
       ierr = CeedVectorGetCeed(vec, &ceed); CeedChk(ierr);
 
+      CeedOccaRegisterFunction(vec, "HasValidArray", Vector::ceedHasValidArray);
+      CeedOccaRegisterFunction(vec, "HasBorrowedArrayOfType",Vector::ceedHasBorrowedArrayOfType);
       CeedOccaRegisterFunction(vec, "SetValue", Vector::ceedSetValue);
       CeedOccaRegisterFunction(vec, "SetArray", Vector::ceedSetArray);
       CeedOccaRegisterFunction(vec, "TakeArray", Vector::ceedTakeArray);
       CeedOccaRegisterFunction(vec, "GetArray", Vector::ceedGetArray);
       CeedOccaRegisterFunction(vec, "GetArrayRead", Vector::ceedGetArrayRead);
+      CeedOccaRegisterFunction(vec, "GetArrayWrite", Vector::ceedGetArrayWrite);
       CeedOccaRegisterFunction(vec, "RestoreArray", Vector::ceedRestoreArray);
       CeedOccaRegisterFunction(vec, "RestoreArrayRead", Vector::ceedRestoreArrayRead);
       CeedOccaRegisterFunction(vec, "Destroy", Vector::ceedDestroy);
@@ -373,6 +412,24 @@ namespace ceed {
       ierr = CeedVectorSetData(vec, vector); CeedChk(ierr);
 
       return CEED_ERROR_SUCCESS;
+    }
+
+    int Vector::ceedHasValidArray(CeedVector vec, bool* has_valid_array) {
+      Vector *vector = Vector::from(vec);
+      if (!vector) {
+        return staticCeedError("Invalid CeedVector passed");
+      }
+      return vector->hasValidArray(has_valid_array);
+    }
+
+    int Vector::ceedHasBorrowedArrayOfType(CeedVector vec,
+                                            CeedMemType mem_type,
+                                            bool *has_borrowed_array_of_type) {
+      Vector *vector = Vector::from(vec);
+      if (!vector) {
+        return staticCeedError("Invalid CeedVector passed");
+      }
+      return vector->hasBorrowedArrayOfType(mem_type,has_borrowed_array_of_type);
     }
 
     int Vector::ceedSetValue(CeedVector vec, CeedScalar value) {
@@ -416,6 +473,15 @@ namespace ceed {
         return staticCeedError("Invalid CeedVector passed");
       }
       return vector->getReadOnlyArray(mtype, array);
+    }
+
+    int Vector::ceedGetArrayWrite(CeedVector vec, CeedMemType mtype,
+                                  CeedScalar **array) {
+      Vector *vector = Vector::from(vec);
+      if (!vector) {
+        return staticCeedError("Invalid CeedVector passed");
+      }
+      return vector->getWriteOnlyArray(mtype, array);
     }
 
     int Vector::ceedRestoreArray(CeedVector vec, CeedScalar **array) {
