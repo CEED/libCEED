@@ -2,9 +2,9 @@
 
 Currently, libCEED supports two options for {code}`CeedScalar` : double and single.
 The default is to use double precision.
-Users wishing to set {code}`CeedScalar` to single precision should edit `include/ceed/ceed.h` and change
+Users wishing to set {code}`CeedScalar` to single precision should edit `include/ceed/types.h` and change
 
-```{literalinclude} ../../../include/ceed/ceed.h
+```{literalinclude} ../../../include/ceed/types.h
 :end-at: "#include \"ceed-f64.h\""
 :language: c
 :start-at: "#include \"ceed-f64.h\""
