@@ -18,9 +18,13 @@ CEED_QFUNCTION(Poisson3DBuild)(void *ctx, const CeedInt Q, const CeedScalar *con
   // At every quadrature point, compute w/det(J).adj(J).adj(J)^T and store the symmetric part of the result.
   // in[0] is Jacobians with shape [3, nc=3, Q]
   // in[1] is quadrature weights, size (Q)
-  const CeedScalar(*J)[3][CEED_Q_VLA] = (const CeedScalar(*)[3][CEED_Q_VLA])in[0], *w = in[1];
+  typedef CeedScalar array_t[3][CEED_Q_VLA];
+  const array_t* J = (const array_t*) in[0];
+  const CeedScalar * const w = in[1];
   // out[0] is qdata, size (6*Q)
-  CeedScalar(*q_data)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA])out[0];
+  typedef CeedScalar vec_t[CEED_Q_VLA];
+  vec_t* q_data = (vec_t*) out[0];
+  // *INDENT-ON*
 
   const CeedInt dim = 3;
 

@@ -17,9 +17,12 @@
 CEED_QFUNCTION(Vector3MassApply)(void *ctx, const CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
   // in[0] is u, size (Q)
   // in[1] is quadrature data, size (Q)
-  const CeedScalar(*u)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[0], *q_data = in[1];
+  typedef CeedScalar array_t[CEED_Q_VLA];
+  const array_t* u = (const array_t*) in[0];
+  const CeedScalar * const q_data = in[1];
   // out[0] is v, size (Q)
-  CeedScalar(*v)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA])out[0];
+  array_t* v = (array_t*) out[0];
+  // *INDENT-ON*
 
   const CeedInt num_comp = 3;
 
