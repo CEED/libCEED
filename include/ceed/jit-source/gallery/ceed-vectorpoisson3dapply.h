@@ -22,10 +22,14 @@ CEED_QFUNCTION(Vector3Poisson3DApply)(void *ctx, const CeedInt Q,
   // *INDENT-OFF*
   // in[0] is gradient u, shape [3, nc=3, Q]
   // in[1] is quadrature data, size (6*Q)
-  const CeedScalar (*ug)[3][CEED_Q_VLA] = (const CeedScalar(*)[3][CEED_Q_VLA])in[0],
-               (*q_data)[CEED_Q_VLA]    = (const CeedScalar(*)[CEED_Q_VLA])in[1];
+  typedef CeedScalar array_t[3][CEED_Q_VLA];
+  const array_t* ug = (const array_t*) in[0];
+
+  typedef CeedScalar vec_t[CEED_Q_VLA];
+  const vec_t* q_data = (const vec_t*) in[1]; 
+
   // out[0] is output to multiply against gradient v, shape [3, nc=3, Q]
-  CeedScalar       (*vg)[3][CEED_Q_VLA] = (CeedScalar(*)[3][CEED_Q_VLA])out[0];
+  array_t* vg = (array_t*) out[0];
   // *INDENT-ON*
 
   const CeedInt dim = 3, num_comp = 3;
