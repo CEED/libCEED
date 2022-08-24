@@ -26,9 +26,7 @@ namespace ceed {
     QFunction::QFunction(const std::string &source,
                          const std::string& function_name) :
         ceedIsIdentity(false) {
-
-      const size_t colonIndex = source.find(':');
-      filename = source.substr(0, colonIndex);
+      filename = source;
       qFunctionName = function_name;
     }
 
@@ -118,7 +116,7 @@ namespace ceed {
         // Properties only used in the QFunction kernel source
         props["defines/OCCA_Q"] = Q;
 
-        const std::string kernelName = "qFunctionKernel";
+        const std::string kernelName = "qf_" + qFunctionName;
 
         qFunctionKernel = (
           getDevice().buildKernelFromString(getKernelSource(kernelName, Q),
