@@ -251,15 +251,29 @@ namespace ceed {
       Ceed ceed;
       ierr = CeedQFunctionContextGetCeed(ctx, &ceed); CeedChk(ierr);
 
+      CeedOccaRegisterFunction(ctx, "HasValidData", QFunctionContext::ceedHasValidData);
+      CeedOccaRegisterFunction(ctx, "HasBorrowedDataOfType", QFunctionContext::ceedHasBorrowedDataOfType);
       CeedOccaRegisterFunction(ctx, "SetData", QFunctionContext::ceedSetData);
       CeedOccaRegisterFunction(ctx, "TakeData", QFunctionContext::ceedTakeData);
       CeedOccaRegisterFunction(ctx, "GetData", QFunctionContext::ceedGetData);
+      CeedOccaRegisterFunction(ctx, "GetDataRead", QFunctionContext::ceedGetDataRead);
       CeedOccaRegisterFunction(ctx, "RestoreData", QFunctionContext::ceedRestoreData);
       CeedOccaRegisterFunction(ctx, "Destroy", QFunctionContext::ceedDestroy);
 
       QFunctionContext *ctx_ = new QFunctionContext();
       ierr = CeedQFunctionContextSetBackendData(ctx, ctx_); CeedChk(ierr);
 
+      return CEED_ERROR_SUCCESS;
+    }
+
+    int QFunctionContext::ceedHasValidData(const CeedQFunctionContext ctx, 
+                                     bool *has_valid_data) {
+      return CEED_ERROR_SUCCESS;
+    }
+
+    int QFunctionContext::ceedHasBorrowedDataOfType(const CeedQFunctionContext ctx, 
+                                                CeedMemType mem_type,
+                                                bool *has_borrowed_data_of_type) {
       return CEED_ERROR_SUCCESS;
     }
 
@@ -283,6 +297,16 @@ namespace ceed {
 
     int QFunctionContext::ceedGetData(CeedQFunctionContext ctx, CeedMemType mtype,
                                       void *data) {
+      QFunctionContext *ctx_ = QFunctionContext::from(ctx);
+      if (!ctx_) {
+        return staticCeedError("Invalid CeedQFunctionContext passed");
+      }
+      return ctx_->getData(mtype, data);
+    }
+
+    int QFunctionContext::ceedGetDataRead(CeedQFunctionContext ctx, 
+                                          CeedMemType mtype,
+                                          void *data) {
       QFunctionContext *ctx_ = QFunctionContext::from(ctx);
       if (!ctx_) {
         return staticCeedError("Invalid CeedQFunctionContext passed");

@@ -89,6 +89,13 @@ namespace ceed {
 
       static int ceedCreate(CeedQFunctionContext ctx);
 
+      static int ceedHasValidData(const CeedQFunctionContext ctx,
+                                  bool *has_valid_data);
+
+      static int ceedHasBorrowedDataOfType(const CeedQFunctionContext ctx, 
+                                       CeedMemType mem_type,
+                                       bool *has_borrowed_data_of_type);
+
       static int ceedSetData(CeedQFunctionContext ctx, CeedMemType mtype,
                              CeedCopyMode cmode, void *data);
 
@@ -97,6 +104,9 @@ namespace ceed {
 
       static int ceedGetData(CeedQFunctionContext ctx, CeedMemType mtype,
                              void *data);
+
+      static int ceedGetDataRead(CeedQFunctionContext ctx, CeedMemType mtype,
+                                 void *data);
 
       static int ceedRestoreData(CeedQFunctionContext ctx);
 
