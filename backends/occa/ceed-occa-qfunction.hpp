@@ -34,7 +34,8 @@ namespace ceed {
       CeedQFunctionContext qFunctionContext;
       QFunctionArgs args;
 
-      QFunction(const std::string &source);
+      QFunction(const std::string &source,
+                const std::string &function_name);
 
       static QFunction* getQFunction(CeedQFunction qf,
                                      const bool assertValid = true);

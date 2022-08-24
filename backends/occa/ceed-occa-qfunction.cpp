@@ -23,12 +23,13 @@
 
 namespace ceed {
   namespace occa {
-    QFunction::QFunction(const std::string &source) :
+    QFunction::QFunction(const std::string &source,
+                         const std::string& function_name) :
         ceedIsIdentity(false) {
 
       const size_t colonIndex = source.find(':');
       filename = source.substr(0, colonIndex);
-      qFunctionName = source.substr(colonIndex + 1);
+      qFunctionName = function_name;
     }
 
     QFunction* QFunction::getQFunction(CeedQFunction qf,
@@ -243,8 +244,10 @@ namespace ceed {
       ierr = CeedGetData(ceed, &context); CeedChk(ierr);
       char *source;
       ierr = CeedQFunctionGetSourcePath(qf, &source); CeedChk(ierr);
+      char *function_name;
+      ierr = CeedQFunctionGetKernelName(qf,&function_name); CeedChk(ierr);
 
-      QFunction *qFunction = new QFunction(source);
+      QFunction *qFunction = new QFunction(source,function_name);
       ierr = CeedQFunctionSetData(qf, qFunction); CeedChk(ierr);
 
       CeedOccaRegisterFunction(qf, "Apply", QFunction::ceedApply);
