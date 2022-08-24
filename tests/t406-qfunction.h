@@ -6,7 +6,12 @@
 // This file is part of CEED:  http://github.com/ceed
 
 // Note: intentionally testing strange spacing in '#include's
+#ifdef __cplusplus
+#include <cmath>
+#else
 #include  <math.h>
+#endif
+
 #include <ceed.h>
 #include "./t406-qfunction-scales.h"
 # include   "t406-qfunction-helper.h"
