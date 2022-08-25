@@ -105,6 +105,28 @@ namespace ceed {
       }
     }
 
+    
+    int QFunctionContext::hasValidData(bool* has_valid_data) const {
+      (*has_valid_data) = (!!hostBuffer)
+                       || (!!currentHostBuffer )
+                       || (memory.isInitialized())
+                       || (currentMemory.isInitialized());
+      return CEED_ERROR_SUCCESS;
+    }
+
+    int QFunctionContext::hasBorrowedDataOfType(CeedMemType mem_type,
+                              bool *has_borrowed_data_of_type) const {
+      switch (mem_type) {
+        case CEED_MEM_HOST:
+          (*has_borrowed_data_of_type) = !!currentHostBuffer;
+          break;
+        case CEED_MEM_DEVICE:
+          (*has_borrowed_data_of_type) = currentMemory.isInitialized();
+          break;
+      }
+      return CEED_ERROR_SUCCESS;
+    }
+
     int QFunctionContext::setData(CeedMemType mtype,
                                   CeedCopyMode cmode, void *data) {
       switch (cmode) {
@@ -268,13 +290,22 @@ namespace ceed {
 
     int QFunctionContext::ceedHasValidData(const CeedQFunctionContext ctx, 
                                      bool *has_valid_data) {
-      return CEED_ERROR_SUCCESS;
+      QFunctionContext *ctx_ = QFunctionContext::from(ctx);
+      if (!ctx_) {
+        return staticCeedError("Invalid CeedQFunctionContext passed");
+      }
+      return ctx_->hasValidData(has_valid_data);
     }
 
     int QFunctionContext::ceedHasBorrowedDataOfType(const CeedQFunctionContext ctx, 
                                                 CeedMemType mem_type,
                                                 bool *has_borrowed_data_of_type) {
-      return CEED_ERROR_SUCCESS;
+      QFunctionContext *ctx_ = QFunctionContext::from(ctx);
+      if (!ctx_) {
+        return staticCeedError("Invalid CeedQFunctionContext passed");
+      }
+      return ctx_->hasBorrowedDataOfType(mem_type,
+                                         has_borrowed_data_of_type);
     }
 
     int QFunctionContext::ceedSetData(CeedQFunctionContext ctx, CeedMemType mtype,
@@ -311,6 +342,7 @@ namespace ceed {
       if (!ctx_) {
         return staticCeedError("Invalid CeedQFunctionContext passed");
       }
+      // Todo: Determine if calling getData is sufficient
       return ctx_->getData(mtype, data);
     }
 

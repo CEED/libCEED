@@ -67,6 +67,11 @@ namespace ceed {
 
       void freeHostCtxBuffer();
 
+      int hasValidData(bool* has_valid_data) const;
+
+      int hasBorrowedDataOfType(CeedMemType mem_type,
+                                bool *has_borrowed_data_of_type) const;
+
       int setData(CeedMemType mtype, CeedCopyMode cmode, void *data);
 
       int copyDataValues(CeedMemType mtype, void *data);
