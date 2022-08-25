@@ -119,6 +119,7 @@ namespace ceed {
       ierr = CeedOperatorSetData(op, operator_); CeedChk(ierr);
 
       CeedOccaRegisterFunction(op, "LinearAssembleQFunction", Operator::ceedLinearAssembleQFunction);
+      CeedOccaRegisterFunction(op, "LinearAssembleQFunctionUpdate", Operator::ceedLinearAssembleQFunction);
       CeedOccaRegisterFunction(op, "LinearAssembleAddDiagonal", Operator::ceedLinearAssembleAddDiagonal);
       CeedOccaRegisterFunction(op, "LinearAssembleAddPointBlockDiagonal", Operator::ceedLinearAssembleAddPointBlockDiagonal);
       CeedOccaRegisterFunction(op, "CreateFDMElementInverse", Operator::ceedCreateFDMElementInverse);
@@ -143,9 +144,14 @@ namespace ceed {
       return staticCeedError("(OCCA) Backend does not implement LinearAssembleQFunction");
     }
 
+    int Operator::ceedLinearAssembleQFunctionUpdate(CeedOperator op) {
+      return staticCeedError("(OCCA) Backend does not implement LinearAssembleQFunctionUpdate");
+    }
+
     int Operator::ceedLinearAssembleAddDiagonal(CeedOperator op) {
       return staticCeedError("(OCCA) Backend does not implement LinearAssembleDiagonal");
     }
+
 
     int Operator::ceedLinearAssembleAddPointBlockDiagonal(CeedOperator op) {
       return staticCeedError("(OCCA) Backend does not implement LinearAssemblePointBlockDiagonal");
