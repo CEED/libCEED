@@ -26,7 +26,7 @@ State CEED_QFUNCTION_HELPER(BlasiusSolution)(const BlasiusContext blasius,
   CeedScalar eta  = x[1]*sqrt(blasius->Uinf/(nu*(x0+x[0]-x_inflow)));
   CeedScalar X    = 2 * (eta / blasius->eta_max) - 1.;
   CeedScalar Uinf = blasius->Uinf;
-  CeedScalar R    = blasius->newtonian_ctx.cp - blasius->newtonian_ctx.cv;
+  CeedScalar Rd   = GasConstant(&blasius->newtonian_ctx);
 
   CeedScalar f[4], h[4];
   ChebyshevEval(N, blasius->Tf_cheb, X, blasius->eta_max, f);
@@ -39,7 +39,7 @@ State CEED_QFUNCTION_HELPER(BlasiusSolution)(const BlasiusContext blasius,
   Y[2] = 0.5*sqrt(nu*Uinf/(x0+x[0]-x_inflow))*(eta*f[1] - f[0]);
   Y[3] = 0.;
   Y[4] = blasius->Tinf * h[0];
-  Y[0] = rho * R * Y[4];
+  Y[0] = rho * Rd * Y[4];
   return StateFromY(&blasius->newtonian_ctx, Y, x);
 }
 
@@ -55,18 +55,17 @@ CEED_QFUNCTION(ICsBlasius)(void *ctx, CeedInt Q,
   CeedScalar (*q0)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA])out[0];
 
   const BlasiusContext context = (BlasiusContext)ctx;
-  const CeedScalar cv          = context->newtonian_ctx.cv;
-  const CeedScalar cp          = context->newtonian_ctx.cp;
-  const CeedScalar gamma       = cp / cv;
-  const CeedScalar mu          = context->newtonian_ctx.mu;
-  const CeedScalar theta0      = context->theta0;
-  const CeedScalar P0          = context->P0;
-  const CeedScalar delta0      = context->delta0;
-  const CeedScalar Uinf        = context->Uinf;
-  const CeedScalar x_inflow    = context->x_inflow;
-  const CeedScalar e_internal  = cv * theta0;
-  const CeedScalar rho         = P0 / ((gamma - 1) * e_internal);
-  const CeedScalar x0          = Uinf*rho / (mu*25/(delta0*delta0));
+  const CeedScalar cv         = context->newtonian_ctx.cv;
+  const CeedScalar mu         = context->newtonian_ctx.mu;
+  const CeedScalar theta0     = context->theta0;
+  const CeedScalar P0         = context->P0;
+  const CeedScalar delta0     = context->delta0;
+  const CeedScalar Uinf       = context->Uinf;
+  const CeedScalar x_inflow   = context->x_inflow;
+  const CeedScalar gamma      = HeatCapacityRatio(&context->newtonian_ctx);
+  const CeedScalar e_internal = cv * theta0;
+  const CeedScalar rho        = P0 / ((gamma - 1) * e_internal);
+  const CeedScalar x0         = Uinf*rho / (mu*25/(delta0*delta0));
   CeedScalar t12;
 
   // Quadrature Point Loop
@@ -96,13 +95,11 @@ CEED_QFUNCTION(Blasius_Inflow)(void *ctx, CeedInt Q,
   CeedScalar (*v)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA])out[0];
   // *INDENT-ON*
   const BlasiusContext context = (BlasiusContext)ctx;
-  const bool implicit     = context->implicit;
-  const CeedScalar mu     = context->newtonian_ctx.mu;
-  const CeedScalar cv     = context->newtonian_ctx.cv;
-  const CeedScalar cp     = context->newtonian_ctx.cp;
-  const CeedScalar Rd     = cp - cv;
-  const CeedScalar gamma  = cp / cv;
-
+  const bool implicit       = context->implicit;
+  const CeedScalar mu       = context->newtonian_ctx.mu;
+  const CeedScalar cv       = context->newtonian_ctx.cv;
+  const CeedScalar Rd       = GasConstant(&context->newtonian_ctx);
+  const CeedScalar gamma    = HeatCapacityRatio(&context->newtonian_ctx);
   const CeedScalar theta0   = context->theta0;
   const CeedScalar P0       = context->P0;
   const CeedScalar delta0   = context->delta0;
@@ -110,7 +107,7 @@ CEED_QFUNCTION(Blasius_Inflow)(void *ctx, CeedInt Q,
   const CeedScalar x_inflow = context->x_inflow;
   const bool       weakT    = context->weakT;
   const CeedScalar rho_0    = P0 / (Rd * theta0);
-  const CeedScalar x0       = Uinf*rho_0 / (mu*25/ Square(delta0) );
+  const CeedScalar x0       = Uinf*rho_0 / (mu*25/ Square(delta0));
 
   CeedPragmaSIMD
   // Quadrature Point Loop
@@ -192,17 +189,15 @@ CEED_QFUNCTION(Blasius_Inflow_Jacobian)(void *ctx, CeedInt Q,
   const bool implicit     = context->implicit;
   const CeedScalar mu     = context->newtonian_ctx.mu;
   const CeedScalar cv     = context->newtonian_ctx.cv;
-  const CeedScalar cp     = context->newtonian_ctx.cp;
-  const CeedScalar Rd     = cp - cv;
-  const CeedScalar gamma  = cp / cv;
-
+  const CeedScalar Rd     = GasConstant(&context->newtonian_ctx);
+  const CeedScalar gamma  = HeatCapacityRatio(&context->newtonian_ctx);
   const CeedScalar theta0 = context->theta0;
   const CeedScalar P0     = context->P0;
   const CeedScalar delta0 = context->delta0;
   const CeedScalar Uinf   = context->Uinf;
-  const bool weakT        = context->weakT;
+  const bool       weakT  = context->weakT;
   const CeedScalar rho_0  = P0 / (Rd * theta0);
-  const CeedScalar x0     = Uinf*rho_0 / (mu*25/ (delta0*delta0) );
+  const CeedScalar x0     = Uinf*rho_0 / (mu*25/ (delta0*delta0));
 
   CeedPragmaSIMD
   // Quadrature Point Loop
