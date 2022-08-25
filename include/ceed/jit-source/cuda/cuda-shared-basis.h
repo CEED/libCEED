@@ -589,12 +589,20 @@ inline __device__ void interp3d(const CeedInt num_elem, const CeedInt transpose,
       r_t[i] = 0.0;
     }
     if (transpose) {
+      // TODO: replace with cuda-gen device functions:
+      //   readDofsStrided3d
+      //   interpTranspose3d
+      //   writeDofsStrided3d
       readQuads3d(elem, t_in_x, t_in_y, comp, 0, num_elem, d_U, r_V);
       ContractTransposeZ3d(slice, t_in_x, t_in_y, t_in_z, r_V, c_B, r_t);
       ContractTransposeY3d(slice, t_in_x, t_in_y, t_in_z, r_t, c_B, r_V);
       ContractTransposeX3d(slice, t_in_x, t_in_y, t_in_z, r_V, c_B, r_t);
       writeDofs3d(elem, t_in_x, t_in_y, comp, num_elem, r_t, d_V);
     } else {
+      // TODO: replace with cuda-gen device functions:
+      //   readDofsStrided3d
+      //   interp3d
+      //   writeDofsStrided3d
       readDofs3d(elem, t_in_x, t_in_y, comp, num_elem, d_U, r_V);
       ContractX3d(slice, t_in_x, t_in_y, t_in_z, r_V, c_B, r_t);
       ContractY3d(slice, t_in_x, t_in_y, t_in_z, r_t, c_B, r_V);
@@ -607,6 +615,7 @@ inline __device__ void interp3d(const CeedInt num_elem, const CeedInt transpose,
 //------------------------------------------------------------------------------
 // 3D derivatives at quadrature points
 //------------------------------------------------------------------------------
+// TODO: rename to avoid conflict?
 inline __device__ void grad3d(const CeedInt num_elem, const CeedInt transpose,
                               const CeedScalar *c_B, const CeedScalar *c_G,
                               const CeedScalar *__restrict__ d_U,
@@ -623,6 +632,9 @@ inline __device__ void grad3d(const CeedInt num_elem, const CeedInt transpose,
   const CeedInt blockElem = t_in_z/BASIS_NUM_COMP;
   const CeedInt elemsPerBlock = blockDim.z/BASIS_NUM_COMP;
   const CeedInt comp = t_in_z%BASIS_NUM_COMP;
+  // It looks like z-threads are BASIS_NUM_COMP * batch_size
+  // This is different from cuda-gen where z-threads are only batch_size
+  // Should we generalize cuda-gen to support this kind of parallization strategy?
   CeedInt dim;
 
   for (CeedInt elem = blockIdx.x*elemsPerBlock + blockElem; elem < num_elem;
@@ -633,6 +645,10 @@ inline __device__ void grad3d(const CeedInt num_elem, const CeedInt transpose,
       r_t[i] = 0.0;
     }
     if (transpose) {
+      // TODO: replace with cuda-gen device functions:
+      //   readDofsStrided3d
+      //   grad3dTranspose
+      //   writeDofsStrided3d
       dim = 0;
       readQuads3d(elem, t_in_x, t_in_y, comp, dim, num_elem, d_U, r_U);
       ContractTransposeZ3d(slice, t_in_x, t_in_y, t_in_z, r_U, c_B, r_t);
@@ -652,6 +668,10 @@ inline __device__ void grad3d(const CeedInt num_elem, const CeedInt transpose,
       add(r_V, r_t);
       writeDofs3d(elem, t_in_x, t_in_y, comp, num_elem, r_V, d_V);
     } else {
+      // TODO: replace with cuda-gen device functions:
+      //   readDofsStrided3d
+      //   grad3d
+      //   writeDofsStrided3d
       readDofs3d(elem, t_in_x, t_in_y, comp, num_elem, d_U, r_U);
       ContractX3d(slice, t_in_x, t_in_y, t_in_z, r_U, c_G, r_V);
       ContractY3d(slice, t_in_x, t_in_y, t_in_z, r_V, c_B, r_t);

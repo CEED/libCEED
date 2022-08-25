@@ -37,6 +37,7 @@ __device__ CeedScalar atomicAdd(CeedScalar *address, CeedScalar val) {
 }
 );
 
+// TODO: move deviceFunctions in /include/ceed/jit-source ?
 static const char *deviceFunctions = QUOTE(
 
 //------------------------------------------------------------------------------
@@ -366,6 +367,13 @@ inline __device__ void gradTranspose2d(BackendData &data, const CeedScalar *__re
 //------------------------------------------------------------------------------
 // L-vector -> E-vector, offsets provided
 //------------------------------------------------------------------------------
+// TODO: remove "Dofs" and "Quads" in the following function names?
+//   - readDofsOffset3d -> readOffset3d ?
+//   - readDofsStrided3d -> readStrided3d ?
+//   - readSliceQuadsOffset3d -> readSliceOffset3d ?
+//   - readSliceQuadsStrided3d -> readSliceStrided3d ?
+//   - writeDofsOffset3d -> writeOffset3d ?
+//   - writeDofsStrided3d -> writeStrided3d ?
 template <int NCOMP, int COMPSTRIDE, int P1d>
 inline __device__ void readDofsOffset3d(BackendData &data, const CeedInt nnodes, const CeedInt elem, const CeedInt *__restrict__ indices, const CeedScalar *__restrict__ d_u, CeedScalar *r_u) {
   if (data.tidx < P1d && data.tidy < P1d)
@@ -775,6 +783,7 @@ extern "C" int CeedCudaGenOperatorBuild(CeedOperator op) {
   CeedElemRestriction Erestrict;
   CeedElemRestriction_Cuda *restr_data;
 
+  // TODO: put in a function?
   // Check for restriction only identity operator
   bool is_identity_qf;
   ierr = CeedQFunctionIsIdentity(qf, &is_identity_qf); CeedChkBackend(ierr);
@@ -790,8 +799,10 @@ extern "C" int CeedCudaGenOperatorBuild(CeedOperator op) {
   }
 
   ostringstream code;
+  // TODO: generalize to accept different device functions?
   string devFunctions(deviceFunctions);
 
+  // TODO: put in a function?
   // Add atomicAdd function for old NVidia architectures
   struct cudaDeviceProp prop;
   Ceed_Cuda *ceed_data;
@@ -808,6 +819,7 @@ extern "C" int CeedCudaGenOperatorBuild(CeedOperator op) {
   string oper;
   oper = "CeedKernel_Cuda_gen_" + qFunctionName;
 
+  // TODO: put in a function?
   // Find dim and Q1d
   bool useCollograd = true;
   bool allCollograd = true;
@@ -898,6 +910,7 @@ extern "C" int CeedCudaGenOperatorBuild(CeedOperator op) {
   code << "  const CeedInt Q1d = "<<Q1d<<";\n";
 
   code << "  extern __shared__ CeedScalar slice[];\n";
+  // TODO put in a function? InitBackendData?
   code << "  BackendData data;\n";
   code << "  data.tidx = threadIdx.x;\n";
   code << "  data.tidy = threadIdx.y;\n";
@@ -906,6 +919,7 @@ extern "C" int CeedCudaGenOperatorBuild(CeedOperator op) {
   code << "  data.slice = slice+data.tidz*T1d"<<(dim>1?"*T1d":"")<<";\n";
 
   code << "\n  // -- Input field constants and basis data --\n";
+  // TODO: Put in a function?
   //Initialize constants, and matrices B and G
   for (CeedInt i = 0; i < numinputfields; i++) {
     code << "  // ---- Input field "<<i<<" ----\n";
@@ -1048,6 +1062,7 @@ extern "C" int CeedCudaGenOperatorBuild(CeedOperator op) {
     ierr = CeedElemRestrictionGetNumComponents(Erestrict, &ncomp);
     CeedChkBackend(ierr);
 
+    // TODO: put in a function?
     // Restriction
     if (emode != CEED_EVAL_WEIGHT &&
         !((emode == CEED_EVAL_NONE) && useCollograd)) {
@@ -1082,6 +1097,7 @@ extern "C" int CeedCudaGenOperatorBuild(CeedOperator op) {
       }
     }
 
+    // TODO: put in a function?
     // Basis action
     code << "    // EvalMode: "<<CeedEvalModes[emode]<<"\n";
     switch (emode) {
@@ -1117,6 +1133,7 @@ extern "C" int CeedCudaGenOperatorBuild(CeedOperator op) {
     }
   }
 
+  // TODO: put in a function + separate colograd logic
   // Q function
   code << "\n    // -- Output field setup --\n";
   for (CeedInt i = 0; i < numoutputfields; i++) {
@@ -1313,6 +1330,7 @@ extern "C" int CeedCudaGenOperatorBuild(CeedOperator op) {
     CeedChkBackend(ierr);
     ierr = CeedElemRestrictionGetNumComponents(Erestrict, &ncomp);
     CeedChkBackend(ierr);
+    // TODO put in a function
     // Basis action
     code << "    // EvalMode: "<<CeedEvalModes[emode]<<"\n";
     switch (emode) {
@@ -1345,6 +1363,7 @@ extern "C" int CeedCudaGenOperatorBuild(CeedOperator op) {
       break; // TODO: Not implemented
       // LCOV_EXCL_STOP
     }
+    // TODO put in a function
     // Restriction
       bool isStrided;
       ierr = CeedElemRestrictionIsStrided(Erestrict, &isStrided); CeedChkBackend(ierr);
