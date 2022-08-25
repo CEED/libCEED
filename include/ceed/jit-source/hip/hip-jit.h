@@ -17,6 +17,9 @@
 
 #include <ceed/types.h>
 
-typedef struct { const CeedScalar* inputs[16]; CeedScalar* outputs[16]; } Fields_Hip;
+typedef struct {
+  const CeedScalar* inputs[16];
+  CeedScalar*       outputs[16];
+} Fields_Hip;
 
 #endif

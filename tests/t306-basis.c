@@ -4,7 +4,7 @@
 #include <ceed.h>
 
 int main(int argc, char **argv) {
-  Ceed ceed;
+  Ceed      ceed;
   CeedBasis b;
 
   CeedInit(argv[1], &ceed);
@@ -15,14 +15,8 @@ int main(int argc, char **argv) {
   CeedBasisGetNumNodes(b, &P);
   CeedBasisGetNumQuadraturePoints(b, &Q);
 
-  if (P != 64)
-    // LCOV_EXCL_START
-    printf("%" CeedInt_FMT " != 64\n", P);
-  // LCOV_EXCL_STOP
-  if (Q != 125)
-    // LCOV_EXCL_START
-    printf("%" CeedInt_FMT " != 125\n", Q);
-  // LCOV_EXCL_STOP
+  if (P != 64) printf("%" CeedInt_FMT " != 64\n", P);
+  if (Q != 125) printf("%" CeedInt_FMT " != 125\n", Q);
 
   CeedBasisDestroy(&b);
   CeedDestroy(&ceed);

@@ -6,28 +6,26 @@
 // This file is part of CEED:  http://github.com/ceed
 
 // Note: intentionally testing strange spacing in '#include's
-#include  <math.h>
 #include <ceed.h>
-#include "./t406-qfunction-scales.h"
-# include   "t406-qfunction-helper.h"
+#include <math.h>
 
-CEED_QFUNCTION(setup)(void *ctx, const CeedInt Q, const CeedScalar *const *in,
-                      CeedScalar *const *out) {
-  const CeedScalar *w = in[0];
-  CeedScalar *q_data = out[0];
-  for (CeedInt i=0; i<Q; i++) {
+#include "./t406-qfunction-scales.h"
+#include "t406-qfunction-helper.h"
+
+CEED_QFUNCTION(setup)(void *ctx, const CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
+  const CeedScalar *w      = in[0];
+  CeedScalar       *q_data = out[0];
+  for (CeedInt i = 0; i < Q; i++) {
     q_data[i] = w[i];
   }
   return 0;
 }
 
-CEED_QFUNCTION(mass)(void *ctx, const CeedInt Q, const CeedScalar *const *in,
-                     CeedScalar *const *out) {
+CEED_QFUNCTION(mass)(void *ctx, const CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
   const CeedScalar *q_data = in[0], *u = in[1];
-  CeedScalar *v = out[0];
-  for (CeedInt i=0; i<Q; i++) {
-    v[i] = q_data[i] * (times_two(u[i]) + times_three(u[i])) * sqrt(
-             1.0 * SCALE_TWO);
+  CeedScalar       *v = out[0];
+  for (CeedInt i = 0; i < Q; i++) {
+    v[i] = q_data[i] * (times_two(u[i]) + times_three(u[i])) * sqrt(1.0 * SCALE_TWO);
   }
   return 0;
 }

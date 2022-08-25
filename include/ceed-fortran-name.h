@@ -21,30 +21,30 @@
 
 /* the following macro functions like a##b,
    but will expand a and/or b if they are themselves macros */
-#define TOKEN_PASTE_(a,b) a##b
-#define TOKEN_PASTE(a,b) TOKEN_PASTE_(a,b)
+#define TOKEN_PASTE_(a, b) a##b
+#define TOKEN_PASTE(a, b) TOKEN_PASTE_(a, b)
 
 #ifdef PREFIX
-#  define PREFIXED_NAME(x) TOKEN_PASTE(PREFIX,x)
+#define PREFIXED_NAME(x) TOKEN_PASTE(PREFIX, x)
 #else
-#  define PREFIXED_NAME(x) x
+#define PREFIXED_NAME(x) x
 #endif
 
 #ifdef FPREFIX
-#  define FPREFIXED_NAME(x) TOKEN_PASTE(FPREFIX,x)
+#define FPREFIXED_NAME(x) TOKEN_PASTE(FPREFIX, x)
 #else
-#  define FPREFIXED_NAME(x) x
+#define FPREFIXED_NAME(x) x
 #endif
 
 #if defined(UPCASE)
-#  define FORTRAN_NAME(low,up) FPREFIXED_NAME(up)
-#  define FORTRAN_UNPREFIXED(low,up) up
+#define FORTRAN_NAME(low, up) FPREFIXED_NAME(up)
+#define FORTRAN_UNPREFIXED(low, up) up
 #elif defined(UNDERSCORE)
-#  define FORTRAN_NAME(low,up) FPREFIXED_NAME(TOKEN_PASTE(low,_))
-#  define FORTRAN_UNPREFIXED(low,up) TOKEN_PASTE(low,_)
+#define FORTRAN_NAME(low, up) FPREFIXED_NAME(TOKEN_PASTE(low, _))
+#define FORTRAN_UNPREFIXED(low, up) TOKEN_PASTE(low, _)
 #else
-#  define FORTRAN_NAME(low,up) FPREFIXED_NAME(low)
-#  define FORTRAN_UNPREFIXED(low,up) low
+#define FORTRAN_NAME(low, up) FPREFIXED_NAME(low)
+#define FORTRAN_UNPREFIXED(low, up) low
 #endif
 
 #endif

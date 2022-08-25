@@ -18,48 +18,44 @@
 #define CEED_OCCA_TYPES_HEADER
 
 #include <ceed/backend.h>
+
 #include <occa.hpp>
 
-#define CeedOccaFromChk(ierr)                   \
-  do {                                          \
-    if (ierr) {                                 \
-      return NULL;                              \
-    }                                           \
+#define CeedOccaFromChk(ierr) \
+  do {                        \
+    if (ierr) {               \
+      return NULL;            \
+    }                         \
   } while (0)
 
-#define CeedOccaValidChk(isValidVar, ierr)      \
-  do {                                          \
-    if (ierr) {                                 \
-      isValidVar = false;                       \
-      return;                                   \
-    }                                           \
+#define CeedOccaValidChk(isValidVar, ierr) \
+  do {                                     \
+    if (ierr) {                            \
+      isValidVar = false;                  \
+      return;                              \
+    }                                      \
   } while (0)
 
-#define CeedHandleOccaException(exc)            \
-  do {                                          \
-    std::string error = exc.toString();         \
-    return CeedError(ceed, CEED_ERROR_BACKEND, error.c_str());   \
+#define CeedHandleOccaException(exc)                           \
+  do {                                                         \
+    std::string error = exc.toString();                        \
+    return CeedError(ceed, CEED_ERROR_BACKEND, error.c_str()); \
   } while (0)
 
-#define CeedOccaCastRegisterFunction(func)      \
-  (ceed::occa::ceedFunction) (void*) func
+#define CeedOccaCastRegisterFunction(func) (ceed::occa::ceedFunction)(void*) func
 
-#define CeedOccaRegisterBaseFunction(name, func)  \
-  ierr = registerCeedFunction(                    \
-    ceed, name,                                   \
-    CeedOccaCastRegisterFunction(func)            \
-  ); CeedChk(ierr)
+#define CeedOccaRegisterBaseFunction(name, func)                               \
+  ierr = registerCeedFunction(ceed, name, CeedOccaCastRegisterFunction(func)); \
+  CeedChk(ierr)
 
-#define CeedOccaRegisterFunction(object, name, func) \
-  ierr = registerCeedFunction(                       \
-    ceed, object, name,                              \
-    CeedOccaCastRegisterFunction(func)               \
-  ); CeedChk(ierr)
+#define CeedOccaRegisterFunction(object, name, func)                                   \
+  ierr = registerCeedFunction(ceed, object, name, CeedOccaCastRegisterFunction(func)); \
+  CeedChk(ierr)
 
 namespace ceed {
-  namespace occa {
-    typedef int (*ceedFunction)();
-  }
+namespace occa {
+typedef int (*ceedFunction)();
 }
+}  // namespace ceed
 
 #endif

@@ -5,10 +5,10 @@
 //
 // This file is part of CEED:  http://github.com/ceed
 
-#include <ceed/ceed.h>
-#include <ceed/backend.h>
-#include <ceed/cuda.h>
 #include <ceed-impl.h>
+#include <ceed/backend.h>
+#include <ceed/ceed.h>
+#include <ceed/cuda.h>
 
 /**
   @brief Set CUDA function pointer to evaluate action at quadrature points
@@ -21,13 +21,12 @@
   @ref User
 **/
 int CeedQFunctionSetCUDAUserFunction(CeedQFunction qf, CUfunction f) {
-  int ierr;
   if (!qf->SetCUDAUserFunction) {
     Ceed ceed;
-    ierr = CeedQFunctionGetCeed(qf, &ceed); CeedChk(ierr);
+    CeedCall(CeedQFunctionGetCeed(qf, &ceed));
     CeedDebug(ceed, "Backend does not support CUfunction pointers for QFunctions.");
   } else {
-    ierr = qf->SetCUDAUserFunction(qf, f); CeedChk(ierr);
+    CeedCall(qf->SetCUDAUserFunction(qf, f));
   }
   return CEED_ERROR_SUCCESS;
 }

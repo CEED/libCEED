@@ -5,38 +5,31 @@
 //
 // This file is part of CEED:  http://github.com/ceed
 
-#include <ceed/ceed.h>
 #include <ceed/backend.h>
-#include <string.h>
+#include <ceed/ceed.h>
 #include <ceed/jit-source/gallery/ceed-poisson3dbuild.h>
+#include <string.h>
 
 /**
   @brief Set fields for Ceed QFunction building the geometric data for the 3D
            Poisson operator
 **/
-static int CeedQFunctionInit_Poisson3DBuild(Ceed ceed, const char *requested,
-    CeedQFunction qf) {
-  int ierr;
-
+static int CeedQFunctionInit_Poisson3DBuild(Ceed ceed, const char *requested, CeedQFunction qf) {
   // Check QFunction name
   const char *name = "Poisson3DBuild";
-  if (strcmp(name, requested))
+  if (strcmp(name, requested)) {
     // LCOV_EXCL_START
-    return CeedError(ceed, CEED_ERROR_UNSUPPORTED,
-                     "QFunction '%s' does not match requested name: %s",
-                     name, requested);
-  // LCOV_EXCL_STOP
+    return CeedError(ceed, CEED_ERROR_UNSUPPORTED, "QFunction '%s' does not match requested name: %s", name, requested);
+    // LCOV_EXCL_STOP
+  }
 
   // Add QFunction fields
   const CeedInt dim = 3;
-  ierr = CeedQFunctionAddInput(qf, "dx", dim*dim, CEED_EVAL_GRAD);
-  CeedChk(ierr);
-  ierr = CeedQFunctionAddInput(qf, "weights", 1, CEED_EVAL_WEIGHT);
-  CeedChk(ierr);
-  ierr = CeedQFunctionAddOutput(qf, "qdata", dim*(dim+1)/2, CEED_EVAL_NONE);
-  CeedChk(ierr);
+  CeedCall(CeedQFunctionAddInput(qf, "dx", dim * dim, CEED_EVAL_GRAD));
+  CeedCall(CeedQFunctionAddInput(qf, "weights", 1, CEED_EVAL_WEIGHT));
+  CeedCall(CeedQFunctionAddOutput(qf, "qdata", dim * (dim + 1) / 2, CEED_EVAL_NONE));
 
-  ierr = CeedQFunctionSetUserFlopsEstimate(qf, 69); CeedChk(ierr);
+  CeedCall(CeedQFunctionSetUserFlopsEstimate(qf, 69));
 
   return CEED_ERROR_SUCCESS;
 }
@@ -46,6 +39,5 @@ static int CeedQFunctionInit_Poisson3DBuild(Ceed ceed, const char *requested,
            Poisson operator
 **/
 CEED_INTERN int CeedQFunctionRegister_Poisson3DBuild(void) {
-  return CeedQFunctionRegister("Poisson3DBuild", Poisson3DBuild_loc, 1,
-                               Poisson3DBuild, CeedQFunctionInit_Poisson3DBuild);
+  return CeedQFunctionRegister("Poisson3DBuild", Poisson3DBuild_loc, 1, Poisson3DBuild, CeedQFunctionInit_Poisson3DBuild);
 }

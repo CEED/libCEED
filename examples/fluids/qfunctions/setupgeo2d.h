@@ -48,36 +48,34 @@
 //               [A21 A22]
 //
 // *****************************************************************************
-CEED_QFUNCTION(Setup2d)(void *ctx, CeedInt Q,
-                        const CeedScalar *const *in, CeedScalar *const *out) {
+CEED_QFUNCTION(Setup2d)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
   // *INDENT-OFF*
   // Inputs
-  const CeedScalar (*J)[2][CEED_Q_VLA] = (const CeedScalar(*)[2][CEED_Q_VLA])in[0],
-                   (*w) = in[1];
+  const CeedScalar(*J)[2][CEED_Q_VLA] = (const CeedScalar(*)[2][CEED_Q_VLA])in[0], (*w) = in[1];
   // Outputs
-  CeedScalar (*q_data)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA])out[0];
+  CeedScalar(*q_data)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA])out[0];
   // *INDENT-ON*
 
   CeedPragmaSIMD
-  // Quadrature Point Loop
-  for (CeedInt i=0; i<Q; i++) {
+      // Quadrature Point Loop
+      for (CeedInt i = 0; i < Q; i++) {
     // Setup
-    const CeedScalar J11 = J[0][0][i];
-    const CeedScalar J21 = J[0][1][i];
-    const CeedScalar J12 = J[1][0][i];
-    const CeedScalar J22 = J[1][1][i];
-    const CeedScalar detJ = J11*J22 - J21*J12;
+    const CeedScalar J11  = J[0][0][i];
+    const CeedScalar J21  = J[0][1][i];
+    const CeedScalar J12  = J[1][0][i];
+    const CeedScalar J22  = J[1][1][i];
+    const CeedScalar detJ = J11 * J22 - J21 * J12;
 
     // Qdata
     // -- Interp-to-Interp q_data
     q_data[0][i] = w[i] * detJ;
     // -- Interp-to-Grad q_data
     // Inverse of change of coordinate matrix: X_i,j
-    q_data[1][i] =  J22 / detJ;
+    q_data[1][i] = J22 / detJ;
     q_data[2][i] = -J12 / detJ;
     q_data[3][i] = -J21 / detJ;
-    q_data[4][i] =  J11 / detJ;
-  } // End of Quadrature Point Loop
+    q_data[4][i] = J11 / detJ;
+  }  // End of Quadrature Point Loop
 
   // Return
   return 0;
@@ -111,29 +109,27 @@ CEED_QFUNCTION(Setup2d)(void *ctx, CeedInt Q,
 //                [-J1 ]
 //
 // *****************************************************************************
-CEED_QFUNCTION(SetupBoundary2d)(void *ctx, CeedInt Q,
-                                const CeedScalar *const *in, CeedScalar *const *out) {
+CEED_QFUNCTION(SetupBoundary2d)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
   // *INDENT-OFF*
   // Inputs
-  const CeedScalar (*J)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[0],
-                   (*w) = in[1];
+  const CeedScalar(*J)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[0], (*w) = in[1];
   // Outputs
-  CeedScalar (*q_data_sur)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA])out[0];
+  CeedScalar(*q_data_sur)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA])out[0];
   // *INDENT-ON*
 
   CeedPragmaSIMD
-  // Quadrature Point Loop
-  for (CeedInt i=0; i<Q; i++) {
+      // Quadrature Point Loop
+      for (CeedInt i = 0; i < Q; i++) {
     // Setup
     const CeedScalar J1 = J[0][i];
     const CeedScalar J2 = J[1][i];
 
-    const CeedScalar detJb = sqrt(J1*J1 + J2*J2);
+    const CeedScalar detJb = sqrt(J1 * J1 + J2 * J2);
 
     q_data_sur[0][i] = w[i] * detJb;
     q_data_sur[1][i] = J2 / detJb;
     q_data_sur[2][i] = -J1 / detJb;
-  } // End of Quadrature Point Loop
+  }  // End of Quadrature Point Loop
 
   // Return
   return 0;
@@ -141,4 +137,4 @@ CEED_QFUNCTION(SetupBoundary2d)(void *ctx, CeedInt Q,
 
 // *****************************************************************************
 
-#endif // setup_geo_2d_h
+#endif  // setup_geo_2d_h

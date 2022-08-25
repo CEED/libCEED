@@ -5,51 +5,43 @@
 //
 // This file is part of CEED:  http://github.com/ceed
 
-#include <ceed/ceed.h>
+#include "ceed-hip-shared.h"
+
 #include <ceed/backend.h>
+#include <ceed/ceed.h>
 #include <stdbool.h>
 #include <string.h>
-#include "ceed-hip-shared.h"
 
 //------------------------------------------------------------------------------
 // Backend init
 //------------------------------------------------------------------------------
 static int CeedInit_Hip_shared(const char *resource, Ceed ceed) {
-  int ierr;
-
   char *resource_root;
-  ierr = CeedHipGetResourceRoot(ceed, resource, &resource_root);
-  CeedChkBackend(ierr);
-  if (strcmp(resource_root, "/gpu/hip/shared"))
+  CeedCallBackend(CeedHipGetResourceRoot(ceed, resource, &resource_root));
+  if (strcmp(resource_root, "/gpu/hip/shared")) {
     // LCOV_EXCL_START
-    return CeedError(ceed, CEED_ERROR_BACKEND,
-                     "Hip backend cannot use resource: %s", resource);
-  // LCOV_EXCL_STOP
-  ierr = CeedFree(&resource_root); CeedChkBackend(ierr);
-  ierr = CeedSetDeterministic(ceed, true); CeedChkBackend(ierr);
+    return CeedError(ceed, CEED_ERROR_BACKEND, "Hip backend cannot use resource: %s", resource);
+    // LCOV_EXCL_STOP
+  }
+  CeedCallBackend(CeedFree(&resource_root));
+  CeedCallBackend(CeedSetDeterministic(ceed, true));
 
   Ceed_Hip *data;
-  ierr = CeedCalloc(1, &data); CeedChkBackend(ierr);
-  ierr = CeedSetData(ceed, data); CeedChkBackend(ierr);
-  ierr = CeedHipInit(ceed, resource); CeedChkBackend(ierr);
+  CeedCallBackend(CeedCalloc(1, &data));
+  CeedCallBackend(CeedSetData(ceed, data));
+  CeedCallBackend(CeedHipInit(ceed, resource));
 
   Ceed ceed_ref;
-  CeedInit("/gpu/hip/ref", &ceed_ref);
-  ierr = CeedSetDelegate(ceed, ceed_ref); CeedChkBackend(ierr);
+  CeedCallBackend(CeedInit("/gpu/hip/ref", &ceed_ref));
+  CeedCallBackend(CeedSetDelegate(ceed, ceed_ref));
 
-  ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "BasisCreateTensorH1",
-                                CeedBasisCreateTensorH1_Hip_shared);
-  CeedChkBackend(ierr);
-  ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "Destroy",
-                                CeedDestroy_Hip); CeedChkBackend(ierr);
-  CeedChkBackend(ierr);
+  CeedCallBackend(CeedSetBackendFunction(ceed, "Ceed", ceed, "BasisCreateTensorH1", CeedBasisCreateTensorH1_Hip_shared));
+  CeedCallBackend(CeedSetBackendFunction(ceed, "Ceed", ceed, "Destroy", CeedDestroy_Hip));
   return CEED_ERROR_SUCCESS;
 }
 
 //------------------------------------------------------------------------------
 // Register backend
 //------------------------------------------------------------------------------
-CEED_INTERN int CeedRegister_Hip_Shared(void) {
-  return CeedRegister("/gpu/hip/shared", CeedInit_Hip_shared, 25);
-}
+CEED_INTERN int CeedRegister_Hip_Shared(void) { return CeedRegister("/gpu/hip/shared", CeedInit_Hip_shared, 25); }
 //------------------------------------------------------------------------------

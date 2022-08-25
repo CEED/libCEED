@@ -5,9 +5,9 @@
 //
 // This file is part of CEED:  http://github.com/ceed
 
-#include <ceed/ceed.h>
-#include <ceed/backend.h>
 #include <ceed-impl.h>
+#include <ceed/backend.h>
+#include <ceed/ceed.h>
 
 /// @file
 /// Implementation of CeedTensorContract interfaces
@@ -30,32 +30,26 @@
 
   @ref Backend
 **/
-int CeedTensorContractCreate(Ceed ceed, CeedBasis basis,
-                             CeedTensorContract *contract) {
-  int ierr;
-
+int CeedTensorContractCreate(Ceed ceed, CeedBasis basis, CeedTensorContract *contract) {
   if (!ceed->TensorContractCreate) {
     Ceed delegate;
-    ierr = CeedGetObjectDelegate(ceed, &delegate, "TensorContract");
-    CeedChk(ierr);
+    CeedCall(CeedGetObjectDelegate(ceed, &delegate, "TensorContract"));
 
-    if (!delegate)
+    if (!delegate) {
       // LCOV_EXCL_START
-      return CeedError(ceed, CEED_ERROR_UNSUPPORTED,
-                       "Backend does not support TensorContractCreate");
-    // LCOV_EXCL_STOP
+      return CeedError(ceed, CEED_ERROR_UNSUPPORTED, "Backend does not support TensorContractCreate");
+      // LCOV_EXCL_STOP
+    }
 
-    ierr = CeedTensorContractCreate(delegate, basis, contract);
-    CeedChk(ierr);
+    CeedCall(CeedTensorContractCreate(delegate, basis, contract));
     return CEED_ERROR_SUCCESS;
   }
 
-  ierr = CeedCalloc(1, contract); CeedChk(ierr);
+  CeedCall(CeedCalloc(1, contract));
 
   (*contract)->ceed = ceed;
-  ierr = CeedReference(ceed); CeedChk(ierr);
-  ierr = ceed->TensorContractCreate(basis, *contract);
-  CeedChk(ierr);
+  CeedCall(CeedReference(ceed));
+  CeedCall(ceed->TensorContractCreate(basis, *contract));
   return CEED_ERROR_SUCCESS;
 }
 
@@ -83,15 +77,9 @@ int CeedTensorContractCreate(Ceed ceed, CeedBasis basis,
 
   @ref Backend
 **/
-int CeedTensorContractApply(CeedTensorContract contract, CeedInt A, CeedInt B,
-                            CeedInt C, CeedInt J, const CeedScalar *restrict t,
-                            CeedTransposeMode t_mode, const CeedInt add,
-                            const CeedScalar *restrict u,
-                            CeedScalar *restrict v) {
-  int ierr;
-
-  ierr = contract->Apply(contract, A, B, C, J, t, t_mode, add,  u, v);
-  CeedChk(ierr);
+int CeedTensorContractApply(CeedTensorContract contract, CeedInt A, CeedInt B, CeedInt C, CeedInt J, const CeedScalar *restrict t,
+                            CeedTransposeMode t_mode, const CeedInt add, const CeedScalar *restrict u, CeedScalar *restrict v) {
+  CeedCall(contract->Apply(contract, A, B, C, J, t, t_mode, add, u, v));
   return CEED_ERROR_SUCCESS;
 }
 
@@ -164,14 +152,12 @@ int CeedTensorContractReference(CeedTensorContract contract) {
   @ref Backend
 **/
 int CeedTensorContractDestroy(CeedTensorContract *contract) {
-  int ierr;
-
   if (!*contract || --(*contract)->ref_count > 0) return CEED_ERROR_SUCCESS;
   if ((*contract)->Destroy) {
-    ierr = (*contract)->Destroy(*contract); CeedChk(ierr);
+    CeedCall((*contract)->Destroy(*contract));
   }
-  ierr = CeedDestroy(&(*contract)->ceed); CeedChk(ierr);
-  ierr = CeedFree(contract); CeedChk(ierr);
+  CeedCall(CeedDestroy(&(*contract)->ceed));
+  CeedCall(CeedFree(contract));
   return CEED_ERROR_SUCCESS;
 }
 

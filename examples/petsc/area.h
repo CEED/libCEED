@@ -8,12 +8,12 @@
 #ifndef libceed_petsc_examples_area_h
 #define libceed_petsc_examples_area_h
 
+#include <stddef.h>
+
 // -----------------------------------------------------------------------------
 // Command Line Options
 // -----------------------------------------------------------------------------
 
-static const char *const problem_types[] = {"cube", "sphere",
-                                            "ProblemType", "AREA", NULL
-                                           };
+static const char *const problem_types[] = {"cube", "sphere", "ProblemType", "AREA", NULL};
 
-#endif // libceed_petsc_examples_area_h
+#endif  // libceed_petsc_examples_area_h

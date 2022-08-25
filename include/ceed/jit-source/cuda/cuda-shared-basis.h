@@ -15,8 +15,7 @@
 // Sum input into output
 //------------------------------------------------------------------------------
 inline __device__ void add(CeedScalar *r_V, const CeedScalar *r_U) {
-  for (CeedInt i = 0; i < BASIS_P_1D; i++)
-    r_V[i] += r_U[i];
+  for (CeedInt i = 0; i < BASIS_P_1D; i++) r_V[i] += r_U[i];
 }
 
 //------------------------------------------------------------------------------
@@ -26,94 +25,69 @@ inline __device__ void add(CeedScalar *r_V, const CeedScalar *r_U) {
 //------------------------------------------------------------------------------
 // Read DoFs
 //------------------------------------------------------------------------------
-inline __device__ void readDofs1d(const CeedInt elem, const CeedInt t_in_x,
-                                  const CeedInt t_in_y, const CeedInt t_in_z,const CeedInt comp,
-                                  const CeedInt num_elem, const CeedScalar *d_U,
-                                  CeedScalar *slice) {
-  for (CeedInt i = 0; i < BASIS_P_1D; i++)
-    slice[i + t_in_z*BASIS_T_1D] = d_U[i + elem*BASIS_P_1D + comp*BASIS_P_1D*num_elem];
-  for (CeedInt i = BASIS_P_1D; i < BASIS_Q_1D; i++)
-    slice[i + t_in_z*BASIS_T_1D] = 0.0;
+inline __device__ void readDofs1d(const CeedInt elem, const CeedInt t_in_x, const CeedInt t_in_y, const CeedInt t_in_z, const CeedInt comp,
+                                  const CeedInt num_elem, const CeedScalar *d_U, CeedScalar *slice) {
+  for (CeedInt i = 0; i < BASIS_P_1D; i++) slice[i + t_in_z * BASIS_T_1D] = d_U[i + elem * BASIS_P_1D + comp * BASIS_P_1D * num_elem];
+  for (CeedInt i = BASIS_P_1D; i < BASIS_Q_1D; i++) slice[i + t_in_z * BASIS_T_1D] = 0.0;
 }
 
 //------------------------------------------------------------------------------
 // Write DoFs
 //------------------------------------------------------------------------------
-inline __device__ void writeDofs1d(const CeedInt elem, const CeedInt t_in_x,
-                                   const CeedInt t_in_y, const CeedInt comp,
-                                   const CeedInt num_elem, const CeedScalar &r_V,
-                                   CeedScalar *d_V) {
-  if (t_in_x < BASIS_P_1D)
-    d_V[t_in_x + elem*BASIS_P_1D + comp*BASIS_P_1D*num_elem] = r_V;
+inline __device__ void writeDofs1d(const CeedInt elem, const CeedInt t_in_x, const CeedInt t_in_y, const CeedInt comp, const CeedInt num_elem,
+                                   const CeedScalar &r_V, CeedScalar *d_V) {
+  if (t_in_x < BASIS_P_1D) d_V[t_in_x + elem * BASIS_P_1D + comp * BASIS_P_1D * num_elem] = r_V;
 }
 
 //------------------------------------------------------------------------------
 // Read quadrature point data
 //------------------------------------------------------------------------------
-inline __device__ void readQuads1d(const CeedInt elem, const CeedInt t_in_x,
-                                   const CeedInt t_in_y, const CeedInt t_in_z,
-                                   const CeedInt comp,
-                                   const CeedInt dim, const CeedInt num_elem,
-                                   const CeedScalar *d_U, CeedScalar *slice) {
+inline __device__ void readQuads1d(const CeedInt elem, const CeedInt t_in_x, const CeedInt t_in_y, const CeedInt t_in_z, const CeedInt comp,
+                                   const CeedInt dim, const CeedInt num_elem, const CeedScalar *d_U, CeedScalar *slice) {
   for (CeedInt i = 0; i < BASIS_Q_1D; i++)
-    slice[i + t_in_z*BASIS_T_1D] = d_U[i + elem*BASIS_Q_1D + comp*BASIS_Q_1D*num_elem +
-                                  dim*BASIS_NUM_COMP*num_elem*BASIS_Q_1D];
-  for (CeedInt i = BASIS_Q_1D; i < BASIS_P_1D; i++)
-    slice[i + t_in_z*BASIS_T_1D] = 0.0;
+    slice[i + t_in_z * BASIS_T_1D] = d_U[i + elem * BASIS_Q_1D + comp * BASIS_Q_1D * num_elem + dim * BASIS_NUM_COMP * num_elem * BASIS_Q_1D];
+  for (CeedInt i = BASIS_Q_1D; i < BASIS_P_1D; i++) slice[i + t_in_z * BASIS_T_1D] = 0.0;
 }
 
 //------------------------------------------------------------------------------
 // Write quadrature point data
 //------------------------------------------------------------------------------
-inline __device__ void writeQuads1d(const CeedInt elem, const CeedInt t_in_x,
-                                    const CeedInt t_in_y, const CeedInt comp,
-                                    const CeedInt dim, const CeedInt num_elem,
-                                    const CeedScalar &r_V, CeedScalar *d_V) {
-  if (t_in_x < BASIS_Q_1D)
-    d_V[t_in_x + elem*BASIS_Q_1D + comp*BASIS_Q_1D*num_elem +
-        dim*BASIS_NUM_COMP*num_elem*BASIS_Q_1D] = r_V;
+inline __device__ void writeQuads1d(const CeedInt elem, const CeedInt t_in_x, const CeedInt t_in_y, const CeedInt comp, const CeedInt dim,
+                                    const CeedInt num_elem, const CeedScalar &r_V, CeedScalar *d_V) {
+  if (t_in_x < BASIS_Q_1D) d_V[t_in_x + elem * BASIS_Q_1D + comp * BASIS_Q_1D * num_elem + dim * BASIS_NUM_COMP * num_elem * BASIS_Q_1D] = r_V;
 }
 
 //------------------------------------------------------------------------------
 // 1D tensor contraction
 //------------------------------------------------------------------------------
-inline __device__ void ContractX1d(CeedScalar *slice, const CeedInt t_in_x,
-                                   const CeedInt t_in_y, const CeedInt t_in_z,
-                                   const CeedScalar &U, const CeedScalar *B,
-                                   CeedScalar &V) {
+inline __device__ void ContractX1d(CeedScalar *slice, const CeedInt t_in_x, const CeedInt t_in_y, const CeedInt t_in_z, const CeedScalar &U,
+                                   const CeedScalar *B, CeedScalar &V) {
   V = 0.0;
-  for (CeedInt i = 0; i < BASIS_P_1D; i++)
-    V += B[i + t_in_x*BASIS_P_1D] * slice[i + t_in_z*BASIS_T_1D]; // Contract x direction
+  for (CeedInt i = 0; i < BASIS_P_1D; i++) V += B[i + t_in_x * BASIS_P_1D] * slice[i + t_in_z * BASIS_T_1D];  // Contract x direction
 }
 
 //------------------------------------------------------------------------------
 // 1D transpose tensor contraction
 //------------------------------------------------------------------------------
-inline __device__ void ContractTransposeX1d(CeedScalar *slice, const CeedInt t_in_x,
-    const CeedInt t_in_y, const CeedInt t_in_z,
-    const CeedScalar &U, const CeedScalar *B, CeedScalar &V) {
+inline __device__ void ContractTransposeX1d(CeedScalar *slice, const CeedInt t_in_x, const CeedInt t_in_y, const CeedInt t_in_z, const CeedScalar &U,
+                                            const CeedScalar *B, CeedScalar &V) {
   V = 0.0;
-  for (CeedInt i = 0; i < BASIS_Q_1D; i++)
-    V += B[t_in_x + i*BASIS_P_1D] * slice[i + t_in_z*BASIS_T_1D]; // Contract x direction
+  for (CeedInt i = 0; i < BASIS_Q_1D; i++) V += B[t_in_x + i * BASIS_P_1D] * slice[i + t_in_z * BASIS_T_1D];  // Contract x direction
 }
 
 //------------------------------------------------------------------------------
 // 1D interpolate to quadrature points
 //------------------------------------------------------------------------------
-inline __device__ void interp1d(const CeedInt num_elem, const CeedInt transpose,
-                                const CeedScalar *c_B,
-                                const CeedScalar *__restrict__ d_U,
-                                CeedScalar *__restrict__ d_V,
-                                CeedScalar *slice) {
-  CeedScalar r_V;
-  CeedScalar r_t;
+inline __device__ void interp1d(const CeedInt num_elem, const CeedInt transpose, const CeedScalar *c_B, const CeedScalar *__restrict__ d_U,
+                                CeedScalar *__restrict__ d_V, CeedScalar *slice) {
+  CeedScalar    r_V;
+  CeedScalar    r_t;
 
   const CeedInt t_in_x = threadIdx.x;
   const CeedInt t_in_y = threadIdx.y;
   const CeedInt t_in_z = threadIdx.z;
 
-  for (CeedInt elem = blockIdx.x*blockDim.z + threadIdx.z; elem < num_elem;
-       elem += gridDim.x*blockDim.z) {
+  for (CeedInt elem = blockIdx.x * blockDim.z + threadIdx.z; elem < num_elem; elem += gridDim.x * blockDim.z) {
     for (CeedInt comp = 0; comp < BASIS_NUM_COMP; comp++) {
       if (transpose) {
         readQuads1d(elem, t_in_x, t_in_y, t_in_z, comp, 0, num_elem, d_U, slice);
@@ -131,22 +105,18 @@ inline __device__ void interp1d(const CeedInt num_elem, const CeedInt transpose,
 //------------------------------------------------------------------------------
 // 1D derivatives at quadrature points
 //------------------------------------------------------------------------------
-inline __device__ void grad1d(const CeedInt num_elem, const CeedInt transpose,
-                              const CeedScalar *c_B, const CeedScalar *c_G,
-                              const CeedScalar *__restrict__ d_U,
-                              CeedScalar *__restrict__ d_V,
-                              CeedScalar *slice) {
-  CeedScalar r_U;
-  CeedScalar r_V;
+inline __device__ void grad1d(const CeedInt num_elem, const CeedInt transpose, const CeedScalar *c_B, const CeedScalar *c_G,
+                              const CeedScalar *__restrict__ d_U, CeedScalar *__restrict__ d_V, CeedScalar *slice) {
+  CeedScalar    r_U;
+  CeedScalar    r_V;
 
   const CeedInt t_in_x = threadIdx.x;
   const CeedInt t_in_y = threadIdx.y;
   const CeedInt t_in_z = threadIdx.z;
-  CeedInt dim;
+  CeedInt       dim;
 
-  for (CeedInt elem = blockIdx.x*blockDim.z + threadIdx.z; elem < num_elem;
-       elem += gridDim.x*blockDim.z) {
-    for(CeedInt comp = 0; comp < BASIS_NUM_COMP; comp++) {
+  for (CeedInt elem = blockIdx.x * blockDim.z + threadIdx.z; elem < num_elem; elem += gridDim.x * blockDim.z) {
+    for (CeedInt comp = 0; comp < BASIS_NUM_COMP; comp++) {
       if (transpose) {
         dim = 0;
         readQuads1d(elem, t_in_x, t_in_y, t_in_z, comp, dim, num_elem, d_U, slice);
@@ -165,14 +135,12 @@ inline __device__ void grad1d(const CeedInt num_elem, const CeedInt transpose,
 //------------------------------------------------------------------------------
 // 1D Quadrature weights
 //------------------------------------------------------------------------------
-__device__ void weight1d(const CeedInt num_elem, const CeedScalar *q_weight_1d,
-                         CeedScalar *w) {
-  const CeedInt tid = threadIdx.x;
+__device__ void weight1d(const CeedInt num_elem, const CeedScalar *q_weight_1d, CeedScalar *w) {
+  const CeedInt    tid    = threadIdx.x;
   const CeedScalar weight = q_weight_1d[tid];
-  for (CeedInt elem = blockIdx.x*blockDim.y + threadIdx.y; elem < num_elem;
-       elem += gridDim.x*blockDim.y) {
-    const CeedInt ind = elem*BASIS_Q_1D + tid;
-    w[ind] = weight;
+  for (CeedInt elem = blockIdx.x * blockDim.y + threadIdx.y; elem < num_elem; elem += gridDim.x * blockDim.y) {
+    const CeedInt ind = elem * BASIS_Q_1D + tid;
+    w[ind]            = weight;
   }
 }
 
@@ -183,136 +151,118 @@ __device__ void weight1d(const CeedInt num_elem, const CeedScalar *q_weight_1d,
 //------------------------------------------------------------------------------
 // Read DoFs
 //------------------------------------------------------------------------------
-inline __device__ void readDofs2d(const CeedInt elem, const CeedInt t_in_x,
-                                  const CeedInt t_in_y, const CeedInt comp,
-                                  const CeedInt num_elem, const CeedScalar *d_U,
-                                  CeedScalar &U) {
-  U = (t_in_x < BASIS_P_1D && t_in_y < BASIS_P_1D) ?
-      d_U[t_in_x + t_in_y*BASIS_P_1D + elem*BASIS_P_1D*BASIS_P_1D +
-          comp*BASIS_P_1D*BASIS_P_1D*num_elem] : 0.0;
+inline __device__ void readDofs2d(const CeedInt elem, const CeedInt t_in_x, const CeedInt t_in_y, const CeedInt comp, const CeedInt num_elem,
+                                  const CeedScalar *d_U, CeedScalar &U) {
+  U = (t_in_x < BASIS_P_1D && t_in_y < BASIS_P_1D)
+          ? d_U[t_in_x + t_in_y * BASIS_P_1D + elem * BASIS_P_1D * BASIS_P_1D + comp * BASIS_P_1D * BASIS_P_1D * num_elem]
+          : 0.0;
 }
 
 //------------------------------------------------------------------------------
 // Write DoFs
 //------------------------------------------------------------------------------
-inline __device__ void writeDofs2d(const CeedInt elem, const CeedInt t_in_x,
-                                   const CeedInt t_in_y, const CeedInt comp,
-                                   const CeedInt num_elem, const CeedScalar &r_V,
-                                   CeedScalar *d_V) {
+inline __device__ void writeDofs2d(const CeedInt elem, const CeedInt t_in_x, const CeedInt t_in_y, const CeedInt comp, const CeedInt num_elem,
+                                   const CeedScalar &r_V, CeedScalar *d_V) {
   if (t_in_x < BASIS_P_1D && t_in_y < BASIS_P_1D)
-    d_V[t_in_x + t_in_y*BASIS_P_1D + elem*BASIS_P_1D*BASIS_P_1D +
-        comp*BASIS_P_1D*BASIS_P_1D*num_elem] = r_V;
+    d_V[t_in_x + t_in_y * BASIS_P_1D + elem * BASIS_P_1D * BASIS_P_1D + comp * BASIS_P_1D * BASIS_P_1D * num_elem] = r_V;
 }
 
 //------------------------------------------------------------------------------
 // Read quadrature point data
 //------------------------------------------------------------------------------
-inline __device__ void readQuads2d(const CeedInt elem, const CeedInt t_in_x,
-                                   const CeedInt t_in_y, const CeedInt comp,
-                                   const CeedInt dim, const CeedInt num_elem,
-                                   const CeedScalar *d_U, CeedScalar &U ) {
-  U = (t_in_x < BASIS_Q_1D && t_in_y < BASIS_Q_1D) ?
-      d_U[t_in_x + t_in_y*BASIS_Q_1D + elem*BASIS_Q_1D*BASIS_Q_1D +
-          comp*BASIS_Q_1D*BASIS_Q_1D*num_elem + dim*BASIS_NUM_COMP*num_elem*BASIS_Q_1D*BASIS_Q_1D] : 0.0;
+inline __device__ void readQuads2d(const CeedInt elem, const CeedInt t_in_x, const CeedInt t_in_y, const CeedInt comp, const CeedInt dim,
+                                   const CeedInt num_elem, const CeedScalar *d_U, CeedScalar &U) {
+  U = (t_in_x < BASIS_Q_1D && t_in_y < BASIS_Q_1D)
+          ? d_U[t_in_x + t_in_y * BASIS_Q_1D + elem * BASIS_Q_1D * BASIS_Q_1D + comp * BASIS_Q_1D * BASIS_Q_1D * num_elem +
+                dim * BASIS_NUM_COMP * num_elem * BASIS_Q_1D * BASIS_Q_1D]
+          : 0.0;
 }
 
 //------------------------------------------------------------------------------
 // Write quadrature point data
 //------------------------------------------------------------------------------
-inline __device__ void writeQuads2d(const CeedInt elem, const CeedInt t_in_x,
-                                    const CeedInt t_in_y, const CeedInt comp,
-                                    const CeedInt dim, const CeedInt num_elem,
-                                    const CeedScalar &r_V, CeedScalar *d_V) {
+inline __device__ void writeQuads2d(const CeedInt elem, const CeedInt t_in_x, const CeedInt t_in_y, const CeedInt comp, const CeedInt dim,
+                                    const CeedInt num_elem, const CeedScalar &r_V, CeedScalar *d_V) {
   if (t_in_x < BASIS_Q_1D && t_in_y < BASIS_Q_1D)
-    d_V[t_in_x + t_in_y*BASIS_Q_1D + elem*BASIS_Q_1D*BASIS_Q_1D + comp*BASIS_Q_1D*BASIS_Q_1D*num_elem +
-        dim*BASIS_NUM_COMP*num_elem*BASIS_Q_1D*BASIS_Q_1D] = r_V;
+    d_V[t_in_x + t_in_y * BASIS_Q_1D + elem * BASIS_Q_1D * BASIS_Q_1D + comp * BASIS_Q_1D * BASIS_Q_1D * num_elem +
+        dim * BASIS_NUM_COMP * num_elem * BASIS_Q_1D * BASIS_Q_1D] = r_V;
 }
 
 //------------------------------------------------------------------------------
 // 2D tensor contraction x
 //------------------------------------------------------------------------------
-inline __device__ void ContractX2d(CeedScalar *slice, const CeedInt t_in_x,
-                                   const CeedInt t_in_y, const CeedInt t_in_z,
-                                   const CeedScalar &U, const CeedScalar *B,
-                                   CeedScalar &V) {
-  slice[t_in_x + t_in_y*BASIS_T_1D + t_in_z*BASIS_T_1D*BASIS_T_1D] = U;
+inline __device__ void ContractX2d(CeedScalar *slice, const CeedInt t_in_x, const CeedInt t_in_y, const CeedInt t_in_z, const CeedScalar &U,
+                                   const CeedScalar *B, CeedScalar &V) {
+  slice[t_in_x + t_in_y * BASIS_T_1D + t_in_z * BASIS_T_1D * BASIS_T_1D] = U;
   __syncthreads();
   V = 0.0;
   if (t_in_x < BASIS_Q_1D)
     for (CeedInt i = 0; i < BASIS_P_1D; i++)
-      V += B[i + t_in_x*BASIS_P_1D] * slice[i + t_in_y*BASIS_T_1D + t_in_z*BASIS_T_1D*BASIS_T_1D]; // Contract x direction
+      V += B[i + t_in_x * BASIS_P_1D] * slice[i + t_in_y * BASIS_T_1D + t_in_z * BASIS_T_1D * BASIS_T_1D];  // Contract x direction
   __syncthreads();
 }
 
 //------------------------------------------------------------------------------
 // 2D tensor contraction y
 //------------------------------------------------------------------------------
-inline __device__ void ContractY2d(CeedScalar *slice, const CeedInt t_in_x,
-                                   const CeedInt t_in_y, const CeedInt t_in_z,
-                                   const CeedScalar &U, const CeedScalar *B,
-                                   CeedScalar &V) {
-  slice[t_in_x + t_in_y*BASIS_T_1D + t_in_z*BASIS_T_1D*BASIS_T_1D] = U;
+inline __device__ void ContractY2d(CeedScalar *slice, const CeedInt t_in_x, const CeedInt t_in_y, const CeedInt t_in_z, const CeedScalar &U,
+                                   const CeedScalar *B, CeedScalar &V) {
+  slice[t_in_x + t_in_y * BASIS_T_1D + t_in_z * BASIS_T_1D * BASIS_T_1D] = U;
   __syncthreads();
   V = 0.0;
   if (t_in_y < BASIS_Q_1D)
     for (CeedInt i = 0; i < BASIS_P_1D; i++)
-      V += B[i + t_in_y*BASIS_P_1D] * slice[t_in_x + i*BASIS_T_1D + t_in_z*BASIS_T_1D*BASIS_T_1D]; // Contract y direction
+      V += B[i + t_in_y * BASIS_P_1D] * slice[t_in_x + i * BASIS_T_1D + t_in_z * BASIS_T_1D * BASIS_T_1D];  // Contract y direction
   __syncthreads();
 }
 
 //------------------------------------------------------------------------------
 // 2D transpose tensor contraction y
 //------------------------------------------------------------------------------
-inline __device__ void ContractTransposeY2d(CeedScalar *slice, const CeedInt t_in_x,
-    const CeedInt t_in_y, const CeedInt t_in_z,
-    const CeedScalar &U, const CeedScalar *B, CeedScalar &V) {
-  slice[t_in_x + t_in_y*BASIS_T_1D + t_in_z*BASIS_T_1D*BASIS_T_1D] = U;
+inline __device__ void ContractTransposeY2d(CeedScalar *slice, const CeedInt t_in_x, const CeedInt t_in_y, const CeedInt t_in_z, const CeedScalar &U,
+                                            const CeedScalar *B, CeedScalar &V) {
+  slice[t_in_x + t_in_y * BASIS_T_1D + t_in_z * BASIS_T_1D * BASIS_T_1D] = U;
   __syncthreads();
   V = 0.0;
   if (t_in_y < BASIS_P_1D)
     for (CeedInt i = 0; i < BASIS_Q_1D; i++)
-      V += B[t_in_y + i*BASIS_P_1D] * slice[t_in_x + i*BASIS_T_1D + t_in_z*BASIS_T_1D*BASIS_T_1D]; // Contract y direction
+      V += B[t_in_y + i * BASIS_P_1D] * slice[t_in_x + i * BASIS_T_1D + t_in_z * BASIS_T_1D * BASIS_T_1D];  // Contract y direction
   __syncthreads();
 }
 
 //------------------------------------------------------------------------------
 // 2D transpose tensor contraction x
 //------------------------------------------------------------------------------
-inline __device__ void ContractTransposeX2d(CeedScalar *slice, const CeedInt t_in_x,
-    const CeedInt t_in_y, const CeedInt t_in_z,
-    const CeedScalar &U, const CeedScalar *B, CeedScalar &V) {
-  slice[t_in_x + t_in_y*BASIS_T_1D + t_in_z*BASIS_T_1D*BASIS_T_1D] = U;
+inline __device__ void ContractTransposeX2d(CeedScalar *slice, const CeedInt t_in_x, const CeedInt t_in_y, const CeedInt t_in_z, const CeedScalar &U,
+                                            const CeedScalar *B, CeedScalar &V) {
+  slice[t_in_x + t_in_y * BASIS_T_1D + t_in_z * BASIS_T_1D * BASIS_T_1D] = U;
   __syncthreads();
   V = 0.0;
   if (t_in_x < BASIS_P_1D)
     for (CeedInt i = 0; i < BASIS_Q_1D; i++)
-      V += B[t_in_x + i*BASIS_P_1D] * slice[i + t_in_y*BASIS_T_1D + t_in_z*BASIS_T_1D*BASIS_T_1D]; // Contract x direction
+      V += B[t_in_x + i * BASIS_P_1D] * slice[i + t_in_y * BASIS_T_1D + t_in_z * BASIS_T_1D * BASIS_T_1D];  // Contract x direction
   __syncthreads();
 }
 
 //------------------------------------------------------------------------------
 // 2D interpolate to quadrature points
 //------------------------------------------------------------------------------
-inline __device__ void interp2d(const CeedInt num_elem, const CeedInt transpose,
-                                const CeedScalar *c_B,
-                                const CeedScalar *__restrict__ d_U,
-                                CeedScalar *__restrict__ d_V,
-                                CeedScalar *slice) {
-  CeedScalar r_V;
-  CeedScalar r_t;
+inline __device__ void interp2d(const CeedInt num_elem, const CeedInt transpose, const CeedScalar *c_B, const CeedScalar *__restrict__ d_U,
+                                CeedScalar *__restrict__ d_V, CeedScalar *slice) {
+  CeedScalar    r_V;
+  CeedScalar    r_t;
 
-  const CeedInt t_in_x = threadIdx.x;
-  const CeedInt t_in_y = threadIdx.y;
-  const CeedInt t_in_z = threadIdx.z;
-  const CeedInt blockElem = t_in_z/BASIS_NUM_COMP;
-  const CeedInt elemsPerBlock = blockDim.z/BASIS_NUM_COMP;
-  const CeedInt comp = t_in_z%BASIS_NUM_COMP;
+  const CeedInt t_in_x        = threadIdx.x;
+  const CeedInt t_in_y        = threadIdx.y;
+  const CeedInt t_in_z        = threadIdx.z;
+  const CeedInt blockElem     = t_in_z / BASIS_NUM_COMP;
+  const CeedInt elemsPerBlock = blockDim.z / BASIS_NUM_COMP;
+  const CeedInt comp          = t_in_z % BASIS_NUM_COMP;
 
-  for (CeedInt elem = blockIdx.x*elemsPerBlock + blockElem; elem < num_elem;
-       elem += gridDim.x*elemsPerBlock) {
-    const CeedInt comp = t_in_z%BASIS_NUM_COMP;
-    r_V = 0.0;
-    r_t = 0.0;
+  for (CeedInt elem = blockIdx.x * elemsPerBlock + blockElem; elem < num_elem; elem += gridDim.x * elemsPerBlock) {
+    const CeedInt comp = t_in_z % BASIS_NUM_COMP;
+    r_V                = 0.0;
+    r_t                = 0.0;
     if (transpose) {
       readQuads2d(elem, t_in_x, t_in_y, comp, 0, num_elem, d_U, r_V);
       ContractTransposeY2d(slice, t_in_x, t_in_y, t_in_z, r_V, c_B, r_t);
@@ -330,24 +280,21 @@ inline __device__ void interp2d(const CeedInt num_elem, const CeedInt transpose,
 //------------------------------------------------------------------------------
 // 2D derivatives at quadrature points
 //------------------------------------------------------------------------------
-inline __device__ void grad2d(const CeedInt num_elem, const CeedInt transpose,
-                              const CeedScalar *c_B, const CeedScalar *c_G,
-                              const CeedScalar *__restrict__ d_U,
-                              CeedScalar *__restrict__ d_V, CeedScalar *slice) {
-  CeedScalar r_U;
-  CeedScalar r_V;
-  CeedScalar r_t;
+inline __device__ void grad2d(const CeedInt num_elem, const CeedInt transpose, const CeedScalar *c_B, const CeedScalar *c_G,
+                              const CeedScalar *__restrict__ d_U, CeedScalar *__restrict__ d_V, CeedScalar *slice) {
+  CeedScalar    r_U;
+  CeedScalar    r_V;
+  CeedScalar    r_t;
 
-  const CeedInt t_in_x = threadIdx.x;
-  const CeedInt t_in_y = threadIdx.y;
-  const CeedInt t_in_z = threadIdx.z;
-  const CeedInt blockElem = t_in_z/BASIS_NUM_COMP;
-  const CeedInt elemsPerBlock = blockDim.z/BASIS_NUM_COMP;
-  const CeedInt comp = t_in_z%BASIS_NUM_COMP;
-  CeedInt dim;
+  const CeedInt t_in_x        = threadIdx.x;
+  const CeedInt t_in_y        = threadIdx.y;
+  const CeedInt t_in_z        = threadIdx.z;
+  const CeedInt blockElem     = t_in_z / BASIS_NUM_COMP;
+  const CeedInt elemsPerBlock = blockDim.z / BASIS_NUM_COMP;
+  const CeedInt comp          = t_in_z % BASIS_NUM_COMP;
+  CeedInt       dim;
 
-  for (CeedInt elem = blockIdx.x*elemsPerBlock + blockElem; elem < num_elem;
-       elem += gridDim.x*elemsPerBlock) {
+  for (CeedInt elem = blockIdx.x * elemsPerBlock + blockElem; elem < num_elem; elem += gridDim.x * elemsPerBlock) {
     if (transpose) {
       dim = 0;
       readQuads2d(elem, t_in_x, t_in_y, comp, dim, num_elem, d_U, r_U);
@@ -376,15 +323,13 @@ inline __device__ void grad2d(const CeedInt num_elem, const CeedInt transpose,
 //------------------------------------------------------------------------------
 // 2D quadrature weights
 //------------------------------------------------------------------------------
-__device__ void weight2d(const CeedInt num_elem, const CeedScalar *q_weight_1d,
-                         CeedScalar *w) {
-  const CeedInt i = threadIdx.x;
-  const CeedInt j = threadIdx.y;
-  const CeedScalar weight = q_weight_1d[i]*q_weight_1d[j];
-  for (CeedInt elem = blockIdx.x*blockDim.z + threadIdx.z; elem < num_elem;
-       elem += gridDim.x*blockDim.z) {
-    const CeedInt ind = elem*BASIS_Q_1D*BASIS_Q_1D + i + j*BASIS_Q_1D;
-    w[ind] = weight;
+__device__ void weight2d(const CeedInt num_elem, const CeedScalar *q_weight_1d, CeedScalar *w) {
+  const CeedInt    i      = threadIdx.x;
+  const CeedInt    j      = threadIdx.y;
+  const CeedScalar weight = q_weight_1d[i] * q_weight_1d[j];
+  for (CeedInt elem = blockIdx.x * blockDim.z + threadIdx.z; elem < num_elem; elem += gridDim.x * blockDim.z) {
+    const CeedInt ind = elem * BASIS_Q_1D * BASIS_Q_1D + i + j * BASIS_Q_1D;
+    w[ind]            = weight;
   }
 }
 
@@ -395,78 +340,66 @@ __device__ void weight2d(const CeedInt num_elem, const CeedScalar *q_weight_1d,
 //------------------------------------------------------------------------------
 // Read DoFs
 //------------------------------------------------------------------------------
-inline __device__ void readDofs3d(const CeedInt elem, const CeedInt t_in_x,
-                                  const CeedInt t_in_y, const CeedInt comp,
-                                  const CeedInt num_elem, const CeedScalar *d_U,
-                                  CeedScalar *r_U) {
+inline __device__ void readDofs3d(const CeedInt elem, const CeedInt t_in_x, const CeedInt t_in_y, const CeedInt comp, const CeedInt num_elem,
+                                  const CeedScalar *d_U, CeedScalar *r_U) {
   for (CeedInt i = 0; i < BASIS_P_1D; i++)
-    r_U[i] = (t_in_x < BASIS_P_1D && t_in_y < BASIS_P_1D) ?
-              d_U[t_in_x + t_in_y*BASIS_P_1D + i*BASIS_P_1D*BASIS_P_1D +
-                  elem*BASIS_P_1D*BASIS_P_1D*BASIS_P_1D +
-                  comp*BASIS_P_1D*BASIS_P_1D*BASIS_P_1D*num_elem] : 0.0;
-  for (CeedInt i = BASIS_P_1D; i < BASIS_Q_1D; i++)
-    r_U[i] = 0.0;
+    r_U[i] = (t_in_x < BASIS_P_1D && t_in_y < BASIS_P_1D)
+                 ? d_U[t_in_x + t_in_y * BASIS_P_1D + i * BASIS_P_1D * BASIS_P_1D + elem * BASIS_P_1D * BASIS_P_1D * BASIS_P_1D +
+                       comp * BASIS_P_1D * BASIS_P_1D * BASIS_P_1D * num_elem]
+                 : 0.0;
+  for (CeedInt i = BASIS_P_1D; i < BASIS_Q_1D; i++) r_U[i] = 0.0;
 }
 
 //------------------------------------------------------------------------------
 // Write DoFs
 //------------------------------------------------------------------------------
-inline __device__ void writeDofs3d(const CeedInt elem, const CeedInt t_in_x,
-                                   const CeedInt t_in_y, const CeedInt comp,
-                                   const CeedInt num_elem, const CeedScalar *r_V,
-                                   CeedScalar *d_V) {
+inline __device__ void writeDofs3d(const CeedInt elem, const CeedInt t_in_x, const CeedInt t_in_y, const CeedInt comp, const CeedInt num_elem,
+                                   const CeedScalar *r_V, CeedScalar *d_V) {
   if (t_in_x < BASIS_P_1D && t_in_y < BASIS_P_1D) {
     for (CeedInt i = 0; i < BASIS_P_1D; i++)
-      d_V[t_in_x + t_in_y*BASIS_P_1D + i*BASIS_P_1D*BASIS_P_1D +
-          elem*BASIS_P_1D*BASIS_P_1D*BASIS_P_1D + comp*BASIS_P_1D*BASIS_P_1D*BASIS_P_1D*num_elem] = r_V[i];
+      d_V[t_in_x + t_in_y * BASIS_P_1D + i * BASIS_P_1D * BASIS_P_1D + elem * BASIS_P_1D * BASIS_P_1D * BASIS_P_1D +
+          comp * BASIS_P_1D * BASIS_P_1D * BASIS_P_1D * num_elem] = r_V[i];
   }
 }
 
 //------------------------------------------------------------------------------
 // Read quadrature point data
 //------------------------------------------------------------------------------
-inline __device__ void readQuads3d(const CeedInt elem, const CeedInt t_in_x,
-                                   const CeedInt t_in_y, const CeedInt comp,
-                                   const CeedInt dim, const CeedInt num_elem,
-                                   const CeedScalar *d_U, CeedScalar *r_U) {
+inline __device__ void readQuads3d(const CeedInt elem, const CeedInt t_in_x, const CeedInt t_in_y, const CeedInt comp, const CeedInt dim,
+                                   const CeedInt num_elem, const CeedScalar *d_U, CeedScalar *r_U) {
   for (CeedInt i = 0; i < BASIS_Q_1D; i++)
-    r_U[i] = (t_in_x < BASIS_Q_1D && t_in_y < BASIS_Q_1D) ? 
-              d_U[t_in_x + t_in_y*BASIS_Q_1D + i*BASIS_Q_1D*BASIS_Q_1D +
-                  elem*BASIS_Q_1D*BASIS_Q_1D*BASIS_Q_1D + comp*BASIS_Q_1D*BASIS_Q_1D*BASIS_Q_1D*num_elem +
-                  dim*BASIS_NUM_COMP*num_elem*BASIS_Q_1D*BASIS_Q_1D*BASIS_Q_1D] : 0.0;
-  for (CeedInt i = BASIS_Q_1D; i < BASIS_P_1D; i++)
-    r_U[i] = 0.0;
+    r_U[i] =
+        (t_in_x < BASIS_Q_1D && t_in_y < BASIS_Q_1D)
+            ? d_U[t_in_x + t_in_y * BASIS_Q_1D + i * BASIS_Q_1D * BASIS_Q_1D + elem * BASIS_Q_1D * BASIS_Q_1D * BASIS_Q_1D +
+                  comp * BASIS_Q_1D * BASIS_Q_1D * BASIS_Q_1D * num_elem + dim * BASIS_NUM_COMP * num_elem * BASIS_Q_1D * BASIS_Q_1D * BASIS_Q_1D]
+            : 0.0;
+  for (CeedInt i = BASIS_Q_1D; i < BASIS_P_1D; i++) r_U[i] = 0.0;
 }
 
 //------------------------------------------------------------------------------
 // Write quadrature point data
 //------------------------------------------------------------------------------
-inline __device__ void writeQuads3d(const CeedInt elem, const CeedInt t_in_x,
-                                    const CeedInt t_in_y, const CeedInt comp,
-                                    const CeedInt dim, const CeedInt num_elem,
-                                    const CeedScalar *r_V, CeedScalar *d_V) {
+inline __device__ void writeQuads3d(const CeedInt elem, const CeedInt t_in_x, const CeedInt t_in_y, const CeedInt comp, const CeedInt dim,
+                                    const CeedInt num_elem, const CeedScalar *r_V, CeedScalar *d_V) {
   if (t_in_x < BASIS_Q_1D && t_in_y < BASIS_Q_1D) {
     for (CeedInt i = 0; i < BASIS_Q_1D; i++)
-      d_V[t_in_x + t_in_y*BASIS_Q_1D + i*BASIS_Q_1D*BASIS_Q_1D + elem*BASIS_Q_1D*BASIS_Q_1D*BASIS_Q_1D
-          + comp*BASIS_Q_1D*BASIS_Q_1D*BASIS_Q_1D*num_elem + dim*BASIS_NUM_COMP*num_elem*BASIS_Q_1D*BASIS_Q_1D*BASIS_Q_1D] = r_V[i];
+      d_V[t_in_x + t_in_y * BASIS_Q_1D + i * BASIS_Q_1D * BASIS_Q_1D + elem * BASIS_Q_1D * BASIS_Q_1D * BASIS_Q_1D +
+          comp * BASIS_Q_1D * BASIS_Q_1D * BASIS_Q_1D * num_elem + dim * BASIS_NUM_COMP * num_elem * BASIS_Q_1D * BASIS_Q_1D * BASIS_Q_1D] = r_V[i];
   }
 }
 
 //------------------------------------------------------------------------------
 // 3D tensor contract x
 //------------------------------------------------------------------------------
-inline __device__ void ContractX3d(CeedScalar *slice, const CeedInt t_in_x,
-                                   const CeedInt t_in_y, const CeedInt t_in_z,
-                                   const CeedScalar *U,
-                                   const CeedScalar *B,
-                                   CeedScalar *V) {
+inline __device__ void ContractX3d(CeedScalar *slice, const CeedInt t_in_x, const CeedInt t_in_y, const CeedInt t_in_z, const CeedScalar *U,
+                                   const CeedScalar *B, CeedScalar *V) {
   for (CeedInt k = 0; k < BASIS_P_1D; k++) {
-    slice[t_in_x + t_in_y*BASIS_T_1D + t_in_z*BASIS_T_1D*BASIS_T_1D] = U[k];
+    slice[t_in_x + t_in_y * BASIS_T_1D + t_in_z * BASIS_T_1D * BASIS_T_1D] = U[k];
     __syncthreads();
     V[k] = 0.0;
     if (t_in_x < BASIS_Q_1D && t_in_y < BASIS_P_1D)
       for (CeedInt i = 0; i < BASIS_P_1D; i++)
-        V[k] += B[i + t_in_x*BASIS_P_1D] * slice[i + t_in_y*BASIS_T_1D + t_in_z*BASIS_T_1D*BASIS_T_1D]; // Contract x direction
+        V[k] += B[i + t_in_x * BASIS_P_1D] * slice[i + t_in_y * BASIS_T_1D + t_in_z * BASIS_T_1D * BASIS_T_1D];  // Contract x direction
     __syncthreads();
   }
 }
@@ -474,18 +407,15 @@ inline __device__ void ContractX3d(CeedScalar *slice, const CeedInt t_in_x,
 //------------------------------------------------------------------------------
 // 3D tensor contract y
 //------------------------------------------------------------------------------
-inline __device__ void ContractY3d(CeedScalar *slice, const CeedInt t_in_x,
-                                   const CeedInt t_in_y, const CeedInt t_in_z,
-                                   const CeedScalar *U,
-                                   const CeedScalar *B,
-                                   CeedScalar *V) {
+inline __device__ void ContractY3d(CeedScalar *slice, const CeedInt t_in_x, const CeedInt t_in_y, const CeedInt t_in_z, const CeedScalar *U,
+                                   const CeedScalar *B, CeedScalar *V) {
   for (CeedInt k = 0; k < BASIS_P_1D; k++) {
-    slice[t_in_x + t_in_y*BASIS_T_1D + t_in_z*BASIS_T_1D*BASIS_T_1D] = U[k];
+    slice[t_in_x + t_in_y * BASIS_T_1D + t_in_z * BASIS_T_1D * BASIS_T_1D] = U[k];
     __syncthreads();
     V[k] = 0.0;
     if (t_in_x < BASIS_Q_1D && t_in_y < BASIS_Q_1D)
       for (CeedInt i = 0; i < BASIS_P_1D; i++)
-        V[k] += B[i + t_in_y*BASIS_P_1D] * slice[t_in_x + i*BASIS_T_1D + t_in_z*BASIS_T_1D*BASIS_T_1D]; // Contract y direction
+        V[k] += B[i + t_in_y * BASIS_P_1D] * slice[t_in_x + i * BASIS_T_1D + t_in_z * BASIS_T_1D * BASIS_T_1D];  // Contract y direction
     __syncthreads();
   }
 }
@@ -493,54 +423,41 @@ inline __device__ void ContractY3d(CeedScalar *slice, const CeedInt t_in_x,
 //------------------------------------------------------------------------------
 // 3D tensor contract z
 //------------------------------------------------------------------------------
-inline __device__ void ContractZ3d(CeedScalar *slice, const CeedInt t_in_x,
-                                   const CeedInt t_in_y, const CeedInt t_in_z,
-                                   const CeedScalar *U,
-                                   const CeedScalar *B,
-                                   CeedScalar *V) {
+inline __device__ void ContractZ3d(CeedScalar *slice, const CeedInt t_in_x, const CeedInt t_in_y, const CeedInt t_in_z, const CeedScalar *U,
+                                   const CeedScalar *B, CeedScalar *V) {
   for (CeedInt k = 0; k < BASIS_Q_1D; k++) {
     V[k] = 0.0;
     if (t_in_x < BASIS_Q_1D && t_in_y < BASIS_Q_1D)
-      for (CeedInt i = 0; i < BASIS_P_1D; i++)
-        V[k] += B[i + k*BASIS_P_1D] * U[i]; // Contract z direction
+      for (CeedInt i = 0; i < BASIS_P_1D; i++) V[k] += B[i + k * BASIS_P_1D] * U[i];  // Contract z direction
   }
-  for (CeedInt k = BASIS_Q_1D; k < BASIS_P_1D; k++)
-    V[k] = 0.0;
+  for (CeedInt k = BASIS_Q_1D; k < BASIS_P_1D; k++) V[k] = 0.0;
 }
 
 //------------------------------------------------------------------------------
 // 3D transpose tensor contract z
 //------------------------------------------------------------------------------
-inline __device__ void ContractTransposeZ3d(CeedScalar *slice, const CeedInt t_in_x,
-                                            const CeedInt t_in_y, const CeedInt t_in_z,
-                                            const CeedScalar *U,
-                                            const CeedScalar *B,
-                                            CeedScalar *V) {
+inline __device__ void ContractTransposeZ3d(CeedScalar *slice, const CeedInt t_in_x, const CeedInt t_in_y, const CeedInt t_in_z, const CeedScalar *U,
+                                            const CeedScalar *B, CeedScalar *V) {
   for (CeedInt k = 0; k < BASIS_P_1D; k++) {
     V[k] = 0.0;
     if (t_in_x < BASIS_Q_1D && t_in_y < BASIS_Q_1D)
-      for (CeedInt i = 0; i < BASIS_Q_1D; i++)
-        V[k] += B[k + i*BASIS_P_1D] * U[i]; // Contract z direction
+      for (CeedInt i = 0; i < BASIS_Q_1D; i++) V[k] += B[k + i * BASIS_P_1D] * U[i];  // Contract z direction
   }
-  for (CeedInt k = BASIS_P_1D; k < BASIS_Q_1D; k++)
-    V[k] = 0.0;
+  for (CeedInt k = BASIS_P_1D; k < BASIS_Q_1D; k++) V[k] = 0.0;
 }
 
 //------------------------------------------------------------------------------
 // 3D transpose tensor contract y
 //------------------------------------------------------------------------------
-inline __device__ void ContractTransposeY3d(CeedScalar *slice, const CeedInt t_in_x,
-                                            const CeedInt t_in_y, const CeedInt t_in_z,
-                                            const CeedScalar *U,
-                                            const CeedScalar *B,
-                                            CeedScalar *V) {
+inline __device__ void ContractTransposeY3d(CeedScalar *slice, const CeedInt t_in_x, const CeedInt t_in_y, const CeedInt t_in_z, const CeedScalar *U,
+                                            const CeedScalar *B, CeedScalar *V) {
   for (CeedInt k = 0; k < BASIS_P_1D; k++) {
-    slice[t_in_x + t_in_y*BASIS_T_1D + t_in_z*BASIS_T_1D*BASIS_T_1D] = U[k];
+    slice[t_in_x + t_in_y * BASIS_T_1D + t_in_z * BASIS_T_1D * BASIS_T_1D] = U[k];
     __syncthreads();
     V[k] = 0.0;
     if (t_in_x < BASIS_Q_1D && t_in_y < BASIS_P_1D)
       for (CeedInt i = 0; i < BASIS_Q_1D; i++)
-        V[k] += B[t_in_y + i*BASIS_P_1D] * slice[t_in_x + i*BASIS_T_1D + t_in_z*BASIS_T_1D*BASIS_T_1D]; // Contract y direction
+        V[k] += B[t_in_y + i * BASIS_P_1D] * slice[t_in_x + i * BASIS_T_1D + t_in_z * BASIS_T_1D * BASIS_T_1D];  // Contract y direction
     __syncthreads();
   }
 }
@@ -548,18 +465,15 @@ inline __device__ void ContractTransposeY3d(CeedScalar *slice, const CeedInt t_i
 //------------------------------------------------------------------------------
 // 3D transpose tensor contract x
 //------------------------------------------------------------------------------
-inline __device__ void ContractTransposeX3d(CeedScalar *slice, const CeedInt t_in_x,
-                                            const CeedInt t_in_y, const CeedInt t_in_z,
-                                            const CeedScalar *U,
-                                            const CeedScalar *B,
-                                            CeedScalar *V) {
+inline __device__ void ContractTransposeX3d(CeedScalar *slice, const CeedInt t_in_x, const CeedInt t_in_y, const CeedInt t_in_z, const CeedScalar *U,
+                                            const CeedScalar *B, CeedScalar *V) {
   for (CeedInt k = 0; k < BASIS_P_1D; k++) {
-    slice[t_in_x + t_in_y*BASIS_T_1D + t_in_z*BASIS_T_1D*BASIS_T_1D] = U[k];
+    slice[t_in_x + t_in_y * BASIS_T_1D + t_in_z * BASIS_T_1D * BASIS_T_1D] = U[k];
     __syncthreads();
     V[k] = 0.0;
     if (t_in_x < BASIS_P_1D && t_in_y < BASIS_P_1D)
       for (CeedInt i = 0; i < BASIS_Q_1D; i++)
-        V[k] += B[t_in_x + i*BASIS_P_1D] * slice[i + t_in_y*BASIS_T_1D + t_in_z*BASIS_T_1D*BASIS_T_1D]; // Contract x direction
+        V[k] += B[t_in_x + i * BASIS_P_1D] * slice[i + t_in_y * BASIS_T_1D + t_in_z * BASIS_T_1D * BASIS_T_1D];  // Contract x direction
     __syncthreads();
   }
 }
@@ -567,23 +481,19 @@ inline __device__ void ContractTransposeX3d(CeedScalar *slice, const CeedInt t_i
 //------------------------------------------------------------------------------
 // 3D interpolate to quadrature points
 //------------------------------------------------------------------------------
-inline __device__ void interp3d(const CeedInt num_elem, const CeedInt transpose,
-                                const CeedScalar *c_B,
-                                const CeedScalar *__restrict__ d_U,
-                                CeedScalar *__restrict__ d_V,
-                                CeedScalar *slice) {
-  CeedScalar r_V[BASIS_T_1D];
-  CeedScalar r_t[BASIS_T_1D];
+inline __device__ void interp3d(const CeedInt num_elem, const CeedInt transpose, const CeedScalar *c_B, const CeedScalar *__restrict__ d_U,
+                                CeedScalar *__restrict__ d_V, CeedScalar *slice) {
+  CeedScalar    r_V[BASIS_T_1D];
+  CeedScalar    r_t[BASIS_T_1D];
 
-  const CeedInt t_in_x = threadIdx.x;
-  const CeedInt t_in_y = threadIdx.y;
-  const CeedInt t_in_z = threadIdx.z;
-  const CeedInt blockElem = t_in_z/BASIS_NUM_COMP;
-  const CeedInt elemsPerBlock = blockDim.z/BASIS_NUM_COMP;
-  const CeedInt comp = t_in_z%BASIS_NUM_COMP;
+  const CeedInt t_in_x        = threadIdx.x;
+  const CeedInt t_in_y        = threadIdx.y;
+  const CeedInt t_in_z        = threadIdx.z;
+  const CeedInt blockElem     = t_in_z / BASIS_NUM_COMP;
+  const CeedInt elemsPerBlock = blockDim.z / BASIS_NUM_COMP;
+  const CeedInt comp          = t_in_z % BASIS_NUM_COMP;
 
-  for (CeedInt elem = blockIdx.x*elemsPerBlock + blockElem; elem < num_elem;
-       elem += gridDim.x*elemsPerBlock) {
+  for (CeedInt elem = blockIdx.x * elemsPerBlock + blockElem; elem < num_elem; elem += gridDim.x * elemsPerBlock) {
     for (CeedInt i = 0; i < BASIS_T_1D; i++) {
       r_V[i] = 0.0;
       r_t[i] = 0.0;
@@ -607,26 +517,22 @@ inline __device__ void interp3d(const CeedInt num_elem, const CeedInt transpose,
 //------------------------------------------------------------------------------
 // 3D derivatives at quadrature points
 //------------------------------------------------------------------------------
-inline __device__ void grad3d(const CeedInt num_elem, const CeedInt transpose,
-                              const CeedScalar *c_B, const CeedScalar *c_G,
-                              const CeedScalar *__restrict__ d_U,
-                              CeedScalar *__restrict__ d_V,
-                              CeedScalar *slice) {
+inline __device__ void grad3d(const CeedInt num_elem, const CeedInt transpose, const CeedScalar *c_B, const CeedScalar *c_G,
+                              const CeedScalar *__restrict__ d_U, CeedScalar *__restrict__ d_V, CeedScalar *slice) {
   // Use BASIS_P_1D for one of these
-  CeedScalar r_U[BASIS_T_1D];
-  CeedScalar r_V[BASIS_T_1D];
-  CeedScalar r_t[BASIS_T_1D];
+  CeedScalar    r_U[BASIS_T_1D];
+  CeedScalar    r_V[BASIS_T_1D];
+  CeedScalar    r_t[BASIS_T_1D];
 
-  const CeedInt t_in_x = threadIdx.x;
-  const CeedInt t_in_y = threadIdx.y;
-  const CeedInt t_in_z = threadIdx.z;
-  const CeedInt blockElem = t_in_z/BASIS_NUM_COMP;
-  const CeedInt elemsPerBlock = blockDim.z/BASIS_NUM_COMP;
-  const CeedInt comp = t_in_z%BASIS_NUM_COMP;
-  CeedInt dim;
+  const CeedInt t_in_x        = threadIdx.x;
+  const CeedInt t_in_y        = threadIdx.y;
+  const CeedInt t_in_z        = threadIdx.z;
+  const CeedInt blockElem     = t_in_z / BASIS_NUM_COMP;
+  const CeedInt elemsPerBlock = blockDim.z / BASIS_NUM_COMP;
+  const CeedInt comp          = t_in_z % BASIS_NUM_COMP;
+  CeedInt       dim;
 
-  for (CeedInt elem = blockIdx.x*elemsPerBlock + blockElem; elem < num_elem;
-       elem += gridDim.x*elemsPerBlock) {
+  for (CeedInt elem = blockIdx.x * elemsPerBlock + blockElem; elem < num_elem; elem += gridDim.x * elemsPerBlock) {
     for (CeedInt i = 0; i < BASIS_T_1D; i++) {
       r_U[i] = 0.0;
       r_V[i] = 0.0;
@@ -675,15 +581,14 @@ inline __device__ void grad3d(const CeedInt num_elem, const CeedInt transpose,
 //------------------------------------------------------------------------------
 // 3D quadrature weights
 //------------------------------------------------------------------------------
-__device__ void weight3d(const CeedInt num_elem, const CeedScalar *q_weight_1d,
-                         CeedScalar *w) {
-  const CeedInt i = threadIdx.x;
-  const CeedInt j = threadIdx.y;
-  const CeedInt k = threadIdx.z;
-  const CeedScalar weight = q_weight_1d[i]*q_weight_1d[j]*q_weight_1d[k];
+__device__ void weight3d(const CeedInt num_elem, const CeedScalar *q_weight_1d, CeedScalar *w) {
+  const CeedInt    i      = threadIdx.x;
+  const CeedInt    j      = threadIdx.y;
+  const CeedInt    k      = threadIdx.z;
+  const CeedScalar weight = q_weight_1d[i] * q_weight_1d[j] * q_weight_1d[k];
   for (CeedInt e = blockIdx.x; e < num_elem; e += gridDim.x) {
-    const CeedInt ind = e*BASIS_Q_1D*BASIS_Q_1D*BASIS_Q_1D + i + j*BASIS_Q_1D + k*BASIS_Q_1D*BASIS_Q_1D;
-    w[ind] = weight;
+    const CeedInt ind = e * BASIS_Q_1D * BASIS_Q_1D * BASIS_Q_1D + i + j * BASIS_Q_1D + k * BASIS_Q_1D * BASIS_Q_1D;
+    w[ind]            = weight;
   }
 }
 
@@ -694,9 +599,7 @@ __device__ void weight3d(const CeedInt num_elem, const CeedScalar *q_weight_1d,
 //------------------------------------------------------------------------------
 // Interp kernel by dim
 //------------------------------------------------------------------------------
-extern "C" __global__ void Interp(const CeedInt num_elem, const CeedInt transpose,
-                                  const CeedScalar *c_B,
-                                  const CeedScalar *__restrict__ d_U,
+extern "C" __global__ void Interp(const CeedInt num_elem, const CeedInt transpose, const CeedScalar *c_B, const CeedScalar *__restrict__ d_U,
                                   CeedScalar *__restrict__ d_V) {
   extern __shared__ CeedScalar slice[];
   if (BASIS_DIM == 1) {
@@ -711,10 +614,8 @@ extern "C" __global__ void Interp(const CeedInt num_elem, const CeedInt transpos
 //------------------------------------------------------------------------------
 // Grad kernel by dim
 //------------------------------------------------------------------------------
-extern "C" __global__ void Grad(const CeedInt num_elem, const CeedInt transpose,
-                                const CeedScalar *c_B, const CeedScalar *c_G,
-                                const CeedScalar *__restrict__ d_U,
-                                CeedScalar *__restrict__ d_V) {
+extern "C" __global__ void Grad(const CeedInt num_elem, const CeedInt transpose, const CeedScalar *c_B, const CeedScalar *c_G,
+                                const CeedScalar *__restrict__ d_U, CeedScalar *__restrict__ d_V) {
   extern __shared__ CeedScalar slice[];
   if (BASIS_DIM == 1) {
     grad1d(num_elem, transpose, c_B, c_G, d_U, d_V, slice);
@@ -728,9 +629,7 @@ extern "C" __global__ void Grad(const CeedInt num_elem, const CeedInt transpose,
 //------------------------------------------------------------------------------
 // Weight kernels by dim
 //------------------------------------------------------------------------------
-extern "C" __global__ void Weight(const CeedInt num_elem,
-                                  const CeedScalar *__restrict__ q_weight_1d,
-                                  CeedScalar *__restrict__ v) {
+extern "C" __global__ void Weight(const CeedInt num_elem, const CeedScalar *__restrict__ q_weight_1d, CeedScalar *__restrict__ v) {
   if (BASIS_DIM == 1) {
     weight1d(num_elem, q_weight_1d, v);
   } else if (BASIS_DIM == 2) {

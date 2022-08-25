@@ -5,49 +5,41 @@
 //
 // This file is part of CEED:  http://github.com/ceed
 
-#include <ceed/ceed.h>
-#include <ceed/backend.h>
-#include <string.h>
 #include "ceed-cuda-shared.h"
+
+#include <ceed/backend.h>
+#include <ceed/ceed.h>
+#include <string.h>
 
 //------------------------------------------------------------------------------
 // Backend init
 //------------------------------------------------------------------------------
 static int CeedInit_Cuda_shared(const char *resource, Ceed ceed) {
-  int ierr;
-
   char *resource_root;
-  ierr = CeedCudaGetResourceRoot(ceed, resource, &resource_root);
-  CeedChkBackend(ierr);
-  if (strcmp(resource_root, "/gpu/cuda/shared"))
+  CeedCallBackend(CeedCudaGetResourceRoot(ceed, resource, &resource_root));
+  if (strcmp(resource_root, "/gpu/cuda/shared")) {
     // LCOV_EXCL_START
-    return CeedError(ceed, CEED_ERROR_BACKEND,
-                     "Cuda backend cannot use resource: %s", resource);
-  // LCOV_EXCL_STOP
-  ierr = CeedSetDeterministic(ceed, true); CeedChkBackend(ierr);
+    return CeedError(ceed, CEED_ERROR_BACKEND, "Cuda backend cannot use resource: %s", resource);
+    // LCOV_EXCL_STOP
+  }
+  CeedCallBackend(CeedSetDeterministic(ceed, true));
 
   Ceed_Cuda *data;
-  ierr = CeedCalloc(1, &data); CeedChkBackend(ierr);
-  ierr = CeedSetData(ceed, data); CeedChkBackend(ierr);
-  ierr = CeedCudaInit(ceed, resource); CeedChkBackend(ierr);
+  CeedCallBackend(CeedCalloc(1, &data));
+  CeedCallBackend(CeedSetData(ceed, data));
+  CeedCallBackend(CeedCudaInit(ceed, resource));
 
   Ceed ceed_ref;
-  CeedInit("/gpu/cuda/ref", &ceed_ref);
-  ierr = CeedSetDelegate(ceed, ceed_ref); CeedChkBackend(ierr);
+  CeedCallBackend(CeedInit("/gpu/cuda/ref", &ceed_ref));
+  CeedCallBackend(CeedSetDelegate(ceed, ceed_ref));
 
-  ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "BasisCreateTensorH1",
-                                CeedBasisCreateTensorH1_Cuda_shared);
-  CeedChkBackend(ierr);
-  ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "Destroy",
-                                CeedDestroy_Cuda); CeedChkBackend(ierr);
-  CeedChkBackend(ierr);
+  CeedCallBackend(CeedSetBackendFunction(ceed, "Ceed", ceed, "BasisCreateTensorH1", CeedBasisCreateTensorH1_Cuda_shared));
+  CeedCallBackend(CeedSetBackendFunction(ceed, "Ceed", ceed, "Destroy", CeedDestroy_Cuda));
   return 0;
 }
 
 //------------------------------------------------------------------------------
 // Register backend
 //------------------------------------------------------------------------------
-CEED_INTERN int CeedRegister_Cuda_Shared(void) {
-  return CeedRegister("/gpu/cuda/shared", CeedInit_Cuda_shared, 25);
-}
+CEED_INTERN int CeedRegister_Cuda_Shared(void) { return CeedRegister("/gpu/cuda/shared", CeedInit_Cuda_shared, 25); }
 //------------------------------------------------------------------------------

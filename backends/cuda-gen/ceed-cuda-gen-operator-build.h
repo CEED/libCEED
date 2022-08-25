@@ -10,4 +10,4 @@
 
 CEED_INTERN int CeedCudaGenOperatorBuild(CeedOperator op);
 
-#endif // _ceed_cuda_gen_operator_build_h
+#endif  // _ceed_cuda_gen_operator_build_h

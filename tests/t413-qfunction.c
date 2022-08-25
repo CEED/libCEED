@@ -4,7 +4,7 @@
 #include <ceed.h>
 
 int main(int argc, char **argv) {
-  Ceed ceed;
+  Ceed          ceed;
   CeedQFunction qf_setup, qf_mass;
 
   CeedInit(argv[1], &ceed);

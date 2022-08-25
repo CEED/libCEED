@@ -10,4 +10,4 @@
 
 CEED_INTERN int CeedCudaBuildQFunction(CeedQFunction qf);
 
-#endif // _ceed_cuda_qfunction_load_h
+#endif  // _ceed_cuda_qfunction_load_h

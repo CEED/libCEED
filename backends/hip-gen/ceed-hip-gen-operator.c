@@ -5,80 +5,71 @@
 //
 // This file is part of CEED:  http://github.com/ceed
 
-#include <ceed/ceed.h>
 #include <ceed/backend.h>
+#include <ceed/ceed.h>
 #include <stddef.h>
-#include "ceed-hip-gen.h"
-#include "ceed-hip-gen-operator-build.h"
+
 #include "../hip/ceed-hip-compile.h"
+#include "ceed-hip-gen-operator-build.h"
+#include "ceed-hip-gen.h"
 
 //------------------------------------------------------------------------------
 // Destroy operator
 //------------------------------------------------------------------------------
 static int CeedOperatorDestroy_Hip_gen(CeedOperator op) {
-  int ierr;
   CeedOperator_Hip_gen *impl;
-  ierr = CeedOperatorGetData(op, &impl); CeedChkBackend(ierr);
-  ierr = CeedFree(&impl); CeedChkBackend(ierr);
+  CeedCallBackend(CeedOperatorGetData(op, &impl));
+  CeedCallBackend(CeedFree(&impl));
   return CEED_ERROR_SUCCESS;
 }
 
 //------------------------------------------------------------------------------
 // Apply and add to output
 //------------------------------------------------------------------------------
-static int CeedOperatorApplyAdd_Hip_gen(CeedOperator op, CeedVector invec,
-                                        CeedVector outvec, CeedRequest *request) {
-  int ierr;
+static int CeedOperatorApplyAdd_Hip_gen(CeedOperator op, CeedVector invec, CeedVector outvec, CeedRequest *request) {
   Ceed ceed;
-  ierr = CeedOperatorGetCeed(op, &ceed); CeedChkBackend(ierr);
+  CeedCallBackend(CeedOperatorGetCeed(op, &ceed));
   CeedOperator_Hip_gen *data;
-  ierr = CeedOperatorGetData(op, &data); CeedChkBackend(ierr);
-  CeedQFunction qf;
+  CeedCallBackend(CeedOperatorGetData(op, &data));
+  CeedQFunction          qf;
   CeedQFunction_Hip_gen *qf_data;
-  ierr = CeedOperatorGetQFunction(op, &qf); CeedChkBackend(ierr);
-  ierr = CeedQFunctionGetData(qf, &qf_data); CeedChkBackend(ierr);
+  CeedCallBackend(CeedOperatorGetQFunction(op, &qf));
+  CeedCallBackend(CeedQFunctionGetData(qf, &qf_data));
   CeedInt nelem, numinputfields, numoutputfields;
-  ierr = CeedOperatorGetNumElements(op, &nelem); CeedChkBackend(ierr);
+  CeedCallBackend(CeedOperatorGetNumElements(op, &nelem));
   CeedOperatorField *opinputfields, *opoutputfields;
-  ierr = CeedOperatorGetFields(op, &numinputfields, &opinputfields,
-                               &numoutputfields, &opoutputfields);
-  CeedChkBackend(ierr);
+  CeedCallBackend(CeedOperatorGetFields(op, &numinputfields, &opinputfields, &numoutputfields, &opoutputfields));
   CeedQFunctionField *qfinputfields, *qfoutputfields;
-  ierr = CeedQFunctionGetFields(qf, NULL, &qfinputfields, NULL, &qfoutputfields);
-  CeedChkBackend(ierr);
+  CeedCallBackend(CeedQFunctionGetFields(qf, NULL, &qfinputfields, NULL, &qfoutputfields));
   CeedEvalMode emode;
-  CeedVector vec, outvecs[16] = {};
+  CeedVector   vec, outvecs[16] = {};
 
-  //Creation of the operator
-  ierr = CeedHipGenOperatorBuild(op); CeedChkBackend(ierr);
+  // Creation of the operator
+  CeedCallBackend(CeedHipGenOperatorBuild(op));
 
   // Input vectors
   for (CeedInt i = 0; i < numinputfields; i++) {
-    ierr = CeedQFunctionFieldGetEvalMode(qfinputfields[i], &emode);
-    CeedChkBackend(ierr);
-    if (emode == CEED_EVAL_WEIGHT) { // Skip
+    CeedCallBackend(CeedQFunctionFieldGetEvalMode(qfinputfields[i], &emode));
+    if (emode == CEED_EVAL_WEIGHT) {  // Skip
       data->fields.in[i] = NULL;
     } else {
       // Get input vector
-      ierr = CeedOperatorFieldGetVector(opinputfields[i], &vec); CeedChkBackend(ierr);
+      CeedCallBackend(CeedOperatorFieldGetVector(opinputfields[i], &vec));
       if (vec == CEED_VECTOR_ACTIVE) vec = invec;
-      ierr = CeedVectorGetArrayRead(vec, CEED_MEM_DEVICE, &data->fields.in[i]);
-      CeedChkBackend(ierr);
+      CeedCallBackend(CeedVectorGetArrayRead(vec, CEED_MEM_DEVICE, &data->fields.in[i]));
     }
   }
 
   // Output vectors
   for (CeedInt i = 0; i < numoutputfields; i++) {
-    ierr = CeedQFunctionFieldGetEvalMode(qfoutputfields[i], &emode);
-    CeedChkBackend(ierr);
-    if (emode == CEED_EVAL_WEIGHT) { // Skip
+    CeedCallBackend(CeedQFunctionFieldGetEvalMode(qfoutputfields[i], &emode));
+    if (emode == CEED_EVAL_WEIGHT) {  // Skip
       data->fields.out[i] = NULL;
     } else {
       // Get output vector
-      ierr = CeedOperatorFieldGetVector(opoutputfields[i], &vec);
-      CeedChkBackend(ierr);
+      CeedCallBackend(CeedOperatorFieldGetVector(opoutputfields[i], &vec));
       if (vec == CEED_VECTOR_ACTIVE) vec = outvec;
-      outvecs[i] = vec;
+      outvecs[i]    = vec;
       // Check for multiple output modes
       CeedInt index = -1;
       for (CeedInt j = 0; j < i; j++) {
@@ -88,8 +79,7 @@ static int CeedOperatorApplyAdd_Hip_gen(CeedOperator op, CeedVector invec,
         }
       }
       if (index == -1) {
-        ierr = CeedVectorGetArray(vec, CEED_MEM_DEVICE, &data->fields.out[i]);
-        CeedChkBackend(ierr);
+        CeedCallBackend(CeedVectorGetArray(vec, CEED_MEM_DEVICE, &data->fields.out[i]));
       } else {
         data->fields.out[i] = data->fields.out[index];
       }
@@ -97,68 +87,47 @@ static int CeedOperatorApplyAdd_Hip_gen(CeedOperator op, CeedVector invec,
   }
 
   // Get context data
-  ierr = CeedQFunctionGetInnerContextData(qf, CEED_MEM_DEVICE, &qf_data->d_c);
-  CeedChkBackend(ierr);
+  CeedCallBackend(CeedQFunctionGetInnerContextData(qf, CEED_MEM_DEVICE, &qf_data->d_c));
 
   // Apply operator
-  void *opargs[] = {(void *) &nelem, &qf_data->d_c, &data->indices,
-                    &data->fields, &data->B, &data->G, &data->W
-                   };
-  const CeedInt dim = data->dim;
-  const CeedInt Q1d = data->Q1d;
-  const CeedInt P1d = data->maxP1d;
+  void         *opargs[] = {(void *)&nelem, &qf_data->d_c, &data->indices, &data->fields, &data->B, &data->G, &data->W};
+  const CeedInt dim      = data->dim;
+  const CeedInt Q1d      = data->Q1d;
+  const CeedInt P1d      = data->maxP1d;
   const CeedInt thread1d = CeedIntMax(Q1d, P1d);
-  CeedInt block_sizes[3];
-  ierr = BlockGridCalculate_Hip_gen(dim, nelem, P1d, Q1d, block_sizes);
-  CeedChkBackend(ierr);
-  if (dim==1) {
-    CeedInt grid = nelem/block_sizes[2] + ( (
-        nelem/block_sizes[2]*block_sizes[2]<nelem)
-                                            ? 1 : 0 );
-    CeedInt sharedMem = block_sizes[2]*thread1d*sizeof(CeedScalar);
-    ierr = CeedRunKernelDimSharedHip(ceed, data->op, grid, block_sizes[0],
-                                     block_sizes[1],
-                                     block_sizes[2], sharedMem, opargs);
-  } else if (dim==2) {
-    CeedInt grid = nelem/block_sizes[2] + ( (
-        nelem/block_sizes[2]*block_sizes[2]<nelem)
-                                            ? 1 : 0 );
-    CeedInt sharedMem = block_sizes[2]*thread1d*thread1d*sizeof(CeedScalar);
-    ierr = CeedRunKernelDimSharedHip(ceed, data->op, grid, block_sizes[0],
-                                     block_sizes[1],
-                                     block_sizes[2], sharedMem, opargs);
-  } else if (dim==3) {
-    CeedInt grid = nelem/block_sizes[2] + ( (
-        nelem/block_sizes[2]*block_sizes[2]<nelem)
-                                            ? 1 : 0 );
-    CeedInt sharedMem = block_sizes[2]*thread1d*thread1d*sizeof(CeedScalar);
-    ierr = CeedRunKernelDimSharedHip(ceed, data->op, grid, block_sizes[0],
-                                     block_sizes[1],
-                                     block_sizes[2], sharedMem, opargs);
+  CeedInt       block_sizes[3];
+  CeedCallBackend(BlockGridCalculate_Hip_gen(dim, nelem, P1d, Q1d, block_sizes));
+  if (dim == 1) {
+    CeedInt grid      = nelem / block_sizes[2] + ((nelem / block_sizes[2] * block_sizes[2] < nelem) ? 1 : 0);
+    CeedInt sharedMem = block_sizes[2] * thread1d * sizeof(CeedScalar);
+    CeedCallBackend(CeedRunKernelDimSharedHip(ceed, data->op, grid, block_sizes[0], block_sizes[1], block_sizes[2], sharedMem, opargs));
+  } else if (dim == 2) {
+    CeedInt grid      = nelem / block_sizes[2] + ((nelem / block_sizes[2] * block_sizes[2] < nelem) ? 1 : 0);
+    CeedInt sharedMem = block_sizes[2] * thread1d * thread1d * sizeof(CeedScalar);
+    CeedCallBackend(CeedRunKernelDimSharedHip(ceed, data->op, grid, block_sizes[0], block_sizes[1], block_sizes[2], sharedMem, opargs));
+  } else if (dim == 3) {
+    CeedInt grid      = nelem / block_sizes[2] + ((nelem / block_sizes[2] * block_sizes[2] < nelem) ? 1 : 0);
+    CeedInt sharedMem = block_sizes[2] * thread1d * thread1d * sizeof(CeedScalar);
+    CeedCallBackend(CeedRunKernelDimSharedHip(ceed, data->op, grid, block_sizes[0], block_sizes[1], block_sizes[2], sharedMem, opargs));
   }
-  CeedChkBackend(ierr);
 
   // Restore input arrays
   for (CeedInt i = 0; i < numinputfields; i++) {
-    ierr = CeedQFunctionFieldGetEvalMode(qfinputfields[i], &emode);
-    CeedChkBackend(ierr);
-    if (emode == CEED_EVAL_WEIGHT) { // Skip
+    CeedCallBackend(CeedQFunctionFieldGetEvalMode(qfinputfields[i], &emode));
+    if (emode == CEED_EVAL_WEIGHT) {  // Skip
     } else {
-      ierr = CeedOperatorFieldGetVector(opinputfields[i], &vec); CeedChkBackend(ierr);
+      CeedCallBackend(CeedOperatorFieldGetVector(opinputfields[i], &vec));
       if (vec == CEED_VECTOR_ACTIVE) vec = invec;
-      ierr = CeedVectorRestoreArrayRead(vec, &data->fields.in[i]);
-      CeedChkBackend(ierr);
+      CeedCallBackend(CeedVectorRestoreArrayRead(vec, &data->fields.in[i]));
     }
   }
 
   // Restore output arrays
   for (CeedInt i = 0; i < numoutputfields; i++) {
-    ierr = CeedQFunctionFieldGetEvalMode(qfoutputfields[i], &emode);
-    CeedChkBackend(ierr);
-    if (emode == CEED_EVAL_WEIGHT) { // Skip
+    CeedCallBackend(CeedQFunctionFieldGetEvalMode(qfoutputfields[i], &emode));
+    if (emode == CEED_EVAL_WEIGHT) {  // Skip
     } else {
-      ierr = CeedOperatorFieldGetVector(opoutputfields[i], &vec);
-      CeedChkBackend(ierr);
+      CeedCallBackend(CeedOperatorFieldGetVector(opoutputfields[i], &vec));
       if (vec == CEED_VECTOR_ACTIVE) vec = outvec;
       // Check for multiple output modes
       CeedInt index = -1;
@@ -169,15 +138,13 @@ static int CeedOperatorApplyAdd_Hip_gen(CeedOperator op, CeedVector invec,
         }
       }
       if (index == -1) {
-        ierr = CeedVectorRestoreArray(vec, &data->fields.out[i]);
-        CeedChkBackend(ierr);
+        CeedCallBackend(CeedVectorRestoreArray(vec, &data->fields.out[i]));
       }
     }
   }
 
   // Restore context data
-  ierr = CeedQFunctionRestoreInnerContextData(qf, &qf_data->d_c);
-  CeedChkBackend(ierr);
+  CeedCallBackend(CeedQFunctionRestoreInnerContextData(qf, &qf_data->d_c));
 
   return CEED_ERROR_SUCCESS;
 }
@@ -186,18 +153,15 @@ static int CeedOperatorApplyAdd_Hip_gen(CeedOperator op, CeedVector invec,
 // Create operator
 //------------------------------------------------------------------------------
 int CeedOperatorCreate_Hip_gen(CeedOperator op) {
-  int ierr;
   Ceed ceed;
-  ierr = CeedOperatorGetCeed(op, &ceed); CeedChkBackend(ierr);
+  CeedCallBackend(CeedOperatorGetCeed(op, &ceed));
   CeedOperator_Hip_gen *impl;
 
-  ierr = CeedCalloc(1, &impl); CeedChkBackend(ierr);
-  ierr = CeedOperatorSetData(op, impl); CeedChkBackend(ierr);
+  CeedCallBackend(CeedCalloc(1, &impl));
+  CeedCallBackend(CeedOperatorSetData(op, impl));
 
-  ierr = CeedSetBackendFunction(ceed, "Operator", op, "ApplyAdd",
-                                CeedOperatorApplyAdd_Hip_gen); CeedChkBackend(ierr);
-  ierr = CeedSetBackendFunction(ceed, "Operator", op, "Destroy",
-                                CeedOperatorDestroy_Hip_gen); CeedChkBackend(ierr);
+  CeedCallBackend(CeedSetBackendFunction(ceed, "Operator", op, "ApplyAdd", CeedOperatorApplyAdd_Hip_gen));
+  CeedCallBackend(CeedSetBackendFunction(ceed, "Operator", op, "Destroy", CeedOperatorDestroy_Hip_gen));
   return CEED_ERROR_SUCCESS;
 }
 //------------------------------------------------------------------------------

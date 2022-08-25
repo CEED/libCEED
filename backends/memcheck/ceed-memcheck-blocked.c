@@ -5,33 +5,30 @@
 //
 // This file is part of CEED:  http://github.com/ceed
 
-#include <ceed/ceed.h>
 #include <ceed/backend.h>
+#include <ceed/ceed.h>
 #include <string.h>
+
 #include "ceed-memcheck.h"
 
 //------------------------------------------------------------------------------
 // Backend Init
 //------------------------------------------------------------------------------
 static int CeedInit_Memcheck(const char *resource, Ceed ceed) {
-  int ierr;
-  if (strcmp(resource, "/cpu/self/memcheck/blocked"))
+  if (strcmp(resource, "/cpu/self/memcheck/blocked")) {
     // LCOV_EXCL_START
-    return CeedError(ceed, CEED_ERROR_BACKEND,
-                     "Valgrind Memcheck backend cannot use resource: %s",
-                     resource);
-  // LCOV_EXCL_STOP
+    return CeedError(ceed, CEED_ERROR_BACKEND, "Valgrind Memcheck backend cannot use resource: %s", resource);
+    // LCOV_EXCL_STOP
+  }
 
   // Create reference CEED that implementation will be dispatched
   //   through unless overridden
   Ceed ceed_ref;
-  CeedInit("/cpu/self/ref/blocked", &ceed_ref);
-  ierr = CeedSetDelegate(ceed, ceed_ref); CeedChkBackend(ierr);
+  CeedCallBackend(CeedInit("/cpu/self/ref/blocked", &ceed_ref));
+  CeedCallBackend(CeedSetDelegate(ceed, ceed_ref));
 
-  ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "QFunctionCreate",
-                                CeedQFunctionCreate_Memcheck); CeedChkBackend(ierr);
-  ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "QFunctionContextCreate",
-                                CeedQFunctionContextCreate_Memcheck); CeedChkBackend(ierr);
+  CeedCallBackend(CeedSetBackendFunction(ceed, "Ceed", ceed, "QFunctionCreate", CeedQFunctionCreate_Memcheck));
+  CeedCallBackend(CeedSetBackendFunction(ceed, "Ceed", ceed, "QFunctionContextCreate", CeedQFunctionContextCreate_Memcheck));
 
   return CEED_ERROR_SUCCESS;
 }
@@ -39,7 +36,5 @@ static int CeedInit_Memcheck(const char *resource, Ceed ceed) {
 //------------------------------------------------------------------------------
 // Backend Register
 //------------------------------------------------------------------------------
-CEED_INTERN int CeedRegister_Memcheck_Blocked(void) {
-  return CeedRegister("/cpu/self/memcheck/blocked", CeedInit_Memcheck, 110);
-}
+CEED_INTERN int CeedRegister_Memcheck_Blocked(void) { return CeedRegister("/cpu/self/memcheck/blocked", CeedInit_Memcheck, 110); }
 //------------------------------------------------------------------------------

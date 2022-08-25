@@ -17,6 +17,10 @@ On this page we provide a summary of the main API changes, new features and exam
 - Added `CeedInt_FMT` to support potential future use of larger interger sizes.
 - Added CEED_QFUNCTION_ATTR for setting compiler attributes/pragmas to CEED_QFUNCTION_HELPER and CEED_QFUNCTION
 
+### Other
+
+- Switch to `clang-format` over `astyle` for automatic formatting.
+
 ### Bugfix
 
 - Fix bug in setting device id for GPU backends.

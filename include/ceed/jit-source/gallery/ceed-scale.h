@@ -14,8 +14,7 @@
 
 #include <ceed.h>
 
-CEED_QFUNCTION(Scale)(void *ctx, const CeedInt Q, const CeedScalar *const *in,
-                      CeedScalar *const *out) {
+CEED_QFUNCTION(Scale)(void *ctx, const CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
   // Ctx holds field size
   const CeedInt size = *(CeedInt *)ctx;
 
@@ -24,14 +23,11 @@ CEED_QFUNCTION(Scale)(void *ctx, const CeedInt Q, const CeedScalar *const *in,
   const CeedScalar *input = in[0];
   const CeedScalar *scale = in[1];
   // out[0] is output, size (Q*size)
-  CeedScalar *output = out[0];
+  CeedScalar *output      = out[0];
 
   // Quadrature point loop
-  CeedPragmaSIMD
-  for (CeedInt i=0; i<Q*size; i++) {
-    output[i] = input[i] * scale[i];
-  } // End of Quadrature Point Loop
+  CeedPragmaSIMD for (CeedInt i = 0; i < Q * size; i++) { output[i] = input[i] * scale[i]; }  // End of Quadrature Point Loop
   return 0;
 }
 
-#endif // scale_h
+#endif  // scale_h

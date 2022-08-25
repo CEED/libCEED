@@ -5,54 +5,45 @@
 //
 // This file is part of CEED:  http://github.com/ceed
 
-#include <ceed/ceed.h>
-#include <ceed/backend.h>
-#include <string.h>
 #include "ceed-cuda-gen.h"
+
+#include <ceed/backend.h>
+#include <ceed/ceed.h>
+#include <string.h>
 
 //------------------------------------------------------------------------------
 // Backend init
 //------------------------------------------------------------------------------
 static int CeedInit_Cuda_gen(const char *resource, Ceed ceed) {
-  int ierr;
-
   char *resource_root;
-  ierr = CeedCudaGetResourceRoot(ceed, resource, &resource_root);
-  CeedChkBackend(ierr);
-  if (strcmp(resource_root, "/gpu/cuda")
-      && strcmp(resource_root, "/gpu/cuda/gen"))
+  CeedCallBackend(CeedCudaGetResourceRoot(ceed, resource, &resource_root));
+  if (strcmp(resource_root, "/gpu/cuda") && strcmp(resource_root, "/gpu/cuda/gen")) {
     // LCOV_EXCL_START
-    return CeedError(ceed, CEED_ERROR_BACKEND,
-                     "Cuda backend cannot use resource: %s", resource);
-  // LCOV_EXCL_STOP
-  ierr = CeedFree(&resource_root); CeedChkBackend(ierr);
+    return CeedError(ceed, CEED_ERROR_BACKEND, "Cuda backend cannot use resource: %s", resource);
+    // LCOV_EXCL_STOP
+  }
+  CeedCallBackend(CeedFree(&resource_root));
 
   Ceed_Cuda *data;
-  ierr = CeedCalloc(1, &data); CeedChkBackend(ierr);
-  ierr = CeedSetData(ceed, data); CeedChkBackend(ierr);
-  ierr = CeedCudaInit(ceed, resource); CeedChkBackend(ierr);
+  CeedCallBackend(CeedCalloc(1, &data));
+  CeedCallBackend(CeedSetData(ceed, data));
+  CeedCallBackend(CeedCudaInit(ceed, resource));
 
   Ceed ceedshared;
-  CeedInit("/gpu/cuda/shared", &ceedshared);
-  ierr = CeedSetDelegate(ceed, ceedshared); CeedChkBackend(ierr);
+  CeedCall(CeedInit("/gpu/cuda/shared", &ceedshared));
+  CeedCallBackend(CeedSetDelegate(ceed, ceedshared));
 
   const char fallbackresource[] = "/gpu/cuda/ref";
-  ierr = CeedSetOperatorFallbackResource(ceed, fallbackresource);
-  CeedChkBackend(ierr);
+  CeedCallBackend(CeedSetOperatorFallbackResource(ceed, fallbackresource));
 
-  ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "QFunctionCreate",
-                                CeedQFunctionCreate_Cuda_gen); CeedChkBackend(ierr);
-  ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "OperatorCreate",
-                                CeedOperatorCreate_Cuda_gen); CeedChkBackend(ierr);
-  ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "Destroy",
-                                CeedDestroy_Cuda); CeedChkBackend(ierr);
+  CeedCallBackend(CeedSetBackendFunction(ceed, "Ceed", ceed, "QFunctionCreate", CeedQFunctionCreate_Cuda_gen));
+  CeedCallBackend(CeedSetBackendFunction(ceed, "Ceed", ceed, "OperatorCreate", CeedOperatorCreate_Cuda_gen));
+  CeedCallBackend(CeedSetBackendFunction(ceed, "Ceed", ceed, "Destroy", CeedDestroy_Cuda));
   return CEED_ERROR_SUCCESS;
 }
 
 //------------------------------------------------------------------------------
 // Register backend
 //------------------------------------------------------------------------------
-CEED_INTERN int CeedRegister_Cuda_Gen(void) {
-  return CeedRegister("/gpu/cuda/gen", CeedInit_Cuda_gen, 20);
-}
+CEED_INTERN int CeedRegister_Cuda_Gen(void) { return CeedRegister("/gpu/cuda/gen", CeedInit_Cuda_gen, 20); }
 //------------------------------------------------------------------------------

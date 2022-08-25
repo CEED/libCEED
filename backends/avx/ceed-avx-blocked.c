@@ -5,39 +5,34 @@
 //
 // This file is part of CEED:  http://github.com/ceed
 
-#include <ceed/ceed.h>
 #include <ceed/backend.h>
+#include <ceed/ceed.h>
 #include <stdbool.h>
 #include <string.h>
+
 #include "ceed-avx.h"
 
 //------------------------------------------------------------------------------
 // Backend Init
 //------------------------------------------------------------------------------
 static int CeedInit_Avx(const char *resource, Ceed ceed) {
-  int ierr;
-  if (strcmp(resource, "/cpu/self") && strcmp(resource, "/cpu/self/avx") &&
-      strcmp(resource, "/cpu/self/avx/blocked"))
+  if (strcmp(resource, "/cpu/self") && strcmp(resource, "/cpu/self/avx") && strcmp(resource, "/cpu/self/avx/blocked")) {
     // LCOV_EXCL_START
-    return CeedError(ceed, CEED_ERROR_BACKEND,
-                     "AVX backend cannot use resource: %s", resource);
-  // LCOV_EXCL_STOP
-  ierr = CeedSetDeterministic(ceed, true); CeedChkBackend(ierr);
+    return CeedError(ceed, CEED_ERROR_BACKEND, "AVX backend cannot use resource: %s", resource);
+    // LCOV_EXCL_STOP
+  }
+  CeedCallBackend(CeedSetDeterministic(ceed, true));
 
   // Create reference CEED that implementation will be dispatched
   //   through unless overridden
   Ceed ceed_ref;
-  CeedInit("/cpu/self/opt/blocked", &ceed_ref);
-  ierr = CeedSetDelegate(ceed, ceed_ref); CeedChkBackend(ierr);
+  CeedCallBackend(CeedInit("/cpu/self/opt/blocked", &ceed_ref));
+  CeedCallBackend(CeedSetDelegate(ceed, ceed_ref));
 
   if (CEED_SCALAR_TYPE == CEED_SCALAR_FP64) {
-    ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "TensorContractCreate",
-                                  CeedTensorContractCreate_f64_Avx);
-    CeedChkBackend(ierr);
+    CeedCallBackend(CeedSetBackendFunction(ceed, "Ceed", ceed, "TensorContractCreate", CeedTensorContractCreate_f64_Avx));
   } else {
-    ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "TensorContractCreate",
-                                  CeedTensorContractCreate_f32_Avx);
-    CeedChkBackend(ierr);
+    CeedCallBackend(CeedSetBackendFunction(ceed, "Ceed", ceed, "TensorContractCreate", CeedTensorContractCreate_f32_Avx));
   }
 
   return CEED_ERROR_SUCCESS;
@@ -46,7 +41,5 @@ static int CeedInit_Avx(const char *resource, Ceed ceed) {
 //------------------------------------------------------------------------------
 // Backend Register
 //------------------------------------------------------------------------------
-CEED_INTERN int CeedRegister_Avx_Blocked(void) {
-  return CeedRegister("/cpu/self/avx/blocked", CeedInit_Avx, 30);
-}
+CEED_INTERN int CeedRegister_Avx_Blocked(void) { return CeedRegister("/cpu/self/avx/blocked", CeedInit_Avx, 30); }
 //------------------------------------------------------------------------------
