@@ -75,11 +75,12 @@ CEED_QFUNCTION(ICsChannel)(void *ctx, CeedInt Q, const CeedScalar *const *in, Ce
   const ChannelContext context = (ChannelContext)ctx;
 
   // Quadrature Point Loop
+
   CeedPragmaSIMD for (CeedInt i = 0; i < Q; i++) {
     const CeedScalar x[]  = {X[0][i], X[1][i], X[2][i]};
     State            s    = Exact_Channel(3, 0., x, 5, ctx);
     CeedScalar       q[5] = {0};
-    if (context->newtonian_ctx.is_primitive) UnpackState_Y(s.Y, q);
+    if (context->newtonian_ctx.use_primitive) UnpackState_Y(s.Y, q);
     else UnpackState_U(s.U, q);
 
     for (CeedInt j = 0; j < 5; j++) q0[j][i] = q[j];

@@ -87,7 +87,7 @@ PetscErrorCode SetUpDM(DM dm, ProblemData *problem, PetscInt degree, SimpleBC bc
   PetscSection section;
   PetscCall(DMGetLocalSection(dm, &section));
   PetscCall(PetscSectionSetFieldName(section, 0, ""));
-  if (phys->primitive) {
+  if (phys->use_primitive) {
     PetscCall(PetscSectionSetComponentName(section, 0, 0, "Pressure"));
     PetscCall(PetscSectionSetComponentName(section, 0, 1, "Velocity X"));
     PetscCall(PetscSectionSetComponentName(section, 0, 2, "Velocity Y"));

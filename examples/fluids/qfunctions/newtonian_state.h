@@ -110,6 +110,10 @@ CEED_QFUNCTION_HELPER StateConservative StateConservativeFromPrimitive_fwd(Newto
   return dU;
 }
 
+// Function pointer types for generic state array -> State struct functions
+typedef State (*StateFromQi_t)(NewtonianIdealGasContext gas, const CeedScalar qi[5], const CeedScalar x[3]);
+typedef State (*StateFromQi_fwd_t)(NewtonianIdealGasContext gas, State s, const CeedScalar dqi[5], const CeedScalar x[3], const CeedScalar dx[3]);
+
 CEED_QFUNCTION_HELPER State StateFromU(NewtonianIdealGasContext gas, const CeedScalar U[5], const CeedScalar x[3]) {
   State s;
   s.U.density     = U[0];
@@ -184,11 +188,23 @@ CEED_QFUNCTION_HELPER void FluxInviscidStrong(NewtonianIdealGasContext gas, Stat
   }
 }
 
-CEED_QFUNCTION_HELPER void FluxTotal(StateConservative F_inviscid[3], CeedScalar stress[3][3], CeedScalar Fe[3], CeedScalar Flux[5][3]) {
+CEED_QFUNCTION_HELPER void FluxTotal(const StateConservative F_inviscid[3], CeedScalar stress[3][3], CeedScalar Fe[3], CeedScalar Flux[5][3]) {
   for (CeedInt j = 0; j < 3; j++) {
     Flux[0][j] = F_inviscid[j].density;
     for (CeedInt k = 0; k < 3; k++) Flux[k + 1][j] = F_inviscid[j].momentum[k] - stress[k][j];
     Flux[4][j] = F_inviscid[j].E_total + Fe[j];
+  }
+}
+
+CEED_QFUNCTION_HELPER void FluxTotal_Boundary(const StateConservative F_inviscid[3], const CeedScalar stress[3][3], const CeedScalar Fe[3],
+                                              const CeedScalar normal[3], CeedScalar Flux[5]) {
+  for (CeedInt j = 0; j < 5; j++) Flux[j] = 0.;
+  for (CeedInt j = 0; j < 3; j++) {
+    Flux[0] += F_inviscid[j].density * normal[j];
+    for (CeedInt k = 0; k < 3; k++) {
+      Flux[k + 1] += (F_inviscid[j].momentum[k] - stress[k][j]) * normal[j];
+    }
+    Flux[4] += (F_inviscid[j].E_total + Fe[j]) * normal[j];
   }
 }
 
