@@ -198,6 +198,7 @@ struct Physics_private {
   PetscBool                has_curr_time;
   PetscBool                has_neumann;
   CeedContextFieldLabel    solution_time_label;
+  CeedContextFieldLabel    stg_solution_time_label;
   CeedContextFieldLabel    timestep_size_label;
   CeedContextFieldLabel    ics_time_label;
   CeedContextFieldLabel    ijacobian_time_shift_label;

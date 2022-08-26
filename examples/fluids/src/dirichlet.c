@@ -10,7 +10,7 @@
 #include "../problems/stg_shur14.h"
 
 PetscErrorCode SetupStrongSTG_Ceed(Ceed ceed, CeedData ceed_data, DM dm,
-                                   AppCtx app_ctx, ProblemData *problem, SimpleBC bc,
+                                   AppCtx app_ctx, ProblemData *problem, SimpleBC bc, Physics phys,
                                    CeedInt Q_sur, CeedInt q_data_size_sur, CeedOperator op_dirichlet) {
   CeedInt              num_comp_x=problem->dim, num_comp_q = 5, num_elem,
                        elem_size, stg_data_size=1;
@@ -150,6 +150,9 @@ PetscErrorCode SetupStrongSTG_Ceed(Ceed ceed, CeedData ceed_data, DM dm,
     CeedOperatorDestroy(&op_stgdata);
   }
 
+  CeedOperatorContextGetFieldLabel(op_dirichlet, "solution time",
+                                   &phys->stg_solution_time_label);
+
   CeedBasisDestroy(&basis_x_to_q_sur);
   CeedQFunctionDestroy(&qf_setup);
 
@@ -166,6 +169,11 @@ PetscErrorCode DMPlexInsertBoundaryValues_StrongBCCeed(DM dm,
   PetscFunctionBeginUser;
 
   PetscCall(DMGetApplicationContext(dm, &user));
+
+  if (user->phys->stg_solution_time_label) {
+    CeedOperatorContextSetDouble(user->op_dirichlet,
+                                 user->phys->stg_solution_time_label, &time);
+  }
 
   // Mask Dirichlet entries
   PetscCall(DMGetNamedLocalVector(dm, "boundary mask", &boundary_mask));
@@ -211,7 +219,7 @@ PetscErrorCode SetupStrongBC_Ceed(Ceed ceed, CeedData ceed_data, DM dm,
 
     if (use_strongstg)
       PetscCall(SetupStrongSTG_Ceed(ceed, ceed_data, dm, app_ctx, problem, bc,
-                                    Q_sur, q_data_size_sur, user->op_dirichlet));
+                                    user->phys, Q_sur, q_data_size_sur, user->op_dirichlet));
   }
 
   PetscCall(PetscObjectComposeFunction((PetscObject)dm,
