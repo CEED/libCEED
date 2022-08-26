@@ -23,8 +23,8 @@ int main(int argc, char **argv) {
   for (CeedInt i=0; i<12; i++)
     if (fabs(A_qr[i] - A[i]) > 100.*CEED_EPSILON)
       // LCOV_EXCL_START
-      printf("Error in QR factorization A_qr[%d] = %f != A[%d] = %f\n",
-             i, A_qr[i], i, A[i]);
+      printf("Error in QR factorization A_qr[%" CeedInt_FMT
+             "] = %f != A[%" CeedInt_FMT "] = %f\n", i, A_qr[i], i, A[i]);
   // LCOV_EXCL_STOP
 
   CeedDestroy(&ceed);

@@ -733,25 +733,25 @@ static int CreatePBRestriction(CeedElemRestriction rstr,
   CeedChkBackend(ierr);
 
   // Expand offsets
-  CeedInt nelem, ncomp, elemsize, compstride, max = 1, *pbOffsets;
+  CeedInt nelem, ncomp, elemsize, compstride, *pbOffsets;
+  CeedSize l_size;
   ierr = CeedElemRestrictionGetNumElements(rstr, &nelem); CeedChkBackend(ierr);
   ierr = CeedElemRestrictionGetNumComponents(rstr, &ncomp); CeedChkBackend(ierr);
   ierr = CeedElemRestrictionGetElementSize(rstr, &elemsize); CeedChkBackend(ierr);
   ierr = CeedElemRestrictionGetCompStride(rstr, &compstride);
   CeedChkBackend(ierr);
+  ierr = CeedElemRestrictionGetLVectorSize(rstr, &l_size); CeedChkBackend(ierr);
   CeedInt shift = ncomp;
   if (compstride != 1)
     shift *= ncomp;
   ierr = CeedCalloc(nelem*elemsize, &pbOffsets); CeedChkBackend(ierr);
   for (CeedInt i = 0; i < nelem*elemsize; i++) {
     pbOffsets[i] = offsets[i]*shift;
-    if (pbOffsets[i] > max)
-      max = pbOffsets[i];
   }
 
   // Create new restriction
   ierr = CeedElemRestrictionCreate(ceed, nelem, elemsize, ncomp*ncomp, 1,
-                                   max + ncomp*ncomp, CEED_MEM_HOST,
+                                   l_size * ncomp, CEED_MEM_HOST,
                                    CEED_OWN_POINTER, pbOffsets, pbRstr);
   CeedChkBackend(ierr);
 
@@ -990,9 +990,6 @@ static inline int CeedOperatorAssembleDiagonalCore_Cuda(CeedOperator op,
   ierr = CeedOperatorLinearAssembleQFunctionBuildOrUpdate(op, &assembledqf,
          &rstr, request); CeedChkBackend(ierr);
   ierr = CeedElemRestrictionDestroy(&rstr); CeedChkBackend(ierr);
-  CeedScalar maxnorm = 0;
-  ierr = CeedVectorNorm(assembledqf, CEED_NORM_MAX, &maxnorm);
-  CeedChkBackend(ierr);
 
   // Setup
   if (!impl->diag) {
@@ -1036,7 +1033,7 @@ static inline int CeedOperatorAssembleDiagonalCore_Cuda(CeedOperator op,
   // Compute the diagonal of B^T D B
   int elemsPerBlock = 1;
   int grid = nelem/elemsPerBlock+((nelem/elemsPerBlock*elemsPerBlock<nelem)?1:0);
-  void *args[] = {(void *) &nelem, (void *) &maxnorm, &diag->d_identity,
+  void *args[] = {(void *) &nelem, &diag->d_identity,
                   &diag->d_interpin, &diag->d_gradin, &diag->d_interpout,
                   &diag->d_gradout, &diag->d_emodein, &diag->d_emodeout,
                   &assembledqfarray, &elemdiagarray
@@ -1067,37 +1064,13 @@ static inline int CeedOperatorAssembleDiagonalCore_Cuda(CeedOperator op,
 }
 
 //------------------------------------------------------------------------------
-// Assemble composite diagonal common code
-//------------------------------------------------------------------------------
-static inline int CeedOperatorLinearAssembleAddDiagonalCompositeCore_Cuda(
-  CeedOperator op, CeedVector assembled, CeedRequest *request,
-  const bool pointBlock) {
-  int ierr;
-  CeedInt numSub;
-  CeedOperator *subOperators;
-  ierr = CeedOperatorGetNumSub(op, &numSub); CeedChkBackend(ierr);
-  ierr = CeedOperatorGetSubList(op, &subOperators); CeedChkBackend(ierr);
-  for (CeedInt i = 0; i < numSub; i++) {
-    ierr = CeedOperatorAssembleDiagonalCore_Cuda(subOperators[i], assembled,
-           request, pointBlock); CeedChkBackend(ierr);
-  }
-  return CEED_ERROR_SUCCESS;
-}
-
-//------------------------------------------------------------------------------
 // Assemble Linear Diagonal
 //------------------------------------------------------------------------------
 static int CeedOperatorLinearAssembleAddDiagonal_Cuda(CeedOperator op,
     CeedVector assembled, CeedRequest *request) {
-  int ierr;
-  bool isComposite;
-  ierr = CeedOperatorIsComposite(op, &isComposite); CeedChkBackend(ierr);
-  if (isComposite) {
-    return CeedOperatorLinearAssembleAddDiagonalCompositeCore_Cuda(op, assembled,
-           request, false);
-  } else {
-    return CeedOperatorAssembleDiagonalCore_Cuda(op, assembled, request, false);
-  }
+  int ierr = CeedOperatorAssembleDiagonalCore_Cuda(op, assembled, request, false);
+  CeedChkBackend(ierr);
+  return CEED_ERROR_SUCCESS;
 }
 
 //------------------------------------------------------------------------------
@@ -1105,15 +1078,9 @@ static int CeedOperatorLinearAssembleAddDiagonal_Cuda(CeedOperator op,
 //------------------------------------------------------------------------------
 static int CeedOperatorLinearAssembleAddPointBlockDiagonal_Cuda(CeedOperator op,
     CeedVector assembled, CeedRequest *request) {
-  int ierr;
-  bool isComposite;
-  ierr = CeedOperatorIsComposite(op, &isComposite); CeedChkBackend(ierr);
-  if (isComposite) {
-    return CeedOperatorLinearAssembleAddDiagonalCompositeCore_Cuda(op, assembled,
-           request, true);
-  } else {
-    return CeedOperatorAssembleDiagonalCore_Cuda(op, assembled, request, true);
-  }
+  int ierr = CeedOperatorAssembleDiagonalCore_Cuda(op, assembled, request, true);
+  CeedChkBackend(ierr);
+  return CEED_ERROR_SUCCESS;
 }
 
 //------------------------------------------------------------------------------
@@ -1290,7 +1257,7 @@ static int CeedSingleOperatorAssembleSetup_Cuda(CeedOperator op) {
                         cudaMemcpyHostToDevice); CeedChk_Cu(ceed, ierr);
       mat_start += esize * nqpts;
     } else if (eval_mode == CEED_EVAL_GRAD) {
-      ierr = cudaMemcpy(asmb->d_B_in, grad_in,
+      ierr = cudaMemcpy(&asmb->d_B_in[mat_start], grad_in,
                         dim * esize * nqpts * sizeof(CeedScalar),
                         cudaMemcpyHostToDevice); CeedChk_Cu(ceed, ierr);
       mat_start += dim * esize * nqpts;
@@ -1330,7 +1297,13 @@ static int CeedSingleOperatorAssembleSetup_Cuda(CeedOperator op) {
 }
 
 //------------------------------------------------------------------------------
-// Single operator assembly
+// Assemble matrix data for COO matrix of assembled operator.
+// The sparsity pattern is set by CeedOperatorLinearAssembleSymbolic.
+//
+// Note that this (and other assembly routines) currently assume only one
+// active input restriction/basis per operator (could have multiple basis eval
+// modes).
+// TODO: allow multiple active input restrictions/basis objects
 //------------------------------------------------------------------------------
 static int CeedSingleOperatorAssemble_Cuda(CeedOperator op, CeedInt offset,
     CeedVector values) {
@@ -1388,51 +1361,6 @@ static int CeedSingleOperatorAssemble_Cuda(CeedOperator op, CeedInt offset,
 }
 
 //------------------------------------------------------------------------------
-// Assemble matrix data for COO matrix of assembled operator.
-// The sparsity pattern is set by CeedOperatorLinearAssembleSymbolic.
-//
-// Note that this (and other assembly routines) currently assume only one
-// active input restriction/basis per operator (could have multiple basis eval
-// modes).
-// TODO: allow multiple active input restrictions/basis objects
-//------------------------------------------------------------------------------
-int CeedOperatorLinearAssemble_Cuda(CeedOperator op, CeedVector values) {
-
-  // As done in the default implementation, loop through suboperators
-  // for composite operators, or call single operator assembly otherwise
-  bool is_composite;
-  CeedInt ierr;
-  ierr = CeedOperatorIsComposite(op, &is_composite); CeedChkBackend(ierr);
-
-  CeedElemRestriction rstr;
-  CeedInt num_elem, elem_size, num_comp;
-
-  CeedInt offset = 0;
-  if (is_composite) {
-    CeedInt num_suboperators;
-    ierr = CeedOperatorGetNumSub(op, &num_suboperators); CeedChkBackend(ierr);
-    CeedOperator *sub_operators;
-    ierr = CeedOperatorGetSubList(op, &sub_operators); CeedChkBackend(ierr);
-    for (int k = 0; k < num_suboperators; ++k) {
-      ierr = CeedSingleOperatorAssemble_Cuda(sub_operators[k], offset, values);
-      CeedChkBackend(ierr);
-      ierr = CeedOperatorGetActiveElemRestriction(sub_operators[k], &rstr);
-      CeedChkBackend(ierr);
-      ierr = CeedElemRestrictionGetNumElements(rstr, &num_elem); CeedChkBackend(ierr);
-      ierr = CeedElemRestrictionGetElementSize(rstr, &elem_size);
-      CeedChkBackend(ierr);
-      ierr = CeedElemRestrictionGetNumComponents(rstr, &num_comp);
-      CeedChkBackend(ierr);
-      offset += elem_size*num_comp * elem_size*num_comp * num_elem;
-    }
-  } else {
-    ierr = CeedSingleOperatorAssemble_Cuda(op, offset, values);
-    CeedChkBackend(ierr);
-  }
-
-  return CEED_ERROR_SUCCESS;
-}
-//------------------------------------------------------------------------------
 // Create operator
 //------------------------------------------------------------------------------
 int CeedOperatorCreate_Cuda(CeedOperator op) {
@@ -1459,7 +1387,7 @@ int CeedOperatorCreate_Cuda(CeedOperator op) {
                                 CeedOperatorLinearAssembleAddPointBlockDiagonal_Cuda);
   CeedChkBackend(ierr);
   ierr = CeedSetBackendFunction(ceed, "Operator", op,
-                                "LinearAssemble", CeedOperatorLinearAssemble_Cuda);
+                                "LinearAssembleSingle", CeedSingleOperatorAssemble_Cuda);
   CeedChkBackend(ierr);
   ierr = CeedSetBackendFunction(ceed, "Operator", op, "ApplyAdd",
                                 CeedOperatorApplyAdd_Cuda); CeedChkBackend(ierr);
@@ -1468,24 +1396,4 @@ int CeedOperatorCreate_Cuda(CeedOperator op) {
   return CEED_ERROR_SUCCESS;
 }
 
-//------------------------------------------------------------------------------
-// Composite Operator Create
-//------------------------------------------------------------------------------
-int CeedCompositeOperatorCreate_Cuda(CeedOperator op) {
-  int ierr;
-  Ceed ceed;
-  ierr = CeedOperatorGetCeed(op, &ceed); CeedChkBackend(ierr);
-
-  ierr = CeedSetBackendFunction(ceed, "Operator", op, "LinearAssembleAddDiagonal",
-                                CeedOperatorLinearAssembleAddDiagonal_Cuda);
-  CeedChkBackend(ierr);
-  ierr = CeedSetBackendFunction(ceed, "Operator", op,
-                                "LinearAssembleAddPointBlockDiagonal",
-                                CeedOperatorLinearAssembleAddPointBlockDiagonal_Cuda);
-  CeedChkBackend(ierr);
-  ierr = CeedSetBackendFunction(ceed, "Operator", op,
-                                "LinearAssemble", CeedOperatorLinearAssemble_Cuda);
-  CeedChkBackend(ierr);
-  return CEED_ERROR_SUCCESS;
-}
 //------------------------------------------------------------------------------

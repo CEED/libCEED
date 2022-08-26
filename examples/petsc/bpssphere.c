@@ -193,13 +193,14 @@ int main(int argc, char **argv) {
     const char *used_resource;
     CeedGetResource(ceed, &used_resource);
     ierr = PetscPrintf(comm,
-                       "\n-- CEED Benchmark Problem %d on the Sphere -- libCEED + PETSc --\n"
+                       "\n-- CEED Benchmark Problem %" CeedInt_FMT
+                       " on the Sphere -- libCEED + PETSc --\n"
                        "  libCEED:\n"
                        "    libCEED Backend                    : %s\n"
                        "    libCEED Backend MemType            : %s\n"
                        "  Mesh:\n"
-                       "    Number of 1D Basis Nodes (p)       : %d\n"
-                       "    Number of 1D Quadrature Points (q) : %d\n"
+                       "    Number of 1D Basis Nodes (p)       : %" CeedInt_FMT "\n"
+                       "    Number of 1D Quadrature Points (q) : %" CeedInt_FMT "\n"
                        "    Global nodes                       : %" PetscInt_FMT "\n",
                        bp_choice+1, ceed_resource, CeedMemTypes[mem_type_backend], P, Q,
                        g_size/num_comp_u); CHKERRQ(ierr);

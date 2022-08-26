@@ -88,7 +88,7 @@ int main(int argc, char **argv) {
     CeedScalar tol = GetTolerance(CEED_SCALAR_TYPE, dim);
     if (fabs(sum_1 - sum_2) > tol)
       // LCOV_EXCL_START
-      printf("[%d] %f != %f\n", dim, sum_1, sum_2);
+      printf("[%" CeedInt_FMT "] %f != %f\n", dim, sum_1, sum_2);
     // LCOV_EXCL_STOP
 
     CeedVectorDestroy(&X);

@@ -32,7 +32,7 @@ int main(int argc, char **argv) {
   for (i = 0; i < len; i++)
     if (fabs(v[i] - 1.) > 10.*CEED_EPSILON)
       // LCOV_EXCL_START
-      printf("v[%d] = %f != 1.\n", i, v[i]);
+      printf("v[%" CeedInt_FMT "] = %f != 1.\n", i, v[i]);
   // LCOV_EXCL_STOP
   CeedVectorRestoreArrayRead(V, &v);
 

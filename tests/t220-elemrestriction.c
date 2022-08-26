@@ -39,8 +39,8 @@ int main(int argc, char **argv) {
       CeedInt k = j + P*i;
       if (10+(k+1)/2 != yy[k] * CeedIntPow(-1, i%2))
         // LCOV_EXCL_START
-        printf("Error in restricted array y[%d] = %f",
-               k, (CeedScalar)yy[k]);
+        printf("Error in restricted array y[%" CeedInt_FMT
+               "] = %f\n", k, (CeedScalar)yy[k]);
       // LCOV_EXCL_STOP
     }
   }

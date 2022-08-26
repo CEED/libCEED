@@ -9,16 +9,29 @@
 /// Setup DM for Navier-Stokes example using PETSc
 
 #include "../navierstokes.h"
+#include "../problems/stg_shur14.h"
 
 // Create mesh
-PetscErrorCode CreateDM(MPI_Comm comm, ProblemData *problem, DM *dm) {
+PetscErrorCode CreateDM(MPI_Comm comm, ProblemData *problem,
+                        MatType mat_type, VecType vec_type,
+                        DM *dm) {
   PetscErrorCode   ierr;
   PetscFunctionBeginUser;
   // Create DMPLEX
   ierr = DMCreate(comm, dm); CHKERRQ(ierr);
   ierr = DMSetType(*dm, DMPLEX); CHKERRQ(ierr);
+  {
+    PetscBool skip = PETSC_TRUE;
+    PetscCall(PetscOptionsGetBool(NULL, NULL, "-dm_mat_preallocate_skip", &skip,
+                                  NULL));
+    PetscCall(DMSetMatrixPreallocateSkip(*dm, skip));
+  }
+  ierr = DMSetMatType(*dm, mat_type); CHKERRQ(ierr);
+  ierr = DMSetVecType(*dm, vec_type); CHKERRQ(ierr);
+
   // Set Tensor elements
   ierr = PetscOptionsSetValue(NULL, "-dm_plex_simplex", "0"); CHKERRQ(ierr);
+  ierr = PetscOptionsSetValue(NULL, "-dm_sparse_localize", "0"); CHKERRQ(ierr);
   // Set CL options
   ierr = DMSetFromOptions(*dm); CHKERRQ(ierr);
   ierr = DMViewFromOptions(*dm, NULL, "-dm_view"); CHKERRQ(ierr);
@@ -70,15 +83,37 @@ PetscErrorCode SetUpDM(DM dm, ProblemData *problem, PetscInt degree,
                            bc->num_slip[2], bc->slips[2], 0, 1, comps,
                            (void(*)(void))NULL, NULL, problem->bc_ctx, NULL); CHKERRQ(ierr);
     }
+    {
+      PetscBool use_strongstg = PETSC_FALSE;
+      ierr = PetscOptionsGetBool(NULL, NULL, "-stg_strong", &use_strongstg, NULL);
+      CHKERRQ(ierr);
+
+      if (use_strongstg) {
+        ierr = SetupStrongSTG(dm, bc, problem, phys); CHKERRQ(ierr);
+      }
+    }
+
     ierr = DMPlexSetClosurePermutationTensor(dm, PETSC_DETERMINE, NULL);
     CHKERRQ(ierr);
     ierr = PetscFEDestroy(&fe); CHKERRQ(ierr);
   }
-  {
-    // Empty name for conserved field (because there is only one field)
-    PetscSection section;
-    ierr = DMGetLocalSection(dm, &section); CHKERRQ(ierr);
-    ierr = PetscSectionSetFieldName(section, 0, ""); CHKERRQ(ierr);
+
+  // Empty name for conserved field (because there is only one field)
+  PetscSection section;
+  ierr = DMGetLocalSection(dm, &section); CHKERRQ(ierr);
+  ierr = PetscSectionSetFieldName(section, 0, ""); CHKERRQ(ierr);
+  if (phys->use_primitive) {
+    ierr = PetscSectionSetComponentName(section, 0, 0, "Pressure");
+    CHKERRQ(ierr);
+    ierr = PetscSectionSetComponentName(section, 0, 1, "Velocity X");
+    CHKERRQ(ierr);
+    ierr = PetscSectionSetComponentName(section, 0, 2, "Velocity Y");
+    CHKERRQ(ierr);
+    ierr = PetscSectionSetComponentName(section, 0, 3, "Velocity Z");
+    CHKERRQ(ierr);
+    ierr = PetscSectionSetComponentName(section, 0, 4, "Temperature");
+    CHKERRQ(ierr);
+  } else {
     ierr = PetscSectionSetComponentName(section, 0, 0, "Density");
     CHKERRQ(ierr);
     ierr = PetscSectionSetComponentName(section, 0, 1, "Momentum X");

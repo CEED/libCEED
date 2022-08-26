@@ -22,6 +22,7 @@
 #include "../qfunctions/shocktube.h"
 
 PetscErrorCode NS_SHOCKTUBE(ProblemData *problem, DM dm, void *ctx) {
+
   SetupContext      setup_context;
   User              user = *(User *)ctx;
   MPI_Comm          comm = PETSC_COMM_WORLD;
@@ -32,7 +33,6 @@ PetscErrorCode NS_SHOCKTUBE(ProblemData *problem, DM dm, void *ctx) {
   PetscInt          ierr;
   ShockTubeContext  shocktube_ctx;
   CeedQFunctionContext shocktube_context;
-
 
   PetscFunctionBeginUser;
   ierr = PetscCalloc1(1, &setup_context); CHKERRQ(ierr);
@@ -161,6 +161,9 @@ PetscErrorCode NS_SHOCKTUBE(ProblemData *problem, DM dm, void *ctx) {
   CeedQFunctionContextCreate(user->ceed, &problem->ics.qfunction_context);
   CeedQFunctionContextSetData(problem->ics.qfunction_context, CEED_MEM_HOST,
                               CEED_USE_POINTER, sizeof(*setup_context), setup_context);
+  CeedQFunctionContextSetDataDestroy(problem->ics.qfunction_context,
+                                     CEED_MEM_HOST,
+                                     FreeContextPetsc);
 
   CeedQFunctionContextCreate(user->ceed, &shocktube_context);
   CeedQFunctionContextSetData(shocktube_context, CEED_MEM_HOST,
@@ -173,6 +176,7 @@ PetscErrorCode NS_SHOCKTUBE(ProblemData *problem, DM dm, void *ctx) {
 }
 
 PetscErrorCode PRINT_SHOCKTUBE(ProblemData *problem, AppCtx app_ctx) {
+
   MPI_Comm       comm = PETSC_COMM_WORLD;
   PetscErrorCode ierr;
   PetscFunctionBeginUser;

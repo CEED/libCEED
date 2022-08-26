@@ -8,6 +8,8 @@
 #ifndef bp1_h
 #define bp1_h
 
+#include <ceed.h>
+
 /// A structure used to pass additional data to f_build_mass
 struct BuildContext { CeedInt dim, space_dim; };
 

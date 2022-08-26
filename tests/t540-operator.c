@@ -105,7 +105,8 @@ int main(int argc, char **argv) {
   for (int i=0; i<num_dofs; i++)
     if (fabs(u[i] - 1.0) > 500.*CEED_EPSILON)
       // LCOV_EXCL_START
-      printf("[%d] Error in inverse: %e - 1.0 = %e\n", i, u[i], u[i] - 1.);
+      printf("[%" CeedInt_FMT "] Error in inverse: %e - 1.0 = %e\n",
+             i, u[i], u[i] - 1.);
   // LCOV_EXCL_STOP
   CeedVectorRestoreArrayRead(U, &u);
 

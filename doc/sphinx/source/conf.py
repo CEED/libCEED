@@ -95,7 +95,7 @@ release = pkgconf_version
 #
 # This is also used if you do content translation via gettext catalogs.
 # Usually you set "language" from the command line for these cases.
-language = None
+language = "en"
 
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
@@ -129,7 +129,7 @@ myst_enable_extensions = [
 ]
 
 myst_heading_anchors = 2
-myst_url_schemes = ["http", "https", "mailto"]
+myst_url_schemes = ("http", "https", "mailto")
 
 # -- Options for HTML output ----------------------------------------------
 
@@ -164,6 +164,9 @@ html_sidebars = {
 # hoverxref options
 hoverxref_auto_ref = True
 hoverxref_mathjax = True
+hoverxref_role_types = {
+    'ref': 'modal',
+}
 
 latex_macros = r"""
 \def \diff {\operatorname{d}\!}
@@ -174,16 +177,6 @@ latex_macros = r"""
 # Translate LaTeX macros to KaTeX and add to options for HTML builder
 katex_macros = katex.latex_defs_to_katex_macros(latex_macros)
 katex_options = 'macros: {' + katex_macros + '}'
-
-
-def katex_cdn(path):
-    katex_gitcommit = '7c696bb7ac8995f177676d62be09ceefa37d66e3'
-    return f'https://cdn.jsdelivr.net/gh/jedbrown/katex@{katex_gitcommit}/' + path
-
-
-katex_css_path = katex_cdn('dist/katex.min.css')
-katex_js_path = katex_cdn('dist/katex.min.js')
-katex_autorender_path = katex_cdn('dist/contrib/auto-render.min.js')
 
 # -- Options for HTMLHelp output ------------------------------------------
 

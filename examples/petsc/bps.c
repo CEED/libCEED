@@ -170,7 +170,7 @@ static PetscErrorCode RunWithDM(RunParams rp, DM dm,
     PetscMPIInt comm_size;
     ierr = MPI_Comm_size(rp->comm, &comm_size); CHKERRQ(ierr);
     ierr = PetscPrintf(rp->comm,
-                       "\n-- CEED Benchmark Problem %d -- libCEED + PETSc --\n"
+                       "\n-- CEED Benchmark Problem %" CeedInt_FMT " -- libCEED + PETSc --\n"
                        "  MPI:\n"
                        "    Hostname                           : %s\n"
                        "    Total ranks                        : %d\n"
@@ -181,8 +181,8 @@ static PetscErrorCode RunWithDM(RunParams rp, DM dm,
                        "    libCEED Backend                    : %s\n"
                        "    libCEED Backend MemType            : %s\n"
                        "  Mesh:\n"
-                       "    Number of 1D Basis Nodes (P)       : %d\n"
-                       "    Number of 1D Quadrature Points (Q) : %d\n"
+                       "    Number of 1D Basis Nodes (P)       : %" CeedInt_FMT "\n"
+                       "    Number of 1D Quadrature Points (Q) : %" CeedInt_FMT "\n"
                        "    Global nodes                       : %" PetscInt_FMT "\n"
                        "    Local Elements                     : %" PetscInt_FMT "\n"
                        "    Owned nodes                        : %" PetscInt_FMT "\n"

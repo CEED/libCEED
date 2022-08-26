@@ -4,13 +4,19 @@ CeedOperator
   2 input fields:
     Input field 0:
       Name: "weight"
+      Size: 1
+      EvalMode: quadrature weights
       No vector
     Input field 1:
       Name: "dx"
+      Size: 1
+      EvalMode: gradient
       Active vector
   1 output field:
     Output field 0:
       Name: "rho"
+      Size: 1
+      EvalMode: none
       Collocated basis
       Active vector
 CeedOperator
@@ -19,11 +25,17 @@ CeedOperator
   2 input fields:
     Input field 0:
       Name: "rho"
+      Size: 1
+      EvalMode: none
       Collocated basis
     Input field 1:
       Name: "u"
+      Size: 2
+      EvalMode: interpolation
       Active vector
   1 output field:
     Output field 0:
       Name: "v"
+      Size: 2
+      EvalMode: interpolation
       Active vector

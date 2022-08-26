@@ -12,8 +12,7 @@
 #include "../qfunctions/setupgeo.h"
 #include "../qfunctions/advection.h"
 
-PetscErrorCode NS_ADVECTION(ProblemData *problem, DM dm,
-                            void *ctx) {
+PetscErrorCode NS_ADVECTION(ProblemData *problem, DM dm, void *ctx) {
   WindType             wind_type;
   BubbleType           bubble_type;
   BubbleContinuityType bubble_continuity_type;
@@ -205,6 +204,9 @@ PetscErrorCode NS_ADVECTION(ProblemData *problem, DM dm,
   CeedQFunctionContextCreate(user->ceed, &problem->ics.qfunction_context);
   CeedQFunctionContextSetData(problem->ics.qfunction_context, CEED_MEM_HOST,
                               CEED_USE_POINTER, sizeof(*setup_context), setup_context);
+  CeedQFunctionContextSetDataDestroy(problem->ics.qfunction_context,
+                                     CEED_MEM_HOST,
+                                     FreeContextPetsc);
 
   CeedQFunctionContextCreate(user->ceed, &advection_context);
   CeedQFunctionContextSetData(advection_context, CEED_MEM_HOST,
@@ -235,7 +237,7 @@ PetscErrorCode PRINT_ADVECTION(ProblemData *problem, AppCtx app_ctx) {
                      "  Problem:\n"
                      "    Problem Name                       : %s\n"
                      "    Stabilization                      : %s\n"
-                     "    Bubble Type                        : %s (%dD)\n"
+                     "    Bubble Type                        : %s (%" CeedInt_FMT "D)\n"
                      "    Bubble Continuity                  : %s\n"
                      "    Wind Type                          : %s\n",
                      app_ctx->problem_name, StabilizationTypes[advection_ctx->stabilization],

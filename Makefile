@@ -90,7 +90,7 @@ endif
 AFLAGS = -fsanitize=address #-fsanitize=undefined -fno-omit-frame-pointer
 
 # Note: Intel oneAPI C/C++ compiler is now icx/icpx
-CC_VENDOR := $(subst oneAPI,icc,$(firstword $(filter gcc clang icc oneAPI XL,$(subst -, ,$(shell $(CC) --version)))))
+CC_VENDOR := $(subst icc_orig,icc,$(subst oneAPI,icc,$(firstword $(filter gcc clang icc icc_orig oneAPI XL,$(subst -, ,$(shell $(CC) --version))))))
 FC_VENDOR := $(if $(FC),$(firstword $(filter GNU ifort XL,$(shell $(FC) --version 2>&1 || $(FC) -qversion))))
 
 # Default extra flags by vendor
@@ -224,6 +224,7 @@ opt.c          := $(sort $(wildcard backends/opt/*.c))
 avx.c          := $(sort $(wildcard backends/avx/*.c))
 xsmm.c         := $(sort $(wildcard backends/xsmm/*.c))
 cuda.c         := $(sort $(wildcard backends/cuda/*.c))
+cuda.cpp       := $(sort $(wildcard backends/cuda/*.cpp))
 cuda-ref.c     := $(sort $(wildcard backends/cuda-ref/*.c))
 cuda-ref.cpp   := $(sort $(wildcard backends/cuda-ref/*.cpp))
 cuda-ref.cu    := $(sort $(wildcard backends/cuda-ref/kernels/*.cu))
@@ -391,7 +392,7 @@ ifneq ($(CUDA_LIB_DIR),)
   LIBCEED_CONTAINS_CXX = 1
   libceed.c     += interface/ceed-cuda.c
   libceed.c     += $(cuda.c) $(cuda-ref.c) $(cuda-shared.c) $(cuda-gen.c)
-  libceed.cpp   += $(cuda-ref.cpp) $(cuda-gen.cpp)
+  libceed.cpp   += $(cuda.cpp) $(cuda-ref.cpp) $(cuda-gen.cpp)
   libceed.cu    += $(cuda-ref.cu) $(cuda-shared.cu) $(cuda-gen.cu)
   BACKENDS_MAKE += $(CUDA_BACKENDS)
 endif
@@ -443,11 +444,11 @@ ifneq ($(wildcard $(MAGMA_DIR)/lib/libmagma.*),)
       libceed.c  += $(magma.c)
       libceed.hip += $(magma.hip)
       ifneq ($(CXX), $(HIPCC))
-        $(magma.c:%.c=$(OBJDIR)/%.o) $(magma.c:%=%.tidy) : CPPFLAGS += -I$(MAGMA_DIR)/include -I$(HIP_DIR)/include -DHAVE_HIP -DADD_
+        $(magma.c:%.c=$(OBJDIR)/%.o) $(magma.c:%=%.tidy) : CPPFLAGS += -I$(MAGMA_DIR)/include -I$(HIP_DIR)/include -DCEED_MAGMA_USE_HIP -DADD_
       else
-        $(magma.c:%.c=$(OBJDIR)/%.o) $(magma.c:%=%.tidy) : HIPCCFLAGS += -I$(MAGMA_DIR)/include -I$(HIP_DIR)/include -DHAVE_HIP -DADD_
+        $(magma.c:%.c=$(OBJDIR)/%.o) $(magma.c:%=%.tidy) : HIPCCFLAGS += -I$(MAGMA_DIR)/include -I$(HIP_DIR)/include -DCEED_MAGMA_USE_HIP -DADD_
       endif
-      $(magma.hip:%.hip.cpp=$(OBJDIR)/%.o) : HIPCCFLAGS += -I$(MAGMA_DIR)/include -I$(MAGMA_DIR)/magmablas -I$(HIP_DIR)/include -DHAVE_HIP -DADD_
+      $(magma.hip:%.hip.cpp=$(OBJDIR)/%.o) : HIPCCFLAGS += -I$(MAGMA_DIR)/include -I$(MAGMA_DIR)/magmablas -I$(HIP_DIR)/include -DCEED_MAGMA_USE_HIP -DADD_
       MAGMA_BACKENDS = /gpu/hip/magma /gpu/hip/magma/det
     endif
   endif
@@ -635,6 +636,7 @@ install : $(libceed) $(OBJDIR)/ceed.pc
 	  "$(includedir)/ceed/jit-source/cuda/" "$(includedir)/ceed/jit-source/hip/"\
 	  "$(includedir)/ceed/jit-source/gallery/" "$(libdir)" "$(pkgconfigdir)")
 	$(INSTALL_DATA) include/ceed/ceed.h "$(DESTDIR)$(includedir)/ceed/"
+	$(INSTALL_DATA) include/ceed/types.h "$(DESTDIR)$(includedir)/ceed/"
 	$(INSTALL_DATA) include/ceed/ceed-f32.h "$(DESTDIR)$(includedir)/ceed/"
 	$(INSTALL_DATA) include/ceed/ceed-f64.h "$(DESTDIR)$(includedir)/ceed/"
 	$(INSTALL_DATA) include/ceed/fortran.h "$(DESTDIR)$(includedir)/ceed/"

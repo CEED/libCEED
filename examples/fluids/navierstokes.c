@@ -22,21 +22,20 @@
 //     ./navierstokes -ceed /cpu/self -problem density_current -degree 1
 //     ./navierstokes -ceed /gpu/cuda -problem advection -degree 1
 //
-//TESTARGS(name="channel") -ceed {ceed_resource} -test -options_file examples/fluids/channel.yaml -compare_final_state_atol 1E-11 -compare_final_state_filename examples/fluids/tests-output/fluids-navierstokes-channel.bin
+//TESTARGS(name="blasius_STG") -ceed {ceed_resource} -test -options_file examples/fluids/tests-output/blasius_stgtest.yaml -compare_final_state_atol 2E-11 -compare_final_state_filename examples/fluids/tests-output/fluids-navierstokes-blasius_STG.bin
+//TESTARGS(name="blasius_STG_weakT") -ceed {ceed_resource} -test -options_file examples/fluids/tests-output/blasius_stgtest.yaml -compare_final_state_atol 1E-11 -compare_final_state_filename examples/fluids/tests-output/fluids-navierstokes-blasius_STG_weakT.bin -weakT
+//TESTARGS(name="blasius_STG_strongBC") -ceed {ceed_resource} -test -options_file examples/fluids/tests-output/blasius_stgtest.yaml -compare_final_state_atol 1E-10 -compare_final_state_filename examples/fluids/tests-output/fluids-navierstokes-blasius_STG_strongBC.bin -stg_strong true
+//TESTARGS(name="channel") -ceed {ceed_resource} -test -options_file examples/fluids/channel.yaml -compare_final_state_atol 2e-11 -compare_final_state_filename examples/fluids/tests-output/fluids-navierstokes-channel.bin -dm_plex_box_faces 5,5,1 -ts_max_steps 5
+//TESTARGS(name="channel-primitive") -ceed {ceed_resource} -test -options_file examples/fluids/channel.yaml -compare_final_state_atol 2e-11 -compare_final_state_filename examples/fluids/tests-output/fluids-navierstokes-channel-prim.bin -dm_plex_box_faces 5,5,1 -ts_max_steps 5 -primitive
 //TESTARGS(name="dc_explicit") -ceed {ceed_resource} -test -degree 3 -dm_plex_box_faces 1,1,2 -dm_plex_box_lower 0,0,0 -dm_plex_box_upper 125,125,250 -dm_plex_dim 3 -bc_slip_x 5,6 -bc_slip_y 3,4 -bc_Slip_z 1,2 -units_kilogram 1e-9 -center 62.5,62.5,187.5 -rc 100. -thetaC -35. -mu 75 -ts_dt 1e-3 -units_meter 1e-2 -units_second 1e-2 -compare_final_state_atol 1E-11 -compare_final_state_filename examples/fluids/tests-output/fluids-navierstokes-dc-explicit.bin
 //TESTARGS(name="dc_implicit_stab_none") -ceed {ceed_resource} -test -degree 3 -dm_plex_box_faces 1,1,2 -dm_plex_box_lower 0,0,0 -dm_plex_box_upper 125,125,250 -dm_plex_dim 3 -bc_slip_x 5,6 -bc_slip_y 3,4 -bc_Slip_z 1,2 -units_kilogram 1e-9 -center 62.5,62.5,187.5 -rc 100. -thetaC -35. -mu 75 -units_meter 1e-2 -units_second 1e-2 -ksp_atol 1e-4 -ksp_rtol 1e-3 -ksp_type bcgs -snes_atol 1e-3 -snes_lag_jacobian 100 -snes_lag_jacobian_persists -snes_mf_operator -ts_dt 1e-3 -implicit -ts_type alpha -compare_final_state_atol 5E-4 -compare_final_state_filename examples/fluids/tests-output/fluids-navierstokes-dc-implicit-stab-none.bin
-//TESTARGS(name="adv_rotation_explicit_strong") -ceed {ceed_resource} -test -problem advection -strong_form 1 -degree 3 -dm_plex_box_faces 2,2,2 -dm_plex_box_lower 0,0,0 -dm_plex_box_upper 125,125,250 -dm_plex_dim 3 -bc_wall 1,2,3,4,5,6 -wall_comps 4 -units_kilogram 1e-9 -rc 100. -ts_dt 1e-3 -compare_final_state_atol 1E-11 -compare_final_state_filename examples/fluids/tests-output/fluids-navierstokes-adv-rotation-explicit-strong.bin
-//TESTARGS(name="adv_rotation_implicit_sharp_cylinder") -ceed {ceed_resource} -test -problem advection -bubble_type cylinder -bubble_continuity back_sharp -degree 3 -dm_plex_box_faces 1,1,2 -dm_plex_box_lower 0,0,0 -dm_plex_box_upper 125,125,250 -dm_plex_dim 3 -bc_Slip_z 1,2 -bc_wall 3,4,5,6 -wall_comps 4 -units_kilogram 1e-9 -rc 100. -ksp_atol 1e-4 -ksp_rtol 1e-3 -ksp_type bcgs -snes_atol 1e-3 -snes_lag_jacobian 100 -snes_lag_jacobian_persists -snes_mf_operator -ts_dt 1e-3 -implicit -ts_type alpha -compare_final_state_atol 5E-4 -compare_final_state_filename examples/fluids/tests-output/fluids-navierstokes-adv-rotation-implicit-sharp-cylinder.bin
-//TESTARGS(name="adv_rotation_implicit_stab_supg") -ceed {ceed_resource} -test -problem advection -CtauS .3 -stab supg -degree 3 -dm_plex_box_faces 1,1,2 -dm_plex_box_lower 0,0,0 -dm_plex_box_upper 125,125,250 -dm_plex_dim 3 -bc_wall 1,2,3,4,5,6 -wall_comps 4 -units_kilogram 1e-9 -rc 100. -ksp_atol 1e-4 -ksp_rtol 1e-3 -ksp_type bcgs -snes_atol 1e-3 -snes_lag_jacobian 100 -snes_lag_jacobian_persists -snes_mf_operator -ts_dt 1e-3 -implicit -ts_type alpha -compare_final_state_atol 5E-4 -compare_final_state_filename examples/fluids/tests-output/fluids-navierstokes-adv-rotation-implicit-stab-supg.bin
-//TESTARGS(name="adv_translation_implicit_stab_su") -ceed {ceed_resource} -test -problem advection -CtauS .3 -stab su -degree 3 -dm_plex_box_faces 1,1,2 -dm_plex_box_lower 0,0,0 -dm_plex_box_upper 125,125,250 -dm_plex_dim 3 -units_kilogram 1e-9 -rc 100. -ksp_atol 1e-4 -ksp_rtol 1e-3 -ksp_type bcgs -snes_atol 1e-3 -snes_lag_jacobian 100 -snes_lag_jacobian_persists -snes_mf_operator -ts_dt 1e-3 -implicit -ts_type alpha -wind_type translation -wind_translation .53,-1.33,-2.65 -bc_inflow 1,2,3,4,5,6 -compare_final_state_atol 5E-4 -compare_final_state_filename examples/fluids/tests-output/fluids-navierstokes-adv-translation-implicit-stab-su.bin
+//TESTARGS(name="adv_rotation_implicit_stab_supg") -ceed {ceed_resource} -test -problem advection -CtauS .3 -stab supg -degree 3 -dm_plex_box_faces 1,1,2 -dm_plex_box_lower 0,0,0 -dm_plex_box_upper 125,125,250 -dm_plex_dim 3 -bc_wall 1,2,3,4,5,6 -wall_comps 4 -units_kilogram 1e-9 -rc 100. -ksp_atol 1e-4 -ksp_rtol 1e-3 -ksp_type bcgs -snes_atol 1e-3 -snes_lag_jacobian 100 -snes_lag_jacobian_persists -snes_mf_operator -ts_dt 1e-3 -implicit -dm_mat_preallocate_skip 0 -ts_type alpha -compare_final_state_atol 5E-4 -compare_final_state_filename examples/fluids/tests-output/fluids-navierstokes-adv-rotation-implicit-stab-supg.bin
+//TESTARGS(name="adv_translation_implicit_stab_su") -ceed {ceed_resource} -test -problem advection -CtauS .3 -stab su -degree 3 -dm_plex_box_faces 1,1,2 -dm_plex_box_lower 0,0,0 -dm_plex_box_upper 125,125,250 -dm_plex_dim 3 -units_kilogram 1e-9 -rc 100. -ksp_atol 1e-4 -ksp_rtol 1e-3 -ksp_type bcgs -snes_atol 1e-3 -snes_lag_jacobian 100 -snes_lag_jacobian_persists -snes_mf_operator -ts_dt 1e-3 -implicit -dm_mat_preallocate_skip 0 -ts_type alpha -wind_type translation -wind_translation .53,-1.33,-2.65 -bc_inflow 1,2,3,4,5,6 -compare_final_state_atol 5E-4 -compare_final_state_filename examples/fluids/tests-output/fluids-navierstokes-adv-translation-implicit-stab-su.bin
 //TESTARGS(name="adv2d_rotation_explicit_strong") -ceed {ceed_resource} -test -problem advection2d -strong_form 1 -degree 3 -dm_plex_box_faces 2,2 -dm_plex_box_lower 0,0 -dm_plex_box_upper 125,125 -bc_wall 1,2,3,4 -wall_comps 4 -units_kilogram 1e-9 -rc 100. -ts_dt 1e-3 -compare_final_state_atol 1E-11 -compare_final_state_filename examples/fluids/tests-output/fluids-navierstokes-adv2d-rotation-explicit-strong.bin
-//TESTARGS(name="adv2d_rotation_implicit_stab_supg") -ceed {ceed_resource} -test -problem advection2d -CtauS .3 -stab supg -degree 3 -dm_plex_box_faces 1,1,2 -dm_plex_box_lower 0,0 -dm_plex_box_upper 125,125 -bc_wall 1,2,3,4 -wall_comps 4 -units_kilogram 1e-9 -rc 100. -ksp_atol 1e-4 -ksp_rtol 1e-3 -ksp_type bcgs -snes_atol 1e-3 -snes_lag_jacobian 100 -snes_lag_jacobian_persists -snes_mf_operator -ts_dt 1e-3 -implicit -ts_type alpha -compare_final_state_atol 5E-4 -compare_final_state_filename examples/fluids/tests-output/fluids-navierstokes-adv2d-rotation-implicit-stab-supg.bin
-//TESTARGS(name="adv2d_translation_implicit_stab_su") -ceed {ceed_resource} -test -problem advection2d -CtauS .3 -stab su -degree 3 -dm_plex_box_faces 1,1,2 -dm_plex_box_lower 0,0 -dm_plex_box_upper 125,125 -units_kilogram 1e-9 -rc 100. -ksp_atol 1e-4 -ksp_rtol 1e-3 -ksp_type bcgs -snes_atol 1e-3 -snes_lag_jacobian 100 -snes_lag_jacobian_persists -snes_mf_operator -ts_dt 1e-3 -implicit -ts_type alpha -wind_type translation -wind_translation .53,-1.33,0 -bc_inflow 1,2,3,4 -compare_final_state_atol 5E-4 -compare_final_state_filename examples/fluids/tests-output/fluids-navierstokes-adv2d-translation-implicit-stab-su.bin
-//TESTARGS(name="euler_implicit") -ceed {ceed_resource} -test -problem euler_vortex -degree 3 -dm_plex_box_faces 1,1,2 -dm_plex_box_lower 0,0,0 -dm_plex_box_upper 125,125,250 -dm_plex_dim 3 -units_meter 1e-4 -units_second 1e-4 -mean_velocity 1.4,-2.,0 -bc_inflow 4,6 -bc_outflow 3,5 -bc_slip_z 1,2 -vortex_strength 2 -ksp_atol 1e-4 -ksp_rtol 1e-3 -ksp_type bcgs -snes_atol 1e-3 -snes_lag_jacobian 100 -snes_lag_jacobian_persists -snes_mf_operator -ts_dt 1e-3 -implicit -ts_type alpha -compare_final_state_atol 5E-4 -compare_final_state_filename examples/fluids/tests-output/fluids-navierstokes-euler-implicit.bin
+//TESTARGS(name="adv2d_rotation_implicit_stab_supg") -ceed {ceed_resource} -test -problem advection2d -CtauS .3 -stab supg -degree 3 -dm_plex_box_faces 1,1,2 -dm_plex_box_lower 0,0 -dm_plex_box_upper 125,125 -bc_wall 1,2,3,4 -wall_comps 4 -units_kilogram 1e-9 -rc 100. -ksp_atol 1e-4 -ksp_rtol 1e-3 -ksp_type bcgs -snes_atol 1e-3 -snes_lag_jacobian 100 -snes_lag_jacobian_persists -snes_mf_operator -ts_dt 1e-3 -implicit -dm_mat_preallocate_skip 0 -ts_type alpha -compare_final_state_atol 5E-4 -compare_final_state_filename examples/fluids/tests-output/fluids-navierstokes-adv2d-rotation-implicit-stab-supg.bin
+//TESTARGS(name="euler_implicit") -ceed {ceed_resource} -test -problem euler_vortex -degree 3 -dm_plex_box_faces 1,1,2 -dm_plex_box_lower 0,0,0 -dm_plex_box_upper 125,125,250 -dm_plex_dim 3 -units_meter 1e-4 -units_second 1e-4 -mean_velocity 1.4,-2.,0 -bc_inflow 4,6 -bc_outflow 3,5 -bc_slip_z 1,2 -vortex_strength 2 -ksp_atol 1e-4 -ksp_rtol 1e-3 -ksp_type bcgs -snes_atol 1e-3 -snes_lag_jacobian 100 -snes_lag_jacobian_persists -snes_mf_operator -ts_dt 1e-3 -implicit -dm_mat_preallocate_skip 0 -ts_type alpha -compare_final_state_atol 5E-4 -compare_final_state_filename examples/fluids/tests-output/fluids-navierstokes-euler-implicit.bin
 //TESTARGS(name="euler_explicit") -ceed {ceed_resource} -test -problem euler_vortex -degree 3 -dm_plex_box_faces 2,2,1 -dm_plex_box_lower 0,0,0 -dm_plex_box_upper 125,125,250 -dm_plex_dim 3 -units_meter 1e-4 -units_second 1e-4 -mean_velocity 1.4,-2.,0 -bc_inflow 4,6 -bc_outflow 3,5 -bc_slip_z 1,2 -vortex_strength 2 -ts_dt 1e-7 -ts_rk_type 5bs -ts_rtol 1e-10 -ts_atol 1e-10 -compare_final_state_atol 1E-7 -compare_final_state_filename examples/fluids/tests-output/fluids-navierstokes-euler-explicit.bin
 //TESTARGS(name="shocktube_explicit_su_yzb") -ceed {ceed_resource} -test -problem shocktube -degree 1 -dm_plex_box_faces 50,1,1 -units_meter 1e-2 units_second 1e-2 -dm_plex_box_lower 0,0,0 -dm_plex_box_upper 1000,20,20 -dm_plex_dim 3 -bc_slip_x 5,6 -bc_slip_y 3,4 -bc_Slip_z 1,2 -yzb -stab su -compare_final_state_atol 1E-11 -compare_final_state_filename examples/fluids/tests-output/fluids-navierstokes-shocktube-explicit-su-yzb.bin
-//TESTARGS(name="blasius_STG") -ceed {ceed_resource} -test -options_file examples/fluids/tests-output/blasius_stgtest.yaml -compare_final_state_atol 1E-11 -compare_final_state_filename examples/fluids/tests-output/fluids-navierstokes-blasius_STG.bin
-//TESTARGS(name="blasius_STG_weakT") -ceed {ceed_resource} -test -options_file examples/fluids/tests-output/blasius_stgtest.yaml -compare_final_state_atol 1E-11 -compare_final_state_filename examples/fluids/tests-output/fluids-navierstokes-blasius_STG_weakT.bin -weakT
 
 /// @file
 /// Navier-Stokes example using PETSc
@@ -80,6 +79,7 @@ int main(int argc, char **argv) {
   user->app_ctx = app_ctx;
   user->units   = units;
   user->phys    = phys_ctx;
+  problem->bc_from_ics = PETSC_TRUE;
 
   // ---------------------------------------------------------------------------
   // Process command line options
@@ -109,20 +109,24 @@ int main(int argc, char **argv) {
   // ---------------------------------------------------------------------------
   // -- Create DM
   DM dm;
-  ierr = CreateDM(comm, problem, &dm); CHKERRQ(ierr);
   VecType vec_type = NULL;
+  MatType mat_type = NULL;
   switch (mem_type_backend) {
   case CEED_MEM_HOST: vec_type = VECSTANDARD; break;
   case CEED_MEM_DEVICE: {
     const char *resolved;
     CeedGetResource(ceed, &resolved);
     if (strstr(resolved, "/gpu/cuda")) vec_type = VECCUDA;
-    else if (strstr(resolved, "/gpu/hip")) vec_type = VECHIP;
+    else if (strstr(resolved, "/gpu/hip")) vec_type = VECKOKKOS;
     else vec_type = VECSTANDARD;
   }
   }
-  ierr = DMSetVecType(dm, vec_type); CHKERRQ(ierr);
+  if (strstr(vec_type, VECCUDA)) mat_type = MATAIJCUSPARSE;
+  else if (strstr(vec_type, VECKOKKOS)) mat_type = MATAIJKOKKOS;
+  else mat_type = MATAIJ;
+  ierr = CreateDM(comm, problem, mat_type, vec_type, &dm); CHKERRQ(ierr);
   user->dm = dm;
+  PetscCall(DMSetApplicationContext(dm, user));
 
   // ---------------------------------------------------------------------------
   // Choose the problem from the list of registered problems
@@ -161,12 +165,14 @@ int main(int argc, char **argv) {
   ierr = DMCreateGlobalVector(dm, &Q); CHKERRQ(ierr);
   ierr = VecZeroEntries(Q); CHKERRQ(ierr);
 
-  // -- Set up local state vector Q_loc
-  Vec Q_loc;
-  ierr = DMGetLocalVector(dm, &Q_loc); CHKERRQ(ierr);
+  // -- Set up local state vectors Q_loc, Q_dot_loc
+  ierr = DMCreateLocalVector(dm, &user->Q_loc); CHKERRQ(ierr);
+  ierr = DMCreateLocalVector(dm, &user->Q_dot_loc); CHKERRQ(ierr);
+  ierr = VecZeroEntries(user->Q_dot_loc); CHKERRQ(ierr);
 
   // -- Fix multiplicity for ICs
-  ierr = ICs_FixMultiplicity(dm, ceed_data, user, Q_loc, Q, 0.0); CHKERRQ(ierr);
+  ierr = ICs_FixMultiplicity(dm, ceed_data, user, user->Q_loc, Q, 0.0);
+  CHKERRQ(ierr);
 
   // ---------------------------------------------------------------------------
   // Set up lumped mass matrix
@@ -185,7 +191,9 @@ int main(int argc, char **argv) {
   //    DMPlexInsertBoundaryValues() is very slow. If we disable this, we should
   //    still get the same results due to the problem->bc function, but with
   //    potentially much slower execution.
-  if (1) {ierr = SetBCsFromICs_NS(dm, Q, Q_loc); CHKERRQ(ierr);}
+  if (problem->bc_from_ics) {
+    ierr = SetBCsFromICs_NS(dm, Q, user->Q_loc); CHKERRQ(ierr);
+  }
 
   // ---------------------------------------------------------------------------
   // Create output directory
@@ -234,11 +242,18 @@ int main(int argc, char **argv) {
     if (problem->dim == 2) box_faces_str[3] = '\0';
     ierr = PetscOptionsGetString(NULL, NULL, "-dm_plex_box_faces", box_faces_str,
                                  sizeof(box_faces_str), NULL); CHKERRQ(ierr);
+    MatType mat_type;
+    VecType vec_type;
+    ierr = DMGetMatType(dm, &mat_type); CHKERRQ(ierr);
+    ierr = DMGetVecType(dm, &vec_type); CHKERRQ(ierr);
     ierr = PetscPrintf(comm,
                        "  PETSc:\n"
                        "    Box Faces                          : %s\n"
+                       "    DM MatType                         : %s\n"
+                       "    DM VecType                         : %s\n"
                        "    Time Stepping Scheme               : %s\n",
-                       box_faces_str, phys_ctx->implicit ? "implicit" : "explicit"); CHKERRQ(ierr);
+                       box_faces_str, mat_type, vec_type,
+                       phys_ctx->implicit ? "implicit" : "explicit"); CHKERRQ(ierr);
     // Mesh
     const PetscInt num_comp_q = 5;
     CeedInt        glob_dofs, owned_dofs;
@@ -250,12 +265,12 @@ int main(int argc, char **argv) {
     ierr = VecGetLocalSize(Q, &owned_dofs); CHKERRQ(ierr);
     glob_nodes = glob_dofs/num_comp_q;
     // -- Get local size
-    ierr = VecGetSize(Q_loc, &owned_nodes); CHKERRQ(ierr);
+    ierr = VecGetSize(user->Q_loc, &owned_nodes); CHKERRQ(ierr);
     owned_nodes /= num_comp_q;
     ierr = PetscPrintf(comm,
                        "  Mesh:\n"
-                       "    Number of 1D Basis Nodes (P)       : %d\n"
-                       "    Number of 1D Quadrature Points (Q) : %d\n"
+                       "    Number of 1D Basis Nodes (P)       : %" CeedInt_FMT "\n"
+                       "    Number of 1D Quadrature Points (Q) : %" CeedInt_FMT "\n"
                        "    Global DoFs                        : %" PetscInt_FMT "\n"
                        "    Owned DoFs                         : %" PetscInt_FMT "\n"
                        "    DoFs per node                      : %" PetscInt_FMT "\n"
@@ -264,8 +279,8 @@ int main(int argc, char **argv) {
                        num_P, num_Q, glob_dofs, owned_dofs, num_comp_q,
                        glob_nodes, owned_nodes); CHKERRQ(ierr);
   }
-  // -- Restore Q_loc
-  ierr = DMRestoreLocalVector(dm, &Q_loc); CHKERRQ(ierr);
+  // -- Zero Q_loc
+  ierr = VecZeroEntries(user->Q_loc); CHKERRQ(ierr);
 
   // ---------------------------------------------------------------------------
   // TS: Create, setup, and solve
@@ -290,6 +305,8 @@ int main(int argc, char **argv) {
   CeedVectorDestroy(&user->q_ceed);
   CeedVectorDestroy(&user->q_dot_ceed);
   CeedVectorDestroy(&user->g_ceed);
+  CeedVectorDestroy(&user->coo_values_amat);
+  CeedVectorDestroy(&user->coo_values_pmat);
 
   // -- QFunctions
   CeedQFunctionDestroy(&ceed_data->qf_setup_vol);
@@ -298,7 +315,9 @@ int main(int argc, char **argv) {
   CeedQFunctionDestroy(&ceed_data->qf_ifunction_vol);
   CeedQFunctionDestroy(&ceed_data->qf_setup_sur);
   CeedQFunctionDestroy(&ceed_data->qf_apply_inflow);
+  CeedQFunctionDestroy(&ceed_data->qf_apply_inflow_jacobian);
   CeedQFunctionDestroy(&ceed_data->qf_apply_outflow);
+  CeedQFunctionDestroy(&ceed_data->qf_apply_outflow_jacobian);
 
   // -- Bases
   CeedBasisDestroy(&ceed_data->basis_q);
@@ -319,6 +338,7 @@ int main(int argc, char **argv) {
   CeedOperatorDestroy(&user->op_ifunction_vol);
   CeedOperatorDestroy(&user->op_rhs);
   CeedOperatorDestroy(&user->op_ifunction);
+  CeedOperatorDestroy(&user->op_ijacobian);
 
   // -- Ceed
   CeedDestroy(&ceed);
@@ -329,6 +349,8 @@ int main(int argc, char **argv) {
   // -- Vectors
   ierr = VecDestroy(&Q); CHKERRQ(ierr);
   ierr = VecDestroy(&user->M); CHKERRQ(ierr);
+  ierr = VecDestroy(&user->Q_loc); CHKERRQ(ierr);
+  ierr = VecDestroy(&user->Q_dot_loc); CHKERRQ(ierr);
 
   // -- Matrices
   ierr = MatDestroy(&user->interp_viz); CHKERRQ(ierr);
@@ -343,7 +365,7 @@ int main(int argc, char **argv) {
   // -- Function list
   ierr = PetscFunctionListDestroy(&app_ctx->problems); CHKERRQ(ierr);
 
-  ierr = PetscFree(problem->bc_ctx); CHKERRQ(ierr);
+  PetscCall(PetscFree(app_ctx->amat_type));
 
   // -- Structs
   ierr = PetscFree(units); CHKERRQ(ierr);

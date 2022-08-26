@@ -5,13 +5,12 @@ ts:
   adapt_type: 'none'
   type: 'beuler'
   dt: 2e-6
-  max_steps: 10
-output_freq: 10
+  max_steps: 5
 
-dm_plex_box_faces: 3,30,1
+dm_plex_box_faces: 3,20,1
 platemesh:
-  Ndelta: 22
-  growth: 1.1664 # 1.08^2
+  Ndelta: 15
+  growth: 1.3
 
 stab: 'supg'
 Ctau_t: 1

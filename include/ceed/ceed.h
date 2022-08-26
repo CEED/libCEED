@@ -64,99 +64,12 @@
 #  define CEED_EXTERN extern CEED_VISIBILITY(default)
 #endif
 
-/**
-  @ingroup CeedQFunction
-  This macro populates the correct function annotations for User QFunction
-    source for code generation backends or populates default values for CPU
-    backends. It also creates a variable `name_loc` populated with the correct
-    source path for creating the respective User QFunction.
-**/
-#ifndef CEED_QFUNCTION
-#define CEED_QFUNCTION(name) \
-  static const char name ## _loc[] = __FILE__ ":" #name;        \
-  static int name
-#endif
-
-/**
-  @ingroup CeedQFunction
-  This macro populates the correct function annotations for User QFunction
-    helper function source for code generation backends or populates default
-    values for CPU backends.
-**/
-#ifndef CEED_QFUNCTION_HELPER
-#define CEED_QFUNCTION_HELPER static inline
-#endif
-
-/**
-  @ingroup CeedQFunction
-  Using VLA syntax to reshape User QFunction inputs and outputs can make
-    user code more readable. VLA is a C99 feature that is not supported by
-    the C++ dialect used by CUDA. This macro allows users to use the VLA
-    syntax with the CUDA backends.
-**/
-#ifndef CEED_Q_VLA
-#  define CEED_Q_VLA Q
-#endif
-
-/**
-  @ingroup Ceed
-  This macro provides the appropriate SIMD Pragma for the compilation
-    environment. Code generation backends may redefine this macro, as needed.
-**/
-#ifndef CeedPragmaSIMD
-#  if defined(__INTEL_COMPILER)
-#    define CeedPragmaSIMD _Pragma("vector")
-// Cannot use Intel pragma ivdep because it miscompiles unpacking symmetric tensors, as in
-// Poisson2DApply, where the SIMD loop body contains temporaries such as the following.
-//
-//     const CeedScalar dXdxdXdxT[2][2] = {{qd[i+0*Q], qd[i+2*Q]},
-//                                         {qd[i+2*Q], qd[i+1*Q]}};
-//     for (int j=0; j<2; j++)
-//        vg[i+j*Q] = (du[0] * dXdxdXdxT[0][j] + du[1] * dXdxdXdxT[1][j]);
-//
-// Miscompilation with pragma ivdep observed with icc (ICC) 19.0.5.281 20190815
-// at -O2 and above.
-#  elif defined(__GNUC__) && __GNUC__ >= 5
-#    define CeedPragmaSIMD _Pragma("GCC ivdep")
-#  elif defined(_OPENMP) && _OPENMP >= 201307 // OpenMP-4.0 (July, 2013)
-#    define CeedPragmaSIMD _Pragma("omp simd")
-#  else
-#    define CeedPragmaSIMD
-#  endif
-#endif
-
 #include <stdarg.h>
 #include <stdbool.h>
-#include <stddef.h>
-#include <stdint.h>
 #include <stdio.h>
 
-/// Integer type, used for indexing
-/// @ingroup Ceed
-typedef int32_t CeedInt;
-
-/// Integer type, used array sizes
-/// @ingroup Ceed
-typedef ptrdiff_t CeedSize;
-
-/// Scalar (floating point) types
-/// @ingroup Ceed
-typedef enum {
-  /// Single precision
-  CEED_SCALAR_FP32,
-  /// Double precision
-  CEED_SCALAR_FP64,
-  /// Total number of allowed scalar precision types
-  CEED_NUM_PRECISIONS,
-} CeedScalarType;
-/// Struct for holding data in multiple precisions for mixed-precision-enabled
-/// backends
-typedef struct {
-  void *values[CEED_NUM_PRECISIONS]; // Size equals CEED_NUM_PRECISIONS
-} CeedScalarArray;
-/// Base scalar type for the library to use: change which header is 
-/// included to change the precision.
-#include "ceed-f64.h"
+/// Typedefs and macros used in public interfaces and user QFunction source
+#include "types.h"
 
 /// Library context created by CeedInit()
 /// @ingroup CeedUser
@@ -280,34 +193,6 @@ CEED_EXTERN int CeedGetVersion(int *major, int *minor, int *patch,
 
 CEED_EXTERN int CeedGetScalarType(CeedScalarType *scalar_type);
 
-/// Ceed Errors
-///
-/// This enum is used to specify the type of error returned by a function.
-/// A zero error code is success, negative error codes indicate terminal errors
-/// and positive error codes indicate nonterminal errors. With nonterminal errors
-/// the object state has not been modifiend, but with terminal errors the object
-/// data is likely modified or corrupted.
-/// @ingroup Ceed
-typedef enum {
-  /// Success error code
-  CEED_ERROR_SUCCESS      = 0,
-  /// Minor error, generic
-  CEED_ERROR_MINOR        = 1,
-  /// Minor error, dimension mismatch in inputs
-  CEED_ERROR_DIMENSION    = 2,
-  /// Minor error, incomplete object setup
-  CEED_ERROR_INCOMPLETE   = 3,
-  /// Minor error, incompatible arguments/configuration
-  CEED_ERROR_INCOMPATIBLE = 4,
-  /// Minor error, access lock problem
-  CEED_ERROR_ACCESS       = 5,
-  /// Major error, generic
-  CEED_ERROR_MAJOR        = -1,
-  /// Major error, internal backend error
-  CEED_ERROR_BACKEND      = -2,
-  /// Major error, operation unsupported by current backend
-  CEED_ERROR_UNSUPPORTED  = -3,
-} CeedErrorType;
 CEED_EXTERN const char *const *CeedErrorTypes;
 
 /// Specify memory type
@@ -418,9 +303,7 @@ CEED_EXTERN CeedRequest *const CEED_REQUEST_ORDERED;
 CEED_EXTERN int CeedRequestWait(CeedRequest *req);
 
 /// Argument for CeedOperatorSetField that vector is collocated with
-/// quadrature points, used with QFunction eval mode CEED_EVAL_NONE
-/// or CEED_EVAL_INTERP only, not with CEED_EVAL_GRAD, CEED_EVAL_DIV,
-/// or CEED_EVAL_CURL
+/// quadrature points, only used with CeedEvalMode CEED_EVAL_NONE
 /// @ingroup CeedBasis
 CEED_EXTERN const CeedBasis CEED_BASIS_COLLOCATED;
 
@@ -589,6 +472,7 @@ CEED_EXTERN int CeedBasisCreateHdiv(Ceed ceed, CeedElemTopology topo,
                                     const CeedScalar *div,
                                     const CeedScalar *q_ref,
                                     const CeedScalar *q_weights, CeedBasis *basis);
+CEED_EXTERN int CeedBasisCreateProjection(CeedBasis basis_from, CeedBasis basis_to, CeedBasis *basis_project);
 CEED_EXTERN int CeedBasisReferenceCopy(CeedBasis basis, CeedBasis *basis_copy);
 CEED_EXTERN int CeedBasisView(CeedBasis basis, FILE *stream);
 CEED_EXTERN int CeedBasisApply(CeedBasis basis, CeedInt num_elem,
@@ -733,7 +617,8 @@ CEED_EXTERN int CeedQFunctionContextGetContextSize(CeedQFunctionContext ctx,
     size_t *ctx_size);
 CEED_EXTERN int CeedQFunctionContextView(CeedQFunctionContext ctx,
     FILE *stream);
-CEED_EXTERN int CeedQFunctionContextSetDataDestroy(CeedQFunctionContext ctx, CeedMemType f_mem_type, CeedQFunctionContextDataDestroyUser f);
+CEED_EXTERN int CeedQFunctionContextSetDataDestroy(CeedQFunctionContext ctx,
+    CeedMemType f_mem_type, CeedQFunctionContextDataDestroyUser f);
 CEED_EXTERN int CeedQFunctionContextDestroy(CeedQFunctionContext *ctx);
 
 CEED_EXTERN int CeedOperatorCreate(Ceed ceed, CeedQFunction qf,

@@ -1,7 +1,6 @@
 navierstokes
 *.vtr
 *.vts
-*.bin*
 *.vtu
 *.log
 *.png

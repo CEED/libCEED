@@ -11,8 +11,7 @@
 #include "../navierstokes.h"
 #include "../qfunctions/channel.h"
 
-PetscErrorCode NS_CHANNEL(ProblemData *problem, DM dm,
-                          void *ctx) {
+PetscErrorCode NS_CHANNEL(ProblemData *problem, DM dm, void *ctx) {
 
   PetscInt ierr;
   User              user = *(User *)ctx;
@@ -29,17 +28,20 @@ PetscErrorCode NS_CHANNEL(ProblemData *problem, DM dm,
   //               SET UP Channel
   // ------------------------------------------------------
   CeedQFunctionContextDestroy(&problem->ics.qfunction_context);
-  problem->ics.qfunction               = ICsChannel;
-  problem->ics.qfunction_loc           = ICsChannel_loc;
-  problem->apply_inflow.qfunction      = Channel_Inflow;
-  problem->apply_inflow.qfunction_loc  = Channel_Inflow_loc;
-  problem->apply_outflow.qfunction     = Channel_Outflow;
-  problem->apply_outflow.qfunction_loc = Channel_Outflow_loc;
+  problem->ics.qfunction     = ICsChannel;
+  problem->ics.qfunction_loc = ICsChannel_loc;
+  if (!user->phys->use_primitive) {
+    problem->apply_inflow.qfunction      = Channel_Inflow;
+    problem->apply_inflow.qfunction_loc  = Channel_Inflow_loc;
+    problem->apply_outflow.qfunction     = Channel_Outflow;
+    problem->apply_outflow.qfunction_loc = Channel_Outflow_loc;
+  }
 
   // -- Command Line Options
   CeedScalar umax   = 10.;  // m/s
   CeedScalar theta0 = 300.; // K
   CeedScalar P0     = 1.e5; // Pa
+  PetscReal body_force_scale = 1.;
   PetscOptionsBegin(comm, NULL, "Options for CHANNEL problem", NULL);
   ierr = PetscOptionsScalar("-umax", "Centerline velocity of the Channel",
                             NULL, umax, &umax, NULL); CHKERRQ(ierr);
@@ -47,6 +49,8 @@ PetscErrorCode NS_CHANNEL(ProblemData *problem, DM dm,
                             NULL, theta0, &theta0, NULL); CHKERRQ(ierr);
   ierr = PetscOptionsScalar("-P0", "Pressure at outflow",
                             NULL, P0, &P0, NULL); CHKERRQ(ierr);
+  ierr = PetscOptionsReal("-body_force_scale", "Multiplier for body force",
+                          NULL, body_force_scale=1, &body_force_scale, NULL); CHKERRQ(ierr);
   PetscOptionsEnd();
 
   PetscScalar meter  = user->units->meter;
@@ -79,7 +83,7 @@ PetscErrorCode NS_CHANNEL(ProblemData *problem, DM dm,
   channel_ctx->P0       = P0;
   channel_ctx->umax     = umax;
   channel_ctx->implicit = user->phys->implicit;
-  channel_ctx->B = -2*umax*newtonian_ig_ctx->mu/H;
+  channel_ctx->B = body_force_scale * 2 * umax*newtonian_ig_ctx->mu / (H*H);
 
   {
     // Calculate Body force

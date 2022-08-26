@@ -11,12 +11,9 @@
 #ifndef advection2d_h
 #define advection2d_h
 
-#include <math.h>
 #include <ceed.h>
-
-#ifndef M_PI
-#define M_PI    3.14159265358979323846
-#endif
+#include <math.h>
+#include "utils.h"
 
 typedef struct SetupContext_ *SetupContext;
 struct SetupContext_ {
@@ -36,8 +33,6 @@ struct AdvectionContext_ {
   bool implicit;
   int stabilization; // See StabilizationType: 0=none, 1=SU, 2=SUPG
 };
-
-CEED_QFUNCTION_HELPER CeedScalar Square(CeedScalar x) { return x*x; }
 
 // *****************************************************************************
 // This QFunction sets the initial conditions and the boundary conditions
@@ -413,8 +408,8 @@ CEED_QFUNCTION(Advection2d_InOutFlow)(void *ctx, CeedInt Q,
                                       CeedScalar *const *out) {
   // *INDENT-OFF*
   // Inputs
-  const CeedScalar (*q)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[0],
-                   (*q_data_sur)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[1];
+  const CeedScalar (*q)[CEED_Q_VLA]          = (const CeedScalar(*)[CEED_Q_VLA])in[0],
+                   (*q_data_sur)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[2];
   // Outputs
   CeedScalar (*v)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA])out[0];
   // *INDENT-ON*

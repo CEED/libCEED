@@ -46,7 +46,8 @@ int main(int argc, char **argv) {
                         block*layout[2]*blk_size - blk_size*elem_size;
         if (yy[index] != a[ind[k*elem_size + i]])
           // LCOV_EXCL_START
-          printf("Error in restricted array y[%d][%d][%d] = %f\n",
+          printf("Error in restricted array y[%" CeedInt_FMT
+                 "][%" CeedInt_FMT "][%" CeedInt_FMT "] = %f\n",
                  i, j, k, (double)yy[index]);
         // LCOV_EXCL_STOP
       }
@@ -60,7 +61,7 @@ int main(int argc, char **argv) {
   for (CeedInt i=blk_size; i<num_elem+1; i++)
     if (xx[i] != (10+i)*(i > blk_size && i < num_elem ? 2.0 : 1.0))
       // LCOV_EXCL_START
-      printf("Error in restricted array x[%d] = %f\n",
+      printf("Error in restricted array x[%" CeedInt_FMT "] = %f\n",
              i, (double)xx[i]);
   // LCOV_EXCL_STOP
   CeedVectorRestoreArrayRead(x, &xx);

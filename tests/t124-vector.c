@@ -22,7 +22,7 @@ int main(int argc, char **argv) {
   for (CeedInt i = 0; i < n; i++)
     if (a[i] != (CeedScalar)(3*i))
       // LCOV_EXCL_START
-      printf("Error writing array a[%d] = %f", i, a[i]);
+      printf("Error writing array a[%" CeedInt_FMT "] = %f\n", i, a[i]);
   // LCOV_EXCL_STOP
   CeedVectorRestoreArrayRead(x, (const CeedScalar **)&a);
 

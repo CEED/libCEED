@@ -11,8 +11,8 @@
 #ifndef setup_geo_2d_h
 #define setup_geo_2d_h
 
-#include <math.h>
 #include <ceed.h>
+#include <math.h>
 
 // *****************************************************************************
 // This QFunction sets up the geometric factors required for integration and
@@ -74,8 +74,8 @@ CEED_QFUNCTION(Setup2d)(void *ctx, CeedInt Q,
     // -- Interp-to-Grad q_data
     // Inverse of change of coordinate matrix: X_i,j
     q_data[1][i] =  J22 / detJ;
-    q_data[2][i] = -J21 / detJ;
-    q_data[3][i] = -J12 / detJ;
+    q_data[2][i] = -J12 / detJ;
+    q_data[3][i] = -J21 / detJ;
     q_data[4][i] =  J11 / detJ;
   } // End of Quadrature Point Loop
 

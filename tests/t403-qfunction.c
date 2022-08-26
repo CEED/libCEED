@@ -17,7 +17,7 @@ int main(int argc, char **argv) {
   CeedQFunctionReferenceCopy(qf, &qf_2); // This destroys the previous qf_2
   if (qf != qf_2)
     // LCOV_EXCL_START
-    printf("Error copying CeedQFunction reference.");
+    printf("Error copying CeedQFunction reference\n");
   // LCOV_EXCL_STOP
 
   CeedQFunctionContextCreate(ceed, &ctx);
@@ -26,7 +26,7 @@ int main(int argc, char **argv) {
   CeedQFunctionContextReferenceCopy(ctx, &ctx_2);
   if (ctx != ctx_2)
     // LCOV_EXCL_START
-    printf("Error copying CeedQFunctionContext reference.");
+    printf("Error copying CeedQFunctionContext reference\n");
   // LCOV_EXCL_STOP
 
   CeedQFunctionDestroy(&qf);

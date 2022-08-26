@@ -8,6 +8,8 @@
 #ifndef ex2_surface_h
 #define ex2_surface_h
 
+#include <ceed.h>
+
 /// A structure used to pass additional data to f_build_diff
 struct BuildContext { CeedInt dim, space_dim; };
 
@@ -58,8 +60,8 @@ CEED_QFUNCTION(f_build_diff)(void *ctx, const CeedInt Q,
                     J[i+Q*((j+1)%3+3*((k+2)%3))]*J[i+Q*((j+2)%3+3*((k+1)%3))];
 
       // Compute quadrature weight / det(J)
-      const CeedScalar qw = w[i] / (J[i+Q*0]*A[0][0] + J[i+Q*1]*A[1][1] +
-                                    J[i+Q*2]*A[2][2]);
+      const CeedScalar qw = w[i] / (J[i+Q*0]*A[0][0] + J[i+Q*1]*A[0][1] +
+                                    J[i+Q*2]*A[0][2]);
 
       // Compute geometric factors
       // Stored in Voigt convention

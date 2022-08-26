@@ -11,6 +11,7 @@
 #ifndef areacube_h
 #define areacube_h
 
+#include <ceed.h>
 #include <math.h>
 
 // -----------------------------------------------------------------------------

@@ -13,6 +13,7 @@
 #include "../qfunctions/advection2d.h"
 
 PetscErrorCode NS_ADVECTION2D(ProblemData *problem, DM dm, void *ctx) {
+
   WindType          wind_type;
   StabilizationType stab;
   SetupContext      setup_context;
@@ -180,6 +181,9 @@ PetscErrorCode NS_ADVECTION2D(ProblemData *problem, DM dm, void *ctx) {
   CeedQFunctionContextCreate(user->ceed, &problem->ics.qfunction_context);
   CeedQFunctionContextSetData(problem->ics.qfunction_context, CEED_MEM_HOST,
                               CEED_USE_POINTER, sizeof(*setup_context), setup_context);
+  CeedQFunctionContextSetDataDestroy(problem->ics.qfunction_context,
+                                     CEED_MEM_HOST,
+                                     FreeContextPetsc);
 
   CeedQFunctionContextCreate(user->ceed, &advection_context);
   CeedQFunctionContextSetData(advection_context, CEED_MEM_HOST,

@@ -505,21 +505,20 @@ int CeedGetOperatorFallbackResource(Ceed ceed, const char **resource) {
 int CeedGetOperatorFallbackCeed(Ceed ceed, Ceed *fallback_ceed) {
   int ierr;
 
-  // Create fallback Ceed if uninitalized
-  if (!ceed->op_fallback_ceed) {
-    // Check resource
-    const char *resource, *fallback_resource;
-    ierr = CeedGetResource(ceed, &resource); CeedChk(ierr);
-    ierr = CeedGetOperatorFallbackResource(ceed, &fallback_resource); CeedChk(ierr);
-    if (!strcmp(resource, fallback_resource))
-      // LCOV_EXCL_START
-      return CeedError(ceed, CEED_ERROR_UNSUPPORTED,
-                       "Backend %s cannot create an operator"
-                       "fallback to resource %s", resource, fallback_resource);
-    // LCOV_EXCL_STOP
+  if (ceed->has_valid_op_fallback_resource) {
+    CeedDebug256(ceed, 1, "---------- CeedOperator Fallback ----------\n");
+    CeedDebug(ceed, "Getting fallback from %s to %s\n", ceed->resource,
+              ceed->op_fallback_resource);
+  }
 
-    // Create fallback
+  // Create fallback Ceed if uninitalized
+  if (!ceed->op_fallback_ceed && ceed->has_valid_op_fallback_resource) {
+    CeedDebug(ceed, "Creating fallback Ceed");
+
     Ceed fallback_ceed;
+    const char *fallback_resource;
+
+    ierr = CeedGetOperatorFallbackResource(ceed, &fallback_resource); CeedChk(ierr);
     ierr = CeedInit(fallback_resource, &fallback_ceed); CeedChk(ierr);
     fallback_ceed->op_fallback_parent = ceed;
     fallback_ceed->Error = ceed->Error;
@@ -552,6 +551,12 @@ int CeedSetOperatorFallbackResource(Ceed ceed, const char *resource) {
   // Set new
   ierr = CeedStringAllocCopy(resource, (char **)&ceed->op_fallback_resource);
   CeedChk(ierr);
+
+  // Check validity
+  ceed->has_valid_op_fallback_resource = ceed->op_fallback_resource &&
+                                         ceed->resource &&
+                                         strcmp(ceed->op_fallback_resource, ceed->resource);
+
   return CEED_ERROR_SUCCESS;
 }
 
@@ -915,6 +920,7 @@ int CeedInit(const char *resource, Ceed *ceed) {
     CEED_FTABLE_ENTRY(CeedQFunctionContext, GetDataRead),
     CEED_FTABLE_ENTRY(CeedQFunctionContext, RestoreData),
     CEED_FTABLE_ENTRY(CeedQFunctionContext, RestoreDataRead),
+    CEED_FTABLE_ENTRY(CeedQFunctionContext, DataDestroy),
     CEED_FTABLE_ENTRY(CeedQFunctionContext, Destroy),
     CEED_FTABLE_ENTRY(CeedOperator, LinearAssembleQFunction),
     CEED_FTABLE_ENTRY(CeedOperator, LinearAssembleQFunctionUpdate),
@@ -924,6 +930,7 @@ int CeedInit(const char *resource, Ceed *ceed) {
     CEED_FTABLE_ENTRY(CeedOperator, LinearAssembleAddPointBlockDiagonal),
     CEED_FTABLE_ENTRY(CeedOperator, LinearAssembleSymbolic),
     CEED_FTABLE_ENTRY(CeedOperator, LinearAssemble),
+    CEED_FTABLE_ENTRY(CeedOperator, LinearAssembleSingle),
     CEED_FTABLE_ENTRY(CeedOperator, CreateFDMElementInverse),
     CEED_FTABLE_ENTRY(CeedOperator, Apply),
     CEED_FTABLE_ENTRY(CeedOperator, ApplyComposite),
@@ -946,9 +953,6 @@ int CeedInit(const char *resource, Ceed *ceed) {
   (*ceed)->is_debug = !!getenv("CEED_DEBUG") || !!getenv("DEBUG") ||
                       !!getenv("DBG");
 
-  // Backend specific setup
-  ierr = backends[match_index].init(&resource[match_help], *ceed); CeedChk(ierr);
-
   // Copy resource prefix, if backend setup successful
   ierr = CeedStringAllocCopy(backends[match_index].prefix,
                              (char **)&(*ceed)->resource);
@@ -959,6 +963,9 @@ int CeedInit(const char *resource, Ceed *ceed) {
   // but all additional paths are added to the top-most parent
   ierr = CeedAddJitSourceRoot(*ceed, (char *)CeedJitSourceRootDefault);
   CeedChk(ierr);
+
+  // Backend specific setup
+  ierr = backends[match_index].init(&resource[match_help], *ceed); CeedChk(ierr);
 
   return CEED_ERROR_SUCCESS;
 }
@@ -1211,7 +1218,7 @@ int CeedErrorStore(Ceed ceed, const char *filename, int line_no,
                           err_code, format, args);
 
   // Build message
-  CeedInt len;
+  int len;
   len = snprintf(ceed->err_msg, CEED_MAX_RESOURCE_LEN, "%s:%d in %s(): ",
                  filename, line_no, func);
   // Using pointer to va_list for better FFI, but clang-tidy can't verify va_list is initalized

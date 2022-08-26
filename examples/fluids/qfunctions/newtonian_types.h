@@ -1,7 +1,14 @@
+// Copyright (c) 2017-2022, Lawrence Livermore National Security, LLC and other CEED contributors.
+// All Rights Reserved. See the top-level LICENSE and NOTICE files for details.
+//
+// SPDX-License-Identifier: BSD-2-Clause
+//
+// This file is part of CEED:  http://github.com/ceed
+
 #ifndef newtonian_types_h
 #define newtonian_types_h
 
-#include <ceed/ceed.h>
+#include <ceed.h>
 #include "stabilization_types.h"
 
 typedef struct SetupContext_ *SetupContext;
@@ -40,9 +47,11 @@ struct NewtonianIdealGasContext_ {
   CeedScalar Ctau_M;
   CeedScalar Ctau_E;
   CeedScalar dt;
+  CeedScalar ijacobian_time_shift;
+  CeedScalar P0;
+  bool       is_implicit;
+  bool       use_primitive;
   StabilizationType stabilization;
 };
-
-CEED_QFUNCTION_HELPER CeedScalar Square(CeedScalar x) { return x*x; }
 
 #endif // newtonian_types_h

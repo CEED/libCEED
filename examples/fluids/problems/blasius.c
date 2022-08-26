@@ -37,7 +37,8 @@ static PetscErrorCode GetYNodeLocs(const MPI_Comm comm,
     ierr = PetscSynchronizedFGets(comm, fp, char_array_len, line); CHKERRQ(ierr);
     ierr = PetscStrToArray(line, ' ', &ndims, &array); CHKERRQ(ierr);
     if (ndims < dims[1]) SETERRQ(comm, -1,
-                                   "Line %d of %s does not contain enough columns (%d instead of %d)", i,
+                                   "Line %" PetscInt_FMT" of %s does not contain enough columns (%"
+                                   PetscInt_FMT" instead of %" PetscInt_FMT ")", i,
                                    path, ndims, dims[1]);
 
     node_locs[i] = (PetscReal) atof(array[0]);
@@ -57,13 +58,13 @@ static PetscErrorCode GetYNodeLocs(const MPI_Comm comm,
  * outflow. It's angle is controlled by `top_angle` (in units of degrees).
  *
  * If `node_locs` is not NULL, then the nodes will be placed at `node_locs`
- * locations.
+ * locations. If it is NULL, then the modified coordinate values will be set in
+ * the array, along with `num_node_locs`.
  */
 static PetscErrorCode ModifyMesh(MPI_Comm comm, DM dm, PetscInt dim,
                                  PetscReal growth, PetscInt N,
                                  PetscReal refine_height, PetscReal top_angle,
-                                 PetscReal node_locs[], PetscInt num_node_locs) {
-
+                                 PetscReal *node_locs[], PetscInt *num_node_locs) {
   PetscInt ierr, narr, ncoords;
   PetscReal domain_min[3], domain_max[3], domain_size[3];
   PetscScalar *arr_coords;
@@ -91,41 +92,50 @@ static PetscErrorCode ModifyMesh(MPI_Comm comm, DM dm, PetscInt dim,
   // Get element size of the box mesh, for indexing each node
   const PetscReal dybox = domain_size[1]/faces[1];
 
-  if (!node_locs) {
+  if (!*node_locs) {
     // Calculate the first element height
     PetscReal dy1   = refine_height*(growth-1)/(pow(growth, N)-1);
 
     // Calculate log of sizing outside BL
     PetscReal logdy = (log(domain_max[1]) - log(refine_height)) / (faces[1] - N);
 
+    *num_node_locs = faces[1] + 1;
+    PetscReal *temp_node_locs;
+    ierr = PetscMalloc1(*num_node_locs, &temp_node_locs); CHKERRQ(ierr);
+
     for (PetscInt i=0; i<ncoords; i++) {
       PetscInt y_box_index = round(coords[i][1]/dybox);
       if (y_box_index <= N) {
-        coords[i][1] = (1 - ((coords[i][0] - domain_min[0])/domain_size[0])*angle_coeff)
+        coords[i][1] = (1 - (coords[i][0] - domain_min[0])*angle_coeff/domain_max[1])
                        * dy1 * (pow(growth, coords[i][1]/dybox)-1)/(growth-1);
       } else {
         PetscInt j = y_box_index - N;
-        coords[i][1] = (1 - ((coords[i][0] - domain_min[0])/domain_size[0])*angle_coeff)
+        coords[i][1] = (1 - (coords[i][0] - domain_min[0])*angle_coeff/domain_max[1])
                        * exp(log(refine_height) + logdy*j);
       }
+      if (coords[i][0] == domain_min[0] && coords[i][2] == domain_min[2])
+        temp_node_locs[y_box_index] = coords[i][1];
     }
+
+    *node_locs = temp_node_locs;
   } else {
     // Error checking
-    if (num_node_locs < faces[1] +1)
+    if (*num_node_locs < faces[1] +1)
       SETERRQ(comm, -1, "The y_node_locs_path has too few locations; "
               "There are %d + 1 nodes, but only %d locations given",
-              faces[1]+1, num_node_locs);
-    if (num_node_locs > faces[1] +1) {
+              faces[1]+1, *num_node_locs);
+    if (*num_node_locs > faces[1] +1) {
       ierr = PetscPrintf(comm, "WARNING: y_node_locs_path has more locations (%d) "
-                         "than the mesh has nodes (%d). This maybe unintended.",
-                         num_node_locs, faces[1]+1); CHKERRQ(ierr);
+                         "than the mesh has nodes (%d). This maybe unintended.\n",
+                         *num_node_locs, faces[1]+1); CHKERRQ(ierr);
     }
+    PetscScalar max_y = (*node_locs)[faces[1]];
 
     for (PetscInt i=0; i<ncoords; i++) {
       // Determine which y-node we're at
       PetscInt y_box_index = round(coords[i][1]/dybox);
-      coords[i][1] = (1 - ((coords[i][0] - domain_min[0])/domain_size[0])*angle_coeff)
-                     * node_locs[y_box_index];
+      coords[i][1] = (1 - (coords[i][0] - domain_min[0])*angle_coeff/max_y)
+                     * (*node_locs)[y_box_index];
     }
   }
 
@@ -138,9 +148,9 @@ static PetscErrorCode ModifyMesh(MPI_Comm comm, DM dm, PetscInt dim,
 PetscErrorCode NS_BLASIUS(ProblemData *problem, DM dm, void *ctx) {
 
   PetscInt ierr;
-  User           user    = *(User *)ctx;
-  MPI_Comm       comm    = PETSC_COMM_WORLD;
-  PetscBool      use_stg = PETSC_FALSE;
+  User      user    = *(User *)ctx;
+  MPI_Comm  comm    = PETSC_COMM_WORLD;
+  PetscBool use_stg = PETSC_FALSE;
   BlasiusContext blasius_ctx;
   NewtonianIdealGasContext newtonian_ig_ctx;
   CeedQFunctionContext blasius_context;
@@ -152,13 +162,8 @@ PetscErrorCode NS_BLASIUS(ProblemData *problem, DM dm, void *ctx) {
   // ------------------------------------------------------
   //               SET UP Blasius
   // ------------------------------------------------------
-  CeedQFunctionContextDestroy(&problem->ics.qfunction_context);
-  problem->ics.qfunction               = ICsBlasius;
-  problem->ics.qfunction_loc           = ICsBlasius_loc;
-  problem->apply_outflow.qfunction     = Blasius_Outflow;
-  problem->apply_outflow.qfunction_loc = Blasius_Outflow_loc;
-  problem->apply_inflow.qfunction      = Blasius_Inflow;
-  problem->apply_inflow.qfunction_loc  = Blasius_Inflow_loc;
+  problem->ics.qfunction                       = ICsBlasius;
+  problem->ics.qfunction_loc                   = ICsBlasius_loc;
 
   CeedScalar Uinf   = 40;          // m/s
   CeedScalar delta0 = 4.2e-4;      // m
@@ -171,7 +176,7 @@ PetscErrorCode NS_BLASIUS(ProblemData *problem, DM dm, void *ctx) {
   PetscReal  mesh_top_angle     = 5;      // degrees
   char mesh_ynodes_path[PETSC_MAX_PATH_LEN] = "";
 
-  PetscOptionsBegin(comm, NULL, "Options for CHANNEL problem", NULL);
+  PetscOptionsBegin(comm, NULL, "Options for BLASIUS problem", NULL);
   ierr = PetscOptionsBool("-weakT", "Change from rho weak to T weak at inflow",
                           NULL, weakT, &weakT, NULL); CHKERRQ(ierr);
   ierr = PetscOptionsScalar("-Uinf", "Velocity at boundary layer edge",
@@ -220,21 +225,27 @@ PetscErrorCode NS_BLASIUS(ProblemData *problem, DM dm, void *ctx) {
     CHKERRQ(ierr);
   }
   ierr = ModifyMesh(comm, dm, problem->dim, mesh_growth, mesh_Ndelta,
-                    mesh_refine_height, mesh_top_angle, mesh_ynodes,
-                    mesh_nynodes); CHKERRQ(ierr);
-  ierr = PetscFree(mesh_ynodes); CHKERRQ(ierr);
+                    mesh_refine_height, mesh_top_angle, &mesh_ynodes,
+                    &mesh_nynodes); CHKERRQ(ierr);
 
   // Some properties depend on parameters from NewtonianIdealGas
   CeedQFunctionContextGetData(problem->apply_vol_rhs.qfunction_context,
                               CEED_MEM_HOST, &newtonian_ig_ctx);
 
-  blasius_ctx->weakT     = weakT;
-  blasius_ctx->Uinf      = Uinf;
-  blasius_ctx->delta0    = delta0;
-  blasius_ctx->theta0    = theta0;
-  blasius_ctx->P0        = P0;
-  blasius_ctx->implicit  = user->phys->implicit;
+  blasius_ctx->weakT         = weakT;
+  blasius_ctx->Uinf          = Uinf;
+  blasius_ctx->delta0        = delta0;
+  blasius_ctx->theta0        = theta0;
+  blasius_ctx->P0            = P0;
+  newtonian_ig_ctx->P0       = P0;
+  blasius_ctx->implicit      = user->phys->implicit;
   blasius_ctx->newtonian_ctx = *newtonian_ig_ctx;
+
+  {
+    PetscReal domain_min[3];
+    ierr = DMGetBoundingBox(dm, domain_min, NULL); CHKERRQ(ierr);
+    blasius_ctx->x_inflow = domain_min[0];
+  }
 
   CeedQFunctionContextRestoreData(problem->apply_vol_rhs.qfunction_context,
                                   &newtonian_ig_ctx);
@@ -246,13 +257,21 @@ PetscErrorCode NS_BLASIUS(ProblemData *problem, DM dm, void *ctx) {
   CeedQFunctionContextSetDataDestroy(blasius_context, CEED_MEM_HOST,
                                      FreeContextPetsc);
 
+  CeedQFunctionContextDestroy(&problem->ics.qfunction_context);
   problem->ics.qfunction_context = blasius_context;
-  CeedQFunctionContextReferenceCopy(blasius_context,
-                                    &problem->apply_inflow.qfunction_context);
-  CeedQFunctionContextReferenceCopy(blasius_context,
-                                    &problem->apply_outflow.qfunction_context);
   if (use_stg) {
-    ierr = SetupSTG(comm, dm, problem, user, weakT, theta0, P0); CHKERRQ(ierr);
+    ierr = SetupSTG(comm, dm, problem, user, weakT, theta0, P0, mesh_ynodes,
+                    mesh_nynodes); CHKERRQ(ierr);
+  } else {
+    problem->apply_inflow.qfunction              = Blasius_Inflow;
+    problem->apply_inflow.qfunction_loc          = Blasius_Inflow_loc;
+    problem->apply_inflow_jacobian.qfunction     = Blasius_Inflow_Jacobian;
+    problem->apply_inflow_jacobian.qfunction_loc = Blasius_Inflow_Jacobian_loc;
+    CeedQFunctionContextReferenceCopy(blasius_context,
+                                      &problem->apply_inflow.qfunction_context);
+    CeedQFunctionContextReferenceCopy(blasius_context,
+                                      &problem->apply_inflow_jacobian.qfunction_context);
   }
+  ierr = PetscFree(mesh_ynodes); CHKERRQ(ierr);
   PetscFunctionReturn(0);
 }

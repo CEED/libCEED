@@ -24,7 +24,7 @@ int main(int argc, char **argv) {
   CeedVectorTakeArray(x, CEED_MEM_HOST, &c);
   if (fabs(c[3] + 3.14) > 10.*CEED_EPSILON)
     // LCOV_EXCL_START
-    printf("Error taking array c[3] = %f", (CeedScalar)c[3]);
+    printf("Error taking array c[3] = %f\n", (CeedScalar)c[3]);
   // LCOV_EXCL_STOP
 
   // Getting array should not modify a
@@ -34,7 +34,7 @@ int main(int argc, char **argv) {
 
   if (fabs(a[5] + 3.14) < 10.*CEED_EPSILON)
     // LCOV_EXCL_START
-    printf("Error protecting array a[3] = %f", (CeedScalar)a[3]);
+    printf("Error protecting array a[3] = %f\n", (CeedScalar)a[3]);
   // LCOV_EXCL_STOP
 
 // Note: We do not need to free c because c == a was stack allocated.
@@ -44,10 +44,10 @@ int main(int argc, char **argv) {
   CeedVectorCreate(ceed, 0, &x);
   CeedVectorSetArray(x, CEED_MEM_HOST, CEED_USE_POINTER, NULL);
   CeedVectorGetArrayRead(x, CEED_MEM_HOST, &d);
-  if (b) printf("CeedVectorGetArrayRead returned non-NULL for zero-sized Vector");
+  if (b) printf("CeedVectorGetArrayRead returned non-NULL for zero-sized Vector\n");
   CeedVectorRestoreArrayRead(x, &d);
   CeedVectorTakeArray(x, CEED_MEM_HOST, &c);
-  if (c) printf("CeedVectorTakeArray returned non-NULL for zero-sized Vector");
+  if (c) printf("CeedVectorTakeArray returned non-NULL for zero-sized Vector\n");
   CeedVectorDestroy(&x);
 
   CeedDestroy(&ceed);

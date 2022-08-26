@@ -11,6 +11,7 @@
 #ifndef ELAS_FSInitialNH2_H
 #define ELAS_FSInitialNH2_H
 
+#include <ceed.h>
 #include <math.h>
 
 #ifndef PHYSICS_STRUCT

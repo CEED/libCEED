@@ -386,7 +386,7 @@ int CeedElemRestrictionCreate(Ceed ceed, CeedInt num_elem, CeedInt elem_size,
                      "ElemRestriction must have at least 1 component");
   // LCOV_EXCL_STOP
 
-  if (comp_stride < 1)
+  if (num_comp > 1 && comp_stride < 1)
     // LCOV_EXCL_START
     return CeedError(ceed, CEED_ERROR_DIMENSION,
                      "ElemRestriction component stride must be at least 1");
@@ -476,7 +476,7 @@ int CeedElemRestrictionCreateOriented(Ceed ceed, CeedInt num_elem,
                      "ElemRestriction must have at least 1 component");
   // LCOV_EXCL_STOP
 
-  if (comp_stride < 1)
+  if (num_comp > 1 && comp_stride < 1)
     // LCOV_EXCL_START
     return CeedError(ceed, CEED_ERROR_DIMENSION,
                      "ElemRestriction component stride must be at least 1");
@@ -657,7 +657,7 @@ int CeedElemRestrictionCreateBlocked(Ceed ceed, CeedInt num_elem,
                      "ElemRestriction must have at least 1 component");
   // LCOV_EXCL_STOP
 
-  if (comp_stride < 1)
+  if (num_comp > 1 && comp_stride < 1)
     // LCOV_EXCL_START
     return CeedError(ceed, CEED_ERROR_DIMENSION,
                      "ElemRestriction component stride must be at least 1");
@@ -854,16 +854,18 @@ int CeedElemRestrictionApply(CeedElemRestriction rstr, CeedTransposeMode t_mode,
   if (n != u->length)
     // LCOV_EXCL_START
     return CeedError(rstr->ceed, CEED_ERROR_DIMENSION,
-                     "Input vector size %d not compatible with "
-                     "element restriction (%d, %d)", u->length, m, n);
+                     "Input vector size %" CeedInt_FMT " not compatible with "
+                     "element restriction (%" CeedInt_FMT ", %" CeedInt_FMT ")", u->length, m, n);
   // LCOV_EXCL_STOP
   if (m != ru->length)
     // LCOV_EXCL_START
     return CeedError(rstr->ceed, CEED_ERROR_DIMENSION,
-                     "Output vector size %d not compatible with "
-                     "element restriction (%d, %d)", ru->length, m, n);
+                     "Output vector size %" CeedInt_FMT " not compatible with "
+                     "element restriction (%" CeedInt_FMT ", %" CeedInt_FMT ")", ru->length, m, n);
   // LCOV_EXCL_STOP
-  ierr = rstr->Apply(rstr, t_mode, u, ru, request); CeedChk(ierr);
+  if (rstr->num_elem > 0) {
+    ierr = rstr->Apply(rstr, t_mode, u, ru, request); CeedChk(ierr);
+  }
   return CEED_ERROR_SUCCESS;
 }
 
@@ -901,20 +903,20 @@ int CeedElemRestrictionApplyBlock(CeedElemRestriction rstr, CeedInt block,
   if (n != u->length)
     // LCOV_EXCL_START
     return CeedError(rstr->ceed, CEED_ERROR_DIMENSION,
-                     "Input vector size %d not compatible with "
-                     "element restriction (%d, %d)", u->length, m, n);
+                     "Input vector size %" CeedInt_FMT " not compatible with "
+                     "element restriction (%" CeedInt_FMT ", %" CeedInt_FMT ")", u->length, m, n);
   // LCOV_EXCL_STOP
   if (m != ru->length)
     // LCOV_EXCL_START
     return CeedError(rstr->ceed, CEED_ERROR_DIMENSION,
-                     "Output vector size %d not compatible with "
-                     "element restriction (%d, %d)", ru->length, m, n);
+                     "Output vector size %" CeedInt_FMT " not compatible with "
+                     "element restriction (%" CeedInt_FMT ", %" CeedInt_FMT ")", ru->length, m, n);
   // LCOV_EXCL_STOP
   if (rstr->blk_size*block > rstr->num_elem)
     // LCOV_EXCL_START
     return CeedError(rstr->ceed, CEED_ERROR_DIMENSION,
-                     "Cannot retrieve block %d, element %d > "
-                     "total elements %d", block, rstr->blk_size*block,
+                     "Cannot retrieve block %" CeedInt_FMT ", element %" CeedInt_FMT " > "
+                     "total elements %" CeedInt_FMT "", block, rstr->blk_size*block,
                      rstr->num_elem);
   // LCOV_EXCL_STOP
   ierr = rstr->ApplyBlock(rstr, block, t_mode, u, ru, request);
@@ -1094,12 +1096,14 @@ int CeedElemRestrictionGetMultiplicity(CeedElemRestriction rstr,
 int CeedElemRestrictionView(CeedElemRestriction rstr, FILE *stream) {
   char stridesstr[500];
   if (rstr->strides)
-    sprintf(stridesstr, "[%d, %d, %d]", rstr->strides[0], rstr->strides[1],
+    sprintf(stridesstr, "[%" CeedInt_FMT ", %" CeedInt_FMT ", %" CeedInt_FMT "]",
+            rstr->strides[0], rstr->strides[1],
             rstr->strides[2]);
   else
-    sprintf(stridesstr, "%d", rstr->comp_stride);
+    sprintf(stridesstr, "%" CeedInt_FMT, rstr->comp_stride);
 
-  fprintf(stream, "%sCeedElemRestriction from (%td, %d) to %d elements with %d "
+  fprintf(stream, "%sCeedElemRestriction from (%td, %" CeedInt_FMT ") to %"
+          CeedInt_FMT " elements with %" CeedInt_FMT " "
           "nodes each and %s %s\n", rstr->blk_size > 1 ? "Blocked " : "",
           rstr->l_size, rstr->num_comp, rstr->num_elem, rstr->elem_size,
           rstr->strides ? "strides" : "component stride", stridesstr);

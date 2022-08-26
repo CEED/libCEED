@@ -10,7 +10,7 @@ static int CheckValues(Ceed ceed, CeedVector x, CeedScalar value) {
   for (CeedInt i=0; i<n; i++) {
     if (b[i] != value)
       // LCOV_EXCL_START
-      printf("Error reading array b[%d] = %f",i,
+      printf("Error reading array b[%" CeedInt_FMT "] = %f",i,
              (CeedScalar)b[i]);
     // LCOV_EXCL_STOP
   }
@@ -42,8 +42,8 @@ int main(int argc, char **argv) {
   for (CeedInt i=0; i<n; i++)
     if (b[i] != 10+i)
       // LCOV_EXCL_START
-      printf("Error reading array b[%d] = %f",i,
-             (CeedScalar)b[i]);
+      printf("Error reading array b[%" CeedInt_FMT
+             "] = %f\n", i, (CeedScalar)b[i]);
   // LCOV_EXCL_STOP
   CeedVectorRestoreArrayRead(x, &b);
 

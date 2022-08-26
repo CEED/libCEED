@@ -3,8 +3,7 @@
 CeedQFunction
 ***********************************************************************
 
-A `CeedQFunction` represents the spatial terms of the point-wise functions describing the
-physics at the quadrature points.
+A `CeedQFunction` represents the spatial terms of the point-wise functions describing the physics at the quadrature points.
 
 Resolution/space-independent weak forms and quadrature-based operations
 =======================================================================

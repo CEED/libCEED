@@ -18,7 +18,7 @@
 
 #define CeedChk_Cu(ceed, x) \
 do { \
-  CUresult cuda_result = x; \
+  CUresult cuda_result = (CUresult)x; \
   if (cuda_result != CUDA_SUCCESS) { \
     const char *msg; \
     cuGetErrorName(cuda_result, &msg); \
@@ -57,6 +57,9 @@ typedef struct {
   cublasHandle_t cublas_handle;
   struct cudaDeviceProp device_prop;
 } Ceed_Cuda;
+
+CEED_INTERN int CeedCudaGetResourceRoot(Ceed ceed, const char *resource,
+                                        char **resource_root);
 
 CEED_INTERN int CeedCudaInit(Ceed ceed, const char *resource);
 

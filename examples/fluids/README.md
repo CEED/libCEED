@@ -69,7 +69,7 @@ The following options are common among all problem types:
   - `0`
 
 * - `-output_freq`
-  - Frequency of output, in number of steps
+  - Frequency of output, in number of steps. `0` has no output, `-1` outputs final state only
   - `10`
 
 * - `-continue`
@@ -179,7 +179,8 @@ For the case of a square/cubic mesh, the list of face indices to be used with `-
 
 ### Advection
 
-For testing purposes, there is a reduced mode for pure advection, which holds density $\rho$ and momentum density $\rho \bm u$ constant while advecting "total energy density" $E$. These are available in 2D and 3D.
+For testing purposes, there is a reduced mode for pure advection, which holds density $\rho$ and momentum density $\rho \bm u$ constant while advecting "total energy density" $E$.
+These are available in 2D and 3D.
 
 #### 2D advection
 
@@ -528,12 +529,22 @@ For the Density Current, Channel, and Blasius problems, the following common com
   - Thermal conductivity
   - `0.02638`
   - `W/(m K)`
+
+* - `-newtonian_unit_tests`
+  - Developer option to test properties
+  - `false`
+  - boolean
+
+* - `-primitive`
+  - Use primitive variables (pressure, velocity, temperature) instead of conservative variables (density, momentum, total energy)
+  - `false`
+  - boolean
 :::
+
 
 #### Density current
 
-The Density Current problem the following command-line options are available in
-addition to the Newtonian Ideal Gas options:
+The Density Current problem the following command-line options are available in addition to the Newtonian Ideal Gas options:
 
 :::{list-table} Density Current Runtime Options
 :header-rows: 1
@@ -587,8 +598,7 @@ This problem can be run with:
 
 #### Channel flow
 
-The Channel problem the following command-line options are available in
-addition to the Newtonian Ideal Gas options:
+The Channel problem the following command-line options are available in addition to the Newtonian Ideal Gas options:
 
 :::{list-table} Channel Runtime Options
 :header-rows: 1
@@ -612,6 +622,11 @@ addition to the Newtonian Ideal Gas options:
   - Atmospheric pressure
   - `1E5`
   - `Pa`
+
+* - `-body_force_scale`
+  - Multiplier for body force (`-1` for flow reversal)
+  - 1
+  -
 :::
 
 This problem can be run with the `channel.yaml` file via:
@@ -625,8 +640,7 @@ This problem can be run with the `channel.yaml` file via:
 
 #### Blasius boundary layer
 
-The Blasius problem the following command-line options are available in
-addition to the Newtonian Ideal Gas options:
+The Blasius problem the following command-line options are available in addition to the Newtonian Ideal Gas options:
 
 :::{list-table} Blasius Runtime Options
 :header-rows: 1
@@ -699,8 +713,7 @@ This problem can be run with the `blasius.yaml` file via:
 
 #### STG Inflow for Flat Plate
 
-Using the STG Inflow for the blasius problem adds the following command-line
-options:
+Using the STG Inflow for the blasius problem adds the following command-line options:
 
 :::{list-table} Blasius Runtime Options
 :header-rows: 1
@@ -735,6 +748,11 @@ options:
   - `false`
   -
 
+* - `-stg_strong`
+  - Strongly enforce the STG inflow boundary condition
+  - `false`
+  -
+
 :::
 
 This problem can be run with the `blasius.yaml` file via:
@@ -743,5 +761,5 @@ This problem can be run with the `blasius.yaml` file via:
 ./navierstokes -options_file blasius.yaml -stg_use true
 ```
 
-Note the added `-stg_use true` flag. This overrides the `stg: use: false`
-setting in the `blasius.yaml` file, enabling the use of the STG inflow.
+Note the added `-stg_use true` flag
+This overrides the `stg: use: false` setting in the `blasius.yaml` file, enabling the use of the STG inflow.

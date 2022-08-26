@@ -11,7 +11,6 @@
 #include <ceed/ceed.h>
 #include <ceed/backend.h>
 #include <hip/hip_runtime.h>
-#include <hipblas.h>
 #include "../hip/ceed-hip-common.h"
 
 typedef struct {
@@ -152,5 +151,4 @@ CEED_INTERN int CeedQFunctionContextCreate_Hip(CeedQFunctionContext ctx);
 
 CEED_INTERN int CeedOperatorCreate_Hip(CeedOperator op);
 
-CEED_INTERN int CeedCompositeOperatorCreate_Hip(CeedOperator op);
 #endif

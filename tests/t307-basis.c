@@ -21,7 +21,7 @@ int main(int argc, char **argv) {
   CeedBasisGetNumNodes1D(b_2, &P_1d_2);
   if (P_1d != P_1d_2)
     // LCOV_EXCL_START
-    printf("Error copying CeedBasis reference.");
+    printf("Error copying CeedBasis reference\n");
   // LCOV_EXCL_STOP
 
   CeedBasisDestroy(&b_2);

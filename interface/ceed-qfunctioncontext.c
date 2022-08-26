@@ -100,6 +100,40 @@ int CeedQFunctionContextRegisterGeneric(CeedQFunctionContext ctx,
   return CEED_ERROR_SUCCESS;
 }
 
+/**
+  @brief Destroy user data held by CeedQFunctionContext, using function set by
+     CeedQFunctionContextSetDataDestroy, if applicable
+
+  @param[in,out] ctx  CeedQFunctionContext to destroy user data
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Developer
+**/
+static int CeedQFunctionContextDestroyData(CeedQFunctionContext ctx) {
+  int ierr;
+
+  if (ctx->DataDestroy) {
+    ierr = ctx->DataDestroy(ctx); CeedChk(ierr);
+  } else {
+    CeedQFunctionContextDataDestroyUser data_destroy_function;
+    CeedMemType data_destroy_mem_type;
+
+    ierr = CeedQFunctionContextGetDataDestroy(ctx, &data_destroy_mem_type,
+           &data_destroy_function); CeedChk(ierr);
+    if (data_destroy_function) {
+      void *data;
+
+      ierr = CeedQFunctionContextGetData(ctx, data_destroy_mem_type, &data);
+      CeedChk(ierr);
+      ierr = data_destroy_function(data); CeedChk(ierr);
+      ierr = CeedQFunctionContextRestoreData(ctx, &data); CeedChk(ierr);
+    }
+  }
+
+  return CEED_ERROR_SUCCESS;
+}
+
 /// @}
 
 /// ----------------------------------------------------------------------------
@@ -344,6 +378,24 @@ int CeedQFunctionContextSetInt32(CeedQFunctionContext ctx,
 }
 
 /**
+  @brief Get additional destroy routine for CeedQFunctionContext user data
+
+  @param[in] ctx          CeedQFunctionContext to get user destroy function
+  @param[out] f_mem_type  Memory type to use when passing data into `f`
+  @param[out] f           Additional routine to use to destroy user data
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Backend
+**/
+int CeedQFunctionContextGetDataDestroy(CeedQFunctionContext ctx,
+                                       CeedMemType *f_mem_type, CeedQFunctionContextDataDestroyUser *f) {
+  if (f_mem_type) *f_mem_type = ctx->data_destroy_mem_type;
+  if (f) *f = ctx->data_destroy_function;
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
   @brief Increment the reference counter for a CeedQFunctionContext
 
   @param ctx  CeedQFunctionContext to increment the reference counter
@@ -460,6 +512,7 @@ int CeedQFunctionContextSetData(CeedQFunctionContext ctx, CeedMemType mem_type,
                      "access lock is already in use");
   // LCOV_EXCL_STOP
 
+  ierr = CeedQFunctionContextDestroyData(ctx); CeedChk(ierr);
   ctx->ctx_size = size;
   ierr = ctx->SetData(ctx, mem_type, copy_mode, data); CeedChk(ierr);
   ctx->state += 2;
@@ -671,11 +724,12 @@ int CeedQFunctionContextRestoreDataRead(CeedQFunctionContext ctx, void *data) {
                      "access was not granted");
   // LCOV_EXCL_STOP
 
-  if (ctx->RestoreDataRead) {
-    ierr = ctx->RestoreData(ctx); CeedChk(ierr);
+  ctx->num_readers--;
+  if (ctx->num_readers == 0 && ctx->RestoreDataRead) {
+    ierr = ctx->RestoreDataRead(ctx); CeedChk(ierr);
   }
   *(void **)data = NULL;
-  ctx->num_readers--;
+
   return CEED_ERROR_SUCCESS;
 }
 
@@ -807,15 +861,14 @@ int CeedQFunctionContextView(CeedQFunctionContext ctx, FILE *stream) {
 /**
   @brief Set additional destroy routine for CeedQFunctionContext user data
 
-  @param ctx        CeedQFunctionContext to set user destroy function
-  @param f_mem_type Memory type to use when passing data into `f`
-  @param f          Additional routine to use to destroy user data
+  @param[in] ctx         CeedQFunctionContext to set user destroy function
+  @param[in] f_mem_type  Memory type to use when passing data into `f`
+  @param[in] f           Additional routine to use to destroy user data
 
   @return An error code: 0 - success, otherwise - failure
 
   @ref User
 **/
-
 int CeedQFunctionContextSetDataDestroy(CeedQFunctionContext ctx,
                                        CeedMemType f_mem_type, CeedQFunctionContextDataDestroyUser f) {
   if (!f)
@@ -850,14 +903,7 @@ int CeedQFunctionContextDestroy(CeedQFunctionContext *ctx) {
                      "lock is in use");
   // LCOV_EXCL_STOP
 
-  if ((*ctx)->data_destroy_function) {
-    void *data;
-
-    ierr = CeedQFunctionContextGetData(*ctx, (*ctx)->data_destroy_mem_type, &data);
-    CeedChk(ierr);
-    ierr = (*ctx)->data_destroy_function(data); CeedChk(ierr);
-    ierr = CeedQFunctionContextRestoreData(*ctx, &data); CeedChk(ierr);
-  }
+  ierr = CeedQFunctionContextDestroyData(*ctx); CeedChk(ierr);
   if ((*ctx)->Destroy) {
     ierr = (*ctx)->Destroy(*ctx); CeedChk(ierr);
   }

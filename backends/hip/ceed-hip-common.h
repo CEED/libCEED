@@ -11,7 +11,11 @@
 #include <ceed/ceed.h>
 #include <ceed/backend.h>
 #include <hip/hip_runtime.h>
+#if (HIP_VERSION >= 50200000)
+#include <hipblas/hipblas.h>
+#else
 #include <hipblas.h>
+#endif
 
 #define QUOTE(...) #__VA_ARGS__
 
@@ -55,6 +59,9 @@ typedef struct {
   int device_id;
   hipblasHandle_t hipblas_handle;
 } Ceed_Hip;
+
+CEED_INTERN int CeedHipGetResourceRoot(Ceed ceed, const char *resource,
+                                       char **resource_root);
 
 CEED_INTERN int CeedHipInit(Ceed ceed, const char *resource);
 

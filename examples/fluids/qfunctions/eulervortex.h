@@ -16,12 +16,9 @@
 #ifndef eulervortex_h
 #define eulervortex_h
 
-#include <math.h>
 #include <ceed.h>
-
-#ifndef M_PI
-#define M_PI    3.14159265358979323846
-#endif
+#include <math.h>
+#include "utils.h"
 
 typedef struct EulerContext_ *EulerContext;
 struct EulerContext_ {
@@ -654,7 +651,7 @@ CEED_QFUNCTION(TravelingVortex_Inflow)(void *ctx, CeedInt Q,
                                        CeedScalar *const *out) {
   // *INDENT-OFF*
   // Inputs
-  const CeedScalar (*q_data_sur)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[1];
+  const CeedScalar (*q_data_sur)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[2];
   // Outputs
   CeedScalar (*v)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA])out[0];
   // *INDENT-ON*
@@ -738,8 +735,8 @@ CEED_QFUNCTION(Euler_Outflow)(void *ctx, CeedInt Q,
                               CeedScalar *const *out) {
   // *INDENT-OFF*
   // Inputs
-  const CeedScalar (*q)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[0],
-                   (*q_data_sur)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[1];
+  const CeedScalar (*q)[CEED_Q_VLA]          = (const CeedScalar(*)[CEED_Q_VLA])in[0],
+                   (*q_data_sur)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[2];
   // Outputs
   CeedScalar (*v)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA])out[0];
   // *INDENT-ON*

@@ -12,9 +12,10 @@
 #ifndef blasius_h
 #define blasius_h
 
-#include <math.h>
 #include <ceed.h>
+#include <math.h>
 #include "newtonian_types.h"
+#include "utils.h"
 
 typedef struct BlasiusContext_ *BlasiusContext;
 struct BlasiusContext_ {
@@ -24,12 +25,9 @@ struct BlasiusContext_ {
   CeedScalar Uinf;      // !< Velocity at boundary layer edge
   CeedScalar P0;        // !< Pressure at outflow
   CeedScalar theta0;    // !< Temperature at inflow
+  CeedScalar x_inflow;  // !< Location of inflow in x
   struct NewtonianIdealGasContext_ newtonian_ctx;
 };
-
-#ifndef M_PI
-#define M_PI    3.14159265358979323846
-#endif
 
 void CEED_QFUNCTION_HELPER(BlasiusSolution)(const CeedScalar y,
     const CeedScalar Uinf, const CeedScalar x0, const CeedScalar x,
@@ -139,6 +137,7 @@ CEED_QFUNCTION(ICsBlasius)(void *ctx, CeedInt Q,
   const CeedScalar P0     = context->P0;
   const CeedScalar delta0 = context->delta0;
   const CeedScalar Uinf   = context->Uinf;
+  const CeedScalar x_inflow   = context->x_inflow;
 
   const CeedScalar e_internal = cv * theta0;
   const CeedScalar rho        = P0 / ((gamma - 1) * e_internal);
@@ -150,7 +149,7 @@ CEED_QFUNCTION(ICsBlasius)(void *ctx, CeedInt Q,
   for (CeedInt i=0; i<Q; i++) {
     const CeedScalar x[] = {X[0][i], X[1][i], X[2][i]};
 
-    BlasiusSolution(x[1], Uinf, x0, x[0], rho, &u, &v, &t12,
+    BlasiusSolution(x[1], Uinf, x0, x[0] - x_inflow, rho, &u, &v, &t12,
                     &context->newtonian_ctx);
 
     q0[0][i] = rho;
@@ -169,8 +168,102 @@ CEED_QFUNCTION(Blasius_Inflow)(void *ctx, CeedInt Q,
   // *INDENT-OFF*
   // Inputs
   const CeedScalar (*q)[CEED_Q_VLA]          = (const CeedScalar(*)[CEED_Q_VLA])in[0],
-                   (*q_data_sur)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[1],
-                   (*X)[CEED_Q_VLA]          = (const CeedScalar(*)[CEED_Q_VLA])in[2];
+                   (*q_data_sur)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[2],
+                   (*X)[CEED_Q_VLA]          = (const CeedScalar(*)[CEED_Q_VLA])in[3];
+
+  // Outputs
+  CeedScalar (*v)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA])out[0];
+  // *INDENT-ON*
+  const BlasiusContext context = (BlasiusContext)ctx;
+  const bool implicit     = context->implicit;
+  const CeedScalar mu     = context->newtonian_ctx.mu;
+  const CeedScalar cv     = context->newtonian_ctx.cv;
+  const CeedScalar cp     = context->newtonian_ctx.cp;
+  const CeedScalar Rd     = cp - cv;
+  const CeedScalar gamma  = cp/cv;
+
+  const CeedScalar theta0   = context->theta0;
+  const CeedScalar P0       = context->P0;
+  const CeedScalar delta0   = context->delta0;
+  const CeedScalar Uinf     = context->Uinf;
+  const CeedScalar x_inflow = context->x_inflow;
+  const bool       weakT    = context->weakT;
+  const CeedScalar rho_0    = P0 / (Rd * theta0);
+  const CeedScalar x0       = Uinf*rho_0 / (mu*25/ Square(delta0) );
+
+  CeedPragmaSIMD
+  // Quadrature Point Loop
+  for (CeedInt i=0; i<Q; i++) {
+    // Setup
+    // -- Interp-to-Interp q_data
+    // For explicit mode, the surface integral is on the RHS of ODE q_dot = f(q).
+    // For implicit mode, it gets pulled to the LHS of implicit ODE/DAE g(q_dot, q).
+    // We can effect this by swapping the sign on this weight
+    const CeedScalar wdetJb  = (implicit ? -1. : 1.) * q_data_sur[0][i];
+
+    // Calculate inflow values
+    const CeedScalar x[3] = {X[0][i], X[1][i], X[2][i]};
+    CeedScalar velocity[3] = {0.};
+    CeedScalar t12;
+    BlasiusSolution(x[1], Uinf, x0, x[0] - x_inflow, rho_0, &velocity[0],
+                    &velocity[1], &t12, &context->newtonian_ctx);
+
+    // enabling user to choose between weak T and weak rho inflow
+    CeedScalar rho,E_internal, P, E_kinetic;
+    if (weakT) {
+      // rho should be from the current solution
+      rho = q[0][i];
+      // Temperature is being set weakly (theta0) and for constant cv this sets E_internal
+      E_internal = rho * cv * theta0;
+      // Find pressure using
+      P = rho*Rd*theta0; // interior rho with exterior T
+      E_kinetic = .5 * rho * Dot3(velocity, velocity);
+    } else {
+      //  Fixing rho weakly on the inflow to a value  consistent with theta0 and P0
+      rho =  rho_0;
+      E_kinetic = .5 * rho * Dot3(velocity, velocity);
+      E_internal = q[4][i] - E_kinetic; // uses set rho and u but E from solution
+      P = E_internal * (gamma - 1.);
+    }
+    const CeedScalar E = E_internal + E_kinetic;
+    // ---- Normal vect
+    const CeedScalar norm[3] = {q_data_sur[1][i],
+                                q_data_sur[2][i],
+                                q_data_sur[3][i]
+                               };
+
+    // The Physics
+    // Zero v so all future terms can safely sum into it
+    for (CeedInt j=0; j<5; j++) v[j][i] = 0.;
+
+    const CeedScalar u_normal = Dot3(norm, velocity);
+    const CeedScalar viscous_flux[3] = {-t12 *norm[1], -t12 *norm[0], 0};
+
+    // The Physics
+    // -- Density
+    v[0][i] -= wdetJb * rho * u_normal; // interior rho
+
+    // -- Momentum
+    for (CeedInt j=0; j<3; j++)
+      v[j+1][i] -= wdetJb * (rho * u_normal * velocity[j] // interior rho
+                             + norm[j] * P // mixed P
+                             + viscous_flux[j]);
+
+    // -- Total Energy Density
+    v[4][i] -= wdetJb * (u_normal * (E + P) + Dot3(viscous_flux, velocity));
+
+  } // End Quadrature Point Loop
+  return 0;
+}
+
+CEED_QFUNCTION(Blasius_Inflow_Jacobian)(void *ctx, CeedInt Q,
+                                        const CeedScalar *const *in,
+                                        CeedScalar *const *out) {
+  // *INDENT-OFF*
+  // Inputs
+  const CeedScalar (*dq)[CEED_Q_VLA]         = (const CeedScalar(*)[CEED_Q_VLA])in[0],
+                   (*q_data_sur)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[2],
+                   (*X)[CEED_Q_VLA]          = (const CeedScalar(*)[CEED_Q_VLA])in[3];
 
   // Outputs
   CeedScalar (*v)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA])out[0];
@@ -203,145 +296,38 @@ CEED_QFUNCTION(Blasius_Inflow)(void *ctx, CeedInt Q,
 
     // Calculate inflow values
     const CeedScalar x[3] = {X[0][i], X[1][i], X[2][i]};
-    CeedScalar velocity[3] = {0.};
+    CeedScalar velocity[3] = {0};
     CeedScalar t12;
     BlasiusSolution(x[1], Uinf, x0, x[0], rho_0, &velocity[0], &velocity[1],
                     &t12, &context->newtonian_ctx);
 
     // enabling user to choose between weak T and weak rho inflow
-    CeedScalar rho,E_internal, P, E_kinetic;
+    CeedScalar drho, dE, dP;
     if (weakT) {
       // rho should be from the current solution
-      rho = q[0][i];
-      // Temperature is being set weakly (theta0) and for constant cv this sets E_internal
-      E_internal = rho * cv * theta0;
-      // Find pressure using
-      P=rho*Rd*theta0; // interior rho with exterior T
-      E_kinetic = .5 * rho * (velocity[0]*velocity[0] +
-                              velocity[1]*velocity[1] +
-                              velocity[2]*velocity[2]);
-    } else {
-      //  Fixing rho weakly on the inflow to a value  consistent with theta0 and P0
-      rho =  rho_0;
-      E_kinetic = .5 * rho * (velocity[0]*velocity[0] +
-                              velocity[1]*velocity[1] +
-                              velocity[2]*velocity[2]);
-      E_internal = q[4][i] - E_kinetic; // uses set rho and u but E from solution
-      P = E_internal * (gamma - 1.);
+      drho = dq[0][i];
+      CeedScalar dE_internal = drho * cv * theta0;
+      CeedScalar dE_kinetic = .5 * drho * Dot3(velocity, velocity);
+      dE = dE_internal + dE_kinetic;
+      dP = drho * Rd * theta0; // interior rho with exterior T
+    } else { // rho specified, E_internal from solution
+      drho = 0;
+      dE = dq[4][i];
+      dP = dE * (gamma - 1.);
     }
-    const CeedScalar E = E_internal + E_kinetic;
-    // ---- Normal vect
     const CeedScalar norm[3] = {q_data_sur[1][i],
                                 q_data_sur[2][i],
                                 q_data_sur[3][i]
                                };
 
-    // The Physics
-    // Zero v so all future terms can safely sum into it
-    for (CeedInt j=0; j<5; j++) v[j][i] = 0.;
+    const CeedScalar u_normal = Dot3(norm, velocity);
 
-    const CeedScalar u_normal = norm[0]*velocity[0] +
-                                norm[1]*velocity[1] +
-                                norm[2]*velocity[2];
-
-    // The Physics
-    // -- Density
-    v[0][i] -= wdetJb * rho * u_normal; // interior rho
-
-    // -- Momentum
-    for (CeedInt j=0; j<3; j++)
-      v[j+1][i] -= wdetJb * (rho * u_normal * velocity[j] + // interior rho
-                             norm[j] * P); // mixed P
-    v[2][i] -= wdetJb * t12  ;
-
-    // -- Total Energy Density
-    v[4][i] -= wdetJb * u_normal * (E + P);
-    v[4][i] -= wdetJb * t12 * velocity[1];
-
+    v[0][i] = - wdetJb * drho * u_normal;
+    for (int j=0; j<3; j++)
+      v[j+1][i] = -wdetJb * (drho * u_normal * velocity[j] + norm[j] * dP);
+    v[4][i] = - wdetJb * u_normal * (dE + dP);
   } // End Quadrature Point Loop
   return 0;
 }
 
-// *****************************************************************************
-CEED_QFUNCTION(Blasius_Outflow)(void *ctx, CeedInt Q,
-                                const CeedScalar *const *in,
-                                CeedScalar *const *out) {
-  // *INDENT-OFF*
-  // Inputs
-  const CeedScalar (*q)[CEED_Q_VLA]          = (const CeedScalar(*)[CEED_Q_VLA])in[0],
-                   (*q_data_sur)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[1],
-                   (*X)[CEED_Q_VLA]          = (const CeedScalar(*)[CEED_Q_VLA])in[2];
-  // Outputs
-  CeedScalar (*v)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA])out[0];
-  // *INDENT-ON*
-
-  const BlasiusContext context = (BlasiusContext)ctx;
-  const bool implicit     = context->implicit;
-  const CeedScalar mu     = context->newtonian_ctx.mu;
-  const CeedScalar cv     = context->newtonian_ctx.cv;
-  const CeedScalar cp     = context->newtonian_ctx.cp;
-  const CeedScalar Rd     = cp - cv;
-
-  const CeedScalar theta0 = context->theta0;
-  const CeedScalar P0     = context->P0;
-  const CeedScalar rho_0  = P0 / (Rd*theta0);
-  const CeedScalar delta0 = context->delta0;
-  const CeedScalar Uinf   = context->Uinf;
-  const CeedScalar x0     = Uinf*rho_0 / (mu*25/ (delta0*delta0) );
-
-  CeedPragmaSIMD
-  // Quadrature Point Loop
-  for (CeedInt i=0; i<Q; i++) {
-    // Setup
-    // -- Interp in
-    const CeedScalar rho      =  q[0][i];
-    const CeedScalar u[3]     = {q[1][i] / rho,
-                                 q[2][i] / rho,
-                                 q[3][i] / rho
-                                };
-    const CeedScalar E        =  q[4][i];
-
-    // -- Interp-to-Interp q_data
-    // For explicit mode, the surface integral is on the RHS of ODE q_dot = f(q).
-    // For implicit mode, it gets pulled to the LHS of implicit ODE/DAE g(q_dot, q).
-    // We can effect this by swapping the sign on this weight
-    const CeedScalar wdetJb  = (implicit ? -1. : 1.) * q_data_sur[0][i];
-
-    // ---- Normal vect
-    const CeedScalar norm[3] = {q_data_sur[1][i],
-                                q_data_sur[2][i],
-                                q_data_sur[3][i]
-                               };
-
-    // The Physics
-    // Zero v so all future terms can safely sum into it
-    for (CeedInt j=0; j<5; j++) v[j][i] = 0.;
-
-    // Implementing outflow condition
-    const CeedScalar P         = P0; // pressure
-    const CeedScalar u_normal  = norm[0]*u[0] + norm[1]*u[1] +
-                                 norm[2]*u[2]; // Normal velocity
-
-    // Calculate prescribed outflow traction values
-    const CeedScalar x[3] = {X[0][i], X[1][i], X[2][i]};
-    CeedScalar velocity[3] = {0.};
-    CeedScalar t12;
-    BlasiusSolution(x[1], Uinf, x0, x[0], rho_0, &velocity[0], &velocity[1],
-                    &t12, &context->newtonian_ctx);
-    // The Physics
-    // -- Density
-    v[0][i] -= wdetJb * rho * u_normal;
-
-    // -- Momentum
-    for (CeedInt j=0; j<3; j++)
-      v[j+1][i] -= wdetJb *(rho * u_normal * u[j] + norm[j] * P);
-    v[2][i] += wdetJb * t12  ;
-
-    // -- Total Energy Density
-    v[4][i] -= wdetJb * u_normal * (E + P);
-    v[4][i] += wdetJb * t12 * velocity[1];
-
-  } // End Quadrature Point Loop
-  return 0;
-}
 #endif // blasius_h

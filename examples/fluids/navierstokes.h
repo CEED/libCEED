@@ -110,6 +110,9 @@ struct AppCtx_private {
   char              ceed_resource[PETSC_MAX_PATH_LEN]; // libCEED backend
   PetscInt          degree;
   PetscInt          q_extra;
+  // Solver arguments
+  MatType           amat_type;
+  PetscBool         pmat_pbdiagonal;
   // Post-processing arguments
   PetscInt          output_freq;
   PetscInt          viz_refine;
@@ -128,8 +131,11 @@ struct AppCtx_private {
 struct CeedData_private {
   CeedVector           x_coord, q_data;
   CeedQFunction        qf_setup_vol, qf_ics, qf_rhs_vol, qf_ifunction_vol,
-                       qf_setup_sur, qf_apply_inflow, qf_apply_outflow;
-  CeedBasis            basis_x, basis_xc, basis_q, basis_x_sur, basis_q_sur;
+                       qf_setup_sur,
+                       qf_apply_inflow, qf_apply_inflow_jacobian,
+                       qf_apply_outflow, qf_apply_outflow_jacobian;
+  CeedBasis            basis_x, basis_xc, basis_q, basis_x_sur, basis_q_sur,
+                       basis_xc_sur;
   CeedElemRestriction  elem_restr_x, elem_restr_q, elem_restr_qd_i;
   CeedOperator         op_setup_vol, op_ics;
 };
@@ -142,11 +148,15 @@ struct User_private {
   Mat          interp_viz;
   Ceed         ceed;
   Units        units;
-  Vec          M;
+  Vec          M, Q_loc, Q_dot_loc;
   Physics      phys;
   AppCtx       app_ctx;
-  CeedVector   q_ceed, q_dot_ceed, g_ceed;
-  CeedOperator op_rhs_vol, op_rhs, op_ifunction_vol, op_ifunction;
+  CeedVector   q_ceed, q_dot_ceed, g_ceed, coo_values_amat, coo_values_pmat,
+               x_ceed;
+  CeedOperator op_rhs_vol, op_rhs, op_ifunction_vol, op_ifunction, op_ijacobian,
+               op_dirichlet;
+  bool matrices_set_up;
+  CeedScalar time, dt;
 };
 
 // Units
@@ -184,11 +194,13 @@ struct Physics_private {
   EulerTestType            euler_test;
   StabilizationType        stab;
   PetscBool                implicit;
+  PetscBool                use_primitive;
   PetscBool                has_curr_time;
   PetscBool                has_neumann;
   CeedContextFieldLabel    solution_time_label;
   CeedContextFieldLabel    timestep_size_label;
   CeedContextFieldLabel    ics_time_label;
+  CeedContextFieldLabel    ijacobian_time_shift_label;
 };
 
 typedef struct {
@@ -201,14 +213,16 @@ typedef struct {
 // *INDENT-OFF*
 typedef struct ProblemData_private ProblemData;
 struct ProblemData_private {
-  CeedInt           dim, q_data_size_vol, q_data_size_sur;
+  CeedInt           dim, q_data_size_vol, q_data_size_sur, jac_data_size_sur;
   CeedScalar        dm_scale;
   ProblemQFunctionSpec setup_vol, setup_sur, ics, apply_vol_rhs, apply_vol_ifunction,
-    apply_inflow, apply_outflow;
+    apply_vol_ijacobian, apply_inflow, apply_outflow,
+    apply_inflow_jacobian, apply_outflow_jacobian;
   bool              non_zero_time;
   PetscErrorCode    (*bc)(PetscInt, PetscReal, const PetscReal[], PetscInt,
                           PetscScalar[], void *);
   void *bc_ctx;
+  PetscBool bc_from_ics, use_dirichlet_ceed;
   PetscErrorCode    (*print_info)(ProblemData*, AppCtx);
 };
 // *INDENT-ON*
@@ -238,20 +252,15 @@ extern PetscErrorCode NS_ADVECTION2D(ProblemData *problem, DM dm,
                                      void *ctx);
 
 // Print function for each problem
-extern PetscErrorCode PRINT_DENSITY_CURRENT(ProblemData *problem,
-    AppCtx app_ctx);
+extern PetscErrorCode PRINT_NEWTONIAN(ProblemData *problem, AppCtx app_ctx);
 
-extern PetscErrorCode PRINT_EULER_VORTEX(ProblemData *problem,
-    AppCtx app_ctx);
+extern PetscErrorCode PRINT_EULER_VORTEX(ProblemData *problem, AppCtx app_ctx);
 
-extern PetscErrorCode PRINT_SHOCKTUBE(ProblemData *problem,
-                                      AppCtx app_ctx);
+extern PetscErrorCode PRINT_SHOCKTUBE(ProblemData *problem, AppCtx app_ctx);
 
-extern PetscErrorCode PRINT_ADVECTION(ProblemData *problem,
-                                      AppCtx app_ctx);
+extern PetscErrorCode PRINT_ADVECTION(ProblemData *problem, AppCtx app_ctx);
 
-extern PetscErrorCode PRINT_ADVECTION2D(ProblemData *problem,
-                                        AppCtx app_ctx);
+extern PetscErrorCode PRINT_ADVECTION2D(ProblemData *problem, AppCtx app_ctx);
 
 // -----------------------------------------------------------------------------
 // libCEED functions
@@ -274,9 +283,12 @@ PetscErrorCode GetRestrictionForDomain(Ceed ceed, DM dm, CeedInt height,
 // Utility function to create CEED Composite Operator for the entire domain
 PetscErrorCode CreateOperatorForDomain(Ceed ceed, DM dm, SimpleBC bc,
                                        CeedData ceed_data, Physics phys,
-                                       CeedOperator op_apply_vol, CeedInt height,
-                                       CeedInt P_sur, CeedInt Q_sur, CeedInt q_data_size_sur,
-                                       CeedOperator *op_apply);
+                                       CeedOperator op_apply_vol,
+                                       CeedOperator op_apply_ijacobian_vol,
+                                       CeedInt height,
+                                       CeedInt P_sur, CeedInt Q_sur,
+                                       CeedInt q_data_size_sur, CeedInt jac_data_size_sur,
+                                       CeedOperator *op_apply, CeedOperator *op_apply_ijacobian);
 
 PetscErrorCode SetupLibceed(Ceed ceed, CeedData ceed_data, DM dm, User user,
                             AppCtx app_ctx, ProblemData *problem, SimpleBC bc);
@@ -307,7 +319,8 @@ PetscErrorCode TSSolve_NS(DM dm, User user, AppCtx app_ctx, Physics phys,
 // Setup DM
 // -----------------------------------------------------------------------------
 // Create mesh
-PetscErrorCode CreateDM(MPI_Comm comm, ProblemData *problem, DM *dm);
+PetscErrorCode CreateDM(MPI_Comm comm, ProblemData *problem,
+                        MatType, VecType, DM *dm);
 
 // Set up DM
 PetscErrorCode SetUpDM(DM dm, ProblemData *problem, PetscInt degree,
@@ -357,5 +370,12 @@ PetscErrorCode SetupICsFromBinary(MPI_Comm comm, AppCtx app_ctx, Vec Q);
 PetscErrorCode SetBCsFromICs_NS(DM dm, Vec Q, Vec Q_loc);
 
 // -----------------------------------------------------------------------------
+// Boundary Condition Related Functions
+// -----------------------------------------------------------------------------
+
+// Setup StrongBCs that use QFunctions
+PetscErrorCode SetupStrongBC_Ceed(Ceed ceed, CeedData ceed_data, DM dm,
+                                  User user, AppCtx app_ctx, ProblemData *problem,
+                                  SimpleBC bc, CeedInt Q_sur, CeedInt q_data_size_sur);
 
 #endif // libceed_fluids_examples_navier_stokes_h
