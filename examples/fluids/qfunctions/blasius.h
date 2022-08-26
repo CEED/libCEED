@@ -230,10 +230,11 @@ CEED_QFUNCTION(Blasius_Inflow)(void *ctx, CeedInt Q, const CeedScalar *const *in
     v[0][i] -= wdetJb * rho * u_normal;  // interior rho
 
     // -- Momentum
-    for (CeedInt j = 0; j < 3; j++)
+    for (CeedInt j = 0; j < 3; j++) {
       v[j + 1][i] -= wdetJb * (rho * u_normal * velocity[j]  // interior rho
                                + norm[j] * P                 // mixed P
                                + viscous_flux[j]);
+    }
 
     // -- Total Energy Density
     v[4][i] -= wdetJb * (u_normal * (E + P) + Dot3(viscous_flux, velocity));

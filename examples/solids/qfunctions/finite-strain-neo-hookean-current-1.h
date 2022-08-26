@@ -208,11 +208,12 @@ CEED_QFUNCTION(ElasFSCurrentNH1F)(void *ctx, CeedInt Q, const CeedScalar *const 
     // Compute Grad_u
     //   dXdx = (dx/dX)^(-1)
     // Apply dXdx to du = grad_u
-    for (CeedInt j = 0; j < 3; j++)      // Component
+    for (CeedInt j = 0; j < 3; j++) {    // Component
       for (CeedInt k = 0; k < 3; k++) {  // Derivative
         Grad_u[j][k][i] = 0;
         for (CeedInt m = 0; m < 3; m++) Grad_u[j][k][i] += du[j][m] * dXdx_initial[m][k];
       }
+    }
 
     // *INDENT-OFF*
     const CeedScalar tempGradu[3][3] = {
@@ -236,18 +237,20 @@ CEED_QFUNCTION(ElasFSCurrentNH1F)(void *ctx, CeedInt Q, const CeedScalar *const 
     // dXdx = dX/dx = dX/dx_initial * F^{-1}
     // Note that F^{-1} = dx_initial/dx
     CeedScalar dXdx[3][3];
-    for (CeedInt j = 0; j < 3; j++)      // Component
+    for (CeedInt j = 0; j < 3; j++) {    // Component
       for (CeedInt k = 0; k < 3; k++) {  // Derivative
         dXdx[j][k] = 0;
         for (CeedInt m = 0; m < 3; m++) dXdx[j][k] += dXdx_initial[j][m] * Finv[m][k];
       }
+    }
 
     // Apply dXdx^T and weight to intermediate stress
-    for (CeedInt j = 0; j < 3; j++)      // Component
+    for (CeedInt j = 0; j < 3; j++) {    // Component
       for (CeedInt k = 0; k < 3; k++) {  // Derivative
         dvdX[k][j][i] = 0;
         for (CeedInt m = 0; m < 3; m++) dvdX[k][j][i] += dXdx[k][m] * tau[j][m] * wdetJ;
       }
+    }
 
   }  // End of Quadrature Point Loop
 
@@ -306,11 +309,12 @@ CEED_QFUNCTION(ElasFSCurrentNH1dF)(void *ctx, CeedInt Q, const CeedScalar *const
     // Apply dXdx to deltadu = graddelta
     // This is dF = Grad_du
     CeedScalar Grad_du[3][3];
-    for (CeedInt j = 0; j < 3; j++)      // Component
+    for (CeedInt j = 0; j < 3; j++) {    // Component
       for (CeedInt k = 0; k < 3; k++) {  // Derivative
         Grad_du[j][k] = 0;
         for (CeedInt m = 0; m < 3; m++) Grad_du[j][k] += dXdx_initial[m][k] * deltadu[j][m];
       }
+    }
 
     // *INDENT-OFF*
     const CeedScalar tempGradu[3][3] = {
@@ -334,19 +338,21 @@ CEED_QFUNCTION(ElasFSCurrentNH1dF)(void *ctx, CeedInt Q, const CeedScalar *const
 
     // Compute grad_du = \nabla_x (deltau) = deltau * dX/dx
     CeedScalar grad_du[3][3];
-    for (CeedInt j = 0; j < 3; j++)
+    for (CeedInt j = 0; j < 3; j++) {
       for (CeedInt k = 0; k < 3; k++) {
         grad_du[j][k] = 0;
         for (CeedInt m = 0; m < 3; m++) grad_du[j][k] += deltadu[j][m] * F_inv[m][k];
       }
+    }
 
     // Compute grad_du_tau = grad_du*tau
     CeedScalar grad_du_tau[3][3];
-    for (CeedInt j = 0; j < 3; j++)
+    for (CeedInt j = 0; j < 3; j++) {
       for (CeedInt k = 0; k < 3; k++) {
         grad_du_tau[j][k] = 0;
         for (CeedInt m = 0; m < 3; m++) grad_du_tau[j][k] += grad_du[j][m] * tau[m][k];
       }
+    }
 
     // Compute depsilon = (grad_du + grad_du^T)/2
     const CeedScalar depsilon[3][3] = {
@@ -362,27 +368,30 @@ CEED_QFUNCTION(ElasFSCurrentNH1dF)(void *ctx, CeedInt Q, const CeedScalar *const
     grad_du_tau[2][2] += lambda * tr_deps;
     // Compute dp = grad_du*tau + trace(depsilon)I3 +2(mu-lambda*logJ)depsilon
     CeedScalar dp[3][3];
-    for (CeedInt j = 0; j < 3; j++)
+    for (CeedInt j = 0; j < 3; j++) {
       for (CeedInt k = 0; k < 3; k++) {
         dp[j][k] = grad_du_tau[j][k] + 2 * (mu - llnj) * depsilon[j][k];
       }
+    }
 
     // x is current config coordinate system
     // dXdx = dX/dx = dX/dx_initial * F^{-1}
     // Note that F^{-1} = dx_initial/dx
     CeedScalar dXdx[3][3];
-    for (CeedInt j = 0; j < 3; j++)      // Component
+    for (CeedInt j = 0; j < 3; j++) {    // Component
       for (CeedInt k = 0; k < 3; k++) {  // Derivative
         dXdx[j][k] = 0;
         for (CeedInt m = 0; m < 3; m++) dXdx[j][k] += dXdx_initial[j][m] * F_inv[m][k];
       }
+    }
 
     // Apply dXdx^T and weight
-    for (CeedInt j = 0; j < 3; j++)      // Component
+    for (CeedInt j = 0; j < 3; j++) {    // Component
       for (CeedInt k = 0; k < 3; k++) {  // Derivative
         deltadvdX[k][j][i] = 0;
         for (CeedInt m = 0; m < 3; m++) deltadvdX[k][j][i] += dXdx[k][m] * dp[j][m] * wdetJ;
       }
+    }
 
   }  // End of Quadrature Point Loop
 
@@ -432,11 +441,12 @@ CEED_QFUNCTION(ElasFSCurrentNH1Energy)(void *ctx, CeedInt Q, const CeedScalar *c
     //   dXdx = (dx/dX)^(-1)
     // Apply dXdx to du = grad_u
     CeedScalar Grad_u[3][3];
-    for (int j = 0; j < 3; j++)      // Component
+    for (int j = 0; j < 3; j++) {    // Component
       for (int k = 0; k < 3; k++) {  // Derivative
         Grad_u[j][k] = 0;
         for (int m = 0; m < 3; m++) Grad_u[j][k] += dXdx[m][k] * du[j][m];
       }
+    }
 
     // E - Green-Lagrange strain tensor
     //     E = 1/2 (Grad_u + Grad_u^T + Grad_u^T*Grad_u)
@@ -507,11 +517,12 @@ CEED_QFUNCTION(ElasFSCurrentNH1Diagnostic)(void *ctx, CeedInt Q, const CeedScala
     //   dXdx = (dx/dX)^(-1)
     // Apply dXdx to du = Grad_u
     CeedScalar Grad_u[3][3];
-    for (int j = 0; j < 3; j++)      // Component
+    for (int j = 0; j < 3; j++) {    // Component
       for (int k = 0; k < 3; k++) {  // Derivative
         Grad_u[j][k] = 0;
         for (int m = 0; m < 3; m++) Grad_u[j][k] += dXdx[m][k] * du[j][m];
       }
+    }
 
     // E - Green-Lagrange strain tensor
     //     E = 1/2 (Grad_u + Grad_u^T + Grad_u^T*Grad_u)
@@ -542,13 +553,13 @@ CEED_QFUNCTION(ElasFSCurrentNH1Diagnostic)(void *ctx, CeedInt Q, const CeedScala
     // Stress tensor invariants
     diagnostic[4][i] = (E2[0][0] + E2[1][1] + E2[2][2]) / 2.;
     diagnostic[5][i] = 0.;
-    for (CeedInt j = 0; j < 3; j++)
+    for (CeedInt j = 0; j < 3; j++) {
       for (CeedInt m = 0; m < 3; m++) diagnostic[5][i] += E2[j][m] * E2[m][j] / 4.;
+    }
     diagnostic[6][i] = Jm1 + 1.;
 
     // Strain energy
     diagnostic[7][i] = (lambda * logJ * logJ / 2. - mu * logJ + mu * (E2[0][0] + E2[1][1] + E2[2][2]) / 2.);
-
   }  // End of Quadrature Point Loop
 
   return 0;

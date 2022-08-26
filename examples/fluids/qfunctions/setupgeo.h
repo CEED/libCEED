@@ -179,9 +179,11 @@ CEED_QFUNCTION(SetupBoundary)(void *ctx, CeedInt Q, const CeedScalar *const *in,
 
     // dxdX_k,j * dxdX_j,k
     CeedScalar dxdXTdxdX[2][2] = {{0.}};
-    for (CeedInt j = 0; j < 2; j++)
-      for (CeedInt k = 0; k < 2; k++)
+    for (CeedInt j = 0; j < 2; j++) {
+      for (CeedInt k = 0; k < 2; k++) {
         for (CeedInt l = 0; l < 3; l++) dxdXTdxdX[j][k] += dxdX[l][j] * dxdX[l][k];
+      }
+    }
 
     const CeedScalar detdxdXTdxdX = dxdXTdxdX[0][0] * dxdXTdxdX[1][1] - dxdXTdxdX[1][0] * dxdXTdxdX[0][1];
 
@@ -194,9 +196,11 @@ CEED_QFUNCTION(SetupBoundary)(void *ctx, CeedInt Q, const CeedScalar *const *in,
 
     // Compute dXdx from dxdXTdxdX^-1 and dxdX
     CeedScalar dXdx[2][3] = {{0.}};
-    for (CeedInt j = 0; j < 2; j++)
-      for (CeedInt k = 0; k < 3; k++)
+    for (CeedInt j = 0; j < 2; j++) {
+      for (CeedInt k = 0; k < 3; k++) {
         for (CeedInt l = 0; l < 2; l++) dXdx[j][k] += dxdXTdxdX_inv[l][j] * dxdX[k][l];
+      }
+    }
 
     q_data_sur[4][i] = dXdx[0][0];
     q_data_sur[5][i] = dXdx[0][1];

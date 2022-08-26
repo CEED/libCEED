@@ -352,10 +352,12 @@ CEED_QFUNCTION(Euler)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedSca
     for (CeedInt j = 0; j < 3; j++) dv[j][0][i] += wdetJ * (rho * u[0] * dXdx[j][0] + rho * u[1] * dXdx[j][1] + rho * u[2] * dXdx[j][2]);
     // -- Momentum
     // ---- rho (u x u) + P I3
-    for (CeedInt j = 0; j < 3; j++)
-      for (CeedInt k = 0; k < 3; k++)
+    for (CeedInt j = 0; j < 3; j++) {
+      for (CeedInt k = 0; k < 3; k++) {
         dv[k][j + 1][i] += wdetJ * ((rho * u[j] * u[0] + (j == 0 ? P : 0.)) * dXdx[k][0] + (rho * u[j] * u[1] + (j == 1 ? P : 0.)) * dXdx[k][1] +
                                     (rho * u[j] * u[2] + (j == 2 ? P : 0.)) * dXdx[k][2]);
+      }
+    }
     // -- Total Energy Density
     // ---- (E + P) u
     for (CeedInt j = 0; j < 3; j++) dv[j][4][i] += wdetJ * (E + P) * (u[0] * dXdx[j][0] + u[1] * dXdx[j][1] + u[2] * dXdx[j][2]);
@@ -375,9 +377,11 @@ CEED_QFUNCTION(Euler)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedSca
 
     // ---- strong_conv = dF/dq * dq/dx    (Strong convection)
     CeedScalar strong_conv[5] = {0.};
-    for (CeedInt j = 0; j < 3; j++)
-      for (CeedInt k = 0; k < 5; k++)
+    for (CeedInt j = 0; j < 3; j++) {
+      for (CeedInt k = 0; k < 5; k++) {
         for (CeedInt l = 0; l < 5; l++) strong_conv[k] += jacob_F_conv[j][k][l] * dqdx[l][j];
+      }
+    }
 
     // Stabilization
     // -- Tau elements
@@ -391,12 +395,15 @@ CEED_QFUNCTION(Euler)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedSca
       case 0:  // Galerkin
         break;
       case 1:  // SU
-        for (CeedInt j = 0; j < 3; j++)
-          for (CeedInt k = 0; k < 5; k++)
+        for (CeedInt j = 0; j < 3; j++) {
+          for (CeedInt k = 0; k < 5; k++) {
             for (CeedInt l = 0; l < 5; l++) stab[k][j] += jacob_F_conv[j][k][l] * Tau_x[j] * strong_conv[l];
+          }
+        }
 
-        for (CeedInt j = 0; j < 5; j++)
+        for (CeedInt j = 0; j < 5; j++) {
           for (CeedInt k = 0; k < 3; k++) dv[k][j][i] -= wdetJ * (stab[j][0] * dXdx[k][0] + stab[j][1] * dXdx[k][1] + stab[j][2] * dXdx[k][2]);
+        }
         break;
       case 2:  // SUPG is not implemented for explicit scheme
         break;
@@ -484,10 +491,12 @@ CEED_QFUNCTION(IFunction_Euler)(void *ctx, CeedInt Q, const CeedScalar *const *i
     for (CeedInt j = 0; j < 3; j++) dv[j][0][i] -= wdetJ * (rho * u[0] * dXdx[j][0] + rho * u[1] * dXdx[j][1] + rho * u[2] * dXdx[j][2]);
     // -- Momentum
     // ---- rho (u x u) + P I3
-    for (CeedInt j = 0; j < 3; j++)
-      for (CeedInt k = 0; k < 3; k++)
+    for (CeedInt j = 0; j < 3; j++) {
+      for (CeedInt k = 0; k < 3; k++) {
         dv[k][j + 1][i] -= wdetJ * ((rho * u[j] * u[0] + (j == 0 ? P : 0.)) * dXdx[k][0] + (rho * u[j] * u[1] + (j == 1 ? P : 0.)) * dXdx[k][1] +
                                     (rho * u[j] * u[2] + (j == 2 ? P : 0.)) * dXdx[k][2]);
+      }
+    }
     // -- Total Energy Density
     // ---- (E + P) u
     for (CeedInt j = 0; j < 3; j++) dv[j][4][i] -= wdetJ * (E + P) * (u[0] * dXdx[j][0] + u[1] * dXdx[j][1] + u[2] * dXdx[j][2]);
@@ -507,9 +516,11 @@ CEED_QFUNCTION(IFunction_Euler)(void *ctx, CeedInt Q, const CeedScalar *const *i
 
     // ---- strong_conv = dF/dq * dq/dx    (Strong convection)
     CeedScalar strong_conv[5] = {0.};
-    for (CeedInt j = 0; j < 3; j++)
-      for (CeedInt k = 0; k < 5; k++)
+    for (CeedInt j = 0; j < 3; j++) {
+      for (CeedInt k = 0; k < 5; k++) {
         for (CeedInt l = 0; l < 5; l++) strong_conv[k] += jacob_F_conv[j][k][l] * dqdx[l][j];
+      }
+    }
 
     // ---- Strong residual
     CeedScalar strong_res[5];
@@ -527,20 +538,26 @@ CEED_QFUNCTION(IFunction_Euler)(void *ctx, CeedInt Q, const CeedScalar *const *i
       case 0:  // Galerkin
         break;
       case 1:  // SU
-        for (CeedInt j = 0; j < 3; j++)
-          for (CeedInt k = 0; k < 5; k++)
+        for (CeedInt j = 0; j < 3; j++) {
+          for (CeedInt k = 0; k < 5; k++) {
             for (CeedInt l = 0; l < 5; l++) stab[k][j] += jacob_F_conv[j][k][l] * Tau_x[j] * strong_conv[l];
+          }
+        }
 
-        for (CeedInt j = 0; j < 5; j++)
+        for (CeedInt j = 0; j < 5; j++) {
           for (CeedInt k = 0; k < 3; k++) dv[k][j][i] += wdetJ * (stab[j][0] * dXdx[k][0] + stab[j][1] * dXdx[k][1] + stab[j][2] * dXdx[k][2]);
+        }
         break;
       case 2:  // SUPG
-        for (CeedInt j = 0; j < 3; j++)
-          for (CeedInt k = 0; k < 5; k++)
+        for (CeedInt j = 0; j < 3; j++) {
+          for (CeedInt k = 0; k < 5; k++) {
             for (CeedInt l = 0; l < 5; l++) stab[k][j] = jacob_F_conv[j][k][l] * Tau_x[j] * strong_res[l];
+          }
+        }
 
-        for (CeedInt j = 0; j < 5; j++)
+        for (CeedInt j = 0; j < 5; j++) {
           for (CeedInt k = 0; k < 3; k++) dv[k][j][i] += wdetJ * (stab[j][0] * dXdx[k][0] + stab[j][1] * dXdx[k][1] + stab[j][2] * dXdx[k][2]);
+        }
         break;
     }
   }  // End Quadrature Point Loop
@@ -573,8 +590,9 @@ CEED_QFUNCTION(TravelingVortex_Inflow)(void *ctx, CeedInt Q, const CeedScalar *c
   CeedScalar       P_inlet;
 
   // For test cases 1 and 3 the background velocity is zero
-  if (euler_test == 1 || euler_test == 3)
+  if (euler_test == 1 || euler_test == 3) {
     for (CeedInt i = 0; i < 3; i++) mean_velocity[i] = 0.;
+  }
 
   // For test cases 1 and 2, T_inlet = T_inlet = 0.4
   if (euler_test == 1 || euler_test == 2) T_inlet = P_inlet = .4;

@@ -85,15 +85,15 @@ CEED_QFUNCTION(SetupMassGeoCube)(void *ctx, const CeedInt Q,
                                    };
 
     CeedScalar dxdX[2][2];
-    for (int j=0; j<2; j++)
+    for (int j=0; j<2; j++) {
       for (int k=0; k<2; k++) {
         dxdX[j][k] = 0;
         for (int l=0; l<3; l++)
           dxdX[j][k] += dxdxx[j][l]*dxxdX[l][k];
       }
+    }
 
     q_data[i+Q*0] = (dxdX[0][0]*dxdX[1][1] - dxdX[1][0]*dxdX[0][1]) * w[i];
-
   } // End of Quadrature Point Loop
   return 0;
 }
@@ -118,8 +118,7 @@ CEED_QFUNCTION(Mass)(void *ctx, const CeedInt Q,
 
   // Quadrature Point Loop
   CeedPragmaSIMD
-  for (CeedInt i=0; i<Q; i++)
-    v[i] = q_data[i] * u[i];
+  for (CeedInt i=0; i<Q; i++) v[i] = q_data[i] * u[i];
 
   return 0;
 }

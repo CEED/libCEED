@@ -93,11 +93,11 @@ static int CreateRestriction(Ceed ceed, const CeedInt mesh_elem[3], CeedInt P, C
   // Get indicies
   for (int d = 0; d < 3; d++) m_nodes[d] = mesh_elem[d] * (P - 1) + 1;
   idx_p = idx = malloc(num_elem * P * P * P * sizeof idx[0]);
-  for (CeedInt i = 0; i < mesh_elem[0]; i++)
-    for (CeedInt j = 0; j < mesh_elem[1]; j++)
-      for (CeedInt k = 0; k < mesh_elem[2]; k++, idx_p += P * P * P)
-        for (CeedInt ii = 0; ii < P; ii++)
-          for (CeedInt jj = 0; jj < P; jj++)
+  for (CeedInt i = 0; i < mesh_elem[0]; i++) {
+    for (CeedInt j = 0; j < mesh_elem[1]; j++) {
+      for (CeedInt k = 0; k < mesh_elem[2]; k++, idx_p += P * P * P) {
+        for (CeedInt ii = 0; ii < P; ii++) {
+          for (CeedInt jj = 0; jj < P; jj++) {
             for (CeedInt kk = 0; kk < P; kk++) {
               if (0) {  // This is the C-style (i,j,k) ordering that I prefer
                 idx_p[(ii * P + jj) * P + kk] = num_comp * (((i * (P - 1) + ii) * m_nodes[1] + (j * (P - 1) + jj)) * m_nodes[2] + (k * (P - 1) + kk));
@@ -105,6 +105,11 @@ static int CreateRestriction(Ceed ceed, const CeedInt mesh_elem[3], CeedInt P, C
                 idx_p[ii + P * (jj + P * kk)] = num_comp * (((i * (P - 1) + ii) * m_nodes[1] + (j * (P - 1) + jj)) * m_nodes[2] + (k * (P - 1) + kk));
               }
             }
+          }
+        }
+      }
+    }
+  }
 
   // Setup CEED restriction
   CeedElemRestrictionCreate(ceed, num_elem, P * P * P, num_comp, 1, m_nodes[0] * m_nodes[1] * m_nodes[2] * num_comp, CEED_MEM_HOST, CEED_OWN_POINTER,
@@ -514,18 +519,21 @@ int main(int argc, char **argv) {
     PetscCall(PetscMalloc1(l_size, &l_to_g_ind_0));
     PetscCall(PetscMalloc1(l_size, &loc_ind));
     l_0_count = 0;
-    for (PetscInt i = 0, ir, ii; ir = i >= m_nodes[0], ii = i - ir * m_nodes[0], i < l_nodes[0]; i++)
-      for (PetscInt j = 0, jr, jj; jr = j >= m_nodes[1], jj = j - jr * m_nodes[1], j < l_nodes[1]; j++)
+    for (PetscInt i = 0, ir, ii; ir = i >= m_nodes[0], ii = i - ir * m_nodes[0], i < l_nodes[0]; i++) {
+      for (PetscInt j = 0, jr, jj; jr = j >= m_nodes[1], jj = j - jr * m_nodes[1], j < l_nodes[1]; j++) {
         for (PetscInt k = 0, kr, kk; kr = k >= m_nodes[2], kk = k - kr * m_nodes[2], k < l_nodes[2]; k++) {
           PetscInt here    = (i * l_nodes[1] + j) * l_nodes[2] + k;
           l_to_g_ind[here] = g_start[ir][jr][kr] + (ii * g_m_nodes[ir][jr][kr][1] + jj) * g_m_nodes[ir][jr][kr][2] + kk;
           if ((i_rank[0] == 0 && i == 0) || (i_rank[1] == 0 && j == 0) || (i_rank[2] == 0 && k == 0) ||
               (i_rank[0] + 1 == p[0] && i + 1 == l_nodes[0]) || (i_rank[1] + 1 == p[1] && j + 1 == l_nodes[1]) ||
-              (i_rank[2] + 1 == p[2] && k + 1 == l_nodes[2]))
+              (i_rank[2] + 1 == p[2] && k + 1 == l_nodes[2])) {
             continue;
+          }
           l_to_g_ind_0[l_0_count] = l_to_g_ind[here];
           loc_ind[l_0_count++]    = here;
         }
+      }
+    }
     PetscCall(ISCreateBlock(comm, num_comp_u, l_size, l_to_g_ind, PETSC_OWN_POINTER, &l_to_g_is));
     PetscCall(VecScatterCreate(X_loc, NULL, X, l_to_g_is, &l_to_g));
     PetscCall(ISCreateBlock(comm, num_comp_u, l_0_count, l_to_g_ind_0, PETSC_OWN_POINTER, &l_to_g_is_0));

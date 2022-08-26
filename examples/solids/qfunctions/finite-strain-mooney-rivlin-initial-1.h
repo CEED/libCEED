@@ -149,9 +149,10 @@ CEED_QFUNCTION_HELPER int commonFSMR1(const CeedScalar mu_1, const CeedScalar mu
 
   *logJ = log1p_series_shifted(Jm1);
   // *INDENT-OFF*
-  for (CeedInt i = 0; i < 6; i++)
+  for (CeedInt i = 0; i < 6; i++) {
     Swork[i] = (lambda * *logJ - mu_1 - 2 * mu_2) * Cinvwork[i] + (mu_1 + mu_2 * I_1) * (i < 3)  // identity I_3
                - mu_2 * Cwork[i];
+  }
 
   return 0;
 };
@@ -205,11 +206,12 @@ CEED_QFUNCTION(ElasFSInitialMR1F)(void *ctx, CeedInt Q, const CeedScalar *const 
     // Compute grad_u
     //   dXdx = (dx/dX)^(-1)
     // Apply dXdx to du = grad_u
-    for (CeedInt j = 0; j < 3; j++)      // Component
+    for (CeedInt j = 0; j < 3; j++) {    // Component
       for (CeedInt k = 0; k < 3; k++) {  // Derivative
         grad_u[j][k][i] = 0;
         for (CeedInt m = 0; m < 3; m++) grad_u[j][k][i] += dXdx[m][k] * du[j][m];
       }
+    }
 
     // I3 : 3x3 Identity matrix
     // Compute The Deformation Gradient : F = I3 + grad_u
@@ -240,19 +242,20 @@ CEED_QFUNCTION(ElasFSInitialMR1F)(void *ctx, CeedInt Q, const CeedScalar *const 
 
     // Compute the First Piola-Kirchhoff : P = F*S
     CeedScalar P[3][3];
-    for (CeedInt j = 0; j < 3; j++)
+    for (CeedInt j = 0; j < 3; j++) {
       for (CeedInt k = 0; k < 3; k++) {
         P[j][k] = 0;
         for (CeedInt m = 0; m < 3; m++) P[j][k] += F[j][m] * S[m][k];
       }
+    }
 
     // Apply dXdx^T and weight to P (First Piola-Kirchhoff)
-    for (CeedInt j = 0; j < 3; j++)      // Component
+    for (CeedInt j = 0; j < 3; j++) {    // Component
       for (CeedInt k = 0; k < 3; k++) {  // Derivative
         dvdX[k][j][i] = 0;
         for (CeedInt m = 0; m < 3; m++) dvdX[k][j][i] += dXdx[k][m] * P[j][m] * wdetJ;
       }
-
+    }
   }  // End of Quadrature Point Loop
 
   return 0;
@@ -302,11 +305,12 @@ CEED_QFUNCTION(ElasFSInitialMR1dF)(void *ctx, CeedInt Q, const CeedScalar *const
     // Apply dXdx to deltadu = graddelta
     // this is dF
     CeedScalar graddeltau[3][3];
-    for (CeedInt j = 0; j < 3; j++)      // Component
+    for (CeedInt j = 0; j < 3; j++) {    // Component
       for (CeedInt k = 0; k < 3; k++) {  // Derivative
         graddeltau[j][k] = 0;
         for (CeedInt m = 0; m < 3; m++) graddeltau[j][k] += dXdx[m][k] * deltadu[j][m];
       }
+    }
 
     // I3 : 3x3 Identity matrix
     // Deformation Gradient : F = I3 + grad_u
@@ -356,31 +360,35 @@ CEED_QFUNCTION(ElasFSInitialMR1dF)(void *ctx, CeedInt Q, const CeedScalar *const
     // *INDENT-ON*
     // -- C_inv:dE
     CeedScalar Cinv_contract_dE = 0;
-    for (CeedInt j = 0; j < 3; j++)
+    for (CeedInt j = 0; j < 3; j++) {
       for (CeedInt k = 0; k < 3; k++) Cinv_contract_dE += C_inv[j][k] * dE[j][k];
+    }
 
     // -- C:dE
     CeedScalar C_contract_dE = 0;
-    for (CeedInt j = 0; j < 3; j++)
+    for (CeedInt j = 0; j < 3; j++) {
       for (CeedInt k = 0; k < 3; k++) C_contract_dE += C[j][k] * dE[j][k];
+    }
 
     // -- dE*C_inv
     CeedScalar dE_Cinv[3][3];
-    for (CeedInt j = 0; j < 3; j++)
+    for (CeedInt j = 0; j < 3; j++) {
       for (CeedInt k = 0; k < 3; k++) {
         dE_Cinv[j][k] = 0;
         for (CeedInt m = 0; m < 3; m++) dE_Cinv[j][k] += dE[j][m] * C_inv[m][k];
       }
+    }
 
     // -- C_inv*dE*C_inv
     CeedScalar Cinv_dE_Cinv[3][3];
     // This product is symmetric and we only use the upper-triangular part
     // below, but naively compute the whole thing here
-    for (CeedInt j = 0; j < 3; j++)
+    for (CeedInt j = 0; j < 3; j++) {
       for (CeedInt k = 0; k < 3; k++) {
         Cinv_dE_Cinv[j][k] = 0;
         for (CeedInt m = 0; m < 3; m++) Cinv_dE_Cinv[j][k] += C_inv[j][m] * dE_Cinv[m][k];
       }
+    }
 
     // Compute dS = (mu_2)*((2*I_3:dE)*I_3 - dE) + 2*d*Cinv_dE_Cinv + lambda*Cinv_contract_dE*Cinvwork - 2*lambda*logJ*Cinv_dE_Cinv;
     // (2*I_3:dE)*I_3 - dE = 2*trace(dE)*I_3 - dE = 2trace(dE) - dE on the diagonal
@@ -388,9 +396,10 @@ CEED_QFUNCTION(ElasFSInitialMR1dF)(void *ctx, CeedInt Q, const CeedScalar *const
     // CeedScalar J = Jm1 + 1;
     CeedScalar tr_dE = dE[0][0] + dE[1][1] + dE[2][2];
     CeedScalar dSwork[6];
-    for (CeedInt i = 0; i < 6; i++)
+    for (CeedInt i = 0; i < 6; i++) {
       dSwork[i] = lambda * Cinv_contract_dE * Cinvwork[i] + 2 * (mu_1 + 2 * mu_2 - lambda * logJ) * Cinv_dE_Cinv[indj[i]][indk[i]] +
                   2 * mu_2 * (tr_dE * (i < 3) - dEwork[i]);
+    }
 
     // *INDENT-OFF*
     CeedScalar dS[3][3] = {
@@ -407,19 +416,20 @@ CEED_QFUNCTION(ElasFSInitialMR1dF)(void *ctx, CeedInt Q, const CeedScalar *const
     // *INDENT-ON*
     // dP = dPdF:dF = dF*S + F*dS
     CeedScalar dP[3][3];
-    for (CeedInt j = 0; j < 3; j++)
+    for (CeedInt j = 0; j < 3; j++) {
       for (CeedInt k = 0; k < 3; k++) {
         dP[j][k] = 0;
         for (CeedInt m = 0; m < 3; m++) dP[j][k] += graddeltau[j][m] * S[m][k] + F[j][m] * dS[m][k];
       }
+    }
 
     // Apply dXdx^T and weight
-    for (CeedInt j = 0; j < 3; j++)      // Component
+    for (CeedInt j = 0; j < 3; j++) {    // Component
       for (CeedInt k = 0; k < 3; k++) {  // Derivative
         deltadvdX[k][j][i] = 0;
         for (CeedInt m = 0; m < 3; m++) deltadvdX[k][j][i] += dXdx[k][m] * dP[j][m] * wdetJ;
       }
-
+    }
   }  // End of Quadrature Point Loop
 
   return 0;
@@ -463,11 +473,12 @@ CEED_QFUNCTION(ElasFSInitialMR1Energy)(void *ctx, CeedInt Q, const CeedScalar *c
     //   dXdx = (dx/dX)^(-1)
     // Apply dXdx to du = grad_u
     CeedScalar grad_u[3][3];
-    for (int j = 0; j < 3; j++)      // Component
+    for (int j = 0; j < 3; j++) {    // Component
       for (int k = 0; k < 3; k++) {  // Derivative
         grad_u[j][k] = 0;
         for (int m = 0; m < 3; m++) grad_u[j][k] += dXdx[m][k] * du[j][m];
       }
+    }
 
     // E - Green-Lagrange strain tensor
     // E = 1/2 (grad_u + grad_u^T + grad_u^T*grad_u)
@@ -495,11 +506,12 @@ CEED_QFUNCTION(ElasFSInitialMR1Energy)(void *ctx, CeedInt Q, const CeedScalar *c
     // *INDENT-ON*
     // Compute CC = C*C = C^2
     CeedScalar CC[3][3];
-    for (CeedInt j = 0; j < 3; j++)
+    for (CeedInt j = 0; j < 3; j++) {
       for (CeedInt k = 0; k < 3; k++) {
         CC[j][k] = 0;
         for (CeedInt m = 0; m < 3; m++) CC[j][k] += C[j][m] * C[m][k];
       }
+    }
 
     const CeedScalar Jm1   = computeJM1(grad_u);
     // CeedScalar J = Jm1 + 1;
@@ -561,11 +573,12 @@ CEED_QFUNCTION(ElasFSInitialMR1Diagnostic)(void *ctx, CeedInt Q, const CeedScala
     //   dXdx = (dx/dX)^(-1)
     // Apply dXdx to du = grad_u
     CeedScalar grad_u[3][3];
-    for (int j = 0; j < 3; j++)      // Component
+    for (int j = 0; j < 3; j++) {    // Component
       for (int k = 0; k < 3; k++) {  // Derivative
         grad_u[j][k] = 0;
         for (int m = 0; m < 3; m++) grad_u[j][k] += dXdx[m][k] * du[j][m];
       }
+    }
 
     // E - Green-Lagrange strain tensor
     //     E = 1/2 (grad_u + grad_u^T + grad_u^T*grad_u)
@@ -596,8 +609,9 @@ CEED_QFUNCTION(ElasFSInitialMR1Diagnostic)(void *ctx, CeedInt Q, const CeedScala
     // Stress tensor invariants
     diagnostic[4][i] = (E2[0][0] + E2[1][1] + E2[2][2]) / 2.;
     diagnostic[5][i] = 0.;
-    for (CeedInt j = 0; j < 3; j++)
+    for (CeedInt j = 0; j < 3; j++) {
       for (CeedInt m = 0; m < 3; m++) diagnostic[5][i] += E2[j][m] * E2[m][j] / 4.;
+    }
     diagnostic[6][i] = Jm1 + 1;
 
     // C : right Cauchy-Green tensor
@@ -611,11 +625,12 @@ CEED_QFUNCTION(ElasFSInitialMR1Diagnostic)(void *ctx, CeedInt Q, const CeedScala
     // *INDENT-ON*
     // Compute CC = C*C = C^2
     CeedScalar CC[3][3];
-    for (CeedInt j = 0; j < 3; j++)
+    for (CeedInt j = 0; j < 3; j++) {
       for (CeedInt k = 0; k < 3; k++) {
         CC[j][k] = 0;
         for (CeedInt m = 0; m < 3; m++) CC[j][k] += C[j][m] * C[m][k];
       }
+    }
 
     // CeedScalar J = Jm1 + 1;
     // Compute invariants
@@ -629,7 +644,6 @@ CEED_QFUNCTION(ElasFSInitialMR1Diagnostic)(void *ctx, CeedInt Q, const CeedScala
     // *INDENT-OFF*
     // Strain energy
     diagnostic[7][i] = (0.5 * lambda * logJ * logJ - (mu_1 + 2 * mu_2) * logJ + (mu_1 / 2.) * (I_1 - 3) + (mu_2 / 2.) * (I_2 - 3));
-
   }  // End of Quadrature Point Loop
 
   return 0;

@@ -102,9 +102,11 @@ CEED_QFUNCTION(SetupDiffGeo)(void *ctx, CeedInt Q,
     // dx/dxx = I (xx^T xx)^{-1/2} - xx xx^T (xx^T xx)^{-3/2}
     const CeedScalar mod_xx_sq = xx[0]*xx[0]+xx[1]*xx[1]+xx[2]*xx[2];
     CeedScalar xx_sq[3][3];
-    for (int j=0; j<3; j++)
-      for (int k=0; k<3; k++)
+    for (int j=0; j<3; j++) {
+      for (int k=0; k<3; k++) {
         xx_sq[j][k] = xx[j]*xx[k] / (sqrt(mod_xx_sq) * mod_xx_sq);
+      }
+    }
 
     const CeedScalar dxdxx[3][3] = {{1./sqrt(mod_xx_sq) - xx_sq[0][0],
                                      -xx_sq[0][1],
@@ -118,12 +120,13 @@ CEED_QFUNCTION(SetupDiffGeo)(void *ctx, CeedInt Q,
                                    };
 
     CeedScalar dxdX[3][2];
-    for (int j=0; j<3; j++)
+    for (int j=0; j<3; j++) {
       for (int k=0; k<2; k++) {
         dxdX[j][k] = 0;
         for (int l=0; l<3; l++)
           dxdX[j][k] += dxdxx[j][l]*dxxdX[l][k];
       }
+    }
 
     // J is given by the cross product of the columns of dxdX
     const CeedScalar J[3]= {dxdX[1][0]*dxdX[2][1] - dxdX[2][0]*dxdX[1][1],
@@ -139,12 +142,13 @@ CEED_QFUNCTION(SetupDiffGeo)(void *ctx, CeedInt Q,
 
     // dxdX_k,j * dxdX_j,k
     CeedScalar dxdXTdxdX[2][2];
-    for (int j=0; j<2; j++)
+    for (int j=0; j<2; j++) {
       for (int k=0; k<2; k++) {
         dxdXTdxdX[j][k] = 0;
         for (int l=0; l<3; l++)
           dxdXTdxdX[j][k] += dxdX[l][j]*dxdX[l][k];
       }
+    }
 
     const CeedScalar detdxdXTdxdX =  dxdXTdxdX[0][0] * dxdXTdxdX[1][1]
                                     -dxdXTdxdX[1][0] * dxdXTdxdX[0][1];

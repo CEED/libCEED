@@ -321,10 +321,12 @@ CEED_QFUNCTION(EulerShockTube)(void *ctx, CeedInt Q, const CeedScalar *const *in
     for (CeedInt j = 0; j < 3; j++) dv[j][0][i] += wdetJ * (rho * u[0] * dXdx[j][0] + rho * u[1] * dXdx[j][1] + rho * u[2] * dXdx[j][2]);
     // -- Momentum
     // ---- rho (u x u) + P I3
-    for (CeedInt j = 0; j < 3; j++)
-      for (CeedInt k = 0; k < 3; k++)
+    for (CeedInt j = 0; j < 3; j++) {
+      for (CeedInt k = 0; k < 3; k++) {
         dv[k][j + 1][i] += wdetJ * ((rho * u[j] * u[0] + (j == 0 ? P : 0)) * dXdx[k][0] + (rho * u[j] * u[1] + (j == 1 ? P : 0)) * dXdx[k][1] +
                                     (rho * u[j] * u[2] + (j == 2 ? P : 0)) * dXdx[k][2]);
+      }
+    }
     // -- Total Energy Density
     // ---- (E + P) u
     for (CeedInt j = 0; j < 3; j++) dv[j][4][i] += wdetJ * (E + P) * (u[0] * dXdx[j][0] + u[1] * dXdx[j][1] + u[2] * dXdx[j][2]);
@@ -354,8 +356,9 @@ CEED_QFUNCTION(EulerShockTube)(void *ctx, CeedInt Q, const CeedScalar *const *in
 
       for (CeedInt j = 0; j < 3; j++) dv[j][0][i] -= wdetJ * nu_shock * drhodx[j];
 
-      for (CeedInt k = 0; k < 3; k++)
+      for (CeedInt k = 0; k < 3; k++) {
         for (CeedInt j = 0; j < 3; j++) dv[j][k][i] -= wdetJ * nu_shock * du[k][j];
+      }
 
       for (CeedInt j = 0; j < 3; j++) dv[j][4][i] -= wdetJ * nu_shock * dEdx[j];
     }
@@ -376,9 +379,11 @@ CEED_QFUNCTION(EulerShockTube)(void *ctx, CeedInt Q, const CeedScalar *const *in
 
     // strong_conv = dF/dq * dq/dx    (Strong convection)
     CeedScalar strong_conv[5] = {0};
-    for (CeedInt j = 0; j < 3; j++)
-      for (CeedInt k = 0; k < 5; k++)
+    for (CeedInt j = 0; j < 3; j++) {
+      for (CeedInt k = 0; k < 5; k++) {
         for (CeedInt l = 0; l < 5; l++) strong_conv[k] += jacob_F_conv[j][k][l] * dqdx[l][j];
+      }
+    }
 
     // Stabilization
     // -- Tau elements
@@ -391,13 +396,16 @@ CEED_QFUNCTION(EulerShockTube)(void *ctx, CeedInt Q, const CeedScalar *const *in
       case 0:  // Galerkin
         break;
       case 1:  // SU
-        for (CeedInt j = 0; j < 3; j++)
-          for (CeedInt k = 0; k < 5; k++)
+        for (CeedInt j = 0; j < 3; j++) {
+          for (CeedInt k = 0; k < 5; k++) {
             for (CeedInt l = 0; l < 5; l++) {
               stab[k][j] += jacob_F_conv[j][k][l] * Tau_x[j] * strong_conv[l];
             }
-        for (CeedInt j = 0; j < 5; j++)
+          }
+        }
+        for (CeedInt j = 0; j < 5; j++) {
           for (CeedInt k = 0; k < 3; k++) dv[k][j][i] -= wdetJ * (stab[j][0] * dXdx[k][0] + stab[j][1] * dXdx[k][1] + stab[j][2] * dXdx[k][2]);
+        }
         break;
     }
 

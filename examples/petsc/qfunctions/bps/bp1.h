@@ -79,8 +79,7 @@ CEED_QFUNCTION(Mass)(void *ctx, const CeedInt Q,
 
   // Quadrature Point Loop
   CeedPragmaSIMD
-  for (CeedInt i=0; i<Q; i++)
-    v[i] = q_data[i] * u[i];
+  for (CeedInt i=0; i<Q; i++) v[i] = q_data[i] * u[i];
 
   return 0;
 }

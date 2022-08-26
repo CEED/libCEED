@@ -80,12 +80,13 @@ CEED_QFUNCTION(SetupMassGeoSphere)(void *ctx, const CeedInt Q,
     // Setup
     const CeedScalar mod_xx_sq = xx[0][0]*xx[0][0]+xx[1][0]*xx[1][0]+xx[2][0]*xx[2][0];
     CeedScalar xx_sq[3][3];
-    for (int j=0; j<3; j++)
+    for (int j=0; j<3; j++) {
       for (int k=0; k<3; k++) {
         xx_sq[j][k] = 0;
         for (int l=0; l<1; l++)
           xx_sq[j][k] += xx[j][l]*xx[k][l] / (sqrt(mod_xx_sq) * mod_xx_sq);
       }
+    }
 
     const CeedScalar dxdxx[3][3] = {{1./sqrt(mod_xx_sq) - xx_sq[0][0],
                                      -xx_sq[0][1],
@@ -99,12 +100,13 @@ CEED_QFUNCTION(SetupMassGeoSphere)(void *ctx, const CeedInt Q,
                                    };
 
     CeedScalar dxdX[3][2];
-    for (int j=0; j<3; j++)
+    for (int j=0; j<3; j++) {
       for (int k=0; k<2; k++) {
         dxdX[j][k] = 0;
         for (int l=0; l<3; l++)
           dxdX[j][k] += dxdxx[j][l]*dxxdX[l][k];
       }
+    }
 
     // J is given by the cross product of the columns of dxdX
     const CeedScalar J[3][1] = {{dxdX[1][0]*dxdX[2][1] - dxdX[2][0]*dxdX[1][1]},

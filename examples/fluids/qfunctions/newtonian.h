@@ -196,8 +196,9 @@ CEED_QFUNCTION(RHSFunction_Newtonian)(void *ctx, CeedInt Q, const CeedScalar *co
     CeedScalar Flux[5][3];
     FluxTotal(F_inviscid, stress, Fe, Flux);
 
-    for (CeedInt j = 0; j < 3; j++)
+    for (CeedInt j = 0; j < 3; j++) {
       for (CeedInt k = 0; k < 5; k++) Grad_v[j][k][i] = wdetJ * (dXdx[j][0] * Flux[k][0] + dXdx[j][1] * Flux[k][1] + dXdx[j][2] * Flux[k][2]);
+    }
 
     const CeedScalar body_force[5] = {0, s.U.density * g[0], s.U.density * g[1], s.U.density * g[2], 0};
     for (int j = 0; j < 5; j++) v[j][i] = wdetJ * body_force[j];
@@ -207,9 +208,9 @@ CEED_QFUNCTION(RHSFunction_Newtonian)(void *ctx, CeedInt Q, const CeedScalar *co
     Tau_diagPrim(context, s, dXdx, dt, Tau_d);
     Stabilization(context, s, Tau_d, grad_s, U_dot, body_force, x_i, stab);
 
-    for (CeedInt j = 0; j < 5; j++)
+    for (CeedInt j = 0; j < 5; j++) {
       for (CeedInt k = 0; k < 3; k++) Grad_v[k][j][i] -= wdetJ * (stab[j][0] * dXdx[k][0] + stab[j][1] * dXdx[k][1] + stab[j][2] * dXdx[k][2]);
-
+    }
   }  // End Quadrature Point Loop
 
   // Return
@@ -281,8 +282,9 @@ CEED_QFUNCTION_HELPER int IFunction_Newtonian(void *ctx, CeedInt Q, const CeedSc
     CeedScalar Flux[5][3];
     FluxTotal(F_inviscid, stress, Fe, Flux);
 
-    for (CeedInt j = 0; j < 3; j++)
+    for (CeedInt j = 0; j < 3; j++) {
       for (CeedInt k = 0; k < 5; k++) Grad_v[j][k][i] = -wdetJ * (dXdx[j][0] * Flux[k][0] + dXdx[j][1] * Flux[k][1] + dXdx[j][2] * Flux[k][2]);
+    }
 
     const CeedScalar body_force[5] = {0, s.U.density * g[0], s.U.density * g[1], s.U.density * g[2], 0};
 
@@ -296,9 +298,9 @@ CEED_QFUNCTION_HELPER int IFunction_Newtonian(void *ctx, CeedInt Q, const CeedSc
     Tau_diagPrim(context, s, dXdx, dt, Tau_d);
     Stabilization(context, s, Tau_d, grad_s, U_dot, body_force, x_i, stab);
 
-    for (CeedInt j = 0; j < 5; j++)
+    for (CeedInt j = 0; j < 5; j++) {
       for (CeedInt k = 0; k < 3; k++) Grad_v[k][j][i] += wdetJ * (stab[j][0] * dXdx[k][0] + stab[j][1] * dXdx[k][1] + stab[j][2] * dXdx[k][2]);
-
+    }
     for (CeedInt j = 0; j < 5; j++) jac_data[j][i] = qi[j];
     for (CeedInt j = 0; j < 6; j++) jac_data[5 + j][i] = kmstress[j];
     for (CeedInt j = 0; j < 3; j++) jac_data[5 + 6 + j][i] = Tau_d[j];
@@ -382,8 +384,9 @@ CEED_QFUNCTION_HELPER int IJacobian_Newtonian(void *ctx, CeedInt Q, const CeedSc
     CeedScalar dFlux[5][3];
     FluxTotal(dF_inviscid, dstress, dFe, dFlux);
 
-    for (int j = 0; j < 3; j++)
+    for (int j = 0; j < 3; j++) {
       for (int k = 0; k < 5; k++) Grad_v[j][k][i] = -wdetJ * (dXdx[j][0] * dFlux[k][0] + dXdx[j][1] * dFlux[k][1] + dXdx[j][2] * dFlux[k][2]);
+    }
 
     const CeedScalar dbody_force[5] = {0, ds.U.density * g[0], ds.U.density * g[1], ds.U.density * g[2], 0};
     CeedScalar       dU[5]          = {0.};
@@ -395,9 +398,9 @@ CEED_QFUNCTION_HELPER int IJacobian_Newtonian(void *ctx, CeedInt Q, const CeedSc
     for (CeedInt j = 0; j < 5; j++) U_dot[j] = context->ijacobian_time_shift * dU[j];
     Stabilization(context, s, Tau_d, grad_ds, U_dot, dbody_force, x_i, dstab);
 
-    for (int j = 0; j < 5; j++)
+    for (int j = 0; j < 5; j++) {
       for (int k = 0; k < 3; k++) Grad_v[k][j][i] += wdetJ * (dstab[j][0] * dXdx[k][0] + dstab[j][1] * dXdx[k][1] + dstab[j][2] * dXdx[k][2]);
-
+    }
   }  // End Quadrature Point Loop
   return 0;
 }

@@ -171,8 +171,9 @@ CEED_QFUNCTION_HELPER void FluxInviscid(NewtonianIdealGasContext gas, State s, S
 CEED_QFUNCTION_HELPER void FluxInviscid_fwd(NewtonianIdealGasContext gas, State s, State ds, StateConservative dFlux[3]) {
   for (CeedInt i = 0; i < 3; i++) {
     dFlux[i].density = ds.U.momentum[i];
-    for (CeedInt j = 0; j < 3; j++)
+    for (CeedInt j = 0; j < 3; j++) {
       dFlux[i].momentum[j] = ds.U.momentum[i] * s.Y.velocity[j] + s.U.momentum[i] * ds.Y.velocity[j] + ds.Y.pressure * (i == j);
+    }
     dFlux[i].E_total = (ds.U.E_total + ds.Y.pressure) * s.Y.velocity[i] + (s.U.E_total + s.Y.pressure) * ds.Y.velocity[i];
   }
 }
