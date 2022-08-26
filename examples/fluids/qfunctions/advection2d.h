@@ -16,7 +16,6 @@
 
 #include "utils.h"
 
-typedef struct SetupContextAdv2D_ *SetupContextAdv2D;
 struct SetupContextAdv2D_ {
   CeedScalar rc;
   CeedScalar lx;
@@ -25,8 +24,8 @@ struct SetupContextAdv2D_ {
   CeedScalar time;
   int        wind_type;  // See WindType: 0=ROTATION, 1=TRANSLATION
 };
+#define SetupContextAdv2D struct SetupContext_*
 
-typedef struct AdvectionContext_ *AdvectionContext;
 struct AdvectionContext_ {
   CeedScalar CtauS;
   CeedScalar strong_form;
@@ -34,6 +33,7 @@ struct AdvectionContext_ {
   bool       implicit;
   int        stabilization;  // See StabilizationType: 0=none, 1=SU, 2=SUPG
 };
+#define AdvectionContext struct AdvectionContext_*
 
 // *****************************************************************************
 // This QFunction sets the initial conditions and the boundary conditions
@@ -141,9 +141,11 @@ CEED_QFUNCTION_HELPER CeedInt Exact_Advection2d(CeedInt dim, CeedScalar time, co
 // *****************************************************************************
 CEED_QFUNCTION(ICsAdvection2d)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
   // Inputs
-  const CeedScalar(*X)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[0];
+  typedef CeedScalar vec_t[CEED_Q_VLA];
+  
+  const vec_t *X = (const vec_t*) in[0];
   // Outputs
-  CeedScalar(*q0)[CEED_Q_VLA]     = (CeedScalar(*)[CEED_Q_VLA])out[0];
+  vec_t* q0 = (vec_t*) out[0];
   const SetupContextAdv2D context = (SetupContextAdv2D)ctx;
 
   // Quadrature Point Loop
@@ -174,16 +176,18 @@ CEED_QFUNCTION(ICsAdvection2d)(void *ctx, CeedInt Q, const CeedScalar *const *in
 // *****************************************************************************
 CEED_QFUNCTION(Advection2d)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
   // Inputs
-  const CeedScalar(*q)[CEED_Q_VLA]      = (const CeedScalar(*)[CEED_Q_VLA])in[0];
-  const CeedScalar(*dq)[5][CEED_Q_VLA]  = (const CeedScalar(*)[5][CEED_Q_VLA])in[1];
-  const CeedScalar(*q_data)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[2];
-
+  typedef CeedScalar array_t[5][CEED_Q_VLA];
+  typedef CeedScalar vec_t[CEED_Q_VLA];
+  
+  const vec_t* q = (const vec_t*) in[0];
+  const array_t* dq = (const array_t*) in[1];
+  const vec_t* q_data = (const vec_t*) in[2];
   // Outputs
-  CeedScalar(*v)[CEED_Q_VLA]     = (CeedScalar(*)[CEED_Q_VLA])out[0];
-  CeedScalar(*dv)[5][CEED_Q_VLA] = (CeedScalar(*)[5][CEED_Q_VLA])out[1];
-
-  AdvectionContext context     = (AdvectionContext)ctx;
-  const CeedScalar CtauS       = context->CtauS;
+  vec_t* v = (vec_t*) out[0];
+  array_t* dv = (array_t*) out[1];
+  // *INDENT-ON*
+  AdvectionContext context = (AdvectionContext)ctx;
+  const CeedScalar CtauS = context->CtauS;
   const CeedScalar strong_form = context->strong_form;
 
   // Quadrature Point Loop
@@ -261,16 +265,18 @@ CEED_QFUNCTION(Advection2d)(void *ctx, CeedInt Q, const CeedScalar *const *in, C
 // *****************************************************************************
 CEED_QFUNCTION(IFunction_Advection2d)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
   // Inputs
-  const CeedScalar(*q)[CEED_Q_VLA]      = (const CeedScalar(*)[CEED_Q_VLA])in[0];
-  const CeedScalar(*dq)[5][CEED_Q_VLA]  = (const CeedScalar(*)[5][CEED_Q_VLA])in[1];
-  const CeedScalar(*q_dot)[CEED_Q_VLA]  = (const CeedScalar(*)[CEED_Q_VLA])in[2];
-  const CeedScalar(*q_data)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[3];
-
+  typedef CeedScalar array_t[5][CEED_Q_VLA];
+  typedef CeedScalar vec_t[CEED_Q_VLA];
+  
+  const vec_t* q = (const vec_t*) in[0];
+  const array_t* dq = (const array_t*) in[1];
+  const vec_t* q_dot = (const vec_t*) in[2];
+  const vec_t* q_data = (const vec_t*) in[3];
   // Outputs
-  CeedScalar(*v)[CEED_Q_VLA]     = (CeedScalar(*)[CEED_Q_VLA])out[0];
-  CeedScalar(*dv)[5][CEED_Q_VLA] = (CeedScalar(*)[5][CEED_Q_VLA])out[1];
-
-  AdvectionContext context     = (AdvectionContext)ctx;
+  vec_t* v = (vec_t*) out[0];
+  array_t* dv = (array_t*) out[1];
+  // *INDENT-ON*
+  AdvectionContext context = (AdvectionContext)ctx;
   const CeedScalar CtauS       = context->CtauS;
   const CeedScalar strong_form = context->strong_form;
 
@@ -369,12 +375,14 @@ CEED_QFUNCTION(IFunction_Advection2d)(void *ctx, CeedInt Q, const CeedScalar *co
 // *****************************************************************************
 CEED_QFUNCTION(Advection2d_InOutFlow)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
   // Inputs
-  const CeedScalar(*q)[CEED_Q_VLA]          = (const CeedScalar(*)[CEED_Q_VLA])in[0];
-  const CeedScalar(*q_data_sur)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[2];
-
+  typedef CeedScalar vec_t[CEED_Q_VLA];
+  
+  const vec_t* q= (const vec_t*) in[0];
+  const vec_t* q_data_sur = (const vec_t*) in[2];
   // Outputs
-  CeedScalar(*v)[CEED_Q_VLA]   = (CeedScalar(*)[CEED_Q_VLA])out[0];
-  AdvectionContext context     = (AdvectionContext)ctx;
+  vec_t* v = (vec_t*) out[0];
+  // *INDENT-ON*
+  AdvectionContext context = (AdvectionContext)ctx;
   const CeedScalar E_wind      = context->E_wind;
   const CeedScalar strong_form = context->strong_form;
   const bool       implicit    = context->implicit;
