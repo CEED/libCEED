@@ -16,7 +16,7 @@ PetscErrorCode NS_ADVECTION2D(ProblemData *problem, DM dm, void *ctx) {
 
   WindType          wind_type;
   StabilizationType stab;
-  SetupContext      setup_context;
+  SetupContextAdv2D setup_context;
   User              user = *(User *)ctx;
   MPI_Comm          comm = PETSC_COMM_WORLD;
   PetscBool         implicit;
@@ -201,10 +201,10 @@ PetscErrorCode NS_ADVECTION2D(ProblemData *problem, DM dm, void *ctx) {
 
 PetscErrorCode PRINT_ADVECTION2D(ProblemData *problem,
                                  AppCtx app_ctx) {
-  MPI_Comm       comm = PETSC_COMM_WORLD;
-  PetscErrorCode ierr;
-  SetupContext setup_ctx;
-  AdvectionContext advection_ctx;
+  MPI_Comm          comm = PETSC_COMM_WORLD;
+  PetscErrorCode    ierr;
+  SetupContextAdv2D setup_ctx;
+  AdvectionContext  advection_ctx;
 
   PetscFunctionBeginUser;
   CeedQFunctionContextGetData(problem->ics.qfunction_context,

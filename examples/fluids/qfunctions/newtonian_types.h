@@ -11,6 +11,18 @@
 #include <ceed.h>
 #include "stabilization_types.h"
 
+typedef enum {
+  STATEVAR_CONSERVATIVE = 0,
+  STATEVAR_PRIMITIVE = 1,
+} StateVariable;
+
+// For use with PetscOptionsEnum
+static const char *const StateVariables[] = {
+  "CONSERVATIVE",
+  "PRIMITIVE",
+  "StateVariable", "STATEVAR_", NULL
+};
+
 typedef struct SetupContext_ *SetupContext;
 struct SetupContext_ {
   CeedScalar theta0;
@@ -50,7 +62,7 @@ struct NewtonianIdealGasContext_ {
   CeedScalar ijacobian_time_shift;
   CeedScalar P0;
   bool       is_implicit;
-  bool       use_primitive;
+  StateVariable state_var;
   StabilizationType stabilization;
 };
 

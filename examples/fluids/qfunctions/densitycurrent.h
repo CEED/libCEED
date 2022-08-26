@@ -153,10 +153,14 @@ CEED_QFUNCTION(ICsDC)(void *ctx, CeedInt Q,
     const CeedScalar x[] = {X[0][i], X[1][i], X[2][i]};
     State s = Exact_DC(3, 0., x, 5, ctx);
     CeedScalar q[5] = {0};
-    if (context->newtonian_ctx.use_primitive)
-      UnpackState_Y(s.Y, q);
-    else
+    switch (context->newtonian_ctx.state_var) {
+    case STATEVAR_CONSERVATIVE:
       UnpackState_U(s.U, q);
+      break;
+    case STATEVAR_PRIMITIVE:
+      UnpackState_Y(s.Y, q);
+      break;
+    }
 
     for (CeedInt j=0; j<5; j++)
       q0[j][i] = q[j];
