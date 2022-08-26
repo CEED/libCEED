@@ -696,7 +696,6 @@ format-py  :
 
 format    : format-c format-py
 
-
 # Tidy
 CLANG_TIDY ?= clang-tidy
 
