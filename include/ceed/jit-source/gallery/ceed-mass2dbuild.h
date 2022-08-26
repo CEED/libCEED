@@ -19,7 +19,7 @@ CEED_QFUNCTION(Mass2DBuild)(void *ctx, const CeedInt Q,
   // *INDENT-OFF*
   // in[0] is Jacobians with shape [2, nc=2, Q]
   // in[1] is quadrature weights, size (Q)
-  typedef CeedScalar array_t[3][CEED_Q_VLA];
+  typedef CeedScalar array_t[2][CEED_Q_VLA];
   const array_t* J = (const array_t*) in[0];
   const CeedScalar * const w = in[1];
   // out[0] is quadrature data, size (Q)
