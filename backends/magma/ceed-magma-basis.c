@@ -757,6 +757,11 @@ int CeedBasisCreateTensorH1_Magma(CeedInt dim, CeedInt P1d, CeedInt Q1d,
                   data->queue);
 
   ierr = CeedBasisSetData(basis, impl); CeedChkBackend(ierr);
+  ierr = CeedFree(&magma_common_path); CeedChkBackend(ierr);
+  ierr = CeedFree(&interp_path); CeedChkBackend(ierr);
+  ierr = CeedFree(&grad_path); CeedChkBackend(ierr);
+  ierr = CeedFree(&weight_path); CeedChkBackend(ierr);
+  ierr = CeedFree(&basis_kernel_source); CeedChkBackend(ierr);
 
   return CEED_ERROR_SUCCESS;
 }
