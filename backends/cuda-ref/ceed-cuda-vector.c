@@ -113,8 +113,8 @@ static inline int CeedVectorSyncD2H_Cuda(const CeedVector vec) {
 // Sync arrays
 //------------------------------------------------------------------------------
 static int CeedVectorSyncArrayGeneric_Cuda(const CeedVector vec,
-                                           CeedMemType mem_type,
-					   CeedScalarType prec) {
+    CeedMemType mem_type,
+    CeedScalarType prec) {
   int ierr;
   // Check whether device/host sync is needed
   bool need_sync = false;
