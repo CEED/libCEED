@@ -29,11 +29,12 @@ CEED_QFUNCTION(Mass)(void *ctx, CeedInt Q,
                      const CeedScalar *const *in, CeedScalar *const *out) {
   // *INDENT-OFF*
   // Inputs
-  const CeedScalar (*u)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[0],
-                   (*q_data) = in[1];
+  typedef CeedScalar vec_t[CEED_Q_VLA]; 
+  const vec_t* u = (const vec_t*) in[0];
+  const CeedScalar * const q_data = in[1];
 
   // Outputs
-  CeedScalar (*v)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA])out[0];
+  vec_t* v = (vec_t*) out[0];
   // *INDENT-ON*
 
   CeedPragmaSIMD
