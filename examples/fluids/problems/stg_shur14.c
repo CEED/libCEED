@@ -477,7 +477,7 @@ PetscErrorCode SetupStrongSTG(DM dm, SimpleBC bc, ProblemData *problem,
   PetscFunctionBeginUser;
 
   PetscInt comps[5], num_comps=4;
-  if (phys->primitive)  {
+  if (phys->use_primitive)  {
     // {1,2,3,4} for u, v, w, T
     for(int i=0; i<4; i++) comps[i] = i+1;
   } else {

@@ -321,7 +321,7 @@ CEED_QFUNCTION(ICsSTG)(void *ctx, CeedInt Q,
   for(CeedInt i=0; i<Q; i++) {
     InterpolateProfile(X[1][i], u, cij, &eps, &lt, stg_ctx);
 
-    if (stg_ctx->newtonian_ctx.is_primitive) {
+    if (stg_ctx->newtonian_ctx.use_primitive) {
       q0[0][i] = P0;
       q0[1][i] = u[0];
       q0[2][i] = u[1];
@@ -568,7 +568,7 @@ CEED_QFUNCTION(STGShur14_Inflow_StrongQF)(void *ctx, CeedInt Q,
       for (CeedInt j=0; j<3; j++) u[j] = ubar[j];
     }
 
-    if (stg_ctx->newtonian_ctx.is_primitive) {
+    if (stg_ctx->newtonian_ctx.use_primitive) {
       bcval[0][i] = 0;
       bcval[1][i] = scale[i] * u[0];
       bcval[2][i] = scale[i] * u[1];
