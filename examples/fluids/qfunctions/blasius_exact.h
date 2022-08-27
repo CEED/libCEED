@@ -57,7 +57,7 @@ CEED_QFUNCTION_HELPER void ChebyshevEval(int N, const double *Tf, double x,
     }
   }
   for (int i=1; i<4; i++) {
-    // Here happens the physics of the problem
+    // Transform derivatives from Chebyshev [-1, 1] to [0, eta_max].
     for (int j=0; j<i; j++) f[i] *= dX_deta;
   }
 }
