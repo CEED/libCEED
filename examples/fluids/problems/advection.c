@@ -17,7 +17,7 @@ PetscErrorCode NS_ADVECTION(ProblemData *problem, DM dm, void *ctx) {
   BubbleType           bubble_type;
   BubbleContinuityType bubble_continuity_type;
   StabilizationType    stab;
-  SetupContext         setup_context;
+  SetupContextAdv         setup_context;
   User                 user = *(User *)ctx;
   MPI_Comm             comm = PETSC_COMM_WORLD;
   PetscBool            implicit;
@@ -225,7 +225,7 @@ PetscErrorCode NS_ADVECTION(ProblemData *problem, DM dm, void *ctx) {
 PetscErrorCode PRINT_ADVECTION(ProblemData *problem, AppCtx app_ctx) {
   MPI_Comm       comm = PETSC_COMM_WORLD;
   PetscErrorCode ierr;
-  SetupContext   setup_ctx;
+  SetupContextAdv   setup_ctx;
   AdvectionContext advection_ctx;
 
   PetscFunctionBeginUser;

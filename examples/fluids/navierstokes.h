@@ -15,6 +15,7 @@
 #include <petscts.h>
 #include <stdbool.h>
 #include "qfunctions/stabilization_types.h"
+#include "qfunctions/newtonian_types.h"
 
 // -----------------------------------------------------------------------------
 // PETSc Version
@@ -194,7 +195,7 @@ struct Physics_private {
   EulerTestType            euler_test;
   StabilizationType        stab;
   PetscBool                implicit;
-  PetscBool                use_primitive;
+  StateVariable            state_var;
   PetscBool                has_curr_time;
   PetscBool                has_neumann;
   CeedContextFieldLabel    solution_time_label;

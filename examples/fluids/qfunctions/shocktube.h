@@ -29,8 +29,8 @@
 #include <math.h>
 #include "utils.h"
 
-typedef struct SetupContext_ *SetupContext;
-struct SetupContext_ {
+typedef struct SetupContextShock_ *SetupContextShock;
+struct SetupContextShock_ {
   CeedScalar theta0;
   CeedScalar thetaC;
   CeedScalar P0;
@@ -89,11 +89,10 @@ struct ShockTubeContext_ {
 //   (currently not implemented) and IC formulation for Euler traveling vortex
 // *****************************************************************************
 CEED_QFUNCTION_HELPER CeedInt Exact_ShockTube(CeedInt dim, CeedScalar time,
-    const CeedScalar X[], CeedInt Nf, CeedScalar q[],
-    void *ctx) {
+    const CeedScalar X[], CeedInt Nf, CeedScalar q[], void *ctx) {
 
   // Context
-  const SetupContext context = (SetupContext)ctx;
+  const SetupContextShock context = (SetupContextShock)ctx;
   const CeedScalar mid_point = context->mid_point;      // Midpoint of the domain
   const CeedScalar P_high = context->P_high;            // Driver section pressure
   const CeedScalar rho_high = context->rho_high;        // Driver section density
