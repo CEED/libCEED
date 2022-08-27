@@ -76,6 +76,7 @@ $(PETSc.pc):
 
 .PHONY: all print clean
 
-pkgconf = $(shell pkg-config $1 | sed -e 's/^"//g' -e 's/"$$//g')
+pkgconf = $(shell pkg-config $(if $(STATIC),--static) $1 | sed -e 's/^"//g' -e 's/"$$//g')
+
 
 -include $(src.o:%.o=%.d)
