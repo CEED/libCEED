@@ -12,6 +12,77 @@
 #include "../qfunctions/blasius.h"
 #include "stg_shur14.h"
 
+PetscErrorCode CompressibleBlasiusResidual(SNES snes, Vec X, Vec R, void *ctx) {
+  const BlasiusContext blasius = (BlasiusContext)ctx;
+  const PetscScalar *Tf, *Th;  // Chebyshev coefficients
+  PetscScalar       *r, f[4], h[4];
+  PetscInt          N = blasius->n_cheb;
+  PetscScalar Ma = Mach(&blasius->newtonian_ctx, blasius->Tinf, blasius->Uinf),
+              Pr = Prandtl(&blasius->newtonian_ctx),
+              gamma = HeatCapacityRatio(&blasius->newtonian_ctx);
+  PetscFunctionBegin;
+  PetscCall(VecGetArrayRead(X, &Tf));
+  Th = Tf + N;
+  PetscCall(VecGetArray(R, &r));
+
+  // Left boundary conditions f = f' = 0
+  ChebyshevEval(N, Tf, -1., blasius->eta_max, f);
+  r[0] = f[0];
+  r[1] = f[1];
+
+  // f - right end boundary condition
+  ChebyshevEval(N, Tf, 1., blasius->eta_max, f);
+  r[2] = f[1]  - 1.;
+
+  for (int i=0; i<N-3; i++) {
+    ChebyshevEval(N, Tf, blasius->X[i], blasius->eta_max, f);
+    r[3+i] = 2*f[3] + f[2] * f[0];
+    ChebyshevEval(N-1, Th, blasius->X[i], blasius->eta_max, h);
+    r[N+2+i] = h[2] + Pr * f[0] * h[1] +
+               Pr * (gamma - 1) * PetscSqr(Ma * f[2]);
+  }
+
+  // h - left end boundary condition
+  ChebyshevEval(N-1, Th, -1., blasius->eta_max, h);
+  r[N] = h[0] - blasius->T_wall / blasius->Tinf;
+
+  // h - right end boundary condition
+  ChebyshevEval(N-1, Th, 1., blasius->eta_max, h);
+  r[N+1] = h[0] - 1.;
+
+  // Restore vectors
+  PetscCall(VecRestoreArrayRead(X, &Tf));
+  PetscCall(VecRestoreArray(R, &r));
+  PetscFunctionReturn(0);
+}
+
+PetscErrorCode ComputeChebyshevCoefficients(BlasiusContext blasius) {
+  SNES      snes;
+  Vec       sol, res;
+  PetscReal *w;
+  PetscInt  N = blasius->n_cheb;
+  const PetscScalar *cheb_coefs;
+  PetscFunctionBegin;
+  PetscCall(PetscMalloc2(N-3, &blasius->X, N-3, &w));
+  PetscCall(PetscDTGaussQuadrature(N-3, -1., 1., blasius->X, w));
+  PetscCall(SNESCreate(PETSC_COMM_SELF, &snes));
+  PetscCall(VecCreate(PETSC_COMM_SELF, &sol));
+  PetscCall(VecSetSizes(sol, PETSC_DECIDE, 2*N-1));
+  PetscCall(VecSetFromOptions(sol));
+  PetscCall(VecDuplicate(sol, &res));
+  PetscCall(SNESSetFunction(snes, res, CompressibleBlasiusResidual, blasius));
+  PetscCall(SNESSetFromOptions(snes));
+  PetscCall(SNESSolve(snes, NULL, sol));
+  PetscCall(VecGetArrayRead(sol, &cheb_coefs));
+  for (int i=0; i<N; i++) blasius->Tf_cheb[i] = cheb_coefs[i];
+  for (int i=0; i<N-1; i++) blasius->Th_cheb[i] = cheb_coefs[i+N];
+  PetscCall(PetscFree2(blasius->X, w));
+  PetscCall(VecDestroy(&sol));
+  PetscCall(VecDestroy(&res));
+  PetscCall(SNESDestroy(&snes));
+  PetscFunctionReturn(0);
+}
+
 static PetscErrorCode GetYNodeLocs(const MPI_Comm comm,
                                    const char path[PETSC_MAX_PATH_LEN], PetscReal **pynodes,
                                    PetscInt *nynodes) {
