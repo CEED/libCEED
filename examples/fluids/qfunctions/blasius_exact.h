@@ -76,7 +76,7 @@ PetscErrorCode CompressibleBlasiusResidual(SNES snes, Vec X, Vec R, void *ctx) {
   Th = Tf + N;
   PetscCall(VecGetArray(R, &r));
 
-  // Compute function
+  // Left boundary conditions f = f' = 0
   ChebyshevEval(N, Tf, -1., blasius->eta_max, f);
   r[0] = f[0];
   r[1] = f[1];
