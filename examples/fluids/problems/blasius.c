@@ -242,7 +242,7 @@ PetscErrorCode NS_BLASIUS(ProblemData *problem, DM dm, void *ctx) {
   CeedScalar delta0             = 4.2e-3;      // m
   CeedScalar theta0             = 288.;        // K
   CeedScalar P0                 = 1.01e5;      // Pa
-  CeedInt    N                  = 10;          // Number of Chebyshev terms
+  CeedInt    N                  = 20;          // Number of Chebyshev terms
   PetscBool  weakT              = PETSC_FALSE; // weak density or temperature
   PetscReal  mesh_refine_height = 5.9e-4;      // m
   PetscReal  mesh_growth        = 1.08;        // [-]
