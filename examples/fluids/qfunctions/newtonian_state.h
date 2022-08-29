@@ -46,6 +46,16 @@ CEED_QFUNCTION_HELPER void UnpackState_Y(StatePrimitive s, CeedScalar Y[5]) {
   Y[4] = s.temperature;
 }
 
+CEED_QFUNCTION_HELPER CeedScalar HeatCapacityRatio(NewtonianIdealGasContext gas) { return gas->cp / gas->cv; }
+
+CEED_QFUNCTION_HELPER CeedScalar GasConstant(NewtonianIdealGasContext gas) { return gas->cp - gas->cv; }
+
+CEED_QFUNCTION_HELPER CeedScalar Prandtl(NewtonianIdealGasContext gas) { return gas->cp * gas->mu / gas->k; }
+
+CEED_QFUNCTION_HELPER CeedScalar SoundSpeed(NewtonianIdealGasContext gas, CeedScalar T) { return sqrt(gas->cp * (HeatCapacityRatio(gas) - 1.) * T); }
+
+CEED_QFUNCTION_HELPER CeedScalar Mach(NewtonianIdealGasContext gas, CeedScalar T, CeedScalar u) { return u / SoundSpeed(gas, T); }
+
 CEED_QFUNCTION_HELPER StatePrimitive StatePrimitiveFromConservative(NewtonianIdealGasContext gas, StateConservative U, const CeedScalar x[3]) {
   StatePrimitive Y;
   for (CeedInt i = 0; i < 3; i++) Y.velocity[i] = U.momentum[i] / U.density;
@@ -54,7 +64,7 @@ CEED_QFUNCTION_HELPER StatePrimitive StatePrimitiveFromConservative(NewtonianIde
   CeedScalar e_total     = U.E_total / U.density;
   CeedScalar e_internal  = e_total - e_kinetic - e_potential;
   Y.temperature          = e_internal / gas->cv;
-  Y.pressure             = (gas->cp / gas->cv - 1) * U.density * e_internal;
+  Y.pressure             = (HeatCapacityRatio(gas) - 1) * U.density * e_internal;
   return Y;
 }
 
@@ -73,14 +83,13 @@ CEED_QFUNCTION_HELPER StatePrimitive StatePrimitiveFromConservative_fwd(Newtonia
   CeedScalar e_internal   = e_total - e_kinetic - e_potential;
   CeedScalar de_internal  = de_total - de_kinetic - de_potential;
   dY.temperature          = de_internal / gas->cv;
-  dY.pressure             = (gas->cp / gas->cv - 1) * (dU.density * e_internal + s.U.density * de_internal);
+  dY.pressure             = (HeatCapacityRatio(gas) - 1) * (dU.density * e_internal + s.U.density * de_internal);
   return dY;
 }
 
 CEED_QFUNCTION_HELPER StateConservative StateConservativeFromPrimitive(NewtonianIdealGasContext gas, StatePrimitive Y, const CeedScalar x[3]) {
   StateConservative U;
-  CeedScalar        R = gas->cp - gas->cv;
-  U.density           = Y.pressure / (R * Y.temperature);
+  U.density = Y.pressure / (GasConstant(gas) * Y.temperature);
   for (int i = 0; i < 3; i++) U.momentum[i] = U.density * Y.velocity[i];
   CeedScalar e_internal  = gas->cv * Y.temperature;
   CeedScalar e_kinetic   = .5 * Dot3(Y.velocity, Y.velocity);
@@ -93,8 +102,7 @@ CEED_QFUNCTION_HELPER StateConservative StateConservativeFromPrimitive(Newtonian
 CEED_QFUNCTION_HELPER StateConservative StateConservativeFromPrimitive_fwd(NewtonianIdealGasContext gas, State s, StatePrimitive dY,
                                                                            const CeedScalar x[3], const CeedScalar dx[3]) {
   StateConservative dU;
-  CeedScalar        R = gas->cp - gas->cv;
-  dU.density          = (dY.pressure * s.Y.temperature - s.Y.pressure * dY.temperature) / (R * s.Y.temperature * s.Y.temperature);
+  dU.density = (dY.pressure * s.Y.temperature - s.Y.pressure * dY.temperature) / (GasConstant(gas) * s.Y.temperature * s.Y.temperature);
   for (int i = 0; i < 3; i++) {
     dU.momentum[i] = dU.density * s.Y.velocity[i] + s.U.density * dY.velocity[i];
   }

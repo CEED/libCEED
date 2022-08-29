@@ -16,8 +16,8 @@
 
 #include "utils.h"
 
-typedef struct SetupContext_ *SetupContext;
-struct SetupContext_ {
+typedef struct SetupContextAdv2D_ *SetupContextAdv2D;
+struct SetupContextAdv2D_ {
   CeedScalar rc;
   CeedScalar lx;
   CeedScalar ly;
@@ -87,11 +87,11 @@ struct AdvectionContext_ {
 //   and IC formulation for 2D advection
 // *****************************************************************************
 CEED_QFUNCTION_HELPER CeedInt Exact_Advection2d(CeedInt dim, CeedScalar time, const CeedScalar X[], CeedInt Nf, CeedScalar q[], void *ctx) {
-  const SetupContext context = (SetupContext)ctx;
-  const CeedScalar   rc      = context->rc;
-  const CeedScalar   lx      = context->lx;
-  const CeedScalar   ly      = context->ly;
-  const CeedScalar  *wind    = context->wind;
+  const SetupContextAdv2D context = (SetupContextAdv2D)ctx;
+  const CeedScalar        rc      = context->rc;
+  const CeedScalar        lx      = context->lx;
+  const CeedScalar        ly      = context->ly;
+  const CeedScalar       *wind    = context->wind;
 
   // Setup
   const CeedScalar center[2] = {0.5 * lx, 0.5 * ly};
@@ -145,7 +145,7 @@ CEED_QFUNCTION(ICsAdvection2d)(void *ctx, CeedInt Q, const CeedScalar *const *in
   const CeedScalar(*X)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[0];
   // Outputs
   CeedScalar(*q0)[CEED_Q_VLA]      = (CeedScalar(*)[CEED_Q_VLA])out[0];
-  const SetupContext context       = (SetupContext)ctx;
+  const SetupContextAdv2D context  = (SetupContextAdv2D)ctx;
 
   CeedPragmaSIMD
       // Quadrature Point Loop

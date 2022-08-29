@@ -87,18 +87,22 @@ PetscErrorCode SetUpDM(DM dm, ProblemData *problem, PetscInt degree, SimpleBC bc
   PetscSection section;
   PetscCall(DMGetLocalSection(dm, &section));
   PetscCall(PetscSectionSetFieldName(section, 0, ""));
-  if (phys->use_primitive) {
-    PetscCall(PetscSectionSetComponentName(section, 0, 0, "Pressure"));
-    PetscCall(PetscSectionSetComponentName(section, 0, 1, "Velocity X"));
-    PetscCall(PetscSectionSetComponentName(section, 0, 2, "Velocity Y"));
-    PetscCall(PetscSectionSetComponentName(section, 0, 3, "Velocity Z"));
-    PetscCall(PetscSectionSetComponentName(section, 0, 4, "Temperature"));
-  } else {
-    PetscCall(PetscSectionSetComponentName(section, 0, 0, "Density"));
-    PetscCall(PetscSectionSetComponentName(section, 0, 1, "Momentum X"));
-    PetscCall(PetscSectionSetComponentName(section, 0, 2, "Momentum Y"));
-    PetscCall(PetscSectionSetComponentName(section, 0, 3, "Momentum Z"));
-    PetscCall(PetscSectionSetComponentName(section, 0, 4, "Energy Density"));
+  switch (phys->state_var) {
+    case STATEVAR_CONSERVATIVE:
+      PetscCall(PetscSectionSetComponentName(section, 0, 0, "Density"));
+      PetscCall(PetscSectionSetComponentName(section, 0, 1, "Momentum X"));
+      PetscCall(PetscSectionSetComponentName(section, 0, 2, "Momentum Y"));
+      PetscCall(PetscSectionSetComponentName(section, 0, 3, "Momentum Z"));
+      PetscCall(PetscSectionSetComponentName(section, 0, 4, "Energy Density"));
+      break;
+
+    case STATEVAR_PRIMITIVE:
+      PetscCall(PetscSectionSetComponentName(section, 0, 0, "Pressure"));
+      PetscCall(PetscSectionSetComponentName(section, 0, 1, "Velocity X"));
+      PetscCall(PetscSectionSetComponentName(section, 0, 2, "Velocity Y"));
+      PetscCall(PetscSectionSetComponentName(section, 0, 3, "Velocity Z"));
+      PetscCall(PetscSectionSetComponentName(section, 0, 4, "Temperature"));
+      break;
   }
   PetscFunctionReturn(0);
 }

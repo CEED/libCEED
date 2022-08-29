@@ -535,10 +535,10 @@ For the Density Current, Channel, and Blasius problems, the following common com
   - `false`
   - boolean
 
-* - `-primitive`
-  - Use primitive variables (pressure, velocity, temperature) instead of conservative variables (density, momentum, total energy)
-  - `false`
-  - boolean
+* - `-state_var`
+  - State variables to solve solution with. `conservative` ($\rho, \rho \bm{u}, \rho e$) or `primitive` ($P, \bm{u}, T$)
+  - `conservative`
+  - string
 :::
 
 

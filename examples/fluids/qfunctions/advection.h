@@ -14,8 +14,8 @@
 #include <ceed.h>
 #include <math.h>
 
-typedef struct SetupContext_ *SetupContext;
-struct SetupContext_ {
+typedef struct SetupContextAdv_ *SetupContextAdv;
+struct SetupContextAdv_ {
   CeedScalar rc;
   CeedScalar lx;
   CeedScalar ly;
@@ -90,12 +90,12 @@ CEED_QFUNCTION_HELPER CeedScalar Square(CeedScalar x) { return x * x; }
 //   (currently not implemented) and IC formulation for 3D advection
 // *****************************************************************************
 CEED_QFUNCTION_HELPER CeedInt Exact_Advection(CeedInt dim, CeedScalar time, const CeedScalar X[], CeedInt Nf, CeedScalar q[], void *ctx) {
-  const SetupContext context = (SetupContext)ctx;
-  const CeedScalar   rc      = context->rc;
-  const CeedScalar   lx      = context->lx;
-  const CeedScalar   ly      = context->ly;
-  const CeedScalar   lz      = context->lz;
-  const CeedScalar  *wind    = context->wind;
+  const SetupContextAdv context = (SetupContextAdv)ctx;
+  const CeedScalar      rc      = context->rc;
+  const CeedScalar      lx      = context->lx;
+  const CeedScalar      ly      = context->ly;
+  const CeedScalar      lz      = context->lz;
+  const CeedScalar     *wind    = context->wind;
 
   // Setup
   const CeedScalar x0[3]     = {0.25 * lx, 0.5 * ly, 0.5 * lz};
