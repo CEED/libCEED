@@ -679,15 +679,10 @@ CLANG_FORMAT ?= clang-format
 
 FORMAT_OPTS += -style=file -i
 
-%.format : %
-	$(CLANG_FORMAT) $(FORMAT_OPTS) $^
+format.ch := $(filter-out include/ceedf.h $(wildcard tests/t*-f.h), $(shell git ls-files *.[ch]pp *.[ch]))
 
-format.ch := $(filter-out include/ceedf.h $(wildcard tests/t*-f.h), \
-            $(wildcard include/*.h include/*/*.h include/*/*/*.h include/*/*/*/*.h \
-              interface/*.[ch] tests/*.[ch] backends/*/*.[ch] backends/*/*/*.[ch] backends/*/*.[ch]pp backends/*/*/*.[ch]pp \
-              examples/*/*/*.[ch] examples/*/*.[ch] examples/*/*.[ch]pp gallery/*.[ch] gallery/*/*.[ch]))
-
-format-c  :  $(format.ch:%=%.format)
+format-c  :
+	$(CLANG_FORMAT) $(FORMAT_OPTS) $(format.ch) 
 
 AUTOPEP8 = autopep8
 format-py  : AUTOPEP8_ARGS = --in-place --aggressive

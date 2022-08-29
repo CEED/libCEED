@@ -10,8 +10,7 @@
 // Redefine QFunction Macro
 // -----------------------------------------------------------------------------
 #undef CEED_QFUNCTION
-#define CEED_QFUNCTION(name) \
-  extern int name
+#define CEED_QFUNCTION(name) extern int name
 
 // -----------------------------------------------------------------------------
 // QFunction Sources

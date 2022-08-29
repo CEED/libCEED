@@ -26,38 +26,32 @@
 // Qdata: det_J * w
 //
 // -----------------------------------------------------------------------------
-CEED_QFUNCTION(SetupMassGeo)(void *ctx, const CeedInt Q,
-                             const CeedScalar *const *in,
-                             CeedScalar *const *out) {
-  const CeedScalar *J = in[1], *w = in[2]; // Note: *X = in[0]
-  CeedScalar *q_data = out[0];
+CEED_QFUNCTION(SetupMassGeo)(void *ctx, const CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
+  const CeedScalar *J = in[1], *w = in[2];  // Note: *X = in[0]
+  CeedScalar       *q_data = out[0];
 
   // Quadrature Point Loop
-  CeedPragmaSIMD
-  for (CeedInt i=0; i<Q; i++) {
-    const CeedScalar det_J = (J[i+Q*0]*(J[i+Q*4]*J[i+Q*8] - J[i+Q*5]*J[i+Q*7]) -
-                             J[i+Q*1]*(J[i+Q*3]*J[i+Q*8] - J[i+Q*5]*J[i+Q*6]) +
-                             J[i+Q*2]*(J[i+Q*3]*J[i+Q*7] - J[i+Q*4]*J[i+Q*6]));
-    q_data[i] = det_J * w[i];
-  } // End of Quadrature Point Loop
+  CeedPragmaSIMD for (CeedInt i = 0; i < Q; i++) {
+    const CeedScalar det_J = (J[i + Q * 0] * (J[i + Q * 4] * J[i + Q * 8] - J[i + Q * 5] * J[i + Q * 7]) -
+                              J[i + Q * 1] * (J[i + Q * 3] * J[i + Q * 8] - J[i + Q * 5] * J[i + Q * 6]) +
+                              J[i + Q * 2] * (J[i + Q * 3] * J[i + Q * 7] - J[i + Q * 4] * J[i + Q * 6]));
+    q_data[i]              = det_J * w[i];
+  }  // End of Quadrature Point Loop
   return 0;
 }
 
 // -----------------------------------------------------------------------------
 // This QFunction sets up the rhs and true solution for the problem
 // -----------------------------------------------------------------------------
-CEED_QFUNCTION(SetupMassRhs)(void *ctx, const CeedInt Q,
-                             const CeedScalar *const *in,
-                             CeedScalar *const *out) {
+CEED_QFUNCTION(SetupMassRhs)(void *ctx, const CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
   const CeedScalar *x = in[0], *w = in[1];
-  CeedScalar *true_soln = out[0], *rhs = out[1];
+  CeedScalar       *true_soln = out[0], *rhs = out[1];
 
   // Quadrature Point Loop
-  CeedPragmaSIMD
-  for (CeedInt i=0; i<Q; i++) {
-    true_soln[i] = sqrt(x[i]*x[i] + x[i+Q]*x[i+Q] + x[i+2*Q]*x[i+2*Q]);
-    rhs[i] = w[i] * true_soln[i];
-  } // End of Quadrature Point Loop
+  CeedPragmaSIMD for (CeedInt i = 0; i < Q; i++) {
+    true_soln[i] = sqrt(x[i] * x[i] + x[i + Q] * x[i + Q] + x[i + 2 * Q] * x[i + 2 * Q]);
+    rhs[i]       = w[i] * true_soln[i];
+  }  // End of Quadrature Point Loop
   return 0;
 }
 
@@ -72,17 +66,15 @@ CEED_QFUNCTION(SetupMassRhs)(void *ctx, const CeedInt Q,
 //   v     - Output vector (test functions) at quadrature points
 //
 // -----------------------------------------------------------------------------
-CEED_QFUNCTION(Mass)(void *ctx, const CeedInt Q,
-                     const CeedScalar *const *in, CeedScalar *const *out) {
+CEED_QFUNCTION(Mass)(void *ctx, const CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
   const CeedScalar *u = in[0], *q_data = in[1];
-  CeedScalar *v = out[0];
+  CeedScalar       *v = out[0];
 
   // Quadrature Point Loop
-  CeedPragmaSIMD
-  for (CeedInt i=0; i<Q; i++) v[i] = q_data[i] * u[i];
+  CeedPragmaSIMD for (CeedInt i = 0; i < Q; i++) v[i] = q_data[i] * u[i];
 
   return 0;
 }
 // -----------------------------------------------------------------------------
 
-#endif // bp1_h
+#endif  // bp1_h
