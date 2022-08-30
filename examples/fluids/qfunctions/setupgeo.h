@@ -47,11 +47,13 @@
 // *****************************************************************************
 CEED_QFUNCTION(Setup)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
   // Inputs
-  const CeedScalar(*J)[3][CEED_Q_VLA] = (const CeedScalar(*)[3][CEED_Q_VLA])in[0];
-  const CeedScalar(*w)                = in[1];
+  typedef CeedScalar array_t[3][CEED_Q_VLA];
+  const array_t* J = (const array_t*) in[0];
+  const CeedScalar* const w = in[1];
 
   // Outputs
-  CeedScalar(*q_data)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA])out[0];
+  typedef CeedScalar vec_t[CEED_Q_VLA];
+  vec_t* q_data = (vec_t*) out[0];
 
   CeedPragmaSIMD
       // Quadrature Point Loop
@@ -141,11 +143,13 @@ CEED_QFUNCTION(Setup)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedSca
 // *****************************************************************************
 CEED_QFUNCTION(SetupBoundary)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
   // Inputs
-  const CeedScalar(*J)[3][CEED_Q_VLA] = (const CeedScalar(*)[3][CEED_Q_VLA])in[0];
-  const CeedScalar(*w)                = in[1];
+  typedef CeedScalar array_t[3][CEED_Q_VLA];
+  const array_t* J = (const array_t*) in[0];
+  const CeedScalar* const w = in[1];
 
   // Outputs
-  CeedScalar(*q_data_sur)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA])out[0];
+  typedef CeedScalar vec_t[CEED_Q_VLA];
+  vec_t* q_data_sur = (vec_t*) out[0];
 
   CeedPragmaSIMD
       // Quadrature Point Loop
