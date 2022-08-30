@@ -14,7 +14,6 @@
 #include <ceed.h>
 #include <math.h>
 
-typedef struct SetupContext_ *SetupContext;
 struct SetupContext_ {
   CeedScalar rc;
   CeedScalar lx;
@@ -26,8 +25,8 @@ struct SetupContext_ {
   int bubble_type;            // See BubbleType: 0=SPHERE, 1=CYLINDER
   int bubble_continuity_type; // See BubbleContinuityType: 0=SMOOTH, 1=BACK_SHARP 2=THICK
 };
+#define SetupContext struct SetupContext_*
 
-typedef struct AdvectionContext_ *AdvectionContext;
 struct AdvectionContext_ {
   CeedScalar CtauS;
   CeedScalar strong_form;
@@ -35,6 +34,7 @@ struct AdvectionContext_ {
   bool implicit;
   int stabilization; // See StabilizationType: 0=none, 1=SU, 2=SUPG
 };
+#define AdvectionContext struct AdvectionContext_*
 
 CEED_QFUNCTION_HELPER CeedScalar Square(CeedScalar x) { return x*x; }
 
