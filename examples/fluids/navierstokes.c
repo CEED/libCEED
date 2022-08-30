@@ -22,6 +22,7 @@
 //     ./navierstokes -ceed /cpu/self -problem density_current -degree 1
 //     ./navierstokes -ceed /gpu/cuda -problem advection -degree 1
 //
+//TESTARGS(name="blasius") -ceed {ceed_resource} -test -options_file examples/fluids/blasius.yaml -compare_final_state_atol 2E-11 -compare_final_state_filename examples/fluids/tests-output/fluids-navierstokes-blasius.bin -ts_max_steps 10 -dm_plex_box_faces 5,10,1
 //TESTARGS(name="blasius_STG") -ceed {ceed_resource} -test -options_file examples/fluids/tests-output/blasius_stgtest.yaml -compare_final_state_atol 2E-11 -compare_final_state_filename examples/fluids/tests-output/fluids-navierstokes-blasius_STG.bin
 //TESTARGS(name="blasius_STG_weakT") -ceed {ceed_resource} -test -options_file examples/fluids/tests-output/blasius_stgtest.yaml -compare_final_state_atol 1E-11 -compare_final_state_filename examples/fluids/tests-output/fluids-navierstokes-blasius_STG_weakT.bin -weakT
 //TESTARGS(name="blasius_STG_strongBC") -ceed {ceed_resource} -test -options_file examples/fluids/tests-output/blasius_stgtest.yaml -compare_final_state_atol 1E-10 -compare_final_state_filename examples/fluids/tests-output/fluids-navierstokes-blasius_STG_strongBC.bin -stg_strong true

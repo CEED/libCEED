@@ -267,6 +267,7 @@ static int CeedElemRestrictionDestroy_Ref(CeedElemRestriction r) {
   CeedCallBackend(CeedElemRestrictionGetData(r, &impl));
 
   CeedCallBackend(CeedFree(&impl->offsets_allocated));
+  CeedCallBackend(CeedFree(&impl->orient_allocated));
   CeedCallBackend(CeedFree(&impl));
   return CEED_ERROR_SUCCESS;
 }

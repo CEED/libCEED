@@ -12,7 +12,6 @@
 #define blasius_h
 
 #include <ceed.h>
-#include <math.h>
 
 #include "newtonian_state.h"
 #include "newtonian_types.h"
@@ -23,11 +22,10 @@ struct BlasiusContext_ {
   bool                             implicit;  // !< Using implicit timesteping or not
   bool                             weakT;     // !< flag to set Temperature weakly at inflow
   CeedScalar                       delta0;    // !< Boundary layer height at inflow
-  CeedScalar                       Uinf;      // !< Velocity at boundary layer edge
-  CeedScalar                       Tinf;      // !< Temperature at boundary layer edge
+  CeedScalar                       U_inf;     // !< Velocity at boundary layer edge
+  CeedScalar                       T_inf;     // !< Temperature at boundary layer edge
   CeedScalar                       T_wall;    // !< Temperature at the wall
   CeedScalar                       P0;        // !< Pressure at outflow
-  CeedScalar                       theta0;    // !< Temperature at inflow
   CeedScalar                       x_inflow;  // !< Location of inflow in x
   CeedScalar                       n_cheb;    // !< Number of Chebyshev terms
   CeedScalar                      *X;         // !< Chebyshev polynomial coordinate vector
@@ -77,24 +75,24 @@ CEED_QFUNCTION_HELPER void ChebyshevEval(int N, const double *Tf, double x, doub
 // *****************************************************************************
 State CEED_QFUNCTION_HELPER(BlasiusSolution)(const BlasiusContext blasius, const CeedScalar x[3], const CeedScalar x0, const CeedScalar x_inflow,
                                              const CeedScalar rho, CeedScalar *t12) {
-  CeedInt    N    = blasius->n_cheb;
-  CeedScalar nu   = blasius->newtonian_ctx.mu / rho;
-  CeedScalar eta  = x[1] * sqrt(blasius->Uinf / (nu * (x0 + x[0] - x_inflow)));
-  CeedScalar X    = 2 * (eta / blasius->eta_max) - 1.;
-  CeedScalar Uinf = blasius->Uinf;
-  CeedScalar Rd   = GasConstant(&blasius->newtonian_ctx);
+  CeedInt    N     = blasius->n_cheb;
+  CeedScalar nu    = blasius->newtonian_ctx.mu / rho;
+  CeedScalar eta   = x[1] * sqrt(blasius->U_inf / (nu * (x0 + x[0] - x_inflow)));
+  CeedScalar X     = 2 * (eta / blasius->eta_max) - 1.;
+  CeedScalar U_inf = blasius->U_inf;
+  CeedScalar Rd    = GasConstant(&blasius->newtonian_ctx);
 
   CeedScalar f[4], h[4];
   ChebyshevEval(N, blasius->Tf_cheb, X, blasius->eta_max, f);
   ChebyshevEval(N - 1, blasius->Th_cheb, X, blasius->eta_max, h);
 
-  *t12 = rho * nu * Uinf * f[2] * sqrt(Uinf / (nu * (x0 + x[0] - x_inflow)));
+  *t12 = rho * nu * U_inf * f[2] * sqrt(U_inf / (nu * (x0 + x[0] - x_inflow)));
 
   CeedScalar Y[5];
-  Y[1] = Uinf * f[1];
-  Y[2] = 0.5 * sqrt(nu * Uinf / (x0 + x[0] - x_inflow)) * (eta * f[1] - f[0]);
+  Y[1] = U_inf * f[1];
+  Y[2] = 0.5 * sqrt(nu * U_inf / (x0 + x[0] - x_inflow)) * (eta * f[1] - f[0]);
   Y[3] = 0.;
-  Y[4] = blasius->Tinf * h[0];
+  Y[4] = blasius->T_inf * h[0];
   Y[0] = rho * Rd * Y[4];
   return StateFromY(&blasius->newtonian_ctx, Y, x);
 }
@@ -112,15 +110,15 @@ CEED_QFUNCTION(ICsBlasius)(void *ctx, CeedInt Q, const CeedScalar *const *in, Ce
   const BlasiusContext context    = (BlasiusContext)ctx;
   const CeedScalar     cv         = context->newtonian_ctx.cv;
   const CeedScalar     mu         = context->newtonian_ctx.mu;
-  const CeedScalar     theta0     = context->theta0;
+  const CeedScalar     T_inf      = context->T_inf;
   const CeedScalar     P0         = context->P0;
   const CeedScalar     delta0     = context->delta0;
-  const CeedScalar     Uinf       = context->Uinf;
+  const CeedScalar     U_inf      = context->U_inf;
   const CeedScalar     x_inflow   = context->x_inflow;
   const CeedScalar     gamma      = HeatCapacityRatio(&context->newtonian_ctx);
-  const CeedScalar     e_internal = cv * theta0;
+  const CeedScalar     e_internal = cv * T_inf;
   const CeedScalar     rho        = P0 / ((gamma - 1) * e_internal);
-  const CeedScalar     x0         = Uinf * rho / (mu * 25 / (delta0 * delta0));
+  const CeedScalar     x0         = U_inf * rho / (mu * 25 / (delta0 * delta0));
   CeedScalar           t12;
 
   // Quadrature Point Loop
@@ -130,6 +128,7 @@ CEED_QFUNCTION(ICsBlasius)(void *ctx, CeedInt Q, const CeedScalar *const *in, Ce
     CeedScalar       q[5] = {0};
     UnpackState_U(s.U, q);
     for (CeedInt j = 0; j < 5; j++) q0[j][i] = q[j];
+
   }  // End of Quadrature Point Loop
   return 0;
 }
@@ -150,14 +149,14 @@ CEED_QFUNCTION(Blasius_Inflow)(void *ctx, CeedInt Q, const CeedScalar *const *in
   const CeedScalar     cv       = context->newtonian_ctx.cv;
   const CeedScalar     Rd       = GasConstant(&context->newtonian_ctx);
   const CeedScalar     gamma    = HeatCapacityRatio(&context->newtonian_ctx);
-  const CeedScalar     theta0   = context->theta0;
+  const CeedScalar     T_inf    = context->T_inf;
   const CeedScalar     P0       = context->P0;
   const CeedScalar     delta0   = context->delta0;
-  const CeedScalar     Uinf     = context->Uinf;
+  const CeedScalar     U_inf    = context->U_inf;
   const CeedScalar     x_inflow = context->x_inflow;
   const bool           weakT    = context->weakT;
-  const CeedScalar     rho_0    = P0 / (Rd * theta0);
-  const CeedScalar     x0       = Uinf * rho_0 / (mu * 25 / Square(delta0));
+  const CeedScalar     rho_0    = P0 / (Rd * T_inf);
+  const CeedScalar     x0       = U_inf * rho_0 / (mu * 25 / Square(delta0));
 
   CeedPragmaSIMD
       // Quadrature Point Loop
@@ -179,13 +178,13 @@ CEED_QFUNCTION(Blasius_Inflow)(void *ctx, CeedInt Q, const CeedScalar *const *in
     if (weakT) {
       // rho should be from the current solution
       rho        = q[0][i];
-      // Temperature is being set weakly (theta0) and for constant cv this sets E_internal
-      E_internal = rho * cv * theta0;
+      // Temperature is being set weakly (T_inf) and for constant cv this sets E_internal
+      E_internal = rho * cv * T_inf;
       // Find pressure using
-      P          = rho * Rd * theta0;  // interior rho with exterior T
+      P          = rho * Rd * T_inf;  // interior rho with exterior T
       E_kinetic  = .5 * rho * Dot3(s.Y.velocity, s.Y.velocity);
     } else {
-      //  Fixing rho weakly on the inflow to a value consistent with theta0 and P0
+      //  Fixing rho weakly on the inflow to a value consistent with T_inf and P0
       rho        = rho_0;
       E_kinetic  = .5 * rho * Dot3(s.Y.velocity, s.Y.velocity);
       E_internal = q[4][i] - E_kinetic;  // uses set rho and u but E from solution
@@ -236,13 +235,13 @@ CEED_QFUNCTION(Blasius_Inflow_Jacobian)(void *ctx, CeedInt Q, const CeedScalar *
   const CeedScalar     cv       = context->newtonian_ctx.cv;
   const CeedScalar     Rd       = GasConstant(&context->newtonian_ctx);
   const CeedScalar     gamma    = HeatCapacityRatio(&context->newtonian_ctx);
-  const CeedScalar     theta0   = context->theta0;
+  const CeedScalar     T_inf    = context->T_inf;
   const CeedScalar     P0       = context->P0;
   const CeedScalar     delta0   = context->delta0;
-  const CeedScalar     Uinf     = context->Uinf;
+  const CeedScalar     U_inf    = context->U_inf;
   const bool           weakT    = context->weakT;
-  const CeedScalar     rho_0    = P0 / (Rd * theta0);
-  const CeedScalar     x0       = Uinf * rho_0 / (mu * 25 / (delta0 * delta0));
+  const CeedScalar     rho_0    = P0 / (Rd * T_inf);
+  const CeedScalar     x0       = U_inf * rho_0 / (mu * 25 / (delta0 * delta0));
 
   CeedPragmaSIMD
       // Quadrature Point Loop
@@ -264,11 +263,11 @@ CEED_QFUNCTION(Blasius_Inflow_Jacobian)(void *ctx, CeedInt Q, const CeedScalar *
     if (weakT) {
       // rho should be from the current solution
       drho                   = dq[0][i];
-      CeedScalar dE_internal = drho * cv * theta0;
+      CeedScalar dE_internal = drho * cv * T_inf;
       CeedScalar dE_kinetic  = .5 * drho * Dot3(s.Y.velocity, s.Y.velocity);
       dE                     = dE_internal + dE_kinetic;
-      dP                     = drho * Rd * theta0;  // interior rho with exterior T
-    } else {                                        // rho specified, E_internal from solution
+      dP                     = drho * Rd * T_inf;  // interior rho with exterior T
+    } else {                                       // rho specified, E_internal from solution
       drho = 0;
       dE   = dq[4][i];
       dP   = dE * (gamma - 1.);

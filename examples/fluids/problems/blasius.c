@@ -18,7 +18,7 @@ PetscErrorCode CompressibleBlasiusResidual(SNES snes, Vec X, Vec R, void *ctx) {
   const PetscScalar   *Tf, *Th;  // Chebyshev coefficients
   PetscScalar         *r, f[4], h[4];
   PetscInt             N  = blasius->n_cheb;
-  PetscScalar          Ma = Mach(&blasius->newtonian_ctx, blasius->Tinf, blasius->Uinf), Pr = Prandtl(&blasius->newtonian_ctx),
+  PetscScalar          Ma = Mach(&blasius->newtonian_ctx, blasius->T_inf, blasius->U_inf), Pr = Prandtl(&blasius->newtonian_ctx),
               gamma = HeatCapacityRatio(&blasius->newtonian_ctx);
   PetscFunctionBegin;
   PetscCall(VecGetArrayRead(X, &Tf));
@@ -43,7 +43,7 @@ PetscErrorCode CompressibleBlasiusResidual(SNES snes, Vec X, Vec R, void *ctx) {
 
   // h - left end boundary condition
   ChebyshevEval(N - 1, Th, -1., blasius->eta_max, h);
-  r[N] = h[0] - blasius->T_wall / blasius->Tinf;
+  r[N] = h[0] - blasius->T_wall / blasius->T_inf;
 
   // h - right end boundary condition
   ChebyshevEval(N - 1, Th, 1., blasius->eta_max, h);
@@ -103,10 +103,9 @@ static PetscErrorCode GetYNodeLocs(const MPI_Comm comm, const char path[PETSC_MA
   for (PetscInt i = 0; i < dims[0]; i++) {
     PetscCall(PetscSynchronizedFGets(comm, fp, char_array_len, line));
     PetscCall(PetscStrToArray(line, ' ', &ndims, &array));
-    if (ndims < dims[1]) {
+    if (ndims < dims[1])
       SETERRQ(comm, -1, "Line %" PetscInt_FMT " of %s does not contain enough columns (%" PetscInt_FMT " instead of %" PetscInt_FMT ")", i, path,
               ndims, dims[1]);
-    }
 
     node_locs[i] = (PetscReal)atof(array[0]);
   }
@@ -182,11 +181,12 @@ static PetscErrorCode ModifyMesh(MPI_Comm comm, DM dm, PetscInt dim, PetscReal g
     *node_locs = temp_node_locs;
   } else {
     // Error checking
-    if (*num_node_locs < faces[1] + 1)
+    if (*num_node_locs < faces[1] + 1) {
       SETERRQ(comm, -1,
               "The y_node_locs_path has too few locations; "
               "There are %d + 1 nodes, but only %d locations given",
               faces[1] + 1, *num_node_locs);
+    }
     if (*num_node_locs > faces[1] + 1) {
       PetscCall(PetscPrintf(comm,
                             "WARNING: y_node_locs_path has more locations (%d) "
@@ -226,11 +226,10 @@ PetscErrorCode NS_BLASIUS(ProblemData *problem, DM dm, void *ctx) {
   problem->ics.qfunction     = ICsBlasius;
   problem->ics.qfunction_loc = ICsBlasius_loc;
 
-  CeedScalar Uinf                                 = 40;           // m/s
-  CeedScalar Tinf                                 = 288.;         // K
+  CeedScalar U_inf                                = 40;           // m/s
+  CeedScalar T_inf                                = 288.;         // K
   CeedScalar T_wall                               = 400.;         // K
   CeedScalar delta0                               = 4.2e-3;       // m
-  CeedScalar theta0                               = 288.;         // K
   CeedScalar P0                                   = 1.01e5;       // Pa
   CeedInt    N                                    = 20;           // Number of Chebyshev terms
   PetscBool  weakT                                = PETSC_FALSE;  // weak density or temperature
@@ -242,11 +241,10 @@ PetscErrorCode NS_BLASIUS(ProblemData *problem, DM dm, void *ctx) {
 
   PetscOptionsBegin(comm, NULL, "Options for BLASIUS problem", NULL);
   PetscCall(PetscOptionsBool("-weakT", "Change from rho weak to T weak at inflow", NULL, weakT, &weakT, NULL));
-  PetscCall(PetscOptionsScalar("-Uinf", "Velocity at boundary layer edge", NULL, Uinf, &Uinf, NULL));
-  PetscCall(PetscOptionsScalar("-Tinf", "Temperature at boundary layer edge", NULL, Tinf, &Tinf, NULL));
-  PetscCall(PetscOptionsScalar("-T_wall", "Temperature at wall", NULL, T_wall, &T_wall, NULL));
+  PetscCall(PetscOptionsScalar("-velocity_infinity", "Velocity at boundary layer edge", NULL, U_inf, &U_inf, NULL));
+  PetscCall(PetscOptionsScalar("-temperature_infinity", "Temperature at boundary layer edge", NULL, T_inf, &T_inf, NULL));
+  PetscCall(PetscOptionsScalar("-temperature_wall", "Temperature at wall", NULL, T_wall, &T_wall, NULL));
   PetscCall(PetscOptionsScalar("-delta0", "Boundary layer height at inflow", NULL, delta0, &delta0, NULL));
-  PetscCall(PetscOptionsScalar("-theta0", "Wall temperature", NULL, theta0, &theta0, NULL));
   PetscCall(PetscOptionsScalar("-P0", "Pressure at outflow", NULL, P0, &P0, NULL));
   PetscCall(PetscOptionsInt("-N_Chebyshev", "Number of Chebyshev terms", NULL, N, &N, NULL));
   PetscCall(PetscOptionsBoundedInt("-platemesh_Ndelta", "Velocity at boundary layer edge", NULL, mesh_Ndelta, &mesh_Ndelta, NULL, 1));
@@ -267,11 +265,10 @@ PetscErrorCode NS_BLASIUS(ProblemData *problem, DM dm, void *ctx) {
   PetscScalar Kelvin = user->units->Kelvin;
   PetscScalar Pascal = user->units->Pascal;
 
-  theta0 *= Kelvin;
-  Tinf *= Kelvin;
+  T_inf *= Kelvin;
   T_wall *= Kelvin;
   P0 *= Pascal;
-  Uinf *= meter / second;
+  U_inf *= meter / second;
   delta0 *= meter;
 
   PetscReal *mesh_ynodes  = NULL;
@@ -285,11 +282,10 @@ PetscErrorCode NS_BLASIUS(ProblemData *problem, DM dm, void *ctx) {
   CeedQFunctionContextGetData(problem->apply_vol_rhs.qfunction_context, CEED_MEM_HOST, &newtonian_ig_ctx);
 
   blasius_ctx->weakT         = weakT;
-  blasius_ctx->Uinf          = Uinf;
-  blasius_ctx->Tinf          = Tinf;
+  blasius_ctx->U_inf         = U_inf;
+  blasius_ctx->T_inf         = T_inf;
   blasius_ctx->T_wall        = T_wall;
   blasius_ctx->delta0        = delta0;
-  blasius_ctx->theta0        = theta0;
   blasius_ctx->P0            = P0;
   blasius_ctx->n_cheb        = N;
   newtonian_ig_ctx->P0       = P0;
@@ -314,7 +310,7 @@ PetscErrorCode NS_BLASIUS(ProblemData *problem, DM dm, void *ctx) {
   CeedQFunctionContextDestroy(&problem->ics.qfunction_context);
   problem->ics.qfunction_context = blasius_context;
   if (use_stg) {
-    PetscCall(SetupSTG(comm, dm, problem, user, weakT, theta0, P0, mesh_ynodes, mesh_nynodes));
+    PetscCall(SetupSTG(comm, dm, problem, user, weakT, T_inf, P0, mesh_ynodes, mesh_nynodes));
   } else {
     problem->apply_inflow.qfunction              = Blasius_Inflow;
     problem->apply_inflow.qfunction_loc          = Blasius_Inflow_loc;
