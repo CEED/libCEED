@@ -11,10 +11,20 @@
 #include <ceed.h>
 #include "newtonian_types.h"
 
+struct offsets_{
+    size_t sigma, d, phi; // !< Random number set, [nmodes,3], [nmodes,3], [nmodes]
+    size_t kappa;     // !< Wavemode frequencies in increasing order, [nmodes]
+    size_t prof_dw;   // !< Distance to wall for Inflow Profie, [nprof]
+    size_t ubar;      // !< Mean velocity, [nprof, 3]
+    size_t cij;       // !< Cholesky decomposition [nprof, 6]
+    size_t eps;       // !< Turbulent Disspation [nprof, 6]
+    size_t lt;        // !< Tubulent Length Scale [nprof, 6]
+    size_t ynodes;    // !< Locations of nodes in y direction [nynodes]
+} ;          // !< Holds offsets for each array in data
+
 /* Access data arrays via:
  *  CeedScalar (*sigma)[ctx->nmodes] = (CeedScalar (*)[ctx->nmodes])&ctx->data[ctx->offsets.sigma];
  *  CeedScalar *eps = &ctx->data[ctx->offsets.eps]; */
-typedef struct STGShur14Context_ *STGShur14Context;
 struct STGShur14Context_ {
   CeedInt    nmodes;      // !< Number of wavemodes
   CeedInt    nprofs;      // !< Number of profile points in STGInflow.dat
@@ -30,19 +40,11 @@ struct STGShur14Context_ {
   CeedScalar dz;          // !< dz used for h calculation
   bool       prescribe_T; // !< Prescribe temperature weakly
   struct NewtonianIdealGasContext_ newtonian_ctx;
-
-  struct {
-    size_t sigma, d, phi; // !< Random number set, [nmodes,3], [nmodes,3], [nmodes]
-    size_t kappa;     // !< Wavemode frequencies in increasing order, [nmodes]
-    size_t prof_dw;   // !< Distance to wall for Inflow Profie, [nprof]
-    size_t ubar;      // !< Mean velocity, [nprof, 3]
-    size_t cij;       // !< Cholesky decomposition [nprof, 6]
-    size_t eps;       // !< Turbulent Disspation [nprof, 6]
-    size_t lt;        // !< Tubulent Length Scale [nprof, 6]
-    size_t ynodes;    // !< Locations of nodes in y direction [nynodes]
-  } offsets;          // !< Holds offsets for each array in data
+  struct offsets_ offsets;
   size_t total_bytes; // !< Total size of struct plus array
   CeedScalar data[1]; // !< Holds concatenated scalar array data
 };
+
+#define STGShur14Context struct STGShur14Context_*
 
 #endif
