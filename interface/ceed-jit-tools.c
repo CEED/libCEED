@@ -155,6 +155,7 @@ int CeedLoadSourceToInitializedBuffer(Ceed ceed, const char *source_file_path, c
           CeedCall(CeedCalloc(ceed_relative_path_length + 1, &ceed_relative_path));
           memcpy(ceed_relative_path, &next_left_chevron[1], ceed_relative_path_length);
           CeedCall(CeedGetJitAbsolutePath(ceed, ceed_relative_path, &include_source_path));
+          CeedCall(CeedFree(&ceed_relative_path));
         }
         // ---- Recursive call to load source to buffer
         CeedDebug256(ceed, 2, "JiT Including: %s\n", include_source_path);

@@ -609,6 +609,12 @@ CEED_INTERN "C"
   magma_setvector(Q1d, sizeof(qweight1d[0]), qweight1d, 1, impl->dqweight1d, 1, data->queue);
 
   CeedCallBackend(CeedBasisSetData(basis, impl));
+  CeedCallBackend(CeedBasisSetData(basis, impl));
+  CeedCallBackend(CeedFree(&magma_common_path));
+  CeedCallBackend(CeedFree(&interp_path));
+  CeedCallBackend(CeedFree(&grad_path));
+  CeedCallBackend(CeedFree(&weight_path));
+  CeedCallBackend(CeedFree(&basis_kernel_source));
 
   return CEED_ERROR_SUCCESS;
 }

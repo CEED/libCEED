@@ -67,6 +67,15 @@ print: $(PETSc.pc) $(ceed.pc)
 	$(info OPT     : $(OPT))
 	@true
 
+print-% :
+	$(info [ variable name]: $*)
+	$(info [        origin]: $(origin $*))
+	$(info [        flavor]: $(flavor $*))
+	$(info [         value]: $(value $*))
+	$(info [expanded value]: $($*))
+	$(info )
+	@true
+
 clean:
 	$(RM) -r $(OBJDIR) navierstokes *.vtu *.bin* *.csv *.png
 
@@ -76,6 +85,6 @@ $(PETSc.pc):
 
 .PHONY: all print clean
 
-pkgconf = $(shell pkg-config $1 | sed -e 's/^"//g' -e 's/"$$//g')
+pkgconf = $(shell pkg-config $(if $(STATIC),--static) $1 | sed -e 's/^"//g' -e 's/"$$//g')
 
 -include $(src.o:%.o=%.d)
