@@ -430,7 +430,7 @@ For the Shock Tube problem, the following additional command-line options are av
 This problem can be run with:
 
 ```
-./navierstokes -problem shocktube -yzb -stab su -bc_slip_z 3,4 -bc_slip_y 1,2 -bc_wall 5,6 -dm_plex_dim 3 -dm_plex_box_lower 0,0,0 -dm_plex_box_upper 1000,100,100 -dm_plex_box_faces 200,1,1 -units_second 0.1 
+./navierstokes -problem shocktube -yzb -stab su -bc_slip_z 3,4 -bc_slip_y 1,2 -bc_wall 5,6 -dm_plex_dim 3 -dm_plex_box_lower 0,0,0 -dm_plex_box_upper 1000,100,100 -dm_plex_box_faces 200,1,1 -units_second 0.1
 ```
 
 ### Newtonian viscosity, Ideal Gas
@@ -650,20 +650,25 @@ The Blasius problem the following command-line options are available in addition
   - Default value
   - Unit
 
-* - `-Uinf`
+* - `-velocity_infinity`
   - Freestream velocity
   - `40`
   - `m/s`
 
-* - `-delta0`
-  - Boundary layer height at the inflow
-  - `4.2e-4`
-  - `m`
-
-* - `-theta0`
-  - Reference potential temperature
+* - `-temperature_infinity`
+  - Freestream temperature
   - `288`
   - `K`
+
+* - `-temperature_wall`
+  - Wall temperature
+  - `400`
+  - `K`
+
+* - `-delta0`
+  - Boundary layer height at the inflow
+  - `4.2e-3`
+  - `m`
 
 * - `-P0`
   - Atmospheric pressure
@@ -699,6 +704,12 @@ The Blasius problem the following command-line options are available in addition
   - Path to file with y node locations. If empty, will use mesh warping instead.
   - `""`
   -
+
+* - `-N_Chebyshev`
+  - Number of Chebyshev terms
+  - `20`
+  -
+
 :::
 
 This problem can be run with the `blasius.yaml` file via:
