@@ -126,13 +126,14 @@ CEED_QFUNCTION_HELPER void Tau_diagPrim(NewtonianIdealGasContext gas, State s,
 
   dts = Ctau_t / dt ;
 
-  tau = rho*rho*((4. * dts * dts)
-                 + u[0] * ( u[0] * gijd[0] + 2. * ( u[1] * gijd[1] + u[2] * gijd[3]))
-                 + u[1] * ( u[1] * gijd[2] + 2. *   u[2] * gijd[4])
-                 + u[2] *   u[2] * gijd[5])
-        + Ctau_v* mu * mu *
-        (gijd[0]*gijd[0] + gijd[2]*gijd[2] + gijd[5]*gijd[5] +
-         + 2. * (gijd[1]*gijd[1] + gijd[3]*gijd[3] + gijd[4]*gijd[4]));
+  tau = rho* rho * ( 
+      (4.0 * dts * dts)
+      + u[0] * ( u[0] * gijd[0] + 2.0 * ( u[1] * gijd[1] + u[2] * gijd[3]) )
+      + u[1] * ( u[1] * gijd[2] + 2.0 *   u[2] * gijd[4])
+      + u[2] *   u[2] * gijd[5])
+    + Ctau_v* mu * mu * (
+      gijd[0]*gijd[0] + gijd[2]*gijd[2] + gijd[5]*gijd[5]
+      + 2.0 * (gijd[1]*gijd[1] + gijd[3]*gijd[3] + gijd[4]*gijd[4]) );
 
   fact = sqrt(tau);
 
