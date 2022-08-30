@@ -19,7 +19,6 @@
 
 #define BLASIUS_MAX_N_CHEBYSHEV 50
 
-typedef struct BlasiusContext_ *BlasiusContext;
 struct BlasiusContext_ {
   bool                             implicit;                              // !< Using implicit timesteping or not
   bool                             weakT;                                 // !< flag to set Temperature weakly at inflow
@@ -36,6 +35,7 @@ struct BlasiusContext_ {
   CeedScalar                       Th_cheb[BLASIUS_MAX_N_CHEBYSHEV - 1];  // !< Chebyshev coefficient for h
   struct NewtonianIdealGasContext_ newtonian_ctx;
 };
+#define BlasiusContext struct BlasiusContext_*
 
 // *****************************************************************************
 // This helper function evaluates Chebyshev polynomials with a set of coefficients with all their derivatives represented as a recurrence table.
@@ -104,10 +104,11 @@ State CEED_QFUNCTION_HELPER(BlasiusSolution)(const BlasiusContext blasius, const
 // *****************************************************************************
 CEED_QFUNCTION(ICsBlasius)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
   // Inputs
-  const CeedScalar(*X)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[0];
+  typedef CeedScalar vec_t[CEED_Q_VLA];
+  const vec_t* X = (const vec_t*) in[0];
 
   // Outputs
-  CeedScalar(*q0)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA])out[0];
+  vec_t* q0 = (vec_t*) out[0];
 
   const BlasiusContext context    = (BlasiusContext)ctx;
   const CeedScalar     cv         = context->newtonian_ctx.cv;
@@ -138,13 +139,14 @@ CEED_QFUNCTION(ICsBlasius)(void *ctx, CeedInt Q, const CeedScalar *const *in, Ce
 // *****************************************************************************
 CEED_QFUNCTION(Blasius_Inflow)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
   // Inputs
-  const CeedScalar(*q)[CEED_Q_VLA]          = (const CeedScalar(*)[CEED_Q_VLA])in[0];
-  const CeedScalar(*q_data_sur)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[2];
-  const CeedScalar(*X)[CEED_Q_VLA]          = (const CeedScalar(*)[CEED_Q_VLA])in[3];
+  typedef CeedScalar vec_t[CEED_Q_VLA];
+  const vec_t* q = (const vec_t*) in[0];
+  const vec_t* q_data_sur = (const vec_t*) in[2];
+  const vec_t* X = (const vec_t*) in[3];
 
   // Outputs
-  CeedScalar(*v)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA])out[0];
-
+  vec_t* v = (vec_t*) out[0];
+  
   const BlasiusContext     context  = (BlasiusContext)ctx;
   const bool               implicit = context->implicit;
   NewtonianIdealGasContext gas      = &context->newtonian_ctx;
@@ -207,12 +209,13 @@ CEED_QFUNCTION(Blasius_Inflow)(void *ctx, CeedInt Q, const CeedScalar *const *in
 // *****************************************************************************
 CEED_QFUNCTION(Blasius_Inflow_Jacobian)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
   // Inputs
-  const CeedScalar(*dq)[CEED_Q_VLA]         = (const CeedScalar(*)[CEED_Q_VLA])in[0];
-  const CeedScalar(*q_data_sur)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[2];
-  const CeedScalar(*X)[CEED_Q_VLA]          = (const CeedScalar(*)[CEED_Q_VLA])in[3];
+  typedef CeedScalar vec_t[CEED_Q_VLA];
+  const vec_t* dq = (const vec_t*) in[0];
+  const vec_t* q_data_sur = (const vec_t*) in[2];
+  const vec_t* X = (const vec_t*) in[3];
 
   // Outputs
-  CeedScalar(*v)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA])out[0];
+  vec_t* v = (vec_t*) out[0];
 
   const BlasiusContext context  = (BlasiusContext)ctx;
   const bool           implicit = context->implicit;
