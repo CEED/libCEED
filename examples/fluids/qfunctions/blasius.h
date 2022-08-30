@@ -17,7 +17,6 @@
 #include "newtonian_types.h"
 #include "utils.h"
 
-typedef struct BlasiusContext_ *BlasiusContext;
 struct BlasiusContext_ {
   bool       implicit;  // !< Using implicit timesteping or not
   bool       weakT;     // !< flag to set Temperature weakly at inflow
@@ -28,6 +27,7 @@ struct BlasiusContext_ {
   CeedScalar x_inflow;  // !< Location of inflow in x
   struct NewtonianIdealGasContext_ newtonian_ctx;
 };
+#define BlasiusContext struct BlasiusContext_*
 
 void CEED_QFUNCTION_HELPER(BlasiusSolution)(const CeedScalar y,
     const CeedScalar Uinf, const CeedScalar x0, const CeedScalar x,
@@ -122,10 +122,11 @@ void CEED_QFUNCTION_HELPER(BlasiusSolution)(const CeedScalar y,
 CEED_QFUNCTION(ICsBlasius)(void *ctx, CeedInt Q,
                            const CeedScalar *const *in, CeedScalar *const *out) {
   // Inputs
-  const CeedScalar (*X)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[0];
+  typedef CeedScalar vec_t[CEED_Q_VLA];
+  const vec_t* X = (const vec_t*) in[0];
 
   // Outputs
-  CeedScalar (*q0)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA])out[0];
+  vec_t* q0 = (vec_t*) out[0];
 
   const BlasiusContext context = (BlasiusContext)ctx;
   const CeedScalar cv     = context->newtonian_ctx.cv;
@@ -167,12 +168,13 @@ CEED_QFUNCTION(Blasius_Inflow)(void *ctx, CeedInt Q,
                                CeedScalar *const *out) {
   // *INDENT-OFF*
   // Inputs
-  const CeedScalar (*q)[CEED_Q_VLA]          = (const CeedScalar(*)[CEED_Q_VLA])in[0],
-                   (*q_data_sur)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[2],
-                   (*X)[CEED_Q_VLA]          = (const CeedScalar(*)[CEED_Q_VLA])in[3];
+  typedef CeedScalar vec_t[CEED_Q_VLA];
+  const vec_t* q = (const vec_t*) in[0];
+  const vec_t* q_data_sur = (const vec_t*) in[2];
+  const vec_t* X = (const vec_t*) in[3];
 
   // Outputs
-  CeedScalar (*v)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA])out[0];
+  vec_t* v = (vec_t*) out[0];
   // *INDENT-ON*
   const BlasiusContext context = (BlasiusContext)ctx;
   const bool implicit     = context->implicit;
@@ -261,12 +263,13 @@ CEED_QFUNCTION(Blasius_Inflow_Jacobian)(void *ctx, CeedInt Q,
                                         CeedScalar *const *out) {
   // *INDENT-OFF*
   // Inputs
-  const CeedScalar (*dq)[CEED_Q_VLA]         = (const CeedScalar(*)[CEED_Q_VLA])in[0],
-                   (*q_data_sur)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[2],
-                   (*X)[CEED_Q_VLA]          = (const CeedScalar(*)[CEED_Q_VLA])in[3];
+  typedef CeedScalar vec_t[CEED_Q_VLA];
+  const vec_t* dq = (const vec_t*) in[0];
+  const vec_t* q_data_sur = (const vec_t*) in[2];
+  const vec_t* X = (const vec_t*) in[3];
 
   // Outputs
-  CeedScalar (*v)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA])out[0];
+  vec_t* v = (vec_t*) out[0];
   // *INDENT-ON*
   const BlasiusContext context = (BlasiusContext)ctx;
   const bool implicit     = context->implicit;
