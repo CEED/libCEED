@@ -19,7 +19,7 @@ On this page we provide a summary of the main API changes, new features and exam
 
 ### Other
 
-- Switch to `clang-format` over `astyle` for automatic formatting.
+- Switch to `clang-format` over `astyle` for automatic formatting; Makefile command changed to `make format` from `make style`.
 
 ### Bugfix
 
