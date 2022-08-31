@@ -569,6 +569,10 @@ CEED_QFUNCTION(STGShur14_Inflow_StrongQF)(void *ctx, CeedInt Q,
       for (CeedInt j=0; j<3; j++) u[j] = ubar[j];
     }
 
+    if (stg_ctx->fluc_height > 0 && x[1] > stg_ctx->fluc_height) {
+      for (CeedInt j=0; j<3; j++) u[j] = ubar[j];
+    }
+
     switch (stg_ctx->newtonian_ctx.state_var) {
     case STATEVAR_CONSERVATIVE:
       bcval[0][i] = scale[i] * rho;

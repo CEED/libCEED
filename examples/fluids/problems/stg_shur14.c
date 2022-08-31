@@ -328,27 +328,30 @@ PetscErrorCode SetupSTG(const MPI_Comm comm, const DM dm, ProblemData *problem,
   PetscBool  mean_only     = PETSC_FALSE,
              use_stgstrong = PETSC_FALSE;
   CeedScalar u0            = 0.0,
-             alpha         = 1.01;
+             alpha         = 1.01,
+             fluc_height   = -1;
   CeedQFunctionContext stg_context;
   NewtonianIdealGasContext newtonian_ig_ctx;
   PetscFunctionBeginUser;
 
   // Get options
   PetscOptionsBegin(comm, NULL, "STG Boundary Condition Options", NULL);
-  ierr = PetscOptionsString("-stg_inflow_path", "Path to STGInflow.dat", NULL,
-                            stg_inflow_path, stg_inflow_path,
-                            sizeof(stg_inflow_path), NULL); CHKERRQ(ierr);
-  ierr = PetscOptionsString("-stg_rand_path", "Path to STGInflow.dat", NULL,
-                            stg_rand_path,stg_rand_path,
-                            sizeof(stg_rand_path), NULL); CHKERRQ(ierr);
-  ierr = PetscOptionsReal("-stg_alpha", "Growth rate of the wavemodes", NULL,
-                          alpha, &alpha, NULL); CHKERRQ(ierr);
-  ierr = PetscOptionsReal("-stg_u0", "Advective velocity for the fluctuations",
-                          NULL, u0, &u0, NULL); CHKERRQ(ierr);
-  ierr = PetscOptionsBool("-stg_mean_only", "Only apply mean profile",
-                          NULL, mean_only, &mean_only, NULL); CHKERRQ(ierr);
-  ierr = PetscOptionsBool("-stg_strong", "Enforce STG inflow strongly",
-                          NULL, use_stgstrong, &use_stgstrong, NULL); CHKERRQ(ierr);
+  PetscCall(PetscOptionsString("-stg_inflow_path", "Path to STGInflow.dat", NULL,
+                               stg_inflow_path, stg_inflow_path,
+                               sizeof(stg_inflow_path), NULL));
+  PetscCall(PetscOptionsString("-stg_rand_path", "Path to STGInflow.dat", NULL,
+                               stg_rand_path,stg_rand_path,
+                               sizeof(stg_rand_path), NULL));
+  PetscCall(PetscOptionsReal("-stg_alpha", "Growth rate of the wavemodes", NULL,
+                             alpha, &alpha, NULL));
+  PetscCall(PetscOptionsReal("-stg_u0", "Advective velocity for the fluctuations",
+                             NULL, u0, &u0, NULL));
+  PetscCall(PetscOptionsBool("-stg_mean_only", "Only apply mean profile",
+                             NULL, mean_only, &mean_only, NULL));
+  PetscCall(PetscOptionsBool("-stg_strong", "Enforce STG inflow strongly",
+                             NULL, use_stgstrong, &use_stgstrong, NULL));
+  PetscCall(PetscOptionsReal("-stg_fluc_height", "Height to remove fluctuations",
+                             NULL, fluc_height, &fluc_height, NULL));
   PetscOptionsEnd();
 
   ierr = PetscCalloc1(1, &global_stg_ctx); CHKERRQ(ierr);
@@ -360,6 +363,7 @@ PetscErrorCode SetupSTG(const MPI_Comm comm, const DM dm, ProblemData *problem,
   global_stg_ctx->theta0        = theta0;
   global_stg_ctx->P0            = P0;
   global_stg_ctx->nynodes       = nynodes;
+  global_stg_ctx->fluc_height   = fluc_height;
 
   {
     // Calculate dx assuming constant spacing

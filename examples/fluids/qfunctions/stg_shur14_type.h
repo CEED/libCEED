@@ -28,6 +28,7 @@ struct STGShur14Context_ {
   bool       mean_only;   // !< Only apply the mean profile
   CeedScalar dx;          // !< dx used for h calculation
   CeedScalar dz;          // !< dz used for h calculation
+  CeedScalar fluc_height; // !< Height to remove fluctuations
   bool       prescribe_T; // !< Prescribe temperature weakly
   struct NewtonianIdealGasContext_ newtonian_ctx;
 
