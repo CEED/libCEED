@@ -449,7 +449,7 @@ int CeedBasisApplyNonTensor_f32_Magma(CeedBasis basis, CeedInt nelem, CeedTransp
 
       int elemsPerBlock = 1;  // basis->Q1d < 7 ? optElems[basis->Q1d] : 1;
       int grid          = nelem / elemsPerBlock + ((nelem / elemsPerBlock * elemsPerBlock < nelem) ? 1 : 0);
-      magma_weight_nontensor(grid, nqpt, nelem, nqpt, impl->dqweight, dv, data->queue));
+      magma_weight_nontensor(grid, nqpt, nelem, nqpt, impl->dqweight, dv, data->queue);
     } break;
 
     // LCOV_EXCL_START
