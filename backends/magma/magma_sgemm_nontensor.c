@@ -60,8 +60,7 @@ magma_sgemm_nontensor(
         alpha, dA, ldda,
         dB, lddb,
         beta,  dC, lddc, queue);
-    }
-    else {
+    } else {
       magma_sgemm(
         transA, transB, m, n, k,
         alpha, dA, ldda,
