@@ -21,6 +21,7 @@ for header_path in ["include/ceed/types.h", "include/ceed/ceed.h"]:
         lines += [line.strip() for line in f if
                   not (line.startswith("#") and not line.startswith("#include")) and
                   not line.startswith("  static") and
+                  not line.startswith("  CEED_QFUNCTION_ATTR") and
                   "CeedErrorImpl" not in line and
                   "const char *, ...);" not in line and
                   not line.startswith("CEED_EXTERN const char *const") and

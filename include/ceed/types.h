@@ -15,6 +15,28 @@
 
 /**
   @ingroup CeedQFunction
+  This macro defines compiler attributes to the CEED_QFUNCTION to force inlining
+    for called functions. The `inline` declaration does not necessarily enforce a
+    compiler to inline a function. This can be deterimental to performance, so
+    here we force inlining to occur unless inlining has been forced off (like
+    during debugging).
+**/
+#ifndef CEED_QFUNCTION_ATTR
+#ifndef __NO_INLINE__
+#  if defined(__GNUC__) || defined(__clang__)
+#    define CEED_QFUNCTION_ATTR __attribute__((flatten))
+#  elif defined(__INTEL_COMPILER)
+#    define CEED_QFUNCTION_ATTR _Pragma("forceinline")
+#  else
+#    define CEED_QFUNCTION_ATTR
+#  endif
+#else
+#  define CEED_QFUNCTION_ATTR
+#endif
+#endif
+
+/**
+  @ingroup CeedQFunction
   This macro populates the correct function annotations for User QFunction
     source for code generation backends or populates default values for CPU
     backends. It also creates a variable `name_loc` populated with the correct
@@ -23,7 +45,7 @@
 #ifndef CEED_QFUNCTION
 #define CEED_QFUNCTION(name) \
   static const char name ## _loc[] = __FILE__ ":" #name;        \
-  static int name
+  CEED_QFUNCTION_ATTR static int name
 #endif
 
 /**
@@ -33,7 +55,7 @@
     values for CPU backends.
 **/
 #ifndef CEED_QFUNCTION_HELPER
-#define CEED_QFUNCTION_HELPER static inline
+#define CEED_QFUNCTION_HELPER CEED_QFUNCTION_ATTR static inline
 #endif
 
 /**

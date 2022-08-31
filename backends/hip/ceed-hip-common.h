@@ -11,7 +11,11 @@
 #include <ceed/ceed.h>
 #include <ceed/backend.h>
 #include <hip/hip_runtime.h>
+#if (HIP_VERSION >= 50200000)
+#include <hipblas/hipblas.h>
+#else
 #include <hipblas.h>
+#endif
 
 #define QUOTE(...) #__VA_ARGS__
 

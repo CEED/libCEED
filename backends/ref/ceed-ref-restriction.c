@@ -311,6 +311,7 @@ static int CeedElemRestrictionDestroy_Ref(CeedElemRestriction r) {
   ierr = CeedElemRestrictionGetData(r, &impl); CeedChkBackend(ierr);
 
   ierr = CeedFree(&impl->offsets_allocated); CeedChkBackend(ierr);
+  ierr = CeedFree(&impl->orient_allocated); CeedChkBackend(ierr);
   ierr = CeedFree(&impl); CeedChkBackend(ierr);
   return CEED_ERROR_SUCCESS;
 }
