@@ -405,7 +405,7 @@ int CeedBasisApplyNonTensor_f32_Magma(CeedBasis basis, CeedInt nelem, CeedTransp
 
   if (tmode == CEED_TRANSPOSE) {
     CeedSize length;
-		CeedCallBackend(CeedVectorGetLength(V, &length));
+    CeedCallBackend(CeedVectorGetLength(V, &length));
     if (CEED_SCALAR_TYPE == CEED_SCALAR_FP32) {
       magmablas_slaset(MagmaFull, length, 1, 0., 0., (float *)dv, length, data->queue);
     } else {
