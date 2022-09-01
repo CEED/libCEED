@@ -9,4 +9,4 @@
 
 // This file and definition is used for installs.
 // The definition for in-source is in ceed-jit-source-root-default.c.
-const char CeedJitSourceRootDefault[] = CEED_JIT_SOUCE_ROOT_DEFAULT;
+const char *CeedJitSourceRootDefault = CEED_JIT_SOUCE_ROOT_DEFAULT;

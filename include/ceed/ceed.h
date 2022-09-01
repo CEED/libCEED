@@ -58,7 +58,9 @@
   No other file should declare publicly visible symbols, thus it should never be
   used outside ceed.h.
  */
-#ifdef __cplusplus
+#if defined(__clang_analyzer__)
+#define CEED_EXTERN extern
+#elif defined(__cplusplus)
 #define CEED_EXTERN extern "C" CEED_VISIBILITY(default)
 #else
 #define CEED_EXTERN extern CEED_VISIBILITY(default)

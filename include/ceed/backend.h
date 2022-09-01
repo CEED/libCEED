@@ -14,7 +14,9 @@
 #include <limits.h>
 #include <stdbool.h>
 
-#ifdef __cplusplus
+#if defined(__clang_analyzer__)
+#define CEED_INTERN
+#elif defined(__cplusplus)
 #define CEED_INTERN extern "C" CEED_VISIBILITY(hidden)
 #else
 #define CEED_INTERN extern CEED_VISIBILITY(hidden)

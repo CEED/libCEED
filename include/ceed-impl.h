@@ -14,7 +14,7 @@
 #include <ceed/ceed.h>
 #include <stdbool.h>
 
-CEED_INTERN const char CeedJitSourceRootDefault[];
+CEED_INTERN const char *CeedJitSourceRootDefault;
 
 /** @defgroup CeedUser Public API for Ceed
     @ingroup Ceed

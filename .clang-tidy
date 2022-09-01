@@ -1,0 +1,2 @@
+Checks: "clang-diagnostic-*,clang-analyzer-*,readability-inconsistent-declaration-parameter-name"
+HeaderFilterRegex: .*
