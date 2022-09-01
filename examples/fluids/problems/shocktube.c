@@ -73,7 +73,7 @@ PetscErrorCode NS_SHOCKTUBE(ProblemData *problem, DM dm, void *ctx) {
   CeedScalar Cyzb     = 0.1;  // -, used in approximation of (Na),x
   CeedScalar Byzb     = 2.0;  // -, 1 for smooth shocks
   //                                          2 for sharp shocks
-  PetscReal domain_min[3], domain_max[3], domain_size[3];
+  PetscReal  domain_min[3], domain_max[3], domain_size[3];
   PetscCall(DMGetBoundingBox(dm, domain_min, domain_max));
   for (PetscInt i = 0; i < 3; i++) domain_size[i] = domain_max[i] - domain_min[i];
 

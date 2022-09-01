@@ -58,7 +58,7 @@ PetscErrorCode NS_EULER_VORTEX(ProblemData *problem, DM dm, void *ctx) {
   CeedScalar vortex_strength = 5.;   // -
   CeedScalar c_tau           = 0.5;  // -
   // c_tau = 0.5 is reported as "optimal" in Hughes et al 2010
-  PetscReal center[3],                 // m
+  PetscReal  center[3],                // m
       mean_velocity[3] = {1., 1., 0};  // m/s
   PetscReal domain_min[3], domain_max[3], domain_size[3];
   PetscCall(DMGetBoundingBox(dm, domain_min, domain_max));

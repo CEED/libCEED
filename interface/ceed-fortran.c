@@ -227,7 +227,7 @@ CEED_EXTERN void fCeedElemRestrictionCreate(int *ceed, int *nelements, int *esiz
     CeedRealloc(CeedElemRestriction_count_max, &CeedElemRestriction_dict);
   }
 
-  const int           *offsets_ = offsets;
+  const int *offsets_ = offsets;
 
   CeedElemRestriction *elemrestriction_ = &CeedElemRestriction_dict[CeedElemRestriction_count];
   *err = CeedElemRestrictionCreate(Ceed_dict[*ceed], *nelements, *esize, *num_comp, *comp_stride, *lsize, (CeedMemType)*memtype,
@@ -611,29 +611,29 @@ static int            CeedQFunction_count     = 0;
 static int            CeedQFunction_n         = 0;
 static int            CeedQFunction_count_max = 0;
 
-static int            CeedQFunctionFortranStub(void *ctx, int nq, const CeedScalar *const *u, CeedScalar *const *v) {
-             CeedFortranContext   fctx      = ctx;
-             CeedQFunctionContext inner_ctx = fctx->inner_ctx;
-             int                  ierr;
+static int CeedQFunctionFortranStub(void *ctx, int nq, const CeedScalar *const *u, CeedScalar *const *v) {
+  CeedFortranContext   fctx      = ctx;
+  CeedQFunctionContext inner_ctx = fctx->inner_ctx;
+  int                  ierr;
 
-             CeedScalar          *ctx_ = NULL;
-             // Note: Device backends are generating their own kernels from
-             //         single source files, so only Host backends need to
-             //         use this Fortran stub.
-             if (inner_ctx) {
-               ierr = CeedQFunctionContextGetData(inner_ctx, CEED_MEM_HOST, &ctx_);
-               CeedChk(ierr);
+  CeedScalar *ctx_ = NULL;
+  // Note: Device backends are generating their own kernels from
+  //         single source files, so only Host backends need to
+  //         use this Fortran stub.
+  if (inner_ctx) {
+    ierr = CeedQFunctionContextGetData(inner_ctx, CEED_MEM_HOST, &ctx_);
+    CeedChk(ierr);
   }
 
-             fctx->f((void *)ctx_, &nq, u[0], u[1], u[2], u[3], u[4], u[5], u[6], u[7], u[8], u[9], u[10], u[11], u[12], u[13], u[14], u[15], v[0], v[1], v[2],
-                     v[3], v[4], v[5], v[6], v[7], v[8], v[9], v[10], v[11], v[12], v[13], v[14], v[15], &ierr);
+  fctx->f((void *)ctx_, &nq, u[0], u[1], u[2], u[3], u[4], u[5], u[6], u[7], u[8], u[9], u[10], u[11], u[12], u[13], u[14], u[15], v[0], v[1], v[2],
+          v[3], v[4], v[5], v[6], v[7], v[8], v[9], v[10], v[11], v[12], v[13], v[14], v[15], &ierr);
 
-             if (inner_ctx) {
-               ierr = CeedQFunctionContextRestoreData(inner_ctx, (void *)&ctx_);
-               CeedChk(ierr);
+  if (inner_ctx) {
+    ierr = CeedQFunctionContextRestoreData(inner_ctx, (void *)&ctx_);
+    CeedChk(ierr);
   }
 
-             return ierr;
+  return ierr;
 }
 
 #define fCeedQFunctionCreateInterior FORTRAN_NAME(ceedqfunctioncreateinterior, CEEDQFUNCTIONCREATEINTERIOR)
@@ -867,7 +867,7 @@ CEED_EXTERN void fCeedOperatorSetField(int *op, const char *field_name, int *r, 
   CeedBasis           b_;
   CeedVector          v_;
 
-  CeedOperator        op_ = CeedOperator_dict[*op];
+  CeedOperator op_ = CeedOperator_dict[*op];
 
   if (*r == FORTRAN_NULL) {
     r_ = NULL;
@@ -929,7 +929,7 @@ CEED_EXTERN void fCeedOperatorLinearAssembleQFunction(int *op, int *assembledvec
   }
   CeedElemRestriction *rstr_ = &CeedElemRestriction_dict[CeedElemRestriction_count];
 
-  int                  createRequest = 1;
+  int createRequest = 1;
   // Check if input is CEED_REQUEST_ORDERED(-2) or CEED_REQUEST_IMMEDIATE(-1)
   if (*rqst == -1 || *rqst == -2) {
     createRequest = 0;
@@ -1074,7 +1074,7 @@ CEED_EXTERN void fCeedOperatorCreateFDMElementInverse(int *op, int *fdminv, int 
   }
   CeedOperator *fdminv_ = &CeedOperator_dict[CeedOperator_count];
 
-  int           createRequest = 1;
+  int createRequest = 1;
   // Check if input is CEED_REQUEST_ORDERED(-2) or CEED_REQUEST_IMMEDIATE(-1)
   if (*rqst == -1 || *rqst == -2) {
     createRequest = 0;
@@ -1108,7 +1108,7 @@ CEED_EXTERN void fCeedOperatorApply(int *op, int *ustatevec, int *resvec, int *r
   CeedVector ustatevec_ = (*ustatevec == FORTRAN_NULL) ? NULL : (*ustatevec == FORTRAN_VECTOR_NONE ? CEED_VECTOR_NONE : CeedVector_dict[*ustatevec]);
   CeedVector resvec_    = (*resvec == FORTRAN_NULL) ? NULL : (*resvec == FORTRAN_VECTOR_NONE ? CEED_VECTOR_NONE : CeedVector_dict[*resvec]);
 
-  int        createRequest = 1;
+  int createRequest = 1;
   // Check if input is CEED_REQUEST_ORDERED(-2) or CEED_REQUEST_IMMEDIATE(-1)
   if (*rqst == -1 || *rqst == -2) {
     createRequest = 0;
@@ -1137,7 +1137,7 @@ CEED_EXTERN void fCeedOperatorApplyAdd(int *op, int *ustatevec, int *resvec, int
   CeedVector ustatevec_ = *ustatevec == FORTRAN_NULL ? NULL : CeedVector_dict[*ustatevec];
   CeedVector resvec_    = *resvec == FORTRAN_NULL ? NULL : CeedVector_dict[*resvec];
 
-  int        createRequest = 1;
+  int createRequest = 1;
   // Check if input is CEED_REQUEST_ORDERED(-2) or CEED_REQUEST_IMMEDIATE(-1)
   if (*rqst == -1 || *rqst == -2) {
     createRequest = 0;

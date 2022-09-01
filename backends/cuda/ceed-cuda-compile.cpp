@@ -37,7 +37,7 @@
 //------------------------------------------------------------------------------
 int CeedCompileCuda(Ceed ceed, const char *source, CUmodule *module, const CeedInt num_defines, ...) {
   cudaFree(0);  // Make sure a Context exists for nvrtc
-  nvrtcProgram       prog;
+  nvrtcProgram prog;
 
   std::ostringstream code;
 

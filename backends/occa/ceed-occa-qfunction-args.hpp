@@ -39,12 +39,12 @@ class QFunctionArgs : public CeedObject {
   QFunctionArgs();
   QFunctionArgs(CeedQFunction qf);
 
-  void                  setupQFunctionArgs(CeedQFunction qf);
+  void setupQFunctionArgs(CeedQFunction qf);
 
-  bool                  isValid() const;
+  bool isValid() const;
 
-  int                   inputCount() const;
-  int                   outputCount() const;
+  int inputCount() const;
+  int outputCount() const;
 
   const QFunctionField& getQfField(const bool isInput, const int index) const;
 
@@ -52,11 +52,11 @@ class QFunctionArgs : public CeedObject {
 
   const QFunctionField& getQfOutput(const int index) const;
 
-  CeedEvalMode          getEvalMode(const bool isInput, const int index) const;
+  CeedEvalMode getEvalMode(const bool isInput, const int index) const;
 
-  CeedEvalMode          getInputEvalMode(const int index) const;
+  CeedEvalMode getInputEvalMode(const int index) const;
 
-  CeedEvalMode          getOutputEvalMode(const int index) const;
+  CeedEvalMode getOutputEvalMode(const int index) const;
 };
 }  // namespace occa
 }  // namespace ceed

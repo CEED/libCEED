@@ -32,11 +32,11 @@ class CeedObject {
 
   ::occa::device getDevice();
 
-  bool           usingCpuDevice() const;
-  bool           usingGpuDevice() const;
+  bool usingCpuDevice() const;
+  bool usingGpuDevice() const;
 
-  int            ceedError(const std::string &message) const;
-  static int     staticCeedError(const std::string &message);
+  int        ceedError(const std::string &message) const;
+  static int staticCeedError(const std::string &message);
 };
 
 namespace SyncState {

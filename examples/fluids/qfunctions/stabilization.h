@@ -88,10 +88,10 @@ CEED_QFUNCTION_HELPER void Tau_diagPrim(NewtonianIdealGasContext gas, State s, c
   const CeedScalar u[3]   = {s.Y.velocity[0], s.Y.velocity[1], s.Y.velocity[2]};
   const CeedScalar rho    = s.U.density;
 
-  CeedScalar       gijd[6];
-  CeedScalar       tau;
-  CeedScalar       dts;
-  CeedScalar       fact;
+  CeedScalar gijd[6];
+  CeedScalar tau;
+  CeedScalar dts;
+  CeedScalar fact;
 
   //*INDENT-OFF*
   gijd[0] = dXdx[0][0] * dXdx[0][0] + dXdx[1][0] * dXdx[1][0] + dXdx[2][0] * dXdx[2][0];

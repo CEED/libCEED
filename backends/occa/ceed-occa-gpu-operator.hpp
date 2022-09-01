@@ -31,7 +31,7 @@ class GpuOperator : public Operator {
 
   ::occa::kernel buildApplyAddKernel();
 
-  void           applyAdd(Vector *in, Vector *out);
+  void applyAdd(Vector *in, Vector *out);
 };
 }  // namespace occa
 }  // namespace ceed

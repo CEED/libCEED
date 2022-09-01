@@ -614,7 +614,7 @@ int CeedVectorScale(CeedVector x, CeedScalar alpha) {
   CeedScalar *x_array = NULL;
   CeedSize    n_x;
 
-  bool        has_valid_array = true;
+  bool has_valid_array = true;
   CeedCall(CeedVectorHasValidArray(x, &has_valid_array));
   if (!has_valid_array) {
     // LCOV_EXCL_START

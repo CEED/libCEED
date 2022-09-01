@@ -244,9 +244,9 @@ int Vector::getReadOnlyArray(CeedMemType mtype, CeedScalar **array) {
   return error;
 }
 
-int            Vector::restoreArray(CeedScalar **array) { return CEED_ERROR_SUCCESS; }
+int Vector::restoreArray(CeedScalar **array) { return CEED_ERROR_SUCCESS; }
 
-int            Vector::restoreReadOnlyArray(CeedScalar **array) { return CEED_ERROR_SUCCESS; }
+int Vector::restoreReadOnlyArray(CeedScalar **array) { return CEED_ERROR_SUCCESS; }
 
 ::occa::memory Vector::getKernelArg() {
   setCurrentMemoryIfNeeded();
@@ -317,7 +317,7 @@ int Vector::registerCeedFunction(Ceed ceed, CeedVector vec, const char *fname, c
 }
 
 int Vector::ceedCreate(CeedSize length, CeedVector vec) {
-  int  ierr;
+  int ierr;
 
   Ceed ceed;
   ierr = CeedVectorGetCeed(vec, &ceed);

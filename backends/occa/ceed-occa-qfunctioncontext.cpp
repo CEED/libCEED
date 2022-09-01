@@ -210,7 +210,7 @@ int QFunctionContext::getData(CeedMemType mtype, void *data) {
   return ceedError("Invalid CeedMemType passed");
 }
 
-int            QFunctionContext::restoreData() { return CEED_ERROR_SUCCESS; }
+int QFunctionContext::restoreData() { return CEED_ERROR_SUCCESS; }
 
 ::occa::memory QFunctionContext::getKernelArg() {
   setCurrentCtxMemoryIfNeeded();
@@ -228,7 +228,7 @@ int QFunctionContext::registerCeedFunction(Ceed ceed, CeedQFunctionContext ctx, 
 }
 
 int QFunctionContext::ceedCreate(CeedQFunctionContext ctx) {
-  int  ierr;
+  int ierr;
 
   Ceed ceed;
   ierr = CeedQFunctionContextGetCeed(ctx, &ceed);

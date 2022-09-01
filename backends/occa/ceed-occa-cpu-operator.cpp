@@ -84,8 +84,8 @@ void CpuOperator::setupInputs(Vector *in) {
 
     const OperatorField &opField = args.getOpInput(i);
 
-    Vector              *input  = opField.usesActiveVector() ? in : opField.vec;
-    Vector              *output = dofInputs[i];
+    Vector *input  = opField.usesActiveVector() ? in : opField.vec;
+    Vector *output = dofInputs[i];
 
     opField.elemRestriction->apply(CEED_NOTRANSPOSE, *input, *output);
   }
@@ -100,8 +100,8 @@ void CpuOperator::setupOutputs(Vector *out) {
 
     const OperatorField &opField = args.getOpOutput(i);
 
-    Vector              *input  = dofOutputs[i];
-    Vector              *output = opField.usesActiveVector() ? out : opField.vec;
+    Vector *input  = dofOutputs[i];
+    Vector *output = opField.usesActiveVector() ? out : opField.vec;
 
     opField.elemRestriction->apply(CEED_TRANSPOSE, *input, *output);
   }
@@ -353,7 +353,7 @@ void CpuOperator::addKernelArgSource(std::stringstream &ss, const bool isInput, 
   const OperatorField  &opField = args.getOpField(isInput, index);
   const QFunctionField &qfField = args.getQfField(isInput, index);
 
-  std::stringstream     dimAttribute;
+  std::stringstream dimAttribute;
   if (opField.hasBasis()) {
     ss << ',' << std::endl;
     if (opField.usingTensorBasis()) {
@@ -442,8 +442,8 @@ void CpuOperator::addSimplexKernelArgSource(std::stringstream &ss, const bool is
 }
 
 void CpuOperator::addQuadArraySource(std::stringstream &ss) {
-  const int         inputs  = args.inputCount();
-  const int         outputs = args.outputCount();
+  const int inputs  = args.inputCount();
+  const int outputs = args.outputCount();
 
   const std::string quadInput  = "quadInput";
   const std::string quadOutput = "quadOutput";
@@ -549,9 +549,9 @@ void CpuOperator::addInterpSource(std::stringstream &ss, const bool isInput, con
   const int            components       = opField.getComponentCount();
   const int            dim              = opField.getDim();
 
-  const std::string    weights = interpVar(isInput, index);
+  const std::string weights = interpVar(isInput, index);
 
-  std::string          dimArgs;
+  std::string dimArgs;
   if (usingTensorBasis) {
     for (int i = 0; i < dim; ++i) {
       if (i) {
@@ -588,10 +588,10 @@ void CpuOperator::addGradTensorSource(std::stringstream &ss, const bool isInput,
   const int            components = opField.getComponentCount();
   const int            dim        = opField.getDim();
 
-  const std::string    B  = interpVar(isInput, index);
-  const std::string    Bx = gradVar(isInput, index);
+  const std::string B  = interpVar(isInput, index);
+  const std::string Bx = gradVar(isInput, index);
 
-  std::string          dimArgs;
+  std::string dimArgs;
   for (int i = 0; i < dim; ++i) {
     if (i) {
       dimArgs += ", ";
@@ -635,11 +635,11 @@ void CpuOperator::addGradTensorSource(std::stringstream &ss, const bool isInput,
 }
 
 void CpuOperator::addGradSimplexSource(std::stringstream &ss, const bool isInput, const int index) {
-  const int         components = (args.getOpField(isInput, index).getComponentCount());
+  const int components = (args.getOpField(isInput, index).getComponentCount());
 
   const std::string weights = gradVar(isInput, index);
 
-  std::string       input, output;
+  std::string input, output;
   if (isInput) {
     input  = "&" + dofInputVar(index) + "(0, component, element)";
     output = "(CeedScalar*) " + indexedVar("quadInput", index) + "[component]";
@@ -662,7 +662,7 @@ void CpuOperator::addGradSimplexSource(std::stringstream &ss, const bool isInput
 void CpuOperator::addWeightSource(std::stringstream &ss, const bool isInput, const int index) {
   const std::string weights = qWeightVar(isInput, index);
 
-  std::string       output;
+  std::string output;
   if (isInput) {
     // TODO: Can the weight operator handle multiple components?
     output = "(CeedScalar*) " + indexedVar("quadInput", index);
@@ -682,7 +682,7 @@ void CpuOperator::addCopySource(std::stringstream &ss, const bool isInput, const
   const QFunctionField &qfField = args.getQfField(isInput, index);
   const std::string     size    = std::to_string(qfField.size);
 
-  std::string           input, output;
+  std::string input, output;
   if (isInput) {
     input += dofInputVar(index) + "[q + (OCCA_Q * (field + element * " + size + "))]";
     output += indexedVar("quadInput", index) + "[q + field * OCCA_Q]";

@@ -16,9 +16,9 @@ int main(int argc, char **argv) {
   CeedQFunctionContext  ctx;
   CeedContextFieldLabel time_label, count_label;
 
-  TestContext           ctx_data = {
-                .time  = 1.0,
-                .count = {13, 42},
+  TestContext ctx_data = {
+      .time  = 1.0,
+      .count = {13, 42},
   };
 
   CeedInit(argv[1], &ceed);

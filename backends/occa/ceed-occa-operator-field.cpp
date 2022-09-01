@@ -54,15 +54,15 @@ bool OperatorField::usesActiveVector() const { return _usesActiveVector; }
 //---[ Basis Info ]-----------------
 bool OperatorField::hasBasis() const { return basis; }
 
-int  OperatorField::usingTensorBasis() const { return basis->isTensorBasis(); }
+int OperatorField::usingTensorBasis() const { return basis->isTensorBasis(); }
 
-int  OperatorField::getComponentCount() const { return (basis ? basis->ceedComponentCount : 1); }
+int OperatorField::getComponentCount() const { return (basis ? basis->ceedComponentCount : 1); }
 
-int  OperatorField::getP() const { return (basis ? basis->P : 0); }
+int OperatorField::getP() const { return (basis ? basis->P : 0); }
 
-int  OperatorField::getQ() const { return (basis ? basis->Q : 0); }
+int OperatorField::getQ() const { return (basis ? basis->Q : 0); }
 
-int  OperatorField::getDim() const { return (basis ? basis->dim : 1); }
+int OperatorField::getDim() const { return (basis ? basis->dim : 1); }
 //==================================
 
 //---[ ElemRestriction Info ]-------

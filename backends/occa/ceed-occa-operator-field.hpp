@@ -47,10 +47,10 @@ class OperatorField {
   bool hasBasis() const;
   int  usingTensorBasis() const;
 
-  int  getComponentCount() const;
-  int  getP() const;
-  int  getQ() const;
-  int  getDim() const;
+  int getComponentCount() const;
+  int getP() const;
+  int getQ() const;
+  int getDim() const;
   //================================
 
   //---[ ElemRestriction Info ]-----

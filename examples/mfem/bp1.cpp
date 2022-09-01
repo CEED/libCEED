@@ -51,10 +51,10 @@ int main(int argc, char *argv[]) {
 #else
   const char *mesh_file = MFEM_DIR "/data/star.mesh";
 #endif
-  int                 order         = 1;
-  bool                visualization = true;
-  bool                test          = false;
-  double              max_nnodes    = 50000;
+  int    order         = 1;
+  bool   visualization = true;
+  bool   test          = false;
+  double max_nnodes    = 50000;
 
   mfem::OptionsParser args(argc, argv);
   args.AddOption(&ceed_spec, "-c", "-ceed", "Ceed specification.");

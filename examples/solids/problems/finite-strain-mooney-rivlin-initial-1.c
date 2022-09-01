@@ -18,22 +18,22 @@
 static const char *const field_names[] = {"gradu"};
 static CeedInt           field_sizes[] = {9};
 
-ProblemData              finite_strain_Mooney_Rivlin_initial_1 = {
-                 .setup_geo            = SetupGeo,
-                 .setup_geo_loc        = SetupGeo_loc,
-                 .q_data_size          = 10,
-                 .quadrature_mode      = CEED_GAUSS,
-                 .residual             = ElasFSInitialMR1F,
-                 .residual_loc         = ElasFSInitialMR1F_loc,
-                 .number_fields_stored = 1,
-                 .field_names          = field_names,
-                 .field_sizes          = field_sizes,
-                 .jacobian             = ElasFSInitialMR1dF,
-                 .jacobian_loc         = ElasFSInitialMR1dF_loc,
-                 .energy               = ElasFSInitialMR1Energy,
-                 .energy_loc           = ElasFSInitialMR1Energy_loc,
-                 .diagnostic           = ElasFSInitialMR1Diagnostic,
-                 .diagnostic_loc       = ElasFSInitialMR1Diagnostic_loc,
+ProblemData finite_strain_Mooney_Rivlin_initial_1 = {
+    .setup_geo            = SetupGeo,
+    .setup_geo_loc        = SetupGeo_loc,
+    .q_data_size          = 10,
+    .quadrature_mode      = CEED_GAUSS,
+    .residual             = ElasFSInitialMR1F,
+    .residual_loc         = ElasFSInitialMR1F_loc,
+    .number_fields_stored = 1,
+    .field_names          = field_names,
+    .field_sizes          = field_sizes,
+    .jacobian             = ElasFSInitialMR1dF,
+    .jacobian_loc         = ElasFSInitialMR1dF_loc,
+    .energy               = ElasFSInitialMR1Energy,
+    .energy_loc           = ElasFSInitialMR1Energy_loc,
+    .diagnostic           = ElasFSInitialMR1Diagnostic,
+    .diagnostic_loc       = ElasFSInitialMR1Diagnostic_loc,
 };
 
 PetscErrorCode SetupLibceedFineLevel_ElasFSInitialMR1(DM dm, DM dm_energy, DM dm_diagnostic, Ceed ceed, AppCtx app_ctx, CeedQFunctionContext phys_ctx,

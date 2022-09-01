@@ -68,11 +68,11 @@ int CeedBasisApplyTensor_Cuda_shared(CeedBasis basis, const CeedInt num_elem, Ce
         CeedInt shared_mem      = elems_per_block * thread_1d * sizeof(CeedScalar);
         CeedCallBackend(CeedRunKernelDimSharedCuda(ceed, data->Interp, grid, thread_1d, 1, elems_per_block, shared_mem, interp_args));
       } else if (dim == 2) {
-        const CeedInt opt_elems[7] = {0, 32, 8, 6, 4, 2, 8};
+        const CeedInt opt_elems[7]    = {0, 32, 8, 6, 4, 2, 8};
         // elems_per_block must be at least 1
-        CeedInt elems_per_block    = CeedIntMax(thread_1d < 7 ? opt_elems[thread_1d] / num_comp : 1, 1);
-        CeedInt grid               = num_elem / elems_per_block + ((num_elem / elems_per_block * elems_per_block < num_elem) ? 1 : 0);
-        CeedInt shared_mem         = num_comp * elems_per_block * thread_1d * thread_1d * sizeof(CeedScalar);
+        CeedInt       elems_per_block = CeedIntMax(thread_1d < 7 ? opt_elems[thread_1d] / num_comp : 1, 1);
+        CeedInt       grid            = num_elem / elems_per_block + ((num_elem / elems_per_block * elems_per_block < num_elem) ? 1 : 0);
+        CeedInt       shared_mem      = num_comp * elems_per_block * thread_1d * thread_1d * sizeof(CeedScalar);
         CeedCallBackend(
             CeedRunKernelDimSharedCuda(ceed, data->Interp, grid, thread_1d, thread_1d, num_comp * elems_per_block, shared_mem, interp_args));
       } else if (dim == 3) {
@@ -97,11 +97,11 @@ int CeedBasisApplyTensor_Cuda_shared(CeedBasis basis, const CeedInt num_elem, Ce
         CeedInt shared_mem      = elems_per_block * thread_1d * sizeof(CeedScalar);
         CeedCallBackend(CeedRunKernelDimSharedCuda(ceed, data->Grad, grid, thread_1d, 1, elems_per_block, shared_mem, grad_args));
       } else if (dim == 2) {
-        const CeedInt opt_elems[7] = {0, 32, 8, 6, 4, 2, 8};
+        const CeedInt opt_elems[7]    = {0, 32, 8, 6, 4, 2, 8};
         // elems_per_block must be at least 1
-        CeedInt elems_per_block    = CeedIntMax(thread_1d < 7 ? opt_elems[thread_1d] / num_comp : 1, 1);
-        CeedInt grid               = num_elem / elems_per_block + ((num_elem / elems_per_block * elems_per_block < num_elem) ? 1 : 0);
-        CeedInt shared_mem         = num_comp * elems_per_block * thread_1d * thread_1d * sizeof(CeedScalar);
+        CeedInt       elems_per_block = CeedIntMax(thread_1d < 7 ? opt_elems[thread_1d] / num_comp : 1, 1);
+        CeedInt       grid            = num_elem / elems_per_block + ((num_elem / elems_per_block * elems_per_block < num_elem) ? 1 : 0);
+        CeedInt       shared_mem      = num_comp * elems_per_block * thread_1d * thread_1d * sizeof(CeedScalar);
         CeedCallBackend(CeedRunKernelDimSharedCuda(ceed, data->Grad, grid, thread_1d, thread_1d, num_comp * elems_per_block, shared_mem, grad_args));
       } else if (dim == 3) {
         CeedInt elems_per_block = 1;

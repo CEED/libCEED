@@ -150,7 +150,7 @@ static PetscErrorCode RunWithDM(RunParams rp, DM dm, const char *ceed_resource) 
 
   // Print summary
   if (!rp->test_mode) {
-    PetscInt    P = rp->degree + 1, Q = P + rp->q_extra;
+    PetscInt P = rp->degree + 1, Q = P + rp->q_extra;
 
     const char *used_resource;
     CeedGetResource(ceed, &used_resource);
@@ -387,13 +387,13 @@ static PetscErrorCode Run(RunParams rp, PetscInt num_resources, char *const *cee
 }
 
 int main(int argc, char **argv) {
-  PetscInt    comm_size;
-  RunParams   rp;
-  MPI_Comm    comm;
-  char        filename[PETSC_MAX_PATH_LEN];
-  char       *ceed_resources[30];
-  PetscInt    num_ceed_resources = 30;
-  char        hostname[PETSC_MAX_PATH_LEN];
+  PetscInt  comm_size;
+  RunParams rp;
+  MPI_Comm  comm;
+  char      filename[PETSC_MAX_PATH_LEN];
+  char     *ceed_resources[30];
+  PetscInt  num_ceed_resources = 30;
+  char      hostname[PETSC_MAX_PATH_LEN];
 
   PetscInt    dim = 3, mesh_elem[3] = {3, 3, 3};
   PetscInt    num_degrees = 30, degree[30] = {}, num_local_nodes = 2, local_nodes[2] = {};

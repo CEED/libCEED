@@ -74,13 +74,13 @@ Operator *Operator::from(CeedOperator op) {
 
 bool Operator::isApplyingIdentityFunction() { return qfunction->ceedIsIdentity; }
 
-int  Operator::applyAdd(Vector *in, Vector *out, CeedRequest *request) {
-   // TODO: Cache kernel objects rather than relying on OCCA kernel caching
+int Operator::applyAdd(Vector *in, Vector *out, CeedRequest *request) {
+  // TODO: Cache kernel objects rather than relying on OCCA kernel caching
   applyAddKernel = buildApplyAddKernel();
 
   if (needsInitialSetup) {
-     initialSetup();
-     needsInitialSetup = false;
+    initialSetup();
+    needsInitialSetup = false;
   }
 
   applyAdd(in, out);

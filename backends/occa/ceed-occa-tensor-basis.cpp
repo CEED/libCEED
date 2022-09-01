@@ -45,7 +45,7 @@ TensorBasis::TensorBasis(CeedBasis basis, CeedInt dim_, CeedInt P1D_, CeedInt Q1
 
 TensorBasis::~TensorBasis() {}
 
-bool        TensorBasis::isTensorBasis() const { return true; }
+bool TensorBasis::isTensorBasis() const { return true; }
 
 const char *TensorBasis::getFunctionSource() const {
   // TODO: Add gpu function sources when split

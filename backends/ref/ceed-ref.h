@@ -28,8 +28,8 @@ typedef struct {
   const CeedInt *offsets;
   CeedInt       *offsets_allocated;
   // Orientation, if it exists, is true when the face must be flipped (multiplies by -1.).
-  const bool *orient;
-  bool       *orient_allocated;
+  const bool    *orient;
+  bool          *orient_allocated;
   int (*Apply)(CeedElemRestriction, const CeedInt, const CeedInt, const CeedInt, CeedInt, CeedInt, CeedTransposeMode, CeedVector, CeedVector,
                CeedRequest *);
 } CeedElemRestriction_Ref;

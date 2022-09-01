@@ -39,7 +39,7 @@ SimplexBasis::SimplexBasis(CeedBasis basis, CeedInt dim_, CeedInt P_, CeedInt Q_
 
 SimplexBasis::~SimplexBasis() {}
 
-bool        SimplexBasis::isTensorBasis() const { return false; }
+bool SimplexBasis::isTensorBasis() const { return false; }
 
 const char *SimplexBasis::getFunctionSource() const {
   // TODO: Add gpu function sources when split
@@ -82,24 +82,24 @@ int SimplexBasis::applyInterp(const CeedInt elementCount, const bool transpose, 
 
 ::occa::kernel SimplexBasis::getGpuInterpKernel(const bool transpose) { return buildGpuEvalKernel(interpKernelBuilder, transpose); }
 
-int            SimplexBasis::applyGrad(const CeedInt elementCount, const bool transpose, Vector &U, Vector &V) {
-             ::occa::kernel gradKernel = (usingGpuDevice() ? getGpuGradKernel(transpose) : getCpuGradKernel(transpose));
+int SimplexBasis::applyGrad(const CeedInt elementCount, const bool transpose, Vector &U, Vector &V) {
+  ::occa::kernel gradKernel = (usingGpuDevice() ? getGpuGradKernel(transpose) : getCpuGradKernel(transpose));
 
-             gradKernel(elementCount, grad, U.getConstKernelArg(), V.getKernelArg());
+  gradKernel(elementCount, grad, U.getConstKernelArg(), V.getKernelArg());
 
-             return CEED_ERROR_SUCCESS;
+  return CEED_ERROR_SUCCESS;
 }
 
 ::occa::kernel SimplexBasis::getCpuGradKernel(const bool transpose) { return buildCpuEvalKernel(gradKernelBuilder, transpose); }
 
 ::occa::kernel SimplexBasis::getGpuGradKernel(const bool transpose) { return buildGpuEvalKernel(gradKernelBuilder, transpose); }
 
-int            SimplexBasis::applyWeight(const CeedInt elementCount, Vector &W) {
-             ::occa::kernel weightKernel = (usingGpuDevice() ? getGpuWeightKernel() : getCpuWeightKernel());
+int SimplexBasis::applyWeight(const CeedInt elementCount, Vector &W) {
+  ::occa::kernel weightKernel = (usingGpuDevice() ? getGpuWeightKernel() : getCpuWeightKernel());
 
-             weightKernel(elementCount, qWeight, W.getKernelArg());
+  weightKernel(elementCount, qWeight, W.getKernelArg());
 
-             return CEED_ERROR_SUCCESS;
+  return CEED_ERROR_SUCCESS;
 }
 
 ::occa::kernel SimplexBasis::getCpuWeightKernel() { return buildCpuEvalKernel(weightKernelBuilder, false); }

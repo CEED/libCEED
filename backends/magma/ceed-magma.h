@@ -101,30 +101,30 @@ typedef struct {
 CEED_INTERN void magma_weight_nontensor(magma_int_t grid, magma_int_t threads, magma_int_t nelem, magma_int_t Q, CeedScalar *dqweight, CeedScalar *dv,
                                         magma_queue_t queue);
 
-CEED_INTERN int  magma_dgemm_nontensor(magma_trans_t transA, magma_trans_t transB, magma_int_t m, magma_int_t n, magma_int_t k, double alpha,
-                                       const double *dA, magma_int_t ldda, const double *dB, magma_int_t lddb, double beta, double *dC,
-                                       magma_int_t lddc, magma_queue_t queue);
+CEED_INTERN int magma_dgemm_nontensor(magma_trans_t transA, magma_trans_t transB, magma_int_t m, magma_int_t n, magma_int_t k, double alpha,
+                                      const double *dA, magma_int_t ldda, const double *dB, magma_int_t lddb, double beta, double *dC,
+                                      magma_int_t lddc, magma_queue_t queue);
 
-CEED_INTERN int  magma_sgemm_nontensor(magma_trans_t transA, magma_trans_t transB, magma_int_t m, magma_int_t n, magma_int_t k, float alpha,
-                                       const float *dA, magma_int_t ldda, const float *dB, magma_int_t lddb, float beta, float *dC, magma_int_t lddc,
-                                       magma_queue_t queue);
+CEED_INTERN int magma_sgemm_nontensor(magma_trans_t transA, magma_trans_t transB, magma_int_t m, magma_int_t n, magma_int_t k, float alpha,
+                                      const float *dA, magma_int_t ldda, const float *dB, magma_int_t lddb, float beta, float *dC, magma_int_t lddc,
+                                      magma_queue_t queue);
 
 CEED_INTERN void gemm_selector(int gpu_arch, char precision, char transA, int m, int n, int k, int *nbatch, int *use_magma);
 
 CEED_INTERN magma_int_t magma_isdevptr(const void *A);
 
-CEED_INTERN int         CeedBasisCreateTensorH1_Magma(CeedInt dim, CeedInt P1d, CeedInt Q1d, const CeedScalar *interp1d, const CeedScalar *grad1d,
-                                                      const CeedScalar *qref1d, const CeedScalar *qweight1d, CeedBasis basis);
+CEED_INTERN int CeedBasisCreateTensorH1_Magma(CeedInt dim, CeedInt P1d, CeedInt Q1d, const CeedScalar *interp1d, const CeedScalar *grad1d,
+                                              const CeedScalar *qref1d, const CeedScalar *qweight1d, CeedBasis basis);
 
-CEED_INTERN int         CeedBasisCreateH1_Magma(CeedElemTopology topo, CeedInt dim, CeedInt ndof, CeedInt nqpts, const CeedScalar *interp,
-                                                const CeedScalar *grad, const CeedScalar *qref, const CeedScalar *qweight, CeedBasis basis);
+CEED_INTERN int CeedBasisCreateH1_Magma(CeedElemTopology topo, CeedInt dim, CeedInt ndof, CeedInt nqpts, const CeedScalar *interp,
+                                        const CeedScalar *grad, const CeedScalar *qref, const CeedScalar *qweight, CeedBasis basis);
 
-CEED_INTERN int         CeedElemRestrictionCreate_Magma(CeedMemType mtype, CeedCopyMode cmode, const CeedInt *offsets, CeedElemRestriction r);
+CEED_INTERN int CeedElemRestrictionCreate_Magma(CeedMemType mtype, CeedCopyMode cmode, const CeedInt *offsets, CeedElemRestriction r);
 
-CEED_INTERN int         CeedElemRestrictionCreateBlocked_Magma(const CeedMemType mtype, const CeedCopyMode cmode, const CeedInt *offsets,
-                                                               const CeedElemRestriction res);
+CEED_INTERN int CeedElemRestrictionCreateBlocked_Magma(const CeedMemType mtype, const CeedCopyMode cmode, const CeedInt *offsets,
+                                                       const CeedElemRestriction res);
 
-CEED_INTERN int         CeedOperatorCreate_Magma(CeedOperator op);
+CEED_INTERN int CeedOperatorCreate_Magma(CeedOperator op);
 
 // comment the line below to use the default magma_is_devptr function
 #define magma_is_devptr magma_isdevptr

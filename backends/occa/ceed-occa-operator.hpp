@@ -50,16 +50,16 @@ class Operator : public CeedObject {
 
   static Operator *from(CeedOperator op);
 
-  bool             isApplyingIdentityFunction();
+  bool isApplyingIdentityFunction();
 
-  int              applyAdd(Vector *in, Vector *out, CeedRequest *request);
+  int applyAdd(Vector *in, Vector *out, CeedRequest *request);
 
   //---[ Virtual Methods ]----------
   virtual ::occa::kernel buildApplyAddKernel() = 0;
 
-  virtual void           initialSetup();
+  virtual void initialSetup();
 
-  virtual void           applyAdd(Vector *in, Vector *out) = 0;
+  virtual void applyAdd(Vector *in, Vector *out) = 0;
 
   //---[ Ceed Callbacks ]-----------
   static int registerCeedFunction(Ceed ceed, CeedOperator op, const char *fname, ceed::occa::ceedFunction f);

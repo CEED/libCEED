@@ -80,8 +80,8 @@ inline __device__ void ContractTransposeX1d(CeedScalar *slice, const CeedInt t_i
 //------------------------------------------------------------------------------
 inline __device__ void interp1d(const CeedInt num_elem, const CeedInt transpose, const CeedScalar *c_B, const CeedScalar *__restrict__ d_U,
                                 CeedScalar *__restrict__ d_V, CeedScalar *slice) {
-  CeedScalar    r_V;
-  CeedScalar    r_t;
+  CeedScalar r_V;
+  CeedScalar r_t;
 
   const CeedInt t_in_x = threadIdx.x;
   const CeedInt t_in_y = threadIdx.y;
@@ -107,8 +107,8 @@ inline __device__ void interp1d(const CeedInt num_elem, const CeedInt transpose,
 //------------------------------------------------------------------------------
 inline __device__ void grad1d(const CeedInt num_elem, const CeedInt transpose, const CeedScalar *c_B, const CeedScalar *c_G,
                               const CeedScalar *__restrict__ d_U, CeedScalar *__restrict__ d_V, CeedScalar *slice) {
-  CeedScalar    r_U;
-  CeedScalar    r_V;
+  CeedScalar r_U;
+  CeedScalar r_V;
 
   const CeedInt t_in_x = threadIdx.x;
   const CeedInt t_in_y = threadIdx.y;
@@ -249,8 +249,8 @@ inline __device__ void ContractTransposeX2d(CeedScalar *slice, const CeedInt t_i
 //------------------------------------------------------------------------------
 inline __device__ void interp2d(const CeedInt num_elem, const CeedInt transpose, const CeedScalar *c_B, const CeedScalar *__restrict__ d_U,
                                 CeedScalar *__restrict__ d_V, CeedScalar *slice) {
-  CeedScalar    r_V;
-  CeedScalar    r_t;
+  CeedScalar r_V;
+  CeedScalar r_t;
 
   const CeedInt t_in_x        = threadIdx.x;
   const CeedInt t_in_y        = threadIdx.y;
@@ -282,9 +282,9 @@ inline __device__ void interp2d(const CeedInt num_elem, const CeedInt transpose,
 //------------------------------------------------------------------------------
 inline __device__ void grad2d(const CeedInt num_elem, const CeedInt transpose, const CeedScalar *c_B, const CeedScalar *c_G,
                               const CeedScalar *__restrict__ d_U, CeedScalar *__restrict__ d_V, CeedScalar *slice) {
-  CeedScalar    r_U;
-  CeedScalar    r_V;
-  CeedScalar    r_t;
+  CeedScalar r_U;
+  CeedScalar r_V;
+  CeedScalar r_t;
 
   const CeedInt t_in_x        = threadIdx.x;
   const CeedInt t_in_y        = threadIdx.y;
@@ -483,8 +483,8 @@ inline __device__ void ContractTransposeX3d(CeedScalar *slice, const CeedInt t_i
 //------------------------------------------------------------------------------
 inline __device__ void interp3d(const CeedInt num_elem, const CeedInt transpose, const CeedScalar *c_B, const CeedScalar *__restrict__ d_U,
                                 CeedScalar *__restrict__ d_V, CeedScalar *slice) {
-  CeedScalar    r_V[BASIS_T_1D];
-  CeedScalar    r_t[BASIS_T_1D];
+  CeedScalar r_V[BASIS_T_1D];
+  CeedScalar r_t[BASIS_T_1D];
 
   const CeedInt t_in_x        = threadIdx.x;
   const CeedInt t_in_y        = threadIdx.y;
@@ -520,9 +520,9 @@ inline __device__ void interp3d(const CeedInt num_elem, const CeedInt transpose,
 inline __device__ void grad3d(const CeedInt num_elem, const CeedInt transpose, const CeedScalar *c_B, const CeedScalar *c_G,
                               const CeedScalar *__restrict__ d_U, CeedScalar *__restrict__ d_V, CeedScalar *slice) {
   // Use BASIS_P_1D for one of these
-  CeedScalar    r_U[BASIS_T_1D];
-  CeedScalar    r_V[BASIS_T_1D];
-  CeedScalar    r_t[BASIS_T_1D];
+  CeedScalar r_U[BASIS_T_1D];
+  CeedScalar r_V[BASIS_T_1D];
+  CeedScalar r_t[BASIS_T_1D];
 
   const CeedInt t_in_x        = threadIdx.x;
   const CeedInt t_in_y        = threadIdx.y;

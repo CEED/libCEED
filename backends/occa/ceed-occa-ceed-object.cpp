@@ -33,8 +33,8 @@ bool CeedObject::usingCpuDevice() const { return Context::from(ceed)->usingCpuDe
 
 bool CeedObject::usingGpuDevice() const { return Context::from(ceed)->usingGpuDevice(); }
 
-int  CeedObject::ceedError(const std::string &message) const { return CeedError(ceed, CEED_ERROR_BACKEND, message.c_str()); }
+int CeedObject::ceedError(const std::string &message) const { return CeedError(ceed, CEED_ERROR_BACKEND, message.c_str()); }
 
-int  CeedObject::staticCeedError(const std::string &message) { return CeedError(NULL, CEED_ERROR_BACKEND, message.c_str()); }
+int CeedObject::staticCeedError(const std::string &message) { return CeedError(NULL, CEED_ERROR_BACKEND, message.c_str()); }
 }  // namespace occa
 }  // namespace ceed

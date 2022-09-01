@@ -653,11 +653,11 @@ CEED_QFUNCTION(Euler_Outflow)(void *ctx, CeedInt Q, const CeedScalar *const *in,
   // Inputs
   const CeedScalar(*q)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[0], (*q_data_sur)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[2];
   // Outputs
-  CeedScalar(*v)[CEED_Q_VLA]     = (CeedScalar(*)[CEED_Q_VLA])out[0];
+  CeedScalar(*v)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA])out[0];
   // *INDENT-ON*
-  EulerContext     context       = (EulerContext)ctx;
-  const bool       implicit      = context->implicit;
-  CeedScalar      *mean_velocity = context->mean_velocity;
+  EulerContext context       = (EulerContext)ctx;
+  const bool   implicit      = context->implicit;
+  CeedScalar  *mean_velocity = context->mean_velocity;
 
   const CeedScalar gamma = 1.4;
 

@@ -35,7 +35,7 @@
 //------------------------------------------------------------------------------
 int CeedCompileHip(Ceed ceed, const char *source, hipModule_t *module, const CeedInt num_defines, ...) {
   hipFree(0);  // Make sure a Context exists for hiprtc
-  hiprtcProgram      prog;
+  hiprtcProgram prog;
 
   std::ostringstream code;
 

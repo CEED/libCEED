@@ -34,7 +34,7 @@ class CpuOperator : public Operator {
   typedef std::vector<Vector *> VectorVector;
   typedef std::vector<Basis *>  BasisVector;
 
-  VectorVector                  dofInputs, dofOutputs;
+  VectorVector dofInputs, dofOutputs;
 
  public:
   CpuOperator();
@@ -65,9 +65,9 @@ class CpuOperator : public Operator {
   // Set props for a given field
   ::occa::properties getKernelProps();
 
-  void               applyAdd(Vector *in, Vector *out);
+  void applyAdd(Vector *in, Vector *out);
 
-  ::occa::kernel     buildApplyAddKernel();
+  ::occa::kernel buildApplyAddKernel();
 
   //---[ Kernel Generation ]------------------
   void addBasisFunctionSource(std::stringstream &ss);
@@ -129,11 +129,11 @@ class CpuOperator : public Operator {
 
   inline std::string qWeightVar(const bool isInput, const int index) { return indexedVar("qWeights", isInput, index); }
 
-  std::string        elementFunction(const bool isInput, const int index);
+  std::string elementFunction(const bool isInput, const int index);
 
-  std::string        fieldFunctionName(const QFunctionField &qfField);
+  std::string fieldFunctionName(const QFunctionField &qfField);
 
-  std::string        fullFieldFunctionName(const bool isInput, const OperatorField &opField, const QFunctionField &qfField);
+  std::string fullFieldFunctionName(const bool isInput, const OperatorField &opField, const QFunctionField &qfField);
 };
 }  // namespace occa
 }  // namespace ceed

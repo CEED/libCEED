@@ -19,7 +19,7 @@ CEED_QFUNCTION(Mass1DBuild)(void *ctx, const CeedInt Q, const CeedScalar *const 
   // in[1] is quadrature weights, size (Q)
   const CeedScalar *J = in[0], *w = in[1];
   // out[0] is quadrature data, size (Q)
-  CeedScalar *q_data = out[0];
+  CeedScalar       *q_data = out[0];
 
   // Quadrature point loop
   CeedPragmaSIMD for (CeedInt i = 0; i < Q; i++) { q_data[i] = J[i] * w[i]; }  // End of Quadrature Point Loop

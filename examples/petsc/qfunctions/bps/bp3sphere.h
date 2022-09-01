@@ -159,7 +159,7 @@ CEED_QFUNCTION(SetupDiffRhs)(void *ctx, CeedInt Q, const CeedScalar *const *in, 
   // Inputs
   const CeedScalar *X = in[0], *q_data = in[1];
   // Outputs
-  CeedScalar *true_soln = out[0], *rhs = out[1];
+  CeedScalar       *true_soln = out[0], *rhs = out[1];
 
   // Context
   const CeedScalar *context = (const CeedScalar *)ctx;
@@ -202,7 +202,7 @@ CEED_QFUNCTION(Diff)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScal
   // Inputs
   const CeedScalar *ug = in[0], *q_data = in[1];
   // Outputs
-  CeedScalar *vg = out[0];
+  CeedScalar       *vg = out[0];
 
   // Quadrature Point Loop
   CeedPragmaSIMD for (CeedInt i = 0; i < Q; i++) {

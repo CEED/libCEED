@@ -29,7 +29,7 @@ CEED_INTERN int CeedInit_Magma_Det(const char *resource, Ceed ceed) {
   const char *device_spec = strstr(resource, ":device_id=");
   const int   deviceID    = (device_spec) ? atoi(device_spec + 11) : -1;
 
-  int         currentDeviceID;
+  int currentDeviceID;
   magma_getdevice(&currentDeviceID);
   if (deviceID >= 0 && currentDeviceID != deviceID) {
     magma_setdevice(deviceID);

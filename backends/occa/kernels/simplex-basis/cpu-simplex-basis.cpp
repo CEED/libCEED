@@ -107,7 +107,7 @@ const char *occa_simplex_basis_cpu_kernel_source = STRINGIFY_SOURCE(
             const CeedScalar *Ue @dim(P, BASIS_COMPONENT_COUNT, elementCount)       = U;
             CeedScalar       *_Ve @dim(Q, elementCount, BASIS_COMPONENT_COUNT, DIM) = V;
 
-            CeedScalar        Ve[DIM][Q];
+            CeedScalar Ve[DIM][Q];
             for (int dim = 0; dim < DIM; ++dim) {
               for (int q = 0; q < Q; ++q) {
                 Ve[dim][q] = _Ve(q, element, component, dim);
@@ -125,7 +125,7 @@ const char *occa_simplex_basis_cpu_kernel_source = STRINGIFY_SOURCE(
             const CeedScalar *_Ue @dim(Q, elementCount, BASIS_COMPONENT_COUNT, DIM) = U;
             CeedScalar       *Ve @dim(P, BASIS_COMPONENT_COUNT, elementCount)       = V;
 
-            CeedScalar        Ue[DIM][Q];
+            CeedScalar Ue[DIM][Q];
             for (int dim = 0; dim < DIM; ++dim) {
               for (int q = 0; q < Q; ++q) {
                 Ue[dim][q] = _Ue(q, element, component, dim);

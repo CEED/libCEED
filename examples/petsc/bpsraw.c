@@ -55,12 +55,12 @@ const char help[] = "Solve CEED BPs using PETSc\n";
 
 static CeedMemType MemTypeP2C(PetscMemType mem_type) { return PetscMemTypeDevice(mem_type) ? CEED_MEM_DEVICE : CEED_MEM_HOST; }
 
-static void        Split3(PetscInt size, PetscInt m[3], bool reverse) {
-         for (PetscInt d = 0, size_left = size; d < 3; d++) {
-           PetscInt try = (PetscInt)PetscCeilReal(PetscPowReal(size_left, 1. / (3 - d)));
-           while (try * (size_left / try) != size_left) try++;
+static void Split3(PetscInt size, PetscInt m[3], bool reverse) {
+  for (PetscInt d = 0, size_left = size; d < 3; d++) {
+    PetscInt try = (PetscInt)PetscCeilReal(PetscPowReal(size_left, 1. / (3 - d)));
+    while (try * (size_left / try) != size_left) try++;
     m[reverse ? 2 - d : d] = try;
-           size_left /= try;
+    size_left /= try;
   }
 }
 

@@ -175,7 +175,7 @@ static int CeedOperatorFieldView(CeedOperatorField field, CeedQFunctionField qf_
 int CeedOperatorSingleView(CeedOperator op, bool sub, FILE *stream) {
   const char *pre = sub ? "  " : "";
 
-  CeedInt     num_elem, num_qpts;
+  CeedInt num_elem, num_qpts;
   CeedCall(CeedOperatorGetNumElements(op, &num_elem));
   CeedCall(CeedOperatorGetNumQuadraturePoints(op, &num_qpts));
 

@@ -4,10 +4,10 @@
 #include <ceed.h>
 
 int main(int argc, char **argv) {
-  Ceed                ceed;
+  Ceed ceed;
 
-  CeedInt             num_elem = 3;
-  CeedInt             ind[2 * num_elem];
+  CeedInt num_elem = 3;
+  CeedInt ind[2 * num_elem];
 
   CeedElemRestriction r;
 

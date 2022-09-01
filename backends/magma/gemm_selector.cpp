@@ -60,9 +60,9 @@ void gemm_selector(int gpu_arch, char precision, char transA, int m, int n, int 
   int    ir   = -1;
   double norm = std::numeric_limits<double>::max();
   for (size_t i = 0; i < data->size(); i++) {
-    int    im = (*data)[i][M_INDEX];
-    int    in = (*data)[i][N_INDEX];
-    int    ik = (*data)[i][K_INDEX];
+    int im = (*data)[i][M_INDEX];
+    int in = (*data)[i][N_INDEX];
+    int ik = (*data)[i][K_INDEX];
 
     double mdiff = (double)(im - m);
     double ndiff = (double)(in - n);

@@ -34,23 +34,23 @@ class SimplexBasis : public Basis {
 
   ~SimplexBasis();
 
-  bool           isTensorBasis() const;
+  bool isTensorBasis() const;
 
-  const char    *getFunctionSource() const;
+  const char *getFunctionSource() const;
 
-  void           setupKernelBuilders();
+  void setupKernelBuilders();
 
-  int            applyInterp(const CeedInt elementCount, const bool transpose, Vector &U, Vector &V);
+  int applyInterp(const CeedInt elementCount, const bool transpose, Vector &U, Vector &V);
 
   ::occa::kernel getCpuInterpKernel(const bool transpose);
   ::occa::kernel getGpuInterpKernel(const bool transpose);
 
-  int            applyGrad(const CeedInt elementCount, const bool transpose, Vector &U, Vector &V);
+  int applyGrad(const CeedInt elementCount, const bool transpose, Vector &U, Vector &V);
 
   ::occa::kernel getCpuGradKernel(const bool transpose);
   ::occa::kernel getGpuGradKernel(const bool transpose);
 
-  int            applyWeight(const CeedInt elementCount, Vector &W);
+  int applyWeight(const CeedInt elementCount, Vector &W);
 
   ::occa::kernel getCpuWeightKernel();
   ::occa::kernel getGpuWeightKernel();
@@ -59,7 +59,7 @@ class SimplexBasis : public Basis {
 
   ::occa::kernel buildGpuEvalKernel(::occa::kernelBuilder &kernelBuilder, const bool transpose);
 
-  int            apply(const CeedInt elementCount, CeedTransposeMode tmode, CeedEvalMode emode, Vector *u, Vector *v);
+  int apply(const CeedInt elementCount, CeedTransposeMode tmode, CeedEvalMode emode, Vector *u, Vector *v);
 
   //---[ Ceed Callbacks ]-----------
   static int ceedCreate(CeedElemTopology topology, CeedInt dim, CeedInt ndof, CeedInt nquad, const CeedScalar *interp, const CeedScalar *grad,

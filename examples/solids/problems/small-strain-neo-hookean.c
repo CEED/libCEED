@@ -18,22 +18,22 @@
 static const char *const field_names[] = {"gradu"};
 static CeedInt           field_sizes[] = {9};
 
-ProblemData              small_strain_neo_Hookean = {
-                 .setup_geo            = SetupGeo,
-                 .setup_geo_loc        = SetupGeo_loc,
-                 .q_data_size          = 10,
-                 .quadrature_mode      = CEED_GAUSS,
-                 .residual             = ElasSSNHF,
-                 .residual_loc         = ElasSSNHF_loc,
-                 .number_fields_stored = 1,
-                 .field_names          = field_names,
-                 .field_sizes          = field_sizes,
-                 .jacobian             = ElasSSNHdF,
-                 .jacobian_loc         = ElasSSNHdF_loc,
-                 .energy               = ElasSSNHEnergy,
-                 .energy_loc           = ElasSSNHEnergy_loc,
-                 .diagnostic           = ElasSSNHDiagnostic,
-                 .diagnostic_loc       = ElasSSNHDiagnostic_loc,
+ProblemData small_strain_neo_Hookean = {
+    .setup_geo            = SetupGeo,
+    .setup_geo_loc        = SetupGeo_loc,
+    .q_data_size          = 10,
+    .quadrature_mode      = CEED_GAUSS,
+    .residual             = ElasSSNHF,
+    .residual_loc         = ElasSSNHF_loc,
+    .number_fields_stored = 1,
+    .field_names          = field_names,
+    .field_sizes          = field_sizes,
+    .jacobian             = ElasSSNHdF,
+    .jacobian_loc         = ElasSSNHdF_loc,
+    .energy               = ElasSSNHEnergy,
+    .energy_loc           = ElasSSNHEnergy_loc,
+    .diagnostic           = ElasSSNHDiagnostic,
+    .diagnostic_loc       = ElasSSNHDiagnostic_loc,
 };
 
 PetscErrorCode SetupLibceedFineLevel_ElasSSNH(DM dm, DM dm_energy, DM dm_diagnostic, Ceed ceed, AppCtx app_ctx, CeedQFunctionContext phys_ctx,

@@ -46,7 +46,7 @@ CEED_QFUNCTION_HELPER State Exact_Channel(CeedInt dim, CeedScalar time, const Ce
   //     g = (g, 0, 0)
   //     x = (0, x_2, x_3)
   //     e_potential = dot(g, x) = 0
-  const CeedScalar x[3]            = {0, X[1], X[2]};
+  const CeedScalar         x[3]    = {0, X[1], X[2]};
 
   const CeedScalar Pr    = mu / (cp * k);
   const CeedScalar Ec    = (umax * umax) / (cp * theta0);

@@ -216,7 +216,7 @@ int main(int argc, char **argv) {
 
   // Print global grid information
   if (!test_mode) {
-    PetscInt    P = degree + 1, Q = P + q_extra;
+    PetscInt P = degree + 1, Q = P + q_extra;
 
     const char *used_resource;
     CeedGetResource(ceed, &used_resource);

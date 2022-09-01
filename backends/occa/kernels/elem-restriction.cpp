@@ -93,8 +93,8 @@ const char *occa_elem_restriction_source = STRINGIFY_SOURCE(
             for (CeedInt i = offsetStart; i < offsetEnd; ++i) {
               const CeedInt index = dofIndices[i];
 
-              const int     node    = (index % ELEMENT_SIZE);
-              const int     element = (index / ELEMENT_SIZE);
+              const int node    = (index % ELEMENT_SIZE);
+              const int element = (index / ELEMENT_SIZE);
 
               for (int c = 0; c < COMPONENT_COUNT; ++c) {
                 vComp[c] += u(node, c, element);

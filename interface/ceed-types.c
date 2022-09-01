@@ -21,9 +21,9 @@ const char *const CeedErrorTypesShifted[] = {
 };
 const char *const *CeedErrorTypes = &CeedErrorTypesShifted[-CEED_ERROR_UNSUPPORTED];
 
-const char *const  CeedMemTypes[] = {
-     [CEED_MEM_HOST]   = "host",
-     [CEED_MEM_DEVICE] = "device",
+const char *const CeedMemTypes[] = {
+    [CEED_MEM_HOST]   = "host",
+    [CEED_MEM_DEVICE] = "device",
 };
 
 const char *const CeedCopyModes[] = {

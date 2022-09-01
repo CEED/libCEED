@@ -170,7 +170,7 @@ int CeedElemRestrictionCreate_Magma(CeedMemType mtype, CeedCopyMode cmode, const
   CeedInt elemsize, nelem;
   CeedCallBackend(CeedElemRestrictionGetNumElements(r, &nelem));
   CeedCallBackend(CeedElemRestrictionGetElementSize(r, &elemsize));
-  CeedInt                    size = elemsize * nelem;
+  CeedInt size = elemsize * nelem;
 
   CeedElemRestriction_Magma *impl;
   CeedCallBackend(CeedCalloc(1, &impl));

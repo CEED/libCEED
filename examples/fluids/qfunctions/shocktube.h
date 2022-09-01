@@ -102,7 +102,7 @@ CEED_QFUNCTION_HELPER CeedInt Exact_ShockTube(CeedInt dim, CeedScalar time, cons
   const CeedScalar gamma = 1.4;   // ratio of specific heats
   const CeedScalar x     = X[0];  // Coordinates
 
-  CeedScalar       rho, P, u[3] = {0.};
+  CeedScalar rho, P, u[3] = {0.};
 
   // Initial Conditions
   if (x <= mid_point) {

@@ -371,7 +371,7 @@ PetscErrorCode SetupSTG(const MPI_Comm comm, const DM dm, ProblemData *problem, 
 static inline PetscScalar FindDy(const PetscScalar ynodes[], const PetscInt nynodes, const PetscScalar y) {
   const PetscScalar half_mindy = 0.5 * (ynodes[1] - ynodes[0]);
   // ^^assuming min(dy) is first element off the wall
-  PetscInt idx                 = -1;  // Index
+  PetscInt          idx        = -1;  // Index
 
   for (PetscInt i = 0; i < nynodes; i++) {
     if (y < ynodes[i] + half_mindy) {
@@ -401,7 +401,7 @@ PetscErrorCode StrongSTGbcFunc(PetscInt dim, PetscReal time, const PetscReal x[]
   const PetscScalar      cp        = stg_ctx->newtonian_ctx.cp;
   const PetscScalar      Rd        = cp - cv;
 
-  const CeedScalar       rho = P0 / (Rd * theta0);
+  const CeedScalar rho = P0 / (Rd * theta0);
   InterpolateProfile(x[1], ubar, cij, &eps, &lt, stg_ctx);
   if (!mean_only) {
     const PetscInt     nynodes = stg_ctx->nynodes;

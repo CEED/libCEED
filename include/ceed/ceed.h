@@ -73,32 +73,32 @@
 
 /// Library context created by CeedInit()
 /// @ingroup CeedUser
-typedef struct Ceed_private *Ceed;
+typedef struct Ceed_private                  *Ceed;
 /// Non-blocking Ceed interfaces return a CeedRequest.
 /// To perform an operation immediately, pass \ref CEED_REQUEST_IMMEDIATE instead.
 /// @ingroup CeedUser
-typedef struct CeedRequest_private *CeedRequest;
+typedef struct CeedRequest_private           *CeedRequest;
 /// Handle for vectors over the field \ref CeedScalar
 /// @ingroup CeedVectorUser
-typedef struct CeedVector_private *CeedVector;
+typedef struct CeedVector_private            *CeedVector;
 /// Handle for object describing restriction to elements
 /// @ingroup CeedElemRestrictionUser
-typedef struct CeedElemRestriction_private *CeedElemRestriction;
+typedef struct CeedElemRestriction_private   *CeedElemRestriction;
 /// Handle for object describing discrete finite element evaluations
 /// @ingroup CeedBasisUser
-typedef struct CeedBasis_private *CeedBasis;
+typedef struct CeedBasis_private             *CeedBasis;
 /// Handle for object describing CeedQFunction fields
 /// @ingroup CeedQFunctionBackend
-typedef struct CeedQFunctionField_private *CeedQFunctionField;
+typedef struct CeedQFunctionField_private    *CeedQFunctionField;
 /// Handle for object describing functions evaluated independently at quadrature points
 /// @ingroup CeedQFunctionUser
-typedef struct CeedQFunction_private *CeedQFunction;
+typedef struct CeedQFunction_private         *CeedQFunction;
 /// Handle for object describing CeedOperator fields
 /// @ingroup CeedOperatorBackend
-typedef struct CeedOperatorField_private *CeedOperatorField;
+typedef struct CeedOperatorField_private     *CeedOperatorField;
 /// Handle for object describing context data for CeedQFunctions
 /// @ingroup CeedQFunctionUser
-typedef struct CeedQFunctionContext_private *CeedQFunctionContext;
+typedef struct CeedQFunctionContext_private  *CeedQFunctionContext;
 /// Handle for object describing registered fields for CeedQFunctionContext
 /// @ingroup CeedQFunctionUser
 typedef struct CeedContextFieldLabel_private *CeedContextFieldLabel;
@@ -109,18 +109,18 @@ typedef struct CeedContextFieldLabel_private *CeedContextFieldLabel;
 ///   $$ E^T B^T f(B E u) $$
 ///   acting on the vector \f$u\f$.
 /// @ingroup CeedOperatorUser
-typedef struct CeedOperator_private *CeedOperator;
+typedef struct CeedOperator_private          *CeedOperator;
 
-CEED_EXTERN int                      CeedRegistryGetList(size_t *n, char ***const resources, CeedInt **array);
-CEED_EXTERN int                      CeedInit(const char *resource, Ceed *ceed);
-CEED_EXTERN int                      CeedReferenceCopy(Ceed ceed, Ceed *ceed_copy);
-CEED_EXTERN int                      CeedGetResource(Ceed ceed, const char **resource);
-CEED_EXTERN int                      CeedIsDeterministic(Ceed ceed, bool *is_deterministic);
-CEED_EXTERN int                      CeedAddJitSourceRoot(Ceed ceed, const char *jit_source_root);
-CEED_EXTERN int                      CeedView(Ceed ceed, FILE *stream);
-CEED_EXTERN int                      CeedDestroy(Ceed *ceed);
+CEED_EXTERN int CeedRegistryGetList(size_t *n, char ***const resources, CeedInt **array);
+CEED_EXTERN int CeedInit(const char *resource, Ceed *ceed);
+CEED_EXTERN int CeedReferenceCopy(Ceed ceed, Ceed *ceed_copy);
+CEED_EXTERN int CeedGetResource(Ceed ceed, const char **resource);
+CEED_EXTERN int CeedIsDeterministic(Ceed ceed, bool *is_deterministic);
+CEED_EXTERN int CeedAddJitSourceRoot(Ceed ceed, const char *jit_source_root);
+CEED_EXTERN int CeedView(Ceed ceed, FILE *stream);
+CEED_EXTERN int CeedDestroy(Ceed *ceed);
 
-CEED_EXTERN int                      CeedErrorImpl(Ceed, const char *, int, const char *, int, const char *, ...);
+CEED_EXTERN int CeedErrorImpl(Ceed, const char *, int, const char *, int, const char *, ...);
 /// Raise an error on ceed object
 ///
 /// @param ceed Ceed library context or NULL
@@ -177,9 +177,9 @@ CEED_EXTERN int CeedResetErrorMessage(Ceed, const char **err_msg);
    (CEED_VERSION_MAJOR > major ||            \
     (CEED_VERSION_MAJOR == major && (CEED_VERSION_MINOR > minor || (CEED_VERSION_MINOR == minor && CEED_VERSION_PATCH >= patch)))))
 
-CEED_EXTERN int                CeedGetVersion(int *major, int *minor, int *patch, bool *release);
+CEED_EXTERN int CeedGetVersion(int *major, int *minor, int *patch, bool *release);
 
-CEED_EXTERN int                CeedGetScalarType(CeedScalarType *scalar_type);
+CEED_EXTERN int CeedGetScalarType(CeedScalarType *scalar_type);
 
 CEED_EXTERN const char *const *CeedErrorTypes;
 
@@ -196,7 +196,7 @@ typedef enum {
 } CeedMemType;
 CEED_EXTERN const char *const CeedMemTypes[];
 
-CEED_EXTERN int               CeedGetPreferredMemType(Ceed ceed, CeedMemType *type);
+CEED_EXTERN int CeedGetPreferredMemType(Ceed ceed, CeedMemType *type);
 
 /// Conveys ownership status of arrays passed to Ceed interfaces.
 /// @ingroup Ceed
@@ -227,26 +227,26 @@ typedef enum {
   CEED_NORM_MAX,
 } CeedNormType;
 
-CEED_EXTERN int                CeedVectorCreate(Ceed ceed, CeedSize len, CeedVector *vec);
-CEED_EXTERN int                CeedVectorReferenceCopy(CeedVector vec, CeedVector *vec_copy);
-CEED_EXTERN int                CeedVectorSetArray(CeedVector vec, CeedMemType mem_type, CeedCopyMode copy_mode, CeedScalar *array);
-CEED_EXTERN int                CeedVectorSetValue(CeedVector vec, CeedScalar value);
-CEED_EXTERN int                CeedVectorSyncArray(CeedVector vec, CeedMemType mem_type);
-CEED_EXTERN int                CeedVectorTakeArray(CeedVector vec, CeedMemType mem_type, CeedScalar **array);
-CEED_EXTERN int                CeedVectorGetArray(CeedVector vec, CeedMemType mem_type, CeedScalar **array);
-CEED_EXTERN int                CeedVectorGetArrayRead(CeedVector vec, CeedMemType mem_type, const CeedScalar **array);
-CEED_EXTERN int                CeedVectorGetArrayWrite(CeedVector vec, CeedMemType mem_type, CeedScalar **array);
-CEED_EXTERN int                CeedVectorRestoreArray(CeedVector vec, CeedScalar **array);
-CEED_EXTERN int                CeedVectorRestoreArrayRead(CeedVector vec, const CeedScalar **array);
-CEED_EXTERN int                CeedVectorNorm(CeedVector vec, CeedNormType type, CeedScalar *norm);
-CEED_EXTERN int                CeedVectorScale(CeedVector x, CeedScalar alpha);
-CEED_EXTERN int                CeedVectorAXPY(CeedVector y, CeedScalar alpha, CeedVector x);
-CEED_EXTERN int                CeedVectorPointwiseMult(CeedVector w, CeedVector x, CeedVector y);
-CEED_EXTERN int                CeedVectorReciprocal(CeedVector vec);
-CEED_EXTERN int                CeedVectorView(CeedVector vec, const char *fp_fmt, FILE *stream);
-CEED_EXTERN int                CeedVectorGetCeed(CeedVector vec, Ceed *ceed);
-CEED_EXTERN int                CeedVectorGetLength(CeedVector vec, CeedSize *length);
-CEED_EXTERN int                CeedVectorDestroy(CeedVector *vec);
+CEED_EXTERN int CeedVectorCreate(Ceed ceed, CeedSize len, CeedVector *vec);
+CEED_EXTERN int CeedVectorReferenceCopy(CeedVector vec, CeedVector *vec_copy);
+CEED_EXTERN int CeedVectorSetArray(CeedVector vec, CeedMemType mem_type, CeedCopyMode copy_mode, CeedScalar *array);
+CEED_EXTERN int CeedVectorSetValue(CeedVector vec, CeedScalar value);
+CEED_EXTERN int CeedVectorSyncArray(CeedVector vec, CeedMemType mem_type);
+CEED_EXTERN int CeedVectorTakeArray(CeedVector vec, CeedMemType mem_type, CeedScalar **array);
+CEED_EXTERN int CeedVectorGetArray(CeedVector vec, CeedMemType mem_type, CeedScalar **array);
+CEED_EXTERN int CeedVectorGetArrayRead(CeedVector vec, CeedMemType mem_type, const CeedScalar **array);
+CEED_EXTERN int CeedVectorGetArrayWrite(CeedVector vec, CeedMemType mem_type, CeedScalar **array);
+CEED_EXTERN int CeedVectorRestoreArray(CeedVector vec, CeedScalar **array);
+CEED_EXTERN int CeedVectorRestoreArrayRead(CeedVector vec, const CeedScalar **array);
+CEED_EXTERN int CeedVectorNorm(CeedVector vec, CeedNormType type, CeedScalar *norm);
+CEED_EXTERN int CeedVectorScale(CeedVector x, CeedScalar alpha);
+CEED_EXTERN int CeedVectorAXPY(CeedVector y, CeedScalar alpha, CeedVector x);
+CEED_EXTERN int CeedVectorPointwiseMult(CeedVector w, CeedVector x, CeedVector y);
+CEED_EXTERN int CeedVectorReciprocal(CeedVector vec);
+CEED_EXTERN int CeedVectorView(CeedVector vec, const char *fp_fmt, FILE *stream);
+CEED_EXTERN int CeedVectorGetCeed(CeedVector vec, Ceed *ceed);
+CEED_EXTERN int CeedVectorGetLength(CeedVector vec, CeedSize *length);
+CEED_EXTERN int CeedVectorDestroy(CeedVector *vec);
 
 CEED_EXTERN CeedRequest *const CEED_REQUEST_IMMEDIATE;
 CEED_EXTERN CeedRequest *const CEED_REQUEST_ORDERED;
@@ -380,8 +380,8 @@ typedef enum {
 } CeedElemTopology;
 CEED_EXTERN const char *const CeedElemTopologies[];
 
-CEED_EXTERN int               CeedBasisCreateTensorH1Lagrange(Ceed ceed, CeedInt dim, CeedInt num_comp, CeedInt P, CeedInt Q, CeedQuadMode quad_mode,
-                                                              CeedBasis *basis);
+CEED_EXTERN int CeedBasisCreateTensorH1Lagrange(Ceed ceed, CeedInt dim, CeedInt num_comp, CeedInt P, CeedInt Q, CeedQuadMode quad_mode,
+                                                CeedBasis *basis);
 CEED_EXTERN int CeedBasisCreateTensorH1(Ceed ceed, CeedInt dim, CeedInt num_comp, CeedInt P_1d, CeedInt Q_1d, const CeedScalar *interp_1d,
                                         const CeedScalar *grad_1d, const CeedScalar *q_ref_1d, const CeedScalar *q_weight_1d, CeedBasis *basis);
 CEED_EXTERN int CeedBasisCreateH1(Ceed ceed, CeedElemTopology topo, CeedInt num_comp, CeedInt num_nodes, CeedInt nqpts, const CeedScalar *interp,

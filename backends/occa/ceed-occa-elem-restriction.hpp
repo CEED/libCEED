@@ -46,12 +46,12 @@ class ElemRestriction : public CeedObject {
   CeedInt *hostIndices;
 
   // Owned resources
-  bool                  freeIndices;
-  ::occa::memory        indices;
+  bool           freeIndices;
+  ::occa::memory indices;
 
-  ::occa::memory        transposeQuadIndices;
-  ::occa::memory        transposeDofOffsets;
-  ::occa::memory        transposeDofIndices;
+  ::occa::memory transposeQuadIndices;
+  ::occa::memory transposeDofOffsets;
+  ::occa::memory transposeDofIndices;
 
   ::occa::kernelBuilder applyKernelBuilder;
   ::occa::kernelBuilder applyTransposeKernelBuilder;
@@ -60,17 +60,17 @@ class ElemRestriction : public CeedObject {
 
   ~ElemRestriction();
 
-  void                    setup(CeedMemType memType, CeedCopyMode copyMode, const CeedInt *indicesInput);
+  void setup(CeedMemType memType, CeedCopyMode copyMode, const CeedInt *indicesInput);
 
-  void                    setupFromHostMemory(CeedCopyMode copyMode, const CeedInt *indices_h);
+  void setupFromHostMemory(CeedCopyMode copyMode, const CeedInt *indices_h);
 
-  void                    setupFromDeviceMemory(CeedCopyMode copyMode, const CeedInt *indices_d);
+  void setupFromDeviceMemory(CeedCopyMode copyMode, const CeedInt *indices_d);
 
-  bool                    usesIndices();
+  bool usesIndices();
 
-  void                    setupTransposeIndices();
+  void setupTransposeIndices();
 
-  void                    setupKernelBuilders();
+  void setupKernelBuilders();
 
   static ElemRestriction *getElemRestriction(CeedElemRestriction r, const bool assertValid = true);
 
@@ -78,9 +78,9 @@ class ElemRestriction : public CeedObject {
   static ElemRestriction *from(CeedOperatorField operatorField);
   ElemRestriction        *setupFrom(CeedElemRestriction r);
 
-  int                     apply(CeedTransposeMode rTransposeMode, Vector &u, Vector &v);
+  int apply(CeedTransposeMode rTransposeMode, Vector &u, Vector &v);
 
-  int                     getOffsets(CeedMemType memType, const CeedInt **offsets);
+  int getOffsets(CeedMemType memType, const CeedInt **offsets);
 
   //---[ Ceed Callbacks ]-----------
   static int registerCeedFunction(Ceed ceed, CeedElemRestriction r, const char *fname, ceed::occa::ceedFunction f);

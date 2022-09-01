@@ -36,18 +36,18 @@ class Basis : public CeedObject {
 
   virtual ~Basis();
 
-  static Basis*       getBasis(CeedBasis basis, const bool assertValid = true);
+  static Basis* getBasis(CeedBasis basis, const bool assertValid = true);
 
-  static Basis*       from(CeedBasis basis);
-  static Basis*       from(CeedOperatorField operatorField);
+  static Basis* from(CeedBasis basis);
+  static Basis* from(CeedOperatorField operatorField);
 
-  int                 setCeedFields(CeedBasis basis);
+  int setCeedFields(CeedBasis basis);
 
-  virtual bool        isTensorBasis() const = 0;
+  virtual bool isTensorBasis() const = 0;
 
   virtual const char* getFunctionSource() const = 0;
 
-  virtual int         apply(const CeedInt elementCount, CeedTransposeMode tmode, CeedEvalMode emode, Vector* u, Vector* v) = 0;
+  virtual int apply(const CeedInt elementCount, CeedTransposeMode tmode, CeedEvalMode emode, Vector* u, Vector* v) = 0;
 
   //---[ Ceed Callbacks ]-----------
   static int registerCeedFunction(Ceed ceed, CeedBasis basis, const char* fname, ceed::occa::ceedFunction f);

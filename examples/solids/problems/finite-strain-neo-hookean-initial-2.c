@@ -18,22 +18,22 @@
 static const char *const field_names[] = {"gradu", "C_inv", "lambda_log_J"};
 static CeedInt           field_sizes[] = {9, 6, 1};
 
-ProblemData              finite_strain_neo_Hookean_initial_2 = {
-                 .setup_geo            = SetupGeo,
-                 .setup_geo_loc        = SetupGeo_loc,
-                 .q_data_size          = 10,
-                 .quadrature_mode      = CEED_GAUSS,
-                 .residual             = ElasFSInitialNH2F,
-                 .residual_loc         = ElasFSInitialNH2F_loc,
-                 .number_fields_stored = 3,
-                 .field_names          = field_names,
-                 .field_sizes          = field_sizes,
-                 .jacobian             = ElasFSInitialNH2dF,
-                 .jacobian_loc         = ElasFSInitialNH2dF_loc,
-                 .energy               = ElasFSInitialNH2Energy,
-                 .energy_loc           = ElasFSInitialNH2Energy_loc,
-                 .diagnostic           = ElasFSInitialNH2Diagnostic,
-                 .diagnostic_loc       = ElasFSInitialNH2Diagnostic_loc,
+ProblemData finite_strain_neo_Hookean_initial_2 = {
+    .setup_geo            = SetupGeo,
+    .setup_geo_loc        = SetupGeo_loc,
+    .q_data_size          = 10,
+    .quadrature_mode      = CEED_GAUSS,
+    .residual             = ElasFSInitialNH2F,
+    .residual_loc         = ElasFSInitialNH2F_loc,
+    .number_fields_stored = 3,
+    .field_names          = field_names,
+    .field_sizes          = field_sizes,
+    .jacobian             = ElasFSInitialNH2dF,
+    .jacobian_loc         = ElasFSInitialNH2dF_loc,
+    .energy               = ElasFSInitialNH2Energy,
+    .energy_loc           = ElasFSInitialNH2Energy_loc,
+    .diagnostic           = ElasFSInitialNH2Diagnostic,
+    .diagnostic_loc       = ElasFSInitialNH2Diagnostic_loc,
 };
 
 PetscErrorCode SetupLibceedFineLevel_ElasFSInitialNH2(DM dm, DM dm_energy, DM dm_diagnostic, Ceed ceed, AppCtx app_ctx, CeedQFunctionContext phys_ctx,

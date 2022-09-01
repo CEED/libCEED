@@ -17,7 +17,7 @@ struct BuildContext {
 
 /// libCEED Q-function for building quadrature data for a diffusion operator
 CEED_QFUNCTION(f_build_diff)(void *ctx, const CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
-  BuildContext *bc    = (BuildContext *)ctx;
+  BuildContext     *bc = (BuildContext *)ctx;
   // in[0] is Jacobians with shape [dim, nc=dim, Q]
   // in[1] is quadrature weights, size (Q)
   //
@@ -85,7 +85,7 @@ CEED_QFUNCTION(f_build_diff)(void *ctx, const CeedInt Q, const CeedScalar *const
 
 /// libCEED Q-function for applying a diff operator
 CEED_QFUNCTION(f_apply_diff)(void *ctx, const CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
-  BuildContext *bc     = (BuildContext *)ctx;
+  BuildContext     *bc = (BuildContext *)ctx;
   // in[0], out[0] have shape [dim, nc=1, Q]
   const CeedScalar *ug = in[0], *qdata = in[1];
   CeedScalar       *vg = out[0];

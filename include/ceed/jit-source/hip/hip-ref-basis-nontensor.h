@@ -16,7 +16,7 @@
 //------------------------------------------------------------------------------
 extern "C" __global__ void Interp(const CeedInt num_elem, const CeedInt transpose, const CeedScalar *d_B, const CeedScalar *__restrict__ d_U,
                                   CeedScalar *__restrict__ d_V) {
-  const CeedInt     t_id = threadIdx.x;
+  const CeedInt t_id = threadIdx.x;
 
   const CeedScalar *U;
   CeedScalar        V;
@@ -46,7 +46,7 @@ extern "C" __global__ void Interp(const CeedInt num_elem, const CeedInt transpos
 //------------------------------------------------------------------------------
 extern "C" __global__ void Grad(const CeedInt num_elem, const CeedInt transpose, const CeedScalar *d_G, const CeedScalar *__restrict__ d_U,
                                 CeedScalar *__restrict__ d_V) {
-  const CeedInt     t_id = threadIdx.x;
+  const CeedInt t_id = threadIdx.x;
 
   const CeedScalar *U;
   // TODO load G in shared memory if blockDim.z > 1?

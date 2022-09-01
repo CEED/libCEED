@@ -16,7 +16,7 @@
 //------------------------------------------------------------------------------
 extern "C" __global__ void Interp(const CeedInt num_elem, const CeedInt transpose, const CeedScalar *__restrict__ interp_1d,
                                   const CeedScalar *__restrict__ u, CeedScalar *__restrict__ v) {
-  const CeedInt         i = threadIdx.x;
+  const CeedInt i = threadIdx.x;
 
   __shared__ CeedScalar s_mem[BASIS_Q_1D * BASIS_P_1D + 2 * BASIS_BUF_LEN];
   CeedScalar           *s_interp_1d = s_mem;
@@ -60,7 +60,7 @@ extern "C" __global__ void Interp(const CeedInt num_elem, const CeedInt transpos
           const CeedInt j = (k / post) % Q;
           const CeedInt a = k / (post * Q);
 
-          CeedScalar    vk = 0;
+          CeedScalar vk = 0;
           for (CeedInt b = 0; b < P; b++) vk += s_interp_1d[j * stride0 + b * stride1] * in[(a * P + b) * post + c];
 
           out[k] = vk;
@@ -77,7 +77,7 @@ extern "C" __global__ void Interp(const CeedInt num_elem, const CeedInt transpos
 //------------------------------------------------------------------------------
 extern "C" __global__ void Grad(const CeedInt num_elem, const CeedInt transpose, const CeedScalar *__restrict__ interp_1d,
                                 const CeedScalar *__restrict__ grad_1d, const CeedScalar *__restrict__ u, CeedScalar *__restrict__ v) {
-  const CeedInt         i = threadIdx.x;
+  const CeedInt i = threadIdx.x;
 
   __shared__ CeedScalar s_mem[2 * (BASIS_Q_1D * BASIS_P_1D + BASIS_BUF_LEN)];
   CeedScalar           *s_interp_1d = s_mem;

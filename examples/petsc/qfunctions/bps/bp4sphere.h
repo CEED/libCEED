@@ -21,7 +21,7 @@ CEED_QFUNCTION(SetupDiffRhs3)(void *ctx, const CeedInt Q, const CeedScalar *cons
   // Inputs
   const CeedScalar *X = in[0], *q_data = in[1];
   // Outputs
-  CeedScalar *true_soln = out[0], *rhs = out[1];
+  CeedScalar       *true_soln = out[0], *rhs = out[1];
 
   // Context
   const CeedScalar *context = (const CeedScalar *)ctx;

@@ -26,8 +26,8 @@ GpuOperator::~GpuOperator() {}
 
 ::occa::kernel GpuOperator::buildApplyAddKernel() { return ::occa::kernel(); }
 
-void           GpuOperator::applyAdd(Vector *in, Vector *out) {
-            // TODO: Implement
+void GpuOperator::applyAdd(Vector *in, Vector *out) {
+  // TODO: Implement
 }
 }  // namespace occa
 }  // namespace ceed

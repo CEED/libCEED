@@ -20,7 +20,7 @@ int main(int argc, char **argv) {
     CeedInt    num_qpts = CeedIntPow(Q, dim);
     CeedScalar j[num_qpts * dim * dim], w[num_qpts], du[num_qpts * dim * num_comp];
 
-    char       name_setup[26] = "", name_apply[26] = "";
+    char name_setup[26] = "", name_apply[26] = "";
     snprintf(name_setup, sizeof name_setup, "Poisson%" CeedInt_FMT "DBuild", dim);
     CeedQFunctionCreateInteriorByName(ceed, name_setup, &qf_setup);
     snprintf(name_apply, sizeof name_apply, "Vector3Poisson%" CeedInt_FMT "DApply", dim);

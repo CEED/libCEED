@@ -96,7 +96,7 @@ void ElemRestriction::setupTransposeIndices() {
 
   const CeedInt elementEntryCount = ceedElementCount * ceedElementSize;
 
-  bool         *indexIsUsed = new bool[ceedLVectorSize];
+  bool *indexIsUsed = new bool[ceedLVectorSize];
   ::memset(indexIsUsed, 0, ceedLVectorSize * sizeof(bool));
 
   for (CeedInt i = 0; i < elementEntryCount; ++i) {
@@ -279,7 +279,7 @@ ElemRestriction *ElemRestriction::setupFrom(CeedElemRestriction r) {
 }
 
 int ElemRestriction::apply(CeedTransposeMode rTransposeMode, Vector &u, Vector &v) {
-  const bool         rIsTransposed = (rTransposeMode != CEED_NOTRANSPOSE);
+  const bool rIsTransposed = (rTransposeMode != CEED_NOTRANSPOSE);
 
   ::occa::properties kernelProps;
   kernelProps["defines/USER_STRIDES"]    = StrideType::USER_STRIDES;

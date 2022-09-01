@@ -359,7 +359,7 @@ CEED_QFUNCTION_HELPER int IJacobian_Newtonian(void *ctx, CeedInt Q, const CeedSc
     const CeedScalar x_i[3] = {x[0][i], x[1][i], x[2][i]};
     State            s      = StateFromQi(context, qi, x_i);
 
-    CeedScalar       dqi[5], dx0[3] = {0};
+    CeedScalar dqi[5], dx0[3] = {0};
     for (int j = 0; j < 5; j++) dqi[j] = dq[j][i];
     State ds = StateFromQi_fwd(context, s, dqi, x_i, dx0);
 

@@ -4,7 +4,7 @@
 #include <ceed.h>
 
 int main(int argc, char **argv) {
-  Ceed                ceed;
+  Ceed ceed;
 
   CeedInt             num_elem = 3;
   CeedElemRestriction r;

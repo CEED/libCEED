@@ -3,7 +3,7 @@ BasedOnStyle: "Google"
 AlignAfterOpenBracket:        Align
 AlignArrayOfStructures:       Left
 AlignConsecutiveAssignments:  AcrossComments
-AlignConsecutiveDeclarations: AcrossEmptyLines
+AlignConsecutiveDeclarations: AcrossComments
 AlignEscapedNewlines:         true
 AlignOperands:                Align
 AlignTrailingComments:        true

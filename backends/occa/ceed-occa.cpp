@@ -37,10 +37,10 @@ typedef std::vector<std::string>           StringVector;
 
 enum ResourceParserStep { RESOURCE, QUERY_KEY, QUERY_VALUE };
 
-static const char  RESOURCE_DELIMITER        = '/';
-static const char  QUERY_DELIMITER           = ':';
-static const char  QUERY_KEY_VALUE_DELIMITER = '=';
-static const char  QUERY_ARG_DELIMITER       = ',';
+static const char RESOURCE_DELIMITER        = '/';
+static const char QUERY_DELIMITER           = ':';
+static const char QUERY_KEY_VALUE_DELIMITER = '=';
+static const char QUERY_ARG_DELIMITER       = ',';
 
 static std::string getDefaultDeviceMode(const bool cpuMode, const bool gpuMode) {
   // In case both cpuMode and gpuMode are set, prioritize the GPU if available
@@ -123,10 +123,10 @@ static int splitCeedResource(const std::string &resource, std::string &match, St
    *      "device_id": "0",
    *    }
    */
-  const int          charCount  = (int)resource.size();
-  const char        *c_resource = resource.c_str();
+  const int   charCount  = (int)resource.size();
+  const char *c_resource = resource.c_str();
 
-  StringVector       resourceVector;
+  StringVector resourceVector;
 
   ResourceParserStep parsingStep = RESOURCE;
   int                wordStart   = 1;

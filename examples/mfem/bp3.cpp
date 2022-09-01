@@ -73,10 +73,10 @@ int main(int argc, char *argv[]) {
 #else
   const char *mesh_file = MFEM_DIR "/data/star.mesh";
 #endif
-  int                 order         = 2;
-  bool                visualization = true;
-  bool                test          = false;
-  double              max_nnodes    = 50000;
+  int    order         = 2;
+  bool   visualization = true;
+  bool   test          = false;
+  double max_nnodes    = 50000;
 
   mfem::OptionsParser args(argc, argv);
   args.AddOption(&ceed_spec, "-c", "-ceed", "Ceed specification.");
@@ -149,8 +149,8 @@ int main(int argc, char *argv[]) {
   //    the 'fespace' object to extract data needed by the Ceed objects.
   CeedDiffusionOperator diff(ceed, fespace);
 
-  mfem::Operator       *D;
-  mfem::Vector          X, B;
+  mfem::Operator *D;
+  mfem::Vector    X, B;
   diff.FormLinearSystem(ess_tdof_list, sol, b, D, X, B);
 
   // 8. Solve the discrete system using the conjugate gradients (CG) method.

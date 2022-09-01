@@ -52,7 +52,7 @@ CEED_QFUNCTION(SetupMassGeoSphere)(void *ctx, const CeedInt Q, const CeedScalar 
   // Inputs
   const CeedScalar *X = in[0], *J = in[1], *w = in[2];
   // Outputs
-  CeedScalar *q_data = out[0];
+  CeedScalar       *q_data = out[0];
 
   // Quadrature Point Loop
   CeedPragmaSIMD for (CeedInt i = 0; i < Q; i++) {

@@ -181,7 +181,7 @@ typedef enum {
 } CeedFESpace;
 CEED_EXTERN const char *const CeedFESpaces[];
 
-CEED_EXTERN int               CeedBasisGetCollocatedGrad(CeedBasis basis, CeedScalar *colo_grad_1d);
+CEED_EXTERN int CeedBasisGetCollocatedGrad(CeedBasis basis, CeedScalar *colo_grad_1d);
 CEED_EXTERN int CeedHouseholderApplyQ(CeedScalar *A, const CeedScalar *Q, const CeedScalar *tau, CeedTransposeMode t_mode, CeedInt m, CeedInt n,
                                       CeedInt k, CeedInt row, CeedInt col);
 CEED_EXTERN int CeedBasisIsTensor(CeedBasis basis, bool *is_tensor);

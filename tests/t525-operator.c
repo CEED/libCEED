@@ -23,9 +23,9 @@ int main(int argc, char **argv) {
   CeedQFunction         qf_sub_1, qf_sub_2;
   CeedOperator          op_sub_1, op_sub_2, op_composite;
 
-  TestContext1          ctx_data_1 = {
-               .count = 42,
-               .other = -3.0,
+  TestContext1 ctx_data_1 = {
+      .count = 42,
+      .other = -3.0,
   };
   TestContext2 ctx_data_2 = {
       .time  = 1.0,

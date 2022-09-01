@@ -36,17 +36,17 @@ class QFunction : public CeedObject {
 
   QFunction(const std::string &source);
 
-  static QFunction  *getQFunction(CeedQFunction qf, const bool assertValid = true);
+  static QFunction *getQFunction(CeedQFunction qf, const bool assertValid = true);
 
-  static QFunction  *from(CeedQFunction qf);
-  static QFunction  *from(CeedOperator op);
+  static QFunction *from(CeedQFunction qf);
+  static QFunction *from(CeedOperator op);
 
   ::occa::properties getKernelProps(const CeedInt Q);
 
-  int                buildKernel(const CeedInt Q);
-  std::string        getKernelSource(const std::string &kernelName, const CeedInt Q);
+  int         buildKernel(const CeedInt Q);
+  std::string getKernelSource(const std::string &kernelName, const CeedInt Q);
 
-  int                apply(CeedInt Q, CeedVector *U, CeedVector *V);
+  int apply(CeedInt Q, CeedVector *U, CeedVector *V);
 
   //---[ Ceed Callbacks ]-----------
   static int registerCeedFunction(Ceed ceed, CeedQFunction qf, const char *fname, ceed::occa::ceedFunction f);

@@ -4,7 +4,7 @@
 #include <ceed.h>
 
 int main(int argc, char **argv) {
-  Ceed   ceed;
+  Ceed ceed;
 
   size_t end_index;
   for (end_index = 0; argv[1][end_index]; end_index++) {

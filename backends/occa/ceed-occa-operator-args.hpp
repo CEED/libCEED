@@ -35,7 +35,7 @@ class OperatorArgs : public QFunctionArgs {
   OperatorArgs();
   OperatorArgs(CeedOperator op);
 
-  void                 setupArgs(CeedOperator op);
+  void setupArgs(CeedOperator op);
 
   const OperatorField& getOpField(const bool isInput, const int index) const;
 

@@ -58,47 +58,47 @@ class Vector : public CeedObject {
 
   static Vector *from(CeedVector vec);
 
-  void           resize(const CeedSize length_);
+  void resize(const CeedSize length_);
 
-  void           resizeMemory(const CeedSize length_);
+  void resizeMemory(const CeedSize length_);
 
-  void           resizeMemory(::occa::device device, const CeedSize length_);
+  void resizeMemory(::occa::device device, const CeedSize length_);
 
-  void           resizeHostBuffer(const CeedSize length_);
+  void resizeHostBuffer(const CeedSize length_);
 
-  void           setCurrentMemoryIfNeeded();
+  void setCurrentMemoryIfNeeded();
 
-  void           setCurrentHostBufferIfNeeded();
+  void setCurrentHostBufferIfNeeded();
 
-  void           freeHostBuffer();
+  void freeHostBuffer();
 
-  int            setValue(CeedScalar value);
+  int setValue(CeedScalar value);
 
-  int            setArray(CeedMemType mtype, CeedCopyMode cmode, CeedScalar *array);
+  int setArray(CeedMemType mtype, CeedCopyMode cmode, CeedScalar *array);
 
-  int            takeArray(CeedMemType mtype, CeedScalar **array);
+  int takeArray(CeedMemType mtype, CeedScalar **array);
 
-  int            copyArrayValues(CeedMemType mtype, CeedScalar *array);
+  int copyArrayValues(CeedMemType mtype, CeedScalar *array);
 
-  int            ownArrayPointer(CeedMemType mtype, CeedScalar *array);
+  int ownArrayPointer(CeedMemType mtype, CeedScalar *array);
 
-  int            useArrayPointer(CeedMemType mtype, CeedScalar *array);
+  int useArrayPointer(CeedMemType mtype, CeedScalar *array);
 
-  int            getArray(CeedMemType mtype, CeedScalar **array);
+  int getArray(CeedMemType mtype, CeedScalar **array);
 
-  int            getReadOnlyArray(CeedMemType mtype, CeedScalar **array);
+  int getReadOnlyArray(CeedMemType mtype, CeedScalar **array);
 
-  int            restoreArray(CeedScalar **array);
+  int restoreArray(CeedScalar **array);
 
-  int            restoreReadOnlyArray(CeedScalar **array);
+  int restoreReadOnlyArray(CeedScalar **array);
 
   ::occa::memory getKernelArg();
 
   ::occa::memory getConstKernelArg();
 
-  void           printValues(const std::string &name);
-  void           printNonZeroValues(const std::string &name);
-  void           printSummary(const std::string &name);
+  void printValues(const std::string &name);
+  void printNonZeroValues(const std::string &name);
+  void printSummary(const std::string &name);
 
   //---[ Ceed Callbacks ]-----------
   static int registerCeedFunction(Ceed ceed, CeedVector vec, const char *fname, ceed::occa::ceedFunction f);

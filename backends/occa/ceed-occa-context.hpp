@@ -33,8 +33,8 @@ class Context {
 
   static Context* from(Ceed ceed);
 
-  bool            usingCpuDevice() const;
-  bool            usingGpuDevice() const;
+  bool usingCpuDevice() const;
+  bool usingGpuDevice() const;
 };
 }  // namespace occa
 }  // namespace ceed

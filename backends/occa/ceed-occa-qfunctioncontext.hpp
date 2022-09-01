@@ -43,40 +43,40 @@ class QFunctionContext : public CeedObject {
 
   static QFunctionContext *from(CeedQFunctionContext ctx);
 
-  ::occa::memory           dataToMemory(const void *data) {
-              ::occa::memory mem((::occa::modeMemory_t *)data);
-              return mem;
+  ::occa::memory dataToMemory(const void *data) {
+    ::occa::memory mem((::occa::modeMemory_t *)data);
+    return mem;
   }
 
-  void          *memoryToData(::occa::memory &memory) { return memory.getModeMemory(); }
+  void *memoryToData(::occa::memory &memory) { return memory.getModeMemory(); }
 
-  void           resizeCtx(const size_t ctxSize_);
+  void resizeCtx(const size_t ctxSize_);
 
-  void           resizeCtxMemory(const size_t ctxSize_);
+  void resizeCtxMemory(const size_t ctxSize_);
 
-  void           resizeCtxMemory(::occa::device device, const size_t ctxSize_);
+  void resizeCtxMemory(::occa::device device, const size_t ctxSize_);
 
-  void           resizeHostCtxBuffer(const size_t ctxSize_);
+  void resizeHostCtxBuffer(const size_t ctxSize_);
 
-  void           setCurrentCtxMemoryIfNeeded();
+  void setCurrentCtxMemoryIfNeeded();
 
-  void           setCurrentHostCtxBufferIfNeeded();
+  void setCurrentHostCtxBufferIfNeeded();
 
-  void           freeHostCtxBuffer();
+  void freeHostCtxBuffer();
 
-  int            setData(CeedMemType mtype, CeedCopyMode cmode, void *data);
+  int setData(CeedMemType mtype, CeedCopyMode cmode, void *data);
 
-  int            copyDataValues(CeedMemType mtype, void *data);
+  int copyDataValues(CeedMemType mtype, void *data);
 
-  int            ownDataPointer(CeedMemType mtype, void *data);
+  int ownDataPointer(CeedMemType mtype, void *data);
 
-  int            useDataPointer(CeedMemType mtype, void *data);
+  int useDataPointer(CeedMemType mtype, void *data);
 
-  int            takeData(CeedMemType mtype, void *data);
+  int takeData(CeedMemType mtype, void *data);
 
-  int            getData(CeedMemType mtype, void *data);
+  int getData(CeedMemType mtype, void *data);
 
-  int            restoreData();
+  int restoreData();
 
   ::occa::memory getKernelArg();
 
