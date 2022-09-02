@@ -238,7 +238,7 @@ PetscErrorCode NS_BLASIUS(ProblemData *problem, DM dm, void *ctx) {
 
   CeedScalar U_inf              = 40;          // m/s
   CeedScalar T_inf              = 288.;        // K
-  CeedScalar T_wall             = 400.;        // K
+  CeedScalar T_wall             = 288.;        // K
   CeedScalar delta0             = 4.2e-3;      // m
   CeedScalar P0                 = 1.01e5;      // Pa
   CeedInt    N                  = 20;          // Number of Chebyshev terms

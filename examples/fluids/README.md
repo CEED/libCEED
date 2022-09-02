@@ -662,7 +662,7 @@ The Blasius problem the following command-line options are available in addition
 
 * - `-temperature_wall`
   - Wall temperature
-  - `400`
+  - `288`
   - `K`
 
 * - `-delta0`

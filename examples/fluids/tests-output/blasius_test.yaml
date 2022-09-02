@@ -10,6 +10,7 @@ ts:
 degree: 1
 dm_plex_box_faces: 5,10,1
 platemesh_nDelta: 45
+T_wall: 400
 
 stab: 'supg'
 Ctau_t: 1
