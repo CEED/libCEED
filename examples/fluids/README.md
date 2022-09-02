@@ -705,7 +705,7 @@ The Blasius problem the following command-line options are available in addition
   - `""`
   -
 
-* - `-N_Chebyshev`
+* - `-n_chebyshev`
   - Number of Chebyshev terms
   - `20`
   -

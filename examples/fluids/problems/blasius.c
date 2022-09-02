@@ -278,7 +278,7 @@ PetscErrorCode NS_BLASIUS(ProblemData *problem, DM dm, void *ctx) {
                             NULL, delta0, &delta0, NULL); CHKERRQ(ierr);
   ierr = PetscOptionsScalar("-P0", "Pressure at outflow",
                             NULL, P0, &P0, NULL); CHKERRQ(ierr);
-  ierr = PetscOptionsInt("-N_Chebyshev", "Number of Chebyshev terms",
+  ierr = PetscOptionsInt("-n_chebyshev", "Number of Chebyshev terms",
                          NULL, N, &N, NULL); CHKERRQ(ierr);
   ierr = PetscOptionsBoundedInt("-platemesh_Ndelta",
                                 "Velocity at boundary layer edge",
