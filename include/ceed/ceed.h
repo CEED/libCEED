@@ -75,32 +75,32 @@
 
 /// Library context created by CeedInit()
 /// @ingroup CeedUser
-typedef struct Ceed_private                  *Ceed;
+typedef struct Ceed_private *Ceed;
 /// Non-blocking Ceed interfaces return a CeedRequest.
 /// To perform an operation immediately, pass \ref CEED_REQUEST_IMMEDIATE instead.
 /// @ingroup CeedUser
-typedef struct CeedRequest_private           *CeedRequest;
+typedef struct CeedRequest_private *CeedRequest;
 /// Handle for vectors over the field \ref CeedScalar
 /// @ingroup CeedVectorUser
-typedef struct CeedVector_private            *CeedVector;
+typedef struct CeedVector_private *CeedVector;
 /// Handle for object describing restriction to elements
 /// @ingroup CeedElemRestrictionUser
-typedef struct CeedElemRestriction_private   *CeedElemRestriction;
+typedef struct CeedElemRestriction_private *CeedElemRestriction;
 /// Handle for object describing discrete finite element evaluations
 /// @ingroup CeedBasisUser
-typedef struct CeedBasis_private             *CeedBasis;
+typedef struct CeedBasis_private *CeedBasis;
 /// Handle for object describing CeedQFunction fields
 /// @ingroup CeedQFunctionBackend
-typedef struct CeedQFunctionField_private    *CeedQFunctionField;
+typedef struct CeedQFunctionField_private *CeedQFunctionField;
 /// Handle for object describing functions evaluated independently at quadrature points
 /// @ingroup CeedQFunctionUser
-typedef struct CeedQFunction_private         *CeedQFunction;
+typedef struct CeedQFunction_private *CeedQFunction;
 /// Handle for object describing CeedOperator fields
 /// @ingroup CeedOperatorBackend
-typedef struct CeedOperatorField_private     *CeedOperatorField;
+typedef struct CeedOperatorField_private *CeedOperatorField;
 /// Handle for object describing context data for CeedQFunctions
 /// @ingroup CeedQFunctionUser
-typedef struct CeedQFunctionContext_private  *CeedQFunctionContext;
+typedef struct CeedQFunctionContext_private *CeedQFunctionContext;
 /// Handle for object describing registered fields for CeedQFunctionContext
 /// @ingroup CeedQFunctionUser
 typedef struct CeedContextFieldLabel_private *CeedContextFieldLabel;
@@ -111,7 +111,7 @@ typedef struct CeedContextFieldLabel_private *CeedContextFieldLabel;
 ///   $$ E^T B^T f(B E u) $$
 ///   acting on the vector \f$u\f$.
 /// @ingroup CeedOperatorUser
-typedef struct CeedOperator_private          *CeedOperator;
+typedef struct CeedOperator_private *CeedOperator;
 
 CEED_EXTERN int CeedRegistryGetList(size_t *n, char ***const resources, CeedInt **array);
 CEED_EXTERN int CeedInit(const char *resource, Ceed *ceed);

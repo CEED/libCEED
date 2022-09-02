@@ -82,24 +82,24 @@ typedef struct Physics_private  *Physics;
 // Application context from user command line options
 struct AppCtx_private {
   // libCEED arguments
-  char              ceed_resource[PETSC_MAX_PATH_LEN];  // libCEED backend
-  PetscInt          degree;
-  PetscInt          q_extra;
+  char     ceed_resource[PETSC_MAX_PATH_LEN];  // libCEED backend
+  PetscInt degree;
+  PetscInt q_extra;
   // Solver arguments
-  MatType           amat_type;
-  PetscBool         pmat_pbdiagonal;
+  MatType   amat_type;
+  PetscBool pmat_pbdiagonal;
   // Post-processing arguments
-  PetscInt          output_freq;
-  PetscInt          viz_refine;
-  PetscInt          cont_steps;
-  char              output_dir[PETSC_MAX_PATH_LEN];
+  PetscInt output_freq;
+  PetscInt viz_refine;
+  PetscInt cont_steps;
+  char     output_dir[PETSC_MAX_PATH_LEN];
   // Problem type arguments
   PetscFunctionList problems;
   char              problem_name[PETSC_MAX_PATH_LEN];
   // Test mode arguments
-  PetscBool         test_mode;
-  PetscScalar       test_tol;
-  char              file_path[PETSC_MAX_PATH_LEN];
+  PetscBool   test_mode;
+  PetscScalar test_tol;
+  char        file_path[PETSC_MAX_PATH_LEN];
 };
 
 // libCEED data struct

@@ -63,13 +63,13 @@ struct AppCtx_ {
   PetscInt      bc_clamp_faces[16];
   // [translation; 3] [rotation axis; 3] [rotation magnitude c_0, c_1]
   // The rotations are (c_0 + c_1 s) \pi, where s = x · axis
-  PetscScalar   bc_clamp_max[16][8];
-  PetscInt      bc_traction_count;
-  PetscInt      bc_traction_faces[16];
-  PetscScalar   bc_traction_vector[16][3];
-  PetscScalar   forcing_vector[3];
-  PetscReal     test_tol;
-  PetscReal     expect_final_strain;
+  PetscScalar bc_clamp_max[16][8];
+  PetscInt    bc_traction_count;
+  PetscInt    bc_traction_faces[16];
+  PetscScalar bc_traction_vector[16][3];
+  PetscScalar forcing_vector[3];
+  PetscReal   test_tol;
+  PetscReal   expect_final_strain;
 };
 
 // Forcing function data

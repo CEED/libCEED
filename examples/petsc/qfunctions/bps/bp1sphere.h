@@ -52,7 +52,7 @@ CEED_QFUNCTION(SetupMassGeo)(void *ctx, const CeedInt Q, const CeedScalar *const
   // Inputs
   const CeedScalar *X = in[0], *J = in[1], *w = in[2];
   // Outputs
-  CeedScalar       *q_data = out[0];
+  CeedScalar *q_data = out[0];
 
   // Quadrature Point Loop
   CeedPragmaSIMD for (CeedInt i = 0; i < Q; i++) {
@@ -115,7 +115,7 @@ CEED_QFUNCTION(SetupMassRhs)(void *ctx, const CeedInt Q, const CeedScalar *const
   // Inputs
   const CeedScalar *X = in[0], *q_data = in[1];
   // Outputs
-  CeedScalar       *true_soln = out[0], *rhs = out[1];
+  CeedScalar *true_soln = out[0], *rhs = out[1];
 
   // Context
   const CeedScalar *context = (const CeedScalar *)ctx;
@@ -150,7 +150,7 @@ CEED_QFUNCTION(Mass)(void *ctx, const CeedInt Q, const CeedScalar *const *in, Ce
   // Inputs
   const CeedScalar *u = in[0], *q_data = in[1];
   // Outputs
-  CeedScalar       *v = out[0];
+  CeedScalar *v = out[0];
 
   // Quadrature Point Loop
   CeedPragmaSIMD for (CeedInt i = 0; i < Q; i++) v[i] = q_data[i] * u[i];

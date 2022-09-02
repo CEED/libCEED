@@ -225,7 +225,7 @@ CEED_QFUNCTION(ElasFSInitialNH1F)(void *ctx, CeedInt Q, const CeedScalar *const 
     // *INDENT-ON*
 
     // Common components of finite strain calculations
-    CeedScalar       Swork[6], Cinvwork[6], logJ;
+    CeedScalar Swork[6], Cinvwork[6], logJ;
     // *INDENT-OFF*
     const CeedScalar tempgradu[3][3] = {
         {grad_u[0][0][i], grad_u[0][1][i], grad_u[0][2][i]},
@@ -331,7 +331,7 @@ CEED_QFUNCTION(ElasFSInitialNH1dF)(void *ctx, CeedInt Q, const CeedScalar *const
     // *INDENT-ON*
 
     // Common components of finite strain calculations
-    CeedScalar       Swork[6], Cinvwork[6], logJ;
+    CeedScalar Swork[6], Cinvwork[6], logJ;
     // *INDENT-OFF*
     const CeedScalar tempgradu[3][3] = {
         {grad_u[0][0][i], grad_u[0][1][i], grad_u[0][2][i]},

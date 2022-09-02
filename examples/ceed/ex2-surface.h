@@ -23,8 +23,8 @@ CEED_QFUNCTION(f_build_diff)(void *ctx, const CeedInt Q, const CeedScalar *const
   //
   // At every quadrature point, compute w/det(J).adj(J).adj(J)^T and store
   // the symmetric part of the result.
-  const CeedScalar    *J = in[0], *w = in[1];
-  CeedScalar          *q_data = out[0];
+  const CeedScalar *J = in[0], *w = in[1];
+  CeedScalar       *q_data = out[0];
 
   switch (bc->dim + 10 * bc->space_dim) {
     case 11:
@@ -79,8 +79,8 @@ CEED_QFUNCTION(f_build_diff)(void *ctx, const CeedInt Q, const CeedScalar *const
 CEED_QFUNCTION(f_apply_diff)(void *ctx, const CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
   struct BuildContext *bc = (struct BuildContext *)ctx;
   // in[0], out[0] have shape [dim, nc=1, Q]
-  const CeedScalar    *ug = in[0], *q_data = in[1];
-  CeedScalar          *vg = out[0];
+  const CeedScalar *ug = in[0], *q_data = in[1];
+  CeedScalar       *vg = out[0];
 
   switch (bc->dim) {
     case 1:

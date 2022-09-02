@@ -38,37 +38,37 @@ const char help[] = "Solve solid Problems with CEED and PETSc DMPlex\n";
 #include "elasticity.h"
 
 int main(int argc, char **argv) {
-  MPI_Comm              comm;
+  MPI_Comm comm;
   // Context structs
-  AppCtx                app_ctx;            // Contains problem options
-  ProblemFunctions      problem_functions;  // Setup functions for each problem
-  Units                 units;              // Contains units scaling
+  AppCtx           app_ctx;            // Contains problem options
+  ProblemFunctions problem_functions;  // Setup functions for each problem
+  Units            units;              // Contains units scaling
   // PETSc objects
-  PetscLogStage         stage_dm_setup, stage_libceed_setup, stage_snes_setup, stage_snes_solve;
-  DM                    dm_orig;                   // Distributed DM to clone
-  DM                    dm_energy, dm_diagnostic;  // DMs for postprocessing
-  DM                   *level_dms;
-  Vec                   U, *U_g, *U_loc;     // U: solution, R: residual, F: forcing
-  Vec                   R, R_loc, F, F_loc;  // g: global, loc: local
-  Vec                   neumann_bcs = NULL, bcs_loc = NULL;
-  SNES                  snes;
-  Mat                  *jacob_mat, jacob_mat_coarse, *prolong_restr_mat;
+  PetscLogStage stage_dm_setup, stage_libceed_setup, stage_snes_setup, stage_snes_solve;
+  DM            dm_orig;                   // Distributed DM to clone
+  DM            dm_energy, dm_diagnostic;  // DMs for postprocessing
+  DM           *level_dms;
+  Vec           U, *U_g, *U_loc;     // U: solution, R: residual, F: forcing
+  Vec           R, R_loc, F, F_loc;  // g: global, loc: local
+  Vec           neumann_bcs = NULL, bcs_loc = NULL;
+  SNES          snes;
+  Mat          *jacob_mat, jacob_mat_coarse, *prolong_restr_mat;
   // PETSc data
   UserMult              res_ctx, jacob_coarse_ctx = NULL, *jacob_ctx;
   FormJacobCtx          form_jacob_ctx;
   UserMultProlongRestr *prolong_restr_ctx;
   PCMGCycleType         pcmg_cycle_type = PC_MG_CYCLE_V;
   // libCEED objects
-  Ceed                  ceed;
-  CeedData             *ceed_data;
-  CeedQFunctionContext  ctx_phys, ctx_phys_smoother = NULL;
+  Ceed                 ceed;
+  CeedData            *ceed_data;
+  CeedQFunctionContext ctx_phys, ctx_phys_smoother = NULL;
   // Parameters
-  PetscInt              num_comp_u = 3;                  // 3 DoFs in 3D
-  PetscInt              num_comp_e = 1, num_comp_d = 5;  // 1 energy output, 5 diagnostic
-  PetscInt              num_levels = 1, fine_level = 0;
-  PetscInt             *U_g_size, *U_l_size, *U_loc_size;
-  PetscInt              snes_its = 0, ksp_its = 0;
-  double                start_time, elapsed_time, min_time, max_time;
+  PetscInt  num_comp_u = 3;                  // 3 DoFs in 3D
+  PetscInt  num_comp_e = 1, num_comp_d = 5;  // 1 energy output, 5 diagnostic
+  PetscInt  num_levels = 1, fine_level = 0;
+  PetscInt *U_g_size, *U_l_size, *U_loc_size;
+  PetscInt  snes_its = 0, ksp_its = 0;
+  double    start_time, elapsed_time, min_time, max_time;
 
   PetscCall(PetscInitialize(&argc, &argv, NULL, help));
 

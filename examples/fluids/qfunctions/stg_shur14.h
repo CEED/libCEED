@@ -164,8 +164,8 @@ void CEED_QFUNCTION_HELPER(STGShur14_Calc)(const CeedScalar X[3], const CeedScal
   const CeedScalar *sigma  = &stg_ctx->data[stg_ctx->offsets.sigma];
   const CeedScalar *d      = &stg_ctx->data[stg_ctx->offsets.d];
   //*INDENT-ON*
-  CeedScalar        xdotd, vp[3] = {0.};
-  CeedScalar        xhat[] = {0., X[1], X[2]};
+  CeedScalar xdotd, vp[3] = {0.};
+  CeedScalar xhat[] = {0., X[1], X[2]};
 
   CeedPragmaSIMD for (CeedInt n = 0; n < nmodes; n++) {
     xhat[0] = (X[0] - stg_ctx->u0 * t) * Max(2 * kappa[0] / kappa[n], 0.1);
@@ -204,7 +204,7 @@ void CEED_QFUNCTION_HELPER(STGShur14_Calc_PrecompEktot)(const CeedScalar X[3], c
   const CeedScalar *sigma  = &stg_ctx->data[stg_ctx->offsets.sigma];
   const CeedScalar *d      = &stg_ctx->data[stg_ctx->offsets.d];
   //*INDENT-ON*
-  CeedScalar        hmax, ke, keta, kcut;
+  CeedScalar hmax, ke, keta, kcut;
   SpectrumConstants(dw, eps, lt, h, nu, &hmax, &ke, &keta, &kcut);
   CeedScalar xdotd, vp[3] = {0.};
   CeedScalar xhat[] = {0., X[1], X[2]};

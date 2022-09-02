@@ -371,7 +371,7 @@ PetscErrorCode SetupSTG(const MPI_Comm comm, const DM dm, ProblemData *problem, 
 static inline PetscScalar FindDy(const PetscScalar ynodes[], const PetscInt nynodes, const PetscScalar y) {
   const PetscScalar half_mindy = 0.5 * (ynodes[1] - ynodes[0]);
   // ^^assuming min(dy) is first element off the wall
-  PetscInt          idx        = -1;  // Index
+  PetscInt idx                 = -1;  // Index
 
   for (PetscInt i = 0; i < nynodes; i++) {
     if (y < ynodes[i] + half_mindy) {

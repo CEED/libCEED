@@ -20,10 +20,10 @@ CEED_QFUNCTION(Scale)(void *ctx, const CeedInt Q, const CeedScalar *const *in, C
 
   // in[0] is input, size (Q*size)
   // in[1] is scaling factor, size (Q*size)
-  const CeedScalar *input  = in[0];
-  const CeedScalar *scale  = in[1];
+  const CeedScalar *input = in[0];
+  const CeedScalar *scale = in[1];
   // out[0] is output, size (Q*size)
-  CeedScalar       *output = out[0];
+  CeedScalar *output      = out[0];
 
   // Quadrature point loop
   CeedPragmaSIMD for (CeedInt i = 0; i < Q * size; i++) { output[i] = input[i] * scale[i]; }  // End of Quadrature Point Loop
