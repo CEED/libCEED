@@ -61,10 +61,15 @@ PetscErrorCode ComputeChebyshevCoefficients(BlasiusContext blasius) {
   Vec       sol, res;
   PetscReal *w;
   PetscInt  N = blasius->n_cheb;
+  SNESConvergedReason reason;
   const PetscScalar *cheb_coefs;
   PetscFunctionBegin;
+
+  // Allocate memory
   PetscCall(PetscMalloc2(N-3, &blasius->X, N-3, &w));
   PetscCall(PetscDTGaussQuadrature(N-3, -1., 1., blasius->X, w));
+
+  // Snes solve
   PetscCall(SNESCreate(PETSC_COMM_SELF, &snes));
   PetscCall(VecCreate(PETSC_COMM_SELF, &sol));
   PetscCall(VecSetSizes(sol, PETSC_DECIDE, 2*N-1));
@@ -73,9 +78,17 @@ PetscErrorCode ComputeChebyshevCoefficients(BlasiusContext blasius) {
   PetscCall(SNESSetFunction(snes, res, CompressibleBlasiusResidual, blasius));
   PetscCall(SNESSetFromOptions(snes));
   PetscCall(SNESSolve(snes, NULL, sol));
+  PetscCall(SNESGetConvergedReason(snes, &reason));
+  if (reason < 0)
+    SETERRQ(PETSC_COMM_WORLD, PETSC_ERR_CONV_FAILED,
+            "The Chebyshev solve failed.\n");
+
+  // Assign Chebyshev coefficients
   PetscCall(VecGetArrayRead(sol, &cheb_coefs));
   for (int i=0; i<N; i++) blasius->Tf_cheb[i] = cheb_coefs[i];
   for (int i=0; i<N-1; i++) blasius->Th_cheb[i] = cheb_coefs[i+N];
+
+  // Destroy objects
   PetscCall(PetscFree2(blasius->X, w));
   PetscCall(VecDestroy(&sol));
   PetscCall(VecDestroy(&res));
