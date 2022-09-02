@@ -18,8 +18,8 @@ noether-cpu:
     - echo "-------------- HIPCC ---------------" && $HIPCC --version
     - echo "-------------- GCOV ----------------" && gcov --version
 # Libraries for backends
-# -- LIBXSMM v1.17
-    - cd .. && export XSMM_VERSION=libxsmm-1.17 && { [[ -d $XSMM_VERSION ]] || { git clone --depth 1 --branch 1.17 https://github.com/hfp/libxsmm.git $XSMM_VERSION && make -C $XSMM_VERSION -j$(nproc); }; } && export XSMM_DIR=$PWD/$XSMM_VERSION && cd libCEED
+# -- LIBXSMM 44433be9426eddaed88415646c15b3bcc61afc85
+    - cd .. && export XSMM_HASH=44433be9426eddaed88415646c15b3bcc61afc85 && { [[ -d libxsmm-$XSMM_HASH ]] || { curl -L https://github.com/libxsmm/libxsmm/archive/$XSMM_HASH.tar.gz -o xsmm.tar.gz && tar zvxf xsmm.tar.gz && rm xsmm.tar.gz && make -C libxsmm-$XSMM_HASH -j$(nproc); }; } && export XSMM_DIR=$PWD/libxsmm-$XSMM_HASH && cd libCEED
     - echo "-------------- LIBXSMM -------------" && git -C $XSMM_DIR describe --tags
 # -- OCCA v1.1.0
     - cd .. && export OCCA_VERSION=occa-1.1.0 OCCA_OPENCL_ENABLED=0 && { [[ -d $OCCA_VERSION ]] || { git clone --depth 1 --branch v1.1.0 https://github.com/libocca/occa.git $OCCA_VERSION && make -C $OCCA_VERSION -j$(nproc); }; } && export OCCA_DIR=$PWD/$OCCA_VERSION && cd libCEED
@@ -164,8 +164,8 @@ noether-float:
 # -- MAGMA from dev branch
     - echo "-------------- MAGMA ---------------"
     - export MAGMA_DIR=/projects/hipMAGMA && git -C $MAGMA_DIR describe
-# -- LIBXSMM v1.17
-    - cd .. && export XSMM_VERSION=libxsmm-1.17 && { [[ -d $XSMM_VERSION ]] || { git clone --depth 1 --branch 1.17 https://github.com/hfp/libxsmm.git $XSMM_VERSION && make -C $XSMM_VERSION -j$(nproc); }; } && export XSMM_DIR=$PWD/$XSMM_VERSION && cd libCEED
+# -- LIBXSMM 44433be9426eddaed88415646c15b3bcc61afc85
+    - cd .. && export XSMM_HASH=44433be9426eddaed88415646c15b3bcc61afc85 && { [[ -d libxsmm-$XSMM_HASH ]] || { curl -L https://github.com/libxsmm/libxsmm/archive/$XSMM_HASH.tar.gz -o xsmm.tar.gz && tar zvxf xsmm.tar.gz && rm xsmm.tar.gz && make -C libxsmm-$XSMM_HASH -j$(nproc); }; } && export XSMM_DIR=$PWD/libxsmm-$XSMM_HASH && cd libCEED
     - echo "-------------- LIBXSMM -------------" && git -C $XSMM_DIR describe --tags
   script:
     - rm -f .SUCCESS
