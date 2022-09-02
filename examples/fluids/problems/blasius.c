@@ -76,6 +76,7 @@ PetscErrorCode ComputeChebyshevCoefficients(BlasiusContext blasius) {
   PetscCall(VecSetFromOptions(sol));
   PetscCall(VecDuplicate(sol, &res));
   PetscCall(SNESSetFunction(snes, res, CompressibleBlasiusResidual, blasius));
+  PetscCall(SNESSetOptionsPrefix(snes, "chebyshev_"));
   PetscCall(SNESSetFromOptions(snes));
   PetscCall(SNESSolve(snes, NULL, sol));
   PetscCall(SNESGetConvergedReason(snes, &reason));

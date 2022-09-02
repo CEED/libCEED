@@ -710,6 +710,11 @@ The Blasius problem the following command-line options are available in addition
   - `20`
   -
 
+* - `-chebyshev_`
+  - Prefix for Chebyshev snes solve
+  -
+  -
+
 :::
 
 This problem can be run with the `blasius.yaml` file via:
