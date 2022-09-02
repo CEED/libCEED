@@ -79,14 +79,15 @@ PetscErrorCode Kershaw(DM dm_orig, PetscScalar eps) {
 // Create BC label
 // -----------------------------------------------------------------------------
 static PetscErrorCode CreateBCLabel(DM dm, const char name[]) {
-  int ierr;
+
   DMLabel label;
 
   PetscFunctionBeginUser;
 
-  ierr = DMCreateLabel(dm, name); CHKERRQ(ierr);
-  ierr = DMGetLabel(dm, name, &label); CHKERRQ(ierr);
-  ierr = DMPlexMarkBoundaryFaces(dm, 1, label); CHKERRQ(ierr);
+  PetscCall(DMCreateLabel(dm, name));
+  PetscCall(DMGetLabel(dm, name, &label));
+  PetscCall(DMPlexMarkBoundaryFaces(dm, PETSC_DETERMINE, label));
+  PetscCall(DMPlexLabelComplete(dm, label));
 
   PetscFunctionReturn(0);
 };
@@ -135,6 +136,8 @@ PetscErrorCode SetupDMByDegree(DM dm, PetscInt p_degree, PetscInt q_extra,
     ierr = DMAddBoundary(dm, DM_BC_ESSENTIAL, "wall", label, 1,
                          marker_ids, 0, 0, NULL, (void(*)(void))bc_func,
                          NULL, NULL, NULL); CHKERRQ(ierr);
+    PetscCall(DMSetOptionsPrefix(dm, "final_"));
+    PetscCall(DMViewFromOptions(dm, NULL, "-dm_view"));
   }
 
   if (!is_simplex) {

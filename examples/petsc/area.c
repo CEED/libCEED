@@ -188,8 +188,8 @@ int main(int argc, char **argv) {
                        "    libCEED Backend                         : %s\n"
                        "    libCEED Backend MemType                 : %s\n"
                        "  Mesh:\n"
-                       "    Number of 1D Basis Nodes (p)            : %" CeedInt_FMT "\n"
-                       "    Number of 1D Quadrature Points (q)      : %" CeedInt_FMT "\n"
+                       "    Solution Order (P)                      : %" CeedInt_FMT "\n"
+                       "    Quadrature Order (Q)                    : %" CeedInt_FMT "\n"
                        "    Additional quadrature points (q_extra)  : %" CeedInt_FMT "\n"
                        "    Global nodes                            : %" PetscInt_FMT "\n"
                        "    DoF per node                            : %" PetscInt_FMT "\n"
@@ -216,7 +216,7 @@ int main(int argc, char **argv) {
   // Compute the mesh volume using the mass operator: area = 1^T \cdot M \cdot 1
   if (!test_mode) {
     ierr = PetscPrintf(comm,
-                       "Computing the mesh area using the formula:  area = 1^T M 1\n");
+                       "Computing the mesh area using the formula: area = 1^T M 1\n");
     CHKERRQ(ierr);
   }
 

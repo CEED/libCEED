@@ -53,30 +53,7 @@ PetscErrorCode SetupLibceedByDegree(DM dm, Ceed ceed, CeedInt degree,
   CeedScalar R = 1,                      // radius of the sphere
              l = 1.0/PetscSqrtReal(3.0); // half edge of the inscribed cube
 
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
   PetscFunctionBeginUser;
-  // CEED bases
-  P = degree + 1;
-  Q = P + q_extra;
-  CeedBasisCreateTensorH1Lagrange(ceed, topo_dim, num_comp_u, P, Q,
-                                  bp_data.q_mode,
-                                  &basis_u);
-  CeedBasisCreateTensorH1Lagrange(ceed, topo_dim, num_comp_x, 2, Q,
-                                  bp_data.q_mode,
-                                  &basis_x);
-  CeedBasisGetNumQuadraturePoints(basis_u, &num_qpts);
-
-  // CEED restrictions
-=======
->>>>>>> 158419b6 (example/petsc: added CreateBasisFromPlex and tested with tensor basis)
-  ierr = DMSetCoordinateDim(dm, topo_dim); CHKERRQ(ierr);
-=======
-  //ierr = DMSetCoordinateDim(dm, topo_dim); CHKERRQ(ierr);
->>>>>>> 0fa86f50 (example/petsc: Added CreateDistributedDM in petscutils.c and some cleanup)
-=======
->>>>>>> 3b5f1ce9 (Fixed the uncompatible restriction size.)
   ierr = DMGetCoordinateDM(dm, &dm_coord); CHKERRQ(ierr);
 
   // CEED bases
@@ -222,18 +199,10 @@ PetscErrorCode SetupLibceedByDegree(DM dm, Ceed ceed, CeedInt degree,
 // -----------------------------------------------------------------------------
 PetscErrorCode CeedLevelTransferSetup(DM dm, Ceed ceed, CeedInt level,
                                       CeedInt num_comp_u, CeedData *data,
-<<<<<<< HEAD
-                                      CeedInt *level_degrees,
-                                      CeedQFunction qf_restrict, CeedQFunction qf_prolong) {
-  PetscFunctionBeginUser;
-  // Return early if num_levels=1
-  if (num_levels == 1)
-    PetscFunctionReturn(0);
-=======
                                       Vec fine_mult) {
   int ierr;
->>>>>>> 2e9bde68 (Used "CeedOperatorMultigridLevelCreate" to create multigrid operators)
 
+  PetscFunctionBeginUser;
   // Restriction - Fine to corse
   CeedOperator op_restrict;
   // Interpolation - Corse to fine

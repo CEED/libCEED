@@ -284,8 +284,8 @@ int main(int argc, char **argv) {
                        "    libCEED Backend                         : %s\n"
                        "    libCEED Backend MemType                 : %s\n"
                        "  Mesh:\n"
-                       "    Number of 1D Basis Nodes (P)            : %" CeedInt_FMT "\n"
-                       "    Number of 1D Quadrature Points (Q)      : %" CeedInt_FMT "\n"
+                       "    Solution Order (P)                      : %" CeedInt_FMT "\n"
+                       "    Quadrature  Order (Q)                   : %" CeedInt_FMT "\n"
                        "    Additional quadrature points (q_extra)  : %" CeedInt_FMT "\n"
                        "    Global Nodes                            : %" PetscInt_FMT "\n"
                        "    Owned Nodes                             : %" PetscInt_FMT "\n"
@@ -313,7 +313,7 @@ int main(int argc, char **argv) {
     // Print level information
     if (!test_mode && (i == 0 || i == fine_level)) {
       ierr = PetscPrintf(comm,"    Level %" PetscInt_FMT " (%s):\n"
-                         "      Number of 1D Basis Nodes (P)          : %" CeedInt_FMT "\n"
+                         "      Solution Order (P)                    : %" CeedInt_FMT "\n"
                          "      Global Nodes                          : %" PetscInt_FMT "\n"
                          "      Owned Nodes                           : %" PetscInt_FMT "\n",
                          i, (i? "fine" : "coarse"), level_degrees[i] + 1,
