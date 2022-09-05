@@ -36,10 +36,19 @@ PetscErrorCode CompressibleBlasiusResidual(SNES snes, Vec X, Vec R, void *ctx) {
 
   for (int i=0; i<N-3; i++) {
     ChebyshevEval(N, Tf, blasius->X[i], blasius->eta_max, f);
-    r[3+i] = 2*f[3] + f[2] * f[0];
     ChebyshevEval(N-1, Th, blasius->X[i], blasius->eta_max, h);
-    r[N+2+i] = h[2] + Pr * f[0] * h[1] +
-               Pr * (gamma - 1) * PetscSqr(Ma * f[2]);
+    // mu and rho generally depend on h. We naively assume constant mu.
+    // For an ideal gas at constant pressure, density is inversely proportional to enthalpy.
+    // The *_tilde values are *relative* to their freestream values, and we proved first derivatives here.
+    const PetscScalar mu_tilde[2] = {1, 0};
+    const PetscScalar rho_tilde[2] = {1 / h[0], -h[1] / PetscSqr(h[0])};
+    const PetscScalar mu_rho_tilde[2] = {
+      mu_tilde[0] *rho_tilde[0],
+      mu_tilde[1] *rho_tilde[0] + mu_tilde[0] *rho_tilde[1],
+    };
+    r[3+i] = 2*(mu_rho_tilde[0] * f[3] + mu_rho_tilde[1] * f[2]) + f[2] * f[0];
+    r[N+2+i] = (mu_rho_tilde[0] * h[2] + mu_rho_tilde[1] * h[1]) + Pr * f[0] * h[1]
+               + Pr * (gamma - 1) * mu_rho_tilde[0] * PetscSqr(Ma * f[2]);
   }
 
   // h - left end boundary condition
@@ -74,6 +83,8 @@ PetscErrorCode ComputeChebyshevCoefficients(BlasiusContext blasius) {
   PetscCall(VecCreate(PETSC_COMM_SELF, &sol));
   PetscCall(VecSetSizes(sol, PETSC_DECIDE, 2*N-1));
   PetscCall(VecSetFromOptions(sol));
+  // Constant relative enthalpy 1 as initial guess
+  PetscCall(VecSetValue(sol, N, 1., INSERT_VALUES));
   PetscCall(VecDuplicate(sol, &res));
   PetscCall(SNESSetFunction(snes, res, CompressibleBlasiusResidual, blasius));
   PetscCall(SNESSetOptionsPrefix(snes, "chebyshev_"));

@@ -73,9 +73,10 @@ CEED_QFUNCTION_HELPER void ChebyshevEval(int N, const double *Tf, double x,
 // *****************************************************************************
 State CEED_QFUNCTION_HELPER(BlasiusSolution)(const BlasiusContext blasius,
     const CeedScalar x[3], const CeedScalar x0, const CeedScalar x_inflow,
-    const CeedScalar rho, CeedScalar *t12) {
+    const CeedScalar rho_infty, CeedScalar *t12) {
   CeedInt    N     = blasius->n_cheb;
-  CeedScalar nu    = blasius->newtonian_ctx.mu / rho;
+  CeedScalar mu    = blasius->newtonian_ctx.mu;
+  CeedScalar nu    = mu / rho_infty;
   CeedScalar eta   = x[1]*sqrt(blasius->U_inf/(nu*(x0+x[0]-x_inflow)));
   CeedScalar X     = 2 * (eta / blasius->eta_max) - 1.;
   CeedScalar U_inf = blasius->U_inf;
@@ -85,14 +86,14 @@ State CEED_QFUNCTION_HELPER(BlasiusSolution)(const BlasiusContext blasius,
   ChebyshevEval(N, blasius->Tf_cheb, X, blasius->eta_max, f);
   ChebyshevEval(N-1, blasius->Th_cheb, X, blasius->eta_max, h);
 
-  *t12 = rho*nu*U_inf*f[2]*sqrt(U_inf/(nu*(x0+x[0]-x_inflow)));
+  *t12 = mu*U_inf*f[2]*sqrt(U_inf/(nu*(x0+x[0]-x_inflow)));
 
   CeedScalar Y[5];
   Y[1] = U_inf * f[1];
   Y[2] = 0.5*sqrt(nu*U_inf/(x0+x[0]-x_inflow))*(eta*f[1] - f[0]);
   Y[3] = 0.;
   Y[4] = blasius->T_inf * h[0];
-  Y[0] = rho * Rd * Y[4];
+  Y[0] = rho_infty / h[0] * Rd * Y[4];
   return StateFromY(&blasius->newtonian_ctx, Y, x);
 }
 
@@ -149,10 +150,9 @@ CEED_QFUNCTION(Blasius_Inflow)(void *ctx, CeedInt Q,
   // *INDENT-ON*
   const BlasiusContext context = (BlasiusContext)ctx;
   const bool implicit       = context->implicit;
+  NewtonianIdealGasContext gas = &context->newtonian_ctx;
   const CeedScalar mu       = context->newtonian_ctx.mu;
-  const CeedScalar cv       = context->newtonian_ctx.cv;
   const CeedScalar Rd       = GasConstant(&context->newtonian_ctx);
-  const CeedScalar gamma    = HeatCapacityRatio(&context->newtonian_ctx);
   const CeedScalar T_inf    = context->T_inf;
   const CeedScalar P0       = context->P0;
   const CeedScalar delta0   = context->delta0;
@@ -176,51 +176,34 @@ CEED_QFUNCTION(Blasius_Inflow)(void *ctx, CeedInt Q,
     const CeedScalar x[3] = {X[0][i], X[1][i], 0.};
     CeedScalar t12;
     State s = BlasiusSolution(context, x, x0, x_inflow, rho_0, &t12);
+    CeedScalar qi[5];
+    for (CeedInt j=0; j<5; j++) qi[j] = q[j][i];
+    State s_int = StateFromU(gas, qi, x);
 
     // enabling user to choose between weak T and weak rho inflow
-    CeedScalar rho,E_internal, P, E_kinetic;
-    if (weakT) {
-      // rho should be from the current solution
-      rho = q[0][i];
-      // Temperature is being set weakly (T_inf) and for constant cv this sets E_internal
-      E_internal = rho * cv * T_inf;
-      // Find pressure using
-      P = rho*Rd*T_inf; // interior rho with exterior T
-      E_kinetic = .5 * rho * Dot3(s.Y.velocity, s.Y.velocity);
-    } else {
-      //  Fixing rho weakly on the inflow to a value consistent with T_inf and P0
-      rho =  rho_0;
-      E_kinetic = .5 * rho * Dot3(s.Y.velocity, s.Y.velocity);
-      E_internal = q[4][i] - E_kinetic; // uses set rho and u but E from solution
-      P = E_internal * (gamma - 1.);
+    if (weakT) { // density from the current solution
+      s.U.density = s_int.U.density;
+      s.Y = StatePrimitiveFromConservative(gas, s.U, x);
+    } else { // Total energy from current solution
+      s.U.E_total = s_int.U.E_total;
+      s.Y = StatePrimitiveFromConservative(gas, s.U, x);
     }
-    const CeedScalar E = E_internal + E_kinetic;
+
     // ---- Normal vect
     const CeedScalar norm[3] = {q_data_sur[1][i],
                                 q_data_sur[2][i],
                                 q_data_sur[3][i]
                                };
 
-    // The Physics
-    // Zero v so all future terms can safely sum into it
-    for (CeedInt j=0; j<5; j++) v[j][i] = 0.;
+    StateConservative Flux_inviscid[3];
+    FluxInviscid(&context->newtonian_ctx, s, Flux_inviscid);
 
-    const CeedScalar u_normal = Dot3(norm, s.Y.velocity);
-    const CeedScalar viscous_flux[3] = {-t12 *norm[1], -t12 *norm[0], 0};
-
-    // The Physics
-    // -- Density
-    v[0][i] -= wdetJb * rho * u_normal; // interior rho
-
-    // -- Momentum
-    for (CeedInt j=0; j<3; j++)
-      v[j+1][i] -= wdetJb * (rho * u_normal * s.Y.velocity[j] // interior rho
-                             + norm[j] * P // mixed P
-                             + viscous_flux[j]);
-
-    // -- Total Energy Density
-    v[4][i] -= wdetJb * (u_normal * (E + P) + Dot3(viscous_flux, s.Y.velocity));
-
+    const CeedScalar stress[3][3] = {{0, t12, 0}, {t12, 0, 0}, {0, 0, 0}};
+    const CeedScalar Fe[3] = {0}; // TODO: viscous energy flux needs grad temperature
+    CeedScalar Flux[5];
+    FluxTotal_Boundary(Flux_inviscid, stress, Fe, norm, Flux);
+    for (CeedInt j=0; j<5; j++)
+      v[j][i] = -wdetJb * Flux[j];
   } // End Quadrature Point Loop
   return 0;
 }
@@ -263,7 +246,7 @@ CEED_QFUNCTION(Blasius_Inflow_Jacobian)(void *ctx, CeedInt Q,
     const CeedScalar wdetJb  = (implicit ? -1. : 1.) * q_data_sur[0][i];
 
     // Calculate inflow values
-    const CeedScalar x[3] = {X[0][i], X[1][i], 0.};
+    const CeedScalar x[3] = {X[0][i], X[1][i], X[2][i]};
     CeedScalar t12;
     State s = BlasiusSolution(context, x, x0, 0, rho_0, &t12);
 
