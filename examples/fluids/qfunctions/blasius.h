@@ -17,6 +17,8 @@
 #include "newtonian_types.h"
 #include "utils.h"
 
+#define BLASIUS_MAX_N_CHEBYSHEV 50
+
 typedef struct BlasiusContext_ *BlasiusContext;
 struct BlasiusContext_ {
   bool       implicit; // !< Using implicit timesteping or not
@@ -28,10 +30,10 @@ struct BlasiusContext_ {
   CeedScalar P0;       // !< Pressure at outflow
   CeedScalar x_inflow; // !< Location of inflow in x
   CeedScalar n_cheb;   // !< Number of Chebyshev terms
-  CeedScalar *X;       // !< Chebyshev polynomial coordinate vector
+  CeedScalar *X;       // !< Chebyshev polynomial coordinate vector (CPU only)
   CeedScalar eta_max;  // !< Maximum eta in the domain
-  CeedScalar *Tf_cheb; // !< Chebyshev coefficient for f
-  CeedScalar *Th_cheb; // !< Chebyshev coefficient for h
+  CeedScalar Tf_cheb[BLASIUS_MAX_N_CHEBYSHEV]; // !< Chebyshev coefficient for f
+  CeedScalar Th_cheb[BLASIUS_MAX_N_CHEBYSHEV-1]; // !< Chebyshev coefficient for h
   struct NewtonianIdealGasContext_ newtonian_ctx;
 };
 

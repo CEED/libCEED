@@ -291,6 +291,10 @@ PetscErrorCode NS_BLASIUS(ProblemData *problem, DM dm, void *ctx) {
                             NULL, P0, &P0, NULL); CHKERRQ(ierr);
   ierr = PetscOptionsInt("-n_chebyshev", "Number of Chebyshev terms",
                          NULL, N, &N, NULL); CHKERRQ(ierr);
+  PetscCheck(3 <= N && N <= BLASIUS_MAX_N_CHEBYSHEV,
+             comm, PETSC_ERR_ARG_OUTOFRANGE,
+             "-n_chebyshev %" PetscInt_FMT " must be in range [3, %d]", N,
+             BLASIUS_MAX_N_CHEBYSHEV);
   ierr = PetscOptionsBoundedInt("-platemesh_Ndelta",
                                 "Velocity at boundary layer edge",
                                 NULL, mesh_Ndelta, &mesh_Ndelta, NULL, 1); CHKERRQ(ierr);
@@ -354,8 +358,6 @@ PetscErrorCode NS_BLASIUS(ProblemData *problem, DM dm, void *ctx) {
     blasius_ctx->x_inflow = domain_min[0];
     blasius_ctx->eta_max  = 5 * domain_max[1] / blasius_ctx->delta0;
   }
-  PetscCall(PetscMalloc2(blasius_ctx->n_cheb, &blasius_ctx->Tf_cheb,
-                         blasius_ctx->n_cheb-1, &blasius_ctx->Th_cheb));
   PetscCall(ComputeChebyshevCoefficients(blasius_ctx));
 
   CeedQFunctionContextRestoreData(problem->apply_vol_rhs.qfunction_context,
