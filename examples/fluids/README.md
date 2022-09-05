@@ -662,7 +662,7 @@ The Blasius problem the following command-line options are available in addition
 
 * - `-temperature_wall`
   - Wall temperature
-  - `400`
+  - `288`
   - `K`
 
 * - `-delta0`
@@ -705,9 +705,14 @@ The Blasius problem the following command-line options are available in addition
   - `""`
   -
 
-* - `-N_Chebyshev`
+* - `-n_chebyshev`
   - Number of Chebyshev terms
   - `20`
+  -
+
+* - `-chebyshev_`
+  - Prefix for Chebyshev snes solve
+  -
   -
 
 :::

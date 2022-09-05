@@ -4,24 +4,20 @@ implicit: true
 ts:
   adapt_type: 'none'
   type: 'beuler'
-  dt: 0.2e-5
-  max_steps: 10
+  dt: 2e-6
+  max_steps: 5
 
-degree: 1
-dm_plex_box_faces: 5,10,1
-platemesh_nDelta: 45
+dm_plex_box_faces: 3,20,1
+platemesh:
+  Ndelta: 10
+  growth: 1.2
 
-stab: 'supg'
-Ctau_t: 1
-Ctau_v: 36
-Ctau_C: 0.25
-Ctau_M: 0.25
-Ctau_E: 0.125
-
+temperature_wall: 400
+stab: 'none'
 q_extra: 0
 
 dm_plex_box_lower: 0,0,0
-dm_plex_box_upper: 4.2e-3,4.2e-3,5.e-5
+dm_plex_box_upper: 4.2e-3,4.2e-3,5.e-4
 dm_plex_dim: 3
 # Faces labeled 1=z- 2=z+ 3=y- 4=y+ 5=x+ 6=x-
 bc_slip_z: 1,2
