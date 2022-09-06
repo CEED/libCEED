@@ -38,12 +38,14 @@ static PetscErrorCode UnitTests_Newtonian(User user,
     NewtonianIdealGasContext gas) {
 
   Units units = user->units;
-  const CeedScalar eps = 1e-6;
-  const CeedScalar kg = units->kilogram, m = units->meter, sec = units->second,
+  const CeedScalar eps    = 1e-6;
+  const CeedScalar kg     = units->kilogram,
+                   m      = units->meter,
+                   sec    = units->second,
                    Pascal = units->Pascal;
-
   PetscFunctionBeginUser;
-  const CeedScalar rho = 1.2 * kg / (m*m*m), u = 40 * m/sec;
+  const CeedScalar rho = 1.2 * kg / (m*m*m),
+                   u   = 40 * m/sec;
   CeedScalar U[5] = {rho, rho*u, rho *u*1.1, rho *u*1.2, 250e3*Pascal + .5*rho *u*u};
   const CeedScalar x[3] = {.1, .2, .3};
   State s = StateFromU(gas, U, x);
@@ -72,6 +74,7 @@ PetscErrorCode NS_NEWTONIAN_IG(ProblemData *problem, DM dm, void *ctx) {
   SetupContext      setup_context;
   User              user = *(User *)ctx;
   StabilizationType stab;
+  StateVariable     state_var;
   MPI_Comm          comm = PETSC_COMM_WORLD;
   PetscBool         implicit;
   PetscBool         has_curr_time = PETSC_FALSE, unit_tests;
@@ -92,28 +95,12 @@ PetscErrorCode NS_NEWTONIAN_IG(ProblemData *problem, DM dm, void *ctx) {
   problem->jac_data_size_sur                    = 11;
   problem->setup_vol.qfunction                  = Setup;
   problem->setup_vol.qfunction_loc              = Setup_loc;
-  problem->ics.qfunction                        = ICsNewtonianIG;
-  problem->ics.qfunction_loc                    = ICsNewtonianIG_loc;
   problem->setup_sur.qfunction                  = SetupBoundary;
   problem->setup_sur.qfunction_loc              = SetupBoundary_loc;
-  problem->apply_vol_rhs.qfunction              = RHSFunction_Newtonian;
-  problem->apply_vol_rhs.qfunction_loc          = RHSFunction_Newtonian_loc;
-  problem->apply_vol_ifunction.qfunction        = IFunction_Newtonian;
-  problem->apply_vol_ifunction.qfunction_loc    = IFunction_Newtonian_loc;
-  problem->apply_vol_ijacobian.qfunction        = IJacobian_Newtonian;
-  problem->apply_vol_ijacobian.qfunction_loc    = IJacobian_Newtonian_loc;
-  problem->apply_inflow.qfunction               = BoundaryIntegral;
-  problem->apply_inflow.qfunction_loc           = BoundaryIntegral_loc;
-  problem->apply_inflow_jacobian.qfunction      = BoundaryIntegral_Jacobian;
-  problem->apply_inflow_jacobian.qfunction_loc  = BoundaryIntegral_Jacobian_loc;
-  problem->apply_outflow.qfunction              = PressureOutflow;
-  problem->apply_outflow.qfunction_loc          = PressureOutflow_loc;
-  problem->apply_outflow_jacobian.qfunction     = PressureOutflow_Jacobian;
-  problem->apply_outflow_jacobian.qfunction_loc = PressureOutflow_Jacobian_loc;
   problem->bc                                   = NULL;
   problem->bc_ctx                               = setup_context;
   problem->non_zero_time                        = PETSC_FALSE;
-  problem->print_info                           = PRINT_DENSITY_CURRENT;
+  problem->print_info                           = PRINT_NEWTONIAN;
 
   // ------------------------------------------------------
   //             Create the libCEED context
@@ -125,11 +112,11 @@ PetscErrorCode NS_NEWTONIAN_IG(ProblemData *problem, DM dm, void *ctx) {
   CeedScalar mu     = 1.8e-5;        // Pa s, dynamic viscosity
   CeedScalar k      = 0.02638;       // W/(m K)
   CeedScalar c_tau  = 0.5;           // -
-  CeedScalar Ctau_t  = 1.0;          // -
-  CeedScalar Ctau_v  = 36.0;         // TODO make function of degree
-  CeedScalar Ctau_C  = 1.0;          // TODO make function of degree
-  CeedScalar Ctau_M  = 1.0;          // TODO make function of degree
-  CeedScalar Ctau_E  = 1.0;          // TODO make function of degree
+  CeedScalar Ctau_t = 1.0;           // -
+  CeedScalar Ctau_v = 36.0;          // TODO make function of degree
+  CeedScalar Ctau_C = 1.0;           // TODO make function of degree
+  CeedScalar Ctau_M = 1.0;           // TODO make function of degree
+  CeedScalar Ctau_E = 1.0;           // TODO make function of degree
   PetscReal domain_min[3], domain_max[3], domain_size[3];
   ierr = DMGetBoundingBox(dm, domain_min, domain_max); CHKERRQ(ierr);
   for (PetscInt i=0; i<3; i++) domain_size[i] = domain_max[i] - domain_min[i];
@@ -140,7 +127,7 @@ PetscErrorCode NS_NEWTONIAN_IG(ProblemData *problem, DM dm, void *ctx) {
   PetscScalar meter    = 1;  // 1 meter in scaled length units
   PetscScalar kilogram = 1;  // 1 kilogram in scaled mass units
   PetscScalar second   = 1;  // 1 second in scaled time units
-  PetscScalar Kelvin   = 1;     // 1 Kelvin in scaled temperature units
+  PetscScalar Kelvin   = 1;  // 1 Kelvin in scaled temperature units
   PetscScalar W_per_m_K, Pascal, J_per_kg_K, m_per_squared_s;
 
   // ------------------------------------------------------
@@ -148,6 +135,50 @@ PetscErrorCode NS_NEWTONIAN_IG(ProblemData *problem, DM dm, void *ctx) {
   // ------------------------------------------------------
   PetscOptionsBegin(comm, NULL, "Options for Newtonian Ideal Gas based problem",
                     NULL);
+  // -- Conservative vs Primitive variables
+  ierr = PetscOptionsEnum("-state_var", "State variables used", NULL,
+                          StateVariables, (PetscEnum)(state_var = STATEVAR_CONSERVATIVE),
+                          (PetscEnum *)&state_var, NULL); CHKERRQ(ierr);
+
+  // *INDENT-OFF*
+  switch (state_var) {
+  case STATEVAR_CONSERVATIVE:
+    problem->ics.qfunction                        = ICsNewtonianIG;
+    problem->ics.qfunction_loc                    = ICsNewtonianIG_loc;
+    problem->apply_vol_rhs.qfunction              = RHSFunction_Newtonian;
+    problem->apply_vol_rhs.qfunction_loc          = RHSFunction_Newtonian_loc;
+    problem->apply_vol_ifunction.qfunction        = IFunction_Newtonian_Conserv;
+    problem->apply_vol_ifunction.qfunction_loc    = IFunction_Newtonian_Conserv_loc;
+    problem->apply_vol_ijacobian.qfunction        = IJacobian_Newtonian_Conserv;
+    problem->apply_vol_ijacobian.qfunction_loc    = IJacobian_Newtonian_Conserv_loc;
+    problem->apply_inflow.qfunction               = BoundaryIntegral_Conserv;
+    problem->apply_inflow.qfunction_loc           = BoundaryIntegral_Conserv_loc;
+    problem->apply_inflow_jacobian.qfunction      = BoundaryIntegral_Jacobian_Conserv;
+    problem->apply_inflow_jacobian.qfunction_loc  = BoundaryIntegral_Jacobian_Conserv_loc;
+    problem->apply_outflow.qfunction              = PressureOutflow_Conserv;
+    problem->apply_outflow.qfunction_loc          = PressureOutflow_Conserv_loc;
+    problem->apply_outflow_jacobian.qfunction     = PressureOutflow_Jacobian_Conserv;
+    problem->apply_outflow_jacobian.qfunction_loc = PressureOutflow_Jacobian_Conserv_loc;
+    break;
+
+  case STATEVAR_PRIMITIVE:
+    problem->ics.qfunction                        = ICsNewtonianIG_Prim;
+    problem->ics.qfunction_loc                    = ICsNewtonianIG_Prim_loc;
+    problem->apply_vol_ifunction.qfunction        = IFunction_Newtonian_Prim;
+    problem->apply_vol_ifunction.qfunction_loc    = IFunction_Newtonian_Prim_loc;
+    problem->apply_vol_ijacobian.qfunction        = IJacobian_Newtonian_Prim;
+    problem->apply_vol_ijacobian.qfunction_loc    = IJacobian_Newtonian_Prim_loc;
+    problem->apply_inflow.qfunction               = BoundaryIntegral_Prim;
+    problem->apply_inflow.qfunction_loc           = BoundaryIntegral_Prim_loc;
+    problem->apply_inflow_jacobian.qfunction      = BoundaryIntegral_Jacobian_Prim;
+    problem->apply_inflow_jacobian.qfunction_loc  = BoundaryIntegral_Jacobian_Prim_loc;
+    problem->apply_outflow.qfunction              = PressureOutflow_Prim;
+    problem->apply_outflow.qfunction_loc          = PressureOutflow_Prim_loc;
+    problem->apply_outflow_jacobian.qfunction     = PressureOutflow_Jacobian_Prim;
+    problem->apply_outflow_jacobian.qfunction_loc = PressureOutflow_Jacobian_Prim_loc;
+    break;
+  }
+  // *INDENT-ON*
 
   // -- Physics
   ierr = PetscOptionsScalar("-cv", "Heat capacity at constant volume",
@@ -208,6 +239,10 @@ PetscErrorCode NS_NEWTONIAN_IG(ProblemData *problem, DM dm, void *ctx) {
                        "Warning! Use -stab supg only with -implicit\n");
     CHKERRQ(ierr);
   }
+  if (state_var==STATEVAR_PRIMITIVE && !implicit) {
+    SETERRQ(comm, PETSC_ERR_ARG_NULL,
+            "RHSFunction is not provided for primitive variables (use -state_var primitive only with -implicit)\n");
+  }
   PetscOptionsEnd();
 
   // ------------------------------------------------------
@@ -252,6 +287,7 @@ PetscErrorCode NS_NEWTONIAN_IG(ProblemData *problem, DM dm, void *ctx) {
   // -- Solver Settings
   user->phys->stab          = stab;
   user->phys->implicit      = implicit;
+  user->phys->state_var     = state_var;
   user->phys->has_curr_time = has_curr_time;
 
   // -- QFunction Context
@@ -268,6 +304,7 @@ PetscErrorCode NS_NEWTONIAN_IG(ProblemData *problem, DM dm, void *ctx) {
   newtonian_ig_ctx->Ctau_E        = Ctau_E;
   newtonian_ig_ctx->stabilization = stab;
   newtonian_ig_ctx->is_implicit   = implicit;
+  newtonian_ig_ctx->state_var = state_var;
   ierr = PetscArraycpy(newtonian_ig_ctx->g, g, 3); CHKERRQ(ierr);
 
   CeedQFunctionContextCreate(user->ceed, &problem->ics.qfunction_context);
@@ -311,8 +348,8 @@ PetscErrorCode NS_NEWTONIAN_IG(ProblemData *problem, DM dm, void *ctx) {
   PetscFunctionReturn(0);
 }
 
-PetscErrorCode PRINT_DENSITY_CURRENT(ProblemData *problem,
-                                     AppCtx app_ctx) {
+PetscErrorCode PRINT_NEWTONIAN(ProblemData *problem, AppCtx app_ctx) {
+
   MPI_Comm comm = PETSC_COMM_WORLD;
   PetscErrorCode ierr;
   NewtonianIdealGasContext newtonian_ctx;

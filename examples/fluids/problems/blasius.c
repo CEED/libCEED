@@ -12,6 +12,102 @@
 #include "../qfunctions/blasius.h"
 #include "stg_shur14.h"
 
+PetscErrorCode CompressibleBlasiusResidual(SNES snes, Vec X, Vec R, void *ctx) {
+  const BlasiusContext blasius = (BlasiusContext)ctx;
+  const PetscScalar *Tf, *Th;  // Chebyshev coefficients
+  PetscScalar       *r, f[4], h[4];
+  PetscInt          N = blasius->n_cheb;
+  PetscScalar Ma = Mach(&blasius->newtonian_ctx, blasius->T_inf, blasius->U_inf),
+              Pr = Prandtl(&blasius->newtonian_ctx),
+              gamma = HeatCapacityRatio(&blasius->newtonian_ctx);
+  PetscFunctionBegin;
+  PetscCall(VecGetArrayRead(X, &Tf));
+  Th = Tf + N;
+  PetscCall(VecGetArray(R, &r));
+
+  // Left boundary conditions f = f' = 0
+  ChebyshevEval(N, Tf, -1., blasius->eta_max, f);
+  r[0] = f[0];
+  r[1] = f[1];
+
+  // f - right end boundary condition
+  ChebyshevEval(N, Tf, 1., blasius->eta_max, f);
+  r[2] = f[1]  - 1.;
+
+  for (int i=0; i<N-3; i++) {
+    ChebyshevEval(N, Tf, blasius->X[i], blasius->eta_max, f);
+    ChebyshevEval(N-1, Th, blasius->X[i], blasius->eta_max, h);
+    // mu and rho generally depend on h. We naively assume constant mu.
+    // For an ideal gas at constant pressure, density is inversely proportional to enthalpy.
+    // The *_tilde values are *relative* to their freestream values, and we proved first derivatives here.
+    const PetscScalar mu_tilde[2] = {1, 0};
+    const PetscScalar rho_tilde[2] = {1 / h[0], -h[1] / PetscSqr(h[0])};
+    const PetscScalar mu_rho_tilde[2] = {
+      mu_tilde[0] *rho_tilde[0],
+      mu_tilde[1] *rho_tilde[0] + mu_tilde[0] *rho_tilde[1],
+    };
+    r[3+i] = 2*(mu_rho_tilde[0] * f[3] + mu_rho_tilde[1] * f[2]) + f[2] * f[0];
+    r[N+2+i] = (mu_rho_tilde[0] * h[2] + mu_rho_tilde[1] * h[1]) + Pr * f[0] * h[1]
+               + Pr * (gamma - 1) * mu_rho_tilde[0] * PetscSqr(Ma * f[2]);
+  }
+
+  // h - left end boundary condition
+  ChebyshevEval(N-1, Th, -1., blasius->eta_max, h);
+  r[N] = h[0] - blasius->T_wall / blasius->T_inf;
+
+  // h - right end boundary condition
+  ChebyshevEval(N-1, Th, 1., blasius->eta_max, h);
+  r[N+1] = h[0] - 1.;
+
+  // Restore vectors
+  PetscCall(VecRestoreArrayRead(X, &Tf));
+  PetscCall(VecRestoreArray(R, &r));
+  PetscFunctionReturn(0);
+}
+
+PetscErrorCode ComputeChebyshevCoefficients(BlasiusContext blasius) {
+  SNES      snes;
+  Vec       sol, res;
+  PetscReal *w;
+  PetscInt  N = blasius->n_cheb;
+  SNESConvergedReason reason;
+  const PetscScalar *cheb_coefs;
+  PetscFunctionBegin;
+
+  // Allocate memory
+  PetscCall(PetscMalloc2(N-3, &blasius->X, N-3, &w));
+  PetscCall(PetscDTGaussQuadrature(N-3, -1., 1., blasius->X, w));
+
+  // Snes solve
+  PetscCall(SNESCreate(PETSC_COMM_SELF, &snes));
+  PetscCall(VecCreate(PETSC_COMM_SELF, &sol));
+  PetscCall(VecSetSizes(sol, PETSC_DECIDE, 2*N-1));
+  PetscCall(VecSetFromOptions(sol));
+  // Constant relative enthalpy 1 as initial guess
+  PetscCall(VecSetValue(sol, N, 1., INSERT_VALUES));
+  PetscCall(VecDuplicate(sol, &res));
+  PetscCall(SNESSetFunction(snes, res, CompressibleBlasiusResidual, blasius));
+  PetscCall(SNESSetOptionsPrefix(snes, "chebyshev_"));
+  PetscCall(SNESSetFromOptions(snes));
+  PetscCall(SNESSolve(snes, NULL, sol));
+  PetscCall(SNESGetConvergedReason(snes, &reason));
+  if (reason < 0)
+    SETERRQ(PETSC_COMM_WORLD, PETSC_ERR_CONV_FAILED,
+            "The Chebyshev solve failed.\n");
+
+  // Assign Chebyshev coefficients
+  PetscCall(VecGetArrayRead(sol, &cheb_coefs));
+  for (int i=0; i<N; i++) blasius->Tf_cheb[i] = cheb_coefs[i];
+  for (int i=0; i<N-1; i++) blasius->Th_cheb[i] = cheb_coefs[i+N];
+
+  // Destroy objects
+  PetscCall(PetscFree2(blasius->X, w));
+  PetscCall(VecDestroy(&sol));
+  PetscCall(VecDestroy(&res));
+  PetscCall(SNESDestroy(&snes));
+  PetscFunctionReturn(0);
+}
+
 static PetscErrorCode GetYNodeLocs(const MPI_Comm comm,
                                    const char path[PETSC_MAX_PATH_LEN], PetscReal **pynodes,
                                    PetscInt *nynodes) {
@@ -126,7 +222,7 @@ static PetscErrorCode ModifyMesh(MPI_Comm comm, DM dm, PetscInt dim,
               faces[1]+1, *num_node_locs);
     if (*num_node_locs > faces[1] +1) {
       ierr = PetscPrintf(comm, "WARNING: y_node_locs_path has more locations (%d) "
-                         "than the mesh has nodes (%d). This maybe unintended.",
+                         "than the mesh has nodes (%d). This maybe unintended.\n",
                          *num_node_locs, faces[1]+1); CHKERRQ(ierr);
     }
     PetscScalar max_y = (*node_locs)[faces[1]];
@@ -162,31 +258,43 @@ PetscErrorCode NS_BLASIUS(ProblemData *problem, DM dm, void *ctx) {
   // ------------------------------------------------------
   //               SET UP Blasius
   // ------------------------------------------------------
-  problem->ics.qfunction                       = ICsBlasius;
-  problem->ics.qfunction_loc                   = ICsBlasius_loc;
+  problem->ics.qfunction        = ICsBlasius;
+  problem->ics.qfunction_loc    = ICsBlasius_loc;
 
-  CeedScalar Uinf   = 40;          // m/s
-  CeedScalar delta0 = 4.2e-4;      // m
-  CeedScalar theta0 = 288.;        // K
-  CeedScalar P0     = 1.01e5;      // Pa
-  PetscBool  weakT  = PETSC_FALSE; // weak density or temperature
-  PetscReal  mesh_refine_height = 5.9e-4; // m
-  PetscReal  mesh_growth        = 1.08;   // [-]
-  PetscInt   mesh_Ndelta        = 45;     // [-]
-  PetscReal  mesh_top_angle     = 5;      // degrees
+  CeedScalar U_inf              = 40;          // m/s
+  CeedScalar T_inf              = 288.;        // K
+  CeedScalar T_wall             = 288.;        // K
+  CeedScalar delta0             = 4.2e-3;      // m
+  CeedScalar P0                 = 1.01e5;      // Pa
+  CeedInt    N                  = 20;          // Number of Chebyshev terms
+  PetscBool  weakT              = PETSC_FALSE; // weak density or temperature
+  PetscReal  mesh_refine_height = 5.9e-4;      // m
+  PetscReal  mesh_growth        = 1.08;        // [-]
+  PetscInt   mesh_Ndelta        = 45;          // [-]
+  PetscReal  mesh_top_angle     = 5;           // degrees
   char mesh_ynodes_path[PETSC_MAX_PATH_LEN] = "";
 
-  PetscOptionsBegin(comm, NULL, "Options for CHANNEL problem", NULL);
+  PetscOptionsBegin(comm, NULL, "Options for BLASIUS problem", NULL);
   ierr = PetscOptionsBool("-weakT", "Change from rho weak to T weak at inflow",
                           NULL, weakT, &weakT, NULL); CHKERRQ(ierr);
-  ierr = PetscOptionsScalar("-Uinf", "Velocity at boundary layer edge",
-                            NULL, Uinf, &Uinf, NULL); CHKERRQ(ierr);
+  ierr = PetscOptionsScalar("-velocity_infinity",
+                            "Velocity at boundary layer edge",
+                            NULL, U_inf, &U_inf, NULL); CHKERRQ(ierr);
+  ierr = PetscOptionsScalar("-temperature_infinity",
+                            "Temperature at boundary layer edge",
+                            NULL, T_inf, &T_inf, NULL); CHKERRQ(ierr);
+  ierr = PetscOptionsScalar("-temperature_wall", "Temperature at wall",
+                            NULL, T_wall, &T_wall, NULL); CHKERRQ(ierr);
   ierr = PetscOptionsScalar("-delta0", "Boundary layer height at inflow",
                             NULL, delta0, &delta0, NULL); CHKERRQ(ierr);
-  ierr = PetscOptionsScalar("-theta0", "Wall temperature",
-                            NULL, theta0, &theta0, NULL); CHKERRQ(ierr);
   ierr = PetscOptionsScalar("-P0", "Pressure at outflow",
                             NULL, P0, &P0, NULL); CHKERRQ(ierr);
+  ierr = PetscOptionsInt("-n_chebyshev", "Number of Chebyshev terms",
+                         NULL, N, &N, NULL); CHKERRQ(ierr);
+  PetscCheck(3 <= N && N <= BLASIUS_MAX_N_CHEBYSHEV,
+             comm, PETSC_ERR_ARG_OUTOFRANGE,
+             "-n_chebyshev %" PetscInt_FMT " must be in range [3, %d]", N,
+             BLASIUS_MAX_N_CHEBYSHEV);
   ierr = PetscOptionsBoundedInt("-platemesh_Ndelta",
                                 "Velocity at boundary layer edge",
                                 NULL, mesh_Ndelta, &mesh_Ndelta, NULL, 1); CHKERRQ(ierr);
@@ -213,9 +321,10 @@ PetscErrorCode NS_BLASIUS(ProblemData *problem, DM dm, void *ctx) {
   PetscScalar Kelvin = user->units->Kelvin;
   PetscScalar Pascal = user->units->Pascal;
 
-  theta0 *= Kelvin;
+  T_inf   *= Kelvin;
+  T_wall *= Kelvin;
   P0     *= Pascal;
-  Uinf   *= meter / second;
+  U_inf   *= meter / second;
   delta0 *= meter;
 
   PetscReal *mesh_ynodes = NULL;
@@ -233,26 +342,29 @@ PetscErrorCode NS_BLASIUS(ProblemData *problem, DM dm, void *ctx) {
                               CEED_MEM_HOST, &newtonian_ig_ctx);
 
   blasius_ctx->weakT         = weakT;
-  blasius_ctx->Uinf          = Uinf;
+  blasius_ctx->U_inf         = U_inf;
+  blasius_ctx->T_inf         = T_inf;
+  blasius_ctx->T_wall        = T_wall;
   blasius_ctx->delta0        = delta0;
-  blasius_ctx->theta0        = theta0;
   blasius_ctx->P0            = P0;
+  blasius_ctx->n_cheb        = N;
   newtonian_ig_ctx->P0       = P0;
   blasius_ctx->implicit      = user->phys->implicit;
   blasius_ctx->newtonian_ctx = *newtonian_ig_ctx;
 
   {
-    PetscReal domain_min[3];
-    ierr = DMGetBoundingBox(dm, domain_min, NULL); CHKERRQ(ierr);
+    PetscReal domain_min[3], domain_max[3];
+    ierr = DMGetBoundingBox(dm, domain_min, domain_max); CHKERRQ(ierr);
     blasius_ctx->x_inflow = domain_min[0];
+    blasius_ctx->eta_max  = 5 * domain_max[1] / blasius_ctx->delta0;
   }
+  PetscCall(ComputeChebyshevCoefficients(blasius_ctx));
 
   CeedQFunctionContextRestoreData(problem->apply_vol_rhs.qfunction_context,
                                   &newtonian_ig_ctx);
 
   CeedQFunctionContextCreate(user->ceed, &blasius_context);
-  CeedQFunctionContextSetData(blasius_context, CEED_MEM_HOST,
-                              CEED_USE_POINTER,
+  CeedQFunctionContextSetData(blasius_context, CEED_MEM_HOST, CEED_USE_POINTER,
                               sizeof(*blasius_ctx), blasius_ctx);
   CeedQFunctionContextSetDataDestroy(blasius_context, CEED_MEM_HOST,
                                      FreeContextPetsc);
@@ -260,7 +372,7 @@ PetscErrorCode NS_BLASIUS(ProblemData *problem, DM dm, void *ctx) {
   CeedQFunctionContextDestroy(&problem->ics.qfunction_context);
   problem->ics.qfunction_context = blasius_context;
   if (use_stg) {
-    ierr = SetupSTG(comm, dm, problem, user, weakT, theta0, P0, mesh_ynodes,
+    ierr = SetupSTG(comm, dm, problem, user, weakT, T_inf, P0, mesh_ynodes,
                     mesh_nynodes); CHKERRQ(ierr);
   } else {
     problem->apply_inflow.qfunction              = Blasius_Inflow;

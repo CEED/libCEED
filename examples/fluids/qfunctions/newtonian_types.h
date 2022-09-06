@@ -8,8 +8,20 @@
 #ifndef newtonian_types_h
 #define newtonian_types_h
 
-#include <ceed/ceed.h>
+#include <ceed.h>
 #include "stabilization_types.h"
+
+typedef enum {
+  STATEVAR_CONSERVATIVE = 0,
+  STATEVAR_PRIMITIVE = 1,
+} StateVariable;
+
+// For use with PetscOptionsEnum
+static const char *const StateVariables[] = {
+  "CONSERVATIVE",
+  "PRIMITIVE",
+  "StateVariable", "STATEVAR_", NULL
+};
 
 typedef struct SetupContext_ *SetupContext;
 struct SetupContext_ {
@@ -50,6 +62,7 @@ struct NewtonianIdealGasContext_ {
   CeedScalar ijacobian_time_shift;
   CeedScalar P0;
   bool       is_implicit;
+  StateVariable state_var;
   StabilizationType stabilization;
 };
 

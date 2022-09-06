@@ -10,16 +10,16 @@
 #include "../problems/stg_shur14.h"
 
 PetscErrorCode SetupStrongSTG_Ceed(Ceed ceed, CeedData ceed_data, DM dm,
-                                   AppCtx app_ctx, ProblemData *problem, SimpleBC bc,
+                                   AppCtx app_ctx, ProblemData *problem, SimpleBC bc, Physics phys,
                                    CeedInt Q_sur, CeedInt q_data_size_sur, CeedOperator op_dirichlet) {
   CeedInt              num_comp_x=problem->dim, num_comp_q = 5, num_elem,
-                       elem_size;
-  CeedVector           multiplicity, x_stored, scale_stored, q_data_sur;
+                       elem_size, stg_data_size=1;
+  CeedVector           multiplicity, x_stored, scale_stored, q_data_sur, stg_data;
   CeedBasis            basis_x_to_q_sur;
   CeedElemRestriction  elem_restr_x_sur, elem_restr_q_sur, elem_restr_x_stored,
-                       elem_restr_scale, elem_restr_qd_sur;
-  CeedQFunction        qf_setup, qf_strongbc;
-  CeedOperator         op_setup, op_dirichlet_sub, op_setup_sur;
+                       elem_restr_scale, elem_restr_qd_sur, elem_restr_stgdata;
+  CeedQFunction        qf_setup, qf_strongbc, qf_stgdata;
+  CeedOperator         op_setup, op_dirichlet_sub, op_setup_sur, op_stgdata;
   PetscFunctionBeginUser;
 
   DMLabel domain_label;
@@ -37,6 +37,10 @@ PetscErrorCode SetupStrongSTG_Ceed(Ceed ceed, CeedData ceed_data, DM dm,
   CeedQFunctionAddInput(qf_setup, "multiplicity", num_comp_q, CEED_EVAL_NONE);
   CeedQFunctionAddOutput(qf_setup, "x stored", num_comp_x, CEED_EVAL_NONE);
   CeedQFunctionAddOutput(qf_setup, "scale", 1, CEED_EVAL_NONE);
+
+  // Setup STG Setup QFunction
+  PetscCall(SetupStrongSTG_PreProcessing(ceed, problem, num_comp_x, stg_data_size,
+                                         q_data_size_sur, &qf_stgdata));
 
   // Compute contribution on each boundary face
   for (CeedInt i=0; i < bc->num_inflow; i++) {
@@ -58,6 +62,11 @@ PetscErrorCode SetupStrongSTG_Ceed(Ceed ceed, CeedData ceed_data, DM dm,
                                      num_elem * elem_size,
                                      CEED_STRIDES_BACKEND, &elem_restr_scale);
     CeedElemRestrictionCreateVector(elem_restr_scale, &scale_stored, NULL);
+
+    CeedElemRestrictionCreateStrided(ceed, num_elem, elem_size, stg_data_size,
+                                     num_elem * elem_size,
+                                     CEED_STRIDES_BACKEND, &elem_restr_stgdata);
+    CeedElemRestrictionCreateVector(elem_restr_stgdata, &stg_data, NULL);
 
     CeedVectorCreate(ceed, q_data_size_sur*num_elem*elem_size, &q_data_sur);
 
@@ -89,9 +98,21 @@ PetscErrorCode SetupStrongSTG_Ceed(Ceed ceed, CeedData ceed_data, DM dm,
     CeedOperatorApply(op_setup_sur, ceed_data->x_coord, q_data_sur,
                       CEED_REQUEST_IMMEDIATE);
 
+    // -- Compute STGData
+    CeedOperatorCreate(ceed, qf_stgdata, NULL, NULL, &op_stgdata);
+    CeedOperatorSetField(op_stgdata, "surface qdata", elem_restr_qd_sur,
+                         CEED_BASIS_COLLOCATED, q_data_sur);
+    CeedOperatorSetField(op_stgdata, "x", elem_restr_x_stored,
+                         CEED_BASIS_COLLOCATED, x_stored);
+    CeedOperatorSetField(op_stgdata, "stg data", elem_restr_stgdata,
+                         CEED_BASIS_COLLOCATED, CEED_VECTOR_ACTIVE);
+    CeedOperatorSetNumQuadraturePoints(op_stgdata, elem_size);
+
+    CeedOperatorApply(op_stgdata, NULL, stg_data, CEED_REQUEST_IMMEDIATE);
+
     // -- Setup BC QFunctions
-    SetupStrongSTG_QF(ceed, problem, num_comp_x, num_comp_q, q_data_size_sur,
-                      &qf_strongbc);
+    SetupStrongSTG_QF(ceed, problem, num_comp_x, num_comp_q, stg_data_size,
+                      q_data_size_sur, &qf_strongbc);
     CeedOperatorCreate(ceed, qf_strongbc, NULL, NULL, &op_dirichlet_sub);
     CeedOperatorSetName(op_dirichlet_sub, "Strong STG");
 
@@ -101,6 +122,8 @@ PetscErrorCode SetupStrongSTG_Ceed(Ceed ceed, CeedData ceed_data, DM dm,
                          CEED_BASIS_COLLOCATED, x_stored);
     CeedOperatorSetField(op_dirichlet_sub, "scale", elem_restr_scale,
                          CEED_BASIS_COLLOCATED, scale_stored);
+    CeedOperatorSetField(op_dirichlet_sub, "stg data", elem_restr_stgdata,
+                         CEED_BASIS_COLLOCATED, stg_data);
     CeedOperatorSetField(op_dirichlet_sub, "q", elem_restr_q_sur,
                          CEED_BASIS_COLLOCATED, CEED_VECTOR_ACTIVE);
     CeedOperatorSetNumQuadraturePoints(op_dirichlet_sub, elem_size);
@@ -112,16 +135,23 @@ PetscErrorCode SetupStrongSTG_Ceed(Ceed ceed, CeedData ceed_data, DM dm,
     CeedVectorDestroy(&multiplicity);
     CeedVectorDestroy(&x_stored);
     CeedVectorDestroy(&scale_stored);
+    CeedVectorDestroy(&stg_data);
     CeedElemRestrictionDestroy(&elem_restr_x_sur);
     CeedElemRestrictionDestroy(&elem_restr_q_sur);
     CeedElemRestrictionDestroy(&elem_restr_qd_sur);
     CeedElemRestrictionDestroy(&elem_restr_x_stored);
     CeedElemRestrictionDestroy(&elem_restr_scale);
+    CeedElemRestrictionDestroy(&elem_restr_stgdata);
     CeedQFunctionDestroy(&qf_strongbc);
+    CeedQFunctionDestroy(&qf_stgdata);
     CeedOperatorDestroy(&op_setup_sur);
     CeedOperatorDestroy(&op_dirichlet_sub);
     CeedOperatorDestroy(&op_setup);
+    CeedOperatorDestroy(&op_stgdata);
   }
+
+  CeedOperatorContextGetFieldLabel(op_dirichlet, "solution time",
+                                   &phys->stg_solution_time_label);
 
   CeedBasisDestroy(&basis_x_to_q_sur);
   CeedQFunctionDestroy(&qf_setup);
@@ -139,6 +169,11 @@ PetscErrorCode DMPlexInsertBoundaryValues_StrongBCCeed(DM dm,
   PetscFunctionBeginUser;
 
   PetscCall(DMGetApplicationContext(dm, &user));
+
+  if (user->phys->stg_solution_time_label) {
+    CeedOperatorContextSetDouble(user->op_dirichlet,
+                                 user->phys->stg_solution_time_label, &time);
+  }
 
   // Mask Dirichlet entries
   PetscCall(DMGetNamedLocalVector(dm, "boundary mask", &boundary_mask));
@@ -184,7 +219,7 @@ PetscErrorCode SetupStrongBC_Ceed(Ceed ceed, CeedData ceed_data, DM dm,
 
     if (use_strongstg)
       PetscCall(SetupStrongSTG_Ceed(ceed, ceed_data, dm, app_ctx, problem, bc,
-                                    Q_sur, q_data_size_sur, user->op_dirichlet));
+                                    user->phys, Q_sur, q_data_size_sur, user->op_dirichlet));
   }
 
   PetscCall(PetscObjectComposeFunction((PetscObject)dm,

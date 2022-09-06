@@ -20,6 +20,12 @@ PetscErrorCode CreateDM(MPI_Comm comm, ProblemData *problem,
   // Create DMPLEX
   ierr = DMCreate(comm, dm); CHKERRQ(ierr);
   ierr = DMSetType(*dm, DMPLEX); CHKERRQ(ierr);
+  {
+    PetscBool skip = PETSC_TRUE;
+    PetscCall(PetscOptionsGetBool(NULL, NULL, "-dm_mat_preallocate_skip", &skip,
+                                  NULL));
+    PetscCall(DMSetMatrixPreallocateSkip(*dm, skip));
+  }
   ierr = DMSetMatType(*dm, mat_type); CHKERRQ(ierr);
   ierr = DMSetVecType(*dm, vec_type); CHKERRQ(ierr);
 
@@ -83,7 +89,7 @@ PetscErrorCode SetUpDM(DM dm, ProblemData *problem, PetscInt degree,
       CHKERRQ(ierr);
 
       if (use_strongstg) {
-        ierr = SetupStrongSTG(dm, bc, problem); CHKERRQ(ierr);
+        ierr = SetupStrongSTG(dm, bc, problem, phys); CHKERRQ(ierr);
       }
     }
 
@@ -91,11 +97,13 @@ PetscErrorCode SetUpDM(DM dm, ProblemData *problem, PetscInt degree,
     CHKERRQ(ierr);
     ierr = PetscFEDestroy(&fe); CHKERRQ(ierr);
   }
-  {
-    // Empty name for conserved field (because there is only one field)
-    PetscSection section;
-    ierr = DMGetLocalSection(dm, &section); CHKERRQ(ierr);
-    ierr = PetscSectionSetFieldName(section, 0, ""); CHKERRQ(ierr);
+
+  // Empty name for conserved field (because there is only one field)
+  PetscSection section;
+  ierr = DMGetLocalSection(dm, &section); CHKERRQ(ierr);
+  ierr = PetscSectionSetFieldName(section, 0, ""); CHKERRQ(ierr);
+  switch (phys->state_var) {
+  case STATEVAR_CONSERVATIVE:
     ierr = PetscSectionSetComponentName(section, 0, 0, "Density");
     CHKERRQ(ierr);
     ierr = PetscSectionSetComponentName(section, 0, 1, "Momentum X");
@@ -106,6 +114,20 @@ PetscErrorCode SetUpDM(DM dm, ProblemData *problem, PetscInt degree,
     CHKERRQ(ierr);
     ierr = PetscSectionSetComponentName(section, 0, 4, "Energy Density");
     CHKERRQ(ierr);
+    break;
+
+  case STATEVAR_PRIMITIVE:
+    ierr = PetscSectionSetComponentName(section, 0, 0, "Pressure");
+    CHKERRQ(ierr);
+    ierr = PetscSectionSetComponentName(section, 0, 1, "Velocity X");
+    CHKERRQ(ierr);
+    ierr = PetscSectionSetComponentName(section, 0, 2, "Velocity Y");
+    CHKERRQ(ierr);
+    ierr = PetscSectionSetComponentName(section, 0, 3, "Velocity Z");
+    CHKERRQ(ierr);
+    ierr = PetscSectionSetComponentName(section, 0, 4, "Temperature");
+    CHKERRQ(ierr);
+    break;
   }
   PetscFunctionReturn(0);
 }

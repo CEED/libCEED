@@ -470,12 +470,24 @@ PetscErrorCode StrongSTGbcFunc(PetscInt dim, PetscReal time,
   PetscFunctionReturn(0);
 }
 
-PetscErrorCode SetupStrongSTG(DM dm, SimpleBC bc, ProblemData *problem) {
+PetscErrorCode SetupStrongSTG(DM dm, SimpleBC bc, ProblemData *problem,
+                              Physics phys) {
   PetscErrorCode ierr;
   DMLabel label;
-  const PetscInt comps[] = {0, 1, 2, 3};
-  const PetscInt num_comps = 4;
   PetscFunctionBeginUser;
+
+  PetscInt comps[5], num_comps=4;
+  switch (phys->state_var) {
+  case STATEVAR_CONSERVATIVE:
+    // {0,1,2,3} for rho, rho*u, rho*v, rho*w
+    for(int i=0; i<4; i++) comps[i] = i;
+    break;
+
+  case STATEVAR_PRIMITIVE:
+    // {1,2,3,4} for u, v, w, T
+    for(int i=0; i<4; i++) comps[i] = i+1;
+    break;
+  }
 
   ierr = DMGetLabel(dm, "Face Sets", &label); CHKERRQ(ierr);
   // Set wall BCs
@@ -490,8 +502,8 @@ PetscErrorCode SetupStrongSTG(DM dm, SimpleBC bc, ProblemData *problem) {
 }
 
 PetscErrorCode SetupStrongSTG_QF(Ceed ceed, ProblemData *problem,
-                                 CeedInt num_comp_x, CeedInt num_comp_q, CeedInt q_data_size_sur,
-                                 CeedQFunction *pqf_strongbc) {
+                                 CeedInt num_comp_x, CeedInt num_comp_q, CeedInt stg_data_size,
+                                 CeedInt q_data_size_sur, CeedQFunction *pqf_strongbc) {
 
   CeedQFunction qf_strongbc;
   PetscFunctionBeginUser;
@@ -499,9 +511,28 @@ PetscErrorCode SetupStrongSTG_QF(Ceed ceed, ProblemData *problem,
                               STGShur14_Inflow_StrongQF_loc, &qf_strongbc);
   CeedQFunctionAddInput(qf_strongbc, "surface qdata", q_data_size_sur,
                         CEED_EVAL_NONE);
-  CeedQFunctionAddInput(qf_strongbc,  "x",     num_comp_x, CEED_EVAL_NONE);
-  CeedQFunctionAddInput(qf_strongbc,  "scale", 1,          CEED_EVAL_NONE);
-  CeedQFunctionAddOutput(qf_strongbc, "q",     num_comp_q, CEED_EVAL_NONE);
+  CeedQFunctionAddInput(qf_strongbc,  "x",        num_comp_x,    CEED_EVAL_NONE);
+  CeedQFunctionAddInput(qf_strongbc,  "scale",    1,             CEED_EVAL_NONE);
+  CeedQFunctionAddInput(qf_strongbc,  "stg data", stg_data_size, CEED_EVAL_NONE);
+  CeedQFunctionAddOutput(qf_strongbc, "q",        num_comp_q,    CEED_EVAL_NONE);
+
+  CeedQFunctionSetContext(qf_strongbc, problem->ics.qfunction_context);
+  *pqf_strongbc = qf_strongbc;
+  PetscFunctionReturn(0);
+}
+
+PetscErrorCode SetupStrongSTG_PreProcessing(Ceed ceed, ProblemData *problem,
+    CeedInt num_comp_x, CeedInt stg_data_size, CeedInt q_data_size_sur,
+    CeedQFunction *pqf_strongbc) {
+
+  CeedQFunction qf_strongbc;
+  PetscFunctionBeginUser;
+  CeedQFunctionCreateInterior(ceed, 1, Preprocess_STGShur14,
+                              Preprocess_STGShur14_loc, &qf_strongbc);
+  CeedQFunctionAddInput(qf_strongbc, "surface qdata", q_data_size_sur,
+                        CEED_EVAL_NONE);
+  CeedQFunctionAddInput(qf_strongbc,  "x",        num_comp_x,    CEED_EVAL_NONE);
+  CeedQFunctionAddOutput(qf_strongbc, "stg data", stg_data_size, CEED_EVAL_NONE);
 
   CeedQFunctionSetContext(qf_strongbc, problem->ics.qfunction_context);
   *pqf_strongbc = qf_strongbc;

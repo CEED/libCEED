@@ -16,7 +16,7 @@ static inline CeedInt CeedDivUpInt(CeedInt numerator, CeedInt denominator) {
 }
 
 CEED_INTERN int CeedCompileHip(Ceed ceed, const char *source,
-                               hipModule_t *module, const CeedInt numopts, ...);
+                               hipModule_t *module, const CeedInt num_defines, ...);
 
 CEED_INTERN int CeedGetKernelHip(Ceed ceed, hipModule_t module,
                                  const char *name, hipFunction_t *kernel);

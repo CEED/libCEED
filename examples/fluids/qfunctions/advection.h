@@ -11,11 +11,11 @@
 #ifndef advection_h
 #define advection_h
 
-#include <math.h>
 #include <ceed.h>
+#include <math.h>
 
-typedef struct SetupContext_ *SetupContext;
-struct SetupContext_ {
+typedef struct SetupContextAdv_ *SetupContextAdv;
+struct SetupContextAdv_ {
   CeedScalar rc;
   CeedScalar lx;
   CeedScalar ly;
@@ -91,7 +91,7 @@ CEED_QFUNCTION_HELPER CeedScalar Square(CeedScalar x) { return x*x; }
 // *****************************************************************************
 CEED_QFUNCTION_HELPER CeedInt Exact_Advection(CeedInt dim, CeedScalar time,
     const CeedScalar X[], CeedInt Nf, CeedScalar q[], void *ctx) {
-  const SetupContext context = (SetupContext)ctx;
+  const SetupContextAdv context = (SetupContextAdv)ctx;
   const CeedScalar rc    = context->rc;
   const CeedScalar lx    = context->lx;
   const CeedScalar ly    = context->ly;

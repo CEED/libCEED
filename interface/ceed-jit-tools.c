@@ -122,13 +122,14 @@ int CeedLoadSourceToInitializedBuffer(Ceed ceed,
     // -- Check for 'include' keyword
     const char *next_e = strchr(first_hash, 'e');
     char keyword[8] = "";
-    if (next_e && next_e - first_hash >= 7)
-      memcpy(keyword, &next_e[-6], 7);
+    if (next_e && next_e - first_hash >= 7) memcpy(keyword, &next_e[-6], 7);
     bool is_hash_include = !strcmp(keyword, "include");
     // ---- Spaces allowed in '#  include <header.h>'
-    if (next_e)
-      for (CeedInt i = 1; first_hash - next_e + i < -6; i++)
+    if (next_e) {
+      for (CeedInt i = 1; first_hash - next_e + i < -6; i++) {
         is_hash_include &= first_hash[i] == ' ';
+      }
+    }
     if (is_hash_include) {
       // -- Copy into buffer all preceding #
       long current_size = strlen(*buffer);
@@ -140,22 +141,42 @@ int CeedLoadSourceToInitializedBuffer(Ceed ceed,
       // -- Load local "header.h"
       char *next_quote = strchr(first_hash, '"');
       char *next_new_line = strchr(first_hash, '\n');
-      bool is_local_header = is_hash_include && next_quote
-                             && (next_new_line - next_quote > 0);
-      if (is_local_header) {
+      bool is_local_header = is_hash_include && next_quote &&
+                             (next_new_line - next_quote > 0);
+      char *next_left_chevron = strchr(first_hash, '<');
+      bool is_ceed_header = is_hash_include && next_left_chevron &&
+                            (next_new_line - next_left_chevron > 0) &&
+                            (!strncmp(next_left_chevron, "<ceed/jit-source/", 17) ||
+                             !strncmp(next_left_chevron, "<ceed/types.h>", 14) ||
+                             !strncmp(next_left_chevron, "<ceed/ceed-f32.h>", 17) ||
+                             !strncmp(next_left_chevron, "<ceed/ceed-f64.h>", 17));
+      if (is_local_header || is_ceed_header) {
         // ---- Build source path
         char *include_source_path;
-        long root_length = strrchr(source_file_path, '/') - source_file_path;
-        long include_file_name_len = strchr(&next_quote[1], '"') - next_quote - 1;
-        ierr = CeedCalloc(root_length + include_file_name_len + 2,
-                          &include_source_path); CeedChk(ierr);
-        memcpy(include_source_path, source_file_path, root_length + 1);
-        memcpy(&include_source_path[root_length + 1], &next_quote[1],
-               include_file_name_len);
-        memcpy(&include_source_path[root_length + include_file_name_len + 1], "", 1);
+        if (is_local_header) {
+          long root_length = strrchr(source_file_path, '/') - source_file_path;
+          long include_file_name_len = strchr(&next_quote[1], '"') - next_quote - 1;
+          ierr = CeedCalloc(root_length + include_file_name_len + 2,
+                            &include_source_path); CeedChk(ierr);
+          memcpy(include_source_path, source_file_path, root_length + 1);
+          memcpy(&include_source_path[root_length + 1], &next_quote[1],
+                 include_file_name_len);
+          memcpy(&include_source_path[root_length + include_file_name_len + 1], "", 1);
+        } else {
+          char *next_right_chevron = strchr(first_hash, '>');
+          char *ceed_relative_path;
+          long ceed_relative_path_length = next_right_chevron - next_left_chevron - 1;
+          ierr = CeedCalloc(ceed_relative_path_length + 1, &ceed_relative_path);
+          CeedChk(ierr);
+          memcpy(ceed_relative_path, &next_left_chevron[1], ceed_relative_path_length);
+          ierr = CeedGetJitAbsolutePath(ceed, ceed_relative_path, &include_source_path);
+          CeedChk(ierr);
+          ierr = CeedFree(&ceed_relative_path); CeedChk(ierr);
+        }
         // ---- Recursive call to load source to buffer
-        ierr = CeedLoadSourceToInitializedBuffer(ceed, include_source_path, buffer);
         CeedDebug256(ceed, 2, "JiT Including: %s\n", include_source_path);
+        CeedChk(ierr);
+        ierr = CeedLoadSourceToInitializedBuffer(ceed, include_source_path, buffer);
         CeedChk(ierr);
         ierr = CeedFree(&include_source_path); CeedChk(ierr);
       }
@@ -295,7 +316,7 @@ int CeedGetJitAbsolutePath(Ceed ceed, const char *relative_file_path,
     CeedDebug256(ceed, 1, "Checking JiT root: ");
     CeedDebug(ceed, "%s\n", ceed_parent->jit_source_roots[i]);
 
-    // Build  and check absolute path with current root
+    // Build and check absolute path with current root
     ierr = CeedPathConcatenate(ceed, ceed_parent->jit_source_roots[i],
                                relative_file_path, absolute_file_path);
     CeedChk(ierr);

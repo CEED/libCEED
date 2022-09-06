@@ -11,6 +11,8 @@
 #ifndef TRACTION_BOUNDARY_H
 #define TRACTION_BOUNDARY_H
 
+#include <ceed.h>
+
 // -----------------------------------------------------------------------------
 // This QFunction computes the surface integral of the user traction vector on
 //   the constrained faces.

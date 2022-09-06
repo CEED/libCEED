@@ -15,6 +15,7 @@
 #include <petscts.h>
 #include <stdbool.h>
 #include "qfunctions/stabilization_types.h"
+#include "qfunctions/newtonian_types.h"
 
 // -----------------------------------------------------------------------------
 // PETSc Version
@@ -110,6 +111,9 @@ struct AppCtx_private {
   char              ceed_resource[PETSC_MAX_PATH_LEN]; // libCEED backend
   PetscInt          degree;
   PetscInt          q_extra;
+  // Solver arguments
+  MatType           amat_type;
+  PetscBool         pmat_pbdiagonal;
   // Post-processing arguments
   PetscInt          output_freq;
   PetscInt          viz_refine;
@@ -148,7 +152,8 @@ struct User_private {
   Vec          M, Q_loc, Q_dot_loc;
   Physics      phys;
   AppCtx       app_ctx;
-  CeedVector   q_ceed, q_dot_ceed, g_ceed, coo_values, x_ceed;
+  CeedVector   q_ceed, q_dot_ceed, g_ceed, coo_values_amat, coo_values_pmat,
+               x_ceed;
   CeedOperator op_rhs_vol, op_rhs, op_ifunction_vol, op_ifunction, op_ijacobian,
                op_dirichlet;
   bool matrices_set_up;
@@ -190,9 +195,11 @@ struct Physics_private {
   EulerTestType            euler_test;
   StabilizationType        stab;
   PetscBool                implicit;
+  StateVariable            state_var;
   PetscBool                has_curr_time;
   PetscBool                has_neumann;
   CeedContextFieldLabel    solution_time_label;
+  CeedContextFieldLabel    stg_solution_time_label;
   CeedContextFieldLabel    timestep_size_label;
   CeedContextFieldLabel    ics_time_label;
   CeedContextFieldLabel    ijacobian_time_shift_label;
@@ -247,20 +254,15 @@ extern PetscErrorCode NS_ADVECTION2D(ProblemData *problem, DM dm,
                                      void *ctx);
 
 // Print function for each problem
-extern PetscErrorCode PRINT_DENSITY_CURRENT(ProblemData *problem,
-    AppCtx app_ctx);
+extern PetscErrorCode PRINT_NEWTONIAN(ProblemData *problem, AppCtx app_ctx);
 
-extern PetscErrorCode PRINT_EULER_VORTEX(ProblemData *problem,
-    AppCtx app_ctx);
+extern PetscErrorCode PRINT_EULER_VORTEX(ProblemData *problem, AppCtx app_ctx);
 
-extern PetscErrorCode PRINT_SHOCKTUBE(ProblemData *problem,
-                                      AppCtx app_ctx);
+extern PetscErrorCode PRINT_SHOCKTUBE(ProblemData *problem, AppCtx app_ctx);
 
-extern PetscErrorCode PRINT_ADVECTION(ProblemData *problem,
-                                      AppCtx app_ctx);
+extern PetscErrorCode PRINT_ADVECTION(ProblemData *problem, AppCtx app_ctx);
 
-extern PetscErrorCode PRINT_ADVECTION2D(ProblemData *problem,
-                                        AppCtx app_ctx);
+extern PetscErrorCode PRINT_ADVECTION2D(ProblemData *problem, AppCtx app_ctx);
 
 // -----------------------------------------------------------------------------
 // libCEED functions

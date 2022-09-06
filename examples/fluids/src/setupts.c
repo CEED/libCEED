@@ -281,17 +281,69 @@ PetscErrorCode MatGetDiagonal_NS_IJacobian(Mat A, Vec D) {
   PetscFunctionReturn(0);
 }
 
+static PetscErrorCode FormPreallocation(User user, PetscBool pbdiagonal, Mat J,
+                                        CeedVector *coo_values) {
+  PetscCount ncoo;
+  PetscInt *rows, *cols;
+
+  PetscFunctionBeginUser;
+  if (pbdiagonal) {
+    CeedSize l_size;
+    CeedOperatorGetActiveVectorLengths(user->op_ijacobian, &l_size, NULL);
+    ncoo = l_size * 5;
+    rows = malloc(ncoo*sizeof(rows[0]));
+    cols = malloc(ncoo*sizeof(cols[0]));
+    for (PetscCount n=0; n<l_size/5; n++) {
+      for (PetscInt i=0; i<5; i++) {
+        for (PetscInt j=0; j<5; j++) {
+          rows[(n*5+i)*5+j] = n * 5 + i;
+          cols[(n*5+i)*5+j] = n * 5 + j;
+        }
+      }
+    }
+  } else {
+    PetscCall(CeedOperatorLinearAssembleSymbolic(user->op_ijacobian, &ncoo, &rows,
+              &cols));
+  }
+  PetscCall(MatSetPreallocationCOOLocal(J, ncoo, rows, cols));
+  free(rows);
+  free(cols);
+  CeedVectorCreate(user->ceed, ncoo, coo_values);
+  PetscFunctionReturn(0);
+}
+
+static PetscErrorCode FormSetValues(User user, PetscBool pbdiagonal, Mat J,
+                                    CeedVector coo_values) {
+  CeedMemType mem_type = CEED_MEM_HOST;
+  const PetscScalar *values;
+  MatType mat_type;
+
+  PetscFunctionBeginUser;
+  PetscCall(MatGetType(J, &mat_type));
+  if (strstr(mat_type, "kokkos") || strstr(mat_type, "cusparse"))
+    mem_type = CEED_MEM_DEVICE;
+  if (user->app_ctx->pmat_pbdiagonal) {
+    CeedOperatorLinearAssemblePointBlockDiagonal(user->op_ijacobian,
+        coo_values, CEED_REQUEST_IMMEDIATE);
+  } else {
+    CeedOperatorLinearAssemble(user->op_ijacobian, coo_values);
+  }
+  CeedVectorGetArrayRead(coo_values, mem_type, &values);
+  PetscCall(MatSetValuesCOO(J, values, INSERT_VALUES));
+  CeedVectorRestoreArrayRead(coo_values, &values);
+  PetscFunctionReturn(0);
+}
+
 PetscErrorCode FormIJacobian_NS(TS ts, PetscReal t, Vec Q, Vec Q_dot,
                                 PetscReal shift, Mat J, Mat J_pre,
                                 void *user_data) {
   User user = *(User *)user_data;
-  PetscBool J_is_shell, J_pre_is_shell;
+  PetscBool J_is_shell, J_is_mffd, J_pre_is_shell;
   PetscFunctionBeginUser;
   if (user->phys->ijacobian_time_shift_label)
     CeedOperatorContextSetDouble(user->op_ijacobian,
                                  user->phys->ijacobian_time_shift_label, &shift);
-  PetscCall(MatAssemblyBegin(J, MAT_FINAL_ASSEMBLY));
-  PetscCall(MatAssemblyEnd(J, MAT_FINAL_ASSEMBLY));
+  PetscCall(PetscObjectTypeCompare((PetscObject)J, MATMFFD, &J_is_mffd));
   PetscCall(PetscObjectTypeCompare((PetscObject)J, MATSHELL, &J_is_shell));
   PetscCall(PetscObjectTypeCompare((PetscObject)J_pre, MATSHELL,
                                    &J_pre_is_shell));
@@ -305,29 +357,100 @@ PetscErrorCode FormIJacobian_NS(TS ts, PetscReal t, Vec Q, Vec Q_dot,
       PetscCall(MatSetUp(J));
     }
     if (!J_pre_is_shell) {
-      PetscCount ncoo;
-      PetscInt *rows, *cols;
-      PetscCall(CeedOperatorLinearAssembleSymbolic(user->op_ijacobian, &ncoo, &rows,
-                &cols));
-      PetscCall(MatSetPreallocationCOOLocal(J_pre, ncoo, rows, cols));
-      free(rows);
-      free(cols);
-      CeedVectorCreate(user->ceed, ncoo, &user->coo_values);
-      user->matrices_set_up = true;
+      PetscCall(FormPreallocation(user,user->app_ctx->pmat_pbdiagonal,J_pre,
+                                  &user->coo_values_pmat));
     }
+    if (J != J_pre && !J_is_shell && !J_is_mffd) {
+      PetscCall(FormPreallocation(user,PETSC_FALSE,J, &user->coo_values_amat));
+    }
+    user->matrices_set_up = true;
   }
   if (!J_pre_is_shell) {
-    CeedMemType mem_type = CEED_MEM_HOST;
-    const PetscScalar *values;
-    MatType mat_type;
-    PetscCall(MatGetType(J_pre, &mat_type));
-    if (strstr(mat_type, "kokkos") || strstr(mat_type, "cusparse"))
-      mem_type = CEED_MEM_DEVICE;
-    CeedOperatorLinearAssemble(user->op_ijacobian, user->coo_values);
-    CeedVectorGetArrayRead(user->coo_values, mem_type, &values);
-    PetscCall(MatSetValuesCOO(J_pre, values, INSERT_VALUES));
-    CeedVectorRestoreArrayRead(user->coo_values, &values);
+    PetscCall(FormSetValues(user, user->app_ctx->pmat_pbdiagonal, J_pre,
+                            user->coo_values_pmat));
   }
+  if (user->coo_values_amat) {
+    PetscCall(FormSetValues(user, PETSC_FALSE, J, user->coo_values_amat));
+  } else if (J_is_mffd) {
+    PetscCall(MatAssemblyBegin(J, MAT_FINAL_ASSEMBLY));
+    PetscCall(MatAssemblyEnd(J, MAT_FINAL_ASSEMBLY));
+  }
+  PetscFunctionReturn(0);
+}
+
+PetscErrorCode WriteOutput(User user, Vec Q, PetscInt step_no,
+                           PetscScalar time)  {
+  Vec            Q_loc;
+  char           file_path[PETSC_MAX_PATH_LEN];
+  PetscViewer    viewer;
+  PetscFunctionBeginUser;
+
+  // Set up output
+  PetscCall(DMGetLocalVector(user->dm, &Q_loc));
+  PetscCall(PetscObjectSetName((PetscObject)Q_loc, "StateVec"));
+  PetscCall(VecZeroEntries(Q_loc));
+  PetscCall(DMGlobalToLocal(user->dm, Q, INSERT_VALUES, Q_loc));
+
+  // Output
+  PetscCall(PetscSNPrintf(file_path, sizeof file_path,
+                          "%s/ns-%03" PetscInt_FMT ".vtu",
+                          user->app_ctx->output_dir, step_no + user->app_ctx->cont_steps));
+
+  PetscCall(PetscViewerVTKOpen(PetscObjectComm((PetscObject)Q), file_path,
+                               FILE_MODE_WRITE, &viewer));
+  PetscCall(VecView(Q_loc, viewer));
+  PetscCall(PetscViewerDestroy(&viewer));
+  if (user->dm_viz) {
+    Vec         Q_refined, Q_refined_loc;
+    char        file_path_refined[PETSC_MAX_PATH_LEN];
+    PetscViewer viewer_refined;
+
+    PetscCall(DMGetGlobalVector(user->dm_viz, &Q_refined));
+    PetscCall(DMGetLocalVector(user->dm_viz, &Q_refined_loc));
+    PetscCall(PetscObjectSetName((PetscObject)Q_refined_loc, "Refined"));
+
+    PetscCall(MatInterpolate(user->interp_viz, Q, Q_refined));
+    PetscCall(VecZeroEntries(Q_refined_loc));
+    PetscCall(DMGlobalToLocal(user->dm_viz, Q_refined, INSERT_VALUES,
+                              Q_refined_loc));
+
+    PetscCall(PetscSNPrintf(file_path_refined, sizeof file_path_refined,
+                            "%s/nsrefined-%03" PetscInt_FMT ".vtu", user->app_ctx->output_dir,
+                            step_no + user->app_ctx->cont_steps));
+
+    PetscCall(PetscViewerVTKOpen(PetscObjectComm((PetscObject)Q_refined),
+                                 file_path_refined, FILE_MODE_WRITE, &viewer_refined));
+    PetscCall(VecView(Q_refined_loc, viewer_refined));
+    PetscCall(DMRestoreLocalVector(user->dm_viz, &Q_refined_loc));
+    PetscCall(DMRestoreGlobalVector(user->dm_viz, &Q_refined));
+    PetscCall(PetscViewerDestroy(&viewer_refined));
+  }
+  PetscCall(DMRestoreLocalVector(user->dm, &Q_loc));
+
+  // Save data in a binary file for continuation of simulations
+  PetscCall(PetscSNPrintf(file_path, sizeof file_path, "%s/ns-solution.bin",
+                          user->app_ctx->output_dir));
+  PetscCall(PetscViewerBinaryOpen(user->comm, file_path, FILE_MODE_WRITE,
+                                  &viewer));
+
+  PetscCall(VecView(Q, viewer));
+  PetscCall(PetscViewerDestroy(&viewer));
+
+  // Save time stamp
+  // Dimensionalize time back
+  time /= user->units->second;
+  PetscCall(PetscSNPrintf(file_path, sizeof file_path, "%s/ns-time.bin",
+                          user->app_ctx->output_dir));
+  PetscCall(PetscViewerBinaryOpen(user->comm, file_path, FILE_MODE_WRITE,
+                                  &viewer));
+
+  #if PETSC_VERSION_GE(3,13,0)
+  PetscCall(PetscViewerBinaryWrite(viewer, &time, 1, PETSC_REAL));
+  #else
+  PetscCall(PetscViewerBinaryWrite(viewer, &time, 1, PETSC_REAL, true));
+  #endif
+  PetscCall(PetscViewerDestroy(&viewer));
+
   PetscFunctionReturn(0);
 }
 
@@ -335,79 +458,14 @@ PetscErrorCode FormIJacobian_NS(TS ts, PetscReal t, Vec Q, Vec Q_dot,
 PetscErrorCode TSMonitor_NS(TS ts, PetscInt step_no, PetscReal time,
                             Vec Q, void *ctx) {
   User           user = ctx;
-  Vec            Q_loc;
-  char           file_path[PETSC_MAX_PATH_LEN];
-  PetscViewer    viewer;
-  PetscErrorCode ierr;
   PetscFunctionBeginUser;
 
   // Print every 'output_freq' steps
-  if (step_no % user->app_ctx->output_freq != 0)
+  if (user->app_ctx->output_freq <= 0
+      || step_no % user->app_ctx->output_freq != 0)
     PetscFunctionReturn(0);
 
-  // Set up output
-  ierr = DMGetLocalVector(user->dm, &Q_loc); CHKERRQ(ierr);
-  ierr = PetscObjectSetName((PetscObject)Q_loc, "StateVec"); CHKERRQ(ierr);
-  ierr = VecZeroEntries(Q_loc); CHKERRQ(ierr);
-  ierr = DMGlobalToLocal(user->dm, Q, INSERT_VALUES, Q_loc); CHKERRQ(ierr);
-
-  // Output
-  ierr = PetscSNPrintf(file_path, sizeof file_path,
-                       "%s/ns-%03" PetscInt_FMT ".vtu",
-                       user->app_ctx->output_dir, step_no + user->app_ctx->cont_steps);
-  CHKERRQ(ierr);
-  ierr = PetscViewerVTKOpen(PetscObjectComm((PetscObject)Q), file_path,
-                            FILE_MODE_WRITE, &viewer); CHKERRQ(ierr);
-  ierr = VecView(Q_loc, viewer); CHKERRQ(ierr);
-  ierr = PetscViewerDestroy(&viewer); CHKERRQ(ierr);
-  if (user->dm_viz) {
-    Vec         Q_refined, Q_refined_loc;
-    char        file_path_refined[PETSC_MAX_PATH_LEN];
-    PetscViewer viewer_refined;
-
-    ierr = DMGetGlobalVector(user->dm_viz, &Q_refined); CHKERRQ(ierr);
-    ierr = DMGetLocalVector(user->dm_viz, &Q_refined_loc); CHKERRQ(ierr);
-    ierr = PetscObjectSetName((PetscObject)Q_refined_loc, "Refined");
-    CHKERRQ(ierr);
-    ierr = MatInterpolate(user->interp_viz, Q, Q_refined); CHKERRQ(ierr);
-    ierr = VecZeroEntries(Q_refined_loc); CHKERRQ(ierr);
-    ierr = DMGlobalToLocal(user->dm_viz, Q_refined, INSERT_VALUES, Q_refined_loc);
-    CHKERRQ(ierr);
-    ierr = PetscSNPrintf(file_path_refined, sizeof file_path_refined,
-                         "%s/nsrefined-%03" PetscInt_FMT ".vtu", user->app_ctx->output_dir,
-                         step_no + user->app_ctx->cont_steps);
-    CHKERRQ(ierr);
-    ierr = PetscViewerVTKOpen(PetscObjectComm((PetscObject)Q_refined),
-                              file_path_refined, FILE_MODE_WRITE, &viewer_refined); CHKERRQ(ierr);
-    ierr = VecView(Q_refined_loc, viewer_refined); CHKERRQ(ierr);
-    ierr = DMRestoreLocalVector(user->dm_viz, &Q_refined_loc); CHKERRQ(ierr);
-    ierr = DMRestoreGlobalVector(user->dm_viz, &Q_refined); CHKERRQ(ierr);
-    ierr = PetscViewerDestroy(&viewer_refined); CHKERRQ(ierr);
-  }
-  ierr = DMRestoreLocalVector(user->dm, &Q_loc); CHKERRQ(ierr);
-
-  // Save data in a binary file for continuation of simulations
-  ierr = PetscSNPrintf(file_path, sizeof file_path, "%s/ns-solution.bin",
-                       user->app_ctx->output_dir); CHKERRQ(ierr);
-  ierr = PetscViewerBinaryOpen(user->comm, file_path, FILE_MODE_WRITE, &viewer);
-  CHKERRQ(ierr);
-  ierr = VecView(Q, viewer); CHKERRQ(ierr);
-  ierr = PetscViewerDestroy(&viewer); CHKERRQ(ierr);
-
-  // Save time stamp
-  // Dimensionalize time back
-  time /= user->units->second;
-  ierr = PetscSNPrintf(file_path, sizeof file_path, "%s/ns-time.bin",
-                       user->app_ctx->output_dir); CHKERRQ(ierr);
-  ierr = PetscViewerBinaryOpen(user->comm, file_path, FILE_MODE_WRITE, &viewer);
-  CHKERRQ(ierr);
-  #if PETSC_VERSION_GE(3,13,0)
-  ierr = PetscViewerBinaryWrite(viewer, &time, 1, PETSC_REAL);
-  #else
-  ierr = PetscViewerBinaryWrite(viewer, &time, 1, PETSC_REAL, true);
-  #endif
-  CHKERRQ(ierr);
-  ierr = PetscViewerDestroy(&viewer); CHKERRQ(ierr);
+  PetscCall(WriteOutput(user, Q, step_no, time));
 
   PetscFunctionReturn(0);
 }
@@ -432,6 +490,15 @@ PetscErrorCode TSSolve_NS(DM dm, User user, AppCtx app_ctx, Physics phys,
     }
     if (user->op_ijacobian) {
       ierr = DMTSSetIJacobian(dm, FormIJacobian_NS, &user); CHKERRQ(ierr);
+      if (app_ctx->amat_type) {
+        Mat Pmat,Amat;
+        ierr = DMCreateMatrix(dm, &Pmat); CHKERRQ(ierr);
+        ierr = DMSetMatType(dm, app_ctx->amat_type); CHKERRQ(ierr);
+        ierr = DMCreateMatrix(dm, &Amat); CHKERRQ(ierr);
+        ierr = TSSetIJacobian(*ts, Amat, Pmat, NULL, NULL); CHKERRQ(ierr);
+        ierr = MatDestroy(&Amat); CHKERRQ(ierr);
+        ierr = MatDestroy(&Pmat); CHKERRQ(ierr);
+      }
     }
   } else {
     if (!user->op_rhs) SETERRQ(comm, PETSC_ERR_ARG_NULL,
@@ -506,7 +573,14 @@ PetscErrorCode TSSolve_NS(DM dm, User user, AppCtx app_ctx, Physics phys,
   PetscCall(TSGetSolveTime(*ts, &final_time));
   *f_time = final_time;
 
+
   if (!app_ctx->test_mode) {
+    if (user->app_ctx->output_freq > 0 || user->app_ctx->output_freq == -1) {
+      PetscInt step_no;
+      PetscCall(TSGetStepNumber(*ts, &step_no));
+      PetscCall(WriteOutput(user, *Q, step_no, final_time));
+    }
+
     PetscLogEvent stage_id;
     PetscStageLog stage_log;
 

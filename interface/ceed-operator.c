@@ -37,7 +37,8 @@ static int CeedOperatorCheckField(Ceed ceed, CeedQFunctionField qf_field,
                                   CeedElemRestriction r, CeedBasis b) {
   int ierr;
   CeedEvalMode eval_mode = qf_field->eval_mode;
-  CeedInt dim = 1, num_comp = 1, restr_num_comp = 1, size = qf_field->size;
+  CeedInt dim = 1, num_comp = 1, Q_comp = 1, restr_num_comp = 1,
+          size = qf_field->size;
   // Restriction
   if (r != CEED_ELEMRESTRICTION_NONE) {
     if (eval_mode == CEED_EVAL_WEIGHT) {
@@ -68,14 +69,14 @@ static int CeedOperatorCheckField(Ceed ceed, CeedQFunctionField qf_field,
     // LCOV_EXCL_STOP
     ierr = CeedBasisGetDimension(b, &dim); CeedChk(ierr);
     ierr = CeedBasisGetNumComponents(b, &num_comp); CeedChk(ierr);
+    ierr = CeedBasisGetNumQuadratureComponents(b, &Q_comp); CeedChk(ierr);
     if (r != CEED_ELEMRESTRICTION_NONE && restr_num_comp != num_comp) {
       // LCOV_EXCL_START
       return CeedError(ceed, CEED_ERROR_DIMENSION,
                        "Field '%s' of size %" CeedInt_FMT " and EvalMode %s: ElemRestriction "
                        "has %" CeedInt_FMT " components, but Basis has %" CeedInt_FMT " components",
                        qf_field->field_name, qf_field->size, CeedEvalModes[qf_field->eval_mode],
-                       restr_num_comp,
-                       num_comp);
+                       restr_num_comp, num_comp);
       // LCOV_EXCL_STOP
     }
   } else if (eval_mode != CEED_EVAL_NONE) {
@@ -100,14 +101,14 @@ static int CeedOperatorCheckField(Ceed ceed, CeedQFunctionField qf_field,
     // LCOV_EXCL_STOP
     break;
   case CEED_EVAL_INTERP:
-    if (size != num_comp)
+    if (size != num_comp*Q_comp)
       // LCOV_EXCL_START
       return CeedError(ceed, CEED_ERROR_DIMENSION,
                        "Field '%s' of size %" CeedInt_FMT
                        " and EvalMode %s: ElemRestriction/Basis has "
                        CeedInt_FMT " components",
                        qf_field->field_name, qf_field->size, CeedEvalModes[qf_field->eval_mode],
-                       num_comp);
+                       num_comp*Q_comp);
     // LCOV_EXCL_STOP
     break;
   case CEED_EVAL_GRAD:
@@ -125,7 +126,15 @@ static int CeedOperatorCheckField(Ceed ceed, CeedQFunctionField qf_field,
     // No additional checks required
     break;
   case CEED_EVAL_DIV:
-    // Not implemented
+    if (size != num_comp)
+      // LCOV_EXCL_START
+      return CeedError(ceed, CEED_ERROR_DIMENSION,
+                       "Field '%s' of size %" CeedInt_FMT
+                       " and EvalMode %s: ElemRestriction/Basis has "
+                       CeedInt_FMT " components",
+                       qf_field->field_name, qf_field->size, CeedEvalModes[qf_field->eval_mode],
+                       num_comp);
+    // LCOV_EXCL_STOP
     break;
   case CEED_EVAL_CURL:
     // Not implemented
@@ -636,6 +645,7 @@ int CeedCompositeOperatorCreate(Ceed ceed, CeedOperator *op) {
   ierr = CeedCalloc(1, op); CeedChk(ierr);
   (*op)->ceed = ceed;
   ierr = CeedReference(ceed); CeedChk(ierr);
+  (*op)->ref_count = 1;
   (*op)->is_composite = true;
   ierr = CeedCalloc(CEED_COMPOSITE_MAX, &(*op)->sub_operators); CeedChk(ierr);
   (*op)->input_size = -1;
@@ -735,7 +745,7 @@ int CeedOperatorSetField(CeedOperator op, const char *field_name,
       op->num_elem != num_elem)
     // LCOV_EXCL_START
     return CeedError(op->ceed, CEED_ERROR_DIMENSION,
-                     "ElemRestriction with %" CeedInt_FMT " elements incompatible with prior "
+                     "ElemRestriction with %" CeedInt_FMT " elements incompatible with prior %"
                      CeedInt_FMT " elements", num_elem, op->num_elem);
   // LCOV_EXCL_STOP
 
@@ -996,18 +1006,20 @@ int CeedOperatorCheckReady(CeedOperator op) {
 
   CeedQFunction qf = op->qf;
   if (op->is_composite) {
-    if (!op->num_suboperators)
-      // LCOV_EXCL_START
-      return CeedError(ceed, CEED_ERROR_INCOMPLETE, "No sub_operators set");
-    // LCOV_EXCL_STOP
-    for (CeedInt i = 0; i < op->num_suboperators; i++) {
-      ierr = CeedOperatorCheckReady(op->sub_operators[i]); CeedChk(ierr);
+    if (!op->num_suboperators) {
+      // Empty operator setup
+      op->input_size = 0;
+      op->output_size = 0;
+    } else {
+      for (CeedInt i = 0; i < op->num_suboperators; i++) {
+        ierr = CeedOperatorCheckReady(op->sub_operators[i]); CeedChk(ierr);
+      }
+      // Sub-operators could be modified after adding to composite operator
+      // Need to verify no lvec incompatibility from any changes
+      CeedSize input_size, output_size;
+      ierr = CeedOperatorGetActiveVectorLengths(op, &input_size, &output_size);
+      CeedChk(ierr);
     }
-    // Sub-operators could be modified after adding to composite operator
-    // Need to verify no lvec incompatibility from any changes
-    CeedSize input_size, output_size;
-    ierr = CeedOperatorGetActiveVectorLengths(op, &input_size, &output_size);
-    CeedChk(ierr);
   } else {
     if (op->num_fields == 0)
       // LCOV_EXCL_START

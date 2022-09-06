@@ -8,6 +8,7 @@
 PetscErrorCode CeedDataDestroy(CeedInt i, CeedData data) {
   int ierr;
 
+  PetscFunctionBeginUser;
   CeedVectorDestroy(&data->q_data);
   CeedVectorDestroy(&data->x_ceed);
   CeedVectorDestroy(&data->y_ceed);
@@ -53,6 +54,7 @@ PetscErrorCode SetupLibceedByDegree(DM dm, Ceed ceed, CeedInt degree,
   CeedScalar R = 1,                      // radius of the sphere
              l = 1.0/PetscSqrtReal(3.0); // half edge of the inscribed cube
 
+  PetscFunctionBeginUser;
   // CEED bases
   P = degree + 1;
   Q = P + q_extra;
@@ -206,6 +208,7 @@ PetscErrorCode CeedLevelTransferSetup(Ceed ceed, CeedInt num_levels,
                                       CeedInt num_comp_u, CeedData *data,
                                       CeedInt *level_degrees,
                                       CeedQFunction qf_restrict, CeedQFunction qf_prolong) {
+  PetscFunctionBeginUser;
   // Return early if num_levels=1
   if (num_levels == 1)
     PetscFunctionReturn(0);
