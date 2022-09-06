@@ -809,6 +809,8 @@ extern "C" int CeedCudaGenOperatorBuild(CeedOperator op) {
   oper = "CeedKernel_Cuda_gen_" + qFunctionName;
 
   // Find dim and Q1d
+  bool hasTensorBasis = false;
+  bool hasNonTensorBasis = false;
   bool useCollograd = true;
   bool allCollograd = true;
   data->maxP1d = 0;
@@ -824,18 +826,18 @@ extern "C" int CeedCudaGenOperatorBuild(CeedOperator op) {
       useCollograd = useCollograd && basis_data->d_collo_grad_1d; 
 
       // Collect dim and Q1d
-      ierr = CeedBasisGetDimension(basis, &dim); CeedChkBackend(ierr);
       bool isTensor;
       ierr = CeedBasisIsTensor(basis, &isTensor); CeedChkBackend(ierr); 
       if (isTensor) {
+        ierr = CeedBasisGetDimension(basis, &dim); CeedChkBackend(ierr);
         ierr = CeedBasisGetNumQuadraturePoints1D(basis, &Q1d); CeedChkBackend(ierr);
         ierr = CeedBasisGetNumNodes1D(basis, &P1d); CeedChkBackend(ierr);
-        if (P1d>data->maxP1d) data->maxP1d = P1d;
+        hasTensorBasis = true;
       } else {
-        // LCOV_EXCL_START
-        return CeedError(ceed, CEED_ERROR_BACKEND, "Backend does not implement operators with non-tensor basis");
-        // LCOV_EXCL_STOP
-        }
+        ierr = CeedBasisGetNumNodes(basis, &P1d); CeedChkBackend(ierr);
+        hasNonTensorBasis = true;
+      }
+      if (P1d>data->maxP1d) data->maxP1d = P1d;
     }
   }
   // Check output bases for Q1d, dim as well
@@ -850,20 +852,23 @@ extern "C" int CeedCudaGenOperatorBuild(CeedOperator op) {
       CeedChkBackend(ierr);
 
       // Collect dim and Q1d
-      ierr = CeedBasisGetDimension(basis, &dim); CeedChkBackend(ierr);
       bool isTensor;
       ierr = CeedBasisIsTensor(basis, &isTensor); CeedChkBackend(ierr); 
       if (isTensor) {
+        ierr = CeedBasisGetDimension(basis, &dim); CeedChkBackend(ierr);
         ierr = CeedBasisGetNumQuadraturePoints1D(basis, &Q1d); CeedChkBackend(ierr);
+        hasTensorBasis = true;
       } else {
-        // LCOV_EXCL_START
-        return CeedError(ceed, CEED_ERROR_BACKEND, "Backend does not implement operators with non-tensor basis");
-        // LCOV_EXCL_STOP
-        }
+        hasNonTensorBasis = true;
+      }
 
       // Check for collocated gradient
       useCollograd = useCollograd && basis_data->d_collo_grad_1d; 
     }
+  }
+  if ( hasTensorBasis && hasNonTensorBasis )
+  {
+    return CeedError(ceed, CEED_ERROR_BACKEND, "Backend does not implement operators with mixed tensor and non-tensor basis");
   }
   data->dim = dim;
   data->Q1d = Q1d;
@@ -923,7 +928,13 @@ extern "C" int CeedCudaGenOperatorBuild(CeedOperator op) {
     if (emode != CEED_EVAL_WEIGHT) {
       ierr = CeedOperatorFieldGetBasis(opinputfields[i], &basis); CeedChkBackend(ierr);
       if (basis != CEED_BASIS_COLLOCATED) {
-        ierr = CeedBasisGetNumNodes1D(basis, &P1d); CeedChkBackend(ierr);
+        bool isTensor;
+        ierr = CeedBasisIsTensor(basis, &isTensor); CeedChkBackend(ierr); 
+        if (isTensor) {
+          ierr = CeedBasisGetNumNodes1D(basis, &P1d); CeedChkBackend(ierr);
+        } else {
+          ierr = CeedBasisGetNumNodes(basis, &P1d); CeedChkBackend(ierr);
+        }
         code << "  const CeedInt P_in_"<<i<<" = "<<P1d<<";\n";
       } else {
         code << "  const CeedInt P_in_"<<i<<" = "<<Q1d<<";\n";
@@ -982,7 +993,13 @@ extern "C" int CeedCudaGenOperatorBuild(CeedOperator op) {
     // Set field constants
     ierr = CeedOperatorFieldGetBasis(opoutputfields[i], &basis); CeedChkBackend(ierr);
     if (basis != CEED_BASIS_COLLOCATED) {
-      ierr = CeedBasisGetNumNodes1D(basis, &P1d); CeedChkBackend(ierr);
+      bool isTensor;
+      ierr = CeedBasisIsTensor(basis, &isTensor); CeedChkBackend(ierr); 
+      if (isTensor) {
+        ierr = CeedBasisGetNumNodes1D(basis, &P1d); CeedChkBackend(ierr);
+      } else {
+        ierr = CeedBasisGetNumNodes(basis, &P1d); CeedChkBackend(ierr);
+      }
       code << "  const CeedInt P_out_"<<i<<" = "<<P1d<<";\n";
     } else {
       code << "  const CeedInt P_out_"<<i<<" = "<<Q1d<<";\n";
