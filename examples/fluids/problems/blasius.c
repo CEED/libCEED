@@ -36,9 +36,18 @@ PetscErrorCode CompressibleBlasiusResidual(SNES snes, Vec X, Vec R, void *ctx) {
 
   for (int i = 0; i < N - 3; i++) {
     ChebyshevEval(N, Tf, blasius->X[i], blasius->eta_max, f);
-    r[3 + i] = 2 * f[3] + f[2] * f[0];
     ChebyshevEval(N - 1, Th, blasius->X[i], blasius->eta_max, h);
-    r[N + 2 + i] = h[2] + Pr * f[0] * h[1] + Pr * (gamma - 1) * PetscSqr(Ma * f[2]);
+    // mu and rho generally depend on h. We naively assume constant mu.
+    // For an ideal gas at constant pressure, density is inversely proportional to enthalpy.
+    // The *_tilde values are *relative* to their freestream values, and we proved first derivatives here.
+    const PetscScalar mu_tilde[2]     = {1, 0};
+    const PetscScalar rho_tilde[2]    = {1 / h[0], -h[1] / PetscSqr(h[0])};
+    const PetscScalar mu_rho_tilde[2] = {
+        mu_tilde[0] * rho_tilde[0],
+        mu_tilde[1] * rho_tilde[0] + mu_tilde[0] * rho_tilde[1],
+    };
+    r[3 + i]     = 2 * (mu_rho_tilde[0] * f[3] + mu_rho_tilde[1] * f[2]) + f[2] * f[0];
+    r[N + 2 + i] = (mu_rho_tilde[0] * h[2] + mu_rho_tilde[1] * h[1]) + Pr * f[0] * h[1] + Pr * (gamma - 1) * mu_rho_tilde[0] * PetscSqr(Ma * f[2]);
   }
 
   // h - left end boundary condition
@@ -56,25 +65,39 @@ PetscErrorCode CompressibleBlasiusResidual(SNES snes, Vec X, Vec R, void *ctx) {
 }
 
 PetscErrorCode ComputeChebyshevCoefficients(BlasiusContext blasius) {
-  SNES               snes;
-  Vec                sol, res;
-  PetscReal         *w;
-  PetscInt           N = blasius->n_cheb;
-  const PetscScalar *cheb_coefs;
+  SNES                snes;
+  Vec                 sol, res;
+  PetscReal          *w;
+  PetscInt            N = blasius->n_cheb;
+  SNESConvergedReason reason;
+  const PetscScalar  *cheb_coefs;
   PetscFunctionBegin;
+
+  // Allocate memory
   PetscCall(PetscMalloc2(N - 3, &blasius->X, N - 3, &w));
   PetscCall(PetscDTGaussQuadrature(N - 3, -1., 1., blasius->X, w));
+
+  // Snes solve
   PetscCall(SNESCreate(PETSC_COMM_SELF, &snes));
   PetscCall(VecCreate(PETSC_COMM_SELF, &sol));
   PetscCall(VecSetSizes(sol, PETSC_DECIDE, 2 * N - 1));
   PetscCall(VecSetFromOptions(sol));
+  // Constant relative enthalpy 1 as initial guess
+  PetscCall(VecSetValue(sol, N, 1., INSERT_VALUES));
   PetscCall(VecDuplicate(sol, &res));
   PetscCall(SNESSetFunction(snes, res, CompressibleBlasiusResidual, blasius));
+  PetscCall(SNESSetOptionsPrefix(snes, "chebyshev_"));
   PetscCall(SNESSetFromOptions(snes));
   PetscCall(SNESSolve(snes, NULL, sol));
+  PetscCall(SNESGetConvergedReason(snes, &reason));
+  if (reason < 0) SETERRQ(PETSC_COMM_WORLD, PETSC_ERR_CONV_FAILED, "The Chebyshev solve failed.\n");
+
+  // Assign Chebyshev coefficients
   PetscCall(VecGetArrayRead(sol, &cheb_coefs));
   for (int i = 0; i < N; i++) blasius->Tf_cheb[i] = cheb_coefs[i];
   for (int i = 0; i < N - 1; i++) blasius->Th_cheb[i] = cheb_coefs[i + N];
+
+  // Destroy objects
   PetscCall(PetscFree2(blasius->X, w));
   PetscCall(VecDestroy(&sol));
   PetscCall(VecDestroy(&res));
@@ -228,7 +251,7 @@ PetscErrorCode NS_BLASIUS(ProblemData *problem, DM dm, void *ctx) {
 
   CeedScalar U_inf                                = 40;           // m/s
   CeedScalar T_inf                                = 288.;         // K
-  CeedScalar T_wall                               = 400.;         // K
+  CeedScalar T_wall                               = 288.;         // K
   CeedScalar delta0                               = 4.2e-3;       // m
   CeedScalar P0                                   = 1.01e5;       // Pa
   CeedInt    N                                    = 20;           // Number of Chebyshev terms
@@ -246,7 +269,9 @@ PetscErrorCode NS_BLASIUS(ProblemData *problem, DM dm, void *ctx) {
   PetscCall(PetscOptionsScalar("-temperature_wall", "Temperature at wall", NULL, T_wall, &T_wall, NULL));
   PetscCall(PetscOptionsScalar("-delta0", "Boundary layer height at inflow", NULL, delta0, &delta0, NULL));
   PetscCall(PetscOptionsScalar("-P0", "Pressure at outflow", NULL, P0, &P0, NULL));
-  PetscCall(PetscOptionsInt("-N_Chebyshev", "Number of Chebyshev terms", NULL, N, &N, NULL));
+  PetscCall(PetscOptionsInt("-n_chebyshev", "Number of Chebyshev terms", NULL, N, &N, NULL));
+  PetscCheck(3 <= N && N <= BLASIUS_MAX_N_CHEBYSHEV, comm, PETSC_ERR_ARG_OUTOFRANGE, "-n_chebyshev %" PetscInt_FMT " must be in range [3, %d]", N,
+             BLASIUS_MAX_N_CHEBYSHEV);
   PetscCall(PetscOptionsBoundedInt("-platemesh_Ndelta", "Velocity at boundary layer edge", NULL, mesh_Ndelta, &mesh_Ndelta, NULL, 1));
   PetscCall(PetscOptionsScalar("-platemesh_refine_height", "Height of boundary layer mesh refinement", NULL, mesh_refine_height, &mesh_refine_height,
                                NULL));
@@ -298,7 +323,6 @@ PetscErrorCode NS_BLASIUS(ProblemData *problem, DM dm, void *ctx) {
     blasius_ctx->x_inflow = domain_min[0];
     blasius_ctx->eta_max  = 5 * domain_max[1] / blasius_ctx->delta0;
   }
-  PetscCall(PetscMalloc2(blasius_ctx->n_cheb, &blasius_ctx->Tf_cheb, blasius_ctx->n_cheb - 1, &blasius_ctx->Th_cheb));
   PetscCall(ComputeChebyshevCoefficients(blasius_ctx));
 
   CeedQFunctionContextRestoreData(problem->apply_vol_rhs.qfunction_context, &newtonian_ig_ctx);

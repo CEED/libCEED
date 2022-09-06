@@ -10,6 +10,7 @@
 PetscErrorCode CeedDataDestroy(CeedInt i, CeedData data) {
   PetscFunctionBeginUser;
 
+  PetscFunctionBeginUser;
   CeedVectorDestroy(&data->q_data);
   CeedVectorDestroy(&data->x_ceed);
   CeedVectorDestroy(&data->y_ceed);
@@ -51,6 +52,7 @@ PetscErrorCode SetupLibceedByDegree(DM dm, Ceed ceed, CeedInt degree, CeedInt to
 
   PetscFunctionBeginUser;
 
+  PetscFunctionBeginUser;
   // CEED bases
   P = degree + 1;
   Q = P + q_extra;

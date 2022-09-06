@@ -84,12 +84,11 @@ static PetscInt GlobalStart(const PetscInt p[3], const PetscInt i_rank[3], Petsc
   }
   return -1;
 }
-static int CreateRestriction(Ceed ceed, const CeedInt mesh_elem[3], CeedInt P, CeedInt num_comp, CeedElemRestriction *elem_restr) {
+static PetscErrorCode CreateRestriction(Ceed ceed, const CeedInt mesh_elem[3], CeedInt P, CeedInt num_comp, CeedElemRestriction *elem_restr) {
   const PetscInt num_elem = mesh_elem[0] * mesh_elem[1] * mesh_elem[2];
   PetscInt       m_nodes[3], *idx, *idx_p;
 
   PetscFunctionBeginUser;
-
   // Get indicies
   for (int d = 0; d < 3; d++) m_nodes[d] = mesh_elem[d] * (P - 1) + 1;
   idx_p = idx = malloc(num_elem * P * P * P * sizeof idx[0]);

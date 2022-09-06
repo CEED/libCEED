@@ -782,15 +782,42 @@ extern "C" int CeedHipGenOperatorBuild(CeedOperator op) {
   oper = "CeedKernel_Hip_gen_" + qFunctionName;
 
   // Find dim and Q1d
+<<<<<<< HEAD
   bool useCollograd = true;
   bool allCollograd = true;
   data->maxP1d      = 0;
+=======
+  bool useCollograd = false;
+  // Only use collocated gradient algorithm when we actually compute a gradient.
+  if (dim == 3) {
+    for (CeedInt i = 0; i < numinputfields; i++) {
+      ierr = CeedQFunctionFieldGetEvalMode(qfinputfields[i], &emode);
+      if (emode == CEED_EVAL_GRAD) {
+        useCollograd = true;
+      }
+    }
+    for (CeedInt i = 0; i < numoutputfields; i++) {
+      ierr = CeedQFunctionFieldGetEvalMode(qfoutputfields[i], &emode);
+      if (emode == CEED_EVAL_GRAD) {
+        useCollograd = true;
+      }
+    }
+  }
+  data->maxP1d = 0;
+>>>>>>> origin/main
   for (CeedInt i = 0; i < numinputfields; i++) {
     CeedCallBackend(CeedOperatorFieldGetBasis(opinputfields[i], &basis));
     if (basis != CEED_BASIS_COLLOCATED) {
+<<<<<<< HEAD
       allCollograd = false;
       CeedCallBackend(CeedBasisGetData(basis, &basis_data));
       CeedCallBackend(CeedQFunctionFieldGetEvalMode(qfinputfields[i], &emode));
+=======
+      ierr = CeedBasisGetData(basis, &basis_data);
+      CeedChkBackend(ierr);
+      ierr = CeedQFunctionFieldGetEvalMode(qfinputfields[i], &emode);
+      CeedChkBackend(ierr);
+>>>>>>> origin/main
 
       // Check for collocated gradient
       useCollograd = useCollograd && basis_data->d_collo_grad_1d;
@@ -811,14 +838,21 @@ extern "C" int CeedHipGenOperatorBuild(CeedOperator op) {
     }
   }
   // Check output bases for Q1d, dim as well
-  //   The only imput basis might be CEED_BASIS_COLLOCATED
+  //   The only input basis might be CEED_BASIS_COLLOCATED
   for (CeedInt i = 0; i < numoutputfields; i++) {
     CeedCallBackend(CeedOperatorFieldGetBasis(opoutputfields[i], &basis));
 
     if (basis != CEED_BASIS_COLLOCATED) {
+<<<<<<< HEAD
       allCollograd = false;
       CeedCallBackend(CeedBasisGetData(basis, &basis_data));
       CeedCallBackend(CeedQFunctionFieldGetEvalMode(qfoutputfields[i], &emode));
+=======
+      ierr = CeedBasisGetData(basis, &basis_data);
+      CeedChkBackend(ierr);
+      ierr = CeedQFunctionFieldGetEvalMode(qfoutputfields[i], &emode);
+      CeedChkBackend(ierr);
+>>>>>>> origin/main
 
       // Collect dim and Q1d
       CeedCallBackend(CeedBasisGetDimension(basis, &dim));
@@ -838,8 +872,6 @@ extern "C" int CeedHipGenOperatorBuild(CeedOperator op) {
   }
   data->dim = dim;
   data->Q1d = Q1d;
-  // TODO: https://github.com/CEED/libCEED/pull/1009#issuecomment-1176751436
-  useCollograd &= !allCollograd;
 
   // Define CEED_Q_VLA
   if (dim != 3 || useCollograd) {
@@ -1112,6 +1144,7 @@ extern "C" int CeedHipGenOperatorBuild(CeedOperator op) {
         case CEED_EVAL_NONE:
           code << "      CeedScalar r_q" << i << "[ncomp_in_" << i << "];\n";
 
+<<<<<<< HEAD
           bool isStrided;
           CeedCallBackend(CeedOperatorFieldGetElemRestriction(opinputfields[i], &Erestrict));
           CeedCallBackend(CeedElemRestrictionGetElementSize(Erestrict, &elemsize));
@@ -1142,6 +1175,40 @@ extern "C" int CeedHipGenOperatorBuild(CeedOperator op) {
                  << ",Q1d"
                     ","
                  << strides[0] << "," << strides[1] << "," << strides[2] << ">(data, elem, q, d_u" << i << ", r_q" << i << ");\n";
+=======
+          bool isStrided;
+          ierr = CeedOperatorFieldGetElemRestriction(opinputfields[i], &Erestrict);
+          CeedChkBackend(ierr);
+          ierr = CeedElemRestrictionIsStrided(Erestrict, &isStrided);
+          CeedChkBackend(ierr);
+          if (!isStrided) {
+            ierr = CeedElemRestrictionGetLVectorSize(Erestrict, &lsize);
+            CeedChkBackend(ierr);
+            code << "      const CeedInt lsize_in_" << i << " = " << lsize << ";\n";
+            CeedInt compstride;
+            ierr = CeedElemRestrictionGetCompStride(Erestrict, &compstride);
+            CeedChkBackend(ierr);
+            code << "      // CompStride: " << compstride << "\n";
+            ierr = CeedElemRestrictionGetData(Erestrict, &restr_data);
+            CeedChkBackend(ierr);
+            data->indices.in[i] = restr_data->d_ind;
+            code << "      readSliceQuadsOffset"
+                 << "3d<ncomp_in_" << i << ", " << compstride << ", Q1d>(data, lsize_in_" << i << ", elem, q, indices.in[" << i << "], d_u" << i
+                 << ", r_q" << i << ");\n";
+          } else {
+            ierr = CeedElemRestrictionGetElementSize(Erestrict, &elemsize);
+            CeedChkBackend(ierr);
+            bool backendstrides;
+            ierr = CeedElemRestrictionHasBackendStrides(Erestrict, &backendstrides);
+            CeedChkBackend(ierr);
+            CeedInt nelem;
+            ierr = CeedElemRestrictionGetNumElements(Erestrict, &nelem);
+            CeedChkBackend(ierr);
+            CeedInt strides[3] = {1, elemsize * nelem, elemsize};
+            if (!backendstrides) {
+              ierr = CeedElemRestrictionGetStrides(Erestrict, &strides);
+              CeedChkBackend(ierr);
+>>>>>>> origin/main
           }
           break;
         case CEED_EVAL_INTERP:

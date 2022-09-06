@@ -1,11 +1,11 @@
 /// @file
 /// Test assembly of Poisson operator with extra input field (non-square D)
 /// \test Test assembly of Poisson operator with extra input field (non-square D)
+#include "t568-operator.h"
+
 #include <ceed.h>
 #include <math.h>
 #include <stdlib.h>
-
-#include "t534-operator.h"
 
 int main(int argc, char **argv) {
   Ceed                ceed;
@@ -62,8 +62,8 @@ int main(int argc, char **argv) {
 
   // QFunctions
   CeedQFunctionCreateInterior(ceed, 1, setup, setup_loc, &qf_setup);
-  CeedQFunctionAddInput(qf_setup, "weight", 1, CEED_EVAL_WEIGHT);
   CeedQFunctionAddInput(qf_setup, "dx", dim * dim, CEED_EVAL_GRAD);
+  CeedQFunctionAddInput(qf_setup, "weight", 1, CEED_EVAL_WEIGHT);
   CeedQFunctionAddOutput(qf_setup, "qdata", dim * (dim + 1) / 2, CEED_EVAL_NONE);
 
   CeedQFunctionCreateInterior(ceed, 1, diff, diff_loc, &qf_diff);
@@ -86,7 +86,6 @@ int main(int argc, char **argv) {
 
   // Apply Setup Operator
   CeedOperatorApply(op_setup, X, q_data, CEED_REQUEST_IMMEDIATE);
-
   // Fuly assemble operator
   for (CeedInt k = 0; k < num_comp * num_comp * num_dofs * num_dofs; k++) {
     assembled[k]      = 0.0;
@@ -137,7 +136,7 @@ int main(int argc, char **argv) {
           const CeedInt    index                = (node_out + comp_out * num_dofs) * num_comp + node_in + comp_in * num_dofs;
           const CeedScalar assembled_value      = assembled[index];
           const CeedScalar assembled_true_value = assembled_true[index];
-          if (fabs(assembled_value - assembled_true_value) > 100. * CEED_EPSILON) {
+          if (!(fabs(assembled_value - assembled_true_value) < 100. * CEED_EPSILON)) {
             // LCOV_EXCL_START
             printf("[(%" CeedInt_FMT ", %" CeedInt_FMT "), (%" CeedInt_FMT ", %" CeedInt_FMT ")] Error in assembly: %f != %f\n", node_out, comp_out,
                    node_in, comp_in, assembled_value, assembled_true_value);
