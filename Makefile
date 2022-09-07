@@ -235,6 +235,7 @@ cuda-gen.cpp   := $(sort $(wildcard backends/cuda-gen/*.cpp))
 cuda-gen.cu    := $(sort $(wildcard backends/cuda-gen/kernels/*.cu))
 occa.cpp       := $(sort $(shell find backends/occa -type f -name *.cpp))
 magma.c        := $(sort $(wildcard backends/magma/*.c))
+magma.cpp      := $(sort $(wildcard backends/magma/*.cpp))
 magma.cu       := $(sort $(wildcard backends/magma/kernels/cuda/*.cu))
 magma.hip      := $(sort $(wildcard backends/magma/kernels/hip/*.hip.cpp))
 hip.c          := $(sort $(wildcard backends/hip/*.c))
@@ -381,8 +382,10 @@ ifneq ($(wildcard $(OCCA_DIR)/lib/libocca.*),)
 endif
 
 # CUDA Backends
-CUDA_LIB_DIR := $(wildcard $(foreach d,lib lib64,$(CUDA_DIR)/$d/libcudart.${SO_EXT}))
-CUDA_LIB_DIR := $(patsubst %/,%,$(dir $(firstword $(CUDA_LIB_DIR))))
+ifneq ($(CUDA_DIR),)
+	CUDA_LIB_DIR := $(wildcard $(foreach d,lib lib64 lib/x86_64-linux-gnu,$(CUDA_DIR)/$d/libcudart.${SO_EXT}))
+	CUDA_LIB_DIR := $(patsubst %/,%,$(dir $(firstword $(CUDA_LIB_DIR))))
+endif
 CUDA_LIB_DIR_STUBS := $(CUDA_LIB_DIR)/stubs
 CUDA_BACKENDS = /gpu/cuda/ref /gpu/cuda/shared /gpu/cuda/gen
 ifneq ($(CUDA_LIB_DIR),)
@@ -427,9 +430,11 @@ ifneq ($(wildcard $(MAGMA_DIR)/lib/libmagma.*),)
       magma_link_shared = -L$(MAGMA_DIR)/lib -Wl,-rpath,$(abspath $(MAGMA_DIR)/lib) -lmagma
       magma_link := $(if $(wildcard $(MAGMA_DIR)/lib/libmagma.${SO_EXT}),$(magma_link_shared),$(magma_link_static))
       PKG_LIBS += $(magma_link)
-      libceed.c  += $(magma.c)
-      libceed.cu += $(magma.cu)
+      libceed.c   += $(magma.c)
+      libceed.cpp += $(magma.cpp)
+      libceed.cu  += $(magma.cu)
       $(magma.c:%.c=$(OBJDIR)/%.o) $(magma.c:%=%.tidy) : CPPFLAGS += -DADD_ -I$(MAGMA_DIR)/include -I$(CUDA_DIR)/include
+      $(magma.cpp:%.cpp=$(OBJDIR)/%.o) $(magma.cpp:%=%.tidy) : CPPFLAGS += -DADD_ -I$(MAGMA_DIR)/include -I$(CUDA_DIR)/include
       $(magma.cu:%.cu=$(OBJDIR)/%.o) : CPPFLAGS += --compiler-options=-fPIC -DADD_ -I$(MAGMA_DIR)/include -I$(MAGMA_DIR)/magmablas -I$(CUDA_DIR)/include
       MAGMA_BACKENDS = /gpu/cuda/magma /gpu/cuda/magma/det
     endif
@@ -441,12 +446,15 @@ ifneq ($(wildcard $(MAGMA_DIR)/lib/libmagma.*),)
       magma_link_shared = -L$(MAGMA_DIR)/lib -Wl,-rpath,$(abspath $(MAGMA_DIR)/lib) -lmagma
       magma_link := $(if $(wildcard $(MAGMA_DIR)/lib/libmagma.${SO_EXT}),$(magma_link_shared),$(magma_link_static))
       PKG_LIBS += $(magma_link)
-      libceed.c  += $(magma.c)
+      libceed.c   += $(magma.c)
+      libceed.cpp += $(magma.cpp)
       libceed.hip += $(magma.hip)
       ifneq ($(CXX), $(HIPCC))
         $(magma.c:%.c=$(OBJDIR)/%.o) $(magma.c:%=%.tidy) : CPPFLAGS += -I$(MAGMA_DIR)/include -I$(HIP_DIR)/include -DCEED_MAGMA_USE_HIP -DADD_
+        $(magma.cpp:%.cpp=$(OBJDIR)/%.o) $(magma.cpp:%=%.tidy) : CPPFLAGS += -I$(MAGMA_DIR)/include -I$(HIP_DIR)/include -DCEED_MAGMA_USE_HIP -DADD_
       else
         $(magma.c:%.c=$(OBJDIR)/%.o) $(magma.c:%=%.tidy) : HIPCCFLAGS += -I$(MAGMA_DIR)/include -I$(HIP_DIR)/include -DCEED_MAGMA_USE_HIP -DADD_
+        $(magma.cpp:%.cpp=$(OBJDIR)/%.o) $(magma.cpp:%=%.tidy) : HIPCCFLAGS += -I$(MAGMA_DIR)/include -I$(HIP_DIR)/include -DCEED_MAGMA_USE_HIP -DADD_
       endif
       $(magma.hip:%.hip.cpp=$(OBJDIR)/%.o) : HIPCCFLAGS += -I$(MAGMA_DIR)/include -I$(MAGMA_DIR)/magmablas -I$(HIP_DIR)/include -DCEED_MAGMA_USE_HIP -DADD_
       MAGMA_BACKENDS = /gpu/hip/magma /gpu/hip/magma/det

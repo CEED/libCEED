@@ -30,7 +30,7 @@ PetscErrorCode NS_CHANNEL(ProblemData *problem, DM dm, void *ctx) {
   CeedQFunctionContextDestroy(&problem->ics.qfunction_context);
   problem->ics.qfunction     = ICsChannel;
   problem->ics.qfunction_loc = ICsChannel_loc;
-  if (!user->phys->primitive) {
+  if (user->phys->state_var == STATEVAR_CONSERVATIVE) {
     problem->apply_inflow.qfunction      = Channel_Inflow;
     problem->apply_inflow.qfunction_loc  = Channel_Inflow_loc;
     problem->apply_outflow.qfunction     = Channel_Outflow;

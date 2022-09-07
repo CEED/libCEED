@@ -1,0 +1,28 @@
+problem: 'blasius'
+
+implicit: true
+ts:
+  adapt_type: 'none'
+  type: 'beuler'
+  dt: 2e-6
+  max_steps: 5
+
+dm_plex_box_faces: 3,20,1
+platemesh:
+  Ndelta: 10
+  growth: 1.2
+
+temperature_wall: 400
+stab: 'none'
+q_extra: 0
+
+dm_plex_box_lower: 0,0,0
+dm_plex_box_upper: 4.2e-3,4.2e-3,5.e-4
+dm_plex_dim: 3
+# Faces labeled 1=z- 2=z+ 3=y- 4=y+ 5=x+ 6=x-
+bc_slip_z: 1,2
+bc_wall: 3
+wall_comps: 1,2,3
+bc_inflow: 6
+bc_outflow: 5,4
+g: 0,0,0

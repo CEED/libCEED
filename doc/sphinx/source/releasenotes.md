@@ -15,6 +15,7 @@ On this page we provide a summary of the main API changes, new features and exam
 
 - Update `/cpu/self/memcheck/*` backends to help verify `CeedQFunctionContext` data sizes provided by user.
 - Added `CeedInt_FMT` to support potential future use of larger interger sizes.
+- Added CEED_QFUNCTION_ATTR for setting compiler attributes/pragmas to CEED_QFUNCTION_HELPER and CEED_QFUNCTION
 
 ### Bugfix
 

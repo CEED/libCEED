@@ -18,11 +18,11 @@ noether-cpu:
     - echo "-------------- HIPCC ---------------" && $HIPCC --version
     - echo "-------------- GCOV ----------------" && gcov --version
 # Libraries for backends
-# -- LIBXSMM v1.17
-    - cd .. && export XSMM_VERSION=libxsmm-1.17 && { [[ -d $XSMM_VERSION ]] || { git clone --depth 1 --branch 1.17 https://github.com/hfp/libxsmm.git $XSMM_VERSION && make -C $XSMM_VERSION -j$(nproc); }; } && export XSMM_DIR=$PWD/$XSMM_VERSION && cd libCEED
-    - echo "-------------- LIBXSMM -------------" && git -C $XSMM_DIR describe --tags
+# -- LIBXSMM 44433be9426eddaed88415646c15b3bcc61afc85
+    - cd .. && export XSMM_HASH=44433be9426eddaed88415646c15b3bcc61afc85 && { [[ -d libxsmm-$XSMM_HASH ]] || { curl -L https://github.com/libxsmm/libxsmm/archive/$XSMM_HASH.tar.gz -o xsmm.tar.gz && tar zvxf xsmm.tar.gz && rm xsmm.tar.gz && make -C libxsmm-$XSMM_HASH -j$(nproc); }; } && export XSMM_DIR=$PWD/libxsmm-$XSMM_HASH && cd libCEED
+    - echo "-------------- LIBXSMM -------------" && basename $XSMM_DIR
 # -- OCCA v1.1.0
-    - cd .. && export OCCA_VERSION=occa-1.1.0 OCCA_OPENCL_ENABLED=0 && { [[ -d $OCCA_VERSION ]] || { git clone --depth 1 --branch v1.1.0 https://github.com/libocca/occa.git $OCCA_VERSION && make -C $OCCA_VERSION -j$(nproc); }; } && export OCCA_DIR=$PWD/$OCCA_VERSION && cd libCEED
+    - cd .. && export OCCA_VERSION=occa-1.1.0 OCCA_OPENCL_ENABLED=0 && { [[ -d $OCCA_VERSION ]] || { git clone --depth 1 --branch v1.1.0 https://github.com/libocca/occa.git $OCCA_VERSION && sed -i '/sysctl.h/d' $OCCA_VERSION/src/tools/sys.cpp && make -C $OCCA_VERSION -j$(nproc); }; } && export OCCA_DIR=$PWD/$OCCA_VERSION && cd libCEED
     - echo "-------------- OCCA ----------------" && make -C $OCCA_DIR info
   script:
     - rm -f .SUCCESS
@@ -164,9 +164,9 @@ noether-float:
 # -- MAGMA from dev branch
     - echo "-------------- MAGMA ---------------"
     - export MAGMA_DIR=/projects/hipMAGMA && git -C $MAGMA_DIR describe
-# -- LIBXSMM v1.17
-    - cd .. && export XSMM_VERSION=libxsmm-1.17 && { [[ -d $XSMM_VERSION ]] || { git clone --depth 1 --branch 1.17 https://github.com/hfp/libxsmm.git $XSMM_VERSION && make -C $XSMM_VERSION -j$(nproc); }; } && export XSMM_DIR=$PWD/$XSMM_VERSION && cd libCEED
-    - echo "-------------- LIBXSMM -------------" && git -C $XSMM_DIR describe --tags
+# -- LIBXSMM 44433be9426eddaed88415646c15b3bcc61afc85
+    - cd .. && export XSMM_HASH=44433be9426eddaed88415646c15b3bcc61afc85 && { [[ -d libxsmm-$XSMM_HASH ]] || { curl -L https://github.com/libxsmm/libxsmm/archive/$XSMM_HASH.tar.gz -o xsmm.tar.gz && tar zvxf xsmm.tar.gz && rm xsmm.tar.gz && make -C libxsmm-$XSMM_HASH -j$(nproc); }; } && export XSMM_DIR=$PWD/libxsmm-$XSMM_HASH && cd libCEED
+    - echo "-------------- LIBXSMM -------------" && basename $XSMM_DIR
   script:
     - rm -f .SUCCESS
 # libCEED
@@ -206,27 +206,24 @@ noether-float:
       junit: build/*.junit
       performance: performance.json
 
-lv-cuda:
+noether-cuda:
   stage: test:gpu-and-float
   tags:
     - cuda
   interruptible: true
   before_script:
 # Environment
-    - ulimit -v $[1024*1024*32] # 32 GiB in units of 1024 bytes
-    - . /opt/rh/gcc-toolset-11/enable
-    - export COVERAGE=1 CC=gcc CXX=g++ FC=gfortran
-    - export CUDA_DIR=/usr/local/cuda-11.6
-    - export CUDA_VISIBLE_DEVICES=GPU-c4529365-8229-f689-b43d-ccd7f1677079 # our RTX 2080 Super via nvidia-smi -L
-    - echo "-------------- nproc ---------------" && NPROC_CPU=$(nproc) && NPROC_GPU=4 && echo "NPROC_CPU" $NPROC_CPU && echo "NPROC_GPU" $NPROC_GPU
+    - export COVERAGE=1 CC=gcc CXX=g++ FC=gfortran NVCC=nvcc
+    - echo "-------------- nproc ---------------" && NPROC_CPU=$(nproc) && NPROC_GPU=$(($(nproc)<8?$(nproc):8)) && echo "NPROC_CPU" $NPROC_CPU && echo "NPROC_GPU" $NPROC_GPU
     - echo "-------------- CC ------------------" && $CC --version
     - echo "-------------- CXX -----------------" && $CXX --version
     - echo "-------------- FC ------------------" && $FC --version
-    - echo "-------------- NVCC ----------------" && $CUDA_DIR/bin/nvcc --version
+    - echo "-------------- NVCC ----------------" && $NVCC --version
+    - echo "-------------- GCOV ----------------" && gcov --version
   script:
     - rm -f .SUCCESS
 # libCEED
-    - make configure OPT='-O -march=native -ffp-contract=fast'
+    - make configure OPT='-O -march=native -ffp-contract=fast' CUDA_DIR=/usr
     - echo "-------------- libCEED -------------" && make info
     - BACKENDS_GPU=$(make info-backends | grep -o '/gpu[^ ]*')
     - echo "-------------- BACKENDS_GPU --------" && echo $BACKENDS_GPU
@@ -238,7 +235,7 @@ lv-cuda:
     - nice make -k -j$NPROC_GPU BACKENDS="$BACKENDS_GPU" JUNIT_BATCH="cuda" junit realsearch=%
 # Libraries for examples
 # -- PETSc with CUDA (minimal)
-    - export PETSC_DIR=/home/jeth8984/petsc PETSC_ARCH=cuda-O && git -C $PETSC_DIR describe
+    - export PETSC_DIR=/projects/petsc PETSC_ARCH=mpich-cuda-O PETSC_OPTIONS='-use_gpu_aware_mpi 0' && git -C $PETSC_DIR describe
     - echo "-------------- PETSc ---------------" && make -C $PETSC_DIR info
     - nice make -k -j$NPROC_GPU JUNIT_BATCH="cuda" junit BACKENDS="$BACKENDS_GPU" search="petsc fluids solids"
 # Report status

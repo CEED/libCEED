@@ -46,6 +46,30 @@ CEED_QFUNCTION_HELPER void UnpackState_Y(StatePrimitive s, CeedScalar Y[5]) {
   Y[4] = s.temperature;
 }
 
+CEED_QFUNCTION_HELPER CeedScalar HeatCapacityRatio(
+  NewtonianIdealGasContext gas) {
+  return gas->cp / gas->cv;
+}
+
+CEED_QFUNCTION_HELPER CeedScalar GasConstant(
+  NewtonianIdealGasContext gas) {
+  return gas->cp - gas->cv;
+}
+
+CEED_QFUNCTION_HELPER CeedScalar Prandtl(NewtonianIdealGasContext gas) {
+  return gas->cp * gas->mu / gas->k;
+}
+
+CEED_QFUNCTION_HELPER CeedScalar SoundSpeed(NewtonianIdealGasContext gas,
+    CeedScalar T) {
+  return sqrt(gas->cp * (HeatCapacityRatio(gas) - 1.) * T);
+}
+
+CEED_QFUNCTION_HELPER CeedScalar Mach(NewtonianIdealGasContext gas,
+                                      CeedScalar T, CeedScalar u) {
+  return u / SoundSpeed(gas, T);
+}
+
 CEED_QFUNCTION_HELPER StatePrimitive StatePrimitiveFromConservative(
   NewtonianIdealGasContext gas, StateConservative U, const CeedScalar x[3]) {
   StatePrimitive Y;
@@ -55,7 +79,7 @@ CEED_QFUNCTION_HELPER StatePrimitive StatePrimitiveFromConservative(
   CeedScalar e_total = U.E_total / U.density;
   CeedScalar e_internal = e_total - e_kinetic - e_potential;
   Y.temperature = e_internal / gas->cv;
-  Y.pressure = (gas->cp / gas->cv - 1) * U.density * e_internal;
+  Y.pressure = (HeatCapacityRatio(gas) - 1) * U.density * e_internal;
   return Y;
 }
 
@@ -75,7 +99,7 @@ CEED_QFUNCTION_HELPER StatePrimitive StatePrimitiveFromConservative_fwd(
   CeedScalar e_internal = e_total - e_kinetic - e_potential;
   CeedScalar de_internal = de_total - de_kinetic - de_potential;
   dY.temperature = de_internal / gas->cv;
-  dY.pressure = (gas->cp / gas->cv - 1)
+  dY.pressure = (HeatCapacityRatio(gas) - 1)
                 * (dU.density * e_internal + s.U.density * de_internal);
   return dY;
 }
@@ -83,8 +107,7 @@ CEED_QFUNCTION_HELPER StatePrimitive StatePrimitiveFromConservative_fwd(
 CEED_QFUNCTION_HELPER StateConservative StateConservativeFromPrimitive(
   NewtonianIdealGasContext gas, StatePrimitive Y, const CeedScalar x[3]) {
   StateConservative U;
-  CeedScalar R = gas->cp - gas->cv;
-  U.density = Y.pressure / (R * Y.temperature);
+  U.density = Y.pressure / (GasConstant(gas) * Y.temperature);
   for (int i=0; i<3; i++) U.momentum[i] = U.density*Y.velocity[i];
   CeedScalar e_internal = gas->cv * Y.temperature;
   CeedScalar e_kinetic = .5 * Dot3(Y.velocity, Y.velocity);
@@ -98,9 +121,8 @@ CEED_QFUNCTION_HELPER StateConservative StateConservativeFromPrimitive_fwd(
   NewtonianIdealGasContext gas, State s, StatePrimitive dY,
   const CeedScalar x[3], const CeedScalar dx[3]) {
   StateConservative dU;
-  CeedScalar R = gas->cp - gas->cv;
   dU.density = (dY.pressure * s.Y.temperature - s.Y.pressure * dY.temperature) /
-               (R * s.Y.temperature * s.Y.temperature);
+               (GasConstant(gas) * s.Y.temperature * s.Y.temperature);
   for (int i=0; i<3; i++) {
     dU.momentum[i] = dU.density * s.Y.velocity[i] + s.U.density * dY.velocity[i];
   }
@@ -115,6 +137,13 @@ CEED_QFUNCTION_HELPER StateConservative StateConservativeFromPrimitive_fwd(
   dU.E_total = dU.density*e_total + s.U.density*de_total;
   return dU;
 }
+
+// Function pointer types for generic state array -> State struct functions
+typedef State (*StateFromQi_t)(NewtonianIdealGasContext gas,
+                               const CeedScalar qi[5], const CeedScalar x[3]);
+typedef State (*StateFromQi_fwd_t)(NewtonianIdealGasContext gas,
+                                   State s, const CeedScalar dqi[5],
+                                   const CeedScalar x[3], const CeedScalar dx[3]);
 
 CEED_QFUNCTION_HELPER State StateFromU(NewtonianIdealGasContext gas,
                                        const CeedScalar U[5], const CeedScalar x[3]) {
@@ -202,13 +231,27 @@ CEED_QFUNCTION_HELPER void FluxInviscidStrong(NewtonianIdealGasContext gas,
   }
 }
 
-CEED_QFUNCTION_HELPER void FluxTotal(StateConservative F_inviscid[3],
+CEED_QFUNCTION_HELPER void FluxTotal(const StateConservative F_inviscid[3],
                                      CeedScalar stress[3][3], CeedScalar Fe[3], CeedScalar Flux[5][3]) {
   for (CeedInt j=0; j<3; j++) {
     Flux[0][j] = F_inviscid[j].density;
     for (CeedInt k=0; k<3; k++)
       Flux[k+1][j] = F_inviscid[j].momentum[k] - stress[k][j];
     Flux[4][j] = F_inviscid[j].E_total + Fe[j];
+  }
+}
+
+CEED_QFUNCTION_HELPER void FluxTotal_Boundary(
+  const StateConservative F_inviscid[3], const CeedScalar stress[3][3],
+  const CeedScalar Fe[3], const CeedScalar normal[3], CeedScalar Flux[5]) {
+
+  for(CeedInt j=0; j<5; j++) Flux[j] = 0.;
+  for (CeedInt j=0; j<3; j++) {
+    Flux[0] += F_inviscid[j].density * normal[j];
+    for (CeedInt k=0; k<3; k++) {
+      Flux[k+1] += (F_inviscid[j].momentum[k] - stress[k][j]) * normal[j];
+    }
+    Flux[4] += (F_inviscid[j].E_total + Fe[j]) * normal[j];
   }
 }
 
