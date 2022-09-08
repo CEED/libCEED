@@ -18,19 +18,19 @@ inline __device__ void Interp1d(BackendData &data, const CeedInt num_elem, const
   CeedScalar r_U[BASIS_BUF_LEN];
   CeedScalar r_V[BASIS_BUF_LEN];
 
-  for (CeedInt elem = blockIdx.x*blockDim.z + threadIdx.z; elem < nelem; elem += gridDim.x*blockDim.z) {
+  for (CeedInt elem = blockIdx.x*blockDim.z + threadIdx.z; elem < num_elem; elem += gridDim.x*blockDim.z) {
     if (transpose) {
-      ReadElementStrided1d<BASIS_NUM_COMP, BASIS_P_1D, 1, BASIS_Q_1D*BASIS_NUM_ELEM, BASIS_Q_1D>(data, elem, d_U, &r_u);
+      ReadElementStrided1d<BASIS_NUM_COMP, BASIS_P_1D>(data, elem, 1, BASIS_Q_1D*num_elem, BASIS_Q_1D, d_U, &r_U);
       for (CeedInt comp = 0; comp < BASIS_NUM_COMP; comp++) {
         ContractTransposeX1d<BASIS_NUM_COMP, BASIS_P_1D, BASIS_Q_1D>(data, &r_U[comp], c_B, &r_V[comp]);
       }
-      WriteElementStrided1d<BASIS_NUM_COMP, BASIS_P_1D, 1, BASIS_P_1D*BASIS_NUM_ELEM, BASIS_P_1D>(data, elem, &r_V, d_V);
+      WriteElementStrided1d<BASIS_NUM_COMP, BASIS_P_1D>(data, elem, 1, BASIS_P_1D*num_elem, BASIS_P_1D, &r_V, d_V);
     } else {
-      ReadElementStrided1d<BASIS_NUM_COMP, BASIS_P_1D, 1, BASIS_P_1D*BASIS_NUM_ELEM, BASIS_P_1D>(data, elem, d_U, &r_u);
+      ReadElementStrided1d<BASIS_NUM_COMP, BASIS_P_1D>(data, elem, 1, BASIS_P_1D*num_elem, BASIS_P_1D, d_U, &r_U);
       for (CeedInt comp = 0; comp < BASIS_NUM_COMP; comp++) {
         ContractX1d<BASIS_NUM_COMP, BASIS_P_1D, BASIS_Q_1D>(data, &r_U[comp], c_B, &r_V[comp]);
       }
-      WriteElementStrided1d<BASIS_NUM_COMP, BASIS_P_1D, 1, BASIS_Q_1D*BASIS_NUM_ELEM, BASIS_Q_1D>(data, elem, &r_V, d_V);
+      WriteElementStrided1d<BASIS_NUM_COMP, BASIS_P_1D>(data, elem, 1, BASIS_Q_1D*num_elem, BASIS_Q_1D, &r_V, d_V);
     }
   }
 }
@@ -45,19 +45,19 @@ inline __device__ void Grad1d(BackendData &data, const CeedInt num_elem, const C
   CeedScalar r_U[BASIS_BUF_LEN];
   CeedScalar r_V[BASIS_BUF_LEN];
 
-  for (CeedInt elem = blockIdx.x*blockDim.z + threadIdx.z; elem < nelem; elem += gridDim.x*blockDim.z) {
+  for (CeedInt elem = blockIdx.x*blockDim.z + threadIdx.z; elem < num_elem; elem += gridDim.x*blockDim.z) {
     if (transpose) {
-      ReadElementStrided1d<BASIS_NUM_COMP, BASIS_P_1D, 1, BASIS_Q_1D*BASIS_NUM_ELEM, BASIS_Q_1D>(data, elem, d_U, &r_u);
+      ReadElementStrided1d<BASIS_NUM_COMP, BASIS_P_1D>(data, elem, 1, BASIS_Q_1D*num_elem, BASIS_Q_1D, d_U, &r_U);
       for (CeedInt comp = 0; comp < BASIS_NUM_COMP; comp++) {
         ContractTransposeX1d<BASIS_NUM_COMP, BASIS_P_1D, BASIS_Q_1D>(data, &r_U[comp], c_G, &r_V[comp]);
       }
-      WriteElementStrided1d<BASIS_NUM_COMP, BASIS_P_1D, 1, BASIS_P_1D*BASIS_NUM_ELEM, BASIS_P_1D>(data, elem, &r_V, d_V);
+      WriteElementStrided1d<BASIS_NUM_COMP, BASIS_P_1D>(data, elem, 1, BASIS_P_1D*num_elem, BASIS_P_1D, &r_V, d_V);
     } else {
-      ReadElementStrided1d<BASIS_NUM_COMP, BASIS_P_1D, 1, BASIS_P_1D*BASIS_NUM_ELEM, BASIS_P_1D>(data, elem, d_U, &r_u);
+      ReadElementStrided1d<BASIS_NUM_COMP, BASIS_P_1D>(data, elem, 1, BASIS_P_1D*num_elem, BASIS_P_1D, d_U, &r_U);
       for (CeedInt comp = 0; comp < BASIS_NUM_COMP; comp++) {
         ContractX1d<BASIS_NUM_COMP, BASIS_P_1D, BASIS_Q_1D>(data, &r_U[comp], c_G, &r_V[comp]);
       }
-      WriteElementStrided1d<BASIS_NUM_COMP, BASIS_P_1D, 1, BASIS_Q_1D*BASIS_NUM_ELEM, BASIS_Q_1D>(data, elem, &r_V, d_V);
+      WriteElementStrided1d<BASIS_NUM_COMP, BASIS_P_1D>(data, elem, 1, BASIS_Q_1D*num_elem, BASIS_Q_1D, &r_V, d_V);
     }
   }
 }
@@ -69,9 +69,9 @@ __device__ void weight1d(BackendData &data, const CeedInt num_elem, const CeedSc
                          CeedScalar *__restrict__ d_W) {
   const CeedScalar weight = q_weight_1d[data.t_id_x];
 
-  for (CeedInt elem = blockIdx.x*blockDim.z + threadIdx.z; elem < nelem; elem += gridDim.x*blockDim.z) {
+  for (CeedInt elem = blockIdx.x*blockDim.z + threadIdx.z; elem < num_elem; elem += gridDim.x*blockDim.z) {
     const CeedInt ind = data.t_id_x + elem*BASIS_Q_1D;
-    w[ind] = weight;
+    d_W[ind] = weight;
   }
 }
 
@@ -90,17 +90,17 @@ inline __device__ void Interp2d(BackendData &data, const CeedInt num_elem, const
   const CeedInt elems_per_block = blockDim.z / BASIS_NUM_COMP;
   const CeedInt comp = data.t_id_z % BASIS_NUM_COMP;
 
-  for (CeedInt elem = blockIdx.x*blockDim.z + threadIdx.z; elem < nelem; elem += gridDim.x*blockDim.z) {
+  for (CeedInt elem = blockIdx.x*blockDim.z + threadIdx.z; elem < num_elem; elem += gridDim.x*blockDim.z) {
     if (transpose) {
-      ReadElementStrided2d<BASIS_NUM_COMP, BASIS_P_1D, 1, BASIS_Q_1D*BASIS_NUM_ELEM, BASIS_Q_1D>(data, elem, comp, d_U, &r_U);
+      ReadElementStrided2d<BASIS_NUM_COMP, BASIS_P_1D>(data, elem, 1, BASIS_Q_1D*num_elem, BASIS_Q_1D, comp, d_U, &r_U);
       ContractTransposeY2d<BASIS_NUM_COMP, BASIS_P_1D, BASIS_Q_1D>(data, &r_U[comp], c_B, &r_t);
       ContractTransposeX2d<BASIS_NUM_COMP, BASIS_P_1D, BASIS_Q_1D>(data, &r_t, c_B, &r_V[comp]);
-      WriteElementStrided2d<BASIS_NUM_COMP, BASIS_P_1D, 1, BASIS_P_1D*BASIS_NUM_ELEM, BASIS_P_1D>(data, elem, comp, &r_V, d_V);
+      WriteElementStrided2d<BASIS_NUM_COMP, BASIS_P_1D>(data, elem, 1, BASIS_P_1D*num_elem, BASIS_P_1D, comp, &r_V, d_V);
     } else {
-      ReadElementStrided2d<BASIS_NUM_COMP, BASIS_P_1D, 1, BASIS_P_1D*BASIS_NUM_ELEM, BASIS_P_1D>(data, elem, comp, d_U, &r_U);
+      ReadElementStrided2d<BASIS_NUM_COMP, BASIS_P_1D>(data, elem, 1, BASIS_P_1D*num_elem, BASIS_P_1D, comp, d_U, &r_U);
       ContractX2d<BASIS_NUM_COMP, BASIS_P_1D, BASIS_Q_1D>(data, &r_U[comp], c_B, &r_t);
       ContractY2d<BASIS_NUM_COMP, BASIS_P_1D, BASIS_Q_1D>(data, &r_t, c_B, &r_V[comp]);
-      WriteElementStrided2d<BASIS_NUM_COMP, BASIS_P_1D, 1, BASIS_Q_1D*BASIS_NUM_ELEM, BASIS_Q_1D>(data, elem, comp, &r_V, d_V);
+      WriteElementStrided2d<BASIS_NUM_COMP, BASIS_P_1D>(data, elem, 1, BASIS_Q_1D*num_elem, BASIS_Q_1D, comp, &r_V, d_V);
     }
   }
 }
@@ -111,7 +111,7 @@ inline __device__ void Interp2d(BackendData &data, const CeedInt num_elem, const
 inline __device__ void Grad2d(BackendData &data, const CeedInt num_elem, const CeedInt transpose,
                               const CeedScalar *c_B, const CeedScalar *c_G,
                               const CeedScalar *__restrict__ d_U,
-                              CeedScalar *__restrict__ d_V, CeedScalar *slice) {
+                              CeedScalar *__restrict__ d_V) {
   CeedScalar r_U[BASIS_BUF_LEN];
   CeedScalar r_t[BASIS_BUF_LEN];
   CeedScalar r_V[BASIS_BUF_LEN];
@@ -121,9 +121,9 @@ inline __device__ void Grad2d(BackendData &data, const CeedInt num_elem, const C
   const CeedInt comp = data.t_id_z % BASIS_NUM_COMP;
   CeedInt dim = 0;
 
-  for (CeedInt elem = blockIdx.x*blockDim.z + threadIdx.z; elem < nelem; elem += gridDim.x*blockDim.z) {
+  for (CeedInt elem = blockIdx.x*blockDim.z + threadIdx.z; elem < num_elem; elem += gridDim.x*blockDim.z) {
     if (transpose) {
-      ReadElementStrided2d<BASIS_NUM_COMP, BASIS_P_1D, 1, BASIS_Q_1D*BASIS_NUM_ELEM, BASIS_Q_1D>(data, elem, d_U, &r_u);
+      ReadElementStrided2d<BASIS_NUM_COMP, BASIS_P_1D>(data, elem, 1, BASIS_Q_1D*num_elem, BASIS_Q_1D, d_U, &r_U);
       for (CeedInt comp = 0; comp < BASIS_NUM_COMP; comp++) {
         dim = 0;
         ContractTransposeY2d<BASIS_NUM_COMP, BASIS_P_1D, BASIS_Q_1D>(data, &r_U[comp + dim*BASIS_NUM_COMP], c_B, &r_t);
@@ -132,9 +132,9 @@ inline __device__ void Grad2d(BackendData &data, const CeedInt num_elem, const C
         ContractTransposeY2d<BASIS_NUM_COMP, BASIS_P_1D, BASIS_Q_1D>(data, &r_U[comp dim*BASIS_NUM_COMP], c_G, &r_t);
         ContractTransposeAddX2d<BASIS_NUM_COMP, BASIS_P_1D, BASIS_Q_1D>(data, &r_t, c_B, &r_V[comp]);
       }
-      WriteElementStrided2d<BASIS_NUM_COMP, BASIS_P_1D, 1, BASIS_P_1D*BASIS_NUM_ELEM, BASIS_P_1D>(data, elem, &r_V, d_V);
+      WriteElementStrided2d<BASIS_NUM_COMP, BASIS_P_1D>(data, elem, 1, BASIS_P_1D*num_elem, BASIS_P_1D, &r_V, d_V);
     } else {
-      ReadElementStrided2d<BASIS_NUM_COMP, BASIS_P_1D, 1, BASIS_P_1D*BASIS_NUM_ELEM, BASIS_P_1D>(data, elem, d_U, &r_u);
+      ReadElementStrided2d<BASIS_NUM_COMP, BASIS_P_1D>(data, elem, 1, BASIS_P_1D*num_elem, BASIS_P_1D, d_U, &r_U);
       for (CeedInt comp = 0; comp < BASIS_NUM_COMP; comp++) {
         dim = 0;
         ContractX2d<BASIS_NUM_COMP, BASIS_P_1D, BASIS_Q_1D>(data, &r_U[comp], c_G, &r_t);
@@ -143,7 +143,7 @@ inline __device__ void Grad2d(BackendData &data, const CeedInt num_elem, const C
         ContractX2d<BASIS_NUM_COMP, BASIS_P_1D, BASIS_Q_1D>(data, &r_U[comp], c_B, &r_t);
         ContractY2d<BASIS_NUM_COMP, BASIS_P_1D, BASIS_Q_1D>(data, &r_t, c_G, &r_V[comp + dim * BASIS_NUM_COMP]);
       }
-      WriteElementStrided2d<BASIS_NUM_COMP, BASIS_P_1D, 1, BASIS_Q_1D*BASIS_NUM_ELEM, BASIS_Q_1D>(data, elem, &r_V, d_V);
+      WriteElementStrided2d<BASIS_NUM_COMP, BASIS_P_1D>(data, elem, 1, BASIS_Q_1D*num_elem, BASIS_Q_1D, &r_V, d_V);
     }
   }
 }
@@ -153,10 +153,10 @@ inline __device__ void Grad2d(BackendData &data, const CeedInt num_elem, const C
 //------------------------------------------------------------------------------
 __device__ void Weight2d(BackendData &data, const CeedInt num_elem, const CeedScalar *q_weight_1d,
                          CeedScalar *__restrict__ d_W) {
-  const CeedScalar weight = q_weight_1d[data.t_in_x]*q_weight_1d[data.t_in_y];
-  for (CeedInt elem = blockIdx.x*blockDim.z + threadIdx.z; elem < nelem; elem += gridDim.x*blockDim.z) {
-    const CeedInt ind = data.t_in_x + data.t_in_y*BASIS_Q_1D + elem*BASIS_Q_1D*BASIS_Q_1D;
-    w[ind] = weight;
+  const CeedScalar weight = q_weight_1d[data.t_id_x]*q_weight_1d[data.t_id_y];
+  for (CeedInt elem = blockIdx.x*blockDim.z + threadIdx.z; elem < num_elem; elem += gridDim.x*blockDim.z) {
+    const CeedInt ind = data.t_id_x + data.t_id_y*BASIS_Q_1D + elem*BASIS_Q_1D*BASIS_Q_1D;
+    d_W[ind] = weight;
   }
 }
 
@@ -172,23 +172,23 @@ inline __device__ void Interp3d(BackendData &data, const CeedInt num_elem, const
   CeedScalar r_t_2[BASIS_BUF_LEN];
   CeedScalar r_V[BASIS_BUF_LEN];
 
-  const CeedInt block_elem = data.t_in_z / BASIS_NUM_COMP;
+  const CeedInt block_elem = data.t_id_z / BASIS_NUM_COMP;
   const CeedInt elems_per_block = blockDim.z  BASIS_NUM_COMP;
-  const CeedInt comp = data.t_in_z % BASIS_NUM_COMP;
+  const CeedInt comp = data.t_id_z % BASIS_NUM_COMP;
 
-  for (CeedInt elem = blockIdx.x*blockDim.z + threadIdx.z; elem < nelem; elem += gridDim.x*blockDim.z) {
+  for (CeedInt elem = blockIdx.x*blockDim.z + threadIdx.z; elem < num_elem; elem += gridDim.x*blockDim.z) {
     if (transpose) {
-      ReadElementStrided3d<BASIS_NUM_COMP, BASIS_P_1D, 1, BASIS_Q_1D*BASIS_NUM_ELEM, BASIS_Q_1D>(data, elem, d_U, &r_u);
+      ReadElementStrided3d<BASIS_NUM_COMP, BASIS_P_1D>(data, elem, 1, BASIS_Q_1D*num_elem, BASIS_Q_1D, d_U, &r_U);
       ContractTransposeZ3d<BASIS_NUM_COMP, BASIS_P_1D, BASIS_Q_1D>(data, &r_U[comp], c_B, &r_t_1);
       ContractTransposeY3d<BASIS_NUM_COMP, BASIS_P_1D, BASIS_Q_1D>(data, &r_t_1, c_B, &r_t_2);
       ContractTransposeX3d<BASIS_NUM_COMP, BASIS_P_1D, BASIS_Q_1D>(data, &r_t_2, c_B, &r_V[comp]);
-      WriteElementStrided3d<BASIS_NUM_COMP, BASIS_P_1D, 1, BASIS_P_1D*BASIS_NUM_ELEM, BASIS_P_1D>(data, elem, &r_V, d_V);
+      WriteElementStrided3d<BASIS_NUM_COMP, BASIS_P_1D>(data, elem, 1, BASIS_P_1D*num_elem, BASIS_P_1D, &r_V, d_V);
     } else {
-      ReadElementStrided3d<BASIS_NUM_COMP, BASIS_P_1D, 1, BASIS_P_1D*BASIS_NUM_ELEM, BASIS_P_1D>(data, elem, d_U, &r_u);
+      ReadElementStrided3d<BASIS_NUM_COMP, BASIS_P_1D>(data, elem, 1, BASIS_P_1D*num_elem, BASIS_P_1D, d_U, &r_U);
       ContractX3d<BASIS_NUM_COMP, BASIS_P_1D, BASIS_Q_1D>(data, &r_U[comp], c_B, &r_t_1);
       ContractY3d<BASIS_NUM_COMP, BASIS_P_1D, BASIS_Q_1D>(data, &r_t_1, c_B, &r_t_2);
       ContractZ3d<BASIS_NUM_COMP, BASIS_P_1D, BASIS_Q_1D>(data, &r_t_2, c_B, &r_V[comp]);
-      WriteElementStrided3d<BASIS_NUM_COMP, BASIS_P_1D, 1, BASIS_Q_1D*BASIS_NUM_ELEM, BASIS_Q_1D>(data, elem, &r_V, d_V);
+      WriteElementStrided3d<BASIS_NUM_COMP, BASIS_P_1D>(data, elem, 1, BASIS_Q_1D*num_elem, BASIS_Q_1D, &r_V, d_V);
     }
   }
 }
@@ -197,28 +197,27 @@ inline __device__ void Interp3d(BackendData &data, const CeedInt num_elem, const
 // 3D derivatives at quadrature points
 //------------------------------------------------------------------------------
 // TODO: rename to avoid conflict?
-inline __device__ void Grad3d(const CeedInt num_elem, const CeedInt transpose,
+inline __device__ void Grad3d(BackendData &data, const CeedInt num_elem, const CeedInt transpose,
                               const CeedScalar *c_B, const CeedScalar *c_G,
                               const CeedScalar *__restrict__ d_U,
-                              CeedScalar *__restrict__ d_V,
-                              CeedScalar *slice) {
+                              CeedScalar *__restrict__ d_V) {
   CeedScalar r_U[BASIS_BUF_LEN];
   CeedScalar r_t_1[BASIS_BUF_LEN];
   CeedScalar r_t_2[BASIS_BUF_LEN];
   CeedScalar r_V[BASIS_BUF_LEN];
 
-  const CeedInt block_elem = t_in_z / BASIS_NUM_COMP;
+  const CeedInt block_elem = data.t_id_z / BASIS_NUM_COMP;
   const CeedInt elems_per_block = blockDim.z / BASIS_NUM_COMP;
-  const CeedInt comp = data.t_in_z % BASIS_NUM_COMP;
+  const CeedInt comp = data.t_id_z % BASIS_NUM_COMP;
   CeedInt dim = 0
   // It looks like z-threads are BASIS_NUM_COMP * batch_size
   // This is different from cuda-gen where z-threads are only batch_size
   // Should we generalize cuda-gen to support this kind of parallization strategy?
   CeedInt dim;
 
-  for (CeedInt elem = blockIdx.x*blockDim.z + threadIdx.z; elem < nelem; elem += gridDim.x*blockDim.z) {
+  for (CeedInt elem = blockIdx.x*blockDim.z + threadIdx.z; elem < num_elem; elem += gridDim.x*blockDim.z) {
     if (transpose) {
-      ReadElementStrided3d<BASIS_NUM_COMP, BASIS_P_1D, 1, BASIS_Q_1D*BASIS_NUM_ELEM, BASIS_Q_1D>(data, elem, d_U, &r_u);
+      ReadElementStrided3d<BASIS_NUM_COMP, BASIS_P_1D>(data, elem, 1, BASIS_Q_1D*num_elem, BASIS_Q_1D, d_U, &r_U);
       dim = 0;
       ContractTransposeZ3d<BASIS_NUM_COMP, BASIS_P_1D, BASIS_Q_1D>(data, &r_U[comp*BASIS_Q_1D + dim*BASIS_NUM_COMP*BASIS_Q_1D], c_B, &r_t_1);
       ContractTransposeY3d<BASIS_NUM_COMP, BASIS_P_1D, BASIS_Q_1D>(data, &r_t_1, c_B, &r_t_2);
@@ -231,22 +230,22 @@ inline __device__ void Grad3d(const CeedInt num_elem, const CeedInt transpose,
       ContractTransposeZ3d<BASIS_NUM_COMP, BASIS_P_1D, BASIS_Q_1D>(data, &r_U[comp*BASIS_Q_1D + dim*BASIS_NUM_COMP*BASIS_Q_1D], c_B, &r_t_1);
       ContractTransposeY3d<BASIS_NUM_COMP, BASIS_P_1D, BASIS_Q_1D>(data, &r_t_1, c_B, &r_t_2);
       ContractTransposeAddX3d<BASIS_NUM_COMP, BASIS_P_1D, BASIS_Q_1D>(data, &r_t_2, c_G, &r_V[comp*BASIS_P_1D]);
-      WriteElementStrided3d<BASIS_NUM_COMP, BASIS_P_1D, 1, BASIS_P_1D*BASIS_NUM_ELEM, BASIS_P_1D>(data, elem, &r_V, d_V);
+      WriteElementStrided3d<BASIS_NUM_COMP, BASIS_P_1D>(data, elem, 1, BASIS_P_1D*num_elem, BASIS_P_1D, &r_V, d_V);
     } else {
-      ReadElementStrided3d<BASIS_NUM_COMP, BASIS_P_1D, 1, BASIS_P_1D*BASIS_NUM_ELEM, BASIS_P_1D>(data, elem, d_U, &r_u);
+      ReadElementStrided3d<BASIS_NUM_COMP, BASIS_P_1D>(data, elem, 1, BASIS_P_1D*num_elem, BASIS_P_1D, d_U, &r_U);
       dim = 0;
-      ContractX3d<BASIS_NUM_COMP, BASIS_P_1D, BASIS_Q_1D>(data, &r_U[comp*BASIS_P_1D], c_g, &r_t_1);
+      ContractX3d<BASIS_NUM_COMP, BASIS_P_1D, BASIS_Q_1D>(data, &r_U[comp*BASIS_P_1D], c_G, &r_t_1);
       ContractY3d<BASIS_NUM_COMP, BASIS_P_1D, BASIS_Q_1D>(data, &r_t_1, c_B, &r_t_2);
       ContractZ3d<BASIS_NUM_COMP, BASIS_P_1D, BASIS_Q_1D>(data, &r_t_2, c_B, &r_V[comp*BASIS_Q_1D + dim*BASIS_NUM_COMP*BASIS_Q_1D]);
       dim = 1;
       ContractX3d<BASIS_NUM_COMP, BASIS_P_1D, BASIS_Q_1D>(data, &r_U[comp*BASIS_P_1D], c_B, &r_t_1);
-      ContractY3d<BASIS_NUM_COMP, BASIS_P_1D, BASIS_Q_1D>(data, &r_t_1, c_g, &r_t_2);
+      ContractY3d<BASIS_NUM_COMP, BASIS_P_1D, BASIS_Q_1D>(data, &r_t_1, c_G, &r_t_2);
       ContractZ3d<BASIS_NUM_COMP, BASIS_P_1D, BASIS_Q_1D>(data, &r_t_2, c_B, &r_V[comp*BASIS_Q_1D + dim*BASIS_NUM_COMP*BASIS_Q_1D]);
       dim = 2;
       ContractX3d<BASIS_NUM_COMP, BASIS_P_1D, BASIS_Q_1D>(data, &r_U[comp*BASIS_P_1D], c_B, &r_t_1);
       ContractY3d<BASIS_NUM_COMP, BASIS_P_1D, BASIS_Q_1D>(data, &r_t_1, c_B, &r_t_2);
-      ContractZ3d<BASIS_NUM_COMP, BASIS_P_1D, BASIS_Q_1D>(data, &r_t_2, c_g, &r_V[comp*BASIS_Q_1D + dim*BASIS_NUM_COMP*BASIS_Q_1D]);
-      WriteElementStrided3d<BASIS_NUM_COMP, BASIS_P_1D, 1, BASIS_Q_1D*BASIS_NUM_ELEM, BASIS_Q_1D>(data, elem, &r_V, d_V);
+      ContractZ3d<BASIS_NUM_COMP, BASIS_P_1D, BASIS_Q_1D>(data, &r_t_2, c_G, &r_V[comp*BASIS_Q_1D + dim*BASIS_NUM_COMP*BASIS_Q_1D]);
+      WriteElementStrided3d<BASIS_NUM_COMP, BASIS_P_1D>(data, elem, 1, BASIS_Q_1D*num_elem, BASIS_Q_1D, &r_V, d_V);
     }
   }
 }
@@ -254,11 +253,10 @@ inline __device__ void Grad3d(const CeedInt num_elem, const CeedInt transpose,
 //------------------------------------------------------------------------------
 // 3D derivatives at quadrature points, collocated
 //------------------------------------------------------------------------------
-inline __device__ void GradCollocated3d(const CeedInt num_elem, const CeedInt transpose,
+inline __device__ void GradCollocated3d(BackendData &data, const CeedInt num_elem, const CeedInt transpose,
                               const CeedScalar *c_B, const CeedScalar *c_G,
                               const CeedScalar *__restrict__ d_U,
-                              CeedScalar *__restrict__ d_V,
-                              CeedScalar *slice) {
+                              CeedScalar *__restrict__ d_V) {
   CeedScalar r_U[BASIS_BUF_LEN];
   CeedScalar r_t_1[BASIS_BUF_LEN];
   CeedScalar r_t_2[BASIS_BUF_LEN];
@@ -266,15 +264,15 @@ inline __device__ void GradCollocated3d(const CeedInt num_elem, const CeedInt tr
 
   const CeedInt block_elem = t_in_z / BASIS_NUM_COMP;
   const CeedInt elems_per_block = blockDim.z / BASIS_NUM_COMP;
-  const CeedInt comp = data.t_in_z % BASIS_NUM_COMP;
+  const CeedInt comp = data.t_id_z % BASIS_NUM_COMP;
   CeedInt dim = 0
   // It looks like z-threads are BASIS_NUM_COMP * batch_size
   // This is different from cuda-gen where z-threads are only batch_size
   // Should we generalize cuda-gen to support this kind of parallization strategy?
 
-  for (CeedInt elem = blockIdx.x*blockDim.z + threadIdx.z; elem < nelem; elem += gridDim.x*blockDim.z) {
+  for (CeedInt elem = blockIdx.x*blockDim.z + threadIdx.z; elem < num_elem; elem += gridDim.x*blockDim.z) {
     if (transpose) {
-      ReadElementStrided3d<BASIS_NUM_COMP, BASIS_P_1D, 1, BASIS_Q_1D*BASIS_NUM_ELEM, BASIS_Q_1D>(data, elem, d_U, &r_u);
+      ReadElementStrided3d<BASIS_NUM_COMP, BASIS_P_1D>(data, elem, 1, BASIS_Q_1D*num_elem, BASIS_Q_1D, d_U, &r_U);
       dim = 2;
       ContractTransposeZ3d<BASIS_NUM_COMP, BASIS_P_1D, BASIS_Q_1D>(data, &r_U[comp*BASIS_Q_1D + dim*BASIS_NUM_COMP*BASIS_Q_1D], c_B, &r_t_2);
       dim = 1;
@@ -284,9 +282,9 @@ inline __device__ void GradCollocated3d(const CeedInt num_elem, const CeedInt tr
       ContractTransposeZ3d<BASIS_NUM_COMP, BASIS_P_1D, BASIS_Q_1D>(data, &r_t_2, c_B, &r_t_1);
       ContractTransposeY3d<BASIS_NUM_COMP, BASIS_P_1D, BASIS_Q_1D>(data, &r_t_1, c_B, &r_t_2);
       ContractTransposeX3d<BASIS_NUM_COMP, BASIS_P_1D, BASIS_Q_1D>(data, &r_t_2, c_B, &r_V[comp]);
-      WriteElementStrided3d<BASIS_NUM_COMP, BASIS_P_1D, 1, BASIS_P_1D*BASIS_NUM_ELEM, BASIS_P_1D>(data, elem, &r_V, d_V);
+      WriteElementStrided3d<BASIS_NUM_COMP, BASIS_P_1D>(data, elem, 1, BASIS_P_1D*num_elem, BASIS_P_1D, &r_V, d_V);
     } else {
-      ReadElementStrided3d<BASIS_NUM_COMP, BASIS_P_1D, 1, BASIS_P_1D*BASIS_NUM_ELEM, BASIS_P_1D>(data, elem, d_U, &r_u);
+      ReadElementStrided3d<BASIS_NUM_COMP, BASIS_P_1D>(data, elem, 1, BASIS_P_1D*num_elem, BASIS_P_1D, d_U, &r_U);
       ContractX3d<BASIS_NUM_COMP, BASIS_P_1D, BASIS_Q_1D>(data, &r_U[comp], c_B, &r_t_1);
       ContractY3d<BASIS_NUM_COMP, BASIS_P_1D, BASIS_Q_1D>(data, &r_t_1, c_B, &r_t_2);
       ContractZ3d<BASIS_NUM_COMP, BASIS_P_1D, BASIS_Q_1D>(data, &r_t_2, c_B, &r_t_1);
@@ -296,7 +294,7 @@ inline __device__ void GradCollocated3d(const CeedInt num_elem, const CeedInt tr
       ContractY3d<BASIS_NUM_COMP, BASIS_P_1D, BASIS_Q_1D>(data, &r_t_1, c_B, &r_V[comp*BASIS_Q_1D + dim*BASIS_NUM_COMP*BASIS_Q_1D]);
       dim = 2;
       ContractZ3d<BASIS_NUM_COMP, BASIS_P_1D, BASIS_Q_1D>(data, &r_t_1, c_B, &r_V[comp*BASIS_Q_1D + dim*BASIS_NUM_COMP*BASIS_Q_1D]);
-      WriteElementStrided3d<BASIS_NUM_COMP, BASIS_P_1D, 1, BASIS_Q_1D*BASIS_NUM_ELEM, BASIS_Q_1D>(data, elem, &r_V, d_V);
+      WriteElementStrided3d<BASIS_NUM_COMP, BASIS_P_1D>(data, elem, 1, BASIS_Q_1D*num_elem, BASIS_Q_1D, &r_V, d_V);
     }
   }
 }
@@ -307,9 +305,9 @@ inline __device__ void GradCollocated3d(const CeedInt num_elem, const CeedInt tr
 __device__ void Weight3d(BackendData &data, const CeedInt num_elem, const CeedScalar *q_weight_1d,
                          CeedScalar *__restrict__ d_W) {
   const CeedScalar weight = q_weight_1d[data.t_id_x]*q_weight_1d[data.t_id_y]*q_weight_1d[data.t_id_z];
-  for (CeedInt elem = blockIdx.x*blockDim.z + threadIdx.z; elem < nelem; elem += gridDim.x*blockDim.z) {
+  for (CeedInt elem = blockIdx.x*blockDim.z + threadIdx.z; elem < num_elem; elem += gridDim.x*blockDim.z) {
     const CeedInt ind = data.t_id_x + data.t_id_y*BASIS_Q_1D + data.t_id_z*BASIS_Q_1D*BASIS_Q_1D + elem*BASIS_Q_1D*BASIS_Q_1D*BASIS_Q_1D;
-    w[ind] = weight;
+    d_W[ind] = weight;
   }
 }
 
@@ -327,10 +325,10 @@ extern "C" __global__ void Interp(const CeedInt num_elem, const CeedInt transpos
   extern __shared__ CeedScalar slice[];
 
   BackendData data;
-  data.tidx = threadIdx.x;
-  data.tidy = threadIdx.y;
-  data.tidz = threadIdx.z;
-  data.tid  = threadIdx.x + threadIdx.y*blockDim.x + threadIdx.z*blockDim.y*blockDim.x;
+  data.t_id_x = threadIdx.x;
+  data.t_id_y = threadIdx.y;
+  data.t_id_z = threadIdx.z;
+  data.t_id  = threadIdx.x + threadIdx.y*blockDim.x + threadIdx.z*blockDim.y*blockDim.x;
   data.slice = slice + data.tidz * BASIS_T_1D * (BASIS_DIM > 1 ? BASIS_T_1D : 1);
 
   if (BASIS_DIM == 1) {
@@ -352,10 +350,10 @@ extern "C" __global__ void Grad(const CeedInt num_elem, const CeedInt transpose,
   extern __shared__ CeedScalar slice[];
 
   BackendData data;
-  data.tidx = threadIdx.x;
-  data.tidy = threadIdx.y;
-  data.tidz = threadIdx.z;
-  data.tid  = threadIdx.x + threadIdx.y*blockDim.x + threadIdx.z*blockDim.y*blockDim.x;
+  data.t_id_x = threadIdx.x;
+  data.t_id_y = threadIdx.y;
+  data.t_id_z = threadIdx.z;
+  data.t_id  = threadIdx.x + threadIdx.y*blockDim.x + threadIdx.z*blockDim.y*blockDim.x;
   data.slice = slice + data.tidz * BASIS_T_1D * (BASIS_DIM > 1 ? BASIS_T_1D : 1);
 
   if (BASIS_DIM == 1) {
@@ -380,10 +378,10 @@ extern "C" __global__ void Weight(const CeedInt num_elem,
   extern __shared__ CeedScalar slice[];
 
   BackendData data;
-  data.tidx = threadIdx.x;
-  data.tidy = threadIdx.y;
-  data.tidz = threadIdx.z;
-  data.tid  = threadIdx.x + threadIdx.y*blockDim.x + threadIdx.z*blockDim.y*blockDim.x;
+  data.t_id_x = threadIdx.x;
+  data.t_id_y = threadIdx.y;
+  data.t_id_z = threadIdx.z;
+  data.t_id  = threadIdx.x + threadIdx.y*blockDim.x + threadIdx.z*blockDim.y*blockDim.x;
   data.slice = slice + data.tidz * BASIS_T_1D * (BASIS_DIM > 1 ? BASIS_T_1D : 1);
 
   if (BASIS_DIM == 1) {

@@ -24,13 +24,13 @@ typedef struct {
 //------------------------------------------------------------------------------
 // E-vector -> single element
 //------------------------------------------------------------------------------
-template <int NUM_COMP, int P_1D, int STRIDES_NODE, int STRIDES_COMP, int STRIDES_ELEM>
-inline __device__ void ReadElementStrided1d(BackendData &data, const CeedInt elem, const CeedScalar *__restrict__ d_u, CeedScalar *r_u) {
-  if (data.tidx < P_1D) {
-    const CeedInt node = data.tidx;
-    const CeedInt ind = node * STRIDES_NODE + elem * STRIDES_ELEM;
+template <int NUM_COMP, int P_1D>
+inline __device__ void ReadElementStrided1d(BackendData &data, const CeedInt elem, const CeedInt strides_node, const CeedInt strides_comp, const CeedInt strides_elem, const CeedScalar *__restrict__ d_u, CeedScalar *r_u) {
+  if (data.t_id_x < P_1D) {
+    const CeedInt node = data.t_id_x;
+    const CeedInt ind = node * strides_node + elem * strides_elem;
     for (CeedInt comp = 0; comp < NUM_COMP; comp++) {
-      r_u[comp] = d_u[ind + comp * STRIDES_COMP];
+      r_u[comp] = d_u[ind + comp * strides_com];
     }
   }
 }
@@ -38,13 +38,13 @@ inline __device__ void ReadElementStrided1d(BackendData &data, const CeedInt ele
 //------------------------------------------------------------------------------
 // Single element -> E-vector
 //------------------------------------------------------------------------------
-template <int NUM_COMP, int P_1D, int STRIDES_NODE, int STRIDES_COMP, int STRIDES_ELEM>
-inline __device__ void WriteElementStrided1d(BackendData &data, const CeedInt elem, const CeedScalar *r_v, CeedScalar *d_v) {
-  if (data.tidx < P_1D) {
-    const CeedInt node = data.tidx;
-    const CeedInt ind = node * STRIDES_NODE + elem * STRIDES_ELEM;
+template <int NUM_COMP, int P_1D>
+inline __device__ void WriteElementStrided1d(BackendData &data, const CeedInt elem, const CeedInt strides_node, const CeedInt strides_comp, const CeedInt strides_elem, const CeedScalar *r_v, CeedScalar *d_v) {
+  if (data.t_id_x < P_1D) {
+    const CeedInt node = data.t_id_x;
+    const CeedInt ind = node * strides_node + elem * strides_elem;
     for (CeedInt comp = 0; comp < NUM_COMP; comp++) {
-      d_v[ind + comp * STRIDES_COMP] += r_v[comp];
+      d_v[ind + comp * strides_comp] += r_v[comp];
     }
   }
 }
@@ -54,12 +54,12 @@ inline __device__ void WriteElementStrided1d(BackendData &data, const CeedInt el
 //------------------------------------------------------------------------------
 template <int NUM_COMP, int P_1D, int Q_1D>
 inline __device__ void ContractX1d(BackendData &data, const CeedScalar *U, const CeedScalar *B, CeedScalar *V) {
-  data.slice[data.tidx] = *U;
+  data.slice[data.t_id_x] = *U;
   __syncthreads();
   *V = 0.0;
-  if (data.tidx < Q_1D) {
+  if (data.t_id_x < Q_1D) {
     for (CeedInt i = 0; i < P_1D; i++) {
-      *V += B[i + data.tidx * P_1D] * data.slice[i]; // Contract x direction
+      *V += B[i + data.t_id_x * P_1D] * data.slice[i]; // Contract x direction
     }
   }
   __syncthreads();
@@ -70,12 +70,12 @@ inline __device__ void ContractX1d(BackendData &data, const CeedScalar *U, const
 //------------------------------------------------------------------------------
 template <int NUM_COMP, int P_1D, int Q_1D>
 inline __device__ void ContractTransposeX1d(BackendData &data, const CeedScalar *U, const CeedScalar *B, CeedScalar *V) {
-  data.slice[data.tidx] = *U;
+  data.slice[data.t_id_x] = *U;
   __syncthreads();
   *V = 0.0;
-  if (data.tidx < P_1D) {
+  if (data.t_id_x < P_1D) {
     for (CeedInt i = 0; i < Q_1D; i++) {
-      *V += B[data.tidx + i * P_1D] * data.slice[i]; // Contract x direction
+      *V += B[data.t_id_x + i * P_1D] * data.slice[i]; // Contract x direction
     }
   }
   __syncthreads();
@@ -88,13 +88,13 @@ inline __device__ void ContractTransposeX1d(BackendData &data, const CeedScalar 
 //------------------------------------------------------------------------------
 // E-vector -> single element
 //------------------------------------------------------------------------------
-template <int NUM_COMP, int P_1D, int STRIDES_NODE, int STRIDES_COMP, int STRIDES_ELEM>
-inline __device__ void ReadElementStrided2d(BackendData &data, const CeedInt elem, const CeedScalar *__restrict__ d_u, CeedScalar *r_u) {
-  if (data.tidx < P_1D && data.tidy < P_1D) {
-    const CeedInt node = data.tidx + data.tidy*P_1D;
-    const CeedInt ind = node * STRIDES_NODE + elem * STRIDES_ELEM;
+template <int NUM_COMP, int P_1D>
+inline __device__ void ReadElementStrided2d(BackendData &data, const CeedInt elem, const CeedInt strides_node, const CeedInt strides_comp, const CeedInt strides_elem, const CeedScalar *__restrict__ d_u, CeedScalar *r_u) {
+  if (data.t_id_x < P_1D && data.t_id_y < P_1D) {
+    const CeedInt node = data.t_id_x + data.t_id_y*P_1D;
+    const CeedInt ind = node * strides_node + elem * strides_elem;
     for (CeedInt comp = 0; comp < NUM_COMP; comp++) {
-      r_u[comp] = d_u[ind + comp * STRIDES_COMP];
+      r_u[comp] = d_u[ind + comp * strides_comp];
     }
   }
 }
@@ -102,13 +102,13 @@ inline __device__ void ReadElementStrided2d(BackendData &data, const CeedInt ele
 //------------------------------------------------------------------------------
 // Single element -> E-vector
 //------------------------------------------------------------------------------
-template <int NUM_COMP, int P_1D, int STRIDES_NODE, int STRIDES_COMP, int STRIDES_ELEM>
-inline __device__ void WriteElementStrided2d(BackendData &data, const CeedInt elem, const CeedScalar *r_v, CeedScalar *d_v) {
-  if (data.tidx < P_1D && data.tidy < P_1D) {
-    const CeedInt node = data.tidx + data.tidy*P_1D;
-    const CeedInt ind = node * STRIDES_NODE + elem * STRIDES_ELEM;
+template <int NUM_COMP, int P_1D>
+inline __device__ void WriteElementStrided2d(BackendData &data, const CeedInt elem, const CeedInt strides_node, const CeedInt strides_comp, const CeedInt strides_elem, const CeedScalar *r_v, CeedScalar *d_v) {
+  if (data.t_id_x < P_1D && data.t_id_y < P_1D) {
+    const CeedInt node = data.t_id_x + data.t_id_y*P_1D;
+    const CeedInt ind = node * strides_node + elem * strides_elem;
     for (CeedInt comp = 0; comp < NUM_COMP; comp++) {
-      d_v[ind + comp * STRIDES_COMP] += r_v[comp];
+      d_v[ind + comp * strides_comp] += r_v[comp];
     }
   }
 }
@@ -118,12 +118,12 @@ inline __device__ void WriteElementStrided2d(BackendData &data, const CeedInt el
 //------------------------------------------------------------------------------
 template <int NUM_COMP, int P_1D, int Q_1D>
 inline __device__ void ContractX2d(BackendData &data, const CeedScalar *U, const CeedScalar *B, CeedScalar *V) {
-  data.slice[data.tidx+data.tidy*T1d] = *U;
+  data.slice[data.t_id_x+data.t_id_y*T1d] = *U;
   __syncthreads();
   *V = 0.0;
-  if (data.tidx < Q_1D && data.tidy < P_1D) {
+  if (data.t_id_x < Q_1D && data.t_id_y < P_1D) {
     for (CeedInt i = 0; i < P_1D; i++) {
-      *V += B[i + data.tidx*P_1D] * data.slice[i + data.tidy*T1d]; // Contract x direction
+      *V += B[i + data.t_id_x*P_1D] * data.slice[i + data.t_id_y*T1d]; // Contract x direction
     }
   }
   __syncthreads();
@@ -134,12 +134,12 @@ inline __device__ void ContractX2d(BackendData &data, const CeedScalar *U, const
 //------------------------------------------------------------------------------
 template <int NUM_COMP, int P_1D, int Q_1D>
 inline __device__ void ContractY2d(BackendData &data, const CeedScalar *U, const CeedScalar *B, CeedScalar *V) {
-  data.slice[data.tidx+data.tidy*T1d] = *U;
+  data.slice[data.t_id_x+data.t_id_y*T1d] = *U;
   __syncthreads();
   *V = 0.0;
-  if (data.tidx < Q_1D && data.tidy < Q_1D) {
+  if (data.t_id_x < Q_1D && data.t_id_y < Q_1D) {
     for (CeedInt i = 0; i < P_1D; i++) {
-      *V += B[i + data.tidy*P_1D] * data.slice[data.tidx + i*T1d]; // Contract y direction
+      *V += B[i + data.t_id_y*P_1D] * data.slice[data.t_id_x + i*T1d]; // Contract y direction
     }
   }
   __syncthreads();
@@ -150,12 +150,12 @@ inline __device__ void ContractY2d(BackendData &data, const CeedScalar *U, const
 //------------------------------------------------------------------------------
 template <int NUM_COMP, int P_1D, int Q_1D>
 inline __device__ void ContractTransposeY2d(BackendData &data, const CeedScalar *U, const CeedScalar *B, CeedScalar *V) {
-  data.slice[data.tidx+data.tidy*T1d] = *U;
+  data.slice[data.t_id_x+data.t_id_y*T1d] = *U;
   __syncthreads();
   *V = 0.0;
-  if (data.tidx < Q_1D && data.tidy < P_1D) {
+  if (data.t_id_x < Q_1D && data.t_id_y < P_1D) {
     for (CeedInt i = 0; i < Q_1D; i++) {
-      *V += B[data.tidy + i*P_1D] * data.slice[data.tidx + i*T1d]; // Contract y direction
+      *V += B[data.t_id_y + i*P_1D] * data.slice[data.t_id_x + i*T1d]; // Contract y direction
     }
   }
   __syncthreads();
@@ -166,12 +166,12 @@ inline __device__ void ContractTransposeY2d(BackendData &data, const CeedScalar 
 //------------------------------------------------------------------------------
 template <int NUM_COMP, int P_1D, int Q_1D>
 inline __device__ void ContractTransposeX2d(BackendData &data, const CeedScalar *U, const CeedScalar *B, CeedScalar *V) {
-  data.slice[data.tidx+data.tidy*T1d] = *U;
+  data.slice[data.t_id_x+data.t_id_y*T1d] = *U;
   __syncthreads();
   *V = 0.0;
-  if (data.tidx < P_1D && data.tidy < P_1D) {
+  if (data.t_id_x < P_1D && data.t_id_y < P_1D) {
     for (CeedInt i = 0; i < Q_1D; i++) {
-      *V += B[data.tidx + i*P_1D] * data.slice[i + data.tidy*T1d]; // Contract x direction
+      *V += B[data.t_id_x + i*P_1D] * data.slice[i + data.t_id_y*T1d]; // Contract x direction
     }
   }
   __syncthreads();
@@ -182,11 +182,11 @@ inline __device__ void ContractTransposeX2d(BackendData &data, const CeedScalar 
 //------------------------------------------------------------------------------
 template <int NUM_COMP, int P_1D, int Q_1D>
 inline __device__ void ContractTransposeAddX2d(BackendData &data, const CeedScalar *U, const CeedScalar *B, CeedScalar *V) {
-  data.slice[data.tidx+data.tidy*T1d] = *U;
+  data.slice[data.t_id_x+data.t_id_y*T1d] = *U;
   __syncthreads();
-  if (data.tidx < P_1D && data.tidy < P_1D) {
+  if (data.t_id_x < P_1D && data.t_id_y < P_1D) {
     for (CeedInt i = 0; i < Q_1D; i++) {
-      *V += B[data.tidx + i*P_1D] * data.slice[i + data.tidy*T1d]; // Contract x direction
+      *V += B[data.t_id_x + i*P_1D] * data.slice[i + data.t_id_y*T1d]; // Contract x direction
     }
   }
   __syncthreads();
@@ -207,14 +207,14 @@ inline __device__ void ContractTransposeAddX2d(BackendData &data, const CeedScal
 //------------------------------------------------------------------------------
 // E-vector -> single element
 //------------------------------------------------------------------------------
-template <int NUM_COMP, int P_1D, int STRIDES_NODE, int STRIDES_COMP, int STRIDES_ELEM>
-inline __device__ void ReadElementStrided3d(BackendData &data, const CeedInt elem, const CeedScalar *__restrict__ d_u, CeedScalar *r_u) {
-  if (data.tidx < P_1D && data.tidy < P_1D) {
+template <int NUM_COMP, int P_1D>
+inline __device__ void ReadElementStrided3d(BackendData &data, const CeedInt elem, const CeedInt strides_node, const CeedInt strides_comp, const CeedInt strides_elem, const CeedScalar *__restrict__ d_u, CeedScalar *r_u) {
+  if (data.t_id_x < P_1D && data.t_id_y < P_1D) {
     for (CeedInt z = 0; z < P_1D; ++z) {
-      const CeedInt node = data.tidx + data.tidy*P_1D + z*P_1D*P_1D;
-      const CeedInt ind = node * STRIDES_NODE + elem * STRIDES_ELEM;
+      const CeedInt node = data.t_id_x + data.t_id_y*P_1D + z*P_1D*P_1D;
+      const CeedInt ind = node * strides_node + elem * strides_elem;
       for (CeedInt comp = 0; comp < NUM_COMP; comp++) {
-        r_u[z+comp*P_1D] = d_u[ind + comp * STRIDES_COMP];
+        r_u[z + comp * P_1D] = d_u[ind + comp * strides_comp];
       }
     }
   }
@@ -223,13 +223,13 @@ inline __device__ void ReadElementStrided3d(BackendData &data, const CeedInt ele
 //------------------------------------------------------------------------------
 // E-vector -> single element plane
 //------------------------------------------------------------------------------
-template <int NUM_COMP, int Q_1D, int STRIDES_NODE, int STRIDES_COMP, int STRIDES_ELEM>
-inline __device__ void ReadElementSliceStrided3d(BackendData &data, const CeedInt elem, const CeedInt q, const CeedScalar *__restrict__ d_u, CeedScalar *r_u) {
-  if (data.tidx < Q_1D && data.tidy < Q_1D) {
-    const CeedInt node = data.tidx + data.tidy*Q_1D + q*Q_1D*Q_1D;
-    const CeedInt ind = node * STRIDES_NODE + elem * STRIDES_ELEM;
+template <int NUM_COMP, int Q_1D>
+inline __device__ void ReadElementSliceStrided3d(BackendData &data, const CeedInt elem, const CeedInt strides_node, const CeedInt strides_comp, const CeedInt strides_elem, const CeedInt q, const CeedScalar *__restrict__ d_u, CeedScalar *r_u) {
+  if (data.t_id_x < Q_1D && data.t_id_y < Q_1D) {
+    const CeedInt node = data.t_id_x + data.t_id_y*Q_1D + q*Q_1D*Q_1D;
+    const CeedInt ind = node * strides_node + elem * strides_elem;
     for (CeedInt comp = 0; comp < NUM_COMP; comp++) {
-      r_u[comp] = d_u[ind + comp * STRIDES_COMP];
+      r_u[comp] = d_u[ind + comp * strides_comp];
     }
   }
 }
@@ -237,14 +237,14 @@ inline __device__ void ReadElementSliceStrided3d(BackendData &data, const CeedIn
 //------------------------------------------------------------------------------
 // Single element -> E-vector
 //------------------------------------------------------------------------------
-template <int NUM_COMP, int P_1D, int STRIDES_NODE, int STRIDES_COMP, int STRIDES_ELEM>
-inline __device__ void WriteElementStrided3d(BackendData &data, const CeedInt elem, const CeedScalar *r_v, CeedScalar *d_v) {
-  if (data.tidx < P_1D && data.tidy < P_1D) {
+template <int NUM_COMP, int P_1D>
+inline __device__ void WriteElementStrided3d(BackendData &data, const CeedInt elem, const CeedInt strides_node, const CeedInt strides_comp, const CeedInt strides_elem, const CeedScalar *r_v, CeedScalar *d_v) {
+  if (data.t_id_x < P_1D && data.t_id_y < P_1D) {
     for (CeedInt z = 0; z < P_1D; ++z) {
-      const CeedInt node = data.tidx + data.tidy*P_1D + z*P_1D*P_1D;
-      const CeedInt ind = node * STRIDES_NODE + elem * STRIDES_ELEM;
+      const CeedInt node = data.t_id_x + data.t_id_y*P_1D + z*P_1D*P_1D;
+      const CeedInt ind = node * strides_node + elem * strides_elem;
       for (CeedInt comp = 0; comp < NUM_COMP; comp++) {
-        d_v[ind + comp * STRIDES_COMP] += r_v[z+comp*P_1D];
+        d_v[ind + comp * strides_comp] += r_v[z + comp * P_1D];
       }
     }
   }
@@ -257,16 +257,16 @@ template <int NUM_COMP, int P_1D, int Q_1D>
 inline __device__ void ContractX3d(BackendData &data, const CeedScalar *U, const CeedScalar *B, CeedScalar *V) {
   CeedScalar r_B[P_1D];
   for (CeedInt i = 0; i < P_1D; i++) {
-    r_B[i] = B[i + data.tidx*P_1D];
+    r_B[i] = B[i + data.t_id_x*P_1D];
   }
 
   for (CeedInt k = 0; k < P_1D; ++k) {
-    data.slice[data.tidx+data.tidy*T1d] = U[k];
+    data.slice[data.t_id_x+data.t_id_y*T1d] = U[k];
     __syncthreads();
     V[k] = 0.0;
-    if (data.tidx < Q_1D && data.tidy < P_1D) {
+    if (data.t_id_x < Q_1D && data.t_id_y < P_1D) {
       for (CeedInt i = 0; i < P_1D; i++) {
-        V[k] += r_B[i] * data.slice[i + data.tidy*T1d]; // Contract x direction
+        V[k] += r_B[i] * data.slice[i + data.t_id_y*T1d]; // Contract x direction
       }
     }
     __syncthreads();
@@ -280,16 +280,16 @@ template <int NUM_COMP, int P_1D, int Q_1D>
 inline __device__ void ContractY3d(BackendData &data, const CeedScalar *U, const CeedScalar *B, CeedScalar *V) {
   CeedScalar r_B[P_1D];
   for (CeedInt i = 0; i < P_1D; i++) {
-    r_B[i] = B[i + data.tidy*P_1D];
+    r_B[i] = B[i + data.t_id_y*P_1D];
   }
 
   for (CeedInt k = 0; k < P_1D; ++k) {
-    data.slice[data.tidx+data.tidy*T1d] = U[k];
+    data.slice[data.t_id_x+data.t_id_y*T1d] = U[k];
     __syncthreads();
     V[k] = 0.0;
-    if (data.tidx < Q_1D && data.tidy < Q_1D) {
+    if (data.t_id_x < Q_1D && data.t_id_y < Q_1D) {
       for (CeedInt i = 0; i < P_1D; i++) {
-        V[k] += r_B[i] * data.slice[data.tidx + i*T1d]; // Contract y direction
+        V[k] += r_B[i] * data.slice[data.t_id_x + i*T1d]; // Contract y direction
       }
     }
     __syncthreads();
@@ -303,7 +303,7 @@ template <int NUM_COMP, int P_1D, int Q_1D>
 inline __device__ void ContractZ3d(BackendData &data, const CeedScalar *U, const CeedScalar *B, CeedScalar *V) {
   for (CeedInt k = 0; k < Q_1D; ++k) {
     V[k] = 0.0;
-    if (data.tidx < Q_1D && data.tidy < Q_1D) {
+    if (data.t_id_x < Q_1D && data.t_id_y < Q_1D) {
       for (CeedInt i = 0; i < P_1D; i++) {
         V[k] += B[i + k*P_1D] * U[i]; // Contract z direction
       }
@@ -318,7 +318,7 @@ template <int NUM_COMP, int P_1D, int Q_1D>
 inline __device__ void ContractTransposeZ3d(BackendData &data, const CeedScalar *U, const CeedScalar *B, CeedScalar *V) {
   for (CeedInt k = 0; k < P_1D; ++k) {
     V[k] = 0.0;
-    if (data.tidx < Q_1D && data.tidy < Q_1D) {
+    if (data.t_id_x < Q_1D && data.t_id_y < Q_1D) {
       for (CeedInt i = 0; i < Q_1D; i++) {
         V[k] += B[k + i*P_1D] * U[i]; // Contract z direction
       }
@@ -333,16 +333,16 @@ template <int NUM_COMP, int P_1D, int Q_1D>
 inline __device__ void ContractTransposeY3d(BackendData &data, const CeedScalar *U, const CeedScalar *B, CeedScalar *V) {
   CeedScalar r_B[Q_1D];
   for (CeedInt i = 0; i < Q_1D; i++) {
-    r_B[i] = B[data.tidy + i*P_1D];
+    r_B[i] = B[data.t_id_y + i*P_1D];
   }
 
   for (CeedInt k = 0; k < P_1D; ++k) {
-    data.slice[data.tidx+data.tidy*T1d] = U[k];
+    data.slice[data.t_id_x+data.t_id_y*T1d] = U[k];
     __syncthreads();
     V[k] = 0.0;
-    if (data.tidx < Q_1D && data.tidy < P_1D) {
+    if (data.t_id_x < Q_1D && data.t_id_y < P_1D) {
       for (CeedInt i = 0; i < Q_1D; i++) {
-        V[k] += r_B[i] * data.slice[data.tidx + i*T1d]; // Contract y direction
+        V[k] += r_B[i] * data.slice[data.t_id_x + i*T1d]; // Contract y direction
       }
     }
     __syncthreads();
@@ -356,15 +356,15 @@ template <int NUM_COMP, int P_1D, int Q_1D>
 inline __device__ void ContractTransposeAddY3d(BackendData &data, const CeedScalar *U, const CeedScalar *B, CeedScalar *V) {
   CeedScalar r_B[Q_1D];
   for (CeedInt i = 0; i < Q_1D; i++) {
-    r_B[i] = B[data.tidy + i*P_1D];
+    r_B[i] = B[data.t_id_y + i*P_1D];
   }
 
   for (CeedInt k = 0; k < P_1D; ++k) {
-    data.slice[data.tidx+data.tidy*T1d] = U[k];
+    data.slice[data.t_id_x+data.t_id_y*T1d] = U[k];
     __syncthreads();
-    if (data.tidx < Q_1D && data.tidy < P_1D) {
+    if (data.t_id_x < Q_1D && data.t_id_y < P_1D) {
       for (CeedInt i = 0; i < Q_1D; i++) {
-        V[k] += r_B[i] * data.slice[data.tidx + i*T1d]; // Contract y direction
+        V[k] += r_B[i] * data.slice[data.t_id_x + i*T1d]; // Contract y direction
       }
     }
     __syncthreads();
@@ -378,16 +378,16 @@ template <int NUM_COMP, int P_1D, int Q_1D>
 inline __device__ void ContractTransposeX3d(BackendData &data, const CeedScalar *U, const CeedScalar *B, CeedScalar *V) {
   CeedScalar r_B[Q_1D];
   for (CeedInt i = 0; i < Q_1D; i++) {
-    r_B[i] = B[data.tidx + i*P_1D];
+    r_B[i] = B[data.t_id_x + i*P_1D];
   }
 
   for (CeedInt k = 0; k < P_1D; ++k) {
-    data.slice[data.tidx+data.tidy*T1d] = U[k];
+    data.slice[data.t_id_x+data.t_id_y*T1d] = U[k];
     __syncthreads();
     V[k] = 0.0;
-    if (data.tidx < P_1D && data.tidy < P_1D) {
+    if (data.t_id_x < P_1D && data.t_id_y < P_1D) {
       for (CeedInt i = 0; i < Q_1D; i++) {
-        V[k] += r_B[i] * data.slice[i + data.tidy*T1d]; // Contract x direction
+        V[k] += r_B[i] * data.slice[i + data.t_id_y*T1d]; // Contract x direction
       }
     }
     __syncthreads();
@@ -401,15 +401,15 @@ template <int NUM_COMP, int P_1D, int Q_1D>
 inline __device__ void ContractTransposeAddX3d(BackendData &data, const CeedScalar *U, const CeedScalar *B, CeedScalar *V) {
   CeedScalar r_B[Q_1D];
   for (CeedInt i = 0; i < Q_1D; i++) {
-    r_B[i] = B[data.tidx + i*P_1D];
+    r_B[i] = B[data.t_id_x + i*P_1D];
   }
 
   for (CeedInt k = 0; k < P_1D; ++k) {
-    data.slice[data.tidx+data.tidy*T1d] = U[k];
+    data.slice[data.t_id_x+data.t_id_y*T1d] = U[k];
     __syncthreads();
-    if (data.tidx < P_1D && data.tidy < P_1D) {
+    if (data.t_id_x < P_1D && data.t_id_y < P_1D) {
       for (CeedInt i = 0; i < Q_1D; i++) {
-        V[k] += r_B[i] * data.slice[i + data.tidy*T1d]; // Contract x direction
+        V[k] += r_B[i] * data.slice[i + data.t_id_y*T1d]; // Contract x direction
       }
     }
     __syncthreads();
