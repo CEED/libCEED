@@ -30,15 +30,15 @@ extern "C" __global__ void Interp(const CeedInt num_elem
   for (CeedInt elem = blockIdx.x*blockDim.z + threadIdx.z; elem < num_elem; elem += gridDim.x*blockDim.z) {
     if (BASIS_DIM == 1) {
       ReadElementStrided1d<BASIS_NUM_COMP, BASIS_P_1D>(data, elem, 1, BASIS_P_1D*num_elem, BASIS_P_1D, d_U, r_U);
-      Interp1d<BASIS_NUM_COMP, BASIS_P_1D, BASIS_Q_1D>(data, d_U, c_B, d_V);
+      Interp1d<BASIS_NUM_COMP, BASIS_P_1D, BASIS_Q_1D>(data, r_U, c_B, r_V);
       WriteElementStrided1d<BASIS_NUM_COMP, BASIS_Q_1D>(data, elem, 1, BASIS_Q_1D*num_elem, BASIS_Q_1D, r_V, d_V);
     } else if (BASIS_DIM == 2) {
       ReadElementStrided2d<BASIS_NUM_COMP, BASIS_P_1D>(data, elem, 1, BASIS_P_1D*BASIS_P_1D*num_elem, BASIS_P_1D*BASIS_P_1D, d_U, r_U);
-      InterpTensor2d<BASIS_NUM_COMP, BASIS_P_1D, BASIS_Q_1D>(data, d_U, c_B, d_V);
+      InterpTensor2d<BASIS_NUM_COMP, BASIS_P_1D, BASIS_Q_1D>(data, r_U, c_B, r_V);
       WriteElementStrided2d<BASIS_NUM_COMP, BASIS_Q_1D>(data, elem, 1, BASIS_Q_1D*BASIS_Q_1D*num_elem, BASIS_Q_1D*BASIS_Q_1D, r_V, d_V);
     } else if (BASIS_DIM == 3) {
       ReadElementStrided3d<BASIS_NUM_COMP, BASIS_P_1D>(data, elem, 1, BASIS_P_1D*BASIS_P_1D*BASIS_P_1D*num_elem, BASIS_P_1D*BASIS_P_1D*BASIS_P_1D, d_U, r_U);
-      InterpTensor3d<BASIS_NUM_COMP, BASIS_P_1D, BASIS_Q_1D>(data, d_U, c_B, d_V);
+      InterpTensor3d<BASIS_NUM_COMP, BASIS_P_1D, BASIS_Q_1D>(data, r_U, c_B, r_V);
       WriteElementStrided3d<BASIS_NUM_COMP, BASIS_Q_1D>(data, elem, 1, BASIS_Q_1D*BASIS_Q_1D*BASIS_Q_1D*num_elem, BASIS_Q_1D*BASIS_Q_1D*BASIS_Q_1D, r_V, d_V);
     }
   }
@@ -63,15 +63,15 @@ extern "C" __global__ void InterpTranspose(const CeedInt num_elem
   for (CeedInt elem = blockIdx.x*blockDim.z + threadIdx.z; elem < num_elem; elem += gridDim.x*blockDim.z) {
     if (BASIS_DIM == 1) {
       ReadElementStrided1d<BASIS_NUM_COMP, BASIS_Q_1D>(data, elem, 1, BASIS_Q_1D*num_elem, BASIS_Q_1D, d_U, r_U);
-      InterpTranspose1d<BASIS_NUM_COMP, BASIS_P_1D, BASIS_Q_1D>(data, d_U, c_B, d_V);
+      InterpTranspose1d<BASIS_NUM_COMP, BASIS_P_1D, BASIS_Q_1D>(data, r_U, c_B, r_V);
       WriteElementStrided1d<BASIS_NUM_COMP, BASIS_P_1D>(data, elem, 1, BASIS_P_1D*num_elem, BASIS_P_1D, r_V, d_V);
     } else if (BASIS_DIM == 2) {
       ReadElementStrided2d<BASIS_NUM_COMP, BASIS_Q_1D>(data, elem, 1, BASIS_Q_1D*BASIS_Q_1D*num_elem, BASIS_Q_1D*BASIS_Q_1D, d_U, r_U);
-      InterpTransposeTensor2d<BASIS_NUM_COMP, BASIS_P_1D, BASIS_Q_1D>(data, d_U, c_B, d_V);
+      InterpTransposeTensor2d<BASIS_NUM_COMP, BASIS_P_1D, BASIS_Q_1D>(data, r_U, c_B, r_V);
       WriteElementStrided2d<BASIS_NUM_COMP, BASIS_P_1D>(data, elem, 1, BASIS_P_1D*BASIS_P_1D*num_elem, BASIS_P_1D*BASIS_P_1D, r_V, d_V);
     } else if (BASIS_DIM == 3) {
       ReadElementStrided3d<BASIS_NUM_COMP, BASIS_Q_1D>(data, elem, 1, BASIS_Q_1D*BASIS_Q_1D*BASIS_Q_1D*num_elem, BASIS_Q_1D*BASIS_Q_1D*BASIS_Q_1D, d_U, r_U);
-      InterpTransposeTensor3d<BASIS_NUM_COMP, BASIS_P_1D, BASIS_Q_1D>(data, d_U, c_B, d_V);
+      InterpTransposeTensor3d<BASIS_NUM_COMP, BASIS_P_1D, BASIS_Q_1D>(data, r_U, c_B, r_V);
       WriteElementStrided3d<BASIS_NUM_COMP, BASIS_P_1D>(data, elem, 1, BASIS_P_1D*BASIS_P_1D*BASIS_P_1D*num_elem, BASIS_P_1D*BASIS_P_1D*BASIS_P_1D, r_V, d_V);
     }
   }
@@ -99,15 +99,15 @@ extern "C" __global__ void Grad(const CeedInt num_elem, const CeedInt transpose,
   for (CeedInt elem = blockIdx.x*blockDim.z + threadIdx.z; elem < num_elem; elem += gridDim.x*blockDim.z) {
     if (BASIS_DIM == 1) {
       ReadElementStrided1d<BASIS_NUM_COMP, BASIS_P_1D>(data, elem, 1, BASIS_P_1D*num_elem, BASIS_P_1D, d_U, r_U);
-      Grad1d<BASIS_NUM_COMP, BASIS_P_1D, BASIS_Q_1D>(data, d_U, c_B, c_G, d_V);
+      Grad1d<BASIS_NUM_COMP, BASIS_P_1D, BASIS_Q_1D>(data, r_U, c_B, c_G, r_V);
       WriteElementStrided1d<BASIS_NUM_COMP, BASIS_Q_1D>(data, elem, 1, BASIS_Q_1D*num_elem, BASIS_Q_1D, r_V, d_V);
     } else if (BASIS_DIM == 2) {
-      ReadElementStrided2d<BASIS_NUM_COMP, BASIS_P_1D>(data, elem, 1, BASIS_P_1D*BASIS_P_1D*num_elem, BASIS_P_1D*BASIS_P_1D, comp, d_U, r_U);
-      GradTensor2d<BASIS_NUM_COMP, BASIS_P_1D, BASIS_Q_1D>(data, d_U, c_B, c_G, d_V);
+      ReadElementStrided2d<BASIS_NUM_COMP, BASIS_P_1D>(data, elem, 1, BASIS_P_1D*BASIS_P_1D*num_elem, BASIS_P_1D*BASIS_P_1D, d_U, r_U);
+      GradTensor2d<BASIS_NUM_COMP, BASIS_P_1D, BASIS_Q_1D>(data, r_U, c_B, c_G, r_V);
       WriteElementStrided2d<BASIS_NUM_COMP, BASIS_Q_1D>(data, elem, 1, BASIS_Q_1D*BASIS_Q_1D*num_elem, BASIS_Q_1D*BASIS_Q_1D, r_V, d_V);
     } else if (BASIS_DIM == 3) {
       ReadElementStrided3d<BASIS_NUM_COMP, BASIS_P_1D>(data, elem, 1, BASIS_P_1D*BASIS_P_1D*BASIS_P_1D*num_elem, BASIS_P_1D*BASIS_P_1D*BASIS_P_1D, d_U, r_U);
-      GradTensor3d<BASIS_NUM_COMP, BASIS_P_1D, BASIS_Q_1D>(data, d_U, c_B, c_G, d_V);
+      GradTensor3d<BASIS_NUM_COMP, BASIS_P_1D, BASIS_Q_1D>(data, r_U, c_B, c_G, r_V);
       WriteElementStrided3d<BASIS_NUM_COMP, BASIS_Q_1D>(data, elem, 1, BASIS_Q_1D*BASIS_Q_1D*BASIS_Q_1D*num_elem, BASIS_Q_1D*BASIS_Q_1D*BASIS_Q_1D, r_V, d_V);
     }
   }
@@ -132,15 +132,15 @@ extern "C" __global__ void GradTranspose(const CeedInt num_elem
   for (CeedInt elem = blockIdx.x*blockDim.z + threadIdx.z; elem < num_elem; elem += gridDim.x*blockDim.z) {
     if (BASIS_DIM == 1) {
       ReadElementStrided1d<BASIS_NUM_COMP, BASIS_Q_1D>(data, elem, 1, BASIS_Q_1D*num_elem, BASIS_Q_1D, d_U, r_U);
-      GradTranspose1d<BASIS_NUM_COMP, BASIS_P_1D, BASIS_Q_1D>(data, d_U, c_B, c_G, d_V);
+      GradTranspose1d<BASIS_NUM_COMP, BASIS_P_1D, BASIS_Q_1D>(data, r_U, c_B, c_G, r_V);
       WriteElementStrided1d<BASIS_NUM_COMP, BASIS_P_1D>(data, elem, 1, BASIS_P_1D*num_elem, BASIS_P_1D, r_V, d_V);
     } else if (BASIS_DIM == 2) {
-      ReadElementStrided2d<BASIS_NUM_COMP, BASIS_Q_1D>(data, elem, 1, BASIS_Q_1D*BASIS_Q_1D*num_elem, BASIS_Q_1D*BASIS_Q_1D, comp, d_U, r_U);
-      GradTransposeTensor2d<BASIS_NUM_COMP, BASIS_P_1D, BASIS_Q_1D>(data, d_U, c_B, c_G, d_V);
+      ReadElementStrided2d<BASIS_NUM_COMP, BASIS_Q_1D>(data, elem, 1, BASIS_Q_1D*BASIS_Q_1D*num_elem, BASIS_Q_1D*BASIS_Q_1D, d_U, r_U);
+      GradTransposeTensor2d<BASIS_NUM_COMP, BASIS_P_1D, BASIS_Q_1D>(data, r_U, c_B, c_G, r_V);
       WriteElementStrided2d<BASIS_NUM_COMP, BASIS_P_1D>(data, elem, 1, BASIS_P_1D*BASIS_P_1D*num_elem, BASIS_P_1D*BASIS_P_1D, r_V, d_V);
     } else if (BASIS_DIM == 3) {
       ReadElementStrided3d<BASIS_NUM_COMP, BASIS_Q_1D>(data, elem, 1, BASIS_Q_1D*BASIS_Q_1D*BASIS_Q_1D*num_elem, BASIS_Q_1D*BASIS_Q_1D*BASIS_Q_1D, d_U, r_U);
-      GradTransposeTensor3d<BASIS_NUM_COMP, BASIS_P_1D, BASIS_Q_1D>(data, d_U, c_B, c_G, d_V);
+      GradTransposeTensor3d<BASIS_NUM_COMP, BASIS_P_1D, BASIS_Q_1D>(data, r_U, c_B, c_G, r_V);
       WriteElementStrided3d<BASIS_NUM_COMP, BASIS_P_1D>(data, elem, 1, BASIS_P_1D*BASIS_P_1D*BASIS_P_1D*num_elem, BASIS_P_1D*BASIS_P_1D*BASIS_P_1D, r_V, d_V);
     }
   }
