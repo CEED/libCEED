@@ -209,6 +209,23 @@ int CeedQFunctionGetNumArgs(CeedQFunction qf, CeedInt *num_input, CeedInt *num_o
   @ref Backend
 **/
 int CeedQFunctionGetKernelName(CeedQFunction qf, char **kernel_name) {
+  if (!qf->kernel_name) {
+    Ceed  ceed;
+    char *kernel_name_copy;
+    CeedCall(CeedQFunctionGetCeed(qf, &ceed));
+
+    if (qf->user_source) {
+      const char *kernel_name     = strrchr(qf->user_source, ':') + 1;
+      size_t      kernel_name_len = strlen(kernel_name);
+
+      CeedCall(CeedCalloc(kernel_name_len + 1, &kernel_name_copy));
+      memcpy(kernel_name_copy, kernel_name, kernel_name_len);
+    } else {
+      CeedCall(CeedCalloc(1, &kernel_name_copy));
+    }
+    qf->kernel_name = kernel_name_copy;
+  }
+
   *kernel_name = (char *)qf->kernel_name;
   return CEED_ERROR_SUCCESS;
 }
@@ -224,6 +241,30 @@ int CeedQFunctionGetKernelName(CeedQFunction qf, char **kernel_name) {
   @ref Backend
 **/
 int CeedQFunctionGetSourcePath(CeedQFunction qf, char **source_path) {
+  if (!qf->source_path && qf->user_source) {
+    Ceed        ceed;
+    bool        is_absolute_path;
+    char       *absolute_path, *source_path_copy;
+    const char *kernel_name     = strrchr(qf->user_source, ':') + 1;
+    size_t      kernel_name_len = strlen(kernel_name);
+
+    CeedCall(CeedQFunctionGetCeed(qf, &ceed));
+
+    CeedCall(CeedCheckFilePath(ceed, qf->user_source, &is_absolute_path));
+    if (is_absolute_path) {
+      absolute_path = (char *)qf->user_source;
+    } else {
+      CeedCall(CeedGetJitAbsolutePath(ceed, qf->user_source, &absolute_path));
+    }
+
+    size_t source_len = strlen(absolute_path) - kernel_name_len - 1;
+    CeedCall(CeedCalloc(source_len + 1, &source_path_copy));
+    memcpy(source_path_copy, absolute_path, source_len);
+    qf->source_path = source_path_copy;
+
+    if (!is_absolute_path) CeedCall(CeedFree(&absolute_path));
+  }
+
   *source_path = (char *)qf->source_path;
   return CEED_ERROR_SUCCESS;
 }
@@ -545,7 +586,7 @@ int CeedQFunctionGetFlopsEstimate(CeedQFunction qf, CeedSize *flops) {
   @ref User
 **/
 int CeedQFunctionCreateInterior(Ceed ceed, CeedInt vec_length, CeedQFunctionUser f, const char *source, CeedQFunction *qf) {
-  char *source_copy, *kernel_name_copy;
+  char *user_source_copy;
 
   if (!ceed->QFunctionCreate) {
     Ceed delegate;
@@ -579,30 +620,11 @@ int CeedQFunctionCreateInterior(Ceed ceed, CeedInt vec_length, CeedQFunctionUser
   (*qf)->function            = f;
   (*qf)->user_flop_estimate  = -1;
   if (strlen(source)) {
-    bool  is_absolute_path;
-    char *absolute_path;
+    size_t user_source_len = strlen(source);
 
-    CeedCall(CeedCheckFilePath(ceed, source, &is_absolute_path));
-    if (is_absolute_path) {
-      absolute_path = (char *)source;
-    } else {
-      CeedCall(CeedGetJitAbsolutePath(ceed, source, &absolute_path));
-    }
-
-    const char *kernel_name     = strrchr(absolute_path, ':') + 1;
-    size_t      kernel_name_len = strlen(kernel_name);
-    CeedCall(CeedCalloc(kernel_name_len + 1, &kernel_name_copy));
-    memcpy(kernel_name_copy, kernel_name, kernel_name_len);
-    (*qf)->kernel_name = kernel_name_copy;
-
-    size_t source_len = strlen(absolute_path) - kernel_name_len - 1;
-    CeedCall(CeedCalloc(source_len + 1, &source_copy));
-    memcpy(source_copy, absolute_path, source_len);
-    (*qf)->source_path = source_copy;
-
-    if (!is_absolute_path) {
-      CeedCall(CeedFree(&absolute_path));
-    }
+    CeedCall(CeedCalloc(user_source_len + 1, &user_source_copy));
+    memcpy(user_source_copy, source, user_source_len);
+    (*qf)->user_source = user_source_copy;
   }
   CeedCall(CeedCalloc(CEED_FIELD_MAX, &(*qf)->input_fields));
   CeedCall(CeedCalloc(CEED_FIELD_MAX, &(*qf)->output_fields));
@@ -922,7 +944,10 @@ int CeedQFunctionSetUserFlopsEstimate(CeedQFunction qf, CeedSize flops) {
   @ref User
 **/
 int CeedQFunctionView(CeedQFunction qf, FILE *stream) {
-  fprintf(stream, "%sCeedQFunction - %s\n", qf->is_gallery ? "Gallery " : "User ", qf->is_gallery ? qf->gallery_name : qf->kernel_name);
+  char *kernel_name;
+
+  CeedCall(CeedQFunctionGetKernelName(qf, &kernel_name));
+  fprintf(stream, "%sCeedQFunction - %s\n", qf->is_gallery ? "Gallery " : "User ", qf->is_gallery ? qf->gallery_name : kernel_name);
 
   fprintf(stream, "  %" CeedInt_FMT " input field%s:\n", qf->num_input_fields, qf->num_input_fields > 1 ? "s" : "");
   for (CeedInt i = 0; i < qf->num_input_fields; i++) {
@@ -1013,6 +1038,7 @@ int CeedQFunctionDestroy(CeedQFunction *qf) {
   // User context data object
   CeedCall(CeedQFunctionContextDestroy(&(*qf)->ctx));
 
+  CeedCall(CeedFree(&(*qf)->user_source));
   CeedCall(CeedFree(&(*qf)->source_path));
   CeedCall(CeedFree(&(*qf)->gallery_name));
   CeedCall(CeedFree(&(*qf)->kernel_name));
