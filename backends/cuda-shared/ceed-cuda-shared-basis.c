@@ -281,6 +281,7 @@ int CeedBasisCreateTensorH1_Cuda_shared(CeedInt dim, CeedInt P_1d, CeedInt Q_1d,
                          "BASIS_Q_1D", Q_1d,
                          "BASIS_P_1D", P_1d,
                          "BASIS_T_1D", CeedIntMax(Q_1d, P_1d),
+                         "T_1D", CeedIntMax(Q_1d, P_1d),
                          "BASIS_BUF_LEN", num_comp * CeedIntPow(Q_1d > P_1d ?
                              Q_1d : P_1d, dim),
                          "BASIS_DIM", dim,
