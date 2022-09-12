@@ -28,7 +28,7 @@ inline __device__ void ReadElementStrided1d(BackendData &data, const CeedInt ele
     const CeedInt node = data.t_id_x;
     const CeedInt ind = node * strides_node + elem * strides_elem;
     for (CeedInt comp = 0; comp < NUM_COMP; comp++) {
-      r_u[comp] = d_u[ind + comp * strides_com];
+      r_u[comp] = d_u[ind + comp * strides_comp];
     }
   }
 }
