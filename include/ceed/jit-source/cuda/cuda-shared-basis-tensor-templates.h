@@ -580,7 +580,7 @@ inline __device__ void Weight1d(BackendData &data, const CeedScalar *__restrict_
 template <int Q_1D>
 inline __device__ void Weight2d(BackendData &data, const CeedScalar *__restrict__ q_weight_1d, CeedScalar *w) {
   *w = (data.t_id_x < Q_1D && data.t_id_y < Q_1d) ?
-        qweight_1d[data.t_id_x]*q_weight_1d[data.t_id_y] : 0.0;
+        q_weight_1d[data.t_id_x]*q_weight_1d[data.t_id_y] : 0.0;
 }
 
 //------------------------------------------------------------------------------
@@ -589,9 +589,9 @@ inline __device__ void Weight2d(BackendData &data, const CeedScalar *__restrict_
 template <int Q_1D>
 inline __device__ void Weight3d(BackendData &data, const CeedScalar *__restrict__ q_weight_1d, CeedScalar *w) {
   const bool quad = (data.t_id_x < Q_1D && data.t_id_y < Q_1D);
-  const CeedScalar pw = quad ? q_weight_1d[data.t_id_x]*qweight_1d[data.t_id_y] : 0.0;
+  const CeedScalar pw = quad ? q_weight_1d[data.t_id_x]*q_weight_1d[data.t_id_y] : 0.0;
   for (CeedInt q = 0; q < Q_1D; q++) {
-    w[q] = quad ? pw*qweight1d[q] : 0.0;
+    w[q] = quad ? pw*q_weight_1d[q] : 0.0;
   }
 }
 

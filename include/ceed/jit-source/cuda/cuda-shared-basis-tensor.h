@@ -104,7 +104,7 @@ extern "C" __global__ void Grad(const CeedInt num_elem, const CeedInt transpose,
     } else if (BASIS_DIM == 2) {
       ReadElementStrided2d<BASIS_NUM_COMP, BASIS_P_1D>(data, elem, 1, BASIS_P_1D*BASIS_P_1D*num_elem, BASIS_P_1D*BASIS_P_1D, comp, d_U, r_U);
       GradTensor2d<BASIS_NUM_COMP, BASIS_P_1D, BASIS_Q_1D>(data, d_U, c_B, c_G, d_V);
-      WriteElementStrided2d<BASIS_NUM_COMP, BASIS_Q_1D>(data, elem, 1, BASIS_Q_1D*BASIS_Q_1D*num_elem, BASIS_Q_1D*BASIS_Q_1D, comp, r_V, d_V);
+      WriteElementStrided2d<BASIS_NUM_COMP, BASIS_Q_1D>(data, elem, 1, BASIS_Q_1D*BASIS_Q_1D*num_elem, BASIS_Q_1D*BASIS_Q_1D, r_V, d_V);
     } else if (BASIS_DIM == 3) {
       ReadElementStrided3d<BASIS_NUM_COMP, BASIS_P_1D>(data, elem, 1, BASIS_P_1D*BASIS_P_1D*BASIS_P_1D*num_elem, BASIS_P_1D*BASIS_P_1D*BASIS_P_1D, d_U, r_U);
       GradTensor3d<BASIS_NUM_COMP, BASIS_P_1D, BASIS_Q_1D>(data, d_U, c_B, c_G, d_V);
@@ -137,7 +137,7 @@ extern "C" __global__ void GradTranspose(const CeedInt num_elem
     } else if (BASIS_DIM == 2) {
       ReadElementStrided2d<BASIS_NUM_COMP, BASIS_Q_1D>(data, elem, 1, BASIS_Q_1D*BASIS_Q_1D*num_elem, BASIS_Q_1D*BASIS_Q_1D, comp, d_U, r_U);
       GradTransposeTensor2d<BASIS_NUM_COMP, BASIS_P_1D, BASIS_Q_1D>(data, d_U, c_B, c_G, d_V);
-      WriteElementStrided2d<BASIS_NUM_COMP, BASIS_P_1D>(data, elem, 1, BASIS_P_1D*BASIS_P_1D*num_elem, BASIS_P_1D*BASIS_P_1D, comp, r_V, d_V);
+      WriteElementStrided2d<BASIS_NUM_COMP, BASIS_P_1D>(data, elem, 1, BASIS_P_1D*BASIS_P_1D*num_elem, BASIS_P_1D*BASIS_P_1D, r_V, d_V);
     } else if (BASIS_DIM == 3) {
       ReadElementStrided3d<BASIS_NUM_COMP, BASIS_Q_1D>(data, elem, 1, BASIS_Q_1D*BASIS_Q_1D*BASIS_Q_1D*num_elem, BASIS_Q_1D*BASIS_Q_1D*BASIS_Q_1D, d_U, r_U);
       GradTransposeTensor3d<BASIS_NUM_COMP, BASIS_P_1D, BASIS_Q_1D>(data, d_U, c_B, c_G, d_V);
@@ -168,7 +168,7 @@ extern "C" __global__ void Weight(const CeedInt num_elem,
     WriteElementStrided1d<1, BASIS_Q_1D>(data, elem, 1, BASIS_Q_1D*num_elem, BASIS_Q_1D, r_W, d_W);
   } else if (BASIS_DIM == 2) {
     Weight2d<BASIS_Q_1D>(data, q_weight_1d, r_W);
-    WriteElementStrided2d<1, BASIS_Q_1D>(data, elem, 1, BASIS_Q_1D*BASIS_Q_1D*num_elem, BASIS_Q_1D*BASIS_Q_1D, comp, r_W, d_W);
+    WriteElementStrided2d<1, BASIS_Q_1D>(data, elem, 1, BASIS_Q_1D*BASIS_Q_1D*num_elem, BASIS_Q_1D*BASIS_Q_1D, r_W, d_W);
   } else if (BASIS_DIM == 3) {
     Weight3d<BASIS_Q_1D>(data, q_weight_1d, r_W);
     WriteElementStrided3d<1, BASIS_Q_1D>(data, elem, 1, BASIS_Q_1D*BASIS_Q_1D*BASIS_Q_1D*num_elem, BASIS_Q_1D*BASIS_Q_1D*BASIS_Q_1D, r_W, d_W);
