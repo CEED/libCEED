@@ -579,7 +579,7 @@ inline __device__ void Weight1d(BackendData &data, const CeedScalar *__restrict_
 //------------------------------------------------------------------------------
 template <int Q_1D>
 inline __device__ void Weight2d(BackendData &data, const CeedScalar *__restrict__ q_weight_1d, CeedScalar *w) {
-  *w = (data.t_id_x < Q_1D && data.t_id_y < Q_1d) ?
+  *w = (data.t_id_x < Q_1D && data.t_id_y < Q_1D) ?
         q_weight_1d[data.t_id_x]*q_weight_1d[data.t_id_y] : 0.0;
 }
 
