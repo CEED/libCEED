@@ -93,8 +93,8 @@ extern "C" __global__ void Grad(const CeedInt num_elem,
   data.t_id  = threadIdx.x + threadIdx.y*blockDim.x + threadIdx.z*blockDim.y*blockDim.x;
   data.slice = slice + data.t_id_z * T_1D * (BASIS_DIM > 1 ? T_1D : 1);
 
-  CeedScalar r_U[BASIS_NUM_COMP * BASIS_P_1D];
-  CeedScalar r_V[BASIS_NUM_COMP * BASIS_Q_1D];
+  CeedScalar r_U[BASIS_NUM_COMP * BASIS_P_1D * BASIS_DIM];
+  CeedScalar r_V[BASIS_NUM_COMP * BASIS_Q_1D * BASIS_DIM];
 
   for (CeedInt elem = blockIdx.x*blockDim.z + threadIdx.z; elem < num_elem; elem += gridDim.x*blockDim.z) {
     if (BASIS_DIM == 1) {
@@ -126,8 +126,8 @@ extern "C" __global__ void GradTranspose(const CeedInt num_elem,
   data.t_id  = threadIdx.x + threadIdx.y*blockDim.x + threadIdx.z*blockDim.y*blockDim.x;
   data.slice = slice + data.t_id_z * T_1D * (BASIS_DIM > 1 ? T_1D : 1);
 
-  CeedScalar r_U[BASIS_NUM_COMP * BASIS_Q_1D];
-  CeedScalar r_V[BASIS_NUM_COMP * BASIS_P_1D];
+  CeedScalar r_U[BASIS_NUM_COMP * BASIS_Q_1D * BASIS_DIM];
+  CeedScalar r_V[BASIS_NUM_COMP * BASIS_P_1D * BASIS_DIM];
 
   for (CeedInt elem = blockIdx.x*blockDim.z + threadIdx.z; elem < num_elem; elem += gridDim.x*blockDim.z) {
     if (BASIS_DIM == 1) {
