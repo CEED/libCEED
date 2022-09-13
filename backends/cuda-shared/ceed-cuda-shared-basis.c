@@ -38,7 +38,6 @@ int CeedBasisApplyTensor_Cuda_shared(CeedBasis basis, const CeedInt num_elem,
   CeedGetData(ceed, &ceed_Cuda); CeedChkBackend(ierr);
   CeedBasis_Cuda_shared *data;
   CeedBasisGetData(basis, &data); CeedChkBackend(ierr);
-  const CeedInt transpose = t_mode == CEED_TRANSPOSE;
   CeedInt dim, num_comp;
   ierr = CeedBasisGetDimension(basis, &dim); CeedChkBackend(ierr);
   ierr = CeedBasisGetNumComponents(basis, &num_comp); CeedChkBackend(ierr);
@@ -50,13 +49,6 @@ int CeedBasisApplyTensor_Cuda_shared(CeedBasis basis, const CeedInt num_elem,
     ierr = CeedVectorGetArrayRead(u, CEED_MEM_DEVICE, &d_u); CeedChkBackend(ierr);
   }
   ierr = CeedVectorGetArrayWrite(v, CEED_MEM_DEVICE, &d_v); CeedChkBackend(ierr);
-
-  // Clear v for transpose mode
-  if (t_mode == CEED_TRANSPOSE) {
-    CeedSize length;
-    ierr = CeedVectorGetLength(v, &length); CeedChkBackend(ierr);
-    ierr = cudaMemset(d_v, 0, length * sizeof(CeedScalar)); CeedChkBackend(ierr);
-  }
 
   // Apply basis operation
   switch (eval_mode) {

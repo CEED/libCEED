@@ -42,7 +42,7 @@ inline __device__ void WriteElementStrided1d(BackendData &data, const CeedInt el
     const CeedInt node = data.t_id_x;
     const CeedInt ind = node * strides_node + elem * strides_elem;
     for (CeedInt comp = 0; comp < NUM_COMP; comp++) {
-      d_v[ind + comp * strides_comp] += r_v[comp];
+      d_v[ind + comp * strides_comp] = r_v[comp];
     }
   }
 }
@@ -146,7 +146,7 @@ inline __device__ void WriteElementStrided2d(BackendData &data, const CeedInt el
     const CeedInt node = data.t_id_x + data.t_id_y*P_1D;
     const CeedInt ind = node * strides_node + elem * strides_elem;
     for (CeedInt comp = 0; comp < NUM_COMP; comp++) {
-      d_v[ind + comp * strides_comp] += r_v[comp];
+      d_v[ind + comp * strides_comp] = r_v[comp];
     }
   }
 }
@@ -326,7 +326,7 @@ inline __device__ void WriteElementStrided3d(BackendData &data, const CeedInt el
       const CeedInt node = data.t_id_x + data.t_id_y*P_1D + z*P_1D*P_1D;
       const CeedInt ind = node * strides_node + elem * strides_elem;
       for (CeedInt comp = 0; comp < NUM_COMP; comp++) {
-        d_v[ind + comp * strides_comp] += r_v[z + comp * P_1D];
+        d_v[ind + comp * strides_comp] = r_v[z + comp * P_1D];
       }
     }
   }
