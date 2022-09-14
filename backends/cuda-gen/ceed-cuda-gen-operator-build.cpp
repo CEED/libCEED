@@ -212,12 +212,12 @@ extern "C" int CeedCudaGenOperatorBuild(CeedOperator op) {
     ierr = CeedQFunctionFieldGetEvalMode(qfinputfields[i], &emode);
     CeedChkBackend(ierr);
     if (emode != CEED_EVAL_WEIGHT) { // Skip CEED_EVAL_WEIGHT
-      code << "  const CeedScalar* d_u" <<i<<" = fields.inputs["<<i<<"];\n";
+      code << "  const CeedScalar* d_u_" <<i<<" = fields.inputs["<<i<<"];\n";
     }
   }
 
   for (CeedInt i = 0; i < numoutputfields; i++) {
-    code << "  CeedScalar* d_v"<<i<<" = fields.outputs["<<i<<"];\n";
+    code << "  CeedScalar* d_v_"<<i<<" = fields.outputs["<<i<<"];\n";
   }
 
   code << "  const CeedInt dim = "<<dim<<";\n";
@@ -393,7 +393,7 @@ extern "C" int CeedCudaGenOperatorBuild(CeedOperator op) {
         code << "    // CompStride: "<<compstride<<"\n";
         ierr = CeedElemRestrictionGetData(Erestrict, &restr_data); CeedChkBackend(ierr);
         data->indices.in[i] = restr_data->d_ind;
-        code << "    readDofsOffset"<<dim<<"d<num_comp_in_"<<i<<", "<<compstride<<", P_in_"<<i<<">(data, lsize_in_"<<i<<", elem, indices.inputs["<<i<<"], d_u"<<i<<", r_u_"<<i<<");\n";
+        code << "    readDofsOffset"<<dim<<"d<num_comp_in_"<<i<<", "<<compstride<<", P_in_"<<i<<">(data, lsize_in_"<<i<<", elem, indices.inputs["<<i<<"], d_u_"<<i<<", r_u_"<<i<<");\n";
       } else {
         bool backendstrides;
         ierr = CeedElemRestrictionHasBackendStrides(Erestrict, &backendstrides);
@@ -407,7 +407,7 @@ extern "C" int CeedCudaGenOperatorBuild(CeedOperator op) {
           CeedChkBackend(ierr);
         }
         code << "    // Strides: {"<<strides[0]<<", "<<strides[1]<<", "<<strides[2]<<"}\n";
-        code << "    readDofsStrided"<<dim<<"d<num_comp_in_"<<i<<",P_in_"<<i<<","<<strides[0]<<","<<strides[1]<<","<<strides[2]<<">(data, elem, d_u"<<i<<", r_u_"<<i<<");\n";
+        code << "    readDofsStrided"<<dim<<"d<num_comp_in_"<<i<<",P_in_"<<i<<","<<strides[0]<<","<<strides[1]<<","<<strides[2]<<">(data, elem, d_u_"<<i<<", r_u_"<<i<<");\n";
       }
     }
 
@@ -502,7 +502,7 @@ extern "C" int CeedCudaGenOperatorBuild(CeedOperator op) {
           code << "      // CompStride: "<<compstride<<"\n";
           ierr = CeedElemRestrictionGetData(Erestrict, &restr_data); CeedChkBackend(ierr);
           data->indices.in[i] = restr_data->d_ind;
-          code << "      readSliceQuadsOffset"<<"3d<num_comp_in_"<<i<<", "<<compstride<<", Q_1d>(data, lsize_in_"<<i<<", elem, q, indices.inputs["<<i<<"], d_u"<<i<<", r_q_"<<i<<");\n";
+          code << "      readSliceQuadsOffset"<<"3d<num_comp_in_"<<i<<", "<<compstride<<", Q_1d>(data, lsize_in_"<<i<<", elem, q, indices.inputs["<<i<<"], d_u_"<<i<<", r_q_"<<i<<");\n";
         } else {
           ierr = CeedElemRestrictionGetElementSize(Erestrict, &elem_size); CeedChkBackend(ierr);
           bool backendstrides;
@@ -517,7 +517,7 @@ extern "C" int CeedCudaGenOperatorBuild(CeedOperator op) {
             CeedChkBackend(ierr);
           }
           code << "      // Strides: {"<<strides[0]<<", "<<strides[1]<<", "<<strides[2]<<"}\n";
-          code << "      readSliceQuadsStrided"<<"3d<num_comp_in_"<<i<<",Q_1d"","<<strides[0]<<","<<strides[1]<<","<<strides[2]<<">(data, elem, q, d_u"<<i<<", r_q_"<<i<<");\n";
+          code << "      readSliceQuadsStrided"<<"3d<num_comp_in_"<<i<<",Q_1d"","<<strides[0]<<","<<strides[1]<<","<<strides[2]<<">(data, elem, q, d_u_"<<i<<", r_q_"<<i<<");\n";
         }
         break;
       case CEED_EVAL_INTERP:
@@ -690,7 +690,7 @@ extern "C" int CeedCudaGenOperatorBuild(CeedOperator op) {
       code << "    // CompStride: "<<compstride<<"\n";
       ierr = CeedElemRestrictionGetData(Erestrict, &restr_data); CeedChkBackend(ierr);
       data->indices.out[i] = restr_data->d_ind;
-      code << "    writeDofsOffset"<<dim<<"d<num_comp_out_"<<i<<", "<<compstride<<", P_out_"<<i<<">(data, lsize_out_"<<i<<", elem, indices.outputs["<<i<<"], r_v_"<<i<<", d_v"<<i<<");\n";
+      code << "    writeDofsOffset"<<dim<<"d<num_comp_out_"<<i<<", "<<compstride<<", P_out_"<<i<<">(data, lsize_out_"<<i<<", elem, indices.outputs["<<i<<"], r_v_"<<i<<", d_v_"<<i<<");\n";
     } else {
       bool has_backend_strides;
       ierr = CeedElemRestrictionHasBackendStrides(Erestrict, &has_backend_strides);
@@ -704,7 +704,7 @@ extern "C" int CeedCudaGenOperatorBuild(CeedOperator op) {
         CeedChkBackend(ierr);
       }
       code << "    // Strides: {"<<strides[0]<<", "<<strides[1]<<", "<<strides[2]<<"}\n";
-      code << "    writeDofsStrided"<<dim<<"d<num_comp_out_"<<i<<",P_out_"<<i<<","<<strides[0]<<","<<strides[1]<<","<<strides[2]<<">(data, elem, r_v_"<<i<<", d_v"<<i<<");\n";
+      code << "    writeDofsStrided"<<dim<<"d<num_comp_out_"<<i<<",P_out_"<<i<<","<<strides[0]<<","<<strides[1]<<","<<strides[2]<<">(data, elem, r_v_"<<i<<", d_v_"<<i<<");\n";
     }
   }
 
