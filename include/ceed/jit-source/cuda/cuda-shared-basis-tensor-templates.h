@@ -6,7 +6,6 @@
 // This file is part of CEED:  http://github.com/ceed
 
 #include <ceed.h>
-#include "cuda-shared-basis-read-write-templates.h"
 
 //------------------------------------------------------------------------------
 // 1D
