@@ -216,16 +216,7 @@ int main(int argc, const char *argv[]) {
   CeedVectorCreate(ceed, num_elem*elem_qpts, &q_data);
   CeedOperatorApply(op_build, mesh_coords, q_data,
                     CEED_REQUEST_IMMEDIATE);
-{
-CeedVector X_in, J_out;
-CeedElemRestrictionCreateVector(mesh_restr, NULL, &X_in);
-CeedVectorCreate(ceed, dim*dim*elem_qpts*elem_qpts*elem_qpts, &J_out);
-//CeedElemRestrictionApply(mesh_restr, CEED_NOTRANSPOSE, mesh_coords, X_in, CEED_REQUEST_IMMEDIATE);
-//CeedBasisApply(mesh_basis, num_elem, CEED_NOTRANSPOSE, CEED_EVAL_GRAD, X_in, J_out);
-//printf("--- %d ---\n", num_elem);
-//CeedVectorView(J_out, "%12.8f", stdout);
-//return 0;
-}
+
   // Create the QFunction that defines the action of the mass operator.
   CeedQFunction qf_apply;
   switch (gallery) {
