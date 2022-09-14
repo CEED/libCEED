@@ -288,13 +288,14 @@ CEED_QFUNCTION(Preprocess_STGShur14)(void *ctx, CeedInt Q,
     SpectrumConstants(dw, eps, lt, h, nu, &hmax, &ke, &keta, &kcut);
 
     // Calculate total TKE per spectrum
-    stg_data[i] = 0.;
+    CeedScalar Ek_tot=0;
     CeedPragmaSIMD
     for(CeedInt n=0; n<nmodes; n++) {
       const CeedScalar dkappa = n==0 ? kappa[0] : kappa[n] - kappa[n-1];
-      stg_data[i] += Calc_qn(kappa[n], dkappa, keta, kcut, ke, 1.0);
+      Ek_tot += Calc_qn(kappa[n], dkappa, keta, kcut, ke, 1.0);
     }
-    stg_data[i] = 1/stg_data[i];
+    // avoid underflowed and poorly defined spectrum coefficients
+    stg_data[i] = Ek_tot != 0 ? 1/Ek_tot : 0;
   }
   return 0;
 }
