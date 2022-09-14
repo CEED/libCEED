@@ -17,7 +17,7 @@ extern "C" __global__ void Interp(const CeedInt num_elem,
                                 CeedScalar *__restrict__ d_V) {
   extern __shared__ CeedScalar slice[];
 
-  BackendData data;
+  SharedData_Cuda data;
   data.t_id_x = threadIdx.x;
   data.t_id_y = threadIdx.y;
   data.t_id_z = threadIdx.z;
@@ -50,7 +50,7 @@ extern "C" __global__ void InterpTranspose(const CeedInt num_elem,
                                 CeedScalar *__restrict__ d_V) {
   extern __shared__ CeedScalar slice[];
 
-  BackendData data;
+  SharedData_Cuda data;
   data.t_id_x = threadIdx.x;
   data.t_id_y = threadIdx.y;
   data.t_id_z = threadIdx.z;
@@ -86,7 +86,7 @@ extern "C" __global__ void Grad(const CeedInt num_elem,
                                 CeedScalar *__restrict__ d_V) {
   extern __shared__ CeedScalar slice[];
 
-  BackendData data;
+  SharedData_Cuda data;
   data.t_id_x = threadIdx.x;
   data.t_id_y = threadIdx.y;
   data.t_id_z = threadIdx.z;
@@ -119,7 +119,7 @@ extern "C" __global__ void GradTranspose(const CeedInt num_elem,
                                 CeedScalar *__restrict__ d_V) {
   extern __shared__ CeedScalar slice[];
 
-  BackendData data;
+  SharedData_Cuda data;
   data.t_id_x = threadIdx.x;
   data.t_id_y = threadIdx.y;
   data.t_id_z = threadIdx.z;
@@ -154,7 +154,7 @@ extern "C" __global__ void Weight(const CeedInt num_elem,
                                   CeedScalar *__restrict__ d_W) {
   extern __shared__ CeedScalar slice[];
 
-  BackendData data;
+  SharedData_Cuda data;
   data.t_id_x = threadIdx.x;
   data.t_id_y = threadIdx.y;
   data.t_id_z = threadIdx.z;
