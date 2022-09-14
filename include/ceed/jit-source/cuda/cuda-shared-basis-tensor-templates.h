@@ -292,7 +292,7 @@ inline __device__ void GradTransposeTensor2d(BackendData &data, const CeedScalar
 template <int NUM_COMP, int P_1D>
 inline __device__ void ReadElementStrided3d(BackendData &data, const CeedInt elem, const CeedInt strides_node, const CeedInt strides_comp, const CeedInt strides_elem, const CeedScalar *__restrict__ d_u, CeedScalar *r_u) {
   if (data.t_id_x < P_1D && data.t_id_y < P_1D) {
-    for (CeedInt z = 0; z < P_1D; ++z) {
+    for (CeedInt z = 0; z < P_1D; z++) {
       const CeedInt node = data.t_id_x + data.t_id_y*P_1D + z*P_1D*P_1D;
       const CeedInt ind = node * strides_node + elem * strides_elem;
       for (CeedInt comp = 0; comp < NUM_COMP; comp++) {
@@ -322,7 +322,7 @@ inline __device__ void ReadElementSliceStrided3d(BackendData &data, const CeedIn
 template <int NUM_COMP, int P_1D>
 inline __device__ void WriteElementStrided3d(BackendData &data, const CeedInt elem, const CeedInt strides_node, const CeedInt strides_comp, const CeedInt strides_elem, const CeedScalar *r_v, CeedScalar *d_v) {
   if (data.t_id_x < P_1D && data.t_id_y < P_1D) {
-    for (CeedInt z = 0; z < P_1D; ++z) {
+    for (CeedInt z = 0; z < P_1D; z++) {
       const CeedInt node = data.t_id_x + data.t_id_y*P_1D + z*P_1D*P_1D;
       const CeedInt ind = node * strides_node + elem * strides_elem;
       for (CeedInt comp = 0; comp < NUM_COMP; comp++) {
@@ -342,7 +342,7 @@ inline __device__ void ContractX3d(BackendData &data, const CeedScalar *U, const
     r_B[i] = B[i + data.t_id_x*P_1D];
   }
 
-  for (CeedInt k = 0; k < P_1D; ++k) {
+  for (CeedInt k = 0; k < P_1D; k++) {
     data.slice[data.t_id_x+data.t_id_y*T_1D] = U[k];
     __syncthreads();
     V[k] = 0.0;
@@ -365,7 +365,7 @@ inline __device__ void ContractY3d(BackendData &data, const CeedScalar *U, const
     r_B[i] = B[i + data.t_id_y*P_1D];
   }
 
-  for (CeedInt k = 0; k < P_1D; ++k) {
+  for (CeedInt k = 0; k < P_1D; k++) {
     data.slice[data.t_id_x+data.t_id_y*T_1D] = U[k];
     __syncthreads();
     V[k] = 0.0;
@@ -383,7 +383,7 @@ inline __device__ void ContractY3d(BackendData &data, const CeedScalar *U, const
 //------------------------------------------------------------------------------
 template <int NUM_COMP, int P_1D, int Q_1D>
 inline __device__ void ContractZ3d(BackendData &data, const CeedScalar *U, const CeedScalar *B, CeedScalar *V) {
-  for (CeedInt k = 0; k < Q_1D; ++k) {
+  for (CeedInt k = 0; k < Q_1D; k++) {
     V[k] = 0.0;
     if (data.t_id_x < Q_1D && data.t_id_y < Q_1D) {
       for (CeedInt i = 0; i < P_1D; i++) {
@@ -398,7 +398,7 @@ inline __device__ void ContractZ3d(BackendData &data, const CeedScalar *U, const
 //------------------------------------------------------------------------------
 template <int NUM_COMP, int P_1D, int Q_1D>
 inline __device__ void ContractTransposeZ3d(BackendData &data, const CeedScalar *U, const CeedScalar *B, CeedScalar *V) {
-  for (CeedInt k = 0; k < P_1D; ++k) {
+  for (CeedInt k = 0; k < P_1D; k++) {
     V[k] = 0.0;
     if (data.t_id_x < Q_1D && data.t_id_y < Q_1D) {
       for (CeedInt i = 0; i < Q_1D; i++) {
@@ -418,32 +418,10 @@ inline __device__ void ContractTransposeY3d(BackendData &data, const CeedScalar 
     r_B[i] = B[data.t_id_y + i*P_1D];
   }
 
-  for (CeedInt k = 0; k < P_1D; ++k) {
+  for (CeedInt k = 0; k < P_1D; k++) {
     data.slice[data.t_id_x+data.t_id_y*T_1D] = U[k];
     __syncthreads();
     V[k] = 0.0;
-    if (data.t_id_x < Q_1D && data.t_id_y < P_1D) {
-      for (CeedInt i = 0; i < Q_1D; i++) {
-        V[k] += r_B[i] * data.slice[data.t_id_x + i*T_1D]; // Contract y direction
-      }
-    }
-    __syncthreads();
-  }
-}
-
-//------------------------------------------------------------------------------
-// 3D transpose tensor contract add y
-//------------------------------------------------------------------------------
-template <int NUM_COMP, int P_1D, int Q_1D>
-inline __device__ void ContractTransposeAddY3d(BackendData &data, const CeedScalar *U, const CeedScalar *B, CeedScalar *V) {
-  CeedScalar r_B[Q_1D];
-  for (CeedInt i = 0; i < Q_1D; i++) {
-    r_B[i] = B[data.t_id_y + i*P_1D];
-  }
-
-  for (CeedInt k = 0; k < P_1D; ++k) {
-    data.slice[data.t_id_x+data.t_id_y*T_1D] = U[k];
-    __syncthreads();
     if (data.t_id_x < Q_1D && data.t_id_y < P_1D) {
       for (CeedInt i = 0; i < Q_1D; i++) {
         V[k] += r_B[i] * data.slice[data.t_id_x + i*T_1D]; // Contract y direction
@@ -463,7 +441,7 @@ inline __device__ void ContractTransposeX3d(BackendData &data, const CeedScalar 
     r_B[i] = B[data.t_id_x + i*P_1D];
   }
 
-  for (CeedInt k = 0; k < P_1D; ++k) {
+  for (CeedInt k = 0; k < P_1D; k++) {
     data.slice[data.t_id_x+data.t_id_y*T_1D] = U[k];
     __syncthreads();
     V[k] = 0.0;
@@ -486,7 +464,7 @@ inline __device__ void ContractTransposeAddX3d(BackendData &data, const CeedScal
     r_B[i] = B[data.t_id_x + i*P_1D];
   }
 
-  for (CeedInt k = 0; k < P_1D; ++k) {
+  for (CeedInt k = 0; k < P_1D; k++) {
     data.slice[data.t_id_x+data.t_id_y*T_1D] = U[k];
     __syncthreads();
     if (data.t_id_x < P_1D && data.t_id_y < P_1D) {
