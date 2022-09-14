@@ -161,7 +161,7 @@ extern "C" __global__ void Weight(const CeedInt num_elem,
   data.t_id  = threadIdx.x + threadIdx.y*blockDim.x + threadIdx.z*blockDim.y*blockDim.x;
   data.slice = slice + data.t_id_z * T_1D * (BASIS_DIM > 1 ? T_1D : 1);
 
-  CeedScalar r_W[1];
+  CeedScalar r_W[BASIS_DIM > 2 ? BASIS_Q_1D : 1];
 
   for (CeedInt elem = blockIdx.x*blockDim.z + threadIdx.z; elem < num_elem; elem += gridDim.x*blockDim.z) {
     if (BASIS_DIM == 1) {
