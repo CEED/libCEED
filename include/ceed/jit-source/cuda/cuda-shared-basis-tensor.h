@@ -5,6 +5,11 @@
 //
 // This file is part of CEED:  http://github.com/ceed
 
+/// @file
+/// Internal header for CUDA shared memory tensor product basis
+#ifndef _ceed_cuda_shared_basis_tensor_h
+#define _ceed_cuda_shared_basis_tensor_h
+
 #include <ceed.h>
 #include "cuda-shared-basis-read-write-templates.h"
 #include "cuda-shared-basis-tensor-templates.h"
@@ -171,13 +176,15 @@ extern "C" __global__ void Weight(const CeedInt num_elem,
       Weight1d<BASIS_Q_1D>(data, q_weight_1d, r_W);
       WriteElementStrided1d<1, BASIS_Q_1D>(data, elem, 1, BASIS_Q_1D*num_elem, BASIS_Q_1D, r_W, d_W);
     } else if (BASIS_DIM == 2) {
-      Weight2d<BASIS_Q_1D>(data, q_weight_1d, r_W);
+      WeightTensor2d<BASIS_Q_1D>(data, q_weight_1d, r_W);
       WriteElementStrided2d<1, BASIS_Q_1D>(data, elem, 1, BASIS_Q_1D*BASIS_Q_1D*num_elem, BASIS_Q_1D*BASIS_Q_1D, r_W, d_W);
     } else if (BASIS_DIM == 3) {
-      Weight3d<BASIS_Q_1D>(data, q_weight_1d, r_W);
+      WeightTensor3d<BASIS_Q_1D>(data, q_weight_1d, r_W);
       WriteElementStrided3d<1, BASIS_Q_1D>(data, elem, 1, BASIS_Q_1D*BASIS_Q_1D*BASIS_Q_1D*num_elem, BASIS_Q_1D*BASIS_Q_1D*BASIS_Q_1D, r_W, d_W);
     }
   }
 }
 
 //------------------------------------------------------------------------------
+
+#endif

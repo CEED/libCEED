@@ -5,6 +5,11 @@
 //
 // This file is part of CEED:  http://github.com/ceed
 
+/// @file
+/// Internal header for CUDA shared memory basis read/write templates
+#ifndef _ceed_cuda_shared_basis_read_write_templates_h
+#define _ceed_cuda_shared_basis_read_write_templates_h
+
 #include <ceed.h>
 
 //------------------------------------------------------------------------------
@@ -108,3 +113,5 @@ inline __device__ void WriteElementStrided3d(SharedData_Cuda &data, const CeedIn
 }
 
 //------------------------------------------------------------------------------
+
+#endif

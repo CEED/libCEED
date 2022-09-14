@@ -5,6 +5,11 @@
 //
 // This file is part of CEED:  http://github.com/ceed
 
+/// @file
+/// Internal header for CUDA shared memory tensor product basis templates
+#ifndef _ceed_cuda_shared_basis_tensor_templates_h
+#define _ceed_cuda_shared_basis_tensor_templates_h
+
 #include <ceed.h>
 
 //------------------------------------------------------------------------------
@@ -230,7 +235,7 @@ inline __device__ void GradTransposeTensor2d(SharedData_Cuda &data, const CeedSc
 // 2D quadrature weights
 //------------------------------------------------------------------------------
 template <int Q_1D>
-inline __device__ void Weight2d(SharedData_Cuda &data, const CeedScalar *__restrict__ q_weight_1d, CeedScalar *w) {
+inline __device__ void WeightTensor2d(SharedData_Cuda &data, const CeedScalar *__restrict__ q_weight_1d, CeedScalar *w) {
   *w = (data.t_id_x < Q_1D && data.t_id_y < Q_1D) ?
         q_weight_1d[data.t_id_x]*q_weight_1d[data.t_id_y] : 0.0;
 }
@@ -511,7 +516,7 @@ inline __device__ void GradTransposeTensorCollocated3d(SharedData_Cuda &data, co
 // 3D quadrature weights
 //------------------------------------------------------------------------------
 template <int Q_1D>
-inline __device__ void Weight3d(SharedData_Cuda &data, const CeedScalar *__restrict__ q_weight_1d, CeedScalar *w) {
+inline __device__ void WeightTensor3d(SharedData_Cuda &data, const CeedScalar *__restrict__ q_weight_1d, CeedScalar *w) {
   const bool quad = (data.t_id_x < Q_1D && data.t_id_y < Q_1D);
   const CeedScalar pw = quad ? q_weight_1d[data.t_id_x]*q_weight_1d[data.t_id_y] : 0.0;
   for (CeedInt q = 0; q < Q_1D; q++) {
@@ -520,3 +525,5 @@ inline __device__ void Weight3d(SharedData_Cuda &data, const CeedScalar *__restr
 }
 
 //------------------------------------------------------------------------------
+
+#endif

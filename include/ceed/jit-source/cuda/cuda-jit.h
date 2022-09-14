@@ -18,6 +18,7 @@
 #include <ceed/types.h>
 
 typedef struct { const CeedScalar* inputs[16]; CeedScalar* outputs[16]; } Fields_Cuda;
+typedef struct { CeedInt* inputs[16]; CeedInt* outputs[16]; } FieldsInt_Cuda;
 
 typedef struct {
   CeedInt t_id_x;
