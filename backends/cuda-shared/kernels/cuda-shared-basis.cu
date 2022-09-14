@@ -17,8 +17,8 @@ __constant__ CeedScalar c_G[sizeMax*sizeMax];
 //------------------------------------------------------------------------------
 extern "C" int CeedCudaInitInterp(CeedScalar *d_B, CeedInt P_1d, CeedInt Q_1d,
                                   CeedScalar **c_B_ptr) {
-  const int Bsize = P_1d*Q_1d*sizeof(CeedScalar);
-  cudaMemcpyToSymbol(c_B, d_B, Bsize, 0, cudaMemcpyDeviceToDevice);
+  const int bytes = P_1d*Q_1d*sizeof(CeedScalar);
+  cudaMemcpyToSymbol(c_B, d_B, bytes, 0, cudaMemcpyDeviceToDevice);
   cudaGetSymbolAddress((void **)c_B_ptr, c_B);
 
   return CEED_ERROR_SUCCESS;
@@ -27,14 +27,30 @@ extern "C" int CeedCudaInitInterp(CeedScalar *d_B, CeedInt P_1d, CeedInt Q_1d,
 //------------------------------------------------------------------------------
 // Grad device initalization
 //------------------------------------------------------------------------------
-extern "C" int CeedCudaInitInterpGrad(CeedScalar *d_B, CeedScalar *d_G,
+extern "C" int CeedCudaInitGrad(CeedScalar *d_B, CeedScalar *d_G,
     CeedInt P_1d, CeedInt Q_1d, CeedScalar **c_B_ptr, CeedScalar **c_G_ptr) {
-  const int Bsize = P_1d*Q_1d*sizeof(CeedScalar);
-  cudaMemcpyToSymbol(c_B, d_B, Bsize, 0, cudaMemcpyDeviceToDevice);
+  const int bytes = P_1d*Q_1d*sizeof(CeedScalar);
+  cudaMemcpyToSymbol(c_B, d_B, bytes, 0, cudaMemcpyDeviceToDevice);
   cudaGetSymbolAddress((void **)c_B_ptr, c_B);
-  cudaMemcpyToSymbol(c_G, d_G, Bsize, 0, cudaMemcpyDeviceToDevice);
+  cudaMemcpyToSymbol(c_G, d_G, bytes, 0, cudaMemcpyDeviceToDevice);
   cudaGetSymbolAddress((void **)c_G_ptr, c_G);
 
   return CEED_ERROR_SUCCESS;
 }
+
+//------------------------------------------------------------------------------
+// Collocated grad device initalization
+//------------------------------------------------------------------------------
+extern "C" int CeedCudaInitCollocatedGrad(CeedScalar *d_B, CeedScalar *d_G,
+    CeedInt P_1d, CeedInt Q_1d, CeedScalar **c_B_ptr, CeedScalar **c_G_ptr) {
+  const int bytes_interp = P_1d*Q_1d*sizeof(CeedScalar);
+  cudaMemcpyToSymbol(c_B, d_B, bytes_interp, 0, cudaMemcpyDeviceToDevice);
+  cudaGetSymbolAddress((void **)c_B_ptr, c_B);
+  const int bytes_grad = Q_1d*Q_1d*sizeof(CeedScalar);
+  cudaMemcpyToSymbol(c_G, d_G, bytes_grad, 0, cudaMemcpyDeviceToDevice);
+  cudaGetSymbolAddress((void **)c_G_ptr, c_G);
+
+  return CEED_ERROR_SUCCESS;
+}
+
 //------------------------------------------------------------------------------

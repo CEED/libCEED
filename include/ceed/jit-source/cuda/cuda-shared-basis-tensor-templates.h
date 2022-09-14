@@ -339,6 +339,28 @@ inline __device__ void ContractTransposeY3d(SharedData_Cuda &data, const CeedSca
 }
 
 //------------------------------------------------------------------------------
+// 3D transpose tensor contract y
+//------------------------------------------------------------------------------
+template <int NUM_COMP, int P_1D, int Q_1D>
+inline __device__ void ContractTransposeAddY3d(SharedData_Cuda &data, const CeedScalar *U, const CeedScalar *B, CeedScalar *V) {
+  CeedScalar r_B[Q_1D];
+  for (CeedInt i = 0; i < Q_1D; i++) {
+    r_B[i] = B[data.t_id_y + i*P_1D];
+  }
+
+  for (CeedInt k = 0; k < P_1D; k++) {
+    data.slice[data.t_id_x+data.t_id_y*T_1D] = U[k];
+    __syncthreads();
+    if (data.t_id_x < Q_1D && data.t_id_y < P_1D) {
+      for (CeedInt i = 0; i < Q_1D; i++) {
+        V[k] += r_B[i] * data.slice[data.t_id_x + i*T_1D]; // Contract y direction
+      }
+    }
+    __syncthreads();
+  }
+}
+
+//------------------------------------------------------------------------------
 // 3D transpose tensor contract x
 //------------------------------------------------------------------------------
 template <int NUM_COMP, int P_1D, int Q_1D>
@@ -448,6 +470,40 @@ inline __device__ void GradTransposeTensor3d(SharedData_Cuda &data, const CeedSc
     ContractTransposeZ3d<NUM_COMP, P_1D, Q_1D>(data, r_U + comp*Q_1D + 2*NUM_COMP*Q_1D, c_G, r_t1);
     ContractTransposeY3d<NUM_COMP, P_1D, Q_1D>(data, r_t1, c_B, r_t2);
     ContractTransposeAddX3d<NUM_COMP, P_1D, Q_1D>(data, r_t2, c_B, r_V + comp*P_1D);
+  }
+}
+
+//------------------------------------------------------------------------------
+// 3D derivatives at quadrature points
+//------------------------------------------------------------------------------
+template <int NUM_COMP, int P_1D, int Q_1D>
+inline __device__ void GradTensorCollocated3d(SharedData_Cuda &data, const CeedScalar *__restrict__ r_U, const CeedScalar *c_B, const CeedScalar *c_G, CeedScalar *__restrict__ r_V) {
+  CeedScalar r_t1[T_1D];
+  CeedScalar r_t2[T_1D];
+  for (CeedInt comp = 0; comp < NUM_COMP; comp++) {
+    ContractX3d<NUM_COMP, P_1D, Q_1D>(data, r_U + comp*P_1D, c_B, r_t1);
+    ContractY3d<NUM_COMP, P_1D, Q_1D>(data, r_t1, c_B, r_t2);
+    ContractZ3d<NUM_COMP, P_1D, Q_1D>(data, r_t2, c_B, r_t1);
+    ContractX3d<NUM_COMP, Q_1D, Q_1D>(data, r_t1, c_G, r_V + comp*Q_1D + 0*NUM_COMP*Q_1D);
+    ContractY3d<NUM_COMP, Q_1D, Q_1D>(data, r_t1, c_G, r_V + comp*Q_1D + 1*NUM_COMP*Q_1D);
+    ContractZ3d<NUM_COMP, Q_1D, Q_1D>(data, r_t1, c_G, r_V + comp*Q_1D + 2*NUM_COMP*Q_1D);
+  }
+}
+
+//------------------------------------------------------------------------------
+// 3D derivatives transpose
+//------------------------------------------------------------------------------
+template <int NUM_COMP, int P_1D, int Q_1D>
+inline __device__ void GradTransposeTensorCollocated3d(SharedData_Cuda &data, const CeedScalar *__restrict__ r_U, const CeedScalar *c_B, const CeedScalar *c_G, CeedScalar *__restrict__ r_V) {
+  CeedScalar r_t1[T_1D];
+  CeedScalar r_t2[T_1D];
+  for (CeedInt comp = 0; comp < NUM_COMP; comp++) {
+    ContractTransposeZ3d<NUM_COMP, Q_1D, Q_1D>(data, r_U + comp*Q_1D + 2*NUM_COMP*Q_1D, c_G, r_t2);
+    ContractTransposeAddY3d<NUM_COMP, Q_1D, Q_1D>(data, r_U + comp*Q_1D + 1*NUM_COMP*Q_1D, c_G, r_t2);
+    ContractTransposeAddX3d<NUM_COMP, Q_1D, Q_1D>(data, r_U + comp*Q_1D + 0*NUM_COMP*Q_1D, c_G, r_t2);
+    ContractTransposeZ3d<NUM_COMP, P_1D, Q_1D>(data, r_t2, c_B, r_t1);
+    ContractTransposeY3d<NUM_COMP, P_1D, Q_1D>(data, r_t1, c_B, r_t2);
+    ContractTransposeX3d<NUM_COMP, P_1D, Q_1D>(data, r_t2, c_B, r_V + comp*P_1D);
   }
 }
 

@@ -20,9 +20,12 @@
 //------------------------------------------------------------------------------
 int CeedCudaInitInterp(CeedScalar *d_B, CeedInt P_1d, CeedInt Q_1d,
                        CeedScalar **c_B);
-int CeedCudaInitInterpGrad(CeedScalar *d_B, CeedScalar *d_G, CeedInt P_1d,
-                           CeedInt Q_1d, CeedScalar **c_B_ptr,
-                           CeedScalar **c_G_ptr);
+int CeedCudaInitGrad(CeedScalar *d_B, CeedScalar *d_G, CeedInt P_1d,
+                     CeedInt Q_1d, CeedScalar **c_B_ptr,
+                     CeedScalar **c_G_ptr);
+int CeedCudaInitCollocatedGrad(CeedScalar *d_B, CeedScalar *d_G, CeedInt P_1d,
+                               CeedInt Q_1d, CeedScalar **c_B_ptr,
+                               CeedScalar **c_G_ptr);
 
 //------------------------------------------------------------------------------
 // Apply basis
@@ -123,9 +126,16 @@ int CeedBasisApplyTensor_Cuda_shared(CeedBasis basis, const CeedInt num_elem,
     ierr = CeedBasisGetNumNodes1D(basis, &P_1d); CeedChkBackend(ierr);
     ierr = CeedBasisGetNumQuadraturePoints1D(basis, &Q_1d); CeedChkBackend(ierr);
     CeedInt thread_1d = CeedIntMax(Q_1d, P_1d);
-    ierr = CeedCudaInitInterpGrad(data->d_interp_1d, data->d_grad_1d, P_1d,
-                                  Q_1d, &data->c_B, &data->c_G);
-    CeedChkBackend(ierr);
+    if (data->d_collo_grad_1d) {
+      ierr = CeedCudaInitCollocatedGrad(data->d_interp_1d, data->d_collo_grad_1d,
+                                        P_1d,
+                                        Q_1d, &data->c_B, &data->c_G);
+      CeedChkBackend(ierr);
+    } else {
+      ierr = CeedCudaInitGrad(data->d_interp_1d, data->d_grad_1d, P_1d,
+                              Q_1d, &data->c_B, &data->c_G);
+      CeedChkBackend(ierr);
+    }
     void *grad_args[] = {(void *) &num_elem, &data->c_B,
                          &data->c_G, &d_u, &d_v
                         };
@@ -288,7 +298,8 @@ int CeedBasisCreateTensorH1_Cuda_shared(CeedInt dim, CeedInt P_1d, CeedInt Q_1d,
 
   // Compute collocated gradient and copy to GPU
   data->d_collo_grad_1d = NULL;
-  if (dim == 3 && Q_1d >= P_1d) {
+  bool has_collocated_grad = dim == 3 && Q_1d >= P_1d;
+  if (has_collocated_grad) {
     CeedScalar *collo_grad_1d;
     ierr = CeedMalloc(Q_1d*Q_1d, &collo_grad_1d); CeedChkBackend(ierr);
     ierr = CeedBasisGetCollocatedGrad(basis, collo_grad_1d); CeedChkBackend(ierr);
@@ -310,7 +321,7 @@ int CeedBasisCreateTensorH1_Cuda_shared(CeedInt dim, CeedInt P_1d, CeedInt Q_1d,
   ierr = CeedLoadSourceToBuffer(ceed, basis_kernel_path, &basis_kernel_source);
   CeedChkBackend(ierr);
   CeedDebug256(ceed, 2, "----- Loading Basis Kernel Source Complete -----\n");
-  ierr = CeedCompileCuda(ceed, basis_kernel_source, &data->module, 8,
+  ierr = CeedCompileCuda(ceed, basis_kernel_source, &data->module, 9,
                          "BASIS_Q_1D", Q_1d,
                          "BASIS_P_1D", P_1d,
                          "T_1D", CeedIntMax(Q_1d, P_1d),
@@ -319,7 +330,8 @@ int CeedBasisCreateTensorH1_Cuda_shared(CeedInt dim, CeedInt P_1d, CeedInt Q_1d,
                          "BASIS_DIM", dim,
                          "BASIS_NUM_COMP", num_comp,
                          "BASIS_NUM_NODES", CeedIntPow(P_1d, dim),
-                         "BASIS_NUM_QPTS", CeedIntPow(Q_1d, dim)
+                         "BASIS_NUM_QPTS", CeedIntPow(Q_1d, dim),
+                         "BASIS_HAS_COLLOCATED_GRAD", has_collocated_grad
                         ); CeedChkBackend(ierr);
   ierr = CeedGetKernelCuda(ceed, data->module, "Interp", &data->Interp);
   CeedChkBackend(ierr);
