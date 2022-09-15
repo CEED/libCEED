@@ -417,28 +417,28 @@ extern "C" int CeedCudaGenOperatorBuild(CeedOperator op) {
     switch (emode) {
     case CEED_EVAL_NONE:
       if (!useCollograd) {
-        code << "    CeedScalar* r_t_<<i<<" = r_u_"<<i<<";\n";
+        code << "    CeedScalar* r_t_"<<i<<" = r_u_"<<i<<";\n";
       }
       break;
     case CEED_EVAL_INTERP:
-      code << "    CeedScalar r_t_<<i<<"[num_comp_in_"<<i<<"*Q_1d];\n";
-      code << "    Interp"<<(dim>1?"Tensor":"")<<dim<<"d<num_comp_in_"<<i<<",P_in_"<<i<<",Q_1d>(data, r_u_"<<i<<", s_B_in_"<<i<<", r_t_<<i<<");\n";
+      code << "    CeedScalar r_t_"<<i<<"[num_comp_in_"<<i<<"*Q_1d];\n";
+      code << "    Interp"<<(dim>1?"Tensor":"")<<dim<<"d<num_comp_in_"<<i<<",P_in_"<<i<<",Q_1d>(data, r_u_"<<i<<", s_B_in_"<<i<<", r_t_"<<i<<");\n";
       break;
     case CEED_EVAL_GRAD:
       if (useCollograd) {
-        code << "    CeedScalar r_t_<<i<<"[num_comp_in_"<<i<<"*Q_1d];\n";
-        code << "    Interp"<<(dim>1?"Tensor":"")<<dim<<"d<num_comp_in_"<<i<<",P_in_"<<i<<",Q_1d>(data, r_u_"<<i<<", s_B_in_"<<i<<", r_t_<<i<<");\n";
+        code << "    CeedScalar r_t_"<<i<<"[num_comp_in_"<<i<<"*Q_1d];\n";
+        code << "    Interp"<<(dim>1?"Tensor":"")<<dim<<"d<num_comp_in_"<<i<<",P_in_"<<i<<",Q_1d>(data, r_u_"<<i<<", s_B_in_"<<i<<", r_t_"<<i<<");\n";
       } else {
-        code << "    CeedScalar r_t_<<i<<"[num_comp_in_"<<i<<"*dim*Q_1d];\n";
-        code << "    Grad"<<(dim>1?"Tensor":"")<<dim<<"d<num_comp_in_"<<i<<",P_in_"<<i<<",Q_1d>(data, r_u_"<<i<<", s_B_in_"<<i<<", s_G_in_"<<i<<", r_t_<<i<<");\n";
+        code << "    CeedScalar r_t_"<<i<<"[num_comp_in_"<<i<<"*dim*Q_1d];\n";
+        code << "    Grad"<<(dim>1?"Tensor":"")<<dim<<"d<num_comp_in_"<<i<<",P_in_"<<i<<",Q_1d>(data, r_u_"<<i<<", s_B_in_"<<i<<", s_G_in_"<<i<<", r_t_"<<i<<");\n";
       }
       break;
     case CEED_EVAL_WEIGHT:
-      code << "    CeedScalar r_t_<<i<<"[Q_1d];\n";
+      code << "    CeedScalar r_t_"<<i<<"[Q_1d];\n";
       ierr = CeedOperatorFieldGetBasis(opinputfields[i], &basis); CeedChkBackend(ierr);
       ierr = CeedBasisGetData(basis, &basis_data); CeedChkBackend(ierr);
       data->W = basis_data->d_q_weight_1d;
-      code << "    Weight"<<(dim>1?"Tensor":"")<<dim<<"d<Q_1d>(data, W, r_t_<<i<<");\n";
+      code << "    Weight"<<(dim>1?"Tensor":"")<<dim<<"d<Q_1d>(data, W, r_t_"<<i<<");\n";
       break; // No action
     case CEED_EVAL_DIV:
       break; // TODO: Not implemented
@@ -523,16 +523,16 @@ extern "C" int CeedCudaGenOperatorBuild(CeedOperator op) {
       case CEED_EVAL_INTERP:
         code << "      CeedScalar r_q_"<<i<<"[num_comp_in_"<<i<<"];\n";
         code << "      for (CeedInt j = 0; j < num_comp_in_"<<i<<" ; ++j) {\n";
-        code << "        r_q_"<<i<<"[j] = r_t_<<i<<"[q + j*Q_1d];\n";
+        code << "        r_q_"<<i<<"[j] = r_t_"<<i<<"[q + j*Q_1d];\n";
         code << "      }\n";
         break;
       case CEED_EVAL_GRAD:
         code << "      CeedScalar r_q_"<<i<<"[num_comp_in_"<<i<<"*dim];\n";
-        code << "      gradCollo3d<num_comp_in_"<<i<<",Q_1d>(data, q, r_t_<<i<<", s_G_in_"<<i<<", r_q_"<<i<<");\n";
+        code << "      gradCollo3d<num_comp_in_"<<i<<",Q_1d>(data, q, r_t_"<<i<<", s_G_in_"<<i<<", r_q_"<<i<<");\n";
         break;
       case CEED_EVAL_WEIGHT:
         code << "      CeedScalar r_q_"<<i<<"[1];\n";
-        code << "      r_q_"<<i<<"[0] = r_t_<<i<<"[q];\n";
+        code << "      r_q_"<<i<<"[0] = r_t_"<<i<<"[q];\n";
         break; // No action
       case CEED_EVAL_DIV:
         break; // TODO: Not implemented
@@ -569,7 +569,7 @@ extern "C" int CeedCudaGenOperatorBuild(CeedOperator op) {
     code << "      // -- Input fields --\n";
     for (CeedInt i = 0; i < numinputfields; i++) {
       code << "      // ---- Input field "<<i<<" ----\n";
-      code << "      CeedScalar* r_q_"<<i<<" = r_t_<<i<<";\n";
+      code << "      CeedScalar* r_q_"<<i<<" = r_t_"<<i<<";\n";
     }
     code << "      // -- Output fields --\n";
     for (CeedInt i = 0; i < numoutputfields; i++) {
