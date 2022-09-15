@@ -279,9 +279,10 @@ extern "C" int CeedCudaGenOperatorBuild(CeedOperator op) {
         code << "  __shared__ CeedScalar s_G_in_"<<i<<"["<<Q_1d*Q_1d<<"];\n";
         code << "  loadMatrix<Q_1d,Q_1d>(data, G.inputs["<<i<<"], s_G_in_"<<i<<");\n";
       } else {
-        data->G.inputs[i] = basis_data->d_grad_1d;
-        code << "  __shared__ CeedScalar s_G_in_"<<i<<"["<<P_1d*Q_1d<<"];\n";
-        code << "  loadMatrix<P_in_"<<i<<",Q_1d>(data, G.inputs["<<i<<"], s_G_in_"<<i<<");\n";
+        bool has_collo_grad = dim == 3 && Q_1d >= P_1d;
+        data->G.inputs[i] = has_collo_grad ? basis_data->d_collo_grad_1d : basis_data->d_grad_1d;
+        code << "  __shared__ CeedScalar s_G_in_"<<i<<"["<<Q_1d*(has_collo_grad?Q_1d:P_1d)<<"];\n";
+        code << "  loadMatrix<"<<(has_collo_grad?"Q_1d":("P_in_"+std::to_string(i)))<<",Q_1d>(data, G.inputs["<<i<<"], s_G_in_"<<i<<");\n";
       }
       break;
     case CEED_EVAL_WEIGHT:
@@ -337,9 +338,10 @@ extern "C" int CeedCudaGenOperatorBuild(CeedOperator op) {
         code << "  __shared__ CeedScalar s_G_out_"<<i<<"["<<Q_1d*Q_1d<<"];\n";
         code << "  loadMatrix<Q_1d,Q_1d>(data, G.outputs["<<i<<"], s_G_out_"<<i<<");\n";
       } else {
-        data->G.outputs[i] = basis_data->d_grad_1d;
-        code << "  __shared__ CeedScalar s_G_out_"<<i<<"["<<P_1d*Q_1d<<"];\n";
-        code << "  loadMatrix<P_out_"<<i<<",Q_1d>(data, G.outputs["<<i<<"], s_G_out_"<<i<<");\n";
+        bool has_collo_grad = dim == 3 && Q_1d >= P_1d;
+        data->G.outputs[i] = has_collo_grad ? basis_data->d_collo_grad_1d : basis_data->d_grad_1d;
+        code << "  __shared__ CeedScalar s_G_out_"<<i<<"["<<Q_1d*(has_collo_grad?Q_1d:P_1d)<<"];\n";
+        code << "  loadMatrix<"<<(has_collo_grad?"Q_1d":("P_out_"+std::to_string(i)))<<",Q_1d>(data, G.outputs["<<i<<"], s_G_out_"<<i<<");\n";
       }
       break;
     // LCOV_EXCL_START
@@ -428,8 +430,11 @@ extern "C" int CeedCudaGenOperatorBuild(CeedOperator op) {
         code << "    CeedScalar r_t_"<<i<<"[num_comp_in_"<<i<<"*Q_1d];\n";
         code << "    Interp"<<(dim>1?"Tensor":"")<<dim<<"d<num_comp_in_"<<i<<",P_in_"<<i<<",Q_1d>(data, r_u_"<<i<<", s_B_in_"<<i<<", r_t_"<<i<<");\n";
       } else {
+        CeedInt P_1d;
+        ierr = CeedOperatorFieldGetBasis(op_input_fields[i], &basis); CeedChkBackend(ierr);
+        ierr = CeedBasisGetNumNodes1D(basis, &P_1d); CeedChkBackend(ierr);
         code << "    CeedScalar r_t_"<<i<<"[num_comp_in_"<<i<<"*dim*Q_1d];\n";
-        code << "    Grad"<<(dim>1?"Tensor":"")<<dim<<"d<num_comp_in_"<<i<<",P_in_"<<i<<",Q_1d>(data, r_u_"<<i<<", s_B_in_"<<i<<", s_G_in_"<<i<<", r_t_"<<i<<");\n";
+        code << "    Grad"<<(dim>1?"Tensor":"")<<(dim==3&&Q_1d>=P_1d?"Collocated":"")<<dim<<"d<num_comp_in_"<<i<<",P_in_"<<i<<",Q_1d>(data, r_u_"<<i<<", s_B_in_"<<i<<", s_G_in_"<<i<<", r_t_"<<i<<");\n";
       }
       break;
     case CEED_EVAL_WEIGHT:
@@ -659,7 +664,10 @@ extern "C" int CeedCudaGenOperatorBuild(CeedOperator op) {
       if (use_collograd_parallelization) {
         code << "    InterpTranspose"<<(dim>1?"Tensor":"")<<dim<<"d<num_comp_out_"<<i<<",P_out_"<<i<<",Q_1d>(data, r_tt_"<<i<<", s_B_out_"<<i<<", r_v_"<<i<<");\n";
       } else {
-        code << "    GradTranspose"<<(dim>1?"Tensor":"")<<dim<<"d<num_comp_out_"<<i<<",P_out_"<<i<<",Q_1d>(data, r_tt_"<<i<<", s_B_out_"<<i<<", s_G_out_"<<i<<", r_v_"<<i<<");\n";
+        CeedInt P_1d;
+        ierr = CeedOperatorFieldGetBasis(op_output_fields[i], &basis); CeedChkBackend(ierr);
+        ierr = CeedBasisGetNumNodes1D(basis, &P_1d); CeedChkBackend(ierr);
+        code << "    GradTranspose"<<(dim>1?"Tensor":"")<<(dim==3&&Q_1d>=P_1d?"Collocated":"")<<dim<<"d<num_comp_out_"<<i<<",P_out_"<<i<<",Q_1d>(data, r_tt_"<<i<<", s_B_out_"<<i<<", s_G_out_"<<i<<", r_v_"<<i<<");\n";
       }
       break;
     // LCOV_EXCL_START
