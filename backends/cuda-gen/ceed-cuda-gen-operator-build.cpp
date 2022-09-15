@@ -118,8 +118,8 @@ extern "C" int CeedCudaGenOperatorBuild(CeedOperator op) {
 
   string q_function_source(qf_data->q_function_source);
   string q_function_name(qf_data->q_function_name);
-  string oper;
-  oper = "CeedKernel_Cuda_gen_" + q_function_name;
+  string operator_name;
+  operator_name = "CeedKernel_Cuda_gen_" + q_function_name;
 
   // TODO: put in a function?
   // Find dim and Q_1d
@@ -206,7 +206,7 @@ extern "C" int CeedCudaGenOperatorBuild(CeedOperator op) {
 
   // Setup
   code << "\n// -----------------------------------------------------------------------------\n";
-  code << "\nextern \"C\" __global__ void "<<oper<<"(CeedInt num_elem, void* ctx, FieldsInt_Cuda indices, Fields_Cuda fields, Fields_Cuda B, Fields_Cuda G, CeedScalar* W) {\n";
+  code << "\nextern \"C\" __global__ void "<<operator_name<<"(CeedInt num_elem, void* ctx, FieldsInt_Cuda indices, Fields_Cuda fields, Fields_Cuda B, Fields_Cuda G, CeedScalar* W) {\n";
   for (CeedInt i = 0; i < num_input_fields; i++) {
     ierr = CeedQFunctionFieldGetEvalMode(qf_input_fields[i], &eval_mode);
     CeedChkBackend(ierr);
@@ -726,7 +726,7 @@ extern "C" int CeedCudaGenOperatorBuild(CeedOperator op) {
   ierr = CeedCompileCuda(ceed, code.str().c_str(), &data->module, 1,
                          "T_1D", CeedIntMax(Q_1d, data->max_P_1d));
   CeedChkBackend(ierr);
-  ierr = CeedGetKernelCuda(ceed, data->module, oper.c_str(), &data->op);
+  ierr = CeedGetKernelCuda(ceed, data->module, operator_name.c_str(), &data->op);
   CeedChkBackend(ierr);
 
   ierr = CeedOperatorSetSetupDone(op); CeedChkBackend(ierr);
