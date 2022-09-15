@@ -279,7 +279,7 @@ extern "C" int CeedCudaGenOperatorBuild(CeedOperator op) {
         code << "  __shared__ CeedScalar s_G_in_"<<i<<"["<<Q_1d*Q_1d<<"];\n";
         code << "  loadMatrix<Q_1d,Q_1d>(data, G.inputs["<<i<<"], s_G_in_"<<i<<");\n";
       } else {
-        bool has_collo_grad = dim == 3 && Q_1d >= P_1d;
+        bool has_collo_grad = !!basis_data->d_collo_grad_1d;
         data->G.inputs[i] = has_collo_grad ? basis_data->d_collo_grad_1d : basis_data->d_grad_1d;
         code << "  __shared__ CeedScalar s_G_in_"<<i<<"["<<Q_1d*(has_collo_grad?Q_1d:P_1d)<<"];\n";
         code << "  loadMatrix<"<<(has_collo_grad?"Q_1d":("P_in_"+std::to_string(i)))<<",Q_1d>(data, G.inputs["<<i<<"], s_G_in_"<<i<<");\n";
@@ -338,7 +338,7 @@ extern "C" int CeedCudaGenOperatorBuild(CeedOperator op) {
         code << "  __shared__ CeedScalar s_G_out_"<<i<<"["<<Q_1d*Q_1d<<"];\n";
         code << "  loadMatrix<Q_1d,Q_1d>(data, G.outputs["<<i<<"], s_G_out_"<<i<<");\n";
       } else {
-        bool has_collo_grad = dim == 3 && Q_1d >= P_1d;
+        bool has_collo_grad = !!basis_data->d_collo_grad_1d;
         data->G.outputs[i] = has_collo_grad ? basis_data->d_collo_grad_1d : basis_data->d_grad_1d;
         code << "  __shared__ CeedScalar s_G_out_"<<i<<"["<<Q_1d*(has_collo_grad?Q_1d:P_1d)<<"];\n";
         code << "  loadMatrix<"<<(has_collo_grad?"Q_1d":("P_out_"+std::to_string(i)))<<",Q_1d>(data, G.outputs["<<i<<"], s_G_out_"<<i<<");\n";
