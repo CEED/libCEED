@@ -71,15 +71,15 @@ static int Waste(int threads_per_sm, int warp_size, int threads_per_elem,
 // pack a single block of 7 elements (2*49=343 useful threads) into the 354
 // slots. The latter has the least "waste", but __syncthreads()
 // over-synchronizes and it might not pay off relative to smaller blocks.
-static int BlockGridCalculate(CeedInt nelem, int blocks_per_sm,
+static int BlockGridCalculate(CeedInt num_elem, int blocks_per_sm,
                               int max_threads_per_block, int max_threads_z,
                               int warp_size, int block[3], int *grid) {
   const int threads_per_sm = blocks_per_sm * max_threads_per_block;
   const int threads_per_elem = block[0] * block[1];
   int elems_per_block = 1;
   int waste = Waste(threads_per_sm, warp_size, threads_per_elem, 1);
-  for (int i=2;
-       i <= CeedIntMin(max_threads_per_block / threads_per_elem, nelem);
+  for (int i = 2;
+       i <= CeedIntMin(max_threads_per_block / threads_per_elem, num_elem);
        i++) {
     int i_waste = Waste(threads_per_sm, warp_size, threads_per_elem, i);
     // We want to minimize waste, but smaller kernels have lower latency and
@@ -94,7 +94,7 @@ static int BlockGridCalculate(CeedInt nelem, int blocks_per_sm,
   // an elems_per_block greater than allowable for the device, so we must check
   // before setting the z-dimension size of the block.
   block[2] = CeedIntMin(elems_per_block, max_threads_z);
-  *grid = (nelem + elems_per_block - 1) / elems_per_block;
+  *grid = (num_elem + elems_per_block - 1) / elems_per_block;
   return CEED_ERROR_SUCCESS;
 }
 
@@ -105,8 +105,8 @@ static size_t dynamicSMemSize(int threads) { return threads * sizeof(CeedScalar)
 //------------------------------------------------------------------------------
 // Apply and add to output
 //------------------------------------------------------------------------------
-static int CeedOperatorApplyAdd_Cuda_gen(CeedOperator op, CeedVector invec,
-    CeedVector outvec, CeedRequest *request) {
+static int CeedOperatorApplyAdd_Cuda_gen(CeedOperator op, CeedVector input_vec,
+    CeedVector output_vec, CeedRequest *request) {
   int ierr;
   Ceed ceed;
   ierr = CeedOperatorGetCeed(op, &ceed); CeedChkBackend(ierr);
@@ -118,61 +118,63 @@ static int CeedOperatorApplyAdd_Cuda_gen(CeedOperator op, CeedVector invec,
   CeedQFunction_Cuda_gen *qf_data;
   ierr = CeedOperatorGetQFunction(op, &qf); CeedChkBackend(ierr);
   ierr = CeedQFunctionGetData(qf, &qf_data); CeedChkBackend(ierr);
-  CeedInt nelem, numinputfields, numoutputfields;
-  ierr = CeedOperatorGetNumElements(op, &nelem); CeedChkBackend(ierr);
-  CeedOperatorField *opinputfields, *opoutputfields;
-  ierr = CeedOperatorGetFields(op, &numinputfields, &opinputfields,
-                               &numoutputfields, &opoutputfields);
+  CeedInt num_elem, num_input_fields, num_output_fields;
+  ierr = CeedOperatorGetNumElements(op, &num_elem); CeedChkBackend(ierr);
+  CeedOperatorField *op_input_fields, *op_output_fields;
+  ierr = CeedOperatorGetFields(op, &num_input_fields, &op_input_fields,
+                               &num_output_fields, &op_output_fields);
   CeedChkBackend(ierr);
-  CeedQFunctionField *qfinputfields, *qfoutputfields;
-  ierr = CeedQFunctionGetFields(qf, NULL, &qfinputfields, NULL, &qfoutputfields);
+  CeedQFunctionField *qf_input_fields, *qf_output_fields;
+  ierr = CeedQFunctionGetFields(qf, NULL, &qf_input_fields, NULL,
+                                &qf_output_fields);
   CeedChkBackend(ierr);
-  CeedEvalMode emode;
-  CeedVector vec, outvecs[CEED_FIELD_MAX] = {};
+  CeedEvalMode eval_mode;
+  CeedVector vec, output_vecs[CEED_FIELD_MAX] = {};
 
   // Creation of the operator
   ierr = CeedCudaGenOperatorBuild(op); CeedChkBackend(ierr);
 
   // Input vectors
-  for (CeedInt i = 0; i < numinputfields; i++) {
-    ierr = CeedQFunctionFieldGetEvalMode(qfinputfields[i], &emode);
+  for (CeedInt i = 0; i < num_input_fields; i++) {
+    ierr = CeedQFunctionFieldGetEvalMode(qf_input_fields[i], &eval_mode);
     CeedChkBackend(ierr);
-    if (emode == CEED_EVAL_WEIGHT) { // Skip
-      data->fields.in[i] = NULL;
+    if (eval_mode == CEED_EVAL_WEIGHT) { // Skip
+      data->fields.inputs[i] = NULL;
     } else {
       // Get input vector
-      ierr = CeedOperatorFieldGetVector(opinputfields[i], &vec); CeedChkBackend(ierr);
-      if (vec == CEED_VECTOR_ACTIVE) vec = invec;
-      ierr = CeedVectorGetArrayRead(vec, CEED_MEM_DEVICE, &data->fields.in[i]);
+      ierr = CeedOperatorFieldGetVector(op_input_fields[i], &vec);
+      CeedChkBackend(ierr);
+      if (vec == CEED_VECTOR_ACTIVE) vec = input_vec;
+      ierr = CeedVectorGetArrayRead(vec, CEED_MEM_DEVICE, &data->fields.inputs[i]);
       CeedChkBackend(ierr);
     }
   }
 
   // Output vectors
-  for (CeedInt i = 0; i < numoutputfields; i++) {
-    ierr = CeedQFunctionFieldGetEvalMode(qfoutputfields[i], &emode);
+  for (CeedInt i = 0; i < num_output_fields; i++) {
+    ierr = CeedQFunctionFieldGetEvalMode(qf_output_fields[i], &eval_mode);
     CeedChkBackend(ierr);
-    if (emode == CEED_EVAL_WEIGHT) { // Skip
-      data->fields.out[i] = NULL;
+    if (eval_mode == CEED_EVAL_WEIGHT) { // Skip
+      data->fields.outputs[i] = NULL;
     } else {
       // Get output vector
-      ierr = CeedOperatorFieldGetVector(opoutputfields[i], &vec);
+      ierr = CeedOperatorFieldGetVector(op_output_fields[i], &vec);
       CeedChkBackend(ierr);
-      if (vec == CEED_VECTOR_ACTIVE) vec = outvec;
-      outvecs[i] = vec;
+      if (vec == CEED_VECTOR_ACTIVE) vec = output_vec;
+      output_vecs[i] = vec;
       // Check for multiple output modes
       CeedInt index = -1;
       for (CeedInt j = 0; j < i; j++) {
-        if (vec == outvecs[j]) {
+        if (vec == output_vecs[j]) {
           index = j;
           break;
         }
       }
       if (index == -1) {
-        ierr = CeedVectorGetArray(vec, CEED_MEM_DEVICE, &data->fields.out[i]);
+        ierr = CeedVectorGetArray(vec, CEED_MEM_DEVICE, &data->fields.outputs[i]);
         CeedChkBackend(ierr);
       } else {
-        data->fields.out[i] = data->fields.out[index];
+        data->fields.outputs[i] = data->fields.outputs[index];
       }
     }
   }
@@ -182,18 +184,18 @@ static int CeedOperatorApplyAdd_Cuda_gen(CeedOperator op, CeedVector invec,
   CeedChkBackend(ierr);
 
   // Apply operator
-  void *opargs[] = {(void *) &nelem, &qf_data->d_c, &data->indices,
+  void *opargs[] = {(void *) &num_elem, &qf_data->d_c, &data->indices,
                     &data->fields, &data->B, &data->G, &data->W
                    };
   const CeedInt dim = data->dim;
-  const CeedInt Q1d = data->Q1d;
-  const CeedInt P1d = data->maxP1d;
-  const CeedInt thread1d = CeedIntMax(Q1d, P1d);
+  const CeedInt Q_1d = data->Q_1d;
+  const CeedInt P_1d = data->max_P_1d;
+  const CeedInt thread_1d = CeedIntMax(Q_1d, P_1d);
   int max_threads_per_block, min_grid_size;
   CeedChk_Cu(ceed, cuOccupancyMaxPotentialBlockSize(&min_grid_size,
              &max_threads_per_block, data->op, dynamicSMemSize, 0, 0x10000));
-  int block[3] = {thread1d, dim < 2 ? 1 : thread1d, -1,}, grid;
-  CeedChkBackend(BlockGridCalculate(nelem,
+  int block[3] = {thread_1d, dim < 2 ? 1 : thread_1d, -1,}, grid;
+  CeedChkBackend(BlockGridCalculate(num_elem,
                                     min_grid_size/ cuda_data->device_prop.multiProcessorCount,
                                     max_threads_per_block,
                                     cuda_data->device_prop.maxThreadsDim[2],
@@ -204,37 +206,38 @@ static int CeedOperatorApplyAdd_Cuda_gen(CeedOperator op, CeedVector invec,
   CeedChkBackend(ierr);
 
   // Restore input arrays
-  for (CeedInt i = 0; i < numinputfields; i++) {
-    ierr = CeedQFunctionFieldGetEvalMode(qfinputfields[i], &emode);
+  for (CeedInt i = 0; i < num_input_fields; i++) {
+    ierr = CeedQFunctionFieldGetEvalMode(qf_input_fields[i], &eval_mode);
     CeedChkBackend(ierr);
-    if (emode == CEED_EVAL_WEIGHT) { // Skip
+    if (eval_mode == CEED_EVAL_WEIGHT) { // Skip
     } else {
-      ierr = CeedOperatorFieldGetVector(opinputfields[i], &vec); CeedChkBackend(ierr);
-      if (vec == CEED_VECTOR_ACTIVE) vec = invec;
-      ierr = CeedVectorRestoreArrayRead(vec, &data->fields.in[i]);
+      ierr = CeedOperatorFieldGetVector(op_input_fields[i], &vec);
+      CeedChkBackend(ierr);
+      if (vec == CEED_VECTOR_ACTIVE) vec = input_vec;
+      ierr = CeedVectorRestoreArrayRead(vec, &data->fields.inputs[i]);
       CeedChkBackend(ierr);
     }
   }
 
   // Restore output arrays
-  for (CeedInt i = 0; i < numoutputfields; i++) {
-    ierr = CeedQFunctionFieldGetEvalMode(qfoutputfields[i], &emode);
+  for (CeedInt i = 0; i < num_output_fields; i++) {
+    ierr = CeedQFunctionFieldGetEvalMode(qf_output_fields[i], &eval_mode);
     CeedChkBackend(ierr);
-    if (emode == CEED_EVAL_WEIGHT) { // Skip
+    if (eval_mode == CEED_EVAL_WEIGHT) { // Skip
     } else {
-      ierr = CeedOperatorFieldGetVector(opoutputfields[i], &vec);
+      ierr = CeedOperatorFieldGetVector(op_output_fields[i], &vec);
       CeedChkBackend(ierr);
-      if (vec == CEED_VECTOR_ACTIVE) vec = outvec;
+      if (vec == CEED_VECTOR_ACTIVE) vec = output_vec;
       // Check for multiple output modes
       CeedInt index = -1;
       for (CeedInt j = 0; j < i; j++) {
-        if (vec == outvecs[j]) {
+        if (vec == output_vecs[j]) {
           index = j;
           break;
         }
       }
       if (index == -1) {
-        ierr = CeedVectorRestoreArray(vec, &data->fields.out[i]);
+        ierr = CeedVectorRestoreArray(vec, &data->fields.outputs[i]);
         CeedChkBackend(ierr);
       }
     }

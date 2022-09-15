@@ -34,7 +34,7 @@ static int CeedQFunctionDestroy_Cuda_gen(CeedQFunction qf) {
   Ceed ceed;
   ierr = CeedQFunctionGetCeed(qf, &ceed); CeedChkBackend(ierr);
   ierr = cudaFree(data->d_c); CeedChk_Cu(ceed, ierr);
-  ierr = CeedFree(&data->qFunctionSource); CeedChkBackend(ierr);
+  ierr = CeedFree(&data->q_function_source); CeedChkBackend(ierr);
   ierr = CeedFree(&data); CeedChkBackend(ierr);
   return CEED_ERROR_SUCCESS;
 }
@@ -51,13 +51,13 @@ int CeedQFunctionCreate_Cuda_gen(CeedQFunction qf) {
   ierr = CeedQFunctionSetData(qf, data); CeedChkBackend(ierr);
 
   // Read QFunction source
-  ierr = CeedQFunctionGetKernelName(qf, &data->qFunctionName);
+  ierr = CeedQFunctionGetKernelName(qf, &data->q_function_name);
   CeedChkBackend(ierr);
   CeedDebug256(ceed, 2, "----- Loading QFunction User Source -----\n");
-  ierr = CeedQFunctionLoadSourceToBuffer(qf, &data->qFunctionSource);
+  ierr = CeedQFunctionLoadSourceToBuffer(qf, &data->q_function_source);
   CeedChkBackend(ierr);
   CeedDebug256(ceed, 2, "----- Loading QFunction User Source Complete! -----\n");
-  if (!data->qFunctionSource)
+  if (!data->q_function_source)
     // LCOV_EXCL_START
     return CeedError(ceed, CEED_ERROR_UNSUPPORTED,
                      "/gpu/cuda/gen backend requires QFunction source code file");
@@ -69,4 +69,5 @@ int CeedQFunctionCreate_Cuda_gen(CeedQFunction qf) {
                                 CeedQFunctionDestroy_Cuda_gen); CeedChkBackend(ierr);
   return CEED_ERROR_SUCCESS;
 }
+
 //------------------------------------------------------------------------------
