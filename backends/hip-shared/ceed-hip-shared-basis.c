@@ -59,27 +59,27 @@ static int ComputeBasisThreadBlockSizes(const CeedInt dim, const CeedInt P_1d,
   case 2: {
     // Interp kernels:
     CeedInt required = thread_1d * thread_1d;
-    block_sizes[0]  = ComputeBlockSizeFromRequirement(required);
+    block_sizes[0] = CeedIntMax(256, ComputeBlockSizeFromRequirement(required));
 
     // Grad kernels: currently use same required minimum threads
-    block_sizes[1]  = ComputeBlockSizeFromRequirement(required);
+    block_sizes[1] = CeedIntMax(256, ComputeBlockSizeFromRequirement(required));
 
     // Weight kernels:
     required = CeedIntMax(64, Q_1d * Q_1d);
-    block_sizes[2]  = ComputeBlockSizeFromRequirement(required);
+    block_sizes[2] = CeedIntMax(256, ComputeBlockSizeFromRequirement(required));
 
   } break;
   case 3: {
     // Interp kernels:
     CeedInt required = thread_1d * thread_1d;
-    block_sizes[0]  = ComputeBlockSizeFromRequirement(required);
+    block_sizes[0] = CeedIntMax(256, ComputeBlockSizeFromRequirement(required));
 
     // Grad kernels: currently use same required minimum threads
-    block_sizes[1]  = ComputeBlockSizeFromRequirement(required);
+    block_sizes[1] = CeedIntMax(256, ComputeBlockSizeFromRequirement(required));
 
     // Weight kernels:
     required = Q_1d * Q_1d * Q_1d;
-    block_sizes[2]  = ComputeBlockSizeFromRequirement(required);
+    block_sizes[2] = CeedIntMax(256, ComputeBlockSizeFromRequirement(required));
   }
   }
 
@@ -142,7 +142,7 @@ int CeedBasisApplyTensor_Hip_shared(CeedBasis basis, const CeedInt num_elem,
     } else if (dim == 2) {
       // Check if required threads is small enough to do multiple elems
       const CeedInt elems_per_block = CeedIntMax(block_size /
-                                      (thread_1d*thread_1d*num_comp), 1);
+                                      (thread_1d*thread_1d), 1);
       CeedInt grid = num_elem / elems_per_block +
                      ((num_elem / elems_per_block*elems_per_block < num_elem) ? 1 : 0 );
       CeedInt shared_mem = elems_per_block*thread_1d*thread_1d*sizeof(
@@ -158,7 +158,8 @@ int CeedBasisApplyTensor_Hip_shared(CeedBasis basis, const CeedInt num_elem,
                                          interp_args); CeedChkBackend(ierr);
       }
     } else if (dim == 3) {
-      CeedInt elems_per_block = 1;
+      const CeedInt elems_per_block = CeedIntMax(block_size / (thread_1d*thread_1d),
+                                      1);
       CeedInt grid = num_elem / elems_per_block +
                      ((num_elem / elems_per_block*elems_per_block < num_elem) ? 1 : 0 );
       CeedInt shared_mem = elems_per_block*thread_1d*thread_1d*sizeof(
@@ -186,7 +187,7 @@ int CeedBasisApplyTensor_Hip_shared(CeedBasis basis, const CeedInt num_elem,
       d_grad_1d = data->d_collo_grad_1d;
     }
     void *grad_args[] = {(void *) &num_elem, &data->d_interp_1d,
-                          &d_grad_1d, &d_u, &d_v
+                         &d_grad_1d, &d_u, &d_v
                         };
     if (dim == 1) {
       CeedInt elems_per_block = 64 * thread_1d > 256 ? 256 / thread_1d : 64;
@@ -204,8 +205,8 @@ int CeedBasisApplyTensor_Hip_shared(CeedBasis basis, const CeedInt num_elem,
       CeedChkBackend(ierr);
     } else if (dim == 2) {
       // Check if required threads is small enough to do multiple elems
-      const CeedInt elems_per_block = CeedIntMax(block_size/
-                                      (thread_1d*thread_1d*num_comp), 1);
+      const CeedInt elems_per_block = CeedIntMax(block_size / (thread_1d*thread_1d),
+                                      1);
       CeedInt grid = num_elem / elems_per_block +
                      ((num_elem / elems_per_block*elems_per_block < num_elem) ? 1 : 0 );
       CeedInt shared_mem = elems_per_block*thread_1d*thread_1d*sizeof(
@@ -221,7 +222,8 @@ int CeedBasisApplyTensor_Hip_shared(CeedBasis basis, const CeedInt num_elem,
                                          grad_args); CeedChkBackend(ierr);
       }
     } else if (dim == 3) {
-      CeedInt elems_per_block = 1;
+      const CeedInt elems_per_block = CeedIntMax(block_size / (thread_1d*thread_1d),
+                                      1);
       CeedInt grid = num_elem / elems_per_block +
                      ((num_elem / elems_per_block*elems_per_block < num_elem) ? 1 : 0 );
       CeedInt shared_mem = elems_per_block*thread_1d*thread_1d*sizeof(
