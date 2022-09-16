@@ -321,12 +321,10 @@ int CeedBasisCreateTensorH1_Cuda_shared(CeedInt dim, CeedInt P_1d, CeedInt Q_1d,
   ierr = CeedLoadSourceToBuffer(ceed, basis_kernel_path, &basis_kernel_source);
   CeedChkBackend(ierr);
   CeedDebug256(ceed, 2, "----- Loading Basis Kernel Source Complete -----\n");
-  ierr = CeedCompileCuda(ceed, basis_kernel_source, &data->module, 9,
+  ierr = CeedCompileCuda(ceed, basis_kernel_source, &data->module, 8,
                          "BASIS_Q_1D", Q_1d,
                          "BASIS_P_1D", P_1d,
                          "T_1D", CeedIntMax(Q_1d, P_1d),
-                         "BASIS_BUF_LEN", num_comp * CeedIntPow(Q_1d > P_1d ?
-                             Q_1d : P_1d, dim),
                          "BASIS_DIM", dim,
                          "BASIS_NUM_COMP", num_comp,
                          "BASIS_NUM_NODES", CeedIntPow(P_1d, dim),
