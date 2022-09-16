@@ -436,6 +436,28 @@ PetscErrorCode WriteOutput(User user, Vec Q, PetscInt step_no,
   PetscCall(VecView(Q, viewer));
   PetscCall(PetscViewerDestroy(&viewer));
 
+  {
+    PetscBool set;
+    PetscViewer coords_viewer;
+    Vec coords;
+
+    PetscCall(DMGetCoordinates(user->dm, &coords));
+    PetscCall(PetscOptionsGetViewer(PetscObjectComm((PetscObject) coords), NULL, NULL, "-coords_view", &coords_viewer, NULL, &set));
+
+    PetscCall(VecView(coords, coords_viewer));
+    PetscCall(PetscViewerDestroy(&coords_viewer));
+  }
+
+  {
+    PetscBool set;
+    PetscViewer Q_viewer;
+
+    PetscCall(PetscOptionsGetViewer(PetscObjectComm((PetscObject) Q), NULL, NULL, "-Q_view", &Q_viewer, NULL, &set));
+
+    PetscCall(VecView(Q, Q_viewer));
+    PetscCall(PetscViewerDestroy(&Q_viewer));
+  }
+
   // Save time stamp
   // Dimensionalize time back
   time /= user->units->second;
