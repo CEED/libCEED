@@ -90,6 +90,7 @@ extern "C" int CeedCudaGenOperatorBuild(CeedOperator op) {
     ierr = CeedFree(&atomic_add_source); CeedChkBackend(ierr);
   }
 
+  // Load basis source files
   // TODO: generalize to accept different device functions?
   {
     char *tensor_basis_kernel_path, *tensor_basis_kernel_source;
@@ -116,29 +117,13 @@ extern "C" int CeedCudaGenOperatorBuild(CeedOperator op) {
     ierr = CeedFree(&cuda_gen_template_source); CeedChkBackend(ierr);
   }
 
+  // Get QFunction source and name
   string q_function_source(qf_data->q_function_source);
   string q_function_name(qf_data->q_function_name);
   string operator_name;
   operator_name = "CeedKernel_Cuda_gen_" + q_function_name;
 
-  // TODO: put in a function?
-  // Find dim and Q_1d
-  bool use_collograd_parallelization = false;
-  // Only use collocated gradient algorithm when we actually compute a gradient.
-  if (dim == 3) {
-    for (CeedInt i = 0; i < num_input_fields; i++) {
-      ierr = CeedQFunctionFieldGetEvalMode(qf_input_fields[i], &eval_mode);
-      if (eval_mode == CEED_EVAL_GRAD) {
-        use_collograd_parallelization = true;
-      }
-    }
-    for (CeedInt i = 0; i < num_output_fields; i++) {
-      ierr = CeedQFunctionFieldGetEvalMode(qf_output_fields[i], &eval_mode);
-      if (eval_mode == CEED_EVAL_GRAD) {
-        use_collograd_parallelization = true;
-      }
-    }
-  }
+  // Find dim, P_1d, Q_1d
   data->max_P_1d = 0;
   for (CeedInt i = 0; i < num_input_fields; i++) {
     ierr = CeedOperatorFieldGetBasis(op_input_fields[i], &basis); CeedChkBackend(ierr);
@@ -147,10 +132,7 @@ extern "C" int CeedCudaGenOperatorBuild(CeedOperator op) {
       ierr = CeedQFunctionFieldGetEvalMode(qf_input_fields[i], &eval_mode);
       CeedChkBackend(ierr);
 
-      // Check for collocated gradient
-      use_collograd_parallelization = use_collograd_parallelization && basis_data->d_collo_grad_1d; 
-
-      // Collect dim and Q_1d
+      // Collect dim, P_1d, and Q_1d
       ierr = CeedBasisGetDimension(basis, &dim); CeedChkBackend(ierr);
       bool isTensor;
       ierr = CeedBasisIsTensor(basis, &isTensor); CeedChkBackend(ierr); 
@@ -175,7 +157,7 @@ extern "C" int CeedCudaGenOperatorBuild(CeedOperator op) {
       ierr = CeedQFunctionFieldGetEvalMode(qf_output_fields[i], &eval_mode);
       CeedChkBackend(ierr);
 
-      // Collect dim and Q_1d
+      // Collect Q_1d
       ierr = CeedBasisGetDimension(basis, &dim); CeedChkBackend(ierr);
       bool isTensor;
       ierr = CeedBasisIsTensor(basis, &isTensor); CeedChkBackend(ierr); 
@@ -186,13 +168,35 @@ extern "C" int CeedCudaGenOperatorBuild(CeedOperator op) {
         return CeedError(ceed, CEED_ERROR_BACKEND, "Backend does not implement operators with non-tensor basis");
         // LCOV_EXCL_STOP
       }
-
-      // Check for collocated gradient
-      use_collograd_parallelization = use_collograd_parallelization && basis_data->d_collo_grad_1d; 
     }
   }
   data->dim = dim;
   data->Q_1d = Q_1d;
+
+  // Only use 3D collocated gradient parallelization strategy when gradient is computed
+  // TODO: put in a function?
+  bool use_collograd_parallelization = false;
+  if (dim == 3) {
+    bool was_grad_found = false;
+    for (CeedInt i = 0; i < num_input_fields; i++) {
+      ierr = CeedQFunctionFieldGetEvalMode(qf_input_fields[i], &eval_mode);
+      if (eval_mode == CEED_EVAL_GRAD) {
+        ierr = CeedOperatorFieldGetBasis(op_input_fields[i], &basis); CeedChkBackend(ierr);
+        ierr = CeedBasisGetData(basis, &basis_data); CeedChkBackend(ierr);
+        use_collograd_parallelization = !!basis_data->d_collo_grad_1d && (was_grad_found ? use_collograd_parallelization : true);
+        was_grad_found = true;
+      }
+    }
+    for (CeedInt i = 0; i < num_output_fields; i++) {
+      ierr = CeedQFunctionFieldGetEvalMode(qf_output_fields[i], &eval_mode);
+      if (eval_mode == CEED_EVAL_GRAD) {
+        ierr = CeedOperatorFieldGetBasis(op_output_fields[i], &basis); CeedChkBackend(ierr);
+        ierr = CeedBasisGetData(basis, &basis_data); CeedChkBackend(ierr);
+        use_collograd_parallelization = !!basis_data->d_collo_grad_1d && (was_grad_found ? use_collograd_parallelization : true);
+        was_grad_found = true;
+      }
+    }
+  }
 
   // Define CEED_Q_VLA
   code << "\n#undef CEED_Q_VLA\n";
