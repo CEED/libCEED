@@ -27,39 +27,39 @@
 /*
  * @brief Interpolate quantities from input profile to given location
  *
- * Assumed that prof_dw[i+1] > prof_dw[i] and prof_dw[0] = 0
- * If dw > prof_dw[-1], then the interpolation takes the values at prof_dw[-1]
+ * Assumed that prof_wd[i+1] > prof_wd[i] and prof_wd[0] = 0
+ * If wall_dist > prof_wd[-1], then the interpolation takes the values at prof_wd[-1]
  *
- * @param[in]  dw      Distance to the nearest wall
- * @param[out] ubar    Mean velocity at dw
- * @param[out] cij     Cholesky decomposition at dw
- * @param[out] eps     Turbulent dissipation at dw
- * @param[out] lt      Turbulent length scale at dw
- * @param[in]  stg_ctx STGShur14Context for the problem
+ * @param[in]  wall_dist Distance to the nearest wall
+ * @param[out] ubar      Mean velocity at wall_dist
+ * @param[out] cij       Cholesky decomposition at wall_dist
+ * @param[out] eps       Turbulent dissipation at wall_dist
+ * @param[out] lt        Turbulent length scale at wall_dist
+ * @param[in]  stg_ctx   STGShur14Context for the problem
  */
-CEED_QFUNCTION_HELPER void InterpolateProfile(const CeedScalar dw,
+CEED_QFUNCTION_HELPER void InterpolateProfile(const CeedScalar wall_dist,
     CeedScalar ubar[3], CeedScalar cij[6], CeedScalar *eps, CeedScalar *lt,
     const STGShur14Context stg_ctx) {
 
-  const CeedInt    nprofs    = stg_ctx->nprofs;
-  const CeedScalar *prof_dw  = &stg_ctx->data[stg_ctx->offsets.prof_dw];
-  const CeedScalar *prof_eps = &stg_ctx->data[stg_ctx->offsets.eps];
-  const CeedScalar *prof_lt  = &stg_ctx->data[stg_ctx->offsets.lt];
+  const CeedInt    nprofs     = stg_ctx->nprofs;
+  const CeedScalar *prof_wd   = &stg_ctx->data[stg_ctx->offsets.wall_dist];
+  const CeedScalar *prof_eps  = &stg_ctx->data[stg_ctx->offsets.eps];
+  const CeedScalar *prof_lt   = &stg_ctx->data[stg_ctx->offsets.lt];
   const CeedScalar *prof_ubar = &stg_ctx->data[stg_ctx->offsets.ubar];
   const CeedScalar *prof_cij  = &stg_ctx->data[stg_ctx->offsets.cij];
   CeedInt idx=-1;
 
   for(CeedInt i=0; i<nprofs; i++) {
-    if (dw < prof_dw[i]) {
+    if (wall_dist < prof_wd[i]) {
       idx = i;
       break;
     }
   }
 
-  if (idx > 0) { // y within the bounds of prof_dw
-    CeedScalar coeff = (dw - prof_dw[idx-1]) / (prof_dw[idx] - prof_dw[idx-1]);
-
+  if (idx > 0) { // y within the bounds of prof_wd
     //*INDENT-OFF*
+    CeedScalar coeff = (wall_dist - prof_wd[idx-1]) / (prof_wd[idx] - prof_wd[idx -1]);
+
     ubar[0] = prof_ubar[0*nprofs+idx-1] + coeff*( prof_ubar[0*nprofs+idx] - prof_ubar[0*nprofs+idx-1] );
     ubar[1] = prof_ubar[1*nprofs+idx-1] + coeff*( prof_ubar[1*nprofs+idx] - prof_ubar[1*nprofs+idx-1] );
     ubar[2] = prof_ubar[2*nprofs+idx-1] + coeff*( prof_ubar[2*nprofs+idx] - prof_ubar[2*nprofs+idx-1] );
@@ -72,7 +72,7 @@ CEED_QFUNCTION_HELPER void InterpolateProfile(const CeedScalar dw,
     *eps    = prof_eps[idx-1]           + coeff*( prof_eps[idx]           - prof_eps[idx-1] );
     *lt     = prof_lt[idx-1]            + coeff*( prof_lt[idx]            - prof_lt[idx-1] );
     //*INDENT-ON*
-  } else { // y outside bounds of prof_dw
+  } else { // y outside bounds of prof_wd
     ubar[0] = prof_ubar[1*nprofs-1];
     ubar[1] = prof_ubar[2*nprofs-1];
     ubar[2] = prof_ubar[3*nprofs-1];
@@ -110,14 +110,14 @@ CeedScalar CEED_QFUNCTION_HELPER(Calc_qn)(const CeedScalar kappa,
 }
 
 // Calculate hmax, ke, keta, and kcut
-void CEED_QFUNCTION_HELPER(SpectrumConstants)(const CeedScalar dw,
+void CEED_QFUNCTION_HELPER(SpectrumConstants)(const CeedScalar wall_dist,
     const CeedScalar eps, const CeedScalar lt, const CeedScalar h[3],
     const CeedScalar nu, CeedScalar *hmax, CeedScalar *ke,
     CeedScalar *keta, CeedScalar *kcut) {
   *hmax = Max( Max(h[0], h[1]), h[2]);
-  *ke   = dw==0 ? 1e16 : 2*M_PI/Min(2*dw, 3*lt);
+  *ke   = wall_dist==0 ? 1e16 : 2*M_PI/Min(2*wall_dist, 3*lt);
   *keta = 2*M_PI*pow(Cube(nu)/eps, -0.25);
-  *kcut = M_PI/ Min( Max(Max(h[1], h[2]), 0.3*(*hmax)) + 0.1*dw, *hmax );
+  *kcut = M_PI/ Min( Max(Max(h[1], h[2]), 0.3*(*hmax)) + 0.1*wall_dist, *hmax );
 }
 
 /*
@@ -125,22 +125,22 @@ void CEED_QFUNCTION_HELPER(SpectrumConstants)(const CeedScalar dw,
  *
  * Calculates q_n at a given distance to the wall
  *
- * @param[in]  dw      Distance to the nearest wall
- * @param[in]  eps     Turbulent dissipation w/rt dw
- * @param[in]  lt      Turbulent length scale w/rt dw
- * @param[in]  h       Element lengths in coordinate directions
- * @param[in]  nu      Dynamic Viscosity;
- * @param[in]  stg_ctx STGShur14Context for the problem
- * @param[out] qn      Spectrum coefficients, [nmodes]
+ * @param[in]  wall_dist Distance to the nearest wall
+ * @param[in]  eps       Turbulent dissipation w/rt wall_dist
+ * @param[in]  lt        Turbulent length scale w/rt wall_dist
+ * @param[in]  h         Element lengths in coordinate directions
+ * @param[in]  nu        Dynamic Viscosity;
+ * @param[in]  stg_ctx   STGShur14Context for the problem
+ * @param[out] qn        Spectrum coefficients, [nmodes]
  */
-void CEED_QFUNCTION_HELPER(CalcSpectrum)(const CeedScalar dw,
+void CEED_QFUNCTION_HELPER(CalcSpectrum)(const CeedScalar wall_dist,
     const CeedScalar eps, const CeedScalar lt, const CeedScalar h[3],
     const CeedScalar nu, CeedScalar qn[], const STGShur14Context stg_ctx) {
 
   const CeedInt    nmodes = stg_ctx->nmodes;
   const CeedScalar *kappa = &stg_ctx->data[stg_ctx->offsets.kappa];
   CeedScalar hmax, ke, keta, kcut, Ektot=0.0;
-  SpectrumConstants(dw, eps, lt, h, nu, &hmax, &ke, &keta, &kcut);
+  SpectrumConstants(wall_dist, eps, lt, h, nu, &hmax, &ke, &keta, &kcut);
 
   for(CeedInt n=0; n<nmodes; n++) {
     const CeedScalar dkappa = n==0 ? kappa[0] : kappa[n] - kappa[n-1];
@@ -198,17 +198,21 @@ void CEED_QFUNCTION_HELPER(STGShur14_Calc)(const CeedScalar X[3],
 /******************************************************
  * @brief Calculate u(x,t) for STG inflow condition
  *
- * @param[in]  X       Location to evaluate u(X,t)
- * @param[in]  t       Time to evaluate u(X,t)
- * @param[in]  ubar    Mean velocity at X
- * @param[in]  cij     Cholesky decomposition at X
- * @param[in]  qn      Wavemode amplitudes at X, [nmodes]
- * @param[out] u       Velocity at X and t
- * @param[in]  stg_ctx STGShur14Context for the problem
+ * @param[in]  X         Location to evaluate u(X,t)
+ * @param[in]  t         Time to evaluate u(X,t)
+ * @param[in]  ubar      Mean velocity at X
+ * @param[in]  cij       Cholesky decomposition at X
+ * @param[in]  Ektot     Total spectrum energy at this location
+ * @param[in]  h         Element size in 3 directions
+ * @param[in]  wall_dist Distance to closest wall
+ * @param[in]  eps       Turbulent dissipation
+ * @param[in]  lt        Turbulent length scale
+ * @param[out] u         Velocity at X and t
+ * @param[in]  stg_ctx   STGShur14Context for the problem
  */
 void CEED_QFUNCTION_HELPER(STGShur14_Calc_PrecompEktot)(const CeedScalar X[3],
     const CeedScalar t, const CeedScalar ubar[3], const CeedScalar cij[6],
-    const CeedScalar Ektot, const CeedScalar h[3], const CeedScalar dw,
+    const CeedScalar Ektot, const CeedScalar h[3], const CeedScalar wall_dist,
     const CeedScalar eps, const CeedScalar lt, const CeedScalar nu, CeedScalar u[3],
     const STGShur14Context stg_ctx) {
 
@@ -220,7 +224,7 @@ void CEED_QFUNCTION_HELPER(STGShur14_Calc_PrecompEktot)(const CeedScalar X[3],
   const CeedScalar *d     = &stg_ctx->data[stg_ctx->offsets.d];
   //*INDENT-ON*
   CeedScalar hmax, ke, keta, kcut;
-  SpectrumConstants(dw, eps, lt, h, nu, &hmax, &ke, &keta, &kcut);
+  SpectrumConstants(wall_dist, eps, lt, h, nu, &hmax, &ke, &keta, &kcut);
   CeedScalar xdotd, vp[3] = {0.};
   CeedScalar xhat[] = {0., X[1], X[2]};
 
@@ -273,7 +277,7 @@ CEED_QFUNCTION(Preprocess_STGShur14)(void *ctx, CeedInt Q,
 
   CeedPragmaSIMD
   for(CeedInt i=0; i<Q; i++) {
-    const CeedScalar dw = x[1][i];
+    const CeedScalar wall_dist = x[1][i];
     const CeedScalar dXdx[2][3] = {
       {q_data_sur[4][i], q_data_sur[5][i], q_data_sur[6][i]},
       {q_data_sur[7][i], q_data_sur[8][i], q_data_sur[9][i]}
@@ -284,17 +288,18 @@ CEED_QFUNCTION(Preprocess_STGShur14)(void *ctx, CeedInt Q,
     for (CeedInt j=1; j<3; j++)
       h[j] = 2/sqrt(dXdx[0][j]*dXdx[0][j] + dXdx[1][j]*dXdx[1][j]);
 
-    InterpolateProfile(dw, ubar, cij, &eps, &lt, stg_ctx);
-    SpectrumConstants(dw, eps, lt, h, nu, &hmax, &ke, &keta, &kcut);
+    InterpolateProfile(wall_dist, ubar, cij, &eps, &lt, stg_ctx);
+    SpectrumConstants(wall_dist, eps, lt, h, nu, &hmax, &ke, &keta, &kcut);
 
     // Calculate total TKE per spectrum
-    stg_data[i] = 0.;
+    CeedScalar Ek_tot=0;
     CeedPragmaSIMD
     for(CeedInt n=0; n<nmodes; n++) {
       const CeedScalar dkappa = n==0 ? kappa[0] : kappa[n] - kappa[n-1];
-      stg_data[i] += Calc_qn(kappa[n], dkappa, keta, kcut, ke, 1.0);
+      Ek_tot += Calc_qn(kappa[n], dkappa, keta, kcut, ke, 1.0);
     }
-    stg_data[i] = 1/stg_data[i];
+    // avoid underflowed and poorly defined spectrum coefficients
+    stg_data[i] = Ek_tot != 0 ? 1/Ek_tot : 0;
   }
   return 0;
 }
