@@ -10,6 +10,7 @@
 
 #include <ceed/ceed.h>
 #include <ceed/backend.h>
+#include <ceed/jit-source/cuda/cuda-types.h>
 #include <cublas_v2.h>
 #include <cuda.h>
 #include <cuda_runtime.h>
@@ -57,18 +58,6 @@ typedef struct {
   cublasHandle_t cublas_handle;
   struct cudaDeviceProp device_prop;
 } Ceed_Cuda;
-
-// We use a struct to avoid having to memCpy the array of pointers
-// __global__ copies by value the struct.
-typedef struct {
-  const CeedScalar *inputs[CEED_FIELD_MAX];
-  CeedScalar *outputs[CEED_FIELD_MAX];
-} Fields_Cuda;
-
-typedef struct {
-  CeedInt *inputs[CEED_FIELD_MAX];
-  CeedInt *outputs[CEED_FIELD_MAX];
-} FieldsInt_Cuda;
 
 CEED_INTERN int CeedCudaGetResourceRoot(Ceed ceed, const char *resource,
                                         char **resource_root);
