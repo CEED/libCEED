@@ -483,7 +483,7 @@ extern "C" int CeedCudaGenOperatorBuild(CeedOperator op) {
   }
   // We treat quadrature points per slice in 3d to save registers
   if (use_collograd_parallelization) {
-    code << "\n    // Note: Collocated Gradient\n";
+    code << "\n    // Note: Using planes of 3D elements\n";
     code << "#pragma unroll\n";
     code << "    for (CeedInt q = 0; q < Q_1d; q++) {\n";
     code << "      // -- Input fields --\n";
@@ -573,7 +573,7 @@ extern "C" int CeedCudaGenOperatorBuild(CeedOperator op) {
       }
     }
   } else {
-    code << "\n      // Note: No Collocated Gradient\n";
+    code << "\n      // Note: Using full elements\n";
     code << "      // -- Input fields --\n";
     for (CeedInt i = 0; i < num_input_fields; i++) {
       code << "      // ---- Input field "<<i<<" ----\n";
@@ -605,7 +605,6 @@ extern "C" int CeedCudaGenOperatorBuild(CeedOperator op) {
   }
   code << ", in, out);\n";
   if (use_collograd_parallelization) {
-    code << "\n      // Note: Collocated Gradient\n";
     code << "      // -- Output fields --\n";
     for (CeedInt i = 0; i < num_output_fields; i++) {
       code << "      // ---- Output field "<<i<<" ----\n";
