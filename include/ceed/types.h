@@ -112,8 +112,15 @@ typedef enum {
   /// Single precision
   CEED_SCALAR_FP32,
   /// Double precision
-  CEED_SCALAR_FP64
+  CEED_SCALAR_FP64,
+  /// Total number of allowed scalar precision types
+  CEED_NUM_PRECISIONS,
 } CeedScalarType;
+/// Struct for holding data in multiple precisions for mixed-precision-enabled
+/// backends
+typedef struct {
+  void *values[CEED_NUM_PRECISIONS]; // Size equals CEED_NUM_PRECISIONS
+} CeedScalarArray;
 /// Base scalar type for the library to use: change which header is 
 /// included to change the precision.
 #include "ceed-f64.h"

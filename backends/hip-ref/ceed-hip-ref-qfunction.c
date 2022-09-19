@@ -37,11 +37,13 @@ static int CeedQFunctionApply_Hip(CeedQFunction qf, CeedInt Q,
 
   // Read vectors
   for (CeedInt i = 0; i < num_input_fields; i++) {
-    ierr = CeedVectorGetArrayRead(U[i], CEED_MEM_DEVICE, &data->fields.inputs[i]);
+    ierr = CeedVectorGetArrayReadGeneric(U[i], CEED_MEM_DEVICE, CEED_SCALAR_TYPE,
+                                         &data->fields.inputs[i]);
     CeedChkBackend(ierr);
   }
   for (CeedInt i = 0; i < num_output_fields; i++) {
-    ierr = CeedVectorGetArrayWrite(V[i], CEED_MEM_DEVICE, &data->fields.outputs[i]);
+    ierr = CeedVectorGetArrayWriteGeneric(V[i], CEED_MEM_DEVICE, CEED_SCALAR_TYPE,
+                                          &data->fields.outputs[i]);
     CeedChkBackend(ierr);
   }
 
@@ -56,11 +58,11 @@ static int CeedQFunctionApply_Hip(CeedQFunction qf, CeedInt Q,
 
   // Restore vectors
   for (CeedInt i = 0; i < num_input_fields; i++) {
-    ierr = CeedVectorRestoreArrayRead(U[i], &data->fields.inputs[i]);
+    ierr = CeedVectorRestoreArrayReadGeneric(U[i], &data->fields.inputs[i]);
     CeedChkBackend(ierr);
   }
   for (CeedInt i = 0; i < num_output_fields; i++) {
-    ierr = CeedVectorRestoreArray(V[i], &data->fields.outputs[i]);
+    ierr = CeedVectorRestoreArrayGeneric(V[i], &data->fields.outputs[i]);
     CeedChkBackend(ierr);
   }
 

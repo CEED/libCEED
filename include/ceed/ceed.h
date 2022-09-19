@@ -243,19 +243,50 @@ CEED_EXTERN int CeedVectorCreate(Ceed ceed, CeedSize len, CeedVector *vec);
 CEED_EXTERN int CeedVectorReferenceCopy(CeedVector vec, CeedVector *vec_copy);
 CEED_EXTERN int CeedVectorSetArray(CeedVector vec, CeedMemType mem_type,
                                    CeedCopyMode copy_mode, CeedScalar *array);
+CEED_EXTERN int CeedVectorSetArrayFP32(CeedVector vec, CeedMemType mem_type,
+                                       CeedCopyMode copy_mode, float *array);
+CEED_EXTERN int CeedVectorSetArrayFP64(CeedVector vec, CeedMemType mem_type,
+                                       CeedCopyMode copy_mode, double *array);
 CEED_EXTERN int CeedVectorSetValue(CeedVector vec, CeedScalar value);
 CEED_EXTERN int CeedVectorSyncArray(CeedVector vec, CeedMemType mem_type);
+CEED_EXTERN int CeedVectorSyncArrayFP32(CeedVector vec, CeedMemType mem_type);
+CEED_EXTERN int CeedVectorSyncArrayFP64(CeedVector vec, CeedMemType mem_type);
 CEED_EXTERN int CeedVectorTakeArray(CeedVector vec, CeedMemType mem_type,
                                     CeedScalar **array);
+CEED_EXTERN int CeedVectorTakeArrayFP32(CeedVector vec, CeedMemType mem_type,
+                                        float **array);
+CEED_EXTERN int CeedVectorTakeArrayFP64(CeedVector vec, CeedMemType mem_type,
+                                        double **array);
 CEED_EXTERN int CeedVectorGetArray(CeedVector vec, CeedMemType mem_type,
                                    CeedScalar **array);
+CEED_EXTERN int CeedVectorGetArrayFP32(CeedVector vec, CeedMemType mem_type,
+                                       float **array);
+CEED_EXTERN int CeedVectorGetArrayFP64(CeedVector vec, CeedMemType mem_type,
+                                       double **array);
 CEED_EXTERN int CeedVectorGetArrayRead(CeedVector vec, CeedMemType mem_type,
                                        const CeedScalar **array);
+CEED_EXTERN int CeedVectorGetArrayReadFP32(CeedVector vec, CeedMemType mem_type,
+                                           const float **array);
+CEED_EXTERN int CeedVectorGetArrayReadFP64(CeedVector vec, CeedMemType mem_type,
+                                           const double **array);
 CEED_EXTERN int CeedVectorGetArrayWrite(CeedVector vec, CeedMemType mem_type,
                                         CeedScalar **array);
+CEED_EXTERN int CeedVectorGetArrayWriteFP32(CeedVector vec, CeedMemType mem_type,
+                                            float **array);
+CEED_EXTERN int CeedVectorGetArrayWriteFP64(CeedVector vec, CeedMemType mem_type,
+                                            double **array);
 CEED_EXTERN int CeedVectorRestoreArray(CeedVector vec, CeedScalar **array);
+CEED_EXTERN int CeedVectorRestoreArrayFP32(CeedVector vec, float **array);
+CEED_EXTERN int CeedVectorRestoreArrayFP64(CeedVector vec, double **array);
 CEED_EXTERN int CeedVectorRestoreArrayRead(CeedVector vec,
     const CeedScalar **array);
+CEED_EXTERN int CeedVectorRestoreArrayReadFP32(CeedVector vec,
+    const float **array);
+CEED_EXTERN int CeedVectorRestoreArrayReadFP64(CeedVector vec,
+    const double **array);
+CEED_EXTERN int CeedVectorCheckArrayStatus(CeedVector vec, CeedMemType mem_type, 
+    unsigned int *valid_status, unsigned int *borrowed_status, 
+    unsigned int *owned_status);
 CEED_EXTERN int CeedVectorNorm(CeedVector vec, CeedNormType type,
                                CeedScalar *norm);
 CEED_EXTERN int CeedVectorScale(CeedVector x, CeedScalar alpha);
