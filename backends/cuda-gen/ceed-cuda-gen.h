@@ -13,19 +13,16 @@
 #include <cuda.h>
 #include "../cuda/ceed-cuda-common.h"
 
-typedef struct { const CeedScalar *inputs[CEED_FIELD_MAX]; CeedScalar *outputs[CEED_FIELD_MAX]; } CudaFields;
-typedef struct { CeedInt *inputs[CEED_FIELD_MAX]; CeedInt *outputs[CEED_FIELD_MAX]; } CudaFieldsInt;
-
 typedef struct {
   CeedInt dim;
   CeedInt Q_1d;
   CeedInt max_P_1d;
   CUmodule module;
   CUfunction op;
-  CudaFieldsInt indices;
-  CudaFields fields;
-  CudaFields B;
-  CudaFields G;
+  FieldsInt_Cuda indices;
+  Fields_Cuda fields;
+  Fields_Cuda B;
+  Fields_Cuda G;
   CeedScalar *W;
 } CeedOperator_Cuda_gen;
 
