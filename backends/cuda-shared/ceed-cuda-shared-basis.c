@@ -212,9 +212,12 @@ int CeedBasisApplyTensor_Cuda_shared(CeedBasis basis, const CeedInt num_elem,
                                   elems_per_block, weight_args);
       CeedChkBackend(ierr);
     } else if (dim == 3) {
-      const CeedInt gridsize = num_elem;
-      ierr = CeedRunKernelDimCuda(ceed, data->Weight, gridsize, Q_1d, Q_1d, Q_1d,
-                                  weight_args);
+      const CeedInt opt_elems = 32 / (Q_1d * Q_1d);
+      const CeedInt elems_per_block = opt_elems > 0 ? opt_elems : 1;
+      const CeedInt gridsize = num_elem / elems_per_block +
+                               ((num_elem / elems_per_block*elems_per_block < num_elem) ? 1 : 0 );
+      ierr = CeedRunKernelDimCuda(ceed, data->Weight, gridsize, Q_1d, Q_1d,
+                                  elems_per_block, weight_args);
       CeedChkBackend(ierr);
     }
   } break;

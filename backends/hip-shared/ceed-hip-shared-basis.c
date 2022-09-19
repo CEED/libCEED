@@ -262,9 +262,12 @@ int CeedBasisApplyTensor_Hip_shared(CeedBasis basis, const CeedInt num_elem,
                                  elems_per_block, weight_args);
       CeedChkBackend(ierr);
     } else if (dim == 3) {
-      const CeedInt grid_size = num_elem;
-      ierr = CeedRunKernelDimHip(ceed, data->Weight, grid_size, Q_1d, Q_1d, Q_1d,
-                                 weight_args);
+      const CeedInt opt_elems = block_size / (Q_1d * Q_1d);
+      const CeedInt elems_per_block = opt_elems > 0 ? opt_elems : 1;
+      const CeedInt grid_size = num_elem / elems_per_block +
+                                ((num_elem / elems_per_block*elems_per_block < num_elem) ? 1 : 0 );
+      ierr = CeedRunKernelDimHip(ceed, data->Weight, grid_size, Q_1d, Q_1d,
+                                 elems_per_block, weight_args);
       CeedChkBackend(ierr);
     }
   } break;
