@@ -689,9 +689,9 @@ extern "C" int CeedCudaGenOperatorBuild(CeedOperator op) {
     }
     // TODO put in a function
     // Restriction
-      bool isStrided;
-      ierr = CeedElemRestrictionIsStrided(Erestrict, &isStrided); CeedChkBackend(ierr);
-    if (!isStrided) {
+      bool is_strided;
+      ierr = CeedElemRestrictionIsStrided(Erestrict, &is_strided); CeedChkBackend(ierr);
+    if (!is_strided) {
       ierr = CeedElemRestrictionGetLVectorSize(Erestrict, &lsize);
       CeedChkBackend(ierr);
       code << "    const CeedInt lsize_out_"<<i<<" = "<<lsize<<";\n";
