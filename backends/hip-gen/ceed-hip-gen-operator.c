@@ -47,7 +47,7 @@ static int CeedOperatorApplyAdd_Hip_gen(CeedOperator op, CeedVector invec,
   ierr = CeedQFunctionGetFields(qf, NULL, &qfinputfields, NULL, &qfoutputfields);
   CeedChkBackend(ierr);
   CeedEvalMode emode;
-  CeedVector vec, outvecs[16] = {};
+  CeedVector vec, outvecs[CEED_FIELD_MAX] = {};
 
   //Creation of the operator
   ierr = CeedHipGenOperatorBuild(op); CeedChkBackend(ierr);
@@ -57,12 +57,12 @@ static int CeedOperatorApplyAdd_Hip_gen(CeedOperator op, CeedVector invec,
     ierr = CeedQFunctionFieldGetEvalMode(qfinputfields[i], &emode);
     CeedChkBackend(ierr);
     if (emode == CEED_EVAL_WEIGHT) { // Skip
-      data->fields.in[i] = NULL;
+      data->fields.inputs[i] = NULL;
     } else {
       // Get input vector
       ierr = CeedOperatorFieldGetVector(opinputfields[i], &vec); CeedChkBackend(ierr);
       if (vec == CEED_VECTOR_ACTIVE) vec = invec;
-      ierr = CeedVectorGetArrayRead(vec, CEED_MEM_DEVICE, &data->fields.in[i]);
+      ierr = CeedVectorGetArrayRead(vec, CEED_MEM_DEVICE, &data->fields.inputs[i]);
       CeedChkBackend(ierr);
     }
   }
@@ -72,7 +72,7 @@ static int CeedOperatorApplyAdd_Hip_gen(CeedOperator op, CeedVector invec,
     ierr = CeedQFunctionFieldGetEvalMode(qfoutputfields[i], &emode);
     CeedChkBackend(ierr);
     if (emode == CEED_EVAL_WEIGHT) { // Skip
-      data->fields.out[i] = NULL;
+      data->fields.outputs[i] = NULL;
     } else {
       // Get output vector
       ierr = CeedOperatorFieldGetVector(opoutputfields[i], &vec);
@@ -88,10 +88,10 @@ static int CeedOperatorApplyAdd_Hip_gen(CeedOperator op, CeedVector invec,
         }
       }
       if (index == -1) {
-        ierr = CeedVectorGetArray(vec, CEED_MEM_DEVICE, &data->fields.out[i]);
+        ierr = CeedVectorGetArray(vec, CEED_MEM_DEVICE, &data->fields.outputs[i]);
         CeedChkBackend(ierr);
       } else {
-        data->fields.out[i] = data->fields.out[index];
+        data->fields.outputs[i] = data->fields.outputs[index];
       }
     }
   }
@@ -146,7 +146,7 @@ static int CeedOperatorApplyAdd_Hip_gen(CeedOperator op, CeedVector invec,
     } else {
       ierr = CeedOperatorFieldGetVector(opinputfields[i], &vec); CeedChkBackend(ierr);
       if (vec == CEED_VECTOR_ACTIVE) vec = invec;
-      ierr = CeedVectorRestoreArrayRead(vec, &data->fields.in[i]);
+      ierr = CeedVectorRestoreArrayRead(vec, &data->fields.inputs[i]);
       CeedChkBackend(ierr);
     }
   }
@@ -169,7 +169,7 @@ static int CeedOperatorApplyAdd_Hip_gen(CeedOperator op, CeedVector invec,
         }
       }
       if (index == -1) {
-        ierr = CeedVectorRestoreArray(vec, &data->fields.out[i]);
+        ierr = CeedVectorRestoreArray(vec, &data->fields.outputs[i]);
         CeedChkBackend(ierr);
       }
     }

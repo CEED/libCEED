@@ -13,8 +13,8 @@
 #include <hip/hip_runtime.h>
 #include "../hip/ceed-hip-common.h"
 
-typedef struct { const CeedScalar *in[CEED_FIELD_MAX]; CeedScalar *out[CEED_FIELD_MAX]; } HipFields;
-typedef struct { CeedInt *in[CEED_FIELD_MAX]; CeedInt *out[CEED_FIELD_MAX]; } HipFieldsInt;
+typedef struct { const CeedScalar *inputs[CEED_FIELD_MAX]; CeedScalar *outputs[CEED_FIELD_MAX]; } HipFields;
+typedef struct { CeedInt *inputs[CEED_FIELD_MAX]; CeedInt *outputs[CEED_FIELD_MAX]; } HipFieldsInt;
 
 typedef struct {
   CeedInt dim;
