@@ -58,7 +58,7 @@ noether-cpu:
     - make -k -j$NPROC_CPU BACKENDS="$BACKENDS_CPU" JUNIT_BATCH="cpu" junit search=nek NEK5K_DIR=$NEK5K_DIR
 # Clang-tidy
     - echo "-------------- clang-tidy ----------" && clang-tidy --version
-    - TIDY_OPTS="-fix-errors" make -j$NPROC_CPU tidy && git diff --exit-code
+    - TIDY_OPTS="-fix-errors" make -j$NPROC_CPU tidy && git diff --color=always --exit-code
 # Report status
     - touch .SUCCESS
   after_script:
@@ -126,7 +126,7 @@ noether-rocm:
     - make -k -j$NPROC_GPU BACKENDS="$BACKENDS_GPU" JUNIT_BATCH="hip" junit search=nek NEK5K_DIR=$NEK5K_DIR
 # Clang-tidy
     - echo "-------------- clang-tidy ----------" && clang-tidy --version
-    - TIDY_OPTS="-fix-errors" make -j$NPROC_CPU tidy && git diff --exit-code
+    - TIDY_OPTS="-fix-errors" make -j$NPROC_CPU tidy && git diff --color=always --exit-code
 # Report status
     - touch .SUCCESS
   after_script:
