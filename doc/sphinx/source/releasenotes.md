@@ -31,6 +31,11 @@ On this page we provide a summary of the main API changes, new features and exam
 - Added Shock Tube, Channel, and Flat Plate boundary layer problems to {ref}`example-petsc-navier-stokes`.
 - Added ability to use QFunctions for strong STG inflow in {ref}`example-petsc-navier-stokes`.
 
+### Maintainability
+
+- Refactored `/gpu/cuda/shared` and `/gpu/cuda/gen` as well as `/gpu/hip/shared` and `/gpu/hip/gen` backend to improve maintainablity and reduce duplicated code.
+- Enabled support for `p > 8` for `/gpu/*/shared` backends.
+
 (v0-10-1)=
 
 ## v0.10.1 (Apr 11, 2022)
