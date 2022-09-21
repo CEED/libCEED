@@ -568,7 +568,7 @@ $(tests) : $(libceed)
 $(tests) $(examples) : override LDFLAGS += $(if $(STATIC),,-Wl,-rpath,$(abspath $(LIBDIR))) -L$(LIBDIR)
 
 run-% : $(OBJDIR)/%
-	@tests/tap.sh $(<:$(OBJDIR)/%=%)
+	@$(PYTHON) tests/junit.py --mode tap $(<:$(OBJDIR)/%=%)
 
 external_examples := \
 	$(if $(MFEM_DIR),$(mfemexamples)) \
@@ -600,7 +600,7 @@ ctc-% : $(ctests);@$(foreach tst,$(ctests),$(tst) /cpu/$*;)
 
 prove : $(matched)
 	$(info Testing backends: $(BACKENDS))
-	$(PROVE) $(PROVE_OPTS) --exec 'tests/tap.sh' $(matched:$(OBJDIR)/%=%)
+	$(PROVE) $(PROVE_OPTS) --exec 'tests/junit.py --mode tap' $(matched:$(OBJDIR)/%=%)
 # Run prove target in parallel
 prv : ;@$(MAKE) $(MFLAGS) V=$(V) prove
 
