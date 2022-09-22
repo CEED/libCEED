@@ -29,7 +29,6 @@
 //     ./ex2-surface -ceed /cpu/self
 //     ./ex2-surface -ceed /gpu/cuda
 //
-// Next line is grep'd from tap.sh to set its arguments
 // Test in 1D-3D
 //TESTARGS(name="1D_user_QFunction") -ceed {ceed_resource} -d 1 -t
 //TESTARGS(name="2D_user_QFunction") -ceed {ceed_resource} -d 2 -t

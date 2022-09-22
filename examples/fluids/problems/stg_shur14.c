@@ -131,7 +131,7 @@ static PetscErrorCode ReadSTGInflow(const MPI_Comm comm, const char path[PETSC_M
   PetscCall(OpenPHASTADatFile(comm, path, char_array_len, dims, &fp));
 
   CeedScalar  rij[6][stg_ctx->nprofs];
-  CeedScalar *prof_dw                = &stg_ctx->data[stg_ctx->offsets.prof_dw];
+  CeedScalar *wall_dist              = &stg_ctx->data[stg_ctx->offsets.wall_dist];
   CeedScalar *eps                    = &stg_ctx->data[stg_ctx->offsets.eps];
   CeedScalar *lt                     = &stg_ctx->data[stg_ctx->offsets.lt];
   CeedScalar(*ubar)[stg_ctx->nprofs] = (CeedScalar(*)[stg_ctx->nprofs]) & stg_ctx->data[stg_ctx->offsets.ubar];
@@ -144,18 +144,22 @@ static PetscErrorCode ReadSTGInflow(const MPI_Comm comm, const char path[PETSC_M
               ndims, dims[1]);
     }
 
-    prof_dw[i] = (CeedScalar)atof(array[0]);
-    ubar[0][i] = (CeedScalar)atof(array[1]);
-    ubar[1][i] = (CeedScalar)atof(array[2]);
-    ubar[2][i] = (CeedScalar)atof(array[3]);
-    rij[0][i]  = (CeedScalar)atof(array[4]);
-    rij[1][i]  = (CeedScalar)atof(array[5]);
-    rij[2][i]  = (CeedScalar)atof(array[6]);
-    rij[3][i]  = (CeedScalar)atof(array[7]);
-    rij[4][i]  = (CeedScalar)atof(array[8]);
-    rij[5][i]  = (CeedScalar)atof(array[9]);
-    lt[i]      = (CeedScalar)atof(array[12]);
-    eps[i]     = (CeedScalar)atof(array[13]);
+    wall_dist[i] = (CeedScalar)atof(array[0]);
+    ubar[0][i]   = (CeedScalar)atof(array[1]);
+    ubar[1][i]   = (CeedScalar)atof(array[2]);
+    ubar[2][i]   = (CeedScalar)atof(array[3]);
+    rij[0][i]    = (CeedScalar)atof(array[4]);
+    rij[1][i]    = (CeedScalar)atof(array[5]);
+    rij[2][i]    = (CeedScalar)atof(array[6]);
+    rij[3][i]    = (CeedScalar)atof(array[7]);
+    rij[4][i]    = (CeedScalar)atof(array[8]);
+    rij[5][i]    = (CeedScalar)atof(array[9]);
+    lt[i]        = (CeedScalar)atof(array[12]);
+    eps[i]       = (CeedScalar)atof(array[13]);
+
+    if (wall_dist[i] < 0) SETERRQ(comm, -1, "Distance to wall in %s cannot be negative", path);
+    if (lt[i] < 0) SETERRQ(comm, -1, "Turbulent length scale in %s cannot be negative", path);
+    if (eps[i] < 0) SETERRQ(comm, -1, "Turbulent dissipation in %s cannot be negative", path);
 
     if (prof_dw[i] < 0) SETERRQ(comm, -1, "Distance to wall in %s cannot be negative", path);
     if (lt[i] < 0) SETERRQ(comm, -1, "Turbulent length scale in %s cannot be negative", path);
@@ -251,8 +255,8 @@ PetscErrorCode GetSTGContextData(const MPI_Comm comm, const DM dm, char stg_infl
     s->offsets.d               = nmodes * 3;
     s->offsets.phi             = s->offsets.d + nmodes * 3;
     s->offsets.kappa           = s->offsets.phi + nmodes;
-    s->offsets.prof_dw         = s->offsets.kappa + nmodes;
-    s->offsets.ubar            = s->offsets.prof_dw + nprofs;
+    s->offsets.wall_dist       = s->offsets.kappa + nmodes;
+    s->offsets.ubar            = s->offsets.wall_dist + nprofs;
     s->offsets.cij             = s->offsets.ubar + nprofs * 3;
     s->offsets.eps             = s->offsets.cij + nprofs * 6;
     s->offsets.lt              = s->offsets.eps + nprofs;
@@ -274,13 +278,13 @@ PetscErrorCode GetSTGContextData(const MPI_Comm comm, const DM dm, char stg_infl
 
   // -- Calculate kappa
   {
-    CeedScalar *kappa   = &stg_ctx->data[stg_ctx->offsets.kappa];
-    CeedScalar *prof_dw = &stg_ctx->data[stg_ctx->offsets.prof_dw];
-    CeedScalar *lt      = &stg_ctx->data[stg_ctx->offsets.lt];
+    CeedScalar *kappa     = &stg_ctx->data[stg_ctx->offsets.kappa];
+    CeedScalar *wall_dist = &stg_ctx->data[stg_ctx->offsets.wall_dist];
+    CeedScalar *lt        = &stg_ctx->data[stg_ctx->offsets.lt];
     CeedScalar  le, le_max = 0;
 
     CeedPragmaSIMD for (PetscInt i = 0; i < stg_ctx->nprofs; i++) {
-      le = PetscMin(2 * prof_dw[i], 3 * lt[i]);
+      le = PetscMin(2 * wall_dist[i], 3 * lt[i]);
       if (le_max < le) le_max = le;
     }
     CeedScalar kmin = M_PI / le_max;

@@ -5,6 +5,7 @@ import sys
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), 'junit-xml')))
 from junit_xml import TestCase, TestSuite
 
+
 def parse_testargs(file):
     if os.path.splitext(file)[1] in ['.c', '.cpp']:
         return sum([[[line.split()[1:], [line.split()[0].strip('//TESTARGS(name=').strip(')')]]]
@@ -19,6 +20,7 @@ def parse_testargs(file):
                     for line in open(file).readlines()
                     if line.startswith('! TESTARGS')], [])
     raise RuntimeError('Unrecognized extension for file: {}'.format(file))
+
 
 def get_source(test):
     if test.startswith('petsc-'):
@@ -38,11 +40,13 @@ def get_source(test):
     else:
         return os.path.join('tests', test + '.c')
 
+
 def get_testargs(source):
     args = parse_testargs(source)
     if not args:
         return [(['{ceed_resource}'], [''])]
     return args
+
 
 def check_required_failure(case, stderr, required):
     if required in stderr:
@@ -50,8 +54,10 @@ def check_required_failure(case, stderr, required):
     else:
         case.add_failure_info('required: {}'.format(required))
 
+
 def contains_any(resource, substrings):
     return any((sub in resource for sub in substrings))
+
 
 def skip_rule(test, resource):
     return any((
@@ -63,17 +69,18 @@ def skip_rule(test, resource):
         test.startswith('t506') and contains_any(resource, ['/gpu/cuda/shared']),
         ))
 
+
 def run(test, backends):
     import subprocess
     import time
     import difflib
     source = get_source(test)
-    allargs = get_testargs(source)
+    all_args = get_testargs(source)
 
-    testcases = []
+    test_cases = []
     my_env = os.environ.copy()
-    my_env["CEED_ERROR_HANDLER"] = 'exit';
-    for args, name in allargs:
+    my_env["CEED_ERROR_HANDLER"] = 'exit'
+    for args, name in all_args:
         for ceed_resource in backends:
             rargs = [os.path.join('build', test)] + args.copy()
             rargs[rargs.index('{ceed_resource}')] = ceed_resource
@@ -96,7 +103,7 @@ def run(test, backends):
 
                 case = TestCase('{} {} {}'.format(test, *name, ceed_resource),
                                 classname=os.path.dirname(source),
-                                elapsed_sec=time.time()-start,
+                                elapsed_sec=time.time() - start,
                                 timestamp=time.strftime('%Y-%m-%d %H:%M:%S %Z', time.localtime(start)),
                                 stdout=proc.stdout,
                                 stderr=proc.stderr)
@@ -151,12 +158,14 @@ def run(test, backends):
                         case.add_failure_info('stdout', output=''.join(diff))
                 elif proc.stdout and test[:4] not in 't003':
                     case.add_failure_info('stdout', output=proc.stdout)
-            testcases.append(case)
-    return TestSuite(test, testcases)
+            case.args = ' '.join(rargs)
+            test_cases.append(case)
+    return TestSuite(test, test_cases)
 
 if __name__ == '__main__':
     import argparse
-    parser = argparse.ArgumentParser('Test runner with JUnit output')
+    parser = argparse.ArgumentParser('Test runner with JUnit and TAP output')
+    parser.add_argument('--mode', help='Output mode, JUnit or TAP', default="JUnit")
     parser.add_argument('--output', help='Output file to write test', default=None)
     parser.add_argument('--gather', help='Gather all *.junit files into XML', action='store_true')
     parser.add_argument('test', help='Test executable', nargs='?')
@@ -169,17 +178,40 @@ if __name__ == '__main__':
 
         result = run(args.test, backends)
 
-        junit_batch = ''
-        try:
-            junit_batch = '-' + os.environ['JUNIT_BATCH']
-        except:
-            pass
-        output = (os.path.join('build', args.test + junit_batch + '.junit')
-                  if args.output is None
-                  else args.output)
+        if args.mode.lower() == "junit":
+            junit_batch = ''
+            try:
+                junit_batch = '-' + os.environ['JUNIT_BATCH']
+            except:
+                pass
+            output = (os.path.join('build', args.test + junit_batch + '.junit')
+                      if args.output is None
+                      else args.output)
 
-        with open(output, 'w') as fd:
-            TestSuite.to_file(fd, [result])
+            with open(output, 'w') as fd:
+                TestSuite.to_file(fd, [result])
+        elif args.mode.lower() == "tap":
+            print('1..' + str(len(result.test_cases)))
+            for i in range(len(result.test_cases)):
+                test_case = result.test_cases[i]
+                test_index = str(i + 1)
+                print('# Test: ' + test_case.name.split(' ')[1])
+                print('# $ ' + test_case.args)
+                if test_case.is_error():
+                    message = test_case.is_error() if isinstance(test_case.is_error(), str) else test_case.errors[0]['message']
+                    print('not ok {} - ERROR: {}'.format(test_index, message.strip()))
+                    print(test_case.errors[0]['output'].strip())
+                elif test_case.is_failure():
+                    message = test_case.is_failure() if isinstance(test_case.is_failure(), str) else test_case.failures[0]['message']
+                    print('not ok {} - FAIL: {}'.format(test_index, message.strip()))
+                    print(test_case.failures[0]['output'].strip())
+                elif test_case.is_skipped():
+                    message = test_case.is_skipped() if isinstance(test_case.is_skipped(), str) else test_case.skipped[0]['message']
+                    print('ok {} - SKIP: {}'.format(test_index, message.strip()))
+                else:
+                    print('ok {} - PASS'.format(test_index))
+        else:
+            raise Exception("output mode not recognized")
 
         for t in result.test_cases:
             failures = len([c for c in result.test_cases if c.is_failure()])

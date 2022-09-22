@@ -182,8 +182,7 @@ struct CeedBasis_private {
   CeedInt          P;             /* total number of nodes */
   CeedInt          Q;             /* total number of quadrature points */
   CeedScalar      *q_ref_1d;      /* Array of length Q1d holding the locations of
-                                       quadrature points on the 1D reference
-                                       element [-1, 1] */
+                                       quadrature points on the 1D reference element [-1, 1] */
   CeedScalar *q_weight_1d;        /* array of length Q1d holding the quadrature weights on
                                                  the reference element */
   CeedScalar *interp;             /* row-major matrix of shape [Q_comp*Q, P] expressing the values of
@@ -195,8 +194,8 @@ struct CeedBasis_private {
   CeedScalar *grad_1d;            /* row-major matrix of shape [Q1d, P1d] matrix expressing
                                        derivatives of nodal basis functions at quadrature points */
   CeedTensorContract contract;    /* tensor contraction object */
-  CeedInt            basis_space; /* Initialize in basis constructor
-                                  with 1,2 for H^1, H(div) FE space */
+  CeedFESpace        basis_space; /* Initialize in basis constructor
+                                       with 1,2 for H^1, H(div) FE space */
   CeedScalar *div;                /* row-major matrix of shape [Q, P] expressing
                                       the divergence of nodal basis functions
                                       at quadrature points for H(div) discretizations */

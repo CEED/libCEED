@@ -28,7 +28,6 @@
 //     ./ex1-volume -ceed /cpu/self
 //     ./ex1-volume -ceed /gpu/cuda
 //
-// Next line is grep'd from tap.sh to set its arguments
 // Test in 1D-3D
 //TESTARGS(name="1D_User_QFunction") -ceed {ceed_resource} -d 1 -t
 //TESTARGS(name="2D_User_QFunction") -ceed {ceed_resource} -d 2 -t

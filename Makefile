@@ -32,6 +32,7 @@ NVCC ?= $(CUDA_DIR)/bin/nvcc
 NVCC_CXX ?= $(CXX)
 HIPCC ?= $(HIP_DIR)/bin/hipcc
 SED ?= sed
+EXE_SUFFIX = $(if $(EMSCRIPTEN),.wasm)
 
 # ASAN must be left empty if you don't want to use it
 ASAN ?=
@@ -193,14 +194,14 @@ TEST_BACKENDS := /cpu/self/tmpl /cpu/self/tmpl/sub
 # Tests
 tests.c   := $(sort $(wildcard tests/t[0-9][0-9][0-9]-*.c))
 tests.f   := $(if $(FC),$(sort $(wildcard tests/t[0-9][0-9][0-9]-*.f90)))
-tests     := $(tests.c:tests/%.c=$(OBJDIR)/%)
+tests     := $(tests.c:tests/%.c=$(OBJDIR)/%$(EXE_SUFFIX))
 ctests    := $(tests)
-tests     += $(tests.f:tests/%.f90=$(OBJDIR)/%)
+tests     += $(tests.f:tests/%.f90=$(OBJDIR)/%$(EXE_SUFFIX))
 # Examples
 examples.c := $(sort $(wildcard examples/ceed/*.c))
 examples.f := $(if $(FC),$(sort $(wildcard examples/ceed/*.f)))
-examples  := $(examples.c:examples/ceed/%.c=$(OBJDIR)/%)
-examples  += $(examples.f:examples/ceed/%.f=$(OBJDIR)/%)
+examples  := $(examples.c:examples/ceed/%.c=$(OBJDIR)/%$(EXE_SUFFIX))
+examples  += $(examples.f:examples/ceed/%.f=$(OBJDIR)/%$(EXE_SUFFIX))
 # MFEM Examples
 mfemexamples.cpp := $(sort $(wildcard examples/mfem/*.cpp))
 mfemexamples  := $(mfemexamples.cpp:examples/mfem/%.cpp=$(OBJDIR)/mfem-%)
@@ -424,10 +425,10 @@ ifneq ($(wildcard $(MAGMA_DIR)/lib/libmagma.*),)
   MAGMA_ARCH=$(shell nm -g $(MAGMA_DIR)/lib/libmagma.* | grep -c "hipblas")
   ifeq ($(MAGMA_ARCH), 0) #CUDA MAGMA
     ifneq ($(CUDA_LIB_DIR),)
-      cuda_link = -Wl,-rpath,$(CUDA_LIB_DIR) -L$(CUDA_LIB_DIR) -lcublas -lcusparse -lcudart
+      cuda_link = $(if $(STATIC),,-Wl,-rpath,$(CUDA_LIB_DIR)) -L$(CUDA_LIB_DIR) -lcublas -lcusparse -lcudart
       omp_link = -fopenmp
       magma_link_static = -L$(MAGMA_DIR)/lib -lmagma $(cuda_link) $(omp_link)
-      magma_link_shared = -L$(MAGMA_DIR)/lib -Wl,-rpath,$(abspath $(MAGMA_DIR)/lib) -lmagma
+      magma_link_shared = -L$(MAGMA_DIR)/lib $(if $(STATIC),,-Wl,-rpath,$(abspath $(MAGMA_DIR)/lib)) -lmagma
       magma_link := $(if $(wildcard $(MAGMA_DIR)/lib/libmagma.${SO_EXT}),$(magma_link_shared),$(magma_link_static))
       PKG_LIBS += $(magma_link)
       libceed.c   += $(magma.c)
@@ -440,10 +441,10 @@ ifneq ($(wildcard $(MAGMA_DIR)/lib/libmagma.*),)
     endif
   else  # HIP MAGMA
     ifneq ($(HIP_LIB_DIR),)
-      hip_link = -Wl,-rpath,$(HIP_LIB_DIR) -L$(HIP_LIB_DIR) -lhipblas -lhipsparse -lamdhip64
+      hip_link = $(if $(STATIC),,-Wl,-rpath,$(HIP_LIB_DIR)) -L$(HIP_LIB_DIR) -lhipblas -lhipsparse -lamdhip64
       omp_link = -fopenmp
       magma_link_static = -L$(MAGMA_DIR)/lib -lmagma $(hip_link) $(omp_link)
-      magma_link_shared = -L$(MAGMA_DIR)/lib -Wl,-rpath,$(abspath $(MAGMA_DIR)/lib) -lmagma
+      magma_link_shared = -L$(MAGMA_DIR)/lib $(if $(STATIC),,-Wl,-rpath,$(abspath $(MAGMA_DIR)/lib)) -lmagma
       magma_link := $(if $(wildcard $(MAGMA_DIR)/lib/libmagma.${SO_EXT}),$(magma_link_shared),$(magma_link_static))
       PKG_LIBS += $(magma_link)
       libceed.c   += $(magma.c)
@@ -469,10 +470,10 @@ export BACKENDS
 
 _pkg_ldflags = $(filter -L%,$(PKG_LIBS))
 _pkg_ldlibs = $(filter-out -L%,$(PKG_LIBS))
-$(libceeds) : CEED_LDFLAGS += $(_pkg_ldflags) $(_pkg_ldflags:-L%=-Wl,-rpath,%) $(PKG_STUBS_LIBS)
+$(libceeds) : CEED_LDFLAGS += $(_pkg_ldflags) $(if $(STATIC),,$(_pkg_ldflags:-L%=-Wl,-rpath,%)) $(PKG_STUBS_LIBS)
 $(libceeds) : CEED_LDLIBS += $(_pkg_ldlibs)
 ifeq ($(STATIC),1)
-$(examples) $(tests) : CEED_LDFLAGS += $(_pkg_ldflags) $(_pkg_ldflags:-L%=-Wl,-rpath,%) $(PKG_STUBS_LIBS)
+$(examples) $(tests) : CEED_LDFLAGS += $(_pkg_ldflags) $(if $(STATIC),,$(_pkg_ldflags:-L%=-Wl,-rpath,%)) $(PKG_STUBS_LIBS)
 $(examples) $(tests) : CEED_LDLIBS += $(_pkg_ldlibs)
 endif
 
@@ -510,16 +511,16 @@ $(OBJDIR)/%.o : $(CURDIR)/%.cu | $$(@D)/.DIR
 $(OBJDIR)/%.o : $(CURDIR)/%.hip.cpp | $$(@D)/.DIR
 	$(call quiet,HIPCC) $(HIPCCFLAGS) -c -o $@ $(abspath $<)
 
-$(OBJDIR)/% : tests/%.c | $$(@D)/.DIR
+$(OBJDIR)/%$(EXE_SUFFIX) : tests/%.c | $$(@D)/.DIR
 	$(call quiet,LINK.c) $(CEED_LDFLAGS) -o $@ $(abspath $<) $(CEED_LIBS) $(CEED_LDLIBS) $(LDLIBS)
 
-$(OBJDIR)/% : tests/%.f90 | $$(@D)/.DIR
+$(OBJDIR)/%$(EXE_SUFFIX) : tests/%.f90 | $$(@D)/.DIR
 	$(call quiet,LINK.F) -DSOURCE_DIR='"$(abspath $(<D))/"' $(CEED_LDFLAGS) -o $@ $(abspath $<) $(CEED_LIBS) $(CEED_LDLIBS) $(LDLIBS)
 
-$(OBJDIR)/% : examples/ceed/%.c | $$(@D)/.DIR
+$(OBJDIR)/%$(EXE_SUFFIX) : examples/ceed/%.c | $$(@D)/.DIR
 	$(call quiet,LINK.c) $(CEED_LDFLAGS) -o $@ $(abspath $<) $(CEED_LIBS) $(CEED_LDLIBS) $(LDLIBS)
 
-$(OBJDIR)/% : examples/ceed/%.f | $$(@D)/.DIR
+$(OBJDIR)/%$(EXE_SUFFIX) : examples/ceed/%.f | $$(@D)/.DIR
 	$(call quiet,LINK.F) -DSOURCE_DIR='"$(abspath $(<D))/"' $(CEED_LDFLAGS) -o $@ $(abspath $<) $(CEED_LIBS) $(CEED_LDLIBS) $(LDLIBS)
 
 $(OBJDIR)/mfem-% : examples/mfem/%.cpp $(libceed) | $$(@D)/.DIR
@@ -564,10 +565,10 @@ $(OBJDIR)/solids-% : examples/solids/%.c examples/solids/%.h \
 
 $(examples) : $(libceed)
 $(tests) : $(libceed)
-$(tests) $(examples) : override LDFLAGS += -Wl,-rpath,$(abspath $(LIBDIR)) -L$(LIBDIR)
+$(tests) $(examples) : override LDFLAGS += $(if $(STATIC),,-Wl,-rpath,$(abspath $(LIBDIR))) -L$(LIBDIR)
 
 run-% : $(OBJDIR)/%
-	@tests/tap.sh $(<:$(OBJDIR)/%=%)
+	@$(PYTHON) tests/junit.py --mode tap $(<:$(OBJDIR)/%=%)
 
 external_examples := \
 	$(if $(MFEM_DIR),$(mfemexamples)) \
@@ -599,7 +600,7 @@ ctc-% : $(ctests);@$(foreach tst,$(ctests),$(tst) /cpu/$*;)
 
 prove : $(matched)
 	$(info Testing backends: $(BACKENDS))
-	$(PROVE) $(PROVE_OPTS) --exec 'tests/tap.sh' $(matched:$(OBJDIR)/%=%)
+	$(PROVE) $(PROVE_OPTS) --exec 'tests/junit.py --mode tap' $(matched:$(OBJDIR)/%=%)
 # Run prove target in parallel
 prv : ;@$(MAKE) $(MFLAGS) V=$(V) prove
 
