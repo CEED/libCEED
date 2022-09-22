@@ -6,15 +6,16 @@ About
 -----
 
 A Python module for creating JUnit XML test result documents that can be
-read by tools such as Jenkins. If you are ever working with test tool or
-test suite written in Python and want to take advantage of Jenkins'
+read by tools such as Jenkins or Bamboo. If you are ever working with test tool or
+test suite written in Python and want to take advantage of Jenkins' or Bamboo's
 pretty graphs and test reporting capabilities, this module will let you
 generate the XML test reports.
 
 *As there is no definitive Jenkins JUnit XSD that I could find, the XML
 documents created by this module support a schema based on Google
 searches and the Jenkins JUnit XML reader source code. File a bug if
-something doesn't work like you expect it to.*
+something doesn't work like you expect it to.
+For Bamboo situation is the same.*
 
 Installation
 ------------
@@ -88,3 +89,10 @@ Running the tests
     pip install tox
     tox
 
+Releasing a new version
+-----------------------
+
+1. Bump version in `setup.py`
+2. Build distribution with `python setup.py sdist bdist_wheel`
+3. Upload to Pypi with `twine upload dist/*`
+4. Verify the new version was uploaded at https://pypi.org/project/junit-xml/#history
