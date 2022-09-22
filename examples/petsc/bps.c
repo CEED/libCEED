@@ -365,7 +365,7 @@ static PetscErrorCode Run(RunParams rp, PetscInt num_resources,
     // Create DM
     PetscInt dim;
     ierr = DMGetDimension(dm_deg, &dim); CHKERRQ(ierr);
-    ierr = SetupDMByDegree(dm_deg, rp->degree, q_extra, rp->num_comp_u, dim,
+    ierr = SetupDMByDegree(dm_deg, rp->degree, rp->q_extra, rp->num_comp_u, dim,
                            bp_options[rp->bp_choice].enforce_bc,
                            bp_options[rp->bp_choice].bc_func); CHKERRQ(ierr);
     for (PetscInt r = 0; r < num_resources; r++) {

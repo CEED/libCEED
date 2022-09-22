@@ -189,127 +189,197 @@ CeedElemTopology ElemTopologyP2C(DMPolytopeType cell_type) {
 }
 
 // -----------------------------------------------------------------------------
+// Convert DM field to DS field
+// -----------------------------------------------------------------------------
+PetscErrorCode DMFieldToDSField(DM dm, DMLabel domain_label, PetscInt dm_field,
+                                PetscInt *ds_field) {
+  PetscDS         ds;
+  IS              field_is;
+  const PetscInt *fields;
+  PetscInt        num_fields;
+
+  PetscFunctionBeginUser;
+
+  // Translate dm_field to ds_field
+  PetscCall(DMGetRegionDS(dm, domain_label, &field_is, &ds));
+  PetscCall(ISGetIndices(field_is, &fields));
+  PetscCall(ISGetSize(field_is, &num_fields));
+  for (PetscInt i = 0; i < num_fields; i++) {
+    if (dm_field == fields[i]) {
+      *ds_field = i;
+      break;
+    }
+  }
+  PetscCall(ISRestoreIndices(field_is, &fields));
+
+  if (*ds_field == -1) SETERRQ(PetscObjectComm((PetscObject)dm), PETSC_ERR_SUP,
+                                 "Could not find dm_field %" PetscInt_FMT " in DS", dm_field);
+
+  PetscFunctionReturn(0);
+}
+
+// -----------------------------------------------------------------------------
+// Create libCEED Basis from PetscTabulation
+// -----------------------------------------------------------------------------
+PetscErrorCode BasisCreateFromTabulation(Ceed ceed, DM dm, DMLabel domain_label,
+    PetscInt label_value, PetscInt height, PetscInt face,
+    PetscFE fe, PetscTabulation basis_tabulation, PetscQuadrature quadrature,
+    CeedBasis *basis) {
+
+  PetscInt           first_point;
+  PetscInt           ids[1] = {label_value};
+  DMLabel            depth_label;
+  DMPolytopeType     cell_type;
+  CeedElemTopology   elem_topo;
+  PetscScalar       *q_points, *interp, *grad;
+  const PetscScalar *q_weights;
+  PetscDualSpace     dual_space;
+  PetscInt           num_dual_basis_vectors;
+  PetscInt           dim, num_comp, P, Q;
+
+  PetscFunctionBeginUser;
+
+  // General basis information
+  PetscCall(PetscFEGetSpatialDimension(fe, &dim));
+  PetscCall(PetscFEGetNumComponents(fe, &num_comp));
+  PetscCall(PetscFEGetDualSpace(fe, &dual_space));
+  PetscCall(PetscDualSpaceGetDimension(dual_space, &num_dual_basis_vectors));
+  P = num_dual_basis_vectors / num_comp;
+
+  // Use depth label if no domain label present
+  if (!domain_label) {
+    PetscInt depth;
+
+    PetscCall(DMPlexGetDepth(dm, &depth));
+    PetscCall(DMPlexGetDepthLabel(dm, &depth_label));
+    ids[0] = depth - height;
+  }
+
+  // Get cell interp, grad, and quadrature data
+  PetscCall(DMGetFirstLabeledPoint(dm, dm,
+                                   domain_label ? domain_label : depth_label, 1, ids, height, &first_point, NULL));
+  PetscCall(DMPlexGetCellType(dm, first_point, &cell_type));
+  elem_topo = ElemTopologyP2C(cell_type);
+  if (!elem_topo) SETERRQ(PetscObjectComm((PetscObject)dm), PETSC_ERR_SUP,
+                            "DMPlex topology not supported");
+  {
+    size_t             q_points_size;
+    const PetscScalar *q_points_petsc;
+    PetscInt           q_dim;
+
+    PetscCall(PetscQuadratureGetData(quadrature, &q_dim, NULL, &Q, &q_points_petsc,
+                                     &q_weights));
+    q_points_size = Q * dim * sizeof(CeedScalar);
+    PetscCall(PetscCalloc(q_points_size, &q_points));
+    for (PetscInt q = 0; q < Q; q++) {
+      for (PetscInt d = 0; d < q_dim;
+           d++) q_points[q * dim + d] = q_points_petsc[q * q_dim + d];
+    }
+  }
+
+  // Convert to libCEED orientation
+  {
+    PetscBool       is_simplex  = PETSC_FALSE;
+    IS              permutation = NULL;
+    const PetscInt *permutation_indices;
+
+    PetscCall(DMPlexIsSimplex(dm, &is_simplex));
+    if (!is_simplex) {
+      PetscSection section;
+
+      // -- Get permutation
+      PetscCall(DMGetLocalSection(dm, &section));
+      PetscCall(PetscSectionGetClosurePermutation(section, (PetscObject)dm, dim,
+                num_comp * P, &permutation));
+      PetscCall(ISGetIndices(permutation, &permutation_indices));
+    }
+
+    // -- Copy interp, grad matrices
+    PetscCall(PetscCalloc(P * Q * sizeof(CeedScalar), &interp));
+    PetscCall(PetscCalloc(P * Q * dim * sizeof(CeedScalar), &grad));
+    const CeedInt c = 0;
+    for (CeedInt q = 0; q < Q; q++) {
+      for (CeedInt p_ceed = 0; p_ceed < P; p_ceed++) {
+        CeedInt p_petsc = is_simplex ? (p_ceed * num_comp) : permutation_indices[p_ceed
+                          * num_comp];
+
+        interp[q * P + p_ceed] = basis_tabulation->T[0][((face * Q + q) * P * num_comp +
+                                 p_petsc) * num_comp + c];
+        for (CeedInt d = 0; d < dim; d++) {
+          grad[(d * Q + q) * P + p_ceed] = basis_tabulation->T[1][(((
+                                             face * Q + q) * P * num_comp + p_petsc) * num_comp + c) * dim + d];
+        }
+      }
+    }
+
+    // -- Cleanup
+    if (permutation) PetscCall(ISRestoreIndices(permutation, &permutation_indices));
+    PetscCall(ISDestroy(&permutation));
+  }
+
+  // Finally, create libCEED basis
+  CeedBasisCreateH1(ceed, elem_topo, num_comp, P, Q, interp, grad, q_points,
+                    q_weights, basis);
+  PetscCall(PetscFree(q_points));
+  PetscCall(PetscFree(interp));
+  PetscCall(PetscFree(grad));
+
+  PetscFunctionReturn(0);
+}
+
+// -----------------------------------------------------------------------------
 // Get CEED Basis from DMPlex
 // -----------------------------------------------------------------------------
 PetscErrorCode CreateBasisFromPlex(Ceed ceed, DM dm, DMLabel domain_label,
                                    CeedInt label_value, CeedInt height,
                                    CeedInt dm_field, CeedBasis *basis) {
-  PetscErrorCode   ierr;
-  PetscDS          ds;
-  PetscFE          fe;
-  PetscQuadrature  quadrature;
-  PetscBool        is_simplex = PETSC_TRUE;
-  PetscInt         dim, ds_field = -1, num_comp, P, Q;
+  PetscDS         ds;
+  PetscFE         fe;
+  PetscQuadrature quadrature;
+  PetscBool       is_simplex = PETSC_TRUE;
+  PetscInt        ds_field   = -1;
 
   PetscFunctionBeginUser;
 
-  // Get basis information
-  {
-    IS             field_is;
-    const PetscInt *fields;
-    PetscInt       num_fields;
-
-    ierr = DMGetRegionDS(dm, domain_label, &field_is, &ds); CHKERRQ(ierr);
-    // Translate dm_field to ds_field
-    ierr = ISGetIndices(field_is, &fields); CHKERRQ(ierr);
-    ierr = ISGetSize(field_is, &num_fields); CHKERRQ(ierr);
-    for (PetscInt i = 0; i < num_fields; i++) {
-      if (dm_field == fields[i]) {
-        ds_field = i;
-        break;
-      }
-    }
-    ierr = ISRestoreIndices(field_is, &fields); CHKERRQ(ierr);
-  }
-  if (ds_field == -1) {
-    // LCOV_EXCL_START
-    SETERRQ(PetscObjectComm((PetscObject) dm), PETSC_ERR_SUP,
-            "Could not find dm_field %" PetscInt_FMT " in DS", dm_field);
-    // LCOV_EXCL_STOP
-  }
-
   // Get element information
-  {
-    PetscDualSpace dual_space;
-    PetscInt       num_dual_basis_vectors;
-
-    ierr = PetscDSGetDiscretization(ds, ds_field, (PetscObject *)&fe);
-    CHKERRQ(ierr);
-    ierr = PetscFEGetHeightSubspace(fe, height, &fe); CHKERRQ(ierr);
-    ierr = PetscFEGetSpatialDimension(fe, &dim); CHKERRQ(ierr);
-    ierr = PetscFEGetNumComponents(fe, &num_comp); CHKERRQ(ierr);
-    ierr = PetscFEGetDualSpace(fe, &dual_space); CHKERRQ(ierr);
-    ierr = PetscDualSpaceGetDimension(dual_space, &num_dual_basis_vectors);
-    CHKERRQ(ierr);
-    P = num_dual_basis_vectors / num_comp;
-    ierr = PetscFEGetQuadrature(fe, &quadrature); CHKERRQ(ierr);
-    ierr = PetscQuadratureGetData(quadrature, NULL, NULL, &Q, NULL, NULL);
-    CHKERRQ(ierr);
-  }
+  PetscCall(DMGetRegionDS(dm, domain_label, NULL, &ds));
+  PetscCall(DMFieldToDSField(dm, domain_label, dm_field, &ds_field));
+  PetscCall(PetscDSGetDiscretization(ds, ds_field, (PetscObject *)&fe));
+  PetscCall(PetscFEGetHeightSubspace(fe, height, &fe));
+  PetscCall(PetscFEGetQuadrature(fe, &quadrature));
 
   // Check if simplex or tensor-product mesh
-  ierr = DMPlexIsSimplex(dm, &is_simplex); CHKERRQ(ierr);
+  PetscCall(DMPlexIsSimplex(dm, &is_simplex));
+
   // Build libCEED basis
   if (is_simplex) {
-    PetscInt          num_derivatives = 1, first_point;
-    PetscInt          ids[1] = {label_value};
-    PetscTabulation   basis_tabulation;
-    const PetscScalar *q_points, *q_weights;
-    DMLabel           depth_label;
-    DMPolytopeType    cell_type;
-    CeedElemTopology  elem_topo;
-    PetscScalar       *interp, *grad;
+    PetscTabulation basis_tabulation;
+    PetscInt        num_derivatives = 1, face = 0;
 
-    // Use depth label if no domain label present
-    if (!domain_label) {
-      PetscInt depth;
-
-      ierr = DMPlexGetDepth(dm, &depth); CHKERRQ(ierr);
-      ierr = DMPlexGetDepthLabel(dm, &depth_label); CHKERRQ(ierr);
-      ids[0] = depth - height;
-    }
-    // Get cell interp, grad, and quadrature data
-    ierr = PetscFEGetCellTabulation(fe, num_derivatives, &basis_tabulation);
-    CHKERRQ(ierr);
-    ierr = PetscQuadratureGetData(quadrature, NULL, NULL, NULL, &q_points,
-                                  &q_weights); CHKERRQ(ierr);
-    ierr = DMGetFirstLabeledPoint(dm, dm, domain_label ? domain_label : depth_label,
-                                  1, ids, height, &first_point, NULL);
-    CHKERRQ(ierr);
-    ierr = DMPlexGetCellType(dm, first_point, &cell_type); CHKERRQ(ierr);
-    elem_topo = ElemTopologyP2C(cell_type);
-    if (!elem_topo) SETERRQ(PetscObjectComm((PetscObject) dm), PETSC_ERR_SUP,
-                              "DMPlex topology not supported");
-    // Convert to libCEED orientation
-    ierr = PetscCalloc(P * Q * sizeof(PetscScalar), &interp); CHKERRQ(ierr);
-    ierr = PetscCalloc(P * Q * dim * sizeof(PetscScalar), &grad); CHKERRQ(ierr);
-    const CeedInt c = 0;
-    for (CeedInt q = 0; q < Q; q++) {
-      for (CeedInt p = 0; p < P; p++) {
-        interp[q*P + p] = basis_tabulation->T[0][(q*P + p)*num_comp*num_comp + c];
-        for (CeedInt d = 0; d < dim; d++) {
-          grad[(d*Q + q)*P + p] = basis_tabulation->T[1][((q*P + p)*num_comp*num_comp + c)
-                                  *dim + d];
-        }
-      }
-    }
-    // Finaly, create libCEED basis
-    ierr = CeedBasisCreateH1(ceed, elem_topo, num_comp, P, Q, interp, grad,
-                             q_points, q_weights, basis);
-    CHKERRQ(ierr);
-    ierr = PetscFree(interp); CHKERRQ(ierr);
-    ierr = PetscFree(grad); CHKERRQ(ierr);
+    PetscCall(PetscFEGetCellTabulation(fe, num_derivatives, &basis_tabulation));
+    PetscCall(BasisCreateFromTabulation(ceed, dm, domain_label, label_value, height,
+                                        face, fe, basis_tabulation, quadrature, basis));
   } else {
-    CeedInt P_1d = (CeedInt) round(pow(P, 1.0 / dim));
-    CeedInt Q_1d = (CeedInt) round(pow(Q, 1.0 / dim));
+    PetscDualSpace dual_space;
+    PetscInt       num_dual_basis_vectors;
+    PetscInt       dim, num_comp, P, Q;
 
-    ierr = CeedBasisCreateTensorH1Lagrange(ceed, dim, num_comp, P_1d, Q_1d,
-                                           CEED_GAUSS, basis);
-    CHKERRQ(ierr);
+    PetscCall(PetscFEGetSpatialDimension(fe, &dim));
+    PetscCall(PetscFEGetNumComponents(fe, &num_comp));
+    PetscCall(PetscFEGetDualSpace(fe, &dual_space));
+    PetscCall(PetscDualSpaceGetDimension(dual_space, &num_dual_basis_vectors));
+    P = num_dual_basis_vectors / num_comp;
+    PetscCall(PetscQuadratureGetData(quadrature, NULL, NULL, &Q, NULL, NULL));
+
+    CeedInt P_1d = (CeedInt)round(pow(P, 1.0 / dim));
+    CeedInt Q_1d = (CeedInt)round(pow(Q, 1.0 / dim));
+
+    CeedBasisCreateTensorH1Lagrange(ceed, dim, num_comp, P_1d, Q_1d, CEED_GAUSS,
+                                    basis);
   }
 
   PetscFunctionReturn(0);
-};
+}
 
 // -----------------------------------------------------------------------------
 // Utilities
