@@ -160,10 +160,6 @@ static PetscErrorCode ReadSTGInflow(const MPI_Comm comm, const char path[PETSC_M
     if (wall_dist[i] < 0) SETERRQ(comm, -1, "Distance to wall in %s cannot be negative", path);
     if (lt[i] < 0) SETERRQ(comm, -1, "Turbulent length scale in %s cannot be negative", path);
     if (eps[i] < 0) SETERRQ(comm, -1, "Turbulent dissipation in %s cannot be negative", path);
-
-    if (prof_dw[i] < 0) SETERRQ(comm, -1, "Distance to wall in %s cannot be negative", path);
-    if (lt[i] < 0) SETERRQ(comm, -1, "Turbulent length scale in %s cannot be negative", path);
-    if (eps[i] < 0) SETERRQ(comm, -1, "Turbulent dissipation in %s cannot be negative", path);
   }
   CeedScalar(*cij)[stg_ctx->nprofs] = (CeedScalar(*)[stg_ctx->nprofs]) & stg_ctx->data[stg_ctx->offsets.cij];
   PetscCall(CalcCholeskyDecomp(comm, stg_ctx->nprofs, rij, cij));
