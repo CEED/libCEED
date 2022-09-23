@@ -15,8 +15,6 @@
 #define CeedPragmaSIMD
 #define CEED_Q_VLA 1
 
-#include <ceed/types.h>
-
-typedef struct { const CeedScalar* inputs[16]; CeedScalar* outputs[16]; } Fields_Hip;
+#include "hip-types.h"
 
 #endif

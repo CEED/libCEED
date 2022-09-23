@@ -13,25 +13,22 @@
 #include <hip/hip_runtime.h>
 #include "../hip/ceed-hip-common.h"
 
-typedef struct { const CeedScalar *in[CEED_FIELD_MAX]; CeedScalar *out[CEED_FIELD_MAX]; } HipFields;
-typedef struct { CeedInt *in[CEED_FIELD_MAX]; CeedInt *out[CEED_FIELD_MAX]; } HipFieldsInt;
-
 typedef struct {
   CeedInt dim;
-  CeedInt Q1d;
-  CeedInt maxP1d;
+  CeedInt Q_1d;
+  CeedInt max_P_1d;
   hipModule_t module;
   hipFunction_t op;
-  HipFieldsInt indices;
-  HipFields fields;
-  HipFields B;
-  HipFields G;
+  FieldsInt_Hip indices;
+  Fields_Hip fields;
+  Fields_Hip B;
+  Fields_Hip G;
   CeedScalar *W;
 } CeedOperator_Hip_gen;
 
 typedef struct {
-  char *qFunctionName;
-  char *qFunctionSource;
+  char *q_function_name;
+  char *q_function_source;
   void *d_c;
 } CeedQFunction_Hip_gen;
 
