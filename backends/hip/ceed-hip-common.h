@@ -9,7 +9,7 @@
 #define _ceed_common_hip_h
 
 #include <ceed/backend.h>
-#include <ceed/ceed.h>
+#include <ceed/jit-source/hip/hip-types.h>
 #include <hip/hip_runtime.h>
 #if (HIP_VERSION >= 50200000)
 #include <hipblas/hipblas.h>

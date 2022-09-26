@@ -9,7 +9,7 @@
 #define _ceed_cuda_common_h
 
 #include <ceed/backend.h>
-#include <ceed/ceed.h>
+#include <ceed/jit-source/cuda/cuda-types.h>
 #include <cublas_v2.h>
 #include <cuda.h>
 #include <cuda_runtime.h>

@@ -15,30 +15,21 @@
 #include "../cuda/ceed-cuda-common.h"
 
 typedef struct {
-  const CeedScalar *in[CEED_FIELD_MAX];
-  CeedScalar       *out[CEED_FIELD_MAX];
-} CudaFields;
-typedef struct {
-  CeedInt *in[CEED_FIELD_MAX];
-  CeedInt *out[CEED_FIELD_MAX];
-} CudaFieldsInt;
-
-typedef struct {
-  CeedInt       dim;
-  CeedInt       Q1d;
-  CeedInt       maxP1d;
-  CUmodule      module;
-  CUfunction    op;
-  CudaFieldsInt indices;
-  CudaFields    fields;
-  CudaFields    B;
-  CudaFields    G;
-  CeedScalar   *W;
+  CeedInt        dim;
+  CeedInt        Q_1d;
+  CeedInt        max_P_1d;
+  CUmodule       module;
+  CUfunction     op;
+  FieldsInt_Cuda indices;
+  Fields_Cuda    fields;
+  Fields_Cuda    B;
+  Fields_Cuda    G;
+  CeedScalar    *W;
 } CeedOperator_Cuda_gen;
 
 typedef struct {
-  char *qFunctionName;
-  char *qFunctionSource;
+  char *q_function_name;
+  char *q_function_source;
   void *d_c;
 } CeedQFunction_Cuda_gen;
 

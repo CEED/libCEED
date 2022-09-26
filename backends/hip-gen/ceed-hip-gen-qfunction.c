@@ -30,8 +30,8 @@ static int CeedQFunctionDestroy_Hip_gen(CeedQFunction qf) {
   CeedCallBackend(CeedQFunctionGetData(qf, &data));
   Ceed ceed;
   CeedCallBackend(CeedQFunctionGetCeed(qf, &ceed));
-  CeedCallHip(ceed, hipFree(data->d_c));
-  CeedCallBackend(CeedFree(&data->qFunctionSource));
+  CeedCallHip(hipFree(data->d_c));
+  CeedCallBackend(CeedFree(&data->q_function_source));
   CeedCallBackend(CeedFree(&data));
   return CEED_ERROR_SUCCESS;
 }
@@ -47,18 +47,18 @@ int CeedQFunctionCreate_Hip_gen(CeedQFunction qf) {
   CeedCallBackend(CeedQFunctionSetData(qf, data));
 
   // Read QFunction source
-  CeedCallBackend(CeedQFunctionGetKernelName(qf, &data->qFunctionName));
+  CeedCallBackend(CeedQFunctionGetKernelName(qf, &data->q_function_name));
   CeedDebug256(ceed, 2, "----- Loading QFunction User Source -----\n");
-  CeedCallBackend(CeedQFunctionLoadSourceToBuffer(qf, &data->qFunctionSource));
+  CeedCallBackend(CeedQFunctionLoadSourceToBuffer(qf, &data->q_function_source));
   CeedDebug256(ceed, 2, "----- Loading QFunction User Source Complete! -----\n");
-  if (!data->qFunctionSource) {
+  if (!data->q_function_source)
     // LCOV_EXCL_START
     return CeedError(ceed, CEED_ERROR_UNSUPPORTED, "/gpu/hip/gen backend requires QFunction source code file");
-    // LCOV_EXCL_STOP
-  }
+  // LCOV_EXCL_STOP
+}
 
-  CeedCallBackend(CeedSetBackendFunction(ceed, "QFunction", qf, "Apply", CeedQFunctionApply_Hip_gen));
-  CeedCallBackend(CeedSetBackendFunction(ceed, "QFunction", qf, "Destroy", CeedQFunctionDestroy_Hip_gen));
-  return CEED_ERROR_SUCCESS;
+CeedCallBackend(CeedSetBackendFunction(ceed, "QFunction", qf, "Apply", CeedQFunctionApply_Hip_gen));
+CeedCallBackend(CeedSetBackendFunction(ceed, "QFunction", qf, "Destroy", CeedQFunctionDestroy_Hip_gen));
+return CEED_ERROR_SUCCESS;
 }
 //------------------------------------------------------------------------------
