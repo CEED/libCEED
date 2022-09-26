@@ -662,7 +662,7 @@ install : $(libceed) $(OBJDIR)/ceed.pc
 	$(INSTALL_DATA) $(wildcard include/ceed/jit-source/hip/*.h) "$(DESTDIR)$(includedir)/ceed/jit-source/hip/"
 	$(INSTALL_DATA) $(wildcard include/ceed/jit-source/gallery/*.h) "$(DESTDIR)$(includedir)/ceed/jit-source/gallery/"
 
-.PHONY : all cln clean doxygen doc format lib install par print test tst prove prv prove-all junit examples style style-c style-py tidy iwyu info info-backends info-backends-all
+.PHONY : all cln clean doxygen doc format lib install par print test tst prove prv prove-all junit examples tidy iwyu info info-backends info-backends-all
 
 cln clean :
 	$(RM) -r $(OBJDIR) $(LIBDIR) dist *egg* .pytest_cache *cffi*
