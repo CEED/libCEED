@@ -59,16 +59,6 @@ typedef struct {
   CeedScalar   *d_q_weight;
 } CeedBasisNonTensor_Hip;
 
-<<<<<<< HEAD
-// We use a struct to avoid having to memCpy the array of pointers
-// __global__ copies by value the struct.
-typedef struct {
-  const CeedScalar *inputs[CEED_FIELD_MAX];
-  CeedScalar       *outputs[CEED_FIELD_MAX];
-} Fields_Hip;
-
-=======
->>>>>>> origin/main
 typedef struct {
   hipModule_t   module;
   char         *qfunction_name;

@@ -51,7 +51,6 @@ extern "C" int BlockGridCalculate_Hip_gen(const CeedInt dim, const CeedInt num_e
 extern "C" int CeedHipGenOperatorBuild(CeedOperator op) {
   using std::ostringstream;
   using std::string;
-  int  ierr;
   bool is_setup_done;
   CeedCallBackend(CeedOperatorIsSetupDone(op, &is_setup_done));
   if (is_setup_done) return CEED_ERROR_SUCCESS;
@@ -170,7 +169,7 @@ extern "C" int CeedHipGenOperatorBuild(CeedOperator op) {
   if (dim == 3) {
     bool was_grad_found = false;
     for (CeedInt i = 0; i < num_input_fields; i++) {
-      CeedCallBackend(CeedQFunctionFieldGetEvalMode(qf_input_fields[i], &eval_mode);
+      CeedCallBackend(CeedQFunctionFieldGetEvalMode(qf_input_fields[i], &eval_mode));
       if (eval_mode == CEED_EVAL_GRAD) {
         CeedCallBackend(CeedOperatorFieldGetBasis(op_input_fields[i], &basis));
         CeedCallBackend(CeedBasisGetData(basis, &basis_data));
@@ -179,7 +178,7 @@ extern "C" int CeedHipGenOperatorBuild(CeedOperator op) {
       }
     }
     for (CeedInt i = 0; i < num_output_fields; i++) {
-      CeedCallBackend(CeedQFunctionFieldGetEvalMode(qf_output_fields[i], &eval_mode);
+      CeedCallBackend(CeedQFunctionFieldGetEvalMode(qf_output_fields[i], &eval_mode));
       if (eval_mode == CEED_EVAL_GRAD) {
         CeedCallBackend(CeedOperatorFieldGetBasis(op_output_fields[i], &basis));
         CeedCallBackend(CeedBasisGetData(basis, &basis_data));

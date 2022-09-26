@@ -30,9 +30,9 @@ int CeedBasisApplyTensor_Cuda_shared(CeedBasis basis, const CeedInt num_elem, Ce
   Ceed ceed;
   CeedCallBackend(CeedBasisGetCeed(basis, &ceed));
   Ceed_Cuda *ceed_Cuda;
-  CeedGetData(ceed, &ceed_Cuda));
+  CeedCallBackend(CeedGetData(ceed, &ceed_Cuda));
   CeedBasis_Cuda_shared *data;
-  CeedBasisGetData(basis, &data));
+  CeedCallBackend(CeedBasisGetData(basis, &data));
   CeedInt dim, num_comp;
   CeedCallBackend(CeedBasisGetDimension(basis, &dim));
   CeedCallBackend(CeedBasisGetNumComponents(basis, &num_comp));
@@ -184,10 +184,10 @@ static int CeedBasisDestroy_Cuda_shared(CeedBasis basis) {
 
   CeedCallCuda(ceed, cuModuleUnload(data->module));
 
-  CeedCallCuda(cudaFree(data->d_q_weight_1d));
-  CeedCallCuda(cudaFree(data->d_interp_1d));
-  CeedCallCuda(cudaFree(data->d_grad_1d));
-  CeedCallCuda(cudaFree(data->d_collo_grad_1d));
+  CeedCallCuda(ceed, cudaFree(data->d_q_weight_1d));
+  CeedCallCuda(ceed, cudaFree(data->d_interp_1d));
+  CeedCallCuda(ceed, cudaFree(data->d_grad_1d));
+  CeedCallCuda(ceed, cudaFree(data->d_collo_grad_1d));
 
   CeedCallBackend(CeedFree(&data));
 
@@ -206,15 +206,15 @@ int CeedBasisCreateTensorH1_Cuda_shared(CeedInt dim, CeedInt P_1d, CeedInt Q_1d,
 
   // Copy basis data to GPU
   const CeedInt q_bytes = Q_1d * sizeof(CeedScalar);
-  CeedCallCuda(cudaMalloc((void **)&data->d_q_weight_1d, q_bytes));
-  CeedCallCuda(cudaMemcpy(data->d_q_weight_1d, q_weight_1d, q_bytes, cudaMemcpyHostToDevice));
+  CeedCallCuda(ceed, cudaMalloc((void **)&data->d_q_weight_1d, q_bytes));
+  CeedCallCuda(ceed, cudaMemcpy(data->d_q_weight_1d, q_weight_1d, q_bytes, cudaMemcpyHostToDevice));
 
   const CeedInt interp_bytes = q_bytes * P_1d;
-  CeedCallCuda(cudaMalloc((void **)&data->d_interp_1d, interp_bytes));
-  CeedCallCuda(cudaMemcpy(data->d_interp_1d, interp_1d, interp_bytes, cudaMemcpyHostToDevice));
+  CeedCallCuda(ceed, cudaMalloc((void **)&data->d_interp_1d, interp_bytes));
+  CeedCallCuda(ceed, cudaMemcpy(data->d_interp_1d, interp_1d, interp_bytes, cudaMemcpyHostToDevice));
 
-  CeedCallCuda(cudaMalloc((void **)&data->d_grad_1d, interp_bytes));
-  CeedCallCuda(cudaMemcpy(data->d_grad_1d, grad_1d, interp_bytes, cudaMemcpyHostToDevice));
+  CeedCallCuda(ceed, cudaMalloc((void **)&data->d_grad_1d, interp_bytes));
+  CeedCallCuda(ceed, cudaMemcpy(data->d_grad_1d, grad_1d, interp_bytes, cudaMemcpyHostToDevice));
 
   // Compute collocated gradient and copy to GPU
   data->d_collo_grad_1d    = NULL;
@@ -223,8 +223,8 @@ int CeedBasisCreateTensorH1_Cuda_shared(CeedInt dim, CeedInt P_1d, CeedInt Q_1d,
     CeedScalar *collo_grad_1d;
     CeedCallBackend(CeedMalloc(Q_1d * Q_1d, &collo_grad_1d));
     CeedCallBackend(CeedBasisGetCollocatedGrad(basis, collo_grad_1d));
-    CeedCallCuda(cudaMalloc((void **)&data->d_collo_grad_1d, q_bytes * Q_1d));
-    CeedCallCuda(cudaMemcpy(data->d_collo_grad_1d, collo_grad_1d, q_bytes * Q_1d, cudaMemcpyHostToDevice));
+    CeedCallCuda(ceed, cudaMalloc((void **)&data->d_collo_grad_1d, q_bytes * Q_1d));
+    CeedCallCuda(ceed, cudaMemcpy(data->d_collo_grad_1d, collo_grad_1d, q_bytes * Q_1d, cudaMemcpyHostToDevice));
     CeedCallBackend(CeedFree(&collo_grad_1d));
   }
 

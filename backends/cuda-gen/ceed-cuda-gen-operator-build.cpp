@@ -164,7 +164,7 @@ extern "C" int CeedCudaGenOperatorBuild(CeedOperator op) {
   if (dim == 3) {
     bool was_grad_found = false;
     for (CeedInt i = 0; i < num_input_fields; i++) {
-      CeedCallBackend(CeedQFunctionFieldGetEvalMode(qf_input_fields[i], &eval_mode);
+      CeedCallBackend(CeedQFunctionFieldGetEvalMode(qf_input_fields[i], &eval_mode));
       if (eval_mode == CEED_EVAL_GRAD) {
         CeedCallBackend(CeedOperatorFieldGetBasis(op_input_fields[i], &basis));
         CeedCallBackend(CeedBasisGetData(basis, &basis_data));
@@ -173,7 +173,7 @@ extern "C" int CeedCudaGenOperatorBuild(CeedOperator op) {
       }
     }
     for (CeedInt i = 0; i < num_output_fields; i++) {
-      CeedCallBackend(CeedQFunctionFieldGetEvalMode(qf_output_fields[i], &eval_mode);
+      CeedCallBackend(CeedQFunctionFieldGetEvalMode(qf_output_fields[i], &eval_mode));
       if (eval_mode == CEED_EVAL_GRAD) {
         CeedCallBackend(CeedOperatorFieldGetBasis(op_output_fields[i], &basis));
         CeedCallBackend(CeedBasisGetData(basis, &basis_data));
