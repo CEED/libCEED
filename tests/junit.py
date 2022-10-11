@@ -67,7 +67,7 @@ def skip_rule(test, resource):
         test.startswith('mfem') and contains_any(resource, ['occa']),
         test.startswith('nek') and contains_any(resource, ['occa']),
         test.startswith('petsc-') and contains_any(resource, ['occa']),
-        test.startswith('solids-') and contains_any(resource, ['occa']),
+        test.startswith('fluids-') and contains_any(resource, ['occa']),
         test.startswith('solids-') and contains_any(resource, ['occa']),
         test.startswith('t318') and contains_any(resource, ['/gpu/cuda/ref']),
         test.startswith('t506') and contains_any(resource, ['/gpu/cuda/shared']),
