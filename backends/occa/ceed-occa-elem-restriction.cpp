@@ -15,6 +15,7 @@
 // testbed platforms, in support of the nation's exascale computing imperative.
 
 #include <map>
+#include <cstring>
 
 #include "./ceed-occa-elem-restriction.hpp"
 #include "./ceed-occa-kernels.hpp"
@@ -54,8 +55,6 @@ namespace ceed {
       }
 
       setupTransposeIndices();
-
-      setupKernelBuilders();
     }
 
     void ElemRestriction::setupFromHostMemory(CeedCopyMode copyMode,
@@ -69,7 +68,7 @@ namespace ceed {
       } else {
         const size_t bytes = entries * sizeof(CeedInt);
         hostIndices = (CeedInt*) ::malloc(bytes);
-        ::memcpy(hostIndices, indices_h, bytes);
+        std::memcpy(hostIndices, indices_h, bytes);
       }
 
       if (hostIndices) {
@@ -102,7 +101,7 @@ namespace ceed {
       const CeedInt elementEntryCount = ceedElementCount * ceedElementSize;
 
       bool *indexIsUsed = new bool[ceedLVectorSize];
-      ::memset(indexIsUsed, 0, ceedLVectorSize * sizeof(bool));
+      std::memset(indexIsUsed, 0, ceedLVectorSize * sizeof(bool));
 
       for (CeedInt i = 0; i < elementEntryCount; ++i) {
         indexIsUsed[hostIndices[i]] = true;
@@ -119,7 +118,7 @@ namespace ceed {
       CeedInt *transposeDofOffsets_h  = new CeedInt[dofOffsetCount];
       CeedInt *transposeDofIndices_h  = new CeedInt[elementEntryCount];
 
-      ::memset(transposeDofOffsets_h, 0, dofOffsetCount * sizeof(CeedInt));
+      std::memset(transposeDofOffsets_h, 0, dofOffsetCount * sizeof(CeedInt));
 
       // Compute ids
       CeedInt offsetId = 0;
@@ -175,23 +174,22 @@ namespace ceed {
       delete [] transposeDofIndices_h;
     }
 
-    void ElemRestriction::setupKernelBuilders() {
-      ::occa::properties kernelProps;
-      kernelProps["defines/CeedInt"]    = ::occa::dtype::get<CeedInt>().name();
-      kernelProps["defines/CeedScalar"] = ::occa::dtype::get<CeedScalar>().name();
-
-      kernelProps["defines/COMPONENT_COUNT"] = ceedComponentCount;
-      kernelProps["defines/ELEMENT_SIZE"]    = ceedElementSize;
-      kernelProps["defines/TILE_SIZE"]       = 64;
-      kernelProps["defines/USES_INDICES"]    = usesIndices();
-
-      applyKernelBuilder = ::occa::kernelBuilder::fromString(
-        occa_elem_restriction_source, "applyRestriction", kernelProps
-      );
-
-      applyTransposeKernelBuilder = ::occa::kernelBuilder::fromString(
-        occa_elem_restriction_source, "applyRestrictionTranspose", kernelProps
-      );
+    void ElemRestriction::setKernelProperties() {
+      kernelProperties["defines/CeedInt"]           = ::occa::dtype::get<CeedInt>().name();
+      kernelProperties["defines/CeedScalar"]        = ::occa::dtype::get<CeedScalar>().name();
+      kernelProperties["defines/COMPONENT_COUNT"]   = ceedComponentCount;
+      kernelProperties["defines/ELEMENT_SIZE"]      = ceedElementSize;
+      kernelProperties["defines/TILE_SIZE"]         = 64;
+      kernelProperties["defines/USES_INDICES"]      = usesIndices();
+      kernelProperties["defines/USER_STRIDES"]      = StrideType::USER_STRIDES;
+      kernelProperties["defines/NOT_STRIDED"]       = StrideType::NOT_STRIDED;
+      kernelProperties["defines/BACKEND_STRIDES"]   = StrideType::BACKEND_STRIDES;
+      kernelProperties["defines/STRIDE_TYPE"]       = ceedStrideType;
+      kernelProperties["defines/NODE_COUNT"]        = transposeQuadIndices.length();
+      kernelProperties["defines/NODE_STRIDE"]       = ceedNodeStride;
+      kernelProperties["defines/COMPONENT_STRIDE"]  = ceedComponentStride;
+      kernelProperties["defines/ELEMENT_STRIDE"]    = ceedElementStride;
+      kernelProperties["defines/UNSTRIDED_COMPONENT_STRIDE"] = ceedUnstridedComponentStride;
     }
 
     ElemRestriction* ElemRestriction::getElemRestriction(CeedElemRestriction r,
@@ -300,42 +298,34 @@ namespace ceed {
                                Vector &v) {
       const bool rIsTransposed = (rTransposeMode != CEED_NOTRANSPOSE);
 
-      ::occa::properties kernelProps;
-      kernelProps["defines/USER_STRIDES"]    = StrideType::USER_STRIDES;
-      kernelProps["defines/NOT_STRIDED"]     = StrideType::NOT_STRIDED;
-      kernelProps["defines/BACKEND_STRIDES"] = StrideType::BACKEND_STRIDES;
-      kernelProps["defines/STRIDE_TYPE"]     = ceedStrideType;
-
-      kernelProps["defines/NODE_COUNT"]       = transposeQuadIndices.length();
-      kernelProps["defines/NODE_STRIDE"]      = ceedNodeStride;
-      kernelProps["defines/COMPONENT_STRIDE"] = ceedComponentStride;
-      kernelProps["defines/ELEMENT_STRIDE"]   = ceedElementStride;
-      kernelProps["defines/UNSTRIDED_COMPONENT_STRIDE"] = ceedUnstridedComponentStride;
-
+      // Todo: refactor
       if (rIsTransposed) {
-        ::occa::kernel applyTranspose = applyTransposeKernelBuilder.build(
-          getDevice(),
-          kernelProps
-        );
-
-        applyTranspose(ceedElementCount,
-                       transposeQuadIndices,
-                       transposeDofOffsets,
-                       transposeDofIndices,
-                       u.getConstKernelArg(),
-                       v.getKernelArg());
+        if(!restrictionTransposeKernel.isInitialized()) {
+          setKernelProperties();
+          restrictionTransposeKernel = getDevice().buildKernelFromString(
+            occa_elem_restriction_source,
+            "applyRestrictionTranspose", 
+            kernelProperties);
+        }
+        restrictionTransposeKernel(ceedElementCount,
+                                  transposeQuadIndices,
+                                  transposeDofOffsets,
+                                  transposeDofIndices,
+                                  u.getConstKernelArg(),
+                                  v.getKernelArg());
       } else {
-        ::occa::kernel apply = applyKernelBuilder.build(
-          getDevice(),
-          kernelProps
-        );
-
-        apply(ceedElementCount,
+        if(!restrictionKernel.isInitialized()) {
+          setKernelProperties();
+          restrictionKernel = getDevice().buildKernelFromString(
+            occa_elem_restriction_source, 
+            "applyRestriction", 
+            kernelProperties);
+        }
+        restrictionKernel(ceedElementCount,
               indices,
               u.getConstKernelArg(),
               v.getKernelArg());
       }
-
       return CEED_ERROR_SUCCESS;
     }
 

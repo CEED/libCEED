@@ -53,8 +53,9 @@ namespace ceed {
       ::occa::memory transposeDofOffsets;
       ::occa::memory transposeDofIndices;
 
-      ::occa::kernelBuilder applyKernelBuilder;
-      ::occa::kernelBuilder applyTransposeKernelBuilder;
+      ::occa::json kernelProperties;
+      ::occa::kernel restrictionKernel;
+      ::occa::kernel restrictionTransposeKernel;
 
       ElemRestriction();
 
@@ -74,7 +75,7 @@ namespace ceed {
 
       void setupTransposeIndices();
 
-      void setupKernelBuilders();
+      void setKernelProperties();
 
       static ElemRestriction* getElemRestriction(CeedElemRestriction r,
                                                  const bool assertValid = true);

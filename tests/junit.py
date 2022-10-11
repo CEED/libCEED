@@ -61,10 +61,14 @@ def contains_any(resource, substrings):
 
 def skip_rule(test, resource):
     return any((
-        test.startswith('fluids-') and contains_any(resource, ['occa']),
-        test.startswith('solids-') and contains_any(resource, ['occa']),
+        test.startswith('t4') and contains_any(resource, ['occa']),
+        test.startswith('t5') and contains_any(resource, ['occa']),
+        test.startswith('ex') and contains_any(resource, ['occa']),
+        test.startswith('mfem') and contains_any(resource, ['occa']),
         test.startswith('nek') and contains_any(resource, ['occa']),
-        test.startswith('t507') and contains_any(resource, ['occa']),
+        test.startswith('petsc-') and contains_any(resource, ['occa']),
+        test.startswith('solids-') and contains_any(resource, ['occa']),
+        test.startswith('solids-') and contains_any(resource, ['occa']),
         test.startswith('t318') and contains_any(resource, ['/gpu/cuda/ref']),
         test.startswith('t506') and contains_any(resource, ['/gpu/cuda/shared']),
         ))

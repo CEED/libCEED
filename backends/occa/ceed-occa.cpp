@@ -57,11 +57,12 @@ namespace ceed {
         if (::occa::modeIsEnabled("HIP")) {
           return "HIP";
         }
-        /* OpenCL not fully supported in OCCA
+        if (::occa::modeIsEnabled("dpcpp")) {
+          return "dpcpp";
+        }
         if (::occa::modeIsEnabled("OpenCL")) {
           return "OpenCL";
         }
-        */
         // Metal doesn't support doubles
       }
 
@@ -85,12 +86,14 @@ namespace ceed {
         mode = "HIP";
         return CEED_ERROR_SUCCESS;
       }
-      /* OpenCL not fully supported in OCCA
+      if (match == "dpcpp") {
+        mode = "dpcpp";
+        return CEED_ERROR_SUCCESS;
+      }
       if (match == "opencl") {
         mode = "OpenCL";
         return CEED_ERROR_SUCCESS;
       }
-      */
       if (match == "openmp") {
         mode = "OpenMP";
         return CEED_ERROR_SUCCESS;
@@ -151,12 +154,14 @@ namespace ceed {
         match = "hip";
         return CEED_ERROR_SUCCESS;
       }
-      /*
+      if (resource == "/gpu/dpcpp/occa"){
+        match = "dpcpp";
+        return CEED_ERROR_SUCCESS;
+      }
       if (resource == "/gpu/opencl/occa"){
         match = "opencl";
         return CEED_ERROR_SUCCESS;
       }
-      */
       if (resource == "/cpu/openmp/occa"){
         match = "openmp";
         return CEED_ERROR_SUCCESS;
@@ -220,26 +225,25 @@ namespace ceed {
         mode = (std::string) deviceProps["mode"];
       } else {
         mode = defaultMode;
-        deviceProps["mode"] = mode;
+        deviceProps.set("mode",mode);
       }
 
       // Set default device id
-      // Note: OpenCL not fully supported in OCCA
       if ((mode == "CUDA")
-          || (mode == "HIP")) {
+        || (mode == "HIP")
+        || (mode == "dpcpp")
+        || (mode == "OpenCL")) {
         if (!deviceProps.has("device_id")) {
           deviceProps["device_id"] = 0;
         }
       }
 
       // Set default platform id
-      /* OpenCL not fully supported in OCCA
-      if (mode == "OpenCL") {
+      if ((mode=="dpcpp") || (mode == "OpenCL")){
         if (!deviceProps.has("platform_id")) {
           deviceProps["platform_id"] = 0;
         }
       }
-      */
     }
 
     static int initCeed(const char *c_resource, Ceed ceed) {
@@ -327,11 +331,15 @@ namespace ceed {
 
       try {
         ierr = ceed::occa::initCeed(resource, ceed); CeedChkBackend(ierr);
-        ierr = ceed::occa::registerMethods(ceed); CeedChkBackend(ierr);
-      } catch (::occa::exception &exc) {
-        CeedHandleOccaException(exc);
+      } catch (const ::occa::exception &e) {
+        CeedHandleOccaException(e);
       }
-
+      try {
+        ierr = ceed::occa::registerMethods(ceed); CeedChkBackend(ierr);
+      }
+      catch (const ::occa::exception &e) {
+        CeedHandleOccaException(e);
+      }
       return CEED_ERROR_SUCCESS;
     }
   }
@@ -340,16 +348,14 @@ namespace ceed {
 CEED_INTERN int CeedRegister_Occa(void) {
   int ierr;
   // General mode
-  ierr = CeedRegister("/*/occa", ceed::occa::registerBackend, 260); CeedChkBackend(ierr);
+  ierr = CeedRegister("/*/occa", ceed::occa::registerBackend, 270); CeedChkBackend(ierr);
   // CPU Modes
-  ierr = CeedRegister("/cpu/self/occa", ceed::occa::registerBackend, 250); CeedChkBackend(ierr);
-  ierr = CeedRegister("/cpu/openmp/occa", ceed::occa::registerBackend, 240); CeedChkBackend(ierr);
-  // OpenCL Mode
-  /* OpenCL not fully supported in OCCA
-  ierr = CeedRegister("/gpu/opencl/occa", ceed::occa::registerBackend, 230); CeedChkBackend(ierr);
-  */
+  ierr = CeedRegister("/cpu/self/occa",ceed::occa::registerBackend, 260); CeedChkBackend(ierr);
+  ierr = CeedRegister("/cpu/openmp/occa",ceed::occa::registerBackend, 250); CeedChkBackend(ierr);
   // GPU Modes
-  ierr = CeedRegister("/gpu/hip/occa", ceed::occa::registerBackend, 220); CeedChkBackend(ierr);
-  ierr = CeedRegister("/gpu/cuda/occa", ceed::occa::registerBackend, 210); CeedChkBackend(ierr);
+  ierr = CeedRegister("/gpu/dpcpp/occa",ceed::occa::registerBackend, 240); CeedChkBackend(ierr);
+  ierr = CeedRegister("/gpu/opencl/occa",ceed::occa::registerBackend, 230); CeedChkBackend(ierr);
+  ierr = CeedRegister("/gpu/hip/occa",ceed::occa::registerBackend, 220); CeedChkBackend(ierr);
+  ierr = CeedRegister("/gpu/cuda/occa",ceed::occa::registerBackend, 210); CeedChkBackend(ierr);
   return CEED_ERROR_SUCCESS;
 }

@@ -45,13 +45,24 @@ namespace ceed {
       grad1D    = device.malloc<CeedScalar>(P1D * Q1D, grad1D_);
       qWeight1D = device.malloc<CeedScalar>(Q1D, qWeight1D_);
 
-      setupKernelBuilders();
+      setKernelProperties();
     }
 
     TensorBasis::~TensorBasis() {}
 
     bool TensorBasis::isTensorBasis() const {
       return true;
+    }
+
+    void TensorBasis::setKernelProperties() {
+      kernelProperties["defines/CeedInt"]    = ::occa::dtype::get<CeedInt>().name();
+      kernelProperties["defines/CeedScalar"] = ::occa::dtype::get<CeedScalar>().name();
+      kernelProperties["defines/Q1D"] = Q1D;
+      kernelProperties["defines/P1D"] = P1D;
+      kernelProperties["defines/BASIS_COMPONENT_COUNT"] = ceedComponentCount;
+      if(usingGpuDevice()) {
+        kernelProperties["defines/MAX_PQ"] = (Q1D > P1D) ? Q1D : P1D;
+      }
     }
 
     const char* TensorBasis::getFunctionSource() const {
@@ -64,7 +75,7 @@ namespace ceed {
       return cpuFunctionSources[dim - 1];
     }
 
-    void TensorBasis::setupKernelBuilders() {
+    std::string TensorBasis::getKernelSource() const {
       const char *cpuFunctionSources[3] = {
         occa_tensor_basis_1d_cpu_function_source,
         occa_tensor_basis_2d_cpu_function_source,
@@ -89,49 +100,45 @@ namespace ceed {
         kernelSource += '\n';
         kernelSource += cpuKernelSources[dim - 1];
       }
+      return kernelSource;
+    }
 
-      ::occa::properties kernelProps;
-      kernelProps["defines/CeedInt"]    = ::occa::dtype::get<CeedInt>().name();
-      kernelProps["defines/CeedScalar"] = ::occa::dtype::get<CeedScalar>().name();
-      kernelProps["defines/Q1D"] = Q1D;
-      kernelProps["defines/P1D"] = P1D;
-      kernelProps["defines/BASIS_COMPONENT_COUNT"] = ceedComponentCount;
-
-      interpKernelBuilder = ::occa::kernelBuilder::fromString(
-        kernelSource, "interp", kernelProps
-      );
-      gradKernelBuilder = ::occa::kernelBuilder::fromString(
-        kernelSource, "grad"  , kernelProps
-      );
-      weightKernelBuilder = ::occa::kernelBuilder::fromString(
-        kernelSource, "weight", kernelProps
-      );
+    ::occa::kernel TensorBasis::buildKernel(const std::string& kernelName) {
+      std::string kernelSource = getKernelSource();
+      return getDevice().buildKernelFromString(kernelSource,
+                                               kernelName,
+                                               kernelProperties);
     }
 
     int TensorBasis::applyInterp(const CeedInt elementCount,
                                  const bool transpose,
                                  Vector &U,
                                  Vector &V) {
-      ::occa::kernel interp = (
-        usingGpuDevice()
-        ? getGpuInterpKernel(transpose)
-        : getCpuInterpKernel(transpose)
-      );
-
-      interp(elementCount,
-             interp1D,
-             U.getConstKernelArg(),
-             V.getKernelArg());
-
+      if(transpose) {
+        if(!interpTKernel.isInitialized()) {
+          kernelProperties["defines/TRANSPOSE"] = transpose;
+          kernelProperties["defines/ELEMENTS_PER_BLOCK"] = elementsPerBlockInterp();
+          interpTKernel = buildKernel("interp");
+        }
+        interpTKernel(elementCount,
+                      interp1D,
+                      U.getConstKernelArg(),
+                      V.getKernelArg());
+      } else {
+        if(!interpKernel.isInitialized()) {
+          kernelProperties["defines/TRANSPOSE"] = transpose;
+          kernelProperties["defines/ELEMENTS_PER_BLOCK"] = elementsPerBlockInterp();
+          interpKernel = buildKernel("interp");
+        }
+        interpKernel(elementCount,
+                      interp1D,
+                      U.getConstKernelArg(),
+                      V.getKernelArg());
+      }
       return CEED_ERROR_SUCCESS;
     }
 
-    ::occa::kernel TensorBasis::getCpuInterpKernel(const bool transpose) {
-      return buildCpuEvalKernel(interpKernelBuilder,
-                                transpose);
-    }
-
-    ::occa::kernel TensorBasis::getGpuInterpKernel(const bool transpose) {
+    int TensorBasis::elementsPerBlockInterp() const {
       int elementsPerBlock;
       if (dim == 1) {
         elementsPerBlock = 32;
@@ -145,36 +152,41 @@ namespace ceed {
       } else {
         elementsPerBlock = 1;
       }
-
-      return buildGpuEvalKernel(interpKernelBuilder,
-                                transpose,
-                                elementsPerBlock);
+      return elementsPerBlock;
     }
 
     int TensorBasis::applyGrad(const CeedInt elementCount,
                                const bool transpose,
                                Vector &U,
                                Vector &V) {
-      ::occa::kernel grad = (
-        usingGpuDevice()
-        ? getGpuGradKernel(transpose)
-        : getCpuGradKernel(transpose)
-      );
-
-      grad(elementCount,
-           interp1D, grad1D,
-           U.getConstKernelArg(),
-           V.getKernelArg());
-
+      
+      if(transpose) {
+        if(!gradTKernel.isInitialized()) {
+          kernelProperties["defines/TRANSPOSE"] = transpose;
+          kernelProperties["defines/ELEMENTS_PER_BLOCK"] = elementsPerBlockGrad();
+          gradTKernel = buildKernel("grad");
+        }
+        gradTKernel(elementCount,
+                    interp1D, 
+                    grad1D,
+                    U.getConstKernelArg(),
+                    V.getKernelArg());
+      } else {
+        if(!gradKernel.isInitialized()) {
+          kernelProperties["defines/TRANSPOSE"] = transpose;
+          kernelProperties["defines/ELEMENTS_PER_BLOCK"] = elementsPerBlockGrad();
+          gradKernel = buildKernel("grad");
+        }
+        gradKernel(elementCount,
+                    interp1D, 
+                    grad1D,
+                    U.getConstKernelArg(),
+                    V.getKernelArg());
+      }
       return CEED_ERROR_SUCCESS;
     }
 
-    ::occa::kernel TensorBasis::getCpuGradKernel(const bool transpose) {
-      return buildCpuEvalKernel(gradKernelBuilder,
-                                transpose);
-    }
-
-    ::occa::kernel TensorBasis::getGpuGradKernel(const bool transpose) {
+    int TensorBasis::elementsPerBlockGrad() const {
       int elementsPerBlock;
       if (dim == 1) {
         elementsPerBlock = 32;
@@ -188,31 +200,21 @@ namespace ceed {
       } else {
         elementsPerBlock = 1;
       }
-
-      return buildGpuEvalKernel(gradKernelBuilder,
-                                transpose,
-                                elementsPerBlock);
+      return elementsPerBlock;
     }
 
     int TensorBasis::applyWeight(const CeedInt elementCount,
                                  Vector &W) {
-      ::occa::kernel weight = (
-        usingGpuDevice()
-        ? getGpuWeightKernel()
-        : getCpuWeightKernel()
-      );
-
-      weight(elementCount, qWeight1D, W.getKernelArg());
+      if(!weightKernel.isInitialized()) {
+        kernelProperties["defines/ELEMENTS_PER_BLOCK"] = elementsPerBlockWeight();
+        weightKernel = buildKernel("weight");
+      }
+      weightKernel(elementCount, qWeight1D, W.getKernelArg());
 
       return CEED_ERROR_SUCCESS;
     }
 
-    ::occa::kernel TensorBasis::getCpuWeightKernel() {
-      return buildCpuEvalKernel(weightKernelBuilder,
-                                false);
-    }
-
-    ::occa::kernel TensorBasis::getGpuWeightKernel() {
+    int TensorBasis::elementsPerBlockWeight() const {
       int elementsPerBlock;
       if (dim == 1) {
         elementsPerBlock = 32 / Q1D;
@@ -225,30 +227,7 @@ namespace ceed {
       } else {
         elementsPerBlock = Q1D;
       }
-
-      return buildGpuEvalKernel(weightKernelBuilder,
-                                false,
-                                elementsPerBlock);
-    }
-
-    ::occa::kernel TensorBasis::buildCpuEvalKernel(::occa::kernelBuilder &kernelBuilder,
-                                                   const bool transpose) {
-      ::occa::properties kernelProps;
-      kernelProps["defines/TRANSPOSE"] = transpose;
-
-      return kernelBuilder.build(getDevice(), kernelProps);
-    }
-
-    ::occa::kernel TensorBasis::buildGpuEvalKernel(::occa::kernelBuilder &kernelBuilder,
-                                                   const bool transpose,
-                                                   const int elementsPerBlock) {
-
-      ::occa::properties kernelProps;
-      kernelProps["defines/TRANSPOSE"]          = transpose;
-      kernelProps["defines/MAX_PQ"]             = Q1D > P1D ? Q1D : P1D;
-      kernelProps["defines/ELEMENTS_PER_BLOCK"] = elementsPerBlock;
-
-      return kernelBuilder.build(getDevice(), kernelProps);
+      return elementsPerBlock;
     }
 
     int TensorBasis::apply(const CeedInt elementCount,

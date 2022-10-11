@@ -28,9 +28,13 @@ namespace ceed {
       ::occa::memory interp1D;
       ::occa::memory grad1D;
       ::occa::memory qWeight1D;
-      ::occa::kernelBuilder interpKernelBuilder;
-      ::occa::kernelBuilder gradKernelBuilder;
-      ::occa::kernelBuilder weightKernelBuilder;
+
+      ::occa::json kernelProperties;
+      ::occa::kernel interpKernel;
+      ::occa::kernel interpTKernel;
+      ::occa::kernel gradKernel;
+      ::occa::kernel gradTKernel;
+      ::occa::kernel weightKernel;
 
       TensorBasis(CeedBasis basis,
                   CeedInt dim_,
@@ -46,36 +50,28 @@ namespace ceed {
 
       const char* getFunctionSource() const;
 
-      void setupKernelBuilders();
+      std::string getKernelSource() const;
+
+      void setKernelProperties();
+
+      int elementsPerBlockInterp() const;
+      int elementsPerBlockGrad() const;
+      int elementsPerBlockWeight() const;
+
+      ::occa::kernel buildKernel(const std::string& kernelName);
 
       int applyInterp(const CeedInt elementCount,
                       const bool transpose,
                       Vector &U,
                       Vector &V);
 
-      ::occa::kernel getCpuInterpKernel(const bool transpose);
-      ::occa::kernel getGpuInterpKernel(const bool transpose);
-
       int applyGrad(const CeedInt elementCount,
                     const bool transpose,
                     Vector &U,
                     Vector &V);
 
-      ::occa::kernel getCpuGradKernel(const bool transpose);
-      ::occa::kernel getGpuGradKernel(const bool transpose);
-
       int applyWeight(const CeedInt elementCount,
                       Vector &W);
-
-      ::occa::kernel getCpuWeightKernel();
-      ::occa::kernel getGpuWeightKernel();
-
-      ::occa::kernel buildCpuEvalKernel(::occa::kernelBuilder &kernelBuilder,
-                                        const bool transpose);
-
-      ::occa::kernel buildGpuEvalKernel(::occa::kernelBuilder &kernelBuilder,
-                                        const bool transpose,
-                                        const int elementsPerBlock);
 
       int apply(const CeedInt elementCount,
                 CeedTransposeMode tmode,
