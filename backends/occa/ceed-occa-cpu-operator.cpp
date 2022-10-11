@@ -5,8 +5,6 @@
 //
 // This file is part of CEED:  http://github.com/ceed
 
-#define CEED_DEBUG_COLOR 12
-
 #include "ceed-occa-cpu-operator.hpp"
 #include "ceed-occa-elem-restriction.hpp"
 #include "ceed-occa-qfunction.hpp"
