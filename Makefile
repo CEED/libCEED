@@ -98,27 +98,27 @@ FC_VENDOR := $(if $(FC),$(firstword $(filter GNU ifort ifx XL,$(shell $(FC) --ve
 MARCHFLAG.gcc           := -march=native
 MARCHFLAG.clang         := $(MARCHFLAG.gcc)
 MARCHFLAG.icc           :=
-MARCHFLAG.oneAPI		:= $(MARCHFLAG.clang)
+MARCHFLAG.oneAPI        := $(MARCHFLAG.clang)
 OMP_SIMD_FLAG.gcc       := -fopenmp-simd
 OMP_SIMD_FLAG.clang     := $(OMP_SIMD_FLAG.gcc)
 OMP_SIMD_FLAG.icc       := -qopenmp-simd
 OMP_SIMD_FLAG.oneAPI    := $(OMP_SIMD_FLAG.clang)
 OPT.gcc                 := -ffp-contract=fast
 OPT.clang               := $(OPT.gcc)
-OPT.oneAPI				:= $(OPT.clang)
+OPT.oneAPI              := $(OPT.clang)
 CFLAGS.gcc              := -fPIC -std=c99 -Wall -Wextra -Wno-unused-parameter -MMD -MP
 CFLAGS.clang            := $(CFLAGS.gcc)
 CFLAGS.icc              := $(CFLAGS.gcc)
-CFLAGS.oneAPI			:= $(CFLAGS.clang)
+CFLAGS.oneAPI           := $(CFLAGS.clang)
 CFLAGS.XL               := -qpic -MMD
 CXXFLAGS.gcc            := -fPIC -std=c++11 -Wall -Wextra -Wno-unused-parameter -MMD -MP
 CXXFLAGS.clang          := $(CXXFLAGS.gcc)
 CXXFLAGS.icc            := $(CXXFLAGS.gcc)
-CXXFLAGS.oneAPI			:= $(CXXFLAGS.clang)
+CXXFLAGS.oneAPI         := $(CXXFLAGS.clang)
 CXXFLAGS.XL             := -qpic -std=c++11 -MMD
 FFLAGS.GNU              := -fPIC -cpp -Wall -Wextra -Wno-unused-parameter -Wno-unused-dummy-argument -MMD -MP
 FFLAGS.ifort            := -fPIC -cpp
-FFLAGS.ifx				:= $(FFLAGS.ifort)
+FFLAGS.ifx              := $(FFLAGS.ifort)
 FFLAGS.XL               := -qpic -ffree-form -qpreprocess -qextname -MMD
 
 # This check works with compilers that use gcc and clang.  It fails with some
