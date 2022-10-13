@@ -1,32 +1,23 @@
-// Copyright (c) 2019, Lawrence Livermore National Security, LLC.
-// Produced at the Lawrence Livermore National Laboratory. LLNL-CODE-734707.
-// All Rights reserved. See files LICENSE and NOTICE for details.
+// Copyright (c) 2017-2022, Lawrence Livermore National Security, LLC and other CEED contributors.
+// All Rights Reserved. See the top-level LICENSE and NOTICE files for details.
 //
-// This file is part of CEED, a collection of benchmarks, miniapps, software
-// libraries and APIs for efficient high-order finite element and spectral
-// element discretizations for exascale applications. For more information and
-// source code availability see http://github.com/ceed
+// SPDX-License-Identifier: BSD-2-Clause
 //
-// The CEED research is supported by the Exascale Computing Project 17-SC-20-SC,
-// a collaborative effort of two U.S. Department of Energy organizations (Office
-// of Science and the National Nuclear Security Administration) responsible for
-// the planning and preparation of a capable exascale ecosystem, including
-// software, applications, hardware, advanced system engineering and early
-// testbed platforms, in support of the nation's exascale computing imperative.
+// This file is part of CEED:  http://github.com/ceed
 
 #include "ceed-occa-qfunction.hpp"
 
 #include <sstream>
+#include <string>
 
 #include "ceed-occa-qfunctioncontext.hpp"
 #include "ceed-occa-vector.hpp"
 
 namespace ceed {
 namespace occa {
-QFunction::QFunction(const std::string &source) : ceedIsIdentity(false) {
-  const size_t colonIndex = source.find(':');
-  filename                = source.substr(0, colonIndex);
-  qFunctionName           = source.substr(colonIndex + 1);
+QFunction::QFunction(const std::string &source, const std::string &function_name) : ceedIsIdentity(false) {
+  filename      = source;
+  qFunctionName = function_name;
 }
 
 QFunction *QFunction::getQFunction(CeedQFunction qf, const bool assertValid) {
@@ -34,11 +25,9 @@ QFunction *QFunction::getQFunction(CeedQFunction qf, const bool assertValid) {
     return NULL;
   }
 
-  int        ierr;
   QFunction *qFunction = NULL;
 
-  ierr = CeedQFunctionGetData(qf, &qFunction);
-  CeedOccaFromChk(ierr);
+  CeedCallOcca(CeedQFunctionGetData(qf, &qFunction));
 
   return qFunction;
 }
@@ -49,15 +38,11 @@ QFunction *QFunction::from(CeedQFunction qf) {
     return NULL;
   }
 
-  int ierr;
-  ierr = CeedQFunctionGetCeed(qf, &qFunction->ceed);
-  CeedOccaFromChk(ierr);
+  CeedCallOcca(CeedQFunctionGetCeed(qf, &qFunction->ceed));
 
-  ierr = CeedQFunctionGetInnerContext(qf, &qFunction->qFunctionContext);
-  CeedOccaFromChk(ierr);
+  CeedCallOcca(CeedQFunctionGetInnerContext(qf, &qFunction->qFunctionContext));
 
-  ierr = CeedQFunctionIsIdentity(qf, &qFunction->ceedIsIdentity);
-  CeedOccaFromChk(ierr);
+  CeedCallOcca(CeedQFunctionIsIdentity(qf, &qFunction->ceedIsIdentity));
 
   qFunction->args.setupQFunctionArgs(qf);
   if (!qFunction->args.isValid()) {
@@ -73,10 +58,8 @@ QFunction *QFunction::from(CeedOperator op) {
   }
 
   CeedQFunction qf;
-  int           ierr = 0;
 
-  ierr = CeedOperatorGetQFunction(op, &qf);
-  CeedOccaFromChk(ierr);
+  CeedCallOcca(CeedOperatorGetQFunction(op, &qf));
 
   return QFunction::from(qf);
 }
@@ -114,7 +97,7 @@ int QFunction::buildKernel(const CeedInt Q) {
     // Properties only used in the QFunction kernel source
     props["defines/OCCA_Q"] = Q;
 
-    const std::string kernelName = "qFunctionKernel";
+    const std::string kernelName = "qf_" + qFunctionName;
 
     qFunctionKernel = (getDevice().buildKernelFromString(getKernelSource(kernelName, Q), kernelName, props));
   }
@@ -146,8 +129,8 @@ std::string QFunction::getKernelSource(const std::string &kernelName, const Ceed
   // Set and define in for the q point
   for (int i = 0; i < args.inputCount(); ++i) {
     const CeedInt     fieldSize = args.getQfInput(i).size;
-    const std::string qIn_i     = "qIn" + ::occa::toString(i);
-    const std::string in_i      = "in" + ::occa::toString(i);
+    const std::string qIn_i     = "qIn" + std::to_string(i);
+    const std::string in_i      = "in" + std::to_string(i);
 
     ss << "    CeedScalar " << qIn_i << "[" << fieldSize << "];" << std::endl
        << "    in[" << i << "] = " << qIn_i << ";"
@@ -161,7 +144,7 @@ std::string QFunction::getKernelSource(const std::string &kernelName, const Ceed
   // Set out for the q point
   for (int i = 0; i < args.outputCount(); ++i) {
     const CeedInt     fieldSize = args.getQfOutput(i).size;
-    const std::string qOut_i    = "qOut" + ::occa::toString(i);
+    const std::string qOut_i    = "qOut" + std::to_string(i);
 
     ss << "    CeedScalar " << qOut_i << "[" << fieldSize << "];" << std::endl << "    out[" << i << "] = " << qOut_i << ";" << std::endl;
   }
@@ -171,8 +154,8 @@ std::string QFunction::getKernelSource(const std::string &kernelName, const Ceed
   // Copy out for the q point
   for (int i = 0; i < args.outputCount(); ++i) {
     const CeedInt     fieldSize = args.getQfOutput(i).size;
-    const std::string qOut_i    = "qOut" + ::occa::toString(i);
-    const std::string out_i     = "out" + ::occa::toString(i);
+    const std::string qOut_i    = "qOut" + std::to_string(i);
+    const std::string out_i     = "out" + std::to_string(i);
 
     ss << "    for (int qi = 0; qi < " << fieldSize << "; ++qi) {" << std::endl
        << "      " << out_i << "[q + (OCCA_Q * qi)] = " << qOut_i << "[qi];" << std::endl
@@ -185,9 +168,7 @@ std::string QFunction::getKernelSource(const std::string &kernelName, const Ceed
 }
 
 int QFunction::apply(CeedInt Q, CeedVector *U, CeedVector *V) {
-  int ierr;
-  ierr = buildKernel(Q);
-  CeedChk(ierr);
+  CeedCallBackend(buildKernel(Q));
 
   std::vector<CeedScalar *> outputArgs;
 
@@ -196,7 +177,7 @@ int QFunction::apply(CeedInt Q, CeedVector *U, CeedVector *V) {
   for (CeedInt i = 0; i < args.inputCount(); i++) {
     Vector *u = Vector::from(U[i]);
     if (!u) {
-      return ceedError("Incorrect qFunction input field: U[" + ::occa::toString(i) + "]");
+      return ceedError("Incorrect qFunction input field: U[" + std::to_string(i) + "]");
     }
     qFunctionKernel.pushArg(u->getConstKernelArg());
   }
@@ -204,7 +185,7 @@ int QFunction::apply(CeedInt Q, CeedVector *U, CeedVector *V) {
   for (CeedInt i = 0; i < args.outputCount(); i++) {
     Vector *v = Vector::from(V[i]);
     if (!v) {
-      return ceedError("Incorrect qFunction output field: V[" + ::occa::toString(i) + "]");
+      return ceedError("Incorrect qFunction output field: V[" + std::to_string(i) + "]");
     }
     qFunctionKernel.pushArg(v->getKernelArg());
   }
@@ -226,20 +207,17 @@ int QFunction::registerCeedFunction(Ceed ceed, CeedQFunction qf, const char *fna
 }
 
 int QFunction::ceedCreate(CeedQFunction qf) {
-  int  ierr;
   Ceed ceed;
-  ierr = CeedQFunctionGetCeed(qf, &ceed);
-  CeedChk(ierr);
+  CeedCallBackend(CeedQFunctionGetCeed(qf, &ceed));
   Context *context;
-  ierr = CeedGetData(ceed, &context);
-  CeedChk(ierr);
+  CeedCallBackend(CeedGetData(ceed, &context));
   char *source;
-  ierr = CeedQFunctionGetSourcePath(qf, &source);
-  CeedChk(ierr);
+  CeedCallBackend(CeedQFunctionGetSourcePath(qf, &source));
+  char *function_name;
+  CeedCallBackend(CeedQFunctionGetKernelName(qf, &function_name));
 
-  QFunction *qFunction = new QFunction(source);
-  ierr                 = CeedQFunctionSetData(qf, qFunction);
-  CeedChk(ierr);
+  QFunction *qFunction = new QFunction(source, function_name);
+  CeedCallBackend(CeedQFunctionSetData(qf, qFunction));
 
   CeedOccaRegisterFunction(qf, "Apply", QFunction::ceedApply);
   CeedOccaRegisterFunction(qf, "Destroy", QFunction::ceedDestroy);

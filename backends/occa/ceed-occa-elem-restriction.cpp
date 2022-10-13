@@ -1,21 +1,13 @@
-// Copyright (c) 2019, Lawrence Livermore National Security, LLC.
-// Produced at the Lawrence Livermore National Laboratory. LLNL-CODE-734707.
-// All Rights reserved. See files LICENSE and NOTICE for details.
+// Copyright (c) 2017-2022, Lawrence Livermore National Security, LLC and other CEED contributors.
+// All Rights Reserved. See the top-level LICENSE and NOTICE files for details.
 //
-// This file is part of CEED, a collection of benchmarks, miniapps, software
-// libraries and APIs for efficient high-order finite element and spectral
-// element discretizations for exascale applications. For more information and
-// source code availability see http://github.com/ceed
+// SPDX-License-Identifier: BSD-2-Clause
 //
-// The CEED research is supported by the Exascale Computing Project 17-SC-20-SC,
-// a collaborative effort of two U.S. Department of Energy organizations (Office
-// of Science and the National Nuclear Security Administration) responsible for
-// the planning and preparation of a capable exascale ecosystem, including
-// software, applications, hardware, advanced system engineering and early
-// testbed platforms, in support of the nation's exascale computing imperative.
+// This file is part of CEED:  http://github.com/ceed
 
 #include "./ceed-occa-elem-restriction.hpp"
 
+#include <cstring>
 #include <map>
 
 #include "./ceed-occa-kernels.hpp"
@@ -53,8 +45,6 @@ void ElemRestriction::setup(CeedMemType memType, CeedCopyMode copyMode, const Ce
   }
 
   setupTransposeIndices();
-
-  setupKernelBuilders();
 }
 
 void ElemRestriction::setupFromHostMemory(CeedCopyMode copyMode, const CeedInt *indices_h) {
@@ -67,7 +57,7 @@ void ElemRestriction::setupFromHostMemory(CeedCopyMode copyMode, const CeedInt *
   } else {
     const size_t bytes = entries * sizeof(CeedInt);
     hostIndices        = (CeedInt *)::malloc(bytes);
-    ::memcpy(hostIndices, indices_h, bytes);
+    std::memcpy(hostIndices, indices_h, bytes);
   }
 
   if (hostIndices) {
@@ -97,7 +87,7 @@ void ElemRestriction::setupTransposeIndices() {
   const CeedInt elementEntryCount = ceedElementCount * ceedElementSize;
 
   bool *indexIsUsed = new bool[ceedLVectorSize];
-  ::memset(indexIsUsed, 0, ceedLVectorSize * sizeof(bool));
+  std::memset(indexIsUsed, 0, ceedLVectorSize * sizeof(bool));
 
   for (CeedInt i = 0; i < elementEntryCount; ++i) {
     indexIsUsed[hostIndices[i]] = true;
@@ -114,7 +104,7 @@ void ElemRestriction::setupTransposeIndices() {
   CeedInt      *transposeDofOffsets_h  = new CeedInt[dofOffsetCount];
   CeedInt      *transposeDofIndices_h  = new CeedInt[elementEntryCount];
 
-  ::memset(transposeDofOffsets_h, 0, dofOffsetCount * sizeof(CeedInt));
+  std::memset(transposeDofOffsets_h, 0, dofOffsetCount * sizeof(CeedInt));
 
   // Compute ids
   CeedInt offsetId = 0;
@@ -163,19 +153,22 @@ void ElemRestriction::setupTransposeIndices() {
   delete[] transposeDofIndices_h;
 }
 
-void ElemRestriction::setupKernelBuilders() {
-  ::occa::properties kernelProps;
-  kernelProps["defines/CeedInt"]    = ::occa::dtype::get<CeedInt>().name();
-  kernelProps["defines/CeedScalar"] = ::occa::dtype::get<CeedScalar>().name();
-
-  kernelProps["defines/COMPONENT_COUNT"] = ceedComponentCount;
-  kernelProps["defines/ELEMENT_SIZE"]    = ceedElementSize;
-  kernelProps["defines/TILE_SIZE"]       = 64;
-  kernelProps["defines/USES_INDICES"]    = usesIndices();
-
-  applyKernelBuilder = ::occa::kernelBuilder::fromString(occa_elem_restriction_source, "applyRestriction", kernelProps);
-
-  applyTransposeKernelBuilder = ::occa::kernelBuilder::fromString(occa_elem_restriction_source, "applyRestrictionTranspose", kernelProps);
+void ElemRestriction::setKernelProperties() {
+  kernelProperties["defines/CeedInt"]                    = ::occa::dtype::get<CeedInt>().name();
+  kernelProperties["defines/CeedScalar"]                 = ::occa::dtype::get<CeedScalar>().name();
+  kernelProperties["defines/COMPONENT_COUNT"]            = ceedComponentCount;
+  kernelProperties["defines/ELEMENT_SIZE"]               = ceedElementSize;
+  kernelProperties["defines/TILE_SIZE"]                  = 64;
+  kernelProperties["defines/USES_INDICES"]               = usesIndices();
+  kernelProperties["defines/USER_STRIDES"]               = StrideType::USER_STRIDES;
+  kernelProperties["defines/NOT_STRIDED"]                = StrideType::NOT_STRIDED;
+  kernelProperties["defines/BACKEND_STRIDES"]            = StrideType::BACKEND_STRIDES;
+  kernelProperties["defines/STRIDE_TYPE"]                = ceedStrideType;
+  kernelProperties["defines/NODE_COUNT"]                 = transposeQuadIndices.length();
+  kernelProperties["defines/NODE_STRIDE"]                = ceedNodeStride;
+  kernelProperties["defines/COMPONENT_STRIDE"]           = ceedComponentStride;
+  kernelProperties["defines/ELEMENT_STRIDE"]             = ceedElementStride;
+  kernelProperties["defines/UNSTRIDED_COMPONENT_STRIDE"] = ceedUnstridedComponentStride;
 }
 
 ElemRestriction *ElemRestriction::getElemRestriction(CeedElemRestriction r, const bool assertValid) {
@@ -200,48 +193,36 @@ ElemRestriction *ElemRestriction::from(CeedElemRestriction r) {
     return NULL;
   }
 
-  int ierr;
-  ierr = CeedElemRestrictionGetCeed(r, &elemRestriction->ceed);
-  CeedOccaFromChk(ierr);
+  CeedCallOcca(CeedElemRestrictionGetCeed(r, &elemRestriction->ceed));
 
   return elemRestriction->setupFrom(r);
 }
 
 ElemRestriction *ElemRestriction::from(CeedOperatorField operatorField) {
-  int                 ierr;
   CeedElemRestriction ceedElemRestriction;
 
-  ierr = CeedOperatorFieldGetElemRestriction(operatorField, &ceedElemRestriction);
-  CeedOccaFromChk(ierr);
+  CeedCallOcca(CeedOperatorFieldGetElemRestriction(operatorField, &ceedElemRestriction));
 
   return from(ceedElemRestriction);
 }
 
 ElemRestriction *ElemRestriction::setupFrom(CeedElemRestriction r) {
-  int ierr;
+  CeedCallOcca(CeedElemRestrictionGetNumElements(r, &ceedElementCount));
 
-  ierr = CeedElemRestrictionGetNumElements(r, &ceedElementCount);
-  CeedOccaFromChk(ierr);
+  CeedCallOcca(CeedElemRestrictionGetElementSize(r, &ceedElementSize));
 
-  ierr = CeedElemRestrictionGetElementSize(r, &ceedElementSize);
-  CeedOccaFromChk(ierr);
+  CeedCallOcca(CeedElemRestrictionGetNumComponents(r, &ceedComponentCount));
 
-  ierr = CeedElemRestrictionGetNumComponents(r, &ceedComponentCount);
-  CeedOccaFromChk(ierr);
-
-  ierr = CeedElemRestrictionGetLVectorSize(r, &ceedLVectorSize);
-  CeedOccaFromChk(ierr);
+  CeedCallOcca(CeedElemRestrictionGetLVectorSize(r, &ceedLVectorSize));
 
   // Find what type of striding the restriction uses
   bool isStrided         = false;
   bool hasBackendStrides = false;
 
-  ierr = CeedElemRestrictionIsStrided(r, &isStrided);
-  CeedOccaFromChk(ierr);
+  CeedCallOcca(CeedElemRestrictionIsStrided(r, &isStrided));
 
   if (isStrided) {
-    ierr = CeedElemRestrictionHasBackendStrides(r, &hasBackendStrides);
-    CeedOccaFromChk(ierr);
+    CeedCallOcca(CeedElemRestrictionHasBackendStrides(r, &hasBackendStrides));
   }
 
   if (isStrided) {
@@ -263,16 +244,14 @@ ElemRestriction *ElemRestriction::setupFrom(CeedElemRestriction r) {
   if (ceedStrideType == USER_STRIDES) {
     CeedInt strides[3];
 
-    ierr = CeedElemRestrictionGetStrides(r, &strides);
-    CeedOccaFromChk(ierr);
+    CeedCallOcca(CeedElemRestrictionGetStrides(r, &strides));
 
     ceedNodeStride      = strides[0];
     ceedComponentStride = strides[1];
     ceedElementStride   = strides[2];
 
   } else if (ceedStrideType == NOT_STRIDED) {
-    ierr = CeedElemRestrictionGetCompStride(r, &ceedUnstridedComponentStride);
-    CeedOccaFromChk(ierr);
+    CeedCallOcca(CeedElemRestrictionGetCompStride(r, &ceedUnstridedComponentStride));
   }
 
   return this;
@@ -281,28 +260,21 @@ ElemRestriction *ElemRestriction::setupFrom(CeedElemRestriction r) {
 int ElemRestriction::apply(CeedTransposeMode rTransposeMode, Vector &u, Vector &v) {
   const bool rIsTransposed = (rTransposeMode != CEED_NOTRANSPOSE);
 
-  ::occa::properties kernelProps;
-  kernelProps["defines/USER_STRIDES"]    = StrideType::USER_STRIDES;
-  kernelProps["defines/NOT_STRIDED"]     = StrideType::NOT_STRIDED;
-  kernelProps["defines/BACKEND_STRIDES"] = StrideType::BACKEND_STRIDES;
-  kernelProps["defines/STRIDE_TYPE"]     = ceedStrideType;
-
-  kernelProps["defines/NODE_COUNT"]                 = transposeQuadIndices.length();
-  kernelProps["defines/NODE_STRIDE"]                = ceedNodeStride;
-  kernelProps["defines/COMPONENT_STRIDE"]           = ceedComponentStride;
-  kernelProps["defines/ELEMENT_STRIDE"]             = ceedElementStride;
-  kernelProps["defines/UNSTRIDED_COMPONENT_STRIDE"] = ceedUnstridedComponentStride;
-
+  // Todo: refactor
   if (rIsTransposed) {
-    ::occa::kernel applyTranspose = applyTransposeKernelBuilder.build(getDevice(), kernelProps);
-
-    applyTranspose(ceedElementCount, transposeQuadIndices, transposeDofOffsets, transposeDofIndices, u.getConstKernelArg(), v.getKernelArg());
+    if (!restrictionTransposeKernel.isInitialized()) {
+      setKernelProperties();
+      restrictionTransposeKernel = getDevice().buildKernelFromString(occa_elem_restriction_source, "applyRestrictionTranspose", kernelProperties);
+    }
+    restrictionTransposeKernel(ceedElementCount, transposeQuadIndices, transposeDofOffsets, transposeDofIndices, u.getConstKernelArg(),
+                               v.getKernelArg());
   } else {
-    ::occa::kernel apply = applyKernelBuilder.build(getDevice(), kernelProps);
-
-    apply(ceedElementCount, indices, u.getConstKernelArg(), v.getKernelArg());
+    if (!restrictionKernel.isInitialized()) {
+      setKernelProperties();
+      restrictionKernel = getDevice().buildKernelFromString(occa_elem_restriction_source, "applyRestriction", kernelProperties);
+    }
+    restrictionKernel(ceedElementCount, indices, u.getConstKernelArg(), v.getKernelArg());
   }
-
   return CEED_ERROR_SUCCESS;
 }
 
@@ -326,26 +298,22 @@ int ElemRestriction::registerCeedFunction(Ceed ceed, CeedElemRestriction r, cons
 }
 
 int ElemRestriction::ceedCreate(CeedMemType memType, CeedCopyMode copyMode, const CeedInt *indicesInput, CeedElemRestriction r) {
-  int  ierr;
   Ceed ceed;
-  ierr = CeedElemRestrictionGetCeed(r, &ceed);
-  CeedChk(ierr);
+  CeedCallBackend(CeedElemRestrictionGetCeed(r, &ceed));
 
   if ((memType != CEED_MEM_DEVICE) && (memType != CEED_MEM_HOST)) {
     return staticCeedError("Only HOST and DEVICE CeedMemType supported");
   }
 
   ElemRestriction *elemRestriction = new ElemRestriction();
-  ierr                             = CeedElemRestrictionSetData(r, elemRestriction);
-  CeedChk(ierr);
+  CeedCallBackend(CeedElemRestrictionSetData(r, elemRestriction));
 
   // Setup Ceed objects before setting up memory
   elemRestriction = ElemRestriction::from(r);
   elemRestriction->setup(memType, copyMode, indicesInput);
 
   CeedInt defaultLayout[3] = {1, elemRestriction->ceedElementSize, elemRestriction->ceedElementSize * elemRestriction->ceedComponentCount};
-  ierr                     = CeedElemRestrictionSetELayout(r, defaultLayout);
-  CeedChk(ierr);
+  CeedChkBackend(CeedElemRestrictionSetELayout(r, defaultLayout));
 
   CeedOccaRegisterFunction(r, "Apply", ElemRestriction::ceedApply);
   CeedOccaRegisterFunction(r, "ApplyBlock", ElemRestriction::ceedApplyBlock);

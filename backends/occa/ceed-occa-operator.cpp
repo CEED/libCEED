@@ -1,18 +1,9 @@
-// Copyright (c) 2019, Lawrence Livermore National Security, LLC.
-// Produced at the Lawrence Livermore National Laboratory. LLNL-CODE-734707.
-// All Rights reserved. See files LICENSE and NOTICE for details.
+// Copyright (c) 2017-2022, Lawrence Livermore National Security, LLC and other CEED contributors.
+// All Rights Reserved. See the top-level LICENSE and NOTICE files for details.
 //
-// This file is part of CEED, a collection of benchmarks, miniapps, software
-// libraries and APIs for efficient high-order finite element and spectral
-// element discretizations for exascale applications. For more information and
-// source code availability see http://github.com/ceed
+// SPDX-License-Identifier: BSD-2-Clause
 //
-// The CEED research is supported by the Exascale Computing Project 17-SC-20-SC,
-// a collaborative effort of two U.S. Department of Energy organizations (Office
-// of Science and the National Nuclear Security Administration) responsible for
-// the planning and preparation of a capable exascale ecosystem, including
-// software, applications, hardware, advanced system engineering and early
-// testbed platforms, in support of the nation's exascale computing imperative.
+// This file is part of CEED:  http://github.com/ceed
 
 #include "ceed-occa-operator.hpp"
 
@@ -50,19 +41,15 @@ Operator *Operator::from(CeedOperator op) {
     return NULL;
   }
 
-  int ierr;
-  ierr = CeedOperatorGetCeed(op, &operator_->ceed);
-  CeedOccaFromChk(ierr);
+  CeedCallOcca(CeedOperatorGetCeed(op, &operator_->ceed));
 
   operator_->qfunction = QFunction::from(op);
   if (!operator_->qfunction) {
     return NULL;
   }
 
-  ierr = CeedOperatorGetNumQuadraturePoints(op, &operator_->ceedQ);
-  CeedOccaFromChk(ierr);
-  ierr = CeedOperatorGetNumElements(op, &operator_->ceedElementCount);
-  CeedOccaFromChk(ierr);
+  CeedCallOcca(CeedOperatorGetNumQuadraturePoints(op, &operator_->ceedQ));
+  CeedCallOcca(CeedOperatorGetNumElements(op, &operator_->ceedElementCount));
 
   operator_->args.setupArgs(op);
   if (!operator_->args.isValid()) {
@@ -97,10 +84,8 @@ int Operator::registerCeedFunction(Ceed ceed, CeedOperator op, const char *fname
 }
 
 int Operator::ceedCreate(CeedOperator op) {
-  int  ierr;
   Ceed ceed;
-  ierr = CeedOperatorGetCeed(op, &ceed);
-  CeedChk(ierr);
+  CeedCallBackend(CeedOperatorGetCeed(op, &ceed));
 
 #if 1
   Operator *operator_ = new CpuOperator();
@@ -109,10 +94,10 @@ int Operator::ceedCreate(CeedOperator op) {
   Operator *operator_ = (Context::from(ceed)->usingCpuDevice() ? ((Operator *)new CpuOperator()) : ((Operator *)new GpuOperator()));
 #endif
 
-  ierr = CeedOperatorSetData(op, operator_);
-  CeedChk(ierr);
+  CeedCallBackend(CeedOperatorSetData(op, operator_));
 
   CeedOccaRegisterFunction(op, "LinearAssembleQFunction", Operator::ceedLinearAssembleQFunction);
+  CeedOccaRegisterFunction(op, "LinearAssembleQFunctionUpdate", Operator::ceedLinearAssembleQFunction);
   CeedOccaRegisterFunction(op, "LinearAssembleAddDiagonal", Operator::ceedLinearAssembleAddDiagonal);
   CeedOccaRegisterFunction(op, "LinearAssembleAddPointBlockDiagonal", Operator::ceedLinearAssembleAddPointBlockDiagonal);
   CeedOccaRegisterFunction(op, "CreateFDMElementInverse", Operator::ceedCreateFDMElementInverse);
@@ -123,10 +108,8 @@ int Operator::ceedCreate(CeedOperator op) {
 }
 
 int Operator::ceedCreateComposite(CeedOperator op) {
-  int  ierr;
   Ceed ceed;
-  ierr = CeedOperatorGetCeed(op, &ceed);
-  CeedChk(ierr);
+  CeedCallBackend(CeedOperatorGetCeed(op, &ceed));
 
   CeedOccaRegisterFunction(op, "LinearAssembleAddDiagonal", Operator::ceedLinearAssembleAddDiagonal);
   CeedOccaRegisterFunction(op, "LinearAssembleAddPointBlockDiagonal", Operator::ceedLinearAssembleAddPointBlockDiagonal);
@@ -135,6 +118,10 @@ int Operator::ceedCreateComposite(CeedOperator op) {
 }
 
 int Operator::ceedLinearAssembleQFunction(CeedOperator op) { return staticCeedError("(OCCA) Backend does not implement LinearAssembleQFunction"); }
+
+int Operator::ceedLinearAssembleQFunctionUpdate(CeedOperator op) {
+  return staticCeedError("(OCCA) Backend does not implement LinearAssembleQFunctionUpdate");
+}
 
 int Operator::ceedLinearAssembleAddDiagonal(CeedOperator op) { return staticCeedError("(OCCA) Backend does not implement LinearAssembleDiagonal"); }
 

@@ -1,18 +1,9 @@
-// Copyright (c) 2019, Lawrence Livermore National Security, LLC.
-// Produced at the Lawrence Livermore National Laboratory. LLNL-CODE-734707.
-// All Rights reserved. See files LICENSE and NOTICE for details.
+// Copyright (c) 2017-2022, Lawrence Livermore National Security, LLC and other CEED contributors.
+// All Rights Reserved. See the top-level LICENSE and NOTICE files for details.
 //
-// This file is part of CEED, a collection of benchmarks, miniapps, software
-// libraries and APIs for efficient high-order finite element and spectral
-// element discretizations for exascale applications. For more information and
-// source code availability see http://github.com/ceed
+// SPDX-License-Identifier: BSD-2-Clause
 //
-// The CEED research is supported by the Exascale Computing Project 17-SC-20-SC,
-// a collaborative effort of two U.S. Department of Energy organizations (Office
-// of Science and the National Nuclear Security Administration) responsible for
-// the planning and preparation of a capable exascale ecosystem, including
-// software, applications, hardware, advanced system engineering and early
-// testbed platforms, in support of the nation's exascale computing imperative.
+// This file is part of CEED:  http://github.com/ceed
 
 #include "ceed-occa-simplex-basis.hpp"
 
@@ -34,7 +25,7 @@ SimplexBasis::SimplexBasis(CeedBasis basis, CeedInt dim_, CeedInt P_, CeedInt Q_
   grad    = device.malloc<CeedScalar>(P * Q * dim, grad_);
   qWeight = device.malloc<CeedScalar>(Q, qWeight_);
 
-  setupKernelBuilders();
+  setKernelProperties();
 }
 
 SimplexBasis::~SimplexBasis() {}
@@ -46,7 +37,20 @@ const char *SimplexBasis::getFunctionSource() const {
   return occa_simplex_basis_cpu_function_source;
 }
 
-void SimplexBasis::setupKernelBuilders() {
+void SimplexBasis::setKernelProperties() {
+  kernelProperties["defines/CeedInt"]               = ::occa::dtype::get<CeedInt>().name();
+  kernelProperties["defines/CeedScalar"]            = ::occa::dtype::get<CeedScalar>().name();
+  kernelProperties["defines/DIM"]                   = dim;
+  kernelProperties["defines/Q"]                     = Q;
+  kernelProperties["defines/P"]                     = P;
+  kernelProperties["defines/MAX_PQ"]                = P > Q ? P : Q;
+  kernelProperties["defines/BASIS_COMPONENT_COUNT"] = ceedComponentCount;
+  if (usingGpuDevice()) {
+    kernelProperties["defines/ELEMENTS_PER_BLOCK"] = (Q <= 1024) ? (1024 / Q) : 1;
+  }
+}
+
+::occa::kernel SimplexBasis::buildKernel(const std::string &kernelName) {
   std::string kernelSource;
   if (usingGpuDevice()) {
     kernelSource = occa_simplex_basis_gpu_source;
@@ -56,69 +60,54 @@ void SimplexBasis::setupKernelBuilders() {
     kernelSource += occa_simplex_basis_cpu_kernel_source;
   }
 
-  ::occa::properties kernelProps;
-  kernelProps["defines/CeedInt"]               = ::occa::dtype::get<CeedInt>().name();
-  kernelProps["defines/CeedScalar"]            = ::occa::dtype::get<CeedScalar>().name();
-  kernelProps["defines/DIM"]                   = dim;
-  kernelProps["defines/Q"]                     = Q;
-  kernelProps["defines/P"]                     = P;
-  kernelProps["defines/MAX_PQ"]                = P > Q ? P : Q;
-  kernelProps["defines/BASIS_COMPONENT_COUNT"] = ceedComponentCount;
-
-  interpKernelBuilder = ::occa::kernelBuilder::fromString(kernelSource, "interp", kernelProps);
-  gradKernelBuilder   = ::occa::kernelBuilder::fromString(kernelSource, "grad", kernelProps);
-  weightKernelBuilder = ::occa::kernelBuilder::fromString(kernelSource, "weight", kernelProps);
+  return getDevice().buildKernelFromString(kernelSource, kernelName, kernelProperties);
 }
 
 int SimplexBasis::applyInterp(const CeedInt elementCount, const bool transpose, Vector &U, Vector &V) {
-  ::occa::kernel interpKernel = (usingGpuDevice() ? getGpuInterpKernel(transpose) : getCpuInterpKernel(transpose));
+  if (transpose) {
+    if (!interpTKernel.isInitialized()) {
+      kernelProperties["defines/TRANSPOSE"] = transpose;
+      interpTKernel                         = buildKernel("interp");
+    }
 
-  interpKernel(elementCount, interp, U.getConstKernelArg(), V.getKernelArg());
+    interpTKernel(elementCount, interp, U.getConstKernelArg(), V.getKernelArg());
+  } else {
+    if (!interpKernel.isInitialized()) {
+      kernelProperties["defines/TRANSPOSE"] = transpose;
+      interpKernel                          = buildKernel("interp");
+    }
 
+    interpKernel(elementCount, interp, U.getConstKernelArg(), V.getKernelArg());
+  }
   return CEED_ERROR_SUCCESS;
 }
-
-::occa::kernel SimplexBasis::getCpuInterpKernel(const bool transpose) { return buildCpuEvalKernel(interpKernelBuilder, transpose); }
-
-::occa::kernel SimplexBasis::getGpuInterpKernel(const bool transpose) { return buildGpuEvalKernel(interpKernelBuilder, transpose); }
 
 int SimplexBasis::applyGrad(const CeedInt elementCount, const bool transpose, Vector &U, Vector &V) {
-  ::occa::kernel gradKernel = (usingGpuDevice() ? getGpuGradKernel(transpose) : getCpuGradKernel(transpose));
+  if (transpose) {
+    if (!gradTKernel.isInitialized()) {
+      kernelProperties["defines/TRANSPOSE"] = transpose;
+      gradTKernel                           = buildKernel("grad");
+    }
 
-  gradKernel(elementCount, grad, U.getConstKernelArg(), V.getKernelArg());
+    gradTKernel(elementCount, grad, U.getConstKernelArg(), V.getKernelArg());
+  } else {
+    if (!gradKernel.isInitialized()) {
+      kernelProperties["defines/TRANSPOSE"] = transpose;
+      gradKernel                            = buildKernel("grad");
+    }
 
+    gradKernel(elementCount, grad, U.getConstKernelArg(), V.getKernelArg());
+  }
   return CEED_ERROR_SUCCESS;
 }
 
-::occa::kernel SimplexBasis::getCpuGradKernel(const bool transpose) { return buildCpuEvalKernel(gradKernelBuilder, transpose); }
-
-::occa::kernel SimplexBasis::getGpuGradKernel(const bool transpose) { return buildGpuEvalKernel(gradKernelBuilder, transpose); }
-
 int SimplexBasis::applyWeight(const CeedInt elementCount, Vector &W) {
-  ::occa::kernel weightKernel = (usingGpuDevice() ? getGpuWeightKernel() : getCpuWeightKernel());
-
+  if (!weightKernel.isInitialized()) {
+    weightKernel = buildKernel("weight");
+  }
   weightKernel(elementCount, qWeight, W.getKernelArg());
 
   return CEED_ERROR_SUCCESS;
-}
-
-::occa::kernel SimplexBasis::getCpuWeightKernel() { return buildCpuEvalKernel(weightKernelBuilder, false); }
-
-::occa::kernel SimplexBasis::getGpuWeightKernel() { return buildGpuEvalKernel(weightKernelBuilder, false); }
-
-::occa::kernel SimplexBasis::buildCpuEvalKernel(::occa::kernelBuilder &kernelBuilder, const bool transpose) {
-  ::occa::properties kernelProps;
-  kernelProps["defines/TRANSPOSE"] = transpose;
-
-  return kernelBuilder.build(getDevice(), kernelProps);
-}
-
-::occa::kernel SimplexBasis::buildGpuEvalKernel(::occa::kernelBuilder &kernelBuilder, const bool transpose) {
-  ::occa::properties kernelProps;
-  kernelProps["defines/TRANSPOSE"]          = transpose;
-  kernelProps["defines/ELEMENTS_PER_BLOCK"] = Q <= 1024 ? (1024 / Q) : 1;
-
-  return kernelBuilder.build(getDevice(), kernelProps);
 }
 
 int SimplexBasis::apply(const CeedInt elementCount, CeedTransposeMode tmode, CeedEvalMode emode, Vector *U, Vector *V) {
@@ -161,14 +150,11 @@ int SimplexBasis::apply(const CeedInt elementCount, CeedTransposeMode tmode, Cee
 //---[ Ceed Callbacks ]-------------
 int SimplexBasis::ceedCreate(CeedElemTopology topology, CeedInt dim, CeedInt ndof, CeedInt nquad, const CeedScalar *interp, const CeedScalar *grad,
                              const CeedScalar *qref, const CeedScalar *qWeight, CeedBasis basis) {
-  int  ierr;
   Ceed ceed;
-  ierr = CeedBasisGetCeed(basis, &ceed);
-  CeedChk(ierr);
+  CeedCallBackend(CeedBasisGetCeed(basis, &ceed));
 
   SimplexBasis *basis_ = new SimplexBasis(basis, dim, ndof, nquad, interp, grad, qWeight);
-  ierr                 = CeedBasisSetData(basis, basis_);
-  CeedChk(ierr);
+  CeedCallBackend(CeedBasisSetData(basis, basis_));
 
   CeedOccaRegisterFunction(basis, "Apply", Basis::ceedApply);
   CeedOccaRegisterFunction(basis, "Destroy", Basis::ceedDestroy);
