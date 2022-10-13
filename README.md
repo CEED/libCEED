@@ -158,6 +158,7 @@ There are multiple supported backends, which can be selected at runtime in the e
 | `/*/occa`                  | Selects backend based on available OCCA modes     | Yes                   |
 | `/cpu/self/occa`           | OCCA backend with serial CPU kernels              | Yes                   |
 | `/cpu/openmp/occa`         | OCCA backend with OpenMP kernels                  | Yes                   |
+| `/cpu/dpcpp/occa`          | OCCA backend with CPC++ kernels                   | Yes                   |
 | `/gpu/cuda/occa`           | OCCA backend with CUDA kernels                    | Yes                   |
 | `/gpu/hip/occa`~           | OCCA backend with HIP kernels                     | Yes                   |
 
@@ -198,8 +199,9 @@ For example:
 
 The `/*/occa` backends rely upon the [OCCA](http://github.com/libocca/occa) package to provide cross platform performance.
 To enable the OCCA backend, the environment variable `OCCA_DIR` must point to the top-level OCCA directory, with the OCCA library located in the `${OCCA_DIR}/lib` (By default, `OCCA_DIR` is set to `../occa`).
+OCCA version 1.4.0 or newer is required.
 
-Additionally, users can pass specific OCCA device properties after setting the CEED resource.
+Users can pass specific OCCA device properties after setting the CEED resource.
 For example:
 
 > - `"/*/occa:mode='CUDA',device_id=0"`

@@ -1,18 +1,11 @@
-// Copyright (c) 2019, Lawrence Livermore National Security, LLC.
-// Produced at the Lawrence Livermore National Laboratory. LLNL-CODE-734707.
-// All Rights reserved. See files LICENSE and NOTICE for details.
+// Copyright (c) 2017-2022, Lawrence Livermore National Security, LLC and other CEED contributors.
+// All Rights Reserved. See the top-level LICENSE and NOTICE files for details.
 //
-// This file is part of CEED, a collection of benchmarks, miniapps, software
-// libraries and APIs for efficient high-order finite element and spectral
-// element discretizations for exascale applications. For more information and
-// source code availability see http://github.com/ceed
+// SPDX-License-Identifier: BSD-2-Clause
 //
-// The CEED research is supported by the Exascale Computing Project 17-SC-20-SC,
-// a collaborative effort of two U.S. Department of Energy organizations (Office
-// of Science and the National Nuclear Security Administration) responsible for
-// the planning and preparation of a capable exascale ecosystem, including
-// software, applications, hardware, advanced system engineering and early
-// testbed platforms, in support of the nation's exascale computing imperative.
+// This file is part of CEED:  http://github.com/ceed
+
+#include <cstring>
 
 #include "ceed-occa-qfunctioncontext.hpp"
 
@@ -103,6 +96,28 @@ namespace ceed {
       }
     }
 
+    
+    int QFunctionContext::hasValidData(bool* has_valid_data) const {
+      (*has_valid_data) = (!!hostBuffer)
+                       || (!!currentHostBuffer )
+                       || (memory.isInitialized())
+                       || (currentMemory.isInitialized());
+      return CEED_ERROR_SUCCESS;
+    }
+
+    int QFunctionContext::hasBorrowedDataOfType(CeedMemType mem_type,
+                              bool *has_borrowed_data_of_type) const {
+      switch (mem_type) {
+        case CEED_MEM_HOST:
+          (*has_borrowed_data_of_type) = !!currentHostBuffer;
+          break;
+        case CEED_MEM_DEVICE:
+          (*has_borrowed_data_of_type) = currentMemory.isInitialized();
+          break;
+      }
+      return CEED_ERROR_SUCCESS;
+    }
+
     int QFunctionContext::setData(CeedMemType mtype,
                                   CeedCopyMode cmode, void *data) {
       switch (cmode) {
@@ -120,7 +135,7 @@ namespace ceed {
       switch (mtype) {
         case CEED_MEM_HOST:
           setCurrentHostCtxBufferIfNeeded();
-          ::memcpy(currentHostBuffer, data, ctxSize);
+          std::memcpy(currentHostBuffer, data, ctxSize);
           syncState = SyncState::host;
           return CEED_ERROR_SUCCESS;
         case CEED_MEM_DEVICE:
@@ -249,9 +264,12 @@ namespace ceed {
       Ceed ceed;
       ierr = CeedQFunctionContextGetCeed(ctx, &ceed); CeedChk(ierr);
 
+      CeedOccaRegisterFunction(ctx, "HasValidData", QFunctionContext::ceedHasValidData);
+      CeedOccaRegisterFunction(ctx, "HasBorrowedDataOfType", QFunctionContext::ceedHasBorrowedDataOfType);
       CeedOccaRegisterFunction(ctx, "SetData", QFunctionContext::ceedSetData);
       CeedOccaRegisterFunction(ctx, "TakeData", QFunctionContext::ceedTakeData);
       CeedOccaRegisterFunction(ctx, "GetData", QFunctionContext::ceedGetData);
+      CeedOccaRegisterFunction(ctx, "GetDataRead", QFunctionContext::ceedGetDataRead);
       CeedOccaRegisterFunction(ctx, "RestoreData", QFunctionContext::ceedRestoreData);
       CeedOccaRegisterFunction(ctx, "Destroy", QFunctionContext::ceedDestroy);
 
@@ -259,6 +277,26 @@ namespace ceed {
       ierr = CeedQFunctionContextSetBackendData(ctx, ctx_); CeedChk(ierr);
 
       return CEED_ERROR_SUCCESS;
+    }
+
+    int QFunctionContext::ceedHasValidData(const CeedQFunctionContext ctx, 
+                                     bool *has_valid_data) {
+      QFunctionContext *ctx_ = QFunctionContext::from(ctx);
+      if (!ctx_) {
+        return staticCeedError("Invalid CeedQFunctionContext passed");
+      }
+      return ctx_->hasValidData(has_valid_data);
+    }
+
+    int QFunctionContext::ceedHasBorrowedDataOfType(const CeedQFunctionContext ctx, 
+                                                CeedMemType mem_type,
+                                                bool *has_borrowed_data_of_type) {
+      QFunctionContext *ctx_ = QFunctionContext::from(ctx);
+      if (!ctx_) {
+        return staticCeedError("Invalid CeedQFunctionContext passed");
+      }
+      return ctx_->hasBorrowedDataOfType(mem_type,
+                                         has_borrowed_data_of_type);
     }
 
     int QFunctionContext::ceedSetData(CeedQFunctionContext ctx, CeedMemType mtype,
@@ -285,6 +323,17 @@ namespace ceed {
       if (!ctx_) {
         return staticCeedError("Invalid CeedQFunctionContext passed");
       }
+      return ctx_->getData(mtype, data);
+    }
+
+    int QFunctionContext::ceedGetDataRead(CeedQFunctionContext ctx, 
+                                          CeedMemType mtype,
+                                          void *data) {
+      QFunctionContext *ctx_ = QFunctionContext::from(ctx);
+      if (!ctx_) {
+        return staticCeedError("Invalid CeedQFunctionContext passed");
+      }
+      // Todo: Determine if calling getData is sufficient
       return ctx_->getData(mtype, data);
     }
 

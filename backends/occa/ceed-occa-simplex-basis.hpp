@@ -1,18 +1,9 @@
-// Copyright (c) 2019, Lawrence Livermore National Security, LLC.
-// Produced at the Lawrence Livermore National Laboratory. LLNL-CODE-734707.
-// All Rights reserved. See files LICENSE and NOTICE for details.
+// Copyright (c) 2017-2022, Lawrence Livermore National Security, LLC and other CEED contributors.
+// All Rights Reserved. See the top-level LICENSE and NOTICE files for details.
 //
-// This file is part of CEED, a collection of benchmarks, miniapps, software
-// libraries and APIs for efficient high-order finite element and spectral
-// element discretizations for exascale applications. For more information and
-// source code availability see http://github.com/ceed
+// SPDX-License-Identifier: BSD-2-Clause
 //
-// The CEED research is supported by the Exascale Computing Project 17-SC-20-SC,
-// a collaborative effort of two U.S. Department of Energy organizations (Office
-// of Science and the National Nuclear Security Administration) responsible for
-// the planning and preparation of a capable exascale ecosystem, including
-// software, applications, hardware, advanced system engineering and early
-// testbed platforms, in support of the nation's exascale computing imperative.
+// This file is part of CEED:  http://github.com/ceed
 
 #ifndef CEED_OCCA_SIMPLEXBASIS_HEADER
 #define CEED_OCCA_SIMPLEXBASIS_HEADER
@@ -26,9 +17,13 @@ namespace ceed {
       ::occa::memory interp;
       ::occa::memory grad;
       ::occa::memory qWeight;
-      ::occa::kernelBuilder interpKernelBuilder;
-      ::occa::kernelBuilder gradKernelBuilder;
-      ::occa::kernelBuilder weightKernelBuilder;
+
+      ::occa::json kernelProperties;
+      ::occa::kernel interpKernel;
+      ::occa::kernel interpTKernel;
+      ::occa::kernel gradKernel;
+      ::occa::kernel gradTKernel;
+      ::occa::kernel weightKernel;
 
       SimplexBasis(CeedBasis basis,
                    CeedInt dim,
@@ -44,35 +39,24 @@ namespace ceed {
 
       const char* getFunctionSource() const;
 
-      void setupKernelBuilders();
+      void setKernelProperties();
+
+      std::string getKernelSource() const;
+
+      ::occa::kernel buildKernel(const std::string& kernelName);
 
       int applyInterp(const CeedInt elementCount,
                       const bool transpose,
                       Vector &U,
                       Vector &V);
 
-      ::occa::kernel getCpuInterpKernel(const bool transpose);
-      ::occa::kernel getGpuInterpKernel(const bool transpose);
-
       int applyGrad(const CeedInt elementCount,
                     const bool transpose,
                     Vector &U,
                     Vector &V);
 
-      ::occa::kernel getCpuGradKernel(const bool transpose);
-      ::occa::kernel getGpuGradKernel(const bool transpose);
-
       int applyWeight(const CeedInt elementCount,
                       Vector &W);
-
-      ::occa::kernel getCpuWeightKernel();
-      ::occa::kernel getGpuWeightKernel();
-
-      ::occa::kernel buildCpuEvalKernel(::occa::kernelBuilder &kernelBuilder,
-                                        const bool transpose);
-
-      ::occa::kernel buildGpuEvalKernel(::occa::kernelBuilder &kernelBuilder,
-                                        const bool transpose);
 
       int apply(const CeedInt elementCount,
                 CeedTransposeMode tmode,

@@ -22,20 +22,16 @@ noether-cpu:
     - cd .. && export XSMM_HASH=44433be9426eddaed88415646c15b3bcc61afc85 && { [[ -d libxsmm-$XSMM_HASH ]] || { curl -L https://github.com/libxsmm/libxsmm/archive/$XSMM_HASH.tar.gz -o xsmm.tar.gz && tar zvxf xsmm.tar.gz && rm xsmm.tar.gz && make -C libxsmm-$XSMM_HASH -j$(nproc); }; } && export XSMM_DIR=$PWD/libxsmm-$XSMM_HASH && cd libCEED
     - echo "-------------- LIBXSMM -------------" && basename $XSMM_DIR
 # -- OCCA v1.1.0
-    - cd .. && export OCCA_VERSION=occa-1.1.0 OCCA_OPENCL_ENABLED=0 && { [[ -d $OCCA_VERSION ]] || { git clone --depth 1 --branch v1.1.0 https://github.com/libocca/occa.git $OCCA_VERSION && sed -i '/sysctl.h/d' $OCCA_VERSION/src/tools/sys.cpp && make -C $OCCA_VERSION -j$(nproc); }; } && export OCCA_DIR=$PWD/$OCCA_VERSION && cd libCEED
-    - echo "-------------- OCCA ----------------" && make -C $OCCA_DIR info
+    - cd .. && export OCCA_VERSION=occa-1.4.0 && { [[ -d $OCCA_VERSION ]] || { git clone --depth 1 --branch v1.4.0 https://github.com/libocca/occa.git $OCCA_VERSION && cd $OCCA_VERSION && export ENABLE_OPENCL="OFF" ENABLE_DPCPP="OFF" ENABLE_HIP="OFF" ENABLE_CUDA="OFF" && ./configure-cmake.sh && cmake --build build --parallel $NPROC_CPU && cmake --install build && cd ..; }; } && export OCCA_DIR=$PWD/$OCCA_VERSION/install && cd libCEED
+    - echo "-------------- OCCA ----------------" && git -C $OCCA_DIR describe --tags && LD_LIBRARY_PATH=$OCCA_DIR/lib $OCCA_DIR/bin/occa info
   script:
     - rm -f .SUCCESS
 # libCEED
     - make configure OPT='-O -march=native -ffp-contract=fast'
-#    Note: OCCA backends currently disabled in CI
-    - BACKENDS_CPU=$(OCCA_DIR= make info-backends-all | grep -o '/cpu[^ ]*')
+    - BACKENDS_CPU=$(make info-backends-all | grep -o '/cpu[^ ]*')
     - echo "-------------- libCEED -------------" && make info
     - echo "-------------- BACKENDS_CPU --------" && echo $BACKENDS_CPU
     - make -j$NPROC_CPU
-# Remove OCCA after verifying it compiles
-# CodeCov of OCCA backend not useful since testing is intentionally disabled
-    - export OCCA_DIR= && make -j$NPROC_CPU -W build/interface/ceed-register.o
 # -- libCEED only tests
     - echo "-------------- core tests ----------"
     - echo '[{"subject":"/","metrics":[{"name":"Transfer Size (KB)","value":"19.5","desiredSize":"smaller"},{"name":"Speed Index","value":0,"desiredSize":"smaller"},{"name":"Total Score","value":92,"desiredSize":"larger"},{"name":"Requests","value":4,"desiredSize":"smaller"}]}]' > performance.json

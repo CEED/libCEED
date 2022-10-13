@@ -1,18 +1,9 @@
-// Copyright (c) 2019, Lawrence Livermore National Security, LLC.
-// Produced at the Lawrence Livermore National Laboratory. LLNL-CODE-734707.
-// All Rights reserved. See files LICENSE and NOTICE for details.
+// Copyright (c) 2017-2022, Lawrence Livermore National Security, LLC and other CEED contributors.
+// All Rights Reserved. See the top-level LICENSE and NOTICE files for details.
 //
-// This file is part of CEED, a collection of benchmarks, miniapps, software
-// libraries and APIs for efficient high-order finite element and spectral
-// element discretizations for exascale applications. For more information and
-// source code availability see http://github.com/ceed
+// SPDX-License-Identifier: BSD-2-Clause
 //
-// The CEED research is supported by the Exascale Computing Project 17-SC-20-SC,
-// a collaborative effort of two U.S. Department of Energy organizations (Office
-// of Science and the National Nuclear Security Administration) responsible for
-// the planning and preparation of a capable exascale ecosystem, including
-// software, applications, hardware, advanced system engineering and early
-// testbed platforms, in support of the nation's exascale computing imperative.
+// This file is part of CEED:  http://github.com/ceed
 
 #ifndef CEED_OCCA_VECTOR_HEADER
 #define CEED_OCCA_VECTOR_HEADER
@@ -25,7 +16,8 @@ namespace ceed {
     ::occa::memory arrayToMemory(const TM *array) {
       if (array) {
         ::occa::memory mem((::occa::modeMemory_t*) array);
-        return mem.as(::occa::dtype::get<TM>());
+        mem.setDtype(::occa::dtype::get<TM>());
+        return mem;
       }
       return ::occa::null;
     }
@@ -43,6 +35,8 @@ namespace ceed {
       CeedSize hostBufferLength;
       CeedScalar *hostBuffer;
 
+      ::occa::kernel setValueKernel;
+
       // Current resources
       ::occa::memory currentMemory;
       CeedScalar *currentHostBuffer;
@@ -53,6 +47,10 @@ namespace ceed {
       Vector();
 
       ~Vector();
+
+      int hasValidArray(bool* has_valid_array);
+
+      int hasBorrowedArrayOfType(CeedMemType mem_type,bool *has_borrowed_array_of_type);
 
       static Vector* getVector(CeedVector vec,
                                const bool assertValid = true);
@@ -91,6 +89,9 @@ namespace ceed {
 
       int getReadOnlyArray(CeedMemType mtype,
                            CeedScalar **array);
+      
+      int getWriteOnlyArray(CeedMemType mtype,
+                            CeedScalar **array);
 
       int restoreArray(CeedScalar **array);
 
@@ -108,6 +109,12 @@ namespace ceed {
       static int registerCeedFunction(Ceed ceed, CeedVector vec,
                                       const char *fname, ceed::occa::ceedFunction f);
 
+      static int ceedHasValidArray(CeedVector vec, bool* has_valid_array);
+
+      static int ceedHasBorrowedArrayOfType(CeedVector vec,
+                                            CeedMemType mem_type,
+                                            bool *has_borrowed_array_of_type);
+
       static int ceedCreate(CeedSize length, CeedVector vec);
 
       static int ceedSetValue(CeedVector vec, CeedScalar value);
@@ -121,6 +128,9 @@ namespace ceed {
                               CeedScalar **array);
 
       static int ceedGetArrayRead(CeedVector vec, CeedMemType mtype,
+                                  CeedScalar **array);
+
+      static int ceedGetArrayWrite(CeedVector vec, CeedMemType mtype,
                                   CeedScalar **array);
 
       static int ceedRestoreArray(CeedVector vec, CeedScalar **array);
