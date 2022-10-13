@@ -216,7 +216,7 @@ int main(int argc, char **argv) {
     ierr = DMSetVecType(dm[i], vec_type); CHKERRQ(ierr);
     PetscInt dim;
     ierr = DMGetDimension(dm[i], &dim); CHKERRQ(ierr);
-    ierr = SetupDMByDegree(dm[i], level_degrees[i], num_comp_u, dim,
+    ierr = SetupDMByDegree(dm[i], level_degrees[i], q_extra, num_comp_u, dim,
                            bp_options[bp_choice].enforce_bc, bp_options[bp_choice].bc_func);
     CHKERRQ(ierr);
 

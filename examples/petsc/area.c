@@ -139,7 +139,7 @@ int main(int argc, char **argv) {
   }
 
   // Create DM
-  ierr = SetupDMByDegree(dm, degree, num_comp_u, topo_dim, false,
+  ierr = SetupDMByDegree(dm, degree, q_extra, num_comp_u, topo_dim, false,
                          (BCFunction)NULL);
   CHKERRQ(ierr);
 

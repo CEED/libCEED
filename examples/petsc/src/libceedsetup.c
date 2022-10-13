@@ -49,22 +49,17 @@ PetscErrorCode SetupLibceedByDegree(DM dm, Ceed ceed, CeedInt degree,
   CeedQFunction qf_setup_geo, qf_apply;
   CeedOperator op_setup_geo, op_apply;
   CeedVector x_coord, q_data, x_ceed, y_ceed;
-  CeedInt P, Q, num_qpts, c_start, c_end, num_elem,
+  CeedInt num_qpts, c_start, c_end, num_elem,
           q_data_size = bp_data.q_data_size;
   CeedScalar R = 1,                      // radius of the sphere
              l = 1.0/PetscSqrtReal(3.0); // half edge of the inscribed cube
 
   PetscFunctionBeginUser;
+  ierr = DMGetCoordinateDM(dm, &dm_coord); CHKERRQ(ierr);
+
   // CEED bases
-  P = degree + 1;
-  Q = P + q_extra;
-  CeedBasisCreateTensorH1Lagrange(ceed, topo_dim, num_comp_u, P, Q,
-                                  bp_data.q_mode,
-                                  &basis_u);
-  CeedBasisCreateTensorH1Lagrange(ceed, topo_dim, num_comp_x, 2, Q,
-                                  bp_data.q_mode,
-                                  &basis_x);
-  CeedBasisGetNumQuadraturePoints(basis_u, &num_qpts);
+  ierr = CreateBasisFromPlex(ceed, dm_coord, 0, 0, 0, 0, &basis_x); CHKERRQ(ierr);
+  ierr = CreateBasisFromPlex(ceed, dm, 0, 0, 0, 0, &basis_u); CHKERRQ(ierr);
 
   // CEED restrictions
   ierr = DMSetCoordinateDim(dm, topo_dim); CHKERRQ(ierr);
@@ -78,7 +73,7 @@ PetscErrorCode SetupLibceedByDegree(DM dm, Ceed ceed, CeedInt degree,
 
   ierr = DMPlexGetHeightStratum(dm, 0, &c_start, &c_end); CHKERRQ(ierr);
   num_elem = c_end - c_start;
-
+  CeedBasisGetNumQuadraturePoints(basis_u, &num_qpts);
   CeedElemRestrictionCreateStrided(ceed, num_elem, num_qpts, num_comp_u,
                                    num_comp_u*num_elem*num_qpts,
                                    CEED_STRIDES_BACKEND, &elem_restr_u_i);
