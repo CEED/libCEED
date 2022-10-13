@@ -16,6 +16,6 @@ PetscErrorCode SetupLibceedByDegree(DM dm, Ceed ceed, CeedInt degree,
                                     CeedVector *target);
 PetscErrorCode CeedLevelTransferSetup(DM dm, Ceed ceed, CeedInt level,
                                       CeedInt num_comp_u, CeedData *data,
-                                      Vec fine_mult);
+                                      BPData bp_data, Vec fine_mult);
 
 #endif // libceed_petsc_examples_setup_h

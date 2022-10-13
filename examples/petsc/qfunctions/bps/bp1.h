@@ -29,16 +29,28 @@
 CEED_QFUNCTION(SetupMassGeo)(void *ctx, const CeedInt Q,
                              const CeedScalar *const *in,
                              CeedScalar *const *out) {
-  const CeedScalar *J = in[1], *w = in[2]; // Note: *X = in[0]
+  // Inputs
+  const CeedScalar(*J)[3][CEED_Q_VLA] = (const CeedScalar(*)[3][CEED_Q_VLA])in[1];
+  const CeedScalar(*w)                = in[2]; // Note: *X = in[0]
+  // Outputs
   CeedScalar *q_data = out[0];
 
+  const CeedInt dim = 3;
   // Quadrature Point Loop
   CeedPragmaSIMD
   for (CeedInt i=0; i<Q; i++) {
-    const CeedScalar det_J = (J[i+Q*0]*(J[i+Q*4]*J[i+Q*8] - J[i+Q*5]*J[i+Q*7]) -
-                             J[i+Q*1]*(J[i+Q*3]*J[i+Q*8] - J[i+Q*5]*J[i+Q*6]) +
-                             J[i+Q*2]*(J[i+Q*3]*J[i+Q*7] - J[i+Q*4]*J[i+Q*6]));
-    q_data[i] = det_J * w[i];
+    // Setup
+    CeedScalar A[3][3];
+    for (CeedInt j = 0; j < dim; j++) {
+      for (CeedInt k = 0; k < dim; k++) {
+        // Equivalent code with no mod operations:
+        // A[k][j] = J[k+1][j+1]*J[k+2][j+2] - J[k+1][j+2]*J[k+2][j+1]
+        A[k][j] = J[(k + 1) % dim][(j + 1) % dim][i] * J[(k + 2) % dim][(j + 2) % dim][i] -
+                  J[(k + 1) % dim][(j + 2) % dim][i] * J[(k + 2) % dim][(j + 1) % dim][i];
+      }
+    }
+    const CeedScalar detJ = J[0][0][i] * A[0][0] + J[0][1][i] * A[0][1] + J[0][2][i] * A[0][2];
+    q_data[i] = detJ * w[i];
   } // End of Quadrature Point Loop
   return 0;
 }

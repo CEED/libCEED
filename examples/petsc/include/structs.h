@@ -9,8 +9,8 @@
 // -----------------------------------------------------------------------------
 
 // Data for PETSc Matshell
-typedef struct UserO_ *UserO;
-struct UserO_ {
+typedef struct OperatorApplyContext_ *OperatorApplyContext;
+struct OperatorApplyContext_ {
   MPI_Comm comm;
   DM dm;
   Vec X_loc, Y_loc, diag;
@@ -20,8 +20,8 @@ struct UserO_ {
 };
 
 // Data for PETSc Prolong/Restrict Matshells
-typedef struct UserProlongRestr_ *UserProlongRestr;
-struct UserProlongRestr_ {
+typedef struct ProlongRestrContext_ *ProlongRestrContext;
+struct ProlongRestrContext_ {
   MPI_Comm comm;
   DM dmc, dmf;
   Vec loc_vec_c, loc_vec_f, mult_vec;
@@ -43,6 +43,7 @@ struct CeedData_ {
   CeedQFunction qf_apply;
   CeedOperator op_apply, op_restrict, op_prolong;
   CeedVector q_data, x_ceed, y_ceed;
+  CeedInt q_data_size;
 };
 
 // BP specific data
@@ -76,6 +77,7 @@ struct RunParams_ {
   PetscMPIInt ranks_per_node;
   BPType bp_choice;
   PetscLogStage solve_stage;
+
 };
 
 #endif // libceed_petsc_examples_structs_h

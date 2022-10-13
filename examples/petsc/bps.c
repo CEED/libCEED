@@ -69,7 +69,7 @@ static PetscErrorCode RunWithDM(RunParams rp, DM dm,
   Vec X, X_loc, rhs, rhs_loc;
   Mat mat_O;
   KSP ksp;
-  UserO user_O;
+  OperatorApplyContext op_apply_ctx;
   Ceed ceed;
   CeedData ceed_data;
   CeedQFunction qf_error;
@@ -110,9 +110,9 @@ static PetscErrorCode RunWithDM(RunParams rp, DM dm,
   ierr = VecDuplicate(X, &rhs); CHKERRQ(ierr);
 
   // Operator
-  ierr = PetscMalloc1(1, &user_O); CHKERRQ(ierr);
+  ierr = PetscMalloc1(1, &op_apply_ctx); CHKERRQ(ierr);
   ierr = MatCreateShell(rp->comm, l_size, l_size, g_size, g_size,
-                        user_O, &mat_O); CHKERRQ(ierr);
+                        op_apply_ctx, &mat_O); CHKERRQ(ierr);
   ierr = MatShellSetOperation(mat_O, MATOP_MULT,
                               (void(*)(void))MatMult_Ceed); CHKERRQ(ierr);
   ierr = MatShellSetOperation(mat_O, MATOP_GET_DIAGONAL,
@@ -189,6 +189,8 @@ static PetscErrorCode RunWithDM(RunParams rp, DM dm,
                               bp_options[rp->bp_choice].error_loc, &qf_error);
   CeedQFunctionAddInput(qf_error, "u", rp->num_comp_u, CEED_EVAL_INTERP);
   CeedQFunctionAddInput(qf_error, "true_soln", rp->num_comp_u, CEED_EVAL_NONE);
+  CeedQFunctionAddInput(qf_error, "qdata", ceed_data->q_data_size,
+                        CEED_EVAL_NONE);
   CeedQFunctionAddOutput(qf_error, "error", rp->num_comp_u, CEED_EVAL_NONE);
 
   // Create the error operator
@@ -198,18 +200,20 @@ static PetscErrorCode RunWithDM(RunParams rp, DM dm,
                        ceed_data->basis_u, CEED_VECTOR_ACTIVE);
   CeedOperatorSetField(op_error, "true_soln", ceed_data->elem_restr_u_i,
                        CEED_BASIS_COLLOCATED, target);
+  CeedOperatorSetField(op_error, "qdata", ceed_data->elem_restr_qd_i,
+                       CEED_BASIS_COLLOCATED, ceed_data->q_data);
   CeedOperatorSetField(op_error, "error", ceed_data->elem_restr_u_i,
                        CEED_BASIS_COLLOCATED, CEED_VECTOR_ACTIVE);
 
   // Set up Mat
-  user_O->comm = rp->comm;
-  user_O->dm = dm;
-  user_O->X_loc = X_loc;
-  ierr = VecDuplicate(X_loc, &user_O->Y_loc); CHKERRQ(ierr);
-  user_O->x_ceed = ceed_data->x_ceed;
-  user_O->y_ceed = ceed_data->y_ceed;
-  user_O->op = ceed_data->op_apply;
-  user_O->ceed = ceed;
+  op_apply_ctx->comm = rp->comm;
+  op_apply_ctx->dm = dm;
+  op_apply_ctx->X_loc = X_loc;
+  ierr = VecDuplicate(X_loc, &op_apply_ctx->Y_loc); CHKERRQ(ierr);
+  op_apply_ctx->x_ceed = ceed_data->x_ceed;
+  op_apply_ctx->y_ceed = ceed_data->y_ceed;
+  op_apply_ctx->op = ceed_data->op_apply;
+  op_apply_ctx->ceed = ceed;
 
   ierr = KSPCreate(rp->comm, &ksp); CHKERRQ(ierr);
   {
@@ -292,7 +296,7 @@ static PetscErrorCode RunWithDM(RunParams rp, DM dm,
     }
     {
       PetscReal max_error;
-      ierr = ComputeErrorMax(user_O, op_error, X, target, &max_error);
+      ierr = ComputeErrorMax(op_apply_ctx, op_error, X, target, &max_error);
       CHKERRQ(ierr);
       PetscReal tol = 5e-2;
       if (!rp->test_mode || max_error > tol) {
@@ -327,9 +331,9 @@ static PetscErrorCode RunWithDM(RunParams rp, DM dm,
   // Cleanup
   ierr = VecDestroy(&X); CHKERRQ(ierr);
   ierr = VecDestroy(&X_loc); CHKERRQ(ierr);
-  ierr = VecDestroy(&user_O->Y_loc); CHKERRQ(ierr);
+  ierr = VecDestroy(&op_apply_ctx->Y_loc); CHKERRQ(ierr);
   ierr = MatDestroy(&mat_O); CHKERRQ(ierr);
-  ierr = PetscFree(user_O); CHKERRQ(ierr);
+  ierr = PetscFree(op_apply_ctx); CHKERRQ(ierr);
   ierr = CeedDataDestroy(0, ceed_data); CHKERRQ(ierr);
 
   ierr = VecDestroy(&rhs); CHKERRQ(ierr);

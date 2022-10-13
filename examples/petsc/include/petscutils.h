@@ -26,7 +26,7 @@ PetscErrorCode BasisCreateFromTabulation(Ceed ceed, DM dm, DMLabel domain_label,
     CeedBasis *basis);
 PetscErrorCode CreateBasisFromPlex(Ceed ceed, DM dm, DMLabel domain_label,
                                    CeedInt label_value, CeedInt height,
-                                   CeedInt dm_field, CeedBasis *basis);
+                                   CeedInt dm_field, BPData bp_data, CeedBasis *basis);
 PetscErrorCode CreateDistributedDM(RunParams rp, DM *dm);
 
 #endif // libceed_petsc_examples_utils_h

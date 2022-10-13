@@ -57,12 +57,12 @@ PetscErrorCode SetupLibceedByDegree(DM dm, Ceed ceed, CeedInt degree,
   ierr = DMGetCoordinateDM(dm, &dm_coord); CHKERRQ(ierr);
 
   // CEED bases
-  ierr = CreateBasisFromPlex(ceed, dm_coord, 0, 0, 0, 0, &basis_x); CHKERRQ(ierr);
-  ierr = CreateBasisFromPlex(ceed, dm, 0, 0, 0, 0, &basis_u); CHKERRQ(ierr);
+  ierr = CreateBasisFromPlex(ceed, dm_coord, 0, 0, 0, 0, bp_data, &basis_x);
+  CHKERRQ(ierr);
+  ierr = CreateBasisFromPlex(ceed, dm, 0, 0, 0, 0, bp_data, &basis_u);
+  CHKERRQ(ierr);
 
   // CEED restrictions
-  ierr = DMPlexSetClosurePermutationTensor(dm_coord, PETSC_DETERMINE, NULL);
-  CHKERRQ(ierr);
   ierr = CreateRestrictionFromPlex(ceed, dm_coord, 0, 0, 0, &elem_restr_x);
   CHKERRQ(ierr);
   ierr = CreateRestrictionFromPlex(ceed, dm, 0, 0, 0, &elem_restr_u);
@@ -136,7 +136,6 @@ PetscErrorCode SetupLibceedByDegree(DM dm, Ceed ceed, CeedInt degree,
     CeedQFunction qf_setup_rhs;
     CeedOperator op_setup_rhs;
     CeedVectorCreate(ceed, num_elem*num_qpts*num_comp_u, target);
-
     // Create the q-function that sets up the RHS and true solution
     CeedQFunctionCreateInterior(ceed, 1, bp_data.setup_rhs, bp_data.setup_rhs_loc,
                                 &qf_setup_rhs);
@@ -190,6 +189,7 @@ PetscErrorCode SetupLibceedByDegree(DM dm, Ceed ceed, CeedInt degree,
   data->q_data = q_data;
   data->x_ceed = x_ceed;
   data->y_ceed = y_ceed;
+  data->q_data_size = q_data_size;
 
   PetscFunctionReturn(0);
 };
@@ -199,7 +199,7 @@ PetscErrorCode SetupLibceedByDegree(DM dm, Ceed ceed, CeedInt degree,
 // -----------------------------------------------------------------------------
 PetscErrorCode CeedLevelTransferSetup(DM dm, Ceed ceed, CeedInt level,
                                       CeedInt num_comp_u, CeedData *data,
-                                      Vec fine_mult) {
+                                      BPData bp_data, Vec fine_mult) {
   int ierr;
 
   PetscFunctionBeginUser;
@@ -211,7 +211,7 @@ PetscErrorCode CeedLevelTransferSetup(DM dm, Ceed ceed, CeedInt level,
   CeedOperator op_apply;
   // Basis
   CeedBasis basis_u;
-  ierr = CreateBasisFromPlex(ceed, dm, 0, 0, 0, 0, &basis_u);
+  ierr = CreateBasisFromPlex(ceed, dm, 0, 0, 0, 0, bp_data, &basis_u);
   CHKERRQ(ierr);
 
   // ---------------------------------------------------------------------------
