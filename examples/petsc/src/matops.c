@@ -13,25 +13,22 @@ PetscErrorCode MatGetDiag(Mat A, Vec D) {
   ierr = MatShellGetContext(A, &user); CHKERRQ(ierr);
 
   // Compute Diagonal via libCEED
-  PetscScalar *x;
+  PetscScalar *y;
   PetscMemType mem_type;
 
   // -- Place PETSc vector in libCEED vector
-  ierr = VecGetArrayAndMemType(user->X_loc, &x, &mem_type); CHKERRQ(ierr);
-  CeedVectorSetArray(user->x_ceed, MemTypeP2C(mem_type), CEED_USE_POINTER, x);
+  ierr = VecGetArrayAndMemType(user->Y_loc, &y, &mem_type); CHKERRQ(ierr);
+  CeedVectorSetArray(user->y_ceed, MemTypeP2C(mem_type), CEED_USE_POINTER, y);
 
   // -- Compute Diagonal
-  CeedOperatorLinearAssembleDiagonal(user->op, user->x_ceed,
+  CeedOperatorLinearAssembleDiagonal(user->op, user->y_ceed,
                                      CEED_REQUEST_IMMEDIATE);
 
   // -- Local-to-Global
-  CeedVectorTakeArray(user->x_ceed, MemTypeP2C(mem_type), NULL);
-  ierr = VecRestoreArrayAndMemType(user->X_loc, &x); CHKERRQ(ierr);
+  CeedVectorTakeArray(user->y_ceed, MemTypeP2C(mem_type), NULL);
+  ierr = VecRestoreArrayAndMemType(user->Y_loc, &y); CHKERRQ(ierr);
   ierr = VecZeroEntries(D); CHKERRQ(ierr);
-  ierr = DMLocalToGlobal(user->dm, user->X_loc, ADD_VALUES, D); CHKERRQ(ierr);
-
-  // Cleanup
-  ierr = VecZeroEntries(user->X_loc); CHKERRQ(ierr);
+  ierr = DMLocalToGlobal(user->dm, user->Y_loc, ADD_VALUES, D); CHKERRQ(ierr);
 
   PetscFunctionReturn(0);
 };
