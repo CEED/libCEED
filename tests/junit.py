@@ -220,5 +220,5 @@ if __name__ == '__main__':
         for t in result.test_cases:
             failures = len([c for c in result.test_cases if c.is_failure()])
             errors = len([c for c in result.test_cases if c.is_error()])
-            if failures + errors > 0:
+            if failures + errors > 0 and args.mode.lower() != "tap":
                 sys.exit(1)

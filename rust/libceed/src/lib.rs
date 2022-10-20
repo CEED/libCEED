@@ -55,7 +55,7 @@ pub type Scalar = bind_ceed::CeedScalar;
 // -----------------------------------------------------------------------------
 // Constants for library
 // -----------------------------------------------------------------------------
-const MAX_BUFFER_LENGTH: u64 = 4096;
+const MAX_BUFFER_LENGTH: usize = 4096;
 pub const MAX_QFUNCTION_FIELDS: usize = 16;
 pub const CEED_STRIDES_BACKEND: [i32; 3] = [0; 3];
 pub const EPSILON: crate::Scalar = bind_ceed::CEED_EPSILON as crate::Scalar;

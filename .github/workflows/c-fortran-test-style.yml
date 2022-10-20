@@ -20,7 +20,7 @@ jobs:
     - name: C style
       env:
         CC: ${{ matrix.compiler }}
-        FC: gfortran-9
+        FC: gfortran-11
       run: |
         make info
         make format-c -j2 && git diff --exit-code

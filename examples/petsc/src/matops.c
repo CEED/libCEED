@@ -13,24 +13,21 @@ PetscErrorCode MatGetDiag(Mat A, Vec D) {
   PetscCall(MatShellGetContext(A, &user));
 
   // Compute Diagonal via libCEED
-  PetscScalar *x;
+  PetscScalar *y;
   PetscMemType mem_type;
 
   // -- Place PETSc vector in libCEED vector
-  PetscCall(VecGetArrayAndMemType(user->X_loc, &x, &mem_type));
-  CeedVectorSetArray(user->x_ceed, MemTypeP2C(mem_type), CEED_USE_POINTER, x);
+  PetscCall(VecGetArrayAndMemType(user->Y_loc, &y, &mem_type));
+  CeedVectorSetArray(user->y_ceed, MemTypeP2C(mem_type), CEED_USE_POINTER, y);
 
   // -- Compute Diagonal
-  CeedOperatorLinearAssembleDiagonal(user->op, user->x_ceed, CEED_REQUEST_IMMEDIATE);
+  CeedOperatorLinearAssembleDiagonal(user->op, user->y_ceed, CEED_REQUEST_IMMEDIATE);
 
   // -- Local-to-Global
-  CeedVectorTakeArray(user->x_ceed, MemTypeP2C(mem_type), NULL);
-  PetscCall(VecRestoreArrayAndMemType(user->X_loc, &x));
+  CeedVectorTakeArray(user->y_ceed, MemTypeP2C(mem_type), NULL);
+  PetscCall(VecRestoreArrayAndMemType(user->Y_loc, &y));
   PetscCall(VecZeroEntries(D));
-  PetscCall(DMLocalToGlobal(user->dm, user->X_loc, ADD_VALUES, D));
-
-  // Cleanup
-  PetscCall(VecZeroEntries(user->X_loc));
+  PetscCall(DMLocalToGlobal(user->dm, user->Y_loc, ADD_VALUES, D));
 
   PetscFunctionReturn(0);
 };
