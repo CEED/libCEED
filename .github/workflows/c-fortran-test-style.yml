@@ -7,7 +7,7 @@ jobs:
   test:
     strategy:
       matrix:
-        os: [ubuntu-20.04]
+        os: [ubuntu-latest]
         compiler: [clang]
 
     runs-on: ${{ matrix.os }}
@@ -20,7 +20,7 @@ jobs:
     - name: C style
       env:
         CC: ${{ matrix.compiler }}
-        FC: gfortran-9
+        FC: gfortran-11
       run: |
         make info
         make style-c -j2 && git diff --exit-code
