@@ -30,7 +30,7 @@ static = []
 system = []
 
 [build-dependencies]
-bindgen = "0.58.1"
+bindgen = "0.61.0"
 pkg-config = "0.3.19"
 
 [dev-dependencies]

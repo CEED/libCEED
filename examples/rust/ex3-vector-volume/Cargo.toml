@@ -7,6 +7,6 @@ authors = [
 edition = "2018"
 
 [dependencies]
-structopt = { version = "0.3", default-features = false }
+clap = { version = "4.0.17", features = ["derive"] }
 libceed = { path = "../../../rust/libceed" }
 mesh = { path = "../mesh" }

@@ -624,7 +624,7 @@ impl<'a> QFunction<'a> {
                 qf_ctx_ptr,
                 crate::MemType::Host as bind_ceed::CeedMemType,
                 crate::CopyMode::UsePointer as bind_ceed::CeedCopyMode,
-                std::mem::size_of::<QFunctionTrampolineData>() as u64,
+                std::mem::size_of::<QFunctionTrampolineData>(),
                 std::mem::transmute(trampoline_data.as_ref()),
             )
         };

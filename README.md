@@ -34,14 +34,14 @@ For more details on the CEED API see the [user manual](https://libceed.org/en/la
 The CEED library, `libceed`, is a C99 library with no required dependencies, and with Fortran, Python, Julia, and Rust interfaces.
 It can be built using:
 
-```
-make
+```console
+$ make
 ```
 
 or, with optimization flags:
 
-```
-make OPT='-O3 -march=skylake-avx512 -ffp-contract=fast'
+```console
+$ make OPT='-O3 -march=skylake-avx512 -ffp-contract=fast'
 ```
 
 These optimization flags are used by all languages (C, C++, Fortran) and this makefile variable can also be set for testing and examples (below).
@@ -49,14 +49,14 @@ These optimization flags are used by all languages (C, C++, Fortran) and this ma
 The library attempts to automatically detect support for the AVX instruction set using gcc-style compiler options for the host.
 Support may need to be manually specified via:
 
-```
-make AVX=1
+```console
+$ make AVX=1
 ```
 
 or:
 
-```
-make AVX=0
+```console
+$ make AVX=0
 ```
 
 if your compiler does not support gcc-style options, if you are cross compiling, etc.
@@ -65,11 +65,20 @@ To enable CUDA support, add `CUDA_DIR=/opt/cuda` or an appropriate directory to 
 To enable HIP support, add `HIP_DIR=/opt/rocm` or an appropriate directory.
 To store these or other arguments as defaults for future invocations of `make`, use:
 
-```
-make configure CUDA_DIR=/usr/local/cuda HIP_DIR=/opt/rocm OPT='-O3 -march=znver2'
+```console
+$ make configure CUDA_DIR=/usr/local/cuda HIP_DIR=/opt/rocm OPT='-O3 -march=znver2'
 ```
 
 which stores these variables in `config.mk`.
+
+### WebAssembly
+
+libCEED can be built for WASM using [Emscripten](https://emscripten.org). For example, one can build the library and run a standalone WASM executable using
+
+``` console
+$ emmake make build/ex2-surface.wasm
+$ wasmer build/ex2-surface.wasm -- -s 200000
+```
 
 ## Additional Language Interfaces
 
@@ -77,15 +86,15 @@ The Fortran interface is built alongside the library automatically.
 
 Python users can install using:
 
-```
-pip install libceed
+```console
+$ pip install libceed
 ```
 
 or in a clone of the repository via `pip install .`.
 
 Julia users can install using:
 
-```
+```console
 $ julia
 julia> ]
 pkg> add LibCEED
@@ -217,85 +226,85 @@ Nek5000 v18.0 or greater is required.
 
 To build the examples, set the `MFEM_DIR`, `PETSC_DIR`, and `NEK5K_DIR` variables and run:
 
-```
-cd examples/
+```console
+$ cd examples/
 ```
 
 % running-examples-inclusion-marker
 
 ```console
 # libCEED examples on CPU and GPU
-cd ceed/
-make
-./ex1-volume -ceed /cpu/self
-./ex1-volume -ceed /gpu/cuda
-./ex2-surface -ceed /cpu/self
-./ex2-surface -ceed /gpu/cuda
-cd ..
+$ cd ceed/
+$ make
+$ ./ex1-volume -ceed /cpu/self
+$ ./ex1-volume -ceed /gpu/cuda
+$ ./ex2-surface -ceed /cpu/self
+$ ./ex2-surface -ceed /gpu/cuda
+$ cd ..
 
 # MFEM+libCEED examples on CPU and GPU
-cd mfem/
-make
-./bp1 -ceed /cpu/self -no-vis
-./bp3 -ceed /gpu/cuda -no-vis
-cd ..
+$ cd mfem/
+$ make
+$ ./bp1 -ceed /cpu/self -no-vis
+$ ./bp3 -ceed /gpu/cuda -no-vis
+$ cd ..
 
 # Nek5000+libCEED examples on CPU and GPU
-cd nek/
-make
-./nek-examples.sh -e bp1 -ceed /cpu/self -b 3
-./nek-examples.sh -e bp3 -ceed /gpu/cuda -b 3
-cd ..
+$ cd nek/
+$ make
+$ ./nek-examples.sh -e bp1 -ceed /cpu/self -b 3
+$ ./nek-examples.sh -e bp3 -ceed /gpu/cuda -b 3
+$ cd ..
 
 # PETSc+libCEED examples on CPU and GPU
-cd petsc/
-make
-./bps -problem bp1 -ceed /cpu/self
-./bps -problem bp2 -ceed /gpu/cuda
-./bps -problem bp3 -ceed /cpu/self
-./bps -problem bp4 -ceed /gpu/cuda
-./bps -problem bp5 -ceed /cpu/self
-./bps -problem bp6 -ceed /gpu/cuda
-cd ..
+$ cd petsc/
+$ make
+$ ./bps -problem bp1 -ceed /cpu/self
+$ ./bps -problem bp2 -ceed /gpu/cuda
+$ ./bps -problem bp3 -ceed /cpu/self
+$ ./bps -problem bp4 -ceed /gpu/cuda
+$ ./bps -problem bp5 -ceed /cpu/self
+$ ./bps -problem bp6 -ceed /gpu/cuda
+$ cd ..
 
-cd petsc/
-make
-./bpsraw -problem bp1 -ceed /cpu/self
-./bpsraw -problem bp2 -ceed /gpu/cuda
-./bpsraw -problem bp3 -ceed /cpu/self
-./bpsraw -problem bp4 -ceed /gpu/cuda
-./bpsraw -problem bp5 -ceed /cpu/self
-./bpsraw -problem bp6 -ceed /gpu/cuda
-cd ..
+$ cd petsc/
+$ make
+$ ./bpsraw -problem bp1 -ceed /cpu/self
+$ ./bpsraw -problem bp2 -ceed /gpu/cuda
+$ ./bpsraw -problem bp3 -ceed /cpu/self
+$ ./bpsraw -problem bp4 -ceed /gpu/cuda
+$ ./bpsraw -problem bp5 -ceed /cpu/self
+$ ./bpsraw -problem bp6 -ceed /gpu/cuda
+$ cd ..
 
-cd petsc/
-make
-./bpssphere -problem bp1 -ceed /cpu/self
-./bpssphere -problem bp2 -ceed /gpu/cuda
-./bpssphere -problem bp3 -ceed /cpu/self
-./bpssphere -problem bp4 -ceed /gpu/cuda
-./bpssphere -problem bp5 -ceed /cpu/self
-./bpssphere -problem bp6 -ceed /gpu/cuda
-cd ..
+$ cd petsc/
+$ make
+$ ./bpssphere -problem bp1 -ceed /cpu/self
+$ ./bpssphere -problem bp2 -ceed /gpu/cuda
+$ ./bpssphere -problem bp3 -ceed /cpu/self
+$ ./bpssphere -problem bp4 -ceed /gpu/cuda
+$ ./bpssphere -problem bp5 -ceed /cpu/self
+$ ./bpssphere -problem bp6 -ceed /gpu/cuda
+$ cd ..
 
-cd petsc/
-make
-./area -problem cube -ceed /cpu/self -degree 3
-./area -problem cube -ceed /gpu/cuda -degree 3
-./area -problem sphere -ceed /cpu/self -degree 3 -dm_refine 2
-./area -problem sphere -ceed /gpu/cuda -degree 3 -dm_refine 2
+$ cd petsc/
+$ make
+$ ./area -problem cube -ceed /cpu/self -degree 3
+$ ./area -problem cube -ceed /gpu/cuda -degree 3
+$ ./area -problem sphere -ceed /cpu/self -degree 3 -dm_refine 2
+$ ./area -problem sphere -ceed /gpu/cuda -degree 3 -dm_refine 2
 
-cd fluids/
-make
-./navierstokes -ceed /cpu/self -degree 1
-./navierstokes -ceed /gpu/cuda -degree 1
-cd ..
+$ cd fluids/
+$ make
+$ ./navierstokes -ceed /cpu/self -degree 1
+$ ./navierstokes -ceed /gpu/cuda -degree 1
+$ cd ..
 
-cd solids/
-make
-./elasticity -ceed /cpu/self -mesh [.exo file] -degree 2 -E 1 -nu 0.3 -problem Linear -forcing mms
-./elasticity -ceed /gpu/cuda -mesh [.exo file] -degree 2 -E 1 -nu 0.3 -problem Linear -forcing mms
-cd ..
+$ cd solids/
+$ make
+$ ./elasticity -ceed /cpu/self -mesh [.exo file] -degree 2 -E 1 -nu 0.3 -problem Linear -forcing mms
+$ ./elasticity -ceed /gpu/cuda -mesh [.exo file] -degree 2 -E 1 -nu 0.3 -problem Linear -forcing mms
+$ cd ..
 ```
 
 For the last example shown, sample meshes to be used in place of `[.exo file]` can be found at <https://github.com/jeremylt/ceedSampleMeshes>
@@ -310,16 +319,16 @@ Other command line arguments can be found in [examples/petsc](https://github.com
 
 A sequence of benchmarks for all enabled backends can be run using:
 
-```
-make benchmarks
+```console
+$ make benchmarks
 ```
 
 The results from the benchmarks are stored inside the `benchmarks/` directory and they can be viewed using the commands (requires python with matplotlib):
 
-```
-cd benchmarks
-python postprocess-plot.py petsc-bps-bp1-*-output.txt
-python postprocess-plot.py petsc-bps-bp3-*-output.txt
+```console
+$ cd benchmarks
+$ python postprocess-plot.py petsc-bps-bp1-*-output.txt
+$ python postprocess-plot.py petsc-bps-bp3-*-output.txt
 ```
 
 Using the `benchmarks` target runs a comprehensive set of benchmarks which may take some time to run.
@@ -331,21 +340,21 @@ For more details about the benchmarks, see the `benchmarks/README.md` file.
 
 To install libCEED, run:
 
-```
-make install prefix=/path/to/install/dir
+```console
+$ make install prefix=/path/to/install/dir
 ```
 
 or (e.g., if creating packages):
 
-```
-make install prefix=/usr DESTDIR=/packaging/path
+```console
+$ make install prefix=/usr DESTDIR=/packaging/path
 ```
 
 To build and install in separate steps, run:
 
-```
-make for_install=1 prefix=/path/to/install/dir
-make install prefix=/path/to/install/dir
+```console
+$ make for_install=1 prefix=/path/to/install/dir
+$ make install prefix=/path/to/install/dir
 ```
 
 The usual variables like `CC` and `CFLAGS` are used, and optimization flags for all languages can be set using the likes of `OPT='-O3 -march=native'`.
@@ -353,8 +362,8 @@ Use `STATIC=1` to build static libraries (`libceed.a`).
 
 To install libCEED for Python, run:
 
-```
-pip install libceed
+```console
+$ pip install libceed
 ```
 
 with the desired setuptools options, such as `--user`.
@@ -364,8 +373,8 @@ with the desired setuptools options, such as `--user`.
 In addition to library and header, libCEED provides a [pkg-config](https://en.wikipedia.org/wiki/Pkg-config) file that can be used to easily compile and link.
 [For example](https://people.freedesktop.org/~dbn/pkg-config-guide.html#faq), if `$prefix` is a standard location or you set the environment variable `PKG_CONFIG_PATH`:
 
-```
-cc `pkg-config --cflags --libs ceed` -o myapp myapp.c
+```console
+$ cc `pkg-config --cflags --libs ceed` -o myapp myapp.c
 ```
 
 will build `myapp` with libCEED.
@@ -380,7 +389,7 @@ You can reach the libCEED team by emailing [ceed-users@llnl.gov](mailto:ceed-use
 
 If you utilize libCEED please cite:
 
-```
+```bibtex
 @article{libceed-joss-paper,
   author       = {Jed Brown and Ahmad Abdelfattah and Valeria Barra and Natalie Beams and Jean Sylvain Camier and Veselin Dobrev and Yohann Dudouit and Leila Ghaffari and Tzanio Kolev and David Medina and Will Pazner and Thilina Ratnayaka and Jeremy Thompson and Stan Tomov},
   title        = {{libCEED}: Fast algebra for high-order element-based discretizations},
@@ -419,7 +428,7 @@ If you utilize libCEED please cite:
 
 For libCEED's Python interface please cite:
 
-```
+```bibtex
 @InProceedings{libceed-paper-proc-scipy-2020,
   author    = {{V}aleria {B}arra and {J}ed {B}rown and {J}eremy {T}hompson and {Y}ohann {D}udouit},
   title     = {{H}igh-performance operator evaluations with ease of use: lib{C}{E}{E}{D}'s {P}ython interface},
@@ -431,7 +440,7 @@ For libCEED's Python interface please cite:
 }
 ```
 
-The BiBTeX entries for these references can be found in the `doc/bib/references.bib` file.
+The BibTeX entries for these references can be found in the `doc/bib/references.bib` file.
 
 ## Copyright
 

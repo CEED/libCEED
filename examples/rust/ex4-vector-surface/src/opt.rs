@@ -5,69 +5,44 @@
 //
 // This file is part of CEED:  http://github.com/ceed
 
-use structopt::StructOpt;
+use clap::Parser;
 
 // ----------------------------------------------------------------------------
 // Command line arguments
 // ----------------------------------------------------------------------------
-#[derive(Debug, StructOpt)]
-#[structopt(
+#[derive(Debug, Parser)]
+#[command(
     name = "libCEED Rust Example 4 - Vector Surface Area",
     about = "This example illustrates a simple usage of libCEED to compute the surface area of a body using matrix-free application of a 3 component vector diffusion operator."
 )]
 #[cfg(not(tarpaulin_include))]
 pub(crate) struct Opt {
     /// libCEED backend resource to use
-    #[structopt(name = "ceed", short = "c", long = "ceed", default_value = "/cpu/self")]
+    #[arg(name = "CEED", short, long = "ceed", default_value = "/cpu/self")]
     pub(crate) ceed_spec: String,
     /// Mesh dimension
-    #[structopt(
-        name = "dimension",
-        short = "d",
-        long = "dimension",
-        default_value = "3"
-    )]
+    #[arg(short, long = "dimension", default_value = "3")]
     pub(crate) dim: usize,
     /// Polynomial degree for the mesh
-    #[structopt(
-        name = "mesh degree",
-        short = "m",
-        long = "mesh_degree",
-        default_value = "4"
-    )]
+    #[arg(short, long, default_value = "4")]
     pub(crate) mesh_degree: usize,
     /// Polynomial degree for the solution
-    #[structopt(
-        name = "solution degree",
-        short = "p",
-        long = "solution_degree",
-        default_value = "4"
-    )]
+    #[arg(short = 'p', long, default_value = "4")]
     pub(crate) solution_degree: usize,
     /// Number of quadrature points in 1D
-    #[structopt(
-        name = "number of quadrature points",
-        short = "q",
-        long = "num_qpts",
-        default_value = "6"
-    )]
+    #[arg(short = 'q', long, default_value = "6")]
     pub(crate) num_qpts: usize,
     /// Approximate problem size
-    #[structopt(
-        name = "problem size",
-        short = "s",
-        long = "problem_size",
-        default_value = "-1"
-    )]
+    #[arg(name = "DoF", short = 's', long = "problem_size", default_value = "-1")]
     pub(crate) problem_size_requested: i64,
     /// Test mode
-    #[structopt(name = "test mode", short = "t", long = "test")]
+    #[arg(short, long)]
     pub(crate) test: bool,
     /// Quiet mode
-    #[structopt(name = "quiet mode", short = "x", long = "quiet")]
+    #[arg(short = 'x', long)]
     pub(crate) quiet: bool,
-    /// Gallery QFunctions
-    #[structopt(name = "gallery QFunctions", short = "g", long = "gallery")]
+    /// Use QFunctions from the Gallery instead of example
+    #[arg(short, long)]
     pub(crate) gallery: bool,
 }
 
