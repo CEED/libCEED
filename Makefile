@@ -32,7 +32,11 @@ NVCC ?= $(CUDA_DIR)/bin/nvcc
 NVCC_CXX ?= $(CXX)
 HIPCC ?= $(HIP_DIR)/bin/hipcc
 SED ?= sed
-EXE_SUFFIX = $(if $(EMSCRIPTEN),.wasm)
+ifneq ($(EMSCRIPTEN),)
+  STATIC = 1
+  EXE_SUFFIX = .wasm
+  EM_LDFLAGS = -s TOTAL_MEMORY=256MB
+endif
 
 # ASAN must be left empty if you don't want to use it
 ASAN ?=
@@ -91,7 +95,7 @@ endif
 AFLAGS = -fsanitize=address #-fsanitize=undefined -fno-omit-frame-pointer
 
 # Note: Intel oneAPI C/C++ compiler is now icx/icpx
-CC_VENDOR := $(subst icc_orig,icc,$(subst oneAPI,icc,$(firstword $(filter gcc clang icc icc_orig oneAPI XL,$(subst -, ,$(shell $(CC) --version))))))
+CC_VENDOR := $(subst icc_orig,icc,$(subst oneAPI,icc,$(firstword $(filter gcc clang icc icc_orig oneAPI XL emcc,$(subst -, ,$(shell $(CC) --version))))))
 FC_VENDOR := $(if $(FC),$(firstword $(filter GNU ifort ifx XL,$(shell $(FC) --version 2>&1 || $(FC) -qversion))))
 
 # Default extra flags by vendor
@@ -103,23 +107,26 @@ OMP_SIMD_FLAG.gcc       := -fopenmp-simd
 OMP_SIMD_FLAG.clang     := $(OMP_SIMD_FLAG.gcc)
 OMP_SIMD_FLAG.icc       := -qopenmp-simd
 OMP_SIMD_FLAG.oneAPI    := $(OMP_SIMD_FLAG.clang)
-OPT.gcc                 := -ffp-contract=fast
+OPT.gcc                 := -g -ffp-contract=fast
 OPT.clang               := $(OPT.gcc)
 OPT.oneAPI              := $(OPT.clang)
-CFLAGS.gcc              := -fPIC -std=c99 -Wall -Wextra -Wno-unused-parameter -MMD -MP
+OPT.emcc                :=
+CFLAGS.gcc              := $(if $(STATIC),,-fPIC) -std=c99 -Wall -Wextra -Wno-unused-parameter -MMD -MP
 CFLAGS.clang            := $(CFLAGS.gcc)
 CFLAGS.icc              := $(CFLAGS.gcc)
 CFLAGS.oneAPI           := $(CFLAGS.clang)
-CFLAGS.XL               := -qpic -MMD
-CXXFLAGS.gcc            := -fPIC -std=c++11 -Wall -Wextra -Wno-unused-parameter -MMD -MP
+CFLAGS.XL               := $(if $(STATIC),,-qpic) -MMD
+CFLAGS.emcc             := $(CFLAGS.clang)
+CXXFLAGS.gcc            := $(if $(STATIC),,-fPIC) -std=c++11 -Wall -Wextra -Wno-unused-parameter -MMD -MP
 CXXFLAGS.clang          := $(CXXFLAGS.gcc)
 CXXFLAGS.icc            := $(CXXFLAGS.gcc)
 CXXFLAGS.oneAPI         := $(CXXFLAGS.clang)
-CXXFLAGS.XL             := -qpic -std=c++11 -MMD
-FFLAGS.GNU              := -fPIC -cpp -Wall -Wextra -Wno-unused-parameter -Wno-unused-dummy-argument -MMD -MP
-FFLAGS.ifort            := -fPIC -cpp
+CXXFLAGS.XL             := $(if $(STATIC),,-qpic) -std=c++11 -MMD
+CXXFLAGS.emcc           := $(CXXFLAGS.clang)
+FFLAGS.GNU              := $(if $(STATIC),,-fPIC) -cpp -Wall -Wextra -Wno-unused-parameter -Wno-unused-dummy-argument -MMD -MP
+FFLAGS.ifort            := $(if $(STATIC),,-fPIC) -cpp
 FFLAGS.ifx              := $(FFLAGS.ifort)
-FFLAGS.XL               := -qpic -ffree-form -qpreprocess -qextname -MMD
+FFLAGS.XL               := $(if $(STATIC),,-qpic) -ffree-form -qpreprocess -qextname -MMD
 
 # This check works with compilers that use gcc and clang.  It fails with some
 # compilers; e.g., xlc apparently ignores all options when -E is passed, thus
@@ -132,7 +139,7 @@ MARCHFLAG := $(if $(call cc_check_flag,$(MARCHFLAG)),$(MARCHFLAG))
 OMP_SIMD_FLAG := $(OMP_SIMD_FLAG.$(CC_VENDOR))
 OMP_SIMD_FLAG := $(if $(call cc_check_flag,$(OMP_SIMD_FLAG)),$(OMP_SIMD_FLAG))
 
-OPT    ?= -O -g $(MARCHFLAG) $(OPT.$(CC_VENDOR)) $(OMP_SIMD_FLAG)
+OPT    ?= -O $(MARCHFLAG) $(OPT.$(CC_VENDOR)) $(OMP_SIMD_FLAG)
 CFLAGS ?= $(OPT) $(CFLAGS.$(CC_VENDOR))
 CXXFLAGS ?= $(OPT) $(CXXFLAGS.$(CC_VENDOR))
 LIBCXX ?= -lstdc++
@@ -480,7 +487,7 @@ _pkg_ldlibs = $(filter-out -L%,$(PKG_LIBS))
 $(libceeds) : CEED_LDFLAGS += $(_pkg_ldflags) $(if $(STATIC),,$(_pkg_ldflags:-L%=-Wl,-rpath,%)) $(PKG_STUBS_LIBS)
 $(libceeds) : CEED_LDLIBS += $(_pkg_ldlibs)
 ifeq ($(STATIC),1)
-$(examples) $(tests) : CEED_LDFLAGS += $(_pkg_ldflags) $(if $(STATIC),,$(_pkg_ldflags:-L%=-Wl,-rpath,%)) $(PKG_STUBS_LIBS)
+$(examples) $(tests) : CEED_LDFLAGS += $(EM_LDFLAGS) $(_pkg_ldflags) $(if $(STATIC),,$(_pkg_ldflags:-L%=-Wl,-rpath,%)) $(PKG_STUBS_LIBS)
 $(examples) $(tests) : CEED_LDLIBS += $(_pkg_ldlibs)
 endif
 
