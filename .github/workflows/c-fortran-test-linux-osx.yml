@@ -7,8 +7,8 @@ jobs:
   test:
     strategy:
       matrix:
-        os: [ubuntu-20.04, macos-latest]
-        compiler: [gcc-9, clang]
+        os: [ubuntu-latest, macos-latest]
+        compiler: [gcc-11, clang]
 
     runs-on: ${{ matrix.os }}
 
@@ -18,7 +18,7 @@ jobs:
     - name: Build and test libCEED
       env:
         CC: ${{ matrix.compiler }}
-        FC: gfortran-9
+        FC: gfortran-11
       run: |
         make -v
         make info
