@@ -7,7 +7,7 @@ jobs:
   test:
     strategy:
       matrix:
-        os: [ubuntu-20.04]
+        os: [ubuntu-22.04]
         compiler: [clang]
 
     runs-on: ${{ matrix.os }}
@@ -25,7 +25,7 @@ jobs:
       uses: actions-rs/tarpaulin@v0.1
       env:
         CC: ${{ matrix.compiler }}
-        FC: gfortran-9
+        FC: gfortran-11
       with:
         args: '--run-types Doctests Tests --exclude-files backends/* gallery/* include/* interface/* --out Xml'
     - name: Codecov upload
@@ -37,7 +37,7 @@ jobs:
   style:
     strategy:
       matrix:
-        os: [ubuntu-20.04]
+        os: [ubuntu-22.04]
         compiler: [clang]
 
     runs-on: ${{ matrix.os }}
