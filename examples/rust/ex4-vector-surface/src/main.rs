@@ -20,9 +20,9 @@
 // All libCEED objects use a Ceed device object constructed based on a command
 // line argument (-ceed).
 
+use clap::Parser;
 use libceed::{prelude::*, Ceed};
 use mesh;
-use structopt::StructOpt;
 
 mod opt;
 mod transform;
@@ -32,7 +32,7 @@ mod transform;
 // ----------------------------------------------------------------------------
 #[cfg(not(tarpaulin_include))]
 fn main() -> libceed::Result<()> {
-    let options = opt::Opt::from_args();
+    let options = opt::Opt::parse();
     example_4(options)
 }
 
