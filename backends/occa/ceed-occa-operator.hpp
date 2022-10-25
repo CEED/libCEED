@@ -62,6 +62,7 @@ class Operator : public CeedObject {
   static int ceedLinearAssembleQFunctionUpdate(CeedOperator op);
   static int ceedLinearAssembleAddDiagonal(CeedOperator op);
   static int ceedLinearAssembleAddPointBlockDiagonal(CeedOperator op);
+  static int ceedLinearAssembleSingle(CeedOperator op);
   static int ceedCreateFDMElementInverse(CeedOperator op);
 
   static int ceedApplyAdd(CeedOperator op, CeedVector invec, CeedVector outvec, CeedRequest *request);
