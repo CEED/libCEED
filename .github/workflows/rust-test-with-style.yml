@@ -14,13 +14,12 @@ jobs:
 
     steps:
     - name: Environment setup
-      uses: actions/checkout@v2
+      uses: actions/checkout@v3
     - name: Rust setup
-      uses: actions-rs/toolchain@v1
+      uses: dtolnay/rust-toolchain@master
       with:
         # Note: nightly required for coverage of Doctests with tarpaulin
         toolchain: nightly
-        override: true
     - name: Rust test with coverage
       uses: actions-rs/tarpaulin@v0.1
       env:
@@ -44,9 +43,9 @@ jobs:
 
     steps:
     - name: Environment setup
-      uses: actions/checkout@v2
+      uses: actions/checkout@v3
     - name: Rust setup
-      uses: actions-rs/toolchain@v1
+      uses: dtolnay/rust-toolchain@master
       with:
         # Note: rustfmt not always included in nightly, will attempt to downgrade until rustfmt found
         toolchain: nightly
