@@ -16,7 +16,7 @@ jobs:
     runs-on: ${{ matrix.os }}
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - name: Clone Intel install scripts
         run: |
           git clone https://github.com/oneapi-src/oneapi-ci.git
