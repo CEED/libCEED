@@ -14,7 +14,7 @@ jobs:
 
     steps:
     - name: Environment setup
-      uses: actions/checkout@v2
+      uses: actions/checkout@v3
     - name: Install astyle
       run: sudo apt-get install astyle
     - name: C style

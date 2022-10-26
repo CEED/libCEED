@@ -14,7 +14,7 @@ jobs:
 
     steps:
     - name: Environment setup
-      uses: actions/checkout@v2
+      uses: actions/checkout@v3
     - name: Python setup
       uses: actions/setup-python@v2
     - name: Python dependencies
