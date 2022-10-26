@@ -1,0 +1,9 @@
+problem: 'vortex_shedding'
+
+# viscosity
+mu:
+# Cylinder diameter
+d: 
+# Reynolds number
+Re:
+
