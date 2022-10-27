@@ -278,13 +278,15 @@ int CeedElemRestrictionCreate_Magma(CeedMemType mtype, CeedCopyMode cmode,
   CeedDebug256(ceed, 2, "----- Loading Restriction Kernel Source -----\n");
   ierr = CeedLoadSourceToBuffer(ceed, magma_common_path,
                                 &restriction_kernel_source);
+  CeedChkBackend(ierr);
 
   ierr = CeedGetJitAbsolutePath(ceed,
                                 "ceed/jit-source/magma/magma_common_tensor.h",
                                 &magma_common_path); CeedChkBackend(ierr);
-  ierr = CeedLoadSourceToBuffer(ceed, magma_common_path,
+  ierr = CeedLoadSourceToInitializedBuffer(ceed, magma_common_path,
                                 &restriction_kernel_source);
   CeedChkBackend(ierr);
+
   ierr = CeedGetJitAbsolutePath(ceed,
                                 "ceed/jit-source/magma/elem_restriction.h",
                                 &restriction_kernel_path); CeedChkBackend(ierr);
