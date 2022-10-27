@@ -623,12 +623,20 @@ int CeedBasisCreateTensorH1_Magma(CeedInt dim, CeedInt P1d, CeedInt Q1d,
   char *interp_path, *grad_path, *weight_path;
   char *basis_kernel_source;
   ierr = CeedGetJitAbsolutePath(ceed,
-                                "ceed/jit-source/magma/magma_common_device.h",
+                                "ceed/jit-source/magma/magma_common_defs.h",
                                 &magma_common_path); CeedChkBackend(ierr);
   CeedDebug256(ceed, 2, "----- Loading Basis Kernel Source -----\n");
   ierr = CeedLoadSourceToBuffer(ceed, magma_common_path,
-                                &basis_kernel_source);
+         &basis_kernel_source);
   CeedChkBackend(ierr);
+
+  ierr = CeedGetJitAbsolutePath(ceed,
+         "ceed/jit-source/magma/magma_common_tensor.h",
+         &magma_common_path); CeedChkBackend(ierr);
+  CeedLoadSourceToInitializedBuffer(ceed, magma_common_path,
+                                    &basis_kernel_source);
+  CeedChkBackend(ierr);
+
   char *interp_name_base = "ceed/jit-source/magma/interp";
   CeedInt interp_name_len = strlen(interp_name_base) + 6;
   char interp_name[interp_name_len];

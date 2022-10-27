@@ -5,21 +5,8 @@
 //
 // This file is part of CEED:  http://github.com/ceed
 
-#ifndef CEED_MAGMA_COMMON_DEVICE_H
-#define CEED_MAGMA_COMMON_DEVICE_H
-
-#ifdef CEED_MAGMA_USE_HIP
-#define MAGMA_DEVICE_SHARED(type, name) HIP_DYNAMIC_SHARED(type, name)
-#else 
-#define MAGMA_DEVICE_SHARED(type, name) extern __shared__ type name[];
-#endif
-
-typedef enum {
-    MagmaNoTrans       = 111,
-    MagmaTrans         = 112,
-    MagmaConjTrans     = 113,
-    Magma_ConjTrans    = MagmaConjTrans
-} magma_trans_t;
+#ifndef CEED_MAGMA_COMMON_TENSOR_H
+#define CEED_MAGMA_COMMON_TENSOR_H
 
 #define MAGMA_MAXTHREADS_1D 128
 #define MAGMA_MAXTHREADS_2D 128
@@ -31,15 +18,12 @@ typedef enum {
 // for use with __launch_bounds__()
 #define MAGMA_BASIS_BOUNDS(x, maxt) (x * MAGMA_BASIS_NTCOL(x, maxt))
 
-#define MAGMA_D_ZERO              0.0
-#define MAGMA_D_ONE               1.0
-
 //////////////////////////////////////////////////////////////////////////////////////////
 // read U or V of a 1D element into shared memory sU[][] or sV[][] --  for all components
 // the devptr is assumed to point directly to the element
 // must sync after call
 template<typename T, int LENGTH, int NCOMP_>
-__device__ __inline__ void 
+__device__ __inline__ void
 read_1d(const T* devptr, const int compstride, T* sBuffer[NCOMP_], const int tx)
 {
     if (tx < LENGTH) {
@@ -53,7 +37,7 @@ read_1d(const T* devptr, const int compstride, T* sBuffer[NCOMP_], const int tx)
 // write V of a 1D element into global memory from sV[][] --  for all components
 // the devptr is assumed to point directly to the element
 template<typename T, int LENGTH, int NCOMP_>
-__device__ __inline__ void 
+__device__ __inline__ void
 write_1d(T* sBuffer[NCOMP_], T* devptr, const int compstride, const int tx)
 {
     if (tx < LENGTH) {
@@ -71,13 +55,13 @@ write_1d(T* sBuffer[NCOMP_], T* devptr, const int compstride, const int tx)
 // rUsize can be different from P_ (e.g. MAXP_Q)
 // sTmp is a shared memory workspace of size P_^2
 template<typename T, int P_, int DIMU, int NCOMP_, int rUsize, int iDIM>
-__device__ __inline__ void 
+__device__ __inline__ void
 readU_2d(const T* dU, const int compstride, T rU[DIMU][NCOMP_][rUsize], T* sTmp, const int tx)
 {
     // read U as a batch P_ of (1xP_) vectors
     // vec 0  : [u0, u1, u2, ... u_(P_-1)] -- contiguous in memory
     // vec 1  : [u0, u1, u2, ... u_(P_-1)] -- contiguous in memory
-    // ... 
+    // ...
     // vec P_-1: [u0, u1, u2, ... u_(P_-1)] -- contiguous in memory
     // threads collaboratively read vec0 and then vec1 and so on
     // but for the kernel, we want
@@ -109,7 +93,7 @@ readU_2d(const T* dU, const int compstride, T rU[DIMU][NCOMP_][rUsize], T* sTmp,
 // iDIM specifies which dimension is being read into in rV
 // rVsize can be different from P_ (e.g. MAXP_Q)
 template<typename T, int Q_, int DIMV, int NCOMP_, int rVsize, int iDIM>
-__device__ __inline__ void 
+__device__ __inline__ void
 readV_2d(const T* dV, const int compstride, T rV[DIMV][NCOMP_][rVsize], const int tx)
 {
     if (tx < Q_) {
@@ -129,7 +113,7 @@ readV_2d(const T* dV, const int compstride, T rV[DIMV][NCOMP_][rVsize], const in
 // idim specifies which dimension is being written to in dV
 // rVsize can be different from P_ (e.g. MAXP_Q)
 template<typename T, int Q_, int DIMV, int NCOMP_, int rVsize, int iDIM>
-__device__ __inline__ void 
+__device__ __inline__ void
 writeV_2d(T* dV, const int compstride, T rV[DIMV][NCOMP_][rVsize], const int tx)
 {
     if (tx < Q_) {
@@ -149,13 +133,13 @@ writeV_2d(T* dV, const int compstride, T rV[DIMV][NCOMP_][rVsize], const int tx)
 // rUsize can be different from P_ (e.g. MAXP_Q)
 // sTmp is a shared memory workspace of size P_^3
 template<typename T, int P_, int DIMU, int NCOMP_, int rUsize, int iDIM>
-__device__ __inline__ void 
+__device__ __inline__ void
 readU_3d(const T* dU, const int compstride, T rU[DIMU][NCOMP_][rUsize], T* sTmp, const int tx)
 {
     // read U as a batch P_^2 of (1xP_) vectors
     // vec 0    : [u0, u1, u2, ... u_(P_-1)] -- contiguous in memory
     // vec 1    : [u0, u1, u2, ... u_(P_-1)] -- contiguous in memory
-    // ... 
+    // ...
     // vec P_^2-1: [u0, u1, u2, ... u_(P_-1)] -- contiguous in memory
     // threads collaboratively read vec0 and then vec1 and so on
     // but for the kernel, we want
@@ -187,7 +171,7 @@ readU_3d(const T* dU, const int compstride, T rU[DIMU][NCOMP_][rUsize], T* sTmp,
 // iDIM specifies which dimension is being read into in rV
 // rVsize can be different from P_ (e.g. MAXP_Q)
 template<typename T, int Q_, int DIMV, int NCOMP_, int rVsize, int iDIM>
-__device__ __inline__ void 
+__device__ __inline__ void
 readV_3d(const T* dV, const int compstride, T rV[DIMV][NCOMP_][rVsize], const int tx)
 {
     if (tx < Q_*Q_) {
@@ -207,7 +191,7 @@ readV_3d(const T* dV, const int compstride, T rV[DIMV][NCOMP_][rVsize], const in
 // idim specifies which dimension is being written to in dV
 // rVsize can be different from P_ (e.g. MAXP_Q)
 template<typename T, int Q_, int DIMV, int NCOMP_, int rVsize, int iDIM>
-__device__ __inline__ void 
+__device__ __inline__ void
 writeV_3d(T* dV, const int compstride, T rV[DIMV][NCOMP_][rVsize], const int tx)
 {
     if (tx < (Q_*Q_)) {
@@ -225,8 +209,8 @@ writeV_3d(T* dV, const int compstride, T rV[DIMV][NCOMP_][rVsize], const int tx)
 template<int B, int J>
 __device__ __inline__ void
 dread_T_gm2sm(
-        const int tx, const magma_trans_t transT, 
-        const CeedScalar* dT, CeedScalar *sT ) 
+        const int tx, const magma_trans_t transT,
+        const CeedScalar* dT, CeedScalar *sT )
 {
     if ( transT == MagmaNoTrans ) {
         // T is B x J
@@ -252,9 +236,9 @@ dread_T_gm2sm(
 // the correct pointer U must be precomputed
 template<int B>
 __device__ __inline__ void
-dread_U_gsm2reg( 
-        const int C, const int tx_, 
-        const CeedScalar* U, CeedScalar rU[B] ) 
+dread_U_gsm2reg(
+        const int C, const int tx_,
+        const CeedScalar* U, CeedScalar rU[B] )
 {
     for(int i = 0; i < B; i++){
         rU[i] = U[i * C + tx_];
@@ -266,8 +250,8 @@ dread_U_gsm2reg(
 // the correct pointer V must be precomputed
 template<int J>
 __device__ __inline__ void
-dread_V_gsm2reg( 
-        const int C, const int tx_, const CeedScalar* V, CeedScalar rV[J] ) 
+dread_V_gsm2reg(
+        const int C, const int tx_, const CeedScalar* V, CeedScalar rV[J] )
 {
     for(int i = 0; i < J; i++){
         rV[i] = V[i * C + tx_];
@@ -279,9 +263,9 @@ dread_V_gsm2reg(
 // the correct pointer V must be precomputed
 template<int J>
 __device__ __inline__ void
-dwrite_V_reg2gsm( 
-        const int C, const int tx_, 
-        CeedScalar rV[J], CeedScalar* V ) 
+dwrite_V_reg2gsm(
+        const int C, const int tx_,
+        CeedScalar rV[J], CeedScalar* V )
 {
     for(int i = 0; i < J; i++){
         V[i * C + tx_] = rV[i];
@@ -292,9 +276,9 @@ dwrite_V_reg2gsm(
 // multiply a slice of U times T to produce a slice of V
 template<int B, int J>
 __device__ __inline__ void
-dgemm_slice( 
-        CeedScalar alpha, CeedScalar *sT, 
-        CeedScalar rU[B], CeedScalar beta, CeedScalar rV[J] ) 
+dgemm_slice(
+        CeedScalar alpha, CeedScalar *sT,
+        CeedScalar rU[B], CeedScalar beta, CeedScalar rV[J] )
 {
     CeedScalar rTmp;
     for(int j = 0; j < J; j++) {
@@ -302,7 +286,7 @@ dgemm_slice(
         for(int b = 0; b < B; b++){
             rTmp += rU[ b ] * sT[ j * B + b ];
         }
-        rV[ j ] *= beta; 
+        rV[ j ] *= beta;
         rV[ j ] += alpha * rTmp;
     }
 }
@@ -310,9 +294,9 @@ dgemm_slice(
 //////////////////////////////////////////////////////////////////////////////////////////
 template<int B, int J>
 __device__  __inline__ void
-dgemm_ceed_device( const int tx, const int A, const int C, magma_trans_t transT, CeedScalar *sT, 
+dgemm_ceed_device( const int tx, const int A, const int C, magma_trans_t transT, CeedScalar *sT,
                    const CeedScalar alpha, const CeedScalar beta,
-                   const CeedScalar *dU,   CeedScalar *dV, 
+                   const CeedScalar *dU,   CeedScalar *dV,
                          CeedScalar rU[B], CeedScalar rV[J])
 {
     const int tx_      = tx % C;
@@ -322,9 +306,9 @@ dgemm_ceed_device( const int tx, const int A, const int C, magma_trans_t transT,
     dU += slice_id * C * B;
     dV += slice_id * C * J;
 
-    // read V if beta is non-zero  
+    // read V if beta is non-zero
     if ( beta != 0.0 ) {
-        dread_V_gsm2reg<J>(C, tx_, (const CeedScalar*)dV, rV); 
+        dread_V_gsm2reg<J>(C, tx_, (const CeedScalar*)dV, rV);
     }
 
     // read U
@@ -335,6 +319,6 @@ dgemm_ceed_device( const int tx, const int A, const int C, magma_trans_t transT,
 
     // write V back
     dwrite_V_reg2gsm<J>(C, tx_, rV, dV );
-} 
+}
 
-#endif // CEED_MAGMA_COMMON_DEVICE_H
+#endif // CEED_MAGMA_COMMON_TENSOR_H
