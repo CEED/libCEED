@@ -114,6 +114,10 @@ int main(int argc, char **argv) {
                           "Element topology (default:hex)",
                           NULL, simplex, &simplex, NULL);
   CHKERRQ(ierr);
+  if ((bp_choice == CEED_BP5 || bp_choice == CEED_BP6) && (simplex)) {
+    SETERRQ(PETSC_COMM_SELF, PETSC_ERR_SUP,
+            "BP5/6 is not supported with simplex");
+  }
   ierr = PetscOptionsScalar("-eps",
                             "Epsilon parameter for Kershaw mesh transformation",
                             NULL, eps, &eps, NULL);

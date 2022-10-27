@@ -448,6 +448,10 @@ int main(int argc, char **argv) {
   ierr = PetscOptionsBool("-simplex", "Element topology (default:hex)",
                           NULL, rp->simplex, &rp->simplex, NULL);
   CHKERRQ(ierr);
+  if ((bp_choices[0] == CEED_BP5 || bp_choices[0] == CEED_BP6) && (rp->simplex)) {
+    SETERRQ(PETSC_COMM_SELF, PETSC_ERR_SUP,
+            "BP5/6 is not supported with simplex");
+  }
   degree[0] = rp->test_mode ? 3 : 2;
   ierr = PetscOptionsIntArray("-degree",
                               "Polynomial degree of tensor product basis", NULL,
