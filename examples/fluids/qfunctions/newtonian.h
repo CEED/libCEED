@@ -389,8 +389,8 @@ CEED_QFUNCTION_HELPER int IJacobian_Newtonian(void *ctx, CeedInt Q,
                                   };
     // *INDENT-ON*
 
-    CeedScalar qi[5], kmstress[6], Tau_d[3] __attribute((unused));
-    for (int j=0; j<5; j++) qi[j]        = jac_data[j][i];
+    CeedScalar qi[5], kmstress[6], Tau_d[3];
+    for (int j=0; j<5; j++) qi[j]       = jac_data[j][i];
     for (int j=0; j<6; j++) kmstress[j] = jac_data[5+j][i];
     for (int j=0; j<3; j++) Tau_d[j]    = jac_data[5+6+j][i];
     const CeedScalar x_i[3] = {x[0][i], x[1][i], x[2][i]};
@@ -789,18 +789,21 @@ CEED_QFUNCTION(PressureOutflow_Jacobian_Prim)(void *ctx, CeedInt Q,
 // Harten Lax VanLeer (HLL) approximate Riemann solver.
 // Taking in two states (left, right) and returns RiemannFlux_HLL
 // *****************************************************************************
-CEED_QFUNCTION_HELPER StateConservative Harten_Lax_VanLeer_Flux(NewtonianIdealGasContext gas,
-    State left, State right, const CeedScalar normal[3]) {
+CEED_QFUNCTION_HELPER StateConservative Harten_Lax_VanLeer_Flux(
+  NewtonianIdealGasContext gas, State left, State right,
+  const CeedScalar normal[3]) {
 
-  StateConservative flux_left = FluxInviscidDotNormal(gas, left, normal);
+  StateConservative flux_left  = FluxInviscidDotNormal(gas, left, normal);
   StateConservative flux_right = FluxInviscidDotNormal(gas, right, normal);
   StateConservative RiemannFlux_HLL;
   // compute speed.
   // TODO: This is only stable for subsonic flows. We need to include a Roe average
   // or other technique to handle sonic flows. Stability requires that these speed estimates
   // are *at least* as fast as the physical wave speeds.
-  CeedScalar s_left =  Dot3(left.Y.velocity, normal) - SoundSpeed(gas, left.Y.temperature);
-  CeedScalar s_right = Dot3(right.Y.velocity, normal) + SoundSpeed(gas, right.Y.temperature);
+  CeedScalar s_left  = Dot3(left.Y.velocity, normal)
+                       - SoundSpeed(gas, left.Y.temperature);
+  CeedScalar s_right = Dot3(right.Y.velocity, normal)
+                       + SoundSpeed(gas, right.Y.temperature);
   // Compute HLL flux
   if (0 <= s_left) {
     RiemannFlux_HLL = flux_left;
@@ -808,18 +811,18 @@ CEED_QFUNCTION_HELPER StateConservative Harten_Lax_VanLeer_Flux(NewtonianIdealGa
     RiemannFlux_HLL = flux_right;
   } else {
     RiemannFlux_HLL.density =
-        (s_right * flux_left.density - s_left * flux_right.density +
-         s_left * s_right * (right.U.density - left.U.density)) /
-        (s_right - s_left);
+      (s_right * flux_left.density - s_left * flux_right.density +
+       s_left * s_right * (right.U.density - left.U.density)) /
+      (s_right - s_left);
     for (int i = 0; i < 3; i++)
       RiemannFlux_HLL.momentum[i] =
-          (s_right * flux_left.momentum[i] - s_left * flux_right.momentum[i] +
-           s_left * s_right * (right.U.momentum[i] - left.U.momentum[i])) /
-          (s_right - s_left);
-    RiemannFlux_HLL.E_total =
-        (s_right * flux_left.E_total - s_left * flux_right.E_total +
-         s_left * s_right * (right.U.E_total - left.U.E_total)) /
+        (s_right * flux_left.momentum[i] - s_left * flux_right.momentum[i] +
+         s_left * s_right * (right.U.momentum[i] - left.U.momentum[i])) /
         (s_right - s_left);
+    RiemannFlux_HLL.E_total =
+      (s_right * flux_left.E_total - s_left * flux_right.E_total +
+       s_left * s_right * (right.U.E_total - left.U.E_total)) /
+      (s_right - s_left);
   }
   // Return
   return RiemannFlux_HLL;
