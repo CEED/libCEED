@@ -73,7 +73,7 @@ int main(int argc, char **argv) {
   Mat *mat_O, *mat_pr, mat_coarse;
   Vec *X, *X_loc, *mult, rhs, rhs_loc;
   PetscMemType mem_type;
-  OperatorApplyContext *op_apply_ctx;
+  OperatorApplyContext *op_apply_ctx, op_error_ctx;
   ProlongRestrContext *pr_restr_ctx;
   Ceed ceed;
   CeedData *ceed_data;
@@ -246,6 +246,7 @@ int main(int argc, char **argv) {
 
     // Operator
     ierr = PetscMalloc1(1, &op_apply_ctx[i]); CHKERRQ(ierr);
+    ierr = PetscMalloc1(1, &op_error_ctx); CHKERRQ(ierr);
     ierr = MatCreateShell(comm, l_size[i], l_size[i], g_size[i], g_size[i],
                           op_apply_ctx[i], &mat_O[i]); CHKERRQ(ierr);
     ierr = MatShellSetOperation(mat_O[i], MATOP_MULT,
@@ -396,15 +397,10 @@ int main(int argc, char **argv) {
 
   // Set up Mat
   for (int i=0; i<num_levels; i++) {
-    // User Operator
-    op_apply_ctx[i]->comm = comm;
-    op_apply_ctx[i]->dm = dm[i];
-    op_apply_ctx[i]->X_loc = X_loc[i];
-    ierr = VecDuplicate(X_loc[i], &op_apply_ctx[i]->Y_loc); CHKERRQ(ierr);
-    op_apply_ctx[i]->x_ceed = ceed_data[i]->x_ceed;
-    op_apply_ctx[i]->y_ceed = ceed_data[i]->y_ceed;
-    op_apply_ctx[i]->op = ceed_data[i]->op_apply;
-    op_apply_ctx[i]->ceed = ceed;
+    // Set up apply operator context
+    ierr = SetupApplyOperatorCtx(comm, dm[i], ceed,
+                                 ceed_data[i], X_loc[i],
+                                 op_apply_ctx[i]); CHKERRQ(ierr);
 
     if (i > 0) {
       // Prolongation/Restriction Operator
@@ -593,8 +589,12 @@ int main(int argc, char **argv) {
       ierr = PetscPrintf(comm,"  Performance:\n"); CHKERRQ(ierr);
     }
     {
+      // Set up error operator context
+      ierr = SetupErrorOperatorCtx(comm, dm[fine_level], ceed,
+                                   ceed_data[fine_level], X_loc[fine_level],
+                                   op_error, op_error_ctx); CHKERRQ(ierr);
       PetscReal max_error;
-      ierr = ComputeErrorMax(op_apply_ctx[fine_level], op_error, X[fine_level],
+      ierr = ComputeErrorMax(op_error_ctx, X[fine_level],
                              target, &max_error); CHKERRQ(ierr);
       PetscReal tol = 5e-2;
       if (!test_mode || max_error > tol) {
@@ -646,11 +646,13 @@ int main(int argc, char **argv) {
   ierr = PetscFree(dm); CHKERRQ(ierr);
   ierr = PetscFree(X); CHKERRQ(ierr);
   ierr = PetscFree(X_loc); CHKERRQ(ierr);
+  ierr = VecDestroy(&op_error_ctx->Y_loc); CHKERRQ(ierr);
   ierr = PetscFree(mult); CHKERRQ(ierr);
   ierr = PetscFree(mat_O); CHKERRQ(ierr);
   ierr = PetscFree(mat_pr); CHKERRQ(ierr);
   ierr = PetscFree(ceed_data); CHKERRQ(ierr);
   ierr = PetscFree(op_apply_ctx); CHKERRQ(ierr);
+  ierr = PetscFree(op_error_ctx); CHKERRQ(ierr);
   ierr = PetscFree(pr_restr_ctx); CHKERRQ(ierr);
   ierr = PetscFree(l_size); CHKERRQ(ierr);
   ierr = PetscFree(xl_size); CHKERRQ(ierr);

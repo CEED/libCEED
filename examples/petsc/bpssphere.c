@@ -72,7 +72,7 @@ int main(int argc, char **argv) {
   Mat mat_O;
   KSP ksp;
   DM  dm;
-  OperatorApplyContext op_apply_ctx;
+  OperatorApplyContext op_apply_ctx, op_error_ctx;
   Ceed ceed;
   CeedData ceed_data;
   CeedQFunction qf_error;
@@ -160,6 +160,7 @@ int main(int argc, char **argv) {
 
   // Operator
   ierr = PetscMalloc1(1, &op_apply_ctx); CHKERRQ(ierr);
+  ierr = PetscMalloc1(1, &op_error_ctx); CHKERRQ(ierr);
   ierr = MatCreateShell(comm, l_size, l_size, g_size, g_size,
                         op_apply_ctx, &mat_O); CHKERRQ(ierr);
   ierr = MatShellSetOperation(mat_O, MATOP_MULT,
@@ -247,15 +248,10 @@ int main(int argc, char **argv) {
   CeedOperatorSetField(op_error, "error", ceed_data->elem_restr_u_i,
                        CEED_BASIS_COLLOCATED, CEED_VECTOR_ACTIVE);
 
-  // Set up Mat
-  op_apply_ctx->comm = comm;
-  op_apply_ctx->dm = dm;
-  op_apply_ctx->X_loc = X_loc;
-  ierr = VecDuplicate(X_loc, &op_apply_ctx->Y_loc); CHKERRQ(ierr);
-  op_apply_ctx->x_ceed = ceed_data->x_ceed;
-  op_apply_ctx->y_ceed = ceed_data->y_ceed;
-  op_apply_ctx->op = ceed_data->op_apply;
-  op_apply_ctx->ceed = ceed;
+  // Set up apply operator context
+  ierr = SetupApplyOperatorCtx(comm, dm, ceed,
+                               ceed_data, X_loc,
+                               op_apply_ctx); CHKERRQ(ierr);
 
   // Setup solver
   ierr = KSPCreate(comm, &ksp); CHKERRQ(ierr);
@@ -341,8 +337,12 @@ int main(int argc, char **argv) {
       ierr = PetscPrintf(comm,"  Performance:\n"); CHKERRQ(ierr);
     }
     {
+      // Set up error operator context
+      ierr = SetupErrorOperatorCtx(comm, dm, ceed,
+                                   ceed_data, X_loc, op_error,
+                                   op_error_ctx); CHKERRQ(ierr);
       PetscReal max_error;
-      ierr = ComputeErrorMax(op_apply_ctx, op_error, X, target, &max_error);
+      ierr = ComputeErrorMax(op_error_ctx, X, target, &max_error);
       CHKERRQ(ierr);
       PetscReal tol = 5e-4;
       if (!test_mode || max_error > tol) {
@@ -378,8 +378,10 @@ int main(int argc, char **argv) {
   ierr = VecDestroy(&X); CHKERRQ(ierr);
   ierr = VecDestroy(&X_loc); CHKERRQ(ierr);
   ierr = VecDestroy(&op_apply_ctx->Y_loc); CHKERRQ(ierr);
+  ierr = VecDestroy(&op_error_ctx->Y_loc); CHKERRQ(ierr);
   ierr = MatDestroy(&mat_O); CHKERRQ(ierr);
   ierr = PetscFree(op_apply_ctx); CHKERRQ(ierr);
+  ierr = PetscFree(op_error_ctx); CHKERRQ(ierr);
   ierr = CeedDataDestroy(0, ceed_data); CHKERRQ(ierr);
   ierr = DMDestroy(&dm); CHKERRQ(ierr);
 

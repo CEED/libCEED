@@ -26,7 +26,7 @@
 //     ./bps -problem bp6 -degree 3 -ceed /gpu/cuda
 //
 //TESTARGS -ceed {ceed_resource} -test -problem bp5 -degree 3 -ksp_max_it_clip 15,15
-//TESTARGS -ceed {ceed_resource} -test -problem bp5 -degree 3 -ksp_max_it_clip 50,50 -simplex
+//TESTARGS -ceed {ceed_resource} -test -problem bp3 -degree 3 -ksp_max_it_clip 50,50 -simplex
 
 /// @file
 /// CEED BPs example using PETSc with DMPlex
@@ -69,7 +69,7 @@ static PetscErrorCode RunWithDM(RunParams rp, DM dm,
   Vec X, X_loc, rhs, rhs_loc;
   Mat mat_O;
   KSP ksp;
-  OperatorApplyContext op_apply_ctx;
+  OperatorApplyContext op_apply_ctx, op_error_ctx;
   Ceed ceed;
   CeedData ceed_data;
   CeedQFunction qf_error;
@@ -111,6 +111,7 @@ static PetscErrorCode RunWithDM(RunParams rp, DM dm,
 
   // Operator
   ierr = PetscMalloc1(1, &op_apply_ctx); CHKERRQ(ierr);
+  ierr = PetscMalloc1(1, &op_error_ctx); CHKERRQ(ierr);
   ierr = MatCreateShell(rp->comm, l_size, l_size, g_size, g_size,
                         op_apply_ctx, &mat_O); CHKERRQ(ierr);
   ierr = MatShellSetOperation(mat_O, MATOP_MULT,
@@ -205,16 +206,10 @@ static PetscErrorCode RunWithDM(RunParams rp, DM dm,
   CeedOperatorSetField(op_error, "error", ceed_data->elem_restr_u_i,
                        CEED_BASIS_COLLOCATED, CEED_VECTOR_ACTIVE);
 
-  // Set up Mat
-  op_apply_ctx->comm = rp->comm;
-  op_apply_ctx->dm = dm;
-  op_apply_ctx->X_loc = X_loc;
-  ierr = VecDuplicate(X_loc, &op_apply_ctx->Y_loc); CHKERRQ(ierr);
-  op_apply_ctx->x_ceed = ceed_data->x_ceed;
-  op_apply_ctx->y_ceed = ceed_data->y_ceed;
-  op_apply_ctx->op = ceed_data->op_apply;
-  op_apply_ctx->ceed = ceed;
-
+  // Set up apply operator context
+  ierr = SetupApplyOperatorCtx(rp->comm, dm, ceed,
+                               ceed_data, X_loc,
+                               op_apply_ctx); CHKERRQ(ierr);
   ierr = KSPCreate(rp->comm, &ksp); CHKERRQ(ierr);
   {
     PC pc;
@@ -295,8 +290,12 @@ static PetscErrorCode RunWithDM(RunParams rp, DM dm,
       ierr = PetscPrintf(rp->comm,"  Performance:\n"); CHKERRQ(ierr);
     }
     {
+      // Set up error operator context
+      ierr = SetupErrorOperatorCtx(rp->comm, dm, ceed,
+                                   ceed_data, X_loc, op_error,
+                                   op_error_ctx); CHKERRQ(ierr);
       PetscReal max_error;
-      ierr = ComputeErrorMax(op_apply_ctx, op_error, X, target, &max_error);
+      ierr = ComputeErrorMax(op_error_ctx, X, target, &max_error);
       CHKERRQ(ierr);
       PetscReal tol = 5e-2;
       if (!rp->test_mode || max_error > tol) {
@@ -332,8 +331,10 @@ static PetscErrorCode RunWithDM(RunParams rp, DM dm,
   ierr = VecDestroy(&X); CHKERRQ(ierr);
   ierr = VecDestroy(&X_loc); CHKERRQ(ierr);
   ierr = VecDestroy(&op_apply_ctx->Y_loc); CHKERRQ(ierr);
+  ierr = VecDestroy(&op_error_ctx->Y_loc); CHKERRQ(ierr);
   ierr = MatDestroy(&mat_O); CHKERRQ(ierr);
   ierr = PetscFree(op_apply_ctx); CHKERRQ(ierr);
+  ierr = PetscFree(op_error_ctx); CHKERRQ(ierr);
   ierr = CeedDataDestroy(0, ceed_data); CHKERRQ(ierr);
 
   ierr = VecDestroy(&rhs); CHKERRQ(ierr);
