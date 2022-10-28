@@ -265,52 +265,16 @@ PetscErrorCode MatMult_Restrict(Mat A, Vec X, Vec Y) {
 // -----------------------------------------------------------------------------
 // This function calculates the error in the final solution
 // -----------------------------------------------------------------------------
-PetscErrorCode ComputeErrorMax(OperatorApplyContext op_error_ctx,
-                               Vec X, CeedVector target,
-                               PetscScalar *max_error) {
-  PetscErrorCode ierr;
-  PetscScalar *x;
-  PetscMemType mem_type;
-  CeedVector collocated_error;
-  CeedSize length;
+PetscErrorCode ComputeL2Error(Vec X, PetscScalar *l2_error,
+                              OperatorApplyContext op_error_ctx) {
 
+  Vec        E;
   PetscFunctionBeginUser;
-  CeedVectorGetLength(target, &length);
-  CeedVectorCreate(op_error_ctx->ceed, length, &collocated_error);
-
-  // Global-to-local
-  ierr = DMGlobalToLocal(op_error_ctx->dm, X, INSERT_VALUES, op_error_ctx->X_loc);
-  CHKERRQ(ierr);
-
-  // Setup CEED vector
-  ierr = VecGetArrayAndMemType(op_error_ctx->X_loc, &x, &mem_type); CHKERRQ(ierr);
-  CeedVectorSetArray(op_error_ctx->x_ceed, MemTypeP2C(mem_type),
-                     CEED_USE_POINTER, x);
-
-  // Apply CEED operator
-  CeedOperatorApply(op_error_ctx->op, op_error_ctx->x_ceed, collocated_error,
-                    CEED_REQUEST_IMMEDIATE);
-
-  // Restore PETSc vector
-  CeedVectorTakeArray(op_error_ctx->x_ceed, MemTypeP2C(mem_type), NULL);
-  ierr = VecRestoreArrayReadAndMemType(op_error_ctx->X_loc,
-                                       (const PetscScalar **)&x);
-  CHKERRQ(ierr);
-
-  // Reduce max error
-  *max_error = 0;
-  const CeedScalar *e;
-  CeedVectorGetArrayRead(collocated_error, CEED_MEM_HOST, &e);
-  for (CeedInt i=0; i<length; i++) {
-    *max_error = PetscMax(*max_error, PetscAbsScalar(e[i]));
-  }
-  CeedVectorRestoreArrayRead(collocated_error, &e);
-  ierr = MPI_Allreduce(MPI_IN_PLACE, max_error, 1, MPIU_REAL, MPIU_MAX,
-                       op_error_ctx->comm);
-  CHKERRQ(ierr);
-
-  // Cleanup
-  CeedVectorDestroy(&collocated_error);
+  PetscCall(VecDuplicate(X, &E));
+  PetscCall(ApplyLocal_Ceed(X, E, op_error_ctx) );
+  PetscScalar error_sq = 1.0;
+  PetscCall(VecSum(E, &error_sq));
+  *l2_error = sqrt(error_sq);
 
   PetscFunctionReturn(0);
 };

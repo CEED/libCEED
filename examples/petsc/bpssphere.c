@@ -235,7 +235,7 @@ int main(int argc, char **argv) {
   CeedQFunctionAddInput(qf_error, "true_soln", num_comp_u, CEED_EVAL_NONE);
   CeedQFunctionAddInput(qf_error, "qdata", ceed_data->q_data_size,
                         CEED_EVAL_NONE);
-  CeedQFunctionAddOutput(qf_error, "error", num_comp_u, CEED_EVAL_NONE);
+  CeedQFunctionAddOutput(qf_error, "error", num_comp_u, CEED_EVAL_INTERP);
 
   // Create the error operator
   CeedOperatorCreate(ceed, qf_error, NULL, NULL, &op_error);
@@ -245,8 +245,8 @@ int main(int argc, char **argv) {
                        CEED_BASIS_COLLOCATED, target);
   CeedOperatorSetField(op_error, "qdata", ceed_data->elem_restr_qd_i,
                        CEED_BASIS_COLLOCATED, ceed_data->q_data);
-  CeedOperatorSetField(op_error, "error", ceed_data->elem_restr_u_i,
-                       CEED_BASIS_COLLOCATED, CEED_VECTOR_ACTIVE);
+  CeedOperatorSetField(op_error, "error", ceed_data->elem_restr_u,
+                       ceed_data->basis_u, CEED_VECTOR_ACTIVE);
 
   // Set up apply operator context
   ierr = SetupApplyOperatorCtx(comm, dm, ceed,
@@ -341,19 +341,18 @@ int main(int argc, char **argv) {
       ierr = SetupErrorOperatorCtx(comm, dm, ceed,
                                    ceed_data, X_loc, op_error,
                                    op_error_ctx); CHKERRQ(ierr);
-      PetscReal max_error;
-      ierr = ComputeErrorMax(op_error_ctx, X, target, &max_error);
-      CHKERRQ(ierr);
+      PetscScalar l2_error;
+      ierr = ComputeL2Error(X, &l2_error, op_error_ctx); CHKERRQ(ierr);
       PetscReal tol = 5e-4;
-      if (!test_mode || max_error > tol) {
+      if (!test_mode || l2_error > tol) {
         ierr = MPI_Allreduce(&my_rt, &rt_min, 1, MPI_DOUBLE, MPI_MIN, comm);
         CHKERRQ(ierr);
         ierr = MPI_Allreduce(&my_rt, &rt_max, 1, MPI_DOUBLE, MPI_MAX, comm);
         CHKERRQ(ierr);
         ierr = PetscPrintf(comm,
-                           "    Pointwise Error (max)                   : %e\n"
+                           "    L2 Error                                : %e\n"
                            "    CG Solve Time                           : %g (%g) sec\n",
-                           (double)max_error, rt_max, rt_min); CHKERRQ(ierr);
+                           (double)l2_error, rt_max, rt_min); CHKERRQ(ierr);
       }
     }
     if (benchmark_mode && (!test_mode)) {

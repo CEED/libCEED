@@ -19,7 +19,7 @@ PetscErrorCode MatMult_Ceed(Mat A, Vec X, Vec Y);
 PetscErrorCode FormResidual_Ceed(SNES snes, Vec X, Vec Y, void *ctx);
 PetscErrorCode MatMult_Prolong(Mat A, Vec X, Vec Y);
 PetscErrorCode MatMult_Restrict(Mat A, Vec X, Vec Y);
-PetscErrorCode ComputeErrorMax(OperatorApplyContext op_error_ctx,
-                               Vec X, CeedVector target, PetscReal *max_error);
+PetscErrorCode ComputeL2Error(Vec X, PetscScalar *l2_error,
+                              OperatorApplyContext op_error_ctx);
 
 #endif // libceed_petsc_examples_matops_h

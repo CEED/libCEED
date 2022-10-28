@@ -192,7 +192,7 @@ static PetscErrorCode RunWithDM(RunParams rp, DM dm,
   CeedQFunctionAddInput(qf_error, "true_soln", rp->num_comp_u, CEED_EVAL_NONE);
   CeedQFunctionAddInput(qf_error, "qdata", ceed_data->q_data_size,
                         CEED_EVAL_NONE);
-  CeedQFunctionAddOutput(qf_error, "error", rp->num_comp_u, CEED_EVAL_NONE);
+  CeedQFunctionAddOutput(qf_error, "error", rp->num_comp_u, CEED_EVAL_INTERP);
 
   // Create the error operator
   CeedOperatorCreate(ceed, qf_error, CEED_QFUNCTION_NONE, CEED_QFUNCTION_NONE,
@@ -203,8 +203,8 @@ static PetscErrorCode RunWithDM(RunParams rp, DM dm,
                        CEED_BASIS_COLLOCATED, target);
   CeedOperatorSetField(op_error, "qdata", ceed_data->elem_restr_qd_i,
                        CEED_BASIS_COLLOCATED, ceed_data->q_data);
-  CeedOperatorSetField(op_error, "error", ceed_data->elem_restr_u_i,
-                       CEED_BASIS_COLLOCATED, CEED_VECTOR_ACTIVE);
+  CeedOperatorSetField(op_error, "error", ceed_data->elem_restr_u,
+                       ceed_data->basis_u, CEED_VECTOR_ACTIVE);
 
   // Set up apply operator context
   ierr = SetupApplyOperatorCtx(rp->comm, dm, ceed,
@@ -294,19 +294,18 @@ static PetscErrorCode RunWithDM(RunParams rp, DM dm,
       ierr = SetupErrorOperatorCtx(rp->comm, dm, ceed,
                                    ceed_data, X_loc, op_error,
                                    op_error_ctx); CHKERRQ(ierr);
-      PetscReal max_error;
-      ierr = ComputeErrorMax(op_error_ctx, X, target, &max_error);
-      CHKERRQ(ierr);
+      PetscScalar l2_error;
+      ierr = ComputeL2Error(X, &l2_error, op_error_ctx); CHKERRQ(ierr);
       PetscReal tol = 5e-2;
-      if (!rp->test_mode || max_error > tol) {
+      if (!rp->test_mode || l2_error > tol) {
         ierr = MPI_Allreduce(&my_rt, &rt_min, 1, MPI_DOUBLE, MPI_MIN, rp->comm);
         CHKERRQ(ierr);
         ierr = MPI_Allreduce(&my_rt, &rt_max, 1, MPI_DOUBLE, MPI_MAX, rp->comm);
         CHKERRQ(ierr);
         ierr = PetscPrintf(rp->comm,
-                           "    Pointwise Error (max)                   : %e\n"
+                           "    L2 Error                                : %e\n"
                            "    CG Solve Time                           : %g (%g) sec\n",
-                           (double)max_error, rt_max, rt_min); CHKERRQ(ierr);
+                           (double)l2_error, rt_max, rt_min); CHKERRQ(ierr);
       }
     }
     if (!rp->test_mode) {
