@@ -1,0 +1,105 @@
+// Copyright (c) 2017-2022, Lawrence Livermore National Security, LLC and other CEED contributors.
+// All Rights Reserved. See the top-level LICENSE and NOTICE files for details.
+//
+// SPDX-License-Identifier: BSD-2-Clause
+//
+// This file is part of CEED:  http://github.com/ceed
+
+#ifndef CEED_MAGMA_INTERP_NONTENSOR_H
+#define CEED_MAGMA_INTERP_NONTENSOR_H
+
+////////////////////////////////////////////////////////////////////////////////
+extern "C" __global__ __launch_bounds__(P*MAGMA_NONTENSOR_BASIS_NTCOL(P)) void
+magma_interp_nontensor_n(
+        magma_trans_t transA, magma_trans_t transB, magma_int_t n,
+        const CeedScalar alpha, CeedScalar const * dA, int ldda,
+        CeedScalar const * dB, int lddb,
+        const CeedScalar beta,  CeedScalar * dC, int lddc )
+{
+    MAGMA_DEVICE_SHARED(CeedScalar, shared_data);
+
+    const int tx = threadIdx.x;
+    const int ty = threadIdx.y;
+    const int bx = blockIdx.x;
+    const int id = bx * blockDim.y + ty;
+    const int nblocks = magma_ceildiv(n, NB);
+    const int myn     = min(NB, n - id*NB);
+    if(id >= nblocks) return;
+
+    dB += id * NB * lddb;
+    dC += id * NB * lddc;
+
+    // A is P x Q
+    const int sldb = Q;
+    CeedScalar* sB = (CeedScalar*)(shared_data);
+    sB += ty * sldb * NB;
+
+    // init rC
+    CeedScalar rC[NB] = {MAGMA_D_ZERO};
+    if( beta != MAGMA_D_ZERO ) {
+        read_C_g2r_1D_nosync<CeedScalar, P, NB, Q>(tx, myn, dC, lddc, beta, rC );
+    }
+
+    // read A
+    CeedScalar rA[Q] = {MAGMA_D_ZERO};
+    read_A_notrans_g2r_1D_nosync<CeedScalar, P, NB, Q>(tx, dA, ldda, NULL, 0, rA );
+
+    // read B
+    read_B_g2s_1D_nosync<CeedScalar, P, NB, Q>(tx, myn, dB, lddb, sB, sldb );
+    __syncthreads();
+
+    mul_rAsBrC_1D_nosync<CeedScalar, P, NB, Q>(tx, alpha, rA, sB, sldb, rC );
+
+    write_C_r2g_1D_nosync<CeedScalar, P, NB, Q>(tx, n, rC, dC, lddc );
+}
+
+////////////////////////////////////////////////////////////////////////////////
+extern "C" __global__ __launch_bounds__(P*MAGMA_NONTENSOR_BASIS_NTCOL(P)) void
+magma_interp_nontensor_t(
+        magma_trans_t transA, magma_trans_t transB, magma_int_t n,
+        const CeedScalar alpha, CeedScalar const * dA, int ldda,
+        CeedScalar const * dB, int lddb,
+        const CeedScalar beta,  CeedScalar * dC, int lddc )
+{
+    MAGMA_DEVICE_SHARED(CeedScalar, shared_data);
+
+    const int tx = threadIdx.x;
+    const int ty = threadIdx.y;
+    const int bx = blockIdx.x;
+    const int id = bx * blockDim.y + ty;
+    const int nblocks = magma_ceildiv(n, NB);
+    const int myn     = min(NB, n - id*NB);
+
+    //const bool irrblock = ( myn != NB );
+
+    dB += id * NB * lddb;
+    dC += id * NB * lddc;
+
+    // A is Q x P
+    const int slda = Q;
+    const int sldb = Q;
+    CeedScalar* sA = (CeedScalar*)(shared_data);
+    CeedScalar* sB = sA;
+    sB += ty * sldb * NB;
+
+    // read A (Q x P) using all threads
+    CeedScalar rA[Q] = {MAGMA_D_ZERO};
+    read_A_trans_g2r_1D_nosync<CeedScalar, P, NB, Q>(tx, ty, dA, ldda, sA, slda, rA );
+    __syncthreads();
+
+    // terminate threads with no work
+    if(id >= nblocks) return;
+
+    // init rC
+    CeedScalar rC[NB] = {MAGMA_D_ZERO};
+    read_C_g2r_1D_nosync<CeedScalar, P, NB, Q>(tx, myn, dC, lddc, beta, rC );
+
+    // read B
+    read_B_g2s_1D_nosync<CeedScalar, P, NB, Q>(tx, myn, dB, lddb, sB, sldb );
+    __syncthreads();
+
+    mul_rAsBrC_1D_nosync<CeedScalar, P, NB, Q>(tx, alpha, rA, sB, sldb, rC );
+    write_C_r2g_1D_nosync<CeedScalar, P, NB, Q>( tx, myn, rC, dC, lddc );
+}
+
+#endif // CEED_MAGMA_INTERP_NONTENSOR_H

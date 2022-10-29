@@ -664,15 +664,73 @@ int CeedBasisCreateH1_Magma(CeedElemTopology topo, CeedInt dim, CeedInt ndof,
   Ceed_Magma *data;
   ierr = CeedGetData(ceed, &data); CeedChkBackend(ierr);
 
+  ierr = CeedCalloc(1,&impl); CeedChkBackend(ierr);
+  ierr = CeedBasisSetData(basis, impl); CeedChkBackend(ierr);
+
+  -----------------------------
+  // Compile kernels
+  char *magma_common_path;
+  char *interp_path, *grad_path;
+  char *basis_kernel_source;
+  ierr = CeedGetJitAbsolutePath(ceed,
+                                "ceed/jit-source/magma/magma_common_defs.h",
+                                &magma_common_path); CeedChkBackend(ierr);
+  CeedDebug256(ceed, 2, "----- Loading Basis Kernel Source -----\n");
+  ierr = CeedLoadSourceToBuffer(ceed, magma_common_path,
+         &basis_kernel_source);
+  CeedChkBackend(ierr);
+
+  ierr = CeedGetJitAbsolutePath(ceed,
+         "ceed/jit-source/magma/magma_common_nontensor.h",
+         &magma_common_path); CeedChkBackend(ierr);
+  CeedLoadSourceToInitializedBuffer(ceed, magma_common_path,
+                                    &basis_kernel_source);
+  CeedChkBackend(ierr);
+
+  ierr = CeedGetJitAbsolutePath(ceed,
+                                "ceed/jit-source/magma/interp-nontensor.h",
+                                &interp_path); CeedChkBackend(ierr);
+  ierr = CeedLoadSourceToInitializedBuffer(ceed, interp_path,
+         &basis_kernel_source);
+  CeedChkBackend(ierr);
+
+  ierr = CeedGetJitAbsolutePath(ceed,
+                                "ceed/jit-source/magma/grad-nontensor.h",
+                                &grad_path); CeedChkBackend(ierr);
+  ierr = CeedLoadSourceToInitializedBuffer(ceed, interp_path,
+         &basis_kernel_source);
+  CeedChkBackend(ierr);
+
+  // The RTC compilation code expects a Ceed with the common Ceed_Cuda or Ceed_Hip
+  // data
+  Ceed delegate;
+  ierr = CeedGetDelegate(ceed, &delegate); CeedChkBackend(ierr);
+  ierr = CeedCompileMagma(delegate, basis_kernel_source, &impl->module, 5,
+                          "DIM", dim,
+                          "P", P1d,
+                          "Q", Q1d,
+                          "NB", 4); // TODO: tune NB
+  CeedChkBackend(ierr);
+
+  ierr = CeedGetKernelMagma(ceed, impl->module, "magma_interp_nontensor_n",
+                            &impl->magma_interp_nontensor);
+  CeedChkBackend(ierr);
+  ierr = CeedGetKernelMagma(ceed, impl->module, "magma_interp_nontensor_t",
+                            &impl->magma_interp_tr_nontensor);
+  CeedChkBackend(ierr);
+  ierr = CeedGetKernelMagma(ceed, impl->module, "magma_grad_nontensor_n",
+                            &impl->magma_grad_nontensor);
+  CeedChkBackend(ierr);
+  ierr = CeedGetKernelMagma(ceed, impl->module, "magma_grad_nontensor_t",
+                            &impl->magma_grad_tr_nontensor);
+  CeedChkBackend(ierr);
+  -----------------------------
   ierr = CeedSetBackendFunction(ceed, "Basis", basis, "Apply",
                                   CeedBasisApplyNonTensor_Magma);
   CeedChkBackend(ierr);
 
   ierr = CeedSetBackendFunction(ceed, "Basis", basis, "Destroy",
                                 CeedBasisDestroyNonTensor_Magma); CeedChkBackend(ierr);
-
-  ierr = CeedCalloc(1,&impl); CeedChkBackend(ierr);
-  ierr = CeedBasisSetData(basis, impl); CeedChkBackend(ierr);
 
   // Copy qref to the GPU
   ierr = magma_malloc((void **)&impl->dqref, nqpts*sizeof(qref[0]));
@@ -696,6 +754,12 @@ int CeedBasisCreateH1_Magma(CeedElemTopology topo, CeedInt dim, CeedInt ndof,
   CeedChkBackend(ierr);
   magma_setvector(nqpts, sizeof(qweight[0]), qweight, 1, impl->dqweight, 1,
                   data->queue);
+
+  ierr = CeedBasisSetData(basis, impl); CeedChkBackend(ierr);
+  ierr = CeedFree(&magma_common_path); CeedChkBackend(ierr);
+  ierr = CeedFree(&interp_path); CeedChkBackend(ierr);
+  ierr = CeedFree(&grad_path); CeedChkBackend(ierr);
+  ierr = CeedFree(&basis_kernel_source); CeedChkBackend(ierr);
 
   return CEED_ERROR_SUCCESS;
 }

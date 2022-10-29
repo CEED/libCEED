@@ -66,7 +66,9 @@ typedef struct {
 } CeedBasis_Magma;
 
 typedef struct {
+  CeedMagmaModule   module;
   CeedMagmaFunction magma_interp_nontensor;
+  CeedMagmaFunction magma_interp_tr_nontensor;
   CeedMagmaFunction magma_grad_nontensor;
   CeedMagmaFunction magma_grad_tr_nontensor;
   CeedScalar *dqref;
