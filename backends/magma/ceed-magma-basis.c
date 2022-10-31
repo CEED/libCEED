@@ -551,6 +551,7 @@ int CeedBasisCreateTensorH1_Magma(CeedInt dim, CeedInt P1d, CeedInt Q1d,
   CeedChkBackend(ierr);
   CeedDebug256(ceed, 2,
                "----- Loading Basis Kernel Source Complete! -----\n");
+
   // The RTC compilation code expects a Ceed with the common Ceed_Cuda or Ceed_Hip
   // data
   Ceed delegate;
@@ -703,7 +704,7 @@ int CeedBasisCreateH1_Magma(CeedElemTopology topo, CeedInt dim, CeedInt ndof,
   ierr = CeedGetJitAbsolutePath(ceed,
                                 "ceed/jit-source/magma/grad-nontensor.h",
                                 &grad_path); CeedChkBackend(ierr);
-  ierr = CeedLoadSourceToInitializedBuffer(ceed, interp_path,
+  ierr = CeedLoadSourceToInitializedBuffer(ceed, grad_path,
          &basis_kernel_source);
   CeedChkBackend(ierr);
 
@@ -711,10 +712,10 @@ int CeedBasisCreateH1_Magma(CeedElemTopology topo, CeedInt dim, CeedInt ndof,
   // data
   Ceed delegate;
   ierr = CeedGetDelegate(ceed, &delegate); CeedChkBackend(ierr);
-  ierr = CeedCompileMagma(delegate, basis_kernel_source, &impl->module, 5,
+  ierr = CeedCompileMagma(delegate, basis_kernel_source, &impl->module, 4,
                           "DIM", dim,
                           "P", ndof,
-                          "Q", nqpt,
+                          "Q", nqpts,
                           "NB", 4); // TODO: tune NB
   CeedChkBackend(ierr);
 

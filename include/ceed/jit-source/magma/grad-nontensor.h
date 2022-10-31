@@ -12,7 +12,7 @@
 // Different A's and C's, same B
 extern "C" __global__ __launch_bounds__(Q*MAGMA_NONTENSOR_BASIS_NTCOL(Q)) void
 magma_grad_nontensor_n(
-        magma_trans_t transA, magma_trans_t transB, magma_int_t n,
+        magma_trans_t transA, magma_trans_t transB, int n,
         CeedScalar const * dA, int ldda,
         CeedScalar const * dB, int lddb,
         CeedScalar       * dC, int lddc )
@@ -23,7 +23,7 @@ magma_grad_nontensor_n(
     const int ty = threadIdx.y;
     const int bx = blockIdx.x;
     const int id = bx * blockDim.y + ty;
-    const int nblocks = magma_ceildiv(n, NB);
+    const int nblocks = MAGMA_CEILDIV(n, NB);
     const int myn     = min(NB, n - id*NB);
 
     const double alpha = MAGMA_D_ONE;
@@ -74,7 +74,7 @@ magma_grad_nontensor_n(
 // Different A's and B's, same C
 extern "C" __global__ __launch_bounds__(P*MAGMA_NONTENSOR_BASIS_NTCOL(P)) void
 magma_grad_nontensor_t(
-        magma_trans_t transA, magma_trans_t transB, magma_int_t n,
+        magma_trans_t transA, magma_trans_t transB, int n,
         CeedScalar const * dA, int ldda,
         CeedScalar const * dB, int lddb,
         CeedScalar       * dC, int lddc )
@@ -85,7 +85,7 @@ magma_grad_nontensor_t(
     const int ty = threadIdx.y;
     const int bx = blockIdx.x;
     const int id = bx * blockDim.y + ty;
-    const int nblocks = magma_ceildiv(n, NB);
+    const int nblocks = MAGMA_CEILDIV(n, NB);
     const int myn     = min(NB, n - id*NB);
     if(id >= nblocks) return;
 

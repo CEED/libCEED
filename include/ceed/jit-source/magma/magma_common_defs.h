@@ -24,4 +24,8 @@ typedef enum {
 #define MAGMA_D_ZERO              0.0
 #define MAGMA_D_ONE               1.0
 
+#define MAGMA_CEILDIV(A, B)    ( ((A) + (B) - 1) / (B) )
+#define MAGMA_ROUNDUP(A, B)    MAGMA_CEILDIV((A), (B)) * (B)
+#define MAGMA_MAX(A, B)        ((A) > (B) ? (A) : (B))
+
 #endif // CEED_MAGMA_COMMON_DEFS_H
