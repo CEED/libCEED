@@ -467,6 +467,13 @@ int CeedBasisDestroyNonTensor_Magma(CeedBasis basis) {
   ierr = magma_free(impl->dinterp); CeedChkBackend(ierr);
   ierr = magma_free(impl->dgrad); CeedChkBackend(ierr);
   ierr = magma_free(impl->dqweight); CeedChkBackend(ierr);
+  Ceed ceed;
+  ierr = CeedBasisGetCeed(basis, &ceed); CeedChkBackend(ierr);
+  #ifdef CEED_MAGMA_USE_HIP
+  ierr = hipModuleUnload(impl->module); CeedChk_Hip(ceed, ierr);
+  #else
+  ierr = cuModuleUnload(impl->module); CeedChk_Cu(ceed, ierr);
+  #endif
 
   ierr = CeedFree(&impl); CeedChkBackend(ierr);
 
@@ -667,7 +674,6 @@ int CeedBasisCreateH1_Magma(CeedElemTopology topo, CeedInt dim, CeedInt ndof,
   ierr = CeedCalloc(1,&impl); CeedChkBackend(ierr);
   ierr = CeedBasisSetData(basis, impl); CeedChkBackend(ierr);
 
-  -----------------------------
   // Compile kernels
   char *magma_common_path;
   char *interp_path, *grad_path;
@@ -707,8 +713,8 @@ int CeedBasisCreateH1_Magma(CeedElemTopology topo, CeedInt dim, CeedInt ndof,
   ierr = CeedGetDelegate(ceed, &delegate); CeedChkBackend(ierr);
   ierr = CeedCompileMagma(delegate, basis_kernel_source, &impl->module, 5,
                           "DIM", dim,
-                          "P", P1d,
-                          "Q", Q1d,
+                          "P", ndof,
+                          "Q", nqpt,
                           "NB", 4); // TODO: tune NB
   CeedChkBackend(ierr);
 
@@ -724,7 +730,7 @@ int CeedBasisCreateH1_Magma(CeedElemTopology topo, CeedInt dim, CeedInt ndof,
   ierr = CeedGetKernelMagma(ceed, impl->module, "magma_grad_nontensor_t",
                             &impl->magma_grad_tr_nontensor);
   CeedChkBackend(ierr);
-  -----------------------------
+
   ierr = CeedSetBackendFunction(ceed, "Basis", basis, "Apply",
                                   CeedBasisApplyNonTensor_Magma);
   CeedChkBackend(ierr);

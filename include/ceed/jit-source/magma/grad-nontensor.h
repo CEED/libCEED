@@ -10,7 +10,7 @@
 
 ////////////////////////////////////////////////////////////////////////////////
 // Different A's and C's, same B
-extern "C" __global__ __launch_bounds__(P*MAGMA_NONTENSOR_BASIS_NTCOL(P)) void
+extern "C" __global__ __launch_bounds__(Q*MAGMA_NONTENSOR_BASIS_NTCOL(Q)) void
 magma_grad_nontensor_n(
         magma_trans_t transA, magma_trans_t transB, magma_int_t n,
         CeedScalar const * dA, int ldda,
@@ -31,42 +31,42 @@ magma_grad_nontensor_n(
     dB += id * NB * lddb;
     dC += id * NB * lddc;
 
-    // A is Q x P
-    const int slda = Q;
-    const int sldb = Q;
+    // A is P x Q
+    const int slda = P;
+    const int sldb = P;
     CeedScalar* sA = (CeedScalar*)(shared_data);
-    CeedScalar* sB = sA + P * Q;
+    CeedScalar* sB = sA + Q * P;
     sB += ty * sldb * NB;
 
     // read B once for all C's
     if( id < nblocks ) {
-        read_B_g2s_1D_nosync<CeedScalar, P, NB, Q>(tx, myn, dB, lddb, sB, sldb );
+        read_B_g2s_1D_nosync<CeedScalar, Q, NB, P>(tx, myn, dB, lddb, sB, sldb );
     }
     __syncthreads();
 
     // unrolling this loop yields dramatic performance drop using hipcc
     // let the compiler decide (no pragma unroll)
     for(int idim = 0; idim < DIM; idim++) {
-        // read A (Q x P) using all threads
-        CeedScalar rA[Q] = {MAGMA_D_ZERO};
-        read_A_trans_g2r_1D_nosync<CeedScalar, P, NB, Q>(tx, ty, dA, ldda, sA, slda, rA );
+        // read A (P x Q) using all threads
+        CeedScalar rA[P] = {MAGMA_D_ZERO};
+        read_A_trans_g2r_1D_nosync<CeedScalar, Q, NB, P>(tx, ty, dA, ldda, sA, slda, rA );
 
         __syncthreads();
 
         // init rC
         CeedScalar rC[NB] = {MAGMA_D_ZERO};
         if( id <  nblocks) {
-            mul_rAsBrC_1D_nosync<CeedScalar, P, NB, Q>(tx, alpha, rA, sB, sldb, rC );
+            mul_rAsBrC_1D_nosync<CeedScalar, Q, NB, P>(tx, alpha, rA, sB, sldb, rC );
         }
         __syncthreads();
 
 
         if( id <  nblocks) {
-            write_C_r2g_1D_nosync<CeedScalar, P, NB, Q>( tx, myn, rC, dC, lddc );
+            write_C_r2g_1D_nosync<CeedScalar, Q, NB, P>( tx, myn, rC, dC, lddc );
         }
 
-        dA += P * Q;
-        dC += P * n;
+        dA += Q * P;
+        dC += Q * n;
     }
 }
 
