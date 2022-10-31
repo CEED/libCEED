@@ -785,47 +785,4 @@ CEED_QFUNCTION(PressureOutflow_Jacobian_Prim)(void *ctx, CeedInt Q,
   return PressureOutflow_Jacobian(ctx, Q, in, out, StateFromY, StateFromY_fwd);
 }
 
-// *****************************************************************************
-// Harten Lax VanLeer (HLL) approximate Riemann solver.
-// Taking in two states (left, right) and returns RiemannFlux_HLL
-// *****************************************************************************
-CEED_QFUNCTION_HELPER StateConservative Harten_Lax_VanLeer_Flux(
-  NewtonianIdealGasContext gas, State left, State right,
-  const CeedScalar normal[3]) {
-
-  StateConservative flux_left  = FluxInviscidDotNormal(gas, left, normal);
-  StateConservative flux_right = FluxInviscidDotNormal(gas, right, normal);
-  StateConservative RiemannFlux_HLL;
-  // compute speed.
-  // TODO: This is only stable for subsonic flows. We need to include a Roe average
-  // or other technique to handle sonic flows. Stability requires that these speed estimates
-  // are *at least* as fast as the physical wave speeds.
-  CeedScalar s_left  = Dot3(left.Y.velocity, normal)
-                       - SoundSpeed(gas, left.Y.temperature);
-  CeedScalar s_right = Dot3(right.Y.velocity, normal)
-                       + SoundSpeed(gas, right.Y.temperature);
-  // Compute HLL flux
-  if (0 <= s_left) {
-    RiemannFlux_HLL = flux_left;
-  } else if (s_right <= 0) {
-    RiemannFlux_HLL = flux_right;
-  } else {
-    RiemannFlux_HLL.density =
-      (s_right * flux_left.density - s_left * flux_right.density +
-       s_left * s_right * (right.U.density - left.U.density)) /
-      (s_right - s_left);
-    for (int i = 0; i < 3; i++)
-      RiemannFlux_HLL.momentum[i] =
-        (s_right * flux_left.momentum[i] - s_left * flux_right.momentum[i] +
-         s_left * s_right * (right.U.momentum[i] - left.U.momentum[i])) /
-        (s_right - s_left);
-    RiemannFlux_HLL.E_total =
-      (s_right * flux_left.E_total - s_left * flux_right.E_total +
-       s_left * s_right * (right.U.E_total - left.U.E_total)) /
-      (s_right - s_left);
-  }
-  // Return
-  return RiemannFlux_HLL;
-}
-
 #endif // newtonian_h
