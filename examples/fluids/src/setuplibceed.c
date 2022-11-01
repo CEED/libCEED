@@ -76,6 +76,110 @@ PetscErrorCode GetRestrictionForDomain(Ceed ceed, DM dm, CeedInt height,
   PetscFunctionReturn(0);
 }
 
+PetscErrorCode AddBCSubOperator(Ceed ceed, DM dm, CeedData ceed_data,
+                                DMLabel domain_label, PetscInt value,
+                                CeedInt height, CeedInt Q_sur,
+                                CeedInt q_data_size_sur, CeedInt jac_data_size_sur,
+                                CeedQFunction qf_apply_bc, CeedQFunction qf_apply_bc_jacobian,
+                                CeedOperator *op_apply, CeedOperator *op_apply_ijacobian) {
+  CeedVector          q_data_sur, jac_data_sur;
+  CeedOperator        op_setup_sur, op_apply_bc,
+                      op_apply_bc_jacobian = NULL;
+  CeedElemRestriction elem_restr_x_sur, elem_restr_q_sur, elem_restr_qd_i_sur,
+                      elem_restr_jd_i_sur;
+  CeedInt num_qpts_sur;
+  PetscFunctionBeginUser;
+
+  // --- Get number of quadrature points for the boundaries
+  CeedBasisGetNumQuadraturePoints(ceed_data->basis_q_sur, &num_qpts_sur);
+
+
+  // ---- CEED Restriction
+  PetscCall(GetRestrictionForDomain(ceed, dm, height, domain_label, value, Q_sur,
+                                    q_data_size_sur, &elem_restr_q_sur, &elem_restr_x_sur, &elem_restr_qd_i_sur));
+  if (jac_data_size_sur > 0) {
+    // State-dependent data will be passed from residual to Jacobian. This will be collocated.
+    PetscCall(GetRestrictionForDomain(ceed, dm, height, domain_label, value, Q_sur,
+                                      jac_data_size_sur, NULL, NULL, &elem_restr_jd_i_sur));
+    CeedElemRestrictionCreateVector(elem_restr_jd_i_sur, &jac_data_sur, NULL);
+  } else {
+    elem_restr_jd_i_sur = NULL;
+    jac_data_sur = NULL;
+  }
+
+  // ---- CEED Vector
+  PetscInt loc_num_elem_sur;
+  CeedElemRestrictionGetNumElements(elem_restr_q_sur, &loc_num_elem_sur);
+  CeedVectorCreate(ceed, q_data_size_sur*loc_num_elem_sur*num_qpts_sur,
+                   &q_data_sur);
+
+  // ---- CEED Operator
+  // ----- CEED Operator for Setup (geometric factors)
+  CeedOperatorCreate(ceed, ceed_data->qf_setup_sur, NULL, NULL, &op_setup_sur);
+  CeedOperatorSetField(op_setup_sur, "dx", elem_restr_x_sur,
+                       ceed_data->basis_x_sur, CEED_VECTOR_ACTIVE);
+  CeedOperatorSetField(op_setup_sur, "weight", CEED_ELEMRESTRICTION_NONE,
+                       ceed_data->basis_x_sur, CEED_VECTOR_NONE);
+  CeedOperatorSetField(op_setup_sur, "surface qdata", elem_restr_qd_i_sur,
+                       CEED_BASIS_COLLOCATED, CEED_VECTOR_ACTIVE);
+
+  // ----- CEED Operator for Physics
+  CeedOperatorCreate(ceed, qf_apply_bc, NULL, NULL, &op_apply_bc);
+  CeedOperatorSetField(op_apply_bc, "q", elem_restr_q_sur, ceed_data->basis_q_sur,
+                       CEED_VECTOR_ACTIVE);
+  CeedOperatorSetField(op_apply_bc, "Grad_q", elem_restr_q_sur,
+                       ceed_data->basis_q_sur, CEED_VECTOR_ACTIVE);
+  CeedOperatorSetField(op_apply_bc, "surface qdata", elem_restr_qd_i_sur,
+                       CEED_BASIS_COLLOCATED, q_data_sur);
+  CeedOperatorSetField(op_apply_bc, "x", elem_restr_x_sur, ceed_data->basis_x_sur,
+                       ceed_data->x_coord);
+  CeedOperatorSetField(op_apply_bc, "v", elem_restr_q_sur, ceed_data->basis_q_sur,
+                       CEED_VECTOR_ACTIVE);
+  if (elem_restr_jd_i_sur)
+    CeedOperatorSetField(op_apply_bc, "surface jacobian data",
+                         elem_restr_jd_i_sur,
+                         CEED_BASIS_COLLOCATED, jac_data_sur);
+
+  if (qf_apply_bc_jacobian) {
+    CeedOperatorCreate(ceed, qf_apply_bc_jacobian, NULL, NULL,
+                       &op_apply_bc_jacobian);
+    CeedOperatorSetField(op_apply_bc_jacobian, "dq", elem_restr_q_sur,
+                         ceed_data->basis_q_sur, CEED_VECTOR_ACTIVE);
+    CeedOperatorSetField(op_apply_bc_jacobian, "Grad_dq", elem_restr_q_sur,
+                         ceed_data->basis_q_sur, CEED_VECTOR_ACTIVE);
+    CeedOperatorSetField(op_apply_bc_jacobian, "surface qdata", elem_restr_qd_i_sur,
+                         CEED_BASIS_COLLOCATED, q_data_sur);
+    CeedOperatorSetField(op_apply_bc_jacobian, "x", elem_restr_x_sur,
+                         ceed_data->basis_x_sur, ceed_data->x_coord);
+    CeedOperatorSetField(op_apply_bc_jacobian, "surface jacobian data",
+                         elem_restr_jd_i_sur, CEED_BASIS_COLLOCATED, jac_data_sur);
+    CeedOperatorSetField(op_apply_bc_jacobian, "v", elem_restr_q_sur,
+                         ceed_data->basis_q_sur, CEED_VECTOR_ACTIVE);
+  }
+
+  // ----- Apply CEED operator for Setup
+  CeedOperatorApply(op_setup_sur, ceed_data->x_coord, q_data_sur,
+                    CEED_REQUEST_IMMEDIATE);
+
+  // ----- Apply Sub-Operator for Physics
+  CeedCompositeOperatorAddSub(*op_apply, op_apply_bc);
+  if (op_apply_bc_jacobian)
+    CeedCompositeOperatorAddSub(*op_apply_ijacobian, op_apply_bc_jacobian);
+
+  // ----- Cleanup
+  CeedVectorDestroy(&q_data_sur);
+  CeedVectorDestroy(&jac_data_sur);
+  CeedElemRestrictionDestroy(&elem_restr_q_sur);
+  CeedElemRestrictionDestroy(&elem_restr_x_sur);
+  CeedElemRestrictionDestroy(&elem_restr_qd_i_sur);
+  CeedElemRestrictionDestroy(&elem_restr_jd_i_sur);
+  CeedOperatorDestroy(&op_setup_sur);
+  CeedOperatorDestroy(&op_apply_bc);
+  CeedOperatorDestroy(&op_apply_bc_jacobian);
+
+  PetscFunctionReturn(0);
+}
+
 // Utility function to create CEED Composite Operator for the entire domain
 PetscErrorCode CreateOperatorForDomain(Ceed ceed, DM dm, SimpleBC bc,
                                        CeedData ceed_data, Physics phys,
@@ -104,206 +208,20 @@ PetscErrorCode CreateOperatorForDomain(Ceed ceed, DM dm, SimpleBC bc,
     // --- Setup
     ierr = DMGetLabel(dm, "Face Sets", &domain_label); CHKERRQ(ierr);
 
-    // --- Get number of quadrature points for the boundaries
-    CeedInt num_qpts_sur;
-    CeedBasisGetNumQuadraturePoints(ceed_data->basis_q_sur, &num_qpts_sur);
-
     // --- Create Sub-Operator for inflow boundaries
     for (CeedInt i=0; i < bc->num_inflow; i++) {
-      CeedVector          q_data_sur, jac_data_sur;
-      CeedOperator        op_setup_sur, op_apply_inflow,
-                          op_apply_inflow_jacobian = NULL;
-      CeedElemRestriction elem_restr_x_sur, elem_restr_q_sur, elem_restr_qd_i_sur,
-                          elem_restr_jd_i_sur;
-
-      // ---- CEED Restriction
-      ierr = GetRestrictionForDomain(ceed, dm, height, domain_label, bc->inflows[i],
-                                     Q_sur, q_data_size_sur, &elem_restr_q_sur, &elem_restr_x_sur,
-                                     &elem_restr_qd_i_sur);
-      CHKERRQ(ierr);
-      if (jac_data_size_sur > 0) {
-        // State-dependent data will be passed from residual to Jacobian. This will be collocated.
-        ierr = GetRestrictionForDomain(ceed, dm, height, domain_label, bc->inflows[i],
-                                       Q_sur, jac_data_size_sur, NULL, NULL,
-                                       &elem_restr_jd_i_sur);
-        CHKERRQ(ierr);
-        CeedElemRestrictionCreateVector(elem_restr_jd_i_sur, &jac_data_sur, NULL);
-      } else {
-        elem_restr_jd_i_sur = NULL;
-        jac_data_sur = NULL;
-      }
-
-      // ---- CEED Vector
-      PetscInt loc_num_elem_sur;
-      CeedElemRestrictionGetNumElements(elem_restr_q_sur, &loc_num_elem_sur);
-      CeedVectorCreate(ceed, q_data_size_sur*loc_num_elem_sur*num_qpts_sur,
-                       &q_data_sur);
-
-      // ---- CEED Operator
-      // ----- CEED Operator for Setup (geometric factors)
-      CeedOperatorCreate(ceed, ceed_data->qf_setup_sur, NULL, NULL, &op_setup_sur);
-      CeedOperatorSetField(op_setup_sur, "dx", elem_restr_x_sur,
-                           ceed_data->basis_x_sur, CEED_VECTOR_ACTIVE);
-      CeedOperatorSetField(op_setup_sur, "weight", CEED_ELEMRESTRICTION_NONE,
-                           ceed_data->basis_x_sur, CEED_VECTOR_NONE);
-      CeedOperatorSetField(op_setup_sur, "surface qdata", elem_restr_qd_i_sur,
-                           CEED_BASIS_COLLOCATED, CEED_VECTOR_ACTIVE);
-
-      // ----- CEED Operator for Physics
-      CeedOperatorCreate(ceed, ceed_data->qf_apply_inflow, NULL, NULL,
-                         &op_apply_inflow);
-      CeedOperatorSetField(op_apply_inflow, "q", elem_restr_q_sur,
-                           ceed_data->basis_q_sur, CEED_VECTOR_ACTIVE);
-      CeedOperatorSetField(op_apply_inflow, "Grad_q", elem_restr_q_sur,
-                           ceed_data->basis_q_sur, CEED_VECTOR_ACTIVE);
-      CeedOperatorSetField(op_apply_inflow, "surface qdata", elem_restr_qd_i_sur,
-                           CEED_BASIS_COLLOCATED, q_data_sur);
-      CeedOperatorSetField(op_apply_inflow, "x", elem_restr_x_sur,
-                           ceed_data->basis_x_sur, ceed_data->x_coord);
-      CeedOperatorSetField(op_apply_inflow, "v", elem_restr_q_sur,
-                           ceed_data->basis_q_sur, CEED_VECTOR_ACTIVE);
-      if (elem_restr_jd_i_sur)
-        CeedOperatorSetField(op_apply_inflow, "surface jacobian data",
-                             elem_restr_jd_i_sur,
-                             CEED_BASIS_COLLOCATED, jac_data_sur);
-
-      if (ceed_data->qf_apply_inflow_jacobian) {
-        CeedOperatorCreate(ceed, ceed_data->qf_apply_inflow_jacobian, NULL, NULL,
-                           &op_apply_inflow_jacobian);
-        CeedOperatorSetField(op_apply_inflow_jacobian, "dq", elem_restr_q_sur,
-                             ceed_data->basis_q_sur, CEED_VECTOR_ACTIVE);
-        CeedOperatorSetField(op_apply_inflow_jacobian, "Grad_dq", elem_restr_q_sur,
-                             ceed_data->basis_q_sur, CEED_VECTOR_ACTIVE);
-        CeedOperatorSetField(op_apply_inflow_jacobian, "surface qdata",
-                             elem_restr_qd_i_sur,
-                             CEED_BASIS_COLLOCATED, q_data_sur);
-        CeedOperatorSetField(op_apply_inflow_jacobian, "x", elem_restr_x_sur,
-                             ceed_data->basis_x_sur, ceed_data->x_coord);
-        CeedOperatorSetField(op_apply_inflow_jacobian, "surface jacobian data",
-                             elem_restr_jd_i_sur,
-                             CEED_BASIS_COLLOCATED, jac_data_sur);
-        CeedOperatorSetField(op_apply_inflow_jacobian, "v", elem_restr_q_sur,
-                             ceed_data->basis_q_sur, CEED_VECTOR_ACTIVE);
-      }
-
-      // ----- Apply CEED operator for Setup
-      CeedOperatorApply(op_setup_sur, ceed_data->x_coord, q_data_sur,
-                        CEED_REQUEST_IMMEDIATE);
-
-      // ----- Apply Sub-Operator for Physics
-      CeedCompositeOperatorAddSub(*op_apply, op_apply_inflow);
-      if (op_apply_ijacobian)
-        CeedCompositeOperatorAddSub(*op_apply_ijacobian, op_apply_inflow_jacobian);
-
-      // ----- Cleanup
-      CeedVectorDestroy(&q_data_sur);
-      CeedVectorDestroy(&jac_data_sur);
-      CeedElemRestrictionDestroy(&elem_restr_q_sur);
-      CeedElemRestrictionDestroy(&elem_restr_x_sur);
-      CeedElemRestrictionDestroy(&elem_restr_qd_i_sur);
-      CeedElemRestrictionDestroy(&elem_restr_jd_i_sur);
-      CeedOperatorDestroy(&op_setup_sur);
-      CeedOperatorDestroy(&op_apply_inflow);
-      CeedOperatorDestroy(&op_apply_inflow_jacobian);
+      PetscCall(AddBCSubOperator(ceed, dm, ceed_data, domain_label, bc->inflows[i],
+                                 height, Q_sur, q_data_size_sur, jac_data_size_sur,
+                                 ceed_data->qf_apply_inflow, ceed_data->qf_apply_inflow_jacobian,
+                                 op_apply, op_apply_ijacobian));
     }
 
     // --- Create Sub-Operator for outflow boundaries
     for (CeedInt i=0; i < bc->num_outflow; i++) {
-      CeedVector          q_data_sur, jac_data_sur;
-      CeedOperator        op_setup_sur, op_apply_outflow,
-                          op_apply_outflow_jacobian = NULL;
-      CeedElemRestriction elem_restr_x_sur, elem_restr_q_sur, elem_restr_qd_i_sur,
-                          elem_restr_jd_i_sur;
-
-      // ---- CEED Restriction
-      ierr = GetRestrictionForDomain(ceed, dm, height, domain_label, bc->outflows[i],
-                                     Q_sur, q_data_size_sur, &elem_restr_q_sur, &elem_restr_x_sur,
-                                     &elem_restr_qd_i_sur);
-      CHKERRQ(ierr);
-      if (jac_data_size_sur > 0) {
-        // State-dependent data will be passed from residual to Jacobian. This will be collocated.
-        ierr = GetRestrictionForDomain(ceed, dm, height, domain_label, bc->outflows[i],
-                                       Q_sur, jac_data_size_sur, NULL, NULL,
-                                       &elem_restr_jd_i_sur);
-        CHKERRQ(ierr);
-        CeedElemRestrictionCreateVector(elem_restr_jd_i_sur, &jac_data_sur, NULL);
-      } else {
-        elem_restr_jd_i_sur = NULL;
-        jac_data_sur = NULL;
-      }
-
-      // ---- CEED Vector
-      PetscInt loc_num_elem_sur;
-      CeedElemRestrictionGetNumElements(elem_restr_q_sur, &loc_num_elem_sur);
-      CeedVectorCreate(ceed, q_data_size_sur*loc_num_elem_sur*num_qpts_sur,
-                       &q_data_sur);
-
-      // ---- CEED Operator
-      // ----- CEED Operator for Setup (geometric factors)
-      CeedOperatorCreate(ceed, ceed_data->qf_setup_sur, NULL, NULL, &op_setup_sur);
-      CeedOperatorSetField(op_setup_sur, "dx", elem_restr_x_sur,
-                           ceed_data->basis_x_sur, CEED_VECTOR_ACTIVE);
-      CeedOperatorSetField(op_setup_sur, "weight", CEED_ELEMRESTRICTION_NONE,
-                           ceed_data->basis_x_sur, CEED_VECTOR_NONE);
-      CeedOperatorSetField(op_setup_sur, "surface qdata", elem_restr_qd_i_sur,
-                           CEED_BASIS_COLLOCATED, CEED_VECTOR_ACTIVE);
-
-      // ----- CEED Operator for Physics
-      CeedOperatorCreate(ceed, ceed_data->qf_apply_outflow, NULL, NULL,
-                         &op_apply_outflow);
-      CeedOperatorSetField(op_apply_outflow, "q", elem_restr_q_sur,
-                           ceed_data->basis_q_sur, CEED_VECTOR_ACTIVE);
-      CeedOperatorSetField(op_apply_outflow, "Grad_q", elem_restr_q_sur,
-                           ceed_data->basis_q_sur, CEED_VECTOR_ACTIVE);
-      CeedOperatorSetField(op_apply_outflow, "surface qdata", elem_restr_qd_i_sur,
-                           CEED_BASIS_COLLOCATED, q_data_sur);
-      CeedOperatorSetField(op_apply_outflow, "x", elem_restr_x_sur,
-                           ceed_data->basis_x_sur, ceed_data->x_coord);
-      CeedOperatorSetField(op_apply_outflow, "v", elem_restr_q_sur,
-                           ceed_data->basis_q_sur, CEED_VECTOR_ACTIVE);
-      if (elem_restr_jd_i_sur)
-        CeedOperatorSetField(op_apply_outflow, "surface jacobian data",
-                             elem_restr_jd_i_sur,
-                             CEED_BASIS_COLLOCATED, jac_data_sur);
-
-      if (ceed_data->qf_apply_outflow_jacobian) {
-        CeedOperatorCreate(ceed, ceed_data->qf_apply_outflow_jacobian, NULL, NULL,
-                           &op_apply_outflow_jacobian);
-        CeedOperatorSetField(op_apply_outflow_jacobian, "dq", elem_restr_q_sur,
-                             ceed_data->basis_q_sur, CEED_VECTOR_ACTIVE);
-        CeedOperatorSetField(op_apply_outflow_jacobian, "Grad_dq", elem_restr_q_sur,
-                             ceed_data->basis_q_sur, CEED_VECTOR_ACTIVE);
-        CeedOperatorSetField(op_apply_outflow_jacobian, "surface qdata",
-                             elem_restr_qd_i_sur,
-                             CEED_BASIS_COLLOCATED, q_data_sur);
-        CeedOperatorSetField(op_apply_outflow_jacobian, "x", elem_restr_x_sur,
-                             ceed_data->basis_x_sur, ceed_data->x_coord);
-        CeedOperatorSetField(op_apply_outflow_jacobian, "surface jacobian data",
-                             elem_restr_jd_i_sur,
-                             CEED_BASIS_COLLOCATED, jac_data_sur);
-        CeedOperatorSetField(op_apply_outflow_jacobian, "v", elem_restr_q_sur,
-                             ceed_data->basis_q_sur, CEED_VECTOR_ACTIVE);
-      }
-
-      // ----- Apply CEED operator for Setup
-      CeedOperatorApply(op_setup_sur, ceed_data->x_coord, q_data_sur,
-                        CEED_REQUEST_IMMEDIATE);
-
-      // ----- Apply Sub-Operator for Physics
-      CeedCompositeOperatorAddSub(*op_apply, op_apply_outflow);
-      if (op_apply_ijacobian)
-        CeedCompositeOperatorAddSub(*op_apply_ijacobian, op_apply_outflow_jacobian);
-
-      // ----- Cleanup
-      CeedVectorDestroy(&q_data_sur);
-      CeedVectorDestroy(&jac_data_sur);
-      CeedElemRestrictionDestroy(&elem_restr_q_sur);
-      CeedElemRestrictionDestroy(&elem_restr_x_sur);
-      CeedElemRestrictionDestroy(&elem_restr_qd_i_sur);
-      CeedElemRestrictionDestroy(&elem_restr_jd_i_sur);
-      CeedOperatorDestroy(&op_setup_sur);
-      CeedOperatorDestroy(&op_apply_outflow);
-      CeedOperatorDestroy(&op_apply_outflow_jacobian);
+      PetscCall(AddBCSubOperator(ceed, dm, ceed_data, domain_label, bc->outflows[i],
+                                 height, Q_sur, q_data_size_sur, jac_data_size_sur,
+                                 ceed_data->qf_apply_outflow, ceed_data->qf_apply_outflow_jacobian,
+                                 op_apply, op_apply_ijacobian));
     }
   }
 
