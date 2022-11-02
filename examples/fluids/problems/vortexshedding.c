@@ -54,7 +54,12 @@ PetscErrorCode NS_VORTEXSHEDDING(ProblemData *problem, DM dm, void *ctx) {
                             NULL, P0, &P0, NULL); CHKERRQ(ierr);
   ierr = PetscOptionsScalar("-temperature_inflow", "Temperature at inflow",
                             NULL, T_in, &T_in, NULL); CHKERRQ(ierr);
-
+  ierr = PetscOptionsScalar("-L", "Length of the rectangular channel",
+                            NULL, L, &L, NULL); CHKERRQ(ierr);
+  ierr = PetscOptionsScalar("-H", "Heigth of the rectangular channel",
+                            NULL, H, &H, NULL); CHKERRQ(ierr);
+  ierr = PetscOptionsScalar("-D", "Cylinder diameter",
+                            NULL, D, &D, NULL); CHKERRQ(ierr);
   PetscOptionsEnd();
 
   PetscScalar meter  = user->units->meter;
@@ -65,14 +70,20 @@ PetscErrorCode NS_VORTEXSHEDDING(ProblemData *problem, DM dm, void *ctx) {
   T_in   *= Kelvin;
   P0     *= Pascal;
   U_in   *= meter / second;
+  L   *= meter;
+  H   *= meter;
+  D   *= meter;
 
   //-- Setup Problem information
-  CeedScalar L, H;
+  CeedScalar L, H, center;
   {
     PetscReal domain_min[3], domain_max[3], domain_size[3];
     ierr = DMGetBoundingBox(dm, domain_min, domain_max); CHKERRQ(ierr);
     // compute L and H
-
+    for (PetscInt i=0; i<3; i++) domain_size[i] = domain_max[i] - domain_min[i];
+    L = domain_size[0]*meter;
+    H = domain_size[1]*meter;
+    center = 0.5 * H; // this should be checked
   }
   // Some properties depend on parameters from NewtonianIdealGas
   CeedQFunctionContextGetData(problem->apply_vol_rhs.qfunction_context,
@@ -80,7 +91,9 @@ PetscErrorCode NS_VORTEXSHEDDING(ProblemData *problem, DM dm, void *ctx) {
 
   vortexshedding_ctx->L        = L;
   vortexshedding_ctx->H        = H;
-  vortexshedding_ctx->d        = d;
+  vortexshedding_ctx->d        = D;
+  vortexshedding_ctx->center   = center;
+  vortexshedding_ctx->radius   = radius;
   vortexshedding_ctx->T_in     = T_in;
   vortexshedding_ctx->P0       = P0;
   vortexshedding_ctx->U_in     = U_in;
