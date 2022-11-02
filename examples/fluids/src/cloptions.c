@@ -169,6 +169,11 @@ PetscErrorCode ProcessCommandLineOptions(MPI_Comm comm, AppCtx app_ctx,
   ierr = PetscOptionsIntArray("-bc_outflow",
                               "Face IDs to apply outflow BC",
                               NULL, bc->outflows, &bc->num_outflow, NULL); CHKERRQ(ierr);
+  // Freestream BCs
+  bc->num_freestream = 16;
+  ierr = PetscOptionsIntArray("-bc_freestream",
+                              "Face IDs to apply freestream BC",
+                              NULL, bc->freestreams, &bc->num_freestream, NULL); CHKERRQ(ierr);
 
   PetscOptionsEnd();
 

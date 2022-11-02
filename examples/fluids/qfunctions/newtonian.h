@@ -784,5 +784,4 @@ CEED_QFUNCTION(PressureOutflow_Jacobian_Prim)(void *ctx, CeedInt Q,
     const CeedScalar *const *in, CeedScalar *const *out) {
   return PressureOutflow_Jacobian(ctx, Q, in, out, StateFromY, StateFromY_fwd);
 }
-
 #endif // newtonian_h

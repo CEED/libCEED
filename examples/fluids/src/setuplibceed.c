@@ -223,6 +223,14 @@ PetscErrorCode CreateOperatorForDomain(Ceed ceed, DM dm, SimpleBC bc,
                                  ceed_data->qf_apply_outflow, ceed_data->qf_apply_outflow_jacobian,
                                  op_apply, op_apply_ijacobian));
     }
+
+    // --- Create Sub-Operator for freestream boundaries
+    for (CeedInt i=0; i < bc->num_freestream; i++) {
+      PetscCall(AddBCSubOperator(ceed, dm, ceed_data, domain_label,
+                                 bc->freestreams[i], height, Q_sur, q_data_size_sur, jac_data_size_sur,
+                                 ceed_data->qf_apply_freestream, ceed_data->qf_apply_freestream_jacobian,
+                                 op_apply, op_apply_ijacobian));
+    }
   }
 
   // ----- Get Context Labels for Operator
@@ -577,11 +585,15 @@ PetscErrorCode SetupLibceed(Ceed ceed, CeedData ceed_data, DM dm, User user,
                               problem->apply_inflow, problem->apply_inflow_jacobian,
                               &ceed_data->qf_apply_inflow, &ceed_data->qf_apply_inflow_jacobian));
 
-  // -- Create QFunction for outflow boundaries
   PetscCall(SetupBCQFunctions(ceed, dim_sur, num_comp_x, num_comp_q,
                               q_data_size_sur, jac_data_size_sur,
                               problem->apply_outflow, problem->apply_outflow_jacobian,
                               &ceed_data->qf_apply_outflow, &ceed_data->qf_apply_outflow_jacobian));
+
+  PetscCall(SetupBCQFunctions(ceed, dim_sur, num_comp_x, num_comp_q,
+                              q_data_size_sur, jac_data_size_sur,
+                              problem->apply_freestream, problem->apply_freestream_jacobian,
+                              &ceed_data->qf_apply_freestream, &ceed_data->qf_apply_freestream_jacobian));
 
   // *****************************************************************************
   // CEED Operator Apply
