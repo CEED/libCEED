@@ -235,6 +235,8 @@ extern int FreeContextPetsc(void *);
 // Set up problems
 // -----------------------------------------------------------------------------
 // Set up function for each problem
+extern PetscErrorCode NS_VORTEXSHEDDING(ProblemData *problem, DM dm,
+                                 void *ctx);
 extern PetscErrorCode NS_CHANNEL(ProblemData *problem, DM dm,
                                  void *ctx);
 extern PetscErrorCode NS_BLASIUS(ProblemData *problem, DM dm,
