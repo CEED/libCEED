@@ -1,9 +1,33 @@
-problem: 'vortex_shedding'
+problem: 'vortexshedding'
+
+# Time Stepping Settings
+implicit: true
+ts:
+  adapt_type: 'none'
+  type: 'beuler'
+  dt: 0.2e-5
+  max_time: 1.0e-3
+output_freq: 10
 
 # viscosity
-mu:
-# Cylinder diameter
-d: 
-# Reynolds number
-Re:
+mu: 0.01
 
+# Cylinder diameter
+D:  1.0
+
+## DM Settings:
+degree: 1
+dm_plex_dim: 3
+dm_plex_box_lower: 0,0,0
+dm_plex_box_faces: 50,20,1
+dm_plex_filename: examples/fluids/cylinder.msh
+
+# Boundary Settings
+bc_slip_z: 1,2
+bc_wall: 3,4
+bc_inflow:
+bc_outflow:
+bc_freestream:
+wall_comps: 1,2,3
+
+# Cylinder boundary Settings
