@@ -28,7 +28,7 @@ jobs:
       with:
         args: '--run-types Doctests Tests --exclude-files backends/* gallery/* include/* interface/* --out Xml'
     - name: Codecov upload
-      uses: codecov/codecov-action@v2
+      uses: codecov/codecov-action@v3
       with:
         files: ./cobertura.xml
         token: ${{secrets.CODECOV_TOKEN}}
