@@ -38,6 +38,8 @@ PetscErrorCode RegisterProblems_NS(AppCtx app_ctx) {
 
   ierr = PetscFunctionListAdd(&app_ctx->problems, "channel",
                               NS_CHANNEL); CHKERRQ(ierr);
+  ierr = PetscFunctionListAdd(&app_ctx->problems, "vortexshedding",
+                              NS_VORTEXSHEDDING); CHKERRQ(ierr);
 
   PetscFunctionReturn(0);
 }
