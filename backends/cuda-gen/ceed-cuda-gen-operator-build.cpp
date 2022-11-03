@@ -121,7 +121,7 @@ extern "C" int CeedCudaGenOperatorBuild(CeedOperator op) {
   string q_function_source(qf_data->q_function_source);
   string q_function_name(qf_data->q_function_name);
   string operator_name;
-  operator_name = "CeedKernel_Cuda_gen_" + q_function_name;
+  operator_name = "CeedKernelCudaGenOperator_" + q_function_name;
 
   // Find dim, P_1d, Q_1d
   data->max_P_1d = 0;
