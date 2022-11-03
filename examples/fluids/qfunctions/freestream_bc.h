@@ -17,6 +17,21 @@ struct FreestreamContext_ {
   State S_infty;
 };
 
+typedef struct {
+  CeedScalar left, right;
+} RoeWeights;
+
+CEED_QFUNCTION_HELPER RoeWeights RoeSetup(CeedScalar rho_left,
+    CeedScalar rho_right) {
+  CeedScalar sqrt_left = sqrt(rho_left), sqrt_right = sqrt(rho_right);
+  return (RoeWeights) {sqrt_left / (sqrt_left + sqrt_right), sqrt_right / (sqrt_left + sqrt_right)};
+}
+
+CEED_QFUNCTION_HELPER CeedScalar RoeAverage(RoeWeights r, CeedScalar q_left,
+    CeedScalar q_right) {
+  return r.left * q_left + r.right * q_right;
+}
+
 // *****************************************************************************
 // @brief Harten Lax VanLeer (HLL) approximate Riemann solver.
 // Taking in two states (left, right) and returns RiemannFlux_HLL
@@ -32,17 +47,31 @@ CEED_QFUNCTION_HELPER StateConservative Harten_Lax_VanLeer_Flux(
   NewtonianIdealGasContext gas, State left, State right,
   const CeedScalar normal[3]) {
 
+  const CeedScalar gamma = gas->cp / gas->cv;
+
   StateConservative flux_left  = FluxInviscidDotNormal(gas, left, normal);
   StateConservative flux_right = FluxInviscidDotNormal(gas, right, normal);
   StateConservative RiemannFlux_HLL;
-  // compute speed.
-  // TODO: This is only stable for subsonic flows. We need to include a Roe average
-  // or other technique to handle sonic flows. Stability requires that these speed estimates
-  // are *at least* as fast as the physical wave speeds.
-  CeedScalar s_left  = Dot3(left.Y.velocity, normal)
-                       - SoundSpeed(gas, left.Y.temperature);
-  CeedScalar s_right = Dot3(right.Y.velocity, normal)
-                       + SoundSpeed(gas, right.Y.temperature);
+
+  CeedScalar u_left = Dot3(left.Y.velocity, normal);
+  CeedScalar u_right = Dot3(right.Y.velocity, normal);
+
+  RoeWeights r = RoeSetup(left.U.density, right.U.density);
+  // Speed estimate
+  // Roe average eigenvalues for left and right non-linear waves
+  // Stability requires that these speed estimates are *at least*
+  // as fast as the physical wave speeds.
+  CeedScalar u_roe = RoeAverage(r, u_left, u_right);
+
+  CeedScalar H_left = (left.U.E_total + left.Y.pressure) / left.U.density;
+  CeedScalar H_right = (right.U.E_total + right.Y.pressure) / right.U.density;
+  CeedScalar H_roe = RoeAverage(r, H_left, H_right);
+  CeedScalar a_roe = sqrt((gamma - 1) * (H_roe - 0.5 * Square(u_roe)));
+
+  // Einfeldt (1988) justifies (and Toro's book repeats) that Roe speeds can be used here.
+  CeedScalar s_left = u_roe - a_roe;
+  CeedScalar s_right = u_roe + a_roe;
+
   // Compute HLL flux
   if (0 <= s_left) {
     RiemannFlux_HLL = flux_left;
