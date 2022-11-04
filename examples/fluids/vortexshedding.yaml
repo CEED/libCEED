@@ -33,9 +33,8 @@ dm_plex_box_faces: 50,20,1
 dm_plex_filename: examples/fluids/cylinder.msh
 
 # Boundary Settings
-bc_slip_z: 36, 112, 80, 120
-bc_wall: 94, 28, 50, 72
-bc_inflow: 102
-bc_freestream: 116
-wall_comps: 37, 1, 4, 103, 3, 81, 2, 59, 5, 125 #not sure of this!
+bc_slip_z: 6
+bc_wall: 5
+bc_freestream: 1,2,3,4
+wall_comps: 1,2,3
 
