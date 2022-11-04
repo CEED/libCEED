@@ -48,9 +48,9 @@ CEED_QFUNCTION_HELPER State CylinderInitialCondition(const VortexsheddingContext
   CeedScalar T_in              = vortexshedding->T_in;
   CeedScalar Y[5];
   Y[0] = U_in;
-  Y[1] = tanh(min(0, fabs(x[0] - center) - radius) / D);
-  Y[2] = tanh(min(0, fabs(x[1] - center) - radius) / D);
-  Y[3] = tanh(min(0, fabs(x[2] - center) - radius) / D);
+  Y[1] = tanh(Min(0, fabs(x[0] - center) - radius) / D);
+  Y[2] = tanh(Min(0, fabs(x[1] - center) - radius) / D);
+  Y[3] = tanh(Min(0, fabs(x[2] - center) - radius) / D);
   Y[4] = T_in;
 
   return StateFromY(&vortexshedding->newtonian_ctx, Y, x);
