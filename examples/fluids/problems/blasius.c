@@ -321,10 +321,10 @@ PetscErrorCode NS_BLASIUS(ProblemData *problem, DM dm, void *ctx) {
   PetscScalar Kelvin = user->units->Kelvin;
   PetscScalar Pascal = user->units->Pascal;
 
-  T_inf   *= Kelvin;
+  T_inf  *= Kelvin;
   T_wall *= Kelvin;
   P0     *= Pascal;
-  U_inf   *= meter / second;
+  U_inf  *= meter / second;
   delta0 *= meter;
 
   PetscReal *mesh_ynodes = NULL;

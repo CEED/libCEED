@@ -100,7 +100,7 @@ CEED_QFUNCTION_HELPER void InterpolateProfile(const CeedScalar wall_dist,
  * @param[in]  Ektot  Total turbulent kinetic energy of spectrum
  * @returns    qn     Spectrum coefficient
  */
-CeedScalar CEED_QFUNCTION_HELPER(Calc_qn)(const CeedScalar kappa,
+CEED_QFUNCTION_HELPER CeedScalar Calc_qn (const CeedScalar kappa,
     const CeedScalar dkappa, const CeedScalar keta, const CeedScalar kcut,
     const CeedScalar ke, const CeedScalar Ektot_inv) {
   const CeedScalar feta_x_fcut   = exp(-Square(12*kappa/keta)
@@ -110,7 +110,7 @@ CeedScalar CEED_QFUNCTION_HELPER(Calc_qn)(const CeedScalar kappa,
 }
 
 // Calculate hmax, ke, keta, and kcut
-void CEED_QFUNCTION_HELPER(SpectrumConstants)(const CeedScalar wall_dist,
+CEED_QFUNCTION_HELPER void SpectrumConstants (const CeedScalar wall_dist,
     const CeedScalar eps, const CeedScalar lt, const CeedScalar h[3],
     const CeedScalar nu, CeedScalar *hmax, CeedScalar *ke,
     CeedScalar *keta, CeedScalar *kcut) {
@@ -133,7 +133,7 @@ void CEED_QFUNCTION_HELPER(SpectrumConstants)(const CeedScalar wall_dist,
  * @param[in]  stg_ctx   STGShur14Context for the problem
  * @param[out] qn        Spectrum coefficients, [nmodes]
  */
-void CEED_QFUNCTION_HELPER(CalcSpectrum)(const CeedScalar wall_dist,
+CEED_QFUNCTION_HELPER void CalcSpectrum (const CeedScalar wall_dist,
     const CeedScalar eps, const CeedScalar lt, const CeedScalar h[3],
     const CeedScalar nu, CeedScalar qn[], const STGShur14Context stg_ctx) {
 
@@ -163,7 +163,7 @@ void CEED_QFUNCTION_HELPER(CalcSpectrum)(const CeedScalar wall_dist,
  * @param[out] u       Velocity at X and t
  * @param[in]  stg_ctx STGShur14Context for the problem
  */
-void CEED_QFUNCTION_HELPER(STGShur14_Calc)(const CeedScalar X[3],
+CEED_QFUNCTION_HELPER void STGShur14_Calc (const CeedScalar X[3],
     const CeedScalar t, const CeedScalar ubar[3], const CeedScalar cij[6],
     const CeedScalar qn[], CeedScalar u[3],
     const STGShur14Context stg_ctx) {
@@ -210,7 +210,7 @@ void CEED_QFUNCTION_HELPER(STGShur14_Calc)(const CeedScalar X[3],
  * @param[out] u         Velocity at X and t
  * @param[in]  stg_ctx   STGShur14Context for the problem
  */
-void CEED_QFUNCTION_HELPER(STGShur14_Calc_PrecompEktot)(const CeedScalar X[3],
+CEED_QFUNCTION_HELPER void STGShur14_Calc_PrecompEktot(const CeedScalar X[3],
     const CeedScalar t, const CeedScalar ubar[3], const CeedScalar cij[6],
     const CeedScalar Ektot, const CeedScalar h[3], const CeedScalar wall_dist,
     const CeedScalar eps, const CeedScalar lt, const CeedScalar nu, CeedScalar u[3],
