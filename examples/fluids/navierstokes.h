@@ -121,6 +121,7 @@ struct AppCtx_private {
   char              cont_file[PETSC_MAX_PATH_LEN];
   char              cont_time_file[PETSC_MAX_PATH_LEN];
   char              output_dir[PETSC_MAX_PATH_LEN];
+  PetscBool         add_stepnum2bin;
   // Problem type arguments
   PetscFunctionList problems;
   char              problem_name[PETSC_MAX_PATH_LEN];

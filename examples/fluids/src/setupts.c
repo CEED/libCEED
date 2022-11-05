@@ -428,8 +428,14 @@ PetscErrorCode WriteOutput(User user, Vec Q, PetscInt step_no,
   PetscCall(DMRestoreLocalVector(user->dm, &Q_loc));
 
   // Save data in a binary file for continuation of simulations
-  PetscCall(PetscSNPrintf(file_path, sizeof file_path, "%s/ns-solution.bin",
-                          user->app_ctx->output_dir));
+  if (user->app_ctx->add_stepnum2bin) {
+    PetscCall(PetscSNPrintf(file_path, sizeof file_path,
+                            "%s/ns-solution-%" PetscInt_FMT ".bin",
+                            user->app_ctx->output_dir, step_no + user->app_ctx->cont_steps));
+  } else {
+    PetscCall(PetscSNPrintf(file_path, sizeof file_path, "%s/ns-solution.bin",
+                            user->app_ctx->output_dir));
+  }
   PetscCall(PetscViewerBinaryOpen(user->comm, file_path, FILE_MODE_WRITE,
                                   &viewer));
 
@@ -439,8 +445,14 @@ PetscErrorCode WriteOutput(User user, Vec Q, PetscInt step_no,
   // Save time stamp
   // Dimensionalize time back
   time /= user->units->second;
-  PetscCall(PetscSNPrintf(file_path, sizeof file_path, "%s/ns-time.bin",
-                          user->app_ctx->output_dir));
+  if (user->app_ctx->add_stepnum2bin) {
+    PetscCall(PetscSNPrintf(file_path, sizeof file_path,
+                            "%s/ns-time-%" PetscInt_FMT ".bin",
+                            user->app_ctx->output_dir, step_no + user->app_ctx->cont_steps));
+  } else {
+    PetscCall(PetscSNPrintf(file_path, sizeof file_path, "%s/ns-time.bin",
+                            user->app_ctx->output_dir));
+  }
   PetscCall(PetscViewerBinaryOpen(user->comm, file_path, FILE_MODE_WRITE,
                                   &viewer));
 

@@ -87,6 +87,10 @@ PetscErrorCode ProcessCommandLineOptions(MPI_Comm comm, AppCtx app_ctx,
                          "Frequency of output, in number of steps",
                          NULL, app_ctx->output_freq, &app_ctx->output_freq, NULL); CHKERRQ(ierr);
 
+  PetscCall(PetscOptionsBool("-output_add_stepnum2bin",
+                             "Add step number to the binary outputs",
+                             NULL, app_ctx->add_stepnum2bin, &app_ctx->add_stepnum2bin, NULL));
+
   PetscCall(PetscStrncpy(app_ctx->output_dir, ".", 2));
   PetscCall(PetscOptionsString("-output_dir", "Output directory",
                                NULL, app_ctx->output_dir, app_ctx->output_dir,
