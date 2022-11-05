@@ -29,12 +29,13 @@ struct STGShur14Context_ {
   CeedScalar dx;          // !< dx used for h calculation
   CeedScalar dz;          // !< dz used for h calculation
   bool       prescribe_T; // !< Prescribe temperature weakly
+  bool       use_fluctuating_IC; // !< Only apply the mean profile
   struct NewtonianIdealGasContext_ newtonian_ctx;
 
   struct {
     size_t sigma, d, phi; // !< Random number set, [nmodes,3], [nmodes,3], [nmodes]
     size_t kappa;     // !< Wavemode frequencies in increasing order, [nmodes]
-    size_t wall_dist;   // !< Distance to wall for Inflow Profie, [nprof]
+    size_t wall_dist; // !< Distance to wall for Inflow Profie, [nprof]
     size_t ubar;      // !< Mean velocity, [nprof, 3]
     size_t cij;       // !< Cholesky decomposition [nprof, 6]
     size_t eps;       // !< Turbulent Disspation [nprof, 6]

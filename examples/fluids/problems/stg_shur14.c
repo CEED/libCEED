@@ -325,8 +325,9 @@ PetscErrorCode SetupSTG(const MPI_Comm comm, const DM dm, ProblemData *problem,
   PetscErrorCode ierr;
   char stg_inflow_path[PETSC_MAX_PATH_LEN] = "./STGInflow.dat";
   char stg_rand_path[PETSC_MAX_PATH_LEN]   = "./STGRand.dat";
-  PetscBool  mean_only     = PETSC_FALSE,
-             use_stgstrong = PETSC_FALSE;
+  PetscBool  mean_only          = PETSC_FALSE,
+             use_stgstrong      = PETSC_FALSE,
+             use_fluctuating_IC = PETSC_FALSE;
   CeedScalar u0            = 0.0,
              alpha         = 1.01;
   CeedQFunctionContext stg_context;
@@ -349,17 +350,21 @@ PetscErrorCode SetupSTG(const MPI_Comm comm, const DM dm, ProblemData *problem,
                           NULL, mean_only, &mean_only, NULL); CHKERRQ(ierr);
   ierr = PetscOptionsBool("-stg_strong", "Enforce STG inflow strongly",
                           NULL, use_stgstrong, &use_stgstrong, NULL); CHKERRQ(ierr);
+  PetscCall(PetscOptionsBool("-stg_fluctuating_IC",
+                             "\"Extrude\" the fluctuations through the domain as an initial condition",
+                             NULL, use_fluctuating_IC, &use_fluctuating_IC, NULL));
   PetscOptionsEnd();
 
   ierr = PetscCalloc1(1, &global_stg_ctx); CHKERRQ(ierr);
-  global_stg_ctx->alpha         = alpha;
-  global_stg_ctx->u0            = u0;
-  global_stg_ctx->is_implicit   = user->phys->implicit;
-  global_stg_ctx->prescribe_T   = prescribe_T;
-  global_stg_ctx->mean_only     = mean_only;
-  global_stg_ctx->theta0        = theta0;
-  global_stg_ctx->P0            = P0;
-  global_stg_ctx->nynodes       = nynodes;
+  global_stg_ctx->alpha              = alpha;
+  global_stg_ctx->u0                 = u0;
+  global_stg_ctx->is_implicit        = user->phys->implicit;
+  global_stg_ctx->prescribe_T        = prescribe_T;
+  global_stg_ctx->mean_only          = mean_only;
+  global_stg_ctx->use_fluctuating_IC = use_fluctuating_IC;
+  global_stg_ctx->theta0             = theta0;
+  global_stg_ctx->P0                 = P0;
+  global_stg_ctx->nynodes            = nynodes;
 
   {
     // Calculate dx assuming constant spacing
