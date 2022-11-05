@@ -226,14 +226,11 @@ PetscErrorCode PostProcess_NS(TS ts, CeedData ceed_data, DM dm,
 PetscErrorCode SetupICsFromBinary(MPI_Comm comm, AppCtx app_ctx, Vec Q) {
 
   PetscViewer    viewer;
-  char           file_path[PETSC_MAX_PATH_LEN];
   PetscErrorCode ierr;
   PetscFunctionBegin;
 
   // Read input
-  ierr = PetscSNPrintf(file_path, sizeof file_path, "%s/ns-solution.bin",
-                       app_ctx->output_dir); CHKERRQ(ierr);
-  ierr = PetscViewerBinaryOpen(comm, file_path, FILE_MODE_READ, &viewer);
+  ierr = PetscViewerBinaryOpen(comm, app_ctx->cont_file, FILE_MODE_READ, &viewer);
   CHKERRQ(ierr);
 
   // Load Q from existent solution
