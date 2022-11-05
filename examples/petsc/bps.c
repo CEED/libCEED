@@ -296,7 +296,7 @@ static PetscErrorCode RunWithDM(RunParams rp, DM dm,
                                    op_error_ctx); CHKERRQ(ierr);
       PetscScalar l2_error;
       ierr = ComputeL2Error(X, &l2_error, op_error_ctx); CHKERRQ(ierr);
-      PetscReal tol = 5e-2;
+      PetscReal tol = 5e-1;
       if (!rp->test_mode || l2_error > tol) {
         ierr = MPI_Allreduce(&my_rt, &rt_min, 1, MPI_DOUBLE, MPI_MIN, rp->comm);
         CHKERRQ(ierr);
@@ -370,8 +370,7 @@ static PetscErrorCode Run(RunParams rp, PetscInt num_resources,
     PetscInt dim;
     ierr = DMGetDimension(dm_deg, &dim); CHKERRQ(ierr);
     ierr = SetupDMByDegree(dm_deg, rp->degree, rp->q_extra, rp->num_comp_u, dim,
-                           bp_options[rp->bp_choice].enforce_bc,
-                           bp_options[rp->bp_choice].bc_func); CHKERRQ(ierr);
+                           bp_options[rp->bp_choice].enforce_bc); CHKERRQ(ierr);
     for (PetscInt r = 0; r < num_resources; r++) {
       ierr = RunWithDM(rp, dm_deg, ceed_resources[r]); CHKERRQ(ierr);
     }

@@ -3,7 +3,6 @@
 
 #include <ceed.h>
 #include <petsc.h>
-#include "../include/bcfunctions.h"
 #include "../include/structs.h"
 #include "../qfunctions/bps/bp1.h"
 #include "../qfunctions/bps/bp2.h"
@@ -33,8 +32,7 @@ BPData bp_options[6] = {
     .in_mode = CEED_EVAL_INTERP,
     .out_mode = CEED_EVAL_INTERP,
     .q_mode = CEED_GAUSS,
-    .enforce_bc = PETSC_FALSE,
-    .bc_func = BCsMass
+    .enforce_bc = PETSC_FALSE
   },
   [CEED_BP2] = {
     .num_comp_u = 3,
@@ -53,8 +51,7 @@ BPData bp_options[6] = {
     .in_mode = CEED_EVAL_INTERP,
     .out_mode = CEED_EVAL_INTERP,
     .q_mode = CEED_GAUSS,
-    .enforce_bc = PETSC_FALSE,
-    .bc_func = BCsMass
+    .enforce_bc = PETSC_FALSE
   },
   [CEED_BP3] = {
     .num_comp_u = 1,
@@ -73,8 +70,7 @@ BPData bp_options[6] = {
     .in_mode = CEED_EVAL_GRAD,
     .out_mode = CEED_EVAL_GRAD,
     .q_mode = CEED_GAUSS,
-    .enforce_bc = PETSC_TRUE,
-    .bc_func = BCsDiff
+    .enforce_bc = PETSC_TRUE
   },
   [CEED_BP4] = {
     .num_comp_u = 3,
@@ -93,8 +89,7 @@ BPData bp_options[6] = {
     .in_mode = CEED_EVAL_GRAD,
     .out_mode = CEED_EVAL_GRAD,
     .q_mode = CEED_GAUSS,
-    .enforce_bc = PETSC_TRUE,
-    .bc_func = BCsDiff
+    .enforce_bc = PETSC_TRUE
   },
   [CEED_BP5] = {
     .num_comp_u = 1,
@@ -113,8 +108,7 @@ BPData bp_options[6] = {
     .in_mode = CEED_EVAL_GRAD,
     .out_mode = CEED_EVAL_GRAD,
     .q_mode = CEED_GAUSS_LOBATTO,
-    .enforce_bc = PETSC_TRUE,
-    .bc_func = BCsDiff
+    .enforce_bc = PETSC_TRUE
   },
   [CEED_BP6] = {
     .num_comp_u = 3,
@@ -133,8 +127,7 @@ BPData bp_options[6] = {
     .in_mode = CEED_EVAL_GRAD,
     .out_mode = CEED_EVAL_GRAD,
     .q_mode = CEED_GAUSS_LOBATTO,
-    .enforce_bc = PETSC_TRUE,
-    .bc_func = BCsDiff
+    .enforce_bc = PETSC_TRUE
   }
 };
 

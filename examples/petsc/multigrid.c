@@ -234,8 +234,7 @@ int main(int argc, char **argv) {
     ierr = DMGetDimension(dm[i], &dim); CHKERRQ(ierr);
     ierr = SetupDMByDegree(dm[i], level_degrees[fine_level], q_extra,
                            num_comp_u, dim,
-                           bp_options[bp_choice].enforce_bc, bp_options[bp_choice].bc_func);
-    CHKERRQ(ierr);
+                           bp_options[bp_choice].enforce_bc); CHKERRQ(ierr);
 
     // Create vectors
     ierr = DMCreateGlobalVector(dm[i], &X[i]); CHKERRQ(ierr);
@@ -595,7 +594,7 @@ int main(int argc, char **argv) {
                                    op_error, op_error_ctx); CHKERRQ(ierr);
       PetscScalar l2_error;
       ierr = ComputeL2Error(X[fine_level], &l2_error, op_error_ctx); CHKERRQ(ierr);
-      PetscReal tol = 5e-2;
+      PetscReal tol = 5e-1;
       if (!test_mode || l2_error > tol) {
         ierr = MPI_Allreduce(&my_rt, &rt_min, 1, MPI_DOUBLE, MPI_MIN, comm);
         CHKERRQ(ierr);

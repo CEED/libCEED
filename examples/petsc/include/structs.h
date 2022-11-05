@@ -54,8 +54,6 @@ typedef struct {
   CeedEvalMode in_mode, out_mode;
   CeedQuadMode q_mode;
   PetscBool enforce_bc;
-  PetscErrorCode (*bc_func)(PetscInt, PetscReal, const PetscReal *,
-                            PetscInt, PetscScalar *, void *);
 } BPData;
 
 // BP options

@@ -139,21 +139,6 @@ PetscErrorCode MatMult_Ceed(Mat A, Vec X, Vec Y) {
 };
 
 // -----------------------------------------------------------------------------
-// This function wraps the libCEED operator for a SNES residual evaluation
-// -----------------------------------------------------------------------------
-PetscErrorCode FormResidual_Ceed(SNES snes, Vec X, Vec Y, void *ctx) {
-  PetscErrorCode ierr;
-  OperatorApplyContext op_apply_ctx = (OperatorApplyContext)ctx;
-
-  PetscFunctionBeginUser;
-
-  // libCEED for local action of residual evaluator
-  ierr = ApplyLocal_Ceed(X, Y, op_apply_ctx); CHKERRQ(ierr);
-
-  PetscFunctionReturn(0);
-};
-
-// -----------------------------------------------------------------------------
 // This function uses libCEED to compute the action of the prolongation operator
 // -----------------------------------------------------------------------------
 PetscErrorCode MatMult_Prolong(Mat A, Vec X, Vec Y) {

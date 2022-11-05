@@ -96,8 +96,7 @@ static PetscErrorCode CreateBCLabel(DM dm, const char name[]) {
 // This function sets up a DM for a given degree
 // -----------------------------------------------------------------------------
 PetscErrorCode SetupDMByDegree(DM dm, PetscInt p_degree, PetscInt q_extra,
-                               PetscInt num_comp_u,
-                               PetscInt dim, bool enforce_bc, BCFunction bc_func) {
+                               PetscInt num_comp_u, PetscInt dim, bool enforce_bc) {
   PetscInt ierr, marker_ids[1] = {1};
   PetscInt q_degree = p_degree + q_extra;
   PetscFE fe;
@@ -126,7 +125,10 @@ PetscErrorCode SetupDMByDegree(DM dm, PetscInt p_degree, PetscInt q_extra,
     ierr = PetscFEDestroy(&fe_coords); CHKERRQ(ierr);
   }
 
-  // Setup DM
+  // Setup Dirichlet BC
+  // Note bp1, bp2 are projection and we don't need to apply BC
+  // For bp3,bp4, the target function is zero on the boundaries
+  // So we pass bcFunc = NULL in DMAddBoundary function
   if (enforce_bc) {
     PetscBool has_label;
     DMHasLabel(dm, "marker", &has_label);
@@ -134,7 +136,7 @@ PetscErrorCode SetupDMByDegree(DM dm, PetscInt p_degree, PetscInt q_extra,
     DMLabel label;
     ierr = DMGetLabel(dm, "marker", &label); CHKERRQ(ierr);
     ierr = DMAddBoundary(dm, DM_BC_ESSENTIAL, "wall", label, 1,
-                         marker_ids, 0, 0, NULL, (void(*)(void))bc_func,
+                         marker_ids, 0, 0, NULL, NULL,
                          NULL, NULL, NULL); CHKERRQ(ierr);
     PetscCall(DMSetOptionsPrefix(dm, "final_"));
     PetscCall(DMViewFromOptions(dm, NULL, "-dm_view"));
@@ -428,6 +430,7 @@ PetscErrorCode CreateDistributedDM(RunParams rp, DM *dm) {
         if (Max3(rp->mesh_elem) / Min3(rp->mesh_elem) <= 2) break;
       }
     }
+
     ierr = DMPlexCreateBoxMesh(PETSC_COMM_WORLD, rp->dim, rp->simplex,
                                rp->mesh_elem,
                                NULL, NULL, NULL, PETSC_TRUE, dm); CHKERRQ(ierr);
