@@ -63,9 +63,9 @@ CEED_QFUNCTION_HELPER int IC_NewtonianWave(void *ctx, CeedInt Q,
 
     // Initial Conditions
     U[0] = S_infty.U.density*perturbation;
-    U[1] = S_infty.U.momentum[0];
-    U[2] = S_infty.U.momentum[1];
-    U[3] = S_infty.U.momentum[2];
+    U[1] = S_infty.Y.velocity[0] * U[0];
+    U[2] = S_infty.Y.velocity[1] * U[0];
+    U[3] = S_infty.Y.velocity[2] * U[0];
     U[4] = S_infty.Y.pressure/(gamma-1)*perturbation + e_kinetic;
 
     State initCond = StateFromU(newt_ctx, U, x);
