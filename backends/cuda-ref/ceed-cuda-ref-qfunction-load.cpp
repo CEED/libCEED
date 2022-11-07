@@ -50,7 +50,7 @@ extern "C" int CeedCudaBuildQFunction(CeedQFunction qf) {
   string        qfunction_source(data->qfunction_source);
   string        qfunction_name(data->qfunction_name);
   string        read_write(read_write_kernel_source);
-  string        kernel_name = "CeedKernel_Cuda_ref_" + qfunction_name;
+  string        kernel_name = "CeedKernelCudaRefQFunction_" + qfunction_name;
   ostringstream code;
 
   // Defintions

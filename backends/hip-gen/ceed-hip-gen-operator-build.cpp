@@ -113,7 +113,7 @@ extern "C" int CeedHipGenOperatorBuild(CeedOperator op) {
   string q_function_source(qf_data->q_function_source);
   string q_function_name(qf_data->q_function_name);
   string operator_name;
-  operator_name = "CeedKernel_Hip_gen_" + q_function_name;
+  operator_name = "CeedKernelHipGenOperator_" + q_function_name;
 
   // Find dim, P_1d, Q_1d
   data->max_P_1d = 0;
