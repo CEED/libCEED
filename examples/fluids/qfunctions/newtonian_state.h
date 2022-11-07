@@ -141,6 +141,19 @@ CEED_QFUNCTION_HELPER StateConservative StateConservativeFromPrimitive_fwd(
 // Function pointer types for generic state array -> State struct functions
 typedef State (*StateFromQi_t)(NewtonianIdealGasContext gas,
                                const CeedScalar qi[5], const CeedScalar x[3]);
+// Function pointer types for State struct -> generic state array
+typedef void (*StateToQi_t)(NewtonianIdealGasContext gas,
+                            const State input, CeedScalar qi[5]);
+
+CEED_QFUNCTION_HELPER void StateToU(NewtonianIdealGasContext gas,
+                                    const State input, CeedScalar U[5]) {
+  UnpackState_U(input.U, U);
+}
+
+CEED_QFUNCTION_HELPER void StateToY(NewtonianIdealGasContext gas,
+                                    const State input, CeedScalar Y[5]) {
+  UnpackState_Y(input.Y, Y);
+}
 typedef State (*StateFromQi_fwd_t)(NewtonianIdealGasContext gas,
                                    State s, const CeedScalar dqi[5],
                                    const CeedScalar x[3], const CeedScalar dx[3]);
@@ -204,6 +217,19 @@ CEED_QFUNCTION_HELPER void FluxInviscid(NewtonianIdealGasContext gas, State s,
                             + s.Y.pressure * (i == j);
     Flux[i].E_total = (s.U.E_total + s.Y.pressure) * s.Y.velocity[i];
   }
+}
+
+CEED_QFUNCTION_HELPER StateConservative FluxInviscidDotNormal(NewtonianIdealGasContext gas, State s,
+                      const CeedScalar normal[3]) {
+  StateConservative Flux[3], Flux_dot_n = {0};
+  FluxInviscid(gas, s, Flux);
+  for (CeedInt i=0; i<3; i++) {
+    Flux_dot_n.density += Flux[i].density * normal[i];
+    for (CeedInt j=0; j<3; j++)
+      Flux_dot_n.momentum[j] += Flux[i].momentum[j] * normal[i];
+    Flux_dot_n.E_total += Flux[i].E_total * normal[i];
+  }
+  return Flux_dot_n;
 }
 
 CEED_QFUNCTION_HELPER void FluxInviscid_fwd(NewtonianIdealGasContext gas,
