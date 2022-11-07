@@ -32,41 +32,23 @@ struct VortexsheddingContext_ {
   CeedScalar D;        // !< Cylinder diameter
   CeedScalar center;   // !< Cylinder center
   CeedScalar radius;   // !< Cylinder radius
+  State      S_in;
   struct NewtonianIdealGasContext_ newtonian_ctx;
 };
-
-
-CEED_QFUNCTION_HELPER State CylinderInitialCondition(const VortexsheddingContext vortexshedding,
-    const CeedScalar X[]) {
-
-  const CeedScalar D           = vortexshedding->D;
-  const CeedScalar center      = vortexshedding->center;
-  const CeedScalar radius      = vortexshedding->radius;
-
-  const CeedScalar x[3]        = {X[0], X[1], X[2]};
-  CeedScalar U_in              = vortexshedding->U_in;
-  CeedScalar T_in              = vortexshedding->T_in;
-  CeedScalar Y[5];
-  Y[0] = U_in;
-  Y[1] = tanh(Min(0, fabs(x[0] - center) - radius) / D);
-  Y[2] = tanh(Min(0, fabs(x[1] - center) - radius) / D);
-  Y[3] = tanh(Min(0, fabs(x[2] - center) - radius) / D);
-  Y[4] = T_in;
-
-  return StateFromY(&vortexshedding->newtonian_ctx, Y, x);
-}
 
 // *****************************************************************************
 // This QFunction set the initial condition for the cylinder
 // *****************************************************************************
-CEED_QFUNCTION(ICsVortexshedding)(void *ctx, CeedInt Q,
-                           const CeedScalar *const *in, CeedScalar *const *out) {
+CEED_QFUNCTION_HELPER int ICsVortexshedding(void *ctx, CeedInt Q,
+                           const CeedScalar *const *in, CeedScalar *const *out,
+                           StateToQi_t StateToQi) {
   // Inputs
   const CeedScalar (*X)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[0];
   // Outputs
   CeedScalar (*q0)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA])out[0];
   // Context
   const VortexsheddingContext context = (VortexsheddingContext)ctx;
+  const NewtonianIdealGasContext newtonian_ctx = &context->newtonian_ctx;
   const CeedScalar T_in        = context->T_in;
   const CeedScalar P0          = context->P0;
   const CeedScalar U_in        = context->U_in;
@@ -75,6 +57,7 @@ CEED_QFUNCTION(ICsVortexshedding)(void *ctx, CeedInt Q,
   const CeedScalar D           = context->D;
   const CeedScalar center      = context->center;
   const CeedScalar radius      = context->radius;
+  const State      S_in        = context->S_in;
   const CeedScalar cv          = context->newtonian_ctx.cv;
   const CeedScalar mu          = context->newtonian_ctx.mu;
   const CeedScalar gamma       = HeatCapacityRatio(&context->newtonian_ctx);
@@ -85,16 +68,34 @@ CEED_QFUNCTION(ICsVortexshedding)(void *ctx, CeedInt Q,
   // Quadrature point Loop
   CeedPragmaSIMD
   for (CeedInt i=0; i<Q; i++) {
-    const CeedScalar x[] = {X[0][i], X[1][i], X[2][i]};
-    // State s
-    State s = CylinderInitialCondition(context, x);
-    CeedScalar q[5] = {0};
-    UnpackState_U(s.U, q);
+    CeedScalar U[5] = {0.};
+    CeedScalar qi[5] = {0.};
+    const CeedScalar x[3] = {X[0][i], X[1][i], X[2][i]};
+
+    U[0] = U_in;
+    U[1] = tanh(Min(0, fabs(x[0] - center) - radius) / D);
+    U[2] = tanh(Min(0, fabs(x[1] - center) - radius) / D);
+    U[3] = tanh(Min(0, fabs(x[2] - center) - radius) / D);
+    U[4] = T_in;
+
+    State InitCond = StateFromU(newtonian_ctx, U, x);
+    StateToQi(newtonian_ctx, InitCond, qi);
+
     for (CeedInt j=0; j<5; j++)
-      q0[j][i] = q[j];
+      q0[j][i] = qi[j];
 
   } // End of Quadrature Point Loop
   return 0;
+}
+
+CEED_QFUNCTION(ICsVortexshedding_Conserv)(void *ctx, CeedInt Q,
+    const CeedScalar *const *in, CeedScalar *const *out) {
+  return ICsVortexshedding(ctx, Q, in, out, StateToU);
+}
+
+CEED_QFUNCTION(ICsVortexshedding_Prim)(void *ctx, CeedInt Q,
+                                      const CeedScalar *const *in, CeedScalar *const *out) {
+  return ICsVortexshedding(ctx, Q, in, out, StateToY);
 }
 
 #endif // vortexshedding_h
