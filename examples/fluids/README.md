@@ -72,13 +72,25 @@ The following options are common among all problem types:
   - Frequency of output, in number of steps. `0` has no output, `-1` outputs final state only
   - `10`
 
-* - `-continue`
-  - Continue from previous solution
-  - `0`
-
 * - `-output_dir`
   - Output directory
   - `.`
+
+* - `-output_add_stepnum2bin`
+  - Whether to add step numbers to output binary files
+  - `false`
+
+* - `-continue`
+  - Continue from previous solution (input is step number of previous solution)
+  - `0`
+
+* - `-continue_filename`
+  - Path to solution binary file from which to continue from
+  - `[output_dir]/ns-solution.bin`
+
+* - `-continue_time_filename`
+  - Path to time stamp binary file from which to continue from
+  - `[output_dir]/ns-time.bin`
 
 * - `-bc_wall`
   - Use wall boundary conditions on this list of faces
