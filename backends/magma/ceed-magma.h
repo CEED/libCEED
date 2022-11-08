@@ -16,9 +16,17 @@
 #define MAGMA_MAXTHREADS_1D 128
 #define MAGMA_MAXTHREADS_2D 128
 #define MAGMA_MAXTHREADS_3D 64
+#define MAGMA_NONTENSOR_MAXTHREADS (128)
+
 // Define macro for determining number of threads in y-direction
 // for basis kernels
 #define MAGMA_BASIS_NTCOL(x, maxt) (((maxt) < (x)) ? 1 : ((maxt) / (x)))
+#define MAGMA_NONTENSOR_BASIS_NTCOL(N)   ( CeedIntMax(1, (MAGMA_NONTENSOR_MAXTHREADS / (N))) )
+#define MAGMA_CEILDIV(A, B)    ( ((A) + (B) - 1) / (B) )
+
+#define MAGMA_NONTENSOR_CUSTOM_KERNEL_MAX_P (40)
+#define MAGMA_NONTENSOR_CUSTOM_KERNEL_MAX_Q (40)
+
 // Define macro for computing the total threads in a block
 // for use with __launch_bounds__()
 #define MAGMA_BASIS_BOUNDS(x, maxt) (x * MAGMA_BASIS_NTCOL(x, maxt))

@@ -354,41 +354,106 @@ int CeedBasisApplyNonTensor_Magma(CeedBasis basis, CeedInt nelem,
   switch (emode) {
   case CEED_EVAL_INTERP: {
     CeedInt P = ndof, Q = nqpt;
-    if (tmode == CEED_TRANSPOSE)
-      magma_gemm_nontensor(MagmaNoTrans, MagmaNoTrans,
-                            P, nelem*ncomp, Q,
-                            1.0, impl->dinterp, P,
-                            du, Q,
-                            0.0, dv, P, data->queue);
-    else
-      magma_gemm_nontensor(MagmaTrans, MagmaNoTrans,
-                            Q, nelem*ncomp, P,
-                            1.0, impl->dinterp, P,
-                            du, P,
-                            0.0, dv, Q, data->queue);
+    if(P < MAGMA_NONTENSOR_CUSTOM_KERNEL_MAX_P && Q < MAGMA_NONTENSOR_CUSTOM_KERNEL_MAX_Q) {
+      CeedInt M     = (tmode == CEED_TRANSPOSE) ? P : Q;
+      CeedInt K     = (tmode == CEED_TRANSPOSE) ? Q : P;
+      CeedInt N     = nelem*ncomp;
+      CeedInt NB    = 4;
+      CeedInt ntcol = MAGMA_NONTENSOR_BASIS_NTCOL(M);
+      CeedInt shmem = 0, shmemA = 0, shmemB = 0;
+      shmemB += ntcol * K * NB  * sizeof(CeedScalar);
+      shmemA += (tmode == CEED_TRANSPOSE) ? 0 : K * M * sizeof(CeedScalar);
+      shmem   = (tmode == CEED_TRANSPOSE) ? (shmemA + shmemB) : CeedIntMax(shmemA, shmemB);
+
+      CeedInt grid = MAGMA_CEILDIV(MAGMA_CEILDIV(N, NB), ntcol);
+      magma_trans_t transA = (tmode == CEED_TRANSPOSE) ? MagmaNoTrans : MagmaTrans;
+      magma_trans_t transB = MagmaNoTrans;
+      CeedScalar alpha = 1.0, beta = 0.0;
+
+      void *args[] = {&transA, &transB, &N, &alpha,
+                      &impl->dinterp, &P,
+                      &du, &K, &beta,
+                      &dv, &M};
+
+      if (tmode == CEED_TRANSPOSE) {
+        ierr = CeedRunKernelDimSharedMagma(ceed, impl->magma_interp_tr_nontensor, grid,
+                                           M, ntcol, 1, shmem,
+                                           args); CeedChkBackend(ierr);
+      } else {
+        ierr = CeedRunKernelDimSharedMagma(ceed, impl->magma_interp_nontensor, grid,
+                                           M, ntcol, 1, shmem,
+                                           args); CeedChkBackend(ierr);
+      }
+    }
+    else{
+      if (tmode == CEED_TRANSPOSE)
+        magma_gemm_nontensor(MagmaNoTrans, MagmaNoTrans,
+                              P, nelem*ncomp, Q,
+                              1.0, impl->dinterp, P,
+                              du, Q,
+                              0.0, dv, P, data->queue);
+      else
+        magma_gemm_nontensor(MagmaTrans, MagmaNoTrans,
+                              Q, nelem*ncomp, P,
+                              1.0, impl->dinterp, P,
+                              du, P,
+                              0.0, dv, Q, data->queue);
+    }
   }
   break;
 
   case CEED_EVAL_GRAD: {
     CeedInt P = ndof, Q = nqpt;
-    if (tmode == CEED_TRANSPOSE) {
-      CeedScalar beta = 0.0;
-      for(int d=0; d<dim; d++) {
-        if (d>0)
-          beta = 1.0;
-        magma_gemm_nontensor(MagmaNoTrans, MagmaNoTrans,
-                              P, nelem*ncomp, Q,
-                              1.0, impl->dgrad + d*P*Q, P,
-                              du + d*nelem*ncomp*Q, Q,
-                              beta, dv, P, data->queue);
+    if(P < MAGMA_NONTENSOR_CUSTOM_KERNEL_MAX_P && Q < MAGMA_NONTENSOR_CUSTOM_KERNEL_MAX_Q) {
+      CeedInt M     = (tmode == CEED_TRANSPOSE) ? P : Q;
+      CeedInt K     = (tmode == CEED_TRANSPOSE) ? Q : P;
+      CeedInt N     = nelem*ncomp;
+      CeedInt NB    = 4;
+      CeedInt ntcol = MAGMA_NONTENSOR_BASIS_NTCOL(M);
+      CeedInt shmem = 0, shmemA = 0, shmemB = 0;
+      shmemB += ntcol * K * NB  * sizeof(CeedScalar);
+      shmemA += (tmode == CEED_TRANSPOSE) ? 0 : K * M * sizeof(CeedScalar);
+      shmem   = shmemA + shmemB;
+
+      CeedInt grid = MAGMA_CEILDIV(MAGMA_CEILDIV(N, NB), ntcol);
+      magma_trans_t transA = (tmode == CEED_TRANSPOSE) ? MagmaNoTrans : MagmaTrans;
+      magma_trans_t transB = MagmaNoTrans;
+
+      void *args[] = {&transA, &transB, &N,
+                             &impl->dgrad, &P,
+                             &du, &K,
+                             &dv, &M};
+
+      if (tmode == CEED_TRANSPOSE) {
+        ierr = CeedRunKernelDimSharedMagma(ceed, impl->magma_grad_tr_nontensor, grid,
+                                           M, ntcol, 1, shmem,
+                                           args); CeedChkBackend(ierr);
+      } else {
+        ierr = CeedRunKernelDimSharedMagma(ceed, impl->magma_grad_nontensor, grid,
+                                           M, ntcol, 1, shmem,
+                                           args); CeedChkBackend(ierr);
       }
-    } else {
-      for(int d=0; d< dim; d++)
-        magma_gemm_nontensor(MagmaTrans, MagmaNoTrans,
-                              Q, nelem*ncomp, P,
-                              1.0, impl->dgrad + d*P*Q, P,
-                              du, P,
-                              0.0, dv + d*nelem*ncomp*Q, Q, data->queue);
+    }
+    else {
+      if (tmode == CEED_TRANSPOSE) {
+        CeedScalar beta = 0.0;
+        for(int d=0; d<dim; d++) {
+          if (d>0)
+            beta = 1.0;
+          magma_gemm_nontensor(MagmaNoTrans, MagmaNoTrans,
+                                P, nelem*ncomp, Q,
+                                1.0, impl->dgrad + d*P*Q, P,
+                                du + d*nelem*ncomp*Q, Q,
+                                beta, dv, P, data->queue);
+        }
+      } else {
+        for(int d=0; d< dim; d++)
+          magma_gemm_nontensor(MagmaTrans, MagmaNoTrans,
+                                Q, nelem*ncomp, P,
+                                1.0, impl->dgrad + d*P*Q, P,
+                                du, P,
+                                0.0, dv + d*nelem*ncomp*Q, Q, data->queue);
+      }
     }
   }
   break;
