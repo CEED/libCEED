@@ -74,11 +74,21 @@ typedef struct {
 } CeedBasis_Magma;
 
 typedef struct {
-  CeedMagmaModule   module;
-  CeedMagmaFunction magma_interp_nontensor;
-  CeedMagmaFunction magma_interp_tr_nontensor;
-  CeedMagmaFunction magma_grad_nontensor;
-  CeedMagmaFunction magma_grad_tr_nontensor;
+  CeedMagmaModule   module_small;
+  CeedMagmaModule   module_medium;
+  CeedMagmaModule   module_large;
+  CeedMagmaFunction magma_interp_nontensor_small;
+  CeedMagmaFunction magma_interp_nontensor_medium;
+  CeedMagmaFunction magma_interp_nontensor_large;
+  CeedMagmaFunction magma_interp_tr_nontensor_small;
+  CeedMagmaFunction magma_interp_tr_nontensor_medium;
+  CeedMagmaFunction magma_interp_tr_nontensor_large;
+  CeedMagmaFunction magma_grad_nontensor_small;
+  CeedMagmaFunction magma_grad_nontensor_medium;
+  CeedMagmaFunction magma_grad_nontensor_large;
+  CeedMagmaFunction magma_grad_tr_nontensor_small;
+  CeedMagmaFunction magma_grad_tr_nontensor_medium;
+  CeedMagmaFunction magma_grad_tr_nontensor_large;
   CeedScalar *dqref;
   CeedScalar *dinterp;
   CeedScalar *dgrad;
