@@ -799,7 +799,7 @@ static inline int CeedOperatorAssembleDiagonalSetup_Cuda(CeedOperator op,
       if (rstrin && rstrin != rstr)
         // LCOV_EXCL_START
         return CeedError(ceed, CEED_ERROR_BACKEND,
-                         "Multi-field non-composite operator diagonal assembly not supported");
+                         "Backend does not implement multi-field non-composite operator diagonal assembly");
       // LCOV_EXCL_STOP
       rstrin = rstr;
       CeedEvalMode emode;
@@ -846,7 +846,7 @@ static inline int CeedOperatorAssembleDiagonalSetup_Cuda(CeedOperator op,
       if (rstrout && rstrout != rstr)
         // LCOV_EXCL_START
         return CeedError(ceed, CEED_ERROR_BACKEND,
-                         "Multi-field non-composite operator diagonal assembly not supported");
+                         "Backend does not implement multi-field non-composite operator diagonal assembly");
       // LCOV_EXCL_STOP
       rstrout = rstr;
       CeedEvalMode emode;
