@@ -34,9 +34,9 @@
 //
 // Stored: w B^T B detJ = w A^T A / detJ
 //   Note: This matrix is symmetric, so we only store 6 distinct entries
-//     qd: 0 3 6
-//         1 4 7
+//     qd: 1 4 7
 //         2 5 8
+//         3 6 9
 // -----------------------------------------------------------------------------
 CEED_QFUNCTION(SetupDiffGeo)(void *ctx, CeedInt Q,
                              const CeedScalar *const *in,
@@ -64,13 +64,13 @@ CEED_QFUNCTION(SetupDiffGeo)(void *ctx, CeedInt Q,
     const CeedScalar detJ = J[0][0][i] * A[0][0] + J[0][1][i] * A[0][1] + J[0][2][i] * A[0][2];
 
     const CeedScalar qw = w[i] / detJ;
-    qd[i+Q*0] = qw * (A[0][0]*A[0][0] + A[0][1]*A[0][1] + A[0][2]*A[0][2]);
-    qd[i+Q*1] = qw * (A[0][0]*A[1][0] + A[0][1]*A[1][1] + A[0][2]*A[1][2]);
-    qd[i+Q*2] = qw * (A[0][0]*A[2][0] + A[0][1]*A[2][1] + A[0][2]*A[2][2]);
-    qd[i+Q*3] = qw * (A[1][0]*A[1][0] + A[1][1]*A[1][1] + A[1][2]*A[1][2]);
-    qd[i+Q*4] = qw * (A[1][0]*A[2][0] + A[1][1]*A[2][1] + A[1][2]*A[2][2]);
-    qd[i+Q*5] = qw * (A[2][0]*A[2][0] + A[2][1]*A[2][1] + A[2][2]*A[2][2]);
-    qd[i+Q*6] = w[i] * detJ;
+    qd[i+Q*0] = w[i] * detJ;
+    qd[i+Q*1] = qw * (A[0][0]*A[0][0] + A[0][1]*A[0][1] + A[0][2]*A[0][2]);
+    qd[i+Q*2] = qw * (A[0][0]*A[1][0] + A[0][1]*A[1][1] + A[0][2]*A[1][2]);
+    qd[i+Q*3] = qw * (A[0][0]*A[2][0] + A[0][1]*A[2][1] + A[0][2]*A[2][2]);
+    qd[i+Q*4] = qw * (A[1][0]*A[1][0] + A[1][1]*A[1][1] + A[1][2]*A[1][2]);
+    qd[i+Q*5] = qw * (A[1][0]*A[2][0] + A[1][1]*A[2][1] + A[1][2]*A[2][2]);
+    qd[i+Q*6] = qw * (A[2][0]*A[2][0] + A[2][1]*A[2][1] + A[2][2]*A[2][2]);
   } // End of Quadrature Point Loop
 
   return 0;
@@ -98,7 +98,7 @@ CEED_QFUNCTION(SetupDiffRhs)(void *ctx, CeedInt Q,
                    sin(M_PI*(c[1] + k[1]*x[i+Q*1])) *
                    sin(M_PI*(c[2] + k[2]*x[i+Q*2]));
 
-    rhs[i] = w[i+Q*6] * M_PI*M_PI * (k[0]*k[0] + k[1]*k[1] + k[2]*k[2]) *
+    rhs[i] = w[i+Q*0] * M_PI*M_PI * (k[0]*k[0] + k[1]*k[1] + k[2]*k[2]) *
              true_soln[i];
   } // End of Quadrature Point Loop
 
@@ -130,15 +130,15 @@ CEED_QFUNCTION(Diff)(void *ctx, CeedInt Q,
                                           ug[i+Q*2]
                                          };
     // Read q_data (dXdxdXdx_T symmetric matrix)
-    const CeedScalar dXdxdXdx_T[3][3] = {{q_data[i+0*Q],
-                                          q_data[i+1*Q],
-                                          q_data[i+2*Q]},
-                                         {q_data[i+1*Q],
-                                          q_data[i+3*Q],
-                                          q_data[i+4*Q]},
+    const CeedScalar dXdxdXdx_T[3][3] = {{q_data[i+1*Q],
+                                          q_data[i+2*Q],
+                                          q_data[i+3*Q]},
                                          {q_data[i+2*Q],
                                           q_data[i+4*Q],
-                                          q_data[i+5*Q]}
+                                          q_data[i+5*Q]},
+                                         {q_data[i+3*Q],
+                                          q_data[i+5*Q],
+                                          q_data[i+6*Q]}
                                         };
 
     for (int j=0; j<3; j++) // j = direction of vg

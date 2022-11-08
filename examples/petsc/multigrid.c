@@ -594,7 +594,7 @@ int main(int argc, char **argv) {
                                    op_error, op_error_ctx); CHKERRQ(ierr);
       PetscScalar l2_error;
       ierr = ComputeL2Error(X[fine_level], &l2_error, op_error_ctx); CHKERRQ(ierr);
-      PetscReal tol = 5e-1;
+      PetscReal tol = 5e-2;
       if (!test_mode || l2_error > tol) {
         ierr = MPI_Allreduce(&my_rt, &rt_min, 1, MPI_DOUBLE, MPI_MIN, comm);
         CHKERRQ(ierr);
