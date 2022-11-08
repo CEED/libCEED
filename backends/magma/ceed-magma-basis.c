@@ -352,24 +352,32 @@ int CeedBasisApplyNonTensor_Magma(CeedBasis basis, CeedInt nelem,
   }
 
   CeedInt N  = nelem*ncomp;
-  CeedInt nb_small = 8, nb_medium = 4, nb_large = 2;
-  CeedInt NB = 1;
+  // tuning parameter (nb)
+  CeedInt nb_interp_n[3] = {8, 4, 2}; // {small, medium, large}
+  CeedInt nb_interp_t[3] = {4, 2, 1}; // {small, medium, large}
+  CeedInt nb_grad_n[3]   = {1, 2, 4}; // {small, medium, large}
+  CeedInt nb_grad_t[3]   = {2, 4, 8}; // {small, medium, large}
+
   CeedMagmaFunction *interp, *grad;
+  CeedInt NB_INTERP = 1, NB_GRAD = 1;
   if( N <= 10240 ) {
-    NB = nb_small;
-    interp = ( tmode == CEED_TRANSPOSE ) ? &impl->magma_interp_tr_nontensor_small :
-                                           &impl->magma_interp_nontensor_small;
-    grad   = ( tmode == CEED_TRANSPOSE ) ? &impl->magma_grad_tr_nontensor_small :
-                                           &impl->magma_grad_nontensor_small;
+    NB_INTERP = ( tmode == CEED_TRANSPOSE ) ? nb_interp_t[0] : nb_interp_n[0];
+    NB_GRAD   = ( tmode == CEED_TRANSPOSE ) ? nb_grad_t[0]   : nb_grad_n[0];
+    interp    = ( tmode == CEED_TRANSPOSE ) ? &impl->magma_interp_tr_nontensor_small :
+                                              &impl->magma_interp_nontensor_small;
+    grad      = ( tmode == CEED_TRANSPOSE ) ? &impl->magma_grad_tr_nontensor_small :
+                                              &impl->magma_grad_nontensor_small;
   }
   else if( N <= 102400 ) {
-    NB = nb_medium;
+    NB_INTERP = ( tmode == CEED_TRANSPOSE ) ? nb_interp_t[1] : nb_interp_n[1];
+    NB_GRAD   = ( tmode == CEED_TRANSPOSE ) ? nb_grad_t[1]   : nb_grad_n[1];
     interp = ( tmode == CEED_TRANSPOSE ) ? &impl->magma_interp_tr_nontensor_medium :
                                            &impl->magma_interp_nontensor_medium;
     grad   = ( tmode == CEED_TRANSPOSE ) ? &impl->magma_grad_tr_nontensor_medium :
                                            &impl->magma_grad_nontensor_medium;
   }else {
-    NB = nb_large;
+    NB_INTERP = ( tmode == CEED_TRANSPOSE ) ? nb_interp_t[2] : nb_interp_n[2];
+    NB_GRAD   = ( tmode == CEED_TRANSPOSE ) ? nb_grad_t[2]   : nb_grad_n[2];
     interp = ( tmode == CEED_TRANSPOSE ) ? &impl->magma_interp_tr_nontensor_large :
                                            &impl->magma_interp_nontensor_large;
     grad   = ( tmode == CEED_TRANSPOSE ) ? &impl->magma_grad_tr_nontensor_large :
@@ -383,6 +391,7 @@ int CeedBasisApplyNonTensor_Magma(CeedBasis basis, CeedInt nelem,
     if(P < MAGMA_NONTENSOR_CUSTOM_KERNEL_MAX_P && Q < MAGMA_NONTENSOR_CUSTOM_KERNEL_MAX_Q) {
       CeedInt M     = (tmode == CEED_TRANSPOSE) ? P : Q;
       CeedInt K     = (tmode == CEED_TRANSPOSE) ? Q : P;
+      CeedInt NB    = NB_INTERP;
       CeedInt ntcol = MAGMA_NONTENSOR_BASIS_NTCOL(M);
       CeedInt shmem = 0, shmemA = 0, shmemB = 0;
       shmemB += ntcol * K * NB  * sizeof(CeedScalar);
@@ -425,8 +434,7 @@ int CeedBasisApplyNonTensor_Magma(CeedBasis basis, CeedInt nelem,
     if(P < MAGMA_NONTENSOR_CUSTOM_KERNEL_MAX_P && Q < MAGMA_NONTENSOR_CUSTOM_KERNEL_MAX_Q) {
       CeedInt M     = (tmode == CEED_TRANSPOSE) ? P : Q;
       CeedInt K     = (tmode == CEED_TRANSPOSE) ? Q : P;
-      CeedInt N     = nelem*ncomp;
-      CeedInt NB    = 4;
+      CeedInt NB    = NB_GRAD;
       CeedInt ntcol = MAGMA_NONTENSOR_BASIS_NTCOL(M);
       CeedInt shmem = 0, shmemA = 0, shmemB = 0;
       shmemB += ntcol * K * NB  * sizeof(CeedScalar);
@@ -789,34 +797,48 @@ int CeedBasisCreateH1_Magma(CeedElemTopology topo, CeedInt dim, CeedInt ndof,
          &basis_kernel_source);
   CeedChkBackend(ierr);
 
+  // tuning parameter (nb)
+  CeedInt nb_interp_n[3] = {8, 4, 2}; // {small, medium, large}
+  CeedInt nb_interp_t[3] = {4, 2, 1}; // {small, medium, large}
+  CeedInt nb_grad_n[3]   = {1, 2, 4}; // {small, medium, large}
+  CeedInt nb_grad_t[3]   = {2, 4, 8}; // {small, medium, large}
+
   // The RTC compilation code expects a Ceed with the common Ceed_Cuda or Ceed_Hip
   // data
-  CeedInt nb_small = 8, nb_medium = 4, nb_large = 2;
   Ceed delegate;
   ierr = CeedGetDelegate(ceed, &delegate); CeedChkBackend(ierr);
   // small N = nelem x ncomp
-  ierr = CeedCompileMagma(delegate, basis_kernel_source, &impl->module_small, 4,
+  ierr = CeedCompileMagma(delegate, basis_kernel_source, &impl->module_small, 7,
                           "DIM", dim,
                           "P", ndof,
                           "Q", nqpts,
-                          "NB", nb_small);
+                          "NB_INTERP_N", nb_interp_n[0],
+                          "NB_INTERP_T", nb_interp_t[0],
+                          "NB_GRAD_N",   nb_grad_n[0],
+                          "NB_GRAD_T",   nb_grad_t[0]);
   CeedChkBackend(ierr);
 
   // medium N = nelem x ncomp
-  ierr = CeedCompileMagma(delegate, basis_kernel_source, &impl->module_medium, 4,
+  ierr = CeedCompileMagma(delegate, basis_kernel_source, &impl->module_medium, 7,
                           "DIM", dim,
                           "P", ndof,
                           "Q", nqpts,
-                          "NB", nb_medium);
+                          "NB_INTERP_N", nb_interp_n[1],
+                          "NB_INTERP_T", nb_interp_t[1],
+                          "NB_GRAD_N",   nb_grad_n[1],
+                          "NB_GRAD_T",   nb_grad_t[1]);
   CeedChkBackend(ierr);
 
   // large N = nelem x ncomp
-  ierr = CeedCompileMagma(delegate, basis_kernel_source, &impl->module_large, 4,
+  ierr = CeedCompileMagma(delegate, basis_kernel_source, &impl->module_large, 7,
                           "DIM", dim,
                           "P", ndof,
                           "Q", nqpts,
-                          "NB", nb_large);
-  CeedChkBackend(ierr);
+                          "NB_INTERP_N", nb_interp_n[2],
+                          "NB_INTERP_T", nb_interp_t[2],
+                          "NB_GRAD_N",   nb_grad_n[2],
+                          "NB_GRAD_T",   nb_grad_t[2]);
+CeedChkBackend(ierr);
 
   // get interp kernels
   ierr = CeedGetKernelMagma(ceed, impl->module_small, "magma_interp_nontensor_n",

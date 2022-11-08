@@ -22,38 +22,38 @@ magma_interp_nontensor_n(
     const int ty = threadIdx.y;
     const int bx = blockIdx.x;
     const int id = bx * blockDim.y + ty;
-    const int nblocks = MAGMA_CEILDIV(n, NB);
-    const int myn     = min(NB, n - id*NB);
+    const int nblocks = MAGMA_CEILDIV(n, NB_INTERP_N);
+    const int myn     = min(NB_INTERP_N, n - id*NB_INTERP_N);
 
-    //const bool irrblock = ( myn != NB );
+    //const bool irrblock = ( myn != NB_INTERP_N );
 
-    dB += id * NB * lddb;
-    dC += id * NB * lddc;
+    dB += id * NB_INTERP_N * lddb;
+    dC += id * NB_INTERP_N * lddc;
 
     const int slda = P;
     const int sldb = P;
     CeedScalar* sA = (CeedScalar*)(shared_data);
     CeedScalar* sB = sA;
-    sB += ty * sldb * NB;
+    sB += ty * sldb * NB_INTERP_N;
 
     // read A using all threads
     CeedScalar rA[P] = {MAGMA_D_ZERO};
-    read_A_trans_g2r_1D_nosync<CeedScalar, Q, NB, P>(tx, ty, dA, ldda, sA, slda, rA );
+    read_A_trans_g2r_1D_nosync<CeedScalar, Q, NB_INTERP_N, P>(tx, ty, dA, ldda, sA, slda, rA );
     __syncthreads();
 
     // terminate threads with no work
     if(id >= nblocks) return;
 
     // init rC
-    CeedScalar rC[NB] = {MAGMA_D_ZERO};
-    read_C_g2r_1D_nosync<CeedScalar, Q, NB, P>(tx, myn, dC, lddc, beta, rC );
+    CeedScalar rC[NB_INTERP_N] = {MAGMA_D_ZERO};
+    read_C_g2r_1D_nosync<CeedScalar, Q, NB_INTERP_N, P>(tx, myn, dC, lddc, beta, rC );
 
     // read B
-    read_B_g2s_1D_nosync<CeedScalar, Q, NB, P>(tx, myn, dB, lddb, sB, sldb );
+    read_B_g2s_1D_nosync<CeedScalar, Q, NB_INTERP_N, P>(tx, myn, dB, lddb, sB, sldb );
     __syncthreads();
 
-    mul_rAsBrC_1D_nosync<CeedScalar, Q, NB, P>(tx, alpha, rA, sB, sldb, rC );
-    write_C_r2g_1D_nosync<CeedScalar, Q, NB, P>( tx, myn, rC, dC, lddc );
+    mul_rAsBrC_1D_nosync<CeedScalar, Q, NB_INTERP_N, P>(tx, alpha, rA, sB, sldb, rC );
+    write_C_r2g_1D_nosync<CeedScalar, Q, NB_INTERP_N, P>( tx, myn, rC, dC, lddc );
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -70,35 +70,35 @@ magma_interp_nontensor_t(
     const int ty = threadIdx.y;
     const int bx = blockIdx.x;
     const int id = bx * blockDim.y + ty;
-    const int nblocks = MAGMA_CEILDIV(n, NB);
-    const int myn     = min(NB, n - id*NB);
+    const int nblocks = MAGMA_CEILDIV(n, NB_INTERP_T);
+    const int myn     = min(NB_INTERP_T, n - id*NB_INTERP_T);
     if(id >= nblocks) return;
 
-    dB += id * NB * lddb;
-    dC += id * NB * lddc;
+    dB += id * NB_INTERP_T * lddb;
+    dC += id * NB_INTERP_T * lddc;
 
     // A is P x Q
     const int sldb = Q;
     CeedScalar* sB = (CeedScalar*)(shared_data);
-    sB += ty * sldb * NB;
+    sB += ty * sldb * NB_INTERP_T;
 
     // init rC
-    CeedScalar rC[NB] = {MAGMA_D_ZERO};
+    CeedScalar rC[NB_INTERP_T] = {MAGMA_D_ZERO};
     if( beta != MAGMA_D_ZERO ) {
-        read_C_g2r_1D_nosync<CeedScalar, P, NB, Q>(tx, myn, dC, lddc, beta, rC );
+        read_C_g2r_1D_nosync<CeedScalar, P, NB_INTERP_T, Q>(tx, myn, dC, lddc, beta, rC );
     }
 
     // read A
     CeedScalar rA[Q] = {MAGMA_D_ZERO};
-    read_A_notrans_g2r_1D_nosync<CeedScalar, P, NB, Q>(tx, dA, ldda, NULL, 0, rA );
+    read_A_notrans_g2r_1D_nosync<CeedScalar, P, NB_INTERP_T, Q>(tx, dA, ldda, NULL, 0, rA );
 
     // read B
-    read_B_g2s_1D_nosync<CeedScalar, P, NB, Q>(tx, myn, dB, lddb, sB, sldb );
+    read_B_g2s_1D_nosync<CeedScalar, P, NB_INTERP_T, Q>(tx, myn, dB, lddb, sB, sldb );
     __syncthreads();
 
-    mul_rAsBrC_1D_nosync<CeedScalar, P, NB, Q>(tx, alpha, rA, sB, sldb, rC );
+    mul_rAsBrC_1D_nosync<CeedScalar, P, NB_INTERP_T, Q>(tx, alpha, rA, sB, sldb, rC );
 
-    write_C_r2g_1D_nosync<CeedScalar, P, NB, Q>(tx, n, rC, dC, lddc );
+    write_C_r2g_1D_nosync<CeedScalar, P, NB_INTERP_T, Q>(tx, n, rC, dC, lddc );
 }
 
 #endif // CEED_MAGMA_INTERP_NONTENSOR_H
