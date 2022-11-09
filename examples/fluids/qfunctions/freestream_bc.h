@@ -138,8 +138,8 @@ CEED_QFUNCTION_HELPER StateConservative Harten_Lax_VanLeer_Contact_Flux(
 
   StateConservative flux_left  = FluxInviscidDotNormal(gas, left, normal);
   StateConservative flux_right = FluxInviscidDotNormal(gas, right, normal);
-  StateConservative flux_star_left[5] = {0.};
-  StateConservative flux_star_right[5] = {0.};
+  StateConservative flux_star_left[5];
+  StateConservative flux_star_right[5];
   //StateConservative flux_star_left;
   //StateConservative flux_star_right;
   StateConservative RiemannFlux_HLLC;
