@@ -129,6 +129,103 @@ CEED_QFUNCTION_HELPER StateConservative Harten_Lax_VanLeer_Flux(NewtonianIdealGa
   return RiemannFlux_HLL;
 }
 
+// HLLC Riemann solver (from Toro's book)
+CEED_QFUNCTION_HELPER StateConservative Harten_Lax_VanLeer_Contact_Flux(
+  NewtonianIdealGasContext gas, State left, State right,
+  const CeedScalar normal[3]) {
+
+  const CeedScalar gamma = gas->cp / gas->cv;
+
+  StateConservative flux_left  = FluxInviscidDotNormal(gas, left, normal);
+  StateConservative flux_right = FluxInviscidDotNormal(gas, right, normal);
+  StateConservative flux_star_left[5] = {0.};
+  StateConservative flux_star_right[5] = {0.};
+  //StateConservative flux_star_left;
+  //StateConservative flux_star_right;
+  StateConservative RiemannFlux_HLLC;
+  //State star_left, star_right;
+
+
+  CeedScalar u_left = Dot3(left.Y.velocity, normal);
+  CeedScalar u_right = Dot3(right.Y.velocity, normal);
+
+  RoeWeights r = RoeSetup(left.U.density, right.U.density);
+  // Speed estimate
+  // Roe average eigenvalues for left and right non-linear waves
+  // Stability requires that these speed estimates are *at least*
+  // as fast as the physical wave speeds.
+  CeedScalar u_roe = RoeAverage(r, u_left, u_right);
+
+  CeedScalar H_left = (left.U.E_total + left.Y.pressure) / left.U.density;
+  CeedScalar H_right = (right.U.E_total + right.Y.pressure) / right.U.density;
+  CeedScalar H_roe = RoeAverage(r, H_left, H_right);
+  CeedScalar a_roe = sqrt((gamma - 1) * (H_roe - 0.5 * Square(u_roe)));
+
+  // Einfeldt (1988) justifies (and Toro's book repeats) that Roe speeds can be used here.
+  CeedScalar s_left = u_roe - a_roe;
+  CeedScalar s_right = u_roe + a_roe;
+  // Intermediate speed
+  CeedScalar s_star = (right.Y.pressure - left.Y.pressure +
+             left.U.density * u_left * (s_left - u_left) -
+             right.U.density * u_right * (s_right - u_right)) /
+             (left.U.density * (s_left - u_left) - right.U.density * (s_right - u_right));
+
+  // Left intermediate state
+  CeedScalar star_left[5] = {0.};
+  CeedScalar left_fact = left.U.density * ((s_left - u_left) / (s_left - s_star));
+  star_left[0] = left_fact * 1.0;
+  star_left[1] = left_fact * s_star;
+  star_left[2] = left_fact * left.Y.velocity[0];
+  star_left[3] = left_fact * left.Y.velocity[1];
+  star_left[4] = left_fact * (left.U.E_total / left.U.density) + (s_star - u_left) *
+                    (s_star + left.Y.pressure / (left.U.density * (s_left - u_left)));
+
+  //Right intermediate state
+  CeedScalar star_right[5] = {0.};
+  CeedScalar right_fact = right.U.density * ((s_right - u_right) / (s_right - s_star));
+  star_right[0] = right_fact * 1.0;
+  star_right[1] = right_fact * s_star;
+  star_right[2] = right_fact * right.Y.velocity[0];
+  star_right[3] = right_fact * right.Y.velocity[1];
+  star_right[4] = right_fact * (right.U.E_total / right.U.density) + (s_star - u_right) *
+                      (s_star + right.Y.pressure / (right.U.density * (s_right - u_right)));
+
+  // Left intermediate flux
+  flux_star_left[0].density = flux_left.density + s_left * (star_left[0] - left.U.density);
+  for (int i = 0; i < 3; i++){
+    flux_star_left[i+1].momentum = flux_left.momentum[i+1] + s_left * (star_left[i+1] - left.U.momentum[i+1]); //some issues
+  }
+  flux_star_left[4].E_total = flux_left.E_total + s_left * (star_left[4] - left.U.E_total);
+
+  // Right intermediate flux
+  flux_star_right[0].density = flux_right.density + s_right * (star_right[0] - right.U.density);
+  for (int i = 0; i < 3; i++){
+    flux_star_right[i+1].momentum = flux_right.momentum[i+1] + s_right * (star_right[i+1] - right.U.momentum[i+1]); //some issues
+  }
+  flux_star_right[4].E_total = flux_right.E_total + s_right * (star_right[4] - right.U.E_total);
+
+  // Compute HLLC flux
+  if (0 <= s_left) {
+    RiemannFlux_HLLC = flux_left;
+  } else if (s_left <= 0 <= s_star) {
+    RiemannFlux_HLLC.density = flux_star_left[0].density;
+    for (int i = 0; i < 3; i++){
+      RiemannFlux_HLLC.momentum[i+1] = flux_star_left[i+1].momentum;  // some issues here
+      }
+    RiemannFlux_HLLC.E_total = flux_star_left[4].E_total;
+  } else if (s_star <= 0 <= s_right) {
+    RiemannFlux_HLLC.density = flux_star_right[0].density;
+    for (int i = 0; i < 3; i++){
+      RiemannFlux_HLLC.momentum[i+1] = flux_star_right[i+1].momentum; // some issues here
+      }
+    RiemannFlux_HLLC.E_total = flux_star_right[4].E_total;
+  } else {
+    RiemannFlux_HLLC = flux_right;
+  }
+  // Return
+  return RiemannFlux_HLLC;
+}
+
 // *****************************************************************************
 // @brief Forward-mode Derivative of Harten Lax VanLeer (HLL) approximate Riemann solver.
 //
