@@ -23,18 +23,24 @@ PetscErrorCode NS_NEWTONIAN_WAVE(ProblemData *problem, DM dm, void *ctx) {
   PetscFunctionBeginUser;
   PetscCall(NS_NEWTONIAN_IG(problem, dm, ctx));
 
+  // *INDENT-OFF*
   switch (user->phys->state_var) {
   case STATEVAR_CONSERVATIVE:
-    problem->ics.qfunction                  = IC_NewtonianWave_Conserv;
-    problem->ics.qfunction_loc              = IC_NewtonianWave_Conserv_loc;
-    problem->apply_freestream.qfunction     = Freestream_Conserv;
-    problem->apply_freestream.qfunction_loc = Freestream_Conserv_loc;
+    problem->ics.qfunction                           = IC_NewtonianWave_Conserv;
+    problem->ics.qfunction_loc                       = IC_NewtonianWave_Conserv_loc;
+    problem->apply_freestream.qfunction              = Freestream_Conserv;
+    problem->apply_freestream.qfunction_loc          = Freestream_Conserv_loc;
+    problem->apply_freestream_jacobian.qfunction     = Freestream_Jacobian_Conserv;
+    problem->apply_freestream_jacobian.qfunction_loc = Freestream_Jacobian_Conserv_loc;
   case STATEVAR_PRIMITIVE:
-    problem->ics.qfunction                  = IC_NewtonianWave_Prim;
-    problem->ics.qfunction_loc              = IC_NewtonianWave_Prim_loc;
-    problem->apply_freestream.qfunction     = Freestream_Prim;
-    problem->apply_freestream.qfunction_loc = Freestream_Prim_loc;
+    problem->ics.qfunction                           = IC_NewtonianWave_Prim;
+    problem->ics.qfunction_loc                       = IC_NewtonianWave_Prim_loc;
+    problem->apply_freestream.qfunction              = Freestream_Prim;
+    problem->apply_freestream.qfunction_loc          = Freestream_Prim_loc;
+    problem->apply_freestream_jacobian.qfunction     = Freestream_Jacobian_Prim;
+    problem->apply_freestream_jacobian.qfunction_loc = Freestream_Jacobian_Prim_loc;
   }
+  // *INDENT-ON*
 
   // -- Option Defaults
   CeedScalar U_inf[3]     = {0.};   // m/s
@@ -124,6 +130,7 @@ PetscErrorCode NS_NEWTONIAN_WAVE(ProblemData *problem, DM dm, void *ctx) {
   CeedQFunctionContextSetDataDestroy(freestream_context, CEED_MEM_HOST,
                                      FreeContextPetsc);
   problem->apply_freestream.qfunction_context = freestream_context;
+  problem->apply_freestream_jacobian.qfunction_context = freestream_context;
 
   PetscFunctionReturn(0);
 }
