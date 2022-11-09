@@ -130,24 +130,6 @@ magma_weight_nontensor(
   magma_int_t Q,
   CeedScalar *dqweight, CeedScalar *dv, magma_queue_t queue);
 
-CEED_INTERN  int
-magma_dgemm_nontensor(
-  magma_trans_t transA, magma_trans_t transB,
-  magma_int_t m, magma_int_t n, magma_int_t k,
-  double alpha, const double *dA, magma_int_t ldda,
-  const double *dB, magma_int_t lddb,
-  double beta,  double *dC, magma_int_t lddc,
-  magma_queue_t queue );
-
-CEED_INTERN  int
-magma_sgemm_nontensor(
-  magma_trans_t transA, magma_trans_t transB,
-  magma_int_t m, magma_int_t n, magma_int_t k,
-  float alpha, const float *dA, magma_int_t ldda,
-  const float *dB, magma_int_t lddb,
-  float beta,  float *dC, magma_int_t lddc,
-  magma_queue_t queue );
-
 CEED_INTERN int
 magma_gemm_nontensor(
   magma_trans_t transA, magma_trans_t transB,
@@ -163,6 +145,12 @@ gemm_selector(
   char precision, char transA,
   int m, int n, int k,
   int *nbatch, int *use_magma );
+
+CEED_INTERN CeedInt
+nontensor_rtc_get_nb(
+  int gpu_arch, char precision,
+  CeedEvalMode emode, CeedTransposeMode tmode,
+  int P_, int N, int Q_ );
 
 CEED_INTERN  magma_int_t
 magma_isdevptr(const void *A);
