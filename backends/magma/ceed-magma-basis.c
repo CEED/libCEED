@@ -315,6 +315,8 @@ int CeedBasisApplyNonTensor_Magma(CeedBasis basis, CeedInt nelem,
   Ceed_Magma *data;
   ierr = CeedGetData(ceed, &data); CeedChkBackend(ierr);
 
+  magma_int_t arch = magma_getdevice_arch();
+
   CeedInt dim, ncomp, ndof, nqpt;
   ierr = CeedBasisGetDimension(basis, &dim); CeedChkBackend(ierr);
   ierr = CeedBasisGetNumComponents(basis, &ncomp); CeedChkBackend(ierr);
@@ -351,39 +353,30 @@ int CeedBasisApplyNonTensor_Magma(CeedBasis basis, CeedInt nelem,
     ceed_magma_queue_sync( data->queue );
   }
 
-  CeedInt N  = nelem*ncomp;
-  // tuning parameter (nb)
-  CeedInt nb_interp_n[3] = {8, 4, 2}; // {small, medium, large}
-  CeedInt nb_interp_t[3] = {4, 2, 1}; // {small, medium, large}
-  CeedInt nb_grad_n[3]   = {1, 2, 4}; // {small, medium, large}
-  CeedInt nb_grad_t[3]   = {2, 4, 8}; // {small, medium, large}
+  CeedInt P  = ndof, Q = nqpt, N  = nelem*ncomp;
+  CeedInt NB = 1;
 
   CeedMagmaFunction *interp, *grad;
-  CeedInt NB_INTERP = 1, NB_GRAD = 1;
   if( N <= 10240 ) {
-    NB_INTERP = ( tmode == CEED_TRANSPOSE ) ? nb_interp_t[0] : nb_interp_n[0];
-    NB_GRAD   = ( tmode == CEED_TRANSPOSE ) ? nb_grad_t[0]   : nb_grad_n[0];
-    interp    = ( tmode == CEED_TRANSPOSE ) ? &impl->magma_interp_tr_nontensor_small :
-                                              &impl->magma_interp_nontensor_small;
-    grad      = ( tmode == CEED_TRANSPOSE ) ? &impl->magma_grad_tr_nontensor_small :
+    NB     = nontensor_rtc_get_nb(arch, 'd', emode, tmode, P, 10240, Q );
+    interp = ( tmode == CEED_TRANSPOSE ) ? &impl->magma_interp_tr_nontensor_small :
+                                           &impl->magma_interp_nontensor_small;
+    grad   = ( tmode == CEED_TRANSPOSE ) ? &impl->magma_grad_tr_nontensor_small :
                                               &impl->magma_grad_nontensor_small;
   }
   else if( N <= 102400 ) {
-    NB_INTERP = ( tmode == CEED_TRANSPOSE ) ? nb_interp_t[1] : nb_interp_n[1];
-    NB_GRAD   = ( tmode == CEED_TRANSPOSE ) ? nb_grad_t[1]   : nb_grad_n[1];
+    NB     = nontensor_rtc_get_nb(arch, 'd', emode, tmode, P, 102400, Q );
     interp = ( tmode == CEED_TRANSPOSE ) ? &impl->magma_interp_tr_nontensor_medium :
                                            &impl->magma_interp_nontensor_medium;
     grad   = ( tmode == CEED_TRANSPOSE ) ? &impl->magma_grad_tr_nontensor_medium :
                                            &impl->magma_grad_nontensor_medium;
   }else {
-    NB_INTERP = ( tmode == CEED_TRANSPOSE ) ? nb_interp_t[2] : nb_interp_n[2];
-    NB_GRAD   = ( tmode == CEED_TRANSPOSE ) ? nb_grad_t[2]   : nb_grad_n[2];
+    NB     = nontensor_rtc_get_nb(arch, 'd', emode, tmode, P, 1024000, Q );
     interp = ( tmode == CEED_TRANSPOSE ) ? &impl->magma_interp_tr_nontensor_large :
                                            &impl->magma_interp_nontensor_large;
     grad   = ( tmode == CEED_TRANSPOSE ) ? &impl->magma_grad_tr_nontensor_large :
                                            &impl->magma_grad_nontensor_large;
   }
-
 
   switch (emode) {
   case CEED_EVAL_INTERP: {
@@ -391,7 +384,6 @@ int CeedBasisApplyNonTensor_Magma(CeedBasis basis, CeedInt nelem,
     if(P < MAGMA_NONTENSOR_CUSTOM_KERNEL_MAX_P && Q < MAGMA_NONTENSOR_CUSTOM_KERNEL_MAX_Q) {
       CeedInt M     = (tmode == CEED_TRANSPOSE) ? P : Q;
       CeedInt K     = (tmode == CEED_TRANSPOSE) ? Q : P;
-      CeedInt NB    = NB_INTERP;
       CeedInt ntcol = MAGMA_NONTENSOR_BASIS_NTCOL(M);
       CeedInt shmem = 0, shmemA = 0, shmemB = 0;
       shmemB += ntcol * K * NB  * sizeof(CeedScalar);
@@ -434,7 +426,6 @@ int CeedBasisApplyNonTensor_Magma(CeedBasis basis, CeedInt nelem,
     if(P < MAGMA_NONTENSOR_CUSTOM_KERNEL_MAX_P && Q < MAGMA_NONTENSOR_CUSTOM_KERNEL_MAX_Q) {
       CeedInt M     = (tmode == CEED_TRANSPOSE) ? P : Q;
       CeedInt K     = (tmode == CEED_TRANSPOSE) ? Q : P;
-      CeedInt NB    = NB_GRAD;
       CeedInt ntcol = MAGMA_NONTENSOR_BASIS_NTCOL(M);
       CeedInt shmem = 0, shmemA = 0, shmemB = 0;
       shmemB += ntcol * K * NB  * sizeof(CeedScalar);
@@ -797,11 +788,20 @@ int CeedBasisCreateH1_Magma(CeedElemTopology topo, CeedInt dim, CeedInt ndof,
          &basis_kernel_source);
   CeedChkBackend(ierr);
 
-  // tuning parameter (nb)
-  CeedInt nb_interp_n[3] = {8, 4, 2}; // {small, medium, large}
-  CeedInt nb_interp_t[3] = {4, 2, 1}; // {small, medium, large}
-  CeedInt nb_grad_n[3]   = {1, 2, 4}; // {small, medium, large}
-  CeedInt nb_grad_t[3]   = {2, 4, 8}; // {small, medium, large}
+  // tuning parameters for nb
+  CeedInt nb_interp_n[3], nb_interp_t[3], nb_grad_n[3], nb_grad_t[3]; // {small, medium, large}
+  nb_interp_n[0] = nontensor_rtc_get_nb(arch, 'd', CEED_EVAL_INTERP, CEED_NOTRANSPOSE, P, 10240,   Q );
+  nb_interp_n[1] = nontensor_rtc_get_nb(arch, 'd', CEED_EVAL_INTERP, CEED_NOTRANSPOSE, P, 102400,  Q );
+  nb_interp_n[2] = nontensor_rtc_get_nb(arch, 'd', CEED_EVAL_INTERP, CEED_NOTRANSPOSE, P, 1024000, Q );
+  nb_interp_t[0] = nontensor_rtc_get_nb(arch, 'd', CEED_EVAL_INTERP, CEED_TRANSPOSE,   Q, 10240,   P );
+  nb_interp_t[1] = nontensor_rtc_get_nb(arch, 'd', CEED_EVAL_INTERP, CEED_TRANSPOSE,   Q, 102400,  P );
+  nb_interp_t[2] = nontensor_rtc_get_nb(arch, 'd', CEED_EVAL_INTERP, CEED_TRANSPOSE,   Q, 1024000, P );
+  nb_grad_n[0]   = nontensor_rtc_get_nb(arch, 'd', CEED_EVAL_GRAD,   CEED_NOTRANSPOSE, P, 10240,   Q );
+  nb_grad_n[1]   = nontensor_rtc_get_nb(arch, 'd', CEED_EVAL_GRAD,   CEED_NOTRANSPOSE, P, 102400,  Q );
+  nb_grad_n[2]   = nontensor_rtc_get_nb(arch, 'd', CEED_EVAL_GRAD,   CEED_NOTRANSPOSE, P, 1024000, Q );
+  nb_grad_t[0]   = nontensor_rtc_get_nb(arch, 'd', CEED_EVAL_GRAD,   CEED_TRANSPOSE,   Q, 10240,   P );
+  nb_grad_t[1]   = nontensor_rtc_get_nb(arch, 'd', CEED_EVAL_GRAD,   CEED_TRANSPOSE,   Q, 102400,  P );
+  nb_grad_t[2]   = nontensor_rtc_get_nb(arch, 'd', CEED_EVAL_GRAD,   CEED_TRANSPOSE,   Q, 1024000, P );
 
   // The RTC compilation code expects a Ceed with the common Ceed_Cuda or Ceed_Hip
   // data
