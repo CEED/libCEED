@@ -2,7 +2,7 @@
 // auto-generated from data on mi210-rocm5.2
 
 ////////////////////////////////////////////////////////////////////////////////
-std::vector< std::array<int, 4> > dinterp_t_mi210 =
+std::vector< std::array<int, 4> > dinterp_t_mi250x =
 {
   {3      , 1024   , 1      , 1      },
   {3      , 5120   , 1      , 4      },
@@ -84,7 +84,7 @@ std::vector< std::array<int, 4> > dinterp_t_mi210 =
 };
 
 ////////////////////////////////////////////////////////////////////////////////
-std::vector< std::array<int, 4> > dinterp_c_mi210 =
+std::vector< std::array<int, 4> > dinterp_c_mi250x =
 {
   {1      , 1024   , 3      , 1      },
   {1      , 5120   , 3      , 2      },
