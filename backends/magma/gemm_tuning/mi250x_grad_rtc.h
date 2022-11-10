@@ -2,7 +2,7 @@
 // auto-generated from data on mi250x-rocm5.2
 
 ////////////////////////////////////////////////////////////////////////////////
-std::vector< std::array<int, 4> > dgrad_n_mi250x =
+std::vector< std::array<int, 4> > dgrad_t_mi250x =
 {
   {1      , 1024   , 3      , 3      },
   {1      , 5120   , 3      , 2      },
@@ -84,7 +84,7 @@ std::vector< std::array<int, 4> > dgrad_n_mi250x =
 };
 
 ////////////////////////////////////////////////////////////////////////////////
-std::vector< std::array<int, 4> > dgrad_t_mi250x =
+std::vector< std::array<int, 4> > dgrad_c_mi250x =
 {
   {3      , 1024   , 1      , 12     },
   {3      , 5120   , 1      , 2      },
