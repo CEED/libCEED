@@ -18,7 +18,7 @@
 #include "../cuda/ceed-cuda-compile.h"
 #endif
 
-#define DBG
+//#define DBG
 
 #ifdef __cplusplus
 CEED_INTERN "C"
