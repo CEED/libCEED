@@ -9,13 +9,13 @@
 #ifdef CEED_MAGMA_USE_HIP
 #include"./gemm_tuning/mi100.h"
 #include"./gemm_tuning/mi250x.h"
-#include"./gemm_tuning/mi250x_interp.h"
-#include"./gemm_tuning/mi250x_grad.h"
+#include"./gemm_tuning/mi250x_interp_rtc.h"
+#include"./gemm_tuning/mi250x_grad_rtc.h"
 #else
 #include"./gemm_tuning/a100.h"
 #include"./gemm_tuning/v100.h"
-#include"./gemm_tuning/a100_interp.h"
-#include"./gemm_tuning/a100_grad.h"
+#include"./gemm_tuning/a100_interp_rtc.h"
+#include"./gemm_tuning/a100_grad_rtc.h"
 #endif
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -132,25 +132,25 @@ nontensor_rtc_get_data(
 
   #ifdef CEED_MAGMA_USE_HIP
   if( emode == CEED_EVAL_INTERP ) {
-    *data = ( tmode == CEED_TRANSPOSE ) ?
-            (void*)&dinterp_t_mi250x:
-            (void*)&dinterp_n_mi250x;
+    data = ( tmode == CEED_TRANSPOSE ) ?
+           (void*)&dinterp_t_mi250x:
+           (void*)&dinterp_n_mi250x;
   }
   else if( emode == CEED_EVAL_GRAD ) {
-    *data = ( tmode == CEED_TRANSPOSE ) ?
-            (void*)&dgrad_t_mi250x:
-            (void*)&dgrad_n_mi250x;
+    data = ( tmode == CEED_TRANSPOSE ) ?
+           (void*)&dgrad_t_mi250x:
+           (void*)&dgrad_n_mi250x;
   }
   #else
   if( emode == CEED_EVAL_INTERP ) {
-    *data = ( tmode == CEED_TRANSPOSE ) ?
-            (void*)&dinterp_t_a100:
-            (void*)&dinterp_n_a100;
+    data = ( tmode == CEED_TRANSPOSE ) ?
+           (void*)&dinterp_t_a100:
+           (void*)&dinterp_n_a100;
   }
   else if( emode == CEED_EVAL_GRAD ) {
-    *data = ( tmode == CEED_TRANSPOSE ) ?
-            (void*)&dgrad_t_a100:
-            (void*)&dgrad_n_a100;
+    data = ( tmode == CEED_TRANSPOSE ) ?
+           (void*)&dgrad_t_a100:
+           (void*)&dgrad_n_a100;
   }
   #endif
 
@@ -169,7 +169,7 @@ CeedInt nontensor_rtc_get_nb(
 
     std::vector< std::array<int, RECORD_LENGTH_RTC> > *data = NULL;
     data =  (std::vector< std::array<int, RECORD_LENGTH_RTC> >*)
-            gemm_selector_get_data(gpu_arch, precision, emode, tmode);
+            nontensor_rtc_get_data(gpu_arch, precision, emode, tmode);
 
     int ir = -1;
     double norm = std::numeric_limits<double>::max();
@@ -202,4 +202,7 @@ CeedInt nontensor_rtc_get_nb(
                 (*data)[ir][K_INDEX_RTC], (*data)[ir][NB_INDEX_RTC] );
         #endif
         NB   = (*data)[ir][NB_INDEX_RTC];
+    }
+
+    return NB;
 }
