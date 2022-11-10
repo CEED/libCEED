@@ -10,12 +10,7 @@
 
 #include "newtonian_types.h"
 #include "newtonian_state.h"
-
-typedef struct FreestreamContext_ *FreestreamContext;
-struct FreestreamContext_ {
-  struct NewtonianIdealGasContext_ newtonian_ctx;
-  State S_infty;
-};
+#include "freestream_bc_type.h"
 
 typedef struct {
   CeedScalar left, right;

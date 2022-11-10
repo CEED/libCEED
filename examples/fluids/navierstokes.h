@@ -384,4 +384,5 @@ PetscErrorCode SetupStrongBC_Ceed(Ceed ceed, CeedData ceed_data, DM dm,
                                   User user, AppCtx app_ctx, ProblemData *problem,
                                   SimpleBC bc, CeedInt Q_sur, CeedInt q_data_size_sur);
 
+PetscErrorCode FreestreamBCSetup(ProblemData *problem, DM dm, void *ctx);
 #endif // libceed_fluids_examples_navier_stokes_h

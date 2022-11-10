@@ -6,12 +6,8 @@
 // This file is part of CEED:  http://github.com/ceed
 
 /// @file
-/// Euler traveling vortex initial condition and operator for Navier-Stokes
-/// example using PETSc
-
-// Model from:
-//   On the Order of Accuracy and Numerical Performance of Two Classes of
-//   Finite Volume WENO Schemes, Zhang, Zhang, and Shu (2011).
+/// Thermodynamic wave propogation for testing freestream/non-reflecting
+/// boundary conditions. Proposed in Mengaldo et. al. 2014
 
 #include <ceed.h>
 #include <math.h>
@@ -73,7 +69,6 @@ CEED_QFUNCTION_HELPER int IC_NewtonianWave(void *ctx, CeedInt Q,
 
     for (CeedInt j=0; j<5; j++)
       q0[j][i] = qi[j];
-
   } // End of Quadrature Point Loop
 
   return 0;

@@ -549,7 +549,7 @@ For the Density Current, Channel, and Blasius problems, the following common com
 
 The newtonian wave problem the following command-line options are available in addition to the Newtonian Ideal Gas options:
 
-:::{list-table} newtonian wave Runtime Options
+:::{list-table} Newtonian Wave Runtime Options
 :header-rows: 1
 
 * - Option
@@ -557,18 +557,18 @@ The newtonian wave problem the following command-line options are available in a
   - Default value
   - Unit
 
-* - `-velocity_infinity`
+* - `-velocity_freestream`
   - Freestream velocity vector
   - `0,0,0`
   - `m/s`
 
-* - `-temperature_infinity`
+* - `-temperature_freestream`
   - Freestream temperature
   - `288`
   - `K`
 
-* - `-pressure_infinity`
-  - Wall temperature
+* - `-pressure_freestream`
+  - Freestream pressure
   - `1.01e5`
   - `Pa`
 
