@@ -98,7 +98,7 @@ magma_interp_nontensor_t(
 
     mul_rAsBrC_1D_nosync<CeedScalar, P, NB_INTERP_T, Q>(tx, alpha, rA, sB, sldb, rC );
 
-    write_C_r2g_1D_nosync<CeedScalar, P, NB_INTERP_T, Q>(tx, n, rC, dC, lddc );
+    write_C_r2g_1D_nosync<CeedScalar, P, NB_INTERP_T, Q>(tx, myn, rC, dC, lddc );
 }
 
 #endif // CEED_MAGMA_INTERP_NONTENSOR_H
