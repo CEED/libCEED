@@ -84,7 +84,7 @@ std::vector< std::array<int, 4> > dinterp_t_mi250x =
 };
 
 ////////////////////////////////////////////////////////////////////////////////
-std::vector< std::array<int, 4> > dinterp_c_mi250x =
+std::vector< std::array<int, 4> > dinterp_n_mi250x =
 {
   {1      , 1024   , 3      , 1      },
   {1      , 5120   , 3      , 2      },
