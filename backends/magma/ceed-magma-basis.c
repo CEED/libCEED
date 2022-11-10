@@ -18,6 +18,8 @@
 #include "../cuda/ceed-cuda-compile.h"
 #endif
 
+#define DBG
+
 #ifdef __cplusplus
 CEED_INTERN "C"
 #endif
@@ -355,23 +357,24 @@ int CeedBasisApplyNonTensor_Magma(CeedBasis basis, CeedInt nelem,
 
   CeedInt P  = ndof, Q = nqpt, N  = nelem*ncomp;
   CeedInt NB = 1;
-
   CeedMagmaFunction *interp, *grad;
+  CeedInt M = ( tmode == CEED_TRANSPOSE ) ? P : Q;
+  CeedInt K = ( tmode == CEED_TRANSPOSE ) ? Q : P;
   if( N <= 10240 ) {
-    NB     = nontensor_rtc_get_nb(arch, 'd', emode, tmode, P, 10240, Q );
+    NB     = nontensor_rtc_get_nb(arch, 'd', emode, tmode, M, 10240, K );
     interp = ( tmode == CEED_TRANSPOSE ) ? &impl->magma_interp_tr_nontensor_small :
                                            &impl->magma_interp_nontensor_small;
     grad   = ( tmode == CEED_TRANSPOSE ) ? &impl->magma_grad_tr_nontensor_small :
-                                              &impl->magma_grad_nontensor_small;
+                                           &impl->magma_grad_nontensor_small;
   }
   else if( N <= 102400 ) {
-    NB     = nontensor_rtc_get_nb(arch, 'd', emode, tmode, P, 102400, Q );
+    NB     = nontensor_rtc_get_nb(arch, 'd', emode, tmode, M, 102400, K );
     interp = ( tmode == CEED_TRANSPOSE ) ? &impl->magma_interp_tr_nontensor_medium :
                                            &impl->magma_interp_nontensor_medium;
     grad   = ( tmode == CEED_TRANSPOSE ) ? &impl->magma_grad_tr_nontensor_medium :
                                            &impl->magma_grad_nontensor_medium;
   }else {
-    NB     = nontensor_rtc_get_nb(arch, 'd', emode, tmode, P, 1024000, Q );
+    NB     = nontensor_rtc_get_nb(arch, 'd', emode, tmode, M, 1024000, K );
     interp = ( tmode == CEED_TRANSPOSE ) ? &impl->magma_interp_tr_nontensor_large :
                                            &impl->magma_interp_nontensor_large;
     grad   = ( tmode == CEED_TRANSPOSE ) ? &impl->magma_grad_tr_nontensor_large :
@@ -400,6 +403,9 @@ int CeedBasisApplyNonTensor_Magma(CeedBasis basis, CeedInt nelem,
                       &du, &K, &beta,
                       &dv, &M};
 
+      #ifdef DBG
+      printf("applying interp %c for N = %8d --> NB = %2d\n", (tmode == CEED_TRANSPOSE) ? 't': 'n', N, NB);
+      #endif
       ierr = CeedRunKernelDimSharedMagma(ceed, *interp, grid,
                                          M, ntcol, 1, shmem,
                                          args); CeedChkBackend(ierr);
@@ -441,6 +447,9 @@ int CeedBasisApplyNonTensor_Magma(CeedBasis basis, CeedInt nelem,
                              &du, &K,
                              &dv, &M};
 
+      #ifdef DBG
+      printf("applying grad   %c for N = %8d --> NB = %2d\n", (tmode == CEED_TRANSPOSE) ? 't': 'n', N, NB);
+      #endif
       ierr = CeedRunKernelDimSharedMagma(ceed, *grad, grid,
                                            M, ntcol, 1, shmem,
                                            args); CeedChkBackend(ierr);
@@ -752,6 +761,8 @@ int CeedBasisCreateH1_Magma(CeedElemTopology topo, CeedInt dim, CeedInt ndof,
   Ceed_Magma *data;
   ierr = CeedGetData(ceed, &data); CeedChkBackend(ierr);
 
+  magma_int_t arch = magma_getdevice_arch();
+
   ierr = CeedCalloc(1,&impl); CeedChkBackend(ierr);
   ierr = CeedBasisSetData(basis, impl); CeedChkBackend(ierr);
 
@@ -790,19 +801,28 @@ int CeedBasisCreateH1_Magma(CeedElemTopology topo, CeedInt dim, CeedInt ndof,
 
   // tuning parameters for nb
   CeedInt nb_interp_n[3], nb_interp_t[3], nb_grad_n[3], nb_grad_t[3]; // {small, medium, large}
-  nb_interp_n[0] = nontensor_rtc_get_nb(arch, 'd', CEED_EVAL_INTERP, CEED_NOTRANSPOSE, P, 10240,   Q );
-  nb_interp_n[1] = nontensor_rtc_get_nb(arch, 'd', CEED_EVAL_INTERP, CEED_NOTRANSPOSE, P, 102400,  Q );
-  nb_interp_n[2] = nontensor_rtc_get_nb(arch, 'd', CEED_EVAL_INTERP, CEED_NOTRANSPOSE, P, 1024000, Q );
-  nb_interp_t[0] = nontensor_rtc_get_nb(arch, 'd', CEED_EVAL_INTERP, CEED_TRANSPOSE,   Q, 10240,   P );
-  nb_interp_t[1] = nontensor_rtc_get_nb(arch, 'd', CEED_EVAL_INTERP, CEED_TRANSPOSE,   Q, 102400,  P );
-  nb_interp_t[2] = nontensor_rtc_get_nb(arch, 'd', CEED_EVAL_INTERP, CEED_TRANSPOSE,   Q, 1024000, P );
-  nb_grad_n[0]   = nontensor_rtc_get_nb(arch, 'd', CEED_EVAL_GRAD,   CEED_NOTRANSPOSE, P, 10240,   Q );
-  nb_grad_n[1]   = nontensor_rtc_get_nb(arch, 'd', CEED_EVAL_GRAD,   CEED_NOTRANSPOSE, P, 102400,  Q );
-  nb_grad_n[2]   = nontensor_rtc_get_nb(arch, 'd', CEED_EVAL_GRAD,   CEED_NOTRANSPOSE, P, 1024000, Q );
-  nb_grad_t[0]   = nontensor_rtc_get_nb(arch, 'd', CEED_EVAL_GRAD,   CEED_TRANSPOSE,   Q, 10240,   P );
-  nb_grad_t[1]   = nontensor_rtc_get_nb(arch, 'd', CEED_EVAL_GRAD,   CEED_TRANSPOSE,   Q, 102400,  P );
-  nb_grad_t[2]   = nontensor_rtc_get_nb(arch, 'd', CEED_EVAL_GRAD,   CEED_TRANSPOSE,   Q, 1024000, P );
+  CeedInt P = ndof, Q = nqpts;
+  nb_interp_n[0] = nontensor_rtc_get_nb(arch, 'd', CEED_EVAL_INTERP, CEED_NOTRANSPOSE, Q, 10240,   P );
+  nb_interp_n[1] = nontensor_rtc_get_nb(arch, 'd', CEED_EVAL_INTERP, CEED_NOTRANSPOSE, Q, 102400,  P );
+  nb_interp_n[2] = nontensor_rtc_get_nb(arch, 'd', CEED_EVAL_INTERP, CEED_NOTRANSPOSE, Q, 1024000, P );
+  nb_interp_t[0] = nontensor_rtc_get_nb(arch, 'd', CEED_EVAL_INTERP, CEED_TRANSPOSE,   P, 10240,   Q );
+  nb_interp_t[1] = nontensor_rtc_get_nb(arch, 'd', CEED_EVAL_INTERP, CEED_TRANSPOSE,   P, 102400,  Q );
+  nb_interp_t[2] = nontensor_rtc_get_nb(arch, 'd', CEED_EVAL_INTERP, CEED_TRANSPOSE,   P, 1024000, Q );
+  nb_grad_n[0]   = nontensor_rtc_get_nb(arch, 'd', CEED_EVAL_GRAD,   CEED_NOTRANSPOSE, Q, 10240,   P );
+  nb_grad_n[1]   = nontensor_rtc_get_nb(arch, 'd', CEED_EVAL_GRAD,   CEED_NOTRANSPOSE, Q, 102400,  P );
+  nb_grad_n[2]   = nontensor_rtc_get_nb(arch, 'd', CEED_EVAL_GRAD,   CEED_NOTRANSPOSE, Q, 1024000, P );
+  nb_grad_t[0]   = nontensor_rtc_get_nb(arch, 'd', CEED_EVAL_GRAD,   CEED_TRANSPOSE,   P, 10240,   Q );
+  nb_grad_t[1]   = nontensor_rtc_get_nb(arch, 'd', CEED_EVAL_GRAD,   CEED_TRANSPOSE,   P, 102400,  Q );
+  nb_grad_t[2]   = nontensor_rtc_get_nb(arch, 'd', CEED_EVAL_GRAD,   CEED_TRANSPOSE,   P, 1024000, Q );
 
+  #ifdef DBG
+  printf("interp: n {%2d, %2d, %2d} -- t {%2d, %2d, %2d}\n",
+         nb_interp_n[0], nb_interp_n[1], nb_interp_n[2],
+         nb_interp_t[0], nb_interp_t[1], nb_interp_t[2]);
+  printf("grad:   n {%2d, %2d, %2d} -- t {%2d, %2d, %2d}\n",
+         nb_grad_n[0], nb_grad_n[1], nb_grad_n[2],
+        nb_grad_t[0], nb_grad_t[1], nb_grad_t[2]);
+  #endif
   // The RTC compilation code expects a Ceed with the common Ceed_Cuda or Ceed_Hip
   // data
   Ceed delegate;
@@ -810,8 +830,8 @@ int CeedBasisCreateH1_Magma(CeedElemTopology topo, CeedInt dim, CeedInt ndof,
   // small N = nelem x ncomp
   ierr = CeedCompileMagma(delegate, basis_kernel_source, &impl->module_small, 7,
                           "DIM", dim,
-                          "P", ndof,
-                          "Q", nqpts,
+                          "P", P,
+                          "Q", Q,
                           "NB_INTERP_N", nb_interp_n[0],
                           "NB_INTERP_T", nb_interp_t[0],
                           "NB_GRAD_N",   nb_grad_n[0],
@@ -821,8 +841,8 @@ int CeedBasisCreateH1_Magma(CeedElemTopology topo, CeedInt dim, CeedInt ndof,
   // medium N = nelem x ncomp
   ierr = CeedCompileMagma(delegate, basis_kernel_source, &impl->module_medium, 7,
                           "DIM", dim,
-                          "P", ndof,
-                          "Q", nqpts,
+                          "P", P,
+                          "Q", Q,
                           "NB_INTERP_N", nb_interp_n[1],
                           "NB_INTERP_T", nb_interp_t[1],
                           "NB_GRAD_N",   nb_grad_n[1],
@@ -832,8 +852,8 @@ int CeedBasisCreateH1_Magma(CeedElemTopology topo, CeedInt dim, CeedInt ndof,
   // large N = nelem x ncomp
   ierr = CeedCompileMagma(delegate, basis_kernel_source, &impl->module_large, 7,
                           "DIM", dim,
-                          "P", ndof,
-                          "Q", nqpts,
+                          "P", P,
+                          "Q", Q,
                           "NB_INTERP_N", nb_interp_n[2],
                           "NB_INTERP_T", nb_interp_t[2],
                           "NB_GRAD_N",   nb_grad_n[2],
