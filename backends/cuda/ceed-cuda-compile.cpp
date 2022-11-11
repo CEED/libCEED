@@ -181,7 +181,7 @@ int CeedRunKernelDimSharedOptinCuda(Ceed ceed, CUfunction kernel,
                                const int block_size_y, const int block_size_z,
                                const int shared_mem_size, void **args) {
   #if CUDA_VERSION >= 9000
-  cudaFuncSetAttribute(kernel, cudaFuncAttributeMaxDynamicSharedMemorySize, shared_mem_size);
+  cuFuncSetAttribute(kernel, cudaFuncAttributeMaxDynamicSharedMemorySize, shared_mem_size);
   #endif
   CUresult result = cuLaunchKernel(kernel, grid_size, 1, 1,
                                    block_size_x, block_size_y, block_size_z,
