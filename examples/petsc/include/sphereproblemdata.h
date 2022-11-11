@@ -14,12 +14,6 @@
 // BP Option Data
 // -----------------------------------------------------------------------------
 
-// BP options
-typedef enum {
-  CEED_BP1 = 0, CEED_BP2 = 1, CEED_BP3 = 2,
-  CEED_BP4 = 3, CEED_BP5 = 4, CEED_BP6 = 5
-} BPType;
-
 static BPData bp_options[6] = {
   [CEED_BP1] = {
     .num_comp_u = 1,

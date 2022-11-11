@@ -80,7 +80,7 @@ int main(int argc, char **argv) {
             simplex = PETSC_FALSE;
   Vec U, U_loc, V, V_loc;
   DM  dm;
-  UserO user;
+  OperatorApplyContext op_apply_ctx;
   Ceed ceed;
   CeedData ceed_data;
   ProblemType problem_choice;
@@ -139,8 +139,7 @@ int main(int argc, char **argv) {
   }
 
   // Create DM
-  ierr = SetupDMByDegree(dm, degree, num_comp_u, topo_dim, false,
-                         (BCFunction)NULL);
+  ierr = SetupDMByDegree(dm, degree, q_extra, num_comp_u, topo_dim, false);
   CHKERRQ(ierr);
 
   // Create vectors
@@ -152,8 +151,8 @@ int main(int argc, char **argv) {
   ierr = VecDuplicate(U, &V); CHKERRQ(ierr);
   ierr = VecDuplicate(U_loc, &V_loc); CHKERRQ(ierr);
 
-  // Setup user structure
-  ierr = PetscMalloc1(1, &user); CHKERRQ(ierr);
+  // Setup op_apply_ctx structure
+  ierr = PetscMalloc1(1, &op_apply_ctx); CHKERRQ(ierr);
 
   // Set up libCEED
   CeedInit(ceed_resource, &ceed);
@@ -161,7 +160,7 @@ int main(int argc, char **argv) {
   CeedGetPreferredMemType(ceed, &mem_type_backend);
 
   ierr = DMGetVecType(dm, &vec_type); CHKERRQ(ierr);
-  if (!vec_type) { // Not yet set by user -dm_vec_type
+  if (!vec_type) { // Not yet set by op_apply_ctx -dm_vec_type
     switch (mem_type_backend) {
     case CEED_MEM_HOST: vec_type = VECSTANDARD; break;
     case CEED_MEM_DEVICE: {
@@ -185,15 +184,16 @@ int main(int argc, char **argv) {
     ierr = PetscPrintf(comm,
                        "\n-- libCEED + PETSc Surface Area of a Manifold --\n"
                        "  libCEED:\n"
-                       "    libCEED Backend                    : %s\n"
-                       "    libCEED Backend MemType            : %s\n"
+                       "    libCEED Backend                         : %s\n"
+                       "    libCEED Backend MemType                 : %s\n"
                        "  Mesh:\n"
-                       "    Number of 1D Basis Nodes (p)       : %" CeedInt_FMT "\n"
-                       "    Number of 1D Quadrature Points (q) : %" CeedInt_FMT "\n"
-                       "    Global nodes                       : %" PetscInt_FMT "\n"
-                       "    DoF per node                       : %" PetscInt_FMT "\n"
-                       "    Global DoFs                        : %" PetscInt_FMT "\n",
-                       used_resource, CeedMemTypes[mem_type_backend], P, Q,
+                       "    Solution Order (P)                      : %" CeedInt_FMT "\n"
+                       "    Quadrature Order (Q)                    : %" CeedInt_FMT "\n"
+                       "    Additional quadrature points (q_extra)  : %" CeedInt_FMT "\n"
+                       "    Global nodes                            : %" PetscInt_FMT "\n"
+                       "    DoF per node                            : %" PetscInt_FMT "\n"
+                       "    Global DoFs                             : %" PetscInt_FMT "\n",
+                       used_resource, CeedMemTypes[mem_type_backend], P, Q, q_extra,
                        g_size/num_comp_u, num_comp_u, g_size); CHKERRQ(ierr);
   }
 
@@ -246,12 +246,15 @@ int main(int argc, char **argv) {
   PetscReal error = fabs(area - exact_surface_area);
   PetscReal tol = 5e-6;
   if (!test_mode || error > tol) {
-    ierr = PetscPrintf(comm, "Exact mesh surface area    : % .14g\n",
+    ierr = PetscPrintf(comm,
+                       "Exact mesh surface area                     : % .14g\n",
                        exact_surface_area);
     CHKERRQ(ierr);
-    ierr = PetscPrintf(comm, "Computed mesh surface area : % .14g\n", area);
+    ierr = PetscPrintf(comm,
+                       "Computed mesh surface area                  : % .14g\n", area);
     CHKERRQ(ierr);
-    ierr = PetscPrintf(comm, "Area error                 : % .14g\n", error);
+    ierr = PetscPrintf(comm,
+                       "Area error                                  : % .14g\n", error);
     CHKERRQ(ierr);
   }
 
@@ -261,7 +264,7 @@ int main(int argc, char **argv) {
   ierr = VecDestroy(&U_loc); CHKERRQ(ierr);
   ierr = VecDestroy(&V); CHKERRQ(ierr);
   ierr = VecDestroy(&V_loc); CHKERRQ(ierr);
-  ierr = PetscFree(user); CHKERRQ(ierr);
+  ierr = PetscFree(op_apply_ctx); CHKERRQ(ierr);
   ierr = CeedDataDestroy(0, ceed_data); CHKERRQ(ierr);
   CeedDestroy(&ceed);
   return PetscFinalize();

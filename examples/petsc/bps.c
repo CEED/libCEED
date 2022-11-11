@@ -26,6 +26,7 @@
 //     ./bps -problem bp6 -degree 3 -ceed /gpu/cuda
 //
 //TESTARGS -ceed {ceed_resource} -test -problem bp5 -degree 3 -ksp_max_it_clip 15,15
+//TESTARGS -ceed {ceed_resource} -test -problem bp3 -degree 3 -ksp_max_it_clip 50,50 -simplex
 
 /// @file
 /// CEED BPs example using PETSc with DMPlex
@@ -57,43 +58,6 @@ const char help[] = "Solve CEED BPs using PETSc with DMPlex\n";
 #endif
 
 // -----------------------------------------------------------------------------
-// Utilities
-// -----------------------------------------------------------------------------
-
-// Utility function, compute three factors of an integer
-static void Split3(PetscInt size, PetscInt m[3], bool reverse) {
-  for (PetscInt d=0, size_left=size; d<3; d++) {
-    PetscInt try = (PetscInt)PetscCeilReal(PetscPowReal(size_left, 1./(3 - d)));
-    while (try * (size_left / try) != size_left) try++;
-    m[reverse ? 2-d : d] = try;
-    size_left /= try;
-  }
-}
-
-static int Max3(const PetscInt a[3]) {
-  return PetscMax(a[0], PetscMax(a[1], a[2]));
-}
-
-static int Min3(const PetscInt a[3]) {
-  return PetscMin(a[0], PetscMin(a[1], a[2]));
-}
-
-// -----------------------------------------------------------------------------
-// Parameter structure for running problems
-// -----------------------------------------------------------------------------
-typedef struct RunParams_ *RunParams;
-struct RunParams_ {
-  MPI_Comm comm;
-  PetscBool test_mode, read_mesh, user_l_nodes, write_solution;
-  char *filename, *hostname;
-  PetscInt local_nodes, degree, q_extra, dim, num_comp_u, *mesh_elem;
-  PetscInt ksp_max_it_clip[2];
-  PetscMPIInt ranks_per_node;
-  BPType bp_choice;
-  PetscLogStage solve_stage;
-};
-
-// -----------------------------------------------------------------------------
 // Main body of program, called in a loop for performance benchmarking purposes
 // -----------------------------------------------------------------------------
 static PetscErrorCode RunWithDM(RunParams rp, DM dm,
@@ -105,7 +69,7 @@ static PetscErrorCode RunWithDM(RunParams rp, DM dm,
   Vec X, X_loc, rhs, rhs_loc;
   Mat mat_O;
   KSP ksp;
-  UserO user_O;
+  OperatorApplyContext op_apply_ctx, op_error_ctx;
   Ceed ceed;
   CeedData ceed_data;
   CeedQFunction qf_error;
@@ -146,9 +110,10 @@ static PetscErrorCode RunWithDM(RunParams rp, DM dm,
   ierr = VecDuplicate(X, &rhs); CHKERRQ(ierr);
 
   // Operator
-  ierr = PetscMalloc1(1, &user_O); CHKERRQ(ierr);
+  ierr = PetscMalloc1(1, &op_apply_ctx); CHKERRQ(ierr);
+  ierr = PetscMalloc1(1, &op_error_ctx); CHKERRQ(ierr);
   ierr = MatCreateShell(rp->comm, l_size, l_size, g_size, g_size,
-                        user_O, &mat_O); CHKERRQ(ierr);
+                        op_apply_ctx, &mat_O); CHKERRQ(ierr);
   ierr = MatShellSetOperation(mat_O, MATOP_MULT,
                               (void(*)(void))MatMult_Ceed); CHKERRQ(ierr);
   ierr = MatShellSetOperation(mat_O, MATOP_GET_DIAGONAL,
@@ -167,31 +132,37 @@ static PetscErrorCode RunWithDM(RunParams rp, DM dm,
 
     PetscInt c_start, c_end;
     ierr = DMPlexGetHeightStratum(dm, 0, &c_start, &c_end); CHKERRQ(ierr);
+    DMPolytopeType  cell_type;
+    ierr = DMPlexGetCellType(dm, c_start, &cell_type); CHKERRQ(ierr);
+    CeedElemTopology elem_topo = ElemTopologyP2C(cell_type);
     PetscMPIInt comm_size;
     ierr = MPI_Comm_size(rp->comm, &comm_size); CHKERRQ(ierr);
     ierr = PetscPrintf(rp->comm,
                        "\n-- CEED Benchmark Problem %" CeedInt_FMT " -- libCEED + PETSc --\n"
                        "  MPI:\n"
-                       "    Hostname                           : %s\n"
-                       "    Total ranks                        : %d\n"
-                       "    Ranks per compute node             : %d\n"
+                       "    Hostname                                : %s\n"
+                       "    Total ranks                             : %d\n"
+                       "    Ranks per compute node                  : %d\n"
                        "  PETSc:\n"
-                       "    PETSc Vec Type                     : %s\n"
+                       "    PETSc Vec Type                          : %s\n"
                        "  libCEED:\n"
-                       "    libCEED Backend                    : %s\n"
-                       "    libCEED Backend MemType            : %s\n"
+                       "    libCEED Backend                         : %s\n"
+                       "    libCEED Backend MemType                 : %s\n"
                        "  Mesh:\n"
-                       "    Number of 1D Basis Nodes (P)       : %" CeedInt_FMT "\n"
-                       "    Number of 1D Quadrature Points (Q) : %" CeedInt_FMT "\n"
-                       "    Global nodes                       : %" PetscInt_FMT "\n"
-                       "    Local Elements                     : %" PetscInt_FMT "\n"
-                       "    Owned nodes                        : %" PetscInt_FMT "\n"
-                       "    DoF per node                       : %" PetscInt_FMT "\n",
+                       "    Solution Order (P)                      : %" CeedInt_FMT "\n"
+                       "    Quadrature  Order (Q)                   : %" CeedInt_FMT "\n"
+                       "    Additional quadrature points (q_extra)  : %" CeedInt_FMT "\n"
+                       "    Global nodes                            : %" PetscInt_FMT "\n"
+                       "    Local Elements                          : %" PetscInt_FMT "\n"
+                       "    Element topology                        : %s\n"
+                       "    Owned nodes                             : %" PetscInt_FMT "\n"
+                       "    DoF per node                            : %" PetscInt_FMT "\n",
                        rp->bp_choice+1, rp->hostname, comm_size,
                        rp->ranks_per_node, vec_type, used_resource,
-                       CeedMemTypes[mem_type_backend],
-                       P, Q, g_size/rp->num_comp_u, c_end - c_start, l_size/rp->num_comp_u,
-                       rp->num_comp_u);
+                       CeedMemTypes[mem_type_backend], P, Q, rp->q_extra,
+                       g_size/rp->num_comp_u, c_end - c_start,
+                       CeedElemTopologies[elem_topo],
+                       l_size/rp->num_comp_u, rp->num_comp_u);
     CHKERRQ(ierr);
   }
 
@@ -219,7 +190,9 @@ static PetscErrorCode RunWithDM(RunParams rp, DM dm,
                               bp_options[rp->bp_choice].error_loc, &qf_error);
   CeedQFunctionAddInput(qf_error, "u", rp->num_comp_u, CEED_EVAL_INTERP);
   CeedQFunctionAddInput(qf_error, "true_soln", rp->num_comp_u, CEED_EVAL_NONE);
-  CeedQFunctionAddOutput(qf_error, "error", rp->num_comp_u, CEED_EVAL_NONE);
+  CeedQFunctionAddInput(qf_error, "qdata", ceed_data->q_data_size,
+                        CEED_EVAL_NONE);
+  CeedQFunctionAddOutput(qf_error, "error", rp->num_comp_u, CEED_EVAL_INTERP);
 
   // Create the error operator
   CeedOperatorCreate(ceed, qf_error, CEED_QFUNCTION_NONE, CEED_QFUNCTION_NONE,
@@ -228,26 +201,26 @@ static PetscErrorCode RunWithDM(RunParams rp, DM dm,
                        ceed_data->basis_u, CEED_VECTOR_ACTIVE);
   CeedOperatorSetField(op_error, "true_soln", ceed_data->elem_restr_u_i,
                        CEED_BASIS_COLLOCATED, target);
-  CeedOperatorSetField(op_error, "error", ceed_data->elem_restr_u_i,
-                       CEED_BASIS_COLLOCATED, CEED_VECTOR_ACTIVE);
+  CeedOperatorSetField(op_error, "qdata", ceed_data->elem_restr_qd_i,
+                       CEED_BASIS_COLLOCATED, ceed_data->q_data);
+  CeedOperatorSetField(op_error, "error", ceed_data->elem_restr_u,
+                       ceed_data->basis_u, CEED_VECTOR_ACTIVE);
 
-  // Set up Mat
-  user_O->comm = rp->comm;
-  user_O->dm = dm;
-  user_O->X_loc = X_loc;
-  ierr = VecDuplicate(X_loc, &user_O->Y_loc); CHKERRQ(ierr);
-  user_O->x_ceed = ceed_data->x_ceed;
-  user_O->y_ceed = ceed_data->y_ceed;
-  user_O->op = ceed_data->op_apply;
-  user_O->ceed = ceed;
-
+  // Set up apply operator context
+  ierr = SetupApplyOperatorCtx(rp->comm, dm, ceed,
+                               ceed_data, X_loc,
+                               op_apply_ctx); CHKERRQ(ierr);
   ierr = KSPCreate(rp->comm, &ksp); CHKERRQ(ierr);
   {
     PC pc;
     ierr = KSPGetPC(ksp, &pc); CHKERRQ(ierr);
     if (rp->bp_choice == CEED_BP1 || rp->bp_choice == CEED_BP2) {
       ierr = PCSetType(pc, PCJACOBI); CHKERRQ(ierr);
-      ierr = PCJacobiSetType(pc, PC_JACOBI_ROWSUM); CHKERRQ(ierr);
+      if (rp->simplex) {
+        ierr = PCJacobiSetType(pc, PC_JACOBI_DIAGONAL); CHKERRQ(ierr);
+      } else {
+        ierr = PCJacobiSetType(pc, PC_JACOBI_ROWSUM); CHKERRQ(ierr);
+      }
     } else {
       ierr = PCSetType(pc, PCNONE); CHKERRQ(ierr);
     }
@@ -306,10 +279,10 @@ static PetscErrorCode RunWithDM(RunParams rp, DM dm,
     if (!rp->test_mode || reason < 0 || rnorm > 1e-8) {
       ierr = PetscPrintf(rp->comm,
                          "  KSP:\n"
-                         "    KSP Type                           : %s\n"
-                         "    KSP Convergence                    : %s\n"
-                         "    Total KSP Iterations               : %" PetscInt_FMT "\n"
-                         "    Final rnorm                        : %e\n",
+                         "    KSP Type                                : %s\n"
+                         "    KSP Convergence                         : %s\n"
+                         "    Total KSP Iterations                    : %" PetscInt_FMT "\n"
+                         "    Final rnorm                             : %e\n",
                          ksp_type, KSPConvergedReasons[reason], its,
                          (double)rnorm); CHKERRQ(ierr);
     }
@@ -317,24 +290,27 @@ static PetscErrorCode RunWithDM(RunParams rp, DM dm,
       ierr = PetscPrintf(rp->comm,"  Performance:\n"); CHKERRQ(ierr);
     }
     {
-      PetscReal max_error;
-      ierr = ComputeErrorMax(user_O, op_error, X, target, &max_error);
-      CHKERRQ(ierr);
+      // Set up error operator context
+      ierr = SetupErrorOperatorCtx(rp->comm, dm, ceed,
+                                   ceed_data, X_loc, op_error,
+                                   op_error_ctx); CHKERRQ(ierr);
+      PetscScalar l2_error;
+      ierr = ComputeL2Error(X, &l2_error, op_error_ctx); CHKERRQ(ierr);
       PetscReal tol = 5e-2;
-      if (!rp->test_mode || max_error > tol) {
+      if (!rp->test_mode || l2_error > tol) {
         ierr = MPI_Allreduce(&my_rt, &rt_min, 1, MPI_DOUBLE, MPI_MIN, rp->comm);
         CHKERRQ(ierr);
         ierr = MPI_Allreduce(&my_rt, &rt_max, 1, MPI_DOUBLE, MPI_MAX, rp->comm);
         CHKERRQ(ierr);
         ierr = PetscPrintf(rp->comm,
-                           "    Pointwise Error (max)              : %e\n"
-                           "    CG Solve Time                      : %g (%g) sec\n",
-                           (double)max_error, rt_max, rt_min); CHKERRQ(ierr);
+                           "    L2 Error                                : %e\n"
+                           "    CG Solve Time                           : %g (%g) sec\n",
+                           (double)l2_error, rt_max, rt_min); CHKERRQ(ierr);
       }
     }
     if (!rp->test_mode) {
       ierr = PetscPrintf(rp->comm,
-                         "    DoFs/Sec in CG                     : %g (%g) million\n",
+                         "    DoFs/Sec in CG                          : %g (%g) million\n",
                          1e-6*g_size*its/rt_max,
                          1e-6*g_size*its/rt_min); CHKERRQ(ierr);
     }
@@ -353,9 +329,11 @@ static PetscErrorCode RunWithDM(RunParams rp, DM dm,
   // Cleanup
   ierr = VecDestroy(&X); CHKERRQ(ierr);
   ierr = VecDestroy(&X_loc); CHKERRQ(ierr);
-  ierr = VecDestroy(&user_O->Y_loc); CHKERRQ(ierr);
+  ierr = VecDestroy(&op_apply_ctx->Y_loc); CHKERRQ(ierr);
+  ierr = VecDestroy(&op_error_ctx->Y_loc); CHKERRQ(ierr);
   ierr = MatDestroy(&mat_O); CHKERRQ(ierr);
-  ierr = PetscFree(user_O); CHKERRQ(ierr);
+  ierr = PetscFree(op_apply_ctx); CHKERRQ(ierr);
+  ierr = PetscFree(op_error_ctx); CHKERRQ(ierr);
   ierr = CeedDataDestroy(0, ceed_data); CHKERRQ(ierr);
 
   ierr = VecDestroy(&rhs); CHKERRQ(ierr);
@@ -376,30 +354,7 @@ static PetscErrorCode Run(RunParams rp, PetscInt num_resources,
 
   PetscFunctionBeginUser;
   // Setup DM
-  if (rp->read_mesh) {
-    ierr = DMPlexCreateFromFile(PETSC_COMM_WORLD, rp->filename, NULL, PETSC_TRUE,
-                                &dm);
-    CHKERRQ(ierr);
-  } else {
-    if (rp->user_l_nodes) {
-      // Find a nicely composite number of elements no less than global nodes
-      PetscMPIInt size;
-      ierr = MPI_Comm_size(rp->comm, &size); CHKERRQ(ierr);
-      for (PetscInt g_elem =
-             PetscMax(1, size * rp->local_nodes / PetscPowInt(rp->degree, rp->dim));
-           ;
-           g_elem++) {
-        Split3(g_elem, rp->mesh_elem, true);
-        if (Max3(rp->mesh_elem) / Min3(rp->mesh_elem) <= 2) break;
-      }
-    }
-    ierr = DMPlexCreateBoxMesh(PETSC_COMM_WORLD, rp->dim, PETSC_FALSE,
-                               rp->mesh_elem,
-                               NULL, NULL, NULL, PETSC_TRUE, &dm); CHKERRQ(ierr);
-  }
-
-  ierr = DMSetFromOptions(dm); CHKERRQ(ierr);
-  ierr = DMViewFromOptions(dm, NULL, "-dm_view"); CHKERRQ(ierr);
+  ierr = CreateDistributedDM(rp, &dm); CHKERRQ(ierr);
 
   for (PetscInt b = 0; b < num_bp_choices; b++) {
     DM dm_deg;
@@ -414,9 +369,8 @@ static PetscErrorCode Run(RunParams rp, PetscInt num_resources,
     // Create DM
     PetscInt dim;
     ierr = DMGetDimension(dm_deg, &dim); CHKERRQ(ierr);
-    ierr = SetupDMByDegree(dm_deg, rp->degree, rp->num_comp_u, dim,
-                           bp_options[rp->bp_choice].enforce_bc,
-                           bp_options[rp->bp_choice].bc_func); CHKERRQ(ierr);
+    ierr = SetupDMByDegree(dm_deg, rp->degree, rp->q_extra, rp->num_comp_u, dim,
+                           bp_options[rp->bp_choice].enforce_bc); CHKERRQ(ierr);
     for (PetscInt r = 0; r < num_resources; r++) {
       ierr = RunWithDM(rp, dm_deg, ceed_resources[r]); CHKERRQ(ierr);
     }
@@ -489,6 +443,14 @@ int main(int argc, char **argv) {
   ierr = PetscOptionsBool("-write_solution", "Write solution for visualization",
                           NULL, rp->write_solution, &rp->write_solution, NULL);
   CHKERRQ(ierr);
+  rp->simplex = PETSC_FALSE;
+  ierr = PetscOptionsBool("-simplex", "Element topology (default:hex)",
+                          NULL, rp->simplex, &rp->simplex, NULL);
+  CHKERRQ(ierr);
+  if ((bp_choices[0] == CEED_BP5 || bp_choices[0] == CEED_BP6) && (rp->simplex)) {
+    SETERRQ(PETSC_COMM_SELF, PETSC_ERR_SUP,
+            "BP5/6 is not supported with simplex");
+  }
   degree[0] = rp->test_mode ? 3 : 2;
   ierr = PetscOptionsIntArray("-degree",
                               "Polynomial degree of tensor product basis", NULL,

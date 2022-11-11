@@ -72,7 +72,7 @@ int main(int argc, char **argv) {
   Mat mat_O;
   KSP ksp;
   DM  dm;
-  UserO user_O;
+  OperatorApplyContext op_apply_ctx, op_error_ctx;
   Ceed ceed;
   CeedData ceed_data;
   CeedQFunction qf_error;
@@ -146,8 +146,7 @@ int main(int argc, char **argv) {
   ierr = DMViewFromOptions(dm, NULL, "-dm_view"); CHKERRQ(ierr);
 
   // Create DM
-  ierr = SetupDMByDegree(dm, degree, num_comp_u, topo_dim, false,
-                         (BCFunction)NULL);
+  ierr = SetupDMByDegree(dm, degree, q_extra, num_comp_u, topo_dim, false);
   CHKERRQ(ierr);
 
   // Create vectors
@@ -159,9 +158,10 @@ int main(int argc, char **argv) {
   ierr = VecDuplicate(X, &rhs); CHKERRQ(ierr);
 
   // Operator
-  ierr = PetscMalloc1(1, &user_O); CHKERRQ(ierr);
+  ierr = PetscMalloc1(1, &op_apply_ctx); CHKERRQ(ierr);
+  ierr = PetscMalloc1(1, &op_error_ctx); CHKERRQ(ierr);
   ierr = MatCreateShell(comm, l_size, l_size, g_size, g_size,
-                        user_O, &mat_O); CHKERRQ(ierr);
+                        op_apply_ctx, &mat_O); CHKERRQ(ierr);
   ierr = MatShellSetOperation(mat_O, MATOP_MULT,
                               (void(*)(void))MatMult_Ceed); CHKERRQ(ierr);
 
@@ -196,14 +196,15 @@ int main(int argc, char **argv) {
                        "\n-- CEED Benchmark Problem %" CeedInt_FMT
                        " on the Sphere -- libCEED + PETSc --\n"
                        "  libCEED:\n"
-                       "    libCEED Backend                    : %s\n"
-                       "    libCEED Backend MemType            : %s\n"
+                       "    libCEED Backend                         : %s\n"
+                       "    libCEED Backend MemType                 : %s\n"
                        "  Mesh:\n"
-                       "    Number of 1D Basis Nodes (p)       : %" CeedInt_FMT "\n"
-                       "    Number of 1D Quadrature Points (q) : %" CeedInt_FMT "\n"
-                       "    Global nodes                       : %" PetscInt_FMT "\n",
+                       "    Solution Order (P)                      : %" CeedInt_FMT "\n"
+                       "    Quadrature  Order (Q)                   : %" CeedInt_FMT "\n"
+                       "    Additional quadrature points (q_extra)  : %" CeedInt_FMT "\n"
+                       "    Global nodes                            : %" PetscInt_FMT "\n",
                        bp_choice+1, ceed_resource, CeedMemTypes[mem_type_backend], P, Q,
-                       g_size/num_comp_u); CHKERRQ(ierr);
+                       q_extra, g_size/num_comp_u); CHKERRQ(ierr);
   }
 
   // Create RHS vector
@@ -231,7 +232,9 @@ int main(int argc, char **argv) {
                               bp_options[bp_choice].error_loc, &qf_error);
   CeedQFunctionAddInput(qf_error, "u", num_comp_u, CEED_EVAL_INTERP);
   CeedQFunctionAddInput(qf_error, "true_soln", num_comp_u, CEED_EVAL_NONE);
-  CeedQFunctionAddOutput(qf_error, "error", num_comp_u, CEED_EVAL_NONE);
+  CeedQFunctionAddInput(qf_error, "qdata", ceed_data->q_data_size,
+                        CEED_EVAL_NONE);
+  CeedQFunctionAddOutput(qf_error, "error", num_comp_u, CEED_EVAL_INTERP);
 
   // Create the error operator
   CeedOperatorCreate(ceed, qf_error, NULL, NULL, &op_error);
@@ -239,18 +242,15 @@ int main(int argc, char **argv) {
                        ceed_data->basis_u, CEED_VECTOR_ACTIVE);
   CeedOperatorSetField(op_error, "true_soln", ceed_data->elem_restr_u_i,
                        CEED_BASIS_COLLOCATED, target);
-  CeedOperatorSetField(op_error, "error", ceed_data->elem_restr_u_i,
-                       CEED_BASIS_COLLOCATED, CEED_VECTOR_ACTIVE);
+  CeedOperatorSetField(op_error, "qdata", ceed_data->elem_restr_qd_i,
+                       CEED_BASIS_COLLOCATED, ceed_data->q_data);
+  CeedOperatorSetField(op_error, "error", ceed_data->elem_restr_u,
+                       ceed_data->basis_u, CEED_VECTOR_ACTIVE);
 
-  // Set up Mat
-  user_O->comm = comm;
-  user_O->dm = dm;
-  user_O->X_loc = X_loc;
-  ierr = VecDuplicate(X_loc, &user_O->Y_loc); CHKERRQ(ierr);
-  user_O->x_ceed = ceed_data->x_ceed;
-  user_O->y_ceed = ceed_data->y_ceed;
-  user_O->op = ceed_data->op_apply;
-  user_O->ceed = ceed;
+  // Set up apply operator context
+  ierr = SetupApplyOperatorCtx(comm, dm, ceed,
+                               ceed_data, X_loc,
+                               op_apply_ctx); CHKERRQ(ierr);
 
   // Setup solver
   ierr = KSPCreate(comm, &ksp); CHKERRQ(ierr);
@@ -325,10 +325,10 @@ int main(int argc, char **argv) {
     if (!test_mode || reason < 0 || rnorm > 1e-8) {
       ierr = PetscPrintf(comm,
                          "  KSP:\n"
-                         "    KSP Type                           : %s\n"
-                         "    KSP Convergence                    : %s\n"
-                         "    Total KSP Iterations               : %" PetscInt_FMT "\n"
-                         "    Final rnorm                        : %e\n",
+                         "    KSP Type                                : %s\n"
+                         "    KSP Convergence                         : %s\n"
+                         "    Total KSP Iterations                    : %" PetscInt_FMT "\n"
+                         "    Final rnorm                             : %e\n",
                          ksp_type, KSPConvergedReasons[reason], its,
                          (double)rnorm); CHKERRQ(ierr);
     }
@@ -336,24 +336,27 @@ int main(int argc, char **argv) {
       ierr = PetscPrintf(comm,"  Performance:\n"); CHKERRQ(ierr);
     }
     {
-      PetscReal max_error;
-      ierr = ComputeErrorMax(user_O, op_error, X, target, &max_error);
-      CHKERRQ(ierr);
+      // Set up error operator context
+      ierr = SetupErrorOperatorCtx(comm, dm, ceed,
+                                   ceed_data, X_loc, op_error,
+                                   op_error_ctx); CHKERRQ(ierr);
+      PetscScalar l2_error;
+      ierr = ComputeL2Error(X, &l2_error, op_error_ctx); CHKERRQ(ierr);
       PetscReal tol = 5e-4;
-      if (!test_mode || max_error > tol) {
+      if (!test_mode || l2_error > tol) {
         ierr = MPI_Allreduce(&my_rt, &rt_min, 1, MPI_DOUBLE, MPI_MIN, comm);
         CHKERRQ(ierr);
         ierr = MPI_Allreduce(&my_rt, &rt_max, 1, MPI_DOUBLE, MPI_MAX, comm);
         CHKERRQ(ierr);
         ierr = PetscPrintf(comm,
-                           "    Pointwise Error (max)              : %e\n"
-                           "    CG Solve Time                      : %g (%g) sec\n",
-                           (double)max_error, rt_max, rt_min); CHKERRQ(ierr);
+                           "    L2 Error                                : %e\n"
+                           "    CG Solve Time                           : %g (%g) sec\n",
+                           (double)l2_error, rt_max, rt_min); CHKERRQ(ierr);
       }
     }
     if (benchmark_mode && (!test_mode)) {
       ierr = PetscPrintf(comm,
-                         "    DoFs/Sec in CG                     : %g (%g) million\n",
+                         "    DoFs/Sec in CG                            : %g (%g) million\n",
                          1e-6*g_size*its/rt_max, 1e-6*g_size*its/rt_min); CHKERRQ(ierr);
     }
   }
@@ -372,9 +375,11 @@ int main(int argc, char **argv) {
   // Cleanup
   ierr = VecDestroy(&X); CHKERRQ(ierr);
   ierr = VecDestroy(&X_loc); CHKERRQ(ierr);
-  ierr = VecDestroy(&user_O->Y_loc); CHKERRQ(ierr);
+  ierr = VecDestroy(&op_apply_ctx->Y_loc); CHKERRQ(ierr);
+  ierr = VecDestroy(&op_error_ctx->Y_loc); CHKERRQ(ierr);
   ierr = MatDestroy(&mat_O); CHKERRQ(ierr);
-  ierr = PetscFree(user_O); CHKERRQ(ierr);
+  ierr = PetscFree(op_apply_ctx); CHKERRQ(ierr);
+  ierr = PetscFree(op_error_ctx); CHKERRQ(ierr);
   ierr = CeedDataDestroy(0, ceed_data); CHKERRQ(ierr);
   ierr = DMDestroy(&dm); CHKERRQ(ierr);
 
