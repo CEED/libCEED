@@ -4,7 +4,6 @@
 #include <ceed.h>
 #include <petsc.h>
 
-#include "../include/bcfunctions.h"
 #include "../include/structs.h"
 #include "../qfunctions/bps/bp1.h"
 #include "../qfunctions/bps/bp2.h"
@@ -15,9 +14,6 @@
 // -----------------------------------------------------------------------------
 // BP Option Data
 // -----------------------------------------------------------------------------
-
-// BP options
-typedef enum { CEED_BP1 = 0, CEED_BP2 = 1, CEED_BP3 = 2, CEED_BP4 = 3, CEED_BP5 = 4, CEED_BP6 = 5 } BPType;
 
 BPData bp_options[6] = {
     [CEED_BP1] = {.num_comp_u    = 1,
@@ -36,8 +32,7 @@ BPData bp_options[6] = {
                   .in_mode       = CEED_EVAL_INTERP,
                   .out_mode      = CEED_EVAL_INTERP,
                   .q_mode        = CEED_GAUSS,
-                  .enforce_bc    = PETSC_FALSE,
-                  .bc_func       = BCsMass},
+                  .enforce_bc    = PETSC_FALSE},
     [CEED_BP2] = {.num_comp_u    = 3,
                   .num_comp_x    = 3,
                   .topo_dim      = 3,
@@ -54,8 +49,7 @@ BPData bp_options[6] = {
                   .in_mode       = CEED_EVAL_INTERP,
                   .out_mode      = CEED_EVAL_INTERP,
                   .q_mode        = CEED_GAUSS,
-                  .enforce_bc    = PETSC_FALSE,
-                  .bc_func       = BCsMass},
+                  .enforce_bc    = PETSC_FALSE},
     [CEED_BP3] = {.num_comp_u    = 1,
                   .num_comp_x    = 3,
                   .topo_dim      = 3,
@@ -72,8 +66,7 @@ BPData bp_options[6] = {
                   .in_mode       = CEED_EVAL_GRAD,
                   .out_mode      = CEED_EVAL_GRAD,
                   .q_mode        = CEED_GAUSS,
-                  .enforce_bc    = PETSC_TRUE,
-                  .bc_func       = BCsDiff},
+                  .enforce_bc    = PETSC_TRUE },
     [CEED_BP4] = {.num_comp_u    = 3,
                   .num_comp_x    = 3,
                   .topo_dim      = 3,
@@ -90,8 +83,7 @@ BPData bp_options[6] = {
                   .in_mode       = CEED_EVAL_GRAD,
                   .out_mode      = CEED_EVAL_GRAD,
                   .q_mode        = CEED_GAUSS,
-                  .enforce_bc    = PETSC_TRUE,
-                  .bc_func       = BCsDiff},
+                  .enforce_bc    = PETSC_TRUE },
     [CEED_BP5] = {.num_comp_u    = 1,
                   .num_comp_x    = 3,
                   .topo_dim      = 3,
@@ -108,8 +100,7 @@ BPData bp_options[6] = {
                   .in_mode       = CEED_EVAL_GRAD,
                   .out_mode      = CEED_EVAL_GRAD,
                   .q_mode        = CEED_GAUSS_LOBATTO,
-                  .enforce_bc    = PETSC_TRUE,
-                  .bc_func       = BCsDiff},
+                  .enforce_bc    = PETSC_TRUE },
     [CEED_BP6] = {.num_comp_u    = 3,
                   .num_comp_x    = 3,
                   .topo_dim      = 3,
@@ -126,8 +117,7 @@ BPData bp_options[6] = {
                   .in_mode       = CEED_EVAL_GRAD,
                   .out_mode      = CEED_EVAL_GRAD,
                   .q_mode        = CEED_GAUSS_LOBATTO,
-                  .enforce_bc    = PETSC_TRUE,
-                  .bc_func       = BCsDiff}
+                  .enforce_bc    = PETSC_TRUE }
 };
 
 #endif  // libceed_petsc_examples_bps_problem_data_h

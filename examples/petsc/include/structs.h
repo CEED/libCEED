@@ -9,8 +9,8 @@
 // -----------------------------------------------------------------------------
 
 // Data for PETSc Matshell
-typedef struct UserO_ *UserO;
-struct UserO_ {
+typedef struct OperatorApplyContext_ *OperatorApplyContext;
+struct OperatorApplyContext_ {
   MPI_Comm     comm;
   DM           dm;
   Vec          X_loc, Y_loc, diag;
@@ -20,8 +20,8 @@ struct UserO_ {
 };
 
 // Data for PETSc Prolong/Restrict Matshells
-typedef struct UserProlongRestr_ *UserProlongRestr;
-struct UserProlongRestr_ {
+typedef struct ProlongRestrContext_ *ProlongRestrContext;
+struct ProlongRestrContext_ {
   MPI_Comm     comm;
   DM           dmc, dmf;
   Vec          loc_vec_c, loc_vec_f, mult_vec;
@@ -38,11 +38,12 @@ struct UserProlongRestr_ {
 typedef struct CeedData_ *CeedData;
 struct CeedData_ {
   Ceed                ceed;
-  CeedBasis           basis_x, basis_u, basis_c_to_f;
+  CeedBasis           basis_x, basis_u;
   CeedElemRestriction elem_restr_x, elem_restr_u, elem_restr_u_i, elem_restr_qd_i;
   CeedQFunction       qf_apply;
   CeedOperator        op_apply, op_restrict, op_prolong;
   CeedVector          q_data, x_ceed, y_ceed;
+  CeedInt             q_data_size;
 };
 
 // BP specific data
@@ -53,7 +54,24 @@ typedef struct {
   CeedEvalMode      in_mode, out_mode;
   CeedQuadMode      q_mode;
   PetscBool         enforce_bc;
-  PetscErrorCode (*bc_func)(PetscInt, PetscReal, const PetscReal *, PetscInt, PetscScalar *, void *);
 } BPData;
+
+// BP options
+typedef enum { CEED_BP1 = 0, CEED_BP2 = 1, CEED_BP3 = 2, CEED_BP4 = 3, CEED_BP5 = 4, CEED_BP6 = 5 } BPType;
+
+// -----------------------------------------------------------------------------
+// Parameter structure for running problems
+// -----------------------------------------------------------------------------
+typedef struct RunParams_ *RunParams;
+struct RunParams_ {
+  MPI_Comm      comm;
+  PetscBool     test_mode, read_mesh, user_l_nodes, write_solution, simplex;
+  char         *filename, *hostname;
+  PetscInt      local_nodes, degree, q_extra, dim, num_comp_u, *mesh_elem;
+  PetscInt      ksp_max_it_clip[2];
+  PetscMPIInt   ranks_per_node;
+  BPType        bp_choice;
+  PetscLogStage solve_stage;
+};
 
 #endif  // libceed_petsc_examples_structs_h

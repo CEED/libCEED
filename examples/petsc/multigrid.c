@@ -24,6 +24,7 @@
 //     multigrid -problem bp6 -ceed /gpu/cuda
 //
 //TESTARGS -ceed {ceed_resource} -test -problem bp3 -degree 3
+//TESTARGS -ceed {ceed_resource} -test -problem bp3 -degree 3 -simplex
 
 /// @file
 /// CEED BPs 1-6 multigrid example using PETSc
@@ -59,26 +60,26 @@ int main(int argc, char **argv) {
   double   my_rt_start, my_rt, rt_min, rt_max;
   PetscInt degree = 3, q_extra, *l_size, *xl_size, *g_size, dim = 3, fine_level, mesh_elem[3] = {3, 3, 3}, num_comp_u = 1, num_levels = degree,
            *level_degrees;
-  PetscScalar      *r;
-  PetscScalar       eps = 1.0;
-  PetscBool         test_mode, benchmark_mode, read_mesh, write_solution;
-  PetscLogStage     solve_stage;
-  PetscLogEvent     assemble_event;
-  DM               *dm, dm_orig;
-  KSP               ksp;
-  PC                pc;
-  Mat              *mat_O, *mat_pr, mat_coarse;
-  Vec              *X, *X_loc, *mult, rhs, rhs_loc;
-  PetscMemType      mem_type;
-  UserO            *user_O;
-  UserProlongRestr *user_pr;
-  Ceed              ceed;
-  CeedData         *ceed_data;
-  CeedVector        rhs_ceed, target;
-  CeedQFunction     qf_error, qf_restrict, qf_prolong;
-  CeedOperator      op_error;
-  BPType            bp_choice;
-  CoarsenType       coarsen;
+  PetscScalar          *r;
+  PetscScalar           eps = 1.0;
+  PetscBool             test_mode, benchmark_mode, read_mesh, write_solution, simplex;
+  PetscLogStage         solve_stage;
+  PetscLogEvent         assemble_event;
+  DM                   *dm, dm_orig;
+  KSP                   ksp;
+  PC                    pc;
+  Mat                  *mat_O, *mat_pr, mat_coarse;
+  Vec                  *X, *X_loc, *mult, rhs, rhs_loc;
+  PetscMemType          mem_type;
+  OperatorApplyContext *op_apply_ctx, op_error_ctx;
+  ProlongRestrContext  *pr_restr_ctx;
+  Ceed                  ceed;
+  CeedData             *ceed_data;
+  CeedVector            rhs_ceed, target;
+  CeedQFunction         qf_error;
+  CeedOperator          op_error;
+  BPType                bp_choice;
+  CoarsenType           coarsen;
 
   PetscCall(PetscInitialize(&argc, &argv, NULL, help));
   comm = PETSC_COMM_WORLD;
@@ -94,6 +95,11 @@ int main(int argc, char **argv) {
   PetscCall(PetscOptionsBool("-benchmark", "Benchmarking mode (prints benchmark statistics)", NULL, benchmark_mode, &benchmark_mode, NULL));
   write_solution = PETSC_FALSE;
   PetscCall(PetscOptionsBool("-write_solution", "Write solution for visualization", NULL, write_solution, &write_solution, NULL));
+  simplex = PETSC_FALSE;
+  PetscCall(PetscOptionsBool("-simplex", "Element topology (default:hex)", NULL, simplex, &simplex, NULL));
+  if ((bp_choice == CEED_BP5 || bp_choice == CEED_BP6) && (simplex)) {
+    SETERRQ(PETSC_COMM_SELF, PETSC_ERR_SUP, "BP5/6 is not supported with simplex");
+  }
   PetscCall(PetscOptionsScalar("-eps", "Epsilon parameter for Kershaw mesh transformation", NULL, eps, &eps, NULL));
   if (eps > 1 || eps <= 0) SETERRQ(PETSC_COMM_WORLD, PETSC_ERR_ARG_OUTOFRANGE, "-eps %g must be (0,1]", (double)PetscRealPart(eps));
   degree = test_mode ? 3 : 2;
@@ -121,7 +127,7 @@ int main(int argc, char **argv) {
   if (read_mesh) {
     PetscCall(DMPlexCreateFromFile(PETSC_COMM_WORLD, filename, NULL, PETSC_TRUE, &dm_orig));
   } else {
-    PetscCall(DMPlexCreateBoxMesh(PETSC_COMM_WORLD, dim, PETSC_FALSE, mesh_elem, NULL, NULL, NULL, PETSC_TRUE, &dm_orig));
+    PetscCall(DMPlexCreateBoxMesh(PETSC_COMM_WORLD, dim, simplex, mesh_elem, NULL, NULL, NULL, PETSC_TRUE, &dm_orig));
   }
 
   VecType vec_type;
@@ -170,13 +176,19 @@ int main(int argc, char **argv) {
   PetscCall(PetscMalloc1(num_levels, &X));
   PetscCall(PetscMalloc1(num_levels, &X_loc));
   PetscCall(PetscMalloc1(num_levels, &mult));
-  PetscCall(PetscMalloc1(num_levels, &user_O));
-  PetscCall(PetscMalloc1(num_levels, &user_pr));
+  PetscCall(PetscMalloc1(num_levels, &op_apply_ctx));
+  PetscCall(PetscMalloc1(num_levels, &pr_restr_ctx));
   PetscCall(PetscMalloc1(num_levels, &mat_O));
   PetscCall(PetscMalloc1(num_levels, &mat_pr));
   PetscCall(PetscMalloc1(num_levels, &l_size));
   PetscCall(PetscMalloc1(num_levels, &xl_size));
   PetscCall(PetscMalloc1(num_levels, &g_size));
+
+  PetscInt c_start, c_end;
+  PetscCall(DMPlexGetHeightStratum(dm_orig, 0, &c_start, &c_end));
+  DMPolytopeType cell_type;
+  PetscCall(DMPlexGetCellType(dm_orig, c_start, &cell_type));
+  CeedElemTopology elem_topo = ElemTopologyP2C(cell_type);
 
   // Setup DM and Operator Mat Shells for each level
   for (CeedInt i = 0; i < num_levels; i++) {
@@ -186,7 +198,7 @@ int main(int argc, char **argv) {
     PetscCall(DMSetVecType(dm[i], vec_type));
     PetscInt dim;
     PetscCall(DMGetDimension(dm[i], &dim));
-    PetscCall(SetupDMByDegree(dm[i], level_degrees[i], num_comp_u, dim, bp_options[bp_choice].enforce_bc, bp_options[bp_choice].bc_func));
+    PetscCall(SetupDMByDegree(dm[i], level_degrees[fine_level], q_extra, num_comp_u, dim, bp_options[bp_choice].enforce_bc));
 
     // Create vectors
     PetscCall(DMCreateGlobalVector(dm[i], &X[i]));
@@ -196,8 +208,9 @@ int main(int argc, char **argv) {
     PetscCall(VecGetSize(X_loc[i], &xl_size[i]));
 
     // Operator
-    PetscCall(PetscMalloc1(1, &user_O[i]));
-    PetscCall(MatCreateShell(comm, l_size[i], l_size[i], g_size[i], g_size[i], user_O[i], &mat_O[i]));
+    PetscCall(PetscMalloc1(1, &op_apply_ctx[i]));
+    PetscCall(PetscMalloc1(1, &op_error_ctx));
+    PetscCall(MatCreateShell(comm, l_size[i], l_size[i], g_size[i], g_size[i], op_apply_ctx[i], &mat_O[i]));
     PetscCall(MatShellSetOperation(mat_O[i], MATOP_MULT, (void (*)(void))MatMult_Ceed));
     PetscCall(MatShellSetOperation(mat_O[i], MATOP_GET_DIAGONAL, (void (*)(void))MatGetDiag));
     PetscCall(MatShellSetVecType(mat_O[i], vec_type));
@@ -205,8 +218,8 @@ int main(int argc, char **argv) {
     // Level transfers
     if (i > 0) {
       // Interp
-      PetscCall(PetscMalloc1(1, &user_pr[i]));
-      PetscCall(MatCreateShell(comm, l_size[i], l_size[i - 1], g_size[i], g_size[i - 1], user_pr[i], &mat_pr[i]));
+      PetscCall(PetscMalloc1(1, &pr_restr_ctx[i]));
+      PetscCall(MatCreateShell(comm, l_size[i], l_size[i - 1], g_size[i], g_size[i - 1], pr_restr_ctx[i], &mat_pr[i]));
       PetscCall(MatShellSetOperation(mat_pr[i], MATOP_MULT, (void (*)(void))MatMult_Prolong));
       PetscCall(MatShellSetOperation(mat_pr[i], MATOP_MULT_TRANSPOSE, (void (*)(void))MatMult_Restrict));
       PetscCall(MatShellSetVecType(mat_pr[i], vec_type));
@@ -226,20 +239,22 @@ int main(int argc, char **argv) {
     PetscCall(PetscPrintf(comm,
                           "\n-- CEED Benchmark Problem %" CeedInt_FMT " -- libCEED + PETSc + PCMG --\n"
                           "  PETSc:\n"
-                          "    PETSc Vec Type                     : %s\n"
+                          "    PETSc Vec Type                          : %s\n"
                           "  libCEED:\n"
-                          "    libCEED Backend                    : %s\n"
-                          "    libCEED Backend MemType            : %s\n"
+                          "    libCEED Backend                         : %s\n"
+                          "    libCEED Backend MemType                 : %s\n"
                           "  Mesh:\n"
-                          "    Number of 1D Basis Nodes (p)       : %" CeedInt_FMT "\n"
-                          "    Number of 1D Quadrature Points (q) : %" CeedInt_FMT "\n"
-                          "    Global Nodes                       : %" PetscInt_FMT "\n"
-                          "    Owned Nodes                        : %" PetscInt_FMT "\n"
-                          "    DoF per node                       : %" PetscInt_FMT "\n"
+                          "    Solution Order (P)                      : %" CeedInt_FMT "\n"
+                          "    Quadrature  Order (Q)                   : %" CeedInt_FMT "\n"
+                          "    Additional quadrature points (q_extra)  : %" CeedInt_FMT "\n"
+                          "    Global Nodes                            : %" PetscInt_FMT "\n"
+                          "    Owned Nodes                             : %" PetscInt_FMT "\n"
+                          "    DoF per node                            : %" PetscInt_FMT "\n"
+                          "    Element topology                        : %s\n"
                           "  Multigrid:\n"
-                          "    Number of Levels                   : %" CeedInt_FMT "\n",
-                          bp_choice + 1, vec_type, used_resource, CeedMemTypes[mem_type_backend], P, Q, g_size[fine_level] / num_comp_u,
-                          l_size[fine_level] / num_comp_u, num_comp_u, num_levels));
+                          "    Number of Levels                        : %" CeedInt_FMT "\n",
+                          bp_choice + 1, vec_type, used_resource, CeedMemTypes[mem_type_backend], P, Q, q_extra, g_size[fine_level] / num_comp_u,
+                          l_size[fine_level] / num_comp_u, num_comp_u, CeedElemTopologies[elem_topo], num_levels));
   }
 
   // Create RHS vector
@@ -256,9 +271,9 @@ int main(int argc, char **argv) {
     if (!test_mode && (i == 0 || i == fine_level)) {
       PetscCall(PetscPrintf(comm,
                             "    Level %" PetscInt_FMT " (%s):\n"
-                            "      Number of 1D Basis Nodes (p)     : %" CeedInt_FMT "\n"
-                            "      Global Nodes                     : %" PetscInt_FMT "\n"
-                            "      Owned Nodes                      : %" PetscInt_FMT "\n",
+                            "      Solution Order (P)                    : %" CeedInt_FMT "\n"
+                            "      Global Nodes                          : %" PetscInt_FMT "\n"
+                            "      Owned Nodes                           : %" PetscInt_FMT "\n",
                             i, (i ? "fine" : "coarse"), level_degrees[i] + 1, g_size[i] / num_comp_u, l_size[i] / num_comp_u));
     }
     PetscCall(PetscMalloc1(1, &ceed_data[i]));
@@ -273,24 +288,19 @@ int main(int argc, char **argv) {
   PetscCall(DMLocalToGlobal(dm[fine_level], rhs_loc, ADD_VALUES, rhs));
   CeedVectorDestroy(&rhs_ceed);
 
-  // Create the restriction/interpolation QFunction
-  CeedQFunctionCreateIdentity(ceed, num_comp_u, CEED_EVAL_NONE, CEED_EVAL_INTERP, &qf_restrict);
-  CeedQFunctionCreateIdentity(ceed, num_comp_u, CEED_EVAL_INTERP, CEED_EVAL_NONE, &qf_prolong);
-
-  // Set up libCEED level transfer operators
-  PetscCall(CeedLevelTransferSetup(ceed, num_levels, num_comp_u, ceed_data, level_degrees, qf_restrict, qf_prolong));
-
   // Create the error QFunction
   CeedQFunctionCreateInterior(ceed, 1, bp_options[bp_choice].error, bp_options[bp_choice].error_loc, &qf_error);
   CeedQFunctionAddInput(qf_error, "u", num_comp_u, CEED_EVAL_INTERP);
   CeedQFunctionAddInput(qf_error, "true_soln", num_comp_u, CEED_EVAL_NONE);
-  CeedQFunctionAddOutput(qf_error, "error", num_comp_u, CEED_EVAL_NONE);
+  CeedQFunctionAddInput(qf_error, "qdata", ceed_data[fine_level]->q_data_size, CEED_EVAL_NONE);
+  CeedQFunctionAddOutput(qf_error, "error", num_comp_u, CEED_EVAL_INTERP);
 
   // Create the error operator
   CeedOperatorCreate(ceed, qf_error, CEED_QFUNCTION_NONE, CEED_QFUNCTION_NONE, &op_error);
   CeedOperatorSetField(op_error, "u", ceed_data[fine_level]->elem_restr_u, ceed_data[fine_level]->basis_u, CEED_VECTOR_ACTIVE);
   CeedOperatorSetField(op_error, "true_soln", ceed_data[fine_level]->elem_restr_u_i, CEED_BASIS_COLLOCATED, target);
-  CeedOperatorSetField(op_error, "error", ceed_data[fine_level]->elem_restr_u_i, CEED_BASIS_COLLOCATED, CEED_VECTOR_ACTIVE);
+  CeedOperatorSetField(op_error, "qdata", ceed_data[fine_level]->elem_restr_qd_i, CEED_BASIS_COLLOCATED, ceed_data[fine_level]->q_data);
+  CeedOperatorSetField(op_error, "error", ceed_data[fine_level]->elem_restr_u, ceed_data[fine_level]->basis_u, CEED_VECTOR_ACTIVE);
 
   // Calculate multiplicity
   for (int i = 0; i < num_levels; i++) {
@@ -326,29 +336,23 @@ int main(int argc, char **argv) {
 
   // Set up Mat
   for (int i = 0; i < num_levels; i++) {
-    // User Operator
-    user_O[i]->comm  = comm;
-    user_O[i]->dm    = dm[i];
-    user_O[i]->X_loc = X_loc[i];
-    PetscCall(VecDuplicate(X_loc[i], &user_O[i]->Y_loc));
-    user_O[i]->x_ceed = ceed_data[i]->x_ceed;
-    user_O[i]->y_ceed = ceed_data[i]->y_ceed;
-    user_O[i]->op     = ceed_data[i]->op_apply;
-    user_O[i]->ceed   = ceed;
+    // Set up apply operator context
+    PetscCall(SetupApplyOperatorCtx(comm, dm[i], ceed, ceed_data[i], X_loc[i], op_apply_ctx[i]));
 
     if (i > 0) {
       // Prolongation/Restriction Operator
-      user_pr[i]->comm        = comm;
-      user_pr[i]->dmf         = dm[i];
-      user_pr[i]->dmc         = dm[i - 1];
-      user_pr[i]->loc_vec_c   = X_loc[i - 1];
-      user_pr[i]->loc_vec_f   = user_O[i]->Y_loc;
-      user_pr[i]->mult_vec    = mult[i];
-      user_pr[i]->ceed_vec_c  = user_O[i - 1]->x_ceed;
-      user_pr[i]->ceed_vec_f  = user_O[i]->y_ceed;
-      user_pr[i]->op_prolong  = ceed_data[i]->op_prolong;
-      user_pr[i]->op_restrict = ceed_data[i]->op_restrict;
-      user_pr[i]->ceed        = ceed;
+      PetscCall(CeedLevelTransferSetup(dm[i - 1], ceed, i, num_comp_u, ceed_data, bp_options[bp_choice], mult[i]));
+      pr_restr_ctx[i]->comm        = comm;
+      pr_restr_ctx[i]->dmf         = dm[i];
+      pr_restr_ctx[i]->dmc         = dm[i - 1];
+      pr_restr_ctx[i]->loc_vec_c   = X_loc[i - 1];
+      pr_restr_ctx[i]->loc_vec_f   = op_apply_ctx[i]->Y_loc;
+      pr_restr_ctx[i]->mult_vec    = mult[i];
+      pr_restr_ctx[i]->ceed_vec_c  = op_apply_ctx[i - 1]->x_ceed;
+      pr_restr_ctx[i]->ceed_vec_f  = op_apply_ctx[i]->y_ceed;
+      pr_restr_ctx[i]->op_prolong  = ceed_data[i]->op_prolong;
+      pr_restr_ctx[i]->op_restrict = ceed_data[i]->op_restrict;
+      pr_restr_ctx[i]->ceed        = ceed;
     }
   }
 
@@ -361,7 +365,7 @@ int main(int argc, char **argv) {
     PetscCount num_entries;
     CeedInt   *rows, *cols;
     CeedVector coo_values;
-    CeedOperatorLinearAssembleSymbolic(user_O[0]->op, &num_entries, &rows, &cols);
+    CeedOperatorLinearAssembleSymbolic(op_apply_ctx[0]->op, &num_entries, &rows, &cols);
     ISLocalToGlobalMapping ltog_row, ltog_col;
     PetscCall(MatGetLocalToGlobalMapping(mat_coarse, &ltog_row, &ltog_col));
     PetscCall(ISLocalToGlobalMappingApply(ltog_row, num_entries, rows, rows));
@@ -371,7 +375,7 @@ int main(int argc, char **argv) {
     free(cols);
     CeedVectorCreate(ceed, num_entries, &coo_values);
     PetscCall(PetscLogEventBegin(assemble_event, mat_coarse, 0, 0, 0));
-    CeedOperatorLinearAssemble(user_O[0]->op, coo_values);
+    CeedOperatorLinearAssemble(op_apply_ctx[0]->op, coo_values);
     const CeedScalar *values;
     CeedVectorGetArrayRead(coo_values, CEED_MEM_HOST, &values);
     PetscCall(MatSetValuesCOO(mat_coarse, values, ADD_VALUES));
@@ -491,35 +495,37 @@ int main(int argc, char **argv) {
     if (!test_mode || reason < 0 || rnorm > 1e-8) {
       PetscCall(PetscPrintf(comm,
                             "  KSP:\n"
-                            "    KSP Type                           : %s\n"
-                            "    KSP Convergence                    : %s\n"
-                            "    Total KSP Iterations               : %" PetscInt_FMT "\n"
-                            "    Final rnorm                        : %e\n",
+                            "    KSP Type                                : %s\n"
+                            "    KSP Convergence                         : %s\n"
+                            "    Total KSP Iterations                    : %" PetscInt_FMT "\n"
+                            "    Final rnorm                             : %e\n",
                             ksp_type, KSPConvergedReasons[reason], its, (double)rnorm));
       PetscCall(PetscPrintf(comm,
                             "  PCMG:\n"
-                            "    PCMG Type                          : %s\n"
-                            "    PCMG Cycle Type                    : %s\n",
+                            "    PCMG Type                               : %s\n"
+                            "    PCMG Cycle Type                         : %s\n",
                             PCMGTypes[pcmg_type], PCMGCycleTypes[pcmg_cycle_type]));
     }
     if (!test_mode) {
       PetscCall(PetscPrintf(comm, "  Performance:\n"));
     }
     {
-      PetscReal max_error;
-      PetscCall(ComputeErrorMax(user_O[fine_level], op_error, X[fine_level], target, &max_error));
+      // Set up error operator context
+      PetscCall(SetupErrorOperatorCtx(comm, dm[fine_level], ceed, ceed_data[fine_level], X_loc[fine_level], op_error, op_error_ctx));
+      PetscScalar l2_error;
+      PetscCall(ComputeL2Error(X[fine_level], &l2_error, op_error_ctx));
       PetscReal tol = 5e-2;
-      if (!test_mode || max_error > tol) {
+      if (!test_mode || l2_error > tol) {
         PetscCall(MPI_Allreduce(&my_rt, &rt_min, 1, MPI_DOUBLE, MPI_MIN, comm));
         PetscCall(MPI_Allreduce(&my_rt, &rt_max, 1, MPI_DOUBLE, MPI_MAX, comm));
         PetscCall(PetscPrintf(comm,
-                              "    Pointwise Error (max)              : %e\n"
-                              "    CG Solve Time                      : %g (%g) sec\n",
-                              (double)max_error, rt_max, rt_min));
+                              "    L2 Error                                : %e\n"
+                              "    CG Solve Time                           : %g (%g) sec\n",
+                              (double)l2_error, rt_max, rt_min));
       }
     }
     if (benchmark_mode && (!test_mode)) {
-      PetscCall(PetscPrintf(comm, "    DoFs/Sec in CG                     : %g (%g) million\n", 1e-6 * g_size[fine_level] * its / rt_max,
+      PetscCall(PetscPrintf(comm, "    DoFs/Sec in CG                            : %g (%g) million\n", 1e-6 * g_size[fine_level] * its / rt_max,
                             1e-6 * g_size[fine_level] * its / rt_min));
     }
   }
@@ -539,12 +545,12 @@ int main(int argc, char **argv) {
     PetscCall(VecDestroy(&X[i]));
     PetscCall(VecDestroy(&X_loc[i]));
     PetscCall(VecDestroy(&mult[i]));
-    PetscCall(VecDestroy(&user_O[i]->Y_loc));
+    PetscCall(VecDestroy(&op_apply_ctx[i]->Y_loc));
     PetscCall(MatDestroy(&mat_O[i]));
-    PetscCall(PetscFree(user_O[i]));
+    PetscCall(PetscFree(op_apply_ctx[i]));
     if (i > 0) {
       PetscCall(MatDestroy(&mat_pr[i]));
-      PetscCall(PetscFree(user_pr[i]));
+      PetscCall(PetscFree(pr_restr_ctx[i]));
     }
     PetscCall(CeedDataDestroy(i, ceed_data[i]));
     PetscCall(DMDestroy(&dm[i]));
@@ -553,12 +559,14 @@ int main(int argc, char **argv) {
   PetscCall(PetscFree(dm));
   PetscCall(PetscFree(X));
   PetscCall(PetscFree(X_loc));
+  PetscCall(VecDestroy(&op_error_ctx->Y_loc));
   PetscCall(PetscFree(mult));
   PetscCall(PetscFree(mat_O));
   PetscCall(PetscFree(mat_pr));
   PetscCall(PetscFree(ceed_data));
-  PetscCall(PetscFree(user_O));
-  PetscCall(PetscFree(user_pr));
+  PetscCall(PetscFree(op_apply_ctx));
+  PetscCall(PetscFree(op_error_ctx));
+  PetscCall(PetscFree(pr_restr_ctx));
   PetscCall(PetscFree(l_size));
   PetscCall(PetscFree(xl_size));
   PetscCall(PetscFree(g_size));
@@ -569,8 +577,6 @@ int main(int argc, char **argv) {
   PetscCall(DMDestroy(&dm_orig));
   CeedVectorDestroy(&target);
   CeedQFunctionDestroy(&qf_error);
-  CeedQFunctionDestroy(&qf_restrict);
-  CeedQFunctionDestroy(&qf_prolong);
   CeedOperatorDestroy(&op_error);
   CeedDestroy(&ceed);
   return PetscFinalize();

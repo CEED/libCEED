@@ -118,8 +118,8 @@ static PetscErrorCode CreateRestriction(Ceed ceed, const CeedInt mesh_elem[3], C
 }
 
 // Data for PETSc
-typedef struct User_ *User;
-struct User_ {
+typedef struct OperatorApplyContext_ *OperatorApplyContext;
+struct OperatorApplyContext_ {
   MPI_Comm     comm;
   VecScatter   l_to_g;    // Scatter for all entries
   VecScatter   l_to_g_0;  // Skip Dirichlet values
@@ -233,38 +233,38 @@ BPData bp_options[6] = {
 
 // This function uses libCEED to compute the action of the mass matrix
 static PetscErrorCode MatMult_Mass(Mat A, Vec X, Vec Y) {
-  User         user;
-  PetscScalar *x, *y;
-  PetscMemType x_mem_type, y_mem_type;
+  OperatorApplyContext op_apply_ctx;
+  PetscScalar         *x, *y;
+  PetscMemType         x_mem_type, y_mem_type;
 
   PetscFunctionBeginUser;
 
-  PetscCall(MatShellGetContext(A, &user));
+  PetscCall(MatShellGetContext(A, &op_apply_ctx));
 
   // Global-to-local
-  PetscCall(VecScatterBegin(user->l_to_g, X, user->X_loc, INSERT_VALUES, SCATTER_REVERSE));
-  PetscCall(VecScatterEnd(user->l_to_g, X, user->X_loc, INSERT_VALUES, SCATTER_REVERSE));
+  PetscCall(VecScatterBegin(op_apply_ctx->l_to_g, X, op_apply_ctx->X_loc, INSERT_VALUES, SCATTER_REVERSE));
+  PetscCall(VecScatterEnd(op_apply_ctx->l_to_g, X, op_apply_ctx->X_loc, INSERT_VALUES, SCATTER_REVERSE));
 
   // Setup libCEED vectors
-  PetscCall(VecGetArrayReadAndMemType(user->X_loc, (const PetscScalar **)&x, &x_mem_type));
-  PetscCall(VecGetArrayAndMemType(user->Y_loc, &y, &y_mem_type));
-  CeedVectorSetArray(user->x_ceed, MemTypeP2C(x_mem_type), CEED_USE_POINTER, x);
-  CeedVectorSetArray(user->y_ceed, MemTypeP2C(y_mem_type), CEED_USE_POINTER, y);
+  PetscCall(VecGetArrayReadAndMemType(op_apply_ctx->X_loc, (const PetscScalar **)&x, &x_mem_type));
+  PetscCall(VecGetArrayAndMemType(op_apply_ctx->Y_loc, &y, &y_mem_type));
+  CeedVectorSetArray(op_apply_ctx->x_ceed, MemTypeP2C(x_mem_type), CEED_USE_POINTER, x);
+  CeedVectorSetArray(op_apply_ctx->y_ceed, MemTypeP2C(y_mem_type), CEED_USE_POINTER, y);
 
   // Apply libCEED operator
-  CeedOperatorApply(user->op, user->x_ceed, user->y_ceed, CEED_REQUEST_IMMEDIATE);
+  CeedOperatorApply(op_apply_ctx->op, op_apply_ctx->x_ceed, op_apply_ctx->y_ceed, CEED_REQUEST_IMMEDIATE);
 
   // Restore PETSc vectors
-  CeedVectorTakeArray(user->x_ceed, MemTypeP2C(x_mem_type), NULL);
-  CeedVectorTakeArray(user->y_ceed, MemTypeP2C(y_mem_type), NULL);
-  PetscCall(VecRestoreArrayReadAndMemType(user->X_loc, (const PetscScalar **)&x));
-  PetscCall(VecRestoreArrayAndMemType(user->Y_loc, &y));
+  CeedVectorTakeArray(op_apply_ctx->x_ceed, MemTypeP2C(x_mem_type), NULL);
+  CeedVectorTakeArray(op_apply_ctx->y_ceed, MemTypeP2C(y_mem_type), NULL);
+  PetscCall(VecRestoreArrayReadAndMemType(op_apply_ctx->X_loc, (const PetscScalar **)&x));
+  PetscCall(VecRestoreArrayAndMemType(op_apply_ctx->Y_loc, &y));
 
   // Local-to-global
   if (Y) {
     PetscCall(VecZeroEntries(Y));
-    PetscCall(VecScatterBegin(user->l_to_g, user->Y_loc, Y, ADD_VALUES, SCATTER_FORWARD));
-    PetscCall(VecScatterEnd(user->l_to_g, user->Y_loc, Y, ADD_VALUES, SCATTER_FORWARD));
+    PetscCall(VecScatterBegin(op_apply_ctx->l_to_g, op_apply_ctx->Y_loc, Y, ADD_VALUES, SCATTER_FORWARD));
+    PetscCall(VecScatterEnd(op_apply_ctx->l_to_g, op_apply_ctx->Y_loc, Y, ADD_VALUES, SCATTER_FORWARD));
   }
   PetscFunctionReturn(0);
 }
@@ -272,45 +272,45 @@ static PetscErrorCode MatMult_Mass(Mat A, Vec X, Vec Y) {
 // This function uses libCEED to compute the action of the Laplacian with
 // Dirichlet boundary conditions
 static PetscErrorCode MatMult_Diff(Mat A, Vec X, Vec Y) {
-  User         user;
-  PetscScalar *x, *y;
-  PetscMemType x_mem_type, y_mem_type;
+  OperatorApplyContext op_apply_ctx;
+  PetscScalar         *x, *y;
+  PetscMemType         x_mem_type, y_mem_type;
 
   PetscFunctionBeginUser;
 
-  PetscCall(MatShellGetContext(A, &user));
+  PetscCall(MatShellGetContext(A, &op_apply_ctx));
 
   // Global-to-local
-  PetscCall(VecScatterBegin(user->l_to_g_0, X, user->X_loc, INSERT_VALUES, SCATTER_REVERSE));
-  PetscCall(VecScatterEnd(user->l_to_g_0, X, user->X_loc, INSERT_VALUES, SCATTER_REVERSE));
+  PetscCall(VecScatterBegin(op_apply_ctx->l_to_g_0, X, op_apply_ctx->X_loc, INSERT_VALUES, SCATTER_REVERSE));
+  PetscCall(VecScatterEnd(op_apply_ctx->l_to_g_0, X, op_apply_ctx->X_loc, INSERT_VALUES, SCATTER_REVERSE));
 
   // Setup libCEED vectors
-  PetscCall(VecGetArrayReadAndMemType(user->X_loc, (const PetscScalar **)&x, &x_mem_type));
-  PetscCall(VecGetArrayAndMemType(user->Y_loc, &y, &y_mem_type));
-  CeedVectorSetArray(user->x_ceed, MemTypeP2C(x_mem_type), CEED_USE_POINTER, x);
-  CeedVectorSetArray(user->y_ceed, MemTypeP2C(y_mem_type), CEED_USE_POINTER, y);
+  PetscCall(VecGetArrayReadAndMemType(op_apply_ctx->X_loc, (const PetscScalar **)&x, &x_mem_type));
+  PetscCall(VecGetArrayAndMemType(op_apply_ctx->Y_loc, &y, &y_mem_type));
+  CeedVectorSetArray(op_apply_ctx->x_ceed, MemTypeP2C(x_mem_type), CEED_USE_POINTER, x);
+  CeedVectorSetArray(op_apply_ctx->y_ceed, MemTypeP2C(y_mem_type), CEED_USE_POINTER, y);
 
   // Apply libCEED operator
-  CeedOperatorApply(user->op, user->x_ceed, user->y_ceed, CEED_REQUEST_IMMEDIATE);
+  CeedOperatorApply(op_apply_ctx->op, op_apply_ctx->x_ceed, op_apply_ctx->y_ceed, CEED_REQUEST_IMMEDIATE);
 
   // Restore PETSc vectors
-  CeedVectorTakeArray(user->x_ceed, MemTypeP2C(x_mem_type), NULL);
-  CeedVectorTakeArray(user->y_ceed, MemTypeP2C(y_mem_type), NULL);
-  PetscCall(VecRestoreArrayReadAndMemType(user->X_loc, (const PetscScalar **)&x));
-  PetscCall(VecRestoreArrayAndMemType(user->Y_loc, &y));
+  CeedVectorTakeArray(op_apply_ctx->x_ceed, MemTypeP2C(x_mem_type), NULL);
+  CeedVectorTakeArray(op_apply_ctx->y_ceed, MemTypeP2C(y_mem_type), NULL);
+  PetscCall(VecRestoreArrayReadAndMemType(op_apply_ctx->X_loc, (const PetscScalar **)&x));
+  PetscCall(VecRestoreArrayAndMemType(op_apply_ctx->Y_loc, &y));
 
   // Local-to-global
   PetscCall(VecZeroEntries(Y));
-  PetscCall(VecScatterBegin(user->g_to_g_D, X, Y, INSERT_VALUES, SCATTER_FORWARD));
-  PetscCall(VecScatterEnd(user->g_to_g_D, X, Y, INSERT_VALUES, SCATTER_FORWARD));
-  PetscCall(VecScatterBegin(user->l_to_g_0, user->Y_loc, Y, ADD_VALUES, SCATTER_FORWARD));
-  PetscCall(VecScatterEnd(user->l_to_g_0, user->Y_loc, Y, ADD_VALUES, SCATTER_FORWARD));
+  PetscCall(VecScatterBegin(op_apply_ctx->g_to_g_D, X, Y, INSERT_VALUES, SCATTER_FORWARD));
+  PetscCall(VecScatterEnd(op_apply_ctx->g_to_g_D, X, Y, INSERT_VALUES, SCATTER_FORWARD));
+  PetscCall(VecScatterBegin(op_apply_ctx->l_to_g_0, op_apply_ctx->Y_loc, Y, ADD_VALUES, SCATTER_FORWARD));
+  PetscCall(VecScatterEnd(op_apply_ctx->l_to_g_0, op_apply_ctx->Y_loc, Y, ADD_VALUES, SCATTER_FORWARD));
 
   PetscFunctionReturn(0);
 }
 
 // This function calculates the error in the final solution
-static PetscErrorCode ComputeErrorMax(User user, CeedOperator op_error, Vec X, CeedVector target, PetscReal *max_error) {
+static PetscErrorCode ComputeErrorMax(OperatorApplyContext op_apply_ctx, CeedOperator op_error, Vec X, CeedVector target, PetscReal *max_error) {
   PetscScalar *x;
   PetscMemType mem_type;
   CeedVector   collocated_error;
@@ -319,22 +319,22 @@ static PetscErrorCode ComputeErrorMax(User user, CeedOperator op_error, Vec X, C
   PetscFunctionBeginUser;
 
   CeedVectorGetLength(target, &length);
-  CeedVectorCreate(user->ceed, length, &collocated_error);
+  CeedVectorCreate(op_apply_ctx->ceed, length, &collocated_error);
 
   // Global-to-local
-  PetscCall(VecScatterBegin(user->l_to_g, X, user->X_loc, INSERT_VALUES, SCATTER_REVERSE));
-  PetscCall(VecScatterEnd(user->l_to_g, X, user->X_loc, INSERT_VALUES, SCATTER_REVERSE));
+  PetscCall(VecScatterBegin(op_apply_ctx->l_to_g, X, op_apply_ctx->X_loc, INSERT_VALUES, SCATTER_REVERSE));
+  PetscCall(VecScatterEnd(op_apply_ctx->l_to_g, X, op_apply_ctx->X_loc, INSERT_VALUES, SCATTER_REVERSE));
 
   // Setup libCEED vector
-  PetscCall(VecGetArrayReadAndMemType(user->X_loc, (const PetscScalar **)&x, &mem_type));
-  CeedVectorSetArray(user->x_ceed, MemTypeP2C(mem_type), CEED_USE_POINTER, x);
+  PetscCall(VecGetArrayReadAndMemType(op_apply_ctx->X_loc, (const PetscScalar **)&x, &mem_type));
+  CeedVectorSetArray(op_apply_ctx->x_ceed, MemTypeP2C(mem_type), CEED_USE_POINTER, x);
 
   // Apply libCEED operator
-  CeedOperatorApply(op_error, user->x_ceed, collocated_error, CEED_REQUEST_IMMEDIATE);
+  CeedOperatorApply(op_error, op_apply_ctx->x_ceed, collocated_error, CEED_REQUEST_IMMEDIATE);
 
   // Restore PETSc vector
-  CeedVectorTakeArray(user->x_ceed, MemTypeP2C(mem_type), NULL);
-  PetscCall(VecRestoreArrayReadAndMemType(user->X_loc, (const PetscScalar **)&x));
+  CeedVectorTakeArray(op_apply_ctx->x_ceed, MemTypeP2C(mem_type), NULL);
+  PetscCall(VecRestoreArrayReadAndMemType(op_apply_ctx->X_loc, (const PetscScalar **)&x));
 
   // Reduce max error
   *max_error = 0;
@@ -344,7 +344,7 @@ static PetscErrorCode ComputeErrorMax(User user, CeedOperator op_error, Vec X, C
     *max_error = PetscMax(*max_error, PetscAbsScalar(e[i]));
   }
   CeedVectorRestoreArrayRead(collocated_error, &e);
-  PetscCall(MPI_Allreduce(MPI_IN_PLACE, max_error, 1, MPIU_REAL, MPIU_MAX, user->comm));
+  PetscCall(MPI_Allreduce(MPI_IN_PLACE, max_error, 1, MPIU_REAL, MPIU_MAX, op_apply_ctx->comm));
 
   // Cleanup
   CeedVectorDestroy(&collocated_error);
@@ -358,25 +358,25 @@ int main(int argc, char **argv) {
   double   my_rt_start, my_rt, rt_min, rt_max;
   PetscInt degree, q_extra, local_nodes, local_elem, mesh_elem[3], m_nodes[3], p[3], i_rank[3], l_nodes[3], l_size, num_comp_u = 1,
                                                                                                                     ksp_max_it_clip[2];
-  PetscScalar        *r;
-  PetscBool           test_mode, benchmark_mode, write_solution;
-  PetscMPIInt         size, rank;
-  PetscLogStage       solve_stage;
-  Vec                 X, X_loc, rhs, rhs_loc;
-  Mat                 mat;
-  KSP                 ksp;
-  VecScatter          l_to_g, l_to_g_0, g_to_g_D;
-  PetscMemType        mem_type;
-  User                user;
-  Ceed                ceed;
-  CeedBasis           basis_x, basis_u;
-  CeedElemRestriction elem_restr_x, elem_restr_u, elem_restr_u_i, elem_restr_qd_i;
-  CeedQFunction       qf_setup_geo, qf_setup_rhs, qf_apply, qf_error;
-  CeedOperator        op_setup_geo, op_setup_rhs, op_apply, op_error;
-  CeedVector          x_coord, q_data, rhs_ceed, target;
-  CeedInt             P, Q;
-  const CeedInt       dim = 3, num_comp_x = 3;
-  BPType              bp_choice;
+  PetscScalar         *r;
+  PetscBool            test_mode, benchmark_mode, write_solution;
+  PetscMPIInt          size, rank;
+  PetscLogStage        solve_stage;
+  Vec                  X, X_loc, rhs, rhs_loc;
+  Mat                  mat;
+  KSP                  ksp;
+  VecScatter           l_to_g, l_to_g_0, g_to_g_D;
+  PetscMemType         mem_type;
+  OperatorApplyContext op_apply_ctx;
+  Ceed                 ceed;
+  CeedBasis            basis_x, basis_u;
+  CeedElemRestriction  elem_restr_x, elem_restr_u, elem_restr_u_i, elem_restr_qd_i;
+  CeedQFunction        qf_setup_geo, qf_setup_rhs, qf_apply, qf_error;
+  CeedOperator         op_setup_geo, op_setup_rhs, op_apply, op_error;
+  CeedVector           x_coord, q_data, rhs_ceed, target;
+  CeedInt              P, Q;
+  const CeedInt        dim = 3, num_comp_x = 3;
+  BPType               bp_choice;
 
   PetscCall(PetscInitialize(&argc, &argv, NULL, help));
   comm = PETSC_COMM_WORLD;
@@ -475,8 +475,8 @@ int main(int argc, char **argv) {
                           "    libCEED Backend                    : %s\n"
                           "    libCEED Backend MemType            : %s\n"
                           "  Mesh:\n"
-                          "    Number of 1D Basis Nodes (P)       : %" CeedInt_FMT "\n"
-                          "    Number of 1D Quadrature Points (Q) : %" CeedInt_FMT "\n"
+                          "    Solution Order (P)                 : %" CeedInt_FMT "\n"
+                          "    Quadrature  Order (Q)              : %" CeedInt_FMT "\n"
                           "    Global nodes                       : %" PetscInt_FMT "\n"
                           "    Process Decomposition              : %" PetscInt_FMT " %" PetscInt_FMT " %" PetscInt_FMT "\n"
                           "    Local Elements                     : %" PetscInt_FMT " = %" PetscInt_FMT " %" PetscInt_FMT " %" PetscInt_FMT "\n"
@@ -525,9 +525,8 @@ int main(int argc, char **argv) {
           l_to_g_ind[here] = g_start[ir][jr][kr] + (ii * g_m_nodes[ir][jr][kr][1] + jj) * g_m_nodes[ir][jr][kr][2] + kk;
           if ((i_rank[0] == 0 && i == 0) || (i_rank[1] == 0 && j == 0) || (i_rank[2] == 0 && k == 0) ||
               (i_rank[0] + 1 == p[0] && i + 1 == l_nodes[0]) || (i_rank[1] + 1 == p[1] && j + 1 == l_nodes[1]) ||
-              (i_rank[2] + 1 == p[2] && k + 1 == l_nodes[2])) {
+              (i_rank[2] + 1 == p[2] && k + 1 == l_nodes[2]))
             continue;
-          }
           l_to_g_ind_0[l_0_count] = l_to_g_ind[here];
           loc_ind[l_0_count++]    = here;
         }
@@ -620,6 +619,7 @@ int main(int argc, char **argv) {
   CeedQFunctionCreateInterior(ceed, 1, bp_options[bp_choice].error, bp_options[bp_choice].error_loc, &qf_error);
   CeedQFunctionAddInput(qf_error, "u", num_comp_u, CEED_EVAL_INTERP);
   CeedQFunctionAddInput(qf_error, "true_soln", num_comp_u, CEED_EVAL_NONE);
+  CeedQFunctionAddInput(qf_error, "qdata", bp_options[bp_choice].q_data_size, CEED_EVAL_NONE);
   CeedQFunctionAddOutput(qf_error, "error", num_comp_u, CEED_EVAL_NONE);
 
   // Create the persistent vectors that will be needed in setup
@@ -653,26 +653,27 @@ int main(int argc, char **argv) {
   CeedOperatorCreate(ceed, qf_error, CEED_QFUNCTION_NONE, CEED_QFUNCTION_NONE, &op_error);
   CeedOperatorSetField(op_error, "u", elem_restr_u, basis_u, CEED_VECTOR_ACTIVE);
   CeedOperatorSetField(op_error, "true_soln", elem_restr_u_i, CEED_BASIS_COLLOCATED, target);
+  CeedOperatorSetField(op_error, "qdata", elem_restr_qd_i, CEED_BASIS_COLLOCATED, q_data);
   CeedOperatorSetField(op_error, "error", elem_restr_u_i, CEED_BASIS_COLLOCATED, CEED_VECTOR_ACTIVE);
 
   // Set up Mat
-  PetscCall(PetscMalloc1(1, &user));
-  user->comm   = comm;
-  user->l_to_g = l_to_g;
+  PetscCall(PetscMalloc1(1, &op_apply_ctx));
+  op_apply_ctx->comm   = comm;
+  op_apply_ctx->l_to_g = l_to_g;
   if (bp_choice != CEED_BP1 && bp_choice != CEED_BP2) {
-    user->l_to_g_0 = l_to_g_0;
-    user->g_to_g_D = g_to_g_D;
+    op_apply_ctx->l_to_g_0 = l_to_g_0;
+    op_apply_ctx->g_to_g_D = g_to_g_D;
   }
-  user->X_loc = X_loc;
-  PetscCall(VecDuplicate(X_loc, &user->Y_loc));
-  CeedVectorCreate(ceed, l_size * num_comp_u, &user->x_ceed);
-  CeedVectorCreate(ceed, l_size * num_comp_u, &user->y_ceed);
-  user->op     = op_apply;
-  user->q_data = q_data;
-  user->ceed   = ceed;
+  op_apply_ctx->X_loc = X_loc;
+  PetscCall(VecDuplicate(X_loc, &op_apply_ctx->Y_loc));
+  CeedVectorCreate(ceed, l_size * num_comp_u, &op_apply_ctx->x_ceed);
+  CeedVectorCreate(ceed, l_size * num_comp_u, &op_apply_ctx->y_ceed);
+  op_apply_ctx->op     = op_apply;
+  op_apply_ctx->q_data = q_data;
+  op_apply_ctx->ceed   = ceed;
 
   PetscCall(MatCreateShell(comm, m_nodes[0] * m_nodes[1] * m_nodes[2] * num_comp_u, m_nodes[0] * m_nodes[1] * m_nodes[2] * num_comp_u, PETSC_DECIDE,
-                           PETSC_DECIDE, user, &mat));
+                           PETSC_DECIDE, op_apply_ctx, &mat));
   if (bp_choice == CEED_BP1 || bp_choice == CEED_BP2) {
     PetscCall(MatShellSetOperation(mat, MATOP_MULT, (void (*)(void))MatMult_Mass));
   } else {
@@ -770,7 +771,7 @@ int main(int argc, char **argv) {
     }
     {
       PetscReal max_error;
-      PetscCall(ComputeErrorMax(user, op_error, X, target, &max_error));
+      PetscCall(ComputeErrorMax(op_apply_ctx, op_error, X, target, &max_error));
       PetscReal tol = 5e-2;
       if (!test_mode || max_error > tol) {
         PetscCall(MPI_Allreduce(&my_rt, &rt_min, 1, MPI_DOUBLE, MPI_MIN, comm));
@@ -800,17 +801,17 @@ int main(int argc, char **argv) {
   PetscCall(VecDestroy(&rhs));
   PetscCall(VecDestroy(&rhs_loc));
   PetscCall(VecDestroy(&X));
-  PetscCall(VecDestroy(&user->X_loc));
-  PetscCall(VecDestroy(&user->Y_loc));
+  PetscCall(VecDestroy(&op_apply_ctx->X_loc));
+  PetscCall(VecDestroy(&op_apply_ctx->Y_loc));
   PetscCall(VecScatterDestroy(&l_to_g));
   PetscCall(VecScatterDestroy(&l_to_g_0));
   PetscCall(VecScatterDestroy(&g_to_g_D));
   PetscCall(MatDestroy(&mat));
   PetscCall(KSPDestroy(&ksp));
 
-  CeedVectorDestroy(&user->x_ceed);
-  CeedVectorDestroy(&user->y_ceed);
-  CeedVectorDestroy(&user->q_data);
+  CeedVectorDestroy(&op_apply_ctx->x_ceed);
+  CeedVectorDestroy(&op_apply_ctx->y_ceed);
+  CeedVectorDestroy(&op_apply_ctx->q_data);
   CeedVectorDestroy(&target);
   CeedOperatorDestroy(&op_setup_geo);
   CeedOperatorDestroy(&op_setup_rhs);
@@ -827,6 +828,6 @@ int main(int argc, char **argv) {
   CeedBasisDestroy(&basis_u);
   CeedBasisDestroy(&basis_x);
   CeedDestroy(&ceed);
-  PetscCall(PetscFree(user));
+  PetscCall(PetscFree(op_apply_ctx));
   return PetscFinalize();
 }

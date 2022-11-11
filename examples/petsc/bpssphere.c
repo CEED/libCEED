@@ -58,26 +58,26 @@ static const char help[] = "Solve CEED BPs on a sphere using DMPlex in PETSc\n";
 #endif
 
 int main(int argc, char **argv) {
-  MPI_Comm      comm;
-  char          ceed_resource[PETSC_MAX_PATH_LEN] = "/cpu/self", filename[PETSC_MAX_PATH_LEN];
-  double        my_rt_start, my_rt, rt_min, rt_max;
-  PetscInt      degree = 3, q_extra, l_size, g_size, topo_dim = 2, num_comp_x = 3, num_comp_u = 1, xl_size;
-  PetscScalar  *r;
-  PetscBool     test_mode, benchmark_mode, read_mesh, write_solution, simplex;
-  PetscLogStage solve_stage;
-  Vec           X, X_loc, rhs, rhs_loc;
-  Mat           mat_O;
-  KSP           ksp;
-  DM            dm;
-  UserO         user_O;
-  Ceed          ceed;
-  CeedData      ceed_data;
-  CeedQFunction qf_error;
-  CeedOperator  op_error;
-  CeedVector    rhs_ceed, target;
-  BPType        bp_choice;
-  VecType       vec_type;
-  PetscMemType  mem_type;
+  MPI_Comm             comm;
+  char                 ceed_resource[PETSC_MAX_PATH_LEN] = "/cpu/self", filename[PETSC_MAX_PATH_LEN];
+  double               my_rt_start, my_rt, rt_min, rt_max;
+  PetscInt             degree = 3, q_extra, l_size, g_size, topo_dim = 2, num_comp_x = 3, num_comp_u = 1, xl_size;
+  PetscScalar         *r;
+  PetscBool            test_mode, benchmark_mode, read_mesh, write_solution, simplex;
+  PetscLogStage        solve_stage;
+  Vec                  X, X_loc, rhs, rhs_loc;
+  Mat                  mat_O;
+  KSP                  ksp;
+  DM                   dm;
+  OperatorApplyContext op_apply_ctx, op_error_ctx;
+  Ceed                 ceed;
+  CeedData             ceed_data;
+  CeedQFunction        qf_error;
+  CeedOperator         op_error;
+  CeedVector           rhs_ceed, target;
+  BPType               bp_choice;
+  VecType              vec_type;
+  PetscMemType         mem_type;
 
   PetscCall(PetscInitialize(&argc, &argv, NULL, help));
   comm = PETSC_COMM_WORLD;
@@ -121,7 +121,7 @@ int main(int argc, char **argv) {
   PetscCall(DMViewFromOptions(dm, NULL, "-dm_view"));
 
   // Create DM
-  PetscCall(SetupDMByDegree(dm, degree, num_comp_u, topo_dim, false, (BCFunction)NULL));
+  PetscCall(SetupDMByDegree(dm, degree, q_extra, num_comp_u, topo_dim, false));
 
   // Create vectors
   PetscCall(DMCreateGlobalVector(dm, &X));
@@ -132,8 +132,9 @@ int main(int argc, char **argv) {
   PetscCall(VecDuplicate(X, &rhs));
 
   // Operator
-  PetscCall(PetscMalloc1(1, &user_O));
-  PetscCall(MatCreateShell(comm, l_size, l_size, g_size, g_size, user_O, &mat_O));
+  PetscCall(PetscMalloc1(1, &op_apply_ctx));
+  PetscCall(PetscMalloc1(1, &op_error_ctx));
+  PetscCall(MatCreateShell(comm, l_size, l_size, g_size, g_size, op_apply_ctx, &mat_O));
   PetscCall(MatShellSetOperation(mat_O, MATOP_MULT, (void (*)(void))MatMult_Ceed));
 
   // Set up libCEED
@@ -167,13 +168,14 @@ int main(int argc, char **argv) {
     PetscCall(PetscPrintf(comm,
                           "\n-- CEED Benchmark Problem %" CeedInt_FMT " on the Sphere -- libCEED + PETSc --\n"
                           "  libCEED:\n"
-                          "    libCEED Backend                    : %s\n"
-                          "    libCEED Backend MemType            : %s\n"
+                          "    libCEED Backend                         : %s\n"
+                          "    libCEED Backend MemType                 : %s\n"
                           "  Mesh:\n"
-                          "    Number of 1D Basis Nodes (p)       : %" CeedInt_FMT "\n"
-                          "    Number of 1D Quadrature Points (q) : %" CeedInt_FMT "\n"
-                          "    Global nodes                       : %" PetscInt_FMT "\n",
-                          bp_choice + 1, ceed_resource, CeedMemTypes[mem_type_backend], P, Q, g_size / num_comp_u));
+                          "    Solution Order (P)                      : %" CeedInt_FMT "\n"
+                          "    Quadrature  Order (Q)                   : %" CeedInt_FMT "\n"
+                          "    Additional quadrature points (q_extra)  : %" CeedInt_FMT "\n"
+                          "    Global nodes                            : %" PetscInt_FMT "\n",
+                          bp_choice + 1, ceed_resource, CeedMemTypes[mem_type_backend], P, Q, q_extra, g_size / num_comp_u));
   }
 
   // Create RHS vector
@@ -199,23 +201,18 @@ int main(int argc, char **argv) {
   CeedQFunctionCreateInterior(ceed, 1, bp_options[bp_choice].error, bp_options[bp_choice].error_loc, &qf_error);
   CeedQFunctionAddInput(qf_error, "u", num_comp_u, CEED_EVAL_INTERP);
   CeedQFunctionAddInput(qf_error, "true_soln", num_comp_u, CEED_EVAL_NONE);
-  CeedQFunctionAddOutput(qf_error, "error", num_comp_u, CEED_EVAL_NONE);
+  CeedQFunctionAddInput(qf_error, "qdata", ceed_data->q_data_size, CEED_EVAL_NONE);
+  CeedQFunctionAddOutput(qf_error, "error", num_comp_u, CEED_EVAL_INTERP);
 
   // Create the error operator
   CeedOperatorCreate(ceed, qf_error, NULL, NULL, &op_error);
   CeedOperatorSetField(op_error, "u", ceed_data->elem_restr_u, ceed_data->basis_u, CEED_VECTOR_ACTIVE);
   CeedOperatorSetField(op_error, "true_soln", ceed_data->elem_restr_u_i, CEED_BASIS_COLLOCATED, target);
-  CeedOperatorSetField(op_error, "error", ceed_data->elem_restr_u_i, CEED_BASIS_COLLOCATED, CEED_VECTOR_ACTIVE);
+  CeedOperatorSetField(op_error, "qdata", ceed_data->elem_restr_qd_i, CEED_BASIS_COLLOCATED, ceed_data->q_data);
+  CeedOperatorSetField(op_error, "error", ceed_data->elem_restr_u, ceed_data->basis_u, CEED_VECTOR_ACTIVE);
 
-  // Set up Mat
-  user_O->comm  = comm;
-  user_O->dm    = dm;
-  user_O->X_loc = X_loc;
-  PetscCall(VecDuplicate(X_loc, &user_O->Y_loc));
-  user_O->x_ceed = ceed_data->x_ceed;
-  user_O->y_ceed = ceed_data->y_ceed;
-  user_O->op     = ceed_data->op_apply;
-  user_O->ceed   = ceed;
+  // Set up apply operator context
+  PetscCall(SetupApplyOperatorCtx(comm, dm, ceed, ceed_data, X_loc, op_apply_ctx));
 
   // Setup solver
   PetscCall(KSPCreate(comm, &ksp));
@@ -284,30 +281,32 @@ int main(int argc, char **argv) {
     if (!test_mode || reason < 0 || rnorm > 1e-8) {
       PetscCall(PetscPrintf(comm,
                             "  KSP:\n"
-                            "    KSP Type                           : %s\n"
-                            "    KSP Convergence                    : %s\n"
-                            "    Total KSP Iterations               : %" PetscInt_FMT "\n"
-                            "    Final rnorm                        : %e\n",
+                            "    KSP Type                                : %s\n"
+                            "    KSP Convergence                         : %s\n"
+                            "    Total KSP Iterations                    : %" PetscInt_FMT "\n"
+                            "    Final rnorm                             : %e\n",
                             ksp_type, KSPConvergedReasons[reason], its, (double)rnorm));
     }
     if (!test_mode) {
       PetscCall(PetscPrintf(comm, "  Performance:\n"));
     }
     {
-      PetscReal max_error;
-      PetscCall(ComputeErrorMax(user_O, op_error, X, target, &max_error));
+      // Set up error operator context
+      PetscCall(SetupErrorOperatorCtx(comm, dm, ceed, ceed_data, X_loc, op_error, op_error_ctx));
+      PetscScalar l2_error;
+      PetscCall(ComputeL2Error(X, &l2_error, op_error_ctx));
       PetscReal tol = 5e-4;
-      if (!test_mode || max_error > tol) {
+      if (!test_mode || l2_error > tol) {
         PetscCall(MPI_Allreduce(&my_rt, &rt_min, 1, MPI_DOUBLE, MPI_MIN, comm));
         PetscCall(MPI_Allreduce(&my_rt, &rt_max, 1, MPI_DOUBLE, MPI_MAX, comm));
         PetscCall(PetscPrintf(comm,
-                              "    Pointwise Error (max)              : %e\n"
-                              "    CG Solve Time                      : %g (%g) sec\n",
-                              (double)max_error, rt_max, rt_min));
+                              "    L2 Error                                : %e\n"
+                              "    CG Solve Time                           : %g (%g) sec\n",
+                              (double)l2_error, rt_max, rt_min));
       }
     }
     if (benchmark_mode && (!test_mode)) {
-      PetscCall(PetscPrintf(comm, "    DoFs/Sec in CG                     : %g (%g) million\n", 1e-6 * g_size * its / rt_max,
+      PetscCall(PetscPrintf(comm, "    DoFs/Sec in CG                            : %g (%g) million\n", 1e-6 * g_size * its / rt_max,
                             1e-6 * g_size * its / rt_min));
     }
   }
@@ -326,9 +325,11 @@ int main(int argc, char **argv) {
   // Cleanup
   PetscCall(VecDestroy(&X));
   PetscCall(VecDestroy(&X_loc));
-  PetscCall(VecDestroy(&user_O->Y_loc));
+  PetscCall(VecDestroy(&op_apply_ctx->Y_loc));
+  PetscCall(VecDestroy(&op_error_ctx->Y_loc));
   PetscCall(MatDestroy(&mat_O));
-  PetscCall(PetscFree(user_O));
+  PetscCall(PetscFree(op_apply_ctx));
+  PetscCall(PetscFree(op_error_ctx));
   PetscCall(CeedDataDestroy(0, ceed_data));
   PetscCall(DMDestroy(&dm));
 

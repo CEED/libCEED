@@ -75,9 +75,7 @@ CEED_QFUNCTION(SetupMassGeo)(void *ctx, const CeedInt Q, const CeedScalar *const
     const CeedScalar mod_xx_sq = xx[0] * xx[0] + xx[1] * xx[1] + xx[2] * xx[2];
     CeedScalar       xx_sq[3][3];
     for (int j = 0; j < 3; j++) {
-      for (int k = 0; k < 3; k++) {
-        xx_sq[j][k] = xx[j] * xx[k] / (sqrt(mod_xx_sq) * mod_xx_sq);
-      }
+      for (int k = 0; k < 3; k++) xx_sq[j][k] = xx[j] * xx[k] / (sqrt(mod_xx_sq) * mod_xx_sq);
     }
 
     const CeedScalar dxdxx[3][3] = {

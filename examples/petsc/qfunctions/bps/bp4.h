@@ -38,7 +38,7 @@ CEED_QFUNCTION(SetupDiffRhs3)(void *ctx, CeedInt Q, const CeedScalar *const *in,
     true_soln[i + 2 * Q] = 3 * true_soln[i + 0 * Q];
 
     // Component 1
-    rhs[i + 0 * Q] = w[i + Q * 6] * M_PI * M_PI * (k[0] * k[0] + k[1] * k[1] + k[2] * k[2]) * true_soln[i + 0 * Q];
+    rhs[i + 0 * Q] = w[i + Q * 0] * M_PI * M_PI * (k[0] * k[0] + k[1] * k[1] + k[2] * k[2]) * true_soln[i + 0 * Q];
     // Component 2
     rhs[i + 1 * Q] = 2 * rhs[i + 0 * Q];
     // Component 3
@@ -73,14 +73,16 @@ CEED_QFUNCTION(Diff3)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedSca
     };
     // Read q_data (dXdxdXdx_T symmetric matrix)
     const CeedScalar dXdxdXdx_T[3][3] = {
-        {qd[i + 0 * Q], qd[i + 1 * Q], qd[i + 2 * Q]},
-        {qd[i + 1 * Q], qd[i + 3 * Q], qd[i + 4 * Q]},
-        {qd[i + 2 * Q], qd[i + 4 * Q], qd[i + 5 * Q]}
+        {qd[i + 1 * Q], qd[i + 2 * Q], qd[i + 3 * Q]},
+        {qd[i + 2 * Q], qd[i + 4 * Q], qd[i + 5 * Q]},
+        {qd[i + 3 * Q], qd[i + 5 * Q], qd[i + 6 * Q]}
     };
 
-    for (int k = 0; k < 3; k++)    // k = component
-      for (int j = 0; j < 3; j++)  // j = direction of vg
+    for (int k = 0; k < 3; k++) {    // k = component
+      for (int j = 0; j < 3; j++) {  // j = direction of vg
         vg[i + (k + j * 3) * Q] = (uJ[k][0] * dXdxdXdx_T[0][j] + uJ[k][1] * dXdxdXdx_T[1][j] + uJ[k][2] * dXdxdXdx_T[2][j]);
+      }
+    }
   }  // End of Quadrature Point Loop
 
   return 0;

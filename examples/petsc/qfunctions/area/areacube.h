@@ -81,6 +81,7 @@ CEED_QFUNCTION(SetupMassGeoCube)(void *ctx, const CeedInt Q, const CeedScalar *c
     }
 
     q_data[i + Q * 0] = (dxdX[0][0] * dxdX[1][1] - dxdX[1][0] * dxdX[0][1]) * w[i];
+
   }  // End of Quadrature Point Loop
   return 0;
 }

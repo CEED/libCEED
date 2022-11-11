@@ -95,9 +95,7 @@ CEED_QFUNCTION(SetupDiffGeo)(void *ctx, CeedInt Q, const CeedScalar *const *in, 
     const CeedScalar mod_xx_sq = xx[0] * xx[0] + xx[1] * xx[1] + xx[2] * xx[2];
     CeedScalar       xx_sq[3][3];
     for (int j = 0; j < 3; j++) {
-      for (int k = 0; k < 3; k++) {
-        xx_sq[j][k] = xx[j] * xx[k] / (sqrt(mod_xx_sq) * mod_xx_sq);
-      }
+      for (int k = 0; k < 3; k++) xx_sq[j][k] = xx[j] * xx[k] / (sqrt(mod_xx_sq) * mod_xx_sq);
     }
 
     const CeedScalar dxdxx[3][3] = {
@@ -181,7 +179,6 @@ CEED_QFUNCTION(SetupDiffRhs)(void *ctx, CeedInt Q, const CeedScalar *const *in, 
     true_soln[i + Q * 0] = sin(lambda) * cos(theta);
 
     rhs[i + Q * 0] = q_data[i + Q * 0] * 2 * sin(lambda) * cos(theta) / (R * R);
-
   }  // End of Quadrature Point Loop
 
   return 0;
@@ -217,9 +214,9 @@ CEED_QFUNCTION(Diff)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScal
         {q_data[i + Q * 3], q_data[i + Q * 2]}
     };
 
-    for (int j = 0; j < 2; j++)  // j = direction of vg
+    for (int j = 0; j < 2; j++) {  // j = direction of vg
       vg[i + j * Q] = w_det_J * (du[0] * dXdxdXdx_T[0][j] + du[1] * dXdxdXdx_T[1][j]);
-
+    }
   }  // End of Quadrature Point Loop
 
   return 0;

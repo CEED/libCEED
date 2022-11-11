@@ -91,10 +91,11 @@ CEED_QFUNCTION(Diff3)(void *ctx, const CeedInt Q, const CeedScalar *const *in, C
         {q_data[i + Q * 3], q_data[i + Q * 2]}
     };
 
-    for (int k = 0; k < 3; k++)    // k = component
-      for (int j = 0; j < 2; j++)  // j = direction of vg
+    for (int k = 0; k < 3; k++) {    // k = component
+      for (int j = 0; j < 2; j++) {  // j = direction of vg
         vJ[i + (k + j * 3) * Q] = w_det_J * (uJ[k][0] * dXdxdXdx_T[0][j] + uJ[k][1] * dXdxdXdx_T[1][j]);
-
+      }
+    }
   }  // End of Quadrature Point Loop
 
   return 0;

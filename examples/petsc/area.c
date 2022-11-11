@@ -68,20 +68,20 @@ int main(int argc, char **argv) {
   MPI_Comm comm;
   char     filename[PETSC_MAX_PATH_LEN], ceed_resource[PETSC_MAX_PATH_LEN] = "/cpu/self";
   PetscInt l_size, g_size, xl_size,
-      q_extra            = 1,  // default number of extra quadrature points
-      num_comp_x         = 3,  // number of components of 3D physical coordinates
-      num_comp_u         = 1,  // dimension of field to which apply mass operator
-      topo_dim           = 2,  // topological dimension of manifold
-      degree             = 3;  // default degree for finite element bases
-  PetscBool    read_mesh = PETSC_FALSE, test_mode = PETSC_FALSE, simplex = PETSC_FALSE;
-  Vec          U, U_loc, V, V_loc;
-  DM           dm;
-  UserO        user;
-  Ceed         ceed;
-  CeedData     ceed_data;
-  ProblemType  problem_choice;
-  VecType      vec_type;
-  PetscMemType mem_type;
+      q_extra                    = 1,  // default number of extra quadrature points
+      num_comp_x                 = 3,  // number of components of 3D physical coordinates
+      num_comp_u                 = 1,  // dimension of field to which apply mass operator
+      topo_dim                   = 2,  // topological dimension of manifold
+      degree                     = 3;  // default degree for finite element bases
+  PetscBool            read_mesh = PETSC_FALSE, test_mode = PETSC_FALSE, simplex = PETSC_FALSE;
+  Vec                  U, U_loc, V, V_loc;
+  DM                   dm;
+  OperatorApplyContext op_apply_ctx;
+  Ceed                 ceed;
+  CeedData             ceed_data;
+  ProblemType          problem_choice;
+  VecType              vec_type;
+  PetscMemType         mem_type;
 
   PetscCall(PetscInitialize(&argc, &argv, NULL, help));
   comm = PETSC_COMM_WORLD;
@@ -117,7 +117,7 @@ int main(int argc, char **argv) {
   }
 
   // Create DM
-  PetscCall(SetupDMByDegree(dm, degree, num_comp_u, topo_dim, false, (BCFunction)NULL));
+  PetscCall(SetupDMByDegree(dm, degree, q_extra, num_comp_u, topo_dim, false));
 
   // Create vectors
   PetscCall(DMCreateGlobalVector(dm, &U));
@@ -128,8 +128,8 @@ int main(int argc, char **argv) {
   PetscCall(VecDuplicate(U, &V));
   PetscCall(VecDuplicate(U_loc, &V_loc));
 
-  // Setup user structure
-  PetscCall(PetscMalloc1(1, &user));
+  // Setup op_apply_ctx structure
+  PetscCall(PetscMalloc1(1, &op_apply_ctx));
 
   // Set up libCEED
   CeedInit(ceed_resource, &ceed);
@@ -137,7 +137,7 @@ int main(int argc, char **argv) {
   CeedGetPreferredMemType(ceed, &mem_type_backend);
 
   PetscCall(DMGetVecType(dm, &vec_type));
-  if (!vec_type) {  // Not yet set by user -dm_vec_type
+  if (!vec_type) {  // Not yet set by op_apply_ctx -dm_vec_type
     switch (mem_type_backend) {
       case CEED_MEM_HOST:
         vec_type = VECSTANDARD;
@@ -162,15 +162,16 @@ int main(int argc, char **argv) {
     PetscCall(PetscPrintf(comm,
                           "\n-- libCEED + PETSc Surface Area of a Manifold --\n"
                           "  libCEED:\n"
-                          "    libCEED Backend                    : %s\n"
-                          "    libCEED Backend MemType            : %s\n"
+                          "    libCEED Backend                         : %s\n"
+                          "    libCEED Backend MemType                 : %s\n"
                           "  Mesh:\n"
-                          "    Number of 1D Basis Nodes (p)       : %" CeedInt_FMT "\n"
-                          "    Number of 1D Quadrature Points (q) : %" CeedInt_FMT "\n"
-                          "    Global nodes                       : %" PetscInt_FMT "\n"
-                          "    DoF per node                       : %" PetscInt_FMT "\n"
-                          "    Global DoFs                        : %" PetscInt_FMT "\n",
-                          used_resource, CeedMemTypes[mem_type_backend], P, Q, g_size / num_comp_u, num_comp_u, g_size));
+                          "    Solution Order (P)                      : %" CeedInt_FMT "\n"
+                          "    Quadrature Order (Q)                    : %" CeedInt_FMT "\n"
+                          "    Additional quadrature points (q_extra)  : %" CeedInt_FMT "\n"
+                          "    Global nodes                            : %" PetscInt_FMT "\n"
+                          "    DoF per node                            : %" PetscInt_FMT "\n"
+                          "    Global DoFs                             : %" PetscInt_FMT "\n",
+                          used_resource, CeedMemTypes[mem_type_backend], P, Q, q_extra, g_size / num_comp_u, num_comp_u, g_size));
   }
 
   // Setup libCEED's objects and apply setup operator
@@ -215,9 +216,9 @@ int main(int argc, char **argv) {
   PetscReal error = fabs(area - exact_surface_area);
   PetscReal tol   = 5e-6;
   if (!test_mode || error > tol) {
-    PetscCall(PetscPrintf(comm, "Exact mesh surface area    : % .14g\n", exact_surface_area));
-    PetscCall(PetscPrintf(comm, "Computed mesh surface area : % .14g\n", area));
-    PetscCall(PetscPrintf(comm, "Area error                 : % .14g\n", error));
+    PetscCall(PetscPrintf(comm, "Exact mesh surface area                     : % .14g\n", exact_surface_area));
+    PetscCall(PetscPrintf(comm, "Computed mesh surface area                  : % .14g\n", area));
+    PetscCall(PetscPrintf(comm, "Area error                                  : % .14g\n", error));
   }
 
   // Cleanup
@@ -226,7 +227,7 @@ int main(int argc, char **argv) {
   PetscCall(VecDestroy(&U_loc));
   PetscCall(VecDestroy(&V));
   PetscCall(VecDestroy(&V_loc));
-  PetscCall(PetscFree(user));
+  PetscCall(PetscFree(op_apply_ctx));
   PetscCall(CeedDataDestroy(0, ceed_data));
   CeedDestroy(&ceed);
   return PetscFinalize();
