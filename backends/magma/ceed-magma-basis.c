@@ -406,7 +406,7 @@ int CeedBasisApplyNonTensor_Magma(CeedBasis basis, CeedInt nelem,
       #ifdef DBG
       printf("applying interp %c for N = %8d --> NB = %2d\n", (tmode == CEED_TRANSPOSE) ? 't': 'n', N, NB);
       #endif
-      ierr = CeedRunKernelDimSharedMagma(ceed, *interp, grid,
+      ierr = CeedRunKernelDimSharedOptinMagma(ceed, *interp, grid,
                                          M, ntcol, 1, shmem,
                                          args); CeedChkBackend(ierr);
     }
@@ -450,7 +450,7 @@ int CeedBasisApplyNonTensor_Magma(CeedBasis basis, CeedInt nelem,
       #ifdef DBG
       printf("applying grad   %c for N = %8d --> NB = %2d\n", (tmode == CEED_TRANSPOSE) ? 't': 'n', N, NB);
       #endif
-      ierr = CeedRunKernelDimSharedMagma(ceed, *grad, grid,
+      ierr = CeedRunKernelDimSharedOptinMagma(ceed, *grad, grid,
                                            M, ntcol, 1, shmem,
                                            args); CeedChkBackend(ierr);
     }

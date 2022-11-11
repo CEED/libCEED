@@ -39,6 +39,7 @@ typedef hipFunction_t CeedMagmaFunction;
 #define CeedRunKernelMagma CeedRunKernelHip
 #define CeedRunKernelDimMagma CeedRunKernelDimHip
 #define CeedRunKernelDimSharedMagma CeedRunKernelDimSharedHip
+#define CeedRunKernelDimSharedOptinMagma CeedRunKernelDimSharedHip
 #else
 typedef CUmodule CeedMagmaModule;
 typedef CUfunction CeedMagmaFunction;
@@ -47,6 +48,7 @@ typedef CUfunction CeedMagmaFunction;
 #define CeedRunKernelMagma CeedRunKernelCuda
 #define CeedRunKernelDimMagma CeedRunKernelDimCuda
 #define CeedRunKernelDimSharedMagma CeedRunKernelDimSharedCuda
+#define CeedRunKernelDimSharedOptinMagma CeedRunKernelDimSharedOptinCuda
 #endif
 
 typedef enum {
