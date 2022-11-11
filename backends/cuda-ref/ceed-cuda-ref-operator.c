@@ -1164,7 +1164,7 @@ static int CeedSingleOperatorAssembleSetup_Cuda(CeedOperator op) {
       if (rstr_out && rstr_out != rstr_in)
         // LCOV_EXCL_START
         return CeedError(ceed, CEED_ERROR_BACKEND,
-                         "Multi-field non-composite operator assembly not supported");
+                         "Backend does not implement multi-field non-composite operator assembly");
       // LCOV_EXCL_STOP
       CeedEvalMode eval_mode;
       ierr = CeedQFunctionFieldGetEvalMode(qf_fields[i], &eval_mode);
