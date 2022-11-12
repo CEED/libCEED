@@ -196,7 +196,8 @@ magma_gemm_nontensor(
     magma_int_t strideC = lddc*nbatch;
 
     if ( use_magmablas ) {
-      magmablas_gemm_batched_strided(
+      if(batchCount > 0) {
+        magmablas_gemm_batched_strided(
         transA, transB, m, nbatch, k,
         alpha,
         dA, ldda, strideA,
@@ -204,6 +205,7 @@ magma_gemm_nontensor(
         beta,
         dC, lddc, strideC,
         batchCount, queue);
+      }
 
       // cleanup
       if (n2 > 0) {
@@ -215,8 +217,9 @@ magma_gemm_nontensor(
           beta,  dC + batchCount * strideC, lddc, queue);
       }
     } else {
-      devblas_gemm_batched_strided(
-        devblas_trans_const(transA), devblas_trans_const(transB),
+      if( batchCount > 0 ) {
+        devblas_gemm_batched_strided(
+        transA, transB,
         m, nbatch, k,
         alpha,
         dA, ldda, strideA,
@@ -224,11 +227,12 @@ magma_gemm_nontensor(
         beta,
         dC, lddc, strideC,
         batchCount, queue );
+      }
 
       // cleanup
       if (n2 > 0) {
         devblas_gemm_batched_strided(
-          devblas_trans_const(transA), devblas_trans_const(transB),
+          transA, transB,
           m, n2, k,
           alpha, dA, ldda, strideA,
           dB + batchCount * strideB, lddb, strideB,
