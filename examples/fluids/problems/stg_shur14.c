@@ -76,10 +76,13 @@ static PetscErrorCode OpenPHASTADatFile(const MPI_Comm comm, const char path[PET
   PetscCall(PetscFOpen(comm, path, "r", fp));
   PetscCall(PetscSynchronizedFGets(comm, *fp, char_array_len, line));
   PetscCall(PetscStrToArray(line, ' ', &ndims, &array));
-  if (ndims != 2) SETERRQ(comm, -1, "Found %" PetscInt_FMT " dimensions instead of 2 on the first line of %s", ndims, path);
+  if (ndims != 2) {
+    SETERRQ(comm, -1, "Found %" PetscInt_FMT " dimensions instead of 2 on the first line of %s", ndims, path);
+  }
 
   for (PetscInt i = 0; i < ndims; i++) dims[i] = atoi(array[i]);
   PetscCall(PetscStrToArrayDestroy(ndims, array));
+
   PetscFunctionReturn(0);
 }
 
@@ -102,6 +105,7 @@ static PetscErrorCode GetNRows(const MPI_Comm comm, const char path[PETSC_MAX_PA
   PetscCall(OpenPHASTADatFile(comm, path, char_array_len, dims, &fp));
   *nrows = dims[0];
   PetscCall(PetscFClose(comm, fp));
+
   PetscFunctionReturn(0);
 }
 
@@ -164,6 +168,7 @@ static PetscErrorCode ReadSTGInflow(const MPI_Comm comm, const char path[PETSC_M
   CeedScalar(*cij)[stg_ctx->nprofs] = (CeedScalar(*)[stg_ctx->nprofs]) & stg_ctx->data[stg_ctx->offsets.cij];
   PetscCall(CalcCholeskyDecomp(comm, stg_ctx->nprofs, rij, cij));
   PetscCall(PetscFClose(comm, fp));
+
   PetscFunctionReturn(0);
 }
 
@@ -209,6 +214,7 @@ static PetscErrorCode ReadSTGRand(const MPI_Comm comm, const char path[PETSC_MAX
     sigma[2][i] = (CeedScalar)atof(array[6]);
   }
   PetscCall(PetscFClose(comm, fp));
+
   PetscFunctionReturn(0);
 }
 
@@ -297,7 +303,7 @@ PetscErrorCode SetupSTG(const MPI_Comm comm, const DM dm, ProblemData *problem, 
                         const CeedScalar P0, const CeedScalar ynodes[], const CeedInt nynodes) {
   char                     stg_inflow_path[PETSC_MAX_PATH_LEN] = "./STGInflow.dat";
   char                     stg_rand_path[PETSC_MAX_PATH_LEN]   = "./STGRand.dat";
-  PetscBool                mean_only = PETSC_FALSE, use_stgstrong = PETSC_FALSE;
+  PetscBool                mean_only = PETSC_FALSE, use_stgstrong = PETSC_FALSE, use_fluctuating_IC = PETSC_FALSE;
   CeedScalar               u0 = 0.0, alpha = 1.01;
   CeedQFunctionContext     stg_context;
   NewtonianIdealGasContext newtonian_ig_ctx;
@@ -311,17 +317,20 @@ PetscErrorCode SetupSTG(const MPI_Comm comm, const DM dm, ProblemData *problem, 
   PetscCall(PetscOptionsReal("-stg_u0", "Advective velocity for the fluctuations", NULL, u0, &u0, NULL));
   PetscCall(PetscOptionsBool("-stg_mean_only", "Only apply mean profile", NULL, mean_only, &mean_only, NULL));
   PetscCall(PetscOptionsBool("-stg_strong", "Enforce STG inflow strongly", NULL, use_stgstrong, &use_stgstrong, NULL));
+  PetscCall(PetscOptionsBool("-stg_fluctuating_IC", "\"Extrude\" the fluctuations through the domain as an initial condition", NULL,
+                             use_fluctuating_IC, &use_fluctuating_IC, NULL));
   PetscOptionsEnd();
 
   PetscCall(PetscCalloc1(1, &global_stg_ctx));
-  global_stg_ctx->alpha       = alpha;
-  global_stg_ctx->u0          = u0;
-  global_stg_ctx->is_implicit = user->phys->implicit;
-  global_stg_ctx->prescribe_T = prescribe_T;
-  global_stg_ctx->mean_only   = mean_only;
-  global_stg_ctx->theta0      = theta0;
-  global_stg_ctx->P0          = P0;
-  global_stg_ctx->nynodes     = nynodes;
+  global_stg_ctx->alpha              = alpha;
+  global_stg_ctx->u0                 = u0;
+  global_stg_ctx->is_implicit        = user->phys->implicit;
+  global_stg_ctx->prescribe_T        = prescribe_T;
+  global_stg_ctx->mean_only          = mean_only;
+  global_stg_ctx->use_fluctuating_IC = use_fluctuating_IC;
+  global_stg_ctx->theta0             = theta0;
+  global_stg_ctx->P0                 = P0;
+  global_stg_ctx->nynodes            = nynodes;
 
   {
     // Calculate dx assuming constant spacing

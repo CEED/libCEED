@@ -279,6 +279,7 @@ PetscErrorCode SetupLibceed(Ceed ceed, CeedData ceed_data, DM dm, User user, App
   CeedQFunctionSetContext(ceed_data->qf_ics, problem->ics.qfunction_context);
   CeedQFunctionContextDestroy(&problem->ics.qfunction_context);
   CeedQFunctionAddInput(ceed_data->qf_ics, "x", num_comp_x, CEED_EVAL_INTERP);
+  CeedQFunctionAddInput(ceed_data->qf_ics, "qdata", q_data_size_vol, CEED_EVAL_NONE);
   CeedQFunctionAddOutput(ceed_data->qf_ics, "q0", num_comp_q, CEED_EVAL_NONE);
 
   // -- Create QFunction for RHS
@@ -370,6 +371,7 @@ PetscErrorCode SetupLibceed(Ceed ceed, CeedData ceed_data, DM dm, User user, App
   // -- Create CEED operator for ICs
   CeedOperatorCreate(ceed, ceed_data->qf_ics, NULL, NULL, &ceed_data->op_ics);
   CeedOperatorSetField(ceed_data->op_ics, "x", ceed_data->elem_restr_x, ceed_data->basis_xc, CEED_VECTOR_ACTIVE);
+  CeedOperatorSetField(ceed_data->op_ics, "qdata", ceed_data->elem_restr_qd_i, CEED_BASIS_COLLOCATED, ceed_data->q_data);
   CeedOperatorSetField(ceed_data->op_ics, "q0", ceed_data->elem_restr_q, CEED_BASIS_COLLOCATED, CEED_VECTOR_ACTIVE);
   CeedOperatorContextGetFieldLabel(ceed_data->op_ics, "evaluation time", &user->phys->ics_time_label);
 

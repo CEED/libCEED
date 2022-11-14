@@ -654,7 +654,7 @@ static inline int CeedOperatorAssembleDiagonalSetup_Hip(CeedOperator op, const b
       CeedCallBackend(CeedOperatorFieldGetElemRestriction(opfields[i], &rstr));
       if (rstrin && rstrin != rstr) {
         // LCOV_EXCL_START
-        return CeedError(ceed, CEED_ERROR_BACKEND, "Multi-field non-composite operator diagonal assembly not supported");
+        return CeedError(ceed, CEED_ERROR_BACKEND, "Backend does not implement multi-field non-composite operator diagonal assembly");
         // LCOV_EXCL_STOP
       }
       rstrin = rstr;
@@ -696,7 +696,7 @@ static inline int CeedOperatorAssembleDiagonalSetup_Hip(CeedOperator op, const b
       CeedCallBackend(CeedOperatorFieldGetElemRestriction(opfields[i], &rstr));
       if (rstrout && rstrout != rstr) {
         // LCOV_EXCL_START
-        return CeedError(ceed, CEED_ERROR_BACKEND, "Multi-field non-composite operator diagonal assembly not supported");
+        return CeedError(ceed, CEED_ERROR_BACKEND, "Backend does not implement multi-field non-composite operator diagonal assembly");
         // LCOV_EXCL_STOP
       }
       rstrout = rstr;
@@ -955,7 +955,7 @@ static int CeedSingleOperatorAssembleSetup_Hip(CeedOperator op) {
       CeedCallBackend(CeedOperatorFieldGetElemRestriction(output_fields[i], &rstr_out));
       if (rstr_out && rstr_out != rstr_in) {
         // LCOV_EXCL_START
-        return CeedError(ceed, CEED_ERROR_BACKEND, "Multi-field non-composite operator assembly not supported");
+        return CeedError(ceed, CEED_ERROR_BACKEND, "Backend does not implement multi-field non-composite operator assembly");
         // LCOV_EXCL_STOP
       }
       CeedEvalMode eval_mode;

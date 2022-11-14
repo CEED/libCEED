@@ -769,6 +769,11 @@ Using the STG Inflow for the blasius problem adds the following command-line opt
   - `false`
   -
 
+* - `-stg_fluctuating_IC`
+  - "Extrude" the fluctuations through the domain as an initial condition
+  - `false`
+  -
+
 :::
 
 This problem can be run with the `blasius.yaml` file via:
