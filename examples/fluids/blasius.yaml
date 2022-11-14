@@ -4,7 +4,7 @@ implicit: true
 ts:
   adapt_type: 'none'
   type: 'beuler'
-  dt: 0.2e-5
+  dt: 2e-6
   max_time: 1.0e-3
 output_freq: 10
 

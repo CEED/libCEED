@@ -360,6 +360,8 @@ PetscErrorCode SetupLibceed(Ceed ceed, CeedData ceed_data, DM dm, User user,
   CeedElemRestrictionCreateVector(ceed_data->elem_restr_q, &user->q_dot_ceed,
                                   NULL);
   CeedElemRestrictionCreateVector(ceed_data->elem_restr_q, &user->g_ceed, NULL);
+  CeedElemRestrictionCreateVector(ceed_data->elem_restr_q, &user->flux_ceed,
+                                  NULL);
 
   // -----------------------------------------------------------------------------
   // CEED QFunctions
@@ -430,8 +432,15 @@ PetscErrorCode SetupLibceed(Ceed ceed, CeedData ceed_data, DM dm, User user,
                            CEED_EVAL_INTERP);
     CeedQFunctionAddOutput(ceed_data->qf_ifunction_vol, "Grad_v", num_comp_q*dim,
                            CEED_EVAL_GRAD);
-    CeedQFunctionAddOutput(ceed_data->qf_ifunction_vol, "jac_data",
-                           jac_data_size_vol, CEED_EVAL_NONE);
+    if (user->phys->use_fluxproj) {
+      CeedQFunctionAddInput(ceed_data->qf_ifunction_vol, "divFdiff", num_comp_q,
+                            CEED_EVAL_INTERP);
+      CeedQFunctionAddInput(ceed_data->qf_ifunction_vol, "jac_data",
+                            jac_data_size_vol, CEED_EVAL_NONE);
+    } else {
+      CeedQFunctionAddOutput(ceed_data->qf_ifunction_vol, "jac_data",
+                             jac_data_size_vol, CEED_EVAL_NONE);
+    }
   }
 
   CeedQFunction qf_ijacobian_vol = NULL;
@@ -455,6 +464,27 @@ PetscErrorCode SetupLibceed(Ceed ceed, CeedData ceed_data, DM dm, User user,
                            CEED_EVAL_INTERP);
     CeedQFunctionAddOutput(qf_ijacobian_vol, "Grad_v", num_comp_q*dim,
                            CEED_EVAL_GRAD);
+  }
+
+  // -- Create QFunction for Diffusive Flux Projection
+  if (problem->apply_fluxproj.qfunction) {
+    CeedQFunctionCreateInterior(ceed, 1, problem->apply_fluxproj.qfunction,
+                                problem->apply_fluxproj.qfunction_loc, &ceed_data->qf_fluxproj);
+    CeedQFunctionSetContext(ceed_data->qf_fluxproj,
+                            problem->apply_fluxproj.qfunction_context);
+    CeedQFunctionContextDestroy(&problem->apply_fluxproj.qfunction_context);
+    CeedQFunctionAddInput(ceed_data->qf_fluxproj, "q", num_comp_q,
+                          CEED_EVAL_INTERP);
+    CeedQFunctionAddInput(ceed_data->qf_fluxproj, "Grad_q", num_comp_q*dim,
+                          CEED_EVAL_GRAD);
+    CeedQFunctionAddInput(ceed_data->qf_fluxproj, "qdata", q_data_size_vol,
+                          CEED_EVAL_NONE);
+    CeedQFunctionAddInput(ceed_data->qf_fluxproj, "x", num_comp_x,
+                          CEED_EVAL_INTERP);
+    CeedQFunctionAddOutput(ceed_data->qf_fluxproj, "Grad_v", num_comp_q*dim,
+                           CEED_EVAL_GRAD);
+    CeedQFunctionAddOutput(ceed_data->qf_fluxproj, "jac_data",
+                           jac_data_size_vol, CEED_EVAL_NONE);
   }
 
   // ---------------------------------------------------------------------------
@@ -548,6 +578,10 @@ PetscErrorCode SetupLibceed(Ceed ceed, CeedData ceed_data, DM dm, User user,
                          CEED_BASIS_COLLOCATED, ceed_data->q_data);
     CeedOperatorSetField(op, "x", ceed_data->elem_restr_x, ceed_data->basis_x,
                          ceed_data->x_coord);
+    if (user->phys->use_fluxproj) {
+      CeedOperatorSetField(op, "divFdiff", ceed_data->elem_restr_q,
+                           ceed_data->basis_q, user->flux_ceed);
+    }
     CeedOperatorSetField(op, "v", ceed_data->elem_restr_q, ceed_data->basis_q,
                          CEED_VECTOR_ACTIVE);
     CeedOperatorSetField(op, "Grad_v", ceed_data->elem_restr_q, ceed_data->basis_q,
@@ -556,6 +590,26 @@ PetscErrorCode SetupLibceed(Ceed ceed, CeedData ceed_data, DM dm, User user,
                          CEED_BASIS_COLLOCATED, jac_data);
 
     user->op_ifunction_vol = op;
+  }
+
+  // -- CEED operator for Diffusive Flux projection
+  if (ceed_data->qf_fluxproj && user->phys->use_fluxproj) {
+    CeedOperator op;
+    CeedOperatorCreate(ceed, ceed_data->qf_fluxproj, NULL, NULL, &op);
+    CeedOperatorSetField(op, "q", ceed_data->elem_restr_q, ceed_data->basis_q,
+                         CEED_VECTOR_ACTIVE);
+    CeedOperatorSetField(op, "Grad_q", ceed_data->elem_restr_q, ceed_data->basis_q,
+                         CEED_VECTOR_ACTIVE);
+    CeedOperatorSetField(op, "qdata", ceed_data->elem_restr_qd_i,
+                         CEED_BASIS_COLLOCATED, ceed_data->q_data);
+    CeedOperatorSetField(op, "x", ceed_data->elem_restr_x, ceed_data->basis_x,
+                         ceed_data->x_coord);
+    CeedOperatorSetField(op, "Grad_v", ceed_data->elem_restr_q, ceed_data->basis_q,
+                         CEED_VECTOR_ACTIVE);
+    CeedOperatorSetField(op, "jac_data", elem_restr_jd_i,
+                         CEED_BASIS_COLLOCATED, jac_data);
+
+    user->op_fluxproj = op;
   }
 
   CeedOperator op_ijacobian_vol = NULL;
