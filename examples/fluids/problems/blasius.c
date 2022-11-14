@@ -321,10 +321,10 @@ PetscErrorCode NS_BLASIUS(ProblemData *problem, DM dm, void *ctx) {
   PetscScalar Kelvin = user->units->Kelvin;
   PetscScalar Pascal = user->units->Pascal;
 
-  T_inf   *= Kelvin;
+  T_inf  *= Kelvin;
   T_wall *= Kelvin;
   P0     *= Pascal;
-  U_inf   *= meter / second;
+  U_inf  *= meter / second;
   delta0 *= meter;
 
   PetscReal *mesh_ynodes = NULL;
@@ -358,7 +358,7 @@ PetscErrorCode NS_BLASIUS(ProblemData *problem, DM dm, void *ctx) {
     blasius_ctx->x_inflow = domain_min[0];
     blasius_ctx->eta_max  = 5 * domain_max[1] / blasius_ctx->delta0;
   }
-  PetscCall(ComputeChebyshevCoefficients(blasius_ctx));
+  if(!use_stg) PetscCall(ComputeChebyshevCoefficients(blasius_ctx));
 
   CeedQFunctionContextRestoreData(problem->apply_vol_rhs.qfunction_context,
                                   &newtonian_ig_ctx);
