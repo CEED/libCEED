@@ -5,13 +5,16 @@
 //
 // This file is part of CEED:  http://github.com/ceed
 
-#ifndef stabilization_types_h
-#define stabilization_types_h
+#ifndef freestream_bc_type_h
+#define freestream_bc_type_h
 
-typedef enum {
-  STAB_NONE = 0,
-  STAB_SU   = 1, // Streamline Upwind
-  STAB_SUPG = 2, // Streamline Upwind Petrov-Galerkin
-} StabilizationType;
+#include "newtonian_types.h"
+#include "newtonian_state.h"
 
-#endif // stabilization_types_h
+typedef struct FreestreamContext_ *FreestreamContext;
+struct FreestreamContext_ {
+  struct NewtonianIdealGasContext_ newtonian_ctx;
+  State S_infty;
+};
+
+#endif

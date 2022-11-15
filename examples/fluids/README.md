@@ -108,6 +108,10 @@ The following options are common among all problem types:
   - Use outflow boundary conditions on this list of faces
   -
 
+* - `-bc_freestream`
+  - Use freestream boundary conditions on this list of faces
+  -
+
 * - `-snes_view`
   - View PETSc `SNES` nonlinear solver configuration
   -
@@ -121,7 +125,7 @@ The following options are common among all problem types:
   -
 :::
 
-For the case of a square/cubic mesh, the list of face indices to be used with `-bc_wall`, `bc_inflow`, `bc_outflow` and/or `-bc_slip_x`, `-bc_slip_y`, and `-bc_slip_z` are:
+For the case of a square/cubic mesh, the list of face indices to be used with `-bc_wall`, `bc_inflow`, `bc_outflow`, `bc_freestream`  and/or `-bc_slip_x`, `-bc_slip_y`, and `-bc_slip_z` are:
 
 :::{list-table} 2D Face ID Labels
 :header-rows: 1
@@ -541,10 +545,63 @@ For the Density Current, Channel, and Blasius problems, the following common com
   - string
 :::
 
+#### Newtonian Wave
+
+The newtonian wave problem has the following command-line options in addition to the Newtonian Ideal Gas options:
+
+:::{list-table} Newtonian Wave Runtime Options
+:header-rows: 1
+
+* - Option
+  - Description
+  - Default value
+  - Unit
+
+* - `-velocity_freestream`
+  - Freestream velocity vector
+  - `0,0,0`
+  - `m/s`
+
+* - `-temperature_freestream`
+  - Freestream temperature
+  - `288`
+  - `K`
+
+* - `-pressure_freestream`
+  - Freestream pressure
+  - `1.01e5`
+  - `Pa`
+
+* - `-epicenter`
+  - Coordinates of center of perturbation
+  - `0,0,0`
+  - `m`
+
+* - `-amplitude`
+  - Amplitude of the perturbation
+  - `0.1`
+  -
+
+* - `-width`
+  - Width parameter of the perturbation
+  - `0.002`
+  - `m`
+
+:::
+
+This problem can be run with the `newtonianwave.yaml` file via:
+
+```
+./navierstokes -options_file newtonianwave.yaml
+```
+
+```{literalinclude} ../../../../../examples/fluids/newtonianwave.yaml
+:language: yaml
+```
 
 #### Density current
 
-The Density Current problem the following command-line options are available in addition to the Newtonian Ideal Gas options:
+The Density Current problem has the following command-line options in addition to the Newtonian Ideal Gas options:
 
 :::{list-table} Density Current Runtime Options
 :header-rows: 1
@@ -598,7 +655,7 @@ This problem can be run with:
 
 #### Channel flow
 
-The Channel problem the following command-line options are available in addition to the Newtonian Ideal Gas options:
+The Channel problem has the following command-line options in addition to the Newtonian Ideal Gas options:
 
 :::{list-table} Channel Runtime Options
 :header-rows: 1
@@ -640,7 +697,7 @@ This problem can be run with the `channel.yaml` file via:
 
 #### Blasius boundary layer
 
-The Blasius problem the following command-line options are available in addition to the Newtonian Ideal Gas options:
+The Blasius problem has the following command-line options in addition to the Newtonian Ideal Gas options:
 
 :::{list-table} Blasius Runtime Options
 :header-rows: 1

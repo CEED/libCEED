@@ -15,29 +15,31 @@ PetscErrorCode RegisterProblems_NS(AppCtx app_ctx) {
 
 
   app_ctx->problems = NULL;
-  PetscErrorCode   ierr;
   PetscFunctionBeginUser;
 
-  ierr = PetscFunctionListAdd(&app_ctx->problems, "density_current",
-                              NS_DENSITY_CURRENT); CHKERRQ(ierr);
+  PetscCall(PetscFunctionListAdd(&app_ctx->problems, "density_current",
+                                 NS_DENSITY_CURRENT));
 
-  ierr = PetscFunctionListAdd(&app_ctx->problems, "euler_vortex",
-                              NS_EULER_VORTEX); CHKERRQ(ierr);
+  PetscCall(PetscFunctionListAdd(&app_ctx->problems, "euler_vortex",
+                                 NS_EULER_VORTEX));
 
-  ierr = PetscFunctionListAdd(&app_ctx->problems, "shocktube",
-                              NS_SHOCKTUBE); CHKERRQ(ierr);
+  PetscCall(PetscFunctionListAdd(&app_ctx->problems, "shocktube",
+                                 NS_SHOCKTUBE));
 
-  ierr = PetscFunctionListAdd(&app_ctx->problems, "advection",
-                              NS_ADVECTION); CHKERRQ(ierr);
+  PetscCall(PetscFunctionListAdd(&app_ctx->problems, "advection",
+                                 NS_ADVECTION));
 
-  ierr = PetscFunctionListAdd(&app_ctx->problems, "advection2d",
-                              NS_ADVECTION2D); CHKERRQ(ierr);
+  PetscCall(PetscFunctionListAdd(&app_ctx->problems, "advection2d",
+                                 NS_ADVECTION2D));
 
-  ierr = PetscFunctionListAdd(&app_ctx->problems, "blasius",
-                              NS_BLASIUS); CHKERRQ(ierr);
+  PetscCall(PetscFunctionListAdd(&app_ctx->problems, "blasius",
+                                 NS_BLASIUS));
 
-  ierr = PetscFunctionListAdd(&app_ctx->problems, "channel",
-                              NS_CHANNEL); CHKERRQ(ierr);
+  PetscCall(PetscFunctionListAdd(&app_ctx->problems, "channel",
+                                 NS_CHANNEL));
+
+  PetscCall(PetscFunctionListAdd(&app_ctx->problems, "newtonian_wave",
+                                 NS_NEWTONIAN_WAVE));
 
   PetscFunctionReturn(0);
 }
@@ -169,6 +171,11 @@ PetscErrorCode ProcessCommandLineOptions(MPI_Comm comm, AppCtx app_ctx,
   ierr = PetscOptionsIntArray("-bc_outflow",
                               "Face IDs to apply outflow BC",
                               NULL, bc->outflows, &bc->num_outflow, NULL); CHKERRQ(ierr);
+  // Freestream BCs
+  bc->num_freestream = 16;
+  ierr = PetscOptionsIntArray("-bc_freestream",
+                              "Face IDs to apply freestream BC",
+                              NULL, bc->freestreams, &bc->num_freestream, NULL); CHKERRQ(ierr);
 
   PetscOptionsEnd();
 

@@ -14,6 +14,7 @@
 
 #include <ceed.h>
 #include <math.h>
+#include <stdlib.h>
 #include "newtonian_state.h"
 #include "newtonian_types.h"
 #include "stabilization.h"
@@ -387,8 +388,8 @@ CEED_QFUNCTION_HELPER int IJacobian_Newtonian(void *ctx, CeedInt Q,
                                   };
     // *INDENT-ON*
 
-    CeedScalar qi[5], kmstress[6], Tau_d[3] __attribute((unused));
-    for (int j=0; j<5; j++) qi[j]        = jac_data[j][i];
+    CeedScalar qi[5], kmstress[6], Tau_d[3];
+    for (int j=0; j<5; j++) qi[j]       = jac_data[j][i];
     for (int j=0; j<6; j++) kmstress[j] = jac_data[5+j][i];
     for (int j=0; j<3; j++) Tau_d[j]    = jac_data[5+6+j][i];
     const CeedScalar x_i[3] = {x[0][i], x[1][i], x[2][i]};
@@ -782,5 +783,4 @@ CEED_QFUNCTION(PressureOutflow_Jacobian_Prim)(void *ctx, CeedInt Q,
     const CeedScalar *const *in, CeedScalar *const *out) {
   return PressureOutflow_Jacobian(ctx, Q, in, out, StateFromY, StateFromY_fwd);
 }
-
 #endif // newtonian_h

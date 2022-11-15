@@ -385,7 +385,7 @@ $$
 \int_{\Omega} \nu_{SHOCK} \nabla \bm v \!:\! \nabla \bm q dV
 $$
 
-The shock capturing viscosity is implemented following the first formulation described in {cite} `tezduyar2007yzb`. The characteristic velocity $u_{cha}$ is taken to be the acoustic speed while the reference density $\rho_{ref}$ is just the local density. Shock capturing viscosity is defined by the following
+The shock capturing viscosity is implemented following the first formulation described in {cite}`tezduyar2007yzb`. The characteristic velocity $u_{cha}$ is taken to be the acoustic speed while the reference density $\rho_{ref}$ is just the local density. Shock capturing viscosity is defined by the following
 
 $$
 \nu_{SHOCK} = \tau_{SHOCK} u_{cha}^2
@@ -412,6 +412,23 @@ $$
 The constant $C_{YZB}$ is set to 0.1 for piecewise linear elements in the current implementation. Larger values approaching unity are expected with more robust stabilization and implicit timestepping.
 
 (problem-density-current)=
+
+## Newtonian Wave
+This test case is taken/inspired by that presented in {cite}`mengaldoCompressibleBC2014`. It is intended to test non-reflecting/Riemann boundary conditions. It's primarily intended for Euler equations, but has been implemented for the Navier-Stokes equations here for flexibility. 
+
+The problem has a perturbed initial condition and lets it evolve in time. The initial condition contains a Gaussian perturbation in the pressure field:
+
+$$
+\begin{aligned}
+\rho &= \rho_\infty\left(1+A\exp\left(\frac{-(\bar{x}^2 + \bar{y}^2)}{2\sigma^2}\right)\right) \\
+\bm{U} &= \bm U_\infty \\
+E &= \frac{p_\infty}{\gamma -1}\left(1+A\exp\left(\frac{-(\bar{x}^2 + \bar{y}^2)}{2\sigma^2}\right)\right) + \frac{\bm U_\infty \cdot \bm U_\infty}{2\rho_\infty},
+\end{aligned}
+$$
+
+where $A$ and $\sigma$ are the amplitude and width of the perturbation, respectively, and $(\bar{x}, \bar{y}) = (x-x_e, y-y_e)$ is the distance to the epicenter of the perturbation, $(x_e, y_e)$.
+
+Currently, a HLL (Harten, Lax, van Leer) Riemann solver is implemented under the freestream boundary condition. The formulation for the HLL solver is given in {cite}`toro2009`.
 
 ## Density Current
 
