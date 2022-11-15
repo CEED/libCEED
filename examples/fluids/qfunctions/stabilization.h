@@ -8,7 +8,6 @@
 /// @file
 /// Helper functions for computing stabilization terms of a newtonian simulation
 
-
 #ifndef stabilization_h
 #define stabilization_h
 
