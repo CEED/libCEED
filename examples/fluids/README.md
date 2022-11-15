@@ -547,7 +547,7 @@ For the Density Current, Channel, and Blasius problems, the following common com
 
 #### Newtonian Wave
 
-The newtonian wave problem the following command-line options are available in addition to the Newtonian Ideal Gas options:
+The newtonian wave problem has the following command-line options in addition to the Newtonian Ideal Gas options:
 
 :::{list-table} Newtonian Wave Runtime Options
 :header-rows: 1
@@ -601,7 +601,7 @@ This problem can be run with the `newtonianwave.yaml` file via:
 
 #### Density current
 
-The Density Current problem the following command-line options are available in addition to the Newtonian Ideal Gas options:
+The Density Current problem has the following command-line options in addition to the Newtonian Ideal Gas options:
 
 :::{list-table} Density Current Runtime Options
 :header-rows: 1
@@ -655,7 +655,7 @@ This problem can be run with:
 
 #### Channel flow
 
-The Channel problem the following command-line options are available in addition to the Newtonian Ideal Gas options:
+The Channel problem has the following command-line options in addition to the Newtonian Ideal Gas options:
 
 :::{list-table} Channel Runtime Options
 :header-rows: 1
@@ -697,7 +697,7 @@ This problem can be run with the `channel.yaml` file via:
 
 #### Blasius boundary layer
 
-The Blasius problem the following command-line options are available in addition to the Newtonian Ideal Gas options:
+The Blasius problem has the following command-line options in addition to the Newtonian Ideal Gas options:
 
 :::{list-table} Blasius Runtime Options
 :header-rows: 1
