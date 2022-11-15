@@ -192,12 +192,11 @@ PetscErrorCode PostProcess_NS(TS ts, CeedData ceed_data, DM dm, ProblemData *pro
 // Gather initial Q values in case of continuation of simulation
 PetscErrorCode SetupICsFromBinary(MPI_Comm comm, AppCtx app_ctx, Vec Q) {
   PetscViewer viewer;
-  char        file_path[PETSC_MAX_PATH_LEN];
+
   PetscFunctionBegin;
 
   // Read input
-  PetscCall(PetscSNPrintf(file_path, sizeof file_path, "%s/ns-solution.bin", app_ctx->output_dir));
-  PetscCall(PetscViewerBinaryOpen(comm, file_path, FILE_MODE_READ, &viewer));
+  PetscCall(PetscViewerBinaryOpen(comm, app_ctx->cont_file, FILE_MODE_READ, &viewer));
 
   // Load Q from existent solution
   PetscCall(VecLoad(Q, viewer));

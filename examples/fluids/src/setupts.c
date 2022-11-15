@@ -381,7 +381,12 @@ PetscErrorCode WriteOutput(User user, Vec Q, PetscInt step_no, PetscScalar time)
   PetscCall(DMRestoreLocalVector(user->dm, &Q_loc));
 
   // Save data in a binary file for continuation of simulations
-  PetscCall(PetscSNPrintf(file_path, sizeof file_path, "%s/ns-solution.bin", user->app_ctx->output_dir));
+  if (user->app_ctx->add_stepnum2bin) {
+    PetscCall(PetscSNPrintf(file_path, sizeof file_path, "%s/ns-solution-%" PetscInt_FMT ".bin", user->app_ctx->output_dir,
+                            step_no + user->app_ctx->cont_steps));
+  } else {
+    PetscCall(PetscSNPrintf(file_path, sizeof file_path, "%s/ns-solution.bin", user->app_ctx->output_dir));
+  }
   PetscCall(PetscViewerBinaryOpen(user->comm, file_path, FILE_MODE_WRITE, &viewer));
 
   PetscCall(VecView(Q, viewer));
@@ -390,7 +395,12 @@ PetscErrorCode WriteOutput(User user, Vec Q, PetscInt step_no, PetscScalar time)
   // Save time stamp
   // Dimensionalize time back
   time /= user->units->second;
-  PetscCall(PetscSNPrintf(file_path, sizeof file_path, "%s/ns-time.bin", user->app_ctx->output_dir));
+  if (user->app_ctx->add_stepnum2bin) {
+    PetscCall(PetscSNPrintf(file_path, sizeof file_path, "%s/ns-time-%" PetscInt_FMT ".bin", user->app_ctx->output_dir,
+                            step_no + user->app_ctx->cont_steps));
+  } else {
+    PetscCall(PetscSNPrintf(file_path, sizeof file_path, "%s/ns-time.bin", user->app_ctx->output_dir));
+  }
   PetscCall(PetscViewerBinaryOpen(user->comm, file_path, FILE_MODE_WRITE, &viewer));
 
 #if PETSC_VERSION_GE(3, 13, 0)
@@ -469,9 +479,8 @@ PetscErrorCode TSSolve_NS(DM dm, User user, AppCtx app_ctx, Physics phys, Vec *Q
     PetscReal   time;
     PetscInt    count;
     PetscViewer viewer;
-    char        file_path[PETSC_MAX_PATH_LEN];
-    PetscCall(PetscSNPrintf(file_path, sizeof file_path, "%s/ns-time.bin", app_ctx->output_dir));
-    PetscCall(PetscViewerBinaryOpen(comm, file_path, FILE_MODE_READ, &viewer));
+
+    PetscCall(PetscViewerBinaryOpen(comm, app_ctx->cont_time_file, FILE_MODE_READ, &viewer));
     PetscCall(PetscViewerBinaryRead(viewer, &time, 1, &count, PETSC_REAL));
     PetscCall(PetscViewerDestroy(&viewer));
     PetscCall(TSSetTime(*ts, time * user->units->second));

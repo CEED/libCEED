@@ -31,6 +31,8 @@ PetscErrorCode RegisterProblems_NS(AppCtx app_ctx) {
 PetscErrorCode ProcessCommandLineOptions(MPI_Comm comm, AppCtx app_ctx, SimpleBC bc) {
   PetscBool ceed_flag    = PETSC_FALSE;
   PetscBool problem_flag = PETSC_FALSE;
+  PetscBool option_set   = PETSC_FALSE;
+
   PetscFunctionBeginUser;
 
   PetscOptionsBegin(comm, NULL, "Navier-Stokes in PETSc with libCEED", NULL);
@@ -56,8 +58,24 @@ PetscErrorCode ProcessCommandLineOptions(MPI_Comm comm, AppCtx app_ctx, SimpleBC
   app_ctx->output_freq = 10;
   PetscCall(PetscOptionsInt("-output_freq", "Frequency of output, in number of steps", NULL, app_ctx->output_freq, &app_ctx->output_freq, NULL));
 
+  PetscCall(PetscOptionsBool("-output_add_stepnum2bin", "Add step number to the binary outputs", NULL, app_ctx->add_stepnum2bin,
+                             &app_ctx->add_stepnum2bin, NULL));
+
+  PetscCall(PetscStrncpy(app_ctx->output_dir, ".", 2));
+  PetscCall(PetscOptionsString("-output_dir", "Output directory", NULL, app_ctx->output_dir, app_ctx->output_dir, sizeof(app_ctx->output_dir), NULL));
+
   app_ctx->cont_steps = 0;
   PetscCall(PetscOptionsInt("-continue", "Continue from previous solution", NULL, app_ctx->cont_steps, &app_ctx->cont_steps, NULL));
+
+  PetscCall(PetscStrcpy(app_ctx->cont_file, "[output_dir]/ns-solution.bin"));
+  PetscCall(PetscOptionsString("-continue_filename", "Filename to get initial condition from", NULL, app_ctx->cont_file, app_ctx->cont_file,
+                               sizeof(app_ctx->cont_file), &option_set));
+  if (!option_set) PetscCall(PetscSNPrintf(app_ctx->cont_file, sizeof app_ctx->cont_file, "%s/ns-solution.bin", app_ctx->output_dir));
+
+  PetscCall(PetscStrcpy(app_ctx->cont_time_file, "[output_dir]/ns-time.bin"));
+  PetscCall(PetscOptionsString("-continue_time_filename", "Filename to get initial condition time from", NULL, app_ctx->cont_time_file,
+                               app_ctx->cont_time_file, sizeof(app_ctx->cont_time_file), &option_set));
+  if (!option_set) PetscCall(PetscSNPrintf(app_ctx->cont_time_file, sizeof app_ctx->cont_time_file, "%s/ns-time.bin", app_ctx->output_dir));
 
   app_ctx->degree = 1;
   PetscCall(PetscOptionsInt("-degree", "Polynomial degree of finite elements", NULL, app_ctx->degree, &app_ctx->degree, NULL));
@@ -74,9 +92,6 @@ PetscErrorCode ProcessCommandLineOptions(MPI_Comm comm, AppCtx app_ctx, SimpleBC
   }
   PetscCall(PetscOptionsBool("-pmat_pbdiagonal", "Assemble only point-block diagonal for Pmat", NULL, app_ctx->pmat_pbdiagonal,
                              &app_ctx->pmat_pbdiagonal, NULL));
-
-  PetscCall(PetscStrncpy(app_ctx->output_dir, ".", 2));
-  PetscCall(PetscOptionsString("-output_dir", "Output directory", NULL, app_ctx->output_dir, app_ctx->output_dir, sizeof(app_ctx->output_dir), NULL));
 
   // Provide default ceed resource if not specified
   if (!ceed_flag) {
