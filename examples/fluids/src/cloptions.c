@@ -22,6 +22,7 @@ PetscErrorCode RegisterProblems_NS(AppCtx app_ctx) {
   PetscCall(PetscFunctionListAdd(&app_ctx->problems, "advection2d", NS_ADVECTION2D));
   PetscCall(PetscFunctionListAdd(&app_ctx->problems, "blasius", NS_BLASIUS));
   PetscCall(PetscFunctionListAdd(&app_ctx->problems, "channel", NS_CHANNEL));
+  PetscCall(PetscFunctionListAdd(&app_ctx->problems, "newtonian_wave", NS_NEWTONIAN_WAVE));
 
   PetscFunctionReturn(0);
 }
@@ -118,6 +119,9 @@ PetscErrorCode ProcessCommandLineOptions(MPI_Comm comm, AppCtx app_ctx, SimpleBC
   // Outflow BCs
   bc->num_outflow = 16;
   PetscCall(PetscOptionsIntArray("-bc_outflow", "Face IDs to apply outflow BC", NULL, bc->outflows, &bc->num_outflow, NULL));
+  // Freestream BCs
+  bc->num_freestream = 16;
+  PetscCall(PetscOptionsIntArray("-bc_freestream", "Face IDs to apply freestream BC", NULL, bc->freestreams, &bc->num_freestream, NULL));
 
   PetscOptionsEnd();
 

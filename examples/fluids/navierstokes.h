@@ -106,7 +106,7 @@ struct AppCtx_private {
 struct CeedData_private {
   CeedVector    x_coord, q_data;
   CeedQFunction qf_setup_vol, qf_ics, qf_rhs_vol, qf_ifunction_vol, qf_setup_sur, qf_apply_inflow, qf_apply_inflow_jacobian, qf_apply_outflow,
-      qf_apply_outflow_jacobian;
+      qf_apply_outflow_jacobian, qf_apply_freestream, qf_apply_freestream_jacobian;
   CeedBasis           basis_x, basis_xc, basis_q, basis_x_sur, basis_q_sur, basis_xc_sur;
   CeedElemRestriction elem_restr_x, elem_restr_q, elem_restr_qd_i;
   CeedOperator        op_setup_vol, op_ics;
@@ -150,8 +150,8 @@ struct SimpleBC_private {
       wall_comps[5],  // An array of constrained component numbers
       num_comps,
       num_slip[3],  // Number of faces with slip BCs
-      num_inflow, num_outflow;
-  PetscInt  walls[16], slips[3][16], inflows[16], outflows[16];
+      num_inflow, num_outflow, num_freestream;
+  PetscInt  walls[16], slips[3][16], inflows[16], outflows[16], freestreams[16];
   PetscBool user_bc;
 };
 
@@ -186,7 +186,7 @@ struct ProblemData_private {
   CeedInt              dim, q_data_size_vol, q_data_size_sur, jac_data_size_sur;
   CeedScalar           dm_scale;
   ProblemQFunctionSpec setup_vol, setup_sur, ics, apply_vol_rhs, apply_vol_ifunction, apply_vol_ijacobian, apply_inflow, apply_outflow,
-      apply_inflow_jacobian, apply_outflow_jacobian;
+      apply_freestream, apply_inflow_jacobian, apply_outflow_jacobian, apply_freestream_jacobian;
   bool non_zero_time;
   PetscErrorCode (*bc)(PetscInt, PetscReal, const PetscReal[], PetscInt, PetscScalar[], void *);
   void     *bc_ctx;
@@ -201,6 +201,7 @@ extern int FreeContextPetsc(void *);
 // Set up problems
 // -----------------------------------------------------------------------------
 // Set up function for each problem
+extern PetscErrorCode NS_NEWTONIAN_WAVE(ProblemData *problem, DM dm, void *ctx);
 extern PetscErrorCode NS_CHANNEL(ProblemData *problem, DM dm, void *ctx);
 extern PetscErrorCode NS_BLASIUS(ProblemData *problem, DM dm, void *ctx);
 extern PetscErrorCode NS_NEWTONIAN_IG(ProblemData *problem, DM dm, void *ctx);
@@ -311,5 +312,7 @@ PetscErrorCode SetBCsFromICs_NS(DM dm, Vec Q, Vec Q_loc);
 // Setup StrongBCs that use QFunctions
 PetscErrorCode SetupStrongBC_Ceed(Ceed ceed, CeedData ceed_data, DM dm, User user, AppCtx app_ctx, ProblemData *problem, SimpleBC bc, CeedInt Q_sur,
                                   CeedInt q_data_size_sur);
+
+PetscErrorCode FreestreamBCSetup(ProblemData *problem, DM dm, void *ctx);
 
 #endif  // libceed_fluids_examples_navier_stokes_h

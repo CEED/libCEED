@@ -13,6 +13,7 @@
 
 #include <ceed.h>
 #include <math.h>
+#include <stdlib.h>
 
 #include "newtonian_state.h"
 #include "newtonian_types.h"
@@ -352,7 +353,7 @@ CEED_QFUNCTION_HELPER int IJacobian_Newtonian(void *ctx, CeedInt Q, const CeedSc
     };
     // *INDENT-ON*
 
-    CeedScalar qi[5], kmstress[6], Tau_d[3] __attribute((unused));
+    CeedScalar qi[5], kmstress[6], Tau_d[3];
     for (int j = 0; j < 5; j++) qi[j] = jac_data[j][i];
     for (int j = 0; j < 6; j++) kmstress[j] = jac_data[5 + j][i];
     for (int j = 0; j < 3; j++) Tau_d[j] = jac_data[5 + 6 + j][i];
