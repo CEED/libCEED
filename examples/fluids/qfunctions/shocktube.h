@@ -187,7 +187,7 @@ CEED_QFUNCTION_HELPER void Tau_spatial(CeedScalar Tau_x[3], const CeedScalar dXd
                                        const CeedScalar c_tau) {
   for (CeedInt i = 0; i < 3; i++) {
     // length of element in direction i
-    CeedScalar h            = 2 / sqrt(dXdx[0][i] * dXdx[0][i] + dXdx[1][i] * dXdx[1][i] + dXdx[2][i] * dXdx[2][i]);
+    CeedScalar h = 2 / sqrt(dXdx[0][i] * dXdx[0][i] + dXdx[1][i] * dXdx[1][i] + dXdx[2][i] * dXdx[2][i]);
     // fastest wave in direction i
     CeedScalar fastest_wave = fabs(u[i]) + sound_speed;
     Tau_x[i]                = c_tau * h / fastest_wave;
@@ -276,9 +276,9 @@ CEED_QFUNCTION(EulerShockTube)(void *ctx, CeedInt Q, const CeedScalar *const *in
         {dq[0][2][i], dq[1][2][i], dq[2][2][i]},
         {dq[0][3][i], dq[1][3][i], dq[2][3][i]}
     };
-    const CeedScalar dE[3]      = {dq[0][4][i], dq[1][4][i], dq[2][4][i]};
+    const CeedScalar dE[3] = {dq[0][4][i], dq[1][4][i], dq[2][4][i]};
     // -- Interp-to-Interp q_data
-    const CeedScalar wdetJ      = q_data[0][i];
+    const CeedScalar wdetJ = q_data[0][i];
     // -- Interp-to-Grad q_data
     // ---- Inverse of change of coordinate matrix: X_i,j
     // *INDENT-OFF*

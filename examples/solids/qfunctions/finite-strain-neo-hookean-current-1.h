@@ -158,7 +158,7 @@ CEED_QFUNCTION(ElasFSCurrentNH1F)(void *ctx, CeedInt Q, const CeedScalar *const 
   const CeedScalar(*ug)[3][CEED_Q_VLA] = (const CeedScalar(*)[3][CEED_Q_VLA])in[0], (*q_data)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[1];
 
   // Outputs
-  CeedScalar(*dvdX)[3][CEED_Q_VLA]   = (CeedScalar(*)[3][CEED_Q_VLA])out[0];
+  CeedScalar(*dvdX)[3][CEED_Q_VLA] = (CeedScalar(*)[3][CEED_Q_VLA])out[0];
   // Store grad_u for HyperFSdF (Jacobian of HyperFSF)
   CeedScalar(*Grad_u)[3][CEED_Q_VLA] = (CeedScalar(*)[3][CEED_Q_VLA])out[1];
   // *INDENT-ON*
@@ -194,7 +194,7 @@ CEED_QFUNCTION(ElasFSCurrentNH1F)(void *ctx, CeedInt Q, const CeedScalar *const 
         {ug[0][2][i], ug[1][2][i], ug[2][2][i]}
     };
     // -- Qdata
-    const CeedScalar wdetJ              = q_data[0][i];
+    const CeedScalar wdetJ = q_data[0][i];
     // dXdx_initial = dX/dx_initial
     // X is natural coordinate sys OR Reference [-1,1]^dim
     // x_initial is initial config coordinate system
@@ -266,7 +266,7 @@ CEED_QFUNCTION(ElasFSCurrentNH1dF)(void *ctx, CeedInt Q, const CeedScalar *const
   const CeedScalar(*deltaug)[3][CEED_Q_VLA] = (const CeedScalar(*)[3][CEED_Q_VLA])in[0],
         (*q_data)[CEED_Q_VLA]               = (const CeedScalar(*)[CEED_Q_VLA])in[1];
   // F is used for hyperelasticity (non-linear)
-  const CeedScalar(*Grad_u)[3][CEED_Q_VLA]  = (const CeedScalar(*)[3][CEED_Q_VLA])in[2];
+  const CeedScalar(*Grad_u)[3][CEED_Q_VLA] = (const CeedScalar(*)[3][CEED_Q_VLA])in[2];
 
   // Outputs
   CeedScalar(*deltadvdX)[3][CEED_Q_VLA] = (CeedScalar(*)[3][CEED_Q_VLA])out[0];
@@ -293,7 +293,7 @@ CEED_QFUNCTION(ElasFSCurrentNH1dF)(void *ctx, CeedInt Q, const CeedScalar *const
         {deltaug[0][2][i], deltaug[1][2][i], deltaug[2][2][i]}
     };
     // -- Qdata
-    const CeedScalar wdetJ              = q_data[0][i];
+    const CeedScalar wdetJ = q_data[0][i];
     // dXdx_initial = dX/dx_initial
     // X is natural coordinate sys OR Reference [-1,1]^dim
     // x_initial is initial config coordinate system

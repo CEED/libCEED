@@ -91,7 +91,7 @@ CEED_QFUNCTION_HELPER int Exact_Euler(CeedInt dim, CeedScalar time, const CeedSc
   // Initial Conditions
   switch (context->euler_test) {
     case 0:  // Traveling vortex
-      T    = 1 + delta_T;
+      T = 1 + delta_T;
       // P = rho * T
       // P = S * rho^gamma
       // Solve for rho, then substitute for P
@@ -222,7 +222,7 @@ CEED_QFUNCTION_HELPER void Tau_spatial(CeedScalar Tau_x[3], const CeedScalar dXd
                                        const CeedScalar c_tau) {
   for (CeedInt i = 0; i < 3; i++) {
     // length of element in direction i
-    CeedScalar h            = 2 / sqrt(dXdx[0][i] * dXdx[0][i] + dXdx[1][i] * dXdx[1][i] + dXdx[2][i] * dXdx[2][i]);
+    CeedScalar h = 2 / sqrt(dXdx[0][i] * dXdx[0][i] + dXdx[1][i] * dXdx[1][i] + dXdx[2][i] * dXdx[2][i]);
     // fastest wave in direction i
     CeedScalar fastest_wave = fabs(u[i]) + sound_speed;
     Tau_x[i]                = c_tau * h / fastest_wave;
@@ -309,9 +309,9 @@ CEED_QFUNCTION(Euler)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedSca
         {dq[0][2][i], dq[1][2][i], dq[2][2][i]},
         {dq[0][3][i], dq[1][3][i], dq[2][3][i]}
     };
-    const CeedScalar dE[3]      = {dq[0][4][i], dq[1][4][i], dq[2][4][i]};
+    const CeedScalar dE[3] = {dq[0][4][i], dq[1][4][i], dq[2][4][i]};
     // -- Interp-to-Interp q_data
-    const CeedScalar wdetJ      = q_data[0][i];
+    const CeedScalar wdetJ = q_data[0][i];
     // -- Interp-to-Grad q_data
     // ---- Inverse of change of coordinate matrix: X_i,j
     // *INDENT-OFF*
@@ -447,9 +447,9 @@ CEED_QFUNCTION(IFunction_Euler)(void *ctx, CeedInt Q, const CeedScalar *const *i
         {dq[0][2][i], dq[1][2][i], dq[2][2][i]},
         {dq[0][3][i], dq[1][3][i], dq[2][3][i]}
     };
-    const CeedScalar dE[3]      = {dq[0][4][i], dq[1][4][i], dq[2][4][i]};
+    const CeedScalar dE[3] = {dq[0][4][i], dq[1][4][i], dq[2][4][i]};
     // -- Interp-to-Interp q_data
-    const CeedScalar wdetJ      = q_data[0][i];
+    const CeedScalar wdetJ = q_data[0][i];
     // -- Interp-to-Grad q_data
     // ---- Inverse of change of coordinate matrix: X_i,j
     // *INDENT-OFF*
@@ -578,14 +578,14 @@ CEED_QFUNCTION(TravelingVortex_Inflow)(void *ctx, CeedInt Q, const CeedScalar *c
   // Inputs
   const CeedScalar(*q_data_sur)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[2];
   // Outputs
-  CeedScalar(*v)[CEED_Q_VLA]                = (CeedScalar(*)[CEED_Q_VLA])out[0];
+  CeedScalar(*v)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA])out[0];
   // *INDENT-ON*
-  EulerContext     context                  = (EulerContext)ctx;
-  const int        euler_test               = context->euler_test;
-  const bool       implicit                 = context->implicit;
-  CeedScalar      *mean_velocity            = context->mean_velocity;
-  const CeedScalar cv                       = 2.5;
-  const CeedScalar R                        = 1.;
+  EulerContext     context       = (EulerContext)ctx;
+  const int        euler_test    = context->euler_test;
+  const bool       implicit      = context->implicit;
+  CeedScalar      *mean_velocity = context->mean_velocity;
+  const CeedScalar cv            = 2.5;
+  const CeedScalar R             = 1.;
   CeedScalar       T_inlet;
   CeedScalar       P_inlet;
 
@@ -606,7 +606,7 @@ CEED_QFUNCTION(TravelingVortex_Inflow)(void *ctx, CeedInt Q, const CeedScalar *c
     // For explicit mode, the surface integral is on the RHS of ODE q_dot = f(q).
     // For implicit mode, it gets pulled to the LHS of implicit ODE/DAE g(q_dot, q).
     // We can effect this by swapping the sign on this weight
-    const CeedScalar wdetJb  = (implicit ? -1. : 1.) * q_data_sur[0][i];
+    const CeedScalar wdetJb = (implicit ? -1. : 1.) * q_data_sur[0][i];
     // ---- Normal vect
     const CeedScalar norm[3] = {q_data_sur[1][i], q_data_sur[2][i], q_data_sur[3][i]};
 
@@ -622,7 +622,7 @@ CEED_QFUNCTION(TravelingVortex_Inflow)(void *ctx, CeedInt Q, const CeedScalar *c
       const CeedScalar rho_inlet       = P_inlet / (R * T_inlet);
       const CeedScalar E_kinetic_inlet = (mean_velocity[0] * mean_velocity[0] + mean_velocity[1] * mean_velocity[1]) / 2.;
       // incoming total energy
-      const CeedScalar E_inlet         = rho_inlet * (cv * T_inlet + E_kinetic_inlet);
+      const CeedScalar E_inlet = rho_inlet * (cv * T_inlet + E_kinetic_inlet);
 
       // The Physics
       // -- Density
@@ -674,7 +674,7 @@ CEED_QFUNCTION(Euler_Outflow)(void *ctx, CeedInt Q, const CeedScalar *const *in,
     // For explicit mode, the surface integral is on the RHS of ODE q_dot = f(q).
     // For implicit mode, it gets pulled to the LHS of implicit ODE/DAE g(q_dot, q).
     // We can effect this by swapping the sign on this weight
-    const CeedScalar wdetJb  = (implicit ? -1. : 1.) * q_data_sur[0][i];
+    const CeedScalar wdetJb = (implicit ? -1. : 1.) * q_data_sur[0][i];
     // ---- Normal vectors
     const CeedScalar norm[3] = {q_data_sur[1][i], q_data_sur[2][i], q_data_sur[3][i]};
 

@@ -86,8 +86,8 @@ CEED_INTERN "C"
       // Input (u) is E-vector, output (v) is Q-vector
 
       // Element strides
-      CeedInt u_elstride   = eldofssize;
-      CeedInt v_elstride   = elquadsize;
+      CeedInt u_elstride = eldofssize;
+      CeedInt v_elstride = elquadsize;
       // Component strides
       CeedInt u_compstride = nelem * eldofssize;
       CeedInt v_compstride = nelem * elquadsize;
@@ -96,8 +96,8 @@ CEED_INTERN "C"
       if (tmode == CEED_TRANSPOSE) {
         // Input (u) is Q-vector, output (v) is E-vector
         // Element strides
-        v_elstride   = eldofssize;
-        u_elstride   = elquadsize;
+        v_elstride = eldofssize;
+        u_elstride = elquadsize;
         // Component strides
         v_compstride = nelem * eldofssize;
         u_compstride = nelem * elquadsize;
@@ -162,27 +162,27 @@ CEED_INTERN "C"
       // Input (u) is E-vector, output (v) is Q-vector
 
       // Element strides
-      CeedInt u_elstride   = eldofssize;
-      CeedInt v_elstride   = elquadsize;
+      CeedInt u_elstride = eldofssize;
+      CeedInt v_elstride = elquadsize;
       // Component strides
       CeedInt u_compstride = nelem * eldofssize;
       CeedInt v_compstride = nelem * elquadsize;
       // Dimension strides
-      CeedInt u_dimstride  = 0;
-      CeedInt v_dimstride  = nelem * elquadsize * ncomp;
+      CeedInt u_dimstride = 0;
+      CeedInt v_dimstride = nelem * elquadsize * ncomp;
 
       // ---  Swap strides for TRANSPOSE mode: ---
       if (tmode == CEED_TRANSPOSE) {
         // Input (u) is Q-vector, output (v) is E-vector
         // Element strides
-        v_elstride   = eldofssize;
-        u_elstride   = elquadsize;
+        v_elstride = eldofssize;
+        u_elstride = elquadsize;
         // Component strides
         v_compstride = nelem * eldofssize;
         u_compstride = nelem * elquadsize;
         // Dimension strides
-        v_dimstride  = 0;
-        u_dimstride  = nelem * elquadsize * ncomp;
+        v_dimstride = 0;
+        u_dimstride = nelem * elquadsize * ncomp;
       }
 
       CeedInt nthreads = 1;

@@ -27,12 +27,12 @@ static void buildmats(CeedScalar *q_ref, CeedScalar *q_weight, CeedScalar *inter
   for (int i = 0; i < Q; i++) {
     CeedScalar x1 = q_ref[0 * Q + i], x2 = q_ref[1 * Q + i];
     // Interp
-    interp[i * P + 0]     = 2. * (x1 + x2 - 1.) * (x1 + x2 - 1. / 2.);
-    interp[i * P + 1]     = -4. * x1 * (x1 + x2 - 1.);
-    interp[i * P + 2]     = 2. * x1 * (x1 - 1. / 2.);
-    interp[i * P + 3]     = -4. * x2 * (x1 + x2 - 1.);
-    interp[i * P + 4]     = 4. * x1 * x2;
-    interp[i * P + 5]     = 2. * x2 * (x2 - 1. / 2.);
+    interp[i * P + 0] = 2. * (x1 + x2 - 1.) * (x1 + x2 - 1. / 2.);
+    interp[i * P + 1] = -4. * x1 * (x1 + x2 - 1.);
+    interp[i * P + 2] = 2. * x1 * (x1 - 1. / 2.);
+    interp[i * P + 3] = -4. * x2 * (x1 + x2 - 1.);
+    interp[i * P + 4] = 4. * x1 * x2;
+    interp[i * P + 5] = 2. * x2 * (x2 - 1. / 2.);
     // Grad
     grad[(i + 0) * P + 0] = 2. * (1. * (x1 + x2 - 1. / 2.) + (x1 + x2 - 1.) * 1.);
     grad[(i + Q) * P + 0] = 2. * (1. * (x1 + x2 - 1. / 2.) + (x1 + x2 - 1.) * 1.);

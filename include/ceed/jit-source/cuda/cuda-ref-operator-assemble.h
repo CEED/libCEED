@@ -22,9 +22,9 @@ extern "C" __launch_bounds__(BLOCK_SIZE) __global__
 
   // Strides for final output ordering, determined by the reference (interface) implementation of
   // the symbolic assembly, slowest --> fastest: element, comp_in, comp_out, node_row, node_col
-  const CeedInt comp_out_stride   = NNODES * NNODES;
-  const CeedInt comp_in_stride    = comp_out_stride * NCOMP;
-  const CeedInt e_stride          = comp_in_stride * NCOMP;
+  const CeedInt comp_out_stride = NNODES * NNODES;
+  const CeedInt comp_in_stride  = comp_out_stride * NCOMP;
+  const CeedInt e_stride        = comp_in_stride * NCOMP;
   // Strides for QF array, slowest --> fastest:  emode_in, comp_in, emode_out, comp_out, elem, qpt
   const CeedInt qe_stride         = NQPTS;
   const CeedInt qcomp_out_stride  = NELEM * qe_stride;
@@ -70,9 +70,9 @@ extern "C" __launch_bounds__(BLOCK_SIZE) __global__
 
   // Strides for final output ordering, determined by the reference (interface) implementation of
   // the symbolic assembly, slowest --> fastest: element, comp_in, comp_out, node_row, node_col
-  const CeedInt comp_out_stride   = NNODES * NNODES;
-  const CeedInt comp_in_stride    = comp_out_stride * NCOMP;
-  const CeedInt e_stride          = comp_in_stride * NCOMP;
+  const CeedInt comp_out_stride = NNODES * NNODES;
+  const CeedInt comp_in_stride  = comp_out_stride * NCOMP;
+  const CeedInt e_stride        = comp_in_stride * NCOMP;
   // Strides for QF array, slowest --> fastest:  emode_in, comp_in, emode_out, comp_out, elem, qpt
   const CeedInt qe_stride         = NQPTS;
   const CeedInt qcomp_out_stride  = NELEM * qe_stride;

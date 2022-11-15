@@ -144,8 +144,8 @@ CEED_QFUNCTION(ICsAdvection2d)(void *ctx, CeedInt Q, const CeedScalar *const *in
   // Inputs
   const CeedScalar(*X)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[0];
   // Outputs
-  CeedScalar(*q0)[CEED_Q_VLA]      = (CeedScalar(*)[CEED_Q_VLA])out[0];
-  const SetupContextAdv2D context  = (SetupContextAdv2D)ctx;
+  CeedScalar(*q0)[CEED_Q_VLA]     = (CeedScalar(*)[CEED_Q_VLA])out[0];
+  const SetupContextAdv2D context = (SetupContextAdv2D)ctx;
 
   CeedPragmaSIMD
       // Quadrature Point Loop
@@ -192,9 +192,9 @@ CEED_QFUNCTION(Advection2d)(void *ctx, CeedInt Q, const CeedScalar *const *in, C
       for (CeedInt i = 0; i < Q; i++) {
     // Setup
     // -- Interp in
-    const CeedScalar rho     = q[0][i];
-    const CeedScalar u[3]    = {q[1][i] / rho, q[2][i] / rho, q[3][i] / rho};
-    const CeedScalar E       = q[4][i];
+    const CeedScalar rho  = q[0][i];
+    const CeedScalar u[3] = {q[1][i] / rho, q[2][i] / rho, q[3][i] / rho};
+    const CeedScalar E    = q[4][i];
     // -- Grad in
     const CeedScalar drho[2] = {
         dq[0][0][i],
@@ -212,7 +212,7 @@ CEED_QFUNCTION(Advection2d)(void *ctx, CeedInt Q, const CeedScalar *const *in, C
         dq[1][4][i],
     };
     // -- Interp-to-Interp q_data
-    const CeedScalar wdetJ      = q_data[0][i];
+    const CeedScalar wdetJ = q_data[0][i];
     // -- Interp-to-Grad q_data
     // ---- Inverse of change of coordinate matrix: X_i,j
     // *INDENT-OFF*
@@ -284,9 +284,9 @@ CEED_QFUNCTION(IFunction_Advection2d)(void *ctx, CeedInt Q, const CeedScalar *co
       for (CeedInt i = 0; i < Q; i++) {
     // Setup
     // -- Interp in
-    const CeedScalar rho     = q[0][i];
-    const CeedScalar u[3]    = {q[1][i] / rho, q[2][i] / rho, q[3][i] / rho};
-    const CeedScalar E       = q[4][i];
+    const CeedScalar rho  = q[0][i];
+    const CeedScalar u[3] = {q[1][i] / rho, q[2][i] / rho, q[3][i] / rho};
+    const CeedScalar E    = q[4][i];
     // -- Grad in
     const CeedScalar drho[2] = {
         dq[0][0][i],
@@ -304,7 +304,7 @@ CEED_QFUNCTION(IFunction_Advection2d)(void *ctx, CeedInt Q, const CeedScalar *co
         dq[1][4][i],
     };
     // -- Interp-to-Interp q_data
-    const CeedScalar wdetJ      = q_data[0][i];
+    const CeedScalar wdetJ = q_data[0][i];
     // -- Interp-to-Grad q_data
     // ---- Inverse of change of coordinate matrix: X_i,j
     // *INDENT-OFF*
@@ -384,7 +384,7 @@ CEED_QFUNCTION(Advection2d_InOutFlow)(void *ctx, CeedInt Q, const CeedScalar *co
   // Inputs
   const CeedScalar(*q)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[0], (*q_data_sur)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[2];
   // Outputs
-  CeedScalar(*v)[CEED_Q_VLA]   = (CeedScalar(*)[CEED_Q_VLA])out[0];
+  CeedScalar(*v)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA])out[0];
   // *INDENT-ON*
   AdvectionContext context     = (AdvectionContext)ctx;
   const CeedScalar E_wind      = context->E_wind;
@@ -407,7 +407,7 @@ CEED_QFUNCTION(Advection2d_InOutFlow)(void *ctx, CeedInt Q, const CeedScalar *co
     const CeedScalar wdetJb = (implicit ? -1. : 1.) * q_data_sur[0][i];
 
     // ---- Normal vectors
-    const CeedScalar norm[2]  = {q_data_sur[1][i], q_data_sur[2][i]};
+    const CeedScalar norm[2] = {q_data_sur[1][i], q_data_sur[2][i]};
     // Normal velocity
     const CeedScalar u_normal = norm[0] * u[0] + norm[1] * u[1];
 

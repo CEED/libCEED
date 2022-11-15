@@ -96,7 +96,7 @@ int CeedTensorContractCreate_f64_Xsmm(CeedBasis basis, CeedTensorContract contra
             for (CeedInt dim = 0; dim < impl->dim; dim++) {
               const int flags = LIBXSMM_GEMM_FLAGS('N', t_mode ? 'T' : 'N');
               CeedInt   B = grad ? impl->Q : (t_mode ? impl->Q : impl->P), J = grad ? impl->Q : (t_mode ? impl->P : impl->Q),
-                      C            = num_elem * CeedIntPow(J, dim);
+                      C = num_elem * CeedIntPow(J, dim);
               // Add key, kernel pair to hash table
               CeedHashIJKLMKey key = {B, C, J, t_mode, add};
               int              new_item;

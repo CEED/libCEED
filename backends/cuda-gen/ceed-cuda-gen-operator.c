@@ -26,8 +26,8 @@ static int CeedOperatorDestroy_Cuda_gen(CeedOperator op) {
 static int Waste(int threads_per_sm, int warp_size, int threads_per_elem, int elems_per_block) {
   int useful_threads_per_block = threads_per_elem * elems_per_block;
   // round up to nearest multiple of warp_size
-  int block_size               = ((useful_threads_per_block + warp_size - 1) / warp_size) * warp_size;
-  int blocks_per_sm            = threads_per_sm / block_size;
+  int block_size    = ((useful_threads_per_block + warp_size - 1) / warp_size) * warp_size;
+  int blocks_per_sm = threads_per_sm / block_size;
   return threads_per_sm - useful_threads_per_block * blocks_per_sm;
 }
 
@@ -148,7 +148,7 @@ static int CeedOperatorApplyAdd_Cuda_gen(CeedOperator op, CeedVector input_vec, 
       if (vec == CEED_VECTOR_ACTIVE) vec = output_vec;
       output_vecs[i] = vec;
       // Check for multiple output modes
-      CeedInt index  = -1;
+      CeedInt index = -1;
       for (CeedInt j = 0; j < i; j++) {
         if (vec == output_vecs[j]) {
           index = j;

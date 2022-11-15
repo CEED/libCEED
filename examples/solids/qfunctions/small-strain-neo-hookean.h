@@ -56,7 +56,7 @@ CEED_QFUNCTION(ElasSSNHF)(void *ctx, CeedInt Q, const CeedScalar *const *in, Cee
   const CeedScalar(*ug)[3][CEED_Q_VLA] = (const CeedScalar(*)[3][CEED_Q_VLA])in[0], (*q_data)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[1];
 
   // Outputs
-  CeedScalar(*dvdX)[3][CEED_Q_VLA]   = (CeedScalar(*)[3][CEED_Q_VLA])out[0];
+  CeedScalar(*dvdX)[3][CEED_Q_VLA] = (CeedScalar(*)[3][CEED_Q_VLA])out[0];
   // Store grad_u for HyperFSdF (Jacobian of HyperFSF)
   CeedScalar(*grad_u)[3][CEED_Q_VLA] = (CeedScalar(*)[3][CEED_Q_VLA])out[1];
   // *INDENT-ON*
@@ -164,7 +164,7 @@ CEED_QFUNCTION(ElasSSNHdF)(void *ctx, CeedInt Q, const CeedScalar *const *in, Ce
   const CeedScalar(*deltaug)[3][CEED_Q_VLA] = (const CeedScalar(*)[3][CEED_Q_VLA])in[0],
         (*q_data)[CEED_Q_VLA]               = (const CeedScalar(*)[CEED_Q_VLA])in[1];
   // grad_u is used for hyperelasticity (non-linear)
-  const CeedScalar(*grad_u)[3][CEED_Q_VLA]  = (const CeedScalar(*)[3][CEED_Q_VLA])in[2];
+  const CeedScalar(*grad_u)[3][CEED_Q_VLA] = (const CeedScalar(*)[3][CEED_Q_VLA])in[2];
 
   // Outputs
   CeedScalar(*deltadvdX)[3][CEED_Q_VLA] = (CeedScalar(*)[3][CEED_Q_VLA])out[0];
@@ -256,7 +256,7 @@ CEED_QFUNCTION(ElasSSNHdF)(void *ctx, CeedInt Q, const CeedScalar *const *in, Ce
     const CeedScalar lambda_dtrace = lambda_bar * (de[0][0] + de[1][1] + de[2][2]);
     const CeedScalar dsigma00 = lambda_dtrace + TwoMu * de[0][0], dsigma11 = lambda_dtrace + TwoMu * de[1][1],
                      dsigma22 = lambda_dtrace + TwoMu * de[2][2], dsigma12 = TwoMu * de[1][2], dsigma02 = TwoMu * de[0][2],
-                     dsigma01     = TwoMu * de[0][1];
+                     dsigma01 = TwoMu * de[0][1];
     // *INDENT-OFF*
     const CeedScalar dsigma[3][3] = {
         {dsigma00, dsigma01, dsigma02},

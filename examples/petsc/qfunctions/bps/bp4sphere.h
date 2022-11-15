@@ -83,7 +83,7 @@ CEED_QFUNCTION(Diff3)(void *ctx, const CeedInt Q, const CeedScalar *const *in, C
         {ug[i + (2 + 0 * 3) * Q], ug[i + (2 + 1 * 3) * Q]}
     };
     // Read q_data
-    const CeedScalar w_det_J          = q_data[i + Q * 0];
+    const CeedScalar w_det_J = q_data[i + Q * 0];
     // -- Grad-to-Grad q_data
     // ---- dXdx_j,k * dXdx_k,j
     const CeedScalar dXdxdXdx_T[2][2] = {

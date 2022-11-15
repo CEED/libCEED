@@ -43,7 +43,7 @@ CEED_QFUNCTION(SetupDiffGeo)(void *ctx, CeedInt Q, const CeedScalar *const *in, 
   const CeedScalar(*J)[3][CEED_Q_VLA] = (const CeedScalar(*)[3][CEED_Q_VLA])in[1];
   const CeedScalar(*w)                = in[2];  // Note: *X = in[0]
   // Outputs
-  CeedScalar(*qd)                     = out[0];
+  CeedScalar(*qd) = out[0];
 
   const CeedInt dim = 3;
   // Quadrature Point Loop
@@ -114,7 +114,7 @@ CEED_QFUNCTION(Diff)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScal
   // Quadrature Point Loop
   CeedPragmaSIMD for (CeedInt i = 0; i < Q; i++) {
     // Read spatial derivatives of u
-    const CeedScalar du[3]            = {ug[i + Q * 0], ug[i + Q * 1], ug[i + Q * 2]};
+    const CeedScalar du[3] = {ug[i + Q * 0], ug[i + Q * 1], ug[i + Q * 2]};
     // Read q_data (dXdxdXdx_T symmetric matrix)
     const CeedScalar dXdxdXdx_T[3][3] = {
         {q_data[i + 1 * Q], q_data[i + 2 * Q], q_data[i + 3 * Q]},

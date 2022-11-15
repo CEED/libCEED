@@ -126,18 +126,18 @@ CEED_QFUNCTION_HELPER int commonFSMR1(const CeedScalar mu_1, const CeedScalar mu
       {E2[0][2],     E2[1][2],     1 + E2[2][2]}
   };
 
-  Cwork[0]              = C[0][0];
-  Cwork[1]              = C[1][1];
-  Cwork[2]              = C[2][2];
-  Cwork[3]              = C[1][2];
-  Cwork[4]              = C[0][2];
-  Cwork[5]              = C[0][1];
+  Cwork[0] = C[0][0];
+  Cwork[1] = C[1][1];
+  Cwork[2] = C[2][2];
+  Cwork[3] = C[1][2];
+  Cwork[4] = C[0][2];
+  Cwork[5] = C[0][1];
   // *INDENT-ON*
   // Compute invariants
   // I_1 = trace(C)
-  const CeedScalar I_1  = C[0][0] + C[1][1] + C[2][2];
+  const CeedScalar I_1 = C[0][0] + C[1][1] + C[2][2];
   // J-1
-  const CeedScalar Jm1  = computeJM1(grad_u);
+  const CeedScalar Jm1 = computeJM1(grad_u);
   // J = Jm1 + 1
   // Compute C^(-1) : C-Inverse
   const CeedScalar detC = (Jm1 + 1.) * (Jm1 + 1.);
@@ -166,7 +166,7 @@ CEED_QFUNCTION(ElasFSInitialMR1F)(void *ctx, CeedInt Q, const CeedScalar *const 
   const CeedScalar(*ug)[3][CEED_Q_VLA] = (const CeedScalar(*)[3][CEED_Q_VLA])in[0], (*q_data)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[1];
 
   // Outputs
-  CeedScalar(*dvdX)[3][CEED_Q_VLA]   = (CeedScalar(*)[3][CEED_Q_VLA])out[0];
+  CeedScalar(*dvdX)[3][CEED_Q_VLA] = (CeedScalar(*)[3][CEED_Q_VLA])out[0];
   // Store grad_u for HyperFSdF (Jacobian of HyperFSF)
   CeedScalar(*grad_u)[3][CEED_Q_VLA] = (CeedScalar(*)[3][CEED_Q_VLA])out[1];
   // *INDENT-ON*
@@ -270,7 +270,7 @@ CEED_QFUNCTION(ElasFSInitialMR1dF)(void *ctx, CeedInt Q, const CeedScalar *const
   const CeedScalar(*deltaug)[3][CEED_Q_VLA] = (const CeedScalar(*)[3][CEED_Q_VLA])in[0],
         (*q_data)[CEED_Q_VLA]               = (const CeedScalar(*)[CEED_Q_VLA])in[1];
   // grad_u is used for hyperelasticity (non-linear)
-  const CeedScalar(*grad_u)[3][CEED_Q_VLA]  = (const CeedScalar(*)[3][CEED_Q_VLA])in[2];
+  const CeedScalar(*grad_u)[3][CEED_Q_VLA] = (const CeedScalar(*)[3][CEED_Q_VLA])in[2];
 
   // Outputs
   CeedScalar(*deltadvdX)[3][CEED_Q_VLA] = (CeedScalar(*)[3][CEED_Q_VLA])out[0];
@@ -513,20 +513,20 @@ CEED_QFUNCTION(ElasFSInitialMR1Energy)(void *ctx, CeedInt Q, const CeedScalar *c
       }
     }
 
-    const CeedScalar Jm1   = computeJM1(grad_u);
+    const CeedScalar Jm1 = computeJM1(grad_u);
     // CeedScalar J = Jm1 + 1;
     // Compute invariants
     // I_1 = trace(C)
-    const CeedScalar I_1   = C[0][0] + C[1][1] + C[2][2];
+    const CeedScalar I_1 = C[0][0] + C[1][1] + C[2][2];
     // Trace(C^2)
     const CeedScalar tr_CC = CC[0][0] + CC[1][1] + CC[2][2];
     // I_2 = 0.5(I_1^2 - trace(C^2))
-    const CeedScalar I_2   = 0.5 * (I_1 * I_1 - tr_CC);
+    const CeedScalar I_2 = 0.5 * (I_1 * I_1 - tr_CC);
 
     // *INDENT-OFF*
     const CeedScalar logJ = log1p_series_shifted(Jm1);
     // Strain energy Phi(E) for Mooney-Rivlin
-    energy[i]             = (0.5 * lambda * (logJ) * (logJ) - (mu_1 + 2 * mu_2) * logJ + (mu_1 / 2.) * (I_1 - 3) + (mu_2 / 2.) * (I_2 - 3)) * wdetJ;
+    energy[i] = (0.5 * lambda * (logJ) * (logJ) - (mu_1 + 2 * mu_2) * logJ + (mu_1 / 2.) * (I_1 - 3) + (mu_2 / 2.) * (I_2 - 3)) * wdetJ;
 
   }  // End of Quadrature Point Loop
 
@@ -635,11 +635,11 @@ CEED_QFUNCTION(ElasFSInitialMR1Diagnostic)(void *ctx, CeedInt Q, const CeedScala
     // CeedScalar J = Jm1 + 1;
     // Compute invariants
     // I_1 = trace(C)
-    const CeedScalar I_1   = C[0][0] + C[1][1] + C[2][2];
+    const CeedScalar I_1 = C[0][0] + C[1][1] + C[2][2];
     // Trace(C^2)
     const CeedScalar tr_CC = CC[0][0] + CC[1][1] + CC[2][2];
     // I_2 = 0.5(I_1^2 - trace(C^2))
-    const CeedScalar I_2   = 0.5 * (pow(I_1, 2) - tr_CC);
+    const CeedScalar I_2 = 0.5 * (pow(I_1, 2) - tr_CC);
 
     // *INDENT-OFF*
     // Strain energy

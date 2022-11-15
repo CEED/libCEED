@@ -204,9 +204,9 @@ CEED_QFUNCTION(Diff)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScal
   // Quadrature Point Loop
   CeedPragmaSIMD for (CeedInt i = 0; i < Q; i++) {
     // Read spatial derivatives of u
-    const CeedScalar du[2]            = {ug[i + Q * 0], ug[i + Q * 1]};
+    const CeedScalar du[2] = {ug[i + Q * 0], ug[i + Q * 1]};
     // Read q_data
-    const CeedScalar w_det_J          = q_data[i + Q * 0];
+    const CeedScalar w_det_J = q_data[i + Q * 0];
     // -- Grad-to-Grad q_data
     // ---- dXdx_j,k * dXdx_k,j
     const CeedScalar dXdxdXdx_T[2][2] = {

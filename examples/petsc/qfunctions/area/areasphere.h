@@ -98,8 +98,8 @@ CEED_QFUNCTION(SetupMassGeoSphere)(void *ctx, const CeedInt Q, const CeedScalar 
                                 {dxdX[2][0] * dxdX[0][1] - dxdX[0][0] * dxdX[2][1]},
                                 {dxdX[0][0] * dxdX[1][1] - dxdX[1][0] * dxdX[0][1]}};
     // Use the magnitude of J as our detJ (volume scaling factor)
-    const CeedScalar mod_J   = sqrt(J[0][0] * J[0][0] + J[1][0] * J[1][0] + J[2][0] * J[2][0]);
-    q_data[i + Q * 0]        = mod_J * w[i];
+    const CeedScalar mod_J = sqrt(J[0][0] * J[0][0] + J[1][0] * J[1][0] + J[2][0] * J[2][0]);
+    q_data[i + Q * 0]      = mod_J * w[i];
   }  // End of Quadrature Point Loop
   return 0;
 }

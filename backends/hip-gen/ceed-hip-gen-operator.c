@@ -71,7 +71,7 @@ static int CeedOperatorApplyAdd_Hip_gen(CeedOperator op, CeedVector input_vec, C
       if (vec == CEED_VECTOR_ACTIVE) vec = output_vec;
       output_vecs[i] = vec;
       // Check for multiple output modes
-      CeedInt index  = -1;
+      CeedInt index = -1;
       for (CeedInt j = 0; j < i; j++) {
         if (vec == output_vecs[j]) {
           index = j;

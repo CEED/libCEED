@@ -65,13 +65,13 @@ PetscErrorCode NS_SHOCKTUBE(ProblemData *problem, DM dm, void *ctx) {
   CeedScalar P_high   = 1.0;  // Pa
   CeedScalar rho_high = 1.0;  // kg/m^3
   // Driven section initial conditions
-  CeedScalar P_low    = 0.1;    // Pa
-  CeedScalar rho_low  = 0.125;  // kg/m^3
+  CeedScalar P_low   = 0.1;    // Pa
+  CeedScalar rho_low = 0.125;  // kg/m^3
   // Stabilization parameter
-  CeedScalar c_tau    = 0.5;  // -, based on Hughes et al (2010)
+  CeedScalar c_tau = 0.5;  // -, based on Hughes et al (2010)
   // Tuning parameters for the YZB shock capturing
-  CeedScalar Cyzb     = 0.1;  // -, used in approximation of (Na),x
-  CeedScalar Byzb     = 2.0;  // -, 1 for smooth shocks
+  CeedScalar Cyzb = 0.1;  // -, used in approximation of (Na),x
+  CeedScalar Byzb = 2.0;  // -, 1 for smooth shocks
   //                                          2 for sharp shocks
   PetscReal domain_min[3], domain_max[3], domain_size[3];
   PetscCall(DMGetBoundingBox(dm, domain_min, domain_max));

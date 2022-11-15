@@ -305,7 +305,7 @@ CEED_QFUNCTION(ICsSTG)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedSc
   const CeedScalar       rho    = P0 / (Rd * theta0);
 
   CeedPragmaSIMD for (CeedInt i = 0; i < Q; i++) {
-    const CeedScalar x_i[3]     = {x[0][i], x[1][i], x[2][i]};
+    const CeedScalar x_i[3] = {x[0][i], x[1][i], x[2][i]};
     // *INDENT-OFF*
     const CeedScalar dXdx[3][3] = {
         {q_data[1][i], q_data[2][i], q_data[3][i]},
@@ -403,13 +403,13 @@ CEED_QFUNCTION(STGShur14_Inflow)(void *ctx, CeedInt Q, const CeedScalar *const *
       // Temperature is being set weakly (theta0) and for constant cv this sets E_internal
       E_internal = rho * cv * theta0;
       // Find pressure using
-      P          = rho * Rd * theta0;  // interior rho with exterior T
+      P = rho * Rd * theta0;  // interior rho with exterior T
     } else {
       E_internal = q[4][i] - E_kinetic;  // uses prescribed rho and u, E from solution
       P          = E_internal * (gamma - 1.);
     }
 
-    const CeedScalar wdetJb  = (is_implicit ? -1. : 1.) * q_data_sur[0][i];
+    const CeedScalar wdetJb = (is_implicit ? -1. : 1.) * q_data_sur[0][i];
     // ---- Normal vect
     const CeedScalar norm[3] = {q_data_sur[1][i], q_data_sur[2][i], q_data_sur[3][i]};
 
@@ -448,14 +448,14 @@ CEED_QFUNCTION(STGShur14_Inflow_Jacobian)(void *ctx, CeedInt Q, const CeedScalar
   const CeedScalar(*dq)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[0], (*q_data_sur)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[2],
         (*jac_data_sur)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[4];
   // Outputs
-  CeedScalar(*v)[CEED_Q_VLA]        = (CeedScalar(*)[CEED_Q_VLA])out[0];
+  CeedScalar(*v)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA])out[0];
   // *INDENT-ON*
-  const STGShur14Context stg_ctx    = (STGShur14Context)ctx;
-  const bool             implicit   = stg_ctx->is_implicit;
-  const CeedScalar       cv         = stg_ctx->newtonian_ctx.cv;
-  const CeedScalar       cp         = stg_ctx->newtonian_ctx.cp;
-  const CeedScalar       Rd         = cp - cv;
-  const CeedScalar       gamma      = cp / cv;
+  const STGShur14Context stg_ctx  = (STGShur14Context)ctx;
+  const bool             implicit = stg_ctx->is_implicit;
+  const CeedScalar       cv       = stg_ctx->newtonian_ctx.cv;
+  const CeedScalar       cp       = stg_ctx->newtonian_ctx.cp;
+  const CeedScalar       Rd       = cp - cv;
+  const CeedScalar       gamma    = cp / cv;
 
   const CeedScalar theta0      = stg_ctx->theta0;
   const bool       prescribe_T = stg_ctx->prescribe_T;

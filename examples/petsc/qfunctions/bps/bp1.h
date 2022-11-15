@@ -31,7 +31,7 @@ CEED_QFUNCTION(SetupMassGeo)(void *ctx, const CeedInt Q, const CeedScalar *const
   const CeedScalar(*J)[3][CEED_Q_VLA] = (const CeedScalar(*)[3][CEED_Q_VLA])in[1];
   const CeedScalar(*w)                = in[2];  // Note: *X = in[0]
   // Outputs
-  CeedScalar *q_data                  = out[0];
+  CeedScalar *q_data = out[0];
 
   const CeedInt dim = 3;
   // Quadrature Point Loop

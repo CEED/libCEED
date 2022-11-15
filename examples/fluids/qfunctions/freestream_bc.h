@@ -102,7 +102,7 @@ CEED_QFUNCTION_HELPER StateConservative Harten_Lax_VanLeer_Flux(NewtonianIdealGa
   CeedScalar u_left  = Dot3(left.Y.velocity, normal);
   CeedScalar u_right = Dot3(right.Y.velocity, normal);
 
-  RoeWeights r     = RoeSetup(left.U.density, right.U.density);
+  RoeWeights r = RoeSetup(left.U.density, right.U.density);
   // Speed estimate
   // Roe average eigenvalues for left and right non-linear waves
   // Stability requires that these speed estimates are *at least*
@@ -153,8 +153,8 @@ CEED_QFUNCTION_HELPER StateConservative Harten_Lax_VanLeer_Flux_fwd(NewtonianIde
   CeedScalar du_left  = Dot3(dleft.Y.velocity, normal);
   CeedScalar du_right = Dot3(dright.Y.velocity, normal);
 
-  RoeWeights r      = RoeSetup(left.U.density, right.U.density);
-  RoeWeights dr     = RoeSetup_fwd(left.U.density, right.U.density, dleft.U.density, dright.U.density);
+  RoeWeights r  = RoeSetup(left.U.density, right.U.density);
+  RoeWeights dr = RoeSetup_fwd(left.U.density, right.U.density, dleft.U.density, dright.U.density);
   // Speed estimate
   // Roe average eigenvalues for left and right non-linear waves
   // Stability requires that these speed estimates are *at least*
@@ -211,7 +211,7 @@ CEED_QFUNCTION_HELPER int Freestream(void *ctx, CeedInt Q, const CeedScalar *con
     const CeedScalar qi[5]  = {q[0][i], q[1][i], q[2][i], q[3][i], q[4][i]};
     State            s      = StateFromQi(newt_ctx, qi, x_i);
 
-    const CeedScalar wdetJb  = (is_implicit ? -1. : 1.) * q_data_sur[0][i];
+    const CeedScalar wdetJb = (is_implicit ? -1. : 1.) * q_data_sur[0][i];
     // ---- Normal vector
     const CeedScalar norm[3] = {q_data_sur[1][i], q_data_sur[2][i], q_data_sur[3][i]};
 

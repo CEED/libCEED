@@ -20,8 +20,8 @@ int main(int argc, char **argv) {
   CeedVectorSetArray(x, CEED_MEM_HOST, CEED_USE_POINTER, a);
 
   for (CeedInt i = 0; i < num_elem; i++) {
-    ind[2 * i + 0]    = i;
-    ind[2 * i + 1]    = i + 1;
+    ind[2 * i + 0] = i;
+    ind[2 * i + 1] = i + 1;
     // flip the dofs on element 1,3,...
     orient[2 * i + 0] = (i % (2)) * -1 < 0;
     orient[2 * i + 1] = (i % (2)) * -1 < 0;

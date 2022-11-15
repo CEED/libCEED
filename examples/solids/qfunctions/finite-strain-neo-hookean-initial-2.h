@@ -103,11 +103,11 @@ CEED_QFUNCTION(ElasFSInitialNH2F)(void *ctx, CeedInt Q, const CeedScalar *const 
   const CeedScalar(*ug)[3][CEED_Q_VLA] = (const CeedScalar(*)[3][CEED_Q_VLA])in[0], (*q_data)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[1];
 
   // Outputs
-  CeedScalar(*dvdX)[3][CEED_Q_VLA]   = (CeedScalar(*)[3][CEED_Q_VLA])out[0];
+  CeedScalar(*dvdX)[3][CEED_Q_VLA] = (CeedScalar(*)[3][CEED_Q_VLA])out[0];
   // Store grad_u for HyperFSdF (Jacobian of HyperFSF)
   CeedScalar(*grad_u)[3][CEED_Q_VLA] = (CeedScalar(*)[3][CEED_Q_VLA])out[1];
   // Store C_inv for HyperFSdF (Jacobian of HyperFSF)
-  CeedScalar(*C_inv)[CEED_Q_VLA]     = (CeedScalar(*)[CEED_Q_VLA])out[2];
+  CeedScalar(*C_inv)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA])out[2];
   // Store constant lam_log_J = lambda*log(J)
   CeedScalar(*lam_log_J)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA])out[3];
   // *INDENT-ON*
@@ -190,7 +190,7 @@ CEED_QFUNCTION(ElasFSInitialNH2F)(void *ctx, CeedInt Q, const CeedScalar *const 
     const CeedScalar Jm1  = computeJM1(tempgradu);
     const CeedScalar logJ = log1p_series_shifted(Jm1);
     // store lam_log_J = lambda*log(J)
-    lam_log_J[0][i]       = lambda * logJ;
+    lam_log_J[0][i] = lambda * logJ;
 
     // *INDENT-OFF*
     CeedScalar E2[3][3] = {
@@ -272,12 +272,12 @@ CEED_QFUNCTION(ElasFSInitialNH2dF)(void *ctx, CeedInt Q, const CeedScalar *const
   const CeedScalar(*deltaug)[3][CEED_Q_VLA] = (const CeedScalar(*)[3][CEED_Q_VLA])in[0],
         (*q_data)[CEED_Q_VLA]               = (const CeedScalar(*)[CEED_Q_VLA])in[1];
   // grad_u is used for hyperelasticity (non-linear)
-  const CeedScalar(*grad_u)[3][CEED_Q_VLA]  = (const CeedScalar(*)[3][CEED_Q_VLA])in[2];
-  const CeedScalar(*C_inv)[CEED_Q_VLA]      = (const CeedScalar(*)[CEED_Q_VLA])in[3];
+  const CeedScalar(*grad_u)[3][CEED_Q_VLA] = (const CeedScalar(*)[3][CEED_Q_VLA])in[2];
+  const CeedScalar(*C_inv)[CEED_Q_VLA]     = (const CeedScalar(*)[CEED_Q_VLA])in[3];
   // lam_log_J = lambda*log(J)
-  const CeedScalar(*lam_log_J)[CEED_Q_VLA]  = (const CeedScalar(*)[CEED_Q_VLA])in[4];
+  const CeedScalar(*lam_log_J)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[4];
   // Outputs
-  CeedScalar(*deltadvdX)[3][CEED_Q_VLA]     = (CeedScalar(*)[3][CEED_Q_VLA])out[0];
+  CeedScalar(*deltadvdX)[3][CEED_Q_VLA] = (CeedScalar(*)[3][CEED_Q_VLA])out[0];
   // *INDENT-ON*
 
   // Context

@@ -177,7 +177,7 @@ CEED_EXTERN int CeedElemRestrictionGetFlopsEstimate(CeedElemRestriction rstr, Ce
 /// @ingroup CeedBasis
 typedef enum {
   /// H1 FE space
-  CEED_FE_SPACE_H1   = 1,
+  CEED_FE_SPACE_H1 = 1,
   /// H(div) FE space
   CEED_FE_SPACE_HDIV = 2,
 } CeedFESpace;

@@ -46,7 +46,7 @@ CEED_QFUNCTION_HELPER State Exact_Channel(CeedInt dim, CeedScalar time, const Ce
   //     g = (g, 0, 0)
   //     x = (0, x_2, x_3)
   //     e_potential = dot(g, x) = 0
-  const CeedScalar x[3]            = {0, X[1], X[2]};
+  const CeedScalar x[3] = {0, X[1], X[2]};
 
   const CeedScalar Pr    = mu / (cp * k);
   const CeedScalar Ec    = (umax * umax) / (cp * theta0);
@@ -104,7 +104,7 @@ CEED_QFUNCTION(Channel_Inflow)(void *ctx, CeedInt Q, const CeedScalar *const *in
         (*X)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[3];
 
   // Outputs
-  CeedScalar(*v)[CEED_Q_VLA]        = (CeedScalar(*)[CEED_Q_VLA])out[0];
+  CeedScalar(*v)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA])out[0];
   // *INDENT-ON*
   const ChannelContext     context  = (ChannelContext)ctx;
   const bool               implicit = context->implicit;

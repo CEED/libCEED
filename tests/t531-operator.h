@@ -69,8 +69,8 @@ CEED_QFUNCTION(diff_lin)(void *ctx, const CeedInt Q, const CeedScalar *const *in
     // Linearized Qdata is provided column-major
     //  0 2
     //  1 3
-    dv[i + Q * 0]        = qd[i + Q * 0] * du0 + qd[i + Q * 2] * du1;
-    dv[i + Q * 1]        = qd[i + Q * 1] * du0 + qd[i + Q * 3] * du1;
+    dv[i + Q * 0] = qd[i + Q * 0] * du0 + qd[i + Q * 2] * du1;
+    dv[i + Q * 1] = qd[i + Q * 1] * du0 + qd[i + Q * 3] * du1;
   }
 
   return 0;

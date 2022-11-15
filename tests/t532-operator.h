@@ -58,7 +58,7 @@ CEED_QFUNCTION(apply)(void *ctx, const CeedInt Q, const CeedScalar *const *in, C
   // Quadrature point loop
   for (CeedInt i = 0; i < Q; i++) {
     // Mass
-    v[i]                 = qd_mass[i] * u[i];
+    v[i] = qd_mass[i] * u[i];
     // Diff
     const CeedScalar du0 = du[i + Q * 0];
     const CeedScalar du1 = du[i + Q * 1];

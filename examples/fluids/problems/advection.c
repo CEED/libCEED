@@ -164,13 +164,13 @@ PetscErrorCode NS_ADVECTION(ProblemData *problem, DM dm, void *ctx) {
   user->phys->bubble_type            = bubble_type;
   user->phys->bubble_continuity_type = bubble_continuity_type;
   //  if passed correctly
-  user->phys->implicit               = implicit;
-  user->phys->has_curr_time          = has_curr_time;
-  advection_ctx->CtauS               = CtauS;
-  advection_ctx->E_wind              = E_wind;
-  advection_ctx->implicit            = implicit;
-  advection_ctx->strong_form         = strong_form;
-  advection_ctx->stabilization       = stab;
+  user->phys->implicit         = implicit;
+  user->phys->has_curr_time    = has_curr_time;
+  advection_ctx->CtauS         = CtauS;
+  advection_ctx->E_wind        = E_wind;
+  advection_ctx->implicit      = implicit;
+  advection_ctx->strong_form   = strong_form;
+  advection_ctx->stabilization = stab;
 
   CeedQFunctionContextCreate(user->ceed, &problem->ics.qfunction_context);
   CeedQFunctionContextSetData(problem->ics.qfunction_context, CEED_MEM_HOST, CEED_USE_POINTER, sizeof(*setup_context), setup_context);

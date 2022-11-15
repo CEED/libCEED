@@ -304,7 +304,7 @@ int BuildCartesianRestriction(Ceed ceed, CeedInt dim, CeedInt num_xyz[dim], Ceed
     nd[d] = num_xyz[d] * (p - 1) + 1;
     scalar_size *= nd[d];
   }
-  *size               = scalar_size * num_comp;
+  *size = scalar_size * num_comp;
   // elem:         0             1                 n-1
   //           |---*-...-*---|---*-...-*---|- ... -|--...--|
   // num_nodes:   0   1    p-1  p  p+1       2*p             n*p
