@@ -92,8 +92,30 @@ PetscErrorCode SNESFormResidual(SNES snes, Vec X, Vec Y, void *ctx_residual) {
 // -----------------------------------------------------------------------------
 PetscErrorCode SNESFormJacobian(SNES snes, Vec U, Mat J, Mat J_pre,
                                 void *ctx_jacobian) {
-
+  OperatorApplyContext ctx = (OperatorApplyContext)ctx_jacobian;
   PetscFunctionBeginUser;
+
+  Mat A;
+  PetscCall(DMCreateMatrix(ctx->dm, &A));
+  // Assemble matrix analytically
+  PetscCount num_entries;
+  CeedInt *rows, *cols;
+  CeedVector coo_values;
+  CeedOperatorLinearAssembleSymbolic(ctx->op_apply, &num_entries, &rows,
+                                     &cols);
+  PetscCall(MatSetPreallocationCOO(A, num_entries, rows, cols));
+  free(rows);
+  free(cols);
+  CeedVectorCreate(ctx->ceed, num_entries, &coo_values);
+  CeedOperatorLinearAssemble(ctx->op_apply, coo_values);
+  const CeedScalar *values;
+  CeedVectorGetArrayRead(coo_values, CEED_MEM_HOST, &values);
+  PetscCall(MatSetValuesCOO(A, values, ADD_VALUES));
+  CeedVectorRestoreArrayRead(coo_values, &values);
+  MatView(A, PETSC_VIEWER_STDOUT_WORLD);
+  //CeedVectorView(coo_values, "%12.8f", stdout);
+  CeedVectorDestroy(&coo_values);
+  PetscCall( MatDestroy(&A) );
 
   // J_pre might be AIJ (e.g., when using coloring), so we need to assemble it
   PetscCall( MatAssemblyBegin(J_pre, MAT_FINAL_ASSEMBLY) );
