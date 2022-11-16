@@ -416,11 +416,58 @@ PetscErrorCode WriteOutput(User user, Vec Q, PetscInt step_no, PetscScalar time)
 // User provided TS Monitor
 PetscErrorCode TSMonitor_NS(TS ts, PetscInt step_no, PetscReal time, Vec Q, void *ctx) {
   User user = ctx;
+//  Vec stats_loc;
+  Vec Q_loc;
+  Vec stats_loc;
+  Vec Stats;
+  char file_path[PETSC_MAX_PATH_LEN];
+//  char file_path[PETSC_MAX_PATH_LEN];
+  PetscViewer viewer;
+
   PetscFunctionBeginUser;
+
+  // Set up output
+  PetscCall(DMGetLocalVector(user->dm, &Q_loc));
+  PetscCall(PetscObjectSetName((PetscObject)Q_loc, "StateVec"));
+  PetscCall(VecZeroEntries(Q_loc));
+  PetscCall(DMGlobalToLocal(user->dm, Q, INSERT_VALUES, Q_loc));
+
+  // hard code here the stats function from problems/stats.c 
+  PetscCall(DMGetLocalVector(user->dm, &stats_loc));
+    if (user->op_stats) {
+      PetscMemType stats_mem_type, q_mem_type;
+      PetscScalar *stats;
+      const PetscScalar *q;
+      PetscCall(VecGetArrayReadAndMemType(Q_loc, &q, &q_mem_type));
+      PetscCall(VecGetArrayAndMemType(stats_loc, &stats, &stats_mem_type));
+      CeedVectorSetArray(user->q_ceed, MemTypeP2C(q_mem_type), CEED_USE_POINTER, (PetscScalar *)q);
+      CeedVectorSetArray(user->stats_ceed, MemTypeP2C(stats_mem_type), CEED_USE_POINTER, stats);
+
+      CeedOperatorApply(user->op_stats, user->q_ceed, user->stats_ceed, CEED_REQUEST_IMMEDIATE);
+
+      CeedVectorTakeArray(user->stats_ceed, MemTypeP2C(stats_mem_type), &stats);
+      PetscCall(VecRestoreArrayAndMemType(stats_loc, &stats));
+      PetscCall(DMGetGlobalVector(user->dm, &Stats));
+      PetscCall(VecZeroEntries(Stats));
+      PetscCall(DMLocalToGlobal(user->dm, stats_loc, ADD_VALUES, Stats));
+
+      // Do the multiplication by the inverse of the lumped mass matrix (M is Minv)
+      PetscCall(VecPointwiseMult(Stats, Stats, user->M));
+
+      PetscCall(DMGlobalToLocal(user->dm, Stats, INSERT_VALUES, stats_loc));
+
+      PetscCall(DMRestoreGlobalVector(user->dm, &Stats));
+    }
+
+  // Output
+  PetscCall(PetscSNPrintf(file_path, sizeof file_path, "%s/vel_prod-%03" PetscInt_FMT ".vtu", user->app_ctx->output_dir, step_no + user->app_ctx->cont_steps));
+  PetscCall(PetscViewerVTKOpen(PetscObjectComm((PetscObject)Q), file_path, FILE_MODE_WRITE, &viewer));
+  PetscCall(VecView(stats_loc, viewer));
+  PetscCall(PetscViewerDestroy(&viewer));
+  PetscCall(DMRestoreLocalVector(user->dm, &stats_loc));
 
   // Print every 'output_freq' steps
   if (user->app_ctx->output_freq <= 0 || step_no % user->app_ctx->output_freq != 0) PetscFunctionReturn(0);
-
   PetscCall(WriteOutput(user, Q, step_no, time));
 
   PetscFunctionReturn(0);

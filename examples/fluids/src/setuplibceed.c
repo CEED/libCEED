@@ -9,6 +9,10 @@
 /// Setup libCEED for Navier-Stokes example using PETSc
 
 #include "../navierstokes.h"
+#include "../qfunctions/reynolds_stress.h"
+PetscErrorCode CreateStatsOperator(Ceed ceed, ProblemQFunctionSpec stats, CeedData ceed_data, User user, CeedInt dim, CeedInt P, CeedInt Q); 
+
+
 
 // Utility function - essential BC dofs are encoded in closure indices as -(i+1).
 PetscInt Involute(PetscInt i) { return i >= 0 ? i : -(i + 1); }
@@ -273,6 +277,7 @@ PetscErrorCode SetupLibceed(Ceed ceed, CeedData ceed_data, DM dm, User user, App
     CeedQFunctionAddOutput(ceed_data->qf_rhs_vol, "Grad_v", num_comp_q * dim, CEED_EVAL_GRAD);
   }
 
+
   // -- Create QFunction for IFunction
   if (problem->apply_vol_ifunction.qfunction) {
     CeedQFunctionCreateInterior(ceed, 1, problem->apply_vol_ifunction.qfunction, problem->apply_vol_ifunction.qfunction_loc,
@@ -395,6 +400,23 @@ PetscErrorCode SetupLibceed(Ceed ceed, CeedData ceed_data, DM dm, User user, App
     CeedOperatorSetField(op, "Grad_v", ceed_data->elem_restr_q, ceed_data->basis_q, CEED_VECTOR_ACTIVE);
     op_ijacobian_vol = op;
     CeedQFunctionDestroy(&qf_ijacobian_vol);
+  }
+
+  // -- 
+  if (1) {
+    switch (user->phys->state_var){
+      case STATEVAR_CONSERVATIVE:
+        problem->apply_stats.qfunction = ReynoldsStress_Conserv;    
+        problem->apply_stats.qfunction_loc = ReynoldsStress_Conserv_loc;
+        break;
+      case STATEVAR_PRIMITIVE:
+        problem->apply_stats.qfunction = ReynoldsStress_Prim;    
+        problem->apply_stats.qfunction_loc = ReynoldsStress_Prim_loc;
+        break;
+    } 
+    CeedQFunctionContextReferenceCopy(problem->apply_vol_rhs.qfunction_context, &problem->apply_stats.qfunction_context);
+    PetscCall(CreateStatsOperator(ceed, problem->apply_stats, ceed_data, user, dim, P, Q));
+    //CeedVectorSetValuedd
   }
 
   // *****************************************************************************

@@ -126,8 +126,8 @@ struct User_private {
   Vec          M, Q_loc, Q_dot_loc;
   Physics      phys;
   AppCtx       app_ctx;
-  CeedVector   q_ceed, q_dot_ceed, g_ceed, coo_values_amat, coo_values_pmat, x_ceed;
-  CeedOperator op_rhs_vol, op_rhs, op_ifunction_vol, op_ifunction, op_ijacobian, op_dirichlet;
+  CeedVector   q_ceed, q_dot_ceed, g_ceed, coo_values_amat, coo_values_pmat, x_ceed, stats_ceed;
+  CeedOperator op_rhs_vol, op_rhs, op_ifunction_vol, op_ifunction, op_ijacobian, op_dirichlet, op_stats;
   bool         matrices_set_up;
   CeedScalar   time, dt;
 };
@@ -188,7 +188,7 @@ struct ProblemData_private {
   CeedInt              dim, q_data_size_vol, q_data_size_sur, jac_data_size_sur;
   CeedScalar           dm_scale;
   ProblemQFunctionSpec setup_vol, setup_sur, ics, apply_vol_rhs, apply_vol_ifunction, apply_vol_ijacobian, apply_inflow, apply_outflow,
-      apply_freestream, apply_inflow_jacobian, apply_outflow_jacobian, apply_freestream_jacobian;
+      apply_freestream, apply_inflow_jacobian, apply_outflow_jacobian, apply_freestream_jacobian, apply_stats;
   bool non_zero_time;
   PetscErrorCode (*bc)(PetscInt, PetscReal, const PetscReal[], PetscInt, PetscScalar[], void *);
   void     *bc_ctx;
