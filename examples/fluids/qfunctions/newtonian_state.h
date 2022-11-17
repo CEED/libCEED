@@ -132,6 +132,23 @@ CEED_QFUNCTION_HELPER StateConservative StateConservativeFromPrimitive_fwd(Newto
   return dU;
 }
 
+CEED_QFUNCTION_HELPER StateConservative StateConservativeAXPBY(CeedScalar a, StateConservative X, CeedScalar b, StateConservative Y) {
+  StateConservative R;
+  R.density = a * X.density + b * Y.density;
+  for (int i = 0; i < 3; i++) R.momentum[i] = a * X.momentum[i] + b * Y.momentum[i];
+  R.E_total = a * X.E_total + b * Y.E_total;
+  return R;
+}
+
+CEED_QFUNCTION_HELPER StateConservative StateConservativeAXPBYPCZ(CeedScalar a, StateConservative X, CeedScalar b, StateConservative Y, CeedScalar c,
+                                                                  StateConservative Z) {
+  StateConservative R;
+  R.density = a * X.density + b * Y.density + c * Z.density;
+  for (int i = 0; i < 3; i++) R.momentum[i] = a * X.momentum[i] + b * Y.momentum[i] + c * Z.momentum[i];
+  R.E_total = a * X.E_total + b * Y.E_total + c * Z.E_total;
+  return R;
+}
+
 // Function pointer types for generic state array -> State struct functions
 typedef State (*StateFromQi_t)(NewtonianIdealGasContext gas, const CeedScalar qi[5], const CeedScalar x[3]);
 typedef State (*StateFromQi_fwd_t)(NewtonianIdealGasContext gas, State s, const CeedScalar dqi[5], const CeedScalar x[3], const CeedScalar dx[3]);
