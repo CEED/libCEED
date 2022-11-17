@@ -11,23 +11,23 @@
 #include "ceed-occa-types.hpp"
 
 namespace ceed {
-  namespace occa {
-    class Context {
-     private:
-      bool _usingCpuDevice;
-      bool _usingGpuDevice;
+namespace occa {
+class Context {
+ private:
+  bool _usingCpuDevice;
+  bool _usingGpuDevice;
 
-     public:
-      ::occa::device device;
+ public:
+  ::occa::device device;
 
-      Context(::occa::device device_);
+  Context(::occa::device device_);
 
-      static Context* from(Ceed ceed);
+  static Context* from(Ceed ceed);
 
-      bool usingCpuDevice() const;
-      bool usingGpuDevice() const;
-    };
-  }
-}
+  bool usingCpuDevice() const;
+  bool usingGpuDevice() const;
+};
+}  // namespace occa
+}  // namespace ceed
 
 #endif

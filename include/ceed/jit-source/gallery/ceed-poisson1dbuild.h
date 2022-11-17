@@ -14,9 +14,7 @@
 
 #include <ceed.h>
 
-CEED_QFUNCTION(Poisson1DBuild)(void *ctx, const CeedInt Q,
-                               const CeedScalar *const *in,
-                               CeedScalar *const *out) {
+CEED_QFUNCTION(Poisson1DBuild)(void *ctx, const CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
   // At every quadrature point, compute w/det(J).adj(J).adj(J)^T and store
   // the symmetric part of the result.
 
@@ -28,12 +26,9 @@ CEED_QFUNCTION(Poisson1DBuild)(void *ctx, const CeedInt Q,
   CeedScalar *q_data = out[0];
 
   // Quadrature point loop
-  CeedPragmaSIMD
-  for (CeedInt i=0; i<Q; i++) {
-    q_data[i] = w[i] / J[i];
-  } // End of Quadrature Point Loop
+  CeedPragmaSIMD for (CeedInt i = 0; i < Q; i++) { q_data[i] = w[i] / J[i]; }  // End of Quadrature Point Loop
 
   return CEED_ERROR_SUCCESS;
 }
 
-#endif // poisson1dbuild_h
+#endif  // poisson1dbuild_h

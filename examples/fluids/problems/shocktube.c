@@ -17,26 +17,25 @@
 /// @file
 /// Utility functions for setting up SHOCKTUBE
 
-#include "../navierstokes.h"
-#include "../qfunctions/setupgeo.h"
 #include "../qfunctions/shocktube.h"
 
-PetscErrorCode NS_SHOCKTUBE(ProblemData *problem, DM dm, void *ctx) {
+#include "../navierstokes.h"
+#include "../qfunctions/setupgeo.h"
 
-  SetupContextShock      setup_context;
-  User              user = *(User *)ctx;
-  MPI_Comm          comm = PETSC_COMM_WORLD;
-  PetscBool         implicit;
-  PetscBool         yzb;
-  PetscInt          stab;
-  PetscBool         has_curr_time = PETSC_FALSE;
-  PetscInt          ierr;
-  ShockTubeContext  shocktube_ctx;
+PetscErrorCode NS_SHOCKTUBE(ProblemData *problem, DM dm, void *ctx) {
+  SetupContextShock    setup_context;
+  User                 user = *(User *)ctx;
+  MPI_Comm             comm = PETSC_COMM_WORLD;
+  PetscBool            implicit;
+  PetscBool            yzb;
+  PetscInt             stab;
+  PetscBool            has_curr_time = PETSC_FALSE;
+  ShockTubeContext     shocktube_ctx;
   CeedQFunctionContext shocktube_context;
 
   PetscFunctionBeginUser;
-  ierr = PetscCalloc1(1, &setup_context); CHKERRQ(ierr);
-  ierr = PetscCalloc1(1, &shocktube_ctx); CHKERRQ(ierr);
+  PetscCall(PetscCalloc1(1, &setup_context));
+  PetscCall(PetscCalloc1(1, &shocktube_ctx));
 
   // ------------------------------------------------------
   //               SET UP SHOCKTUBE
@@ -63,26 +62,26 @@ PetscErrorCode NS_SHOCKTUBE(ProblemData *problem, DM dm, void *ctx) {
   //             Create the libCEED context
   // ------------------------------------------------------
   // Driver section initial conditions
-  CeedScalar P_high          = 1.0;     // Pa
-  CeedScalar rho_high        = 1.0;     // kg/m^3
+  CeedScalar P_high   = 1.0;  // Pa
+  CeedScalar rho_high = 1.0;  // kg/m^3
   // Driven section initial conditions
-  CeedScalar P_low           = 0.1;     // Pa
-  CeedScalar rho_low         = 0.125;   // kg/m^3
+  CeedScalar P_low   = 0.1;    // Pa
+  CeedScalar rho_low = 0.125;  // kg/m^3
   // Stabilization parameter
-  CeedScalar c_tau           = 0.5;     // -, based on Hughes et al (2010)
+  CeedScalar c_tau = 0.5;  // -, based on Hughes et al (2010)
   // Tuning parameters for the YZB shock capturing
-  CeedScalar Cyzb            = 0.1;     // -, used in approximation of (Na),x
-  CeedScalar Byzb            = 2.0;     // -, 1 for smooth shocks
+  CeedScalar Cyzb = 0.1;  // -, used in approximation of (Na),x
+  CeedScalar Byzb = 2.0;  // -, 1 for smooth shocks
   //                                          2 for sharp shocks
   PetscReal domain_min[3], domain_max[3], domain_size[3];
-  ierr = DMGetBoundingBox(dm, domain_min, domain_max); CHKERRQ(ierr);
-  for (PetscInt i=0; i<3; i++) domain_size[i] = domain_max[i] - domain_min[i];
+  PetscCall(DMGetBoundingBox(dm, domain_min, domain_max));
+  for (PetscInt i = 0; i < 3; i++) domain_size[i] = domain_max[i] - domain_min[i];
 
   // ------------------------------------------------------
   //             Create the PETSc context
   // ------------------------------------------------------
-  PetscScalar meter    = 1e-2; // 1 meter in scaled length units
-  PetscScalar second   = 1e-2; // 1 second in scaled time units
+  PetscScalar meter  = 1e-2;  // 1 meter in scaled length units
+  PetscScalar second = 1e-2;  // 1 second in scaled time units
 
   // ------------------------------------------------------
   //              Command line Options
@@ -90,36 +89,24 @@ PetscErrorCode NS_SHOCKTUBE(ProblemData *problem, DM dm, void *ctx) {
   PetscOptionsBegin(comm, NULL, "Options for SHOCKTUBE problem", NULL);
 
   // -- Numerical formulation options
-  ierr = PetscOptionsBool("-implicit", "Use implicit (IFunction) formulation",
-                          NULL, implicit=PETSC_FALSE, &implicit, NULL); CHKERRQ(ierr);
-  ierr = PetscOptionsEnum("-stab", "Stabilization method", NULL,
-                          StabilizationTypes, (PetscEnum)(stab = STAB_NONE),
-                          (PetscEnum *)&stab, NULL); CHKERRQ(ierr);
-  ierr = PetscOptionsScalar("-c_tau", "Stabilization constant",
-                            NULL, c_tau, &c_tau, NULL); CHKERRQ(ierr);
-  ierr = PetscOptionsBool("-yzb", "Use YZB discontinuity capturing",
-                          NULL, yzb=PETSC_FALSE, &yzb, NULL); CHKERRQ(ierr);
+  PetscCall(PetscOptionsBool("-implicit", "Use implicit (IFunction) formulation", NULL, implicit = PETSC_FALSE, &implicit, NULL));
+  PetscCall(PetscOptionsEnum("-stab", "Stabilization method", NULL, StabilizationTypes, (PetscEnum)(stab = STAB_NONE), (PetscEnum *)&stab, NULL));
+  PetscCall(PetscOptionsScalar("-c_tau", "Stabilization constant", NULL, c_tau, &c_tau, NULL));
+  PetscCall(PetscOptionsBool("-yzb", "Use YZB discontinuity capturing", NULL, yzb = PETSC_FALSE, &yzb, NULL));
 
   // -- Units
-  ierr = PetscOptionsScalar("-units_meter", "1 meter in scaled length units",
-                            NULL, meter, &meter, NULL); CHKERRQ(ierr);
+  PetscCall(PetscOptionsScalar("-units_meter", "1 meter in scaled length units", NULL, meter, &meter, NULL));
   meter = fabs(meter);
-  ierr = PetscOptionsScalar("-units_second","1 second in scaled time units",
-                            NULL, second, &second, NULL); CHKERRQ(ierr);
+  PetscCall(PetscOptionsScalar("-units_second", "1 second in scaled time units", NULL, second, &second, NULL));
   second = fabs(second);
 
   // -- Warnings
   if (stab == STAB_SUPG) {
-    ierr = PetscPrintf(comm,
-                       "Warning! -stab supg not implemented for the shocktube problem. \n");
-    CHKERRQ(ierr);
+    PetscCall(PetscPrintf(comm, "Warning! -stab supg not implemented for the shocktube problem. \n"));
   }
   if (yzb && implicit) {
-    ierr = PetscPrintf(comm,
-                       "Warning! -yzb only implemented for explicit timestepping. \n");
-    CHKERRQ(ierr);
+    PetscCall(PetscPrintf(comm, "Warning! -yzb only implemented for explicit timestepping. \n"));
   }
-
 
   PetscOptionsEnd();
 
@@ -133,12 +120,12 @@ PetscErrorCode NS_SHOCKTUBE(ProblemData *problem, DM dm, void *ctx) {
   //           Set up the libCEED context
   // ------------------------------------------------------
   // -- Scale variables to desired units
-  for (PetscInt i=0; i<3; i++) {
+  for (PetscInt i = 0; i < 3; i++) {
     domain_size[i] *= meter;
     domain_min[i] *= meter;
   }
-  problem->dm_scale = meter;
-  CeedScalar mid_point = 0.5*(domain_size[0]+domain_min[0]);
+  problem->dm_scale    = meter;
+  CeedScalar mid_point = 0.5 * (domain_size[0] + domain_min[0]);
 
   // -- Setup Context
   setup_context->mid_point = mid_point;
@@ -149,42 +136,34 @@ PetscErrorCode NS_SHOCKTUBE(ProblemData *problem, DM dm, void *ctx) {
   setup_context->rho_low   = rho_low;
 
   // -- QFunction Context
-  user->phys->implicit                      = implicit;
-  user->phys->has_curr_time                 = has_curr_time;
-  shocktube_ctx->implicit       = implicit;
-  shocktube_ctx->stabilization  = stab;
-  shocktube_ctx->yzb            = yzb;
-  shocktube_ctx->Cyzb           = Cyzb;
-  shocktube_ctx->Byzb           = Byzb;
-  shocktube_ctx->c_tau          = c_tau;
+  user->phys->implicit         = implicit;
+  user->phys->has_curr_time    = has_curr_time;
+  shocktube_ctx->implicit      = implicit;
+  shocktube_ctx->stabilization = stab;
+  shocktube_ctx->yzb           = yzb;
+  shocktube_ctx->Cyzb          = Cyzb;
+  shocktube_ctx->Byzb          = Byzb;
+  shocktube_ctx->c_tau         = c_tau;
 
   CeedQFunctionContextCreate(user->ceed, &problem->ics.qfunction_context);
-  CeedQFunctionContextSetData(problem->ics.qfunction_context, CEED_MEM_HOST,
-                              CEED_USE_POINTER, sizeof(*setup_context), setup_context);
-  CeedQFunctionContextSetDataDestroy(problem->ics.qfunction_context,
-                                     CEED_MEM_HOST,
-                                     FreeContextPetsc);
+  CeedQFunctionContextSetData(problem->ics.qfunction_context, CEED_MEM_HOST, CEED_USE_POINTER, sizeof(*setup_context), setup_context);
+  CeedQFunctionContextSetDataDestroy(problem->ics.qfunction_context, CEED_MEM_HOST, FreeContextPetsc);
 
   CeedQFunctionContextCreate(user->ceed, &shocktube_context);
-  CeedQFunctionContextSetData(shocktube_context, CEED_MEM_HOST,
-                              CEED_USE_POINTER,
-                              sizeof(*shocktube_ctx), shocktube_ctx);
-  CeedQFunctionContextSetDataDestroy(shocktube_context, CEED_MEM_HOST,
-                                     FreeContextPetsc);
+  CeedQFunctionContextSetData(shocktube_context, CEED_MEM_HOST, CEED_USE_POINTER, sizeof(*shocktube_ctx), shocktube_ctx);
+  CeedQFunctionContextSetDataDestroy(shocktube_context, CEED_MEM_HOST, FreeContextPetsc);
   problem->apply_vol_rhs.qfunction_context = shocktube_context;
   PetscFunctionReturn(0);
 }
 
 PetscErrorCode PRINT_SHOCKTUBE(ProblemData *problem, AppCtx app_ctx) {
-
-  MPI_Comm       comm = PETSC_COMM_WORLD;
-  PetscErrorCode ierr;
+  MPI_Comm comm = PETSC_COMM_WORLD;
   PetscFunctionBeginUser;
 
-  ierr = PetscPrintf(comm,
-                     "  Problem:\n"
-                     "    Problem Name                       : %s\n",
-                     app_ctx->problem_name); CHKERRQ(ierr);
+  PetscCall(PetscPrintf(comm,
+                        "  Problem:\n"
+                        "    Problem Name                       : %s\n",
+                        app_ctx->problem_name));
 
   PetscFunctionReturn(0);
 }

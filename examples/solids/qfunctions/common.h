@@ -37,40 +37,38 @@
 //              [A31 A32 A33]
 //
 // -----------------------------------------------------------------------------
-CEED_QFUNCTION(SetupGeo)(void *ctx, CeedInt Q, const CeedScalar *const *in,
-                         CeedScalar *const *out) {
-    // *INDENT-OFF*
-     // Inputs
-     const CeedScalar (*J)[3][CEED_Q_VLA] = (const CeedScalar(*)[3][CEED_Q_VLA])in[0],
-                      (*w) = in[1];
+CEED_QFUNCTION(SetupGeo)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
+  // *INDENT-OFF*
+  // Inputs
+  const CeedScalar(*J)[3][CEED_Q_VLA] = (const CeedScalar(*)[3][CEED_Q_VLA])in[0], (*w) = in[1];
 
-     // Outputs
-     CeedScalar (*q_data)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA])out[0];
-     // *INDENT-ON*
+  // Outputs
+  CeedScalar(*q_data)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA])out[0];
+  // *INDENT-ON*
 
   CeedPragmaSIMD
-  // Quadrature Point Loop
-  for (CeedInt i=0; i<Q; i++) {
+      // Quadrature Point Loop
+      for (CeedInt i = 0; i < Q; i++) {
     // Setup
-    const CeedScalar J11 = J[0][0][i];
-    const CeedScalar J21 = J[0][1][i];
-    const CeedScalar J31 = J[0][2][i];
-    const CeedScalar J12 = J[1][0][i];
-    const CeedScalar J22 = J[1][1][i];
-    const CeedScalar J32 = J[1][2][i];
-    const CeedScalar J13 = J[2][0][i];
-    const CeedScalar J23 = J[2][1][i];
-    const CeedScalar J33 = J[2][2][i];
-    const CeedScalar A11 = J22*J33 - J23*J32;
-    const CeedScalar A12 = J13*J32 - J12*J33;
-    const CeedScalar A13 = J12*J23 - J13*J22;
-    const CeedScalar A21 = J23*J31 - J21*J33;
-    const CeedScalar A22 = J11*J33 - J13*J31;
-    const CeedScalar A23 = J13*J21 - J11*J23;
-    const CeedScalar A31 = J21*J32 - J22*J31;
-    const CeedScalar A32 = J12*J31 - J11*J32;
-    const CeedScalar A33 = J11*J22 - J12*J21;
-    const CeedScalar detJ = J11*A11 + J21*A12 + J31*A13;
+    const CeedScalar J11  = J[0][0][i];
+    const CeedScalar J21  = J[0][1][i];
+    const CeedScalar J31  = J[0][2][i];
+    const CeedScalar J12  = J[1][0][i];
+    const CeedScalar J22  = J[1][1][i];
+    const CeedScalar J32  = J[1][2][i];
+    const CeedScalar J13  = J[2][0][i];
+    const CeedScalar J23  = J[2][1][i];
+    const CeedScalar J33  = J[2][2][i];
+    const CeedScalar A11  = J22 * J33 - J23 * J32;
+    const CeedScalar A12  = J13 * J32 - J12 * J33;
+    const CeedScalar A13  = J12 * J23 - J13 * J22;
+    const CeedScalar A21  = J23 * J31 - J21 * J33;
+    const CeedScalar A22  = J11 * J33 - J13 * J31;
+    const CeedScalar A23  = J13 * J21 - J11 * J23;
+    const CeedScalar A31  = J21 * J32 - J22 * J31;
+    const CeedScalar A32  = J12 * J31 - J11 * J32;
+    const CeedScalar A33  = J11 * J22 - J12 * J21;
+    const CeedScalar detJ = J11 * A11 + J21 * A12 + J31 * A13;
 
     // Qdata
     // -- Interp-to-Interp q_data
@@ -88,10 +86,10 @@ CEED_QFUNCTION(SetupGeo)(void *ctx, CeedInt Q, const CeedScalar *const *in,
     q_data[8][i] = A32 / detJ;
     q_data[9][i] = A33 / detJ;
 
-  } // End of Quadrature Point Loop
+  }  // End of Quadrature Point Loop
 
   return 0;
 }
 // -----------------------------------------------------------------------------
 
-#endif // End of COMMON_H
+#endif  // End of COMMON_H

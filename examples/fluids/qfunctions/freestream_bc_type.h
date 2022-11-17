@@ -8,13 +8,13 @@
 #ifndef freestream_bc_type_h
 #define freestream_bc_type_h
 
-#include "newtonian_types.h"
 #include "newtonian_state.h"
+#include "newtonian_types.h"
 
 typedef struct FreestreamContext_ *FreestreamContext;
 struct FreestreamContext_ {
   struct NewtonianIdealGasContext_ newtonian_ctx;
-  State S_infty;
+  State                            S_infty;
 };
 
 #endif

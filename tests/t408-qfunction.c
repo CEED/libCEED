@@ -5,15 +5,14 @@
 #include <math.h>
 
 int main(int argc, char **argv) {
-  Ceed ceed;
+  Ceed                 ceed;
   CeedQFunctionContext ctx;
-  CeedScalar ctxData[5] = {1, 2, 3, 4, 5}, *ctxDataCopy;
+  CeedScalar           ctxData[5] = {1, 2, 3, 4, 5}, *ctxDataCopy;
 
   CeedInit(argv[1], &ceed);
 
   CeedQFunctionContextCreate(ceed, &ctx);
-  CeedQFunctionContextSetData(ctx, CEED_MEM_HOST, CEED_COPY_VALUES,
-                              sizeof(ctxData), &ctxData);
+  CeedQFunctionContextSetData(ctx, CEED_MEM_HOST, CEED_COPY_VALUES, sizeof(ctxData), &ctxData);
 
   // Get data access
   CeedQFunctionContextGetDataRead(ctx, CEED_MEM_HOST, &ctxDataCopy);

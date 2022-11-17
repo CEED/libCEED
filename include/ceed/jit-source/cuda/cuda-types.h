@@ -16,7 +16,7 @@
 
 typedef struct {
   const CeedScalar* inputs[CEED_CUDA_NUMBER_FIELDS];
-  CeedScalar* outputs[CEED_CUDA_NUMBER_FIELDS];
+  CeedScalar*       outputs[CEED_CUDA_NUMBER_FIELDS];
 } Fields_Cuda;
 
 typedef struct {
@@ -25,10 +25,10 @@ typedef struct {
 } FieldsInt_Cuda;
 
 typedef struct {
-  CeedInt t_id_x;
-  CeedInt t_id_y;
-  CeedInt t_id_z;
-  CeedInt t_id;
+  CeedInt     t_id_x;
+  CeedInt     t_id_y;
+  CeedInt     t_id_z;
+  CeedInt     t_id;
   CeedScalar* slice;
 } SharedData_Cuda;
 

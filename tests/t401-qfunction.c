@@ -1,20 +1,20 @@
 /// @file
 /// Test creation, evaluation, and destruction for QFunction
 /// \test Test creation, evaluation, and destruction for QFunction
+#include "t401-qfunction.h"
+
 #include <ceed.h>
 #include <math.h>
 
-#include "t401-qfunction.h"
-
 int main(int argc, char **argv) {
-  Ceed ceed;
-  CeedVector in[16], out[16];
-  CeedVector Q_data, W, U, V;
-  CeedQFunction qf_setup, qf_mass;
+  Ceed                 ceed;
+  CeedVector           in[16], out[16];
+  CeedVector           Q_data, W, U, V;
+  CeedQFunction        qf_setup, qf_mass;
   CeedQFunctionContext ctx;
-  CeedInt Q = 8;
-  const CeedScalar *vv;
-  CeedScalar w[Q], u[Q], v[Q], ctx_data[5] = {1, 2, 3, 4, 5};
+  CeedInt              Q = 8;
+  const CeedScalar    *vv;
+  CeedScalar           w[Q], u[Q], v[Q], ctx_data[5] = {1, 2, 3, 4, 5};
 
   CeedInit(argv[1], &ceed);
 
@@ -28,15 +28,14 @@ int main(int argc, char **argv) {
   CeedQFunctionAddOutput(qf_mass, "v", 1, CEED_EVAL_INTERP);
 
   CeedQFunctionContextCreate(ceed, &ctx);
-  CeedQFunctionContextSetData(ctx, CEED_MEM_HOST, CEED_USE_POINTER,
-                              sizeof(ctx_data), &ctx_data);
+  CeedQFunctionContextSetData(ctx, CEED_MEM_HOST, CEED_USE_POINTER, sizeof(ctx_data), &ctx_data);
   CeedQFunctionSetContext(qf_mass, ctx);
 
-  for (CeedInt i=0; i<Q; i++) {
-    CeedScalar x = 2.*i/(Q-1) - 1;
-    w[i] = 1 - x*x;
-    u[i] = 2 + 3*x + 5*x*x;
-    v[i] = w[i] * u[i];
+  for (CeedInt i = 0; i < Q; i++) {
+    CeedScalar x = 2. * i / (Q - 1) - 1;
+    w[i]         = 1 - x * x;
+    u[i]         = 2 + 3 * x + 5 * x * x;
+    v[i]         = w[i] * u[i];
   }
 
   CeedVectorCreate(ceed, Q, &W);
@@ -49,23 +48,21 @@ int main(int argc, char **argv) {
   CeedVectorSetValue(Q_data, 0);
 
   {
-    in[0] = W;
+    in[0]  = W;
     out[0] = Q_data;
     CeedQFunctionApply(qf_setup, Q, in, out);
   }
   {
-    in[0] = W;
-    in[1] = U;
+    in[0]  = W;
+    in[1]  = U;
     out[0] = V;
     CeedQFunctionApply(qf_mass, Q, in, out);
   }
 
   CeedVectorGetArrayRead(V, CEED_MEM_HOST, &vv);
-  for (CeedInt i=0; i<Q; i++)
-    if (fabs(ctx_data[4] * v[i] - vv[i]) > 100.*CEED_EPSILON)
-      // LCOV_EXCL_START
-      printf("[%" CeedInt_FMT "] v %f != vv %f\n",i, v[i], vv[i]);
-  // LCOV_EXCL_STOP
+  for (CeedInt i = 0; i < Q; i++) {
+    if (fabs(ctx_data[4] * v[i] - vv[i]) > 100. * CEED_EPSILON) printf("[%" CeedInt_FMT "] v %f != vv %f\n", i, v[i], vv[i]);
+  }
   CeedVectorRestoreArrayRead(V, &vv);
 
   CeedVectorDestroy(&W);

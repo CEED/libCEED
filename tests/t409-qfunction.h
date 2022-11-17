@@ -7,13 +7,12 @@
 
 #include <ceed.h>
 
-CEED_QFUNCTION(scale)(void *ctx, const CeedInt Q, const CeedScalar *const *in,
-                      CeedScalar *const *out) {
-  CeedScalar *scale = (CeedScalar *)ctx;
-  const CeedScalar *u = in[0];
-  CeedScalar *v = out[0];
+CEED_QFUNCTION(scale)(void *ctx, const CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
+  CeedScalar       *scale = (CeedScalar *)ctx;
+  const CeedScalar *u     = in[0];
+  CeedScalar       *v     = out[0];
 
-  for (CeedInt i=0; i<Q; i++) {
+  for (CeedInt i = 0; i < Q; i++) {
     v[i] = scale[1] * u[i];
   }
   scale[0] = 42;

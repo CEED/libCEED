@@ -3,34 +3,33 @@
 /// \test Test interpolaton with a 2D Simplex non-tensor H1 basis
 #include <ceed.h>
 #include <math.h>
+
 #include "t320-basis.h"
 
-CeedScalar feval(CeedScalar x1, CeedScalar x2) {
-  return x1*x1 + x2*x2 + x1*x2 + 1;
-}
+// polynomial eval helper
+static CeedScalar feval(CeedScalar x1, CeedScalar x2) { return x1 * x1 + x2 * x2 + x1 * x2 + 1; }
 
+// main test
 int main(int argc, char **argv) {
-  Ceed ceed;
-  CeedVector In, Out;
-  const CeedInt P = 6, Q = 4, dim = 2;
-  CeedBasis b;
-  CeedScalar q_ref[dim*Q], q_weight[Q];
-  CeedScalar interp[P*Q], grad[dim*P*Q];
-  CeedScalar xq[] = {0.2, 0.6, 1./3., 0.2, 0.2, 0.2, 1./3., 0.6};
-  CeedScalar xr[] = {0., 0.5, 1., 0., 0.5, 0., 0., 0., 0., 0.5, 0.5, 1.};
+  Ceed              ceed;
+  CeedVector        In, Out;
+  const CeedInt     P = 6, Q = 4, dim = 2;
+  CeedBasis         b;
+  CeedScalar        q_ref[dim * Q], q_weight[Q];
+  CeedScalar        interp[P * Q], grad[dim * P * Q];
+  CeedScalar        xq[] = {0.2, 0.6, 1. / 3., 0.2, 0.2, 0.2, 1. / 3., 0.6};
+  CeedScalar        xr[] = {0., 0.5, 1., 0., 0.5, 0., 0., 0., 0., 0.5, 0.5, 1.};
   const CeedScalar *out;
-  CeedScalar in[P], value;
+  CeedScalar        in[P], value;
 
   buildmats(q_ref, q_weight, interp, grad);
 
   CeedInit(argv[1], &ceed);
 
-  CeedBasisCreateH1(ceed, CEED_TOPOLOGY_TRIANGLE, 1, P, Q, interp, grad, q_ref,
-                    q_weight, &b);
+  CeedBasisCreateH1(ceed, CEED_TOPOLOGY_TRIANGLE, 1, P, Q, interp, grad, q_ref, q_weight, &b);
 
   // Interpolate function to quadrature points
-  for (int i=0; i<P; i++)
-    in[i] = feval(xr[0*P+i], xr[1*P+i]);
+  for (int i = 0; i < P; i++) in[i] = feval(xr[0 * P + i], xr[1 * P + i]);
 
   CeedVectorCreate(ceed, P, &In);
   CeedVectorSetArray(In, CEED_MEM_HOST, CEED_USE_POINTER, in);
@@ -41,12 +40,9 @@ int main(int argc, char **argv) {
 
   // Check values at quadrature points
   CeedVectorGetArrayRead(Out, CEED_MEM_HOST, &out);
-  for (int i=0; i<Q; i++) {
-    value = feval(xq[0*Q+i], xq[1*Q+i]);
-    if (fabs(out[i] - value) > 100.*CEED_EPSILON)
-      // LCOV_EXCL_START
-      printf("[%" CeedInt_FMT "] %f != %f\n", i, out[i], value);
-    // LCOV_EXCL_STOP
+  for (int i = 0; i < Q; i++) {
+    value = feval(xq[0 * Q + i], xq[1 * Q + i]);
+    if (fabs(out[i] - value) > 100. * CEED_EPSILON) printf("[%" CeedInt_FMT "] %f != %f\n", i, out[i], value);
   }
   CeedVectorRestoreArrayRead(Out, &out);
 

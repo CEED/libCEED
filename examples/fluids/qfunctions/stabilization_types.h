@@ -10,8 +10,8 @@
 
 typedef enum {
   STAB_NONE = 0,
-  STAB_SU   = 1, // Streamline Upwind
-  STAB_SUPG = 2, // Streamline Upwind Petrov-Galerkin
+  STAB_SU   = 1,  // Streamline Upwind
+  STAB_SUPG = 2,  // Streamline Upwind Petrov-Galerkin
 } StabilizationType;
 
-#endif // stabilization_types_h
+#endif  // stabilization_types_h

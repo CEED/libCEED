@@ -49,49 +49,47 @@ int main(int argc, char **argv) {
   // ---------------------------------------------------------------------------
   // Initialize PETSc
   // ---------------------------------------------------------------------------
-  PetscInt ierr;
-  ierr = PetscInitialize(&argc, &argv, NULL, help);
-  if (ierr) return ierr;
+  PetscCall(PetscInitialize(&argc, &argv, NULL, help));
 
   // ---------------------------------------------------------------------------
   // Create structs
   // ---------------------------------------------------------------------------
   AppCtx app_ctx;
-  ierr = PetscCalloc1(1, &app_ctx); CHKERRQ(ierr);
+  PetscCall(PetscCalloc1(1, &app_ctx));
 
   ProblemData *problem = NULL;
-  ierr = PetscCalloc1(1, &problem); CHKERRQ(ierr);
+  PetscCall(PetscCalloc1(1, &problem));
 
   User user;
-  ierr = PetscCalloc1(1, &user); CHKERRQ(ierr);
+  PetscCall(PetscCalloc1(1, &user));
 
   CeedData ceed_data;
-  ierr = PetscCalloc1(1, &ceed_data); CHKERRQ(ierr);
+  PetscCall(PetscCalloc1(1, &ceed_data));
 
   SimpleBC bc;
-  ierr = PetscCalloc1(1, &bc); CHKERRQ(ierr);
+  PetscCall(PetscCalloc1(1, &bc));
 
   Physics phys_ctx;
-  ierr = PetscCalloc1(1, &phys_ctx); CHKERRQ(ierr);
+  PetscCall(PetscCalloc1(1, &phys_ctx));
 
   Units units;
-  ierr = PetscCalloc1(1, &units); CHKERRQ(ierr);
+  PetscCall(PetscCalloc1(1, &units));
 
-  user->app_ctx = app_ctx;
-  user->units   = units;
-  user->phys    = phys_ctx;
+  user->app_ctx        = app_ctx;
+  user->units          = units;
+  user->phys           = phys_ctx;
   problem->bc_from_ics = PETSC_TRUE;
 
   // ---------------------------------------------------------------------------
   // Process command line options
   // ---------------------------------------------------------------------------
   // -- Register problems to be available on the command line
-  ierr = RegisterProblems_NS(app_ctx); CHKERRQ(ierr);
+  PetscCall(RegisterProblems_NS(app_ctx));
 
   // -- Process general command line options
   MPI_Comm comm = PETSC_COMM_WORLD;
-  user->comm = comm;
-  ierr = ProcessCommandLineOptions(comm, app_ctx, bc); CHKERRQ(ierr);
+  user->comm    = comm;
+  PetscCall(ProcessCommandLineOptions(comm, app_ctx, bc));
 
   // ---------------------------------------------------------------------------
   // Initialize libCEED
@@ -109,23 +107,25 @@ int main(int argc, char **argv) {
   // Set up global mesh
   // ---------------------------------------------------------------------------
   // -- Create DM
-  DM dm;
+  DM      dm;
   VecType vec_type = NULL;
   MatType mat_type = NULL;
   switch (mem_type_backend) {
-  case CEED_MEM_HOST: vec_type = VECSTANDARD; break;
-  case CEED_MEM_DEVICE: {
-    const char *resolved;
-    CeedGetResource(ceed, &resolved);
-    if (strstr(resolved, "/gpu/cuda")) vec_type = VECCUDA;
-    else if (strstr(resolved, "/gpu/hip")) vec_type = VECKOKKOS;
-    else vec_type = VECSTANDARD;
-  }
+    case CEED_MEM_HOST:
+      vec_type = VECSTANDARD;
+      break;
+    case CEED_MEM_DEVICE: {
+      const char *resolved;
+      CeedGetResource(ceed, &resolved);
+      if (strstr(resolved, "/gpu/cuda")) vec_type = VECCUDA;
+      else if (strstr(resolved, "/gpu/hip")) vec_type = VECKOKKOS;
+      else vec_type = VECSTANDARD;
+    }
   }
   if (strstr(vec_type, VECCUDA)) mat_type = MATAIJCUSPARSE;
   else if (strstr(vec_type, VECKOKKOS)) mat_type = MATAIJKOKKOS;
   else mat_type = MATAIJ;
-  ierr = CreateDM(comm, problem, mat_type, vec_type, &dm); CHKERRQ(ierr);
+  PetscCall(CreateDM(comm, problem, mat_type, vec_type, &dm));
   user->dm = dm;
   PetscCall(DMSetApplicationContext(dm, user));
 
@@ -134,55 +134,49 @@ int main(int argc, char **argv) {
   // ---------------------------------------------------------------------------
   {
     PetscErrorCode (*p)(ProblemData *, DM, void *);
-    ierr = PetscFunctionListFind(app_ctx->problems, app_ctx->problem_name, &p);
-    CHKERRQ(ierr);
-    if (!p) SETERRQ(PETSC_COMM_SELF, 1, "Problem '%s' not found",
-                      app_ctx->problem_name);
-    ierr = (*p)(problem, dm, &user); CHKERRQ(ierr);
+    PetscCall(PetscFunctionListFind(app_ctx->problems, app_ctx->problem_name, &p));
+    if (!p) SETERRQ(PETSC_COMM_SELF, 1, "Problem '%s' not found", app_ctx->problem_name);
+    PetscCall((*p)(problem, dm, &user));
   }
 
   // -- Set up DM
-  ierr = SetUpDM(dm, problem, app_ctx->degree, bc, phys_ctx);
-  CHKERRQ(ierr);
+  PetscCall(SetUpDM(dm, problem, app_ctx->degree, bc, phys_ctx));
 
   // -- Refine DM for high-order viz
   if (app_ctx->viz_refine) {
-    ierr = VizRefineDM(dm, user, problem, bc, phys_ctx);
-    CHKERRQ(ierr);
+    PetscCall(VizRefineDM(dm, user, problem, bc, phys_ctx));
   }
 
   // ---------------------------------------------------------------------------
   // Set up libCEED
   // ---------------------------------------------------------------------------
   // -- Set up libCEED objects
-  ierr = SetupLibceed(ceed, ceed_data, dm, user, app_ctx, problem, bc);
-  CHKERRQ(ierr);
+  PetscCall(SetupLibceed(ceed, ceed_data, dm, user, app_ctx, problem, bc));
 
   // ---------------------------------------------------------------------------
   // Set up ICs
   // ---------------------------------------------------------------------------
   // -- Set up global state vector Q
   Vec Q;
-  ierr = DMCreateGlobalVector(dm, &Q); CHKERRQ(ierr);
-  ierr = VecZeroEntries(Q); CHKERRQ(ierr);
+  PetscCall(DMCreateGlobalVector(dm, &Q));
+  PetscCall(VecZeroEntries(Q));
 
   // -- Set up local state vectors Q_loc, Q_dot_loc
-  ierr = DMCreateLocalVector(dm, &user->Q_loc); CHKERRQ(ierr);
-  ierr = DMCreateLocalVector(dm, &user->Q_dot_loc); CHKERRQ(ierr);
-  ierr = VecZeroEntries(user->Q_dot_loc); CHKERRQ(ierr);
+  PetscCall(DMCreateLocalVector(dm, &user->Q_loc));
+  PetscCall(DMCreateLocalVector(dm, &user->Q_dot_loc));
+  PetscCall(VecZeroEntries(user->Q_dot_loc));
 
   // -- Fix multiplicity for ICs
-  ierr = ICs_FixMultiplicity(dm, ceed_data, user, user->Q_loc, Q, 0.0);
-  CHKERRQ(ierr);
+  PetscCall(ICs_FixMultiplicity(dm, ceed_data, user, user->Q_loc, Q, 0.0));
 
   // ---------------------------------------------------------------------------
   // Set up lumped mass matrix
   // ---------------------------------------------------------------------------
   // -- Set up global mass vector
-  ierr = VecDuplicate(Q, &user->M); CHKERRQ(ierr);
+  PetscCall(VecDuplicate(Q, &user->M));
 
   // -- Compute lumped mass matrix
-  ierr = ComputeLumpedMassMatrix(ceed, dm, ceed_data, user->M); CHKERRQ(ierr);
+  PetscCall(ComputeLumpedMassMatrix(ceed, dm, ceed_data, user->M));
 
   // ---------------------------------------------------------------------------
   // Record boundary values from initial condition
@@ -193,7 +187,7 @@ int main(int argc, char **argv) {
   //    still get the same results due to the problem->bc function, but with
   //    potentially much slower execution.
   if (problem->bc_from_ics) {
-    ierr = SetBCsFromICs_NS(dm, Q, user->Q_loc); CHKERRQ(ierr);
+    PetscCall(SetBCsFromICs_NS(dm, Q, user->Q_loc));
   }
 
   // ---------------------------------------------------------------------------
@@ -201,14 +195,16 @@ int main(int argc, char **argv) {
   // ---------------------------------------------------------------------------
   PetscMPIInt rank;
   MPI_Comm_rank(comm, &rank);
-  if (!rank) {ierr = PetscMkdir(app_ctx->output_dir); CHKERRQ(ierr);}
+  if (!rank) {
+    PetscCall(PetscMkdir(app_ctx->output_dir));
+  }
 
   // ---------------------------------------------------------------------------
   // Gather initial Q values in case of continuation of simulation
   // ---------------------------------------------------------------------------
   // -- Set up initial values from binary file
   if (app_ctx->cont_steps) {
-    ierr = SetupICsFromBinary(comm, app_ctx, Q); CHKERRQ(ierr);
+    PetscCall(SetupICsFromBinary(comm, app_ctx, Q));
   }
 
   // ---------------------------------------------------------------------------
@@ -218,84 +214,78 @@ int main(int argc, char **argv) {
     // Header and rank
     char host_name[PETSC_MAX_PATH_LEN];
     int  comm_size;
-    ierr = PetscGetHostName(host_name, sizeof host_name); CHKERRQ(ierr);
-    ierr = MPI_Comm_size(comm, &comm_size); CHKERRQ(ierr);
-    ierr = PetscPrintf(comm,
-                       "\n-- Navier-Stokes solver - libCEED + PETSc --\n"
-                       "  MPI:\n"
-                       "    Host Name                          : %s\n"
-                       "    Total ranks                        : %d\n",
-                       host_name, comm_size); CHKERRQ(ierr);
+    PetscCall(PetscGetHostName(host_name, sizeof host_name));
+    PetscCall(MPI_Comm_size(comm, &comm_size));
+    PetscCall(PetscPrintf(comm,
+                          "\n-- Navier-Stokes solver - libCEED + PETSc --\n"
+                          "  MPI:\n"
+                          "    Host Name                          : %s\n"
+                          "    Total ranks                        : %d\n",
+                          host_name, comm_size));
 
     // Problem specific info
-    ierr = problem->print_info(problem, app_ctx); CHKERRQ(ierr);
+    PetscCall(problem->print_info(problem, app_ctx));
 
     // libCEED
     const char *used_resource;
     CeedGetResource(ceed, &used_resource);
-    ierr = PetscPrintf(comm,
-                       "  libCEED:\n"
-                       "    libCEED Backend                    : %s\n"
-                       "    libCEED Backend MemType            : %s\n",
-                       used_resource, CeedMemTypes[mem_type_backend]); CHKERRQ(ierr);
+    PetscCall(PetscPrintf(comm,
+                          "  libCEED:\n"
+                          "    libCEED Backend                    : %s\n"
+                          "    libCEED Backend MemType            : %s\n",
+                          used_resource, CeedMemTypes[mem_type_backend]));
     // PETSc
     char box_faces_str[PETSC_MAX_PATH_LEN] = "3,3,3";
     if (problem->dim == 2) box_faces_str[3] = '\0';
-    ierr = PetscOptionsGetString(NULL, NULL, "-dm_plex_box_faces", box_faces_str,
-                                 sizeof(box_faces_str), NULL); CHKERRQ(ierr);
+    PetscCall(PetscOptionsGetString(NULL, NULL, "-dm_plex_box_faces", box_faces_str, sizeof(box_faces_str), NULL));
     MatType mat_type;
     VecType vec_type;
-    ierr = DMGetMatType(dm, &mat_type); CHKERRQ(ierr);
-    ierr = DMGetVecType(dm, &vec_type); CHKERRQ(ierr);
-    ierr = PetscPrintf(comm,
-                       "  PETSc:\n"
-                       "    Box Faces                          : %s\n"
-                       "    DM MatType                         : %s\n"
-                       "    DM VecType                         : %s\n"
-                       "    Time Stepping Scheme               : %s\n",
-                       box_faces_str, mat_type, vec_type,
-                       phys_ctx->implicit ? "implicit" : "explicit"); CHKERRQ(ierr);
+    PetscCall(DMGetMatType(dm, &mat_type));
+    PetscCall(DMGetVecType(dm, &vec_type));
+    PetscCall(PetscPrintf(comm,
+                          "  PETSc:\n"
+                          "    Box Faces                          : %s\n"
+                          "    DM MatType                         : %s\n"
+                          "    DM VecType                         : %s\n"
+                          "    Time Stepping Scheme               : %s\n",
+                          box_faces_str, mat_type, vec_type, phys_ctx->implicit ? "implicit" : "explicit"));
     // Mesh
     const PetscInt num_comp_q = 5;
     CeedInt        glob_dofs, owned_dofs;
     PetscInt       glob_nodes, owned_nodes;
-    const CeedInt  num_P = app_ctx->degree + 1,
-                   num_Q = num_P + app_ctx->q_extra;
+    const CeedInt  num_P = app_ctx->degree + 1, num_Q = num_P + app_ctx->q_extra;
     // -- Get global size
-    ierr = VecGetSize(Q, &glob_dofs); CHKERRQ(ierr);
-    ierr = VecGetLocalSize(Q, &owned_dofs); CHKERRQ(ierr);
-    glob_nodes = glob_dofs/num_comp_q;
+    PetscCall(VecGetSize(Q, &glob_dofs));
+    PetscCall(VecGetLocalSize(Q, &owned_dofs));
+    glob_nodes = glob_dofs / num_comp_q;
     // -- Get local size
-    ierr = VecGetSize(user->Q_loc, &owned_nodes); CHKERRQ(ierr);
+    PetscCall(VecGetSize(user->Q_loc, &owned_nodes));
     owned_nodes /= num_comp_q;
-    ierr = PetscPrintf(comm,
-                       "  Mesh:\n"
-                       "    Number of 1D Basis Nodes (P)       : %" CeedInt_FMT "\n"
-                       "    Number of 1D Quadrature Points (Q) : %" CeedInt_FMT "\n"
-                       "    Global DoFs                        : %" PetscInt_FMT "\n"
-                       "    Owned DoFs                         : %" PetscInt_FMT "\n"
-                       "    DoFs per node                      : %" PetscInt_FMT "\n"
-                       "    Global nodes                       : %" PetscInt_FMT "\n"
-                       "    Owned nodes                        : %" PetscInt_FMT "\n",
-                       num_P, num_Q, glob_dofs, owned_dofs, num_comp_q,
-                       glob_nodes, owned_nodes); CHKERRQ(ierr);
+    PetscCall(PetscPrintf(comm,
+                          "  Mesh:\n"
+                          "    Number of 1D Basis Nodes (P)       : %" CeedInt_FMT "\n"
+                          "    Number of 1D Quadrature Points (Q) : %" CeedInt_FMT "\n"
+                          "    Global DoFs                        : %" PetscInt_FMT "\n"
+                          "    Owned DoFs                         : %" PetscInt_FMT "\n"
+                          "    DoFs per node                      : %" PetscInt_FMT "\n"
+                          "    Global nodes                       : %" PetscInt_FMT "\n"
+                          "    Owned nodes                        : %" PetscInt_FMT "\n",
+                          num_P, num_Q, glob_dofs, owned_dofs, num_comp_q, glob_nodes, owned_nodes));
   }
   // -- Zero Q_loc
-  ierr = VecZeroEntries(user->Q_loc); CHKERRQ(ierr);
+  PetscCall(VecZeroEntries(user->Q_loc));
 
   // ---------------------------------------------------------------------------
   // TS: Create, setup, and solve
   // ---------------------------------------------------------------------------
-  TS ts;
+  TS          ts;
   PetscScalar final_time;
-  ierr = TSSolve_NS(dm, user, app_ctx, phys_ctx, &Q, &final_time, &ts);
-  CHKERRQ(ierr);
+  PetscCall(TSSolve_NS(dm, user, app_ctx, phys_ctx, &Q, &final_time, &ts));
 
   // ---------------------------------------------------------------------------
   // Post-processing
   // ---------------------------------------------------------------------------
-  ierr = PostProcess_NS(ts, ceed_data, dm, problem, user, Q, final_time);
-  CHKERRQ(ierr);
+  PetscCall(PostProcess_NS(ts, ceed_data, dm, problem, user, Q, final_time));
 
   // ---------------------------------------------------------------------------
   // Destroy libCEED objects
@@ -348,34 +338,34 @@ int main(int argc, char **argv) {
   // Clean up PETSc
   // ---------------------------------------------------------------------------
   // -- Vectors
-  ierr = VecDestroy(&Q); CHKERRQ(ierr);
-  ierr = VecDestroy(&user->M); CHKERRQ(ierr);
-  ierr = VecDestroy(&user->Q_loc); CHKERRQ(ierr);
-  ierr = VecDestroy(&user->Q_dot_loc); CHKERRQ(ierr);
+  PetscCall(VecDestroy(&Q));
+  PetscCall(VecDestroy(&user->M));
+  PetscCall(VecDestroy(&user->Q_loc));
+  PetscCall(VecDestroy(&user->Q_dot_loc));
 
   // -- Matrices
-  ierr = MatDestroy(&user->interp_viz); CHKERRQ(ierr);
+  PetscCall(MatDestroy(&user->interp_viz));
 
   // -- DM
-  ierr = DMDestroy(&dm); CHKERRQ(ierr);
-  ierr = DMDestroy(&user->dm_viz); CHKERRQ(ierr);
+  PetscCall(DMDestroy(&dm));
+  PetscCall(DMDestroy(&user->dm_viz));
 
   // -- TS
-  ierr = TSDestroy(&ts); CHKERRQ(ierr);
+  PetscCall(TSDestroy(&ts));
 
   // -- Function list
-  ierr = PetscFunctionListDestroy(&app_ctx->problems); CHKERRQ(ierr);
+  PetscCall(PetscFunctionListDestroy(&app_ctx->problems));
 
   PetscCall(PetscFree(app_ctx->amat_type));
 
   // -- Structs
-  ierr = PetscFree(units); CHKERRQ(ierr);
-  ierr = PetscFree(user); CHKERRQ(ierr);
-  ierr = PetscFree(problem); CHKERRQ(ierr);
-  ierr = PetscFree(bc); CHKERRQ(ierr);
-  ierr = PetscFree(phys_ctx); CHKERRQ(ierr);
-  ierr = PetscFree(app_ctx); CHKERRQ(ierr);
-  ierr = PetscFree(ceed_data); CHKERRQ(ierr);
+  PetscCall(PetscFree(units));
+  PetscCall(PetscFree(user));
+  PetscCall(PetscFree(problem));
+  PetscCall(PetscFree(bc));
+  PetscCall(PetscFree(phys_ctx));
+  PetscCall(PetscFree(app_ctx));
+  PetscCall(PetscFree(ceed_data));
 
   return PetscFinalize();
 }

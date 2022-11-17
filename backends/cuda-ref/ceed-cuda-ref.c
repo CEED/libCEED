@@ -5,13 +5,14 @@
 //
 // This file is part of CEED:  http://github.com/ceed
 
-#include <ceed/ceed.h>
+#include "ceed-cuda-ref.h"
+
 #include <ceed/backend.h>
+#include <ceed/ceed.h>
 #include <cublas_v2.h>
 #include <cuda.h>
 #include <cuda_runtime.h>
 #include <string.h>
-#include "ceed-cuda-ref.h"
 
 //------------------------------------------------------------------------------
 // CUDA preferred MemType
@@ -25,13 +26,10 @@ static int CeedGetPreferredMemType_Cuda(CeedMemType *mem_type) {
 // Get CUBLAS handle
 //------------------------------------------------------------------------------
 int CeedCudaGetCublasHandle(Ceed ceed, cublasHandle_t *handle) {
-  int ierr;
   Ceed_Cuda *data;
-  ierr = CeedGetData(ceed, &data); CeedChkBackend(ierr);
+  CeedCallBackend(CeedGetData(ceed, &data));
 
-  if (!data->cublas_handle) {
-    ierr = cublasCreate(&data->cublas_handle); CeedChk_Cublas(ceed, ierr);
-  }
+  if (!data->cublas_handle) CeedCallCublas(ceed, cublasCreate(&data->cublas_handle));
   *handle = data->cublas_handle;
   return CEED_ERROR_SUCCESS;
 }
@@ -40,53 +38,36 @@ int CeedCudaGetCublasHandle(Ceed ceed, cublasHandle_t *handle) {
 // Backend Init
 //------------------------------------------------------------------------------
 static int CeedInit_Cuda(const char *resource, Ceed ceed) {
-  int ierr;
-
   char *resource_root;
-  ierr = CeedCudaGetResourceRoot(ceed, resource, &resource_root);
-  CeedChkBackend(ierr);
-  if (strcmp(resource_root, "/gpu/cuda/ref"))
+  CeedCallBackend(CeedCudaGetResourceRoot(ceed, resource, &resource_root));
+  if (strcmp(resource_root, "/gpu/cuda/ref")) {
     // LCOV_EXCL_START
-    return CeedError(ceed, CEED_ERROR_BACKEND,
-                     "Cuda backend cannot use resource: %s", resource);
-  // LCOV_EXCL_STOP
-  ierr = CeedFree(&resource_root); CeedChkBackend(ierr);
-  ierr = CeedSetDeterministic(ceed, true); CeedChkBackend(ierr);
+    return CeedError(ceed, CEED_ERROR_BACKEND, "Cuda backend cannot use resource: %s", resource);
+    // LCOV_EXCL_STOP
+  }
+  CeedCallBackend(CeedFree(&resource_root));
+  CeedCallBackend(CeedSetDeterministic(ceed, true));
 
   Ceed_Cuda *data;
-  ierr = CeedCalloc(1, &data); CeedChkBackend(ierr);
-  ierr = CeedSetData(ceed, data); CeedChkBackend(ierr);
-  ierr = CeedCudaInit(ceed, resource); CeedChkBackend(ierr);
+  CeedCallBackend(CeedCalloc(1, &data));
+  CeedCallBackend(CeedSetData(ceed, data));
+  CeedCallBackend(CeedCudaInit(ceed, resource));
 
-  ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "GetPreferredMemType",
-                                CeedGetPreferredMemType_Cuda); CeedChkBackend(ierr);
-  ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "VectorCreate",
-                                CeedVectorCreate_Cuda); CeedChkBackend(ierr);
-  ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "BasisCreateTensorH1",
-                                CeedBasisCreateTensorH1_Cuda); CeedChkBackend(ierr);
-  ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "BasisCreateH1",
-                                CeedBasisCreateH1_Cuda); CeedChkBackend(ierr);
-  ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "ElemRestrictionCreate",
-                                CeedElemRestrictionCreate_Cuda); CeedChkBackend(ierr);
-  ierr = CeedSetBackendFunction(ceed, "Ceed", ceed,
-                                "ElemRestrictionCreateBlocked",
-                                CeedElemRestrictionCreateBlocked_Cuda);
-  CeedChkBackend(ierr);
-  ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "QFunctionCreate",
-                                CeedQFunctionCreate_Cuda); CeedChkBackend(ierr);
-  ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "QFunctionContextCreate",
-                                CeedQFunctionContextCreate_Cuda); CeedChkBackend(ierr);
-  ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "OperatorCreate",
-                                CeedOperatorCreate_Cuda); CeedChkBackend(ierr);
-  ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "Destroy",
-                                CeedDestroy_Cuda); CeedChkBackend(ierr);
+  CeedCallBackend(CeedSetBackendFunction(ceed, "Ceed", ceed, "GetPreferredMemType", CeedGetPreferredMemType_Cuda));
+  CeedCallBackend(CeedSetBackendFunction(ceed, "Ceed", ceed, "VectorCreate", CeedVectorCreate_Cuda));
+  CeedCallBackend(CeedSetBackendFunction(ceed, "Ceed", ceed, "BasisCreateTensorH1", CeedBasisCreateTensorH1_Cuda));
+  CeedCallBackend(CeedSetBackendFunction(ceed, "Ceed", ceed, "BasisCreateH1", CeedBasisCreateH1_Cuda));
+  CeedCallBackend(CeedSetBackendFunction(ceed, "Ceed", ceed, "ElemRestrictionCreate", CeedElemRestrictionCreate_Cuda));
+  CeedCallBackend(CeedSetBackendFunction(ceed, "Ceed", ceed, "ElemRestrictionCreateBlocked", CeedElemRestrictionCreateBlocked_Cuda));
+  CeedCallBackend(CeedSetBackendFunction(ceed, "Ceed", ceed, "QFunctionCreate", CeedQFunctionCreate_Cuda));
+  CeedCallBackend(CeedSetBackendFunction(ceed, "Ceed", ceed, "QFunctionContextCreate", CeedQFunctionContextCreate_Cuda));
+  CeedCallBackend(CeedSetBackendFunction(ceed, "Ceed", ceed, "OperatorCreate", CeedOperatorCreate_Cuda));
+  CeedCallBackend(CeedSetBackendFunction(ceed, "Ceed", ceed, "Destroy", CeedDestroy_Cuda));
   return CEED_ERROR_SUCCESS;
 }
 
 //------------------------------------------------------------------------------
 // Backend Register
 //------------------------------------------------------------------------------
-CEED_INTERN int CeedRegister_Cuda(void) {
-  return CeedRegister("/gpu/cuda/ref", CeedInit_Cuda, 40);
-}
+CEED_INTERN int CeedRegister_Cuda(void) { return CeedRegister("/gpu/cuda/ref", CeedInit_Cuda, 40); }
 //------------------------------------------------------------------------------

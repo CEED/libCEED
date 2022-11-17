@@ -4,17 +4,13 @@
 #include <ceed.h>
 
 int main(int argc, char **argv) {
-  Ceed ceed;
+  Ceed    ceed;
   CeedInt type = -1;
 
   CeedInit(argv[1], &ceed);
 
   CeedGetPreferredMemType(ceed, (CeedMemType *)&type);
-  if (type == -1)
-    // LCOV_EXCL_START
-    printf("Error getting preferred memory type. %" CeedInt_FMT
-           "\n", type);
-  // LCOV_EXCL_STOP
+  if (type == -1) printf("Error getting preferred memory type. %" CeedInt_FMT "\n", type);
 
   CeedDestroy(&ceed);
   return 0;

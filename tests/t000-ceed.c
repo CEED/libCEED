@@ -8,12 +8,9 @@ int main(int argc, char **argv) {
 
   {
     int major, minor, patch;
+
     CeedGetVersion(&major, &minor, &patch, NULL);
-    if (!CEED_VERSION_GE(major, minor, patch)) {
-      // LCOV_EXCL_START
-      printf("Library version mismatch %d.%d.%d\n", major, minor, patch);
-      // LCOV_EXCL_STOP
-    }
+    if (!CEED_VERSION_GE(major, minor, patch)) printf("Library version mismatch %d.%d.%d\n", major, minor, patch);
   }
 
   CeedInit(argv[1], &ceed);

@@ -14,64 +14,61 @@
 #include "ceed-occa-operator-args.hpp"
 
 namespace ceed {
-  namespace occa {
-    typedef std::vector<ceed::occa::Vector*> VectorVector_t;
+namespace occa {
+typedef std::vector<ceed::occa::Vector *> VectorVector_t;
 
-    class QFunction;
+class QFunction;
 
-    class Operator : public CeedObject {
-     public:
-      // Ceed object information
-      CeedInt ceedQ;
-      CeedInt ceedElementCount;
+class Operator : public CeedObject {
+ public:
+  // Ceed object information
+  CeedInt ceedQ;
+  CeedInt ceedElementCount;
 
-      // Owned resources
-      QFunction *qfunction;
-      OperatorArgs args;
-      ::occa::kernel applyAddKernel;
-      bool needsInitialSetup;
+  // Owned resources
+  QFunction     *qfunction;
+  OperatorArgs   args;
+  ::occa::kernel applyAddKernel;
+  bool           needsInitialSetup;
 
-      // Reference to other memory
-      ::occa::memory qFunctionContextData;
+  // Reference to other memory
+  ::occa::memory qFunctionContextData;
 
-      Operator();
-      virtual ~Operator();
+  Operator();
+  virtual ~Operator();
 
-      static Operator* getOperator(CeedOperator op,
-                                   const bool assertValid = true);
+  static Operator *getOperator(CeedOperator op, const bool assertValid = true);
 
-      static Operator* from(CeedOperator op);
+  static Operator *from(CeedOperator op);
 
-      bool isApplyingIdentityFunction();
+  bool isApplyingIdentityFunction();
 
-      int applyAdd(Vector *in, Vector *out, CeedRequest *request);
+  int applyAdd(Vector *in, Vector *out, CeedRequest *request);
 
-      //---[ Virtual Methods ]----------
-      virtual ::occa::kernel buildApplyAddKernel() = 0;
+  //---[ Virtual Methods ]----------
+  virtual ::occa::kernel buildApplyAddKernel() = 0;
 
-      virtual void initialSetup();
+  virtual void initialSetup();
 
-      virtual void applyAdd(Vector *in, Vector *out) = 0;
+  virtual void applyAdd(Vector *in, Vector *out) = 0;
 
-      //---[ Ceed Callbacks ]-----------
-      static int registerCeedFunction(Ceed ceed, CeedOperator op,
-                                      const char *fname, ceed::occa::ceedFunction f);
+  //---[ Ceed Callbacks ]-----------
+  static int registerCeedFunction(Ceed ceed, CeedOperator op, const char *fname, ceed::occa::ceedFunction f);
 
-      static int ceedCreate(CeedOperator op);
-      static int ceedCreateComposite(CeedOperator op);
+  static int ceedCreate(CeedOperator op);
+  static int ceedCreateComposite(CeedOperator op);
 
-      static int ceedLinearAssembleQFunction(CeedOperator op);
-      static int ceedLinearAssembleQFunctionUpdate(CeedOperator op);
-      static int ceedLinearAssembleAddDiagonal(CeedOperator op);
-      static int ceedLinearAssembleAddPointBlockDiagonal(CeedOperator op);
-      static int ceedCreateFDMElementInverse(CeedOperator op);
+  static int ceedLinearAssembleQFunction(CeedOperator op);
+  static int ceedLinearAssembleQFunctionUpdate(CeedOperator op);
+  static int ceedLinearAssembleAddDiagonal(CeedOperator op);
+  static int ceedLinearAssembleAddPointBlockDiagonal(CeedOperator op);
+  static int ceedCreateFDMElementInverse(CeedOperator op);
 
-      static int ceedApplyAdd(CeedOperator op,
-                              CeedVector invec, CeedVector outvec, CeedRequest *request);
+  static int ceedApplyAdd(CeedOperator op, CeedVector invec, CeedVector outvec, CeedRequest *request);
 
-      static int ceedDestroy(CeedOperator op);
-    };
-  }
-}
+  static int ceedDestroy(CeedOperator op);
+};
+}  // namespace occa
+}  // namespace ceed
 
 #endif

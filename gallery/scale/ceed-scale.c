@@ -5,24 +5,22 @@
 //
 // This file is part of CEED:  http://github.com/ceed
 
-#include <ceed/ceed.h>
 #include <ceed/backend.h>
-#include <string.h>
+#include <ceed/ceed.h>
 #include <ceed/jit-source/gallery/ceed-scale.h>
+#include <string.h>
 
 /**
   @brief  Set fields for vector scaling QFunction that scales inputs
 **/
-static int CeedQFunctionInit_Scale(Ceed ceed, const char *requested,
-                                   CeedQFunction qf) {
+static int CeedQFunctionInit_Scale(Ceed ceed, const char *requested, CeedQFunction qf) {
   // Check QFunction name
   const char *name = "Scale";
-  if (strcmp(name, requested))
+  if (strcmp(name, requested)) {
     // LCOV_EXCL_START
-    return CeedError(ceed, CEED_ERROR_UNSUPPORTED,
-                     "QFunction '%s' does not match requested name: %s",
-                     name, requested);
-  // LCOV_EXCL_STOP
+    return CeedError(ceed, CEED_ERROR_UNSUPPORTED, "QFunction '%s' does not match requested name: %s", name, requested);
+    // LCOV_EXCL_STOP
+  }
 
   // QFunction fields 'input' and 'output' with requested emodes added
   //   by the library rather than being added here
@@ -33,7 +31,4 @@ static int CeedQFunctionInit_Scale(Ceed ceed, const char *requested,
 /**
   @brief Register scaling QFunction
 **/
-CEED_INTERN int CeedQFunctionRegister_Scale(void) {
-  return CeedQFunctionRegister("Scale", Scale_loc, 1, Scale,
-                               CeedQFunctionInit_Scale);
-}
+CEED_INTERN int CeedQFunctionRegister_Scale(void) { return CeedQFunctionRegister("Scale", Scale_loc, 1, Scale, CeedQFunctionInit_Scale); }

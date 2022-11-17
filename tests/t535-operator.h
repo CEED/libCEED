@@ -7,20 +7,16 @@
 
 #include <ceed.h>
 
-CEED_QFUNCTION(setup_mass)(void *ctx, const CeedInt Q,
-                           const CeedScalar *const *in,
-                           CeedScalar *const *out) {
+CEED_QFUNCTION(setup_mass)(void *ctx, const CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
   const CeedScalar *J = in[0], *weight = in[1];
-  CeedScalar *rho = out[0];
-  for (CeedInt i=0; i<Q; i++) {
-    rho[i] = weight[i] * (J[i+Q*0]*J[i+Q*3] - J[i+Q*1]*J[i+Q*2]);
+  CeedScalar       *rho = out[0];
+  for (CeedInt i = 0; i < Q; i++) {
+    rho[i] = weight[i] * (J[i + Q * 0] * J[i + Q * 3] - J[i + Q * 1] * J[i + Q * 2]);
   }
   return 0;
 }
 
-CEED_QFUNCTION(setup_diff)(void *ctx, const CeedInt Q,
-                           const CeedScalar *const *in,
-                           CeedScalar *const *out) {
+CEED_QFUNCTION(setup_diff)(void *ctx, const CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
   // At every quadrature point, compute qw/det(J).adj(J).adj(J)^T and store
   // the symmetric part of the result.
 
@@ -32,24 +28,23 @@ CEED_QFUNCTION(setup_diff)(void *ctx, const CeedInt Q,
   CeedScalar *qd = out[0];
 
   // Quadrature point loop
-  for (CeedInt i=0; i<Q; i++) {
+  for (CeedInt i = 0; i < Q; i++) {
     // J: 0 2   qd: 0 2   adj(J):  J22 -J12
     //    1 3       2 1           -J21  J11
-    const CeedScalar J11 = J[i+Q*0];
-    const CeedScalar J21 = J[i+Q*1];
-    const CeedScalar J12 = J[i+Q*2];
-    const CeedScalar J22 = J[i+Q*3];
-    const CeedScalar w = qw[i] / (J11*J22 - J21*J12);
-    qd[i+Q*0] =   w * (J12*J12 + J22*J22);
-    qd[i+Q*1] =   w * (J11*J11 + J21*J21);
-    qd[i+Q*2] = - w * (J11*J12 + J21*J22);
+    const CeedScalar J11 = J[i + Q * 0];
+    const CeedScalar J21 = J[i + Q * 1];
+    const CeedScalar J12 = J[i + Q * 2];
+    const CeedScalar J22 = J[i + Q * 3];
+    const CeedScalar w   = qw[i] / (J11 * J22 - J21 * J12);
+    qd[i + Q * 0]        = w * (J12 * J12 + J22 * J22);
+    qd[i + Q * 1]        = w * (J11 * J11 + J21 * J21);
+    qd[i + Q * 2]        = -w * (J11 * J12 + J21 * J22);
   }
 
   return 0;
 }
 
-CEED_QFUNCTION(apply)(void *ctx, const CeedInt Q, const CeedScalar *const *in,
-                      CeedScalar *const *out) {
+CEED_QFUNCTION(apply)(void *ctx, const CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
   // in[0] is gradient u, shape [2, nc=1, Q]
   // in[1] is mass quadrature data, size (Q)
   // in[2] is Poisson quadrature data, size (Q)
@@ -61,14 +56,14 @@ CEED_QFUNCTION(apply)(void *ctx, const CeedInt Q, const CeedScalar *const *in,
   CeedScalar *v = out[0], *dv = out[1];
 
   // Quadrature point loop
-  for (CeedInt i=0; i<Q; i++) {
+  for (CeedInt i = 0; i < Q; i++) {
     // Mass
-    v[i] = qd_mass[i]*u[i];
+    v[i] = qd_mass[i] * u[i];
     // Diff
-    const CeedScalar du0 = du[i+Q*0];
-    const CeedScalar du1 = du[i+Q*1];
-    dv[i+Q*0] = qd_diff[i+Q*0]*du0 + qd_diff[i+Q*2]*du1;
-    dv[i+Q*1] = qd_diff[i+Q*2]*du0 + qd_diff[i+Q*1]*du1;
+    const CeedScalar du0 = du[i + Q * 0];
+    const CeedScalar du1 = du[i + Q * 1];
+    dv[i + Q * 0]        = qd_diff[i + Q * 0] * du0 + qd_diff[i + Q * 2] * du1;
+    dv[i + Q * 1]        = qd_diff[i + Q * 2] * du0 + qd_diff[i + Q * 1] * du1;
   }
 
   return 0;

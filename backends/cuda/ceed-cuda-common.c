@@ -5,21 +5,17 @@
 //
 // This file is part of CEED:  http://github.com/ceed
 
-#include <string.h>
 #include "ceed-cuda-common.h"
+
+#include <string.h>
 
 //------------------------------------------------------------------------------
 // Get root resource without device spec
 //------------------------------------------------------------------------------
-int CeedCudaGetResourceRoot(Ceed ceed, const char *resource,
-                            char **resource_root) {
-  int ierr;
-
-  char *device_spec = strstr(resource, ":device_id=");
-  size_t resource_root_len = device_spec
-                             ? (size_t)(device_spec - resource) + 1
-                             : strlen(resource) + 1;
-  ierr = CeedCalloc(resource_root_len, resource_root); CeedChkBackend(ierr);
+int CeedCudaGetResourceRoot(Ceed ceed, const char *resource, char **resource_root) {
+  char  *device_spec       = strstr(resource, ":device_id=");
+  size_t resource_root_len = device_spec ? (size_t)(device_spec - resource) + 1 : strlen(resource) + 1;
+  CeedCallBackend(CeedCalloc(resource_root_len, resource_root));
   memcpy(*resource_root, resource, resource_root_len - 1);
 
   return CEED_ERROR_SUCCESS;
@@ -29,21 +25,19 @@ int CeedCudaGetResourceRoot(Ceed ceed, const char *resource,
 // Device information backend init
 //------------------------------------------------------------------------------
 int CeedCudaInit(Ceed ceed, const char *resource) {
-  int ierr;
   const char *device_spec = strstr(resource, ":device_id=");
-  const int device_id = (device_spec) ? atoi(device_spec + 11) : -1;
+  const int   device_id   = (device_spec) ? atoi(device_spec + 11) : -1;
 
   int current_device_id;
-  ierr = cudaGetDevice(&current_device_id); CeedChk_Cu(ceed, ierr);
+  CeedCallCuda(ceed, cudaGetDevice(&current_device_id));
   if (device_id >= 0 && current_device_id != device_id) {
-    ierr = cudaSetDevice(device_id); CeedChk_Cu(ceed, ierr);
+    CeedCallCuda(ceed, cudaSetDevice(device_id));
     current_device_id = device_id;
   }
   Ceed_Cuda *data;
-  ierr = CeedGetData(ceed, &data); CeedChkBackend(ierr);
+  CeedCallBackend(CeedGetData(ceed, &data));
   data->device_id = current_device_id;
-  ierr = cudaGetDeviceProperties(&data->device_prop, current_device_id);
-  CeedChk_Cu(ceed, ierr);
+  CeedCallCuda(ceed, cudaGetDeviceProperties(&data->device_prop, current_device_id));
   return CEED_ERROR_SUCCESS;
 }
 
@@ -51,13 +45,10 @@ int CeedCudaInit(Ceed ceed, const char *resource) {
 // Backend destroy
 //------------------------------------------------------------------------------
 int CeedDestroy_Cuda(Ceed ceed) {
-  int ierr;
   Ceed_Cuda *data;
-  ierr = CeedGetData(ceed, &data); CeedChkBackend(ierr);
-  if (data->cublas_handle) {
-    ierr = cublasDestroy(data->cublas_handle); CeedChk_Cublas(ceed, ierr);
-  }
-  ierr = CeedFree(&data); CeedChkBackend(ierr);
+  CeedCallBackend(CeedGetData(ceed, &data));
+  if (data->cublas_handle) CeedCallCublas(ceed, cublasDestroy(data->cublas_handle));
+  CeedCallBackend(CeedFree(&data));
   return CEED_ERROR_SUCCESS;
 }
 

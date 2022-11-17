@@ -12,15 +12,13 @@
 
 #include <ceed.h>
 
-
 //------------------------------------------------------------------------------
 // Helper function: load matrices for basis actions
 //------------------------------------------------------------------------------
 template <int SIZE>
-inline __device__ void loadMatrix(const CeedScalar* d_B, CeedScalar* B) {
-  CeedInt tid = threadIdx.x + threadIdx.y*blockDim.x + threadIdx.z*blockDim.y*blockDim.x;
-  for (CeedInt i = tid; i < SIZE; i += blockDim.x*blockDim.y*blockDim.z)
-    B[i] = d_B[i];
+inline __device__ void loadMatrix(const CeedScalar *d_B, CeedScalar *B) {
+  CeedInt tid = threadIdx.x + threadIdx.y * blockDim.x + threadIdx.z * blockDim.y * blockDim.x;
+  for (CeedInt i = tid; i < SIZE; i += blockDim.x * blockDim.y * blockDim.z) B[i] = d_B[i];
 }
 
 //------------------------------------------------------------------------------
@@ -31,10 +29,11 @@ inline __device__ void loadMatrix(const CeedScalar* d_B, CeedScalar* B) {
 // E-vector -> single element
 //------------------------------------------------------------------------------
 template <int NUM_COMP, int P_1D>
-inline __device__ void ReadElementStrided1d(SharedData_Hip &data, const CeedInt elem, const CeedInt strides_node, const CeedInt strides_comp, const CeedInt strides_elem, const CeedScalar *__restrict__ d_u, CeedScalar *r_u) {
+inline __device__ void ReadElementStrided1d(SharedData_Hip &data, const CeedInt elem, const CeedInt strides_node, const CeedInt strides_comp,
+                                            const CeedInt strides_elem, const CeedScalar *__restrict__ d_u, CeedScalar *r_u) {
   if (data.t_id_x < P_1D) {
     const CeedInt node = data.t_id_x;
-    const CeedInt ind = node * strides_node + elem * strides_elem;
+    const CeedInt ind  = node * strides_node + elem * strides_elem;
     for (CeedInt comp = 0; comp < NUM_COMP; comp++) {
       r_u[comp] = d_u[ind + comp * strides_comp];
     }
@@ -45,10 +44,11 @@ inline __device__ void ReadElementStrided1d(SharedData_Hip &data, const CeedInt 
 // Single element -> E-vector
 //------------------------------------------------------------------------------
 template <int NUM_COMP, int P_1D>
-inline __device__ void WriteElementStrided1d(SharedData_Hip &data, const CeedInt elem, const CeedInt strides_node, const CeedInt strides_comp, const CeedInt strides_elem, const CeedScalar *r_v, CeedScalar *d_v) {
+inline __device__ void WriteElementStrided1d(SharedData_Hip &data, const CeedInt elem, const CeedInt strides_node, const CeedInt strides_comp,
+                                             const CeedInt strides_elem, const CeedScalar *r_v, CeedScalar *d_v) {
   if (data.t_id_x < P_1D) {
     const CeedInt node = data.t_id_x;
-    const CeedInt ind = node * strides_node + elem * strides_elem;
+    const CeedInt ind  = node * strides_node + elem * strides_elem;
     for (CeedInt comp = 0; comp < NUM_COMP; comp++) {
       d_v[ind + comp * strides_comp] = r_v[comp];
     }
@@ -63,10 +63,11 @@ inline __device__ void WriteElementStrided1d(SharedData_Hip &data, const CeedInt
 // E-vector -> single element
 //------------------------------------------------------------------------------
 template <int NUM_COMP, int P_1D>
-inline __device__ void ReadElementStrided2d(SharedData_Hip &data, const CeedInt elem, const CeedInt strides_node, const CeedInt strides_comp, const CeedInt strides_elem, const CeedScalar *__restrict__ d_u, CeedScalar *r_u) {
+inline __device__ void ReadElementStrided2d(SharedData_Hip &data, const CeedInt elem, const CeedInt strides_node, const CeedInt strides_comp,
+                                            const CeedInt strides_elem, const CeedScalar *__restrict__ d_u, CeedScalar *r_u) {
   if (data.t_id_x < P_1D && data.t_id_y < P_1D) {
-    const CeedInt node = data.t_id_x + data.t_id_y*P_1D;
-    const CeedInt ind = node * strides_node + elem * strides_elem;
+    const CeedInt node = data.t_id_x + data.t_id_y * P_1D;
+    const CeedInt ind  = node * strides_node + elem * strides_elem;
     for (CeedInt comp = 0; comp < NUM_COMP; comp++) {
       r_u[comp] = d_u[ind + comp * strides_comp];
     }
@@ -77,10 +78,11 @@ inline __device__ void ReadElementStrided2d(SharedData_Hip &data, const CeedInt 
 // Single element -> E-vector
 //------------------------------------------------------------------------------
 template <int NUM_COMP, int P_1D>
-inline __device__ void WriteElementStrided2d(SharedData_Hip &data, const CeedInt elem, const CeedInt strides_node, const CeedInt strides_comp, const CeedInt strides_elem, const CeedScalar *r_v, CeedScalar *d_v) {
+inline __device__ void WriteElementStrided2d(SharedData_Hip &data, const CeedInt elem, const CeedInt strides_node, const CeedInt strides_comp,
+                                             const CeedInt strides_elem, const CeedScalar *r_v, CeedScalar *d_v) {
   if (data.t_id_x < P_1D && data.t_id_y < P_1D) {
-    const CeedInt node = data.t_id_x + data.t_id_y*P_1D;
-    const CeedInt ind = node * strides_node + elem * strides_elem;
+    const CeedInt node = data.t_id_x + data.t_id_y * P_1D;
+    const CeedInt ind  = node * strides_node + elem * strides_elem;
     for (CeedInt comp = 0; comp < NUM_COMP; comp++) {
       d_v[ind + comp * strides_comp] = r_v[comp];
     }
@@ -95,11 +97,12 @@ inline __device__ void WriteElementStrided2d(SharedData_Hip &data, const CeedInt
 // E-vector -> single element
 //------------------------------------------------------------------------------
 template <int NUM_COMP, int P_1D>
-inline __device__ void ReadElementStrided3d(SharedData_Hip &data, const CeedInt elem, const CeedInt strides_node, const CeedInt strides_comp, const CeedInt strides_elem, const CeedScalar *__restrict__ d_u, CeedScalar *r_u) {
+inline __device__ void ReadElementStrided3d(SharedData_Hip &data, const CeedInt elem, const CeedInt strides_node, const CeedInt strides_comp,
+                                            const CeedInt strides_elem, const CeedScalar *__restrict__ d_u, CeedScalar *r_u) {
   if (data.t_id_x < P_1D && data.t_id_y < P_1D) {
     for (CeedInt z = 0; z < P_1D; z++) {
-      const CeedInt node = data.t_id_x + data.t_id_y*P_1D + z*P_1D*P_1D;
-      const CeedInt ind = node * strides_node + elem * strides_elem;
+      const CeedInt node = data.t_id_x + data.t_id_y * P_1D + z * P_1D * P_1D;
+      const CeedInt ind  = node * strides_node + elem * strides_elem;
       for (CeedInt comp = 0; comp < NUM_COMP; comp++) {
         r_u[z + comp * P_1D] = d_u[ind + comp * strides_comp];
       }
@@ -111,11 +114,12 @@ inline __device__ void ReadElementStrided3d(SharedData_Hip &data, const CeedInt 
 // Single element -> E-vector
 //------------------------------------------------------------------------------
 template <int NUM_COMP, int P_1D>
-inline __device__ void WriteElementStrided3d(SharedData_Hip &data, const CeedInt elem, const CeedInt strides_node, const CeedInt strides_comp, const CeedInt strides_elem, const CeedScalar *r_v, CeedScalar *d_v) {
+inline __device__ void WriteElementStrided3d(SharedData_Hip &data, const CeedInt elem, const CeedInt strides_node, const CeedInt strides_comp,
+                                             const CeedInt strides_elem, const CeedScalar *r_v, CeedScalar *d_v) {
   if (data.t_id_x < P_1D && data.t_id_y < P_1D) {
     for (CeedInt z = 0; z < P_1D; z++) {
-      const CeedInt node = data.t_id_x + data.t_id_y*P_1D + z*P_1D*P_1D;
-      const CeedInt ind = node * strides_node + elem * strides_elem;
+      const CeedInt node = data.t_id_x + data.t_id_y * P_1D + z * P_1D * P_1D;
+      const CeedInt ind  = node * strides_node + elem * strides_elem;
       for (CeedInt comp = 0; comp < NUM_COMP; comp++) {
         d_v[ind + comp * strides_comp] = r_v[z + comp * P_1D];
       }

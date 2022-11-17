@@ -5,9 +5,9 @@
 //
 // This file is part of CEED:  http://github.com/ceed
 
-#include <ceed/ceed.h>
-#include <ceed/backend.h>
 #include <ceed-impl.h>
+#include <ceed/backend.h>
+#include <ceed/ceed.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <string.h>
@@ -32,12 +32,11 @@
 
   @ref Developer
 **/
-int CeedQFunctionContextGetFieldIndex(CeedQFunctionContext ctx,
-                                      const char *field_name, CeedInt *field_index) {
+int CeedQFunctionContextGetFieldIndex(CeedQFunctionContext ctx, const char *field_name, CeedInt *field_index) {
   *field_index = -1;
-  for (CeedInt i=0; i<ctx->num_fields; i++)
-    if (!strcmp(ctx->field_labels[i]->name, field_name))
-      *field_index = i;
+  for (CeedInt i = 0; i < ctx->num_fields; i++) {
+    if (!strcmp(ctx->field_labels[i]->name, field_name)) *field_index = i;
+  }
   return CEED_ERROR_SUCCESS;
 }
 
@@ -56,45 +55,33 @@ int CeedQFunctionContextGetFieldIndex(CeedQFunctionContext ctx,
 
   @ref Developer
 **/
-int CeedQFunctionContextRegisterGeneric(CeedQFunctionContext ctx,
-                                        const char *field_name, size_t field_offset,
-                                        const char *field_description,
-                                        CeedContextFieldType field_type,
-                                        size_t field_size, size_t num_values) {
-  int ierr;
-
+int CeedQFunctionContextRegisterGeneric(CeedQFunctionContext ctx, const char *field_name, size_t field_offset, const char *field_description,
+                                        CeedContextFieldType field_type, size_t field_size, size_t num_values) {
   // Check for duplicate
   CeedInt field_index = -1;
-  ierr = CeedQFunctionContextGetFieldIndex(ctx, field_name, &field_index);
-  CeedChk(ierr);
-  if (field_index != -1)
+  CeedCall(CeedQFunctionContextGetFieldIndex(ctx, field_name, &field_index));
+  if (field_index != -1) {
     // LCOV_EXCL_START
-    return CeedError(ctx->ceed, CEED_ERROR_UNSUPPORTED,
-                     "QFunctionContext field with name \"%s\" already registered",
-                     field_name);
-  // LCOV_EXCL_STOP
+    return CeedError(ctx->ceed, CEED_ERROR_UNSUPPORTED, "QFunctionContext field with name \"%s\" already registered", field_name);
+    // LCOV_EXCL_STOP
+  }
 
   // Allocate space for field data
   if (ctx->num_fields == 0) {
-    ierr = CeedCalloc(1, &ctx->field_labels); CeedChk(ierr);
+    CeedCall(CeedCalloc(1, &ctx->field_labels));
     ctx->max_fields = 1;
   } else if (ctx->num_fields == ctx->max_fields) {
-    ierr = CeedRealloc(2*ctx->max_fields, &ctx->field_labels);
-    CeedChk(ierr);
+    CeedCall(CeedRealloc(2 * ctx->max_fields, &ctx->field_labels));
     ctx->max_fields *= 2;
   }
-  ierr = CeedCalloc(1, &ctx->field_labels[ctx->num_fields]); CeedChk(ierr);
+  CeedCall(CeedCalloc(1, &ctx->field_labels[ctx->num_fields]));
 
   // Copy field data
-  ierr = CeedStringAllocCopy(field_name,
-                             (char **)&ctx->field_labels[ctx->num_fields]->name);
-  CeedChk(ierr);
-  ierr = CeedStringAllocCopy(field_description,
-                             (char **)&ctx->field_labels[ctx->num_fields]->description);
-  CeedChk(ierr);
-  ctx->field_labels[ctx->num_fields]->type = field_type;
-  ctx->field_labels[ctx->num_fields]->offset = field_offset;
-  ctx->field_labels[ctx->num_fields]->size = field_size * num_values;
+  CeedCall(CeedStringAllocCopy(field_name, (char **)&ctx->field_labels[ctx->num_fields]->name));
+  CeedCall(CeedStringAllocCopy(field_description, (char **)&ctx->field_labels[ctx->num_fields]->description));
+  ctx->field_labels[ctx->num_fields]->type       = field_type;
+  ctx->field_labels[ctx->num_fields]->offset     = field_offset;
+  ctx->field_labels[ctx->num_fields]->size       = field_size * num_values;
   ctx->field_labels[ctx->num_fields]->num_values = num_values;
   ctx->num_fields++;
   return CEED_ERROR_SUCCESS;
@@ -111,23 +98,19 @@ int CeedQFunctionContextRegisterGeneric(CeedQFunctionContext ctx,
   @ref Developer
 **/
 static int CeedQFunctionContextDestroyData(CeedQFunctionContext ctx) {
-  int ierr;
-
   if (ctx->DataDestroy) {
-    ierr = ctx->DataDestroy(ctx); CeedChk(ierr);
+    CeedCall(ctx->DataDestroy(ctx));
   } else {
     CeedQFunctionContextDataDestroyUser data_destroy_function;
-    CeedMemType data_destroy_mem_type;
+    CeedMemType                         data_destroy_mem_type;
 
-    ierr = CeedQFunctionContextGetDataDestroy(ctx, &data_destroy_mem_type,
-           &data_destroy_function); CeedChk(ierr);
+    CeedCall(CeedQFunctionContextGetDataDestroy(ctx, &data_destroy_mem_type, &data_destroy_function));
     if (data_destroy_function) {
       void *data;
 
-      ierr = CeedQFunctionContextGetData(ctx, data_destroy_mem_type, &data);
-      CeedChk(ierr);
-      ierr = data_destroy_function(data); CeedChk(ierr);
-      ierr = CeedQFunctionContextRestoreData(ctx, &data); CeedChk(ierr);
+      CeedCall(CeedQFunctionContextGetData(ctx, data_destroy_mem_type, &data));
+      CeedCall(data_destroy_function(data));
+      CeedCall(CeedQFunctionContextRestoreData(ctx, &data));
     }
   }
 
@@ -167,17 +150,14 @@ int CeedQFunctionContextGetCeed(CeedQFunctionContext ctx, Ceed *ceed) {
 
   @ref Backend
 **/
-int CeedQFunctionContextHasValidData(CeedQFunctionContext ctx,
-                                     bool *has_valid_data) {
-  int ierr;
-
-  if (!ctx->HasValidData)
+int CeedQFunctionContextHasValidData(CeedQFunctionContext ctx, bool *has_valid_data) {
+  if (!ctx->HasValidData) {
     // LCOV_EXCL_START
-    return CeedError(ctx->ceed, CEED_ERROR_UNSUPPORTED,
-                     "Backend does not support HasValidData");
-  // LCOV_EXCL_STOP
+    return CeedError(ctx->ceed, CEED_ERROR_UNSUPPORTED, "Backend does not support HasValidData");
+    // LCOV_EXCL_STOP
+  }
 
-  ierr = ctx->HasValidData(ctx, has_valid_data); CeedChk(ierr);
+  CeedCall(ctx->HasValidData(ctx, has_valid_data));
 
   return CEED_ERROR_SUCCESS;
 }
@@ -194,18 +174,14 @@ int CeedQFunctionContextHasValidData(CeedQFunctionContext ctx,
 
   @ref Backend
 **/
-int CeedQFunctionContextHasBorrowedDataOfType(CeedQFunctionContext ctx,
-    CeedMemType mem_type, bool *has_borrowed_data_of_type) {
-  int ierr;
-
-  if (!ctx->HasBorrowedDataOfType)
+int CeedQFunctionContextHasBorrowedDataOfType(CeedQFunctionContext ctx, CeedMemType mem_type, bool *has_borrowed_data_of_type) {
+  if (!ctx->HasBorrowedDataOfType) {
     // LCOV_EXCL_START
-    return CeedError(ctx->ceed, CEED_ERROR_UNSUPPORTED,
-                     "Backend does not support HasBorrowedDataOfType");
-  // LCOV_EXCL_STOP
+    return CeedError(ctx->ceed, CEED_ERROR_UNSUPPORTED, "Backend does not support HasBorrowedDataOfType");
+    // LCOV_EXCL_STOP
+  }
 
-  ierr = ctx->HasBorrowedDataOfType(ctx, mem_type, has_borrowed_data_of_type);
-  CeedChk(ierr);
+  CeedCall(ctx->HasBorrowedDataOfType(ctx, mem_type, has_borrowed_data_of_type));
 
   return CEED_ERROR_SUCCESS;
 }
@@ -267,14 +243,9 @@ int CeedQFunctionContextSetBackendData(CeedQFunctionContext ctx, void *data) {
 
   @ref Backend
 **/
-int CeedQFunctionContextGetFieldLabel(CeedQFunctionContext ctx,
-                                      const char *field_name,
-                                      CeedContextFieldLabel *field_label) {
-  int ierr;
-
+int CeedQFunctionContextGetFieldLabel(CeedQFunctionContext ctx, const char *field_name, CeedContextFieldLabel *field_label) {
   CeedInt field_index;
-  ierr = CeedQFunctionContextGetFieldIndex(ctx, field_name, &field_index);
-  CeedChk(ierr);
+  CeedCall(CeedQFunctionContextGetFieldIndex(ctx, field_name, &field_index));
 
   if (field_index != -1) {
     *field_label = ctx->field_labels[field_index];
@@ -297,26 +268,19 @@ int CeedQFunctionContextGetFieldLabel(CeedQFunctionContext ctx,
 
   @ref Backend
 **/
-int CeedQFunctionContextSetGeneric(CeedQFunctionContext ctx,
-                                   CeedContextFieldLabel field_label,
-                                   CeedContextFieldType field_type,
-                                   void *value) {
-  int ierr;
-
+int CeedQFunctionContextSetGeneric(CeedQFunctionContext ctx, CeedContextFieldLabel field_label, CeedContextFieldType field_type, void *value) {
   // Check field type
-  if (field_label->type != field_type)
+  if (field_label->type != field_type) {
     // LCOV_EXCL_START
-    return CeedError(ctx->ceed, CEED_ERROR_UNSUPPORTED,
-                     "QFunctionContext field with name \"%s\" registered as %s, "
-                     "not registered as %s", field_label->name,
-                     CeedContextFieldTypes[field_label->type],
-                     CeedContextFieldTypes[field_type]);
-  // LCOV_EXCL_STOP
+    return CeedError(ctx->ceed, CEED_ERROR_UNSUPPORTED, "QFunctionContext field with name \"%s\" registered as %s, not registered as %s",
+                     field_label->name, CeedContextFieldTypes[field_label->type], CeedContextFieldTypes[field_type]);
+    // LCOV_EXCL_STOP
+  }
 
   char *data;
-  ierr = CeedQFunctionContextGetData(ctx, CEED_MEM_HOST, &data); CeedChk(ierr);
+  CeedCall(CeedQFunctionContextGetData(ctx, CEED_MEM_HOST, &data));
   memcpy(&data[field_label->offset], value, field_label->size);
-  ierr = CeedQFunctionContextRestoreData(ctx, &data); CeedChk(ierr);
+  CeedCall(CeedQFunctionContextRestoreData(ctx, &data));
 
   return CEED_ERROR_SUCCESS;
 }
@@ -332,19 +296,14 @@ int CeedQFunctionContextSetGeneric(CeedQFunctionContext ctx,
 
   @ref Backend
 **/
-int CeedQFunctionContextSetDouble(CeedQFunctionContext ctx,
-                                  CeedContextFieldLabel field_label, double *values) {
-  int ierr;
-
-  if (!field_label)
+int CeedQFunctionContextSetDouble(CeedQFunctionContext ctx, CeedContextFieldLabel field_label, double *values) {
+  if (!field_label) {
     // LCOV_EXCL_START
-    return CeedError(ctx->ceed, CEED_ERROR_UNSUPPORTED,
-                     "Invalid field label");
-  // LCOV_EXCL_STOP
+    return CeedError(ctx->ceed, CEED_ERROR_UNSUPPORTED, "Invalid field label");
+    // LCOV_EXCL_STOP
+  }
 
-  ierr = CeedQFunctionContextSetGeneric(ctx, field_label,
-                                        CEED_CONTEXT_FIELD_DOUBLE,
-                                        values); CeedChk(ierr);
+  CeedCall(CeedQFunctionContextSetGeneric(ctx, field_label, CEED_CONTEXT_FIELD_DOUBLE, values));
 
   return CEED_ERROR_SUCCESS;
 }
@@ -360,19 +319,14 @@ int CeedQFunctionContextSetDouble(CeedQFunctionContext ctx,
 
   @ref Backend
 **/
-int CeedQFunctionContextSetInt32(CeedQFunctionContext ctx,
-                                 CeedContextFieldLabel field_label, int *values) {
-  int ierr;
-
-  if (!field_label)
+int CeedQFunctionContextSetInt32(CeedQFunctionContext ctx, CeedContextFieldLabel field_label, int *values) {
+  if (!field_label) {
     // LCOV_EXCL_START
-    return CeedError(ctx->ceed, CEED_ERROR_UNSUPPORTED,
-                     "Invalid field label");
-  // LCOV_EXCL_STOP
+    return CeedError(ctx->ceed, CEED_ERROR_UNSUPPORTED, "Invalid field label");
+    // LCOV_EXCL_STOP
+  }
 
-  ierr = CeedQFunctionContextSetGeneric(ctx, field_label,
-                                        CEED_CONTEXT_FIELD_INT32,
-                                        values); CeedChk(ierr);
+  CeedCall(CeedQFunctionContextSetGeneric(ctx, field_label, CEED_CONTEXT_FIELD_INT32, values));
 
   return CEED_ERROR_SUCCESS;
 }
@@ -388,8 +342,7 @@ int CeedQFunctionContextSetInt32(CeedQFunctionContext ctx,
 
   @ref Backend
 **/
-int CeedQFunctionContextGetDataDestroy(CeedQFunctionContext ctx,
-                                       CeedMemType *f_mem_type, CeedQFunctionContextDataDestroyUser *f) {
+int CeedQFunctionContextGetDataDestroy(CeedQFunctionContext ctx, CeedMemType *f_mem_type, CeedQFunctionContextDataDestroyUser *f) {
   if (f_mem_type) *f_mem_type = ctx->data_destroy_mem_type;
   if (f) *f = ctx->data_destroy_function;
   return CEED_ERROR_SUCCESS;
@@ -429,27 +382,25 @@ int CeedQFunctionContextReference(CeedQFunctionContext ctx) {
   @ref User
 **/
 int CeedQFunctionContextCreate(Ceed ceed, CeedQFunctionContext *ctx) {
-  int ierr;
-
   if (!ceed->QFunctionContextCreate) {
     Ceed delegate;
-    ierr = CeedGetObjectDelegate(ceed, &delegate, "Context"); CeedChk(ierr);
+    CeedCall(CeedGetObjectDelegate(ceed, &delegate, "Context"));
 
-    if (!delegate)
+    if (!delegate) {
       // LCOV_EXCL_START
-      return CeedError(ceed, CEED_ERROR_UNSUPPORTED,
-                       "Backend does not support ContextCreate");
-    // LCOV_EXCL_STOP
+      return CeedError(ceed, CEED_ERROR_UNSUPPORTED, "Backend does not support ContextCreate");
+      // LCOV_EXCL_STOP
+    }
 
-    ierr = CeedQFunctionContextCreate(delegate, ctx); CeedChk(ierr);
+    CeedCall(CeedQFunctionContextCreate(delegate, ctx));
     return CEED_ERROR_SUCCESS;
   }
 
-  ierr = CeedCalloc(1, ctx); CeedChk(ierr);
+  CeedCall(CeedCalloc(1, ctx));
   (*ctx)->ceed = ceed;
-  ierr = CeedReference(ceed); CeedChk(ierr);
+  CeedCall(CeedReference(ceed));
   (*ctx)->ref_count = 1;
-  ierr = ceed->QFunctionContextCreate(*ctx); CeedChk(ierr);
+  CeedCall(ceed->QFunctionContextCreate(*ctx));
   return CEED_ERROR_SUCCESS;
 }
 
@@ -468,12 +419,9 @@ int CeedQFunctionContextCreate(Ceed ceed, CeedQFunctionContext *ctx) {
 
   @ref User
 **/
-int CeedQFunctionContextReferenceCopy(CeedQFunctionContext ctx,
-                                      CeedQFunctionContext *ctx_copy) {
-  int ierr;
-
-  ierr = CeedQFunctionContextReference(ctx); CeedChk(ierr);
-  ierr = CeedQFunctionContextDestroy(ctx_copy); CeedChk(ierr);
+int CeedQFunctionContextReferenceCopy(CeedQFunctionContext ctx, CeedQFunctionContext *ctx_copy) {
+  CeedCall(CeedQFunctionContextReference(ctx));
+  CeedCall(CeedQFunctionContextDestroy(ctx_copy));
   *ctx_copy = ctx;
   return CEED_ERROR_SUCCESS;
 }
@@ -494,27 +442,21 @@ int CeedQFunctionContextReferenceCopy(CeedQFunctionContext ctx,
 
   @ref User
 **/
-int CeedQFunctionContextSetData(CeedQFunctionContext ctx, CeedMemType mem_type,
-                                CeedCopyMode copy_mode,
-                                size_t size, void *data) {
-  int ierr;
-
-  if (!ctx->SetData)
+int CeedQFunctionContextSetData(CeedQFunctionContext ctx, CeedMemType mem_type, CeedCopyMode copy_mode, size_t size, void *data) {
+  if (!ctx->SetData) {
     // LCOV_EXCL_START
-    return CeedError(ctx->ceed, CEED_ERROR_UNSUPPORTED,
-                     "Backend does not support ContextSetData");
-  // LCOV_EXCL_STOP
-
-  if (ctx->state % 2 == 1)
+    return CeedError(ctx->ceed, CEED_ERROR_UNSUPPORTED, "Backend does not support ContextSetData");
+    // LCOV_EXCL_STOP
+  }
+  if (ctx->state % 2 == 1) {
     // LCOV_EXCL_START
-    return CeedError(ctx->ceed, 1,
-                     "Cannot grant CeedQFunctionContext data access, the "
-                     "access lock is already in use");
-  // LCOV_EXCL_STOP
+    return CeedError(ctx->ceed, 1, "Cannot grant CeedQFunctionContext data access, the access lock is already in use");
+    // LCOV_EXCL_STOP
+  }
 
-  ierr = CeedQFunctionContextDestroyData(ctx); CeedChk(ierr);
+  CeedCall(CeedQFunctionContextDestroyData(ctx));
   ctx->ctx_size = size;
-  ierr = ctx->SetData(ctx, mem_type, copy_mode, data); CeedChk(ierr);
+  CeedCall(ctx->SetData(ctx, mem_type, copy_mode, data));
   ctx->state += 2;
   return CEED_ERROR_SUCCESS;
 }
@@ -532,44 +474,37 @@ int CeedQFunctionContextSetData(CeedQFunctionContext ctx, CeedMemType mem_type,
 
   @ref User
 **/
-int CeedQFunctionContextTakeData(CeedQFunctionContext ctx, CeedMemType mem_type,
-                                 void *data) {
-  int ierr;
-
+int CeedQFunctionContextTakeData(CeedQFunctionContext ctx, CeedMemType mem_type, void *data) {
   bool has_valid_data = true;
-  ierr = CeedQFunctionContextHasValidData(ctx, &has_valid_data); CeedChk(ierr);
-  if (!has_valid_data)
+  CeedCall(CeedQFunctionContextHasValidData(ctx, &has_valid_data));
+  if (!has_valid_data) {
     // LCOV_EXCL_START
-    return CeedError(ctx->ceed, CEED_ERROR_BACKEND,
-                     "CeedQFunctionContext has no valid data to take, must set data");
-  // LCOV_EXCL_STOP
+    return CeedError(ctx->ceed, CEED_ERROR_BACKEND, "CeedQFunctionContext has no valid data to take, must set data");
+    // LCOV_EXCL_STOP
+  }
 
-  if (!ctx->TakeData)
+  if (!ctx->TakeData) {
     // LCOV_EXCL_START
-    return CeedError(ctx->ceed, CEED_ERROR_UNSUPPORTED,
-                     "Backend does not support TakeData");
-  // LCOV_EXCL_STOP
-
-  if (ctx->state % 2 == 1)
+    return CeedError(ctx->ceed, CEED_ERROR_UNSUPPORTED, "Backend does not support TakeData");
+    // LCOV_EXCL_STOP
+  }
+  if (ctx->state % 2 == 1) {
     // LCOV_EXCL_START
-    return CeedError(ctx->ceed, 1,
-                     "Cannot grant CeedQFunctionContext data access, the "
-                     "access lock is already in use");
-  // LCOV_EXCL_STOP
+    return CeedError(ctx->ceed, 1, "Cannot grant CeedQFunctionContext data access, the access lock is already in use");
+    // LCOV_EXCL_STOP
+  }
 
   bool has_borrowed_data_of_type = true;
-  ierr = CeedQFunctionContextHasBorrowedDataOfType(ctx, mem_type,
-         &has_borrowed_data_of_type); CeedChk(ierr);
-  if (!has_borrowed_data_of_type)
+  CeedCall(CeedQFunctionContextHasBorrowedDataOfType(ctx, mem_type, &has_borrowed_data_of_type));
+  if (!has_borrowed_data_of_type) {
     // LCOV_EXCL_START
-    return CeedError(ctx->ceed, CEED_ERROR_BACKEND,
-                     "CeedQFunctionContext has no borowed %s data, "
-                     "must set data with CeedQFunctionContextSetData",
+    return CeedError(ctx->ceed, CEED_ERROR_BACKEND, "CeedQFunctionContext has no borowed %s data, must set data with CeedQFunctionContextSetData",
                      CeedMemTypes[mem_type]);
-  // LCOV_EXCL_STOP
+    // LCOV_EXCL_STOP
+  }
 
   void *temp_data = NULL;
-  ierr = ctx->TakeData(ctx, mem_type, &temp_data); CeedChk(ierr);
+  CeedCall(ctx->TakeData(ctx, mem_type, &temp_data));
   if (data) (*(void **)data) = temp_data;
   return CEED_ERROR_SUCCESS;
 }
@@ -591,39 +526,32 @@ int CeedQFunctionContextTakeData(CeedQFunctionContext ctx, CeedMemType mem_type,
 
   @ref User
 **/
-int CeedQFunctionContextGetData(CeedQFunctionContext ctx, CeedMemType mem_type,
-                                void *data) {
-  int ierr;
-
-  if (!ctx->GetData)
+int CeedQFunctionContextGetData(CeedQFunctionContext ctx, CeedMemType mem_type, void *data) {
+  if (!ctx->GetData) {
     // LCOV_EXCL_START
-    return CeedError(ctx->ceed, CEED_ERROR_UNSUPPORTED,
-                     "Backend does not support GetData");
-  // LCOV_EXCL_STOP
-
-  if (ctx->state % 2 == 1)
+    return CeedError(ctx->ceed, CEED_ERROR_UNSUPPORTED, "Backend does not support GetData");
+    // LCOV_EXCL_STOP
+  }
+  if (ctx->state % 2 == 1) {
     // LCOV_EXCL_START
-    return CeedError(ctx->ceed, 1,
-                     "Cannot grant CeedQFunctionContext data access, the "
-                     "access lock is already in use");
-  // LCOV_EXCL_STOP
-
-  if (ctx->num_readers > 0)
+    return CeedError(ctx->ceed, 1, "Cannot grant CeedQFunctionContext data access, the access lock is already in use");
+    // LCOV_EXCL_STOP
+  }
+  if (ctx->num_readers > 0) {
     // LCOV_EXCL_START
-    return CeedError(ctx->ceed, 1,
-                     "Cannot grant CeedQFunctionContext data access, a "
-                     "process has read access");
-  // LCOV_EXCL_STOP
+    return CeedError(ctx->ceed, 1, "Cannot grant CeedQFunctionContext data access, a process has read access");
+    // LCOV_EXCL_STOP
+  }
 
   bool has_valid_data = true;
-  ierr = CeedQFunctionContextHasValidData(ctx, &has_valid_data); CeedChk(ierr);
-  if (!has_valid_data)
+  CeedCall(CeedQFunctionContextHasValidData(ctx, &has_valid_data));
+  if (!has_valid_data) {
     // LCOV_EXCL_START
-    return CeedError(ctx->ceed, CEED_ERROR_BACKEND,
-                     "CeedQFunctionContext has no valid data to get, must set data");
-  // LCOV_EXCL_STOP
+    return CeedError(ctx->ceed, CEED_ERROR_BACKEND, "CeedQFunctionContext has no valid data to get, must set data");
+    // LCOV_EXCL_STOP
+  }
 
-  ierr = ctx->GetData(ctx, mem_type, data); CeedChk(ierr);
+  CeedCall(ctx->GetData(ctx, mem_type, data));
   ctx->state++;
   return CEED_ERROR_SUCCESS;
 }
@@ -645,33 +573,27 @@ int CeedQFunctionContextGetData(CeedQFunctionContext ctx, CeedMemType mem_type,
 
   @ref User
 **/
-int CeedQFunctionContextGetDataRead(CeedQFunctionContext ctx,
-                                    CeedMemType mem_type,
-                                    void *data) {
-  int ierr;
-
-  if (!ctx->GetDataRead)
+int CeedQFunctionContextGetDataRead(CeedQFunctionContext ctx, CeedMemType mem_type, void *data) {
+  if (!ctx->GetDataRead) {
     // LCOV_EXCL_START
-    return CeedError(ctx->ceed, CEED_ERROR_UNSUPPORTED,
-                     "Backend does not support GetDataRead");
-  // LCOV_EXCL_STOP
-
-  if (ctx->state % 2 == 1)
+    return CeedError(ctx->ceed, CEED_ERROR_UNSUPPORTED, "Backend does not support GetDataRead");
+    // LCOV_EXCL_STOP
+  }
+  if (ctx->state % 2 == 1) {
     // LCOV_EXCL_START
-    return CeedError(ctx->ceed, 1,
-                     "Cannot grant CeedQFunctionContext data access, the "
-                     "access lock is already in use");
-  // LCOV_EXCL_STOP
+    return CeedError(ctx->ceed, 1, "Cannot grant CeedQFunctionContext data access, the access lock is already in use");
+    // LCOV_EXCL_STOP
+  }
 
   bool has_valid_data = true;
-  ierr = CeedQFunctionContextHasValidData(ctx, &has_valid_data); CeedChk(ierr);
-  if (!has_valid_data)
+  CeedCall(CeedQFunctionContextHasValidData(ctx, &has_valid_data));
+  if (!has_valid_data) {
     // LCOV_EXCL_START
-    return CeedError(ctx->ceed, CEED_ERROR_BACKEND,
-                     "CeedQFunctionContext has no valid data to get, must set data");
-  // LCOV_EXCL_STOP
+    return CeedError(ctx->ceed, CEED_ERROR_BACKEND, "CeedQFunctionContext has no valid data to get, must set data");
+    // LCOV_EXCL_STOP
+  }
 
-  ierr = ctx->GetDataRead(ctx, mem_type, data); CeedChk(ierr);
+  CeedCall(ctx->GetDataRead(ctx, mem_type, data));
   ctx->num_readers++;
   return CEED_ERROR_SUCCESS;
 }
@@ -687,17 +609,14 @@ int CeedQFunctionContextGetDataRead(CeedQFunctionContext ctx,
   @ref User
 **/
 int CeedQFunctionContextRestoreData(CeedQFunctionContext ctx, void *data) {
-  int ierr;
-
-  if (ctx->state % 2 != 1)
+  if (ctx->state % 2 != 1) {
     // LCOV_EXCL_START
-    return CeedError(ctx->ceed, 1,
-                     "Cannot restore CeedQFunctionContext array access, "
-                     "access was not granted");
-  // LCOV_EXCL_STOP
+    return CeedError(ctx->ceed, 1, "Cannot restore CeedQFunctionContext array access, access was not granted");
+    // LCOV_EXCL_STOP
+  }
 
   if (ctx->RestoreData) {
-    ierr = ctx->RestoreData(ctx); CeedChk(ierr);
+    CeedCall(ctx->RestoreData(ctx));
   }
   *(void **)data = NULL;
   ctx->state++;
@@ -715,18 +634,15 @@ int CeedQFunctionContextRestoreData(CeedQFunctionContext ctx, void *data) {
   @ref User
 **/
 int CeedQFunctionContextRestoreDataRead(CeedQFunctionContext ctx, void *data) {
-  int ierr;
-
-  if (ctx->num_readers == 0)
+  if (ctx->num_readers == 0) {
     // LCOV_EXCL_START
-    return CeedError(ctx->ceed, 1,
-                     "Cannot restore CeedQFunctionContext array access, "
-                     "access was not granted");
-  // LCOV_EXCL_STOP
+    return CeedError(ctx->ceed, 1, "Cannot restore CeedQFunctionContext array access, access was not granted");
+    // LCOV_EXCL_STOP
+  }
 
   ctx->num_readers--;
   if (ctx->num_readers == 0 && ctx->RestoreDataRead) {
-    ierr = ctx->RestoreDataRead(ctx); CeedChk(ierr);
+    CeedCall(ctx->RestoreDataRead(ctx));
   }
   *(void **)data = NULL;
 
@@ -746,12 +662,9 @@ int CeedQFunctionContextRestoreDataRead(CeedQFunctionContext ctx, void *data) {
 
   @ref User
 **/
-int CeedQFunctionContextRegisterDouble(CeedQFunctionContext ctx,
-                                       const char *field_name, size_t field_offset,
-                                       size_t num_values,
+int CeedQFunctionContextRegisterDouble(CeedQFunctionContext ctx, const char *field_name, size_t field_offset, size_t num_values,
                                        const char *field_description) {
-  return CeedQFunctionContextRegisterGeneric(ctx, field_name, field_offset,
-         field_description, CEED_CONTEXT_FIELD_DOUBLE, sizeof(double), num_values);
+  return CeedQFunctionContextRegisterGeneric(ctx, field_name, field_offset, field_description, CEED_CONTEXT_FIELD_DOUBLE, sizeof(double), num_values);
 }
 
 /**
@@ -767,12 +680,9 @@ int CeedQFunctionContextRegisterDouble(CeedQFunctionContext ctx,
 
   @ref User
 **/
-int CeedQFunctionContextRegisterInt32(CeedQFunctionContext ctx,
-                                      const char *field_name, size_t field_offset,
-                                      size_t num_values,
+int CeedQFunctionContextRegisterInt32(CeedQFunctionContext ctx, const char *field_name, size_t field_offset, size_t num_values,
                                       const char *field_description) {
-  return CeedQFunctionContextRegisterGeneric(ctx, field_name, field_offset,
-         field_description, CEED_CONTEXT_FIELD_INT32, sizeof(int), num_values);
+  return CeedQFunctionContextRegisterGeneric(ctx, field_name, field_offset, field_description, CEED_CONTEXT_FIELD_INT32, sizeof(int), num_values);
 }
 
 /**
@@ -786,10 +696,9 @@ int CeedQFunctionContextRegisterInt32(CeedQFunctionContext ctx,
 
   @ref User
 **/
-int CeedQFunctionContextGetAllFieldLabels(CeedQFunctionContext ctx,
-    const CeedContextFieldLabel **field_labels, CeedInt *num_fields) {
+int CeedQFunctionContextGetAllFieldLabels(CeedQFunctionContext ctx, const CeedContextFieldLabel **field_labels, CeedInt *num_fields) {
   *field_labels = ctx->field_labels;
-  *num_fields = ctx->num_fields;
+  *num_fields   = ctx->num_fields;
   return CEED_ERROR_SUCCESS;
 }
 
@@ -806,10 +715,7 @@ int CeedQFunctionContextGetAllFieldLabels(CeedQFunctionContext ctx,
 
   @ref User
 **/
-int CeedContextFieldLabelGetDescription(CeedContextFieldLabel label,
-                                        const char **field_name,
-                                        const char **field_description,
-                                        size_t *num_values,
+int CeedContextFieldLabelGetDescription(CeedContextFieldLabel label, const char **field_name, const char **field_description, size_t *num_values,
                                         CeedContextFieldType *field_type) {
   if (field_name) *field_name = label->name;
   if (field_description) *field_description = label->description;
@@ -828,12 +734,10 @@ int CeedContextFieldLabelGetDescription(CeedContextFieldLabel label,
 
   @ref User
 **/
-int CeedQFunctionContextGetContextSize(CeedQFunctionContext ctx,
-                                       size_t *ctx_size) {
+int CeedQFunctionContextGetContextSize(CeedQFunctionContext ctx, size_t *ctx_size) {
   *ctx_size = ctx->ctx_size;
   return CEED_ERROR_SUCCESS;
 }
-
 
 /**
   @brief View a CeedQFunctionContext
@@ -850,9 +754,7 @@ int CeedQFunctionContextView(CeedQFunctionContext ctx, FILE *stream) {
   fprintf(stream, "  Context Data Size: %ld\n", ctx->ctx_size);
   for (CeedInt i = 0; i < ctx->num_fields; i++) {
     // LCOV_EXCL_START
-    fprintf(stream, "  Labeled %s field: %s\n",
-            CeedContextFieldTypes[ctx->field_labels[i]->type],
-            ctx->field_labels[i]->name);
+    fprintf(stream, "  Labeled %s field: %s\n", CeedContextFieldTypes[ctx->field_labels[i]->type], ctx->field_labels[i]->name);
     // LCOV_EXCL_STOP
   }
   return CEED_ERROR_SUCCESS;
@@ -869,13 +771,12 @@ int CeedQFunctionContextView(CeedQFunctionContext ctx, FILE *stream) {
 
   @ref User
 **/
-int CeedQFunctionContextSetDataDestroy(CeedQFunctionContext ctx,
-                                       CeedMemType f_mem_type, CeedQFunctionContextDataDestroyUser f) {
-  if (!f)
+int CeedQFunctionContextSetDataDestroy(CeedQFunctionContext ctx, CeedMemType f_mem_type, CeedQFunctionContextDataDestroyUser f) {
+  if (!f) {
     // LCOV_EXCL_START
-    return CeedError(ctx->ceed, 1,
-                     "Must provide valid callback function for destroying user data");
-  // LCOV_EXCL_STOP
+    return CeedError(ctx->ceed, 1, "Must provide valid callback function for destroying user data");
+    // LCOV_EXCL_STOP
+  }
   ctx->data_destroy_mem_type = f_mem_type;
   ctx->data_destroy_function = f;
   return CEED_ERROR_SUCCESS;
@@ -891,30 +792,24 @@ int CeedQFunctionContextSetDataDestroy(CeedQFunctionContext ctx,
   @ref User
 **/
 int CeedQFunctionContextDestroy(CeedQFunctionContext *ctx) {
-  int ierr;
+  if (!*ctx || --(*ctx)->ref_count > 0) return CEED_ERROR_SUCCESS;
 
-  if (!*ctx || --(*ctx)->ref_count > 0)
-    return CEED_ERROR_SUCCESS;
-
-  if ((*ctx) && ((*ctx)->state % 2) == 1)
+  if ((*ctx) && ((*ctx)->state % 2) == 1) {
     // LCOV_EXCL_START
-    return CeedError((*ctx)->ceed, 1,
-                     "Cannot destroy CeedQFunctionContext, the access "
-                     "lock is in use");
-  // LCOV_EXCL_STOP
+    return CeedError((*ctx)->ceed, 1, "Cannot destroy CeedQFunctionContext, the access lock is in use");
+    // LCOV_EXCL_STOP
+  }
 
-  ierr = CeedQFunctionContextDestroyData(*ctx); CeedChk(ierr);
-  if ((*ctx)->Destroy) {
-    ierr = (*ctx)->Destroy(*ctx); CeedChk(ierr);
+  CeedCall(CeedQFunctionContextDestroyData(*ctx));
+  if ((*ctx)->Destroy) CeedCall((*ctx)->Destroy(*ctx));
+  for (CeedInt i = 0; i < (*ctx)->num_fields; i++) {
+    CeedCall(CeedFree(&(*ctx)->field_labels[i]->name));
+    CeedCall(CeedFree(&(*ctx)->field_labels[i]->description));
+    CeedCall(CeedFree(&(*ctx)->field_labels[i]));
   }
-  for (CeedInt i=0; i<(*ctx)->num_fields; i++) {
-    ierr = CeedFree(&(*ctx)->field_labels[i]->name); CeedChk(ierr);
-    ierr = CeedFree(&(*ctx)->field_labels[i]->description); CeedChk(ierr);
-    ierr = CeedFree(&(*ctx)->field_labels[i]); CeedChk(ierr);
-  }
-  ierr = CeedFree(&(*ctx)->field_labels); CeedChk(ierr);
-  ierr = CeedDestroy(&(*ctx)->ceed); CeedChk(ierr);
-  ierr = CeedFree(ctx); CeedChk(ierr);
+  CeedCall(CeedFree(&(*ctx)->field_labels));
+  CeedCall(CeedDestroy(&(*ctx)->ceed));
+  CeedCall(CeedFree(ctx));
 
   return CEED_ERROR_SUCCESS;
 }

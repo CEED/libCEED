@@ -5,10 +5,10 @@
 //
 // This file is part of CEED:  http://github.com/ceed
 
-#include <ceed/ceed.h>
-#include <ceed/backend.h>
-#include <ceed/hip.h>
 #include <ceed-impl.h>
+#include <ceed/backend.h>
+#include <ceed/ceed.h>
+#include <ceed/hip.h>
 
 /**
   @brief Set HIP function pointer to evaluate action at quadrature points
@@ -21,14 +21,12 @@
   @ref User
 **/
 int CeedQFunctionSetHIPUserFunction(CeedQFunction qf, hipFunction_t f) {
-  int ierr;
   if (!qf->SetHIPUserFunction) {
     Ceed ceed;
-    ierr = CeedQFunctionGetCeed(qf, &ceed); CeedChk(ierr);
-    CeedDebug(ceed,
-              "Backend does not support hipFunction_t pointers for QFunctions.");
+    CeedCall(CeedQFunctionGetCeed(qf, &ceed));
+    CeedDebug(ceed, "Backend does not support hipFunction_t pointers for QFunctions.");
   } else {
-    ierr = qf->SetHIPUserFunction(qf, f); CeedChk(ierr);
+    CeedCall(qf->SetHIPUserFunction(qf, f));
   }
   return CEED_ERROR_SUCCESS;
 }

@@ -4,7 +4,7 @@
 
 Please check your code for style issues by running
 
-`make style`
+`make format`
 
 In addition to those automatically enforced style rules, libCEED tends to follow the following code style conventions:
 

@@ -41,4 +41,4 @@ jobs:
         CC: ${{ matrix.compiler }}
         FC: gfortran-11
       run: |
-        make style-py && git diff --exit-code
+        make format-py && git diff --exit-code

@@ -7,7 +7,7 @@
 
 /// @file
 /// Public header for definitions related to using FP64 floating point (double
-/// precision) for CeedScalar. This is the default header included in ceed/ceed.h. 
+/// precision) for CeedScalar. This is the default header included in ceed/ceed.h.
 #ifndef _ceed_f64_h
 #define _ceed_f64_h
 

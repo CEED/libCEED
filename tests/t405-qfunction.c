@@ -1,17 +1,18 @@
 /// @file
 /// Test QFunction helper macro
 /// \test Test QFunction helper macro
-#include <ceed.h>
 #include "t405-qfunction.h"
 
+#include <ceed.h>
+
 int main(int argc, char **argv) {
-  Ceed ceed;
-  CeedVector in[16], out[16];
-  CeedVector Q_data, W, U, V;
-  CeedQFunction qf_setup, qf_mass;
-  CeedInt Q = 8;
+  Ceed              ceed;
+  CeedVector        in[16], out[16];
+  CeedVector        Q_data, W, U, V;
+  CeedQFunction     qf_setup, qf_mass;
+  CeedInt           Q = 8;
   const CeedScalar *vv;
-  CeedScalar w[Q], u[Q], v[Q];
+  CeedScalar        w[Q], u[Q], v[Q];
 
   CeedInit(argv[1], &ceed);
 
@@ -24,11 +25,11 @@ int main(int argc, char **argv) {
   CeedQFunctionAddInput(qf_mass, "u", 1, CEED_EVAL_INTERP);
   CeedQFunctionAddOutput(qf_mass, "v", 1, CEED_EVAL_INTERP);
 
-  for (CeedInt i=0; i<Q; i++) {
-    CeedScalar x = 2.*i/(Q-1) - 1;
-    w[i] = 1 - x*x;
-    u[i] = 2 + 3*x + 5*x*x;
-    v[i] = w[i] * u[i];
+  for (CeedInt i = 0; i < Q; i++) {
+    CeedScalar x = 2. * i / (Q - 1) - 1;
+    w[i]         = 1 - x * x;
+    u[i]         = 2 + 3 * x + 5 * x * x;
+    v[i]         = w[i] * u[i];
   }
 
   CeedVectorCreate(ceed, Q, &W);
@@ -41,23 +42,21 @@ int main(int argc, char **argv) {
   CeedVectorSetValue(Q_data, 0);
 
   {
-    in[0] = W;
+    in[0]  = W;
     out[0] = Q_data;
     CeedQFunctionApply(qf_setup, Q, in, out);
   }
   {
-    in[0] = W;
-    in[1] = U;
+    in[0]  = W;
+    in[1]  = U;
     out[0] = V;
     CeedQFunctionApply(qf_mass, Q, in, out);
   }
 
   CeedVectorGetArrayRead(V, CEED_MEM_HOST, &vv);
-  for (CeedInt i=0; i<Q; i++)
-    if (2*v[i] != vv[i])
-      // LCOV_EXCL_START
-      printf("[%" CeedInt_FMT "] v %f != vv %f\n",i, v[i], vv[i]);
-  // LCOV_EXCL_STOP
+  for (CeedInt i = 0; i < Q; i++) {
+    if (2 * v[i] != vv[i]) printf("[%" CeedInt_FMT "] v %f != vv %f\n", i, v[i], vv[i]);
+  }
   CeedVectorRestoreArrayRead(V, &vv);
 
   CeedVectorDestroy(&W);

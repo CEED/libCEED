@@ -8,17 +8,17 @@
 #ifndef _ceed_memcheck_h
 #define _ceed_memcheck_h
 
-#include <ceed/ceed.h>
 #include <ceed/backend.h>
+#include <ceed/ceed.h>
 
 typedef struct {
   const CeedScalar **inputs;
-  CeedScalar **outputs;
-  bool setup_done;
+  CeedScalar       **outputs;
+  bool               setup_done;
 } CeedQFunction_Memcheck;
 
 typedef struct {
-  int mem_block_id;
+  int   mem_block_id;
   void *data;
   void *data_allocated;
   void *data_owned;
@@ -30,4 +30,4 @@ CEED_INTERN int CeedQFunctionCreate_Memcheck(CeedQFunction qf);
 
 CEED_INTERN int CeedQFunctionContextCreate_Memcheck(CeedQFunctionContext ctx);
 
-#endif // _ceed_memcheck_h
+#endif  // _ceed_memcheck_h

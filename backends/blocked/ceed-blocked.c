@@ -5,38 +5,35 @@
 //
 // This file is part of CEED:  http://github.com/ceed
 
-#include <ceed/ceed.h>
+#include "ceed-blocked.h"
+
 #include <ceed/backend.h>
+#include <ceed/ceed.h>
 #include <stdbool.h>
 #include <string.h>
-#include "ceed-blocked.h"
 
 //------------------------------------------------------------------------------
 // Backend Init
 //------------------------------------------------------------------------------
 CEED_INTERN int CeedInit_Blocked(const char *resource, Ceed ceed) {
-  int ierr;
-  if (strcmp(resource, "/cpu/self")
-      && strcmp(resource, "/cpu/self/ref/blocked"))
+  if (strcmp(resource, "/cpu/self") && strcmp(resource, "/cpu/self/ref/blocked")) {
     // LCOV_EXCL_START
-    return CeedError(ceed, CEED_ERROR_BACKEND,
-                     "Blocked backend cannot use resource: %s", resource);
-  // LCOV_EXCL_STOP
-  ierr = CeedSetDeterministic(ceed, true); CeedChkBackend(ierr);
+    return CeedError(ceed, CEED_ERROR_BACKEND, "Blocked backend cannot use resource: %s", resource);
+    // LCOV_EXCL_STOP
+  }
+  CeedCallBackend(CeedSetDeterministic(ceed, true));
 
   // Create reference CEED that implementation will be dispatched
   //   through unless overridden
   Ceed ceed_ref;
-  CeedInit("/cpu/self/ref/serial", &ceed_ref);
-  ierr = CeedSetDelegate(ceed, ceed_ref); CeedChkBackend(ierr);
+  CeedCallBackend(CeedInit("/cpu/self/ref/serial", &ceed_ref));
+  CeedCallBackend(CeedSetDelegate(ceed, ceed_ref));
 
   // Set fallback CEED resource for advanced operator functionality
   const char fallbackresource[] = "/cpu/self/ref/serial";
-  ierr = CeedSetOperatorFallbackResource(ceed, fallbackresource);
-  CeedChkBackend(ierr);
+  CeedCallBackend(CeedSetOperatorFallbackResource(ceed, fallbackresource));
 
-  ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "OperatorCreate",
-                                CeedOperatorCreate_Blocked); CeedChkBackend(ierr);
+  CeedCallBackend(CeedSetBackendFunction(ceed, "Ceed", ceed, "OperatorCreate", CeedOperatorCreate_Blocked));
 
   return CEED_ERROR_SUCCESS;
 }
@@ -44,7 +41,5 @@ CEED_INTERN int CeedInit_Blocked(const char *resource, Ceed ceed) {
 //------------------------------------------------------------------------------
 // Backend Register
 //------------------------------------------------------------------------------
-CEED_INTERN int CeedRegister_Ref_Blocked(void) {
-  return CeedRegister("/cpu/self/ref/blocked", CeedInit_Blocked, 55);
-}
+CEED_INTERN int CeedRegister_Ref_Blocked(void) { return CeedRegister("/cpu/self/ref/blocked", CeedInit_Blocked, 55); }
 //------------------------------------------------------------------------------

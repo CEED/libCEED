@@ -12,106 +12,84 @@
 #include "ceed-occa-vector.hpp"
 
 namespace ceed {
-  namespace occa {
-    enum StrideType {
-      BACKEND_STRIDES = 0,
-      USER_STRIDES = 1,
-      NOT_STRIDED = 2,
-    };
+namespace occa {
+enum StrideType {
+  BACKEND_STRIDES = 0,
+  USER_STRIDES    = 1,
+  NOT_STRIDED     = 2,
+};
 
-    class ElemRestriction : public CeedObject {
-     public:
-      // Ceed object information
-      CeedInt ceedElementCount;
-      CeedInt ceedElementSize;
-      CeedInt ceedComponentCount;
-      CeedSize ceedLVectorSize;
-      StrideType ceedStrideType;
-      CeedInt ceedNodeStride;
-      CeedInt ceedComponentStride;
-      CeedInt ceedElementStride;
-      CeedInt ceedUnstridedComponentStride;
+class ElemRestriction : public CeedObject {
+ public:
+  // Ceed object information
+  CeedInt    ceedElementCount;
+  CeedInt    ceedElementSize;
+  CeedInt    ceedComponentCount;
+  CeedSize   ceedLVectorSize;
+  StrideType ceedStrideType;
+  CeedInt    ceedNodeStride;
+  CeedInt    ceedComponentStride;
+  CeedInt    ceedElementStride;
+  CeedInt    ceedUnstridedComponentStride;
 
-      // Passed resources
-      bool freeHostIndices;
-      CeedInt *hostIndices;
+  // Passed resources
+  bool     freeHostIndices;
+  CeedInt *hostIndices;
 
-      // Owned resources
-      bool freeIndices;
-      ::occa::memory indices;
+  // Owned resources
+  bool           freeIndices;
+  ::occa::memory indices;
 
-      ::occa::memory transposeQuadIndices;
-      ::occa::memory transposeDofOffsets;
-      ::occa::memory transposeDofIndices;
+  ::occa::memory transposeQuadIndices;
+  ::occa::memory transposeDofOffsets;
+  ::occa::memory transposeDofIndices;
 
-      ::occa::json kernelProperties;
-      ::occa::kernel restrictionKernel;
-      ::occa::kernel restrictionTransposeKernel;
+  ::occa::json   kernelProperties;
+  ::occa::kernel restrictionKernel;
+  ::occa::kernel restrictionTransposeKernel;
 
-      ElemRestriction();
+  ElemRestriction();
 
-      ~ElemRestriction();
+  ~ElemRestriction();
 
-      void setup(CeedMemType memType,
-                 CeedCopyMode copyMode,
-                 const CeedInt *indicesInput);
+  void setup(CeedMemType memType, CeedCopyMode copyMode, const CeedInt *indicesInput);
 
-      void setupFromHostMemory(CeedCopyMode copyMode,
-                               const CeedInt *indices_h);
+  void setupFromHostMemory(CeedCopyMode copyMode, const CeedInt *indices_h);
 
-      void setupFromDeviceMemory(CeedCopyMode copyMode,
-                                 const CeedInt *indices_d);
+  void setupFromDeviceMemory(CeedCopyMode copyMode, const CeedInt *indices_d);
 
-      bool usesIndices();
+  bool usesIndices();
 
-      void setupTransposeIndices();
+  void setupTransposeIndices();
 
-      void setKernelProperties();
+  void setKernelProperties();
 
-      static ElemRestriction* getElemRestriction(CeedElemRestriction r,
-                                                 const bool assertValid = true);
+  static ElemRestriction *getElemRestriction(CeedElemRestriction r, const bool assertValid = true);
 
-      static ElemRestriction* from(CeedElemRestriction r);
-      static ElemRestriction* from(CeedOperatorField operatorField);
-      ElemRestriction* setupFrom(CeedElemRestriction r);
+  static ElemRestriction *from(CeedElemRestriction r);
+  static ElemRestriction *from(CeedOperatorField operatorField);
+  ElemRestriction        *setupFrom(CeedElemRestriction r);
 
-      int apply(CeedTransposeMode rTransposeMode,
-                Vector &u,
-                Vector &v);
+  int apply(CeedTransposeMode rTransposeMode, Vector &u, Vector &v);
 
-      int getOffsets(CeedMemType memType,
-                     const CeedInt **offsets);
+  int getOffsets(CeedMemType memType, const CeedInt **offsets);
 
-      //---[ Ceed Callbacks ]-----------
-      static int registerCeedFunction(Ceed ceed, CeedElemRestriction r,
-                                      const char *fname, ceed::occa::ceedFunction f);
+  //---[ Ceed Callbacks ]-----------
+  static int registerCeedFunction(Ceed ceed, CeedElemRestriction r, const char *fname, ceed::occa::ceedFunction f);
 
-      static int ceedCreate(CeedMemType memType,
-                            CeedCopyMode copyMode,
-                            const CeedInt *indicesInput,
-                            CeedElemRestriction r);
+  static int ceedCreate(CeedMemType memType, CeedCopyMode copyMode, const CeedInt *indicesInput, CeedElemRestriction r);
 
-      static int ceedCreateBlocked(CeedMemType memType,
-                                   CeedCopyMode copyMode,
-                                   const CeedInt *indicesInput,
-                                   CeedElemRestriction r);
+  static int ceedCreateBlocked(CeedMemType memType, CeedCopyMode copyMode, const CeedInt *indicesInput, CeedElemRestriction r);
 
-      static int ceedApply(CeedElemRestriction r,
-                           CeedTransposeMode tmode,
-                           CeedVector u, CeedVector v, CeedRequest *request);
+  static int ceedApply(CeedElemRestriction r, CeedTransposeMode tmode, CeedVector u, CeedVector v, CeedRequest *request);
 
-      static int ceedGetOffsets(CeedElemRestriction r,
-                                CeedMemType memType,
-                                const CeedInt **offsets);
+  static int ceedGetOffsets(CeedElemRestriction r, CeedMemType memType, const CeedInt **offsets);
 
-      static int ceedApplyBlock(CeedElemRestriction r,
-                                CeedInt block, CeedTransposeMode tmode,
-                                CeedVector u, CeedVector v,
-                                CeedRequest *request);
+  static int ceedApplyBlock(CeedElemRestriction r, CeedInt block, CeedTransposeMode tmode, CeedVector u, CeedVector v, CeedRequest *request);
 
-      static int ceedDestroy(CeedElemRestriction r);
-    };
-  }
-}
+  static int ceedDestroy(CeedElemRestriction r);
+};
+}  // namespace occa
+}  // namespace ceed
 
 #endif
