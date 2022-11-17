@@ -103,6 +103,36 @@ CEED_QFUNCTION_HELPER void ComputeHLLSpeeds_Roe(NewtonianIdealGasContext gas, St
   *s_right = u_roe + a_roe;
 }
 
+CEED_QFUNCTION_HELPER void ComputeHLLSpeeds_Roe_fwd(NewtonianIdealGasContext gas, State left, State dleft, CeedScalar u_left, CeedScalar du_left,
+                                                    State right, State dright, CeedScalar u_right, CeedScalar du_right, CeedScalar *s_left,
+                                                    CeedScalar *ds_left, CeedScalar *s_right, CeedScalar *ds_right) {
+  const CeedScalar gamma = HeatCapacityRatio(gas);
+
+  RoeWeights r  = RoeSetup(left.U.density, right.U.density);
+  RoeWeights dr = RoeSetup_fwd(left.U.density, right.U.density, dleft.U.density, dright.U.density);
+  // Speed estimate
+  // Roe average eigenvalues for left and right non-linear waves
+  // Stability requires that these speed estimates are *at least*
+  // as fast as the physical wave speeds.
+  CeedScalar u_roe  = RoeAverage(r, u_left, u_right);
+  CeedScalar du_roe = RoeAverage_fwd(r, dr, u_left, u_right, du_left, du_right);
+
+  CeedScalar H_left   = TotalSpecificEnthalpy(gas, left);
+  CeedScalar H_right  = TotalSpecificEnthalpy(gas, right);
+  CeedScalar dH_left  = TotalSpecificEnthalpy_fwd(gas, left, dleft);
+  CeedScalar dH_right = TotalSpecificEnthalpy_fwd(gas, right, dright);
+
+  CeedScalar H_roe  = RoeAverage(r, H_left, H_right);
+  CeedScalar dH_roe = RoeAverage_fwd(r, dr, H_left, H_right, dH_left, dH_right);
+  CeedScalar a_roe  = sqrt((gamma - 1) * (H_roe - 0.5 * Square(u_roe)));
+  CeedScalar da_roe = 0.5 * (gamma - 1) / sqrt(H_roe) * dH_roe - 0.5 * sqrt(gamma - 1) * u_roe / sqrt(H_roe - 0.5 * Square(u_roe)) * du_roe;
+
+  *s_left   = u_roe - a_roe;
+  *ds_left  = du_roe - da_roe;
+  *s_right  = u_roe + a_roe;
+  *ds_right = du_roe + da_roe;
+}
+
 // *****************************************************************************
 // @brief Harten Lax VanLeer (HLL) approximate Riemann solver.
 // Taking in two states (left, right) and returns RiemannFlux_HLL
@@ -134,19 +164,92 @@ CEED_QFUNCTION_HELPER StateConservative Harten_Lax_VanLeer_Flux(NewtonianIdealGa
   }
 }
 
+// *****************************************************************************
+// @brief Forward-mode Derivative of Harten Lax VanLeer (HLL) approximate Riemann solver.
+//
+// @param gas    NewtonianIdealGasContext for the fluid
+// @param left   Fluid state of the domain interior (the current solution)
+// @param right  Fluid state of the domain exterior (free stream conditions)
+// @param dleft  Derivative of fluid state of the domain interior (the current solution)
+// @param dright Derivative of fluid state of the domain exterior (free stream conditions)
+// @param normal Normalized, outward facing boundary normal vector
+// *****************************************************************************
+CEED_QFUNCTION_HELPER StateConservative Harten_Lax_VanLeer_Flux_fwd(NewtonianIdealGasContext gas, State left, State dleft, State right, State dright,
+                                                                    const CeedScalar normal[3]) {
+  StateConservative flux_left   = FluxInviscidDotNormal(gas, left, normal);
+  StateConservative flux_right  = FluxInviscidDotNormal(gas, right, normal);
+  StateConservative dflux_left  = FluxInviscidDotNormal_fwd(gas, left, dleft, normal);
+  StateConservative dflux_right = FluxInviscidDotNormal_fwd(gas, right, dright, normal);
+
+  CeedScalar u_left   = Dot3(left.Y.velocity, normal);
+  CeedScalar u_right  = Dot3(right.Y.velocity, normal);
+  CeedScalar du_left  = Dot3(dleft.Y.velocity, normal);
+  CeedScalar du_right = Dot3(dright.Y.velocity, normal);
+
+  CeedScalar s_left, ds_left, s_right, ds_right;
+  ComputeHLLSpeeds_Roe_fwd(gas, left, dleft, u_left, du_left, right, dright, u_right, du_right, &s_left, &ds_left, &s_right, &ds_right);
+
+  if (0 <= s_left) {
+    return dflux_left;
+  } else if (s_right <= 0) {
+    return dflux_right;
+  } else {
+    return Flux_HLL_fwd(left, right, dleft, dright, flux_left, flux_right, dflux_left, dflux_right, s_left, s_right, ds_left, ds_right);
+  }
+}
+
 CEED_QFUNCTION_HELPER StateConservative RiemannFlux_HLLC_Star(NewtonianIdealGasContext gas, State side, StateConservative F_side,
                                                               const CeedScalar normal[3], CeedScalar u_side, CeedScalar s_side, CeedScalar s_star) {
-  CeedScalar        fact = side.U.density * ((s_side - u_side) / (s_side - s_star));
+  CeedScalar fact  = side.U.density * (s_side - u_side) / (s_side - s_star);
+  CeedScalar denom = side.U.density * (s_side - u_side);
+  // U_* = fact * star
   StateConservative star = {
-      fact * 1.0,
+      1.0,
       {
-              fact * (side.Y.velocity[0] + (s_star - u_side) * normal[0]),
-              fact * (side.Y.velocity[1] + (s_star - u_side) * normal[1]),
-              fact * (side.Y.velocity[2] + (s_star - u_side) * normal[2]),
-              },
-      fact * (side.U.E_total / side.U.density) + (s_star - u_side) * (s_star + side.Y.pressure / (side.U.density * (s_side - u_side))),
+        side.Y.velocity[0] + (s_star - u_side) * normal[0],
+        side.Y.velocity[1] + (s_star - u_side) * normal[1],
+        side.Y.velocity[2] + (s_star - u_side) * normal[2],
+        },
+      side.U.E_total / side.U.density + (s_star - u_side) * (s_star + side.Y.pressure / denom),
   };
-  return StateConservativeAXPBYPCZ(1, F_side, s_side, star, -s_side, side.U);
+  return StateConservativeAXPBYPCZ(1, F_side, s_side * fact, star, -s_side, side.U);
+}
+
+CEED_QFUNCTION_HELPER StateConservative RiemannFlux_HLLC_Star_fwd(NewtonianIdealGasContext gas, State side, State dside, StateConservative F_side,
+                                                                  StateConservative dF_side, const CeedScalar normal[3], CeedScalar u_side,
+                                                                  CeedScalar du_side, CeedScalar s_side, CeedScalar ds_side, CeedScalar s_star,
+                                                                  CeedScalar ds_star) {
+  CeedScalar fact  = side.U.density * (s_side - u_side) / (s_side - s_star);
+  CeedScalar dfact = (side.U.density * (ds_side - du_side) + dside.U.density * (s_side - u_side)) / (s_side - s_star)  //
+                     - fact / (s_side - s_star) * (ds_side - ds_star);
+  CeedScalar denom  = side.U.density * (s_side - u_side);
+  CeedScalar ddenom = side.U.density * (ds_side - du_side) + dside.U.density * (s_side - u_side);
+
+  StateConservative star = {
+      1.0,
+      {
+        side.Y.velocity[0] + (s_star - u_side) * normal[0],
+        side.Y.velocity[1] + (s_star - u_side) * normal[1],
+        side.Y.velocity[2] + (s_star - u_side) * normal[2],
+        },
+      side.U.E_total / side.U.density  //
+          + (s_star - u_side) * (s_star + side.Y.pressure / denom),
+  };
+  StateConservative dstar = {
+      0.,
+      {
+        dside.Y.velocity[0] + (ds_star - du_side) * normal[0],
+        dside.Y.velocity[1] + (ds_star - du_side) * normal[1],
+        dside.Y.velocity[2] + (ds_star - du_side) * normal[2],
+        },
+      dside.U.E_total / side.U.density - side.U.E_total / Square(side.U.density) * dside.U.density  //
+          + (ds_star - du_side) * (s_star + side.Y.pressure / denom)  //
+          + (s_star - u_side) * (ds_star + dside.Y.pressure / denom - side.Y.pressure / Square(denom) * ddenom)  //,
+  };
+
+  const CeedScalar        a[] = {1, ds_side * fact + s_side * dfact, s_side * fact, -ds_side, -s_side};
+  const StateConservative U[] = {dF_side, star, dstar, side.U, dside.U};
+  return StateConservativeMult(5, a, U);
 }
 
 // HLLC Riemann solver (from Toro's book)
@@ -161,9 +264,10 @@ CEED_QFUNCTION_HELPER StateConservative Harten_Lax_VanLeer_Contact_Flux(Newtonia
   ComputeHLLSpeeds_Roe(gas, left, u_left, right, u_right, &s_left, &s_right);
 
   // Contact wave speed; Toro (10.37)
-  CeedScalar s_star =
-      (right.Y.pressure - left.Y.pressure + left.U.density * u_left * (s_left - u_left) - right.U.density * u_right * (s_right - u_right)) /
-      (left.U.density * (s_left - u_left) - right.U.density * (s_right - u_right));
+  CeedScalar rhou_left = left.U.density * u_left, rhou_right = right.U.density * u_right;
+  CeedScalar numer  = right.Y.pressure - left.Y.pressure + rhou_left * (s_left - u_left) - rhou_right * (s_right - u_right);
+  CeedScalar denom  = left.U.density * (s_left - u_left) - right.U.density * (s_right - u_right);
+  CeedScalar s_star = numer / denom;
 
   // Compute HLLC flux
   if (0 <= s_left) {
@@ -177,20 +281,8 @@ CEED_QFUNCTION_HELPER StateConservative Harten_Lax_VanLeer_Contact_Flux(Newtonia
   }
 }
 
-// *****************************************************************************
-// @brief Forward-mode Derivative of Harten Lax VanLeer (HLL) approximate Riemann solver.
-//
-// @param gas    NewtonianIdealGasContext for the fluid
-// @param left   Fluid state of the domain interior (the current solution)
-// @param right  Fluid state of the domain exterior (free stream conditions)
-// @param dleft  Derivative of fluid state of the domain interior (the current solution)
-// @param dright Derivative of fluid state of the domain exterior (free stream conditions)
-// @param normal Normalized, outward facing boundary normal vector
-// *****************************************************************************
-CEED_QFUNCTION_HELPER StateConservative Harten_Lax_VanLeer_Flux_fwd(NewtonianIdealGasContext gas, State left, State right, State dleft, State dright,
-                                                                    const CeedScalar normal[3]) {
-  const CeedScalar gamma = HeatCapacityRatio(gas);
-
+CEED_QFUNCTION_HELPER StateConservative Harten_Lax_VanLeer_Contact_Flux_fwd(NewtonianIdealGasContext gas, State left, State dleft, State right,
+                                                                            State dright, const CeedScalar normal[3]) {
   StateConservative flux_left   = FluxInviscidDotNormal(gas, left, normal);
   StateConservative flux_right  = FluxInviscidDotNormal(gas, right, normal);
   StateConservative dflux_left  = FluxInviscidDotNormal_fwd(gas, left, dleft, normal);
@@ -201,41 +293,34 @@ CEED_QFUNCTION_HELPER StateConservative Harten_Lax_VanLeer_Flux_fwd(NewtonianIde
   CeedScalar du_left  = Dot3(dleft.Y.velocity, normal);
   CeedScalar du_right = Dot3(dright.Y.velocity, normal);
 
-  RoeWeights r  = RoeSetup(left.U.density, right.U.density);
-  RoeWeights dr = RoeSetup_fwd(left.U.density, right.U.density, dleft.U.density, dright.U.density);
-  // Speed estimate
-  // Roe average eigenvalues for left and right non-linear waves
-  // Stability requires that these speed estimates are *at least*
-  // as fast as the physical wave speeds.
-  CeedScalar u_roe  = RoeAverage(r, u_left, u_right);
-  CeedScalar du_roe = RoeAverage_fwd(r, dr, u_left, u_right, du_left, du_right);
+  CeedScalar s_left, ds_left, s_right, ds_right;
+  ComputeHLLSpeeds_Roe_fwd(gas, left, dleft, u_left, du_left, right, dright, u_right, du_right, &s_left, &ds_left, &s_right, &ds_right);
 
-  CeedScalar H_left   = TotalSpecificEnthalpy(gas, left);
-  CeedScalar H_right  = TotalSpecificEnthalpy(gas, right);
-  CeedScalar dH_left  = TotalSpecificEnthalpy_fwd(gas, left, dleft);
-  CeedScalar dH_right = TotalSpecificEnthalpy_fwd(gas, right, dright);
+  // Contact wave speed; Toro (10.37)
+  CeedScalar rhou_left = left.U.density * u_left, drhou_left = left.U.density * du_left + dleft.U.density * u_left;
+  CeedScalar rhou_right = right.U.density * u_right, drhou_right = right.U.density * du_right + dright.U.density * u_right;
+  CeedScalar numer = right.Y.pressure - left.Y.pressure  //
+                     + rhou_left * (s_left - u_left)     //
+                     - rhou_right * (s_right - u_right);
+  CeedScalar dnumer = dright.Y.pressure - dleft.Y.pressure                                //
+                      + rhou_left * (ds_left - du_left) + drhou_left * (s_left - u_left)  //
+                      - rhou_right * (ds_right - du_right) - drhou_right * (s_right - u_right);
+  CeedScalar denom  = left.U.density * (s_left - u_left) - right.U.density * (s_right - u_right);
+  CeedScalar ddenom = left.U.density * (ds_left - du_left) + dleft.U.density * (s_left - u_left)  //
+                      - right.U.density * (ds_right - du_right) - dright.U.density * (s_right - u_right);
+  CeedScalar s_star  = numer / denom;
+  CeedScalar ds_star = dnumer / denom - numer / Square(denom) * ddenom;
 
-  CeedScalar H_roe  = RoeAverage(r, H_left, H_right);
-  CeedScalar dH_roe = RoeAverage_fwd(r, dr, H_left, H_right, dH_left, dH_right);
-  CeedScalar a_roe  = sqrt((gamma - 1) * (H_roe - 0.5 * Square(u_roe)));
-  CeedScalar da_roe = 0.5 * (gamma - 1) / sqrt(H_roe) * dH_roe - 0.5 * sqrt(gamma - 1) * u_roe / sqrt(H_roe - 0.5 * Square(u_roe)) * du_roe;
-
-  // Einfeldt (1988) justifies (and Toro's book repeats) that Roe speeds can be used here.
-  CeedScalar s_left   = u_roe - a_roe;
-  CeedScalar s_right  = u_roe + a_roe;
-  CeedScalar ds_left  = du_roe - da_roe;
-  CeedScalar ds_right = du_roe + da_roe;
-
-  // Compute HLL flux
-  StateConservative dRiemannFlux_HLL;
+  // Compute HLLC flux
   if (0 <= s_left) {
-    dRiemannFlux_HLL = dflux_left;
-  } else if (s_right <= 0) {
-    dRiemannFlux_HLL = dflux_right;
+    return dflux_left;
+  } else if (0 <= s_star) {
+    return RiemannFlux_HLLC_Star_fwd(gas, left, dleft, flux_left, dflux_left, normal, u_left, du_left, s_left, ds_left, s_star, ds_star);
+  } else if (0 <= s_right) {
+    return RiemannFlux_HLLC_Star_fwd(gas, right, dright, flux_right, dflux_right, normal, u_right, du_right, s_right, ds_right, s_star, ds_star);
   } else {
-    dRiemannFlux_HLL = Flux_HLL_fwd(left, right, dleft, dright, flux_left, flux_right, dflux_left, dflux_right, s_left, s_right, ds_left, ds_right);
+    return dflux_right;
   }
-  return dRiemannFlux_HLL;
 }
 
 // *****************************************************************************
@@ -263,7 +348,7 @@ CEED_QFUNCTION_HELPER int Freestream(void *ctx, CeedInt Q, const CeedScalar *con
     // ---- Normal vector
     const CeedScalar norm[3] = {q_data_sur[1][i], q_data_sur[2][i], q_data_sur[3][i]};
 
-    StateConservative HLL_flux = Harten_Lax_VanLeer_Flux(newt_ctx, s, context->S_infty, norm);
+    StateConservative HLL_flux = Harten_Lax_VanLeer_Contact_Flux(newt_ctx, s, context->S_infty, norm);
     CeedScalar        Flux[5];
     UnpackState_U(HLL_flux, Flux);
     for (CeedInt j = 0; j < 5; j++) v[j][i] = -wdetJb * Flux[j];
@@ -306,7 +391,7 @@ CEED_QFUNCTION_HELPER int Freestream_Jacobian(void *ctx, CeedInt Q, const CeedSc
     State s  = StateFromQi(newt_ctx, qi, x_i);
     State ds = StateFromQi_fwd(newt_ctx, s, dqi, x_i, dx_i);
 
-    StateConservative dHLL_flux = Harten_Lax_VanLeer_Flux_fwd(newt_ctx, s, context->S_infty, ds, dS_infty, norm);
+    StateConservative dHLL_flux = Harten_Lax_VanLeer_Contact_Flux_fwd(newt_ctx, s, ds, context->S_infty, dS_infty, norm);
     CeedScalar        Flux[5];
     UnpackState_U(dHLL_flux, Flux);
     for (CeedInt j = 0; j < 5; j++) v[j][i] = -wdetJb * Flux[j];

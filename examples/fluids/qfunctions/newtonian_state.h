@@ -132,11 +132,14 @@ CEED_QFUNCTION_HELPER StateConservative StateConservativeFromPrimitive_fwd(Newto
   return dU;
 }
 
-CEED_QFUNCTION_HELPER StateConservative StateConservativeAXPBY(CeedScalar a, StateConservative X, CeedScalar b, StateConservative Y) {
-  StateConservative R;
-  R.density = a * X.density + b * Y.density;
-  for (int i = 0; i < 3; i++) R.momentum[i] = a * X.momentum[i] + b * Y.momentum[i];
-  R.E_total = a * X.E_total + b * Y.E_total;
+// linear combination of n states
+CEED_QFUNCTION_HELPER StateConservative StateConservativeMult(CeedInt n, const CeedScalar a[], const StateConservative X[]) {
+  StateConservative R = {0};
+  for (CeedInt i = 0; i < n; i++) {
+    R.density += a[i] * X[i].density;
+    for (int j = 0; j < 3; j++) R.momentum[j] += a[i] * X[i].momentum[j];
+    R.E_total += a[i] * X[i].E_total;
+  }
   return R;
 }
 
