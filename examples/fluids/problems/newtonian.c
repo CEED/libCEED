@@ -58,7 +58,7 @@ static PetscErrorCode UnitTests_Newtonian(User user, NewtonianIdealGasContext ga
   PetscFunctionReturn(0);
 }
 
-PetscErrorCode NS_NEWTONIAN_IG(ProblemData *problem, DM dm, void *ctx) {
+PetscErrorCode NS_NEWTONIAN_IG(ProblemData *problem, DM dm, void *ctx, SimpleBC bc) {
   SetupContext             setup_context;
   User                     user = *(User *)ctx;
   StabilizationType        stab;
@@ -264,6 +264,8 @@ PetscErrorCode NS_NEWTONIAN_IG(ProblemData *problem, DM dm, void *ctx) {
   newtonian_ig_ctx->is_implicit   = implicit;
   newtonian_ig_ctx->state_var     = state_var;
   PetscCall(PetscArraycpy(newtonian_ig_ctx->g, g, 3));
+
+  if (bc->num_freestream > 0) PetscCall(FreestreamBCSetup(problem, dm, ctx, newtonian_ig_ctx));
 
   CeedQFunctionContextCreate(user->ceed, &problem->ics.qfunction_context);
   CeedQFunctionContextSetData(problem->ics.qfunction_context, CEED_MEM_HOST, CEED_USE_POINTER, sizeof(*setup_context), setup_context);

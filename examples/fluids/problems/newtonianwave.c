@@ -12,7 +12,7 @@
 #include "../qfunctions/freestream_bc_type.h"
 #include "../qfunctions/newtonwave.h"
 
-PetscErrorCode NS_NEWTONIAN_WAVE(ProblemData *problem, DM dm, void *ctx) {
+PetscErrorCode NS_NEWTONIAN_WAVE(ProblemData *problem, DM dm, void *ctx, SimpleBC bc) {
   User                     user = *(User *)ctx;
   MPI_Comm                 comm = PETSC_COMM_WORLD;
   NewtonWaveContext        newtwave_ctx;
@@ -21,16 +21,18 @@ PetscErrorCode NS_NEWTONIAN_WAVE(ProblemData *problem, DM dm, void *ctx) {
   CeedQFunctionContext     newtwave_context;
 
   PetscFunctionBeginUser;
-  PetscCall(NS_NEWTONIAN_IG(problem, dm, ctx));
+  PetscCall(NS_NEWTONIAN_IG(problem, dm, ctx, bc));
 
   // *INDENT-OFF*
   switch (user->phys->state_var) {
     case STATEVAR_CONSERVATIVE:
       problem->ics.qfunction     = IC_NewtonianWave_Conserv;
       problem->ics.qfunction_loc = IC_NewtonianWave_Conserv_loc;
+      break;
     case STATEVAR_PRIMITIVE:
       problem->ics.qfunction     = IC_NewtonianWave_Prim;
       problem->ics.qfunction_loc = IC_NewtonianWave_Prim_loc;
+      break;
   }
   // *INDENT-ON*
 
@@ -49,8 +51,6 @@ PetscErrorCode NS_NEWTONIAN_WAVE(ProblemData *problem, DM dm, void *ctx) {
 
   width *= user->units->meter;
   for (int i = 0; i < 3; i++) epicenter[i] *= user->units->meter;
-
-  PetscCall(FreestreamBCSetup(problem, dm, ctx));
 
   // -- Set newtwave_ctx struct values
   PetscCall(PetscCalloc1(1, &newtwave_ctx));

@@ -231,7 +231,7 @@ static PetscErrorCode ModifyMesh(MPI_Comm comm, DM dm, PetscInt dim, PetscReal g
   PetscFunctionReturn(0);
 }
 
-PetscErrorCode NS_BLASIUS(ProblemData *problem, DM dm, void *ctx) {
+PetscErrorCode NS_BLASIUS(ProblemData *problem, DM dm, void *ctx, SimpleBC bc) {
   User                     user    = *(User *)ctx;
   MPI_Comm                 comm    = PETSC_COMM_WORLD;
   PetscBool                use_stg = PETSC_FALSE;
@@ -240,7 +240,7 @@ PetscErrorCode NS_BLASIUS(ProblemData *problem, DM dm, void *ctx) {
   CeedQFunctionContext     blasius_context;
 
   PetscFunctionBeginUser;
-  PetscCall(NS_NEWTONIAN_IG(problem, dm, ctx));
+  PetscCall(NS_NEWTONIAN_IG(problem, dm, ctx, bc));
   PetscCall(PetscCalloc1(1, &blasius_ctx));
 
   // ------------------------------------------------------

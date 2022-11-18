@@ -133,10 +133,10 @@ int main(int argc, char **argv) {
   // Choose the problem from the list of registered problems
   // ---------------------------------------------------------------------------
   {
-    PetscErrorCode (*p)(ProblemData *, DM, void *);
+    PetscErrorCode (*p)(ProblemData *, DM, void *, SimpleBC);
     PetscCall(PetscFunctionListFind(app_ctx->problems, app_ctx->problem_name, &p));
     if (!p) SETERRQ(PETSC_COMM_SELF, 1, "Problem '%s' not found", app_ctx->problem_name);
-    PetscCall((*p)(problem, dm, &user));
+    PetscCall((*p)(problem, dm, &user, bc));
   }
 
   // -- Set up DM

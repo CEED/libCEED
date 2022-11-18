@@ -22,7 +22,7 @@
 #include "../navierstokes.h"
 #include "../qfunctions/setupgeo.h"
 
-PetscErrorCode NS_SHOCKTUBE(ProblemData *problem, DM dm, void *ctx) {
+PetscErrorCode NS_SHOCKTUBE(ProblemData *problem, DM dm, void *ctx, SimpleBC bc) {
   SetupContextShock    setup_context;
   User                 user = *(User *)ctx;
   MPI_Comm             comm = PETSC_COMM_WORLD;
