@@ -427,8 +427,10 @@ E &= \frac{p_\infty}{\gamma -1}\left(1+A\exp\left(\frac{-(\bar{x}^2 + \bar{y}^2)
 $$
 
 where $A$ and $\sigma$ are the amplitude and width of the perturbation, respectively, and $(\bar{x}, \bar{y}) = (x-x_e, y-y_e)$ is the distance to the epicenter of the perturbation, $(x_e, y_e)$.
+The simulation produces a strong acoustic wave and leaves behind a cold thermal bubble that advects at the fluid velocity.
 
-Currently, a HLL (Harten, Lax, van Leer) Riemann solver is implemented under the freestream boundary condition. The formulation for the HLL solver is given in {cite}`toro2009`.
+The boundary conditions are freestream in the x and y directions. When using an HLL (Harten, Lax, van Leer) Riemann solver {cite}`toro2009` (option `-freestream_riemann hll`), the acoustic waves exit the domain cleanly, but when the thermal bubble reaches the boundary, it produces strong thermal oscillations that become acoustic waves reflecting into the domain.
+This problem can be fixed using a more sophisticated Riemann solver such as HLLC {cite}`toro2009` (option `-freestream_riemann hllc`, which is default), which is a linear constant-pressure wave that transports temperature and transverse momentum at the fluid velocity.
 
 ## Density Current
 

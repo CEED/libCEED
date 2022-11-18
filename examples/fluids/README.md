@@ -569,17 +569,22 @@ The newtonian wave problem has the following command-line options in addition to
   - Default value
   - Unit
 
-* - `-velocity_freestream`
+* - `-freestream_riemann`
+  - Riemann solver for boundaries (HLL or HLLC)
+  - `hllc`
+  -
+
+* - `-freestream_velocity`
   - Freestream velocity vector
   - `0,0,0`
   - `m/s`
 
-* - `-temperature_freestream`
+* - `-freestream_temperature`
   - Freestream temperature
   - `288`
   - `K`
 
-* - `-pressure_freestream`
+* - `-freestream_pressure`
   - Freestream pressure
   - `1.01e5`
   - `Pa`
