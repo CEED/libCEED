@@ -12,28 +12,20 @@
 
 #include "../navierstokes.h"
 
+typedef enum {
+  RIEMANN_HLL,
+  RIEMANN_HLLC,
+} RiemannSolverType;
+static const char *const RiemannSolverTypes[] = {"hll", "hllc", "RiemannSolverTypes", "RIEMANN_", NULL};
+
 PetscErrorCode FreestreamBCSetup(ProblemData *problem, DM dm, void *ctx) {
   User                     user = *(User *)ctx;
   MPI_Comm                 comm = PETSC_COMM_WORLD;
   FreestreamContext        freestream_ctx;
   NewtonianIdealGasContext newtonian_ig_ctx;
   CeedQFunctionContext     freestream_context;
+  RiemannSolverType        riemann = RIEMANN_HLLC;
   PetscFunctionBeginUser;
-
-  // *INDENT-OFF*
-  switch (user->phys->state_var) {
-    case STATEVAR_CONSERVATIVE:
-      problem->apply_freestream.qfunction              = Freestream_Conserv;
-      problem->apply_freestream.qfunction_loc          = Freestream_Conserv_loc;
-      problem->apply_freestream_jacobian.qfunction     = Freestream_Jacobian_Conserv;
-      problem->apply_freestream_jacobian.qfunction_loc = Freestream_Jacobian_Conserv_loc;
-    case STATEVAR_PRIMITIVE:
-      problem->apply_freestream.qfunction              = Freestream_Prim;
-      problem->apply_freestream.qfunction_loc          = Freestream_Prim_loc;
-      problem->apply_freestream_jacobian.qfunction     = Freestream_Jacobian_Prim;
-      problem->apply_freestream_jacobian.qfunction_loc = Freestream_Jacobian_Prim_loc;
-  }
-  // *INDENT-ON*
 
   // -- Option Defaults
   CeedScalar U_inf[3] = {0.};    // m/s
@@ -41,14 +33,45 @@ PetscErrorCode FreestreamBCSetup(ProblemData *problem, DM dm, void *ctx) {
   CeedScalar P_inf    = 1.01e5;  // Pa
 
   PetscOptionsBegin(comm, NULL, "Options for Freestream boundary condition", NULL);
+  PetscCall(PetscOptionsEnum("-freestream_riemann", "Riemann solver to use in freestream boundary condition", NULL, RiemannSolverTypes,
+                             (PetscEnum)riemann, (PetscEnum *)&riemann, NULL));
   PetscInt narray = 3;
-  PetscCall(PetscOptionsScalarArray("-velocity_freestream", "Velocity at freestream condition", NULL, U_inf, &narray, NULL));
+  PetscCall(PetscOptionsScalarArray("-freestream_velocity", "Velocity at freestream condition", NULL, U_inf, &narray, NULL));
   PetscCheck(narray == 3, comm, PETSC_ERR_ARG_SIZ, "-velocity_freestream should recieve array of size 3, instead recieved size %" PetscInt_FMT ".",
              narray);
 
-  PetscCall(PetscOptionsScalar("-temperature_freestream", "Temperature at freestream condition", NULL, T_inf, &T_inf, NULL));
-  PetscCall(PetscOptionsScalar("-pressure_freestream", "Pressure at freestream condition", NULL, P_inf, &P_inf, NULL));
+  PetscCall(PetscOptionsScalar("-freestream_temperature", "Temperature at freestream condition", NULL, T_inf, &T_inf, NULL));
+  PetscCall(PetscOptionsScalar("-freestream_pressure", "Pressure at freestream condition", NULL, P_inf, &P_inf, NULL));
   PetscOptionsEnd();
+
+  switch (user->phys->state_var) {
+    case STATEVAR_CONSERVATIVE:
+      switch (riemann) {
+        case RIEMANN_HLL:
+          problem->apply_freestream.qfunction              = Freestream_Conserv_HLL;
+          problem->apply_freestream.qfunction_loc          = Freestream_Conserv_HLL_loc;
+          problem->apply_freestream_jacobian.qfunction     = Freestream_Jacobian_Conserv_HLL;
+          problem->apply_freestream_jacobian.qfunction_loc = Freestream_Jacobian_Conserv_HLL_loc;
+        case RIEMANN_HLLC:
+          problem->apply_freestream.qfunction              = Freestream_Conserv_HLLC;
+          problem->apply_freestream.qfunction_loc          = Freestream_Conserv_HLLC_loc;
+          problem->apply_freestream_jacobian.qfunction     = Freestream_Jacobian_Conserv_HLLC;
+          problem->apply_freestream_jacobian.qfunction_loc = Freestream_Jacobian_Conserv_HLLC_loc;
+      }
+    case STATEVAR_PRIMITIVE:
+      switch (riemann) {
+        case RIEMANN_HLL:
+          problem->apply_freestream.qfunction              = Freestream_Prim_HLL;
+          problem->apply_freestream.qfunction_loc          = Freestream_Prim_HLL_loc;
+          problem->apply_freestream_jacobian.qfunction     = Freestream_Jacobian_Prim_HLL;
+          problem->apply_freestream_jacobian.qfunction_loc = Freestream_Jacobian_Prim_HLL_loc;
+        case RIEMANN_HLLC:
+          problem->apply_freestream.qfunction              = Freestream_Prim_HLLC;
+          problem->apply_freestream.qfunction_loc          = Freestream_Prim_HLLC_loc;
+          problem->apply_freestream_jacobian.qfunction     = Freestream_Jacobian_Prim_HLLC;
+          problem->apply_freestream_jacobian.qfunction_loc = Freestream_Jacobian_Prim_HLLC_loc;
+      }
+  }
 
   PetscScalar meter  = user->units->meter;
   PetscScalar second = user->units->second;

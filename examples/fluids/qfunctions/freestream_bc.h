@@ -12,6 +12,9 @@
 #include "newtonian_state.h"
 #include "newtonian_types.h"
 
+typedef StateConservative (*RiemannFluxFunction)(NewtonianIdealGasContext, State, State, const CeedScalar[3]);
+typedef StateConservative (*RiemannFluxFwdFunction)(NewtonianIdealGasContext, State, State, State, State, const CeedScalar[3]);
+
 typedef struct {
   CeedScalar left, right;
 } RoeWeights;
@@ -144,7 +147,7 @@ CEED_QFUNCTION_HELPER void ComputeHLLSpeeds_Roe_fwd(NewtonianIdealGasContext gas
 // @param right  Fluid state of the domain exterior (free stream conditions)
 // @param normal Normalized, outward facing boundary normal vector
 // *****************************************************************************
-CEED_QFUNCTION_HELPER StateConservative Harten_Lax_VanLeer_Flux(NewtonianIdealGasContext gas, State left, State right, const CeedScalar normal[3]) {
+CEED_QFUNCTION_HELPER StateConservative RiemannFlux_HLL(NewtonianIdealGasContext gas, State left, State right, const CeedScalar normal[3]) {
   StateConservative flux_left  = FluxInviscidDotNormal(gas, left, normal);
   StateConservative flux_right = FluxInviscidDotNormal(gas, right, normal);
 
@@ -174,8 +177,8 @@ CEED_QFUNCTION_HELPER StateConservative Harten_Lax_VanLeer_Flux(NewtonianIdealGa
 // @param dright Derivative of fluid state of the domain exterior (free stream conditions)
 // @param normal Normalized, outward facing boundary normal vector
 // *****************************************************************************
-CEED_QFUNCTION_HELPER StateConservative Harten_Lax_VanLeer_Flux_fwd(NewtonianIdealGasContext gas, State left, State dleft, State right, State dright,
-                                                                    const CeedScalar normal[3]) {
+CEED_QFUNCTION_HELPER StateConservative RiemannFlux_HLL_fwd(NewtonianIdealGasContext gas, State left, State dleft, State right, State dright,
+                                                            const CeedScalar normal[3]) {
   StateConservative flux_left   = FluxInviscidDotNormal(gas, left, normal);
   StateConservative flux_right  = FluxInviscidDotNormal(gas, right, normal);
   StateConservative dflux_left  = FluxInviscidDotNormal_fwd(gas, left, dleft, normal);
@@ -253,8 +256,7 @@ CEED_QFUNCTION_HELPER StateConservative RiemannFlux_HLLC_Star_fwd(NewtonianIdeal
 }
 
 // HLLC Riemann solver (from Toro's book)
-CEED_QFUNCTION_HELPER StateConservative Harten_Lax_VanLeer_Contact_Flux(NewtonianIdealGasContext gas, State left, State right,
-                                                                        const CeedScalar normal[3]) {
+CEED_QFUNCTION_HELPER StateConservative RiemannFlux_HLLC(NewtonianIdealGasContext gas, State left, State right, const CeedScalar normal[3]) {
   StateConservative flux_left  = FluxInviscidDotNormal(gas, left, normal);
   StateConservative flux_right = FluxInviscidDotNormal(gas, right, normal);
 
@@ -281,8 +283,8 @@ CEED_QFUNCTION_HELPER StateConservative Harten_Lax_VanLeer_Contact_Flux(Newtonia
   }
 }
 
-CEED_QFUNCTION_HELPER StateConservative Harten_Lax_VanLeer_Contact_Flux_fwd(NewtonianIdealGasContext gas, State left, State dleft, State right,
-                                                                            State dright, const CeedScalar normal[3]) {
+CEED_QFUNCTION_HELPER StateConservative RiemannFlux_HLLC_fwd(NewtonianIdealGasContext gas, State left, State dleft, State right, State dright,
+                                                             const CeedScalar normal[3]) {
   StateConservative flux_left   = FluxInviscidDotNormal(gas, left, normal);
   StateConservative flux_right  = FluxInviscidDotNormal(gas, right, normal);
   StateConservative dflux_left  = FluxInviscidDotNormal_fwd(gas, left, dleft, normal);
@@ -327,7 +329,7 @@ CEED_QFUNCTION_HELPER StateConservative Harten_Lax_VanLeer_Contact_Flux_fwd(Newt
 // Freestream Boundary Condition
 // *****************************************************************************
 CEED_QFUNCTION_HELPER int Freestream(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out, StateFromQi_t StateFromQi,
-                                     StateFromQi_fwd_t StateFromQi_fwd) {
+                                     StateFromQi_fwd_t StateFromQi_fwd, RiemannFluxFunction RiemannFlux) {
   //*INDENT-OFF*
   const CeedScalar(*q)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[0], (*q_data_sur)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[2],
         (*x)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[3];
@@ -348,9 +350,9 @@ CEED_QFUNCTION_HELPER int Freestream(void *ctx, CeedInt Q, const CeedScalar *con
     // ---- Normal vector
     const CeedScalar norm[3] = {q_data_sur[1][i], q_data_sur[2][i], q_data_sur[3][i]};
 
-    StateConservative HLL_flux = Harten_Lax_VanLeer_Contact_Flux(newt_ctx, s, context->S_infty, norm);
+    StateConservative flux = RiemannFlux(newt_ctx, s, context->S_infty, norm);
     CeedScalar        Flux[5];
-    UnpackState_U(HLL_flux, Flux);
+    UnpackState_U(flux, Flux);
     for (CeedInt j = 0; j < 5; j++) v[j][i] = -wdetJb * Flux[j];
 
     for (int j = 0; j < 5; j++) jac_data_sur[j][i] = qi[j];
@@ -358,16 +360,24 @@ CEED_QFUNCTION_HELPER int Freestream(void *ctx, CeedInt Q, const CeedScalar *con
   return 0;
 }
 
-CEED_QFUNCTION(Freestream_Conserv)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
-  return Freestream(ctx, Q, in, out, StateFromU, StateFromU_fwd);
+CEED_QFUNCTION(Freestream_Conserv_HLL)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
+  return Freestream(ctx, Q, in, out, StateFromU, StateFromU_fwd, RiemannFlux_HLL);
 }
 
-CEED_QFUNCTION(Freestream_Prim)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
-  return Freestream(ctx, Q, in, out, StateFromY, StateFromY_fwd);
+CEED_QFUNCTION(Freestream_Prim_HLL)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
+  return Freestream(ctx, Q, in, out, StateFromY, StateFromY_fwd, RiemannFlux_HLL);
+}
+
+CEED_QFUNCTION(Freestream_Conserv_HLLC)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
+  return Freestream(ctx, Q, in, out, StateFromU, StateFromU_fwd, RiemannFlux_HLLC);
+}
+
+CEED_QFUNCTION(Freestream_Prim_HLLC)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
+  return Freestream(ctx, Q, in, out, StateFromY, StateFromY_fwd, RiemannFlux_HLLC);
 }
 
 CEED_QFUNCTION_HELPER int Freestream_Jacobian(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out, StateFromQi_t StateFromQi,
-                                              StateFromQi_fwd_t StateFromQi_fwd) {
+                                              StateFromQi_fwd_t StateFromQi_fwd, RiemannFluxFwdFunction RiemannFlux_fwd) {
   //*INDENT-OFF*
   const CeedScalar(*dq)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[0], (*q_data_sur)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[2],
         (*x)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[3], (*jac_data_sur)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[4];
@@ -391,18 +401,26 @@ CEED_QFUNCTION_HELPER int Freestream_Jacobian(void *ctx, CeedInt Q, const CeedSc
     State s  = StateFromQi(newt_ctx, qi, x_i);
     State ds = StateFromQi_fwd(newt_ctx, s, dqi, x_i, dx_i);
 
-    StateConservative dHLL_flux = Harten_Lax_VanLeer_Contact_Flux_fwd(newt_ctx, s, ds, context->S_infty, dS_infty, norm);
-    CeedScalar        Flux[5];
-    UnpackState_U(dHLL_flux, Flux);
-    for (CeedInt j = 0; j < 5; j++) v[j][i] = -wdetJb * Flux[j];
+    StateConservative dflux = RiemannFlux_fwd(newt_ctx, s, ds, context->S_infty, dS_infty, norm);
+    CeedScalar        dFlux[5];
+    UnpackState_U(dflux, dFlux);
+    for (CeedInt j = 0; j < 5; j++) v[j][i] = -wdetJb * dFlux[j];
   }
   return 0;
 }
 
-CEED_QFUNCTION(Freestream_Jacobian_Conserv)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
-  return Freestream_Jacobian(ctx, Q, in, out, StateFromU, StateFromU_fwd);
+CEED_QFUNCTION(Freestream_Jacobian_Conserv_HLL)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
+  return Freestream_Jacobian(ctx, Q, in, out, StateFromU, StateFromU_fwd, RiemannFlux_HLL_fwd);
 }
 
-CEED_QFUNCTION(Freestream_Jacobian_Prim)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
-  return Freestream_Jacobian(ctx, Q, in, out, StateFromY, StateFromY_fwd);
+CEED_QFUNCTION(Freestream_Jacobian_Prim_HLL)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
+  return Freestream_Jacobian(ctx, Q, in, out, StateFromY, StateFromY_fwd, RiemannFlux_HLL_fwd);
+}
+
+CEED_QFUNCTION(Freestream_Jacobian_Conserv_HLLC)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
+  return Freestream_Jacobian(ctx, Q, in, out, StateFromU, StateFromU_fwd, RiemannFlux_HLLC_fwd);
+}
+
+CEED_QFUNCTION(Freestream_Jacobian_Prim_HLLC)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
+  return Freestream_Jacobian(ctx, Q, in, out, StateFromY, StateFromY_fwd, RiemannFlux_HLLC_fwd);
 }
