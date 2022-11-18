@@ -35,10 +35,11 @@ PetscErrorCode FreestreamBCSetup(ProblemData *problem, DM dm, void *ctx, Newtoni
   PetscOptionsBegin(comm, NULL, "Options for Freestream boundary condition", NULL);
   PetscCall(PetscOptionsEnum("-freestream_riemann", "Riemann solver to use in freestream boundary condition", NULL, RiemannSolverTypes,
                              (PetscEnum)riemann, (PetscEnum *)&riemann, NULL));
-  PetscInt narray = 3;
-  PetscCall(PetscOptionsScalarArray("-freestream_velocity", "Velocity at freestream condition", NULL, U_inf, &narray, NULL));
-  PetscCheck(narray == 3, comm, PETSC_ERR_ARG_SIZ, "-freestream_velocity should recieve array of size 3, instead recieved size %" PetscInt_FMT ".",
-             narray);
+  PetscBool set    = PETSC_FALSE;
+  PetscInt  narray = 3;
+  PetscCall(PetscOptionsScalarArray("-freestream_velocity", "Velocity at freestream condition", NULL, U_inf, &narray, &set));
+  PetscCheck(narray == 3 || !set, comm, PETSC_ERR_ARG_SIZ,
+             "-freestream_velocity should recieve array of size 3, instead recieved size %" PetscInt_FMT ".", narray);
 
   PetscCall(PetscOptionsScalar("-freestream_temperature", "Temperature at freestream condition", NULL, T_inf, &T_inf, NULL));
   PetscCall(PetscOptionsScalar("-freestream_pressure", "Pressure at freestream condition", NULL, P_inf, &P_inf, NULL));
