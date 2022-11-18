@@ -28,9 +28,11 @@ PetscErrorCode NS_NEWTONIAN_WAVE(ProblemData *problem, DM dm, void *ctx) {
     case STATEVAR_CONSERVATIVE:
       problem->ics.qfunction     = IC_NewtonianWave_Conserv;
       problem->ics.qfunction_loc = IC_NewtonianWave_Conserv_loc;
+      break;
     case STATEVAR_PRIMITIVE:
       problem->ics.qfunction     = IC_NewtonianWave_Prim;
       problem->ics.qfunction_loc = IC_NewtonianWave_Prim_loc;
+      break;
   }
   // *INDENT-ON*
 

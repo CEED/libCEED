@@ -21,8 +21,8 @@ width: 0.05
 
 ts:
   adapt_type: none
-  max_steps: 400
-  dt: 3.6e-4
+  max_steps: 100
+  dt: 2e-3
   type: alpha
   alpha_radius: 0.5
   #monitor_solution: cgns:nwave.cgns
