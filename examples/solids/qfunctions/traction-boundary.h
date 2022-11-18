@@ -31,12 +31,10 @@
 //
 // -----------------------------------------------------------------------------
 CEED_QFUNCTION(SetupTractionBCs)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
-  // *INDENT-OFF*
   // Inputs
   const CeedScalar(*J)[3][CEED_Q_VLA] = (const CeedScalar(*)[3][CEED_Q_VLA])in[0], (*w) = in[1];
   // Outputs
   CeedScalar(*v)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA])out[0];
-  // *INDENT-ON*
 
   // User stress tensor
   const CeedScalar(*traction) = (const CeedScalar(*))ctx;
@@ -45,13 +43,11 @@ CEED_QFUNCTION(SetupTractionBCs)(void *ctx, CeedInt Q, const CeedScalar *const *
       // Quadrature Point Loop
       for (CeedInt i = 0; i < Q; i++) {
     // Setup
-    // *INDENT-OFF*
     const CeedScalar dxdX[3][2] = {
         {J[0][0][i], J[1][0][i]},
         {J[0][1][i], J[1][1][i]},
         {J[0][2][i], J[1][2][i]}
     };
-    // *INDENT-ON*
     // J1, J2, and J3 are given by the cross product of the columns of dxdX
     const CeedScalar J1 = dxdX[1][0] * dxdX[2][1] - dxdX[2][0] * dxdX[1][1];
     const CeedScalar J2 = dxdX[2][0] * dxdX[0][1] - dxdX[0][0] * dxdX[2][1];

@@ -49,12 +49,10 @@ CEED_QFUNCTION(apply)(void *ctx, const CeedInt Q, const CeedScalar *const *in, C
     // Stored in Voigt convention
     // 0 2
     // 2 1
-    // *INDENT-OFF*
     const CeedScalar dXdxdXdxT[2][2] = {
         {q_data[i + 0 * Q], q_data[i + 2 * Q]},
         {q_data[i + 2 * Q], q_data[i + 1 * Q]}
     };
-    // *INDENT-ON*
 
     // Apply Poisson operator
     // j = direction of vg

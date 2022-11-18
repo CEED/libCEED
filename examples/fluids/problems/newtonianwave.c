@@ -23,7 +23,6 @@ PetscErrorCode NS_NEWTONIAN_WAVE(ProblemData *problem, DM dm, void *ctx, SimpleB
   PetscFunctionBeginUser;
   PetscCall(NS_NEWTONIAN_IG(problem, dm, ctx, bc));
 
-  // *INDENT-OFF*
   switch (user->phys->state_var) {
     case STATEVAR_CONSERVATIVE:
       problem->ics.qfunction     = IC_NewtonianWave_Conserv;
@@ -34,7 +33,6 @@ PetscErrorCode NS_NEWTONIAN_WAVE(ProblemData *problem, DM dm, void *ctx, SimpleB
       problem->ics.qfunction_loc = IC_NewtonianWave_Prim_loc;
       break;
   }
-  // *INDENT-ON*
 
   // -- Option Defaults
   CeedScalar epicenter[3] = {0.};   // m

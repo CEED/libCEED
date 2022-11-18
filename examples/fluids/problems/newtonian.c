@@ -125,7 +125,6 @@ PetscErrorCode NS_NEWTONIAN_IG(ProblemData *problem, DM dm, void *ctx, SimpleBC 
   PetscCall(PetscOptionsEnum("-state_var", "State variables used", NULL, StateVariables, (PetscEnum)(state_var = STATEVAR_CONSERVATIVE),
                              (PetscEnum *)&state_var, NULL));
 
-  // *INDENT-OFF*
   switch (state_var) {
     case STATEVAR_CONSERVATIVE:
       problem->ics.qfunction                        = ICsNewtonianIG;
@@ -163,7 +162,6 @@ PetscErrorCode NS_NEWTONIAN_IG(ProblemData *problem, DM dm, void *ctx, SimpleBC 
       problem->apply_outflow_jacobian.qfunction_loc = PressureOutflow_Jacobian_Prim_loc;
       break;
   }
-  // *INDENT-ON*
 
   // -- Physics
   PetscCall(PetscOptionsScalar("-cv", "Heat capacity at constant volume", NULL, cv, &cv, NULL));

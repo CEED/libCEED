@@ -95,12 +95,10 @@ CEED_QFUNCTION(f_apply_diff)(void *ctx, const CeedInt Q, const CeedScalar *const
         // Stored in Voigt convention
         // 0 2
         // 2 1
-        // *INDENT-OFF*
         const CeedScalar dXdxdXdx_T[2][2] = {
             {q_data[i + 0 * Q], q_data[i + 2 * Q]},
             {q_data[i + 2 * Q], q_data[i + 1 * Q]}
         };
-        // *INDENT-ON*
         // j = direction of vg
         for (int j = 0; j < 2; j++) vg[i + j * Q] = (du[0] * dXdxdXdx_T[0][j] + du[1] * dXdxdXdx_T[1][j]);
       }  // End of Quadrature Point Loop
@@ -115,13 +113,11 @@ CEED_QFUNCTION(f_apply_diff)(void *ctx, const CeedInt Q, const CeedScalar *const
         // 0 5 4
         // 5 1 3
         // 4 3 2
-        // *INDENT-OFF*
         const CeedScalar dXdxdXdx_T[3][3] = {
             {q_data[i + 0 * Q], q_data[i + 5 * Q], q_data[i + 4 * Q]},
             {q_data[i + 5 * Q], q_data[i + 1 * Q], q_data[i + 3 * Q]},
             {q_data[i + 4 * Q], q_data[i + 3 * Q], q_data[i + 2 * Q]}
         };
-        // *INDENT-ON*
         // j = direction of vg
         for (int j = 0; j < 3; j++) vg[i + j * Q] = (du[0] * dXdxdXdx_T[0][j] + du[1] * dXdxdXdx_T[1][j] + du[2] * dXdxdXdx_T[2][j]);
       }  // End of Quadrature Point Loop

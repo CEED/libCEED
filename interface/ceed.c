@@ -1148,9 +1148,7 @@ int CeedErrorStore(Ceed ceed, const char *filename, int line_no, const char *fun
   int len;
   len = snprintf(ceed->err_msg, CEED_MAX_RESOURCE_LEN, "%s:%d in %s(): ", filename, line_no, func);
   // Using pointer to va_list for better FFI, but clang-tidy can't verify va_list is initalized
-  // *INDENT-OFF*
   vsnprintf(ceed->err_msg + len, CEED_MAX_RESOURCE_LEN - len, format, *args);  // NOLINT
-  // *INDENT-ON*
   return err_code;
 }
 // LCOV_EXCL_STOP

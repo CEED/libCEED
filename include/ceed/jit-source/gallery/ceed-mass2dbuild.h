@@ -15,13 +15,11 @@
 #include <ceed.h>
 
 CEED_QFUNCTION(Mass2DBuild)(void *ctx, const CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
-  // *INDENT-OFF*
   // in[0] is Jacobians with shape [2, nc=2, Q]
   // in[1] is quadrature weights, size (Q)
   const CeedScalar(*J)[2][CEED_Q_VLA] = (const CeedScalar(*)[2][CEED_Q_VLA])in[0], *w = in[1];
   // out[0] is quadrature data, size (Q)
   CeedScalar *q_data = out[0];
-  // *INDENT-ON*
 
   // Quadrature point loop
   CeedPragmaSIMD for (CeedInt i = 0; i < Q; i++) {

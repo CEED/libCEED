@@ -98,7 +98,6 @@ CEED_QFUNCTION_HELPER int computeMatinvSym(const CeedScalar A[3][3], const CeedS
 // Residual evaluation for hyperelasticity, finite strain
 // -----------------------------------------------------------------------------
 CEED_QFUNCTION(ElasFSInitialNH2F)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
-  // *INDENT-OFF*
   // Inputs
   const CeedScalar(*ug)[3][CEED_Q_VLA] = (const CeedScalar(*)[3][CEED_Q_VLA])in[0], (*q_data)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[1];
 
@@ -110,7 +109,6 @@ CEED_QFUNCTION(ElasFSInitialNH2F)(void *ctx, CeedInt Q, const CeedScalar *const 
   CeedScalar(*C_inv)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA])out[2];
   // Store constant lam_log_J = lambda*log(J)
   CeedScalar(*lam_log_J)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA])out[3];
-  // *INDENT-ON*
 
   // Context
   const Physics    context = (Physics)ctx;
@@ -138,7 +136,6 @@ CEED_QFUNCTION(ElasFSInitialNH2F)(void *ctx, CeedInt Q, const CeedScalar *const 
   // Quadrature Point Loop
   CeedPragmaSIMD for (CeedInt i = 0; i < Q; i++) {
     // Read spatial derivatives of u
-    // *INDENT-OFF*
     const CeedScalar du[3][3] = {
         {ug[0][0][i], ug[1][0][i], ug[2][0][i]},
         {ug[0][1][i], ug[1][1][i], ug[2][1][i]},
@@ -151,7 +148,6 @@ CEED_QFUNCTION(ElasFSInitialNH2F)(void *ctx, CeedInt Q, const CeedScalar *const 
         {q_data[4][i], q_data[5][i], q_data[6][i]},
         {q_data[7][i], q_data[8][i], q_data[9][i]}
     };
-    // *INDENT-ON*
 
     // Compute grad_u
     //   dXdx = (dx/dX)^(-1)
@@ -165,7 +161,6 @@ CEED_QFUNCTION(ElasFSInitialNH2F)(void *ctx, CeedInt Q, const CeedScalar *const 
 
     // I3 : 3x3 Identity matrix
     // Compute The Deformation Gradient : F = I3 + grad_u
-    // *INDENT-OFF*
     const CeedScalar F[3][3] = {
         {grad_u[0][0][i] + 1, grad_u[0][1][i],     grad_u[0][2][i]    },
         {grad_u[1][0][i],     grad_u[1][1][i] + 1, grad_u[1][2][i]    },
@@ -192,7 +187,6 @@ CEED_QFUNCTION(ElasFSInitialNH2F)(void *ctx, CeedInt Q, const CeedScalar *const 
     // store lam_log_J = lambda*log(J)
     lam_log_J[0][i] = lambda * logJ;
 
-    // *INDENT-OFF*
     CeedScalar E2[3][3] = {
         {E2work[0], E2work[5], E2work[4]},
         {E2work[5], E2work[1], E2work[3]},
@@ -212,7 +206,6 @@ CEED_QFUNCTION(ElasFSInitialNH2F)(void *ctx, CeedInt Q, const CeedScalar *const 
     CeedScalar       Cinvwork[6];
     computeMatinvSym(C, detC, Cinvwork);
 
-    // *INDENT-ON*
     // store C_inv
     C_inv[0][i] = Cinvwork[0];
     C_inv[1][i] = Cinvwork[1];
@@ -221,26 +214,22 @@ CEED_QFUNCTION(ElasFSInitialNH2F)(void *ctx, CeedInt Q, const CeedScalar *const 
     C_inv[4][i] = Cinvwork[4];
     C_inv[5][i] = Cinvwork[5];
 
-    // *INDENT-OFF*
     const CeedScalar tempCinv[3][3] = {
         {C_inv[0][i], C_inv[5][i], C_inv[4][i]},
         {C_inv[5][i], C_inv[1][i], C_inv[3][i]},
         {C_inv[4][i], C_inv[3][i], C_inv[2][i]}
     };
-    // *INDENT-ON*
     CeedScalar Swork[6];
     for (CeedInt m = 0; m < 6; m++) {
       Swork[m] = lam_log_J[0][i] * C_inv[m][i];
       for (CeedInt n = 0; n < 3; n++) Swork[m] += mu * tempCinv[indj[m]][n] * E2[n][indk[m]];
     }
     // Second Piola-Kirchhoff (S)
-    // *INDENT-OFF*
     const CeedScalar S[3][3] = {
         {Swork[0], Swork[5], Swork[4]},
         {Swork[5], Swork[1], Swork[3]},
         {Swork[4], Swork[3], Swork[2]}
     };
-    // *INDENT-ON*
 
     // Compute the First Piola-Kirchhoff : P = F*S
     CeedScalar P[3][3];
@@ -267,7 +256,6 @@ CEED_QFUNCTION(ElasFSInitialNH2F)(void *ctx, CeedInt Q, const CeedScalar *const 
 // Jacobian evaluation for hyperelasticity, finite strain
 // -----------------------------------------------------------------------------
 CEED_QFUNCTION(ElasFSInitialNH2dF)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
-  // *INDENT-OFF*
   // Inputs
   const CeedScalar(*deltaug)[3][CEED_Q_VLA] = (const CeedScalar(*)[3][CEED_Q_VLA])in[0],
         (*q_data)[CEED_Q_VLA]               = (const CeedScalar(*)[CEED_Q_VLA])in[1];
@@ -278,7 +266,6 @@ CEED_QFUNCTION(ElasFSInitialNH2dF)(void *ctx, CeedInt Q, const CeedScalar *const
   const CeedScalar(*lam_log_J)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[4];
   // Outputs
   CeedScalar(*deltadvdX)[3][CEED_Q_VLA] = (CeedScalar(*)[3][CEED_Q_VLA])out[0];
-  // *INDENT-ON*
 
   // Context
   const Physics    context = (Physics)ctx;
@@ -294,7 +281,6 @@ CEED_QFUNCTION(ElasFSInitialNH2dF)(void *ctx, CeedInt Q, const CeedScalar *const
   // Quadrature Point Loop
   CeedPragmaSIMD for (CeedInt i = 0; i < Q; i++) {
     // Read spatial derivatives of delta_u
-    // *INDENT-OFF*
     const CeedScalar deltadu[3][3] = {
         {deltaug[0][0][i], deltaug[1][0][i], deltaug[2][0][i]},
         {deltaug[0][1][i], deltaug[1][1][i], deltaug[2][1][i]},
@@ -307,7 +293,6 @@ CEED_QFUNCTION(ElasFSInitialNH2dF)(void *ctx, CeedInt Q, const CeedScalar *const
         {q_data[4][i], q_data[5][i], q_data[6][i]},
         {q_data[7][i], q_data[8][i], q_data[9][i]}
     };
-    // *INDENT-ON*
 
     // Compute graddeltau
     //   dXdx = (dx/dX)^(-1)
@@ -322,13 +307,11 @@ CEED_QFUNCTION(ElasFSInitialNH2dF)(void *ctx, CeedInt Q, const CeedScalar *const
 
     // I3 : 3x3 Identity matrix
     // Deformation Gradient : F = I3 + grad_u
-    // *INDENT-OFF*
     const CeedScalar F[3][3] = {
         {grad_u[0][0][i] + 1, grad_u[0][1][i],     grad_u[0][2][i]    },
         {grad_u[1][0][i],     grad_u[1][1][i] + 1, grad_u[1][2][i]    },
         {grad_u[2][0][i],     grad_u[2][1][i],     grad_u[2][2][i] + 1}
     };
-    // *INDENT-ON*
     // E - Green-Lagrange strain tensor
     //     E = 1/2 (grad_u + grad_u^T + grad_u^T*grad_u)
     const CeedInt indj[6] = {0, 1, 2, 1, 0, 0}, indk[6] = {0, 1, 2, 2, 2, 1};
@@ -344,7 +327,6 @@ CEED_QFUNCTION(ElasFSInitialNH2dF)(void *ctx, CeedInt Q, const CeedScalar *const
       deltaEwork[m] = 0;
       for (CeedInt n = 0; n < 3; n++) deltaEwork[m] += (graddeltau[n][indj[m]] * F[n][indk[m]] + F[n][indj[m]] * graddeltau[n][indk[m]]) / 2.;
     }
-    // *INDENT-OFF*
     CeedScalar deltaE[3][3] = {
         {deltaEwork[0], deltaEwork[5], deltaEwork[4]},
         {deltaEwork[5], deltaEwork[1], deltaEwork[3]},
@@ -362,20 +344,17 @@ CEED_QFUNCTION(ElasFSInitialNH2dF)(void *ctx, CeedInt Q, const CeedScalar *const
         {C_inv[5][i], C_inv[1][i], C_inv[3][i]},
         {C_inv[4][i], C_inv[3][i], C_inv[2][i]}
     };
-    // *INDENT-ON*
     CeedScalar Swork[6];
     for (CeedInt m = 0; m < 6; m++) {
       Swork[m] = lam_log_J[0][i] * C_inv[m][i];
       for (CeedInt n = 0; n < 3; n++) Swork[m] += mu * tempCinv[indj[m]][n] * E2[n][indk[m]];
     }
     // Second Piola-Kirchhoff (S)
-    // *INDENT-OFF*
     const CeedScalar S[3][3] = {
         {Swork[0], Swork[5], Swork[4]},
         {Swork[5], Swork[1], Swork[3]},
         {Swork[4], Swork[3], Swork[2]}
     };
-    // *INDENT-ON*
 
     // deltaS = dSdE:deltaE
     //      = lambda(C_inv:deltaE)C_inv + 2(mu-lambda*log(J))C_inv*deltaE*C_inv
@@ -431,13 +410,11 @@ CEED_QFUNCTION(ElasFSInitialNH2dF)(void *ctx, CeedInt Q, const CeedScalar *const
 // Strain energy computation for hyperelasticity, finite strain
 // -----------------------------------------------------------------------------
 CEED_QFUNCTION(ElasFSInitialNH2Energy)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
-  // *INDENT-OFF*
   // Inputs
   const CeedScalar(*ug)[3][CEED_Q_VLA] = (const CeedScalar(*)[3][CEED_Q_VLA])in[0], (*q_data)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[1];
 
   // Outputs
   CeedScalar(*energy) = (CeedScalar(*))out[0];
-  // *INDENT-ON*
 
   // Context
   const Physics    context = (Physics)ctx;
@@ -451,7 +428,6 @@ CEED_QFUNCTION(ElasFSInitialNH2Energy)(void *ctx, CeedInt Q, const CeedScalar *c
   // Quadrature Point Loop
   CeedPragmaSIMD for (CeedInt i = 0; i < Q; i++) {
     // Read spatial derivatives of u
-    // *INDENT-OFF*
     const CeedScalar du[3][3] = {
         {ug[0][0][i], ug[1][0][i], ug[2][0][i]},
         {ug[0][1][i], ug[1][1][i], ug[2][1][i]},
@@ -464,7 +440,6 @@ CEED_QFUNCTION(ElasFSInitialNH2Energy)(void *ctx, CeedInt Q, const CeedScalar *c
         {q_data[4][i], q_data[5][i], q_data[6][i]},
         {q_data[7][i], q_data[8][i], q_data[9][i]}
     };
-    // *INDENT-ON*
 
     // Compute grad_u
     //   dXdx = (dx/dX)^(-1)
@@ -485,13 +460,11 @@ CEED_QFUNCTION(ElasFSInitialNH2Energy)(void *ctx, CeedInt Q, const CeedScalar *c
       E2work[m] = grad_u[indj[m]][indk[m]] + grad_u[indk[m]][indj[m]];
       for (CeedInt n = 0; n < 3; n++) E2work[m] += grad_u[n][indj[m]] * grad_u[n][indk[m]];
     }
-    // *INDENT-OFF*
     CeedScalar E2[3][3] = {
         {E2work[0], E2work[5], E2work[4]},
         {E2work[5], E2work[1], E2work[3]},
         {E2work[4], E2work[3], E2work[2]}
     };
-    // *INDENT-ON*
     const CeedScalar Jm1  = computeJM1(grad_u);
     const CeedScalar logJ = log1p_series_shifted(Jm1);
 
@@ -507,14 +480,12 @@ CEED_QFUNCTION(ElasFSInitialNH2Energy)(void *ctx, CeedInt Q, const CeedScalar *c
 // Nodal diagnostic quantities for hyperelasticity, finite strain
 // -----------------------------------------------------------------------------
 CEED_QFUNCTION(ElasFSInitialNH2Diagnostic)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
-  // *INDENT-OFF*
   // Inputs
   const CeedScalar(*u)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[0], (*ug)[3][CEED_Q_VLA] = (const CeedScalar(*)[3][CEED_Q_VLA])in[1],
         (*q_data)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[2];
 
   // Outputs
   CeedScalar(*diagnostic)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA])out[0];
-  // *INDENT-ON*
 
   // Context
   const Physics    context = (Physics)ctx;
@@ -528,7 +499,6 @@ CEED_QFUNCTION(ElasFSInitialNH2Diagnostic)(void *ctx, CeedInt Q, const CeedScala
   // Quadrature Point Loop
   CeedPragmaSIMD for (CeedInt i = 0; i < Q; i++) {
     // Read spatial derivatives of u
-    // *INDENT-OFF*
     const CeedScalar du[3][3] = {
         {ug[0][0][i], ug[1][0][i], ug[2][0][i]},
         {ug[0][1][i], ug[1][1][i], ug[2][1][i]},
@@ -540,7 +510,6 @@ CEED_QFUNCTION(ElasFSInitialNH2Diagnostic)(void *ctx, CeedInt Q, const CeedScala
         {q_data[4][i], q_data[5][i], q_data[6][i]},
         {q_data[7][i], q_data[8][i], q_data[9][i]}
     };
-    // *INDENT-ON*
 
     // Compute grad_u
     //   dXdx = (dx/dX)^(-1)
@@ -561,13 +530,11 @@ CEED_QFUNCTION(ElasFSInitialNH2Diagnostic)(void *ctx, CeedInt Q, const CeedScala
       E2work[m] = grad_u[indj[m]][indk[m]] + grad_u[indk[m]][indj[m]];
       for (CeedInt n = 0; n < 3; n++) E2work[m] += grad_u[n][indj[m]] * grad_u[n][indk[m]];
     }
-    // *INDENT-OFF*
     CeedScalar E2[3][3] = {
         {E2work[0], E2work[5], E2work[4]},
         {E2work[5], E2work[1], E2work[3]},
         {E2work[4], E2work[3], E2work[2]}
     };
-    // *INDENT-ON*
 
     // Displacement
     diagnostic[0][i] = u[0][i];

@@ -283,7 +283,6 @@ CEED_QFUNCTION(ICsEuler)(void *ctx, CeedInt Q, const CeedScalar *const *in, Ceed
 //   gamma  = cp / cv,  Specific heat ratio
 // *****************************************************************************
 CEED_QFUNCTION(Euler)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
-  // *INDENT-OFF*
   // Inputs
   const CeedScalar(*q)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[0], (*dq)[5][CEED_Q_VLA] = (const CeedScalar(*)[5][CEED_Q_VLA])in[1],
         (*q_data)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[2];
@@ -297,7 +296,6 @@ CEED_QFUNCTION(Euler)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedSca
   CeedPragmaSIMD
       // Quadrature Point Loop
       for (CeedInt i = 0; i < Q; i++) {
-    // *INDENT-OFF*
     // Setup
     // -- Interp in
     const CeedScalar rho      = q[0][i];
@@ -314,13 +312,11 @@ CEED_QFUNCTION(Euler)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedSca
     const CeedScalar wdetJ = q_data[0][i];
     // -- Interp-to-Grad q_data
     // ---- Inverse of change of coordinate matrix: X_i,j
-    // *INDENT-OFF*
     const CeedScalar dXdx[3][3] = {
         {q_data[1][i], q_data[2][i], q_data[3][i]},
         {q_data[4][i], q_data[5][i], q_data[6][i]},
         {q_data[7][i], q_data[8][i], q_data[9][i]}
     };
-    // *INDENT-ON*
     // dU/dx
     CeedScalar drhodx[3]       = {0.};
     CeedScalar dEdx[3]         = {0.};
@@ -421,7 +417,6 @@ CEED_QFUNCTION(Euler)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedSca
 //
 // *****************************************************************************
 CEED_QFUNCTION(IFunction_Euler)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
-  // *INDENT-OFF*
   // Inputs
   const CeedScalar(*q)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[0], (*dq)[5][CEED_Q_VLA] = (const CeedScalar(*)[5][CEED_Q_VLA])in[1],
         (*q_dot)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[2], (*q_data)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[3];
@@ -435,7 +430,6 @@ CEED_QFUNCTION(IFunction_Euler)(void *ctx, CeedInt Q, const CeedScalar *const *i
   CeedPragmaSIMD
       // Quadrature Point Loop
       for (CeedInt i = 0; i < Q; i++) {
-    // *INDENT-OFF*
     // Setup
     // -- Interp in
     const CeedScalar rho      = q[0][i];
@@ -452,13 +446,11 @@ CEED_QFUNCTION(IFunction_Euler)(void *ctx, CeedInt Q, const CeedScalar *const *i
     const CeedScalar wdetJ = q_data[0][i];
     // -- Interp-to-Grad q_data
     // ---- Inverse of change of coordinate matrix: X_i,j
-    // *INDENT-OFF*
     const CeedScalar dXdx[3][3] = {
         {q_data[1][i], q_data[2][i], q_data[3][i]},
         {q_data[4][i], q_data[5][i], q_data[6][i]},
         {q_data[7][i], q_data[8][i], q_data[9][i]}
     };
-    // *INDENT-ON*
     // dU/dx
     CeedScalar drhodx[3]       = {0.};
     CeedScalar dEdx[3]         = {0.};
@@ -574,12 +566,10 @@ CEED_QFUNCTION(IFunction_Euler)(void *ctx, CeedInt Q, const CeedScalar *const *i
 //
 // *****************************************************************************
 CEED_QFUNCTION(TravelingVortex_Inflow)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
-  // *INDENT-OFF*
   // Inputs
   const CeedScalar(*q_data_sur)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[2];
   // Outputs
-  CeedScalar(*v)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA])out[0];
-  // *INDENT-ON*
+  CeedScalar(*v)[CEED_Q_VLA]     = (CeedScalar(*)[CEED_Q_VLA])out[0];
   EulerContext     context       = (EulerContext)ctx;
   const int        euler_test    = context->euler_test;
   const bool       implicit      = context->implicit;
@@ -649,12 +639,10 @@ CEED_QFUNCTION(TravelingVortex_Inflow)(void *ctx, CeedInt Q, const CeedScalar *c
 //
 // *****************************************************************************
 CEED_QFUNCTION(Euler_Outflow)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
-  // *INDENT-OFF*
   // Inputs
   const CeedScalar(*q)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[0], (*q_data_sur)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[2];
   // Outputs
   CeedScalar(*v)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA])out[0];
-  // *INDENT-ON*
   EulerContext context       = (EulerContext)ctx;
   const bool   implicit      = context->implicit;
   CeedScalar  *mean_velocity = context->mean_velocity;

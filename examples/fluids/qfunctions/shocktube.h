@@ -247,7 +247,6 @@ CEED_QFUNCTION(ICsShockTube)(void *ctx, CeedInt Q, const CeedScalar *const *in, 
 //   gamma  = cp / cv,  Specific heat ratio
 // *****************************************************************************
 CEED_QFUNCTION(EulerShockTube)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
-  // *INDENT-OFF*
   // Inputs
   const CeedScalar(*q)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[0], (*dq)[5][CEED_Q_VLA] = (const CeedScalar(*)[5][CEED_Q_VLA])in[1],
         (*q_data)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[2];
@@ -264,7 +263,6 @@ CEED_QFUNCTION(EulerShockTube)(void *ctx, CeedInt Q, const CeedScalar *const *in
   CeedPragmaSIMD
       // Quadrature Point Loop
       for (CeedInt i = 0; i < Q; i++) {
-    // *INDENT-OFF*
     // Setup
     // -- Interp in
     const CeedScalar rho      = q[0][i];
@@ -281,7 +279,6 @@ CEED_QFUNCTION(EulerShockTube)(void *ctx, CeedInt Q, const CeedScalar *const *in
     const CeedScalar wdetJ = q_data[0][i];
     // -- Interp-to-Grad q_data
     // ---- Inverse of change of coordinate matrix: X_i,j
-    // *INDENT-OFF*
     const CeedScalar dXdx[3][3] = {
         {q_data[1][i], q_data[2][i], q_data[3][i]},
         {q_data[4][i], q_data[5][i], q_data[6][i]},
@@ -305,7 +302,6 @@ CEED_QFUNCTION(EulerShockTube)(void *ctx, CeedInt Q, const CeedScalar *const *in
       }
     }
 
-    // *INDENT-ON*
     const CeedScalar E_kinetic = 0.5 * rho * (u[0] * u[0] + u[1] * u[1] + u[2] * u[2]), E_internal = E - E_kinetic,
                      P = E_internal * (gamma - 1);  // P = pressure
 

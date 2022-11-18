@@ -183,7 +183,6 @@ typedef struct {
 } ProblemQFunctionSpec;
 
 // Problem specific data
-// *INDENT-OFF*
 typedef struct ProblemData_private ProblemData;
 struct ProblemData_private {
   CeedInt              dim, q_data_size_vol, q_data_size_sur, jac_data_size_sur;
@@ -196,7 +195,6 @@ struct ProblemData_private {
   PetscBool bc_from_ics, use_dirichlet_ceed;
   PetscErrorCode (*print_info)(ProblemData *, AppCtx);
 };
-// *INDENT-ON*
 
 extern int FreeContextPetsc(void *);
 

@@ -12,10 +12,8 @@
 
 CEED_QFUNCTION(SetupDirichletBC)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
   // Inputs
-  // *INDENT-OFF*
   const CeedScalar(*coords)[CEED_Q_VLA]       = (const CeedScalar(*)[CEED_Q_VLA])in[0];
   const CeedScalar(*multiplicity)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[1];
-  // *INDENT-ON*
 
   // Outputs
   CeedScalar(*coords_stored)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA])out[0];
