@@ -58,6 +58,9 @@ struct NewtonianIdealGasContext_ {
   bool              is_implicit;
   StateVariable     state_var;
   StabilizationType stabilization;
+  CeedScalar        ramp_amplitude;
+  CeedScalar        ramp_start;
+  CeedScalar        ramp_length;
 };
 
 #endif  // newtonian_types_h

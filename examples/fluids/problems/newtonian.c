@@ -113,6 +113,8 @@ PetscErrorCode NS_NEWTONIAN_IG(ProblemData *problem, DM dm, void *ctx, SimpleBC 
   PetscCall(DMGetBoundingBox(dm, domain_min, domain_max));
   for (PetscInt i = 0; i < 3; i++) domain_size[i] = domain_max[i] - domain_min[i];
 
+  CeedScalar ramp_amplitude=0, ramp_start=0, ramp_length=0;
+
   // ------------------------------------------------------
   //             Create the PETSc context
   // ------------------------------------------------------
@@ -204,6 +206,10 @@ PetscErrorCode NS_NEWTONIAN_IG(ProblemData *problem, DM dm, void *ctx, SimpleBC 
   if (state_var == STATEVAR_PRIMITIVE && !implicit) {
     SETERRQ(comm, PETSC_ERR_ARG_NULL, "RHSFunction is not provided for primitive variables (use -state_var primitive only with -implicit)\n");
   }
+
+  PetscCall(PetscOptionsScalar("-ramp_amplitude", "Stabilization constant", NULL, ramp_amplitude, &ramp_amplitude, NULL));
+  PetscCall(PetscOptionsScalar("-ramp_start", "Stabilization constant", NULL, ramp_start, &ramp_start, NULL));
+  PetscCall(PetscOptionsScalar("-ramp_length", "Stabilization constant", NULL, ramp_length, &ramp_length, NULL));
   PetscOptionsEnd();
 
   // ------------------------------------------------------
@@ -265,7 +271,10 @@ PetscErrorCode NS_NEWTONIAN_IG(ProblemData *problem, DM dm, void *ctx, SimpleBC 
   newtonian_ig_ctx->Ctau_E        = Ctau_E;
   newtonian_ig_ctx->stabilization = stab;
   newtonian_ig_ctx->is_implicit   = implicit;
-  newtonian_ig_ctx->state_var     = state_var;
+  newtonian_ig_ctx->state_var      = state_var;
+  newtonian_ig_ctx->ramp_amplitude = ramp_amplitude;
+  newtonian_ig_ctx->ramp_start     = ramp_start * meter;
+  newtonian_ig_ctx->ramp_length    = ramp_length * meter;
   PetscCall(PetscArraycpy(newtonian_ig_ctx->g, g, 3));
 
   if (bc->num_freestream > 0) PetscCall(FreestreamBCSetup(problem, dm, ctx, newtonian_ig_ctx));

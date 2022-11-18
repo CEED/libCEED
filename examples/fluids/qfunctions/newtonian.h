@@ -212,6 +212,17 @@ CEED_QFUNCTION(RHSFunction_Newtonian)(void *ctx, CeedInt Q, const CeedScalar *co
   return 0;
 }
 
+CEED_QFUNCTION_HELPER CeedScalar RampCoefficient(CeedScalar sustain, CeedScalar release, CeedScalar location,
+                                                 CeedScalar x) {
+  if (x < location) {
+    return sustain;
+  } else if (x < location + release) {
+    return sustain* ((x-location)*(-1/release) + 1);
+  } else {
+    return 0;
+  }
+}
+
 // *****************************************************************************
 // This QFunction implements the Navier-Stokes equations (mentioned above) with implicit time stepping method
 //
@@ -263,10 +274,15 @@ CEED_QFUNCTION_HELPER int IFunction_Newtonian(void *ctx, CeedInt Q, const CeedSc
       grad_s[j] = StateFromQi_fwd(context, s, dqi, x_i, dx_i);
     }
 
-    CeedScalar strain_rate[6], kmstress[6], stress[3][3], Fe[3];
+    CeedScalar ramp_coeff = RampCoefficient(context->ramp_amplitude, context->ramp_length, context->ramp_start, x_i[0] + 3.1);
+
+    CeedScalar strain_rate[6], kmstress[6], stress[3][3], Fe[3], ramp_kmstress[6], ramp_stress[3][3];
     KMStrainRate(grad_s, strain_rate);
     NewtonianStress(context, strain_rate, kmstress);
+    for (int j=0; j<6; j++) ramp_kmstress[j] = kmstress[j];
+    BulkViscosityRamp(context, strain_rate, ramp_kmstress, ramp_coeff);
     KMUnpack(kmstress, stress);
+    KMUnpack(ramp_kmstress, ramp_stress);
     ViscousEnergyFlux(context, s.Y, grad_s, stress, Fe);
 
     StateConservative F_inviscid[3];
@@ -274,7 +290,7 @@ CEED_QFUNCTION_HELPER int IFunction_Newtonian(void *ctx, CeedInt Q, const CeedSc
 
     // Total flux
     CeedScalar Flux[5][3];
-    FluxTotal(F_inviscid, stress, Fe, Flux);
+    FluxTotal(F_inviscid, ramp_stress, Fe, Flux);
 
     for (CeedInt j = 0; j < 3; j++) {
       for (CeedInt k = 0; k < 5; k++) {

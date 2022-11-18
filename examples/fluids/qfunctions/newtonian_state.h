@@ -298,6 +298,13 @@ CEED_QFUNCTION_HELPER void NewtonianStress(NewtonianIdealGasContext gas, const C
   }
 }
 
+CEED_QFUNCTION_HELPER void BulkViscosityRamp(NewtonianIdealGasContext gas, const CeedScalar strain_rate[6], CeedScalar stress[6], CeedScalar lambda) {
+  CeedScalar div_u = strain_rate[0] + strain_rate[1] + strain_rate[2];
+  for (CeedInt i = 0; i < 6; i++) {
+    stress[i] += gas->mu * ( lambda * div_u * (i < 3));
+  }
+}
+
 CEED_QFUNCTION_HELPER void ViscousEnergyFlux(NewtonianIdealGasContext gas, StatePrimitive Y, const State grad_s[3], const CeedScalar stress[3][3],
                                              CeedScalar Fe[3]) {
   for (CeedInt i = 0; i < 3; i++) {
