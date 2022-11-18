@@ -176,13 +176,11 @@ CEED_QFUNCTION(ICsAdvection2d)(void *ctx, CeedInt Q, const CeedScalar *const *in
 //
 // *****************************************************************************
 CEED_QFUNCTION(Advection2d)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
-  // *INDENT-OFF*
   // Inputs
   const CeedScalar(*q)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[0], (*dq)[5][CEED_Q_VLA] = (const CeedScalar(*)[5][CEED_Q_VLA])in[1],
         (*q_data)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[2];
   // Outputs
   CeedScalar(*v)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA])out[0], (*dv)[5][CEED_Q_VLA] = (CeedScalar(*)[5][CEED_Q_VLA])out[1];
-  // *INDENT-ON*
   AdvectionContext context     = (AdvectionContext)ctx;
   const CeedScalar CtauS       = context->CtauS;
   const CeedScalar strong_form = context->strong_form;
@@ -200,13 +198,11 @@ CEED_QFUNCTION(Advection2d)(void *ctx, CeedInt Q, const CeedScalar *const *in, C
         dq[0][0][i],
         dq[1][0][i],
     };
-    // *INDENT-OFF*
     const CeedScalar du[3][2] = {
         {(dq[0][1][i] - drho[0] * u[0]) / rho, (dq[1][1][i] - drho[1] * u[0]) / rho},
         {(dq[0][2][i] - drho[0] * u[1]) / rho, (dq[1][2][i] - drho[1] * u[1]) / rho},
         {(dq[0][3][i] - drho[0] * u[2]) / rho, (dq[1][3][i] - drho[1] * u[2]) / rho},
     };
-    // *INDENT-ON*
     const CeedScalar dE[3] = {
         dq[0][4][i],
         dq[1][4][i],
@@ -215,12 +211,10 @@ CEED_QFUNCTION(Advection2d)(void *ctx, CeedInt Q, const CeedScalar *const *in, C
     const CeedScalar wdetJ = q_data[0][i];
     // -- Interp-to-Grad q_data
     // ---- Inverse of change of coordinate matrix: X_i,j
-    // *INDENT-OFF*
     const CeedScalar dXdx[2][2] = {
         {q_data[1][i], q_data[2][i]},
         {q_data[3][i], q_data[4][i]},
     };
-    // *INDENT-ON*
 
     // The Physics
 
@@ -268,13 +262,11 @@ CEED_QFUNCTION(Advection2d)(void *ctx, CeedInt Q, const CeedScalar *const *in, C
 //
 // *****************************************************************************
 CEED_QFUNCTION(IFunction_Advection2d)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
-  // *INDENT-OFF*
   // Inputs
   const CeedScalar(*q)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[0], (*dq)[5][CEED_Q_VLA] = (const CeedScalar(*)[5][CEED_Q_VLA])in[1],
         (*q_dot)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[2], (*q_data)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[3];
   // Outputs
   CeedScalar(*v)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA])out[0], (*dv)[5][CEED_Q_VLA] = (CeedScalar(*)[5][CEED_Q_VLA])out[1];
-  // *INDENT-ON*
   AdvectionContext context     = (AdvectionContext)ctx;
   const CeedScalar CtauS       = context->CtauS;
   const CeedScalar strong_form = context->strong_form;
@@ -292,13 +284,11 @@ CEED_QFUNCTION(IFunction_Advection2d)(void *ctx, CeedInt Q, const CeedScalar *co
         dq[0][0][i],
         dq[1][0][i],
     };
-    // *INDENT-OFF*
     const CeedScalar du[3][2] = {
         {(dq[0][1][i] - drho[0] * u[0]) / rho, (dq[1][1][i] - drho[1] * u[0]) / rho},
         {(dq[0][2][i] - drho[0] * u[1]) / rho, (dq[1][2][i] - drho[1] * u[1]) / rho},
         {(dq[0][3][i] - drho[0] * u[2]) / rho, (dq[1][3][i] - drho[1] * u[2]) / rho},
     };
-    // *INDENT-ON*
     const CeedScalar dE[3] = {
         dq[0][4][i],
         dq[1][4][i],
@@ -307,12 +297,10 @@ CEED_QFUNCTION(IFunction_Advection2d)(void *ctx, CeedInt Q, const CeedScalar *co
     const CeedScalar wdetJ = q_data[0][i];
     // -- Interp-to-Grad q_data
     // ---- Inverse of change of coordinate matrix: X_i,j
-    // *INDENT-OFF*
     const CeedScalar dXdx[2][2] = {
         {q_data[1][i], q_data[2][i]},
         {q_data[3][i], q_data[4][i]},
     };
-    // *INDENT-ON*
     // The Physics
     // No Change in density or momentum
     for (CeedInt f = 0; f < 4; f++) {
@@ -380,12 +368,10 @@ CEED_QFUNCTION(IFunction_Advection2d)(void *ctx, CeedInt Q, const CeedScalar *co
 //
 // *****************************************************************************
 CEED_QFUNCTION(Advection2d_InOutFlow)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
-  // *INDENT-OFF*
   // Inputs
   const CeedScalar(*q)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[0], (*q_data_sur)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[2];
   // Outputs
-  CeedScalar(*v)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA])out[0];
-  // *INDENT-ON*
+  CeedScalar(*v)[CEED_Q_VLA]   = (CeedScalar(*)[CEED_Q_VLA])out[0];
   AdvectionContext context     = (AdvectionContext)ctx;
   const CeedScalar E_wind      = context->E_wind;
   const CeedScalar strong_form = context->strong_form;

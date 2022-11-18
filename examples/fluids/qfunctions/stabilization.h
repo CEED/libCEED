@@ -93,7 +93,6 @@ CEED_QFUNCTION_HELPER void Tau_diagPrim(NewtonianIdealGasContext gas, State s, c
   CeedScalar dts;
   CeedScalar fact;
 
-  //*INDENT-OFF*
   gijd[0] = dXdx[0][0] * dXdx[0][0] + dXdx[1][0] * dXdx[1][0] + dXdx[2][0] * dXdx[2][0];
 
   gijd[1] = dXdx[0][0] * dXdx[0][1] + dXdx[1][0] * dXdx[1][1] + dXdx[2][0] * dXdx[2][1];
@@ -105,7 +104,6 @@ CEED_QFUNCTION_HELPER void Tau_diagPrim(NewtonianIdealGasContext gas, State s, c
   gijd[4] = dXdx[0][1] * dXdx[0][2] + dXdx[1][1] * dXdx[1][2] + dXdx[2][1] * dXdx[2][2];
 
   gijd[5] = dXdx[0][2] * dXdx[0][2] + dXdx[1][2] * dXdx[1][2] + dXdx[2][2] * dXdx[2][2];
-  //*INDENT-ON*
 
   dts = Ctau_t / dt;
 

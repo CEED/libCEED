@@ -185,7 +185,6 @@ PetscErrorCode SetupBCQFunctions(Ceed ceed, PetscInt dim_sur, PetscInt num_comp_
   PetscFunctionBeginUser;
 
   if (apply_bc.qfunction) {
-    // *INDENT-OFF*
     CeedQFunctionCreateInterior(ceed, 1, apply_bc.qfunction, apply_bc.qfunction_loc, qf_apply_bc);
     CeedQFunctionSetContext(*qf_apply_bc, apply_bc.qfunction_context);
     CeedQFunctionContextDestroy(&apply_bc.qfunction_context);
@@ -194,11 +193,9 @@ PetscErrorCode SetupBCQFunctions(Ceed ceed, PetscInt dim_sur, PetscInt num_comp_
     CeedQFunctionAddInput(*qf_apply_bc, "surface qdata", q_data_size_sur, CEED_EVAL_NONE);
     CeedQFunctionAddInput(*qf_apply_bc, "x", num_comp_x, CEED_EVAL_INTERP);
     CeedQFunctionAddOutput(*qf_apply_bc, "v", num_comp_q, CEED_EVAL_INTERP);
-    // *INDENT-ON*
     if (jac_data_size_sur) CeedQFunctionAddOutput(*qf_apply_bc, "surface jacobian data", jac_data_size_sur, CEED_EVAL_NONE);
   }
   if (apply_bc_jacobian.qfunction) {
-    // *INDENT-OFF*
     CeedQFunctionCreateInterior(ceed, 1, apply_bc_jacobian.qfunction, apply_bc_jacobian.qfunction_loc, qf_apply_bc_jacobian);
     CeedQFunctionSetContext(*qf_apply_bc_jacobian, apply_bc_jacobian.qfunction_context);
     CeedQFunctionContextDestroy(&apply_bc_jacobian.qfunction_context);
@@ -208,7 +205,6 @@ PetscErrorCode SetupBCQFunctions(Ceed ceed, PetscInt dim_sur, PetscInt num_comp_
     CeedQFunctionAddInput(*qf_apply_bc_jacobian, "x", num_comp_x, CEED_EVAL_INTERP);
     CeedQFunctionAddInput(*qf_apply_bc_jacobian, "surface jacobian data", jac_data_size_sur, CEED_EVAL_NONE);
     CeedQFunctionAddOutput(*qf_apply_bc_jacobian, "v", num_comp_q, CEED_EVAL_INTERP);
-    // *INDENT-ON*
   }
   PetscFunctionReturn(0);
 }

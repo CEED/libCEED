@@ -16,13 +16,11 @@
 #include <ceed.h>
 
 CEED_QFUNCTION(Vector3Poisson2DApply)(void *ctx, const CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
-  // *INDENT-OFF*
   // in[0] is gradient u, shape [2, nc=3, Q]
   // in[1] is quadrature data, size (3*Q)
   const CeedScalar(*ug)[3][CEED_Q_VLA] = (const CeedScalar(*)[3][CEED_Q_VLA])in[0], (*q_data)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[1];
   // out[0] is output to multiply against gradient v, shape [2, nc=3, Q]
   CeedScalar(*vg)[3][CEED_Q_VLA] = (CeedScalar(*)[3][CEED_Q_VLA])out[0];
-  // *INDENT-ON*
 
   const CeedInt dim = 2, num_comp = 3;
 
@@ -32,12 +30,10 @@ CEED_QFUNCTION(Vector3Poisson2DApply)(void *ctx, const CeedInt Q, const CeedScal
     // Stored in Voigt convention
     // 0 2
     // 2 1
-    // *INDENT-OFF*
     const CeedScalar dXdxdXdxT[2][2] = {
         {q_data[0][i], q_data[2][i]},
         {q_data[2][i], q_data[1][i]}
     };
-    // *INDENT-ON*
 
     // Apply Poisson operator
     // j = direction of vg

@@ -191,13 +191,11 @@ CEED_QFUNCTION(ICsAdvection)(void *ctx, CeedInt Q, const CeedScalar *const *in, 
 // *****************************************************************************
 CEED_QFUNCTION(Advection)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
   // Inputs
-  // *INDENT-OFF*
   const CeedScalar(*q)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[0], (*dq)[5][CEED_Q_VLA] = (const CeedScalar(*)[5][CEED_Q_VLA])in[1],
         (*q_data)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[2];
 
   // Outputs
   CeedScalar(*v)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA])out[0], (*dv)[5][CEED_Q_VLA] = (CeedScalar(*)[5][CEED_Q_VLA])out[1];
-  // *INDENT-ON*
 
   // Context
   AdvectionContext context     = (AdvectionContext)ctx;
@@ -213,26 +211,22 @@ CEED_QFUNCTION(Advection)(void *ctx, CeedInt Q, const CeedScalar *const *in, Cee
     const CeedScalar u[3] = {q[1][i] / rho, q[2][i] / rho, q[3][i] / rho};
     const CeedScalar E    = q[4][i];
     // -- Grad in
-    const CeedScalar drho[3] = {dq[0][0][i], dq[1][0][i], dq[2][0][i]};
-    // *INDENT-OFF*
+    const CeedScalar drho[3]  = {dq[0][0][i], dq[1][0][i], dq[2][0][i]};
     const CeedScalar du[3][3] = {
         {(dq[0][1][i] - drho[0] * u[0]) / rho, (dq[1][1][i] - drho[1] * u[0]) / rho, (dq[2][1][i] - drho[2] * u[0]) / rho},
         {(dq[0][2][i] - drho[0] * u[1]) / rho, (dq[1][2][i] - drho[1] * u[1]) / rho, (dq[2][2][i] - drho[2] * u[1]) / rho},
         {(dq[0][3][i] - drho[0] * u[2]) / rho, (dq[1][3][i] - drho[1] * u[2]) / rho, (dq[2][3][i] - drho[2] * u[2]) / rho}
     };
-    // *INDENT-ON*
     const CeedScalar dE[3] = {dq[0][4][i], dq[1][4][i], dq[2][4][i]};
     // -- Interp-to-Interp q_data
     const CeedScalar wdetJ = q_data[0][i];
     // -- Interp-to-Grad q_data
     // ---- Inverse of change of coordinate matrix: X_i,j
-    // *INDENT-OFF*
     const CeedScalar dXdx[3][3] = {
         {q_data[1][i], q_data[2][i], q_data[3][i]},
         {q_data[4][i], q_data[5][i], q_data[6][i]},
         {q_data[7][i], q_data[8][i], q_data[9][i]}
     };
-    // *INDENT-ON*
     // The Physics
     // Note with the order that du was filled and the order that dXdx was filled
     //   du[j][k]= du_j / dX_K    (note cap K to be clear this is u_{j,xi_k})
@@ -284,13 +278,11 @@ CEED_QFUNCTION(Advection)(void *ctx, CeedInt Q, const CeedScalar *const *in, Cee
 //
 // *****************************************************************************
 CEED_QFUNCTION(IFunction_Advection)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
-  // *INDENT-OFF*
   // Inputs
   const CeedScalar(*q)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[0], (*dq)[5][CEED_Q_VLA] = (const CeedScalar(*)[5][CEED_Q_VLA])in[1],
         (*q_dot)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[2], (*q_data)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[3];
   // Outputs
   CeedScalar(*v)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA])out[0], (*dv)[5][CEED_Q_VLA] = (CeedScalar(*)[5][CEED_Q_VLA])out[1];
-  // *INDENT-ON*
   AdvectionContext context     = (AdvectionContext)ctx;
   const CeedScalar CtauS       = context->CtauS;
   const CeedScalar strong_form = context->strong_form;
@@ -304,26 +296,22 @@ CEED_QFUNCTION(IFunction_Advection)(void *ctx, CeedInt Q, const CeedScalar *cons
     const CeedScalar u[3] = {q[1][i] / rho, q[2][i] / rho, q[3][i] / rho};
     const CeedScalar E    = q[4][i];
     // -- Grad in
-    const CeedScalar drho[3] = {dq[0][0][i], dq[1][0][i], dq[2][0][i]};
-    // *INDENT-OFF*
+    const CeedScalar drho[3]  = {dq[0][0][i], dq[1][0][i], dq[2][0][i]};
     const CeedScalar du[3][3] = {
         {(dq[0][1][i] - drho[0] * u[0]) / rho, (dq[1][1][i] - drho[1] * u[0]) / rho, (dq[2][1][i] - drho[2] * u[0]) / rho},
         {(dq[0][2][i] - drho[0] * u[1]) / rho, (dq[1][2][i] - drho[1] * u[1]) / rho, (dq[2][2][i] - drho[2] * u[1]) / rho},
         {(dq[0][3][i] - drho[0] * u[2]) / rho, (dq[1][3][i] - drho[1] * u[2]) / rho, (dq[2][3][i] - drho[2] * u[2]) / rho}
     };
-    // *INDENT-ON*
     const CeedScalar dE[3] = {dq[0][4][i], dq[1][4][i], dq[2][4][i]};
     // -- Interp-to-Interp q_data
     const CeedScalar wdetJ = q_data[0][i];
     // -- Interp-to-Grad q_data
     // ---- Inverse of change of coordinate matrix: X_i,j
-    // *INDENT-OFF*
     const CeedScalar dXdx[3][3] = {
         {q_data[1][i], q_data[2][i], q_data[3][i]},
         {q_data[4][i], q_data[5][i], q_data[6][i]},
         {q_data[7][i], q_data[8][i], q_data[9][i]}
     };
-    // *INDENT-ON*
     // The Physics
     // Note with the order that du was filled and the order that dXdx was filled
     //   du[j][k]= du_j / dX_K    (note cap K to be clear this is u_{j,xi_k} )
@@ -398,12 +386,10 @@ CEED_QFUNCTION(IFunction_Advection)(void *ctx, CeedInt Q, const CeedScalar *cons
 //
 // *****************************************************************************
 CEED_QFUNCTION(Advection_InOutFlow)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
-  // *INDENT-OFF*
   // Inputs
   const CeedScalar(*q)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[0], (*q_data_sur)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[2];
   // Outputs
-  CeedScalar(*v)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA])out[0];
-  // *INDENT-ON*
+  CeedScalar(*v)[CEED_Q_VLA]   = (CeedScalar(*)[CEED_Q_VLA])out[0];
   AdvectionContext context     = (AdvectionContext)ctx;
   const CeedScalar E_wind      = context->E_wind;
   const CeedScalar strong_form = context->strong_form;

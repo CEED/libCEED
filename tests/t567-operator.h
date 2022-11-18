@@ -8,10 +8,8 @@
 #include <ceed.h>
 
 CEED_QFUNCTION(setup)(void *ctx, const CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
-  // *INDENT-OFF*
   const CeedScalar *w = in[0], (*J)[2][CEED_Q_VLA] = (const CeedScalar(*)[2][CEED_Q_VLA])in[1];
   CeedScalar(*q_data)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA])out[0];
-  // *INDENT-ON*
 
   // Quadrature point loop
   CeedPragmaSIMD for (CeedInt i = 0; i < Q; i++) {
@@ -32,10 +30,8 @@ CEED_QFUNCTION(setup)(void *ctx, const CeedInt Q, const CeedScalar *const *in, C
 }
 
 CEED_QFUNCTION(diff)(void *ctx, const CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
-  // *INDENT-OFF*
   const CeedScalar(*q_data)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[0], (*ug)[2][CEED_Q_VLA] = (const CeedScalar(*)[2][CEED_Q_VLA])in[1];
   CeedScalar(*vg)[2][CEED_Q_VLA] = (CeedScalar(*)[2][CEED_Q_VLA])out[0];
-  // *INDENT-ON*
 
   const CeedInt    dim         = 2;
   const CeedScalar num_comp    = 2;
@@ -50,12 +46,10 @@ CEED_QFUNCTION(diff)(void *ctx, const CeedInt Q, const CeedScalar *const *in, Ce
     // Stored in Voigt convention
     // 0 2
     // 2 1
-    // *INDENT-OFF*
     const CeedScalar dXdxdXdxT[2][2] = {
         {q_data[0][i], q_data[2][i]},
         {q_data[2][i], q_data[1][i]}
     };
-    // *INDENT-ON*
 
     // Apply Poisson operator
     // j = direction of vg

@@ -18,10 +18,8 @@ CEED_QFUNCTION(setup)(void *ctx, const CeedInt Q, const CeedScalar *const *in, C
 }
 
 CEED_QFUNCTION(mass)(void *ctx, const CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
-  // *INDENT-OFF*
   const CeedScalar *rho = in[0], (*u)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[1];
   CeedScalar(*v)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA])out[0];
-  // *INDENT-ON*
 
   for (CeedInt i = 0; i < Q; i++) {
     v[0][i] = rho[i] * u[0][i];
