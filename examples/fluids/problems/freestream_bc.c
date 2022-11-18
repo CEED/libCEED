@@ -37,7 +37,7 @@ PetscErrorCode FreestreamBCSetup(ProblemData *problem, DM dm, void *ctx) {
                              (PetscEnum)riemann, (PetscEnum *)&riemann, NULL));
   PetscInt narray = 3;
   PetscCall(PetscOptionsScalarArray("-freestream_velocity", "Velocity at freestream condition", NULL, U_inf, &narray, NULL));
-  PetscCheck(narray == 3, comm, PETSC_ERR_ARG_SIZ, "-velocity_freestream should recieve array of size 3, instead recieved size %" PetscInt_FMT ".",
+  PetscCheck(narray == 3, comm, PETSC_ERR_ARG_SIZ, "-freestream_velocity should recieve array of size 3, instead recieved size %" PetscInt_FMT ".",
              narray);
 
   PetscCall(PetscOptionsScalar("-freestream_temperature", "Temperature at freestream condition", NULL, T_inf, &T_inf, NULL));
