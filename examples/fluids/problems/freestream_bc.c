@@ -11,6 +11,7 @@
 #include "../qfunctions/freestream_bc.h"
 
 #include "../navierstokes.h"
+#include "../qfunctions/newtonian_types.h"
 
 typedef enum {
   RIEMANN_HLL,
@@ -18,13 +19,12 @@ typedef enum {
 } RiemannSolverType;
 static const char *const RiemannSolverTypes[] = {"hll", "hllc", "RiemannSolverTypes", "RIEMANN_", NULL};
 
-PetscErrorCode FreestreamBCSetup(ProblemData *problem, DM dm, void *ctx) {
-  User                     user = *(User *)ctx;
-  MPI_Comm                 comm = PETSC_COMM_WORLD;
-  FreestreamContext        freestream_ctx;
-  NewtonianIdealGasContext newtonian_ig_ctx;
-  CeedQFunctionContext     freestream_context;
-  RiemannSolverType        riemann = RIEMANN_HLLC;
+PetscErrorCode FreestreamBCSetup(ProblemData *problem, DM dm, void *ctx, NewtonianIdealGasContext newtonian_ig_ctx) {
+  User                 user = *(User *)ctx;
+  MPI_Comm             comm = PETSC_COMM_WORLD;
+  FreestreamContext    freestream_ctx;
+  CeedQFunctionContext freestream_context;
+  RiemannSolverType    riemann = RIEMANN_HLLC;
   PetscFunctionBeginUser;
 
   // -- Option Defaults
@@ -88,7 +88,6 @@ PetscErrorCode FreestreamBCSetup(ProblemData *problem, DM dm, void *ctx) {
   P_inf *= Pascal;
   for (int i = 0; i < 3; i++) U_inf[i] *= meter / second;
 
-  CeedQFunctionContextGetData(problem->apply_vol_rhs.qfunction_context, CEED_MEM_HOST, &newtonian_ig_ctx);
   State S_infty;
   {
     CeedScalar Y[5] = {P_inf, U_inf[0], U_inf[1], U_inf[2], T_inf};
@@ -100,8 +99,6 @@ PetscErrorCode FreestreamBCSetup(ProblemData *problem, DM dm, void *ctx) {
   PetscCall(PetscCalloc1(1, &freestream_ctx));
   freestream_ctx->newtonian_ctx = *newtonian_ig_ctx;
   freestream_ctx->S_infty       = S_infty;
-
-  CeedQFunctionContextRestoreData(problem->apply_vol_rhs.qfunction_context, &newtonian_ig_ctx);
 
   CeedQFunctionContextCreate(user->ceed, &freestream_context);
   CeedQFunctionContextSetData(freestream_context, CEED_MEM_HOST, CEED_USE_POINTER, sizeof(*freestream_ctx), freestream_ctx);

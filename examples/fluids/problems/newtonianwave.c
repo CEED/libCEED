@@ -52,8 +52,6 @@ PetscErrorCode NS_NEWTONIAN_WAVE(ProblemData *problem, DM dm, void *ctx) {
   width *= user->units->meter;
   for (int i = 0; i < 3; i++) epicenter[i] *= user->units->meter;
 
-  PetscCall(FreestreamBCSetup(problem, dm, ctx));
-
   // -- Set newtwave_ctx struct values
   PetscCall(PetscCalloc1(1, &newtwave_ctx));
   CeedQFunctionContextGetData(problem->apply_vol_rhs.qfunction_context, CEED_MEM_HOST, &newtonian_ig_ctx);

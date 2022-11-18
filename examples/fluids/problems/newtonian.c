@@ -265,6 +265,8 @@ PetscErrorCode NS_NEWTONIAN_IG(ProblemData *problem, DM dm, void *ctx) {
   newtonian_ig_ctx->state_var     = state_var;
   PetscCall(PetscArraycpy(newtonian_ig_ctx->g, g, 3));
 
+  PetscCall(FreestreamBCSetup(problem, dm, ctx, newtonian_ig_ctx));
+
   CeedQFunctionContextCreate(user->ceed, &problem->ics.qfunction_context);
   CeedQFunctionContextSetData(problem->ics.qfunction_context, CEED_MEM_HOST, CEED_USE_POINTER, sizeof(*setup_context), setup_context);
   CeedQFunctionContextSetDataDestroy(problem->ics.qfunction_context, CEED_MEM_HOST, FreeContextPetsc);
