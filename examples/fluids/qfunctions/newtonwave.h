@@ -17,7 +17,7 @@
 
 typedef struct NewtonWaveContext_ *NewtonWaveContext;
 struct NewtonWaveContext_ {
-  CeedScalar                       epicenter[2];  // Location of the perturbation
+  CeedScalar                       epicenter[3];  // Location of the perturbation
   CeedScalar                       width;         // Controls width of the perturbation
   CeedScalar                       amplitude;     // Amplitude of the perturbation
   State                            S_infty;       // Flow state at infinity
