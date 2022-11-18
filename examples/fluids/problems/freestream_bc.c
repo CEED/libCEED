@@ -52,12 +52,15 @@ PetscErrorCode FreestreamBCSetup(ProblemData *problem, DM dm, void *ctx) {
           problem->apply_freestream.qfunction_loc          = Freestream_Conserv_HLL_loc;
           problem->apply_freestream_jacobian.qfunction     = Freestream_Jacobian_Conserv_HLL;
           problem->apply_freestream_jacobian.qfunction_loc = Freestream_Jacobian_Conserv_HLL_loc;
+          break;
         case RIEMANN_HLLC:
           problem->apply_freestream.qfunction              = Freestream_Conserv_HLLC;
           problem->apply_freestream.qfunction_loc          = Freestream_Conserv_HLLC_loc;
           problem->apply_freestream_jacobian.qfunction     = Freestream_Jacobian_Conserv_HLLC;
           problem->apply_freestream_jacobian.qfunction_loc = Freestream_Jacobian_Conserv_HLLC_loc;
+          break;
       }
+      break;
     case STATEVAR_PRIMITIVE:
       switch (riemann) {
         case RIEMANN_HLL:
@@ -65,12 +68,15 @@ PetscErrorCode FreestreamBCSetup(ProblemData *problem, DM dm, void *ctx) {
           problem->apply_freestream.qfunction_loc          = Freestream_Prim_HLL_loc;
           problem->apply_freestream_jacobian.qfunction     = Freestream_Jacobian_Prim_HLL;
           problem->apply_freestream_jacobian.qfunction_loc = Freestream_Jacobian_Prim_HLL_loc;
+          break;
         case RIEMANN_HLLC:
           problem->apply_freestream.qfunction              = Freestream_Prim_HLLC;
           problem->apply_freestream.qfunction_loc          = Freestream_Prim_HLLC_loc;
           problem->apply_freestream_jacobian.qfunction     = Freestream_Jacobian_Prim_HLLC;
           problem->apply_freestream_jacobian.qfunction_loc = Freestream_Jacobian_Prim_HLLC_loc;
+          break;
       }
+      break;
   }
 
   PetscScalar meter  = user->units->meter;
