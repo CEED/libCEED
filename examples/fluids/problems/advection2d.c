@@ -13,7 +13,7 @@
 #include "../navierstokes.h"
 #include "../qfunctions/setupgeo2d.h"
 
-PetscErrorCode NS_ADVECTION2D(ProblemData *problem, DM dm, void *ctx) {
+PetscErrorCode NS_ADVECTION2D(ProblemData *problem, DM dm, void *ctx, SimpleBC bc) {
   WindType             wind_type;
   StabilizationType    stab;
   SetupContextAdv2D    setup_context;

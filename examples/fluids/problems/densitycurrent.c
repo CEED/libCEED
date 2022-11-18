@@ -13,7 +13,7 @@
 
 #include "../navierstokes.h"
 
-PetscErrorCode NS_DENSITY_CURRENT(ProblemData *problem, DM dm, void *ctx) {
+PetscErrorCode NS_DENSITY_CURRENT(ProblemData *problem, DM dm, void *ctx, SimpleBC bc) {
   MPI_Comm                 comm = PETSC_COMM_WORLD;
   User                     user = *(User *)ctx;
   DensityCurrentContext    dc_ctx;
@@ -21,7 +21,7 @@ PetscErrorCode NS_DENSITY_CURRENT(ProblemData *problem, DM dm, void *ctx) {
   NewtonianIdealGasContext newtonian_ig_ctx;
 
   PetscFunctionBeginUser;
-  PetscCall(NS_NEWTONIAN_IG(problem, dm, ctx));
+  PetscCall(NS_NEWTONIAN_IG(problem, dm, ctx, bc));
   PetscCall(PetscCalloc1(1, &dc_ctx));
   // ------------------------------------------------------
   //               SET UP DENSITY_CURRENT

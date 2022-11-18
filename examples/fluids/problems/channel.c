@@ -12,7 +12,7 @@
 
 #include "../navierstokes.h"
 
-PetscErrorCode NS_CHANNEL(ProblemData *problem, DM dm, void *ctx) {
+PetscErrorCode NS_CHANNEL(ProblemData *problem, DM dm, void *ctx, SimpleBC bc) {
   User                     user = *(User *)ctx;
   MPI_Comm                 comm = PETSC_COMM_WORLD;
   ChannelContext           channel_ctx;
@@ -20,7 +20,7 @@ PetscErrorCode NS_CHANNEL(ProblemData *problem, DM dm, void *ctx) {
   CeedQFunctionContext     channel_context;
 
   PetscFunctionBeginUser;
-  PetscCall(NS_NEWTONIAN_IG(problem, dm, ctx));
+  PetscCall(NS_NEWTONIAN_IG(problem, dm, ctx, bc));
   PetscCall(PetscCalloc1(1, &channel_ctx));
 
   // ------------------------------------------------------

@@ -12,7 +12,7 @@
 #include "../qfunctions/freestream_bc_type.h"
 #include "../qfunctions/newtonwave.h"
 
-PetscErrorCode NS_NEWTONIAN_WAVE(ProblemData *problem, DM dm, void *ctx) {
+PetscErrorCode NS_NEWTONIAN_WAVE(ProblemData *problem, DM dm, void *ctx, SimpleBC bc) {
   User                     user = *(User *)ctx;
   MPI_Comm                 comm = PETSC_COMM_WORLD;
   NewtonWaveContext        newtwave_ctx;
@@ -21,7 +21,7 @@ PetscErrorCode NS_NEWTONIAN_WAVE(ProblemData *problem, DM dm, void *ctx) {
   CeedQFunctionContext     newtwave_context;
 
   PetscFunctionBeginUser;
-  PetscCall(NS_NEWTONIAN_IG(problem, dm, ctx));
+  PetscCall(NS_NEWTONIAN_IG(problem, dm, ctx, bc));
 
   // *INDENT-OFF*
   switch (user->phys->state_var) {

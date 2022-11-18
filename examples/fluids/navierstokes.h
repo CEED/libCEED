@@ -204,16 +204,16 @@ extern int FreeContextPetsc(void *);
 // Set up problems
 // -----------------------------------------------------------------------------
 // Set up function for each problem
-extern PetscErrorCode NS_NEWTONIAN_WAVE(ProblemData *problem, DM dm, void *ctx);
-extern PetscErrorCode NS_CHANNEL(ProblemData *problem, DM dm, void *ctx);
-extern PetscErrorCode NS_BLASIUS(ProblemData *problem, DM dm, void *ctx);
-extern PetscErrorCode NS_NEWTONIAN_IG(ProblemData *problem, DM dm, void *ctx);
-extern PetscErrorCode NS_DENSITY_CURRENT(ProblemData *problem, DM dm, void *ctx);
+extern PetscErrorCode NS_NEWTONIAN_WAVE(ProblemData *problem, DM dm, void *ctx, SimpleBC bc);
+extern PetscErrorCode NS_CHANNEL(ProblemData *problem, DM dm, void *ctx, SimpleBC bc);
+extern PetscErrorCode NS_BLASIUS(ProblemData *problem, DM dm, void *ctx, SimpleBC bc);
+extern PetscErrorCode NS_NEWTONIAN_IG(ProblemData *problem, DM dm, void *ctx, SimpleBC bc);
+extern PetscErrorCode NS_DENSITY_CURRENT(ProblemData *problem, DM dm, void *ctx, SimpleBC bc);
 
-extern PetscErrorCode NS_EULER_VORTEX(ProblemData *problem, DM dm, void *ctx);
-extern PetscErrorCode NS_SHOCKTUBE(ProblemData *problem, DM dm, void *ctx);
-extern PetscErrorCode NS_ADVECTION(ProblemData *problem, DM dm, void *ctx);
-extern PetscErrorCode NS_ADVECTION2D(ProblemData *problem, DM dm, void *ctx);
+extern PetscErrorCode NS_EULER_VORTEX(ProblemData *problem, DM dm, void *ctx, SimpleBC bc);
+extern PetscErrorCode NS_SHOCKTUBE(ProblemData *problem, DM dm, void *ctx, SimpleBC bc);
+extern PetscErrorCode NS_ADVECTION(ProblemData *problem, DM dm, void *ctx, SimpleBC bc);
+extern PetscErrorCode NS_ADVECTION2D(ProblemData *problem, DM dm, void *ctx, SimpleBC bc);
 
 // Print function for each problem
 extern PetscErrorCode PRINT_NEWTONIAN(ProblemData *problem, AppCtx app_ctx);

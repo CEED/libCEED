@@ -58,7 +58,7 @@ static PetscErrorCode UnitTests_Newtonian(User user, NewtonianIdealGasContext ga
   PetscFunctionReturn(0);
 }
 
-PetscErrorCode NS_NEWTONIAN_IG(ProblemData *problem, DM dm, void *ctx) {
+PetscErrorCode NS_NEWTONIAN_IG(ProblemData *problem, DM dm, void *ctx, SimpleBC bc) {
   SetupContext             setup_context;
   User                     user = *(User *)ctx;
   StabilizationType        stab;
