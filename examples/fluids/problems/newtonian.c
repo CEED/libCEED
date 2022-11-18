@@ -63,7 +63,8 @@ static PetscErrorCode UnitTests_Newtonian(User user, NewtonianIdealGasContext ga
 
 PetscErrorCode NS_NEWTONIAN_IG(ProblemData *problem, DM dm, void *ctx, SimpleBC bc) {
   SetupContext             setup_context;
-  User                     user = *(User *)ctx;
+  User                     user   = *(User *)ctx;
+  CeedInt                  degree = user->app_ctx->degree;
   StabilizationType        stab;
   StateVariable            state_var;
   MPI_Comm                 comm = PETSC_COMM_WORLD;
@@ -101,7 +102,7 @@ PetscErrorCode NS_NEWTONIAN_IG(ProblemData *problem, DM dm, void *ctx, SimpleBC 
   CeedScalar lambda = -2. / 3.;       // -
   CeedScalar mu     = 1.8e-5;         // Pa s, dynamic viscosity
   CeedScalar k      = 0.02638;        // W/(m K)
-  CeedScalar c_tau  = 0.5;            // -
+  CeedScalar c_tau  = 0.5 / degree;   // -
   CeedScalar Ctau_t = 1.0;            // -
   CeedScalar Ctau_v = 36.0;           // TODO make function of degree
   CeedScalar Ctau_C = 1.0;            // TODO make function of degree
