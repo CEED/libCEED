@@ -20,8 +20,9 @@
 #ifndef DARCY_TRUE_QUARTIC2D_H
 #define DARCY_TRUE_QUARTIC2D_H
 
-#include <math.h>
 #include <ceed.h>
+#include <math.h>
+
 #include "utils.h"
 
 // -----------------------------------------------------------------------------
@@ -56,43 +57,39 @@ struct DARCYContext_ {
   CeedScalar lx, ly;
 };
 #endif
-CEED_QFUNCTION(DarcyTrueQuartic2D)(void *ctx, const CeedInt Q,
-                                   const CeedScalar *const *in,
-                                   CeedScalar *const *out) {
-  // *INDENT-OFF*
+CEED_QFUNCTION(DarcyTrueQuartic2D)(void *ctx, const CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
   // Inputs
-  const CeedScalar (*coords) = in[0]; 
+  const CeedScalar(*coords) = in[0];
   // Outputs
-  CeedScalar (*true_force) = out[0], (*true_solution) = out[1];
+  CeedScalar(*true_force) = out[0], (*true_solution) = out[1];
   // Context
-  DARCYContext  context = (DARCYContext)ctx;
-  const CeedScalar lx   = context->lx;
-  const CeedScalar ly   = context->ly;
+  DARCYContext     context = (DARCYContext)ctx;
+  const CeedScalar lx      = context->lx;
+  const CeedScalar ly      = context->ly;
 
   // Quadrature Point Loop
-  CeedPragmaSIMD
-  for (CeedInt i=0; i<Q; i++) {
-    CeedScalar x = coords[i+0*Q], y = coords[i+1*Q];  
-    CeedScalar psi    = x*(lx-x)*y*(ly-y);
-    CeedScalar psi_x  = (lx-2*x)*y*(ly-y);
-    CeedScalar psi_xx  = -2*y*(ly-y);
-    CeedScalar psi_y  = x*(lx-x)*(ly-2*y);
-    CeedScalar psi_yy  = -2*x*(lx-x);
+  CeedPragmaSIMD for (CeedInt i = 0; i < Q; i++) {
+    CeedScalar x = coords[i + 0 * Q], y = coords[i + 1 * Q];
+    CeedScalar psi    = x * (lx - x) * y * (ly - y);
+    CeedScalar psi_x  = (lx - 2 * x) * y * (ly - y);
+    CeedScalar psi_xx = -2 * y * (ly - y);
+    CeedScalar psi_y  = x * (lx - x) * (ly - 2 * y);
+    CeedScalar psi_yy = -2 * x * (lx - x);
 
     // ue = -grad(\psi)
     CeedScalar ue[2] = {-psi_x, -psi_y};
     // f = \div(u)
     CeedScalar div_u = -psi_xx - psi_yy;
     // True Force: f = \div(u)
-    true_force[i+0*Q] = div_u;
+    true_force[i + 0 * Q] = div_u;
     // True Solution
-    true_solution[i+0*Q] = psi;
-    true_solution[i+1*Q] = ue[0];
-    true_solution[i+2*Q] = ue[1];
-  } // End of Quadrature Point Loop
+    true_solution[i + 0 * Q] = psi;
+    true_solution[i + 1 * Q] = ue[0];
+    true_solution[i + 2 * Q] = ue[1];
+  }  // End of Quadrature Point Loop
 
   return 0;
 }
 // -----------------------------------------------------------------------------
 
-#endif // End DARCY_TRUE_QUARTIC2D_H
+#endif  // End DARCY_TRUE_QUARTIC2D_H

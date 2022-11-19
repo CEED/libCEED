@@ -20,8 +20,9 @@
 #ifndef POST_PROCESSING3D_H
 #define POST_PROCESSING3D_H
 
-#include <math.h>
 #include <ceed.h>
+#include <math.h>
+
 #include "ceed/ceed-f64.h"
 #include "utils.h"
 
@@ -29,72 +30,63 @@
 // We solve (v, u) = (v, uh), to project Hdiv to L2 space
 // This QFunction create post_rhs = (v, uh)
 // -----------------------------------------------------------------------------
-CEED_QFUNCTION(PostProcessingRhs3D)(void *ctx, const CeedInt Q,
-                                    const CeedScalar *const *in,
-                                    CeedScalar *const *out) {
-  // *INDENT-OFF*
+CEED_QFUNCTION(PostProcessingRhs3D)(void *ctx, const CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
   // Inputs
-  const CeedScalar (*w) = in[0],
-                   (*dxdX)[3][CEED_Q_VLA] = (const CeedScalar(*)[3][CEED_Q_VLA])in[1],
-                   (*u)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[2];
+  const CeedScalar(*w) = in[0], (*dxdX)[3][CEED_Q_VLA] = (const CeedScalar(*)[3][CEED_Q_VLA])in[1],
+        (*u)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[2];
   // Outputs
-  CeedScalar (*post_rhs) = out[0];
+  CeedScalar(*post_rhs) = out[0];
 
   // Quadrature Point Loop
-  CeedPragmaSIMD
-  for (CeedInt i=0; i<Q; i++) {
-    const CeedScalar J[3][3] = {{dxdX[0][0][i], dxdX[1][0][i], dxdX[2][0][i]},
-                                {dxdX[0][1][i], dxdX[1][1][i], dxdX[2][1][i]},
-                                {dxdX[0][2][i], dxdX[1][2][i], dxdX[2][2][i]}};
+  CeedPragmaSIMD for (CeedInt i = 0; i < Q; i++) {
+    const CeedScalar J[3][3] = {
+        {dxdX[0][0][i], dxdX[1][0][i], dxdX[2][0][i]},
+        {dxdX[0][1][i], dxdX[1][1][i], dxdX[2][1][i]},
+        {dxdX[0][2][i], dxdX[1][2][i], dxdX[2][2][i]}
+    };
 
     // 1) Compute Piola map: uh = J*u/detJ
-    // 2) rhs = (v, uh) = uh*w*det_J
-    // ==> rhs = J*u*w
+    // 2) rhs = (v, uh) = uh*w*det_J ==> rhs = J*u*w
     CeedScalar u1[3] = {u[0][i], u[1][i], u[2][i]}, rhs[3];
     AlphaMatVecMult3x3(w[i], J, u1, rhs);
 
-    post_rhs[i+0*Q] = rhs[0];
-    post_rhs[i+1*Q] = rhs[1];
-    post_rhs[i+2*Q] = rhs[2];
-  } // End of Quadrature Point Loop
+    post_rhs[i + 0 * Q] = rhs[0];
+    post_rhs[i + 1 * Q] = rhs[1];
+    post_rhs[i + 2 * Q] = rhs[2];
+  }  // End of Quadrature Point Loop
   return 0;
 }
 
 // -----------------------------------------------------------------------------
 // We solve (v, u) = (v, uh), to project Hdiv to L2 space
-// This QFunction create mass matrix (v, u), then we solve using ksp to have 
+// This QFunction create mass matrix (v, u), then we solve using ksp to have
 // projected uh in L2 space and use it for post-processing
 // -----------------------------------------------------------------------------
-CEED_QFUNCTION(PostProcessingMass3D)(void *ctx, const CeedInt Q,
-                              const CeedScalar *const *in,
-                              CeedScalar *const *out) {
-  // *INDENT-OFF*
+CEED_QFUNCTION(PostProcessingMass3D)(void *ctx, const CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
   // Inputs
-  const CeedScalar (*w) = in[0],
-                   (*dxdX)[3][CEED_Q_VLA] = (const CeedScalar(*)[3][CEED_Q_VLA])in[1],
-                   (*u)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[2];
+  const CeedScalar(*w) = in[0], (*dxdX)[3][CEED_Q_VLA] = (const CeedScalar(*)[3][CEED_Q_VLA])in[1],
+        (*u)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[2];
 
   // Outputs
-  CeedScalar (*v)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA])out[0];
+  CeedScalar(*v)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA])out[0];
 
   // Quadrature Point Loop
-  CeedPragmaSIMD
-  for (CeedInt i=0; i<Q; i++) {
-    // *INDENT-OFF*
+  CeedPragmaSIMD for (CeedInt i = 0; i < Q; i++) {
     // Setup, J = dx/dX
-    const CeedScalar J[3][3] = {{dxdX[0][0][i], dxdX[1][0][i], dxdX[2][0][i]},
-                                {dxdX[0][1][i], dxdX[1][1][i], dxdX[2][1][i]},
-                                {dxdX[0][2][i], dxdX[1][2][i], dxdX[2][2][i]}};
+    const CeedScalar J[3][3] = {
+        {dxdX[0][0][i], dxdX[1][0][i], dxdX[2][0][i]},
+        {dxdX[0][1][i], dxdX[1][1][i], dxdX[2][1][i]},
+        {dxdX[0][2][i], dxdX[1][2][i], dxdX[2][2][i]}
+    };
     const CeedScalar det_J = MatDet3x3(J);
 
-    // *INDENT-ON*
     // (v, u): v = u*w*detJ
     for (CeedInt k = 0; k < 3; k++) {
-      v[k][i] = u[k][i]*w[i]*det_J;
+      v[k][i] = u[k][i] * w[i] * det_J;
     }
-  } // End of Quadrature Point Loop
+  }  // End of Quadrature Point Loop
   return 0;
 }
 // -----------------------------------------------------------------------------
 
-#endif //End of POST_PROCESSING3D_H
+#endif  // End of POST_PROCESSING3D_H

@@ -20,8 +20,9 @@
 #ifndef RICHARD_TRUE2D_H
 #define RICHARD_TRUE2D_H
 
-#include <math.h>
 #include <ceed.h>
+#include <math.h>
+
 #include "utils.h"
 
 // See Matthew Farthing, Christopher Kees, Cass Miller (2003)
@@ -74,58 +75,52 @@ struct RICHARDContext_ {
 // -----------------------------------------------------------------------------
 // True solution for Richard problem
 // -----------------------------------------------------------------------------
-CEED_QFUNCTION(RichardTrue2D)(void *ctx, const CeedInt Q,
-                              const CeedScalar *const *in,
-                              CeedScalar *const *out) {
-  // *INDENT-OFF*
+CEED_QFUNCTION(RichardTrue2D)(void *ctx, const CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
   // Inputs
-  const CeedScalar (*coords) = in[0];
+  const CeedScalar(*coords) = in[0];
   // Outputs
-  CeedScalar (*true_force) = out[0], (*true_solution) = out[1];
+  CeedScalar(*true_force) = out[0], (*true_solution) = out[1];
   // Context
-  RICHARDContext  context = (RICHARDContext)ctx;
-  const CeedScalar kappa    = context->kappa;
-  const CeedScalar alpha_a  = context->alpha_a;
-  const CeedScalar b_a      = context->b_a;
-  const CeedScalar gamma    = context->gamma;
-  CeedScalar t_final        = context->t_final;
+  RICHARDContext   context = (RICHARDContext)ctx;
+  const CeedScalar kappa   = context->kappa;
+  const CeedScalar alpha_a = context->alpha_a;
+  const CeedScalar b_a     = context->b_a;
+  const CeedScalar gamma   = context->gamma;
+  CeedScalar       t_final = context->t_final;
 
   // Quadrature Point Loop
-  CeedPragmaSIMD
-  for (CeedInt i=0; i<Q; i++) {
-    CeedScalar x = coords[i+0*Q], y = coords[i+1*Q];
+  CeedPragmaSIMD for (CeedInt i = 0; i < Q; i++) {
+    CeedScalar x = coords[i + 0 * Q], y = coords[i + 1 * Q];
     // psi = exp(-gamma*t)*sin(pi*x)*sin(pi*y)
     // We factor exp() term
-    CeedScalar psi    = sin(PI_DOUBLE*x)*sin(PI_DOUBLE*y);
-    CeedScalar psi_x  = PI_DOUBLE*cos(PI_DOUBLE*x)*sin(PI_DOUBLE*y);
-    CeedScalar psi_xx  = -PI_DOUBLE*PI_DOUBLE*psi;
-    CeedScalar psi_y  = PI_DOUBLE*sin(PI_DOUBLE*x)*cos(PI_DOUBLE*y);
-    CeedScalar psi_yy  = -PI_DOUBLE*PI_DOUBLE*psi;
+    CeedScalar psi    = sin(PI_DOUBLE * x) * sin(PI_DOUBLE * y);
+    CeedScalar psi_x  = PI_DOUBLE * cos(PI_DOUBLE * x) * sin(PI_DOUBLE * y);
+    CeedScalar psi_xx = -PI_DOUBLE * PI_DOUBLE * psi;
+    CeedScalar psi_y  = PI_DOUBLE * sin(PI_DOUBLE * x) * cos(PI_DOUBLE * y);
+    CeedScalar psi_yy = -PI_DOUBLE * PI_DOUBLE * psi;
     // k_r = b_a + alpha_a * (1 - x*y)
-    CeedScalar k_r = b_a + alpha_a*(1-x*y);
-    CeedScalar k_rx = -alpha_a*y;
-    CeedScalar k_ry = -alpha_a*x;
+    CeedScalar k_r  = b_a + alpha_a * (1 - x * y);
+    CeedScalar k_rx = -alpha_a * y;
+    CeedScalar k_ry = -alpha_a * x;
     // rho = rho_a/rho_a0
     CeedScalar rho = 1.;
     // u = -rho*k_r*K *[grad(\psi)]
-    CeedScalar u[2] = {-rho*kappa*exp(-gamma*t_final)*k_r*psi_x, 
-                       -rho*kappa*exp(-gamma*t_final)*k_r*psi_y};
-    //CeedScalar div_u = -rho*kappa*exp(-gamma*t_final)*(k_rx*psi_x + k_r*psi_xx +
-    //                                                     k_ry*psi_y + k_r*psi_yy);
-    CeedScalar div_u = -rho*kappa*(k_rx*psi_x + k_r*psi_xx +
-                                   k_ry*psi_y + k_r*psi_yy);
+    CeedScalar u[2] = {-rho * kappa * exp(-gamma * t_final) * k_r * psi_x, -rho * kappa * exp(-gamma * t_final) * k_r * psi_y};
+    // CeedScalar div_u = -rho*kappa*exp(-gamma*t_final)*(k_rx*psi_x + k_r*psi_xx +
+    //                                                      k_ry*psi_y + k_r*psi_yy);
+    CeedScalar div_u = -rho * kappa * (k_rx * psi_x + k_r * psi_xx + k_ry * psi_y + k_r * psi_yy);
     // True Force: f = \div(u) + d (rho*theta)/dt
     // since the force is a function of time, and this qfunction get called once
     // and the t variable doesn't get updated, we factored exp() term and update it
     // in residual, thats why we have psi = exp() * psi1, ...
-    true_force[i+0*Q] = div_u -alpha_a*gamma*psi;
+    true_force[i + 0 * Q] = div_u - alpha_a * gamma * psi;
     // True Solution
-    true_solution[i+0*Q] = exp(-gamma*t_final)*psi;
-    true_solution[i+1*Q] = u[0];
-    true_solution[i+2*Q] = u[1];
-  } // End of Quadrature Point Loop
+    true_solution[i + 0 * Q] = exp(-gamma * t_final) * psi;
+    true_solution[i + 1 * Q] = u[0];
+    true_solution[i + 2 * Q] = u[1];
+  }  // End of Quadrature Point Loop
   return 0;
 }
 // -----------------------------------------------------------------------------
 
-#endif //End of RICHARD_TRUE2D_H
+#endif  // End of RICHARD_TRUE2D_H

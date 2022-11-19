@@ -8,8 +8,8 @@
 typedef struct AppCtx_ *AppCtx;
 struct AppCtx_ {
   // libCEED arguments
-  PetscInt          degree;
-  PetscInt          q_extra;
+  PetscInt degree;
+  PetscInt q_extra;
   // Problem type arguments
   PetscFunctionList problems;
   char              problem_name[PETSC_MAX_PATH_LEN];
@@ -19,8 +19,7 @@ struct AppCtx_ {
 typedef struct CeedData_ *CeedData;
 struct CeedData_ {
   CeedBasis            basis_x, basis_u;
-  CeedElemRestriction  elem_restr_x, elem_restr_u,
-                       elem_restr_u_i;
+  CeedElemRestriction  elem_restr_x, elem_restr_u, elem_restr_u_i;
   CeedQFunction        qf_residual, qf_error;
   CeedOperator         op_residual, op_error;
   CeedVector           x_ceed, y_ceed;
@@ -52,8 +51,8 @@ struct PH3DContext_ {
 // Struct that contains all enums and structs used for the physics of all problems
 typedef struct Physics_ *Physics;
 struct Physics_ {
-  PQ2DContext            pq2d_ctx;
-  PH3DContext            ph3d_ctx;
+  PQ2DContext pq2d_ctx;
+  PH3DContext ph3d_ctx;
 };
 
 // PETSc user data
@@ -72,11 +71,11 @@ struct User_ {
 // Problem specific data
 typedef struct {
   CeedQFunctionUser setup_rhs, residual, setup_error;
-  const char        *setup_rhs_loc, *residual_loc, *setup_error_loc;
+  const char       *setup_rhs_loc, *residual_loc, *setup_error_loc;
   CeedQuadMode      quadrature_mode;
   CeedInt           elem_node, dim;
-  PetscErrorCode    (*setup_ctx)(Ceed, CeedData, Physics);
+  PetscErrorCode (*setup_ctx)(Ceed, CeedData, Physics);
 
 } ProblemData;
 
-#endif // structs_h
+#endif  // structs_h

@@ -6,4 +6,4 @@
 // Process general command line options
 PetscErrorCode ProcessCommandLineOptions(AppCtx app_ctx);
 
-#endif // cloptions_h
+#endif  // cloptions_h

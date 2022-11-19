@@ -20,8 +20,9 @@
 #ifndef DARCY_ERROR2D_H
 #define DARCY_ERROR2D_H
 
-#include <math.h>
 #include <ceed.h>
+#include <math.h>
+
 #include "utils.h"
 
 // -----------------------------------------------------------------------------
@@ -38,43 +39,38 @@ struct DARCYContext_ {
   CeedScalar lx, ly;
 };
 #endif
-CEED_QFUNCTION(DarcyError2D)(void *ctx, const CeedInt Q,
-                             const CeedScalar *const *in,
-                             CeedScalar *const *out) {
-  // *INDENT-OFF*
+CEED_QFUNCTION(DarcyError2D)(void *ctx, const CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
   // Inputs
-  const CeedScalar (*w) = in[0],
-                   (*dxdX)[2][CEED_Q_VLA] = (const CeedScalar(*)[2][CEED_Q_VLA])in[1],
-                   (*u)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[2],
-                   (*p) = (const CeedScalar(*))in[3],
-                   (*true_soln) = in[4];
+  const CeedScalar(*w) = in[0], (*dxdX)[2][CEED_Q_VLA] = (const CeedScalar(*)[2][CEED_Q_VLA])in[1],
+        (*u)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[2], (*p) = (const CeedScalar(*))in[3], (*true_soln) = in[4];
   // Outputs
-  CeedScalar (*error) = out[0];
+  CeedScalar(*error) = out[0];
   // Context
-  DARCYContext  context = (DARCYContext)ctx;
-  //const CeedScalar kappa    = context->kappa;
-  const CeedScalar rho_a0   = context->rho_a0;
-  const CeedScalar g        = context->g;
+  DARCYContext context = (DARCYContext)ctx;
+  // const CeedScalar kappa    = context->kappa;
+  const CeedScalar rho_a0 = context->rho_a0;
+  const CeedScalar g      = context->g;
   // Quadrature Point Loop
-  CeedPragmaSIMD
-  for (CeedInt i=0; i<Q; i++) {
+  CeedPragmaSIMD for (CeedInt i = 0; i < Q; i++) {
     // Setup, J = dx/dX
-    const CeedScalar J[2][2] = {{dxdX[0][0][i], dxdX[1][0][i]},
-                                {dxdX[0][1][i], dxdX[1][1][i]}};
-    const CeedScalar det_J = MatDet2x2(J);             
+    const CeedScalar J[2][2] = {
+        {dxdX[0][0][i], dxdX[1][0][i]},
+        {dxdX[0][1][i], dxdX[1][1][i]}
+    };
+    const CeedScalar det_J = MatDet2x2(J);
     // Compute Piola map:uh = J*u/detJ
     CeedScalar u1[2] = {u[0][i], u[1][i]}, uh[2];
-    AlphaMatVecMult2x2(1/det_J, J, u1, uh);
+    AlphaMatVecMult2x2(1 / det_J, J, u1, uh);
 
     // Error
-    CeedScalar psi = p[i] / (rho_a0 * g);
-    error[i+0*Q] = (psi - true_soln[i+0*Q])*(psi - true_soln[i+0*Q])*w[i]*det_J;
-    error[i+1*Q] = (uh[0] - true_soln[i+1*Q])*(uh[0] - true_soln[i+1*Q])*w[i]*det_J;
-    error[i+2*Q] = (uh[1] - true_soln[i+2*Q])*(uh[1] - true_soln[i+2*Q])*w[i]*det_J;
-  } // End of Quadrature Point Loop
+    CeedScalar psi   = p[i] / (rho_a0 * g);
+    error[i + 0 * Q] = (psi - true_soln[i + 0 * Q]) * (psi - true_soln[i + 0 * Q]) * w[i] * det_J;
+    error[i + 1 * Q] = (uh[0] - true_soln[i + 1 * Q]) * (uh[0] - true_soln[i + 1 * Q]) * w[i] * det_J;
+    error[i + 2 * Q] = (uh[1] - true_soln[i + 2 * Q]) * (uh[1] - true_soln[i + 2 * Q]) * w[i] * det_J;
+  }  // End of Quadrature Point Loop
 
   return 0;
 }
 // -----------------------------------------------------------------------------
 
-#endif // End DARCY_ERROR2D_H
+#endif  // End DARCY_ERROR2D_H

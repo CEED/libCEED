@@ -20,8 +20,9 @@
 #ifndef DARCY_TRUE3D_H
 #define DARCY_TRUE3D_H
 
-#include <math.h>
 #include <ceed.h>
+#include <math.h>
+
 #include "utils.h"
 
 // -----------------------------------------------------------------------------
@@ -59,59 +60,51 @@ struct DARCYContext_ {
   CeedScalar lx, ly, lz;
 };
 #endif
-CEED_QFUNCTION(DarcyTrue3D)(void *ctx, const CeedInt Q,
-                            const CeedScalar *const *in,
-                            CeedScalar *const *out) {
-  // *INDENT-OFF*
+CEED_QFUNCTION(DarcyTrue3D)(void *ctx, const CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
   // Inputs
-  const CeedScalar (*coords) = in[0];
+  const CeedScalar(*coords) = in[0];
   // Outputs
-  CeedScalar (*true_force) = out[0], (*true_soln) = out[1];
+  CeedScalar(*true_force) = out[0], (*true_soln) = out[1];
   // Context
-  DARCYContext  context = (DARCYContext)ctx;
-  const CeedScalar  kappa   = context->kappa;
-  const CeedScalar alpha_a  = context->alpha_a;
-  const CeedScalar b_a      = context->b_a;
-  const CeedScalar lx       = context->lx;
-  const CeedScalar ly       = context->ly;
-  const CeedScalar lz       = context->lz;
+  DARCYContext     context = (DARCYContext)ctx;
+  const CeedScalar kappa   = context->kappa;
+  const CeedScalar alpha_a = context->alpha_a;
+  const CeedScalar b_a     = context->b_a;
+  const CeedScalar lx      = context->lx;
+  const CeedScalar ly      = context->ly;
+  const CeedScalar lz      = context->lz;
   // Quadrature Point Loop
-  CeedPragmaSIMD
-  for (CeedInt i=0; i<Q; i++) {
-    CeedScalar x = coords[i+0*Q], y = coords[i+1*Q], z = coords[i+2*Q];
-    CeedScalar psi   = sin(PI_DOUBLE*x/lx) * sin(PI_DOUBLE*y/ly) * sin(PI_DOUBLE*z/lz);
-    CeedScalar psi_x = (PI_DOUBLE/lx)*cos(PI_DOUBLE*x/lx) *sin(PI_DOUBLE*y/ly) *sin(PI_DOUBLE*z/lz);
-    CeedScalar psi_xx = -(PI_DOUBLE/lx)*(PI_DOUBLE/lx)*psi;
-    CeedScalar psi_y = (PI_DOUBLE/ly)*sin(PI_DOUBLE*x/lx) *cos(PI_DOUBLE*y/ly) *sin(PI_DOUBLE*z/lz);
-    CeedScalar psi_yy = -(PI_DOUBLE/ly)*(PI_DOUBLE/ly)*psi;
-    CeedScalar psi_z = (PI_DOUBLE/lz)*sin(PI_DOUBLE*x/lx) *sin(PI_DOUBLE*y/ly) *cos(PI_DOUBLE*z/lz);
-    CeedScalar psi_zz = -(PI_DOUBLE/lz)*(PI_DOUBLE/lz)*psi;
+  CeedPragmaSIMD for (CeedInt i = 0; i < Q; i++) {
+    CeedScalar x = coords[i + 0 * Q], y = coords[i + 1 * Q], z = coords[i + 2 * Q];
+    CeedScalar psi    = sin(PI_DOUBLE * x / lx) * sin(PI_DOUBLE * y / ly) * sin(PI_DOUBLE * z / lz);
+    CeedScalar psi_x  = (PI_DOUBLE / lx) * cos(PI_DOUBLE * x / lx) * sin(PI_DOUBLE * y / ly) * sin(PI_DOUBLE * z / lz);
+    CeedScalar psi_xx = -(PI_DOUBLE / lx) * (PI_DOUBLE / lx) * psi;
+    CeedScalar psi_y  = (PI_DOUBLE / ly) * sin(PI_DOUBLE * x / lx) * cos(PI_DOUBLE * y / ly) * sin(PI_DOUBLE * z / lz);
+    CeedScalar psi_yy = -(PI_DOUBLE / ly) * (PI_DOUBLE / ly) * psi;
+    CeedScalar psi_z  = (PI_DOUBLE / lz) * sin(PI_DOUBLE * x / lx) * sin(PI_DOUBLE * y / ly) * cos(PI_DOUBLE * z / lz);
+    CeedScalar psi_zz = -(PI_DOUBLE / lz) * (PI_DOUBLE / lz) * psi;
 
     // k_r = b_a + alpha_a * (psi - x2)
-    CeedScalar k_r = b_a + alpha_a*(1-x*y*z);
-    CeedScalar k_rx = -alpha_a*y*z;
-    CeedScalar k_ry = -alpha_a*x*z;
-    CeedScalar k_rz = -alpha_a*x*y;
+    CeedScalar k_r  = b_a + alpha_a * (1 - x * y * z);
+    CeedScalar k_rx = -alpha_a * y * z;
+    CeedScalar k_ry = -alpha_a * x * z;
+    CeedScalar k_rz = -alpha_a * x * y;
     // rho = rho_a/rho_a0
     CeedScalar rho = 1.;
     // u = -rho*k_r*K *[grad(\psi) - rho*g_u]
-    CeedScalar u[3] = {-rho*kappa*k_r*psi_x,
-                       -rho*kappa*k_r*psi_y,
-                       -rho*kappa*k_r*(psi_z-1)};
-    CeedScalar div_u = -rho*kappa*(k_rx*psi_x + k_r*psi_xx +
-                                   k_ry*psi_y + k_r*psi_yy + 
-                                   k_rz*(psi_z-1) + k_r*psi_zz);
+    CeedScalar u[3]  = {-rho * kappa * k_r * psi_x, -rho * kappa * k_r * psi_y, -rho * kappa * k_r * (psi_z - 1)};
+    CeedScalar div_u = -rho * kappa * (k_rx * psi_x + k_r * psi_xx + k_ry * psi_y + k_r * psi_yy + k_rz * (psi_z - 1) + k_r * psi_zz);
 
     // True Force: f = \div(u)
-    true_force[i+0*Q] = div_u;
+    true_force[i + 0 * Q] = div_u;
     // True Solution
-    true_soln[i+0*Q] = psi;
-    true_soln[i+1*Q] = u[0];
-    true_soln[i+2*Q] = u[1];
-    true_soln[i+3*Q] = u[2];
-  } // End of Quadrature Point Loop
+    true_soln[i + 0 * Q] = psi;
+    true_soln[i + 1 * Q] = u[0];
+    true_soln[i + 2 * Q] = u[1];
+    true_soln[i + 3 * Q] = u[2];
+  }  // End of Quadrature Point Loop
   return 0;
 }
 // -----------------------------------------------------------------------------
 
-#endif //End of DARCY_TRUE3D_H
+#endif  // End of DARCY_TRUE3D_H

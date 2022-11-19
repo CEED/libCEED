@@ -17,33 +17,34 @@
 /// @file
 /// Utility functions for setting up POISSON_QUAD2D
 
-#include "../include/setup-libceed.h"
 #include "../include/problems.h"
-#include "../qfunctions/poisson-rhs3d.h"
-#include "../qfunctions/poisson-mass3d.h"
+#include "../include/setup-libceed.h"
 #include "../qfunctions/poisson-error3d.h"
+#include "../qfunctions/poisson-mass3d.h"
+#include "../qfunctions/poisson-rhs3d.h"
 
 // Hdiv_POISSON_MASS2D is registered in cl-option.c
 PetscErrorCode Hdiv_POISSON_MASS3D(ProblemData *problem_data, void *ctx) {
-  User              user = *(User *)ctx;
-  MPI_Comm          comm = PETSC_COMM_WORLD;
-  PetscInt          ierr;
+  User     user = *(User *)ctx;
+  MPI_Comm comm = PETSC_COMM_WORLD;
+  PetscInt ierr;
   PetscFunctionBeginUser;
 
-  ierr = PetscCalloc1(1, &user->phys->ph3d_ctx); CHKERRQ(ierr);
+  ierr = PetscCalloc1(1, &user->phys->ph3d_ctx);
+  CHKERRQ(ierr);
 
   // ------------------------------------------------------
   //               SET UP POISSON_QUAD3D
   // ------------------------------------------------------
-  problem_data->dim                     = 3;
-  problem_data->elem_node               = 8;
-  problem_data->quadrature_mode         = CEED_GAUSS;
-  problem_data->setup_rhs               = SetupRhs3D;
-  problem_data->setup_rhs_loc           = SetupRhs3D_loc;
-  problem_data->residual                = SetupMass3D;
-  problem_data->residual_loc            = SetupMass3D_loc;
-  problem_data->setup_error             = SetupError3D;
-  problem_data->setup_error_loc         = SetupError3D_loc;
+  problem_data->dim             = 3;
+  problem_data->elem_node       = 8;
+  problem_data->quadrature_mode = CEED_GAUSS;
+  problem_data->setup_rhs       = SetupRhs3D;
+  problem_data->setup_rhs_loc   = SetupRhs3D_loc;
+  problem_data->residual        = SetupMass3D;
+  problem_data->residual_loc    = SetupMass3D_loc;
+  problem_data->setup_error     = SetupError3D;
+  problem_data->setup_error_loc = SetupError3D_loc;
 
   // ------------------------------------------------------
   //              Command line Options

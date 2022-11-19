@@ -58,7 +58,7 @@ static void BuildHdivQuadrilateral(CeedInt q, CeedScalar *q_ref, CeedScalar *q_w
   CeedScalar D[8] = {0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25};
   // Loop over quadrature points
   CeedScalar Bx[8], By[8];
-  CeedScalar x[2];
+  CeedScalar X[2];
 
   for (CeedInt i = 0; i < q; i++) {
     for (CeedInt j = 0; j < q; j++) {

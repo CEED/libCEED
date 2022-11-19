@@ -6,9 +6,7 @@
 
 #include "structs.h"
 
-PetscErrorCode ApplyLocalCeedOp(Vec X, Vec Y,
-                                OperatorApplyContext op_apply_ctx);
-PetscErrorCode ApplyAddLocalCeedOp(Vec X, Vec Y,
-                                   OperatorApplyContext op_apply_ctx);
+PetscErrorCode ApplyLocalCeedOp(Vec X, Vec Y, OperatorApplyContext op_apply_ctx);
+PetscErrorCode ApplyAddLocalCeedOp(Vec X, Vec Y, OperatorApplyContext op_apply_ctx);
 
-#endif // setup_matops_h
+#endif  // setup_matops_h

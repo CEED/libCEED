@@ -9,4 +9,4 @@ PetscErrorCode RegisterProblems_Hdiv(AppCtx app_ctx);
 // Process general command line options
 PetscErrorCode ProcessCommandLineOptions(MPI_Comm comm, AppCtx app_ctx);
 
-#endif // cloptions_h
+#endif  // cloptions_h
