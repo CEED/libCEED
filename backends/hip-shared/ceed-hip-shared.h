@@ -8,27 +8,27 @@
 #ifndef _ceed_hip_shared_h
 #define _ceed_hip_shared_h
 
-#include <ceed/ceed.h>
 #include <ceed/backend.h>
+#include <ceed/ceed.h>
 #include <hip/hip_runtime.h>
+
 #include "../hip/ceed-hip-common.h"
 
 typedef struct {
-  hipModule_t module;
+  hipModule_t   module;
   hipFunction_t Interp;
   hipFunction_t InterpTranspose;
   hipFunction_t Grad;
   hipFunction_t GradTranspose;
   hipFunction_t Weight;
-  CeedInt block_sizes[3]; // interp, grad, weight thread block sizes
-  CeedScalar *d_interp_1d;
-  CeedScalar *d_grad_1d;
-  CeedScalar *d_collo_grad_1d;
-  CeedScalar *d_q_weight_1d;
+  CeedInt       block_sizes[3];  // interp, grad, weight thread block sizes
+  CeedScalar   *d_interp_1d;
+  CeedScalar   *d_grad_1d;
+  CeedScalar   *d_collo_grad_1d;
+  CeedScalar   *d_q_weight_1d;
 } CeedBasis_Hip_shared;
 
-CEED_INTERN int CeedBasisCreateTensorH1_Hip_shared(CeedInt dim, CeedInt P1d,
-    CeedInt Q1d, const CeedScalar *interp1d, const CeedScalar *grad1d,
-    const CeedScalar *qref1d, const CeedScalar *qweight1d, CeedBasis basis);
+CEED_INTERN int CeedBasisCreateTensorH1_Hip_shared(CeedInt dim, CeedInt P1d, CeedInt Q1d, const CeedScalar *interp1d, const CeedScalar *grad1d,
+                                                   const CeedScalar *qref1d, const CeedScalar *qweight1d, CeedBasis basis);
 
-#endif // _ceed_hip_shared_h
+#endif  // _ceed_hip_shared_h

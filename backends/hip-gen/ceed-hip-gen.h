@@ -8,22 +8,23 @@
 #ifndef _ceed_hip_gen_h
 #define _ceed_hip_gen_h
 
-#include <ceed/ceed.h>
 #include <ceed/backend.h>
+#include <ceed/ceed.h>
 #include <hip/hip_runtime.h>
+
 #include "../hip/ceed-hip-common.h"
 
 typedef struct {
-  CeedInt dim;
-  CeedInt Q_1d;
-  CeedInt max_P_1d;
-  hipModule_t module;
+  CeedInt       dim;
+  CeedInt       Q_1d;
+  CeedInt       max_P_1d;
+  hipModule_t   module;
   hipFunction_t op;
   FieldsInt_Hip indices;
-  Fields_Hip fields;
-  Fields_Hip B;
-  Fields_Hip G;
-  CeedScalar *W;
+  Fields_Hip    fields;
+  Fields_Hip    B;
+  Fields_Hip    G;
+  CeedScalar   *W;
 } CeedOperator_Hip_gen;
 
 typedef struct {
@@ -36,4 +37,4 @@ CEED_INTERN int CeedQFunctionCreate_Hip_gen(CeedQFunction qf);
 
 CEED_INTERN int CeedOperatorCreate_Hip_gen(CeedOperator op);
 
-#endif // _ceed_hip_gen_h
+#endif  // _ceed_hip_gen_h

@@ -8,22 +8,23 @@
 #ifndef _ceed_cuda_gen_h
 #define _ceed_cuda_gen_h
 
-#include <ceed/ceed.h>
 #include <ceed/backend.h>
+#include <ceed/ceed.h>
 #include <cuda.h>
+
 #include "../cuda/ceed-cuda-common.h"
 
 typedef struct {
-  CeedInt dim;
-  CeedInt Q_1d;
-  CeedInt max_P_1d;
-  CUmodule module;
-  CUfunction op;
+  CeedInt        dim;
+  CeedInt        Q_1d;
+  CeedInt        max_P_1d;
+  CUmodule       module;
+  CUfunction     op;
   FieldsInt_Cuda indices;
-  Fields_Cuda fields;
-  Fields_Cuda B;
-  Fields_Cuda G;
-  CeedScalar *W;
+  Fields_Cuda    fields;
+  Fields_Cuda    B;
+  Fields_Cuda    G;
+  CeedScalar    *W;
 } CeedOperator_Cuda_gen;
 
 typedef struct {
@@ -36,4 +37,4 @@ CEED_INTERN int CeedQFunctionCreate_Cuda_gen(CeedQFunction qf);
 
 CEED_INTERN int CeedOperatorCreate_Cuda_gen(CeedOperator op);
 
-#endif // _ceed_cuda_gen_h
+#endif  // _ceed_cuda_gen_h

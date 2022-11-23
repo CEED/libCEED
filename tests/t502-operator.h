@@ -7,24 +7,21 @@
 
 #include <ceed.h>
 
-CEED_QFUNCTION(setup)(void *ctx, const CeedInt Q,
-                      const CeedScalar *const *in,
-                      CeedScalar *const *out) {
+CEED_QFUNCTION(setup)(void *ctx, const CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
   const CeedScalar *weight = in[0], *dxdX = in[1];
-  CeedScalar *rho = out[0];
-  for (CeedInt i=0; i<Q; i++) {
+  CeedScalar       *rho = out[0];
+  for (CeedInt i = 0; i < Q; i++) {
     rho[i] = weight[i] * dxdX[i];
   }
   return 0;
 }
 
-CEED_QFUNCTION(mass)(void *ctx, const CeedInt Q, const CeedScalar *const *in,
-                     CeedScalar *const *out) {
+CEED_QFUNCTION(mass)(void *ctx, const CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
   const CeedScalar *rho = in[0], *u = in[1];
-  CeedScalar *v = out[0];
-  for (CeedInt i=0; i<Q; i++) {
-    v[i]   = rho[i] * u[i];
-    v[Q+i] = rho[i] * u[Q+i];
+  CeedScalar       *v = out[0];
+  for (CeedInt i = 0; i < Q; i++) {
+    v[i]     = rho[i] * u[i];
+    v[Q + i] = rho[i] * u[Q + i];
   }
   return 0;
 }

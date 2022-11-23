@@ -7,8 +7,8 @@
 
 /// @file
 /// Public header for definitions related to using FP32 floating point (single
-/// precision) for CeedScalar.  Include this header in ceed/ceed.h to use 
-/// float instead of double. 
+/// precision) for CeedScalar.  Include this header in ceed/ceed.h to use
+/// float instead of double.
 #ifndef _ceed_f32_h
 #define _ceed_f32_h
 

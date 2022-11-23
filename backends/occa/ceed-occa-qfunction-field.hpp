@@ -11,20 +11,20 @@
 #include "ceed-occa-context.hpp"
 
 namespace ceed {
-  namespace occa {
-    class QFunctionField {
-     protected:
-      bool _isValid;
+namespace occa {
+class QFunctionField {
+ protected:
+  bool _isValid;
 
-     public:
-      CeedEvalMode evalMode;
-      CeedInt size;
+ public:
+  CeedEvalMode evalMode;
+  CeedInt      size;
 
-      QFunctionField(CeedQFunctionField qfField);
+  QFunctionField(CeedQFunctionField qfField);
 
-      bool isValid() const;
-    };
-  }
-}
+  bool isValid() const;
+};
+}  // namespace occa
+}  // namespace ceed
 
 #endif

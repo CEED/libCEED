@@ -72,13 +72,25 @@ The following options are common among all problem types:
   - Frequency of output, in number of steps. `0` has no output, `-1` outputs final state only
   - `10`
 
-* - `-continue`
-  - Continue from previous solution
-  - `0`
-
 * - `-output_dir`
   - Output directory
   - `.`
+
+* - `-output_add_stepnum2bin`
+  - Whether to add step numbers to output binary files
+  - `false`
+
+* - `-continue`
+  - Continue from previous solution (input is step number of previous solution)
+  - `0`
+
+* - `-continue_filename`
+  - Path to solution binary file from which to continue from
+  - `[output_dir]/ns-solution.bin`
+
+* - `-continue_time_filename`
+  - Path to time stamp binary file from which to continue from
+  - `[output_dir]/ns-time.bin`
 
 * - `-bc_wall`
   - Use wall boundary conditions on this list of faces
@@ -108,6 +120,10 @@ The following options are common among all problem types:
   - Use outflow boundary conditions on this list of faces
   -
 
+* - `-bc_freestream`
+  - Use freestream boundary conditions on this list of faces
+  -
+
 * - `-snes_view`
   - View PETSc `SNES` nonlinear solver configuration
   -
@@ -121,7 +137,7 @@ The following options are common among all problem types:
   -
 :::
 
-For the case of a square/cubic mesh, the list of face indices to be used with `-bc_wall`, `bc_inflow`, `bc_outflow` and/or `-bc_slip_x`, `-bc_slip_y`, and `-bc_slip_z` are:
+For the case of a square/cubic mesh, the list of face indices to be used with `-bc_wall`, `bc_inflow`, `bc_outflow`, `bc_freestream`  and/or `-bc_slip_x`, `-bc_slip_y`, and `-bc_slip_z` are:
 
 :::{list-table} 2D Face ID Labels
 :header-rows: 1
@@ -541,10 +557,68 @@ For the Density Current, Channel, and Blasius problems, the following common com
   - string
 :::
 
+#### Newtonian Wave
+
+The newtonian wave problem has the following command-line options in addition to the Newtonian Ideal Gas options:
+
+:::{list-table} Newtonian Wave Runtime Options
+:header-rows: 1
+
+* - Option
+  - Description
+  - Default value
+  - Unit
+
+* - `-freestream_riemann`
+  - Riemann solver for boundaries (HLL or HLLC)
+  - `hllc`
+  -
+
+* - `-freestream_velocity`
+  - Freestream velocity vector
+  - `0,0,0`
+  - `m/s`
+
+* - `-freestream_temperature`
+  - Freestream temperature
+  - `288`
+  - `K`
+
+* - `-freestream_pressure`
+  - Freestream pressure
+  - `1.01e5`
+  - `Pa`
+
+* - `-epicenter`
+  - Coordinates of center of perturbation
+  - `0,0,0`
+  - `m`
+
+* - `-amplitude`
+  - Amplitude of the perturbation
+  - `0.1`
+  -
+
+* - `-width`
+  - Width parameter of the perturbation
+  - `0.002`
+  - `m`
+
+:::
+
+This problem can be run with the `newtonianwave.yaml` file via:
+
+```
+./navierstokes -options_file newtonianwave.yaml
+```
+
+```{literalinclude} ../../../../../examples/fluids/newtonianwave.yaml
+:language: yaml
+```
 
 #### Density current
 
-The Density Current problem the following command-line options are available in addition to the Newtonian Ideal Gas options:
+The Density Current problem has the following command-line options in addition to the Newtonian Ideal Gas options:
 
 :::{list-table} Density Current Runtime Options
 :header-rows: 1
@@ -598,7 +672,7 @@ This problem can be run with:
 
 #### Channel flow
 
-The Channel problem the following command-line options are available in addition to the Newtonian Ideal Gas options:
+The Channel problem has the following command-line options in addition to the Newtonian Ideal Gas options:
 
 :::{list-table} Channel Runtime Options
 :header-rows: 1
@@ -640,7 +714,7 @@ This problem can be run with the `channel.yaml` file via:
 
 #### Blasius boundary layer
 
-The Blasius problem the following command-line options are available in addition to the Newtonian Ideal Gas options:
+The Blasius problem has the following command-line options in addition to the Newtonian Ideal Gas options:
 
 :::{list-table} Blasius Runtime Options
 :header-rows: 1
@@ -766,6 +840,11 @@ Using the STG Inflow for the blasius problem adds the following command-line opt
 
 * - `-stg_strong`
   - Strongly enforce the STG inflow boundary condition
+  - `false`
+  -
+
+* - `-stg_fluctuating_IC`
+  - "Extrude" the fluctuations through the domain as an initial condition
   - `false`
   -
 

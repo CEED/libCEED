@@ -5,9 +5,9 @@
 //
 // This file is part of CEED:  http://github.com/ceed
 
-#include <ceed/ceed.h>
-#include <ceed/backend.h>
 #include <ceed-impl.h>
+#include <ceed/backend.h>
+#include <ceed/ceed.h>
 #include <math.h>
 #include <stdbool.h>
 #include <stdio.h>
@@ -52,16 +52,12 @@ const CeedBasis CEED_BASIS_COLLOCATED = &ceed_basis_collocated;
 
   @ref Developer
 **/
-static int CeedHouseholderReflect(CeedScalar *A, const CeedScalar *v,
-                                  CeedScalar b, CeedInt m, CeedInt n,
-                                  CeedInt row, CeedInt col) {
-  for (CeedInt j=0; j<n; j++) {
-    CeedScalar w = A[0*row + j*col];
-    for (CeedInt i=1; i<m; i++)
-      w += v[i] * A[i*row + j*col];
-    A[0*row + j*col] -= b * w;
-    for (CeedInt i=1; i<m; i++)
-      A[i*row + j*col] -= b * w * v[i];
+static int CeedHouseholderReflect(CeedScalar *A, const CeedScalar *v, CeedScalar b, CeedInt m, CeedInt n, CeedInt row, CeedInt col) {
+  for (CeedInt j = 0; j < n; j++) {
+    CeedScalar w = A[0 * row + j * col];
+    for (CeedInt i = 1; i < m; i++) w += v[i] * A[i * row + j * col];
+    A[0 * row + j * col] -= b * w;
+    for (CeedInt i = 1; i < m; i++) A[i * row + j * col] -= b * w * v[i];
   }
   return CEED_ERROR_SUCCESS;
 }
@@ -85,22 +81,17 @@ static int CeedHouseholderReflect(CeedScalar *A, const CeedScalar *v,
 
   @ref Developer
 **/
-int CeedHouseholderApplyQ(CeedScalar *A, const CeedScalar *Q,
-                          const CeedScalar *tau, CeedTransposeMode t_mode,
-                          CeedInt m, CeedInt n, CeedInt k,
+int CeedHouseholderApplyQ(CeedScalar *A, const CeedScalar *Q, const CeedScalar *tau, CeedTransposeMode t_mode, CeedInt m, CeedInt n, CeedInt k,
                           CeedInt row, CeedInt col) {
-  int ierr;
   CeedScalar *v;
-  ierr = CeedMalloc(m, &v); CeedChk(ierr);
-  for (CeedInt ii=0; ii<k; ii++) {
-    CeedInt i = t_mode == CEED_TRANSPOSE ? ii : k-1-ii;
-    for (CeedInt j=i+1; j<m; j++)
-      v[j] = Q[j*k+i];
+  CeedCall(CeedMalloc(m, &v));
+  for (CeedInt ii = 0; ii < k; ii++) {
+    CeedInt i = t_mode == CEED_TRANSPOSE ? ii : k - 1 - ii;
+    for (CeedInt j = i + 1; j < m; j++) v[j] = Q[j * k + i];
     // Apply Householder reflector (I - tau v v^T) collo_grad_1d^T
-    ierr = CeedHouseholderReflect(&A[i*row], &v[i], tau[i], m-i, n, row, col);
-    CeedChk(ierr);
+    CeedCall(CeedHouseholderReflect(&A[i * row], &v[i], tau[i], m - i, n, row, col));
   }
-  ierr = CeedFree(&v); CeedChk(ierr);
+  CeedCall(CeedFree(&v));
   return CEED_ERROR_SUCCESS;
 }
 
@@ -125,19 +116,19 @@ int CeedHouseholderApplyQ(CeedScalar *A, const CeedScalar *Q,
 
   @ref Developer
 **/
-static int CeedGivensRotation(CeedScalar *A, CeedScalar c, CeedScalar s,
-                              CeedTransposeMode t_mode, CeedInt i, CeedInt k,
-                              CeedInt m, CeedInt n) {
+static int CeedGivensRotation(CeedScalar *A, CeedScalar c, CeedScalar s, CeedTransposeMode t_mode, CeedInt i, CeedInt k, CeedInt m, CeedInt n) {
   CeedInt stride_j = 1, stride_ik = m, num_its = n;
   if (t_mode == CEED_NOTRANSPOSE) {
-    stride_j = n; stride_ik = 1; num_its = m;
+    stride_j  = n;
+    stride_ik = 1;
+    num_its   = m;
   }
 
   // Apply rotation
-  for (CeedInt j=0; j<num_its; j++) {
-    CeedScalar tau1 = A[i*stride_ik+j*stride_j], tau2 = A[k*stride_ik+j*stride_j];
-    A[i*stride_ik+j*stride_j] = c*tau1 - s*tau2;
-    A[k*stride_ik+j*stride_j] = s*tau1 + c*tau2;
+  for (CeedInt j = 0; j < num_its; j++) {
+    CeedScalar tau1 = A[i * stride_ik + j * stride_j], tau2 = A[k * stride_ik + j * stride_j];
+    A[i * stride_ik + j * stride_j] = c * tau1 - s * tau2;
+    A[k * stride_ik + j * stride_j] = s * tau1 + c * tau2;
   }
   return CEED_ERROR_SUCCESS;
 }
@@ -156,15 +147,11 @@ static int CeedGivensRotation(CeedScalar *A, CeedScalar c, CeedScalar s,
 
   @ref Developer
 **/
-static int CeedScalarView(const char *name, const char *fp_fmt, CeedInt m,
-                          CeedInt n, const CeedScalar *a, FILE *stream) {
-  for (CeedInt i=0; i<m; i++) {
-    if (m > 1)
-      fprintf(stream, "%12s[%" CeedInt_FMT "]:", name, i);
-    else
-      fprintf(stream, "%12s:", name);
-    for (CeedInt j=0; j<n; j++)
-      fprintf(stream, fp_fmt, fabs(a[i*n+j]) > 1E-14 ? a[i*n+j] : 0);
+static int CeedScalarView(const char *name, const char *fp_fmt, CeedInt m, CeedInt n, const CeedScalar *a, FILE *stream) {
+  for (CeedInt i = 0; i < m; i++) {
+    if (m > 1) fprintf(stream, "%12s[%" CeedInt_FMT "]:", name, i);
+    else fprintf(stream, "%12s:", name);
+    for (CeedInt j = 0; j < n; j++) fprintf(stream, fp_fmt, fabs(a[i * n + j]) > 1E-14 ? a[i * n + j] : 0);
     fputs("\n", stream);
   }
   return CEED_ERROR_SUCCESS;
@@ -190,91 +177,83 @@ static int CeedScalarView(const char *name, const char *fp_fmt, CeedInt m,
 
   @ref Developer
 **/
-static int CeedBasisCreateProjectionMatrices(CeedBasis basis_from,
-    CeedBasis basis_to, CeedScalar **interp_project, CeedScalar **grad_project) {
-  int ierr;
+static int CeedBasisCreateProjectionMatrices(CeedBasis basis_from, CeedBasis basis_to, CeedScalar **interp_project, CeedScalar **grad_project) {
   Ceed ceed;
-  ierr = CeedBasisGetCeed(basis_to, &ceed); CeedChk(ierr);
+  CeedCall(CeedBasisGetCeed(basis_to, &ceed));
 
   // Check for compatible quadrature spaces
   CeedInt Q_to, Q_from;
-  ierr = CeedBasisGetNumQuadraturePoints(basis_to, &Q_to); CeedChk(ierr);
-  ierr = CeedBasisGetNumQuadraturePoints(basis_from, &Q_from); CeedChk(ierr);
-  if (Q_to != Q_from)
+  CeedCall(CeedBasisGetNumQuadraturePoints(basis_to, &Q_to));
+  CeedCall(CeedBasisGetNumQuadraturePoints(basis_from, &Q_from));
+  if (Q_to != Q_from) {
     // LCOV_EXCL_START
-    return CeedError(ceed, CEED_ERROR_DIMENSION,
-                     "Bases must have compatible quadrature spaces");
-  // LCOV_EXCL_STOP
+    return CeedError(ceed, CEED_ERROR_DIMENSION, "Bases must have compatible quadrature spaces");
+    // LCOV_EXCL_STOP
+  }
 
   // Check for matching tensor or non-tensor
   CeedInt P_to, P_from, Q = Q_to;
-  bool is_tensor_to, is_tensor_from;
-  ierr = CeedBasisIsTensor(basis_to, &is_tensor_to); CeedChk(ierr);
-  ierr = CeedBasisIsTensor(basis_from, &is_tensor_from); CeedChk(ierr);
+  bool    is_tensor_to, is_tensor_from;
+  CeedCall(CeedBasisIsTensor(basis_to, &is_tensor_to));
+  CeedCall(CeedBasisIsTensor(basis_from, &is_tensor_from));
   if (is_tensor_to && is_tensor_from) {
-    ierr = CeedBasisGetNumNodes1D(basis_to, &P_to); CeedChk(ierr);
-    ierr = CeedBasisGetNumNodes1D(basis_from, &P_from); CeedChk(ierr);
-    ierr = CeedBasisGetNumQuadraturePoints1D(basis_from, &Q); CeedChk(ierr);
+    CeedCall(CeedBasisGetNumNodes1D(basis_to, &P_to));
+    CeedCall(CeedBasisGetNumNodes1D(basis_from, &P_from));
+    CeedCall(CeedBasisGetNumQuadraturePoints1D(basis_from, &Q));
   } else if (!is_tensor_to && !is_tensor_from) {
-    ierr = CeedBasisGetNumNodes(basis_to, &P_to); CeedChk(ierr);
-    ierr = CeedBasisGetNumNodes(basis_from, &P_from); CeedChk(ierr);
+    CeedCall(CeedBasisGetNumNodes(basis_to, &P_to));
+    CeedCall(CeedBasisGetNumNodes(basis_from, &P_from));
   } else {
     // LCOV_EXCL_START
-    return CeedError(ceed, CEED_ERROR_MINOR,
-                     "Bases must both be tensor or non-tensor");
+    return CeedError(ceed, CEED_ERROR_MINOR, "Bases must both be tensor or non-tensor");
     // LCOV_EXCL_STOP
   }
 
   // Get source matrices
-  CeedInt dim;
+  CeedInt     dim;
   CeedScalar *interp_to, *interp_from, *tau;
-  ierr = CeedBasisGetDimension(basis_to, &dim); CeedChk(ierr);
-  ierr = CeedMalloc(Q * P_from, &interp_from); CeedChk(ierr);
-  ierr = CeedMalloc(Q * P_to, &interp_to); CeedChk(ierr);
-  ierr = CeedCalloc(P_to * P_from, interp_project); CeedChk(ierr);
-  ierr = CeedCalloc(P_to * P_from * (is_tensor_to ? 1 : dim), grad_project);
-  CeedChk(ierr);
-  ierr = CeedMalloc(Q, &tau); CeedChk(ierr);
-  const CeedScalar *interp_to_source = NULL, *interp_from_source = NULL,
-                    *grad_from_source;
+  CeedCall(CeedBasisGetDimension(basis_to, &dim));
+  CeedCall(CeedMalloc(Q * P_from, &interp_from));
+  CeedCall(CeedMalloc(Q * P_to, &interp_to));
+  CeedCall(CeedCalloc(P_to * P_from, interp_project));
+  CeedCall(CeedCalloc(P_to * P_from * (is_tensor_to ? 1 : dim), grad_project));
+  CeedCall(CeedMalloc(Q, &tau));
+  const CeedScalar *interp_to_source = NULL, *interp_from_source = NULL, *grad_from_source;
   if (is_tensor_to) {
-    ierr = CeedBasisGetInterp1D(basis_to, &interp_to_source); CeedChk(ierr);
-    ierr = CeedBasisGetInterp1D(basis_from, &interp_from_source); CeedChk(ierr);
-    ierr = CeedBasisGetGrad1D(basis_from, &grad_from_source); CeedChk(ierr);
+    CeedCall(CeedBasisGetInterp1D(basis_to, &interp_to_source));
+    CeedCall(CeedBasisGetInterp1D(basis_from, &interp_from_source));
+    CeedCall(CeedBasisGetGrad1D(basis_from, &grad_from_source));
   } else {
-    ierr = CeedBasisGetInterp(basis_to, &interp_to_source); CeedChk(ierr);
-    ierr = CeedBasisGetInterp(basis_from, &interp_from_source); CeedChk(ierr);
-    ierr = CeedBasisGetGrad(basis_from, &grad_from_source); CeedChk(ierr);
+    CeedCall(CeedBasisGetInterp(basis_to, &interp_to_source));
+    CeedCall(CeedBasisGetInterp(basis_from, &interp_from_source));
+    CeedCall(CeedBasisGetGrad(basis_from, &grad_from_source));
   }
 
   // Build matrices
-  CeedInt num_matrices = 1 + (is_tensor_to ? 1 : dim);
+  CeedInt     num_matrices = 1 + (is_tensor_to ? 1 : dim);
   CeedScalar *input_from[num_matrices], *output_project[num_matrices];
-  input_from[0] = (CeedScalar *)interp_from_source;
+  input_from[0]     = (CeedScalar *)interp_from_source;
   output_project[0] = *interp_project;
   for (CeedInt m = 1; m < num_matrices; m++) {
-    input_from[m] = (CeedScalar *)&grad_from_source[(m - 1) * Q * P_from];
+    input_from[m]     = (CeedScalar *)&grad_from_source[(m - 1) * Q * P_from];
     output_project[m] = &((*grad_project)[(m - 1) * P_to * P_from]);
   }
   for (CeedInt m = 0; m < num_matrices; m++) {
     // -- QR Factorization, interp_to = Q R
     memcpy(interp_to, interp_to_source, Q * P_to * sizeof(interp_to_source[0]));
-    ierr = CeedQRFactorization(ceed, interp_to, tau, Q, P_to); CeedChk(ierr);
+    CeedCall(CeedQRFactorization(ceed, interp_to, tau, Q, P_to));
 
     // -- Apply Qtranspose, interp_to = Qtranspose interp_from
     memcpy(interp_from, input_from[m], Q * P_from * sizeof(input_from[m][0]));
-    ierr = CeedHouseholderApplyQ(interp_from, interp_to, tau, CEED_TRANSPOSE,
-                                 Q, P_from, P_to, P_from, 1); CeedChk(ierr);
+    CeedCall(CeedHouseholderApplyQ(interp_from, interp_to, tau, CEED_TRANSPOSE, Q, P_from, P_to, P_from, 1));
 
     // -- Apply Rinv, interp_project = Rinv interp_c
-    for (CeedInt j = 0; j < P_from; j++) { // Column j
-      output_project[m][j + P_from * (P_to - 1)] = interp_from[j + P_from *
-          (P_to - 1)] / interp_to[P_to * P_to - 1];
-      for (CeedInt i = P_to - 2; i >= 0; i--) { // Row i
+    for (CeedInt j = 0; j < P_from; j++) {  // Column j
+      output_project[m][j + P_from * (P_to - 1)] = interp_from[j + P_from * (P_to - 1)] / interp_to[P_to * P_to - 1];
+      for (CeedInt i = P_to - 2; i >= 0; i--) {  // Row i
         output_project[m][j + P_from * i] = interp_from[j + P_from * i];
-        for (CeedInt k = i+1; k < P_to; k++) {
-          output_project[m][j + P_from * i] -= interp_to[k + P_to * i]*
-                                               output_project[m][j + P_from * k];
+        for (CeedInt k = i + 1; k < P_to; k++) {
+          output_project[m][j + P_from * i] -= interp_to[k + P_to * i] * output_project[m][j + P_from * k];
         }
         output_project[m][j + P_from * i] /= interp_to[i + P_to * i];
       }
@@ -282,9 +261,9 @@ static int CeedBasisCreateProjectionMatrices(CeedBasis basis_from,
   }
 
   // Cleanup
-  ierr = CeedFree(&tau); CeedChk(ierr);
-  ierr = CeedFree(&interp_to); CeedChk(ierr);
-  ierr = CeedFree(&interp_from); CeedChk(ierr);
+  CeedCall(CeedFree(&tau));
+  CeedCall(CeedFree(&interp_to));
+  CeedCall(CeedFree(&interp_from));
 
   return CEED_ERROR_SUCCESS;
 }
@@ -309,43 +288,40 @@ static int CeedBasisCreateProjectionMatrices(CeedBasis basis_from,
   @ref Backend
 **/
 int CeedBasisGetCollocatedGrad(CeedBasis basis, CeedScalar *collo_grad_1d) {
-  int i, j, k;
-  Ceed ceed;
-  CeedInt ierr, P_1d=(basis)->P_1d, Q_1d=(basis)->Q_1d;
+  int         i, j, k;
+  Ceed        ceed;
+  CeedInt     P_1d = (basis)->P_1d, Q_1d = (basis)->Q_1d;
   CeedScalar *interp_1d, *grad_1d, *tau;
 
-  ierr = CeedMalloc(Q_1d*P_1d, &interp_1d); CeedChk(ierr);
-  ierr = CeedMalloc(Q_1d*P_1d, &grad_1d); CeedChk(ierr);
-  ierr = CeedMalloc(Q_1d, &tau); CeedChk(ierr);
-  memcpy(interp_1d, (basis)->interp_1d, Q_1d*P_1d*sizeof(basis)->interp_1d[0]);
-  memcpy(grad_1d, (basis)->grad_1d, Q_1d*P_1d*sizeof(basis)->interp_1d[0]);
+  CeedCall(CeedMalloc(Q_1d * P_1d, &interp_1d));
+  CeedCall(CeedMalloc(Q_1d * P_1d, &grad_1d));
+  CeedCall(CeedMalloc(Q_1d, &tau));
+  memcpy(interp_1d, (basis)->interp_1d, Q_1d * P_1d * sizeof(basis)->interp_1d[0]);
+  memcpy(grad_1d, (basis)->grad_1d, Q_1d * P_1d * sizeof(basis)->interp_1d[0]);
 
   // QR Factorization, interp_1d = Q R
-  ierr = CeedBasisGetCeed(basis, &ceed); CeedChk(ierr);
-  ierr = CeedQRFactorization(ceed, interp_1d, tau, Q_1d, P_1d); CeedChk(ierr);
+  CeedCall(CeedBasisGetCeed(basis, &ceed));
+  CeedCall(CeedQRFactorization(ceed, interp_1d, tau, Q_1d, P_1d));
   // Note: This function is for backend use, so all errors are terminal
   //   and we do not need to clean up memory on failure.
 
   // Apply Rinv, collo_grad_1d = grad_1d Rinv
-  for (i=0; i<Q_1d; i++) { // Row i
-    collo_grad_1d[Q_1d*i] = grad_1d[P_1d*i]/interp_1d[0];
-    for (j=1; j<P_1d; j++) { // Column j
-      collo_grad_1d[j+Q_1d*i] = grad_1d[j+P_1d*i];
-      for (k=0; k<j; k++)
-        collo_grad_1d[j+Q_1d*i] -= interp_1d[j+P_1d*k]*collo_grad_1d[k+Q_1d*i];
-      collo_grad_1d[j+Q_1d*i] /= interp_1d[j+P_1d*j];
+  for (i = 0; i < Q_1d; i++) {  // Row i
+    collo_grad_1d[Q_1d * i] = grad_1d[P_1d * i] / interp_1d[0];
+    for (j = 1; j < P_1d; j++) {  // Column j
+      collo_grad_1d[j + Q_1d * i] = grad_1d[j + P_1d * i];
+      for (k = 0; k < j; k++) collo_grad_1d[j + Q_1d * i] -= interp_1d[j + P_1d * k] * collo_grad_1d[k + Q_1d * i];
+      collo_grad_1d[j + Q_1d * i] /= interp_1d[j + P_1d * j];
     }
-    for (j=P_1d; j<Q_1d; j++)
-      collo_grad_1d[j+Q_1d*i] = 0;
+    for (j = P_1d; j < Q_1d; j++) collo_grad_1d[j + Q_1d * i] = 0;
   }
 
   // Apply Qtranspose, collo_grad = collo_grad Q_transpose
-  ierr = CeedHouseholderApplyQ(collo_grad_1d, interp_1d, tau, CEED_NOTRANSPOSE,
-                               Q_1d, Q_1d, P_1d, 1, Q_1d); CeedChk(ierr);
+  CeedCall(CeedHouseholderApplyQ(collo_grad_1d, interp_1d, tau, CEED_NOTRANSPOSE, Q_1d, Q_1d, P_1d, 1, Q_1d));
 
-  ierr = CeedFree(&interp_1d); CeedChk(ierr);
-  ierr = CeedFree(&grad_1d); CeedChk(ierr);
-  ierr = CeedFree(&tau); CeedChk(ierr);
+  CeedCall(CeedFree(&interp_1d));
+  CeedCall(CeedFree(&grad_1d));
+  CeedCall(CeedFree(&tau));
   return CEED_ERROR_SUCCESS;
 }
 
@@ -418,55 +394,74 @@ int CeedBasisReference(CeedBasis basis) {
 
   @ref Backend
 **/
-int CeedBasisGetFlopsEstimate(CeedBasis basis, CeedTransposeMode t_mode,
-                              CeedEvalMode eval_mode, CeedSize *flops) {
-  int ierr;
+int CeedBasisGetFlopsEstimate(CeedBasis basis, CeedTransposeMode t_mode, CeedEvalMode eval_mode, CeedSize *flops) {
   bool is_tensor;
 
-  ierr = CeedBasisIsTensor(basis, &is_tensor); CeedChk(ierr);
+  CeedCall(CeedBasisIsTensor(basis, &is_tensor));
   if (is_tensor) {
     CeedInt dim, num_comp, P_1d, Q_1d;
-    ierr = CeedBasisGetDimension(basis, &dim); CeedChk(ierr);
-    ierr = CeedBasisGetNumComponents(basis, &num_comp); CeedChk(ierr);
-    ierr = CeedBasisGetNumNodes1D(basis, &P_1d);  CeedChk(ierr);
-    ierr = CeedBasisGetNumQuadraturePoints1D(basis, &Q_1d);  CeedChk(ierr);
+    CeedCall(CeedBasisGetDimension(basis, &dim));
+    CeedCall(CeedBasisGetNumComponents(basis, &num_comp));
+    CeedCall(CeedBasisGetNumNodes1D(basis, &P_1d));
+    CeedCall(CeedBasisGetNumQuadraturePoints1D(basis, &Q_1d));
     if (t_mode == CEED_TRANSPOSE) {
-      P_1d = Q_1d; Q_1d = P_1d;
+      P_1d = Q_1d;
+      Q_1d = P_1d;
     }
-    CeedInt tensor_flops = 0, pre = num_comp * CeedIntPow(P_1d, dim-1), post = 1;
+    CeedInt tensor_flops = 0, pre = num_comp * CeedIntPow(P_1d, dim - 1), post = 1;
     for (CeedInt d = 0; d < dim; d++) {
       tensor_flops += 2 * pre * P_1d * post * Q_1d;
       pre /= P_1d;
       post *= Q_1d;
     }
     switch (eval_mode) {
-    case CEED_EVAL_NONE:   *flops = 0; break;
-    case CEED_EVAL_INTERP: *flops = tensor_flops; break;
-    case CEED_EVAL_GRAD:   *flops = tensor_flops * 2; break;
-    case CEED_EVAL_DIV:
-      // LCOV_EXCL_START
-      return CeedError(basis->ceed, CEED_ERROR_INCOMPATIBLE,
-                       "Tensor CEED_EVAL_DIV not supported"); break;
-    case CEED_EVAL_CURL:
-      return CeedError(basis->ceed, CEED_ERROR_INCOMPATIBLE,
-                       "Tensor CEED_EVAL_CURL not supported"); break;
-    // LCOV_EXCL_STOP
-    case CEED_EVAL_WEIGHT: *flops = dim * CeedIntPow(Q_1d, dim); break;
+      case CEED_EVAL_NONE:
+        *flops = 0;
+        break;
+      case CEED_EVAL_INTERP:
+        *flops = tensor_flops;
+        break;
+      case CEED_EVAL_GRAD:
+        *flops = tensor_flops * 2;
+        break;
+      case CEED_EVAL_DIV:
+        // LCOV_EXCL_START
+        return CeedError(basis->ceed, CEED_ERROR_INCOMPATIBLE, "Tensor CEED_EVAL_DIV not supported");
+        break;
+      case CEED_EVAL_CURL:
+        return CeedError(basis->ceed, CEED_ERROR_INCOMPATIBLE, "Tensor CEED_EVAL_CURL not supported");
+        break;
+      // LCOV_EXCL_STOP
+      case CEED_EVAL_WEIGHT:
+        *flops = dim * CeedIntPow(Q_1d, dim);
+        break;
     }
   } else {
     CeedInt dim, num_comp, num_nodes, num_qpts, Q_comp;
-    ierr = CeedBasisGetDimension(basis, &dim); CeedChk(ierr);
-    ierr = CeedBasisGetNumComponents(basis, &num_comp); CeedChk(ierr);
-    ierr = CeedBasisGetNumNodes(basis, &num_nodes); CeedChk(ierr);
-    ierr = CeedBasisGetNumQuadraturePoints(basis, &num_qpts); CeedChk(ierr);
-    ierr = CeedBasisGetNumQuadratureComponents(basis, &Q_comp); CeedChk(ierr);
+    CeedCall(CeedBasisGetDimension(basis, &dim));
+    CeedCall(CeedBasisGetNumComponents(basis, &num_comp));
+    CeedCall(CeedBasisGetNumNodes(basis, &num_nodes));
+    CeedCall(CeedBasisGetNumQuadraturePoints(basis, &num_qpts));
+    CeedCall(CeedBasisGetNumQuadratureComponents(basis, &Q_comp));
     switch (eval_mode) {
-    case CEED_EVAL_NONE:   *flops = 0; break;
-    case CEED_EVAL_INTERP: *flops = num_nodes * num_qpts * num_comp; break;
-    case CEED_EVAL_GRAD:   *flops = num_nodes * num_qpts * num_comp * dim; break;
-    case CEED_EVAL_DIV:    *flops = num_nodes * num_qpts; break;
-    case CEED_EVAL_CURL:   *flops = num_nodes * num_qpts * dim; break;
-    case CEED_EVAL_WEIGHT: *flops = 0; break;
+      case CEED_EVAL_NONE:
+        *flops = 0;
+        break;
+      case CEED_EVAL_INTERP:
+        *flops = num_nodes * num_qpts * num_comp;
+        break;
+      case CEED_EVAL_GRAD:
+        *flops = num_nodes * num_qpts * num_comp * dim;
+        break;
+      case CEED_EVAL_DIV:
+        *flops = num_nodes * num_qpts;
+        break;
+      case CEED_EVAL_CURL:
+        *flops = num_nodes * num_qpts * dim;
+        break;
+      case CEED_EVAL_WEIGHT:
+        *flops = 0;
+        break;
     }
   }
 
@@ -484,7 +479,7 @@ int CeedBasisGetFlopsEstimate(CeedBasis basis, CeedTransposeMode t_mode,
   @ref Backend
 **/
 int CeedBasisGetTopologyDimension(CeedElemTopology topo, CeedInt *dim) {
-  *dim = (CeedInt) topo >> 16;
+  *dim = (CeedInt)topo >> 16;
   return CEED_ERROR_SUCCESS;
 }
 
@@ -514,9 +509,8 @@ int CeedBasisGetTensorContract(CeedBasis basis, CeedTensorContract *contract) {
   @ref Backend
 **/
 int CeedBasisSetTensorContract(CeedBasis basis, CeedTensorContract contract) {
-  int ierr;
   basis->contract = contract;
-  ierr = CeedTensorContractReference(contract); CeedChk(ierr);
+  CeedCall(CeedTensorContractReference(contract));
   return CEED_ERROR_SUCCESS;
 }
 
@@ -537,16 +531,14 @@ int CeedBasisSetTensorContract(CeedBasis basis, CeedTensorContract contract) {
 
   @ref Utility
 **/
-int CeedMatrixMatrixMultiply(Ceed ceed, const CeedScalar *mat_A,
-                             const CeedScalar *mat_B, CeedScalar *mat_C,
-                             CeedInt m, CeedInt n, CeedInt kk) {
-  for (CeedInt i=0; i<m; i++)
-    for (CeedInt j=0; j<n; j++) {
+int CeedMatrixMatrixMultiply(Ceed ceed, const CeedScalar *mat_A, const CeedScalar *mat_B, CeedScalar *mat_C, CeedInt m, CeedInt n, CeedInt kk) {
+  for (CeedInt i = 0; i < m; i++) {
+    for (CeedInt j = 0; j < n; j++) {
       CeedScalar sum = 0;
-      for (CeedInt k=0; k<kk; k++)
-        sum += mat_A[k+i*kk]*mat_B[j+k*n];
-      mat_C[j+i*n] = sum;
+      for (CeedInt k = 0; k < kk; k++) sum += mat_A[k + i * kk] * mat_B[j + k * n];
+      mat_C[j + i * n] = sum;
     }
+  }
   return CEED_ERROR_SUCCESS;
 }
 
@@ -581,83 +573,71 @@ int CeedMatrixMatrixMultiply(Ceed ceed, const CeedScalar *mat_A,
 
   @ref User
 **/
-int CeedBasisCreateTensorH1(Ceed ceed, CeedInt dim, CeedInt num_comp,
-                            CeedInt P_1d, CeedInt Q_1d,
-                            const CeedScalar *interp_1d,
-                            const CeedScalar *grad_1d, const CeedScalar *q_ref_1d,
-                            const CeedScalar *q_weight_1d, CeedBasis *basis) {
-  int ierr;
-
+int CeedBasisCreateTensorH1(Ceed ceed, CeedInt dim, CeedInt num_comp, CeedInt P_1d, CeedInt Q_1d, const CeedScalar *interp_1d,
+                            const CeedScalar *grad_1d, const CeedScalar *q_ref_1d, const CeedScalar *q_weight_1d, CeedBasis *basis) {
   if (!ceed->BasisCreateTensorH1) {
     Ceed delegate;
-    ierr = CeedGetObjectDelegate(ceed, &delegate, "Basis"); CeedChk(ierr);
+    CeedCall(CeedGetObjectDelegate(ceed, &delegate, "Basis"));
 
-    if (!delegate)
+    if (!delegate) {
       // LCOV_EXCL_START
-      return CeedError(ceed, CEED_ERROR_UNSUPPORTED,
-                       "Backend does not support BasisCreateTensorH1");
-    // LCOV_EXCL_STOP
+      return CeedError(ceed, CEED_ERROR_UNSUPPORTED, "Backend does not support BasisCreateTensorH1");
+      // LCOV_EXCL_STOP
+    }
 
-    ierr = CeedBasisCreateTensorH1(delegate, dim, num_comp, P_1d,
-                                   Q_1d, interp_1d, grad_1d, q_ref_1d,
-                                   q_weight_1d, basis); CeedChk(ierr);
+    CeedCall(CeedBasisCreateTensorH1(delegate, dim, num_comp, P_1d, Q_1d, interp_1d, grad_1d, q_ref_1d, q_weight_1d, basis));
     return CEED_ERROR_SUCCESS;
   }
 
-  if (dim < 1)
+  if (dim < 1) {
     // LCOV_EXCL_START
-    return CeedError(ceed, CEED_ERROR_DIMENSION,
-                     "Basis dimension must be a positive value");
-  // LCOV_EXCL_STOP
+    return CeedError(ceed, CEED_ERROR_DIMENSION, "Basis dimension must be a positive value");
+    // LCOV_EXCL_STOP
+  }
 
-  if (num_comp < 1)
+  if (num_comp < 1) {
     // LCOV_EXCL_START
-    return CeedError(ceed, CEED_ERROR_DIMENSION,
-                     "Basis must have at least 1 component");
-  // LCOV_EXCL_STOP
+    return CeedError(ceed, CEED_ERROR_DIMENSION, "Basis must have at least 1 component");
+    // LCOV_EXCL_STOP
+  }
 
-  if (P_1d < 1)
+  if (P_1d < 1) {
     // LCOV_EXCL_START
-    return CeedError(ceed, CEED_ERROR_DIMENSION,
-                     "Basis must have at least 1 node");
-  // LCOV_EXCL_STOP
+    return CeedError(ceed, CEED_ERROR_DIMENSION, "Basis must have at least 1 node");
+    // LCOV_EXCL_STOP
+  }
 
-  if (Q_1d < 1)
+  if (Q_1d < 1) {
     // LCOV_EXCL_START
-    return CeedError(ceed, CEED_ERROR_DIMENSION,
-                     "Basis must have at least 1 quadrature point");
-  // LCOV_EXCL_STOP
+    return CeedError(ceed, CEED_ERROR_DIMENSION, "Basis must have at least 1 quadrature point");
+    // LCOV_EXCL_STOP
+  }
 
-  CeedElemTopology topo = dim == 1 ? CEED_TOPOLOGY_LINE
-                          : dim == 2 ? CEED_TOPOLOGY_QUAD
-                          : CEED_TOPOLOGY_HEX;
+  CeedElemTopology topo = dim == 1 ? CEED_TOPOLOGY_LINE : dim == 2 ? CEED_TOPOLOGY_QUAD : CEED_TOPOLOGY_HEX;
 
-  ierr = CeedCalloc(1, basis); CeedChk(ierr);
+  CeedCall(CeedCalloc(1, basis));
   (*basis)->ceed = ceed;
-  ierr = CeedReference(ceed); CeedChk(ierr);
-  (*basis)->ref_count = 1;
+  CeedCall(CeedReference(ceed));
+  (*basis)->ref_count    = 1;
   (*basis)->tensor_basis = 1;
-  (*basis)->dim = dim;
-  (*basis)->topo = topo;
-  (*basis)->num_comp = num_comp;
-  (*basis)->P_1d = P_1d;
-  (*basis)->Q_1d = Q_1d;
-  (*basis)->P = CeedIntPow(P_1d, dim);
-  (*basis)->Q = CeedIntPow(Q_1d, dim);
-  (*basis)->Q_comp = 1;
-  (*basis)->basis_space = 1; // 1 for H^1 space
-  ierr = CeedCalloc(Q_1d, &(*basis)->q_ref_1d); CeedChk(ierr);
-  ierr = CeedCalloc(Q_1d, &(*basis)->q_weight_1d); CeedChk(ierr);
-  if (q_ref_1d) memcpy((*basis)->q_ref_1d, q_ref_1d, Q_1d*sizeof(q_ref_1d[0]));
-  if (q_weight_1d) memcpy((*basis)->q_weight_1d, q_weight_1d,
-                            Q_1d*sizeof(q_weight_1d[0]));
-  ierr = CeedCalloc(Q_1d*P_1d, &(*basis)->interp_1d); CeedChk(ierr);
-  ierr = CeedCalloc(Q_1d*P_1d, &(*basis)->grad_1d); CeedChk(ierr);
-  if (interp_1d) memcpy((*basis)->interp_1d, interp_1d,
-                          Q_1d*P_1d*sizeof(interp_1d[0]));
-  if (grad_1d) memcpy((*basis)->grad_1d, grad_1d, Q_1d*P_1d*sizeof(grad_1d[0]));
-  ierr = ceed->BasisCreateTensorH1(dim, P_1d, Q_1d, interp_1d, grad_1d, q_ref_1d,
-                                   q_weight_1d, *basis); CeedChk(ierr);
+  (*basis)->dim          = dim;
+  (*basis)->topo         = topo;
+  (*basis)->num_comp     = num_comp;
+  (*basis)->P_1d         = P_1d;
+  (*basis)->Q_1d         = Q_1d;
+  (*basis)->P            = CeedIntPow(P_1d, dim);
+  (*basis)->Q            = CeedIntPow(Q_1d, dim);
+  (*basis)->Q_comp       = 1;
+  (*basis)->basis_space  = 1;  // 1 for H^1 space
+  CeedCall(CeedCalloc(Q_1d, &(*basis)->q_ref_1d));
+  CeedCall(CeedCalloc(Q_1d, &(*basis)->q_weight_1d));
+  if (q_ref_1d) memcpy((*basis)->q_ref_1d, q_ref_1d, Q_1d * sizeof(q_ref_1d[0]));
+  if (q_weight_1d) memcpy((*basis)->q_weight_1d, q_weight_1d, Q_1d * sizeof(q_weight_1d[0]));
+  CeedCall(CeedCalloc(Q_1d * P_1d, &(*basis)->interp_1d));
+  CeedCall(CeedCalloc(Q_1d * P_1d, &(*basis)->grad_1d));
+  if (interp_1d) memcpy((*basis)->interp_1d, interp_1d, Q_1d * P_1d * sizeof(interp_1d[0]));
+  if (grad_1d) memcpy((*basis)->grad_1d, grad_1d, Q_1d * P_1d * sizeof(grad_1d[0]));
+  CeedCall(ceed->BasisCreateTensorH1(dim, P_1d, Q_1d, interp_1d, grad_1d, q_ref_1d, q_weight_1d, *basis));
   return CEED_ERROR_SUCCESS;
 }
 
@@ -679,62 +659,58 @@ int CeedBasisCreateTensorH1(Ceed ceed, CeedInt dim, CeedInt num_comp,
 
   @ref User
 **/
-int CeedBasisCreateTensorH1Lagrange(Ceed ceed, CeedInt dim, CeedInt num_comp,
-                                    CeedInt P, CeedInt Q, CeedQuadMode quad_mode,
-                                    CeedBasis *basis) {
+int CeedBasisCreateTensorH1Lagrange(Ceed ceed, CeedInt dim, CeedInt num_comp, CeedInt P, CeedInt Q, CeedQuadMode quad_mode, CeedBasis *basis) {
   // Allocate
-  int ierr, ierr2, i, j, k;
-  CeedScalar c1, c2, c3, c4, dx, *nodes, *interp_1d, *grad_1d, *q_ref_1d,
-             *q_weight_1d;
+  int        ierr = CEED_ERROR_SUCCESS, i, j, k;
+  CeedScalar c1, c2, c3, c4, dx, *nodes, *interp_1d, *grad_1d, *q_ref_1d, *q_weight_1d;
 
-  if (dim < 1)
+  if (dim < 1) {
     // LCOV_EXCL_START
-    return CeedError(ceed, CEED_ERROR_DIMENSION,
-                     "Basis dimension must be a positive value");
-  // LCOV_EXCL_STOP
+    return CeedError(ceed, CEED_ERROR_DIMENSION, "Basis dimension must be a positive value");
+    // LCOV_EXCL_STOP
+  }
 
-  if (num_comp < 1)
+  if (num_comp < 1) {
     // LCOV_EXCL_START
-    return CeedError(ceed, CEED_ERROR_DIMENSION,
-                     "Basis must have at least 1 component");
-  // LCOV_EXCL_STOP
+    return CeedError(ceed, CEED_ERROR_DIMENSION, "Basis must have at least 1 component");
+    // LCOV_EXCL_STOP
+  }
 
-  if (P < 1)
+  if (P < 1) {
     // LCOV_EXCL_START
-    return CeedError(ceed, CEED_ERROR_DIMENSION,
-                     "Basis must have at least 1 node");
-  // LCOV_EXCL_STOP
+    return CeedError(ceed, CEED_ERROR_DIMENSION, "Basis must have at least 1 node");
+    // LCOV_EXCL_STOP
+  }
 
-  if (Q < 1)
+  if (Q < 1) {
     // LCOV_EXCL_START
-    return CeedError(ceed, CEED_ERROR_DIMENSION,
-                     "Basis must have at least 1 quadrature point");
-  // LCOV_EXCL_STOP
+    return CeedError(ceed, CEED_ERROR_DIMENSION, "Basis must have at least 1 quadrature point");
+    // LCOV_EXCL_STOP
+  }
 
   // Get Nodes and Weights
-  ierr = CeedCalloc(P*Q, &interp_1d); CeedChk(ierr);
-  ierr = CeedCalloc(P*Q, &grad_1d); CeedChk(ierr);
-  ierr = CeedCalloc(P, &nodes); CeedChk(ierr);
-  ierr = CeedCalloc(Q, &q_ref_1d); CeedChk(ierr);
-  ierr = CeedCalloc(Q, &q_weight_1d); CeedChk(ierr);
-  ierr = CeedLobattoQuadrature(P, nodes, NULL);
-  if (ierr) { goto cleanup; } CeedChk(ierr);
+  CeedCall(CeedCalloc(P * Q, &interp_1d));
+  CeedCall(CeedCalloc(P * Q, &grad_1d));
+  CeedCall(CeedCalloc(P, &nodes));
+  CeedCall(CeedCalloc(Q, &q_ref_1d));
+  CeedCall(CeedCalloc(Q, &q_weight_1d));
+  if (CeedLobattoQuadrature(P, nodes, NULL) != CEED_ERROR_SUCCESS) goto cleanup;
   switch (quad_mode) {
-  case CEED_GAUSS:
-    ierr = CeedGaussQuadrature(Q, q_ref_1d, q_weight_1d);
-    break;
-  case CEED_GAUSS_LOBATTO:
-    ierr = CeedLobattoQuadrature(Q, q_ref_1d, q_weight_1d);
-    break;
+    case CEED_GAUSS:
+      ierr = CeedGaussQuadrature(Q, q_ref_1d, q_weight_1d);
+      break;
+    case CEED_GAUSS_LOBATTO:
+      ierr = CeedLobattoQuadrature(Q, q_ref_1d, q_weight_1d);
+      break;
   }
-  if (ierr) { goto cleanup; } CeedChk(ierr);
+  if (ierr != CEED_ERROR_SUCCESS) goto cleanup;
 
   // Build B, D matrix
   // Fornberg, 1998
-  for (i = 0; i  < Q; i++) {
-    c1 = 1.0;
-    c3 = nodes[0] - q_ref_1d[i];
-    interp_1d[i*P+0] = 1.0;
+  for (i = 0; i < Q; i++) {
+    c1                   = 1.0;
+    c3                   = nodes[0] - q_ref_1d[i];
+    interp_1d[i * P + 0] = 1.0;
     for (j = 1; j < P; j++) {
       c2 = 1.0;
       c4 = c3;
@@ -743,25 +719,23 @@ int CeedBasisCreateTensorH1Lagrange(Ceed ceed, CeedInt dim, CeedInt num_comp,
         dx = nodes[j] - nodes[k];
         c2 *= dx;
         if (k == j - 1) {
-          grad_1d[i*P + j] = c1*(interp_1d[i*P + k] - c4*grad_1d[i*P + k]) / c2;
-          interp_1d[i*P + j] = - c1*c4*interp_1d[i*P + k] / c2;
+          grad_1d[i * P + j]   = c1 * (interp_1d[i * P + k] - c4 * grad_1d[i * P + k]) / c2;
+          interp_1d[i * P + j] = -c1 * c4 * interp_1d[i * P + k] / c2;
         }
-        grad_1d[i*P + k] = (c3*grad_1d[i*P + k] - interp_1d[i*P + k]) / dx;
-        interp_1d[i*P + k] = c3*interp_1d[i*P + k] / dx;
+        grad_1d[i * P + k]   = (c3 * grad_1d[i * P + k] - interp_1d[i * P + k]) / dx;
+        interp_1d[i * P + k] = c3 * interp_1d[i * P + k] / dx;
       }
       c1 = c2;
     }
   }
   // Pass to CeedBasisCreateTensorH1
-  ierr = CeedBasisCreateTensorH1(ceed, dim, num_comp, P, Q, interp_1d, grad_1d,
-                                 q_ref_1d, q_weight_1d, basis); CeedChk(ierr);
+  CeedCall(CeedBasisCreateTensorH1(ceed, dim, num_comp, P, Q, interp_1d, grad_1d, q_ref_1d, q_weight_1d, basis));
 cleanup:
-  ierr2 = CeedFree(&interp_1d); CeedChk(ierr2);
-  ierr2 = CeedFree(&grad_1d); CeedChk(ierr2);
-  ierr2 = CeedFree(&nodes); CeedChk(ierr2);
-  ierr2 = CeedFree(&q_ref_1d); CeedChk(ierr2);
-  ierr2 = CeedFree(&q_weight_1d); CeedChk(ierr2);
-  CeedChk(ierr);
+  CeedCall(CeedFree(&interp_1d));
+  CeedCall(CeedFree(&grad_1d));
+  CeedCall(CeedFree(&nodes));
+  CeedCall(CeedFree(&q_ref_1d));
+  CeedCall(CeedFree(&q_weight_1d));
   return CEED_ERROR_SUCCESS;
 }
 
@@ -788,72 +762,66 @@ cleanup:
 
   @ref User
 **/
-int CeedBasisCreateH1(Ceed ceed, CeedElemTopology topo, CeedInt num_comp,
-                      CeedInt num_nodes, CeedInt num_qpts, const CeedScalar *interp,
-                      const CeedScalar *grad, const CeedScalar *q_ref,
-                      const CeedScalar *q_weight, CeedBasis *basis) {
-  int ierr;
+int CeedBasisCreateH1(Ceed ceed, CeedElemTopology topo, CeedInt num_comp, CeedInt num_nodes, CeedInt num_qpts, const CeedScalar *interp,
+                      const CeedScalar *grad, const CeedScalar *q_ref, const CeedScalar *q_weight, CeedBasis *basis) {
   CeedInt P = num_nodes, Q = num_qpts, dim = 0;
 
   if (!ceed->BasisCreateH1) {
     Ceed delegate;
-    ierr = CeedGetObjectDelegate(ceed, &delegate, "Basis"); CeedChk(ierr);
+    CeedCall(CeedGetObjectDelegate(ceed, &delegate, "Basis"));
 
-    if (!delegate)
+    if (!delegate) {
       // LCOV_EXCL_START
-      return CeedError(ceed, CEED_ERROR_UNSUPPORTED,
-                       "Backend does not support BasisCreateH1");
-    // LCOV_EXCL_STOP
+      return CeedError(ceed, CEED_ERROR_UNSUPPORTED, "Backend does not support BasisCreateH1");
+      // LCOV_EXCL_STOP
+    }
 
-    ierr = CeedBasisCreateH1(delegate, topo, num_comp, num_nodes,
-                             num_qpts, interp, grad, q_ref,
-                             q_weight, basis); CeedChk(ierr);
+    CeedCall(CeedBasisCreateH1(delegate, topo, num_comp, num_nodes, num_qpts, interp, grad, q_ref, q_weight, basis));
     return CEED_ERROR_SUCCESS;
   }
 
-  if (num_comp < 1)
+  if (num_comp < 1) {
     // LCOV_EXCL_START
-    return CeedError(ceed, CEED_ERROR_DIMENSION,
-                     "Basis must have at least 1 component");
-  // LCOV_EXCL_STOP
+    return CeedError(ceed, CEED_ERROR_DIMENSION, "Basis must have at least 1 component");
+    // LCOV_EXCL_STOP
+  }
 
-  if (num_nodes < 1)
+  if (num_nodes < 1) {
     // LCOV_EXCL_START
-    return CeedError(ceed, CEED_ERROR_DIMENSION,
-                     "Basis must have at least 1 node");
-  // LCOV_EXCL_STOP
+    return CeedError(ceed, CEED_ERROR_DIMENSION, "Basis must have at least 1 node");
+    // LCOV_EXCL_STOP
+  }
 
-  if (num_qpts < 1)
+  if (num_qpts < 1) {
     // LCOV_EXCL_START
-    return CeedError(ceed, CEED_ERROR_DIMENSION,
-                     "Basis must have at least 1 quadrature point");
-  // LCOV_EXCL_STOP
+    return CeedError(ceed, CEED_ERROR_DIMENSION, "Basis must have at least 1 quadrature point");
+    // LCOV_EXCL_STOP
+  }
 
-  ierr = CeedCalloc(1, basis); CeedChk(ierr);
+  CeedCall(CeedCalloc(1, basis));
 
-  ierr = CeedBasisGetTopologyDimension(topo, &dim); CeedChk(ierr);
+  CeedCall(CeedBasisGetTopologyDimension(topo, &dim));
 
   (*basis)->ceed = ceed;
-  ierr = CeedReference(ceed); CeedChk(ierr);
-  (*basis)->ref_count = 1;
+  CeedCall(CeedReference(ceed));
+  (*basis)->ref_count    = 1;
   (*basis)->tensor_basis = 0;
-  (*basis)->dim = dim;
-  (*basis)->topo = topo;
-  (*basis)->num_comp = num_comp;
-  (*basis)->P = P;
-  (*basis)->Q = Q;
-  (*basis)->Q_comp = 1;
-  (*basis)->basis_space = 1; // 1 for H^1 space
-  ierr = CeedCalloc(Q*dim, &(*basis)->q_ref_1d); CeedChk(ierr);
-  ierr = CeedCalloc(Q, &(*basis)->q_weight_1d); CeedChk(ierr);
-  if (q_ref) memcpy((*basis)->q_ref_1d, q_ref, Q*dim*sizeof(q_ref[0]));
-  if(q_weight) memcpy((*basis)->q_weight_1d, q_weight, Q*sizeof(q_weight[0]));
-  ierr = CeedCalloc(Q*P, &(*basis)->interp); CeedChk(ierr);
-  ierr = CeedCalloc(dim*Q*P, &(*basis)->grad); CeedChk(ierr);
-  if(interp) memcpy((*basis)->interp, interp, Q*P*sizeof(interp[0]));
-  if(grad) memcpy((*basis)->grad, grad, dim*Q*P*sizeof(grad[0]));
-  ierr = ceed->BasisCreateH1(topo, dim, P, Q, interp, grad, q_ref,
-                             q_weight, *basis); CeedChk(ierr);
+  (*basis)->dim          = dim;
+  (*basis)->topo         = topo;
+  (*basis)->num_comp     = num_comp;
+  (*basis)->P            = P;
+  (*basis)->Q            = Q;
+  (*basis)->Q_comp       = 1;
+  (*basis)->basis_space  = 1;  // 1 for H^1 space
+  CeedCall(CeedCalloc(Q * dim, &(*basis)->q_ref_1d));
+  CeedCall(CeedCalloc(Q, &(*basis)->q_weight_1d));
+  if (q_ref) memcpy((*basis)->q_ref_1d, q_ref, Q * dim * sizeof(q_ref[0]));
+  if (q_weight) memcpy((*basis)->q_weight_1d, q_weight, Q * sizeof(q_weight[0]));
+  CeedCall(CeedCalloc(Q * P, &(*basis)->interp));
+  CeedCall(CeedCalloc(dim * Q * P, &(*basis)->grad));
+  if (interp) memcpy((*basis)->interp, interp, Q * P * sizeof(interp[0]));
+  if (grad) memcpy((*basis)->grad, grad, dim * Q * P * sizeof(grad[0]));
+  CeedCall(ceed->BasisCreateH1(topo, dim, P, Q, interp, grad, q_ref, q_weight, *basis));
   return CEED_ERROR_SUCCESS;
 }
 
@@ -881,70 +849,64 @@ int CeedBasisCreateH1(Ceed ceed, CeedElemTopology topo, CeedInt num_comp,
 
   @ref User
 **/
-int CeedBasisCreateHdiv(Ceed ceed, CeedElemTopology topo, CeedInt num_comp,
-                        CeedInt num_nodes, CeedInt num_qpts, const CeedScalar *interp,
-                        const CeedScalar *div, const CeedScalar *q_ref,
-                        const CeedScalar *q_weight, CeedBasis *basis) {
-  int ierr;
+int CeedBasisCreateHdiv(Ceed ceed, CeedElemTopology topo, CeedInt num_comp, CeedInt num_nodes, CeedInt num_qpts, const CeedScalar *interp,
+                        const CeedScalar *div, const CeedScalar *q_ref, const CeedScalar *q_weight, CeedBasis *basis) {
   CeedInt Q = num_qpts, P = num_nodes, dim = 0;
-  ierr = CeedBasisGetTopologyDimension(topo, &dim); CeedChk(ierr);
+  CeedCall(CeedBasisGetTopologyDimension(topo, &dim));
   if (!ceed->BasisCreateHdiv) {
     Ceed delegate;
-    ierr = CeedGetObjectDelegate(ceed, &delegate, "Basis"); CeedChk(ierr);
+    CeedCall(CeedGetObjectDelegate(ceed, &delegate, "Basis"));
 
-    if (!delegate)
+    if (!delegate) {
       // LCOV_EXCL_START
-      return CeedError(ceed, CEED_ERROR_UNSUPPORTED,
-                       "Backend does not implement BasisCreateHdiv");
-    // LCOV_EXCL_STOP
+      return CeedError(ceed, CEED_ERROR_UNSUPPORTED, "Backend does not implement BasisCreateHdiv");
+      // LCOV_EXCL_STOP
+    }
 
-    ierr = CeedBasisCreateHdiv(delegate, topo, num_comp, num_nodes,
-                               num_qpts, interp, div, q_ref,
-                               q_weight, basis); CeedChk(ierr);
+    CeedCall(CeedBasisCreateHdiv(delegate, topo, num_comp, num_nodes, num_qpts, interp, div, q_ref, q_weight, basis));
     return CEED_ERROR_SUCCESS;
   }
 
-  if (num_comp < 1)
+  if (num_comp < 1) {
     // LCOV_EXCL_START
-    return CeedError(ceed, CEED_ERROR_DIMENSION,
-                     "Basis must have at least 1 component");
-  // LCOV_EXCL_STOP
+    return CeedError(ceed, CEED_ERROR_DIMENSION, "Basis must have at least 1 component");
+    // LCOV_EXCL_STOP
+  }
 
-  if (num_nodes < 1)
+  if (num_nodes < 1) {
     // LCOV_EXCL_START
-    return CeedError(ceed, CEED_ERROR_DIMENSION,
-                     "Basis must have at least 1 node");
-  // LCOV_EXCL_STOP
+    return CeedError(ceed, CEED_ERROR_DIMENSION, "Basis must have at least 1 node");
+    // LCOV_EXCL_STOP
+  }
 
-  if (num_qpts < 1)
+  if (num_qpts < 1) {
     // LCOV_EXCL_START
-    return CeedError(ceed, CEED_ERROR_DIMENSION,
-                     "Basis must have at least 1 quadrature point");
-  // LCOV_EXCL_STOP
+    return CeedError(ceed, CEED_ERROR_DIMENSION, "Basis must have at least 1 quadrature point");
+    // LCOV_EXCL_STOP
+  }
 
-  ierr = CeedCalloc(1, basis); CeedChk(ierr);
+  CeedCall(CeedCalloc(1, basis));
 
   (*basis)->ceed = ceed;
-  ierr = CeedReference(ceed); CeedChk(ierr);
-  (*basis)->ref_count = 1;
+  CeedCall(CeedReference(ceed));
+  (*basis)->ref_count    = 1;
   (*basis)->tensor_basis = 0;
-  (*basis)->dim = dim;
-  (*basis)->topo = topo;
-  (*basis)->num_comp = num_comp;
-  (*basis)->P = P;
-  (*basis)->Q = Q;
-  (*basis)->Q_comp = dim;
-  (*basis)->basis_space = 2; // 2 for H(div) space
-  ierr = CeedMalloc(Q*dim, &(*basis)->q_ref_1d); CeedChk(ierr);
-  ierr = CeedMalloc(Q, &(*basis)->q_weight_1d); CeedChk(ierr);
-  if (q_ref) memcpy((*basis)->q_ref_1d, q_ref, Q*dim*sizeof(q_ref[0]));
-  if (q_weight) memcpy((*basis)->q_weight_1d, q_weight, Q*sizeof(q_weight[0]));
-  ierr = CeedMalloc(dim*Q*P, &(*basis)->interp); CeedChk(ierr);
-  ierr = CeedMalloc(Q*P, &(*basis)->div); CeedChk(ierr);
-  if (interp) memcpy((*basis)->interp, interp, dim*Q*P*sizeof(interp[0]));
-  if (div) memcpy((*basis)->div, div, Q*P*sizeof(div[0]));
-  ierr = ceed->BasisCreateHdiv(topo, dim, P, Q, interp, div, q_ref,
-                               q_weight, *basis); CeedChk(ierr);
+  (*basis)->dim          = dim;
+  (*basis)->topo         = topo;
+  (*basis)->num_comp     = num_comp;
+  (*basis)->P            = P;
+  (*basis)->Q            = Q;
+  (*basis)->Q_comp       = dim;
+  (*basis)->basis_space  = 2;  // 2 for H(div) space
+  CeedCall(CeedMalloc(Q * dim, &(*basis)->q_ref_1d));
+  CeedCall(CeedMalloc(Q, &(*basis)->q_weight_1d));
+  if (q_ref) memcpy((*basis)->q_ref_1d, q_ref, Q * dim * sizeof(q_ref[0]));
+  if (q_weight) memcpy((*basis)->q_weight_1d, q_weight, Q * sizeof(q_weight[0]));
+  CeedCall(CeedMalloc(dim * Q * P, &(*basis)->interp));
+  CeedCall(CeedMalloc(Q * P, &(*basis)->div));
+  if (interp) memcpy((*basis)->interp, interp, dim * Q * P * sizeof(interp[0]));
+  if (div) memcpy((*basis)->div, div, Q * P * sizeof(div[0]));
+  CeedCall(ceed->BasisCreateHdiv(topo, dim, P, Q, interp, div, q_ref, q_weight, *basis));
   return CEED_ERROR_SUCCESS;
 }
 
@@ -971,52 +933,44 @@ int CeedBasisCreateHdiv(Ceed ceed, CeedElemTopology topo, CeedInt num_comp,
 
   @ref User
 **/
-int CeedBasisCreateProjection(CeedBasis basis_from, CeedBasis basis_to,
-                              CeedBasis *basis_project) {
-  int ierr;
+int CeedBasisCreateProjection(CeedBasis basis_from, CeedBasis basis_to, CeedBasis *basis_project) {
   Ceed ceed;
-  ierr = CeedBasisGetCeed(basis_to, &ceed); CeedChk(ierr);
+  CeedCall(CeedBasisGetCeed(basis_to, &ceed));
 
   // Create projectior matrix
   CeedScalar *interp_project, *grad_project;
-  ierr = CeedBasisCreateProjectionMatrices(basis_from, basis_to,
-         &interp_project, &grad_project);
-  CeedChk(ierr);
+  CeedCall(CeedBasisCreateProjectionMatrices(basis_from, basis_to, &interp_project, &grad_project));
 
   // Build basis
-  bool is_tensor;
-  CeedInt dim, num_comp;
+  bool        is_tensor;
+  CeedInt     dim, num_comp;
   CeedScalar *q_ref, *q_weight;
-  ierr = CeedBasisIsTensor(basis_to, &is_tensor); CeedChk(ierr);
-  ierr = CeedBasisGetDimension(basis_to, &dim); CeedChk(ierr);
-  ierr = CeedBasisGetNumComponents(basis_from, &num_comp); CeedChk(ierr);
+  CeedCall(CeedBasisIsTensor(basis_to, &is_tensor));
+  CeedCall(CeedBasisGetDimension(basis_to, &dim));
+  CeedCall(CeedBasisGetNumComponents(basis_from, &num_comp));
   if (is_tensor) {
     CeedInt P_1d_to, P_1d_from;
-    ierr = CeedBasisGetNumNodes1D(basis_from, &P_1d_from); CeedChk(ierr);
-    ierr = CeedBasisGetNumNodes1D(basis_to, &P_1d_to); CeedChk(ierr);
-    ierr = CeedCalloc(P_1d_to, &q_ref); CeedChk(ierr);
-    ierr = CeedCalloc(P_1d_to, &q_weight); CeedChk(ierr);
-    ierr = CeedBasisCreateTensorH1(ceed, dim, num_comp, P_1d_from, P_1d_to,
-                                   interp_project, grad_project, q_ref, q_weight, basis_project);
-    CeedChk(ierr);
+    CeedCall(CeedBasisGetNumNodes1D(basis_from, &P_1d_from));
+    CeedCall(CeedBasisGetNumNodes1D(basis_to, &P_1d_to));
+    CeedCall(CeedCalloc(P_1d_to, &q_ref));
+    CeedCall(CeedCalloc(P_1d_to, &q_weight));
+    CeedCall(CeedBasisCreateTensorH1(ceed, dim, num_comp, P_1d_from, P_1d_to, interp_project, grad_project, q_ref, q_weight, basis_project));
   } else {
     CeedElemTopology topo;
-    ierr = CeedBasisGetTopology(basis_to, &topo); CeedChk(ierr);
+    CeedCall(CeedBasisGetTopology(basis_to, &topo));
     CeedInt num_nodes_to, num_nodes_from;
-    ierr = CeedBasisGetNumNodes(basis_from, &num_nodes_from); CeedChk(ierr);
-    ierr = CeedBasisGetNumNodes(basis_to, &num_nodes_to); CeedChk(ierr);
-    ierr = CeedCalloc(num_nodes_to * dim, &q_ref); CeedChk(ierr);
-    ierr = CeedCalloc(num_nodes_to, &q_weight); CeedChk(ierr);
-    ierr = CeedBasisCreateH1(ceed, topo, num_comp, num_nodes_from, num_nodes_to,
-                             interp_project, grad_project, q_ref, q_weight, basis_project);
-    CeedChk(ierr);
+    CeedCall(CeedBasisGetNumNodes(basis_from, &num_nodes_from));
+    CeedCall(CeedBasisGetNumNodes(basis_to, &num_nodes_to));
+    CeedCall(CeedCalloc(num_nodes_to * dim, &q_ref));
+    CeedCall(CeedCalloc(num_nodes_to, &q_weight));
+    CeedCall(CeedBasisCreateH1(ceed, topo, num_comp, num_nodes_from, num_nodes_to, interp_project, grad_project, q_ref, q_weight, basis_project));
   }
 
   // Cleanup
-  ierr = CeedFree(&interp_project); CeedChk(ierr);
-  ierr = CeedFree(&grad_project); CeedChk(ierr);
-  ierr = CeedFree(&q_ref); CeedChk(ierr);
-  ierr = CeedFree(&q_weight); CeedChk(ierr);
+  CeedCall(CeedFree(&interp_project));
+  CeedCall(CeedFree(&grad_project));
+  CeedCall(CeedFree(&q_ref));
+  CeedCall(CeedFree(&q_weight));
 
   return CEED_ERROR_SUCCESS;
 }
@@ -1037,10 +991,8 @@ int CeedBasisCreateProjection(CeedBasis basis_from, CeedBasis basis_to,
   @ref User
 **/
 int CeedBasisReferenceCopy(CeedBasis basis, CeedBasis *basis_copy) {
-  int ierr;
-
-  ierr = CeedBasisReference(basis); CeedChk(ierr);
-  ierr = CeedBasisDestroy(basis_copy); CeedChk(ierr);
+  CeedCall(CeedBasisReference(basis));
+  CeedCall(CeedBasisDestroy(basis_copy));
   *basis_copy = basis;
   return CEED_ERROR_SUCCESS;
 }
@@ -1056,46 +1008,32 @@ int CeedBasisReferenceCopy(CeedBasis basis, CeedBasis *basis_copy) {
   @ref User
 **/
 int CeedBasisView(CeedBasis basis, FILE *stream) {
-  int ierr;
-  CeedFESpace FE_space = basis->basis_space;
-  CeedElemTopology topo = basis->topo;
+  CeedFESpace      FE_space = basis->basis_space;
+  CeedElemTopology topo     = basis->topo;
+
   // Print FE space and element topology of the basis
   if (basis->tensor_basis) {
-    fprintf(stream, "CeedBasis (%s on a %s element): dim=%" CeedInt_FMT " P=%"
-            CeedInt_FMT " Q=%" CeedInt_FMT "\n",
-            CeedFESpaces[FE_space], CeedElemTopologies[topo],
-            basis->dim, basis->P_1d, basis->Q_1d);
+    fprintf(stream, "CeedBasis (%s on a %s element): dim=%" CeedInt_FMT " P=%" CeedInt_FMT " Q=%" CeedInt_FMT "\n", CeedFESpaces[FE_space],
+            CeedElemTopologies[topo], basis->dim, basis->P_1d, basis->Q_1d);
   } else {
-    fprintf(stream, "CeedBasis (%s on a %s element): dim=%" CeedInt_FMT " P=%"
-            CeedInt_FMT " Q=%" CeedInt_FMT "\n",
-            CeedFESpaces[FE_space], CeedElemTopologies[topo],
-            basis->dim, basis->P, basis->Q);
+    fprintf(stream, "CeedBasis (%s on a %s element): dim=%" CeedInt_FMT " P=%" CeedInt_FMT " Q=%" CeedInt_FMT "\n", CeedFESpaces[FE_space],
+            CeedElemTopologies[topo], basis->dim, basis->P, basis->Q);
   }
   // Print quadrature data, interpolation/gradient/divergene/curl of the basis
-  if (basis->tensor_basis) { // tensor basis
-    ierr = CeedScalarView("qref1d", "\t% 12.8f", 1, basis->Q_1d, basis->q_ref_1d,
-                          stream); CeedChk(ierr);
-    ierr = CeedScalarView("qweight1d", "\t% 12.8f", 1, basis->Q_1d,
-                          basis->q_weight_1d, stream); CeedChk(ierr);
-    ierr = CeedScalarView("interp1d", "\t% 12.8f", basis->Q_1d, basis->P_1d,
-                          basis->interp_1d, stream); CeedChk(ierr);
-    ierr = CeedScalarView("grad1d", "\t% 12.8f", basis->Q_1d, basis->P_1d,
-                          basis->grad_1d, stream); CeedChk(ierr);
-  } else { // non-tensor basis
-    ierr = CeedScalarView("qref", "\t% 12.8f", 1, basis->Q*basis->dim,
-                          basis->q_ref_1d,
-                          stream); CeedChk(ierr);
-    ierr = CeedScalarView("qweight", "\t% 12.8f", 1, basis->Q, basis->q_weight_1d,
-                          stream); CeedChk(ierr);
-    ierr = CeedScalarView("interp", "\t% 12.8f", basis->Q_comp*basis->Q, basis->P,
-                          basis->interp, stream); CeedChk(ierr);
+  if (basis->tensor_basis) {  // tensor basis
+    CeedCall(CeedScalarView("qref1d", "\t% 12.8f", 1, basis->Q_1d, basis->q_ref_1d, stream));
+    CeedCall(CeedScalarView("qweight1d", "\t% 12.8f", 1, basis->Q_1d, basis->q_weight_1d, stream));
+    CeedCall(CeedScalarView("interp1d", "\t% 12.8f", basis->Q_1d, basis->P_1d, basis->interp_1d, stream));
+    CeedCall(CeedScalarView("grad1d", "\t% 12.8f", basis->Q_1d, basis->P_1d, basis->grad_1d, stream));
+  } else {  // non-tensor basis
+    CeedCall(CeedScalarView("qref", "\t% 12.8f", 1, basis->Q * basis->dim, basis->q_ref_1d, stream));
+    CeedCall(CeedScalarView("qweight", "\t% 12.8f", 1, basis->Q, basis->q_weight_1d, stream));
+    CeedCall(CeedScalarView("interp", "\t% 12.8f", basis->Q_comp * basis->Q, basis->P, basis->interp, stream));
     if (basis->grad) {
-      ierr = CeedScalarView("grad", "\t% 12.8f", basis->dim*basis->Q, basis->P,
-                            basis->grad, stream); CeedChk(ierr);
+      CeedCall(CeedScalarView("grad", "\t% 12.8f", basis->dim * basis->Q, basis->P, basis->grad, stream));
     }
     if (basis->div) {
-      ierr = CeedScalarView("div", "\t% 12.8f", basis->Q, basis->P,
-                            basis->div, stream); CeedChk(ierr);
+      CeedCall(CeedScalarView("div", "\t% 12.8f", basis->Q, basis->P, basis->div, stream));
     }
   }
   return CEED_ERROR_SUCCESS;
@@ -1122,78 +1060,65 @@ int CeedBasisView(CeedBasis basis, FILE *stream) {
 
   @ref User
 **/
-int CeedBasisApply(CeedBasis basis, CeedInt num_elem, CeedTransposeMode t_mode,
-                   CeedEvalMode eval_mode, CeedVector u, CeedVector v) {
-  int ierr;
+int CeedBasisApply(CeedBasis basis, CeedInt num_elem, CeedTransposeMode t_mode, CeedEvalMode eval_mode, CeedVector u, CeedVector v) {
   CeedSize u_length = 0, v_length;
-  CeedInt dim, num_comp, num_nodes, num_qpts;
-  ierr = CeedBasisGetDimension(basis, &dim); CeedChk(ierr);
-  ierr = CeedBasisGetNumComponents(basis, &num_comp); CeedChk(ierr);
-  ierr = CeedBasisGetNumNodes(basis, &num_nodes); CeedChk(ierr);
-  ierr = CeedBasisGetNumQuadraturePoints(basis, &num_qpts); CeedChk(ierr);
-  ierr = CeedVectorGetLength(v, &v_length); CeedChk(ierr);
+  CeedInt  dim, num_comp, num_nodes, num_qpts;
+  CeedCall(CeedBasisGetDimension(basis, &dim));
+  CeedCall(CeedBasisGetNumComponents(basis, &num_comp));
+  CeedCall(CeedBasisGetNumNodes(basis, &num_nodes));
+  CeedCall(CeedBasisGetNumQuadraturePoints(basis, &num_qpts));
+  CeedCall(CeedVectorGetLength(v, &v_length));
   if (u) {
-    ierr = CeedVectorGetLength(u, &u_length); CeedChk(ierr);
+    CeedCall(CeedVectorGetLength(u, &u_length));
   }
 
-  if (!basis->Apply)
+  if (!basis->Apply) {
     // LCOV_EXCL_START
-    return CeedError(basis->ceed, CEED_ERROR_UNSUPPORTED,
-                     "Backend does not support BasisApply");
-  // LCOV_EXCL_STOP
+    return CeedError(basis->ceed, CEED_ERROR_UNSUPPORTED, "Backend does not support BasisApply");
+    // LCOV_EXCL_STOP
+  }
 
   // Check compatibility of topological and geometrical dimensions
-  if ((t_mode == CEED_TRANSPOSE && (v_length%num_nodes != 0 ||
-                                    u_length%num_qpts != 0)) ||
-      (t_mode == CEED_NOTRANSPOSE && (u_length%num_nodes != 0 ||
-                                      v_length%num_qpts != 0)))
+  if ((t_mode == CEED_TRANSPOSE && (v_length % num_nodes != 0 || u_length % num_qpts != 0)) ||
+      (t_mode == CEED_NOTRANSPOSE && (u_length % num_nodes != 0 || v_length % num_qpts != 0))) {
     // LCOV_EXCL_START
-    return CeedError(basis->ceed, CEED_ERROR_DIMENSION,
-                     "Length of input/output vectors "
-                     "incompatible with basis dimensions");
-  // LCOV_EXCL_STOP
+    return CeedError(basis->ceed, CEED_ERROR_DIMENSION, "Length of input/output vectors incompatible with basis dimensions");
+    // LCOV_EXCL_STOP
+  }
 
   // Check vector lengths to prevent out of bounds issues
   bool bad_dims = false;
   switch (eval_mode) {
-  case CEED_EVAL_NONE:
-  case CEED_EVAL_INTERP: bad_dims =
-      ((t_mode == CEED_TRANSPOSE && (u_length < num_elem*num_comp*num_qpts ||
-                                     v_length < num_elem*num_comp*num_nodes)) ||
-       (t_mode == CEED_NOTRANSPOSE && (v_length < num_elem*num_qpts*num_comp ||
-                                       u_length < num_elem*num_comp*num_nodes)));
-    break;
-  case CEED_EVAL_GRAD: bad_dims =
-      ((t_mode == CEED_TRANSPOSE && (u_length < num_elem*num_comp*num_qpts*dim ||
-                                     v_length < num_elem*num_comp*num_nodes)) ||
-       (t_mode == CEED_NOTRANSPOSE && (v_length < num_elem*num_qpts*num_comp*dim ||
-                                       u_length < num_elem*num_comp*num_nodes)));
-    break;
-  case CEED_EVAL_WEIGHT:
-    bad_dims = v_length < num_elem*num_qpts;
-    break;
-  // LCOV_EXCL_START
-  case CEED_EVAL_DIV: bad_dims =
-      ((t_mode == CEED_TRANSPOSE && (u_length < num_elem*num_comp*num_qpts ||
-                                     v_length < num_elem*num_comp*num_nodes)) ||
-       (t_mode == CEED_NOTRANSPOSE && (v_length < num_elem*num_qpts*num_comp ||
-                                       u_length < num_elem*num_comp*num_nodes)));
-    break;
-  case CEED_EVAL_CURL: bad_dims =
-      ((t_mode == CEED_TRANSPOSE && (u_length < num_elem*num_comp*num_qpts ||
-                                     v_length < num_elem*num_comp*num_nodes)) ||
-       (t_mode == CEED_NOTRANSPOSE && (v_length < num_elem*num_qpts*num_comp ||
-                                       u_length < num_elem*num_comp*num_nodes)));
-    break;
+    case CEED_EVAL_NONE:
+    case CEED_EVAL_INTERP:
+      bad_dims = ((t_mode == CEED_TRANSPOSE && (u_length < num_elem * num_comp * num_qpts || v_length < num_elem * num_comp * num_nodes)) ||
+                  (t_mode == CEED_NOTRANSPOSE && (v_length < num_elem * num_qpts * num_comp || u_length < num_elem * num_comp * num_nodes)));
+      break;
+    case CEED_EVAL_GRAD:
+      bad_dims = ((t_mode == CEED_TRANSPOSE && (u_length < num_elem * num_comp * num_qpts * dim || v_length < num_elem * num_comp * num_nodes)) ||
+                  (t_mode == CEED_NOTRANSPOSE && (v_length < num_elem * num_qpts * num_comp * dim || u_length < num_elem * num_comp * num_nodes)));
+      break;
+    case CEED_EVAL_WEIGHT:
+      bad_dims = v_length < num_elem * num_qpts;
+      break;
+    // LCOV_EXCL_START
+    case CEED_EVAL_DIV:
+      bad_dims = ((t_mode == CEED_TRANSPOSE && (u_length < num_elem * num_comp * num_qpts || v_length < num_elem * num_comp * num_nodes)) ||
+                  (t_mode == CEED_NOTRANSPOSE && (v_length < num_elem * num_qpts * num_comp || u_length < num_elem * num_comp * num_nodes)));
+      break;
+    case CEED_EVAL_CURL:
+      bad_dims = ((t_mode == CEED_TRANSPOSE && (u_length < num_elem * num_comp * num_qpts || v_length < num_elem * num_comp * num_nodes)) ||
+                  (t_mode == CEED_NOTRANSPOSE && (v_length < num_elem * num_qpts * num_comp || u_length < num_elem * num_comp * num_nodes)));
+      break;
+      // LCOV_EXCL_STOP
+  }
+  if (bad_dims) {
+    // LCOV_EXCL_START
+    return CeedError(basis->ceed, CEED_ERROR_DIMENSION, "Input/output vectors too short for basis and evaluation mode");
     // LCOV_EXCL_STOP
   }
-  if (bad_dims)
-    // LCOV_EXCL_START
-    return CeedError(basis->ceed, CEED_ERROR_DIMENSION,
-                     "Input/output vectors too short for basis and evaluation mode");
-  // LCOV_EXCL_STOP
 
-  ierr = basis->Apply(basis, num_elem, t_mode, eval_mode, u, v); CeedChk(ierr);
+  CeedCall(basis->Apply(basis, num_elem, t_mode, eval_mode, u, v));
   return CEED_ERROR_SUCCESS;
 }
 
@@ -1298,11 +1223,11 @@ int CeedBasisGetNumNodes(CeedBasis basis, CeedInt *P) {
   @ref Advanced
 **/
 int CeedBasisGetNumNodes1D(CeedBasis basis, CeedInt *P_1d) {
-  if (!basis->tensor_basis)
+  if (!basis->tensor_basis) {
     // LCOV_EXCL_START
-    return CeedError(basis->ceed, CEED_ERROR_MINOR,
-                     "Cannot supply P_1d for non-tensor basis");
-  // LCOV_EXCL_STOP
+    return CeedError(basis->ceed, CEED_ERROR_MINOR, "Cannot supply P_1d for non-tensor basis");
+    // LCOV_EXCL_STOP
+  }
 
   *P_1d = basis->P_1d;
   return CEED_ERROR_SUCCESS;
@@ -1334,11 +1259,11 @@ int CeedBasisGetNumQuadraturePoints(CeedBasis basis, CeedInt *Q) {
   @ref Advanced
 **/
 int CeedBasisGetNumQuadraturePoints1D(CeedBasis basis, CeedInt *Q_1d) {
-  if (!basis->tensor_basis)
+  if (!basis->tensor_basis) {
     // LCOV_EXCL_START
-    return CeedError(basis->ceed, CEED_ERROR_MINOR,
-                     "Cannot supply Q_1d for non-tensor basis");
-  // LCOV_EXCL_STOP
+    return CeedError(basis->ceed, CEED_ERROR_MINOR, "Cannot supply Q_1d for non-tensor basis");
+    // LCOV_EXCL_STOP
+  }
 
   *Q_1d = basis->Q_1d;
   return CEED_ERROR_SUCCESS;
@@ -1389,21 +1314,21 @@ int CeedBasisGetQWeights(CeedBasis basis, const CeedScalar **q_weight) {
 int CeedBasisGetInterp(CeedBasis basis, const CeedScalar **interp) {
   if (!basis->interp && basis->tensor_basis) {
     // Allocate
-    int ierr;
-    ierr = CeedMalloc(basis->Q*basis->P, &basis->interp); CeedChk(ierr);
+    CeedCall(CeedMalloc(basis->Q * basis->P, &basis->interp));
 
     // Initialize
-    for (CeedInt i=0; i<basis->Q*basis->P; i++)
-      basis->interp[i] = 1.0;
+    for (CeedInt i = 0; i < basis->Q * basis->P; i++) basis->interp[i] = 1.0;
 
     // Calculate
-    for (CeedInt d=0; d<basis->dim; d++)
-      for (CeedInt qpt=0; qpt<basis->Q; qpt++)
-        for (CeedInt node=0; node<basis->P; node++) {
+    for (CeedInt d = 0; d < basis->dim; d++) {
+      for (CeedInt qpt = 0; qpt < basis->Q; qpt++) {
+        for (CeedInt node = 0; node < basis->P; node++) {
           CeedInt p = (node / CeedIntPow(basis->P_1d, d)) % basis->P_1d;
           CeedInt q = (qpt / CeedIntPow(basis->Q_1d, d)) % basis->Q_1d;
-          basis->interp[qpt*(basis->P)+node] *= basis->interp_1d[q*basis->P_1d+p];
+          basis->interp[qpt * (basis->P) + node] *= basis->interp_1d[q * basis->P_1d + p];
         }
+      }
+    }
   }
   *interp = basis->interp;
   return CEED_ERROR_SUCCESS;
@@ -1420,11 +1345,11 @@ int CeedBasisGetInterp(CeedBasis basis, const CeedScalar **interp) {
   @ref Backend
 **/
 int CeedBasisGetInterp1D(CeedBasis basis, const CeedScalar **interp_1d) {
-  if (!basis->tensor_basis)
+  if (!basis->tensor_basis) {
     // LCOV_EXCL_START
-    return CeedError(basis->ceed, CEED_ERROR_MINOR,
-                     "CeedBasis is not a tensor product basis.");
-  // LCOV_EXCL_STOP
+    return CeedError(basis->ceed, CEED_ERROR_MINOR, "CeedBasis is not a tensor product basis.");
+    // LCOV_EXCL_STOP
+  }
 
   *interp_1d = basis->interp_1d;
   return CEED_ERROR_SUCCESS;
@@ -1443,28 +1368,24 @@ int CeedBasisGetInterp1D(CeedBasis basis, const CeedScalar **interp_1d) {
 int CeedBasisGetGrad(CeedBasis basis, const CeedScalar **grad) {
   if (!basis->grad && basis->tensor_basis) {
     // Allocate
-    int ierr;
-    ierr = CeedMalloc(basis->dim*basis->Q*basis->P, &basis->grad);
-    CeedChk(ierr);
+    CeedCall(CeedMalloc(basis->dim * basis->Q * basis->P, &basis->grad));
 
     // Initialize
-    for (CeedInt i=0; i<basis->dim*basis->Q*basis->P; i++)
-      basis->grad[i] = 1.0;
+    for (CeedInt i = 0; i < basis->dim * basis->Q * basis->P; i++) basis->grad[i] = 1.0;
 
     // Calculate
-    for (CeedInt d=0; d<basis->dim; d++)
-      for (CeedInt i=0; i<basis->dim; i++)
-        for (CeedInt qpt=0; qpt<basis->Q; qpt++)
-          for (CeedInt node=0; node<basis->P; node++) {
+    for (CeedInt d = 0; d < basis->dim; d++) {
+      for (CeedInt i = 0; i < basis->dim; i++) {
+        for (CeedInt qpt = 0; qpt < basis->Q; qpt++) {
+          for (CeedInt node = 0; node < basis->P; node++) {
             CeedInt p = (node / CeedIntPow(basis->P_1d, d)) % basis->P_1d;
             CeedInt q = (qpt / CeedIntPow(basis->Q_1d, d)) % basis->Q_1d;
-            if (i == d)
-              basis->grad[(i*basis->Q+qpt)*(basis->P)+node] *=
-                basis->grad_1d[q*basis->P_1d+p];
-            else
-              basis->grad[(i*basis->Q+qpt)*(basis->P)+node] *=
-                basis->interp_1d[q*basis->P_1d+p];
+            if (i == d) basis->grad[(i * basis->Q + qpt) * (basis->P) + node] *= basis->grad_1d[q * basis->P_1d + p];
+            else basis->grad[(i * basis->Q + qpt) * (basis->P) + node] *= basis->interp_1d[q * basis->P_1d + p];
           }
+        }
+      }
+    }
   }
   *grad = basis->grad;
   return CEED_ERROR_SUCCESS;
@@ -1481,11 +1402,11 @@ int CeedBasisGetGrad(CeedBasis basis, const CeedScalar **grad) {
   @ref Advanced
 **/
 int CeedBasisGetGrad1D(CeedBasis basis, const CeedScalar **grad_1d) {
-  if (!basis->tensor_basis)
+  if (!basis->tensor_basis) {
     // LCOV_EXCL_START
-    return CeedError(basis->ceed, CEED_ERROR_MINOR,
-                     "CeedBasis is not a tensor product basis.");
-  // LCOV_EXCL_STOP
+    return CeedError(basis->ceed, CEED_ERROR_MINOR, "CeedBasis is not a tensor product basis.");
+    // LCOV_EXCL_STOP
+  }
 
   *grad_1d = basis->grad_1d;
   return CEED_ERROR_SUCCESS;
@@ -1502,11 +1423,11 @@ int CeedBasisGetGrad1D(CeedBasis basis, const CeedScalar **grad_1d) {
   @ref Advanced
 **/
 int CeedBasisGetDiv(CeedBasis basis, const CeedScalar **div) {
-  if (!basis->div)
+  if (!basis->div) {
     // LCOV_EXCL_START
-    return CeedError(basis->ceed, CEED_ERROR_MINOR,
-                     "CeedBasis does not have divergence matrix.");
-  // LCOV_EXCL_STOP
+    return CeedError(basis->ceed, CEED_ERROR_MINOR, "CeedBasis does not have divergence matrix.");
+    // LCOV_EXCL_STOP
+  }
 
   *div = basis->div;
   return CEED_ERROR_SUCCESS;
@@ -1522,24 +1443,18 @@ int CeedBasisGetDiv(CeedBasis basis, const CeedScalar **div) {
   @ref User
 **/
 int CeedBasisDestroy(CeedBasis *basis) {
-  int ierr;
-
   if (!*basis || --(*basis)->ref_count > 0) return CEED_ERROR_SUCCESS;
-  if ((*basis)->Destroy) {
-    ierr = (*basis)->Destroy(*basis); CeedChk(ierr);
-  }
-  if ((*basis)->contract) {
-    ierr = CeedTensorContractDestroy(&(*basis)->contract); CeedChk(ierr);
-  }
-  ierr = CeedFree(&(*basis)->interp); CeedChk(ierr);
-  ierr = CeedFree(&(*basis)->interp_1d); CeedChk(ierr);
-  ierr = CeedFree(&(*basis)->grad); CeedChk(ierr);
-  ierr = CeedFree(&(*basis)->div); CeedChk(ierr);
-  ierr = CeedFree(&(*basis)->grad_1d); CeedChk(ierr);
-  ierr = CeedFree(&(*basis)->q_ref_1d); CeedChk(ierr);
-  ierr = CeedFree(&(*basis)->q_weight_1d); CeedChk(ierr);
-  ierr = CeedDestroy(&(*basis)->ceed); CeedChk(ierr);
-  ierr = CeedFree(basis); CeedChk(ierr);
+  if ((*basis)->Destroy) CeedCall((*basis)->Destroy(*basis));
+  if ((*basis)->contract) CeedCall(CeedTensorContractDestroy(&(*basis)->contract));
+  CeedCall(CeedFree(&(*basis)->interp));
+  CeedCall(CeedFree(&(*basis)->interp_1d));
+  CeedCall(CeedFree(&(*basis)->grad));
+  CeedCall(CeedFree(&(*basis)->div));
+  CeedCall(CeedFree(&(*basis)->grad_1d));
+  CeedCall(CeedFree(&(*basis)->q_ref_1d));
+  CeedCall(CeedFree(&(*basis)->q_weight_1d));
+  CeedCall(CeedDestroy(&(*basis)->ceed));
+  CeedCall(CeedFree(basis));
   return CEED_ERROR_SUCCESS;
 }
 
@@ -1555,44 +1470,43 @@ int CeedBasisDestroy(CeedBasis *basis) {
 
   @ref Utility
 **/
-int CeedGaussQuadrature(CeedInt Q, CeedScalar *q_ref_1d,
-                        CeedScalar *q_weight_1d) {
+int CeedGaussQuadrature(CeedInt Q, CeedScalar *q_ref_1d, CeedScalar *q_weight_1d) {
   // Allocate
-  CeedScalar P0, P1, P2, dP2, xi, wi, PI = 4.0*atan(1.0);
+  CeedScalar P0, P1, P2, dP2, xi, wi, PI = 4.0 * atan(1.0);
   // Build q_ref_1d, q_weight_1d
-  for (CeedInt i = 0; i <= Q/2; i++) {
+  for (CeedInt i = 0; i <= Q / 2; i++) {
     // Guess
-    xi = cos(PI*(CeedScalar)(2*i+1)/((CeedScalar)(2*Q)));
+    xi = cos(PI * (CeedScalar)(2 * i + 1) / ((CeedScalar)(2 * Q)));
     // Pn(xi)
     P0 = 1.0;
     P1 = xi;
     P2 = 0.0;
     for (CeedInt j = 2; j <= Q; j++) {
-      P2 = (((CeedScalar)(2*j-1))*xi*P1-((CeedScalar)(j-1))*P0)/((CeedScalar)(j));
+      P2 = (((CeedScalar)(2 * j - 1)) * xi * P1 - ((CeedScalar)(j - 1)) * P0) / ((CeedScalar)(j));
       P0 = P1;
       P1 = P2;
     }
     // First Newton Step
-    dP2 = (xi*P2 - P0)*(CeedScalar)Q/(xi*xi-1.0);
-    xi = xi-P2/dP2;
+    dP2 = (xi * P2 - P0) * (CeedScalar)Q / (xi * xi - 1.0);
+    xi  = xi - P2 / dP2;
     // Newton to convergence
-    for (CeedInt k=0; k<100 && fabs(P2)>10*CEED_EPSILON; k++) {
+    for (CeedInt k = 0; k < 100 && fabs(P2) > 10 * CEED_EPSILON; k++) {
       P0 = 1.0;
       P1 = xi;
       for (CeedInt j = 2; j <= Q; j++) {
-        P2 = (((CeedScalar)(2*j-1))*xi*P1-((CeedScalar)(j-1))*P0)/((CeedScalar)(j));
+        P2 = (((CeedScalar)(2 * j - 1)) * xi * P1 - ((CeedScalar)(j - 1)) * P0) / ((CeedScalar)(j));
         P0 = P1;
         P1 = P2;
       }
-      dP2 = (xi*P2 - P0)*(CeedScalar)Q/(xi*xi-1.0);
-      xi = xi-P2/dP2;
+      dP2 = (xi * P2 - P0) * (CeedScalar)Q / (xi * xi - 1.0);
+      xi  = xi - P2 / dP2;
     }
     // Save xi, wi
-    wi = 2.0/((1.0-xi*xi)*dP2*dP2);
-    q_weight_1d[i] = wi;
-    q_weight_1d[Q-1-i] = wi;
-    q_ref_1d[i] = -xi;
-    q_ref_1d[Q-1-i]= xi;
+    wi                     = 2.0 / ((1.0 - xi * xi) * dP2 * dP2);
+    q_weight_1d[i]         = wi;
+    q_weight_1d[Q - 1 - i] = wi;
+    q_ref_1d[i]            = -xi;
+    q_ref_1d[Q - 1 - i]    = xi;
   }
   return CEED_ERROR_SUCCESS;
 }
@@ -1609,62 +1523,61 @@ int CeedGaussQuadrature(CeedInt Q, CeedScalar *q_ref_1d,
 
   @ref Utility
 **/
-int CeedLobattoQuadrature(CeedInt Q, CeedScalar *q_ref_1d,
-                          CeedScalar *q_weight_1d) {
+int CeedLobattoQuadrature(CeedInt Q, CeedScalar *q_ref_1d, CeedScalar *q_weight_1d) {
   // Allocate
-  CeedScalar P0, P1, P2, dP2, d2P2, xi, wi, PI = 4.0*atan(1.0);
+  CeedScalar P0, P1, P2, dP2, d2P2, xi, wi, PI = 4.0 * atan(1.0);
   // Build q_ref_1d, q_weight_1d
   // Set endpoints
-  if (Q < 2)
+  if (Q < 2) {
     // LCOV_EXCL_START
-    return CeedError(NULL, CEED_ERROR_DIMENSION,
-                     "Cannot create Lobatto quadrature with Q=%" CeedInt_FMT " < 2 points", Q);
-  // LCOV_EXCL_STOP
-  wi = 2.0/((CeedScalar)(Q*(Q-1)));
-  if (q_weight_1d) {
-    q_weight_1d[0] = wi;
-    q_weight_1d[Q-1] = wi;
+    return CeedError(NULL, CEED_ERROR_DIMENSION, "Cannot create Lobatto quadrature with Q=%" CeedInt_FMT " < 2 points", Q);
+    // LCOV_EXCL_STOP
   }
-  q_ref_1d[0] = -1.0;
-  q_ref_1d[Q-1] = 1.0;
+  wi = 2.0 / ((CeedScalar)(Q * (Q - 1)));
+  if (q_weight_1d) {
+    q_weight_1d[0]     = wi;
+    q_weight_1d[Q - 1] = wi;
+  }
+  q_ref_1d[0]     = -1.0;
+  q_ref_1d[Q - 1] = 1.0;
   // Interior
-  for (CeedInt i = 1; i <= (Q-1)/2; i++) {
+  for (CeedInt i = 1; i <= (Q - 1) / 2; i++) {
     // Guess
-    xi = cos(PI*(CeedScalar)(i)/(CeedScalar)(Q-1));
+    xi = cos(PI * (CeedScalar)(i) / (CeedScalar)(Q - 1));
     // Pn(xi)
     P0 = 1.0;
     P1 = xi;
     P2 = 0.0;
     for (CeedInt j = 2; j < Q; j++) {
-      P2 = (((CeedScalar)(2*j-1))*xi*P1-((CeedScalar)(j-1))*P0)/((CeedScalar)(j));
+      P2 = (((CeedScalar)(2 * j - 1)) * xi * P1 - ((CeedScalar)(j - 1)) * P0) / ((CeedScalar)(j));
       P0 = P1;
       P1 = P2;
     }
     // First Newton step
-    dP2 = (xi*P2 - P0)*(CeedScalar)Q/(xi*xi-1.0);
-    d2P2 = (2*xi*dP2 - (CeedScalar)(Q*(Q-1))*P2)/(1.0-xi*xi);
-    xi = xi-dP2/d2P2;
+    dP2  = (xi * P2 - P0) * (CeedScalar)Q / (xi * xi - 1.0);
+    d2P2 = (2 * xi * dP2 - (CeedScalar)(Q * (Q - 1)) * P2) / (1.0 - xi * xi);
+    xi   = xi - dP2 / d2P2;
     // Newton to convergence
-    for (CeedInt k=0; k<100 && fabs(dP2)>10*CEED_EPSILON; k++) {
+    for (CeedInt k = 0; k < 100 && fabs(dP2) > 10 * CEED_EPSILON; k++) {
       P0 = 1.0;
       P1 = xi;
       for (CeedInt j = 2; j < Q; j++) {
-        P2 = (((CeedScalar)(2*j-1))*xi*P1-((CeedScalar)(j-1))*P0)/((CeedScalar)(j));
+        P2 = (((CeedScalar)(2 * j - 1)) * xi * P1 - ((CeedScalar)(j - 1)) * P0) / ((CeedScalar)(j));
         P0 = P1;
         P1 = P2;
       }
-      dP2 = (xi*P2 - P0)*(CeedScalar)Q/(xi*xi-1.0);
-      d2P2 = (2*xi*dP2 - (CeedScalar)(Q*(Q-1))*P2)/(1.0-xi*xi);
-      xi = xi-dP2/d2P2;
+      dP2  = (xi * P2 - P0) * (CeedScalar)Q / (xi * xi - 1.0);
+      d2P2 = (2 * xi * dP2 - (CeedScalar)(Q * (Q - 1)) * P2) / (1.0 - xi * xi);
+      xi   = xi - dP2 / d2P2;
     }
     // Save xi, wi
-    wi = 2.0/(((CeedScalar)(Q*(Q-1)))*P2*P2);
+    wi = 2.0 / (((CeedScalar)(Q * (Q - 1))) * P2 * P2);
     if (q_weight_1d) {
-      q_weight_1d[i] = wi;
-      q_weight_1d[Q-1-i] = wi;
+      q_weight_1d[i]         = wi;
+      q_weight_1d[Q - 1 - i] = wi;
     }
-    q_ref_1d[i] = -xi;
-    q_ref_1d[Q-1-i]= xi;
+    q_ref_1d[i]         = -xi;
+    q_ref_1d[Q - 1 - i] = xi;
   }
   return CEED_ERROR_SUCCESS;
 }
@@ -1682,45 +1595,42 @@ int CeedLobattoQuadrature(CeedInt Q, CeedScalar *q_ref_1d,
 
   @ref Utility
 **/
-int CeedQRFactorization(Ceed ceed, CeedScalar *mat, CeedScalar *tau,
-                        CeedInt m, CeedInt n) {
+int CeedQRFactorization(Ceed ceed, CeedScalar *mat, CeedScalar *tau, CeedInt m, CeedInt n) {
   CeedScalar v[m];
 
-  // Check m >= n
-  if (n > m)
+  // Check matrix shape
+  if (n > m) {
     // LCOV_EXCL_START
-    return CeedError(ceed, CEED_ERROR_UNSUPPORTED,
-                     "Cannot compute QR factorization with n > m");
-  // LCOV_EXCL_STOP
+    return CeedError(ceed, CEED_ERROR_UNSUPPORTED, "Cannot compute QR factorization with n > m");
+    // LCOV_EXCL_STOP
+  }
 
-  for (CeedInt i=0; i<n; i++) {
-    if (i >= m-1) { // last row of matrix, no reflection needed
+  for (CeedInt i = 0; i < n; i++) {
+    if (i >= m - 1) {  // last row of matrix, no reflection needed
       tau[i] = 0.;
       break;
     }
     // Calculate Householder vector, magnitude
     CeedScalar sigma = 0.0;
-    v[i] = mat[i+n*i];
-    for (CeedInt j=i+1; j<m; j++) {
-      v[j] = mat[i+n*j];
+    v[i]             = mat[i + n * i];
+    for (CeedInt j = i + 1; j < m; j++) {
+      v[j] = mat[i + n * j];
       sigma += v[j] * v[j];
     }
-    CeedScalar norm = sqrt(v[i]*v[i] + sigma); // norm of v[i:m]
+    CeedScalar norm = sqrt(v[i] * v[i] + sigma);  // norm of v[i:m]
     CeedScalar R_ii = -copysign(norm, v[i]);
     v[i] -= R_ii;
     // norm of v[i:m] after modification above and scaling below
     //   norm = sqrt(v[i]*v[i] + sigma) / v[i];
     //   tau = 2 / (norm*norm)
-    tau[i] = 2 * v[i]*v[i] / (v[i]*v[i] + sigma);
-    for (CeedInt j=i+1; j<m; j++)
-      v[j] /= v[i];
+    tau[i] = 2 * v[i] * v[i] / (v[i] * v[i] + sigma);
+    for (CeedInt j = i + 1; j < m; j++) v[j] /= v[i];
 
     // Apply Householder reflector to lower right panel
-    CeedHouseholderReflect(&mat[i*n+i+1], &v[i], tau[i], m-i, n-i-1, n, 1);
+    CeedHouseholderReflect(&mat[i * n + i + 1], &v[i], tau[i], m - i, n - i - 1, n, 1);
     // Save v
-    mat[i+n*i] = R_ii;
-    for (CeedInt j=i+1; j<m; j++)
-      mat[i+n*j] = v[j];
+    mat[i + n * i] = R_ii;
+    for (CeedInt j = i + 1; j < m; j++) mat[i + n * j] = v[j];
   }
   return CEED_ERROR_SUCCESS;
 }
@@ -1738,237 +1648,227 @@ int CeedQRFactorization(Ceed ceed, CeedScalar *mat, CeedScalar *tau,
 
   @ref Utility
 **/
-CeedPragmaOptimizeOff
-int CeedSymmetricSchurDecomposition(Ceed ceed, CeedScalar *mat,
-                                    CeedScalar *lambda, CeedInt n) {
+CeedPragmaOptimizeOff int CeedSymmetricSchurDecomposition(Ceed ceed, CeedScalar *mat, CeedScalar *lambda, CeedInt n) {
   // Check bounds for clang-tidy
-  if (n<2)
+  if (n < 2) {
     // LCOV_EXCL_START
-    return CeedError(ceed, CEED_ERROR_UNSUPPORTED,
-                     "Cannot compute symmetric Schur decomposition of scalars");
-  // LCOV_EXCL_STOP
+    return CeedError(ceed, CEED_ERROR_UNSUPPORTED, "Cannot compute symmetric Schur decomposition of scalars");
+    // LCOV_EXCL_STOP
+  }
 
-  CeedScalar v[n-1], tau[n-1], mat_T[n*n];
+  CeedScalar v[n - 1], tau[n - 1], mat_T[n * n];
 
   // Copy mat to mat_T and set mat to I
-  memcpy(mat_T, mat, n*n*sizeof(mat[0]));
-  for (CeedInt i=0; i<n; i++)
-    for (CeedInt j=0; j<n; j++)
-      mat[j+n*i] = (i==j) ? 1 : 0;
+  memcpy(mat_T, mat, n * n * sizeof(mat[0]));
+  for (CeedInt i = 0; i < n; i++) {
+    for (CeedInt j = 0; j < n; j++) mat[j + n * i] = (i == j) ? 1 : 0;
+  }
 
   // Reduce to tridiagonal
-  for (CeedInt i=0; i<n-1; i++) {
+  for (CeedInt i = 0; i < n - 1; i++) {
     // Calculate Householder vector, magnitude
     CeedScalar sigma = 0.0;
-    v[i] = mat_T[i+n*(i+1)];
-    for (CeedInt j=i+1; j<n-1; j++) {
-      v[j] = mat_T[i+n*(j+1)];
+    v[i]             = mat_T[i + n * (i + 1)];
+    for (CeedInt j = i + 1; j < n - 1; j++) {
+      v[j] = mat_T[i + n * (j + 1)];
       sigma += v[j] * v[j];
     }
-    CeedScalar norm = sqrt(v[i]*v[i] + sigma); // norm of v[i:n-1]
+    CeedScalar norm = sqrt(v[i] * v[i] + sigma);  // norm of v[i:n-1]
     CeedScalar R_ii = -copysign(norm, v[i]);
     v[i] -= R_ii;
     // norm of v[i:m] after modification above and scaling below
     //   norm = sqrt(v[i]*v[i] + sigma) / v[i];
     //   tau = 2 / (norm*norm)
-    tau[i] = i == n - 2 ? 2 : 2 * v[i]*v[i] / (v[i]*v[i] + sigma);
-    for (CeedInt j=i+1; j<n-1; j++)
-      v[j] /= v[i];
+    tau[i] = i == n - 2 ? 2 : 2 * v[i] * v[i] / (v[i] * v[i] + sigma);
+    for (CeedInt j = i + 1; j < n - 1; j++) v[j] /= v[i];
 
     // Update sub and super diagonal
-    for (CeedInt j=i+2; j<n; j++) {
-      mat_T[i+n*j] = 0; mat_T[j+n*i] = 0;
+    for (CeedInt j = i + 2; j < n; j++) {
+      mat_T[i + n * j] = 0;
+      mat_T[j + n * i] = 0;
     }
     // Apply symmetric Householder reflector to lower right panel
-    CeedHouseholderReflect(&mat_T[(i+1)+n*(i+1)], &v[i], tau[i],
-                           n-(i+1), n-(i+1), n, 1);
-    CeedHouseholderReflect(&mat_T[(i+1)+n*(i+1)], &v[i], tau[i],
-                           n-(i+1), n-(i+1), 1, n);
+    CeedHouseholderReflect(&mat_T[(i + 1) + n * (i + 1)], &v[i], tau[i], n - (i + 1), n - (i + 1), n, 1);
+    CeedHouseholderReflect(&mat_T[(i + 1) + n * (i + 1)], &v[i], tau[i], n - (i + 1), n - (i + 1), 1, n);
 
     // Save v
-    mat_T[i+n*(i+1)] = R_ii;
-    mat_T[(i+1)+n*i] = R_ii;
-    for (CeedInt j=i+1; j<n-1; j++) {
-      mat_T[i+n*(j+1)] = v[j];
+    mat_T[i + n * (i + 1)] = R_ii;
+    mat_T[(i + 1) + n * i] = R_ii;
+    for (CeedInt j = i + 1; j < n - 1; j++) {
+      mat_T[i + n * (j + 1)] = v[j];
     }
   }
   // Backwards accumulation of Q
-  for (CeedInt i=n-2; i>=0; i--) {
+  for (CeedInt i = n - 2; i >= 0; i--) {
     if (tau[i] > 0.0) {
       v[i] = 1;
-      for (CeedInt j=i+1; j<n-1; j++) {
-        v[j] = mat_T[i+n*(j+1)];
-        mat_T[i+n*(j+1)] = 0;
+      for (CeedInt j = i + 1; j < n - 1; j++) {
+        v[j]                   = mat_T[i + n * (j + 1)];
+        mat_T[i + n * (j + 1)] = 0;
       }
-      CeedHouseholderReflect(&mat[(i+1)+n*(i+1)], &v[i], tau[i],
-                             n-(i+1), n-(i+1), n, 1);
+      CeedHouseholderReflect(&mat[(i + 1) + n * (i + 1)], &v[i], tau[i], n - (i + 1), n - (i + 1), n, 1);
     }
   }
 
   // Reduce sub and super diagonal
-  CeedInt p = 0, q = 0, itr = 0, max_itr = n*n*n*n;
+  CeedInt    p = 0, q = 0, itr = 0, max_itr = n * n * n * n;
   CeedScalar tol = CEED_EPSILON;
 
   while (itr < max_itr) {
     // Update p, q, size of reduced portions of diagonal
-    p = 0; q = 0;
-    for (CeedInt i=n-2; i>=0; i--) {
-      if (fabs(mat_T[i+n*(i+1)]) < tol)
-        q += 1;
-      else
-        break;
+    p = 0;
+    q = 0;
+    for (CeedInt i = n - 2; i >= 0; i--) {
+      if (fabs(mat_T[i + n * (i + 1)]) < tol) q += 1;
+      else break;
     }
-    for (CeedInt i=0; i<n-q-1; i++) {
-      if (fabs(mat_T[i+n*(i+1)]) < tol)
-        p += 1;
-      else
-        break;
+    for (CeedInt i = 0; i < n - q - 1; i++) {
+      if (fabs(mat_T[i + n * (i + 1)]) < tol) p += 1;
+      else break;
     }
-    if (q == n-1) break; // Finished reducing
+    if (q == n - 1) break;  // Finished reducing
 
     // Reduce tridiagonal portion
-    CeedScalar t_nn = mat_T[(n-1-q)+n*(n-1-q)],
-               t_nnm1 = mat_T[(n-2-q)+n*(n-1-q)];
-    CeedScalar d = (mat_T[(n-2-q)+n*(n-2-q)] - t_nn)/2;
-    CeedScalar mu = t_nn - t_nnm1*t_nnm1 /
-                    (d + copysign(sqrt(d*d + t_nnm1*t_nnm1), d));
-    CeedScalar x = mat_T[p+n*p] - mu;
-    CeedScalar z = mat_T[p+n*(p+1)];
-    for (CeedInt k=p; k<n-q-1; k++) {
+    CeedScalar t_nn = mat_T[(n - 1 - q) + n * (n - 1 - q)], t_nnm1 = mat_T[(n - 2 - q) + n * (n - 1 - q)];
+    CeedScalar d  = (mat_T[(n - 2 - q) + n * (n - 2 - q)] - t_nn) / 2;
+    CeedScalar mu = t_nn - t_nnm1 * t_nnm1 / (d + copysign(sqrt(d * d + t_nnm1 * t_nnm1), d));
+    CeedScalar x  = mat_T[p + n * p] - mu;
+    CeedScalar z  = mat_T[p + n * (p + 1)];
+    for (CeedInt k = p; k < n - q - 1; k++) {
       // Compute Givens rotation
       CeedScalar c = 1, s = 0;
       if (fabs(z) > tol) {
         if (fabs(z) > fabs(x)) {
-          CeedScalar tau = -x/z;
-          s = 1/sqrt(1+tau*tau), c = s*tau;
+          CeedScalar tau = -x / z;
+          s = 1 / sqrt(1 + tau * tau), c = s * tau;
         } else {
-          CeedScalar tau = -z/x;
-          c = 1/sqrt(1+tau*tau), s = c*tau;
+          CeedScalar tau = -z / x;
+          c = 1 / sqrt(1 + tau * tau), s = c * tau;
         }
       }
 
       // Apply Givens rotation to T
-      CeedGivensRotation(mat_T, c, s, CEED_NOTRANSPOSE, k, k+1, n, n);
-      CeedGivensRotation(mat_T, c, s, CEED_TRANSPOSE, k, k+1, n, n);
+      CeedGivensRotation(mat_T, c, s, CEED_NOTRANSPOSE, k, k + 1, n, n);
+      CeedGivensRotation(mat_T, c, s, CEED_TRANSPOSE, k, k + 1, n, n);
 
       // Apply Givens rotation to Q
-      CeedGivensRotation(mat, c, s, CEED_NOTRANSPOSE, k, k+1, n, n);
+      CeedGivensRotation(mat, c, s, CEED_NOTRANSPOSE, k, k + 1, n, n);
 
       // Update x, z
-      if (k < n-q-2) {
-        x = mat_T[k+n*(k+1)];
-        z = mat_T[k+n*(k+2)];
+      if (k < n - q - 2) {
+        x = mat_T[k + n * (k + 1)];
+        z = mat_T[k + n * (k + 2)];
       }
     }
     itr++;
   }
 
   // Save eigenvalues
-  for (CeedInt i=0; i<n; i++)
-    lambda[i] = mat_T[i+n*i];
+  for (CeedInt i = 0; i < n; i++) lambda[i] = mat_T[i + n * i];
 
   // Check convergence
-  if (itr == max_itr && q < n-1)
+  if (itr == max_itr && q < n - 1) {
     // LCOV_EXCL_START
-    return CeedError(ceed, CEED_ERROR_MINOR,
-                     "Symmetric QR failed to converge");
-  // LCOV_EXCL_STOP
+    return CeedError(ceed, CEED_ERROR_MINOR, "Symmetric QR failed to converge");
+    // LCOV_EXCL_STOP
+  }
   return CEED_ERROR_SUCCESS;
 }
 CeedPragmaOptimizeOn
 
-/**
-  @brief Return Simultaneous Diagonalization of two matrices. This solves the
-           generalized eigenvalue problem A x = lambda B x, where A and B
-           are symmetric and B is positive definite. We generate the matrix X
-           and vector Lambda such that X^T A X = Lambda and X^T B X = I. This
-           is equivalent to the LAPACK routine 'sygv' with TYPE = 1.
+    /**
+      @brief Return Simultaneous Diagonalization of two matrices. This solves the
+               generalized eigenvalue problem A x = lambda B x, where A and B
+               are symmetric and B is positive definite. We generate the matrix X
+               and vector Lambda such that X^T A X = Lambda and X^T B X = I. This
+               is equivalent to the LAPACK routine 'sygv' with TYPE = 1.
 
-  @param ceed         A Ceed context for error handling
-  @param[in] mat_A    Row-major matrix to be factorized with eigenvalues
-  @param[in] mat_B    Row-major matrix to be factorized to identity
-  @param[out] mat_X   Row-major orthogonal matrix
-  @param[out] lambda  Vector of length n of generalized eigenvalues
-  @param n            Number of rows/columns
+      @param ceed         A Ceed context for error handling
+      @param[in] mat_A    Row-major matrix to be factorized with eigenvalues
+      @param[in] mat_B    Row-major matrix to be factorized to identity
+      @param[out] mat_X   Row-major orthogonal matrix
+      @param[out] lambda  Vector of length n of generalized eigenvalues
+      @param n            Number of rows/columns
 
-  @return An error code: 0 - success, otherwise - failure
+      @return An error code: 0 - success, otherwise - failure
 
-  @ref Utility
-**/
-CeedPragmaOptimizeOff
-int CeedSimultaneousDiagonalization(Ceed ceed, CeedScalar *mat_A,
-                                    CeedScalar *mat_B, CeedScalar *mat_X,
-                                    CeedScalar *lambda, CeedInt n) {
-  int ierr;
+      @ref Utility
+    **/
+    CeedPragmaOptimizeOff int
+    CeedSimultaneousDiagonalization(Ceed ceed, CeedScalar *mat_A, CeedScalar *mat_B, CeedScalar *mat_X, CeedScalar *lambda, CeedInt n) {
   CeedScalar *mat_C, *mat_G, *vec_D;
-  ierr = CeedCalloc(n*n, &mat_C); CeedChk(ierr);
-  ierr = CeedCalloc(n*n, &mat_G); CeedChk(ierr);
-  ierr = CeedCalloc(n, &vec_D); CeedChk(ierr);
+  CeedCall(CeedCalloc(n * n, &mat_C));
+  CeedCall(CeedCalloc(n * n, &mat_G));
+  CeedCall(CeedCalloc(n, &vec_D));
 
   // Compute B = G D G^T
-  memcpy(mat_G, mat_B, n*n*sizeof(mat_B[0]));
-  ierr = CeedSymmetricSchurDecomposition(ceed, mat_G, vec_D, n); CeedChk(ierr);
+  memcpy(mat_G, mat_B, n * n * sizeof(mat_B[0]));
+  CeedCall(CeedSymmetricSchurDecomposition(ceed, mat_G, vec_D, n));
 
   // Sort eigenvalues
-  for (CeedInt i=n-1; i>=0; i--)
-    for (CeedInt j=0; j<i; j++) {
-      if (fabs(vec_D[j]) > fabs(vec_D[j+1])) {
+  for (CeedInt i = n - 1; i >= 0; i--) {
+    for (CeedInt j = 0; j < i; j++) {
+      if (fabs(vec_D[j]) > fabs(vec_D[j + 1])) {
         CeedScalar temp;
-        temp = vec_D[j]; vec_D[j] = vec_D[j+1]; vec_D[j+1] = temp;
-        for (CeedInt k=0; k<n; k++) {
-          temp = mat_G[k*n+j]; mat_G[k*n+j] = mat_G[k*n+j+1]; mat_G[k*n+j+1] = temp;
+        temp         = vec_D[j];
+        vec_D[j]     = vec_D[j + 1];
+        vec_D[j + 1] = temp;
+        for (CeedInt k = 0; k < n; k++) {
+          temp                 = mat_G[k * n + j];
+          mat_G[k * n + j]     = mat_G[k * n + j + 1];
+          mat_G[k * n + j + 1] = temp;
         }
       }
     }
+  }
 
   // Compute C = (G D^1/2)^-1 A (G D^1/2)^-T
   //           = D^-1/2 G^T A G D^-1/2
   // -- D = D^-1/2
-  for (CeedInt i=0; i<n; i++)
-    vec_D[i] = 1./sqrt(vec_D[i]);
+  for (CeedInt i = 0; i < n; i++) vec_D[i] = 1. / sqrt(vec_D[i]);
   // -- G = G D^-1/2
   // -- C = D^-1/2 G^T
-  for (CeedInt i=0; i<n; i++)
-    for (CeedInt j=0; j<n; j++) {
-      mat_G[i*n+j] *= vec_D[j];
-      mat_C[j*n+i]  = mat_G[i*n+j];
+  for (CeedInt i = 0; i < n; i++) {
+    for (CeedInt j = 0; j < n; j++) {
+      mat_G[i * n + j] *= vec_D[j];
+      mat_C[j * n + i] = mat_G[i * n + j];
     }
+  }
   // -- X = (D^-1/2 G^T) A
-  ierr = CeedMatrixMatrixMultiply(ceed, (const CeedScalar *)mat_C,
-                                  (const CeedScalar *)mat_A, mat_X, n, n, n);
-  CeedChk(ierr);
+  CeedCall(CeedMatrixMatrixMultiply(ceed, (const CeedScalar *)mat_C, (const CeedScalar *)mat_A, mat_X, n, n, n));
   // -- C = (D^-1/2 G^T A) (G D^-1/2)
-  ierr = CeedMatrixMatrixMultiply(ceed, (const CeedScalar *)mat_X,
-                                  (const CeedScalar *)mat_G, mat_C, n, n, n);
-  CeedChk(ierr);
+  CeedCall(CeedMatrixMatrixMultiply(ceed, (const CeedScalar *)mat_X, (const CeedScalar *)mat_G, mat_C, n, n, n));
 
   // Compute Q^T C Q = lambda
-  ierr = CeedSymmetricSchurDecomposition(ceed, mat_C, lambda, n); CeedChk(ierr);
+  CeedCall(CeedSymmetricSchurDecomposition(ceed, mat_C, lambda, n));
 
   // Sort eigenvalues
-  for (CeedInt i=n-1; i>=0; i--)
-    for (CeedInt j=0; j<i; j++) {
-      if (fabs(lambda[j]) > fabs(lambda[j+1])) {
+  for (CeedInt i = n - 1; i >= 0; i--) {
+    for (CeedInt j = 0; j < i; j++) {
+      if (fabs(lambda[j]) > fabs(lambda[j + 1])) {
         CeedScalar temp;
-        temp = lambda[j]; lambda[j] = lambda[j+1]; lambda[j+1] = temp;
-        for (CeedInt k=0; k<n; k++) {
-          temp = mat_C[k*n+j]; mat_C[k*n+j] = mat_C[k*n+j+1]; mat_C[k*n+j+1] = temp;
+        temp          = lambda[j];
+        lambda[j]     = lambda[j + 1];
+        lambda[j + 1] = temp;
+        for (CeedInt k = 0; k < n; k++) {
+          temp                 = mat_C[k * n + j];
+          mat_C[k * n + j]     = mat_C[k * n + j + 1];
+          mat_C[k * n + j + 1] = temp;
         }
       }
     }
+  }
 
   // Set X = (G D^1/2)^-T Q
   //       = G D^-1/2 Q
-  ierr = CeedMatrixMatrixMultiply(ceed, (const CeedScalar *)mat_G,
-                                  (const CeedScalar *)mat_C, mat_X, n, n, n);
-  CeedChk(ierr);
+  CeedCall(CeedMatrixMatrixMultiply(ceed, (const CeedScalar *)mat_G, (const CeedScalar *)mat_C, mat_X, n, n, n));
 
   // Cleanup
-  ierr = CeedFree(&mat_C); CeedChk(ierr);
-  ierr = CeedFree(&mat_G); CeedChk(ierr);
-  ierr = CeedFree(&vec_D); CeedChk(ierr);
+  CeedCall(CeedFree(&mat_C));
+  CeedCall(CeedFree(&mat_G));
+  CeedCall(CeedFree(&vec_D));
   return CEED_ERROR_SUCCESS;
 }
 CeedPragmaOptimizeOn
 
-/// @}
+    /// @}

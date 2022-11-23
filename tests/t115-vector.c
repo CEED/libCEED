@@ -4,10 +4,10 @@
 #include <ceed.h>
 
 int main(int argc, char **argv) {
-  Ceed ceed;
-  CeedVector x;
-  CeedInt n;
-  CeedScalar *a;
+  Ceed              ceed;
+  CeedVector        x;
+  CeedInt           n;
+  CeedScalar       *a;
   const CeedScalar *b;
 
   CeedInit(argv[1], &ceed);

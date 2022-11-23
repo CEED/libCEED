@@ -44,57 +44,45 @@
 // Qdata: w * det(dx_i/dX_j)
 //
 // -----------------------------------------------------------------------------
-CEED_QFUNCTION(SetupMassGeoCube)(void *ctx, const CeedInt Q,
-                             const CeedScalar *const *in,
-                             CeedScalar *const *out) {
+CEED_QFUNCTION(SetupMassGeoCube)(void *ctx, const CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
   // Inputs
   const CeedScalar *J = in[1], *w = in[2];
   // Outputs
   CeedScalar *q_data = out[0];
 
   // Quadrature Point Loop
-  CeedPragmaSIMD
-  for (CeedInt i=0; i<Q; i++) {
+  CeedPragmaSIMD for (CeedInt i = 0; i < Q; i++) {
     // Read dxxdX Jacobian entries, stored as
     // 0 3
     // 1 4
     // 2 5
-    const CeedScalar dxxdX[3][2] = {{J[i+Q*0],
-                                     J[i+Q*3]},
-                                    {J[i+Q*1],
-                                     J[i+Q*4]},
-                                    {J[i+Q*2],
-                                     J[i+Q*5]}
-                                   };
+    const CeedScalar dxxdX[3][2] = {
+        {J[i + Q * 0], J[i + Q * 3]},
+        {J[i + Q * 1], J[i + Q * 4]},
+        {J[i + Q * 2], J[i + Q * 5]}
+    };
 
     // Modulus of dxxdX column vectors
-    const CeedScalar mod_g_1 = sqrt(dxxdX[0][0]*dxxdX[0][0] +
-                                    dxxdX[1][0]*dxxdX[1][0] +
-                                    dxxdX[2][0]*dxxdX[2][0]);
-    const CeedScalar mod_g_2 = sqrt(dxxdX[0][1]*dxxdX[0][1] +
-                                    dxxdX[1][1]*dxxdX[1][1] +
-                                    dxxdX[2][1]*dxxdX[2][1]);
+    const CeedScalar mod_g_1 = sqrt(dxxdX[0][0] * dxxdX[0][0] + dxxdX[1][0] * dxxdX[1][0] + dxxdX[2][0] * dxxdX[2][0]);
+    const CeedScalar mod_g_2 = sqrt(dxxdX[0][1] * dxxdX[0][1] + dxxdX[1][1] * dxxdX[1][1] + dxxdX[2][1] * dxxdX[2][1]);
 
     // Use normalized column vectors of dxxdX as rows of dxdxx
-    const CeedScalar dxdxx[2][3] = {{dxxdX[0][0] / mod_g_1,
-                                     dxxdX[1][0] / mod_g_1,
-                                     dxxdX[2][0] / mod_g_1},
-                                    {dxxdX[0][1] / mod_g_2,
-                                     dxxdX[1][1] / mod_g_2,
-                                     dxxdX[2][1] / mod_g_2}
-                                   };
+    const CeedScalar dxdxx[2][3] = {
+        {dxxdX[0][0] / mod_g_1, dxxdX[1][0] / mod_g_1, dxxdX[2][0] / mod_g_1},
+        {dxxdX[0][1] / mod_g_2, dxxdX[1][1] / mod_g_2, dxxdX[2][1] / mod_g_2}
+    };
 
     CeedScalar dxdX[2][2];
-    for (int j=0; j<2; j++)
-      for (int k=0; k<2; k++) {
+    for (int j = 0; j < 2; j++) {
+      for (int k = 0; k < 2; k++) {
         dxdX[j][k] = 0;
-        for (int l=0; l<3; l++)
-          dxdX[j][k] += dxdxx[j][l]*dxxdX[l][k];
+        for (int l = 0; l < 3; l++) dxdX[j][k] += dxdxx[j][l] * dxxdX[l][k];
       }
+    }
 
-    q_data[i+Q*0] = (dxdX[0][0]*dxdX[1][1] - dxdX[1][0]*dxdX[0][1]) * w[i];
+    q_data[i + Q * 0] = (dxdX[0][0] * dxdX[1][1] - dxdX[1][0] * dxdX[0][1]) * w[i];
 
-  } // End of Quadrature Point Loop
+  }  // End of Quadrature Point Loop
   return 0;
 }
 
@@ -109,20 +97,17 @@ CEED_QFUNCTION(SetupMassGeoCube)(void *ctx, const CeedInt Q,
 //   v     - Output vector (test function) at quadrature points
 //
 // -----------------------------------------------------------------------------
-CEED_QFUNCTION(Mass)(void *ctx, const CeedInt Q,
-                     const CeedScalar *const *in, CeedScalar *const *out) {
+CEED_QFUNCTION(Mass)(void *ctx, const CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
   // Inputs
   const CeedScalar *u = in[0], *q_data = in[1];
   // Outputs
   CeedScalar *v = out[0];
 
   // Quadrature Point Loop
-  CeedPragmaSIMD
-  for (CeedInt i=0; i<Q; i++)
-    v[i] = q_data[i] * u[i];
+  CeedPragmaSIMD for (CeedInt i = 0; i < Q; i++) v[i] = q_data[i] * u[i];
 
   return 0;
 }
 // -----------------------------------------------------------------------------
 
-#endif // areacube_h
+#endif  // areacube_h

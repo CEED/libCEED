@@ -1,8 +1,8 @@
 /// @file
 /// Test viewing of a CEED object full
 /// \test Test viewing of a CEED object
-#include <string.h>
 #include <ceed.h>
+#include <string.h>
 
 int main(int argc, char **argv) {
   Ceed ceed;

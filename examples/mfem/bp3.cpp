@@ -31,34 +31,35 @@
 /// @file
 /// MFEM diffusion operator based on libCEED
 
-#include <ceed.h>
-#include <mfem.hpp>
 #include "bp3.hpp"
+
+#include <ceed.h>
+
+#include <mfem.hpp>
 
 /// Exact solution
 double solution(const mfem::Vector &pt) {
-  static const double x[3] = { -0.32, 0.15, 0.24 };
-  static const double k[3] = { 1.21, 1.45, 1.37 };
-  double val = sin(M_PI*(x[0]+k[0]*pt(0)));
-  for (int d = 1; d < pt.Size(); d++)
-    val *= sin(M_PI*(x[d]+k[d]*pt(d)));
+  static const double x[3] = {-0.32, 0.15, 0.24};
+  static const double k[3] = {1.21, 1.45, 1.37};
+  double              val  = sin(M_PI * (x[0] + k[0] * pt(0)));
+  for (int d = 1; d < pt.Size(); d++) val *= sin(M_PI * (x[d] + k[d] * pt(d)));
   return val;
 }
 
 /// Right-hand side
 double rhs(const mfem::Vector &pt) {
-  static const double x[3] = { -0.32, 0.15, 0.24 };
-  static const double k[3] = { 1.21, 1.45, 1.37 };
-  double f[3], l[3], val, lap;
-  f[0] = sin(M_PI*(x[0]+k[0]*pt(0)));
-  l[0] = M_PI*M_PI*k[0]*k[0]*f[0];
-  val = f[0];
-  lap = l[0];
+  static const double x[3] = {-0.32, 0.15, 0.24};
+  static const double k[3] = {1.21, 1.45, 1.37};
+  double              f[3], l[3], val, lap;
+  f[0] = sin(M_PI * (x[0] + k[0] * pt(0)));
+  l[0] = M_PI * M_PI * k[0] * k[0] * f[0];
+  val  = f[0];
+  lap  = l[0];
   for (int d = 1; d < pt.Size(); d++) {
-    f[d] = sin(M_PI*(x[d]+k[d]*pt(d)));
-    l[d] = M_PI*M_PI*k[d]*k[d]*f[d];
-    lap = lap*f[d] + val*l[d];
-    val = val*f[d];
+    f[d] = sin(M_PI * (x[d] + k[d] * pt(d)));
+    l[d] = M_PI * M_PI * k[d] * k[d] * f[d];
+    lap  = lap * f[d] + val * l[d];
+    val  = val * f[d];
   }
   return lap;
 }
@@ -67,28 +68,23 @@ double rhs(const mfem::Vector &pt) {
 int main(int argc, char *argv[]) {
   // 1. Parse command-line options.
   const char *ceed_spec = "/cpu/self";
-  #ifndef MFEM_DIR
+#ifndef MFEM_DIR
   const char *mesh_file = "../../../mfem/data/star.mesh";
-  #else
+#else
   const char *mesh_file = MFEM_DIR "/data/star.mesh";
-  #endif
-  int order = 2;
-  bool visualization = true;
-  bool test = false;
-  double max_nnodes = 50000;
+#endif
+  int    order         = 2;
+  bool   visualization = true;
+  bool   test          = false;
+  double max_nnodes    = 50000;
 
   mfem::OptionsParser args(argc, argv);
   args.AddOption(&ceed_spec, "-c", "-ceed", "Ceed specification.");
   args.AddOption(&mesh_file, "-m", "--mesh", "Mesh file to use.");
-  args.AddOption(&order, "-o", "--order",
-                 "Finite element order (polynomial degree).");
+  args.AddOption(&order, "-o", "--order", "Finite element order (polynomial degree).");
   args.AddOption(&max_nnodes, "-s", "--size", "Maximum size (number of DoFs)");
-  args.AddOption(&visualization, "-vis", "--visualization", "-no-vis",
-                 "--no-visualization",
-                 "Enable or disable GLVis visualization.");
-  args.AddOption(&test, "-t", "--test", "-no-test",
-                 "--no-test",
-                 "Enable or disable test mode.");
+  args.AddOption(&visualization, "-vis", "--visualization", "-no-vis", "--no-visualization", "Enable or disable GLVis visualization.");
+  args.AddOption(&test, "-t", "--test", "-no-test", "--no-test", "Enable or disable test mode.");
   args.Parse();
   if (!args.Good()) {
     args.PrintUsage(std::cout);
@@ -104,15 +100,14 @@ int main(int argc, char *argv[]) {
 
   // 3. Read the mesh from the given mesh file.
   mfem::Mesh *mesh = new mfem::Mesh(mesh_file, 1, 1);
-  int dim = mesh->Dimension();
+  int         dim  = mesh->Dimension();
 
   // 4. Refine the mesh to increase the resolution. In this example we do
   //    'ref_levels' of uniform refinement. We choose 'ref_levels' to be the
   //    largest number that gives a final system with no more than 50,000
   //    unknowns, approximately.
   {
-    int ref_levels =
-      (int)floor((log(max_nnodes/mesh->GetNE())-dim*log(order))/log(2.)/dim);
+    int ref_levels = (int)floor((log(max_nnodes / mesh->GetNE()) - dim * log(order)) / log(2.) / dim);
     for (int l = 0; l < ref_levels; l++) {
       mesh->UniformRefinement();
     }
@@ -127,16 +122,15 @@ int main(int argc, char *argv[]) {
   // 5. Define a finite element space on the mesh. Here we use continuous
   //    Lagrange finite elements of the specified order.
   MFEM_VERIFY(order > 0, "invalid order");
-  mfem::FiniteElementCollection *fec = new mfem::H1_FECollection(order, dim);
-  mfem::FiniteElementSpace *fespace = new mfem::FiniteElementSpace(mesh, fec);
+  mfem::FiniteElementCollection *fec     = new mfem::H1_FECollection(order, dim);
+  mfem::FiniteElementSpace      *fespace = new mfem::FiniteElementSpace(mesh, fec);
   if (!test) {
-    std::cout << "Number of finite element unknowns: "
-              << fespace->GetTrueVSize() << std::endl;
+    std::cout << "Number of finite element unknowns: " << fespace->GetTrueVSize() << std::endl;
   }
 
   mfem::FunctionCoefficient sol_coeff(solution);
-  mfem::Array<int> ess_tdof_list;
-  mfem::GridFunction sol(fespace);
+  mfem::Array<int>          ess_tdof_list;
+  mfem::GridFunction        sol(fespace);
   if (mesh->bdr_attributes.Size()) {
     mfem::Array<int> ess_bdr(mesh->bdr_attributes.Max());
     ess_bdr = 1;
@@ -146,7 +140,7 @@ int main(int argc, char *argv[]) {
 
   // 6. Construct a rhs vector using the linear form f(v) = (rhs, v), where
   //    v is a test function.
-  mfem::LinearForm b(fespace);
+  mfem::LinearForm          b(fespace);
   mfem::FunctionCoefficient rhs_coeff(rhs);
   b.AddDomainIntegrator(new mfem::DomainLFIntegrator(rhs_coeff));
   b.Assemble();
@@ -156,7 +150,7 @@ int main(int argc, char *argv[]) {
   CeedDiffusionOperator diff(ceed, fespace);
 
   mfem::Operator *D;
-  mfem::Vector X, B;
+  mfem::Vector    X, B;
   diff.FormLinearSystem(ess_tdof_list, sol, b, D, X, B);
 
   // 8. Solve the discrete system using the conjugate gradients (CG) method.
@@ -175,10 +169,9 @@ int main(int argc, char *argv[]) {
   // 9. Compute and print the L2 norm of the error.
   double err_l2 = sol.ComputeL2Error(sol_coeff);
   if (!test) {
-    std::cout << "L2 projection error: " << err_l2
-              << std::endl;
+    std::cout << "L2 projection error: " << err_l2 << std::endl;
   } else {
-    if (fabs(sol.ComputeL2Error(sol_coeff))>2e-3) {
+    if (fabs(sol.ComputeL2Error(sol_coeff)) > 2e-3) {
       std::cout << "Error too large: " << err_l2 << std::endl;
     }
   }
@@ -186,8 +179,8 @@ int main(int argc, char *argv[]) {
   // 10. Open a socket connection to GLVis and send the mesh and solution for
   //     visualization.
   if (visualization) {
-    char vishost[] = "localhost";
-    int  visport   = 19916;
+    char               vishost[] = "localhost";
+    int                visport   = 19916;
     mfem::socketstream sol_sock(vishost, visport);
     sol_sock.precision(8);
     sol_sock << "solution\n" << *mesh << sol << std::flush;

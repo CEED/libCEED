@@ -18,12 +18,10 @@ typedef struct {
   CeedInt size;
 } IdentityCtx;
 
-CEED_QFUNCTION(Identity)(void *ctx, const CeedInt Q,
-                         const CeedScalar *const *in,
-                         CeedScalar *const *out) {
+CEED_QFUNCTION(Identity)(void *ctx, const CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
   // Ctx holds field size
-  IdentityCtx identity_ctx = *(IdentityCtx *)ctx;
-  const CeedInt size = identity_ctx.size;
+  IdentityCtx   identity_ctx = *(IdentityCtx *)ctx;
+  const CeedInt size         = identity_ctx.size;
 
   // in[0] is input, size (Q*size)
   const CeedScalar *input = in[0];
@@ -31,12 +29,9 @@ CEED_QFUNCTION(Identity)(void *ctx, const CeedInt Q,
   CeedScalar *output = out[0];
 
   // Quadrature point loop
-  CeedPragmaSIMD
-  for (CeedInt i=0; i<Q*size; i++) {
-    output[i] = input[i];
-  } // End of Quadrature Point Loop
+  CeedPragmaSIMD for (CeedInt i = 0; i < Q * size; i++) { output[i] = input[i]; }  // End of Quadrature Point Loop
 
   return CEED_ERROR_SUCCESS;
 }
 
-#endif // identity_h
+#endif  // identity_h

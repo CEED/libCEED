@@ -1,21 +1,21 @@
 /// @file
 /// Test creation, evaluation, and destruction for QFunction
 /// \test Test creation, evaluation, and destruction for QFunction
+#include "t409-qfunction.h"
+
 #include <ceed.h>
 #include <math.h>
 
-#include "t409-qfunction.h"
-
 int main(int argc, char **argv) {
-  Ceed ceed;
-  CeedVector in[16], out[16];
-  CeedVector U, V;
-  CeedQFunction qf;
+  Ceed                 ceed;
+  CeedVector           in[16], out[16];
+  CeedVector           U, V;
+  CeedQFunction        qf;
   CeedQFunctionContext ctx;
-  CeedInt Q = 8;
-  const CeedScalar *v;
-  bool is_writable = true;
-  CeedScalar ctx_data[5] = {1, 2, 3, 4, 5};
+  CeedInt              Q = 8;
+  const CeedScalar    *v;
+  bool                 is_writable = true;
+  CeedScalar           ctx_data[5] = {1, 2, 3, 4, 5};
 
   CeedInit(argv[1], &ceed);
 
@@ -24,8 +24,7 @@ int main(int argc, char **argv) {
   CeedQFunctionAddOutput(qf, "v", 1, CEED_EVAL_INTERP);
 
   CeedQFunctionContextCreate(ceed, &ctx);
-  CeedQFunctionContextSetData(ctx, CEED_MEM_HOST, CEED_COPY_VALUES,
-                              sizeof(ctx_data), &ctx_data);
+  CeedQFunctionContextSetData(ctx, CEED_MEM_HOST, CEED_COPY_VALUES, sizeof(ctx_data), &ctx_data);
   CeedQFunctionSetContext(qf, ctx);
   CeedQFunctionSetContextWritable(qf, is_writable);
 
@@ -35,14 +34,14 @@ int main(int argc, char **argv) {
   CeedVectorSetValue(V, 0.0);
 
   {
-    in[0] = U;
+    in[0]  = U;
     out[0] = V;
     CeedQFunctionApply(qf, Q, in, out);
   }
 
   CeedVectorGetArrayRead(V, CEED_MEM_HOST, &v);
-  for (CeedInt i=0; i<Q; i++)
-    if (fabs(v[i] - ctx_data[1]) > 100.*CEED_EPSILON)
+  for (CeedInt i = 0; i < Q; i++)
+    if (fabs(v[i] - ctx_data[1]) > 100. * CEED_EPSILON)
       // LCOV_EXCL_START
       printf("v[%" CeedInt_FMT "] %f != 2.0\n", i, v[i]);
   // LCOV_EXCL_STOP
@@ -70,7 +69,7 @@ int main(int argc, char **argv) {
   is_writable = false;
   CeedQFunctionSetContextWritable(qf, is_writable);
   {
-    in[0] = U;
+    in[0]  = U;
     out[0] = V;
     // Will only error in `/cpu/self/memcheck/*` backends
     CeedQFunctionApply(qf, Q, in, out);

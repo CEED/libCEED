@@ -10,6 +10,7 @@
 
 #include <ceed.h>
 #include <petsc.h>
+
 #include "../include/structs.h"
 
 // This function uses libCEED to compute the local action of an operator
@@ -34,11 +35,9 @@ PetscErrorCode Restrict_Ceed(Mat A, Vec X, Vec Y);
 PetscErrorCode GetDiag_Ceed(Mat A, Vec D);
 
 // This function calculates the strain energy in the final solution
-PetscErrorCode ComputeStrainEnergy(DM dm_energy, UserMult user,
-                                   CeedOperator op_energy, Vec X,
-                                   PetscReal *energy);
+PetscErrorCode ComputeStrainEnergy(DM dm_energy, UserMult user, CeedOperator op_energy, Vec X, PetscReal *energy);
 
 // this function checks to see if the computed energy is close enough to reference file energy.
 PetscErrorCode RegressionTests_solids(AppCtx app_ctx, PetscReal energy);
 
-#endif // libceed_solids_examples_matopts_h
+#endif  // libceed_solids_examples_matopts_h

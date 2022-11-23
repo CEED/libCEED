@@ -20,6 +20,10 @@ On this page we provide a summary of the main API changes, new features and exam
 Due to a limitation of the OCCA parser, typedefs are required to use pointers to arrays in QFunctions with the OCCA backend.
 This issue will be fixed in a future OCCA release.
 
+### Other
+
+- Switch to `clang-format` over `astyle` for automatic formatting; Makefile command changed to `make format` from `make style`.
+
 ### Bugfix
 
 - Fix bug in setting device id for GPU backends.

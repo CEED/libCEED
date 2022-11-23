@@ -5,18 +5,17 @@
 #include <math.h>
 
 int main(int argc, char **argv) {
-  Ceed ceed;
-  CeedVector x;
-  CeedInt n;
-  CeedScalar a[10];
+  Ceed              ceed;
+  CeedVector        x;
+  CeedInt           n;
+  CeedScalar        a[10];
   const CeedScalar *b;
 
   CeedInit(argv[1], &ceed);
 
   n = 10;
   CeedVectorCreate(ceed, n, &x);
-  for (CeedInt i=0; i<n; i++)
-    a[i] = 10 + i;
+  for (CeedInt i = 0; i < n; i++) a[i] = 10 + i;
   CeedVectorSetArray(x, CEED_MEM_HOST, CEED_COPY_VALUES, a);
 
   {
@@ -28,12 +27,13 @@ int main(int argc, char **argv) {
   CeedVectorScale(x, -0.5);
 
   CeedVectorGetArrayRead(x, CEED_MEM_HOST, &b);
-  for (CeedInt i=0; i<n; i++)
-    if (fabs(b[i] + (10.0 + i)/2 ) > 1e-14)
+  for (CeedInt i = 0; i < n; i++) {
+    if (fabs(b[i] + (10.0 + i) / 2) > 1e-14) {
       // LCOV_EXCL_START
-      printf("Error in alpha x at index %" CeedInt_FMT
-             ", computed: %f actual: %f\n", i, b[i], -(10.0 + i)/2);
-  // LCOV_EXCL_STOP
+      printf("Error in alpha x at index %" CeedInt_FMT ", computed: %f actual: %f\n", i, b[i], -(10.0 + i) / 2);
+      // LCOV_EXCL_STOP
+    }
+  }
   CeedVectorRestoreArrayRead(x, &b);
 
   CeedVectorDestroy(&x);

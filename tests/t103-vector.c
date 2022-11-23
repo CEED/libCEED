@@ -4,11 +4,11 @@
 #include <ceed.h>
 
 int main(int argc, char **argv) {
-  Ceed ceed;
-  CeedVector X, Y;
-  CeedInt n;
-  CeedScalar a[10];
-  CeedScalar *x;
+  Ceed              ceed;
+  CeedVector        X, Y;
+  CeedInt           n;
+  CeedScalar        a[10];
+  CeedScalar       *x;
   const CeedScalar *y;
 
   CeedInit(argv[1], &ceed);
@@ -17,8 +17,7 @@ int main(int argc, char **argv) {
   CeedVectorCreate(ceed, n, &X);
   CeedVectorCreate(ceed, n, &Y);
 
-  for (CeedInt i=0; i<n; i++)
-    a[i] = 10 + i;
+  for (CeedInt i = 0; i < n; i++) a[i] = 10 + i;
   CeedVectorSetArray(X, CEED_MEM_HOST, CEED_USE_POINTER, a);
 
   CeedVectorGetArray(X, CEED_MEM_HOST, &x);
@@ -26,12 +25,9 @@ int main(int argc, char **argv) {
   CeedVectorRestoreArray(X, &x);
 
   CeedVectorGetArrayRead(Y, CEED_MEM_HOST, &y);
-  for (CeedInt i=0; i<n; i++)
-    if (y[i] != 10+i)
-      // LCOV_EXCL_START
-      printf("Error reading array y[%" CeedInt_FMT
-             "] = %f\n",i,(CeedScalar)y[i]);
-  // LCOV_EXCL_STOP
+  for (CeedInt i = 0; i < n; i++) {
+    if (y[i] != 10 + i) printf("Error reading array y[%" CeedInt_FMT "] = %f\n", i, (CeedScalar)y[i]);
+  }
   CeedVectorRestoreArrayRead(Y, &y);
 
   CeedVectorDestroy(&X);

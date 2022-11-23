@@ -5,48 +5,34 @@
 //
 // This file is part of CEED:  http://github.com/ceed
 
-#include <ceed/ceed.h>
-#include <ceed/backend.h>
-#include <string.h>
 #include "ceed-ref.h"
+
+#include <ceed/backend.h>
+#include <ceed/ceed.h>
+#include <string.h>
 
 //------------------------------------------------------------------------------
 // Backend Init
 //------------------------------------------------------------------------------
 static int CeedInit_Ref(const char *resource, Ceed ceed) {
-  int ierr;
-  if (strcmp(resource, "/cpu/self") && strcmp(resource, "/cpu/self/ref")
-      && strcmp(resource, "/cpu/self/ref/serial"))
+  if (strcmp(resource, "/cpu/self") && strcmp(resource, "/cpu/self/ref") && strcmp(resource, "/cpu/self/ref/serial")) {
     // LCOV_EXCL_START
-    return CeedError(ceed, CEED_ERROR_BACKEND,
-                     "Ref backend cannot use resource: %s", resource);
-  // LCOV_EXCL_STOP
-  ierr = CeedSetDeterministic(ceed, true); CeedChkBackend(ierr);
+    return CeedError(ceed, CEED_ERROR_BACKEND, "Ref backend cannot use resource: %s", resource);
+    // LCOV_EXCL_STOP
+  }
+  CeedCallBackend(CeedSetDeterministic(ceed, true));
 
-  ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "VectorCreate",
-                                CeedVectorCreate_Ref); CeedChkBackend(ierr);
-  ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "BasisCreateTensorH1",
-                                CeedBasisCreateTensorH1_Ref); CeedChkBackend(ierr);
-  ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "BasisCreateH1",
-                                CeedBasisCreateH1_Ref); CeedChkBackend(ierr);
-  ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "BasisCreateHdiv",
-                                CeedBasisCreateHdiv_Ref); CeedChkBackend(ierr);
-  ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "TensorContractCreate",
-                                CeedTensorContractCreate_Ref); CeedChkBackend(ierr);
-  ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "ElemRestrictionCreate",
-                                CeedElemRestrictionCreate_Ref); CeedChkBackend(ierr);
-  ierr = CeedSetBackendFunction(ceed, "Ceed", ceed,
-                                "ElemRestrictionCreateOriented",
-                                CeedElemRestrictionCreateOriented_Ref); CeedChkBackend(ierr);
-  ierr = CeedSetBackendFunction(ceed, "Ceed", ceed,
-                                "ElemRestrictionCreateBlocked",
-                                CeedElemRestrictionCreate_Ref); CeedChkBackend(ierr);
-  ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "QFunctionCreate",
-                                CeedQFunctionCreate_Ref); CeedChkBackend(ierr);
-  ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "QFunctionContextCreate",
-                                CeedQFunctionContextCreate_Ref); CeedChkBackend(ierr);
-  ierr = CeedSetBackendFunction(ceed, "Ceed", ceed, "OperatorCreate",
-                                CeedOperatorCreate_Ref); CeedChkBackend(ierr);
+  CeedCallBackend(CeedSetBackendFunction(ceed, "Ceed", ceed, "VectorCreate", CeedVectorCreate_Ref));
+  CeedCallBackend(CeedSetBackendFunction(ceed, "Ceed", ceed, "BasisCreateTensorH1", CeedBasisCreateTensorH1_Ref));
+  CeedCallBackend(CeedSetBackendFunction(ceed, "Ceed", ceed, "BasisCreateH1", CeedBasisCreateH1_Ref));
+  CeedCallBackend(CeedSetBackendFunction(ceed, "Ceed", ceed, "BasisCreateHdiv", CeedBasisCreateHdiv_Ref));
+  CeedCallBackend(CeedSetBackendFunction(ceed, "Ceed", ceed, "TensorContractCreate", CeedTensorContractCreate_Ref));
+  CeedCallBackend(CeedSetBackendFunction(ceed, "Ceed", ceed, "ElemRestrictionCreate", CeedElemRestrictionCreate_Ref));
+  CeedCallBackend(CeedSetBackendFunction(ceed, "Ceed", ceed, "ElemRestrictionCreateOriented", CeedElemRestrictionCreateOriented_Ref));
+  CeedCallBackend(CeedSetBackendFunction(ceed, "Ceed", ceed, "ElemRestrictionCreateBlocked", CeedElemRestrictionCreate_Ref));
+  CeedCallBackend(CeedSetBackendFunction(ceed, "Ceed", ceed, "QFunctionCreate", CeedQFunctionCreate_Ref));
+  CeedCallBackend(CeedSetBackendFunction(ceed, "Ceed", ceed, "QFunctionContextCreate", CeedQFunctionContextCreate_Ref));
+  CeedCallBackend(CeedSetBackendFunction(ceed, "Ceed", ceed, "OperatorCreate", CeedOperatorCreate_Ref));
   return CEED_ERROR_SUCCESS;
 }
 
@@ -55,8 +41,8 @@ static int CeedInit_Ref(const char *resource, Ceed ceed) {
 //------------------------------------------------------------------------------
 CEED_INTERN int CeedRegister_Ref(void) {
   return
-//! [Register]
-    CeedRegister("/cpu/self/ref/serial", CeedInit_Ref, 50);
-//! [Register]
+      //! [Register]
+      CeedRegister("/cpu/self/ref/serial", CeedInit_Ref, 50);
+  //! [Register]
 }
 //------------------------------------------------------------------------------

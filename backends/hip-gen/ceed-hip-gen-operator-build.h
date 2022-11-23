@@ -8,10 +8,7 @@
 #ifndef _ceed_hip_gen_operator_build_h
 #define _ceed_hip_gen_operator_build_h
 
-CEED_INTERN int BlockGridCalculate_Hip_gen(const CeedInt dim,
-    const CeedInt num_elem,
-    const CeedInt P_1d, const CeedInt Q_1d,
-    CeedInt *block_sizes);
+CEED_INTERN int BlockGridCalculate_Hip_gen(const CeedInt dim, const CeedInt num_elem, const CeedInt P_1d, const CeedInt Q_1d, CeedInt *block_sizes);
 CEED_INTERN int CeedHipGenOperatorBuild(CeedOperator op);
 
-#endif // _ceed_hip_gen_operator_build_h
+#endif  // _ceed_hip_gen_operator_build_h

@@ -8,91 +8,83 @@
 /// @file
 /// DM setup for solid mechanics example using PETSc
 
-#include "../include/boundary.h"
 #include "../include/setup-dm.h"
+
+#include "../include/boundary.h"
 
 // -----------------------------------------------------------------------------
 // Setup DM
 // -----------------------------------------------------------------------------
 PetscErrorCode CreateBCLabel(DM dm, const char name[]) {
-  PetscErrorCode ierr;
   DMLabel label;
 
   PetscFunctionBeginUser;
 
-  ierr = DMCreateLabel(dm, name); CHKERRQ(ierr);
-  ierr = DMGetLabel(dm, name, &label); CHKERRQ(ierr);
-  ierr = DMPlexMarkBoundaryFaces(dm, 1, label); CHKERRQ(ierr);
+  PetscCall(DMCreateLabel(dm, name));
+  PetscCall(DMGetLabel(dm, name, &label));
+  PetscCall(DMPlexMarkBoundaryFaces(dm, 1, label));
 
   PetscFunctionReturn(0);
 };
 
 // Read mesh and distribute DM in parallel
 PetscErrorCode CreateDistributedDM(MPI_Comm comm, AppCtx app_ctx, DM *dm) {
-  PetscErrorCode  ierr;
-  const char      *filename = app_ctx->mesh_file;
-  PetscBool       interpolate = PETSC_TRUE;
-  DM              distributed_mesh = NULL;
+  const char      *filename         = app_ctx->mesh_file;
+  PetscBool        interpolate      = PETSC_TRUE;
+  DM               distributed_mesh = NULL;
   PetscPartitioner part;
 
   PetscFunctionBeginUser;
 
   if (!*filename) {
     PetscInt dim = 3, faces[3] = {3, 3, 3};
-    ierr = PetscOptionsGetIntArray(NULL, NULL, "-dm_plex_box_faces",
-                                   faces, &dim, NULL); CHKERRQ(ierr);
+    PetscCall(PetscOptionsGetIntArray(NULL, NULL, "-dm_plex_box_faces", faces, &dim, NULL));
     if (!dim) dim = 3;
-    ierr = DMPlexCreateBoxMesh(comm, dim, PETSC_FALSE, faces, NULL,
-                               NULL, NULL, interpolate, dm); CHKERRQ(ierr);
+    PetscCall(DMPlexCreateBoxMesh(comm, dim, PETSC_FALSE, faces, NULL, NULL, NULL, interpolate, dm));
   } else {
-    ierr = DMPlexCreateFromFile(comm, filename, NULL, interpolate, dm);
-    CHKERRQ(ierr);
+    PetscCall(DMPlexCreateFromFile(comm, filename, NULL, interpolate, dm));
   }
 
   // Distribute DM in parallel
-  ierr = DMPlexGetPartitioner(*dm, &part); CHKERRQ(ierr);
-  ierr = PetscPartitionerSetFromOptions(part); CHKERRQ(ierr);
-  ierr = DMPlexDistribute(*dm, 0, NULL, &distributed_mesh); CHKERRQ(ierr);
+  PetscCall(DMPlexGetPartitioner(*dm, &part));
+  PetscCall(PetscPartitionerSetFromOptions(part));
+  PetscCall(DMPlexDistribute(*dm, 0, NULL, &distributed_mesh));
   if (distributed_mesh) {
-    ierr = DMDestroy(dm); CHKERRQ(ierr);
-    *dm  = distributed_mesh;
+    PetscCall(DMDestroy(dm));
+    *dm = distributed_mesh;
   }
-  ierr = DMViewFromOptions(*dm, NULL, "-dm_view"); CHKERRQ(ierr);
+  PetscCall(DMViewFromOptions(*dm, NULL, "-dm_view"));
 
   PetscFunctionReturn(0);
 };
 
 // Setup DM with FE space of appropriate degree
-PetscErrorCode SetupDMByDegree(DM dm, AppCtx app_ctx, PetscInt order,
-                               PetscBool boundary, PetscInt num_comp_u) {
-  PetscErrorCode  ierr;
+PetscErrorCode SetupDMByDegree(DM dm, AppCtx app_ctx, PetscInt order, PetscBool boundary, PetscInt num_comp_u) {
   MPI_Comm        comm;
   PetscInt        dim;
   PetscFE         fe;
   IS              face_set_is;         // Index Set for Face Sets
-  const char      *name = "Face Sets"; // PETSc internal requirement
+  const char     *name = "Face Sets";  // PETSc internal requirement
   PetscInt        num_face_sets;       // Number of FaceSets in face_set_is
-  const PetscInt  *face_set_ids;       // id of each FaceSet
+  const PetscInt *face_set_ids;        // id of each FaceSet
 
   PetscFunctionBeginUser;
 
   // Setup DM
-  ierr = DMGetDimension(dm, &dim); CHKERRQ(ierr);
-  ierr = PetscObjectGetComm((PetscObject)dm, &comm); CHKERRQ(ierr);
-  ierr = PetscFECreateLagrange(comm, dim, num_comp_u, PETSC_FALSE, order, order,
-                               &fe); CHKERRQ(ierr);
-  ierr = DMSetFromOptions(dm); CHKERRQ(ierr);
-  ierr = DMAddField(dm, NULL, (PetscObject)fe); CHKERRQ(ierr);
-  ierr = DMCreateDS(dm); CHKERRQ(ierr);
+  PetscCall(DMGetDimension(dm, &dim));
+  PetscCall(PetscObjectGetComm((PetscObject)dm, &comm));
+  PetscCall(PetscFECreateLagrange(comm, dim, num_comp_u, PETSC_FALSE, order, order, &fe));
+  PetscCall(DMSetFromOptions(dm));
+  PetscCall(DMAddField(dm, NULL, (PetscObject)fe));
+  PetscCall(DMCreateDS(dm));
   {
     /* create FE field for coordinates */
-    PetscFE fe_coords;
+    PetscFE  fe_coords;
     PetscInt num_comp_coord;
-    ierr = DMGetCoordinateDim(dm, &num_comp_coord); CHKERRQ(ierr);
-    ierr = PetscFECreateLagrange(comm, dim, num_comp_coord, PETSC_FALSE, 1, 1,
-                                 &fe_coords); CHKERRQ(ierr);
-    ierr = DMProjectCoordinates(dm, fe_coords); CHKERRQ(ierr);
-    ierr = PetscFEDestroy(&fe_coords); CHKERRQ(ierr);
+    PetscCall(DMGetCoordinateDim(dm, &num_comp_coord));
+    PetscCall(PetscFECreateLagrange(comm, dim, num_comp_coord, PETSC_FALSE, 1, 1, &fe_coords));
+    PetscCall(DMProjectCoordinates(dm, fe_coords));
+    PetscCall(PetscFEDestroy(&fe_coords));
   }
 
   // Add Dirichlet (Essential) boundary
@@ -101,52 +93,42 @@ PetscErrorCode SetupDMByDegree(DM dm, AppCtx app_ctx, PetscInt order,
       if (app_ctx->test_mode) {
         // -- Test mode - box mesh
         PetscBool has_label;
-        PetscInt marker_ids[1] = {1};
-        ierr = DMHasLabel(dm, "marker", &has_label); CHKERRQ(ierr);
+        PetscInt  marker_ids[1] = {1};
+        PetscCall(DMHasLabel(dm, "marker", &has_label));
         if (!has_label) {
-          ierr = CreateBCLabel(dm, "marker"); CHKERRQ(ierr);
+          PetscCall(CreateBCLabel(dm, "marker"));
         }
         DMLabel label;
-        ierr = DMGetLabel(dm, "marker", &label); CHKERRQ(ierr);
-        ierr = DMAddBoundary(dm, DM_BC_ESSENTIAL, "mms", label, 1, marker_ids,
-                             0, 0, NULL, (void(*)(void))BCMMS, NULL, NULL, NULL);
-        CHKERRQ(ierr);
+        PetscCall(DMGetLabel(dm, "marker", &label));
+        PetscCall(DMAddBoundary(dm, DM_BC_ESSENTIAL, "mms", label, 1, marker_ids, 0, 0, NULL, (void (*)(void))BCMMS, NULL, NULL, NULL));
       } else {
         // -- ExodusII mesh with MMS
-        ierr = DMGetLabelIdIS(dm, name, &face_set_is); CHKERRQ(ierr);
-        ierr = ISGetSize(face_set_is,&num_face_sets); CHKERRQ(ierr);
-        ierr = ISGetIndices(face_set_is, &face_set_ids); CHKERRQ(ierr);
+        PetscCall(DMGetLabelIdIS(dm, name, &face_set_is));
+        PetscCall(ISGetSize(face_set_is, &num_face_sets));
+        PetscCall(ISGetIndices(face_set_is, &face_set_ids));
         DMLabel label;
-        ierr = DMGetLabel(dm, "Face Sets", &label); CHKERRQ(ierr);
-        ierr = DMAddBoundary(dm, DM_BC_ESSENTIAL, "mms", label,
-                             num_face_sets, face_set_ids, 0, 0, NULL,
-                             (void(*)(void))BCMMS, NULL, NULL, NULL);
-        CHKERRQ(ierr);
-        ierr = ISRestoreIndices(face_set_is, &face_set_ids); CHKERRQ(ierr);
-        ierr = ISDestroy(&face_set_is); CHKERRQ(ierr);
+        PetscCall(DMGetLabel(dm, "Face Sets", &label));
+        PetscCall(DMAddBoundary(dm, DM_BC_ESSENTIAL, "mms", label, num_face_sets, face_set_ids, 0, 0, NULL, (void (*)(void))BCMMS, NULL, NULL, NULL));
+        PetscCall(ISRestoreIndices(face_set_is, &face_set_ids));
+        PetscCall(ISDestroy(&face_set_is));
       }
     } else {
       // -- Mesh with user specified BCs
       DMLabel label;
-      ierr = DMGetLabel(dm, "Face Sets", &label); CHKERRQ(ierr);
+      PetscCall(DMGetLabel(dm, "Face Sets", &label));
       // -- Clamp BCs
       for (PetscInt i = 0; i < app_ctx->bc_clamp_count; i++) {
         char bcName[25];
-        snprintf(bcName, sizeof bcName, "clamp_%" PetscInt_FMT,
-                 app_ctx->bc_clamp_faces[i]);
-        ierr = DMAddBoundary(dm, DM_BC_ESSENTIAL, bcName, label, 1,
-                             &app_ctx->bc_clamp_faces[i], 0, 0,
-                             NULL, (void(*)(void))BCClamp, NULL,
-                             (void *)&app_ctx->bc_clamp_max[i], NULL);
-        CHKERRQ(ierr);
+        snprintf(bcName, sizeof bcName, "clamp_%" PetscInt_FMT, app_ctx->bc_clamp_faces[i]);
+        PetscCall(DMAddBoundary(dm, DM_BC_ESSENTIAL, bcName, label, 1, &app_ctx->bc_clamp_faces[i], 0, 0, NULL, (void (*)(void))BCClamp, NULL,
+                                (void *)&app_ctx->bc_clamp_max[i], NULL));
       }
     }
   }
-  ierr = DMPlexSetClosurePermutationTensor(dm, PETSC_DETERMINE, NULL);
-  CHKERRQ(ierr);
+  PetscCall(DMPlexSetClosurePermutationTensor(dm, PETSC_DETERMINE, NULL));
 
   // Cleanup
-  ierr = PetscFEDestroy(&fe); CHKERRQ(ierr);
+  PetscCall(PetscFEDestroy(&fe));
 
   PetscFunctionReturn(0);
 };
