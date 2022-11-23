@@ -14,7 +14,7 @@
 #include "ceed/ceed-f64.h"
 #include "stg_shur14.h"
 
-PetscErrorCode NS_VORTEXSHEDDING(ProblemData *problem, DM dm, void *ctx) {
+PetscErrorCode NS_VORTEXSHEDDING(ProblemData *problem, DM dm, void *ctx, SimpleBC bc) {
 
   PetscInt ierr;
   User      user    = *(User *)ctx;
@@ -25,7 +25,7 @@ PetscErrorCode NS_VORTEXSHEDDING(ProblemData *problem, DM dm, void *ctx) {
   CeedQFunctionContext vortexshedding_context, freestream_context;
 
   PetscFunctionBeginUser;
-  ierr = NS_NEWTONIAN_IG(problem, dm, ctx); CHKERRQ(ierr);
+  PetscCall(NS_NEWTONIAN_IG(problem, dm, ctx, bc));
   ierr = PetscCalloc1(1, &vortexshedding_ctx); CHKERRQ(ierr);
 
   // ------------------------------------------------------
@@ -37,13 +37,13 @@ PetscErrorCode NS_VORTEXSHEDDING(ProblemData *problem, DM dm, void *ctx) {
   case STATEVAR_CONSERVATIVE:
     problem->ics.qfunction      = ICsVortexshedding_Conserv;
     problem->ics.qfunction_loc  = ICsVortexshedding_Conserv_loc;
-    problem->apply_freestream.qfunction     = Freestream_Conserv;
-    problem->apply_freestream.qfunction_loc = Freestream_Conserv_loc;
+    //problem->apply_freestream.qfunction     = Freestream_Conserv;
+    //problem->apply_freestream.qfunction_loc = Freestream_Conserv_loc;
   case STATEVAR_PRIMITIVE:
     problem->ics.qfunction      = ICsVortexshedding_Prim;
     problem->ics.qfunction_loc  = ICsVortexshedding_Prim_loc;
-    problem->apply_freestream.qfunction     = Freestream_Prim;
-    problem->apply_freestream.qfunction_loc = Freestream_Prim_loc;
+    //problem->apply_freestream.qfunction     = Freestream_Prim;
+    //problem->apply_freestream.qfunction_loc = Freestream_Prim_loc;
   }
 
   CeedScalar U_in[3]            = {1.0};       // m/s
@@ -93,11 +93,11 @@ PetscErrorCode NS_VORTEXSHEDDING(ProblemData *problem, DM dm, void *ctx) {
 
   CeedQFunctionContextGetData(problem->apply_vol_rhs.qfunction_context,
                               CEED_MEM_HOST, &newtonian_ig_ctx);
-  State S_in;
+  State S_infty;
   {
     CeedScalar Y[5] = {P0, U_in[0], U_in[1], U_in[2], T_in};
     CeedScalar x[3] = {0.};
-    S_in = StateFromY(newtonian_ig_ctx, Y, x);
+    S_infty = StateFromY(newtonian_ig_ctx, Y, x);
   }
 
   //-- Setup Problem information
@@ -122,13 +122,13 @@ PetscErrorCode NS_VORTEXSHEDDING(ProblemData *problem, DM dm, void *ctx) {
   vortexshedding_ctx->radius   = radius;
   vortexshedding_ctx->T_in     = T_in;
   vortexshedding_ctx->P0       = P0;
-  vortexshedding_ctx->S_in     = S_in;
+  vortexshedding_ctx->S_infty  = S_infty;
   vortexshedding_ctx->implicit = user->phys->implicit;
   vortexshedding_ctx->newtonian_ctx = *newtonian_ig_ctx;
 
   ierr = PetscCalloc1(1, &freestream_ctx); CHKERRQ(ierr);
   freestream_ctx->newtonian_ctx = *newtonian_ig_ctx;
-  freestream_ctx->S_in       = S_in;
+  freestream_ctx->S_infty       = S_infty;
 
   CeedQFunctionContextRestoreData(problem->apply_vol_rhs.qfunction_context,
                                   &newtonian_ig_ctx);

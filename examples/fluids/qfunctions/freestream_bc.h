@@ -420,8 +420,3 @@ CEED_QFUNCTION(Freestream_Jacobian_Conserv_HLLC)(void *ctx, CeedInt Q, const Cee
 CEED_QFUNCTION(Freestream_Jacobian_Prim_HLLC)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
   return Freestream_Jacobian(ctx, Q, in, out, StateFromY, StateFromY_fwd, RiemannFlux_HLLC_fwd);
 }
-
-CEED_QFUNCTION(Freestream_Prim)(void *ctx, CeedInt Q,
-                                const CeedScalar *const *in, CeedScalar *const *out) {
-  return Freestream(ctx, Q, in, out, StateFromY, StateFromY_fwd);
-}

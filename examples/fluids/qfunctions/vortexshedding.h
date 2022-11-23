@@ -32,7 +32,7 @@ struct VortexsheddingContext_ {
   CeedScalar D;        // !< Cylinder diameter
   CeedScalar center;   // !< Cylinder center
   CeedScalar radius;   // !< Cylinder radius
-  State      S_in;
+  State      S_infty;
   struct NewtonianIdealGasContext_ newtonian_ctx;
 };
 
@@ -57,7 +57,7 @@ CEED_QFUNCTION_HELPER int ICsVortexshedding(void *ctx, CeedInt Q,
   const CeedScalar D           = context->D;
   const CeedScalar center      = context->center;
   const CeedScalar radius      = context->radius;
-  const State      S_in        = context->S_in;
+  const State      S_infty     = context->S_infty;
   const CeedScalar cv          = context->newtonian_ctx.cv;
   const CeedScalar mu          = context->newtonian_ctx.mu;
   const CeedScalar gamma       = HeatCapacityRatio(&context->newtonian_ctx);

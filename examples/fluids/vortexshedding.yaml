@@ -13,10 +13,10 @@ ts:
   max_steps: 400
   alpha_radius: 0.5
 
-
-U_in: 1,0,0
-T_in: 24.92
-P0: 7143
+freestream:
+  U_in: 1,0,0
+  T_in: 24.92
+  P0: 7143
 
 # viscosity
 mu: 0.01
