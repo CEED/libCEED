@@ -16,11 +16,14 @@
 
 /// @file
 /// Utility functions for setting up Linear mixed-elasticity problem in 3D
+#include "../qfunctions/bp4.h"
 
 #include "../include/register-problem.h"
+#include "../qfunctions/compute-error.h"
+#include "../qfunctions/volumetric-geometry.h"
 
 PetscErrorCode Linear_Mixed(Ceed ceed, ProblemData problem_data, DM dm, void *ctx) {
-  AppCtx app_ctx = *(AppCtx *)ctx;
+  // AppCtx app_ctx = *(AppCtx *)ctx;
 
   PetscFunctionBeginUser;
 
@@ -28,6 +31,14 @@ PetscErrorCode Linear_Mixed(Ceed ceed, ProblemData problem_data, DM dm, void *ct
   //               SET UP POISSON_QUAD2D
   // ------------------------------------------------------
   problem_data->quadrature_mode = CEED_GAUSS;
-
+  problem_data->q_data_size     = 10;
+  problem_data->setup_geo       = SetupVolumeGeometry;
+  problem_data->setup_geo_loc   = SetupVolumeGeometry_loc;
+  problem_data->setup_rhs       = SetupDiffRhs3;
+  problem_data->setup_rhs_loc   = SetupDiffRhs3_loc;
+  problem_data->residual        = Diff3;
+  problem_data->residual_loc    = Diff3_loc;
+  problem_data->error           = Error3;
+  problem_data->error_loc       = Error3_loc;
   PetscFunctionReturn(0);
 }

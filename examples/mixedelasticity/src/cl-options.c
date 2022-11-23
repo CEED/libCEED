@@ -40,11 +40,11 @@ PetscErrorCode ProcessCommandLineOptions(AppCtx app_ctx) {
                               sizeof(app_ctx->problem_name), &problem_flag));
   // Provide default problem if not specified
   if (!problem_flag) {
-    const char *problem_name = "linear";
+    const char *problem_name = "bp4";
     strncpy(app_ctx->problem_name, problem_name, 16);
   }
-  app_ctx->order = 1;
-  PetscCall(PetscOptionsInt("-order", "Polynomial degree of finite elements", NULL, app_ctx->order, &app_ctx->order, NULL));
+  app_ctx->p_order = 1;
+  PetscCall(PetscOptionsInt("-p_order", "Polynomial degree of finite elements", NULL, app_ctx->p_order, &app_ctx->p_order, NULL));
 
   app_ctx->q_extra = 0;
   PetscCall(PetscOptionsInt("-q_extra", "Number of extra quadrature points", NULL, app_ctx->q_extra, &app_ctx->q_extra, NULL));
