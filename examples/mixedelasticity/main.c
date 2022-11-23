@@ -24,7 +24,7 @@
 // Build with: make
 // Run with:
 //   ./main -pc_type svd -problem elasticity3d -dm_plex_dim 3 -dm_plex_box_faces 4,4,4 -ksp_type minres
-//   ./main -pc_type none -problem elasticity3d -dm_plex_filename /path to the mesh file
+//   ./main -pc_type none -problem elasticity3d -dm_plex_filename /path to the mesh file -dm_plex_simplex 0
 #include <stdio.h>
 const char help[] = "Solve mixed-elasticity problem using PETSc and libCEED\n";
 
@@ -45,14 +45,31 @@ int main(int argc, char **argv) {
 
   ProblemData problem_data = NULL;
   PetscCall(PetscCalloc1(1, &problem_data));
-  app_ctx->comm = comm;
+
+  CeedData ceed_data;
+  PetscCall(PetscCalloc1(1, &ceed_data));
+
+  OperatorApplyContext ctx_residual, ctx_error;
+  PetscCall(PetscCalloc1(1, &ctx_residual));
+  PetscCall(PetscCalloc1(1, &ctx_error));
+  // Context for residual
+  app_ctx->ctx_residual = ctx_residual;
+  // Context for computing error
+  app_ctx->ctx_error = ctx_error;
+  app_ctx->comm      = comm;
+
+  // ---------------------------------------------------------------------------
+  // Process command line options
+  // ---------------------------------------------------------------------------
+  PetscCall(ProcessCommandLineOptions(app_ctx));
+
   // ---------------------------------------------------------------------------
   // Initialize libCEED
   // ---------------------------------------------------------------------------
   // -- Initialize backend
   Ceed ceed;
-  CeedInit("/cpu/self/ref/serial", &ceed);
-  // CeedInit(app_ctx->ceed_resource, &ceed);
+  // CeedInit("/cpu/self/ref/serial", &ceed);
+  CeedInit(app_ctx->ceed_resource, &ceed);
 
   // ---------------------------------------------------------------------------
   // Setup DM for mixed-problem
@@ -61,15 +78,10 @@ int main(int argc, char **argv) {
   PetscCall(CreateDM(comm, ceed, &dm));
 
   // ---------------------------------------------------------------------------
-  // Process command line options
+  // Choose the problem from the list of registered problems
   // ---------------------------------------------------------------------------
   // -- Register problems to be available on the command line
   PetscCall(RegisterProblems_MixedElasticity(app_ctx));
-  PetscCall(ProcessCommandLineOptions(app_ctx));
-
-  // ---------------------------------------------------------------------------
-  // Choose the problem from the list of registered problems
-  // ---------------------------------------------------------------------------
   {
     PetscErrorCode (*p)(Ceed, ProblemData, DM, void *);
     PetscCall(PetscFunctionListFind(app_ctx->problems, app_ctx->problem_name, &p));
@@ -78,18 +90,60 @@ int main(int argc, char **argv) {
   }
 
   // ---------------------------------------------------------------------------
-  // Setup libCEED qfunctions and operators
+  // Setup zero rhs local vector
   // ---------------------------------------------------------------------------
   PetscCall(SetupFEByOrder(app_ctx, dm));
-  CeedElemRestriction aa;
-  PetscCall(CreateRestrictionFromPlex(ceed, dm, 0, 0, 0, &aa));
-  CeedElemRestrictionView(aa, stdout);
-  CeedBasis b;
-  PetscCall(CreateBasisFromPlex(ceed, dm, 0, 0, 0, 0, problem_data, &b));
-  CeedBasisView(b, stdout);
-  Vec U;
-  PetscCall(DMCreateGlobalVector(dm, &U));
-  VecView(U, PETSC_VIEWER_STDOUT_WORLD);
+  CeedVector   rhs_ceed;
+  Vec          rhs_loc;
+  PetscScalar *r;
+  PetscMemType mem_type;
+  PetscInt     rhs_l_size;
+  // Create global and local solution vectors
+  PetscCall(DMCreateLocalVector(dm, &rhs_loc));
+  PetscCall(VecGetSize(rhs_loc, &rhs_l_size));
+  PetscCall(VecZeroEntries(rhs_loc));
+  PetscCall(VecGetArrayAndMemType(rhs_loc, &r, &mem_type));
+  CeedVectorCreate(ceed, rhs_l_size, &rhs_ceed);
+  CeedVectorSetArray(rhs_ceed, MemTypeP2C(mem_type), CEED_USE_POINTER, r);
+
+  // ---------------------------------------------------------------------------
+  // Setup libCEED qfunctions and operators
+  // ---------------------------------------------------------------------------
+  PetscCall(SetupLibceed(dm, ceed, app_ctx, problem_data, ceed_data, rhs_ceed));
+
+  // ---------------------------------------------------------------------------
+  // Setup rhs global vector
+  // ---------------------------------------------------------------------------
+  Vec rhs;
+  PetscCall(DMCreateGlobalVector(dm, &rhs));
+  CeedVectorTakeArray(rhs_ceed, MemTypeP2C(mem_type), NULL);
+  PetscCall(VecRestoreArrayAndMemType(rhs_loc, &r));
+  PetscCall(VecZeroEntries(rhs));
+  PetscCall(DMLocalToGlobal(dm, rhs_loc, ADD_VALUES, rhs));
+  CeedVectorDestroy(&rhs_ceed);
+
+  // ---------------------------------------------------------------------------
+  // Solve
+  // ---------------------------------------------------------------------------
+  Vec X;
+  KSP ksp;
+  PetscCall(SetupResidualOperatorCtx(dm, ceed, ceed_data, app_ctx->ctx_residual));
+  // Create global and local solution vectors
+  PetscCall(DMCreateGlobalVector(dm, &X));
+  PetscCall(KSPCreate(app_ctx->comm, &ksp));
+  PetscCall(PDESolver(ceed_data, app_ctx, ksp, rhs, &X));
+
+  // ---------------------------------------------------------------------------
+  // Compute L2 error of mms problem; setup-solver.c
+  // ---------------------------------------------------------------------------
+  PetscCall(SetupErrorOperatorCtx(dm, ceed, ceed_data, app_ctx->ctx_error));
+  CeedScalar l2_error_u = 0.0;
+  PetscCall(ComputeL2Error(X, &l2_error_u, app_ctx->ctx_error));
+
+  // ---------------------------------------------------------------------------
+  // Print solver iterations and final norms; post-processing
+  // ---------------------------------------------------------------------------
+  PetscCall(PrintOutput(dm, ceed, app_ctx, ksp, X, l2_error_u));
 
   // ---------------------------------------------------------------------------
   // Free objects
@@ -97,15 +151,23 @@ int main(int argc, char **argv) {
 
   // Free PETSc objects
   PetscCall(DMDestroy(&dm));
-
+  PetscCall(VecDestroy(&X));
+  PetscCall(VecDestroy(&rhs));
+  PetscCall(VecDestroy(&rhs_loc));
+  PetscCall(KSPDestroy(&ksp));
+  PetscCall(CtxVecDestroy(app_ctx));
   // -- Function list
   PetscCall(PetscFunctionListDestroy(&app_ctx->problems));
 
   // -- Structs
+  PetscCall(CeedDataDestroy(ceed_data));
   PetscCall(PetscFree(app_ctx));
   PetscCall(PetscFree(problem_data));
+  PetscCall(PetscFree(ctx_residual));
+  PetscCall(PetscFree(ctx_error));
 
   // Free libCEED objects
+  CeedVectorDestroy(&rhs_ceed);
   CeedDestroy(&ceed);
 
   return PetscFinalize();

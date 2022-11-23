@@ -23,8 +23,8 @@
 PetscErrorCode RegisterProblems_MixedElasticity(AppCtx app_ctx) {
   app_ctx->problems = NULL;
   PetscFunctionBeginUser;
-  // 1) linear (Linear_Mixed is created in linear.c)
-  PetscCall(PetscFunctionListAdd(&app_ctx->problems, "linear", Linear_Mixed));
+  // 1) bp4 (Linear_Mixed is created in bp4.c)
+  PetscCall(PetscFunctionListAdd(&app_ctx->problems, "bp4", Linear_Mixed));
 
   PetscFunctionReturn(0);
 }

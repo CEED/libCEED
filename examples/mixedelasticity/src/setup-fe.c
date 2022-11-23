@@ -30,8 +30,9 @@ PetscErrorCode SetupFEByOrder(AppCtx app_ctx, DM dm) {
   // FE space for displacement
   PetscFE fe;
   // number of quadrature points
-  PetscInt  q_order    = app_ctx->order + app_ctx->q_extra;
-  PetscInt  p_order    = app_ctx->order;
+  app_ctx->q_order     = app_ctx->p_order + app_ctx->q_extra;
+  PetscInt  q_order    = app_ctx->q_order;
+  PetscInt  p_order    = app_ctx->p_order;
   PetscBool is_simplex = PETSC_TRUE;
   PetscInt  dim;
   PetscInt  marker_ids[1] = {1};
