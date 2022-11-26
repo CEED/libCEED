@@ -19,7 +19,7 @@
 // -----------------------------------------------------------------------------
 // This QFunction sets up the rhs and true solution for the problem
 // -----------------------------------------------------------------------------
-CEED_QFUNCTION(SetupDiffRhs3)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
+CEED_QFUNCTION(SetupDiffRhs)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
 #ifndef M_PI
 #define M_PI 3.14159265358979323846
 #endif
@@ -60,7 +60,7 @@ CEED_QFUNCTION(SetupDiffRhs3)(void *ctx, CeedInt Q, const CeedScalar *const *in,
 //   dvdX    - Output vector (test functions) Jacobian at quadrature points
 //
 // -----------------------------------------------------------------------------
-CEED_QFUNCTION(Diff3)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
+CEED_QFUNCTION(SetupDiff)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
   const CeedScalar(*ug)[3][CEED_Q_VLA] = (const CeedScalar(*)[3][CEED_Q_VLA])in[0], (*q_data)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[1];
   CeedScalar(*dvdX)[3][CEED_Q_VLA] = (CeedScalar(*)[3][CEED_Q_VLA])out[0];
 
@@ -87,6 +87,7 @@ CEED_QFUNCTION(Diff3)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedSca
     AlphaMatMatMult(1.0, dXdxT_dXdx, dudX, dv);
     for (CeedInt k = 0; k < 3; k++) {    // k = component
       for (CeedInt j = 0; j < 3; j++) {  // j = direction of vg
+        // we save the transpose, because of ordering in libCEED; See how we created dudX above
         dvdX[j][k][i] = dv[k][j];
       }
     }

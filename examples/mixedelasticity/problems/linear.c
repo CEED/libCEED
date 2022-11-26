@@ -16,17 +16,19 @@
 
 /// @file
 /// Utility functions for setting up Linear mixed-elasticity problem in 3D
-#include "../qfunctions/bp4.h"
-
 #include "../include/register-problem.h"
 #include "../qfunctions/compute-error.h"
+#include "../qfunctions/linear-elasticity.h"
 #include "../qfunctions/volumetric-geometry.h"
 
-PetscErrorCode BP4(Ceed ceed, ProblemData problem_data, DM dm, void *ctx) {
-  // AppCtx app_ctx = *(AppCtx *)ctx;
+PetscErrorCode Linear(Ceed ceed, ProblemData problem_data, DM dm, void *ctx) {
+  AppCtx               app_ctx = *(AppCtx *)ctx;
+  LINEARContext        linear_ctx;
+  CeedQFunctionContext linear_context;
 
   PetscFunctionBeginUser;
 
+  PetscCall(PetscCalloc1(1, &linear_ctx));
   // ------------------------------------------------------
   //               SET UP POISSON_QUAD2D
   // ------------------------------------------------------
@@ -34,13 +36,33 @@ PetscErrorCode BP4(Ceed ceed, ProblemData problem_data, DM dm, void *ctx) {
   problem_data->q_data_size     = 10;
   problem_data->setup_geo       = SetupVolumeGeometry;
   problem_data->setup_geo_loc   = SetupVolumeGeometry_loc;
-  problem_data->setup_rhs       = SetupDiffRhs;
-  problem_data->setup_rhs_loc   = SetupDiffRhs_loc;
-  problem_data->residual        = SetupDiff;
-  problem_data->residual_loc    = SetupDiff_loc;
+  problem_data->setup_rhs       = SetupLinearRhs;
+  problem_data->setup_rhs_loc   = SetupLinearRhs_loc;
+  problem_data->residual        = SetupLinear;
+  problem_data->residual_loc    = SetupLinear_loc;
   problem_data->error           = SetupError;
   problem_data->error_loc       = SetupError_loc;
-  problem_data->bp4             = PETSC_TRUE;
-  problem_data->linear          = PETSC_FALSE;
+  problem_data->bp4             = PETSC_FALSE;
+  problem_data->linear          = PETSC_TRUE;
+  // ------------------------------------------------------
+  //              Command line Options
+  // ------------------------------------------------------
+  CeedScalar E = 1., nu = 0.3;
+  PetscOptionsBegin(app_ctx->comm, NULL, "Options for Linear Elasticity problem", NULL);
+  PetscCall(PetscOptionsScalar("-E", "Young Modulus", NULL, E, &E, NULL));
+  PetscCall(PetscOptionsScalar("-nu", "Poisson ratio", NULL, nu, &nu, NULL));
+  PetscOptionsEnd();
+
+  linear_ctx->E  = E;
+  linear_ctx->nu = nu;
+
+  CeedQFunctionContextCreate(ceed, &linear_context);
+  CeedQFunctionContextSetData(linear_context, CEED_MEM_HOST, CEED_COPY_VALUES, sizeof(*linear_ctx), linear_ctx);
+
+  problem_data->rhs_qfunction_ctx = linear_context;
+  CeedQFunctionContextReferenceCopy(linear_context, &problem_data->residual_qfunction_ctx);
+
+  PetscCall(PetscFree(linear_ctx));
+
   PetscFunctionReturn(0);
 }

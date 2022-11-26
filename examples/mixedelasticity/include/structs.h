@@ -46,7 +46,8 @@ struct ProblemData_ {
   const char          *setup_geo_loc, *setup_rhs_loc, *residual_loc, *error_loc;
   CeedQuadMode         quadrature_mode;
   CeedInt              q_data_size;
-  CeedQFunctionContext residual_qfunction_ctx;
+  CeedQFunctionContext residual_qfunction_ctx, rhs_qfunction_ctx;
+  PetscBool            bp4, linear;
 };
 
 #endif  // structs_h

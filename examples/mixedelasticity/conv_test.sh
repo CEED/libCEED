@@ -34,13 +34,14 @@ declare -A run_flags
     run_flags[dm_plex_box_faces]=4,4,4
     run_flags[dm_plex_simplex]=0
     run_flags[p_order]=$order
-    run_flags[problem]=bp4
+    run_flags[problem]=linear
     run_flags[ksp_max_it]=1000
+    run_flags[pc_type]=svd
 
 declare -A test_flags
-    test_flags[res_start]=6
+    test_flags[res_start]=4
     test_flags[res_stride]=2
-    test_flags[res_end]=14
+    test_flags[res_end]=10
 
 file_name=conv_test_result.csv
 
