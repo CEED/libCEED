@@ -94,6 +94,10 @@ PetscErrorCode SetupLibceed(DM dm, Ceed ceed, AppCtx app_ctx, ProblemData proble
   CeedVectorCreate(ceed, num_elem * num_qpts * num_comp_u, &target);
   // Create the q-function that sets up the RHS and true solution
   CeedQFunctionCreateInterior(ceed, 1, problem_data->setup_rhs, problem_data->setup_rhs_loc, &qf_setup_rhs);
+  if (problem_data->linear) {
+    CeedQFunctionSetContext(qf_setup_rhs, problem_data->rhs_qfunction_ctx);
+    CeedQFunctionContextDestroy(&problem_data->rhs_qfunction_ctx);
+  }
   CeedQFunctionAddInput(qf_setup_rhs, "x", num_comp_x, CEED_EVAL_INTERP);
   CeedQFunctionAddInput(qf_setup_rhs, "qdata", q_data_size, CEED_EVAL_NONE);
   CeedQFunctionAddOutput(qf_setup_rhs, "true solution", num_comp_u, CEED_EVAL_NONE);
@@ -118,6 +122,10 @@ PetscErrorCode SetupLibceed(DM dm, Ceed ceed, AppCtx app_ctx, ProblemData proble
   // Create the QFunction and Operator that computes the residual of the PDE.
   // ---------------------------------------------------------------------------
   CeedQFunctionCreateInterior(ceed, 1, problem_data->residual, problem_data->residual_loc, &qf_residual);
+  if (problem_data->linear) {
+    CeedQFunctionSetContext(qf_residual, problem_data->residual_qfunction_ctx);
+    CeedQFunctionContextDestroy(&problem_data->residual_qfunction_ctx);
+  }
   CeedQFunctionAddInput(qf_residual, "du", num_comp_u * dim, CEED_EVAL_GRAD);
   CeedQFunctionAddInput(qf_residual, "qdata", q_data_size, CEED_EVAL_NONE);
   CeedQFunctionAddOutput(qf_residual, "dv", num_comp_u * dim, CEED_EVAL_GRAD);
