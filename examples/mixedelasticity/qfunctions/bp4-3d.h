@@ -8,8 +8,8 @@
 /// @file
 /// libCEED QFunctions for diffusion operator example using PETSc
 
-#ifndef bp4_h
-#define bp4_h
+#ifndef bp43d_h
+#define bp43d_h
 
 #include <ceed.h>
 #include <math.h>
@@ -17,12 +17,24 @@
 #include "utils.h"
 
 // -----------------------------------------------------------------------------
-// This QFunction sets up the rhs and true solution for the problem
+// Strong form:
+//  -nabla^2 (u)        = f   in \Omega
+//
+// Weak form: Find u \in V (V=H1) on \Omega
+//  (grad(v), grad(u)) = (v, f)
+//
+// We set the true solution in a way that vanishes on the boundary.
+// This QFunction setup the rhs and true solution of the above equation
+// Inputs:
+//   coords     : coordinate of the physical element
+//   wdetJ      : updated weight of quadrature
+//
+// Output:
+//   true_soln  :
+//   rhs        : (v, f) = \int (v^T * f * wdetJ) dX
+//                we save: rhs = f * wdetJ
 // -----------------------------------------------------------------------------
-CEED_QFUNCTION(SetupDiffRhs)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
-#ifndef M_PI
-#define M_PI 3.14159265358979323846
-#endif
+CEED_QFUNCTION(SetupDiffRhs3D)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
   const CeedScalar *coords = in[0], (*q_data)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[1];
   CeedScalar(*true_soln)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA])out[0], (*rhs)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA])out[1];
 
@@ -32,14 +44,14 @@ CEED_QFUNCTION(SetupDiffRhs)(void *ctx, CeedInt Q, const CeedScalar *const *in, 
     const CeedScalar k[3] = {1., 2., 3.};
     CeedScalar       x = coords[i + 0 * Q], y = coords[i + 1 * Q], z = coords[i + 2 * Q];
     // Component 1
-    true_soln[0][i] = sin(M_PI * (c[0] + k[0] * x)) * sin(M_PI * (c[1] + k[1] * y)) * sin(M_PI * (c[2] + k[2] * z));
+    true_soln[0][i] = sin(PI_DOUBLE * (c[0] + k[0] * x)) * sin(PI_DOUBLE * (c[1] + k[1] * y)) * sin(PI_DOUBLE * (c[2] + k[2] * z));
     // Component 2
     true_soln[1][i] = 2 * true_soln[0][i];
     // Component 3
     true_soln[2][i] = 3 * true_soln[0][i];
 
     // Component 1
-    rhs[0][i] = q_data[0][i] * M_PI * M_PI * (k[0] * k[0] + k[1] * k[1] + k[2] * k[2]) * true_soln[0][i];
+    rhs[0][i] = q_data[0][i] * PI_DOUBLE * PI_DOUBLE * (k[0] * k[0] + k[1] * k[1] + k[2] * k[2]) * true_soln[0][i];
     // Component 2
     rhs[1][i] = 2 * rhs[0][i];
     // Component 3
@@ -48,19 +60,17 @@ CEED_QFUNCTION(SetupDiffRhs)(void *ctx, CeedInt Q, const CeedScalar *const *in, 
 
   return 0;
 }
-
 // -----------------------------------------------------------------------------
-// This QFunction applies the diffusion operator for a vector field of 3 components.
-// \int grad(v)^T grad(u) = \int (dv/dX)^T (dX/dx^T * dX/dx) du/dX * w*detJ
+// This QFunction setup the lhs of the above equation
 // Inputs:
-//   ug      - Input vector du/dX
-//   q_data  - Geometric factors
+//   dudX       : derivative of basis with respect to ref element coordinate; du/dX
+//   q_data     : updated weight of quadrature and inverse of the Jacobian J; [wdetJ, dXdx]
 //
 // Output:
-//   dvdX    - Output vector (test functions) Jacobian at quadrature points
-//
+//   dvdX       : (grad(v), grad(u)) = \int (dv/dX)^T (dX/dx^T * dX/dx) du/dX * wdetJ dX
+//                we save: dvdX = (dX/dx^T * dX/dx) du/dX * wdetJ
 // -----------------------------------------------------------------------------
-CEED_QFUNCTION(SetupDiff)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
+CEED_QFUNCTION(SetupDiff3D)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
   const CeedScalar(*ug)[3][CEED_Q_VLA] = (const CeedScalar(*)[3][CEED_Q_VLA])in[0], (*q_data)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[1];
   CeedScalar(*dvdX)[3][CEED_Q_VLA] = (CeedScalar(*)[3][CEED_Q_VLA])out[0];
 
@@ -77,16 +87,16 @@ CEED_QFUNCTION(SetupDiff)(void *ctx, CeedInt Q, const CeedScalar *const *in, Cee
       dXdx_voigt[j] = q_data[j + 1][i];
     }
     CeedScalar dXdx[3][3];
-    VoigtUnpackNonSymmetric(dXdx_voigt, dXdx);
-    // (dX/dx^T * dX/dx) * w * detJ
+    VoigtUnpackNonSymmetric3(dXdx_voigt, dXdx);
+    // (dX/dx^T * dX/dx) * wdetJ
     CeedScalar dXdxT_dXdx[3][3];
-    AlphaMatTransposeMatMult(q_data[0][i], dXdx, dXdx, dXdxT_dXdx);
+    AlphaMatTransposeMatMult3(q_data[0][i], dXdx, dXdx, dXdxT_dXdx);
 
     CeedScalar dv[3][3];
-    // save output: (dX/dx^T * dX/dx) du/dX * w*detJ
-    AlphaMatMatMult(1.0, dXdxT_dXdx, dudX, dv);
-    for (CeedInt k = 0; k < 3; k++) {    // k = component
-      for (CeedInt j = 0; j < 3; j++) {  // j = direction of vg
+    // save output: (dX/dx^T * dX/dx * wdetJ) * du/dX
+    AlphaMatMatMult3(1.0, dXdxT_dXdx, dudX, dv);
+    for (CeedInt j = 0; j < 3; j++) {
+      for (CeedInt k = 0; k < 3; k++) {
         // we save the transpose, because of ordering in libCEED; See how we created dudX above
         dvdX[j][k][i] = dv[k][j];
       }
@@ -97,4 +107,4 @@ CEED_QFUNCTION(SetupDiff)(void *ctx, CeedInt Q, const CeedScalar *const *in, Cee
 }
 // -----------------------------------------------------------------------------
 
-#endif  // bp4_h
+#endif  // bp43d_h

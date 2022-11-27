@@ -68,14 +68,7 @@ int main(int argc, char **argv) {
   // ---------------------------------------------------------------------------
   // -- Initialize backend
   Ceed ceed;
-  // CeedInit("/cpu/self/ref/serial", &ceed);
   CeedInit(app_ctx->ceed_resource, &ceed);
-
-  // ---------------------------------------------------------------------------
-  // Setup DM for mixed-problem
-  // ---------------------------------------------------------------------------
-  DM dm;
-  PetscCall(CreateDM(comm, ceed, &dm));
 
   // ---------------------------------------------------------------------------
   // Choose the problem from the list of registered problems
@@ -83,16 +76,22 @@ int main(int argc, char **argv) {
   // -- Register problems to be available on the command line
   PetscCall(RegisterProblems_MixedElasticity(app_ctx));
   {
-    PetscErrorCode (*p)(Ceed, ProblemData, DM, void *);
+    PetscErrorCode (*p)(Ceed, ProblemData, void *);
     PetscCall(PetscFunctionListFind(app_ctx->problems, app_ctx->problem_name, &p));
     if (!p) SETERRQ(PETSC_COMM_SELF, 1, "Problem '%s' not found", app_ctx->problem_name);
-    PetscCall((*p)(ceed, problem_data, dm, &app_ctx));
+    PetscCall((*p)(ceed, problem_data, &app_ctx));
   }
 
   // ---------------------------------------------------------------------------
-  // Setup zero rhs local vector
+  // Create DM and Setup FE space
   // ---------------------------------------------------------------------------
+  DM dm;
+  PetscCall(CreateDM(comm, ceed, &dm));
   PetscCall(SetupFEByOrder(app_ctx, dm));
+
+  // ---------------------------------------------------------------------------
+  //  Create zero rhs local vector
+  // ---------------------------------------------------------------------------
   CeedVector   rhs_ceed;
   Vec          rhs_loc;
   PetscScalar *r;
@@ -112,7 +111,7 @@ int main(int argc, char **argv) {
   PetscCall(SetupLibceed(dm, ceed, app_ctx, problem_data, ceed_data, rhs_ceed));
 
   // ---------------------------------------------------------------------------
-  // Setup rhs global vector
+  // Setup rhs global vector entries with the computed rhs_ceed
   // ---------------------------------------------------------------------------
   Vec rhs;
   PetscCall(DMCreateGlobalVector(dm, &rhs));
@@ -123,7 +122,7 @@ int main(int argc, char **argv) {
   CeedVectorDestroy(&rhs_ceed);
 
   // ---------------------------------------------------------------------------
-  // Solve
+  // Solve A*X=rhs; setup-solver.c
   // ---------------------------------------------------------------------------
   Vec X;
   KSP ksp;

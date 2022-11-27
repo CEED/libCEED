@@ -16,13 +16,13 @@
 
 /// @file
 /// Utility functions for setting up Linear mixed-elasticity problem in 3D
-#include "../qfunctions/bp4.h"
+#include "../qfunctions/bp4-3d.h"
 
 #include "../include/register-problem.h"
-#include "../qfunctions/compute-error.h"
-#include "../qfunctions/volumetric-geometry.h"
+#include "../qfunctions/compute-error-3d.h"
+#include "../qfunctions/volumetric-geometry-3d.h"
 
-PetscErrorCode BP4(Ceed ceed, ProblemData problem_data, DM dm, void *ctx) {
+PetscErrorCode BP4_3D(Ceed ceed, ProblemData problem_data, void *ctx) {
   // AppCtx app_ctx = *(AppCtx *)ctx;
 
   PetscFunctionBeginUser;
@@ -32,14 +32,14 @@ PetscErrorCode BP4(Ceed ceed, ProblemData problem_data, DM dm, void *ctx) {
   // ------------------------------------------------------
   problem_data->quadrature_mode = CEED_GAUSS;
   problem_data->q_data_size     = 10;
-  problem_data->setup_geo       = SetupVolumeGeometry;
-  problem_data->setup_geo_loc   = SetupVolumeGeometry_loc;
-  problem_data->setup_rhs       = SetupDiffRhs;
-  problem_data->setup_rhs_loc   = SetupDiffRhs_loc;
-  problem_data->residual        = SetupDiff;
-  problem_data->residual_loc    = SetupDiff_loc;
-  problem_data->error           = SetupError;
-  problem_data->error_loc       = SetupError_loc;
+  problem_data->setup_geo       = SetupVolumeGeometry3D;
+  problem_data->setup_geo_loc   = SetupVolumeGeometry3D_loc;
+  problem_data->setup_rhs       = SetupDiffRhs3D;
+  problem_data->setup_rhs_loc   = SetupDiffRhs3D_loc;
+  problem_data->residual        = SetupDiff3D;
+  problem_data->residual_loc    = SetupDiff3D_loc;
+  problem_data->error           = SetupError3D;
+  problem_data->error_loc       = SetupError3D_loc;
   problem_data->bp4             = PETSC_TRUE;
   problem_data->linear          = PETSC_FALSE;
   PetscFunctionReturn(0);

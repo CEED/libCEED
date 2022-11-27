@@ -17,11 +17,11 @@
 /// @file
 /// Utility functions for setting up Linear mixed-elasticity problem in 3D
 #include "../include/register-problem.h"
-#include "../qfunctions/compute-error.h"
-#include "../qfunctions/linear-elasticity.h"
-#include "../qfunctions/volumetric-geometry.h"
+#include "../qfunctions/compute-error-2d.h"
+#include "../qfunctions/linear-elasticity-2d.h"
+#include "../qfunctions/volumetric-geometry-2d.h"
 
-PetscErrorCode Linear(Ceed ceed, ProblemData problem_data, DM dm, void *ctx) {
+PetscErrorCode Linear_2D(Ceed ceed, ProblemData problem_data, void *ctx) {
   AppCtx               app_ctx = *(AppCtx *)ctx;
   LINEARContext        linear_ctx;
   CeedQFunctionContext linear_context;
@@ -33,15 +33,15 @@ PetscErrorCode Linear(Ceed ceed, ProblemData problem_data, DM dm, void *ctx) {
   //               SET UP POISSON_QUAD2D
   // ------------------------------------------------------
   problem_data->quadrature_mode = CEED_GAUSS;
-  problem_data->q_data_size     = 10;
-  problem_data->setup_geo       = SetupVolumeGeometry;
-  problem_data->setup_geo_loc   = SetupVolumeGeometry_loc;
-  problem_data->setup_rhs       = SetupLinearRhs;
-  problem_data->setup_rhs_loc   = SetupLinearRhs_loc;
-  problem_data->residual        = SetupLinear;
-  problem_data->residual_loc    = SetupLinear_loc;
-  problem_data->error           = SetupError;
-  problem_data->error_loc       = SetupError_loc;
+  problem_data->q_data_size     = 5;
+  problem_data->setup_geo       = SetupVolumeGeometry2D;
+  problem_data->setup_geo_loc   = SetupVolumeGeometry2D_loc;
+  problem_data->setup_rhs       = SetupLinearRhs2D;
+  problem_data->setup_rhs_loc   = SetupLinearRhs2D_loc;
+  problem_data->residual        = SetupLinear2D;
+  problem_data->residual_loc    = SetupLinear2D_loc;
+  problem_data->error           = SetupError2D;
+  problem_data->error_loc       = SetupError2D_loc;
   problem_data->bp4             = PETSC_FALSE;
   problem_data->linear          = PETSC_TRUE;
   // ------------------------------------------------------
