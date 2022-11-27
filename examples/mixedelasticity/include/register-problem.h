@@ -9,9 +9,13 @@ PetscErrorCode RegisterProblems_MixedElasticity(AppCtx app_ctx);
 // Set up problems function prototype
 // -----------------------------------------------------------------------------
 // 1) BP4
-PetscErrorCode BP4(Ceed ceed, ProblemData problem_data, DM dm, void *ctx);
+PetscErrorCode BP4_2D(Ceed ceed, ProblemData problem_data, void *ctx);
 
-// 1) Linear
-PetscErrorCode Linear(Ceed ceed, ProblemData problem_data, DM dm, void *ctx);
+PetscErrorCode BP4_3D(Ceed ceed, ProblemData problem_data, void *ctx);
+
+// 1) Linear Elasticity
+PetscErrorCode Linear_2D(Ceed ceed, ProblemData problem_data, void *ctx);
+
+PetscErrorCode Linear_3D(Ceed ceed, ProblemData problem_data, void *ctx);
 
 #endif  // register_problems_h

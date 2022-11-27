@@ -36,7 +36,7 @@ PetscErrorCode CreateDM(MPI_Comm comm, Ceed ceed, DM *dm) {
   PetscCall(DMSetMatType(*dm, mat_type));
   PetscCall(DMSetVecType(*dm, vec_type));
   // Set Tensor elements
-  PetscCall(PetscOptionsSetValue(NULL, "-dm_plex_simplex", "0"));
+  // PetscCall(PetscOptionsSetValue(NULL, "-dm_plex_simplex", "0"));
   // Set CL options
   PetscCall(DMSetFromOptions(*dm));
   PetscCall(DMViewFromOptions(*dm, NULL, "-dm_view"));
