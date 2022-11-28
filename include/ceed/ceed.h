@@ -528,6 +528,7 @@ CEED_EXTERN int CeedOperatorMultigridLevelCreateTensorH1(CeedOperator op_fine, C
 CEED_EXTERN int CeedOperatorMultigridLevelCreateH1(CeedOperator op_fine, CeedVector p_mult_fine, CeedElemRestriction rstr_coarse,
                                                    CeedBasis basis_coarse, const CeedScalar *interp_c_to_f, CeedOperator *op_coarse,
                                                    CeedOperator *op_prolong, CeedOperator *op_restrict);
+CEED_EXTERN int CeedCompositeOperatorScaleMultigridLevel(CeedOperator op_prolong, CeedOperator op_restrict);
 CEED_EXTERN int CeedOperatorCreateFDMElementInverse(CeedOperator op, CeedOperator *fdm_inv, CeedRequest *request);
 CEED_EXTERN int CeedOperatorSetNumQuadraturePoints(CeedOperator op, CeedInt num_qpts);
 CEED_EXTERN int CeedOperatorSetName(CeedOperator op, const char *name);

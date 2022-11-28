@@ -1962,6 +1962,126 @@ int CeedOperatorMultigridLevelCreateH1(CeedOperator op_fine, CeedVector p_mult_f
 }
 
 /**
+  @brief Scale composite prolongation and restriction operators for multiplicity between suboperators.
+           The prolongation and restriction suboperators must be created by `CeedOperatorMultigridLevelCreate*`.
+           Each suboperator should be a matching pair between prolongation and restriction.
+
+  Note: Calling this function asserts that setup is complete and sets the CeedOperators as immutable.
+
+  @param[in,out] op_prolong    Coarse to fine operator
+  @param[in,out] op_restrict   Fine to coarse operator
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref User
+**/
+int CeedCompositeOperatorScaleMultigridLevel(CeedOperator op_prolong, CeedOperator op_restrict) {
+  CeedCall(CeedOperatorCheckReady(op_prolong));
+  CeedCall(CeedOperatorCheckReady(op_restrict));
+
+  Ceed                ceed;
+  CeedInt             num_sub_ops;
+  CeedSize            mult_l_vec_len;
+  CeedScalar         *mult;
+  CeedVector          mult_l_vec, ones_l_vec;
+  CeedElemRestriction elem_restr;
+  CeedOperator       *sub_ops;
+  CeedOperatorField  *input_fields;
+
+  CeedCall(CeedOperatorGetCeed(op_prolong, &ceed));
+
+  // Get suboperators
+  CeedCall(CeedOperatorGetNumSub(op_prolong, &num_sub_ops));
+  CeedCall(CeedOperatorGetSubList(op_prolong, &sub_ops));
+  if (num_sub_ops == 0) return CEED_ERROR_SUCCESS;
+
+  // Check for matching operators
+  {
+    char              *field_name;
+    CeedInt            num_sub_ops_restrict;
+    CeedVector         scale_prolong, scale_restrict;
+    CeedOperator      *sub_ops_restrict;
+    CeedOperatorField *input_fields_restrict;
+
+    // -- Check number suboperators
+    CeedCall(CeedOperatorGetNumSub(op_restrict, &num_sub_ops_restrict));
+    CeedCall(CeedOperatorGetSubList(op_restrict, &sub_ops_restrict));
+    if (num_sub_ops != num_sub_ops_restrict) return CeedError(ceed, CEED_ERROR_INCOMPATIBLE, "Restriction and Prolongation operators must match");
+
+    // -- Check scale vectors
+    for (CeedInt i = 0; i < num_sub_ops; i++) {
+      CeedCall(CeedOperatorGetFields(sub_ops[i], NULL, &input_fields, NULL, NULL));
+      CeedCall(CeedOperatorGetFields(sub_ops_restrict[i], NULL, &input_fields_restrict, NULL, NULL));
+      // ---- Valid prolongation
+      CeedCall(CeedOperatorFieldGetName(input_fields[1], &field_name));
+      if (strcmp("scale", field_name)) {
+        // LCOV_EXCL_START
+        return CeedError(ceed, CEED_ERROR_INCOMPATIBLE, "Prolongation operator must be created by CeedOperatorMultigridLevelCreate*");
+        // LCOV_EXCL_STOP
+      }
+      CeedCall(CeedOperatorFieldGetName(input_fields_restrict[1], &field_name));
+      // ---- Valid restriction
+      if (strcmp("scale", field_name)) {
+        // LCOV_EXCL_START
+        return CeedError(ceed, CEED_ERROR_INCOMPATIBLE, "Restriction operator must be created by CeedOperatorMultigridLevelCreate*");
+        // LCOV_EXCL_STOP
+      }
+      // ---- Matching pair
+      CeedCall(CeedOperatorFieldGetVector(input_fields[1], &scale_prolong));
+      CeedCall(CeedOperatorFieldGetVector(input_fields_restrict[1], &scale_restrict));
+      if (scale_prolong != scale_restrict) return CeedError(ceed, CEED_ERROR_INCOMPATIBLE, "Restriction and Prolongation suboperators must match");
+    }
+  }
+
+  // Work vectors
+  CeedCall(CeedOperatorFieldGetElemRestriction(input_fields[1], &elem_restr));
+  CeedCall(CeedElemRestrictionCreateVector(elem_restr, &ones_l_vec, NULL));
+  CeedCall(CeedVectorSetValue(ones_l_vec, 1.0));
+  CeedCall(CeedElemRestrictionCreateVector(elem_restr, &mult_l_vec, NULL));
+  CeedCall(CeedVectorSetValue(mult_l_vec, 0.0));
+  CeedCall(CeedVectorGetLength(mult_l_vec, &mult_l_vec_len));
+  CeedCall(CeedVectorGetArray(mult_l_vec, CEED_MEM_HOST, &mult));
+
+  // Compute multiplicity across suboperators
+  for (CeedInt i = 0; i < num_sub_ops; i++) {
+    const CeedScalar *sub_mult;
+    CeedVector        sub_mult_l_vec, ones_e_vec;
+
+    CeedCall(CeedOperatorGetFields(sub_ops[i], NULL, &input_fields, NULL, NULL));
+    CeedCall(CeedOperatorFieldGetElemRestriction(input_fields[1], &elem_restr));
+    CeedCall(CeedElemRestrictionCreateVector(elem_restr, &sub_mult_l_vec, &ones_e_vec));
+    CeedCall(CeedVectorSetValue(sub_mult_l_vec, 0.0));
+    CeedCall(CeedElemRestrictionApply(elem_restr, CEED_NOTRANSPOSE, ones_l_vec, ones_e_vec, CEED_REQUEST_IMMEDIATE));
+    CeedCall(CeedElemRestrictionApply(elem_restr, CEED_TRANSPOSE, ones_e_vec, sub_mult_l_vec, CEED_REQUEST_IMMEDIATE));
+    CeedCall(CeedVectorGetArrayRead(sub_mult_l_vec, CEED_MEM_HOST, &sub_mult));
+    // -- Flag every node present in the current suboperator
+    for (CeedInt j = 0; j < mult_l_vec_len; j++) {
+      if (sub_mult[j] > 0.0) mult[j] += 1.0;
+    }
+    CeedCall(CeedVectorRestoreArrayRead(sub_mult_l_vec, &sub_mult));
+    CeedCall(CeedVectorDestroy(&sub_mult_l_vec));
+    CeedCall(CeedVectorDestroy(&ones_e_vec));
+  }
+  CeedCall(CeedVectorRestoreArray(mult_l_vec, &mult));
+  CeedCall(CeedVectorReciprocal(mult_l_vec));
+
+  // Scale by multiplicity
+  for (CeedInt i = 0; i < num_sub_ops; i++) {
+    CeedVector scale_l_vec;
+
+    CeedCall(CeedOperatorGetFields(sub_ops[i], NULL, &input_fields, NULL, NULL));
+    CeedCall(CeedOperatorFieldGetVector(input_fields[1], &scale_l_vec));
+    CeedCall(CeedVectorPointwiseMult(scale_l_vec, scale_l_vec, mult_l_vec));
+  }
+
+  // Cleanup
+  CeedCall(CeedVectorDestroy(&ones_l_vec));
+  CeedCall(CeedVectorDestroy(&mult_l_vec));
+
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
   @brief Build a FDM based approximate inverse for each element for a
            CeedOperator
 
