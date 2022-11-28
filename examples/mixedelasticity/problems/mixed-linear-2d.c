@@ -17,11 +17,12 @@
 /// @file
 /// Utility functions for setting up Linear mixed-elasticity problem in 3D
 #include "../include/register-problem.h"
-#include "../qfunctions/compute-error_u-3d.h"
-#include "../qfunctions/linear-elasticity-3d.h"
-#include "../qfunctions/volumetric-geometry-3d.h"
+#include "../qfunctions/compute-error_p-2d.h"
+#include "../qfunctions/compute-error_u-2d.h"
+#include "../qfunctions/mixed-linear-elasticity-2d.h"
+#include "../qfunctions/volumetric-geometry-2d.h"
 
-PetscErrorCode Linear_3D(Ceed ceed, ProblemData problem_data, void *ctx) {
+PetscErrorCode Mixed_Linear_2D(Ceed ceed, ProblemData problem_data, void *ctx) {
   AppCtx               app_ctx = *(AppCtx *)ctx;
   LINEARContext        linear_ctx;
   CeedQFunctionContext linear_context;
@@ -33,18 +34,20 @@ PetscErrorCode Linear_3D(Ceed ceed, ProblemData problem_data, void *ctx) {
   //               SET UP POISSON_QUAD2D
   // ------------------------------------------------------
   problem_data->quadrature_mode = CEED_GAUSS;
-  problem_data->q_data_size     = 10;
-  problem_data->setup_geo       = SetupVolumeGeometry3D;
-  problem_data->setup_geo_loc   = SetupVolumeGeometry3D_loc;
-  problem_data->setup_rhs       = SetupLinearRhs3D;
-  problem_data->setup_rhs_loc   = SetupLinearRhs3D_loc;
-  problem_data->residual        = SetupLinear3D;
-  problem_data->residual_loc    = SetupLinear3D_loc;
-  problem_data->error_u         = SetupError3Du;
-  problem_data->error_u_loc     = SetupError3Du_loc;
+  problem_data->q_data_size     = 5;
+  problem_data->setup_geo       = SetupVolumeGeometry2D;
+  problem_data->setup_geo_loc   = SetupVolumeGeometry2D_loc;
+  problem_data->setup_rhs       = SetupMixedLinearRhs2D;
+  problem_data->setup_rhs_loc   = SetupMixedLinearRhs2D_loc;
+  problem_data->residual        = SetupMixedLinear2D;
+  problem_data->residual_loc    = SetupMixedLinear2D_loc;
+  problem_data->error_u         = SetupError2Du;
+  problem_data->error_u_loc     = SetupError2Du_loc;
+  problem_data->error_p         = SetupError2Dp;
+  problem_data->error_p_loc     = SetupError2Dp_loc;
   problem_data->bp4             = PETSC_FALSE;
-  problem_data->linear          = PETSC_TRUE;
-  problem_data->mixed           = PETSC_FALSE;
+  problem_data->linear          = PETSC_FALSE;
+  problem_data->mixed           = PETSC_TRUE;
   // ------------------------------------------------------
   //              Command line Options
   // ------------------------------------------------------

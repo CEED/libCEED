@@ -34,7 +34,8 @@ declare -A run_flags
     run_flags[dm_plex_box_faces]=4,4
     run_flags[dm_plex_simplex]=0
     run_flags[u_order]=$order
-    run_flags[problem]=linear-2d
+    run_flags[p_order]=1
+    run_flags[problem]=mixed-linear-2d
     run_flags[ksp_max_it]=1000
     run_flags[pc_type]=svd
 
@@ -45,7 +46,7 @@ declare -A test_flags
 
 file_name=conv_test_result.csv
 
-echo "run,mesh_res,error_u" > $file_name
+echo "run,mesh_res,error_u,error_p" > $file_name
 
 i=0
 
@@ -59,7 +60,7 @@ for ((res=${test_flags[res_start]}; res<=${test_flags[res_end]}; res+=${test_fla
             args="$args -$arg ${run_flags[$arg]}"
         fi
     done
-    ./main $args | grep "L2 error" | awk -v i="$i" -v res="$res" '{ printf "%d,%d,%e\n", i, res, $8}' >> $file_name
+    ./main $args | grep "L2 error" | awk -v i="$i" -v res="$res" '{ printf "%d,%d,%e,%e\n", i, res, $8, $9}' >> $file_name
     i=$((i+1))
 done
 

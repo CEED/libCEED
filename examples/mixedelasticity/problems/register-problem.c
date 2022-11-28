@@ -25,13 +25,14 @@ PetscErrorCode RegisterProblems_MixedElasticity(AppCtx app_ctx) {
   PetscFunctionBeginUser;
   // 1) bp4 (BP4 is created in bp4.c)
   PetscCall(PetscFunctionListAdd(&app_ctx->problems, "bp4-3d", BP4_3D));
-
   PetscCall(PetscFunctionListAdd(&app_ctx->problems, "bp4-2d", BP4_2D));
 
   // 2) linear elasticity (Linear is created in linear.c)
   PetscCall(PetscFunctionListAdd(&app_ctx->problems, "linear-3d", Linear_3D));
-
   PetscCall(PetscFunctionListAdd(&app_ctx->problems, "linear-2d", Linear_2D));
+
+  // 3) mixed-linear elasticity (Linear is created in linear.c)
+  PetscCall(PetscFunctionListAdd(&app_ctx->problems, "mixed-linear-2d", Mixed_Linear_2D));
 
   PetscFunctionReturn(0);
 }

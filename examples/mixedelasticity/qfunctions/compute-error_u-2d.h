@@ -6,23 +6,23 @@
 // This file is part of CEED:  http://github.com/ceed
 
 /// @file
-/// libCEED QFunctions for BP examples using PETSc
+/// libCEED QFunctions for computing error of u field in 2D
 
-#ifndef common_h
-#define common_h
+#ifndef erroru2d_h
+#define erroru2d_h
 
 #include <ceed.h>
+
 // -----------------------------------------------------------------------------
-CEED_QFUNCTION(SetupError3D)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
+CEED_QFUNCTION(SetupError2Du)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
   const CeedScalar *u = in[0], *target = in[1], *q_data = in[2];
   CeedScalar       *error = out[0];
   for (CeedInt i = 0; i < Q; i++) {
     error[i + 0 * Q] = (u[i + 0 * Q] - target[i + 0 * Q]) * (u[i + 0 * Q] - target[i + 0 * Q]) * q_data[i];
     error[i + 1 * Q] = (u[i + 1 * Q] - target[i + 1 * Q]) * (u[i + 1 * Q] - target[i + 1 * Q]) * q_data[i];
-    error[i + 2 * Q] = (u[i + 2 * Q] - target[i + 2 * Q]) * (u[i + 2 * Q] - target[i + 2 * Q]) * q_data[i];
   }
   return 0;
 }
 // -----------------------------------------------------------------------------
 
-#endif  // common_h
+#endif  // erroru2d_h

@@ -33,7 +33,7 @@ declare -A run_flags
     run_flags[dm_plex_dim]=2
     run_flags[dm_plex_box_faces]=4,4
     run_flags[dm_plex_simplex]=0
-    run_flags[p_order]=$order
+    run_flags[u_order]=$order
     run_flags[problem]=bp4-2d
     run_flags[ksp_max_it]=1000
 
@@ -58,7 +58,7 @@ for ((res=${test_flags[res_start]}; res<=${test_flags[res_end]}; res+=${test_fla
             args="$args -$arg ${run_flags[$arg]}"
         fi
     done
-    ./main $args | grep "L2 error" | awk -v i="$i" -v res="$res" '{ printf "%d,%d,%e\n", i, res, $6}' >> $file_name
+    ./main $args | grep "L2 error of u and p" | awk -v i="$i" -v res="$res" '{ printf "%d,%d,%e\n", i, res, $8}' >> $file_name
     i=$((i+1))
 done
 

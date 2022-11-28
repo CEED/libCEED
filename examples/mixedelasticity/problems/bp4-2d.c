@@ -19,7 +19,7 @@
 #include "../qfunctions/bp4-2d.h"
 
 #include "../include/register-problem.h"
-#include "../qfunctions/compute-error-2d.h"
+#include "../qfunctions/compute-error_u-2d.h"
 #include "../qfunctions/volumetric-geometry-2d.h"
 
 PetscErrorCode BP4_2D(Ceed ceed, ProblemData problem_data, void *ctx) {
@@ -38,9 +38,10 @@ PetscErrorCode BP4_2D(Ceed ceed, ProblemData problem_data, void *ctx) {
   problem_data->setup_rhs_loc   = SetupDiffRhs2D_loc;
   problem_data->residual        = SetupDiff2D;
   problem_data->residual_loc    = SetupDiff2D_loc;
-  problem_data->error           = SetupError2D;
-  problem_data->error_loc       = SetupError2D_loc;
+  problem_data->error_u         = SetupError2Du;
+  problem_data->error_u_loc     = SetupError2Du_loc;
   problem_data->bp4             = PETSC_TRUE;
   problem_data->linear          = PETSC_FALSE;
+  problem_data->mixed           = PETSC_FALSE;
   PetscFunctionReturn(0);
 }
