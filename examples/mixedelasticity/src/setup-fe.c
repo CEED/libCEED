@@ -26,13 +26,13 @@ static PetscErrorCode CreateBCLabel(DM dm, const char name[]) {
 // ---------------------------------------------------------------------------
 // Set-up FE for H1 space
 // ---------------------------------------------------------------------------
-PetscErrorCode SetupFEByOrder(AppCtx app_ctx, DM dm) {
+PetscErrorCode SetupFEByOrder(AppCtx app_ctx, ProblemData problem_data, DM dm) {
   // FE space for displacement
-  PetscFE fe;
+  PetscFE fe_u;
   // number of quadrature points
-  app_ctx->q_order     = app_ctx->p_order + app_ctx->q_extra;
+  app_ctx->q_order     = app_ctx->u_order + app_ctx->q_extra;
   PetscInt  q_order    = app_ctx->q_order;
-  PetscInt  p_order    = app_ctx->p_order;
+  PetscInt  u_order    = app_ctx->u_order;
   PetscBool is_simplex = PETSC_TRUE;
   PetscInt  dim;
   PetscInt  marker_ids[1] = {1};
@@ -42,8 +42,15 @@ PetscErrorCode SetupFEByOrder(AppCtx app_ctx, DM dm) {
   PetscCall(DMPlexIsSimplex(dm, &is_simplex));
   // Create FE space
   PetscCall(DMGetDimension(dm, &dim));
-  PetscCall(PetscFECreateLagrange(app_ctx->comm, dim, dim, is_simplex, p_order, q_order, &fe));
-  PetscCall(DMAddField(dm, NULL, (PetscObject)fe));
+  PetscCall(PetscFECreateLagrange(app_ctx->comm, dim, dim, is_simplex, u_order, q_order, &fe_u));
+  PetscCall(DMAddField(dm, NULL, (PetscObject)fe_u));
+  if (problem_data->mixed) {
+    PetscFE  fe_p;
+    PetscInt p_order = app_ctx->p_order;
+    PetscCall(PetscFECreateLagrange(app_ctx->comm, dim, 1, is_simplex, p_order, q_order, &fe_p));
+    PetscCall(DMAddField(dm, NULL, (PetscObject)fe_p));
+    PetscCall(PetscFEDestroy(&fe_p));
+  }
   PetscCall(DMCreateDS(dm));
   {
     // create FE field for coordinates
@@ -75,7 +82,7 @@ PetscErrorCode SetupFEByOrder(AppCtx app_ctx, DM dm) {
     PetscCall(DMPlexSetClosurePermutationTensor(dm, PETSC_DETERMINE, NULL));
     PetscCall(DMPlexSetClosurePermutationTensor(dm_coord, PETSC_DETERMINE, NULL));
   }
-  PetscCall(PetscFEDestroy(&fe));
+  PetscCall(PetscFEDestroy(&fe_u));
 
   PetscFunctionReturn(0);
 };
@@ -83,12 +90,13 @@ PetscErrorCode SetupFEByOrder(AppCtx app_ctx, DM dm) {
 // -----------------------------------------------------------------------------
 // Get CEED restriction data from DMPlex
 // -----------------------------------------------------------------------------
-PetscErrorCode CreateRestrictionFromPlex(Ceed ceed, DM dm, CeedInt height, DMLabel domain_label, CeedInt value, CeedElemRestriction *elem_restr) {
+PetscErrorCode CreateRestrictionFromPlex(Ceed ceed, DM dm, DMLabel domain_label, CeedInt value, CeedInt height, PetscInt dm_field,
+                                         CeedElemRestriction *elem_restr) {
   PetscInt num_elem, elem_size, num_dof, num_comp, *elem_restr_offsets;
 
   PetscFunctionBeginUser;
 
-  PetscCall(DMPlexGetLocalOffsets(dm, domain_label, value, height, 0, &num_elem, &elem_size, &num_comp, &num_dof, &elem_restr_offsets));
+  PetscCall(DMPlexGetLocalOffsets(dm, domain_label, value, height, dm_field, &num_elem, &elem_size, &num_comp, &num_dof, &elem_restr_offsets));
 
   CeedElemRestrictionCreate(ceed, num_elem, elem_size, num_comp, 1, num_dof, CEED_MEM_HOST, CEED_COPY_VALUES, elem_restr_offsets, elem_restr);
   PetscCall(PetscFree(elem_restr_offsets));

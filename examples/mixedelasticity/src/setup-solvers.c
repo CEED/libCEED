@@ -21,16 +21,30 @@ PetscErrorCode SetupResidualOperatorCtx(DM dm, Ceed ceed, CeedData ceed_data, Op
   PetscFunctionReturn(0);
 }
 
-PetscErrorCode SetupErrorOperatorCtx(DM dm, Ceed ceed, CeedData ceed_data, OperatorApplyContext ctx_error) {
+PetscErrorCode SetupErrorUOperatorCtx(DM dm, Ceed ceed, CeedData ceed_data, OperatorApplyContext ctx_error_u) {
   PetscFunctionBeginUser;
 
-  ctx_error->dm = dm;
-  PetscCall(DMCreateLocalVector(dm, &ctx_error->X_loc));
-  PetscCall(VecDuplicate(ctx_error->X_loc, &ctx_error->Y_loc));
-  ctx_error->x_ceed   = ceed_data->x_ceed;
-  ctx_error->y_ceed   = ceed_data->y_ceed;
-  ctx_error->ceed     = ceed;
-  ctx_error->op_apply = ceed_data->op_error;
+  ctx_error_u->dm = dm;
+  PetscCall(DMCreateLocalVector(dm, &ctx_error_u->X_loc));
+  PetscCall(VecDuplicate(ctx_error_u->X_loc, &ctx_error_u->Y_loc));
+  ctx_error_u->x_ceed   = ceed_data->x_ceed;
+  ctx_error_u->y_ceed   = ceed_data->y_ceed;
+  ctx_error_u->ceed     = ceed;
+  ctx_error_u->op_apply = ceed_data->op_error_u;
+
+  PetscFunctionReturn(0);
+}
+
+PetscErrorCode SetupErrorPOperatorCtx(DM dm, Ceed ceed, CeedData ceed_data, OperatorApplyContext ctx_error_p) {
+  PetscFunctionBeginUser;
+
+  ctx_error_p->dm = dm;
+  PetscCall(DMCreateLocalVector(dm, &ctx_error_p->X_loc));
+  PetscCall(VecDuplicate(ctx_error_p->X_loc, &ctx_error_p->Y_loc));
+  ctx_error_p->x_ceed   = ceed_data->x_ceed;
+  ctx_error_p->y_ceed   = ceed_data->y_ceed;
+  ctx_error_p->ceed     = ceed;
+  ctx_error_p->op_apply = ceed_data->op_error_p;
 
   PetscFunctionReturn(0);
 }
@@ -110,11 +124,15 @@ PetscErrorCode ComputeL2Error(Vec X, PetscScalar *l2_error, OperatorApplyContext
   PetscFunctionReturn(0);
 };
 
-PetscErrorCode CtxVecDestroy(AppCtx app_ctx) {
+PetscErrorCode CtxVecDestroy(ProblemData problem_data, AppCtx app_ctx) {
   PetscFunctionBegin;
   PetscCall(VecDestroy(&app_ctx->ctx_residual->Y_loc));
   PetscCall(VecDestroy(&app_ctx->ctx_residual->X_loc));
-  PetscCall(VecDestroy(&app_ctx->ctx_error->Y_loc));
-  PetscCall(VecDestroy(&app_ctx->ctx_error->X_loc));
+  PetscCall(VecDestroy(&app_ctx->ctx_error_u->Y_loc));
+  PetscCall(VecDestroy(&app_ctx->ctx_error_u->X_loc));
+  if (problem_data->mixed) {
+    PetscCall(VecDestroy(&app_ctx->ctx_error_p->Y_loc));
+    PetscCall(VecDestroy(&app_ctx->ctx_error_p->X_loc));
+  }
   PetscFunctionReturn(0);
 }

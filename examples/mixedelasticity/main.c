@@ -49,14 +49,14 @@ int main(int argc, char **argv) {
   CeedData ceed_data;
   PetscCall(PetscCalloc1(1, &ceed_data));
 
-  OperatorApplyContext ctx_residual, ctx_error;
+  OperatorApplyContext ctx_residual, ctx_error_u;
   PetscCall(PetscCalloc1(1, &ctx_residual));
-  PetscCall(PetscCalloc1(1, &ctx_error));
+  PetscCall(PetscCalloc1(1, &ctx_error_u));
   // Context for residual
   app_ctx->ctx_residual = ctx_residual;
   // Context for computing error
-  app_ctx->ctx_error = ctx_error;
-  app_ctx->comm      = comm;
+  app_ctx->ctx_error_u = ctx_error_u;
+  app_ctx->comm        = comm;
 
   // ---------------------------------------------------------------------------
   // Process command line options
@@ -87,7 +87,7 @@ int main(int argc, char **argv) {
   // ---------------------------------------------------------------------------
   DM dm;
   PetscCall(CreateDM(comm, ceed, &dm));
-  PetscCall(SetupFEByOrder(app_ctx, dm));
+  PetscCall(SetupFEByOrder(app_ctx, problem_data, dm));
 
   // ---------------------------------------------------------------------------
   //  Create zero rhs local vector
@@ -135,14 +135,22 @@ int main(int argc, char **argv) {
   // ---------------------------------------------------------------------------
   // Compute L2 error of mms problem; setup-solver.c
   // ---------------------------------------------------------------------------
-  PetscCall(SetupErrorOperatorCtx(dm, ceed, ceed_data, app_ctx->ctx_error));
-  CeedScalar l2_error_u = 0.0;
-  PetscCall(ComputeL2Error(X, &l2_error_u, app_ctx->ctx_error));
+  CeedScalar l2_error_u = 0.0, l2_error_p = 0.0;
+  PetscCall(SetupErrorUOperatorCtx(dm, ceed, ceed_data, app_ctx->ctx_error_u));
+  PetscCall(ComputeL2Error(X, &l2_error_u, app_ctx->ctx_error_u));
+  if (problem_data->mixed) {
+    OperatorApplyContext ctx_error_p;
+    PetscCall(PetscCalloc1(1, &ctx_error_p));
+    // Context for computing error
+    app_ctx->ctx_error_p = ctx_error_p;
+    PetscCall(SetupErrorPOperatorCtx(dm, ceed, ceed_data, app_ctx->ctx_error_p));
+    PetscCall(ComputeL2Error(X, &l2_error_p, app_ctx->ctx_error_p));
+  }
 
   // ---------------------------------------------------------------------------
   // Print solver iterations and final norms; post-processing
   // ---------------------------------------------------------------------------
-  PetscCall(PrintOutput(dm, ceed, app_ctx, ksp, X, l2_error_u));
+  PetscCall(PrintOutput(dm, ceed, app_ctx, ksp, X, l2_error_u, l2_error_p));
 
   // ---------------------------------------------------------------------------
   // Free objects
@@ -154,16 +162,16 @@ int main(int argc, char **argv) {
   PetscCall(VecDestroy(&rhs));
   PetscCall(VecDestroy(&rhs_loc));
   PetscCall(KSPDestroy(&ksp));
-  PetscCall(CtxVecDestroy(app_ctx));
+  PetscCall(CtxVecDestroy(problem_data, app_ctx));
   // -- Function list
   PetscCall(PetscFunctionListDestroy(&app_ctx->problems));
 
   // -- Structs
-  PetscCall(CeedDataDestroy(ceed_data));
+  PetscCall(CeedDataDestroy(ceed_data, problem_data));
   PetscCall(PetscFree(app_ctx));
-  PetscCall(PetscFree(problem_data));
   PetscCall(PetscFree(ctx_residual));
-  PetscCall(PetscFree(ctx_error));
+  PetscCall(PetscFree(ctx_error_u));
+  PetscCall(PetscFree(problem_data));
 
   // Free libCEED objects
   CeedVectorDestroy(&rhs_ceed);

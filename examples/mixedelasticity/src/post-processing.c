@@ -3,7 +3,7 @@
 // -----------------------------------------------------------------------------
 // This function print the output
 // -----------------------------------------------------------------------------
-PetscErrorCode PrintOutput(DM dm, Ceed ceed, AppCtx app_ctx, KSP ksp, Vec X, CeedScalar l2_error_u) {
+PetscErrorCode PrintOutput(DM dm, Ceed ceed, AppCtx app_ctx, KSP ksp, Vec X, CeedScalar l2_error_u, CeedScalar l2_error_p) {
   PetscFunctionBeginUser;
 
   const char *used_resource;
@@ -53,7 +53,7 @@ PetscErrorCode PrintOutput(DM dm, Ceed ceed, AppCtx app_ctx, KSP ksp, Vec X, Cee
                         "    Element topology                        : %s\n"
                         "    Owned nodes                             : %" PetscInt_FMT "\n"
                         "    DoF per node                            : %" PetscInt_FMT "\n",
-                        app_ctx->problem_name, app_ctx->p_order, app_ctx->q_order, app_ctx->q_extra, X_g_size / 3, c_end - c_start,
+                        app_ctx->problem_name, app_ctx->u_order, app_ctx->q_order, app_ctx->q_extra, X_g_size / 3, c_end - c_start,
                         CeedElemTopologies[elem_topo], X_l_size / 3, 3));
   PetscInt           ksp_its;
   KSPType            ksp_type;
@@ -78,7 +78,7 @@ PetscErrorCode PrintOutput(DM dm, Ceed ceed, AppCtx app_ctx, KSP ksp, Vec X, Cee
 
   PetscCall(PetscPrintf(app_ctx->comm,
                         "  L2 Error (MMS):\n"
-                        "    L2 error of u                           : %e\n",
-                        (double)l2_error_u));
+                        "    L2 error of u and p                     : %e, %e\n",
+                        (double)l2_error_u, (double)l2_error_p));
   PetscFunctionReturn(0);
 };

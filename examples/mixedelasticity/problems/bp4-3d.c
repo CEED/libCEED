@@ -19,7 +19,7 @@
 #include "../qfunctions/bp4-3d.h"
 
 #include "../include/register-problem.h"
-#include "../qfunctions/compute-error-3d.h"
+#include "../qfunctions/compute-error_u-3d.h"
 #include "../qfunctions/volumetric-geometry-3d.h"
 
 PetscErrorCode BP4_3D(Ceed ceed, ProblemData problem_data, void *ctx) {
@@ -38,9 +38,10 @@ PetscErrorCode BP4_3D(Ceed ceed, ProblemData problem_data, void *ctx) {
   problem_data->setup_rhs_loc   = SetupDiffRhs3D_loc;
   problem_data->residual        = SetupDiff3D;
   problem_data->residual_loc    = SetupDiff3D_loc;
-  problem_data->error           = SetupError3D;
-  problem_data->error_loc       = SetupError3D_loc;
+  problem_data->error_u         = SetupError3Du;
+  problem_data->error_u_loc     = SetupError3Du_loc;
   problem_data->bp4             = PETSC_TRUE;
   problem_data->linear          = PETSC_FALSE;
+  problem_data->mixed           = PETSC_FALSE;
   PetscFunctionReturn(0);
 }
