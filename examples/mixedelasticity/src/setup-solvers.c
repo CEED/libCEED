@@ -94,11 +94,10 @@ PetscErrorCode PDESolver(CeedData ceed_data, AppCtx app_ctx, KSP ksp, Vec rhs, V
   PetscCall(KSPGetPC(ksp, &pc));
   PetscCall(PCSetType(pc, PCNONE));
   PetscCall(KSPSetType(ksp, KSPCG));
-  PetscCall(KSPSetNormType(ksp, KSP_NORM_NATURAL));
+  // PetscCall(KSPSetNormType(ksp, KSP_NORM_NATURAL));
   PetscCall(KSPSetTolerances(ksp, 1e-10, PETSC_DEFAULT, PETSC_DEFAULT, PETSC_DEFAULT));
 
   PetscCall(KSPSetOperators(ksp, mat_op, mat_op));
-  PetscCall(KSPSetTolerances(ksp, 1e-10, PETSC_DEFAULT, PETSC_DEFAULT, 1));
   PetscCall(KSPSetFromOptions(ksp));
   PetscCall(VecZeroEntries(*X));
   PetscCall(KSPSolve(ksp, rhs, *X));

@@ -17,14 +17,20 @@
 //                        libCEED + PETSc Example: Mixed-Poisson in H(div) space
 //
 // This example demonstrates a simple usage of libCEED with PETSc to solve
-//   mixed-elasticity problems.
+//   bp4, linear elasticity and mixed-elasticity problems.
 //
 // The code uses higher level communication protocols in DMPlex.
 //
 // Build with: make
 // Run with:
-//   ./main -pc_type svd -problem elasticity3d -dm_plex_dim 3 -dm_plex_box_faces 4,4,4 -ksp_type minres
-//   ./main -pc_type none -problem elasticity3d -dm_plex_filename /path to the mesh file -dm_plex_simplex 0
+// ./main -problem bp4-2d -dm_plex_dim 2 -dm_plex_box_faces 6,6 -dm_plex_simplex 0
+// ./main -problem bp3-3d -dm_plex_dim 3 -dm_plex_box_faces 6,6,6 -dm_plex_simplex 1
+// ./main -problem linear-2d -dm_plex_dim 2 -dm_plex_box_faces 6,6 -dm_plex_simplex 0
+// ./main -problem linear-3d -dm_plex_dim 3 -dm_plex_box_faces 6,6,6 -dm_plex_simplex 1
+// ./main -problem mixed-linear-2d -dm_plex_dim 2 -dm_plex_box_faces 6,6 -dm_plex_simplex 0 -pc_type svd
+// ./main -problem mixed-linear-2d -dm_plex_dim 2 -dm_plex_box_faces 6,6 -dm_plex_simplex 0 -ksp_type minres -pc_type fieldsplit -ksp_monitor
+// -ksp_view -fieldsplit_q2_pc_type svd -fieldsplit_q1_pc_type svd -pc_fieldsplit_type schur -fieldsplit_q2_ksp_rtol 1e-12 -fieldsplit_q1_ksp_rtol
+// 1e-12 -ksp_type fgmres -pc_fieldsplit_schur_fact_type upper
 #include <stdio.h>
 const char help[] = "Solve mixed-elasticity problem using PETSc and libCEED\n";
 
@@ -130,6 +136,8 @@ int main(int argc, char **argv) {
   // Create global and local solution vectors
   PetscCall(DMCreateGlobalVector(dm, &X));
   PetscCall(KSPCreate(app_ctx->comm, &ksp));
+  PetscCall(KSPSetDM(ksp, dm));
+  PetscCall(KSPSetDMActive(ksp, PETSC_FALSE));
   PetscCall(PDESolver(ceed_data, app_ctx, ksp, rhs, &X));
 
   // ---------------------------------------------------------------------------

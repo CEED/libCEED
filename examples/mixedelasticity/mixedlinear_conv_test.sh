@@ -52,7 +52,7 @@ i=0
 
 for ((res=${test_flags[res_start]}; res<=${test_flags[res_end]}; res+=${test_flags[res_stride]})); do
 
-    run_flags[dm_plex_box_faces]=$res,$res,$res
+    run_flags[dm_plex_box_faces]=$res,$res
 
     args=''
     for arg in "${!run_flags[@]}"; do
