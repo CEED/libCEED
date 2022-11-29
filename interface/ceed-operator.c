@@ -208,10 +208,18 @@ int CeedOperatorSingleView(CeedOperator op, bool sub, FILE *stream) {
   @ ref Developer
 **/
 int CeedOperatorGetActiveBasis(CeedOperator op, CeedBasis *active_basis) {
+  Ceed ceed;
+  CeedCall(CeedOperatorGetCeed(op, &ceed));
+
   *active_basis = NULL;
   if (op->is_composite) return CEED_ERROR_SUCCESS;
   for (CeedInt i = 0; i < op->qf->num_input_fields; i++) {
     if (op->input_fields[i]->vec == CEED_VECTOR_ACTIVE) {
+      if (*active_basis && *active_basis != op->input_fields[i]->basis) {
+        // LCOV_EXCL_START
+        return CeedError(ceed, CEED_ERROR_MINOR, "Multiple active CeedBases found");
+        // LCOV_EXCL_STOP
+      }
       *active_basis = op->input_fields[i]->basis;
       break;
     }
@@ -219,10 +227,7 @@ int CeedOperatorGetActiveBasis(CeedOperator op, CeedBasis *active_basis) {
 
   if (!*active_basis) {
     // LCOV_EXCL_START
-    Ceed ceed;
-
-    CeedCall(CeedOperatorGetCeed(op, &ceed));
-    return CeedError(ceed, CEED_ERROR_MINOR, "No active CeedBasis found");
+    return CeedError(ceed, CEED_ERROR_INCOMPLETE, "No active CeedBasis found");
     // LCOV_EXCL_STOP
   }
   return CEED_ERROR_SUCCESS;
@@ -239,10 +244,18 @@ int CeedOperatorGetActiveBasis(CeedOperator op, CeedBasis *active_basis) {
   @ref Utility
 **/
 int CeedOperatorGetActiveElemRestriction(CeedOperator op, CeedElemRestriction *active_rstr) {
+  Ceed ceed;
+  CeedCall(CeedOperatorGetCeed(op, &ceed));
+
   *active_rstr = NULL;
   if (op->is_composite) return CEED_ERROR_SUCCESS;
   for (CeedInt i = 0; i < op->qf->num_input_fields; i++) {
     if (op->input_fields[i]->vec == CEED_VECTOR_ACTIVE) {
+      if (*active_rstr && *active_rstr != op->input_fields[i]->elem_restr) {
+        // LCOV_EXCL_START
+        return CeedError(ceed, CEED_ERROR_MINOR, "Multiple active CeedElemRestrictions found");
+        // LCOV_EXCL_STOP
+      }
       *active_rstr = op->input_fields[i]->elem_restr;
       break;
     }
@@ -250,9 +263,6 @@ int CeedOperatorGetActiveElemRestriction(CeedOperator op, CeedElemRestriction *a
 
   if (!*active_rstr) {
     // LCOV_EXCL_START
-    Ceed ceed;
-
-    CeedCall(CeedOperatorGetCeed(op, &ceed));
     return CeedError(ceed, CEED_ERROR_INCOMPLETE, "No active CeedElemRestriction found");
     // LCOV_EXCL_STOP
   }
