@@ -789,6 +789,11 @@ static int CeedSingleOperatorMultigridLevel(CeedOperator op_fine, CeedVector p_m
     CeedCall(CeedFree(&restriction_name));
   }
 
+  // Check
+  CeedCall(CeedOperatorCheckReady(*op_coarse));
+  CeedCall(CeedOperatorCheckReady(*op_prolong));
+  CeedCall(CeedOperatorCheckReady(*op_restrict));
+
   // Cleanup
   CeedCall(CeedVectorDestroy(&mult_vec));
   CeedCall(CeedBasisDestroy(&basis_c_to_f));
@@ -1757,7 +1762,7 @@ int CeedOperatorLinearAssemble(CeedOperator op, CeedVector values) {
   @brief Create a multigrid coarse operator and level transfer operators for a CeedOperator, creating the prolongation basis from the fine and coarse
 grid interpolation
 
-  Note: Calling this function asserts that setup is complete and sets the CeedOperator as immutable.
+  Note: Calling this function asserts that setup is complete and sets all four CeedOperators as immutable.
 
   @param[in]  op_fine      Fine grid operator
   @param[in]  p_mult_fine  L-vector multiplicity in parallel gather/scatter
@@ -1789,7 +1794,7 @@ int CeedOperatorMultigridLevelCreate(CeedOperator op_fine, CeedVector p_mult_fin
 /**
   @brief Create a multigrid coarse operator and level transfer operators for a CeedOperator with a tensor basis for the active basis
 
-  Note: Calling this function asserts that setup is complete and sets the CeedOperator as immutable.
+  Note: Calling this function asserts that setup is complete and sets all four CeedOperators as immutable.
 
   @param[in]  op_fine       Fine grid operator
   @param[in]  p_mult_fine   L-vector multiplicity in parallel gather/scatter
@@ -1848,7 +1853,7 @@ int CeedOperatorMultigridLevelCreateTensorH1(CeedOperator op_fine, CeedVector p_
 /**
   @brief Create a multigrid coarse operator and level transfer operators for a CeedOperator with a non-tensor basis for the active vector
 
-  Note: Calling this function asserts that setup is complete and sets the CeedOperator as immutable.
+  Note: Calling this function asserts that setup is complete and sets all four CeedOperators as immutable.
 
   @param[in]  op_fine       Fine grid operator
   @param[in]  p_mult_fine   L-vector multiplicity in parallel gather/scatter
