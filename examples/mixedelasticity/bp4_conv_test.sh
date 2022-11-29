@@ -30,11 +30,11 @@ done
 echo "Running convergence test for BP4 with polynomial order ${order}";
 declare -A run_flags
 
-    run_flags[dm_plex_dim]=2
-    run_flags[dm_plex_box_faces]=4,4
+    run_flags[dm_plex_dim]=3
+    run_flags[dm_plex_box_faces]=4,4,4
     run_flags[dm_plex_simplex]=0
     run_flags[u_order]=$order
-    run_flags[problem]=bp4-2d
+    run_flags[problem]=bp4-3d
     run_flags[ksp_max_it]=1000
 
 declare -A test_flags

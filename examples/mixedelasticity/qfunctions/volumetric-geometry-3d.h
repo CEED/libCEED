@@ -37,6 +37,15 @@ CEED_QFUNCTION(SetupVolumeGeometry3D)(void *ctx, CeedInt Q, const CeedScalar *co
     for (CeedInt j = 0; j < 9; j++) {
       q_data[j + 1][i] = dXdx_voigt[j];
     }
+    // CeedScalar dXdx[3][3];
+    // VoigtUnpackNonSymmetric3(dXdx_voigt, dXdx);
+    // printf("dXdx[0,:] %f, %f, %f\n", dXdx[0][0], dXdx[0][1], dXdx[0][2]);
+    // printf("dXdx[1,:] %f, %f, %f\n", dXdx[1][0], dXdx[1][1], dXdx[1][2]);
+    // printf("dXdx[2,:] %f, %f, %f\n", dXdx[2][0], dXdx[2][1], dXdx[2][2]);
+    // printf("dxdX[0,:] %f, %f, %f\n", dxdX[0][0], dxdX[0][1], dxdX[0][2]);
+    // printf("dxdX[1,:] %f, %f, %f\n", dxdX[1][0], dxdX[1][1], dxdX[1][2]);
+    // printf("dxdX[2,:] %f, %f, %f\n", dxdX[2][0], dxdX[2][1], dxdX[2][2]);
+
   }  // End of Quadrature Point Loop
   return 0;
 }
