@@ -144,9 +144,8 @@ CEED_QFUNCTION(ICsDC)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedSca
   // Context
   const DensityCurrentContext context = (DensityCurrentContext)ctx;
 
-  CeedPragmaSIMD
-      // Quadrature Point Loop
-      for (CeedInt i = 0; i < Q; i++) {
+  // Quadrature Point Loop
+  CeedPragmaSIMD for (CeedInt i = 0; i < Q; i++) {
     const CeedScalar x[]  = {X[0][i], X[1][i], X[2][i]};
     State            s    = Exact_DC(3, 0., x, 5, ctx);
     CeedScalar       q[5] = {0};
