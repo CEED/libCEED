@@ -398,48 +398,6 @@ int CeedOperatorIsComposite(CeedOperator op, bool *is_composite) {
 }
 
 /**
-  @brief Get the number of sub_operators associated with a CeedOperator
-
-  @param[in]  op               CeedOperator
-  @param[out] num_suboperators Variable to store number of sub_operators
-
-  @return An error code: 0 - success, otherwise - failure
-
-  @ref Backend
-**/
-
-int CeedOperatorGetNumSub(CeedOperator op, CeedInt *num_suboperators) {
-  if (!op->is_composite) {
-    // LCOV_EXCL_START
-    return CeedError(op->ceed, CEED_ERROR_MINOR, "Not a composite operator");
-    // LCOV_EXCL_STOP
-  }
-  *num_suboperators = op->num_suboperators;
-  return CEED_ERROR_SUCCESS;
-}
-
-/**
-  @brief Get the list of sub_operators associated with a CeedOperator
-
-  @param[in]  op            CeedOperator
-  @param[out] sub_operators Variable to store list of sub_operators
-
-  @return An error code: 0 - success, otherwise - failure
-
-  @ref Backend
-**/
-
-int CeedOperatorGetSubList(CeedOperator op, CeedOperator **sub_operators) {
-  if (!op->is_composite) {
-    // LCOV_EXCL_START
-    return CeedError(op->ceed, CEED_ERROR_MINOR, "Not a composite operator");
-    // LCOV_EXCL_STOP
-  }
-  *sub_operators = op->sub_operators;
-  return CEED_ERROR_SUCCESS;
-}
-
-/**
   @brief Get the backend data of a CeedOperator
 
   @param[in]  op   CeedOperator
@@ -896,6 +854,48 @@ int CeedCompositeOperatorAddSub(CeedOperator composite_op, CeedOperator sub_op) 
   composite_op->sub_operators[composite_op->num_suboperators] = sub_op;
   CeedCall(CeedOperatorReference(sub_op));
   composite_op->num_suboperators++;
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
+  @brief Get the number of sub_operators associated with a CeedOperator
+
+  @param[in]  op               CeedOperator
+  @param[out] num_suboperators Variable to store number of sub_operators
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Backend
+**/
+
+int CeedOperatorGetNumSub(CeedOperator op, CeedInt *num_suboperators) {
+  if (!op->is_composite) {
+    // LCOV_EXCL_START
+    return CeedError(op->ceed, CEED_ERROR_MINOR, "Not a composite operator");
+    // LCOV_EXCL_STOP
+  }
+  *num_suboperators = op->num_suboperators;
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
+  @brief Get the list of sub_operators associated with a CeedOperator
+
+  @param op                  CeedOperator
+  @param[out] sub_operators  Variable to store list of sub_operators
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Backend
+**/
+
+int CeedOperatorGetSubList(CeedOperator op, CeedOperator **sub_operators) {
+  if (!op->is_composite) {
+    // LCOV_EXCL_START
+    return CeedError(op->ceed, CEED_ERROR_MINOR, "Not a composite operator");
+    // LCOV_EXCL_STOP
+  }
+  *sub_operators = op->sub_operators;
   return CEED_ERROR_SUCCESS;
 }
 

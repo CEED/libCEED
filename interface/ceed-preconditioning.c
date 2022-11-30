@@ -1754,6 +1754,77 @@ int CeedOperatorLinearAssemble(CeedOperator op, CeedVector values) {
 }
 
 /**
+  @brief Get the multiplicity of nodes across suboperators in a composite CeedOperator
+
+  Note: Calling this function asserts that setup is complete and sets the CeedOperator as immutable.
+
+  @param[in]  op               Composite CeedOperator
+  @param[in]  num_skip_indices Number of suboperators to skip
+  @param[in]  skip_indices     Array of indices of suboperators to skip
+  @param[out] mult             Vector to store multiplicity (of size l_size)
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref User
+**/
+int CeedCompositeOperatorGetMultiplicity(CeedOperator op, CeedInt num_skip_indices, CeedInt *skip_indices, CeedVector mult) {
+  CeedCall(CeedOperatorCheckReady(op));
+
+  Ceed                ceed;
+  CeedInt             num_sub_ops;
+  CeedSize            l_vec_len;
+  CeedScalar         *mult_array;
+  CeedVector          ones_l_vec;
+  CeedElemRestriction elem_restr;
+  CeedOperator       *sub_ops;
+
+  CeedCall(CeedOperatorGetCeed(op, &ceed));
+
+  // Zero mult vector
+  CeedCall(CeedVectorSetValue(mult, 0.0));
+
+  // Get suboperators
+  CeedCall(CeedOperatorGetNumSub(op, &num_sub_ops));
+  CeedCall(CeedOperatorGetSubList(op, &sub_ops));
+  if (num_sub_ops == 0) return CEED_ERROR_SUCCESS;
+
+  // Work vector
+  CeedCall(CeedVectorGetLength(mult, &l_vec_len));
+  CeedCall(CeedVectorCreate(ceed, l_vec_len, &ones_l_vec));
+  CeedCall(CeedVectorSetValue(ones_l_vec, 1.0));
+  CeedCall(CeedVectorGetArray(mult, CEED_MEM_HOST, &mult_array));
+
+  // Compute multiplicity across suboperators
+  for (CeedInt i = 0; i < num_sub_ops; i++) {
+    const CeedScalar *sub_mult_array;
+    CeedVector        sub_mult_l_vec, ones_e_vec;
+
+    // -- Check for suboperator to skip
+    for (CeedInt j = 0; j < num_skip_indices; j++) {
+      if (skip_indices[j] == i) continue;
+    }
+
+    // -- Sub operator multiplicity
+    CeedCall(CeedOperatorGetActiveElemRestriction(sub_ops[i], &elem_restr));
+    CeedCall(CeedElemRestrictionCreateVector(elem_restr, &sub_mult_l_vec, &ones_e_vec));
+    CeedCall(CeedVectorSetValue(sub_mult_l_vec, 0.0));
+    CeedCall(CeedElemRestrictionApply(elem_restr, CEED_NOTRANSPOSE, ones_l_vec, ones_e_vec, CEED_REQUEST_IMMEDIATE));
+    CeedCall(CeedElemRestrictionApply(elem_restr, CEED_TRANSPOSE, ones_e_vec, sub_mult_l_vec, CEED_REQUEST_IMMEDIATE));
+    CeedCall(CeedVectorGetArrayRead(sub_mult_l_vec, CEED_MEM_HOST, &sub_mult_array));
+    // ---- Flag every node present in the current suboperator
+    for (CeedInt j = 0; j < l_vec_len; j++) {
+      if (sub_mult_array[j] > 0.0) mult_array[j] += 1.0;
+    }
+    CeedCall(CeedVectorRestoreArrayRead(sub_mult_l_vec, &sub_mult_array));
+    CeedCall(CeedVectorDestroy(&sub_mult_l_vec));
+    CeedCall(CeedVectorDestroy(&ones_e_vec));
+  }
+  CeedCall(CeedVectorRestoreArray(mult, &mult_array));
+
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
   @brief Create a multigrid coarse operator and level transfer operators for a CeedOperator, creating the prolongation basis from the fine and coarse
 grid interpolation
 
