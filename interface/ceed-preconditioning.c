@@ -398,8 +398,8 @@ static inline int CeedCompositeOperatorLinearAssembleAddDiagonal(CeedOperator op
                                                                  CeedVector assembled) {
   CeedInt       num_sub;
   CeedOperator *suboperators;
-  CeedCall(CeedOperatorGetNumSub(op, &num_sub));
-  CeedCall(CeedOperatorGetSubList(op, &suboperators));
+  CeedCall(CeedCompositeOperatorGetNumSub(op, &num_sub));
+  CeedCall(CeedCompositeOperatorGetSubList(op, &suboperators));
   for (CeedInt i = 0; i < num_sub; i++) {
     if (is_pointblock) {
       CeedCall(CeedOperatorLinearAssembleAddPointBlockDiagonal(suboperators[i], assembled, request));
@@ -1665,8 +1665,8 @@ int CeedOperatorLinearAssembleSymbolic(CeedOperator op, CeedSize *num_entries, C
   CeedCall(CeedOperatorIsComposite(op, &is_composite));
   *num_entries = 0;
   if (is_composite) {
-    CeedCall(CeedOperatorGetNumSub(op, &num_suboperators));
-    CeedCall(CeedOperatorGetSubList(op, &sub_operators));
+    CeedCall(CeedCompositeOperatorGetNumSub(op, &num_suboperators));
+    CeedCall(CeedCompositeOperatorGetSubList(op, &sub_operators));
     for (CeedInt k = 0; k < num_suboperators; ++k) {
       CeedCall(CeedSingleOperatorAssemblyCountEntries(sub_operators[k], &single_entries));
       *num_entries += single_entries;
@@ -1681,8 +1681,8 @@ int CeedOperatorLinearAssembleSymbolic(CeedOperator op, CeedSize *num_entries, C
   // assemble nonzero locations
   CeedInt offset = 0;
   if (is_composite) {
-    CeedCall(CeedOperatorGetNumSub(op, &num_suboperators));
-    CeedCall(CeedOperatorGetSubList(op, &sub_operators));
+    CeedCall(CeedCompositeOperatorGetNumSub(op, &num_suboperators));
+    CeedCall(CeedCompositeOperatorGetSubList(op, &sub_operators));
     for (CeedInt k = 0; k < num_suboperators; ++k) {
       CeedCall(CeedSingleOperatorAssembleSymbolic(sub_operators[k], offset, *rows, *cols));
       CeedCall(CeedSingleOperatorAssemblyCountEntries(sub_operators[k], &single_entries));
@@ -1739,8 +1739,8 @@ int CeedOperatorLinearAssemble(CeedOperator op, CeedVector values) {
 
   CeedInt offset = 0;
   if (is_composite) {
-    CeedCall(CeedOperatorGetNumSub(op, &num_suboperators));
-    CeedCall(CeedOperatorGetSubList(op, &sub_operators));
+    CeedCall(CeedCompositeOperatorGetNumSub(op, &num_suboperators));
+    CeedCall(CeedCompositeOperatorGetSubList(op, &sub_operators));
     for (CeedInt k = 0; k < num_suboperators; k++) {
       CeedCall(CeedSingleOperatorAssemble(sub_operators[k], offset, values));
       CeedCall(CeedSingleOperatorAssemblyCountEntries(sub_operators[k], &single_entries));
@@ -1784,8 +1784,8 @@ int CeedCompositeOperatorGetMultiplicity(CeedOperator op, CeedInt num_skip_indic
   CeedCall(CeedVectorSetValue(mult, 0.0));
 
   // Get suboperators
-  CeedCall(CeedOperatorGetNumSub(op, &num_sub_ops));
-  CeedCall(CeedOperatorGetSubList(op, &sub_ops));
+  CeedCall(CeedCompositeOperatorGetNumSub(op, &num_sub_ops));
+  CeedCall(CeedCompositeOperatorGetSubList(op, &sub_ops));
   if (num_sub_ops == 0) return CEED_ERROR_SUCCESS;
 
   // Work vector

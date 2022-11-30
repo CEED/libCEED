@@ -474,8 +474,8 @@ CEED_EXTERN int CeedOperatorSetField(CeedOperator op, const char *field_name, Ce
 CEED_EXTERN int CeedOperatorGetFields(CeedOperator op, CeedInt *num_input_fields, CeedOperatorField **input_fields, CeedInt *num_output_fields,
                                       CeedOperatorField **output_fields);
 CEED_EXTERN int CeedCompositeOperatorAddSub(CeedOperator composite_op, CeedOperator sub_op);
-CEED_EXTERN int CeedOperatorGetNumSub(CeedOperator op, CeedInt *num_suboperators);
-CEED_EXTERN int CeedOperatorGetSubList(CeedOperator op, CeedOperator **sub_operators);
+CEED_EXTERN int CeedCompositeOperatorGetNumSub(CeedOperator op, CeedInt *num_suboperators);
+CEED_EXTERN int CeedCompositeOperatorGetSubList(CeedOperator op, CeedOperator **sub_operators);
 CEED_EXTERN int CeedOperatorCheckReady(CeedOperator op);
 CEED_EXTERN int CeedOperatorGetActiveVectorLengths(CeedOperator op, CeedSize *input_size, CeedSize *output_size);
 CEED_EXTERN int CeedOperatorSetQFunctionAssemblyReuse(CeedOperator op, bool reuse_assembly_data);

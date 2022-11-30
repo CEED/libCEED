@@ -120,7 +120,7 @@ int main(int argc, char **argv) {
     CeedOperator       *sub_ops_mass_f, sub_op_mass_c, sub_op_prolong, sub_op_restrict;
 
     // -- Fine grid operator
-    CeedOperatorGetSubList(op_mass_f, &sub_ops_mass_f);
+    CeedCompositeOperatorGetSubList(op_mass_f, &sub_ops_mass_f);
 
     // -- Restrictions
     CeedInt offset = num_elem_sub * i * (P_c - 1);
