@@ -11,6 +11,7 @@
 #include "../navierstokes.h"
 #include "../qfunctions/vortexshedding.h"
 #include "../qfunctions/freestream_bc.h"
+#include "../qfunctions/freestream_bc_type.h"
 #include "ceed/ceed-f64.h"
 #include "stg_shur14.h"
 
@@ -46,8 +47,8 @@ PetscErrorCode NS_VORTEXSHEDDING(ProblemData *problem, DM dm, void *ctx, SimpleB
     //problem->apply_freestream.qfunction_loc = Freestream_Prim_loc;
   }
 
-  CeedScalar U_in[3]            = {1.0};       // m/s
-  CeedScalar T_in               = 300.;        // K
+  CeedScalar U_infty[3]         = {1.0};       // m/s
+  CeedScalar T_infty            = 300.;        // K
   CeedScalar P0                 = 1.e5;        // Pa
   CeedScalar L;
   CeedScalar H;
@@ -56,16 +57,15 @@ PetscErrorCode NS_VORTEXSHEDDING(ProblemData *problem, DM dm, void *ctx, SimpleB
 
   PetscOptionsBegin(comm, NULL, "Options for VORTEX SHEDDING problem", NULL);
   PetscInt narray=3;
-  ierr = PetscOptionsScalarArray("-velocity_inflow",
-                            "Velocity at inflow",
-                            NULL, U_in, &narray, NULL); CHKERRQ(ierr);
+  ierr = PetscOptionsScalarArray("-freestream_velocity", "Velocity at freestream",
+                            NULL, U_infty, &narray, NULL); CHKERRQ(ierr);
   PetscCheck(narray == 3, comm, PETSC_ERR_ARG_SIZ,
-             "-velocity_inflow should recieve array of size 3, instead recieved size %"
+             "-freestream_velocity should recieve array of size 3, instead recieved size %"
              PetscInt_FMT".", narray);
-  ierr = PetscOptionsScalar("-P0", "Pressure at outflow",
+  ierr = PetscOptionsScalar("-freestream_pressure", "Pressure at freestream",
                             NULL, P0, &P0, NULL); CHKERRQ(ierr);
-  ierr = PetscOptionsScalar("-temperature_inflow", "Temperature at inflow",
-                            NULL, T_in, &T_in, NULL); CHKERRQ(ierr);
+  ierr = PetscOptionsScalar("-freestream_temperature", "Temperature at freestream",
+                            NULL, T_infty, &T_infty, NULL); CHKERRQ(ierr);
   ierr = PetscOptionsScalar("-L", "Length of the rectangular channel",
                             NULL, L, &L, NULL); CHKERRQ(ierr);
   ierr = PetscOptionsScalar("-H", "Heigth of the rectangular channel",
@@ -81,10 +81,10 @@ PetscErrorCode NS_VORTEXSHEDDING(ProblemData *problem, DM dm, void *ctx, SimpleB
   PetscScalar Kelvin = user->units->Kelvin;
   PetscScalar Pascal = user->units->Pascal;
 
-  T_in   *= Kelvin;
-  P0     *= Pascal;
+  T_infty *= Kelvin;
+  P0      *= Pascal;
   for (int i=0; i<3; i++) {
-    U_in[i]     *= meter / second;
+    U_infty[i]     *= meter / second;
   }
   L      *= meter;
   H      *= meter;
@@ -95,7 +95,7 @@ PetscErrorCode NS_VORTEXSHEDDING(ProblemData *problem, DM dm, void *ctx, SimpleB
                               CEED_MEM_HOST, &newtonian_ig_ctx);
   State S_infty;
   {
-    CeedScalar Y[5] = {P0, U_in[0], U_in[1], U_in[2], T_in};
+    CeedScalar Y[5] = {P0, U_infty[0], U_infty[1], U_infty[2], T_infty};
     CeedScalar x[3] = {0.};
     S_infty = StateFromY(newtonian_ig_ctx, Y, x);
   }
@@ -120,7 +120,7 @@ PetscErrorCode NS_VORTEXSHEDDING(ProblemData *problem, DM dm, void *ctx, SimpleB
   vortexshedding_ctx->D        = D;
   vortexshedding_ctx->center   = center;
   vortexshedding_ctx->radius   = radius;
-  vortexshedding_ctx->T_in     = T_in;
+  vortexshedding_ctx->T_infty  = T_infty;
   vortexshedding_ctx->P0       = P0;
   vortexshedding_ctx->S_infty  = S_infty;
   vortexshedding_ctx->implicit = user->phys->implicit;

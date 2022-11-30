@@ -24,6 +24,9 @@ mu: 0.01
 # Cylinder diameter
 D:  1.41421356
 
+# Cylinder radius
+radius: D / 2
+
 ## DM Settings:
 degree: 1
 dm_plex_dim: 3

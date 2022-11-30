@@ -24,12 +24,13 @@ typedef struct VortexsheddingContext_ *VortexsheddingContext;
 struct VortexsheddingContext_ {
   bool       implicit; // !< Using implicit timesteping or not
   bool       weakT;    // !< flag to set Temperature weakly at inflow
-  CeedScalar U_in;     // !< Velocity at inflow
-  CeedScalar T_in;     // !< Temperature at inflow
-  CeedScalar P0;       // !< Pressure at outflow
+  CeedScalar U_infty;     // !< Velocity at freestream
+  CeedScalar T_infty;     // !< Temperature at freestream
+  CeedScalar P0;       // !< Pressure at freestream
   CeedScalar L;        // !< Length of the rectangular channel
   CeedScalar H;        // !< Height of the rectangular channel
   CeedScalar D;        // !< Cylinder diameter
+  CeedScalar T;        // !< Shedding period
   CeedScalar center;   // !< Cylinder center
   CeedScalar radius;   // !< Cylinder radius
   State      S_infty;
@@ -49,21 +50,26 @@ CEED_QFUNCTION_HELPER int ICsVortexshedding(void *ctx, CeedInt Q,
   // Context
   const VortexsheddingContext context = (VortexsheddingContext)ctx;
   const NewtonianIdealGasContext newtonian_ctx = &context->newtonian_ctx;
-  const CeedScalar T_in        = context->T_in;
+  //NewtonianIdealGasContext gas     = &context->newtonian_ctx;
+  const CeedScalar T_infty     = context->T_infty;
   const CeedScalar P0          = context->P0;
-  const CeedScalar U_in        = context->U_in;
+  const CeedScalar U_infty     = context->U_infty;
   const CeedScalar H           = context->H;
   const CeedScalar L           = context->L;
   const CeedScalar D           = context->D;
+  const CeedScalar T           = context->T;
   const CeedScalar center      = context->center;
   const CeedScalar radius      = context->radius;
   const State      S_infty     = context->S_infty;
   const CeedScalar cv          = context->newtonian_ctx.cv;
   const CeedScalar mu          = context->newtonian_ctx.mu;
   const CeedScalar gamma       = HeatCapacityRatio(&context->newtonian_ctx);
-  const CeedScalar e_internal  = cv * T_in;
+  const CeedScalar e_internal  = cv * T_infty;
   const CeedScalar rho         = P0 / ((gamma - 1) * e_internal);
-  const CeedScalar Re          = (rho * U_in * D) / mu;
+  const CeedScalar Re          = (rho * U_infty * D) / mu;
+  const CeedScalar Ma          = U_infty / SoundSpeed(newtonian_ctx, S_infty.Y.temperature);
+  const CeedScalar St          = D / (U_infty * T);
+  const CeedScalar e_kinetic = 0.5 * S_infty.U.density * Dot3(S_infty.Y.velocity, S_infty.Y.velocity);
 
   // Quadrature point Loop
   CeedPragmaSIMD
@@ -72,11 +78,11 @@ CEED_QFUNCTION_HELPER int ICsVortexshedding(void *ctx, CeedInt Q,
     CeedScalar qi[5] = {0.};
     const CeedScalar x[3] = {X[0][i], X[1][i], X[2][i]};
 
-    U[0] = U_in;
-    U[1] = tanh(Min(0, fabs(x[0] - center) - radius) / D);
-    U[2] = tanh(Min(0, fabs(x[1] - center) - radius) / D);
-    U[3] = tanh(Min(0, fabs(x[2] - center) - radius) / D);
-    U[4] = T_in;
+    U[0] = S_infty.U.density;
+    U[1] = U[0] * tanh(Min(0, fabs(x[0] - center) - radius) / D);
+    U[2] = U[0] * tanh(Min(0, fabs(x[1] - center) - radius) / D);
+    U[3] = U[0] * tanh(Min(0, fabs(x[2] - center) - radius) / D);
+    U[4] = S_infty.Y.pressure / (gamma - 1) + e_kinetic;
 
     State InitCond = StateFromU(newtonian_ctx, U, x);
     StateToQi(newtonian_ctx, InitCond, qi);
