@@ -1,19 +1,21 @@
+// Copyright (c) 2017-2022, Lawrence Livermore National Security, LLC and other CEED contributors.
+// All Rights Reserved. See the top-level LICENSE and NOTICE files for details.
+//
+// SPDX-License-Identifier: BSD-2-Clause
+//
+// This file is part of CEED:  http://github.com/ceed
+
 //                         libCEED + MFEM Example: BP3
 //
-// This example illustrates a simple usage of libCEED with the MFEM (mfem.org)
-// finite element library.
+// This example illustrates a simple usage of libCEED with the MFEM (mfem.org) finite element library.
 //
-// The example reads a mesh from a file and solves a linear system with a
-// diffusion stiffness matrix (with a prescribed analytic solution, provided by
-// the function 'solution'). The diffusion matrix is expressed as a new class,
-// CeedDiffusionOperator, derived from mfem::Operator. Internally,
-// CeedDiffusionOperator uses a CeedOperator object constructed based on an
-// mfem::FiniteElementSpace. All libCEED objects use a Ceed logical device
+// The example reads a mesh from a file and solves a linear system with a diffusion stiffness matrix (with a prescribed analytic solution, provided by
+// the function 'solution'). The diffusion matrix is expressed as a new class, CeedDiffusionOperator, derived from mfem::Operator. Internally,
+// CeedDiffusionOperator uses a CeedOperator object constructed based on an mfem::FiniteElementSpace. All libCEED objects use a Ceed logical device
 // object constructed based on a command line argument. (-ceed).
 //
-// The linear system is inverted using the conjugate gradients algorithm
-// corresponding to CEED BP3, see http://ceed.exascaleproject.org/bps. Arbitrary
-// mesh and solution orders in 1D, 2D and 3D are supported from the same code.
+// The linear system is inverted using the conjugate gradients algorithm corresponding to CEED BP3, see http://ceed.exascaleproject.org/bps.
+// Arbitrary mesh and solution orders in 1D, 2D and 3D are supported from the same code.
 //
 // Build with:
 //
@@ -102,10 +104,9 @@ int main(int argc, char *argv[]) {
   mfem::Mesh *mesh = new mfem::Mesh(mesh_file, 1, 1);
   int         dim  = mesh->Dimension();
 
-  // 4. Refine the mesh to increase the resolution. In this example we do
-  //    'ref_levels' of uniform refinement. We choose 'ref_levels' to be the
-  //    largest number that gives a final system with no more than 50,000
-  //    unknowns, approximately.
+  // 4. Refine the mesh to increase the resolution.
+  //    In this example we do 'ref_levels' of uniform refinement.
+  //    We choose 'ref_levels' to be the largest number that gives a final system with no more than 50,000 unknowns, approximately.
   {
     int ref_levels = (int)floor((log(max_nnodes / mesh->GetNE()) - dim * log(order)) / log(2.) / dim);
     for (int l = 0; l < ref_levels; l++) {
@@ -119,8 +120,8 @@ int main(int argc, char *argv[]) {
     mesh->SetCurvature(order, false, -1, mfem::Ordering::byNODES);
   }
 
-  // 5. Define a finite element space on the mesh. Here we use continuous
-  //    Lagrange finite elements of the specified order.
+  // 5. Define a finite element space on the mesh.
+  //    Here we use continuous Lagrange finite elements of the specified order.
   MFEM_VERIFY(order > 0, "invalid order");
   mfem::FiniteElementCollection *fec     = new mfem::H1_FECollection(order, dim);
   mfem::FiniteElementSpace      *fespace = new mfem::FiniteElementSpace(mesh, fec);
@@ -138,15 +139,13 @@ int main(int argc, char *argv[]) {
     sol.ProjectBdrCoefficient(sol_coeff, ess_bdr);
   }
 
-  // 6. Construct a rhs vector using the linear form f(v) = (rhs, v), where
-  //    v is a test function.
+  // 6. Construct a rhs vector using the linear form f(v) = (rhs, v), where v is a test function.
   mfem::LinearForm          b(fespace);
   mfem::FunctionCoefficient rhs_coeff(rhs);
   b.AddDomainIntegrator(new mfem::DomainLFIntegrator(rhs_coeff));
   b.Assemble();
 
-  // 7. Construct a CeedDiffusionOperator utilizing the 'ceed' device and using
-  //    the 'fespace' object to extract data needed by the Ceed objects.
+  // 7. Construct a CeedDiffusionOperator utilizing the 'ceed' device and using the 'fespace' object to extract data needed by the Ceed objects.
   CeedDiffusionOperator diff(ceed, fespace);
 
   mfem::Operator *D;
@@ -176,8 +175,7 @@ int main(int argc, char *argv[]) {
     }
   }
 
-  // 10. Open a socket connection to GLVis and send the mesh and solution for
-  //     visualization.
+  // 10. Open a socket connection to GLVis and send the mesh and solution for visualization.
   if (visualization) {
     char               vishost[] = "localhost";
     int                visport   = 19916;

@@ -7,8 +7,7 @@
 
 //                        libCEED + PETSc Example: Elasticity
 //
-// This example demonstrates a simple usage of libCEED with PETSc to solve
-//   elasticity problems.
+// This example demonstrates a simple usage of libCEED with PETSc to solve elasticity problems.
 //
 // The code uses higher level communication protocols in DMPlex.
 //
@@ -389,8 +388,7 @@ int main(int argc, char **argv) {
     PetscCall(MatShellSetOperation(jacob_mat[level], MATOP_GET_DIAGONAL, (void (*)(void))GetDiag_Ceed));
     PetscCall(MatShellSetVecType(jacob_mat[level], vectype));
   }
-  // Note: FormJacobian updates Jacobian matrices on each level
-  //   and assembles the Jpre matrix, if needed
+  // Note: FormJacobian updates Jacobian matrices on each level and assembles the Jpre matrix, if needed
   PetscCall(PetscMalloc1(1, &form_jacob_ctx));
   form_jacob_ctx->jacob_ctx  = jacob_ctx;
   form_jacob_ctx->num_levels = num_levels;

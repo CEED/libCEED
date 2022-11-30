@@ -137,8 +137,8 @@ PetscErrorCode ProcessCommandLineOptions(MPI_Comm comm, AppCtx app_ctx) {
   if (set) {
     PetscCall(PetscViewerASCIIOpen(comm, energy_viewer_filename, &app_ctx->energy_viewer));
     PetscCall(PetscViewerASCIIPrintf(app_ctx->energy_viewer, "increment,energy\n"));
-    // Initial configuration is base energy state; this may not be true if we extend in the future to
-    // initially loaded configurations (because a truly at-rest initial state may not be realizable).
+    // Initial configuration is base energy state; this may not be true if we extend in the future to initially loaded configurations (because a truly
+    // at-rest initial state may not be realizable).
     PetscCall(PetscViewerASCIIPrintf(app_ctx->energy_viewer, "%f,%e\n", 0., 0.));
   }
   PetscOptionsEnd();  // End of setting AppCtx

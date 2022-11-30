@@ -6,8 +6,7 @@
 // This file is part of CEED:  http://github.com/ceed
 
 /**
-  @brief Ceed QFunction for applying the 1D Poisson operator
-           on a vector system with three components
+  @brief Ceed QFunction for applying the 1D Poisson operator on a vector system with three components
 **/
 
 #ifndef vectorpoisson1dapply_h

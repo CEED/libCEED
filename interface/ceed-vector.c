@@ -24,8 +24,7 @@ static struct CeedVector_private ceed_vector_none;
 /// @addtogroup CeedVectorUser
 /// @{
 
-/// Indicate that vector will be provided as an explicit argument to
-///   CeedOperatorApply().
+/// Indicate that vector will be provided as an explicit argument to CeedOperatorApply().
 const CeedVector CEED_VECTOR_ACTIVE = &ceed_vector_active;
 
 /// Indicate that no vector is applicable (i.e., for @ref CEED_EVAL_WEIGHT).
@@ -42,8 +41,8 @@ const CeedVector CEED_VECTOR_NONE = &ceed_vector_none;
 /**
   @brief Check for valid data in a CeedVector
 
-  @param vec                   CeedVector to check validity
-  @param[out] has_valid_array  Variable to store validity
+  @param[in]  vec             CeedVector to check validity
+  @param[out] has_valid_array Variable to store validity
 
   @return An error code: 0 - success, otherwise - failure
 
@@ -64,9 +63,9 @@ int CeedVectorHasValidArray(CeedVector vec, bool *has_valid_array) {
 /**
   @brief Check for borrowed array of a specific CeedMemType in a CeedVector
 
-  @param vec                              CeedVector to check
-  @param mem_type                         Memory type to check
-  @param[out] has_borrowed_array_of_type  Variable to store result
+  @param[in]  vec                        CeedVector to check
+  @param[in]  mem_type                   Memory type to check
+  @param[out] has_borrowed_array_of_type Variable to store result
 
   @return An error code: 0 - success, otherwise - failure
 
@@ -87,7 +86,7 @@ int CeedVectorHasBorrowedArrayOfType(CeedVector vec, CeedMemType mem_type, bool 
 /**
   @brief Get the state of a CeedVector
 
-  @param vec         CeedVector to retrieve state
+  @param[in]  vec    CeedVector to retrieve state
   @param[out] state  Variable to store state
 
   @return An error code: 0 - success, otherwise - failure
@@ -102,7 +101,7 @@ int CeedVectorGetState(CeedVector vec, uint64_t *state) {
 /**
   @brief Add a reference to a CeedVector
 
-  @param[out] vec  CeedVector to increment reference counter
+  @param[in,out] vec CeedVector to increment reference counter
 
   @return An error code: 0 - success, otherwise - failure
 
@@ -116,8 +115,8 @@ int CeedVectorAddReference(CeedVector vec) {
 /**
   @brief Get the backend data of a CeedVector
 
-  @param vec        CeedVector to retrieve state
-  @param[out] data  Variable to store data
+  @param[in]  vec  CeedVector to retrieve state
+  @param[out] data Variable to store data
 
   @return An error code: 0 - success, otherwise - failure
 
@@ -131,8 +130,8 @@ int CeedVectorGetData(CeedVector vec, void *data) {
 /**
   @brief Set the backend data of a CeedVector
 
-  @param[out] vec  CeedVector to retrieve state
-  @param data      Data to set
+  @param[in,out] vec  CeedVector to retrieve state
+  @param[in]     data Data to set
 
   @return An error code: 0 - success, otherwise - failure
 
@@ -146,7 +145,7 @@ int CeedVectorSetData(CeedVector vec, void *data) {
 /**
   @brief Increment the reference counter for a CeedVector
 
-  @param vec  CeedVector to increment the reference counter
+  @param[in,out] vec CeedVector to increment the reference counter
 
   @return An error code: 0 - success, otherwise - failure
 
@@ -168,10 +167,9 @@ int CeedVectorReference(CeedVector vec) {
 /**
   @brief Create a CeedVector of the specified length (does not allocate memory)
 
-  @param ceed      Ceed object where the CeedVector will be created
-  @param length    Length of vector
-  @param[out] vec  Address of the variable where the newly created
-                     CeedVector will be stored
+  @param[in]  ceed   Ceed object where the CeedVector will be created
+  @param[in]  length Length of vector
+  @param[out] vec    Address of the variable where the newly created CeedVector will be stored
 
   @return An error code: 0 - success, otherwise - failure
 
@@ -203,15 +201,13 @@ int CeedVectorCreate(Ceed ceed, CeedSize length, CeedVector *vec) {
 }
 
 /**
-  @brief Copy the pointer to a CeedVector. Both pointers should
-           be destroyed with `CeedVectorDestroy()`;
-           Note: If `*vec_copy` is non-NULL, then it is assumed that
-           `*vec_copy` is a pointer to a CeedVector. This
-           CeedVector will be destroyed if `*vec_copy` is the only
-           reference to this CeedVector.
+  @brief Copy the pointer to a CeedVector.
+           Both pointers should be destroyed with `CeedVectorDestroy()`.
+           Note: If `*vec_copy` is non-NULL, then it is assumed that `*vec_copy` is a pointer to a CeedVector.
+             This CeedVector will be destroyed if `*vec_copy` is the only reference to this CeedVector.
 
-  @param vec            CeedVector to copy reference to
-  @param[out] vec_copy  Variable to store copied reference
+  @param[in]     vec      CeedVector to copy reference to
+  @param[in,out] vec_copy Variable to store copied reference
 
   @return An error code: 0 - success, otherwise - failure
 
@@ -225,16 +221,14 @@ int CeedVectorReferenceCopy(CeedVector vec, CeedVector *vec_copy) {
 }
 
 /**
-  @brief Set the array used by a CeedVector, freeing any previously allocated
-           array if applicable. The backend may copy values to a different
-           memtype, such as during @ref CeedOperatorApply().
+  @brief Set the array used by a CeedVector, freeing any previously allocated array if applicable.
+           The backend may copy values to a different memtype, such as during @ref CeedOperatorApply().
            See also @ref CeedVectorSyncArray() and @ref CeedVectorTakeArray().
 
-  @param vec        CeedVector
-  @param mem_type   Memory type of the array being passed
-  @param copy_mode  Copy mode for the array
-  @param array      Array to be used, or NULL with @ref CEED_COPY_VALUES to have the
-                      library allocate
+  @param[in,out] vec       CeedVector
+  @param[in]     mem_type  Memory type of the array being passed
+  @param[in]     copy_mode Copy mode for the array
+  @param[in]     array     Array to be used, or NULL with @ref CEED_COPY_VALUES to have the library allocate
 
   @return An error code: 0 - success, otherwise - failure
 
@@ -261,8 +255,8 @@ int CeedVectorSetArray(CeedVector vec, CeedMemType mem_type, CeedCopyMode copy_m
 /**
   @brief Set the CeedVector to a constant value
 
-  @param vec        CeedVector
-  @param[in] value  Value to be used
+  @param[in,out] vec   CeedVector
+  @param[in]     value Value to be used
 
   @return An error code: 0 - success, otherwise - failure
 
@@ -293,13 +287,12 @@ int CeedVectorSetValue(CeedVector vec, CeedScalar value) {
 }
 
 /**
-  @brief Sync the CeedVector to a specified memtype. This function is used to
-           force synchronization of arrays set with @ref CeedVectorSetArray().
-           If the requested memtype is already synchronized, this function
-           results in a no-op.
+  @brief Sync the CeedVector to a specified memtype.
+           This function is used to force synchronization of arrays set with @ref CeedVectorSetArray().
+           If the requested memtype is already synchronized, this function results in a no-op.
 
-  @param vec       CeedVector
-  @param mem_type  Memtype to be synced
+  @param[in,out] vec      CeedVector
+  @param[in]     mem_type Memtype to be synced
 
   @return An error code: 0 - success, otherwise - failure
 
@@ -321,17 +314,14 @@ int CeedVectorSyncArray(CeedVector vec, CeedMemType mem_type) {
 }
 
 /**
-  @brief Take ownership of the CeedVector array set by @ref CeedVectorSetArray()
-           with @ref CEED_USE_POINTER and remove the array from the CeedVector.
+  @brief Take ownership of the CeedVector array set by @ref CeedVectorSetArray() with @ref CEED_USE_POINTER and remove the array from the CeedVector.
            The caller is responsible for managing and freeing the array.
-           This function will error if @ref CeedVectorSetArray() was not previously
-           called with @ref CEED_USE_POINTER for the corresponding mem_type.
+           This function will error if @ref CeedVectorSetArray() was not previously called with @ref CEED_USE_POINTER for the corresponding mem_type.
 
-  @param vec         CeedVector
-  @param mem_type    Memory type on which to take the array. If the backend
-                       uses a different memory type, this will perform a copy.
-  @param[out] array  Array on memory type mem_type, or NULL if array pointer is
-                       not required
+  @param[in,out] vec      CeedVector
+  @param[in]     mem_type Memory type on which to take the array.
+                            If the backend uses a different memory type, this will perform a copy.
+  @param[out]    array    Array on memory type mem_type, or NULL if array pointer is not required
 
   @return An error code: 0 - success, otherwise - failure
 
@@ -379,15 +369,13 @@ int CeedVectorTakeArray(CeedVector vec, CeedMemType mem_type, CeedScalar **array
   @brief Get read/write access to a CeedVector via the specified memory type.
            Restore access with @ref CeedVectorRestoreArray().
 
-  @param vec         CeedVector to access
-  @param mem_type    Memory type on which to access the array. If the backend
-                       uses a different memory type, this will perform a copy.
-  @param[out] array  Array on memory type mem_type
+  @param[in,out] vec      CeedVector to access
+  @param[in]     mem_type Memory type on which to access the array.
+                            If the backend uses a different memory type, this will perform a copy.
+  @param[out]    array    Array on memory type mem_type
 
-  @note The CeedVectorGetArray* and CeedVectorRestoreArray* functions provide
-    access to array pointers in the desired memory space. Pairing get/restore
-    allows the Vector to track access, thus knowing if norms or other
-    operations may need to be recomputed.
+  @note The CeedVectorGetArray* and CeedVectorRestoreArray* functions provide access to array pointers in the desired memory space.
+    Pairing get/restore allows the Vector to track access, thus knowing if norms or other operations may need to be recomputed.
 
   @return An error code: 0 - success, otherwise - failure
 
@@ -424,11 +412,10 @@ int CeedVectorGetArray(CeedVector vec, CeedMemType mem_type, CeedScalar **array)
   @brief Get read-only access to a CeedVector via the specified memory type.
            Restore access with @ref CeedVectorRestoreArrayRead().
 
-  @param vec         CeedVector to access
-  @param mem_type    Memory type on which to access the array.  If the backend
-                       uses a different memory type, this will perform a copy
-                       (possibly cached).
-  @param[out] array  Array on memory type mem_type
+  @param[in]  vec      CeedVector to access
+  @param[in]  mem_type Memory type on which to access the array.
+                         If the backend uses a different memory type, this will perform a copy (possibly cached).
+  @param[out] array    Array on memory type mem_type
 
   @return An error code: 0 - success, otherwise - failure
 
@@ -464,12 +451,12 @@ int CeedVectorGetArrayRead(CeedVector vec, CeedMemType mem_type, const CeedScala
 
 /**
   @brief Get write access to a CeedVector via the specified memory type.
-           Restore access with @ref CeedVectorRestoreArray(). All old
-           values should be assumed to be invalid.
+           Restore access with @ref CeedVectorRestoreArray().
+           All old values should be assumed to be invalid.
 
-  @param vec         CeedVector to access
-  @param mem_type    Memory type on which to access the array.
-  @param[out] array  Array on memory type mem_type
+  @param[in,out] vec      CeedVector to access
+  @param[in]     mem_type Memory type on which to access the array.
+  @param[out]    array    Array on memory type mem_type
 
   @return An error code: 0 - success, otherwise - failure
 
@@ -498,11 +485,10 @@ int CeedVectorGetArrayWrite(CeedVector vec, CeedMemType mem_type, CeedScalar **a
 }
 
 /**
-  @brief Restore an array obtained using @ref CeedVectorGetArray()
-           or @ref CeedVectorGetArrayWrite()
+  @brief Restore an array obtained using @ref CeedVectorGetArray() or @ref CeedVectorGetArrayWrite()
 
-  @param vec    CeedVector to restore
-  @param array  Array of vector data
+  @param[in,out] vec   CeedVector to restore
+  @param[in,out] array Array of vector data
 
   @return An error code: 0 - success, otherwise - failure
 
@@ -521,8 +507,8 @@ int CeedVectorRestoreArray(CeedVector vec, CeedScalar **array) {
 /**
   @brief Restore an array obtained using @ref CeedVectorGetArrayRead()
 
-  @param vec    CeedVector to restore
-  @param array  Array of vector data
+  @param[in]     vec   CeedVector to restore
+  @param[in,out] array Array of vector data
 
   @return An error code: 0 - success, otherwise - failure
 
@@ -545,13 +531,13 @@ int CeedVectorRestoreArrayRead(CeedVector vec, const CeedScalar **array) {
 /**
   @brief Get the norm of a CeedVector.
 
-  Note: This operation is local to the CeedVector. This function will likely
-          not provide the desired results for the norm of the libCEED portion
-          of a parallel vector or a CeedVector with duplicated or hanging nodes.
+  Note: This operation is local to the CeedVector.
+          This function will likely not provide the desired results for the norm of the libCEED portion of a parallel vector or a CeedVector with
+duplicated or hanging nodes.
 
-  @param vec        CeedVector to retrieve maximum value
-  @param norm_type  Norm type @ref CEED_NORM_1, @ref CEED_NORM_2, or @ref CEED_NORM_MAX
-  @param[out] norm  Variable to store norm value
+  @param[in]  vec       CeedVector to retrieve maximum value
+  @param[in]  norm_type Norm type @ref CEED_NORM_1, @ref CEED_NORM_2, or @ref CEED_NORM_MAX
+  @param[out] norm      Variable to store norm value
 
   @return An error code: 0 - success, otherwise - failure
 
@@ -603,8 +589,8 @@ int CeedVectorNorm(CeedVector vec, CeedNormType norm_type, CeedScalar *norm) {
 /**
   @brief Compute x = alpha x
 
-  @param[in,out] x  vector for scaling
-  @param[in] alpha  scaling factor
+  @param[in,out] x     vector for scaling
+  @param[in]     alpha scaling factor
 
   @return An error code: 0 - success, otherwise - failure
 
@@ -639,9 +625,9 @@ int CeedVectorScale(CeedVector x, CeedScalar alpha) {
 /**
   @brief Compute y = alpha x + y
 
-  @param[in,out] y  target vector for sum
-  @param[in] alpha  scaling factor
-  @param[in] x      second vector, must be different than y
+  @param[in,out] y     target vector for sum
+  @param[in]     alpha scaling factor
+  @param[in]     x     second vector, must be different than y
 
   @return An error code: 0 - success, otherwise - failure
 
@@ -710,12 +696,12 @@ int CeedVectorAXPY(CeedVector y, CeedScalar alpha, CeedVector x) {
 }
 
 /**
-  @brief Compute the pointwise multiplication w = x .* y. Any
-           subset of x, y, and w may be the same vector.
+  @brief Compute the pointwise multiplication w = x .* y.
+           Any subset of x, y, and w may be the same vector.
 
-  @param[out] w  target vector for the product
-  @param[in] x   first vector for product
-  @param[in] y   second vector for the product
+  @param[out] w target vector for the product
+  @param[in]  x first vector for product
+  @param[in]  y second vector for the product
 
   @return An error code: 0 - success, otherwise - failure
 
@@ -796,7 +782,7 @@ int CeedVectorPointwiseMult(CeedVector w, CeedVector x, CeedVector y) {
 /**
   @brief Take the reciprocal of a CeedVector.
 
-  @param vec  CeedVector to take reciprocal
+  @param[in,out] vec CeedVector to take reciprocal
 
   @return An error code: 0 - success, otherwise - failure
 
@@ -841,9 +827,9 @@ int CeedVectorReciprocal(CeedVector vec) {
 /**
   @brief View a CeedVector
 
-  @param[in] vec     CeedVector to view
-  @param[in] fp_fmt  Printing format
-  @param[in] stream  Filestream to write to
+  @param[in] vec    CeedVector to view
+  @param[in] fp_fmt Printing format
+  @param[in] stream Filestream to write to
 
   @return An error code: 0 - success, otherwise - failure
 
@@ -865,8 +851,8 @@ int CeedVectorView(CeedVector vec, const char *fp_fmt, FILE *stream) {
 /**
   @brief Get the Ceed associated with a CeedVector
 
-  @param vec        CeedVector to retrieve state
-  @param[out] ceed  Variable to store ceed
+  @param[in]  vec  CeedVector to retrieve state
+  @param[out] ceed Variable to store ceed
 
   @return An error code: 0 - success, otherwise - failure
 
@@ -880,8 +866,8 @@ int CeedVectorGetCeed(CeedVector vec, Ceed *ceed) {
 /**
   @brief Get the length of a CeedVector
 
-  @param vec          CeedVector to retrieve length
-  @param[out] length  Variable to store length
+  @param[in]  vec    CeedVector to retrieve length
+  @param[out] length Variable to store length
 
   @return An error code: 0 - success, otherwise - failure
 
@@ -895,7 +881,7 @@ int CeedVectorGetLength(CeedVector vec, CeedSize *length) {
 /**
   @brief Destroy a CeedVector
 
-  @param vec  CeedVector to destroy
+  @param[in,out] vec CeedVector to destroy
 
   @return An error code: 0 - success, otherwise - failure
 

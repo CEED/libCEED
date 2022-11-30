@@ -31,44 +31,33 @@ static int Waste(int threads_per_sm, int warp_size, int threads_per_elem, int el
   return threads_per_sm - useful_threads_per_block * blocks_per_sm;
 }
 
-// Choose the least wasteful block size constrained by blocks_per_sm of
-// max_threads_per_block.
+// Choose the least wasteful block size constrained by blocks_per_sm of max_threads_per_block.
 //
-// The x and y part of block[] contains per-element sizes (specified on input)
-// while the z part is number of elements.
+// The x and y part of block[] contains per-element sizes (specified on input) while the z part is number of elements.
 //
-// Problem setting: we'd like to make occupancy high with relatively few
-// inactive threads. CUDA (cuOccupancyMaxPotentialBlockSize) can tell us how
+// Problem setting: we'd like to make occupancy high with relatively few inactive threads. CUDA (cuOccupancyMaxPotentialBlockSize) can tell us how
 // many threads can run.
 //
-// Note that full occupancy sometimes can't be achieved by one thread block. For
-// example, an SM might support 1536 threads in total, but only 1024 within a
-// single thread block. So cuOccupancyMaxPotentialBlockSize may suggest a block
-// size of 768 so that two blocks can run, versus one block of 1024 will prevent
-// a second block from running. The cuda-gen kernels are pretty heavy with lots
-// of instruction-level parallelism (ILP) so we'll generally be okay with
-// relatvely low occupancy and smaller thread blocks, but we solve a reasonably
-// general problem here. Empirically, we find that blocks bigger than about 256
-// have higher latency and worse load balancing when the number of elements is
-// modest.
+// Note that full occupancy sometimes can't be achieved by one thread block.
+// For example, an SM might support 1536 threads in total, but only 1024 within a single thread block.
+// So cuOccupancyMaxPotentialBlockSize may suggest a block size of 768 so that two blocks can run, versus one block of 1024 will prevent a second
+// block from running. The cuda-gen kernels are pretty heavy with lots of instruction-level parallelism (ILP) so we'll generally be okay with
+// relatively low occupancy and smaller thread blocks, but we solve a reasonably general problem here. Empirically, we find that blocks bigger than
+// about 256 have higher latency and worse load balancing when the number of elements is modest.
 //
-// cuda-gen can't choose block sizes arbitrarily; they need to be a multiple of
-// the number of quadrature points (or number of basis functions). They also
-// have a lot of __syncthreads(), which is another point against excessively
-// large thread blocks. Suppose I have elements with 7x7x7 quadrature points.
-// This will loop over the last dimension, so we have 7*7=49 threads per
-// element. Suppose we have two elements = 2*49=98 useful threads. CUDA
-// schedules in units of full warps (32 threads), so 128 CUDA hardware threads
-// are effectively committed to that block. Now suppose
-// cuOccupancyMaxPotentialBlockSize returned 352. We can schedule 2 blocks of
-// size 98 (196 useful threads using 256 hardware threads), but not a third
-// block (which would need a total of 384 hardware threads).
+// cuda-gen can't choose block sizes arbitrarily; they need to be a multiple of the number of quadrature points (or number of basis functions).
+// They also have a lot of __syncthreads(), which is another point against excessively large thread blocks.
+// Suppose I have elements with 7x7x7 quadrature points.
+// This will loop over the last dimension, so we have 7*7=49 threads per element.
+// Suppose we have two elements = 2*49=98 useful threads.
+// CUDA schedules in units of full warps (32 threads), so 128 CUDA hardware threads are effectively committed to that block.
+// Now suppose cuOccupancyMaxPotentialBlockSize returned 352.
+// We can schedule 2 blocks of size 98 (196 useful threads using 256 hardware threads), but not a third block (which would need a total of 384
+// hardware threads).
 //
-// If instead, we had packed 3 elements, we'd have 3*49=147 useful threads
-// occupying 160 slots, and could schedule two blocks. Alternatively, we could
-// pack a single block of 7 elements (2*49=343 useful threads) into the 354
-// slots. The latter has the least "waste", but __syncthreads()
-// over-synchronizes and it might not pay off relative to smaller blocks.
+// If instead, we had packed 3 elements, we'd have 3*49=147 useful threads occupying 160 slots, and could schedule two blocks.
+// Alternatively, we could pack a single block of 7 elements (2*49=343 useful threads) into the 354 slots.
+// The latter has the least "waste", but __syncthreads() over-synchronizes and it might not pay off relative to smaller blocks.
 static int BlockGridCalculate(CeedInt num_elem, int blocks_per_sm, int max_threads_per_block, int max_threads_z, int warp_size, int block[3],
                               int *grid) {
   const int threads_per_sm   = blocks_per_sm * max_threads_per_block;
@@ -77,24 +66,21 @@ static int BlockGridCalculate(CeedInt num_elem, int blocks_per_sm, int max_threa
   int       waste            = Waste(threads_per_sm, warp_size, threads_per_elem, 1);
   for (int i = 2; i <= CeedIntMin(max_threads_per_block / threads_per_elem, num_elem); i++) {
     int i_waste = Waste(threads_per_sm, warp_size, threads_per_elem, i);
-    // We want to minimize waste, but smaller kernels have lower latency and
-    // less __syncthreads() overhead so when a larger block size has the same
+    // We want to minimize waste, but smaller kernels have lower latency and less __syncthreads() overhead so when a larger block size has the same
     // waste as a smaller one, go ahead and prefer the smaller block.
     if (i_waste < waste || (i_waste == waste && threads_per_elem * i <= 128)) {
       elems_per_block = i;
       waste           = i_waste;
     }
   }
-  // In low-order elements, threads_per_elem may be sufficiently low to give
-  // an elems_per_block greater than allowable for the device, so we must check
-  // before setting the z-dimension size of the block.
+  // In low-order elements, threads_per_elem may be sufficiently low to give an elems_per_block greater than allowable for the device, so we must
+  // check before setting the z-dimension size of the block.
   block[2] = CeedIntMin(elems_per_block, max_threads_z);
   *grid    = (num_elem + elems_per_block - 1) / elems_per_block;
   return CEED_ERROR_SUCCESS;
 }
 
-// callback for cuOccupancyMaxPotentialBlockSize, providing the amount of
-// dynamic shared memory required for a thread block of size threads.
+// callback for cuOccupancyMaxPotentialBlockSize, providing the amount of dynamic shared memory required for a thread block of size threads.
 static size_t dynamicSMemSize(int threads) { return threads * sizeof(CeedScalar); }
 
 //------------------------------------------------------------------------------
@@ -137,7 +123,6 @@ static int CeedOperatorApplyAdd_Cuda_gen(CeedOperator op, CeedVector input_vec, 
   }
 
   // Output vectors
-
   for (CeedInt i = 0; i < num_output_fields; i++) {
     CeedCallBackend(CeedQFunctionFieldGetEvalMode(qf_output_fields[i], &eval_mode));
     if (eval_mode == CEED_EVAL_WEIGHT) {  // Skip

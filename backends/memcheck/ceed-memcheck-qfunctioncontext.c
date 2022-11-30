@@ -149,7 +149,7 @@ static int CeedQFunctionContextGetDataRead_Memcheck(CeedQFunctionContext ctx, Ce
 
   CeedCallBackend(CeedQFunctionContextGetData_Memcheck(ctx, mem_type, data));
 
-  // Make copy to verify no write occured
+  // Make copy to verify no write occurred
   CeedCallBackend(CeedMallocArray(1, ctx_size, &impl->data_read_only_copy));
   memcpy(impl->data_read_only_copy, *(void **)data, ctx_size);
 

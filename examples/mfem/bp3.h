@@ -21,8 +21,7 @@ CEED_QFUNCTION(f_build_diff)(void *ctx, const CeedInt Q, const CeedScalar *const
   // in[0] is Jacobians with shape [dim, nc=dim, Q]
   // in[1] is quadrature weights, size (Q)
   //
-  // At every quadrature point, compute w/det(J).adj(J).adj(J)^T and store
-  // the symmetric part of the result.
+  // At every quadrature point, compute w/det(J).adj(J).adj(J)^T and store the symmetric part of the result.
   const CeedScalar *J = in[0], *w = in[1];
   CeedScalar       *qdata = out[0];
 

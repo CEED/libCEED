@@ -39,15 +39,13 @@ int CeedCompileHip(Ceed ceed, const char *source, hipModule_t *module, const Cee
 
   std::ostringstream code;
 
-  // Add hip runtime include statement for generation if runtime < 40400000
-  // (implies ROCm < 4.5)
+  // Add hip runtime include statement for generation if runtime < 40400000 (implies ROCm < 4.5)
   int runtime_version;
   CeedCallHip(ceed, hipRuntimeGetVersion(&runtime_version));
   if (runtime_version < 40400000) {
     code << "\n#include <hip/hip_runtime.h>\n";
   }
-  // With ROCm 4.5, need to include these definitions specifically for hiprtc
-  // (but cannot include the runtime header)
+  // With ROCm 4.5, need to include these definitions specifically for hiprtc (but cannot include the runtime header)
   else {
     code << "#include <stddef.h>\n";
     code << "#define __forceinline__ inline __attribute__((always_inline))\n";

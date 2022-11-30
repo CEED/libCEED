@@ -37,7 +37,8 @@ PetscErrorCode CompressibleBlasiusResidual(SNES snes, Vec X, Vec R, void *ctx) {
   for (int i = 0; i < N - 3; i++) {
     ChebyshevEval(N, Tf, blasius->X[i], blasius->eta_max, f);
     ChebyshevEval(N - 1, Th, blasius->X[i], blasius->eta_max, h);
-    // mu and rho generally depend on h. We naively assume constant mu.
+    // mu and rho generally depend on h.
+    // We naively assume constant mu.
     // For an ideal gas at constant pressure, density is inversely proportional to enthalpy.
     // The *_tilde values are *relative* to their freestream values, and we proved first derivatives here.
     const PetscScalar mu_tilde[2]     = {1, 0};
@@ -139,16 +140,14 @@ static PetscErrorCode GetYNodeLocs(const MPI_Comm comm, const char path[PETSC_MA
 
 /* \brief Modify the domain and mesh for blasius
  *
- * Modifies mesh such that `N` elements are within `refine_height` with a
- * geometric growth ratio of `growth`. Excess elements are then distributed
+ * Modifies mesh such that `N` elements are within `refine_height` with a geometric growth ratio of `growth`. Excess elements are then distributed
  * linearly in logspace to the top surface.
  *
- * The top surface is also angled downwards, so that it may be used as an
- * outflow. It's angle is controlled by `top_angle` (in units of degrees).
+ * The top surface is also angled downwards, so that it may be used as an outflow.
+ * It's angle is controlled by `top_angle` (in units of degrees).
  *
- * If `node_locs` is not NULL, then the nodes will be placed at `node_locs`
- * locations. If it is NULL, then the modified coordinate values will be set in
- * the array, along with `num_node_locs`.
+ * If `node_locs` is not NULL, then the nodes will be placed at `node_locs` locations.
+ * If it is NULL, then the modified coordinate values will be set in the array, along with `num_node_locs`.
  */
 static PetscErrorCode ModifyMesh(MPI_Comm comm, DM dm, PetscInt dim, PetscReal growth, PetscInt N, PetscReal refine_height, PetscReal top_angle,
                                  PetscReal *node_locs[], PetscInt *num_node_locs) {

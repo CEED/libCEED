@@ -23,8 +23,7 @@ static int CeedQFunctionInit_Identity(Ceed ceed, const char *requested, CeedQFun
     // LCOV_EXCL_STOP
   }
 
-  // QFunction fields 'input' and 'output' with requested emodes added
-  //   by the library rather than being added here
+  // QFunction fields 'input' and 'output' with requested emodes added by the library rather than being added here
 
   CeedCall(CeedQFunctionSetUserFlopsEstimate(qf, 0));
 

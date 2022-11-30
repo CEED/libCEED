@@ -15,8 +15,7 @@
 #include <math.h>
 
 // *****************************************************************************
-// This QFunction sets up the geometric factors required for integration and
-//   coordinate transformations
+// This QFunction sets up the geometric factors required for integration and coordinate transformations
 //
 // Reference (parent) coordinates: X
 // Physical (current) coordinates: x
@@ -25,8 +24,7 @@
 //
 // All quadrature data is stored in 10 field vector of quadrature data.
 //
-// We require the determinant of the Jacobian to properly compute integrals of
-//   the form: int( v u )
+// We require the determinant of the Jacobian to properly compute integrals of the form: int( v u )
 //
 // Determinant of Jacobian:
 //   detJ = J11*A11 + J21*A12 + J31*A13
@@ -36,8 +34,7 @@
 // Stored: w detJ
 //   in q_data[0]
 //
-// We require the transpose of the inverse of the Jacobian to properly compute
-//   integrals of the form: int( gradv u )
+// We require the transpose of the inverse of the Jacobian to properly compute integrals of the form: int( gradv u )
 //
 // Inverse of Jacobian:
 //   dXdx_i,j = Aij / detJ
@@ -47,7 +44,6 @@
 //   (detJ^-1) * [A11 A12 A13]
 //               [A21 A22 A23]
 //               [A31 A32 A33]
-//
 // *****************************************************************************
 CEED_QFUNCTION(Setup)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
   // Inputs
@@ -103,8 +99,7 @@ CEED_QFUNCTION(Setup)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedSca
 }
 
 // *****************************************************************************
-// This QFunction sets up the geometric factor required for integration when
-//   reference coordinates are in 2D and the physical coordinates are in 3D
+// This QFunction sets up the geometric factor required for integration when reference coordinates are in 2D and the physical coordinates are in 3D
 //
 // Reference (parent) 2D coordinates: X
 // Physical (current) 3D coordinates: x
@@ -143,7 +138,6 @@ CEED_QFUNCTION(Setup)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedSca
 //   in q_data_sur[4:9] as
 //    [dXdx_11 dXdx_12 dXdx_13]
 //    [dXdx_21 dXdx_22 dXdx_23]
-//
 // *****************************************************************************
 CEED_QFUNCTION(SetupBoundary)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
   // Inputs

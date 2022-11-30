@@ -9,9 +9,9 @@
 /// Implementation of the Synthetic Turbulence Generation (STG) algorithm
 /// presented in Shur et al. 2014
 //
-/// SetupSTG_Rand reads in the input files and fills in STGShur14Context. Then
-/// STGShur14_CalcQF is run over quadrature points. Before the program exits,
-/// TearDownSTG is run to free the memory of the allocated arrays.
+/// SetupSTG_Rand reads in the input files and fills in STGShur14Context.
+/// Then STGShur14_CalcQF is run over quadrature points.
+/// Before the program exits, TearDownSTG is run to free the memory of the allocated arrays.
 
 #ifndef stg_shur14_h
 #define stg_shur14_h

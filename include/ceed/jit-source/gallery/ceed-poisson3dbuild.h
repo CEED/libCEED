@@ -6,8 +6,7 @@
 // This file is part of CEED:  http://github.com/ceed
 
 /**
-  @brief Ceed QFunction for building the geometric data for the 3D Poisson
-           operator
+  @brief Ceed QFunction for building the geometric data for the 3D Poisson operator
 **/
 
 #ifndef poisson3dbuild_h
@@ -16,8 +15,7 @@
 #include <ceed.h>
 
 CEED_QFUNCTION(Poisson3DBuild)(void *ctx, const CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
-  // At every quadrature point, compute w/det(J).adj(J).adj(J)^T and store
-  // the symmetric part of the result.
+  // At every quadrature point, compute w/det(J).adj(J).adj(J)^T and store the symmetric part of the result.
   // in[0] is Jacobians with shape [3, nc=3, Q]
   // in[1] is quadrature weights, size (Q)
   const CeedScalar(*J)[3][CEED_Q_VLA] = (const CeedScalar(*)[3][CEED_Q_VLA])in[0], *w = in[1];

@@ -13,15 +13,14 @@
 extern "C" __launch_bounds__(BLOCK_SIZE) __global__
     void linearAssemble(const CeedScalar *B_in, const CeedScalar *B_out, const CeedScalar *__restrict__ qf_array,
                         CeedScalar *__restrict__ values_array) {
-  // This kernel assumes B_in and B_out have the same number of quadrature points and
-  // basis points.
+  // This kernel assumes B_in and B_out have the same number of quadrature points and basis points.
   // TODO: expand to more general cases
   const int i = threadIdx.x;  // The output row index of each B^TDB operation
   const int l = threadIdx.y;  // The output column index of each B^TDB operation
                               // such that we have (Bout^T)_ij D_jk Bin_kl = C_il
 
-  // Strides for final output ordering, determined by the reference (interface) implementation of
-  // the symbolic assembly, slowest --> fastest: element, comp_in, comp_out, node_row, node_col
+  // Strides for final output ordering, determined by the reference (interface) implementation of the symbolic assembly, slowest --> fastest: element,
+  // comp_in, comp_out, node_row, node_col
   const CeedInt comp_out_stride = NNODES * NNODES;
   const CeedInt comp_in_stride  = comp_out_stride * NCOMP;
   const CeedInt e_stride        = comp_in_stride * NCOMP;
@@ -62,14 +61,13 @@ extern "C" __launch_bounds__(BLOCK_SIZE) __global__
 extern "C" __launch_bounds__(BLOCK_SIZE) __global__
     void linearAssembleFallback(const CeedScalar *B_in, const CeedScalar *B_out, const CeedScalar *__restrict__ qf_array,
                                 CeedScalar *__restrict__ values_array) {
-  // This kernel assumes B_in and B_out have the same number of quadrature points and
-  // basis points.
+  // This kernel assumes B_in and B_out have the same number of quadrature points and basis points.
   // TODO: expand to more general cases
   const int l = threadIdx.x;  // The output column index of each B^TDB operation
                               // such that we have (Bout^T)_ij D_jk Bin_kl = C_il
 
-  // Strides for final output ordering, determined by the reference (interface) implementation of
-  // the symbolic assembly, slowest --> fastest: element, comp_in, comp_out, node_row, node_col
+  // Strides for final output ordering, determined by the reference (interface) implementation of the symbolic assembly, slowest --> fastest: element,
+  // comp_in, comp_out, node_row, node_col
   const CeedInt comp_out_stride = NNODES * NNODES;
   const CeedInt comp_in_stride  = comp_out_stride * NCOMP;
   const CeedInt e_stride        = comp_in_stride * NCOMP;

@@ -429,7 +429,7 @@ extern "C" int CeedCudaGenOperatorBuild(CeedOperator op) {
     }
   }
 
-  // TODO: put in a function + separate colograd logic
+  // TODO: put in a function + separate collograd logic
   // Q function
   code << "\n    // -- Output field setup --\n";
   for (CeedInt i = 0; i < num_output_fields; i++) {

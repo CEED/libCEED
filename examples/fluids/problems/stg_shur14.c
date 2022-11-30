@@ -23,8 +23,8 @@ STGShur14Context global_stg_ctx;
 /*
  * @brief Perform Cholesky decomposition on array of symmetric 3x3 matrices
  *
- * This assumes the input matrices are in order [11,22,33,12,13,23]. This
- * format is also used for the output.
+ * This assumes the input matrices are in order [11,22,33,12,13,23].
+ * This format is also used for the output.
  *
  * @param[in]  comm   MPI_Comm
  * @param[in]  nprofs Number of matrices in Rij
@@ -52,19 +52,16 @@ PetscErrorCode CalcCholeskyDecomp(MPI_Comm comm, PetscInt nprofs, const CeedScal
 /*
  * @brief Open a PHASTA *.dat file, grabbing dimensions and file pointer
  *
- * This function opens the file specified by `path` using `PetscFOpen` and
- * passes the file pointer in `fp`. It is not closed in this function, thus
- * `fp` must be closed sometime after this function has been called (using
- * `PetscFClose` for example).
+ * This function opens the file specified by `path` using `PetscFOpen` and passes the file pointer in `fp`.
+ * It is not closed in this function, thus `fp` must be closed sometime after this function has been called (using `PetscFClose` for example).
  *
- * Assumes that the first line of the file has the number of rows and columns
- * as the only two entries, separated by a single space
+ * Assumes that the first line of the file has the number of rows and columns as the only two entries, separated by a single space.
  *
- * @param[in] comm MPI_Comm for the program
- * @param[in] path Path to the file
- * @param[in] char_array_len Length of the character array that should contain each line
- * @param[out] dims Dimensions of the file, taken from the first line of the file
- * @param[out] fp File pointer to the opened file
+ * @param[in]  comm           MPI_Comm for the program
+ * @param[in]  path           Path to the file
+ * @param[in]  char_array_len Length of the character array that should contain each line
+ * @param[out] dims           Dimensions of the file, taken from the first line of the file
+ * @param[out] fp File        pointer to the opened file
  */
 static PetscErrorCode OpenPHASTADatFile(const MPI_Comm comm, const char path[PETSC_MAX_PATH_LEN], const PetscInt char_array_len, PetscInt dims[2],
                                         FILE **fp) {
@@ -87,13 +84,12 @@ static PetscErrorCode OpenPHASTADatFile(const MPI_Comm comm, const char path[PET
 }
 
 /*
- * @brief Get the number of rows for the PHASTA file at path
+ * @brief Get the number of rows for the PHASTA file at path.
  *
- * Assumes that the first line of the file has the number of rows and columns
- * as the only two entries, separated by a single space
+ * Assumes that the first line of the file has the number of rows and columns as the only two entries, separated by a single space.
  *
- * @param[in] comm MPI_Comm for the program
- * @param[in] path Path to the file
+ * @param[in]  comm  MPI_Comm for the program
+ * @param[in]  path  Path to the file
  * @param[out] nrows Number of rows
  */
 static PetscErrorCode GetNRows(const MPI_Comm comm, const char path[PETSC_MAX_PATH_LEN], PetscInt *nrows) {
@@ -112,16 +108,14 @@ static PetscErrorCode GetNRows(const MPI_Comm comm, const char path[PETSC_MAX_PA
 /*
  * @brief Read the STGInflow file and load the contents into stg_ctx
  *
- * Assumes that the first line of the file has the number of rows and columns
- * as the only two entries, separated by a single space.
- * Assumes there are 14 columns in the file
+ * Assumes that the first line of the file has the number of rows and columns as the only two entries, separated by a single space.
+ * Assumes there are 14 columns in the file.
  *
- * Function calculates the Cholesky decomposition from the Reynolds stress
- * profile found in the file
+ * Function calculates the Cholesky decomposition from the Reynolds stress profile found in the file.
  *
- * @param[in] comm MPI_Comm for the program
- * @param[in] path Path to the STGInflow.dat file
- * @param[inout] stg_ctx STGShur14Context where the data will be loaded into
+ * @param[in]     comm    MPI_Comm for the program
+ * @param[in]     path    Path to the STGInflow.dat file
+ * @param[in,out] stg_ctx STGShur14Context where the data will be loaded into
  */
 static PetscErrorCode ReadSTGInflow(const MPI_Comm comm, const char path[PETSC_MAX_PATH_LEN], STGShur14Context stg_ctx) {
   PetscInt       ndims, dims[2];
@@ -175,13 +169,12 @@ static PetscErrorCode ReadSTGInflow(const MPI_Comm comm, const char path[PETSC_M
 /*
  * @brief Read the STGRand file and load the contents into stg_ctx
  *
- * Assumes that the first line of the file has the number of rows and columns
- * as the only two entries, separated by a single space.
- * Assumes there are 7 columns in the file
+ * Assumes that the first line of the file has the number of rows and columns as the only two entries, separated by a single space.
+ * Assumes there are 7 columns in the file.
  *
- * @param[in]    comm    MPI_Comm for the program
- * @param[in]    path    Path to the STGRand.dat file
- * @param[inout] stg_ctx STGShur14Context where the data will be loaded into
+ * @param[in]     comm    MPI_Comm for the program
+ * @param[in]     path    Path to the STGRand.dat file
+ * @param[in,out] stg_ctx STGShur14Context where the data will be loaded into
  */
 static PetscErrorCode ReadSTGRand(const MPI_Comm comm, const char path[PETSC_MAX_PATH_LEN], STGShur14Context stg_ctx) {
   PetscInt       ndims, dims[2];
@@ -222,14 +215,13 @@ static PetscErrorCode ReadSTGRand(const MPI_Comm comm, const char path[PETSC_MAX
  * @brief Read STG data from input paths and put in STGShur14Context
  *
  * Reads data from input paths and puts them into a STGShur14Context object.
- * Data stored initially in `*pstg_ctx` will be copied over to the new
- * STGShur14Context instance.
+ * Data stored initially in `*pstg_ctx` will be copied over to the new STGShur14Context instance.
  *
- * @param[in]    comm            MPI_Comm for the program
- * @param[in]    dm              DM for the program
- * @param[in]    stg_inflow_path Path to STGInflow.dat file
- * @param[in]    stg_rand_path   Path to STGRand.dat file
- * @param[inout] pstg_ctx        Pointer to STGShur14Context where the data will be loaded into
+ * @param[in]     comm            MPI_Comm for the program
+ * @param[in]     dm              DM for the program
+ * @param[in]     stg_inflow_path Path to STGInflow.dat file
+ * @param[in]     stg_rand_path   Path to STGRand.dat file
+ * @param[in,out] pstg_ctx        Pointer to STGShur14Context where the data will be loaded into
  */
 PetscErrorCode GetSTGContextData(const MPI_Comm comm, const DM dm, char stg_inflow_path[PETSC_MAX_PATH_LEN], char stg_rand_path[PETSC_MAX_PATH_LEN],
                                  STGShur14Context *pstg_ctx, const CeedScalar ynodes[]) {

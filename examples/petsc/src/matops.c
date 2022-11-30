@@ -70,8 +70,7 @@ PetscErrorCode MatGetDiag(Mat A, Vec D) {
 };
 
 // -----------------------------------------------------------------------------
-// This function uses libCEED to compute the action of the Laplacian with
-// Dirichlet boundary conditions
+// This function uses libCEED to compute the action of the Laplacian with Dirichlet boundary conditions
 // -----------------------------------------------------------------------------
 PetscErrorCode ApplyLocal_Ceed(Vec X, Vec Y, OperatorApplyContext op_apply_ctx) {
   PetscScalar *x, *y;
