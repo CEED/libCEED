@@ -82,19 +82,13 @@ CEED_QFUNCTION(SetupDiff2D)(void *ctx, CeedInt Q, const CeedScalar *const *in, C
     }
     CeedScalar dXdx[2][2];
     VoigtUnpackNonSymmetric2(dXdx_voigt, dXdx);
-    // (dX/dx^T * dX/dx) * wdetJ
+    // dXdxT_dXdx = (dX/dx^T * dX/dx)
     CeedScalar dXdxT_dXdx[2][2];
-    AlphaMatTransposeMatMult2(q_data[0][i], dXdx, dXdx, dXdxT_dXdx);
+    AlphaMatTransposeMatMult2(1.0, dXdx, dXdx, dXdxT_dXdx);
 
-    CeedScalar dv[2][2];
-    // save output: (dX/dx^T * dX/dx * wdetJ) * du/dX
-    AlphaMatMatMult2(1.0, dXdxT_dXdx, dudX, dv);
-    for (CeedInt j = 0; j < 2; j++) {
-      for (CeedInt k = 0; k < 2; k++) {
-        // we save the transpose, because of ordering in libCEED; See how we created dudX above
-        dvdX[j][k][i] = dv[k][j];
-      }
-    }
+    // save output:(dX/dx^T * dX/dx * wdetJ) * du/dX ==> du/dX^T * dXdxT_dXdx * wdetJ
+    // we save the transpose, because of ordering in libCEED; See how we created dudX above
+    AlphaMatTransposeMatMultAtQuadrature2(Q, i, q_data[0][i], dudX, dXdxT_dXdx, dvdX);
   }  // End of Quadrature Point Loop
 
   return 0;

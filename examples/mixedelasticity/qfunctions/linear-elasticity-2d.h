@@ -127,15 +127,9 @@ CEED_QFUNCTION(SetupLinear2D)(void *ctx, CeedInt Q, const CeedScalar *const *in,
         {lambda * e_kk + 2. * mu * e[0][0], 2. * mu * e[0][1]                },
         {2. * mu * e[1][0],                 lambda * e_kk + 2. * mu * e[1][1]}
     };
-    CeedScalar dv[2][2];
-    // save output: dX/dx^T * sigma * wdetJ
-    AlphaMatTransposeMatMult2(q_data[0][i], dXdx, sigma, dv);
-    for (CeedInt j = 0; j < 2; j++) {
-      for (CeedInt k = 0; k < 2; k++) {
-        // we save the transpose, because of ordering in libCEED; See how we created dudX above
-        dvdX[j][k][i] = dv[k][j];
-      }
-    }
+    // save output:dX/dx^T * sigma * wdetJ ==> sigma^T * dX/dx * wdetJ
+    // we save the transpose, because of ordering in libCEED; See how we created dudX above
+    AlphaMatTransposeMatMultAtQuadrature2(Q, i, q_data[0][i], sigma, dXdx, dvdX);
   }  // End of Quadrature Point Loop
 
   return 0;

@@ -30,7 +30,7 @@ struct LINEARContext_ {
 //  div(u)      -  p/k = 0   in \Omega
 //
 //  where k is bulk modulus, and sigma_ij = p * delta_ij + 2 * mu * ed_ij
-//  ed = e - 1/2 trace(e) * I is the deviatoric strain and e = 0.5*(grad(u) + (grad(u))^T )
+//  ed = e - 1/3 trace(e) * I is the deviatoric strain and e = 0.5*(grad(u) + (grad(u))^T )
 // in indicial notation
 //   mu * ui_jj + (1/3 mu + k) * uj_ji + fi = 0
 //   ui_i   - p/k                           = 0
@@ -58,8 +58,8 @@ CEED_QFUNCTION(SetupMixedLinearRhs2D)(void *ctx, CeedInt Q, const CeedScalar *co
   LINEARContext    context = (LINEARContext)ctx;
   const CeedScalar E       = context->E;
   const CeedScalar nu      = context->nu;
-  const CeedScalar mu      = E / (2 * (1 + nu));
-  const CeedScalar kappa   = E / (3 * (1 - 2 * nu));
+  const CeedScalar mu      = E / (2. * (1 + nu));
+  const CeedScalar kappa   = E / (3. * (1 - 2 * nu));
   // Quadrature Point Loop
   CeedPragmaSIMD for (CeedInt i = 0; i < Q; i++) {
     CeedScalar x = coords[i + 0 * Q], y = coords[i + 1 * Q];
@@ -75,13 +75,13 @@ CEED_QFUNCTION(SetupMixedLinearRhs2D)(void *ctx, CeedInt Q, const CeedScalar *co
     // mu*(u1_11 + u1_22) + (1/3 * mu + kappa)*(u1_11 + u2_21) + f1 = 0
     CeedScalar u1_11 = -PI_DOUBLE * PI_DOUBLE * u1, u1_22 = -PI_DOUBLE * PI_DOUBLE * u1;
     CeedScalar u2_21 = 2 * PI_DOUBLE * PI_DOUBLE * cos(PI_DOUBLE * x) * cos(PI_DOUBLE * y);
-    CeedScalar f1    = -mu * (u1_11 + u1_22) - ((1 / 3) * mu + kappa) * (u1_11 + u2_21);
+    CeedScalar f1    = -mu * (u1_11 + u1_22) - ((1. / 3.) * mu + kappa) * (u1_11 + u2_21);
     // Component 1
     rhs_u[0][i] = q_data[0][i] * f1;
     // mu*(u2_11 + u2_22) + (1/3 * mu + kappa)*(u1_12 + u2_22) + f2 = 0
     CeedScalar u2_11 = -2 * PI_DOUBLE * PI_DOUBLE * u1, u2_22 = -2 * PI_DOUBLE * PI_DOUBLE * u1;
     CeedScalar u1_12 = PI_DOUBLE * PI_DOUBLE * cos(PI_DOUBLE * x) * cos(PI_DOUBLE * y);
-    CeedScalar f2    = -mu * (u2_11 + u2_22) - ((1 / 3) * mu + kappa) * (u1_12 + u2_22);
+    CeedScalar f2    = -mu * (u2_11 + u2_22) - ((1. / 3.) * mu + kappa) * (u1_12 + u2_22);
     // Component 2
     rhs_u[1][i] = q_data[0][i] * f2;
     rhs_p[0][i] = 0.0;
@@ -139,23 +139,17 @@ CEED_QFUNCTION(SetupMixedLinear2D)(void *ctx, CeedInt Q, const CeedScalar *const
     // Compute Deviatoric Strain : ed (epsilon)
     // ed = e - 1/3 * trace(e) * I
     const CeedScalar ed[2][2] = {
-        {e[0][0] - 1 / 3 * e_kk, e[0][1]               },
-        {e[1][0],                e[1][1] - 1 / 3 * e_kk}
+        {e[0][0] - (1. / 3.) * e_kk, e[0][1]                   },
+        {e[1][0],                    e[1][1] - (1. / 3.) * e_kk}
     };
     // Compute Sigma = p*delta_ij + 2*mu*ed_ij
     const CeedScalar sigma[2][2] = {
         {p[0][i] + 2. * mu * ed[0][0], 2. * mu * ed[0][1]          },
         {2. * mu * ed[1][0],           p[0][i] + 2. * mu * ed[1][1]}
     };
-    CeedScalar dv[2][2];
-    // save output: dX/dx^T * sigma * wdetJ
-    AlphaMatTransposeMatMult2(q_data[0][i], dXdx, sigma, dv);
-    for (CeedInt j = 0; j < 2; j++) {
-      for (CeedInt k = 0; k < 2; k++) {
-        // we save the transpose, because of ordering in libCEED; See how we created dudX above
-        dvdX[j][k][i] = dv[k][j];
-      }
-    }
+    // save output:dX/dx^T * sigma * wdetJ ==> sigma^T * dX/dx * wdetJ
+    // we save the transpose, because of ordering in libCEED; See how we created dudX above
+    AlphaMatTransposeMatMultAtQuadrature2(Q, i, q_data[0][i], sigma, dXdx, dvdX);
     // div(u) = trace(grad(u))
     CeedScalar div_u = Trace2(grad_u);
     // (q, div(u)) - (q,p/k) = q^T * (div(u) - p/k) * wdetJ

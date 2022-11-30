@@ -89,12 +89,40 @@ CEED_QFUNCTION_HELPER int AlphaMatTransposeMatMult2(const CeedScalar alpha, cons
   return 0;
 }
 
+CEED_QFUNCTION_HELPER int AlphaMatTransposeMatMultAtQuadrature2(const CeedInt Q, const CeedInt i, const CeedScalar alpha, const CeedScalar A[2][2],
+                                                                const CeedScalar B[2][2], CeedScalar C[2][2][CEED_Q_VLA]) {
+  for (CeedInt j = 0; j < 2; j++) {
+    for (CeedInt k = 0; k < 2; k++) {
+      C[j][k][i] = 0;
+      for (CeedInt m = 0; m < 2; m++) {
+        C[j][k][i] += alpha * A[m][j] * B[m][k];
+      }
+    }
+  }
+
+  return 0;
+}
+
 CEED_QFUNCTION_HELPER int AlphaMatTransposeMatMult3(const CeedScalar alpha, const CeedScalar A[3][3], const CeedScalar B[3][3], CeedScalar C[3][3]) {
   for (CeedInt j = 0; j < 3; j++) {
     for (CeedInt k = 0; k < 3; k++) {
       C[j][k] = 0;
       for (CeedInt m = 0; m < 3; m++) {
         C[j][k] += alpha * A[m][j] * B[m][k];
+      }
+    }
+  }
+
+  return 0;
+}
+
+CEED_QFUNCTION_HELPER int AlphaMatTransposeMatMultAtQuadrature3(const CeedInt Q, const CeedInt i, const CeedScalar alpha, const CeedScalar A[3][3],
+                                                                const CeedScalar B[3][3], CeedScalar C[3][3][CEED_Q_VLA]) {
+  for (CeedInt j = 0; j < 3; j++) {
+    for (CeedInt k = 0; k < 3; k++) {
+      C[j][k][i] = 0;
+      for (CeedInt m = 0; m < 3; m++) {
+        C[j][k][i] += alpha * A[m][j] * B[m][k];
       }
     }
   }

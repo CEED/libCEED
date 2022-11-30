@@ -17,7 +17,7 @@
 # testbed platforms, in support of the nation's exascale computing imperative.
 
 # After make the problem, you can run convergence test by:
-#./bp4_conv_test.sh -o 2
+#./linear_conv_test.sh -o 2
 
 # where o is polynomial order
 # Reading arguments with getopts options
@@ -27,15 +27,18 @@ do
         o) order=${OPTARG};;
     esac
 done
-echo "Running convergence test for BP4 with polynomial order ${order}";
+echo "Running convergence test for mixed-linear elasticity with polynomial order ${order}";
 declare -A run_flags
 
-    run_flags[dm_plex_dim]=3
-    run_flags[dm_plex_box_faces]=4,4,4
+    run_flags[dm_plex_dim]=2
+    run_flags[dm_plex_box_faces]=4,4
     run_flags[dm_plex_simplex]=0
     run_flags[u_order]=$order
-    run_flags[problem]=bp4-3d
+    run_flags[p_order]=1
+    run_flags[problem]=mixed-linear-2d
     run_flags[ksp_max_it]=1000
+    run_flags[q_extra]=1
+    run_flags[pc_type]=svd
 
 declare -A test_flags
     test_flags[res_start]=4
@@ -44,13 +47,13 @@ declare -A test_flags
 
 file_name=conv_test_result.csv
 
-echo "run,mesh_res,error_u" > $file_name
+echo "run,mesh_res,error_u,error_p" > $file_name
 
 i=0
 
 for ((res=${test_flags[res_start]}; res<=${test_flags[res_end]}; res+=${test_flags[res_stride]})); do
 
-    run_flags[dm_plex_box_faces]=$res,$res,$res
+    run_flags[dm_plex_box_faces]=$res,$res
 
     args=''
     for arg in "${!run_flags[@]}"; do
@@ -58,7 +61,7 @@ for ((res=${test_flags[res_start]}; res<=${test_flags[res_end]}; res+=${test_fla
             args="$args -$arg ${run_flags[$arg]}"
         fi
     done
-    ./main $args | grep "L2 error of u and p" | awk -v i="$i" -v res="$res" '{ printf "%d,%d,%e\n", i, res, $8}' >> $file_name
+    ./main $args | grep "L2 error" | awk -v i="$i" -v res="$res" '{ printf "%d,%d,%e,%e\n", i, res, $8, $9}' >> $file_name
     i=$((i+1))
 done
 
