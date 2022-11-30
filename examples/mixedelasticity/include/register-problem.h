@@ -18,5 +18,6 @@ PetscErrorCode Linear_3D(Ceed ceed, ProblemData problem_data, void *ctx);
 
 // 3) Mixed Linear Elasticity
 PetscErrorCode Mixed_Linear_2D(Ceed ceed, ProblemData problem_data, void *ctx);
+PetscErrorCode Mixed_Linear_3D(Ceed ceed, ProblemData problem_data, void *ctx);
 
 #endif  // register_problems_h
