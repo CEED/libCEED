@@ -22,8 +22,7 @@ static int CeedQFunctionInit_Scale(Ceed ceed, const char *requested, CeedQFuncti
     // LCOV_EXCL_STOP
   }
 
-  // QFunction fields 'input' and 'output' with requested emodes added
-  //   by the library rather than being added here
+  // QFunction fields 'input' and 'output' with requested emodes added by the library rather than being added here
 
   return CEED_ERROR_SUCCESS;
 }

@@ -7,17 +7,13 @@
 
 //                             libCEED Example 2
 //
-// This example illustrates a simple usage of libCEED to compute the surface
-// area of a 3D body using matrix-free application of a diffusion operator.
-// Arbitrary mesh and solution degrees in 1D, 2D and 3D are supported from the
-// same code.
+// This example illustrates a simple usage of libCEED to compute the surface area of a 3D body using matrix-free application of a diffusion operator.
+// Arbitrary mesh and solution degrees in 1D, 2D and 3D are supported from the same code.
 //
-// The example has no dependencies, and is designed to be self-contained. For
-// additional examples that use external discretization libraries (MFEM, PETSc,
-// etc.) see the subdirectories in libceed/examples.
+// The example has no dependencies, and is designed to be self-contained.
+// For additional examples that use external discretization libraries (MFEM, PETSc, etc.) see the subdirectories in libceed/examples.
 //
-// All libCEED objects use a Ceed device object constructed based on a command
-// line argument (-ceed).
+// All libCEED objects use a Ceed device object constructed based on a command line argument (-ceed).
 //
 // Build with:
 //
@@ -120,8 +116,7 @@ int main(int argc, const char *argv[]) {
     // LCOV_EXCL_STOP
   }
 
-  // Select appropriate backend and logical device based on the <ceed-spec>
-  // command line argument.
+  // Select appropriate backend and logical device based on the (-ceed) command line argument.
   Ceed ceed;
   CeedInit(ceed_spec, &ceed);
 
@@ -143,8 +138,7 @@ int main(int argc, const char *argv[]) {
     // LCOV_EXCL_STOP
   }
 
-  // Build CeedElemRestriction objects describing the mesh and solution discrete
-  // representations.
+  // Build CeedElemRestriction objects describing the mesh and solution discrete representations.
   CeedInt             mesh_size, sol_size;
   CeedElemRestriction mesh_restr, sol_restr, q_data_restr_i;
   BuildCartesianRestriction(ceed, dim, num_xyz, mesh_degree, num_comp_x, &mesh_size, num_qpts, &mesh_restr, NULL);
@@ -172,8 +166,7 @@ int main(int argc, const char *argv[]) {
   CeedQFunctionContextCreate(ceed, &build_ctx);
   CeedQFunctionContextSetData(build_ctx, CEED_MEM_HOST, CEED_USE_POINTER, sizeof(build_ctx_data), &build_ctx_data);
 
-  // Create the QFunction that builds the diffusion operator (i.e. computes its
-  // quadrature data) and set its context data.
+  // Create the QFunction that builds the diffusion operator (i.e. computes its quadrature data) and set its context data.
   CeedQFunction qf_build;
   switch (gallery) {
     case 0:
@@ -193,8 +186,7 @@ int main(int argc, const char *argv[]) {
     }
   }
 
-  // Create the operator that builds the quadrature data for the diffusion
-  // operator.
+  // Create the operator that builds the quadrature data for the diffusion operator.
   CeedOperator op_build;
   CeedOperatorCreate(ceed, qf_build, CEED_QFUNCTION_NONE, CEED_QFUNCTION_NONE, &op_build);
   CeedOperatorSetField(op_build, "dx", mesh_restr, mesh_basis, CEED_VECTOR_ACTIVE);

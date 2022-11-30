@@ -44,12 +44,11 @@ CEED_QFUNCTION(SetupMassRhs3)(void *ctx, const CeedInt Q, const CeedScalar *cons
 // This QFunction applies the mass operator for a vector field of 3 components.
 //
 // Inputs:
-//   u     - Input vector at quadrature points
+//   u      - Input vector at quadrature points
 //   q_data - Geometric factors
 //
 // Output:
 //   v     - Output vector (test functions) at quadrature points
-//
 // -----------------------------------------------------------------------------
 CEED_QFUNCTION(Mass3)(void *ctx, const CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
   const CeedScalar *u = in[0], *q_data = in[1];

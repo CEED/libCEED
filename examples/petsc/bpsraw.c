@@ -7,11 +7,9 @@
 
 //                        libCEED + PETSc Example: CEED BPs
 //
-// This example demonstrates a simple usage of libCEED with PETSc to solve the
-// CEED BP benchmark problems, see http://ceed.exascaleproject.org/bps.
+// This example demonstrates a simple usage of libCEED with PETSc to solve the CEED BP benchmark problems, see http://ceed.exascaleproject.org/bps.
 //
-// The code is intentionally "raw", using only low-level communication
-// primitives.
+// The code is intentionally "raw", using only low-level communication primitives.
 //
 // Build with:
 //
@@ -48,8 +46,7 @@ const char help[] = "Solve CEED BPs using PETSc\n";
 #if PETSC_VERSION_LT(3, 12, 0)
 #ifdef PETSC_HAVE_CUDA
 #include <petsccuda.h>
-// Note: With PETSc prior to version 3.12.0, providing the source path to
-//       include 'cublas_v2.h' will be needed to use 'petsccuda.h'.
+// Note: With PETSc prior to version 3.12.0, providing the source path to include 'cublas_v2.h' will be needed to use 'petsccuda.h'.
 #endif
 #endif
 
@@ -269,8 +266,7 @@ static PetscErrorCode MatMult_Mass(Mat A, Vec X, Vec Y) {
   PetscFunctionReturn(0);
 }
 
-// This function uses libCEED to compute the action of the Laplacian with
-// Dirichlet boundary conditions
+// This function uses libCEED to compute the action of the Laplacian with Dirichlet boundary conditions
 static PetscErrorCode MatMult_Diff(Mat A, Vec X, Vec Y) {
   OperatorApplyContext op_apply_ctx;
   PetscScalar         *x, *y;
@@ -538,8 +534,7 @@ int main(int argc, char **argv) {
     PetscCall(ISCreateBlock(comm, num_comp_u, l_0_count, loc_ind, PETSC_OWN_POINTER, &loc_is));
     PetscCall(VecScatterCreate(X_loc, loc_is, X, l_to_g_is_0, &l_to_g_0));
     {
-      // Create global-to-global scatter for Dirichlet values (everything not in
-      // l_to_g_is_0, which is the range of l_to_g_0)
+      // Create global-to-global scatter for Dirichlet values (everything not in l_to_g_is_0, which is the range of l_to_g_0)
       PetscInt           x_start, x_end, *ind_D, count_D = 0;
       IS                 is_D;
       const PetscScalar *x;

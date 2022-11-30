@@ -18,7 +18,7 @@
 // This QFunction applies the mass matrix to five interlaced fields.
 //
 // Inputs:
-//   u     - Input vector at quadrature points
+//   u      - Input vector at quadrature points
 //   q_data - Quadrature weights
 //
 // Output:

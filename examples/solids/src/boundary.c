@@ -13,12 +13,10 @@
 // -----------------------------------------------------------------------------
 // Boundary Functions
 // -----------------------------------------------------------------------------
-// Note: If additional boundary conditions are added, an update is needed in
-//         elasticity.h for the boundaryOptions variable.
+// Note: If additional boundary conditions are added, an update is needed in elasticity.h for the boundaryOptions variable.
 
 // BCMMS - boundary function
-// Values on all points of the mesh is set based on given solution below
-// for u[0], u[1], u[2]
+// Values on all points of the mesh is set based on given solution below for u[0], u[1], u[2]
 PetscErrorCode BCMMS(PetscInt dim, PetscReal load_increment, const PetscReal coords[], PetscInt num_comp_u, PetscScalar *u, void *ctx) {
   PetscScalar x = coords[0];
   PetscScalar y = coords[1];
@@ -37,8 +35,7 @@ PetscErrorCode BCMMS(PetscInt dim, PetscReal load_increment, const PetscReal coo
 #define M_PI 3.14159265358979323846
 #endif
 
-// BCClamp - fix boundary values with affine transformation at fraction of load
-//   increment
+// BCClamp - fix boundary values with affine transformation at fraction of load increment
 PetscErrorCode BCClamp(PetscInt dim, PetscReal load_increment, const PetscReal coords[], PetscInt num_comp_u, PetscScalar *u, void *ctx) {
   PetscScalar x          = coords[0];
   PetscScalar y          = coords[1];

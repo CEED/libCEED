@@ -129,7 +129,7 @@ myst_enable_extensions = [
 ]
 
 myst_heading_anchors = 2
-myst_url_schemes = ("http", "https", "mailto")
+myst_url_schemes = ["http", "https", "mailto"]
 
 # -- Options for HTML output ----------------------------------------------
 

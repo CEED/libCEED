@@ -7,8 +7,7 @@
 
 //                        libCEED + PETSc Example: CEED BPs 3-6 with Multigrid
 //
-// This example demonstrates a simple usage of libCEED with PETSc to solve the
-// CEED BP benchmark problems, see http://ceed.exascaleproject.org/bps.
+// This example demonstrates a simple usage of libCEED with PETSc to solve the CEED BP benchmark problems, see http://ceed.exascaleproject.org/bps.
 //
 // The code uses higher level communication protocols in DMPlex.
 //
@@ -49,8 +48,7 @@ const char help[] = "Solve CEED BPs using p-multigrid with PETSc and DMPlex\n";
 #if PETSC_VERSION_LT(3, 12, 0)
 #ifdef PETSC_HAVE_CUDA
 #include <petsccuda.h>
-// Note: With PETSc prior to version 3.12.0, providing the source path to
-//       include 'cublas_v2.h' will be needed to use 'petsccuda.h'.
+// Note: With PETSc prior to version 3.12.0, providing the source path to include 'cublas_v2.h' will be needed to use 'petsccuda.h'.
 #endif
 #endif
 

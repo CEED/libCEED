@@ -14,8 +14,7 @@
 #include <ceed.h>
 
 // -----------------------------------------------------------------------------
-// This QFunction computes the surface integral of the user traction vector on
-//   the constrained faces.
+// This QFunction computes the surface integral of the user traction vector on the constrained faces.
 //
 // Reference (parent) 2D coordinates: X
 // Physical (current) 3D coordinates: x
@@ -28,7 +27,6 @@
 //
 // Computed:
 //   t * (w detJb)
-//
 // -----------------------------------------------------------------------------
 CEED_QFUNCTION(SetupTractionBCs)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
   // Inputs

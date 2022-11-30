@@ -65,8 +65,7 @@ CEED_QFUNCTION(ICsNewtonianIG)(void *ctx, CeedInt Q, const CeedScalar *const *in
 }
 
 // *****************************************************************************
-// This QFunction sets a "still" initial condition for generic Newtonian IG
-//   problems in primitive variables
+// This QFunction sets a "still" initial condition for generic Newtonian IG problems in primitive variables
 // *****************************************************************************
 CEED_QFUNCTION(ICsNewtonianIG_Prim)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
   // Outputs
@@ -95,11 +94,9 @@ CEED_QFUNCTION(ICsNewtonianIG_Prim)(void *ctx, CeedInt Q, const CeedScalar *cons
 }
 
 // *****************************************************************************
-// This QFunction implements the following formulation of Navier-Stokes with
-//   explicit time stepping method
+// This QFunction implements the following formulation of Navier-Stokes with explicit time stepping method
 //
-// This is 3D compressible Navier-Stokes in conservation form with state
-//   variables of density, momentum density, and total energy density.
+// This is 3D compressible Navier-Stokes in conservation form with state variables of density, momentum density, and total energy density.
 //
 // State Variables: q = ( rho, U1, U2, U3, E )
 //   rho - Mass Density
@@ -138,10 +135,8 @@ CEED_QFUNCTION(ICsNewtonianIG_Prim)(void *ctx, CeedInt Q, const CeedScalar *cons
 //   g               ,  Gravity
 //   gamma  = cp / cv,  Specific heat ratio
 //
-// We require the product of the inverse of the Jacobian (dXdx_j,k) and
-// its transpose (dXdx_k,j) to properly compute integrals of the form:
-// int( gradv gradu )
-//
+// We require the product of the inverse of the Jacobian (dXdx_j,k) and its transpose (dXdx_k,j) to properly compute integrals of the form: int( gradv
+// gradu )
 // *****************************************************************************
 CEED_QFUNCTION(RHSFunction_Newtonian)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
   // Inputs
@@ -218,13 +213,11 @@ CEED_QFUNCTION(RHSFunction_Newtonian)(void *ctx, CeedInt Q, const CeedScalar *co
 }
 
 // *****************************************************************************
-// This QFunction implements the Navier-Stokes equations (mentioned above) with
-//   implicit time stepping method
+// This QFunction implements the Navier-Stokes equations (mentioned above) with implicit time stepping method
 //
 //  SU   = Galerkin + grad(v) . ( Ai^T * Tau * (Aj q,j) )
 //  SUPG = Galerkin + grad(v) . ( Ai^T * Tau * (q_dot + Aj q,j - body force) )
-//                                       (diffussive terms will be added later)
-//
+//                                       (diffusive terms will be added later)
 // *****************************************************************************
 CEED_QFUNCTION_HELPER int IFunction_Newtonian(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out, StateFromQi_t StateFromQi,
                                               StateFromQi_fwd_t StateFromQi_fwd) {
@@ -325,8 +318,7 @@ CEED_QFUNCTION(IFunction_Newtonian_Prim)(void *ctx, CeedInt Q, const CeedScalar 
 }
 
 // *****************************************************************************
-// This QFunction implements the jacobian of the Navier-Stokes equations
-//   for implicit time stepping method.
+// This QFunction implements the jacobian of the Navier-Stokes equations for implicit time stepping method.
 // *****************************************************************************
 CEED_QFUNCTION_HELPER int IJacobian_Newtonian(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out, StateFromQi_t StateFromQi,
                                               StateFromQi_fwd_t StateFromQi_fwd) {

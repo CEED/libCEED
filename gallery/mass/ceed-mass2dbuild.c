@@ -11,8 +11,7 @@
 #include <string.h>
 
 /**
-  @brief Set fields for Ceed QFunction building the geometric data for the 2D
-           mass matrix
+  @brief Set fields for Ceed QFunction building the geometric data for the 2D mass matrix
 **/
 static int CeedQFunctionInit_Mass2DBuild(Ceed ceed, const char *requested, CeedQFunction qf) {
   // Check QFunction name
@@ -35,8 +34,7 @@ static int CeedQFunctionInit_Mass2DBuild(Ceed ceed, const char *requested, CeedQ
 }
 
 /**
-  @brief Register Ceed QFunction for building the geometric data for the 2D mass
-           matrix
+  @brief Register Ceed QFunction for building the geometric data for the 2D mass matrix
 **/
 CEED_INTERN int CeedQFunctionRegister_Mass2DBuild(void) {
   return CeedQFunctionRegister("Mass2DBuild", Mass2DBuild_loc, 1, Mass2DBuild, CeedQFunctionInit_Mass2DBuild);

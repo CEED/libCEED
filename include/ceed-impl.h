@@ -156,8 +156,7 @@ struct CeedElemRestriction_private {
   CeedInt  elem_size;   /* number of nodes per element */
   CeedInt  num_comp;    /* number of components */
   CeedInt  comp_stride; /* Component stride for L-vector ordering */
-  CeedSize l_size;      /* size of the L-vector, can be used for checking
-                             for correct vector sizes */
+  CeedSize l_size;      /* size of the L-vector, can be used for checking for correct vector sizes */
   CeedInt  blk_size;    /* number of elements in a batch */
   CeedInt  num_blk;     /* number of blocks of elements */
   CeedInt *strides;     /* strides between [nodes, components, elements] */
@@ -172,34 +171,26 @@ struct CeedBasis_private {
   int (*Apply)(CeedBasis, CeedInt, CeedTransposeMode, CeedEvalMode, CeedVector, CeedVector);
   int (*Destroy)(CeedBasis);
   int              ref_count;
-  bool             tensor_basis;  /* flag for tensor basis */
-  CeedInt          dim;           /* topological dimension */
-  CeedElemTopology topo;          /* element topology */
-  CeedInt          num_comp;      /* number of field components (1 for scalar fields) */
-  CeedInt          Q_comp;        /* number of Q-vector components (1 for H^1, dim for H(div)) */
-  CeedInt          P_1d;          /* number of nodes in one dimension */
-  CeedInt          Q_1d;          /* number of quadrature points in one dimension */
-  CeedInt          P;             /* total number of nodes */
-  CeedInt          Q;             /* total number of quadrature points */
-  CeedScalar      *q_ref_1d;      /* Array of length Q1d holding the locations of
-                                       quadrature points on the 1D reference element [-1, 1] */
-  CeedScalar *q_weight_1d;        /* array of length Q1d holding the quadrature weights on
-                                                 the reference element */
-  CeedScalar *interp;             /* row-major matrix of shape [Q_comp*Q, P] expressing the values of
-                                       nodal basis functions at quadrature points */
-  CeedScalar *interp_1d;          /* row-major matrix of shape [Q1d, P1d] expressing the values of
-                                       nodal basis functions at quadrature points */
-  CeedScalar *grad;               /* row-major matrix of shape [dim*Q_comp*Q, P] matrix expressing
-                                       derivatives of nodal basis functions at quadrature points */
-  CeedScalar *grad_1d;            /* row-major matrix of shape [Q1d, P1d] matrix expressing
-                                       derivatives of nodal basis functions at quadrature points */
-  CeedTensorContract contract;    /* tensor contraction object */
-  CeedFESpace        basis_space; /* Initialize in basis constructor
-                                       with 1,2 for H^1, H(div) FE space */
-  CeedScalar *div;                /* row-major matrix of shape [Q, P] expressing
-                                      the divergence of nodal basis functions
-                                      at quadrature points for H(div) discretizations */
-  void *data;                     /* place for the backend to store any data */
+  bool             tensor_basis; /* flag for tensor basis */
+  CeedInt          dim;          /* topological dimension */
+  CeedElemTopology topo;         /* element topology */
+  CeedInt          num_comp;     /* number of field components (1 for scalar fields) */
+  CeedInt          Q_comp;       /* number of Q-vector components (1 for H^1, dim for H(div)) */
+  CeedInt          P_1d;         /* number of nodes in one dimension */
+  CeedInt          Q_1d;         /* number of quadrature points in one dimension */
+  CeedInt          P;            /* total number of nodes */
+  CeedInt          Q;            /* total number of quadrature points */
+  CeedScalar      *q_ref_1d;     /* Array of length Q1d holding the locations of quadrature points on the 1D reference element [-1, 1] */
+  CeedScalar      *q_weight_1d;  /* array of length Q1d holding the quadrature weights on the reference element */
+  CeedScalar      *interp;       /* row-major matrix of shape [Q_comp*Q, P] expressing the values of nodal basis functions at quadrature points */
+  CeedScalar      *interp_1d;    /* row-major matrix of shape [Q1d, P1d] expressing the values of nodal basis functions at quadrature points */
+  CeedScalar      *grad; /* row-major matrix of shape [dim*Q_comp*Q, P] matrix expressing derivatives of nodal basis functions at quadrature points */
+  CeedScalar      *grad_1d;    /* row-major matrix of shape [Q1d, P1d] matrix expressing derivatives of nodal basis functions at quadrature points */
+  CeedTensorContract contract; /* tensor contraction object */
+  CeedFESpace        basis_space; /* Initialize in basis constructor with 1,2 for H^1, H(div) FE space */
+  CeedScalar
+       *div; /* row-major matrix of shape [Q, P] expressing the divergence of nodal basis functions at quadrature points for H(div) discretizations */
+  void *data; /* place for the backend to store any data */
 };
 
 struct CeedTensorContract_private {
@@ -223,9 +214,8 @@ struct CeedQFunction_private {
   int (*SetCUDAUserFunction)(CeedQFunction, void *);
   int (*SetHIPUserFunction)(CeedQFunction, void *);
   int (*Destroy)(CeedQFunction);
-  int     ref_count;
-  CeedInt vec_length; /* Number of quadrature points must be padded to a
-                           multiple of vec_length */
+  int                  ref_count;
+  CeedInt              vec_length; /* Number of quadrature points must be padded to a multiple of vec_length */
   CeedQFunctionField  *input_fields;
   CeedQFunctionField  *output_fields;
   CeedInt              num_input_fields, num_output_fields;
@@ -293,11 +283,9 @@ struct CeedContextFieldLabel_private {
 
 struct CeedOperatorField_private {
   CeedElemRestriction elem_restr; /* Restriction from L-vector */
-  CeedBasis           basis;      /* Basis or CEED_BASIS_COLLOCATED for
-                                       collocated fields */
-  CeedVector vec;                 /* State vector for passive fields or
-                                       CEED_VECTOR_NONE for no vector */
-  const char *field_name;         /* matching QFunction field name */
+  CeedBasis           basis;      /* Basis or CEED_BASIS_COLLOCATED for collocated fields */
+  CeedVector          vec;        /* State vector for passive fields or CEED_VECTOR_NONE for no vector */
+  const char         *field_name; /* matching QFunction field name */
 };
 
 struct CeedQFunctionAssemblyData_private {

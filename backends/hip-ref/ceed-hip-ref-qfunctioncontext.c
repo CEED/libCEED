@@ -222,8 +222,7 @@ static int CeedQFunctionContextSetDataDevice_Hip(const CeedQFunctionContext ctx,
 }
 
 //------------------------------------------------------------------------------
-// Set the data used by a user context,
-//   freeing any previously allocated data if applicable
+// Set the data used by a user context, freeing any previously allocated data if applicable
 //------------------------------------------------------------------------------
 static int CeedQFunctionContextSetData_Hip(const CeedQFunctionContext ctx, const CeedMemType mem_type, const CeedCopyMode copy_mode, void *data) {
   Ceed ceed;

@@ -86,8 +86,7 @@ CEED_QFUNCTION_HELPER CeedScalar Square(CeedScalar x) { return x * x; }
 // *****************************************************************************
 
 // *****************************************************************************
-// This helper function provides support for the exact, time-dependent solution
-//   (currently not implemented) and IC formulation for 3D advection
+// This helper function provides support for the exact, time-dependent solution (currently not implemented) and IC formulation for 3D advection
 // *****************************************************************************
 CEED_QFUNCTION_HELPER CeedInt Exact_Advection(CeedInt dim, CeedScalar time, const CeedScalar X[], CeedInt Nf, CeedScalar q[], void *ctx) {
   const SetupContextAdv context = (SetupContextAdv)ctx;
@@ -186,7 +185,6 @@ CEED_QFUNCTION(ICsAdvection)(void *ctx, CeedInt Q, const CeedScalar *const *in, 
 //
 // Advection Equation:
 //   dE/dt + div( E u ) = 0
-//
 // *****************************************************************************
 CEED_QFUNCTION(Advection)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
   // Inputs
@@ -273,9 +271,7 @@ CEED_QFUNCTION(Advection)(void *ctx, CeedInt Q, const CeedScalar *const *in, Cee
 }
 
 // *****************************************************************************
-// This QFunction implements 3D (mentioned above) with
-//   implicit time stepping method
-//
+// This QFunction implements 3D (mentioned above) with implicit time stepping method
 // *****************************************************************************
 CEED_QFUNCTION(IFunction_Advection)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
   // Inputs
@@ -382,12 +378,10 @@ CEED_QFUNCTION(IFunction_Advection)(void *ctx, CeedInt Q, const CeedScalar *cons
 //    sign(dot(wind, normal)) < 0 : inflow BCs
 //
 //  Outflow BCs:
-//    The validity of the weak form of the governing equations is extended
-//    to the outflow and the current values of E are applied.
+//    The validity of the weak form of the governing equations is extended to the outflow and the current values of E are applied.
 //
 //  Inflow BCs:
 //    A prescribed Total Energy (E_wind) is applied weakly.
-//
 // *****************************************************************************
 CEED_QFUNCTION(Advection_InOutFlow)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
   // Inputs

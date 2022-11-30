@@ -90,9 +90,8 @@ CEED_QFUNCTION_HELPER void ComputeHLLSpeeds_Roe(NewtonianIdealGasContext gas, St
 
   RoeWeights r = RoeSetup(left.U.density, right.U.density);
   // Speed estimate
-  // Roe average eigenvalues for left and right non-linear waves
-  // Stability requires that these speed estimates are *at least*
-  // as fast as the physical wave speeds.
+  // Roe average eigenvalues for left and right non-linear waves.
+  // Stability requires that these speed estimates are *at least* as fast as the physical wave speeds.
   CeedScalar u_roe = RoeAverage(r, u_left, u_right);
 
   // TODO: revisit this for gravity
@@ -114,9 +113,8 @@ CEED_QFUNCTION_HELPER void ComputeHLLSpeeds_Roe_fwd(NewtonianIdealGasContext gas
   RoeWeights r  = RoeSetup(left.U.density, right.U.density);
   RoeWeights dr = RoeSetup_fwd(left.U.density, right.U.density, dleft.U.density, dright.U.density);
   // Speed estimate
-  // Roe average eigenvalues for left and right non-linear waves
-  // Stability requires that these speed estimates are *at least*
-  // as fast as the physical wave speeds.
+  // Roe average eigenvalues for left and right non-linear waves.
+  // Stability requires that these speed estimates are *at least* as fast as the physical wave speeds.
   CeedScalar u_roe  = RoeAverage(r, u_left, u_right);
   CeedScalar du_roe = RoeAverage_fwd(r, dr, u_left, u_right, du_left, du_right);
 
@@ -138,9 +136,8 @@ CEED_QFUNCTION_HELPER void ComputeHLLSpeeds_Roe_fwd(NewtonianIdealGasContext gas
 
 // *****************************************************************************
 // @brief Harten Lax VanLeer (HLL) approximate Riemann solver.
-// Taking in two states (left, right) and returns RiemannFlux_HLL
-// The left and right states are specified from the perspective of an
-// outward-facing normal vector pointing left to right.
+// Taking in two states (left, right) and returns RiemannFlux_HLL.
+// The left and right states are specified from the perspective of an outward-facing normal vector pointing left to right.
 //
 // @param gas    NewtonianIdealGasContext for the fluid
 // @param left   Fluid state of the domain interior (the current solution)

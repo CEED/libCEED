@@ -63,12 +63,11 @@ CEED_QFUNCTION(SetupDiffRhs3)(void *ctx, const CeedInt Q, const CeedScalar *cons
 // This QFunction applies the diffusion operator for a vector field of 3 components.
 //
 // Inputs:
-//   ug     - Input vector Jacobian at quadrature points
+//   ug      - Input vector Jacobian at quadrature points
 //   q_data  - Geometric factors
 //
 // Output:
 //   vJ     - Output vector (test functions) Jacobian at quadrature points
-//
 // -----------------------------------------------------------------------------
 CEED_QFUNCTION(Diff3)(void *ctx, const CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
   const CeedScalar *ug = in[0], *q_data = in[1];

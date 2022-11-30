@@ -32,10 +32,9 @@ struct Physics_private_MR {
 // Series approximation of log1p()
 //  log1p() is not vectorized in libc
 //
-//  The series expansion is accurate to 1e-7 in the range sqrt(2)/2 < J < sqrt(2),
-//  with machine precision accuracy near J=1.  The initialization extends this range
-//  to 0.35 ~= sqrt(2)/4 < J < sqrt(2)*2 ~= 2.83, which should be sufficient for
-//  applications of the Neo-Hookean model.
+//  The series expansion is accurate to 1e-7 in the range sqrt(2)/2 < J < sqrt(2), with machine precision accuracy near J=1.
+//  The initialization extends this range to 0.35 ~= sqrt(2)/4 < J < sqrt(2)*2 ~= 2.83, which should be sufficient for applications of the Neo-Hookean
+//  model.
 // -----------------------------------------------------------------------------
 #ifndef LOG1P_SERIES_SHIFTED
 #define LOG1P_SERIES_SHIFTED
@@ -175,7 +174,7 @@ CEED_QFUNCTION(ElasFSInitialMR1F)(void *ctx, CeedInt Q, const CeedScalar *const 
   // Formulation Terminology:
   //  I3    : 3x3 Identity matrix
   //  C     : right Cauchy-Green tensor
-  //  C_inv  : inverse of C
+  //  C_inv : inverse of C
   //  F     : deformation gradient
   //  S     : 2nd Piola-Kirchhoff
   //  P     : 1st Piola-Kirchhoff
@@ -364,8 +363,7 @@ CEED_QFUNCTION(ElasFSInitialMR1dF)(void *ctx, CeedInt Q, const CeedScalar *const
 
     // -- C_inv*dE*C_inv
     CeedScalar Cinv_dE_Cinv[3][3];
-    // This product is symmetric and we only use the upper-triangular part
-    // below, but naively compute the whole thing here
+    // This product is symmetric and we only use the upper-triangular part below, but naively compute the whole thing here
     for (CeedInt j = 0; j < 3; j++) {
       for (CeedInt k = 0; k < 3; k++) {
         Cinv_dE_Cinv[j][k] = 0;

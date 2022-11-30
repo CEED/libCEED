@@ -6,8 +6,7 @@
 // This file is part of CEED:  http://github.com/ceed
 
 /**
-  @brief Ceed QFunction for applying the geometric data for the 3D Poisson
-           operator
+  @brief Ceed QFunction for applying the geometric data for the 3D Poisson operator
 **/
 
 #ifndef poisson3dapply_h

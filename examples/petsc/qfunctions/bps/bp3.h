@@ -15,11 +15,9 @@
 #include <math.h>
 
 // -----------------------------------------------------------------------------
-// This QFunction sets up the geometric factors required to apply the
-//   diffusion operator
+// This QFunction sets up the geometric factors required to apply the diffusion operator
 //
-// We require the product of the inverse of the Jacobian and its transpose to
-//   properly compute integrals of the form: int( gradv gradu)
+// We require the product of the inverse of the Jacobian and its transpose to properly compute integrals of the form: int( gradv gradu)
 //
 // Determinant of Jacobian:
 //   detJ = J11*A11 + J21*A12 + J31*A13
@@ -100,12 +98,11 @@ CEED_QFUNCTION(SetupDiffRhs)(void *ctx, CeedInt Q, const CeedScalar *const *in, 
 // This QFunction applies the diffusion operator for a scalar field.
 //
 // Inputs:
-//   ug     - Input vector gradient at quadrature points
+//   ug      - Input vector gradient at quadrature points
 //   q_data  - Geometric factors
 //
 // Output:
 //   vg     - Output vector (test functions) gradient at quadrature points
-//
 // -----------------------------------------------------------------------------
 CEED_QFUNCTION(Diff)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
   const CeedScalar *ug = in[0], *q_data = in[1];

@@ -15,8 +15,7 @@
 #include <math.h>
 
 // *****************************************************************************
-// This QFunction sets up the geometric factors required for integration and
-//   coordinate transformations
+// This QFunction sets up the geometric factors required for integration and coordinate transformations
 //
 // Reference (parent) coordinates: X
 // Physical (current) coordinates: x
@@ -25,8 +24,7 @@
 //
 // All quadrature data is stored in 10 field vector of quadrature data.
 //
-// We require the determinant of the Jacobian to properly compute integrals of
-//   the form: int( v u )
+// We require the determinant of the Jacobian to properly compute integrals of the form: int( v u )
 //
 // Determinant of Jacobian:
 //   detJ = J11*J22 - J21*J12
@@ -35,8 +33,7 @@
 // Stored: w detJ
 //   in q_data[0]
 //
-// We require the transpose of the inverse of the Jacobian to properly compute
-//   integrals of the form: int( gradv u )
+// We require the transpose of the inverse of the Jacobian to properly compute integrals of the form: int( gradv u )
 //
 // Inverse of Jacobian:
 //   dXdx_i,j = Aij / detJ
@@ -46,7 +43,6 @@
 //   in q_data[1:4] as
 //   (detJ^-1) * [A11 A12]
 //               [A21 A22]
-//
 // *****************************************************************************
 CEED_QFUNCTION(Setup2d)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
   // Inputs
@@ -82,8 +78,7 @@ CEED_QFUNCTION(Setup2d)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedS
 }
 
 // *****************************************************************************
-// This QFunction sets up the geometric factor required for integration when
-//   reference coordinates are in 1D and the physical coordinates are in 2D
+// This QFunction sets up the geometric factor required for integration when reference coordinates are in 1D and the physical coordinates are in 2D
 //
 // Reference (parent) 1D coordinates: X
 // Physical (current) 2D coordinates: x
@@ -95,8 +90,7 @@ CEED_QFUNCTION(Setup2d)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedS
 //
 // All quadrature data is stored in 3 field vector of quadrature data.
 //
-// We require the determinant of the Jacobian to properly compute integrals of
-//   the form: int( u v )
+// We require the determinant of the Jacobian to properly compute integrals of the form: int( u v )
 //
 // Stored: w detJb
 //   in q_data_sur[0]
@@ -107,7 +101,6 @@ CEED_QFUNCTION(Setup2d)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedS
 //   in q_data_sur[1:2] as
 //   (detJb^-1) * [ J2 ]
 //                [-J1 ]
-//
 // *****************************************************************************
 CEED_QFUNCTION(SetupBoundary2d)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
   // Inputs

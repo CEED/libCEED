@@ -213,8 +213,7 @@ PetscErrorCode SetupLibceedFineLevel(DM dm, DM dm_energy, DM dm_diagnostic, Ceed
   // ---------------------------------------------------------------------------
   // Geometric factor computation
   // ---------------------------------------------------------------------------
-  // Create the QFunction and Operator that computes the quadrature data
-  //   geo_data returns dXdx_i,j and w * det.
+  // Create the QFunction and Operator that computes the quadrature data geo_data returns dXdx_i,j and w * det.
   // ---------------------------------------------------------------------------
   // -- QFunction
   CeedQFunctionCreateInterior(ceed, 1, problem_data.setup_geo, problem_data.setup_geo_loc, &qf_setup_geo);
@@ -235,8 +234,7 @@ PetscErrorCode SetupLibceedFineLevel(DM dm, DM dm_energy, DM dm_diagnostic, Ceed
   // ---------------------------------------------------------------------------
   // Local residual evaluator
   // ---------------------------------------------------------------------------
-  // Create the QFunction and Operator that computes the residual of the
-  //   non-linear PDE.
+  // Create the QFunction and Operator that computes the residual of the non-linear PDE.
   // ---------------------------------------------------------------------------
   // -- QFunction
   CeedQFunctionCreateInterior(ceed, 1, problem_data.residual, problem_data.residual_loc, &qf_residual);
@@ -263,8 +261,7 @@ PetscErrorCode SetupLibceedFineLevel(DM dm, DM dm_energy, DM dm_diagnostic, Ceed
   // ---------------------------------------------------------------------------
   // Jacobian evaluator
   // ---------------------------------------------------------------------------
-  // Create the QFunction and Operator that computes the action of the
-  //   Jacobian for each linear solve.
+  // Create the QFunction and Operator that computes the action of the Jacobian for each linear solve.
   // ---------------------------------------------------------------------------
   // -- QFunction
   CeedQFunctionCreateInterior(ceed, 1, problem_data.jacobian, problem_data.jacobian_loc, &qf_jacobian);
@@ -342,8 +339,7 @@ PetscErrorCode SetupLibceedFineLevel(DM dm, DM dm_energy, DM dm_diagnostic, Ceed
   // ---------------------------------------------------------------------------
   // Forcing term, if needed
   // ---------------------------------------------------------------------------
-  // Create the QFunction and Operator that computes the forcing term (RHS)
-  //   for the non-linear PDE.
+  // Create the QFunction and Operator that computes the forcing term (RHS) for the non-linear PDE.
   // ---------------------------------------------------------------------------
   if (forcing_choice != FORCE_NONE) {
     CeedQFunction qf_setup_force;
@@ -379,8 +375,7 @@ PetscErrorCode SetupLibceedFineLevel(DM dm, DM dm_energy, DM dm_diagnostic, Ceed
   // ---------------------------------------------------------------------------
   // True solution, for MMS
   // ---------------------------------------------------------------------------
-  // Create the QFunction and Operator that computes the true solution at
-  //   the mesh nodes for validation with the manufactured solution.
+  // Create the QFunction and Operator that computes the true solution at the mesh nodes for validation with the manufactured solution.
   // ---------------------------------------------------------------------------
   if (problem_data.true_soln) {
     CeedScalar       *true_array;
@@ -529,8 +524,7 @@ PetscErrorCode SetupLibceedLevel(DM dm, Ceed ceed, AppCtx app_ctx, ProblemData p
   // ---------------------------------------------------------------------------
   // Coarse Grid, Prolongation, and Restriction Operators
   // ---------------------------------------------------------------------------
-  // Create the Operators that compute the prolongation and
-  //   restriction between the p-multigrid levels and the coarse grid eval.
+  // Create the Operators that compute the prolongation and restriction between the p-multigrid levels and the coarse grid eval.
   // ---------------------------------------------------------------------------
   CeedOperatorMultigridLevelCreate(data[level + 1]->op_jacobian, fine_mult, data[level]->elem_restr_u, data[level]->basis_u, &op_jacobian,
                                    &op_prolong, &op_restrict);

@@ -6,9 +6,7 @@
 // This file is part of CEED:  http://github.com/ceed
 
 /**
-  @brief Ceed QFunction for applying the geometric data for the 3D Poisson
-           on a vector system with three components
-           operator
+  @brief Ceed QFunction for applying the geometric data for the 3D Poisson on a vector system with three components operator
 **/
 
 #ifndef vectorpoisson3dapply_h

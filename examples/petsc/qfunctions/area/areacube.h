@@ -15,9 +15,8 @@
 #include <math.h>
 
 // -----------------------------------------------------------------------------
-// This QFunction sets up the geometric factor required for integration when
-//   reference coordinates have a different dimension than the one of
-//   physical coordinates
+// This QFunction sets up the geometric factor required for integration when reference coordinates have a different dimension than the one of physical
+// coordinates
 //
 // Reference (parent) 2D coordinates: X \in [-1, 1]^2
 //
@@ -38,11 +37,9 @@
 //
 // The quadrature data is stored in the array q_data.
 //
-// We require the determinant of the Jacobian to properly compute integrals of
-//   the form: int( u v )
+// We require the determinant of the Jacobian to properly compute integrals of the form: int( u v )
 //
 // Qdata: w * det(dx_i/dX_j)
-//
 // -----------------------------------------------------------------------------
 CEED_QFUNCTION(SetupMassGeoCube)(void *ctx, const CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
   // Inputs
@@ -90,12 +87,11 @@ CEED_QFUNCTION(SetupMassGeoCube)(void *ctx, const CeedInt Q, const CeedScalar *c
 // This QFunction applies the mass operator for a scalar field.
 //
 // Inputs:
-//   u     - Input vector at quadrature points
+//   u      - Input vector at quadrature points
 //   q_data - Geometric factors
 //
 // Output:
 //   v     - Output vector (test function) at quadrature points
-//
 // -----------------------------------------------------------------------------
 CEED_QFUNCTION(Mass)(void *ctx, const CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
   // Inputs
