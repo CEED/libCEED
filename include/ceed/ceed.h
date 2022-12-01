@@ -474,6 +474,8 @@ CEED_EXTERN int CeedOperatorSetField(CeedOperator op, const char *field_name, Ce
 CEED_EXTERN int CeedOperatorGetFields(CeedOperator op, CeedInt *num_input_fields, CeedOperatorField **input_fields, CeedInt *num_output_fields,
                                       CeedOperatorField **output_fields);
 CEED_EXTERN int CeedCompositeOperatorAddSub(CeedOperator composite_op, CeedOperator sub_op);
+CEED_EXTERN int CeedCompositeOperatorGetNumSub(CeedOperator op, CeedInt *num_suboperators);
+CEED_EXTERN int CeedCompositeOperatorGetSubList(CeedOperator op, CeedOperator **sub_operators);
 CEED_EXTERN int CeedOperatorCheckReady(CeedOperator op);
 CEED_EXTERN int CeedOperatorGetActiveVectorLengths(CeedOperator op, CeedSize *input_size, CeedSize *output_size);
 CEED_EXTERN int CeedOperatorSetQFunctionAssemblyReuse(CeedOperator op, bool reuse_assembly_data);
@@ -487,6 +489,7 @@ CEED_EXTERN int CeedOperatorLinearAssemblePointBlockDiagonal(CeedOperator op, Ce
 CEED_EXTERN int CeedOperatorLinearAssembleAddPointBlockDiagonal(CeedOperator op, CeedVector assembled, CeedRequest *request);
 CEED_EXTERN int CeedOperatorLinearAssembleSymbolic(CeedOperator op, CeedSize *num_entries, CeedInt **rows, CeedInt **cols);
 CEED_EXTERN int CeedOperatorLinearAssemble(CeedOperator op, CeedVector values);
+CEED_EXTERN int CeedCompositeOperatorGetMultiplicity(CeedOperator op, CeedInt num_skip_indices, CeedInt *skip_indices, CeedVector mult);
 CEED_EXTERN int CeedOperatorMultigridLevelCreate(CeedOperator op_fine, CeedVector p_mult_fine, CeedElemRestriction rstr_coarse,
                                                  CeedBasis basis_coarse, CeedOperator *op_coarse, CeedOperator *op_prolong,
                                                  CeedOperator *op_restrict);

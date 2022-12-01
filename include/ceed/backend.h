@@ -262,8 +262,6 @@ CEED_EXTERN int CeedOperatorGetNumArgs(CeedOperator op, CeedInt *num_args);
 CEED_EXTERN int CeedOperatorIsSetupDone(CeedOperator op, bool *is_setup_done);
 CEED_EXTERN int CeedOperatorGetQFunction(CeedOperator op, CeedQFunction *qf);
 CEED_EXTERN int CeedOperatorIsComposite(CeedOperator op, bool *is_composite);
-CEED_EXTERN int CeedOperatorGetNumSub(CeedOperator op, CeedInt *num_suboperators);
-CEED_EXTERN int CeedOperatorGetSubList(CeedOperator op, CeedOperator **sub_operators);
 CEED_EXTERN int CeedOperatorGetData(CeedOperator op, void *data);
 CEED_EXTERN int CeedOperatorSetData(CeedOperator op, void *data);
 CEED_EXTERN int CeedOperatorReference(CeedOperator op);
