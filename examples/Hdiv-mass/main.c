@@ -14,10 +14,7 @@
 // software, applications, hardware, advanced system engineering and early
 // testbed platforms, in support of the nation's exascale computing imperative.
 
-//                        libCEED + PETSc Example: Mixed-Poisson in H(div) space
-//
-// This example demonstrates a simple usage of libCEED with PETSc to solve
-//   elasticity problems.
+//                        libCEED + PETSc Example: Projection problem in H(div) space
 //
 // The code uses higher level communication protocols in DMPlex.
 //
@@ -27,7 +24,8 @@
 //          ./main -pc_type svd -problem mass2d -dm_plex_dim 2 -dm_plex_box_faces 4,4
 //          ./main -pc_type svd -problem mass3d -dm_plex_dim 3 -dm_plex_box_faces 4,4,4
 
-const char help[] = "Solve H(div)-mixed problem using PETSc and libCEED\n";
+#include <stdio.h>
+const char help[] = "Solve Projection problem in H(div) space using PETSc and libCEED\n";
 
 #include "main.h"
 
@@ -35,59 +33,34 @@ int main(int argc, char **argv) {
   // ---------------------------------------------------------------------------
   // Initialize PETSc
   // ---------------------------------------------------------------------------
-  PetscInt ierr;
-  ierr = PetscInitialize(&argc, &argv, NULL, help);
-  if (ierr) return ierr;
+  PetscCall(PetscInitialize(&argc, &argv, NULL, help));
+  MPI_Comm comm = PETSC_COMM_WORLD;
 
   // ---------------------------------------------------------------------------
   // Create structs
   // ---------------------------------------------------------------------------
   AppCtx app_ctx;
-  ierr = PetscCalloc1(1, &app_ctx);
-  CHKERRQ(ierr);
+  PetscCall(PetscCalloc1(1, &app_ctx));
 
-  ProblemData *problem_data = NULL;
-  ierr                      = PetscCalloc1(1, &problem_data);
-  CHKERRQ(ierr);
-
-  User user;
-  ierr = PetscCalloc1(1, &user);
-  CHKERRQ(ierr);
+  ProblemData problem_data = NULL;
+  PetscCall(PetscCalloc1(1, &problem_data));
 
   CeedData ceed_data;
-  ierr = PetscCalloc1(1, &ceed_data);
-  CHKERRQ(ierr);
+  PetscCall(PetscCalloc1(1, &ceed_data));
 
-  Physics phys_ctx;
-  ierr = PetscCalloc1(1, &phys_ctx);
-  CHKERRQ(ierr);
-
-  user->app_ctx = app_ctx;
-  user->phys    = phys_ctx;
+  OperatorApplyContext ctx_residual, ctx_error_u;
+  PetscCall(PetscCalloc1(1, &ctx_residual));
+  PetscCall(PetscCalloc1(1, &ctx_error_u));
+  // Context for residual
+  app_ctx->ctx_residual = ctx_residual;
+  // Context for computing error
+  app_ctx->ctx_error_u = ctx_error_u;
+  app_ctx->comm        = comm;
 
   // ---------------------------------------------------------------------------
   // Process command line options
   // ---------------------------------------------------------------------------
-  // -- Register problems to be available on the command line
-  ierr = RegisterProblems_Hdiv(app_ctx);
-  CHKERRQ(ierr);
-
-  // -- Process general command line options
-  MPI_Comm comm = PETSC_COMM_WORLD;
-  ierr          = ProcessCommandLineOptions(comm, app_ctx);
-  CHKERRQ(ierr);
-
-  // ---------------------------------------------------------------------------
-  // Choose the problem from the list of registered problems
-  // ---------------------------------------------------------------------------
-  {
-    PetscErrorCode (*p)(ProblemData *, void *);
-    ierr = PetscFunctionListFind(app_ctx->problems, app_ctx->problem_name, &p);
-    CHKERRQ(ierr);
-    if (!p) SETERRQ(PETSC_COMM_SELF, 1, "Problem '%s' not found", app_ctx->problem_name);
-    ierr = (*p)(problem_data, &user);
-    CHKERRQ(ierr);
-  }
+  PetscCall(ProcessCommandLineOptions(app_ctx));
 
   // ---------------------------------------------------------------------------
   // Initialize libCEED
@@ -95,202 +68,104 @@ int main(int argc, char **argv) {
   // -- Initialize backend
   Ceed ceed;
   CeedInit("/cpu/self/ref/serial", &ceed);
-  CeedMemType mem_type_backend;
-  CeedGetPreferredMemType(ceed, &mem_type_backend);
-  // ---------------------------------------------------------------------------
-  // Set-up DM
-  // ---------------------------------------------------------------------------
-  // PETSc objects
-  DM      dm;
-  VecType vec_type;
-  ierr = CreateDistributedDM(comm, problem_data, &dm);
-  CHKERRQ(ierr);
-  ierr = DMGetVecType(dm, &vec_type);
-  CHKERRQ(ierr);
-  if (!vec_type) {  // Not yet set by user -dm_vec_type
-    switch (mem_type_backend) {
-      case CEED_MEM_HOST:
-        vec_type = VECSTANDARD;
-        break;
-      case CEED_MEM_DEVICE: {
-        const char *resolved;
-        CeedGetResource(ceed, &resolved);
-        if (strstr(resolved, "/gpu/cuda")) vec_type = VECCUDA;
-        else if (strstr(resolved, "/gpu/hip/occa")) vec_type = VECSTANDARD;  // https://github.com/CEED/libCEED/issues/678
-        else if (strstr(resolved, "/gpu/hip")) vec_type = VECHIP;
-        else vec_type = VECSTANDARD;
-      }
-    }
-    ierr = DMSetVecType(dm, vec_type);
-    CHKERRQ(ierr);
-  }
-  // ---------------------------------------------------------------------------
-  // Create global, local solution, local rhs vector
-  // ---------------------------------------------------------------------------
-  Vec      U_g, U_loc;
-  PetscInt U_l_size, U_g_size, U_loc_size;
-  // Create global and local solution vectors
-  ierr = DMCreateGlobalVector(dm, &U_g);
-  CHKERRQ(ierr);
-  ierr = VecGetSize(U_g, &U_g_size);
-  CHKERRQ(ierr);
-  // Local size for matShell
-  ierr = VecGetLocalSize(U_g, &U_l_size);
-  CHKERRQ(ierr);
-  // Create local unknown vector U_loc
-  ierr = DMCreateLocalVector(dm, &U_loc);
-  CHKERRQ(ierr);
-  // Local size for libCEED
-  ierr = VecGetSize(U_loc, &U_loc_size);
-  CHKERRQ(ierr);
+  // CeedInit(app_ctx->ceed_resource, &ceed);
 
-  // Get RHS vector
+  // ---------------------------------------------------------------------------
+  // Choose the problem from the list of registered problems
+  // ---------------------------------------------------------------------------
+  PetscCall(RegisterProblems_Hdiv(app_ctx));
+  {
+    PetscErrorCode (*p)(ProblemData, void *);
+    PetscCall(PetscFunctionListFind(app_ctx->problems, app_ctx->problem_name, &p));
+    if (!p) SETERRQ(PETSC_COMM_SELF, 1, "Problem '%s' not found", app_ctx->problem_name);
+    PetscCall((*p)(problem_data, &app_ctx));
+  }
+
+  // ---------------------------------------------------------------------------
+  // Create DM and Setup FE space
+  // ---------------------------------------------------------------------------
+  DM dm;
+  PetscCall(CreateDM(comm, ceed, &dm));
+  PetscCall(SetupFEHdiv(app_ctx, problem_data, dm));
+
+  // ---------------------------------------------------------------------------
+  //  Create zero rhs local vector
+  // ---------------------------------------------------------------------------
+  CeedVector   rhs_ceed;
   Vec          rhs_loc;
   PetscScalar *r;
-  CeedVector   rhs_ceed, target;
   PetscMemType mem_type;
-  ierr = VecDuplicate(U_loc, &rhs_loc);
-  CHKERRQ(ierr);
-  ierr = VecZeroEntries(rhs_loc);
-  CHKERRQ(ierr);
-  ierr = VecGetArrayAndMemType(rhs_loc, &r, &mem_type);
-  CHKERRQ(ierr);
-  CeedVectorCreate(ceed, U_l_size, &rhs_ceed);
+  PetscInt     rhs_l_size;
+  // Create global and local solution vectors
+  PetscCall(DMCreateLocalVector(dm, &rhs_loc));
+  PetscCall(VecGetSize(rhs_loc, &rhs_l_size));
+  PetscCall(VecZeroEntries(rhs_loc));
+  PetscCall(VecGetArrayAndMemType(rhs_loc, &r, &mem_type));
+  CeedVectorCreate(ceed, rhs_l_size, &rhs_ceed);
   CeedVectorSetArray(rhs_ceed, MemTypeP2C(mem_type), CEED_USE_POINTER, r);
 
   // ---------------------------------------------------------------------------
-  // Setup libCEED
+  // Setup libCEED qfunctions and operators
   // ---------------------------------------------------------------------------
-  // -- Set up libCEED objects
-  ierr = SetupLibceed(dm, ceed, app_ctx, problem_data, U_g_size, U_loc_size, ceed_data, rhs_ceed, &target);
-  CHKERRQ(ierr);
+  PetscCall(SetupLibceed(dm, ceed, app_ctx, problem_data, ceed_data, rhs_ceed));
 
   // ---------------------------------------------------------------------------
-  // Gather RHS
+  // Setup rhs global vector entries with the computed rhs_ceed
   // ---------------------------------------------------------------------------
   Vec rhs;
+  PetscCall(DMCreateGlobalVector(dm, &rhs));
   CeedVectorTakeArray(rhs_ceed, MemTypeP2C(mem_type), NULL);
-  ierr = VecRestoreArrayAndMemType(rhs_loc, &r);
-  CHKERRQ(ierr);
-  ierr = VecDuplicate(U_g, &rhs);
-  CHKERRQ(ierr);
-  ierr = VecZeroEntries(rhs);
-  CHKERRQ(ierr);
-  ierr = DMLocalToGlobal(dm, rhs_loc, ADD_VALUES, rhs);
-  CHKERRQ(ierr);
-  // VecView(rhs, PETSC_VIEWER_STDOUT_WORLD);
+  PetscCall(VecRestoreArrayAndMemType(rhs_loc, &r));
+  PetscCall(VecZeroEntries(rhs));
+  PetscCall(DMLocalToGlobal(dm, rhs_loc, ADD_VALUES, rhs));
+  CeedVectorDestroy(&rhs_ceed);
 
   // ---------------------------------------------------------------------------
-  // Setup Mat, KSP
+  // Solve A*X=rhs; setup-solver.c
   // ---------------------------------------------------------------------------
-  user->comm  = comm;
-  user->dm    = dm;
-  user->X_loc = U_loc;
-  ierr        = VecDuplicate(U_loc, &user->Y_loc);
-  CHKERRQ(ierr);
-  user->x_ceed   = ceed_data->x_ceed;
-  user->y_ceed   = ceed_data->y_ceed;
-  user->op_apply = ceed_data->op_residual;
-  user->op_error = ceed_data->op_error;
-  user->ceed     = ceed;
-  // Operator
-  Mat mat;
-  ierr = MatCreateShell(comm, U_l_size, U_l_size, U_g_size, U_g_size, user, &mat);
-  CHKERRQ(ierr);
-  ierr = MatShellSetOperation(mat, MATOP_MULT, (void (*)(void))MatMult_Ceed);
-  CHKERRQ(ierr);
-  ierr = MatShellSetVecType(mat, vec_type);
-  CHKERRQ(ierr);
-
+  Vec X;
   KSP ksp;
-  ierr = KSPCreate(comm, &ksp);
-  CHKERRQ(ierr);
-  ierr = KSPSetOperators(ksp, mat, mat);
-  CHKERRQ(ierr);
-  ierr = KSPSetFromOptions(ksp);
-  CHKERRQ(ierr);
-  ierr = KSPSetUp(ksp);
-  CHKERRQ(ierr);
-  ierr = KSPSolve(ksp, rhs, U_g);
-  CHKERRQ(ierr);
-  // printf("U_g\n");
-  // VecView(U_g, PETSC_VIEWER_STDOUT_WORLD);
-  //  ---------------------------------------------------------------------------
-  //  Compute pointwise L2 maximum error
-  //  ---------------------------------------------------------------------------
-  CeedScalar l2_error;
-  ierr = ComputeError(user, U_g, target, &l2_error);
-  CHKERRQ(ierr);
+  PetscCall(SetupResidualOperatorCtx(app_ctx->comm, dm, ceed, ceed_data, app_ctx->ctx_residual));
+  // Create global and local solution vectors
+  PetscCall(DMCreateGlobalVector(dm, &X));
+  PetscCall(KSPCreate(app_ctx->comm, &ksp));
+  PetscCall(KSPSetDM(ksp, dm));
+  PetscCall(KSPSetDMActive(ksp, PETSC_FALSE));
+  PetscCall(PDESolver(ceed_data, app_ctx, ksp, rhs, &X));
 
   // ---------------------------------------------------------------------------
-  // Output results
+  // Compute L2 error of mms problem; setup-solver.c
   // ---------------------------------------------------------------------------
-  KSPType            ksp_type;
-  KSPConvergedReason reason;
-  PetscReal          rnorm;
-  PetscInt           its;
-  ierr = KSPGetType(ksp, &ksp_type);
-  CHKERRQ(ierr);
-  ierr = KSPGetConvergedReason(ksp, &reason);
-  CHKERRQ(ierr);
-  ierr = KSPGetIterationNumber(ksp, &its);
-  CHKERRQ(ierr);
-  ierr = KSPGetResidualNorm(ksp, &rnorm);
-  CHKERRQ(ierr);
-  ierr = PetscPrintf(comm,
-                     "  KSP:\n"
-                     "    KSP Type                            : %s\n"
-                     "    KSP Convergence                     : %s\n"
-                     "    Total KSP Iterations                : %" PetscInt_FMT
-                     "\n"
-                     "    Final rnorm                         : %e\n"
-                     "    L2 Error                            : %e\n",
-                     ksp_type, KSPConvergedReasons[reason], its, (double)rnorm, (double)l2_error);
-  CHKERRQ(ierr);
+  CeedScalar l2_error_u = 0.0;
+  PetscCall(SetupErrorOperatorCtx(app_ctx->comm, dm, ceed, ceed_data, app_ctx->ctx_error_u));
+  PetscCall(ComputeL2Error(X, &l2_error_u, app_ctx->ctx_error_u));
+
+  // ---------------------------------------------------------------------------
+  // Print solver iterations and final norms; post-processing
+  // ---------------------------------------------------------------------------
+  PetscCall(PrintOutput(dm, ceed, app_ctx, ksp, X, l2_error_u));
 
   // ---------------------------------------------------------------------------
   // Free objects
   // ---------------------------------------------------------------------------
 
   // Free PETSc objects
-  ierr = DMDestroy(&dm);
-  CHKERRQ(ierr);
-  ierr = VecDestroy(&U_g);
-  CHKERRQ(ierr);
-  ierr = VecDestroy(&U_loc);
-  CHKERRQ(ierr);
-  ierr = VecDestroy(&rhs);
-  CHKERRQ(ierr);
-  ierr = VecDestroy(&rhs_loc);
-  CHKERRQ(ierr);
-  ierr = VecDestroy(&user->Y_loc);
-  CHKERRQ(ierr);
-  ierr = MatDestroy(&mat);
-  CHKERRQ(ierr);
-  ierr = KSPDestroy(&ksp);
-  CHKERRQ(ierr);
-
+  PetscCall(DMDestroy(&dm));
+  PetscCall(VecDestroy(&X));
+  PetscCall(VecDestroy(&rhs));
+  PetscCall(VecDestroy(&rhs_loc));
+  PetscCall(KSPDestroy(&ksp));
+  PetscCall(CtxVecDestroy(problem_data, app_ctx));
   // -- Function list
-  ierr = PetscFunctionListDestroy(&app_ctx->problems);
-  CHKERRQ(ierr);
-
+  PetscCall(PetscFunctionListDestroy(&app_ctx->problems));
   // -- Structs
-  ierr = PetscFree(app_ctx);
-  CHKERRQ(ierr);
-  ierr = PetscFree(problem_data);
-  CHKERRQ(ierr);
-  ierr = PetscFree(user);
-  CHKERRQ(ierr);
-  ierr = PetscFree(phys_ctx->pq2d_ctx);
-  CHKERRQ(ierr);
-  ierr = PetscFree(phys_ctx);
-  CHKERRQ(ierr);
-
+  PetscCall(CeedDataDestroy(ceed_data));
+  PetscCall(PetscFree(app_ctx));
+  PetscCall(PetscFree(ctx_residual));
+  PetscCall(PetscFree(ctx_error_u));
+  PetscCall(PetscFree(problem_data));
   // Free libCEED objects
   CeedVectorDestroy(&rhs_ceed);
-  CeedVectorDestroy(&target);
-  ierr = CeedDataDestroy(ceed_data);
-  CHKERRQ(ierr);
   CeedDestroy(&ceed);
 
   return PetscFinalize();

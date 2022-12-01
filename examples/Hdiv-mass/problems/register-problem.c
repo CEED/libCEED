@@ -15,30 +15,19 @@
 // testbed platforms, in support of the nation's exascale computing imperative.
 
 /// @file
-/// Utility functions for setting up POISSON_QUAD2D
+/// Command line option processing for H(div) example using PETSc
 
 #include "../include/register-problem.h"
-#include "../include/setup-libceed.h"
-#include "../qfunctions/poisson-error2d.h"
-#include "../qfunctions/poisson-mass2d.h"
-#include "../qfunctions/poisson-rhs2d.h"
 
-// Hdiv_POISSON_MASS2D is registered in cl-option.c
-PetscErrorCode Hdiv_POISSON_MASS2D(ProblemData problem_data, void *ctx) {
+// Register problems to be available on the command line
+PetscErrorCode RegisterProblems_Hdiv(AppCtx app_ctx) {
+  app_ctx->problems = NULL;
+
   PetscFunctionBeginUser;
-
-  // ------------------------------------------------------
-  //               SET UP POISSON_QUAD2D
-  // ------------------------------------------------------
-  problem_data->dim             = 2;
-  problem_data->elem_node       = 4;
-  problem_data->quadrature_mode = CEED_GAUSS;
-  problem_data->setup_rhs       = SetupRhs2D;
-  problem_data->setup_rhs_loc   = SetupRhs2D_loc;
-  problem_data->residual        = SetupMass2D;
-  problem_data->residual_loc    = SetupMass2D_loc;
-  problem_data->setup_error     = SetupError2D;
-  problem_data->setup_error_loc = SetupError2D_loc;
+  // 1) poisson-quad2d (Hdiv_POISSON_MASS2D is created in poisson-mass2d.c)
+  PetscCall(PetscFunctionListAdd(&app_ctx->problems, "mass2d", Hdiv_POISSON_MASS2D));
+  // 2) poisson-hex3d
+  PetscCall(PetscFunctionListAdd(&app_ctx->problems, "mass3d", Hdiv_POISSON_MASS3D));
 
   PetscFunctionReturn(0);
 }

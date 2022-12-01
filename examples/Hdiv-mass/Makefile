@@ -69,7 +69,7 @@ print: $(PETSc.pc) $(ceed.pc)
 	@true
 
 clean:
-	$(RM) -r $(OBJDIR) main *.vtu
+	$(RM) -r $(OBJDIR) main *.vtu *.csv
 
 $(PETSc.pc):
 	$(if $(wildcard $@),,$(error \

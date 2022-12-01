@@ -16,13 +16,16 @@
 # software, applications, hardware, advanced system engineering and early
 # testbed platforms, in support of the nation's exascale computing imperative.
 
+# After ./conv_test.sh you can get the table of convergence order by
+# python conv_rate.py -f conv_test_result.csv
+
 import pandas as pd
 import argparse
 from pylab import *
 from matplotlib import use
 
 
-def plot():
+def convergence_rate():
     # Define argparse for the input variables
     parser = argparse.ArgumentParser(description='Get input arguments')
     parser.add_argument('-f',
@@ -40,23 +43,18 @@ def plot():
     data = data.sort_values('run')
 
     E_u = data['error_u']
-    #E_hdiv = data['error_hdiv']
     h = 1/data['mesh_res']
-    H2 =  amin(E_u)* (h/amin(h))**2  # H = C h^2
+    N = data['mesh_res']
+    conv_u = []
+    conv_u.append(0)
 
-    ax.loglog(h, E_u, 'o', color='black', label = 'Velocity')
-    #ax.loglog(h, E_hdiv, '*', color='red', label = 'Velocity in H(div)')
-    ax.loglog(h, H2, '--', color='black', label='O(h$^2$)')
+    for i in range(1,len(E_u)):
+        conv_u.append(log10(E_u[i]/E_u[i-1])/log10(h[i]/h[i-1]))
 
-    ax.legend(loc='upper left')
-    ax.set_xlabel('h')
-    ax.set_ylabel('L2 Error')
-    ax.set_title('Convergence by h Refinement')
-    #xlim(.06, .3)
-    fig.tight_layout()
-    plt.savefig('convrate_mass.png', bbox_inches='tight')
-    
+    result = {'Number of element/direction':N, 'convergence order of u':conv_u}
+    df = pd.DataFrame(result)
+    print(df)
 
 
 if __name__ == "__main__":
-    plot()
+    convergence_rate()

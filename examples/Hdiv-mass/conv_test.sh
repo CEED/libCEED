@@ -24,17 +24,17 @@ do
         d) dim=${OPTARG};;
     esac
 done
-echo "Running convergence test in ${dim}D for mass problem";
+echo "Running convergence test in ${dim}D for Projection problem in H(div) space";
 
 declare -A run_flags
-    run_flags[pc_type]=svd
+    #run_flags[pc_type]=svd
     if [[ $dim -eq 2 ]];
     then
         run_flags[problem]=mass2d
         run_flags[dm_plex_dim]=$dim
         run_flags[dm_plex_box_faces]=2,2
         run_flags[dm_plex_box_lower]=0,0
-        run_flags[dm_plex_box_upper]=1,0.1
+        run_flags[dm_plex_box_upper]=1,1
     else
         run_flags[problem]=mass3d
         run_flags[dm_plex_dim]=$dim
@@ -42,9 +42,9 @@ declare -A run_flags
     fi
 
 declare -A test_flags
-    test_flags[res_start]=2
-    test_flags[res_stride]=1
-    test_flags[res_end]=10
+    test_flags[res_start]=4
+    test_flags[res_stride]=2
+    test_flags[res_end]=12
 
 file_name=conv_test_result.csv
 
@@ -64,7 +64,7 @@ for ((res=${test_flags[res_start]}; res<=${test_flags[res_end]}; res+=${test_fla
             args="$args -$arg ${run_flags[$arg]}"
         fi
     done
-    ./main $args | grep "L2 Error" | awk -v i="$i" -v res="$res" '{ printf "%d,%d,%.5f\n", i, res, $4}' >> $file_name
+    ./main $args | grep "L2 error of u" | awk -v i="$i" -v res="$res" '{ printf "%d,%d,%e\n", i, res, $6}' >> $file_name
     i=$((i+1))
 done
 

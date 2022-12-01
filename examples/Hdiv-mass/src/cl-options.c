@@ -19,46 +19,31 @@
 
 #include "../include/cl-options.h"
 
-#include "../include/problems.h"
-
-// Register problems to be available on the command line
-PetscErrorCode RegisterProblems_Hdiv(AppCtx app_ctx) {
-  app_ctx->problems = NULL;
-  PetscErrorCode ierr;
-  PetscFunctionBeginUser;
-  // 1) poisson-quad2d (Hdiv_POISSON_MASS2D is created in poisson-mass2d.c)
-  ierr = PetscFunctionListAdd(&app_ctx->problems, "mass2d", Hdiv_POISSON_MASS2D);
-  CHKERRQ(ierr);
-  // 2) poisson-hex3d
-  ierr = PetscFunctionListAdd(&app_ctx->problems, "mass3d", Hdiv_POISSON_MASS3D);
-  CHKERRQ(ierr);
-
-  // 3) poisson-prism3d
-
-  // 4) richard
-
-  PetscFunctionReturn(0);
-}
-
 // Process general command line options
-PetscErrorCode ProcessCommandLineOptions(MPI_Comm comm, AppCtx app_ctx) {
-  PetscBool      problem_flag = PETSC_FALSE;
-  PetscErrorCode ierr;
+PetscErrorCode ProcessCommandLineOptions(AppCtx app_ctx) {
+  PetscBool problem_flag = PETSC_FALSE;
+  PetscBool ceed_flag    = PETSC_FALSE;
   PetscFunctionBeginUser;
 
-  PetscOptionsBegin(comm, NULL, "H(div) examples in PETSc with libCEED", NULL);
+  PetscOptionsBegin(app_ctx->comm, NULL, "H(div) examples in PETSc with libCEED", NULL);
 
-  ierr = PetscOptionsFList("-problem", "Problem to solve", NULL, app_ctx->problems, app_ctx->problem_name, app_ctx->problem_name,
-                           sizeof(app_ctx->problem_name), &problem_flag);
-  CHKERRQ(ierr);
+  PetscCall(PetscOptionsString("-ceed", "CEED resource specifier", NULL, app_ctx->ceed_resource, app_ctx->ceed_resource,
+                               sizeof(app_ctx->ceed_resource), &ceed_flag));
+
+  // Provide default ceed resource if not specified
+  if (!ceed_flag) {
+    const char *ceed_resource = "/cpu/self";
+    strncpy(app_ctx->ceed_resource, ceed_resource, 10);
+  }
+
+  PetscCall(PetscOptionsFList("-problem", "Problem to solve", NULL, app_ctx->problems, app_ctx->problem_name, app_ctx->problem_name,
+                              sizeof(app_ctx->problem_name), &problem_flag));
 
   app_ctx->degree = 1;
-  ierr            = PetscOptionsInt("-degree", "Polynomial degree of finite elements", NULL, app_ctx->degree, &app_ctx->degree, NULL);
-  CHKERRQ(ierr);
+  PetscCall(PetscOptionsInt("-degree", "Polynomial degree of finite elements", NULL, app_ctx->degree, &app_ctx->degree, NULL));
 
   app_ctx->q_extra = 0;
-  ierr             = PetscOptionsInt("-q_extra", "Number of extra quadrature points", NULL, app_ctx->q_extra, &app_ctx->q_extra, NULL);
-  CHKERRQ(ierr);
+  PetscCall(PetscOptionsInt("-q_extra", "Number of extra quadrature points", NULL, app_ctx->q_extra, &app_ctx->q_extra, NULL));
 
   // Provide default problem if not specified
   if (!problem_flag) {

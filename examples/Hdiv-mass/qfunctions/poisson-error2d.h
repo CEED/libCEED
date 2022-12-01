@@ -45,9 +45,10 @@ CEED_QFUNCTION(SetupError2D)(void *ctx, const CeedInt Q, const CeedScalar *const
     CeedScalar u1[2] = {u[0][i], u[1][i]}, uh[2];
     AlphaMatVecMult2x2(1 / det_J, J, u1, uh);
     // Error
-    error[i + 0 * Q] = (uh[0] - target[i + 0 * Q]) * (uh[0] - target[i + 0 * Q]) * w[i] * det_J;
-    error[i + 1 * Q] = (uh[1] - target[i + 1 * Q]) * (uh[1] - target[i + 1 * Q]) * w[i] * det_J;
+    CeedScalar err2_ux = (uh[0] - target[i + 0 * Q]) * (uh[0] - target[i + 0 * Q]);
+    CeedScalar err2_uy = (uh[1] - target[i + 1 * Q]) * (uh[1] - target[i + 1 * Q]);
 
+    error[i + 0 * Q] = (err2_ux + err2_uy) * w[i] * det_J;
   }  // End of Quadrature Point Loop
 
   return 0;

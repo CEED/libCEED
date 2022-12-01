@@ -15,23 +15,15 @@
 // testbed platforms, in support of the nation's exascale computing imperative.
 
 /// @file
-/// Utility functions for setting up POISSON_QUAD2D
 
-#include "../include/problems.h"
+#include "../include/register-problem.h"
 #include "../include/setup-libceed.h"
 #include "../qfunctions/poisson-error3d.h"
 #include "../qfunctions/poisson-mass3d.h"
 #include "../qfunctions/poisson-rhs3d.h"
 
-// Hdiv_POISSON_MASS2D is registered in cl-option.c
-PetscErrorCode Hdiv_POISSON_MASS3D(ProblemData *problem_data, void *ctx) {
-  User     user = *(User *)ctx;
-  MPI_Comm comm = PETSC_COMM_WORLD;
-  PetscInt ierr;
+PetscErrorCode Hdiv_POISSON_MASS3D(ProblemData problem_data, void *ctx) {
   PetscFunctionBeginUser;
-
-  ierr = PetscCalloc1(1, &user->phys->ph3d_ctx);
-  CHKERRQ(ierr);
 
   // ------------------------------------------------------
   //               SET UP POISSON_QUAD3D
@@ -45,13 +37,6 @@ PetscErrorCode Hdiv_POISSON_MASS3D(ProblemData *problem_data, void *ctx) {
   problem_data->residual_loc    = SetupMass3D_loc;
   problem_data->setup_error     = SetupError3D;
   problem_data->setup_error_loc = SetupError3D_loc;
-
-  // ------------------------------------------------------
-  //              Command line Options
-  // ------------------------------------------------------
-  PetscOptionsBegin(comm, NULL, "Options for Hdiv-mass problem", NULL);
-
-  PetscOptionsEnd();
 
   PetscFunctionReturn(0);
 }
