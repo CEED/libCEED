@@ -91,7 +91,7 @@ PetscErrorCode NS_NEWTONIAN_IG(ProblemData *problem, DM dm, void *ctx, SimpleBC 
   problem->setup_vol.qfunction_loc = Setup_loc;
   problem->setup_sur.qfunction     = SetupBoundary;
   problem->setup_sur.qfunction_loc = SetupBoundary_loc;
-  problem->non_zero_time           = PETSC_FALSE;
+  problem->has_true_soln           = PETSC_FALSE;
   problem->print_info              = PRINT_NEWTONIAN;
 
   // ------------------------------------------------------
@@ -149,6 +149,10 @@ PetscErrorCode NS_NEWTONIAN_IG(ProblemData *problem, DM dm, void *ctx, SimpleBC 
       problem->apply_inflow.qfunction_loc          = BoundaryIntegral_Conserv_loc;
       problem->apply_inflow_jacobian.qfunction     = BoundaryIntegral_Jacobian_Conserv;
       problem->apply_inflow_jacobian.qfunction_loc = BoundaryIntegral_Jacobian_Conserv_loc;
+      problem->error.qfunction                     = Newtonian_L2ErrorConservative;
+      problem->error.qfunction_loc                 = Newtonian_L2ErrorConservative_loc;
+      problem->convert_error.qfunction             = Newtonian_L2ErrorAsPrimitive;
+      problem->convert_error.qfunction_loc         = Newtonian_L2ErrorAsPrimitive_loc;
       break;
 
     case STATEVAR_PRIMITIVE:
@@ -162,6 +166,10 @@ PetscErrorCode NS_NEWTONIAN_IG(ProblemData *problem, DM dm, void *ctx, SimpleBC 
       problem->apply_inflow.qfunction_loc          = BoundaryIntegral_Prim_loc;
       problem->apply_inflow_jacobian.qfunction     = BoundaryIntegral_Jacobian_Prim;
       problem->apply_inflow_jacobian.qfunction_loc = BoundaryIntegral_Jacobian_Prim_loc;
+      problem->error.qfunction                     = Newtonian_L2ErrorPrimitive;
+      problem->error.qfunction_loc                 = Newtonian_L2ErrorPrimitive_loc;
+      problem->convert_error.qfunction             = Newtonian_L2ErrorAsConservative;
+      problem->convert_error.qfunction_loc         = Newtonian_L2ErrorAsConservative_loc;
       break;
   }
 
@@ -307,6 +315,8 @@ PetscErrorCode NS_NEWTONIAN_IG(ProblemData *problem, DM dm, void *ctx, SimpleBC 
   CeedQFunctionContextReferenceCopy(newtonian_ig_context, &problem->apply_vol_ijacobian.qfunction_context);
   CeedQFunctionContextReferenceCopy(newtonian_ig_context, &problem->apply_inflow.qfunction_context);
   CeedQFunctionContextReferenceCopy(newtonian_ig_context, &problem->apply_inflow_jacobian.qfunction_context);
+  CeedQFunctionContextReferenceCopy(newtonian_ig_context, &problem->error.qfunction_context);
+  CeedQFunctionContextReferenceCopy(newtonian_ig_context, &problem->convert_error.qfunction_context);
 
   if (unit_tests) {
     PetscCall(UnitTests_Newtonian(user, newtonian_ig_ctx));

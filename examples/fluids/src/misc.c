@@ -17,59 +17,45 @@
 #include "../qfunctions/mass.h"
 
 PetscErrorCode ICs_FixMultiplicity(DM dm, CeedData ceed_data, User user, Vec Q_loc, Vec Q, CeedScalar time) {
+  CeedVector   mult_vec;
+  PetscMemType m_mem_type;
+  Vec          multiplicity_loc, multiplicity;
   PetscFunctionBeginUser;
 
-  // ---------------------------------------------------------------------------
   // Update time for evaluation
-  // ---------------------------------------------------------------------------
-  if (user->phys->ics_time_label) CeedOperatorSetContextDouble(ceed_data->op_ics_ctx->op, user->phys->ics_time_label, &time);
+  if (user->phys->ics_time_label) PetscCall(UpdateContextLabel(user->comm, time, ceed_data->op_ics_ctx->op, user->phys->ics_time_label));
 
-  // ---------------------------------------------------------------------------
-  // ICs
-  // ---------------------------------------------------------------------------
-  // -- CEED Restriction
-  CeedVector q0_ceed;
-  CeedElemRestrictionCreateVector(ceed_data->elem_restr_q, &q0_ceed, NULL);
-
-  // -- Place PETSc vector in CEED vector
+  // Place PETSc vector in CEED vector
   PetscCall(ApplyCeedOperatorLocalToGlobal(NULL, Q, ceed_data->op_ics_ctx));
 
-  // ---------------------------------------------------------------------------
-  // Fix multiplicity for output of ICs
-  // ---------------------------------------------------------------------------
-  // -- CEED Restriction
-  CeedVector mult_vec;
+  // CEED Restriction
   CeedElemRestrictionCreateVector(ceed_data->elem_restr_q, &mult_vec, NULL);
 
-  // -- Place PETSc vector in CEED vector
-  PetscMemType m_mem_type;
-  Vec          multiplicity_loc;
+  // Place PETSc vector in CEED vector
   PetscCall(DMGetLocalVector(dm, &multiplicity_loc));
   PetscCall(VecP2C(multiplicity_loc, &m_mem_type, mult_vec));
 
-  // -- Get multiplicity
+  // Get multiplicity
   CeedElemRestrictionGetMultiplicity(ceed_data->elem_restr_q, mult_vec);
 
-  // -- Restore vectors
+  // Restore vectors
   PetscCall(VecC2P(mult_vec, m_mem_type, multiplicity_loc));
 
-  // -- Local-to-Global
-  Vec multiplicity;
+  // Local-to-Global
   PetscCall(DMGetGlobalVector(dm, &multiplicity));
   PetscCall(VecZeroEntries(multiplicity));
   PetscCall(DMLocalToGlobal(dm, multiplicity_loc, ADD_VALUES, multiplicity));
 
-  // -- Fix multiplicity
+  // Fix multiplicity
   PetscCall(VecPointwiseDivide(Q, Q, multiplicity));
   PetscCall(VecPointwiseDivide(Q_loc, Q_loc, multiplicity_loc));
 
-  // -- Restore vectors
+  // Restore vectors
   PetscCall(DMRestoreLocalVector(dm, &multiplicity_loc));
   PetscCall(DMRestoreGlobalVector(dm, &multiplicity));
 
   // Cleanup
   CeedVectorDestroy(&mult_vec);
-  CeedVectorDestroy(&q0_ceed);
 
   PetscFunctionReturn(PETSC_SUCCESS);
 }
@@ -77,7 +63,7 @@ PetscErrorCode ICs_FixMultiplicity(DM dm, CeedData ceed_data, User user, Vec Q_l
 PetscErrorCode DMPlexInsertBoundaryValues_NS(DM dm, PetscBool insert_essential, Vec Q_loc, PetscReal time, Vec face_geom_FVM, Vec cell_geom_FVM,
                                              Vec grad_FVM) {
   Vec Qbc, boundary_mask;
-  PetscFunctionBegin;
+  PetscFunctionBeginUser;
 
   // Mask (zero) Strong BC entries
   PetscCall(DMGetNamedLocalVector(dm, "boundary mask", &boundary_mask));
@@ -126,7 +112,7 @@ PetscErrorCode RegressionTests_NS(AppCtx app_ctx, Vec Q) {
   PetscViewer viewer;
   PetscReal   error, Qrefnorm;
   MPI_Comm    comm = PetscObjectComm((PetscObject)Q);
-  PetscFunctionBegin;
+  PetscFunctionBeginUser;
 
   // Read reference file
   PetscCall(VecDuplicate(Q, &Qref));
@@ -151,32 +137,108 @@ PetscErrorCode RegressionTests_NS(AppCtx app_ctx, Vec Q) {
   PetscFunctionReturn(PETSC_SUCCESS);
 }
 
-// Get error for problems with exact solutions
-PetscErrorCode GetError_NS(CeedData ceed_data, DM dm, User user, Vec Q, PetscScalar final_time) {
-  PetscInt  loc_nodes;
-  Vec       Q_exact, Q_exact_loc;
-  PetscReal rel_error, norm_error, norm_exact;
-  PetscFunctionBegin;
+PetscErrorCode ComputeL2Error(DM dm, User user, CeedData ceed_data, Vec Q, PetscReal l2_error[5], OperatorApplyContext op_error_ctx,
+                              CeedContextFieldLabel time_label, CeedScalar time) {
+  PetscReal    l2_error_sq[5];
+  CeedVector   e;
+  PetscMemType e_mem_type;
+  Vec          Q_loc, E_loc;
+  PetscFunctionBeginUser;
 
-  // Get exact solution at final time
-  PetscCall(DMCreateGlobalVector(dm, &Q_exact));
-  PetscCall(DMGetLocalVector(dm, &Q_exact_loc));
-  PetscCall(VecGetSize(Q_exact_loc, &loc_nodes));
-  PetscCall(ICs_FixMultiplicity(dm, ceed_data, user, Q_exact_loc, Q_exact, final_time));
+  if (time_label) PetscCall(UpdateContextLabel(user->comm, time, op_error_ctx->op, time_label));
+  CeedElemRestrictionCreateVector(ceed_data->elem_restr_q, &e, NULL);
 
-  // Get |exact solution - obtained solution|
-  PetscCall(VecNorm(Q_exact, NORM_1, &norm_exact));
-  PetscCall(VecAXPY(Q, -1.0, Q_exact));
-  PetscCall(VecNorm(Q, NORM_1, &norm_error));
+  // Get local vector
+  PetscCall(DMGetLocalVector(dm, &Q_loc));
+  PetscCall(DMGlobalToLocal(dm, Q, INSERT_VALUES, Q_loc));
+  PetscCall(UpdateBoundaryValues(user, Q_loc, time));
 
-  // Compute relative error
-  rel_error = norm_error / norm_exact;
+  PetscCall(VecDuplicate(Q_loc, &E_loc));
+  PetscCall(VecP2C(E_loc, &e_mem_type, e));
 
-  // Output relative error
-  PetscCall(PetscPrintf(PETSC_COMM_WORLD, "Relative Error: %g\n", (double)rel_error));
+  CeedOperatorApply(op_error_ctx->op, ceed_data->q_true, e, CEED_REQUEST_IMMEDIATE);
+  PetscCall(VecC2P(e, e_mem_type, E_loc));
+
+  PetscCall(VecStrideSumAll(E_loc, l2_error_sq));
+  PetscCallMPI(MPI_Allreduce(MPI_IN_PLACE, l2_error_sq, 5, MPIU_REAL, MPI_SUM, PETSC_COMM_WORLD));
+  for (int i = 0; i < 5; i++) l2_error[i] = sqrt(l2_error_sq[i]);
+
+  PetscCall(DMRestoreLocalVector(dm, &Q_loc));
+  PetscCall(VecDestroy(&E_loc));
+
+  PetscFunctionReturn(PETSC_SUCCESS);
+};
+
+PetscErrorCode ComputeRelativeError(PetscReal expected[5], PetscReal computed[5], PetscReal *error) {
+  PetscReal temp;
+  PetscFunctionBeginUser;
+
+  *error = 0.;
+  for (int i = 0; i < 5; i++) {
+    if (fabs(expected[i]) < 1E-10) temp = expected[i] - computed[i];
+    else temp = (expected[i] - computed[i]) / expected[i];
+    *error += temp;
+  }
+
+  PetscFunctionReturn(PETSC_SUCCESS);
+};
+
+// Get error for problems with true solutions
+PetscErrorCode GetError_NS(CeedData ceed_data, DM dm, User user, ProblemData *problem, Vec Q, PetscScalar final_time) {
+  PetscReal l2_error[5] = {0.}, l2_error_converted[5] = {0.};
+  PetscFunctionBeginUser;
+
+  // Compute the L2 error in the source state variables
+  if (user->phys->ics_time_label) PetscCall(UpdateContextLabel(user->comm, final_time, ceed_data->op_ics_ctx->op, user->phys->ics_time_label));
+  CeedOperatorApply(ceed_data->op_ics_ctx->op, ceed_data->x_coord, ceed_data->q_true, CEED_REQUEST_IMMEDIATE);
+  PetscCall(ComputeL2Error(dm, user, ceed_data, Q, l2_error, ceed_data->op_error_ctx, user->phys->ics_time_label, final_time));
+
+  if (problem->convert_error.qfunction) {  // Convert the L2 error to the target state variable
+    PetscCall(ComputeL2Error(dm, user, ceed_data, Q, l2_error_converted, ceed_data->op_convert_error_ctx, user->phys->ics_time_label, final_time));
+  }
+
+  // Report the error
+  if (user->app_ctx->test_type != TESTTYPE_POST_PROCESS) {  // Print the component-wise errors
+    const char *state_var_source = "Conservative";
+    PetscCall(PetscPrintf(PETSC_COMM_WORLD, "\nL2 Error:\n"));
+    if (user->phys->state_var == STATEVAR_PRIMITIVE) state_var_source = "Primitive";
+    for (int i = 0; i < 5; i++) {
+      PetscCall(PetscPrintf(PETSC_COMM_WORLD, "  %s variables-Component %d: %g\n", state_var_source, i, (double)l2_error[i]));
+    }
+    if (problem->convert_error.qfunction) {
+      const char *state_var_target = "Primitive";
+      if (user->phys->state_var == STATEVAR_PRIMITIVE) state_var_target = "Conservative";
+      for (int i = 0; i < 5; i++) {
+        PetscCall(PetscPrintf(PETSC_COMM_WORLD, "  %s variables-Component %d: %g\n", state_var_target, i, (double)l2_error_converted[i]));
+      }
+    }
+  } else {  // Test
+    PetscReal expected_l2_error[5], expected_l2_error_converted[5], error = 0;
+    PetscInt  n = 5;
+
+    PetscOptionsBegin(user->comm, NULL, "Regression test for problems with exact solutions", NULL);
+    PetscCall(PetscOptionsRealArray("-expected_l2_error", "Expected L2 error", NULL, expected_l2_error, &n, NULL));
+    PetscCall(PetscOptionsRealArray("-expected_l2_error_converted", "Expected L2 error in target state variable", NULL, expected_l2_error_converted,
+                                    &n, NULL));
+    PetscOptionsEnd();
+
+    PetscCall(ComputeRelativeError(expected_l2_error, l2_error, &error));
+    if (error > user->app_ctx->test_tol) PetscCall(PetscPrintf(PETSC_COMM_WORLD, "Test failed with error norm %g\n", (double)error));
+
+    if (problem->convert_error.qfunction) {
+      error = 0.;
+      PetscCall(ComputeRelativeError(expected_l2_error_converted, l2_error_converted, &error));
+      if (error > user->app_ctx->test_tol) PetscCall(PetscPrintf(PETSC_COMM_WORLD, "Test failed with error norm %g\n", (double)error));
+    }
+
+    // Cleanup
+    CeedQFunctionDestroy(&ceed_data->qf_convert_error);
+    PetscCall(OperatorApplyContextDestroy(ceed_data->op_convert_error_ctx));
+  }
+
   // Cleanup
-  PetscCall(DMRestoreLocalVector(dm, &Q_exact_loc));
-  PetscCall(VecDestroy(&Q_exact));
+  CeedVectorDestroy(&ceed_data->q_true);
+  PetscCall(OperatorApplyContextDestroy(ceed_data->op_error_ctx));
 
   PetscFunctionReturn(PETSC_SUCCESS);
 }
@@ -185,11 +247,11 @@ PetscErrorCode GetError_NS(CeedData ceed_data, DM dm, User user, Vec Q, PetscSca
 PetscErrorCode PostProcess_NS(TS ts, CeedData ceed_data, DM dm, ProblemData *problem, User user, Vec Q, PetscScalar final_time) {
   PetscInt          steps;
   TSConvergedReason reason;
-  PetscFunctionBegin;
+  PetscFunctionBeginUser;
 
   // Print relative error
-  if (problem->non_zero_time && user->app_ctx->test_type == TESTTYPE_NONE) {
-    PetscCall(GetError_NS(ceed_data, dm, user, Q, final_time));
+  if (problem->has_true_soln && (user->app_ctx->test_type == TESTTYPE_NONE || user->app_ctx->test_type == TESTTYPE_POST_PROCESS)) {
+    PetscCall(GetError_NS(ceed_data, dm, user, problem, Q, final_time));
   }
 
   // Print final time and number of steps
@@ -218,7 +280,7 @@ const PetscInt32 FLUIDS_FILE_TOKEN_64 = 0xceedf64;
 PetscErrorCode SetupICsFromBinary(MPI_Comm comm, AppCtx app_ctx, Vec Q) {
   PetscViewer viewer;
 
-  PetscFunctionBegin;
+  PetscFunctionBeginUser;
 
   PetscCall(PetscViewerBinaryOpen(comm, app_ctx->cont_file, FILE_MODE_READ, &viewer));
   PetscCall(LoadFluidsBinaryVec(comm, viewer, Q, &app_ctx->cont_time, &app_ctx->cont_steps));
@@ -230,7 +292,7 @@ PetscErrorCode SetupICsFromBinary(MPI_Comm comm, AppCtx app_ctx, Vec Q) {
 // Record boundary values from initial condition
 PetscErrorCode SetBCsFromICs_NS(DM dm, Vec Q, Vec Q_loc) {
   Vec Qbc, boundary_mask;
-  PetscFunctionBegin;
+  PetscFunctionBeginUser;
 
   PetscCall(DMGetNamedLocalVector(dm, "Qbc", &Qbc));
   PetscCall(VecCopy(Q_loc, Qbc));
