@@ -153,13 +153,13 @@ struct AppCtx_private {
 
 // libCEED data struct
 struct CeedData_private {
-  CeedVector           x_coord, q_data;
+  CeedVector           x_coord, q_data, q_true;
   CeedBasis            basis_x, basis_xc, basis_q, basis_x_sur, basis_q_sur, basis_xc_sur;
   CeedElemRestriction  elem_restr_x, elem_restr_q, elem_restr_qd_i;
   CeedOperator         op_setup_vol;
-  OperatorApplyContext op_ics_ctx;
+  OperatorApplyContext op_ics_ctx, op_error_ctx, op_convert_error_ctx;
   CeedQFunction        qf_setup_vol, qf_ics, qf_rhs_vol, qf_ifunction_vol, qf_setup_sur, qf_apply_inflow, qf_apply_inflow_jacobian, qf_apply_outflow,
-      qf_apply_outflow_jacobian, qf_apply_freestream, qf_apply_freestream_jacobian;
+      qf_apply_outflow_jacobian, qf_apply_freestream, qf_apply_freestream_jacobian, qf_error, qf_convert_error;
 };
 
 typedef struct {
@@ -276,7 +276,7 @@ struct ProblemData_private {
   CeedInt              dim, q_data_size_vol, q_data_size_sur, jac_data_size_sur;
   CeedScalar           dm_scale;
   ProblemQFunctionSpec setup_vol, setup_sur, ics, apply_vol_rhs, apply_vol_ifunction, apply_vol_ijacobian, apply_inflow, apply_outflow,
-      apply_freestream, apply_inflow_jacobian, apply_outflow_jacobian, apply_freestream_jacobian;
+      apply_freestream, apply_inflow_jacobian, apply_outflow_jacobian, apply_freestream_jacobian, error, convert_error;
   bool      non_zero_time;
   PetscBool bc_from_ics, use_strong_bc_ceed;
   PetscErrorCode (*print_info)(ProblemData *, AppCtx);
@@ -387,7 +387,8 @@ PetscErrorCode DMPlexInsertBoundaryValues_NS(DM dm, PetscBool insert_essential, 
 PetscErrorCode RegressionTests_NS(AppCtx app_ctx, Vec Q);
 
 // Get error for problems with exact solutions
-PetscErrorCode GetError_NS(CeedData ceed_data, DM dm, User user, Vec Q, PetscScalar final_time);
+PetscErrorCode ComputeL2Error(Vec Q_loc, PetscReal l2_error[5], OperatorApplyContext op_error_ctx, CeedContextFieldLabel time_label, CeedScalar time);
+PetscErrorCode GetError_NS(CeedData ceed_data, DM dm, User user, ProblemData *problem, Vec Qsource_soln, PetscScalar final_time);
 
 // Post-processing
 PetscErrorCode PostProcess_NS(TS ts, CeedData ceed_data, DM dm, ProblemData *problem, User user, Vec Q, PetscScalar final_time);

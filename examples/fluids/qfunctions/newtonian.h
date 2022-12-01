@@ -64,6 +64,94 @@ CEED_QFUNCTION(ICsNewtonianIG_Conserv)(void *ctx, CeedInt Q, const CeedScalar *c
 }
 
 // *****************************************************************************
+// This QFunction computes the L2 error.
+// *****************************************************************************
+CEED_QFUNCTION(Newtonian_L2Error)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
+  // Inputs
+  const CeedScalar(*q_data)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[0];
+  const CeedScalar(*q_true)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[1];
+  const CeedScalar(*q_soln)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[2];
+
+  // Outputs
+  CeedScalar(*q_error)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA])out[0];
+
+  // Quadrature Point Loop
+  CeedPragmaSIMD for (CeedInt i = 0; i < Q; i++) {
+    CeedScalar q_t[5] = {0}, q_s[5] = {0};
+    for (CeedInt j = 0; j < 5; j++) {
+      q_t[j] = q_true[j][i];
+      q_s[j] = q_soln[j][i];
+    }
+    for (CeedInt j = 0; j < 5; j++) q_error[j][i] = q_data[0][i] * (q_t[j] - q_s[j]) * (q_t[j] - q_s[j]);
+  }  // End of Quadrature Point Loop
+  return 0;
+}
+
+// *****************************************************************************
+// This QFunction computes the L2 error in primitive variables if
+//   the simulation is run in conservative variables.
+// *****************************************************************************
+CEED_QFUNCTION(Newtonian_ToPrimitive)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
+  // Inputs
+  const CeedScalar(*X)[CEED_Q_VLA]             = (const CeedScalar(*)[CEED_Q_VLA])in[0];
+  const CeedScalar(*q_data)[CEED_Q_VLA]        = (const CeedScalar(*)[CEED_Q_VLA])in[1];
+  const CeedScalar(*q_source_true)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[2];
+  const CeedScalar(*q_source_soln)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[3];
+
+  // Outputs
+  CeedScalar(*q_target_error)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA])out[0];
+
+  NewtonianIdealGasContext context = (NewtonianIdealGasContext)ctx;
+  // Quadrature Point Loop
+  CeedPragmaSIMD for (CeedInt i = 0; i < Q; i++) {
+    const CeedScalar x[3]     = {X[0][i], X[1][i], X[2][i]};
+    CeedScalar       q_c_t[5] = {0}, q_c_s[5] = {0}, q_p_t[5] = {0}, q_p_s[5] = {0};
+    for (CeedInt j = 0; j < 5; j++) {
+      q_c_t[j] = q_source_true[j][i];
+      q_c_s[j] = q_source_soln[j][i];
+    }
+    State s_t = StateFromU(context, q_c_t, x);
+    StateToY(context, s_t, q_p_t);
+    State s_s = StateFromU(context, q_c_s, x);
+    StateToY(context, s_s, q_p_s);
+    for (CeedInt j = 0; j < 5; j++) q_target_error[j][i] = q_data[0][i] * (q_p_t[j] - q_p_s[j]) * (q_p_t[j] - q_p_s[j]);
+  }  // End of Quadrature Point Loop
+  return 0;
+}
+
+// *****************************************************************************
+// This QFunction computes the L2 error in conservative variables if
+//   the simulation is run in primitive variables.
+// *****************************************************************************
+CEED_QFUNCTION(Newtonian_ToConservative)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
+  // Inputs
+  const CeedScalar(*X)[CEED_Q_VLA]             = (const CeedScalar(*)[CEED_Q_VLA])in[0];
+  const CeedScalar(*q_data)[CEED_Q_VLA]        = (const CeedScalar(*)[CEED_Q_VLA])in[1];
+  const CeedScalar(*q_source_true)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[2];
+  const CeedScalar(*q_source_soln)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[3];
+
+  // Outputs
+  CeedScalar(*q_target_error)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA])out[0];
+
+  NewtonianIdealGasContext context = (NewtonianIdealGasContext)ctx;
+  // Quadrature Point Loop
+  CeedPragmaSIMD for (CeedInt i = 0; i < Q; i++) {
+    const CeedScalar x[3]     = {X[0][i], X[1][i], X[2][i]};
+    CeedScalar       q_p_t[5] = {0}, q_p_s[5] = {0}, q_c_t[5] = {0}, q_c_s[5] = {0};
+    for (CeedInt j = 0; j < 5; j++) {
+      q_p_t[j] = q_source_true[j][i];
+      q_p_s[j] = q_source_soln[j][i];
+    }
+    State s_t = StateFromY(context, q_p_t, x);
+    StateToU(context, s_t, q_c_t);
+    State s_s = StateFromY(context, q_p_s, x);
+    StateToU(context, s_s, q_c_s);
+    for (CeedInt j = 0; j < 5; j++) q_target_error[j][i] = q_data[0][i] * (q_c_t[j] - q_c_s[j]) * (q_c_t[j] - q_c_s[j]);
+  }  // End of Quadrature Point Loop
+  return 0;
+}
+
+// *****************************************************************************
 // This QFunction implements the following formulation of Navier-Stokes with explicit time stepping method
 //
 // This is 3D compressible Navier-Stokes in conservation form with state variables of density, momentum density, and total energy density.
