@@ -10,7 +10,6 @@
 
 #include "../navierstokes.h"
 #include "../qfunctions/vortexshedding.h"
-#include "../qfunctions/freestream_bc.h"
 #include "../qfunctions/freestream_bc_type.h"
 #include "ceed/ceed-f64.h"
 #include "stg_shur14.h"
@@ -53,7 +52,6 @@ PetscErrorCode NS_VORTEXSHEDDING(ProblemData *problem, DM dm, void *ctx, SimpleB
   CeedScalar L;
   CeedScalar H;
   CeedScalar D;
-  CeedScalar radius;
 
   PetscOptionsBegin(comm, NULL, "Options for VORTEX SHEDDING problem", NULL);
   PetscInt narray=3;
@@ -72,8 +70,6 @@ PetscErrorCode NS_VORTEXSHEDDING(ProblemData *problem, DM dm, void *ctx, SimpleB
                             NULL, H, &H, NULL); CHKERRQ(ierr);
   ierr = PetscOptionsScalar("-D", "Cylinder diameter",
                             NULL, D, &D, NULL); CHKERRQ(ierr);
-  ierr = PetscOptionsScalar("-radius", "Cylinder radius",
-                            NULL, radius, &radius, NULL); CHKERRQ(ierr);
   PetscOptionsEnd();
 
   PetscScalar meter  = user->units->meter;
@@ -89,7 +85,6 @@ PetscErrorCode NS_VORTEXSHEDDING(ProblemData *problem, DM dm, void *ctx, SimpleB
   L      *= meter;
   H      *= meter;
   D      *= meter;
-  radius *= meter;
 
   CeedQFunctionContextGetData(problem->apply_vol_rhs.qfunction_context,
                               CEED_MEM_HOST, &newtonian_ig_ctx);
@@ -119,7 +114,6 @@ PetscErrorCode NS_VORTEXSHEDDING(ProblemData *problem, DM dm, void *ctx, SimpleB
   vortexshedding_ctx->H        = H;
   vortexshedding_ctx->D        = D;
   vortexshedding_ctx->center   = center;
-  vortexshedding_ctx->radius   = radius;
   vortexshedding_ctx->T_infty  = T_infty;
   vortexshedding_ctx->P0       = P0;
   vortexshedding_ctx->S_infty  = S_infty;

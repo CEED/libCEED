@@ -14,18 +14,15 @@ ts:
   alpha_radius: 0.5
 
 freestream:
-  U_in: 1,0,0
-  T_in: 24.92
-  P0: 7143
+  velocity: 1,0,0
+  temperature: 24.92
+  pressure: 7143
 
 # viscosity
 mu: 0.01
 
 # Cylinder diameter
 D:  1.41421356
-
-# Cylinder radius
-radius: D / 2
 
 ## DM Settings:
 degree: 1

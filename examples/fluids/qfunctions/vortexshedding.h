@@ -50,25 +50,24 @@ CEED_QFUNCTION_HELPER int ICsVortexshedding(void *ctx, CeedInt Q,
   // Context
   const VortexsheddingContext context = (VortexsheddingContext)ctx;
   const NewtonianIdealGasContext newtonian_ctx = &context->newtonian_ctx;
-  //NewtonianIdealGasContext gas     = &context->newtonian_ctx;
-  const CeedScalar T_infty     = context->T_infty;
-  const CeedScalar P0          = context->P0;
-  const CeedScalar U_infty     = context->U_infty;
-  const CeedScalar H           = context->H;
-  const CeedScalar L           = context->L;
+  // const CeedScalar T_infty     = context->T_infty;
+  // const CeedScalar P0          = context->P0;
+  // const CeedScalar U_infty     = context->U_infty;
+  // const CeedScalar H           = context->H;
+  // const CeedScalar L           = context->L;
   const CeedScalar D           = context->D;
-  const CeedScalar T           = context->T;
+  // const CeedScalar T           = context->T;
   const CeedScalar center      = context->center;
   const CeedScalar radius      = context->radius;
   const State      S_infty     = context->S_infty;
-  const CeedScalar cv          = context->newtonian_ctx.cv;
-  const CeedScalar mu          = context->newtonian_ctx.mu;
+  // const CeedScalar cv          = context->newtonian_ctx.cv;
+  // const CeedScalar mu          = context->newtonian_ctx.mu;
   const CeedScalar gamma       = HeatCapacityRatio(&context->newtonian_ctx);
-  const CeedScalar e_internal  = cv * T_infty;
-  const CeedScalar rho         = P0 / ((gamma - 1) * e_internal);
-  const CeedScalar Re          = (rho * U_infty * D) / mu;
-  const CeedScalar Ma          = U_infty / SoundSpeed(newtonian_ctx, S_infty.Y.temperature);
-  const CeedScalar St          = D / (U_infty * T);
+  // const CeedScalar e_internal  = cv * T_infty;
+  // const CeedScalar rho         = P0 / ((gamma - 1) * e_internal);
+  //const CeedScalar Re          = (rho * U_infty * D) / mu;
+  //const CeedScalar Ma          = U_infty / SoundSpeed(newtonian_ctx, S_infty.Y.temperature);
+  // const CeedScalar St          = D / (U_infty * T);
   const CeedScalar e_kinetic = 0.5 * S_infty.U.density * Dot3(S_infty.Y.velocity, S_infty.Y.velocity);
 
   // Quadrature point Loop
