@@ -131,34 +131,129 @@ PetscErrorCode RegressionTests_NS(AppCtx app_ctx, Vec Q) {
 
   PetscFunctionReturn(0);
 }
+PetscErrorCode GetConservativeFromPrimitive_NS(Vec Q_prim, Vec Q_cons) {
+  PetscInt Q_size;
+  PetscInt num_comp = 5;
+  PetscScalar cv = 2.5;
+  PetscErrorCode ierr;
+  const PetscScalar *Y;
+  PetscScalar *U;
 
-// Get error for problems with exact solutions
+  PetscFunctionBegin;
+  ierr = VecGetSize(Q_prim, &Q_size); CHKERRQ(ierr);
+  PetscCall(VecGetArrayRead(Q_prim, &Y));
+  PetscCall(VecGetArrayWrite(Q_cons, &U));
+  for (PetscInt i=0; i<Q_size; i+=num_comp) {
+    // Primitive variables
+    PetscScalar P = Y[i+0], u[3] = {Y[i+1], Y[i+2], Y[i+3]}, T = Y[i+4];
+    PetscScalar rho = P / T;
+    U[i+0] = rho;
+    for (int j=0; j<3; j++) U[i+1+j] = rho * u[j];
+    U[i+4] = rho * (cv * T + .5*(u[0]*u[0] + u[1]*u[1] + u[2]*u[2]));
+  }
+  PetscCall(VecRestoreArrayRead(Q_prim, &Y));
+  PetscCall(VecRestoreArrayWrite(Q_cons, &U));
+  PetscFunctionReturn(0);
+}
+
+PetscErrorCode GetPrimitiveFromConservative_NS(Vec Q_cons, Vec Q_prim) {
+  PetscInt Q_size;
+  PetscInt num_comp = 5;
+  PetscScalar cv = 2.5;
+  PetscErrorCode ierr;
+  const PetscScalar *U;
+  PetscScalar *Y;
+
+  PetscFunctionBegin;
+  ierr = VecGetSize(Q_cons, &Q_size); CHKERRQ(ierr);
+  PetscCall(VecGetArrayRead(Q_cons, &U));
+  PetscCall(VecGetArrayWrite(Q_prim, &Y));
+  for (PetscInt i=0; i<Q_size; i+=num_comp) {
+    // Conservative variables
+    PetscScalar rho = U[i+0], M[3] = {U[i+1], U[i+2], U[i+3]}, E = U[i+4];
+    // Primitive variables
+    for (int j=0; j<3; j++) Y[i+1+j] = M[j] / rho;
+    Y[i+4] = (E - 0.5*(M[0]*M[0] + M[1]*M[1] + M[2]*M[2])/rho) / (cv*rho);
+    Y[i+0] = (E - 0.5*(M[0]*M[0] + M[1]*M[1] + M[2]*M[2])/rho) / cv;
+  }
+  PetscCall(VecRestoreArrayRead(Q_cons, &U));
+  PetscCall(VecRestoreArrayWrite(Q_prim, &Y));
+  PetscFunctionReturn(0);
+}
+
 PetscErrorCode GetError_NS(CeedData ceed_data, DM dm, User user, Vec Q, PetscScalar final_time) {
   PetscInt  loc_nodes;
   Vec       Q_exact, Q_exact_loc;
+  Vec       Q_loc = Q;
   PetscReal rel_error, norm_error, norm_exact;
+  PetscErrorCode ierr;
   PetscFunctionBegin;
-
+  
   // Get exact solution at final time
   PetscCall(DMCreateGlobalVector(dm, &Q_exact));
   PetscCall(DMGetLocalVector(dm, &Q_exact_loc));
   PetscCall(VecGetSize(Q_exact_loc, &loc_nodes));
   PetscCall(ICs_FixMultiplicity(dm, ceed_data, user, Q_exact_loc, Q_exact, final_time));
 
-  // Get |exact solution - obtained solution|
-  PetscCall(VecNorm(Q_exact, NORM_1, &norm_exact));
-  PetscCall(VecAXPY(Q, -1.0, Q_exact));
-  PetscCall(VecNorm(Q, NORM_1, &norm_error));
+  if(user->phys->state_var == STATEVAR_PRIMITIVE) { //If primitive, get conservative
+    Vec Q_cons, Q_cons_exact;
+    PetscReal rel_error_cons, norm_error_cons, norm_exact_cons;
+    
+    ierr = VecDuplicate(Q_loc, &Q_cons); CHKERRQ(ierr);
+    ierr = GetConservativeFromPrimitive_NS(Q_loc, Q_cons); CHKERRQ(ierr);
 
-  // Compute relative error
-  rel_error = norm_error / norm_exact;
+    ierr = VecDuplicate(Q_exact, &Q_cons_exact); CHKERRQ(ierr);
+    ierr = GetConservativeFromPrimitive_NS(Q_exact, Q_cons_exact); CHKERRQ(ierr);
 
-  // Output relative error
-  PetscCall(PetscPrintf(PETSC_COMM_WORLD, "Relative Error: %g\n", (double)rel_error));
+    // Get |exact solution - obtained solution|
+    PetscCall(VecNorm(Q_exact, NORM_1, &norm_exact));
+    PetscCall(VecAXPY(Q_loc, -1.0, Q_exact));
+    PetscCall(VecNorm(Q_loc, NORM_1, &norm_error));
+
+    PetscCall(VecNorm(Q_cons_exact, NORM_1, &norm_exact_cons));
+    PetscCall(VecAXPY(Q_cons, -1.0, Q_cons_exact));
+    PetscCall(VecNorm(Q_cons, NORM_1, &norm_error_cons));
+
+    // Compute relative error
+    rel_error = norm_error / norm_exact;
+    rel_error_cons = norm_error_cons / norm_exact_cons;
+
+    // Output relative error
+    PetscCall(PetscPrintf(PETSC_COMM_WORLD, "Relative Error in primitive variables: %g\n", (double)rel_error));
+    PetscCall(PetscPrintf(PETSC_COMM_WORLD, "Relative Error in conservative variables:: %g\n", (double)rel_error_cons));
+    
+  } else {
+    Vec Q_prim, Q_prim_exact;
+    PetscReal rel_error_prim, norm_error_prim, norm_exact_prim;
+    
+    ierr = VecDuplicate(Q_loc, &Q_prim); CHKERRQ(ierr);
+    ierr = GetPrimitiveFromConservative_NS(Q_loc, Q_prim); CHKERRQ(ierr);
+
+    ierr = VecDuplicate(Q_exact, &Q_prim_exact); CHKERRQ(ierr);
+    ierr = GetPrimitiveFromConservative_NS(Q_exact, Q_prim_exact); CHKERRQ(ierr);
+
+    // Get |exact solution - obtained solution|
+    PetscCall(VecNorm(Q_exact, NORM_1, &norm_exact));
+    PetscCall(VecAXPY(Q_loc, -1.0, Q_exact));
+    PetscCall(VecNorm(Q_loc, NORM_1, &norm_error));
+
+    PetscCall(VecNorm(Q_prim_exact, NORM_1, &norm_exact_prim));
+    PetscCall(VecAXPY(Q_prim, -1.0, Q_prim_exact));
+    PetscCall(VecNorm(Q_prim, NORM_1, &norm_error_prim));
+
+    // Compute relative error
+    rel_error = norm_error / norm_exact;
+    rel_error_prim = norm_error_prim / norm_exact_prim;
+
+    // Output relative error
+    PetscCall(PetscPrintf(PETSC_COMM_WORLD, "Relative Error in primitive variables: %g\n", (double)rel_error_prim));
+    PetscCall(PetscPrintf(PETSC_COMM_WORLD, "Relative Error in conservative variables: %g\n", (double)rel_error));
+  }
+
   // Cleanup
   PetscCall(DMRestoreLocalVector(dm, &Q_exact_loc));
   PetscCall(VecDestroy(&Q_exact));
-
+  
   PetscFunctionReturn(0);
 }
 
