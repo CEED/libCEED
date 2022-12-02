@@ -140,8 +140,7 @@ PetscErrorCode GetConservativeFromPrimitive_NS(Vec Q_prim, Vec Q_cons) {
   PetscScalar       *U;
 
   PetscFunctionBegin;
-  ierr = VecGetSize(Q_prim, &Q_size);
-  CHKERRQ(ierr);
+  PetscCall(VecGetSize(Q_prim, &Q_size));
   PetscCall(VecGetArrayRead(Q_prim, &Y));
   PetscCall(VecGetArrayWrite(Q_cons, &U));
   for (PetscInt i = 0; i < Q_size; i += num_comp) {
@@ -166,8 +165,7 @@ PetscErrorCode GetPrimitiveFromConservative_NS(Vec Q_cons, Vec Q_prim) {
   PetscScalar       *Y;
 
   PetscFunctionBegin;
-  ierr = VecGetSize(Q_cons, &Q_size);
-  CHKERRQ(ierr);
+  PetscCall(VecGetSize(Q_cons, &Q_size));
   PetscCall(VecGetArrayRead(Q_cons, &U));
   PetscCall(VecGetArrayWrite(Q_prim, &Y));
   for (PetscInt i = 0; i < Q_size; i += num_comp) {
@@ -201,15 +199,10 @@ PetscErrorCode GetError_NS(CeedData ceed_data, DM dm, User user, Vec Q, PetscSca
     Vec       Q_cons, Q_cons_exact;
     PetscReal rel_error_cons, norm_error_cons, norm_exact_cons;
 
-    ierr = VecDuplicate(Q_loc, &Q_cons);
-    CHKERRQ(ierr);
-    ierr = GetConservativeFromPrimitive_NS(Q_loc, Q_cons);
-    CHKERRQ(ierr);
-
-    ierr = VecDuplicate(Q_exact, &Q_cons_exact);
-    CHKERRQ(ierr);
-    ierr = GetConservativeFromPrimitive_NS(Q_exact, Q_cons_exact);
-    CHKERRQ(ierr);
+    PetscCall(VecDuplicate(Q_loc, &Q_cons));
+    PetscCall(GetConservativeFromPrimitive_NS(Q_loc, Q_cons));
+    PetscCall(VecDuplicate(Q_exact, &Q_cons_exact));
+    PetscCall(GetConservativeFromPrimitive_NS(Q_exact, Q_cons_exact));
 
     // Get |exact solution - obtained solution|
     PetscCall(VecNorm(Q_exact, NORM_1, &norm_exact));
@@ -232,15 +225,10 @@ PetscErrorCode GetError_NS(CeedData ceed_data, DM dm, User user, Vec Q, PetscSca
     Vec       Q_prim, Q_prim_exact;
     PetscReal rel_error_prim, norm_error_prim, norm_exact_prim;
 
-    ierr = VecDuplicate(Q_loc, &Q_prim);
-    CHKERRQ(ierr);
-    ierr = GetPrimitiveFromConservative_NS(Q_loc, Q_prim);
-    CHKERRQ(ierr);
-
-    ierr = VecDuplicate(Q_exact, &Q_prim_exact);
-    CHKERRQ(ierr);
-    ierr = GetPrimitiveFromConservative_NS(Q_exact, Q_prim_exact);
-    CHKERRQ(ierr);
+    PetscCall(VecDuplicate(Q_loc, &Q_prim));
+    PetscCall(GetPrimitiveFromConservative_NS(Q_loc, Q_prim));
+    PetscCall(VecDuplicate(Q_exact, &Q_prim_exact));
+    PetscCall(GetPrimitiveFromConservative_NS(Q_exact, Q_prim_exact));
 
     // Get |exact solution - obtained solution|
     PetscCall(VecNorm(Q_exact, NORM_1, &norm_exact));
