@@ -135,7 +135,6 @@ PetscErrorCode GetConservativeFromPrimitive_NS(Vec Q_prim, Vec Q_cons) {
   PetscInt           Q_size;
   PetscInt           num_comp = 5;
   PetscScalar        cv       = 2.5;
-  PetscErrorCode     ierr;
   const PetscScalar *Y;
   PetscScalar       *U;
 
@@ -160,7 +159,6 @@ PetscErrorCode GetPrimitiveFromConservative_NS(Vec Q_cons, Vec Q_prim) {
   PetscInt           Q_size;
   PetscInt           num_comp = 5;
   PetscScalar        cv       = 2.5;
-  PetscErrorCode     ierr;
   const PetscScalar *U;
   PetscScalar       *Y;
 
@@ -181,12 +179,21 @@ PetscErrorCode GetPrimitiveFromConservative_NS(Vec Q_cons, Vec Q_prim) {
   PetscFunctionReturn(0);
 }
 
+PetscErrorCode GetErrorComponents_NS(Vec Q, const PetscInt ncomp, PetscReal *arr) {
+  PetscFunctionBegin;
+  PetscCall(VecStrideNormAll(Q, NORM_MAX, arr));
+  PetscCallMPI(MPI_Allreduce(MPI_IN_PLACE, arr, ncomp, MPIU_REAL, MPI_MAX, PETSC_COMM_WORLD));
+  PetscFunctionReturn(0);
+}
+
 PetscErrorCode GetError_NS(CeedData ceed_data, DM dm, User user, Vec Q, PetscScalar final_time) {
   PetscInt       loc_nodes;
+  const PetscInt ncomp = 5;
   Vec            Q_exact, Q_exact_loc;
   Vec            Q_loc = Q;
-  PetscReal      rel_error, norm_error, norm_exact;
-  PetscErrorCode ierr;
+  PetscReal      rel_error, norm_error, norm_exact,
+    rel_error_comp_prim[ncomp], norm_error_comp_prim[ncomp], norm_exact_comp_prim[ncomp],
+    rel_error_comp_cons[ncomp], norm_error_comp_cons[ncomp], norm_exact_comp_cons[ncomp];
   PetscFunctionBegin;
 
   // Get exact solution at final time
@@ -217,10 +224,28 @@ PetscErrorCode GetError_NS(CeedData ceed_data, DM dm, User user, Vec Q, PetscSca
     rel_error      = norm_error / norm_exact;
     rel_error_cons = norm_error_cons / norm_exact_cons;
 
-    // Output relative error
-    PetscCall(PetscPrintf(PETSC_COMM_WORLD, "Relative Error in primitive variables: %g\n", (double)rel_error));
-    PetscCall(PetscPrintf(PETSC_COMM_WORLD, "Relative Error in conservative variables:: %g\n", (double)rel_error_cons));
+    // Compute component errors
+    PetscCall(GetErrorComponents_NS(Q_exact, ncomp, norm_exact_comp_prim));
+    PetscCall(GetErrorComponents_NS(Q_cons_exact, ncomp, norm_exact_comp_cons));
+    PetscCall(GetErrorComponents_NS(Q_loc, ncomp, norm_error_comp_prim));
+    PetscCall(GetErrorComponents_NS(Q_cons, ncomp, norm_error_comp_cons));
+    for(int i=0; i<ncomp; ++i)
+      {
+	rel_error_comp_prim[i] = norm_error_comp_prim[i] / norm_exact_comp_prim[i];
+	rel_error_comp_cons[i] = norm_error_comp_cons[i] / norm_exact_comp_prim[i];
+      }
 
+    // Output relative errors (total and components)
+    PetscCall(PetscPrintf(PETSC_COMM_WORLD, "Total Relative Error in primitive variables: %g\n", (double)rel_error));
+    for(int i=0; i<ncomp; ++i)
+      {
+	PetscCall(PetscPrintf(PETSC_COMM_WORLD, "\tComponent %d: %g (%g, %g)\n", i, rel_error_comp_prim[i], norm_error_comp_prim[i], norm_exact_comp_prim[i]));
+      }
+    PetscCall(PetscPrintf(PETSC_COMM_WORLD, "\nTotal Relative Error in conservative variables: %g\n", (double)rel_error_cons));
+    for(int i=0; i<ncomp; ++i)
+      {
+	PetscCall(PetscPrintf(PETSC_COMM_WORLD, "\tComponent %d: %g (%g, %g)\n", i, rel_error_comp_cons[i], norm_error_comp_cons[i], norm_exact_comp_cons[i]));
+      }
   } else {
     Vec       Q_prim, Q_prim_exact;
     PetscReal rel_error_prim, norm_error_prim, norm_exact_prim;
@@ -243,9 +268,28 @@ PetscErrorCode GetError_NS(CeedData ceed_data, DM dm, User user, Vec Q, PetscSca
     rel_error      = norm_error / norm_exact;
     rel_error_prim = norm_error_prim / norm_exact_prim;
 
-    // Output relative error
-    PetscCall(PetscPrintf(PETSC_COMM_WORLD, "Relative Error in primitive variables: %g\n", (double)rel_error_prim));
-    PetscCall(PetscPrintf(PETSC_COMM_WORLD, "Relative Error in conservative variables: %g\n", (double)rel_error));
+    // Compute component errors
+    PetscCall(GetErrorComponents_NS(Q_exact, ncomp, norm_exact_comp_cons));
+    PetscCall(GetErrorComponents_NS(Q_prim_exact, ncomp, norm_exact_comp_prim));
+    PetscCall(GetErrorComponents_NS(Q_loc, ncomp, norm_error_comp_cons));
+    PetscCall(GetErrorComponents_NS(Q_prim, ncomp, norm_error_comp_prim));
+    for(int i=0; i<ncomp; ++i)
+      {
+	rel_error_comp_prim[i] = norm_error_comp_prim[i] / norm_exact_comp_prim[i];
+	rel_error_comp_cons[i] = norm_error_comp_cons[i] / norm_exact_comp_prim[i];
+      }
+
+    // Output relative errors (total and components)
+    PetscCall(PetscPrintf(PETSC_COMM_WORLD, "Total Relative Error in primitive variables: %g\n", (double)rel_error_prim));
+    for(int i=0; i<ncomp; ++i)
+      {
+	PetscCall(PetscPrintf(PETSC_COMM_WORLD, "\tComponent %d: %g (%g, %g)\n", i, rel_error_comp_prim[i], norm_error_comp_prim[i], norm_exact_comp_prim[i]));
+      }
+    PetscCall(PetscPrintf(PETSC_COMM_WORLD, "\nTotal Relative Error in conservative variables: %g\n", (double)rel_error));
+    for(int i=0; i<ncomp; ++i)
+      {
+	PetscCall(PetscPrintf(PETSC_COMM_WORLD, "\tComponent %d: %g (%g, %g)\n", i, rel_error_comp_cons[i], norm_error_comp_cons[i], norm_exact_comp_cons[i]));
+      }
   }
 
   // Cleanup
