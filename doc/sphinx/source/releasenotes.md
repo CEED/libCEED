@@ -10,6 +10,7 @@ On this page we provide a summary of the main API changes, new features and exam
 
 - Added {c:func}`CeedOperatorSetName` for more readable {c:func}`CeedOperatorView` output.
 - Added {c:func}`CeedBasisCreateProjection` to facilitate interpolation between nodes for separate `CeedBases`.
+- Rename and move {c:func}`CeedCompositeOperatorGetNumSub` and {c:func}`CeedCompositeOperatorGetSubList` to public interface.
 
 ### New features
 

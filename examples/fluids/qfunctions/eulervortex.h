@@ -10,8 +10,7 @@
 /// example using PETSc
 
 // Model from:
-//   On the Order of Accuracy and Numerical Performance of Two Classes of
-//   Finite Volume WENO Schemes, Zhang, Zhang, and Shu (2011).
+//   On the Order of Accuracy and Numerical Performance of Two Classes of Finite Volume WENO Schemes, Zhang, Zhang, and Shu (2011).
 
 #ifndef eulervortex_h
 #define eulervortex_h
@@ -60,8 +59,8 @@ struct EulerContext_ {
 // *****************************************************************************
 
 // *****************************************************************************
-// This helper function provides support for the exact, time-dependent solution
-//   (currently not implemented) and IC formulation for Euler traveling vortex
+// This helper function provides support for the exact, time-dependent solution (currently not implemented) and IC formulation for Euler traveling
+// vortex
 // *****************************************************************************
 CEED_QFUNCTION_HELPER int Exact_Euler(CeedInt dim, CeedScalar time, const CeedScalar X[], CeedInt Nf, CeedScalar q[], void *ctx) {
   // Context
@@ -131,9 +130,8 @@ CEED_QFUNCTION_HELPER int Exact_Euler(CeedInt dim, CeedScalar time, const CeedSc
       q[3] = rho * u[2];
       q[4] = E;
       break;
-    case 3:  // Velocity zero, pressure constant
-      // (so density and internal energy will be non-constant),
-      // but the velocity should stay zero and the bubble won't diffuse
+    case 3:  // Velocity zero, pressure constant (so density and internal energy will be non-constant), but the velocity should stay zero and the
+             // bubble won't diffuse
       // (for Euler, where there is no thermal conductivity)
       P   = 1.;
       T   = 1. - S_bubble * exp(1. - r * r);
@@ -146,9 +144,8 @@ CEED_QFUNCTION_HELPER int Exact_Euler(CeedInt dim, CeedScalar time, const CeedSc
       q[3] = rho * u[2];
       q[4] = rho * (cv * T + (u[0] * u[0] + u[1] * u[1]) / 2.);
       break;
-    case 4:  // Constant nonzero velocity, pressure constant
-      // (so density and internal energy will be non-constant),
-      // it should be transported across the domain, but velocity stays constant
+    case 4:  // Constant nonzero velocity, pressure constant (so density and internal energy will be non-constant),
+      // It should be transported across the domain, but velocity stays constant
       P    = 1.;
       T    = 1. - S_bubble * exp(1. - r * r);
       rho  = P / (R * T);
@@ -215,8 +212,7 @@ CEED_QFUNCTION_HELPER void ConvectiveFluxJacobian_Euler(CeedScalar dF[3][5][5], 
 //   h[i]      = 2 length(dxdX[i])
 //   Pe        = Peclet number ( Pe = sqrt(u u) / dot(dXdx,u) diffusivity )
 //   Xi(Pe)    = coth Pe - 1. / Pe (1. at large local Peclet number )
-//   rho(A[i]) = spectral radius of the convective flux Jacobian i,
-//               wave speed in direction i
+//   rho(A[i]) = spectral radius of the convective flux Jacobian i, wave speed in direction i
 // *****************************************************************************
 CEED_QFUNCTION_HELPER void Tau_spatial(CeedScalar Tau_x[3], const CeedScalar dXdx[3][3], const CeedScalar u[3], const CeedScalar sound_speed,
                                        const CeedScalar c_tau) {
@@ -240,9 +236,8 @@ CEED_QFUNCTION(ICsEuler)(void *ctx, CeedInt Q, const CeedScalar *const *in, Ceed
   CeedScalar(*q0)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA])out[0];
   const EulerContext context  = (EulerContext)ctx;
 
-  CeedPragmaSIMD
-      // Quadrature Point Loop
-      for (CeedInt i = 0; i < Q; i++) {
+  // Quadrature Point Loop
+  CeedPragmaSIMD for (CeedInt i = 0; i < Q; i++) {
     const CeedScalar x[]  = {X[0][i], X[1][i], X[2][i]};
     CeedScalar       q[5] = {0.};
 
@@ -256,12 +251,9 @@ CEED_QFUNCTION(ICsEuler)(void *ctx, CeedInt Q, const CeedScalar *const *in, Ceed
 }
 
 // *****************************************************************************
-// This QFunction implements the following formulation of Euler equations
-//   with explicit time stepping method
+// This QFunction implements the following formulation of Euler equations with explicit time stepping method
 //
-// This is 3D Euler for compressible gas dynamics in conservation
-//   form with state variables of density, momentum density, and total
-//   energy density.
+// This is 3D Euler for compressible gas dynamics in conservation form with state variables of density, momentum density, and total energy density.
 //
 // State Variables: q = ( rho, U1, U2, U3, E )
 //   rho - Mass Density
@@ -284,18 +276,20 @@ CEED_QFUNCTION(ICsEuler)(void *ctx, CeedInt Q, const CeedScalar *const *in, Ceed
 // *****************************************************************************
 CEED_QFUNCTION(Euler)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
   // Inputs
-  const CeedScalar(*q)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[0], (*dq)[5][CEED_Q_VLA] = (const CeedScalar(*)[5][CEED_Q_VLA])in[1],
-        (*q_data)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[2];
+  const CeedScalar(*q)[CEED_Q_VLA]      = (const CeedScalar(*)[CEED_Q_VLA])in[0];
+  const CeedScalar(*dq)[5][CEED_Q_VLA]  = (const CeedScalar(*)[5][CEED_Q_VLA])in[1];
+  const CeedScalar(*q_data)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[2];
+
   // Outputs
-  CeedScalar(*v)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA])out[0], (*dv)[5][CEED_Q_VLA] = (CeedScalar(*)[5][CEED_Q_VLA])out[1];
+  CeedScalar(*v)[CEED_Q_VLA]     = (CeedScalar(*)[CEED_Q_VLA])out[0];
+  CeedScalar(*dv)[5][CEED_Q_VLA] = (CeedScalar(*)[5][CEED_Q_VLA])out[1];
 
   EulerContext     context = (EulerContext)ctx;
   const CeedScalar c_tau   = context->c_tau;
   const CeedScalar gamma   = 1.4;
 
-  CeedPragmaSIMD
-      // Quadrature Point Loop
-      for (CeedInt i = 0; i < Q; i++) {
+  // Quadrature Point Loop
+  CeedPragmaSIMD for (CeedInt i = 0; i < Q; i++) {
     // Setup
     // -- Interp in
     const CeedScalar rho      = q[0][i];
@@ -412,24 +406,25 @@ CEED_QFUNCTION(Euler)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedSca
 }
 
 // *****************************************************************************
-// This QFunction implements the Euler equations with (mentioned above)
-//   with implicit time stepping method
-//
+// This QFunction implements the Euler equations with (mentioned above) with implicit time stepping method
 // *****************************************************************************
 CEED_QFUNCTION(IFunction_Euler)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
   // Inputs
-  const CeedScalar(*q)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[0], (*dq)[5][CEED_Q_VLA] = (const CeedScalar(*)[5][CEED_Q_VLA])in[1],
-        (*q_dot)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[2], (*q_data)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[3];
+  const CeedScalar(*q)[CEED_Q_VLA]      = (const CeedScalar(*)[CEED_Q_VLA])in[0];
+  const CeedScalar(*dq)[5][CEED_Q_VLA]  = (const CeedScalar(*)[5][CEED_Q_VLA])in[1];
+  const CeedScalar(*q_dot)[CEED_Q_VLA]  = (const CeedScalar(*)[CEED_Q_VLA])in[2];
+  const CeedScalar(*q_data)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[3];
+
   // Outputs
-  CeedScalar(*v)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA])out[0], (*dv)[5][CEED_Q_VLA] = (CeedScalar(*)[5][CEED_Q_VLA])out[1];
+  CeedScalar(*v)[CEED_Q_VLA]     = (CeedScalar(*)[CEED_Q_VLA])out[0];
+  CeedScalar(*dv)[5][CEED_Q_VLA] = (CeedScalar(*)[5][CEED_Q_VLA])out[1];
 
   EulerContext     context = (EulerContext)ctx;
   const CeedScalar c_tau   = context->c_tau;
   const CeedScalar gamma   = 1.4;
 
-  CeedPragmaSIMD
-      // Quadrature Point Loop
-      for (CeedInt i = 0; i < Q; i++) {
+  // Quadrature Point Loop
+  CeedPragmaSIMD for (CeedInt i = 0; i < Q; i++) {
     // Setup
     // -- Interp in
     const CeedScalar rho      = q[0][i];
@@ -558,12 +553,9 @@ CEED_QFUNCTION(IFunction_Euler)(void *ctx, CeedInt Q, const CeedScalar *const *i
   return 0;
 }
 // *****************************************************************************
-// This QFunction sets the inflow boundary conditions for
-//   the traveling vortex problem.
+// This QFunction sets the inflow boundary conditions for the traveling vortex problem.
 //
-//  Prescribed T_inlet and P_inlet are converted to conservative variables
-//      and applied weakly.
-//
+//  Prescribed T_inlet and P_inlet are converted to conservative variables and applied weakly.
 // *****************************************************************************
 CEED_QFUNCTION(TravelingVortex_Inflow)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
   // Inputs
@@ -588,9 +580,8 @@ CEED_QFUNCTION(TravelingVortex_Inflow)(void *ctx, CeedInt Q, const CeedScalar *c
   if (euler_test == 1 || euler_test == 2) T_inlet = P_inlet = .4;
   else T_inlet = P_inlet = 1.;
 
-  CeedPragmaSIMD
-      // Quadrature Point Loop
-      for (CeedInt i = 0; i < Q; i++) {
+  // Quadrature Point Loop
+  CeedPragmaSIMD for (CeedInt i = 0; i < Q; i++) {
     // Setup
     // -- Interp-to-Interp q_data
     // For explicit mode, the surface integral is on the RHS of ODE q_dot = f(q).
@@ -630,17 +621,16 @@ CEED_QFUNCTION(TravelingVortex_Inflow)(void *ctx, CeedInt Q, const CeedScalar *c
 }
 
 // *****************************************************************************
-// This QFunction sets the outflow boundary conditions for
-//   the Euler solver.
+// This QFunction sets the outflow boundary conditions for the Euler solver.
 //
 //  Outflow BCs:
-//    The validity of the weak form of the governing equations is
-//      extended to the outflow.
-//
+//    The validity of the weak form of the governing equations is extended to the outflow.
 // *****************************************************************************
 CEED_QFUNCTION(Euler_Outflow)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
   // Inputs
-  const CeedScalar(*q)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[0], (*q_data_sur)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[2];
+  const CeedScalar(*q)[CEED_Q_VLA]          = (const CeedScalar(*)[CEED_Q_VLA])in[0];
+  const CeedScalar(*q_data_sur)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[2];
+
   // Outputs
   CeedScalar(*v)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA])out[0];
   EulerContext context       = (EulerContext)ctx;
@@ -649,9 +639,8 @@ CEED_QFUNCTION(Euler_Outflow)(void *ctx, CeedInt Q, const CeedScalar *const *in,
 
   const CeedScalar gamma = 1.4;
 
-  CeedPragmaSIMD
-      // Quadrature Point Loop
-      for (CeedInt i = 0; i < Q; i++) {
+  // Quadrature Point Loop
+  CeedPragmaSIMD for (CeedInt i = 0; i < Q; i++) {
     // Setup
     // -- Interp in
     const CeedScalar rho  = q[0][i];

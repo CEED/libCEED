@@ -16,9 +16,9 @@
 /**
   @brief Check if valid file exists at path given
 
-  @param ceed                  A Ceed object for error handling
+  @param[in]  ceed             Ceed object for error handling
   @param[in]  source_file_path Absolute path to source file
-  @param[out] is_valid         Boolean flag indicating if file can be opend
+  @param[out] is_valid         Boolean flag indicating if file can be opened
 
   @return An error code: 0 - success, otherwise - failure
 
@@ -26,7 +26,7 @@
 **/
 int CeedCheckFilePath(Ceed ceed, const char *source_file_path, bool *is_valid) {
   // Sometimes we have path/to/file.h:function_name
-  // Create tempory file path without name, if needed
+  // Create temporary file path without name, if needed
   char *source_file_path_only;
   char *last_colon = strrchr(source_file_path, ':');
   if (last_colon) {
@@ -62,10 +62,9 @@ int CeedCheckFilePath(Ceed ceed, const char *source_file_path, bool *is_valid) {
 }
 
 /**
-  @brief Load source file into initialized string buffer, including full text
-           of local files in place of `#include "local.h"`
+  @brief Load source file into initialized string buffer, including full text of local files in place of `#include "local.h"`
 
-  @param ceed                  A Ceed object for error handling
+  @param[in]  ceed             Ceed object for error handling
   @param[in]  source_file_path Absolute path to source file
   @param[out] buffer           String buffer for source file contents
 
@@ -189,11 +188,10 @@ int CeedLoadSourceToInitializedBuffer(Ceed ceed, const char *source_file_path, c
 }
 
 /**
-  @brief Initalize and load source file into string buffer, including full text
-           of local files in place of `#include "local.h"`.
+  @brief Initialize and load source file into string buffer, including full text of local files in place of `#include "local.h"`.
          Note: Caller is responsible for freeing the string buffer with `CeedFree()`.
 
-  @param ceed                  A Ceed object for error handling
+  @param[in]  ceed             Ceed object for error handling
   @param[in]  source_file_path Absolute path to source file
   @param[out] buffer           String buffer for source file contents
 
@@ -216,10 +214,10 @@ int CeedLoadSourceToBuffer(Ceed ceed, const char *source_file_path, char **buffe
            This helps construct source file paths for `CeedLoadSourceToBuffer()`.
          Note: Caller is responsible for freeing the string buffer with `CeedFree()`.
 
-  @param ceed                     A Ceed object for error handling
-  @param[in]  base_file_path      Absolute path to current file
-  @param[in]  relative_file_path  Relative path to target file
-  @param[out] new_file_path       String buffer for absolute path to target file
+  @param[in]  ceed               Ceed object for error handling
+  @param[in]  base_file_path     Absolute path to current file
+  @param[in]  relative_file_path Relative path to target file
+  @param[out] new_file_path      String buffer for absolute path to target file
 
   @return An error code: 0 - success, otherwise - failure
 
@@ -261,7 +259,7 @@ int CeedGetJitRelativePath(const char *absolute_file_path, const char **relative
 /**
   @brief Build an absolute filepath to a JiT file
 
-  @param ceed                    A Ceed object for error handling
+  @param[in]  ceed               Ceed object for error handling
   @param[in]  relative_file_path Relative path to installed JiT file
   @param[out] absolute_file_path String buffer for absolute path to target file
 

@@ -120,8 +120,7 @@ class CeedDiffusionOperator : public mfem::Operator {
     CeedQFunctionContextCreate(ceed, &build_ctx);
     CeedQFunctionContextSetData(build_ctx, CEED_MEM_HOST, CEED_USE_POINTER, sizeof(build_ctx_data), &build_ctx_data);
 
-    // Create the Q-function that builds the diff operator (i.e. computes its
-    // quadrature data) and set its context data.
+    // Create the Q-function that builds the diff operator (i.e. computes its quadrature data) and set its context data.
     CeedQFunctionCreateInterior(ceed, 1, f_build_diff, f_build_diff_loc, &build_qfunc);
     CeedQFunctionAddInput(build_qfunc, "dx", ncompx * dim, CEED_EVAL_GRAD);
     CeedQFunctionAddInput(build_qfunc, "weights", 1, CEED_EVAL_WEIGHT);

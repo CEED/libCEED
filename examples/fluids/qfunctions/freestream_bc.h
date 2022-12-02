@@ -90,9 +90,8 @@ CEED_QFUNCTION_HELPER void ComputeHLLSpeeds_Roe(NewtonianIdealGasContext gas, St
 
   RoeWeights r = RoeSetup(left.U.density, right.U.density);
   // Speed estimate
-  // Roe average eigenvalues for left and right non-linear waves
-  // Stability requires that these speed estimates are *at least*
-  // as fast as the physical wave speeds.
+  // Roe average eigenvalues for left and right non-linear waves.
+  // Stability requires that these speed estimates are *at least* as fast as the physical wave speeds.
   CeedScalar u_roe = RoeAverage(r, u_left, u_right);
 
   // TODO: revisit this for gravity
@@ -114,9 +113,8 @@ CEED_QFUNCTION_HELPER void ComputeHLLSpeeds_Roe_fwd(NewtonianIdealGasContext gas
   RoeWeights r  = RoeSetup(left.U.density, right.U.density);
   RoeWeights dr = RoeSetup_fwd(left.U.density, right.U.density, dleft.U.density, dright.U.density);
   // Speed estimate
-  // Roe average eigenvalues for left and right non-linear waves
-  // Stability requires that these speed estimates are *at least*
-  // as fast as the physical wave speeds.
+  // Roe average eigenvalues for left and right non-linear waves.
+  // Stability requires that these speed estimates are *at least* as fast as the physical wave speeds.
   CeedScalar u_roe  = RoeAverage(r, u_left, u_right);
   CeedScalar du_roe = RoeAverage_fwd(r, dr, u_left, u_right, du_left, du_right);
 
@@ -138,9 +136,8 @@ CEED_QFUNCTION_HELPER void ComputeHLLSpeeds_Roe_fwd(NewtonianIdealGasContext gas
 
 // *****************************************************************************
 // @brief Harten Lax VanLeer (HLL) approximate Riemann solver.
-// Taking in two states (left, right) and returns RiemannFlux_HLL
-// The left and right states are specified from the perspective of an
-// outward-facing normal vector pointing left to right.
+// Taking in two states (left, right) and returns RiemannFlux_HLL.
+// The left and right states are specified from the perspective of an outward-facing normal vector pointing left to right.
 //
 // @param gas    NewtonianIdealGasContext for the fluid
 // @param left   Fluid state of the domain interior (the current solution)
@@ -330,10 +327,12 @@ CEED_QFUNCTION_HELPER StateConservative RiemannFlux_HLLC_fwd(NewtonianIdealGasCo
 // *****************************************************************************
 CEED_QFUNCTION_HELPER int Freestream(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out, StateFromQi_t StateFromQi,
                                      StateFromQi_fwd_t StateFromQi_fwd, RiemannFluxFunction RiemannFlux) {
-  const CeedScalar(*q)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[0], (*q_data_sur)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[2],
-        (*x)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[3];
+  const CeedScalar(*q)[CEED_Q_VLA]          = (const CeedScalar(*)[CEED_Q_VLA])in[0];
+  const CeedScalar(*q_data_sur)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[2];
+  const CeedScalar(*x)[CEED_Q_VLA]          = (const CeedScalar(*)[CEED_Q_VLA])in[3];
 
-  CeedScalar(*v)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA])out[0], (*jac_data_sur)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA])out[1];
+  CeedScalar(*v)[CEED_Q_VLA]            = (CeedScalar(*)[CEED_Q_VLA])out[0];
+  CeedScalar(*jac_data_sur)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA])out[1];
 
   const FreestreamContext        context     = (FreestreamContext)ctx;
   const NewtonianIdealGasContext newt_ctx    = &context->newtonian_ctx;
@@ -376,8 +375,10 @@ CEED_QFUNCTION(Freestream_Prim_HLLC)(void *ctx, CeedInt Q, const CeedScalar *con
 
 CEED_QFUNCTION_HELPER int Freestream_Jacobian(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out, StateFromQi_t StateFromQi,
                                               StateFromQi_fwd_t StateFromQi_fwd, RiemannFluxFwdFunction RiemannFlux_fwd) {
-  const CeedScalar(*dq)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[0], (*q_data_sur)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[2],
-        (*x)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[3], (*jac_data_sur)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[4];
+  const CeedScalar(*dq)[CEED_Q_VLA]           = (const CeedScalar(*)[CEED_Q_VLA])in[0];
+  const CeedScalar(*q_data_sur)[CEED_Q_VLA]   = (const CeedScalar(*)[CEED_Q_VLA])in[2];
+  const CeedScalar(*x)[CEED_Q_VLA]            = (const CeedScalar(*)[CEED_Q_VLA])in[3];
+  const CeedScalar(*jac_data_sur)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[4];
 
   CeedScalar(*v)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA])out[0];
 

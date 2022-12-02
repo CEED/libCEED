@@ -115,8 +115,7 @@ static int CeedOperatorSetupFields_Cuda(CeedQFunction qf, CeedOperator op, bool 
       CeedCallBackend(CeedOperatorFieldGetElemRestriction(opfields[i], &Erestrict));
 
       // Check whether this field can skip the element restriction:
-      // must be passive input, with emode NONE, and have a strided restriction with
-      // CEED_STRIDES_BACKEND.
+      // must be passive input, with emode NONE, and have a strided restriction with CEED_STRIDES_BACKEND.
 
       // First, check whether the field is input or output:
       if (isinput) {
@@ -135,8 +134,7 @@ static int CeedOperatorSetupFields_Cuda(CeedQFunction qf, CeedOperator op, bool 
         }
       }
       if (skiprestrict) {
-        // We do not need an E-Vector, but will use the input field vector's data
-        // directly in the operator application.
+        // We do not need an E-Vector, but will use the input field vector's data directly in the operator application.
         evecs[i + starte] = NULL;
       } else {
         CeedCallBackend(CeedElemRestrictionCreateVector(Erestrict, NULL, &evecs[i + starte]));
@@ -177,8 +175,7 @@ static int CeedOperatorSetupFields_Cuda(CeedQFunction qf, CeedOperator op, bool 
 }
 
 //------------------------------------------------------------------------------
-// CeedOperator needs to connect all the named fields (be they active or passive)
-//   to the named inputs and outputs of its CeedQFunction.
+// CeedOperator needs to connect all the named fields (be they active or passive) to the named inputs and outputs of its CeedQFunction.
 //------------------------------------------------------------------------------
 static int CeedOperatorSetup_Cuda(CeedOperator op) {
   bool setupdone;
@@ -907,9 +904,8 @@ static int CeedSingleOperatorAssembleSetup_Cuda(CeedOperator op) {
   CeedQFunctionField *qf_fields;
   CeedCallBackend(CeedQFunctionGetFields(qf, NULL, &qf_fields, NULL, NULL));
   // Note that the kernel will treat each dimension of a gradient action separately;
-  // i.e., when an active input has a CEED_EVAL_GRAD mode, num_emode_in will increment
-  // by dim.  However, for the purposes of loading the B matrices, it will be treated
-  // as one mode, and we will load/copy the entire gradient matrix at once, so
+  // i.e., when an active input has a CEED_EVAL_GRAD mode, num_emode_in will increment by dim.
+  // However, for the purposes of loading the B matrices, it will be treated as one mode, and we will load/copy the entire gradient matrix at once, so
   // num_B_in_mats_to_load will be incremented by 1.
   CeedInt             num_emode_in = 0, dim = 1, num_B_in_mats_to_load = 0, size_B_in = 0;
   CeedEvalMode       *eval_mode_in = NULL;  // will be of size num_B_in_mats_load
@@ -1069,8 +1065,7 @@ static int CeedSingleOperatorAssembleSetup_Cuda(CeedOperator op) {
 // Assemble matrix data for COO matrix of assembled operator.
 // The sparsity pattern is set by CeedOperatorLinearAssembleSymbolic.
 //
-// Note that this (and other assembly routines) currently assume only one
-// active input restriction/basis per operator (could have multiple basis eval
+// Note that this (and other assembly routines) currently assume only one active input restriction/basis per operator (could have multiple basis eval
 // modes).
 // TODO: allow multiple active input restrictions/basis objects
 //------------------------------------------------------------------------------

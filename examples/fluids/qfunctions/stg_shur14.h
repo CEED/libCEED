@@ -9,9 +9,9 @@
 /// Implementation of the Synthetic Turbulence Generation (STG) algorithm
 /// presented in Shur et al. 2014
 //
-/// SetupSTG_Rand reads in the input files and fills in STGShur14Context. Then
-/// STGShur14_CalcQF is run over quadrature points. Before the program exits,
-/// TearDownSTG is run to free the memory of the allocated arrays.
+/// SetupSTG_Rand reads in the input files and fills in STGShur14Context.
+/// Then STGShur14_CalcQF is run over quadrature points.
+/// Before the program exits, TearDownSTG is run to free the memory of the allocated arrays.
 
 #ifndef stg_shur14_h
 #define stg_shur14_h
@@ -20,6 +20,7 @@
 #include <math.h>
 #include <stdlib.h>
 
+#include "newtonian_state.h"
 #include "stg_shur14_type.h"
 #include "utils.h"
 
@@ -231,7 +232,8 @@ CEED_QFUNCTION_HELPER void STGShur14_Calc_PrecompEktot(const CeedScalar X[3], co
 //
 // stg_data[0] = 1 / Ektot (inverse of total spectrum energy)
 CEED_QFUNCTION(Preprocess_STGShur14)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
-  const CeedScalar(*q_data_sur)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[0], (*x)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[1];
+  const CeedScalar(*q_data_sur)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[0];
+  const CeedScalar(*x)[CEED_Q_VLA]          = (const CeedScalar(*)[CEED_Q_VLA])in[1];
 
   CeedScalar(*stg_data) = (CeedScalar(*))out[0];
 
@@ -241,9 +243,7 @@ CEED_QFUNCTION(Preprocess_STGShur14)(void *ctx, CeedInt Q, const CeedScalar *con
   const CeedScalar       mu      = stg_ctx->newtonian_ctx.mu;
   const CeedScalar       theta0  = stg_ctx->theta0;
   const CeedScalar       P0      = stg_ctx->P0;
-  const CeedScalar       cv      = stg_ctx->newtonian_ctx.cv;
-  const CeedScalar       cp      = stg_ctx->newtonian_ctx.cp;
-  const CeedScalar       Rd      = cp - cv;
+  const CeedScalar       Rd      = GasConstant(&stg_ctx->newtonian_ctx);
   const CeedScalar       rho     = P0 / (Rd * theta0);
   const CeedScalar       nu      = mu / rho;
 
@@ -280,7 +280,9 @@ CEED_QFUNCTION(Preprocess_STGShur14)(void *ctx, CeedInt Q, const CeedScalar *con
 // Extrude the STGInflow profile through out the domain for an initial condition
 CEED_QFUNCTION(ICsSTG)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
   // Inputs
-  const CeedScalar(*x)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[0], (*q_data)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[1];
+  const CeedScalar(*x)[CEED_Q_VLA]      = (const CeedScalar(*)[CEED_Q_VLA])in[0];
+  const CeedScalar(*q_data)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[1];
+
   // Outputs
   CeedScalar(*q0)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA])out[0];
 
@@ -290,11 +292,9 @@ CEED_QFUNCTION(ICsSTG)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedSc
   const CeedScalar       time   = stg_ctx->time;
   const CeedScalar       theta0 = stg_ctx->theta0;
   const CeedScalar       P0     = stg_ctx->P0;
-  const CeedScalar       mu     = stg_ctx->newtonian_ctx.mu;
   const CeedScalar       cv     = stg_ctx->newtonian_ctx.cv;
-  const CeedScalar       cp     = stg_ctx->newtonian_ctx.cp;
-  const CeedScalar       Rd     = cp - cv;
-  const CeedScalar       rho    = P0 / (Rd * theta0);
+  const CeedScalar       rho    = P0 / (GasConstant(&stg_ctx->newtonian_ctx) * theta0);
+  const CeedScalar       nu     = stg_ctx->newtonian_ctx.mu / rho;
 
   CeedPragmaSIMD for (CeedInt i = 0; i < Q; i++) {
     const CeedScalar x_i[3]     = {x[0][i], x[1][i], x[2][i]};
@@ -310,7 +310,7 @@ CEED_QFUNCTION(ICsSTG)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedSc
 
     InterpolateProfile(x_i[1], ubar, cij, &eps, &lt, stg_ctx);
     if (stg_ctx->use_fluctuating_IC) {
-      CalcSpectrum(x_i[1], eps, lt, h, mu / rho, qn, stg_ctx);
+      CalcSpectrum(x_i[1], eps, lt, h, nu, qn, stg_ctx);
       STGShur14_Calc(x_i, time, ubar, cij, qn, u, stg_ctx);
     } else {
       for (CeedInt j = 0; j < 3; j++) u[j] = ubar[j];
@@ -344,10 +344,12 @@ CEED_QFUNCTION(ICsSTG)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedSc
  * at each location, then calculate the actual velocity.
  */
 CEED_QFUNCTION(STGShur14_Inflow)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
-  const CeedScalar(*q)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[0], (*q_data_sur)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[2],
-        (*X)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[3];
+  const CeedScalar(*q)[CEED_Q_VLA]          = (const CeedScalar(*)[CEED_Q_VLA])in[0];
+  const CeedScalar(*q_data_sur)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[2];
+  const CeedScalar(*X)[CEED_Q_VLA]          = (const CeedScalar(*)[CEED_Q_VLA])in[3];
 
-  CeedScalar(*v)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA])out[0], (*jac_data_sur)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA])out[1];
+  CeedScalar(*v)[CEED_Q_VLA]            = (CeedScalar(*)[CEED_Q_VLA])out[0];
+  CeedScalar(*jac_data_sur)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA])out[1];
 
   const STGShur14Context stg_ctx = (STGShur14Context)ctx;
   CeedScalar             qn[STG_NMODES_MAX], u[3], ubar[3], cij[6], eps, lt;
@@ -360,9 +362,8 @@ CEED_QFUNCTION(STGShur14_Inflow)(void *ctx, CeedInt Q, const CeedScalar *const *
   const CeedScalar       theta0      = stg_ctx->theta0;
   const CeedScalar       P0          = stg_ctx->P0;
   const CeedScalar       cv          = stg_ctx->newtonian_ctx.cv;
-  const CeedScalar       cp          = stg_ctx->newtonian_ctx.cp;
-  const CeedScalar       Rd          = cp - cv;
-  const CeedScalar       gamma       = cp / cv;
+  const CeedScalar       Rd          = GasConstant(&stg_ctx->newtonian_ctx);
+  const CeedScalar       gamma       = HeatCapacityRatio(&stg_ctx->newtonian_ctx);
 
   CeedPragmaSIMD for (CeedInt i = 0; i < Q; i++) {
     const CeedScalar rho        = prescribe_T ? q[0][i] : P0 / (Rd * theta0);
@@ -431,16 +432,17 @@ CEED_QFUNCTION(STGShur14_Inflow)(void *ctx, CeedInt Q, const CeedScalar *const *
 
 CEED_QFUNCTION(STGShur14_Inflow_Jacobian)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
   // Inputs
-  const CeedScalar(*dq)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[0], (*q_data_sur)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[2],
-        (*jac_data_sur)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[4];
+  const CeedScalar(*dq)[CEED_Q_VLA]           = (const CeedScalar(*)[CEED_Q_VLA])in[0];
+  const CeedScalar(*q_data_sur)[CEED_Q_VLA]   = (const CeedScalar(*)[CEED_Q_VLA])in[2];
+  const CeedScalar(*jac_data_sur)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[4];
   // Outputs
-  CeedScalar(*v)[CEED_Q_VLA]      = (CeedScalar(*)[CEED_Q_VLA])out[0];
+  CeedScalar(*v)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA])out[0];
+
   const STGShur14Context stg_ctx  = (STGShur14Context)ctx;
   const bool             implicit = stg_ctx->is_implicit;
   const CeedScalar       cv       = stg_ctx->newtonian_ctx.cv;
-  const CeedScalar       cp       = stg_ctx->newtonian_ctx.cp;
-  const CeedScalar       Rd       = cp - cv;
-  const CeedScalar       gamma    = cp / cv;
+  const CeedScalar       Rd       = GasConstant(&stg_ctx->newtonian_ctx);
+  const CeedScalar       gamma    = HeatCapacityRatio(&stg_ctx->newtonian_ctx);
 
   const CeedScalar theta0      = stg_ctx->theta0;
   const bool       prescribe_T = stg_ctx->prescribe_T;
@@ -491,8 +493,10 @@ CEED_QFUNCTION(STGShur14_Inflow_Jacobian)(void *ctx, CeedInt Q, const CeedScalar
  * through the native PETSc `DMAddBoundary` -> `bcFunc` method.
  */
 CEED_QFUNCTION(STGShur14_Inflow_StrongQF)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
-  const CeedScalar(*q_data_sur)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[0], (*coords)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[1],
-        (*scale) = (const CeedScalar(*))in[2], (*stg_data)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[3];
+  const CeedScalar(*q_data_sur)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[0];
+  const CeedScalar(*coords)[CEED_Q_VLA]     = (const CeedScalar(*)[CEED_Q_VLA])in[1];
+  const CeedScalar(*scale)                  = (const CeedScalar(*))in[2];
+  const CeedScalar(*stg_data)[CEED_Q_VLA]   = (const CeedScalar(*)[CEED_Q_VLA])in[3];
 
   CeedScalar(*bcval)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA])out[0];
 
@@ -500,14 +504,11 @@ CEED_QFUNCTION(STGShur14_Inflow_StrongQF)(void *ctx, CeedInt Q, const CeedScalar
   CeedScalar             u[3], ubar[3], cij[6], eps, lt;
   const bool             mean_only = stg_ctx->mean_only;
   const CeedScalar       dx        = stg_ctx->dx;
-  const CeedScalar       mu        = stg_ctx->newtonian_ctx.mu;
   const CeedScalar       time      = stg_ctx->time;
   const CeedScalar       theta0    = stg_ctx->theta0;
   const CeedScalar       P0        = stg_ctx->P0;
-  const CeedScalar       cv        = stg_ctx->newtonian_ctx.cv;
-  const CeedScalar       cp        = stg_ctx->newtonian_ctx.cp;
-  const CeedScalar       Rd        = cp - cv;
-  const CeedScalar       rho       = P0 / (Rd * theta0);
+  const CeedScalar       rho       = P0 / (GasConstant(&stg_ctx->newtonian_ctx) * theta0);
+  const CeedScalar       nu        = stg_ctx->newtonian_ctx.mu / rho;
 
   CeedPragmaSIMD for (CeedInt i = 0; i < Q; i++) {
     const CeedScalar x[]        = {coords[0][i], coords[1][i], coords[2][i]};
@@ -523,10 +524,10 @@ CEED_QFUNCTION(STGShur14_Inflow_StrongQF)(void *ctx, CeedInt Q, const CeedScalar
     InterpolateProfile(coords[1][i], ubar, cij, &eps, &lt, stg_ctx);
     if (!mean_only) {
       if (1) {
-        STGShur14_Calc_PrecompEktot(x, time, ubar, cij, stg_data[0][i], h, x[1], eps, lt, mu / rho, u, stg_ctx);
+        STGShur14_Calc_PrecompEktot(x, time, ubar, cij, stg_data[0][i], h, x[1], eps, lt, nu, u, stg_ctx);
       } else {  // Original way
         CeedScalar qn[STG_NMODES_MAX];
-        CalcSpectrum(coords[1][i], eps, lt, h, mu / rho, qn, stg_ctx);
+        CalcSpectrum(coords[1][i], eps, lt, h, nu, qn, stg_ctx);
         STGShur14_Calc(x, time, ubar, cij, qn, u, stg_ctx);
       }
     } else {

@@ -6,8 +6,7 @@
 // This file is part of CEED:  http://github.com/ceed
 
 /// @file
-/// Thermodynamic wave propogation for testing freestream/non-reflecting
-/// boundary conditions. Proposed in Mengaldo et. al. 2014
+/// Thermodynamic wave propogation for testing freestream/non-reflecting boundary conditions. Proposed in Mengaldo et. al. 2014
 
 #include <ceed.h>
 #include <math.h>

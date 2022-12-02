@@ -7,11 +7,7 @@
 
 //                        libCEED + PETSc Example: Navier-Stokes
 //
-// This example demonstrates a simple usage of libCEED with PETSc to solve a
-// Navier-Stokes problem.
-//
-// The code is intentionally "raw", using only low-level communication
-// primitives.
+// This example demonstrates a simple usage of libCEED with PETSc to solve a Navier-Stokes problem.
 //
 // Build with:
 //
@@ -182,10 +178,9 @@ int main(int argc, char **argv) {
   // Record boundary values from initial condition
   // ---------------------------------------------------------------------------
   // -- This overrides DMPlexInsertBoundaryValues().
-  //    We use this for the main simulation DM because the reference
-  //    DMPlexInsertBoundaryValues() is very slow. If we disable this, we should
-  //    still get the same results due to the problem->bc function, but with
-  //    potentially much slower execution.
+  //    We use this for the main simulation DM because the reference DMPlexInsertBoundaryValues() is very slow on the GPU due to extra device-to-host
+  //    communication. If we disable this, we should still get the same results due to the problem->bc function, but with potentially much slower
+  //    execution.
   if (problem->bc_from_ics) {
     PetscCall(SetBCsFromICs_NS(dm, Q, user->Q_loc));
   }

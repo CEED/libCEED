@@ -1,26 +1,15 @@
-// Copyright (c) 2017, Lawrence Livermore National Security, LLC. Produced at
-// the Lawrence Livermore National Laboratory. LLNL-CODE-734707. All Rights
-// reserved. See files LICENSE and NOTICE for details.
+// Copyright (c) 2017-2022, Lawrence Livermore National Security, LLC and other CEED contributors.
+// All Rights Reserved. See the top-level LICENSE and NOTICE files for details.
 //
-// This file is part of CEED, a collection of benchmarks, miniapps, software
-// libraries and APIs for efficient high-order finite element and spectral
-// element discretizations for exascale applications. For more information and
-// source code availability see http://github.com/ceed.
+// SPDX-License-Identifier: BSD-2-Clause
 //
-// The CEED research is supported by the Exascale Computing Project 17-SC-20-SC,
-// a collaborative effort of two U.S. Department of Energy organizations (Office
-// of Science and the National Nuclear Security Administration) responsible for
-// the planning and preparation of a capable exascale ecosystem, including
-// software, applications, hardware, advanced system engineering and early
-// testbed platforms, in support of the nation's exascale computing imperative.
+// This file is part of CEED:  http://github.com/ceed
 
 /// @file
-/// Shock tube initial condition and Euler equation operator for Navier-Stokes
-/// example using PETSc - modified from eulervortex.h
+/// Shock tube initial condition and Euler equation operator for Navier-Stokes example using PETSc - modified from eulervortex.h
 
 // Model from:
-//   On the Order of Accuracy and Numerical Performance of Two Classes of
-//   Finite Volume WENO Schemes, Zhang, Zhang, and Shu (2011).
+//   On the Order of Accuracy and Numerical Performance of Two Classes of Finite Volume WENO Schemes, Zhang, Zhang, and Shu (2011).
 
 #ifndef shocktube_h
 #define shocktube_h
@@ -86,8 +75,8 @@ struct ShockTubeContext_ {
 // *****************************************************************************
 
 // *****************************************************************************
-// This helper function provides support for the exact, time-dependent solution
-//   (currently not implemented) and IC formulation for Euler traveling vortex
+// This helper function provides support for the exact, time-dependent solution (currently not implemented) and IC formulation for Euler traveling
+// vortex
 // *****************************************************************************
 CEED_QFUNCTION_HELPER CeedInt Exact_ShockTube(CeedInt dim, CeedScalar time, const CeedScalar X[], CeedInt Nf, CeedScalar q[], void *ctx) {
   // Context
@@ -146,8 +135,7 @@ CEED_QFUNCTION_HELPER void ConvectiveFluxJacobian_Euler(CeedScalar dF[3][5][5], 
 }
 
 // *****************************************************************************
-// Helper function for calculating the covariant length scale in the direction
-// of some 3 element input vector
+// Helper function for calculating the covariant length scale in the direction of some 3 element input vector
 //
 // Where
 //  vec         = vector that length is measured in the direction of
@@ -180,8 +168,7 @@ CEED_QFUNCTION_HELPER CeedScalar Covariant_length_along_vector(CeedScalar vec[3]
 //   h[i]      = 2 length(dxdX[i])
 //   Pe        = Peclet number ( Pe = sqrt(u u) / dot(dXdx,u) diffusivity )
 //   Xi(Pe)    = coth Pe - 1. / Pe (1. at large local Peclet number )
-//   rho(A[i]) = spectral radius of the convective flux Jacobian i,
-//               wave speed in direction i
+//   rho(A[i]) = spectral radius of the convective flux Jacobian i, wave speed in direction i
 // *****************************************************************************
 CEED_QFUNCTION_HELPER void Tau_spatial(CeedScalar Tau_x[3], const CeedScalar dXdx[3][3], const CeedScalar u[3], const CeedScalar sound_speed,
                                        const CeedScalar c_tau) {
@@ -220,12 +207,9 @@ CEED_QFUNCTION(ICsShockTube)(void *ctx, CeedInt Q, const CeedScalar *const *in, 
 }
 
 // *****************************************************************************
-// This QFunction implements the following formulation of Euler equations
-//   with explicit time stepping method
+// This QFunction implements the following formulation of Euler equations with explicit time stepping method
 //
-// This is 3D Euler for compressible gas dynamics in conservation
-//   form with state variables of density, momentum density, and total
-//   energy density.
+// This is 3D Euler for compressible gas dynamics in conservation form with state variables of density, momentum density, and total energy density.
 //
 // State Variables: q = ( rho, U1, U2, U3, E )
 //   rho - Mass Density
@@ -248,10 +232,13 @@ CEED_QFUNCTION(ICsShockTube)(void *ctx, CeedInt Q, const CeedScalar *const *in, 
 // *****************************************************************************
 CEED_QFUNCTION(EulerShockTube)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
   // Inputs
-  const CeedScalar(*q)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[0], (*dq)[5][CEED_Q_VLA] = (const CeedScalar(*)[5][CEED_Q_VLA])in[1],
-        (*q_data)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[2];
+  const CeedScalar(*q)[CEED_Q_VLA]      = (const CeedScalar(*)[CEED_Q_VLA])in[0];
+  const CeedScalar(*dq)[5][CEED_Q_VLA]  = (const CeedScalar(*)[5][CEED_Q_VLA])in[1];
+  const CeedScalar(*q_data)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[2];
+
   // Outputs
-  CeedScalar(*v)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA])out[0], (*dv)[5][CEED_Q_VLA] = (CeedScalar(*)[5][CEED_Q_VLA])out[1];
+  CeedScalar(*v)[CEED_Q_VLA]     = (CeedScalar(*)[CEED_Q_VLA])out[0];
+  CeedScalar(*dv)[5][CEED_Q_VLA] = (CeedScalar(*)[5][CEED_Q_VLA])out[1];
 
   const CeedScalar gamma = 1.4;
 

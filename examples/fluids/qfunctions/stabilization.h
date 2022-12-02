@@ -16,8 +16,7 @@
 #include "newtonian_state.h"
 
 // *****************************************************************************
-// Helper function for computing the variation in primitive variables,
-//   given Tau_d
+// Helper function for computing the variation in primitive variables, given Tau_d
 // *****************************************************************************
 CEED_QFUNCTION_HELPER void dYFromTau(CeedScalar Y[5], CeedScalar Tau_d[3], CeedScalar dY[5]) {
   dY[0] = Tau_d[0] * Y[0];
@@ -73,7 +72,6 @@ CEED_QFUNCTION_HELPER void Stabilization(NewtonianIdealGasContext gas, State s, 
 //     PHASTA
 //
 //   Tau[i] = itau=0 which is diagonal-Shakib (3 values still but not spatial)
-//
 // *****************************************************************************
 CEED_QFUNCTION_HELPER void Tau_diagPrim(NewtonianIdealGasContext gas, State s, const CeedScalar dXdx[3][3], const CeedScalar dt,
                                         CeedScalar Tau_d[3]) {
@@ -120,12 +118,10 @@ CEED_QFUNCTION_HELPER void Tau_diagPrim(NewtonianIdealGasContext gas, State s, c
   Tau_d[1] = Ctau_M / fact;
   Tau_d[2] = Ctau_E / (fact * cv);
 
-  // consider putting back the way I initially had it  Ctau_E * Tau_d[1] /cv
-  //  to avoid a division if the compiler is smart enough to see that cv IS
-  // a constant that it could invert once for all elements
+  // consider putting back the way I initially had it
+  // Ctau_E * Tau_d[1] /cv to avoid a division if the compiler is smart enough to see that cv IS a constant that it could invert once for all elements
   // but in that case energy tau is scaled by the product of Ctau_E * Ctau_M
-  // OR we could absorb cv into Ctau_E but this puts more burden on user to
-  // know how to change constants with a change of fluid or units.  Same for
+  // OR we could absorb cv into Ctau_E but this puts more burden on user to know how to change constants with a change of fluid or units.  Same for
   // Ctau_v * mu * mu IF AND ONLY IF we don't add viscosity law =f(T)
 }
 

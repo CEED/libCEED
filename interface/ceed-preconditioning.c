@@ -24,12 +24,11 @@
 /// @{
 
 /**
-  @brief Duplicate a CeedQFunction with a reference Ceed to fallback for advanced
-         CeedOperator functionality
+  @brief Duplicate a CeedQFunction with a reference Ceed to fallback for advanced CeedOperator functionality
 
-  @param[in] fallback_ceed Ceed on which to create fallback CeedQFunction
-  @param[in] qf            CeedQFunction to create fallback for
-  @param[out] qf_fallback  fallback CeedQFunction
+  @param[in]  fallback_ceed Ceed on which to create fallback CeedQFunction
+  @param[in]  qf            CeedQFunction to create fallback for
+  @param[out] qf_fallback   fallback CeedQFunction
 
   @return An error code: 0 - success, otherwise - failure
 
@@ -72,10 +71,9 @@ static int CeedQFunctionCreateFallback(Ceed fallback_ceed, CeedQFunction qf, Cee
 }
 
 /**
-  @brief Duplicate a CeedOperator with a reference Ceed to fallback for advanced
-         CeedOperator functionality
+  @brief Duplicate a CeedOperator with a reference Ceed to fallback for advanced CeedOperator functionality
 
-  @param op  CeedOperator to create fallback for
+  @param[in,out] op CeedOperator to create fallback for
 
   @return An error code: 0 - success, otherwise - failure
 
@@ -135,10 +133,10 @@ static int CeedOperatorCreateFallback(CeedOperator op) {
 }
 
 /**
-  @brief Retreive fallback CeedOperator with a reference Ceed for advanced CeedOperator functionality
+  @brief Retrieve fallback CeedOperator with a reference Ceed for advanced CeedOperator functionality
 
-  @param[in] op            CeedOperator to retrieve fallback for
-  @param[out] op_fallback  Fallback CeedOperator
+  @param[in]  op          CeedOperator to retrieve fallback for
+  @param[out] op_fallback Fallback CeedOperator
 
   @return An error code: 0 - success, otherwise - failure
 
@@ -174,11 +172,11 @@ int CeedOperatorGetFallback(CeedOperator op, CeedOperator *op_fallback) {
 /**
   @brief Select correct basis matrix pointer based on CeedEvalMode
 
-  @param[in] eval_mode   Current basis evaluation mode
-  @param[in] identity    Pointer to identity matrix
-  @param[in] interp      Pointer to interpolation matrix
-  @param[in] grad        Pointer to gradient matrix
-  @param[out] basis_ptr  Basis pointer to set
+  @param[in]  eval_mode Current basis evaluation mode
+  @param[in]  identity  Pointer to identity matrix
+  @param[in]  interp    Pointer to interpolation matrix
+  @param[in]  grad      Pointer to gradient matrix
+  @param[out] basis_ptr Basis pointer to set
 
   @ref Developer
 **/
@@ -205,9 +203,8 @@ static inline void CeedOperatorGetBasisPointer(CeedEvalMode eval_mode, const Cee
 /**
   @brief Create point block restriction for active operator field
 
-  @param[in] rstr              Original CeedElemRestriction for active field
-  @param[out] pointblock_rstr  Address of the variable where the newly created
-                                 CeedElemRestriction will be stored
+  @param[in]  rstr            Original CeedElemRestriction for active field
+  @param[out] pointblock_rstr Address of the variable where the newly created CeedElemRestriction will be stored
 
   @return An error code: 0 - success, otherwise - failure
 
@@ -247,10 +244,9 @@ static int CeedOperatorCreateActivePointBlockRestriction(CeedElemRestriction rst
 /**
   @brief Core logic for assembling operator diagonal or point block diagonal
 
-  @param[in] op             CeedOperator to assemble point block diagonal
-  @param[in] request        Address of CeedRequest for non-blocking completion, else
-                              CEED_REQUEST_IMMEDIATE
-  @param[in] is_pointblock  Boolean flag to assemble diagonal or point block diagonal
+  @param[in]  op            CeedOperator to assemble point block diagonal
+  @param[in]  request       Address of CeedRequest for non-blocking completion, else CEED_REQUEST_IMMEDIATE
+  @param[in]  is_pointblock Boolean flag to assemble diagonal or point block diagonal
   @param[out] assembled     CeedVector to store assembled diagonal
 
   @return An error code: 0 - success, otherwise - failure
@@ -389,10 +385,9 @@ static inline int CeedSingleOperatorAssembleAddDiagonal_Core(CeedOperator op, Ce
 /**
   @brief Core logic for assembling composite operator diagonal
 
-  @param[in] op             CeedOperator to assemble point block diagonal
-  @param[in] request        Address of CeedRequest for non-blocking completion, else
-                            CEED_REQUEST_IMMEDIATE
-  @param[in] is_pointblock  Boolean flag to assemble diagonal or point block diagonal
+  @param[in]  op            CeedOperator to assemble point block diagonal
+  @param[in]  request       Address of CeedRequest for non-blocking completion, else CEED_REQUEST_IMMEDIATE
+  @param[in]  is_pointblock Boolean flag to assemble diagonal or point block diagonal
   @param[out] assembled     CeedVector to store assembled diagonal
 
   @return An error code: 0 - success, otherwise - failure
@@ -403,8 +398,8 @@ static inline int CeedCompositeOperatorLinearAssembleAddDiagonal(CeedOperator op
                                                                  CeedVector assembled) {
   CeedInt       num_sub;
   CeedOperator *suboperators;
-  CeedCall(CeedOperatorGetNumSub(op, &num_sub));
-  CeedCall(CeedOperatorGetSubList(op, &suboperators));
+  CeedCall(CeedCompositeOperatorGetNumSub(op, &num_sub));
+  CeedCall(CeedCompositeOperatorGetSubList(op, &suboperators));
   for (CeedInt i = 0; i < num_sub; i++) {
     if (is_pointblock) {
       CeedCall(CeedOperatorLinearAssembleAddPointBlockDiagonal(suboperators[i], assembled, request));
@@ -420,8 +415,8 @@ static inline int CeedCompositeOperatorLinearAssembleAddDiagonal(CeedOperator op
 
   Users should generally use CeedOperatorLinearAssembleSymbolic()
 
-  @param[in] op      CeedOperator to assemble nonzero pattern
-  @param[in] offset  Offset for number of entries
+  @param[in]  op     CeedOperator to assemble nonzero pattern
+  @param[in]  offset Offset for number of entries
   @param[out] rows   Row number for each entry
   @param[out] cols   Column number for each entry
 
@@ -502,9 +497,9 @@ static int CeedSingleOperatorAssembleSymbolic(CeedOperator op, CeedInt offset, C
 
   Users should generally use CeedOperatorLinearAssemble()
 
-  @param[in] op       CeedOperator to assemble
-  @param[in] offset   Offest for number of entries
-  @param[out] values  Values to assemble into matrix
+  @param[in]  op     CeedOperator to assemble
+  @param[in]  offset Offset for number of entries
+  @param[out] values Values to assemble into matrix
 
   @return An error code: 0 - success, otherwise - failure
 
@@ -641,8 +636,8 @@ static int CeedSingleOperatorAssemble(CeedOperator op, CeedInt offset, CeedVecto
 /**
   @brief Count number of entries for assembled CeedOperator
 
-  @param[in] op            CeedOperator to assemble
-  @param[out] num_entries  Number of entries in assembled representation
+  @param[in]  op          CeedOperator to assemble
+  @param[out] num_entries Number of entries in assembled representation
 
   @return An error code: 0 - success, otherwise - failure
 
@@ -667,14 +662,13 @@ static int CeedSingleOperatorAssemblyCountEntries(CeedOperator op, CeedInt *num_
 }
 
 /**
-  @brief Common code for creating a multigrid coarse operator and level
-           transfer operators for a CeedOperator
+  @brief Common code for creating a multigrid coarse operator and level transfer operators for a CeedOperator
 
-  @param[in] op_fine       Fine grid operator
-  @param[in] p_mult_fine   L-vector multiplicity in parallel gather/scatter
-  @param[in] rstr_coarse   Coarse grid restriction
-  @param[in] basis_coarse  Coarse grid active vector basis
-  @param[in] basis_c_to_f  Basis for coarse to fine interpolation
+  @param[in]  op_fine      Fine grid operator
+  @param[in]  p_mult_fine  L-vector multiplicity in parallel gather/scatter
+  @param[in]  rstr_coarse  Coarse grid restriction
+  @param[in]  basis_coarse Coarse grid active vector basis
+  @param[in]  basis_c_to_f Basis for coarse to fine interpolation
   @param[out] op_coarse    Coarse grid operator
   @param[out] op_prolong   Coarse to fine operator
   @param[out] op_restrict  Fine to coarse operator
@@ -795,6 +789,11 @@ static int CeedSingleOperatorMultigridLevel(CeedOperator op_fine, CeedVector p_m
     CeedCall(CeedFree(&restriction_name));
   }
 
+  // Check
+  CeedCall(CeedOperatorCheckReady(*op_coarse));
+  CeedCall(CeedOperatorCheckReady(*op_prolong));
+  CeedCall(CeedOperatorCheckReady(*op_restrict));
+
   // Cleanup
   CeedCall(CeedVectorDestroy(&mult_vec));
   CeedCall(CeedBasisDestroy(&basis_c_to_f));
@@ -807,12 +806,12 @@ static int CeedSingleOperatorMultigridLevel(CeedOperator op_fine, CeedVector p_m
 /**
   @brief Build 1D mass matrix and Laplacian with perturbation
 
-  @param[in] interp_1d    Interpolation matrix in one dimension
-  @param[in] grad_1d      Gradient matrix in one dimension
-  @param[in] q_weight_1d  Quadrature weights in one dimension
-  @param[in] P_1d         Number of basis nodes in one dimension
-  @param[in] Q_1d         Number of quadrature points in one dimension
-  @param[in] dim          Dimension of basis
+  @param[in]  interp_1d   Interpolation matrix in one dimension
+  @param[in]  grad_1d     Gradient matrix in one dimension
+  @param[in]  q_weight_1d Quadrature weights in one dimension
+  @param[in]  P_1d        Number of basis nodes in one dimension
+  @param[in]  Q_1d        Number of quadrature points in one dimension
+  @param[in]  dim         Dimension of basis
   @param[out] mass        Assembled mass matrix in one dimension
   @param[out] laplace     Assembled perturbed Laplacian in one dimension
 
@@ -841,29 +840,27 @@ CeedPragmaOptimizeOff static int CeedBuildMassLaplace(const CeedScalar *interp_1
   for (CeedInt i = 0; i < P_1d; i++) laplace[i + P_1d * i] += perturbation;
   return CEED_ERROR_SUCCESS;
 }
-CeedPragmaOptimizeOn
+CeedPragmaOptimizeOn;
 
-    /// @}
+/// @}
 
-    /// ----------------------------------------------------------------------------
-    /// CeedOperator Backend API
-    /// ----------------------------------------------------------------------------
-    /// @addtogroup CeedOperatorBackend
-    /// @{
+/// ----------------------------------------------------------------------------
+/// CeedOperator Backend API
+/// ----------------------------------------------------------------------------
+/// @addtogroup CeedOperatorBackend
+/// @{
 
-    /**
-      @brief Create object holding CeedQFunction assembly data for CeedOperator
+/**
+  @brief Create object holding CeedQFunction assembly data for CeedOperator
 
-      @param[in] ceed  A Ceed object where the CeedQFunctionAssemblyData will be created
-      @param[out] data Address of the variable where the newly created
-                         CeedQFunctionAssemblyData will be stored
+  @param[in]  ceed A Ceed object where the CeedQFunctionAssemblyData will be created
+  @param[out] data Address of the variable where the newly created CeedQFunctionAssemblyData will be stored
 
-      @return An error code: 0 - success, otherwise - failure
+  @return An error code: 0 - success, otherwise - failure
 
-      @ref Backend
-    **/
-    int
-    CeedQFunctionAssemblyDataCreate(Ceed ceed, CeedQFunctionAssemblyData *data) {
+  @ref Backend
+**/
+int CeedQFunctionAssemblyDataCreate(Ceed ceed, CeedQFunctionAssemblyData *data) {
   CeedCall(CeedCalloc(1, data));
   (*data)->ref_count = 1;
   (*data)->ceed      = ceed;
@@ -875,7 +872,7 @@ CeedPragmaOptimizeOn
 /**
   @brief Increment the reference counter for a CeedQFunctionAssemblyData
 
-  @param data  CeedQFunctionAssemblyData to increment the reference counter
+  @param[in,out] data CeedQFunctionAssemblyData to increment the reference counter
 
   @return An error code: 0 - success, otherwise - failure
 
@@ -889,8 +886,8 @@ int CeedQFunctionAssemblyDataReference(CeedQFunctionAssemblyData data) {
 /**
   @brief Set re-use of CeedQFunctionAssemblyData
 
-  @param data       CeedQFunctionAssemblyData to mark for reuse
-  @param reuse_data Boolean flag indicating data re-use
+  @param[in,out] data       CeedQFunctionAssemblyData to mark for reuse
+  @param[in]     reuse_data Boolean flag indicating data re-use
 
   @return An error code: 0 - success, otherwise - failure
 
@@ -905,8 +902,8 @@ int CeedQFunctionAssemblyDataSetReuse(CeedQFunctionAssemblyData data, bool reuse
 /**
   @brief Mark QFunctionAssemblyData as stale
 
-  @param data              CeedQFunctionAssemblyData to mark as stale
-  @param needs_data_update Boolean flag indicating if update is needed or completed
+  @param[in,out] data              CeedQFunctionAssemblyData to mark as stale
+  @param[in]     needs_data_update Boolean flag indicating if update is needed or completed
 
   @return An error code: 0 - success, otherwise - failure
 
@@ -920,7 +917,7 @@ int CeedQFunctionAssemblyDataSetUpdateNeeded(CeedQFunctionAssemblyData data, boo
 /**
   @brief Determine if QFunctionAssemblyData needs update
 
-  @param[in] data              CeedQFunctionAssemblyData to mark as stale
+  @param[in]  data             CeedQFunctionAssemblyData to mark as stale
   @param[out] is_update_needed Boolean flag indicating if re-assembly is required
 
   @return An error code: 0 - success, otherwise - failure
@@ -933,15 +930,13 @@ int CeedQFunctionAssemblyDataIsUpdateNeeded(CeedQFunctionAssemblyData data, bool
 }
 
 /**
-  @brief Copy the pointer to a CeedQFunctionAssemblyData. Both pointers should
-           be destroyed with `CeedCeedQFunctionAssemblyDataDestroy()`;
-           Note: If `*data_copy` is non-NULL, then it is assumed that
-           `*data_copy` is a pointer to a CeedQFunctionAssemblyData. This
-           CeedQFunctionAssemblyData will be destroyed if `*data_copy` is
-           the only reference to this CeedQFunctionAssemblyData.
+  @brief Copy the pointer to a CeedQFunctionAssemblyData.
+           Both pointers should be destroyed with `CeedCeedQFunctionAssemblyDataDestroy()`.
+           Note: If `*data_copy` is non-NULL, then it is assumed that `*data_copy` is a pointer to a CeedQFunctionAssemblyData.
+             This CeedQFunctionAssemblyData will be destroyed if `*data_copy` is the only reference to this CeedQFunctionAssemblyData.
 
-  @param data            CeedQFunctionAssemblyData to copy reference to
-  @param[out] data_copy  Variable to store copied reference
+  @param[in]     data      CeedQFunctionAssemblyData to copy reference to
+  @param[in,out] data_copy Variable to store copied reference
 
   @return An error code: 0 - success, otherwise - failure
 
@@ -957,7 +952,7 @@ int CeedQFunctionAssemblyDataReferenceCopy(CeedQFunctionAssemblyData data, CeedQ
 /**
   @brief Get setup status for internal objects for CeedQFunctionAssemblyData
 
-  @param[in] data      CeedQFunctionAssemblyData to retreive status
+  @param[in]  data     CeedQFunctionAssemblyData to retrieve status
   @param[out] is_setup Boolean flag for setup status
 
   @return An error code: 0 - success, otherwise - failure
@@ -972,9 +967,9 @@ int CeedQFunctionAssemblyDataIsSetup(CeedQFunctionAssemblyData data, bool *is_se
 /**
   @brief Set internal objects for CeedQFunctionAssemblyData
 
-  @param[in] data  CeedQFunctionAssemblyData to set objects
-  @param[in] vec   CeedVector to store assembled CeedQFunction at quadrature points
-  @param[in] rstr  CeedElemRestriction for CeedVector containing assembled CeedQFunction
+  @param[in,out] data CeedQFunctionAssemblyData to set objects
+  @param[in]     vec  CeedVector to store assembled CeedQFunction at quadrature points
+  @param[in]     rstr CeedElemRestriction for CeedVector containing assembled CeedQFunction
 
   @return An error code: 0 - success, otherwise - failure
 
@@ -1004,7 +999,7 @@ int CeedQFunctionAssemblyDataGetObjects(CeedQFunctionAssemblyData data, CeedVect
 /**
   @brief Destroy CeedQFunctionAssemblyData
 
-  @param[out] data  CeedQFunctionAssemblyData to destroy
+  @param[in,out] data  CeedQFunctionAssemblyData to destroy
 
   @return An error code: 0 - success, otherwise - failure
 
@@ -1024,8 +1019,8 @@ int CeedQFunctionAssemblyDataDestroy(CeedQFunctionAssemblyData *data) {
 /**
   @brief Get CeedOperatorAssemblyData
 
-  @param[in] op     CeedOperator to assemble
-  @param[out] data  CeedQFunctionAssemblyData
+  @param[in]  op   CeedOperator to assemble
+  @param[out] data CeedQFunctionAssemblyData
 
   @return An error code: 0 - success, otherwise - failure
 
@@ -1046,10 +1041,9 @@ int CeedOperatorGetOperatorAssemblyData(CeedOperator op, CeedOperatorAssemblyDat
 /**
   @brief Create object holding CeedOperator assembly data
 
-  @param[in] ceed   A Ceed object where the CeedOperatorAssemblyData will be created
-  @param[in] op     CeedOperator to be assembled
-  @param[out] data  Address of the variable where the newly created
-                      CeedOperatorAssemblyData will be stored
+  @param[in]  ceed Ceed object where the CeedOperatorAssemblyData will be created
+  @param[in]  op   CeedOperator to be assembled
+  @param[out] data Address of the variable where the newly created CeedOperatorAssemblyData will be stored
 
   @return An error code: 0 - success, otherwise - failure
 
@@ -1151,11 +1145,11 @@ int CeedOperatorAssemblyDataCreate(Ceed ceed, CeedOperator op, CeedOperatorAssem
 /**
   @brief Get CeedOperator CeedEvalModes for assembly
 
-  @param[in] data                CeedOperatorAssemblyData
-  @param[out] num_eval_mode_in   Pointer to hold number of input CeedEvalModes, or NULL
-  @param[out] eval_mode_in       Pointer to hold input CeedEvalModes, or NULL
-  @param[out] num_eval_mode_out  Pointer to hold number of output CeedEvalModes, or NULL
-  @param[out] eval_mode_out      Pointer to hold output CeedEvalModes, or NULL
+  @param[in]  data              CeedOperatorAssemblyData
+  @param[out] num_eval_mode_in  Pointer to hold number of input CeedEvalModes, or NULL
+  @param[out] eval_mode_in      Pointer to hold input CeedEvalModes, or NULL
+  @param[out] num_eval_mode_out Pointer to hold number of output CeedEvalModes, or NULL
+  @param[out] eval_mode_out     Pointer to hold output CeedEvalModes, or NULL
 
   @return An error code: 0 - success, otherwise - failure
 
@@ -1174,11 +1168,11 @@ int CeedOperatorAssemblyDataGetEvalModes(CeedOperatorAssemblyData data, CeedInt 
 /**
   @brief Get CeedOperator CeedBasis data for assembly
 
-  @param[in] data        CeedOperatorAssemblyData
-  @param[out] basis_in   Pointer to hold active input CeedBasis, or NULL
-  @param[out] B_in       Pointer to hold assembled active input B, or NULL
-  @param[out] basis_out  Pointer to hold active output CeedBasis, or NULL
-  @param[out] B_out      Pointer to hold assembled active output B, or NULL
+  @param[in]  data      CeedOperatorAssemblyData
+  @param[out] basis_in  Pointer to hold active input CeedBasis, or NULL
+  @param[out] B_in      Pointer to hold assembled active input B, or NULL
+  @param[out] basis_out Pointer to hold active output CeedBasis, or NULL
+  @param[out] B_out     Pointer to hold assembled active output B, or NULL
 
   @return An error code: 0 - success, otherwise - failure
 
@@ -1274,7 +1268,7 @@ int CeedOperatorAssemblyDataGetBases(CeedOperatorAssemblyData data, CeedBasis *b
 /**
   @brief Destroy CeedOperatorAssemblyData
 
-  @param[out] data  CeedOperatorAssemblyData to destroy
+  @param[in,out] data CeedOperatorAssemblyData to destroy
 
   @return An error code: 0 - success, otherwise - failure
 
@@ -1306,28 +1300,19 @@ int CeedOperatorAssemblyDataDestroy(CeedOperatorAssemblyData *data) {
 /**
   @brief Assemble a linear CeedQFunction associated with a CeedOperator
 
-  This returns a CeedVector containing a matrix at each quadrature point
-    providing the action of the CeedQFunction associated with the CeedOperator.
-    The vector 'assembled' is of shape
-      [num_elements, num_input_fields, num_output_fields, num_quad_points]
-    and contains column-major matrices representing the action of the
-    CeedQFunction for a corresponding quadrature point on an element. Inputs and
-    outputs are in the order provided by the user when adding CeedOperator fields.
-    For example, a CeedQFunction with inputs 'u' and 'gradu' and outputs 'gradv' and
-    'v', provided in that order, would result in an assembled QFunction that
-    consists of (1 + dim) x (dim + 1) matrices at each quadrature point acting
-    on the input [u, du_0, du_1] and producing the output [dv_0, dv_1, v].
+  This returns a CeedVector containing a matrix at each quadrature point providing the action of the CeedQFunction associated with the CeedOperator.
+    The vector 'assembled' is of shape [num_elements, num_input_fields, num_output_fields, num_quad_points] and contains column-major matrices
+representing the action of the CeedQFunction for a corresponding quadrature point on an element. Inputs and outputs are in the order provided by the
+user when adding CeedOperator fields. For example, a CeedQFunction with inputs 'u' and 'gradu' and outputs 'gradv' and 'v', provided in that order,
+would result in an assembled QFunction that consists of (1 + dim) x (dim + 1) matrices at each quadrature point acting on the input [u, du_0, du_1]
+and producing the output [dv_0, dv_1, v].
 
-  Note: Calling this function asserts that setup is complete
-          and sets the CeedOperator as immutable.
+  Note: Calling this function asserts that setup is complete and sets the CeedOperator as immutable.
 
-  @param op              CeedOperator to assemble CeedQFunction
-  @param[out] assembled  CeedVector to store assembled CeedQFunction at
-                           quadrature points
-  @param[out] rstr       CeedElemRestriction for CeedVector containing assembled
-                           CeedQFunction
-  @param request         Address of CeedRequest for non-blocking completion, else
-                           @ref CEED_REQUEST_IMMEDIATE
+  @param[in]  op        CeedOperator to assemble CeedQFunction
+  @param[out] assembled CeedVector to store assembled CeedQFunction at quadrature points
+  @param[out] rstr      CeedElemRestriction for CeedVector containing assembled CeedQFunction
+  @param[in]  request   Address of CeedRequest for non-blocking completion, else @ref CEED_REQUEST_IMMEDIATE
 
   @return An error code: 0 - success, otherwise - failure
 
@@ -1356,18 +1341,15 @@ int CeedOperatorLinearAssembleQFunction(CeedOperator op, CeedVector *assembled, 
 }
 
 /**
-  @brief Assemble CeedQFunction and store result internall. Return copied
-           references of stored data to the caller. Caller is responsible for
-           ownership and destruction of the copied references. See also
-           @ref CeedOperatorLinearAssembleQFunction
+  @brief Assemble CeedQFunction and store result internally.
+           Return copied references of stored data to the caller.
+           Caller is responsible for ownership and destruction of the copied references.
+           See also @ref CeedOperatorLinearAssembleQFunction
 
-  @param op              CeedOperator to assemble CeedQFunction
-  @param assembled       CeedVector to store assembled CeedQFunction at
-                           quadrature points
-  @param rstr            CeedElemRestriction for CeedVector containing assembled
-                           CeedQFunction
-  @param request         Address of CeedRequest for non-blocking completion, else
-                           @ref CEED_REQUEST_IMMEDIATE
+  @param[in]  op        CeedOperator to assemble CeedQFunction
+  @param[out] assembled CeedVector to store assembled CeedQFunction at quadrature points
+  @param[out] rstr      CeedElemRestriction for CeedVector containing assembledCeedQFunction
+  @param[in]  request   Address of CeedRequest for non-blocking completion, else @ref CEED_REQUEST_IMMEDIATE
 
   @return An error code: 0 - success, otherwise - failure
 
@@ -1426,16 +1408,13 @@ int CeedOperatorLinearAssembleQFunctionBuildOrUpdate(CeedOperator op, CeedVector
 
   This overwrites a CeedVector with the diagonal of a linear CeedOperator.
 
-  Note: Currently only non-composite CeedOperators with a single field and
-          composite CeedOperators with single field sub-operators are supported.
+  Note: Currently only non-composite CeedOperators with a single field and composite CeedOperators with single field sub-operators are supported.
 
-  Note: Calling this function asserts that setup is complete
-          and sets the CeedOperator as immutable.
+  Note: Calling this function asserts that setup is complete and sets the CeedOperator as immutable.
 
-  @param op              CeedOperator to assemble CeedQFunction
-  @param[out] assembled  CeedVector to store assembled CeedOperator diagonal
-  @param request         Address of CeedRequest for non-blocking completion, else
-                           @ref CEED_REQUEST_IMMEDIATE
+  @param[in]  op        CeedOperator to assemble CeedQFunction
+  @param[out] assembled CeedVector to store assembled CeedOperator diagonal
+  @param[in]  request   Address of CeedRequest for non-blocking completion, else @ref CEED_REQUEST_IMMEDIATE
 
   @return An error code: 0 - success, otherwise - failure
 
@@ -1483,16 +1462,13 @@ int CeedOperatorLinearAssembleDiagonal(CeedOperator op, CeedVector assembled, Ce
 
   This sums into a CeedVector the diagonal of a linear CeedOperator.
 
-  Note: Currently only non-composite CeedOperators with a single field and
-          composite CeedOperators with single field sub-operators are supported.
+  Note: Currently only non-composite CeedOperators with a single field and composite CeedOperators with single field sub-operators are supported.
 
-  Note: Calling this function asserts that setup is complete
-          and sets the CeedOperator as immutable.
+  Note: Calling this function asserts that setup is complete and sets the CeedOperator as immutable.
 
-  @param op              CeedOperator to assemble CeedQFunction
-  @param[out] assembled  CeedVector to store assembled CeedOperator diagonal
-  @param request         Address of CeedRequest for non-blocking completion, else
-                           @ref CEED_REQUEST_IMMEDIATE
+  @param[in]  op        CeedOperator to assemble CeedQFunction
+  @param[out] assembled CeedVector to store assembled CeedOperator diagonal
+  @param[in]  request   Address of CeedRequest for non-blocking completion, else @ref CEED_REQUEST_IMMEDIATE
 
   @return An error code: 0 - success, otherwise - failure
 
@@ -1538,24 +1514,17 @@ int CeedOperatorLinearAssembleAddDiagonal(CeedOperator op, CeedVector assembled,
 /**
   @brief Assemble the point block diagonal of a square linear CeedOperator
 
-  This overwrites a CeedVector with the point block diagonal of a linear
-    CeedOperator.
+  This overwrites a CeedVector with the point block diagonal of a linear CeedOperator.
 
-  Note: Currently only non-composite CeedOperators with a single field and
-          composite CeedOperators with single field sub-operators are supported.
+  Note: Currently only non-composite CeedOperators with a single field and composite CeedOperators with single field sub-operators are supported.
 
-  Note: Calling this function asserts that setup is complete
-          and sets the CeedOperator as immutable.
+  Note: Calling this function asserts that setup is complete and sets the CeedOperator as immutable.
 
-  @param op              CeedOperator to assemble CeedQFunction
-  @param[out] assembled  CeedVector to store assembled CeedOperator point block
-                           diagonal, provided in row-major form with an
-                           @a num_comp * @a num_comp block at each node. The dimensions
-                           of this vector are derived from the active vector
-                           for the CeedOperator. The array has shape
-                           [nodes, component out, component in].
-  @param request         Address of CeedRequest for non-blocking completion, else
-                           CEED_REQUEST_IMMEDIATE
+  @param[in]  op        CeedOperator to assemble CeedQFunction
+  @param[out] assembled CeedVector to store assembled CeedOperator point block diagonal, provided in row-major form with an @a num_comp * @a num_comp
+block at each node. The dimensions of this vector are derived from the active vector for the CeedOperator. The array has shape [nodes, component out,
+component in].
+  @param[in]  request   Address of CeedRequest for non-blocking completion, else @ref CEED_REQUEST_IMMEDIATE
 
   @return An error code: 0 - success, otherwise - failure
 
@@ -1601,24 +1570,17 @@ int CeedOperatorLinearAssemblePointBlockDiagonal(CeedOperator op, CeedVector ass
 /**
   @brief Assemble the point block diagonal of a square linear CeedOperator
 
-  This sums into a CeedVector with the point block diagonal of a linear
-    CeedOperator.
+  This sums into a CeedVector with the point block diagonal of a linear CeedOperator.
 
-  Note: Currently only non-composite CeedOperators with a single field and
-          composite CeedOperators with single field sub-operators are supported.
+  Note: Currently only non-composite CeedOperators with a single field and composite CeedOperators with single field sub-operators are supported.
 
-  Note: Calling this function asserts that setup is complete
-          and sets the CeedOperator as immutable.
+  Note: Calling this function asserts that setup is complete and sets the CeedOperator as immutable.
 
-  @param op              CeedOperator to assemble CeedQFunction
-  @param[out] assembled  CeedVector to store assembled CeedOperator point block
-                           diagonal, provided in row-major form with an
-                           @a num_comp * @a num_comp block at each node. The dimensions
-                           of this vector are derived from the active vector
-                           for the CeedOperator. The array has shape
-                           [nodes, component out, component in].
-  @param request         Address of CeedRequest for non-blocking completion, else
-                           CEED_REQUEST_IMMEDIATE
+  @param[in]  op        CeedOperator to assemble CeedQFunction
+  @param[out] assembled CeedVector to store assembled CeedOperator point block diagonal, provided in row-major form with an @a num_comp * @a num_comp
+block at each node. The dimensions of this vector are derived from the active vector for the CeedOperator. The array has shape [nodes, component out,
+component in].
+  @param[in]  request Address of CeedRequest for non-blocking completion, else @ref CEED_REQUEST_IMMEDIATE
 
   @return An error code: 0 - success, otherwise - failure
 
@@ -1649,7 +1611,7 @@ int CeedOperatorLinearAssembleAddPointBlockDiagonal(CeedOperator op, CeedVector 
       return CEED_ERROR_SUCCESS;
     }
   }
-  // Default interface implemenation
+  // Default interface implementation
   bool is_composite;
   CeedCall(CeedOperatorIsComposite(op, &is_composite));
   if (is_composite) {
@@ -1664,24 +1626,20 @@ int CeedOperatorLinearAssembleAddPointBlockDiagonal(CeedOperator op, CeedVector 
 /**
    @brief Fully assemble the nonzero pattern of a linear operator.
 
-   Expected to be used in conjunction with CeedOperatorLinearAssemble()
+   Expected to be used in conjunction with CeedOperatorLinearAssemble().
 
-   The assembly routines use coordinate format, with num_entries tuples of the
-   form (i, j, value) which indicate that value should be added to the matrix
-   in entry (i, j). Note that the (i, j) pairs are not unique and may repeat.
-   This function returns the number of entries and their (i, j) locations,
-   while CeedOperatorLinearAssemble() provides the values in the same
-   ordering.
+   The assembly routines use coordinate format, with num_entries tuples of the form (i, j, value) which indicate that value should be added to the
+matrix in entry (i, j). Note that the (i, j) pairs are not unique and may repeat. This function returns the number of entries and their (i, j)
+locations, while CeedOperatorLinearAssemble() provides the values in the same ordering.
 
    This will generally be slow unless your operator is low-order.
 
-  Note: Calling this function asserts that setup is complete
-          and sets the CeedOperator as immutable.
+   Note: Calling this function asserts that setup is complete and sets the CeedOperator as immutable.
 
-   @param[in]  op           CeedOperator to assemble
-   @param[out] num_entries  Number of entries in coordinate nonzero pattern
-   @param[out] rows         Row number for each entry
-   @param[out] cols         Column number for each entry
+   @param[in]  op          CeedOperator to assemble
+   @param[out] num_entries Number of entries in coordinate nonzero pattern
+   @param[out] rows        Row number for each entry
+   @param[out] cols        Column number for each entry
 
    @ref User
 **/
@@ -1712,8 +1670,8 @@ int CeedOperatorLinearAssembleSymbolic(CeedOperator op, CeedSize *num_entries, C
   CeedCall(CeedOperatorIsComposite(op, &is_composite));
   *num_entries = 0;
   if (is_composite) {
-    CeedCall(CeedOperatorGetNumSub(op, &num_suboperators));
-    CeedCall(CeedOperatorGetSubList(op, &sub_operators));
+    CeedCall(CeedCompositeOperatorGetNumSub(op, &num_suboperators));
+    CeedCall(CeedCompositeOperatorGetSubList(op, &sub_operators));
     for (CeedInt k = 0; k < num_suboperators; ++k) {
       CeedCall(CeedSingleOperatorAssemblyCountEntries(sub_operators[k], &single_entries));
       *num_entries += single_entries;
@@ -1728,8 +1686,8 @@ int CeedOperatorLinearAssembleSymbolic(CeedOperator op, CeedSize *num_entries, C
   // assemble nonzero locations
   CeedInt offset = 0;
   if (is_composite) {
-    CeedCall(CeedOperatorGetNumSub(op, &num_suboperators));
-    CeedCall(CeedOperatorGetSubList(op, &sub_operators));
+    CeedCall(CeedCompositeOperatorGetNumSub(op, &num_suboperators));
+    CeedCall(CeedCompositeOperatorGetSubList(op, &sub_operators));
     for (CeedInt k = 0; k < num_suboperators; ++k) {
       CeedCall(CeedSingleOperatorAssembleSymbolic(sub_operators[k], offset, *rows, *cols));
       CeedCall(CeedSingleOperatorAssemblyCountEntries(sub_operators[k], &single_entries));
@@ -1745,21 +1703,18 @@ int CeedOperatorLinearAssembleSymbolic(CeedOperator op, CeedSize *num_entries, C
 /**
    @brief Fully assemble the nonzero entries of a linear operator.
 
-   Expected to be used in conjunction with CeedOperatorLinearAssembleSymbolic()
+   Expected to be used in conjunction with CeedOperatorLinearAssembleSymbolic().
 
-   The assembly routines use coordinate format, with num_entries tuples of the
-   form (i, j, value) which indicate that value should be added to the matrix
-   in entry (i, j). Note that the (i, j) pairs are not unique and may repeat.
-   This function returns the values of the nonzero entries to be added, their
-   (i, j) locations are provided by CeedOperatorLinearAssembleSymbolic()
+   The assembly routines use coordinate format, with num_entries tuples of the form (i, j, value) which indicate that value should be added to the
+matrix in entry (i, j). Note that the (i, j) pairs are not unique and may repeat. This function returns the values of the nonzero entries to be added,
+their (i, j) locations are provided by CeedOperatorLinearAssembleSymbolic()
 
    This will generally be slow unless your operator is low-order.
 
-  Note: Calling this function asserts that setup is complete
-          and sets the CeedOperator as immutable.
+   Note: Calling this function asserts that setup is complete and sets the CeedOperator as immutable.
 
-   @param[in]  op      CeedOperator to assemble
-   @param[out] values  Values to assemble into matrix
+   @param[in]  op     CeedOperator to assemble
+   @param[out] values Values to assemble into matrix
 
    @ref User
 **/
@@ -1789,8 +1744,8 @@ int CeedOperatorLinearAssemble(CeedOperator op, CeedVector values) {
 
   CeedInt offset = 0;
   if (is_composite) {
-    CeedCall(CeedOperatorGetNumSub(op, &num_suboperators));
-    CeedCall(CeedOperatorGetSubList(op, &sub_operators));
+    CeedCall(CeedCompositeOperatorGetNumSub(op, &num_suboperators));
+    CeedCall(CeedCompositeOperatorGetSubList(op, &sub_operators));
     for (CeedInt k = 0; k < num_suboperators; k++) {
       CeedCall(CeedSingleOperatorAssemble(sub_operators[k], offset, values));
       CeedCall(CeedSingleOperatorAssemblyCountEntries(sub_operators[k], &single_entries));
@@ -1804,17 +1759,86 @@ int CeedOperatorLinearAssemble(CeedOperator op, CeedVector values) {
 }
 
 /**
-  @brief Create a multigrid coarse operator and level transfer operators
-           for a CeedOperator, creating the prolongation basis from the
-           fine and coarse grid interpolation
+  @brief Get the multiplicity of nodes across suboperators in a composite CeedOperator
 
-  Note: Calling this function asserts that setup is complete
-          and sets the CeedOperator as immutable.
+  Note: Calling this function asserts that setup is complete and sets the CeedOperator as immutable.
 
-  @param[in] op_fine       Fine grid operator
-  @param[in] p_mult_fine   L-vector multiplicity in parallel gather/scatter
-  @param[in] rstr_coarse   Coarse grid restriction
-  @param[in] basis_coarse  Coarse grid active vector basis
+  @param[in]  op               Composite CeedOperator
+  @param[in]  num_skip_indices Number of suboperators to skip
+  @param[in]  skip_indices     Array of indices of suboperators to skip
+  @param[out] mult             Vector to store multiplicity (of size l_size)
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref User
+**/
+int CeedCompositeOperatorGetMultiplicity(CeedOperator op, CeedInt num_skip_indices, CeedInt *skip_indices, CeedVector mult) {
+  CeedCall(CeedOperatorCheckReady(op));
+
+  Ceed                ceed;
+  CeedInt             num_sub_ops;
+  CeedSize            l_vec_len;
+  CeedScalar         *mult_array;
+  CeedVector          ones_l_vec;
+  CeedElemRestriction elem_restr;
+  CeedOperator       *sub_ops;
+
+  CeedCall(CeedOperatorGetCeed(op, &ceed));
+
+  // Zero mult vector
+  CeedCall(CeedVectorSetValue(mult, 0.0));
+
+  // Get suboperators
+  CeedCall(CeedCompositeOperatorGetNumSub(op, &num_sub_ops));
+  CeedCall(CeedCompositeOperatorGetSubList(op, &sub_ops));
+  if (num_sub_ops == 0) return CEED_ERROR_SUCCESS;
+
+  // Work vector
+  CeedCall(CeedVectorGetLength(mult, &l_vec_len));
+  CeedCall(CeedVectorCreate(ceed, l_vec_len, &ones_l_vec));
+  CeedCall(CeedVectorSetValue(ones_l_vec, 1.0));
+  CeedCall(CeedVectorGetArray(mult, CEED_MEM_HOST, &mult_array));
+
+  // Compute multiplicity across suboperators
+  for (CeedInt i = 0; i < num_sub_ops; i++) {
+    const CeedScalar *sub_mult_array;
+    CeedVector        sub_mult_l_vec, ones_e_vec;
+
+    // -- Check for suboperator to skip
+    for (CeedInt j = 0; j < num_skip_indices; j++) {
+      if (skip_indices[j] == i) continue;
+    }
+
+    // -- Sub operator multiplicity
+    CeedCall(CeedOperatorGetActiveElemRestriction(sub_ops[i], &elem_restr));
+    CeedCall(CeedElemRestrictionCreateVector(elem_restr, &sub_mult_l_vec, &ones_e_vec));
+    CeedCall(CeedVectorSetValue(sub_mult_l_vec, 0.0));
+    CeedCall(CeedElemRestrictionApply(elem_restr, CEED_NOTRANSPOSE, ones_l_vec, ones_e_vec, CEED_REQUEST_IMMEDIATE));
+    CeedCall(CeedElemRestrictionApply(elem_restr, CEED_TRANSPOSE, ones_e_vec, sub_mult_l_vec, CEED_REQUEST_IMMEDIATE));
+    CeedCall(CeedVectorGetArrayRead(sub_mult_l_vec, CEED_MEM_HOST, &sub_mult_array));
+    // ---- Flag every node present in the current suboperator
+    for (CeedInt j = 0; j < l_vec_len; j++) {
+      if (sub_mult_array[j] > 0.0) mult_array[j] += 1.0;
+    }
+    CeedCall(CeedVectorRestoreArrayRead(sub_mult_l_vec, &sub_mult_array));
+    CeedCall(CeedVectorDestroy(&sub_mult_l_vec));
+    CeedCall(CeedVectorDestroy(&ones_e_vec));
+  }
+  CeedCall(CeedVectorRestoreArray(mult, &mult_array));
+
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
+  @brief Create a multigrid coarse operator and level transfer operators for a CeedOperator, creating the prolongation basis from the fine and coarse
+grid interpolation
+
+  Note: Calling this function asserts that setup is complete and sets all four CeedOperators as immutable.
+
+  @param[in]  op_fine      Fine grid operator
+  @param[in]  p_mult_fine  L-vector multiplicity in parallel gather/scatter
+  @param[in]  rstr_coarse  Coarse grid restriction
+  @param[in]  basis_coarse Coarse grid active vector basis
   @param[out] op_coarse    Coarse grid operator
   @param[out] op_prolong   Coarse to fine operator
   @param[out] op_restrict  Fine to coarse operator
@@ -1839,17 +1863,15 @@ int CeedOperatorMultigridLevelCreate(CeedOperator op_fine, CeedVector p_mult_fin
 }
 
 /**
-  @brief Create a multigrid coarse operator and level transfer operators
-           for a CeedOperator with a tensor basis for the active basis
+  @brief Create a multigrid coarse operator and level transfer operators for a CeedOperator with a tensor basis for the active basis
 
-  Note: Calling this function asserts that setup is complete
-          and sets the CeedOperator as immutable.
+  Note: Calling this function asserts that setup is complete and sets all four CeedOperators as immutable.
 
-  @param[in] op_fine        Fine grid operator
-  @param[in] p_mult_fine    L-vector multiplicity in parallel gather/scatter
-  @param[in] rstr_coarse    Coarse grid restriction
-  @param[in] basis_coarse   Coarse grid active vector basis
-  @param[in] interp_c_to_f  Matrix for coarse to fine interpolation
+  @param[in]  op_fine       Fine grid operator
+  @param[in]  p_mult_fine   L-vector multiplicity in parallel gather/scatter
+  @param[in]  rstr_coarse   Coarse grid restriction
+  @param[in]  basis_coarse  Coarse grid active vector basis
+  @param[in]  interp_c_to_f Matrix for coarse to fine interpolation
   @param[out] op_coarse     Coarse grid operator
   @param[out] op_prolong    Coarse to fine operator
   @param[out] op_restrict   Fine to coarse operator
@@ -1900,17 +1922,15 @@ int CeedOperatorMultigridLevelCreateTensorH1(CeedOperator op_fine, CeedVector p_
 }
 
 /**
-  @brief Create a multigrid coarse operator and level transfer operators
-           for a CeedOperator with a non-tensor basis for the active vector
+  @brief Create a multigrid coarse operator and level transfer operators for a CeedOperator with a non-tensor basis for the active vector
 
-  Note: Calling this function asserts that setup is complete
-          and sets the CeedOperator as immutable.
+  Note: Calling this function asserts that setup is complete and sets all four CeedOperators as immutable.
 
-  @param[in] op_fine        Fine grid operator
-  @param[in] p_mult_fine    L-vector multiplicity in parallel gather/scatter
-  @param[in] rstr_coarse    Coarse grid restriction
-  @param[in] basis_coarse   Coarse grid active vector basis
-  @param[in] interp_c_to_f  Matrix for coarse to fine interpolation
+  @param[in]  op_fine       Fine grid operator
+  @param[in]  p_mult_fine   L-vector multiplicity in parallel gather/scatter
+  @param[in]  rstr_coarse   Coarse grid restriction
+  @param[in]  basis_coarse  Coarse grid active vector basis
+  @param[in]  interp_c_to_f Matrix for coarse to fine interpolation
   @param[out] op_coarse     Coarse grid operator
   @param[out] op_prolong    Coarse to fine operator
   @param[out] op_restrict   Fine to coarse operator
@@ -1962,26 +1982,18 @@ int CeedOperatorMultigridLevelCreateH1(CeedOperator op_fine, CeedVector p_mult_f
 }
 
 /**
-  @brief Build a FDM based approximate inverse for each element for a
-           CeedOperator
+  @brief Build a FDM based approximate inverse for each element for a CeedOperator
 
-  This returns a CeedOperator and CeedVector to apply a Fast Diagonalization
-    Method based approximate inverse. This function obtains the simultaneous
-    diagonalization for the 1D mass and Laplacian operators,
-      M = V^T V, K = V^T S V.
-    The assembled QFunction is used to modify the eigenvalues from simultaneous
-    diagonalization and obtain an approximate inverse of the form
-      V^T S^hat V. The CeedOperator must be linear and non-composite. The
-    associated CeedQFunction must therefore also be linear.
+  This returns a CeedOperator and CeedVector to apply a Fast Diagonalization Method based approximate inverse.
+    This function obtains the simultaneous diagonalization for the 1D mass and Laplacian operators, M = V^T V, K = V^T S V.
+    The assembled QFunction is used to modify the eigenvalues from simultaneous diagonalization and obtain an approximate inverse of the form V^T
+S^hat V. The CeedOperator must be linear and non-composite. The associated CeedQFunction must therefore also be linear.
 
-  Note: Calling this function asserts that setup is complete
-          and sets the CeedOperator as immutable.
+  Note: Calling this function asserts that setup is complete and sets the CeedOperator as immutable.
 
-  @param op            CeedOperator to create element inverses
-  @param[out] fdm_inv  CeedOperator to apply the action of a FDM based inverse
-                         for each element
-  @param request       Address of CeedRequest for non-blocking completion, else
-                         @ref CEED_REQUEST_IMMEDIATE
+  @param[in]  op      CeedOperator to create element inverses
+  @param[out] fdm_inv CeedOperator to apply the action of a FDM based inverse for each element
+  @param[in]  request Address of CeedRequest for non-blocking completion, else @ref CEED_REQUEST_IMMEDIATE
 
   @return An error code: 0 - success, otherwise - failure
 

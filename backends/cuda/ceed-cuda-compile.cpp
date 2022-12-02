@@ -113,9 +113,8 @@ int CeedGetKernelCuda(Ceed ceed, CUmodule module, const char *name, CUfunction *
   return CEED_ERROR_SUCCESS;
 }
 
-// Run kernel with block size selected automatically based on the kernel (which
-// may use enough registers to require a smaller block size than the hardware is
-// capable).
+// Run kernel with block size selected automatically based on the kernel (which may use enough registers to require a smaller block size than the
+// hardware is capable).
 int CeedRunKernelAutoblockCuda(Ceed ceed, CUfunction kernel, size_t points, void **args) {
   int min_grid_size, max_block_size;
   CeedCallCuda(ceed, cuOccupancyMaxPotentialBlockSize(&min_grid_size, &max_block_size, kernel, NULL, 0, 0x10000));
@@ -141,7 +140,7 @@ int CeedRunKernelDimCuda(Ceed ceed, CUfunction kernel, const int grid_size, cons
 }
 
 //------------------------------------------------------------------------------
-// Run CUDA kernel for spatial dimension with sharde memory
+// Run CUDA kernel for spatial dimension with shared memory
 //------------------------------------------------------------------------------
 int CeedRunKernelDimSharedCuda(Ceed ceed, CUfunction kernel, const int grid_size, const int block_size_x, const int block_size_y,
                                const int block_size_z, const int shared_mem_size, void **args) {

@@ -15,17 +15,14 @@
 #include <math.h>
 
 // -----------------------------------------------------------------------------
-// This QFunction sets up the geometric factors required for integration and
-//   coordinate transformations when reference coordinates have a different
-//   dimension than the one of physical coordinates
+// This QFunction sets up the geometric factors required for integration and coordinate transformations when reference coordinates have a different
+// dimension than the one of physical coordinates
 //
 // Reference (parent) 2D coordinates: X \in [-1, 1]^2
 //
-// Global 3D physical coordinates given by the mesh: xx \in [-R, R]^3
-//   with R radius of the sphere
+// Global 3D physical coordinates given by the mesh: xx \in [-R, R]^3 with R radius of the sphere
 //
-// Local 3D physical coordinates on the 2D manifold: x \in [-l, l]^3
-//   with l half edge of the cube inscribed in the sphere
+// Local 3D physical coordinates on the 2D manifold: x \in [-l, l]^3 with l half edge of the cube inscribed in the sphere
 //
 // Change of coordinates matrix computed by the library:
 //   (physical 3D coords relative to reference 2D coords)
@@ -42,11 +39,9 @@
 //
 // The quadrature data is stored in the array q_data.
 //
-// We require the determinant of the Jacobian to properly compute integrals of
-//   the form: int( u v )
+// We require the determinant of the Jacobian to properly compute integrals of the form: int( u v )
 //
 // Qdata: mod_J * w
-//
 // -----------------------------------------------------------------------------
 CEED_QFUNCTION(SetupMassGeo)(void *ctx, const CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
   // Inputs
@@ -137,12 +132,11 @@ CEED_QFUNCTION(SetupMassRhs)(void *ctx, const CeedInt Q, const CeedScalar *const
 // This QFunction applies the mass operator for a scalar field.
 //
 // Inputs:
-//   u     - Input vector at quadrature points
+//   u      - Input vector at quadrature points
 //   q_data - Geometric factors
 //
 // Output:
 //   v     - Output vector (test functions) at quadrature points
-//
 // -----------------------------------------------------------------------------
 CEED_QFUNCTION(Mass)(void *ctx, const CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
   // Inputs

@@ -21,10 +21,9 @@
 /**
   @brief Create a CeedTensorContract object for a CeedBasis
 
-  @param ceed           A Ceed object where the CeedTensorContract will be created
-  @param basis          CeedBasis for which the tensor contraction will be used
-  @param[out] contract  Address of the variable where the newly created
-                          CeedTensorContract will be stored.
+  @param[in]  ceed     Ceed object where the CeedTensorContract will be created
+  @param[in]  basis    CeedBasis for which the tensor contraction will be used
+  @param[out] contract Address of the variable where the newly created CeedTensorContract will be stored.
 
   @return An error code: 0 - success, otherwise - failure
 
@@ -61,17 +60,16 @@ int CeedTensorContractCreate(Ceed ceed, CeedBasis basis, CeedTensorContract *con
     TRANSPOSE:   v_ajc = t_bj u_abc
     If add != 0, "=" is replaced by "+="
 
-  @param contract  CeedTensorContract to use
-  @param A         First index of u, v
-  @param B         Middle index of u, one index of t
-  @param C         Last index of u, v
-  @param J         Middle index of v, one index of t
-  @param[in] t     Tensor array to contract against
-  @param t_mode    Transpose mode for t, \ref CEED_NOTRANSPOSE for t_jb
-                     \ref CEED_TRANSPOSE for t_bj
-  @param add       Add mode
-  @param[in] u     Input array
-  @param[out] v    Output array
+  @param[in]  contract CeedTensorContract to use
+  @param[in]  A        First index of u, v
+  @param[in]  B        Middle index of u, one index of t
+  @param[in]  C        Last index of u, v
+  @param[in]  J        Middle index of v, one index of t
+  @param[in]  t        Tensor array to contract against
+  @param[in]  t_mode   Transpose mode for t, \ref CEED_NOTRANSPOSE for t_jb \ref CEED_TRANSPOSE for t_bj
+  @param[in]  add      Add mode
+  @param[in]  u        Input array
+  @param[out] v        Output array
 
   @return An error code: 0 - success, otherwise - failure
 
@@ -86,8 +84,8 @@ int CeedTensorContractApply(CeedTensorContract contract, CeedInt A, CeedInt B, C
 /**
   @brief Get Ceed associated with a CeedTensorContract
 
-  @param contract   CeedTensorContract
-  @param[out] ceed  Variable to store Ceed
+  @param[in]  contract CeedTensorContract
+  @param[out] ceed     Variable to store Ceed
 
   @return An error code: 0 - success, otherwise - failure
 
@@ -101,8 +99,8 @@ int CeedTensorContractGetCeed(CeedTensorContract contract, Ceed *ceed) {
 /**
   @brief Get backend data of a CeedTensorContract
 
-  @param contract   CeedTensorContract
-  @param[out] data  Variable to store data
+  @param[in]  contract CeedTensorContract
+  @param[out] data     Variable to store data
 
   @return An error code: 0 - success, otherwise - failure
 
@@ -116,8 +114,8 @@ int CeedTensorContractGetData(CeedTensorContract contract, void *data) {
 /**
   @brief Set backend data of a CeedTensorContract
 
-  @param[out] contract  CeedTensorContract
-  @param data           Data to set
+  @param[in,out] contract CeedTensorContract
+  @param[in]     data     Data to set
 
   @return An error code: 0 - success, otherwise - failure
 
@@ -131,7 +129,7 @@ int CeedTensorContractSetData(CeedTensorContract contract, void *data) {
 /**
   @brief Increment the reference counter for a CeedTensorContract
 
-  @param contract  CeedTensorContract to increment the reference counter
+  @param[in,out] contract CeedTensorContract to increment the reference counter
 
   @return An error code: 0 - success, otherwise - failure
 
@@ -145,7 +143,7 @@ int CeedTensorContractReference(CeedTensorContract contract) {
 /**
   @brief Destroy a CeedTensorContract
 
-  @param contract  CeedTensorContract to destroy
+  @param[in,out] contract CeedTensorContract to destroy
 
   @return An error code: 0 - success, otherwise - failure
 

@@ -14,8 +14,7 @@
 #include <ceed.h>
 
 // -----------------------------------------------------------------------------
-// This QFunction sets up the geometric factors required for integration and
-//   coordinate transformations
+// This QFunction sets up the geometric factors required for integration and coordinate transformations
 //
 // Reference (parent) coordinates: X
 // Physical (current) coordinates: x
@@ -24,8 +23,7 @@
 //
 // All quadrature data is stored in 10 field vector of quadrature data.
 //
-// We require the transpose of the inverse of the Jacobian to properly compute
-//   integrals of the form: int( gradv u )
+// We require the transpose of the inverse of the Jacobian to properly compute integrals of the form: int( gradv u )
 //
 // Inverse of Jacobian:
 //   dXdx_i,j = Aij / detJ
@@ -35,7 +33,6 @@
 //              [A11 A12 A13]
 //  (detJ^-1) * [A21 A22 A23]
 //              [A31 A32 A33]
-//
 // -----------------------------------------------------------------------------
 CEED_QFUNCTION(SetupGeo)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
   // Inputs

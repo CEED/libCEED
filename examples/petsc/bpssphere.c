@@ -7,9 +7,8 @@
 
 //                        libCEED + PETSc Example: CEED BPs
 //
-// This example demonstrates a simple usage of libCEED with PETSc to solve the
-// CEED BP benchmark problems, see http://ceed.exascaleproject.org/bps,
-// on a closed surface, such as the one of a discrete sphere.
+// This example demonstrates a simple usage of libCEED with PETSc to solve the CEED BP benchmark problems, see http://ceed.exascaleproject.org/bps, on
+// a closed surface, such as the one of a discrete sphere.
 //
 // The code uses higher level communication protocols in DMPlex.
 //
@@ -30,8 +29,7 @@
 
 /// @file
 /// CEED BPs example using PETSc with DMPlex
-/// See bps.c for a "raw" implementation using a structured grid.
-/// and bpsdmplex.c for an implementation using an unstructured grid.
+/// See bps.c for a "raw" implementation using a structured grid and bpsdmplex.c for an implementation using an unstructured grid.
 static const char help[] = "Solve CEED BPs on a sphere using DMPlex in PETSc\n";
 
 #include "bpssphere.h"
@@ -52,8 +50,7 @@ static const char help[] = "Solve CEED BPs on a sphere using DMPlex in PETSc\n";
 #if PETSC_VERSION_LT(3, 12, 0)
 #ifdef PETSC_HAVE_CUDA
 #include <petsccuda.h>
-// Note: With PETSc prior to version 3.12.0, providing the source path to
-//       include 'cublas_v2.h' will be needed to use 'petsccuda.h'.
+// Note: With PETSc prior to version 3.12.0, providing the source path to include 'cublas_v2.h' will be needed to use 'petsccuda.h'.
 #endif
 #endif
 
@@ -108,8 +105,8 @@ int main(int argc, char **argv) {
   if (read_mesh) {
     PetscCall(DMPlexCreateFromFile(PETSC_COMM_WORLD, filename, NULL, PETSC_TRUE, &dm));
   } else {
-    // Create the mesh as a 0-refined sphere. This will create a cubic surface,
-    // not a box, and will snap to the unit sphere upon refinement.
+    // Create the mesh as a 0-refined sphere.
+    // This will create a cubic surface, not a box, and will snap to the unit sphere upon refinement.
     PetscCall(DMPlexCreateSphereMesh(PETSC_COMM_WORLD, topo_dim, simplex, 1., &dm));
     // Set the object name
     PetscCall(PetscObjectSetName((PetscObject)dm, "Sphere"));

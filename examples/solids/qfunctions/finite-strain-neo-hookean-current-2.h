@@ -27,10 +27,9 @@ struct Physics_private {
 // Series approximation of log1p()
 //  log1p() is not vectorized in libc
 //
-//  The series expansion is accurate to 1e-7 in the range sqrt(2)/2 < J < sqrt(2),
-//  with machine precision accuracy near J=1.  The initialization extends this range
-//  to 0.35 ~= sqrt(2)/4 < J < sqrt(2)*2 ~= 2.83, which should be sufficient for
-//  applications of the Neo-Hookean model.
+//  The series expansion is accurate to 1e-7 in the range sqrt(2)/2 < J < sqrt(2), with machine precision accuracy near J=1.
+//  The initialization extends this range to 0.35 ~= sqrt(2)/4 < J < sqrt(2)*2 ~= 2.83, which should be sufficient for applications of the Neo-Hookean
+//  model.
 // -----------------------------------------------------------------------------
 #ifndef LOG1P_SERIES_SHIFTED
 #define LOG1P_SERIES_SHIFTED

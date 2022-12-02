@@ -11,8 +11,7 @@
 #include <string.h>
 
 /**
-  @brief Set fields for Ceed QFunction for applying the mass matrix
-           on a vector system with three components
+  @brief Set fields for Ceed QFunction for applying the mass matrix on a vector system with three components
 **/
 static int CeedQFunctionInit_Vector3MassApply(Ceed ceed, const char *requested, CeedQFunction qf) {
   // Check QFunction name
@@ -35,8 +34,7 @@ static int CeedQFunctionInit_Vector3MassApply(Ceed ceed, const char *requested, 
 }
 
 /**
-  @brief Register Ceed QFunction for applying the mass matrix on a vector system
-           with three components
+  @brief Register Ceed QFunction for applying the mass matrix on a vector system with three components
 **/
 CEED_INTERN int CeedQFunctionRegister_Vector3MassApply(void) {
   return CeedQFunctionRegister("Vector3MassApply", Vector3MassApply_loc, 1, Vector3MassApply, CeedQFunctionInit_Vector3MassApply);

@@ -115,14 +115,14 @@ See the [Cargo documentation](https://doc.rust-lang.org/cargo/reference/specifyi
 
 The test suite produces [TAP](https://testanything.org) output and is run by:
 
-```
-make test
+```console
+$ make test
 ```
 
 or, using the `prove` tool distributed with Perl (recommended):
 
-```
-make prove
+```console
+$ make prove
 ```
 
 ## Backends

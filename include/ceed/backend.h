@@ -32,8 +32,7 @@
 
 /**
   @ingroup Ceed
-  This macro provides the ability to disable optimization flags for functions that
-  are sensitive to floting point optimizations.
+  This macro provides the ability to disable optimization flags for functions that are sensitive to floating point optimizations.
 **/
 #ifndef CeedPragmaOptimizeOff
 #if defined(__clang__)
@@ -92,8 +91,7 @@ typedef struct CeedQFunctionAssemblyData_private *CeedQFunctionAssemblyData;
 /// @ingroup CeedOperator
 typedef struct CeedOperatorAssemblyData_private *CeedOperatorAssemblyData;
 
-/* In the next 3 functions, p has to be the address of a pointer type, i.e. p
-   has to be a pointer to a pointer. */
+/* In the next 3 functions, p has to be the address of a pointer type, i.e. p has to be a pointer to a pointer. */
 CEED_INTERN int CeedMallocArray(size_t n, size_t unit, void *p);
 CEED_INTERN int CeedCallocArray(size_t n, size_t unit, void *p);
 CEED_INTERN int CeedReallocArray(size_t n, size_t unit, void *p);
@@ -125,9 +123,8 @@ CEED_INTERN int CeedFree(void *p);
     CeedChkBackend(ierr_q_);   \
   } while (0);
 
-/* Note that CeedMalloc and CeedCalloc will, generally, return pointers with
-   different memory alignments: CeedMalloc returns pointers aligned at
-   CEED_ALIGN bytes, while CeedCalloc uses the alignment of calloc. */
+/* Note that CeedMalloc and CeedCalloc will, generally, return pointers with different memory alignments:
+   CeedMalloc returns pointers aligned at CEED_ALIGN bytes, while CeedCalloc uses the alignment of calloc. */
 #define CeedMalloc(n, p) CeedMallocArray((n), sizeof(**(p)), p)
 #define CeedCalloc(n, p) CeedCallocArray((n), sizeof(**(p)), p)
 #define CeedRealloc(n, p) CeedReallocArray((n), sizeof(**(p)), p)
@@ -265,8 +262,6 @@ CEED_EXTERN int CeedOperatorGetNumArgs(CeedOperator op, CeedInt *num_args);
 CEED_EXTERN int CeedOperatorIsSetupDone(CeedOperator op, bool *is_setup_done);
 CEED_EXTERN int CeedOperatorGetQFunction(CeedOperator op, CeedQFunction *qf);
 CEED_EXTERN int CeedOperatorIsComposite(CeedOperator op, bool *is_composite);
-CEED_EXTERN int CeedOperatorGetNumSub(CeedOperator op, CeedInt *num_suboperators);
-CEED_EXTERN int CeedOperatorGetSubList(CeedOperator op, CeedOperator **sub_operators);
 CEED_EXTERN int CeedOperatorGetData(CeedOperator op, void *data);
 CEED_EXTERN int CeedOperatorSetData(CeedOperator op, void *data);
 CEED_EXTERN int CeedOperatorReference(CeedOperator op);
