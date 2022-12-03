@@ -9,6 +9,7 @@
 /// Miscellaneous utility functions
 
 #include "../navierstokes.h"
+#include <stdlib.h>
 
 PetscErrorCode ICs_FixMultiplicity(DM dm, CeedData ceed_data, User user, Vec Q_loc, Vec Q, CeedScalar time) {
   PetscFunctionBeginUser;
@@ -232,7 +233,7 @@ PetscErrorCode GetError_NS(CeedData ceed_data, DM dm, User user, Vec Q, PetscSca
     for(int i=0; i<ncomp; ++i)
       {
 	rel_error_comp_prim[i] = norm_error_comp_prim[i] / norm_exact_comp_prim[i];
-	rel_error_comp_cons[i] = norm_error_comp_cons[i] / norm_exact_comp_prim[i];
+	rel_error_comp_cons[i] = norm_error_comp_cons[i] / norm_exact_comp_cons[i];
       }
 
     // Output relative errors (total and components)
@@ -275,8 +276,9 @@ PetscErrorCode GetError_NS(CeedData ceed_data, DM dm, User user, Vec Q, PetscSca
     PetscCall(GetErrorComponents_NS(Q_prim, ncomp, norm_error_comp_prim));
     for(int i=0; i<ncomp; ++i)
       {
-	rel_error_comp_prim[i] = norm_error_comp_prim[i] / norm_exact_comp_prim[i];
-	rel_error_comp_cons[i] = norm_error_comp_cons[i] / norm_exact_comp_prim[i];
+	rel_error_comp_prim[i] = norm_error_comp_prim[i]*1. / norm_exact_comp_prim[i];
+	rel_error_comp_cons[i] = norm_error_comp_cons[i]*1. / norm_exact_comp_cons[i];
+	printf("%lf %lf %lf %lf\n", rel_error_comp_cons[i], norm_error_comp_cons[i], norm_exact_comp_cons[i], norm_error_comp_cons[i]*1. / norm_exact_comp_cons[i]);
       }
 
     // Output relative errors (total and components)
