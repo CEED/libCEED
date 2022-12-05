@@ -181,92 +181,103 @@ PetscErrorCode GetPrimitiveFromConservative_NS(Vec Q_cons, Vec Q_prim) {
 }
 
 // Get error for problems with exact solutions
-PetscErrorCode GetError_NS(CeedData ceed_data, DM dm, User user, Vec Q,
-                           PetscScalar final_time) {
+PetscErrorCode GetError_NS(CeedData ceed_data, DM dm, User user, Vec Q, PetscScalar final_time) {
   PetscInt       loc_nodes;
   Vec            Q_exact, Q_exact_loc, Q_loc;
   PetscErrorCode ierr;
   PetscFunctionBegin;
-  
-  if (user->phys->ics_time_label)
-    CeedOperatorContextSetDouble(ceed_data->op_ics, user->phys->ics_time_label, &final_time);
-  
+
+  if (user->phys->ics_time_label) CeedOperatorContextSetDouble(ceed_data->op_ics, user->phys->ics_time_label, &final_time);
+
   // Get exact solution at final time
-  ierr = DMCreateGlobalVector(dm, &Q_exact); CHKERRQ(ierr);
-  ierr = DMGetLocalVector(dm, &Q_exact_loc); CHKERRQ(ierr);
-  ierr = VecGetSize(Q_exact_loc, &loc_nodes); CHKERRQ(ierr);
-  ierr = ICs_FixMultiplicity(dm, ceed_data, user, Q_exact_loc, Q_exact,
-                             final_time); CHKERRQ(ierr);
-  
+  ierr = DMCreateGlobalVector(dm, &Q_exact);
+  CHKERRQ(ierr);
+  ierr = DMGetLocalVector(dm, &Q_exact_loc);
+  CHKERRQ(ierr);
+  ierr = VecGetSize(Q_exact_loc, &loc_nodes);
+  CHKERRQ(ierr);
+  ierr = ICs_FixMultiplicity(dm, ceed_data, user, Q_exact_loc, Q_exact, final_time);
+  CHKERRQ(ierr);
+
   PetscCall(DMGlobalToLocal(dm, Q_exact, INSERT_VALUES, Q_exact_loc));
   PetscCall(DMPlexInsertBoundaryValues(dm, PETSC_TRUE, Q_exact_loc, final_time, NULL, NULL, NULL));
-  
-  ierr = DMGetLocalVector(dm, &Q_loc); CHKERRQ(ierr);
+
+  ierr = DMGetLocalVector(dm, &Q_loc);
+  CHKERRQ(ierr);
   PetscCall(DMGlobalToLocal(dm, Q, INSERT_VALUES, Q_loc));
   PetscCall(DMPlexInsertBoundaryValues(dm, PETSC_TRUE, Q_loc, final_time, NULL, NULL, NULL));
-  
-  NormType norm_type = NORM_MAX;
-  MPI_Op norm_reduce = MPI_MAX;
+
+  NormType norm_type   = NORM_MAX;
+  MPI_Op   norm_reduce = MPI_MAX;
   // Get |exact solution - obtained solution|
   Vec Q_target_exact, Q_target;
-  
-  ierr = VecDuplicate(Q_loc, &Q_target); CHKERRQ(ierr);
-  ierr = VecDuplicate(Q_exact_loc, &Q_target_exact); CHKERRQ(ierr);
-  
-  if(user->phys->state_var == STATEVAR_PRIMITIVE) {
-    ierr = GetConservativeFromPrimitive_NS(Q_loc, Q_target); CHKERRQ(ierr);
-    ierr = GetConservativeFromPrimitive_NS(Q_exact_loc, Q_target_exact); CHKERRQ(ierr);
+
+  ierr = VecDuplicate(Q_loc, &Q_target);
+  CHKERRQ(ierr);
+  ierr = VecDuplicate(Q_exact_loc, &Q_target_exact);
+  CHKERRQ(ierr);
+
+  if (user->phys->state_var == STATEVAR_PRIMITIVE) {
+    ierr = GetConservativeFromPrimitive_NS(Q_loc, Q_target);
+    CHKERRQ(ierr);
+    ierr = GetConservativeFromPrimitive_NS(Q_exact_loc, Q_target_exact);
+    CHKERRQ(ierr);
   } else {
     PetscCall(GetPrimitiveFromConservative_NS(Q_loc, Q_target));
     PetscCall(GetPrimitiveFromConservative_NS(Q_exact_loc, Q_target_exact));
   }
   // Get norm of each component
   PetscReal norm_exact[5], norm_error[5], rel_error[5];
-  ierr = VecStrideNormAll(Q_target_exact, norm_type, norm_exact); CHKERRQ(ierr);
+  ierr = VecStrideNormAll(Q_target_exact, norm_type, norm_exact);
+  CHKERRQ(ierr);
   PetscCallMPI(MPI_Allreduce(MPI_IN_PLACE, norm_exact, 5, MPIU_REAL, norm_reduce, PETSC_COMM_WORLD));
-  ierr = VecAXPY(Q_target, -1.0, Q_target_exact);  CHKERRQ(ierr);
-  ierr = VecStrideNormAll(Q_target, norm_type, norm_error); CHKERRQ(ierr);
+  ierr = VecAXPY(Q_target, -1.0, Q_target_exact);
+  CHKERRQ(ierr);
+  ierr = VecStrideNormAll(Q_target, norm_type, norm_error);
+  CHKERRQ(ierr);
   PetscCallMPI(MPI_Allreduce(MPI_IN_PLACE, norm_error, 5, MPIU_REAL, norm_reduce, PETSC_COMM_WORLD));
-  if(user->phys->state_var == STATEVAR_PRIMITIVE)
-    {
-      ierr = PetscPrintf(PETSC_COMM_WORLD,
-			 "Relative Error converted from primitive to conservative:\n"); CHKERRQ(ierr);
-    } else {
-    ierr = PetscPrintf(PETSC_COMM_WORLD,
-		       "Relative Error converted from conservative to primitive:\n"); CHKERRQ(ierr);
+  if (user->phys->state_var == STATEVAR_PRIMITIVE) {
+    ierr = PetscPrintf(PETSC_COMM_WORLD, "Relative Error converted from primitive to conservative:\n");
+    CHKERRQ(ierr);
+  } else {
+    ierr = PetscPrintf(PETSC_COMM_WORLD, "Relative Error converted from conservative to primitive:\n");
+    CHKERRQ(ierr);
   }
-  for (int i=0; i<5; i++) {
+  for (int i = 0; i < 5; i++) {
     rel_error[i] = norm_error[i] / norm_exact[i];
-    ierr = PetscPrintf(PETSC_COMM_WORLD,
-		       "Component %d: %g (%g, %g)\n",
-		       i, (double)rel_error[i], norm_error[i], norm_exact[i]); CHKERRQ(ierr);
+    ierr         = PetscPrintf(PETSC_COMM_WORLD, "Component %d: %g (%g, %g)\n", i, (double)rel_error[i], norm_error[i], norm_exact[i]);
+    CHKERRQ(ierr);
   }
   PetscCall(VecDestroy(&Q_target_exact));
   PetscCall(VecDestroy(&Q_target));
   // Report errors in source variables
-  ierr = VecStrideNormAll(Q_exact_loc, norm_type, norm_exact); CHKERRQ(ierr);
+  ierr = VecStrideNormAll(Q_exact_loc, norm_type, norm_exact);
+  CHKERRQ(ierr);
   PetscCallMPI(MPI_Allreduce(MPI_IN_PLACE, norm_exact, 5, MPIU_REAL, norm_reduce, PETSC_COMM_WORLD));
-  ierr = VecAXPY(Q_loc, -1.0, Q_exact_loc);  CHKERRQ(ierr);
-  ierr = VecStrideNormAll(Q_loc, norm_type, norm_error); CHKERRQ(ierr);
+  ierr = VecAXPY(Q_loc, -1.0, Q_exact_loc);
+  CHKERRQ(ierr);
+  ierr = VecStrideNormAll(Q_loc, norm_type, norm_error);
+  CHKERRQ(ierr);
   PetscCallMPI(MPI_Allreduce(MPI_IN_PLACE, norm_error, 5, MPIU_REAL, norm_reduce, PETSC_COMM_WORLD));
-  if(user->phys->state_var == STATEVAR_PRIMITIVE)
-    {
-      ierr = PetscPrintf(PETSC_COMM_WORLD,
-			 "Relative Error in primitive:\n"); CHKERRQ(ierr);
-    } else {
-    ierr = PetscPrintf(PETSC_COMM_WORLD,
-		       "Relative Error in conservative:\n"); CHKERRQ(ierr);
+  if (user->phys->state_var == STATEVAR_PRIMITIVE) {
+    ierr = PetscPrintf(PETSC_COMM_WORLD, "Relative Error in primitive:\n");
+    CHKERRQ(ierr);
+  } else {
+    ierr = PetscPrintf(PETSC_COMM_WORLD, "Relative Error in conservative:\n");
+    CHKERRQ(ierr);
   }
-  for (int i=0; i<5; i++) {
+  for (int i = 0; i < 5; i++) {
     rel_error[i] = norm_error[i] / norm_exact[i];
-    ierr = PetscPrintf(PETSC_COMM_WORLD,
-		       "Component %d: %g (%g, %g)\n",
-		       i, (double)rel_error[i], norm_error[i], norm_exact[i]); CHKERRQ(ierr);
+    ierr         = PetscPrintf(PETSC_COMM_WORLD, "Component %d: %g (%g, %g)\n", i, (double)rel_error[i], norm_error[i], norm_exact[i]);
+    CHKERRQ(ierr);
   }
   // Cleanup
-  ierr = DMRestoreLocalVector(dm, &Q_exact_loc); CHKERRQ(ierr);
-  ierr = DMRestoreLocalVector(dm, &Q_loc); CHKERRQ(ierr);
-  ierr = VecDestroy(&Q_exact); CHKERRQ(ierr);
+  ierr = DMRestoreLocalVector(dm, &Q_exact_loc);
+  CHKERRQ(ierr);
+  ierr = DMRestoreLocalVector(dm, &Q_loc);
+  CHKERRQ(ierr);
+  ierr = VecDestroy(&Q_exact);
+  CHKERRQ(ierr);
 
   PetscFunctionReturn(0);
 }
