@@ -149,9 +149,10 @@ static PetscErrorCode GetYNodeLocs(const MPI_Comm comm, const char path[PETSC_MA
  * If `node_locs` is not NULL, then the nodes will be placed at `node_locs` locations.
  * If it is NULL, then the modified coordinate values will be set in the array, along with `num_node_locs`.
  */
-static PetscErrorCode ModifyMesh(MPI_Comm comm, DM dm, PetscInt dim, PetscReal growth, PetscInt N, PetscReal refine_height, PetscReal top_angle,
+static PetscErrorCode ModifyMesh(MPI_Comm comm, DM dm, PetscInt dim, PetscReal aspect_ratio_lam_bdry, PetscReal lam_bdry_height,
+                                 PetscReal turb_bdry_height, PetscReal max_height, PetscReal turb_bdry_percent, PetscReal top_angle,
                                  PetscReal *node_locs[], PetscInt *num_node_locs) {
-  PetscInt     narr, ncoords;
+  PetscInt     ierr, narr, ncoords;
   PetscReal    domain_min[3], domain_max[3], domain_size[3];
   PetscScalar *arr_coords;
   Vec          vec_coords;
@@ -171,35 +172,22 @@ static PetscErrorCode ModifyMesh(MPI_Comm comm, DM dm, PetscInt dim, PetscReal g
   PetscScalar(*coords)[dim] = (PetscScalar(*)[dim])arr_coords;
   ncoords                   = narr / dim;
 
-  // Get mesh information
-  PetscInt nmax = 3, faces[3];
+  h1 = exp(double x)
+
+      // Get mesh information
+      PetscInt nmax = 3,
+  faces[3];
   PetscCall(PetscOptionsGetIntArray(NULL, NULL, "-dm_plex_box_faces", faces, &nmax, NULL));
   // Get element size of the box mesh, for indexing each node
   const PetscReal dybox = domain_size[1] / faces[1];
 
   if (!*node_locs) {
-    // Calculate the first element height
-    PetscReal dy1 = refine_height * (growth - 1) / (pow(growth, N) - 1);
-
-    // Calculate log of sizing outside BL
-    PetscReal logdy = (log(domain_max[1]) - log(refine_height)) / (faces[1] - N);
-
-    *num_node_locs = faces[1] + 1;
-    PetscReal *temp_node_locs;
-    PetscCall(PetscMalloc1(*num_node_locs, &temp_node_locs));
-
-    for (PetscInt i = 0; i < ncoords; i++) {
-      PetscInt y_box_index = round(coords[i][1] / dybox);
-      if (y_box_index <= N) {
-        coords[i][1] =
-            (1 - (coords[i][0] - domain_min[0]) * angle_coeff / domain_max[1]) * dy1 * (pow(growth, coords[i][1] / dybox) - 1) / (growth - 1);
-      } else {
-        PetscInt j   = y_box_index - N;
-        coords[i][1] = (1 - (coords[i][0] - domain_min[0]) * angle_coeff / domain_max[1]) * exp(log(refine_height) + logdy * j);
-      }
-      if (coords[i][0] == domain_min[0] && coords[i][2] == domain_min[2]) temp_node_locs[y_box_index] = coords[i][1];
-    }
-
+    // Gather all parameters necessary to define the generating function
+    // Use Newton solver (SNES) to get b3 and k3 values for the generating function
+    // send the constructed generating function into:
+    // DMPlexRemapGeometry(DM dm, PetscReal time, void (*func)(PetscInt, PetscInt, PetscInt, const PetscInt[], const PetscInt[], const PetscScalar[],
+    // const PetscScalar[], const PetscScalar[], const PetscInt[], const PetscInt[], const PetscScalar[], const PetscScalar[], const PetscScalar[],
+    // PetscReal, const PetscReal[], PetscInt, const PetscScalar[], PetscScalar[]))
     *node_locs = temp_node_locs;
   } else {
     // Error checking
