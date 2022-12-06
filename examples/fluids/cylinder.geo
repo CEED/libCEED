@@ -119,3 +119,7 @@ Physical Surface("bottom") = {36, 112}; // bottom
 Physical Surface("cylinderwalls") = {94, 28, 50, 72}; // cylinderwalls
 //+
 Physical Surface("frontandback") = {37, 1, 4, 103, 3, 81, 2, 59, 5, 125}; // frontandback
+// Volume
+Physical Volume("mesh") = {1:5};
+Mesh 3;
+Coherence Mesh;

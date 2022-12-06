@@ -2,13 +2,14 @@ $MeshFormat
 4.1 0 8
 $EndMeshFormat
 $PhysicalNames
-6
+7
 2 1 "inlet"
 2 2 "outlet"
 2 3 "top"
 2 4 "bottom"
 2 5 "cylinderwalls"
 2 6 "frontandback"
+3 7 "mesh"
 $EndPhysicalNames
 $Entities
 22 40 25 5
