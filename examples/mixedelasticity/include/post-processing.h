@@ -6,6 +6,6 @@
 
 #include "setup-fe.h"
 #include "structs.h"
-PetscErrorCode PrintOutput(DM dm, Ceed ceed, AppCtx app_ctx, KSP ksp, Vec X, CeedScalar l2_error_u, CeedScalar l2_error_p);
+PetscErrorCode PrintOutput(DM dm, Ceed ceed, AppCtx app_ctx, SNES snes, KSP ksp, Vec X, CeedScalar l2_error_u, CeedScalar l2_error_p);
 
 #endif  // post_processing_h

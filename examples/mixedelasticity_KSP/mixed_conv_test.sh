@@ -16,25 +16,27 @@
 # software, applications, hardware, advanced system engineering and early
 # testbed platforms, in support of the nation's exascale computing imperative.
 
-# After make the problem, you can run convergence test by:
-#./linear_conv_test.sh -o 2
+# You can run convergence test by:
+#./mixed_conv_test.sh -u 2 -p 1
 
-# where o is polynomial order
+# where u, p are polynomial orders of displacement and pressure fields
 # Reading arguments with getopts options
-while getopts o: flag
+while getopts u:p: flag
 do
     case "${flag}" in
-        o) order=${OPTARG};;
+        u) order_u=${OPTARG};;
+        p) order_p=${OPTARG};;
     esac
 done
-echo "Running convergence test for mixed-linear elasticity with polynomial order ${order}";
+
+echo "Running convergence test for mixed-linear elasticity with polynomial order u:${order_u}, p:${order_p}";
 declare -A run_flags
 
     run_flags[dm_plex_dim]=2
     run_flags[dm_plex_box_faces]=4,4
     run_flags[dm_plex_simplex]=0
-    run_flags[u_order]=$order
-    run_flags[p_order]=1
+    run_flags[u_order]=$order_u
+    run_flags[p_order]=$order_p
     run_flags[problem]=mixed-linear-2d
     run_flags[ksp_max_it]=1000
     run_flags[q_extra]=1
@@ -65,3 +67,4 @@ for ((res=${test_flags[res_start]}; res<=${test_flags[res_end]}; res+=${test_fla
     i=$((i+1))
 done
 
+python mixed_conv_rate.py -f conv_test_result.csv

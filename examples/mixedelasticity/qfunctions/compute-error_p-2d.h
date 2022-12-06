@@ -14,7 +14,7 @@
 #include <ceed.h>
 
 // -----------------------------------------------------------------------------
-CEED_QFUNCTION(SetupError2Dp)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
+CEED_QFUNCTION(Error2Dp)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
   const CeedScalar *p = in[0], *target = in[1], *q_data = in[2];
   CeedScalar       *error = out[0];
   for (CeedInt i = 0; i < Q; i++) {

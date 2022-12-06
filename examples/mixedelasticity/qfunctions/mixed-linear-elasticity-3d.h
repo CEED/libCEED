@@ -49,7 +49,7 @@ struct LINEARContext_ {
 //   rhs        : (v, f) = \int (v^T * f * wdetJ) dX
 //                we save: rhs_u = f * wdetJ and rhs_p = 0
 // -----------------------------------------------------------------------------
-CEED_QFUNCTION(SetupMixedLinearRhs3D)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
+CEED_QFUNCTION(MixedLinearRhs3D)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
   const CeedScalar *coords = in[0], (*q_data)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[1];
   CeedScalar(*true_soln)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA])out[0], (*rhs_u)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA])out[1],
   (*rhs_p)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA])out[2];
@@ -103,19 +103,19 @@ CEED_QFUNCTION(SetupMixedLinearRhs3D)(void *ctx, CeedInt Q, const CeedScalar *co
   return 0;
 }
 // -----------------------------------------------------------------------------
-// This QFunction setup the lhs of the above equation
+// This QFunction setup the residual of the above equation
 // Inputs:
 //   dudX       : derivative of basis with respect to ref element coordinate; du/dX
 //   q_data     : updated weight of quadrature and inverse of the Jacobian J; [wdetJ, dXdx]
-//   basis_p    : basis for pressure field
+//   p          : interpolation of pressure field
 //
 // Output:
 //   dvdX       : (grad(v), sigma) = \int (dv/dX)^T (dX/dx^T * sigma) * wdetJ dX
 //                we save:    dvdX = (dX/dx^T * sigma) * wdetJ
-//   q          : (q, div(u)) - (q,p/k) = \int q^T [div(u) - p/k] * wdetJ dX
+//   q          : (q, div(u)) - (q, p/k) = \int q^T [div(u) - p/k] * wdetJ dX
 //                we save:            q = [div(u) - p/k] * wdetJ
 // -----------------------------------------------------------------------------
-CEED_QFUNCTION(SetupMixedLinear3D)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
+CEED_QFUNCTION(MixedLinearResidual3D)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
   const CeedScalar(*ug)[3][CEED_Q_VLA] = (const CeedScalar(*)[3][CEED_Q_VLA])in[0], (*q_data)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[1],
         (*p)[CEED_Q_VLA]           = (const CeedScalar(*)[CEED_Q_VLA])in[2];
   CeedScalar(*dvdX)[3][CEED_Q_VLA] = (CeedScalar(*)[3][CEED_Q_VLA])out[0], (*q)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA])out[1];
@@ -128,7 +128,7 @@ CEED_QFUNCTION(SetupMixedLinear3D)(void *ctx, CeedInt Q, const CeedScalar *const
   const CeedScalar kappa   = E / (3. * (1 - 2 * nu));
   // Quadrature Point Loop
   CeedPragmaSIMD for (CeedInt i = 0; i < Q; i++) {
-    // Read spatial derivatives of u
+    // Read spatial derivatives of u; du/dX
     const CeedScalar dudX[3][3] = {
         {ug[0][0][i], ug[1][0][i], ug[2][0][i]},
         {ug[0][1][i], ug[1][1][i], ug[2][1][i]},
@@ -143,7 +143,7 @@ CEED_QFUNCTION(SetupMixedLinear3D)(void *ctx, CeedInt Q, const CeedScalar *const
     // Compute grad_u = dX/dx * du/dX
     CeedScalar grad_u[3][3];
     AlphaMatMatMult3(1.0, dXdx, dudX, grad_u);
-    // Compute Strain : e (epsilon)
+    // Compute strain : e (epsilon)
     // e = 1/2 (grad u + (grad u)^T)
     const CeedScalar e[3][3] = {
         {(grad_u[0][0] + grad_u[0][0]) / 2., (grad_u[0][1] + grad_u[1][0]) / 2., (grad_u[0][2] + grad_u[2][0]) / 2.},
@@ -151,14 +151,14 @@ CEED_QFUNCTION(SetupMixedLinear3D)(void *ctx, CeedInt Q, const CeedScalar *const
         {(grad_u[2][0] + grad_u[0][2]) / 2., (grad_u[2][1] + grad_u[1][2]) / 2., (grad_u[2][2] + grad_u[2][2]) / 2.}
     };
     CeedScalar e_kk = Trace3(e);
-    // Compute Deviatoric Strain : ed (epsilon)
+    // Compute Deviatoric Strain : ed
     // ed = e - 1/3 * trace(e) * I
     const CeedScalar ed[3][3] = {
         {e[0][0] - (1. / 3.) * e_kk, e[0][1],                    e[0][2]                   },
         {e[1][0],                    e[1][1] - (1. / 3.) * e_kk, e[1][2]                   },
         {e[2][0],                    e[2][1],                    e[2][2] - (1. / 3.) * e_kk}
     };
-    // Compute Sigma = p*delta_ij + 2*mu*ed_ij
+    // Compute sigma = p*delta_ij + 2*mu*ed_ij
     const CeedScalar sigma[3][3] = {
         {p[0][i] + 2. * mu * ed[0][0], 2. * mu * ed[0][1],           2. * mu * ed[0][2]          },
         {2. * mu * ed[1][0],           p[0][i] + 2. * mu * ed[1][1], 2. * mu * ed[1][2]          },
@@ -169,8 +169,81 @@ CEED_QFUNCTION(SetupMixedLinear3D)(void *ctx, CeedInt Q, const CeedScalar *const
     AlphaMatTransposeMatMultAtQuadrature3(Q, i, q_data[0][i], sigma, dXdx, dvdX);
     // div(u) = trace(grad(u))
     CeedScalar div_u = Trace3(grad_u);
-    // (q, div(u)) - (q,p/k) = q^T * (div(u) - p/k) * wdetJ
+    // (q, div(u)) - (q, p/k) = q^T * (div(u) - p/k) * wdetJ
     q[0][i] = (div_u - p[0][i] / kappa) * q_data[0][i];
+  }  // End of Quadrature Point Loop
+
+  return 0;
+}
+// -----------------------------------------------------------------------------
+// This QFunction setup the Jacobian of the above equation
+// Inputs:
+//   ddudX       : variational derivative of basis with respect to ref element coordinate; d(du)/dX
+//   q_data      : updated weight of quadrature and inverse of the Jacobian J; [wdetJ, dXdx]
+//   dp          : variation of interpolation of pressure field
+//
+// Output:
+//   ddvdX       : (grad(v), dsigma) = \int (dv/dX)^T (dX/dx^T * dsigma) * wdetJ dX
+//                we save:    ddvdX = (dX/dx^T * dsigma) * wdetJ
+//   dq          : (q, div(du)) - (q, dp/k) = \int q^T [div(du) - dp/k] * wdetJ dX
+//                we save:            dq = [div(du) - dp/k] * wdetJ
+// -----------------------------------------------------------------------------
+CEED_QFUNCTION(MixedLinearJacobian3D)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
+  const CeedScalar(*dug)[3][CEED_Q_VLA] = (const CeedScalar(*)[3][CEED_Q_VLA])in[0], (*q_data)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[1],
+        (*dp)[CEED_Q_VLA]           = (const CeedScalar(*)[CEED_Q_VLA])in[2];
+  CeedScalar(*ddvdX)[3][CEED_Q_VLA] = (CeedScalar(*)[3][CEED_Q_VLA])out[0], (*dq)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA])out[1];
+
+  // Context
+  LINEARContext    context = (LINEARContext)ctx;
+  const CeedScalar E       = context->E;
+  const CeedScalar nu      = context->nu;
+  const CeedScalar mu      = E / (2. * (1 + nu));
+  const CeedScalar kappa   = E / (3. * (1 - 2 * nu));
+  // Quadrature Point Loop
+  CeedPragmaSIMD for (CeedInt i = 0; i < Q; i++) {
+    // Read variational of spatial derivatives of u; ddudX = d(delta_u)/dX
+    const CeedScalar ddudX[3][3] = {
+        {dug[0][0][i], dug[1][0][i], dug[2][0][i]},
+        {dug[0][1][i], dug[1][1][i], dug[2][1][i]},
+        {dug[0][2][i], dug[1][2][i], dug[2][2][i]}
+    };
+    CeedScalar dXdx_voigt[9];
+    for (CeedInt j = 0; j < 9; j++) {
+      dXdx_voigt[j] = q_data[j + 1][i];
+    }
+    CeedScalar dXdx[3][3];
+    VoigtUnpackNonSymmetric3(dXdx_voigt, dXdx);
+    // Compute grad_du = dX/dx * d(delta_u)/dX
+    CeedScalar grad_du[3][3];
+    AlphaMatMatMult3(1.0, dXdx, ddudX, grad_du);
+    // Compute variation of strain : delta_e (epsilon)
+    // delta(e) = de = 1/2 (grad du + (grad du)^T)
+    const CeedScalar de[3][3] = {
+        {(grad_du[0][0] + grad_du[0][0]) / 2., (grad_du[0][1] + grad_du[1][0]) / 2., (grad_du[0][2] + grad_du[2][0]) / 2.},
+        {(grad_du[1][0] + grad_du[0][1]) / 2., (grad_du[1][1] + grad_du[1][1]) / 2., (grad_du[1][2] + grad_du[2][1]) / 2.},
+        {(grad_du[2][0] + grad_du[0][2]) / 2., (grad_du[2][1] + grad_du[1][2]) / 2., (grad_du[2][2] + grad_du[2][2]) / 2.}
+    };
+    CeedScalar de_kk = Trace3(de);
+    // Compute variation of deviatoric strain : delta(ed)=d_ed
+    // d_ed = de - 1/3 * trace(de) * I
+    const CeedScalar d_ed[3][3] = {
+        {de[0][0] - (1. / 3.) * de_kk, de[0][1],                     de[0][2]                    },
+        {de[1][0],                     de[1][1] - (1. / 3.) * de_kk, de[1][2]                    },
+        {de[2][0],                     de[2][1],                     de[2][2] - (1. / 3.) * de_kk}
+    };
+    // Compute delta(sigma) = dsigma = dp*delta_ij + 2*mu*d_ed_ij
+    const CeedScalar dsigma[3][3] = {
+        {dp[0][i] + 2. * mu * d_ed[0][0], 2. * mu * d_ed[0][1],            2. * mu * d_ed[0][2]           },
+        {2. * mu * d_ed[1][0],            dp[0][i] + 2. * mu * d_ed[1][1], 2. * mu * d_ed[1][2]           },
+        {2. * mu * d_ed[2][0],            2. * mu * d_ed[2][1],            dp[0][i] + 2. * mu * d_ed[2][2]}
+    };
+    // save output:dX/dx^T * d_sigma * wdetJ ==> d_sigma^T * dX/dx * wdetJ
+    // we save the transpose, because of ordering in libCEED; See how we created dudX above
+    AlphaMatTransposeMatMultAtQuadrature3(Q, i, q_data[0][i], dsigma, dXdx, ddvdX);
+    // div(du) = trace(grad(du))
+    CeedScalar div_du = Trace3(grad_du);
+    // (q, div(du)) - (q, dp/k) = q^T * (div(du) - dp/k) * wdetJ
+    dq[0][i] = (div_du - dp[0][i] / kappa) * q_data[0][i];
   }  // End of Quadrature Point Loop
 
   return 0;

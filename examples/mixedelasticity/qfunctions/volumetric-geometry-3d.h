@@ -14,7 +14,7 @@
 // Output:
 //   q_data     : updated weight of quadrature and inverse of the Jacobian J; [wdetJ, dXdx]
 // -----------------------------------------------------------------------------
-CEED_QFUNCTION(SetupVolumeGeometry3D)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
+CEED_QFUNCTION(VolumeGeometry3D)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
   // Inputs
   const CeedScalar(*J)[3][CEED_Q_VLA] = (const CeedScalar(*)[3][CEED_Q_VLA])in[0];
   const CeedScalar(*w)                = in[1];

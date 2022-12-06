@@ -35,19 +35,19 @@ PetscErrorCode Mixed_Linear_3D(Ceed ceed, ProblemData problem_data, void *ctx) {
   // ------------------------------------------------------
   problem_data->quadrature_mode = CEED_GAUSS;
   problem_data->q_data_size     = 10;
-  problem_data->setup_geo       = SetupVolumeGeometry3D;
-  problem_data->setup_geo_loc   = SetupVolumeGeometry3D_loc;
-  problem_data->setup_rhs       = SetupMixedLinearRhs3D;
-  problem_data->setup_rhs_loc   = SetupMixedLinearRhs3D_loc;
-  problem_data->residual        = SetupMixedLinear3D;
-  problem_data->residual_loc    = SetupMixedLinear3D_loc;
-  problem_data->error_u         = SetupError3Du;
-  problem_data->error_u_loc     = SetupError3Du_loc;
-  problem_data->error_p         = SetupError3Dp;
-  problem_data->error_p_loc     = SetupError3Dp_loc;
-  problem_data->bp4             = PETSC_FALSE;
-  problem_data->linear          = PETSC_FALSE;
-  problem_data->mixed           = PETSC_TRUE;
+  problem_data->setup_geo       = VolumeGeometry3D;
+  problem_data->setup_geo_loc   = VolumeGeometry3D_loc;
+  problem_data->setup_rhs       = MixedLinearRhs3D;
+  problem_data->setup_rhs_loc   = MixedLinearRhs3D_loc;
+  problem_data->residual        = MixedLinearResidual3D;
+  problem_data->residual_loc    = MixedLinearResidual3D_loc;
+  problem_data->jacobian        = MixedLinearJacobian3D;
+  problem_data->jacobian_loc    = MixedLinearJacobian3D_loc;
+  problem_data->error_u         = Error3Du;
+  problem_data->error_u_loc     = Error3Du_loc;
+  problem_data->error_p         = Error3Dp;
+  problem_data->error_p_loc     = Error3Dp_loc;
+
   // ------------------------------------------------------
   //              Command line Options
   // ------------------------------------------------------
@@ -65,6 +65,7 @@ PetscErrorCode Mixed_Linear_3D(Ceed ceed, ProblemData problem_data, void *ctx) {
 
   problem_data->rhs_qfunction_ctx = linear_context;
   CeedQFunctionContextReferenceCopy(linear_context, &problem_data->residual_qfunction_ctx);
+  CeedQFunctionContextReferenceCopy(linear_context, &problem_data->jacobian_qfunction_ctx);
 
   PetscCall(PetscFree(linear_ctx));
 

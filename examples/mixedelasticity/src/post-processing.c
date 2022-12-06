@@ -3,7 +3,7 @@
 // -----------------------------------------------------------------------------
 // This function print the output
 // -----------------------------------------------------------------------------
-PetscErrorCode PrintOutput(DM dm, Ceed ceed, AppCtx app_ctx, KSP ksp, Vec X, CeedScalar l2_error_u, CeedScalar l2_error_p) {
+PetscErrorCode PrintOutput(DM dm, Ceed ceed, AppCtx app_ctx, SNES snes, KSP ksp, Vec X, CeedScalar l2_error_u, CeedScalar l2_error_p) {
   PetscFunctionBeginUser;
 
   const char *used_resource;
@@ -36,8 +36,10 @@ PetscErrorCode PrintOutput(DM dm, Ceed ceed, AppCtx app_ctx, KSP ksp, Vec X, Cee
   PetscInt X_l_size, X_g_size;
   PetscCall(VecGetSize(X, &X_g_size));
   PetscCall(VecGetLocalSize(X, &X_l_size));
-  PetscInt c_start, c_end;
+  PetscInt c_start, c_end, num_elem, dim;
   PetscCall(DMPlexGetHeightStratum(dm, 0, &c_start, &c_end));
+  num_elem = c_end - c_start;
+  PetscCall(DMGetDimension(dm, &dim));
   DMPolytopeType cell_type;
   PetscCall(DMPlexGetCellType(dm, c_start, &cell_type));
   CeedElemTopology elem_topo = ElemTopologyP2C(cell_type);
@@ -45,16 +47,33 @@ PetscErrorCode PrintOutput(DM dm, Ceed ceed, AppCtx app_ctx, KSP ksp, Vec X, Cee
                         "  Problem:\n"
                         "    Problem Name                            : %s\n"
                         "  Mesh:\n"
-                        "    Solution Order (P)                      : %" CeedInt_FMT "\n"
-                        "    Quadrature  Order (Q)                   : %" CeedInt_FMT "\n"
+                        "    Polynomial order of u field             : %" CeedInt_FMT "\n"
+                        "    Polynomial order of p field             : %" CeedInt_FMT "\n"
+                        "    Quadrature space order (Q)              : %" CeedInt_FMT "\n"
                         "    Additional quadrature points (q_extra)  : %" CeedInt_FMT "\n"
-                        "    Global nodes                            : %" PetscInt_FMT "\n"
-                        "    Local Elements                          : %" PetscInt_FMT "\n"
-                        "    Element topology                        : %s\n"
-                        "    Owned nodes                             : %" PetscInt_FMT "\n"
-                        "    DoF per node                            : %" PetscInt_FMT "\n",
-                        app_ctx->problem_name, app_ctx->u_order, app_ctx->q_order, app_ctx->q_extra, X_g_size / 3, c_end - c_start,
-                        CeedElemTopologies[elem_topo], X_l_size / 3, 3));
+                        "    Global dofs (u + p)                     : %" PetscInt_FMT "\n"
+                        "    Owned dofs (u + p)                      : %" PetscInt_FMT "\n"
+                        "    Number of elements                      : %" PetscInt_FMT "\n"
+                        "    Element topology                        : %s\n",
+                        app_ctx->problem_name, app_ctx->u_order, app_ctx->p_order, app_ctx->q_order, app_ctx->q_extra, X_g_size, X_l_size, num_elem,
+                        CeedElemTopologies[elem_topo]));
+  // -- SNES
+  PetscInt its, snes_its = 0;
+  PetscCall(SNESGetIterationNumber(snes, &its));
+  snes_its += its;
+  SNESType            snes_type;
+  SNESConvergedReason snes_reason;
+  PetscReal           snes_rnorm;
+  PetscCall(SNESGetType(snes, &snes_type));
+  PetscCall(SNESGetConvergedReason(snes, &snes_reason));
+  PetscCall(SNESGetFunctionNorm(snes, &snes_rnorm));
+  PetscCall(PetscPrintf(app_ctx->comm,
+                        "  SNES:\n"
+                        "    SNES Type                               : %s\n"
+                        "    SNES Convergence                        : %s\n"
+                        "    Total SNES Iterations                   : %" PetscInt_FMT "\n"
+                        "    Final rnorm                             : %e\n",
+                        snes_type, SNESConvergedReasons[snes_reason], snes_its, (double)snes_rnorm));
   PetscInt           ksp_its;
   KSPType            ksp_type;
   KSPConvergedReason ksp_reason;

@@ -54,7 +54,7 @@ def convergence_rate():
         conv_u.append(log10(E_u[i]/E_u[i-1])/log10(h[i]/h[i-1]))
         conv_p.append(log10(E_p[i]/E_p[i-1])/log10(h[i]/h[i-1]))
 
-    result = {'Number of element/direction':N, 'convergence order of u':conv_u, 'convergence order of p':conv_p}
+    result = {'Number of element/direction':N, 'L2 Error u':E_u, 'Convergence Order of u':conv_u, 'L2 Error p':E_p, 'Convergence order of p':conv_p}
     df = pd.DataFrame(result)
     print(df)
 
