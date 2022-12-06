@@ -10,6 +10,12 @@
 #include "./t406-qfunction-scales.h"
 #include "t406-qfunction-helper.h"
 
+#if __cpluscplus
+  #include <cmath>
+#else
+  #include <math.h>
+#endif
+
 CEED_QFUNCTION(setup)(void *ctx, const CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
   const CeedScalar *w      = in[0];
   CeedScalar       *q_data = out[0];
