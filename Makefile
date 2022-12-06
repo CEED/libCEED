@@ -382,7 +382,7 @@ endif
 # OCCA Backends
 OCCA_BACKENDS = /cpu/self/occa
 ifneq ($(wildcard $(OCCA_DIR)/lib/libocca.*),)
-  OCCA_MODES := $(shell LD_LIBRARY_PATH=$(OCCA_DIR)/lib $(OCCA_DIR)/bin/occa modes)
+  OCCA_MODES := $(shell LD_LIBRARY_PATH+=:$(OCCA_DIR)/lib $(OCCA_DIR)/bin/occa modes)
   OCCA_BACKENDS += $(if $(filter OpenMP,$(OCCA_MODES)),/cpu/openmp/occa)
   OCCA_BACKENDS += $(if $(filter dpcpp,$(OCCA_MODES)),/gpu/dpcpp/occa)
   OCCA_BACKENDS += $(if $(filter OpenCL,$(OCCA_MODES)),/gpu/opencl/occa)
