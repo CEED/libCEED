@@ -247,6 +247,7 @@ PetscErrorCode NS_BLASIUS(ProblemData *problem, DM dm, void *ctx, SimpleBC bc) {
   // ------------------------------------------------------
   problem->ics.qfunction     = ICsBlasius;
   problem->ics.qfunction_loc = ICsBlasius_loc;
+  problem->non_zero_time     = PETSC_TRUE;
 
   CeedScalar U_inf                                = 40;           // m/s
   CeedScalar T_inf                                = 288.;         // K
