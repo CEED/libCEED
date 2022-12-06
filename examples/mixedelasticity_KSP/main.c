@@ -24,7 +24,7 @@
 // Build with: make
 // Run with:
 // ./main -problem bp4-2d -dm_plex_dim 2 -dm_plex_box_faces 6,6 -dm_plex_simplex 0
-// ./main -problem bp3-3d -dm_plex_dim 3 -dm_plex_box_faces 6,6,6 -dm_plex_simplex 1
+// ./main -problem bp4-3d -dm_plex_dim 3 -dm_plex_box_faces 6,6,6 -dm_plex_simplex 1
 // ./main -problem linear-2d -dm_plex_dim 2 -dm_plex_box_faces 6,6 -dm_plex_simplex 0
 // ./main -problem linear-3d -dm_plex_dim 3 -dm_plex_box_faces 6,6,6 -dm_plex_simplex 1
 // ./main -problem mixed-linear-2d -dm_plex_dim 2 -dm_plex_box_faces 6,6 -dm_plex_simplex 0 -pc_type svd

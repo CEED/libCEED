@@ -23,10 +23,6 @@
 //
 // Build with: make
 // Run with:
-// ./main -problem bp4-2d -dm_plex_dim 2 -dm_plex_box_faces 6,6 -dm_plex_simplex 0
-// ./main -problem bp3-3d -dm_plex_dim 3 -dm_plex_box_faces 6,6,6 -dm_plex_simplex 1
-// ./main -problem linear-2d -dm_plex_dim 2 -dm_plex_box_faces 6,6 -dm_plex_simplex 0
-// ./main -problem linear-3d -dm_plex_dim 3 -dm_plex_box_faces 6,6,6 -dm_plex_simplex 1
 // ./main -problem mixed-linear-2d -dm_plex_dim 2 -dm_plex_box_faces 6,6 -dm_plex_simplex 0 -pc_type svd
 // ./main -problem mixed-linear-2d -dm_plex_dim 2 -dm_plex_box_faces 6,6 -dm_plex_simplex 0 -ksp_type minres -pc_type fieldsplit -ksp_monitor
 // -ksp_view -fieldsplit_q2_pc_type svd -fieldsplit_q1_pc_type svd -pc_fieldsplit_type schur -fieldsplit_q2_ksp_rtol 1e-12 -fieldsplit_q1_ksp_rtol
@@ -55,13 +51,17 @@ int main(int argc, char **argv) {
   CeedData ceed_data;
   PetscCall(PetscCalloc1(1, &ceed_data));
 
-  OperatorApplyContext ctx_residual, ctx_error_u;
+  OperatorApplyContext ctx_residual, ctx_jacobian, ctx_error_u, ctx_error_p;
   PetscCall(PetscCalloc1(1, &ctx_residual));
+  PetscCall(PetscCalloc1(1, &ctx_jacobian));
   PetscCall(PetscCalloc1(1, &ctx_error_u));
-  // Context for residual
+  PetscCall(PetscCalloc1(1, &ctx_error_p));
+  // Context for residual and jacobian
   app_ctx->ctx_residual = ctx_residual;
+  app_ctx->ctx_jacobian = ctx_jacobian;
   // Context for computing error
   app_ctx->ctx_error_u = ctx_error_u;
+  app_ctx->ctx_error_p = ctx_error_p;
   app_ctx->comm        = comm;
 
   // ---------------------------------------------------------------------------
@@ -130,35 +130,31 @@ int main(int argc, char **argv) {
   // ---------------------------------------------------------------------------
   // Solve A*X=rhs; setup-solver.c
   // ---------------------------------------------------------------------------
-  Vec X;
-  KSP ksp;
+  Vec  X;
+  KSP  ksp;
+  SNES snes;
+  PetscCall(SetupJacobianOperatorCtx(dm, ceed, ceed_data, app_ctx->ctx_jacobian));
   PetscCall(SetupResidualOperatorCtx(dm, ceed, ceed_data, app_ctx->ctx_residual));
-  // Create global and local solution vectors
+  // Create global solution vector
   PetscCall(DMCreateGlobalVector(dm, &X));
-  PetscCall(KSPCreate(app_ctx->comm, &ksp));
-  PetscCall(KSPSetDM(ksp, dm));
-  PetscCall(KSPSetDMActive(ksp, PETSC_FALSE));
-  PetscCall(PDESolver(ceed_data, app_ctx, ksp, rhs, &X));
-
+  // Create SNES
+  PetscCall(SNESCreate(app_ctx->comm, &snes));
+  PetscCall(SNESGetKSP(snes, &ksp));
+  PetscCall(PDESolver(ceed_data, app_ctx, snes, ksp, rhs, &X));
+  // VecView(X, PETSC_VIEWER_STDOUT_WORLD);
   // ---------------------------------------------------------------------------
   // Compute L2 error of mms problem; setup-solver.c
   // ---------------------------------------------------------------------------
   CeedScalar l2_error_u = 0.0, l2_error_p = 0.0;
-  PetscCall(SetupErrorUOperatorCtx(dm, ceed, ceed_data, app_ctx->ctx_error_u));
+  PetscCall(SetupErrorOperatorCtx_u(dm, ceed, ceed_data, app_ctx->ctx_error_u));
   PetscCall(ComputeL2Error(X, &l2_error_u, app_ctx->ctx_error_u));
-  if (problem_data->mixed) {
-    OperatorApplyContext ctx_error_p;
-    PetscCall(PetscCalloc1(1, &ctx_error_p));
-    // Context for computing error
-    app_ctx->ctx_error_p = ctx_error_p;
-    PetscCall(SetupErrorPOperatorCtx(dm, ceed, ceed_data, app_ctx->ctx_error_p));
-    PetscCall(ComputeL2Error(X, &l2_error_p, app_ctx->ctx_error_p));
-  }
+  PetscCall(SetupErrorOperatorCtx_p(dm, ceed, ceed_data, app_ctx->ctx_error_p));
+  PetscCall(ComputeL2Error(X, &l2_error_p, app_ctx->ctx_error_p));
 
   // ---------------------------------------------------------------------------
   // Print solver iterations and final norms; post-processing
   // ---------------------------------------------------------------------------
-  PetscCall(PrintOutput(dm, ceed, app_ctx, ksp, X, l2_error_u, l2_error_p));
+  PetscCall(PrintOutput(dm, ceed, app_ctx, snes, ksp, X, l2_error_u, l2_error_p));
 
   // ---------------------------------------------------------------------------
   // Free objects
@@ -169,7 +165,7 @@ int main(int argc, char **argv) {
   PetscCall(VecDestroy(&X));
   PetscCall(VecDestroy(&rhs));
   PetscCall(VecDestroy(&rhs_loc));
-  PetscCall(KSPDestroy(&ksp));
+  PetscCall(SNESDestroy(&snes));
   PetscCall(CtxVecDestroy(problem_data, app_ctx));
   // -- Function list
   PetscCall(PetscFunctionListDestroy(&app_ctx->problems));
@@ -178,7 +174,9 @@ int main(int argc, char **argv) {
   PetscCall(CeedDataDestroy(ceed_data, problem_data));
   PetscCall(PetscFree(app_ctx));
   PetscCall(PetscFree(ctx_residual));
+  PetscCall(PetscFree(ctx_jacobian));
   PetscCall(PetscFree(ctx_error_u));
+  PetscCall(PetscFree(ctx_error_p));
   PetscCall(PetscFree(problem_data));
 
   // Free libCEED objects

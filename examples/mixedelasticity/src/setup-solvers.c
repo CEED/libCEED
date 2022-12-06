@@ -7,6 +7,23 @@
 // -----------------------------------------------------------------------------
 // Setup operator context data
 // -----------------------------------------------------------------------------
+PetscErrorCode SetupJacobianOperatorCtx(DM dm, Ceed ceed, CeedData ceed_data, OperatorApplyContext ctx_jacobian) {
+  PetscFunctionBeginUser;
+
+  ctx_jacobian->dm = dm;
+  PetscCall(DMCreateLocalVector(dm, &ctx_jacobian->X_loc));
+  PetscCall(VecDuplicate(ctx_jacobian->X_loc, &ctx_jacobian->Y_loc));
+  ctx_jacobian->x_ceed   = ceed_data->x_ceed;
+  ctx_jacobian->y_ceed   = ceed_data->y_ceed;
+  ctx_jacobian->ceed     = ceed;
+  ctx_jacobian->op_apply = ceed_data->op_jacobian;
+
+  PetscFunctionReturn(0);
+}
+
+// -----------------------------------------------------------------------------
+// Setup operator context data
+// -----------------------------------------------------------------------------
 PetscErrorCode SetupResidualOperatorCtx(DM dm, Ceed ceed, CeedData ceed_data, OperatorApplyContext ctx_residual) {
   PetscFunctionBeginUser;
 
@@ -21,7 +38,7 @@ PetscErrorCode SetupResidualOperatorCtx(DM dm, Ceed ceed, CeedData ceed_data, Op
   PetscFunctionReturn(0);
 }
 
-PetscErrorCode SetupErrorUOperatorCtx(DM dm, Ceed ceed, CeedData ceed_data, OperatorApplyContext ctx_error_u) {
+PetscErrorCode SetupErrorOperatorCtx_u(DM dm, Ceed ceed, CeedData ceed_data, OperatorApplyContext ctx_error_u) {
   PetscFunctionBeginUser;
 
   ctx_error_u->dm = dm;
@@ -35,7 +52,7 @@ PetscErrorCode SetupErrorUOperatorCtx(DM dm, Ceed ceed, CeedData ceed_data, Oper
   PetscFunctionReturn(0);
 }
 
-PetscErrorCode SetupErrorPOperatorCtx(DM dm, Ceed ceed, CeedData ceed_data, OperatorApplyContext ctx_error_p) {
+PetscErrorCode SetupErrorOperatorCtx_p(DM dm, Ceed ceed, CeedData ceed_data, OperatorApplyContext ctx_error_p) {
   PetscFunctionBeginUser;
 
   ctx_error_p->dm = dm;
@@ -65,10 +82,46 @@ PetscErrorCode ApplyMatOp(Mat A, Vec X, Vec Y) {
   PetscFunctionReturn(0);
 };
 
+// -----------------------------------------------------------------------------
+// This function uses libCEED to compute the non-linear residual
+// -----------------------------------------------------------------------------
+PetscErrorCode SNESFormResidual(SNES snes, Vec X, Vec Y, void *ctx_residual) {
+  OperatorApplyContext ctx = (OperatorApplyContext)ctx_residual;
+
+  PetscFunctionBeginUser;
+
+  // Use computed BCs
+  // PetscCall( DMPlexInsertBoundaryValues(ctx->dm, PETSC_TRUE,
+  //                                      ctx->X_loc,
+  //                                      1.0, NULL, NULL, NULL) );
+
+  // libCEED for local action of residual evaluator
+  PetscCall(ApplyLocalCeedOp(X, Y, ctx));
+
+  PetscFunctionReturn(0);
+};
+
+// -----------------------------------------------------------------------------
+// Jacobian setup
+// -----------------------------------------------------------------------------
+PetscErrorCode SNESFormJacobian(SNES snes, Vec U, Mat J, Mat J_pre, void *ctx_jacobian) {
+  // OperatorApplyContext ctx = (OperatorApplyContext)ctx_jacobian;
+  PetscFunctionBeginUser;
+
+  // J_pre might be AIJ (e.g., when using coloring), so we need to assemble it
+  PetscCall(MatAssemblyBegin(J_pre, MAT_FINAL_ASSEMBLY));
+  PetscCall(MatAssemblyEnd(J_pre, MAT_FINAL_ASSEMBLY));
+  if (J != J_pre) {
+    PetscCall(MatAssemblyBegin(J, MAT_FINAL_ASSEMBLY));
+    PetscCall(MatAssemblyEnd(J, MAT_FINAL_ASSEMBLY));
+  }
+  PetscFunctionReturn(0);
+};
+
 // ---------------------------------------------------------------------------
 // Setup Solver
 // ---------------------------------------------------------------------------
-PetscErrorCode PDESolver(CeedData ceed_data, AppCtx app_ctx, KSP ksp, Vec rhs, Vec *X) {
+PetscErrorCode PDESolver(CeedData ceed_data, AppCtx app_ctx, SNES snes, KSP ksp, Vec rhs, Vec *X) {
   PetscInt X_l_size, X_g_size;
 
   PetscFunctionBeginUser;
@@ -77,32 +130,38 @@ PetscErrorCode PDESolver(CeedData ceed_data, AppCtx app_ctx, KSP ksp, Vec rhs, V
   PetscCall(VecGetSize(*X, &X_g_size));
   // Local size for matShell
   PetscCall(VecGetLocalSize(*X, &X_l_size));
-
+  Vec R;
+  PetscCall(VecDuplicate(*X, &R));
   // ---------------------------------------------------------------------------
   // Setup SNES
   // ---------------------------------------------------------------------------
   // Operator
   Mat     mat_op;
   VecType vec_type;
+  PetscCall(SNESSetDM(snes, app_ctx->ctx_jacobian->dm));
   PetscCall(DMGetVecType(app_ctx->ctx_residual->dm, &vec_type));
   // -- Form Action of Jacobian on delta_u
-  PetscCall(MatCreateShell(app_ctx->comm, X_l_size, X_l_size, X_g_size, X_g_size, app_ctx->ctx_residual, &mat_op));
+  PetscCall(MatCreateShell(app_ctx->comm, X_l_size, X_l_size, X_g_size, X_g_size, app_ctx->ctx_jacobian, &mat_op));
   PetscCall(MatShellSetOperation(mat_op, MATOP_MULT, (void (*)(void))ApplyMatOp));
   PetscCall(MatShellSetVecType(mat_op, vec_type));
 
-  PC pc;
-  PetscCall(KSPGetPC(ksp, &pc));
-  PetscCall(PCSetType(pc, PCNONE));
-  PetscCall(KSPSetType(ksp, KSPCG));
-  // PetscCall(KSPSetNormType(ksp, KSP_NORM_NATURAL));
-  PetscCall(KSPSetTolerances(ksp, 1e-10, PETSC_DEFAULT, PETSC_DEFAULT, PETSC_DEFAULT));
-
-  PetscCall(KSPSetOperators(ksp, mat_op, mat_op));
+  // Set SNES residual evaluation function
+  PetscCall(SNESSetFunction(snes, R, SNESFormResidual, app_ctx->ctx_residual));
+  // -- SNES Jacobian
+  PetscCall(SNESSetJacobian(snes, mat_op, mat_op, SNESFormJacobian, app_ctx->ctx_jacobian));
+  // Setup KSP
   PetscCall(KSPSetFromOptions(ksp));
-  PetscCall(VecZeroEntries(*X));
-  PetscCall(KSPSolve(ksp, rhs, *X));
-
+  // Default to critical-point (CP) line search (related to Wolfe's curvature condition)
+  SNESLineSearch line_search;
+  PetscCall(SNESGetLineSearch(snes, &line_search));
+  PetscCall(SNESLineSearchSetType(line_search, SNESLINESEARCHCP));
+  PetscCall(SNESSetFromOptions(snes));
+  // Solve
+  PetscCall(VecSet(*X, 0.0));
+  PetscCall(SNESSolve(snes, rhs, *X));
+  // Free PETSc objects
   PetscCall(MatDestroy(&mat_op));
+  PetscCall(VecDestroy(&R));
 
   PetscFunctionReturn(0);
 };
@@ -125,13 +184,15 @@ PetscErrorCode ComputeL2Error(Vec X, PetscScalar *l2_error, OperatorApplyContext
 
 PetscErrorCode CtxVecDestroy(ProblemData problem_data, AppCtx app_ctx) {
   PetscFunctionBegin;
+
   PetscCall(VecDestroy(&app_ctx->ctx_residual->Y_loc));
   PetscCall(VecDestroy(&app_ctx->ctx_residual->X_loc));
+  PetscCall(VecDestroy(&app_ctx->ctx_jacobian->Y_loc));
+  PetscCall(VecDestroy(&app_ctx->ctx_jacobian->X_loc));
   PetscCall(VecDestroy(&app_ctx->ctx_error_u->Y_loc));
   PetscCall(VecDestroy(&app_ctx->ctx_error_u->X_loc));
-  if (problem_data->mixed) {
-    PetscCall(VecDestroy(&app_ctx->ctx_error_p->Y_loc));
-    PetscCall(VecDestroy(&app_ctx->ctx_error_p->X_loc));
-  }
+  PetscCall(VecDestroy(&app_ctx->ctx_error_p->Y_loc));
+  PetscCall(VecDestroy(&app_ctx->ctx_error_p->X_loc));
+
   PetscFunctionReturn(0);
 }

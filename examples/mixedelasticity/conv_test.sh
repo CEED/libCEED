@@ -16,33 +16,35 @@
 # software, applications, hardware, advanced system engineering and early
 # testbed platforms, in support of the nation's exascale computing imperative.
 
-# After make the problem, you can run convergence test by:
-#./bp4_conv_test.sh -o 2
+# You can run convergence test by:
+#./conv_test.sh -u 2 -p 1
 
-# where o is polynomial order
+# where u, p are polynomial orders of displacement and pressure fields
 # Reading arguments with getopts options
-while getopts o: flag
+while getopts u:p: flag
 do
     case "${flag}" in
-        o) order=${OPTARG};;
+        u) order_u=${OPTARG};;
+        p) order_p=${OPTARG};;
     esac
 done
-echo "Running convergence test for BP4/Elasticity with polynomial order ${order}";
+echo "Running convergence test for mixed-linear elasticity with polynomial order u:${order_u}, p:${order_p}";
 declare -A run_flags
 
-    run_flags[dm_plex_dim]=3
-    run_flags[dm_plex_box_faces]=4,4,4
+    run_flags[dm_plex_dim]=2
+    run_flags[dm_plex_box_faces]=4,4
     run_flags[dm_plex_simplex]=0
-    run_flags[u_order]=$order
-    #run_flags[problem]=bp4-3d
-    run_flags[problem]=linear-3d
+    run_flags[u_order]=$order_u
+    run_flags[p_order]=$order_p
+    run_flags[problem]=mixed-linear-2d
     run_flags[ksp_max_it]=1000
     run_flags[q_extra]=1
+    run_flags[pc_type]=svd
 
 declare -A test_flags
     test_flags[res_start]=4
     test_flags[res_stride]=2
-    test_flags[res_end]=12
+    test_flags[res_end]=10
 
 file_name=conv_test_result.csv
 
@@ -52,7 +54,7 @@ i=0
 
 for ((res=${test_flags[res_start]}; res<=${test_flags[res_end]}; res+=${test_flags[res_stride]})); do
 
-    run_flags[dm_plex_box_faces]=$res,$res,$res
+    run_flags[dm_plex_box_faces]=$res,$res
 
     args=''
     for arg in "${!run_flags[@]}"; do
@@ -60,7 +62,8 @@ for ((res=${test_flags[res_start]}; res<=${test_flags[res_end]}; res+=${test_fla
             args="$args -$arg ${run_flags[$arg]}"
         fi
     done
-    ./main $args | grep "L2 error of u and p" | awk -v i="$i" -v res="$res" '{ printf "%d,%d,%e\n", i, res, $8, $9}' >> $file_name
+    ./main $args | grep "L2 error" | awk -v i="$i" -v res="$res" '{ printf "%d,%d,%e,%e\n", i, res, $8, $9}' >> $file_name
     i=$((i+1))
 done
 
+python conv_rate.py -f conv_test_result.csv

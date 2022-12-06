@@ -43,14 +43,18 @@ def convergence_rate():
     data = data.sort_values('run')
 
     E_u = data['error_u']
+    E_p = data['error_p']
     h = 1/data['mesh_res']
     N = data['mesh_res']
     conv_u = []
     conv_u.append(0)
+    conv_p = []
+    conv_p.append(0)
     for i in range(1,len(E_u)):
         conv_u.append(log10(E_u[i]/E_u[i-1])/log10(h[i]/h[i-1]))
+        conv_p.append(log10(E_p[i]/E_p[i-1])/log10(h[i]/h[i-1]))
 
-    result = {'Number of element/direction':N, 'L2 error':E_u, 'convergence order of u':conv_u}
+    result = {'Number of element/direction':N, 'convergence order of u':conv_u, 'convergence order of p':conv_p}
     df = pd.DataFrame(result)
     print(df)
 

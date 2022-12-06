@@ -40,7 +40,7 @@ PetscErrorCode ProcessCommandLineOptions(AppCtx app_ctx) {
                               sizeof(app_ctx->problem_name), &problem_flag));
   // Provide default problem if not specified
   if (!problem_flag) {
-    const char *problem_name = "bp4-3d";
+    const char *problem_name = "mixed-linear-2d";
     strncpy(app_ctx->problem_name, problem_name, 16);
   }
   app_ctx->u_order = 2;  // order of basis for u field

@@ -27,12 +27,13 @@ static PetscErrorCode CreateBCLabel(DM dm, const char name[]) {
 // Set-up FE for H1 space
 // ---------------------------------------------------------------------------
 PetscErrorCode SetupFEByOrder(AppCtx app_ctx, ProblemData problem_data, DM dm) {
-  // FE space for displacement
-  PetscFE fe_u;
+  // FE space for displacement and pressure fields
+  PetscFE fe_u, fe_p;
   // number of quadrature points
   app_ctx->q_order     = app_ctx->u_order + app_ctx->q_extra;
   PetscInt  q_order    = app_ctx->q_order;
   PetscInt  u_order    = app_ctx->u_order;
+  PetscInt  p_order    = app_ctx->p_order;
   PetscBool is_simplex = PETSC_TRUE;
   PetscInt  dim;
   PetscInt  marker_ids[1] = {1};
@@ -44,13 +45,8 @@ PetscErrorCode SetupFEByOrder(AppCtx app_ctx, ProblemData problem_data, DM dm) {
   PetscCall(DMGetDimension(dm, &dim));
   PetscCall(PetscFECreateLagrange(app_ctx->comm, dim, dim, is_simplex, u_order, q_order, &fe_u));
   PetscCall(DMAddField(dm, NULL, (PetscObject)fe_u));
-  if (problem_data->mixed) {
-    PetscFE  fe_p;
-    PetscInt p_order = app_ctx->p_order;
-    PetscCall(PetscFECreateLagrange(app_ctx->comm, dim, 1, is_simplex, p_order, q_order, &fe_p));
-    PetscCall(DMAddField(dm, NULL, (PetscObject)fe_p));
-    PetscCall(PetscFEDestroy(&fe_p));
-  }
+  PetscCall(PetscFECreateLagrange(app_ctx->comm, dim, 1, is_simplex, p_order, q_order, &fe_p));
+  PetscCall(DMAddField(dm, NULL, (PetscObject)fe_p));
   PetscCall(DMCreateDS(dm));
   {
     // create FE field for coordinates
@@ -83,6 +79,7 @@ PetscErrorCode SetupFEByOrder(AppCtx app_ctx, ProblemData problem_data, DM dm) {
     PetscCall(DMPlexSetClosurePermutationTensor(dm_coord, PETSC_DETERMINE, NULL));
   }
   PetscCall(PetscFEDestroy(&fe_u));
+  PetscCall(PetscFEDestroy(&fe_p));
 
   PetscFunctionReturn(0);
 };
