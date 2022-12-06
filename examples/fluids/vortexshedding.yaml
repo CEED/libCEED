@@ -38,3 +38,11 @@ bc_wall: 5
 bc_freestream: 1,2,3,4
 wall_comps: 1,2,3
 
+# TODO: fix code to convert to the state variables being used
+# Note: we prefer to use primitive variables
+state_var: primitive
+
+dm_view:
+ts_monitor:
+snes_lag_jacobian: 20
+snes_lag_jacobian_persists:
