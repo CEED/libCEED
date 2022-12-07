@@ -17,6 +17,7 @@ freestream:
   velocity: 1,0,0
   temperature: 24.92
   pressure: 7143
+g: 0,-9.81,0
 
 # viscosity
 mu: 0.01
