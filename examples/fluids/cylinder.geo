@@ -4,18 +4,17 @@ Nx2 = 41; Rx2 = 1.00;
 Ny  = 41; Ry = 2.00;
 Nb  = 41; Rb = 0.9;
 Nc  = 41; Rc = 1.00;
-//+
-Point(1) = {-10, -10, 0, 1.0};
-//+
-Point(2) = {10, -10, 0, 1.0};
-//+
-Point(3) = {40, -10, 0, 1.0};
-//+
-Point(4) = {-10, 10, 0, 1.0};
-//+
-Point(5) = {10, 10, 0, 1.0};
-//+
-Point(6) = {40, 10, 0, 1.0};
+
+zspan = 0.2;
+
+// Exterior corners
+xL = 4.5; xR = 15.5; H = 4.5;
+Point(1) = {-xL, -H, 0, 1.0};
+Point(2) = {xL, -H, 0, 1.0};
+Point(3) = {xR, -H, 0, 1.0};
+Point(4) = {-xL, H, 0, 1.0};
+Point(5) = {xL, H, 0, 1.0};
+Point(6) = {xR, H, 0, 1.0};
 
 // Coordinates for Cylinder points
 Point(7) = {-0.35355339, -0.35355339, 0, 1.0};
@@ -101,7 +100,7 @@ Recombine Surface {4};
 //+
 Recombine Surface {5};
 //+
-Extrude {0, 0, 1} {
+Extrude {0, 0, zspan} {
   Surface{1, 2, 3, 4, 5};
   Layers {1};
   Recombine;
