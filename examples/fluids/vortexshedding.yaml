@@ -26,7 +26,7 @@ mu: 0.01
 D:  1.41421356
 
 ## DM Settings:
-degree: 1
+degree: 2
 dm_plex_dim: 3
 dm_plex_box_lower: 0,0,0
 dm_plex_box_upper: 1,1,0.1

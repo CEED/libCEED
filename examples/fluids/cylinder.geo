@@ -1,9 +1,11 @@
 // Created Thursday, October 13, 2022.
-Nx1 = 41; Rx1 = 1.00;
-Nx2 = 41; Rx2 = 1.00;
-Ny  = 41; Ry = 2.00;
-Nb  = 41; Rb = 0.9;
-Nc  = 41; Rc = 1.00;
+// Number of elements
+N = 40;
+Nx1 = N/2 + 1; Rx1 = 1.00;
+Nx2 = N/2 + 1; Rx2 = 1.00;
+Ny  = N/2 + 1; Ry = 2.00;
+Nb  = N/2 + 1; Rb = 0.9;
+Nc  = N/2 + 1; Rc = 1.00;
 
 zspan = 0.2;
 
