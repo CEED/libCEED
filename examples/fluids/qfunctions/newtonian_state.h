@@ -305,6 +305,10 @@ CEED_QFUNCTION_HELPER void BulkViscosityRamp(NewtonianIdealGasContext gas, const
   }
 }
 
+CEED_QFUNCTION_HELPER void Sponge(NewtonianIdealGasContext gas, const StateConservative solution, const StateConservative reference, const CeedScalar weight, CeedScalar sponge[5]) {
+  sponge[0] = weight * (reference.density - solution.density);
+}
+
 CEED_QFUNCTION_HELPER void ViscousEnergyFlux(NewtonianIdealGasContext gas, StatePrimitive Y, const State grad_s[3], const CeedScalar stress[3][3],
                                              CeedScalar Fe[3]) {
   for (CeedInt i = 0; i < 3; i++) {

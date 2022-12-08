@@ -274,15 +274,10 @@ CEED_QFUNCTION_HELPER int IFunction_Newtonian(void *ctx, CeedInt Q, const CeedSc
       grad_s[j] = StateFromQi_fwd(context, s, dqi, x_i, dx_i);
     }
 
-    CeedScalar ramp_coeff = RampCoefficient(context->ramp_amplitude, context->ramp_length, context->ramp_start, x_i[0] + 3.1);
-
-    CeedScalar strain_rate[6], kmstress[6], stress[3][3], Fe[3], ramp_kmstress[6], ramp_stress[3][3];
+    CeedScalar strain_rate[6], kmstress[6], stress[3][3], Fe[3];
     KMStrainRate(grad_s, strain_rate);
     NewtonianStress(context, strain_rate, kmstress);
-    for (int j=0; j<6; j++) ramp_kmstress[j] = kmstress[j];
-    BulkViscosityRamp(context, strain_rate, ramp_kmstress, ramp_coeff);
     KMUnpack(kmstress, stress);
-    KMUnpack(ramp_kmstress, ramp_stress);
     ViscousEnergyFlux(context, s.Y, grad_s, stress, Fe);
 
     StateConservative F_inviscid[3];
@@ -290,7 +285,7 @@ CEED_QFUNCTION_HELPER int IFunction_Newtonian(void *ctx, CeedInt Q, const CeedSc
 
     // Total flux
     CeedScalar Flux[5][3];
-    FluxTotal(F_inviscid, ramp_stress, Fe, Flux);
+    FluxTotal(F_inviscid, stress, Fe, Flux);
 
     for (CeedInt j = 0; j < 3; j++) {
       for (CeedInt k = 0; k < 5; k++) {
@@ -307,6 +302,12 @@ CEED_QFUNCTION_HELPER int IFunction_Newtonian(void *ctx, CeedInt Q, const CeedSc
     UnpackState_U(s_dot.U, U_dot);
 
     for (CeedInt j = 0; j < 5; j++) v[j][i] = wdetJ * (U_dot[j] - body_force[j]);
+    const CeedScalar ramp_coeff = RampCoefficient(context->ramp_amplitude, context->ramp_length, context->ramp_start, x_i[0] + 3.1);
+    CeedScalar sponge[5]={0.};
+    const StateConservative s_ref = {1., {0.}, 0.};
+    Sponge(context, s.U, s_ref, ramp_coeff, sponge);
+    for (CeedInt j = 0; j < 5; j++) v[j][i] += -wdetJ * sponge[j] ;
+
     Tau_diagPrim(context, s, dXdx, dt, Tau_d);
     Stabilization(context, s, Tau_d, grad_s, U_dot, body_force, x_i, stab);
 
