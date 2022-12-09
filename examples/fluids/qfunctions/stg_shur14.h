@@ -232,10 +232,11 @@ CEED_QFUNCTION_HELPER void STGShur14_Calc_PrecompEktot(const CeedScalar X[3], co
 //
 // stg_data[0] = 1 / Ektot (inverse of total spectrum energy)
 CEED_QFUNCTION(Preprocess_STGShur14)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
-  const CeedScalar(*q_data_sur)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[0];
-  const CeedScalar(*x)[CEED_Q_VLA]          = (const CeedScalar(*)[CEED_Q_VLA])in[1];
+  typedef CeedScalar vec_t[CEED_Q_VLA];
+  const vec_t* q_data_sur = (const vec_t*) in[0];
+  const vec_t* x = (const vec_t*) in[1];
 
-  CeedScalar(*stg_data) = (CeedScalar(*))out[0];
+  CeedScalar* stg_data = (CeedScalar*) out[0];
 
   CeedScalar             ubar[3], cij[6], eps, lt;
   const STGShur14Context stg_ctx = (STGShur14Context)ctx;
@@ -280,11 +281,12 @@ CEED_QFUNCTION(Preprocess_STGShur14)(void *ctx, CeedInt Q, const CeedScalar *con
 // Extrude the STGInflow profile through out the domain for an initial condition
 CEED_QFUNCTION(ICsSTG)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
   // Inputs
-  const CeedScalar(*x)[CEED_Q_VLA]      = (const CeedScalar(*)[CEED_Q_VLA])in[0];
-  const CeedScalar(*q_data)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[1];
+  typedef CeedScalar vec_t[CEED_Q_VLA];
+  const vec_t* x = (const vec_t*) in[0];
+  const vec_t* q_data = (const vec_t*) in[1];
 
   // Outputs
-  CeedScalar(*q0)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA])out[0];
+  vec_t* q0 = (vec_t*) out[0];
 
   const STGShur14Context stg_ctx = (STGShur14Context)ctx;
   CeedScalar             qn[STG_NMODES_MAX], u[3], ubar[3], cij[6], eps, lt;
@@ -344,12 +346,13 @@ CEED_QFUNCTION(ICsSTG)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedSc
  * at each location, then calculate the actual velocity.
  */
 CEED_QFUNCTION(STGShur14_Inflow)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
-  const CeedScalar(*q)[CEED_Q_VLA]          = (const CeedScalar(*)[CEED_Q_VLA])in[0];
-  const CeedScalar(*q_data_sur)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[2];
-  const CeedScalar(*X)[CEED_Q_VLA]          = (const CeedScalar(*)[CEED_Q_VLA])in[3];
+  typedef CeedScalar vec_t[CEED_Q_VLA];
+  const vec_t* q = (const vec_t*) in[0];
+  const vec_t* q_data_sur = (const vec_t*) in[2];
+  const vec_t* X = (const vec_t*) in[3];
 
-  CeedScalar(*v)[CEED_Q_VLA]            = (CeedScalar(*)[CEED_Q_VLA])out[0];
-  CeedScalar(*jac_data_sur)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA])out[1];
+  vec_t* v = (vec_t*) out[0];
+  vec_t *jac_data_sur = (vec_t*) out[1];
 
   const STGShur14Context stg_ctx = (STGShur14Context)ctx;
   CeedScalar             qn[STG_NMODES_MAX], u[3], ubar[3], cij[6], eps, lt;
@@ -432,11 +435,13 @@ CEED_QFUNCTION(STGShur14_Inflow)(void *ctx, CeedInt Q, const CeedScalar *const *
 
 CEED_QFUNCTION(STGShur14_Inflow_Jacobian)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
   // Inputs
-  const CeedScalar(*dq)[CEED_Q_VLA]           = (const CeedScalar(*)[CEED_Q_VLA])in[0];
-  const CeedScalar(*q_data_sur)[CEED_Q_VLA]   = (const CeedScalar(*)[CEED_Q_VLA])in[2];
-  const CeedScalar(*jac_data_sur)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[4];
+  typedef CeedScalar vec_t[CEED_Q_VLA];
+  const vec_t* dq = (const vec_t*) in[0];
+  const vec_t* q_data_sur = (const vec_t*) in[2];
+  const vec_t* jac_data_sur = (const vec_t*) in[4];
+  
   // Outputs
-  CeedScalar(*v)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA])out[0];
+  vec_t* v = (vec_t*) out[0];
 
   const STGShur14Context stg_ctx  = (STGShur14Context)ctx;
   const bool             implicit = stg_ctx->is_implicit;
@@ -493,13 +498,14 @@ CEED_QFUNCTION(STGShur14_Inflow_Jacobian)(void *ctx, CeedInt Q, const CeedScalar
  * through the native PETSc `DMAddBoundary` -> `bcFunc` method.
  */
 CEED_QFUNCTION(STGShur14_Inflow_StrongQF)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
-  const CeedScalar(*q_data_sur)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[0];
-  const CeedScalar(*coords)[CEED_Q_VLA]     = (const CeedScalar(*)[CEED_Q_VLA])in[1];
-  const CeedScalar(*scale)                  = (const CeedScalar(*))in[2];
-  const CeedScalar(*stg_data)[CEED_Q_VLA]   = (const CeedScalar(*)[CEED_Q_VLA])in[3];
+  typedef CeedScalar vec_t[CEED_Q_VLA];
+  const vec_t* q_data_sur = (const vec_t*) in[0];
+  const vec_t* coords = (const vec_t*) in[1];
+  const CeedScalar * const scale = in[2];
+  const vec_t* stg_data = (const vec_t*) in[3];
 
-  CeedScalar(*bcval)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA])out[0];
-
+  vec_t* bcval = (vec_t*) out[0];
+  
   const STGShur14Context stg_ctx = (STGShur14Context)ctx;
   CeedScalar             u[3], ubar[3], cij[6], eps, lt;
   const bool             mean_only = stg_ctx->mean_only;

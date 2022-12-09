@@ -7,9 +7,18 @@
 
 #include <ceed.h>
 
-CEED_QFUNCTION(setup)(void *ctx, const CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
-  const CeedScalar *w = in[0], (*J)[2][CEED_Q_VLA] = (const CeedScalar(*)[2][CEED_Q_VLA])in[1];
-  CeedScalar(*q_data)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA])out[0];
+CEED_QFUNCTION(setup)(void *ctx, const CeedInt Q,
+                      const CeedScalar *const *in,
+                      CeedScalar *const *out) {
+    // *INDENT-OFF*
+  const CeedScalar *w = in[0];
+  
+  typedef CeedScalar array_t[2][CEED_Q_VLA];
+  const array_t* J = (const array_t*) in[1];
+
+  typedef CeedScalar vec_t[CEED_Q_VLA];
+  vec_t* q_data = (vec_t*) out[0];
+    // *INDENT-ON*
 
   // Quadrature point loop
   CeedPragmaSIMD for (CeedInt i = 0; i < Q; i++) {
@@ -29,15 +38,22 @@ CEED_QFUNCTION(setup)(void *ctx, const CeedInt Q, const CeedScalar *const *in, C
   return 0;
 }
 
-CEED_QFUNCTION(diff)(void *ctx, const CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
-  const CeedScalar(*q_data)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[0], (*ug)[2][CEED_Q_VLA] = (const CeedScalar(*)[2][CEED_Q_VLA])in[1];
-  CeedScalar(*vg)[2][CEED_Q_VLA] = (CeedScalar(*)[2][CEED_Q_VLA])out[0];
+CEED_QFUNCTION(diff)(void *ctx, const CeedInt Q, const CeedScalar *const *in,
+                     CeedScalar *const *out) {
+    // *INDENT-OFF*
+  typedef CeedScalar vec_t[CEED_Q_VLA];
+  const vec_t* q_data = (const vec_t*) in[0];
+
+  typedef CeedScalar array_t[2][CEED_Q_VLA];
+  const array_t* ug = (const array_t*) in[1];
+  array_t* vg = (array_t*) out[0];
+    // *INDENT-ON*
 
   const CeedInt    dim         = 2;
   const CeedScalar num_comp    = 2;
   const CeedScalar scale[2][2] = {
-      {1.0, 2.0},
-      {3.0, 4.0},
+    {1.0, 2.0},
+    {3.0, 4.0}
   };
 
   // Quadrature point loop

@@ -323,7 +323,7 @@ CEED_INTERN int CeedRegister_Occa(void) {
   CeedCallBackend(CeedRegister("/cpu/openmp/occa", ceed::occa::registerBackend, 250));
   // GPU Modes
   CeedCallBackend(CeedRegister("/gpu/dpcpp/occa", ceed::occa::registerBackend, 240));
-  CeedCallBackend(CeedRegister("/gpu/opencl/occa", ceed::occa::registerBackend, 230));
+  // CeedCallBackend(CeedRegister("/gpu/opencl/occa", ceed::occa::registerBackend, 230));
   CeedCallBackend(CeedRegister("/gpu/hip/occa", ceed::occa::registerBackend, 220));
   CeedCallBackend(CeedRegister("/gpu/cuda/occa", ceed::occa::registerBackend, 210));
   return CEED_ERROR_SUCCESS;

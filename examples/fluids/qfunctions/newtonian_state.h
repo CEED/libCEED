@@ -17,22 +17,27 @@
 #include "newtonian_types.h"
 #include "utils.h"
 
-typedef struct {
+struct StatePrimitive {
   CeedScalar pressure;
   CeedScalar velocity[3];
   CeedScalar temperature;
-} StatePrimitive;
+};
 
-typedef struct {
+// #define StatePrimitive struct StatePrimitive_*
+
+struct StateConservative {
   CeedScalar density;
   CeedScalar momentum[3];
   CeedScalar E_total;
-} StateConservative;
+};
+// #define StateConservative struct StateConservative_*
 
-typedef struct {
+struct State {
   StateConservative U;
-  StatePrimitive    Y;
-} State;
+  StatePrimitive Y;
+};
+
+// #define State struct State_*
 
 CEED_QFUNCTION_HELPER void UnpackState_U(StateConservative s, CeedScalar U[5]) {
   U[0] = s.density;

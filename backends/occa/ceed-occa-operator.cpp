@@ -100,6 +100,7 @@ int Operator::ceedCreate(CeedOperator op) {
   CeedOccaRegisterFunction(op, "LinearAssembleQFunctionUpdate", Operator::ceedLinearAssembleQFunction);
   CeedOccaRegisterFunction(op, "LinearAssembleAddDiagonal", Operator::ceedLinearAssembleAddDiagonal);
   CeedOccaRegisterFunction(op, "LinearAssembleAddPointBlockDiagonal", Operator::ceedLinearAssembleAddPointBlockDiagonal);
+  CeedOccaRegisterFunction(op, "LinearAssembleSingle", Operator::ceedLinearAssembleSingle);
   CeedOccaRegisterFunction(op, "CreateFDMElementInverse", Operator::ceedCreateFDMElementInverse);
   CeedOccaRegisterFunction(op, "ApplyAdd", Operator::ceedApplyAdd);
   CeedOccaRegisterFunction(op, "Destroy", Operator::ceedDestroy);
@@ -117,16 +118,24 @@ int Operator::ceedCreateComposite(CeedOperator op) {
   return CEED_ERROR_SUCCESS;
 }
 
-int Operator::ceedLinearAssembleQFunction(CeedOperator op) { return staticCeedError("(OCCA) Backend does not implement LinearAssembleQFunction"); }
+int Operator::ceedLinearAssembleQFunction(CeedOperator op) { 
+  return staticCeedError("(OCCA) Backend does not implement LinearAssembleQFunction"); 
+}
 
 int Operator::ceedLinearAssembleQFunctionUpdate(CeedOperator op) {
   return staticCeedError("(OCCA) Backend does not implement LinearAssembleQFunctionUpdate");
 }
 
-int Operator::ceedLinearAssembleAddDiagonal(CeedOperator op) { return staticCeedError("(OCCA) Backend does not implement LinearAssembleDiagonal"); }
+int Operator::ceedLinearAssembleAddDiagonal(CeedOperator op) { 
+  return staticCeedError("(OCCA) Backend does not implement LinearAssembleDiagonal"); 
+}
 
 int Operator::ceedLinearAssembleAddPointBlockDiagonal(CeedOperator op) {
   return staticCeedError("(OCCA) Backend does not implement LinearAssemblePointBlockDiagonal");
+}
+
+int Operator::ceedLinearAssembleSingle(CeedOperator op) {
+  return staticCeedError("(OCCA) Backend does not implement LinearAssembleSingle");
 }
 
 int Operator::ceedCreateFDMElementInverse(CeedOperator op) { return staticCeedError("(OCCA) Backend does not implement CreateFDMElementInverse"); }
