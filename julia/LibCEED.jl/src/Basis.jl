@@ -315,9 +315,17 @@ Get the reference coordinates of quadrature points (in `dim` dimensions) of the 
 [`Basis`](@ref).
 """
 function getqref(b::Basis)
+    istensor = Ref{Bool}()
+    C.CeedBasisIsTensor(b[], istensor)
     ref = Ref{Ptr{CeedScalar}}()
     C.CeedBasisGetQRef(b[], ref)
-    copy(unsafe_wrap(Array, ref[], getnumqpts(b)))
+    copy(
+        unsafe_wrap(
+            Array,
+            ref[],
+            istensor[] ? getnumqpts1d(b) : (getnumqpts(b)*getdimension(b)),
+        ),
+    )
 end
 
 """
@@ -327,9 +335,11 @@ Get the quadrature weights of quadrature points (in `dim` dimensions) of the giv
 [`Basis`](@ref).
 """
 function getqweights(b::Basis)
+    istensor = Ref{Bool}()
+    C.CeedBasisIsTensor(b[], istensor)
     ref = Ref{Ptr{CeedScalar}}()
     C.CeedBasisGetQWeights(b[], ref)
-    copy(unsafe_wrap(Array, ref[], getnumqpts(b)))
+    copy(unsafe_wrap(Array, ref[], istensor[] ? getnumqpts1d(b) : getnumqpts(b)))
 end
 
 """
@@ -362,7 +372,7 @@ function getinterp1d(b::Basis)
 end
 
 """
-    getgad(b::Basis)
+    getgrad(b::Basis)
 
 Get the gradient matrix of the given [`Basis`](@ref). Returns a tensor of size
 `(getdimension(b), getnumqpts(b), getnumnodes(b))`.
