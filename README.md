@@ -167,7 +167,7 @@ There are multiple supported backends, which can be selected at runtime in the e
 | `/*/occa`                  | Selects backend based on available OCCA modes     | Yes                   |
 | `/cpu/self/occa`           | OCCA backend with serial CPU kernels              | Yes                   |
 | `/cpu/openmp/occa`         | OCCA backend with OpenMP kernels                  | Yes                   |
-| `/cpu/dpcpp/occa`          | OCCA backend with CPC++ kernels                   | Yes                   |
+| `/cpu/dpcpp/occa`          | OCCA backend with SYCL/DPC++ kernels                   | Yes                   |
 | `/gpu/cuda/occa`           | OCCA backend with CUDA kernels                    | Yes                   |
 | `/gpu/hip/occa`~           | OCCA backend with HIP kernels                     | Yes                   |
 

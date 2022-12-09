@@ -28,7 +28,7 @@ struct ChannelContext_ {
   CeedScalar                       B;         // !< Body-force driving the flow
   struct NewtonianIdealGasContext_ newtonian_ctx;
 };
-#define ChannelContext struct ChannelContext_*;
+#define ChannelContext struct ChannelContext_*
 
 CEED_QFUNCTION_HELPER State Exact_Channel(CeedInt dim, CeedScalar time, const CeedScalar X[], CeedInt Nf, void *ctx) {
   struct ChannelContext_* context = (struct ChannelContext_*) ctx;

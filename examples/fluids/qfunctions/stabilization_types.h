@@ -14,7 +14,7 @@
   // STAB_SUPG = 2, // Streamline Upwind Petrov-Galerkin
 // } StabilizationType;
 
-typedef int StabilizationType;
+#define StabilizationType int
 static const int STAB_NONE=0;
 static const int STAB_SU=1;
 static const int STAB_SUPG=2;

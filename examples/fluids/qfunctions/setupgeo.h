@@ -12,7 +12,11 @@
 #define setup_geo_h
 
 #include <ceed.h>
-#include <math.h>
+#ifdef __cplusplus
+  #include <cmath>
+#else
+  #include <math.h>
+#endif
 
 // *****************************************************************************
 // This QFunction sets up the geometric factors required for integration and coordinate transformations

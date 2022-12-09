@@ -24,7 +24,7 @@ struct SetupContextAdv2D_ {
   CeedScalar time;
   int        wind_type;  // See WindType: 0=ROTATION, 1=TRANSLATION
 };
-#define SetupContextAdv2D struct SetupContext_*
+#define SetupContextAdv2D struct SetupContextAdv2D_*
 
 struct AdvectionContext_ {
   CeedScalar CtauS;

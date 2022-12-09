@@ -10,7 +10,7 @@
 #include "./t406-qfunction-scales.h"
 #include "t406-qfunction-helper.h"
 
-#if __cpluscplus
+#ifdef __cplusplus
   #include <cmath>
 #else
   #include <math.h>

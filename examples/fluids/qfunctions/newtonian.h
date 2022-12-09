@@ -12,7 +12,11 @@
 #define newtonian_h
 
 #include <ceed.h>
-#include <math.h>
+#ifdef __cpluscplus
+  #include <cmath>
+#else
+  #include <math.h>
+#endif
 #include <stdlib.h>
 
 #include "newtonian_state.h"
@@ -523,19 +527,9 @@ CEED_QFUNCTION_HELPER int BoundaryIntegral_Jacobian(void *ctx, CeedInt Q, const 
     for (int j = 0; j < 6; j++) kmstress[j] = jac_data_sur[5 + j][i];
     for (int j = 0; j < 5; j++) dqi[j] = dq[j][i];
 
-    State s;  
-    if(context->is_primitive) {
-      s = StateFromY(context, qi, x_i);
-    } else {
-      s = StateFromU(context, qi, x_i);
-    }
+    State s  = StateFromQi(context, qi, x_i);
+    State ds = StateFromQi_fwd(context, s, dqi, x_i, dx_i);
 
-    State ds; 
-    if(context->is_primitive) {
-      ds = StateFromY_fwd(context, s, dqi, x_i, dx_i);
-    } else {
-      ds = StateFromU_fwd(context, s, dqi, x_i, dx_i);
-    }
     State grad_ds[3];
     for (CeedInt j = 0; j < 3; j++) {
       CeedScalar dx_i[3] = {0}, dqi_j[5];
@@ -543,7 +537,7 @@ CEED_QFUNCTION_HELPER int BoundaryIntegral_Jacobian(void *ctx, CeedInt Q, const 
       dx_i[j]    = 1.;
       grad_ds[j] = StateFromQi_fwd(context, s, dqi_j, x_i, dx_i);
     }
-
+    
     CeedScalar dstrain_rate[6], dkmstress[6], stress[3][3], dstress[3][3], dFe[3];
     KMStrainRate(grad_ds, dstrain_rate);
     NewtonianStress(context, dstrain_rate, dkmstress);
