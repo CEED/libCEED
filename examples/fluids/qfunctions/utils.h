@@ -8,11 +8,13 @@
 #ifndef utils_h
 #define utils_h
 
+#ifndef __OCCA__
 #include <ceed.h>
+#endif
 #ifdef __cplusplus
-  #include <cmath>
+#include <cmath>
 #else
-  #include <math.h>
+#include <math.h>
 #endif
 
 #ifndef M_PI

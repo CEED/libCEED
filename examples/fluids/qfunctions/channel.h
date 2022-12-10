@@ -11,8 +11,10 @@
 #ifndef channel_h
 #define channel_h
 
+#ifndef __OCCA__
 #include <ceed.h>
 #include <math.h>
+#endif
 
 #include "newtonian_state.h"
 #include "newtonian_types.h"
@@ -28,10 +30,10 @@ struct ChannelContext_ {
   CeedScalar                       B;         // !< Body-force driving the flow
   struct NewtonianIdealGasContext_ newtonian_ctx;
 };
-#define ChannelContext struct ChannelContext_*
+#define ChannelContext struct ChannelContext_ *
 
 CEED_QFUNCTION_HELPER State Exact_Channel(CeedInt dim, CeedScalar time, const CeedScalar X[], CeedInt Nf, void *ctx) {
-  struct ChannelContext_* context = (struct ChannelContext_*) ctx;
+  struct ChannelContext_  *context = (struct ChannelContext_ *)ctx;
   const CeedScalar         theta0  = context->theta0;
   const CeedScalar         P0      = context->P0;
   const CeedScalar         umax    = context->umax;
@@ -64,17 +66,16 @@ CEED_QFUNCTION_HELPER State Exact_Channel(CeedInt dim, CeedScalar time, const Ce
 // *****************************************************************************
 // This QFunction set the initial condition
 // *****************************************************************************
-CEED_QFUNCTION(ICsChannel)(void *ctx, CeedInt Q,
-                           const CeedScalar *const *in, CeedScalar *const *out) {
-  // Inputs 
+CEED_QFUNCTION(ICsChannel)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
+  // Inputs
   typedef CeedScalar vec_t[CEED_Q_VLA];
-  const vec_t* X = (const vec_t*) in[0];
+  const vec_t       *X = (const vec_t *)in[0];
 
   // Outputs
-  vec_t* q0 = (vec_t*) out[0];
+  vec_t *q0 = (vec_t *)out[0];
 
   // Context
-  struct ChannelContext_* context = (struct ChannelContext_*) ctx;
+  struct ChannelContext_ *context = (struct ChannelContext_ *)ctx;
 
   // Quadrature Point Loop
   CeedPragmaSIMD for (CeedInt i = 0; i < Q; i++) {
@@ -102,19 +103,19 @@ CEED_QFUNCTION(ICsChannel)(void *ctx, CeedInt Q,
 CEED_QFUNCTION(Channel_Inflow)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
   // Inputs
   typedef CeedScalar vec_t[CEED_Q_VLA];
-  const vec_t* q = (const vec_t*) in[0];
-  const vec_t* q_data_sur = (const vec_t*) in[2];
-  const vec_t* X = (const vec_t*) in[3];
+  const vec_t       *q          = (const vec_t *)in[0];
+  const vec_t       *q_data_sur = (const vec_t *)in[2];
+  const vec_t       *X          = (const vec_t *)in[3];
 
   // Outputs
-  vec_t* v = (vec_t*) out[0];
+  vec_t *v = (vec_t *)out[0];
 
-  struct ChannelContext_* context = (struct ChannelContext_*) ctx;
+  struct ChannelContext_  *context  = (struct ChannelContext_ *)ctx;
   const bool               implicit = context->implicit;
   NewtonianIdealGasContext gas      = &context->newtonian_ctx;
   const CeedScalar         cv       = gas->cv;
   const CeedScalar         gamma    = HeatCapacityRatio(&context->newtonian_ctx);
-  
+
   // Quadrature Point Loop
   CeedPragmaSIMD for (CeedInt i = 0; i < Q; i++) {
     // Setup
@@ -176,15 +177,15 @@ CEED_QFUNCTION(Channel_Inflow)(void *ctx, CeedInt Q, const CeedScalar *const *in
 CEED_QFUNCTION(Channel_Outflow)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
   // Inputs
   typedef CeedScalar vec_t[CEED_Q_VLA];
-  const vec_t* q = (const vec_t*) in[0];
-  const vec_t* q_data_sur = (const vec_t*) in[2];
+  const vec_t       *q          = (const vec_t *)in[0];
+  const vec_t       *q_data_sur = (const vec_t *)in[2];
 
   // Outputs
-  vec_t* v = (vec_t*) out[0];
-  
-  struct ChannelContext_* context = (struct ChannelContext_*) ctx;
-  const bool           implicit = context->implicit;
-  const CeedScalar     P0       = context->P0;
+  vec_t *v = (vec_t *)out[0];
+
+  struct ChannelContext_ *context  = (struct ChannelContext_ *)ctx;
+  const bool              implicit = context->implicit;
+  const CeedScalar        P0       = context->P0;
 
   // Quadrature Point Loop
   CeedPragmaSIMD for (CeedInt i = 0; i < Q; i++) {

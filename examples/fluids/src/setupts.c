@@ -263,8 +263,8 @@ static PetscErrorCode FormPreallocation(User user, PetscBool pbdiagonal, Mat J, 
     CeedSize l_size;
     CeedOperatorGetActiveVectorLengths(user->op_ijacobian, &l_size, NULL);
     ncoo = l_size * 5;
-    rows = malloc(ncoo * sizeof(rows[0]));
-    cols = malloc(ncoo * sizeof(cols[0]));
+    rows = (PetscInt *)malloc(ncoo * sizeof(rows[0]));
+    cols = (PetscInt *)malloc(ncoo * sizeof(cols[0]));
     for (PetscCount n = 0; n < l_size / 5; n++) {
       for (PetscInt i = 0; i < 5; i++) {
         for (PetscInt j = 0; j < 5; j++) {
@@ -415,7 +415,7 @@ PetscErrorCode WriteOutput(User user, Vec Q, PetscInt step_no, PetscScalar time)
 
 // User provided TS Monitor
 PetscErrorCode TSMonitor_NS(TS ts, PetscInt step_no, PetscReal time, Vec Q, void *ctx) {
-  User user = ctx;
+  User user = (User)ctx;
   PetscFunctionBeginUser;
 
   // Print every 'output_freq' steps

@@ -35,15 +35,23 @@ struct BlasiusContext_ {
   CeedScalar                       Th_cheb[BLASIUS_MAX_N_CHEBYSHEV - 1];  // !< Chebyshev coefficient for h
   struct NewtonianIdealGasContext_ newtonian_ctx;
 };
-#define BlasiusContext struct BlasiusContext_*
+#define BlasiusContext struct BlasiusContext_ *
 
 CEED_QFUNCTION_HELPER void ChebyshevEval(int N, const double *Tf, double x, double eta_max, double *f) {
-  double dX_deta     = 2 / eta_max;
+  double dX_deta = 2 / eta_max;
   double table[4][3];
-  table[0][0] = 1; table[0][1] = x; table[0][2] = 2*x*x-1;
-  table[1][0] = 0; table[1][1] = 1; table[1][2] = 4*x;
-  table[2][0] = 0; table[2][1] = 0; table[2][2] = 4;
-  table[3][0] = 0; table[3][1] = 0; table[3][2] = 0;
+  table[0][0] = 1;
+  table[0][1] = x;
+  table[0][2] = 2 * x * x - 1;
+  table[1][0] = 0;
+  table[1][1] = 1;
+  table[1][2] = 4 * x;
+  table[2][0] = 0;
+  table[2][1] = 0;
+  table[2][2] = 4;
+  table[3][0] = 0;
+  table[3][1] = 0;
+  table[3][2] = 0;
   for (int i = 0; i < 4; i++) {
     // i-th derivative of f
     f[i] = table[i][0] * Tf[0] + table[i][1] * Tf[1] + table[i][2] * Tf[2];
@@ -69,8 +77,8 @@ CEED_QFUNCTION_HELPER void ChebyshevEval(int N, const double *Tf, double x, doub
 // *****************************************************************************
 // This helper function computes the Blasius boundary layer solution.
 // *****************************************************************************
-CEED_QFUNCTION_HELPER State BlasiusSolution(BlasiusContext blasius, const CeedScalar x[3], const CeedScalar x0, const CeedScalar x_inflow,
-                                             const CeedScalar rho_infty, CeedScalar *t12) {
+CEED_QFUNCTION_HELPER State BlasiusSolution(const BlasiusContext blasius, const CeedScalar x[3], const CeedScalar x0, const CeedScalar x_inflow,
+                                            const CeedScalar rho_infty, CeedScalar *t12) {
   CeedInt    N     = blasius->n_cheb;
   CeedScalar mu    = blasius->newtonian_ctx.mu;
   CeedScalar nu    = mu / rho_infty;
@@ -100,10 +108,10 @@ CEED_QFUNCTION_HELPER State BlasiusSolution(BlasiusContext blasius, const CeedSc
 CEED_QFUNCTION(ICsBlasius)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
   // Inputs
   typedef CeedScalar vec_t[CEED_Q_VLA];
-  const vec_t* X = (const vec_t*) in[0];
+  const vec_t       *X = (const vec_t *)in[0];
 
   // Outputs
-  vec_t* q0 = (vec_t*) out[0];
+  vec_t *q0 = (vec_t *)out[0];
 
   const BlasiusContext context    = (BlasiusContext)ctx;
   const CeedScalar     cv         = context->newtonian_ctx.cv;
@@ -123,10 +131,12 @@ CEED_QFUNCTION(ICsBlasius)(void *ctx, CeedInt Q, const CeedScalar *const *in, Ce
   CeedPragmaSIMD for (CeedInt i = 0; i < Q; i++) {
     // const CeedScalar x[3] = {X[0][i], X[1][i], 0.};
     CeedScalar x[3];
-    x[0] = X[0][i]; x[1] = X[1][i]; x[2] = 0.;
+    x[0] = X[0][i];
+    x[1] = X[1][i];
+    x[2] = 0.;
 
-    State            s    = BlasiusSolution(context, x, x0, x_inflow, rho, &t12);
-    CeedScalar       q[5] = {0};
+    State      s    = BlasiusSolution(context, x, x0, x_inflow, rho, &t12);
+    CeedScalar q[5] = {0};
     UnpackState_U(s.U, q);
     for (CeedInt j = 0; j < 5; j++) q0[j][i] = q[j];
 
@@ -138,26 +148,26 @@ CEED_QFUNCTION(ICsBlasius)(void *ctx, CeedInt Q, const CeedScalar *const *in, Ce
 CEED_QFUNCTION(Blasius_Inflow)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
   // Inputs
   typedef CeedScalar vec_t[CEED_Q_VLA];
-  const vec_t* q = (const vec_t*) in[0];
-  const vec_t* q_data_sur = (const vec_t*) in[2];
-  const vec_t* X = (const vec_t*) in[3];
+  const vec_t       *q          = (const vec_t *)in[0];
+  const vec_t       *q_data_sur = (const vec_t *)in[2];
+  const vec_t       *X          = (const vec_t *)in[3];
 
   // Outputs
-  vec_t* v = (vec_t*) out[0];
-  
-  const BlasiusContext     context  = (BlasiusContext)ctx;
-  const bool               implicit = context->implicit;
-  NewtonianIdealGasContext gas      = &context->newtonian_ctx;
-  const CeedScalar         mu       = context->newtonian_ctx.mu;
-  const CeedScalar         Rd       = GasConstant(&context->newtonian_ctx);
-  const CeedScalar         T_inf    = context->T_inf;
-  const CeedScalar         P0       = context->P0;
-  const CeedScalar         delta0   = context->delta0;
-  const CeedScalar         U_inf    = context->U_inf;
-  const CeedScalar         x_inflow = context->x_inflow;
-  const bool               weakT    = context->weakT;
-  const CeedScalar         rho_0    = P0 / (Rd * T_inf);
-  const CeedScalar         x0       = U_inf * rho_0 / (mu * 25 / Square(delta0));
+  vec_t *v = (vec_t *)out[0];
+
+  const BlasiusContext           context  = (BlasiusContext)ctx;
+  const bool                     implicit = context->implicit;
+  const NewtonianIdealGasContext gas      = &context->newtonian_ctx;
+  const CeedScalar               mu       = context->newtonian_ctx.mu;
+  const CeedScalar               Rd       = GasConstant(&context->newtonian_ctx);
+  const CeedScalar               T_inf    = context->T_inf;
+  const CeedScalar               P0       = context->P0;
+  const CeedScalar               delta0   = context->delta0;
+  const CeedScalar               U_inf    = context->U_inf;
+  const CeedScalar               x_inflow = context->x_inflow;
+  const bool                     weakT    = context->weakT;
+  const CeedScalar               rho_0    = P0 / (Rd * T_inf);
+  const CeedScalar               x0       = U_inf * rho_0 / (mu * 25 / Square(delta0));
 
   // Quadrature Point Loop
   CeedPragmaSIMD for (CeedInt i = 0; i < Q; i++) {
@@ -171,11 +181,13 @@ CEED_QFUNCTION(Blasius_Inflow)(void *ctx, CeedInt Q, const CeedScalar *const *in
     // Calculate inflow values
     // const CeedScalar x[3] = {X[0][i], X[1][i], 0.};
     CeedScalar x[3];
-    x[0] = X[0][i]; x[1] = X[1][i]; x[2] = 0.;
+    x[0] = X[0][i];
+    x[1] = X[1][i];
+    x[2] = 0.;
 
-    CeedScalar       t12;
-    State            s = BlasiusSolution(context, x, x0, x_inflow, rho_0, &t12);
-    CeedScalar       qi[5];
+    CeedScalar t12;
+    State      s = BlasiusSolution(context, x, x0, x_inflow, rho_0, &t12);
+    CeedScalar qi[5];
     for (CeedInt j = 0; j < 5; j++) qi[j] = q[j][i];
     State s_int = StateFromU(gas, qi, x);
 
@@ -195,15 +207,21 @@ CEED_QFUNCTION(Blasius_Inflow)(void *ctx, CeedInt Q, const CeedScalar *const *in
     FluxInviscid(&context->newtonian_ctx, s, Flux_inviscid);
 
     // const CeedScalar stress[3][3] = {
-        // {0,   t12, 0},
-        // {t12, 0,   0},
-        // {0,   0,   0}
+    // {0,   t12, 0},
+    // {t12, 0,   0},
+    // {0,   0,   0}
     // };
 
     CeedScalar stress[3][3];
-    stress[0][0] = 0; stress[0][1] = t12; stress[0][2] = 0;
-    stress[1][0] = t12; stress[1][1] = 0; stress[1][2] = 0;
-    stress[2][0] = 0; stress[2][1] = 0; stress[2][2] = 0; 
+    stress[0][0] = 0;
+    stress[0][1] = t12;
+    stress[0][2] = 0;
+    stress[1][0] = t12;
+    stress[1][1] = 0;
+    stress[1][2] = 0;
+    stress[2][0] = 0;
+    stress[2][1] = 0;
+    stress[2][2] = 0;
 
     const CeedScalar Fe[3] = {0};  // TODO: viscous energy flux needs grad temperature
     CeedScalar       Flux[5];
@@ -217,12 +235,12 @@ CEED_QFUNCTION(Blasius_Inflow)(void *ctx, CeedInt Q, const CeedScalar *const *in
 CEED_QFUNCTION(Blasius_Inflow_Jacobian)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
   // Inputs
   typedef CeedScalar vec_t[CEED_Q_VLA];
-  const vec_t* dq = (const vec_t*) in[0];
-  const vec_t* q_data_sur = (const vec_t*) in[2];
-  const vec_t* X = (const vec_t*) in[3];
+  const vec_t       *dq         = (const vec_t *)in[0];
+  const vec_t       *q_data_sur = (const vec_t *)in[2];
+  const vec_t       *X          = (const vec_t *)in[3];
 
   // Outputs
-  vec_t* v = (vec_t*) out[0];
+  vec_t *v = (vec_t *)out[0];
 
   const BlasiusContext context  = (BlasiusContext)ctx;
   const bool           implicit = context->implicit;
@@ -250,9 +268,11 @@ CEED_QFUNCTION(Blasius_Inflow_Jacobian)(void *ctx, CeedInt Q, const CeedScalar *
     // Calculate inflow values
     // const CeedScalar x[3] = {X[0][i], X[1][i], X[2][i]};
     CeedScalar x[3];
-    x[0] = X[0][i]; x[1] = X[1][i]; x[2] = X[2][i];
-    CeedScalar       t12;
-    State            s = BlasiusSolution(context, x, x0, 0, rho_0, &t12);
+    x[0] = X[0][i];
+    x[1] = X[1][i];
+    x[2] = X[2][i];
+    CeedScalar t12;
+    State      s = BlasiusSolution(context, x, x0, 0, rho_0, &t12);
 
     // enabling user to choose between weak T and weak rho inflow
     CeedScalar drho, dE, dP;

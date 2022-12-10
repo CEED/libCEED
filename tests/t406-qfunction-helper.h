@@ -8,7 +8,9 @@
 #ifndef _helper_h
 #define _helper_h
 
-#include <ceed.h>
+#ifndef __OCCA__
+#include <ceed/types.h>
+#endif
 
 #include "t406-qfunction-scales.h"
 

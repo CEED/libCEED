@@ -31,7 +31,9 @@ STGShur14Context global_stg_ctx;
  * @param[in]  Rij    Array of the symmetric matrices [6,nprofs]
  * @param[out] Cij    Array of the Cholesky Decomposition matrices, [6,nprofs]
  */
-PetscErrorCode CalcCholeskyDecomp(MPI_Comm comm, PetscInt nprofs, const CeedScalar Rij[6][nprofs], CeedScalar Cij[6][nprofs]) {
+PetscErrorCode CalcCholeskyDecomp(MPI_Comm comm, PetscInt nprofs, const CeedScalar Rij_flat[], CeedScalar Cij_flat[]) {
+  const CeedScalar(*Rij)[nprofs] = (const CeedScalar(*)[nprofs])Rij_flat;
+  CeedScalar(*Cij)[nprofs]       = (CeedScalar(*)[nprofs])Rij_flat;
   PetscFunctionBeginUser;
   for (PetscInt i = 0; i < nprofs; i++) {
     Cij[0][i] = sqrt(Rij[0][i]);
@@ -160,7 +162,7 @@ static PetscErrorCode ReadSTGInflow(const MPI_Comm comm, const char path[PETSC_M
     if (eps[i] < 0) SETERRQ(comm, -1, "Turbulent dissipation in %s cannot be negative", path);
   }
   CeedScalar(*cij)[stg_ctx->nprofs] = (CeedScalar(*)[stg_ctx->nprofs]) & stg_ctx->data[stg_ctx->offsets.cij];
-  PetscCall(CalcCholeskyDecomp(comm, stg_ctx->nprofs, rij, cij));
+  PetscCall(CalcCholeskyDecomp(comm, stg_ctx->nprofs, rij[0], cij[0]));
   PetscCall(PetscFClose(comm, fp));
 
   PetscFunctionReturn(0);

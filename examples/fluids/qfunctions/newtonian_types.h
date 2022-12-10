@@ -8,7 +8,9 @@
 #ifndef newtonian_types_h
 #define newtonian_types_h
 
+#ifndef __OCCA__
 #include <ceed.h>
+#endif
 
 #include "stabilization_types.h"
 
@@ -39,32 +41,32 @@ struct SetupContext_ {
   CeedScalar center[3];
   CeedScalar dc_axis[3];
   CeedScalar time;
-  int wind_type;              
-  int bubble_type;            
-  int bubble_continuity_type;
+  int        wind_type;
+  int        bubble_type;
+  int        bubble_continuity_type;
 };
-#define SetupContext struct SetupContext_*
+#define SetupContext struct SetupContext_ *
 
 struct NewtonianIdealGasContext_ {
-  CeedScalar lambda;
-  CeedScalar mu;
-  CeedScalar k;
-  CeedScalar cv;
-  CeedScalar cp;
-  CeedScalar g[3];
-  CeedScalar c_tau;
-  CeedScalar Ctau_t;
-  CeedScalar Ctau_v;
-  CeedScalar Ctau_C;
-  CeedScalar Ctau_M;
-  CeedScalar Ctau_E;
-  CeedScalar dt;
-  CeedScalar ijacobian_time_shift;
-  CeedScalar P0;
-  bool is_implicit;
-  StateVariable state_var;
+  CeedScalar        lambda;
+  CeedScalar        mu;
+  CeedScalar        k;
+  CeedScalar        cv;
+  CeedScalar        cp;
+  CeedScalar        g[3];
+  CeedScalar        c_tau;
+  CeedScalar        Ctau_t;
+  CeedScalar        Ctau_v;
+  CeedScalar        Ctau_C;
+  CeedScalar        Ctau_M;
+  CeedScalar        Ctau_E;
+  CeedScalar        dt;
+  CeedScalar        ijacobian_time_shift;
+  CeedScalar        P0;
+  bool              is_implicit;
+  StateVariable     state_var;
   StabilizationType stabilization;
 };
-#define NewtonianIdealGasContext struct NewtonianIdealGasContext_*
+#define NewtonianIdealGasContext struct NewtonianIdealGasContext_ *
 
 #endif  // newtonian_types_h

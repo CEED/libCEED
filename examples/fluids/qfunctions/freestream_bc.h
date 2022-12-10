@@ -12,8 +12,8 @@
 #include "newtonian_state.h"
 #include "newtonian_types.h"
 
-typedef StateConservative (*RiemannFluxFunction)(NewtonianIdealGasContext, State, State, const CeedScalar[3]);
-typedef StateConservative (*RiemannFluxFwdFunction)(NewtonianIdealGasContext, State, State, State, State, const CeedScalar[3]);
+typedef StateConservative (*RiemannFluxFunction)(const NewtonianIdealGasContext, State, State, const CeedScalar[3]);
+typedef StateConservative (*RiemannFluxFwdFunction)(const NewtonianIdealGasContext, State, State, State, State, const CeedScalar[3]);
 
 typedef struct {
   CeedScalar left, right;
@@ -84,7 +84,7 @@ CEED_QFUNCTION_HELPER StateConservative Flux_HLL_fwd(State left, State right, St
   };
 }
 
-CEED_QFUNCTION_HELPER void ComputeHLLSpeeds_Roe(NewtonianIdealGasContext gas, State left, CeedScalar u_left, State right, CeedScalar u_right,
+CEED_QFUNCTION_HELPER void ComputeHLLSpeeds_Roe(const NewtonianIdealGasContext gas, State left, CeedScalar u_left, State right, CeedScalar u_right,
                                                 CeedScalar *s_left, CeedScalar *s_right) {
   const CeedScalar gamma = HeatCapacityRatio(gas);
 
@@ -105,9 +105,9 @@ CEED_QFUNCTION_HELPER void ComputeHLLSpeeds_Roe(NewtonianIdealGasContext gas, St
   *s_right = u_roe + a_roe;
 }
 
-CEED_QFUNCTION_HELPER void ComputeHLLSpeeds_Roe_fwd(NewtonianIdealGasContext gas, State left, State dleft, CeedScalar u_left, CeedScalar du_left,
-                                                    State right, State dright, CeedScalar u_right, CeedScalar du_right, CeedScalar *s_left,
-                                                    CeedScalar *ds_left, CeedScalar *s_right, CeedScalar *ds_right) {
+CEED_QFUNCTION_HELPER void ComputeHLLSpeeds_Roe_fwd(const NewtonianIdealGasContext gas, State left, State dleft, CeedScalar u_left,
+                                                    CeedScalar du_left, State right, State dright, CeedScalar u_right, CeedScalar du_right,
+                                                    CeedScalar *s_left, CeedScalar *ds_left, CeedScalar *s_right, CeedScalar *ds_right) {
   const CeedScalar gamma = HeatCapacityRatio(gas);
 
   RoeWeights r  = RoeSetup(left.U.density, right.U.density);
@@ -144,7 +144,7 @@ CEED_QFUNCTION_HELPER void ComputeHLLSpeeds_Roe_fwd(NewtonianIdealGasContext gas
 // @param right  Fluid state of the domain exterior (free stream conditions)
 // @param normal Normalized, outward facing boundary normal vector
 // *****************************************************************************
-CEED_QFUNCTION_HELPER StateConservative RiemannFlux_HLL(NewtonianIdealGasContext gas, State left, State right, const CeedScalar normal[3]) {
+CEED_QFUNCTION_HELPER StateConservative RiemannFlux_HLL(const NewtonianIdealGasContext gas, State left, State right, const CeedScalar normal[3]) {
   StateConservative flux_left  = FluxInviscidDotNormal(gas, left, normal);
   StateConservative flux_right = FluxInviscidDotNormal(gas, right, normal);
 
@@ -174,7 +174,7 @@ CEED_QFUNCTION_HELPER StateConservative RiemannFlux_HLL(NewtonianIdealGasContext
 // @param dright Derivative of fluid state of the domain exterior (free stream conditions)
 // @param normal Normalized, outward facing boundary normal vector
 // *****************************************************************************
-CEED_QFUNCTION_HELPER StateConservative RiemannFlux_HLL_fwd(NewtonianIdealGasContext gas, State left, State dleft, State right, State dright,
+CEED_QFUNCTION_HELPER StateConservative RiemannFlux_HLL_fwd(const NewtonianIdealGasContext gas, State left, State dleft, State right, State dright,
                                                             const CeedScalar normal[3]) {
   StateConservative flux_left   = FluxInviscidDotNormal(gas, left, normal);
   StateConservative flux_right  = FluxInviscidDotNormal(gas, right, normal);
@@ -198,7 +198,7 @@ CEED_QFUNCTION_HELPER StateConservative RiemannFlux_HLL_fwd(NewtonianIdealGasCon
   }
 }
 
-CEED_QFUNCTION_HELPER StateConservative RiemannFlux_HLLC_Star(NewtonianIdealGasContext gas, State side, StateConservative F_side,
+CEED_QFUNCTION_HELPER StateConservative RiemannFlux_HLLC_Star(const NewtonianIdealGasContext gas, State side, StateConservative F_side,
                                                               const CeedScalar normal[3], CeedScalar u_side, CeedScalar s_side, CeedScalar s_star) {
   CeedScalar fact  = side.U.density * (s_side - u_side) / (s_side - s_star);
   CeedScalar denom = side.U.density * (s_side - u_side);
@@ -215,10 +215,10 @@ CEED_QFUNCTION_HELPER StateConservative RiemannFlux_HLLC_Star(NewtonianIdealGasC
   return StateConservativeAXPBYPCZ(1, F_side, s_side * fact, star, -s_side, side.U);
 }
 
-CEED_QFUNCTION_HELPER StateConservative RiemannFlux_HLLC_Star_fwd(NewtonianIdealGasContext gas, State side, State dside, StateConservative F_side,
-                                                                  StateConservative dF_side, const CeedScalar normal[3], CeedScalar u_side,
-                                                                  CeedScalar du_side, CeedScalar s_side, CeedScalar ds_side, CeedScalar s_star,
-                                                                  CeedScalar ds_star) {
+CEED_QFUNCTION_HELPER StateConservative RiemannFlux_HLLC_Star_fwd(const NewtonianIdealGasContext gas, State side, State dside,
+                                                                  StateConservative F_side, StateConservative dF_side, const CeedScalar normal[3],
+                                                                  CeedScalar u_side, CeedScalar du_side, CeedScalar s_side, CeedScalar ds_side,
+                                                                  CeedScalar s_star, CeedScalar ds_star) {
   CeedScalar fact  = side.U.density * (s_side - u_side) / (s_side - s_star);
   CeedScalar dfact = (side.U.density * (ds_side - du_side) + dside.U.density * (s_side - u_side)) / (s_side - s_star)  //
                      - fact / (s_side - s_star) * (ds_side - ds_star);
@@ -253,7 +253,7 @@ CEED_QFUNCTION_HELPER StateConservative RiemannFlux_HLLC_Star_fwd(NewtonianIdeal
 }
 
 // HLLC Riemann solver (from Toro's book)
-CEED_QFUNCTION_HELPER StateConservative RiemannFlux_HLLC(NewtonianIdealGasContext gas, State left, State right, const CeedScalar normal[3]) {
+CEED_QFUNCTION_HELPER StateConservative RiemannFlux_HLLC(const NewtonianIdealGasContext gas, State left, State right, const CeedScalar normal[3]) {
   StateConservative flux_left  = FluxInviscidDotNormal(gas, left, normal);
   StateConservative flux_right = FluxInviscidDotNormal(gas, right, normal);
 
@@ -280,7 +280,7 @@ CEED_QFUNCTION_HELPER StateConservative RiemannFlux_HLLC(NewtonianIdealGasContex
   }
 }
 
-CEED_QFUNCTION_HELPER StateConservative RiemannFlux_HLLC_fwd(NewtonianIdealGasContext gas, State left, State dleft, State right, State dright,
+CEED_QFUNCTION_HELPER StateConservative RiemannFlux_HLLC_fwd(const NewtonianIdealGasContext gas, State left, State dleft, State right, State dright,
                                                              const CeedScalar normal[3]) {
   StateConservative flux_left   = FluxInviscidDotNormal(gas, left, normal);
   StateConservative flux_right  = FluxInviscidDotNormal(gas, right, normal);

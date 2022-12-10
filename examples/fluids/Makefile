@@ -21,8 +21,8 @@ PETSc.pc := $(PETSC_DIR)/$(PETSC_ARCH)/lib/pkgconfig/PETSc.pc
 CEED_DIR ?= ../..
 ceed.pc := $(CEED_DIR)/lib/pkgconfig/ceed.pc
 
-CC = $(call pkgconf, --variable=ccompiler $(PETSc.pc) $(ceed.pc))
-CFLAGS = -std=c99 \
+CC = $(call pkgconf, --variable=cxxcompiler $(PETSc.pc) $(ceed.pc))
+CFLAGS = \
   $(call pkgconf, --variable=cflags_extra $(PETSc.pc)) \
   $(call pkgconf, --cflags-only-other $(PETSc.pc)) \
   $(OPT) $(OPT_EXAMPLES)

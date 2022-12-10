@@ -6,14 +6,17 @@
 // This file is part of CEED:  http://github.com/ceed
 
 // Note: intentionally testing strange spacing in '#include's
-#include <ceed.h>
+#ifndef __OCCA__
+#include <ceed/types.h>
+#endif
+
 #include "./t406-qfunction-scales.h"
 #include "t406-qfunction-helper.h"
 
 #ifdef __cplusplus
-  #include <cmath>
+#include <cmath>
 #else
-  #include <math.h>
+#include <math.h>
 #endif
 
 CEED_QFUNCTION(setup)(void *ctx, const CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
