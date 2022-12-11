@@ -8,6 +8,8 @@
 /// @file
 /// Command line option processing for Navier-Stokes example using PETSc
 
+#include <petscdevice.h>
+
 #include "../navierstokes.h"
 
 // Register problems to be available on the command line
@@ -98,6 +100,10 @@ PetscErrorCode ProcessCommandLineOptions(MPI_Comm comm, AppCtx app_ctx, SimpleBC
     const char *ceed_resource = "/cpu/self";
     strncpy(app_ctx->ceed_resource, ceed_resource, 10);
   }
+  // If we request a GPU, make sure PETSc has initialized its device (which is
+  // MPI-aware in case multiple devices are available) before CeedInit so that
+  // PETSc and libCEED agree about which device to use.
+  if (strncmp(app_ctx->ceed_resource, "/gpu", 4) == 0) PetscCall(PetscDeviceInitialize(PETSC_DEVICE_DEFAULT()));
 
   // Provide default problem if not specified
   if (!problem_flag) {
