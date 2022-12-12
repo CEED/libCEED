@@ -247,15 +247,15 @@ int main(int argc, char **argv) {
     // Mesh
     const PetscInt num_comp_q = 5;
     CeedInt        glob_dofs, owned_dofs;
-    PetscInt       glob_nodes, owned_nodes;
+    PetscInt       glob_nodes, local_nodes;
     const CeedInt  num_P = app_ctx->degree + 1, num_Q = num_P + app_ctx->q_extra;
     // -- Get global size
     PetscCall(VecGetSize(Q, &glob_dofs));
     PetscCall(VecGetLocalSize(Q, &owned_dofs));
     glob_nodes = glob_dofs / num_comp_q;
     // -- Get local size
-    PetscCall(VecGetSize(user->Q_loc, &owned_nodes));
-    owned_nodes /= num_comp_q;
+    PetscCall(VecGetSize(user->Q_loc, &local_nodes));
+    local_nodes /= num_comp_q;
     PetscCall(PetscPrintf(comm,
                           "  Mesh:\n"
                           "    Number of 1D Basis Nodes (P)       : %" CeedInt_FMT "\n"
@@ -264,8 +264,8 @@ int main(int argc, char **argv) {
                           "    Owned DoFs                         : %" PetscInt_FMT "\n"
                           "    DoFs per node                      : %" PetscInt_FMT "\n"
                           "    Global nodes                       : %" PetscInt_FMT "\n"
-                          "    Owned nodes                        : %" PetscInt_FMT "\n",
-                          num_P, num_Q, glob_dofs, owned_dofs, num_comp_q, glob_nodes, owned_nodes));
+                          "    Local nodes                        : %" PetscInt_FMT "\n",
+                          num_P, num_Q, glob_dofs, owned_dofs, num_comp_q, glob_nodes, local_nodes));
   }
   // -- Zero Q_loc
   PetscCall(VecZeroEntries(user->Q_loc));
