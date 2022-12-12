@@ -13,6 +13,9 @@
 #include "../navierstokes.h"
 #include "../qfunctions/setupgeo.h"
 
+// For use with PetscOptionsEnum
+static const char *const StateVariables[] = {"CONSERVATIVE", "PRIMITIVE", "StateVariable", "STATEVAR_", NULL};
+
 // Compute relative error |a - b|/|s|
 static PetscErrorCode CheckPrimitiveWithTolerance(StatePrimitive sY, StatePrimitive aY, StatePrimitive bY, const char *name, PetscReal rtol_pressure,
                                                   PetscReal rtol_velocity, PetscReal rtol_temperature) {

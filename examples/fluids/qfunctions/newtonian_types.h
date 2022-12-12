@@ -17,9 +17,6 @@ typedef enum {
   STATEVAR_PRIMITIVE    = 1,
 } StateVariable;
 
-// For use with PetscOptionsEnum
-static const char *const StateVariables[] = {"CONSERVATIVE", "PRIMITIVE", "StateVariable", "STATEVAR_", NULL};
-
 typedef struct SetupContext_ *SetupContext;
 struct SetupContext_ {
   CeedScalar theta0;

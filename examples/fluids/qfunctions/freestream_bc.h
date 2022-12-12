@@ -21,7 +21,8 @@ typedef struct {
 
 CEED_QFUNCTION_HELPER RoeWeights RoeSetup(CeedScalar rho_left, CeedScalar rho_right) {
   CeedScalar sqrt_left = sqrt(rho_left), sqrt_right = sqrt(rho_right);
-  return (RoeWeights){sqrt_left / (sqrt_left + sqrt_right), sqrt_right / (sqrt_left + sqrt_right)};
+  RoeWeights w = {sqrt_left / (sqrt_left + sqrt_right), sqrt_right / (sqrt_left + sqrt_right)};
+  return w;
 }
 
 CEED_QFUNCTION_HELPER RoeWeights RoeSetup_fwd(CeedScalar rho_left, CeedScalar rho_right, CeedScalar drho_left, CeedScalar drho_right) {
@@ -29,7 +30,8 @@ CEED_QFUNCTION_HELPER RoeWeights RoeSetup_fwd(CeedScalar rho_left, CeedScalar rh
   CeedScalar square_sum_root = Square(sqrt_left + sqrt_right);
   CeedScalar r_right = (sqrt_left / (2 * sqrt_right * square_sum_root)) * drho_right - (sqrt_right / (2 * sqrt_left * square_sum_root)) * drho_left;
   CeedScalar r_left  = (sqrt_right / (2 * sqrt_left * square_sum_root)) * drho_left - (sqrt_left / (2 * sqrt_right * square_sum_root)) * drho_right;
-  return (RoeWeights){r_left, r_right};
+  RoeWeights dw      = {r_left, r_right};
+  return dw;
 }
 
 CEED_QFUNCTION_HELPER CeedScalar RoeAverage(RoeWeights r, CeedScalar q_left, CeedScalar q_right) { return r.left * q_left + r.right * q_right; }
@@ -49,10 +51,12 @@ CEED_QFUNCTION_HELPER StateConservative Flux_HLL(State left, State right, StateC
   for (int i = 0; i < 5; i++) {
     F_hll[i] = (s_right * F_left[i] - s_left * F_right[i] + s_left * s_right * (U_right[i] - U_left[i])) / (s_right - s_left);
   }
-  return (StateConservative){
-      F_hll[0], {F_hll[1], F_hll[2], F_hll[3]},
-       F_hll[4]
+  StateConservative F = {
+      F_hll[0],
+      {F_hll[1], F_hll[2], F_hll[3]},
+      F_hll[4],
   };
+  return F;
 }
 
 CEED_QFUNCTION_HELPER StateConservative Flux_HLL_fwd(State left, State right, State dleft, State dright, StateConservative flux_left,
@@ -78,10 +82,12 @@ CEED_QFUNCTION_HELPER StateConservative Flux_HLL_fwd(State left, State right, St
     dF_hll[i] += ((-F_r[i] + S_r * U_diff) * S_diff + F_hll_denom) / Square(S_diff) * dS_l;
     dF_hll[i] += (S_r * dF_l[i] - S_l * dF_r[i] + S_r * S_l * dU_r[i] - S_r * S_l * dU_l[i]) / S_diff;
   }
-  return (StateConservative){
-      dF_hll[0], {dF_hll[1], dF_hll[2], dF_hll[3]},
-       dF_hll[4]
+  StateConservative dF = {
+      dF_hll[0],
+      {dF_hll[1], dF_hll[2], dF_hll[3]},
+      dF_hll[4],
   };
+  return dF;
 }
 
 CEED_QFUNCTION_HELPER void ComputeHLLSpeeds_Roe(NewtonianIdealGasContext gas, State left, CeedScalar u_left, State right, CeedScalar u_right,
