@@ -300,7 +300,7 @@ struct CeedQFunctionAssemblyData_private {
 
 struct CeedOperatorAssemblyData_private {
   Ceed          ceed;
-  CeedInt       num_eval_mode_in, num_eval_mode_out;
+  CeedInt       num_active_in, num_active_out;
   CeedEvalMode *eval_mode_in, *eval_mode_out;
   CeedScalar   *B_in, *B_out;
   CeedBasis     basis_in, basis_out;
@@ -349,6 +349,7 @@ struct CeedOperator_private {
   CeedInt                   num_context_labels;
   CeedInt                   max_context_labels;
   CeedContextFieldLabel    *context_labels;
+  CeedBasis                *active_basis_in, *active_basis_out;
 };
 
 CEED_INTERN int CeedOperatorGetFallback(CeedOperator op, CeedOperator *op_fallback);

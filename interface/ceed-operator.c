@@ -234,6 +234,42 @@ int CeedOperatorGetActiveBasis(CeedOperator op, CeedBasis *active_basis) {
 }
 
 /**
+  @brief Find the active vector bases for a non-composite CeedOperator
+
+  @param[in] op                CeedOperator to find active bases for
+  @param[in] num_active_in     Number of active input CeedEvalModes
+  @param[in] num_active_out    Number of active output CeedEvalModes
+  @param[out] active_basis_in  Bases for active input vectors
+  @param[out] active_basis_out Bases for active output vectors
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ ref Developer
+**/
+int CeedOperatorGetActiveBases(CeedOperator op, CeedInt num_active_in, CeedInt num_active_out, CeedBasis **active_basis_in,
+                               CeedBasis **active_basis_out) {
+  Ceed ceed;
+  CeedCall(CeedOperatorGetCeed(op, &ceed));
+
+  if (op->is_composite) {
+    // LCOV_EXCL_START
+    return CeedError(ceed, CEED_ERROR_MINOR, "composite operator is not supported");
+    // LCOV_EXCL_STOP
+  }
+  CeedCall(CeedCalloc(num_active_in, &op->active_basis_in));
+  CeedCall(CeedCalloc(num_active_out, &op->active_basis_out));
+  for (CeedInt i = 0; i < num_active_in; i++) {
+    op->active_basis_in[i] = op->input_fields[i]->basis;
+  }
+  for (CeedInt i = 0; i < num_active_out; i++) {
+    op->active_basis_out[i] = op->output_fields[i]->basis;
+  }
+  if (active_basis_in) *active_basis_in = op->active_basis_in;
+  if (active_basis_out) *active_basis_out = op->active_basis_out;
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
   @brief Find the active vector ElemRestriction for a non-composite CeedOperator
 
   @param[in] op           CeedOperator to find active basis for
