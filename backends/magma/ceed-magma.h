@@ -31,6 +31,10 @@
 // for use with __launch_bounds__()
 #define MAGMA_BASIS_BOUNDS(x, maxt) (x * MAGMA_BASIS_NTCOL(x, maxt))
 
+// Define macro for non-tensor kernel instances
+#define MAGMA_NONTENSOR_KERNEL_INSTANCES (5)
+#define MAGMA_NONTENSOR_N_VALUES    10240,51200,102400,512000,1024000
+
 #ifdef CEED_MAGMA_USE_HIP
 typedef hipModule_t CeedMagmaModule;
 typedef hipFunction_t CeedMagmaFunction;
@@ -76,21 +80,11 @@ typedef struct {
 } CeedBasis_Magma;
 
 typedef struct {
-  CeedMagmaModule   module_small;
-  CeedMagmaModule   module_medium;
-  CeedMagmaModule   module_large;
-  CeedMagmaFunction magma_interp_nontensor_small;
-  CeedMagmaFunction magma_interp_nontensor_medium;
-  CeedMagmaFunction magma_interp_nontensor_large;
-  CeedMagmaFunction magma_interp_tr_nontensor_small;
-  CeedMagmaFunction magma_interp_tr_nontensor_medium;
-  CeedMagmaFunction magma_interp_tr_nontensor_large;
-  CeedMagmaFunction magma_grad_nontensor_small;
-  CeedMagmaFunction magma_grad_nontensor_medium;
-  CeedMagmaFunction magma_grad_nontensor_large;
-  CeedMagmaFunction magma_grad_tr_nontensor_small;
-  CeedMagmaFunction magma_grad_tr_nontensor_medium;
-  CeedMagmaFunction magma_grad_tr_nontensor_large;
+  CeedMagmaModule   module[MAGMA_NONTENSOR_KERNEL_INSTANCES];
+  CeedMagmaFunction magma_interp_nontensor[MAGMA_NONTENSOR_KERNEL_INSTANCES];
+  CeedMagmaFunction magma_interp_tr_nontensor[MAGMA_NONTENSOR_KERNEL_INSTANCES];
+  CeedMagmaFunction magma_grad_nontensor[MAGMA_NONTENSOR_KERNEL_INSTANCES];
+  CeedMagmaFunction magma_grad_tr_nontensor[MAGMA_NONTENSOR_KERNEL_INSTANCES];
   CeedScalar *dqref;
   CeedScalar *dinterp;
   CeedScalar *dgrad;
