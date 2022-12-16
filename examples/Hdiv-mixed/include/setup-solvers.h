@@ -7,7 +7,7 @@
 #include "petscvec.h"
 #include "structs.h"
 
-PetscErrorCode SetupJacobianOperatorCtx(DM dm, Ceed ceed, CeedData ceed_data, VecType vec_type, OperatorApplyContext ctx_jacobian);
+PetscErrorCode SetupJacobianOperatorCtx(DM dm, Ceed ceed, CeedData ceed_data, OperatorApplyContext ctx_jacobian);
 PetscErrorCode SetupResidualOperatorCtx(DM dm, Ceed ceed, CeedData ceed_data, OperatorApplyContext ctx_residual);
 PetscErrorCode SetupErrorOperatorCtx(DM dm, Ceed ceed, CeedData ceed_data, OperatorApplyContext ctx_error);
 PetscErrorCode ApplyMatOp(Mat A, Vec X, Vec Y);

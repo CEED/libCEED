@@ -25,7 +25,7 @@ PetscErrorCode ProcessCommandLineOptions(AppCtx app_ctx) {
   PetscBool ceed_flag    = PETSC_FALSE;
   PetscFunctionBeginUser;
 
-  PetscOptionsBegin(app_ctx->comm, NULL, "H(div) examples in PETSc with libCEED", NULL);
+  PetscOptionsBegin(app_ctx->comm, NULL, "H(div) mixed-problem in PETSc with libCEED", NULL);
 
   PetscCall(PetscOptionsString("-ceed", "CEED resource specifier", NULL, app_ctx->ceed_resource, app_ctx->ceed_resource,
                                sizeof(app_ctx->ceed_resource), &ceed_flag));

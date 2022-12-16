@@ -69,7 +69,7 @@ PetscErrorCode SetupResidualOperatorCtx_Ut(MPI_Comm comm, DM dm, Ceed ceed, Ceed
 // -----------------------------------------------------------------------------
 // Create global initial conditions vector
 // -----------------------------------------------------------------------------
-PetscErrorCode CreateInitialConditions(CeedData ceed_data, AppCtx app_ctx, VecType vec_type, Vec U) {
+PetscErrorCode CreateInitialConditions(CeedData ceed_data, AppCtx app_ctx, Vec U) {
   PetscFunctionBeginUser;
   // ----------------------------------------------
   // Create local rhs for u field
@@ -77,6 +77,8 @@ PetscErrorCode CreateInitialConditions(CeedData ceed_data, AppCtx app_ctx, VecTy
   Vec          rhs_u_loc;
   PetscScalar *ru;
   PetscMemType ru_mem_type;
+  VecType      vec_type;
+  PetscCall(DMGetVecType(app_ctx->ctx_initial_u0->dm, &vec_type));
   PetscCall(DMCreateLocalVector(app_ctx->ctx_initial_u0->dm, &rhs_u_loc));
   PetscCall(VecZeroEntries(rhs_u_loc));
   PetscCall(VecGetArrayAndMemType(rhs_u_loc, &ru, &ru_mem_type));

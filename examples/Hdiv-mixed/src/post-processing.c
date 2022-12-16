@@ -5,12 +5,14 @@
 // -----------------------------------------------------------------------------
 // This function print the output
 // -----------------------------------------------------------------------------
-PetscErrorCode PrintOutput(DM dm, Ceed ceed, AppCtx app_ctx, PetscBool has_ts, CeedMemType mem_type_backend, TS ts, SNES snes, KSP ksp, Vec U,
-                           CeedScalar l2_error_u, CeedScalar l2_error_p) {
+PetscErrorCode PrintOutput(DM dm, Ceed ceed, AppCtx app_ctx, PetscBool has_ts, TS ts, SNES snes, KSP ksp, Vec U, CeedScalar l2_error_u,
+                           CeedScalar l2_error_p) {
   PetscFunctionBeginUser;
 
   const char *used_resource;
+  CeedMemType mem_type_backend;
   CeedGetResource(ceed, &used_resource);
+  CeedGetPreferredMemType(ceed, &mem_type_backend);
   char hostname[PETSC_MAX_PATH_LEN];
   PetscCall(PetscGetHostName(hostname, sizeof hostname));
   PetscInt comm_size;
@@ -128,9 +130,11 @@ PetscErrorCode SetupProjectVelocityCtx_Hdiv(MPI_Comm comm, DM dm, Ceed ceed, Cee
   PetscFunctionReturn(0);
 }
 
-PetscErrorCode SetupProjectVelocityCtx_H1(MPI_Comm comm, DM dm_H1, Ceed ceed, CeedData ceed_data, VecType vec_type, OperatorApplyContext ctx_H1) {
+PetscErrorCode SetupProjectVelocityCtx_H1(MPI_Comm comm, DM dm_H1, Ceed ceed, CeedData ceed_data, OperatorApplyContext ctx_H1) {
   PetscFunctionBeginUser;
 
+  VecType vec_type;
+  PetscCall(DMGetVecType(dm_H1, &vec_type));
   ctx_H1->comm = comm;
   ctx_H1->dm   = dm_H1;
   PetscCall(DMCreateLocalVector(dm_H1, &ctx_H1->X_loc));
