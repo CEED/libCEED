@@ -14,6 +14,13 @@ Integer type, used for indexing. Equivalent to `Int32`.
 const CeedInt = C.CeedInt
 
 """
+    CeedSize
+
+Integer type, used for array sizes. Equivalent to `Int`.
+"""
+const CeedSize = C.CeedSize
+
+"""
     QuadMode
 
 One of `GAUSS` or `GAUSS_LOBATTO`.

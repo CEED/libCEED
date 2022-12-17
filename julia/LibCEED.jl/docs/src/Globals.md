@@ -3,6 +3,7 @@
 ```@docs
 CeedScalar
 CeedInt
+CeedSize
 QuadMode
 MemType
 CopyMode
