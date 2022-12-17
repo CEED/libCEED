@@ -15,17 +15,22 @@ mutable struct CeedVector <: AbstractCeedVector
 end
 
 """
-    CeedVector(c::Ceed, len::Integer)
+    CeedVector(c::Ceed, len::Integer; allocate::Bool=true)
 
-Creates a `CeedVector` of given length.
+Creates a `CeedVector` of given length. If `allocate` is false, then no memory is allocated.
+Attemping to access the vector before calling `setarray!` will fail. By default, `allocate` is
+true, and libCEED will allocate (host) memory for the vector.
 """
-function CeedVector(c::Ceed, len::Integer)
+function CeedVector(c::Ceed, len::Integer; allocate::Bool=true)
     ref = Ref{C.CeedVector}()
     C.CeedVectorCreate(c[], len, ref)
     obj = CeedVector(ref)
     finalizer(obj) do x
         # ccall(:jl_safe_printf, Cvoid, (Cstring, Cstring), "Finalizing %s.\n", repr(x))
         destroy(x)
+    end
+    if allocate
+        setarray!(obj, MEM_HOST, COPY_VALUES, C_NULL)
     end
     return obj
 end
@@ -237,7 +242,7 @@ the contents of `v2` will be copied to the new [`CeedVector`](@ref), but this be
 be changed by specifying a different `cmode`.
 """
 function CeedVector(c::Ceed, v2::AbstractVector; mtype=MEM_HOST, cmode=COPY_VALUES)
-    v = CeedVector(c, length(v2))
+    v = CeedVector(c, length(v2); allocate=false)
     setarray!(v, mtype, cmode, v2)
     v
 end
