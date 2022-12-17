@@ -43,7 +43,7 @@ end
 Base.show(io::IO, v::CeedVector) = witharray_read(a -> show(io, a), v, MEM_HOST)
 
 function Base.length(::Type{T}, v::CeedVector) where {T}
-    len = Ref{C.CeedInt}()
+    len = Ref{C.CeedSize}()
     C.CeedVectorGetLength(v[], len)
     return T(len[])
 end

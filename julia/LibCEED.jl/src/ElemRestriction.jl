@@ -247,7 +247,7 @@ end
 Get the size of an L-vector for the given [`ElemRestriction`](@ref).
 """
 function getlvectorsize(r::ElemRestriction)
-    result = Ref{CeedInt}()
+    result = Ref{CeedSize}()
     C.CeedElemRestrictionGetLVectorSize(r[], result)
     result[]
 end
