@@ -270,6 +270,7 @@ get_libceed_path() = C.libCEED_jll.libceed_path
 
 """
     get_scalar_type()
+
 Return the type of `CeedScalar` used by the libCEED library (either `Float32` or `Float64`).
 """
 get_scalar_type() = get_scalar_type(LibCEED.C.libceed_handle)
