@@ -22,15 +22,8 @@ g: 0,-.01,0
 # viscosity
 mu: 0.01
 
-# Cylinder diameter
-D:  1.41421356
-
 ## DM Settings:
 degree: 2
-dm_plex_dim: 3
-dm_plex_box_lower: 0,0,0
-dm_plex_box_upper: 1,1,0.1
-dm_plex_box_faces: 50,20,1
 dm_plex_filename: examples/fluids/cylinder.msh
 
 # Boundary Settings
