@@ -23,7 +23,6 @@ PetscErrorCode RegisterProblems_NS(AppCtx app_ctx) {
   PetscCall(PetscFunctionListAdd(&app_ctx->problems, "blasius", NS_BLASIUS));
   PetscCall(PetscFunctionListAdd(&app_ctx->problems, "channel", NS_CHANNEL));
   PetscCall(PetscFunctionListAdd(&app_ctx->problems, "newtonian_wave", NS_NEWTONIAN_WAVE));
-  PetscCall(PetscFunctionListAdd(&app_ctx->problems, "vortexshedding", NS_VORTEXSHEDDING));
 
   PetscFunctionReturn(0);
 }
