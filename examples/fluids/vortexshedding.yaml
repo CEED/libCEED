@@ -22,6 +22,8 @@ g: 0,-.01,0
 # viscosity
 mu: 0.01
 
+q_extra: 0
+
 ## DM Settings:
 degree: 2
 dm_plex_filename: examples/fluids/cylinder.msh
