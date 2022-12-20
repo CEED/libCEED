@@ -263,9 +263,9 @@ int main(int argc, char **argv) {
                           "    Global DoFs                        : %" PetscInt_FMT "\n"
                           "    Owned DoFs                         : %" PetscInt_FMT "\n"
                           "    DoFs per node                      : %" PetscInt_FMT "\n"
-                          "    Global nodes                       : %" PetscInt_FMT "\n"
+                          "    Global nodes (DoFs / %" PetscInt_FMT ")            : %" PetscInt_FMT "\n"
                           "    Local nodes                        : %" PetscInt_FMT "\n",
-                          num_P, num_Q, glob_dofs, owned_dofs, num_comp_q, glob_nodes, local_nodes));
+                          num_P, num_Q, glob_dofs, owned_dofs, num_comp_q, num_comp_q, glob_nodes, local_nodes));
   }
   // -- Zero Q_loc
   PetscCall(VecZeroEntries(user->Q_loc));
