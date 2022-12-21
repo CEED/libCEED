@@ -105,7 +105,7 @@ PetscErrorCode NS_NEWTONIAN_IG(ProblemData *problem, DM dm, void *ctx, SimpleBC 
   CeedScalar c_tau      = 0.5 / degree;   // -
   CeedScalar Ctau_t     = 1.0;            // -
   CeedScalar Cv_func[3] = {36, 60, 128};
-  CeedScalar Ctau_v     = Cv_func[degree - 1];
+  CeedScalar Ctau_v     = Cv_func[(CeedInt)Min(3, degree) - 1];
   CeedScalar Ctau_C     = 0.25 / degree;
   CeedScalar Ctau_M     = 0.25 / degree;
   CeedScalar Ctau_E     = 0.125;
