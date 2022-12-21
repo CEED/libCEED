@@ -23,7 +23,7 @@
 
 #ifdef DBG_TIMER
 #include<sys/time.h>
-static double magma_wtime( void )
+static double CeedMagma_wtime( void )
 {
     struct timeval t;
     gettimeofday( &t, NULL );
@@ -779,7 +779,7 @@ int CeedBasisCreateH1_Magma(CeedElemTopology topo, CeedInt dim, CeedInt ndof,
   char *basis_kernel_source;
 
   #ifdef DBG_TIMER
-  double load_time = magma_wtime();
+  double load_time = CeedMagma_wtime();
   #endif
   ierr = CeedGetJitAbsolutePath(ceed,
                                 "ceed/jit-source/magma/magma_common_defs.h",
@@ -810,14 +810,14 @@ int CeedBasisCreateH1_Magma(CeedElemTopology topo, CeedInt dim, CeedInt ndof,
          &basis_kernel_source);
   CeedChkBackend(ierr);
   #ifdef DBG_TIMER
-  load_time = magma_wtime() - load_time;
+  load_time = CeedMagma_wtime() - load_time;
   printf("time to load source= %8.4f seconds\n", load_time);
   #endif
 
 
   // tuning parameters for nb
   #ifdef DBG_TIMER
-  double nb_time = magma_wtime();
+  double nb_time = CeedMagma_wtime();
   #endif
   CeedInt nb_interp_n[MAGMA_NONTENSOR_KERNEL_INSTANCES];
   CeedInt nb_interp_t[MAGMA_NONTENSOR_KERNEL_INSTANCES];
@@ -832,7 +832,7 @@ int CeedBasisCreateH1_Magma(CeedElemTopology topo, CeedInt dim, CeedInt ndof,
       nb_grad_t[in]   = nontensor_rtc_get_nb(arch, 'd', CEED_EVAL_GRAD,   CEED_TRANSPOSE,   P, Narray[in], Q );
   }
   #ifdef DBG_TIMER
-  nb_time = magma_wtime() - nb_time;
+  nb_time = CeedMagma_wtime() - nb_time;
   printf("time to read nb values= %8.4f seconds\n", nb_time);
   #endif
 
@@ -846,7 +846,7 @@ int CeedBasisCreateH1_Magma(CeedElemTopology topo, CeedInt dim, CeedInt ndof,
   #endif
 
   #ifdef DBG_TIMER
-  double compile_time = magma_wtime();
+  double compile_time = CeedMagma_wtime();
   #endif
   // The RTC compilation code expects a Ceed with the common Ceed_Cuda or Ceed_Hip
   // data
@@ -866,12 +866,12 @@ int CeedBasisCreateH1_Magma(CeedElemTopology topo, CeedInt dim, CeedInt ndof,
     CeedChkBackend(ierr);
   }
   #ifdef DBG_TIMER
-  compile_time = magma_wtime() - compile_time;
+  compile_time = CeedMagma_wtime() - compile_time;
   printf("time to compile all instances = %8.4f seconds\n", compile_time);
   #endif
 
   #ifdef DBG_TIMER
-  double getkernel_time = magma_wtime();
+  double getkernel_time = CeedMagma_wtime();
   #endif
   // get kernels
   for(CeedInt in = 0; in < MAGMA_NONTENSOR_KERNEL_INSTANCES; in++) {
@@ -896,7 +896,7 @@ int CeedBasisCreateH1_Magma(CeedElemTopology topo, CeedInt dim, CeedInt ndof,
     CeedChkBackend(ierr);
   }
   #ifdef DBG_TIMER
-  getkernel_time = magma_wtime() - getkernel_time;
+  getkernel_time = CeedMagma_wtime() - getkernel_time;
   printf("time to get kernels from modules = %8.4f seconds\n", getkernel_time);
   #endif
 
