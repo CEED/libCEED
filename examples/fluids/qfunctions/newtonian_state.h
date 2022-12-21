@@ -128,7 +128,9 @@ CEED_QFUNCTION_HELPER StateConservative StateConservativeFromPrimitive_fwd(Newto
 
 CEED_QFUNCTION_HELPER State StateFromPrimitive(NewtonianIdealGasContext gas, StatePrimitive Y, const CeedScalar x[3]) {
   StateConservative U = StateConservativeFromPrimitive(gas, Y, x);
-  State             s = {.U = U, .Y = Y};
+  State             s;
+  s.U = U;
+  s.Y = Y;
   return s;
 }
 
