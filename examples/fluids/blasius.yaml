@@ -21,15 +21,6 @@ platemesh_nDelta: 45
 #   growth: 1.1664 # 1.08^2
 
 stab: 'supg'
-Ctau_t: 1
-# Linear Settings:
-Ctau_C: 0.25
-Ctau_M: 0.25
-Ctau_E: 0.125
-# # Quadratic Settings:
-# Ctau_C: 0.125
-# Ctau_M: 0.125
-# Ctau_E: 0.125
 
 q_extra: 0
 

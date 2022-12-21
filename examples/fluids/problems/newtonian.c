@@ -106,9 +106,9 @@ PetscErrorCode NS_NEWTONIAN_IG(ProblemData *problem, DM dm, void *ctx, SimpleBC 
   CeedScalar Ctau_t     = 1.0;            // -
   CeedScalar Cv_func[3] = {36, 60, 128};
   CeedScalar Ctau_v     = Cv_func[degree - 1];
-  CeedScalar Ctau_C     = 1.0;  // TODO make function of degree
-  CeedScalar Ctau_M     = 1.0;  // TODO make function of degree
-  CeedScalar Ctau_E     = 1.0;  // TODO make function of degree
+  CeedScalar Ctau_C     = 0.25 / degree;
+  CeedScalar Ctau_M     = 0.25 / degree;
+  CeedScalar Ctau_E     = 0.125;
   PetscReal  domain_min[3], domain_max[3], domain_size[3];
   PetscCall(DMGetBoundingBox(dm, domain_min, domain_max));
   for (PetscInt i = 0; i < 3; i++) domain_size[i] = domain_max[i] - domain_min[i];
