@@ -1,4 +1,4 @@
-problem: 'vortexshedding'
+problem: newtonian
 
 # Time Stepping Settings
 implicit: true
