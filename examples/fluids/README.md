@@ -62,7 +62,7 @@ The following options are common among all problem types:
 
 * - `-q_extra`
   - Number of extra quadrature points
-  - `2`
+  - `0`
 
 * - `-viz_refine`
   - Use regular refinement for visualization
@@ -498,7 +498,7 @@ For the Density Current, Channel, and Blasius problems, the following common com
 
 * - `-Ctau_v`
   - Stabilization viscous constant, $C_v$
-  - `36.0`
+  - `36, 60, 128 for degree = 1, 2, 3`
   -
 
 * - `-Ctau_C`
