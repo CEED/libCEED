@@ -498,7 +498,7 @@ For the Density Current, Channel, and Blasius problems, the following common com
 
 * - `-Ctau_v`
   - Stabilization viscous constant, $C_v$
-  - `36.0`
+  - `36, 60, 128 for degree = 1, 2, 3`
   -
 
 * - `-Ctau_C`

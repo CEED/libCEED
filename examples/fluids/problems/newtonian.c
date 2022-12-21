@@ -96,18 +96,19 @@ PetscErrorCode NS_NEWTONIAN_IG(ProblemData *problem, DM dm, void *ctx, SimpleBC 
   // ------------------------------------------------------
   //             Create the libCEED context
   // ------------------------------------------------------
-  CeedScalar cv     = 717.;           // J/(kg K)
-  CeedScalar cp     = 1004.;          // J/(kg K)
-  CeedScalar g[3]   = {0, 0, -9.81};  // m/s^2
-  CeedScalar lambda = -2. / 3.;       // -
-  CeedScalar mu     = 1.8e-5;         // Pa s, dynamic viscosity
-  CeedScalar k      = 0.02638;        // W/(m K)
-  CeedScalar c_tau  = 0.5 / degree;   // -
-  CeedScalar Ctau_t = 1.0;            // -
-  CeedScalar Ctau_v = 36.0;           // TODO make function of degree
-  CeedScalar Ctau_C = 1.0;            // TODO make function of degree
-  CeedScalar Ctau_M = 1.0;            // TODO make function of degree
-  CeedScalar Ctau_E = 1.0;            // TODO make function of degree
+  CeedScalar cv         = 717.;           // J/(kg K)
+  CeedScalar cp         = 1004.;          // J/(kg K)
+  CeedScalar g[3]       = {0, 0, -9.81};  // m/s^2
+  CeedScalar lambda     = -2. / 3.;       // -
+  CeedScalar mu         = 1.8e-5;         // Pa s, dynamic viscosity
+  CeedScalar k          = 0.02638;        // W/(m K)
+  CeedScalar c_tau      = 0.5 / degree;   // -
+  CeedScalar Ctau_t     = 1.0;            // -
+  CeedScalar Cv_func[3] = {36, 60, 128};
+  CeedScalar Ctau_v     = Cv_func[degree - 1];
+  CeedScalar Ctau_C     = 1.0;  // TODO make function of degree
+  CeedScalar Ctau_M     = 1.0;  // TODO make function of degree
+  CeedScalar Ctau_E     = 1.0;  // TODO make function of degree
   PetscReal  domain_min[3], domain_max[3], domain_size[3];
   PetscCall(DMGetBoundingBox(dm, domain_min, domain_max));
   for (PetscInt i = 0; i < 3; i++) domain_size[i] = domain_max[i] - domain_min[i];

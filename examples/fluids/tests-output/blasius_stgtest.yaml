@@ -14,7 +14,6 @@ platemesh:
 
 stab: 'supg'
 Ctau_t: 1
-Ctau_v: 36
 Ctau_C: 0.25
 Ctau_M: 0.25
 Ctau_E: 0.125
