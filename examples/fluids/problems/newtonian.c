@@ -108,7 +108,7 @@ PetscErrorCode NS_NEWTONIAN_IG(ProblemData *problem, DM dm, void *ctx, SimpleBC 
   PetscCall(DMGetBoundingBox(dm, domain_min, domain_max));
   for (PetscInt i = 0; i < 3; i++) domain_size[i] = domain_max[i] - domain_min[i];
 
-  StatePrimitive reference = {.pressure = 1e5, .velocity = {0}, .temperature = 300};
+  StatePrimitive reference = {.pressure = 1.01e5, .velocity = {0}, .temperature = 288.15};
 
   // ------------------------------------------------------
   //             Create the PETSc context
@@ -271,12 +271,12 @@ PetscErrorCode NS_NEWTONIAN_IG(ProblemData *problem, DM dm, void *ctx, SimpleBC 
   setup_context->lz        = domain_size[2];
   setup_context->time      = 0;
 
-  if (bc->num_freestream > 0) PetscCall(FreestreamBCSetup(problem, dm, ctx, newtonian_ig_ctx));
+  if (bc->num_freestream > 0) PetscCall(FreestreamBCSetup(problem, dm, ctx, newtonian_ig_ctx, &reference));
 
   CeedQFunctionContextCreate(user->ceed, &problem->ics.qfunction_context);
   CeedQFunctionContextSetData(problem->ics.qfunction_context, CEED_MEM_HOST, CEED_USE_POINTER, sizeof(*setup_context), setup_context);
   CeedQFunctionContextSetDataDestroy(problem->ics.qfunction_context, CEED_MEM_HOST, FreeContextPetsc);
-  CeedQFunctionContextRegisterDouble(problem->ics.qfunction_context, "evaluation time", (char *)&setup_context->time - (char *)setup_context, 1,
+  CeedQFunctionContextRegisterDouble(problem->ics.qfunction_context, "evaluation time", offsetof(struct SetupContext_, time), 1,
                                      "Time of evaluation");
 
   CeedQFunctionContextCreate(user->ceed, &newtonian_ig_context);

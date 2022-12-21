@@ -19,30 +19,32 @@ typedef enum {
 } RiemannSolverType;
 static const char *const RiemannSolverTypes[] = {"hll", "hllc", "RiemannSolverTypes", "RIEMANN_", NULL};
 
-PetscErrorCode FreestreamBCSetup(ProblemData *problem, DM dm, void *ctx, NewtonianIdealGasContext newtonian_ig_ctx) {
+PetscErrorCode FreestreamBCSetup(ProblemData *problem, DM dm, void *ctx, NewtonianIdealGasContext newtonian_ig_ctx, const StatePrimitive *reference) {
   User                 user = *(User *)ctx;
   MPI_Comm             comm = PETSC_COMM_WORLD;
   FreestreamContext    freestream_ctx;
   CeedQFunctionContext freestream_context;
   RiemannSolverType    riemann = RIEMANN_HLLC;
   PetscFunctionBeginUser;
+  PetscScalar meter  = user->units->meter;
+  PetscScalar second = user->units->second;
+  PetscScalar Kelvin = user->units->Kelvin;
+  PetscScalar Pascal = user->units->Pascal;
 
   // -- Option Defaults
-  CeedScalar U_inf[3] = {0.};    // m/s
-  CeedScalar T_inf    = 288.;    // K
-  CeedScalar P_inf    = 1.01e5;  // Pa
+
+  // Freestream inherits reference state. We re-dimensionalize so the defaults
+  // in -help will be visible in SI units.
+  StatePrimitive Y_inf = {.pressure = reference->pressure / Pascal, .velocity = {0}, .temperature = reference->temperature / Kelvin};
+  for (int i = 0; i < 3; i++) Y_inf.velocity[i] = reference->velocity[i] * second / meter;
 
   PetscOptionsBegin(comm, NULL, "Options for Freestream boundary condition", NULL);
   PetscCall(PetscOptionsEnum("-freestream_riemann", "Riemann solver to use in freestream boundary condition", NULL, RiemannSolverTypes,
                              (PetscEnum)riemann, (PetscEnum *)&riemann, NULL));
-  PetscBool set    = PETSC_FALSE;
-  PetscInt  narray = 3;
-  PetscCall(PetscOptionsScalarArray("-freestream_velocity", "Velocity at freestream condition", NULL, U_inf, &narray, &set));
-  PetscCheck(narray == 3 || !set, comm, PETSC_ERR_ARG_SIZ,
-             "-freestream_velocity should recieve array of size 3, instead recieved size %" PetscInt_FMT ".", narray);
-
-  PetscCall(PetscOptionsScalar("-freestream_temperature", "Temperature at freestream condition", NULL, T_inf, &T_inf, NULL));
-  PetscCall(PetscOptionsScalar("-freestream_pressure", "Pressure at freestream condition", NULL, P_inf, &P_inf, NULL));
+  PetscCall(PetscOptionsScalar("-freestream_pressure", "Pressure at freestream condition", NULL, Y_inf.pressure, &Y_inf.pressure, NULL));
+  PetscInt narray = 3;
+  PetscCall(PetscOptionsScalarArray("-freestream_velocity", "Velocity at freestream condition", NULL, Y_inf.velocity, &narray, NULL));
+  PetscCall(PetscOptionsScalar("-freestream_temperature", "Temperature at freestream condition", NULL, Y_inf.temperature, &Y_inf.temperature, NULL));
   PetscOptionsEnd();
 
   switch (user->phys->state_var) {
@@ -80,21 +82,12 @@ PetscErrorCode FreestreamBCSetup(ProblemData *problem, DM dm, void *ctx, Newtoni
       break;
   }
 
-  PetscScalar meter  = user->units->meter;
-  PetscScalar second = user->units->second;
-  PetscScalar Kelvin = user->units->Kelvin;
-  PetscScalar Pascal = user->units->Pascal;
+  Y_inf.pressure *= Pascal;
+  for (int i = 0; i < 3; i++) Y_inf.velocity[i] *= meter / second;
+  Y_inf.temperature *= Kelvin;
 
-  T_inf *= Kelvin;
-  P_inf *= Pascal;
-  for (int i = 0; i < 3; i++) U_inf[i] *= meter / second;
-
-  State S_infty;
-  {
-    CeedScalar Y[5] = {P_inf, U_inf[0], U_inf[1], U_inf[2], T_inf};
-    CeedScalar x[3] = {0.};
-    S_infty         = StateFromY(newtonian_ig_ctx, Y, x);
-  }
+  const CeedScalar x[3]    = {0.};
+  State            S_infty = StateFromPrimitive(newtonian_ig_ctx, Y_inf, x);
 
   // -- Set freestream_ctx struct values
   PetscCall(PetscCalloc1(1, &freestream_ctx));
@@ -104,8 +97,7 @@ PetscErrorCode FreestreamBCSetup(ProblemData *problem, DM dm, void *ctx, Newtoni
   CeedQFunctionContextCreate(user->ceed, &freestream_context);
   CeedQFunctionContextSetData(freestream_context, CEED_MEM_HOST, CEED_USE_POINTER, sizeof(*freestream_ctx), freestream_ctx);
   CeedQFunctionContextSetDataDestroy(freestream_context, CEED_MEM_HOST, FreeContextPetsc);
-  problem->apply_freestream.qfunction_context          = freestream_context;
-  problem->apply_freestream_jacobian.qfunction_context = freestream_context;
-
+  problem->apply_freestream.qfunction_context = freestream_context;
+  CeedQFunctionContextReferenceCopy(freestream_context, &problem->apply_freestream_jacobian.qfunction_context);
   PetscFunctionReturn(0);
 };

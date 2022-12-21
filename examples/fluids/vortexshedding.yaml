@@ -13,10 +13,14 @@ ts:
   max_steps: 2000
   alpha_radius: 0.5
 
+# Reference state is used for the initial condition, zero velocity by default.
+reference:
+  pressure: 7143
+  temperature: 24.92
+# Freestream inherits reference state as default
 freestream:
   velocity: 1,0,0
-  temperature: 24.92
-  pressure: 7143
+# Small gravity vector to break symmetry so shedding can start
 g: 0,-.01,0
 
 # viscosity
