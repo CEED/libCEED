@@ -22,8 +22,6 @@ platemesh_nDelta: 45
 
 stab: 'supg'
 
-q_extra: 0
-
 dm_plex_box_lower: 0,0,0
 dm_plex_box_upper: 4.2e-3,4.2e-3,5.e-5
 dm_plex_dim: 3

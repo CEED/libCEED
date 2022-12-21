@@ -62,7 +62,7 @@ The following options are common among all problem types:
 
 * - `-q_extra`
   - Number of extra quadrature points
-  - `2`
+  - `0`
 
 * - `-viz_refine`
   - Use regular refinement for visualization
