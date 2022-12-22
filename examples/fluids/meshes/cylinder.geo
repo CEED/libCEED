@@ -7,7 +7,10 @@ Ny  = N/2 + 1; Ry = 2.00;
 Nb  = N/2 + 1; Rb = 0.9;
 Nc  = N/2 + 1; Rc = 1.00;
 
-zspan = 0.2;
+DefineConstant[
+  zspan = {0.2, Min .1, Max 0.2, Step .1,
+    Name "Parameters/Zspan"}
+];
 
 DefineConstant[
   H = {4.5, Min .1, Max 4.5, Step .1,
@@ -25,7 +28,7 @@ DefineConstant[
 ];
 
 DefineConstant[
-  cyldiameter = {1.41421356, Min .1, Max 1.41421356, Step .1,
+  cyldiameter = {1.0, Min .1, Max 1.0, Step .1,
     Name "Parameters/CylDiameter"}
 ];
 
@@ -35,23 +38,23 @@ DefineConstant[
 ];
 
 // Exterior corners
-Point(1) = {-xL, -H, 0, 1.0};
-Point(2) = {xL, -H, 0, 1.0};
-Point(3) = {xR, -H, 0, 1.0};
-Point(4) = {-xL, H, 0, 1.0};
-Point(5) = {xL, H, 0, 1.0};
-Point(6) = {xR, H, 0, 1.0};
+Point(1) = {-xL, -H, 0};
+Point(2) = {xL, -H, 0};
+Point(3) = {xR, -H, 0};
+Point(4) = {-xL, H, 0};
+Point(5) = {xL, H, 0};
+Point(6) = {xR, H, 0};
 
 // Coordinates for Cylinder points
-Point(7) = {-cyldiameter/4, -cyldiameter/4, 0, 1.0};
+Point(7) = {-cyldiameter/4, -cyldiameter/4, 0};
 //+
-Point(8) = {cyldiameter/4, -cyldiameter/4, 0, 1.0};
+Point(8) = {cyldiameter/4, -cyldiameter/4, 0};
 //+
-Point(9) = {-cyldiameter/4, cyldiameter/4, 0, 1.0};
+Point(9) = {-cyldiameter/4, cyldiameter/4, 0};
 //+
-Point(10) = {cyldiameter/4, cyldiameter/4, 0, 1.0};
+Point(10) = {cyldiameter/4, cyldiameter/4, 0};
 //+
-Point(11) = {0, 0, 0, 1.0};
+Point(11) = {0, 0, 0};
 //+
 Line(1) = {1, 2}; Transfinite Curve {1} = Nx1 Using Progression Rx1;
 //+
