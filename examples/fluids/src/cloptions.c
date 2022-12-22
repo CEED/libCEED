@@ -8,6 +8,8 @@
 /// @file
 /// Command line option processing for Navier-Stokes example using PETSc
 
+#include <petscdevice.h>
+
 #include "../navierstokes.h"
 
 // Register problems to be available on the command line
@@ -81,7 +83,7 @@ PetscErrorCode ProcessCommandLineOptions(MPI_Comm comm, AppCtx app_ctx, SimpleBC
   app_ctx->degree = 1;
   PetscCall(PetscOptionsInt("-degree", "Polynomial degree of finite elements", NULL, app_ctx->degree, &app_ctx->degree, NULL));
 
-  app_ctx->q_extra = 2;
+  app_ctx->q_extra = 0;
   PetscCall(PetscOptionsInt("-q_extra", "Number of extra quadrature points", NULL, app_ctx->q_extra, &app_ctx->q_extra, NULL));
 
   {
@@ -99,6 +101,10 @@ PetscErrorCode ProcessCommandLineOptions(MPI_Comm comm, AppCtx app_ctx, SimpleBC
     const char *ceed_resource = "/cpu/self";
     strncpy(app_ctx->ceed_resource, ceed_resource, 10);
   }
+  // If we request a GPU, make sure PETSc has initialized its device (which is
+  // MPI-aware in case multiple devices are available) before CeedInit so that
+  // PETSc and libCEED agree about which device to use.
+  if (strncmp(app_ctx->ceed_resource, "/gpu", 4) == 0) PetscCall(PetscDeviceInitialize(PETSC_DEVICE_DEFAULT()));
 
   // Provide default problem if not specified
   if (!problem_flag) {

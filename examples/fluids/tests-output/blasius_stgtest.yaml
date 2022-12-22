@@ -13,13 +13,6 @@ platemesh:
   growth: 1.3
 
 stab: 'supg'
-Ctau_t: 1
-Ctau_v: 36
-Ctau_C: 0.25
-Ctau_M: 0.25
-Ctau_E: 0.125
-
-q_extra: 0
 
 dm_plex_box_lower: 0,0,0
 dm_plex_box_upper: 4.2e-3,4.2e-3,5.e-4

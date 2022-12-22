@@ -18,19 +18,19 @@ jobs:
     - name: Rust setup
       uses: dtolnay/rust-toolchain@master
       with:
-        # Note: nightly required for coverage of Doctests with tarpaulin
+        # Note: nightly required for coverage of Doctests
         toolchain: nightly
+    - name: Install cargo-llvm-cov
+      uses: taiki-e/install-action@cargo-llvm-cov
     - name: Rust test with coverage
-      uses: actions-rs/tarpaulin@v0.1
       env:
         CC: ${{ matrix.compiler }}
         FC: gfortran-11
-      with:
-        args: '--run-types Doctests Tests --exclude-files backends/* gallery/* include/* interface/* --out Xml'
+      run: cargo llvm-cov test --doctests --lcov --output-path lcov.info
     - name: Codecov upload
       uses: codecov/codecov-action@v3
       with:
-        files: ./cobertura.xml
+        files: lcov.info
         token: ${{secrets.CODECOV_TOKEN}}
 
   style:

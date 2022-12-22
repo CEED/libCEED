@@ -2,7 +2,7 @@
 library_name = "libceed"
 output_file_path = "../src/generated/libceed_bindings.jl"
 prologue_file_path = "prologue.jl"
-printer_blacklist = [
+output_ignorelist = [
    "CEED_Q_VLA",
    "CEED_ALIGN",
    "CEED_SCALAR_TYPE",

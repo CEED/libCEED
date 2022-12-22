@@ -17,8 +17,26 @@ typedef enum {
   STATEVAR_PRIMITIVE    = 1,
 } StateVariable;
 
-// For use with PetscOptionsEnum
-static const char *const StateVariables[] = {"CONSERVATIVE", "PRIMITIVE", "StateVariable", "STATEVAR_", NULL};
+typedef struct SetupContext_ *SetupContext;
+struct SetupContext_ {
+  CeedScalar theta0;
+  CeedScalar thetaC;
+  CeedScalar P0;
+  CeedScalar N;
+  CeedScalar cv;
+  CeedScalar cp;
+  CeedScalar g[3];
+  CeedScalar rc;
+  CeedScalar lx;
+  CeedScalar ly;
+  CeedScalar lz;
+  CeedScalar center[3];
+  CeedScalar dc_axis[3];
+  CeedScalar time;
+  int        wind_type;               // See WindType: 0=ROTATION, 1=TRANSLATION
+  int        bubble_type;             // See BubbleType: 0=SPHERE, 1=CYLINDER
+  int        bubble_continuity_type;  // See BubbleContinuityType: 0=SMOOTH, 1=BACK_SHARP 2=THICK
+};
 
 typedef struct NewtonianIdealGasContext_ *NewtonianIdealGasContext;
 struct NewtonianIdealGasContext_ {
