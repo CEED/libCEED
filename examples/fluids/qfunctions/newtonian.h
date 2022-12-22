@@ -303,9 +303,10 @@ CEED_QFUNCTION_HELPER int IFunction_Newtonian(void *ctx, CeedInt Q, const CeedSc
 
     for (CeedInt j = 0; j < 5; j++) v[j][i] = wdetJ * (U_dot[j] - body_force[j]);
     const CeedScalar ramp_coeff = RampCoefficient(context->ramp_amplitude, context->ramp_length, context->ramp_start, x_i[0] + 3.1);
+    const CeedScalar weight[5] = {ramp_coeff, 0.};
     CeedScalar sponge[5]={0.};
     const StateConservative s_ref = {1., {0.}, 0.};
-    Sponge(context, s.U, s_ref, ramp_coeff, sponge);
+    Sponge(context, s.U, s_ref, weight, sponge);
     for (CeedInt j = 0; j < 5; j++) v[j][i] += -wdetJ * sponge[j] ;
 
     Tau_diagPrim(context, s, dXdx, dt, Tau_d);
