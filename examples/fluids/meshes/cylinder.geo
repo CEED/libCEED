@@ -9,7 +9,7 @@ DefineConstant[
 ];
 
 DefineConstant[
-  xL = {4.5, Min .1, Max 10, Step .1,
+  xL = {4.5, Min 1, Max 10, Step .1,
     Name "Parameters/XL"}
 ];
 
@@ -29,7 +29,7 @@ DefineConstant[
 ];
 
 DefineConstant[
-  RadialRatio = {1, Min .2, Max 10, Step .1,
+  RadialRatio = {1, Min .2, Max 5, Step .1,
   Name "Parameters/RadialRatio"}
 ];
 
