@@ -8,7 +8,7 @@ Nb  = N/2 + 1; Rb = 0.9;
 Nc  = N/2 + 1; Rc = 1.00;
 
 DefineConstant[
-  zspan = {0.2, Min .1, Max 0.2, Step .1,
+  zspan = {0.2, Min .1, Max 10, Step .1,
     Name "Parameters/Zspan"}
 ];
 
@@ -37,6 +37,8 @@ DefineConstant[
     Name "Parameters/ResParam"}
 ];
 
+h = 2 * H / N;
+
 // Exterior corners
 Point(1) = {-xL, -H, 0};
 Point(2) = {xL, -H, 0};
@@ -46,13 +48,13 @@ Point(5) = {xL, H, 0};
 Point(6) = {xR, H, 0};
 
 // Coordinates for Cylinder points
-Point(7) = {-cyldiameter/4, -cyldiameter/4, 0};
+Point(7) = {-cyldiameter/sqrt(8), -cyldiameter/sqrt(8), 0};
 //+
-Point(8) = {cyldiameter/4, -cyldiameter/4, 0};
+Point(8) = {cyldiameter/sqrt(8), -cyldiameter/sqrt(8), 0};
 //+
-Point(9) = {-cyldiameter/4, cyldiameter/4, 0};
+Point(9) = {-cyldiameter/sqrt(8), cyldiameter/sqrt(8), 0};
 //+
-Point(10) = {cyldiameter/4, cyldiameter/4, 0};
+Point(10) = {cyldiameter/sqrt(8), cyldiameter/sqrt(8), 0};
 //+
 Point(11) = {0, 0, 0};
 //+
@@ -131,7 +133,7 @@ Recombine Surface {5};
 //+
 Extrude {0, 0, zspan} {
   Surface{1, 2, 3, 4, 5};
-  Layers {1};
+  Layers {Ceil(zspan / h)};
   Recombine;
 }
 
