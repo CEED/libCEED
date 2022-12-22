@@ -10,32 +10,31 @@ Nc  = N/2 + 1; Rc = 1.00;
 zspan = 0.2;
 
 DefineConstant[
-  H = {.5, Min .1, Max 4.5, Step .1,
+  H = {4.5, Min .1, Max 4.5, Step .1,
     Name "Parameters/Height"}
 ];
 
 DefineConstant[
-  xL = {.5, Min .1, Max 4.5, Step .1,
+  xL = {4.5, Min .1, Max 4.5, Step .1,
     Name "Parameters/XL"}
 ];
 
 DefineConstant[
-  xR = {.5, Min .1, Max 15.5, Step .1,
+  xR = {15.5, Min .1, Max 15.5, Step .1,
     Name "Parameters/XR"}
 ];
 
 DefineConstant[
-  cyldiameter = {.5, Min .1, Max 1.41421356, Step .1,
+  cyldiameter = {1.41421356, Min .1, Max 1.41421356, Step .1,
     Name "Parameters/CylDiameter"}
 ];
 
 DefineConstant[
-  resparam = {.5, Min .1, Max xL + xR, Step .1,
+  resparam = {xL + xR, Min .1, Max xL + xR, Step .1,
     Name "Parameters/ResParam"}
 ];
 
 // Exterior corners
-xL = 4.5; xR = 15.5; H = 4.5;
 Point(1) = {-xL, -H, 0, 1.0};
 Point(2) = {xL, -H, 0, 1.0};
 Point(3) = {xR, -H, 0, 1.0};
