@@ -269,7 +269,7 @@ For the Navier-Stokes and Euler equations, {cite}`whiting2003hierarchical` defin
 
 The Navier-Stokes code in this example uses the following formulation for $\tau_c$, $\tau_m$, $\tau_E$:
 
-$$ 
+$$
 \begin{aligned}
 
 \tau_c &= \frac{C_c \mathcal{F}}{8\rho \trace(\bm g)} \\
@@ -414,7 +414,7 @@ The constant $C_{YZB}$ is set to 0.1 for piecewise linear elements in the curren
 (problem-density-current)=
 
 ## Newtonian Wave
-This test case is taken/inspired by that presented in {cite}`mengaldoCompressibleBC2014`. It is intended to test non-reflecting/Riemann boundary conditions. It's primarily intended for Euler equations, but has been implemented for the Navier-Stokes equations here for flexibility. 
+This test case is taken/inspired by that presented in {cite}`mengaldoCompressibleBC2014`. It is intended to test non-reflecting/Riemann boundary conditions. It's primarily intended for Euler equations, but has been implemented for the Navier-Stokes equations here for flexibility.
 
 The problem has a perturbed initial condition and lets it evolve in time. The initial condition contains a Gaussian perturbation in the pressure field:
 
@@ -431,6 +431,11 @@ The simulation produces a strong acoustic wave and leaves behind a cold thermal 
 
 The boundary conditions are freestream in the x and y directions. When using an HLL (Harten, Lax, van Leer) Riemann solver {cite}`toro2009` (option `-freestream_riemann hll`), the acoustic waves exit the domain cleanly, but when the thermal bubble reaches the boundary, it produces strong thermal oscillations that become acoustic waves reflecting into the domain.
 This problem can be fixed using a more sophisticated Riemann solver such as HLLC {cite}`toro2009` (option `-freestream_riemann hllc`, which is default), which is a linear constant-pressure wave that transports temperature and transverse momentum at the fluid velocity.
+
+## Vortex Shedding, Flow past Cylinder
+This test case is taken from {cite}`shakibNewfemCompressibleEulerNS1991`. We introduce a circular cylinder in a uniform flow centered at $x = y = 0$. The viscosity is assumed constant. We use the computational domain $-4.5 \leq x \leq 15.5$, $-4.5 \leq y \leq 4.5$. On the inflow boundary $(x = -4.5)$, density, velocity and temperature are prescribed. On the top and bottom boundaries $(y = \pm 4.5)$, symmetry condition, zero normal velocity component, zero heat-flux are imposed. On the outflow boundary $(x = 15.5)$, zero traction and heat-flux are prescribed. On the cylinder wall, a no-slip condition, no heat-flux condition are imposed.
+
+We have used an inflow boundary condition and freestream boundary condition at the outflow boundary.
 
 ## Density Current
 
