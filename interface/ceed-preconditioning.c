@@ -1825,6 +1825,7 @@ int CeedCompositeOperatorGetMultiplicity(CeedOperator op, CeedInt num_skip_indic
     CeedCall(CeedVectorDestroy(&ones_e_vec));
   }
   CeedCall(CeedVectorRestoreArray(mult, &mult_array));
+  CeedCall(CeedVectorDestroy(&ones_l_vec));
 
   return CEED_ERROR_SUCCESS;
 }
