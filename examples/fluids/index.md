@@ -432,10 +432,10 @@ The simulation produces a strong acoustic wave and leaves behind a cold thermal 
 The boundary conditions are freestream in the x and y directions. When using an HLL (Harten, Lax, van Leer) Riemann solver {cite}`toro2009` (option `-freestream_riemann hll`), the acoustic waves exit the domain cleanly, but when the thermal bubble reaches the boundary, it produces strong thermal oscillations that become acoustic waves reflecting into the domain.
 This problem can be fixed using a more sophisticated Riemann solver such as HLLC {cite}`toro2009` (option `-freestream_riemann hllc`, which is default), which is a linear constant-pressure wave that transports temperature and transverse momentum at the fluid velocity.
 
-## Vortex Shedding, Flow past Cylinder
-This test case is taken from {cite}`shakibNewfemCompressibleEulerNS1991`. We introduce a circular cylinder in a uniform flow centered at $x = y = 0$. The viscosity is assumed constant. We use the computational domain $-4.5 \leq x \leq 15.5$, $-4.5 \leq y \leq 4.5$. On the inflow boundary $(x = -4.5)$, density, velocity and temperature are prescribed. On the top and bottom boundaries $(y = \pm 4.5)$, symmetry condition, zero normal velocity component, zero heat-flux are imposed. On the outflow boundary $(x = 15.5)$, zero traction and heat-flux are prescribed. On the cylinder wall, a no-slip condition, no heat-flux condition are imposed.
+## Vortex Shedding - Flow past Cylinder
+This test case is taken from {cite}`shakib1991femcfd`. At time $t=0$, we introduce a circular cylinder in a uniform flow centered at $x = y = 0$. The viscosity is assumed constant. We use the computational domain $-4.5 \leq x \leq 15.5$, $-4.5 \leq y \leq 4.5$. On the inflow boundary $(x = -4.5)$, density, velocity and temperature are prescribed. On the top and bottom boundaries $(y = \pm 4.5)$, symmetry condition, zero normal velocity component, zero heat-flux are imposed. On the outflow boundary $(x = 15.5)$, zero traction and heat-flux are prescribed. On the cylinder wall, a no-slip boundary condition, no heat-flux condition are imposed.
 
-We have used an inflow boundary condition and freestream boundary condition at the outflow boundary.
+We have used an inflow boundary condition and freestream boundary condition at the outflow boundary. As we evolve in time, eddies appears past the cylinder leading to a vortex shedding which is known as the vortex street.
 
 ## Density Current
 
