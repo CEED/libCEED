@@ -134,7 +134,7 @@ class _ElemRestrictionBase(ABC):
         # Create output array
         layout = np.zeros(3, dtype="int32")
         array_pointer = ffi.cast(
-            "CeedInt *",
+            "CeedInt (*)[3]",
             layout.__array_interface__['data'][0])
 
         # libCEED call

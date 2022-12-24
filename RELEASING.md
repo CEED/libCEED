@@ -17,7 +17,7 @@ The version number must be updated in
 * `Doxyfile`
 * `CITATION.cff`
 
-Additionally, the release notes in `doc/sphinx/source/releasenotes.rst` should be updated.
+Additionally, the release notes in `doc/sphinx/source/releasenotes.md` should be updated.
 Use `git log --first-parent v0.7..` to get a sense of the pull requests that have been merged and thus might warrant emphasizing in the release notes.
 While doing this, gather a couple sentences for key features to highlight on [GitHub releases](https://github.com/CEED/libCEED/releases).
 The "Current Main" heading needs to be named for the release.
@@ -31,7 +31,7 @@ This contains the same content as the website, but will be archived on Zenodo.
 The [ABI compliance checker](https://github.com/lvc/abi-compliance-checker) is a useful tool, as is `nm -D libceed.so` and checking for public symbols (capital letters like `T` and `D` that are not namespaced).
 
 2. Double check testing on any architectures that may not be exercised in continuous integration (e.g., HPC facilities) and with users of libCEED, such as MFEM and PETSc applications.
-While unsupported changes do not prevent release, it's polite to make a PR to support the new release, and it's good for quality to test before taggin a libCEED release.
+While unsupported changes do not prevent release, it's polite to make a PR to support the new release, and it's good for quality to test before tagging a libCEED release.
 
 3. Update and test all the language bindings (see below) within the branch.
 
@@ -133,21 +133,22 @@ The release tests are found in the file `julia/LibCEED.jl/test/runtests.jl` and 
 
 The Python package gets its version from `ceed.pc.template` so there are no file modifications necessary.
 
-1. `make wheel` builds and tests the wheels using Docker.
-See the [manylinux repo](https://github.com/pypa/manylinux) for source and usage inforamtion.
-If this succeeds, the completed wheels are in `wheelhouse/libceed-0.8-cp39-cp39-manylinux2010_x86_64.whl`.
-2. Manually test one or more of the wheels by creating a virtualenv and using `pip install wheelhouse/libceed-0.8-cp39-cp39-manylinux2010_x86_64.whl`, then `python -c 'import libceed'` or otherwise running tests.
-3. Create a `~/.pypirc` with entries for `testpypi` (`https://test.pypi.org/legacy/`) and the real `pypi`.
-4. Upload to `testpypi` using
+1. CI builds and tests wheels when a pull request has the `release preparation` label. One can also use `cibuildwheel --only cp.10-manylinux_x86_64` to build and test wheels locally (inside a container).
+2. CI publishes wheels on `v**` tags, assuming tests pass.
+
+### Reminder about manual publishing (not needed with CI)
+
+1. Create a `~/.pypirc` with entries for `testpypi` (`https://test.pypi.org/legacy/`) and the real `pypi`.
+2. Upload to `testpypi` using
 ```console
 $ twine upload --repository testpypi wheelhouse/libceed-0.8-cp39-cp39-manylinux2010_x86_64.whl
 ```
-5. Test installing on another machine/in a virtualenv:
+3. Test installing on another machine/in a virtualenv:
 ```console
 $ pip install --index-url https://test.pypi.org/simple --extra-index-url https://pypi.org/simple libceed
 ```
 The `--extra-index-url` argument allows dependencies like `cffi` and `numpy` from being fetched from the non-test repository.
-6. Do it live:
+4. Do it live:
 ```console
 $ twine upload --repository pypi wheelhouse/libceed-0.8-cp39-cp39-manylinux2010_x86_64.whl
 ```
@@ -174,6 +175,6 @@ rust/libceed/README.md:libceed = "0.8.0"
 
 After doing this,
 
-1. `cargo package --list` to see that the file list makes sense.
-2. `cargo package` to build crates locally
-3. `cargo publish` to publish the crates to https://crates.io
+1. `cargo package --list --package libceed-sys` and `--package libceed` to see that the file list makes sense.
+2. `cargo release` to build crates locally (handling dependencies between creates in the workspace)
+3. `cargo release publish --execute` to publish the crates to https://crates.io

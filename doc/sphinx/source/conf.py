@@ -129,7 +129,7 @@ myst_enable_extensions = [
 ]
 
 myst_heading_anchors = 2
-myst_url_schemes = ["http", "https", "mailto"]
+myst_url_schemes = ("http", "https", "mailto")
 
 # -- Options for HTML output ----------------------------------------------
 
@@ -186,7 +186,7 @@ htmlhelp_basename = 'libCEEDdoc'
 
 # -- Options for LaTeX output ---------------------------------------------
 
-latex_engine = 'xelatex'
+latex_engine = 'lualatex'
 
 latex_elements = {
     # The paper size ('letterpaper' or 'a4paper').
@@ -200,15 +200,15 @@ latex_elements = {
     # Additional stuff for the LaTeX preamble.
     #
     'preamble': r"""
-\usepackage{bm}
 \usepackage{amscd}
+\newcommand\bm[1]{\symbf{#1}}
 """ + latex_macros,
 
     # Latex figure (float) alignment
     #
     # 'figure_align': 'htbp',
-    'fontenc': r'\usepackage{mathspec}',
     'fontpkg': r"""
+\usepackage[math-style=ISO,bold-style=ISO]{unicode-math}
 \setmainfont{TeX Gyre Pagella}
 \setmathfont{TeX Gyre Pagella Math}
 \setsansfont{DejaVu Sans}

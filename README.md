@@ -106,7 +106,7 @@ Rust users can include libCEED via `Cargo.toml`:
 
 ```toml
 [dependencies]
-libceed = { git = "https://github.com/CEED/libCEED", branch = "main" }
+libceed = "0.11.0"
 ```
 
 See the [Cargo documentation](https://doc.rust-lang.org/cargo/reference/specifying-dependencies.html#specifying-dependencies-from-git-repositories) for details.

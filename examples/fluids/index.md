@@ -173,7 +173,7 @@ Our formulation follows {cite}`hughesetal2010`, which offers a comprehensive rev
   \int_{\Omega} \bm v \cdot \left( \frac{\partial \bm{q}_N}{\partial t} - \bm{S}(\bm{q}_N) \right)  \,dV
   - \int_{\Omega} \nabla \bm v \!:\! \bm{F}(\bm{q}_N)\,dV & \\
   + \int_{\partial \Omega} \bm v \cdot \bm{F}(\bm{q}_N) \cdot \widehat{\bm{n}} \,dS & \\
-  + \int_{\Omega} \mathcal{P}(\bm v)^T \, \left( \frac{\partial \bm{q}_N}{\partial t} \, + \,
+  + \int_{\Omega} \nabla\bm v \tcolon\left(\frac{\partial \bm F_{\text{adv}}}{\partial \bm q}\right) \bm\tau \left( \frac{\partial \bm{q}_N}{\partial t} \, + \,
   \nabla \cdot \bm{F} \, (\bm{q}_N) - \bm{S}(\bm{q}_N) \right) \,dV &= 0
   \, , \; \forall \bm v \in \mathcal{V}_p
   \end{aligned}
@@ -190,23 +190,15 @@ Our formulation follows {cite}`hughesetal2010`, which offers a comprehensive rev
   \int_{\Omega} \bm v \cdot \left( \frac{\partial \bm{q}_N}{\partial t} - \bm{S}(\bm{q}_N) \right)  \,dV
   - \int_{\Omega} \nabla \bm v \!:\! \bm{F}(\bm{q}_N)\,dV & \\
   + \int_{\partial \Omega} \bm v \cdot \bm{F}(\bm{q}_N) \cdot \widehat{\bm{n}} \,dS & \\
-  + \int_{\Omega} \mathcal{P}(\bm v)^T \, \nabla \cdot \bm{F} \, (\bm{q}_N) \,dV
+  + \int_{\Omega} \nabla\bm v \tcolon\left(\frac{\partial \bm F_{\text{adv}}}{\partial \bm q}\right) \bm\tau \nabla \cdot \bm{F} \, (\bm{q}_N) \,dV
   & = 0 \, , \; \forall \bm v \in \mathcal{V}_p
   \end{aligned}
   $$ (eq-weak-vector-ns-su)
 
   This stabilization technique can be selected using the option `-stab su`.
 
-In both {eq}`eq-weak-vector-ns-su` and {eq}`eq-weak-vector-ns-supg`, $\mathcal P$ is called the *perturbation to the test-function space*, since it modifies the original Galerkin method into *SUPG* or *SU* schemes.
-It is defined as
-
-$$
-\mathcal P(\bm v) \equiv \bm{\tau} \left(\frac{\partial \bm{F}_{\text{adv}} (\bm{q}_N)}{\partial \bm{q}_N} \right) \, \nabla \bm v\,,
-$$ (eq-streamline-P)
-
-where parameter $\bm{\tau} \in \mathbb R^{3}$ (spatial index) or $\bm \tau \in \mathbb R^{5\times 5}$ (field indices) is an intrinsic time scale matrix.
-Most generally, we consider $\bm\tau \in \mathbb R^{3,5,5}$.
-This expression contains the advective flux Jacobian, which may be thought of as mapping from a 5-vector (state) to a $(5,3)$ tensor (flux) or from a $(5,3)$ tensor (gradient of state) to a 5-vector (time derivative of state); the latter is used in {eq}`eq-streamline-P` because it's applied to $\nabla\bm v$.
+In both {eq}`eq-weak-vector-ns-su` and {eq}`eq-weak-vector-ns-supg`, $\bm\tau \in \mathbb R^{5\times 5}$ (field indices) is an intrinsic time scale matrix.
+The SUPG technique and the operator $\frac{\partial \bm F_{\text{adv}}}{\partial \bm q}$ (rather than its transpose) can be explained via an ansatz for subgrid state fluctuations $\tilde{\bm q} = -\bm\tau \bm r$ where $\bm r$ is a strong form residual.
 The forward variational form can be readily expressed by differentiating $\bm F_{\text{adv}}$ of {eq}`eq-ns-flux`
 
 $$
@@ -221,14 +213,6 @@ $$
 $$
 
 where $\diff P$ is defined by differentiating {eq}`eq-state`.
-This action is also readily computed by forward-mode AD, but since $\bm v$ is a test function, we actually need the action of the adjoint to use {eq}`eq-streamline-P` in finite element computation; that can be computed by reverse-mode AD.
-We may equivalently write the stabilization term as
-
-$$
-\mathcal P(\bm v)^T \bm r = \nabla \bm v \tcolon \left(\frac{\partial \bm F_{\text{adv}}}{\partial \bm q}\right)^T \, \bm\tau \bm r,
-$$
-
-where $\bm r$ is the strong form residual and $\bm\tau$ is a $5\times 5$ matrix.
 
 :::{dropdown} Stabilization scale $\bm\tau$
 A velocity vector $\bm u$ can be pulled back to the reference element as $\bm u_{\bm X} = \nabla_{\bm x}\bm X \cdot \bm u$, with units of reference length (non-dimensional) per second.
@@ -254,12 +238,13 @@ $$ (eq-tau-advdiff)
 
 where $\xi(\mathrm{Pe}) = \coth \mathrm{Pe} - 1/\mathrm{Pe}$ approaches 1 at large local Péclet number.
 Note that $\tau$ has units of time and, in the transport-dominated limit, is proportional to element transit time in the direction of the propagating wave.
-For advection-diffusion, $\bm F(q) = \bm u q$, and thus the perturbed test function is
+For advection-diffusion, $\bm F(q) = \bm u q$, and thus the SU stabilization term is
 
 $$
-\mathcal P(v) = \tau \bm u \cdot \nabla v = \tau \bm u_{\bm X} \nabla_{\bm X} v.
-$$ (eq-test-perturbation-advdiff)
+\nabla v \cdot \bm u \tau \bm u \cdot \nabla q = \nabla_{\bm X} v \cdot (\bm u_{\bm X} \tau \bm u_{\bm X}) \cdot \nabla_{\bm X} q .
+$$ (eq-su-stabilize-advdiff)
 
+where the term in parentheses is a rank-1 diffusivity tensor that has been pulled back to the reference element.
 See {cite}`hughesetal2010` equations 15-17 and 34-36 for further discussion of this formulation.
 
 For the Navier-Stokes and Euler equations, {cite}`whiting2003hierarchical` defines a $5\times 5$ diagonal stabilization $\mathrm{diag}(\tau_c, \tau_m, \tau_m, \tau_m, \tau_E)$ consisting of

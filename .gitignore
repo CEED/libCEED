@@ -40,6 +40,7 @@ __pycache__/
 # Rust
 /target/
 Cargo.lock
+rust.lcov
 
 # Documentation
 xml/*
@@ -53,12 +54,14 @@ doc/sphinx/source/examples/
 *.bin
 *.bin.info
 *.bz2
+*.cgns
 *.gif
 *.gz
 *.mkv
 *.mp4
 *.ogv
 *.vtu
+*.webm
 *.xz
 *.zstd
 perf.data
