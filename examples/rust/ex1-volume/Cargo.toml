@@ -10,3 +10,6 @@ edition = "2018"
 clap = { version = "4.0.17", features = ["derive"] }
 libceed = { path = "../../../rust/libceed" }
 mesh = { path = "../mesh" }
+
+[package.metadata.release]
+release = false
