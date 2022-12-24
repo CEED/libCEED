@@ -1,6 +1,6 @@
 [package]
 name = "ex1-volume"
-version = "0.1.0"
+version = "0.11.0"
 authors = [
     "Jeremy L Thompson <thompson.jeremy.luke@gmail.com>",
 ]

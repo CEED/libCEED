@@ -6,6 +6,10 @@ On this page we provide a summary of the main API changes, new features and exam
 
 ## Current `main` branch
 
+(v0-11)=
+
+## v0.11 (Dec 24, 2022)
+
 ### Interface changes
 
 - Added {c:func}`CeedOperatorSetName` for more readable {c:func}`CeedOperatorView` output.
@@ -15,15 +19,12 @@ On this page we provide a summary of the main API changes, new features and exam
 ### New features
 
 - Update `/cpu/self/memcheck/*` backends to help verify `CeedQFunctionContext` data sizes provided by user.
+- Improved support for $H(\text{div})$ bases.
 - Added `CeedInt_FMT` to support potential future use of larger interger sizes.
-- Added CEED_QFUNCTION_ATTR for setting compiler attributes/pragmas to CEED_QFUNCTION_HELPER and CEED_QFUNCTION
+- Added `CEED_QFUNCTION_ATTR` for setting compiler attributes/pragmas to `CEED_QFUNCTION_HELPER` and `CEED_QFUNCTION`.
 - OCCA backend updated to latest OCCA release; DPC++ and OMP OCCA modes enabled.
 Due to a limitation of the OCCA parser, typedefs are required to use pointers to arrays in QFunctions with the OCCA backend.
 This issue will be fixed in a future OCCA release.
-
-### Other
-
-- Switch to `clang-format` over `astyle` for automatic formatting; Makefile command changed to `make format` from `make style`.
 
 ### Bugfix
 
@@ -34,15 +35,28 @@ This issue will be fixed in a future OCCA release.
 
 ### Examples
 
-- Added various performance enhancements for {ref}`example-petsc-navier-stokes`.
-- Refactored {ref}`example-petsc-navier-stokes` to improve code reuse.
-- Added Shock Tube, Channel, and Flat Plate boundary layer problems to {ref}`example-petsc-navier-stokes`.
-- Added ability to use QFunctions for strong STG inflow in {ref}`example-petsc-navier-stokes`.
+#### {ref}`example-petsc-navier-stokes`
+
+- Various performance enhancements, analytic matrix-free and assembled Jacobian, and PETSc solver configurations for GPUs.
+- Refactored to improve code reuse and modularity.
+- Support for primitive variables for more accurate boundary layers and all-speed flow.
+- Added $YZ\beta$ shock capturing scheme and Shock Tube example.
+- Added Channel example, with comparison to analytic solutions.
+- Added Flat Plate with boundary layer mesh and compressible Blasius inflow condition based on Chebyshev collocation solution of the Blasius equations. 
+- Added strong and weak synthetic turbulence generation (STG) inflow boundary conditions.
+- Added "freestream" boundary conditions based on HLLC Riemann solver.
+- Automated stabilization coefficients for different basis degree.
+
+#### {ref}`example-petsc-bps`
+
+- Support for convergence studies.
 
 ### Maintainability
 
 - Refactored `/gpu/cuda/shared` and `/gpu/cuda/gen` as well as `/gpu/hip/shared` and `/gpu/hip/gen` backend to improve maintainablity and reduce duplicated code.
 - Enabled support for `p > 8` for `/gpu/*/shared` backends.
+- Switch to `clang-format` over `astyle` for automatic formatting; Makefile command changed to `make format` from `make style`.
+- Improved test harness.
 
 (v0-10-1)=
 
