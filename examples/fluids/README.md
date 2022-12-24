@@ -645,11 +645,21 @@ The vortex shedding, flow past cylinder problem has the following command-line o
 
 :::
 
-This problem can be run with the `vortexshedding.yaml` file via:
+The initial condition is taken from `-reference_temperature` and `-reference_pressure`.
+To run this problem, first generate a mesh:
 
+```console
+$ make -C examples/fluids/meshes
 ```
-./navierstokes -options_file vortexshedding.yaml
+
+Then run by building the executable and running:
+
+```console
+$ make build/fluids-navierstokes
+$ mpiexec -n 6 build/fluids-navierstokes -options_file vortexshedding.yaml
 ```
+
+The vortex shedding period is roughly 6 and this problem runs until time 100 (2000 time steps).
 
 ```{literalinclude} ../../../../../examples/fluids/vortexshedding.yaml
 :language: yaml

@@ -30,7 +30,7 @@ q_extra: 0
 
 ## DM Settings:
 degree: 2
-dm_plex_filename: examples/fluids/meshes/cylinder.msh
+dm_plex_filename: examples/fluids/meshes/cylinder-q1-n20.msh
 
 # Boundary Settings
 bc_slip_z: 6
