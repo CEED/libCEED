@@ -254,7 +254,7 @@ For the Navier-Stokes and Euler equations, {cite}`whiting2003hierarchical` defin
 
 The Navier-Stokes code in this example uses the following formulation for $\tau_c$, $\tau_m$, $\tau_E$:
 
-$$ 
+$$
 \begin{aligned}
 
 \tau_c &= \frac{C_c \mathcal{F}}{8\rho \trace(\bm g)} \\
@@ -399,7 +399,7 @@ The constant $C_{YZB}$ is set to 0.1 for piecewise linear elements in the curren
 (problem-density-current)=
 
 ## Newtonian Wave
-This test case is taken/inspired by that presented in {cite}`mengaldoCompressibleBC2014`. It is intended to test non-reflecting/Riemann boundary conditions. It's primarily intended for Euler equations, but has been implemented for the Navier-Stokes equations here for flexibility. 
+This test case is taken/inspired by that presented in {cite}`mengaldoCompressibleBC2014`. It is intended to test non-reflecting/Riemann boundary conditions. It's primarily intended for Euler equations, but has been implemented for the Navier-Stokes equations here for flexibility.
 
 The problem has a perturbed initial condition and lets it evolve in time. The initial condition contains a Gaussian perturbation in the pressure field:
 
@@ -416,6 +416,12 @@ The simulation produces a strong acoustic wave and leaves behind a cold thermal 
 
 The boundary conditions are freestream in the x and y directions. When using an HLL (Harten, Lax, van Leer) Riemann solver {cite}`toro2009` (option `-freestream_riemann hll`), the acoustic waves exit the domain cleanly, but when the thermal bubble reaches the boundary, it produces strong thermal oscillations that become acoustic waves reflecting into the domain.
 This problem can be fixed using a more sophisticated Riemann solver such as HLLC {cite}`toro2009` (option `-freestream_riemann hllc`, which is default), which is a linear constant-pressure wave that transports temperature and transverse momentum at the fluid velocity.
+
+## Vortex Shedding - Flow past Cylinder
+This test case, based on {cite}`shakib1991femcfd`, provides an example of using an externally provide mesh from Gmsh.
+A cylinder with diameter $D=1$ is centered at $(0,0)$ in a computational domain $-4.5 \leq x \leq 15.5$, $-4.5 \leq y \leq 4.5$. We solve this as a 3D problem problem with (default) one element in the $z$ direction. The domain is filled with an ideal gas at rest (zero velocity) with temperature 24.92, pressure 7143, and viscosity 0.01. At time $t=0$, it is subjected to freestream boundary conditions at the inflow (left) and outflow (right), with exterior reference state at velocity $(1, 0, 0)$ giving Reynolds number $100$ and Mach number $0.01$. A symmetry (adiabatic free slip) condition is imposed at the top and bottom boundaries $(y = \pm 4.5)$ (zero normal velocity component, zero heat-flux). On the cylinder wall, a no-slip boundary condition, no heat-flux condition are imposed. As we evolve in time, eddies appear past the cylinder leading to a vortex shedding which is known as the vortex street.
+
+The Gmsh input file, `examples/fluids/meshes/cylinder.geo` is parametrized to facilitate experimenting with similar configurations. The Strouhal number (nondimensional shedding frequency) is sensitive to the size of the computational domain and boundary conditions.
 
 ## Density Current
 

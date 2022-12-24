@@ -89,7 +89,7 @@ PetscErrorCode NS_NEWTONIAN_IG(ProblemData *problem, DM dm, void *ctx, SimpleBC 
   problem->setup_sur.qfunction     = SetupBoundary;
   problem->setup_sur.qfunction_loc = SetupBoundary_loc;
   problem->bc                      = NULL;
-  problem->bc_ctx                  = setup_context;
+  problem->bc_ctx                  = NULL;
   problem->non_zero_time           = PETSC_FALSE;
   problem->print_info              = PRINT_NEWTONIAN;
 
@@ -113,6 +113,8 @@ PetscErrorCode NS_NEWTONIAN_IG(ProblemData *problem, DM dm, void *ctx, SimpleBC 
   PetscCall(DMGetBoundingBox(dm, domain_min, domain_max));
   for (PetscInt i = 0; i < 3; i++) domain_size[i] = domain_max[i] - domain_min[i];
 
+  StatePrimitive reference = {.pressure = 1.01e5, .velocity = {0}, .temperature = 288.15};
+
   // ------------------------------------------------------
   //             Create the PETSc context
   // ------------------------------------------------------
@@ -132,8 +134,8 @@ PetscErrorCode NS_NEWTONIAN_IG(ProblemData *problem, DM dm, void *ctx, SimpleBC 
 
   switch (state_var) {
     case STATEVAR_CONSERVATIVE:
-      problem->ics.qfunction                        = ICsNewtonianIG;
-      problem->ics.qfunction_loc                    = ICsNewtonianIG_loc;
+      problem->ics.qfunction                        = ICsNewtonianIG_Conserv;
+      problem->ics.qfunction_loc                    = ICsNewtonianIG_Conserv_loc;
       problem->apply_vol_rhs.qfunction              = RHSFunction_Newtonian;
       problem->apply_vol_rhs.qfunction_loc          = RHSFunction_Newtonian_loc;
       problem->apply_vol_ifunction.qfunction        = IFunction_Newtonian_Conserv;
@@ -187,6 +189,10 @@ PetscErrorCode NS_NEWTONIAN_IG(ProblemData *problem, DM dm, void *ctx, SimpleBC 
   PetscCall(PetscOptionsBool("-implicit", "Use implicit (IFunction) formulation", NULL, implicit = PETSC_FALSE, &implicit, NULL));
   PetscCall(PetscOptionsBool("-newtonian_unit_tests", "Run Newtonian unit tests", NULL, unit_tests = PETSC_FALSE, &unit_tests, NULL));
 
+  PetscCall(PetscOptionsScalar("-reference_pressure", "Reference/initial pressure", NULL, reference.pressure, &reference.pressure, NULL));
+  PetscCall(PetscOptionsScalarArray("-reference_velocity", "Reference/initial velocity", NULL, reference.velocity, &dim, NULL));
+  PetscCall(PetscOptionsScalar("-reference_temperature", "Reference/initial temperature", NULL, reference.temperature, &reference.temperature, NULL));
+
   // -- Units
   PetscCall(PetscOptionsScalar("-units_meter", "1 meter in scaled length units", NULL, meter, &meter, NULL));
   meter = fabs(meter);
@@ -234,16 +240,10 @@ PetscErrorCode NS_NEWTONIAN_IG(ProblemData *problem, DM dm, void *ctx, SimpleBC 
   k *= W_per_m_K;
   for (PetscInt i = 0; i < 3; i++) domain_size[i] *= meter;
   for (PetscInt i = 0; i < 3; i++) g[i] *= m_per_squared_s;
+  reference.pressure *= Pascal;
+  for (PetscInt i = 0; i < 3; i++) reference.velocity[i] *= meter / second;
+  reference.temperature *= Kelvin;
   problem->dm_scale = meter;
-
-  // -- Setup Context
-  setup_context->cv   = cv;
-  setup_context->cp   = cp;
-  setup_context->lx   = domain_size[0];
-  setup_context->ly   = domain_size[1];
-  setup_context->lz   = domain_size[2];
-  setup_context->time = 0;
-  PetscCall(PetscArraycpy(setup_context->g, g, 3));
 
   // -- Solver Settings
   user->phys->stab          = stab;
@@ -268,12 +268,20 @@ PetscErrorCode NS_NEWTONIAN_IG(ProblemData *problem, DM dm, void *ctx, SimpleBC 
   newtonian_ig_ctx->state_var     = state_var;
   PetscCall(PetscArraycpy(newtonian_ig_ctx->g, g, 3));
 
-  if (bc->num_freestream > 0) PetscCall(FreestreamBCSetup(problem, dm, ctx, newtonian_ig_ctx));
+  // -- Setup Context
+  setup_context->reference = reference;
+  setup_context->gas       = *newtonian_ig_ctx;
+  setup_context->lx        = domain_size[0];
+  setup_context->ly        = domain_size[1];
+  setup_context->lz        = domain_size[2];
+  setup_context->time      = 0;
+
+  if (bc->num_freestream > 0) PetscCall(FreestreamBCSetup(problem, dm, ctx, newtonian_ig_ctx, &reference));
 
   CeedQFunctionContextCreate(user->ceed, &problem->ics.qfunction_context);
   CeedQFunctionContextSetData(problem->ics.qfunction_context, CEED_MEM_HOST, CEED_USE_POINTER, sizeof(*setup_context), setup_context);
   CeedQFunctionContextSetDataDestroy(problem->ics.qfunction_context, CEED_MEM_HOST, FreeContextPetsc);
-  CeedQFunctionContextRegisterDouble(problem->ics.qfunction_context, "evaluation time", (char *)&setup_context->time - (char *)setup_context, 1,
+  CeedQFunctionContextRegisterDouble(problem->ics.qfunction_context, "evaluation time", offsetof(struct SetupContext_, time), 1,
                                      "Time of evaluation");
 
   CeedQFunctionContextCreate(user->ceed, &newtonian_ig_context);

@@ -23,7 +23,7 @@
 // *****************************************************************************
 // This QFunction sets a "still" initial condition for generic Newtonian IG problems
 // *****************************************************************************
-CEED_QFUNCTION(ICsNewtonianIG)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
+CEED_QFUNCTION_HELPER int ICsNewtonianIG(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out, StateToQi_t StateToQi) {
   // Inputs
   const CeedScalar(*X)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[0];
 
@@ -32,65 +32,23 @@ CEED_QFUNCTION(ICsNewtonianIG)(void *ctx, CeedInt Q, const CeedScalar *const *in
 
   // Context
   const SetupContext context = (SetupContext)ctx;
-  const CeedScalar   theta0  = context->theta0;
-  const CeedScalar   P0      = context->P0;
-  const CeedScalar   cv      = context->cv;
-  const CeedScalar   cp      = context->cp;
-  const CeedScalar  *g       = context->g;
-  const CeedScalar   Rd      = cp - cv;
 
   // Quadrature Point Loop
   CeedPragmaSIMD for (CeedInt i = 0; i < Q; i++) {
+    CeedScalar x[3] = {X[0][i], X[1][i], X[2][i]};
     CeedScalar q[5] = {0.};
-
-    // Setup
-    // -- Coordinates
-    const CeedScalar x[3]        = {X[0][i], X[1][i], X[2][i]};
-    const CeedScalar e_potential = -Dot3(g, x);
-
-    // -- Density
-    const CeedScalar rho = P0 / (Rd * theta0);
-
-    // Initial Conditions
-    q[0] = rho;
-    q[1] = 0.0;
-    q[2] = 0.0;
-    q[3] = 0.0;
-    q[4] = rho * (cv * theta0 + e_potential);
-
+    State      s    = StateFromPrimitive(&context->gas, context->reference, x);
+    StateToQi(&context->gas, s, q);
     for (CeedInt j = 0; j < 5; j++) q0[j][i] = q[j];
-
   }  // End of Quadrature Point Loop
   return 0;
 }
 
-// *****************************************************************************
-// This QFunction sets a "still" initial condition for generic Newtonian IG problems in primitive variables
-// *****************************************************************************
 CEED_QFUNCTION(ICsNewtonianIG_Prim)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
-  // Outputs
-  CeedScalar(*q0)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA])out[0];
-
-  // Context
-  const SetupContext context = (SetupContext)ctx;
-  const CeedScalar   theta0  = context->theta0;
-  const CeedScalar   P0      = context->P0;
-
-  // Quadrature Point Loop
-  CeedPragmaSIMD for (CeedInt i = 0; i < Q; i++) {
-    CeedScalar q[5] = {0.};
-
-    // Initial Conditions
-    q[0] = P0;
-    q[1] = 0.0;
-    q[2] = 0.0;
-    q[3] = 0.0;
-    q[4] = theta0;
-
-    for (CeedInt j = 0; j < 5; j++) q0[j][i] = q[j];
-
-  }  // End of Quadrature Point Loop
-  return 0;
+  return ICsNewtonianIG(ctx, Q, in, out, StateToY);
+}
+CEED_QFUNCTION(ICsNewtonianIG_Conserv)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
+  return ICsNewtonianIG(ctx, Q, in, out, StateToU);
 }
 
 // *****************************************************************************

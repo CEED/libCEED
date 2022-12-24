@@ -59,6 +59,7 @@ doc/sphinx/source/examples/
 *.gz
 *.mkv
 *.mp4
+*.msh
 *.ogv
 *.vtu
 *.webm

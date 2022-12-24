@@ -1,0 +1,53 @@
+problem: newtonian
+
+# Time Stepping Settings
+implicit: true
+stab: supg
+
+output_freq: 10
+
+ts:
+  adapt_type: 'none'
+  type: alpha
+  dt: .05
+  max_steps: 2000
+  alpha_radius: 0.5
+
+# Reference state is used for the initial condition, zero velocity by default.
+reference:
+  pressure: 7143
+  temperature: 24.92
+# Freestream inherits reference state as default
+freestream:
+  velocity: 1,0,0
+# Small gravity vector to break symmetry so shedding can start
+g: 0,-.01,0
+
+# viscosity
+mu: 0.01
+
+q_extra: 0
+
+## DM Settings:
+degree: 2
+dm_plex_filename: examples/fluids/meshes/cylinder-q1-n20.msh
+
+# Boundary Settings
+bc_slip_z: 6
+bc_wall: 5
+bc_freestream: 1,2
+bc_slip_y: 3,4
+wall_comps: 1,2,3
+
+# Note: we prefer to use primitive variables
+state_var: primitive
+
+dm_view:
+ts_monitor:
+snes_lag_jacobian: 20
+snes_lag_jacobian_persists:
+
+#pmat_pbdiagonal:
+#ksp_type: bcgsl
+#pc_type: vpbjacobi
+#amat_type: shell

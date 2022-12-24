@@ -18,12 +18,6 @@
 #include "utils.h"
 
 typedef struct {
-  CeedScalar pressure;
-  CeedScalar velocity[3];
-  CeedScalar temperature;
-} StatePrimitive;
-
-typedef struct {
   CeedScalar density;
   CeedScalar momentum[3];
   CeedScalar E_total;
@@ -132,6 +126,14 @@ CEED_QFUNCTION_HELPER StateConservative StateConservativeFromPrimitive_fwd(Newto
   return dU;
 }
 
+CEED_QFUNCTION_HELPER State StateFromPrimitive(NewtonianIdealGasContext gas, StatePrimitive Y, const CeedScalar x[3]) {
+  StateConservative U = StateConservativeFromPrimitive(gas, Y, x);
+  State             s;
+  s.U = U;
+  s.Y = Y;
+  return s;
+}
+
 // linear combination of n states
 CEED_QFUNCTION_HELPER StateConservative StateConservativeMult(CeedInt n, const CeedScalar a[], const StateConservative X[]) {
   StateConservative R = {0};
@@ -154,6 +156,12 @@ CEED_QFUNCTION_HELPER StateConservative StateConservativeAXPBYPCZ(CeedScalar a, 
 
 // Function pointer types for generic state array -> State struct functions
 typedef State (*StateFromQi_t)(NewtonianIdealGasContext gas, const CeedScalar qi[5], const CeedScalar x[3]);
+// Function pointer types for State struct -> generic state array
+typedef void (*StateToQi_t)(NewtonianIdealGasContext gas, const State input, CeedScalar qi[5]);
+
+CEED_QFUNCTION_HELPER void StateToU(NewtonianIdealGasContext gas, const State input, CeedScalar U[5]) { UnpackState_U(input.U, U); }
+
+CEED_QFUNCTION_HELPER void StateToY(NewtonianIdealGasContext gas, const State input, CeedScalar Y[5]) { UnpackState_Y(input.Y, Y); }
 typedef State (*StateFromQi_fwd_t)(NewtonianIdealGasContext gas, State s, const CeedScalar dqi[5], const CeedScalar x[3], const CeedScalar dx[3]);
 
 CEED_QFUNCTION_HELPER State StateFromU(NewtonianIdealGasContext gas, const CeedScalar U[5], const CeedScalar x[3]) {
@@ -204,10 +212,6 @@ CEED_QFUNCTION_HELPER State StateFromY_fwd(NewtonianIdealGasContext gas, State s
 
 // Function pointer types for State struct -> generic state array
 typedef void (*StateToQi_t)(NewtonianIdealGasContext gas, const State input, CeedScalar qi[5]);
-
-CEED_QFUNCTION_HELPER void StateToU(NewtonianIdealGasContext gas, const State input, CeedScalar U[5]) { UnpackState_U(input.U, U); }
-
-CEED_QFUNCTION_HELPER void StateToY(NewtonianIdealGasContext gas, const State input, CeedScalar Y[5]) { UnpackState_Y(input.Y, Y); }
 
 CEED_QFUNCTION_HELPER void FluxInviscid(NewtonianIdealGasContext gas, State s, StateConservative Flux[3]) {
   for (CeedInt i = 0; i < 3; i++) {

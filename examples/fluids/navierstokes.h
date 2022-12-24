@@ -107,12 +107,12 @@ struct AppCtx_private {
 
 // libCEED data struct
 struct CeedData_private {
-  CeedVector    x_coord, q_data;
-  CeedQFunction qf_setup_vol, qf_ics, qf_rhs_vol, qf_ifunction_vol, qf_setup_sur, qf_apply_inflow, qf_apply_inflow_jacobian, qf_apply_outflow,
-      qf_apply_outflow_jacobian, qf_apply_freestream, qf_apply_freestream_jacobian;
+  CeedVector          x_coord, q_data;
   CeedBasis           basis_x, basis_xc, basis_q, basis_x_sur, basis_q_sur, basis_xc_sur;
   CeedElemRestriction elem_restr_x, elem_restr_q, elem_restr_qd_i;
   CeedOperator        op_setup_vol, op_ics;
+  CeedQFunction       qf_setup_vol, qf_ics, qf_rhs_vol, qf_ifunction_vol, qf_setup_sur, qf_apply_inflow, qf_apply_inflow_jacobian, qf_apply_outflow,
+      qf_apply_outflow_jacobian, qf_apply_freestream, qf_apply_freestream_jacobian;
 };
 
 // PETSc user data
@@ -207,7 +207,6 @@ extern PetscErrorCode NS_CHANNEL(ProblemData *problem, DM dm, void *ctx, SimpleB
 extern PetscErrorCode NS_BLASIUS(ProblemData *problem, DM dm, void *ctx, SimpleBC bc);
 extern PetscErrorCode NS_NEWTONIAN_IG(ProblemData *problem, DM dm, void *ctx, SimpleBC bc);
 extern PetscErrorCode NS_DENSITY_CURRENT(ProblemData *problem, DM dm, void *ctx, SimpleBC bc);
-
 extern PetscErrorCode NS_EULER_VORTEX(ProblemData *problem, DM dm, void *ctx, SimpleBC bc);
 extern PetscErrorCode NS_SHOCKTUBE(ProblemData *problem, DM dm, void *ctx, SimpleBC bc);
 extern PetscErrorCode NS_ADVECTION(ProblemData *problem, DM dm, void *ctx, SimpleBC bc);
@@ -314,6 +313,6 @@ PetscErrorCode SetBCsFromICs_NS(DM dm, Vec Q, Vec Q_loc);
 PetscErrorCode SetupStrongBC_Ceed(Ceed ceed, CeedData ceed_data, DM dm, User user, AppCtx app_ctx, ProblemData *problem, SimpleBC bc, CeedInt Q_sur,
                                   CeedInt q_data_size_sur);
 
-PetscErrorCode FreestreamBCSetup(ProblemData *problem, DM dm, void *ctx, NewtonianIdealGasContext newtonian_ig_ctx);
+PetscErrorCode FreestreamBCSetup(ProblemData *problem, DM dm, void *ctx, NewtonianIdealGasContext newtonian_ig_ctx, const StatePrimitive *reference);
 
 #endif  // libceed_fluids_examples_navier_stokes_h
