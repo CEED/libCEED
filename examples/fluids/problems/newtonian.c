@@ -260,6 +260,7 @@ PetscErrorCode NS_NEWTONIAN_IG(ProblemData *problem, DM dm, void *ctx, SimpleBC 
   newtonian_ig_ctx->Ctau_C         = Ctau_C;
   newtonian_ig_ctx->Ctau_M         = Ctau_M;
   newtonian_ig_ctx->Ctau_E         = Ctau_E;
+  newtonian_ig_ctx->P0             = reference.pressure;
   newtonian_ig_ctx->stabilization  = stab;
   newtonian_ig_ctx->P0             = reference.pressure;
   newtonian_ig_ctx->is_implicit    = implicit;

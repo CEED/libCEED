@@ -170,12 +170,11 @@ CEED_QFUNCTION(RHSFunction_Newtonian)(void *ctx, CeedInt Q, const CeedScalar *co
   return 0;
 }
 
-CEED_QFUNCTION_HELPER CeedScalar RampCoefficient(CeedScalar sustain, CeedScalar release, CeedScalar location,
-                                                 CeedScalar x) {
+CEED_QFUNCTION_HELPER CeedScalar RampCoefficient(CeedScalar sustain, CeedScalar release, CeedScalar location, CeedScalar x) {
   if (x < location) {
     return sustain;
   } else if (x < location + release) {
-    return sustain* ((x-location)*(-1/release) + 1);
+    return sustain * ((x - location) * (-1 / release) + 1);
   } else {
     return 0;
   }
@@ -261,14 +260,14 @@ CEED_QFUNCTION_HELPER int IFunction_Newtonian(void *ctx, CeedInt Q, const CeedSc
     UnpackState_U(s_dot.U, U_dot);
 
     for (CeedInt j = 0; j < 5; j++) v[j][i] = wdetJ * (U_dot[j] - body_force[j]);
-    
-    const CeedScalar sigma = -wdetJ * RampCoefficient(context->ramp_amplitude, context->ramp_length, context->ramp_start, x_i[0]);
+
+    const CeedScalar sigma     = RampCoefficient(context->ramp_amplitude, context->ramp_length, context->ramp_start, x_i[0]);
     const CeedScalar damp_Y[5] = {sigma * (s.Y.pressure - P0), 0, 0, 0, 0};
-    CeedScalar dx_i[3] = {0};
-    State damp_s = StateFromY_fwd(context, s, damp_Y, x_i,dx_i);
-    v[0][i] += damp_s.U.density;
-    for (int j = 0; j < 3; j++) v[j+1][i] += damp_s.U.momentum[j];
-    v[4][i] += damp_s.U.E_total;
+    CeedScalar       dx_i[3]   = {0};
+    State            damp_s    = StateFromY_fwd(context, s, damp_Y, x_i, dx_i);
+    v[0][i] += wdetJ * damp_s.U.density;
+    for (int j = 0; j < 3; j++) v[j + 1][i] += wdetJ * damp_s.U.momentum[j];
+    v[4][i] += wdetJ * damp_s.U.E_total;
 
     Tau_diagPrim(context, s, dXdx, dt, Tau_d);
     Stabilization(context, s, Tau_d, grad_s, U_dot, body_force, x_i, stab);
@@ -369,14 +368,13 @@ CEED_QFUNCTION_HELPER int IJacobian_Newtonian(void *ctx, CeedInt Q, const CeedSc
     UnpackState_U(ds.U, dU);
     for (int j = 0; j < 5; j++) v[j][i] = wdetJ * (context->ijacobian_time_shift * dU[j] - dbody_force[j]);
 
-    const CeedScalar sigma = -wdetJ * RampCoefficient(context->ramp_amplitude, context->ramp_length, context->ramp_start, x_i[0]);
-    const CeedScalar damp_Y[5] = {sigma * ds.Y.pressure, 0, 0, 0, 0};
-    CeedScalar dx_i[3] = {0};
-    State damp_s = StateFromY_fwd(context, s, damp_Y, x_i,dx_i);
-    v[0][i] += damp_s.U.density;
-    for (int j = 0; j < 3; j++) v[j+1][i] += damp_s.U.momentum[j];
-    v[4][i] += damp_s.U.E_total;
-   
+    const CeedScalar sigma      = RampCoefficient(context->ramp_amplitude, context->ramp_length, context->ramp_start, x_i[0]);
+    const CeedScalar damp_dY[5] = {sigma * ds.Y.pressure, 0, 0, 0, 0};
+    CeedScalar       dx_i[3]    = {0};
+    State            damp_ds    = StateFromY_fwd(context, s, damp_dY, x_i, dx_i);
+    v[0][i] += wdetJ * damp_ds.U.density;
+    for (int j = 0; j < 3; j++) v[j + 1][i] += wdetJ * damp_ds.U.momentum[j];
+    v[4][i] += wdetJ * damp_ds.U.E_total;
 
     // -- Stabilization method: none (Galerkin), SU, or SUPG
     CeedScalar dstab[5][3], U_dot[5] = {0};
