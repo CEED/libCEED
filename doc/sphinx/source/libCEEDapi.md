@@ -61,7 +61,7 @@ More generally, when the test and trial space differ, they get their own version
 
 (fig-operator-decomp)=
 
-:::{figure} ../../img/libCEED.svg
+:::{figure} ../../img/libCEED-decomposition.svg
 Operator Decomposition
 :::
 
