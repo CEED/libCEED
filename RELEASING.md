@@ -133,21 +133,22 @@ The release tests are found in the file `julia/LibCEED.jl/test/runtests.jl` and 
 
 The Python package gets its version from `ceed.pc.template` so there are no file modifications necessary.
 
-1. `make wheel` builds and tests the wheels using Docker.
-See the [manylinux repo](https://github.com/pypa/manylinux) for source and usage inforamtion.
-If this succeeds, the completed wheels are in `wheelhouse/libceed-0.8-cp39-cp39-manylinux2010_x86_64.whl`.
-2. Manually test one or more of the wheels by creating a virtualenv and using `pip install wheelhouse/libceed-0.8-cp39-cp39-manylinux2010_x86_64.whl`, then `python -c 'import libceed'` or otherwise running tests.
-3. Create a `~/.pypirc` with entries for `testpypi` (`https://test.pypi.org/legacy/`) and the real `pypi`.
-4. Upload to `testpypi` using
+1. CI builds and tests wheels when a pull request has the `release preparation` label. One can also use `cibuildwheel --only cp.10-manylinux_x86_64` to build and test wheels locally (inside a container).
+2. CI publishes wheels on `v**` tags, assuming tests pass.
+
+### Reminder about manual publishing (not needed with CI)
+
+1. Create a `~/.pypirc` with entries for `testpypi` (`https://test.pypi.org/legacy/`) and the real `pypi`.
+2. Upload to `testpypi` using
 ```console
 $ twine upload --repository testpypi wheelhouse/libceed-0.8-cp39-cp39-manylinux2010_x86_64.whl
 ```
-5. Test installing on another machine/in a virtualenv:
+3. Test installing on another machine/in a virtualenv:
 ```console
 $ pip install --index-url https://test.pypi.org/simple --extra-index-url https://pypi.org/simple libceed
 ```
 The `--extra-index-url` argument allows dependencies like `cffi` and `numpy` from being fetched from the non-test repository.
-6. Do it live:
+4. Do it live:
 ```console
 $ twine upload --repository pypi wheelhouse/libceed-0.8-cp39-cp39-manylinux2010_x86_64.whl
 ```

@@ -1,8 +1,11 @@
 [build-system]
-# These are the assumed default build requirements from pip:
-# https://pip.pypa.io/en/stable/reference/pip/#pep-517-and-518-support
-requires = ["setuptools>=40.8.0", "wheel"]
+requires = ["setuptools>=40.8.0", "wheel", "cffi"]
 build-backend = "setuptools.build_meta"
 
 [tool.autopep8]
 max_line_length = 80
+
+[tool.cibuildwheel]
+build-verbosity = "1"
+test-requires = ["pytest"]
+test-command = "bash {project}/python/test-wheel.sh {project}"
