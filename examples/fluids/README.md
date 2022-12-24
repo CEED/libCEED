@@ -616,6 +616,45 @@ This problem can be run with the `newtonianwave.yaml` file via:
 :language: yaml
 ```
 
+#### Vortex Shedding - Flow past Cylinder
+
+The vortex shedding, flow past cylinder problem has the following command-line options in addition to the Newtonian Ideal Gas options:
+
+:::{list-table} Vortex Shedding Runtime Options
+:header-rows: 1
+
+* - Option
+  - Description
+  - Default value
+  - Unit
+
+* - `-freestream_velocity`
+  - Freestream velocity vector
+  - `0,0,0`
+  - `m/s`
+
+* - `-freestream_temperature`
+  - Freestream temperature
+  - `288`
+  - `K`
+
+* - `-freestream_pressure`
+  - Freestream pressure
+  - `1.01e5`
+  - `Pa`
+
+:::
+
+This problem can be run with the `vortexshedding.yaml` file via:
+
+```
+./navierstokes -options_file vortexshedding.yaml
+```
+
+```{literalinclude} ../../../../../examples/fluids/vortexshedding.yaml
+:language: yaml
+```
+
 #### Density current
 
 The Density Current problem has the following command-line options in addition to the Newtonian Ideal Gas options:
