@@ -6,33 +6,16 @@
 // This file is part of CEED:  http://github.com/ceed
 
 /// @file
-/// Utility functions for setting up problems using the various statistics Qfunctions such as 
-/// qfunctions/reynolds_stress.h
+/// Utility functions for setting up statistics collection
 
 #include "../navierstokes.h"
-//#include "../qfunctions/setupgeo.h"
-//#include "../qfunctions/reynolds_stress.h"
 
-// Need to make two functions in this file
-
-// 1) Function that sets up the Qfunction structure that specifies what qfunciton needs to happen and context for it. 
-// This is called inside newtonian_ns (add a flag to turn stats collection on and off)
-// For now just leave blank (it will always do my QFunction this way, add flag later time permitting)
-
-// 2) Create QFunction
 // -- Create QFunction for Reynolds stress
 PetscErrorCode CreateStatsOperator(Ceed ceed, ProblemQFunctionSpec stats, CeedData ceed_data, User user, CeedInt dim, CeedInt P, CeedInt Q) {
-// stats could be somthing like the Reynolds stress and is an instance of the problem QFunction specifier
-
-// setup restriction
-// setup basis
-// create operator
-
-  int num_comp_q = 5;
-  int q_data_size_vol = 10; 
-  int num_comp_x = 3;
-//  int num_comp_stats = 6;
-  int num_comp_stats = 5;
+  int       num_comp_q      = 5;
+  int       q_data_size_vol = 10;
+  int       num_comp_x      = 3;
+  int       num_comp_stats  = 5;
   CeedBasis basis_stats;
 
   PetscFunctionBeginUser;
@@ -43,15 +26,15 @@ PetscErrorCode CreateStatsOperator(Ceed ceed, ProblemQFunctionSpec stats, CeedDa
   CeedQFunctionCreateInterior(ceed, 1, stats.qfunction, stats.qfunction_loc, &qf_stats);
   CeedQFunctionSetContext(qf_stats, stats.qfunction_context);
   CeedQFunctionContextDestroy(&stats.qfunction_context);
-  CeedQFunctionAddInput(qf_stats, "q", num_comp_q, CEED_EVAL_INTERP); // This sets the QFunction input to be interpolated between quadrature points 
-  CeedQFunctionAddInput(qf_stats, "q_data", q_data_size_vol, CEED_EVAL_NONE); // This sets the QFunction input to just be at quadrature points
-  CeedQFunctionAddInput(qf_stats, "x", num_comp_x, CEED_EVAL_INTERP); // This sets the QFunction input to be interpolated between quadrature points
-  CeedQFunctionAddOutput(qf_stats, "U_prod", num_comp_stats, CEED_EVAL_INTERP); // This sets the Qfunction output to be interpolated between quadrature points
+  CeedQFunctionAddInput(qf_stats, "q", num_comp_q, CEED_EVAL_INTERP);
+  CeedQFunctionAddInput(qf_stats, "q_data", q_data_size_vol, CEED_EVAL_NONE);
+  CeedQFunctionAddInput(qf_stats, "x", num_comp_x, CEED_EVAL_INTERP);
+  CeedQFunctionAddOutput(qf_stats, "U_prod", num_comp_stats, CEED_EVAL_INTERP);
 
-// -- CEED setup the basis
-  CeedBasisCreateTensorH1Lagrange(ceed, dim, num_comp_stats, P, Q, CEED_GAUSS, &basis_stats); //This creates the basis
+  // -- CEED setup the basis
+  CeedBasisCreateTensorH1Lagrange(ceed, dim, num_comp_stats, P, Q, CEED_GAUSS, &basis_stats);
 
-// -- CEED operator for stats collection
+  // -- CEED operator for stats collection
   CeedOperator op;
   CeedOperatorCreate(ceed, qf_stats, NULL, NULL, &op);
   CeedOperatorSetField(op, "q", ceed_data->elem_restr_q, ceed_data->basis_q, CEED_VECTOR_ACTIVE);
@@ -63,5 +46,4 @@ PetscErrorCode CreateStatsOperator(Ceed ceed, ProblemQFunctionSpec stats, CeedDa
   user->op_stats = op;
 
   PetscFunctionReturn(0);
-
 }

@@ -7,7 +7,6 @@ ts:
   type: 'beuler'
   adapt_type: 'none'
   dt: 5e-6
-  max_steps: 5  
 
 q_extra: 2
 

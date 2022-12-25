@@ -305,6 +305,8 @@ PetscErrorCode SetupICsFromBinary(MPI_Comm comm, AppCtx app_ctx, Vec Q);
 // Record boundary values from initial condition
 PetscErrorCode SetBCsFromICs_NS(DM dm, Vec Q, Vec Q_loc);
 
+PetscErrorCode CreateStatsOperator(Ceed ceed, ProblemQFunctionSpec stats, CeedData ceed_data, User user, CeedInt dim, CeedInt P, CeedInt Q);
+
 // -----------------------------------------------------------------------------
 // Boundary Condition Related Functions
 // -----------------------------------------------------------------------------
