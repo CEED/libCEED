@@ -1289,11 +1289,11 @@ const CeedInt_FMT = "d"
 
 const CEED_VERSION_MAJOR = 0
 
-const CEED_VERSION_MINOR = 10
+const CEED_VERSION_MINOR = 11
 
-const CEED_VERSION_PATCH = 1
+const CEED_VERSION_PATCH = 0
 
-const CEED_VERSION_RELEASE = false
+const CEED_VERSION_RELEASE = true
 
 # Skipping MacroDefinition: CEED_INTERN extern CEED_VISIBILITY ( hidden )
 
