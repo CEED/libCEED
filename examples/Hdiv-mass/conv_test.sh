@@ -28,6 +28,7 @@ echo "Running convergence test in ${dim}D for Projection problem in H(div) space
 
 declare -A run_flags
     #run_flags[pc_type]=svd
+    run_flags[ceed]=/cpu/self/ref/serial
     if [[ $dim -eq 2 ]];
     then
         run_flags[problem]=mass2d
@@ -68,3 +69,4 @@ for ((res=${test_flags[res_start]}; res<=${test_flags[res_end]}; res+=${test_fla
     i=$((i+1))
 done
 
+python conv_rate.py -f conv_test_result.csv

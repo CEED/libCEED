@@ -30,6 +30,7 @@ echo "Running convergence test in ${dim}D for Darcy problem";
 
 declare -A run_flags
     run_flags[pc_type]=svd
+    run_flags[ceed]=/cpu/self/ref/serial
     if [[ $dim -eq 2 ]];
     then
         run_flags[problem]=darcy2d
@@ -68,7 +69,8 @@ for ((res=${test_flags[res_start]}; res<=${test_flags[res_end]}; res+=${test_fla
             args="$args -$arg ${run_flags[$arg]}"
         fi
     done
-    ./main -view_solution $args | grep "L2 error of u and p" | awk -v i="$i" -v res="$res" '{ printf "%d,%d,%.5f,%.5f\n", i, res, $8, $9}' >> $file_name
+    ./main $args | grep "L2 error of u and p" | awk -v i="$i" -v res="$res" '{ printf "%d,%d,%.5f,%.5f\n", i, res, $8, $9}' >> $file_name
     i=$((i+1))
 done
 
+python conv_plot.py -f conv_test_result.csv

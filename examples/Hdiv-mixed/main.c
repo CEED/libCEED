@@ -90,8 +90,7 @@ int main(int argc, char **argv) {
   // ---------------------------------------------------------------------------
   // -- Initialize backend
   Ceed ceed;
-  CeedInit("/cpu/self/ref/serial", &ceed);
-  // CeedInit(app_ctx->ceed_resource, &ceed);
+  CeedInit(app_ctx->ceed_resource, &ceed);
 
   // -- Process general command line options
   // ---------------------------------------------------------------------------

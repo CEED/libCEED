@@ -67,8 +67,7 @@ int main(int argc, char **argv) {
   // ---------------------------------------------------------------------------
   // -- Initialize backend
   Ceed ceed;
-  CeedInit("/cpu/self/ref/serial", &ceed);
-  // CeedInit(app_ctx->ceed_resource, &ceed);
+  CeedInit(app_ctx->ceed_resource, &ceed);
 
   // ---------------------------------------------------------------------------
   // Choose the problem from the list of registered problems
