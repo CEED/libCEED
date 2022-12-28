@@ -17,27 +17,33 @@
 # testbed platforms, in support of the nation's exascale computing imperative.
 
 # You can run convergence test by:
-#./conv_test.sh -u 2 -p 1
+#./conv_test.sh -d 2 -u 2 -p 1
 
-# where u, p are polynomial orders of displacement and pressure fields
+# where d is dimension (2 or 3) and u, p are polynomial orders of displacement and pressure fields
 # Reading arguments with getopts options
-while getopts u:p: flag
+while getopts d:u:p: flag
 do
     case "${flag}" in
+        d) dim=${OPTARG};;
         u) order_u=${OPTARG};;
         p) order_p=${OPTARG};;
     esac
 done
-echo "Running convergence test for mixed-linear elasticity with polynomial order u:${order_u}, p:${order_p}";
+echo "Running convergence test for ${dim}D mixed-linear elasticity with polynomial order u:${order_u}, p:${order_p}";
 declare -A run_flags
-
-    run_flags[dm_plex_dim]=2
-    run_flags[dm_plex_box_faces]=4,4
+    if [[ $dim -eq 2 ]];
+    then
+        run_flags[dm_plex_dim]=$dim
+        run_flags[dm_plex_box_faces]=4,4
+        run_flags[problem]=mixed-linear-2d
+    else
+        run_flags[dm_plex_dim]=$dim
+        run_flags[dm_plex_box_faces]=4,4
+        run_flags[problem]=mixed-linear-3d
+    fi
     run_flags[dm_plex_simplex]=0
     run_flags[u_order]=$order_u
     run_flags[p_order]=$order_p
-    run_flags[problem]=mixed-linear-2d
-    run_flags[ksp_max_it]=1000
     run_flags[q_extra]=1
     run_flags[pc_type]=svd
 
@@ -53,9 +59,11 @@ echo "run,mesh_res,error_u,error_p" > $file_name
 i=0
 
 for ((res=${test_flags[res_start]}; res<=${test_flags[res_end]}; res+=${test_flags[res_stride]})); do
-
-    run_flags[dm_plex_box_faces]=$res,$res
-
+    if [[ $dim -eq 2 ]]; then
+        run_flags[dm_plex_box_faces]=$res,$res
+    else
+        run_flags[dm_plex_box_faces]=$res,$res,$res
+    fi
     args=''
     for arg in "${!run_flags[@]}"; do
         if ! [[ -z ${run_flags[$arg]} ]]; then

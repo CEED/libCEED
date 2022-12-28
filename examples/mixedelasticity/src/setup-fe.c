@@ -7,22 +7,6 @@
 // -----------------------------------------------------------------------------
 CeedMemType MemTypeP2C(PetscMemType mem_type) { return PetscMemTypeDevice(mem_type) ? CEED_MEM_DEVICE : CEED_MEM_HOST; }
 
-// -----------------------------------------------------------------------------
-// Create BC label
-// -----------------------------------------------------------------------------
-static PetscErrorCode CreateBCLabel(DM dm, const char name[]) {
-  DMLabel label;
-
-  PetscFunctionBeginUser;
-
-  PetscCall(DMCreateLabel(dm, name));
-  PetscCall(DMGetLabel(dm, name, &label));
-  PetscCall(DMPlexMarkBoundaryFaces(dm, PETSC_DETERMINE, label));
-  PetscCall(DMPlexLabelComplete(dm, label));
-
-  PetscFunctionReturn(0);
-};
-
 // ---------------------------------------------------------------------------
 // Set-up FE for H1 space
 // ---------------------------------------------------------------------------
@@ -36,7 +20,6 @@ PetscErrorCode SetupFEByOrder(AppCtx app_ctx, ProblemData problem_data, DM dm) {
   PetscInt  p_order    = app_ctx->p_order;
   PetscBool is_simplex = PETSC_TRUE;
   PetscInt  dim;
-  PetscInt  marker_ids[1] = {1};
   PetscFunctionBeginUser;
 
   // Check if simplex or tensor-product element
@@ -58,19 +41,8 @@ PetscErrorCode SetupFEByOrder(AppCtx app_ctx, ProblemData problem_data, DM dm) {
     PetscCall(PetscFEDestroy(&fe_coords));
   }
 
-  // Setup Dirichlet BC
-  {
-    PetscBool has_label;
-    DMHasLabel(dm, "marker", &has_label);
-    if (!has_label) {
-      CreateBCLabel(dm, "marker");
-    }
-    DMLabel label;
-    PetscCall(DMGetLabel(dm, "marker", &label));
-    PetscCall(DMAddBoundary(dm, DM_BC_ESSENTIAL, "wall", label, 1, marker_ids, 0, 0, NULL, NULL, NULL, NULL, NULL));
-    PetscCall(DMSetOptionsPrefix(dm, "final_"));
-    PetscCall(DMViewFromOptions(dm, NULL, "-dm_view"));
-  }
+  // Setup boundary
+  DMAddBoundariesDirichlet(dm);
 
   if (!is_simplex) {
     DM dm_coord;

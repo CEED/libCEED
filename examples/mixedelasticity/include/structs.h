@@ -13,6 +13,8 @@ struct OperatorApplyContext_ {
   CeedVector   x_ceed, y_ceed;
   CeedOperator op_apply;
   Ceed         ceed;
+  Mat          mat_jacobian;
+  VecType      vec_type;
 };
 
 // libCEED data struct

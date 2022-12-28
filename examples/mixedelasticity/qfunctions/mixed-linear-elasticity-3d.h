@@ -65,8 +65,9 @@ CEED_QFUNCTION(MixedLinearRhs3D)(void *ctx, CeedInt Q, const CeedScalar *const *
     CeedScalar x = coords[i + 0 * Q], y = coords[i + 1 * Q], z = coords[i + 2 * Q];
     CeedScalar u1 = sin(PI_DOUBLE * x) * sin(PI_DOUBLE * y) * sin(PI_DOUBLE * z), u2 = 2 * u1, u3 = 3 * u1;
     CeedScalar u1_1 = PI_DOUBLE * cos(PI_DOUBLE * x) * sin(PI_DOUBLE * y) * sin(PI_DOUBLE * z),
-               u2_2 = 2 * PI_DOUBLE * sin(PI_DOUBLE * x) * cos(PI_DOUBLE * y) * sin(PI_DOUBLE * z),
-               u3_3 = 3 * PI_DOUBLE * sin(PI_DOUBLE * x) * sin(PI_DOUBLE * y) * cos(PI_DOUBLE * z);
+               u1_2 = PI_DOUBLE * sin(PI_DOUBLE * x) * cos(PI_DOUBLE * y) * sin(PI_DOUBLE * z),
+               u1_3 = PI_DOUBLE * sin(PI_DOUBLE * x) * sin(PI_DOUBLE * y) * cos(PI_DOUBLE * z);
+    CeedScalar u2_2 = 2 * u1_2, u3_3 = 3 * u1_3;
     // Component 1
     true_soln[0][i] = u1;
     // Component 2
@@ -78,22 +79,23 @@ CEED_QFUNCTION(MixedLinearRhs3D)(void *ctx, CeedInt Q, const CeedScalar *const *
 
     // mu*(u1_11 + u1_22 + u1_33) + (1/3 * mu + kappa)*(u1_11 + u2_21 + u3_31) + f1 = 0
     CeedScalar u1_11 = -PI_DOUBLE * PI_DOUBLE * u1, u1_22 = -PI_DOUBLE * PI_DOUBLE * u1, u1_33 = -PI_DOUBLE * PI_DOUBLE * u1;
-    CeedScalar u2_21 = 2 * PI_DOUBLE * PI_DOUBLE * cos(PI_DOUBLE * x) * cos(PI_DOUBLE * y) * sin(PI_DOUBLE * z);
-    CeedScalar u3_31 = 3 * PI_DOUBLE * PI_DOUBLE * cos(PI_DOUBLE * x) * sin(PI_DOUBLE * y) * cos(PI_DOUBLE * z);
+    CeedScalar u1_12 = PI_DOUBLE * PI_DOUBLE * cos(PI_DOUBLE * x) * cos(PI_DOUBLE * y) * sin(PI_DOUBLE * z),
+               u1_13 = PI_DOUBLE * PI_DOUBLE * cos(PI_DOUBLE * x) * sin(PI_DOUBLE * y) * cos(PI_DOUBLE * z),
+               u1_23 = PI_DOUBLE * PI_DOUBLE * sin(PI_DOUBLE * x) * cos(PI_DOUBLE * y) * cos(PI_DOUBLE * z);
+    CeedScalar u2_21 = 2 * u1_12;
+    CeedScalar u3_31 = 3 * u1_13;
     CeedScalar f1    = -mu * (u1_11 + u1_22 + u1_33) - ((1. / 3.) * mu + kappa) * (u1_11 + u2_21 + u3_31);
     // Component 1
     rhs_u[0][i] = q_data[0][i] * f1;
     // mu*(u2_11 + u2_22 + u2_33) + (1/3 * mu + kappa)*(u1_12 + u2_22 + u3_32) + f2 = 0
-    CeedScalar u2_11 = -2 * PI_DOUBLE * PI_DOUBLE * u1, u2_22 = -2 * PI_DOUBLE * PI_DOUBLE * u1, u2_33 = -2 * PI_DOUBLE * PI_DOUBLE * u1;
-    CeedScalar u1_12 = PI_DOUBLE * PI_DOUBLE * cos(PI_DOUBLE * x) * cos(PI_DOUBLE * y) * sin(PI_DOUBLE * z);
-    CeedScalar u3_32 = 3 * PI_DOUBLE * PI_DOUBLE * sin(PI_DOUBLE * x) * cos(PI_DOUBLE * y) * cos(PI_DOUBLE * z);
+    CeedScalar u2_11 = 2 * u1_11, u2_22 = 2 * u1_22, u2_33 = 2 * u1_33;
+    CeedScalar u3_32 = 3 * u1_23;
     CeedScalar f2    = -mu * (u2_11 + u2_22 + u2_33) - ((1. / 3.) * mu + kappa) * (u1_12 + u2_22 + u3_32);
     // Component 2
     rhs_u[1][i] = q_data[0][i] * f2;
     // mu*(u3_11 + u3_22 + u3_33) + (1/3 * mu + kappa)*(u1_13 + u2_23 + u3_33) + f3 = 0
-    CeedScalar u3_11 = -3 * PI_DOUBLE * PI_DOUBLE * u1, u3_22 = -3 * PI_DOUBLE * PI_DOUBLE * u1, u3_33 = -3 * PI_DOUBLE * PI_DOUBLE * u1;
-    CeedScalar u1_13 = PI_DOUBLE * PI_DOUBLE * cos(PI_DOUBLE * x) * sin(PI_DOUBLE * y) * cos(PI_DOUBLE * z);
-    CeedScalar u2_23 = 2 * PI_DOUBLE * PI_DOUBLE * sin(PI_DOUBLE * x) * cos(PI_DOUBLE * y) * cos(PI_DOUBLE * z);
+    CeedScalar u3_11 = 3 * u1_11, u3_22 = 3 * u1_22, u3_33 = 3 * u1_33;
+    CeedScalar u2_23 = 2 * u1_23;
     CeedScalar f3    = -mu * (u3_11 + u3_22 + u3_33) - ((1. / 3.) * mu + kappa) * (u1_13 + u2_23 + u3_33);
     // Component 3
     rhs_u[2][i] = q_data[0][i] * f3;
