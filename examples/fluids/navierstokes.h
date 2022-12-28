@@ -115,6 +115,14 @@ struct CeedData_private {
       qf_apply_outflow_jacobian, qf_apply_freestream, qf_apply_freestream_jacobian;
 };
 
+typedef struct {
+  DM           dm;
+  CeedOperator op_stats;
+  CeedVector   stats_ceedvec;
+  PetscInt     num_comp_stats;
+  Vec          Minv;
+} Stats;
+
 // PETSc user data
 struct User_private {
   MPI_Comm     comm;
@@ -126,10 +134,11 @@ struct User_private {
   Vec          M, Q_loc, Q_dot_loc;
   Physics      phys;
   AppCtx       app_ctx;
-  CeedVector   q_ceed, q_dot_ceed, g_ceed, coo_values_amat, coo_values_pmat, x_ceed, stats_ceed;
-  CeedOperator op_rhs_vol, op_rhs, op_ifunction_vol, op_ifunction, op_ijacobian, op_dirichlet, op_stats;
+  CeedVector   q_ceed, q_dot_ceed, g_ceed, coo_values_amat, coo_values_pmat, x_ceed;
+  CeedOperator op_rhs_vol, op_rhs, op_ifunction_vol, op_ifunction, op_ijacobian, op_dirichlet;
   bool         matrices_set_up;
   CeedScalar   time, dt;
+  Stats        stats;
 };
 
 // Units
@@ -306,6 +315,8 @@ PetscErrorCode SetupICsFromBinary(MPI_Comm comm, AppCtx app_ctx, Vec Q);
 PetscErrorCode SetBCsFromICs_NS(DM dm, Vec Q, Vec Q_loc);
 
 PetscErrorCode CreateStatsOperator(Ceed ceed, ProblemQFunctionSpec stats, CeedData ceed_data, User user, CeedInt dim, CeedInt P, CeedInt Q);
+
+PetscErrorCode CreateStatsDM(User user, ProblemData *problem, PetscInt degree, SimpleBC bc);
 
 // -----------------------------------------------------------------------------
 // Boundary Condition Related Functions

@@ -431,30 +431,30 @@ PetscErrorCode TSMonitor_NS(TS ts, PetscInt step_no, PetscReal time, Vec Q, void
   PetscCall(DMGlobalToLocal(user->dm, Q, INSERT_VALUES, Q_loc));
 
   // hard code here the stats function from problems/stats.c
-  PetscCall(DMGetLocalVector(user->dm, &stats_loc));
-  if (user->op_stats) {
+  PetscCall(DMGetLocalVector(user->stats.dm, &stats_loc));
+  if (user->stats.op_stats) {
     PetscMemType       stats_mem_type, q_mem_type;
     PetscScalar       *stats;
     const PetscScalar *q;
     PetscCall(VecGetArrayReadAndMemType(Q_loc, &q, &q_mem_type));
     PetscCall(VecGetArrayAndMemType(stats_loc, &stats, &stats_mem_type));
     CeedVectorSetArray(user->q_ceed, MemTypeP2C(q_mem_type), CEED_USE_POINTER, (PetscScalar *)q);
-    CeedVectorSetArray(user->stats_ceed, MemTypeP2C(stats_mem_type), CEED_USE_POINTER, stats);
+    CeedVectorSetArray(user->stats.stats_ceedvec, MemTypeP2C(stats_mem_type), CEED_USE_POINTER, stats);
 
-    CeedOperatorApply(user->op_stats, user->q_ceed, user->stats_ceed, CEED_REQUEST_IMMEDIATE);
+    CeedOperatorApply(user->stats.op_stats, user->q_ceed, user->stats.stats_ceedvec, CEED_REQUEST_IMMEDIATE);
 
-    CeedVectorTakeArray(user->stats_ceed, MemTypeP2C(stats_mem_type), &stats);
+    CeedVectorTakeArray(user->stats.stats_ceedvec, MemTypeP2C(stats_mem_type), &stats);
     PetscCall(VecRestoreArrayAndMemType(stats_loc, &stats));
-    PetscCall(DMGetGlobalVector(user->dm, &Stats));
+    PetscCall(DMGetGlobalVector(user->stats.dm, &Stats));
     PetscCall(VecZeroEntries(Stats));
-    PetscCall(DMLocalToGlobal(user->dm, stats_loc, ADD_VALUES, Stats));
+    PetscCall(DMLocalToGlobal(user->stats.dm, stats_loc, ADD_VALUES, Stats));
 
     // Do the multiplication by the inverse of the lumped mass matrix (M is Minv)
     PetscCall(VecPointwiseMult(Stats, Stats, user->M));
 
-    PetscCall(DMGlobalToLocal(user->dm, Stats, INSERT_VALUES, stats_loc));
+    PetscCall(DMGlobalToLocal(user->stats.dm, Stats, INSERT_VALUES, stats_loc));
 
-    PetscCall(DMRestoreGlobalVector(user->dm, &Stats));
+    PetscCall(DMRestoreGlobalVector(user->stats.dm, &Stats));
   }
 
   // Output
