@@ -10,7 +10,10 @@
 PetscErrorCode SetupJacobianOperatorCtx(DM dm, Ceed ceed, CeedData ceed_data, OperatorApplyContext ctx_jacobian) {
   PetscFunctionBeginUser;
 
-  ctx_jacobian->dm = dm;
+  VecType vec_type;
+  PetscCall(DMGetVecType(dm, &vec_type));
+  ctx_jacobian->vec_type = vec_type;
+  ctx_jacobian->dm       = dm;
   PetscCall(DMCreateLocalVector(dm, &ctx_jacobian->X_loc));
   PetscCall(VecDuplicate(ctx_jacobian->X_loc, &ctx_jacobian->Y_loc));
   ctx_jacobian->x_ceed   = ceed_data->x_ceed;
@@ -91,9 +94,7 @@ PetscErrorCode SNESFormResidual(SNES snes, Vec X, Vec Y, void *ctx_residual) {
   PetscFunctionBeginUser;
 
   // Use computed BCs
-  // PetscCall( DMPlexInsertBoundaryValues(ctx->dm, PETSC_TRUE,
-  //                                      ctx->X_loc,
-  //                                      1.0, NULL, NULL, NULL) );
+  PetscCall(DMPlexInsertBoundaryValues(ctx->dm, PETSC_TRUE, ctx->X_loc, 1.0, NULL, NULL, NULL));
 
   // libCEED for local action of residual evaluator
   PetscCall(ApplyLocalCeedOp(X, Y, ctx));
@@ -130,23 +131,20 @@ PetscErrorCode PDESolver(CeedData ceed_data, AppCtx app_ctx, SNES snes, KSP ksp,
   PetscCall(VecGetSize(*X, &X_g_size));
   // Local size for matShell
   PetscCall(VecGetLocalSize(*X, &X_l_size));
-  Vec R;
-  PetscCall(VecDuplicate(*X, &R));
   // ---------------------------------------------------------------------------
   // Setup SNES
   // ---------------------------------------------------------------------------
   // Operator
-  Mat     mat_op;
-  VecType vec_type;
+  Mat mat_op;
   PetscCall(SNESSetDM(snes, app_ctx->ctx_jacobian->dm));
-  PetscCall(DMGetVecType(app_ctx->ctx_residual->dm, &vec_type));
   // -- Form Action of Jacobian on delta_u
   PetscCall(MatCreateShell(app_ctx->comm, X_l_size, X_l_size, X_g_size, X_g_size, app_ctx->ctx_jacobian, &mat_op));
   PetscCall(MatShellSetOperation(mat_op, MATOP_MULT, (void (*)(void))ApplyMatOp));
-  PetscCall(MatShellSetVecType(mat_op, vec_type));
+  PetscCall(MatShellSetVecType(mat_op, app_ctx->ctx_jacobian->vec_type));
+  app_ctx->ctx_jacobian->mat_jacobian = mat_op;
 
   // Set SNES residual evaluation function
-  PetscCall(SNESSetFunction(snes, R, SNESFormResidual, app_ctx->ctx_residual));
+  PetscCall(DMSNESSetFunction(app_ctx->ctx_residual->dm, SNESFormResidual, app_ctx->ctx_residual));
   // -- SNES Jacobian
   PetscCall(SNESSetJacobian(snes, mat_op, mat_op, SNESFormJacobian, app_ctx->ctx_jacobian));
   // Setup KSP
@@ -161,7 +159,6 @@ PetscErrorCode PDESolver(CeedData ceed_data, AppCtx app_ctx, SNES snes, KSP ksp,
   PetscCall(SNESSolve(snes, rhs, *X));
   // Free PETSc objects
   PetscCall(MatDestroy(&mat_op));
-  PetscCall(VecDestroy(&R));
 
   PetscFunctionReturn(0);
 };

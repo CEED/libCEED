@@ -6,6 +6,7 @@
 #include <petscdmplex.h>
 #include <petscsys.h>
 
+#include "setup-boundary.h"
 #include "structs.h"
 
 // ---------------------------------------------------------------------------
