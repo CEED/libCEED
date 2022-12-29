@@ -53,7 +53,7 @@ PetscErrorCode BoundaryDirichletMMS(PetscInt dim, PetscReal t, const PetscReal c
 
   if (dim == 2) {
     u[0] = sin(PI_DOUBLE * x) * sin(PI_DOUBLE * y);
-    u[1] = 2 * u[0] + 0.;
+    u[1] = 2 * u[0] + 2.;
   } else {
     u[0] = sin(PI_DOUBLE * x) * sin(PI_DOUBLE * y) * sin(PI_DOUBLE * z);
     u[1] = 2 * u[0];

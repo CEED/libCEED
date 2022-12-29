@@ -159,6 +159,14 @@ int main(int argc, char **argv) {
   PetscCall(PrintOutput(dm, ceed, app_ctx, snes, ksp, X, l2_error_u, l2_error_p));
 
   // ---------------------------------------------------------------------------
+  // Save solution (paraview)
+  // ---------------------------------------------------------------------------
+  PetscViewer viewer_X;
+  PetscCall(PetscViewerVTKOpen(app_ctx->comm, "final_solution.vtu", FILE_MODE_WRITE, &viewer_X));
+  PetscCall(VecView(X, viewer_X));
+  PetscCall(PetscViewerDestroy(&viewer_X));
+
+  // ---------------------------------------------------------------------------
   // Free objects
   // ---------------------------------------------------------------------------
 

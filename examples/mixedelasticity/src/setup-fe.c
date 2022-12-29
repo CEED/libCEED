@@ -53,6 +53,16 @@ PetscErrorCode SetupFEByOrder(AppCtx app_ctx, ProblemData problem_data, DM dm) {
   PetscCall(PetscFEDestroy(&fe_u));
   PetscCall(PetscFEDestroy(&fe_p));
 
+  PetscSection section;
+  PetscCall(DMGetLocalSection(dm, &section));
+  PetscCall(PetscSectionSetFieldName(section, 1, "P"));
+  PetscCall(PetscSectionSetFieldName(section, 0, "U"));
+  PetscCall(PetscSectionSetComponentName(section, 0, 0, "Ux"));
+  PetscCall(PetscSectionSetComponentName(section, 0, 1, "Uy"));
+  if (dim == 3) {
+    PetscCall(PetscSectionSetComponentName(section, 0, 2, "Uz"));
+  }
+
   PetscFunctionReturn(0);
 };
 
