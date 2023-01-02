@@ -133,7 +133,7 @@ The release tests are found in the file `julia/LibCEED.jl/test/runtests.jl` and 
 
 The Python package gets its version from `ceed.pc.template` so there are no file modifications necessary.
 
-1. CI builds and tests wheels when a pull request has the `release preparation` label. One can also use `cibuildwheel --only cp.10-manylinux_x86_64` to build and test wheels locally (inside a container).
+1. CI builds and tests wheels when a pull request has the `release preparation` label. One can also use `cibuildwheel --only cp310-manylinux_x86_64` to build and test wheels locally (inside a container).
 2. CI publishes wheels on `v**` tags, assuming tests pass.
 
 ### Reminder about manual publishing (not needed with CI)
