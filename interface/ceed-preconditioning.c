@@ -80,6 +80,7 @@ static int CeedQFunctionCreateFallback(Ceed fallback_ceed, CeedQFunction qf, Cee
   @ref Developer
 **/
 static int CeedOperatorCreateFallback(CeedOperator op) {
+  bool is_composite;
   Ceed ceed_fallback;
 
   // Check not already created
@@ -94,12 +95,18 @@ static int CeedOperatorCreateFallback(CeedOperator op) {
 
   // Clone Op
   CeedOperator op_fallback;
-  if (op->is_composite) {
+  CeedCall(CeedOperatorIsComposite(op, &is_composite));
+  if (is_composite) {
+    CeedInt       num_suboperators;
+    CeedOperator *sub_operators;
+
     CeedCall(CeedCompositeOperatorCreate(ceed_fallback, &op_fallback));
-    for (CeedInt i = 0; i < op->num_suboperators; i++) {
+    CeedCall(CeedCompositeOperatorGetNumSub(op, &num_suboperators));
+    CeedCall(CeedCompositeOperatorGetSubList(op, &sub_operators));
+    for (CeedInt i = 0; i < num_suboperators; i++) {
       CeedOperator op_sub_fallback;
 
-      CeedCall(CeedOperatorGetFallback(op->sub_operators[i], &op_sub_fallback));
+      CeedCall(CeedOperatorGetFallback(sub_operators[i], &op_sub_fallback));
       CeedCall(CeedCompositeOperatorAddSub(op_fallback, op_sub_fallback));
     }
   } else {
@@ -152,15 +159,16 @@ int CeedOperatorGetFallback(CeedOperator op, CeedOperator *op_fallback) {
 
     CeedCall(CeedIsDebug(op->ceed, &is_debug));
     if (is_debug) {
-      Ceed        ceed_fallback;
+      Ceed        ceed, ceed_fallback;
       const char *resource, *resource_fallback;
 
-      CeedCall(CeedGetOperatorFallbackCeed(op->ceed, &ceed_fallback));
-      CeedCall(CeedGetResource(op->ceed, &resource));
+      CeedCall(CeedOperatorGetCeed(op, &ceed));
+      CeedCall(CeedGetOperatorFallbackCeed(ceed, &ceed_fallback));
+      CeedCall(CeedGetResource(ceed, &resource));
       CeedCall(CeedGetResource(ceed_fallback, &resource_fallback));
 
-      CeedDebug256(op->ceed, 1, "---------- CeedOperator Fallback ----------\n");
-      CeedDebug(op->ceed, "Falling back from %s operator at address %ld to %s operator at address %ld\n", resource, op, resource_fallback,
+      CeedDebug256(ceed, 1, "---------- CeedOperator Fallback ----------\n");
+      CeedDebug(ceed, "Falling back from %s operator at address %ld to %s operator at address %ld\n", resource, op, resource_fallback,
                 op->op_fallback);
     }
   }
@@ -430,7 +438,7 @@ static int CeedSingleOperatorAssembleSymbolic(CeedOperator op, CeedInt offset, C
   CeedCall(CeedOperatorGetCeed(op, &ceed));
   CeedCall(CeedOperatorIsComposite(op, &is_composite));
 
-  if (op->is_composite) {
+  if (is_composite) {
     // LCOV_EXCL_START
     return CeedError(ceed, CEED_ERROR_UNSUPPORTED, "Composite operator not supported");
     // LCOV_EXCL_STOP
@@ -659,10 +667,12 @@ static int CeedSingleOperatorAssemble(CeedOperator op, CeedInt offset, CeedVecto
   @ref Utility
 **/
 static int CeedSingleOperatorAssemblyCountEntries(CeedOperator op, CeedInt *num_entries) {
+  bool                is_composite;
   CeedElemRestriction rstr;
   CeedInt             num_elem, elem_size, num_comp;
 
-  if (op->is_composite) {
+  CeedCall(CeedOperatorIsComposite(op, &is_composite));
+  if (is_composite) {
     // LCOV_EXCL_START
     return CeedError(op->ceed, CEED_ERROR_UNSUPPORTED, "Composite operator not supported");
     // LCOV_EXCL_STOP
@@ -1834,12 +1844,12 @@ int CeedCompositeOperatorGetMultiplicity(CeedOperator op, CeedInt num_skip_indic
   CeedCall(CeedOperatorCheckReady(op));
 
   Ceed                ceed;
-  CeedInt             num_sub_ops;
+  CeedInt             num_suboperators;
   CeedSize            l_vec_len;
   CeedScalar         *mult_array;
   CeedVector          ones_l_vec;
   CeedElemRestriction elem_restr;
-  CeedOperator       *sub_ops;
+  CeedOperator       *sub_operators;
 
   CeedCall(CeedOperatorGetCeed(op, &ceed));
 
@@ -1847,9 +1857,9 @@ int CeedCompositeOperatorGetMultiplicity(CeedOperator op, CeedInt num_skip_indic
   CeedCall(CeedVectorSetValue(mult, 0.0));
 
   // Get suboperators
-  CeedCall(CeedCompositeOperatorGetNumSub(op, &num_sub_ops));
-  CeedCall(CeedCompositeOperatorGetSubList(op, &sub_ops));
-  if (num_sub_ops == 0) return CEED_ERROR_SUCCESS;
+  CeedCall(CeedCompositeOperatorGetNumSub(op, &num_suboperators));
+  CeedCall(CeedCompositeOperatorGetSubList(op, &sub_operators));
+  if (num_suboperators == 0) return CEED_ERROR_SUCCESS;
 
   // Work vector
   CeedCall(CeedVectorGetLength(mult, &l_vec_len));
@@ -1858,7 +1868,7 @@ int CeedCompositeOperatorGetMultiplicity(CeedOperator op, CeedInt num_skip_indic
   CeedCall(CeedVectorGetArray(mult, CEED_MEM_HOST, &mult_array));
 
   // Compute multiplicity across suboperators
-  for (CeedInt i = 0; i < num_sub_ops; i++) {
+  for (CeedInt i = 0; i < num_suboperators; i++) {
     const CeedScalar *sub_mult_array;
     CeedVector        sub_mult_l_vec, ones_e_vec;
 
@@ -1868,7 +1878,7 @@ int CeedCompositeOperatorGetMultiplicity(CeedOperator op, CeedInt num_skip_indic
     }
 
     // -- Sub operator multiplicity
-    CeedCall(CeedOperatorGetActiveElemRestriction(sub_ops[i], &elem_restr));
+    CeedCall(CeedOperatorGetActiveElemRestriction(sub_operators[i], &elem_restr));
     CeedCall(CeedElemRestrictionCreateVector(elem_restr, &sub_mult_l_vec, &ones_e_vec));
     CeedCall(CeedVectorSetValue(sub_mult_l_vec, 0.0));
     CeedCall(CeedElemRestrictionApply(elem_restr, CEED_NOTRANSPOSE, ones_l_vec, ones_e_vec, CEED_REQUEST_IMMEDIATE));
