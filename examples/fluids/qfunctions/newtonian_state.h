@@ -210,9 +210,6 @@ CEED_QFUNCTION_HELPER State StateFromY_fwd(NewtonianIdealGasContext gas, State s
   return ds;
 }
 
-// Function pointer types for State struct -> generic state array
-typedef void (*StateToQi_t)(NewtonianIdealGasContext gas, const State input, CeedScalar qi[5]);
-
 CEED_QFUNCTION_HELPER void FluxInviscid(NewtonianIdealGasContext gas, State s, StateConservative Flux[3]) {
   for (CeedInt i = 0; i < 3; i++) {
     Flux[i].density = s.U.momentum[i];
