@@ -12,7 +12,7 @@ checkpoint_interval: 10
 
 ## Linear Settings:
 degree: 1
-dm_plex_box_faces: 40,60,1
+dm_plex_box_faces: 40,60,2
 platemesh_nDelta: 45
 
 # # Quadratic Settings:
@@ -24,15 +24,20 @@ platemesh_nDelta: 45
 
 stab: 'supg'
 
-dm_plex_box_lower: 0,0,0
-dm_plex_box_upper: 4.2e-3,4.2e-3,5.e-5
-dm_plex_dim: 3
+dm_plex:
+  dim: 3
+  shape: zbox # Z-order space-filling curve; needed for isoperiodicity
+  box:
+    lower: 0,0,0
+    upper: 4.2e-3,4.2e-3,1e-4
+    bd: none,none,periodic
+
 # Faces labeled 1=z- 2=z+ 3=y- 4=y+ 5=x+ 6=x-
-bc_slip_z: 1,2
 bc_wall: 3
 wall_comps: 1,2,3
 bc_inflow: 6
 bc_outflow: 5,4
+# bc_slip_z: 1,2 # use slip BC if disabling periodicity
 g: 0,0,0
 
 stg:
