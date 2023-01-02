@@ -425,7 +425,11 @@ static inline int CeedCompositeOperatorLinearAssembleAddDiagonal(CeedOperator op
   @ref Developer
 **/
 static int CeedSingleOperatorAssembleSymbolic(CeedOperator op, CeedInt offset, CeedInt *rows, CeedInt *cols) {
-  Ceed ceed = op->ceed;
+  Ceed ceed;
+  bool is_composite;
+  CeedCall(CeedOperatorGetCeed(op, &ceed));
+  CeedCall(CeedOperatorIsComposite(op, &is_composite));
+
   if (op->is_composite) {
     // LCOV_EXCL_START
     return CeedError(ceed, CEED_ERROR_UNSUPPORTED, "Composite operator not supported");
@@ -506,13 +510,24 @@ static int CeedSingleOperatorAssembleSymbolic(CeedOperator op, CeedInt offset, C
   @ref Developer
 **/
 static int CeedSingleOperatorAssemble(CeedOperator op, CeedInt offset, CeedVector values) {
-  Ceed ceed = op->ceed;
-  if (op->is_composite) {
+  Ceed ceed;
+  bool is_composite;
+  CeedCall(CeedOperatorGetCeed(op, &ceed));
+  CeedCall(CeedOperatorIsComposite(op, &is_composite));
+
+  if (is_composite) {
     // LCOV_EXCL_START
     return CeedError(ceed, CEED_ERROR_UNSUPPORTED, "Composite operator not supported");
     // LCOV_EXCL_STOP
   }
-  if (op->num_elem == 0) return CEED_ERROR_SUCCESS;
+
+  // Early exit for empty operator
+  {
+    CeedInt num_elem = 0;
+
+    CeedCall(CeedOperatorGetNumElements(op, &num_elem));
+    if (num_elem == 0) return CEED_ERROR_SUCCESS;
+  }
 
   if (op->LinearAssembleSingle) {
     // Backend version
@@ -1421,7 +1436,9 @@ int CeedOperatorLinearAssembleQFunctionBuildOrUpdate(CeedOperator op, CeedVector
   @ref User
 **/
 int CeedOperatorLinearAssembleDiagonal(CeedOperator op, CeedVector assembled, CeedRequest *request) {
+  bool is_composite;
   CeedCall(CeedOperatorCheckReady(op));
+  CeedCall(CeedOperatorIsComposite(op, &is_composite));
 
   CeedSize input_size = 0, output_size = 0;
   CeedCall(CeedOperatorGetActiveVectorLengths(op, &input_size, &output_size));
@@ -1429,6 +1446,14 @@ int CeedOperatorLinearAssembleDiagonal(CeedOperator op, CeedVector assembled, Ce
     // LCOV_EXCL_START
     return CeedError(op->ceed, CEED_ERROR_DIMENSION, "Operator must be square");
     // LCOV_EXCL_STOP
+  }
+
+  // Early exit for empty operator
+  if (!is_composite) {
+    CeedInt num_elem = 0;
+
+    CeedCall(CeedOperatorGetNumElements(op, &num_elem));
+    if (num_elem == 0) return CEED_ERROR_SUCCESS;
   }
 
   if (op->LinearAssembleDiagonal) {
@@ -1475,7 +1500,9 @@ int CeedOperatorLinearAssembleDiagonal(CeedOperator op, CeedVector assembled, Ce
   @ref User
 **/
 int CeedOperatorLinearAssembleAddDiagonal(CeedOperator op, CeedVector assembled, CeedRequest *request) {
+  bool is_composite;
   CeedCall(CeedOperatorCheckReady(op));
+  CeedCall(CeedOperatorIsComposite(op, &is_composite));
 
   CeedSize input_size = 0, output_size = 0;
   CeedCall(CeedOperatorGetActiveVectorLengths(op, &input_size, &output_size));
@@ -1483,6 +1510,14 @@ int CeedOperatorLinearAssembleAddDiagonal(CeedOperator op, CeedVector assembled,
     // LCOV_EXCL_START
     return CeedError(op->ceed, CEED_ERROR_DIMENSION, "Operator must be square");
     // LCOV_EXCL_STOP
+  }
+
+  // Early exit for empty operator
+  if (!is_composite) {
+    CeedInt num_elem = 0;
+
+    CeedCall(CeedOperatorGetNumElements(op, &num_elem));
+    if (num_elem == 0) return CEED_ERROR_SUCCESS;
   }
 
   if (op->LinearAssembleAddDiagonal) {
@@ -1500,8 +1535,6 @@ int CeedOperatorLinearAssembleAddDiagonal(CeedOperator op, CeedVector assembled,
     }
   }
   // Default interface implementation
-  bool is_composite;
-  CeedCall(CeedOperatorIsComposite(op, &is_composite));
   if (is_composite) {
     CeedCall(CeedCompositeOperatorLinearAssembleAddDiagonal(op, request, false, assembled));
   } else {
@@ -1531,7 +1564,9 @@ component in].
   @ref User
 **/
 int CeedOperatorLinearAssemblePointBlockDiagonal(CeedOperator op, CeedVector assembled, CeedRequest *request) {
+  bool is_composite;
   CeedCall(CeedOperatorCheckReady(op));
+  CeedCall(CeedOperatorIsComposite(op, &is_composite));
 
   CeedSize input_size = 0, output_size = 0;
   CeedCall(CeedOperatorGetActiveVectorLengths(op, &input_size, &output_size));
@@ -1539,6 +1574,14 @@ int CeedOperatorLinearAssemblePointBlockDiagonal(CeedOperator op, CeedVector ass
     // LCOV_EXCL_START
     return CeedError(op->ceed, CEED_ERROR_DIMENSION, "Operator must be square");
     // LCOV_EXCL_STOP
+  }
+
+  // Early exit for empty operator
+  if (!is_composite) {
+    CeedInt num_elem = 0;
+
+    CeedCall(CeedOperatorGetNumElements(op, &num_elem));
+    if (num_elem == 0) return CEED_ERROR_SUCCESS;
   }
 
   if (op->LinearAssemblePointBlockDiagonal) {
@@ -1587,7 +1630,9 @@ component in].
   @ref User
 **/
 int CeedOperatorLinearAssembleAddPointBlockDiagonal(CeedOperator op, CeedVector assembled, CeedRequest *request) {
+  bool is_composite;
   CeedCall(CeedOperatorCheckReady(op));
+  CeedCall(CeedOperatorIsComposite(op, &is_composite));
 
   CeedSize input_size = 0, output_size = 0;
   CeedCall(CeedOperatorGetActiveVectorLengths(op, &input_size, &output_size));
@@ -1595,6 +1640,14 @@ int CeedOperatorLinearAssembleAddPointBlockDiagonal(CeedOperator op, CeedVector 
     // LCOV_EXCL_START
     return CeedError(op->ceed, CEED_ERROR_DIMENSION, "Operator must be square");
     // LCOV_EXCL_STOP
+  }
+
+  // Early exit for empty operator
+  if (!is_composite) {
+    CeedInt num_elem = 0;
+
+    CeedCall(CeedOperatorGetNumElements(op, &num_elem));
+    if (num_elem == 0) return CEED_ERROR_SUCCESS;
   }
 
   if (op->LinearAssembleAddPointBlockDiagonal) {
@@ -1612,8 +1665,6 @@ int CeedOperatorLinearAssembleAddPointBlockDiagonal(CeedOperator op, CeedVector 
     }
   }
   // Default interface implementation
-  bool is_composite;
-  CeedCall(CeedOperatorIsComposite(op, &is_composite));
   if (is_composite) {
     CeedCall(CeedCompositeOperatorLinearAssembleAddDiagonal(op, request, true, assembled));
   } else {
@@ -1648,6 +1699,7 @@ int CeedOperatorLinearAssembleSymbolic(CeedOperator op, CeedSize *num_entries, C
   CeedOperator *sub_operators;
   bool          is_composite;
   CeedCall(CeedOperatorCheckReady(op));
+  CeedCall(CeedOperatorIsComposite(op, &is_composite));
 
   if (op->LinearAssembleSymbolic) {
     // Backend version
@@ -1667,7 +1719,6 @@ int CeedOperatorLinearAssembleSymbolic(CeedOperator op, CeedSize *num_entries, C
   // Default interface implementation
 
   // count entries and allocate rows, cols arrays
-  CeedCall(CeedOperatorIsComposite(op, &is_composite));
   *num_entries = 0;
   if (is_composite) {
     CeedCall(CeedCompositeOperatorGetNumSub(op, &num_suboperators));
@@ -1721,7 +1772,17 @@ their (i, j) locations are provided by CeedOperatorLinearAssembleSymbolic()
 int CeedOperatorLinearAssemble(CeedOperator op, CeedVector values) {
   CeedInt       num_suboperators, single_entries = 0;
   CeedOperator *sub_operators;
+  bool          is_composite;
   CeedCall(CeedOperatorCheckReady(op));
+  CeedCall(CeedOperatorIsComposite(op, &is_composite));
+
+  // Early exit for empty operator
+  if (!is_composite) {
+    CeedInt num_elem = 0;
+
+    CeedCall(CeedOperatorGetNumElements(op, &num_elem));
+    if (num_elem == 0) return CEED_ERROR_SUCCESS;
+  }
 
   if (op->LinearAssemble) {
     // Backend version
@@ -1739,9 +1800,6 @@ int CeedOperatorLinearAssemble(CeedOperator op, CeedVector values) {
   }
 
   // Default interface implementation
-  bool is_composite;
-  CeedCall(CeedOperatorIsComposite(op, &is_composite));
-
   CeedInt offset = 0;
   if (is_composite) {
     CeedCall(CeedCompositeOperatorGetNumSub(op, &num_suboperators));
