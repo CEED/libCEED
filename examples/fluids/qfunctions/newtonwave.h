@@ -36,6 +36,7 @@ CEED_QFUNCTION_HELPER int IC_NewtonianWave(void *ctx, CeedInt Q, const CeedScala
   const State      S_infty   = context->S_infty;
   const CeedScalar xc        = context->epicenter[0];
   const CeedScalar yc        = context->epicenter[1];
+  const CeedScalar zc        = context->epicenter[2];
 
   const CeedScalar gamma = HeatCapacityRatio(newt_ctx);
 
@@ -48,8 +49,9 @@ CEED_QFUNCTION_HELPER int IC_NewtonianWave(void *ctx, CeedInt Q, const CeedScala
     const CeedScalar x[3] = {X[0][i], X[1][i], X[2][i]};
     const CeedScalar x0   = x[0] - xc;
     const CeedScalar y0   = x[1] - yc;
+    const CeedScalar z0   = x[2] - zc;
 
-    const CeedScalar perturbation = 1 + amplitude * exp(-(Square(x0) + Square(y0)) / (2 * Square(width)));
+    const CeedScalar perturbation = 1 + amplitude * exp(-(Square(x0) + Square(y0) + Square(z0)) / (2 * Square(width)));
 
     const CeedScalar e_kinetic = 0.5 * S_infty.U.density * Dot3(S_infty.Y.velocity, S_infty.Y.velocity);
 
