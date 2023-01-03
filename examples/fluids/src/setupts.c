@@ -484,18 +484,21 @@ PetscErrorCode TSSolve_NS(DM dm, User user, AppCtx app_ctx, Physics phys, Vec *Q
     PetscCall(PetscViewerBinaryRead(viewer, &time, 1, &count, PETSC_REAL));
     PetscCall(PetscViewerDestroy(&viewer));
     PetscCall(TSSetTime(*ts, time * user->units->second));
+    PetscCall(TSSetStepNumber(*ts, app_ctx->cont_steps));
   }
   if (!app_ctx->test_mode) {
     PetscCall(TSMonitorSet(*ts, TSMonitor_NS, user, NULL));
   }
 
   // Solve
-  PetscScalar start_time;
+  PetscReal start_time;
+  PetscInt  start_step;
   PetscCall(TSGetTime(*ts, &start_time));
+  PetscCall(TSGetStepNumber(*ts, &start_step));
 
   PetscPreLoadBegin(PETSC_FALSE, "Fluids Solve");
   PetscCall(TSSetTime(*ts, start_time));
-  PetscCall(TSSetStepNumber(*ts, 0));
+  PetscCall(TSSetStepNumber(*ts, start_step));
   if (PetscPreLoadingOn) {
     // LCOV_EXCL_START
     SNES      snes;
