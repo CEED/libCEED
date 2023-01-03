@@ -63,7 +63,7 @@ CEED_QFUNCTION(MixedLinearRhs2D)(void *ctx, CeedInt Q, const CeedScalar *const *
   // Quadrature Point Loop
   CeedPragmaSIMD for (CeedInt i = 0; i < Q; i++) {
     CeedScalar x = coords[i + 0 * Q], y = coords[i + 1 * Q];
-    CeedScalar u1 = sin(PI_DOUBLE * x) * sin(PI_DOUBLE * y), u2 = 2 * u1 + 2.;
+    CeedScalar u1 = sin(PI_DOUBLE * x) * sin(PI_DOUBLE * y), u2 = 2 * u1 + 0.;
     CeedScalar u1_1 = PI_DOUBLE * cos(PI_DOUBLE * x) * sin(PI_DOUBLE * y), u1_2 = PI_DOUBLE * sin(PI_DOUBLE * x) * cos(PI_DOUBLE * y);
     CeedScalar u2_2 = 2 * u1_2;
     // Component 1 of u
