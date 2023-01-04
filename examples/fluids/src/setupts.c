@@ -389,26 +389,13 @@ PetscErrorCode WriteOutput(User user, Vec Q, PetscInt step_no, PetscScalar time)
   }
   PetscCall(PetscViewerBinaryOpen(user->comm, file_path, FILE_MODE_WRITE, &viewer));
 
+  PetscInt token = FLUIDS_FILE_TOKEN;
+  PetscCall(PetscViewerBinaryWrite(viewer, &token, 1, PETSC_INT));
+  PetscCall(PetscViewerBinaryWrite(viewer, &step_no, 1, PETSC_INT));
+  time /= user->units->second;  // Dimensionalize time back
+  PetscCall(PetscViewerBinaryWrite(viewer, &time, 1, PETSC_REAL));
   PetscCall(VecView(Q, viewer));
   PetscCall(PetscViewerDestroy(&viewer));
-
-  // Save time stamp
-  // Dimensionalize time back
-  time /= user->units->second;
-  if (user->app_ctx->add_stepnum2bin) {
-    PetscCall(PetscSNPrintf(file_path, sizeof file_path, "%s/ns-time-%" PetscInt_FMT ".bin", user->app_ctx->output_dir, step_no));
-  } else {
-    PetscCall(PetscSNPrintf(file_path, sizeof file_path, "%s/ns-time.bin", user->app_ctx->output_dir));
-  }
-  PetscCall(PetscViewerBinaryOpen(user->comm, file_path, FILE_MODE_WRITE, &viewer));
-
-#if PETSC_VERSION_GE(3, 13, 0)
-  PetscCall(PetscViewerBinaryWrite(viewer, &time, 1, PETSC_REAL));
-#else
-  PetscCall(PetscViewerBinaryWrite(viewer, &time, 1, PETSC_REAL, true));
-#endif
-  PetscCall(PetscViewerDestroy(&viewer));
-
   PetscFunctionReturn(0);
 }
 
@@ -477,14 +464,17 @@ PetscErrorCode TSSolve_NS(DM dm, User user, AppCtx app_ctx, Physics phys, Vec *Q
       PetscCall(TSMonitor_NS(*ts, 0, 0., *Q, user));
     }
   } else {  // continue from time of last output
-    PetscReal   time;
     PetscInt    count;
     PetscViewer viewer;
 
-    PetscCall(PetscViewerBinaryOpen(comm, app_ctx->cont_time_file, FILE_MODE_READ, &viewer));
-    PetscCall(PetscViewerBinaryRead(viewer, &time, 1, &count, PETSC_REAL));
-    PetscCall(PetscViewerDestroy(&viewer));
-    PetscCall(TSSetTime(*ts, time * user->units->second));
+    if (app_ctx->cont_time <= 0) {  // Legacy files did not include step number and time
+      PetscCall(PetscViewerBinaryOpen(comm, app_ctx->cont_time_file, FILE_MODE_READ, &viewer));
+      PetscCall(PetscViewerBinaryRead(viewer, &app_ctx->cont_time, 1, &count, PETSC_REAL));
+      PetscCall(PetscViewerDestroy(&viewer));
+      PetscCheck(app_ctx->cont_steps != -1, comm, PETSC_ERR_ARG_INCOMP,
+                 "-continue step number not specified, but checkpoint file does not contain a step number (likely written by older code version)");
+    }
+    PetscCall(TSSetTime(*ts, app_ctx->cont_time * user->units->second));
     PetscCall(TSSetStepNumber(*ts, app_ctx->cont_steps));
   }
   if (!app_ctx->test_mode) {

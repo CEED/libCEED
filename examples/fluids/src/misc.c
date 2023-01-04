@@ -189,14 +189,33 @@ PetscErrorCode PostProcess_NS(TS ts, CeedData ceed_data, DM dm, ProblemData *pro
   PetscFunctionReturn(0);
 }
 
+const PetscInt FLUIDS_FILE_TOKEN = 0xceedf00;
+
 // Gather initial Q values in case of continuation of simulation
 PetscErrorCode SetupICsFromBinary(MPI_Comm comm, AppCtx app_ctx, Vec Q) {
   PetscViewer viewer;
+  PetscInt    token, step_number;
+  PetscReal   time;
 
   PetscFunctionBegin;
 
   // Read input
   PetscCall(PetscViewerBinaryOpen(comm, app_ctx->cont_file, FILE_MODE_READ, &viewer));
+
+  // Attempt
+  PetscCall(PetscViewerBinaryRead(viewer, &token, 1, NULL, PETSC_INT));
+  if (token == FLUIDS_FILE_TOKEN) {  // New style format; we're reading a file with step number and time in the header
+    PetscCall(PetscViewerBinaryRead(viewer, &step_number, 1, NULL, PETSC_INT));
+    PetscCall(PetscViewerBinaryRead(viewer, &time, 1, NULL, PETSC_REAL));
+    app_ctx->cont_steps = step_number;
+    app_ctx->cont_time  = time;
+  } else if (token == VEC_FILE_CLASSID) {  // Legacy format of just the vector, encoded as [VEC_FILE_CLASSID, length, ]
+    PetscInt length, N;
+    PetscCall(PetscViewerBinaryRead(viewer, &length, 1, NULL, PETSC_INT));
+    PetscCall(VecGetSize(Q, &N));
+    PetscCheck(length == N, comm, PETSC_ERR_ARG_INCOMP, "File Vec has length %" PetscInt_FMT " but DM has global Vec size %" PetscInt_FMT, length, N);
+    PetscCall(PetscViewerBinarySetSkipHeader(viewer, PETSC_TRUE));
+  } else SETERRQ(comm, PETSC_ERR_FILE_UNEXPECTED, "Not a fluids header token or a PETSc Vec in file");
 
   // Load Q from existent solution
   PetscCall(VecLoad(Q, viewer));

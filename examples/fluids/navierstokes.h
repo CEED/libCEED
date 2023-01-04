@@ -92,6 +92,7 @@ struct AppCtx_private {
   PetscInt  checkpoint_interval;
   PetscInt  viz_refine;
   PetscInt  cont_steps;
+  PetscReal cont_time;
   char      cont_file[PETSC_MAX_PATH_LEN];
   char      cont_time_file[PETSC_MAX_PATH_LEN];
   char      output_dir[PETSC_MAX_PATH_LEN];
@@ -305,6 +306,9 @@ PetscErrorCode SetupICsFromBinary(MPI_Comm comm, AppCtx app_ctx, Vec Q);
 
 // Record boundary values from initial condition
 PetscErrorCode SetBCsFromICs_NS(DM dm, Vec Q, Vec Q_loc);
+
+// Versioning token for binary checkpoints
+extern const PetscInt FLUIDS_FILE_TOKEN;
 
 // -----------------------------------------------------------------------------
 // Boundary Condition Related Functions

@@ -105,7 +105,7 @@ The following options are common among all problem types:
   - `[output_dir]/ns-solution.bin`
 
 * - `-continue_time_filename`
-  - Path to time stamp binary file from which to continue from
+  - Path to time stamp binary file (only for legacy checkpoints)
   - `[output_dir]/ns-time.bin`
 
 * - `-bc_wall`
