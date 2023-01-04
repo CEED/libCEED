@@ -6,10 +6,11 @@ all : $(ALL)
 
 cylinder-q1-n20.msh:
 
-cylinder-q1-n20.msh: GMSH_FLAGS = -order 1 -setnumber ElementsPerQuadrant 20
-cylinder-q1-n40.msh: GMSH_FLAGS = -order 1 -setnumber ElementsPerQuadrant 40
-cylinder-q2-n20.msh: GMSH_FLAGS = -order 2 -setnumber ElementsPerQuadrant 20
-cylinder-q2-n40.msh: GMSH_FLAGS = -order 2 -setnumber ElementsPerQuadrant 40
+cylinder-q1-n20.msh: GMSH_FLAGS = -order 1 -setnumber N 20
+cylinder-q1-n40.msh: GMSH_FLAGS = -order 1 -setnumber N 40
+cylinder-q2-n20.msh: GMSH_FLAGS = -order 2 -setnumber N 20
+cylinder-q2-n40.msh: GMSH_FLAGS = -order 2 -setnumber N 40
+cylinder-q1-n12-recirc.msh: GMSH_FLAGS = -order 1 -setnumber N 12 -setnumber H 1 -setnumber xL 1 -setnumber xR .1
 
 cylinder%.msh: cylinder.geo
 	$(GMSH) -3 $(GMSH_FLAGS) $< -o $@
