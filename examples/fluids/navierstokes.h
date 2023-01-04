@@ -89,13 +89,14 @@ struct AppCtx_private {
   MatType   amat_type;
   PetscBool pmat_pbdiagonal;
   // Post-processing arguments
-  PetscInt  output_freq;
+  PetscInt  checkpoint_interval;
   PetscInt  viz_refine;
   PetscInt  cont_steps;
   char      cont_file[PETSC_MAX_PATH_LEN];
   char      cont_time_file[PETSC_MAX_PATH_LEN];
   char      output_dir[PETSC_MAX_PATH_LEN];
   PetscBool add_stepnum2bin;
+  PetscBool checkpoint_vtk;
   // Problem type arguments
   PetscFunctionList problems;
   char              problem_name[PETSC_MAX_PATH_LEN];

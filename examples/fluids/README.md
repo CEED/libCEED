@@ -64,16 +64,32 @@ The following options are common among all problem types:
   - Number of extra quadrature points
   - `0`
 
-* - `-viz_refine`
-  - Use regular refinement for visualization
-  - `0`
+* - `-ts_monitor_solution`
+  - PETSc output format, such as `cgns:output-%d.cgns` (requires PETSc `--download-cgns`)
+  -
 
-* - `-output_freq`
-  - Frequency of output, in number of steps. `0` has no output, `-1` outputs final state only
+* - `-ts_monitor_solution_interval`
+  - Number of time steps between visualization output frames.
+  - `1`
+
+* - `-viewer_cgns_batch_size`
+  - Number of frames written per CGNS file if the CGNS file name includes a format specifier (`%d`).
+  - `20`
+
+* - `-checkpoint_interval`
+  - Number of steps between writing binary checkpoints. `0` has no output, `-1` outputs final state only
   - `10`
 
+* - `-checkpoint_vtk`
+  - Checkpoints include VTK (`*.vtu`) files for visualization. Consider `-ts_monitor_solution`instead.
+  - `false`
+
+* - `-viz_refine`
+  - Use regular refinement for VTK visualization
+  - `0`
+
 * - `-output_dir`
-  - Output directory
+  - Output directory for binary checkpoints and VTK files (if enabled).
   - `.`
 
 * - `-output_add_stepnum2bin`

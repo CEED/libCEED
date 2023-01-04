@@ -4,7 +4,7 @@ problem: newtonian
 implicit: true
 stab: supg
 
-output_freq: 10
+checkpoint_interval: 10
 
 ts:
   adapt_type: 'none'
@@ -12,6 +12,8 @@ ts:
   dt: .05
   max_steps: 2000
   alpha_radius: 0.5
+  #monitor_solution: cgns:vortexshedding-%d.cgns
+  #monitor_solution_interval: 10
 
 # Reference state is used for the initial condition, zero velocity by default.
 reference:

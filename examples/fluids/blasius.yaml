@@ -6,7 +6,9 @@ ts:
   type: 'beuler'
   dt: 0.2e-5
   max_time: 1.0e-3
-output_freq: 10
+  #monitor_solution: cgns:blasius-%d.cgns
+  #monitor_solution_interval: 10
+checkpoint_interval: 10
 
 ## Linear Settings:
 degree: 1
