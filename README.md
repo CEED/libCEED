@@ -5,6 +5,7 @@
 [![Code coverage][codecov-badge]][codecov-link]
 [![BSD-2-Clause][license-badge]][license-link]
 [![Documentation][doc-badge]][doc-link]
+[![User manual][zenodo-badge]][zenodo-link]
 [![JOSS paper][joss-badge]][joss-link]
 [![Binder][binder-badge]][binder-link]
 
@@ -415,14 +416,16 @@ If you utilize libCEED please cite:
                   Medina, David and
                   Pazner, Will and
                   Ratnayaka, Thilina and
+                  Shakeri, Rezgar and
                   Thompson, Jeremy L and
-                  Tomov, Stanimire},
+                  Tomov, Stanimire and
+                  Wright III, James},
   title        = {{libCEED} User Manual},
-  month        = jul,
-  year         = 2021,
+  month        = dec,
+  year         = 2022,
   publisher    = {Zenodo},
-  version      = {0.9.0},
-  doi          = {10.5281/zenodo.5077489}
+  version      = {0.11.0},
+  doi          = {10.5281/zenodo.7480454}
 }
 ```
 
@@ -465,3 +468,5 @@ See files LICENSE and NOTICE for details.
 [joss-link]: https://doi.org/10.21105/joss.02945
 [binder-badge]: http://mybinder.org/badge_logo.svg
 [binder-link]: https://mybinder.org/v2/gh/CEED/libCEED/main?urlpath=lab/tree/examples/python/tutorial-0-ceed.ipynb
+[zenodo-badge]: https://zenodo.org/badge/DOI/10.5281/zenodo.svg
+[zenodo-link]: https://doi.org/10.5281/zenodo.4302736
