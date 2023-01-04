@@ -182,6 +182,8 @@ PetscErrorCode IFunction_NS(TS ts, PetscReal t, Vec Q, Vec Q_dot, Vec G, void *u
   PetscCall(VecRestoreArrayReadAndMemType(Q_loc, &q));
   PetscCall(VecRestoreArrayReadAndMemType(Q_dot_loc, &q_dot));
   PetscCall(VecRestoreArrayAndMemType(G_loc, &g));
+  PetscCall(VecGetArrayRead(G_loc, &g));
+  PetscCall(DMPlexPointLocalRead(dm, v, g, &r));
 
   // Local-to-Global
   PetscCall(VecZeroEntries(G));
