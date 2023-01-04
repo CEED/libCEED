@@ -182,8 +182,6 @@ PetscErrorCode IFunction_NS(TS ts, PetscReal t, Vec Q, Vec Q_dot, Vec G, void *u
   PetscCall(VecRestoreArrayReadAndMemType(Q_loc, &q));
   PetscCall(VecRestoreArrayReadAndMemType(Q_dot_loc, &q_dot));
   PetscCall(VecRestoreArrayAndMemType(G_loc, &g));
-  PetscCall(VecGetArrayRead(G_loc, &g));
-  PetscCall(DMPlexPointLocalRead(dm, v, g, &r));
 
   // Local-to-Global
   PetscCall(VecZeroEntries(G));
@@ -191,6 +189,18 @@ PetscErrorCode IFunction_NS(TS ts, PetscReal t, Vec Q, Vec Q_dot, Vec G, void *u
 
   // Restore vectors
   PetscCall(DMRestoreLocalVector(user->dm, &G_loc));
+
+  PetscFunctionReturn(0);
+}
+
+// Surface forces function setup
+PetscErrorCode Surface_Forces_NS(DM dm, Vec G) {
+  PetscScalar *g, *r;
+  Vec          G_loc, v;
+  PetscFunctionBeginUser;
+
+  PetscCall(VecGetArrayRead(G_loc, &g));
+  PetscCall(DMPlexPointLocalRead(dm, v, g, &r));
 
   PetscFunctionReturn(0);
 }
