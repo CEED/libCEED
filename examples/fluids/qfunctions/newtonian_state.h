@@ -134,6 +134,15 @@ CEED_QFUNCTION_HELPER State StateFromPrimitive(NewtonianIdealGasContext gas, Sta
   return s;
 }
 
+CEED_QFUNCTION_HELPER State StateFromPrimitive_fwd(NewtonianIdealGasContext gas, State s, StatePrimitive dY, const CeedScalar x[3],
+                                                   const CeedScalar dx[3]) {
+  StateConservative dU = StateConservativeFromPrimitive_fwd(gas, s, dY, x, dx);
+  State             ds;
+  ds.U = dU;
+  ds.Y = dY;
+  return ds;
+}
+
 // linear combination of n states
 CEED_QFUNCTION_HELPER StateConservative StateConservativeMult(CeedInt n, const CeedScalar a[], const StateConservative X[]) {
   StateConservative R = {0};
@@ -278,6 +287,19 @@ CEED_QFUNCTION_HELPER void FluxTotal_Boundary(const StateConservative F_inviscid
       Flux[k + 1] += (F_inviscid[j].momentum[k] - stress[k][j]) * normal[j];
     }
     Flux[4] += (F_inviscid[j].E_total + Fe[j]) * normal[j];
+  }
+}
+
+CEED_QFUNCTION_HELPER void FluxTotal_RiemannBoundary(const StateConservative F_inviscid_normal, const CeedScalar stress[3][3], const CeedScalar Fe[3],
+                                                     const CeedScalar normal[3], CeedScalar Flux[5]) {
+  Flux[0] = F_inviscid_normal.density;
+  for (CeedInt k = 0; k < 3; k++) Flux[k + 1] = F_inviscid_normal.momentum[k];
+  Flux[4] = F_inviscid_normal.E_total;
+  for (CeedInt j = 0; j < 3; j++) {
+    for (CeedInt k = 0; k < 3; k++) {
+      Flux[k + 1] -= stress[k][j] * normal[j];
+    }
+    Flux[4] += Fe[j] * normal[j];
   }
 }
 

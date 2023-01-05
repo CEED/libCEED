@@ -209,6 +209,48 @@ For the case of a square/cubic mesh, the list of face indices to be used with `-
   - 6
 :::
 
+### Boundary conditions
+
+Boundary conditions for compressible viscous flows are notoriously tricky. Here we offer some recommendations
+
+#### Inflow
+
+If in a region where the flow velocity is known (e.g., away from viscous walls), use `bc_freestream`, which solves a Riemann problem and can handle inflow and outflow (simultaneously and dynamically).
+It is stable and the least reflective boundary condition for acoustics.
+
+If near a viscous wall, you may want a specified inflow profile.
+Use `bc_inflow` and see {ref}`example-blasius` and discussion of synthetic turbulence generation for ways to analytically generate developed inflow profiles.
+These conditions may be either weak or strong, with the latter specifying velocity and temperature as essential boundary conditions and evaluating a boundary integral for the mass flux.
+The strong approach gives sharper resolution of velocity structures.
+We have described the primitive variable formulation here; the conservative variants are similar, but not equivalent.
+
+### Outflow
+
+If you know the complete exterior state, `bc_freestream` is the least reflective boundary condition, but is disruptive to viscous flow structures.
+If thermal anomalies must exit the domain, the Riemann solver must resolve the contact wave to avoid reflections.
+The default Riemann solver, HLLC, is sufficient in this regard while the simpler HLL converts thermal structures exiting the domain into grid-scale reflecting acoustics. 
+
+If acoustic reflections are not a concern and/or the flow is impacted by walls or interior structures that you wish to resolve to near the boundary, choose `bc_outflow`. This condition (with default `outflow_type: riemann`) is stable for both inflow and outflow, so can be used in areas that have recirculation and lateral boundaries in which the flow fluctuates.
+
+The simpler `bc_outflow` variant, `outflow_type: pressure`, requires that the flow be a strict outflow (or the problem becomes ill-posed and the solver will diverge).
+In our experience, `riemann` is slightly less reflective but produces similar flows in cases of strict outflow.
+The `pressure` variant is retained to facilitate comparison with other codes, such as PHASTA-C, but we recommend `riemann` for general use.
+
+### Periodicity
+
+PETSc provides two ways to specify periodicity:
+
+1. Topological periodicity, in which the donor and receiver dofs are the same, obtained using:
+
+``` yaml
+dm_plex:
+  shape: box
+  box_faces: 10,12,4
+  box_bd: none,none,periodic
+```
+
+The coordinates for such cases are stored as a new field, and 
+
 ### Advection
 
 For testing purposes, there is a reduced mode for pure advection, which holds density $\rho$ and momentum density $\rho \bm u$ constant while advecting "total energy density" $E$.
@@ -776,6 +818,8 @@ This problem can be run with the `channel.yaml` file via:
 ```{literalinclude} ../../../../../examples/fluids/channel.yaml
 :language: yaml
 ```
+
+(example-blasius)=
 
 #### Blasius boundary layer
 

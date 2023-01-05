@@ -134,39 +134,31 @@ PetscErrorCode NS_NEWTONIAN_IG(ProblemData *problem, DM dm, void *ctx, SimpleBC 
 
   switch (state_var) {
     case STATEVAR_CONSERVATIVE:
-      problem->ics.qfunction                        = ICsNewtonianIG_Conserv;
-      problem->ics.qfunction_loc                    = ICsNewtonianIG_Conserv_loc;
-      problem->apply_vol_rhs.qfunction              = RHSFunction_Newtonian;
-      problem->apply_vol_rhs.qfunction_loc          = RHSFunction_Newtonian_loc;
-      problem->apply_vol_ifunction.qfunction        = IFunction_Newtonian_Conserv;
-      problem->apply_vol_ifunction.qfunction_loc    = IFunction_Newtonian_Conserv_loc;
-      problem->apply_vol_ijacobian.qfunction        = IJacobian_Newtonian_Conserv;
-      problem->apply_vol_ijacobian.qfunction_loc    = IJacobian_Newtonian_Conserv_loc;
-      problem->apply_inflow.qfunction               = BoundaryIntegral_Conserv;
-      problem->apply_inflow.qfunction_loc           = BoundaryIntegral_Conserv_loc;
-      problem->apply_inflow_jacobian.qfunction      = BoundaryIntegral_Jacobian_Conserv;
-      problem->apply_inflow_jacobian.qfunction_loc  = BoundaryIntegral_Jacobian_Conserv_loc;
-      problem->apply_outflow.qfunction              = PressureOutflow_Conserv;
-      problem->apply_outflow.qfunction_loc          = PressureOutflow_Conserv_loc;
-      problem->apply_outflow_jacobian.qfunction     = PressureOutflow_Jacobian_Conserv;
-      problem->apply_outflow_jacobian.qfunction_loc = PressureOutflow_Jacobian_Conserv_loc;
+      problem->ics.qfunction                       = ICsNewtonianIG_Conserv;
+      problem->ics.qfunction_loc                   = ICsNewtonianIG_Conserv_loc;
+      problem->apply_vol_rhs.qfunction             = RHSFunction_Newtonian;
+      problem->apply_vol_rhs.qfunction_loc         = RHSFunction_Newtonian_loc;
+      problem->apply_vol_ifunction.qfunction       = IFunction_Newtonian_Conserv;
+      problem->apply_vol_ifunction.qfunction_loc   = IFunction_Newtonian_Conserv_loc;
+      problem->apply_vol_ijacobian.qfunction       = IJacobian_Newtonian_Conserv;
+      problem->apply_vol_ijacobian.qfunction_loc   = IJacobian_Newtonian_Conserv_loc;
+      problem->apply_inflow.qfunction              = BoundaryIntegral_Conserv;
+      problem->apply_inflow.qfunction_loc          = BoundaryIntegral_Conserv_loc;
+      problem->apply_inflow_jacobian.qfunction     = BoundaryIntegral_Jacobian_Conserv;
+      problem->apply_inflow_jacobian.qfunction_loc = BoundaryIntegral_Jacobian_Conserv_loc;
       break;
 
     case STATEVAR_PRIMITIVE:
-      problem->ics.qfunction                        = ICsNewtonianIG_Prim;
-      problem->ics.qfunction_loc                    = ICsNewtonianIG_Prim_loc;
-      problem->apply_vol_ifunction.qfunction        = IFunction_Newtonian_Prim;
-      problem->apply_vol_ifunction.qfunction_loc    = IFunction_Newtonian_Prim_loc;
-      problem->apply_vol_ijacobian.qfunction        = IJacobian_Newtonian_Prim;
-      problem->apply_vol_ijacobian.qfunction_loc    = IJacobian_Newtonian_Prim_loc;
-      problem->apply_inflow.qfunction               = BoundaryIntegral_Prim;
-      problem->apply_inflow.qfunction_loc           = BoundaryIntegral_Prim_loc;
-      problem->apply_inflow_jacobian.qfunction      = BoundaryIntegral_Jacobian_Prim;
-      problem->apply_inflow_jacobian.qfunction_loc  = BoundaryIntegral_Jacobian_Prim_loc;
-      problem->apply_outflow.qfunction              = PressureOutflow_Prim;
-      problem->apply_outflow.qfunction_loc          = PressureOutflow_Prim_loc;
-      problem->apply_outflow_jacobian.qfunction     = PressureOutflow_Jacobian_Prim;
-      problem->apply_outflow_jacobian.qfunction_loc = PressureOutflow_Jacobian_Prim_loc;
+      problem->ics.qfunction                       = ICsNewtonianIG_Prim;
+      problem->ics.qfunction_loc                   = ICsNewtonianIG_Prim_loc;
+      problem->apply_vol_ifunction.qfunction       = IFunction_Newtonian_Prim;
+      problem->apply_vol_ifunction.qfunction_loc   = IFunction_Newtonian_Prim_loc;
+      problem->apply_vol_ijacobian.qfunction       = IJacobian_Newtonian_Prim;
+      problem->apply_vol_ijacobian.qfunction_loc   = IJacobian_Newtonian_Prim_loc;
+      problem->apply_inflow.qfunction              = BoundaryIntegral_Prim;
+      problem->apply_inflow.qfunction_loc          = BoundaryIntegral_Prim_loc;
+      problem->apply_inflow_jacobian.qfunction     = BoundaryIntegral_Jacobian_Prim;
+      problem->apply_inflow_jacobian.qfunction_loc = BoundaryIntegral_Jacobian_Prim_loc;
       break;
   }
 
@@ -264,6 +256,7 @@ PetscErrorCode NS_NEWTONIAN_IG(ProblemData *problem, DM dm, void *ctx, SimpleBC 
   newtonian_ig_ctx->Ctau_M        = Ctau_M;
   newtonian_ig_ctx->Ctau_E        = Ctau_E;
   newtonian_ig_ctx->stabilization = stab;
+  newtonian_ig_ctx->P0            = reference.pressure;
   newtonian_ig_ctx->is_implicit   = implicit;
   newtonian_ig_ctx->state_var     = state_var;
   PetscCall(PetscArraycpy(newtonian_ig_ctx->g, g, 3));
@@ -277,6 +270,7 @@ PetscErrorCode NS_NEWTONIAN_IG(ProblemData *problem, DM dm, void *ctx, SimpleBC 
   setup_context->time      = 0;
 
   if (bc->num_freestream > 0) PetscCall(FreestreamBCSetup(problem, dm, ctx, newtonian_ig_ctx, &reference));
+  if (bc->num_outflow > 0) PetscCall(OutflowBCSetup(problem, dm, ctx, newtonian_ig_ctx, &reference));
 
   CeedQFunctionContextCreate(user->ceed, &problem->ics.qfunction_context);
   CeedQFunctionContextSetData(problem->ics.qfunction_context, CEED_MEM_HOST, CEED_USE_POINTER, sizeof(*setup_context), setup_context);
@@ -296,8 +290,6 @@ PetscErrorCode NS_NEWTONIAN_IG(ProblemData *problem, DM dm, void *ctx, SimpleBC 
   CeedQFunctionContextReferenceCopy(newtonian_ig_context, &problem->apply_vol_ijacobian.qfunction_context);
   CeedQFunctionContextReferenceCopy(newtonian_ig_context, &problem->apply_inflow.qfunction_context);
   CeedQFunctionContextReferenceCopy(newtonian_ig_context, &problem->apply_inflow_jacobian.qfunction_context);
-  CeedQFunctionContextReferenceCopy(newtonian_ig_context, &problem->apply_outflow.qfunction_context);
-  CeedQFunctionContextReferenceCopy(newtonian_ig_context, &problem->apply_outflow_jacobian.qfunction_context);
 
   if (unit_tests) {
     PetscCall(UnitTests_Newtonian(user, newtonian_ig_ctx));

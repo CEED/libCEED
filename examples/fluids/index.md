@@ -632,7 +632,7 @@ numerous terms in the STG formulation.
 
 The flat plate boundary layer example has custom meshing features to better
 resolve the flow. One of those is tilting the top of the domain, allowing for
-it to be a outflow boundary condition. The angle of this tilt is controled by
+it to be a outflow boundary condition. The angle of this tilt is controlled by
 `-platemesh_top_angle`
 
 The primary meshing feature is the ability to grade the mesh, providing better
