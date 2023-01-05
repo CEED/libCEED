@@ -38,7 +38,7 @@ declare -A run_flags
         run_flags[problem]=mixed-linear-2d
     else
         run_flags[dm_plex_dim]=$dim
-        run_flags[dm_plex_box_faces]=4,4
+        run_flags[dm_plex_box_faces]=4,4,4
         run_flags[problem]=mixed-linear-3d
     fi
     run_flags[dm_plex_simplex]=0
