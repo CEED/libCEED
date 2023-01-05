@@ -28,7 +28,7 @@ do
         o) order=${OPTARG};;
     esac
 done
-echo "Running convergence test for BP4/Elasticity with polynomial order ${order}";
+echo "Running convergence test for ${dim}D BP4/Elasticity with polynomial order ${order}";
 declare -A run_flags
     if [[ $dim -eq 2 ]];
     then

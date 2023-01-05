@@ -26,8 +26,8 @@ CEED_QFUNCTION(VolumeGeometry2D)(void *ctx, CeedInt Q, const CeedScalar *const *
   CeedPragmaSIMD for (CeedInt i = 0; i < Q; i++) {
     // Setup
     const CeedScalar dxdX[2][2] = {
-        {J[0][0][i], J[1][0][i]},
-        {J[0][1][i], J[1][1][i]}
+        {J[0][0][i], J[0][1][i]},
+        {J[1][0][i], J[1][1][i]}
     };
     const CeedScalar det_dxdX = ComputeDet2(dxdX);
     // printf("det_dxdX %f\n", det_dxdX);
