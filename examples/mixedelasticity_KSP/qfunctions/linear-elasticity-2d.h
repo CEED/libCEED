@@ -65,14 +65,14 @@ CEED_QFUNCTION(SetupLinearRhs2D)(void *ctx, CeedInt Q, const CeedScalar *const *
 
     // mu*(u1_11 + u1_22) + (mu+lambda)*(u1_11 + u2_21) + f1 = 0
     CeedScalar u1_11 = -PI_DOUBLE * PI_DOUBLE * u1, u1_22 = -PI_DOUBLE * PI_DOUBLE * u1;
-    CeedScalar u2_21 = 2 * PI_DOUBLE * PI_DOUBLE * cos(PI_DOUBLE * x) * cos(PI_DOUBLE * y);
+    CeedScalar u1_12 = PI_DOUBLE * PI_DOUBLE * cos(PI_DOUBLE * x) * cos(PI_DOUBLE * y);
+    CeedScalar u2_21 = 2 * u1_12;
     CeedScalar f1    = -mu * (u1_11 + u1_22) - (mu + lambda) * (u1_11 + u2_21);
     // Component 1
     rhs[0][i] = q_data[0][i] * f1;
     // mu*(u2_11 + u2_22) + (mu+lambda)*(u1_12 + u2_22) + f2 = 0
-    CeedScalar u2_11 = -2 * PI_DOUBLE * PI_DOUBLE * u1, u2_22 = -2 * PI_DOUBLE * PI_DOUBLE * u1;
-    CeedScalar u1_12 = PI_DOUBLE * PI_DOUBLE * cos(PI_DOUBLE * x) * cos(PI_DOUBLE * y);
-    CeedScalar f2    = -mu * (u2_11 + u2_22) - (mu + lambda) * (u1_12 + u2_22);
+    CeedScalar u2_11 = 2 * u1_11, u2_22 = 2 * u1_22;
+    CeedScalar f2 = -mu * (u2_11 + u2_22) - (mu + lambda) * (u1_12 + u2_22);
     // Component 2
     rhs[1][i] = q_data[0][i] * f2;
   }  // End of Quadrature Point Loop

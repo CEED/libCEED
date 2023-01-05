@@ -21,21 +21,29 @@
 
 # where o is polynomial order
 # Reading arguments with getopts options
-while getopts o: flag
+while getopts d:o: flag
 do
     case "${flag}" in
+        d) dim=${OPTARG};;
         o) order=${OPTARG};;
     esac
 done
 echo "Running convergence test for BP4/Elasticity with polynomial order ${order}";
 declare -A run_flags
-
-    run_flags[dm_plex_dim]=3
-    run_flags[dm_plex_box_faces]=4,4,4
+    if [[ $dim -eq 2 ]];
+    then
+        run_flags[dm_plex_dim]=$dim
+        run_flags[dm_plex_box_faces]=4,4
+        run_flags[problem]=linear-2d
+        #run_flags[problem]=bp4-2d
+    else
+        run_flags[dm_plex_dim]=$dim
+        run_flags[dm_plex_box_faces]=4,4,4
+        run_flags[problem]=linear-3d
+        #run_flags[problem]=bp4-3d
+    fi
     run_flags[dm_plex_simplex]=0
     run_flags[u_order]=$order
-    #run_flags[problem]=bp4-3d
-    run_flags[problem]=linear-3d
     run_flags[ksp_max_it]=1000
     run_flags[q_extra]=1
 
@@ -51,9 +59,11 @@ echo "run,mesh_res,error_u,error_p" > $file_name
 i=0
 
 for ((res=${test_flags[res_start]}; res<=${test_flags[res_end]}; res+=${test_flags[res_stride]})); do
-
-    run_flags[dm_plex_box_faces]=$res,$res,$res
-
+    if [[ $dim -eq 2 ]]; then
+        run_flags[dm_plex_box_faces]=$res,$res
+    else
+        run_flags[dm_plex_box_faces]=$res,$res,$res
+    fi
     args=''
     for arg in "${!run_flags[@]}"; do
         if ! [[ -z ${run_flags[$arg]} ]]; then
@@ -64,3 +74,4 @@ for ((res=${test_flags[res_start]}; res<=${test_flags[res_end]}; res+=${test_fla
     i=$((i+1))
 done
 
+python conv_rate.py -f conv_test_result.csv
