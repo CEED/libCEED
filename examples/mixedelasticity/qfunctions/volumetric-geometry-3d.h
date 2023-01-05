@@ -26,9 +26,9 @@ CEED_QFUNCTION(VolumeGeometry3D)(void *ctx, CeedInt Q, const CeedScalar *const *
   CeedPragmaSIMD for (CeedInt i = 0; i < Q; i++) {
     // Setup
     const CeedScalar dxdX[3][3] = {
-        {J[0][0][i], J[1][0][i], J[2][0][i]},
-        {J[0][1][i], J[1][1][i], J[2][1][i]},
-        {J[0][2][i], J[1][2][i], J[2][2][i]}
+        {J[0][0][i], J[0][1][i], J[0][2][i]},
+        {J[1][0][i], J[1][1][i], J[1][2][i]},
+        {J[2][0][i], J[2][1][i], J[2][2][i]}
     };
     const CeedScalar detJ = ComputeDet3(dxdX);
     CeedScalar       dXdx_voigt[9];

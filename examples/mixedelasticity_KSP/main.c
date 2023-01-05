@@ -94,6 +94,8 @@ int main(int argc, char **argv) {
   DM dm;
   PetscCall(CreateDM(comm, ceed, &dm));
   PetscCall(SetupFEByOrder(app_ctx, problem_data, dm));
+  PetscCall(PerturbVerticesSmooth(dm));
+  // PetscCall(PerturbVerticesRandom(dm));
 
   // ---------------------------------------------------------------------------
   //  Create zero rhs local vector
@@ -159,6 +161,14 @@ int main(int argc, char **argv) {
   // Print solver iterations and final norms; post-processing
   // ---------------------------------------------------------------------------
   PetscCall(PrintOutput(dm, ceed, app_ctx, ksp, X, l2_error_u, l2_error_p));
+
+  // ---------------------------------------------------------------------------
+  // Save solution (paraview)
+  // ---------------------------------------------------------------------------
+  PetscViewer viewer_X;
+  PetscCall(PetscViewerVTKOpen(app_ctx->comm, "final_solution.vtu", FILE_MODE_WRITE, &viewer_X));
+  PetscCall(VecView(X, viewer_X));
+  PetscCall(PetscViewerDestroy(&viewer_X));
 
   // ---------------------------------------------------------------------------
   // Free objects

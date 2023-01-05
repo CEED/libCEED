@@ -115,9 +115,9 @@ CEED_QFUNCTION(SetupLinear3D)(void *ctx, CeedInt Q, const CeedScalar *const *in,
   CeedPragmaSIMD for (CeedInt i = 0; i < Q; i++) {
     // Read spatial derivatives of u
     const CeedScalar dudX[3][3] = {
-        {ug[0][0][i], ug[1][0][i], ug[2][0][i]},
-        {ug[0][1][i], ug[1][1][i], ug[2][1][i]},
-        {ug[0][2][i], ug[1][2][i], ug[2][2][i]}
+        {ug[0][0][i], ug[0][1][i], ug[0][2][i]},
+        {ug[1][0][i], ug[1][1][i], ug[1][2][i]},
+        {ug[2][0][i], ug[2][1][i], ug[2][2][i]}
     };
     CeedScalar dXdx_voigt[9];
     for (CeedInt j = 0; j < 9; j++) {
@@ -142,9 +142,8 @@ CEED_QFUNCTION(SetupLinear3D)(void *ctx, CeedInt Q, const CeedScalar *const *in,
         {2. * mu * e[1][0],                 lambda * e_kk + 2. * mu * e[1][1], 2. * mu * e[1][2]                },
         {2. * mu * e[2][0],                 2. * mu * e[2][1],                 lambda * e_kk + 2. * mu * e[2][2]}
     };
-    // save output:dX/dx^T * sigma * wdetJ ==> sigma^T * dX/dx * wdetJ
-    // we save the transpose, because of ordering in libCEED; See how we created dudX above
-    AlphaMatTransposeMatMultAtQuadrature3(Q, i, q_data[0][i], sigma, dXdx, dvdX);
+    // save output:dX/dx^T * sigma * wdetJ
+    AlphaMatTransposeMatMultAtQuadrature3(Q, i, q_data[0][i], dXdx, sigma, dvdX);
   }  // End of Quadrature Point Loop
 
   return 0;

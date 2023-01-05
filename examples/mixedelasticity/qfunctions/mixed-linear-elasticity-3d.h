@@ -132,9 +132,9 @@ CEED_QFUNCTION(MixedLinearResidual3D)(void *ctx, CeedInt Q, const CeedScalar *co
   CeedPragmaSIMD for (CeedInt i = 0; i < Q; i++) {
     // Read spatial derivatives of u; du/dX
     const CeedScalar dudX[3][3] = {
-        {ug[0][0][i], ug[1][0][i], ug[2][0][i]},
-        {ug[0][1][i], ug[1][1][i], ug[2][1][i]},
-        {ug[0][2][i], ug[1][2][i], ug[2][2][i]}
+        {ug[0][0][i], ug[0][1][i], ug[0][2][i]},
+        {ug[1][0][i], ug[1][1][i], ug[1][2][i]},
+        {ug[2][0][i], ug[2][1][i], ug[2][2][i]}
     };
     CeedScalar dXdx_voigt[9];
     for (CeedInt j = 0; j < 9; j++) {
@@ -166,9 +166,8 @@ CEED_QFUNCTION(MixedLinearResidual3D)(void *ctx, CeedInt Q, const CeedScalar *co
         {2. * mu * ed[1][0],           p[0][i] + 2. * mu * ed[1][1], 2. * mu * ed[1][2]          },
         {2. * mu * ed[2][0],           2. * mu * ed[2][1],           p[0][i] + 2. * mu * ed[2][2]}
     };
-    // save output:dX/dx^T * sigma * wdetJ ==> sigma^T * dX/dx * wdetJ
-    // we save the transpose, because of ordering in libCEED; See how we created dudX above
-    AlphaMatTransposeMatMultAtQuadrature3(Q, i, q_data[0][i], sigma, dXdx, dvdX);
+    // save output:dX/dx^T * sigma * wdetJ
+    AlphaMatTransposeMatMultAtQuadrature3(Q, i, q_data[0][i], dXdx, sigma, dvdX);
     // div(u) = trace(grad(u))
     CeedScalar div_u = Trace3(grad_u);
     // (q, div(u)) - (q, p/k) = q^T * (div(u) - p/k) * wdetJ
@@ -205,9 +204,9 @@ CEED_QFUNCTION(MixedLinearJacobian3D)(void *ctx, CeedInt Q, const CeedScalar *co
   CeedPragmaSIMD for (CeedInt i = 0; i < Q; i++) {
     // Read variational of spatial derivatives of u; ddudX = d(delta_u)/dX
     const CeedScalar ddudX[3][3] = {
-        {dug[0][0][i], dug[1][0][i], dug[2][0][i]},
-        {dug[0][1][i], dug[1][1][i], dug[2][1][i]},
-        {dug[0][2][i], dug[1][2][i], dug[2][2][i]}
+        {dug[0][0][i], dug[0][1][i], dug[0][2][i]},
+        {dug[1][0][i], dug[1][1][i], dug[1][2][i]},
+        {dug[2][0][i], dug[2][1][i], dug[2][2][i]}
     };
     CeedScalar dXdx_voigt[9];
     for (CeedInt j = 0; j < 9; j++) {
@@ -241,7 +240,7 @@ CEED_QFUNCTION(MixedLinearJacobian3D)(void *ctx, CeedInt Q, const CeedScalar *co
     };
     // save output:dX/dx^T * d_sigma * wdetJ ==> d_sigma^T * dX/dx * wdetJ
     // we save the transpose, because of ordering in libCEED; See how we created dudX above
-    AlphaMatTransposeMatMultAtQuadrature3(Q, i, q_data[0][i], dsigma, dXdx, ddvdX);
+    AlphaMatTransposeMatMultAtQuadrature3(Q, i, q_data[0][i], dXdx, dsigma, ddvdX);
     // div(du) = trace(grad(du))
     CeedScalar div_du = Trace3(grad_du);
     // (q, div(du)) - (q, dp/k) = q^T * (div(du) - dp/k) * wdetJ
