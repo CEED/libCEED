@@ -418,7 +418,9 @@ PetscErrorCode TSMonitor_NS(TS ts, PetscInt step_no, PetscReal time, Vec Q, void
   PetscFunctionBeginUser;
 
   // Print every 'checkpoint_interval' steps
-  if (user->app_ctx->checkpoint_interval <= 0 || step_no % user->app_ctx->checkpoint_interval != 0) PetscFunctionReturn(0);
+  if (user->app_ctx->checkpoint_interval <= 0 || step_no % user->app_ctx->checkpoint_interval != 0 ||
+      (user->app_ctx->cont_steps == step_no && step_no != 0))
+    PetscFunctionReturn(0);
 
   PetscCall(WriteOutput(user, Q, step_no, time));
 
