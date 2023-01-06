@@ -401,7 +401,12 @@ If you utilize libCEED please cite:
   pages        = {2945},
   doi          = {10.21105/joss.02945}
 }
+```
 
+The archival copy of the libCEED user manual is maintained on [Zenodo](https://doi.org/10.5281/zenodo.4302736).
+To cite the user manual:
+
+```bibtex
 @misc{libceed-user-manual,
   author       = {Abdelfattah, Ahmad and
                   Barra, Valeria and
@@ -415,14 +420,16 @@ If you utilize libCEED please cite:
                   Medina, David and
                   Pazner, Will and
                   Ratnayaka, Thilina and
+                  Shakeri, Rezgar and
                   Thompson, Jeremy L and
-                  Tomov, Stanimire},
+                  Tomov, Stanimire and
+                  Wright III, James},
   title        = {{libCEED} User Manual},
-  month        = jul,
-  year         = 2021,
+  month        = dec,
+  year         = 2022,
   publisher    = {Zenodo},
-  version      = {0.9.0},
-  doi          = {10.5281/zenodo.5077489}
+  version      = {0.11.0},
+  doi          = {10.5281/zenodo.7480454}
 }
 ```
 
