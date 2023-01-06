@@ -5,7 +5,6 @@
 [![Code coverage][codecov-badge]][codecov-link]
 [![BSD-2-Clause][license-badge]][license-link]
 [![Documentation][doc-badge]][doc-link]
-[![User manual][zenodo-badge]][zenodo-link]
 [![JOSS paper][joss-badge]][joss-link]
 [![Binder][binder-badge]][binder-link]
 
@@ -402,7 +401,12 @@ If you utilize libCEED please cite:
   pages        = {2945},
   doi          = {10.21105/joss.02945}
 }
+```
 
+The archival copy of the libCEED user manual is maintained on [Zenodo](https://doi.org/10.5281/zenodo.4302736).
+To cite the user manual:
+
+```bibtex
 @misc{libceed-user-manual,
   author       = {Abdelfattah, Ahmad and
                   Barra, Valeria and
@@ -468,5 +472,3 @@ See files LICENSE and NOTICE for details.
 [joss-link]: https://doi.org/10.21105/joss.02945
 [binder-badge]: http://mybinder.org/badge_logo.svg
 [binder-link]: https://mybinder.org/v2/gh/CEED/libCEED/main?urlpath=lab/tree/examples/python/tutorial-0-ceed.ipynb
-[zenodo-badge]: https://zenodo.org/badge/DOI/10.5281/zenodo.svg
-[zenodo-link]: https://doi.org/10.5281/zenodo.4302736
