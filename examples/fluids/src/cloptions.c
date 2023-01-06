@@ -58,8 +58,16 @@ PetscErrorCode ProcessCommandLineOptions(MPI_Comm comm, AppCtx app_ctx, SimpleBC
   app_ctx->viz_refine = 0;
   PetscCall(PetscOptionsInt("-viz_refine", "Regular refinement levels for visualization", NULL, app_ctx->viz_refine, &app_ctx->viz_refine, NULL));
 
-  app_ctx->output_freq = 10;
-  PetscCall(PetscOptionsInt("-output_freq", "Frequency of output, in number of steps", NULL, app_ctx->output_freq, &app_ctx->output_freq, NULL));
+  app_ctx->checkpoint_interval = 10;
+  app_ctx->checkpoint_vtk      = PETSC_FALSE;
+  PetscCall(PetscOptionsDeprecated("-output_freq", "-checkpoint_interval", "libCEED 0.11.1", "Use -checkpoint_vtk true to include VTK output"));
+  PetscCall(PetscOptionsInt("-output_freq", "Frequency of output, in number of steps", NULL, app_ctx->checkpoint_interval,
+                            &app_ctx->checkpoint_interval, &option_set));
+  if (option_set) app_ctx->checkpoint_vtk = PETSC_TRUE;
+  PetscCall(PetscOptionsInt("-checkpoint_interval", "Frequency of output, in number of steps", NULL, app_ctx->checkpoint_interval,
+                            &app_ctx->checkpoint_interval, NULL));
+  PetscCall(PetscOptionsBool("-checkpoint_vtk", "Include VTK (*.vtu) output at each binary checkpoint", NULL, app_ctx->checkpoint_vtk,
+                             &app_ctx->checkpoint_vtk, NULL));
 
   PetscCall(PetscOptionsBool("-output_add_stepnum2bin", "Add step number to the binary outputs", NULL, app_ctx->add_stepnum2bin,
                              &app_ctx->add_stepnum2bin, NULL));
@@ -74,6 +82,7 @@ PetscErrorCode ProcessCommandLineOptions(MPI_Comm comm, AppCtx app_ctx, SimpleBC
   PetscCall(PetscOptionsString("-continue_filename", "Filename to get initial condition from", NULL, app_ctx->cont_file, app_ctx->cont_file,
                                sizeof(app_ctx->cont_file), &option_set));
   if (!option_set) PetscCall(PetscSNPrintf(app_ctx->cont_file, sizeof app_ctx->cont_file, "%s/ns-solution.bin", app_ctx->output_dir));
+  if (option_set && app_ctx->cont_steps == 0) app_ctx->cont_steps = -1;  // Read time from file
 
   PetscCall(PetscStrcpy(app_ctx->cont_time_file, "[output_dir]/ns-time.bin"));
   PetscCall(PetscOptionsString("-continue_time_filename", "Filename to get initial condition time from", NULL, app_ctx->cont_time_file,

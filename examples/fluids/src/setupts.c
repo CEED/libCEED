@@ -343,73 +343,59 @@ PetscErrorCode WriteOutput(User user, Vec Q, PetscInt step_no, PetscScalar time)
   PetscViewer viewer;
   PetscFunctionBeginUser;
 
-  // Set up output
-  PetscCall(DMGetLocalVector(user->dm, &Q_loc));
-  PetscCall(PetscObjectSetName((PetscObject)Q_loc, "StateVec"));
-  PetscCall(VecZeroEntries(Q_loc));
-  PetscCall(DMGlobalToLocal(user->dm, Q, INSERT_VALUES, Q_loc));
+  if (user->app_ctx->checkpoint_vtk) {
+    // Set up output
+    PetscCall(DMGetLocalVector(user->dm, &Q_loc));
+    PetscCall(PetscObjectSetName((PetscObject)Q_loc, "StateVec"));
+    PetscCall(VecZeroEntries(Q_loc));
+    PetscCall(DMGlobalToLocal(user->dm, Q, INSERT_VALUES, Q_loc));
 
-  // Output
-  PetscCall(
-      PetscSNPrintf(file_path, sizeof file_path, "%s/ns-%03" PetscInt_FMT ".vtu", user->app_ctx->output_dir, step_no + user->app_ctx->cont_steps));
+    // Output
+    PetscCall(PetscSNPrintf(file_path, sizeof file_path, "%s/ns-%03" PetscInt_FMT ".vtu", user->app_ctx->output_dir, step_no));
 
-  PetscCall(PetscViewerVTKOpen(PetscObjectComm((PetscObject)Q), file_path, FILE_MODE_WRITE, &viewer));
-  PetscCall(VecView(Q_loc, viewer));
-  PetscCall(PetscViewerDestroy(&viewer));
-  if (user->dm_viz) {
-    Vec         Q_refined, Q_refined_loc;
-    char        file_path_refined[PETSC_MAX_PATH_LEN];
-    PetscViewer viewer_refined;
+    PetscCall(PetscViewerVTKOpen(PetscObjectComm((PetscObject)Q), file_path, FILE_MODE_WRITE, &viewer));
+    PetscCall(VecView(Q_loc, viewer));
+    PetscCall(PetscViewerDestroy(&viewer));
+    if (user->dm_viz) {
+      Vec         Q_refined, Q_refined_loc;
+      char        file_path_refined[PETSC_MAX_PATH_LEN];
+      PetscViewer viewer_refined;
 
-    PetscCall(DMGetGlobalVector(user->dm_viz, &Q_refined));
-    PetscCall(DMGetLocalVector(user->dm_viz, &Q_refined_loc));
-    PetscCall(PetscObjectSetName((PetscObject)Q_refined_loc, "Refined"));
+      PetscCall(DMGetGlobalVector(user->dm_viz, &Q_refined));
+      PetscCall(DMGetLocalVector(user->dm_viz, &Q_refined_loc));
+      PetscCall(PetscObjectSetName((PetscObject)Q_refined_loc, "Refined"));
 
-    PetscCall(MatInterpolate(user->interp_viz, Q, Q_refined));
-    PetscCall(VecZeroEntries(Q_refined_loc));
-    PetscCall(DMGlobalToLocal(user->dm_viz, Q_refined, INSERT_VALUES, Q_refined_loc));
+      PetscCall(MatInterpolate(user->interp_viz, Q, Q_refined));
+      PetscCall(VecZeroEntries(Q_refined_loc));
+      PetscCall(DMGlobalToLocal(user->dm_viz, Q_refined, INSERT_VALUES, Q_refined_loc));
 
-    PetscCall(PetscSNPrintf(file_path_refined, sizeof file_path_refined, "%s/nsrefined-%03" PetscInt_FMT ".vtu", user->app_ctx->output_dir,
-                            step_no + user->app_ctx->cont_steps));
+      PetscCall(
+          PetscSNPrintf(file_path_refined, sizeof file_path_refined, "%s/nsrefined-%03" PetscInt_FMT ".vtu", user->app_ctx->output_dir, step_no));
 
-    PetscCall(PetscViewerVTKOpen(PetscObjectComm((PetscObject)Q_refined), file_path_refined, FILE_MODE_WRITE, &viewer_refined));
-    PetscCall(VecView(Q_refined_loc, viewer_refined));
-    PetscCall(DMRestoreLocalVector(user->dm_viz, &Q_refined_loc));
-    PetscCall(DMRestoreGlobalVector(user->dm_viz, &Q_refined));
-    PetscCall(PetscViewerDestroy(&viewer_refined));
+      PetscCall(PetscViewerVTKOpen(PetscObjectComm((PetscObject)Q_refined), file_path_refined, FILE_MODE_WRITE, &viewer_refined));
+      PetscCall(VecView(Q_refined_loc, viewer_refined));
+      PetscCall(DMRestoreLocalVector(user->dm_viz, &Q_refined_loc));
+      PetscCall(DMRestoreGlobalVector(user->dm_viz, &Q_refined));
+      PetscCall(PetscViewerDestroy(&viewer_refined));
+    }
+    PetscCall(DMRestoreLocalVector(user->dm, &Q_loc));
   }
-  PetscCall(DMRestoreLocalVector(user->dm, &Q_loc));
 
   // Save data in a binary file for continuation of simulations
   if (user->app_ctx->add_stepnum2bin) {
-    PetscCall(PetscSNPrintf(file_path, sizeof file_path, "%s/ns-solution-%" PetscInt_FMT ".bin", user->app_ctx->output_dir,
-                            step_no + user->app_ctx->cont_steps));
+    PetscCall(PetscSNPrintf(file_path, sizeof file_path, "%s/ns-solution-%" PetscInt_FMT ".bin", user->app_ctx->output_dir, step_no));
   } else {
     PetscCall(PetscSNPrintf(file_path, sizeof file_path, "%s/ns-solution.bin", user->app_ctx->output_dir));
   }
   PetscCall(PetscViewerBinaryOpen(user->comm, file_path, FILE_MODE_WRITE, &viewer));
 
+  PetscInt token = FLUIDS_FILE_TOKEN;
+  PetscCall(PetscViewerBinaryWrite(viewer, &token, 1, PETSC_INT));
+  PetscCall(PetscViewerBinaryWrite(viewer, &step_no, 1, PETSC_INT));
+  time /= user->units->second;  // Dimensionalize time back
+  PetscCall(PetscViewerBinaryWrite(viewer, &time, 1, PETSC_REAL));
   PetscCall(VecView(Q, viewer));
   PetscCall(PetscViewerDestroy(&viewer));
-
-  // Save time stamp
-  // Dimensionalize time back
-  time /= user->units->second;
-  if (user->app_ctx->add_stepnum2bin) {
-    PetscCall(PetscSNPrintf(file_path, sizeof file_path, "%s/ns-time-%" PetscInt_FMT ".bin", user->app_ctx->output_dir,
-                            step_no + user->app_ctx->cont_steps));
-  } else {
-    PetscCall(PetscSNPrintf(file_path, sizeof file_path, "%s/ns-time.bin", user->app_ctx->output_dir));
-  }
-  PetscCall(PetscViewerBinaryOpen(user->comm, file_path, FILE_MODE_WRITE, &viewer));
-
-#if PETSC_VERSION_GE(3, 13, 0)
-  PetscCall(PetscViewerBinaryWrite(viewer, &time, 1, PETSC_REAL));
-#else
-  PetscCall(PetscViewerBinaryWrite(viewer, &time, 1, PETSC_REAL, true));
-#endif
-  PetscCall(PetscViewerDestroy(&viewer));
-
   PetscFunctionReturn(0);
 }
 
@@ -418,8 +404,10 @@ PetscErrorCode TSMonitor_NS(TS ts, PetscInt step_no, PetscReal time, Vec Q, void
   User user = ctx;
   PetscFunctionBeginUser;
 
-  // Print every 'output_freq' steps
-  if (user->app_ctx->output_freq <= 0 || step_no % user->app_ctx->output_freq != 0) PetscFunctionReturn(0);
+  // Print every 'checkpoint_interval' steps
+  if (user->app_ctx->checkpoint_interval <= 0 || step_no % user->app_ctx->checkpoint_interval != 0 ||
+      (user->app_ctx->cont_steps == step_no && step_no != 0))
+    PetscFunctionReturn(0);
 
   PetscCall(WriteOutput(user, Q, step_no, time));
 
@@ -476,14 +464,17 @@ PetscErrorCode TSSolve_NS(DM dm, User user, AppCtx app_ctx, Physics phys, Vec *Q
       PetscCall(TSMonitor_NS(*ts, 0, 0., *Q, user));
     }
   } else {  // continue from time of last output
-    PetscReal   time;
     PetscInt    count;
     PetscViewer viewer;
 
-    PetscCall(PetscViewerBinaryOpen(comm, app_ctx->cont_time_file, FILE_MODE_READ, &viewer));
-    PetscCall(PetscViewerBinaryRead(viewer, &time, 1, &count, PETSC_REAL));
-    PetscCall(PetscViewerDestroy(&viewer));
-    PetscCall(TSSetTime(*ts, time * user->units->second));
+    if (app_ctx->cont_time <= 0) {  // Legacy files did not include step number and time
+      PetscCall(PetscViewerBinaryOpen(comm, app_ctx->cont_time_file, FILE_MODE_READ, &viewer));
+      PetscCall(PetscViewerBinaryRead(viewer, &app_ctx->cont_time, 1, &count, PETSC_REAL));
+      PetscCall(PetscViewerDestroy(&viewer));
+      PetscCheck(app_ctx->cont_steps != -1, comm, PETSC_ERR_ARG_INCOMP,
+                 "-continue step number not specified, but checkpoint file does not contain a step number (likely written by older code version)");
+    }
+    PetscCall(TSSetTime(*ts, app_ctx->cont_time * user->units->second));
     PetscCall(TSSetStepNumber(*ts, app_ctx->cont_steps));
   }
   if (!app_ctx->test_mode) {
@@ -524,7 +515,7 @@ PetscErrorCode TSSolve_NS(DM dm, User user, AppCtx app_ctx, Physics phys, Vec *Q
   *f_time = final_time;
 
   if (!app_ctx->test_mode) {
-    if (user->app_ctx->output_freq > 0 || user->app_ctx->output_freq == -1) {
+    if (user->app_ctx->checkpoint_interval > 0 || user->app_ctx->checkpoint_interval == -1) {
       PetscInt step_no;
       PetscCall(TSGetStepNumber(*ts, &step_no));
       PetscCall(WriteOutput(user, *Q, step_no, final_time));
