@@ -164,7 +164,8 @@ PetscErrorCode GetError_NS(CeedData ceed_data, DM dm, User user, Vec Q, PetscSca
 
 // Post-processing
 PetscErrorCode PostProcess_NS(TS ts, CeedData ceed_data, DM dm, ProblemData *problem, User user, Vec Q, PetscScalar final_time) {
-  PetscInt steps;
+  PetscInt          steps;
+  TSConvergedReason reason;
   PetscFunctionBegin;
 
   // Print relative error
@@ -174,8 +175,10 @@ PetscErrorCode PostProcess_NS(TS ts, CeedData ceed_data, DM dm, ProblemData *pro
 
   // Print final time and number of steps
   PetscCall(TSGetStepNumber(ts, &steps));
+  PetscCall(TSGetConvergedReason(ts, &reason));
   if (!user->app_ctx->test_mode) {
-    PetscCall(PetscPrintf(PETSC_COMM_WORLD, "Time integrator took %" PetscInt_FMT " time steps to reach final time %g\n", steps, (double)final_time));
+    PetscCall(PetscPrintf(PETSC_COMM_WORLD, "Time integrator %s on time step %" PetscInt_FMT " with final time %g\n", TSConvergedReasons[reason],
+                          steps, (double)final_time));
   }
 
   // Output numerical values from command line
