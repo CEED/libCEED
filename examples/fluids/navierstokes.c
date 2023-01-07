@@ -244,6 +244,14 @@ int main(int argc, char **argv) {
                           "    DM VecType                         : %s\n"
                           "    Time Stepping Scheme               : %s\n",
                           box_faces_str, mat_type, vec_type, phys_ctx->implicit ? "implicit" : "explicit"));
+    if (app_ctx->cont_steps) {
+      PetscCall(PetscPrintf(comm,
+                            "  Continue:\n"
+                            "    Filename:                          : %s\n"
+                            "    Step:                              : %" PetscInt_FMT "\n"
+                            "    Time:                              : %g\n",
+                            app_ctx->cont_file, app_ctx->cont_steps, app_ctx->cont_time));
+    }
     // Mesh
     const PetscInt num_comp_q = 5;
     CeedInt        glob_dofs, owned_dofs;
