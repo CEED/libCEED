@@ -117,6 +117,13 @@ struct CeedData_private {
       qf_apply_outflow_jacobian, qf_apply_freestream, qf_apply_freestream_jacobian;
 };
 
+typedef struct {
+  DM           dm;
+  PetscSF      sf;
+  CeedOperator op_stats;
+  PetscInt     num_comp_stats;
+} Span_Stats;
+
 // PETSc user data
 struct User_private {
   MPI_Comm     comm;
@@ -132,6 +139,7 @@ struct User_private {
   CeedOperator op_rhs_vol, op_rhs, op_ifunction_vol, op_ifunction, op_ijacobian, op_dirichlet;
   bool         matrices_set_up;
   CeedScalar   time, dt;
+  Span_Stats   spanstats;
 };
 
 // Units
@@ -309,6 +317,8 @@ PetscErrorCode SetBCsFromICs_NS(DM dm, Vec Q, Vec Q_loc);
 
 // Versioning token for binary checkpoints
 extern const PetscInt FLUIDS_FILE_TOKEN;
+
+PetscErrorCode CreateStatsDM(User user, ProblemData *problem, PetscInt degree, SimpleBC bc);
 
 // -----------------------------------------------------------------------------
 // Boundary Condition Related Functions
