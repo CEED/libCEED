@@ -330,13 +330,9 @@ PetscErrorCode SetupLibceed(Ceed ceed, CeedData ceed_data, DM dm, User user, App
   // CEED vectors
   // -----------------------------------------------------------------------------
   // -- Create CEED vector for geometric data
-  CeedInt  num_qpts_vol;
-  PetscInt loc_num_elem_vol;
-  CeedBasisGetNumQuadraturePoints(ceed_data->basis_q, &num_qpts_vol);
-  CeedElemRestrictionGetNumElements(ceed_data->elem_restr_q, &loc_num_elem_vol);
-  CeedVectorCreate(ceed, q_data_size_vol * loc_num_elem_vol * num_qpts_vol, &ceed_data->q_data);
-
+  CeedElemRestrictionCreateVector(ceed_data->elem_restr_qd_i, &ceed_data->q_data, NULL);
   CeedElemRestrictionCreateVector(elem_restr_jd_i, &jac_data, NULL);
+
   // -----------------------------------------------------------------------------
   // CEED Operators
   // -----------------------------------------------------------------------------
