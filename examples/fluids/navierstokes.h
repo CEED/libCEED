@@ -115,6 +115,11 @@ struct CeedData_private {
   CeedOperator        op_setup_vol, op_ics;
   CeedQFunction       qf_setup_vol, qf_ics, qf_rhs_vol, qf_ifunction_vol, qf_setup_sur, qf_apply_inflow, qf_apply_inflow_jacobian, qf_apply_outflow,
       qf_apply_outflow_jacobian, qf_apply_freestream, qf_apply_freestream_jacobian;
+  struct {
+    CeedElemRestriction elem_restr_parent_x, elem_restr_parent_stats, elem_restr_parent_qd;
+    CeedBasis           basis_x, basis_stats;
+    CeedVector          x_coord;
+  } spanstats;
 };
 
 typedef struct {
@@ -319,6 +324,8 @@ PetscErrorCode SetBCsFromICs_NS(DM dm, Vec Q, Vec Q_loc);
 extern const PetscInt FLUIDS_FILE_TOKEN;
 
 PetscErrorCode CreateStatsDM(User user, ProblemData *problem, PetscInt degree, SimpleBC bc);
+
+PetscErrorCode SetupStatsCollection(Ceed ceed, User user, CeedData ceed_data, ProblemData *problem);
 
 // -----------------------------------------------------------------------------
 // Boundary Condition Related Functions

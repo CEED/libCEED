@@ -8,7 +8,10 @@
 /// @file
 /// Utility functions for setting up statistics collection
 
+#include <petscsf.h>
+
 #include "../navierstokes.h"
+#include "petscsys.h"
 
 PetscErrorCode CreateStatsDM(User user, ProblemData *problem, PetscInt degree, SimpleBC bc) {
   user->spanstats.num_comp_stats = 1;
@@ -78,10 +81,133 @@ PetscErrorCode CreateStatsDM(User user, ProblemData *problem, PetscInt degree, S
   // PetscCall(PetscSectionSetComponentName(section, 0, 4, "Mean Velocity Products XZ"));
   // PetscCall(PetscSectionSetComponentName(section, 0, 5, "Mean Velocity Products XY"));
 
-  // Vec test;
-  // PetscCall(DMCreateLocalVector(user->spanstats.dm, &test));
-  // PetscCall(VecZeroEntries(test));
-  // PetscCall(VecViewFromOptions(test, NULL, "-test_view"));
+  Vec test;
+  PetscCall(DMCreateLocalVector(user->spanstats.dm, &test));
+  PetscCall(VecZeroEntries(test));
+  PetscCall(VecViewFromOptions(test, NULL, "-test_view"));
+
+  PetscFunctionReturn(0);
+}
+
+PetscErrorCode GetQuadratureCoords(Ceed ceed, DM dm, CeedElemRestriction elem_restr_x, CeedBasis basis_x, CeedVector x_coords, CeedVector *qx_coords,
+                                   PetscInt *total_nqpnts) {
+  CeedQFunction       qf_quad_coords;
+  CeedOperator        op_quad_coords;
+  PetscInt            num_comp_x, loc_num_elem, num_elem_qpts;
+  CeedElemRestriction elem_restr_qx;
+  PetscFunctionBeginUser;
+
+  // Create Element Restriction and CeedVector for quadrature coordinates
+  CeedBasisGetNumQuadraturePoints(basis_x, &num_elem_qpts);
+  CeedElemRestrictionGetNumElements(elem_restr_x, &loc_num_elem);
+  CeedElemRestrictionGetNumComponents(elem_restr_x, &num_comp_x);
+  *total_nqpnts           = num_elem_qpts * loc_num_elem;
+  const CeedInt strides[] = {num_comp_x, 1, num_elem_qpts * num_comp_x};
+  CeedElemRestrictionCreateStrided(ceed, loc_num_elem, num_elem_qpts, num_comp_x, num_comp_x * loc_num_elem * num_elem_qpts, strides, &elem_restr_qx);
+  CeedElemRestrictionCreateVector(elem_restr_qx, qx_coords, NULL);
+
+  // Create QFunction
+  CeedQFunctionCreateIdentity(ceed, num_comp_x, CEED_EVAL_INTERP, CEED_EVAL_NONE, &qf_quad_coords);
+
+  // Create Operator
+  CeedOperatorCreate(ceed, qf_quad_coords, NULL, NULL, &op_quad_coords);
+  CeedOperatorSetField(op_quad_coords, "input", elem_restr_x, basis_x, CEED_VECTOR_ACTIVE);
+  CeedOperatorSetField(op_quad_coords, "output", elem_restr_qx, CEED_BASIS_COLLOCATED, CEED_VECTOR_ACTIVE);
+
+  CeedOperatorApply(op_quad_coords, x_coords, *qx_coords, CEED_REQUEST_IMMEDIATE);
+
+  CeedQFunctionDestroy(&qf_quad_coords);
+  CeedOperatorDestroy(&op_quad_coords);
+  PetscFunctionReturn(0);
+}
+
+PetscErrorCode CreateStatsSF(Ceed ceed, CeedData ceed_data, DM parentdm, DM childdm, PetscSF statssf) {
+  PetscInt   child_num_qpnts, parent_num_qpnts, num_comp_x;
+  CeedVector child_qx_coords, parent_qx_coords;
+  PetscReal *child_coords, *parent_coords;
+  PetscFunctionBeginUser;
+
+  // Assume that child and parent have the same number of components
+  CeedBasisGetNumComponents(ceed_data->basis_x, &num_comp_x);
+  const PetscInt num_comp_sf = num_comp_x - 1;  // Number of coord components used in the creation of the SF
+
+  // Get quad_coords for child DM
+  PetscCall(GetQuadratureCoords(ceed, childdm, ceed_data->elem_restr_x, ceed_data->basis_xc, ceed_data->x_coord, &child_qx_coords, &child_num_qpnts));
+
+  // Get quad_coords for parent DM
+  PetscCall(GetQuadratureCoords(ceed, parentdm, ceed_data->spanstats.elem_restr_parent_x, ceed_data->spanstats.basis_x, ceed_data->spanstats.x_coord,
+                                &parent_qx_coords, &parent_num_qpnts));
+
+  // Remove z component of coordinates for matching
+  {
+    const PetscReal *child_quad_coords, *parent_quad_coords;
+
+    CeedVectorGetArrayRead(child_qx_coords, CEED_MEM_HOST, &child_quad_coords);
+    CeedVectorGetArrayRead(parent_qx_coords, CEED_MEM_HOST, &parent_quad_coords);
+
+    PetscCall(PetscMalloc2(child_num_qpnts * 2, &child_coords, parent_num_qpnts * 2, &parent_coords));
+    for (int i = 0; i < child_num_qpnts; i++) {
+      child_coords[0 + i * num_comp_sf] = child_quad_coords[0 + i * num_comp_x];
+      child_coords[1 + i * num_comp_sf] = child_quad_coords[1 + i * num_comp_x];
+    }
+    for (int i = 0; i < parent_num_qpnts; i++) {
+      parent_coords[0 + i * num_comp_sf] = parent_quad_coords[0 + i * num_comp_x];
+      parent_coords[1 + i * num_comp_sf] = parent_quad_coords[1 + i * num_comp_x];
+    }
+    CeedVectorRestoreArrayRead(child_qx_coords, &child_quad_coords);
+    CeedVectorRestoreArrayRead(parent_qx_coords, &parent_quad_coords);
+  }
+
+  // Only check the first two components of the coordinates
+  PetscCall(PetscSFSetGraphFromCoordinates(statssf, parent_num_qpnts, child_num_qpnts, num_comp_sf, 1e-12, parent_coords, child_coords));
+
+  PetscCall(PetscFree2(child_coords, parent_coords));
+  CeedVectorDestroy(&ceed_data->spanstats.x_coord);
+  CeedVectorDestroy(&child_qx_coords);
+  CeedVectorDestroy(&parent_qx_coords);
+  PetscFunctionReturn(0);
+}
+
+PetscErrorCode SetupStatsCollection(Ceed ceed, User user, CeedData ceed_data, ProblemData *problem) {
+  DM                 dm   = user->spanstats.dm;
+  MPI_Comm           comm = PetscObjectComm((PetscObject)dm);
+  CeedInt            dim, P, Q, num_comp_x;
+  Vec                X_loc;
+  PetscMemType       X_loc_memtype;
+  const PetscScalar *X_loc_array;
+  PetscFunctionBeginUser;
+
+  PetscCall(DMGetDimension(dm, &dim));
+  CeedBasisGetNumQuadraturePoints1D(ceed_data->basis_x, &Q);
+  CeedBasisGetNumNodes1D(ceed_data->basis_x, &P);
+
+  // TODO: Possibly need to create a elem_restr_qcollocated for the global domain as well
+  PetscCall(GetRestrictionForDomain(ceed, dm, 0, 0, 0, Q, user->spanstats.num_comp_stats, &ceed_data->spanstats.elem_restr_parent_stats,
+                                    &ceed_data->spanstats.elem_restr_parent_x, &ceed_data->spanstats.elem_restr_parent_qd));
+  CeedElemRestrictionGetNumComponents(ceed_data->spanstats.elem_restr_parent_x, &num_comp_x);
+  CeedElemRestrictionCreateVector(ceed_data->spanstats.elem_restr_parent_x, &ceed_data->spanstats.x_coord, NULL);
+
+  CeedBasisCreateTensorH1Lagrange(ceed, dim, num_comp_x, 2, Q, CEED_GAUSS_LOBATTO, &ceed_data->spanstats.basis_x);
+  CeedBasisCreateTensorH1Lagrange(ceed, dim, user->spanstats.num_comp_stats, P, Q, CEED_GAUSS, &ceed_data->spanstats.basis_stats);
+
+  // -- Copy DM coordinates into CeedVector
+  {
+    DM cdm;
+    PetscCall(DMGetCellCoordinateDM(dm, &cdm));
+    if (cdm) {
+      PetscCall(DMGetCellCoordinatesLocal(dm, &X_loc));
+    } else {
+      PetscCall(DMGetCoordinatesLocal(dm, &X_loc));
+    }
+  }
+  PetscCall(VecScale(X_loc, problem->dm_scale));
+  PetscCall(VecGetArrayReadAndMemType(X_loc, &X_loc_array, &X_loc_memtype));
+  CeedVectorSetArray(ceed_data->spanstats.x_coord, MemTypeP2C(X_loc_memtype), CEED_COPY_VALUES, (PetscScalar *)X_loc_array);
+  PetscCall(VecRestoreArrayRead(X_loc, &X_loc_array));
+
+  // Create SF for communicating child data back their respective parents
+  PetscCall(PetscSFCreate(comm, &user->spanstats.sf));
+  PetscCall(CreateStatsSF(ceed, ceed_data, user->dm, user->spanstats.dm, user->spanstats.sf));
 
   PetscFunctionReturn(0);
 }

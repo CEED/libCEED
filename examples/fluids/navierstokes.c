@@ -150,6 +150,8 @@ int main(int argc, char **argv) {
   // -- Set up libCEED objects
   PetscCall(SetupLibceed(ceed, ceed_data, dm, user, app_ctx, problem, bc));
 
+  PetscCall(SetupStatsCollection(ceed, user, ceed_data, problem));
+
   // ---------------------------------------------------------------------------
   // Set up ICs
   // ---------------------------------------------------------------------------
