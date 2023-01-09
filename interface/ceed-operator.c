@@ -82,7 +82,7 @@ static int CeedOperatorCheckField(Ceed ceed, CeedQFunctionField qf_field, CeedEl
       if (size != restr_num_comp) {
         // LCOV_EXCL_START
         return CeedError(ceed, CEED_ERROR_DIMENSION,
-                         "Field '%s' of size %" CeedInt_FMT " and EvalMode %s: ElemRestriction has " CeedInt_FMT " components", qf_field->field_name,
+                         "Field '%s' of size %" CeedInt_FMT " and EvalMode %s: ElemRestriction has %" CeedInt_FMT " components", qf_field->field_name,
                          qf_field->size, CeedEvalModes[qf_field->eval_mode], restr_num_comp);
         // LCOV_EXCL_STOP
       }
@@ -91,7 +91,7 @@ static int CeedOperatorCheckField(Ceed ceed, CeedQFunctionField qf_field, CeedEl
       if (size != num_comp * Q_comp) {
         // LCOV_EXCL_START
         return CeedError(ceed, CEED_ERROR_DIMENSION,
-                         "Field '%s' of size %" CeedInt_FMT " and EvalMode %s: ElemRestriction/Basis has " CeedInt_FMT " components",
+                         "Field '%s' of size %" CeedInt_FMT " and EvalMode %s: ElemRestriction/Basis has %" CeedInt_FMT " components",
                          qf_field->field_name, qf_field->size, CeedEvalModes[qf_field->eval_mode], num_comp * Q_comp);
         // LCOV_EXCL_STOP
       }
@@ -113,7 +113,7 @@ static int CeedOperatorCheckField(Ceed ceed, CeedQFunctionField qf_field, CeedEl
       if (size != num_comp) {
         // LCOV_EXCL_START
         return CeedError(ceed, CEED_ERROR_DIMENSION,
-                         "Field '%s' of size %" CeedInt_FMT " and EvalMode %s: ElemRestriction/Basis has " CeedInt_FMT " components",
+                         "Field '%s' of size %" CeedInt_FMT " and EvalMode %s: ElemRestriction/Basis has %" CeedInt_FMT " components",
                          qf_field->field_name, qf_field->size, CeedEvalModes[qf_field->eval_mode], num_comp);
         // LCOV_EXCL_STOP
       }
