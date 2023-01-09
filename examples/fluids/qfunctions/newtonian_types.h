@@ -38,9 +38,9 @@ struct NewtonianIdealGasContext_ {
   bool              is_implicit;
   StateVariable     state_var;
   StabilizationType stabilization;
-  CeedScalar        ramp_amplitude;
-  CeedScalar        ramp_start;
-  CeedScalar        ramp_length;
+  CeedScalar        IDLramp_amplitude;
+  CeedScalar        IDLramp_start;
+  CeedScalar        IDLramp_length;
 };
 
 typedef struct {
