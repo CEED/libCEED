@@ -62,6 +62,7 @@ CEED_QFUNCTION(Setup2d)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedS
     const CeedScalar J22  = J[1][1][i];
     const CeedScalar detJ = J11 * J22 - J21 * J12;
 
+    if (detJ <= 0) printf("%s: detJ %g\n", __func__, detJ);
     // Qdata
     // -- Interp-to-Interp q_data
     q_data[0][i] = w[i] * detJ;

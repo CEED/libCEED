@@ -1,16 +1,21 @@
 problem: newtonian_wave
 mu: 0 # Effectively solving Euler momentum equations
 
-dm_plex_box_faces: 40,40,1
-dm_plex_box_upper: 1,1,0.025
-dm_plex_box_lower: 0,0,0
-dm_plex_dim: 3
-bc_freestream: 4,6,3,5
-bc_slip_z: 1,2
+dm_plex:
+  dim: 3
+  shape: zbox
+  box:
+    faces: 40,40,8
+    upper: 1,1,.2
+    lower: 0,0,-.1
+    bd: none,none,periodic
+
+bc_freestream: 3,4,5,6
+#bc_slip_z: 1,2 # use slip BC if periodicity is disabled
 
 freestream:
   # riemann: hll # causes thermal bubble to reflect acoustic waves from boundary
-  velocity: 2,2,0
+  velocity: 2,-2,2 # the last component must by zero unless periodic
   temperature: 0.25
   pressure: 71.75
 g: 0,0,0
