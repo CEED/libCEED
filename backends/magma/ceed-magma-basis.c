@@ -370,7 +370,6 @@ int CeedBasisApplyNonTensor_Magma(CeedBasis basis, CeedInt nelem,
   CeedInt NB = 1;
   CeedMagmaFunction *interp, *grad;
   CeedInt M = ( tmode == CEED_TRANSPOSE ) ? P : Q;
-  CeedInt K = ( tmode == CEED_TRANSPOSE ) ? Q : P;
 
   CeedInt Narray[MAGMA_NONTENSOR_KERNEL_INSTANCES] = {MAGMA_NONTENSOR_N_VALUES};
   CeedInt iN   = 0;
@@ -383,7 +382,7 @@ int CeedBasisApplyNonTensor_Magma(CeedBasis basis, CeedInt nelem,
       }
   }
 
-  NB     = nontensor_rtc_get_nb(arch, 'd', emode, tmode, M, Narray[iN], K );
+  NB     = nontensor_rtc_get_nb(arch, 'd', emode, tmode, P, Narray[iN], Q );
   interp = ( tmode == CEED_TRANSPOSE ) ? &impl->magma_interp_tr_nontensor[iN] :
                                          &impl->magma_interp_nontensor[iN];
   grad   = ( tmode == CEED_TRANSPOSE ) ? &impl->magma_grad_tr_nontensor[iN] :
