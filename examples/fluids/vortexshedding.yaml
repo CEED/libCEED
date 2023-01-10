@@ -10,25 +10,33 @@ ts:
   adapt_type: 'none'
   type: alpha
   dt: .05
-  max_steps: 2000
+  max_time: 100
   alpha_radius: 0.5
-  #monitor_solution: cgns:vortexshedding-%d.cgns
-  #monitor_solution_interval: 10
+  monitor_solution: cgns:vortexshedding-q2-g2-n12-recirc.cgns
+  monitor_solution_interval: 5
 
 # Reference state is used for the initial condition, zero velocity by default.
+
+# This choice of pressure and temperature have a density of 1 and acoustic speed
+# of 100. With velocity 1, this flow is Mach 0.01.
 reference:
   pressure: 7143
   temperature: 24.92
+
+# If the the outflow is placed close to the cylinder, this will recirculate cold
+# fluid, demonstrating how the outflow BC is stable despite recirculation.
+outflow:
+  temperature: 20
+
 # Freestream inherits reference state as default
 freestream:
   velocity: 1,0,0
 # Small gravity vector to break symmetry so shedding can start
 g: 0,-.01,0
 
-# viscosity
+# viscosity corresponds to Reynolds number 100
 mu: 0.01
-
-q_extra: 0
+k: 14.34 # thermal conductivity, Pr = 0.71 typical of air
 
 ## DM Settings:
 degree: 2
@@ -37,11 +45,12 @@ dm_plex_filename: examples/fluids/meshes/cylinder-q1-n20.msh
 # Boundary Settings
 bc_slip_z: 6
 bc_wall: 5
-bc_freestream: 1,2
+bc_freestream: 1
+bc_outflow: 2
 bc_slip_y: 3,4
 wall_comps: 1,2,3
 
-# Note: we prefer to use primitive variables
+# Primitive variables are preferred at low Mach number
 state_var: primitive
 
 dm_view:
@@ -52,4 +61,4 @@ snes_lag_jacobian_persists:
 #pmat_pbdiagonal:
 #ksp_type: bcgsl
 #pc_type: vpbjacobi
-#amat_type: shell
+amat_type: shell
