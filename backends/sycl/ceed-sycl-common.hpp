@@ -13,6 +13,12 @@
 
 // Kris: Add sycl exception handling functions here.
 
+typedef struct {
+  sycl::context sycl_context;
+  sycl::device sycl_device;
+  sycl::queue sycl_queue;
+} Ceed_Sycl;
+
 CEED_INTERN int CeedSyclGetResourceRoot(Ceed ceed, const char *resource, char **resource_root);
 
 CEED_INTERN int CeedSyclInit(Ceed ceed, const char *resource);
