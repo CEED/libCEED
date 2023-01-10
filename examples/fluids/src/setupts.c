@@ -9,7 +9,6 @@
 /// Time-stepping functions for Navier-Stokes example using PETSc
 
 #include "../navierstokes.h"
-#include "../qfunctions/mass.h"
 
 // Compute mass matrix for explicit scheme
 PetscErrorCode ComputeLumpedMassMatrix(Ceed ceed, DM dm, CeedData ceed_data, Vec M) {
@@ -28,14 +27,11 @@ PetscErrorCode ComputeLumpedMassMatrix(Ceed ceed, DM dm, CeedData ceed_data, Vec
   CeedVectorSetValue(ones_vec, 1.0);
 
   // CEED QFunction
-  CeedQFunctionCreateInterior(ceed, 1, Mass, Mass_loc, &qf_mass);
-  CeedQFunctionAddInput(qf_mass, "q", num_comp_q, CEED_EVAL_INTERP);
-  CeedQFunctionAddInput(qf_mass, "qdata", q_data_size, CEED_EVAL_NONE);
-  CeedQFunctionAddOutput(qf_mass, "v", num_comp_q, CEED_EVAL_INTERP);
+  PetscCall(CreateMassQFunction(ceed, num_comp_q, q_data_size, &qf_mass));
 
   // CEED Operator
   CeedOperatorCreate(ceed, qf_mass, NULL, NULL, &op_mass);
-  CeedOperatorSetField(op_mass, "q", ceed_data->elem_restr_q, ceed_data->basis_q, CEED_VECTOR_ACTIVE);
+  CeedOperatorSetField(op_mass, "u", ceed_data->elem_restr_q, ceed_data->basis_q, CEED_VECTOR_ACTIVE);
   CeedOperatorSetField(op_mass, "qdata", ceed_data->elem_restr_qd_i, CEED_BASIS_COLLOCATED, ceed_data->q_data);
   CeedOperatorSetField(op_mass, "v", ceed_data->elem_restr_q, ceed_data->basis_q, CEED_VECTOR_ACTIVE);
 

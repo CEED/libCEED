@@ -323,6 +323,9 @@ PetscErrorCode SetBCsFromICs_NS(DM dm, Vec Q, Vec Q_loc);
 // Versioning token for binary checkpoints
 extern const PetscInt FLUIDS_FILE_TOKEN;
 
+// Create appropriate mass qfunction based on number of components N
+PetscErrorCode CreateMassQFunction(Ceed ceed, CeedInt N, CeedInt q_data_size, CeedQFunction *qf);
+
 PetscErrorCode CreateStatsDM(User user, ProblemData *problem, PetscInt degree, SimpleBC bc);
 
 PetscErrorCode SetupStatsCollection(Ceed ceed, User user, CeedData ceed_data, ProblemData *problem);
