@@ -369,7 +369,6 @@ int CeedBasisApplyNonTensor_Magma(CeedBasis basis, CeedInt nelem,
   CeedInt P  = ndof, Q = nqpt, N  = nelem*ncomp;
   CeedInt NB = 1;
   CeedMagmaFunction *interp, *grad;
-  CeedInt M = ( tmode == CEED_TRANSPOSE ) ? P : Q;
 
   CeedInt Narray[MAGMA_NONTENSOR_KERNEL_INSTANCES] = {MAGMA_NONTENSOR_N_VALUES};
   CeedInt iN   = 0;
@@ -825,9 +824,9 @@ int CeedBasisCreateH1_Magma(CeedElemTopology topo, CeedInt dim, CeedInt ndof,
   CeedInt P = ndof, Q = nqpts;
   CeedInt Narray[MAGMA_NONTENSOR_KERNEL_INSTANCES] = {MAGMA_NONTENSOR_N_VALUES};
   for(CeedInt in = 0; in < MAGMA_NONTENSOR_KERNEL_INSTANCES; in++) {
-      nb_interp_n[in] = nontensor_rtc_get_nb(arch, 'd', CEED_EVAL_INTERP, CEED_NOTRANSPOSE, Q, Narray[in], P );
+      nb_interp_n[in] = nontensor_rtc_get_nb(arch, 'd', CEED_EVAL_INTERP, CEED_NOTRANSPOSE, P, Narray[in], Q );
       nb_interp_t[in] = nontensor_rtc_get_nb(arch, 'd', CEED_EVAL_INTERP, CEED_TRANSPOSE,   P, Narray[in], Q );
-      nb_grad_n[in]   = nontensor_rtc_get_nb(arch, 'd', CEED_EVAL_GRAD,   CEED_NOTRANSPOSE, Q, Narray[in], P );
+      nb_grad_n[in]   = nontensor_rtc_get_nb(arch, 'd', CEED_EVAL_GRAD,   CEED_NOTRANSPOSE, P, Narray[in], Q );
       nb_grad_t[in]   = nontensor_rtc_get_nb(arch, 'd', CEED_EVAL_GRAD,   CEED_TRANSPOSE,   P, Narray[in], Q );
   }
   #ifdef DBG_TIMER
