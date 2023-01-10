@@ -99,12 +99,6 @@ void gemm_selector(
     }
 
     if( ir >= 0 ) {
-        #if 0
-        printf("matching record {%3d, %3d, %3d, %3d, %3d}\n",
-                (*data)[ir][M_INDEX], (*data)[ir][N_INDEX], (*data)[ir][K_INDEX],
-                (*data)[ir][N_BATCH_INDEX],
-                (*data)[ir][USE_MAGMA_INDEX] );
-        #endif
         *use_magma   = (*data)[ir][USE_MAGMA_INDEX];
 
         // if the closest match indicates that n = nbatch,
@@ -196,11 +190,6 @@ CeedInt nontensor_rtc_get_nb(
     }
 
     if( ir >= 0 ) {
-        #if 0
-        printf("matching record {%3d, %3d, %3d, %3d}\n",
-                (*data)[ir][M_INDEX_RTC], (*data)[ir][N_INDEX_RTC],
-                (*data)[ir][K_INDEX_RTC], (*data)[ir][NB_INDEX_RTC] );
-        #endif
         NB   = (*data)[ir][NB_INDEX_RTC];
     }
 
