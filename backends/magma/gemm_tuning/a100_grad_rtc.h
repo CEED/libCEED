@@ -2,7 +2,7 @@
 // auto-generated from data on a100-cuda11.2
 
 ////////////////////////////////////////////////////////////////////////////////
-std::vector< std::array<int, 4> > dgrad_t_a100 =
+std::vector< std::array<int, 4> > dgrad_n_a100 =
 {
   {1      , 1024   , 3      , 5      },
   {1      , 5120   , 3      , 2      },
@@ -84,7 +84,7 @@ std::vector< std::array<int, 4> > dgrad_t_a100 =
 };
 
 ////////////////////////////////////////////////////////////////////////////////
-std::vector< std::array<int, 4> > dgrad_n_a100 =
+std::vector< std::array<int, 4> > dgrad_t_a100 =
 {
   {3      , 1024   , 1      , 2      },
   {3      , 5120   , 1      , 3      },
