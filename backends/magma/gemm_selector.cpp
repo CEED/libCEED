@@ -163,8 +163,8 @@ CeedInt nontensor_rtc_get_nb(
         CeedEvalMode emode, CeedTransposeMode tmode,
         int P_, int N, int Q_ )
 {
-    CeedInt P  = ( tmode == CEED_TRANSPOSE ) ? Q_ : P_;
-    CeedInt Q  = ( tmode == CEED_TRANSPOSE ) ? P_ : Q_;
+    CeedInt P  = ( tmode == CEED_TRANSPOSE ) ? P_ : Q_;
+    CeedInt Q  = ( tmode == CEED_TRANSPOSE ) ? Q_ : P_;
     CeedInt NB = 1;
 
     std::vector< std::array<int, RECORD_LENGTH_RTC> > *data = NULL;
