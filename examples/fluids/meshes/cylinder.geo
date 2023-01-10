@@ -14,7 +14,7 @@ DefineConstant[
 ];
 
 DefineConstant[
-  xR = {15.5, Min 5, Max 30, Step .1,
+  xR = {11, Min .2, Max 30, Step .1,
     Name "Parameters/XR"}
 ];
 
@@ -34,7 +34,7 @@ DefineConstant[
 ];
 
 Nx1 = N + 1; Rx1 = 1.00;
-Nx2 = N + 1; Rx2 = 1.00;
+Nx2 = Ceil(N * 9 / 11 * xR / (2*xL)) + 1; Rx2 = 1.00;
 Ny  = N + 1; Ry = 2.00;
 Nb  = Ceil(RadialRatio * N) + 1; Rb = 0.9;
 Nc  = N + 1; Rc = 1.00;
@@ -45,10 +45,10 @@ h = 2 * H / N;
 // Exterior corners
 Point(1) = {-xL, -H, 0};
 Point(2) = {xL, -H, 0};
-Point(3) = {xR, -H, 0};
+Point(3) = {xL + xR, -H, 0};
 Point(4) = {-xL, H, 0};
 Point(5) = {xL, H, 0};
-Point(6) = {xR, H, 0};
+Point(6) = {xL + xR, H, 0};
 
 // Coordinates for Cylinder points
 Point(7) = {-cyldiameter/Sqrt(8), -cyldiameter/Sqrt(8), 0};

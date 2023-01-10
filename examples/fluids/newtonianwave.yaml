@@ -11,6 +11,7 @@ bc_slip_z: 1,2
 freestream:
   # riemann: hll # causes thermal bubble to reflect acoustic waves from boundary
   velocity: 2,2,0
+reference:
   temperature: 0.25
   pressure: 71.75
 g: 0,0,0

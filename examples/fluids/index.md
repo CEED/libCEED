@@ -418,10 +418,18 @@ The boundary conditions are freestream in the x and y directions. When using an 
 This problem can be fixed using a more sophisticated Riemann solver such as HLLC {cite}`toro2009` (option `-freestream_riemann hllc`, which is default), which is a linear constant-pressure wave that transports temperature and transverse momentum at the fluid velocity.
 
 ## Vortex Shedding - Flow past Cylinder
-This test case, based on {cite}`shakib1991femcfd`, provides an example of using an externally provide mesh from Gmsh.
-A cylinder with diameter $D=1$ is centered at $(0,0)$ in a computational domain $-4.5 \leq x \leq 15.5$, $-4.5 \leq y \leq 4.5$. We solve this as a 3D problem problem with (default) one element in the $z$ direction. The domain is filled with an ideal gas at rest (zero velocity) with temperature 24.92, pressure 7143, and viscosity 0.01. At time $t=0$, it is subjected to freestream boundary conditions at the inflow (left) and outflow (right), with exterior reference state at velocity $(1, 0, 0)$ giving Reynolds number $100$ and Mach number $0.01$. A symmetry (adiabatic free slip) condition is imposed at the top and bottom boundaries $(y = \pm 4.5)$ (zero normal velocity component, zero heat-flux). On the cylinder wall, a no-slip boundary condition, no heat-flux condition are imposed. As we evolve in time, eddies appear past the cylinder leading to a vortex shedding which is known as the vortex street.
+This test case, based on {cite}`shakib1991femcfd`, is an example of using an externally provided mesh from Gmsh.
+A cylinder with diameter $D=1$ is centered at $(0,0)$ in a computational domain $-4.5 \leq x \leq 15.5$, $-4.5 \leq y \leq 4.5$.
+We solve this as a 3D problem with (default) one element in the $z$ direction.
+The domain is filled with an ideal gas at rest (zero velocity) with temperature 24.92 and pressure 7143.
+The viscosity is 0.01 and thermal conductivity is 14.34 to maintain a Prandtl number of 0.71, which is typical for air.
+At time $t=0$, this domain is subjected to freestream boundary conditions at the inflow (left) and Riemann-type outflow on the right, with exterior reference state at velocity $(1, 0, 0)$ giving Reynolds number $100$ and Mach number $0.01$.
+A symmetry (adiabatic free slip) condition is imposed at the top and bottom boundaries $(y = \pm 4.5)$ (zero normal velocity component, zero heat-flux).
+The cylinder wall is an adiabatic (no heat flux) no-slip boundary condition.
+As we evolve in time, eddies appear past the cylinder leading to a vortex shedding known as the vortex street, with shedding period of about 6.
 
-The Gmsh input file, `examples/fluids/meshes/cylinder.geo` is parametrized to facilitate experimenting with similar configurations. The Strouhal number (nondimensional shedding frequency) is sensitive to the size of the computational domain and boundary conditions.
+The Gmsh input file, `examples/fluids/meshes/cylinder.geo` is parametrized to facilitate experimenting with similar configurations.
+The Strouhal number (nondimensional shedding frequency) is sensitive to the size of the computational domain and boundary conditions.
 
 ## Density Current
 
@@ -632,7 +640,7 @@ numerous terms in the STG formulation.
 
 The flat plate boundary layer example has custom meshing features to better
 resolve the flow. One of those is tilting the top of the domain, allowing for
-it to be a outflow boundary condition. The angle of this tilt is controled by
+it to be a outflow boundary condition. The angle of this tilt is controlled by
 `-platemesh_top_angle`
 
 The primary meshing feature is the ability to grade the mesh, providing better

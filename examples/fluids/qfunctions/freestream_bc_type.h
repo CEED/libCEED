@@ -17,4 +17,13 @@ struct FreestreamContext_ {
   State                            S_infty;
 };
 
+typedef struct OutflowContext_ *OutflowContext;
+struct OutflowContext_ {
+  struct NewtonianIdealGasContext_ gas;
+  CeedScalar                       recirc;             // amount of recirculation to allow in exterior state [0,1]
+  CeedScalar                       softplus_velocity;  // "width" of the softplus velocity regularization
+  CeedScalar                       pressure;
+  CeedScalar                       temperature;
+};
+
 #endif
