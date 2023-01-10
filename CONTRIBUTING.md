@@ -1,4 +1,4 @@
-# libCEED: How to Contribute
+# How to Contribute
 
 Contributions to libCEED are encouraged.
 <!---
