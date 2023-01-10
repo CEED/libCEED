@@ -19,7 +19,7 @@
 #endif
 
 //#define DBG
-#define DBG_TIMER
+//#define DBG_TIMER
 
 #ifdef DBG_TIMER
 #include<sys/time.h>
