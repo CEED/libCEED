@@ -455,23 +455,25 @@ ifneq ($(wildcard $(MAGMA_DIR)/lib/libmagma.*),)
     endif
   else  # HIP MAGMA
     ifneq ($(HIP_LIB_DIR),)
-      hip_link = $(if $(STATIC),,-Wl,-rpath,$(HIP_LIB_DIR)) -L$(HIP_LIB_DIR) -lhipblas -lhipsparse -lamdhip64
+      HIP_LIB_DIR_MAGMA=$(HIP_DIR)/../lib
+      HIP_INC_DIR_MAGMA=$(HIP_DIR)/../include
       omp_link = -fopenmp
+      hip_link = $(if $(STATIC),,-Wl,-rpath,$(HIP_LIB_DIR_MAGMA)) -L$(HIP_LIB_DIR_MAGMA) -lhipblas -lhipsparse -lamdhip64
       magma_link_static = -L$(MAGMA_DIR)/lib -lmagma $(hip_link) $(omp_link)
-      magma_link_shared = -L$(MAGMA_DIR)/lib $(if $(STATIC),,-Wl,-rpath,$(abspath $(MAGMA_DIR)/lib)) -lmagma
+      magma_link_shared = -L$(MAGMA_DIR)/lib $(hip_link) $(omp_link) $(if $(STATIC),,-Wl,-rpath,$(abspath $(MAGMA_DIR)/lib)) -lmagma
       magma_link := $(if $(wildcard $(MAGMA_DIR)/lib/libmagma.${SO_EXT}),$(magma_link_shared),$(magma_link_static))
       PKG_LIBS += $(magma_link)
       libceed.c   += $(magma.c)
       libceed.cpp += $(magma.cpp)
       libceed.hip += $(magma.hip)
       ifneq ($(CXX), $(HIPCC))
-        $(magma.c:%.c=$(OBJDIR)/%.o) $(magma.c:%=%.tidy) : CPPFLAGS += -I$(MAGMA_DIR)/include -I$(HIP_DIR)/include -DCEED_MAGMA_USE_HIP -DADD_
-        $(magma.cpp:%.cpp=$(OBJDIR)/%.o) $(magma.cpp:%=%.tidy) : CPPFLAGS += -I$(MAGMA_DIR)/include -I$(HIP_DIR)/include -DCEED_MAGMA_USE_HIP -DADD_
+        $(magma.c:%.c=$(OBJDIR)/%.o) $(magma.c:%=%.tidy) : CPPFLAGS += -I$(MAGMA_DIR)/include -I$(HIP_INC_DIR_MAGMA)/include -DCEED_MAGMA_USE_HIP -DADD_
+        $(magma.cpp:%.cpp=$(OBJDIR)/%.o) $(magma.cpp:%=%.tidy) : CPPFLAGS += -I$(MAGMA_DIR)/include -I$(HIP_INC_DIR_MAGMA)/include -DCEED_MAGMA_USE_HIP -DADD_
       else
-        $(magma.c:%.c=$(OBJDIR)/%.o) $(magma.c:%=%.tidy) : HIPCCFLAGS += -I$(MAGMA_DIR)/include -I$(HIP_DIR)/include -DCEED_MAGMA_USE_HIP -DADD_
-        $(magma.cpp:%.cpp=$(OBJDIR)/%.o) $(magma.cpp:%=%.tidy) : HIPCCFLAGS += -I$(MAGMA_DIR)/include -I$(HIP_DIR)/include -DCEED_MAGMA_USE_HIP -DADD_
+        $(magma.c:%.c=$(OBJDIR)/%.o) $(magma.c:%=%.tidy) : HIPCCFLAGS += -I$(MAGMA_DIR)/include -I$(HIP_INC_DIR_MAGMA)/include -DCEED_MAGMA_USE_HIP -DADD_
+        $(magma.cpp:%.cpp=$(OBJDIR)/%.o) $(magma.cpp:%=%.tidy) : HIPCCFLAGS += -I$(MAGMA_DIR)/include -I$(HIP_INC_DIR_MAGMA)/include -DCEED_MAGMA_USE_HIP -DADD_
       endif
-      $(magma.hip:%.hip.cpp=$(OBJDIR)/%.o) : HIPCCFLAGS += -I$(MAGMA_DIR)/include -I$(MAGMA_DIR)/magmablas -I$(HIP_DIR)/include -DCEED_MAGMA_USE_HIP -DADD_
+      $(magma.hip:%.hip.cpp=$(OBJDIR)/%.o) : HIPCCFLAGS += -I$(MAGMA_DIR)/include -I$(MAGMA_DIR)/magmablas -I$(HIP_INC_DIR_MAGMA)/include -DCEED_MAGMA_USE_HIP -DADD_
       MAGMA_BACKENDS = /gpu/hip/magma /gpu/hip/magma/det
     endif
   endif
