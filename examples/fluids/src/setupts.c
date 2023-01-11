@@ -10,6 +10,7 @@
 
 #include "../navierstokes.h"
 #include "../qfunctions/mass.h"
+#include "../qfunctions/newtonian_state.h"
 
 // Compute mass matrix for explicit scheme
 PetscErrorCode ComputeLumpedMassMatrix(Ceed ceed, DM dm, CeedData ceed_data, Vec M) {
@@ -194,14 +195,34 @@ PetscErrorCode IFunction_NS(TS ts, PetscReal t, Vec Q, Vec Q_dot, Vec G, void *u
 }
 
 // Surface forces function setup
-PetscErrorCode Surface_Forces_NS(DM dm, Vec G) {
-  PetscScalar *g, *r;
-  Vec          G_loc, v;
+PetscErrorCode Surface_Forces_NS(DM dm, Vec G_loc) {
+  const PetscScalar       *g;
+  PetscInt                 vStart, vEnd, v, i;
+  DMLabel                  cylinderwalls;
+  const StateConservative *r;
+  CeedScalar               reaction_force[3] = {0.};
+  StateConservative        residual          = {
+                      r[0].density,
+                      {r->momentum[1], r->momentum[2], r->momentum[3]},
+                      r[4].E_total,
+  };
+
   PetscFunctionBeginUser;
-
+  PetscCall(DMCreateLabel(dm, "cylinderwalls"));
+  PetscCall(DMGetLabel(dm, "cylinderwalls", &cylinderwalls));
+  PetscCall(DMPlexGetDepthStratum(dm, 0, &vStart, &vEnd););
+  PetscCall(DMPlexLabelComplete(dm, cylinderwalls));
   PetscCall(VecGetArrayRead(G_loc, &g));
-  PetscCall(DMPlexPointLocalRead(dm, v, g, &r));
 
+  for (v = vStart; v < vEnd; ++v) {
+    PetscCall(DMPlexPointLocalRead(dm, v, g, &r));
+    for (i = 0; i < 3; ++i) {
+      reaction_force[i + 1] += r->momentum[i + 1];
+    }
+  }
+
+  //  Restore Vectors
+  PetscCall(VecRestoreArrayRead(G_loc, &g));
   PetscFunctionReturn(0);
 }
 
