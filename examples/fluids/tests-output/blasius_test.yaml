@@ -14,7 +14,6 @@ platemesh:
 
 temperature_wall: 400
 stab: 'none'
-q_extra: 0
 
 dm_plex_box_lower: 0,0,0
 dm_plex_box_upper: 4.2e-3,4.2e-3,5.e-4
@@ -25,4 +24,5 @@ bc_wall: 3
 wall_comps: 1,2,3
 bc_inflow: 6
 bc_outflow: 5,4
+outflow_type: pressure
 g: 0,0,0

@@ -5,37 +5,34 @@
 //
 // This file is part of CEED:  http://github.com/ceed
 
-#include <ceed/ceed.h>
 #include <ceed/backend.h>
+#include <ceed/ceed.h>
 #include <cuda_runtime.h>
 #include <stdio.h>
 #include <string.h>
+
 #include "ceed-cuda-gen.h"
 
 //------------------------------------------------------------------------------
 // Apply QFunction
 //------------------------------------------------------------------------------
-static int CeedQFunctionApply_Cuda_gen(CeedQFunction qf, CeedInt Q,
-                                       CeedVector *U, CeedVector *V) {
-  int ierr;
+static int CeedQFunctionApply_Cuda_gen(CeedQFunction qf, CeedInt Q, CeedVector *U, CeedVector *V) {
   Ceed ceed;
-  ierr = CeedQFunctionGetCeed(qf, &ceed); CeedChkBackend(ierr);
-  return CeedError(ceed, CEED_ERROR_BACKEND,
-                   "Backend does not implement QFunctionApply");
+  CeedCallBackend(CeedQFunctionGetCeed(qf, &ceed));
+  return CeedError(ceed, CEED_ERROR_BACKEND, "Backend does not implement QFunctionApply");
 }
 
 //------------------------------------------------------------------------------
 // Destroy QFunction
 //------------------------------------------------------------------------------
 static int CeedQFunctionDestroy_Cuda_gen(CeedQFunction qf) {
-  int ierr;
   CeedQFunction_Cuda_gen *data;
-  ierr = CeedQFunctionGetData(qf, &data); CeedChkBackend(ierr);
+  CeedCallBackend(CeedQFunctionGetData(qf, &data));
   Ceed ceed;
-  ierr = CeedQFunctionGetCeed(qf, &ceed); CeedChkBackend(ierr);
-  ierr = cudaFree(data->d_c); CeedChk_Cu(ceed, ierr);
-  ierr = CeedFree(&data->q_function_source); CeedChkBackend(ierr);
-  ierr = CeedFree(&data); CeedChkBackend(ierr);
+  CeedCallBackend(CeedQFunctionGetCeed(qf, &ceed));
+  CeedCallCuda(ceed, cudaFree(data->d_c));
+  CeedCallBackend(CeedFree(&data->q_function_source));
+  CeedCallBackend(CeedFree(&data));
   return CEED_ERROR_SUCCESS;
 }
 
@@ -43,30 +40,25 @@ static int CeedQFunctionDestroy_Cuda_gen(CeedQFunction qf) {
 // Create QFunction
 //------------------------------------------------------------------------------
 int CeedQFunctionCreate_Cuda_gen(CeedQFunction qf) {
-  int ierr;
   Ceed ceed;
   CeedQFunctionGetCeed(qf, &ceed);
   CeedQFunction_Cuda_gen *data;
-  ierr = CeedCalloc(1, &data); CeedChkBackend(ierr);
-  ierr = CeedQFunctionSetData(qf, data); CeedChkBackend(ierr);
+  CeedCallBackend(CeedCalloc(1, &data));
+  CeedCallBackend(CeedQFunctionSetData(qf, data));
 
   // Read QFunction source
-  ierr = CeedQFunctionGetKernelName(qf, &data->q_function_name);
-  CeedChkBackend(ierr);
+  CeedCallBackend(CeedQFunctionGetKernelName(qf, &data->q_function_name));
   CeedDebug256(ceed, 2, "----- Loading QFunction User Source -----\n");
-  ierr = CeedQFunctionLoadSourceToBuffer(qf, &data->q_function_source);
-  CeedChkBackend(ierr);
+  CeedCallBackend(CeedQFunctionLoadSourceToBuffer(qf, &data->q_function_source));
   CeedDebug256(ceed, 2, "----- Loading QFunction User Source Complete! -----\n");
-  if (!data->q_function_source)
+  if (!data->q_function_source) {
     // LCOV_EXCL_START
-    return CeedError(ceed, CEED_ERROR_UNSUPPORTED,
-                     "/gpu/cuda/gen backend requires QFunction source code file");
-  // LCOV_EXCL_STOP
+    return CeedError(ceed, CEED_ERROR_UNSUPPORTED, "/gpu/cuda/gen backend requires QFunction source code file");
+    // LCOV_EXCL_STOP
+  }
 
-  ierr = CeedSetBackendFunction(ceed, "QFunction", qf, "Apply",
-                                CeedQFunctionApply_Cuda_gen); CeedChkBackend(ierr);
-  ierr = CeedSetBackendFunction(ceed, "QFunction", qf, "Destroy",
-                                CeedQFunctionDestroy_Cuda_gen); CeedChkBackend(ierr);
+  CeedCallBackend(CeedSetBackendFunction(ceed, "QFunction", qf, "Apply", CeedQFunctionApply_Cuda_gen));
+  CeedCallBackend(CeedSetBackendFunction(ceed, "QFunction", qf, "Destroy", CeedQFunctionDestroy_Cuda_gen));
   return CEED_ERROR_SUCCESS;
 }
 

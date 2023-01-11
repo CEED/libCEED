@@ -62,23 +62,51 @@ The following options are common among all problem types:
 
 * - `-q_extra`
   - Number of extra quadrature points
-  - `2`
-
-* - `-viz_refine`
-  - Use regular refinement for visualization
   - `0`
 
-* - `-output_freq`
-  - Frequency of output, in number of steps. `0` has no output, `-1` outputs final state only
+* - `-ts_monitor_solution`
+  - PETSc output format, such as `cgns:output-%d.cgns` (requires PETSc `--download-cgns`)
+  -
+
+* - `-ts_monitor_solution_interval`
+  - Number of time steps between visualization output frames.
+  - `1`
+
+* - `-viewer_cgns_batch_size`
+  - Number of frames written per CGNS file if the CGNS file name includes a format specifier (`%d`).
+  - `20`
+
+* - `-checkpoint_interval`
+  - Number of steps between writing binary checkpoints. `0` has no output, `-1` outputs final state only
   - `10`
 
-* - `-continue`
-  - Continue from previous solution
+* - `-checkpoint_vtk`
+  - Checkpoints include VTK (`*.vtu`) files for visualization. Consider `-ts_monitor_solution`instead.
+  - `false`
+
+* - `-viz_refine`
+  - Use regular refinement for VTK visualization
   - `0`
 
 * - `-output_dir`
-  - Output directory
+  - Output directory for binary checkpoints and VTK files (if enabled).
   - `.`
+
+* - `-output_add_stepnum2bin`
+  - Whether to add step numbers to output binary files
+  - `false`
+
+* - `-continue`
+  - Continue from previous solution (input is step number of previous solution)
+  - `0`
+
+* - `-continue_filename`
+  - Path to solution binary file from which to continue from
+  - `[output_dir]/ns-solution.bin`
+
+* - `-continue_time_filename`
+  - Path to time stamp binary file (only for legacy checkpoints)
+  - `[output_dir]/ns-time.bin`
 
 * - `-bc_wall`
   - Use wall boundary conditions on this list of faces
@@ -108,6 +136,10 @@ The following options are common among all problem types:
   - Use outflow boundary conditions on this list of faces
   -
 
+* - `-bc_freestream`
+  - Use freestream boundary conditions on this list of faces
+  -
+
 * - `-snes_view`
   - View PETSc `SNES` nonlinear solver configuration
   -
@@ -121,7 +153,7 @@ The following options are common among all problem types:
   -
 :::
 
-For the case of a square/cubic mesh, the list of face indices to be used with `-bc_wall`, `bc_inflow`, `bc_outflow` and/or `-bc_slip_x`, `-bc_slip_y`, and `-bc_slip_z` are:
+For the case of a square/cubic mesh, the list of face indices to be used with `-bc_wall`, `bc_inflow`, `bc_outflow`, `bc_freestream`  and/or `-bc_slip_x`, `-bc_slip_y`, and `-bc_slip_z` are:
 
 :::{list-table} 2D Face ID Labels
 :header-rows: 1
@@ -176,6 +208,48 @@ For the case of a square/cubic mesh, the list of face indices to be used with `-
   - -x
   - 6
 :::
+
+### Boundary conditions
+
+Boundary conditions for compressible viscous flows are notoriously tricky. Here we offer some recommendations
+
+#### Inflow
+
+If in a region where the flow velocity is known (e.g., away from viscous walls), use `bc_freestream`, which solves a Riemann problem and can handle inflow and outflow (simultaneously and dynamically).
+It is stable and the least reflective boundary condition for acoustics.
+
+If near a viscous wall, you may want a specified inflow profile.
+Use `bc_inflow` and see {ref}`example-blasius` and discussion of synthetic turbulence generation for ways to analytically generate developed inflow profiles.
+These conditions may be either weak or strong, with the latter specifying velocity and temperature as essential boundary conditions and evaluating a boundary integral for the mass flux.
+The strong approach gives sharper resolution of velocity structures.
+We have described the primitive variable formulation here; the conservative variants are similar, but not equivalent.
+
+### Outflow
+
+If you know the complete exterior state, `bc_freestream` is the least reflective boundary condition, but is disruptive to viscous flow structures.
+If thermal anomalies must exit the domain, the Riemann solver must resolve the contact wave to avoid reflections.
+The default Riemann solver, HLLC, is sufficient in this regard while the simpler HLL converts thermal structures exiting the domain into grid-scale reflecting acoustics. 
+
+If acoustic reflections are not a concern and/or the flow is impacted by walls or interior structures that you wish to resolve to near the boundary, choose `bc_outflow`. This condition (with default `outflow_type: riemann`) is stable for both inflow and outflow, so can be used in areas that have recirculation and lateral boundaries in which the flow fluctuates.
+
+The simpler `bc_outflow` variant, `outflow_type: pressure`, requires that the flow be a strict outflow (or the problem becomes ill-posed and the solver will diverge).
+In our experience, `riemann` is slightly less reflective but produces similar flows in cases of strict outflow.
+The `pressure` variant is retained to facilitate comparison with other codes, such as PHASTA-C, but we recommend `riemann` for general use.
+
+### Periodicity
+
+PETSc provides two ways to specify periodicity:
+
+1. Topological periodicity, in which the donor and receiver dofs are the same, obtained using:
+
+``` yaml
+dm_plex:
+  shape: box
+  box_faces: 10,12,4
+  box_bd: none,none,periodic
+```
+
+The coordinates for such cases are stored as a new field, and 
 
 ### Advection
 
@@ -482,7 +556,7 @@ For the Density Current, Channel, and Blasius problems, the following common com
 
 * - `-Ctau_v`
   - Stabilization viscous constant, $C_v$
-  - `36.0`
+  - `36, 60, 128 for degree = 1, 2, 3`
   -
 
 * - `-Ctau_C`
@@ -541,10 +615,117 @@ For the Density Current, Channel, and Blasius problems, the following common com
   - string
 :::
 
+#### Newtonian Wave
+
+The newtonian wave problem has the following command-line options in addition to the Newtonian Ideal Gas options:
+
+:::{list-table} Newtonian Wave Runtime Options
+:header-rows: 1
+
+* - Option
+  - Description
+  - Default value
+  - Unit
+
+* - `-freestream_riemann`
+  - Riemann solver for boundaries (HLL or HLLC)
+  - `hllc`
+  -
+
+* - `-freestream_velocity`
+  - Freestream velocity vector
+  - `0,0,0`
+  - `m/s`
+
+* - `-freestream_temperature`
+  - Freestream temperature
+  - `288`
+  - `K`
+
+* - `-freestream_pressure`
+  - Freestream pressure
+  - `1.01e5`
+  - `Pa`
+
+* - `-epicenter`
+  - Coordinates of center of perturbation
+  - `0,0,0`
+  - `m`
+
+* - `-amplitude`
+  - Amplitude of the perturbation
+  - `0.1`
+  -
+
+* - `-width`
+  - Width parameter of the perturbation
+  - `0.002`
+  - `m`
+
+:::
+
+This problem can be run with the `newtonianwave.yaml` file via:
+
+```
+./navierstokes -options_file newtonianwave.yaml
+```
+
+```{literalinclude} ../../../../../examples/fluids/newtonianwave.yaml
+:language: yaml
+```
+
+#### Vortex Shedding - Flow past Cylinder
+
+The vortex shedding, flow past cylinder problem has the following command-line options in addition to the Newtonian Ideal Gas options:
+
+:::{list-table} Vortex Shedding Runtime Options
+:header-rows: 1
+
+* - Option
+  - Description
+  - Default value
+  - Unit
+
+* - `-freestream_velocity`
+  - Freestream velocity vector
+  - `0,0,0`
+  - `m/s`
+
+* - `-freestream_temperature`
+  - Freestream temperature
+  - `288`
+  - `K`
+
+* - `-freestream_pressure`
+  - Freestream pressure
+  - `1.01e5`
+  - `Pa`
+
+:::
+
+The initial condition is taken from `-reference_temperature` and `-reference_pressure`.
+To run this problem, first generate a mesh:
+
+```console
+$ make -C examples/fluids/meshes
+```
+
+Then run by building the executable and running:
+
+```console
+$ make build/fluids-navierstokes
+$ mpiexec -n 6 build/fluids-navierstokes -options_file vortexshedding.yaml
+```
+
+The vortex shedding period is roughly 6 and this problem runs until time 100 (2000 time steps).
+
+```{literalinclude} ../../../../../examples/fluids/vortexshedding.yaml
+:language: yaml
+```
 
 #### Density current
 
-The Density Current problem the following command-line options are available in addition to the Newtonian Ideal Gas options:
+The Density Current problem has the following command-line options in addition to the Newtonian Ideal Gas options:
 
 :::{list-table} Density Current Runtime Options
 :header-rows: 1
@@ -598,7 +779,7 @@ This problem can be run with:
 
 #### Channel flow
 
-The Channel problem the following command-line options are available in addition to the Newtonian Ideal Gas options:
+The Channel problem has the following command-line options in addition to the Newtonian Ideal Gas options:
 
 :::{list-table} Channel Runtime Options
 :header-rows: 1
@@ -638,9 +819,11 @@ This problem can be run with the `channel.yaml` file via:
 :language: yaml
 ```
 
+(example-blasius)=
+
 #### Blasius boundary layer
 
-The Blasius problem the following command-line options are available in addition to the Newtonian Ideal Gas options:
+The Blasius problem has the following command-line options in addition to the Newtonian Ideal Gas options:
 
 :::{list-table} Blasius Runtime Options
 :header-rows: 1
@@ -766,6 +949,11 @@ Using the STG Inflow for the blasius problem adds the following command-line opt
 
 * - `-stg_strong`
   - Strongly enforce the STG inflow boundary condition
+  - `false`
+  -
+
+* - `-stg_fluctuating_IC`
+  - "Extrude" the fluctuations through the domain as an initial condition
   - `false`
   -
 

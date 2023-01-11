@@ -5,24 +5,20 @@
 //
 // This file is part of CEED:  http://github.com/ceed
 
-#include <ceed/ceed.h>
-#include <ceed/backend.h>
-#include <string.h>
-#include <stdlib.h>
 #include "ceed-hip-common.h"
+
+#include <ceed/backend.h>
+#include <ceed/ceed.h>
+#include <stdlib.h>
+#include <string.h>
 
 //------------------------------------------------------------------------------
 // Get root resource without device spec
 //------------------------------------------------------------------------------
-int CeedHipGetResourceRoot(Ceed ceed, const char *resource,
-                           char **resource_root) {
-  int ierr;
-
-  char *device_spec = strstr(resource, ":device_id=");
-  size_t resource_root_len = device_spec
-                             ? (size_t)(device_spec - resource) + 1
-                             : strlen(resource) + 1;
-  ierr = CeedCalloc(resource_root_len, resource_root); CeedChkBackend(ierr);
+int CeedHipGetResourceRoot(Ceed ceed, const char *resource, char **resource_root) {
+  char  *device_spec       = strstr(resource, ":device_id=");
+  size_t resource_root_len = device_spec ? (size_t)(device_spec - resource) + 1 : strlen(resource) + 1;
+  CeedCallBackend(CeedCalloc(resource_root_len, resource_root));
   memcpy(*resource_root, resource, resource_root_len - 1);
 
   return CEED_ERROR_SUCCESS;
@@ -32,24 +28,22 @@ int CeedHipGetResourceRoot(Ceed ceed, const char *resource,
 // Device information backend init
 //------------------------------------------------------------------------------
 int CeedHipInit(Ceed ceed, const char *resource) {
-  int ierr;
   const char *device_spec = strstr(resource, ":device_id=");
-  const int device_id = (device_spec) ? atoi(device_spec + 11) : -1;
+  const int   device_id   = (device_spec) ? atoi(device_spec + 11) : -1;
 
   int current_device_id;
-  ierr = hipGetDevice(&current_device_id); CeedChk_Hip(ceed, ierr);
+  CeedCallHip(ceed, hipGetDevice(&current_device_id));
   if (device_id >= 0 && current_device_id != device_id) {
-    ierr = hipSetDevice(device_id); CeedChk_Hip(ceed, ierr);
+    CeedCallHip(ceed, hipSetDevice(device_id));
     current_device_id = device_id;
   }
 
   struct hipDeviceProp_t device_prop;
-  ierr = hipGetDeviceProperties(&device_prop, current_device_id);
-  CeedChk_Hip(ceed, ierr);
+  CeedCallHip(ceed, hipGetDeviceProperties(&device_prop, current_device_id));
 
   Ceed_Hip *data;
-  ierr = CeedGetData(ceed, &data); CeedChkBackend(ierr);
-  data->device_id = current_device_id;
+  CeedCallBackend(CeedGetData(ceed, &data));
+  data->device_id      = current_device_id;
   data->opt_block_size = 256;
   return CEED_ERROR_SUCCESS;
 }
@@ -58,13 +52,12 @@ int CeedHipInit(Ceed ceed, const char *resource) {
 // Backend Destroy
 //------------------------------------------------------------------------------
 int CeedDestroy_Hip(Ceed ceed) {
-  int ierr;
   Ceed_Hip *data;
-  ierr = CeedGetData(ceed, &data); CeedChkBackend(ierr);
+  CeedCallBackend(CeedGetData(ceed, &data));
   if (data->hipblas_handle) {
-    ierr = hipblasDestroy(data->hipblas_handle); CeedChk_Hipblas(ceed, ierr);
+    CeedCallHipblas(ceed, hipblasDestroy(data->hipblas_handle));
   }
-  ierr = CeedFree(&data); CeedChkBackend(ierr);
+  CeedCallBackend(CeedFree(&data));
   return CEED_ERROR_SUCCESS;
 }
 

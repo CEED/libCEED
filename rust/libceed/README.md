@@ -14,7 +14,7 @@ See the [libCEED user manual](https://libceed.org) for details on [interface con
 To call libCEED from a Rust package, the following `Cargo.toml` can be used.
 ```toml
 [dependencies]
-libceed = "0.10.0"
+libceed = "0.11.0"
 ```
 
 For a development version of the libCEED Rust bindings, use the following `Cargo.toml`.

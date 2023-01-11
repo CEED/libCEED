@@ -1,7 +1,8 @@
 """
     CeedScalar
 
-Scalar (floating point) type. Equivalent to `Float64`.
+Scalar (floating point) type. Typically equivalent to `Float64`, but libCEED can be configured at
+compile-time to use `Float32`. See also `get_scalar_type`.
 """
 const CeedScalar = C.CeedScalar
 
@@ -11,6 +12,13 @@ const CeedScalar = C.CeedScalar
 Integer type, used for indexing. Equivalent to `Int32`.
 """
 const CeedInt = C.CeedInt
+
+"""
+    CeedSize
+
+Integer type, used for array sizes. Equivalent to `Int`.
+"""
+const CeedSize = C.CeedSize
 
 """
     QuadMode

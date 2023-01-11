@@ -14,13 +14,10 @@
 // Expects the following constants to be defined:
 // - BLOCK_SIZE : CeedInt
 
-const char *occa_set_value_source = STRINGIFY_SOURCE(
+const char* occa_set_value_source = STRINGIFY_SOURCE(
 
-  @kernel 
-  void setValue(CeedScalar* ptr,const CeedScalar value,const CeedInt count) {
-    @tile(BLOCK_SIZE,@outer,@inner)
-    for(CeedInt i=0; i < count; ++i) {
-      ptr[i] = value;
-    }
-  }
-);
+    @kernel void setValue(CeedScalar* ptr, const CeedScalar value, const CeedInt count) {
+      @tile(BLOCK_SIZE, @outer, @inner) for (CeedInt i = 0; i < count; ++i) {
+        ptr[i] = value;
+      }
+    });

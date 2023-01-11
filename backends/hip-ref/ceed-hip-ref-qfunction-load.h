@@ -10,4 +10,4 @@
 
 CEED_INTERN int CeedHipBuildQFunction(CeedQFunction qf);
 
-#endif // _ceed_hip_qfunction_load_h
+#endif  // _ceed_hip_qfunction_load_h

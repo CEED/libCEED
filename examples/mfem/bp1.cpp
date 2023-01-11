@@ -1,19 +1,21 @@
+// Copyright (c) 2017-2022, Lawrence Livermore National Security, LLC and other CEED contributors.
+// All Rights Reserved. See the top-level LICENSE and NOTICE files for details.
+//
+// SPDX-License-Identifier: BSD-2-Clause
+//
+// This file is part of CEED:  http://github.com/ceed
+
 //                         libCEED + MFEM Example: BP1
 //
-// This example illustrates a simple usage of libCEED with the MFEM (mfem.org)
-// finite element library.
+// This example illustrates a simple usage of libCEED with the MFEM (mfem.org) finite element library.
 //
-// The example reads a mesh from a file and solves a simple linear system with a
-// mass matrix (L2-projection of a given analytic function provided by
-// 'solution'). The mass matrix required for performing the projection is
-// expressed as a new class, CeedMassOperator, derived from mfem::Operator.
-// Internally, CeedMassOperator uses a CeedOperator object constructed based on
-// an mfem::FiniteElementSpace. All libCEED objects use a Ceed device object
-// constructed based on a command line argument (-ceed).
+// The example reads a mesh from a file and solves a simple linear system with a mass matrix (L2-projection of a given analytic function provided by
+// 'solution'). The mass matrix required for performing the projection is expressed as a new class, CeedMassOperator, derived from mfem::Operator.
+// Internally, CeedMassOperator uses a CeedOperator object constructed based on an mfem::FiniteElementSpace.
+// All libCEED objects use a Ceed device object constructed based on a command line argument (-ceed).
 //
-// The mass matrix is inverted using a simple conjugate gradient algorithm
-// corresponding to CEED BP1, see http://ceed.exascaleproject.org/bps. Arbitrary
-// mesh and solution orders in 1D, 2D and 3D are supported from the same code.
+// The mass matrix is inverted using a simple conjugate gradient algorithm corresponding to CEED BP1, see http://ceed.exascaleproject.org/bps.
+// Arbitrary mesh and solution orders in 1D, 2D and 3D are supported from the same code.
 //
 // Build with:
 //
@@ -31,41 +33,38 @@
 /// @file
 /// MFEM mass operator based on libCEED
 
-#include <ceed.h>
-#include <mfem.hpp>
 #include "bp1.hpp"
+
+#include <ceed.h>
+
+#include <mfem.hpp>
 
 /// Continuous function to project on the discrete FE space
 double solution(const mfem::Vector &pt) {
-  return pt.Norml2(); // distance to the origin
+  return pt.Norml2();  // distance to the origin
 }
 
 //TESTARGS -ceed {ceed_resource} -t -no-vis --size 2000 --order 4
 int main(int argc, char *argv[]) {
   // 1. Parse command-line options.
   const char *ceed_spec = "/cpu/self";
-  #ifndef MFEM_DIR
+#ifndef MFEM_DIR
   const char *mesh_file = "../../../mfem/data/star.mesh";
-  #else
+#else
   const char *mesh_file = MFEM_DIR "/data/star.mesh";
-  #endif
-  int order = 1;
-  bool visualization = true;
-  bool test = false;
-  double max_nnodes = 50000;
+#endif
+  int    order         = 1;
+  bool   visualization = true;
+  bool   test          = false;
+  double max_nnodes    = 50000;
 
   mfem::OptionsParser args(argc, argv);
   args.AddOption(&ceed_spec, "-c", "-ceed", "Ceed specification.");
   args.AddOption(&mesh_file, "-m", "--mesh", "Mesh file to use.");
-  args.AddOption(&order, "-o", "--order",
-                 "Finite element order (polynomial degree).");
+  args.AddOption(&order, "-o", "--order", "Finite element order (polynomial degree).");
   args.AddOption(&max_nnodes, "-s", "--size", "Maximum size (number of DoFs)");
-  args.AddOption(&visualization, "-vis", "--visualization", "-no-vis",
-                 "--no-visualization",
-                 "Enable or disable GLVis visualization.");
-  args.AddOption(&test, "-t", "--test", "-no-test",
-                 "--no-test",
-                 "Enable or disable test mode.");
+  args.AddOption(&visualization, "-vis", "--visualization", "-no-vis", "--no-visualization", "Enable or disable GLVis visualization.");
+  args.AddOption(&test, "-t", "--test", "-no-test", "--no-test", "Enable or disable test mode.");
   args.Parse();
   if (!args.Good()) {
     args.PrintUsage(std::cout);
@@ -81,15 +80,13 @@ int main(int argc, char *argv[]) {
 
   // 3. Read the mesh from the given mesh file.
   mfem::Mesh *mesh = new mfem::Mesh(mesh_file, 1, 1);
-  int dim = mesh->Dimension();
+  int         dim  = mesh->Dimension();
 
-  // 4. Refine the mesh to increase the resolution. In this example we do
-  //    'ref_levels' of uniform refinement. We choose 'ref_levels' to be the
-  //    largest number that gives a final system with no more than 50,000
-  //    unknowns, approximately.
+  // 4. Refine the mesh to increase the resolution.
+  //    In this example we do 'ref_levels' of uniform refinement.
+  //    We choose 'ref_levels' to be the largest number that gives a final system with no more than 50,000 unknowns, approximately.
   {
-    int ref_levels =
-      (int)floor((log(max_nnodes/mesh->GetNE())-dim*log(order))/log(2.)/dim);
+    int ref_levels = (int)floor((log(max_nnodes / mesh->GetNE()) - dim * log(order)) / log(2.) / dim);
     for (int l = 0; l < ref_levels; l++) {
       mesh->UniformRefinement();
     }
@@ -101,25 +98,22 @@ int main(int argc, char *argv[]) {
     mesh->SetCurvature(order, false, -1, mfem::Ordering::byNODES);
   }
 
-  // 5. Define a finite element space on the mesh. Here we use continuous
-  //    Lagrange finite elements of the specified order.
+  // 5. Define a finite element space on the mesh.
+  //    Here we use continuous Lagrange finite elements of the specified order.
   MFEM_VERIFY(order > 0, "invalid order");
-  mfem::FiniteElementCollection *fec = new mfem::H1_FECollection(order, dim);
-  mfem::FiniteElementSpace *fespace = new mfem::FiniteElementSpace(mesh, fec);
+  mfem::FiniteElementCollection *fec     = new mfem::H1_FECollection(order, dim);
+  mfem::FiniteElementSpace      *fespace = new mfem::FiniteElementSpace(mesh, fec);
   if (!test) {
-    std::cout << "Number of finite element unknowns: "
-              << fespace->GetTrueVSize() << std::endl;
+    std::cout << "Number of finite element unknowns: " << fespace->GetTrueVSize() << std::endl;
   }
 
-  // 6. Construct a rhs vector using the linear form f(v) = (solution, v), where
-  //    v is a test function.
-  mfem::LinearForm b(fespace);
+  // 6. Construct a rhs vector using the linear form f(v) = (solution, v), where v is a test function.
+  mfem::LinearForm          b(fespace);
   mfem::FunctionCoefficient sol_coeff(solution);
   b.AddDomainIntegrator(new mfem::DomainLFIntegrator(sol_coeff));
   b.Assemble();
 
-  // 7. Construct a CeedMassOperator utilizing the 'ceed' device and using the
-  //    'fespace' object to extract data needed by the Ceed objects.
+  // 7. Construct a CeedMassOperator utilizing the 'ceed' device and using the 'fespace' object to extract data needed by the Ceed objects.
   CeedMassOperator mass(ceed, fespace);
 
   // 8. Solve the discrete system using the conjugate gradients (CG) method.
@@ -140,19 +134,17 @@ int main(int argc, char *argv[]) {
   // 9. Compute and print the L2 projection error.
   double err_l2 = sol.ComputeL2Error(sol_coeff);
   if (!test) {
-    std::cout << "L2 projection error: " << err_l2
-              << std::endl;
+    std::cout << "L2 projection error: " << err_l2 << std::endl;
   } else {
-    if (fabs(sol.ComputeL2Error(sol_coeff))>2e-4) {
+    if (fabs(sol.ComputeL2Error(sol_coeff)) > 2e-4) {
       std::cout << "Error too large: " << err_l2 << std::endl;
     }
   }
 
-  // 10. Open a socket connection to GLVis and send the mesh and solution for
-  //     visualization.
+  // 10. Open a socket connection to GLVis and send the mesh and solution for visualization.
   if (visualization) {
-    char vishost[] = "localhost";
-    int  visport   = 19916;
+    char               vishost[] = "localhost";
+    int                visport   = 19916;
     mfem::socketstream sol_sock(vishost, visport);
     sol_sock.precision(8);
     sol_sock << "solution\n" << *mesh << sol << std::flush;

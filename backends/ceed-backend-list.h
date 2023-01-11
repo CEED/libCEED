@@ -7,10 +7,9 @@
 
 // This header does not have guards because it is included multiple times.
 
-// List each backend registration function once here. This will be expanded
-// inside CeedRegisterAll() to call each registration function in the order
-// listed, and also to define weak symbol aliases for backends that are not
-// configured.
+// List each backend registration function once here.
+// This will be expanded inside CeedRegisterAll() to call each registration function in the order listed, and also to define weak symbol aliases for
+// backends that are not configured.
 
 MACRO(CeedRegister_Avx_Blocked, 1, "/cpu/self/avx/blocked")
 MACRO(CeedRegister_Avx_Serial, 1, "/cpu/self/avx/serial")

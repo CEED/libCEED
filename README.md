@@ -106,7 +106,7 @@ Rust users can include libCEED via `Cargo.toml`:
 
 ```toml
 [dependencies]
-libceed = { git = "https://github.com/CEED/libCEED", branch = "main" }
+libceed = "0.11.0"
 ```
 
 See the [Cargo documentation](https://doc.rust-lang.org/cargo/reference/specifying-dependencies.html#specifying-dependencies-from-git-repositories) for details.
@@ -115,14 +115,14 @@ See the [Cargo documentation](https://doc.rust-lang.org/cargo/reference/specifyi
 
 The test suite produces [TAP](https://testanything.org) output and is run by:
 
-```
-make test
+```console
+$ make test
 ```
 
 or, using the `prove` tool distributed with Perl (recommended):
 
-```
-make prove
+```console
+$ make prove
 ```
 
 ## Backends
@@ -401,7 +401,12 @@ If you utilize libCEED please cite:
   pages        = {2945},
   doi          = {10.21105/joss.02945}
 }
+```
 
+The archival copy of the libCEED user manual is maintained on [Zenodo](https://doi.org/10.5281/zenodo.4302736).
+To cite the user manual:
+
+```bibtex
 @misc{libceed-user-manual,
   author       = {Abdelfattah, Ahmad and
                   Barra, Valeria and
@@ -415,14 +420,16 @@ If you utilize libCEED please cite:
                   Medina, David and
                   Pazner, Will and
                   Ratnayaka, Thilina and
+                  Shakeri, Rezgar and
                   Thompson, Jeremy L and
-                  Tomov, Stanimire},
+                  Tomov, Stanimire and
+                  Wright III, James},
   title        = {{libCEED} User Manual},
-  month        = jul,
-  year         = 2021,
+  month        = dec,
+  year         = 2022,
   publisher    = {Zenodo},
-  version      = {0.9.0},
-  doi          = {10.5281/zenodo.5077489}
+  version      = {0.11.0},
+  doi          = {10.5281/zenodo.7480454}
 }
 ```
 
@@ -446,8 +453,8 @@ The BibTeX entries for these references can be found in the `doc/bib/references.
 
 The following copyright applies to each file in the CEED software suite, unless otherwise stated in the file:
 
-> Copyright (c) 2017, Lawrence Livermore National Security, LLC. Produced at the
-> Lawrence Livermore National Laboratory. LLNL-CODE-734707. All Rights reserved.
+> Copyright (c) 2017-2023, Lawrence Livermore National Security, LLC and other CEED contributors.
+> All rights reserved.
 
 See files LICENSE and NOTICE for details.
 

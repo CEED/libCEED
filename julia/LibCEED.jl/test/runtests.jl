@@ -210,8 +210,124 @@ else
             end
         end
 
+        @testset "Operator" begin
+            c = Ceed()
+            @interior_qf id = (
+                c,
+                (input, :in, EVAL_INTERP),
+                (output, :out, EVAL_INTERP),
+                begin
+                    output[] = input
+                end,
+            )
+            b = create_tensor_h1_lagrange_basis(c, 3, 1, 3, 3, GAUSS_LOBATTO)
+            n = getnumnodes(b)
+            offsets = Vector{CeedInt}(0:n-1)
+            r = create_elem_restriction(c, 1, n, 1, 1, n, offsets)
+            op = Operator(
+                c;
+                qf=id,
+                fields=[
+                    (:input, r, b, CeedVectorActive()),
+                    (:output, r, b, CeedVectorActive()),
+                ],
+            )
+
+            v = rand(CeedScalar, n)
+            v1 = CeedVector(c, v)
+            v2 = CeedVector(c, n)
+            apply!(op, v1, v2)
+            @test @witharray_read(a1 = v1, @witharray_read(a2 = v2, a1 == a2))
+            apply_add!(op, v1, v2)
+            @test @witharray_read(a1 = v1, @witharray_read(a2 = v2, a1 + a1 == a2))
+
+            diag_vector = create_lvector(r)
+            LibCEED.assemble_diagonal!(op, diag_vector)
+            @test @witharray_read(a = diag_vector, a == ones(n))
+            # TODO: change this test after bug-fix in libCEED
+            diag_vector[] = 0.0
+            LibCEED.assemble_add_diagonal!(op, diag_vector)
+            @test @witharray(a = diag_vector, a == fill(1.0, n))
+
+            comp_op = create_composite_operator(c, [op])
+            apply!(comp_op, v1, v2)
+            @test @witharray_read(a1 = v1, @witharray_read(a2 = v2, a1 == a2))
+
+            @test showstr(op) == """
+                CeedOperator
+                  1 elements with 27 quadrature points each
+                  2 fields
+                  1 input field:
+                    Input field 0:
+                      Name: "input"
+                      Size: 1
+                      EvalMode: interpolation
+                      Active vector
+                  1 output field:
+                    Output field 0:
+                      Name: "output"
+                      Size: 1
+                      EvalMode: interpolation
+                      Active vector"""
+        end
+
+        @testset "ElemRestriction" begin
+            c = Ceed()
+            n = 10
+            offsets = Vector{CeedInt}([0:n-1; n-1:2*n-2])
+            lsize = 2*n - 1
+            r = create_elem_restriction(c, 2, n, 1, lsize, lsize, offsets)
+            @test getcompstride(r) == lsize
+            @test getnumelements(r) == 2
+            @test getelementsize(r) == n
+            @test getlvectorsize(r) == lsize
+            @test getnumcomponents(r) == 1
+            @test length(create_lvector(r)) == lsize
+            @test length(create_evector(r)) == 2*n
+            lv, ev = create_vectors(r)
+            @test length(lv) == lsize
+            @test length(ev) == 2*n
+            mult = getmultiplicity(r)
+            mult2 = ones(lsize)
+            mult2[n] = 2
+            @test mult == mult2
+            rand_lv = rand(CeedScalar, lsize)
+            rand_ev = [rand_lv[1:n]; rand_lv[n:end]]
+            @test apply(r, rand_lv) == rand_ev
+            @test apply(r, rand_ev; tmode=TRANSPOSE) == rand_lv.*mult
+            @test showstr(r) == string(
+                "CeedElemRestriction from (19, 1) to 2 elements ",
+                "with 10 nodes each and component stride 19",
+            )
+
+            strides = CeedInt[1, n, n]
+            rs = create_elem_restriction_strided(c, 1, n, 1, n, strides)
+            @test showstr(rs) == string(
+                "CeedElemRestriction from (10, 1) to 1 elements ",
+                "with 10 nodes each and strides [1, $n, $n]",
+            )
+
+            @test ElemRestrictionNone()[] == LibCEED.C.CEED_ELEMRESTRICTION_NONE[]
+        end
+
         @testset "QFunction" begin
             c = Ceed()
+            @test showstr(create_interior_qfunction(c, "Poisson3DApply")) == """
+                 Gallery CeedQFunction - Poisson3DApply
+                   2 input fields:
+                     Input field 0:
+                       Name: "du"
+                       Size: 3
+                       EvalMode: "gradient"
+                     Input field 1:
+                       Name: "qdata"
+                       Size: 6
+                       EvalMode: "none"
+                   1 output field:
+                     Output field 0:
+                       Name: "dv"
+                       Size: 3
+                       EvalMode: "gradient\""""
 
             id = create_identity_qfunction(c, 1, EVAL_INTERP, EVAL_INTERP)
             Q = 10
@@ -255,89 +371,6 @@ else
             @test @witharray_read(v3 = cv3, v3[1] == v2[1]*sum(v1))
 
             @test QFunctionNone()[] == LibCEED.C.CEED_QFUNCTION_NONE[]
-        end
-
-        @testset "Operator" begin
-            c = Ceed()
-            @interior_qf id = (
-                c,
-                (input, :in, EVAL_INTERP),
-                (output, :out, EVAL_INTERP),
-                begin
-                    output[] = input
-                end,
-            )
-            b = create_tensor_h1_lagrange_basis(c, 3, 1, 3, 3, GAUSS_LOBATTO)
-            n = getnumnodes(b)
-            offsets = Vector{CeedInt}(0:n-1)
-            r = create_elem_restriction(c, 1, n, 1, 1, n, offsets)
-            op = Operator(
-                c;
-                qf=id,
-                fields=[
-                    (:input, r, b, CeedVectorActive()),
-                    (:output, r, b, CeedVectorActive()),
-                ],
-            )
-
-            v = rand(CeedScalar, n)
-            v1 = CeedVector(c, v)
-            v2 = CeedVector(c, n)
-            apply!(op, v1, v2)
-            @test @witharray_read(a1 = v1, @witharray_read(a2 = v2, a1 == a2))
-            apply_add!(op, v1, v2)
-            @test @witharray_read(a1 = v1, @witharray_read(a2 = v2, a1 + a1 == a2))
-
-            diag_vector = create_lvector(r)
-            LibCEED.assemble_diagonal!(op, diag_vector)
-            @test @witharray_read(a = diag_vector, a == ones(n))
-            # TODO: change this test after bug-fix in libCEED
-            diag_vector[] = 0.0
-            LibCEED.assemble_add_diagonal!(op, diag_vector)
-            @test @witharray(a = diag_vector, a == fill(1.0, n))
-
-            comp_op = create_composite_operator(c, [op])
-            apply!(comp_op, v1, v2)
-            @test @witharray_read(a1 = v1, @witharray_read(a2 = v2, a1 == a2))
-        end
-
-        @testset "ElemRestriction" begin
-            c = Ceed()
-            n = 10
-            offsets = Vector{CeedInt}([0:n-1; n-1:2*n-2])
-            lsize = 2*n - 1
-            r = create_elem_restriction(c, 2, n, 1, lsize, lsize, offsets)
-            @test getcompstride(r) == lsize
-            @test getnumelements(r) == 2
-            @test getelementsize(r) == n
-            @test getlvectorsize(r) == lsize
-            @test getnumcomponents(r) == 1
-            @test length(create_lvector(r)) == lsize
-            @test length(create_evector(r)) == 2*n
-            lv, ev = create_vectors(r)
-            @test length(lv) == lsize
-            @test length(ev) == 2*n
-            mult = getmultiplicity(r)
-            mult2 = ones(lsize)
-            mult2[n] = 2
-            @test mult == mult2
-            rand_lv = rand(CeedScalar, lsize)
-            rand_ev = [rand_lv[1:n]; rand_lv[n:end]]
-            @test apply(r, rand_lv) == rand_ev
-            @test apply(r, rand_ev; tmode=TRANSPOSE) == rand_lv.*mult
-            @test showstr(r) == string(
-                "CeedElemRestriction from (19, 1) to 2 elements ",
-                "with 10 nodes each and component stride 19",
-            )
-
-            strides = CeedInt[1, n, n]
-            rs = create_elem_restriction_strided(c, 1, n, 1, n, strides)
-            @test showstr(rs) == string(
-                "CeedElemRestriction from (10, 1) to 1 elements ",
-                "with 10 nodes each and strides [1, $n, $n]",
-            )
-
-            @test ElemRestrictionNone()[] == LibCEED.C.CEED_ELEMRESTRICTION_NONE[]
         end
     end
 end

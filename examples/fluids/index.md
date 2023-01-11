@@ -173,7 +173,7 @@ Our formulation follows {cite}`hughesetal2010`, which offers a comprehensive rev
   \int_{\Omega} \bm v \cdot \left( \frac{\partial \bm{q}_N}{\partial t} - \bm{S}(\bm{q}_N) \right)  \,dV
   - \int_{\Omega} \nabla \bm v \!:\! \bm{F}(\bm{q}_N)\,dV & \\
   + \int_{\partial \Omega} \bm v \cdot \bm{F}(\bm{q}_N) \cdot \widehat{\bm{n}} \,dS & \\
-  + \int_{\Omega} \mathcal{P}(\bm v)^T \, \left( \frac{\partial \bm{q}_N}{\partial t} \, + \,
+  + \int_{\Omega} \nabla\bm v \tcolon\left(\frac{\partial \bm F_{\text{adv}}}{\partial \bm q}\right) \bm\tau \left( \frac{\partial \bm{q}_N}{\partial t} \, + \,
   \nabla \cdot \bm{F} \, (\bm{q}_N) - \bm{S}(\bm{q}_N) \right) \,dV &= 0
   \, , \; \forall \bm v \in \mathcal{V}_p
   \end{aligned}
@@ -190,23 +190,15 @@ Our formulation follows {cite}`hughesetal2010`, which offers a comprehensive rev
   \int_{\Omega} \bm v \cdot \left( \frac{\partial \bm{q}_N}{\partial t} - \bm{S}(\bm{q}_N) \right)  \,dV
   - \int_{\Omega} \nabla \bm v \!:\! \bm{F}(\bm{q}_N)\,dV & \\
   + \int_{\partial \Omega} \bm v \cdot \bm{F}(\bm{q}_N) \cdot \widehat{\bm{n}} \,dS & \\
-  + \int_{\Omega} \mathcal{P}(\bm v)^T \, \nabla \cdot \bm{F} \, (\bm{q}_N) \,dV
+  + \int_{\Omega} \nabla\bm v \tcolon\left(\frac{\partial \bm F_{\text{adv}}}{\partial \bm q}\right) \bm\tau \nabla \cdot \bm{F} \, (\bm{q}_N) \,dV
   & = 0 \, , \; \forall \bm v \in \mathcal{V}_p
   \end{aligned}
   $$ (eq-weak-vector-ns-su)
 
   This stabilization technique can be selected using the option `-stab su`.
 
-In both {eq}`eq-weak-vector-ns-su` and {eq}`eq-weak-vector-ns-supg`, $\mathcal P$ is called the *perturbation to the test-function space*, since it modifies the original Galerkin method into *SUPG* or *SU* schemes.
-It is defined as
-
-$$
-\mathcal P(\bm v) \equiv \bm{\tau} \left(\frac{\partial \bm{F}_{\text{adv}} (\bm{q}_N)}{\partial \bm{q}_N} \right) \, \nabla \bm v\,,
-$$ (eq-streamline-P)
-
-where parameter $\bm{\tau} \in \mathbb R^{3}$ (spatial index) or $\bm \tau \in \mathbb R^{5\times 5}$ (field indices) is an intrinsic time scale matrix.
-Most generally, we consider $\bm\tau \in \mathbb R^{3,5,5}$.
-This expression contains the advective flux Jacobian, which may be thought of as mapping from a 5-vector (state) to a $(5,3)$ tensor (flux) or from a $(5,3)$ tensor (gradient of state) to a 5-vector (time derivative of state); the latter is used in {eq}`eq-streamline-P` because it's applied to $\nabla\bm v$.
+In both {eq}`eq-weak-vector-ns-su` and {eq}`eq-weak-vector-ns-supg`, $\bm\tau \in \mathbb R^{5\times 5}$ (field indices) is an intrinsic time scale matrix.
+The SUPG technique and the operator $\frac{\partial \bm F_{\text{adv}}}{\partial \bm q}$ (rather than its transpose) can be explained via an ansatz for subgrid state fluctuations $\tilde{\bm q} = -\bm\tau \bm r$ where $\bm r$ is a strong form residual.
 The forward variational form can be readily expressed by differentiating $\bm F_{\text{adv}}$ of {eq}`eq-ns-flux`
 
 $$
@@ -221,14 +213,6 @@ $$
 $$
 
 where $\diff P$ is defined by differentiating {eq}`eq-state`.
-This action is also readily computed by forward-mode AD, but since $\bm v$ is a test function, we actually need the action of the adjoint to use {eq}`eq-streamline-P` in finite element computation; that can be computed by reverse-mode AD.
-We may equivalently write the stabilization term as
-
-$$
-\mathcal P(\bm v)^T \bm r = \nabla \bm v \tcolon \left(\frac{\partial \bm F_{\text{adv}}}{\partial \bm q}\right)^T \, \bm\tau \bm r,
-$$
-
-where $\bm r$ is the strong form residual and $\bm\tau$ is a $5\times 5$ matrix.
 
 :::{dropdown} Stabilization scale $\bm\tau$
 A velocity vector $\bm u$ can be pulled back to the reference element as $\bm u_{\bm X} = \nabla_{\bm x}\bm X \cdot \bm u$, with units of reference length (non-dimensional) per second.
@@ -254,12 +238,13 @@ $$ (eq-tau-advdiff)
 
 where $\xi(\mathrm{Pe}) = \coth \mathrm{Pe} - 1/\mathrm{Pe}$ approaches 1 at large local Péclet number.
 Note that $\tau$ has units of time and, in the transport-dominated limit, is proportional to element transit time in the direction of the propagating wave.
-For advection-diffusion, $\bm F(q) = \bm u q$, and thus the perturbed test function is
+For advection-diffusion, $\bm F(q) = \bm u q$, and thus the SU stabilization term is
 
 $$
-\mathcal P(v) = \tau \bm u \cdot \nabla v = \tau \bm u_{\bm X} \nabla_{\bm X} v.
-$$ (eq-test-perturbation-advdiff)
+\nabla v \cdot \bm u \tau \bm u \cdot \nabla q = \nabla_{\bm X} v \cdot (\bm u_{\bm X} \tau \bm u_{\bm X}) \cdot \nabla_{\bm X} q .
+$$ (eq-su-stabilize-advdiff)
 
+where the term in parentheses is a rank-1 diffusivity tensor that has been pulled back to the reference element.
 See {cite}`hughesetal2010` equations 15-17 and 34-36 for further discussion of this formulation.
 
 For the Navier-Stokes and Euler equations, {cite}`whiting2003hierarchical` defines a $5\times 5$ diagonal stabilization $\mathrm{diag}(\tau_c, \tau_m, \tau_m, \tau_m, \tau_E)$ consisting of
@@ -269,7 +254,7 @@ For the Navier-Stokes and Euler equations, {cite}`whiting2003hierarchical` defin
 
 The Navier-Stokes code in this example uses the following formulation for $\tau_c$, $\tau_m$, $\tau_E$:
 
-$$ 
+$$
 \begin{aligned}
 
 \tau_c &= \frac{C_c \mathcal{F}}{8\rho \trace(\bm g)} \\
@@ -385,7 +370,7 @@ $$
 \int_{\Omega} \nu_{SHOCK} \nabla \bm v \!:\! \nabla \bm q dV
 $$
 
-The shock capturing viscosity is implemented following the first formulation described in {cite} `tezduyar2007yzb`. The characteristic velocity $u_{cha}$ is taken to be the acoustic speed while the reference density $\rho_{ref}$ is just the local density. Shock capturing viscosity is defined by the following
+The shock capturing viscosity is implemented following the first formulation described in {cite}`tezduyar2007yzb`. The characteristic velocity $u_{cha}$ is taken to be the acoustic speed while the reference density $\rho_{ref}$ is just the local density. Shock capturing viscosity is defined by the following
 
 $$
 \nu_{SHOCK} = \tau_{SHOCK} u_{cha}^2
@@ -412,6 +397,39 @@ $$
 The constant $C_{YZB}$ is set to 0.1 for piecewise linear elements in the current implementation. Larger values approaching unity are expected with more robust stabilization and implicit timestepping.
 
 (problem-density-current)=
+
+## Newtonian Wave
+This test case is taken/inspired by that presented in {cite}`mengaldoCompressibleBC2014`. It is intended to test non-reflecting/Riemann boundary conditions. It's primarily intended for Euler equations, but has been implemented for the Navier-Stokes equations here for flexibility.
+
+The problem has a perturbed initial condition and lets it evolve in time. The initial condition contains a Gaussian perturbation in the pressure field:
+
+$$
+\begin{aligned}
+\rho &= \rho_\infty\left(1+A\exp\left(\frac{-(\bar{x}^2 + \bar{y}^2)}{2\sigma^2}\right)\right) \\
+\bm{U} &= \bm U_\infty \\
+E &= \frac{p_\infty}{\gamma -1}\left(1+A\exp\left(\frac{-(\bar{x}^2 + \bar{y}^2)}{2\sigma^2}\right)\right) + \frac{\bm U_\infty \cdot \bm U_\infty}{2\rho_\infty},
+\end{aligned}
+$$
+
+where $A$ and $\sigma$ are the amplitude and width of the perturbation, respectively, and $(\bar{x}, \bar{y}) = (x-x_e, y-y_e)$ is the distance to the epicenter of the perturbation, $(x_e, y_e)$.
+The simulation produces a strong acoustic wave and leaves behind a cold thermal bubble that advects at the fluid velocity.
+
+The boundary conditions are freestream in the x and y directions. When using an HLL (Harten, Lax, van Leer) Riemann solver {cite}`toro2009` (option `-freestream_riemann hll`), the acoustic waves exit the domain cleanly, but when the thermal bubble reaches the boundary, it produces strong thermal oscillations that become acoustic waves reflecting into the domain.
+This problem can be fixed using a more sophisticated Riemann solver such as HLLC {cite}`toro2009` (option `-freestream_riemann hllc`, which is default), which is a linear constant-pressure wave that transports temperature and transverse momentum at the fluid velocity.
+
+## Vortex Shedding - Flow past Cylinder
+This test case, based on {cite}`shakib1991femcfd`, is an example of using an externally provided mesh from Gmsh.
+A cylinder with diameter $D=1$ is centered at $(0,0)$ in a computational domain $-4.5 \leq x \leq 15.5$, $-4.5 \leq y \leq 4.5$.
+We solve this as a 3D problem with (default) one element in the $z$ direction.
+The domain is filled with an ideal gas at rest (zero velocity) with temperature 24.92 and pressure 7143.
+The viscosity is 0.01 and thermal conductivity is 14.34 to maintain a Prandtl number of 0.71, which is typical for air.
+At time $t=0$, this domain is subjected to freestream boundary conditions at the inflow (left) and Riemann-type outflow on the right, with exterior reference state at velocity $(1, 0, 0)$ giving Reynolds number $100$ and Mach number $0.01$.
+A symmetry (adiabatic free slip) condition is imposed at the top and bottom boundaries $(y = \pm 4.5)$ (zero normal velocity component, zero heat-flux).
+The cylinder wall is an adiabatic (no heat flux) no-slip boundary condition.
+As we evolve in time, eddies appear past the cylinder leading to a vortex shedding known as the vortex street, with shedding period of about 6.
+
+The Gmsh input file, `examples/fluids/meshes/cylinder.geo` is parametrized to facilitate experimenting with similar configurations.
+The Strouhal number (nondimensional shedding frequency) is sensitive to the size of the computational domain and boundary conditions.
 
 ## Density Current
 
@@ -622,7 +640,7 @@ numerous terms in the STG formulation.
 
 The flat plate boundary layer example has custom meshing features to better
 resolve the flow. One of those is tilting the top of the domain, allowing for
-it to be a outflow boundary condition. The angle of this tilt is controled by
+it to be a outflow boundary condition. The angle of this tilt is controlled by
 `-platemesh_top_angle`
 
 The primary meshing feature is the ability to grade the mesh, providing better

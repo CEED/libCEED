@@ -15,7 +15,7 @@ jobs:
 
     steps:
     - name: Environment setup
-      uses: actions/checkout@v2
+      uses: actions/checkout@v3
     - name: Check release notes
       run: |
         git fetch origin main

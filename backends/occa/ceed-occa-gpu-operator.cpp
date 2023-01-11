@@ -6,20 +6,19 @@
 // This file is part of CEED:  http://github.com/ceed
 
 #include "ceed-occa-gpu-operator.hpp"
+
 #include "ceed-occa-qfunction.hpp"
 
 namespace ceed {
-  namespace occa {
-    GpuOperator::GpuOperator() {}
+namespace occa {
+GpuOperator::GpuOperator() {}
 
-    GpuOperator::~GpuOperator() {}
+GpuOperator::~GpuOperator() {}
 
-    ::occa::kernel GpuOperator::buildApplyAddKernel() {
-      return ::occa::kernel();
-    }
+::occa::kernel GpuOperator::buildApplyAddKernel() { return ::occa::kernel(); }
 
-    void GpuOperator::applyAdd(Vector *in, Vector *out) {
-      // TODO: Implement
-    }
-  }
+void GpuOperator::applyAdd(Vector *in, Vector *out) {
+  // TODO: Implement
 }
+}  // namespace occa
+}  // namespace ceed

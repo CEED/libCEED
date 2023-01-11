@@ -11,7 +11,6 @@
 #include <ceed/ceed.h>
 #include <cuda.h>
 
-CEED_EXTERN int CeedQFunctionSetCUDAUserFunction(CeedQFunction qf,
-    CUfunction f);
+CEED_EXTERN int CeedQFunctionSetCUDAUserFunction(CeedQFunction qf, CUfunction f);
 
 #endif

@@ -1,6 +1,6 @@
 [package]
 name = "ex4-vector-surface"
-version = "0.1.0"
+version = "0.11.0"
 authors = [
     "Jeremy L Thompson <thompson.jeremy.luke@gmail.com>",
 ]
@@ -10,3 +10,6 @@ edition = "2018"
 clap = { version = "4.0.17", features = ["derive"] }
 libceed = { path = "../../../rust/libceed" }
 mesh = { path = "../mesh" }
+
+[package.metadata.release]
+release = false

@@ -344,7 +344,7 @@ endif
 # AVX Backed
 AVX_STATUS = Disabled
 AVX_FLAG := $(if $(filter clang,$(CC_VENDOR)),+avx,-mavx)
-AVX := $(filter $(AVX_FLAG),$(shell $(CC) $(CFLAGS) -v -E -x c /dev/null 2>&1))
+AVX := $(filter $(AVX_FLAG),$(shell $(CC) $(CFLAGS:-M%=) -v -E -x c /dev/null 2>&1))
 AVX_BACKENDS = /cpu/self/avx/serial /cpu/self/avx/blocked
 ifneq ($(AVX),)
   AVX_STATUS = Enabled
@@ -678,7 +678,7 @@ install : $(libceed) $(OBJDIR)/ceed.pc
 	$(INSTALL_DATA) $(wildcard include/ceed/jit-source/hip/*.h) "$(DESTDIR)$(includedir)/ceed/jit-source/hip/"
 	$(INSTALL_DATA) $(wildcard include/ceed/jit-source/gallery/*.h) "$(DESTDIR)$(includedir)/ceed/jit-source/gallery/"
 
-.PHONY : all cln clean doxygen doc lib install par print test tst prove prv prove-all junit examples style style-c style-py tidy iwyu info info-backends info-backends-all
+.PHONY : all cln clean doxygen doc format lib install par print test tst prove prv prove-all junit examples tidy iwyu info info-backends info-backends-all
 
 cln clean :
 	$(RM) -r $(OBJDIR) $(LIBDIR) dist *egg* .pytest_cache *cffi*
@@ -689,6 +689,7 @@ cln clean :
 distclean : clean
 	$(RM) -r doc/html doc/sphinx/build $(CONFIG)
 
+# Documentation
 DOXYGEN ?= doxygen
 doxygen :
 	$(DOXYGEN) -q Doxyfile
@@ -698,19 +699,24 @@ doc-html doc-latexpdf doc-epub doc-livehtml : doc-% : doxygen
 
 doc : doc-html
 
-style-c :
-	@astyle --options=.astylerc \
-          $(filter-out include/ceedf.h $(wildcard tests/t*-f.h), \
-            $(wildcard include/*.h interface/*.[ch] tests/*.[ch] backends/*/*.[ch] \
-              examples/*/*/*.[ch] examples/*/*.[ch] examples/*/*.[ch]pp gallery/*/*.[ch]))
+# Style/Format
+CLANG_FORMAT ?= clang-format
+
+FORMAT_OPTS += -style=file -i
+
+format.ch := $(filter-out include/ceedf.h $(wildcard tests/t*-f.h), $(shell git ls-files *.[ch]pp *.[ch]))
+
+format-c  :
+	$(CLANG_FORMAT) $(FORMAT_OPTS) $(format.ch) 
 
 AUTOPEP8 = autopep8
-style-py : AUTOPEP8_ARGS = --in-place --aggressive
-style-py :
+format-py  : AUTOPEP8_ARGS = --in-place --aggressive
+format-py  :
 	@$(AUTOPEP8) $(AUTOPEP8_ARGS) $(wildcard *.py python**/*.py python/tests/*.py examples**/*.py doc/sphinx/source**/*.py benchmarks/*.py)
 
-style : style-c style-py
+format    : format-c format-py
 
+# Tidy
 CLANG_TIDY ?= clang-tidy
 
 %.c.tidy : %.c
@@ -719,16 +725,17 @@ CLANG_TIDY ?= clang-tidy
 %.cpp.tidy : %.cpp
 	$(CLANG_TIDY) $(TIDY_OPTS) $^ -- $(CPPFLAGS) --std=c++11 -I$(CUDA_DIR)/include -I$(OCCA_DIR)/include -I$(HIP_DIR)/include
 
-tidy_c   : $(libceed.c:%=%.tidy)
-tidy_cpp : $(libceed.cpp:%=%.tidy)
+tidy-c   : $(libceed.c:%=%.tidy)
+tidy-cpp : $(libceed.cpp:%=%.tidy)
 
-tidy : tidy_c tidy_cpp
+tidy : tidy-c tidy-cpp
 
 ifneq ($(wildcard ../iwyu/*),)
   IWYU_DIR ?= ../iwyu
   IWYU_CC  ?= $(IWYU_DIR)/build/bin/include-what-you-use
 endif
 
+# IWYU
 iwyu : CC=$(IWYU_CC)
 iwyu : lib
 

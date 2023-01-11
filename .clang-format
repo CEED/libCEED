@@ -1,0 +1,14 @@
+BasedOnStyle: "Google"
+
+AlignAfterOpenBracket:        Align
+AlignArrayOfStructures:       Left
+AlignConsecutiveAssignments:  Consecutive
+AlignConsecutiveDeclarations: Consecutive
+AlignEscapedNewlines:         true
+AlignOperands:                Align
+AlignTrailingComments:        true
+AllowShortIfStatementsOnASingleLine: AllIfsAndElse
+ColumnLimit:                  150
+CommentPragmas:               'TESTARGS'
+TabWidth:                     4
+UseTab:                       Never

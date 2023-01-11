@@ -14,13 +14,13 @@ jobs:
 
     steps:
     - name: Environment setup
-      uses: actions/checkout@v2
-    - name: Install astyle
-      run: sudo apt-get install astyle
+      uses: actions/checkout@v3
+    - name: Install clang-format
+      run: sudo apt install clang-format-14
     - name: C style
       env:
         CC: ${{ matrix.compiler }}
         FC: gfortran-11
       run: |
         make info
-        make style-c -j2 && git diff --exit-code
+        make format-c -j2 && git diff --exit-code

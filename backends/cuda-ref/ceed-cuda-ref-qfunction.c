@@ -5,67 +5,58 @@
 //
 // This file is part of CEED:  http://github.com/ceed
 
-#include <ceed/ceed.h>
 #include <ceed/backend.h>
+#include <ceed/ceed.h>
 #include <cuda.h>
 #include <stdio.h>
 #include <string.h>
-#include "ceed-cuda-ref.h"
-#include "ceed-cuda-ref-qfunction-load.h"
+
 #include "../cuda/ceed-cuda-compile.h"
+#include "ceed-cuda-ref-qfunction-load.h"
+#include "ceed-cuda-ref.h"
 
 //------------------------------------------------------------------------------
 // Apply QFunction
 //------------------------------------------------------------------------------
-static int CeedQFunctionApply_Cuda(CeedQFunction qf, CeedInt Q,
-                                   CeedVector *U, CeedVector *V) {
-  int ierr;
+static int CeedQFunctionApply_Cuda(CeedQFunction qf, CeedInt Q, CeedVector *U, CeedVector *V) {
   Ceed ceed;
-  ierr = CeedQFunctionGetCeed(qf, &ceed); CeedChkBackend(ierr);
+  CeedCallBackend(CeedQFunctionGetCeed(qf, &ceed));
 
   // Build and compile kernel, if not done
-  ierr = CeedCudaBuildQFunction(qf); CeedChkBackend(ierr);
+  CeedCallBackend(CeedCudaBuildQFunction(qf));
 
   CeedQFunction_Cuda *data;
-  ierr = CeedQFunctionGetData(qf, &data); CeedChkBackend(ierr);
+  CeedCallBackend(CeedQFunctionGetData(qf, &data));
   Ceed_Cuda *ceed_Cuda;
-  ierr = CeedGetData(ceed, &ceed_Cuda); CeedChkBackend(ierr);
+  CeedCallBackend(CeedGetData(ceed, &ceed_Cuda));
   CeedInt num_input_fields, num_output_fields;
-  ierr = CeedQFunctionGetNumArgs(qf, &num_input_fields, &num_output_fields);
-  CeedChkBackend(ierr);
+  CeedCallBackend(CeedQFunctionGetNumArgs(qf, &num_input_fields, &num_output_fields));
 
   // Read vectors
   for (CeedInt i = 0; i < num_input_fields; i++) {
-    ierr = CeedVectorGetArrayRead(U[i], CEED_MEM_DEVICE, &data->fields.inputs[i]);
-    CeedChkBackend(ierr);
+    CeedCallBackend(CeedVectorGetArrayRead(U[i], CEED_MEM_DEVICE, &data->fields.inputs[i]));
   }
   for (CeedInt i = 0; i < num_output_fields; i++) {
-    ierr = CeedVectorGetArrayWrite(V[i], CEED_MEM_DEVICE, &data->fields.outputs[i]);
-    CeedChkBackend(ierr);
+    CeedCallBackend(CeedVectorGetArrayWrite(V[i], CEED_MEM_DEVICE, &data->fields.outputs[i]));
   }
 
   // Get context data
-  ierr = CeedQFunctionGetInnerContextData(qf, CEED_MEM_DEVICE, &data->d_c);
-  CeedChkBackend(ierr);
+  CeedCallBackend(CeedQFunctionGetInnerContextData(qf, CEED_MEM_DEVICE, &data->d_c));
 
   // Run kernel
-  void *args[] = {&data->d_c, (void *) &Q, &data->fields};
-  ierr = CeedRunKernelAutoblockCuda(ceed, data->QFunction, Q, args);
-  CeedChkBackend(ierr);
+  void *args[] = {&data->d_c, (void *)&Q, &data->fields};
+  CeedCallBackend(CeedRunKernelAutoblockCuda(ceed, data->QFunction, Q, args));
 
   // Restore vectors
   for (CeedInt i = 0; i < num_input_fields; i++) {
-    ierr = CeedVectorRestoreArrayRead(U[i], &data->fields.inputs[i]);
-    CeedChkBackend(ierr);
+    CeedCallBackend(CeedVectorRestoreArrayRead(U[i], &data->fields.inputs[i]));
   }
   for (CeedInt i = 0; i < num_output_fields; i++) {
-    ierr = CeedVectorRestoreArray(V[i], &data->fields.outputs[i]);
-    CeedChkBackend(ierr);
+    CeedCallBackend(CeedVectorRestoreArray(V[i], &data->fields.outputs[i]));
   }
 
   // Restore context
-  ierr = CeedQFunctionRestoreInnerContextData(qf, &data->d_c);
-  CeedChkBackend(ierr);
+  CeedCallBackend(CeedQFunctionRestoreInnerContextData(qf, &data->d_c));
 
   return CEED_ERROR_SUCCESS;
 }
@@ -74,14 +65,12 @@ static int CeedQFunctionApply_Cuda(CeedQFunction qf, CeedInt Q,
 // Destroy QFunction
 //------------------------------------------------------------------------------
 static int CeedQFunctionDestroy_Cuda(CeedQFunction qf) {
-  int ierr;
   CeedQFunction_Cuda *data;
-  ierr = CeedQFunctionGetData(qf, &data); CeedChkBackend(ierr);
+  CeedCallBackend(CeedQFunctionGetData(qf, &data));
   Ceed ceed;
-  ierr = CeedQFunctionGetCeed(qf, &ceed); CeedChkBackend(ierr);
-  if (data->module)
-    CeedChk_Cu(ceed, cuModuleUnload(data->module));
-  ierr = CeedFree(&data); CeedChkBackend(ierr);
+  CeedCallBackend(CeedQFunctionGetCeed(qf, &ceed));
+  if (data->module) CeedCallCuda(ceed, cuModuleUnload(data->module));
+  CeedCallBackend(CeedFree(&data));
 
   return CEED_ERROR_SUCCESS;
 }
@@ -89,13 +78,10 @@ static int CeedQFunctionDestroy_Cuda(CeedQFunction qf) {
 //------------------------------------------------------------------------------
 // Set User QFunction
 //------------------------------------------------------------------------------
-static int CeedQFunctionSetCUDAUserFunction_Cuda(CeedQFunction qf,
-    CUfunction f) {
-  int ierr;
+static int CeedQFunctionSetCUDAUserFunction_Cuda(CeedQFunction qf, CUfunction f) {
   CeedQFunction_Cuda *data;
-  ierr = CeedQFunctionGetData(qf, &data); CeedChkBackend(ierr);
+  CeedCallBackend(CeedQFunctionGetData(qf, &data));
   data->QFunction = f;
-
   return CEED_ERROR_SUCCESS;
 }
 
@@ -103,29 +89,22 @@ static int CeedQFunctionSetCUDAUserFunction_Cuda(CeedQFunction qf,
 // Create QFunction
 //------------------------------------------------------------------------------
 int CeedQFunctionCreate_Cuda(CeedQFunction qf) {
-  int ierr;
   Ceed ceed;
   CeedQFunctionGetCeed(qf, &ceed);
   CeedQFunction_Cuda *data;
-  ierr = CeedCalloc(1, &data); CeedChkBackend(ierr);
-  ierr = CeedQFunctionSetData(qf, data); CeedChkBackend(ierr);
+  CeedCallBackend(CeedCalloc(1, &data));
+  CeedCallBackend(CeedQFunctionSetData(qf, data));
 
   // Read QFunction source
-  ierr = CeedQFunctionGetKernelName(qf, &data->qfunction_name);
-  CeedChkBackend(ierr);
+  CeedCallBackend(CeedQFunctionGetKernelName(qf, &data->qfunction_name));
   CeedDebug256(ceed, 2, "----- Loading QFunction User Source -----\n");
-  ierr = CeedQFunctionLoadSourceToBuffer(qf, &data->qfunction_source);
-  CeedChkBackend(ierr);
+  CeedCallBackend(CeedQFunctionLoadSourceToBuffer(qf, &data->qfunction_source));
   CeedDebug256(ceed, 2, "----- Loading QFunction User Source Complete! -----\n");
 
   // Register backend functions
-  ierr = CeedSetBackendFunction(ceed, "QFunction", qf, "Apply",
-                                CeedQFunctionApply_Cuda); CeedChkBackend(ierr);
-  ierr = CeedSetBackendFunction(ceed, "QFunction", qf, "Destroy",
-                                CeedQFunctionDestroy_Cuda); CeedChkBackend(ierr);
-  ierr = CeedSetBackendFunction(ceed, "QFunction", qf, "SetCUDAUserFunction",
-                                CeedQFunctionSetCUDAUserFunction_Cuda);
-  CeedChkBackend(ierr);
+  CeedCallBackend(CeedSetBackendFunction(ceed, "QFunction", qf, "Apply", CeedQFunctionApply_Cuda));
+  CeedCallBackend(CeedSetBackendFunction(ceed, "QFunction", qf, "Destroy", CeedQFunctionDestroy_Cuda));
+  CeedCallBackend(CeedSetBackendFunction(ceed, "QFunction", qf, "SetCUDAUserFunction", CeedQFunctionSetCUDAUserFunction_Cuda));
   return CEED_ERROR_SUCCESS;
 }
 //------------------------------------------------------------------------------

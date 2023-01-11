@@ -1,4 +1,4 @@
-# libCEED: How to Contribute
+# How to Contribute
 
 Contributions to libCEED are encouraged.
 <!---
@@ -28,7 +28,7 @@ Please avoid "merging from upstream" (like merging 'main' into your feature bran
 [Junio](https://gitster.livejournal.com/42247.html) and
 [Linus](http://yarchive.net/comp/linux/git_merges_from_upstream.html).
 
-You can use `make style` to help conform to coding conventions of the project, but try to avoid mixing whitespace or formatting changes with content changes (see atomicity above).
+You can use `make format` to help conform to coding conventions of the project, but try to avoid mixing whitespace or formatting changes with content changes (see atomicity above).
 
 By submitting a pull request, you are affirming the following.
 

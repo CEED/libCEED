@@ -9,8 +9,8 @@
 #ifndef _ceed_magma_h
 #define _ceed_magma_h
 
-#include <ceed/ceed.h>
 #include <ceed/backend.h>
+#include <ceed/ceed.h>
 #include <magma_v2.h>
 
 #define MAGMA_MAXTHREADS_1D 128
@@ -36,7 +36,7 @@
 #define MAGMA_NONTENSOR_N_VALUES    10240,51200,102400,512000,1024000
 
 #ifdef CEED_MAGMA_USE_HIP
-typedef hipModule_t CeedMagmaModule;
+typedef hipModule_t   CeedMagmaModule;
 typedef hipFunction_t CeedMagmaFunction;
 #define CeedCompileMagma CeedCompileHip
 #define CeedGetKernelMagma CeedGetKernelHip
@@ -44,7 +44,7 @@ typedef hipFunction_t CeedMagmaFunction;
 #define CeedRunKernelDimMagma CeedRunKernelDimHip
 #define CeedRunKernelDimSharedMagma CeedRunKernelDimSharedHip
 #else
-typedef CUmodule CeedMagmaModule;
+typedef CUmodule   CeedMagmaModule;
 typedef CUfunction CeedMagmaFunction;
 #define CeedCompileMagma CeedCompileCuda
 #define CeedGetKernelMagma CeedGetKernelCuda
@@ -53,28 +53,25 @@ typedef CUfunction CeedMagmaFunction;
 #define CeedRunKernelDimSharedMagma CeedRunKernelDimSharedCuda
 #endif
 
-typedef enum {
-  MAGMA_KERNEL_DIM_GENERIC=101,
-  MAGMA_KERNEL_DIM_SPECIFIC=102
-} magma_kernel_mode_t;
+typedef enum { MAGMA_KERNEL_DIM_GENERIC = 101, MAGMA_KERNEL_DIM_SPECIFIC = 102 } magma_kernel_mode_t;
 
 typedef struct {
   magma_kernel_mode_t basis_kernel_mode;
-  magma_device_t device;
-  magma_queue_t queue;
+  magma_device_t      device;
+  magma_queue_t       queue;
 } Ceed_Magma;
 
 typedef struct {
-  CeedMagmaModule module;
+  CeedMagmaModule   module;
   CeedMagmaFunction magma_interp;
   CeedMagmaFunction magma_interp_tr;
   CeedMagmaFunction magma_grad;
   CeedMagmaFunction magma_grad_tr;
   CeedMagmaFunction magma_weight;
-  CeedScalar *dqref1d;
-  CeedScalar *dinterp1d;
-  CeedScalar *dgrad1d;
-  CeedScalar *dqweight1d;
+  CeedScalar       *dqref1d;
+  CeedScalar       *dinterp1d;
+  CeedScalar       *dgrad1d;
+  CeedScalar       *dqweight1d;
 } CeedBasis_Magma;
 
 typedef struct {
@@ -96,21 +93,21 @@ typedef enum {
 } OwnershipMode;
 
 typedef struct {
-  CeedMagmaModule module;
+  CeedMagmaModule   module;
   CeedMagmaFunction StridedTranspose;
   CeedMagmaFunction StridedNoTranspose;
   CeedMagmaFunction OffsetTranspose;
   CeedMagmaFunction OffsetNoTranspose;
-  CeedInt *offsets;
-  CeedInt *doffsets;
-  OwnershipMode own_;
-  int down_;            // cover a case where we own Device memory
+  CeedInt          *offsets;
+  CeedInt          *doffsets;
+  OwnershipMode     own_;
+  int               down_;  // cover a case where we own Device memory
 } CeedElemRestriction_Magma;
 
 typedef struct {
   const CeedScalar **inputs;
-  CeedScalar **outputs;
-  bool setupdone;
+  CeedScalar       **outputs;
+  bool               setupdone;
 } CeedQFunction_Magma;
 
 #define USE_MAGMA_BATCH

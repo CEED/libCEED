@@ -18,26 +18,22 @@
 // This QFunction applies the mass matrix to five interlaced fields.
 //
 // Inputs:
-//   u     - Input vector at quadrature points
+//   u      - Input vector at quadrature points
 //   q_data - Quadrature weights
 //
 // Output:
 //   v - Output vector at quadrature points
 //
 // *****************************************************************************
-CEED_QFUNCTION(Mass)(void *ctx, CeedInt Q,
-                     const CeedScalar *const *in, CeedScalar *const *out) {
-  // *INDENT-OFF*
+CEED_QFUNCTION(Mass)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
   // Inputs
-  const CeedScalar (*u)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[0],
-                   (*q_data) = in[1];
+  const CeedScalar(*u)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[0];
+  const CeedScalar(*q_data)        = in[1];
 
   // Outputs
-  CeedScalar (*v)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA])out[0];
-  // *INDENT-ON*
+  CeedScalar(*v)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA])out[0];
 
-  CeedPragmaSIMD
-  for (CeedInt i=0; i<Q; i++) {
+  CeedPragmaSIMD for (CeedInt i = 0; i < Q; i++) {
     v[0][i] = q_data[i] * u[0][i];
     v[1][i] = q_data[i] * u[1][i];
     v[2][i] = q_data[i] * u[2][i];
@@ -49,4 +45,4 @@ CEED_QFUNCTION(Mass)(void *ctx, CeedInt Q,
 
 // *****************************************************************************
 
-#endif // mass_h
+#endif  // mass_h

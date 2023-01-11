@@ -8,24 +8,15 @@
 #include "ceed-occa-qfunction-field.hpp"
 
 namespace ceed {
-  namespace occa {
-    QFunctionField::QFunctionField(CeedQFunctionField qfField) :
-        _isValid(false),
-        size(0) {
+namespace occa {
+QFunctionField::QFunctionField(CeedQFunctionField qfField) : _isValid(false), size(0) {
+  CeedCallOccaValid(_isValid, CeedQFunctionFieldGetEvalMode(qfField, &evalMode));
 
-      int ierr = 0;
+  CeedCallOccaValid(_isValid, CeedQFunctionFieldGetSize(qfField, &size));
 
-      ierr = CeedQFunctionFieldGetEvalMode(qfField, &evalMode);
-      CeedOccaValidChk(_isValid, ierr);
-
-      ierr = CeedQFunctionFieldGetSize(qfField, &size);
-      CeedOccaValidChk(_isValid, ierr);
-
-      _isValid = true;
-    }
-
-    bool QFunctionField::isValid() const {
-      return _isValid;
-    }
-  }
+  _isValid = true;
 }
+
+bool QFunctionField::isValid() const { return _isValid; }
+}  // namespace occa
+}  // namespace ceed

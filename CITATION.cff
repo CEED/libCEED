@@ -1,7 +1,7 @@
 cff-version: 1.2.0
 title: "libCEED: Efficient Extensible Discretization"
-version: 0.10.1
-date-released: 2021-07-07
+version: 0.11.0
+date-released: 2022-12-23
 license:  BSD-2-Clause
 message: "Please cite the following works when using this software."
 authors:
@@ -40,12 +40,19 @@ authors:
   - family-names: Ratnayaka
     given-names: Thilina
     orcid: 0000-0001-6102-6560
+  - family-names: Shakeri
+    given-names: Rezgar
+    orcid: 0000-0003-4790-7016
   - family-names: Thompson
     given-names: Jeremy L
     orcid: 0000-0003-2980-0899
   - family-names: Tomov
     given-names: Stanimire
     orcid: 0000-0002-5937-7959
+  - family-names: Wright
+    given-names: James
+    name-suffix: III
+    orcid: 0000-0001-7273-049X
 doi: 10.5281/zenodo.5080234
 url: "https://libceed.org/en/latest/"
 repository: "https://github.com/CEED/libCEED"
@@ -142,19 +149,26 @@ references:
       - family-names: Ratnayaka
         given-names: Thilina
         orcid: 0000-0001-6102-6560
+      - family-names: Shakeri
+        given-names: Rezgar
+        orcid: 0000-0003-4790-7016
       - family-names: Thompson
         given-names: Jeremy L
         orcid: 0000-0003-2980-0899
       - family-names: Tomov
         given-names: Stanimire
         orcid: 0000-0002-5937-7959
-    year: 2021
-    month: Jul
+      - family-names: Wright
+        given-names: James
+        name-suffix: III
+        orcid: 0000-0001-7273-049X
+    year: 2022
+    month: Dec
     publisher:
       - name: Zenodo
         website: "https://zenodo.org/"
-    version: 0.10.0
-    doi: 10.5281/zenodo.5077489
+    version: 0.11.0
+    doi: 10.5281/zenodo.4302736
   - type: proceedings
     title: "High-performance operator evaluations with ease of use: libCEED's Python interface"
     scope: "Please cite this paper when you use the Python interface."

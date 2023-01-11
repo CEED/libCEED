@@ -6,4 +6,5 @@ members = [
         "examples/rust/ex2-surface",
         "examples/rust/ex3-vector-volume",
         "examples/rust/ex4-vector-surface",
+        "examples/rust/mesh",
 ]

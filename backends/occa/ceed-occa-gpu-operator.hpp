@@ -13,18 +13,18 @@
 #include "ceed-occa-operator.hpp"
 
 namespace ceed {
-  namespace occa {
-    class GpuOperator : public Operator {
-     public:
-      GpuOperator();
+namespace occa {
+class GpuOperator : public Operator {
+ public:
+  GpuOperator();
 
-      ~GpuOperator();
+  ~GpuOperator();
 
-      ::occa::kernel buildApplyAddKernel();
+  ::occa::kernel buildApplyAddKernel();
 
-      void applyAdd(Vector *in, Vector *out);
-    };
-  }
-}
+  void applyAdd(Vector *in, Vector *out);
+};
+}  // namespace occa
+}  // namespace ceed
 
 #endif

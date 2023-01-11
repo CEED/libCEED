@@ -413,6 +413,45 @@ impl<'a> Basis<'a> {
         }
         usize::try_from(Q).unwrap()
     }
+
+    /// Create projection from self to specified Basis.
+    ///
+    /// Both bases must have the same quadrature space. The input bases need not
+    /// be nested as function spaces; this interface solves a least squares
+    /// probles to find a representation in the `to` basis that agrees at
+    /// quadrature points with the origin basis. Since the bases need not be
+    /// Lagrange, the resulting projection "basis" will have empty quadrature
+    /// points and weights.
+    ///
+    /// ```
+    /// # use libceed::prelude::*;
+    /// # fn main() -> libceed::Result<()> {
+    /// # let ceed = libceed::Ceed::default_init();
+    /// let coarse = ceed.basis_tensor_H1_Lagrange(1, 1, 2, 3, QuadMode::Gauss)?;
+    /// let fine = ceed.basis_tensor_H1_Lagrange(1, 1, 3, 3, QuadMode::Gauss)?;
+    /// let proj = coarse.create_projection(&fine)?;
+    /// let u = ceed.vector_from_slice(&[1., 2.])?;
+    /// let mut v = ceed.vector(3)?;
+    /// proj.apply(1, TransposeMode::NoTranspose, EvalMode::Interp, &u, &mut v)?;
+    /// let expected = [1., 1.5, 2.];
+    /// for (a, b) in v.view()?.iter().zip(expected) {
+    ///     assert!(
+    ///         (a - b).abs() < 10.0 * libceed::EPSILON,
+    ///         "Incorrect projection of linear Lagrange to quadratic Lagrange"
+    ///     );
+    /// }
+    /// # Ok(())
+    /// # }
+    /// ```
+    pub fn create_projection(&self, to: &Self) -> crate::Result<Self> {
+        let mut ptr = std::ptr::null_mut();
+        let ierr = unsafe { bind_ceed::CeedBasisCreateProjection(self.ptr, to.ptr, &mut ptr) };
+        self.check_error(ierr)?;
+        Ok(Self {
+            ptr,
+            _lifeline: PhantomData,
+        })
+    }
 }
 
 // -----------------------------------------------------------------------------
