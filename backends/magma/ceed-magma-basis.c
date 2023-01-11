@@ -396,7 +396,7 @@ int CeedBasisApplyNonTensor_Magma(CeedBasis basis, CeedInt nelem,
                       &du, &K, &beta,
                       &dv, &M};
 
-      ierr = CeedRunKernelDimSharedOptinMagma(ceed, *interp, grid,
+      ierr = CeedRunKernelDimSharedMagma(ceed, *interp, grid,
                                          M, ntcol, 1, shmem,
                                          args); CeedChkBackend(ierr);
     }
@@ -437,7 +437,7 @@ int CeedBasisApplyNonTensor_Magma(CeedBasis basis, CeedInt nelem,
                              &du, &K,
                              &dv, &M};
 
-      ierr = CeedRunKernelDimSharedOptinMagma(ceed, *grad, grid,
+      ierr = CeedRunKernelDimSharedMagma(ceed, *grad, grid,
                                            M, ntcol, 1, shmem,
                                            args); CeedChkBackend(ierr);
     }

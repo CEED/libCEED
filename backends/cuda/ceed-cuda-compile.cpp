@@ -155,31 +155,6 @@ int CeedRunKernelDimSharedCuda(Ceed ceed, CUfunction kernel,
                                const int grid_size, const int block_size_x,
                                const int block_size_y, const int block_size_z,
                                const int shared_mem_size, void **args) {
-  CUresult result = cuLaunchKernel(kernel, grid_size, 1, 1,
-                                   block_size_x, block_size_y, block_size_z,
-                                   shared_mem_size, NULL, args, NULL);
-  if (result == CUDA_ERROR_LAUNCH_OUT_OF_RESOURCES) {
-    int max_threads_per_block, shared_size_bytes, num_regs;
-    cuFuncGetAttribute(&max_threads_per_block,
-                       CU_FUNC_ATTRIBUTE_MAX_THREADS_PER_BLOCK, kernel);
-    cuFuncGetAttribute(&shared_size_bytes, CU_FUNC_ATTRIBUTE_SHARED_SIZE_BYTES,
-                       kernel);
-    cuFuncGetAttribute(&num_regs, CU_FUNC_ATTRIBUTE_NUM_REGS, kernel);
-    return CeedError(ceed, CEED_ERROR_BACKEND,
-                     "CUDA_ERROR_LAUNCH_OUT_OF_RESOURCES: max_threads_per_block %d on block size (%d,%d,%d), shared_size %d, num_regs %d",
-                     max_threads_per_block, block_size_x, block_size_y, block_size_z,
-                     shared_size_bytes, num_regs);
-  } else CeedChk_Cu(ceed, result);
-  return CEED_ERROR_SUCCESS;
-}
-
-//------------------------------------------------------------------------------
-// Run CUDA kernel for spatial dimension with sharde memory
-//------------------------------------------------------------------------------
-int CeedRunKernelDimSharedOptinCuda(Ceed ceed, CUfunction kernel,
-                               const int grid_size, const int block_size_x,
-                               const int block_size_y, const int block_size_z,
-                               const int shared_mem_size, void **args) {
   #if CUDA_VERSION >= 9000
   cuFuncSetAttribute(kernel, CU_FUNC_ATTRIBUTE_MAX_DYNAMIC_SHARED_SIZE_BYTES, shared_mem_size);
   #endif
@@ -200,5 +175,3 @@ int CeedRunKernelDimSharedOptinCuda(Ceed ceed, CUfunction kernel,
   } else CeedChk_Cu(ceed, result);
   return CEED_ERROR_SUCCESS;
 }
-
-//------------------------------------------------------------------------------

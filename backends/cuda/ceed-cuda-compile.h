@@ -38,8 +38,4 @@ CEED_INTERN int CeedRunKernelDimSharedCuda(Ceed ceed, CUfunction kernel,
     const int grid_size, const int block_size_x, const int block_size_y,
     const int block_size_z, const int shared_mem_size, void **args);
 
-CEED_INTERN int CeedRunKernelDimSharedOptinCuda(Ceed ceed, CUfunction kernel,
-    const int grid_size, const int block_size_x, const int block_size_y,
-    const int block_size_z, const int shared_mem_size, void **args);
-
 #endif // _ceed_cuda_compile_h
