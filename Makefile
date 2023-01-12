@@ -448,7 +448,7 @@ ifneq ($(HIP_LIB_DIR),)
 endif
 
 # SYCL Backends
-SYCL_BACKENDS = /gpu/sycl/ref /gpu/sycl/shared
+SYCL_BACKENDS = /gpu/sycl/ref #/gpu/sycl/shared /gpu/sycl/gen
 ifneq ($(SYCL_DIR),)
 	SYCL_LIB_DIR := $(wildcard $(foreach d,lib lib64,$(SYCL_DIR)/$d/libsycl.${SO_EXT}))
 	SYCL_LIB_DIR := $(patsubst %/,%,$(dir $(firstword $(SYCL_LIB_DIR))))
