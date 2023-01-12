@@ -197,6 +197,7 @@ PetscErrorCode IFunction_NS(TS ts, PetscReal t, Vec Q, Vec Q_dot, Vec G, void *u
 // Surface forces function setup
 PetscErrorCode Surface_Forces_NS(DM dm, Vec G_loc) {
   const PetscScalar       *g;
+  PetscFE                  fe;
   PetscInt                 vStart, vEnd, v, i;
   DMLabel                  cylinderwalls;
   const StateConservative *r;
@@ -212,6 +213,7 @@ PetscErrorCode Surface_Forces_NS(DM dm, Vec G_loc) {
   PetscCall(DMGetLabel(dm, "cylinderwalls", &cylinderwalls));
   PetscCall(DMPlexGetDepthStratum(dm, 0, &vStart, &vEnd););
   PetscCall(DMPlexLabelComplete(dm, cylinderwalls));
+  PetscCall(DMAddField(dm, cylinderwalls, (PetscObject)fe));
   PetscCall(VecGetArrayRead(G_loc, &g));
 
   for (v = vStart; v < vEnd; ++v) {
