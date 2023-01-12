@@ -64,7 +64,7 @@ static void Split3(PetscInt size, PetscInt m[3], bool reverse) {
 static PetscInt Max3(const PetscInt a[3]) { return PetscMax(a[0], PetscMax(a[1], a[2])); }
 static PetscInt Min3(const PetscInt a[3]) { return PetscMin(a[0], PetscMin(a[1], a[2])); }
 static void     GlobalNodes(const PetscInt p[3], const PetscInt i_rank[3], PetscInt degree, const PetscInt mesh_elem[3], PetscInt m_nodes[3]) {
-      for (int d = 0; d < 3; d++) m_nodes[d] = degree * mesh_elem[d] + (i_rank[d] == p[d] - 1);
+  for (int d = 0; d < 3; d++) m_nodes[d] = degree * mesh_elem[d] + (i_rank[d] == p[d] - 1);
 }
 static PetscInt GlobalStart(const PetscInt p[3], const PetscInt i_rank[3], PetscInt degree, const PetscInt mesh_elem[3]) {
   PetscInt start = 0;

@@ -14,18 +14,13 @@
 #define MAGMA_DEVICE_SHARED(type, name) extern __shared__ type name[];
 #endif
 
-typedef enum {
-    MagmaNoTrans       = 111,
-    MagmaTrans         = 112,
-    MagmaConjTrans     = 113,
-    Magma_ConjTrans    = MagmaConjTrans
-} magma_trans_t;
+typedef enum { MagmaNoTrans = 111, MagmaTrans = 112, MagmaConjTrans = 113, Magma_ConjTrans = MagmaConjTrans } magma_trans_t;
 
-#define MAGMA_D_ZERO              0.0
-#define MAGMA_D_ONE               1.0
+#define MAGMA_D_ZERO 0.0
+#define MAGMA_D_ONE 1.0
 
-#define MAGMA_CEILDIV(A, B)    ( ((A) + (B) - 1) / (B) )
-#define MAGMA_ROUNDUP(A, B)    MAGMA_CEILDIV((A), (B)) * (B)
-#define MAGMA_MAX(A, B)        ((A) > (B) ? (A) : (B))
+#define MAGMA_CEILDIV(A, B) (((A) + (B)-1) / (B))
+#define MAGMA_ROUNDUP(A, B) MAGMA_CEILDIV((A), (B)) * (B)
+#define MAGMA_MAX(A, B) ((A) > (B) ? (A) : (B))
 
-#endif // CEED_MAGMA_COMMON_DEFS_H
+#endif  // CEED_MAGMA_COMMON_DEFS_H

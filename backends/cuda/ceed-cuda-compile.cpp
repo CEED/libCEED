@@ -144,9 +144,9 @@ int CeedRunKernelDimCuda(Ceed ceed, CUfunction kernel, const int grid_size, cons
 //------------------------------------------------------------------------------
 int CeedRunKernelDimSharedCuda(Ceed ceed, CUfunction kernel, const int grid_size, const int block_size_x, const int block_size_y,
                                const int block_size_z, const int shared_mem_size, void **args) {
-  #if CUDA_VERSION >= 9000
+#if CUDA_VERSION >= 9000
   cuFuncSetAttribute(kernel, CU_FUNC_ATTRIBUTE_MAX_DYNAMIC_SHARED_SIZE_BYTES, shared_mem_size);
-  #endif
+#endif
   CUresult result = cuLaunchKernel(kernel, grid_size, 1, 1, block_size_x, block_size_y, block_size_z, shared_mem_size, NULL, args, NULL);
   if (result == CUDA_ERROR_LAUNCH_OUT_OF_RESOURCES) {
     int max_threads_per_block, shared_size_bytes, num_regs;
