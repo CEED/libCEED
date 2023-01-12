@@ -47,6 +47,7 @@ PetscErrorCode SetUpDM(DM dm, ProblemData *problem, PetscInt degree, SimpleBC bc
     PetscCall(DMAddField(dm, NULL, (PetscObject)fe));
     PetscCall(DMCreateDS(dm));
     PetscCall(DMGetLabel(dm, "Face Sets", &label));
+    PetscCall(DMPlexLabelComplete(dm, label));
     // Set wall BCs
     if (bc->num_wall > 0) {
       PetscCall(DMAddBoundary(dm, DM_BC_ESSENTIAL, "wall", label, bc->num_wall, bc->walls, 0, bc->num_comps, bc->wall_comps,

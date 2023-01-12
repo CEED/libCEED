@@ -132,6 +132,46 @@ PetscErrorCode RHS_NS(TS ts, PetscReal t, Vec Q, Vec G, void *user_data) {
   PetscFunctionReturn(0);
 }
 
+// Surface forces function setup
+static PetscErrorCode Surface_Forces_NS(DM dm, Vec G_loc) {
+  const PetscInt     num_walls = 1, walls[] = {5};  // "cylinderwalls" in meshes/cylinder-*.msh
+  DMLabel            face_label;
+  const PetscScalar *g;
+  MPI_Comm           comm;
+
+  PetscFunctionBeginUser;
+  PetscObjectGetComm((PetscObject)dm, &comm);
+  PetscCall(DMGetLabel(dm, "Face Sets", &face_label));
+  PetscCall(VecGetArrayRead(G_loc, &g));
+  for (PetscInt w = 0; w < num_walls; w++) {
+    PetscScalar    reaction_force[3] = {0};
+    const PetscInt wall              = walls[w];
+    IS             wall_is;
+    PetscCall(DMLabelGetStratumIS(face_label, wall, &wall_is));
+    PetscInt        num_points;
+    const PetscInt *points;
+    PetscCall(ISGetSize(wall_is, &num_points));
+    PetscCall(ISGetIndices(wall_is, &points));
+    for (PetscInt i = 0; i < num_points; i++) {
+      const PetscInt           p = points[i];
+      const StateConservative *r;
+      PetscCall(DMPlexPointLocalRead(dm, p, g, &r));
+      if (!r) continue;
+      for (PetscInt j = 0; j < 3; j++) {
+        reaction_force[j] -= r->momentum[j];
+      }
+    }
+    PetscCall(ISRestoreIndices(wall_is, &points));
+    PetscCall(ISDestroy(&wall_is));
+    PetscCallMPI(MPI_Allreduce(MPI_IN_PLACE, reaction_force, 3, MPIU_SCALAR, MPI_SUM, comm));
+    PetscCall(PetscPrintf(comm, "Wall %" PetscInt_FMT " force: %12g %12g %12g\n", wall, reaction_force[0], reaction_force[1], reaction_force[2]));
+  }
+  //  Restore Vectors
+  PetscCall(VecRestoreArrayRead(G_loc, &g));
+
+  PetscFunctionReturn(0);
+}
+
 // Implicit time-stepper function setup
 PetscErrorCode IFunction_NS(TS ts, PetscReal t, Vec Q, Vec Q_dot, Vec G, void *user_data) {
   User               user = *(User *)user_data;
@@ -184,6 +224,8 @@ PetscErrorCode IFunction_NS(TS ts, PetscReal t, Vec Q, Vec Q_dot, Vec G, void *u
   PetscCall(VecRestoreArrayReadAndMemType(Q_dot_loc, &q_dot));
   PetscCall(VecRestoreArrayAndMemType(G_loc, &g));
 
+  PetscCall(Surface_Forces_NS(user->dm, G_loc));
+
   // Local-to-Global
   PetscCall(VecZeroEntries(G));
   PetscCall(DMLocalToGlobal(user->dm, G_loc, ADD_VALUES, G));
@@ -191,40 +233,6 @@ PetscErrorCode IFunction_NS(TS ts, PetscReal t, Vec Q, Vec Q_dot, Vec G, void *u
   // Restore vectors
   PetscCall(DMRestoreLocalVector(user->dm, &G_loc));
 
-  PetscFunctionReturn(0);
-}
-
-// Surface forces function setup
-PetscErrorCode Surface_Forces_NS(DM dm, Vec G_loc) {
-  const PetscScalar       *g;
-  PetscFE                  fe;
-  PetscInt                 vStart, vEnd, v, i;
-  DMLabel                  cylinderwalls;
-  const StateConservative *r;
-  CeedScalar               reaction_force[3] = {0.};
-  StateConservative        residual          = {
-                      r[0].density,
-                      {r->momentum[1], r->momentum[2], r->momentum[3]},
-                      r[4].E_total,
-  };
-
-  PetscFunctionBeginUser;
-  PetscCall(DMCreateLabel(dm, "cylinderwalls"));
-  PetscCall(DMGetLabel(dm, "cylinderwalls", &cylinderwalls));
-  PetscCall(DMPlexGetDepthStratum(dm, 0, &vStart, &vEnd););
-  PetscCall(DMPlexLabelComplete(dm, cylinderwalls));
-  PetscCall(DMAddField(dm, cylinderwalls, (PetscObject)fe));
-  PetscCall(VecGetArrayRead(G_loc, &g));
-
-  for (v = vStart; v < vEnd; ++v) {
-    PetscCall(DMPlexPointLocalRead(dm, v, g, &r));
-    for (i = 0; i < 3; ++i) {
-      reaction_force[i + 1] += r->momentum[i + 1];
-    }
-  }
-
-  //  Restore Vectors
-  PetscCall(VecRestoreArrayRead(G_loc, &g));
   PetscFunctionReturn(0);
 }
 
