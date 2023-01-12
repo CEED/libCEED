@@ -11,7 +11,19 @@
 #include <ceed/backend.h>
 #include <sycl/sycl.hpp>
 
+#include <type_traits>
+
 // Kris: Add sycl exception handling functions here.
+
+using CeedBackendFunction = int (*)();
+
+template<typename R,class... Args>
+int CeedSetBackendFunctionCpp(Ceed ceed, const char *type, const char *fname, R (*f)(Args...)) {
+  static_assert(std::is_same_v<int,R>,"Ceed backend functions must return int");
+  // Kris: this is potentially undefined behavior by C++ standards
+  auto* bf = reinterpret_cast<CeedBackendFunction>(f); 
+  return CeedSetBackendFunction(ceed, type, ceed, fname, bf);
+}
 
 typedef struct {
   sycl::context sycl_context;
