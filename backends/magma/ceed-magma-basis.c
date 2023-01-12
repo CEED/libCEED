@@ -359,7 +359,7 @@ CeedBasisApplyNonTensor_Magma(CeedBasis basis, CeedInt nelem, CeedTransposeMode 
       CeedScalar alpha = 1.0, beta = 0.0;
 
       void *args[] = {&transA, &transB, &N, &alpha, &impl->dinterp, &P, &du, &K, &beta, &dv, &M};
-      CeedCallBackend((CeedRunKernelDimSharedMagma(ceed, *interp, grid, M, ntcol, 1, shmem, args));
+      CeedCallBackend(CeedRunKernelDimSharedMagma(ceed, *interp, grid, M, ntcol, 1, shmem, args));
     } else {
       if (tmode == CEED_TRANSPOSE)
         magma_gemm_nontensor(MagmaNoTrans, MagmaNoTrans, P, nelem*ncomp, Q, 1.0, impl->dinterp, P, du, Q, 0.0, dv, P, data->queue);
@@ -385,7 +385,7 @@ CeedBasisApplyNonTensor_Magma(CeedBasis basis, CeedInt nelem, CeedTransposeMode 
       magma_trans_t transB = MagmaNoTrans;
 
       void *args[] = {&transA, &transB, &N, &impl->dgrad, &P, &du, &K, &dv, &M};
-      CeedCallBackend((CeedRunKernelDimSharedMagma(ceed, *grad, grid, M, ntcol, 1, shmem, args));
+      CeedCallBackend(CeedRunKernelDimSharedMagma(ceed, *grad, grid, M, ntcol, 1, shmem, args));
     } else {
       if (tmode == CEED_TRANSPOSE) {
         CeedScalar beta = 0.0;
@@ -478,7 +478,7 @@ CeedBasisDestroyNonTensor_Magma(CeedBasis basis) {
   CeedCallBackend(magma_free(impl->dgrad));
   CeedCallBackend(magma_free(impl->dqweight));
   Ceed ceed;
-  ierr = CeedBasisGetCeed(basis, &ceed); CeedChkBackend(ierr);
+  CeedCallBackend(CeedBasisGetCeed(basis, &ceed));
   #ifdef CEED_MAGMA_USE_HIP
   for(CeedInt in = 0; in < MAGMA_NONTENSOR_KERNEL_INSTANCES; in++) {
     CeedCallHip(ceed, hipModuleUnload(impl->module[in]));
@@ -514,7 +514,7 @@ CEED_INTERN "C"
   char *magma_common_path;
   char *interp_path, *grad_path, *weight_path;
   char *basis_kernel_source;
-s  CeedCallBackend(CeedGetJitAbsolutePath(ceed, "ceed/jit-source/magma/magma_common_defs.h", &magma_common_path));
+  CeedCallBackend(CeedGetJitAbsolutePath(ceed, "ceed/jit-source/magma/magma_common_defs.h", &magma_common_path));
   CeedDebug256(ceed, 2, "----- Loading Basis Kernel Source -----\n");
   CeedCallBackend(CeedLoadSourceToBuffer(ceed, magma_common_path, &basis_kernel_source));
   CeedCallBackend(CeedGetJitAbsolutePath(ceed, "ceed/jit-source/magma/magma_common_tensor.h", &magma_common_path));
@@ -589,7 +589,6 @@ s  CeedCallBackend(CeedGetJitAbsolutePath(ceed, "ceed/jit-source/magma/magma_com
   magma_setvector(Q1d, sizeof(qweight1d[0]), qweight1d, 1, impl->dqweight1d, 1, data->queue);
 
   CeedCallBackend(CeedBasisSetData(basis, impl));
-  CeedCallBackend(CeedBasisSetData(basis, impl));
   CeedCallBackend(CeedFree(&magma_common_path));
   CeedCallBackend(CeedFree(&interp_path));
   CeedCallBackend(CeedFree(&grad_path));
@@ -612,9 +611,7 @@ CEED_INTERN "C"
   Ceed_Magma *data;
   CeedCallBackend(CeedGetData(ceed, &data));
   magma_int_t arch = magma_getdevice_arch();
-  ierr = CeedCalloc(1,&impl); CeedChkBackend(ierr);
-  ierr = CeedBasisSetData(basis, impl); CeedChkBackend(ierr);
-
+  CeedCallBackend(CeedCalloc(1,&impl));
   // Compile kernels
   char *magma_common_path;
   char *interp_path, *grad_path;
@@ -622,7 +619,7 @@ CEED_INTERN "C"
   CeedCallBackend(CeedGetJitAbsolutePath(ceed, "ceed/jit-source/magma/magma_common_defs.h", &magma_common_path));
   CeedDebug256(ceed, 2, "----- Loading Basis Kernel Source -----\n");
   CeedCallBackend(CeedLoadSourceToBuffer(ceed, magma_common_path, &basis_kernel_source));
-  CeedCallBackend(CeedGetJitAbsolutePath(ceed, "ceed/jit-source/magma/magma_common_nontensor.h", &magma_common_path);
+  CeedCallBackend(CeedGetJitAbsolutePath(ceed, "ceed/jit-source/magma/magma_common_nontensor.h", &magma_common_path));
   CeedCallBackend(CeedLoadSourceToInitializedBuffer(ceed, magma_common_path, &basis_kernel_source));
   CeedCallBackend(CeedGetJitAbsolutePath(ceed, "ceed/jit-source/magma/interp-nontensor.h", &interp_path));
   CeedCallBackend(CeedLoadSourceToInitializedBuffer(ceed, interp_path, &basis_kernel_source));
@@ -667,7 +664,7 @@ CEED_INTERN "C"
 
 
   CeedCallBackend(CeedSetBackendFunction(ceed, "Basis", basis, "Apply", CeedBasisApplyNonTensor_Magma));
-  CeedCallBackend(CeedSetBackendFunction(ceed, "Basis", basis, "Destroy", CeedBasisDestroyNonTensor_Magma);
+  CeedCallBackend(CeedSetBackendFunction(ceed, "Basis", basis, "Destroy", CeedBasisDestroyNonTensor_Magma));
 
   // Copy qref to the GPU
   CeedCallBackend(magma_malloc((void **)&impl->dqref, nqpts * sizeof(qref[0])));
