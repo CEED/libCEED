@@ -148,20 +148,22 @@ static PetscErrorCode Surface_Forces_NS(DM dm, Vec G_loc) {
     const PetscInt wall              = walls[w];
     IS             wall_is;
     PetscCall(DMLabelGetStratumIS(face_label, wall, &wall_is));
-    PetscInt        num_points;
-    const PetscInt *points;
-    PetscCall(ISGetSize(wall_is, &num_points));
-    PetscCall(ISGetIndices(wall_is, &points));
-    for (PetscInt i = 0; i < num_points; i++) {
-      const PetscInt           p = points[i];
-      const StateConservative *r;
-      PetscCall(DMPlexPointLocalRead(dm, p, g, &r));
-      if (!r) continue;
-      for (PetscInt j = 0; j < 3; j++) {
-        reaction_force[j] -= r->momentum[j];
+    if (wall_is) {  // There exist such points on this process
+      PetscInt        num_points;
+      const PetscInt *points;
+      PetscCall(ISGetSize(wall_is, &num_points));
+      PetscCall(ISGetIndices(wall_is, &points));
+      for (PetscInt i = 0; i < num_points; i++) {
+        const PetscInt           p = points[i];
+        const StateConservative *r;
+        PetscCall(DMPlexPointLocalRead(dm, p, g, &r));
+        if (!r) continue;
+        for (PetscInt j = 0; j < 3; j++) {
+          reaction_force[j] -= r->momentum[j];
+        }
       }
+      PetscCall(ISRestoreIndices(wall_is, &points));
     }
-    PetscCall(ISRestoreIndices(wall_is, &points));
     PetscCall(ISDestroy(&wall_is));
     PetscCallMPI(MPI_Allreduce(MPI_IN_PLACE, reaction_force, 3, MPIU_SCALAR, MPI_SUM, comm));
     PetscCall(PetscPrintf(comm, "Wall %" PetscInt_FMT " force: %12g %12g %12g\n", wall, reaction_force[0], reaction_force[1], reaction_force[2]));
