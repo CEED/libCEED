@@ -15,6 +15,7 @@
 #include "../navierstokes.h"
 #include "ceed/ceed.h"
 #include "petscerror.h"
+#include "petsclog.h"
 #include "petscmat.h"
 #include "petscsys.h"
 #include "petscvec.h"
@@ -415,6 +416,11 @@ PetscErrorCode CollectStatistics(User user, PetscScalar solution_time, Vec Q) {
   Vec                Q_loc;
   PetscFunctionBeginUser;
 
+  PetscLogStage stage_stats_collect;
+  PetscCall(PetscLogStageGetId("Stats Collect", &stage_stats_collect));
+  if (stage_stats_collect == -1) PetscCall(PetscLogStageRegister("Stats Collect", &stage_stats_collect));
+  PetscCall(PetscLogStagePush(stage_stats_collect));
+
   PetscCall(DMGetLocalVector(user->dm, &Q_loc));
   PetscCall(VecZeroEntries(Q_loc));
   PetscCall(DMGlobalToLocal(user->dm, Q, INSERT_VALUES, Q_loc));
@@ -435,6 +441,7 @@ PetscErrorCode CollectStatistics(User user, PetscScalar solution_time, Vec Q) {
   CeedVectorAXPY(user->spanstats.child_stats, delta_t / (prev_timeinterval + delta_t), user->spanstats.child_inst_stats);
   user->spanstats.prev_time = solution_time;
 
+  PetscCall(PetscLogStagePop());
   PetscFunctionReturn(0);
 }
 
@@ -449,6 +456,11 @@ PetscErrorCode ProcessStatistics(User user, Vec *stats) {
   CeedScalar        *rhs_arr;
   CeedMemType        ceed_mem_type;
   PetscFunctionBeginUser;
+
+  PetscLogStage stage_stats_process;
+  PetscCall(PetscLogStageGetId("Stats Process", &stage_stats_process));
+  if (stage_stats_process == -1) PetscCall(PetscLogStageRegister("Stats Process", &stage_stats_process));
+  PetscCall(PetscLogStagePush(stage_stats_process));
 
   CeedGetPreferredMemType(user->ceed, &ceed_mem_type);
   CeedVectorSetValue(user_stats.parent_stats, 0);
@@ -490,6 +502,7 @@ PetscErrorCode ProcessStatistics(User user, Vec *stats) {
 
   PetscCall(KSPSolve(user_stats.ksp, rhs, *stats));
 
+  PetscCall(PetscLogStagePop());
   PetscFunctionReturn(0);
 }
 
