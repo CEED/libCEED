@@ -95,7 +95,7 @@ noether-rocm:
   script:
     - rm -f .SUCCESS
 # libCEED
-    - make configure HIP_DIR=/opt/rocm-5.4.1 OPT='-O -march=native -ffp-contract=fast'
+    - make configure ROCM_DIR=/opt/rocm-5.4.1 OPT='-O -march=native -ffp-contract=fast'
     - BACKENDS_CPU=$(make info-backends-all | grep -o '/cpu[^ ]*') && BACKENDS_GPU=$(make info-backends | grep -o '/gpu[^ ]*')
     - echo "-------------- libCEED -------------" && make info
     - echo "-------------- BACKENDS_GPU --------" && echo $BACKENDS_GPU
@@ -146,7 +146,7 @@ noether-float:
   stage: test:gpu-and-float
   tags:
     - cpu
-    - rocm 
+    - rocm
   interruptible: true
   before_script:
 # Environment
@@ -167,9 +167,9 @@ noether-float:
     - rm -f .SUCCESS
 # libCEED
 # Change to single precision
-    - sed -i 's/ceed-f64/ceed-f32/1' include/ceed/types.h 
+    - sed -i 's/ceed-f64/ceed-f32/1' include/ceed/types.h
 # Build libCEED
-    - make configure HIP_DIR=/opt/rocm-5.4.1 OPT='-O -march=native -ffp-contract=fast'
+    - make configure ROCM_DIR=/opt/rocm-5.4.1 OPT='-O -march=native -ffp-contract=fast'
     - BACKENDS_CPU=$(make info-backends-all | grep -o '/cpu[^ ]*') && BACKENDS_GPU=$(make info-backends | grep -o '/gpu[^ ]*')
     - echo "-------------- libCEED -------------" && make info
     - echo "-------------- BACKENDS_CPU --------" && echo $BACKENDS_CPU
@@ -194,7 +194,7 @@ noether-float:
         bash <(curl -s https://codecov.io/bash) -f coverage.info -t ${CODECOV_ACCESS_TOKEN} -F tests;
         bash <(curl -s https://codecov.io/bash) -f coverage.info -t ${CODECOV_ACCESS_TOKEN} -F examples;
       fi
-    - sed -i 's/ceed-f32/ceed-f64/1' include/ceed/types.h 
+    - sed -i 's/ceed-f32/ceed-f64/1' include/ceed/types.h
   artifacts:
     paths:
       - build/*.junit
