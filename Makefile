@@ -30,7 +30,7 @@ ifeq (,$(filter-out undefined default,$(origin ARFLAGS)))
 endif
 NVCC ?= $(CUDA_DIR)/bin/nvcc
 NVCC_CXX ?= $(CXX)
-HIPCC ?= $(HIP_DIR)/bin/hipcc
+HIPCC ?= $(ROCM_DIR)/bin/hipcc
 SED ?= sed
 ifneq ($(EMSCRIPTEN),)
   STATIC = 1
@@ -82,7 +82,7 @@ CUDA_DIR  ?=
 CUDA_ARCH ?=
 
 # Often /opt/rocm, but sometimes present on machines that don't support HIP
-HIP_DIR ?=
+ROCM_DIR ?=
 HIP_ARCH ?=
 
 # Check for PETSc in ../petsc
@@ -305,7 +305,7 @@ info:
 	$(info OCCA_DIR      = $(OCCA_DIR)$(call backend_status,$(OCCA_BACKENDS)))
 	$(info MAGMA_DIR     = $(MAGMA_DIR)$(call backend_status,$(MAGMA_BACKENDS)))
 	$(info CUDA_DIR      = $(CUDA_DIR)$(call backend_status,$(CUDA_BACKENDS)))
-	$(info HIP_DIR       = $(HIP_DIR)$(call backend_status,$(HIP_BACKENDS)))
+	$(info ROCM_DIR       = $(ROCM_DIR)$(call backend_status,$(HIP_BACKENDS)))
 	$(info ------------------------------------)
 	$(info MFEM_DIR      = $(MFEM_DIR))
 	$(info NEK5K_DIR     = $(NEK5K_DIR))
@@ -416,15 +416,15 @@ ifneq ($(CUDA_LIB_DIR),)
 endif
 
 # HIP Backends
-HIP_LIB_DIR := $(wildcard $(foreach d,lib lib64,$(HIP_DIR)/$d/libamdhip64.${SO_EXT}))
+HIP_LIB_DIR := $(wildcard $(foreach d,lib lib64,$(ROCM_DIR)/$d/libamdhip64.${SO_EXT}))
 HIP_LIB_DIR := $(patsubst %/,%,$(dir $(firstword $(HIP_LIB_DIR))))
 HIP_BACKENDS = /gpu/hip/ref /gpu/hip/shared /gpu/hip/gen
 ifneq ($(HIP_LIB_DIR),)
   $(libceeds) : HIPCCFLAGS += -I./include
   ifneq ($(CXX), $(HIPCC))
-    CPPFLAGS += $(subst =,,$(shell $(HIP_DIR)/bin/hipconfig -C))
+    CPPFLAGS += $(subst =,,$(shell $(ROCM_DIR)/bin/hipconfig -C))
   endif
-  $(libceeds) : CPPFLAGS += -I$(HIP_DIR)/include
+  $(libceeds) : CPPFLAGS += -I$(ROCM_DIR)/include
   PKG_LIBS += -L$(abspath $(HIP_LIB_DIR)) -lamdhip64 -lhipblas
   LIBCEED_CONTAINS_CXX = 1
   libceed.c     += interface/ceed-hip.c
@@ -455,8 +455,8 @@ ifneq ($(wildcard $(MAGMA_DIR)/lib/libmagma.*),)
     endif
   else  # HIP MAGMA
     ifneq ($(HIP_LIB_DIR),)
-      HIP_LIB_DIR_MAGMA=$(HIP_DIR)/../lib
-      HIP_INC_DIR_MAGMA=$(HIP_DIR)/../include
+      HIP_LIB_DIR_MAGMA=$(ROCM_DIR)/lib
+      HIP_INC_DIR_MAGMA=$(ROCM_DIR)/include
       omp_link = -fopenmp
       hip_link = $(if $(STATIC),,-Wl,-rpath,$(HIP_LIB_DIR_MAGMA)) -L$(HIP_LIB_DIR_MAGMA) -lhipblas -lhipsparse -lamdhip64
       magma_link_static = -L$(MAGMA_DIR)/lib -lmagma $(hip_link) $(omp_link)
@@ -707,7 +707,7 @@ FORMAT_OPTS += -style=file -i
 format.ch := $(filter-out include/ceedf.h $(wildcard tests/t*-f.h), $(shell git ls-files *.[ch]pp *.[ch]))
 
 format-c  :
-	$(CLANG_FORMAT) $(FORMAT_OPTS) $(format.ch) 
+	$(CLANG_FORMAT) $(FORMAT_OPTS) $(format.ch)
 
 AUTOPEP8 = autopep8
 format-py  : AUTOPEP8_ARGS = --in-place --aggressive
@@ -720,10 +720,10 @@ format    : format-c format-py
 CLANG_TIDY ?= clang-tidy
 
 %.c.tidy : %.c
-	$(CLANG_TIDY) $(TIDY_OPTS) $^ -- $(CPPFLAGS) --std=c99 -I$(CUDA_DIR)/include -I$(HIP_DIR)/include -DCEED_JIT_SOUCE_ROOT_DEFAULT="\"$(abspath ./include)/\""
+	$(CLANG_TIDY) $(TIDY_OPTS) $^ -- $(CPPFLAGS) --std=c99 -I$(CUDA_DIR)/include -I$(ROCM_DIR)/include -DCEED_JIT_SOUCE_ROOT_DEFAULT="\"$(abspath ./include)/\""
 
 %.cpp.tidy : %.cpp
-	$(CLANG_TIDY) $(TIDY_OPTS) $^ -- $(CPPFLAGS) --std=c++11 -I$(CUDA_DIR)/include -I$(OCCA_DIR)/include -I$(HIP_DIR)/include
+	$(CLANG_TIDY) $(TIDY_OPTS) $^ -- $(CPPFLAGS) --std=c++11 -I$(CUDA_DIR)/include -I$(OCCA_DIR)/include -I$(ROCM_DIR)/include
 
 tidy-c   : $(libceed.c:%=%.tidy)
 tidy-cpp : $(libceed.cpp:%=%.tidy)
@@ -770,7 +770,7 @@ print-% :
 CONFIG_VARS = CC CXX FC NVCC NVCC_CXX HIPCC \
 	OPT CFLAGS CPPFLAGS CXXFLAGS FFLAGS NVCCFLAGS HIPCCFLAGS \
 	AR ARFLAGS LDFLAGS LDLIBS LIBCXX SED \
-	MAGMA_DIR OCCA_DIR XSMM_DIR CUDA_DIR CUDA_ARCH MFEM_DIR PETSC_DIR NEK5K_DIR HIP_DIR HIP_ARCH
+	MAGMA_DIR OCCA_DIR XSMM_DIR CUDA_DIR CUDA_ARCH MFEM_DIR PETSC_DIR NEK5K_DIR ROCM_DIR HIP_ARCH
 
 # $(call needs_save,CFLAGS) returns true (a nonempty string) if CFLAGS
 # was set on the command line or in config.mk (where it will appear as
