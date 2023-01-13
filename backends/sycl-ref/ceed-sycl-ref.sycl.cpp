@@ -41,16 +41,16 @@ static int CeedInit_Sycl(const char *resource, Ceed ceed) {
   CeedCallBackend(CeedSetData(ceed, data));
   CeedCallBackend(CeedSyclInit(ceed, resource));
 
-  CeedCallBackend(CeedSetBackendFunctionCpp(ceed, "Ceed", "GetPreferredMemType", CeedGetPreferredMemType_Sycl));
-  CeedCallBackend(CeedSetBackendFunctionCpp(ceed, "Ceed", "VectorCreate",&CeedVectorCreate_Sycl));
-  CeedCallBackend(CeedSetBackendFunctionCpp(ceed, "Ceed", "BasisCreateTensorH1",&CeedBasisCreateTensorH1_Sycl));
-  CeedCallBackend(CeedSetBackendFunctionCpp(ceed, "Ceed", "BasisCreateH1",&CeedBasisCreateH1_Sycl));
-  CeedCallBackend(CeedSetBackendFunctionCpp(ceed, "Ceed", "ElemRestrictionCreate",&CeedElemRestrictionCreate_Sycl));
-  CeedCallBackend(CeedSetBackendFunctionCpp(ceed, "Ceed", "ElemRestrictionCreateBlocked",&CeedElemRestrictionCreateBlocked_Sycl));
-  CeedCallBackend(CeedSetBackendFunctionCpp(ceed, "Ceed", "QFunctionCreate",&CeedQFunctionCreate_Sycl));
-  CeedCallBackend(CeedSetBackendFunctionCpp(ceed, "Ceed", "QFunctionContextCreate",&CeedQFunctionContextCreate_Sycl));
-  CeedCallBackend(CeedSetBackendFunctionCpp(ceed, "Ceed", "OperatorCreate",&CeedOperatorCreate_Sycl));
-  CeedCallBackend(CeedSetBackendFunctionCpp(ceed, "Ceed", "Destroy",&CeedDestroy_Sycl));
+  CeedCallBackend(CeedSetBackendFunctionCpp(ceed, "Ceed", ceed, "GetPreferredMemType", CeedGetPreferredMemType_Sycl));
+  CeedCallBackend(CeedSetBackendFunctionCpp(ceed, "Ceed", ceed, "VectorCreate",&CeedVectorCreate_Sycl));
+  CeedCallBackend(CeedSetBackendFunctionCpp(ceed, "Ceed", ceed, "BasisCreateTensorH1",&CeedBasisCreateTensorH1_Sycl));
+  CeedCallBackend(CeedSetBackendFunctionCpp(ceed, "Ceed", ceed, "BasisCreateH1",&CeedBasisCreateH1_Sycl));
+  CeedCallBackend(CeedSetBackendFunctionCpp(ceed, "Ceed", ceed, "ElemRestrictionCreate",&CeedElemRestrictionCreate_Sycl));
+  CeedCallBackend(CeedSetBackendFunctionCpp(ceed, "Ceed", ceed, "ElemRestrictionCreateBlocked",&CeedElemRestrictionCreateBlocked_Sycl));
+  CeedCallBackend(CeedSetBackendFunctionCpp(ceed, "Ceed", ceed, "QFunctionCreate",&CeedQFunctionCreate_Sycl));
+  CeedCallBackend(CeedSetBackendFunctionCpp(ceed, "Ceed", ceed, "QFunctionContextCreate",&CeedQFunctionContextCreate_Sycl));
+  CeedCallBackend(CeedSetBackendFunctionCpp(ceed, "Ceed", ceed, "OperatorCreate",&CeedOperatorCreate_Sycl));
+  CeedCallBackend(CeedSetBackendFunctionCpp(ceed, "Ceed", ceed, "Destroy",&CeedDestroy_Sycl));
   
   return CEED_ERROR_SUCCESS;
 }
