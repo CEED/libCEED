@@ -290,7 +290,7 @@ PetscErrorCode CreateStatisticsOperators(Ceed ceed, User user, CeedData ceed_dat
   CeedOperatorSetField(user->spanstats.op_stats_collect, "v", ceed_data->spanstats.elem_restr_child_colloc, CEED_BASIS_COLLOCATED,
                        CEED_VECTOR_ACTIVE);
 
-  // Create Operator for statistics projection / processing
+  // Create Operator for L^2 projection of statistics
   // Simply take collocated parent data (with quadrature weight already applied) and multiply by weight function.
   // Therefore, an Identity QF is sufficient
   CeedQFunctionCreateIdentity(ceed, num_comp_stats, CEED_EVAL_NONE, CEED_EVAL_INTERP, &ceed_data->spanstats.qf_stats_proj);
@@ -309,6 +309,38 @@ PetscErrorCode CreateStatisticsOperators(Ceed ceed, User user, CeedData ceed_dat
   CeedOperatorApply(op_setup_sur, ceed_data->spanstats.x_coord, ceed_data->spanstats.q_data, CEED_REQUEST_IMMEDIATE);
 
   CeedOperatorDestroy(&op_setup_sur);
+  PetscFunctionReturn(0);
+}
+
+PetscErrorCode SetupErrorTesting(Ceed ceed, User user, CeedData ceed_data) {
+  CeedInt       num_comp_stats = user->spanstats.num_comp_stats, num_comp_x;
+  CeedQFunction qf_error;
+  CeedOperator  op_error;
+  CeedInt       q_data_size;
+  CeedVector    x_ceed, y_ceed;
+  PetscFunctionBeginUser;
+
+  CeedElemRestrictionGetNumComponents(ceed_data->spanstats.elem_restr_parent_qd, &q_data_size);
+  CeedBasisGetNumComponents(ceed_data->spanstats.basis_x, &num_comp_x);
+
+  CeedQFunctionCreateInterior(ceed, 1, ChildStatsCollectionTest_Error, ChildStatsCollectionTest_Error_loc, &qf_error);
+  CeedQFunctionAddInput(qf_error, "q", num_comp_stats, CEED_EVAL_INTERP);
+  CeedQFunctionAddInput(qf_error, "qdata", q_data_size, CEED_EVAL_NONE);
+  CeedQFunctionAddInput(qf_error, "x", num_comp_x, CEED_EVAL_INTERP);
+  CeedQFunctionAddOutput(qf_error, "v", num_comp_stats, CEED_EVAL_INTERP);
+
+  CeedOperatorCreate(ceed, qf_error, NULL, NULL, &op_error);
+  CeedOperatorSetField(op_error, "q", ceed_data->spanstats.elem_restr_parent_stats, ceed_data->spanstats.basis_stats, CEED_VECTOR_ACTIVE);
+  CeedOperatorSetField(op_error, "qdata", ceed_data->spanstats.elem_restr_parent_qd, CEED_BASIS_COLLOCATED, ceed_data->spanstats.q_data);
+  CeedOperatorSetField(op_error, "x", ceed_data->spanstats.elem_restr_parent_x, ceed_data->spanstats.basis_x, ceed_data->spanstats.x_coord);
+  CeedOperatorSetField(op_error, "v", ceed_data->spanstats.elem_restr_parent_stats, ceed_data->spanstats.basis_stats, CEED_VECTOR_ACTIVE);
+
+  CeedElemRestrictionCreateVector(ceed_data->spanstats.elem_restr_parent_stats, &x_ceed, NULL);
+  CeedElemRestrictionCreateVector(ceed_data->spanstats.elem_restr_parent_stats, &y_ceed, NULL);
+
+  PetscCall(PetscCalloc1(1, &user->spanstats.test_error_ctx));
+  PetscCall(SetupMatopApplyCtx(PETSC_COMM_WORLD, user->spanstats.dm, user->ceed, op_error, x_ceed, y_ceed, NULL, user->spanstats.test_error_ctx));
+
   PetscFunctionReturn(0);
 }
 
@@ -368,6 +400,10 @@ PetscErrorCode SetupStatsCollection(Ceed ceed, User user, CeedData ceed_data, Pr
 
   // Setup KSP and Mat for L^2 projection of statistics
   PetscCall(SetupL2ProjectionStats(ceed, user, ceed_data));
+
+  if (user->app_ctx->stats_test) {
+    PetscCall(SetupErrorTesting(ceed, user, ceed_data));
+  }
 
   PetscFunctionReturn(0);
 }
@@ -490,9 +526,15 @@ PetscErrorCode StatsCollectFinalCall(User user, PetscReal solution_time, Vec Q) 
   PetscCall(ProcessStatistics(user, &stats));
   PetscCall(VecViewFromOptions(stats, NULL, "-stats_write_view"));
 
-  PetscScalar *stats_arr;
-  PetscCall(VecGetArray(stats, &stats_arr));
-  PetscCall(VecRestoreArray(stats, &stats_arr));
+  if (user->app_ctx->stats_test) {
+    Vec error;
+    PetscCall(VecDuplicate(stats, &error));
+    PetscCall(ApplyLocal_Ceed(stats, error, user->spanstats.test_error_ctx));
+    PetscScalar error_sq = 0;
+    PetscCall(VecSum(error, &error_sq));
+    PetscScalar l2_error = sqrt(error_sq);
+    PetscCall(PetscPrintf(PETSC_COMM_WORLD, "l2 error: %.5e\n", l2_error));
+  }
   PetscCall(DMRestoreGlobalVector(user->spanstats.dm, &stats));
 
   PetscFunctionReturn(0);

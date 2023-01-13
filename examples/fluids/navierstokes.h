@@ -129,7 +129,6 @@ struct CeedData_private {
   } spanstats;
 };
 
-// TODO Possibly turn into a pointer typedef
 typedef struct {
   DM                dm;
   PetscSF           sf;  // For communicating child data to parents
@@ -138,7 +137,7 @@ typedef struct {
   CeedVector        child_inst_stats, child_stats, parent_stats;  // collocated statistics data
   CeedVector        rhs_ceed, x_ceed, y_ceed;
   Vec               M_inv;  // Lumped Mass matrix inverse
-  MatopApplyContext M_ctx;
+  MatopApplyContext M_ctx, test_error_ctx;
   KSP               ksp;         // For the L^2 projection solve
   CeedScalar        span_width;  // spanwise width of the child domain
   PetscScalar       prev_time;

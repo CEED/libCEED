@@ -60,6 +60,9 @@ CEED_QFUNCTION(ChildStatsCollection_Prim)(void *ctx, CeedInt Q, const CeedScalar
   return ChildStatsCollection(ctx, Q, in, out, StateFromY, StateFromY_fwd);
 }
 
+// QFunctions for testing
+CEED_QFUNCTION_HELPER CeedScalar ChildStatsCollectionTest_Exact(const CeedScalar x_i[3]) { return x_i[0] + Square(x_i[1]); }
+
 CEED_QFUNCTION(ChildStatsCollectionTest)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
   const CeedScalar(*q_data)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[1];
   const CeedScalar(*x)[CEED_Q_VLA]      = (const CeedScalar(*)[CEED_Q_VLA])in[2];
@@ -72,7 +75,24 @@ CEED_QFUNCTION(ChildStatsCollectionTest)(void *ctx, CeedInt Q, const CeedScalar 
     const CeedScalar wdetJ  = q_data[0][i];
     const CeedScalar x_i[3] = {x[0][i], x[1][i], x[2][i]};
 
-    v[0][i] = wdetJ * ((x_i[0] + Square(x_i[1]) + t - 0.5) * 4 * Cube(x_i[2]));
+    // set spanwise domain to [0,1] and integrate from t \in [0,1] to recover exact solution
+    v[0][i] = wdetJ * (ChildStatsCollectionTest_Exact(x_i) + t - 0.5) * 4 * Cube(x_i[2]);
+    for (int j = 1; j < 22; j++) v[j][i] = 0;
+  }
+  return 0;
+}
+
+CEED_QFUNCTION(ChildStatsCollectionTest_Error)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
+  const CeedScalar(*q)[CEED_Q_VLA]      = (const CeedScalar(*)[CEED_Q_VLA])in[0];
+  const CeedScalar(*q_data)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[1];
+  const CeedScalar(*x)[CEED_Q_VLA]      = (const CeedScalar(*)[CEED_Q_VLA])in[2];
+  CeedScalar(*v)[CEED_Q_VLA]            = (CeedScalar(*)[CEED_Q_VLA])out[0];
+
+  CeedPragmaSIMD for (CeedInt i = 0; i < Q; i++) {
+    const CeedScalar wdetJ  = q_data[0][i];
+    const CeedScalar x_i[3] = {x[0][i], x[1][i], x[2][i]};
+
+    v[0][i] = wdetJ * Square(ChildStatsCollectionTest_Exact(x_i) - q[0][i]);
   }
   return 0;
 }
