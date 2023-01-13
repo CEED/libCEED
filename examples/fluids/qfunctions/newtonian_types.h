@@ -32,6 +32,7 @@ struct NewtonianIdealGasContext_ {
   CeedScalar        Ctau_M;
   CeedScalar        Ctau_E;
   CeedScalar        dt;
+  CeedScalar        time;
   CeedScalar        ijacobian_time_shift;
   CeedScalar        P0;
   bool              is_implicit;
