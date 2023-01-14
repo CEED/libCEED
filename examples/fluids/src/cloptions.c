@@ -163,9 +163,14 @@ PetscErrorCode ProcessCommandLineOptions(MPI_Comm comm, AppCtx app_ctx, SimpleBC
   PetscCall(PetscOptionsInt("-stats_collect_interval", "Number of timesteps between statistics collection", NULL, app_ctx->stats_collect_interval,
                             &app_ctx->stats_collect_interval, NULL));
 
-  app_ctx->stats_write_interval = -1;
-  PetscCall(PetscOptionsInt("-stats_write_interval", "Number of timesteps between statistics file writing", NULL, app_ctx->stats_write_interval,
-                            &app_ctx->stats_write_interval, NULL));
+  app_ctx->stats_viewer_interval = -1;
+  PetscCall(PetscOptionsInt("-stats_viewer_interval", "Number of timesteps between statistics viewer writing", NULL, app_ctx->stats_viewer_interval,
+                            &app_ctx->stats_viewer_interval, NULL));
+
+  PetscCall(
+      PetscOptionsViewer("-stats_viewer", "Viewer for the statistics", NULL, &app_ctx->stats_viewer, &app_ctx->stats_viewer_format, &option_set));
+  PetscCheck(app_ctx->stats_enable == option_set, comm, PETSC_ERR_ARG_INCOMP,
+             "-stats_viewer must be specified when using statistics (-stats_enable)");
 
   PetscOptionsEnd();
 

@@ -107,10 +107,12 @@ struct AppCtx_private {
   PetscScalar test_tol;
   char        file_path[PETSC_MAX_PATH_LEN];
   // Statistics
-  PetscBool stats_enable;
-  PetscBool stats_test;
-  PetscInt  stats_collect_interval;
-  PetscInt  stats_write_interval;
+  PetscBool         stats_enable;
+  PetscBool         stats_test;
+  PetscInt          stats_collect_interval;
+  PetscInt          stats_viewer_interval;
+  PetscViewer       stats_viewer;
+  PetscViewerFormat stats_viewer_format;
 };
 
 // libCEED data struct

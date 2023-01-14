@@ -19,6 +19,7 @@
 #include "petscmat.h"
 #include "petscsys.h"
 #include "petscvec.h"
+#include "petscviewer.h"
 
 PetscErrorCode CreateStatsDM(User user, ProblemData *problem, PetscInt degree, SimpleBC bc) {
   user->spanstats.num_comp_stats = 22;
@@ -406,6 +407,15 @@ PetscErrorCode SetupStatsCollection(Ceed ceed, User user, CeedData ceed_data, Pr
     PetscCall(SetupErrorTesting(ceed, user, ceed_data));
   }
 
+  // Setup stats viewer with prefix
+  {
+    PetscViewerType viewer_type;
+    PetscCall(PetscViewerGetType(user->app_ctx->stats_viewer, &viewer_type));
+    PetscCall(PetscOptionsSetValue(NULL, "-stats_viewer_type", viewer_type));
+
+    PetscCall(PetscViewerSetOptionsPrefix(user->app_ctx->stats_viewer, "stats_"));
+    PetscCall(PetscViewerSetFromOptions(user->app_ctx->stats_viewer));
+  }
   PetscFunctionReturn(0);
 }
 
@@ -519,10 +529,13 @@ PetscErrorCode TSMonitor_Statistics(TS ts, PetscInt steps, PetscReal solution_ti
     PetscCall(CollectStatistics(user, solution_time, Q));
   }
 
-  if ((steps % user->app_ctx->stats_write_interval == 0 && user->app_ctx->stats_write_interval != -1) || user->spanstats.monitor_final_call) {
+  if ((steps % user->app_ctx->stats_viewer_interval == 0 && user->app_ctx->stats_viewer_interval != -1) || user->spanstats.monitor_final_call) {
     PetscCall(DMGetGlobalVector(user->spanstats.dm, &stats));
     PetscCall(ProcessStatistics(user, &stats));
-    PetscCall(VecViewFromOptions(stats, NULL, "-stats_write_view"));
+    PetscCall(DMSetOutputSequenceNumber(user->spanstats.dm, steps, solution_time));
+    PetscCall(PetscViewerPushFormat(user->app_ctx->stats_viewer, user->app_ctx->stats_viewer_format));
+    PetscCall(VecView(stats, user->app_ctx->stats_viewer));
+    PetscCall(PetscViewerPopFormat(user->app_ctx->stats_viewer));
     if (user->app_ctx->stats_test && user->spanstats.monitor_final_call) {
       Vec error;
       PetscCall(VecDuplicate(stats, &error));

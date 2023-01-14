@@ -152,9 +152,17 @@ The following options are common among all problem types:
   - Number of timesteps between statistics collection
   - `1`
 
-* - `-stats_write_interval`
+* - `-stats_viewer`
+  - Sets the PetscViewer for the statistics file writing, such as `cgns:output-%d.cgns` (requires PETSc `--download-cgns`)
+  -
+
+* - `-stats_viewer_interval`
   - Number of timesteps between statistics file writing (`-1` means only at end of run)
   - `-1`
+
+* - `-stats_viewer_cgns_batch_size`
+  - Number of frames written per CGNS file if the CGNS file name includes a format specifier (`%d`).
+  - `20`
 
 * - `-snes_view`
   - View PETSc `SNES` nonlinear solver configuration
