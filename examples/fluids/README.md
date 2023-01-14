@@ -140,6 +140,22 @@ The following options are common among all problem types:
   - Use freestream boundary conditions on this list of faces
   -
 
+* - `-stats_enable`
+  - Enable collection of spanwise flow statistics
+  - `false`
+
+* - `-stats_test`
+  - Use manufactured solution for statistics collection (used for testing)
+  - `false`
+
+* - `-stats_collect_interval`
+  - Number of timesteps between statistics collection
+  - `1`
+
+* - `-stats_write_interval`
+  - Number of timesteps between statistics file writing (`-1` means only at end of run)
+  - `-1`
+
 * - `-snes_view`
   - View PETSc `SNES` nonlinear solver configuration
   -
