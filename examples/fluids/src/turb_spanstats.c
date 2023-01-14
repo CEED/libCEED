@@ -513,42 +513,27 @@ PetscErrorCode TSMonitor_Statistics(TS ts, PetscInt steps, PetscReal solution_ti
   PetscFunctionBeginUser;
 
   // Do not collect or process on the first step of the run (ie. on the initial condition)
-  if (steps == user->app_ctx->cont_steps) PetscFunctionReturn(0);
+  if (steps == user->app_ctx->cont_steps && !user->spanstats.monitor_final_call) PetscFunctionReturn(0);
 
-  if (steps % user->app_ctx->stats_collect_interval == 0) {
+  if (steps % user->app_ctx->stats_collect_interval == 0 || user->spanstats.monitor_final_call) {
     PetscCall(CollectStatistics(user, solution_time, Q));
   }
 
-  if (steps % user->app_ctx->stats_write_interval == 0 && user->app_ctx->stats_write_interval != -1) {
+  if ((steps % user->app_ctx->stats_write_interval == 0 && user->app_ctx->stats_write_interval != -1) || user->spanstats.monitor_final_call) {
     PetscCall(DMGetGlobalVector(user->spanstats.dm, &stats));
     PetscCall(ProcessStatistics(user, &stats));
     PetscCall(VecViewFromOptions(stats, NULL, "-stats_write_view"));
+    if (user->app_ctx->stats_test && user->spanstats.monitor_final_call) {
+      Vec error;
+      PetscCall(VecDuplicate(stats, &error));
+      PetscCall(ApplyLocal_Ceed(stats, error, user->spanstats.test_error_ctx));
+      PetscScalar error_sq = 0;
+      PetscCall(VecSum(error, &error_sq));
+      PetscScalar l2_error = sqrt(error_sq);
+      PetscCall(PetscPrintf(PETSC_COMM_WORLD, "l2 error: %.5e\n", l2_error));
+    }
     PetscCall(DMRestoreGlobalVector(user->spanstats.dm, &stats));
   }
-  PetscFunctionReturn(0);
-}
-// Function to be called at the end of a simulation
-PetscErrorCode StatsCollectFinalCall(User user, PetscReal solution_time, Vec Q) {
-  Vec stats;
-  PetscFunctionBeginUser;
-
-  PetscCall(CollectStatistics(user, solution_time, Q));
-
-  PetscCall(DMGetGlobalVector(user->spanstats.dm, &stats));
-  PetscCall(ProcessStatistics(user, &stats));
-  PetscCall(VecViewFromOptions(stats, NULL, "-stats_write_view"));
-
-  if (user->app_ctx->stats_test) {
-    Vec error;
-    PetscCall(VecDuplicate(stats, &error));
-    PetscCall(ApplyLocal_Ceed(stats, error, user->spanstats.test_error_ctx));
-    PetscScalar error_sq = 0;
-    PetscCall(VecSum(error, &error_sq));
-    PetscScalar l2_error = sqrt(error_sq);
-    PetscCall(PetscPrintf(PETSC_COMM_WORLD, "l2 error: %.5e\n", l2_error));
-  }
-  PetscCall(DMRestoreGlobalVector(user->spanstats.dm, &stats));
-
   PetscFunctionReturn(0);
 }
 

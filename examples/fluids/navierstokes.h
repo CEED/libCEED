@@ -141,6 +141,7 @@ typedef struct {
   KSP               ksp;         // For the L^2 projection solve
   CeedScalar        span_width;  // spanwise width of the child domain
   PetscScalar       prev_time;
+  PetscBool         monitor_final_call;  // Whether call to TSMonitor_Statistics is the last one
 } Span_Stats;
 
 // PETSc user data
@@ -345,8 +346,6 @@ PetscErrorCode CreateStatsDM(User user, ProblemData *problem, PetscInt degree, S
 PetscErrorCode SetupStatsCollection(Ceed ceed, User user, CeedData ceed_data, ProblemData *problem);
 
 PetscErrorCode TSMonitor_Statistics(TS ts, PetscInt steps, PetscReal solution_time, Vec Q, void *ctx);
-
-PetscErrorCode StatsCollectFinalCall(User user, PetscReal solution_time, Vec Q);
 
 PetscErrorCode CleanupStats(User user, CeedData ceed_data);
 
