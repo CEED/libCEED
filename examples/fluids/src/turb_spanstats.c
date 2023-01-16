@@ -32,8 +32,27 @@ PetscErrorCode CreateStatsDM(User user, ProblemData *problem, PetscInt degree, S
 
   // Get DM from surface
   {
+    PetscSF isoperiodicface;
     DMLabel label;
-    PetscCall(DMGetLabel(user->dm, "Face Sets", &label));
+
+    PetscCall(DMPlexGetIsoperiodicFaceSF(user->dm, &isoperiodicface));
+
+    if (isoperiodicface) {
+      PetscSF         inv_isoperiodicface;
+      PetscInt        nleaves;
+      const PetscInt *ilocal;
+
+      PetscCall(PetscSFCreateInverseSF(isoperiodicface, &inv_isoperiodicface));
+      PetscCall(PetscSFGetGraph(inv_isoperiodicface, NULL, &nleaves, &ilocal, NULL));
+      PetscCall(DMCreateLabel(user->dm, "Periodic Face"));
+      PetscCall(DMGetLabel(user->dm, "Periodic Face", &label));
+      for (PetscInt i = 0; i < nleaves; i++) {
+        PetscCall(DMLabelSetValue(label, ilocal[i], 1));
+      }
+    } else {
+      PetscCall(DMGetLabel(user->dm, "Face Sets", &label));
+    }
+
     PetscCall(DMPlexLabelComplete(user->dm, label));
     PetscCall(DMPlexFilter(user->dm, label, 1, &user->spanstats.dm));
     PetscCall(DMProjectCoordinates(user->spanstats.dm, NULL));  // Ensure that a coordinate FE exists
@@ -43,6 +62,7 @@ PetscErrorCode CreateStatsDM(User user, ProblemData *problem, PetscInt degree, S
   PetscCall(DMSetOptionsPrefix(user->spanstats.dm, "spanstats_"));
   PetscCall(DMSetFromOptions(user->spanstats.dm));
   PetscCall(DMViewFromOptions(user->spanstats.dm, NULL, "-dm_view"));  // -spanstats_dm_view
+
   {
     PetscFE fe;
     DMLabel label;
