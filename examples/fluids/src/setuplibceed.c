@@ -207,6 +207,58 @@ PetscErrorCode SetupBCQFunctions(Ceed ceed, PetscInt dim_sur, PetscInt num_comp_
   PetscFunctionReturn(0);
 }
 
+
+// -----------------------------------------------------------------------------
+// Get CEED Basis from DMPlex
+// -----------------------------------------------------------------------------
+PetscErrorCode CreateBasisFromPlex(Ceed ceed, DM dm, DMLabel domain_label, CeedInt label_value, CeedInt height, CeedInt dm_field, BPData bp_data,
+                                   CeedBasis *basis) {
+  PetscDS         ds;
+  PetscFE         fe;
+  PetscQuadrature quadrature;
+  PetscBool       is_simplex = PETSC_TRUE;
+  PetscInt        ds_field   = -1;
+
+  PetscFunctionBeginUser;
+
+  // Get element information
+  PetscCall(DMGetRegionDS(dm, domain_label, NULL, &ds));
+  PetscCall(DMFieldToDSField(dm, domain_label, dm_field, &ds_field));
+  PetscCall(PetscDSGetDiscretization(ds, ds_field, (PetscObject *)&fe));
+  PetscCall(PetscFEGetHeightSubspace(fe, height, &fe));
+  PetscCall(PetscFEGetQuadrature(fe, &quadrature));
+
+  // Check if simplex or tensor-product mesh
+  PetscCall(DMPlexIsSimplex(dm, &is_simplex));
+
+  // Build libCEED basis
+  if (is_simplex) {
+    PetscTabulation basis_tabulation;
+    PetscInt        num_derivatives = 1, face = 0;
+
+    PetscCall(PetscFEGetCellTabulation(fe, num_derivatives, &basis_tabulation));
+    PetscCall(BasisCreateFromTabulation(ceed, dm, domain_label, label_value, height, face, fe, basis_tabulation, quadrature, basis));
+  } else {
+    PetscDualSpace dual_space;
+    PetscInt       num_dual_basis_vectors;
+    PetscInt       dim, num_comp, P, Q;
+
+    PetscCall(PetscFEGetSpatialDimension(fe, &dim));
+    PetscCall(PetscFEGetNumComponents(fe, &num_comp));
+    PetscCall(PetscFEGetDualSpace(fe, &dual_space));
+    PetscCall(PetscDualSpaceGetDimension(dual_space, &num_dual_basis_vectors));
+    P = num_dual_basis_vectors / num_comp;
+    PetscCall(PetscQuadratureGetData(quadrature, NULL, NULL, &Q, NULL, NULL));
+
+    CeedInt P_1d = (CeedInt)round(pow(P, 1.0 / dim));
+    CeedInt Q_1d = (CeedInt)round(pow(Q, 1.0 / dim));
+
+    CeedBasisCreateTensorH1Lagrange(ceed, dim, num_comp, P_1d, Q_1d, bp_data.q_mode, basis);
+  }
+
+  PetscFunctionReturn(0);
+}
+
 PetscErrorCode SetupLibceed(Ceed ceed, CeedData ceed_data, DM dm, User user, AppCtx app_ctx, ProblemData *problem, SimpleBC bc) {
   PetscFunctionBeginUser;
 
@@ -222,9 +274,16 @@ PetscErrorCode SetupLibceed(Ceed ceed, CeedData ceed_data, DM dm, User user, App
   // -----------------------------------------------------------------------------
   // CEED Bases
   // -----------------------------------------------------------------------------
-  CeedBasisCreateTensorH1Lagrange(ceed, dim, num_comp_q, P, Q, CEED_GAUSS, &ceed_data->basis_q);
-  CeedBasisCreateTensorH1Lagrange(ceed, dim, num_comp_x, 2, Q, CEED_GAUSS, &ceed_data->basis_x);
-  CeedBasisCreateTensorH1Lagrange(ceed, dim, num_comp_x, 2, P, CEED_GAUSS_LOBATTO, &ceed_data->basis_xc);
+  DM      dm_coord;
+  PetscCall(DMGetCoordinateDM(dm, &dm_coord));
+
+  PetscCall(CreateBasisFromPlex(ceed, dm, 0, 0, 0, 0, CEED_GAUSS, &ceed_data->basis_q));
+  PetscCall(CreateBasisFromPlex(ceed, dm_coord, 0, 0, 0, 0, CEED_GAUSS, &ceed_data->basis_x));
+// flawed  PetscCall(CreateBasisFromPlex(ceed, dm_coord, 0, 0, 0, 0, CEED_GAUSS_LOBATTO, &basis_xc));
+  PetscCall(CeedBasisCreateProjection(basis_x, basis_q, &ceed_data->basis_xc));
+//  CeedBasisCreateTensorH1Lagrange(ceed, dim, num_comp_q, P, Q, CEED_GAUSS, &ceed_data->basis_q);
+//  CeedBasisCreateTensorH1Lagrange(ceed, dim, num_comp_x, 2, Q, CEED_GAUSS, &ceed_data->basis_x);
+//  CeedBasisCreateTensorH1Lagrange(ceed, dim, num_comp_x, 2, P, CEED_GAUSS_LOBATTO, &ceed_data->basis_xc);
 
   // -----------------------------------------------------------------------------
   // CEED Restrictions
