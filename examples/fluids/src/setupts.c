@@ -66,6 +66,16 @@ PetscErrorCode ComputeLumpedMassMatrix(Ceed ceed, DM dm, CeedData ceed_data, Vec
   PetscFunctionReturn(0);
 }
 
+// Insert Boundary values if it's a new time
+PetscErrorCode UpdateBoundaryValues(User user, Vec Q_loc, PetscReal t) {
+  PetscFunctionBeginUser;
+  if (user->time_bc_set != t) {
+    PetscCall(DMPlexInsertBoundaryValues(user->dm, PETSC_TRUE, Q_loc, t, NULL, NULL, NULL));
+    user->time_bc_set = t;
+  }
+  PetscFunctionReturn(0);
+}
+
 // RHS (Explicit time-stepper) function setup
 //   This is the RHS of the ODE, given as u_t = G(t,u)
 //   This function takes in a state vector Q and writes into G
@@ -80,8 +90,8 @@ PetscErrorCode RHS_NS(TS ts, PetscReal t, Vec Q, Vec G, void *user_data) {
   PetscCall(DMGetLocalVector(user->dm, &G_loc));
 
   // Update time dependent data
+  PetscCall(UpdateBoundaryValues(user, Q_loc, t));
   if (user->time != t) {
-    PetscCall(DMPlexInsertBoundaryValues(user->dm, PETSC_TRUE, Q_loc, t, NULL, NULL, NULL));
     if (user->phys->solution_time_label) {
       CeedOperatorContextSetDouble(user->op_rhs, user->phys->solution_time_label, &t);
     }
@@ -140,8 +150,8 @@ PetscErrorCode IFunction_NS(TS ts, PetscReal t, Vec Q, Vec Q_dot, Vec G, void *u
   PetscCall(DMGetLocalVector(user->dm, &G_loc));
 
   // Update time dependent data
+  PetscCall(UpdateBoundaryValues(user, Q_loc, t));
   if (user->time != t) {
-    PetscCall(DMPlexInsertBoundaryValues(user->dm, PETSC_TRUE, Q_loc, t, NULL, NULL, NULL));
     if (user->phys->solution_time_label) {
       CeedOperatorContextSetDouble(user->op_ifunction, user->phys->solution_time_label, &t);
     }
@@ -456,8 +466,8 @@ PetscErrorCode TSSolve_NS(DM dm, User user, AppCtx app_ctx, Physics phys, Vec *Q
   PetscCall(TSGetAdapt(*ts, &adapt));
   PetscCall(TSAdaptSetStepLimits(adapt, 1.e-12 * user->units->second, 1.e2 * user->units->second));
   PetscCall(TSSetFromOptions(*ts));
-  user->time = -1.0;  // require all BCs and ctx to be updated
-  user->dt   = -1.0;
+  user->time = user->time_bc_set = -1.0;  // require all BCs and ctx to be updated
+  user->dt                       = -1.0;
   if (!app_ctx->cont_steps) {  // print initial condition
     if (!app_ctx->test_mode) {
       PetscCall(TSMonitor_NS(*ts, 0, 0., *Q, user));

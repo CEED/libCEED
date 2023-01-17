@@ -160,7 +160,7 @@ struct User_private {
   CeedVector   q_ceed, q_dot_ceed, g_ceed, coo_values_amat, coo_values_pmat, x_ceed;
   CeedOperator op_rhs_vol, op_rhs, op_ifunction_vol, op_ifunction, op_ijacobian, op_dirichlet;
   bool         matrices_set_up;
-  CeedScalar   time, dt;
+  CeedScalar   time, dt, time_bc_set;
   Span_Stats   spanstats;
 };
 
@@ -292,6 +292,9 @@ PetscErrorCode TSMonitor_NS(TS ts, PetscInt step_no, PetscReal time, Vec Q, void
 
 // TS: Create, setup, and solve
 PetscErrorCode TSSolve_NS(DM dm, User user, AppCtx app_ctx, Physics phys, Vec *Q, PetscScalar *f_time, TS *ts);
+
+// Update Boundary Values when time has changed
+PetscErrorCode UpdateBoundaryValues(User user, Vec Q_loc, PetscReal t);
 
 // -----------------------------------------------------------------------------
 // Setup DM

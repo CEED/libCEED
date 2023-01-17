@@ -454,7 +454,6 @@ PetscErrorCode SetupStatsCollection(Ceed ceed, User user, CeedData ceed_data, Pr
 PetscErrorCode CollectStatistics(User user, PetscScalar solution_time, Vec Q) {
   PetscMemType       q_mem_type;
   const PetscScalar *q_arr;
-  Vec                Q_loc;
   PetscFunctionBeginUser;
 
   PetscLogStage stage_stats_collect;
@@ -462,18 +461,15 @@ PetscErrorCode CollectStatistics(User user, PetscScalar solution_time, Vec Q) {
   if (stage_stats_collect == -1) PetscCall(PetscLogStageRegister("Stats Collect", &stage_stats_collect));
   PetscCall(PetscLogStagePush(stage_stats_collect));
 
-  PetscCall(DMGetLocalVector(user->dm, &Q_loc));
-  PetscCall(VecZeroEntries(Q_loc));
-  PetscCall(DMGlobalToLocal(user->dm, Q, INSERT_VALUES, Q_loc));
-
-  PetscCall(VecGetArrayReadAndMemType(Q_loc, &q_arr, &q_mem_type));
+  PetscCall(UpdateBoundaryValues(user, user->Q_loc, solution_time));
+  PetscCall(DMGlobalToLocal(user->dm, Q, INSERT_VALUES, user->Q_loc));
+  PetscCall(VecGetArrayReadAndMemType(user->Q_loc, &q_arr, &q_mem_type));
   CeedVectorSetArray(user->q_ceed, MemTypeP2C(q_mem_type), CEED_USE_POINTER, (PetscScalar *)q_arr);
 
   CeedOperatorApply(user->spanstats.op_stats_collect, user->q_ceed, user->spanstats.child_inst_stats, CEED_REQUEST_IMMEDIATE);
 
   CeedVectorTakeArray(user->q_ceed, MemTypeP2C(q_mem_type), NULL);
-  PetscCall(VecRestoreArrayReadAndMemType(Q_loc, &q_arr));
-  PetscCall(DMRestoreLocalVector(user->dm, &Q_loc));
+  PetscCall(VecRestoreArrayReadAndMemType(user->Q_loc, &q_arr));
 
   // Record averaging using left rectangle rule
   PetscScalar delta_t           = solution_time - user->spanstats.prev_time;
