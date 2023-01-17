@@ -23,7 +23,9 @@
 
 PetscErrorCode CreateStatsDM(User user, ProblemData *problem, PetscInt degree, SimpleBC bc) {
   user->spanstats.num_comp_stats = 22;
-  PetscReal domain_min[3], domain_max[3];
+  PetscReal    domain_min[3], domain_max[3];
+  PetscFE      fe;
+  PetscSection section;
   PetscFunctionBeginUser;
 
   // Get spanwise length
@@ -63,21 +65,14 @@ PetscErrorCode CreateStatsDM(User user, ProblemData *problem, PetscInt degree, S
   PetscCall(DMSetFromOptions(user->spanstats.dm));
   PetscCall(DMViewFromOptions(user->spanstats.dm, NULL, "-dm_view"));  // -spanstats_dm_view
 
-  {
-    PetscFE fe;
-    DMLabel label;
+  // Create FE space for parent DM
+  PetscCall(PetscFECreateLagrange(PETSC_COMM_SELF, problem->dim - 1, user->spanstats.num_comp_stats, PETSC_FALSE, degree, PETSC_DECIDE, &fe));
+  PetscCall(PetscObjectSetName((PetscObject)fe, "stats"));
+  PetscCall(DMAddField(user->spanstats.dm, NULL, (PetscObject)fe));
+  PetscCall(DMCreateDS(user->spanstats.dm));
+  PetscCall(DMPlexSetClosurePermutationTensor(user->spanstats.dm, PETSC_DETERMINE, NULL));
 
-    PetscCall(PetscFECreateLagrange(PETSC_COMM_SELF, problem->dim - 1, user->spanstats.num_comp_stats, PETSC_FALSE, degree, PETSC_DECIDE, &fe));
-    PetscCall(PetscObjectSetName((PetscObject)fe, "stats"));
-    PetscCall(DMAddField(user->spanstats.dm, NULL, (PetscObject)fe));
-    PetscCall(DMCreateDS(user->spanstats.dm));
-    PetscCall(DMGetLabel(user->spanstats.dm, "Face Sets", &label));
-
-    PetscCall(DMPlexSetClosurePermutationTensor(user->spanstats.dm, PETSC_DETERMINE, NULL));
-    PetscCall(PetscFEDestroy(&fe));
-  }
-
-  PetscSection section;
+  // Create Section for data
   PetscCall(DMGetLocalSection(user->spanstats.dm, &section));
   PetscCall(PetscSectionSetFieldName(section, 0, ""));
   PetscCall(PetscSectionSetComponentName(section, 0, 0, "Mean Density"));
@@ -102,6 +97,9 @@ PetscErrorCode CreateStatsDM(User user, ProblemData *problem, PetscInt degree, S
   PetscCall(PetscSectionSetComponentName(section, 0, 19, "Mean Velocity X"));
   PetscCall(PetscSectionSetComponentName(section, 0, 20, "Mean Velocity Y"));
   PetscCall(PetscSectionSetComponentName(section, 0, 21, "Mean Velocity Z"));
+
+  // Cleanup
+  PetscCall(PetscFEDestroy(&fe));
 
   PetscFunctionReturn(0);
 }
