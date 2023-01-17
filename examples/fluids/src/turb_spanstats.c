@@ -23,10 +23,15 @@
 
 PetscErrorCode CreateStatsDM(User user, ProblemData *problem, PetscInt degree, SimpleBC bc) {
   user->spanstats.num_comp_stats = 22;
-  PetscReal    domain_min[3], domain_max[3];
-  PetscFE      fe;
-  PetscSection section;
+  PetscReal     domain_min[3], domain_max[3];
+  PetscFE       fe;
+  PetscSection  section;
+  PetscLogStage stage_stats_setup;
   PetscFunctionBeginUser;
+
+  PetscCall(PetscLogStageGetId("Stats Setup", &stage_stats_setup));
+  if (stage_stats_setup == -1) PetscCall(PetscLogStageRegister("Stats Setup", &stage_stats_setup));
+  PetscCall(PetscLogStagePush(stage_stats_setup));
 
   // Get spanwise length
   PetscCall(DMGetBoundingBox(user->dm, domain_min, domain_max));
@@ -101,6 +106,7 @@ PetscErrorCode CreateStatsDM(User user, ProblemData *problem, PetscInt degree, S
   // Cleanup
   PetscCall(PetscFEDestroy(&fe));
 
+  PetscCall(PetscLogStagePop());
   PetscFunctionReturn(0);
 }
 
@@ -372,7 +378,12 @@ PetscErrorCode SetupStatsCollection(Ceed ceed, User user, CeedData ceed_data, Pr
   Vec                X_loc;
   PetscMemType       X_loc_memtype;
   const PetscScalar *X_loc_array;
+  PetscLogStage      stage_stats_setup;
   PetscFunctionBeginUser;
+
+  PetscCall(PetscLogStageGetId("Stats Setup", &stage_stats_setup));
+  if (stage_stats_setup == -1) PetscCall(PetscLogStageRegister("Stats Setup", &stage_stats_setup));
+  PetscCall(PetscLogStagePush(stage_stats_setup));
 
   PetscCall(DMGetDimension(dm, &dim));
   CeedBasisGetNumQuadraturePoints1D(ceed_data->basis_q, &Q);
@@ -434,6 +445,8 @@ PetscErrorCode SetupStatsCollection(Ceed ceed, User user, CeedData ceed_data, Pr
     PetscCall(PetscViewerSetOptionsPrefix(user->app_ctx->stats_viewer, "stats_"));
     PetscCall(PetscViewerSetFromOptions(user->app_ctx->stats_viewer));
   }
+
+  PetscCall(PetscLogStagePop());
   PetscFunctionReturn(0);
 }
 
