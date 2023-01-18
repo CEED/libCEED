@@ -143,7 +143,6 @@ typedef struct {
   KSP               ksp;         // For the L^2 projection solve
   CeedScalar        span_width;  // spanwise width of the child domain
   PetscScalar       prev_time;
-  PetscBool         monitor_final_call;  // Whether call to TSMonitor_Statistics is the last one
 } Span_Stats;
 
 // PETSc user data

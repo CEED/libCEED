@@ -490,6 +490,7 @@ PetscErrorCode TSSolve_NS(DM dm, User user, AppCtx app_ctx, Physics phys, Vec *Q
     PetscCall(TSMonitorSet(*ts, TSMonitor_NS, user, NULL));
     if (app_ctx->stats_enable) {
       PetscCall(TSMonitorSet(*ts, TSMonitor_Statistics, user, NULL));
+      user->spanstats.prev_time = app_ctx->cont_time * user->units->second;
     }
   }
 
@@ -531,10 +532,6 @@ PetscErrorCode TSSolve_NS(DM dm, User user, AppCtx app_ctx, Physics phys, Vec *Q
     PetscCall(TSGetStepNumber(*ts, &step_no));
     if (user->app_ctx->checkpoint_interval > 0 || user->app_ctx->checkpoint_interval == -1) {
       PetscCall(WriteOutput(user, *Q, step_no, final_time));
-    }
-    if (app_ctx->stats_enable && (user->app_ctx->stats_viewer_interval > 0 || user->app_ctx->stats_viewer_interval == -1)) {
-      user->spanstats.monitor_final_call = PETSC_TRUE;
-      PetscCall(TSMonitor_Statistics(*ts, step_no, final_time, *Q, user));
     }
 
     PetscLogEvent stage_id;

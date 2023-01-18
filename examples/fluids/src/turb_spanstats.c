@@ -471,11 +471,9 @@ PetscErrorCode CollectStatistics(User user, PetscScalar solution_time, Vec Q) {
   CeedVectorTakeArray(user->q_ceed, MemTypeP2C(q_mem_type), NULL);
   PetscCall(VecRestoreArrayReadAndMemType(user->Q_loc, &q_arr));
 
-  // Record averaging using left rectangle rule
-  PetscScalar delta_t           = solution_time - user->spanstats.prev_time;
-  PetscScalar prev_timeinterval = user->spanstats.prev_time - user->app_ctx->cont_time;
-  CeedVectorScale(user->spanstats.child_stats, prev_timeinterval / (prev_timeinterval + delta_t));
-  CeedVectorAXPY(user->spanstats.child_stats, delta_t / (prev_timeinterval + delta_t), user->spanstats.child_inst_stats);
+  // Record weighted running sum
+  PetscScalar delta_t = solution_time - user->spanstats.prev_time;
+  CeedVectorAXPY(user->spanstats.child_stats, delta_t, user->spanstats.child_inst_stats);
   user->spanstats.prev_time = solution_time;
 
   PetscCall(PetscLogStagePop());
@@ -483,7 +481,7 @@ PetscErrorCode CollectStatistics(User user, PetscScalar solution_time, Vec Q) {
 }
 
 // Process the child statistics into parent statistics and project them onto stats
-PetscErrorCode ProcessStatistics(User user, Vec *stats) {
+PetscErrorCode ProcessStatistics(User user, Vec stats) {
   Span_Stats         user_stats = user->spanstats;
   const PetscScalar *child_stats;
   PetscScalar       *parent_stats;
@@ -518,12 +516,13 @@ PetscErrorCode ProcessStatistics(User user, Vec *stats) {
   CeedVectorRestoreArray(user_stats.parent_stats, &parent_stats);
   PetscCallMPI(MPI_Type_free(&unit));
 
-  CeedVectorScale(user_stats.parent_stats, 1 / user_stats.span_width);
+  PetscReal solution_time;
+  PetscCall(DMGetOutputSequenceNumber(user_stats.dm, NULL, &solution_time));
+  PetscReal summing_duration = solution_time - user->app_ctx->cont_time;
+  CeedVectorScale(user_stats.parent_stats, 1 / (summing_duration * user_stats.span_width));
 
   // L^2 projection with the parent_data
-  PetscCall(DMGetGlobalVector(user_stats.dm, &rhs));
   PetscCall(DMGetLocalVector(user_stats.dm, &rhs_loc));
-  PetscCall(VecZeroEntries(rhs));
   PetscCall(VecZeroEntries(rhs_loc));
   PetscCall(VecGetArrayWriteAndMemType(rhs_loc, &rhs_arr, &rhs_mem_type));
   CeedVectorSetArray(user_stats.rhs_ceed, MemTypeP2C(rhs_mem_type), CEED_USE_POINTER, (PetscScalar *)rhs_arr);
@@ -532,38 +531,41 @@ PetscErrorCode ProcessStatistics(User user, Vec *stats) {
 
   CeedVectorTakeArray(user_stats.rhs_ceed, MemTypeP2C(rhs_mem_type), &rhs_arr);
   PetscCall(VecRestoreArrayAndMemType(rhs_loc, &rhs_arr));
+
+  PetscCall(DMGetGlobalVector(user_stats.dm, &rhs));
+  PetscCall(VecZeroEntries(rhs));
   PetscCall(DMLocalToGlobal(user_stats.dm, rhs_loc, ADD_VALUES, rhs));
+  PetscCall(DMRestoreLocalVector(user_stats.dm, &rhs_loc));
 
-  PetscCall(VecDuplicate(rhs, stats));
-  PetscCall(VecPointwiseMult(*stats, rhs, user_stats.M_inv));
+  PetscCall(KSPSolve(user_stats.ksp, rhs, stats));
 
-  PetscCall(KSPSolve(user_stats.ksp, rhs, *stats));
-
+  PetscCall(DMRestoreGlobalVector(user_stats.dm, &rhs));
   PetscCall(PetscLogStagePop());
   PetscFunctionReturn(0);
 }
 
 // TSMonitor for the statistics collection and processing
 PetscErrorCode TSMonitor_Statistics(TS ts, PetscInt steps, PetscReal solution_time, Vec Q, void *ctx) {
-  User user = (User)ctx;
-  Vec  stats;
+  User              user = (User)ctx;
+  Vec               stats;
+  TSConvergedReason reason;
   PetscFunctionBeginUser;
-
+  PetscCall(TSGetConvergedReason(ts, &reason));
   // Do not collect or process on the first step of the run (ie. on the initial condition)
-  if (steps == user->app_ctx->cont_steps && !user->spanstats.monitor_final_call) PetscFunctionReturn(0);
+  if (steps == user->app_ctx->cont_steps && reason == TS_CONVERGED_ITERATING) PetscFunctionReturn(0);
 
-  if (steps % user->app_ctx->stats_collect_interval == 0 || user->spanstats.monitor_final_call) {
+  if (steps % user->app_ctx->stats_collect_interval == 0 || reason != TS_CONVERGED_ITERATING) {
     PetscCall(CollectStatistics(user, solution_time, Q));
   }
 
-  if ((steps % user->app_ctx->stats_viewer_interval == 0 && user->app_ctx->stats_viewer_interval != -1) || user->spanstats.monitor_final_call) {
-    PetscCall(DMGetGlobalVector(user->spanstats.dm, &stats));
-    PetscCall(ProcessStatistics(user, &stats));
+  if ((steps % user->app_ctx->stats_viewer_interval == 0 && user->app_ctx->stats_viewer_interval != -1) || reason != TS_CONVERGED_ITERATING) {
     PetscCall(DMSetOutputSequenceNumber(user->spanstats.dm, steps, solution_time));
+    PetscCall(DMGetGlobalVector(user->spanstats.dm, &stats));
+    PetscCall(ProcessStatistics(user, stats));
     PetscCall(PetscViewerPushFormat(user->app_ctx->stats_viewer, user->app_ctx->stats_viewer_format));
     PetscCall(VecView(stats, user->app_ctx->stats_viewer));
     PetscCall(PetscViewerPopFormat(user->app_ctx->stats_viewer));
-    if (user->app_ctx->stats_test && user->spanstats.monitor_final_call) {
+    if (user->app_ctx->stats_test && reason != TS_CONVERGED_ITERATING) {
       Vec error;
       PetscCall(VecDuplicate(stats, &error));
       PetscCall(ApplyLocal_Ceed(stats, error, user->spanstats.test_error_ctx));
