@@ -444,6 +444,49 @@ PetscErrorCode WriteOutput(User user, Vec Q, PetscInt step_no, PetscScalar time)
   PetscFunctionReturn(0);
 }
 
+// CSV Monitor
+PetscErrorCode TSMonitor_FaceForce(TS ts, PetscInt step_no, PetscReal time, Vec Q, PetscViewerAndFormat *ctx) {
+  // User        user   = ctx;
+  PetscViewer viewer = ctx->viewer;
+  PetscBool   iascii, ibinary;
+
+  PetscFunctionBeginUser;
+
+  PetscValidHeaderSpecific(viewer, PETSC_VIEWER_CLASSID, 5);
+  // PetscCall(PetscOptionsGetViewer(PetscObjectComm((PetscObject)ts, &viewer)));
+  PetscCall(PetscObjectTypeCompare((PetscObject)viewer, PETSCVIEWERASCII, &iascii));
+  PetscCall(PetscObjectTypeCompare((PetscObject)viewer, PETSCVIEWERBINARY, &ibinary));
+  PetscCall(PetscViewerPushFormat(viewer, ctx->format));
+
+  if (iascii) {
+    PetscCall(PetscViewerASCIIAddTab(viewer, ((PetscObject)ts)->tablevel));
+    if (step_no == -1) { /* this indicates it is an interpolated solution */
+      PetscCall(PetscViewerASCIIPrintf(viewer, "Interpolated solution at time %g between steps %" PetscInt_FMT " and %" PetscInt_FMT "\n",
+                                       (double)time, ts->steps - 1, ts->steps));
+    } else {
+      PetscCall(PetscViewerASCIIPrintf(viewer, "%" PetscInt_FMT " TS dt %g time %g%s", step_no, (double)ts->time_step, (double)time,
+                                       ts->steprollback ? " (r)\n" : "\n"));
+    }
+    PetscCall(PetscViewerASCIISubtractTab(viewer, ((PetscObject)ts)->tablevel));
+  } else if (ibinary) {
+    PetscMPIInt rank;
+    PetscCallMPI(MPI_Comm_rank(PetscObjectComm((PetscObject)viewer), &rank));
+    if (rank == 0) {
+      PetscBool skipHeader;
+      PetscInt  classid = REAL_FILE_CLASSID;
+
+      PetscCall(PetscViewerBinaryGetSkipHeader(viewer, &skipHeader));
+      if (!skipHeader) PetscCall(PetscViewerBinaryWrite(viewer, &classid, 1, PETSC_INT));
+      PetscCall(PetscRealView(1, &time, viewer));
+    } else {
+      PetscCall(PetscRealView(0, &time, viewer));
+    }
+  }
+  PetscCall(PetscViewerPopFormat(viewer));
+
+  PetscFunctionReturn(0);
+}
+
 // User provided TS Monitor
 PetscErrorCode TSMonitor_NS(TS ts, PetscInt step_no, PetscReal time, Vec Q, void *ctx) {
   User user = ctx;
@@ -525,6 +568,7 @@ PetscErrorCode TSSolve_NS(DM dm, User user, AppCtx app_ctx, Physics phys, Vec *Q
   }
   if (!app_ctx->test_mode) {
     PetscCall(TSMonitorSet(*ts, TSMonitor_NS, user, NULL));
+    PetscCall(TSMonitorSet(*ts, TSMonitor_FaceForce, user, NULL));
   }
 
   // Solve
