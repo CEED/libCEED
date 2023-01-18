@@ -10,6 +10,7 @@
 
 #include <ceed/backend.h>
 #include <ceed/ceed.h>
+
 #include <sycl/sycl.hpp>
 
 // static inline CeedInt CeedDivUpInt(CeedInt numerator, CeedInt denominator) { return (numerator + denominator - 1) / denominator; }

@@ -10,6 +10,7 @@
 
 #include <ceed/backend.h>
 #include <ceed/ceed.h>
+
 #include <sycl/sycl.hpp>
 
 #include "../sycl/ceed-sycl-common.hpp"

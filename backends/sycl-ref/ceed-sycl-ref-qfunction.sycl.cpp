@@ -8,8 +8,8 @@
 
 #include <ceed/backend.h>
 #include <ceed/ceed.h>
-#include <string>
 
+#include <string>
 #include <sycl/sycl.hpp>
 
 #include "../sycl/ceed-sycl-compile.hpp"
@@ -19,8 +19,7 @@
 //------------------------------------------------------------------------------
 // Apply QFunction
 //------------------------------------------------------------------------------
-static int CeedQFunctionApply_Sycl(CeedQFunction qf, CeedInt Q, CeedVector *U,
-                                   CeedVector *V) {
+static int CeedQFunctionApply_Sycl(CeedQFunction qf, CeedInt Q, CeedVector *U, CeedVector *V) {
   Ceed ceed;
   CeedQFunctionGetCeed(qf, &ceed);
   return CeedError(ceed, CEED_ERROR_BACKEND, "Ceed SYCL function not implemented");
@@ -38,7 +37,7 @@ static int CeedQFunctionDestroy_Sycl(CeedQFunction qf) {
 //------------------------------------------------------------------------------
 // Set User QFunction
 //------------------------------------------------------------------------------
-static int CeedQFunctionSetSYCLUserFunction_Sycl(CeedQFunction qf/*, CUfunction f*/) {
+static int CeedQFunctionSetSYCLUserFunction_Sycl(CeedQFunction qf /*, CUfunction f*/) {
   Ceed ceed;
   CeedQFunctionGetCeed(qf, &ceed);
   return CeedError(ceed, CEED_ERROR_BACKEND, "Ceed SYCL function not implemented");

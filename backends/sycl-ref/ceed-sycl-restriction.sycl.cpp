@@ -9,8 +9,8 @@
 #include <ceed/backend.h>
 #include <ceed/ceed.h>
 #include <ceed/jit-tools.h>
-#include <string>
 
+#include <string>
 #include <sycl/sycl.hpp>
 
 #include "../sycl/ceed-sycl-compile.hpp"
@@ -19,9 +19,7 @@
 //------------------------------------------------------------------------------
 // Apply restriction
 //------------------------------------------------------------------------------
-static int CeedElemRestrictionApply_Sycl(CeedElemRestriction r,
-                                         CeedTransposeMode t_mode, CeedVector u,
-                                         CeedVector v, CeedRequest *request) {
+static int CeedElemRestrictionApply_Sycl(CeedElemRestriction r, CeedTransposeMode t_mode, CeedVector u, CeedVector v, CeedRequest *request) {
   Ceed ceed;
   CeedCallBackend(CeedElemRestrictionGetCeed(r, &ceed));
   return CeedError(ceed, CEED_ERROR_BACKEND, "Ceed SYCL function not implemented");
@@ -30,23 +28,19 @@ static int CeedElemRestrictionApply_Sycl(CeedElemRestriction r,
 //------------------------------------------------------------------------------
 // Blocked not supported
 //------------------------------------------------------------------------------
-int CeedElemRestrictionApplyBlock_Sycl(CeedElemRestriction r, CeedInt block,
-                                       CeedTransposeMode t_mode, CeedVector u,
-                                       CeedVector v, CeedRequest *request) {
+int CeedElemRestrictionApplyBlock_Sycl(CeedElemRestriction r, CeedInt block, CeedTransposeMode t_mode, CeedVector u, CeedVector v,
+                                       CeedRequest *request) {
   // LCOV_EXCL_START
   Ceed ceed;
   CeedCallBackend(CeedElemRestrictionGetCeed(r, &ceed));
-  return CeedError(ceed, CEED_ERROR_BACKEND,
-                   "Backend does not implement blocked restrictions");
+  return CeedError(ceed, CEED_ERROR_BACKEND, "Backend does not implement blocked restrictions");
   // LCOV_EXCL_STOP
 }
 
 //------------------------------------------------------------------------------
 // Get offsets
 //------------------------------------------------------------------------------
-static int CeedElemRestrictionGetOffsets_Sycl(CeedElemRestriction r,
-                                              CeedMemType m_type,
-                                              const CeedInt **offsets) {
+static int CeedElemRestrictionGetOffsets_Sycl(CeedElemRestriction r, CeedMemType m_type, const CeedInt **offsets) {
   Ceed ceed;
   CeedCallBackend(CeedElemRestrictionGetCeed(r, &ceed));
   return CeedError(ceed, CEED_ERROR_BACKEND, "Ceed SYCL function not implemented");
@@ -64,8 +58,7 @@ static int CeedElemRestrictionDestroy_Sycl(CeedElemRestriction r) {
 //------------------------------------------------------------------------------
 // Create transpose offsets and indices
 //------------------------------------------------------------------------------
-static int CeedElemRestrictionOffset_Sycl(const CeedElemRestriction r,
-                                          const CeedInt *indices) {
+static int CeedElemRestrictionOffset_Sycl(const CeedElemRestriction r, const CeedInt *indices) {
   Ceed ceed;
   CeedCallBackend(CeedElemRestrictionGetCeed(r, &ceed));
   return CeedError(ceed, CEED_ERROR_BACKEND, "Ceed SYCL function not implemented");
@@ -74,9 +67,7 @@ static int CeedElemRestrictionOffset_Sycl(const CeedElemRestriction r,
 //------------------------------------------------------------------------------
 // Create restriction
 //------------------------------------------------------------------------------
-int CeedElemRestrictionCreate_Sycl(CeedMemType m_type, CeedCopyMode copy_mode,
-                                   const CeedInt *indices,
-                                   CeedElemRestriction r) {
+int CeedElemRestrictionCreate_Sycl(CeedMemType m_type, CeedCopyMode copy_mode, const CeedInt *indices, CeedElemRestriction r) {
   Ceed ceed;
   CeedCallBackend(CeedElemRestrictionGetCeed(r, &ceed));
   return CeedError(ceed, CEED_ERROR_BACKEND, "Ceed SYCL function not implemented");
@@ -85,13 +76,9 @@ int CeedElemRestrictionCreate_Sycl(CeedMemType m_type, CeedCopyMode copy_mode,
 //------------------------------------------------------------------------------
 // Blocked not supported
 //------------------------------------------------------------------------------
-int CeedElemRestrictionCreateBlocked_Sycl(const CeedMemType m_type,
-                                          const CeedCopyMode copy_mode,
-                                          const CeedInt *indices,
-                                          CeedElemRestriction r) {
+int CeedElemRestrictionCreateBlocked_Sycl(const CeedMemType m_type, const CeedCopyMode copy_mode, const CeedInt *indices, CeedElemRestriction r) {
   Ceed ceed;
   CeedCallBackend(CeedElemRestrictionGetCeed(r, &ceed));
-  return CeedError(ceed, CEED_ERROR_BACKEND,
-                   "Backend does not implement blocked restrictions");
+  return CeedError(ceed, CEED_ERROR_BACKEND, "Backend does not implement blocked restrictions");
 }
 //------------------------------------------------------------------------------

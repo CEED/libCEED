@@ -14,11 +14,9 @@
 //------------------------------------------------------------------------------
 // Get root resource without device spec
 //------------------------------------------------------------------------------
-int CeedSyclGetResourceRoot(Ceed ceed, const char *resource,
-                            char **resource_root) {
-  const char *device_spec = strstr(resource, ":device_id=");
-  size_t resource_root_len =
-      device_spec ? (size_t)(device_spec - resource) + 1 : strlen(resource) + 1;
+int CeedSyclGetResourceRoot(Ceed ceed, const char *resource, char **resource_root) {
+  const char *device_spec       = strstr(resource, ":device_id=");
+  size_t      resource_root_len = device_spec ? (size_t)(device_spec - resource) + 1 : strlen(resource) + 1;
   CeedCallBackend(CeedCalloc(resource_root_len, resource_root));
   memcpy(*resource_root, resource, resource_root_len - 1);
 
@@ -30,17 +28,16 @@ int CeedSyclGetResourceRoot(Ceed ceed, const char *resource,
 //------------------------------------------------------------------------------
 int CeedSyclInit(Ceed ceed, const char *resource) {
   const char *device_spec = strstr(resource, ":device_id=");
-  const int device_id = (device_spec) ? atoi(device_spec + 11) : 0;
+  const int   device_id   = (device_spec) ? atoi(device_spec + 11) : 0;
 
   // For now assume we want GPU devices and ignore the possibility of multiple
   // platforms
-  auto gpu_devices = sycl::device::get_devices(sycl::info::device_type::gpu);
-  int device_count = gpu_devices.size();
+  auto gpu_devices  = sycl::device::get_devices(sycl::info::device_type::gpu);
+  int  device_count = gpu_devices.size();
 
   // Validate the requested device_id
   if (device_id < 0 || (device_count < device_id + 1)) {
-    return CeedError(ceed, CEED_ERROR_BACKEND,
-                     "Invalid SYCL device id requested");
+    return CeedError(ceed, CEED_ERROR_BACKEND, "Invalid SYCL device id requested");
   }
 
   sycl::device sycl_device{gpu_devices[device_id]};
@@ -53,14 +50,14 @@ int CeedSyclInit(Ceed ceed, const char *resource) {
 
   // sycl::context sycl_context{gpu_devices};
   sycl::context sycl_context{sycl_device};
-  sycl::queue sycl_queue{sycl_context, sycl_device};
+  sycl::queue   sycl_queue{sycl_context, sycl_device};
 
   Ceed_Sycl *data;
   CeedCallBackend(CeedGetData(ceed, &data));
 
-  data->sycl_device = sycl_device;
+  data->sycl_device  = sycl_device;
   data->sycl_context = sycl_context;
-  data->sycl_queue = sycl_queue;
+  data->sycl_queue   = sycl_queue;
 
   return CEED_ERROR_SUCCESS;
 }

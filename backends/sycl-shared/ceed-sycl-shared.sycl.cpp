@@ -9,6 +9,7 @@
 
 #include <ceed/backend.h>
 #include <ceed/ceed.h>
+
 #include <string>
 
 //------------------------------------------------------------------------------
@@ -22,7 +23,5 @@ static int CeedInit_Sycl_shared(const char *resource, Ceed ceed) {
 //------------------------------------------------------------------------------
 // Register backend
 //------------------------------------------------------------------------------
-CEED_INTERN int CeedRegister_Sycl_Shared(void) { 
-  return CeedRegister("/gpu/sycl/shared", CeedInit_Sycl_shared, 25); 
-}
+CEED_INTERN int CeedRegister_Sycl_Shared(void) { return CeedRegister("/gpu/sycl/shared", CeedInit_Sycl_shared, 25); }
 //------------------------------------------------------------------------------

@@ -8,11 +8,10 @@
 #include <ceed/backend.h>
 #include <ceed/ceed.h>
 #include <ceed/jit-tools.h>
-#include <string>
 
 #include <iostream>
 #include <sstream>
-
+#include <string>
 #include <sycl/sycl.hpp>
 
 #include "../sycl/ceed-sycl-compile.hpp"

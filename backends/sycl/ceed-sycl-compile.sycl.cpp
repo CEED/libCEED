@@ -9,9 +9,9 @@
 
 #include <ceed/backend.h>
 #include <ceed/ceed.h>
-#include <sycl/sycl.hpp>
 
 #include <sstream>
+#include <sycl/sycl.hpp>
 
 #include "ceed-sycl-common.hpp"
 

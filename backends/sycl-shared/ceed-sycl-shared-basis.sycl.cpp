@@ -8,8 +8,9 @@
 #include <ceed/backend.h>
 #include <ceed/ceed.h>
 #include <ceed/jit-tools.h>
-#include <sycl/sycl.hpp>
+
 #include <cstddef>
+#include <sycl/sycl.hpp>
 
 #include "../sycl/ceed-sycl-compile.hpp"
 #include "ceed-sycl-shared.hpp"

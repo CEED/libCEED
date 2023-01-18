@@ -7,10 +7,11 @@
 
 #include <ceed/backend.h>
 #include <ceed/ceed.h>
+
 #include <cmath>
 #include <string>
-
 #include <sycl/sycl.hpp>
+
 #include "ceed-sycl-ref.hpp"
 
 //------------------------------------------------------------------------------
@@ -59,14 +60,14 @@ static inline int CeedVectorSyncH2D_Sycl(const CeedVector vec) {
   } else if (impl->d_array_owned) {
     impl->d_array = impl->d_array_owned;
   } else {
-    CeedCallSycl(ceed,impl->d_array_owned = sycl::malloc_device<CeedScalar>(length,data->sycl_device,data->sycl_context));
+    CeedCallSycl(ceed, impl->d_array_owned = sycl::malloc_device<CeedScalar>(length, data->sycl_device, data->sycl_context));
     impl->d_array = impl->d_array_owned;
   }
-  
+
   // Copy from host to device
-  sycl::event copy_event = data->sycl_queue.copy<CeedScalar>(impl->h_array,impl->d_array,length);
+  sycl::event copy_event = data->sycl_queue.copy<CeedScalar>(impl->h_array, impl->d_array, length);
   // Wait for copy to finish and handle exceptions.
-  CeedCallSycl(ceed,copy_event.wait_and_throw());
+  CeedCallSycl(ceed, copy_event.wait_and_throw());
 
   return CEED_ERROR_SUCCESS;
 }
@@ -82,7 +83,7 @@ static inline int CeedVectorSyncD2H_Sycl(const CeedVector vec) {
   Ceed_Sycl *data;
   CeedCallBackend(CeedGetData(ceed, &data))
 
-  if (!impl->d_array) {
+      if (!impl->d_array) {
     // LCOV_EXCL_START
     return CeedError(ceed, CEED_ERROR_BACKEND, "No valid device data to sync to host");
     // LCOV_EXCL_STOP
@@ -90,7 +91,7 @@ static inline int CeedVectorSyncD2H_Sycl(const CeedVector vec) {
 
   CeedSize length;
   CeedCallBackend(CeedVectorGetLength(vec, &length));
-  
+
   if (impl->h_array_borrowed) {
     impl->h_array = impl->h_array_borrowed;
   } else if (impl->h_array_owned) {
@@ -101,9 +102,9 @@ static inline int CeedVectorSyncD2H_Sycl(const CeedVector vec) {
   }
 
   // Copy from device to host
-  sycl::event copy_event = data->sycl_queue.copy<CeedScalar>(impl->d_array,impl->h_array,length);
+  sycl::event copy_event = data->sycl_queue.copy<CeedScalar>(impl->d_array, impl->h_array, length);
   // Wait for copy to finish and handle exceptions.
-  CeedCallSycl(ceed,copy_event.wait_and_throw());
+  CeedCallSycl(ceed, copy_event.wait_and_throw());
 
   return CEED_ERROR_SUCCESS;
 }
@@ -244,27 +245,27 @@ static int CeedVectorSetArrayDevice_Sycl(const CeedVector vec, const CeedCopyMod
       CeedSize length;
       CeedCallBackend(CeedVectorGetLength(vec, &length));
       if (!impl->d_array_owned) {
-        CeedCallSycl(ceed,impl->d_array_owned = sycl::malloc_device<CeedScalar>(length,data->sycl_device,data->sycl_context));
+        CeedCallSycl(ceed, impl->d_array_owned = sycl::malloc_device<CeedScalar>(length, data->sycl_device, data->sycl_context));
         impl->d_array = impl->d_array_owned;
       }
-      if (array) { 
-        sycl::event copy_event = data->sycl_queue.copy<CeedScalar>(array,impl->d_array,length);
+      if (array) {
+        sycl::event copy_event = data->sycl_queue.copy<CeedScalar>(array, impl->d_array, length);
         // Wait for copy to finish and handle exceptions.
-        CeedCallSycl(ceed,copy_event.wait_and_throw());
+        CeedCallSycl(ceed, copy_event.wait_and_throw());
       }
     } break;
     case CEED_OWN_POINTER:
       // Wait for all work to finish before freeing memory
-      CeedCallSycl(ceed,data->sycl_queue.wait_and_throw());  
-      CeedCallSycl(ceed,sycl::free(impl->d_array_owned, data->sycl_context));
+      CeedCallSycl(ceed, data->sycl_queue.wait_and_throw());
+      CeedCallSycl(ceed, sycl::free(impl->d_array_owned, data->sycl_context));
       impl->d_array_owned    = array;
       impl->d_array_borrowed = NULL;
       impl->d_array          = array;
       break;
     case CEED_USE_POINTER:
       // Wait for all work to finish before freeing memory
-      CeedCallSycl(ceed,data->sycl_queue.wait_and_throw());  
-      CeedCallSycl(ceed,sycl::free(impl->d_array_owned, data->sycl_context));
+      CeedCallSycl(ceed, data->sycl_queue.wait_and_throw());
+      CeedCallSycl(ceed, sycl::free(impl->d_array_owned, data->sycl_context));
       impl->d_array_owned    = NULL;
       impl->d_array_borrowed = array;
       impl->d_array          = array;
@@ -306,7 +307,7 @@ static int CeedHostSetValue_Sycl(CeedScalar *h_array, CeedInt length, CeedScalar
 //------------------------------------------------------------------------------
 // Set device array to value
 //------------------------------------------------------------------------------
-static int CeedDeviceSetValue_Sycl(sycl::queue& sycl_queue, CeedScalar *d_array, CeedInt length, CeedScalar val) {
+static int CeedDeviceSetValue_Sycl(sycl::queue &sycl_queue, CeedScalar *d_array, CeedInt length, CeedScalar val) {
   sycl_queue.fill(d_array, val, length);
   return CEED_ERROR_SUCCESS;
 }
@@ -339,7 +340,7 @@ static int CeedVectorSetValue_Sycl(CeedVector vec, CeedScalar val) {
     }
   }
   if (impl->d_array) {
-    CeedCallBackend(CeedDeviceSetValue_Sycl(data->sycl_queue,impl->d_array, length, val));
+    CeedCallBackend(CeedDeviceSetValue_Sycl(data->sycl_queue, impl->d_array, length, val));
     impl->h_array = NULL;
   }
   if (impl->h_array) {
@@ -484,12 +485,10 @@ static int CeedHostReciprocal_Sycl(CeedScalar *h_array, CeedInt length) {
 //------------------------------------------------------------------------------
 // Take reciprocal of a vector on device
 //------------------------------------------------------------------------------
-static int CeedDeviceReciprocal_Sycl(sycl::queue& sycl_queue, CeedScalar *d_array, CeedInt length) {
-  sycl_queue.parallel_for(length,
-    [=](sycl::id<1> i) {
-      if (std::fabs(d_array[i]) > CEED_EPSILON) d_array[i] = 1. / d_array[i];
-    }
-  );
+static int CeedDeviceReciprocal_Sycl(sycl::queue &sycl_queue, CeedScalar *d_array, CeedInt length) {
+  sycl_queue.parallel_for(length, [=](sycl::id<1> i) {
+    if (std::fabs(d_array[i]) > CEED_EPSILON) d_array[i] = 1. / d_array[i];
+  });
 
   return CEED_ERROR_SUCCESS;
 }
@@ -508,7 +507,7 @@ static int CeedVectorReciprocal_Sycl(CeedVector vec) {
   CeedCallBackend(CeedGetData(ceed, &data));
 
   // Set value for synced device/host array
-  if (impl->d_array) CeedCallBackend(CeedDeviceReciprocal_Sycl(data->sycl_queue,impl->d_array, length));
+  if (impl->d_array) CeedCallBackend(CeedDeviceReciprocal_Sycl(data->sycl_queue, impl->d_array, length));
   if (impl->h_array) CeedCallBackend(CeedHostReciprocal_Sycl(impl->h_array, length));
 
   return CEED_ERROR_SUCCESS;
@@ -525,12 +524,8 @@ static int CeedHostScale_Sycl(CeedScalar *x_array, CeedScalar alpha, CeedInt len
 //------------------------------------------------------------------------------
 // Compute x = alpha x on device
 //------------------------------------------------------------------------------
-static int CeedDeviceScale_Sycl(sycl::queue& sycl_queue, CeedScalar *x_array, CeedScalar alpha, CeedInt length) {
-  sycl_queue.parallel_for(length,
-    [=](sycl::id<1> i) {
-      x_array[i] *= alpha;
-    }
-  );
+static int CeedDeviceScale_Sycl(sycl::queue &sycl_queue, CeedScalar *x_array, CeedScalar alpha, CeedInt length) {
+  sycl_queue.parallel_for(length, [=](sycl::id<1> i) { x_array[i] *= alpha; });
   return CEED_ERROR_SUCCESS;
 }
 
@@ -548,7 +543,7 @@ static int CeedVectorScale_Sycl(CeedVector x, CeedScalar alpha) {
   CeedCallBackend(CeedGetData(ceed, &data));
 
   // Set value for synced device/host array
-  if (x_impl->d_array) CeedCallBackend(CeedDeviceScale_Sycl(data->sycl_queue,x_impl->d_array, alpha, length));
+  if (x_impl->d_array) CeedCallBackend(CeedDeviceScale_Sycl(data->sycl_queue, x_impl->d_array, alpha, length));
   if (x_impl->h_array) CeedCallBackend(CeedHostScale_Sycl(x_impl->h_array, alpha, length));
 
   return CEED_ERROR_SUCCESS;
@@ -565,12 +560,8 @@ static int CeedHostAXPY_Sycl(CeedScalar *y_array, CeedScalar alpha, CeedScalar *
 //------------------------------------------------------------------------------
 // Compute y = alpha x + y on device
 //------------------------------------------------------------------------------
-static int CeedDeviceAXPY_Sycl(sycl::queue& sycl_queue, CeedScalar *y_array, CeedScalar alpha, CeedScalar *x_array, CeedInt length) {
-  sycl_queue.parallel_for(length,
-    [=](sycl::id<1> i) {
-      y_array[i] += alpha * x_array[i];
-    }
-  );
+static int CeedDeviceAXPY_Sycl(sycl::queue &sycl_queue, CeedScalar *y_array, CeedScalar alpha, CeedScalar *x_array, CeedInt length) {
+  sycl_queue.parallel_for(length, [=](sycl::id<1> i) { y_array[i] += alpha * x_array[i]; });
   return CEED_ERROR_SUCCESS;
 }
 
@@ -612,12 +603,8 @@ static int CeedHostPointwiseMult_Sycl(CeedScalar *w_array, CeedScalar *x_array, 
 //------------------------------------------------------------------------------
 // Compute the pointwise multiplication w = x .* y on device (impl in .cu file)
 //------------------------------------------------------------------------------
-static int CeedDevicePointwiseMult_Sycl(sycl::queue& sycl_queue, CeedScalar *w_array, CeedScalar *x_array, CeedScalar *y_array, CeedInt length) {
-  sycl_queue.parallel_for(length,
-    [=](sycl::id<1> i) {
-      w_array[i] = x_array[i] * y_array[i];
-    }
-  );
+static int CeedDevicePointwiseMult_Sycl(sycl::queue &sycl_queue, CeedScalar *w_array, CeedScalar *x_array, CeedScalar *y_array, CeedInt length) {
+  sycl_queue.parallel_for(length, [=](sycl::id<1> i) { w_array[i] = x_array[i] * y_array[i]; });
   return CEED_ERROR_SUCCESS;
 }
 
@@ -666,8 +653,8 @@ static int CeedVectorDestroy_Sycl(const CeedVector vec) {
   CeedCallBackend(CeedGetData(ceed, &data));
 
   // Wait for all work to finish before freeing memory
-  CeedCallSycl(ceed,data->sycl_queue.wait_and_throw());  
-  CeedCallSycl(ceed,sycl::free(impl->d_array_owned, data->sycl_context));
+  CeedCallSycl(ceed, data->sycl_queue.wait_and_throw());
+  CeedCallSycl(ceed, sycl::free(impl->d_array_owned, data->sycl_context));
 
   CeedCallBackend(CeedFree(&impl->h_array_owned));
   CeedCallBackend(CeedFree(&impl));

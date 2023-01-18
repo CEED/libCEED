@@ -6,11 +6,11 @@
 //
 // This file is part of CEED:  http://github.com/ceed
 
-#include <cassert>
 #include <ceed/backend.h>
 #include <ceed/ceed.h>
-#include <string>
 
+#include <cassert>
+#include <string>
 #include <sycl/sycl.hpp>
 
 #include "../sycl/ceed-sycl-compile.hpp"
@@ -28,11 +28,8 @@ static int CeedOperatorDestroy_Sycl(CeedOperator op) {
 //------------------------------------------------------------------------------
 // Setup infields or outfields
 //------------------------------------------------------------------------------
-static int CeedOperatorSetupFields_Sycl(CeedQFunction qf, CeedOperator op,
-                                        bool isinput, CeedVector *evecs,
-                                        CeedVector *qvecs, CeedInt starte,
-                                        CeedInt numfields, CeedInt Q,
-                                        CeedInt numelements) {
+static int CeedOperatorSetupFields_Sycl(CeedQFunction qf, CeedOperator op, bool isinput, CeedVector *evecs, CeedVector *qvecs, CeedInt starte,
+                                        CeedInt numfields, CeedInt Q, CeedInt numelements) {
   Ceed ceed;
   CeedCallBackend(CeedOperatorGetCeed(op, &ceed));
   return CeedError(ceed, CEED_ERROR_BACKEND, "Ceed SYCL function not implemented");
@@ -51,11 +48,9 @@ static int CeedOperatorSetup_Sycl(CeedOperator op) {
 //------------------------------------------------------------------------------
 // Setup Operator Inputs
 //------------------------------------------------------------------------------
-static inline int CeedOperatorSetupInputs_Sycl(
-    CeedInt numinputfields, CeedQFunctionField *qfinputfields,
-    CeedOperatorField *opinputfields, CeedVector invec, const bool skipactive,
-    CeedScalar *edata[2 * CEED_FIELD_MAX], CeedOperator_Sycl *impl,
-    CeedRequest *request) {
+static inline int CeedOperatorSetupInputs_Sycl(CeedInt numinputfields, CeedQFunctionField *qfinputfields, CeedOperatorField *opinputfields,
+                                               CeedVector invec, const bool skipactive, CeedScalar *edata[2 * CEED_FIELD_MAX],
+                                               CeedOperator_Sycl *impl, CeedRequest *request) {
   Ceed ceed;
   CeedCallBackend(CeedVectorGetCeed(invec, &ceed));
   return CeedError(ceed, CEED_ERROR_BACKEND, "Ceed SYCL function not implemented");
@@ -64,29 +59,24 @@ static inline int CeedOperatorSetupInputs_Sycl(
 //------------------------------------------------------------------------------
 // Input Basis Action
 //------------------------------------------------------------------------------
-static inline int CeedOperatorInputBasis_Sycl(
-    CeedInt numelements, CeedQFunctionField *qfinputfields,
-    CeedOperatorField *opinputfields, CeedInt numinputfields,
-    const bool skipactive, CeedScalar *edata[2 * CEED_FIELD_MAX],
-    CeedOperator_Sycl *impl) {
+static inline int CeedOperatorInputBasis_Sycl(CeedInt numelements, CeedQFunctionField *qfinputfields, CeedOperatorField *opinputfields,
+                                              CeedInt numinputfields, const bool skipactive, CeedScalar *edata[2 * CEED_FIELD_MAX],
+                                              CeedOperator_Sycl *impl) {
   return CeedError(NULL, CEED_ERROR_BACKEND, "Ceed SYCL function not implemented");
 }
 
 //------------------------------------------------------------------------------
 // Restore Input Vectors
 //------------------------------------------------------------------------------
-static inline int CeedOperatorRestoreInputs_Sycl(
-    CeedInt numinputfields, CeedQFunctionField *qfinputfields,
-    CeedOperatorField *opinputfields, const bool skipactive,
-    CeedScalar *edata[2 * CEED_FIELD_MAX], CeedOperator_Sycl *impl) {
+static inline int CeedOperatorRestoreInputs_Sycl(CeedInt numinputfields, CeedQFunctionField *qfinputfields, CeedOperatorField *opinputfields,
+                                                 const bool skipactive, CeedScalar *edata[2 * CEED_FIELD_MAX], CeedOperator_Sycl *impl) {
   return CeedError(NULL, CEED_ERROR_BACKEND, "Ceed SYCL function not implemented");
 }
 
 //------------------------------------------------------------------------------
 // Apply and add to output
 //------------------------------------------------------------------------------
-static int CeedOperatorApplyAdd_Sycl(CeedOperator op, CeedVector invec,
-                                     CeedVector outvec, CeedRequest *request) {
+static int CeedOperatorApplyAdd_Sycl(CeedOperator op, CeedVector invec, CeedVector outvec, CeedRequest *request) {
   Ceed ceed;
   CeedCallBackend(CeedOperatorGetCeed(op, &ceed));
   return CeedError(ceed, CEED_ERROR_BACKEND, "Ceed SYCL function not implemented");
@@ -95,9 +85,8 @@ static int CeedOperatorApplyAdd_Sycl(CeedOperator op, CeedVector invec,
 //------------------------------------------------------------------------------
 // Core code for assembling linear QFunction
 //------------------------------------------------------------------------------
-static inline int CeedOperatorLinearAssembleQFunctionCore_Sycl(
-    CeedOperator op, bool build_objects, CeedVector *assembled,
-    CeedElemRestriction *rstr, CeedRequest *request) {
+static inline int CeedOperatorLinearAssembleQFunctionCore_Sycl(CeedOperator op, bool build_objects, CeedVector *assembled, CeedElemRestriction *rstr,
+                                                               CeedRequest *request) {
   Ceed ceed;
   CeedCallBackend(CeedOperatorGetCeed(op, &ceed));
   return CeedError(ceed, CEED_ERROR_BACKEND, "Ceed SYCL function not implemented");
@@ -106,31 +95,23 @@ static inline int CeedOperatorLinearAssembleQFunctionCore_Sycl(
 //------------------------------------------------------------------------------
 // Assemble Linear QFunction
 //------------------------------------------------------------------------------
-static int CeedOperatorLinearAssembleQFunction_Sycl(CeedOperator op,
-                                                    CeedVector *assembled,
-                                                    CeedElemRestriction *rstr,
-                                                    CeedRequest *request) {
+static int CeedOperatorLinearAssembleQFunction_Sycl(CeedOperator op, CeedVector *assembled, CeedElemRestriction *rstr, CeedRequest *request) {
   // Kris: Leave this like the CUDA backend for now, but we should review this later
-  return CeedOperatorLinearAssembleQFunctionCore_Sycl(op, true, assembled, rstr,
-                                                      request);
+  return CeedOperatorLinearAssembleQFunctionCore_Sycl(op, true, assembled, rstr, request);
 }
 
 //------------------------------------------------------------------------------
 // Update Assembled Linear QFunction
 //------------------------------------------------------------------------------
-static int CeedOperatorLinearAssembleQFunctionUpdate_Sycl(
-    CeedOperator op, CeedVector assembled, CeedElemRestriction rstr,
-    CeedRequest *request) {
+static int CeedOperatorLinearAssembleQFunctionUpdate_Sycl(CeedOperator op, CeedVector assembled, CeedElemRestriction rstr, CeedRequest *request) {
   // Kris: Leave this like the CUDA backend for now, but we should review this later
-  return CeedOperatorLinearAssembleQFunctionCore_Sycl(op, false, &assembled,
-                                                      &rstr, request);
+  return CeedOperatorLinearAssembleQFunctionCore_Sycl(op, false, &assembled, &rstr, request);
 }
 
 //------------------------------------------------------------------------------
 // Create point block restriction
 //------------------------------------------------------------------------------
-static int CreatePBRestriction(CeedElemRestriction rstr,
-                               CeedElemRestriction *pbRstr) {
+static int CreatePBRestriction(CeedElemRestriction rstr, CeedElemRestriction *pbRstr) {
   Ceed ceed;
   CeedCallBackend(CeedElemRestrictionGetCeed(rstr, &ceed));
   return CeedError(ceed, CEED_ERROR_BACKEND, "Ceed SYCL function not implemented");
@@ -139,8 +120,7 @@ static int CreatePBRestriction(CeedElemRestriction rstr,
 //------------------------------------------------------------------------------
 // Assemble diagonal setup
 //------------------------------------------------------------------------------
-static inline int CeedOperatorAssembleDiagonalSetup_Sycl(
-    CeedOperator op, const bool pointBlock) {
+static inline int CeedOperatorAssembleDiagonalSetup_Sycl(CeedOperator op, const bool pointBlock) {
   Ceed ceed;
   CeedCallBackend(CeedOperatorGetCeed(op, &ceed));
   return CeedError(ceed, CEED_ERROR_BACKEND, "Ceed SYCL function not implemented");
@@ -149,10 +129,7 @@ static inline int CeedOperatorAssembleDiagonalSetup_Sycl(
 //------------------------------------------------------------------------------
 // Assemble diagonal common code
 //------------------------------------------------------------------------------
-static inline int CeedOperatorAssembleDiagonalCore_Sycl(CeedOperator op,
-                                                        CeedVector assembled,
-                                                        CeedRequest *request,
-                                                        const bool pointBlock) {
+static inline int CeedOperatorAssembleDiagonalCore_Sycl(CeedOperator op, CeedVector assembled, CeedRequest *request, const bool pointBlock) {
   Ceed ceed;
   CeedCallBackend(CeedOperatorGetCeed(op, &ceed));
   return CeedError(ceed, CEED_ERROR_BACKEND, "Ceed SYCL function not implemented");
@@ -161,9 +138,7 @@ static inline int CeedOperatorAssembleDiagonalCore_Sycl(CeedOperator op,
 //------------------------------------------------------------------------------
 // Assemble Linear Diagonal
 //------------------------------------------------------------------------------
-static int CeedOperatorLinearAssembleAddDiagonal_Sycl(CeedOperator op,
-                                                      CeedVector assembled,
-                                                      CeedRequest *request) {
+static int CeedOperatorLinearAssembleAddDiagonal_Sycl(CeedOperator op, CeedVector assembled, CeedRequest *request) {
   Ceed ceed;
   CeedCallBackend(CeedOperatorGetCeed(op, &ceed));
   return CeedError(ceed, CEED_ERROR_BACKEND, "Ceed SYCL function not implemented");
@@ -172,8 +147,7 @@ static int CeedOperatorLinearAssembleAddDiagonal_Sycl(CeedOperator op,
 //------------------------------------------------------------------------------
 // Assemble Linear Point Block Diagonal
 //------------------------------------------------------------------------------
-static int CeedOperatorLinearAssembleAddPointBlockDiagonal_Sycl(
-    CeedOperator op, CeedVector assembled, CeedRequest *request) {
+static int CeedOperatorLinearAssembleAddPointBlockDiagonal_Sycl(CeedOperator op, CeedVector assembled, CeedRequest *request) {
   Ceed ceed;
   CeedCallBackend(CeedOperatorGetCeed(op, &ceed));
   return CeedError(ceed, CEED_ERROR_BACKEND, "Ceed SYCL function not implemented");
@@ -196,8 +170,7 @@ static int CeedSingleOperatorAssembleSetup_Sycl(CeedOperator op) {
 // input restriction/basis per operator (could have multiple basis eval modes).
 // TODO: allow multiple active input restrictions/basis objects
 //------------------------------------------------------------------------------
-static int CeedSingleOperatorAssemble_Sycl(CeedOperator op, CeedInt offset,
-                                           CeedVector values) {
+static int CeedSingleOperatorAssemble_Sycl(CeedOperator op, CeedInt offset, CeedVector values) {
   Ceed ceed;
   CeedCallBackend(CeedOperatorGetCeed(op, &ceed));
   return CeedError(ceed, CEED_ERROR_BACKEND, "Ceed SYCL function not implemented");

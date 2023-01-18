@@ -10,8 +10,8 @@
 
 #include <ceed/backend.h>
 #include <ceed/ceed.h>
-#include <string>
 
+#include <string>
 #include <sycl/sycl.hpp>
 
 //------------------------------------------------------------------------------
@@ -42,23 +42,21 @@ static int CeedInit_Sycl(const char *resource, Ceed ceed) {
   CeedCallBackend(CeedSyclInit(ceed, resource));
 
   CeedCallBackend(CeedSetBackendFunctionCpp(ceed, "Ceed", ceed, "GetPreferredMemType", CeedGetPreferredMemType_Sycl));
-  CeedCallBackend(CeedSetBackendFunctionCpp(ceed, "Ceed", ceed, "VectorCreate",&CeedVectorCreate_Sycl));
-  CeedCallBackend(CeedSetBackendFunctionCpp(ceed, "Ceed", ceed, "BasisCreateTensorH1",&CeedBasisCreateTensorH1_Sycl));
-  CeedCallBackend(CeedSetBackendFunctionCpp(ceed, "Ceed", ceed, "BasisCreateH1",&CeedBasisCreateH1_Sycl));
-  CeedCallBackend(CeedSetBackendFunctionCpp(ceed, "Ceed", ceed, "ElemRestrictionCreate",&CeedElemRestrictionCreate_Sycl));
-  CeedCallBackend(CeedSetBackendFunctionCpp(ceed, "Ceed", ceed, "ElemRestrictionCreateBlocked",&CeedElemRestrictionCreateBlocked_Sycl));
-  CeedCallBackend(CeedSetBackendFunctionCpp(ceed, "Ceed", ceed, "QFunctionCreate",&CeedQFunctionCreate_Sycl));
-  CeedCallBackend(CeedSetBackendFunctionCpp(ceed, "Ceed", ceed, "QFunctionContextCreate",&CeedQFunctionContextCreate_Sycl));
-  CeedCallBackend(CeedSetBackendFunctionCpp(ceed, "Ceed", ceed, "OperatorCreate",&CeedOperatorCreate_Sycl));
-  CeedCallBackend(CeedSetBackendFunctionCpp(ceed, "Ceed", ceed, "Destroy",&CeedDestroy_Sycl));
-  
+  CeedCallBackend(CeedSetBackendFunctionCpp(ceed, "Ceed", ceed, "VectorCreate", &CeedVectorCreate_Sycl));
+  CeedCallBackend(CeedSetBackendFunctionCpp(ceed, "Ceed", ceed, "BasisCreateTensorH1", &CeedBasisCreateTensorH1_Sycl));
+  CeedCallBackend(CeedSetBackendFunctionCpp(ceed, "Ceed", ceed, "BasisCreateH1", &CeedBasisCreateH1_Sycl));
+  CeedCallBackend(CeedSetBackendFunctionCpp(ceed, "Ceed", ceed, "ElemRestrictionCreate", &CeedElemRestrictionCreate_Sycl));
+  CeedCallBackend(CeedSetBackendFunctionCpp(ceed, "Ceed", ceed, "ElemRestrictionCreateBlocked", &CeedElemRestrictionCreateBlocked_Sycl));
+  CeedCallBackend(CeedSetBackendFunctionCpp(ceed, "Ceed", ceed, "QFunctionCreate", &CeedQFunctionCreate_Sycl));
+  CeedCallBackend(CeedSetBackendFunctionCpp(ceed, "Ceed", ceed, "QFunctionContextCreate", &CeedQFunctionContextCreate_Sycl));
+  CeedCallBackend(CeedSetBackendFunctionCpp(ceed, "Ceed", ceed, "OperatorCreate", &CeedOperatorCreate_Sycl));
+  CeedCallBackend(CeedSetBackendFunctionCpp(ceed, "Ceed", ceed, "Destroy", &CeedDestroy_Sycl));
+
   return CEED_ERROR_SUCCESS;
 }
 
 //------------------------------------------------------------------------------
 // Backend Register
 //------------------------------------------------------------------------------
-CEED_INTERN int CeedRegister_Sycl(void) {
-  return CeedRegister("/gpu/sycl/ref", CeedInit_Sycl, 40);
-}
+CEED_INTERN int CeedRegister_Sycl(void) { return CeedRegister("/gpu/sycl/ref", CeedInit_Sycl, 40); }
 //------------------------------------------------------------------------------

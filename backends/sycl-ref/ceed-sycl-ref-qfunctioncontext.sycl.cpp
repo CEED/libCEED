@@ -7,9 +7,10 @@
 
 #include <ceed/backend.h>
 #include <ceed/ceed.h>
-#include <string>
 
+#include <string>
 #include <sycl/sycl.hpp>
+
 #include "ceed-sycl-ref.hpp"
 
 //------------------------------------------------------------------------------

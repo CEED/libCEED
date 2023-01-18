@@ -8,18 +8,18 @@
 #define _ceed_sycl_kernels_shared_basis_hpp
 
 #include <ceed/ceed.h>
+
 #include <sycl/sycl.hpp>
 
-const int sizeMax = 16;
-__constant__ CeedScalar c_B[sizeMax*sizeMax];
-__constant__ CeedScalar c_G[sizeMax*sizeMax];
+const int               sizeMax = 16;
+__constant__ CeedScalar c_B[sizeMax * sizeMax];
+__constant__ CeedScalar c_G[sizeMax * sizeMax];
 
 //------------------------------------------------------------------------------
 // Interp device initalization
 //------------------------------------------------------------------------------
-extern "C" int CeedSyclInitInterp(CeedScalar *d_B, CeedInt P_1d, CeedInt Q_1d,
-                                  CeedScalar **c_B_ptr) {
-  const int bytes = P_1d*Q_1d*sizeof(CeedScalar);
+extern "C" int CeedSyclInitInterp(CeedScalar *d_B, CeedInt P_1d, CeedInt Q_1d, CeedScalar **c_B_ptr) {
+  const int bytes = P_1d * Q_1d * sizeof(CeedScalar);
   syclMemcpyToSymbol(c_B, d_B, bytes, 0, syclMemcpyDeviceToDevice);
   syclGetSymbolAddress((void **)c_B_ptr, c_B);
 
@@ -29,9 +29,8 @@ extern "C" int CeedSyclInitInterp(CeedScalar *d_B, CeedInt P_1d, CeedInt Q_1d,
 //------------------------------------------------------------------------------
 // Grad device initalization
 //------------------------------------------------------------------------------
-extern "C" int CeedSyclInitGrad(CeedScalar *d_B, CeedScalar *d_G,
-    CeedInt P_1d, CeedInt Q_1d, CeedScalar **c_B_ptr, CeedScalar **c_G_ptr) {
-  const int bytes = P_1d*Q_1d*sizeof(CeedScalar);
+extern "C" int CeedSyclInitGrad(CeedScalar *d_B, CeedScalar *d_G, CeedInt P_1d, CeedInt Q_1d, CeedScalar **c_B_ptr, CeedScalar **c_G_ptr) {
+  const int bytes = P_1d * Q_1d * sizeof(CeedScalar);
   syclMemcpyToSymbol(c_B, d_B, bytes, 0, syclMemcpyDeviceToDevice);
   syclGetSymbolAddress((void **)c_B_ptr, c_B);
   syclMemcpyToSymbol(c_G, d_G, bytes, 0, syclMemcpyDeviceToDevice);
@@ -43,12 +42,11 @@ extern "C" int CeedSyclInitGrad(CeedScalar *d_B, CeedScalar *d_G,
 //------------------------------------------------------------------------------
 // Collocated grad device initalization
 //------------------------------------------------------------------------------
-extern "C" int CeedSyclInitCollocatedGrad(CeedScalar *d_B, CeedScalar *d_G,
-    CeedInt P_1d, CeedInt Q_1d, CeedScalar **c_B_ptr, CeedScalar **c_G_ptr) {
-  const int bytes_interp = P_1d*Q_1d*sizeof(CeedScalar);
+extern "C" int CeedSyclInitCollocatedGrad(CeedScalar *d_B, CeedScalar *d_G, CeedInt P_1d, CeedInt Q_1d, CeedScalar **c_B_ptr, CeedScalar **c_G_ptr) {
+  const int bytes_interp = P_1d * Q_1d * sizeof(CeedScalar);
   syclMemcpyToSymbol(c_B, d_B, bytes_interp, 0, syclMemcpyDeviceToDevice);
   syclGetSymbolAddress((void **)c_B_ptr, c_B);
-  const int bytes_grad = Q_1d*Q_1d*sizeof(CeedScalar);
+  const int bytes_grad = Q_1d * Q_1d * sizeof(CeedScalar);
   syclMemcpyToSymbol(c_G, d_G, bytes_grad, 0, syclMemcpyDeviceToDevice);
   syclGetSymbolAddress((void **)c_G_ptr, c_G);
 
