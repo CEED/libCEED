@@ -454,7 +454,7 @@ ifneq ($(SYCL_DIR),)
 	SYCL_LIB_DIR := $(patsubst %/,%,$(dir $(firstword $(SYCL_LIB_DIR))))
 endif
 ifneq ($(SYCL_LIB_DIR),)
-	PKG_LIBS += -L$(abspath $(SYCL_LIB_DIR)) -lsycl
+	PKG_LIBS += $(SYCL_FLAG)
 	LIBCEED_CONTAINS_CXX = 1
 	libceed.sycl += $(sycl-core.cpp) $(sycl-ref.cpp) $(sycl-shared.cpp)
 	BACKENDS_MAKE += $(SYCL_BACKENDS)
