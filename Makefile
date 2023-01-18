@@ -31,7 +31,7 @@ endif
 NVCC ?= $(CUDA_DIR)/bin/nvcc
 NVCC_CXX ?= $(CXX)
 HIPCC ?= $(HIP_DIR)/bin/hipcc
-SYCL_CXX ?= $(CXX)
+SYCLCXX ?= $(CXX)
 SED ?= sed
 ifneq ($(EMSCRIPTEN),)
   STATIC = 1
@@ -552,7 +552,7 @@ $(OBJDIR)/%.o : $(CURDIR)/%.hip.cpp | $$(@D)/.DIR
 	$(call quiet,HIPCC) $(HIPCCFLAGS) -c -o $@ $(abspath $<)
 
 $(OBJDIR)/%.o : $(CURDIR)/%.sycl.cpp | $$(@D)/.DIR
-	$(call quiet,CXX) $(SYCLFLAGS) $(CPPFLAGS) -c -o $@ $(abspath $<)
+	$(call quiet,SYCLCXX) $(SYCLFLAGS) $(CPPFLAGS) -c -o $@ $(abspath $<)
 
 $(OBJDIR)/%$(EXE_SUFFIX) : tests/%.c | $$(@D)/.DIR
 	$(call quiet,LINK.c) $(CEED_LDFLAGS) -o $@ $(abspath $<) $(CEED_LIBS) $(CEED_LDLIBS) $(LDLIBS)
