@@ -68,7 +68,7 @@ PetscErrorCode SetUpDM(DM dm, ProblemData *problem, PetscInt degree, SimpleBC bc
 
     // Create FE for coordinates
       fe_coord_order = 1 ;
-      PetscCall(PetscFECreateLagrange(ratel->comm, dim, num_comp_coord, is_simplex, fe_coord_order, q_order, &fe_coord_new));
+      PetscCall(PetscFECreateLagrange(PETSC_COMM_SELF, problem->dim, num_comp_coord, is_simplex, fe_coord_order, degree, &fe_coord_new));
       PetscCall(DMProjectCoordinates(dm, fe_coord_new));
       PetscCall(PetscFEDestroy(&fe_coord_new));
     }
