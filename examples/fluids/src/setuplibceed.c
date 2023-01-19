@@ -612,9 +612,22 @@ PetscErrorCode SetupLibceed(Ceed ceed, CeedData ceed_data, DM dm, User user, App
   // -----------------------------------------------------------------------------
   // CEED Bases
   // -----------------------------------------------------------------------------
+
+FIXME FOR fromPlex like volume above
+PASTING what we did for  regions basis starts here
+  DM      dm_coord;
+  PetscCall(DMGetCoordinateDM(dm, &dm_coord));
+
+  PetscCall(CreateBasisFromPlex(ceed, dm, 0, 0, 0, 0, CEED_GAUSS, &ceed_data->basis_q));
+  PetscCall(CreateBasisFromPlex(ceed, dm_coord, 0, 0, 0, 0, CEED_GAUSS, &ceed_data->basis_x));
+  PetscCall(CeedBasisCreateProjection(ceed_data->basis_x, ceed_data->basis_q, &ceed_data->basis_xc));
+ENDS HERE
+Next three lines need to be fixed for boundary basis 
+  PetscCall(CreateBasisFromPlex(ceed, dm, 0, 0, 0, 0, CEED_GAUSS, &ceed_data->basis_q));
   CeedBasisCreateTensorH1Lagrange(ceed, dim_sur, num_comp_q, P_sur, Q_sur, CEED_GAUSS, &ceed_data->basis_q_sur);
   CeedBasisCreateTensorH1Lagrange(ceed, dim_sur, num_comp_x, 2, Q_sur, CEED_GAUSS, &ceed_data->basis_x_sur);
   CeedBasisCreateTensorH1Lagrange(ceed, dim_sur, num_comp_x, 2, P_sur, CEED_GAUSS_LOBATTO, &ceed_data->basis_xc_sur);
+END of existing boundary basis 
 
   // -----------------------------------------------------------------------------
   // CEED QFunctions
