@@ -36,9 +36,9 @@ The following options are common among all problem types:
   - CEED resource specifier
   - `/cpu/self/opt/blocked`
 
-* - `-test`
-  - Run in test mode
-  - `false`
+* - `-test_type`
+  - Run in test mode and specify whether solution (`solver`) or turbulent statistics (`turb_spanstats`) output should be verified
+  - `none`
 
 * - `-compare_final_state_atol`
   - Test absolute tolerance
