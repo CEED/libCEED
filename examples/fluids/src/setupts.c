@@ -460,7 +460,7 @@ PetscErrorCode TSSolve_NS(DM dm, User user, AppCtx app_ctx, Physics phys, Vec *Q
   PetscCall(TSSetExactFinalTime(*ts, TS_EXACTFINALTIME_STEPOVER));
   PetscCall(TSSetErrorIfStepFails(*ts, PETSC_FALSE));
   PetscCall(TSSetTimeStep(*ts, 1.e-2 * user->units->second));
-  if (app_ctx->test_mode) {
+  if (app_ctx->test_type != TESTTYPE_NONE) {
     PetscCall(TSSetMaxSteps(*ts, 10));
   }
   PetscCall(TSGetAdapt(*ts, &adapt));
@@ -469,7 +469,7 @@ PetscErrorCode TSSolve_NS(DM dm, User user, AppCtx app_ctx, Physics phys, Vec *Q
   user->time = user->time_bc_set = -1.0;  // require all BCs and ctx to be updated
   user->dt                       = -1.0;
   if (!app_ctx->cont_steps) {  // print initial condition
-    if (!app_ctx->test_mode) {
+    if (app_ctx->test_type == TESTTYPE_NONE) {
       PetscCall(TSMonitor_NS(*ts, 0, 0., *Q, user));
     }
   } else {  // continue from time of last output
@@ -486,12 +486,12 @@ PetscErrorCode TSSolve_NS(DM dm, User user, AppCtx app_ctx, Physics phys, Vec *Q
     PetscCall(TSSetTime(*ts, app_ctx->cont_time * user->units->second));
     PetscCall(TSSetStepNumber(*ts, app_ctx->cont_steps));
   }
-  if (!app_ctx->test_mode) {
+  if (app_ctx->test_type == TESTTYPE_NONE) {
     PetscCall(TSMonitorSet(*ts, TSMonitor_NS, user, NULL));
-    if (app_ctx->turb_spanstats_enable) {
-      PetscCall(TSMonitorSet(*ts, TSMonitor_Statistics, user, NULL));
-      user->spanstats.prev_time = app_ctx->cont_time * user->units->second;
-    }
+  }
+  if (app_ctx->turb_spanstats_enable) {
+    PetscCall(TSMonitorSet(*ts, TSMonitor_Statistics, user, NULL));
+    user->spanstats.prev_time = app_ctx->cont_time * user->units->second;
   }
 
   // Solve
@@ -527,7 +527,7 @@ PetscErrorCode TSSolve_NS(DM dm, User user, AppCtx app_ctx, Physics phys, Vec *Q
   PetscCall(TSGetSolveTime(*ts, &final_time));
   *f_time = final_time;
 
-  if (!app_ctx->test_mode) {
+  if (app_ctx->test_type == TESTTYPE_NONE) {
     PetscInt step_no;
     PetscCall(TSGetStepNumber(*ts, &step_no));
     if (user->app_ctx->checkpoint_interval > 0 || user->app_ctx->checkpoint_interval == -1) {

@@ -566,9 +566,14 @@ PetscErrorCode TSMonitor_Statistics(TS ts, PetscInt steps, PetscReal solution_ti
       PetscCall(DMSetOutputSequenceNumber(user->spanstats.dm, steps, solution_time));
       PetscCall(DMGetGlobalVector(user->spanstats.dm, &stats));
       PetscCall(ProcessStatistics(user, stats));
-      PetscCall(PetscViewerPushFormat(user->app_ctx->turb_spanstats_viewer, user->app_ctx->turb_spanstats_viewer_format));
-      PetscCall(VecView(stats, user->app_ctx->turb_spanstats_viewer));
-      PetscCall(PetscViewerPopFormat(user->app_ctx->turb_spanstats_viewer));
+      if (user->app_ctx->test_type == TESTTYPE_NONE) {
+        PetscCall(PetscViewerPushFormat(user->app_ctx->turb_spanstats_viewer, user->app_ctx->turb_spanstats_viewer_format));
+        PetscCall(VecView(stats, user->app_ctx->turb_spanstats_viewer));
+        PetscCall(PetscViewerPopFormat(user->app_ctx->turb_spanstats_viewer));
+      }
+      if (user->app_ctx->test_type == TESTTYPE_TURB_SPANSTATS && reason != TS_CONVERGED_ITERATING) {
+        PetscCall(RegressionTests_NS(user->app_ctx, stats));
+      }
       if (user->spanstats.do_mms_test && reason != TS_CONVERGED_ITERATING) {
         Vec error;
         PetscCall(VecDuplicate(stats, &error));

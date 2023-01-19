@@ -170,14 +170,14 @@ PetscErrorCode PostProcess_NS(TS ts, CeedData ceed_data, DM dm, ProblemData *pro
   PetscFunctionBegin;
 
   // Print relative error
-  if (problem->non_zero_time && !user->app_ctx->test_mode) {
+  if (problem->non_zero_time && user->app_ctx->test_type == TESTTYPE_NONE) {
     PetscCall(GetError_NS(ceed_data, dm, user, Q, final_time));
   }
 
   // Print final time and number of steps
   PetscCall(TSGetStepNumber(ts, &steps));
   PetscCall(TSGetConvergedReason(ts, &reason));
-  if (!user->app_ctx->test_mode) {
+  if (user->app_ctx->test_type == TESTTYPE_NONE) {
     PetscCall(PetscPrintf(PETSC_COMM_WORLD, "Time integrator %s on time step %" PetscInt_FMT " with final time %g\n", TSConvergedReasons[reason],
                           steps, (double)final_time));
   }
@@ -186,7 +186,7 @@ PetscErrorCode PostProcess_NS(TS ts, CeedData ceed_data, DM dm, ProblemData *pro
   PetscCall(VecViewFromOptions(Q, NULL, "-vec_view"));
 
   // Compare reference solution values with current test run for CI
-  if (user->app_ctx->test_mode) {
+  if (user->app_ctx->test_type == TESTTYPE_SOLVER) {
     PetscCall(RegressionTests_NS(user->app_ctx, Q));
   }
 

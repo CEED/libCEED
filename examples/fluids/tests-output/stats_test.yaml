@@ -1,0 +1,44 @@
+problem: 'blasius'
+
+implicit: true
+ts:
+  adapt_type: 'none'
+  type: 'beuler'
+  dt: 2e-6
+  max_steps: 10
+
+dm_plex_box_faces: 3,20,2
+platemesh:
+  Ndelta: 15
+  growth: 1.3
+
+stab: 'supg'
+
+dm_plex:
+  box_lower: 0,0,0
+  box_upper: 4.2e-3,4.2e-3,5.e-4
+  dim: 3
+  box_bd: 'none,none,periodic'
+  shape: zbox
+
+# Faces labeled 1=z- 2=z+ 3=y- 4=y+ 5=x+ 6=x-
+bc_slip_z: 1,2
+bc_wall: 3
+wall_comps: 1,2,3
+bc_inflow: 6
+bc_outflow: 5,4
+outflow_type: pressure # simpler, but worse than default "riemann"
+g: 0,0,0
+
+stg:
+  use: true
+  inflow_path: "./examples/fluids/STGInflow_blasius.dat"
+  rand_path: "./examples/fluids/STGRand.dat"
+  mean_only: true
+  strong: true
+
+ts_monitor_turbulence_spanstats:
+  viewer:
+
+continue:
+continue_filename: ./examples/fluids/tests-output/fluids-navierstokes-turb-spanstats-IC.bin

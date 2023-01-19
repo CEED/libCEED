@@ -43,8 +43,9 @@ PetscErrorCode ProcessCommandLineOptions(MPI_Comm comm, AppCtx app_ctx, SimpleBC
   PetscCall(PetscOptionsString("-ceed", "CEED resource specifier", NULL, app_ctx->ceed_resource, app_ctx->ceed_resource,
                                sizeof(app_ctx->ceed_resource), &ceed_flag));
 
-  app_ctx->test_mode = PETSC_FALSE;
-  PetscCall(PetscOptionsBool("-test", "Run in test mode", NULL, app_ctx->test_mode, &app_ctx->test_mode, NULL));
+  app_ctx->test_type = TESTTYPE_NONE;
+  PetscCall(PetscOptionsEnum("-test_type", "Type of test to run", NULL, TestTypes, (PetscEnum)(app_ctx->test_type), (PetscEnum *)&app_ctx->test_type,
+                             NULL));
 
   app_ctx->test_tol = 1E-11;
   PetscCall(PetscOptionsScalar("-compare_final_state_atol", "Test absolute tolerance", NULL, app_ctx->test_tol, &app_ctx->test_tol, NULL));

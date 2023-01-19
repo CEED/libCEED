@@ -69,6 +69,14 @@ static const char *const EulerTestTypes[] = {"isentropic_vortex", "test_1",     
 // Stabilization methods
 static const char *const StabilizationTypes[] = {"none", "SU", "SUPG", "StabilizationType", "STAB_", NULL};
 
+// Euler - test cases
+typedef enum {
+  TESTTYPE_NONE           = 0,
+  TESTTYPE_SOLVER         = 1,
+  TESTTYPE_TURB_SPANSTATS = 2,
+} TestType;
+static const char *const TestTypes[] = {"none", "solver", "turb_spanstats", "TestType", "TESTTYPE_", NULL};
+
 // -----------------------------------------------------------------------------
 // Structs
 // -----------------------------------------------------------------------------
@@ -103,7 +111,7 @@ struct AppCtx_private {
   PetscFunctionList problems;
   char              problem_name[PETSC_MAX_PATH_LEN];
   // Test mode arguments
-  PetscBool   test_mode;
+  TestType    test_type;
   PetscScalar test_tol;
   char        test_file_path[PETSC_MAX_PATH_LEN];
   // Turbulent spanwise statistics
