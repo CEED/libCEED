@@ -549,32 +549,35 @@ PetscErrorCode TSMonitor_Statistics(TS ts, PetscInt steps, PetscReal solution_ti
   User              user = (User)ctx;
   Vec               stats;
   TSConvergedReason reason;
+  PetscInt          collect_interval = user->app_ctx->stats_collect_interval, viewer_interval = user->app_ctx->stats_viewer_interval;
   PetscFunctionBeginUser;
   PetscCall(TSGetConvergedReason(ts, &reason));
   // Do not collect or process on the first step of the run (ie. on the initial condition)
   if (steps == user->app_ctx->cont_steps && reason == TS_CONVERGED_ITERATING) PetscFunctionReturn(0);
 
-  if (steps % user->app_ctx->stats_collect_interval == 0 || reason != TS_CONVERGED_ITERATING) {
-    PetscCall(CollectStatistics(user, solution_time, Q));
-  }
+  PetscBool run_processing_and_viewer = (steps % viewer_interval == 0 && viewer_interval != -1) || reason != TS_CONVERGED_ITERATING;
 
-  if ((steps % user->app_ctx->stats_viewer_interval == 0 && user->app_ctx->stats_viewer_interval != -1) || reason != TS_CONVERGED_ITERATING) {
-    PetscCall(DMSetOutputSequenceNumber(user->spanstats.dm, steps, solution_time));
-    PetscCall(DMGetGlobalVector(user->spanstats.dm, &stats));
-    PetscCall(ProcessStatistics(user, stats));
-    PetscCall(PetscViewerPushFormat(user->app_ctx->stats_viewer, user->app_ctx->stats_viewer_format));
-    PetscCall(VecView(stats, user->app_ctx->stats_viewer));
-    PetscCall(PetscViewerPopFormat(user->app_ctx->stats_viewer));
-    if (user->app_ctx->stats_test && reason != TS_CONVERGED_ITERATING) {
-      Vec error;
-      PetscCall(VecDuplicate(stats, &error));
-      PetscCall(ApplyLocal_Ceed(stats, error, user->spanstats.test_error_ctx));
-      PetscScalar error_sq = 0;
-      PetscCall(VecSum(error, &error_sq));
-      PetscScalar l2_error = sqrt(error_sq);
-      PetscCall(PetscPrintf(PETSC_COMM_WORLD, "l2 error: %.5e\n", l2_error));
+  if (steps % collect_interval == 0 || run_processing_and_viewer) {
+    PetscCall(CollectStatistics(user, solution_time, Q));
+
+    if (run_processing_and_viewer) {
+      PetscCall(DMSetOutputSequenceNumber(user->spanstats.dm, steps, solution_time));
+      PetscCall(DMGetGlobalVector(user->spanstats.dm, &stats));
+      PetscCall(ProcessStatistics(user, stats));
+      PetscCall(PetscViewerPushFormat(user->app_ctx->stats_viewer, user->app_ctx->stats_viewer_format));
+      PetscCall(VecView(stats, user->app_ctx->stats_viewer));
+      PetscCall(PetscViewerPopFormat(user->app_ctx->stats_viewer));
+      if (user->app_ctx->stats_test && reason != TS_CONVERGED_ITERATING) {
+        Vec error;
+        PetscCall(VecDuplicate(stats, &error));
+        PetscCall(ApplyLocal_Ceed(stats, error, user->spanstats.test_error_ctx));
+        PetscScalar error_sq = 0;
+        PetscCall(VecSum(error, &error_sq));
+        PetscScalar l2_error = sqrt(error_sq);
+        PetscCall(PetscPrintf(PETSC_COMM_WORLD, "l2 error: %.5e\n", l2_error));
+      }
+      PetscCall(DMRestoreGlobalVector(user->spanstats.dm, &stats));
     }
-    PetscCall(DMRestoreGlobalVector(user->spanstats.dm, &stats));
   }
   PetscFunctionReturn(0);
 }
