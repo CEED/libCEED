@@ -8,6 +8,7 @@
 #include <ceed.h>
 
 #include "newtonian_state.h"
+#include "turb_stats_types.h"
 #include "utils.h"
 
 CEED_QFUNCTION_HELPER int ChildStatsCollection(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out, StateFromQi_t StateFromQi,
@@ -26,28 +27,28 @@ CEED_QFUNCTION_HELPER int ChildStatsCollection(void *ctx, CeedInt Q, const CeedS
     const CeedScalar x_i[3] = {x[0][i], x[1][i], x[2][i]};
     const State      s      = StateFromQi(context, qi, x_i);
 
-    v[0][i]  = wdetJ * s.U.density;
-    v[1][i]  = wdetJ * s.Y.pressure;
-    v[2][i]  = wdetJ * Square(s.Y.pressure);
-    v[3][i]  = wdetJ * s.Y.pressure * s.Y.velocity[0];
-    v[4][i]  = wdetJ * s.Y.pressure * s.Y.velocity[1];
-    v[5][i]  = wdetJ * s.Y.pressure * s.Y.velocity[2];
-    v[6][i]  = wdetJ * s.U.density * s.Y.temperature;
-    v[7][i]  = wdetJ * s.U.density * s.Y.temperature * s.Y.velocity[0];
-    v[8][i]  = wdetJ * s.U.density * s.Y.temperature * s.Y.velocity[1];
-    v[9][i]  = wdetJ * s.U.density * s.Y.temperature * s.Y.velocity[2];
-    v[10][i] = wdetJ * s.U.momentum[0];
-    v[11][i] = wdetJ * s.U.momentum[1];
-    v[12][i] = wdetJ * s.U.momentum[2];
-    v[13][i] = wdetJ * s.U.momentum[0] * s.Y.velocity[0];
-    v[14][i] = wdetJ * s.U.momentum[1] * s.Y.velocity[1];
-    v[15][i] = wdetJ * s.U.momentum[2] * s.Y.velocity[2];
-    v[16][i] = wdetJ * s.U.momentum[1] * s.Y.velocity[2];
-    v[17][i] = wdetJ * s.U.momentum[0] * s.Y.velocity[2];
-    v[18][i] = wdetJ * s.U.momentum[0] * s.Y.velocity[1];
-    v[19][i] = wdetJ * s.Y.velocity[0];
-    v[20][i] = wdetJ * s.Y.velocity[1];
-    v[21][i] = wdetJ * s.Y.velocity[2];
+    v[TURB_MEAN_DENSITY][i]                    = wdetJ * s.U.density;
+    v[TURB_MEAN_PRESSURE][i]                   = wdetJ * s.Y.pressure;
+    v[TURB_MEAN_PRESSURE_SQUARED][i]           = wdetJ * Square(s.Y.pressure);
+    v[TURB_MEAN_PRESSURE_VELOCITY_X][i]        = wdetJ * s.Y.pressure * s.Y.velocity[0];
+    v[TURB_MEAN_PRESSURE_VELOCITY_Y][i]        = wdetJ * s.Y.pressure * s.Y.velocity[1];
+    v[TURB_MEAN_PRESSURE_VELOCITY_Z][i]        = wdetJ * s.Y.pressure * s.Y.velocity[2];
+    v[TURB_MEAN_DENSITY_TEMPERATURE][i]        = wdetJ * s.U.density * s.Y.temperature;
+    v[TURB_MEAN_DENSITY_TEMPERATURE_FLUX_X][i] = wdetJ * s.U.density * s.Y.temperature * s.Y.velocity[0];
+    v[TURB_MEAN_DENSITY_TEMPERATURE_FLUX_Y][i] = wdetJ * s.U.density * s.Y.temperature * s.Y.velocity[1];
+    v[TURB_MEAN_DENSITY_TEMPERATURE_FLUX_Z][i] = wdetJ * s.U.density * s.Y.temperature * s.Y.velocity[2];
+    v[TURB_MEAN_MOMENTUM_X][i]                 = wdetJ * s.U.momentum[0];
+    v[TURB_MEAN_MOMENTUM_Y][i]                 = wdetJ * s.U.momentum[1];
+    v[TURB_MEAN_MOMENTUM_Z][i]                 = wdetJ * s.U.momentum[2];
+    v[TURB_MEAN_MOMENTUMFLUX_XX][i]            = wdetJ * s.U.momentum[0] * s.Y.velocity[0];
+    v[TURB_MEAN_MOMENTUMFLUX_YY][i]            = wdetJ * s.U.momentum[1] * s.Y.velocity[1];
+    v[TURB_MEAN_MOMENTUMFLUX_ZZ][i]            = wdetJ * s.U.momentum[2] * s.Y.velocity[2];
+    v[TURB_MEAN_MOMENTUMFLUX_YZ][i]            = wdetJ * s.U.momentum[1] * s.Y.velocity[2];
+    v[TURB_MEAN_MOMENTUMFLUX_XZ][i]            = wdetJ * s.U.momentum[0] * s.Y.velocity[2];
+    v[TURB_MEAN_MOMENTUMFLUX_XY][i]            = wdetJ * s.U.momentum[0] * s.Y.velocity[1];
+    v[TURB_MEAN_VELOCITY_X][i]                 = wdetJ * s.Y.velocity[0];
+    v[TURB_MEAN_VELOCITY_Y][i]                 = wdetJ * s.Y.velocity[1];
+    v[TURB_MEAN_VELOCITY_Z][i]                 = wdetJ * s.Y.velocity[2];
   }
   return 0;
 }

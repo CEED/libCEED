@@ -22,7 +22,7 @@
 #include "petscviewer.h"
 
 PetscErrorCode CreateStatsDM(User user, ProblemData *problem, PetscInt degree, SimpleBC bc) {
-  user->spanstats.num_comp_stats = 22;
+  user->spanstats.num_comp_stats = TURB_NUM_COMPONENTS;
   PetscReal     domain_min[3], domain_max[3];
   PetscFE       fe;
   PetscSection  section;
@@ -80,28 +80,28 @@ PetscErrorCode CreateStatsDM(User user, ProblemData *problem, PetscInt degree, S
   // Create Section for data
   PetscCall(DMGetLocalSection(user->spanstats.dm, &section));
   PetscCall(PetscSectionSetFieldName(section, 0, ""));
-  PetscCall(PetscSectionSetComponentName(section, 0, 0, "Mean Density"));
-  PetscCall(PetscSectionSetComponentName(section, 0, 1, "Mean Pressure"));
-  PetscCall(PetscSectionSetComponentName(section, 0, 2, "Mean Pressure Squared"));
-  PetscCall(PetscSectionSetComponentName(section, 0, 3, "Mean Pressure Velocity X"));
-  PetscCall(PetscSectionSetComponentName(section, 0, 4, "Mean Pressure Velocity Y"));
-  PetscCall(PetscSectionSetComponentName(section, 0, 5, "Mean Pressure Velocity Z"));
-  PetscCall(PetscSectionSetComponentName(section, 0, 6, "Mean Density Temperature"));
-  PetscCall(PetscSectionSetComponentName(section, 0, 7, "Mean Density Temperature Flux X"));
-  PetscCall(PetscSectionSetComponentName(section, 0, 8, "Mean Density Temperature Flux Y"));
-  PetscCall(PetscSectionSetComponentName(section, 0, 9, "Mean Density Temperature Flux Z"));
-  PetscCall(PetscSectionSetComponentName(section, 0, 10, "Mean Momentum X"));
-  PetscCall(PetscSectionSetComponentName(section, 0, 11, "Mean Momentum Y"));
-  PetscCall(PetscSectionSetComponentName(section, 0, 12, "Mean Momentum Z"));
-  PetscCall(PetscSectionSetComponentName(section, 0, 13, "Mean Momentum Flux XX"));
-  PetscCall(PetscSectionSetComponentName(section, 0, 14, "Mean Momentum Flux YY"));
-  PetscCall(PetscSectionSetComponentName(section, 0, 15, "Mean Momentum Flux ZZ"));
-  PetscCall(PetscSectionSetComponentName(section, 0, 16, "Mean Momentum Flux YZ"));
-  PetscCall(PetscSectionSetComponentName(section, 0, 17, "Mean Momentum Flux XZ"));
-  PetscCall(PetscSectionSetComponentName(section, 0, 18, "Mean Momentum Flux XY"));
-  PetscCall(PetscSectionSetComponentName(section, 0, 19, "Mean Velocity X"));
-  PetscCall(PetscSectionSetComponentName(section, 0, 20, "Mean Velocity Y"));
-  PetscCall(PetscSectionSetComponentName(section, 0, 21, "Mean Velocity Z"));
+  PetscCall(PetscSectionSetComponentName(section, 0, TURB_MEAN_DENSITY, "MeanDensity"));
+  PetscCall(PetscSectionSetComponentName(section, 0, TURB_MEAN_PRESSURE, "MeanPressure"));
+  PetscCall(PetscSectionSetComponentName(section, 0, TURB_MEAN_PRESSURE_SQUARED, "MeanPressureSquared"));
+  PetscCall(PetscSectionSetComponentName(section, 0, TURB_MEAN_PRESSURE_VELOCITY_X, "MeanPressureVelocityX"));
+  PetscCall(PetscSectionSetComponentName(section, 0, TURB_MEAN_PRESSURE_VELOCITY_Y, "MeanPressureVelocityY"));
+  PetscCall(PetscSectionSetComponentName(section, 0, TURB_MEAN_PRESSURE_VELOCITY_Z, "MeanPressureVelocityZ"));
+  PetscCall(PetscSectionSetComponentName(section, 0, TURB_MEAN_DENSITY_TEMPERATURE, "MeanDensityTemperature"));
+  PetscCall(PetscSectionSetComponentName(section, 0, TURB_MEAN_DENSITY_TEMPERATURE_FLUX_X, "MeanDensityTemperatureFluxX"));
+  PetscCall(PetscSectionSetComponentName(section, 0, TURB_MEAN_DENSITY_TEMPERATURE_FLUX_Y, "MeanDensityTemperatureFluxY"));
+  PetscCall(PetscSectionSetComponentName(section, 0, TURB_MEAN_DENSITY_TEMPERATURE_FLUX_Z, "MeanDensityTemperatureFluxZ"));
+  PetscCall(PetscSectionSetComponentName(section, 0, TURB_MEAN_MOMENTUM_X, "MeanMomentumX"));
+  PetscCall(PetscSectionSetComponentName(section, 0, TURB_MEAN_MOMENTUM_Y, "MeanMomentumY"));
+  PetscCall(PetscSectionSetComponentName(section, 0, TURB_MEAN_MOMENTUM_Z, "MeanMomentumZ"));
+  PetscCall(PetscSectionSetComponentName(section, 0, TURB_MEAN_MOMENTUMFLUX_XX, "MeanMomentumFluxXX"));
+  PetscCall(PetscSectionSetComponentName(section, 0, TURB_MEAN_MOMENTUMFLUX_YY, "MeanMomentumFluxYY"));
+  PetscCall(PetscSectionSetComponentName(section, 0, TURB_MEAN_MOMENTUMFLUX_ZZ, "MeanMomentumFluxZZ"));
+  PetscCall(PetscSectionSetComponentName(section, 0, TURB_MEAN_MOMENTUMFLUX_YZ, "MeanMomentumFluxYZ"));
+  PetscCall(PetscSectionSetComponentName(section, 0, TURB_MEAN_MOMENTUMFLUX_XZ, "MeanMomentumFluxXZ"));
+  PetscCall(PetscSectionSetComponentName(section, 0, TURB_MEAN_MOMENTUMFLUX_XY, "MeanMomentumFluxXY"));
+  PetscCall(PetscSectionSetComponentName(section, 0, TURB_MEAN_VELOCITY_X, "MeanVelocityX"));
+  PetscCall(PetscSectionSetComponentName(section, 0, TURB_MEAN_VELOCITY_Y, "MeanVelocityY"));
+  PetscCall(PetscSectionSetComponentName(section, 0, TURB_MEAN_VELOCITY_Z, "MeanVelocityZ"));
 
   // Cleanup
   PetscCall(PetscFEDestroy(&fe));
