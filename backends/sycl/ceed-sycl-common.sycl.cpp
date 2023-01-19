@@ -15,7 +15,7 @@
 // Get root resource without device spec
 //------------------------------------------------------------------------------
 int CeedSyclGetResourceRoot(Ceed ceed, const char *resource, char **resource_root) {
-  const char *device_spec       = strstr(resource, ":device_id=");
+  const char *device_spec       = std::strstr(resource, ":device_id=");
   size_t      resource_root_len = device_spec ? (size_t)(device_spec - resource) + 1 : strlen(resource) + 1;
   CeedCallBackend(CeedCalloc(resource_root_len, resource_root));
   memcpy(*resource_root, resource, resource_root_len - 1);
@@ -27,20 +27,31 @@ int CeedSyclGetResourceRoot(Ceed ceed, const char *resource, char **resource_roo
 // Device information backend init
 //------------------------------------------------------------------------------
 int CeedSyclInit(Ceed ceed, const char *resource) {
-  const char *device_spec = strstr(resource, ":device_id=");
+  const char *device_spec = std::strstr(resource, ":device_id=");
   const int   device_id   = (device_spec) ? atoi(device_spec + 11) : 0;
 
-  // For now assume we want GPU devices and ignore the possibility of multiple
-  // platforms
-  auto gpu_devices  = sycl::device::get_devices(sycl::info::device_type::gpu);
-  int  device_count = gpu_devices.size();
+  sycl::info::device_type device_type;
+  if (std::strstr(resource, "/gpu/sycl/ref")) {
+    device_type = sycl::info::device_type::gpu;
+  } else if (std::strstr(resource, "/cpu/sycl/ref")) {
+    device_type = sycl::info::device_type::cpu;
+  } else {
+    return CeedError(ceed, CEED_ERROR_BACKEND, "Unsupported SYCL device type requested");
+  }
+
+  auto sycl_devices = sycl::device::get_devices(device_type);
+  int  device_count = sycl_devices.size();
+
+  if (0 == device_count) {
+    return CeedError(ceed, CEED_ERROR_BACKEND, "No SYCL devices of the requested type are available");
+  }
 
   // Validate the requested device_id
-  if (device_id < 0 || (device_count < device_id + 1)) {
+  if (device_count < device_id + 1) {
     return CeedError(ceed, CEED_ERROR_BACKEND, "Invalid SYCL device id requested");
   }
 
-  sycl::device sycl_device{gpu_devices[device_id]};
+  sycl::device sycl_device{sycl_devices[device_id]};
   // Check that the device supports explicit device allocations
   if (!sycl_device.has(sycl::aspect::usm_device_allocations)) {
     return CeedError(ceed, CEED_ERROR_BACKEND,
@@ -48,8 +59,7 @@ int CeedSyclInit(Ceed ceed, const char *resource) {
                      "device allocations.");
   }
 
-  // sycl::context sycl_context{gpu_devices};
-  sycl::context sycl_context{sycl_device};
+  sycl::context sycl_context{sycl_device.get_platform().get_devices()};
   sycl::queue   sycl_queue{sycl_context, sycl_device};
 
   Ceed_Sycl *data;

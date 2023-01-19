@@ -28,7 +28,7 @@ static int CeedGetPreferredMemType_Sycl(CeedMemType *mem_type) {
 static int CeedInit_Sycl(const char *resource, Ceed ceed) {
   char *resource_root;
   CeedCallBackend(CeedSyclGetResourceRoot(ceed, resource, &resource_root));
-  if (strcmp(resource_root, "/gpu/sycl/ref")) {
+  if (std::strcmp(resource_root, "/gpu/sycl/ref") && std::strcmp(resource_root, "/cpu/sycl/ref")) {
     // LCOV_EXCL_START
     return CeedError(ceed, CEED_ERROR_BACKEND, "Sycl backend cannot use resource: %s", resource);
     // LCOV_EXCL_STOP
@@ -58,5 +58,9 @@ static int CeedInit_Sycl(const char *resource, Ceed ceed) {
 //------------------------------------------------------------------------------
 // Backend Register
 //------------------------------------------------------------------------------
-CEED_INTERN int CeedRegister_Sycl(void) { return CeedRegister("/gpu/sycl/ref", CeedInit_Sycl, 40); }
+CEED_INTERN int CeedRegister_Sycl(void) {
+  CeedCallBackend(CeedRegister("/gpu/sycl/ref", CeedInit_Sycl, 40));
+  CeedCallBackend(CeedRegister("/cpu/sycl/ref", CeedInit_Sycl, 50));
+  return CEED_ERROR_SUCCESS;
+}
 //------------------------------------------------------------------------------
