@@ -112,7 +112,7 @@ PetscErrorCode RegressionTests_NS(AppCtx app_ctx, Vec Q) {
 
   // Read reference file
   PetscCall(VecDuplicate(Q, &Qref));
-  PetscCall(PetscViewerBinaryOpen(PetscObjectComm((PetscObject)Q), app_ctx->file_path, FILE_MODE_READ, &viewer));
+  PetscCall(PetscViewerBinaryOpen(PetscObjectComm((PetscObject)Q), app_ctx->test_file_path, FILE_MODE_READ, &viewer));
   PetscCall(VecLoad(Qref, viewer));
 
   // Compute error with respect to reference solution

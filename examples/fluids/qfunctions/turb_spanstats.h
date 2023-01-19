@@ -63,7 +63,7 @@ CEED_QFUNCTION(ChildStatsCollection_Prim)(void *ctx, CeedInt Q, const CeedScalar
 // QFunctions for testing
 CEED_QFUNCTION_HELPER CeedScalar ChildStatsCollectionTest_Exact(const CeedScalar x_i[3]) { return x_i[0] + Square(x_i[1]); }
 
-CEED_QFUNCTION(ChildStatsCollectionTest)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
+CEED_QFUNCTION(ChildStatsCollectionMMSTest)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
   const CeedScalar(*q_data)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[1];
   const CeedScalar(*x)[CEED_Q_VLA]      = (const CeedScalar(*)[CEED_Q_VLA])in[2];
   CeedScalar(*v)[CEED_Q_VLA]            = (CeedScalar(*)[CEED_Q_VLA])out[0];
@@ -82,7 +82,7 @@ CEED_QFUNCTION(ChildStatsCollectionTest)(void *ctx, CeedInt Q, const CeedScalar 
   return 0;
 }
 
-CEED_QFUNCTION(ChildStatsCollectionTest_Error)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
+CEED_QFUNCTION(ChildStatsCollectionMMSTest_Error)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
   const CeedScalar(*q)[CEED_Q_VLA]      = (const CeedScalar(*)[CEED_Q_VLA])in[0];
   const CeedScalar(*q_data)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[1];
   const CeedScalar(*x)[CEED_Q_VLA]      = (const CeedScalar(*)[CEED_Q_VLA])in[2];

@@ -140,27 +140,19 @@ The following options are common among all problem types:
   - Use freestream boundary conditions on this list of faces
   -
 
-* - `-stats_enable`
-  - Enable collection of spanwise flow statistics
-  - `false`
-
-* - `-stats_test`
-  - Use manufactured solution for statistics collection (used for testing)
-  - `false`
-
-* - `-stats_collect_interval`
+* - `-ts_monitor_turbulence_spanstats_collect_interval`
   - Number of timesteps between statistics collection
   - `1`
 
-* - `-stats_viewer`
-  - Sets the PetscViewer for the statistics file writing, such as `cgns:output-%d.cgns` (requires PETSc `--download-cgns`)
+* - `-ts_monitor_turbulence_spanstats_viewer`
+  - Sets the PetscViewer for the statistics file writing, such as `cgns:output-%d.cgns` (requires PETSc `--download-cgns`). Also turns the statistics collection on.
   -
 
-* - `-stats_viewer_interval`
+* - `-ts_monitor_turbulence_spanstats_viewer_interval`
   - Number of timesteps between statistics file writing (`-1` means only at end of run)
   - `-1`
 
-* - `-stats_viewer_cgns_batch_size`
+* - `-ts_monitor_turbulence_spanstats_viewer_cgns_batch_size`
   - Number of frames written per CGNS file if the CGNS file name includes a format specifier (`%d`).
   - `20`
 

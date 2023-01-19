@@ -105,14 +105,13 @@ struct AppCtx_private {
   // Test mode arguments
   PetscBool   test_mode;
   PetscScalar test_tol;
-  char        file_path[PETSC_MAX_PATH_LEN];
-  // Statistics
-  PetscBool         stats_enable;
-  PetscBool         stats_test;
-  PetscInt          stats_collect_interval;
-  PetscInt          stats_viewer_interval;
-  PetscViewer       stats_viewer;
-  PetscViewerFormat stats_viewer_format;
+  char        test_file_path[PETSC_MAX_PATH_LEN];
+  // Turbulent spanwise statistics
+  PetscBool         turb_spanstats_enable;
+  PetscInt          turb_spanstats_collect_interval;
+  PetscInt          turb_spanstats_viewer_interval;
+  PetscViewer       turb_spanstats_viewer;
+  PetscViewerFormat turb_spanstats_viewer_format;
 };
 
 // libCEED data struct
@@ -139,10 +138,11 @@ typedef struct {
   CeedVector        child_inst_stats, child_stats, parent_stats;  // collocated statistics data
   CeedVector        rhs_ceed, x_ceed, y_ceed;
   Vec               M_inv;  // Lumped Mass matrix inverse
-  MatopApplyContext M_ctx, test_error_ctx;
+  MatopApplyContext M_ctx, mms_error_ctx;
   KSP               ksp;         // For the L^2 projection solve
   CeedScalar        span_width;  // spanwise width of the child domain
   PetscScalar       prev_time;
+  PetscBool         do_mms_test;
 } Span_Stats;
 
 // PETSc user data

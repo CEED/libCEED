@@ -66,7 +66,7 @@ PetscErrorCode CreateStatsDM(User user, ProblemData *problem, PetscInt degree, S
   }
 
   PetscCall(PetscObjectSetName((PetscObject)user->spanstats.dm, "Spanwise_Stats"));
-  PetscCall(DMSetOptionsPrefix(user->spanstats.dm, "spanstats_"));
+  PetscCall(DMSetOptionsPrefix(user->spanstats.dm, "turbulence_spanstats_"));
   PetscCall(DMSetFromOptions(user->spanstats.dm));
   PetscCall(DMViewFromOptions(user->spanstats.dm, NULL, "-dm_view"));  // -spanstats_dm_view
 
@@ -261,7 +261,7 @@ PetscErrorCode SetupL2ProjectionStats(Ceed ceed, User user, CeedData ceed_data) 
     PetscCall(DMRestoreGlobalVector(user->spanstats.dm, &ones));
 
     PetscCall(KSPCreate(PETSC_COMM_WORLD, &ksp));
-    PetscCall(KSPSetOptionsPrefix(ksp, "spanstats_"));
+    PetscCall(KSPSetOptionsPrefix(ksp, "turbulence_spanstats_"));
     {
       PC pc;
       PetscCall(KSPGetPC(ksp, &pc));
@@ -298,9 +298,9 @@ PetscErrorCode CreateStatisticsOperators(Ceed ceed, User user, CeedData ceed_dat
       break;
   }
 
-  if (user->app_ctx->stats_test) {
+  if (user->spanstats.do_mms_test) {
     CeedQFunctionDestroy(&ceed_data->spanstats.qf_stats_collect);
-    CeedQFunctionCreateInterior(ceed, 1, ChildStatsCollectionTest, ChildStatsCollectionTest_loc, &ceed_data->spanstats.qf_stats_collect);
+    CeedQFunctionCreateInterior(ceed, 1, ChildStatsCollectionMMSTest, ChildStatsCollectionMMSTest_loc, &ceed_data->spanstats.qf_stats_collect);
   }
 
   CeedQFunctionSetContext(ceed_data->spanstats.qf_stats_collect, problem->apply_vol_ifunction.qfunction_context);
@@ -338,7 +338,8 @@ PetscErrorCode CreateStatisticsOperators(Ceed ceed, User user, CeedData ceed_dat
   PetscFunctionReturn(0);
 }
 
-PetscErrorCode SetupErrorTesting(Ceed ceed, User user, CeedData ceed_data) {
+// Creates operator for calculating error of method of manufactured solution (MMS) test
+PetscErrorCode SetupMMSErrorChecking(Ceed ceed, User user, CeedData ceed_data) {
   CeedInt       num_comp_stats = user->spanstats.num_comp_stats, num_comp_x;
   CeedQFunction qf_error;
   CeedOperator  op_error;
@@ -349,7 +350,7 @@ PetscErrorCode SetupErrorTesting(Ceed ceed, User user, CeedData ceed_data) {
   CeedElemRestrictionGetNumComponents(ceed_data->spanstats.elem_restr_parent_qd, &q_data_size);
   CeedBasisGetNumComponents(ceed_data->spanstats.basis_x, &num_comp_x);
 
-  CeedQFunctionCreateInterior(ceed, 1, ChildStatsCollectionTest_Error, ChildStatsCollectionTest_Error_loc, &qf_error);
+  CeedQFunctionCreateInterior(ceed, 1, ChildStatsCollectionMMSTest_Error, ChildStatsCollectionMMSTest_Error_loc, &qf_error);
   CeedQFunctionAddInput(qf_error, "q", num_comp_stats, CEED_EVAL_INTERP);
   CeedQFunctionAddInput(qf_error, "qdata", q_data_size, CEED_EVAL_NONE);
   CeedQFunctionAddInput(qf_error, "x", num_comp_x, CEED_EVAL_INTERP);
@@ -364,8 +365,8 @@ PetscErrorCode SetupErrorTesting(Ceed ceed, User user, CeedData ceed_data) {
   CeedElemRestrictionCreateVector(ceed_data->spanstats.elem_restr_parent_stats, &x_ceed, NULL);
   CeedElemRestrictionCreateVector(ceed_data->spanstats.elem_restr_parent_stats, &y_ceed, NULL);
 
-  PetscCall(PetscCalloc1(1, &user->spanstats.test_error_ctx));
-  PetscCall(SetupMatopApplyCtx(PETSC_COMM_WORLD, user->spanstats.dm, user->ceed, op_error, x_ceed, y_ceed, NULL, user->spanstats.test_error_ctx));
+  PetscCall(PetscCalloc1(1, &user->spanstats.mms_error_ctx));
+  PetscCall(SetupMatopApplyCtx(PETSC_COMM_WORLD, user->spanstats.dm, user->ceed, op_error, x_ceed, y_ceed, NULL, user->spanstats.mms_error_ctx));
 
   PetscFunctionReturn(0);
 }
@@ -432,18 +433,19 @@ PetscErrorCode SetupStatsCollection(Ceed ceed, User user, CeedData ceed_data, Pr
   // Setup KSP and Mat for L^2 projection of statistics
   PetscCall(SetupL2ProjectionStats(ceed, user, ceed_data));
 
-  if (user->app_ctx->stats_test) {
-    PetscCall(SetupErrorTesting(ceed, user, ceed_data));
+  PetscCall(PetscOptionsGetBool(NULL, NULL, "-ts_monitor_turbulence_spanstats_mms", &user->spanstats.do_mms_test, NULL));
+  if (user->spanstats.do_mms_test) {
+    PetscCall(SetupMMSErrorChecking(ceed, user, ceed_data));
   }
 
   // Setup stats viewer with prefix
   {
     PetscViewerType viewer_type;
-    PetscCall(PetscViewerGetType(user->app_ctx->stats_viewer, &viewer_type));
-    PetscCall(PetscOptionsSetValue(NULL, "-stats_viewer_type", viewer_type));
+    PetscCall(PetscViewerGetType(user->app_ctx->turb_spanstats_viewer, &viewer_type));
+    PetscCall(PetscOptionsSetValue(NULL, "-ts_monitor_turbulence_spanstats_viewer_type", viewer_type));
 
-    PetscCall(PetscViewerSetOptionsPrefix(user->app_ctx->stats_viewer, "stats_"));
-    PetscCall(PetscViewerSetFromOptions(user->app_ctx->stats_viewer));
+    PetscCall(PetscViewerSetOptionsPrefix(user->app_ctx->turb_spanstats_viewer, "ts_monitor_turbulence_spanstats_"));
+    PetscCall(PetscViewerSetFromOptions(user->app_ctx->turb_spanstats_viewer));
   }
 
   PetscCall(PetscLogStagePop());
@@ -549,7 +551,7 @@ PetscErrorCode TSMonitor_Statistics(TS ts, PetscInt steps, PetscReal solution_ti
   User              user = (User)ctx;
   Vec               stats;
   TSConvergedReason reason;
-  PetscInt          collect_interval = user->app_ctx->stats_collect_interval, viewer_interval = user->app_ctx->stats_viewer_interval;
+  PetscInt collect_interval = user->app_ctx->turb_spanstats_collect_interval, viewer_interval = user->app_ctx->turb_spanstats_viewer_interval;
   PetscFunctionBeginUser;
   PetscCall(TSGetConvergedReason(ts, &reason));
   // Do not collect or process on the first step of the run (ie. on the initial condition)
@@ -564,13 +566,13 @@ PetscErrorCode TSMonitor_Statistics(TS ts, PetscInt steps, PetscReal solution_ti
       PetscCall(DMSetOutputSequenceNumber(user->spanstats.dm, steps, solution_time));
       PetscCall(DMGetGlobalVector(user->spanstats.dm, &stats));
       PetscCall(ProcessStatistics(user, stats));
-      PetscCall(PetscViewerPushFormat(user->app_ctx->stats_viewer, user->app_ctx->stats_viewer_format));
-      PetscCall(VecView(stats, user->app_ctx->stats_viewer));
-      PetscCall(PetscViewerPopFormat(user->app_ctx->stats_viewer));
-      if (user->app_ctx->stats_test && reason != TS_CONVERGED_ITERATING) {
+      PetscCall(PetscViewerPushFormat(user->app_ctx->turb_spanstats_viewer, user->app_ctx->turb_spanstats_viewer_format));
+      PetscCall(VecView(stats, user->app_ctx->turb_spanstats_viewer));
+      PetscCall(PetscViewerPopFormat(user->app_ctx->turb_spanstats_viewer));
+      if (user->spanstats.do_mms_test && reason != TS_CONVERGED_ITERATING) {
         Vec error;
         PetscCall(VecDuplicate(stats, &error));
-        PetscCall(ApplyLocal_Ceed(stats, error, user->spanstats.test_error_ctx));
+        PetscCall(ApplyLocal_Ceed(stats, error, user->spanstats.mms_error_ctx));
         PetscScalar error_sq = 0;
         PetscCall(VecSum(error, &error_sq));
         PetscScalar l2_error = sqrt(error_sq);
@@ -596,9 +598,9 @@ PetscErrorCode CleanupStats(User user, CeedData ceed_data) {
   CeedVectorDestroy(&ceed_data->spanstats.q_data);
   CeedVectorDestroy(&user->spanstats.M_ctx->x_ceed);
   CeedVectorDestroy(&user->spanstats.M_ctx->y_ceed);
-  if (user->app_ctx->stats_test) {
-    CeedVectorDestroy(&user->spanstats.test_error_ctx->x_ceed);
-    CeedVectorDestroy(&user->spanstats.test_error_ctx->y_ceed);
+  if (user->spanstats.do_mms_test) {
+    CeedVectorDestroy(&user->spanstats.mms_error_ctx->x_ceed);
+    CeedVectorDestroy(&user->spanstats.mms_error_ctx->y_ceed);
   }
 
   // -- QFunctions
@@ -620,7 +622,7 @@ PetscErrorCode CleanupStats(User user, CeedData ceed_data) {
   CeedOperatorDestroy(&user->spanstats.op_stats_collect);
   CeedOperatorDestroy(&user->spanstats.op_stats_proj);
   CeedOperatorDestroy(&user->spanstats.M_ctx->op);
-  if (user->app_ctx->stats_test) CeedOperatorDestroy(&user->spanstats.test_error_ctx->op);
+  if (user->spanstats.do_mms_test) CeedOperatorDestroy(&user->spanstats.mms_error_ctx->op);
 
   // -- Vec
   PetscCall(VecDestroy(&user->spanstats.M_inv));

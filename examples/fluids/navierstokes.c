@@ -150,7 +150,7 @@ int main(int argc, char **argv) {
   // -- Set up libCEED objects
   PetscCall(SetupLibceed(ceed, ceed_data, dm, user, app_ctx, problem, bc));
 
-  if (app_ctx->stats_enable) {
+  if (app_ctx->turb_spanstats_enable) {
     PetscCall(SetupStatsCollection(ceed, user, ceed_data, problem));
   }
 
@@ -299,7 +299,7 @@ int main(int argc, char **argv) {
   // Destroy libCEED objects
   // ---------------------------------------------------------------------------
 
-  if (app_ctx->stats_enable) PetscCall(CleanupStats(user, ceed_data));
+  if (app_ctx->turb_spanstats_enable) PetscCall(CleanupStats(user, ceed_data));
 
   // -- Vectors
   CeedVectorDestroy(&ceed_data->x_coord);

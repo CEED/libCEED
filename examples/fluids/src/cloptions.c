@@ -49,8 +49,8 @@ PetscErrorCode ProcessCommandLineOptions(MPI_Comm comm, AppCtx app_ctx, SimpleBC
   app_ctx->test_tol = 1E-11;
   PetscCall(PetscOptionsScalar("-compare_final_state_atol", "Test absolute tolerance", NULL, app_ctx->test_tol, &app_ctx->test_tol, NULL));
 
-  PetscCall(PetscOptionsString("-compare_final_state_filename", "Test filename", NULL, app_ctx->file_path, app_ctx->file_path,
-                               sizeof(app_ctx->file_path), NULL));
+  PetscCall(PetscOptionsString("-compare_final_state_filename", "Test filename", NULL, app_ctx->test_file_path, app_ctx->test_file_path,
+                               sizeof(app_ctx->test_file_path), NULL));
 
   PetscCall(PetscOptionsFList("-problem", "Problem to solve", NULL, app_ctx->problems, app_ctx->problem_name, app_ctx->problem_name,
                               sizeof(app_ctx->problem_name), &problem_flag));
@@ -155,22 +155,16 @@ PetscErrorCode ProcessCommandLineOptions(MPI_Comm comm, AppCtx app_ctx, SimpleBC
   PetscCall(PetscOptionsIntArray("-bc_freestream", "Face IDs to apply freestream BC", NULL, bc->freestreams, &bc->num_freestream, NULL));
 
   // Statistics Options
-  PetscCall(PetscOptionsBool("-stats_enable", "Enable collection of spanwise statistics", NULL, app_ctx->stats_enable, &app_ctx->stats_enable, NULL));
+  app_ctx->turb_spanstats_collect_interval = 1;
+  PetscCall(PetscOptionsInt("-ts_monitor_turbulence_spanstats_collect_interval", "Number of timesteps between statistics collection", NULL,
+                            app_ctx->turb_spanstats_collect_interval, &app_ctx->turb_spanstats_collect_interval, NULL));
 
-  PetscCall(PetscOptionsBool("-stats_test", "Use test QF for stats collection", NULL, app_ctx->stats_test, &app_ctx->stats_test, NULL));
+  app_ctx->turb_spanstats_viewer_interval = -1;
+  PetscCall(PetscOptionsInt("-ts_monitor_turbulence_spanstats_viewer_interval", "Number of timesteps between statistics viewer writing", NULL,
+                            app_ctx->turb_spanstats_viewer_interval, &app_ctx->turb_spanstats_viewer_interval, NULL));
 
-  app_ctx->stats_collect_interval = 1;
-  PetscCall(PetscOptionsInt("-stats_collect_interval", "Number of timesteps between statistics collection", NULL, app_ctx->stats_collect_interval,
-                            &app_ctx->stats_collect_interval, NULL));
-
-  app_ctx->stats_viewer_interval = -1;
-  PetscCall(PetscOptionsInt("-stats_viewer_interval", "Number of timesteps between statistics viewer writing", NULL, app_ctx->stats_viewer_interval,
-                            &app_ctx->stats_viewer_interval, NULL));
-
-  PetscCall(
-      PetscOptionsViewer("-stats_viewer", "Viewer for the statistics", NULL, &app_ctx->stats_viewer, &app_ctx->stats_viewer_format, &option_set));
-  PetscCheck(app_ctx->stats_enable == option_set, comm, PETSC_ERR_ARG_INCOMP,
-             "-stats_viewer must be specified when using statistics (-stats_enable)");
+  PetscCall(PetscOptionsViewer("-ts_monitor_turbulence_spanstats_viewer", "Viewer for the statistics", NULL, &app_ctx->turb_spanstats_viewer,
+                               &app_ctx->turb_spanstats_viewer_format, &app_ctx->turb_spanstats_enable));
 
   PetscOptionsEnd();
 

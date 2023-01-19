@@ -40,8 +40,7 @@ stg:
   inflow_path: "./STGInflow_blasius.dat"
   mean_only: true
 
-# stats:
-#   enable: true
+# ts_monitor_turbulence_spanstats:
 #   collect_interval: 1
 #   viewer_interval: 5
 #   viewer: cgns:stats-%d.cgns
