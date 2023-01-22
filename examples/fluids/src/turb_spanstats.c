@@ -37,8 +37,7 @@ PetscErrorCode CreateStatsDM(User user, ProblemData *problem, PetscInt degree, S
   PetscCall(DMGetBoundingBox(user->dm, domain_min, domain_max));
   user->spanstats.span_width = domain_max[2] - domain_min[1];
 
-  // Get DM from surface
-  {
+  {  // Get DM from surface
     PetscSF isoperiodicface;
     DMLabel label;
 
@@ -211,6 +210,7 @@ PetscErrorCode SetupL2ProjectionStats(Ceed ceed, User user, CeedData ceed_data) 
   CeedQFunction qf_mass;
   CeedOperator  op_mass;
   CeedInt       num_comp_q, q_data_size;
+  MPI_Comm      comm = PetscObjectComm((PetscObject)user->spanstats.dm);
   PetscFunctionBeginUser;
 
   // CEED Restriction
@@ -224,8 +224,7 @@ PetscErrorCode SetupL2ProjectionStats(Ceed ceed, User user, CeedData ceed_data) 
   CeedOperatorSetField(op_mass, "qdata", ceed_data->spanstats.elem_restr_parent_qd, CEED_BASIS_COLLOCATED, ceed_data->spanstats.q_data);
   CeedOperatorSetField(op_mass, "v", ceed_data->spanstats.elem_restr_parent_stats, ceed_data->spanstats.basis_stats, CEED_VECTOR_ACTIVE);
 
-  // Setup KSP for L^2 projection
-  {
+  {  // Setup KSP for L^2 projection
     MatopApplyContext M_ctx;
     PetscInt          l_size, g_size;
     Mat               mat_mass;
@@ -240,7 +239,7 @@ PetscErrorCode SetupL2ProjectionStats(Ceed ceed, User user, CeedData ceed_data) 
     PetscCall(VecGetType(M_inv, &vec_type));
 
     PetscCall(PetscMalloc1(1, &M_ctx));
-    PetscCall(MatCreateShell(PETSC_COMM_WORLD, l_size, l_size, g_size, g_size, M_ctx, &mat_mass));
+    PetscCall(MatCreateShell(comm, l_size, l_size, g_size, g_size, M_ctx, &mat_mass));
     PetscCall(MatShellSetOperation(mat_mass, MATOP_MULT, (void (*)(void))MatMult_Ceed));
     PetscCall(MatShellSetOperation(mat_mass, MATOP_GET_DIAGONAL, (void (*)(void))MatGetDiag_Ceed));
     PetscCall(MatShellSetVecType(mat_mass, vec_type));
@@ -248,7 +247,7 @@ PetscErrorCode SetupL2ProjectionStats(Ceed ceed, User user, CeedData ceed_data) 
     CeedElemRestrictionCreateVector(ceed_data->spanstats.elem_restr_parent_stats, &x_ceed, NULL);
     CeedElemRestrictionCreateVector(ceed_data->spanstats.elem_restr_parent_stats, &y_ceed, NULL);
 
-    PetscCall(SetupMatopApplyCtx(PETSC_COMM_WORLD, user->spanstats.dm, user->ceed, op_mass, x_ceed, y_ceed, NULL, M_ctx));
+    PetscCall(SetupMatopApplyCtx(comm, user->spanstats.dm, user->ceed, op_mass, x_ceed, y_ceed, NULL, M_ctx));
     user->spanstats.M_ctx = M_ctx;
 
     // Create lumped mass matrix inverse
@@ -260,7 +259,7 @@ PetscErrorCode SetupL2ProjectionStats(Ceed ceed, User user, CeedData ceed_data) 
     user->spanstats.M_inv = M_inv;
     PetscCall(DMRestoreGlobalVector(user->spanstats.dm, &ones));
 
-    PetscCall(KSPCreate(PETSC_COMM_WORLD, &ksp));
+    PetscCall(KSPCreate(comm, &ksp));
     PetscCall(KSPSetOptionsPrefix(ksp, "turbulence_spanstats_"));
     {
       PC pc;
@@ -391,7 +390,8 @@ PetscErrorCode SetupMMSErrorChecking(Ceed ceed, User user, CeedData ceed_data) {
   CeedElemRestrictionCreateVector(ceed_data->spanstats.elem_restr_parent_stats, &y_ceed, NULL);
 
   PetscCall(PetscCalloc1(1, &user->spanstats.mms_error_ctx));
-  PetscCall(SetupMatopApplyCtx(PETSC_COMM_WORLD, user->spanstats.dm, user->ceed, op_error, x_ceed, y_ceed, NULL, user->spanstats.mms_error_ctx));
+  PetscCall(SetupMatopApplyCtx(PetscObjectComm((PetscObject)user->spanstats.dm), user->spanstats.dm, user->ceed, op_error, x_ceed, y_ceed, NULL,
+                               user->spanstats.mms_error_ctx));
 
   PetscFunctionReturn(0);
 }
@@ -432,8 +432,7 @@ PetscErrorCode SetupStatsCollection(Ceed ceed, User user, CeedData ceed_data, Pr
                                   &ceed_data->spanstats.elem_restr_child_colloc, &user->spanstats.child_stats, NULL));
   CeedVectorSetValue(user->spanstats.child_stats, 0);
 
-  // -- Copy DM coordinates into CeedVector
-  {
+  {  // -- Copy DM coordinates into CeedVector
     DM cdm;
     PetscCall(DMGetCellCoordinateDM(dm, &cdm));
     if (cdm) {
@@ -462,8 +461,7 @@ PetscErrorCode SetupStatsCollection(Ceed ceed, User user, CeedData ceed_data, Pr
     PetscCall(SetupMMSErrorChecking(ceed, user, ceed_data));
   }
 
-  // Setup stats viewer with prefix
-  {
+  {  // Setup stats viewer with prefix
     PetscViewerType viewer_type;
     PetscCall(PetscViewerGetType(user->app_ctx->turb_spanstats_viewer, &viewer_type));
     PetscCall(PetscOptionsSetValue(NULL, "-ts_monitor_turbulence_spanstats_viewer_type", viewer_type));
