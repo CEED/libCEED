@@ -12,23 +12,52 @@
 // -----------------------------------------------------------------------------
 // Setup apply operator context data
 // -----------------------------------------------------------------------------
-PetscErrorCode SetupMatopApplyCtx(MPI_Comm comm, DM dm, Ceed ceed, CeedOperator op_apply, CeedVector x_ceed, CeedVector y_ceed, Vec X_loc,
-                                  MatopApplyContext op_apply_ctx) {
+PetscErrorCode MatopApplyContextCreate(DM dm, Ceed ceed, CeedOperator op_apply, CeedVector x_ceed, CeedVector y_ceed, Vec X_loc,
+                                       MatopApplyContext *op_apply_ctx) {
   PetscFunctionBeginUser;
 
-  op_apply_ctx->comm   = comm;
-  op_apply_ctx->dm     = dm;
-  op_apply_ctx->x_ceed = x_ceed;
-  op_apply_ctx->y_ceed = y_ceed;
-  op_apply_ctx->op     = op_apply;
-  op_apply_ctx->ceed   = ceed;
+  PetscCall(PetscNew(op_apply_ctx));
 
+  // Copy PETSc Objects
+  PetscCall(PetscObjectReference((PetscObject)dm));
+  (*op_apply_ctx)->dm = dm;
   if (X_loc) {
-    op_apply_ctx->X_loc = X_loc;
-    PetscCall(VecDuplicate(X_loc, &op_apply_ctx->Y_loc));
+    PetscCall(PetscObjectReference((PetscObject)X_loc));
+    (*op_apply_ctx)->X_loc = X_loc;
+    PetscCall(VecDuplicate(X_loc, &(*op_apply_ctx)->Y_loc));
   } else {
-    op_apply_ctx->X_loc = op_apply_ctx->Y_loc = NULL;
+    (*op_apply_ctx)->X_loc = (*op_apply_ctx)->Y_loc = NULL;
   }
+
+  // Copy libCEED objects
+  CeedVectorReferenceCopy(x_ceed, &(*op_apply_ctx)->x_ceed);
+  CeedVectorReferenceCopy(y_ceed, &(*op_apply_ctx)->y_ceed);
+  CeedOperatorReferenceCopy(op_apply, &(*op_apply_ctx)->op);
+  CeedReferenceCopy(ceed, &(*op_apply_ctx)->ceed);
+
+  PetscFunctionReturn(0);
+}
+
+// -----------------------------------------------------------------------------
+// Destroy apply operator context data
+// -----------------------------------------------------------------------------
+PetscErrorCode MatopApplyContextDestroy(MatopApplyContext op_apply_ctx) {
+  PetscFunctionBeginUser;
+
+  if (!op_apply_ctx) PetscFunctionReturn(0);
+
+  // Destroy PETSc Objects
+  PetscCall(DMDestroy(&op_apply_ctx->dm));
+  PetscCall(VecDestroy(&op_apply_ctx->X_loc));
+  PetscCall(VecDestroy(&op_apply_ctx->Y_loc));
+
+  // Destroy libCEED Objects
+  CeedVectorDestroy(&op_apply_ctx->x_ceed);
+  CeedVectorDestroy(&op_apply_ctx->y_ceed);
+  CeedOperatorDestroy(&op_apply_ctx->op);
+  CeedDestroy(&op_apply_ctx->ceed);
+
+  PetscCall(PetscFree(op_apply_ctx));
 
   PetscFunctionReturn(0);
 }

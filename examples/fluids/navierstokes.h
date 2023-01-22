@@ -146,7 +146,7 @@ typedef struct {
   CeedVector            child_stats, parent_stats;  // collocated statistics data
   CeedVector            rhs_ceed, x_ceed, y_ceed;
   Vec                   M_inv;  // Lumped Mass matrix inverse
-  MatopApplyContext     M_ctx, mms_error_ctx;
+  MatopApplyContext     mms_error_ctx;
   KSP                   ksp;         // For the L^2 projection solve
   CeedScalar            span_width;  // spanwise width of the child domain
   PetscScalar           prev_time;
@@ -360,7 +360,7 @@ PetscErrorCode SetupStatsCollection(Ceed ceed, User user, CeedData ceed_data, Pr
 
 PetscErrorCode TSMonitor_Statistics(TS ts, PetscInt steps, PetscReal solution_time, Vec Q, void *ctx);
 
-PetscErrorCode CleanupStats(User user, CeedData ceed_data);
+PetscErrorCode DestroyStats(User user, CeedData ceed_data);
 
 // -----------------------------------------------------------------------------
 // Boundary Condition Related Functions

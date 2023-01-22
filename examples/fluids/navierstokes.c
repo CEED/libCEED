@@ -300,7 +300,7 @@ int main(int argc, char **argv) {
   // Destroy libCEED objects
   // ---------------------------------------------------------------------------
 
-  if (app_ctx->turb_spanstats_enable) PetscCall(CleanupStats(user, ceed_data));
+  PetscCall(DestroyStats(user, ceed_data));
 
   // -- Vectors
   CeedVectorDestroy(&ceed_data->x_coord);

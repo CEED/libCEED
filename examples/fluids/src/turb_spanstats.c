@@ -250,17 +250,17 @@ PetscErrorCode SetupL2ProjectionStats(Ceed ceed, User user, CeedData ceed_data) 
     PetscCall(VecGetSize(M_inv, &g_size));
     PetscCall(VecGetType(M_inv, &vec_type));
 
-    PetscCall(PetscMalloc1(1, &M_ctx));
+    CeedElemRestrictionCreateVector(ceed_data->spanstats.elem_restr_parent_stats, &x_ceed, NULL);
+    CeedElemRestrictionCreateVector(ceed_data->spanstats.elem_restr_parent_stats, &y_ceed, NULL);
+    PetscCall(MatopApplyContextCreate(user->spanstats.dm, user->ceed, op_mass, x_ceed, y_ceed, NULL, &M_ctx));
+    CeedVectorDestroy(&x_ceed);
+    CeedVectorDestroy(&y_ceed);
+
     PetscCall(MatCreateShell(comm, l_size, l_size, g_size, g_size, M_ctx, &mat_mass));
+    PetscCall(MatShellSetContextDestroy(mat_mass, (PetscErrorCode(*)(void *))MatopApplyContextDestroy));
     PetscCall(MatShellSetOperation(mat_mass, MATOP_MULT, (void (*)(void))MatMult_Ceed));
     PetscCall(MatShellSetOperation(mat_mass, MATOP_GET_DIAGONAL, (void (*)(void))MatGetDiag_Ceed));
     PetscCall(MatShellSetVecType(mat_mass, vec_type));
-
-    CeedElemRestrictionCreateVector(ceed_data->spanstats.elem_restr_parent_stats, &x_ceed, NULL);
-    CeedElemRestrictionCreateVector(ceed_data->spanstats.elem_restr_parent_stats, &y_ceed, NULL);
-
-    PetscCall(SetupMatopApplyCtx(comm, user->spanstats.dm, user->ceed, op_mass, x_ceed, y_ceed, NULL, M_ctx));
-    user->spanstats.M_ctx = M_ctx;
 
     // Create lumped mass matrix inverse
     PetscCall(DMGetGlobalVector(user->spanstats.dm, &ones));
@@ -289,6 +289,7 @@ PetscErrorCode SetupL2ProjectionStats(Ceed ceed, User user, CeedData ceed_data) 
 
   // Cleanup
   CeedQFunctionDestroy(&qf_mass);
+  CeedOperatorDestroy(&op_mass);
   PetscFunctionReturn(0);
 }
 
@@ -400,11 +401,11 @@ PetscErrorCode SetupMMSErrorChecking(Ceed ceed, User user, CeedData ceed_data) {
 
   CeedElemRestrictionCreateVector(ceed_data->spanstats.elem_restr_parent_stats, &x_ceed, NULL);
   CeedElemRestrictionCreateVector(ceed_data->spanstats.elem_restr_parent_stats, &y_ceed, NULL);
+  PetscCall(MatopApplyContextCreate(user->spanstats.dm, user->ceed, op_error, x_ceed, y_ceed, NULL, &user->spanstats.mms_error_ctx));
 
-  PetscCall(PetscCalloc1(1, &user->spanstats.mms_error_ctx));
-  PetscCall(SetupMatopApplyCtx(PetscObjectComm((PetscObject)user->spanstats.dm), user->spanstats.dm, user->ceed, op_error, x_ceed, y_ceed, NULL,
-                               user->spanstats.mms_error_ctx));
-
+  CeedOperatorDestroy(&op_error);
+  CeedVectorDestroy(&x_ceed);
+  CeedVectorDestroy(&y_ceed);
   PetscFunctionReturn(0);
 }
 
@@ -621,7 +622,7 @@ PetscErrorCode TSMonitor_Statistics(TS ts, PetscInt steps, PetscReal solution_ti
   PetscFunctionReturn(0);
 }
 
-PetscErrorCode CleanupStats(User user, CeedData ceed_data) {
+PetscErrorCode DestroyStats(User user, CeedData ceed_data) {
   PetscFunctionBeginUser;
 
   // -- CeedVectors
@@ -632,12 +633,6 @@ PetscErrorCode CleanupStats(User user, CeedData ceed_data) {
   CeedVectorDestroy(&user->spanstats.y_ceed);
   CeedVectorDestroy(&ceed_data->spanstats.x_coord);
   CeedVectorDestroy(&ceed_data->spanstats.q_data);
-  CeedVectorDestroy(&user->spanstats.M_ctx->x_ceed);
-  CeedVectorDestroy(&user->spanstats.M_ctx->y_ceed);
-  if (user->spanstats.do_mms_test) {
-    CeedVectorDestroy(&user->spanstats.mms_error_ctx->x_ceed);
-    CeedVectorDestroy(&user->spanstats.mms_error_ctx->y_ceed);
-  }
 
   // -- QFunctions
   CeedQFunctionDestroy(&ceed_data->spanstats.qf_stats_collect);
@@ -657,8 +652,7 @@ PetscErrorCode CleanupStats(User user, CeedData ceed_data) {
   // -- CeedOperators
   CeedOperatorDestroy(&user->spanstats.op_stats_collect);
   CeedOperatorDestroy(&user->spanstats.op_stats_proj);
-  CeedOperatorDestroy(&user->spanstats.M_ctx->op);
-  if (user->spanstats.do_mms_test) CeedOperatorDestroy(&user->spanstats.mms_error_ctx->op);
+  PetscCall(MatopApplyContextDestroy(user->spanstats.mms_error_ctx));
 
   // -- Vec
   PetscCall(VecDestroy(&user->spanstats.M_inv));
