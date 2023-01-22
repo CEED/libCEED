@@ -27,6 +27,7 @@ PetscErrorCode CreateStatsDM(User user, ProblemData *problem, PetscInt degree, S
   PetscFE       fe;
   PetscSection  section;
   PetscLogStage stage_stats_setup;
+  MPI_Comm      comm = PetscObjectComm((PetscObject)user->dm);
   PetscFunctionBeginUser;
 
   PetscCall(PetscLogStageGetId("Stats Setup", &stage_stats_setup));
@@ -38,8 +39,10 @@ PetscErrorCode CreateStatsDM(User user, ProblemData *problem, PetscInt degree, S
   user->spanstats.span_width = domain_max[2] - domain_min[1];
 
   {  // Get DM from surface
-    PetscSF isoperiodicface;
-    DMLabel label;
+    DM          parent_distributed_dm;
+    PetscSF     isoperiodicface;
+    DMLabel     label;
+    PetscMPIInt size;
 
     PetscCall(DMPlexGetIsoperiodicFaceSF(user->dm, &isoperiodicface));
 
@@ -62,6 +65,15 @@ PetscErrorCode CreateStatsDM(User user, ProblemData *problem, PetscInt degree, S
     PetscCall(DMPlexLabelComplete(user->dm, label));
     PetscCall(DMPlexFilter(user->dm, label, 1, &user->spanstats.dm));
     PetscCall(DMProjectCoordinates(user->spanstats.dm, NULL));  // Ensure that a coordinate FE exists
+
+    PetscCall(DMPlexDistribute(user->spanstats.dm, 0, NULL, &parent_distributed_dm));
+    PetscCallMPI(MPI_Comm_size(comm, &size));
+    if (parent_distributed_dm) {
+      PetscCall(DMDestroy(&user->spanstats.dm));
+      user->spanstats.dm = parent_distributed_dm;
+    } else if (size > 1) {
+      PetscCall(PetscPrintf(comm, "WARNING: Turbulent spanwise statistics: parent DM could not be distributed accross %d ranks.\n", size));
+    }
   }
 
   PetscCall(PetscObjectSetName((PetscObject)user->spanstats.dm, "Spanwise_Stats"));
