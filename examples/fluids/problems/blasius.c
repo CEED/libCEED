@@ -227,6 +227,7 @@ static PetscErrorCode ModifyMesh(MPI_Comm comm, DM dm, BlasiusContext blasius_ct
 
   // Compute b3 and k3
   ComputeBoundaryCoefficients(blasius_ctx);
+  printf("\nb3 = %.12f \nk3 = %.12f \n", blasius_ctx->b3, blasius_ctx->k3);  // TODO: drop
 
   // Get domain boundary information
   PetscCall(DMGetBoundingBox(dm, domain_min, domain_max));
