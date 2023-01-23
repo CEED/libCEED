@@ -391,7 +391,7 @@ CEED_QFUNCTION_HELPER int Freestream_Jacobian(void *ctx, CeedInt Q, const CeedSc
   const FreestreamContext        context     = (FreestreamContext)ctx;
   const NewtonianIdealGasContext newt_ctx    = &context->newtonian_ctx;
   const bool                     is_implicit = newt_ctx->is_implicit;
-  const State                    dS_infty    = {{0}};
+  const State                    dS_infty    = {0};
 
   CeedPragmaSIMD for (CeedInt i = 0; i < Q; i++) {
     const CeedScalar x_i[3]  = {x[0][i], x[1][i], x[2][i]};
