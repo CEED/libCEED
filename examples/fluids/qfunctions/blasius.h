@@ -21,13 +21,20 @@
 
 typedef struct BlasiusContext_ *BlasiusContext;
 struct BlasiusContext_ {
-  bool                             implicit;                              // !< Using implicit timesteping or not
-  bool                             weakT;                                 // !< flag to set Temperature weakly at inflow
-  CeedScalar                       delta0;                                // !< Boundary layer height at inflow
-  CeedScalar                       U_inf;                                 // !< Velocity at boundary layer edge
-  CeedScalar                       T_inf;                                 // !< Temperature at boundary layer edge
-  CeedScalar                       T_wall;                                // !< Temperature at the wall
-  CeedScalar                       P0;                                    // !< Pressure at outflow
+  bool                             implicit;  // !< Using implicit timesteping or not
+  bool                             weakT;     // !< flag to set Temperature weakly at inflow
+  CeedScalar                       delta0;    // !< Boundary layer height at inflow
+  CeedScalar                       U_inf;     // !< Velocity at boundary layer edge
+  CeedScalar                       T_inf;     // !< Temperature at boundary layer edge
+  CeedScalar                       T_wall;    // !< Temperature at the wall
+  CeedScalar                       P0;        // !< Pressure at outflow
+  CeedScalar                       delta1;
+  CeedScalar                       delta2;
+  CeedScalar                       delta_max;
+  CeedScalar                       r1;
+  CeedScalar                       sigma2;
+  CeedScalar                       b3;
+  CeedScalar                       k3;
   CeedScalar                       x_inflow;                              // !< Location of inflow in x
   CeedScalar                       n_cheb;                                // !< Number of Chebyshev terms
   CeedScalar                      *X;                                     // !< Chebyshev polynomial coordinate vector (CPU only)

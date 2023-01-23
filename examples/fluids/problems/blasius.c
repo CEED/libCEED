@@ -106,6 +106,72 @@ PetscErrorCode ComputeChebyshevCoefficients(BlasiusContext blasius) {
   PetscFunctionReturn(0);
 }
 
+PetscErrorCode ComputeBoundaryCoefficientsResidual(SNES snes, Vec x, Vec f, void *ctx) {
+  const BlasiusContext blasius_ctx = (BlasiusContext)ctx;
+  const PetscScalar   *xx;
+  PetscScalar         *ff;
+  PetscFunctionBegin;
+
+  PetscScalar delta1    = blasius_ctx->delta1;
+  PetscScalar delta2    = blasius_ctx->delta2;
+  PetscScalar delta_max = blasius_ctx->delta_max;
+  PetscScalar r1        = blasius_ctx->r1;
+  PetscScalar sigma2    = blasius_ctx->sigma2;
+  PetscScalar sigma1    = sigma2 * r1 * delta1 * log(r1) / ((delta2 - delta1) * (r1 - 1) + r1 * delta1 * log(r1));
+  PetscScalar k1        = log(r1) / sigma1;
+  PetscScalar b1        = delta1 * k1 / (r1 - 1);
+
+  PetscCall(VecGetArrayRead(x, &xx));
+  PetscCall(VecGetArray(f, &ff));
+
+  ff[0] = xx[0] * PetscExpScalar(xx[1] * sigma2) - b1 * r1;
+  ff[1] = xx[0] * PetscExpScalar(xx[1]) / xx[1] - b1 * r1 / xx[1] - (delta_max - delta2);
+
+  // Restore vectors
+  PetscCall(VecRestoreArrayRead(x, &xx));
+  PetscCall(VecRestoreArray(f, &ff));
+
+  PetscFunctionReturn(0);
+}
+
+PetscErrorCode ComputeBoundaryCoefficients(BlasiusContext blasius_ctx) {
+  SNES                snes;
+  Vec                 x, r;
+  PetscScalar        *xx;
+  SNESConvergedReason reason;
+  PetscFunctionBegin;
+
+  // Create solution and residual vectors
+  PetscCall(VecCreate(PETSC_COMM_WORLD, &x));
+  PetscCall(VecSetSizes(x, PETSC_DECIDE, 2));
+  PetscCall(VecSetFromOptions(x));
+  PetscCall(VecSet(x, 1.));
+  PetscCall(VecDuplicate(x, &r));
+
+  // Create nonlinear solver context
+  PetscCall(SNESCreate(PETSC_COMM_WORLD, &snes));
+  PetscCall(SNESSetOptionsPrefix(snes, "boundary_mesh_"));
+  PetscCall(SNESSetFunction(snes, r, ComputeBoundaryCoefficientsResidual, blasius_ctx));
+  PetscCall(SNESSetFromOptions(snes));
+
+  // Solve
+  PetscCall(SNESSolve(snes, NULL, x));
+  PetscCall(SNESGetConvergedReason(snes, &reason));
+  if (reason < 0) SETERRQ(PETSC_COMM_WORLD, PETSC_ERR_CONV_FAILED, "The snes solve for computing boundary mesh coefficients failed.\n");
+
+  // Assign b3 and k3
+  PetscCall(VecGetArray(x, &xx));
+  blasius_ctx->b3 = xx[0];
+  blasius_ctx->k3 = xx[1];
+  PetscCall(VecRestoreArray(x, &xx));
+
+  // Cleanup
+  PetscCall(VecDestroy(&x));
+  PetscCall(VecDestroy(&r));
+  PetscCall(SNESDestroy(&snes));
+  PetscFunctionReturn(0);
+}
+
 static PetscErrorCode GetYNodeLocs(const MPI_Comm comm, const char path[PETSC_MAX_PATH_LEN], PetscReal **pynodes, PetscInt *nynodes) {
   PetscInt       ndims, dims[2];
   FILE          *fp;
@@ -149,16 +215,18 @@ static PetscErrorCode GetYNodeLocs(const MPI_Comm comm, const char path[PETSC_MA
  * If `node_locs` is not NULL, then the nodes will be placed at `node_locs` locations.
  * If it is NULL, then the modified coordinate values will be set in the array, along with `num_node_locs`.
  */
-static PetscErrorCode ModifyMesh(MPI_Comm comm, DM dm, PetscInt dim, PetscReal aspect_ratio_lam_bdry, PetscReal lam_bdry_height,
-                                 PetscReal turb_bdry_height, PetscReal max_height, PetscReal turb_bdry_percent, PetscReal top_angle,
-                                 PetscReal *node_locs[], PetscInt *num_node_locs) {
-  PetscInt     ierr, narr, ncoords;
+static PetscErrorCode ModifyMesh(MPI_Comm comm, DM dm, BlasiusContext blasius_ctx, PetscInt dim, PetscReal top_angle, PetscReal *node_locs[],
+                                 PetscInt *num_node_locs) {
+  PetscInt     narr, ncoords;
   PetscReal    domain_min[3], domain_max[3], domain_size[3];
   PetscScalar *arr_coords;
   Vec          vec_coords;
   PetscFunctionBeginUser;
 
   PetscReal angle_coeff = tan(top_angle * (M_PI / 180));
+
+  // Compute b3 and k3
+  ComputeBoundaryCoefficients(blasius_ctx);
 
   // Get domain boundary information
   PetscCall(DMGetBoundingBox(dm, domain_min, domain_max));
@@ -172,11 +240,10 @@ static PetscErrorCode ModifyMesh(MPI_Comm comm, DM dm, PetscInt dim, PetscReal a
   PetscScalar(*coords)[dim] = (PetscScalar(*)[dim])arr_coords;
   ncoords                   = narr / dim;
 
-  h1 = exp(double x)
+  // h1 = exp(double x)
 
-      // Get mesh information
-      PetscInt nmax = 3,
-  faces[3];
+  // Get mesh information
+  PetscInt nmax = 3, faces[3];
   PetscCall(PetscOptionsGetIntArray(NULL, NULL, "-dm_plex_box_faces", faces, &nmax, NULL));
   // Get element size of the box mesh, for indexing each node
   const PetscReal dybox = domain_size[1] / faces[1];
@@ -188,7 +255,7 @@ static PetscErrorCode ModifyMesh(MPI_Comm comm, DM dm, PetscInt dim, PetscReal a
     // DMPlexRemapGeometry(DM dm, PetscReal time, void (*func)(PetscInt, PetscInt, PetscInt, const PetscInt[], const PetscInt[], const PetscScalar[],
     // const PetscScalar[], const PetscScalar[], const PetscInt[], const PetscInt[], const PetscScalar[], const PetscScalar[], const PetscScalar[],
     // PetscReal, const PetscReal[], PetscInt, const PetscScalar[], PetscScalar[]))
-    *node_locs = temp_node_locs;
+    // *node_locs = temp_node_locs;
   } else {
     // Error checking
     if (*num_node_locs < faces[1] + 1) {
@@ -236,18 +303,23 @@ PetscErrorCode NS_BLASIUS(ProblemData *problem, DM dm, void *ctx, SimpleBC bc) {
   problem->ics.qfunction     = ICsBlasius;
   problem->ics.qfunction_loc = ICsBlasius_loc;
 
-  CeedScalar U_inf                                = 40;           // m/s
-  CeedScalar T_inf                                = 288.;         // K
-  CeedScalar T_wall                               = 288.;         // K
-  CeedScalar delta0                               = 4.2e-3;       // m
-  CeedScalar P0                                   = 1.01e5;       // Pa
-  CeedInt    N                                    = 20;           // Number of Chebyshev terms
-  PetscBool  weakT                                = PETSC_FALSE;  // weak density or temperature
-  PetscReal  mesh_refine_height                   = 5.9e-4;       // m
-  PetscReal  mesh_growth                          = 1.08;         // [-]
-  PetscInt   mesh_Ndelta                          = 45;           // [-]
-  PetscReal  mesh_top_angle                       = 5;            // degrees
-  char       mesh_ynodes_path[PETSC_MAX_PATH_LEN] = "";
+  CeedScalar  U_inf                                = 40;      // m/s
+  CeedScalar  T_inf                                = 288.;    // K
+  CeedScalar  T_wall                               = 288.;    // K
+  CeedScalar  delta0                               = 4.2e-3;  // m
+  CeedScalar  P0                                   = 1.01e5;  // Pa
+  PetscScalar delta1                               = 50;
+  PetscScalar delta2                               = 500;
+  PetscScalar delta_max                            = 5000;
+  PetscScalar r1                                   = 50;
+  PetscScalar sigma2                               = 0.8;
+  CeedInt     N                                    = 20;           // Number of Chebyshev terms
+  PetscBool   weakT                                = PETSC_FALSE;  // weak density or temperature
+  PetscReal   mesh_refine_height                   = 5.9e-4;       // m
+  PetscReal   mesh_growth                          = 1.08;         // [-]
+  PetscInt    mesh_Ndelta                          = 45;           // [-]
+  PetscReal   mesh_top_angle                       = 5;            // degrees
+  char        mesh_ynodes_path[PETSC_MAX_PATH_LEN] = "";
 
   PetscOptionsBegin(comm, NULL, "Options for BLASIUS problem", NULL);
   PetscCall(PetscOptionsBool("-weakT", "Change from rho weak to T weak at inflow", NULL, weakT, &weakT, NULL));
@@ -256,6 +328,11 @@ PetscErrorCode NS_BLASIUS(ProblemData *problem, DM dm, void *ctx, SimpleBC bc) {
   PetscCall(PetscOptionsScalar("-temperature_wall", "Temperature at wall", NULL, T_wall, &T_wall, NULL));
   PetscCall(PetscOptionsScalar("-delta0", "Boundary layer height at inflow", NULL, delta0, &delta0, NULL));
   PetscCall(PetscOptionsScalar("-P0", "Pressure at outflow", NULL, P0, &P0, NULL));
+  PetscCall(PetscOptionsScalar("-delta1", "TODO", NULL, delta1, &delta1, NULL));
+  PetscCall(PetscOptionsScalar("-delta2", "TODO", NULL, delta2, &delta2, NULL));
+  PetscCall(PetscOptionsScalar("-delta_max", "TODO", NULL, delta_max, &delta_max, NULL));
+  PetscCall(PetscOptionsScalar("-r1", "TODO", NULL, r1, &r1, NULL));
+  PetscCall(PetscOptionsScalar("-sigma2", "TODO", NULL, sigma2, &sigma2, NULL));
   PetscCall(PetscOptionsInt("-n_chebyshev", "Number of Chebyshev terms", NULL, N, &N, NULL));
   PetscCheck(3 <= N && N <= BLASIUS_MAX_N_CHEBYSHEV, comm, PETSC_ERR_ARG_OUTOFRANGE, "-n_chebyshev %" PetscInt_FMT " must be in range [3, %d]", N,
              BLASIUS_MAX_N_CHEBYSHEV);
@@ -282,26 +359,35 @@ PetscErrorCode NS_BLASIUS(ProblemData *problem, DM dm, void *ctx, SimpleBC bc) {
   P0 *= Pascal;
   U_inf *= meter / second;
   delta0 *= meter;
+  delta1 *= meter;
+  delta2 *= meter;
+  delta_max *= meter;
+
+  blasius_ctx->weakT     = weakT;
+  blasius_ctx->U_inf     = U_inf;
+  blasius_ctx->T_inf     = T_inf;
+  blasius_ctx->T_wall    = T_wall;
+  blasius_ctx->delta0    = delta0;
+  blasius_ctx->P0        = P0;
+  blasius_ctx->delta1    = delta1;
+  blasius_ctx->delta2    = delta2;
+  blasius_ctx->delta_max = delta_max;
+  blasius_ctx->r1        = r1;
+  blasius_ctx->sigma2    = sigma2;
+  blasius_ctx->n_cheb    = N;
+  blasius_ctx->implicit  = user->phys->implicit;
 
   PetscReal *mesh_ynodes  = NULL;
   PetscInt   mesh_nynodes = 0;
   if (strcmp(mesh_ynodes_path, "")) {
     PetscCall(GetYNodeLocs(comm, mesh_ynodes_path, &mesh_ynodes, &mesh_nynodes));
   }
-  PetscCall(ModifyMesh(comm, dm, problem->dim, mesh_growth, mesh_Ndelta, mesh_refine_height, mesh_top_angle, &mesh_ynodes, &mesh_nynodes));
+  PetscCall(ModifyMesh(comm, dm, blasius_ctx, problem->dim, mesh_top_angle, &mesh_ynodes, &mesh_nynodes));
 
   // Some properties depend on parameters from NewtonianIdealGas
   CeedQFunctionContextGetData(problem->apply_vol_rhs.qfunction_context, CEED_MEM_HOST, &newtonian_ig_ctx);
 
-  blasius_ctx->weakT         = weakT;
-  blasius_ctx->U_inf         = U_inf;
-  blasius_ctx->T_inf         = T_inf;
-  blasius_ctx->T_wall        = T_wall;
-  blasius_ctx->delta0        = delta0;
-  blasius_ctx->P0            = P0;
-  blasius_ctx->n_cheb        = N;
   newtonian_ig_ctx->P0       = P0;
-  blasius_ctx->implicit      = user->phys->implicit;
   blasius_ctx->newtonian_ctx = *newtonian_ig_ctx;
 
   {
