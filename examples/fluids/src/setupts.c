@@ -76,12 +76,24 @@ PetscErrorCode UpdateBoundaryValues(User user, Vec Q_loc, PetscReal t) {
   PetscFunctionReturn(0);
 }
 
+PetscErrorCode UpdateContextLabel(PetscScalar *previous_value, PetscScalar update_value, CeedOperator op, CeedContextFieldLabel label) {
+  PetscFunctionBeginUser;
+
+  if (*previous_value != update_value) {
+    if (label) {
+      CeedOperatorContextSetDouble(op, label, &update_value);
+    }
+    *previous_value = update_value;
+  }
+  PetscFunctionReturn(0);
+}
+
 // RHS (Explicit time-stepper) function setup
 //   This is the RHS of the ODE, given as u_t = G(t,u)
 //   This function takes in a state vector Q and writes into G
 PetscErrorCode RHS_NS(TS ts, PetscReal t, Vec Q, Vec G, void *user_data) {
   User         user = *(User *)user_data;
-  PetscScalar *q, *g;
+  PetscScalar *q, *g, dt;
   Vec          Q_loc = user->Q_loc, G_loc;
   PetscMemType q_mem_type, g_mem_type;
   PetscFunctionBeginUser;
@@ -91,20 +103,9 @@ PetscErrorCode RHS_NS(TS ts, PetscReal t, Vec Q, Vec G, void *user_data) {
 
   // Update time dependent data
   PetscCall(UpdateBoundaryValues(user, Q_loc, t));
-  if (user->time != t) {
-    if (user->phys->solution_time_label) {
-      CeedOperatorContextSetDouble(user->op_rhs, user->phys->solution_time_label, &t);
-    }
-    user->time = t;
-  }
-  if (user->phys->timestep_size_label) {
-    PetscScalar dt;
-    PetscCall(TSGetTimeStep(ts, &dt));
-    if (user->dt != dt) {
-      CeedOperatorContextSetDouble(user->op_rhs, user->phys->timestep_size_label, &dt);
-      user->dt = dt;
-    }
-  }
+  PetscCall(UpdateContextLabel(&user->time, t, user->op_rhs, user->phys->solution_time_label));
+  PetscCall(TSGetTimeStep(ts, &dt));
+  PetscCall(UpdateContextLabel(&user->dt, dt, user->op_rhs, user->phys->timestep_size_label));
 
   // Global-to-local
   PetscCall(DMGlobalToLocal(user->dm, Q, INSERT_VALUES, Q_loc));
@@ -141,7 +142,7 @@ PetscErrorCode RHS_NS(TS ts, PetscReal t, Vec Q, Vec G, void *user_data) {
 PetscErrorCode IFunction_NS(TS ts, PetscReal t, Vec Q, Vec Q_dot, Vec G, void *user_data) {
   User               user = *(User *)user_data;
   const PetscScalar *q, *q_dot;
-  PetscScalar       *g;
+  PetscScalar       *g, dt;
   Vec                Q_loc = user->Q_loc, Q_dot_loc = user->Q_dot_loc, G_loc;
   PetscMemType       q_mem_type, q_dot_mem_type, g_mem_type;
   PetscFunctionBeginUser;
@@ -151,20 +152,9 @@ PetscErrorCode IFunction_NS(TS ts, PetscReal t, Vec Q, Vec Q_dot, Vec G, void *u
 
   // Update time dependent data
   PetscCall(UpdateBoundaryValues(user, Q_loc, t));
-  if (user->time != t) {
-    if (user->phys->solution_time_label) {
-      CeedOperatorContextSetDouble(user->op_ifunction, user->phys->solution_time_label, &t);
-    }
-    user->time = t;
-  }
-  if (user->phys->timestep_size_label) {
-    PetscScalar dt;
-    PetscCall(TSGetTimeStep(ts, &dt));
-    if (user->dt != dt) {
-      CeedOperatorContextSetDouble(user->op_ifunction, user->phys->timestep_size_label, &dt);
-      user->dt = dt;
-    }
-  }
+  PetscCall(UpdateContextLabel(&user->time, t, user->op_ifunction, user->phys->solution_time_label));
+  PetscCall(TSGetTimeStep(ts, &dt));
+  PetscCall(UpdateContextLabel(&user->dt, dt, user->op_ifunction, user->phys->timestep_size_label));
 
   // Global-to-local
   PetscCall(DMGlobalToLocalBegin(user->dm, Q, INSERT_VALUES, Q_loc));
