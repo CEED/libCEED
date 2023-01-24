@@ -89,6 +89,23 @@ PetscErrorCode CreateStatsDM(User user, ProblemData *problem, PetscInt degree, S
   PetscFunctionReturn(0);
 }
 
+// Create CeedElemRestriction for collocated data based on associated CeedBasis and CeedElemRestriction
+// Number of quadrature points is used from the CeedBasis, and number of elements is used from the CeedElemRestriction
+PetscErrorCode CreateElemRestrColloc(Ceed ceed, CeedInt num_comp, CeedBasis basis, CeedElemRestriction elem_restr_base,
+                                     CeedElemRestriction *elem_restr_collocated, CeedVector *l_vec, CeedVector *e_vec) {
+  CeedInt num_elem_qpts, loc_num_elem;
+  PetscFunctionBeginUser;
+
+  CeedBasisGetNumQuadraturePoints(basis, &num_elem_qpts);
+  CeedElemRestrictionGetNumElements(elem_restr_base, &loc_num_elem);
+
+  const CeedInt strides[] = {num_comp, 1, num_elem_qpts * num_comp};
+  CeedElemRestrictionCreateStrided(ceed, loc_num_elem, num_elem_qpts, num_comp, num_comp * loc_num_elem * num_elem_qpts, strides,
+                                   elem_restr_collocated);
+  CeedElemRestrictionCreateVector(*elem_restr_collocated, l_vec, e_vec);
+  PetscFunctionReturn(0);
+}
+
 PetscErrorCode GetQuadratureCoords(Ceed ceed, DM dm, CeedElemRestriction elem_restr_x, CeedBasis basis_x, CeedVector x_coords, CeedVector *qx_coords,
                                    PetscInt *total_nqpnts) {
   CeedQFunction       qf_quad_coords;
@@ -101,10 +118,8 @@ PetscErrorCode GetQuadratureCoords(Ceed ceed, DM dm, CeedElemRestriction elem_re
   CeedBasisGetNumQuadraturePoints(basis_x, &num_elem_qpts);
   CeedElemRestrictionGetNumElements(elem_restr_x, &loc_num_elem);
   CeedElemRestrictionGetNumComponents(elem_restr_x, &num_comp_x);
-  *total_nqpnts           = num_elem_qpts * loc_num_elem;
-  const CeedInt strides[] = {num_comp_x, 1, num_elem_qpts * num_comp_x};
-  CeedElemRestrictionCreateStrided(ceed, loc_num_elem, num_elem_qpts, num_comp_x, num_comp_x * loc_num_elem * num_elem_qpts, strides, &elem_restr_qx);
-  CeedElemRestrictionCreateVector(elem_restr_qx, qx_coords, NULL);
+  *total_nqpnts = num_elem_qpts * loc_num_elem;
+  PetscCall(CreateElemRestrColloc(ceed, num_comp_x, basis_x, elem_restr_x, &elem_restr_qx, qx_coords, NULL));
 
   // Create QFunction
   CeedQFunctionCreateIdentity(ceed, num_comp_x, CEED_EVAL_INTERP, CEED_EVAL_NONE, &qf_quad_coords);
@@ -181,14 +196,21 @@ PetscErrorCode SetupStatsCollection(Ceed ceed, User user, CeedData ceed_data, Pr
   CeedBasisGetNumQuadraturePoints1D(ceed_data->basis_x, &Q);
   CeedBasisGetNumNodes1D(ceed_data->basis_x, &P);
 
-  // TODO: Possibly need to create a elem_restr_qcollocated for the global domain as well
-  PetscCall(GetRestrictionForDomain(ceed, dm, 0, 0, 0, Q, user->spanstats.num_comp_stats, &ceed_data->spanstats.elem_restr_parent_stats,
+  PetscCall(GetRestrictionForDomain(ceed, dm, 0, 0, 0, Q, problem->q_data_size_sur, &ceed_data->spanstats.elem_restr_parent_stats,
                                     &ceed_data->spanstats.elem_restr_parent_x, &ceed_data->spanstats.elem_restr_parent_qd));
   CeedElemRestrictionGetNumComponents(ceed_data->spanstats.elem_restr_parent_x, &num_comp_x);
   CeedElemRestrictionCreateVector(ceed_data->spanstats.elem_restr_parent_x, &ceed_data->spanstats.x_coord, NULL);
+  CeedElemRestrictionCreateVector(ceed_data->spanstats.elem_restr_parent_stats, &user->spanstats.stats_ceed, NULL);
+  CeedElemRestrictionCreateVector(ceed_data->spanstats.elem_restr_parent_qd, &ceed_data->spanstats.q_data, NULL);
 
   CeedBasisCreateTensorH1Lagrange(ceed, dim, num_comp_x, 2, Q, CEED_GAUSS_LOBATTO, &ceed_data->spanstats.basis_x);
   CeedBasisCreateTensorH1Lagrange(ceed, dim, user->spanstats.num_comp_stats, P, Q, CEED_GAUSS, &ceed_data->spanstats.basis_stats);
+
+  PetscCall(CreateElemRestrColloc(ceed, user->spanstats.num_comp_stats, ceed_data->spanstats.basis_stats,
+                                  ceed_data->spanstats.elem_restr_parent_stats, &ceed_data->spanstats.elem_restr_parent_colloc,
+                                  &user->spanstats.parent_stats, NULL));
+  PetscCall(CreateElemRestrColloc(ceed, user->spanstats.num_comp_stats, ceed_data->basis_q, ceed_data->elem_restr_q,
+                                  &ceed_data->spanstats.elem_restr_child_colloc, &user->spanstats.child_stats, NULL));
 
   // -- Copy DM coordinates into CeedVector
   {

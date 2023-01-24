@@ -116,16 +116,17 @@ struct CeedData_private {
   CeedQFunction       qf_setup_vol, qf_ics, qf_rhs_vol, qf_ifunction_vol, qf_setup_sur, qf_apply_inflow, qf_apply_inflow_jacobian, qf_apply_outflow,
       qf_apply_outflow_jacobian, qf_apply_freestream, qf_apply_freestream_jacobian;
   struct {
-    CeedElemRestriction elem_restr_parent_x, elem_restr_parent_stats, elem_restr_parent_qd;
+    CeedElemRestriction elem_restr_parent_x, elem_restr_parent_stats, elem_restr_parent_qd, elem_restr_parent_colloc, elem_restr_child_colloc;
     CeedBasis           basis_x, basis_stats;
-    CeedVector          x_coord;
+    CeedVector          x_coord, q_data;
   } spanstats;
 };
 
 typedef struct {
   DM           dm;
-  PetscSF      sf;
-  CeedOperator op_stats;
+  PetscSF      sf;  // For communicating child data to parents
+  CeedOperator op_stats_collect, op_stats_proj;
+  CeedVector   stats_ceed, child_stats, parent_stats;
   PetscInt     num_comp_stats;
 } Span_Stats;
 
