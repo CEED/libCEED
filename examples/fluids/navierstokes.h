@@ -15,6 +15,7 @@
 #include <petscts.h>
 #include <stdbool.h>
 
+#include "./include/matops.h"
 #include "qfunctions/newtonian_types.h"
 #include "qfunctions/stabilization_types.h"
 
@@ -105,6 +106,11 @@ struct AppCtx_private {
   PetscBool   test_mode;
   PetscScalar test_tol;
   char        file_path[PETSC_MAX_PATH_LEN];
+  // Statistics
+  PetscBool stats_enable;
+  PetscBool stats_test;
+  PetscInt  stats_collect_interval;
+  PetscInt  stats_write_interval;
 };
 
 // libCEED data struct
@@ -119,15 +125,23 @@ struct CeedData_private {
     CeedElemRestriction elem_restr_parent_x, elem_restr_parent_stats, elem_restr_parent_qd, elem_restr_parent_colloc, elem_restr_child_colloc;
     CeedBasis           basis_x, basis_stats;
     CeedVector          x_coord, q_data;
+    CeedQFunction       qf_stats_collect, qf_stats_proj;
   } spanstats;
 };
 
+// TODO Possibly turn into a pointer typedef
 typedef struct {
-  DM           dm;
-  PetscSF      sf;  // For communicating child data to parents
-  CeedOperator op_stats_collect, op_stats_proj;
-  CeedVector   stats_ceed, child_stats, parent_stats;
-  PetscInt     num_comp_stats;
+  DM                dm;
+  PetscSF           sf;  // For communicating child data to parents
+  CeedOperator      op_stats_collect, op_stats_proj;
+  PetscInt          num_comp_stats;
+  CeedVector        child_inst_stats, child_stats, parent_stats;  // collocated statistics data
+  CeedVector        rhs_ceed, x_ceed, y_ceed;
+  Vec               M_inv;  // Lumped Mass matrix inverse
+  MatopApplyContext M_ctx;
+  KSP               ksp;         // For the L^2 projection solve
+  CeedScalar        span_width;  // spanwise width of the child domain
+  PetscScalar       prev_time;
 } Span_Stats;
 
 // PETSc user data
@@ -330,6 +344,10 @@ PetscErrorCode CreateMassQFunction(Ceed ceed, CeedInt N, CeedInt q_data_size, Ce
 PetscErrorCode CreateStatsDM(User user, ProblemData *problem, PetscInt degree, SimpleBC bc);
 
 PetscErrorCode SetupStatsCollection(Ceed ceed, User user, CeedData ceed_data, ProblemData *problem);
+
+PetscErrorCode TSMonitor_Statistics(TS ts, PetscInt steps, PetscReal solution_time, Vec Q, void *ctx);
+
+PetscErrorCode StatsCollectFinalCall(User user, PetscReal solution_time, Vec Q);
 
 // -----------------------------------------------------------------------------
 // Boundary Condition Related Functions

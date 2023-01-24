@@ -154,6 +154,19 @@ PetscErrorCode ProcessCommandLineOptions(MPI_Comm comm, AppCtx app_ctx, SimpleBC
   bc->num_freestream = 16;
   PetscCall(PetscOptionsIntArray("-bc_freestream", "Face IDs to apply freestream BC", NULL, bc->freestreams, &bc->num_freestream, NULL));
 
+  // Statistics Options
+  PetscCall(PetscOptionsBool("-stats_enable", "Enable collection of spanwise statistics", NULL, app_ctx->stats_enable, &app_ctx->stats_enable, NULL));
+
+  PetscCall(PetscOptionsBool("-stats_test", "Use test QF for stats collection", NULL, app_ctx->stats_test, &app_ctx->stats_test, NULL));
+
+  app_ctx->stats_collect_interval = 1;
+  PetscCall(PetscOptionsInt("-stats_collect_interval", "Number of timesteps between statistics collection", NULL, app_ctx->stats_collect_interval,
+                            &app_ctx->stats_collect_interval, NULL));
+
+  app_ctx->stats_write_interval = -1;
+  PetscCall(PetscOptionsInt("-stats_write_interval", "Number of timesteps between statistics file writing", NULL, app_ctx->stats_write_interval,
+                            &app_ctx->stats_write_interval, NULL));
+
   PetscOptionsEnd();
 
   PetscFunctionReturn(0);

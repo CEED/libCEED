@@ -4,18 +4,29 @@
 // SPDX-License-Identifier: BSD-2-Clause
 //
 // This file is part of CEED:  http://github.com/ceed
-
 /// @file
-/// Utility functions for setting up statistics collection
+/// Functions for setting up and performing statistics collection
+
+#include "../qfunctions/turb_spanstats.h"
 
 #include <petscsf.h>
 
+#include "../include/matops.h"
 #include "../navierstokes.h"
+#include "ceed/ceed.h"
+#include "petscerror.h"
+#include "petscmat.h"
 #include "petscsys.h"
+#include "petscvec.h"
 
 PetscErrorCode CreateStatsDM(User user, ProblemData *problem, PetscInt degree, SimpleBC bc) {
-  user->spanstats.num_comp_stats = 1;
+  user->spanstats.num_comp_stats = 22;
+  PetscReal domain_min[3], domain_max[3];
   PetscFunctionBeginUser;
+
+  // Get spanwise length
+  PetscCall(DMGetBoundingBox(user->dm, domain_min, domain_max));
+  user->spanstats.span_width = domain_max[2] - domain_min[1];
 
   // Get DM from surface
   {
@@ -28,10 +39,8 @@ PetscErrorCode CreateStatsDM(User user, ProblemData *problem, PetscInt degree, S
 
   PetscCall(PetscObjectSetName((PetscObject)user->spanstats.dm, "Spanwise_Stats"));
   PetscCall(DMSetOptionsPrefix(user->spanstats.dm, "spanstats_"));
-  PetscCall(PetscOptionsSetValue(NULL, "-spanstats_dm_sparse_localize", "0"));  // [Jed] Not relevant because not periodic in this direction
-
   PetscCall(DMSetFromOptions(user->spanstats.dm));
-  PetscCall(DMViewFromOptions(user->spanstats.dm, NULL, "-dm_view"));  // -spanstats_dm_view (option includes prefix)
+  PetscCall(DMViewFromOptions(user->spanstats.dm, NULL, "-dm_view"));  // -spanstats_dm_view
   {
     PetscFE fe;
     DMLabel label;
@@ -42,30 +51,6 @@ PetscErrorCode CreateStatsDM(User user, ProblemData *problem, PetscInt degree, S
     PetscCall(DMCreateDS(user->spanstats.dm));
     PetscCall(DMGetLabel(user->spanstats.dm, "Face Sets", &label));
 
-    // // Set wall BCs
-    // if (bc->num_wall > 0) {
-    //   PetscCall(DMAddBoundary(dm, DM_BC_ESSENTIAL, "wall", label, bc->num_wall, bc->walls, 0, bc->num_comps, bc->wall_comps,
-    //                           (void (*)(void))problem->bc, NULL, problem->bc_ctx, NULL));
-    // }
-    // // Set slip BCs in the x direction
-    // if (bc->num_slip[0] > 0) {
-    //   PetscInt comps[1] = {1};
-    //   PetscCall(DMAddBoundary(dm, DM_BC_ESSENTIAL, "slipx", label, bc->num_slip[0], bc->slips[0], 0, 1, comps, (void (*)(void))NULL, NULL,
-    //                           problem->bc_ctx, NULL));
-    // }
-    // // Set slip BCs in the y direction
-    // if (bc->num_slip[1] > 0) {
-    //   PetscInt comps[1] = {2};
-    //   PetscCall(DMAddBoundary(dm, DM_BC_ESSENTIAL, "slipy", label, bc->num_slip[1], bc->slips[1], 0, 1, comps, (void (*)(void))NULL, NULL,
-    //                           problem->bc_ctx, NULL));
-    // }
-    // // Set slip BCs in the z direction
-    // if (bc->num_slip[2] > 0) {
-    //   PetscInt comps[1] = {3};
-    //   PetscCall(DMAddBoundary(dm, DM_BC_ESSENTIAL, "slipz", label, bc->num_slip[2], bc->slips[2], 0, 1, comps, (void (*)(void))NULL, NULL,
-    //                           problem->bc_ctx, NULL));
-    // }
-
     PetscCall(DMPlexSetClosurePermutationTensor(user->spanstats.dm, PETSC_DETERMINE, NULL));
     PetscCall(PetscFEDestroy(&fe));
   }
@@ -73,18 +58,28 @@ PetscErrorCode CreateStatsDM(User user, ProblemData *problem, PetscInt degree, S
   PetscSection section;
   PetscCall(DMGetLocalSection(user->spanstats.dm, &section));
   PetscCall(PetscSectionSetFieldName(section, 0, ""));
-  PetscCall(PetscSectionSetComponentName(section, 0, 0, "Test"));
-  // PetscCall(PetscSectionSetComponentName(section, 0, 0, "Mean Velocity Products XX"));
-  // PetscCall(PetscSectionSetComponentName(section, 0, 1, "Mean Velocity Products YY"));
-  // PetscCall(PetscSectionSetComponentName(section, 0, 2, "Mean Velocity Products ZZ"));
-  // PetscCall(PetscSectionSetComponentName(section, 0, 3, "Mean Velocity Products YZ"));
-  // PetscCall(PetscSectionSetComponentName(section, 0, 4, "Mean Velocity Products XZ"));
-  // PetscCall(PetscSectionSetComponentName(section, 0, 5, "Mean Velocity Products XY"));
-
-  Vec test;
-  PetscCall(DMCreateLocalVector(user->spanstats.dm, &test));
-  PetscCall(VecZeroEntries(test));
-  PetscCall(VecViewFromOptions(test, NULL, "-test_view"));
+  PetscCall(PetscSectionSetComponentName(section, 0, 0, "Mean Density"));
+  PetscCall(PetscSectionSetComponentName(section, 0, 1, "Mean Pressure"));
+  PetscCall(PetscSectionSetComponentName(section, 0, 2, "Mean Pressure Squared"));
+  PetscCall(PetscSectionSetComponentName(section, 0, 3, "Mean Pressure Velocity X"));
+  PetscCall(PetscSectionSetComponentName(section, 0, 4, "Mean Pressure Velocity Y"));
+  PetscCall(PetscSectionSetComponentName(section, 0, 5, "Mean Pressure Velocity Z"));
+  PetscCall(PetscSectionSetComponentName(section, 0, 6, "Mean Density Temperature"));
+  PetscCall(PetscSectionSetComponentName(section, 0, 7, "Mean Density Temperature Flux X"));
+  PetscCall(PetscSectionSetComponentName(section, 0, 8, "Mean Density Temperature Flux Y"));
+  PetscCall(PetscSectionSetComponentName(section, 0, 9, "Mean Density Temperature Flux Z"));
+  PetscCall(PetscSectionSetComponentName(section, 0, 10, "Mean Momentum X"));
+  PetscCall(PetscSectionSetComponentName(section, 0, 11, "Mean Momentum Y"));
+  PetscCall(PetscSectionSetComponentName(section, 0, 12, "Mean Momentum Z"));
+  PetscCall(PetscSectionSetComponentName(section, 0, 13, "Mean Momentum Flux XX"));
+  PetscCall(PetscSectionSetComponentName(section, 0, 14, "Mean Momentum Flux YY"));
+  PetscCall(PetscSectionSetComponentName(section, 0, 15, "Mean Momentum Flux ZZ"));
+  PetscCall(PetscSectionSetComponentName(section, 0, 16, "Mean Momentum Flux YZ"));
+  PetscCall(PetscSectionSetComponentName(section, 0, 17, "Mean Momentum Flux XZ"));
+  PetscCall(PetscSectionSetComponentName(section, 0, 18, "Mean Momentum Flux XY"));
+  PetscCall(PetscSectionSetComponentName(section, 0, 19, "Mean Velocity X"));
+  PetscCall(PetscSectionSetComponentName(section, 0, 20, "Mean Velocity Y"));
+  PetscCall(PetscSectionSetComponentName(section, 0, 21, "Mean Velocity Z"));
 
   PetscFunctionReturn(0);
 }
@@ -106,6 +101,7 @@ PetscErrorCode CreateElemRestrColloc(Ceed ceed, CeedInt num_comp, CeedBasis basi
   PetscFunctionReturn(0);
 }
 
+// Get coordinates of quadrature points
 PetscErrorCode GetQuadratureCoords(Ceed ceed, DM dm, CeedElemRestriction elem_restr_x, CeedBasis basis_x, CeedVector x_coords, CeedVector *qx_coords,
                                    PetscInt *total_nqpnts) {
   CeedQFunction       qf_quad_coords;
@@ -136,6 +132,7 @@ PetscErrorCode GetQuadratureCoords(Ceed ceed, DM dm, CeedElemRestriction elem_re
   PetscFunctionReturn(0);
 }
 
+// Create PetscSF for child-to-parent communication
 PetscErrorCode CreateStatsSF(Ceed ceed, CeedData ceed_data, DM parentdm, DM childdm, PetscSF statssf) {
   PetscInt   child_num_qpnts, parent_num_qpnts, num_comp_x;
   CeedVector child_qx_coords, parent_qx_coords;
@@ -147,7 +144,7 @@ PetscErrorCode CreateStatsSF(Ceed ceed, CeedData ceed_data, DM parentdm, DM chil
   const PetscInt num_comp_sf = num_comp_x - 1;  // Number of coord components used in the creation of the SF
 
   // Get quad_coords for child DM
-  PetscCall(GetQuadratureCoords(ceed, childdm, ceed_data->elem_restr_x, ceed_data->basis_xc, ceed_data->x_coord, &child_qx_coords, &child_num_qpnts));
+  PetscCall(GetQuadratureCoords(ceed, childdm, ceed_data->elem_restr_x, ceed_data->basis_x, ceed_data->x_coord, &child_qx_coords, &child_num_qpnts));
 
   // Get quad_coords for parent DM
   PetscCall(GetQuadratureCoords(ceed, parentdm, ceed_data->spanstats.elem_restr_parent_x, ceed_data->spanstats.basis_x, ceed_data->spanstats.x_coord,
@@ -173,16 +170,149 @@ PetscErrorCode CreateStatsSF(Ceed ceed, CeedData ceed_data, DM parentdm, DM chil
     CeedVectorRestoreArrayRead(parent_qx_coords, &parent_quad_coords);
   }
 
-  // Only check the first two components of the coordinates
   PetscCall(PetscSFSetGraphFromCoordinates(statssf, parent_num_qpnts, child_num_qpnts, num_comp_sf, 1e-12, parent_coords, child_coords));
 
+  PetscCall(PetscSFViewFromOptions(statssf, NULL, "-spanstats_sf_view"));
+
   PetscCall(PetscFree2(child_coords, parent_coords));
-  CeedVectorDestroy(&ceed_data->spanstats.x_coord);
   CeedVectorDestroy(&child_qx_coords);
   CeedVectorDestroy(&parent_qx_coords);
   PetscFunctionReturn(0);
 }
 
+// Compute mass matrix for statistics projection
+PetscErrorCode SetupL2ProjectionStats(Ceed ceed, User user, CeedData ceed_data) {
+  CeedQFunction qf_mass;
+  CeedOperator  op_mass;
+  CeedInt       num_comp_q, q_data_size;
+  PetscFunctionBeginUser;
+
+  // CEED Restriction
+  CeedElemRestrictionGetNumComponents(ceed_data->spanstats.elem_restr_parent_stats, &num_comp_q);
+  CeedElemRestrictionGetNumComponents(ceed_data->spanstats.elem_restr_parent_qd, &q_data_size);
+
+  // Create Mass CeedOperator
+  PetscCall(CreateMassQFunction(ceed, num_comp_q, q_data_size, &qf_mass));
+  CeedOperatorCreate(ceed, qf_mass, NULL, NULL, &op_mass);
+  CeedOperatorSetField(op_mass, "q", ceed_data->spanstats.elem_restr_parent_stats, ceed_data->spanstats.basis_stats, CEED_VECTOR_ACTIVE);
+  CeedOperatorSetField(op_mass, "qdata", ceed_data->spanstats.elem_restr_parent_qd, CEED_BASIS_COLLOCATED, ceed_data->spanstats.q_data);
+  CeedOperatorSetField(op_mass, "v", ceed_data->spanstats.elem_restr_parent_stats, ceed_data->spanstats.basis_stats, CEED_VECTOR_ACTIVE);
+
+  // Setup KSP for L^2 projection
+  {
+    MatopApplyContext M_ctx;
+    PetscInt          l_size, g_size;
+    Mat               mat_mass;
+    VecType           vec_type;
+    KSP               ksp;
+    Vec               ones, M_inv;
+    CeedVector        x_ceed, y_ceed;
+
+    PetscCall(DMCreateGlobalVector(user->spanstats.dm, &M_inv));
+    PetscCall(VecGetLocalSize(M_inv, &l_size));
+    PetscCall(VecGetSize(M_inv, &g_size));
+    PetscCall(VecGetType(M_inv, &vec_type));
+
+    PetscCall(PetscMalloc1(1, &M_ctx));
+    PetscCall(MatCreateShell(PETSC_COMM_WORLD, l_size, l_size, g_size, g_size, M_ctx, &mat_mass));
+    PetscCall(MatShellSetOperation(mat_mass, MATOP_MULT, (void (*)(void))MatMult_Ceed));
+    PetscCall(MatShellSetOperation(mat_mass, MATOP_GET_DIAGONAL, (void (*)(void))MatGetDiag_Ceed));
+    PetscCall(MatShellSetVecType(mat_mass, vec_type));
+
+    CeedElemRestrictionCreateVector(ceed_data->spanstats.elem_restr_parent_stats, &x_ceed, NULL);
+    CeedElemRestrictionCreateVector(ceed_data->spanstats.elem_restr_parent_stats, &y_ceed, NULL);
+
+    PetscCall(SetupMatopApplyCtx(PETSC_COMM_WORLD, user->spanstats.dm, user->ceed, op_mass, x_ceed, y_ceed, NULL, M_ctx));
+    user->spanstats.M_ctx = M_ctx;
+
+    // Create lumped mass matrix inverse
+    PetscCall(DMGetGlobalVector(user->spanstats.dm, &ones));
+    PetscCall(VecZeroEntries(M_inv));
+    PetscCall(VecSet(ones, 1));
+    PetscCall(MatMult(mat_mass, ones, M_inv));
+    PetscCall(VecReciprocal(M_inv));
+    user->spanstats.M_inv = M_inv;
+    PetscCall(DMRestoreGlobalVector(user->spanstats.dm, &ones));
+
+    PetscCall(KSPCreate(PETSC_COMM_WORLD, &ksp));
+    PetscCall(KSPSetOptionsPrefix(ksp, "spanstats_"));
+    {
+      PC pc;
+      PetscCall(KSPGetPC(ksp, &pc));
+      PetscCall(PCSetType(pc, PCJACOBI));
+      PetscCall(PCJacobiSetType(pc, PC_JACOBI_DIAGONAL));
+      PetscCall(KSPSetType(ksp, KSPCG));
+      PetscCall(KSPSetNormType(ksp, KSP_NORM_NATURAL));
+      PetscCall(KSPSetTolerances(ksp, 1e-10, PETSC_DEFAULT, PETSC_DEFAULT, PETSC_DEFAULT));
+    }
+    PetscCall(KSPSetOperators(ksp, mat_mass, mat_mass));
+    PetscCall(KSPSetFromOptions(ksp));
+    user->spanstats.ksp = ksp;
+  }
+
+  // Cleanup
+  CeedQFunctionDestroy(&qf_mass);
+  PetscFunctionReturn(0);
+}
+
+// Create CeedOperators and KSP for the statistics collection and processing
+PetscErrorCode CreateStatisticsOperators(Ceed ceed, User user, CeedData ceed_data, ProblemData *problem) {
+  CeedInt      num_comp_stats = user->spanstats.num_comp_stats, num_comp_x = problem->dim, num_comp_q;
+  CeedOperator op_setup_sur;
+  PetscFunctionBeginUser;
+  CeedBasisGetNumComponents(ceed_data->basis_q, &num_comp_q);
+
+  // Create Operator for statistics collection
+  switch (user->phys->state_var) {
+    case STATEVAR_PRIMITIVE:
+      CeedQFunctionCreateInterior(ceed, 1, ChildStatsCollection_Prim, ChildStatsCollection_Prim_loc, &ceed_data->spanstats.qf_stats_collect);
+      break;
+    case STATEVAR_CONSERVATIVE:
+      CeedQFunctionCreateInterior(ceed, 1, ChildStatsCollection_Conserv, ChildStatsCollection_Conserv_loc, &ceed_data->spanstats.qf_stats_collect);
+      break;
+  }
+
+  if (user->app_ctx->stats_test) {
+    CeedQFunctionDestroy(&ceed_data->spanstats.qf_stats_collect);
+    CeedQFunctionCreateInterior(ceed, 1, ChildStatsCollectionTest, ChildStatsCollectionTest_loc, &ceed_data->spanstats.qf_stats_collect);
+  }
+
+  CeedQFunctionSetContext(ceed_data->spanstats.qf_stats_collect, problem->apply_vol_ifunction.qfunction_context);
+  CeedQFunctionAddInput(ceed_data->spanstats.qf_stats_collect, "q", num_comp_q, CEED_EVAL_INTERP);
+  CeedQFunctionAddInput(ceed_data->spanstats.qf_stats_collect, "q_data", problem->q_data_size_vol, CEED_EVAL_NONE);
+  CeedQFunctionAddInput(ceed_data->spanstats.qf_stats_collect, "x", num_comp_x, CEED_EVAL_INTERP);
+  CeedQFunctionAddOutput(ceed_data->spanstats.qf_stats_collect, "v", num_comp_stats, CEED_EVAL_NONE);
+
+  CeedOperatorCreate(ceed, ceed_data->spanstats.qf_stats_collect, NULL, NULL, &user->spanstats.op_stats_collect);
+  CeedOperatorSetField(user->spanstats.op_stats_collect, "q", ceed_data->elem_restr_q, ceed_data->basis_q, CEED_VECTOR_ACTIVE);
+  CeedOperatorSetField(user->spanstats.op_stats_collect, "q_data", ceed_data->elem_restr_qd_i, CEED_BASIS_COLLOCATED, ceed_data->q_data);
+  CeedOperatorSetField(user->spanstats.op_stats_collect, "x", ceed_data->elem_restr_x, ceed_data->basis_x, ceed_data->x_coord);
+  CeedOperatorSetField(user->spanstats.op_stats_collect, "v", ceed_data->spanstats.elem_restr_child_colloc, CEED_BASIS_COLLOCATED,
+                       CEED_VECTOR_ACTIVE);
+
+  // Create Operator for statistics projection / processing
+  // Simply take collocated parent data (with quadrature weight already applied) and multiply by weight function.
+  // Therefore, an Identity QF is sufficient
+  CeedQFunctionCreateIdentity(ceed, num_comp_stats, CEED_EVAL_NONE, CEED_EVAL_INTERP, &ceed_data->spanstats.qf_stats_proj);
+
+  CeedOperatorCreate(ceed, ceed_data->spanstats.qf_stats_proj, NULL, NULL, &user->spanstats.op_stats_proj);
+  CeedOperatorSetField(user->spanstats.op_stats_proj, "input", ceed_data->spanstats.elem_restr_parent_colloc, CEED_BASIS_COLLOCATED,
+                       CEED_VECTOR_ACTIVE);
+  CeedOperatorSetField(user->spanstats.op_stats_proj, "output", ceed_data->spanstats.elem_restr_parent_stats, ceed_data->spanstats.basis_stats,
+                       CEED_VECTOR_ACTIVE);
+
+  // Get q_data for lumped mass matrix formation
+  CeedOperatorCreate(ceed, ceed_data->qf_setup_sur, NULL, NULL, &op_setup_sur);
+  CeedOperatorSetField(op_setup_sur, "dx", ceed_data->spanstats.elem_restr_parent_x, ceed_data->spanstats.basis_x, CEED_VECTOR_ACTIVE);
+  CeedOperatorSetField(op_setup_sur, "weight", CEED_ELEMRESTRICTION_NONE, ceed_data->spanstats.basis_x, CEED_VECTOR_NONE);
+  CeedOperatorSetField(op_setup_sur, "surface qdata", ceed_data->spanstats.elem_restr_parent_qd, CEED_BASIS_COLLOCATED, CEED_VECTOR_ACTIVE);
+  CeedOperatorApply(op_setup_sur, ceed_data->spanstats.x_coord, ceed_data->spanstats.q_data, CEED_REQUEST_IMMEDIATE);
+
+  CeedOperatorDestroy(&op_setup_sur);
+  PetscFunctionReturn(0);
+}
+
+// Setup for statistics collection
 PetscErrorCode SetupStatsCollection(Ceed ceed, User user, CeedData ceed_data, ProblemData *problem) {
   DM                 dm   = user->spanstats.dm;
   MPI_Comm           comm = PetscObjectComm((PetscObject)dm);
@@ -193,17 +323,17 @@ PetscErrorCode SetupStatsCollection(Ceed ceed, User user, CeedData ceed_data, Pr
   PetscFunctionBeginUser;
 
   PetscCall(DMGetDimension(dm, &dim));
-  CeedBasisGetNumQuadraturePoints1D(ceed_data->basis_x, &Q);
-  CeedBasisGetNumNodes1D(ceed_data->basis_x, &P);
+  CeedBasisGetNumQuadraturePoints1D(ceed_data->basis_q, &Q);
+  CeedBasisGetNumNodes1D(ceed_data->basis_q, &P);
 
   PetscCall(GetRestrictionForDomain(ceed, dm, 0, 0, 0, Q, problem->q_data_size_sur, &ceed_data->spanstats.elem_restr_parent_stats,
                                     &ceed_data->spanstats.elem_restr_parent_x, &ceed_data->spanstats.elem_restr_parent_qd));
   CeedElemRestrictionGetNumComponents(ceed_data->spanstats.elem_restr_parent_x, &num_comp_x);
   CeedElemRestrictionCreateVector(ceed_data->spanstats.elem_restr_parent_x, &ceed_data->spanstats.x_coord, NULL);
-  CeedElemRestrictionCreateVector(ceed_data->spanstats.elem_restr_parent_stats, &user->spanstats.stats_ceed, NULL);
+  CeedElemRestrictionCreateVector(ceed_data->spanstats.elem_restr_parent_stats, &user->spanstats.rhs_ceed, NULL);
   CeedElemRestrictionCreateVector(ceed_data->spanstats.elem_restr_parent_qd, &ceed_data->spanstats.q_data, NULL);
 
-  CeedBasisCreateTensorH1Lagrange(ceed, dim, num_comp_x, 2, Q, CEED_GAUSS_LOBATTO, &ceed_data->spanstats.basis_x);
+  CeedBasisCreateTensorH1Lagrange(ceed, dim, num_comp_x, 2, Q, CEED_GAUSS, &ceed_data->spanstats.basis_x);
   CeedBasisCreateTensorH1Lagrange(ceed, dim, user->spanstats.num_comp_stats, P, Q, CEED_GAUSS, &ceed_data->spanstats.basis_stats);
 
   PetscCall(CreateElemRestrColloc(ceed, user->spanstats.num_comp_stats, ceed_data->spanstats.basis_stats,
@@ -211,6 +341,8 @@ PetscErrorCode SetupStatsCollection(Ceed ceed, User user, CeedData ceed_data, Pr
                                   &user->spanstats.parent_stats, NULL));
   PetscCall(CreateElemRestrColloc(ceed, user->spanstats.num_comp_stats, ceed_data->basis_q, ceed_data->elem_restr_q,
                                   &ceed_data->spanstats.elem_restr_child_colloc, &user->spanstats.child_stats, NULL));
+  CeedElemRestrictionCreateVector(ceed_data->spanstats.elem_restr_child_colloc, &user->spanstats.child_inst_stats, NULL);
+  CeedVectorSetValue(user->spanstats.child_stats, 0);
 
   // -- Copy DM coordinates into CeedVector
   {
@@ -230,6 +362,138 @@ PetscErrorCode SetupStatsCollection(Ceed ceed, User user, CeedData ceed_data, Pr
   // Create SF for communicating child data back their respective parents
   PetscCall(PetscSFCreate(comm, &user->spanstats.sf));
   PetscCall(CreateStatsSF(ceed, ceed_data, user->dm, user->spanstats.dm, user->spanstats.sf));
+
+  // Create CeedOperators for statistics collection
+  PetscCall(CreateStatisticsOperators(ceed, user, ceed_data, problem));
+
+  // Setup KSP and Mat for L^2 projection of statistics
+  PetscCall(SetupL2ProjectionStats(ceed, user, ceed_data));
+
+  PetscFunctionReturn(0);
+}
+
+// Collect statistics based on the solution Q
+PetscErrorCode CollectStatistics(User user, PetscScalar solution_time, Vec Q) {
+  PetscMemType       q_mem_type;
+  const PetscScalar *q_arr;
+  Vec                Q_loc;
+  PetscFunctionBeginUser;
+
+  PetscCall(DMGetLocalVector(user->dm, &Q_loc));
+  PetscCall(VecZeroEntries(Q_loc));
+  PetscCall(DMGlobalToLocal(user->dm, Q, INSERT_VALUES, Q_loc));
+
+  PetscCall(VecGetArrayReadAndMemType(Q_loc, &q_arr, &q_mem_type));
+  CeedVectorSetArray(user->q_ceed, MemTypeP2C(q_mem_type), CEED_USE_POINTER, (PetscScalar *)q_arr);
+
+  CeedOperatorApply(user->spanstats.op_stats_collect, user->q_ceed, user->spanstats.child_inst_stats, CEED_REQUEST_IMMEDIATE);
+
+  CeedVectorTakeArray(user->q_ceed, MemTypeP2C(q_mem_type), NULL);
+  PetscCall(VecRestoreArrayReadAndMemType(Q_loc, &q_arr));
+  PetscCall(DMRestoreLocalVector(user->dm, &Q_loc));
+
+  // Record averaging using left rectangle rule
+  PetscScalar delta_t           = solution_time - user->spanstats.prev_time;
+  PetscScalar prev_timeinterval = user->spanstats.prev_time - user->app_ctx->cont_time;
+  CeedVectorScale(user->spanstats.child_stats, prev_timeinterval / (prev_timeinterval + delta_t));
+  CeedVectorAXPY(user->spanstats.child_stats, delta_t / (prev_timeinterval + delta_t), user->spanstats.child_inst_stats);
+  user->spanstats.prev_time = solution_time;
+
+  PetscFunctionReturn(0);
+}
+
+// Process the child statistics into parent statistics and project them onto stats
+PetscErrorCode ProcessStatistics(User user, Vec *stats) {
+  Span_Stats         user_stats = user->spanstats;
+  const PetscScalar *child_stats;
+  PetscScalar       *parent_stats;
+  MPI_Datatype       unit;
+  Vec                rhs_loc, rhs;
+  PetscMemType       rhs_mem_type;
+  CeedScalar        *rhs_arr;
+  CeedMemType        ceed_mem_type;
+  PetscFunctionBeginUser;
+
+  CeedGetPreferredMemType(user->ceed, &ceed_mem_type);
+  CeedVectorSetValue(user_stats.parent_stats, 0);
+
+  CeedVectorGetArrayRead(user_stats.child_stats, ceed_mem_type, &child_stats);
+  CeedVectorGetArray(user_stats.parent_stats, ceed_mem_type, &parent_stats);
+
+  if (user_stats.num_comp_stats == 1) unit = MPIU_REAL;
+  else {
+    PetscCallMPI(MPI_Type_contiguous(user_stats.num_comp_stats, MPIU_REAL, &unit));
+    PetscCallMPI(MPI_Type_commit(&unit));
+  }
+
+  PetscCall(PetscSFReduceBegin(user_stats.sf, unit, child_stats, parent_stats, MPI_SUM));
+  PetscCall(PetscSFReduceEnd(user_stats.sf, unit, child_stats, parent_stats, MPI_SUM));
+
+  CeedVectorRestoreArrayRead(user_stats.child_stats, &child_stats);
+  CeedVectorRestoreArray(user_stats.parent_stats, &parent_stats);
+  PetscCallMPI(MPI_Type_free(&unit));
+
+  CeedVectorScale(user_stats.parent_stats, 1 / user_stats.span_width);
+
+  // L^2 projection with the parent_data
+  PetscCall(DMGetGlobalVector(user_stats.dm, &rhs));
+  PetscCall(DMGetLocalVector(user_stats.dm, &rhs_loc));
+  PetscCall(VecZeroEntries(rhs));
+  PetscCall(VecZeroEntries(rhs_loc));
+  PetscCall(VecGetArrayWriteAndMemType(rhs_loc, &rhs_arr, &rhs_mem_type));
+  CeedVectorSetArray(user_stats.rhs_ceed, MemTypeP2C(rhs_mem_type), CEED_USE_POINTER, (PetscScalar *)rhs_arr);
+
+  CeedOperatorApply(user_stats.op_stats_proj, user_stats.parent_stats, user_stats.rhs_ceed, CEED_REQUEST_IMMEDIATE);
+
+  CeedVectorTakeArray(user_stats.rhs_ceed, MemTypeP2C(rhs_mem_type), &rhs_arr);
+  PetscCall(VecRestoreArrayAndMemType(rhs_loc, &rhs_arr));
+  PetscCall(DMLocalToGlobal(user_stats.dm, rhs_loc, ADD_VALUES, rhs));
+
+  PetscCall(VecDuplicate(rhs, stats));
+  PetscCall(VecPointwiseMult(*stats, rhs, user_stats.M_inv));
+
+  PetscCall(KSPSolve(user_stats.ksp, rhs, *stats));
+
+  PetscFunctionReturn(0);
+}
+
+// TSMonitor for the statistics collection and processing
+PetscErrorCode TSMonitor_Statistics(TS ts, PetscInt steps, PetscReal solution_time, Vec Q, void *ctx) {
+  User user = (User)ctx;
+  Vec  stats;
+  PetscFunctionBeginUser;
+
+  // Do not collect or process on the first step of the run (ie. on the initial condition)
+  if (steps == user->app_ctx->cont_steps) PetscFunctionReturn(0);
+
+  if (steps % user->app_ctx->stats_collect_interval == 0) {
+    PetscCall(CollectStatistics(user, solution_time, Q));
+  }
+
+  if (steps % user->app_ctx->stats_write_interval == 0 && user->app_ctx->stats_write_interval != -1) {
+    PetscCall(DMGetGlobalVector(user->spanstats.dm, &stats));
+    PetscCall(ProcessStatistics(user, &stats));
+    PetscCall(VecViewFromOptions(stats, NULL, "-stats_write_view"));
+    PetscCall(DMRestoreGlobalVector(user->spanstats.dm, &stats));
+  }
+  PetscFunctionReturn(0);
+}
+
+// Function to be called at the end of a simulation
+PetscErrorCode StatsCollectFinalCall(User user, PetscReal solution_time, Vec Q) {
+  Vec stats;
+  PetscFunctionBeginUser;
+
+  PetscCall(CollectStatistics(user, solution_time, Q));
+
+  PetscCall(DMGetGlobalVector(user->spanstats.dm, &stats));
+  PetscCall(ProcessStatistics(user, &stats));
+  PetscCall(VecViewFromOptions(stats, NULL, "-stats_write_view"));
+
+  PetscScalar *stats_arr;
+  PetscCall(VecGetArray(stats, &stats_arr));
+  PetscCall(VecRestoreArray(stats, &stats_arr));
+  PetscCall(DMRestoreGlobalVector(user->spanstats.dm, &stats));
 
   PetscFunctionReturn(0);
 }
