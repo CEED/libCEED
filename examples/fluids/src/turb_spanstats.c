@@ -331,7 +331,7 @@ PetscErrorCode SetupL2ProjectionStats(Ceed ceed, User user, CeedData ceed_data, 
 
     CeedElemRestrictionCreateVector(stats_data->elem_restr_parent_stats, &x_ceed, NULL);
     CeedElemRestrictionCreateVector(stats_data->elem_restr_parent_stats, &y_ceed, NULL);
-    PetscCall(MatopApplyContextCreate(user->spanstats.dm, user->ceed, op_mass, x_ceed, y_ceed, NULL, &M_ctx));
+    PetscCall(MatopApplyContextCreate(user->spanstats.dm, user->spanstats.dm, user->ceed, op_mass, x_ceed, y_ceed, NULL, NULL, &M_ctx));
     CeedVectorDestroy(&x_ceed);
     CeedVectorDestroy(&y_ceed);
 
@@ -463,7 +463,8 @@ PetscErrorCode SetupMMSErrorChecking(Ceed ceed, User user, CeedData ceed_data, S
 
   CeedElemRestrictionCreateVector(stats_data->elem_restr_parent_stats, &x_ceed, NULL);
   CeedElemRestrictionCreateVector(stats_data->elem_restr_parent_stats, &y_ceed, NULL);
-  PetscCall(MatopApplyContextCreate(user->spanstats.dm, user->ceed, op_error, x_ceed, y_ceed, NULL, &user->spanstats.mms_error_ctx));
+  PetscCall(MatopApplyContextCreate(user->spanstats.dm, user->spanstats.dm, user->ceed, op_error, x_ceed, y_ceed, NULL, NULL,
+                                    &user->spanstats.mms_error_ctx));
 
   CeedOperatorDestroy(&op_error);
   CeedQFunctionDestroy(&qf_error);

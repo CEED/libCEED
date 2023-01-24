@@ -12,22 +12,22 @@
 // -----------------------------------------------------------------------------
 // Setup apply operator context data
 // -----------------------------------------------------------------------------
-PetscErrorCode MatopApplyContextCreate(DM dm, Ceed ceed, CeedOperator op_apply, CeedVector x_ceed, CeedVector y_ceed, Vec X_loc,
+PetscErrorCode MatopApplyContextCreate(DM dm_x, DM dm_y, Ceed ceed, CeedOperator op_apply, CeedVector x_ceed, CeedVector y_ceed, Vec X_loc, Vec Y_loc,
                                        MatopApplyContext *op_apply_ctx) {
   PetscFunctionBeginUser;
 
   PetscCall(PetscNew(op_apply_ctx));
 
   // Copy PETSc Objects
-  PetscCall(PetscObjectReference((PetscObject)dm));
-  (*op_apply_ctx)->dm = dm;
-  if (X_loc) {
-    PetscCall(PetscObjectReference((PetscObject)X_loc));
-    (*op_apply_ctx)->X_loc = X_loc;
-    PetscCall(VecDuplicate(X_loc, &(*op_apply_ctx)->Y_loc));
-  } else {
-    (*op_apply_ctx)->X_loc = (*op_apply_ctx)->Y_loc = NULL;
-  }
+  PetscCall(PetscObjectReference((PetscObject)dm_x));
+  (*op_apply_ctx)->dm_x = dm_x;
+  PetscCall(PetscObjectReference((PetscObject)dm_y));
+  (*op_apply_ctx)->dm_y = dm_y;
+
+  if (X_loc) PetscCall(PetscObjectReference((PetscObject)X_loc));
+  (*op_apply_ctx)->X_loc = X_loc;
+  if (Y_loc) PetscCall(PetscObjectReference((PetscObject)Y_loc));
+  (*op_apply_ctx)->Y_loc = Y_loc;
 
   // Copy libCEED objects
   CeedVectorReferenceCopy(x_ceed, &(*op_apply_ctx)->x_ceed);
@@ -47,7 +47,8 @@ PetscErrorCode MatopApplyContextDestroy(MatopApplyContext op_apply_ctx) {
   if (!op_apply_ctx) PetscFunctionReturn(0);
 
   // Destroy PETSc Objects
-  PetscCall(DMDestroy(&op_apply_ctx->dm));
+  PetscCall(DMDestroy(&op_apply_ctx->dm_x));
+  PetscCall(DMDestroy(&op_apply_ctx->dm_y));
   PetscCall(VecDestroy(&op_apply_ctx->X_loc));
   PetscCall(VecDestroy(&op_apply_ctx->Y_loc));
 
@@ -74,7 +75,7 @@ PetscErrorCode MatGetDiag_Ceed(Mat A, Vec D) {
 
   PetscCall(MatShellGetContext(A, &op_apply_ctx));
   if (op_apply_ctx->Y_loc) Y_loc = op_apply_ctx->Y_loc;
-  else PetscCall(DMGetLocalVector(op_apply_ctx->dm, &Y_loc));
+  else PetscCall(DMGetLocalVector(op_apply_ctx->dm_y, &Y_loc));
 
   // -- Place PETSc vector in libCEED vector
   PetscCall(VecGetArrayAndMemType(Y_loc, &y, &mem_type));
@@ -87,9 +88,9 @@ PetscErrorCode MatGetDiag_Ceed(Mat A, Vec D) {
   CeedVectorTakeArray(op_apply_ctx->y_ceed, MemTypeP2C(mem_type), NULL);
   PetscCall(VecRestoreArrayAndMemType(Y_loc, &y));
   PetscCall(VecZeroEntries(D));
-  PetscCall(DMLocalToGlobal(op_apply_ctx->dm, Y_loc, ADD_VALUES, D));
+  PetscCall(DMLocalToGlobal(op_apply_ctx->dm_y, Y_loc, ADD_VALUES, D));
 
-  if (!op_apply_ctx->Y_loc) PetscCall(DMRestoreLocalVector(op_apply_ctx->dm, &Y_loc));
+  if (!op_apply_ctx->Y_loc) PetscCall(DMRestoreLocalVector(op_apply_ctx->dm_y, &Y_loc));
   PetscFunctionReturn(0);
 };
 
@@ -103,12 +104,12 @@ PetscErrorCode ApplyLocal_Ceed(Vec X, Vec Y, MatopApplyContext op_apply_ctx) {
   PetscFunctionBeginUser;
 
   if (op_apply_ctx->Y_loc) Y_loc = op_apply_ctx->Y_loc;
-  else PetscCall(DMGetLocalVector(op_apply_ctx->dm, &Y_loc));
+  else PetscCall(DMGetLocalVector(op_apply_ctx->dm_y, &Y_loc));
   if (op_apply_ctx->X_loc) X_loc = op_apply_ctx->X_loc;
-  else PetscCall(DMGetLocalVector(op_apply_ctx->dm, &X_loc));
+  else PetscCall(DMGetLocalVector(op_apply_ctx->dm_x, &X_loc));
 
   // Global-to-local
-  PetscCall(DMGlobalToLocal(op_apply_ctx->dm, X, INSERT_VALUES, X_loc));
+  PetscCall(DMGlobalToLocal(op_apply_ctx->dm_x, X, INSERT_VALUES, X_loc));
 
   // Setup libCEED vectors
   PetscCall(VecGetArrayReadAndMemType(X_loc, (const PetscScalar **)&x, &x_mem_type));
@@ -127,10 +128,10 @@ PetscErrorCode ApplyLocal_Ceed(Vec X, Vec Y, MatopApplyContext op_apply_ctx) {
 
   // Local-to-global
   PetscCall(VecZeroEntries(Y));
-  PetscCall(DMLocalToGlobal(op_apply_ctx->dm, Y_loc, ADD_VALUES, Y));
+  PetscCall(DMLocalToGlobal(op_apply_ctx->dm_y, Y_loc, ADD_VALUES, Y));
 
-  if (!op_apply_ctx->Y_loc) PetscCall(DMRestoreLocalVector(op_apply_ctx->dm, &Y_loc));
-  if (!op_apply_ctx->X_loc) PetscCall(DMRestoreLocalVector(op_apply_ctx->dm, &X_loc));
+  if (!op_apply_ctx->Y_loc) PetscCall(DMRestoreLocalVector(op_apply_ctx->dm_y, &Y_loc));
+  if (!op_apply_ctx->X_loc) PetscCall(DMRestoreLocalVector(op_apply_ctx->dm_x, &X_loc));
   PetscFunctionReturn(0);
 };
 
