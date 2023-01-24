@@ -40,7 +40,7 @@ noether-cpu:
     - make -k -j$NPROC_CPU BACKENDS="$BACKENDS_CPU" JUNIT_BATCH="cpu" junit realsearch=%
 # Libraries for examples
 # -- PETSc with HIP (minimal)
-    - export PETSC_DIR=/projects/petsc PETSC_ARCH=mpich-hip && git -C $PETSC_DIR describe
+    - export PETSC_DIR=/projects/petsc PETSC_ARCH=mpich-hip && git -C $PETSC_DIR -c safe.directory=$PETSC_DIR describe
     - echo "-------------- PETSc ---------------" && make -C $PETSC_DIR info
     - make -k -j$NPROC_CPU BACKENDS="$BACKENDS_CPU" JUNIT_BATCH="cpu" junit search="petsc fluids solids"
 # -- MFEM v4.2
@@ -91,7 +91,7 @@ noether-rocm:
 # Libraries for backends
 # -- MAGMA from dev branch
     - echo "-------------- MAGMA ---------------"
-    - export MAGMA_DIR=/projects/hipMAGMA && git -C $MAGMA_DIR describe
+    - export MAGMA_DIR=/projects/hipMAGMA && git -C $MAGMA_DIR -c safe.directory=$MAGMA_DIR describe
   script:
     - rm -f .SUCCESS
 # libCEED
@@ -108,7 +108,7 @@ noether-rocm:
     - make -k -j$NPROC_GPU BACKENDS="$BACKENDS_GPU" JUNIT_BATCH="hip" junit realsearch=%
 # Libraries for examples
 # -- PETSc with HIP (minimal)
-    - export PETSC_DIR=/projects/petsc PETSC_ARCH=mpich-hip && git -C $PETSC_DIR describe
+    - export PETSC_DIR=/projects/petsc PETSC_ARCH=mpich-hip && git -C $PETSC_DIR -c safe.directory=$PETSC_DIR describe
     - echo "-------------- PETSc ---------------" && make -C $PETSC_DIR info
     - make -k -j$NPROC_GPU BACKENDS="$BACKENDS_GPU" JUNIT_BATCH="hip" junit search="petsc fluids solids"
 # -- MFEM v4.2
@@ -159,7 +159,7 @@ noether-float:
 # Libraries for backends
 # -- MAGMA from dev branch
     - echo "-------------- MAGMA ---------------"
-    - export MAGMA_DIR=/projects/hipMAGMA && git -C $MAGMA_DIR describe
+    - export MAGMA_DIR=/projects/hipMAGMA && git -C $MAGMA_DIR -c safe.directory=$MAGMA_DIR describe
 # -- LIBXSMM 44433be9426eddaed88415646c15b3bcc61afc85
     - cd .. && export XSMM_HASH=44433be9426eddaed88415646c15b3bcc61afc85 && { [[ -d libxsmm-$XSMM_HASH ]] || { curl -L https://github.com/libxsmm/libxsmm/archive/$XSMM_HASH.tar.gz -o xsmm.tar.gz && tar zvxf xsmm.tar.gz && rm xsmm.tar.gz && make -C libxsmm-$XSMM_HASH -j$(nproc); }; } && export XSMM_DIR=$PWD/libxsmm-$XSMM_HASH && cd libCEED
     - echo "-------------- LIBXSMM -------------" && basename $XSMM_DIR
@@ -231,7 +231,7 @@ noether-cuda:
     - nice make -k -j$NPROC_GPU BACKENDS="$BACKENDS_GPU" JUNIT_BATCH="cuda" junit realsearch=%
 # Libraries for examples
 # -- PETSc with CUDA (minimal)
-    - export PETSC_DIR=/projects/petsc PETSC_ARCH=mpich-cuda-O PETSC_OPTIONS='-use_gpu_aware_mpi 0' && git -C $PETSC_DIR describe
+    - export PETSC_DIR=/projects/petsc PETSC_ARCH=mpich-cuda-O PETSC_OPTIONS='-use_gpu_aware_mpi 0' && git -C $PETSC_DIR -c safe.directory=$PETSC_DIR describe
     - echo "-------------- PETSc ---------------" && make -C $PETSC_DIR info
     - nice make -k -j$NPROC_GPU JUNIT_BATCH="cuda" junit BACKENDS="$BACKENDS_GPU" search="petsc fluids solids"
 # Report status

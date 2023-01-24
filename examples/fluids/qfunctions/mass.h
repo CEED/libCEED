@@ -25,7 +25,7 @@
 //   v - Output vector at quadrature points
 //
 // *****************************************************************************
-CEED_QFUNCTION(Mass)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
+CEED_QFUNCTION_HELPER int Mass_N(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out, const CeedInt N) {
   // Inputs
   const CeedScalar(*u)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[0];
   const CeedScalar(*q_data)        = in[1];
@@ -34,15 +34,18 @@ CEED_QFUNCTION(Mass)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScal
   CeedScalar(*v)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA])out[0];
 
   CeedPragmaSIMD for (CeedInt i = 0; i < Q; i++) {
-    v[0][i] = q_data[i] * u[0][i];
-    v[1][i] = q_data[i] * u[1][i];
-    v[2][i] = q_data[i] * u[2][i];
-    v[3][i] = q_data[i] * u[3][i];
-    v[4][i] = q_data[i] * u[4][i];
+    CeedPragmaSIMD for (CeedInt j = 0; j < N; j++) { v[j][i] = q_data[i] * u[j][i]; }
   }
   return 0;
 }
 
+CEED_QFUNCTION(Mass_1)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) { return Mass_N(ctx, Q, in, out, 1); }
+
+CEED_QFUNCTION(Mass_5)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) { return Mass_N(ctx, Q, in, out, 5); }
+
+CEED_QFUNCTION(Mass_9)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) { return Mass_N(ctx, Q, in, out, 9); }
+
+CEED_QFUNCTION(Mass_22)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) { return Mass_N(ctx, Q, in, out, 22); }
 // *****************************************************************************
 
 #endif  // mass_h

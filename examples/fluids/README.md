@@ -36,9 +36,9 @@ The following options are common among all problem types:
   - CEED resource specifier
   - `/cpu/self/opt/blocked`
 
-* - `-test`
-  - Run in test mode
-  - `false`
+* - `-test_type`
+  - Run in test mode and specify whether solution (`solver`) or turbulent statistics (`turb_spanstats`) output should be verified
+  - `none`
 
 * - `-compare_final_state_atol`
   - Test absolute tolerance
@@ -139,6 +139,22 @@ The following options are common among all problem types:
 * - `-bc_freestream`
   - Use freestream boundary conditions on this list of faces
   -
+
+* - `-ts_monitor_turbulence_spanstats_collect_interval`
+  - Number of timesteps between statistics collection
+  - `1`
+
+* - `-ts_monitor_turbulence_spanstats_viewer`
+  - Sets the PetscViewer for the statistics file writing, such as `cgns:output-%d.cgns` (requires PETSc `--download-cgns`). Also turns the statistics collection on.
+  -
+
+* - `-ts_monitor_turbulence_spanstats_viewer_interval`
+  - Number of timesteps between statistics file writing (`-1` means only at end of run)
+  - `-1`
+
+* - `-ts_monitor_turbulence_spanstats_viewer_cgns_batch_size`
+  - Number of frames written per CGNS file if the CGNS file name includes a format specifier (`%d`).
+  - `20`
 
 * - `-snes_view`
   - View PETSc `SNES` nonlinear solver configuration
