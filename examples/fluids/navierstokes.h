@@ -139,18 +139,19 @@ struct CeedData_private {
 };
 
 typedef struct {
-  DM                dm;
-  PetscSF           sf;  // For communicating child data to parents
-  CeedOperator      op_stats_collect, op_stats_proj;
-  PetscInt          num_comp_stats;
-  CeedVector        child_inst_stats, child_stats, parent_stats;  // collocated statistics data
-  CeedVector        rhs_ceed, x_ceed, y_ceed;
-  Vec               M_inv;  // Lumped Mass matrix inverse
-  MatopApplyContext M_ctx, mms_error_ctx;
-  KSP               ksp;         // For the L^2 projection solve
-  CeedScalar        span_width;  // spanwise width of the child domain
-  PetscScalar       prev_time;
-  PetscBool         do_mms_test;
+  DM                    dm;
+  PetscSF               sf;  // For communicating child data to parents
+  CeedOperator          op_stats_collect, op_stats_proj;
+  PetscInt              num_comp_stats;
+  CeedVector            child_stats, parent_stats;  // collocated statistics data
+  CeedVector            rhs_ceed, x_ceed, y_ceed;
+  Vec                   M_inv;  // Lumped Mass matrix inverse
+  MatopApplyContext     M_ctx, mms_error_ctx;
+  KSP                   ksp;         // For the L^2 projection solve
+  CeedScalar            span_width;  // spanwise width of the child domain
+  PetscScalar           prev_time;
+  PetscBool             do_mms_test;
+  CeedContextFieldLabel solution_time_label, previous_time_label;
 } Span_Stats;
 
 // PETSc user data

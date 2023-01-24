@@ -491,7 +491,8 @@ PetscErrorCode TSSolve_NS(DM dm, User user, AppCtx app_ctx, Physics phys, Vec *Q
   }
   if (app_ctx->turb_spanstats_enable) {
     PetscCall(TSMonitorSet(*ts, TSMonitor_Statistics, user, NULL));
-    user->spanstats.prev_time = app_ctx->cont_time * user->units->second;
+    CeedScalar previous_time = app_ctx->cont_time * user->units->second;
+    CeedOperatorContextSetDouble(user->spanstats.op_stats_collect, user->spanstats.previous_time_label, &previous_time);
   }
 
   // Solve

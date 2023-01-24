@@ -36,4 +36,11 @@ enum TurbComponent {
   TURB_NUM_COMPONENTS,
 };
 
+typedef struct Turbulence_SpanStatsContext_ *Turbulence_SpanStatsContext;
+struct Turbulence_SpanStatsContext_ {
+  CeedScalar                       solution_time;
+  CeedScalar                       previous_time;
+  struct NewtonianIdealGasContext_ gas;
+};
+
 #endif  // turb_stats_types_h

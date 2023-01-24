@@ -18,14 +18,16 @@ CEED_QFUNCTION_HELPER int ChildStatsCollection(void *ctx, CeedInt Q, const CeedS
   const CeedScalar(*x)[CEED_Q_VLA]      = (const CeedScalar(*)[CEED_Q_VLA])in[2];
   CeedScalar(*v)[CEED_Q_VLA]            = (CeedScalar(*)[CEED_Q_VLA])out[0];
 
-  NewtonianIdealGasContext context = (NewtonianIdealGasContext)ctx;
+  Turbulence_SpanStatsContext context = (Turbulence_SpanStatsContext)ctx;
+  NewtonianIdealGasContext    gas     = &context->gas;
+  CeedScalar                  delta_t = context->solution_time - context->previous_time;
 
   CeedPragmaSIMD for (CeedInt i = 0; i < Q; i++) {
-    const CeedScalar wdetJ = q_data[0][i];
+    const CeedScalar wdetJ = q_data[0][i] * delta_t;
 
     const CeedScalar qi[5]  = {q[0][i], q[1][i], q[2][i], q[3][i], q[4][i]};
     const CeedScalar x_i[3] = {x[0][i], x[1][i], x[2][i]};
-    const State      s      = StateFromQi(context, qi, x_i);
+    const State      s      = StateFromQi(gas, qi, x_i);
 
     v[TURB_MEAN_DENSITY][i]                    = wdetJ * s.U.density;
     v[TURB_MEAN_PRESSURE][i]                   = wdetJ * s.Y.pressure;

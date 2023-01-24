@@ -283,8 +283,11 @@ PetscErrorCode SetupL2ProjectionStats(Ceed ceed, User user, CeedData ceed_data) 
 
 // Create CeedOperators and KSP for the statistics collection and processing
 PetscErrorCode CreateStatisticsOperators(Ceed ceed, User user, CeedData ceed_data, ProblemData *problem) {
-  CeedInt      num_comp_stats = user->spanstats.num_comp_stats, num_comp_x = problem->dim, num_comp_q;
-  CeedOperator op_setup_sur;
+  CeedInt                     num_comp_stats = user->spanstats.num_comp_stats, num_comp_x = problem->dim, num_comp_q;
+  CeedOperator                op_setup_sur;
+  Turbulence_SpanStatsContext collect_ctx;
+  NewtonianIdealGasContext    newtonian_ig_ctx;
+  CeedQFunctionContext        collect_context;
   PetscFunctionBeginUser;
   CeedBasisGetNumComponents(ceed_data->basis_q, &num_comp_q);
 
@@ -303,7 +306,26 @@ PetscErrorCode CreateStatisticsOperators(Ceed ceed, User user, CeedData ceed_dat
     CeedQFunctionCreateInterior(ceed, 1, ChildStatsCollectionMMSTest, ChildStatsCollectionMMSTest_loc, &ceed_data->spanstats.qf_stats_collect);
   }
 
-  CeedQFunctionSetContext(ceed_data->spanstats.qf_stats_collect, problem->apply_vol_ifunction.qfunction_context);
+  // Setup Collection Context
+  {
+    PetscCall(PetscNew(&collect_ctx));
+    CeedQFunctionContextGetData(problem->apply_vol_rhs.qfunction_context, CEED_MEM_HOST, &newtonian_ig_ctx);
+    collect_ctx->gas = *newtonian_ig_ctx;
+
+    CeedQFunctionContextCreate(user->ceed, &collect_context);
+    CeedQFunctionContextSetData(collect_context, CEED_MEM_HOST, CEED_USE_POINTER, sizeof(*collect_ctx), collect_ctx);
+    CeedQFunctionContextSetDataDestroy(collect_context, CEED_MEM_HOST, FreeContextPetsc);
+
+    CeedQFunctionContextRegisterDouble(collect_context, "solution time", offsetof(struct Turbulence_SpanStatsContext_, solution_time), 1,
+                                       "Current solution time");
+    CeedQFunctionContextRegisterDouble(collect_context, "previous time", offsetof(struct Turbulence_SpanStatsContext_, previous_time), 1,
+                                       "Previous time statistics collection was done");
+
+    CeedQFunctionContextRestoreData(problem->apply_vol_rhs.qfunction_context, &newtonian_ig_ctx);
+  }
+
+  CeedQFunctionSetContext(ceed_data->spanstats.qf_stats_collect, collect_context);
+  CeedQFunctionContextDestroy(&collect_context);
   CeedQFunctionAddInput(ceed_data->spanstats.qf_stats_collect, "q", num_comp_q, CEED_EVAL_INTERP);
   CeedQFunctionAddInput(ceed_data->spanstats.qf_stats_collect, "q_data", problem->q_data_size_vol, CEED_EVAL_NONE);
   CeedQFunctionAddInput(ceed_data->spanstats.qf_stats_collect, "x", num_comp_x, CEED_EVAL_INTERP);
@@ -315,6 +337,9 @@ PetscErrorCode CreateStatisticsOperators(Ceed ceed, User user, CeedData ceed_dat
   CeedOperatorSetField(user->spanstats.op_stats_collect, "x", ceed_data->elem_restr_x, ceed_data->basis_x, ceed_data->x_coord);
   CeedOperatorSetField(user->spanstats.op_stats_collect, "v", ceed_data->spanstats.elem_restr_child_colloc, CEED_BASIS_COLLOCATED,
                        CEED_VECTOR_ACTIVE);
+
+  CeedOperatorContextGetFieldLabel(user->spanstats.op_stats_collect, "solution time", &user->spanstats.solution_time_label);
+  CeedOperatorContextGetFieldLabel(user->spanstats.op_stats_collect, "previous time", &user->spanstats.previous_time_label);
 
   // Create Operator for L^2 projection of statistics
   // Simply take collocated parent data (with quadrature weight already applied) and multiply by weight function.
@@ -405,7 +430,6 @@ PetscErrorCode SetupStatsCollection(Ceed ceed, User user, CeedData ceed_data, Pr
                                   &user->spanstats.parent_stats, NULL));
   PetscCall(CreateElemRestrColloc(ceed, user->spanstats.num_comp_stats, ceed_data->basis_q, ceed_data->elem_restr_q,
                                   &ceed_data->spanstats.elem_restr_child_colloc, &user->spanstats.child_stats, NULL));
-  CeedElemRestrictionCreateVector(ceed_data->spanstats.elem_restr_child_colloc, &user->spanstats.child_inst_stats, NULL);
   CeedVectorSetValue(user->spanstats.child_stats, 0);
 
   // -- Copy DM coordinates into CeedVector
@@ -464,19 +488,17 @@ PetscErrorCode CollectStatistics(User user, PetscScalar solution_time, Vec Q) {
   PetscCall(PetscLogStagePush(stage_stats_collect));
 
   PetscCall(UpdateBoundaryValues(user, user->Q_loc, solution_time));
+  CeedOperatorContextSetDouble(user->spanstats.op_stats_collect, user->spanstats.solution_time_label, &solution_time);
   PetscCall(DMGlobalToLocal(user->dm, Q, INSERT_VALUES, user->Q_loc));
   PetscCall(VecGetArrayReadAndMemType(user->Q_loc, &q_arr, &q_mem_type));
   CeedVectorSetArray(user->q_ceed, MemTypeP2C(q_mem_type), CEED_USE_POINTER, (PetscScalar *)q_arr);
 
-  CeedOperatorApply(user->spanstats.op_stats_collect, user->q_ceed, user->spanstats.child_inst_stats, CEED_REQUEST_IMMEDIATE);
+  CeedOperatorApplyAdd(user->spanstats.op_stats_collect, user->q_ceed, user->spanstats.child_stats, CEED_REQUEST_IMMEDIATE);
 
   CeedVectorTakeArray(user->q_ceed, MemTypeP2C(q_mem_type), NULL);
   PetscCall(VecRestoreArrayReadAndMemType(user->Q_loc, &q_arr));
 
-  // Record weighted running sum
-  PetscScalar delta_t = solution_time - user->spanstats.prev_time;
-  CeedVectorAXPY(user->spanstats.child_stats, delta_t, user->spanstats.child_inst_stats);
-  user->spanstats.prev_time = solution_time;
+  CeedOperatorContextSetDouble(user->spanstats.op_stats_collect, user->spanstats.previous_time_label, &solution_time);
 
   PetscCall(PetscLogStagePop());
   PetscFunctionReturn(0);
@@ -594,7 +616,6 @@ PetscErrorCode CleanupStats(User user, CeedData ceed_data) {
 
   // -- CeedVectors
   CeedVectorDestroy(&user->spanstats.child_stats);
-  CeedVectorDestroy(&user->spanstats.child_inst_stats);
   CeedVectorDestroy(&user->spanstats.parent_stats);
   CeedVectorDestroy(&user->spanstats.rhs_ceed);
   CeedVectorDestroy(&user->spanstats.x_ceed);
