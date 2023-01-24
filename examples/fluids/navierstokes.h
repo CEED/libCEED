@@ -130,12 +130,6 @@ struct CeedData_private {
   CeedOperator        op_setup_vol, op_ics;
   CeedQFunction       qf_setup_vol, qf_ics, qf_rhs_vol, qf_ifunction_vol, qf_setup_sur, qf_apply_inflow, qf_apply_inflow_jacobian, qf_apply_outflow,
       qf_apply_outflow_jacobian, qf_apply_freestream, qf_apply_freestream_jacobian;
-  struct {
-    CeedElemRestriction elem_restr_parent_x, elem_restr_parent_stats, elem_restr_parent_qd, elem_restr_parent_colloc, elem_restr_child_colloc;
-    CeedBasis           basis_x, basis_stats;
-    CeedVector          x_coord, q_data;
-    CeedQFunction       qf_stats_collect, qf_stats_proj;
-  } spanstats;
 };
 
 typedef struct {
@@ -144,13 +138,12 @@ typedef struct {
   CeedOperator          op_stats_collect, op_stats_proj;
   PetscInt              num_comp_stats;
   CeedVector            child_stats, parent_stats;  // collocated statistics data
-  CeedVector            rhs_ceed, x_ceed, y_ceed;
-  Vec                   M_inv;  // Lumped Mass matrix inverse
-  MatopApplyContext     mms_error_ctx;
+  CeedVector            rhs_ceed;
+  Vec                   M_inv;       // Lumped Mass matrix inverse
   KSP                   ksp;         // For the L^2 projection solve
   CeedScalar            span_width;  // spanwise width of the child domain
-  PetscScalar           prev_time;
   PetscBool             do_mms_test;
+  MatopApplyContext     mms_error_ctx;
   CeedContextFieldLabel solution_time_label, previous_time_label;
 } Span_Stats;
 
