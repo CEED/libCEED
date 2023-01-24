@@ -147,7 +147,6 @@ typedef struct {
   PetscInt              num_comp_stats;
   CeedVector            child_stats, parent_stats;  // collocated statistics data
   CeedVector            rhs_ceed;
-  Vec                   M_inv;       // Lumped Mass matrix inverse
   KSP                   ksp;         // For the L^2 projection solve
   CeedScalar            span_width;  // spanwise width of the child domain
   PetscBool             do_mms_test;
