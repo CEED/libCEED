@@ -15,14 +15,14 @@
 // Data for PETSc Matshell
 typedef struct OperatorApplyContext_ *MatopApplyContext;
 struct OperatorApplyContext_ {
-  DM           dm;
+  DM           dm_x, dm_y;
   Vec          X_loc, Y_loc;
   CeedVector   x_ceed, y_ceed;
   CeedOperator op;
   Ceed         ceed;
 };
 
-PetscErrorCode MatopApplyContextCreate(DM dm, Ceed ceed, CeedOperator op_apply, CeedVector x_ceed, CeedVector y_ceed, Vec X_loc,
+PetscErrorCode MatopApplyContextCreate(DM dm_x, DM dm_y, Ceed ceed, CeedOperator op_apply, CeedVector x_ceed, CeedVector y_ceed, Vec X_loc, Vec Y_loc,
                                        MatopApplyContext *op_apply_ctx);
 PetscErrorCode MatopApplyContextDestroy(MatopApplyContext op_apply_ctx);
 PetscErrorCode MatGetDiag_Ceed(Mat A, Vec D);
