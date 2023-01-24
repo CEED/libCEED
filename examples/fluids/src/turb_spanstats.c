@@ -527,7 +527,6 @@ PetscErrorCode TSMonitor_Statistics(TS ts, PetscInt steps, PetscReal solution_ti
   }
   PetscFunctionReturn(0);
 }
-
 // Function to be called at the end of a simulation
 PetscErrorCode StatsCollectFinalCall(User user, PetscReal solution_time, Vec Q) {
   Vec stats;
@@ -549,6 +548,61 @@ PetscErrorCode StatsCollectFinalCall(User user, PetscReal solution_time, Vec Q) 
     PetscCall(PetscPrintf(PETSC_COMM_WORLD, "l2 error: %.5e\n", l2_error));
   }
   PetscCall(DMRestoreGlobalVector(user->spanstats.dm, &stats));
+
+  PetscFunctionReturn(0);
+}
+
+PetscErrorCode CleanupStats(User user, CeedData ceed_data) {
+  PetscFunctionBeginUser;
+
+  // -- CeedVectors
+  CeedVectorDestroy(&user->spanstats.child_stats);
+  CeedVectorDestroy(&user->spanstats.child_inst_stats);
+  CeedVectorDestroy(&user->spanstats.parent_stats);
+  CeedVectorDestroy(&user->spanstats.rhs_ceed);
+  CeedVectorDestroy(&user->spanstats.x_ceed);
+  CeedVectorDestroy(&user->spanstats.y_ceed);
+  CeedVectorDestroy(&ceed_data->spanstats.x_coord);
+  CeedVectorDestroy(&ceed_data->spanstats.q_data);
+  CeedVectorDestroy(&user->spanstats.M_ctx->x_ceed);
+  CeedVectorDestroy(&user->spanstats.M_ctx->y_ceed);
+  if (user->app_ctx->stats_test) {
+    CeedVectorDestroy(&user->spanstats.test_error_ctx->x_ceed);
+    CeedVectorDestroy(&user->spanstats.test_error_ctx->y_ceed);
+  }
+
+  // -- QFunctions
+  CeedQFunctionDestroy(&ceed_data->spanstats.qf_stats_collect);
+  CeedQFunctionDestroy(&ceed_data->spanstats.qf_stats_proj);
+
+  // -- CeedBasis
+  CeedBasisDestroy(&ceed_data->spanstats.basis_stats);
+  CeedBasisDestroy(&ceed_data->spanstats.basis_x);
+
+  // -- CeedElemRestriction
+  CeedElemRestrictionDestroy(&ceed_data->spanstats.elem_restr_parent_stats);
+  CeedElemRestrictionDestroy(&ceed_data->spanstats.elem_restr_parent_qd);
+  CeedElemRestrictionDestroy(&ceed_data->spanstats.elem_restr_parent_x);
+  CeedElemRestrictionDestroy(&ceed_data->spanstats.elem_restr_parent_colloc);
+  CeedElemRestrictionDestroy(&ceed_data->spanstats.elem_restr_child_colloc);
+
+  // -- CeedOperators
+  CeedOperatorDestroy(&user->spanstats.op_stats_collect);
+  CeedOperatorDestroy(&user->spanstats.op_stats_proj);
+  CeedOperatorDestroy(&user->spanstats.M_ctx->op);
+  if (user->app_ctx->stats_test) CeedOperatorDestroy(&user->spanstats.test_error_ctx->op);
+
+  // -- Vec
+  PetscCall(VecDestroy(&user->spanstats.M_inv));
+
+  // -- KSP
+  PetscCall(KSPDestroy(&user->spanstats.ksp));
+
+  // -- SF
+  PetscCall(PetscSFDestroy(&user->spanstats.sf));
+
+  // -- DM
+  PetscCall(DMDestroy(&user->spanstats.dm));
 
   PetscFunctionReturn(0);
 }

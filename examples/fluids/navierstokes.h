@@ -348,6 +348,8 @@ PetscErrorCode TSMonitor_Statistics(TS ts, PetscInt steps, PetscReal solution_ti
 
 PetscErrorCode StatsCollectFinalCall(User user, PetscReal solution_time, Vec Q);
 
+PetscErrorCode CleanupStats(User user, CeedData ceed_data);
+
 // -----------------------------------------------------------------------------
 // Boundary Condition Related Functions
 // -----------------------------------------------------------------------------

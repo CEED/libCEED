@@ -298,6 +298,9 @@ int main(int argc, char **argv) {
   // ---------------------------------------------------------------------------
   // Destroy libCEED objects
   // ---------------------------------------------------------------------------
+
+  if (app_ctx->stats_enable) PetscCall(CleanupStats(user, ceed_data));
+
   // -- Vectors
   CeedVectorDestroy(&ceed_data->x_coord);
   CeedVectorDestroy(&ceed_data->q_data);
