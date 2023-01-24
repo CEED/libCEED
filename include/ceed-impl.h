@@ -225,8 +225,8 @@ struct CeedBasis_private {
 struct CeedTensorContract_private {
   Ceed ceed;
   int (*Apply)(CeedTensorContract, CeedInt, CeedInt, CeedInt, CeedInt,
-               const CeedScalar *restrict, CeedTransposeMode, const CeedInt,
-               const CeedScalar *restrict, CeedScalar *restrict);
+               const CeedScalar *, CeedTransposeMode, const CeedInt,
+               const CeedScalar *, CeedScalar *);
   int (*Destroy)(CeedTensorContract);
   int ref_count;
   void *data;

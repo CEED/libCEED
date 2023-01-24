@@ -397,16 +397,23 @@ ifneq ($(CUDA_LIB_DIR),)
 endif
 
 # HIP Backends
-HIP_LIB_DIR := $(wildcard $(foreach d,lib lib64,$(HIP_DIR)/$d/libamdhip64.${SO_EXT}))
-HIP_LIB_DIR := $(patsubst %/,%,$(dir $(firstword $(HIP_LIB_DIR))))
+# Probably should extend to look for libCHIP.so?
+# HIP_LIB_DIR := $(wildcard $(foreach d,lib lib64,$(HIP_DIR)/$d/libamdhip64.${SO_EXT}))
+HIP_LIB_DIR := /gpfs/jlse-fs0/users/pvelesko/install/HIP/clang15/chip-spv-develop-debug/lib
 HIP_BACKENDS = /gpu/hip/ref /gpu/hip/shared /gpu/hip/gen
 ifneq ($(HIP_LIB_DIR),)
   $(libceeds) : HIPCCFLAGS += -I./include
   ifneq ($(CXX), $(HIPCC))
-    CPPFLAGS += $(subst =,,$(shell $(HIP_DIR)/bin/hipconfig -C))
+    # removing the equal signs breaks options such as --target=x86_64-linux-gnu
+    # CPPFLAGS += $(subst =,,$(shell $(HIP_DIR)/bin/hipconfig -C))
+    CPPFLAGS += $(shell $(HIP_DIR)/bin/hipconfig -C)
+    CFLAGS += -I./include
+	CFLAGS += -DCEED_JIT_SOUCE_ROOT_DEFAULT="\"$(abspath ./include)/\""
   endif
   $(libceeds) : CPPFLAGS += -I$(HIP_DIR)/include
-  PKG_LIBS += -L$(abspath $(HIP_LIB_DIR)) -lamdhip64 -lhipblas
+  # extracted from hipconfig
+  PKG_LIBS += -L/home/pvelesko/space/install/HIP/clang15/chip-spv-testing/lib -lCHIP -L/soft/libraries/khronos/loader/master-2022.05.18/lib64 -lOpenCL -L/soft/restricted/CNDA/emb/intel-gpu-umd/20221031.1-pvc-prq-66/driver/lib64 -lze_loader -Wl,-rpath,/home/pvelesko/space/install/HIP/clang15/chip-spv-testing/lib
+#   PKG_LIBS += -L$(abspath $(HIP_LIB_DIR)) -lamdhip64 -lhipblas
   LIBCEED_CONTAINS_CXX = 1
   libceed.c     += interface/ceed-hip.c
   libceed.c     += $(hip.c) $(hip-ref.c) $(hip-shared.c) $(hip-gen.c)
@@ -490,7 +497,7 @@ $(libceed.a) : $(call weak_last,$(libceed.o)) | $$(@D)/.DIR
 	$(call quiet,AR) $(ARFLAGS) $@ $^
 
 $(OBJDIR)/%.o : $(CURDIR)/%.c | $$(@D)/.DIR
-	$(call quiet,CC) $(CPPFLAGS) $(CFLAGS) -c -o $@ $(abspath $<)
+	$(call quiet,CC) $(CFLAGS) -c -o $@ $(abspath $<)
 
 $(OBJDIR)/%.o : $(CURDIR)/%.cpp | $$(@D)/.DIR
 	$(call quiet,CXX) $(CPPFLAGS) $(CXXFLAGS) -c -o $@ $(abspath $<)
@@ -687,7 +694,7 @@ style : style-c style-py
 CLANG_TIDY ?= clang-tidy
 
 %.c.tidy : %.c
-	$(CLANG_TIDY) $(TIDY_OPTS) $^ -- $(CPPFLAGS) --std=c99 -I$(CUDA_DIR)/include -I$(HIP_DIR)/include -DCEED_JIT_SOUCE_ROOT_DEFAULT="\"$(abspath ./include)/\""
+	$(CLANG_TIDY) $(TIDY_OPTS) $^ -- --std=c99 -I$(CUDA_DIR)/include -I$(HIP_DIR)/include -DCEED_JIT_SOUCE_ROOT_DEFAULT="\"$(abspath ./include)/\""
 
 %.cpp.tidy : %.cpp
 	$(CLANG_TIDY) $(TIDY_OPTS) $^ -- $(CPPFLAGS) --std=c++11 -I$(CUDA_DIR)/include -I$(OCCA_DIR)/include -I$(HIP_DIR)/include
