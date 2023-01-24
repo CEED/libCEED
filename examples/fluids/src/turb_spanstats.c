@@ -321,13 +321,14 @@ PetscErrorCode SetupL2ProjectionStats(Ceed ceed, User user, CeedData ceed_data, 
     Mat               mat_mass;
     VecType           vec_type;
     KSP               ksp;
-    Vec               ones, M_inv;
+    Vec               M_inv;
     CeedVector        x_ceed, y_ceed;
 
-    PetscCall(DMCreateGlobalVector(user->spanstats.dm, &M_inv));
+    PetscCall(DMGetGlobalVector(user->spanstats.dm, &M_inv));
     PetscCall(VecGetLocalSize(M_inv, &l_size));
     PetscCall(VecGetSize(M_inv, &g_size));
     PetscCall(VecGetType(M_inv, &vec_type));
+    PetscCall(DMRestoreGlobalVector(user->spanstats.dm, &M_inv));
 
     CeedElemRestrictionCreateVector(stats_data->elem_restr_parent_stats, &x_ceed, NULL);
     CeedElemRestrictionCreateVector(stats_data->elem_restr_parent_stats, &y_ceed, NULL);
@@ -340,15 +341,6 @@ PetscErrorCode SetupL2ProjectionStats(Ceed ceed, User user, CeedData ceed_data, 
     PetscCall(MatShellSetOperation(mat_mass, MATOP_MULT, (void (*)(void))MatMult_Ceed));
     PetscCall(MatShellSetOperation(mat_mass, MATOP_GET_DIAGONAL, (void (*)(void))MatGetDiag_Ceed));
     PetscCall(MatShellSetVecType(mat_mass, vec_type));
-
-    // Create lumped mass matrix inverse
-    PetscCall(DMGetGlobalVector(user->spanstats.dm, &ones));
-    PetscCall(VecZeroEntries(M_inv));
-    PetscCall(VecSet(ones, 1));
-    PetscCall(MatMult(mat_mass, ones, M_inv));
-    PetscCall(VecReciprocal(M_inv));
-    user->spanstats.M_inv = M_inv;
-    PetscCall(DMRestoreGlobalVector(user->spanstats.dm, &ones));
 
     PetscCall(KSPCreate(comm, &ksp));
     PetscCall(KSPSetOptionsPrefix(ksp, "turbulence_spanstats_"));
@@ -657,9 +649,6 @@ PetscErrorCode DestroyStats(User user, CeedData ceed_data) {
   CeedOperatorDestroy(&user->spanstats.op_stats_collect);
   CeedOperatorDestroy(&user->spanstats.op_stats_proj);
   PetscCall(MatopApplyContextDestroy(user->spanstats.mms_error_ctx));
-
-  // -- Vec
-  PetscCall(VecDestroy(&user->spanstats.M_inv));
 
   // -- KSP
   PetscCall(KSPDestroy(&user->spanstats.ksp));
