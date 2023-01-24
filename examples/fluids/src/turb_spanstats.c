@@ -9,17 +9,8 @@
 
 #include "../qfunctions/turb_spanstats.h"
 
-#include <petscsf.h>
-
 #include "../include/matops.h"
 #include "../navierstokes.h"
-#include "ceed/ceed.h"
-#include "petscerror.h"
-#include "petsclog.h"
-#include "petscmat.h"
-#include "petscsys.h"
-#include "petscvec.h"
-#include "petscviewer.h"
 
 typedef struct {
   CeedElemRestriction elem_restr_parent_x, elem_restr_parent_stats, elem_restr_parent_qd, elem_restr_parent_colloc, elem_restr_child_colloc;
@@ -85,7 +76,7 @@ PetscErrorCode CreateStatsDM(User user, ProblemData *problem, PetscInt degree, S
   PetscCall(PetscObjectSetName((PetscObject)user->spanstats.dm, "Spanwise_Stats"));
   PetscCall(DMSetOptionsPrefix(user->spanstats.dm, "turbulence_spanstats_"));
   PetscCall(DMSetFromOptions(user->spanstats.dm));
-  PetscCall(DMViewFromOptions(user->spanstats.dm, NULL, "-dm_view"));  // -spanstats_dm_view
+  PetscCall(DMViewFromOptions(user->spanstats.dm, NULL, "-dm_view"));
 
   // Create FE space for parent DM
   PetscCall(PetscFECreateLagrange(PETSC_COMM_SELF, problem->dim - 1, user->spanstats.num_comp_stats, PETSC_FALSE, degree, PETSC_DECIDE, &fe));
