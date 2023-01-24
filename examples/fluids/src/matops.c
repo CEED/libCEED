@@ -63,20 +63,18 @@ PetscErrorCode MatopApplyContextDestroy(MatopApplyContext op_apply_ctx) {
 }
 
 // -----------------------------------------------------------------------------
-// This function returns the computed diagonal of the operator
+// Returns the computed diagonal of the operator
 // -----------------------------------------------------------------------------
 PetscErrorCode MatGetDiag_Ceed(Mat A, Vec D) {
   MatopApplyContext op_apply_ctx;
   Vec               Y_loc;
+  PetscScalar      *y;
+  PetscMemType      mem_type;
   PetscFunctionBeginUser;
 
   PetscCall(MatShellGetContext(A, &op_apply_ctx));
   if (op_apply_ctx->Y_loc) Y_loc = op_apply_ctx->Y_loc;
   else PetscCall(DMGetLocalVector(op_apply_ctx->dm, &Y_loc));
-
-  // Compute Diagonal via libCEED
-  PetscScalar *y;
-  PetscMemType mem_type;
 
   // -- Place PETSc vector in libCEED vector
   PetscCall(VecGetArrayAndMemType(Y_loc, &y, &mem_type));
@@ -96,7 +94,7 @@ PetscErrorCode MatGetDiag_Ceed(Mat A, Vec D) {
 };
 
 // -----------------------------------------------------------------------------
-// This function uses libCEED to compute the action of the Laplacian with Dirichlet boundary conditions
+// Apply the CeedOperator to the given Vecs
 // -----------------------------------------------------------------------------
 PetscErrorCode ApplyLocal_Ceed(Vec X, Vec Y, MatopApplyContext op_apply_ctx) {
   PetscScalar *x, *y;
@@ -109,7 +107,6 @@ PetscErrorCode ApplyLocal_Ceed(Vec X, Vec Y, MatopApplyContext op_apply_ctx) {
   if (op_apply_ctx->X_loc) X_loc = op_apply_ctx->X_loc;
   else PetscCall(DMGetLocalVector(op_apply_ctx->dm, &X_loc));
 
-  // Global-to-local
   PetscCall(DMGlobalToLocal(op_apply_ctx->dm, X, INSERT_VALUES, X_loc));
 
   // Setup libCEED vectors
@@ -137,7 +134,7 @@ PetscErrorCode ApplyLocal_Ceed(Vec X, Vec Y, MatopApplyContext op_apply_ctx) {
 };
 
 // -----------------------------------------------------------------------------
-// This function wraps the libCEED operator for a MatShell
+// Wraps the libCEED operator for a MatShell
 // -----------------------------------------------------------------------------
 PetscErrorCode MatMult_Ceed(Mat A, Vec X, Vec Y) {
   MatopApplyContext op_apply_ctx;
