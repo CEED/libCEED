@@ -15,6 +15,7 @@
 #include <petscts.h>
 #include <stdbool.h>
 
+#include "./include/matops.h"
 #include "qfunctions/newtonian_types.h"
 #include "qfunctions/stabilization_types.h"
 
@@ -68,6 +69,14 @@ static const char *const EulerTestTypes[] = {"isentropic_vortex", "test_1",     
 // Stabilization methods
 static const char *const StabilizationTypes[] = {"none", "SU", "SUPG", "StabilizationType", "STAB_", NULL};
 
+// Euler - test cases
+typedef enum {
+  TESTTYPE_NONE           = 0,
+  TESTTYPE_SOLVER         = 1,
+  TESTTYPE_TURB_SPANSTATS = 2,
+} TestType;
+static const char *const TestTypes[] = {"none", "solver", "turb_spanstats", "TestType", "TESTTYPE_", NULL};
+
 // -----------------------------------------------------------------------------
 // Structs
 // -----------------------------------------------------------------------------
@@ -102,9 +111,15 @@ struct AppCtx_private {
   PetscFunctionList problems;
   char              problem_name[PETSC_MAX_PATH_LEN];
   // Test mode arguments
-  PetscBool   test_mode;
+  TestType    test_type;
   PetscScalar test_tol;
-  char        file_path[PETSC_MAX_PATH_LEN];
+  char        test_file_path[PETSC_MAX_PATH_LEN];
+  // Turbulent spanwise statistics
+  PetscBool         turb_spanstats_enable;
+  PetscInt          turb_spanstats_collect_interval;
+  PetscInt          turb_spanstats_viewer_interval;
+  PetscViewer       turb_spanstats_viewer;
+  PetscViewerFormat turb_spanstats_viewer_format;
 };
 
 // libCEED data struct
@@ -116,6 +131,21 @@ struct CeedData_private {
   CeedQFunction       qf_setup_vol, qf_ics, qf_rhs_vol, qf_ifunction_vol, qf_setup_sur, qf_apply_inflow, qf_apply_inflow_jacobian, qf_apply_outflow,
       qf_apply_outflow_jacobian, qf_apply_freestream, qf_apply_freestream_jacobian;
 };
+
+typedef struct {
+  DM                    dm;
+  PetscSF               sf;  // For communicating child data to parents
+  CeedOperator          op_stats_collect, op_stats_proj;
+  PetscInt              num_comp_stats;
+  CeedVector            child_stats, parent_stats;  // collocated statistics data
+  CeedVector            rhs_ceed;
+  Vec                   M_inv;       // Lumped Mass matrix inverse
+  KSP                   ksp;         // For the L^2 projection solve
+  CeedScalar            span_width;  // spanwise width of the child domain
+  PetscBool             do_mms_test;
+  MatopApplyContext     mms_error_ctx;
+  CeedContextFieldLabel solution_time_label, previous_time_label;
+} Span_Stats;
 
 // PETSc user data
 struct User_private {
@@ -131,7 +161,8 @@ struct User_private {
   CeedVector   q_ceed, q_dot_ceed, g_ceed, coo_values_amat, coo_values_pmat, x_ceed;
   CeedOperator op_rhs_vol, op_rhs, op_ifunction_vol, op_ifunction, op_ijacobian, op_dirichlet;
   bool         matrices_set_up;
-  CeedScalar   time, dt;
+  CeedScalar   time, dt, time_bc_set;
+  Span_Stats   spanstats;
 };
 
 // Units
@@ -263,6 +294,9 @@ PetscErrorCode TSMonitor_NS(TS ts, PetscInt step_no, PetscReal time, Vec Q, void
 // TS: Create, setup, and solve
 PetscErrorCode TSSolve_NS(DM dm, User user, AppCtx app_ctx, Physics phys, Vec *Q, PetscScalar *f_time, TS *ts);
 
+// Update Boundary Values when time has changed
+PetscErrorCode UpdateBoundaryValues(User user, Vec Q_loc, PetscReal t);
+
 // -----------------------------------------------------------------------------
 // Setup DM
 // -----------------------------------------------------------------------------
@@ -309,6 +343,17 @@ PetscErrorCode SetBCsFromICs_NS(DM dm, Vec Q, Vec Q_loc);
 
 // Versioning token for binary checkpoints
 extern const PetscInt FLUIDS_FILE_TOKEN;
+
+// Create appropriate mass qfunction based on number of components N
+PetscErrorCode CreateMassQFunction(Ceed ceed, CeedInt N, CeedInt q_data_size, CeedQFunction *qf);
+
+PetscErrorCode CreateStatsDM(User user, ProblemData *problem, PetscInt degree, SimpleBC bc);
+
+PetscErrorCode SetupStatsCollection(Ceed ceed, User user, CeedData ceed_data, ProblemData *problem);
+
+PetscErrorCode TSMonitor_Statistics(TS ts, PetscInt steps, PetscReal solution_time, Vec Q, void *ctx);
+
+PetscErrorCode DestroyStats(User user, CeedData ceed_data);
 
 // -----------------------------------------------------------------------------
 // Boundary Condition Related Functions

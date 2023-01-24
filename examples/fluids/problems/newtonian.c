@@ -285,6 +285,9 @@ PetscErrorCode NS_NEWTONIAN_IG(ProblemData *problem, DM dm, void *ctx, SimpleBC 
                                      "Size of timestep, delta t");
   CeedQFunctionContextRegisterDouble(newtonian_ig_context, "ijacobian time shift", offsetof(struct NewtonianIdealGasContext_, ijacobian_time_shift),
                                      1, "Shift for mass matrix in IJacobian");
+  CeedQFunctionContextRegisterDouble(newtonian_ig_context, "solution time", offsetof(struct NewtonianIdealGasContext_, time), 1,
+                                     "Current solution time");
+
   problem->apply_vol_rhs.qfunction_context = newtonian_ig_context;
   CeedQFunctionContextReferenceCopy(newtonian_ig_context, &problem->apply_vol_ifunction.qfunction_context);
   CeedQFunctionContextReferenceCopy(newtonian_ig_context, &problem->apply_vol_ijacobian.qfunction_context);
