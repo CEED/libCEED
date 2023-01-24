@@ -166,7 +166,8 @@ static PetscErrorCode Surface_Forces_NS(DM dm, Vec G_loc) {
     }
     PetscCall(ISDestroy(&wall_is));
     PetscCallMPI(MPI_Allreduce(MPI_IN_PLACE, reaction_force, 3, MPIU_SCALAR, MPI_SUM, comm));
-    PetscCall(PetscPrintf(comm, "Wall %" PetscInt_FMT " force: %12g %12g %12g\n", wall, reaction_force[0], reaction_force[1], reaction_force[2]));
+    PetscCall(PetscPrintf(comm, "Wall %" PetscInt_FMT " Forces: Force_x = %12g, Force_y = %12g, Force_z = %12g\n", wall, reaction_force[0],
+                          reaction_force[1], reaction_force[2]));
   }
   //  Restore Vectors
   PetscCall(VecRestoreArrayRead(G_loc, &g));
@@ -227,6 +228,7 @@ PetscErrorCode IFunction_NS(TS ts, PetscReal t, Vec Q, Vec Q_dot, Vec G, void *u
   PetscCall(VecRestoreArrayAndMemType(G_loc, &g));
 
   PetscCall(Surface_Forces_NS(user->dm, G_loc));
+  PetscCall(TSMonitor_FaceForce(ts, 0, 0., Q, user));
 
   // Local-to-Global
   PetscCall(VecZeroEntries(G));
