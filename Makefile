@@ -30,7 +30,8 @@ ifeq (,$(filter-out undefined default,$(origin ARFLAGS)))
 endif
 NVCC ?= $(CUDA_DIR)/bin/nvcc
 NVCC_CXX ?= $(CXX)
-HIPCC ?= $(ROCM_DIR)/bin/hipcc
+HIP_DIR ?= $(ROCM_DIR)
+HIPCC ?= $(HIP_DIR)/bin/hipcc
 SED ?= sed
 ifneq ($(EMSCRIPTEN),)
   STATIC = 1
@@ -305,7 +306,7 @@ info:
 	$(info OCCA_DIR      = $(OCCA_DIR)$(call backend_status,$(OCCA_BACKENDS)))
 	$(info MAGMA_DIR     = $(MAGMA_DIR)$(call backend_status,$(MAGMA_BACKENDS)))
 	$(info CUDA_DIR      = $(CUDA_DIR)$(call backend_status,$(CUDA_BACKENDS)))
-	$(info ROCM_DIR       = $(ROCM_DIR)$(call backend_status,$(HIP_BACKENDS)))
+	$(info HIP_DIR       = $(HIP_DIR)$(call backend_status,$(HIP_BACKENDS)))
 	$(info ------------------------------------)
 	$(info MFEM_DIR      = $(MFEM_DIR))
 	$(info NEK5K_DIR     = $(NEK5K_DIR))
@@ -416,16 +417,22 @@ ifneq ($(CUDA_LIB_DIR),)
 endif
 
 # HIP Backends
-HIP_LIB_DIR := $(wildcard $(foreach d,lib lib64,$(ROCM_DIR)/$d/libamdhip64.${SO_EXT}))
-HIP_LIB_DIR := $(patsubst %/,%,$(dir $(firstword $(HIP_LIB_DIR))))
+HIP_LIB_PATH := $(firstword $(wildcard $(foreach d,lib lib64,$(HIP_DIR)/$d/libamdhip64.${SO_EXT} $(HIP_DIR)/$d/libCHIP.${SO_EXT})))
+HIP_LIB      := $(patsubst lib%.${SO_EXT},%,$(notdir $(HIP_LIB_PATH)))
+HIP_LIB_DIR  := $(patsubst %/,%,$(dir $(HIP_LIB_PATH)))
 HIP_BACKENDS = /gpu/hip/ref /gpu/hip/shared /gpu/hip/gen
 ifneq ($(HIP_LIB_DIR),)
   $(libceeds) : HIPCCFLAGS += -I./include
   ifneq ($(CXX), $(HIPCC))
-    CPPFLAGS += $(subst =,,$(shell $(ROCM_DIR)/bin/hipconfig -C))
+    CPPFLAGS += $(filter-out -x hip --offload=spirv64 -nohipwrapperinc,$(shell $(HIP_DIR)/bin/hipconfig -C))
   endif
-  $(libceeds) : CPPFLAGS += -I$(ROCM_DIR)/include
-  PKG_LIBS += -L$(abspath $(HIP_LIB_DIR)) -lamdhip64 -lhipblas
+  $(libceeds) : CPPFLAGS += -I$(HIP_DIR)/include
+  OPENCL_LIB_DIR = /soft/libraries/khronos/loader/master-2022.05.18/lib64
+  ZE_LIB_DIR = /soft/restricted/CNDA/emb/intel-gpu-umd/20221031.1-pvc-prq-66/driver/lib64
+  HIPBLAS_LIBS = $(if $(filter amdhip64,$(HIP_LIB)),-lhipblas,-L$(HIPBLAS_LIB_DIR) -lhipblas-d)
+  PKG_LIBS += -L$(abspath $(HIP_LIB_DIR)) -l$(HIP_LIB) $(HIPBLAS_LIBS) $(if $(filter CHIP,$(HIP_LIB)),-L$(OPENCL_LIB_DIR) -lOpenCL -L$(ZE_LIB_DIR) -lze_loader)
+  # extracted from hipconfig
+  # PKG_LIBS += -L/home/pvelesko/space/install/HIP/clang15/chip-spv-testing/lib -lCHIP -L/soft/libraries/khronos/loader/master-2022.05.18/lib64 -lOpenCL -L/soft/restricted/CNDA/emb/intel-gpu-umd/20221031.1-pvc-prq-66/driver/lib64 -lze_loader -Wl,-rpath,/home/pvelesko/space/install/HIP/clang15/chip-spv-testing/lib
   LIBCEED_CONTAINS_CXX = 1
   libceed.c     += interface/ceed-hip.c
   libceed.c     += $(hip.c) $(hip-ref.c) $(hip-shared.c) $(hip-gen.c)
@@ -720,10 +727,10 @@ format    : format-c format-py
 CLANG_TIDY ?= clang-tidy
 
 %.c.tidy : %.c
-	$(CLANG_TIDY) $(TIDY_OPTS) $^ -- $(CPPFLAGS) --std=c99 -I$(CUDA_DIR)/include -I$(ROCM_DIR)/include -DCEED_JIT_SOUCE_ROOT_DEFAULT="\"$(abspath ./include)/\""
+	$(CLANG_TIDY) $(TIDY_OPTS) $^ -- $(CPPFLAGS) --std=c99 -I$(CUDA_DIR)/include -I$(HIP_DIR)/include -DCEED_JIT_SOUCE_ROOT_DEFAULT="\"$(abspath ./include)/\""
 
 %.cpp.tidy : %.cpp
-	$(CLANG_TIDY) $(TIDY_OPTS) $^ -- $(CPPFLAGS) --std=c++11 -I$(CUDA_DIR)/include -I$(OCCA_DIR)/include -I$(ROCM_DIR)/include
+	$(CLANG_TIDY) $(TIDY_OPTS) $^ -- $(CPPFLAGS) --std=c++11 -I$(CUDA_DIR)/include -I$(OCCA_DIR)/include -I$(HIP_DIR)/include
 
 tidy-c   : $(libceed.c:%=%.tidy)
 tidy-cpp : $(libceed.cpp:%=%.tidy)
@@ -770,7 +777,7 @@ print-% :
 CONFIG_VARS = CC CXX FC NVCC NVCC_CXX HIPCC \
 	OPT CFLAGS CPPFLAGS CXXFLAGS FFLAGS NVCCFLAGS HIPCCFLAGS \
 	AR ARFLAGS LDFLAGS LDLIBS LIBCXX SED \
-	MAGMA_DIR OCCA_DIR XSMM_DIR CUDA_DIR CUDA_ARCH MFEM_DIR PETSC_DIR NEK5K_DIR ROCM_DIR HIP_ARCH
+	MAGMA_DIR OCCA_DIR XSMM_DIR CUDA_DIR CUDA_ARCH MFEM_DIR PETSC_DIR NEK5K_DIR ROCM_DIR HIP_DIR HIP_ARCH
 
 # $(call needs_save,CFLAGS) returns true (a nonempty string) if CFLAGS
 # was set on the command line or in config.mk (where it will appear as
