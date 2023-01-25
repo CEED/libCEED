@@ -278,12 +278,14 @@ CEED_INTERN "C"
 CEED_INTERN "C"
 #endif
     int
-    CeedBasisApplyNonTensor_f64_Magma(CeedBasis basis, CeedInt nelem, CeedTransposeMode tmode, CeedEvalMode emode, CeedVector U, CeedVector V) {
+    CeedBasisApplyNonTensor_Magma(CeedBasis basis, CeedInt nelem, CeedTransposeMode tmode, CeedEvalMode emode, CeedVector U, CeedVector V) {
   Ceed ceed;
   CeedCallBackend(CeedBasisGetCeed(basis, &ceed));
 
   Ceed_Magma *data;
   CeedCallBackend(CeedGetData(ceed, &data));
+
+  magma_int_t arch = magma_getdevice_arch();
 
   CeedInt dim, ncomp, ndof, nqpt;
   CeedCallBackend(CeedBasisGetDimension(basis, &dim));
@@ -317,127 +319,81 @@ CEED_INTERN "C"
     ceed_magma_queue_sync(data->queue);
   }
 
+  CeedInt            P = ndof, Q = nqpt, N = nelem * ncomp;
+  CeedInt            NB = 1;
+  CeedMagmaFunction *interp, *grad;
+
+  CeedInt Narray[MAGMA_NONTENSOR_KERNEL_INSTANCES] = {MAGMA_NONTENSOR_N_VALUES};
+  CeedInt iN                                       = 0;
+  CeedInt diff                                     = abs(Narray[iN] - N);
+  for (CeedInt in = iN + 1; in < MAGMA_NONTENSOR_KERNEL_INSTANCES; in++) {
+    CeedInt idiff = abs(Narray[in] - N);
+    if (idiff < diff) {
+      iN   = in;
+      diff = idiff;
+    }
+  }
+
+  NB     = nontensor_rtc_get_nb(arch, 'd', emode, tmode, P, Narray[iN], Q);
+  interp = (tmode == CEED_TRANSPOSE) ? &impl->magma_interp_tr_nontensor[iN] : &impl->magma_interp_nontensor[iN];
+  grad   = (tmode == CEED_TRANSPOSE) ? &impl->magma_grad_tr_nontensor[iN] : &impl->magma_grad_nontensor[iN];
+
   switch (emode) {
     case CEED_EVAL_INTERP: {
       CeedInt P = ndof, Q = nqpt;
-      if (tmode == CEED_TRANSPOSE)
-        magma_dgemm_nontensor(MagmaNoTrans, MagmaNoTrans, P, nelem * ncomp, Q, 1.0, (double *)impl->dinterp, P, (double *)du, Q, 0.0, (double *)dv, P,
-                              data->queue);
-      else
-        magma_dgemm_nontensor(MagmaTrans, MagmaNoTrans, Q, nelem * ncomp, P, 1.0, (double *)impl->dinterp, P, (double *)du, P, 0.0, (double *)dv, Q,
-                              data->queue);
-    } break;
+      if (P < MAGMA_NONTENSOR_CUSTOM_KERNEL_MAX_P && Q < MAGMA_NONTENSOR_CUSTOM_KERNEL_MAX_Q) {
+        CeedInt M     = (tmode == CEED_TRANSPOSE) ? P : Q;
+        CeedInt K     = (tmode == CEED_TRANSPOSE) ? Q : P;
+        CeedInt ntcol = MAGMA_NONTENSOR_BASIS_NTCOL(M);
+        CeedInt shmem = 0, shmemA = 0, shmemB = 0;
+        shmemB += ntcol * K * NB * sizeof(CeedScalar);
+        shmemA += (tmode == CEED_TRANSPOSE) ? 0 : K * M * sizeof(CeedScalar);
+        shmem = (tmode == CEED_TRANSPOSE) ? (shmemA + shmemB) : CeedIntMax(shmemA, shmemB);
 
-    case CEED_EVAL_GRAD: {
-      CeedInt P = ndof, Q = nqpt;
-      if (tmode == CEED_TRANSPOSE) {
-        CeedScalar beta = 0.0;
-        for (int d = 0; d < dim; d++) {
-          if (d > 0) beta = 1.0;
-          magma_dgemm_nontensor(MagmaNoTrans, MagmaNoTrans, P, nelem * ncomp, Q, 1.0, (double *)(impl->dgrad + d * P * Q), P,
-                                (double *)(du + d * nelem * ncomp * Q), Q, beta, (double *)dv, P, data->queue);
-        }
+        CeedInt       grid   = MAGMA_CEILDIV(MAGMA_CEILDIV(N, NB), ntcol);
+        magma_trans_t transA = (tmode == CEED_TRANSPOSE) ? MagmaNoTrans : MagmaTrans;
+        magma_trans_t transB = MagmaNoTrans;
+        CeedScalar    alpha = 1.0, beta = 0.0;
+
+        void *args[] = {&transA, &transB, &N, &alpha, &impl->dinterp, &P, &du, &K, &beta, &dv, &M};
+        CeedCallBackend(CeedRunKernelDimSharedMagma(ceed, *interp, grid, M, ntcol, 1, shmem, args));
       } else {
-        for (int d = 0; d < dim; d++)
-          magma_dgemm_nontensor(MagmaTrans, MagmaNoTrans, Q, nelem * ncomp, P, 1.0, (double *)(impl->dgrad + d * P * Q), P, (double *)du, P, 0.0,
-                                (double *)(dv + d * nelem * ncomp * Q), Q, data->queue);
+        if (tmode == CEED_TRANSPOSE)
+          magma_gemm_nontensor(MagmaNoTrans, MagmaNoTrans, P, nelem * ncomp, Q, 1.0, impl->dinterp, P, du, Q, 0.0, dv, P, data->queue);
+        else magma_gemm_nontensor(MagmaTrans, MagmaNoTrans, Q, nelem * ncomp, P, 1.0, impl->dinterp, P, du, P, 0.0, dv, Q, data->queue);
       }
     } break;
 
-    case CEED_EVAL_WEIGHT: {
-      if (tmode == CEED_TRANSPOSE)
-        // LCOV_EXCL_START
-        return CeedError(ceed, CEED_ERROR_BACKEND, "CEED_EVAL_WEIGHT incompatible with CEED_TRANSPOSE");
-      // LCOV_EXCL_STOP
-
-      int elemsPerBlock = 1;  // basis->Q1d < 7 ? optElems[basis->Q1d] : 1;
-      int grid          = nelem / elemsPerBlock + ((nelem / elemsPerBlock * elemsPerBlock < nelem) ? 1 : 0);
-      magma_weight_nontensor(grid, nqpt, nelem, nqpt, impl->dqweight, dv, data->queue);
-    } break;
-
-    // LCOV_EXCL_START
-    case CEED_EVAL_DIV:
-      return CeedError(ceed, CEED_ERROR_BACKEND, "CEED_EVAL_DIV not supported");
-    case CEED_EVAL_CURL:
-      return CeedError(ceed, CEED_ERROR_BACKEND, "CEED_EVAL_CURL not supported");
-    case CEED_EVAL_NONE:
-      return CeedError(ceed, CEED_ERROR_BACKEND, "CEED_EVAL_NONE does not make sense in this context");
-      // LCOV_EXCL_STOP
-  }
-
-  // must sync to ensure completeness
-  ceed_magma_queue_sync(data->queue);
-
-  if (emode != CEED_EVAL_WEIGHT) {
-    CeedCallBackend(CeedVectorRestoreArrayRead(U, &du));
-  }
-  CeedCallBackend(CeedVectorRestoreArray(V, &dv));
-  return CEED_ERROR_SUCCESS;
-}
-
-int CeedBasisApplyNonTensor_f32_Magma(CeedBasis basis, CeedInt nelem, CeedTransposeMode tmode, CeedEvalMode emode, CeedVector U, CeedVector V) {
-  Ceed ceed;
-  CeedCallBackend(CeedBasisGetCeed(basis, &ceed));
-
-  Ceed_Magma *data;
-  CeedCallBackend(CeedGetData(ceed, &data));
-
-  CeedInt dim, ncomp, ndof, nqpt;
-  CeedCallBackend(CeedBasisGetDimension(basis, &dim));
-  CeedCallBackend(CeedBasisGetNumComponents(basis, &ncomp));
-  CeedCallBackend(CeedBasisGetNumNodes(basis, &ndof));
-  CeedCallBackend(CeedBasisGetNumQuadraturePoints(basis, &nqpt));
-  const CeedScalar *du;
-  CeedScalar       *dv;
-  if (emode != CEED_EVAL_WEIGHT) {
-    CeedCallBackend(CeedVectorGetArrayRead(U, CEED_MEM_DEVICE, &du));
-  } else if (emode != CEED_EVAL_WEIGHT) {
-    // LCOV_EXCL_START
-    return CeedError(ceed, CEED_ERROR_BACKEND, "An input vector is required for this CeedEvalMode");
-    // LCOV_EXCL_STOP
-  }
-  CeedCallBackend(CeedVectorGetArrayWrite(V, CEED_MEM_DEVICE, &dv));
-
-  CeedBasisNonTensor_Magma *impl;
-  CeedCallBackend(CeedBasisGetData(basis, &impl));
-
-  CeedDebug256(ceed, 4, "[CeedBasisApplyNonTensor_Magma] vsize=%" CeedInt_FMT ", comp = %" CeedInt_FMT, ncomp * ndof, ncomp);
-
-  if (tmode == CEED_TRANSPOSE) {
-    CeedSize length;
-    CeedCallBackend(CeedVectorGetLength(V, &length));
-    if (CEED_SCALAR_TYPE == CEED_SCALAR_FP32) {
-      magmablas_slaset(MagmaFull, length, 1, 0., 0., (float *)dv, length, data->queue);
-    } else {
-      magmablas_dlaset(MagmaFull, length, 1, 0., 0., (double *)dv, length, data->queue);
-    }
-    ceed_magma_queue_sync(data->queue);
-  }
-
-  switch (emode) {
-    case CEED_EVAL_INTERP: {
-      CeedInt P = ndof, Q = nqpt;
-      if (tmode == CEED_TRANSPOSE)
-        magma_sgemm_nontensor(MagmaNoTrans, MagmaNoTrans, P, nelem * ncomp, Q, 1.0, (float *)impl->dinterp, P, (float *)du, Q, 0.0, (float *)dv, P,
-                              data->queue);
-      else
-        magma_sgemm_nontensor(MagmaTrans, MagmaNoTrans, Q, nelem * ncomp, P, 1.0, (float *)impl->dinterp, P, (float *)du, P, 0.0, (float *)dv, Q,
-                              data->queue);
-    } break;
-
     case CEED_EVAL_GRAD: {
       CeedInt P = ndof, Q = nqpt;
-      if (tmode == CEED_TRANSPOSE) {
-        CeedScalar beta = 0.0;
-        for (int d = 0; d < dim; d++) {
-          if (d > 0) beta = 1.0;
-          magma_sgemm_nontensor(MagmaNoTrans, MagmaNoTrans, P, nelem * ncomp, Q, 1.0, (float *)(impl->dgrad + d * P * Q), P,
-                                (float *)(du + d * nelem * ncomp * Q), Q, beta, (float *)dv, P, data->queue);
-        }
+      if (P < MAGMA_NONTENSOR_CUSTOM_KERNEL_MAX_P && Q < MAGMA_NONTENSOR_CUSTOM_KERNEL_MAX_Q) {
+        CeedInt M     = (tmode == CEED_TRANSPOSE) ? P : Q;
+        CeedInt K     = (tmode == CEED_TRANSPOSE) ? Q : P;
+        CeedInt ntcol = MAGMA_NONTENSOR_BASIS_NTCOL(M);
+        CeedInt shmem = 0, shmemA = 0, shmemB = 0;
+        shmemB += ntcol * K * NB * sizeof(CeedScalar);
+        shmemA += (tmode == CEED_TRANSPOSE) ? 0 : K * M * sizeof(CeedScalar);
+        shmem = shmemA + shmemB;
+
+        CeedInt       grid   = MAGMA_CEILDIV(MAGMA_CEILDIV(N, NB), ntcol);
+        magma_trans_t transA = (tmode == CEED_TRANSPOSE) ? MagmaNoTrans : MagmaTrans;
+        magma_trans_t transB = MagmaNoTrans;
+
+        void *args[] = {&transA, &transB, &N, &impl->dgrad, &P, &du, &K, &dv, &M};
+        CeedCallBackend(CeedRunKernelDimSharedMagma(ceed, *grad, grid, M, ntcol, 1, shmem, args));
       } else {
-        for (int d = 0; d < dim; d++)
-          magma_sgemm_nontensor(MagmaTrans, MagmaNoTrans, Q, nelem * ncomp, P, 1.0, (float *)(impl->dgrad + d * P * Q), P, (float *)du, P, 0.0,
-                                (float *)(dv + d * nelem * ncomp * Q), Q, data->queue);
+        if (tmode == CEED_TRANSPOSE) {
+          CeedScalar beta = 0.0;
+          for (int d = 0; d < dim; d++) {
+            if (d > 0) beta = 1.0;
+            magma_gemm_nontensor(MagmaNoTrans, MagmaNoTrans, P, nelem * ncomp, Q, 1.0, impl->dgrad + d * P * Q, P, du + d * nelem * ncomp * Q, Q,
+                                 beta, dv, P, data->queue);
+          }
+        } else {
+          for (int d = 0; d < dim; d++)
+            magma_gemm_nontensor(MagmaTrans, MagmaNoTrans, Q, nelem * ncomp, P, 1.0, impl->dgrad + d * P * Q, P, du, P, 0.0,
+                                 dv + d * nelem * ncomp * Q, Q, data->queue);
+        }
       }
     } break;
 
@@ -509,7 +465,17 @@ CEED_INTERN "C"
   CeedCallBackend(magma_free(impl->dinterp));
   CeedCallBackend(magma_free(impl->dgrad));
   CeedCallBackend(magma_free(impl->dqweight));
-
+  Ceed ceed;
+  CeedCallBackend(CeedBasisGetCeed(basis, &ceed));
+#ifdef CEED_MAGMA_USE_HIP
+  for (CeedInt in = 0; in < MAGMA_NONTENSOR_KERNEL_INSTANCES; in++) {
+    CeedCallHip(ceed, hipModuleUnload(impl->module[in]));
+  }
+#else
+  for (CeedInt in = 0; in < MAGMA_NONTENSOR_KERNEL_INSTANCES; in++) {
+    CeedCallCuda(ceed, cuModuleUnload(impl->module[in]));
+  }
+#endif
   CeedCallBackend(CeedFree(&impl));
 
   return CEED_ERROR_SUCCESS;
@@ -536,9 +502,11 @@ CEED_INTERN "C"
   char *magma_common_path;
   char *interp_path, *grad_path, *weight_path;
   char *basis_kernel_source;
-  CeedCallBackend(CeedGetJitAbsolutePath(ceed, "ceed/jit-source/magma/magma_common_device.h", &magma_common_path));
+  CeedCallBackend(CeedGetJitAbsolutePath(ceed, "ceed/jit-source/magma/magma_common_defs.h", &magma_common_path));
   CeedDebug256(ceed, 2, "----- Loading Basis Kernel Source -----\n");
   CeedCallBackend(CeedLoadSourceToBuffer(ceed, magma_common_path, &basis_kernel_source));
+  CeedCallBackend(CeedGetJitAbsolutePath(ceed, "ceed/jit-source/magma/magma_common_tensor.h", &magma_common_path));
+  CeedCallBackend(CeedLoadSourceToInitializedBuffer(ceed, magma_common_path, &basis_kernel_source));
   char   *interp_name_base = "ceed/jit-source/magma/interp";
   CeedInt interp_name_len  = strlen(interp_name_base) + 6;
   char    interp_name[interp_name_len];
@@ -609,7 +577,6 @@ CEED_INTERN "C"
   magma_setvector(Q1d, sizeof(qweight1d[0]), qweight1d, 1, impl->dqweight1d, 1, data->queue);
 
   CeedCallBackend(CeedBasisSetData(basis, impl));
-  CeedCallBackend(CeedBasisSetData(basis, impl));
   CeedCallBackend(CeedFree(&magma_common_path));
   CeedCallBackend(CeedFree(&interp_path));
   CeedCallBackend(CeedFree(&grad_path));
@@ -631,16 +598,54 @@ CEED_INTERN "C"
 
   Ceed_Magma *data;
   CeedCallBackend(CeedGetData(ceed, &data));
-
-  if (CEED_SCALAR_TYPE == CEED_SCALAR_FP64) {
-    CeedCallBackend(CeedSetBackendFunction(ceed, "Basis", basis, "Apply", CeedBasisApplyNonTensor_f64_Magma));
-  } else {
-    CeedCallBackend(CeedSetBackendFunction(ceed, "Basis", basis, "Apply", CeedBasisApplyNonTensor_f32_Magma));
-  }
-  CeedCallBackend(CeedSetBackendFunction(ceed, "Basis", basis, "Destroy", CeedBasisDestroyNonTensor_Magma));
-
+  magma_int_t arch = magma_getdevice_arch();
   CeedCallBackend(CeedCalloc(1, &impl));
-  CeedCallBackend(CeedBasisSetData(basis, impl));
+  // Compile kernels
+  char *magma_common_path;
+  char *interp_path, *grad_path;
+  char *basis_kernel_source;
+  CeedCallBackend(CeedGetJitAbsolutePath(ceed, "ceed/jit-source/magma/magma_common_defs.h", &magma_common_path));
+  CeedDebug256(ceed, 2, "----- Loading Basis Kernel Source -----\n");
+  CeedCallBackend(CeedLoadSourceToBuffer(ceed, magma_common_path, &basis_kernel_source));
+  CeedCallBackend(CeedGetJitAbsolutePath(ceed, "ceed/jit-source/magma/magma_common_nontensor.h", &magma_common_path));
+  CeedCallBackend(CeedLoadSourceToInitializedBuffer(ceed, magma_common_path, &basis_kernel_source));
+  CeedCallBackend(CeedGetJitAbsolutePath(ceed, "ceed/jit-source/magma/interp-nontensor.h", &interp_path));
+  CeedCallBackend(CeedLoadSourceToInitializedBuffer(ceed, interp_path, &basis_kernel_source));
+  CeedCallBackend(CeedGetJitAbsolutePath(ceed, "ceed/jit-source/magma/grad-nontensor.h", &grad_path));
+  CeedCallBackend(CeedLoadSourceToInitializedBuffer(ceed, grad_path, &basis_kernel_source));
+
+  // tuning parameters for nb
+  CeedInt nb_interp_n[MAGMA_NONTENSOR_KERNEL_INSTANCES];
+  CeedInt nb_interp_t[MAGMA_NONTENSOR_KERNEL_INSTANCES];
+  CeedInt nb_grad_n[MAGMA_NONTENSOR_KERNEL_INSTANCES];
+  CeedInt nb_grad_t[MAGMA_NONTENSOR_KERNEL_INSTANCES];
+  CeedInt P = ndof, Q = nqpts;
+  CeedInt Narray[MAGMA_NONTENSOR_KERNEL_INSTANCES] = {MAGMA_NONTENSOR_N_VALUES};
+  for (CeedInt in = 0; in < MAGMA_NONTENSOR_KERNEL_INSTANCES; in++) {
+    nb_interp_n[in] = nontensor_rtc_get_nb(arch, 'd', CEED_EVAL_INTERP, CEED_NOTRANSPOSE, P, Narray[in], Q);
+    nb_interp_t[in] = nontensor_rtc_get_nb(arch, 'd', CEED_EVAL_INTERP, CEED_TRANSPOSE, P, Narray[in], Q);
+    nb_grad_n[in]   = nontensor_rtc_get_nb(arch, 'd', CEED_EVAL_GRAD, CEED_NOTRANSPOSE, P, Narray[in], Q);
+    nb_grad_t[in]   = nontensor_rtc_get_nb(arch, 'd', CEED_EVAL_GRAD, CEED_TRANSPOSE, P, Narray[in], Q);
+  }
+
+  // compile
+  Ceed delegate;
+  CeedCallBackend(CeedGetDelegate(ceed, &delegate));
+  for (CeedInt in = 0; in < MAGMA_NONTENSOR_KERNEL_INSTANCES; in++) {
+    CeedCallBackend(CeedCompileMagma(delegate, basis_kernel_source, &impl->module[in], 7, "DIM", dim, "P", P, "Q", Q, "NB_INTERP_N", nb_interp_n[in],
+                                     "NB_INTERP_T", nb_interp_t[in], "NB_GRAD_N", nb_grad_n[in], "NB_GRAD_T", nb_grad_t[in]));
+  }
+
+  // get kernels
+  for (CeedInt in = 0; in < MAGMA_NONTENSOR_KERNEL_INSTANCES; in++) {
+    CeedCallBackend(CeedGetKernelMagma(ceed, impl->module[in], "magma_interp_nontensor_n", &impl->magma_interp_nontensor[in]));
+    CeedCallBackend(CeedGetKernelMagma(ceed, impl->module[in], "magma_interp_nontensor_t", &impl->magma_interp_tr_nontensor[in]));
+    CeedCallBackend(CeedGetKernelMagma(ceed, impl->module[in], "magma_grad_nontensor_n", &impl->magma_grad_nontensor[in]));
+    CeedCallBackend(CeedGetKernelMagma(ceed, impl->module[in], "magma_grad_nontensor_t", &impl->magma_grad_tr_nontensor[in]));
+  }
+
+  CeedCallBackend(CeedSetBackendFunction(ceed, "Basis", basis, "Apply", CeedBasisApplyNonTensor_Magma));
+  CeedCallBackend(CeedSetBackendFunction(ceed, "Basis", basis, "Destroy", CeedBasisDestroyNonTensor_Magma));
 
   // Copy qref to the GPU
   CeedCallBackend(magma_malloc((void **)&impl->dqref, nqpts * sizeof(qref[0])));
@@ -658,5 +663,10 @@ CEED_INTERN "C"
   CeedCallBackend(magma_malloc((void **)&impl->dqweight, nqpts * sizeof(qweight[0])));
   magma_setvector(nqpts, sizeof(qweight[0]), qweight, 1, impl->dqweight, 1, data->queue);
 
+  CeedCallBackend(CeedBasisSetData(basis, impl));
+  CeedCallBackend(CeedFree(&magma_common_path));
+  CeedCallBackend(CeedFree(&interp_path));
+  CeedCallBackend(CeedFree(&grad_path));
+  CeedCallBackend(CeedFree(&basis_kernel_source));
   return CEED_ERROR_SUCCESS;
 }
