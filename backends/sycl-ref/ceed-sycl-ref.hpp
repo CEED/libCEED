@@ -23,6 +23,7 @@ typedef struct {
   CeedScalar *d_array;
   CeedScalar *d_array_borrowed;
   CeedScalar *d_array_owned;
+  CeedScalar *reduction_norm;
 } CeedVector_Sycl;
 
 typedef struct {
