@@ -27,11 +27,6 @@ typedef struct {
 } CeedVector_Sycl;
 
 typedef struct {
-  // CUmodule module;
-  // CUfunction StridedTranspose;
-  // CUfunction StridedNoTranspose;
-  // CUfunction OffsetTranspose;
-  // CUfunction OffsetNoTranspose;
   CeedInt  num_nodes;
   CeedInt *h_ind;
   CeedInt *h_ind_allocated;
@@ -43,27 +38,29 @@ typedef struct {
 } CeedElemRestriction_Sycl;
 
 typedef struct {
-  // CUmodule module;
-  // CUfunction Interp;
-  // CUfunction Grad;
-  // CUfunction Weight;
+  CeedInt     dim;
+  CeedInt     P_1d;
+  CeedInt     Q_1d;
+  CeedInt     num_comp;
+  CeedInt     num_nodes;
+  CeedInt     num_qpts;
+  CeedInt     buf_len;
   CeedScalar *d_interp_1d;
   CeedScalar *d_grad_1d;
   CeedScalar *d_q_weight_1d;
 } CeedBasis_Sycl;
 
 typedef struct {
-  // CUmodule module;
-  // CUfunction Interp;
-  // CUfunction Grad;
-  // CUfunction Weight;
+  CeedInt     dim;
+  CeedInt     num_comp;
+  CeedInt     num_nodes;
+  CeedInt     num_qpts;
   CeedScalar *d_interp;
   CeedScalar *d_grad;
   CeedScalar *d_q_weight;
 } CeedBasisNonTensor_Sycl;
 
 typedef struct {
-  // CUmodule module;
   char *qfunction_name;
   char *qfunction_source;
   // CUfunction QFunction;
