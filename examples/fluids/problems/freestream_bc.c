@@ -100,7 +100,7 @@ PetscErrorCode FreestreamBCSetup(ProblemData *problem, DM dm, void *ctx, Newtoni
   problem->apply_freestream.qfunction_context = freestream_context;
   CeedQFunctionContextReferenceCopy(freestream_context, &problem->apply_freestream_jacobian.qfunction_context);
   PetscFunctionReturn(0);
-};
+}
 
 static const char *const OutflowTypes[] = {"RIEMANN", "PRESSURE", "OutflowType", "OUTFLOW_", NULL};
 typedef enum {
@@ -182,4 +182,4 @@ PetscErrorCode OutflowBCSetup(ProblemData *problem, DM dm, void *ctx, NewtonianI
   problem->apply_outflow.qfunction_context = outflow_context;
   CeedQFunctionContextReferenceCopy(outflow_context, &problem->apply_outflow_jacobian.qfunction_context);
   PetscFunctionReturn(0);
-};
+}
