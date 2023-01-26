@@ -384,6 +384,7 @@ PetscErrorCode DestroyStats(User user, CeedData ceed_data);
 // -----------------------------------------------------------------------------
 
 PetscErrorCode SGS_DD_ModelSetup(Ceed ceed, User user, CeedData ceed_data, ProblemData *problem);
+PetscErrorCode VelocityGradientProjectionSetup(Ceed ceed, User user, CeedData ceed_data, ProblemData *problem);
 
 // -----------------------------------------------------------------------------
 // Boundary Condition Related Functions

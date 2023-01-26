@@ -147,7 +147,6 @@ int main(int argc, char **argv) {
   app_ctx->wall_forces.num_wall = bc->num_wall;
   PetscMalloc1(bc->num_wall, &app_ctx->wall_forces.walls);
   PetscCall(PetscArraycpy(app_ctx->wall_forces.walls, bc->walls, bc->num_wall));
-  PetscCall(SGS_DD_ModelSetup(ceed, user, ceed_data, problem));
 
   // -- Refine DM for high-order viz
   if (app_ctx->viz_refine) {
@@ -160,9 +159,8 @@ int main(int argc, char **argv) {
   // -- Set up libCEED objects
   PetscCall(SetupLibceed(ceed, ceed_data, dm, user, app_ctx, problem, bc));
 
-  if (app_ctx->turb_spanstats_enable) {
-    PetscCall(SetupStatsCollection(ceed, user, ceed_data, problem));
-  }
+  if (app_ctx->turb_spanstats_enable) PetscCall(SetupStatsCollection(ceed, user, ceed_data, problem));
+  PetscCall(SGS_DD_ModelSetup(ceed, user, ceed_data, problem));
 
   // ---------------------------------------------------------------------------
   // Set up ICs

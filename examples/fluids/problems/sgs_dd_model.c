@@ -80,6 +80,8 @@ PetscErrorCode SGS_DD_ModelSetup(Ceed ceed, User user, CeedData ceed_data, Probl
   char               sgs_dd_dir[PETSC_MAX_PATH_LEN] = "./dd_sgs_data";
   PetscFunctionBeginUser;
 
+  PetscCall(VelocityGradientProjectionSetup(ceed, user, ceed_data, problem));
+
   PetscCall(PetscNew(&sgsdd_ctx));
 
   PetscOptionsBegin(comm, NULL, "SGS Data-Drive Model Options", NULL);
