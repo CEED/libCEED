@@ -156,9 +156,7 @@ int main(int argc, char **argv) {
   // -- Set up libCEED objects
   PetscCall(SetupLibceed(ceed, ceed_data, dm, user, app_ctx, problem, bc));
 
-  if (app_ctx->turb_spanstats_enable) {
-    PetscCall(SetupStatsCollection(ceed, user, ceed_data, problem));
-  }
+  if (app_ctx->turb_spanstats_enable) PetscCall(SetupStatsCollection(ceed, user, ceed_data, problem));
 
   // ---------------------------------------------------------------------------
   // Set up ICs
