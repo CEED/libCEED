@@ -314,3 +314,59 @@ PetscErrorCode ComputeL2Projection(Vec source_vec, Vec target_vec, OperatorApply
 
   PetscFunctionReturn(0);
 }
+
+/*
+ * @brief Open a PHASTA *.dat file, grabbing dimensions and file pointer
+ *
+ * This function opens the file specified by `path` using `PetscFOpen` and passes the file pointer in `fp`.
+ * It is not closed in this function, thus `fp` must be closed sometime after this function has been called (using `PetscFClose` for example).
+ *
+ * Assumes that the first line of the file has the number of rows and columns as the only two entries, separated by a single space.
+ *
+ * @param[in]  comm           MPI_Comm for the program
+ * @param[in]  path           Path to the file
+ * @param[in]  char_array_len Length of the character array that should contain each line
+ * @param[out] dims           Dimensions of the file, taken from the first line of the file
+ * @param[out] fp File        pointer to the opened file
+ */
+PetscErrorCode PHASTADatFileOpen(const MPI_Comm comm, const char path[PETSC_MAX_PATH_LEN], const PetscInt char_array_len, PetscInt dims[2],
+                                 FILE **fp) {
+  PetscInt ndims;
+  char     line[char_array_len];
+  char   **array;
+
+  PetscFunctionBeginUser;
+  PetscCall(PetscFOpen(comm, path, "r", fp));
+  PetscCall(PetscSynchronizedFGets(comm, *fp, char_array_len, line));
+  PetscCall(PetscStrToArray(line, ' ', &ndims, &array));
+  if (ndims != 2) {
+    SETERRQ(comm, -1, "Found %" PetscInt_FMT " dimensions instead of 2 on the first line of %s", ndims, path);
+  }
+
+  for (PetscInt i = 0; i < ndims; i++) dims[i] = atoi(array[i]);
+  PetscCall(PetscStrToArrayDestroy(ndims, array));
+
+  PetscFunctionReturn(0);
+}
+
+/*
+ * @brief Get the number of rows for the PHASTA file at path.
+ *
+ * Assumes that the first line of the file has the number of rows and columns as the only two entries, separated by a single space.
+ *
+ * @param[in]  comm  MPI_Comm for the program
+ * @param[in]  path  Path to the file
+ * @param[out] nrows Number of rows
+ */
+PetscErrorCode PHASTADatFileGetNRows(const MPI_Comm comm, const char path[PETSC_MAX_PATH_LEN], PetscInt *nrows) {
+  const PetscInt char_array_len = 512;
+  PetscInt       dims[2];
+  FILE          *fp;
+
+  PetscFunctionBeginUser;
+  PetscCall(PHASTADatFileOpen(comm, path, char_array_len, dims, &fp));
+  *nrows = dims[0];
+  PetscCall(PetscFClose(comm, fp));
+
+  PetscFunctionReturn(0);
+}

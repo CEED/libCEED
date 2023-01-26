@@ -353,6 +353,15 @@ PetscErrorCode CreateMassQFunction(Ceed ceed, CeedInt N, CeedInt q_data_size, Ce
 
 PetscErrorCode ComputeL2Projection(Vec source_vec, Vec target_vec, OperatorApplyContext rhs_matop_ctx, KSP ksp);
 
+PetscErrorCode PHASTADatFileOpen(const MPI_Comm comm, const char path[PETSC_MAX_PATH_LEN], const PetscInt char_array_len, PetscInt dims[2],
+                                 FILE **fp);
+
+PetscErrorCode PHASTADatFileGetNRows(const MPI_Comm comm, const char path[PETSC_MAX_PATH_LEN], PetscInt *nrows);
+
+// -----------------------------------------------------------------------------
+// Turbulence Statistics Collection Functions
+// -----------------------------------------------------------------------------
+
 PetscErrorCode CreateStatsDM(User user, ProblemData *problem, PetscInt degree, SimpleBC bc);
 
 PetscErrorCode SetupStatsCollection(Ceed ceed, User user, CeedData ceed_data, ProblemData *problem);
