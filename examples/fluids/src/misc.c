@@ -311,6 +311,20 @@ PetscErrorCode ComputeL2Projection(Vec source_vec, Vec target_vec, MatopApplyCon
   PetscFunctionReturn(0);
 }
 
+PetscErrorCode NodalProjectionDataDestroy(NodalProjectionData context) {
+  PetscFunctionBeginUser;
+  if (context == NULL) PetscFunctionReturn(0);
+
+  PetscCall(DMDestroy(&context->dm));
+  PetscCall(KSPDestroy(&context->ksp));
+
+  PetscCall(MatopApplyContextDestroy(context->l2_rhs_ctx));
+
+  PetscCall(PetscFree(context));
+
+  PetscFunctionReturn(0);
+}
+
 /*
  * @brief Open a PHASTA *.dat file, grabbing dimensions and file pointer
  *

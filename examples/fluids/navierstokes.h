@@ -154,22 +154,30 @@ typedef struct {
   CeedContextFieldLabel solution_time_label, previous_time_label;
 } Span_Stats;
 
+typedef struct {
+  DM                dm;
+  PetscInt          num_comp;
+  MatopApplyContext l2_rhs_ctx;
+  KSP               ksp;
+} *NodalProjectionData;
+
 // PETSc user data
 struct User_private {
-  MPI_Comm     comm;
-  DM           dm;
-  DM           dm_viz;
-  Mat          interp_viz;
-  Ceed         ceed;
-  Units        units;
-  Vec          M, Q_loc, Q_dot_loc;
-  Physics      phys;
-  AppCtx       app_ctx;
-  CeedVector   q_ceed, q_dot_ceed, g_ceed, coo_values_amat, coo_values_pmat, x_ceed;
-  CeedOperator op_rhs_vol, op_rhs, op_ifunction_vol, op_ifunction, op_ijacobian, op_dirichlet;
-  bool         matrices_set_up;
-  CeedScalar   time_bc_set;
-  Span_Stats   spanstats;
+  MPI_Comm            comm;
+  DM                  dm;
+  DM                  dm_viz;
+  Mat                 interp_viz;
+  Ceed                ceed;
+  Units               units;
+  Vec                 M, Q_loc, Q_dot_loc;
+  Physics             phys;
+  AppCtx              app_ctx;
+  CeedVector          q_ceed, q_dot_ceed, g_ceed, coo_values_amat, coo_values_pmat, x_ceed;
+  CeedOperator        op_rhs_vol, op_rhs, op_ifunction_vol, op_ifunction, op_ijacobian, op_dirichlet;
+  bool                matrices_set_up;
+  CeedScalar          time_bc_set;
+  Span_Stats          spanstats;
+  NodalProjectionData grad_velo_proj;
 };
 
 // Units
@@ -356,6 +364,8 @@ PetscErrorCode CreateMassQFunction(Ceed ceed, CeedInt N, CeedInt q_data_size, Ce
 
 PetscErrorCode ComputeL2Projection(Vec source_vec, Vec target_vec, MatopApplyContext rhs_matop_ctx, KSP ksp);
 
+PetscErrorCode NodalProjectionDataDestroy(NodalProjectionData context);
+
 PetscErrorCode PHASTADatFileOpen(const MPI_Comm comm, const char path[PETSC_MAX_PATH_LEN], const PetscInt char_array_len, PetscInt dims[2],
                                  FILE **fp);
 
@@ -368,11 +378,8 @@ PetscErrorCode PHASTADatFileReadToArrayReal(const MPI_Comm comm, const char path
 // -----------------------------------------------------------------------------
 
 PetscErrorCode CreateStatsDM(User user, ProblemData *problem, PetscInt degree, SimpleBC bc);
-
 PetscErrorCode SetupStatsCollection(Ceed ceed, User user, CeedData ceed_data, ProblemData *problem);
-
 PetscErrorCode TSMonitor_Statistics(TS ts, PetscInt steps, PetscReal solution_time, Vec Q, void *ctx);
-
 PetscErrorCode DestroyStats(User user, CeedData ceed_data);
 
 // -----------------------------------------------------------------------------

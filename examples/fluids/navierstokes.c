@@ -306,6 +306,7 @@ int main(int argc, char **argv) {
   // ---------------------------------------------------------------------------
 
   PetscCall(DestroyStats(user, ceed_data));
+  PetscCall(NodalProjectionDataDestroy(user->grad_velo_proj));
 
   // -- Vectors
   CeedVectorDestroy(&ceed_data->x_coord);
