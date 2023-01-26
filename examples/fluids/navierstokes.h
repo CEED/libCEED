@@ -361,6 +361,8 @@ PetscErrorCode PHASTADatFileOpen(const MPI_Comm comm, const char path[PETSC_MAX_
 
 PetscErrorCode PHASTADatFileGetNRows(const MPI_Comm comm, const char path[PETSC_MAX_PATH_LEN], PetscInt *nrows);
 
+PetscErrorCode PHASTADatFileReadToArrayReal(const MPI_Comm comm, const char path[PETSC_MAX_PATH_LEN], PetscReal array[]);
+
 // -----------------------------------------------------------------------------
 // Turbulence Statistics Collection Functions
 // -----------------------------------------------------------------------------
@@ -372,6 +374,12 @@ PetscErrorCode SetupStatsCollection(Ceed ceed, User user, CeedData ceed_data, Pr
 PetscErrorCode TSMonitor_Statistics(TS ts, PetscInt steps, PetscReal solution_time, Vec Q, void *ctx);
 
 PetscErrorCode DestroyStats(User user, CeedData ceed_data);
+
+// -----------------------------------------------------------------------------
+// Data-Driven Subgrid Stress (DD-SGS) Modeling Functions
+// -----------------------------------------------------------------------------
+
+PetscErrorCode SGS_DD_ModelSetup(Ceed ceed, User user, CeedData ceed_data, ProblemData *problem);
 
 // -----------------------------------------------------------------------------
 // Boundary Condition Related Functions
