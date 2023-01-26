@@ -161,3 +161,15 @@ PetscErrorCode VelocityGradientProjectionSetup(Ceed ceed, User user, CeedData ce
   CeedOperatorDestroy(&op_mass);
   PetscFunctionReturn(0);
 }
+
+PetscErrorCode VelocityGradientProjectionApply(User user, Vec Q_loc, Vec VelocityGradient) {
+  NodalProjectionData  grad_velo_proj = user->grad_velo_proj;
+  OperatorApplyContext l2_rhs_ctx     = grad_velo_proj->l2_rhs_ctx;
+
+  PetscFunctionBeginUser;
+  PetscCall(ApplyCeedOperatorLocalToGlobal(Q_loc, VelocityGradient, l2_rhs_ctx));
+
+  PetscCall(KSPSolve(grad_velo_proj->ksp, VelocityGradient, VelocityGradient));
+
+  PetscFunctionReturn(0);
+}
