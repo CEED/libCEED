@@ -147,6 +147,7 @@ int main(int argc, char **argv) {
   app_ctx->wall_forces.num_wall = bc->num_wall;
   PetscMalloc1(bc->num_wall, &app_ctx->wall_forces.walls);
   PetscCall(PetscArraycpy(app_ctx->wall_forces.walls, bc->walls, bc->num_wall));
+  PetscCall(SGS_DD_ModelSetup(ceed, user, ceed_data, problem));
 
   // -- Refine DM for high-order viz
   if (app_ctx->viz_refine) {
