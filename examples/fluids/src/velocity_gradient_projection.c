@@ -158,3 +158,43 @@ PetscErrorCode VelocityGradientProjectionSetup(Ceed ceed, User user, CeedData ce
   CeedOperatorDestroy(&op_mass);
   PetscFunctionReturn(0);
 }
+
+PetscErrorCode VelocityGradientProjectionApply(User user, Vec Q_loc, Vec *VelocityGradient) {
+  NodalProjectionData grad_velo_proj = user->grad_velo_proj;
+  MatopApplyContext   l2_rhs_ctx     = grad_velo_proj->l2_rhs_ctx;
+  PetscScalar        *x, *y;
+  PetscMemType        x_mem_type, y_mem_type;
+  Vec                 Y_loc;
+  PetscFunctionBeginUser;
+
+  // -- Create global output vector
+  PetscCall(DMGetGlobalVector(grad_velo_proj->dm, VelocityGradient));
+  PetscCall(VecZeroEntries(*VelocityGradient));
+
+  // -- Get RHS of projection problem
+  PetscCall(VecGetArrayReadAndMemType(Q_loc, (const PetscScalar **)&x, &x_mem_type));
+  CeedVectorSetArray(l2_rhs_ctx->x_ceed, MemTypeP2C(x_mem_type), CEED_USE_POINTER, x);
+
+  if (l2_rhs_ctx->Y_loc) Y_loc = l2_rhs_ctx->Y_loc;
+  else PetscCall(DMGetLocalVector(l2_rhs_ctx->dm_y, &Y_loc));
+
+  PetscCall(VecGetArrayAndMemType(Y_loc, &y, &y_mem_type));
+  CeedVectorSetArray(l2_rhs_ctx->y_ceed, MemTypeP2C(y_mem_type), CEED_USE_POINTER, y);
+
+  // Apply libCEED operator
+  CeedOperatorApply(l2_rhs_ctx->op, l2_rhs_ctx->x_ceed, l2_rhs_ctx->y_ceed, CEED_REQUEST_IMMEDIATE);
+
+  CeedVectorTakeArray(l2_rhs_ctx->x_ceed, MemTypeP2C(x_mem_type), NULL);
+  PetscCall(VecRestoreArrayReadAndMemType(Q_loc, (const PetscScalar **)&x));
+
+  CeedVectorTakeArray(l2_rhs_ctx->y_ceed, MemTypeP2C(y_mem_type), NULL);
+  PetscCall(VecRestoreArrayAndMemType(Y_loc, &y));
+  PetscCall(VecZeroEntries(*VelocityGradient));
+  PetscCall(DMLocalToGlobal(l2_rhs_ctx->dm_y, Y_loc, ADD_VALUES, *VelocityGradient));
+  if (!l2_rhs_ctx->Y_loc) PetscCall(DMRestoreLocalVector(l2_rhs_ctx->dm_y, &Y_loc));
+
+  // -- Solve L^2 projection via lumped mass matrix
+  PetscCall(KSPSolve(grad_velo_proj->ksp, *VelocityGradient, *VelocityGradient));
+
+  PetscFunctionReturn(0);
+}
