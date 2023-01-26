@@ -9,7 +9,6 @@
 /// Time-stepping functions for Navier-Stokes example using PETSc
 
 #include "../navierstokes.h"
-#include "../qfunctions/mass.h"
 #include "../qfunctions/newtonian_state.h"
 
 // Compute mass matrix for explicit scheme
@@ -227,7 +226,7 @@ PetscErrorCode IFunction_NS(TS ts, PetscReal t, Vec Q, Vec Q_dot, Vec G, void *u
   PetscCall(VecRestoreArrayAndMemType(G_loc, &g));
 
   PetscCall(Surface_Forces_NS(user->dm, G_loc));
-  PetscCall(TSMonitor_FaceForce(ts, 0, 0., Q, user));
+  // PetscCall(TSMonitor_FaceForce(ts, 0, 0., Q, user));
 
   // Local-to-Global
   PetscCall(VecZeroEntries(G));
@@ -446,10 +445,10 @@ PetscErrorCode WriteOutput(User user, Vec Q, PetscInt step_no, PetscScalar time)
 }
 
 // CSV Monitor
-PetscErrorCode TSMonitor_FaceForce(TS ts, PetscInt step_no, PetscReal time, Vec Q, PetscViewerAndFormat *ctx) {
+PetscErrorCode TSMonitor_FaceForce(TS ts, PetscInt step_no, PetscReal time, Vec Q, void *ctx) {
   User        user = ctx;
   Vec         G_loc;
-  PetscViewer viewer = ctx->viewer;
+  PetscViewer viewer;
   PetscBool   iascii;
 
   PetscFunctionBeginUser;
@@ -461,24 +460,20 @@ PetscErrorCode TSMonitor_FaceForce(TS ts, PetscInt step_no, PetscReal time, Vec 
   PetscCall(PetscViewerFileSetMode(viewer, FILE_MODE_APPEND));
   PetscCall(PetscViewerFileSetName(viewer, "Reaction_Force.csv"));
   PetscCall(PetscViewerASCIIOpen(PETSC_COMM_WORLD, "Reaction_Force.csv", &viewer));
-
-  // PetscCall(PetscOptionsGetViewer(PetscObjectComm((PetscObject)ts, &viewer)));
   PetscCall(PetscObjectTypeCompare((PetscObject)viewer, PETSCVIEWERASCII, &iascii));
-  PetscCall(PetscViewerPushFormat(viewer, ctx->format));
 
   PetscCall(Surface_Forces_NS(user->dm, G_loc));
 
   if (iascii) {
     PetscCall(PetscViewerASCIIAddTab(viewer, 1));
     if (step_no == -1) { /* this indicates it is an interpolated solution */
-      PetscCall(
-          PetscViewerASCIIPrintf(viewer, "Interpolated solution at time %g between steps %" PetscInt_FMT " and %" PetscInt_FMT "\n", (double)time));
+      PetscCall(PetscViewerASCIIPrintf(viewer, "Interpolated solution %12f" PetscInt_FMT "\n", (double)time));
     } else {
-      PetscCall(PetscViewerASCIIPrintf(viewer, "%" PetscInt_FMT " TS dt %g time %g%s", step_no, (double)time));
+      PetscCall(PetscViewerASCIIPrintf(viewer, "Solution at" PetscInt_FMT " TS Step number = %hi, Time = %12f\n", (int)step_no, (double)time));
     }
     PetscCall(PetscViewerASCIISubtractTab(viewer, 1));
   }
-  PetscCall(PetscViewerPopFormat(viewer));
+
   PetscCall(WriteOutput(user, Q, step_no, time));
 
   PetscFunctionReturn(0);
