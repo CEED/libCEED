@@ -509,7 +509,11 @@ CEED_EXTERN int CeedOperatorGetNumQuadraturePoints(CeedOperator op, CeedInt *num
 CEED_EXTERN int CeedOperatorGetFlopsEstimate(CeedOperator op, CeedSize *flops);
 CEED_EXTERN int CeedOperatorContextGetFieldLabel(CeedOperator op, const char *field_name, CeedContextFieldLabel *field_label);
 CEED_EXTERN int CeedOperatorContextSetDouble(CeedOperator op, CeedContextFieldLabel field_label, double *values);
+CEED_EXTERN int CeedOperatorContextGetDoubleRead(CeedOperator op, CeedContextFieldLabel field_label, size_t *num_values, const double **values);
+CEED_EXTERN int CeedOperatorContextRestoreDoubleRead(CeedOperator op, CeedContextFieldLabel field_label, const double **values);
 CEED_EXTERN int CeedOperatorContextSetInt32(CeedOperator op, CeedContextFieldLabel field_label, int *values);
+CEED_EXTERN int CeedOperatorContextGetInt32Read(CeedOperator op, CeedContextFieldLabel field_label, size_t *num_values, const int **values);
+CEED_EXTERN int CeedOperatorContextRestoreInt32Read(CeedOperator op, CeedContextFieldLabel field_label, const int **values);
 CEED_EXTERN int CeedOperatorApply(CeedOperator op, CeedVector in, CeedVector out, CeedRequest *request);
 CEED_EXTERN int CeedOperatorApplyAdd(CeedOperator op, CeedVector in, CeedVector out, CeedRequest *request);
 CEED_EXTERN int CeedOperatorDestroy(CeedOperator *op);

@@ -270,7 +270,7 @@ int CeedOperatorGetActiveElemRestriction(CeedOperator op, CeedElemRestriction *a
 }
 
 /**
-  @brief Set QFunctionContext field value of the specified type.
+  @brief Set QFunctionContext field values of the specified type.
            For composite operators, the value is set in all sub-operator QFunctionContexts that have a matching `field_name`.
            A non-zero error code is returned for single operators that do not have a matching field of the same type or composite operators that do
 not have any field of a matching type.
@@ -278,13 +278,13 @@ not have any field of a matching type.
   @param[in,out] op          CeedOperator
   @param[in]     field_label Label of field to set
   @param[in]     field_type  Type of field to set
-  @param[in]     value       Value to set
+  @param[in]     values      Values to set
 
   @return An error code: 0 - success, otherwise - failure
 
   @ref User
 **/
-static int CeedOperatorContextSetGeneric(CeedOperator op, CeedContextFieldLabel field_label, CeedContextFieldType field_type, void *value) {
+static int CeedOperatorContextSetGeneric(CeedOperator op, CeedContextFieldLabel field_label, CeedContextFieldType field_type, void *values) {
   if (!field_label) {
     // LCOV_EXCL_START
     return CeedError(op->ceed, CEED_ERROR_UNSUPPORTED, "Invalid field label");
@@ -301,15 +301,14 @@ static int CeedOperatorContextSetGeneric(CeedOperator op, CeedContextFieldLabel 
     CeedCall(CeedCompositeOperatorGetSubList(op, &sub_operators));
     if (num_sub != field_label->num_sub_labels) {
       // LCOV_EXCL_START
-      return CeedError(op->ceed, CEED_ERROR_UNSUPPORTED,
-                       "ContextLabel does not correspond to composite operator. Use CeedOperatorGetContextFieldLabel().");
+      return CeedError(op->ceed, CEED_ERROR_UNSUPPORTED, "ContextLabel does not correspond to the composite operator");
       // LCOV_EXCL_STOP
     }
 
     for (CeedInt i = 0; i < num_sub; i++) {
       // Try every sub-operator, ok if some sub-operators do not have field
       if (field_label->sub_labels[i] && sub_operators[i]->qf->ctx) {
-        CeedCall(CeedQFunctionContextSetGeneric(sub_operators[i]->qf->ctx, field_label->sub_labels[i], field_type, value));
+        CeedCall(CeedQFunctionContextSetGeneric(sub_operators[i]->qf->ctx, field_label->sub_labels[i], field_type, values));
       }
     }
   } else {
@@ -319,7 +318,123 @@ static int CeedOperatorContextSetGeneric(CeedOperator op, CeedContextFieldLabel 
       // LCOV_EXCL_STOP
     }
 
-    CeedCall(CeedQFunctionContextSetGeneric(op->qf->ctx, field_label, field_type, value));
+    CeedCall(CeedQFunctionContextSetGeneric(op->qf->ctx, field_label, field_type, values));
+  }
+
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
+  @brief Get QFunctionContext field values of the specified type, read-only.
+           For composite operators, the values retrieved are for the first sub-operator QFunctionContext that have a matching `field_name`.
+           A non-zero error code is returned for single operators that do not have a matching field of the same type or composite operators that do
+not have any field of a matching type.
+
+  @param[in,out] op          CeedOperator
+  @param[in]     field_label Label of field to set
+  @param[in]     field_type  Type of field to set
+  @param[in]     value       Value to set
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref User
+**/
+static int CeedOperatorContextGetGenericRead(CeedOperator op, CeedContextFieldLabel field_label, CeedContextFieldType field_type, size_t *num_values,
+                                             void *values) {
+  if (!field_label) {
+    // LCOV_EXCL_START
+    return CeedError(op->ceed, CEED_ERROR_UNSUPPORTED, "Invalid field label");
+    // LCOV_EXCL_STOP
+  }
+
+  *(void **)values = NULL;
+  *num_values      = 0;
+
+  bool is_composite = false;
+  CeedCall(CeedOperatorIsComposite(op, &is_composite));
+  if (is_composite) {
+    CeedInt       num_sub;
+    CeedOperator *sub_operators;
+
+    CeedCall(CeedCompositeOperatorGetNumSub(op, &num_sub));
+    CeedCall(CeedCompositeOperatorGetSubList(op, &sub_operators));
+    if (num_sub != field_label->num_sub_labels) {
+      // LCOV_EXCL_START
+      return CeedError(op->ceed, CEED_ERROR_UNSUPPORTED, "ContextLabel does not correspond to composite operator");
+      // LCOV_EXCL_STOP
+    }
+
+    for (CeedInt i = 0; i < num_sub; i++) {
+      // Try every sub-operator, ok if some sub-operators do not have field
+      if (field_label->sub_labels[i] && sub_operators[i]->qf->ctx) {
+        CeedCall(CeedQFunctionContextGetGenericRead(sub_operators[i]->qf->ctx, field_label->sub_labels[i], field_type, num_values, values));
+        return CEED_ERROR_SUCCESS;
+      }
+    }
+  } else {
+    if (!op->qf->ctx) {
+      // LCOV_EXCL_START
+      return CeedError(op->ceed, CEED_ERROR_UNSUPPORTED, "QFunction does not have context data");
+      // LCOV_EXCL_STOP
+    }
+
+    CeedCall(CeedQFunctionContextGetGenericRead(op->qf->ctx, field_label, field_type, num_values, values));
+  }
+
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
+  @brief Restore QFunctionContext field values of the specified type, read-only.
+           For composite operators, the values restored are for the first sub-operator QFunctionContext that have a matching `field_name`.
+           A non-zero error code is returned for single operators that do not have a matching field of the same type or composite operators that do
+not have any field of a matching type.
+
+  @param[in,out] op          CeedOperator
+  @param[in]     field_label Label of field to set
+  @param[in]     field_type  Type of field to set
+  @param[in]     value       Value to set
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref User
+**/
+static int CeedOperatorContextRestoreGenericRead(CeedOperator op, CeedContextFieldLabel field_label, CeedContextFieldType field_type, void *values) {
+  if (!field_label) {
+    // LCOV_EXCL_START
+    return CeedError(op->ceed, CEED_ERROR_UNSUPPORTED, "Invalid field label");
+    // LCOV_EXCL_STOP
+  }
+
+  bool is_composite = false;
+  CeedCall(CeedOperatorIsComposite(op, &is_composite));
+  if (is_composite) {
+    CeedInt       num_sub;
+    CeedOperator *sub_operators;
+
+    CeedCall(CeedCompositeOperatorGetNumSub(op, &num_sub));
+    CeedCall(CeedCompositeOperatorGetSubList(op, &sub_operators));
+    if (num_sub != field_label->num_sub_labels) {
+      // LCOV_EXCL_START
+      return CeedError(op->ceed, CEED_ERROR_UNSUPPORTED, "ContextLabel does not correspond to composite operator");
+      // LCOV_EXCL_STOP
+    }
+
+    for (CeedInt i = 0; i < num_sub; i++) {
+      // Try every sub-operator, ok if some sub-operators do not have field
+      if (field_label->sub_labels[i] && sub_operators[i]->qf->ctx) {
+        CeedCall(CeedQFunctionContextRestoreGenericRead(sub_operators[i]->qf->ctx, field_label->sub_labels[i], field_type, values));
+        return CEED_ERROR_SUCCESS;
+      }
+    }
+  } else {
+    if (!op->qf->ctx) {
+      // LCOV_EXCL_START
+      return CeedError(op->ceed, CEED_ERROR_UNSUPPORTED, "QFunction does not have context data");
+      // LCOV_EXCL_STOP
+    }
+
+    CeedCall(CeedQFunctionContextRestoreGenericRead(op->qf->ctx, field_label, field_type, values));
   }
 
   return CEED_ERROR_SUCCESS;
@@ -1362,11 +1477,11 @@ int CeedOperatorContextGetFieldLabel(CeedOperator op, const char *field_name, Ce
 }
 
 /**
-  @brief Set QFunctionContext field holding a double precision value.
-           For composite operators, the value is set in all sub-operator QFunctionContexts that have a matching `field_name`.
+  @brief Set QFunctionContext field holding double precision values.
+           For composite operators, the values are set in all sub-operator QFunctionContexts that have a matching `field_name`.
 
   @param[in,out] op          CeedOperator
-  @param[in]     field_label Label of field to register
+  @param[in]     field_label Label of field to set
   @param[in]     values      Values to set
 
   @return An error code: 0 - success, otherwise - failure
@@ -1378,8 +1493,40 @@ int CeedOperatorContextSetDouble(CeedOperator op, CeedContextFieldLabel field_la
 }
 
 /**
-  @brief Set QFunctionContext field holding an int32 value.
-           For composite operators, the value is set in all sub-operator QFunctionContexts that have a matching `field_name`.
+  @brief Get QFunctionContext field holding double precision values, read-only.
+           For composite operators, the values correspond to the first sub-operator QFunctionContexts that has a matching `field_name`.
+
+  @param[in]  op          CeedOperator
+  @param[in]  field_label Label of field to get
+  @param[out] num_values  Number of values in the field label
+  @param[out] values      Pointer to context values
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref User
+**/
+int CeedOperatorContextGetDoubleRead(CeedOperator op, CeedContextFieldLabel field_label, size_t *num_values, const double **values) {
+  return CeedOperatorContextGetGenericRead(op, field_label, CEED_CONTEXT_FIELD_DOUBLE, num_values, values);
+}
+
+/**
+  @brief Restore QFunctionContext field holding double precision values, read-only.
+
+  @param[in]  op          CeedOperator
+  @param[in]  field_label Label of field to restore
+  @param[out] values      Pointer to context values
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref User
+**/
+int CeedOperatorContextRestoreDoubleRead(CeedOperator op, CeedContextFieldLabel field_label, const double **values) {
+  return CeedOperatorContextRestoreGenericRead(op, field_label, CEED_CONTEXT_FIELD_DOUBLE, values);
+}
+
+/**
+  @brief Set QFunctionContext field holding int32 values.
+           For composite operators, the values are set in all sub-operator QFunctionContexts that have a matching `field_name`.
 
   @param[in,out] op          CeedOperator
   @param[in]     field_label Label of field to set
@@ -1391,6 +1538,39 @@ int CeedOperatorContextSetDouble(CeedOperator op, CeedContextFieldLabel field_la
 **/
 int CeedOperatorContextSetInt32(CeedOperator op, CeedContextFieldLabel field_label, int *values) {
   return CeedOperatorContextSetGeneric(op, field_label, CEED_CONTEXT_FIELD_INT32, values);
+}
+
+/**
+  @brief Get QFunctionContext field holding int32 values, read-only.
+           For composite operators, the values correspond to the first sub-operator QFunctionContexts that has a matching `field_name`.
+
+  @param[in]  op          CeedOperator
+  @param[in]  field_label Label of field to get
+  @param[out] num_values  Number of values in the field label
+  @param[out] values      Pointer to context values
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref User
+**/
+int CeedOperatorContextGetInt32Read(CeedOperator op, CeedContextFieldLabel field_label, size_t *num_values, const int **values) {
+  return CeedOperatorContextGetGenericRead(op, field_label, CEED_CONTEXT_FIELD_INT32, num_values, values);
+}
+
+/**
+  @brief Restore QFunctionContext field holding int32 values, read-only.
+
+  @param[in]  op          CeedOperator
+  @param[in]  field_label Label of field to get
+  @param[out] num_values  Number of values in the field label
+  @param[out] values      Pointer to context values
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref User
+**/
+int CeedOperatorContextRestoreInt32Read(CeedOperator op, CeedContextFieldLabel field_label, const int **values) {
+  return CeedOperatorContextRestoreGenericRead(op, field_label, CEED_CONTEXT_FIELD_INT32, values);
 }
 
 /**
