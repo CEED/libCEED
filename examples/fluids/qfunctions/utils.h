@@ -18,6 +18,12 @@
 CEED_QFUNCTION_HELPER CeedScalar Max(CeedScalar a, CeedScalar b) { return a < b ? b : a; }
 CEED_QFUNCTION_HELPER CeedScalar Min(CeedScalar a, CeedScalar b) { return a < b ? a : b; }
 
+CEED_QFUNCTION_HELPER void SwapScalar(CeedScalar *a, CeedScalar *b) {
+  CeedScalar temp = *a;
+  *a              = *b;
+  *b              = temp;
+}
+
 CEED_QFUNCTION_HELPER CeedScalar Square(CeedScalar x) { return x * x; }
 CEED_QFUNCTION_HELPER CeedScalar Cube(CeedScalar x) { return x * x * x; }
 
