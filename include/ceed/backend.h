@@ -258,10 +258,14 @@ CEED_EXTERN int CeedQFunctionAssemblyDataGetObjects(CeedQFunctionAssemblyData da
 CEED_EXTERN int CeedQFunctionAssemblyDataDestroy(CeedQFunctionAssemblyData *data);
 
 CEED_EXTERN int CeedOperatorAssemblyDataCreate(Ceed ceed, CeedOperator op, CeedOperatorAssemblyData *data);
-CEED_EXTERN int CeedOperatorAssemblyDataGetEvalModes(CeedOperatorAssemblyData data, CeedInt *num_eval_mode_in, const CeedEvalMode **eval_mode_in,
-                                                     CeedInt *num_eval_mode_out, const CeedEvalMode **eval_mode_out);
-CEED_EXTERN int CeedOperatorAssemblyDataGetBases(CeedOperatorAssemblyData data, CeedBasis *basis_in, const CeedScalar **B_in, CeedBasis *basis_out,
-                                                 const CeedScalar **B_out);
+CEED_EXTERN int CeedOperatorAssemblyDataGetEvalModes(CeedOperatorAssemblyData data, CeedInt *num_active_bases, CeedInt **num_eval_modes_in,
+                                                     const CeedEvalMode ***eval_modes_in, CeedSize ***eval_mode_offsets_in,
+                                                     CeedInt **num_eval_modes_out, const CeedEvalMode ***eval_modes_out,
+                                                     CeedSize ***eval_mode_offsets_out, CeedSize *num_output_components);
+CEED_EXTERN int CeedOperatorAssemblyDataGetBases(CeedOperatorAssemblyData data, CeedInt *num_active_bases, CeedBasis **active_bases,
+                                                 const CeedScalar ***assembled_bases_in, const CeedScalar ***assembled_bases_out);
+CEED_EXTERN int CeedOperatorAssemblyDataGetElemRestrictions(CeedOperatorAssemblyData data, CeedInt *num_active_elem_rstrs,
+                                                            CeedElemRestriction **active_elem_rstrs);
 CEED_EXTERN int CeedOperatorAssemblyDataDestroy(CeedOperatorAssemblyData *data);
 
 CEED_EXTERN int CeedOperatorGetOperatorAssemblyData(CeedOperator op, CeedOperatorAssemblyData *data);

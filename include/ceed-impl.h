@@ -282,7 +282,7 @@ struct CeedContextFieldLabel_private {
 };
 
 struct CeedOperatorField_private {
-  CeedElemRestriction elem_restr; /* Restriction from L-vector */
+  CeedElemRestriction elem_rstr;  /* Restriction from L-vector */
   CeedBasis           basis;      /* Basis or CEED_BASIS_COLLOCATED for collocated fields */
   CeedVector          vec;        /* State vector for passive fields or CEED_VECTOR_NONE for no vector */
   const char         *field_name; /* matching QFunction field name */
@@ -299,11 +299,14 @@ struct CeedQFunctionAssemblyData_private {
 };
 
 struct CeedOperatorAssemblyData_private {
-  Ceed          ceed;
-  CeedInt       num_eval_mode_in, num_eval_mode_out;
-  CeedEvalMode *eval_mode_in, *eval_mode_out;
-  CeedScalar   *B_in, *B_out;
-  CeedBasis     basis_in, basis_out;
+  Ceed                 ceed;
+  CeedInt              num_active_bases;
+  CeedBasis           *active_bases;
+  CeedElemRestriction *active_elem_rstrs;
+  CeedInt             *num_eval_modes_in, *num_eval_modes_out;
+  CeedEvalMode       **eval_modes_in, **eval_modes_out;
+  CeedScalar         **assembled_bases_in, **assembled_bases_out;
+  CeedSize           **eval_mode_offsets_in, **eval_mode_offsets_out, num_output_components;
 };
 
 struct CeedOperator_private {
