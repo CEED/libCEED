@@ -304,15 +304,45 @@ CEED_QFUNCTION_HELPER void FluxTotal_RiemannBoundary(const StateConservative F_i
   }
 }
 
+CEED_QFUNCTION_HELPER void VelocityGradient(const State grad_s[3], CeedScalar grad_velocity[3][3]) {
+  grad_velocity[0][0] = grad_s[0].Y.velocity[0];
+  grad_velocity[0][1] = grad_s[1].Y.velocity[0];
+  grad_velocity[0][2] = grad_s[2].Y.velocity[0];
+  grad_velocity[1][0] = grad_s[0].Y.velocity[1];
+  grad_velocity[1][1] = grad_s[1].Y.velocity[1];
+  grad_velocity[1][2] = grad_s[2].Y.velocity[1];
+  grad_velocity[2][0] = grad_s[0].Y.velocity[2];
+  grad_velocity[2][1] = grad_s[1].Y.velocity[2];
+  grad_velocity[2][2] = grad_s[2].Y.velocity[2];
+}
+
+CEED_QFUNCTION_HELPER void KMStrainRate(const CeedScalar grad_velocity[3][3], CeedScalar strain_rate[6]) {
+  const CeedScalar weight = 1 / sqrt(2.);  // Really sqrt(2.) / 2
+  strain_rate[0]          = grad_velocity[0][0];
+  strain_rate[1]          = grad_velocity[1][1];
+  strain_rate[2]          = grad_velocity[2][2];
+  strain_rate[3]          = weight * (grad_velocity[1][2] + grad_velocity[2][1]);
+  strain_rate[4]          = weight * (grad_velocity[0][2] + grad_velocity[2][0]);
+  strain_rate[5]          = weight * (grad_velocity[0][1] + grad_velocity[1][0]);
+}
+
 // Kelvin-Mandel notation
-CEED_QFUNCTION_HELPER void KMStrainRate(const State grad_s[3], CeedScalar strain_rate[6]) {
-  const CeedScalar weight = 1 / sqrt(2.);
-  strain_rate[0]          = grad_s[0].Y.velocity[0];
-  strain_rate[1]          = grad_s[1].Y.velocity[1];
-  strain_rate[2]          = grad_s[2].Y.velocity[2];
-  strain_rate[3]          = weight * (grad_s[2].Y.velocity[1] + grad_s[1].Y.velocity[2]);
-  strain_rate[4]          = weight * (grad_s[2].Y.velocity[0] + grad_s[0].Y.velocity[2]);
-  strain_rate[5]          = weight * (grad_s[1].Y.velocity[0] + grad_s[0].Y.velocity[1]);
+CEED_QFUNCTION_HELPER void KMStrainRate_State(const State grad_s[3], CeedScalar strain_rate[6]) {
+  CeedScalar grad_velocity[3][3];
+  VelocityGradient(grad_s, grad_velocity);
+  KMStrainRate(grad_velocity, strain_rate);
+}
+
+CEED_QFUNCTION_HELPER void RotationRate(const CeedScalar grad_velocity[3][3], CeedScalar rotation_rate[3][3]) {
+  rotation_rate[0][0] = 0;
+  rotation_rate[1][1] = 0;
+  rotation_rate[2][2] = 0;
+  rotation_rate[1][2] = 0.5 * (grad_velocity[1][2] - grad_velocity[2][1]);
+  rotation_rate[0][2] = 0.5 * (grad_velocity[0][2] - grad_velocity[2][0]);
+  rotation_rate[0][1] = 0.5 * (grad_velocity[0][1] - grad_velocity[1][0]);
+  rotation_rate[2][1] = -rotation_rate[1][2];
+  rotation_rate[2][0] = -rotation_rate[0][2];
+  rotation_rate[1][0] = -rotation_rate[0][1];
 }
 
 CEED_QFUNCTION_HELPER void NewtonianStress(NewtonianIdealGasContext gas, const CeedScalar strain_rate[6], CeedScalar stress[6]) {
@@ -335,6 +365,12 @@ CEED_QFUNCTION_HELPER void ViscousEnergyFlux_fwd(NewtonianIdealGasContext gas, S
     dFe[i] = -Y.velocity[0] * dstress[0][i] - dY.velocity[0] * stress[0][i] - Y.velocity[1] * dstress[1][i] - dY.velocity[1] * stress[1][i] -
              Y.velocity[2] * dstress[2][i] - dY.velocity[2] * stress[2][i] - gas->k * grad_ds[i].Y.temperature;
   }
+}
+
+CEED_QFUNCTION_HELPER void Vorticity(const State grad_s[3], CeedScalar vorticity[3]) {
+  CeedScalar grad_velocity[3][3];
+  VelocityGradient(grad_s, grad_velocity);
+  Curl3(grad_velocity, vorticity);
 }
 
 #endif  // newtonian_state_h
