@@ -149,7 +149,7 @@ CEED_QFUNCTION(RHSFunction_Newtonian)(void *ctx, CeedInt Q, const CeedScalar *co
     }
 
     CeedScalar strain_rate[6], kmstress[6], stress[3][3], Fe[3];
-    KMStrainRate(grad_s, strain_rate);
+    KMStrainRate_State(grad_s, strain_rate);
     NewtonianStress(context, strain_rate, kmstress);
     KMUnpack(kmstress, stress);
     ViscousEnergyFlux(context, s.Y, grad_s, stress, Fe);
@@ -235,7 +235,7 @@ CEED_QFUNCTION_HELPER int IFunction_Newtonian(void *ctx, CeedInt Q, const CeedSc
     }
 
     CeedScalar strain_rate[6], kmstress[6], stress[3][3], Fe[3];
-    KMStrainRate(grad_s, strain_rate);
+    KMStrainRate_State(grad_s, strain_rate);
     NewtonianStress(context, strain_rate, kmstress);
     KMUnpack(kmstress, stress);
     ViscousEnergyFlux(context, s.Y, grad_s, stress, Fe);
@@ -345,7 +345,7 @@ CEED_QFUNCTION_HELPER int IJacobian_Newtonian(void *ctx, CeedInt Q, const CeedSc
     }
 
     CeedScalar dstrain_rate[6], dkmstress[6], stress[3][3], dstress[3][3], dFe[3];
-    KMStrainRate(grad_ds, dstrain_rate);
+    KMStrainRate_State(grad_ds, dstrain_rate);
     NewtonianStress(context, dstrain_rate, dkmstress);
     KMUnpack(dkmstress, dstress);
     KMUnpack(kmstress, stress);
@@ -433,7 +433,7 @@ CEED_QFUNCTION_HELPER int BoundaryIntegral(void *ctx, CeedInt Q, const CeedScala
     }
 
     CeedScalar strain_rate[6], kmstress[6], stress[3][3], Fe[3];
-    KMStrainRate(grad_s, strain_rate);
+    KMStrainRate_State(grad_s, strain_rate);
     NewtonianStress(context, strain_rate, kmstress);
     KMUnpack(kmstress, stress);
     ViscousEnergyFlux(context, s.Y, grad_s, stress, Fe);
@@ -505,7 +505,7 @@ CEED_QFUNCTION_HELPER int BoundaryIntegral_Jacobian(void *ctx, CeedInt Q, const 
     }
 
     CeedScalar dstrain_rate[6], dkmstress[6], stress[3][3], dstress[3][3], dFe[3];
-    KMStrainRate(grad_ds, dstrain_rate);
+    KMStrainRate_State(grad_ds, dstrain_rate);
     NewtonianStress(context, dstrain_rate, dkmstress);
     KMUnpack(dkmstress, dstress);
     KMUnpack(kmstress, stress);
