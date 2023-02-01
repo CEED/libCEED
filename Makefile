@@ -408,6 +408,8 @@ ifneq ($(HIP_LIB_DIR),)
     # CPPFLAGS += $(subst =,,$(shell $(HIP_DIR)/bin/hipconfig -C))
     CPPFLAGS += $(shell $(HIP_DIR)/bin/hipconfig -C)
     CFLAGS += -I./include
+    CFLAGS += -I${HIPBLAS_DIR}/include
+    CXXFLAGS += -I${HIPBLAS_DIR}/include
 	CFLAGS += -DCEED_JIT_SOUCE_ROOT_DEFAULT="\"$(abspath ./include)/\""
   endif
   $(libceeds) : CPPFLAGS += -I$(HIP_DIR)/include
