@@ -9,6 +9,7 @@
 #define _ceed_sycl_common_hpp
 
 #include <ceed/backend.h>
+#include <ceed/jit-source/sycl/sycl-types.h>
 
 #include <sycl/sycl.hpp>
 #include <type_traits>

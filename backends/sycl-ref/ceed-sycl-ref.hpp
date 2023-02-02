@@ -15,6 +15,7 @@
 #include <sycl/sycl.hpp>
 
 #include "../sycl/ceed-sycl-common.hpp"
+#include "../sycl/ceed-sycl-compile.hpp"
 
 typedef struct {
   CeedScalar *h_array;
@@ -61,11 +62,12 @@ typedef struct {
 } CeedBasisNonTensor_Sycl;
 
 typedef struct {
-  char *qfunction_name;
-  char *qfunction_source;
-  // CUfunction QFunction;
-  // Fields_Sycl fields;
-  void *d_c;
+  char         *qfunction_name;
+  char         *qfunction_source;
+  SyclModule_t *sycl_module;
+  sycl::kernel *QFunction;
+  Fields_Sycl   fields;
+  void         *d_c;
 } CeedQFunction_Sycl;
 
 typedef struct {
