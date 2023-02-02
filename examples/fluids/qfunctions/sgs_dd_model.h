@@ -164,4 +164,28 @@ CEED_QFUNCTION_HELPER void ComputeSGS_DDAnisotropic(const CeedScalar grad_velo_a
   KMPack(sgs_stress, kmsgs_stress);
 }
 
+// @brief RHS for L^2 projection of anisotropic tensor and it's Frobenius norm
+CEED_QFUNCTION(AnisotropyTensorProjection)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
+  const CeedScalar(*q_data)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[0];
+  CeedScalar(*v)[CEED_Q_VLA]            = (CeedScalar(*)[CEED_Q_VLA])out[0];
+
+  CeedPragmaSIMD for (CeedInt i = 0; i < Q; i++) {
+    const CeedScalar wdetJ      = q_data[0][i];
+    const CeedScalar dXdx[3][3] = {
+        {q_data[1][i], q_data[2][i], q_data[3][i]},
+        {q_data[4][i], q_data[5][i], q_data[6][i]},
+        {q_data[7][i], q_data[8][i], q_data[9][i]}
+    };
+
+    CeedScalar km_g_ij[6] = {0.}, A_ij[3][3] = {{0.}}, km_A_ij[6], delta;
+    KMMetricTensor(dXdx, km_g_ij);
+    AnisotropyTensor(km_g_ij, A_ij, &delta, 15);
+    KMPack(A_ij, km_A_ij);
+
+    for (CeedInt j = 0; j < 6; j++) v[j][i] = wdetJ * km_A_ij[j];
+    v[6][i] = wdetJ * delta;
+  }
+  return 0;
+}
+
 #endif  // sgs_dd_model_h

@@ -161,6 +161,13 @@ typedef struct {
   KSP               ksp;
 } *NodalProjectionData;
 
+typedef struct {
+  DM       dm_anisotropy;
+  DM       dm_sgs;
+  PetscInt num_comp_aniso;
+  PetscInt num_comp_sgs;
+} *SGS_DD_Data;
+
 // PETSc user data
 struct User_private {
   MPI_Comm            comm;
@@ -178,6 +185,7 @@ struct User_private {
   CeedScalar          time_bc_set;
   Span_Stats          spanstats;
   NodalProjectionData grad_velo_proj;
+  SGS_DD_Data         sgs_dd_data;
 };
 
 // Units
@@ -386,7 +394,9 @@ PetscErrorCode DestroyStats(User user, CeedData ceed_data);
 // Data-Driven Subgrid Stress (DD-SGS) Modeling Functions
 // -----------------------------------------------------------------------------
 
+PetscErrorCode SGS_DD_ModelCreateDM(User user, ProblemData *problem, PetscInt degree, SimpleBC bc);
 PetscErrorCode SGS_DD_ModelSetup(Ceed ceed, User user, CeedData ceed_data, ProblemData *problem);
+PetscErrorCode SGS_DD_DataDestroy(SGS_DD_Data sgs_dd_data);
 PetscErrorCode VelocityGradientProjectionSetup(Ceed ceed, User user, CeedData ceed_data, ProblemData *problem);
 PetscErrorCode VelocityGradientProjectionApply(User user, Vec Q_loc, Vec *VelocityGradient);
 

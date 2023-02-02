@@ -274,6 +274,10 @@ PetscErrorCode CreateMassQFunction(Ceed ceed, CeedInt N, CeedInt q_data_size, Ce
       qfunction_ptr = Mass_5;
       qfunction_loc = Mass_5_loc;
       break;
+    case 7:
+      qfunction_ptr = Mass_7;
+      qfunction_loc = Mass_7_loc;
+      break;
     case 9:
       qfunction_ptr = Mass_9;
       qfunction_loc = Mass_9_loc;
