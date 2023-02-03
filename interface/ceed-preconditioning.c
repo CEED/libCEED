@@ -751,79 +751,101 @@ static int CeedSingleOperatorMultigridLevel(CeedOperator op_fine, CeedVector p_m
   CeedCall(CeedVectorDestroy(&mult_e_vec));
   CeedCall(CeedVectorReciprocal(mult_vec));
 
-  // Restriction
-  CeedInt num_comp;
-  CeedCall(CeedBasisGetNumComponents(basis_coarse, &num_comp));
-  CeedQFunction qf_restrict;
-  CeedCall(CeedQFunctionCreateInteriorByName(ceed, "Scale", &qf_restrict));
-  CeedInt *num_comp_r_data;
-  CeedCall(CeedCalloc(1, &num_comp_r_data));
-  num_comp_r_data[0] = num_comp;
-  CeedQFunctionContext ctx_r;
-  CeedCall(CeedQFunctionContextCreate(ceed, &ctx_r));
-  CeedCall(CeedQFunctionContextSetData(ctx_r, CEED_MEM_HOST, CEED_OWN_POINTER, sizeof(*num_comp_r_data), num_comp_r_data));
-  CeedCall(CeedQFunctionSetContext(qf_restrict, ctx_r));
-  CeedCall(CeedQFunctionContextDestroy(&ctx_r));
-  CeedCall(CeedQFunctionAddInput(qf_restrict, "input", num_comp, CEED_EVAL_NONE));
-  CeedCall(CeedQFunctionAddInput(qf_restrict, "scale", num_comp, CEED_EVAL_NONE));
-  CeedCall(CeedQFunctionAddOutput(qf_restrict, "output", num_comp, CEED_EVAL_INTERP));
-  CeedCall(CeedQFunctionSetUserFlopsEstimate(qf_restrict, num_comp));
-
-  CeedCall(CeedOperatorCreate(ceed, qf_restrict, CEED_QFUNCTION_NONE, CEED_QFUNCTION_NONE, op_restrict));
-  CeedCall(CeedOperatorSetField(*op_restrict, "input", rstr_fine, CEED_BASIS_COLLOCATED, CEED_VECTOR_ACTIVE));
-  CeedCall(CeedOperatorSetField(*op_restrict, "scale", rstr_fine, CEED_BASIS_COLLOCATED, mult_vec));
-  CeedCall(CeedOperatorSetField(*op_restrict, "output", rstr_coarse, basis_c_to_f, CEED_VECTOR_ACTIVE));
-
-  // Prolongation
-  CeedQFunction qf_prolong;
-  CeedCall(CeedQFunctionCreateInteriorByName(ceed, "Scale", &qf_prolong));
-  CeedInt *num_comp_p_data;
-  CeedCall(CeedCalloc(1, &num_comp_p_data));
-  num_comp_p_data[0] = num_comp;
-  CeedQFunctionContext ctx_p;
-  CeedCall(CeedQFunctionContextCreate(ceed, &ctx_p));
-  CeedCall(CeedQFunctionContextSetData(ctx_p, CEED_MEM_HOST, CEED_OWN_POINTER, sizeof(*num_comp_p_data), num_comp_p_data));
-  CeedCall(CeedQFunctionSetContext(qf_prolong, ctx_p));
-  CeedCall(CeedQFunctionContextDestroy(&ctx_p));
-  CeedCall(CeedQFunctionAddInput(qf_prolong, "input", num_comp, CEED_EVAL_INTERP));
-  CeedCall(CeedQFunctionAddInput(qf_prolong, "scale", num_comp, CEED_EVAL_NONE));
-  CeedCall(CeedQFunctionAddOutput(qf_prolong, "output", num_comp, CEED_EVAL_NONE));
-  CeedCall(CeedQFunctionSetUserFlopsEstimate(qf_prolong, num_comp));
-
-  CeedCall(CeedOperatorCreate(ceed, qf_prolong, CEED_QFUNCTION_NONE, CEED_QFUNCTION_NONE, op_prolong));
-  CeedCall(CeedOperatorSetField(*op_prolong, "input", rstr_coarse, basis_c_to_f, CEED_VECTOR_ACTIVE));
-  CeedCall(CeedOperatorSetField(*op_prolong, "scale", rstr_fine, CEED_BASIS_COLLOCATED, mult_vec));
-  CeedCall(CeedOperatorSetField(*op_prolong, "output", rstr_fine, CEED_BASIS_COLLOCATED, CEED_VECTOR_ACTIVE));
-
   // Clone name
   bool   has_name = op_fine->name;
   size_t name_len = op_fine->name ? strlen(op_fine->name) : 0;
   CeedCall(CeedOperatorSetName(*op_coarse, op_fine->name));
-  {
-    char *prolongation_name;
-    CeedCall(CeedCalloc(18 + name_len, &prolongation_name));
-    sprintf(prolongation_name, "prolongation%s%s", has_name ? " for " : "", has_name ? op_fine->name : "");
-    CeedCall(CeedOperatorSetName(*op_prolong, prolongation_name));
-    CeedCall(CeedFree(&prolongation_name));
+
+  // Restriction/Prolongation Operators
+
+  // Check that coarse to fine basis is provided if prolong/restrict operators are requested
+  if ((op_restrict || op_prolong) && !basis_c_to_f) {
+    // LCOV_EXCL_START
+    return CeedError(ceed, CEED_ERROR_INCOMPATIBLE, "Prolongation or restriction operator creation requires coarse-to-fine basis");
+    // LCOV_EXCL_STOP
   }
-  {
+
+  CeedInt num_comp;
+  CeedCall(CeedBasisGetNumComponents(basis_coarse, &num_comp));
+
+  // Restriction
+  if (op_restrict) {
+    CeedQFunction qf_restrict;
+    CeedCall(CeedQFunctionCreateInteriorByName(ceed, "Scale", &qf_restrict));
+    CeedInt *num_comp_r_data;
+    CeedCall(CeedCalloc(1, &num_comp_r_data));
+    num_comp_r_data[0] = num_comp;
+    CeedQFunctionContext ctx_r;
+    CeedCall(CeedQFunctionContextCreate(ceed, &ctx_r));
+    CeedCall(CeedQFunctionContextSetData(ctx_r, CEED_MEM_HOST, CEED_OWN_POINTER, sizeof(*num_comp_r_data), num_comp_r_data));
+    CeedCall(CeedQFunctionSetContext(qf_restrict, ctx_r));
+    CeedCall(CeedQFunctionContextDestroy(&ctx_r));
+    CeedCall(CeedQFunctionAddInput(qf_restrict, "input", num_comp, CEED_EVAL_NONE));
+    CeedCall(CeedQFunctionAddInput(qf_restrict, "scale", num_comp, CEED_EVAL_NONE));
+    CeedCall(CeedQFunctionAddOutput(qf_restrict, "output", num_comp, CEED_EVAL_INTERP));
+    CeedCall(CeedQFunctionSetUserFlopsEstimate(qf_restrict, num_comp));
+
+    CeedCall(CeedOperatorCreate(ceed, qf_restrict, CEED_QFUNCTION_NONE, CEED_QFUNCTION_NONE, op_restrict));
+    CeedCall(CeedOperatorSetField(*op_restrict, "input", rstr_fine, CEED_BASIS_COLLOCATED, CEED_VECTOR_ACTIVE));
+    CeedCall(CeedOperatorSetField(*op_restrict, "scale", rstr_fine, CEED_BASIS_COLLOCATED, mult_vec));
+    CeedCall(CeedOperatorSetField(*op_restrict, "output", rstr_coarse, basis_c_to_f, CEED_VECTOR_ACTIVE));
+
+    // Set name
     char *restriction_name;
     CeedCall(CeedCalloc(17 + name_len, &restriction_name));
     sprintf(restriction_name, "restriction%s%s", has_name ? " for " : "", has_name ? op_fine->name : "");
     CeedCall(CeedOperatorSetName(*op_restrict, restriction_name));
     CeedCall(CeedFree(&restriction_name));
+
+    // Check
+    CeedCall(CeedOperatorCheckReady(*op_restrict));
+
+    // Cleanup
+    CeedCall(CeedQFunctionDestroy(&qf_restrict));
+  }
+
+  // Prolongation
+  if (op_prolong) {
+    CeedQFunction qf_prolong;
+    CeedCall(CeedQFunctionCreateInteriorByName(ceed, "Scale", &qf_prolong));
+    CeedInt *num_comp_p_data;
+    CeedCall(CeedCalloc(1, &num_comp_p_data));
+    num_comp_p_data[0] = num_comp;
+    CeedQFunctionContext ctx_p;
+    CeedCall(CeedQFunctionContextCreate(ceed, &ctx_p));
+    CeedCall(CeedQFunctionContextSetData(ctx_p, CEED_MEM_HOST, CEED_OWN_POINTER, sizeof(*num_comp_p_data), num_comp_p_data));
+    CeedCall(CeedQFunctionSetContext(qf_prolong, ctx_p));
+    CeedCall(CeedQFunctionContextDestroy(&ctx_p));
+    CeedCall(CeedQFunctionAddInput(qf_prolong, "input", num_comp, CEED_EVAL_INTERP));
+    CeedCall(CeedQFunctionAddInput(qf_prolong, "scale", num_comp, CEED_EVAL_NONE));
+    CeedCall(CeedQFunctionAddOutput(qf_prolong, "output", num_comp, CEED_EVAL_NONE));
+    CeedCall(CeedQFunctionSetUserFlopsEstimate(qf_prolong, num_comp));
+
+    CeedCall(CeedOperatorCreate(ceed, qf_prolong, CEED_QFUNCTION_NONE, CEED_QFUNCTION_NONE, op_prolong));
+    CeedCall(CeedOperatorSetField(*op_prolong, "input", rstr_coarse, basis_c_to_f, CEED_VECTOR_ACTIVE));
+    CeedCall(CeedOperatorSetField(*op_prolong, "scale", rstr_fine, CEED_BASIS_COLLOCATED, mult_vec));
+    CeedCall(CeedOperatorSetField(*op_prolong, "output", rstr_fine, CEED_BASIS_COLLOCATED, CEED_VECTOR_ACTIVE));
+
+    // Set name
+    char *prolongation_name;
+    CeedCall(CeedCalloc(18 + name_len, &prolongation_name));
+    sprintf(prolongation_name, "prolongation%s%s", has_name ? " for " : "", has_name ? op_fine->name : "");
+    CeedCall(CeedOperatorSetName(*op_prolong, prolongation_name));
+    CeedCall(CeedFree(&prolongation_name));
+
+    // Check
+    CeedCall(CeedOperatorCheckReady(*op_prolong));
+
+    // Cleanup
+    CeedCall(CeedQFunctionDestroy(&qf_prolong));
   }
 
   // Check
   CeedCall(CeedOperatorCheckReady(*op_coarse));
-  CeedCall(CeedOperatorCheckReady(*op_prolong));
-  CeedCall(CeedOperatorCheckReady(*op_restrict));
 
   // Cleanup
   CeedCall(CeedVectorDestroy(&mult_vec));
   CeedCall(CeedBasisDestroy(&basis_c_to_f));
-  CeedCall(CeedQFunctionDestroy(&qf_restrict));
-  CeedCall(CeedQFunctionDestroy(&qf_prolong));
 
   return CEED_ERROR_SUCCESS;
 }
@@ -1920,10 +1942,13 @@ int CeedOperatorMultigridLevelCreate(CeedOperator op_fine, CeedVector p_mult_fin
                                      CeedOperator *op_coarse, CeedOperator *op_prolong, CeedOperator *op_restrict) {
   CeedCall(CeedOperatorCheckReady(op_fine));
 
-  // Build prolongation matrix
-  CeedBasis basis_fine, basis_c_to_f;
-  CeedCall(CeedOperatorGetActiveBasis(op_fine, &basis_fine));
-  CeedCall(CeedBasisCreateProjection(basis_coarse, basis_fine, &basis_c_to_f));
+  // Build prolongation matrix, if required
+  CeedBasis basis_c_to_f = NULL;
+  if (op_prolong || op_restrict) {
+    CeedBasis basis_fine;
+    CeedCall(CeedOperatorGetActiveBasis(op_fine, &basis_fine));
+    CeedCall(CeedBasisCreateProjection(basis_coarse, basis_fine, &basis_c_to_f));
+  }
 
   // Core code
   CeedCall(CeedSingleOperatorMultigridLevel(op_fine, p_mult_fine, rstr_coarse, basis_coarse, basis_c_to_f, op_coarse, op_prolong, op_restrict));
@@ -1968,22 +1993,30 @@ int CeedOperatorMultigridLevelCreateTensorH1(CeedOperator op_fine, CeedVector p_
     // LCOV_EXCL_STOP
   }
 
-  // Coarse to fine basis
-  CeedInt dim, num_comp, num_nodes_c, P_1d_f, P_1d_c;
-  CeedCall(CeedBasisGetDimension(basis_fine, &dim));
-  CeedCall(CeedBasisGetNumComponents(basis_fine, &num_comp));
-  CeedCall(CeedBasisGetNumNodes1D(basis_fine, &P_1d_f));
-  CeedCall(CeedElemRestrictionGetElementSize(rstr_coarse, &num_nodes_c));
-  P_1d_c = dim == 1 ? num_nodes_c : dim == 2 ? sqrt(num_nodes_c) : cbrt(num_nodes_c);
-  CeedScalar *q_ref, *q_weight, *grad;
-  CeedCall(CeedCalloc(P_1d_f, &q_ref));
-  CeedCall(CeedCalloc(P_1d_f, &q_weight));
-  CeedCall(CeedCalloc(P_1d_f * P_1d_c * dim, &grad));
-  CeedBasis basis_c_to_f;
-  CeedCall(CeedBasisCreateTensorH1(ceed, dim, num_comp, P_1d_c, P_1d_f, interp_c_to_f, grad, q_ref, q_weight, &basis_c_to_f));
-  CeedCall(CeedFree(&q_ref));
-  CeedCall(CeedFree(&q_weight));
-  CeedCall(CeedFree(&grad));
+  // Create coarse to fine basis, if required
+  CeedBasis basis_c_to_f = NULL;
+  if (op_prolong || op_restrict) {
+    // Check if interpolation matrix is provided
+    if (!interp_c_to_f) {
+      // LCOV_EXCL_START
+      return CeedError(ceed, CEED_ERROR_INCOMPATIBLE, "Prolongation or restriction operator creation requires coarse-to-fine interpolation matrix");
+      // LCOV_EXCL_STOP
+    }
+    CeedInt dim, num_comp, num_nodes_c, P_1d_f, P_1d_c;
+    CeedCall(CeedBasisGetDimension(basis_fine, &dim));
+    CeedCall(CeedBasisGetNumComponents(basis_fine, &num_comp));
+    CeedCall(CeedBasisGetNumNodes1D(basis_fine, &P_1d_f));
+    CeedCall(CeedElemRestrictionGetElementSize(rstr_coarse, &num_nodes_c));
+    P_1d_c = dim == 1 ? num_nodes_c : dim == 2 ? sqrt(num_nodes_c) : cbrt(num_nodes_c);
+    CeedScalar *q_ref, *q_weight, *grad;
+    CeedCall(CeedCalloc(P_1d_f, &q_ref));
+    CeedCall(CeedCalloc(P_1d_f, &q_weight));
+    CeedCall(CeedCalloc(P_1d_f * P_1d_c * dim, &grad));
+    CeedCall(CeedBasisCreateTensorH1(ceed, dim, num_comp, P_1d_c, P_1d_f, interp_c_to_f, grad, q_ref, q_weight, &basis_c_to_f));
+    CeedCall(CeedFree(&q_ref));
+    CeedCall(CeedFree(&q_weight));
+    CeedCall(CeedFree(&grad));
+  }
 
   // Core code
   CeedCall(CeedSingleOperatorMultigridLevel(op_fine, p_mult_fine, rstr_coarse, basis_coarse, basis_c_to_f, op_coarse, op_prolong, op_restrict));
@@ -2028,22 +2061,30 @@ int CeedOperatorMultigridLevelCreateH1(CeedOperator op_fine, CeedVector p_mult_f
   }
 
   // Coarse to fine basis
-  CeedElemTopology topo;
-  CeedCall(CeedBasisGetTopology(basis_fine, &topo));
-  CeedInt dim, num_comp, num_nodes_c, num_nodes_f;
-  CeedCall(CeedBasisGetDimension(basis_fine, &dim));
-  CeedCall(CeedBasisGetNumComponents(basis_fine, &num_comp));
-  CeedCall(CeedBasisGetNumNodes(basis_fine, &num_nodes_f));
-  CeedCall(CeedElemRestrictionGetElementSize(rstr_coarse, &num_nodes_c));
-  CeedScalar *q_ref, *q_weight, *grad;
-  CeedCall(CeedCalloc(num_nodes_f * dim, &q_ref));
-  CeedCall(CeedCalloc(num_nodes_f, &q_weight));
-  CeedCall(CeedCalloc(num_nodes_f * num_nodes_c * dim, &grad));
-  CeedBasis basis_c_to_f;
-  CeedCall(CeedBasisCreateH1(ceed, topo, num_comp, num_nodes_c, num_nodes_f, interp_c_to_f, grad, q_ref, q_weight, &basis_c_to_f));
-  CeedCall(CeedFree(&q_ref));
-  CeedCall(CeedFree(&q_weight));
-  CeedCall(CeedFree(&grad));
+  CeedBasis basis_c_to_f = NULL;
+  if (op_prolong || op_restrict) {
+    // Check if interpolation matrix is provided
+    if (!interp_c_to_f) {
+      // LCOV_EXCL_START
+      return CeedError(ceed, CEED_ERROR_INCOMPATIBLE, "Prolongation or restriction operator creation requires coarse-to-fine interpolation matrix");
+      // LCOV_EXCL_STOP
+    }
+    CeedElemTopology topo;
+    CeedCall(CeedBasisGetTopology(basis_fine, &topo));
+    CeedInt dim, num_comp, num_nodes_c, num_nodes_f;
+    CeedCall(CeedBasisGetDimension(basis_fine, &dim));
+    CeedCall(CeedBasisGetNumComponents(basis_fine, &num_comp));
+    CeedCall(CeedBasisGetNumNodes(basis_fine, &num_nodes_f));
+    CeedCall(CeedElemRestrictionGetElementSize(rstr_coarse, &num_nodes_c));
+    CeedScalar *q_ref, *q_weight, *grad;
+    CeedCall(CeedCalloc(num_nodes_f * dim, &q_ref));
+    CeedCall(CeedCalloc(num_nodes_f, &q_weight));
+    CeedCall(CeedCalloc(num_nodes_f * num_nodes_c * dim, &grad));
+    CeedCall(CeedBasisCreateH1(ceed, topo, num_comp, num_nodes_c, num_nodes_f, interp_c_to_f, grad, q_ref, q_weight, &basis_c_to_f));
+    CeedCall(CeedFree(&q_ref));
+    CeedCall(CeedFree(&q_weight));
+    CeedCall(CeedFree(&grad));
+  }
 
   // Core code
   CeedCall(CeedSingleOperatorMultigridLevel(op_fine, p_mult_fine, rstr_coarse, basis_coarse, basis_c_to_f, op_coarse, op_prolong, op_restrict));
