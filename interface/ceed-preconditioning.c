@@ -690,13 +690,13 @@ static int CeedSingleOperatorAssemblyCountEntries(CeedOperator op, CeedInt *num_
   @brief Common code for creating a multigrid coarse operator and level transfer operators for a CeedOperator
 
   @param[in]  op_fine      Fine grid operator
-  @param[in]  p_mult_fine  L-vector multiplicity in parallel gather/scatter
+  @param[in]  p_mult_fine  L-vector multiplicity in parallel gather/scatter, or NULL if not creating prolongation/restriction operators
   @param[in]  rstr_coarse  Coarse grid restriction
   @param[in]  basis_coarse Coarse grid active vector basis
-  @param[in]  basis_c_to_f Basis for coarse to fine interpolation
+  @param[in]  basis_c_to_f Basis for coarse to fine interpolation, or NULL if not creating prolongation/restriction operators
   @param[out] op_coarse    Coarse grid operator
-  @param[out] op_prolong   Coarse to fine operator
-  @param[out] op_restrict  Fine to coarse operator
+  @param[out] op_prolong   Coarse to fine operator, or NULL
+  @param[out] op_restrict  Fine to coarse operator, or NULL
 
   @return An error code: 0 - success, otherwise - failure
 
@@ -704,7 +704,8 @@ static int CeedSingleOperatorAssemblyCountEntries(CeedOperator op, CeedInt *num_
 **/
 static int CeedSingleOperatorMultigridLevel(CeedOperator op_fine, CeedVector p_mult_fine, CeedElemRestriction rstr_coarse, CeedBasis basis_coarse,
                                             CeedBasis basis_c_to_f, CeedOperator *op_coarse, CeedOperator *op_prolong, CeedOperator *op_restrict) {
-  Ceed ceed;
+  Ceed       ceed;
+  CeedVector mult_vec = NULL;
   CeedCall(CeedOperatorGetCeed(op_fine, &ceed));
 
   // Check for composite operator
@@ -742,21 +743,27 @@ static int CeedSingleOperatorMultigridLevel(CeedOperator op_fine, CeedVector p_m
   CeedCall(CeedQFunctionAssemblyDataReferenceCopy(op_fine->qf_assembled, &(*op_coarse)->qf_assembled));
 
   // Multiplicity vector
-  CeedVector mult_vec, mult_e_vec;
-  CeedCall(CeedElemRestrictionCreateVector(rstr_fine, &mult_vec, &mult_e_vec));
-  CeedCall(CeedVectorSetValue(mult_e_vec, 0.0));
-  CeedCall(CeedElemRestrictionApply(rstr_fine, CEED_NOTRANSPOSE, p_mult_fine, mult_e_vec, CEED_REQUEST_IMMEDIATE));
-  CeedCall(CeedVectorSetValue(mult_vec, 0.0));
-  CeedCall(CeedElemRestrictionApply(rstr_fine, CEED_TRANSPOSE, mult_e_vec, mult_vec, CEED_REQUEST_IMMEDIATE));
-  CeedCall(CeedVectorDestroy(&mult_e_vec));
-  CeedCall(CeedVectorReciprocal(mult_vec));
+  if (op_restrict || op_prolong) {
+    CeedVector mult_e_vec;
+
+    if (!p_mult_fine) {
+      // LCOV_EXCL_START
+      return CeedError(ceed, CEED_ERROR_INCOMPATIBLE, "Prolongation or restriction operator creation requires fine grid multiplicity vector");
+      // LCOV_EXCL_STOP
+    }
+    CeedCall(CeedElemRestrictionCreateVector(rstr_fine, &mult_vec, &mult_e_vec));
+    CeedCall(CeedVectorSetValue(mult_e_vec, 0.0));
+    CeedCall(CeedElemRestrictionApply(rstr_fine, CEED_NOTRANSPOSE, p_mult_fine, mult_e_vec, CEED_REQUEST_IMMEDIATE));
+    CeedCall(CeedVectorSetValue(mult_vec, 0.0));
+    CeedCall(CeedElemRestrictionApply(rstr_fine, CEED_TRANSPOSE, mult_e_vec, mult_vec, CEED_REQUEST_IMMEDIATE));
+    CeedCall(CeedVectorDestroy(&mult_e_vec));
+    CeedCall(CeedVectorReciprocal(mult_vec));
+  }
 
   // Clone name
   bool   has_name = op_fine->name;
   size_t name_len = op_fine->name ? strlen(op_fine->name) : 0;
   CeedCall(CeedOperatorSetName(*op_coarse, op_fine->name));
-
-  // Restriction/Prolongation Operators
 
   // Check that coarse to fine basis is provided if prolong/restrict operators are requested
   if ((op_restrict || op_prolong) && !basis_c_to_f) {
@@ -765,17 +772,19 @@ static int CeedSingleOperatorMultigridLevel(CeedOperator op_fine, CeedVector p_m
     // LCOV_EXCL_STOP
   }
 
+  // Restriction/Prolongation Operators
   CeedInt num_comp;
   CeedCall(CeedBasisGetNumComponents(basis_coarse, &num_comp));
 
   // Restriction
   if (op_restrict) {
-    CeedQFunction qf_restrict;
+    CeedInt             *num_comp_r_data;
+    CeedQFunction        qf_restrict;
+    CeedQFunctionContext ctx_r;
+
     CeedCall(CeedQFunctionCreateInteriorByName(ceed, "Scale", &qf_restrict));
-    CeedInt *num_comp_r_data;
     CeedCall(CeedCalloc(1, &num_comp_r_data));
     num_comp_r_data[0] = num_comp;
-    CeedQFunctionContext ctx_r;
     CeedCall(CeedQFunctionContextCreate(ceed, &ctx_r));
     CeedCall(CeedQFunctionContextSetData(ctx_r, CEED_MEM_HOST, CEED_OWN_POINTER, sizeof(*num_comp_r_data), num_comp_r_data));
     CeedCall(CeedQFunctionSetContext(qf_restrict, ctx_r));
@@ -806,12 +815,13 @@ static int CeedSingleOperatorMultigridLevel(CeedOperator op_fine, CeedVector p_m
 
   // Prolongation
   if (op_prolong) {
-    CeedQFunction qf_prolong;
+    CeedInt             *num_comp_p_data;
+    CeedQFunction        qf_prolong;
+    CeedQFunctionContext ctx_p;
+
     CeedCall(CeedQFunctionCreateInteriorByName(ceed, "Scale", &qf_prolong));
-    CeedInt *num_comp_p_data;
     CeedCall(CeedCalloc(1, &num_comp_p_data));
     num_comp_p_data[0] = num_comp;
-    CeedQFunctionContext ctx_p;
     CeedCall(CeedQFunctionContextCreate(ceed, &ctx_p));
     CeedCall(CeedQFunctionContextSetData(ctx_p, CEED_MEM_HOST, CEED_OWN_POINTER, sizeof(*num_comp_p_data), num_comp_p_data));
     CeedCall(CeedQFunctionSetContext(qf_prolong, ctx_p));
@@ -1927,12 +1937,12 @@ grid interpolation
   Note: Calling this function asserts that setup is complete and sets all four CeedOperators as immutable.
 
   @param[in]  op_fine      Fine grid operator
-  @param[in]  p_mult_fine  L-vector multiplicity in parallel gather/scatter
+  @param[in]  p_mult_fine  L-vector multiplicity in parallel gather/scatter, or NULL if not creating prolongation/restriction operators
   @param[in]  rstr_coarse  Coarse grid restriction
   @param[in]  basis_coarse Coarse grid active vector basis
   @param[out] op_coarse    Coarse grid operator
-  @param[out] op_prolong   Coarse to fine operator
-  @param[out] op_restrict  Fine to coarse operator
+  @param[out] op_prolong   Coarse to fine operator, or NULL
+  @param[out] op_restrict  Fine to coarse operator, or NULL
 
   @return An error code: 0 - success, otherwise - failure
 
@@ -1962,13 +1972,13 @@ int CeedOperatorMultigridLevelCreate(CeedOperator op_fine, CeedVector p_mult_fin
   Note: Calling this function asserts that setup is complete and sets all four CeedOperators as immutable.
 
   @param[in]  op_fine       Fine grid operator
-  @param[in]  p_mult_fine   L-vector multiplicity in parallel gather/scatter
+  @param[in]  p_mult_fine   L-vector multiplicity in parallel gather/scatter, or NULL if not creating prolongation/restriction operators
   @param[in]  rstr_coarse   Coarse grid restriction
   @param[in]  basis_coarse  Coarse grid active vector basis
-  @param[in]  interp_c_to_f Matrix for coarse to fine interpolation
+  @param[in]  interp_c_to_f Matrix for coarse to fine interpolation, or NULL if not creating prolongation/restriction operators
   @param[out] op_coarse     Coarse grid operator
-  @param[out] op_prolong    Coarse to fine operator
-  @param[out] op_restrict   Fine to coarse operator
+  @param[out] op_prolong    Coarse to fine operator, or NULL
+  @param[out] op_restrict   Fine to coarse operator, or NULL
 
   @return An error code: 0 - success, otherwise - failure
 
@@ -2029,13 +2039,13 @@ int CeedOperatorMultigridLevelCreateTensorH1(CeedOperator op_fine, CeedVector p_
   Note: Calling this function asserts that setup is complete and sets all four CeedOperators as immutable.
 
   @param[in]  op_fine       Fine grid operator
-  @param[in]  p_mult_fine   L-vector multiplicity in parallel gather/scatter
+  @param[in]  p_mult_fine   L-vector multiplicity in parallel gather/scatter, or NULL if not creating prolongation/restriction operators
   @param[in]  rstr_coarse   Coarse grid restriction
   @param[in]  basis_coarse  Coarse grid active vector basis
-  @param[in]  interp_c_to_f Matrix for coarse to fine interpolation
+  @param[in]  interp_c_to_f Matrix for coarse to fine interpolation, or NULL if not creating prolongation/restriction operators
   @param[out] op_coarse     Coarse grid operator
-  @param[out] op_prolong    Coarse to fine operator
-  @param[out] op_restrict   Fine to coarse operator
+  @param[out] op_prolong    Coarse to fine operator, or NULL
+  @param[out] op_restrict   Fine to coarse operator, or NULL
 
   @return An error code: 0 - success, otherwise - failure
 
