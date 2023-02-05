@@ -6,6 +6,9 @@ On this page we provide a summary of the main API changes, new features and exam
 
 ## Current `main` branch
 
+### New features
+- Added {c:func}`CeedOperatorGetFieldByName` to access a specific `CeedOperatorField` by its name
+
 (v0-11)=
 
 ## v0.11 (Dec 24, 2022)
@@ -20,7 +23,7 @@ On this page we provide a summary of the main API changes, new features and exam
 
 - Update `/cpu/self/memcheck/*` backends to help verify `CeedQFunctionContext` data sizes provided by user.
 - Improved support for $H(\text{div})$ bases.
-- Added `CeedInt_FMT` to support potential future use of larger interger sizes.
+- Added `CeedInt_FMT` to support potential future use of larger integer sizes.
 - Added `CEED_QFUNCTION_ATTR` for setting compiler attributes/pragmas to `CEED_QFUNCTION_HELPER` and `CEED_QFUNCTION`.
 - OCCA backend updated to latest OCCA release; DPC++ and OMP OCCA modes enabled.
 Due to a limitation of the OCCA parser, typedefs are required to use pointers to arrays in QFunctions with the OCCA backend.

@@ -873,6 +873,48 @@ int CeedOperatorGetFields(CeedOperator op, CeedInt *num_input_fields, CeedOperat
 }
 
 /**
+  @brief Get a CeedOperatorField of an CeedOperator from its name
+
+  Note: Calling this function asserts that setup is complete and sets the CeedOperator as immutable.
+
+  @param[in]  op         CeedOperator
+  @param[in]  field_name Name of desired CeedOperatorField
+  @param[out] op_field   CeedOperatorField corresponding to the name
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Advanced
+**/
+int CeedOperatorGetFieldByName(CeedOperator op, const char *field_name, CeedOperatorField *op_field) {
+  CeedInt            num_input_fields, num_output_fields;
+  CeedOperatorField *input_fields, *output_fields;
+  char              *name;
+  CeedCall(CeedOperatorGetFields(op, &num_input_fields, &input_fields, &num_output_fields, &output_fields));
+
+  for (CeedInt i = 0; i < num_input_fields; i++) {
+    CeedCall(CeedOperatorFieldGetName(input_fields[i], &name));
+    if (!strcmp(name, field_name)) {
+      *op_field = input_fields[i];
+      return CEED_ERROR_SUCCESS;
+    }
+  }
+
+  for (CeedInt i = 0; i < num_output_fields; i++) {
+    CeedCall(CeedOperatorFieldGetName(output_fields[i], &name));
+    if (!strcmp(name, field_name)) {
+      *op_field = output_fields[i];
+      return CEED_ERROR_SUCCESS;
+    }
+  }
+
+  bool has_name = op->name;
+  // LCOV_EXCL_START
+  return CeedError(op->ceed, CEED_ERROR_MINOR, "The field \"%s\" not found in CeedOperator%s%s%s.\n", field_name, has_name ? " \"" : "",
+                   has_name ? op->name : "", has_name ? "\"" : "");
+  // LCOV_EXCL_STOP
+}
+
+/**
   @brief Get the name of a CeedOperatorField
 
   @param[in]  op_field    CeedOperatorField
