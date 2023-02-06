@@ -1076,7 +1076,15 @@ int CeedOperatorGetOperatorAssemblyData(CeedOperator op, CeedOperatorAssemblyDat
 }
 
 /**
-  @brief Create object holding CeedOperator assembly data
+  @brief Create object holding CeedOperator assembly data.
+
+    The CeedOperatorAssemblyData holds an array with references to every active CeedBasis used in the CeedOperator.
+    An array with references to the corresponding active CeedElemRestrictions is also stored.
+    For each active CeedBasis, the CeedOperatorAssemblyData holds an array of all input and output CeedEvalModes for this CeedBasis.
+    The CeedOperatorAssemblyData holds an array of offsets for indexing into the assembled CeedQFunction arrays to the row representing each
+      CeedEvalMode.
+    The number of input columns across all active bases for the assembled CeedQFunction is also stored.
+    Lastly, the CeedOperatorAssembly data holds assembled matrices representing the full action of the CeedBasis for all CeedEvalModes.
 
   @param[in]  ceed Ceed object where the CeedOperatorAssemblyData will be created
   @param[in]  op   CeedOperator to be assembled
@@ -1272,17 +1280,21 @@ int CeedOperatorAssemblyDataCreate(Ceed ceed, CeedOperator op, CeedOperatorAssem
 }
 
 /**
-  @brief Get CeedOperator CeedEvalModes for assembly
+  @brief Get CeedOperator CeedEvalModes for assembly.
+
+    Note: See CeedOperatorAssemblyDataCreate for a full description of the data stored in this object.
 
   @param[in]  data                  CeedOperatorAssemblyData
-  @param[out] num_active_bases      Number of active bases
-  @param[out] num_eval_mode_in      Pointer to hold array of numbers of input CeedEvalModes, or NULL
-  @param[out] eval_mode_in          Pointer to hold arrays of input CeedEvalModes, or NULL
-  @param[out] eval_mode_offsets_in  Pointer to hold arrays of input offsets at each quadrature point
+  @param[out] num_active_bases      Total number of active bases
+  @param[out] num_eval_mode_in      Pointer to hold array of numbers of input CeedEvalModes, or NULL.
+                                      `eval_modes_in[0]` holds an array of eval modes for the first active basis.
+  @param[out] eval_mode_in          Pointer to hold arrays of input CeedEvalModes, or NULL.
+  @param[out] eval_mode_offsets_in  Pointer to hold arrays of input offsets at each quadrature point.
   @param[out] num_eval_mode_out     Pointer to hold array of numbers of output CeedEvalModes, or NULL
-  @param[out] eval_mode_out         Pointer to hold arrays of output CeedEvalModes, or NULL
+  @param[out] eval_mode_out         Pointer to hold arrays of output CeedEvalModes, or NULL.
   @param[out] eval_mode_offsets_out Pointer to hold arrays of output offsets at each quadrature point
-  @param[out] num_output_components Total number of output components at each quadrature point
+  @param[out] num_output_components The number of columns in the assembled CeedQFunction matrix for each quadrature point,
+                                      including contributions of all active bases
 
   @return An error code: 0 - success, otherwise - failure
 
@@ -1304,7 +1316,9 @@ int CeedOperatorAssemblyDataGetEvalModes(CeedOperatorAssemblyData data, CeedInt 
 }
 
 /**
-  @brief Get CeedOperator CeedBasis data for assembly
+  @brief Get CeedOperator CeedBasis data for assembly.
+
+    Note: See CeedOperatorAssemblyDataCreate for a full description of the data stored in this object.
 
   @param[in]  data                CeedOperatorAssemblyData
   @param[out] num_active_bases    Number of active bases, or NULL
@@ -1414,7 +1428,9 @@ int CeedOperatorAssemblyDataGetBases(CeedOperatorAssemblyData data, CeedInt *num
 }
 
 /**
-  @brief Get CeedOperator CeedBasis data for assembly
+  @brief Get CeedOperator CeedBasis data for assembly.
+
+  Note: See CeedOperatorAssemblyDataCreate for a full description of the data stored in this object.
 
   @param[in]  data                  CeedOperatorAssemblyData
   @param[out] num_active_elem_rstrs Number of active element restrictions, or NULL
