@@ -221,7 +221,6 @@ int CeedOperatorGetActiveBasis(CeedOperator op, CeedBasis *active_basis) {
         // LCOV_EXCL_STOP
       }
       *active_basis = op->input_fields[i]->basis;
-      break;
     }
   }
 
@@ -251,13 +250,12 @@ int CeedOperatorGetActiveElemRestriction(CeedOperator op, CeedElemRestriction *a
   if (op->is_composite) return CEED_ERROR_SUCCESS;
   for (CeedInt i = 0; i < op->qf->num_input_fields; i++) {
     if (op->input_fields[i]->vec == CEED_VECTOR_ACTIVE) {
-      if (*active_rstr && *active_rstr != op->input_fields[i]->elem_restr) {
+      if (*active_rstr && *active_rstr != op->input_fields[i]->elem_rstr) {
         // LCOV_EXCL_START
         return CeedError(ceed, CEED_ERROR_MINOR, "Multiple active CeedElemRestrictions found");
         // LCOV_EXCL_STOP
       }
-      *active_rstr = op->input_fields[i]->elem_restr;
-      break;
+      *active_rstr = op->input_fields[i]->elem_rstr;
     }
   }
 
@@ -821,7 +819,7 @@ found:
     CeedCall(CeedVectorReference(v));
   }
 
-  (*op_field)->elem_restr = r;
+  (*op_field)->elem_rstr = r;
   CeedCall(CeedElemRestrictionReference(r));
   if (r != CEED_ELEMRESTRICTION_NONE) {
     op->num_elem        = num_elem;
@@ -940,7 +938,7 @@ int CeedOperatorFieldGetName(CeedOperatorField op_field, char **field_name) {
   @ref Advanced
 **/
 int CeedOperatorFieldGetElemRestriction(CeedOperatorField op_field, CeedElemRestriction *rstr) {
-  *rstr = op_field->elem_restr;
+  *rstr = op_field->elem_rstr;
   return CEED_ERROR_SUCCESS;
 }
 
@@ -1398,7 +1396,7 @@ int CeedOperatorGetFlopsEstimate(CeedOperator op, CeedSize *flops) {
       if (input_fields[i]->vec == CEED_VECTOR_ACTIVE) {
         CeedSize restr_flops, basis_flops;
 
-        CeedCall(CeedElemRestrictionGetFlopsEstimate(input_fields[i]->elem_restr, CEED_NOTRANSPOSE, &restr_flops));
+        CeedCall(CeedElemRestrictionGetFlopsEstimate(input_fields[i]->elem_rstr, CEED_NOTRANSPOSE, &restr_flops));
         *flops += restr_flops;
         CeedCall(CeedBasisGetFlopsEstimate(input_fields[i]->basis, CEED_NOTRANSPOSE, op->qf->input_fields[i]->eval_mode, &basis_flops));
         *flops += basis_flops * num_elem;
@@ -1415,7 +1413,7 @@ int CeedOperatorGetFlopsEstimate(CeedOperator op, CeedSize *flops) {
       if (output_fields[i]->vec == CEED_VECTOR_ACTIVE) {
         CeedSize restr_flops, basis_flops;
 
-        CeedCall(CeedElemRestrictionGetFlopsEstimate(output_fields[i]->elem_restr, CEED_TRANSPOSE, &restr_flops));
+        CeedCall(CeedElemRestrictionGetFlopsEstimate(output_fields[i]->elem_rstr, CEED_TRANSPOSE, &restr_flops));
         *flops += restr_flops;
         CeedCall(CeedBasisGetFlopsEstimate(output_fields[i]->basis, CEED_TRANSPOSE, op->qf->output_fields[i]->eval_mode, &basis_flops));
         *flops += basis_flops * num_elem;
@@ -1739,8 +1737,8 @@ int CeedOperatorDestroy(CeedOperator *op) {
   // Free fields
   for (CeedInt i = 0; i < (*op)->num_fields; i++) {
     if ((*op)->input_fields[i]) {
-      if ((*op)->input_fields[i]->elem_restr != CEED_ELEMRESTRICTION_NONE) {
-        CeedCall(CeedElemRestrictionDestroy(&(*op)->input_fields[i]->elem_restr));
+      if ((*op)->input_fields[i]->elem_rstr != CEED_ELEMRESTRICTION_NONE) {
+        CeedCall(CeedElemRestrictionDestroy(&(*op)->input_fields[i]->elem_rstr));
       }
       if ((*op)->input_fields[i]->basis != CEED_BASIS_COLLOCATED) {
         CeedCall(CeedBasisDestroy(&(*op)->input_fields[i]->basis));
@@ -1754,7 +1752,7 @@ int CeedOperatorDestroy(CeedOperator *op) {
   }
   for (CeedInt i = 0; i < (*op)->num_fields; i++) {
     if ((*op)->output_fields[i]) {
-      CeedCall(CeedElemRestrictionDestroy(&(*op)->output_fields[i]->elem_restr));
+      CeedCall(CeedElemRestrictionDestroy(&(*op)->output_fields[i]->elem_rstr));
       if ((*op)->output_fields[i]->basis != CEED_BASIS_COLLOCATED) {
         CeedCall(CeedBasisDestroy(&(*op)->output_fields[i]->basis));
       }
