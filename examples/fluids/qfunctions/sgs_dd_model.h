@@ -15,6 +15,7 @@
 
 #include <ceed.h>
 
+#include "newtonian_types.h"
 #include "newtonian_state.h"
 #include "utils.h"
 #include "utils_eigensolver_jacobi.h"
@@ -26,6 +27,7 @@ struct SGS_DD_ModelContext_ {
   CeedInt    num_neurons;
   CeedScalar alpha;
 
+  struct NewtonianIdealGasContext_ gas;
   struct {
     size_t bias1, bias2;
     size_t weight1, weight2;
@@ -142,6 +144,55 @@ CEED_QFUNCTION_HELPER void ComputeSGS_DDAnisotropic(const CeedScalar grad_velo_a
   }
 
   KMPack(sgs_stress, kmsgs_stress);
+}
+
+CEED_QFUNCTION(InverseMultiplicity)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
+  const CeedScalar(*multiplicity)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[0];
+  CeedScalar(*scale_stored)                   = (CeedScalar(*))out[0];
+
+  CeedPragmaSIMD for (CeedInt i = 0; i < Q; i++) scale_stored[i] = 1.0 / multiplicity[0][i];
+  return 0;
+}
+
+// @brief Calculate Subgrid stress at nodes using data-drive model
+CEED_QFUNCTION_HELPER int ComputeSGS_DDAnisotropicNodal(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out,
+                                                        StateFromQi_t StateFromQi) {
+  const CeedScalar(*q)[CEED_Q_VLA]            = (const CeedScalar(*)[CEED_Q_VLA])in[0];
+  const CeedScalar(*x)[CEED_Q_VLA]            = (const CeedScalar(*)[CEED_Q_VLA])in[1];
+  const CeedScalar(*grad_velo)[3][CEED_Q_VLA] = (const CeedScalar(*)[3][CEED_Q_VLA])in[2];
+  const CeedScalar(*A_ij_delta)[CEED_Q_VLA]   = (const CeedScalar(*)[CEED_Q_VLA])in[3];
+  const CeedScalar(*scale)                    = (const CeedScalar(*))in[4];
+  CeedScalar(*v)[CEED_Q_VLA]                  = (CeedScalar(*)[CEED_Q_VLA])out[0];
+
+  const SGS_DDModelContext       sgsdd_ctx = (SGS_DDModelContext)ctx;
+  const NewtonianIdealGasContext gas       = &sgsdd_ctx->gas;
+
+  CeedPragmaSIMD for (CeedInt i = 0; i < Q; i++) {
+    const CeedScalar qi[5]                 = {q[0][i], q[1][i], q[2][i], q[3][i], q[4][i]};
+    const CeedScalar x_i[3]                = {x[0][i], x[1][i], x[2][i]};
+    const CeedScalar grad_velo_aniso[3][3] = {
+        {grad_velo[0][0][i], grad_velo[0][1][i], grad_velo[0][2][i]},
+        {grad_velo[1][0][i], grad_velo[1][1][i], grad_velo[1][2][i]},
+        {grad_velo[2][0][i], grad_velo[2][1][i], grad_velo[2][2][i]}
+    };
+    const CeedScalar km_A_ij[6] = {A_ij_delta[0][i], A_ij_delta[1][i], A_ij_delta[2][i], A_ij_delta[3][i], A_ij_delta[4][i], A_ij_delta[5][i]};
+    const CeedScalar delta      = A_ij_delta[6][i];
+    const State      s          = StateFromQi(gas, qi, x_i);
+    CeedScalar       km_sgs[6];
+
+    ComputeSGS_DDAnisotropic(grad_velo_aniso, km_A_ij, delta, gas->mu / s.U.density, km_sgs, sgsdd_ctx);
+
+    for (int j = 0; j < 6; j++) v[j][i] = scale[i] * km_sgs[j];
+  }
+  return 0;
+}
+
+CEED_QFUNCTION(ComputeSGS_DDAnisotropicNodal_Prim)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
+  return ComputeSGS_DDAnisotropicNodal(ctx, Q, in, out, StateFromY);
+}
+
+CEED_QFUNCTION(ComputeSGS_DDAnisotropicNodal_Conserv)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
+  return ComputeSGS_DDAnisotropicNodal(ctx, Q, in, out, StateFromU);
 }
 
 #endif  // sgs_dd_model_h

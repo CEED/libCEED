@@ -162,8 +162,10 @@ typedef struct {
 } *NodalProjectionData;
 
 typedef struct {
-  DM       dm_sgs;
-  PetscInt num_comp_sgs;
+  DM           dm_sgs;
+  PetscInt     num_comp_sgs;
+  CeedOperator op_nodal_evaluation;
+  CeedVector   sgs_nodal_ceed;
 } *SGS_DD_Data;
 
 // PETSc user data
