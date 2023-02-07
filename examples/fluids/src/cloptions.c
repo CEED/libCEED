@@ -167,6 +167,9 @@ PetscErrorCode ProcessCommandLineOptions(MPI_Comm comm, AppCtx app_ctx, SimpleBC
   PetscCall(PetscOptionsViewer("-ts_monitor_turbulence_spanstats_viewer", "Viewer for the statistics", NULL, &app_ctx->turb_spanstats_viewer,
                                &app_ctx->turb_spanstats_viewer_format, &app_ctx->turb_spanstats_enable));
 
+  PetscCall(PetscOptionsViewer("-ts_monitor_surface_forces_viewer", "Viewer for surface forces", NULL, &app_ctx->surf_forces_viewer,
+                               &app_ctx->surf_forces_viewer_format, &app_ctx->surf_forces_enable));
+
   PetscOptionsEnd();
 
   PetscFunctionReturn(0);
