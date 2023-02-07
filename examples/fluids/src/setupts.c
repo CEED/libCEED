@@ -226,7 +226,6 @@ PetscErrorCode IFunction_NS(TS ts, PetscReal t, Vec Q, Vec Q_dot, Vec G, void *u
   PetscCall(VecRestoreArrayAndMemType(G_loc, &g));
 
   PetscCall(Surface_Forces_NS(user->dm, G_loc));
-  // PetscCall(TSMonitor_FaceForce(ts, 0, 0., Q, user));
 
   // Local-to-Global
   PetscCall(VecZeroEntries(G));
@@ -543,6 +542,8 @@ PetscErrorCode TSSolve_NS(DM dm, User user, AppCtx app_ctx, Physics phys, Vec *Q
   if (!app_ctx->cont_steps) {  // print initial condition
     if (app_ctx->test_type == TESTTYPE_NONE) {
       PetscCall(TSMonitor_NS(*ts, 0, 0., *Q, user));
+    }
+    if (app_ctx->surf_forces_enable) {
       PetscCall(TSMonitor_FaceForce(*ts, 0, 0., *Q, user));
     }
   } else {  // continue from time of last output
@@ -561,6 +562,8 @@ PetscErrorCode TSSolve_NS(DM dm, User user, AppCtx app_ctx, Physics phys, Vec *Q
   }
   if (app_ctx->test_type == TESTTYPE_NONE) {
     PetscCall(TSMonitorSet(*ts, TSMonitor_NS, user, NULL));
+  }
+  if (app_ctx->surf_forces_enable) {
     PetscCall(TSMonitorSet(*ts, TSMonitor_FaceForce, user, NULL));
   }
   if (app_ctx->turb_spanstats_enable) {
