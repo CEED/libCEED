@@ -16,8 +16,8 @@
 
 using SyclModule_t = sycl::kernel_bundle<sycl::bundle_state::executable>;
 
-CEED_INTERN int CeedJitBuildModule_Sycl(Ceed ceed, const std::string &kernel_source, SyclModule_t *sycl_module,
+CEED_INTERN int CeedJitBuildModule_Sycl(Ceed ceed, const std::string &kernel_source, SyclModule_t **sycl_module,
                                         const std::map<std::string, CeedInt> &constants = {});
-CEED_INTERN int CeedJitGetKernel_Sycl(Ceed ceed, const SyclModule_t *sycl_module, const std::string &kernel_name, sycl::kernel *sycl_kernel);
+CEED_INTERN int CeedJitGetKernel_Sycl(Ceed ceed, const SyclModule_t *sycl_module, const std::string &kernel_name, sycl::kernel **sycl_kernel);
 
 #endif  // _ceed_sycl_compile_h

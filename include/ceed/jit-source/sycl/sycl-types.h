@@ -10,13 +10,10 @@
 #ifndef _ceed_sycl_types_h
 #define _ceed_sycl_types_h
 
-// #pragma OPENCL EXTENSION cl_khr_fp64 : enable
-
 #include <ceed/types.h>
 
 #define CEED_SYCL_NUMBER_FIELDS 16
 
-// TODO: Determine if pointers should have `__global` qualifier
 typedef struct {
   const CeedScalar* inputs[CEED_SYCL_NUMBER_FIELDS];
   CeedScalar*       outputs[CEED_SYCL_NUMBER_FIELDS];

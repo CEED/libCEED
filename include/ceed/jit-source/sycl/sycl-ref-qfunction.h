@@ -10,16 +10,14 @@
 //------------------------------------------------------------------------------
 // Read from quadrature points
 //------------------------------------------------------------------------------
-#ifndef READ_QUADS
-#define READ_QUADS(ncomp, q, nq, d_u, r_u) \
-  for (CeedInt comp = 0; comp < ncomp; comp++) r_u[comp] = d_u[q + nq * comp];
-#endif
+inline void readQuads(CeedInt N, CeedInt stride, CeedInt offset, const CeedScalar *src, CeedScalar *dest) {
+  for (CeedInt i = 0; i < N; ++i) dest[i] = src[stride * i + offset];
+}
 
 //------------------------------------------------------------------------------
 // Write at quadrature points
 //------------------------------------------------------------------------------
-#ifndef WRITE_QUADS
-#define WRITE_QUADS(ncomp, q, nq, r_v, d_v) \
-  for (CeedInt comp = 0; comp < ncomp; comp++) d_v[q + nq * comp] = r_v[comp];
-#endif
+inline void writeQuads(CeedInt N, CeedInt stride, CeedInt offset, const CeedScalar *src, CeedScalar *dest) {
+  for (CeedInt i = 0; i < N; ++i) dest[stride * i + offset] = src[i];
+}
 //------------------------------------------------------------------------------

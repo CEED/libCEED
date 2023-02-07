@@ -67,12 +67,8 @@ typedef struct {
 } CeedBasisNonTensor_Sycl;
 
 typedef struct {
-  char         *qfunction_name;
-  char         *qfunction_source;
   SyclModule_t *sycl_module;
   sycl::kernel *QFunction;
-  Fields_Sycl   fields;
-  void         *d_c;
 } CeedQFunction_Sycl;
 
 typedef struct {
@@ -85,9 +81,6 @@ typedef struct {
 } CeedQFunctionContext_Sycl;
 
 typedef struct {
-  // CUmodule module;
-  // CUfunction linearDiagonal;
-  // CUfunction linearPointBlock;
   CeedBasis           basisin, basisout;
   CeedElemRestriction diagrstr, pbdiagrstr;
   CeedVector          elemdiag, pbelemdiag;
@@ -98,8 +91,6 @@ typedef struct {
 } CeedOperatorDiag_Sycl;
 
 typedef struct {
-  // CUmodule module;
-  // CUfunction linearAssemble;
   CeedInt     nelem, block_size_x, block_size_y, elemsPerBlock;
   CeedScalar *d_B_in, *d_B_out;
 } CeedOperatorAssemble_Sycl;

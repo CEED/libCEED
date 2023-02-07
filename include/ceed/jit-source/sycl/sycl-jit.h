@@ -15,6 +15,7 @@
 #define CeedPragmaSIMD
 #define CEED_Q_VLA 1
 
+// Need quotes for recursive header inclusion
 #include "sycl-types.h"
 
 #endif

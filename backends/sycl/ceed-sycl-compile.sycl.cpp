@@ -56,7 +56,7 @@ static int CeedJitAddDefinitions_Sycl(Ceed ceed, const std::string &kernel_sourc
 // TODO: Add architecture flags, optimization flags
 //------------------------------------------------------------------------------
 static inline int CeedJitGetFlags_Sycl(std::vector<std::string> &flags) {
-  flags = {std::string("-cl-std=CL3.0")};
+  flags = {std::string("-cl-std=CL3.0"), std::string("-Dint32_t=int")};
   return CEED_ERROR_SUCCESS;
 }
 
@@ -81,7 +81,7 @@ static inline int CeedJitCompileSource_Sycl(Ceed ceed, const sycl::device &sycl_
 // TODO: Error handle lz calls
 // ------------------------------------------------------------------------------
 static int CeedJitLoadModule_Sycl(const sycl::context &sycl_context, const sycl::device &sycl_device, const ByteVector_t &il_binary,
-                                  [[maybe_unused]] SyclModule_t *sycl_module) {
+                                  SyclModule_t **sycl_module) {
   auto lz_context = sycl::get_native<sycl::backend::ext_oneapi_level_zero>(sycl_context);
   auto lz_device  = sycl::get_native<sycl::backend::ext_oneapi_level_zero>(sycl_device);
 
@@ -97,7 +97,7 @@ static int CeedJitLoadModule_Sycl(const sycl::context &sycl_context, const sycl:
   zeModuleCreate(lz_context, lz_device, &lz_mod_desc, &lz_module, nullptr);
 
   // sycl make_<type> only throws errors for backend mismatch--assume we have vetted this already
-  sycl_module = new SyclModule_t(sycl::make_kernel_bundle<sycl::backend::ext_oneapi_level_zero, sycl::bundle_state::executable>(
+  *sycl_module = new SyclModule_t(sycl::make_kernel_bundle<sycl::backend::ext_oneapi_level_zero, sycl::bundle_state::executable>(
       {lz_module, sycl::ext::oneapi::level_zero::ownership::transfer}, sycl_context));
 
   return CEED_ERROR_SUCCESS;
@@ -106,7 +106,8 @@ static int CeedJitLoadModule_Sycl(const sycl::context &sycl_context, const sycl:
 // ------------------------------------------------------------------------------
 // Compile kernel source to an executable `sycl::kernel_bundle`
 // ------------------------------------------------------------------------------
-int CeedJitBuildModule_Sycl(Ceed ceed, const std::string &kernel_source, SyclModule_t *sycl_module, const std::map<std::string, CeedInt> &constants) {
+int CeedJitBuildModule_Sycl(Ceed ceed, const std::string &kernel_source, SyclModule_t **sycl_module,
+                            const std::map<std::string, CeedInt> &constants) {
   Ceed_Sycl *data;
   CeedCallBackend(CeedGetData(ceed, &data));
 
@@ -129,7 +130,7 @@ int CeedJitBuildModule_Sycl(Ceed ceed, const std::string &kernel_source, SyclMod
 //
 // TODO: Error handle lz calls
 // ------------------------------------------------------------------------------
-int CeedJitGetKernel_Sycl(Ceed ceed, const SyclModule_t *sycl_module, const std::string &kernel_name, [[maybe_unused]] sycl::kernel *sycl_kernel) {
+int CeedJitGetKernel_Sycl(Ceed ceed, const SyclModule_t *sycl_module, const std::string &kernel_name, sycl::kernel **sycl_kernel) {
   Ceed_Sycl *data;
   CeedCallBackend(CeedGetData(ceed, &data));
 
@@ -141,7 +142,7 @@ int CeedJitGetKernel_Sycl(Ceed ceed, const SyclModule_t *sycl_module, const std:
   ze_kernel_handle_t lz_kernel;
   zeKernelCreate(lz_module, &lz_kernel_desc, &lz_kernel);
 
-  sycl_kernel = new sycl::kernel(sycl::make_kernel<sycl::backend::ext_oneapi_level_zero>(
+  *sycl_kernel = new sycl::kernel(sycl::make_kernel<sycl::backend::ext_oneapi_level_zero>(
       {*sycl_module, lz_kernel, sycl::ext::oneapi::level_zero::ownership::transfer}, data->sycl_context));
 
   return CEED_ERROR_SUCCESS;
