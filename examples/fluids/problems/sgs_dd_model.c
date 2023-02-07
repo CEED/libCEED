@@ -159,6 +159,87 @@ PetscErrorCode SGS_DD_ModelSetupNodalEvaluation(Ceed ceed, User user, CeedData c
   PetscFunctionReturn(0);
 }
 
+// @brief Create CeedOperator to compute SGS contribution to the residual
+PetscErrorCode SGS_ModelSetupNodalIFunction(Ceed ceed, User user, CeedData ceed_data, SGS_DD_ModelSetupData sgs_dd_setup_data) {
+  SGS_DD_Data   sgs_dd_data = user->sgs_dd_data;
+  CeedInt       dim, num_comp_q, num_comp_qd, num_comp_x, num_qpts_1d, num_nodes_1d;
+  CeedQFunction qf_sgs_apply;
+  CeedOperator  op_sgs_apply;
+  CeedBasis     basis_sgs;
+
+  PetscFunctionBeginUser;
+  PetscCall(DMGetDimension(user->dm, &dim));
+  CeedElemRestrictionGetNumComponents(ceed_data->elem_restr_q, &num_comp_q);
+  CeedElemRestrictionGetNumComponents(ceed_data->elem_restr_qd_i, &num_comp_qd);
+  CeedElemRestrictionGetNumComponents(ceed_data->elem_restr_x, &num_comp_x);
+  CeedBasisGetNumQuadraturePoints1D(ceed_data->basis_q, &num_qpts_1d);
+  CeedBasisGetNumNodes1D(ceed_data->basis_q, &num_nodes_1d);
+
+  CeedBasisCreateTensorH1Lagrange(ceed, dim, sgs_dd_data->num_comp_sgs, num_nodes_1d, num_qpts_1d, CEED_GAUSS, &basis_sgs);
+
+  switch (user->phys->state_var) {
+    case STATEVAR_PRIMITIVE:
+      CeedQFunctionCreateInterior(ceed, 1, IFunction_NodalSubgridStress_Prim, IFunction_NodalSubgridStress_Prim_loc, &qf_sgs_apply);
+      break;
+    case STATEVAR_CONSERVATIVE:
+      CeedQFunctionCreateInterior(ceed, 1, IFunction_NodalSubgridStress_Conserv, IFunction_NodalSubgridStress_Conserv_loc, &qf_sgs_apply);
+      break;
+    default:
+      SETERRQ(PetscObjectComm((PetscObject)user->dm), PETSC_ERR_SUP, "Nodal SGS evaluation not available for chosen state variable");
+  }
+
+  CeedQFunctionSetContext(qf_sgs_apply, sgs_dd_setup_data->sgsdd_qfctx);
+  CeedQFunctionAddInput(qf_sgs_apply, "q", num_comp_q, CEED_EVAL_INTERP);
+  CeedQFunctionAddInput(qf_sgs_apply, "qdata", num_comp_qd, CEED_EVAL_NONE);
+  CeedQFunctionAddInput(qf_sgs_apply, "x", num_comp_x, CEED_EVAL_INTERP);
+  CeedQFunctionAddInput(qf_sgs_apply, "km_sgs", sgs_dd_data->num_comp_sgs, CEED_EVAL_INTERP);
+  CeedQFunctionAddOutput(qf_sgs_apply, "Grad_v", num_comp_q * dim, CEED_EVAL_GRAD);
+
+  CeedOperatorCreate(ceed, qf_sgs_apply, NULL, NULL, &op_sgs_apply);
+  CeedOperatorSetField(op_sgs_apply, "q", ceed_data->elem_restr_q, ceed_data->basis_q, CEED_VECTOR_ACTIVE);
+  CeedOperatorSetField(op_sgs_apply, "qdata", ceed_data->elem_restr_qd_i, CEED_BASIS_COLLOCATED, ceed_data->q_data);
+  CeedOperatorSetField(op_sgs_apply, "x", ceed_data->elem_restr_x, ceed_data->basis_x, ceed_data->x_coord);
+  CeedOperatorSetField(op_sgs_apply, "km_sgs", sgs_dd_setup_data->elem_restr_sgs, basis_sgs, sgs_dd_data->sgs_nodal_ceed);
+  CeedOperatorSetField(op_sgs_apply, "Grad_v", ceed_data->elem_restr_q, ceed_data->basis_q, CEED_VECTOR_ACTIVE);
+
+  PetscCall(
+      OperatorApplyContextCreate(user->dm, user->dm, ceed, op_sgs_apply, user->q_ceed, user->g_ceed, NULL, NULL, &sgs_dd_data->op_sgs_apply_ctx));
+
+  CeedOperatorDestroy(&op_sgs_apply);
+  CeedQFunctionDestroy(&qf_sgs_apply);
+  PetscFunctionReturn(0);
+}
+
+// @brief Calculate and add data-driven SGS residual to the global residual
+PetscErrorCode SGS_DD_ModelApplyIFunction(User user, const Vec Q_loc, Vec G_loc) {
+  SGS_DD_Data  sgs_dd_data = user->sgs_dd_data;
+  Vec          VelocityGradient, SGSNodal_loc;
+  PetscMemType sgs_nodal_mem_type, q_mem_type;
+
+  PetscFunctionBeginUser;
+  PetscCall(DMGetGlobalVector(user->grad_velo_proj->dm, &VelocityGradient));
+  PetscCall(VelocityGradientProjectionApply(user, Q_loc, VelocityGradient));
+
+  // -- Compute Nodal SGS tensor
+  PetscCall(DMGetLocalVector(sgs_dd_data->dm_sgs, &SGSNodal_loc));
+  PetscCall(VecP2C(Q_loc, &q_mem_type, user->q_ceed));  // q_ceed is an implicit input
+
+  PetscCall(ApplyCeedOperatorGlobalToLocal(VelocityGradient, SGSNodal_loc, sgs_dd_data->op_nodal_evaluation_ctx));
+
+  PetscCall(VecC2P(user->q_ceed, q_mem_type, Q_loc));
+  PetscCall(VecP2C(SGSNodal_loc, &sgs_nodal_mem_type, sgs_dd_data->sgs_nodal_ceed));  // sgs_nodal_ceed is an implicit input
+
+  // -- Compute contribution of the SGS stress
+  PetscCall(ApplyAddCeedOperatorLocalToLocal(Q_loc, G_loc, sgs_dd_data->op_sgs_apply_ctx));
+
+  // -- Return local SGS vector
+  PetscCall(VecC2P(sgs_dd_data->sgs_nodal_ceed, sgs_nodal_mem_type, SGSNodal_loc));
+  PetscCall(DMRestoreLocalVector(sgs_dd_data->dm_sgs, &SGSNodal_loc));
+  PetscCall(DMRestoreGlobalVector(user->grad_velo_proj->dm, &VelocityGradient));
+
+  PetscFunctionReturn(0);
+}
+
 // @brief B = A^T, A is NxM, B is MxN
 PetscErrorCode TransposeMatrix(const PetscScalar *A, PetscScalar *B, const PetscInt N, const PetscInt M) {
   PetscFunctionBeginUser;
@@ -267,6 +348,9 @@ PetscErrorCode SGS_DD_ModelSetup(Ceed ceed, User user, CeedData ceed_data, Probl
 
   // -- Create Nodal Evaluation Operator
   PetscCall(SGS_DD_ModelSetupNodalEvaluation(ceed, user, ceed_data, sgs_dd_setup_data));
+
+  // -- Create Operator to evalutate residual of SGS stress
+  PetscCall(SGS_ModelSetupNodalIFunction(ceed, user, ceed_data, sgs_dd_setup_data));
 
   PetscCall(SGS_DD_ModelSetupDataDestroy(sgs_dd_setup_data));
   PetscFunctionReturn(0);

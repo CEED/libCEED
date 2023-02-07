@@ -161,7 +161,7 @@ typedef struct {
 typedef struct {
   DM                   dm_sgs;
   PetscInt             num_comp_sgs;
-  OperatorApplyContext op_nodal_evaluation_ctx;
+  OperatorApplyContext op_nodal_evaluation_ctx, op_sgs_apply_ctx;
   CeedVector           sgs_nodal_ceed;
 } *SGS_DD_Data;
 
@@ -393,6 +393,7 @@ PetscErrorCode DestroyStats(User user, CeedData ceed_data);
 
 PetscErrorCode SGS_DD_ModelSetup(Ceed ceed, User user, CeedData ceed_data, ProblemData *problem);
 PetscErrorCode SGS_DD_DataDestroy(SGS_DD_Data sgs_dd_data);
+PetscErrorCode SGS_DD_ModelApplyIFunction(User user, const Vec Q_loc, Vec G_loc);
 PetscErrorCode VelocityGradientProjectionSetup(Ceed ceed, User user, CeedData ceed_data, ProblemData *problem);
 PetscErrorCode VelocityGradientProjectionApply(User user, Vec Q_loc, Vec VelocityGradient);
 PetscErrorCode GridAnisotropyTensorProjectionSetupApply(Ceed ceed, User user, CeedData ceed_data, CeedElemRestriction *elem_restr_grid_aniso,

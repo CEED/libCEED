@@ -15,8 +15,8 @@
 
 #include <ceed.h>
 
-#include "newtonian_types.h"
 #include "newtonian_state.h"
+#include "newtonian_types.h"
 #include "utils.h"
 #include "utils_eigensolver_jacobi.h"
 
@@ -195,6 +195,63 @@ CEED_QFUNCTION(ComputeSGS_DDAnisotropicNodal_Prim)(void *ctx, CeedInt Q, const C
 
 CEED_QFUNCTION(ComputeSGS_DDAnisotropicNodal_Conserv)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
   return ComputeSGS_DDAnisotropicNodal(ctx, Q, in, out, StateFromU);
+}
+
+// @brief Adds subgrid stress to residual (during IFunction evaluation)
+CEED_QFUNCTION_HELPER int FluxSubgridStress(const StatePrimitive Y, const CeedScalar km_sgs[6], CeedScalar Flux[5][3]) {
+  CeedScalar sgs[3][3];
+
+  KMUnpack(km_sgs, sgs);
+  for (CeedInt j = 0; j < 3; j++) {
+    Flux[0][j] = 0.;
+    for (CeedInt k = 0; k < 3; k++) Flux[k + 1][j] = sgs[k][j];
+    Flux[4][j] = Y.velocity[0] * sgs[0][j] + Y.velocity[1] * sgs[1][j] + Y.velocity[2] * sgs[2][j];
+  }
+  return 0;
+}
+
+CEED_QFUNCTION_HELPER int IFunction_NodalSubgridStress(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out,
+                                                       StateFromQi_t StateFromQi, StateFromQi_fwd_t StateFromQi_fwd) {
+  const CeedScalar(*q)[CEED_Q_VLA]      = (const CeedScalar(*)[CEED_Q_VLA])in[0];
+  const CeedScalar(*q_data)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[1];
+  const CeedScalar(*x)[CEED_Q_VLA]      = (const CeedScalar(*)[CEED_Q_VLA])in[2];
+  const CeedScalar(*km_sgs)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[3];
+  CeedScalar(*Grad_v)[5][CEED_Q_VLA]    = (CeedScalar(*)[5][CEED_Q_VLA])out[0];
+
+  SGS_DDModelContext       sgsdd_ctx = (SGS_DDModelContext)ctx;
+  NewtonianIdealGasContext gas       = &sgsdd_ctx->gas;
+
+  CeedPragmaSIMD for (CeedInt i = 0; i < Q; i++) {
+    const CeedScalar qi[5]  = {q[0][i], q[1][i], q[2][i], q[3][i], q[4][i]};
+    const CeedScalar x_i[3] = {x[0][i], x[1][i], x[2][i]};
+    const State      s      = StateFromQi(gas, qi, x_i);
+
+    const CeedScalar wdetJ      = q_data[0][i];
+    const CeedScalar dXdx[3][3] = {
+        {q_data[1][i], q_data[2][i], q_data[3][i]},
+        {q_data[4][i], q_data[5][i], q_data[6][i]},
+        {q_data[7][i], q_data[8][i], q_data[9][i]}
+    };
+
+    CeedScalar       Flux[5][3];
+    const CeedScalar km_sgs_i[6] = {km_sgs[0][i], km_sgs[1][i], km_sgs[2][i], km_sgs[3][i], km_sgs[4][i], km_sgs[5][i]};
+    FluxSubgridStress(s.Y, km_sgs_i, Flux);
+
+    for (CeedInt j = 0; j < 3; j++) {
+      for (CeedInt k = 0; k < 5; k++) {
+        Grad_v[j][k][i] = -wdetJ * (dXdx[j][0] * Flux[k][0] + dXdx[j][1] * Flux[k][1] + dXdx[j][2] * Flux[k][2]);
+      }
+    }
+  }
+  return 0;
+}
+
+CEED_QFUNCTION(IFunction_NodalSubgridStress_Conserv)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
+  return IFunction_NodalSubgridStress(ctx, Q, in, out, StateFromU, StateFromU_fwd);
+}
+
+CEED_QFUNCTION(IFunction_NodalSubgridStress_Prim)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
+  return IFunction_NodalSubgridStress(ctx, Q, in, out, StateFromY, StateFromY_fwd);
 }
 
 #endif  // sgs_dd_model_h
