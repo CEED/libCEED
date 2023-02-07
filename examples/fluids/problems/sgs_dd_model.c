@@ -90,6 +90,7 @@ PetscErrorCode SGS_DD_ModelSetupNodalEvaluation(Ceed ceed, User user, CeedData c
   CeedOperatorGetFieldByName(user->grad_velo_proj->l2_rhs_ctx->op, "velocity gradient", &op_field);
   CeedOperatorFieldGetElemRestriction(op_field, &elem_restr_grad_velo);
   CeedElemRestrictionGetNumComponents(elem_restr_grad_velo, &num_comp_grad_velo);
+  CeedElemRestrictionCreateVector(elem_restr_grad_velo, &sgs_dd_data->grad_velo_ceed, NULL);
 
   PetscCall(GetRestrictionForDomain(ceed, sgs_dd_data->dm_sgs, 0, 0, 0, num_qpts_1d, 0, &elem_restr_sgs, NULL, NULL));
   CeedElemRestrictionCreateVector(elem_restr_sgs, &sgs_dd_data->sgs_nodal_ceed, NULL);
@@ -153,6 +154,90 @@ PetscErrorCode SGS_DD_ModelSetupNodalEvaluation(Ceed ceed, User user, CeedData c
   CeedQFunctionDestroy(&qf_multiplicity);
   CeedQFunctionDestroy(&qf_sgs_dd_nodal);
   CeedOperatorDestroy(&op_multiplicity);
+  PetscFunctionReturn(0);
+}
+
+PetscErrorCode SGS_ModelSetupNodalIFunction(Ceed ceed, User user, CeedData ceed_data, SGS_DD_ModelSetupData sgs_dd_setup_data) {
+  SGS_DD_Data   sgs_dd_data = user->sgs_dd_data;
+  CeedInt       dim, num_comp_q, num_comp_qd, num_comp_x, num_qpts_1d, num_nodes_1d;
+  CeedQFunction qf_sgs_apply;
+  CeedOperator  op_sgs_apply;
+  CeedBasis     basis_sgs;
+  PetscFunctionBeginUser;
+
+  PetscCall(DMGetDimension(user->dm, &dim));
+  CeedElemRestrictionGetNumComponents(ceed_data->elem_restr_q, &num_comp_q);
+  CeedElemRestrictionGetNumComponents(ceed_data->elem_restr_qd_i, &num_comp_qd);
+  CeedElemRestrictionGetNumComponents(ceed_data->elem_restr_x, &num_comp_x);
+  CeedBasisGetNumQuadraturePoints1D(ceed_data->basis_q, &num_qpts_1d);
+  CeedBasisGetNumNodes1D(ceed_data->basis_q, &num_nodes_1d);
+
+  CeedBasisCreateTensorH1Lagrange(ceed, dim, sgs_dd_data->num_comp_sgs, num_nodes_1d, num_qpts_1d, CEED_GAUSS, &basis_sgs);
+
+  switch (user->phys->state_var) {
+    case STATEVAR_PRIMITIVE:
+      CeedQFunctionCreateInterior(ceed, 1, IFunction_NodalSubgridStress_Prim, IFunction_NodalSubgridStress_Prim_loc, &qf_sgs_apply);
+      break;
+    case STATEVAR_CONSERVATIVE:
+      CeedQFunctionCreateInterior(ceed, 1, IFunction_NodalSubgridStress_Conserv, IFunction_NodalSubgridStress_Conserv_loc, &qf_sgs_apply);
+      break;
+    default:
+      SETERRQ(PetscObjectComm((PetscObject)user->dm), PETSC_ERR_SUP, "No statisics collection available for chosen state variable");
+  }
+
+  CeedQFunctionSetContext(qf_sgs_apply, sgs_dd_setup_data->sgsdd_qfctx);
+  CeedQFunctionAddInput(qf_sgs_apply, "q", num_comp_q, CEED_EVAL_INTERP);
+  CeedQFunctionAddInput(qf_sgs_apply, "qdata", num_comp_qd, CEED_EVAL_NONE);
+  CeedQFunctionAddInput(qf_sgs_apply, "x", num_comp_x, CEED_EVAL_INTERP);
+  CeedQFunctionAddInput(qf_sgs_apply, "km_sgs", sgs_dd_data->num_comp_sgs, CEED_EVAL_INTERP);
+  CeedQFunctionAddOutput(qf_sgs_apply, "Grad_v", num_comp_q * dim, CEED_EVAL_GRAD);
+
+  CeedOperatorCreate(ceed, qf_sgs_apply, NULL, NULL, &op_sgs_apply);
+  CeedOperatorSetField(op_sgs_apply, "q", ceed_data->elem_restr_q, ceed_data->basis_q, CEED_VECTOR_ACTIVE);
+  CeedOperatorSetField(op_sgs_apply, "qdata", ceed_data->elem_restr_qd_i, CEED_BASIS_COLLOCATED, ceed_data->q_data);
+  CeedOperatorSetField(op_sgs_apply, "x", ceed_data->elem_restr_x, ceed_data->basis_x, ceed_data->x_coord);
+  CeedOperatorSetField(op_sgs_apply, "km_sgs", sgs_dd_setup_data->elem_restr_sgs, basis_sgs, sgs_dd_data->sgs_nodal_ceed);
+  CeedOperatorSetField(op_sgs_apply, "Grad_v", ceed_data->elem_restr_q, ceed_data->basis_q, CEED_VECTOR_ACTIVE);
+  sgs_dd_data->op_sgs_apply = op_sgs_apply;
+
+  CeedQFunctionDestroy(&qf_sgs_apply);
+  PetscFunctionReturn(0);
+}
+
+PetscErrorCode SGS_DD_ModelApplyIFunction(User user, const Vec Q_loc, const CeedVector q_ceed, CeedVector g_ceed) {
+  SGS_DD_Data  sgs_dd_data = user->sgs_dd_data;
+  Vec          VelocityGradient, VelocityGradient_loc, SGSNodal_loc;
+  PetscMemType grad_velo_mem_type, sgs_nodal_mem_type;
+  PetscScalar *grad_velo_array, *sgs_nodal_array;
+  PetscFunctionBeginUser;
+
+  PetscCall(VelocityGradientProjectionApply(user, Q_loc, &VelocityGradient));
+
+  // -- Compute Nodal SGS tensor
+  PetscCall(DMGetLocalVector(sgs_dd_data->dm_sgs, &SGSNodal_loc));
+  PetscCall(VecGetArrayAndMemType(SGSNodal_loc, &sgs_nodal_array, &sgs_nodal_mem_type));
+  CeedVectorSetArray(sgs_dd_data->sgs_nodal_ceed, MemTypeP2C(sgs_nodal_mem_type), CEED_USE_POINTER, sgs_nodal_array);
+
+  PetscCall(DMGetLocalVector(user->grad_velo_proj->dm, &VelocityGradient_loc));
+  PetscCall(DMGlobalToLocal(user->grad_velo_proj->dm, VelocityGradient, INSERT_VALUES, VelocityGradient_loc));
+  PetscCall(VecGetArrayReadAndMemType(VelocityGradient_loc, (const PetscScalar **)&grad_velo_array, &grad_velo_mem_type));
+  CeedVectorSetArray(sgs_dd_data->grad_velo_ceed, MemTypeP2C(grad_velo_mem_type), CEED_USE_POINTER, grad_velo_array);
+
+  CeedOperatorApply(sgs_dd_data->op_nodal_evaluation, sgs_dd_data->grad_velo_ceed, sgs_dd_data->sgs_nodal_ceed, CEED_REQUEST_IMMEDIATE);
+
+  CeedVectorTakeArray(sgs_dd_data->grad_velo_ceed, MemTypeP2C(grad_velo_mem_type), &grad_velo_array);
+  PetscCall(VecRestoreArrayReadAndMemType(VelocityGradient_loc, (const PetscScalar **)&grad_velo_array));
+  PetscCall(DMRestoreLocalVector(user->grad_velo_proj->dm, &VelocityGradient_loc));
+
+  // -- Compute contribution of the SGS stress
+  // sgs_nodal_ceed is an implicit input
+  CeedOperatorApplyAdd(sgs_dd_data->op_sgs_apply, q_ceed, g_ceed, CEED_REQUEST_IMMEDIATE);
+
+  // -- Return local SGS vector
+  CeedVectorTakeArray(sgs_dd_data->sgs_nodal_ceed, MemTypeP2C(sgs_nodal_mem_type), &sgs_nodal_array);
+  PetscCall(VecRestoreArrayAndMemType(SGSNodal_loc, &sgs_nodal_array));
+  PetscCall(DMRestoreLocalVector(sgs_dd_data->dm_sgs, &SGSNodal_loc));
+
   PetscFunctionReturn(0);
 }
 
@@ -260,6 +345,9 @@ PetscErrorCode SGS_DD_ModelSetup(Ceed ceed, User user, CeedData ceed_data, Probl
   // -- Create Nodal Evaluation Operator
   PetscCall(SGS_DD_ModelSetupNodalEvaluation(ceed, user, ceed_data, sgs_dd_setup_data));
 
+  // -- Create Operator to evalutate residual of SGS stress
+  PetscCall(SGS_ModelSetupNodalIFunction(ceed, user, ceed_data, sgs_dd_setup_data));
+
   PetscCall(SGS_DD_ModelSetupDataDestroy(sgs_dd_setup_data));
   PetscFunctionReturn(0);
 }
@@ -270,8 +358,10 @@ PetscErrorCode SGS_DD_DataDestroy(SGS_DD_Data sgs_dd_data) {
   if (!sgs_dd_data) PetscFunctionReturn(0);
 
   CeedVectorDestroy(&sgs_dd_data->sgs_nodal_ceed);
+  CeedVectorDestroy(&sgs_dd_data->grad_velo_ceed);
 
   CeedOperatorDestroy(&sgs_dd_data->op_nodal_evaluation);
+  CeedOperatorDestroy(&sgs_dd_data->op_sgs_apply);
 
   PetscCall(DMDestroy(&sgs_dd_data->dm_sgs));
 
