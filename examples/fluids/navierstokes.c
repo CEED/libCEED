@@ -139,6 +139,9 @@ int main(int argc, char **argv) {
   // -- Set up DM
   PetscCall(SetUpDM(dm, problem, app_ctx->degree, bc, phys_ctx));
   PetscCall(CreateStatsDM(user, problem, app_ctx->degree, bc));
+  app_ctx->wall_forces.num_wall = bc->num_wall;
+  PetscMalloc1(bc->num_wall, &app_ctx->wall_forces.walls);
+  PetscCall(PetscArraycpy(app_ctx->wall_forces.walls, bc->walls, bc->num_wall));
 
   // -- Refine DM for high-order viz
   if (app_ctx->viz_refine) {
@@ -369,6 +372,8 @@ int main(int argc, char **argv) {
   PetscCall(PetscFunctionListDestroy(&app_ctx->problems));
 
   PetscCall(PetscFree(app_ctx->amat_type));
+  PetscCall(PetscFree(app_ctx->wall_forces.walls));
+  PetscCall(PetscViewerDestroy(&app_ctx->wall_forces.viewer));
 
   // -- Structs
   PetscCall(PetscFree(units));

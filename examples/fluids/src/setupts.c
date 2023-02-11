@@ -140,19 +140,19 @@ PetscErrorCode RHS_NS(TS ts, PetscReal t, Vec Q, Vec G, void *user_data) {
 }
 
 // Surface forces function setup
-static PetscErrorCode Surface_Forces_NS(DM dm, Vec G_loc) {
-  const PetscInt     num_walls = 1, walls[] = {5};  // "cylinderwalls" in meshes/cylinder-*.msh
+static PetscErrorCode Surface_Forces_NS(DM dm, Vec G_loc, PetscInt num_walls, const PetscInt walls[], PetscScalar *reaction_force) {
   DMLabel            face_label;
   const PetscScalar *g;
+  PetscInt           dim = 3;
   MPI_Comm           comm;
 
   PetscFunctionBeginUser;
-  PetscObjectGetComm((PetscObject)dm, &comm);
+  PetscCall(PetscArrayzero(reaction_force, num_walls * dim));
+  PetscCall(PetscObjectGetComm((PetscObject)dm, &comm));
   PetscCall(DMGetLabel(dm, "Face Sets", &face_label));
   PetscCall(VecGetArrayRead(G_loc, &g));
   for (PetscInt w = 0; w < num_walls; w++) {
-    PetscScalar    reaction_force[3] = {0};
-    const PetscInt wall              = walls[w];
+    const PetscInt wall = walls[w];
     IS             wall_is;
     PetscCall(DMLabelGetStratumIS(face_label, wall, &wall_is));
     if (wall_is) {  // There exist such points on this process
@@ -166,16 +166,14 @@ static PetscErrorCode Surface_Forces_NS(DM dm, Vec G_loc) {
         PetscCall(DMPlexPointLocalRead(dm, p, g, &r));
         if (!r) continue;
         for (PetscInt j = 0; j < 3; j++) {
-          reaction_force[j] -= r->momentum[j];
+          reaction_force[w * dim + j] -= r->momentum[j];
         }
       }
       PetscCall(ISRestoreIndices(wall_is, &points));
     }
     PetscCall(ISDestroy(&wall_is));
-    PetscCallMPI(MPI_Allreduce(MPI_IN_PLACE, reaction_force, 3, MPIU_SCALAR, MPI_SUM, comm));
-    PetscCall(PetscPrintf(comm, "Wall %" PetscInt_FMT " Forces: Force_x = %12g, Force_y = %12g, Force_z = %12g\n", wall, reaction_force[0],
-                          reaction_force[1], reaction_force[2]));
   }
+  PetscCallMPI(MPI_Allreduce(MPI_IN_PLACE, reaction_force, dim * num_walls, MPIU_SCALAR, MPI_SUM, comm));
   //  Restore Vectors
   PetscCall(VecRestoreArrayRead(G_loc, &g));
 
@@ -192,7 +190,7 @@ PetscErrorCode IFunction_NS(TS ts, PetscReal t, Vec Q, Vec Q_dot, Vec G, void *u
   PetscFunctionBeginUser;
 
   // Get local vectors
-  PetscCall(DMGetLocalVector(user->dm, &G_loc));
+  PetscCall(DMGetNamedLocalVector(user->dm, "ResidualLocal", &G_loc));
 
   // Update time dependent data
   PetscCall(UpdateBoundaryValues(user, Q_loc, t));
@@ -225,14 +223,12 @@ PetscErrorCode IFunction_NS(TS ts, PetscReal t, Vec Q, Vec Q_dot, Vec G, void *u
   PetscCall(VecRestoreArrayReadAndMemType(Q_dot_loc, &q_dot));
   PetscCall(VecRestoreArrayAndMemType(G_loc, &g));
 
-  PetscCall(Surface_Forces_NS(user->dm, G_loc));
-
   // Local-to-Global
   PetscCall(VecZeroEntries(G));
   PetscCall(DMLocalToGlobal(user->dm, G_loc, ADD_VALUES, G));
 
   // Restore vectors
-  PetscCall(DMRestoreLocalVector(user->dm, &G_loc));
+  PetscCall(DMRestoreNamedLocalVector(user->dm, "ResidualLocal", &G_loc));
 
   PetscFunctionReturn(0);
 }
@@ -444,37 +440,43 @@ PetscErrorCode WriteOutput(User user, Vec Q, PetscInt step_no, PetscScalar time)
 }
 
 // CSV Monitor
-PetscErrorCode TSMonitor_FaceForce(TS ts, PetscInt step_no, PetscReal time, Vec Q, void *ctx) {
-  User        user = ctx;
-  Vec         G_loc;
-  PetscViewer viewer;
-  PetscBool   iascii;
+PetscErrorCode TSMonitor_WallForce(TS ts, PetscInt step_no, PetscReal time, Vec Q, void *ctx) {
+  User              user = ctx;
+  Vec               G_loc;
+  PetscInt          num_wall = user->app_ctx->wall_forces.num_wall, dim = 3;
+  const PetscInt   *walls  = user->app_ctx->wall_forces.walls;
+  PetscViewer       viewer = user->app_ctx->wall_forces.viewer;
+  PetscViewerFormat format = user->app_ctx->wall_forces.viewer_format;
+  PetscScalar      *reaction_force;
+  PetscBool         iascii;
 
   PetscFunctionBeginUser;
+  if (!viewer) PetscFunctionReturn(0);
+  PetscCall(DMGetNamedLocalVector(user->dm, "ResidualLocal", &G_loc));
+  PetscCall(PetscMalloc1(num_wall * dim, &reaction_force));
+  PetscCall(Surface_Forces_NS(user->dm, G_loc, num_wall, walls, reaction_force));
+  PetscCall(DMRestoreNamedLocalVector(user->dm, "ResidualLocal", &G_loc));
 
-  PetscCall(DMGetLocalVector(user->dm, &G_loc));
-
-  PetscCall(PetscViewerCreate(PETSC_COMM_WORLD, &viewer));
-  PetscCall(PetscViewerSetType(viewer, PETSCVIEWERASCII));
-  PetscCall(PetscViewerFileSetMode(viewer, FILE_MODE_APPEND));
-  PetscCall(PetscViewerFileSetName(viewer, "Reaction_Force.csv"));
-  PetscCall(PetscViewerASCIIOpen(PETSC_COMM_WORLD, "Reaction_Force.csv", &viewer));
   PetscCall(PetscObjectTypeCompare((PetscObject)viewer, PETSCVIEWERASCII, &iascii));
 
-  PetscCall(Surface_Forces_NS(user->dm, G_loc));
-
   if (iascii) {
-    PetscCall(PetscViewerASCIIAddTab(viewer, 1));
-    if (step_no == -1) { /* this indicates it is an interpolated solution */
-      PetscCall(PetscViewerASCIIPrintf(viewer, "Interpolated solution %12f" PetscInt_FMT "\n", (double)time));
-    } else {
-      PetscCall(PetscViewerASCIIPrintf(viewer, "Solution at" PetscInt_FMT " TS Step number = %hi, Time = %12f\n", (int)step_no, (double)time));
+    if (format == PETSC_VIEWER_ASCII_CSV && !user->app_ctx->wall_forces.header_written) {
+      PetscCall(PetscViewerASCIIPrintf(viewer, "Step,Time,Wall,ForceX,ForceY,ForceZ\n"));
+      user->app_ctx->wall_forces.header_written = PETSC_TRUE;
     }
-    PetscCall(PetscViewerASCIISubtractTab(viewer, 1));
+    for (PetscInt w = 0; w < num_wall; w++) {
+      PetscInt wall = walls[w];
+      if (format == PETSC_VIEWER_ASCII_CSV) {
+        PetscCall(PetscViewerASCIIPrintf(viewer, "%" PetscInt_FMT ",%g,%" PetscInt_FMT ",%g,%g,%g\n", step_no, time, wall,
+                                         reaction_force[w * dim + 0], reaction_force[w * dim + 1], reaction_force[w * dim + 2]));
+
+      } else {
+        PetscCall(PetscViewerASCIIPrintf(viewer, "Wall %" PetscInt_FMT " Forces: Force_x = %12g, Force_y = %12g, Force_z = %12g\n", wall,
+                                         reaction_force[w * dim + 0], reaction_force[w * dim + 1], reaction_force[w * dim + 2]));
+      }
+    }
   }
-
-  PetscCall(WriteOutput(user, Q, step_no, time));
-
+  PetscCall(PetscFree(reaction_force));
   PetscFunctionReturn(0);
 }
 
@@ -543,9 +545,6 @@ PetscErrorCode TSSolve_NS(DM dm, User user, AppCtx app_ctx, Physics phys, Vec *Q
     if (app_ctx->test_type == TESTTYPE_NONE) {
       PetscCall(TSMonitor_NS(*ts, 0, 0., *Q, user));
     }
-    if (app_ctx->surf_forces_enable) {
-      PetscCall(TSMonitor_FaceForce(*ts, 0, 0., *Q, user));
-    }
   } else {  // continue from time of last output
     PetscInt    count;
     PetscViewer viewer;
@@ -563,8 +562,8 @@ PetscErrorCode TSSolve_NS(DM dm, User user, AppCtx app_ctx, Physics phys, Vec *Q
   if (app_ctx->test_type == TESTTYPE_NONE) {
     PetscCall(TSMonitorSet(*ts, TSMonitor_NS, user, NULL));
   }
-  if (app_ctx->surf_forces_enable) {
-    PetscCall(TSMonitorSet(*ts, TSMonitor_FaceForce, user, NULL));
+  if (app_ctx->wall_forces.viewer) {
+    PetscCall(TSMonitorSet(*ts, TSMonitor_WallForce, user, NULL));
   }
   if (app_ctx->turb_spanstats_enable) {
     PetscCall(TSMonitorSet(*ts, TSMonitor_Statistics, user, NULL));
