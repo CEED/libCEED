@@ -170,6 +170,11 @@ PetscErrorCode ProcessCommandLineOptions(MPI_Comm comm, AppCtx app_ctx, SimpleBC
   PetscCall(PetscOptionsViewer("-ts_monitor_wall_force", "Viewer for force on each (no-slip) wall", NULL, &app_ctx->wall_forces.viewer,
                                &app_ctx->wall_forces.viewer_format, NULL));
 
+  // SGS Model Options
+  app_ctx->sgs_model_type = SGS_MODEL_NONE;
+  PetscCall(PetscOptionsEnum("-sgs_model_type", "Subgrid Stress Model type", NULL, SGSModelTypes, (PetscEnum)app_ctx->sgs_model_type,
+                             (PetscEnum *)&app_ctx->sgs_model_type, NULL));
+
   PetscOptionsEnd();
 
   PetscFunctionReturn(0);

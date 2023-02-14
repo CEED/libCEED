@@ -77,6 +77,13 @@ typedef enum {
 } TestType;
 static const char *const TestTypes[] = {"none", "solver", "turb_spanstats", "TestType", "TESTTYPE_", NULL};
 
+// Test mode type
+typedef enum {
+  SGS_MODEL_NONE        = 0,
+  SGS_MODEL_DATA_DRIVEN = 1,
+} SGSModelType;
+static const char *const SGSModelTypes[] = {"none", "data_driven", "SGSModelType", "SGS_MODEL_", NULL};
+
 // -----------------------------------------------------------------------------
 // Structs
 // -----------------------------------------------------------------------------
@@ -128,6 +135,8 @@ struct AppCtx_private {
     PetscViewerFormat viewer_format;
     PetscBool         header_written;
   } wall_forces;
+  // Subgrid Stress Model
+  SGSModelType sgs_model_type;
 };
 
 // libCEED data struct

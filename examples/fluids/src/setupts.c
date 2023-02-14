@@ -224,7 +224,9 @@ PetscErrorCode IFunction_NS(TS ts, PetscReal t, Vec Q, Vec Q_dot, Vec G, void *u
   // Apply CEED operator
   CeedOperatorApply(user->op_ifunction, user->q_ceed, user->g_ceed, CEED_REQUEST_IMMEDIATE);
 
-  PetscCall(SGS_DD_ModelApplyIFunction(user, Q_loc, user->q_ceed, user->g_ceed));
+  if (user->app_ctx->sgs_model_type == SGS_MODEL_DATA_DRIVEN) {
+    PetscCall(SGS_DD_ModelApplyIFunction(user, Q_loc, user->q_ceed, user->g_ceed));
+  }
 
   // Restore vectors
   PetscCall(VecReadC2P(user->q_ceed, q_mem_type, Q_loc));
