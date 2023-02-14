@@ -244,7 +244,7 @@ We have described the primitive variable formulation here; the conservative vari
 
 If you know the complete exterior state, `bc_freestream` is the least reflective boundary condition, but is disruptive to viscous flow structures.
 If thermal anomalies must exit the domain, the Riemann solver must resolve the contact wave to avoid reflections.
-The default Riemann solver, HLLC, is sufficient in this regard while the simpler HLL converts thermal structures exiting the domain into grid-scale reflecting acoustics. 
+The default Riemann solver, HLLC, is sufficient in this regard while the simpler HLL converts thermal structures exiting the domain into grid-scale reflecting acoustics.
 
 If acoustic reflections are not a concern and/or the flow is impacted by walls or interior structures that you wish to resolve to near the boundary, choose `bc_outflow`. This condition (with default `outflow_type: riemann`) is stable for both inflow and outflow, so can be used in areas that have recirculation and lateral boundaries in which the flow fluctuates.
 
@@ -265,7 +265,7 @@ dm_plex:
   box_bd: none,none,periodic
 ```
 
-The coordinates for such cases are stored as a new field, and 
+The coordinates for such cases are stored as a new field, and
 
 ### Advection
 
@@ -730,10 +730,17 @@ Then run by building the executable and running:
 
 ```console
 $ make build/fluids-navierstokes
-$ mpiexec -n 6 build/fluids-navierstokes -options_file vortexshedding.yaml
+$ mpiexec -n 6 build/fluids-navierstokes -options_file examples/fluids/vortexshedding.yaml
 ```
 
 The vortex shedding period is roughly 6 and this problem runs until time 100 (2000 time steps).
+
+In obtaining the temporal development of the drag $$C_D$$, and lift $$C_L$$ coefficients, run with the monitor option:
+
+```console
+$ mpiexec -n 5 build/fluids-navierstokes -options_file examples/fluids/vortexshedding.yaml -{ts,snes}_monitor -degree 1 -ts_monitor_wall_forces ascii:force.csv:ascii_csv
+```
+which will produce the file `-force.csv`. The reaction surface forces on the cylinder wall in the `-x`, `-y` direction correspond to the drag and lift coefficients respectively.
 
 ```{literalinclude} ../../../../../examples/fluids/vortexshedding.yaml
 :language: yaml
