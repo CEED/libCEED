@@ -546,7 +546,7 @@ PetscErrorCode TSSolve_NS(DM dm, User user, AppCtx app_ctx, Physics phys, Vec *Q
   }
   PetscCall(TSSetMaxTime(*ts, 500. * user->units->second));
   PetscCall(TSSetExactFinalTime(*ts, TS_EXACTFINALTIME_STEPOVER));
-  PetscCall(TSSetErrorIfStepFails(*ts, PETSC_FALSE));
+  if (app_ctx->test_type == TESTTYPE_NONE) PetscCall(TSSetErrorIfStepFails(*ts, PETSC_FALSE));
   PetscCall(TSSetTimeStep(*ts, 1.e-2 * user->units->second));
   if (app_ctx->test_type != TESTTYPE_NONE) {
     PetscCall(TSSetMaxSteps(*ts, 10));

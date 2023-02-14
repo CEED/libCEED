@@ -358,8 +358,8 @@ CEED_QFUNCTION_HELPER int IJacobian_Newtonian(void *ctx, CeedInt Q, const CeedSc
     CeedScalar dFlux[5][3];
     FluxTotal(dF_inviscid, dstress, dFe, dFlux);
 
-    for (int j = 0; j < 3; j++) {
-      for (int k = 0; k < 5; k++) Grad_v[j][k][i] = -wdetJ * (dXdx[j][0] * dFlux[k][0] + dXdx[j][1] * dFlux[k][1] + dXdx[j][2] * dFlux[k][2]);
+    for (int j = 0; j < 5; j++) {
+      for (int k = 0; k < 3; k++) Grad_v[k][j][i] = -wdetJ * (dXdx[k][0] * dFlux[j][0] + dXdx[k][1] * dFlux[j][1] + dXdx[k][2] * dFlux[j][2]);
     }
 
     const CeedScalar dbody_force[5] = {0, ds.U.density * g[0], ds.U.density * g[1], ds.U.density * g[2], 0};

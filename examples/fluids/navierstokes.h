@@ -66,7 +66,7 @@ static const char *const EulerTestTypes[] = {"isentropic_vortex", "test_1",     
 // Stabilization methods
 static const char *const StabilizationTypes[] = {"none", "SU", "SUPG", "StabilizationType", "STAB_", NULL};
 
-// Euler - test cases
+// Test mode type
 typedef enum {
   TESTTYPE_NONE           = 0,
   TESTTYPE_SOLVER         = 1,
