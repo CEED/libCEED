@@ -745,6 +745,20 @@ int CeedQFunctionAddInput(CeedQFunction qf, const char *field_name, CeedInt size
     return CeedError(qf->ceed, CEED_ERROR_DIMENSION, "CEED_EVAL_WEIGHT should have size 1");
     // LCOV_EXCL_STOP
   }
+  for (CeedInt i = 0; i < qf->num_input_fields; i++) {
+    if (!strcmp(field_name, qf->input_fields[i]->field_name)) {
+      // LCOV_EXCL_START
+      return CeedError(qf->ceed, CEED_ERROR_MINOR, "QFunction field names must be unique");
+      // LCOV_EXCL_STOP
+    }
+  }
+  for (CeedInt i = 0; i < qf->num_output_fields; i++) {
+    if (!strcmp(field_name, qf->output_fields[i]->field_name)) {
+      // LCOV_EXCL_START
+      return CeedError(qf->ceed, CEED_ERROR_MINOR, "QFunction field names must be unique");
+      // LCOV_EXCL_STOP
+    }
+  }
   CeedCall(CeedQFunctionFieldSet(&qf->input_fields[qf->num_input_fields], field_name, size, eval_mode));
   qf->num_input_fields++;
   return CEED_ERROR_SUCCESS;
@@ -775,6 +789,20 @@ int CeedQFunctionAddOutput(CeedQFunction qf, const char *field_name, CeedInt siz
     // LCOV_EXCL_START
     return CeedError(qf->ceed, CEED_ERROR_DIMENSION, "Cannot create QFunction output with CEED_EVAL_WEIGHT");
     // LCOV_EXCL_STOP
+  }
+  for (CeedInt i = 0; i < qf->num_input_fields; i++) {
+    if (!strcmp(field_name, qf->input_fields[i]->field_name)) {
+      // LCOV_EXCL_START
+      return CeedError(qf->ceed, CEED_ERROR_MINOR, "QFunction field names must be unique");
+      // LCOV_EXCL_STOP
+    }
+  }
+  for (CeedInt i = 0; i < qf->num_output_fields; i++) {
+    if (!strcmp(field_name, qf->output_fields[i]->field_name)) {
+      // LCOV_EXCL_START
+      return CeedError(qf->ceed, CEED_ERROR_MINOR, "QFunction field names must be unique");
+      // LCOV_EXCL_STOP
+    }
   }
   CeedCall(CeedQFunctionFieldSet(&qf->output_fields[qf->num_output_fields], field_name, size, eval_mode));
   qf->num_output_fields++;
