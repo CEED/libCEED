@@ -307,6 +307,7 @@ PetscErrorCode NS_NEWTONIAN_IG(ProblemData *problem, DM dm, void *ctx, SimpleBC 
   CeedQFunctionContextReferenceCopy(newtonian_ig_context, &problem->apply_vol_ijacobian.qfunction_context);
   CeedQFunctionContextReferenceCopy(newtonian_ig_context, &problem->apply_inflow.qfunction_context);
   CeedQFunctionContextReferenceCopy(newtonian_ig_context, &problem->apply_inflow_jacobian.qfunction_context);
+  CeedQFunctionContextReferenceCopy(newtonian_ig_context, &problem->ics.qfunction_context);
 
   if (unit_tests) {
     PetscCall(UnitTests_Newtonian(user, newtonian_ig_ctx));
