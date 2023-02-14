@@ -327,7 +327,7 @@ PetscErrorCode SGS_DD_ModelSetup(Ceed ceed, User user, CeedData ceed_data, Probl
   sgsdd_ctx->num_neurons = 20;
   sgsdd_ctx->alpha       = alpha;
 
-  // PetscCall(SGS_DD_ModelContextFill(comm, sgs_dd_dir, &sgsdd_ctx));
+  PetscCall(SGS_DD_ModelContextFill(comm, sgs_dd_dir, &sgsdd_ctx));
 
   // -- Create DM for storing SGS tensor at nodes
   PetscCall(PetscNew(&user->sgs_dd_data));

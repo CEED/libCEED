@@ -160,7 +160,7 @@ int main(int argc, char **argv) {
   PetscCall(SetupLibceed(ceed, ceed_data, dm, user, app_ctx, problem, bc));
 
   if (app_ctx->turb_spanstats_enable) PetscCall(SetupStatsCollection(ceed, user, ceed_data, problem));
-  if (user->phys->implicit) PetscCall(SGS_DD_ModelSetup(ceed, user, ceed_data, problem));
+  if (app_ctx->sgs_model_type == SGS_MODEL_DATA_DRIVEN) PetscCall(SGS_DD_ModelSetup(ceed, user, ceed_data, problem));
 
   // ---------------------------------------------------------------------------
   // Set up ICs
