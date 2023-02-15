@@ -95,6 +95,12 @@ static int CeedVectorTakeArray_Ref(CeedVector vec, CeedMemType mem_type, CeedSca
   Ceed ceed;
   CeedCallBackend(CeedVectorGetCeed(vec, &ceed));
 
+  if (mem_type != CEED_MEM_HOST) {
+    // LCOV_EXCL_START
+    return CeedError(ceed, CEED_ERROR_BACKEND, "Can only provide HOST memory for this backend");
+    // LCOV_EXCL_STOP
+  }
+
   (*array)             = impl->array_borrowed;
   impl->array_borrowed = NULL;
   impl->array          = NULL;
