@@ -36,4 +36,5 @@ ax_drag.yaxis.label.set_color(palette[0])
 ax_lift.tick_params(axis="y", colors=palette[1])
 ax_lift.yaxis.label.set_color(palette[1])
 
+# plt.savefig("vortexshedding.svg")
 plt.show()

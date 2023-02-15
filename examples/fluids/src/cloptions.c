@@ -167,7 +167,7 @@ PetscErrorCode ProcessCommandLineOptions(MPI_Comm comm, AppCtx app_ctx, SimpleBC
   PetscCall(PetscOptionsViewer("-ts_monitor_turbulence_spanstats_viewer", "Viewer for the statistics", NULL, &app_ctx->turb_spanstats_viewer,
                                &app_ctx->turb_spanstats_viewer_format, &app_ctx->turb_spanstats_enable));
 
-  PetscCall(PetscOptionsViewer("-ts_monitor_wall_forces", "Viewer for wall forces", NULL, &app_ctx->wall_forces.viewer,
+  PetscCall(PetscOptionsViewer("-ts_monitor_wall_force", "Viewer for force on each (no-slip) wall", NULL, &app_ctx->wall_forces.viewer,
                                &app_ctx->wall_forces.viewer_format, NULL));
 
   PetscOptionsEnd();

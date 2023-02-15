@@ -156,6 +156,10 @@ The following options are common among all problem types:
   - Number of frames written per CGNS file if the CGNS file name includes a format specifier (`%d`).
   - `20`
 
+* - `-ts_monitor_wall_force`
+  - Viewer for the force on each no-slip wall, e.g., `ascii:force.csv:ascii_csv` to write a CSV file.
+  -
+
 * - `-snes_view`
   - View PETSc `SNES` nonlinear solver configuration
   -
@@ -258,14 +262,28 @@ PETSc provides two ways to specify periodicity:
 
 1. Topological periodicity, in which the donor and receiver dofs are the same, obtained using:
 
-``` yaml
+```yaml
 dm_plex:
   shape: box
   box_faces: 10,12,4
   box_bd: none,none,periodic
 ```
 
-The coordinates for such cases are stored as a new field, and
+The coordinates for such cases are stored as a new field with special cell-based indexing to enable wrapping through the boundary.
+This choice of coordinates prevents evaluating boundary integrals that cross the periodicity, such as for the outflow Riemann problem in the presence of spanwise periodicity.
+
+2. Isoperiodicity, in which the donor and receiver dofs are distinct in local vectors. This is obtained using `zbox`, as in:
+
+```yaml
+dm_plex:
+  shape: zbox
+  box_faces: 10,12,4
+  box_bd: none,none,periodic
+```
+
+Isoperiodicity enables standard boundary integrals, and is recommended for general use.
+At the time of this writing, it only supports one direction of periodicity.
+The `zbox` method uses [Z-ordering](https://en.wikipedia.org/wiki/Z-order_curve) to construct the mesh in parallel and provide an adequate initial partition, which makes it higher performance and avoids needing a partitioning package.
 
 ### Advection
 
@@ -730,17 +748,15 @@ Then run by building the executable and running:
 
 ```console
 $ make build/fluids-navierstokes
-$ mpiexec -n 6 build/fluids-navierstokes -options_file examples/fluids/vortexshedding.yaml
+$ mpiexec -n 6 build/fluids-navierstokes -options_file examples/fluids/vortexshedding.yaml -{ts,snes}_monitor_
 ```
 
-The vortex shedding period is roughly 6 and this problem runs until time 100 (2000 time steps).
-
-In obtaining the temporal development of the drag $$C_D$$, and lift $$C_L$$ coefficients, run with the monitor option:
+The vortex shedding period is roughly 5.6 and this problem runs until time 100 (2000 time steps).
+The above run writes a file named `force.csv` (see `ts_monitor_wall_force` in `vortexshedding.yaml`), which can be postprocessed by running to create a figure showing lift and drag coefficients over time.
 
 ```console
-$ mpiexec -n 5 build/fluids-navierstokes -options_file examples/fluids/vortexshedding.yaml -{ts,snes}_monitor -degree 1 -ts_monitor_wall_forces ascii:force.csv:ascii_csv
+$ python examples/fluids/postprocess/force.csv
 ```
-which will produce the file `-force.csv`. The reaction surface forces on the cylinder wall in the `-x`, `-y` direction correspond to the drag and lift coefficients respectively.
 
 ```{literalinclude} ../../../../../examples/fluids/vortexshedding.yaml
 :language: yaml

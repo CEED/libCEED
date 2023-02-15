@@ -431,7 +431,17 @@ As we evolve in time, eddies appear past the cylinder leading to a vortex sheddi
 The Gmsh input file, `examples/fluids/meshes/cylinder.geo` is parametrized to facilitate experimenting with similar configurations.
 The Strouhal number (nondimensional shedding frequency) is sensitive to the size of the computational domain and boundary conditions.
 
-We compute forces on the cylinder surface walls to produce the lift, $C_L = F_y / (\frac{1}{2} \rho_\infty \bm U^2{_\infty} D)$ and drag, $C_D = F_x / (\frac{1}{2} \rho_\infty \bm U^2{_\infty} D)$ coefficients. Having known the total force, $F_x, F_y$ on the cylinder surface, we obtain $C_L$ and $C_D$ coefficients by using the freestream reference state and angle of attack. We have used a reaction force approach, that is, we sum the residual of the volume operator on the Dirichlet nodes.
+Forces on the cylinder walls are computed using the "reaction force" method, which is variationally consistent with the volume operator.
+Given the force components $\bm F = (F_x, F_y, F_z)$ and surface area $S = \pi D L_z$ where $L_z$ is the spanwise extent of the domain, we define the coefficients of lift and drag as
+
+$$
+\begin{aligned}
+C_L &= \frac{2 F_y}{\rho_\infty u_\infty^2 S} \\
+C_D &= \frac{2 F_x}{\rho_\infty u_\infty^2 S} \\
+\end{aligned}
+$$
+
+where $\rho_\infty, u_\infty$ are the freestream (inflow) density and velocity respectively.
 
 ## Density Current
 
