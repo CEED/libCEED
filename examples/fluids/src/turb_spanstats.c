@@ -25,7 +25,7 @@ typedef struct {
   CeedElemRestriction elem_restr_parent_x, elem_restr_parent_stats, elem_restr_parent_qd, elem_restr_parent_colloc, elem_restr_child_colloc;
   CeedBasis           basis_x, basis_stats;
   CeedVector          x_coord, q_data;
-} * SpanStatsSetupData;
+} *SpanStatsSetupData;
 
 PetscErrorCode CreateStatsDM(User user, ProblemData *problem, PetscInt degree, SimpleBC bc) {
   user->spanstats.num_comp_stats = TURB_NUM_COMPONENTS;
