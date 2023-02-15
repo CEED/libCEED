@@ -431,6 +431,18 @@ As we evolve in time, eddies appear past the cylinder leading to a vortex sheddi
 The Gmsh input file, `examples/fluids/meshes/cylinder.geo` is parametrized to facilitate experimenting with similar configurations.
 The Strouhal number (nondimensional shedding frequency) is sensitive to the size of the computational domain and boundary conditions.
 
+Forces on the cylinder walls are computed using the "reaction force" method, which is variationally consistent with the volume operator.
+Given the force components $\bm F = (F_x, F_y, F_z)$ and surface area $S = \pi D L_z$ where $L_z$ is the spanwise extent of the domain, we define the coefficients of lift and drag as
+
+$$
+\begin{aligned}
+C_L &= \frac{2 F_y}{\rho_\infty u_\infty^2 S} \\
+C_D &= \frac{2 F_x}{\rho_\infty u_\infty^2 S} \\
+\end{aligned}
+$$
+
+where $\rho_\infty, u_\infty$ are the freestream (inflow) density and velocity respectively.
+
 ## Density Current
 
 For this test problem (from {cite}`straka1993numerical`), we solve the full Navier-Stokes equations {eq}`eq-ns`, for which a cold air bubble (of radius $r_c$) drops by convection in a neutrally stratified atmosphere.

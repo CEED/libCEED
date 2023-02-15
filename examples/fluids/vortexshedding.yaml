@@ -14,6 +14,7 @@ ts:
   alpha_radius: 0.5
   monitor_solution: cgns:vortexshedding-q2-g2-n12-recirc.cgns
   monitor_solution_interval: 5
+  monitor_wall_force: ascii:force.csv:ascii_csv
 
 # Reference state is used for the initial condition, zero velocity by default.
 
@@ -39,7 +40,7 @@ mu: 0.01
 k: 14.34 # thermal conductivity, Pr = 0.71 typical of air
 
 ## DM Settings:
-degree: 2
+degree: 1
 dm_plex_filename: examples/fluids/meshes/cylinder-q1-n20.msh
 
 # Boundary Settings

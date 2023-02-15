@@ -120,6 +120,14 @@ struct AppCtx_private {
   PetscInt          turb_spanstats_viewer_interval;
   PetscViewer       turb_spanstats_viewer;
   PetscViewerFormat turb_spanstats_viewer_format;
+  // Wall forces
+  struct {
+    PetscInt          num_wall;
+    PetscInt         *walls;
+    PetscViewer       viewer;
+    PetscViewerFormat viewer_format;
+    PetscBool         header_written;
+  } wall_forces;
 };
 
 // libCEED data struct

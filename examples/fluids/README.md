@@ -156,6 +156,10 @@ The following options are common among all problem types:
   - Number of frames written per CGNS file if the CGNS file name includes a format specifier (`%d`).
   - `20`
 
+* - `-ts_monitor_wall_force`
+  - Viewer for the force on each no-slip wall, e.g., `ascii:force.csv:ascii_csv` to write a CSV file.
+  -
+
 * - `-snes_view`
   - View PETSc `SNES` nonlinear solver configuration
   -
@@ -244,7 +248,7 @@ We have described the primitive variable formulation here; the conservative vari
 
 If you know the complete exterior state, `bc_freestream` is the least reflective boundary condition, but is disruptive to viscous flow structures.
 If thermal anomalies must exit the domain, the Riemann solver must resolve the contact wave to avoid reflections.
-The default Riemann solver, HLLC, is sufficient in this regard while the simpler HLL converts thermal structures exiting the domain into grid-scale reflecting acoustics. 
+The default Riemann solver, HLLC, is sufficient in this regard while the simpler HLL converts thermal structures exiting the domain into grid-scale reflecting acoustics.
 
 If acoustic reflections are not a concern and/or the flow is impacted by walls or interior structures that you wish to resolve to near the boundary, choose `bc_outflow`. This condition (with default `outflow_type: riemann`) is stable for both inflow and outflow, so can be used in areas that have recirculation and lateral boundaries in which the flow fluctuates.
 
@@ -258,14 +262,28 @@ PETSc provides two ways to specify periodicity:
 
 1. Topological periodicity, in which the donor and receiver dofs are the same, obtained using:
 
-``` yaml
+```yaml
 dm_plex:
   shape: box
   box_faces: 10,12,4
   box_bd: none,none,periodic
 ```
 
-The coordinates for such cases are stored as a new field, and 
+The coordinates for such cases are stored as a new field with special cell-based indexing to enable wrapping through the boundary.
+This choice of coordinates prevents evaluating boundary integrals that cross the periodicity, such as for the outflow Riemann problem in the presence of spanwise periodicity.
+
+2. Isoperiodicity, in which the donor and receiver dofs are distinct in local vectors. This is obtained using `zbox`, as in:
+
+```yaml
+dm_plex:
+  shape: zbox
+  box_faces: 10,12,4
+  box_bd: none,none,periodic
+```
+
+Isoperiodicity enables standard boundary integrals, and is recommended for general use.
+At the time of this writing, it only supports one direction of periodicity.
+The `zbox` method uses [Z-ordering](https://en.wikipedia.org/wiki/Z-order_curve) to construct the mesh in parallel and provide an adequate initial partition, which makes it higher performance and avoids needing a partitioning package.
 
 ### Advection
 
@@ -730,10 +748,15 @@ Then run by building the executable and running:
 
 ```console
 $ make build/fluids-navierstokes
-$ mpiexec -n 6 build/fluids-navierstokes -options_file vortexshedding.yaml
+$ mpiexec -n 6 build/fluids-navierstokes -options_file examples/fluids/vortexshedding.yaml -{ts,snes}_monitor_
 ```
 
-The vortex shedding period is roughly 6 and this problem runs until time 100 (2000 time steps).
+The vortex shedding period is roughly 5.6 and this problem runs until time 100 (2000 time steps).
+The above run writes a file named `force.csv` (see `ts_monitor_wall_force` in `vortexshedding.yaml`), which can be postprocessed by running to create a figure showing lift and drag coefficients over time.
+
+```console
+$ python examples/fluids/postprocess/force.csv
+```
 
 ```{literalinclude} ../../../../../examples/fluids/vortexshedding.yaml
 :language: yaml
