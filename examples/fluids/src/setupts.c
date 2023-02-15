@@ -143,8 +143,9 @@ PetscErrorCode RHS_NS(TS ts, PetscReal t, Vec Q, Vec G, void *user_data) {
 static PetscErrorCode Surface_Forces_NS(DM dm, Vec G_loc, PetscInt num_walls, const PetscInt walls[], PetscScalar *reaction_force) {
   DMLabel            face_label;
   const PetscScalar *g;
-  PetscInt           dim = 3;
+  PetscInt           dof, dim = 3;
   MPI_Comm           comm;
+  PetscSection       s;
 
   PetscFunctionBeginUser;
   PetscCall(PetscArrayzero(reaction_force, num_walls * dim));
@@ -154,6 +155,7 @@ static PetscErrorCode Surface_Forces_NS(DM dm, Vec G_loc, PetscInt num_walls, co
   for (PetscInt w = 0; w < num_walls; w++) {
     const PetscInt wall = walls[w];
     IS             wall_is;
+    PetscCall(DMGetLocalSection(dm, &s));
     PetscCall(DMLabelGetStratumIS(face_label, wall, &wall_is));
     if (wall_is) {  // There exist such points on this process
       PetscInt        num_points;
@@ -164,6 +166,7 @@ static PetscErrorCode Surface_Forces_NS(DM dm, Vec G_loc, PetscInt num_walls, co
         const PetscInt           p = points[i];
         const StateConservative *r;
         PetscCall(DMPlexPointLocalRead(dm, p, g, &r));
+        PetscCall(PetscSectionGetDof(s, p, &dof));
         if (!r) continue;
         for (PetscInt j = 0; j < 3; j++) {
           reaction_force[w * dim + j] -= r->momentum[j];
