@@ -343,6 +343,42 @@ int CeedBasisReference(CeedBasis basis) {
 }
 
 /**
+  @brief Get number of Q-vector components for given CeedBasis
+
+  @param[in]  basis  CeedBasis
+  @param[in]  eval_mode \ref CEED_EVAL_INTERP to use interpolated values,
+                          \ref CEED_EVAL_GRAD to use gradients,
+                          \ref CEED_EVAL_DIV to use divergence,
+                          \ref CEED_EVAL_CURL to use curl.
+  @param[out] q_comp Variable to store number of Q-vector components of basis
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Backend
+**/
+int CeedBasisGetNumQuadratureComponents(CeedBasis basis, CeedEvalMode eval_mode, CeedInt *q_comp) {
+  switch (eval_mode) {
+    case CEED_EVAL_INTERP:
+      *q_comp = (basis->fe_space == CEED_FE_SPACE_H1) ? 1 : basis->dim;
+      break;
+    case CEED_EVAL_GRAD:
+      *q_comp = basis->dim;
+      break;
+    case CEED_EVAL_DIV:
+      *q_comp = 1;
+      break;
+    case CEED_EVAL_CURL:
+      *q_comp = (basis->dim < 3) ? 1 : basis->dim;
+      break;
+    case CEED_EVAL_NONE:
+    case CEED_EVAL_WEIGHT:
+      *q_comp = 0;
+      break;
+  }
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
   @brief Estimate number of FLOPs required to apply CeedBasis in t_mode and eval_mode
 
   @param[in]  basis     Basis to estimate FLOPs for
@@ -395,27 +431,21 @@ int CeedBasisGetFlopsEstimate(CeedBasis basis, CeedTransposeMode t_mode, CeedEva
         break;
     }
   } else {
-    CeedInt dim, num_comp, num_nodes, num_qpts, Q_comp;
+    CeedInt dim, num_comp, q_comp, num_nodes, num_qpts;
     CeedCall(CeedBasisGetDimension(basis, &dim));
     CeedCall(CeedBasisGetNumComponents(basis, &num_comp));
+    CeedCall(CeedBasisGetNumQuadratureComponents(basis, eval_mode, &q_comp));
     CeedCall(CeedBasisGetNumNodes(basis, &num_nodes));
     CeedCall(CeedBasisGetNumQuadraturePoints(basis, &num_qpts));
-    CeedCall(CeedBasisGetNumQuadratureComponents(basis, &Q_comp));
     switch (eval_mode) {
       case CEED_EVAL_NONE:
         *flops = 0;
         break;
       case CEED_EVAL_INTERP:
-        *flops = num_nodes * num_qpts * num_comp;
-        break;
       case CEED_EVAL_GRAD:
-        *flops = num_nodes * num_qpts * num_comp * dim;
-        break;
       case CEED_EVAL_DIV:
-        *flops = num_nodes * num_qpts;
-        break;
       case CEED_EVAL_CURL:
-        *flops = num_nodes * num_qpts * dim;
+        *flops = num_nodes * num_qpts * num_comp * q_comp;
         break;
       case CEED_EVAL_WEIGHT:
         *flops = 0;
@@ -423,6 +453,21 @@ int CeedBasisGetFlopsEstimate(CeedBasis basis, CeedTransposeMode t_mode, CeedEva
     }
   }
 
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
+  @brief Get CeedFESpace for a CeedBasis
+
+  @param[in]  basis     CeedBasis
+  @param[out] fe_space  Variable to store CeedFESpace
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Backend
+**/
+int CeedBasisGetFESpace(CeedBasis basis, CeedFESpace *fe_space) {
+  *fe_space = basis->fe_space;
   return CEED_ERROR_SUCCESS;
 }
 
@@ -570,7 +615,7 @@ int CeedQRFactorization(Ceed ceed, CeedScalar *mat, CeedScalar *tau, CeedInt m, 
 
   @return An error code: 0 - success, otherwise - failure
 
-  @ref Developer
+  @ref Utility
 **/
 int CeedHouseholderApplyQ(CeedScalar *mat_A, const CeedScalar *mat_Q, const CeedScalar *tau, CeedTransposeMode t_mode, CeedInt m, CeedInt n,
                           CeedInt k, CeedInt row, CeedInt col) {
@@ -901,8 +946,7 @@ int CeedBasisCreateTensorH1(Ceed ceed, CeedInt dim, CeedInt num_comp, CeedInt P_
   (*basis)->Q_1d         = Q_1d;
   (*basis)->P            = CeedIntPow(P_1d, dim);
   (*basis)->Q            = CeedIntPow(Q_1d, dim);
-  (*basis)->Q_comp       = 1;
-  (*basis)->basis_space  = 1;  // 1 for H^1 space
+  (*basis)->fe_space     = CEED_FE_SPACE_H1;
   CeedCall(CeedCalloc(Q_1d, &(*basis)->q_ref_1d));
   CeedCall(CeedCalloc(Q_1d, &(*basis)->q_weight_1d));
   if (q_ref_1d) memcpy((*basis)->q_ref_1d, q_ref_1d, Q_1d * sizeof(q_ref_1d[0]));
@@ -1020,7 +1064,7 @@ cleanup:
   @param[in]  num_nodes Total number of nodes
   @param[in]  num_qpts  Total number of quadrature points
   @param[in]  interp    Row-major (num_qpts * num_nodes) matrix expressing the values of nodal basis functions at quadrature points
-  @param[in]  grad      Row-major (num_qpts * dim * num_nodes) matrix expressing derivatives of nodal basis functions at quadrature points
+  @param[in]  grad      Row-major (dim * num_qpts * num_nodes) matrix expressing derivatives of nodal basis functions at quadrature points
   @param[in]  q_ref     Array of length num_qpts * dim holding the locations of quadrature points on the reference element
   @param[in]  q_weight  Array of length num_qpts holding the quadrature weights on the reference element
   @param[out] basis     Address of the variable where the newly created CeedBasis will be stored.
@@ -1078,8 +1122,7 @@ int CeedBasisCreateH1(Ceed ceed, CeedElemTopology topo, CeedInt num_comp, CeedIn
   (*basis)->num_comp     = num_comp;
   (*basis)->P            = P;
   (*basis)->Q            = Q;
-  (*basis)->Q_comp       = 1;
-  (*basis)->basis_space  = 1;  // 1 for H^1 space
+  (*basis)->fe_space     = CEED_FE_SPACE_H1;
   CeedCall(CeedCalloc(Q * dim, &(*basis)->q_ref_1d));
   CeedCall(CeedCalloc(Q, &(*basis)->q_weight_1d));
   if (q_ref) memcpy((*basis)->q_ref_1d, q_ref, Q * dim * sizeof(q_ref[0]));
@@ -1100,8 +1143,8 @@ int CeedBasisCreateH1(Ceed ceed, CeedElemTopology topo, CeedInt num_comp, CeedIn
   @param[in]  num_comp  Number of components (usually 1 for vectors in H(div) bases)
   @param[in]  num_nodes Total number of nodes (dofs per element)
   @param[in]  num_qpts  Total number of quadrature points
-  @param[in]  interp    Row-major (dim*num_qpts * num_nodes) matrix expressing the values of nodal basis functions at quadrature points
-  @param[in]  div       Row-major (num_qpts * num_nodes) matrix expressing divergence of nodal basis functions at quadrature points
+  @param[in]  interp    Row-major (dim * num_qpts * num_nodes) matrix expressing the values of basis functions at quadrature points
+  @param[in]  div       Row-major (num_qpts * num_nodes) matrix expressing divergence of basis functions at quadrature points
   @param[in]  q_ref     Array of length num_qpts * dim holding the locations of quadrature points on the reference element
   @param[in]  q_weight  Array of length num_qpts holding the quadrature weights on the reference element
   @param[out] basis     Address of the variable where the newly created CeedBasis will be stored.
@@ -1113,7 +1156,7 @@ int CeedBasisCreateH1(Ceed ceed, CeedElemTopology topo, CeedInt num_comp, CeedIn
 int CeedBasisCreateHdiv(Ceed ceed, CeedElemTopology topo, CeedInt num_comp, CeedInt num_nodes, CeedInt num_qpts, const CeedScalar *interp,
                         const CeedScalar *div, const CeedScalar *q_ref, const CeedScalar *q_weight, CeedBasis *basis) {
   CeedInt Q = num_qpts, P = num_nodes, dim = 0;
-  CeedCall(CeedBasisGetTopologyDimension(topo, &dim));
+
   if (!ceed->BasisCreateHdiv) {
     Ceed delegate;
     CeedCall(CeedGetObjectDelegate(ceed, &delegate, "Basis"));
@@ -1148,6 +1191,8 @@ int CeedBasisCreateHdiv(Ceed ceed, CeedElemTopology topo, CeedInt num_comp, Ceed
 
   CeedCall(CeedCalloc(1, basis));
 
+  CeedCall(CeedBasisGetTopologyDimension(topo, &dim));
+
   (*basis)->ceed = ceed;
   CeedCall(CeedReference(ceed));
   (*basis)->ref_count    = 1;
@@ -1157,8 +1202,7 @@ int CeedBasisCreateHdiv(Ceed ceed, CeedElemTopology topo, CeedInt num_comp, Ceed
   (*basis)->num_comp     = num_comp;
   (*basis)->P            = P;
   (*basis)->Q            = Q;
-  (*basis)->Q_comp       = dim;
-  (*basis)->basis_space  = 2;  // 2 for H(div) space
+  (*basis)->fe_space     = CEED_FE_SPACE_HDIV;
   CeedCall(CeedMalloc(Q * dim, &(*basis)->q_ref_1d));
   CeedCall(CeedMalloc(Q, &(*basis)->q_weight_1d));
   if (q_ref) memcpy((*basis)->q_ref_1d, q_ref, Q * dim * sizeof(q_ref[0]));
@@ -1168,6 +1212,88 @@ int CeedBasisCreateHdiv(Ceed ceed, CeedElemTopology topo, CeedInt num_comp, Ceed
   if (interp) memcpy((*basis)->interp, interp, dim * Q * P * sizeof(interp[0]));
   if (div) memcpy((*basis)->div, div, Q * P * sizeof(div[0]));
   CeedCall(ceed->BasisCreateHdiv(topo, dim, P, Q, interp, div, q_ref, q_weight, *basis));
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
+  @brief Create a non tensor-product basis for H(curl) discretizations
+
+  @param[in]  ceed      Ceed object where the CeedBasis will be created
+  @param[in]  topo      Topology of element (`CEED_TOPOLOGY_QUAD`, `CEED_TOPOLOGY_PRISM`, etc.), dimension of which is used in some array sizes below
+  @param[in]  num_comp  Number of components (usually 1 for vectors in H(curl) bases)
+  @param[in]  num_nodes Total number of nodes (dofs per element)
+  @param[in]  num_qpts  Total number of quadrature points
+  @param[in]  interp    Row-major (dim * num_qpts * num_nodes) matrix expressing the values of basis functions at quadrature points
+  @param[in]  curl      Row-major (curl_comp * num_qpts * num_nodes, curl_comp = 1 if dim < 3 else dim) matrix expressing curl of basis functions at
+quadrature points
+  @param[in]  q_ref     Array of length num_qpts * dim holding the locations of quadrature points on the reference element
+  @param[in]  q_weight  Array of length num_qpts holding the quadrature weights on the reference element
+  @param[out] basis     Address of the variable where the newly created CeedBasis will be stored.
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref User
+**/
+int CeedBasisCreateHcurl(Ceed ceed, CeedElemTopology topo, CeedInt num_comp, CeedInt num_nodes, CeedInt num_qpts, const CeedScalar *interp,
+                         const CeedScalar *curl, const CeedScalar *q_ref, const CeedScalar *q_weight, CeedBasis *basis) {
+  CeedInt Q = num_qpts, P = num_nodes, dim = 0, curl_comp = 0;
+
+  if (!ceed->BasisCreateHdiv) {
+    Ceed delegate;
+    CeedCall(CeedGetObjectDelegate(ceed, &delegate, "Basis"));
+
+    if (!delegate) {
+      // LCOV_EXCL_START
+      return CeedError(ceed, CEED_ERROR_UNSUPPORTED, "Backend does not implement BasisCreateHcurl");
+      // LCOV_EXCL_STOP
+    }
+
+    CeedCall(CeedBasisCreateHcurl(delegate, topo, num_comp, num_nodes, num_qpts, interp, curl, q_ref, q_weight, basis));
+    return CEED_ERROR_SUCCESS;
+  }
+
+  if (num_comp < 1) {
+    // LCOV_EXCL_START
+    return CeedError(ceed, CEED_ERROR_DIMENSION, "Basis must have at least 1 component");
+    // LCOV_EXCL_STOP
+  }
+
+  if (num_nodes < 1) {
+    // LCOV_EXCL_START
+    return CeedError(ceed, CEED_ERROR_DIMENSION, "Basis must have at least 1 node");
+    // LCOV_EXCL_STOP
+  }
+
+  if (num_qpts < 1) {
+    // LCOV_EXCL_START
+    return CeedError(ceed, CEED_ERROR_DIMENSION, "Basis must have at least 1 quadrature point");
+    // LCOV_EXCL_STOP
+  }
+
+  CeedCall(CeedCalloc(1, basis));
+
+  CeedCall(CeedBasisGetTopologyDimension(topo, &dim));
+  curl_comp = (dim < 3) ? 1 : dim;
+
+  (*basis)->ceed = ceed;
+  CeedCall(CeedReference(ceed));
+  (*basis)->ref_count    = 1;
+  (*basis)->tensor_basis = 0;
+  (*basis)->dim          = dim;
+  (*basis)->topo         = topo;
+  (*basis)->num_comp     = num_comp;
+  (*basis)->P            = P;
+  (*basis)->Q            = Q;
+  (*basis)->fe_space     = CEED_FE_SPACE_HCURL;
+  CeedCall(CeedMalloc(Q * dim, &(*basis)->q_ref_1d));
+  CeedCall(CeedMalloc(Q, &(*basis)->q_weight_1d));
+  if (q_ref) memcpy((*basis)->q_ref_1d, q_ref, Q * dim * sizeof(q_ref[0]));
+  if (q_weight) memcpy((*basis)->q_weight_1d, q_weight, Q * sizeof(q_weight[0]));
+  CeedCall(CeedMalloc(dim * Q * P, &(*basis)->interp));
+  CeedCall(CeedMalloc(curl_comp * Q * P, &(*basis)->curl));
+  if (interp) memcpy((*basis)->interp, interp, dim * Q * P * sizeof(interp[0]));
+  if (curl) memcpy((*basis)->curl, curl, curl_comp * Q * P * sizeof(curl[0]));
+  CeedCall(ceed->BasisCreateHcurl(topo, dim, P, Q, interp, curl, q_ref, q_weight, *basis));
   return CEED_ERROR_SUCCESS;
 }
 
@@ -1262,15 +1388,16 @@ int CeedBasisReferenceCopy(CeedBasis basis, CeedBasis *basis_copy) {
   @ref User
 **/
 int CeedBasisView(CeedBasis basis, FILE *stream) {
-  CeedFESpace      FE_space = basis->basis_space;
   CeedElemTopology topo     = basis->topo;
+  CeedFESpace      fe_space = basis->fe_space;
+  CeedInt          q_comp   = 0;
 
   // Print FE space and element topology of the basis
   if (basis->tensor_basis) {
-    fprintf(stream, "CeedBasis (%s on a %s element): dim=%" CeedInt_FMT " P=%" CeedInt_FMT " Q=%" CeedInt_FMT "\n", CeedFESpaces[FE_space],
+    fprintf(stream, "CeedBasis (%s on a %s element): dim=%" CeedInt_FMT " P=%" CeedInt_FMT " Q=%" CeedInt_FMT "\n", CeedFESpaces[fe_space],
             CeedElemTopologies[topo], basis->dim, basis->P_1d, basis->Q_1d);
   } else {
-    fprintf(stream, "CeedBasis (%s on a %s element): dim=%" CeedInt_FMT " P=%" CeedInt_FMT " Q=%" CeedInt_FMT "\n", CeedFESpaces[FE_space],
+    fprintf(stream, "CeedBasis (%s on a %s element): dim=%" CeedInt_FMT " P=%" CeedInt_FMT " Q=%" CeedInt_FMT "\n", CeedFESpaces[fe_space],
             CeedElemTopologies[topo], basis->dim, basis->P, basis->Q);
   }
   // Print quadrature data, interpolation/gradient/divergence/curl of the basis
@@ -1282,12 +1409,19 @@ int CeedBasisView(CeedBasis basis, FILE *stream) {
   } else {  // non-tensor basis
     CeedCall(CeedScalarView("qref", "\t% 12.8f", 1, basis->Q * basis->dim, basis->q_ref_1d, stream));
     CeedCall(CeedScalarView("qweight", "\t% 12.8f", 1, basis->Q, basis->q_weight_1d, stream));
-    CeedCall(CeedScalarView("interp", "\t% 12.8f", basis->Q_comp * basis->Q, basis->P, basis->interp, stream));
+    CeedCall(CeedBasisGetNumQuadratureComponents(basis, CEED_EVAL_INTERP, &q_comp));
+    CeedCall(CeedScalarView("interp", "\t% 12.8f", q_comp * basis->Q, basis->P, basis->interp, stream));
     if (basis->grad) {
-      CeedCall(CeedScalarView("grad", "\t% 12.8f", basis->dim * basis->Q, basis->P, basis->grad, stream));
+      CeedCall(CeedBasisGetNumQuadratureComponents(basis, CEED_EVAL_GRAD, &q_comp));
+      CeedCall(CeedScalarView("grad", "\t% 12.8f", q_comp * basis->Q, basis->P, basis->grad, stream));
     }
     if (basis->div) {
-      CeedCall(CeedScalarView("div", "\t% 12.8f", basis->Q, basis->P, basis->div, stream));
+      CeedCall(CeedBasisGetNumQuadratureComponents(basis, CEED_EVAL_DIV, &q_comp));
+      CeedCall(CeedScalarView("div", "\t% 12.8f", q_comp * basis->Q, basis->P, basis->div, stream));
+    }
+    if (basis->curl) {
+      CeedCall(CeedBasisGetNumQuadratureComponents(basis, CEED_EVAL_CURL, &q_comp));
+      CeedCall(CeedScalarView("curl", "\t% 12.8f", q_comp * basis->Q, basis->P, basis->curl, stream));
     }
   }
   return CEED_ERROR_SUCCESS;
@@ -1304,6 +1438,8 @@ int CeedBasisView(CeedBasis basis, FILE *stream) {
   @param[in]  eval_mode \ref CEED_EVAL_NONE to use values directly,
                           \ref CEED_EVAL_INTERP to use interpolated values,
                           \ref CEED_EVAL_GRAD to use gradients,
+                          \ref CEED_EVAL_DIV to use divergence,
+                          \ref CEED_EVAL_CURL to use curl,
                           \ref CEED_EVAL_WEIGHT to use quadrature weights.
   @param[in]  u        Input CeedVector
   @param[out] v        Output CeedVector
@@ -1314,9 +1450,10 @@ int CeedBasisView(CeedBasis basis, FILE *stream) {
 **/
 int CeedBasisApply(CeedBasis basis, CeedInt num_elem, CeedTransposeMode t_mode, CeedEvalMode eval_mode, CeedVector u, CeedVector v) {
   CeedSize u_length = 0, v_length;
-  CeedInt  dim, num_comp, num_nodes, num_qpts;
+  CeedInt  dim, num_comp, q_comp, num_nodes, num_qpts;
   CeedCall(CeedBasisGetDimension(basis, &dim));
   CeedCall(CeedBasisGetNumComponents(basis, &num_comp));
+  CeedCall(CeedBasisGetNumQuadratureComponents(basis, eval_mode, &q_comp));
   CeedCall(CeedBasisGetNumNodes(basis, &num_nodes));
   CeedCall(CeedBasisGetNumQuadraturePoints(basis, &num_qpts));
   CeedCall(CeedVectorGetLength(v, &v_length));
@@ -1343,26 +1480,15 @@ int CeedBasisApply(CeedBasis basis, CeedInt num_elem, CeedTransposeMode t_mode, 
   switch (eval_mode) {
     case CEED_EVAL_NONE:
     case CEED_EVAL_INTERP:
-      bad_dims = ((t_mode == CEED_TRANSPOSE && (u_length < num_elem * num_comp * num_qpts || v_length < num_elem * num_comp * num_nodes)) ||
-                  (t_mode == CEED_NOTRANSPOSE && (v_length < num_elem * num_qpts * num_comp || u_length < num_elem * num_comp * num_nodes)));
-      break;
     case CEED_EVAL_GRAD:
-      bad_dims = ((t_mode == CEED_TRANSPOSE && (u_length < num_elem * num_comp * num_qpts * dim || v_length < num_elem * num_comp * num_nodes)) ||
-                  (t_mode == CEED_NOTRANSPOSE && (v_length < num_elem * num_qpts * num_comp * dim || u_length < num_elem * num_comp * num_nodes)));
+    case CEED_EVAL_DIV:
+    case CEED_EVAL_CURL:
+      bad_dims = ((t_mode == CEED_TRANSPOSE && (u_length < num_elem * num_comp * num_qpts * q_comp || v_length < num_elem * num_comp * num_nodes)) ||
+                  (t_mode == CEED_NOTRANSPOSE && (v_length < num_elem * num_qpts * num_comp * q_comp || u_length < num_elem * num_comp * num_nodes)));
       break;
     case CEED_EVAL_WEIGHT:
       bad_dims = v_length < num_elem * num_qpts;
       break;
-    // LCOV_EXCL_START
-    case CEED_EVAL_DIV:
-      bad_dims = ((t_mode == CEED_TRANSPOSE && (u_length < num_elem * num_comp * num_qpts || v_length < num_elem * num_comp * num_nodes)) ||
-                  (t_mode == CEED_NOTRANSPOSE && (v_length < num_elem * num_qpts * num_comp || u_length < num_elem * num_comp * num_nodes)));
-      break;
-    case CEED_EVAL_CURL:
-      bad_dims = ((t_mode == CEED_TRANSPOSE && (u_length < num_elem * num_comp * num_qpts || v_length < num_elem * num_comp * num_nodes)) ||
-                  (t_mode == CEED_NOTRANSPOSE && (v_length < num_elem * num_qpts * num_comp || u_length < num_elem * num_comp * num_nodes)));
-      break;
-      // LCOV_EXCL_STOP
   }
   if (bad_dims) {
     // LCOV_EXCL_START
@@ -1416,21 +1542,6 @@ int CeedBasisGetDimension(CeedBasis basis, CeedInt *dim) {
 **/
 int CeedBasisGetTopology(CeedBasis basis, CeedElemTopology *topo) {
   *topo = basis->topo;
-  return CEED_ERROR_SUCCESS;
-}
-
-/**
-  @brief Get number of Q-vector components for given CeedBasis
-
-  @param[in]  basis  CeedBasis
-  @param[out] Q_comp Variable to store number of Q-vector components of basis
-
-  @return An error code: 0 - success, otherwise - failure
-
-  @ref Advanced
-**/
-int CeedBasisGetNumQuadratureComponents(CeedBasis basis, CeedInt *Q_comp) {
-  *Q_comp = basis->Q_comp;
   return CEED_ERROR_SUCCESS;
 }
 
@@ -1684,6 +1795,27 @@ int CeedBasisGetDiv(CeedBasis basis, const CeedScalar **div) {
 }
 
 /**
+  @brief Get curl matrix of a CeedBasis
+
+  @param[in]  basis CeedBasis
+  @param[out] curl  Variable to store curl matrix
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Advanced
+**/
+int CeedBasisGetCurl(CeedBasis basis, const CeedScalar **curl) {
+  if (!basis->curl) {
+    // LCOV_EXCL_START
+    return CeedError(basis->ceed, CEED_ERROR_MINOR, "CeedBasis does not have curl matrix.");
+    // LCOV_EXCL_STOP
+  }
+
+  *curl = basis->curl;
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
   @brief Destroy a CeedBasis
 
   @param[in,out] basis CeedBasis to destroy
@@ -1699,13 +1831,14 @@ int CeedBasisDestroy(CeedBasis *basis) {
   }
   if ((*basis)->Destroy) CeedCall((*basis)->Destroy(*basis));
   if ((*basis)->contract) CeedCall(CeedTensorContractDestroy(&(*basis)->contract));
+  CeedCall(CeedFree(&(*basis)->q_ref_1d));
+  CeedCall(CeedFree(&(*basis)->q_weight_1d));
   CeedCall(CeedFree(&(*basis)->interp));
   CeedCall(CeedFree(&(*basis)->interp_1d));
   CeedCall(CeedFree(&(*basis)->grad));
-  CeedCall(CeedFree(&(*basis)->div));
   CeedCall(CeedFree(&(*basis)->grad_1d));
-  CeedCall(CeedFree(&(*basis)->q_ref_1d));
-  CeedCall(CeedFree(&(*basis)->q_weight_1d));
+  CeedCall(CeedFree(&(*basis)->div));
+  CeedCall(CeedFree(&(*basis)->curl));
   CeedCall(CeedDestroy(&(*basis)->ceed));
   CeedCall(CeedFree(basis));
   return CEED_ERROR_SUCCESS;

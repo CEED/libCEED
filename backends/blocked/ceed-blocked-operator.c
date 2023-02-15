@@ -77,6 +77,7 @@ static int CeedOperatorSetupFields_Blocked(CeedQFunction qf, CeedOperator op, bo
       case CEED_EVAL_INTERP:
       case CEED_EVAL_GRAD:
       case CEED_EVAL_DIV:
+      case CEED_EVAL_CURL:
         CeedCallBackend(CeedOperatorFieldGetBasis(op_fields[i], &basis));
         CeedCallBackend(CeedQFunctionFieldGetSize(qf_fields[i], &size));
         CeedCallBackend(CeedBasisGetNumNodes(basis, &P));
@@ -92,8 +93,6 @@ static int CeedOperatorSetupFields_Blocked(CeedQFunction qf, CeedOperator op, bo
         CeedCallBackend(CeedVectorCreate(ceed, q_size, &q_vecs[i]));
         CeedCallBackend(CeedBasisApply(basis, blk_size, CEED_NOTRANSPOSE, CEED_EVAL_WEIGHT, CEED_VECTOR_NONE, q_vecs[i]));
         break;
-      case CEED_EVAL_CURL:
-        break;  // Not implemented
     }
   }
   return CEED_ERROR_SUCCESS;
@@ -227,33 +226,16 @@ static inline int CeedOperatorInputBasis_Blocked(CeedInt e, CeedInt Q, CeedQFunc
         CeedCallBackend(CeedVectorSetArray(impl->q_vecs_in[i], CEED_MEM_HOST, CEED_USE_POINTER, &e_data_full[i][e * Q * size]));
         break;
       case CEED_EVAL_INTERP:
-        CeedCallBackend(CeedOperatorFieldGetBasis(op_input_fields[i], &basis));
-        CeedCallBackend(CeedBasisGetNumComponents(basis, &num_comp));
-        CeedCallBackend(CeedVectorSetArray(impl->e_vecs_in[i], CEED_MEM_HOST, CEED_USE_POINTER, &e_data_full[i][e * elem_size * num_comp]));
-        CeedCallBackend(CeedBasisApply(basis, blk_size, CEED_NOTRANSPOSE, CEED_EVAL_INTERP, impl->e_vecs_in[i], impl->q_vecs_in[i]));
-        break;
       case CEED_EVAL_GRAD:
-        CeedCallBackend(CeedOperatorFieldGetBasis(op_input_fields[i], &basis));
-        CeedCallBackend(CeedBasisGetNumComponents(basis, &num_comp));
-        CeedCallBackend(CeedVectorSetArray(impl->e_vecs_in[i], CEED_MEM_HOST, CEED_USE_POINTER, &e_data_full[i][e * elem_size * num_comp]));
-        CeedCallBackend(CeedBasisApply(basis, blk_size, CEED_NOTRANSPOSE, CEED_EVAL_GRAD, impl->e_vecs_in[i], impl->q_vecs_in[i]));
-        break;
       case CEED_EVAL_DIV:
+      case CEED_EVAL_CURL:
         CeedCallBackend(CeedOperatorFieldGetBasis(op_input_fields[i], &basis));
         CeedCallBackend(CeedBasisGetNumComponents(basis, &num_comp));
         CeedCallBackend(CeedVectorSetArray(impl->e_vecs_in[i], CEED_MEM_HOST, CEED_USE_POINTER, &e_data_full[i][e * elem_size * num_comp]));
-        CeedCallBackend(CeedBasisApply(basis, blk_size, CEED_NOTRANSPOSE, CEED_EVAL_DIV, impl->e_vecs_in[i], impl->q_vecs_in[i]));
+        CeedCallBackend(CeedBasisApply(basis, blk_size, CEED_NOTRANSPOSE, eval_mode, impl->e_vecs_in[i], impl->q_vecs_in[i]));
         break;
       case CEED_EVAL_WEIGHT:
         break;  // No action
-      // LCOV_EXCL_START
-      case CEED_EVAL_CURL: {
-        CeedCallBackend(CeedOperatorFieldGetBasis(op_input_fields[i], &basis));
-        Ceed ceed;
-        CeedCallBackend(CeedBasisGetCeed(basis, &ceed));
-        return CeedError(ceed, CEED_ERROR_BACKEND, "Ceed evaluation mode not implemented");
-        // LCOV_EXCL_STOP
-      }
     }
   }
   return CEED_ERROR_SUCCESS;
@@ -280,36 +262,20 @@ static inline int CeedOperatorOutputBasis_Blocked(CeedInt e, CeedInt Q, CeedQFun
       case CEED_EVAL_NONE:
         break;  // No action
       case CEED_EVAL_INTERP:
-        CeedCallBackend(CeedOperatorFieldGetBasis(op_output_fields[i], &basis));
-        CeedCallBackend(CeedBasisGetNumComponents(basis, &num_comp));
-        CeedCallBackend(
-            CeedVectorSetArray(impl->e_vecs_out[i], CEED_MEM_HOST, CEED_USE_POINTER, &e_data_full[i + num_input_fields][e * elem_size * num_comp]));
-        CeedCallBackend(CeedBasisApply(basis, blk_size, CEED_TRANSPOSE, CEED_EVAL_INTERP, impl->q_vecs_out[i], impl->e_vecs_out[i]));
-        break;
       case CEED_EVAL_GRAD:
-        CeedCallBackend(CeedOperatorFieldGetBasis(op_output_fields[i], &basis));
-        CeedCallBackend(CeedBasisGetNumComponents(basis, &num_comp));
-        CeedCallBackend(
-            CeedVectorSetArray(impl->e_vecs_out[i], CEED_MEM_HOST, CEED_USE_POINTER, &e_data_full[i + num_input_fields][e * elem_size * num_comp]));
-        CeedCallBackend(CeedBasisApply(basis, blk_size, CEED_TRANSPOSE, CEED_EVAL_GRAD, impl->q_vecs_out[i], impl->e_vecs_out[i]));
-        break;
       case CEED_EVAL_DIV:
+      case CEED_EVAL_CURL:
         CeedCallBackend(CeedOperatorFieldGetBasis(op_output_fields[i], &basis));
         CeedCallBackend(CeedBasisGetNumComponents(basis, &num_comp));
         CeedCallBackend(
             CeedVectorSetArray(impl->e_vecs_out[i], CEED_MEM_HOST, CEED_USE_POINTER, &e_data_full[i + num_input_fields][e * elem_size * num_comp]));
-        CeedCallBackend(CeedBasisApply(basis, blk_size, CEED_TRANSPOSE, CEED_EVAL_DIV, impl->q_vecs_out[i], impl->e_vecs_out[i]));
+        CeedCallBackend(CeedBasisApply(basis, blk_size, CEED_TRANSPOSE, eval_mode, impl->q_vecs_out[i], impl->e_vecs_out[i]));
         break;
       // LCOV_EXCL_START
       case CEED_EVAL_WEIGHT: {
         Ceed ceed;
         CeedCallBackend(CeedOperatorGetCeed(op, &ceed));
         return CeedError(ceed, CEED_ERROR_BACKEND, "CEED_EVAL_WEIGHT cannot be an output evaluation mode");
-      }
-      case CEED_EVAL_CURL: {
-        Ceed ceed;
-        CeedCallBackend(CeedOperatorGetCeed(op, &ceed));
-        return CeedError(ceed, CEED_ERROR_BACKEND, "Ceed evaluation mode not implemented");
         // LCOV_EXCL_STOP
       }
     }

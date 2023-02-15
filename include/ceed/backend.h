@@ -173,10 +173,12 @@ CEED_EXTERN int CeedElemRestrictionGetFlopsEstimate(CeedElemRestriction rstr, Ce
 /// Type of FE space;
 /// @ingroup CeedBasis
 typedef enum {
-  /// H1 FE space
+  /// H^1 FE space
   CEED_FE_SPACE_H1 = 1,
   /// H(div) FE space
   CEED_FE_SPACE_HDIV = 2,
+  /// H(curl) FE space
+  CEED_FE_SPACE_HCURL = 3,
 } CeedFESpace;
 CEED_EXTERN const char *const CeedFESpaces[];
 
@@ -185,15 +187,19 @@ CEED_EXTERN int CeedBasisIsTensor(CeedBasis basis, bool *is_tensor);
 CEED_EXTERN int CeedBasisGetData(CeedBasis basis, void *data);
 CEED_EXTERN int CeedBasisSetData(CeedBasis basis, void *data);
 CEED_EXTERN int CeedBasisReference(CeedBasis basis);
+CEED_EXTERN int CeedBasisGetNumQuadratureComponents(CeedBasis basis, CeedEvalMode eval_mode, CeedInt *q_comp);
 CEED_EXTERN int CeedBasisGetFlopsEstimate(CeedBasis basis, CeedTransposeMode t_mode, CeedEvalMode eval_mode, CeedSize *flops);
-
+CEED_EXTERN int CeedBasisGetFESpace(CeedBasis basis, CeedFESpace *fe_space);
 CEED_EXTERN int CeedBasisGetTopologyDimension(CeedElemTopology topo, CeedInt *dim);
-
 CEED_EXTERN int CeedBasisGetTensorContract(CeedBasis basis, CeedTensorContract *contract);
 CEED_EXTERN int CeedBasisSetTensorContract(CeedBasis basis, CeedTensorContract contract);
+
 CEED_EXTERN int CeedTensorContractCreate(Ceed ceed, CeedBasis basis, CeedTensorContract *contract);
 CEED_EXTERN int CeedTensorContractApply(CeedTensorContract contract, CeedInt A, CeedInt B, CeedInt C, CeedInt J, const CeedScalar *__restrict__ t,
                                         CeedTransposeMode t_mode, const CeedInt Add, const CeedScalar *__restrict__ u, CeedScalar *__restrict__ v);
+CEED_EXTERN int CeedTensorContractStridedApply(CeedTensorContract contract, CeedInt A, CeedInt B, CeedInt C, CeedInt D, CeedInt J,
+                                               const CeedScalar *__restrict__ t, CeedTransposeMode t_mode, const CeedInt add,
+                                               const CeedScalar *__restrict__ u, CeedScalar *__restrict__ v);
 CEED_EXTERN int CeedTensorContractGetCeed(CeedTensorContract contract, Ceed *ceed);
 CEED_EXTERN int CeedTensorContractGetData(CeedTensorContract contract, void *data);
 CEED_EXTERN int CeedTensorContractSetData(CeedTensorContract contract, void *data);
