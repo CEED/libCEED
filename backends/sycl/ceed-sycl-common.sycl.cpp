@@ -59,8 +59,21 @@ int CeedSyclInit(Ceed ceed, const char *resource) {
                      "device allocations.");
   }
 
+  // Creating an asynchronous error handler
+  sycl::async_handler sycl_async_handler = [&](sycl::exception_list exceptionList) {
+    for (std::exception_ptr const &e : exceptionList) {
+      try {
+        std::rethrow_exception(e);
+      } catch (sycl::exception const &e) {
+        std::ostringstream error_msg;
+        error_msg << "SYCL asynchronous exception caught:\n";
+        error_msg << e.what() << std::endl;
+        return CeedError(ceed, CEED_ERROR_BACKEND, error_msg.str().c_str());
+      }
+    }
+  };
   sycl::context sycl_context{sycl_device.get_platform().get_devices()};
-  sycl::queue   sycl_queue{sycl_context, sycl_device, sycl::property::queue::in_order{}};
+  sycl::queue   sycl_queue{sycl_context, sycl_device, sycl_async_handler, sycl::property::queue::in_order{}};
 
   Ceed_Sycl *data;
   CeedCallBackend(CeedGetData(ceed, &data));
