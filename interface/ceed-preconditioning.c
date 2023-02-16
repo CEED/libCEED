@@ -622,7 +622,7 @@ static int CeedSingleOperatorAssemble(CeedOperator op, CeedInt offset, CeedVecto
   CeedScalar        elem_mat[elem_size * elem_size];
   CeedInt           count = 0;
   CeedScalar       *vals;
-  CeedCall(CeedVectorGetArrayWrite(values, CEED_MEM_HOST, &vals));
+  CeedCall(CeedVectorGetArray(values, CEED_MEM_HOST, &vals));
   for (CeedInt e = 0; e < num_elem; e++) {
     for (CeedInt comp_in = 0; comp_in < num_comp; comp_in++) {
       for (CeedInt comp_out = 0; comp_out < num_comp; comp_out++) {
@@ -2015,6 +2015,7 @@ int CeedOperatorLinearAssemble(CeedOperator op, CeedVector values) {
 
   // Default interface implementation
   CeedInt offset = 0;
+  CeedCall(CeedVectorSetValue(values, 0.0));
   if (is_composite) {
     CeedCall(CeedCompositeOperatorGetNumSub(op, &num_suboperators));
     CeedCall(CeedCompositeOperatorGetSubList(op, &sub_operators));
