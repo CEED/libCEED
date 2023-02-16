@@ -31,9 +31,9 @@ int CeedSyclInit(Ceed ceed, const char *resource) {
   const int   device_id   = (device_spec) ? atoi(device_spec + 11) : 0;
 
   sycl::info::device_type device_type;
-  if (std::strstr(resource, "/gpu/sycl/ref")) {
+  if (std::strstr(resource, "/gpu/sycl")) {
     device_type = sycl::info::device_type::gpu;
-  } else if (std::strstr(resource, "/cpu/sycl/ref")) {
+  } else if (std::strstr(resource, "/cpu/sycl")) {
     device_type = sycl::info::device_type::cpu;
   } else {
     return CeedError(ceed, CEED_ERROR_BACKEND, "Unsupported SYCL device type requested");
@@ -71,7 +71,9 @@ int CeedSyclInit(Ceed ceed, const char *resource) {
         return CeedError(ceed, CEED_ERROR_BACKEND, error_msg.str().c_str());
       }
     }
+    return CEED_ERROR_SUCCESS;
   };
+
   sycl::context sycl_context{sycl_device.get_platform().get_devices()};
   sycl::queue   sycl_queue{sycl_context, sycl_device, sycl_async_handler, sycl::property::queue::in_order{}};
 
