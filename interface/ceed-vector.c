@@ -752,20 +752,21 @@ int CeedVectorPointwiseMult(CeedVector w, CeedVector x, CeedVector y) {
   }
 
   // Default implementation
-  CeedCall(CeedVectorGetArrayWrite(w, CEED_MEM_HOST, &w_array));
   if (x != w) {
     CeedCall(CeedVectorGetArrayRead(x, CEED_MEM_HOST, &x_array));
   } else {
+    CeedCall(CeedVectorGetArray(w, CEED_MEM_HOST, &w_array));
     x_array = w_array;
   }
-
   if (y != w && y != x) {
     CeedCall(CeedVectorGetArrayRead(y, CEED_MEM_HOST, &y_array));
-  } else if (y != x) {
-    y_array = w_array;
-  } else {
+  } else if (y == x) {
     y_array = x_array;
+  } else {
+    CeedCall(CeedVectorGetArray(w, CEED_MEM_HOST, &w_array));
+    y_array = w_array;
   }
+  if (!w_array) CeedCall(CeedVectorGetArrayWrite(w, CEED_MEM_HOST, &w_array));
 
   assert(w_array);
   assert(x_array);
