@@ -1087,7 +1087,7 @@ static int CeedSingleOperatorAssemble_Cuda(CeedOperator op, CeedInt offset, Ceed
   CeedCallBackend(CeedOperatorLinearAssembleQFunctionBuildOrUpdate(op, &assembled_qf, &rstr_q, CEED_REQUEST_IMMEDIATE));
   CeedCallBackend(CeedElemRestrictionDestroy(&rstr_q));
   CeedScalar *values_array;
-  CeedCallBackend(CeedVectorGetArrayWrite(values, CEED_MEM_DEVICE, &values_array));
+  CeedCallBackend(CeedVectorGetArray(values, CEED_MEM_DEVICE, &values_array));
   values_array += offset;
   const CeedScalar *qf_array;
   CeedCallBackend(CeedVectorGetArrayRead(assembled_qf, CEED_MEM_DEVICE, &qf_array));

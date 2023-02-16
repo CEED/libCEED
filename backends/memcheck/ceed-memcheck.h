@@ -12,6 +12,15 @@
 #include <ceed/ceed.h>
 
 typedef struct {
+  int         mem_block_id;
+  CeedScalar *array;
+  CeedScalar *array_allocated;
+  CeedScalar *array_owned;
+  CeedScalar *array_borrowed;
+  CeedScalar *array_read_only_copy;
+} CeedVector_Memcheck;
+
+typedef struct {
   const CeedScalar **inputs;
   CeedScalar       **outputs;
   bool               setup_done;
@@ -25,6 +34,8 @@ typedef struct {
   void *data_borrowed;
   void *data_read_only_copy;
 } CeedQFunctionContext_Memcheck;
+
+CEED_INTERN int CeedVectorCreate_Memcheck(CeedSize n, CeedVector vec);
 
 CEED_INTERN int CeedQFunctionCreate_Memcheck(CeedQFunction qf);
 
