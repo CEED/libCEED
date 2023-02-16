@@ -1,6 +1,6 @@
 /// @file
-/// Test integration with a 2D Simplex non-tensor H1 basis
-/// \test Test integration with a 2D Simplex non-tensor H1 basis
+/// Test integration with a 2D Simplex non-tensor H^1 basis
+/// \test Test integration with a 2D Simplex non-tensor H^1 basis
 #include <ceed.h>
 #include <math.h>
 #include <stdio.h>
