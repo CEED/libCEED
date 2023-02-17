@@ -166,7 +166,10 @@ static PetscErrorCode Surface_Forces_NS(DM dm, Vec G_loc, PetscInt num_walls, co
         const PetscInt           p = points[i];
         const StateConservative *r;
         PetscCall(DMPlexPointLocalRead(dm, p, g, &r));
-        PetscCall(PetscSectionGetDof(s, p, &dof));
+        for (PetscInt k = 0; k < num_points; k++) {
+          PetscCall(PetscSectionGetDof(s, points[k], &dof));  // there are 5 dofs
+          // printf("points = %d, num_points = %d\n", points[k], num_points);
+        }
         if (!r) continue;
         for (PetscInt j = 0; j < 3; j++) {
           reaction_force[w * dim + j] -= r->momentum[j];
