@@ -63,13 +63,92 @@ PetscErrorCode MatopApplyContextDestroy(MatopApplyContext op_apply_ctx) {
   PetscFunctionReturn(0);
 }
 
+/**
+  @brief Transfer array from PETSc Vec to CeedVector
+
+  @param[in]   X_petsc   PETSc Vec
+  @param[out]  mem_type  PETSc MemType
+  @param[out]  x_ceed    CeedVector
+
+  @return An error code: 0 - success, otherwise - failure
+**/
+PetscErrorCode VecP2C(Vec X_petsc, PetscMemType *mem_type, CeedVector x_ceed) {
+  PetscScalar *x;
+
+  PetscFunctionBeginUser;
+
+  PetscCall(VecGetArrayAndMemType(X_petsc, &x, mem_type));
+  CeedVectorSetArray(x_ceed, MemTypeP2C(*mem_type), CEED_USE_POINTER, x);
+
+  PetscFunctionReturn(0);
+}
+
+/**
+  @brief Transfer array from CeedVector to PETSc Vec
+
+  @param[in]   x_ceed    CeedVector
+  @param[in]   mem_type  PETSc MemType
+  @param[out]  X_petsc   PETSc Vec
+
+  @return An error code: 0 - success, otherwise - failure
+**/
+PetscErrorCode VecC2P(CeedVector x_ceed, PetscMemType mem_type, Vec X_petsc) {
+  PetscScalar *x;
+
+  PetscFunctionBeginUser;
+
+  CeedVectorTakeArray(x_ceed, MemTypeP2C(mem_type), &x);
+  PetscCall(VecRestoreArrayAndMemType(X_petsc, &x));
+
+  PetscFunctionReturn(0);
+}
+
+/**
+  @brief Transfer read-only array from PETSc Vec to CeedVector
+
+  @param[in]   X_petsc   PETSc Vec
+  @param[out]  mem_type  PETSc MemType
+  @param[out]  x_ceed    CeedVector
+
+  @return An error code: 0 - success, otherwise - failure
+**/
+PetscErrorCode VecReadP2C(Vec X_petsc, PetscMemType *mem_type, CeedVector x_ceed) {
+  PetscScalar *x;
+
+  PetscFunctionBeginUser;
+
+  PetscCall(VecGetArrayReadAndMemType(X_petsc, (const PetscScalar **)&x, mem_type));
+  CeedVectorSetArray(x_ceed, MemTypeP2C(*mem_type), CEED_USE_POINTER, x);
+
+  PetscFunctionReturn(0);
+}
+
+/**
+  @brief Transfer read-only array from CeedVector to PETSc Vec
+
+  @param[in]   x_ceed    CeedVector
+  @param[in]   mem_type  PETSc MemType
+  @param[out]  X_petsc   PETSc Vec
+
+  @return An error code: 0 - success, otherwise - failure
+**/
+PetscErrorCode VecReadC2P(CeedVector x_ceed, PetscMemType mem_type, Vec X_petsc) {
+  PetscScalar *x;
+
+  PetscFunctionBeginUser;
+
+  CeedVectorTakeArray(x_ceed, MemTypeP2C(mem_type), &x);
+  PetscCall(VecRestoreArrayReadAndMemType(X_petsc, (const PetscScalar **)&x));
+
+  PetscFunctionReturn(0);
+}
+
 // -----------------------------------------------------------------------------
 // Returns the computed diagonal of the operator
 // -----------------------------------------------------------------------------
 PetscErrorCode MatGetDiag_Ceed(Mat A, Vec D) {
   MatopApplyContext op_apply_ctx;
   Vec               Y_loc;
-  PetscScalar      *y;
   PetscMemType      mem_type;
   PetscFunctionBeginUser;
 
@@ -78,15 +157,13 @@ PetscErrorCode MatGetDiag_Ceed(Mat A, Vec D) {
   else PetscCall(DMGetLocalVector(op_apply_ctx->dm_y, &Y_loc));
 
   // -- Place PETSc vector in libCEED vector
-  PetscCall(VecGetArrayAndMemType(Y_loc, &y, &mem_type));
-  CeedVectorSetArray(op_apply_ctx->y_ceed, MemTypeP2C(mem_type), CEED_USE_POINTER, y);
+  PetscCall(VecP2C(Y_loc, &mem_type, op_apply_ctx->y_ceed));
 
   // -- Compute Diagonal
   CeedOperatorLinearAssembleDiagonal(op_apply_ctx->op, op_apply_ctx->y_ceed, CEED_REQUEST_IMMEDIATE);
 
   // -- Local-to-Global
-  CeedVectorTakeArray(op_apply_ctx->y_ceed, MemTypeP2C(mem_type), NULL);
-  PetscCall(VecRestoreArrayAndMemType(Y_loc, &y));
+  PetscCall(VecC2P(op_apply_ctx->y_ceed, mem_type, Y_loc));
   PetscCall(VecZeroEntries(D));
   PetscCall(DMLocalToGlobal(op_apply_ctx->dm_y, Y_loc, ADD_VALUES, D));
 
@@ -98,7 +175,6 @@ PetscErrorCode MatGetDiag_Ceed(Mat A, Vec D) {
 // This function uses libCEED to compute the action of the Laplacian with Dirichlet boundary conditions
 // -----------------------------------------------------------------------------
 PetscErrorCode ApplyLocal_Ceed(Vec X, Vec Y, MatopApplyContext op_apply_ctx) {
-  PetscScalar *x, *y;
   PetscMemType x_mem_type, y_mem_type;
   Vec          Y_loc, X_loc;
   PetscFunctionBeginUser;
@@ -112,19 +188,15 @@ PetscErrorCode ApplyLocal_Ceed(Vec X, Vec Y, MatopApplyContext op_apply_ctx) {
   PetscCall(DMGlobalToLocal(op_apply_ctx->dm_x, X, INSERT_VALUES, X_loc));
 
   // Setup libCEED vectors
-  PetscCall(VecGetArrayReadAndMemType(X_loc, (const PetscScalar **)&x, &x_mem_type));
-  PetscCall(VecGetArrayAndMemType(Y_loc, &y, &y_mem_type));
-  CeedVectorSetArray(op_apply_ctx->x_ceed, MemTypeP2C(x_mem_type), CEED_USE_POINTER, x);
-  CeedVectorSetArray(op_apply_ctx->y_ceed, MemTypeP2C(y_mem_type), CEED_USE_POINTER, y);
+  PetscCall(VecReadP2C(X_loc, &x_mem_type, op_apply_ctx->x_ceed));
+  PetscCall(VecP2C(Y_loc, &y_mem_type, op_apply_ctx->y_ceed));
 
   // Apply libCEED operator
   CeedOperatorApply(op_apply_ctx->op, op_apply_ctx->x_ceed, op_apply_ctx->y_ceed, CEED_REQUEST_IMMEDIATE);
 
   // Restore PETSc vectors
-  CeedVectorTakeArray(op_apply_ctx->x_ceed, MemTypeP2C(x_mem_type), NULL);
-  CeedVectorTakeArray(op_apply_ctx->y_ceed, MemTypeP2C(y_mem_type), NULL);
-  PetscCall(VecRestoreArrayReadAndMemType(X_loc, (const PetscScalar **)&x));
-  PetscCall(VecRestoreArrayAndMemType(Y_loc, &y));
+  PetscCall(VecReadC2P(op_apply_ctx->x_ceed, x_mem_type, X_loc));
+  PetscCall(VecC2P(op_apply_ctx->y_ceed, y_mem_type, Y_loc));
 
   // Local-to-global
   PetscCall(VecZeroEntries(Y));

@@ -519,8 +519,7 @@ PetscErrorCode SetupStatsCollection(Ceed ceed, User user, CeedData ceed_data, Pr
 
 // Collect statistics based on the solution Q
 PetscErrorCode CollectStatistics(User user, PetscScalar solution_time, Vec Q) {
-  PetscMemType       q_mem_type;
-  const PetscScalar *q_arr;
+  PetscMemType q_mem_type;
   PetscFunctionBeginUser;
 
   PetscLogStage stage_stats_collect;
@@ -531,13 +530,11 @@ PetscErrorCode CollectStatistics(User user, PetscScalar solution_time, Vec Q) {
   PetscCall(UpdateBoundaryValues(user, user->Q_loc, solution_time));
   CeedOperatorContextSetDouble(user->spanstats.op_stats_collect, user->spanstats.solution_time_label, &solution_time);
   PetscCall(DMGlobalToLocal(user->dm, Q, INSERT_VALUES, user->Q_loc));
-  PetscCall(VecGetArrayReadAndMemType(user->Q_loc, &q_arr, &q_mem_type));
-  CeedVectorSetArray(user->q_ceed, MemTypeP2C(q_mem_type), CEED_USE_POINTER, (PetscScalar *)q_arr);
+  PetscCall(VecP2C(user->Q_loc, &q_mem_type, user->q_ceed));
 
   CeedOperatorApplyAdd(user->spanstats.op_stats_collect, user->q_ceed, user->spanstats.child_stats, CEED_REQUEST_IMMEDIATE);
 
-  CeedVectorTakeArray(user->q_ceed, MemTypeP2C(q_mem_type), NULL);
-  PetscCall(VecRestoreArrayReadAndMemType(user->Q_loc, &q_arr));
+  PetscCall(VecC2P(user->q_ceed, q_mem_type, user->Q_loc));
 
   CeedOperatorContextSetDouble(user->spanstats.op_stats_collect, user->spanstats.previous_time_label, &solution_time);
 
@@ -553,7 +550,6 @@ PetscErrorCode ProcessStatistics(User user, Vec stats) {
   MPI_Datatype       unit;
   Vec                rhs_loc, rhs;
   PetscMemType       rhs_mem_type;
-  CeedScalar        *rhs_arr;
   CeedMemType        ceed_mem_type;
   PetscFunctionBeginUser;
 
@@ -588,14 +584,11 @@ PetscErrorCode ProcessStatistics(User user, Vec stats) {
 
   // L^2 projection with the parent_data
   PetscCall(DMGetLocalVector(user_stats.dm, &rhs_loc));
-  PetscCall(VecZeroEntries(rhs_loc));
-  PetscCall(VecGetArrayWriteAndMemType(rhs_loc, &rhs_arr, &rhs_mem_type));
-  CeedVectorSetArray(user_stats.rhs_ceed, MemTypeP2C(rhs_mem_type), CEED_USE_POINTER, (PetscScalar *)rhs_arr);
+  PetscCall(VecP2C(rhs_loc, &rhs_mem_type, user_stats.rhs_ceed));
 
   CeedOperatorApply(user_stats.op_stats_proj, user_stats.parent_stats, user_stats.rhs_ceed, CEED_REQUEST_IMMEDIATE);
 
-  CeedVectorTakeArray(user_stats.rhs_ceed, MemTypeP2C(rhs_mem_type), &rhs_arr);
-  PetscCall(VecRestoreArrayAndMemType(rhs_loc, &rhs_arr));
+  PetscCall(VecC2P(user_stats.rhs_ceed, rhs_mem_type, rhs_loc));
 
   PetscCall(DMGetGlobalVector(user_stats.dm, &rhs));
   PetscCall(VecZeroEntries(rhs));
