@@ -29,4 +29,9 @@ PetscErrorCode MatGetDiag_Ceed(Mat A, Vec D);
 PetscErrorCode ApplyLocal_Ceed(Vec X, Vec Y, MatopApplyContext op_apply_ctx);
 PetscErrorCode MatMult_Ceed(Mat A, Vec X, Vec Y);
 
+PetscErrorCode VecP2C(Vec X_petsc, PetscMemType *mem_type, CeedVector x_ceed);
+PetscErrorCode VecC2P(CeedVector x_ceed, PetscMemType mem_type, Vec X_petsc);
+PetscErrorCode VecReadP2C(Vec X_petsc, PetscMemType *mem_type, CeedVector x_ceed);
+PetscErrorCode VecReadC2P(CeedVector x_ceed, PetscMemType mem_type, Vec X_petsc);
+
 #endif  // matops_h
