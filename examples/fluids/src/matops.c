@@ -177,7 +177,11 @@ PetscErrorCode MatGetDiag_Ceed(Mat A, Vec D) {
 PetscErrorCode ApplyLocal_Ceed(Vec X, Vec Y, MatopApplyContext op_apply_ctx) {
   PetscMemType x_mem_type, y_mem_type;
   Vec          Y_loc, X_loc;
+  MPI_Comm     comm = PetscObjectComm((PetscObject)op_apply_ctx->dm_x);
   PetscFunctionBeginUser;
+
+  PetscCheck((X || op_apply_ctx->X_loc) && (Y || op_apply_ctx->Y_loc), comm, PETSC_ERR_SUP,
+             "A global or local PETSc Vec must be provided for both input and output");
 
   if (op_apply_ctx->Y_loc) Y_loc = op_apply_ctx->Y_loc;
   else PetscCall(DMGetLocalVector(op_apply_ctx->dm_y, &Y_loc));
@@ -185,7 +189,7 @@ PetscErrorCode ApplyLocal_Ceed(Vec X, Vec Y, MatopApplyContext op_apply_ctx) {
   else PetscCall(DMGetLocalVector(op_apply_ctx->dm_x, &X_loc));
 
   // Global-to-local
-  PetscCall(DMGlobalToLocal(op_apply_ctx->dm_x, X, INSERT_VALUES, X_loc));
+  if (X) PetscCall(DMGlobalToLocal(op_apply_ctx->dm_x, X, INSERT_VALUES, X_loc));
 
   // Setup libCEED vectors
   PetscCall(VecReadP2C(X_loc, &x_mem_type, op_apply_ctx->x_ceed));
@@ -199,8 +203,10 @@ PetscErrorCode ApplyLocal_Ceed(Vec X, Vec Y, MatopApplyContext op_apply_ctx) {
   PetscCall(VecC2P(op_apply_ctx->y_ceed, y_mem_type, Y_loc));
 
   // Local-to-global
-  PetscCall(VecZeroEntries(Y));
-  PetscCall(DMLocalToGlobal(op_apply_ctx->dm_y, Y_loc, ADD_VALUES, Y));
+  if (Y) {
+    PetscCall(VecZeroEntries(Y));
+    PetscCall(DMLocalToGlobal(op_apply_ctx->dm_y, Y_loc, ADD_VALUES, Y));
+  }
 
   if (!op_apply_ctx->Y_loc) PetscCall(DMRestoreLocalVector(op_apply_ctx->dm_y, &Y_loc));
   if (!op_apply_ctx->X_loc) PetscCall(DMRestoreLocalVector(op_apply_ctx->dm_x, &X_loc));
