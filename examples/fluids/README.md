@@ -244,7 +244,7 @@ These conditions may be either weak or strong, with the latter specifying veloci
 The strong approach gives sharper resolution of velocity structures.
 We have described the primitive variable formulation here; the conservative variants are similar, but not equivalent.
 
-### Outflow
+#### Outflow
 
 If you know the complete exterior state, `bc_freestream` is the least reflective boundary condition, but is disruptive to viscous flow structures.
 If thermal anomalies must exit the domain, the Riemann solver must resolve the contact wave to avoid reflections.
@@ -256,7 +256,7 @@ The simpler `bc_outflow` variant, `outflow_type: pressure`, requires that the fl
 In our experience, `riemann` is slightly less reflective but produces similar flows in cases of strict outflow.
 The `pressure` variant is retained to facilitate comparison with other codes, such as PHASTA-C, but we recommend `riemann` for general use.
 
-### Periodicity
+#### Periodicity
 
 PETSc provides two ways to specify periodicity:
 
@@ -430,7 +430,7 @@ For the 3D advection problem, the following additional command-line options are 
 
 * - `-bubble_type`
   - `sphere` (3D) or `cylinder` (2D)
-  - `shpere`
+  - `sphere`
   -
 
 * - `-bubble_continuity`
