@@ -170,7 +170,6 @@ static PetscErrorCode Surface_Forces_NS(DM dm, Vec G_loc, PetscInt num_walls, co
         PetscCall(PetscSectionGetFieldComponents(s, 0, &num_comp));
         PetscCall(PetscSectionGetDof(s, p, &dof));
         for (PetscInt node = 0; node < dof / num_comp; node++) {
-          if (!r) continue;
           for (PetscInt j = 0; j < 3; j++) {
             reaction_force[w * dim + j] -= r[node].momentum[j];
           }
