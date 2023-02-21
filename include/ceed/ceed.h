@@ -277,6 +277,8 @@ CEED_EXTERN int CeedBasisCreateProjection(CeedBasis basis_from, CeedBasis basis_
 CEED_EXTERN int CeedBasisReferenceCopy(CeedBasis basis, CeedBasis *basis_copy);
 CEED_EXTERN int CeedBasisView(CeedBasis basis, FILE *stream);
 CEED_EXTERN int CeedBasisApply(CeedBasis basis, CeedInt num_elem, CeedTransposeMode t_mode, CeedEvalMode eval_mode, CeedVector u, CeedVector v);
+CEED_EXTERN int CeedBasisApplyAtPoints(CeedBasis basis, CeedInt num_points, CeedTransposeMode t_mode, CeedEvalMode eval_mode, CeedVector x_ref,
+                                       CeedVector u, CeedVector v);
 CEED_EXTERN int CeedBasisGetCeed(CeedBasis basis, Ceed *ceed);
 CEED_EXTERN int CeedBasisGetDimension(CeedBasis basis, CeedInt *dim);
 CEED_EXTERN int CeedBasisGetTopology(CeedBasis basis, CeedElemTopology *topo);

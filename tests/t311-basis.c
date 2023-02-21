@@ -32,7 +32,7 @@ int main(int argc, char **argv) {
   {
     CeedScalar x_array[2];
 
-    for (int i = 0; i < 2; i++) x_array[i] = CeedIntPow(-1, i + 1);
+    for (CeedInt i = 0; i < 2; i++) x_array[i] = CeedIntPow(-1, i + 1);
     CeedVectorSetArray(x, CEED_MEM_HOST, CEED_COPY_VALUES, x_array);
   }
 

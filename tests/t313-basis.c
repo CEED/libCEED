@@ -18,6 +18,7 @@ int main(int argc, char **argv) {
   Ceed ceed;
 
   CeedInit(argv[1], &ceed);
+
   for (CeedInt dim = 1; dim <= 3; dim++) {
     CeedVector x, x_q, u, u_q;
     CeedBasis  basis_x_lobatto, basis_u_lobatto, basis_x_gauss, basis_u_gauss;
@@ -77,8 +78,8 @@ int main(int argc, char **argv) {
         CeedScalar fx = Eval(dim, coord);
         if (fabs(u_array[i] - fx) > 1E-4) {
           // LCOV_EXCL_START
-          printf("[%" CeedInt_FMT "] %f != %f=f(%f", dim, u_array[i], fx, coord[0]);
-          for (CeedInt d = 1; d < dim; d++) printf(",%f", coord[d]);
+          printf("[%" CeedInt_FMT "] %f != %f = f(%f", dim, u_array[i], fx, coord[0]);
+          for (CeedInt d = 1; d < dim; d++) printf(", %f", coord[d]);
           puts(")");
           // LCOV_EXCL_STOP
         }
