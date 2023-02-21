@@ -1318,17 +1318,18 @@ int CeedOperatorAssemblyDataCreate(Ceed ceed, CeedOperator op, CeedOperatorAssem
 
   @param[in]  data                  CeedOperatorAssemblyData
   @param[out] num_active_bases      Total number of active bases
-  @param[out] num_eval_mode_in      Pointer to hold array of numbers of input CeedEvalModes, or NULL.
+  @param[out] num_eval_modes_in     Pointer to hold array of numbers of input CeedEvalModes, or NULL.
                                       `eval_modes_in[0]` holds an array of eval modes for the first active basis.
-  @param[out] eval_mode_in          Pointer to hold arrays of input CeedEvalModes, or NULL.
+  @param[out] eval_modes_in         Pointer to hold arrays of input CeedEvalModes, or NULL.
   @param[out] eval_mode_offsets_in  Pointer to hold arrays of input offsets at each quadrature point.
-  @param[out] num_eval_mode_out     Pointer to hold array of numbers of output CeedEvalModes, or NULL
-  @param[out] eval_mode_out         Pointer to hold arrays of output CeedEvalModes, or NULL.
+  @param[out] num_eval_modes_out    Pointer to hold array of numbers of output CeedEvalModes, or NULL
+  @param[out] eval_modes_out        Pointer to hold arrays of output CeedEvalModes, or NULL.
   @param[out] eval_mode_offsets_out Pointer to hold arrays of output offsets at each quadrature point
   @param[out] num_output_components The number of columns in the assembled CeedQFunction matrix for each quadrature point,
                                       including contributions of all active bases
 
   @return An error code: 0 - success, otherwise - failure
+
 
   @ref Backend
 **/

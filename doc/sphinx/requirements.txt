@@ -3,10 +3,10 @@ breathe>=4.30
 myst-parser[linkify]>=0.14.0
 sphinx-hoverxref>=0.3b1
 sphinx-design
-sphinx>=4.3
+sphinx>=5.3,<6
 sphinx_rtd_theme
-sphinxcontrib-bibtex==2.4.2
+sphinxcontrib-bibtex==2.5
 sphinxcontrib-katex
 sphinxcontrib-mermaid
 sphinxcontrib-svg2pdfconverter
-docutils==0.16
+docutils

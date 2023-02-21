@@ -331,7 +331,8 @@ not have any field of a matching type.
   @param[in,out] op          CeedOperator
   @param[in]     field_label Label of field to set
   @param[in]     field_type  Type of field to set
-  @param[in]     value       Value to set
+  @param[out]    num_values  Number of values of type `field_type` in array `values`
+  @param[out]    values      Values in the label
 
   @return An error code: 0 - success, otherwise - failure
 
@@ -391,7 +392,7 @@ not have any field of a matching type.
   @param[in,out] op          CeedOperator
   @param[in]     field_label Label of field to set
   @param[in]     field_type  Type of field to set
-  @param[in]     value       Value to set
+  @param[in]     values      Values array to restore
 
   @return An error code: 0 - success, otherwise - failure
 
@@ -1586,7 +1587,7 @@ int CeedOperatorContextSetInt32(CeedOperator op, CeedContextFieldLabel field_lab
 
   @param[in]  op          CeedOperator
   @param[in]  field_label Label of field to get
-  @param[out] num_values  Number of values in the field label
+  @param[out] num_values  Number of int32 values in `values`
   @param[out] values      Pointer to context values
 
   @return An error code: 0 - success, otherwise - failure
@@ -1602,7 +1603,6 @@ int CeedOperatorContextGetInt32Read(CeedOperator op, CeedContextFieldLabel field
 
   @param[in]  op          CeedOperator
   @param[in]  field_label Label of field to get
-  @param[out] num_values  Number of values in the field label
   @param[out] values      Pointer to context values
 
   @return An error code: 0 - success, otherwise - failure
