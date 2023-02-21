@@ -159,6 +159,7 @@ static PetscErrorCode Surface_Forces_NS(DM dm, Vec G_loc, PetscInt num_walls, co
     PetscCall(DMLabelGetStratumIS(face_label, wall, &wall_is));
     if (wall_is) {  // There exist such points on this process
       PetscInt        num_points;
+      PetscInt        num_comp = 0;
       const PetscInt *points;
       PetscCall(ISGetSize(wall_is, &num_points));
       PetscCall(ISGetIndices(wall_is, &points));
@@ -166,13 +167,13 @@ static PetscErrorCode Surface_Forces_NS(DM dm, Vec G_loc, PetscInt num_walls, co
         const PetscInt           p = points[i];
         const StateConservative *r;
         PetscCall(DMPlexPointLocalRead(dm, p, g, &r));
-        for (PetscInt k = 0; k < num_points; k++) {
-          PetscCall(PetscSectionGetDof(s, points[k], &dof));  // there are 5 dofs
-          // printf("points = %d, num_points = %d\n", points[k], num_points);
-        }
-        if (!r) continue;
-        for (PetscInt j = 0; j < 3; j++) {
-          reaction_force[w * dim + j] -= r->momentum[j];
+        PetscSectionGetFieldComponents(s, 0, &num_comp);
+        for (PetscInt node = 0; node < dof / num_comp; node++) {
+          PetscCall(PetscSectionGetDof(s, points[node], &dof));
+          if (!r) continue;
+          for (PetscInt j = 0; j < 3; j++) {
+            reaction_force[w * dim + j] -= r[node].momentum[j];
+          }
         }
       }
       PetscCall(ISRestoreIndices(wall_is, &points));
