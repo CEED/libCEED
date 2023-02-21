@@ -2,7 +2,7 @@ altair>=4.1
 breathe>=4.30
 myst-parser[linkify]>=0.14.0
 sphinx-hoverxref>=0.3b1
-sphinx-panels
+sphinx-design
 sphinx>=4.3
 sphinx_rtd_theme
 sphinxcontrib-bibtex==2.4.2
