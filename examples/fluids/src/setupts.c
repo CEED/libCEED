@@ -161,13 +161,13 @@ static PetscErrorCode Surface_Forces_NS(DM dm, Vec G_loc, PetscInt num_walls, co
       PetscInt        num_points;
       PetscInt        num_comp = 0;
       const PetscInt *points;
+      PetscCall(PetscSectionGetFieldComponents(s, 0, &num_comp));
       PetscCall(ISGetSize(wall_is, &num_points));
       PetscCall(ISGetIndices(wall_is, &points));
       for (PetscInt i = 0; i < num_points; i++) {
         const PetscInt           p = points[i];
         const StateConservative *r;
         PetscCall(DMPlexPointLocalRead(dm, p, g, &r));
-        PetscCall(PetscSectionGetFieldComponents(s, 0, &num_comp));
         PetscCall(PetscSectionGetDof(s, p, &dof));
         for (PetscInt node = 0; node < dof / num_comp; node++) {
           for (PetscInt j = 0; j < 3; j++) {
