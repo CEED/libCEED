@@ -280,7 +280,6 @@ intersphinx_mapping = {
 
 
 # -- Options for breathe --------------------------------------------------
-sys.path.append(breathe.__path__)
 breathe_projects = {"libCEED": "../../../xml"}
 breathe_default_project = "libCEED"
 breathe_build_directory = "../build/breathe"
