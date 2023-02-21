@@ -249,7 +249,7 @@ static int CeedBasisApply_Sycl(CeedBasis basis, const CeedInt num_elem, CeedTran
   if (t_mode == CEED_TRANSPOSE) {
     CeedSize length;
     CeedCallBackend(CeedVectorGetLength(v, &length));
-    data->sycl_queue.fill(d_v, 0, length);
+    data->sycl_queue.fill<CeedScalar>(d_v, 0, length);
   }
 
   // Basis action
@@ -419,7 +419,7 @@ static int CeedBasisApplyNonTensor_Sycl(CeedBasis basis, const CeedInt num_elem,
   if (transpose) {
     CeedSize length;
     CeedCallBackend(CeedVectorGetLength(v, &length));
-    data->sycl_queue.fill(d_v, 0, length);
+    data->sycl_queue.fill<CeedScalar>(d_v, 0, length);
   }
 
   // Apply basis operation
