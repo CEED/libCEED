@@ -17,8 +17,9 @@
 # testbed platforms, in support of the nation's exascale computing imperative.
 
 # You can run convergence test by:
-#./mixed_conv_test.sh -u 2 -p 1
+#./mixed_conv_test.sh -d 2 -u 2 -p 1
 
+# ./main -problem mixed-linear-2d -dm_plex_dim 2 -dm_plex_box_faces 6,6 -dm_plex_simplex 0 -pc_type jacobi -ksp_view
 # where u, p are polynomial orders of displacement and pressure fields
 # Reading arguments with getopts options
 while getopts d:u:p: flag
@@ -47,7 +48,7 @@ declare -A run_flags
     run_flags[p_order]=$order_p
     run_flags[ksp_max_it]=1000
     run_flags[q_extra]=1
-    run_flags[pc_type]=svd
+    run_flags[pc_type]=jacobi
 
 declare -A test_flags
     test_flags[res_start]=4

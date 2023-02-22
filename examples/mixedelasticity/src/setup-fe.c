@@ -37,7 +37,7 @@ PetscErrorCode SetupFEByOrder(AppCtx app_ctx, ProblemData problem_data, DM dm) {
     PetscInt num_comp_coord;
     PetscCall(DMGetCoordinateDim(dm, &num_comp_coord));
     PetscCall(PetscFECreateLagrange(app_ctx->comm, dim, num_comp_coord, is_simplex, 1, q_order, &fe_coords));
-    PetscCall(DMProjectCoordinates(dm, fe_coords));
+    PetscCall(DMSetCoordinateDisc(dm, fe_coords, PETSC_TRUE));
     PetscCall(PetscFEDestroy(&fe_coords));
   }
 
@@ -113,7 +113,7 @@ PetscErrorCode DMFieldToDSField(DM dm, DMLabel domain_label, PetscInt dm_field, 
   PetscFunctionBeginUser;
 
   // Translate dm_field to ds_field
-  PetscCall(DMGetRegionDS(dm, domain_label, &field_is, &ds));
+  PetscCall(DMGetRegionDS(dm, domain_label, &field_is, &ds, NULL));
   PetscCall(ISGetIndices(field_is, &fields));
   PetscCall(ISGetSize(field_is, &num_fields));
   for (PetscInt i = 0; i < num_fields; i++) {
@@ -240,7 +240,7 @@ PetscErrorCode CreateBasisFromPlex(Ceed ceed, DM dm, DMLabel domain_label, CeedI
   PetscFunctionBeginUser;
 
   // Get element information
-  PetscCall(DMGetRegionDS(dm, domain_label, NULL, &ds));
+  PetscCall(DMGetRegionDS(dm, domain_label, NULL, &ds, NULL));
   PetscCall(DMFieldToDSField(dm, domain_label, dm_field, &ds_field));
   PetscCall(PetscDSGetDiscretization(ds, ds_field, (PetscObject *)&fe));
   PetscCall(PetscFEGetHeightSubspace(fe, height, &fe));

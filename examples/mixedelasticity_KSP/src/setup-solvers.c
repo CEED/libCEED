@@ -79,7 +79,7 @@ PetscErrorCode PDESolver(CeedData ceed_data, AppCtx app_ctx, KSP ksp, Vec rhs, V
   PetscCall(VecGetLocalSize(*X, &X_l_size));
 
   // ---------------------------------------------------------------------------
-  // Setup SNES
+  // Setup Mat
   // ---------------------------------------------------------------------------
   // Operator
   Mat     mat_op;
@@ -88,17 +88,22 @@ PetscErrorCode PDESolver(CeedData ceed_data, AppCtx app_ctx, KSP ksp, Vec rhs, V
   // -- Form Action of Jacobian on delta_u
   PetscCall(MatCreateShell(app_ctx->comm, X_l_size, X_l_size, X_g_size, X_g_size, app_ctx->ctx_residual, &mat_op));
   PetscCall(MatShellSetOperation(mat_op, MATOP_MULT, (void (*)(void))ApplyMatOp));
+  PetscCall(MatShellSetOperation(mat_op, MATOP_GET_DIAGONAL, (void (*)(void))GetDiagonal));
   PetscCall(MatShellSetVecType(mat_op, vec_type));
 
+  // Setup KSP
+  PetscCall(KSPSetType(ksp, KSPGMRES));
+  PetscCall(KSPSetNormType(ksp, KSP_NORM_PRECONDITIONED));
+  // PetscCall(KSPSetType(ksp, KSPCG));
+  // PetscCall(KSPSetNormType(ksp, KSP_NORM_NATURAL));
+  // Setup PC
   PC pc;
   PetscCall(KSPGetPC(ksp, &pc));
   PetscCall(PCSetType(pc, PCNONE));
-  PetscCall(KSPSetType(ksp, KSPCG));
-  // PetscCall(KSPSetNormType(ksp, KSP_NORM_NATURAL));
-  PetscCall(KSPSetTolerances(ksp, 1e-10, PETSC_DEFAULT, PETSC_DEFAULT, PETSC_DEFAULT));
 
   PetscCall(KSPSetOperators(ksp, mat_op, mat_op));
   PetscCall(KSPSetFromOptions(ksp));
+  PetscCall(KSPViewFromOptions(ksp, NULL, "-ksp_view"));
   PetscCall(VecZeroEntries(*X));
   PetscCall(KSPSolve(ksp, rhs, *X));
 

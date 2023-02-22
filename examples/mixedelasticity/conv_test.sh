@@ -46,14 +46,12 @@ declare -A run_flags
     run_flags[p_order]=$order_p
     run_flags[q_extra]=1
     #run_flags[pc_type]=svd
-    run_flags[pc_type]=fieldsplit
-    run_flags[pc_fieldsplit_type]=schur
-    run_flags[fieldsplit_q2_ksp_rtol]=1e-12
-    run_flags[fieldsplit_q1_ksp_rtol]=1e-12
-    run_flags[ksp_type]=fgmres
-    run_flags[pc_fieldsplit_schur_fact_type]=upper
-
-
+    #run_flags[pc_type]=fieldsplit
+    #run_flags[pc_fieldsplit_type]=schur
+    #run_flags[fieldsplit_q2_ksp_rtol]=1e-12
+    #run_flags[fieldsplit_q1_ksp_rtol]=1e-12
+    #run_flags[ksp_type]=fgmres
+    #run_flags[pc_fieldsplit_schur_fact_type]=upper
 
 declare -A test_flags
     test_flags[res_start]=4
@@ -82,4 +80,4 @@ for ((res=${test_flags[res_start]}; res<=${test_flags[res_end]}; res+=${test_fla
     i=$((i+1))
 done
 
-python conv_rate.py -f conv_test_result.csv
+python3 conv_rate.py -f conv_test_result.csv

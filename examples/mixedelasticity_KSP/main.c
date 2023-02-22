@@ -27,7 +27,7 @@
 // ./main -problem bp4-3d -dm_plex_dim 3 -dm_plex_box_faces 6,6,6 -dm_plex_simplex 1
 // ./main -problem linear-2d -dm_plex_dim 2 -dm_plex_box_faces 6,6 -dm_plex_simplex 0
 // ./main -problem linear-3d -dm_plex_dim 3 -dm_plex_box_faces 6,6,6 -dm_plex_simplex 1
-// ./main -problem mixed-linear-2d -dm_plex_dim 2 -dm_plex_box_faces 6,6 -dm_plex_simplex 0 -pc_type svd
+// ./main -problem mixed-linear-2d -dm_plex_dim 2 -dm_plex_box_faces 6,6 -dm_plex_simplex 0 -pc_type jacobi -ksp_view
 // ./main -problem mixed-linear-2d -dm_plex_dim 2 -dm_plex_box_faces 6,6 -dm_plex_simplex 0 -ksp_type minres -pc_type fieldsplit -ksp_monitor
 // -ksp_view -fieldsplit_q2_pc_type svd -fieldsplit_q1_pc_type svd -pc_fieldsplit_type schur -fieldsplit_q2_ksp_rtol 1e-12 -fieldsplit_q1_ksp_rtol
 // 1e-12 -ksp_type fgmres -pc_fieldsplit_schur_fact_type upper
@@ -94,7 +94,7 @@ int main(int argc, char **argv) {
   DM dm;
   PetscCall(CreateDM(comm, ceed, &dm));
   PetscCall(SetupFEByOrder(app_ctx, problem_data, dm));
-  PetscCall(PerturbVerticesSmooth(dm));
+  // PetscCall(PerturbVerticesSmooth(dm));
   // PetscCall(PerturbVerticesRandom(dm));
 
   // ---------------------------------------------------------------------------

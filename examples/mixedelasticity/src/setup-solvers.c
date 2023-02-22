@@ -140,6 +140,7 @@ PetscErrorCode PDESolver(CeedData ceed_data, AppCtx app_ctx, SNES snes, KSP ksp,
   // -- Form Action of Jacobian on delta_u
   PetscCall(MatCreateShell(app_ctx->comm, X_l_size, X_l_size, X_g_size, X_g_size, app_ctx->ctx_jacobian, &mat_op));
   PetscCall(MatShellSetOperation(mat_op, MATOP_MULT, (void (*)(void))ApplyMatOp));
+  PetscCall(MatShellSetOperation(mat_op, MATOP_GET_DIAGONAL, (void (*)(void))GetDiagonal));
   PetscCall(MatShellSetVecType(mat_op, app_ctx->ctx_jacobian->vec_type));
   app_ctx->ctx_jacobian->mat_jacobian = mat_op;
 
@@ -148,7 +149,17 @@ PetscErrorCode PDESolver(CeedData ceed_data, AppCtx app_ctx, SNES snes, KSP ksp,
   // -- SNES Jacobian
   PetscCall(SNESSetJacobian(snes, mat_op, mat_op, SNESFormJacobian, app_ctx->ctx_jacobian));
   // Setup KSP
+  PetscCall(KSPSetType(ksp, KSPGMRES));
+  PetscCall(KSPSetNormType(ksp, KSP_NORM_PRECONDITIONED));
+  // PC setup
+  PC pc;
+  PetscCall(KSPGetPC(ksp, &pc));
+  PetscCall(PCSetType(pc, PCJACOBI));
+  PetscCall(PCJacobiSetType(pc, PC_JACOBI_DIAGONAL));
+  // Set user options and view
   PetscCall(KSPSetFromOptions(ksp));
+  PetscCall(KSPViewFromOptions(ksp, NULL, "-ksp_view"));
+  PetscCall(PCViewFromOptions(pc, NULL, "-pc_view"));
   // Default to critical-point (CP) line search (related to Wolfe's curvature condition)
   SNESLineSearch line_search;
   PetscCall(SNESGetLineSearch(snes, &line_search));
