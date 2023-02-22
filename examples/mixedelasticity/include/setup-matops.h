@@ -9,5 +9,6 @@
 
 PetscErrorCode ApplyLocalCeedOp(Vec X, Vec Y, OperatorApplyContext op_apply_ctx);
 PetscErrorCode ApplyAddLocalCeedOp(Vec X, Vec Y, OperatorApplyContext op_apply_ctx);
+PetscErrorCode GetDiagonal(Mat A, Vec D);
 
 #endif  // setup_matops_h

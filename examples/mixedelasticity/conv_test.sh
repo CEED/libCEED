@@ -46,14 +46,12 @@ declare -A run_flags
     run_flags[p_order]=$order_p
     run_flags[q_extra]=1
     #run_flags[pc_type]=svd
-    run_flags[pc_type]=fieldsplit
-    run_flags[pc_fieldsplit_type]=schur
-    run_flags[fieldsplit_q2_ksp_rtol]=1e-12
-    run_flags[fieldsplit_q1_ksp_rtol]=1e-12
-    run_flags[ksp_type]=fgmres
-    run_flags[pc_fieldsplit_schur_fact_type]=upper
-
-
+    #run_flags[pc_type]=fieldsplit
+    #run_flags[pc_fieldsplit_type]=schur
+    #run_flags[fieldsplit_q2_ksp_rtol]=1e-12
+    #run_flags[fieldsplit_q1_ksp_rtol]=1e-12
+    #run_flags[ksp_type]=fgmres
+    #run_flags[pc_fieldsplit_schur_fact_type]=upper
 
 declare -A test_flags
     test_flags[res_start]=4

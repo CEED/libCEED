@@ -47,3 +47,34 @@ PetscErrorCode ApplyAddLocalCeedOp(Vec X, Vec Y, OperatorApplyContext op_apply_c
 };
 
 // -----------------------------------------------------------------------------
+// This function returns the computed diagonal of the operator
+// -----------------------------------------------------------------------------
+PetscErrorCode GetDiagonal(Mat A, Vec D) {
+  OperatorApplyContext op_apply_ctx;
+  PetscScalar         *x;
+  PetscMemType         x_mem_type;
+
+  PetscFunctionBeginUser;
+
+  PetscCall(MatShellGetContext(A, &op_apply_ctx));
+
+  // -- Place PETSc vector in libCEED vector
+  PetscCall(VecGetArrayAndMemType(op_apply_ctx->X_loc, &x, &x_mem_type));
+  CeedVectorSetArray(op_apply_ctx->x_ceed, MemTypeP2C(x_mem_type), CEED_USE_POINTER, x);
+
+  // -- Compute Diagonal
+  CeedOperatorLinearAssembleDiagonal(op_apply_ctx->op_apply, op_apply_ctx->x_ceed, CEED_REQUEST_IMMEDIATE);
+
+  // -- Local-to-Global
+  CeedVectorTakeArray(op_apply_ctx->x_ceed, MemTypeP2C(x_mem_type), NULL);
+  PetscCall(VecRestoreArrayAndMemType(op_apply_ctx->X_loc, &x));
+  PetscCall(VecZeroEntries(D));
+  PetscCall(DMLocalToGlobal(op_apply_ctx->dm, op_apply_ctx->X_loc, ADD_VALUES, D));
+
+  // Cleanup
+  PetscCall(VecZeroEntries(op_apply_ctx->X_loc));
+
+  PetscFunctionReturn(0);
+};
+
+// -----------------------------------------------------------------------------
