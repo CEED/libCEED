@@ -93,27 +93,6 @@ PetscErrorCode SNESFormJacobian(SNES snes, Vec U, Mat J, Mat J_pre, void *ctx_ja
   // OperatorApplyContext ctx = (OperatorApplyContext)ctx_jacobian;
   PetscFunctionBeginUser;
 
-  // Mat A;
-  // PetscCall(DMCreateMatrix(ctx->dm, &A));
-  //// Assemble matrix analytically
-  // PetscCount num_entries;
-  // CeedInt   *rows, *cols;
-  // CeedVector coo_values;
-  // CeedOperatorLinearAssembleSymbolic(ctx->op_apply, &num_entries, &rows, &cols);
-  // PetscCall(MatSetPreallocationCOO(A, num_entries, rows, cols));
-  // free(rows);
-  // free(cols);
-  // CeedVectorCreate(ctx->ceed, num_entries, &coo_values);
-  // CeedOperatorLinearAssemble(ctx->op_apply, coo_values);
-  // const CeedScalar *values;
-  // CeedVectorGetArrayRead(coo_values, CEED_MEM_HOST, &values);
-  // PetscCall(MatSetValuesCOO(A, values, ADD_VALUES));
-  // CeedVectorRestoreArrayRead(coo_values, &values);
-  // MatView(A, PETSC_VIEWER_STDOUT_WORLD);
-  //// CeedVectorView(coo_values, "%12.8f", stdout);
-  // CeedVectorDestroy(&coo_values);
-  // PetscCall(MatDestroy(&A));
-
   // J_pre might be AIJ (e.g., when using coloring), so we need to assemble it
   PetscCall(MatAssemblyBegin(J_pre, MAT_FINAL_ASSEMBLY));
   PetscCall(MatAssemblyEnd(J_pre, MAT_FINAL_ASSEMBLY));
@@ -148,6 +127,7 @@ PetscErrorCode PDESolver(CeedData ceed_data, AppCtx app_ctx, SNES snes, KSP ksp,
   // -- Form Action of Jacobian on delta_u
   PetscCall(MatCreateShell(app_ctx->comm, U_l_size, U_l_size, U_g_size, U_g_size, app_ctx->ctx_jacobian, &mat_jacobian));
   PetscCall(MatShellSetOperation(mat_jacobian, MATOP_MULT, (void (*)(void))ApplyMatOp));
+  PetscCall(MatShellSetOperation(mat_jacobian, MATOP_GET_DIAGONAL, (void (*)(void))GetDiagonal));
   PetscCall(MatShellSetVecType(mat_jacobian, app_ctx->ctx_jacobian->vec_type));
 
   // Set SNES residual evaluation function
@@ -156,8 +136,17 @@ PetscErrorCode PDESolver(CeedData ceed_data, AppCtx app_ctx, SNES snes, KSP ksp,
   PetscCall(SNESSetJacobian(snes, mat_jacobian, mat_jacobian, SNESFormJacobian, app_ctx->ctx_jacobian));
 
   // Setup KSP
+  PetscCall(KSPSetType(ksp, KSPGMRES));
+  PetscCall(KSPSetNormType(ksp, KSP_NORM_PRECONDITIONED));
+  // PC setup
+  PC pc;
+  PetscCall(KSPGetPC(ksp, &pc));
+  PetscCall(PCSetType(pc, PCJACOBI));
+  PetscCall(PCJacobiSetType(pc, PC_JACOBI_DIAGONAL));
+  // Set user options and view
   PetscCall(KSPSetFromOptions(ksp));
-
+  PetscCall(KSPViewFromOptions(ksp, NULL, "-ksp_view"));
+  PetscCall(PCViewFromOptions(pc, NULL, "-pc_view"));
   // Default to critical-point (CP) line search (related to Wolfe's curvature condition)
   SNESLineSearch line_search;
 
