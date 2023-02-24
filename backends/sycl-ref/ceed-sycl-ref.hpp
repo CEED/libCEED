@@ -85,6 +85,7 @@ typedef struct {
   CeedElemRestriction diagrstr, pbdiagrstr;
   CeedVector          elemdiag, pbelemdiag;
   CeedInt             numemodein, numemodeout, nnodes;
+  CeedInt             nqpts, ncomp;  // Kernel parameters
   CeedEvalMode       *h_emodein, *h_emodeout;
   CeedEvalMode       *d_emodein, *d_emodeout;
   CeedScalar         *d_identity, *d_interpin, *d_interpout, *d_gradin, *d_gradout;
@@ -92,6 +93,8 @@ typedef struct {
 
 typedef struct {
   CeedInt     nelem, block_size_x, block_size_y, elemsPerBlock;
+  CeedInt     numemodein, numemodeout, nqpts, nnodes, block_size, ncomp;  // Kernel parameters
+  bool        fallback;
   CeedScalar *d_B_in, *d_B_out;
 } CeedOperatorAssemble_Sycl;
 
