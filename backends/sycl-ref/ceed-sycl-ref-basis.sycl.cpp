@@ -204,20 +204,15 @@ static int CeedBasisApplyWeight_Sycl(sycl::queue &sycl_queue, CeedInt num_elem, 
   const CeedInt     Q_1d        = impl->Q_1d;
   const CeedScalar *q_weight_1d = impl->d_q_weight_1d;
 
-  CeedInt range_zyx[3];
-  range_zyx[2] = Q_1d;
-  range_zyx[1] = (dim > 1) ? Q_1d : 1;
-  range_zyx[0] = (dim > 2) ? Q_1d : 1;
-  sycl::range<3> kernel_range(num_elem * range_zyx[0], range_zyx[1], range_zyx[2]);
+  const CeedInt  num_quad_x = Q_1d;
+  const CeedInt  num_quad_y = (dim > 1) ? Q_1d : 1;
+  const CeedInt  num_quad_z = (dim > 2) ? Q_1d : 1;
+  sycl::range<3> kernel_range(num_elem * num_quad_z, num_quad_y, num_quad_x);
 
-  sycl_queue.parallel_for<CeedBasisSyclWeight>(kernel_range, [=](sycl::item<3> indx) {
-    CeedScalar q_ijk = q_weight_1d[indx[2]];
-    for (CeedInt d = 1; d > 2 - dim; --d) {
-      for (int j = range_zyx[d]; j > 1; j -= Q_1d) {
-        q_ijk *= q_weight_1d[indx[d]];
-      }
-    }
-    w[indx.get_linear_id()] = q_ijk;
+  sycl_queue.parallel_for<CeedBasisSyclWeight>(kernel_range, [=](sycl::item<3> work_item) {
+    if (dim == 1) w[work_item.get_linear_id()] = q_weight_1d[work_item[2]];
+    if (dim == 2) w[work_item.get_linear_id()] = q_weight_1d[work_item[2]] * q_weight_1d[work_item[1]];
+    if (dim == 3) w[work_item.get_linear_id()] = q_weight_1d[work_item[2]] * q_weight_1d[work_item[1]] * q_weight_1d[work_item[0] % Q_1d];
   });
 
   return CEED_ERROR_SUCCESS;
