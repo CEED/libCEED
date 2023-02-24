@@ -403,7 +403,7 @@ int CeedBasisGetNumQuadratureComponents(CeedBasis basis, CeedEvalMode eval_mode,
       break;
     case CEED_EVAL_NONE:
     case CEED_EVAL_WEIGHT:
-      *q_comp = 0;
+      *q_comp = 1;
       break;
   }
   return CEED_ERROR_SUCCESS;
