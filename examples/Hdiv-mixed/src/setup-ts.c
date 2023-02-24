@@ -224,7 +224,7 @@ PetscErrorCode TSFormIResidual(TS ts, PetscReal time, Vec X, Vec X_t, Vec Y, voi
 
   // Update time dependent data
   if (ctx->t != time) {
-    CeedOperatorContextSetDouble(ctx->op_apply, ctx->solution_time_label, &time);
+    CeedOperatorSetContextDouble(ctx->op_apply, ctx->solution_time_label, &time);
     ctx->t = time;
   }
   // PetscScalar dt;

@@ -172,8 +172,8 @@ PetscErrorCode SetupLibceed(DM dm, DM dm_u0, DM dm_p0, DM dm_H1, Ceed ceed, AppC
   CeedOperatorCreate(ceed, qf_true, CEED_QFUNCTION_NONE, CEED_QFUNCTION_NONE, &op_true);
   if (problem_data->has_ts) {
     double final_time = app_ctx->t_final;
-    CeedOperatorContextGetFieldLabel(op_true, "final_time", &app_ctx->ctx_residual_ut->final_time_label);
-    CeedOperatorContextSetDouble(op_true, app_ctx->ctx_residual_ut->final_time_label, &final_time);
+    CeedOperatorGetContextFieldLabel(op_true, "final_time", &app_ctx->ctx_residual_ut->final_time_label);
+    CeedOperatorSetContextDouble(op_true, app_ctx->ctx_residual_ut->final_time_label, &final_time);
   }
   CeedOperatorSetField(op_true, "x", ceed_data->elem_restr_x, ceed_data->basis_x, ceed_data->x_coord);
   CeedOperatorSetField(op_true, "true force", ceed_data->elem_restr_p_i, CEED_BASIS_COLLOCATED, true_force);
@@ -309,7 +309,7 @@ PetscErrorCode SetupLibceed(DM dm, DM dm_u0, DM dm_p0, DM dm_H1, Ceed ceed, AppC
   CeedOperatorCreate(ceed, qf_residual, CEED_QFUNCTION_NONE, CEED_QFUNCTION_NONE, &op_residual);
   if (problem_data->has_ts) {
     // double t = app_ctx->ctx_residual_ut->t;
-    CeedOperatorContextGetFieldLabel(op_residual, "time", &app_ctx->ctx_residual_ut->solution_time_label);
+    CeedOperatorGetContextFieldLabel(op_residual, "time", &app_ctx->ctx_residual_ut->solution_time_label);
     // CeedOperatorContextGetFieldLabel(op_residual, "time_step",
     //                                  &app_ctx->ctx_residual_ut->timestep_label);
     // CeedOperatorContextSetDouble(op_residual,
