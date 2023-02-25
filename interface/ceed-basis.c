@@ -37,7 +37,7 @@ const CeedBasis CEED_BASIS_COLLOCATED = &ceed_basis_collocated;
 /**
   @brief Compute Householder reflection
 
-    Computes A = (I - b v v^T) A, where A is an mxn matrix indexed as A[i*row + j*col]
+  Computes A = (I - b v v^T) A, where A is an mxn matrix indexed as A[i*row + j*col]
 
   @param[in,out] A   Matrix to apply Householder reflection to, in place
   @param[in]     v   Householder vector
@@ -64,7 +64,7 @@ static int CeedHouseholderReflect(CeedScalar *A, const CeedScalar *v, CeedScalar
 /**
   @brief Compute Givens rotation
 
-    Computes A = G A (or G^T A in transpose mode), where A is an mxn matrix indexed as A[i*n + j*m]
+  Computes A = G A (or G^T A in transpose mode), where A is an mxn matrix indexed as A[i*n + j*m]
 
   @param[in,out] A      Row major matrix to apply Givens rotation to, in place
   @param[in]     c      Cosine factor
@@ -123,11 +123,10 @@ static int CeedScalarView(const char *name, const char *fp_fmt, CeedInt m, CeedI
 
 /**
   @brief Create the interpolation and gradient matrices for projection from the nodes of `basis_from` to the nodes of `basis_to`.
-           The interpolation is given by `interp_project = interp_to^+ * interp_from`, where the pesudoinverse `interp_to^+` is given by QR
-factorization.
-           The gradient is given by `grad_project = interp_to^+ * grad_from`.
-           Note: `basis_from` and `basis_to` must have compatible quadrature
-spaces.
+
+  The interpolation is given by `interp_project = interp_to^+ * interp_from`, where the pesudoinverse `interp_to^+` is given by QR factorization.
+  The gradient is given by `grad_project = interp_to^+ * grad_from`.
+  Note: `basis_from` and `basis_to` must have compatible quadrature spaces.
 
   @param[in]  basis_from     CeedBasis to project from
   @param[in]  basis_to       CeedBasis to project to
@@ -475,7 +474,8 @@ int CeedBasisSetTensorContract(CeedBasis basis, CeedTensorContract contract) {
 
 /**
   @brief Return a reference implementation of matrix multiplication C = A B.
-           Note, this is a reference implementation for CPU CeedScalar pointers that is not intended for high performance.
+
+  Note: This is a reference implementation for CPU CeedScalar pointers that is not intended for high performance.
 
   @param[in]  ceed  Ceed context for error handling
   @param[in]  mat_A Row-major matrix A
@@ -1173,10 +1173,12 @@ int CeedBasisCreateHdiv(Ceed ceed, CeedElemTopology topo, CeedInt num_comp, Ceed
 
 /**
   @brief Create a CeedBasis for projection from the nodes of `basis_from` to the nodes of `basis_to`.
-           Only `CEED_EVAL_INTERP` and `CEED_EVAL_GRAD` will be valid for the new basis, `basis_project`.
-           The interpolation is given by `interp_project = interp_to^+ * interp_from`, where the pesudoinverse `interp_to^+` is given by QR
+
+  Only `CEED_EVAL_INTERP` and `CEED_EVAL_GRAD` will be valid for the new basis, `basis_project`.
+  The interpolation is given by `interp_project = interp_to^+ * interp_from`, where the pesudoinverse `interp_to^+` is given by QR
 factorization. The gradient is given by `grad_project = interp_to^+ * grad_from`. Note: `basis_from` and `basis_to` must have compatible quadrature
-spaces. Note: `basis_project` will have the same number of components as `basis_from`, regardless of the number of components that `basis_to` has. If
+spaces.
+  Note: `basis_project` will have the same number of components as `basis_from`, regardless of the number of components that `basis_to` has. If
 `basis_from` has 3 components and `basis_to` has 5 components, then `basis_project` will have 3 components.
 
   @param[in]  basis_from    CeedBasis to prolong from
@@ -1231,10 +1233,9 @@ int CeedBasisCreateProjection(CeedBasis basis_from, CeedBasis basis_to, CeedBasi
 
 /**
   @brief Copy the pointer to a CeedBasis.
-           Both pointers should be destroyed with `CeedBasisDestroy()`.
 
-           Note: If the value of `basis_copy` passed into this function is non-NULL, then it is assumed that `basis_copy` is a pointer to a CeedBasis.
-             This CeedBasis will be destroyed if `basis_copy` is the only reference to this CeedBasis.
+  Note: If the value of `basis_copy` passed into this function is non-NULL, then it is assumed that `basis_copy` is a pointer to a CeedBasis.
+  This CeedBasis will be destroyed if `basis_copy` is the only reference to this CeedBasis.
 
   @param[in]     basis      CeedBasis to copy reference to
   @param[in,out] basis_copy Variable to store copied reference
