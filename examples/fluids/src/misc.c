@@ -27,17 +27,14 @@ PetscErrorCode ICs_FixMultiplicity(DM dm, CeedData ceed_data, User user, Vec Q_l
   CeedElemRestrictionCreateVector(ceed_data->elem_restr_q, &q0_ceed, NULL);
 
   // -- Place PETSc vector in CEED vector
-  CeedScalar  *q0;
   PetscMemType q0_mem_type;
-  PetscCall(VecGetArrayAndMemType(Q_loc, (PetscScalar **)&q0, &q0_mem_type));
-  CeedVectorSetArray(q0_ceed, MemTypeP2C(q0_mem_type), CEED_USE_POINTER, q0);
+  PetscCall(VecP2C(Q_loc, &q0_mem_type, q0_ceed));
 
   // -- Apply CEED Operator
   CeedOperatorApply(ceed_data->op_ics, ceed_data->x_coord, q0_ceed, CEED_REQUEST_IMMEDIATE);
 
   // -- Restore vectors
-  CeedVectorTakeArray(q0_ceed, MemTypeP2C(q0_mem_type), NULL);
-  PetscCall(VecRestoreArrayReadAndMemType(Q_loc, (const PetscScalar **)&q0));
+  PetscCall(VecC2P(q0_ceed, q0_mem_type, Q_loc));
 
   // -- Local-to-Global
   PetscCall(VecZeroEntries(Q));
@@ -51,19 +48,16 @@ PetscErrorCode ICs_FixMultiplicity(DM dm, CeedData ceed_data, User user, Vec Q_l
   CeedElemRestrictionCreateVector(ceed_data->elem_restr_q, &mult_vec, NULL);
 
   // -- Place PETSc vector in CEED vector
-  CeedScalar  *mult;
   PetscMemType m_mem_type;
   Vec          multiplicity_loc;
   PetscCall(DMGetLocalVector(dm, &multiplicity_loc));
-  PetscCall(VecGetArrayAndMemType(multiplicity_loc, (PetscScalar **)&mult, &m_mem_type));
-  CeedVectorSetArray(mult_vec, MemTypeP2C(m_mem_type), CEED_USE_POINTER, mult);
+  PetscCall(VecP2C(multiplicity_loc, &m_mem_type, mult_vec));
 
   // -- Get multiplicity
   CeedElemRestrictionGetMultiplicity(ceed_data->elem_restr_q, mult_vec);
 
   // -- Restore vectors
-  CeedVectorTakeArray(mult_vec, MemTypeP2C(m_mem_type), NULL);
-  PetscCall(VecRestoreArrayReadAndMemType(multiplicity_loc, (const PetscScalar **)&mult));
+  PetscCall(VecC2P(mult_vec, m_mem_type, multiplicity_loc));
 
   // -- Local-to-Global
   Vec multiplicity;
@@ -290,5 +284,23 @@ PetscErrorCode CreateMassQFunction(Ceed ceed, CeedInt N, CeedInt q_data_size, Ce
   CeedQFunctionAddInput(*qf, "u", N, CEED_EVAL_INTERP);
   CeedQFunctionAddInput(*qf, "qdata", q_data_size, CEED_EVAL_NONE);
   CeedQFunctionAddOutput(*qf, "v", N, CEED_EVAL_INTERP);
+  PetscFunctionReturn(0);
+}
+
+/* @brief L^2 Projection of a source FEM function to a target FEM space
+ *
+ * To solve system using a lumped mass matrix, pass a KSP object with ksp_type=preonly, pc_type=jacobi, pc_jacobi_type=rowsum.
+ *
+ * @param[in]  source_vec    Global Vec of the source FEM function. NULL indicates using rhs_matop_ctx->X_loc
+ * @param[out] target_vec    Global Vec of the target (result) FEM function. NULL indicates using rhs_matop_ctx->Y_loc
+ * @param[in]  rhs_matop_ctx MatopApplyContext for performing the RHS evaluation
+ * @param[in]  ksp           KSP for solving the consistent projection problem
+ */
+PetscErrorCode ComputeL2Projection(Vec source_vec, Vec target_vec, MatopApplyContext rhs_matop_ctx, KSP ksp) {
+  PetscFunctionBeginUser;
+
+  PetscCall(ApplyLocal_Ceed(source_vec, target_vec, rhs_matop_ctx));
+  PetscCall(KSPSolve(ksp, target_vec, target_vec));
+
   PetscFunctionReturn(0);
 }
