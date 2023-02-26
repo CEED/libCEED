@@ -32,11 +32,15 @@ DefineConstant[
   RadialRatio = {1, Min .2, Max 5, Step .1,
   Name "Parameters/RadialRatio"}
 ];
+DefineConstant[
+  Rb = {.9, Min .5, Max 2, Step .05,
+  Name "Parameters/RadialProgression"}
+];
 
 Nx1 = N + 1; Rx1 = 1.00;
 Nx2 = Ceil(N * 9 / 11 * xR / (2*xL)) + 1; Rx2 = 1.00;
 Ny  = N + 1; Ry = 2.00;
-Nb  = Ceil(RadialRatio * N) + 1; Rb = 0.9;
+Nb  = Ceil(RadialRatio * N) + 1;
 Nc  = N + 1; Rc = 1.00;
 
 // Characteristic element length

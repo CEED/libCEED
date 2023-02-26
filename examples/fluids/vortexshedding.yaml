@@ -12,7 +12,7 @@ ts:
   dt: .05
   max_time: 100
   alpha_radius: 0.5
-  monitor_solution: cgns:vortexshedding-q2-g2-n12-recirc.cgns
+  monitor_solution: cgns:vortexshedding-q3-g1-n08.cgns
   monitor_solution_interval: 5
   monitor_wall_force: ascii:force.csv:ascii_csv
 
@@ -40,8 +40,8 @@ mu: 0.01
 k: 14.34 # thermal conductivity, Pr = 0.71 typical of air
 
 ## DM Settings:
-degree: 1
-dm_plex_filename: examples/fluids/meshes/cylinder-q1-n20.msh
+degree: 3
+dm_plex_filename: examples/fluids/meshes/cylinder-q1-n08.msh
 
 # Boundary Settings
 bc_slip_z: 6

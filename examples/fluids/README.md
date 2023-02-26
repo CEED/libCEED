@@ -755,7 +755,7 @@ The vortex shedding period is roughly 5.6 and this problem runs until time 100 (
 The above run writes a file named `force.csv` (see `ts_monitor_wall_force` in `vortexshedding.yaml`), which can be postprocessed by running to create a figure showing lift and drag coefficients over time.
 
 ```console
-$ python examples/fluids/postprocess/force.csv
+$ python examples/fluids/postprocess/vortexshedding.py
 ```
 
 ```{literalinclude} ../../../../../examples/fluids/vortexshedding.yaml
