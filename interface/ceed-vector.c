@@ -234,9 +234,27 @@ int CeedVectorReferenceCopy(CeedVector vec, CeedVector *vec_copy) {
   @ref User
 **/
 int CeedVectorCopy(CeedVector vec, CeedVector *vec_copy) {
+  Ceed        ceed;
   CeedScalar *array;
-  CeedCall(CeedVectorGetArray(vec, CEED_MEM_HOST, &array));
-  CeedCall(CeedVectorSetArray(*vec_copy, CEED_MEM_HOST, CEED_COPY_VALUES, array));
+  CeedMemType mem_type;
+
+  // Get the preferred memory type
+  CeedVectorGetCeed(vec, &ceed);
+  CeedGetPreferredMemType(ceed, &mem_type);
+
+  // Check that both vec and vec_copy are using the preferred memory type
+  bool vec_has_borrowed_array_of_type = true;
+  CeedCall(CeedVectorHasBorrowedArrayOfType(vec, mem_type, &vec_has_borrowed_array_of_type));
+  bool vec_copy_has_borrowed_array_of_type = true;
+  CeedCall(CeedVectorHasBorrowedArrayOfType(*vec_copy, mem_type, &vec_copy_has_borrowed_array_of_type));
+
+  if (!vec_has_borrowed_array_of_type || !vec_copy_has_borrowed_array_of_type) {
+    mem_type = CEED_MEM_HOST;
+  }
+
+  // Copy the values from vec to vec_copy
+  CeedCall(CeedVectorGetArray(vec, mem_type, &array));
+  CeedCall(CeedVectorSetArray(*vec_copy, mem_type, CEED_COPY_VALUES, array));
 
   CeedCall(CeedVectorRestoreArray(vec, &array));
   return CEED_ERROR_SUCCESS;
@@ -777,7 +795,7 @@ int CeedVectorAXPBY(CeedVector y, CeedScalar alpha, CeedScalar beta, CeedVector 
   }
 
   // Default implementation
-  CeedCall(CeedVectorGetArrayWrite(y, CEED_MEM_HOST, &y_array));
+  CeedCall(CeedVectorGetArray(y, CEED_MEM_HOST, &y_array));
   CeedCall(CeedVectorGetArrayRead(x, CEED_MEM_HOST, &x_array));
 
   assert(x_array);
