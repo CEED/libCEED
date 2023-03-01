@@ -235,20 +235,20 @@ int CeedVectorReferenceCopy(CeedVector vec, CeedVector *vec_copy) {
 **/
 int CeedVectorCopy(CeedVector vec, CeedVector *vec_copy) {
   Ceed        ceed;
+  CeedMemType mem_type, mem_type_copy;
   CeedScalar *array;
-  CeedMemType mem_type;
 
   // Get the preferred memory type
   CeedVectorGetCeed(vec, &ceed);
   CeedGetPreferredMemType(ceed, &mem_type);
 
-  // Check that both vec and vec_copy are using the preferred memory type
-  bool vec_has_borrowed_array_of_type = true;
-  CeedCall(CeedVectorHasBorrowedArrayOfType(vec, mem_type, &vec_has_borrowed_array_of_type));
-  bool vec_copy_has_borrowed_array_of_type = true;
-  CeedCall(CeedVectorHasBorrowedArrayOfType(*vec_copy, mem_type, &vec_copy_has_borrowed_array_of_type));
+  // Get the preferred memory type
+  CeedVectorGetCeed(*vec_copy, &ceed);
+  CeedGetPreferredMemType(ceed, &mem_type_copy);
 
-  if (!vec_has_borrowed_array_of_type || !vec_copy_has_borrowed_array_of_type) {
+  // Check that both have same memory type
+
+  if (mem_type != mem_type_copy) {
     mem_type = CEED_MEM_HOST;
   }
 
