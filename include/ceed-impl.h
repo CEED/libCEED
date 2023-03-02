@@ -100,7 +100,10 @@ struct Ceed_private {
   int (*VectorCreate)(CeedSize, CeedVector);
   int (*ElemRestrictionCreate)(CeedMemType, CeedCopyMode, const CeedInt *, CeedElemRestriction);
   int (*ElemRestrictionCreateOriented)(CeedMemType, CeedCopyMode, const CeedInt *, const bool *, CeedElemRestriction);
+  int (*ElemRestrictionCreateCurlOriented)(CeedMemType, CeedCopyMode, const CeedInt *, const CeedInt *, CeedElemRestriction);
   int (*ElemRestrictionCreateBlocked)(CeedMemType, CeedCopyMode, const CeedInt *, CeedElemRestriction);
+  int (*ElemRestrictionCreateBlockedOriented)(CeedMemType, CeedCopyMode, const CeedInt *, const bool *, CeedElemRestriction);
+  int (*ElemRestrictionCreateBlockedCurlOriented)(CeedMemType, CeedCopyMode, const CeedInt *, const CeedInt *, CeedElemRestriction);
   int (*BasisCreateTensorH1)(CeedInt, CeedInt, CeedInt, const CeedScalar *, const CeedScalar *, const CeedScalar *, const CeedScalar *, CeedBasis);
   int (*BasisCreateH1)(CeedElemTopology, CeedInt, CeedInt, CeedInt, const CeedScalar *, const CeedScalar *, const CeedScalar *, const CeedScalar *,
                        CeedBasis);
@@ -156,6 +159,8 @@ struct CeedElemRestriction_private {
   int (*ApplyUnsigned)(CeedElemRestriction, CeedTransposeMode, CeedVector, CeedVector, CeedRequest *);
   int (*ApplyBlock)(CeedElemRestriction, CeedInt, CeedTransposeMode, CeedVector, CeedVector, CeedRequest *);
   int (*GetOffsets)(CeedElemRestriction, CeedMemType, const CeedInt **);
+  int (*GetOrientations)(CeedElemRestriction, CeedMemType, const bool **);
+  int (*GetCurlOrientations)(CeedElemRestriction, CeedMemType, const CeedInt **);
   int (*Destroy)(CeedElemRestriction);
   int      ref_count;
   CeedInt  num_elem;    /* number of elements */
@@ -168,7 +173,6 @@ struct CeedElemRestriction_private {
   CeedInt *strides;     /* strides between [nodes, components, elements] */
   CeedInt  layout[3];   /* E-vector layout [nodes, components, elements] */
   uint64_t num_readers; /* number of instances of offset read only access */
-  bool     is_oriented; /* flag for oriented restriction */
   void    *data;        /* place for the backend to store any data */
 };
 
