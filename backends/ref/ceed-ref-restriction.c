@@ -16,7 +16,7 @@
 // Core ElemRestriction Apply Code
 //------------------------------------------------------------------------------
 static inline int CeedElemRestrictionApply_Ref_Core(CeedElemRestriction r, const CeedInt num_comp, const CeedInt blk_size, const CeedInt comp_stride,
-                                                    CeedInt start, CeedInt stop, bool use_orient, CeedTransposeMode t_mode, CeedVector u,
+                                                    CeedInt start, CeedInt stop, bool use_orients, CeedTransposeMode t_mode, CeedVector u,
                                                     CeedVector v, CeedRequest *request) {
   CeedElemRestriction_Ref *impl;
   CeedCallBackend(CeedElemRestrictionGetData(r, &impl));
@@ -27,8 +27,6 @@ static inline int CeedElemRestrictionApply_Ref_Core(CeedElemRestriction r, const
   CeedCallBackend(CeedElemRestrictionGetElementSize(r, &elem_size));
   v_offset = start * blk_size * elem_size * num_comp;
 
-  bool is_oriented;
-  CeedCallBackend(CeedElemRestrictionIsOriented(r, &is_oriented));
   CeedCallBackend(CeedVectorGetArrayRead(u, CEED_MEM_HOST, &uu));
   if (t_mode == CEED_TRANSPOSE) {
     // Sum into for transpose mode, e-vec to l-vec
@@ -79,13 +77,30 @@ static inline int CeedElemRestrictionApply_Ref_Core(CeedElemRestriction r, const
       for (CeedInt e = start * blk_size; e < stop * blk_size; e += blk_size) {
         CeedPragmaSIMD for (CeedInt k = 0; k < num_comp; k++) {
           CeedPragmaSIMD for (CeedInt i = 0; i < elem_size * blk_size; i++) {
-            if (!use_orient || !impl->orient) {
+            if (!use_orients || (!impl->orients && !impl->curl_orients)) {
               // Unsigned restriction
               vv[elem_size * (k * blk_size + num_comp * e) + i - v_offset] = uu[impl->offsets[i + elem_size * e] + k * comp_stride];
-            } else {
+            } else if (!impl->curl_orients) {
               // Signed restriction
               vv[elem_size * (k * blk_size + num_comp * e) + i - v_offset] =
-                  uu[impl->offsets[i + elem_size * e] + k * comp_stride] * (impl->orient[i + elem_size * e] ? -1.0 : 1.0);
+                  uu[impl->offsets[i + elem_size * e] + k * comp_stride] * (impl->orients[i + elem_size * e] ? -1.0 : 1.0);
+            } else {
+              // Restriction with tridiagonal transformation
+              CeedInt ii = i % elem_size;
+              if (ii == 0) {
+                vv[elem_size * (k * blk_size + num_comp * e) + i - v_offset] =
+                    uu[impl->offsets[i + 0 + elem_size * e] + k * comp_stride] * impl->curl_orients[3 * i + 1 + 3 * elem_size * e] +
+                    uu[impl->offsets[i + 1 + elem_size * e] + k * comp_stride] * impl->curl_orients[3 * i + 2 + 3 * elem_size * e];
+              } else if (ii == elem_size - 1) {
+                vv[elem_size * (k * blk_size + num_comp * e) + i - v_offset] =
+                    uu[impl->offsets[i - 1 + elem_size * e] + k * comp_stride] * impl->curl_orients[3 * i + 0 + 3 * elem_size * e] +
+                    uu[impl->offsets[i + 0 + elem_size * e] + k * comp_stride] * impl->curl_orients[3 * i + 1 + 3 * elem_size * e];
+              } else {
+                vv[elem_size * (k * blk_size + num_comp * e) + i - v_offset] =
+                    uu[impl->offsets[i - 1 + elem_size * e] + k * comp_stride] * impl->curl_orients[3 * i + 0 + 3 * elem_size * e] +
+                    uu[impl->offsets[i + 0 + elem_size * e] + k * comp_stride] * impl->curl_orients[3 * i + 1 + 3 * elem_size * e] +
+                    uu[impl->offsets[i + 1 + elem_size * e] + k * comp_stride] * impl->curl_orients[3 * i + 2 + 3 * elem_size * e];
+              }
             }
           }
         }
@@ -135,13 +150,30 @@ static inline int CeedElemRestrictionApply_Ref_Core(CeedElemRestriction r, const
           for (CeedInt i = 0; i < elem_size * blk_size; i += blk_size) {
             // Iteration bound set to discard padding elements
             for (CeedInt j = i; j < i + CeedIntMin(blk_size, num_elem - e); j++) {
-              if (!use_orient || !impl->orient) {
+              if (!use_orients || (!impl->orients && !impl->curl_orients)) {
                 // Unsigned restriction
                 vv[impl->offsets[j + e * elem_size] + k * comp_stride] += uu[elem_size * (k * blk_size + num_comp * e) + j - v_offset];
-              } else {
+              } else if (!impl->curl_orients) {
                 // Signed restriction
                 vv[impl->offsets[j + e * elem_size] + k * comp_stride] +=
-                    uu[elem_size * (k * blk_size + num_comp * e) + j - v_offset] * (impl->orient[j + e * elem_size] ? -1.0 : 1.0);
+                    uu[elem_size * (k * blk_size + num_comp * e) + j - v_offset] * (impl->orients[j + e * elem_size] ? -1.0 : 1.0);
+              } else {
+                // Restriction with tridiagonal transformation
+                CeedInt jj = j % elem_size;
+                if (jj == 0) {
+                  vv[impl->offsets[j + e * elem_size] + k * comp_stride] +=
+                      uu[elem_size * (k * blk_size + num_comp * e) + j + 0 - v_offset] * impl->curl_orients[(j + 0) * 3 + 1 + e * 3 * elem_size] +
+                      uu[elem_size * (k * blk_size + num_comp * e) + j + 1 - v_offset] * impl->curl_orients[(j + 1) * 3 + 0 + e * 3 * elem_size];
+                } else if (jj == elem_size - 1) {
+                  vv[impl->offsets[j + e * elem_size] + k * comp_stride] +=
+                      uu[elem_size * (k * blk_size + num_comp * e) + j - 1 - v_offset] * impl->curl_orients[(j - 1) * 3 + 2 + e * 3 * elem_size] +
+                      uu[elem_size * (k * blk_size + num_comp * e) + j + 0 - v_offset] * impl->curl_orients[(j + 0) * 3 + 1 + e * 3 * elem_size];
+                } else {
+                  vv[impl->offsets[j + e * elem_size] + k * comp_stride] +=
+                      uu[elem_size * (k * blk_size + num_comp * e) + j - 1 - v_offset] * impl->curl_orients[(j - 1) * 3 + 2 + e * 3 * elem_size] +
+                      uu[elem_size * (k * blk_size + num_comp * e) + j + 0 - v_offset] * impl->curl_orients[(j + 0) * 3 + 1 + e * 3 * elem_size] +
+                      uu[elem_size * (k * blk_size + num_comp * e) + j + 1 - v_offset] * impl->curl_orients[(j + 1) * 3 + 0 + e * 3 * elem_size];
+                }
               }
             }
           }
@@ -159,79 +191,79 @@ static inline int CeedElemRestrictionApply_Ref_Core(CeedElemRestriction r, const
 // ElemRestriction Apply - Common Sizes
 //------------------------------------------------------------------------------
 static int CeedElemRestrictionApply_Ref_110(CeedElemRestriction r, const CeedInt num_comp, const CeedInt blk_size, const CeedInt comp_stride,
-                                            CeedInt start, CeedInt stop, bool use_orient, CeedTransposeMode t_mode, CeedVector u, CeedVector v,
+                                            CeedInt start, CeedInt stop, bool use_orients, CeedTransposeMode t_mode, CeedVector u, CeedVector v,
                                             CeedRequest *request) {
-  return CeedElemRestrictionApply_Ref_Core(r, 1, 1, comp_stride, start, stop, use_orient, t_mode, u, v, request);
+  return CeedElemRestrictionApply_Ref_Core(r, 1, 1, comp_stride, start, stop, use_orients, t_mode, u, v, request);
 }
 
 static int CeedElemRestrictionApply_Ref_111(CeedElemRestriction r, const CeedInt num_comp, const CeedInt blk_size, const CeedInt comp_stride,
-                                            CeedInt start, CeedInt stop, bool use_orient, CeedTransposeMode t_mode, CeedVector u, CeedVector v,
+                                            CeedInt start, CeedInt stop, bool use_orients, CeedTransposeMode t_mode, CeedVector u, CeedVector v,
                                             CeedRequest *request) {
-  return CeedElemRestrictionApply_Ref_Core(r, 1, 1, 1, start, stop, use_orient, t_mode, u, v, request);
+  return CeedElemRestrictionApply_Ref_Core(r, 1, 1, 1, start, stop, use_orients, t_mode, u, v, request);
 }
 
 static int CeedElemRestrictionApply_Ref_180(CeedElemRestriction r, const CeedInt num_comp, const CeedInt blk_size, const CeedInt comp_stride,
-                                            CeedInt start, CeedInt stop, bool use_orient, CeedTransposeMode t_mode, CeedVector u, CeedVector v,
+                                            CeedInt start, CeedInt stop, bool use_orients, CeedTransposeMode t_mode, CeedVector u, CeedVector v,
                                             CeedRequest *request) {
-  return CeedElemRestrictionApply_Ref_Core(r, 1, 8, comp_stride, start, stop, use_orient, t_mode, u, v, request);
+  return CeedElemRestrictionApply_Ref_Core(r, 1, 8, comp_stride, start, stop, use_orients, t_mode, u, v, request);
 }
 
 static int CeedElemRestrictionApply_Ref_181(CeedElemRestriction r, const CeedInt num_comp, const CeedInt blk_size, const CeedInt comp_stride,
-                                            CeedInt start, CeedInt stop, bool use_orient, CeedTransposeMode t_mode, CeedVector u, CeedVector v,
+                                            CeedInt start, CeedInt stop, bool use_orients, CeedTransposeMode t_mode, CeedVector u, CeedVector v,
                                             CeedRequest *request) {
-  return CeedElemRestrictionApply_Ref_Core(r, 1, 8, 1, start, stop, use_orient, t_mode, u, v, request);
+  return CeedElemRestrictionApply_Ref_Core(r, 1, 8, 1, start, stop, use_orients, t_mode, u, v, request);
 }
 
 static int CeedElemRestrictionApply_Ref_310(CeedElemRestriction r, const CeedInt num_comp, const CeedInt blk_size, const CeedInt comp_stride,
-                                            CeedInt start, CeedInt stop, bool use_orient, CeedTransposeMode t_mode, CeedVector u, CeedVector v,
+                                            CeedInt start, CeedInt stop, bool use_orients, CeedTransposeMode t_mode, CeedVector u, CeedVector v,
                                             CeedRequest *request) {
-  return CeedElemRestrictionApply_Ref_Core(r, 3, 1, comp_stride, start, stop, use_orient, t_mode, u, v, request);
+  return CeedElemRestrictionApply_Ref_Core(r, 3, 1, comp_stride, start, stop, use_orients, t_mode, u, v, request);
 }
 
 static int CeedElemRestrictionApply_Ref_311(CeedElemRestriction r, const CeedInt num_comp, const CeedInt blk_size, const CeedInt comp_stride,
-                                            CeedInt start, CeedInt stop, bool use_orient, CeedTransposeMode t_mode, CeedVector u, CeedVector v,
+                                            CeedInt start, CeedInt stop, bool use_orients, CeedTransposeMode t_mode, CeedVector u, CeedVector v,
                                             CeedRequest *request) {
-  return CeedElemRestrictionApply_Ref_Core(r, 3, 1, 1, start, stop, use_orient, t_mode, u, v, request);
+  return CeedElemRestrictionApply_Ref_Core(r, 3, 1, 1, start, stop, use_orients, t_mode, u, v, request);
 }
 
 static int CeedElemRestrictionApply_Ref_380(CeedElemRestriction r, const CeedInt num_comp, const CeedInt blk_size, const CeedInt comp_stride,
-                                            CeedInt start, CeedInt stop, bool use_orient, CeedTransposeMode t_mode, CeedVector u, CeedVector v,
+                                            CeedInt start, CeedInt stop, bool use_orients, CeedTransposeMode t_mode, CeedVector u, CeedVector v,
                                             CeedRequest *request) {
-  return CeedElemRestrictionApply_Ref_Core(r, 3, 8, comp_stride, start, stop, use_orient, t_mode, u, v, request);
+  return CeedElemRestrictionApply_Ref_Core(r, 3, 8, comp_stride, start, stop, use_orients, t_mode, u, v, request);
 }
 
 static int CeedElemRestrictionApply_Ref_381(CeedElemRestriction r, const CeedInt num_comp, const CeedInt blk_size, const CeedInt comp_stride,
-                                            CeedInt start, CeedInt stop, bool use_orient, CeedTransposeMode t_mode, CeedVector u, CeedVector v,
+                                            CeedInt start, CeedInt stop, bool use_orients, CeedTransposeMode t_mode, CeedVector u, CeedVector v,
                                             CeedRequest *request) {
-  return CeedElemRestrictionApply_Ref_Core(r, 3, 8, 1, start, stop, use_orient, t_mode, u, v, request);
+  return CeedElemRestrictionApply_Ref_Core(r, 3, 8, 1, start, stop, use_orients, t_mode, u, v, request);
 }
 
 // LCOV_EXCL_START
 static int CeedElemRestrictionApply_Ref_510(CeedElemRestriction r, const CeedInt num_comp, const CeedInt blk_size, const CeedInt comp_stride,
-                                            CeedInt start, CeedInt stop, bool use_orient, CeedTransposeMode t_mode, CeedVector u, CeedVector v,
+                                            CeedInt start, CeedInt stop, bool use_orients, CeedTransposeMode t_mode, CeedVector u, CeedVector v,
                                             CeedRequest *request) {
-  return CeedElemRestrictionApply_Ref_Core(r, 5, 1, comp_stride, start, stop, use_orient, t_mode, u, v, request);
+  return CeedElemRestrictionApply_Ref_Core(r, 5, 1, comp_stride, start, stop, use_orients, t_mode, u, v, request);
 }
 // LCOV_EXCL_STOP
 
 static int CeedElemRestrictionApply_Ref_511(CeedElemRestriction r, const CeedInt num_comp, const CeedInt blk_size, const CeedInt comp_stride,
-                                            CeedInt start, CeedInt stop, bool use_orient, CeedTransposeMode t_mode, CeedVector u, CeedVector v,
+                                            CeedInt start, CeedInt stop, bool use_orients, CeedTransposeMode t_mode, CeedVector u, CeedVector v,
                                             CeedRequest *request) {
-  return CeedElemRestrictionApply_Ref_Core(r, 5, 1, 1, start, stop, use_orient, t_mode, u, v, request);
+  return CeedElemRestrictionApply_Ref_Core(r, 5, 1, 1, start, stop, use_orients, t_mode, u, v, request);
 }
 
 // LCOV_EXCL_START
 static int CeedElemRestrictionApply_Ref_580(CeedElemRestriction r, const CeedInt num_comp, const CeedInt blk_size, const CeedInt comp_stride,
-                                            CeedInt start, CeedInt stop, bool use_orient, CeedTransposeMode t_mode, CeedVector u, CeedVector v,
+                                            CeedInt start, CeedInt stop, bool use_orients, CeedTransposeMode t_mode, CeedVector u, CeedVector v,
                                             CeedRequest *request) {
-  return CeedElemRestrictionApply_Ref_Core(r, 5, 8, comp_stride, start, stop, use_orient, t_mode, u, v, request);
+  return CeedElemRestrictionApply_Ref_Core(r, 5, 8, comp_stride, start, stop, use_orients, t_mode, u, v, request);
 }
 // LCOV_EXCL_STOP
 
 static int CeedElemRestrictionApply_Ref_581(CeedElemRestriction r, const CeedInt num_comp, const CeedInt blk_size, const CeedInt comp_stride,
-                                            CeedInt start, CeedInt stop, bool use_orient, CeedTransposeMode t_mode, CeedVector u, CeedVector v,
+                                            CeedInt start, CeedInt stop, bool use_orients, CeedTransposeMode t_mode, CeedVector u, CeedVector v,
                                             CeedRequest *request) {
-  return CeedElemRestrictionApply_Ref_Core(r, 5, 8, 1, start, stop, use_orient, t_mode, u, v, request);
+  return CeedElemRestrictionApply_Ref_Core(r, 5, 8, 1, start, stop, use_orients, t_mode, u, v, request);
 }
 
 //------------------------------------------------------------------------------
@@ -295,6 +327,44 @@ static int CeedElemRestrictionGetOffsets_Ref(CeedElemRestriction rstr, CeedMemTy
 }
 
 //------------------------------------------------------------------------------
+// ElemRestriction Get Orientations
+//------------------------------------------------------------------------------
+static int CeedElemRestrictionGetOrientations_Ref(CeedElemRestriction rstr, CeedMemType mem_type, const bool **orients) {
+  CeedElemRestriction_Ref *impl;
+  CeedCallBackend(CeedElemRestrictionGetData(rstr, &impl));
+  Ceed ceed;
+  CeedCallBackend(CeedElemRestrictionGetCeed(rstr, &ceed));
+
+  if (mem_type != CEED_MEM_HOST) {
+    // LCOV_EXCL_START
+    return CeedError(ceed, CEED_ERROR_BACKEND, "Can only provide to HOST memory");
+    // LCOV_EXCL_STOP
+  }
+
+  *orients = impl->orients;
+  return CEED_ERROR_SUCCESS;
+}
+
+//------------------------------------------------------------------------------
+// ElemRestriction Get Curl-Conforming Orientations
+//------------------------------------------------------------------------------
+static int CeedElemRestrictionGetCurlOrientations_Ref(CeedElemRestriction rstr, CeedMemType mem_type, const CeedInt **curl_orients) {
+  CeedElemRestriction_Ref *impl;
+  CeedCallBackend(CeedElemRestrictionGetData(rstr, &impl));
+  Ceed ceed;
+  CeedCallBackend(CeedElemRestrictionGetCeed(rstr, &ceed));
+
+  if (mem_type != CEED_MEM_HOST) {
+    // LCOV_EXCL_START
+    return CeedError(ceed, CEED_ERROR_BACKEND, "Can only provide to HOST memory");
+    // LCOV_EXCL_STOP
+  }
+
+  *curl_orients = impl->curl_orients;
+  return CEED_ERROR_SUCCESS;
+}
+
+//------------------------------------------------------------------------------
 // ElemRestriction Destroy
 //------------------------------------------------------------------------------
 static int CeedElemRestrictionDestroy_Ref(CeedElemRestriction r) {
@@ -302,7 +372,8 @@ static int CeedElemRestrictionDestroy_Ref(CeedElemRestriction r) {
   CeedCallBackend(CeedElemRestrictionGetData(r, &impl));
 
   CeedCallBackend(CeedFree(&impl->offsets_allocated));
-  CeedCallBackend(CeedFree(&impl->orient_allocated));
+  CeedCallBackend(CeedFree(&impl->orients_allocated));
+  CeedCallBackend(CeedFree(&impl->curl_orients_allocated));
   CeedCallBackend(CeedFree(&impl));
   return CEED_ERROR_SUCCESS;
 }
@@ -371,6 +442,8 @@ int CeedElemRestrictionCreate_Ref(CeedMemType mem_type, CeedCopyMode copy_mode, 
   CeedCallBackend(CeedSetBackendFunction(ceed, "ElemRestriction", r, "ApplyUnsigned", CeedElemRestrictionApplyUnsigned_Ref));
   CeedCallBackend(CeedSetBackendFunction(ceed, "ElemRestriction", r, "ApplyBlock", CeedElemRestrictionApplyBlock_Ref));
   CeedCallBackend(CeedSetBackendFunction(ceed, "ElemRestriction", r, "GetOffsets", CeedElemRestrictionGetOffsets_Ref));
+  CeedCallBackend(CeedSetBackendFunction(ceed, "ElemRestriction", r, "GetOrientations", CeedElemRestrictionGetOrientations_Ref));
+  CeedCallBackend(CeedSetBackendFunction(ceed, "ElemRestriction", r, "GetCurlOrientations", CeedElemRestrictionGetCurlOrientations_Ref));
   CeedCallBackend(CeedSetBackendFunction(ceed, "ElemRestriction", r, "Destroy", CeedElemRestrictionDestroy_Ref));
 
   // Set apply function based upon num_comp, blk_size, and comp_stride
@@ -428,13 +501,14 @@ int CeedElemRestrictionCreate_Ref(CeedMemType mem_type, CeedCopyMode copy_mode, 
 //------------------------------------------------------------------------------
 // ElemRestriction Create Oriented
 //------------------------------------------------------------------------------
-int CeedElemRestrictionCreateOriented_Ref(CeedMemType mem_type, CeedCopyMode copy_mode, const CeedInt *offsets, const bool *orient,
+int CeedElemRestrictionCreateOriented_Ref(CeedMemType mem_type, CeedCopyMode copy_mode, const CeedInt *offsets, const bool *orients,
                                           CeedElemRestriction r) {
   // Set up for normal restriction with explicit offsets. This sets up dispatch to
   // CeedElemRestrictionApply_Ref_* and manages the impl->offsets array copy/allocation.
+  CeedCallBackend(CeedElemRestrictionCreate_Ref(mem_type, copy_mode, offsets, r));
+
   CeedElemRestriction_Ref *impl;
   CeedInt                  num_elem, elem_size;
-  CeedCallBackend(CeedElemRestrictionCreate_Ref(mem_type, copy_mode, offsets, r));
   CeedCallBackend(CeedElemRestrictionGetData(r, &impl));
   CeedCallBackend(CeedElemRestrictionGetNumElements(r, &num_elem));
   CeedCallBackend(CeedElemRestrictionGetElementSize(r, &elem_size));
@@ -442,16 +516,49 @@ int CeedElemRestrictionCreateOriented_Ref(CeedMemType mem_type, CeedCopyMode cop
   // Copy data
   switch (copy_mode) {
     case CEED_COPY_VALUES:
-      CeedCallBackend(CeedMalloc(num_elem * elem_size, &impl->orient_allocated));
-      memcpy(impl->orient_allocated, orient, num_elem * elem_size * sizeof(orient[0]));
-      impl->orient = impl->orient_allocated;
+      CeedCallBackend(CeedMalloc(num_elem * elem_size, &impl->orients_allocated));
+      memcpy(impl->orients_allocated, orients, num_elem * elem_size * sizeof(orients[0]));
+      impl->orients = impl->orients_allocated;
       break;
     case CEED_OWN_POINTER:
-      impl->orient_allocated = (bool *)orient;
-      impl->orient           = impl->orient_allocated;
+      impl->orients_allocated = (bool *)orients;
+      impl->orients           = impl->orients_allocated;
       break;
     case CEED_USE_POINTER:
-      impl->orient = orient;
+      impl->orients = orients;
+  }
+
+  return CEED_ERROR_SUCCESS;
+}
+
+//------------------------------------------------------------------------------
+// ElemRestriction Create Curl-Conforming Oriented
+//------------------------------------------------------------------------------
+int CeedElemRestrictionCreateCurlOriented_Ref(CeedMemType mem_type, CeedCopyMode copy_mode, const CeedInt *offsets, const CeedInt *curl_orients,
+                                              CeedElemRestriction r) {
+  // Set up for normal restriction with explicit offsets. This sets up dispatch to
+  // CeedElemRestrictionApply_Ref_* and manages the impl->offsets array copy/allocation.
+  CeedCallBackend(CeedElemRestrictionCreate_Ref(mem_type, copy_mode, offsets, r));
+
+  CeedElemRestriction_Ref *impl;
+  CeedInt                  num_elem, elem_size;
+  CeedCallBackend(CeedElemRestrictionGetData(r, &impl));
+  CeedCallBackend(CeedElemRestrictionGetNumElements(r, &num_elem));
+  CeedCallBackend(CeedElemRestrictionGetElementSize(r, &elem_size));
+
+  // Orientation data
+  switch (copy_mode) {
+    case CEED_COPY_VALUES:
+      CeedCallBackend(CeedMalloc(num_elem * 3 * elem_size, &impl->curl_orients_allocated));
+      memcpy(impl->curl_orients_allocated, curl_orients, num_elem * 3 * elem_size * sizeof(curl_orients[0]));
+      impl->curl_orients = impl->curl_orients_allocated;
+      break;
+    case CEED_OWN_POINTER:
+      impl->curl_orients_allocated = (CeedInt *)curl_orients;
+      impl->curl_orients           = impl->curl_orients_allocated;
+      break;
+    case CEED_USE_POINTER:
+      impl->curl_orients = curl_orients;
   }
 
   return CEED_ERROR_SUCCESS;
