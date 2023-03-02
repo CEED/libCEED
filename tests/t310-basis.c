@@ -6,34 +6,40 @@
 #include <stdio.h>
 
 int main(int argc, char **argv) {
-  Ceed              ceed;
-  CeedBasis         b;
-  CeedVector        U, V;
-  int               i, dim = 2, P_1d = 4, Q_1d = 4, len = (int)(pow((CeedScalar)(Q_1d), dim) + 0.4);
-  CeedScalar        u[len];
-  const CeedScalar *v;
+  Ceed       ceed;
+  CeedBasis  basis;
+  CeedVector u, v;
+  int        i, dim = 2, p = 4, q = 4, len = (int)(pow((CeedScalar)(q), dim) + 0.4);
 
   CeedInit(argv[1], &ceed);
 
-  CeedVectorCreate(ceed, len, &U);
-  CeedVectorCreate(ceed, len, &V);
+  CeedVectorCreate(ceed, len, &u);
+  CeedVectorCreate(ceed, len, &v);
 
-  for (i = 0; i < len; i++) u[i] = 1.0;
-  CeedVectorSetArray(U, CEED_MEM_HOST, CEED_USE_POINTER, u);
+  {
+    CeedScalar u_array[len];
 
-  CeedBasisCreateTensorH1Lagrange(ceed, dim, 1, P_1d, Q_1d, CEED_GAUSS_LOBATTO, &b);
-
-  CeedBasisApply(b, 1, CEED_NOTRANSPOSE, CEED_EVAL_INTERP, U, V);
-
-  CeedVectorGetArrayRead(V, CEED_MEM_HOST, &v);
-  for (i = 0; i < len; i++) {
-    if (fabs(v[i] - 1.) > 10. * CEED_EPSILON) printf("v[%" CeedInt_FMT "] = %f != 1.\n", i, v[i]);
+    for (i = 0; i < len; i++) u_array[i] = 1.0;
+    CeedVectorSetArray(u, CEED_MEM_HOST, CEED_COPY_VALUES, u_array);
   }
-  CeedVectorRestoreArrayRead(V, &v);
 
-  CeedBasisDestroy(&b);
-  CeedVectorDestroy(&U);
-  CeedVectorDestroy(&V);
+  CeedBasisCreateTensorH1Lagrange(ceed, dim, 1, p, q, CEED_GAUSS_LOBATTO, &basis);
+
+  CeedBasisApply(basis, 1, CEED_NOTRANSPOSE, CEED_EVAL_INTERP, u, v);
+
+  {
+    const CeedScalar *v_array;
+
+    CeedVectorGetArrayRead(v, CEED_MEM_HOST, &v_array);
+    for (i = 0; i < len; i++) {
+      if (fabs(v_array[i] - 1.) > 10. * CEED_EPSILON) printf("v[%" CeedInt_FMT "] = %f != 1.\n", i, v_array[i]);
+    }
+    CeedVectorRestoreArrayRead(v, &v_array);
+  }
+
+  CeedBasisDestroy(&basis);
+  CeedVectorDestroy(&u);
+  CeedVectorDestroy(&v);
   CeedDestroy(&ceed);
   return 0;
 }

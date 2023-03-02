@@ -6,20 +6,22 @@
 int main(int argc, char **argv) {
   Ceed       ceed;
   CeedVector x, x_2;
-  CeedInt    n;
+  CeedInt    len = 10;
 
   CeedInit(argv[1], &ceed);
 
-  n = 10;
-  CeedVectorCreate(ceed, n, &x);
-  CeedVectorCreate(ceed, n + 1, &x_2);
+  CeedVectorCreate(ceed, len, &x);
+  CeedVectorCreate(ceed, len + 1, &x_2);
 
   CeedVectorReferenceCopy(x, &x_2);  // This destroys the previous x_2
   CeedVectorDestroy(&x);
 
-  CeedSize len;
-  CeedVectorGetLength(x_2, &len);  // Second reference still valid
-  if (len != n) printf("Error copying CeedVector reference\n");
+  {
+    CeedSize len_2;
+
+    CeedVectorGetLength(x_2, &len_2);  // Second reference still valid
+    if (len_2 != len) printf("Error copying CeedVector reference\n");
+  }
 
   CeedVectorDestroy(&x_2);
   CeedDestroy(&ceed);

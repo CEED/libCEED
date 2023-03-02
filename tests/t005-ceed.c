@@ -5,12 +5,14 @@
 #include <string.h>
 
 int main(int argc, char **argv) {
-  Ceed ceed;
+  Ceed        ceed;
+  CeedVector  vec;
+  CeedScalar *array;
+  const char *err_msg = NULL;
 
   CeedInit(argv[1], &ceed);
 
   // Check for standard message with default handler
-  const char *err_msg = NULL;
   CeedGetErrorMessage(ceed, &err_msg);
   if (strcmp(err_msg, "No error message stored")) printf("Unexpected error message received: \"%s\"\n", err_msg);
 
@@ -18,8 +20,6 @@ int main(int argc, char **argv) {
   CeedSetErrorHandler(ceed, CeedErrorStore);
 
   // Generate error
-  CeedVector  vec;
-  CeedScalar *array;
   CeedVectorCreate(ceed, 10, &vec);
   CeedVectorGetArray(vec, CEED_MEM_HOST, &array);
   CeedVectorGetArray(vec, CEED_MEM_HOST, &array);

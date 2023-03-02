@@ -4,23 +4,25 @@
 #include <ceed.h>
 
 int main(int argc, char **argv) {
-  Ceed              ceed;
-  CeedVector        x;
-  CeedInt           n;
-  const CeedScalar *a, *b;
+  Ceed       ceed;
+  CeedVector x;
+  CeedInt    len = 10;
 
   CeedInit(argv[1], &ceed);
 
-  n = 10;
-  CeedVectorCreate(ceed, n, &x);
+  CeedVectorCreate(ceed, len, &x);
   CeedVectorSetValue(x, 0.0);
 
   // Two read accesses should not generate an error
-  CeedVectorGetArrayRead(x, CEED_MEM_HOST, &a);
-  CeedVectorGetArrayRead(x, CEED_MEM_HOST, &b);
+  {
+    const CeedScalar *a, *b;
 
-  CeedVectorRestoreArrayRead(x, &a);
-  CeedVectorRestoreArrayRead(x, &b);
+    CeedVectorGetArrayRead(x, CEED_MEM_HOST, &a);
+    CeedVectorGetArrayRead(x, CEED_MEM_HOST, &b);
+
+    CeedVectorRestoreArrayRead(x, &a);
+    CeedVectorRestoreArrayRead(x, &b);
+  }
 
   CeedVectorDestroy(&x);
   CeedDestroy(&ceed);

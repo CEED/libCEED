@@ -6,13 +6,13 @@ User CeedQFunction - setup
       EvalMode: "quadrature weights"
   1 output field:
     Output field 0:
-      Name: "qdata"
+      Name: "q data"
       Size: 1
       EvalMode: "none"
 User CeedQFunction - mass
   2 input fields:
     Input field 0:
-      Name: "qdata"
+      Name: "q data"
       Size: 1
       EvalMode: "none"
     Input field 1:

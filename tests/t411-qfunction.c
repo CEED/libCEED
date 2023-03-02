@@ -5,39 +5,41 @@
 #include <math.h>
 
 int main(int argc, char **argv) {
-  Ceed              ceed;
-  CeedVector        in[16], out[16];
-  CeedVector        U, V;
-  CeedQFunction     qf;
-  CeedInt           Q = 8;
-  const CeedScalar *v;
-  CeedScalar        u[Q];
+  Ceed          ceed;
+  CeedVector    in[16], out[16];
+  CeedVector    u, v;
+  CeedQFunction qf;
+  CeedInt       q = 8;
+  CeedScalar    u_array[q];
 
   CeedInit(argv[1], &ceed);
 
+  CeedVectorCreate(ceed, q, &u);
+  for (CeedInt i = 0; i < q; i++) u_array[i] = i * i;
+  CeedVectorSetArray(u, CEED_MEM_HOST, CEED_USE_POINTER, u_array);
+  CeedVectorCreate(ceed, q, &v);
+  CeedVectorSetValue(v, 0);
+
   CeedQFunctionCreateIdentity(ceed, 1, CEED_EVAL_INTERP, CEED_EVAL_INTERP, &qf);
-
-  for (CeedInt i = 0; i < Q; i++) u[i] = i * i;
-
-  CeedVectorCreate(ceed, Q, &U);
-  CeedVectorSetArray(U, CEED_MEM_HOST, CEED_USE_POINTER, u);
-  CeedVectorCreate(ceed, Q, &V);
-  CeedVectorSetValue(V, 0);
-
   {
-    in[0]  = U;
-    out[0] = V;
-    CeedQFunctionApply(qf, Q, in, out);
+    in[0]  = u;
+    out[0] = v;
+    CeedQFunctionApply(qf, q, in, out);
   }
 
-  CeedVectorGetArrayRead(V, CEED_MEM_HOST, &v);
-  for (CeedInt i = 0; i < Q; i++) {
-    if (fabs(v[i] - u[i]) > 1e-14) printf("[%" CeedInt_FMT "] v %f != u %f\n", i, v[i], u[i]);
-  }
-  CeedVectorRestoreArrayRead(V, &v);
+  // Verify results
+  {
+    const CeedScalar *v_array;
 
-  CeedVectorDestroy(&U);
-  CeedVectorDestroy(&V);
+    CeedVectorGetArrayRead(v, CEED_MEM_HOST, &v_array);
+    for (CeedInt i = 0; i < q; i++) {
+      if (fabs(v_array[i] - u_array[i]) > 1e-14) printf("[%" CeedInt_FMT "] v %f != u %f\n", i, v_array[i], u_array[i]);
+    }
+    CeedVectorRestoreArrayRead(v, &v_array);
+  }
+
+  CeedVectorDestroy(&u);
+  CeedVectorDestroy(&v);
   CeedQFunctionDestroy(&qf);
   CeedDestroy(&ceed);
   return 0;

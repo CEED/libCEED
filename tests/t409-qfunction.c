@@ -9,15 +9,19 @@
 int main(int argc, char **argv) {
   Ceed                 ceed;
   CeedVector           in[16], out[16];
-  CeedVector           U, V;
+  CeedVector           u, v;
   CeedQFunction        qf;
   CeedQFunctionContext ctx;
-  CeedInt              Q = 8;
-  const CeedScalar    *v;
+  CeedInt              q           = 8;
   bool                 is_writable = true;
   CeedScalar           ctx_data[5] = {1, 2, 3, 4, 5};
 
   CeedInit(argv[1], &ceed);
+
+  CeedVectorCreate(ceed, q, &u);
+  CeedVectorSetValue(u, 1.0);
+  CeedVectorCreate(ceed, q, &v);
+  CeedVectorSetValue(v, 0.0);
 
   CeedQFunctionCreateInterior(ceed, 1, scale, scale_loc, &qf);
   CeedQFunctionAddInput(qf, "u", 1, CEED_EVAL_INTERP);
@@ -27,25 +31,23 @@ int main(int argc, char **argv) {
   CeedQFunctionContextSetData(ctx, CEED_MEM_HOST, CEED_COPY_VALUES, sizeof(ctx_data), &ctx_data);
   CeedQFunctionSetContext(qf, ctx);
   CeedQFunctionSetContextWritable(qf, is_writable);
-
-  CeedVectorCreate(ceed, Q, &U);
-  CeedVectorSetValue(U, 1.0);
-  CeedVectorCreate(ceed, Q, &V);
-  CeedVectorSetValue(V, 0.0);
-
   {
-    in[0]  = U;
-    out[0] = V;
-    CeedQFunctionApply(qf, Q, in, out);
+    in[0]  = u;
+    out[0] = v;
+    CeedQFunctionApply(qf, q, in, out);
   }
 
-  CeedVectorGetArrayRead(V, CEED_MEM_HOST, &v);
-  for (CeedInt i = 0; i < Q; i++)
-    if (fabs(v[i] - ctx_data[1]) > 100. * CEED_EPSILON)
-      // LCOV_EXCL_START
-      printf("v[%" CeedInt_FMT "] %f != 2.0\n", i, v[i]);
-  // LCOV_EXCL_STOP
-  CeedVectorRestoreArrayRead(V, &v);
+  {
+    const CeedScalar *v_array;
+
+    CeedVectorGetArrayRead(v, CEED_MEM_HOST, &v_array);
+    for (CeedInt i = 0; i < q; i++)
+      if (fabs(v_array[i] - ctx_data[1]) > 100. * CEED_EPSILON)
+        // LCOV_EXCL_START
+        printf("v[%" CeedInt_FMT "] %f != 2.0\n", i, v_array[i]);
+    // LCOV_EXCL_STOP
+    CeedVectorRestoreArrayRead(v, &v_array);
+  }
 
   // Check for written context data
   CeedScalar *ctx_data_new;
@@ -69,14 +71,14 @@ int main(int argc, char **argv) {
   is_writable = false;
   CeedQFunctionSetContextWritable(qf, is_writable);
   {
-    in[0]  = U;
-    out[0] = V;
+    in[0]  = u;
+    out[0] = v;
     // Will only error in `/cpu/self/memcheck/*` backends
-    CeedQFunctionApply(qf, Q, in, out);
+    CeedQFunctionApply(qf, q, in, out);
   }
 
-  CeedVectorDestroy(&U);
-  CeedVectorDestroy(&V);
+  CeedVectorDestroy(&u);
+  CeedVectorDestroy(&v);
   CeedQFunctionDestroy(&qf);
   CeedQFunctionContextDestroy(&ctx);
   CeedDestroy(&ceed);

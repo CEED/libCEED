@@ -4,31 +4,34 @@
 #include <ceed.h>
 
 int main(int argc, char **argv) {
-  Ceed              ceed;
-  CeedVector        x;
-  CeedVector        y;
-  CeedInt           n;
-  CeedScalar        a[10], b[10];
-  const CeedScalar *c;
+  Ceed       ceed;
+  CeedVector x, y;
+  CeedInt    len = 10;
+  CeedScalar x_array[len];
 
   CeedInit(argv[1], &ceed);
 
-  n = 10;
-  CeedVectorCreate(ceed, n, &x);
-  CeedVectorCreate(ceed, n, &y);
-  for (CeedInt i = 0; i < n; i++) a[i] = 10 + i;
-  CeedVectorSetArray(x, CEED_MEM_HOST, CEED_USE_POINTER, a);
+  CeedVectorCreate(ceed, len, &x);
+  CeedVectorCreate(ceed, len, &y);
 
-  for (CeedInt i = 0; i < n; i++) b[i] = 0;
-  CeedVectorSetArray(y, CEED_MEM_HOST, CEED_USE_POINTER, b);
+  for (CeedInt i = 0; i < len; i++) x_array[i] = 0;
+  CeedVectorSetArray(x, CEED_MEM_HOST, CEED_USE_POINTER, x_array);
+  {
+    CeedScalar initial_array[len];
 
-  CeedVectorGetArrayRead(x, CEED_MEM_DEVICE, &c);
-  CeedVectorSetArray(y, CEED_MEM_DEVICE, CEED_COPY_VALUES, (CeedScalar *)c);
-  CeedVectorRestoreArrayRead(x, &c);
+    for (CeedInt i = 0; i < len; i++) initial_array[i] = len + i;
+    CeedVectorSetArray(y, CEED_MEM_HOST, CEED_COPY_VALUES, initial_array);
+  }
+  {
+    const CeedScalar *read_array;
 
-  CeedVectorSyncArray(y, CEED_MEM_HOST);
-  for (CeedInt i = 0; i < n; i++) {
-    if (b[i] != 10 + i) printf("Error reading array b[%" CeedInt_FMT "] = %f\n", i, (CeedScalar)b[i]);
+    CeedVectorGetArrayRead(y, CEED_MEM_DEVICE, &read_array);
+    CeedVectorSetArray(x, CEED_MEM_DEVICE, CEED_COPY_VALUES, (CeedScalar *)read_array);
+    CeedVectorRestoreArrayRead(y, &read_array);
+  }
+  CeedVectorSyncArray(x, CEED_MEM_HOST);
+  for (CeedInt i = 0; i < len; i++) {
+    if (x_array[i] != len + i) printf("Error reading array[%" CeedInt_FMT "] = %f\n", i, (CeedScalar)x_array[i]);
   }
 
   CeedVectorDestroy(&x);
