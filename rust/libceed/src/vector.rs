@@ -636,6 +636,34 @@ impl<'a> Vector<'a> {
         Ok(self)
     }
 
+    /// Compute y = alpha x + beta y for a pair of Vectors
+    ///
+    /// # arguments
+    ///
+    /// * `alpha` - first scaling factor
+    /// * `beta`  - second scaling factor
+    /// * `x`     - second vector, must be different than self
+    ///
+    /// ```
+    /// # use libceed::prelude::*;
+    /// # fn main() -> libceed::Result<()> {
+    /// # let ceed = libceed::Ceed::default_init();
+    /// let x = ceed.vector_from_slice(&[0., 1., 2., 3., 4.])?;
+    /// let mut y = ceed.vector_from_slice(&[0., 1., 2., 3., 4.])?;
+    ///
+    /// y = y.axpby(-0.5, -0.5, &x)?;
+    /// for (i, y) in y.view()?.iter().enumerate() {
+    ///     assert_eq!(*y, (i as Scalar) / 2.0, "Value not set correctly");
+    /// }
+    /// # Ok(())
+    /// # }
+    /// ```
+    #[allow(unused_mut)]
+    pub fn axpby(mut self, alpha: crate::Scalar, beta: crate::Scalar, x: &crate::Vector) -> crate::Result<Self> {
+        let ierr = unsafe { bind_ceed::CeedVectorAXPBY(self.ptr, alpha, beta, x.ptr) };
+        self.check_error(ierr)?;
+        Ok(self)
+    }
     /// Compute the pointwise multiplication w = x .* y for Vectors
     ///
     /// # arguments
