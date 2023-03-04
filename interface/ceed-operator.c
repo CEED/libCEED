@@ -250,8 +250,9 @@ int CeedOperatorGetActiveElemRestriction(CeedOperator op, CeedElemRestriction *a
 
 /**
   @brief Set QFunctionContext field values of the specified type.
-           For composite operators, the value is set in all sub-operator QFunctionContexts that have a matching `field_name`.
-           A non-zero error code is returned for single operators that do not have a matching field of the same type or composite operators that do
+
+  For composite operators, the value is set in all sub-operator QFunctionContexts that have a matching `field_name`.
+  A non-zero error code is returned for single operators that do not have a matching field of the same type or composite operators that do
 not have any field of a matching type.
 
   @param[in,out] op          CeedOperator
@@ -319,9 +320,10 @@ static int CeedOperatorContextSetGeneric(CeedOperator op, CeedContextFieldLabel 
 
 /**
   @brief Get QFunctionContext field values of the specified type, read-only.
-           For composite operators, the values retrieved are for the first sub-operator QFunctionContext that have a matching `field_name`.
-           A non-zero error code is returned for single operators that do not have a matching field of the same type or composite operators that
-           do not have any field of a matching type.
+
+  For composite operators, the values retrieved are for the first sub-operator QFunctionContext that have a matching `field_name`.
+  A non-zero error code is returned for single operators that do not have a matching field of the same type or composite operators that
+  do not have any field of a matching type.
 
   @param[in,out] op          CeedOperator
   @param[in]     field_label Label of field to set
@@ -394,9 +396,10 @@ static int CeedOperatorContextGetGenericRead(CeedOperator op, CeedContextFieldLa
 
 /**
   @brief Restore QFunctionContext field values of the specified type, read-only.
-           For composite operators, the values restored are for the first sub-operator QFunctionContext that have a matching `field_name`.
-           A non-zero error code is returned for single operators that do not have a matching field of the same type or composite operators
-           that do not have any field of a matching type.
+
+  For composite operators, the values restored are for the first sub-operator QFunctionContext that have a matching `field_name`.
+  A non-zero error code is returned for single operators that do not have a matching field of the same type or composite operators
+  that do not have any field of a matching type.
 
   @param[in,out] op          CeedOperator
   @param[in]     field_label Label of field to set
@@ -480,7 +483,6 @@ static int CeedOperatorContextRestoreGenericRead(CeedOperator op, CeedContextFie
 
   @ref Backend
 **/
-
 int CeedOperatorGetNumArgs(CeedOperator op, CeedInt *num_args) {
   if (op->is_composite) {
     // LCOV_EXCL_START
@@ -501,7 +503,6 @@ int CeedOperatorGetNumArgs(CeedOperator op, CeedInt *num_args) {
 
   @ref Backend
 **/
-
 int CeedOperatorIsSetupDone(CeedOperator op, bool *is_setup_done) {
   *is_setup_done = op->is_backend_setup;
   return CEED_ERROR_SUCCESS;
@@ -517,7 +518,6 @@ int CeedOperatorIsSetupDone(CeedOperator op, bool *is_setup_done) {
 
   @ref Backend
 **/
-
 int CeedOperatorGetQFunction(CeedOperator op, CeedQFunction *qf) {
   if (op->is_composite) {
     // LCOV_EXCL_START
@@ -538,7 +538,6 @@ int CeedOperatorGetQFunction(CeedOperator op, CeedQFunction *qf) {
 
   @ref Backend
 **/
-
 int CeedOperatorIsComposite(CeedOperator op, bool *is_composite) {
   *is_composite = op->is_composite;
   return CEED_ERROR_SUCCESS;
@@ -554,7 +553,6 @@ int CeedOperatorIsComposite(CeedOperator op, bool *is_composite) {
 
   @ref Backend
 **/
-
 int CeedOperatorGetData(CeedOperator op, void *data) {
   *(void **)data = op->data;
   return CEED_ERROR_SUCCESS;
@@ -570,7 +568,6 @@ int CeedOperatorGetData(CeedOperator op, void *data) {
 
   @ref Backend
 **/
-
 int CeedOperatorSetData(CeedOperator op, void *data) {
   op->data = data;
   return CEED_ERROR_SUCCESS;
@@ -599,7 +596,6 @@ int CeedOperatorReference(CeedOperator op) {
 
   @ref Backend
 **/
-
 int CeedOperatorSetSetupDone(CeedOperator op) {
   op->is_backend_setup = true;
   return CEED_ERROR_SUCCESS;
@@ -615,7 +611,8 @@ int CeedOperatorSetSetupDone(CeedOperator op) {
 
 /**
   @brief Create a CeedOperator and associate a CeedQFunction.
-           A CeedBasis and CeedElemRestriction can be associated with CeedQFunction fields with \ref CeedOperatorSetField.
+
+  A CeedBasis and CeedElemRestriction can be associated with CeedQFunction fields with \ref CeedOperatorSetField.
 
   @param[in]  ceed Ceed object where the CeedOperator will be created
   @param[in]  qf   QFunction defining the action of the operator at quadrature points
@@ -708,10 +705,11 @@ int CeedCompositeOperatorCreate(Ceed ceed, CeedOperator *op) {
 
 /**
   @brief Copy the pointer to a CeedOperator.
-           Both pointers should be destroyed with `CeedOperatorDestroy()`.
 
-           Note: If the value of `op_copy` passed to this function is non-NULL, then it is assumed that `op_copy` is a pointer to a CeedOperator.
-             This CeedOperator will be destroyed if `op_copy` is the only reference to this CeedOperator.
+  Both pointers should be destroyed with `CeedOperatorDestroy()`.
+
+  Note: If the value of `op_copy` passed to this function is non-NULL, then it is assumed that `op_copy` is a pointer to a CeedOperator.
+        This CeedOperator will be destroyed if `op_copy` is the only reference to this CeedOperator.
 
   @param[in]  op         CeedOperator to copy reference to
   @param[in,out] op_copy Variable to store copied reference
@@ -1046,7 +1044,6 @@ int CeedCompositeOperatorAddSub(CeedOperator composite_op, CeedOperator sub_op) 
 
   @ref Backend
 **/
-
 int CeedCompositeOperatorGetNumSub(CeedOperator op, CeedInt *num_suboperators) {
   if (!op->is_composite) {
     // LCOV_EXCL_START
@@ -1067,7 +1064,6 @@ int CeedCompositeOperatorGetNumSub(CeedOperator op, CeedInt *num_suboperators) {
 
   @ref Backend
 **/
-
 int CeedCompositeOperatorGetSubList(CeedOperator op, CeedOperator **sub_operators) {
   if (!op->is_composite) {
     // LCOV_EXCL_START
@@ -1141,7 +1137,8 @@ int CeedOperatorCheckReady(CeedOperator op) {
 
 /**
   @brief Get vector lengths for the active input and/or output vectors of a CeedOperator.
-           Note: Lengths of -1 indicate that the CeedOperator does not have an active input and/or output.
+
+  Note: Lengths of -1 indicate that the CeedOperator does not have an active input and/or output.
 
   @param[in]  op          CeedOperator
   @param[out] input_size  Variable to store active input vector length, or NULL
@@ -1181,7 +1178,8 @@ int CeedOperatorGetActiveVectorLengths(CeedOperator op, CeedSize *input_size, Ce
 
 /**
   @brief Set reuse of CeedQFunction data in CeedOperatorLinearAssemble* functions.
-           When `reuse_assembly_data = false` (default), the CeedQFunction associated with this CeedOperator is re-assembled every time a
+
+  When `reuse_assembly_data = false` (default), the CeedQFunction associated with this CeedOperator is re-assembled every time a
 `CeedOperatorLinearAssemble*` function is called. When `reuse_assembly_data = true`, the CeedQFunction associated with this CeedOperator is reused
 between calls to `CeedOperatorSetQFunctionAssemblyDataUpdated`.
 
@@ -1234,8 +1232,9 @@ int CeedOperatorSetQFunctionAssemblyDataUpdateNeeded(CeedOperator op, bool needs
 
 /**
   @brief Set the number of quadrature points associated with a CeedOperator.
-           This should be used when creating a CeedOperator where every field has a collocated basis.
-           This function cannot be used for composite CeedOperators.
+
+  This should be used when creating a CeedOperator where every field has a collocated basis.
+  This function cannot be used for composite CeedOperators.
 
   @param[in,out] op       CeedOperator
   @param[in]     num_qpts Number of quadrature points to set
@@ -1400,11 +1399,10 @@ int CeedOperatorGetFlopsEstimate(CeedOperator op, CeedSize *flops) {
   } else {
     CeedInt            num_input_fields, num_output_fields;
     CeedOperatorField *input_fields, *output_fields;
-
     CeedCall(CeedOperatorGetFields(op, &num_input_fields, &input_fields, &num_output_fields, &output_fields));
-
     CeedInt num_elem = 0;
     CeedCall(CeedOperatorGetNumElements(op, &num_elem));
+
     // Input FLOPs
     for (CeedInt i = 0; i < num_input_fields; i++) {
       if (input_fields[i]->vec == CEED_VECTOR_ACTIVE) {
@@ -1565,7 +1563,8 @@ int CeedOperatorGetContextFieldLabel(CeedOperator op, const char *field_name, Ce
 
 /**
   @brief Set QFunctionContext field holding double precision values.
-           For composite operators, the values are set in all sub-operator QFunctionContexts that have a matching `field_name`.
+
+  For composite operators, the values are set in all sub-operator QFunctionContexts that have a matching `field_name`.
 
   @param[in,out] op          CeedOperator
   @param[in]     field_label Label of field to set
@@ -1581,7 +1580,8 @@ int CeedOperatorSetContextDouble(CeedOperator op, CeedContextFieldLabel field_la
 
 /**
   @brief Get QFunctionContext field holding double precision values, read-only.
-           For composite operators, the values correspond to the first sub-operator QFunctionContexts that has a matching `field_name`.
+
+  For composite operators, the values correspond to the first sub-operator QFunctionContexts that has a matching `field_name`.
 
   @param[in]  op          CeedOperator
   @param[in]  field_label Label of field to get
@@ -1613,7 +1613,8 @@ int CeedOperatorRestoreContextDoubleRead(CeedOperator op, CeedContextFieldLabel 
 
 /**
   @brief Set QFunctionContext field holding int32 values.
-           For composite operators, the values are set in all sub-operator QFunctionContexts that have a matching `field_name`.
+
+  For composite operators, the values are set in all sub-operator QFunctionContexts that have a matching `field_name`.
 
   @param[in,out] op          CeedOperator
   @param[in]     field_label Label of field to set
@@ -1629,7 +1630,8 @@ int CeedOperatorSetContextInt32(CeedOperator op, CeedContextFieldLabel field_lab
 
 /**
   @brief Get QFunctionContext field holding int32 values, read-only.
-           For composite operators, the values correspond to the first sub-operator QFunctionContexts that has a matching `field_name`.
+
+  For composite operators, the values correspond to the first sub-operator QFunctionContexts that has a matching `field_name`.
 
   @param[in]  op          CeedOperator
   @param[in]  field_label Label of field to get

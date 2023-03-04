@@ -271,8 +271,10 @@ int CeedQFunctionGetSourcePath(CeedQFunction qf, char **source_path) {
 
 /**
   @brief Initialize and load QFunction source file into string buffer, including full text of local files in place of `#include "local.h"`.
-           The `buffer` is set to `NULL` if there is no QFunction source file.
-         Note: Caller is responsible for freeing the string buffer with `CeedFree()`.
+
+  The `buffer` is set to `NULL` if there is no QFunction source file.
+
+  Note: Caller is responsible for freeing the string buffer with `CeedFree()`.
 
   @param[in]  qf            CeedQFunction
   @param[out] source_buffer String buffer for source file contents
@@ -310,7 +312,8 @@ int CeedQFunctionGetUserFunction(CeedQFunction qf, CeedQFunctionUser *f) {
 
 /**
   @brief Get global context for a CeedQFunction.
-           Note: For QFunctions from the Fortran interface, this function will return the Fortran context CeedQFunctionContext.
+
+  Note: For QFunctions from the Fortran interface, this function will return the Fortran context CeedQFunctionContext.
 
   @param[in]  qf  CeedQFunction
   @param[out] ctx Variable to store CeedQFunctionContext
@@ -382,7 +385,8 @@ int CeedQFunctionRestoreContextData(CeedQFunction qf, void *data) {
 
 /**
   @brief Get true user context for a CeedQFunction
-           Note: For all QFunctions this function will return the user CeedQFunctionContext and not interface context CeedQFunctionContext, if any
+
+  Note: For all QFunctions this function will return the user CeedQFunctionContext and not interface context CeedQFunctionContext, if any
 such object exists.
 
   @param[in]  qf  CeedQFunction
@@ -671,8 +675,9 @@ int CeedQFunctionCreateInteriorByName(Ceed ceed, const char *name, CeedQFunction
 
 /**
   @brief Create an identity CeedQFunction.
-           Inputs are written into outputs in the order given.
-           This is useful for CeedOperators that can be represented with only the action of a CeedElemRestriction and CeedBasis, such as restriction
+
+  Inputs are written into outputs in the order given.
+  This is useful for CeedOperators that can be represented with only the action of a CeedElemRestriction and CeedBasis, such as restriction
 and prolongation operators for p-multigrid. Backends may optimize CeedOperators with this CeedQFunction to avoid the copy of input data to output
 fields by using the same memory location for both.
 
@@ -704,10 +709,11 @@ int CeedQFunctionCreateIdentity(Ceed ceed, CeedInt size, CeedEvalMode in_mode, C
 
 /**
   @brief Copy the pointer to a CeedQFunction.
-           Both pointers should be destroyed with `CeedQFunctionDestroy()`.
 
-           Note: If the value of `qf_copy` passed to this function is non-NULL, then it is assumed that `*qf_copy` is a pointer to a CeedQFunction.
-             This CeedQFunction will be destroyed if `*qf_copy` is the only reference to this CeedQFunction.
+  Both pointers should be destroyed with `CeedQFunctionDestroy()`.
+
+  Note: If the value of `qf_copy` passed to this function is non-NULL, then it is assumed that `*qf_copy` is a pointer to a CeedQFunction.
+        This CeedQFunction will be destroyed if `*qf_copy` is the only reference to this CeedQFunction.
 
   @param[in]  qf      CeedQFunction to copy reference to
   @param[out] qf_copy Variable to store copied reference
@@ -912,15 +918,16 @@ int CeedQFunctionSetContext(CeedQFunction qf, CeedQFunctionContext ctx) {
 
 /**
   @brief Set writability of CeedQFunctionContext when calling the `CeedQFunctionUser`.
-           The default value is `is_writable == true`.
 
-           Setting `is_writable == true` indicates the `CeedQFunctionUser` writes into the CeedQFunctionContextData and requires memory syncronization
+  The default value is `is_writable == true`.
+
+  Setting `is_writable == true` indicates the `CeedQFunctionUser` writes into the CeedQFunctionContextData and requires memory syncronization
 after calling `CeedQFunctionApply()`.
 
-           Setting 'is_writable == false' asserts that `CeedQFunctionUser` does not modify the CeedQFunctionContextData.
-           Violating this assertion may lead to inconsistent data.
+  Setting 'is_writable == false' asserts that `CeedQFunctionUser` does not modify the CeedQFunctionContextData.
+  Violating this assertion may lead to inconsistent data.
 
-           Setting `is_writable == false` may offer a performance improvement on GPU backends.
+  Setting `is_writable == false` may offer a performance improvement on GPU backends.
 
   @param[in,out] qf          CeedQFunction
   @param[in]     is_writable Writability status

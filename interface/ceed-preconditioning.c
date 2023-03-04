@@ -1012,11 +1012,12 @@ int CeedQFunctionAssemblyDataIsUpdateNeeded(CeedQFunctionAssemblyData data, bool
 
 /**
   @brief Copy the pointer to a CeedQFunctionAssemblyData.
-           Both pointers should be destroyed with `CeedCeedQFunctionAssemblyDataDestroy()`.
 
-           Note: If the value of `data_copy` passed to this function is non-NULL, then it is assumed that `*data_copy` is a pointer to a
-             CeedQFunctionAssemblyData. This CeedQFunctionAssemblyData will be destroyed if `data_copy` is the only reference to this
-             CeedQFunctionAssemblyData.
+  Both pointers should be destroyed with `CeedCeedQFunctionAssemblyDataDestroy()`.
+
+  Note: If the value of `data_copy` passed to this function is non-NULL, then it is assumed that `*data_copy` is a pointer to a
+        CeedQFunctionAssemblyData. This CeedQFunctionAssemblyData will be destroyed if `data_copy` is the only reference to this
+        CeedQFunctionAssemblyData.
 
   @param[in]     data      CeedQFunctionAssemblyData to copy reference to
   @param[in,out] data_copy Variable to store copied reference
@@ -1126,13 +1127,12 @@ int CeedOperatorGetOperatorAssemblyData(CeedOperator op, CeedOperatorAssemblyDat
 /**
   @brief Create object holding CeedOperator assembly data.
 
-    The CeedOperatorAssemblyData holds an array with references to every active CeedBasis used in the CeedOperator.
-    An array with references to the corresponding active CeedElemRestrictions is also stored.
-    For each active CeedBasis, the CeedOperatorAssemblyData holds an array of all input and output CeedEvalModes for this CeedBasis.
-    The CeedOperatorAssemblyData holds an array of offsets for indexing into the assembled CeedQFunction arrays to the row representing each
-      CeedEvalMode.
-    The number of input columns across all active bases for the assembled CeedQFunction is also stored.
-    Lastly, the CeedOperatorAssembly data holds assembled matrices representing the full action of the CeedBasis for all CeedEvalModes.
+  The CeedOperatorAssemblyData holds an array with references to every active CeedBasis used in the CeedOperator.
+  An array with references to the corresponding active CeedElemRestrictions is also stored.
+  For each active CeedBasis, the CeedOperatorAssemblyData holds an array of all input and output CeedEvalModes for this CeedBasis.
+  The CeedOperatorAssemblyData holds an array of offsets for indexing into the assembled CeedQFunction arrays to the row representing each
+CeedEvalMode. The number of input columns across all active bases for the assembled CeedQFunction is also stored. Lastly, the CeedOperatorAssembly
+data holds assembled matrices representing the full action of the CeedBasis for all CeedEvalModes.
 
   @param[in]  ceed Ceed object where the CeedOperatorAssemblyData will be created
   @param[in]  op   CeedOperator to be assembled
@@ -1297,7 +1297,7 @@ int CeedOperatorAssemblyDataCreate(Ceed ceed, CeedOperator op, CeedOperatorAssem
 /**
   @brief Get CeedOperator CeedEvalModes for assembly.
 
-    Note: See CeedOperatorAssemblyDataCreate for a full description of the data stored in this object.
+  Note: See CeedOperatorAssemblyDataCreate for a full description of the data stored in this object.
 
   @param[in]  data                  CeedOperatorAssemblyData
   @param[out] num_active_bases      Total number of active bases
@@ -1334,7 +1334,7 @@ int CeedOperatorAssemblyDataGetEvalModes(CeedOperatorAssemblyData data, CeedInt 
 /**
   @brief Get CeedOperator CeedBasis data for assembly.
 
-    Note: See CeedOperatorAssemblyDataCreate for a full description of the data stored in this object.
+  Note: See CeedOperatorAssemblyDataCreate for a full description of the data stored in this object.
 
   @param[in]  data                CeedOperatorAssemblyData
   @param[out] num_active_bases    Number of active bases, or NULL
@@ -1563,9 +1563,10 @@ int CeedOperatorLinearAssembleQFunction(CeedOperator op, CeedVector *assembled, 
 
 /**
   @brief Assemble CeedQFunction and store result internally.
-           Return copied references of stored data to the caller.
-           Caller is responsible for ownership and destruction of the copied references.
-           See also @ref CeedOperatorLinearAssembleQFunction
+
+  Return copied references of stored data to the caller.
+  Caller is responsible for ownership and destruction of the copied references.
+  See also @ref CeedOperatorLinearAssembleQFunction
 
   @param[in]  op        CeedOperator to assemble CeedQFunction
   @param[out] assembled CeedVector to store assembled CeedQFunction at quadrature points

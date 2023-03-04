@@ -56,10 +56,10 @@ int CeedTensorContractCreate(Ceed ceed, CeedBasis basis, CeedTensorContract *con
 /**
   @brief Apply tensor contraction
 
-    Contracts on the middle index
-    NOTRANSPOSE: v_ajc = t_jb u_abc
-    TRANSPOSE:   v_ajc = t_bj u_abc
-    If add != 0, "=" is replaced by "+="
+  Contracts on the middle index
+  NOTRANSPOSE: v_ajc = t_jb u_abc
+  TRANSPOSE:   v_ajc = t_bj u_abc
+  If add != 0, "=" is replaced by "+="
 
   @param[in]  contract CeedTensorContract to use
   @param[in]  A        First index of u, v

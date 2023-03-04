@@ -203,10 +203,11 @@ int CeedVectorCreate(Ceed ceed, CeedSize length, CeedVector *vec) {
 
 /**
   @brief Copy the pointer to a CeedVector.
-           Both pointers should be destroyed with `CeedVectorDestroy()`.
 
-           Note: If the value of `vec_copy` passed to this function is non-NULL, then it is assumed that `vec_copy` is a pointer to a CeedVector.
-             This CeedVector will be destroyed if `vec_copy` is the only reference to this CeedVector.
+  Both pointers should be destroyed with `CeedVectorDestroy()`.
+
+  Note: If the value of `vec_copy` passed to this function is non-NULL, then it is assumed that `vec_copy` is a pointer to a CeedVector.
+        This CeedVector will be destroyed if `vec_copy` is the only reference to this CeedVector.
 
   @param[in]     vec      CeedVector to copy reference to
   @param[in,out] vec_copy Variable to store copied reference
@@ -224,9 +225,11 @@ int CeedVectorReferenceCopy(CeedVector vec, CeedVector *vec_copy) {
 
 /**
   @brief Copy a CeedVector into a different CeedVector.
-          Both pointers should be destroyed with `CeedVectorDestroy()`.
-          Note: If `*vec_copy` is non-NULL, then it is assumed that `*vec_copy` is a pointer to a CeedVector.
-          This CeedVector will be destroyed if `*vec_copy` is the only reference to this CeedVector.
+
+  Both pointers should be destroyed with `CeedVectorDestroy()`.
+
+  Note: If `*vec_copy` is non-NULL, then it is assumed that `*vec_copy` is a pointer to a CeedVector.
+        This CeedVector will be destroyed if `*vec_copy` is the only reference to this CeedVector.
 
   @param[in]     vec      CeedVector to copy
   @param[in,out] vec_copy Variable to store copied CeedVector to
@@ -261,8 +264,9 @@ int CeedVectorCopy(CeedVector vec, CeedVector vec_copy) {
 
 /**
   @brief Set the array used by a CeedVector, freeing any previously allocated array if applicable.
-           The backend may copy values to a different memtype, such as during @ref CeedOperatorApply().
-           See also @ref CeedVectorSyncArray() and @ref CeedVectorTakeArray().
+
+  The backend may copy values to a different memtype, such as during @ref CeedOperatorApply().
+  See also @ref CeedVectorSyncArray() and @ref CeedVectorTakeArray().
 
   @param[in,out] vec       CeedVector
   @param[in]     mem_type  Memory type of the array being passed
@@ -327,8 +331,9 @@ int CeedVectorSetValue(CeedVector vec, CeedScalar value) {
 
 /**
   @brief Sync the CeedVector to a specified memtype.
-           This function is used to force synchronization of arrays set with @ref CeedVectorSetArray().
-           If the requested memtype is already synchronized, this function results in a no-op.
+
+  This function is used to force synchronization of arrays set with @ref CeedVectorSetArray().
+  If the requested memtype is already synchronized, this function results in a no-op.
 
   @param[in,out] vec      CeedVector
   @param[in]     mem_type Memtype to be synced
@@ -354,8 +359,9 @@ int CeedVectorSyncArray(CeedVector vec, CeedMemType mem_type) {
 
 /**
   @brief Take ownership of the CeedVector array set by @ref CeedVectorSetArray() with @ref CEED_USE_POINTER and remove the array from the CeedVector.
-           The caller is responsible for managing and freeing the array.
-           This function will error if @ref CeedVectorSetArray() was not previously called with @ref CEED_USE_POINTER for the corresponding mem_type.
+
+  The caller is responsible for managing and freeing the array.
+  This function will error if @ref CeedVectorSetArray() was not previously called with @ref CEED_USE_POINTER for the corresponding mem_type.
 
   @param[in,out] vec      CeedVector
   @param[in]     mem_type Memory type on which to take the array.
@@ -406,7 +412,8 @@ int CeedVectorTakeArray(CeedVector vec, CeedMemType mem_type, CeedScalar **array
 
 /**
   @brief Get read/write access to a CeedVector via the specified memory type.
-           Restore access with @ref CeedVectorRestoreArray().
+
+  Restore access with @ref CeedVectorRestoreArray().
 
   @param[in,out] vec      CeedVector to access
   @param[in]     mem_type Memory type on which to access the array.
@@ -449,11 +456,12 @@ int CeedVectorGetArray(CeedVector vec, CeedMemType mem_type, CeedScalar **array)
 
 /**
   @brief Get read-only access to a CeedVector via the specified memory type.
-           Restore access with @ref CeedVectorRestoreArrayRead().
+
+  Restore access with @ref CeedVectorRestoreArrayRead().
 
   @param[in]  vec      CeedVector to access
-  @param[in]  mem_type Memory type on which to access the array.
-                         If the backend uses a different memory type, this will perform a copy (possibly cached).
+  @param[in]  mem_type Memory type on which to access the array. If the backend uses a different memory type, this will perform a copy (possibly
+cached).
   @param[out] array    Array on memory type mem_type
 
   @return An error code: 0 - success, otherwise - failure
@@ -490,8 +498,9 @@ int CeedVectorGetArrayRead(CeedVector vec, CeedMemType mem_type, const CeedScala
 
 /**
   @brief Get write access to a CeedVector via the specified memory type.
-           Restore access with @ref CeedVectorRestoreArray().
-           All old values should be assumed to be invalid.
+
+  Restore access with @ref CeedVectorRestoreArray().
+  All old values should be assumed to be invalid.
 
   @param[in,out] vec      CeedVector to access
   @param[in]     mem_type Memory type on which to access the array.
@@ -571,7 +580,7 @@ int CeedVectorRestoreArrayRead(CeedVector vec, const CeedScalar **array) {
   @brief Get the norm of a CeedVector.
 
   Note: This operation is local to the CeedVector.
-          This function will likely not provide the desired results for the norm of the libCEED portion of a parallel vector or a CeedVector with
+        This function will likely not provide the desired results for the norm of the libCEED portion of a parallel vector or a CeedVector with
 duplicated or hanging nodes.
 
   @param[in]  vec       CeedVector to retrieve maximum value
@@ -810,7 +819,8 @@ int CeedVectorAXPBY(CeedVector y, CeedScalar alpha, CeedScalar beta, CeedVector 
 
 /**
   @brief Compute the pointwise multiplication w = x .* y.
-           Any subset of x, y, and w may be the same vector.
+
+  Any subset of x, y, and w may be the same vector.
 
   @param[out] w target vector for the product
   @param[in]  x first vector for product
@@ -941,8 +951,8 @@ int CeedVectorReciprocal(CeedVector vec) {
 /**
   @brief View a CeedVector
 
-          Note: It is safe to use any unsigned values for `start` or `stop` and any nonzero integer for `step`.
-                Any portion of the provided range that is outside the range of valid indices for the CeedVector will be ignored.
+  Note: It is safe to use any unsigned values for `start` or `stop` and any nonzero integer for `step`.
+        Any portion of the provided range that is outside the range of valid indices for the CeedVector will be ignored.
 
   @param[in] vec    CeedVector to view
   @param[in] start  Index of first CeedVector entry to view
