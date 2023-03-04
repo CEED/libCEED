@@ -254,35 +254,27 @@ int FreeContextPetsc(void *data) {
 
 // Return mass qfunction specification for number of components N
 PetscErrorCode CreateMassQFunction(Ceed ceed, CeedInt N, CeedInt q_data_size, CeedQFunction *qf) {
-  CeedQFunctionUser qfunction_ptr;
-  const char       *qfunction_loc;
   PetscFunctionBeginUser;
 
   switch (N) {
     case 1:
-      qfunction_ptr = Mass_1;
-      qfunction_loc = Mass_1_loc;
+      CeedQFunctionCreateInterior(ceed, 1, Mass_1, Mass_1_loc, qf);
       break;
     case 5:
-      qfunction_ptr = Mass_5;
-      qfunction_loc = Mass_5_loc;
+      CeedQFunctionCreateInterior(ceed, 1, Mass_5, Mass_5_loc, qf);
       break;
     case 7:
-      qfunction_ptr = Mass_7;
-      qfunction_loc = Mass_7_loc;
+      CeedQFunctionCreateInterior(ceed, 1, Mass_7, Mass_7_loc, qf);
       break;
     case 9:
-      qfunction_ptr = Mass_9;
-      qfunction_loc = Mass_9_loc;
+      CeedQFunctionCreateInterior(ceed, 1, Mass_9, Mass_9_loc, qf);
       break;
     case 22:
-      qfunction_ptr = Mass_22;
-      qfunction_loc = Mass_22_loc;
+      CeedQFunctionCreateInterior(ceed, 1, Mass_22, Mass_22_loc, qf);
       break;
     default:
-      SETERRQ(PETSC_COMM_WORLD, -1, "Could not find mass qfunction of size %d", N);
+      SETERRQ(PETSC_COMM_WORLD, PETSC_ERR_SUP, "Could not find mass qfunction of size %d", N);
   }
-  CeedQFunctionCreateInterior(ceed, 1, qfunction_ptr, qfunction_loc, qf);
 
   CeedQFunctionAddInput(*qf, "u", N, CEED_EVAL_INTERP);
   CeedQFunctionAddInput(*qf, "qdata", q_data_size, CEED_EVAL_NONE);
