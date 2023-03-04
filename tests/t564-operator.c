@@ -1,5 +1,5 @@
 /// @file
-/// Test assembly of mass matrix operator (multi-component) see t537
+/// Test assembly of mass matrix operator (multi-component) (see t537)
 /// \test Test assembly of mass matrix operator (multi-component)
 #include <ceed.h>
 #include <math.h>

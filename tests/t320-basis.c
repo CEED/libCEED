@@ -1,9 +1,9 @@
 /// @file
 /// Test creation and destruction of a 2D Simplex non-tensor H^1 basis
 /// \test Test creation and destruction of a 2D Simplex non-tensor H^1 basis
-#include "t320-basis.h"
-
 #include <ceed.h>
+
+#include "t320-basis.h"
 
 int main(int argc, char **argv) {
   Ceed          ceed;

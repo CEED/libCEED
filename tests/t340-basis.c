@@ -1,9 +1,9 @@
 /// @file
 /// Test creation and destruction of a 2D Simplex non-tensor H(curl) basis
 /// \test Test creation and distruction of a 2D Simplex non-tensor H(curl) basis
-#include "t340-basis.h"
-
 #include <ceed.h>
+
+#include "t340-basis.h"
 
 int main(int argc, char **argv) {
   Ceed          ceed;

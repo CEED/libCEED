@@ -1,12 +1,12 @@
 /// @file
 /// Test assembly of mass and Poisson operator diagonal
 /// \test Test assembly of mass and Poisson operator diagonal
-#include "t535-operator.h"
-
 #include <ceed.h>
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
+
+#include "t535-operator.h"
 
 int main(int argc, char **argv) {
   Ceed                ceed;

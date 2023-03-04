@@ -1,12 +1,12 @@
 /// @file
 /// Test assembly of Poisson operator with extra input field (non-square D)
 /// \test Test assembly of Poisson operator with extra input field (non-square D)
-#include "t568-operator.h"
-
 #include <ceed.h>
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
+
+#include "t568-operator.h"
 
 int main(int argc, char **argv) {
   Ceed                ceed;

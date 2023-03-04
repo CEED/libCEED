@@ -1,14 +1,13 @@
 /// @file
 /// Test creation, action, and destruction for diffusion matrix operator
 /// \test Test creation, action, and destruction for diffusion matrix operator
-#include "t522-operator.h"
-
 #include <ceed.h>
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
 
 #include "t320-basis.h"
+#include "t522-operator.h"
 
 /* The mesh comprises of two rows of 3 quadrilaterals followed by one row
      of 6 triangles:

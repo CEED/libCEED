@@ -1,12 +1,12 @@
 /// @file
 /// Test creation, action, and destruction for mass matrix operator with multiple components
 /// \test Test creation, action, and destruction for mass matrix operator with multiple components
-#include "t502-operator.h"
-
 #include <ceed.h>
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
+
+#include "t502-operator.h"
 
 int main(int argc, char **argv) {
   Ceed                ceed;

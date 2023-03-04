@@ -1,10 +1,10 @@
 /// @file
 /// Test creation, evaluation, and destruction for QFunction
 /// \test Test creation, evaluation, and destruction for QFunction
-#include "t400-qfunction.h"
-
 #include <ceed.h>
 #include <stdio.h>
+
+#include "t400-qfunction.h"
 
 int main(int argc, char **argv) {
   Ceed          ceed;

@@ -1,12 +1,12 @@
 /// @file
 /// Test assembly of mass and Poisson operator QFunction
 /// \test Test assembly of mass and Poisson operator QFunction
-#include "t532-operator.h"
-
 #include <ceed.h>
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
+
+#include "t532-operator.h"
 
 int main(int argc, char **argv) {
   Ceed                ceed;

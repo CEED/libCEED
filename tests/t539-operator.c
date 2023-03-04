@@ -1,12 +1,12 @@
 /// @file
 /// Test assembly of operator diagonal for operator with multiple active bases
 /// \test Test assembly of operator diagonal for operator with multiple active bases
-#include "t539-operator.h"
-
 #include <ceed.h>
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
+
+#include "t539-operator.h"
 
 int main(int argc, char **argv) {
   Ceed                ceed;

@@ -1,12 +1,12 @@
 /// @file
 /// Test assembly of non-symmetric Poisson operator (multi-component)
 /// \test Test assembly of non-symmetric Poisson operator (multi-component)
-#include "t567-operator.h"
-
 #include <ceed.h>
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
+
+#include "t567-operator.h"
 
 int main(int argc, char **argv) {
   Ceed                ceed;

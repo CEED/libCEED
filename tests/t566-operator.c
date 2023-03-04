@@ -1,12 +1,12 @@
 /// @file
-/// Test assembly of non-symmetric mass matrix operator (multi-component) see t537
+/// Test assembly of non-symmetric mass matrix operator (multi-component) (see t537)
 /// \test Test assembly of non-symmetric mass matrix operator (multi-component)
-#include "t566-operator.h"
-
 #include <ceed.h>
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
+
+#include "t566-operator.h"
 
 int main(int argc, char **argv) {
   Ceed                ceed;

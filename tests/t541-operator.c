@@ -1,13 +1,13 @@
 /// @file
 /// Test creation and use of FDM element inverse
 /// \test Test creation and use of FDM element inverse
-#include "t541-operator.h"
-
 #include <ceed.h>
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+
+#include "t541-operator.h"
 
 int main(int argc, char **argv) {
   Ceed                ceed;

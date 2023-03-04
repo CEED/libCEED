@@ -1,12 +1,12 @@
 /// @file
 /// Test assembly of Poisson operator QFunction
 /// \test Test assembly of Poisson operator QFunction
-#include "t531-operator.h"
-
 #include <ceed.h>
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
+
+#include "t531-operator.h"
 
 int main(int argc, char **argv) {
   Ceed                ceed;
