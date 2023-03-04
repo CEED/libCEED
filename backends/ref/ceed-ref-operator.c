@@ -583,3 +583,5 @@ int CeedOperatorCreate_Ref(CeedOperator op) {
   CeedCallBackend(CeedSetBackendFunction(ceed, "Operator", op, "Destroy", CeedOperatorDestroy_Ref));
   return CEED_ERROR_SUCCESS;
 }
+
+//------------------------------------------------------------------------------

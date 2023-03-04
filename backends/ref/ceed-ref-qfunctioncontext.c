@@ -166,4 +166,5 @@ int CeedQFunctionContextCreate_Ref(CeedQFunctionContext ctx) {
 
   return CEED_ERROR_SUCCESS;
 }
+
 //------------------------------------------------------------------------------

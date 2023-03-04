@@ -59,16 +59,17 @@ extern "C" __global__ void Grad(const CeedInt num_elem, const CeedInt transpose,
           U = d_U + elem * BASIS_Q + comp * num_elem * BASIS_Q + dim * BASIS_NUM_COMP * num_elem * BASIS_Q;
           for (CeedInt i = 0; i < BASIS_Q; i++) V += d_G[t_id + i * BASIS_P + dim * BASIS_P * BASIS_Q] * U[i];
         }
+
         d_V[elem * BASIS_P + comp * num_elem * BASIS_P + t_id] = V;
       } else {  // run with Q threads
         CeedScalar V[BASIS_DIM];
         U = d_U + elem * BASIS_P + comp * num_elem * BASIS_P;
         for (CeedInt dim = 0; dim < BASIS_DIM; dim++) V[dim] = 0.0;
-
         for (CeedInt i = 0; i < BASIS_P; i++) {
           const CeedScalar val = U[i];
           for (CeedInt dim = 0; dim < BASIS_DIM; dim++) V[dim] += d_G[i + t_id * BASIS_P + dim * BASIS_P * BASIS_Q] * val;
         }
+
         for (CeedInt dim = 0; dim < BASIS_DIM; dim++) {
           d_V[elem * BASIS_Q + comp * num_elem * BASIS_Q + dim * BASIS_NUM_COMP * num_elem * BASIS_Q + t_id] = V[dim];
         }
@@ -80,11 +81,11 @@ extern "C" __global__ void Grad(const CeedInt num_elem, const CeedInt transpose,
 //------------------------------------------------------------------------------
 // Weight
 //------------------------------------------------------------------------------
-extern "C" __global__ void Weight(const CeedInt num_elem, const CeedScalar *__restrict__ qweight, CeedScalar *__restrict__ d_V) {
+extern "C" __global__ void Weight(const CeedInt num_elem, const CeedScalar *__restrict__ q_weight, CeedScalar *__restrict__ d_V) {
   const CeedInt t_id = threadIdx.x;
-  // TODO load qweight in shared memory if blockDim.z > 1?
+  // TODO load q_weight in shared memory if blockDim.z > 1?
   for (CeedInt elem = blockIdx.x * blockDim.z + threadIdx.z; elem < num_elem; elem += gridDim.x * blockDim.z) {
-    d_V[elem * BASIS_Q + t_id] = qweight[t_id];
+    d_V[elem * BASIS_Q + t_id] = q_weight[t_id];
   }
 }
 

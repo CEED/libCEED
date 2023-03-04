@@ -53,4 +53,5 @@ int CeedTensorContractCreate_Ref(CeedBasis basis, CeedTensorContract contract) {
 
   return CEED_ERROR_SUCCESS;
 }
+
 //------------------------------------------------------------------------------

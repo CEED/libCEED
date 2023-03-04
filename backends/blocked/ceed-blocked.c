@@ -41,4 +41,5 @@ CEED_INTERN int CeedInit_Blocked(const char *resource, Ceed ceed) {
 // Backend Register
 //------------------------------------------------------------------------------
 CEED_INTERN int CeedRegister_Ref_Blocked(void) { return CeedRegister("/cpu/self/ref/blocked", CeedInit_Blocked, 55); }
+
 //------------------------------------------------------------------------------

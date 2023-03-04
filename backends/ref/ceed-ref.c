@@ -46,4 +46,5 @@ CEED_INTERN int CeedRegister_Ref(void) {
       CeedRegister("/cpu/self/ref/serial", CeedInit_Ref, 50);
   //! [Register]
 }
+
 //------------------------------------------------------------------------------

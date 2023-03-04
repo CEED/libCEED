@@ -163,3 +163,5 @@ extern "C" int CeedDevicePointwiseMult_Cuda(CeedScalar *w_array, CeedScalar *x_a
   pointwiseMultValueK<<<gridsize,bsize>>>(w_array, x_array, y_array, length);
   return 0;
 }
+
+//------------------------------------------------------------------------------

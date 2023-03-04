@@ -368,4 +368,5 @@ int CeedQFunctionContextCreate_Cuda(CeedQFunctionContext ctx) {
 
   return CEED_ERROR_SUCCESS;
 }
+
 //------------------------------------------------------------------------------

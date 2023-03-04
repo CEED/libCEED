@@ -107,4 +107,5 @@ int CeedQFunctionCreate_Cuda(CeedQFunction qf) {
   CeedCallBackend(CeedSetBackendFunction(ceed, "QFunction", qf, "SetCUDAUserFunction", CeedQFunctionSetCUDAUserFunction_Cuda));
   return CEED_ERROR_SUCCESS;
 }
+
 //------------------------------------------------------------------------------

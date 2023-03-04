@@ -256,4 +256,5 @@ int CeedBasisCreateTensorH1_Cuda_shared(CeedInt dim, CeedInt P_1d, CeedInt Q_1d,
   CeedCallBackend(CeedSetBackendFunction(ceed, "Basis", basis, "Destroy", CeedBasisDestroy_Cuda_shared));
   return CEED_ERROR_SUCCESS;
 }
+
 //------------------------------------------------------------------------------

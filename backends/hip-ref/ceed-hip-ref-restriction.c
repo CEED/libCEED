@@ -341,4 +341,5 @@ int CeedElemRestrictionCreateBlocked_Hip(const CeedMemType mtype, const CeedCopy
   CeedCallBackend(CeedElemRestrictionGetCeed(r, &ceed));
   return CeedError(ceed, CEED_ERROR_BACKEND, "Backend does not implement blocked restrictions");
 }
+
 //------------------------------------------------------------------------------

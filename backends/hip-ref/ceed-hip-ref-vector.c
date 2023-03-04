@@ -724,3 +724,5 @@ int CeedVectorCreate_Hip(CeedSize n, CeedVector vec) {
 
   return CEED_ERROR_SUCCESS;
 }
+
+//------------------------------------------------------------------------------

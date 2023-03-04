@@ -60,4 +60,5 @@ int CeedTensorContractCreate_Opt(CeedBasis basis, CeedTensorContract contract) {
 
   return CEED_ERROR_SUCCESS;
 }
+
 //------------------------------------------------------------------------------

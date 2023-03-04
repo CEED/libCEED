@@ -150,3 +150,5 @@ int CeedRunKernelDimSharedHip(Ceed ceed, hipFunction_t kernel, const int grid_si
   CeedCallHip(ceed, hipModuleLaunchKernel(kernel, grid_size, 1, 1, block_size_x, block_size_y, block_size_z, shared_mem_size, NULL, args, NULL));
   return CEED_ERROR_SUCCESS;
 }
+
+//------------------------------------------------------------------------------

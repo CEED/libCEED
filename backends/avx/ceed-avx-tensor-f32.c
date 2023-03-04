@@ -270,4 +270,5 @@ int CeedTensorContractCreate_f32_Avx(CeedBasis basis, CeedTensorContract contrac
 
   return CEED_ERROR_SUCCESS;
 }
+
 //------------------------------------------------------------------------------

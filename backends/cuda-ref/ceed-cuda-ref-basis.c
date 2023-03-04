@@ -294,4 +294,5 @@ int CeedBasisCreateH1_Cuda(CeedElemTopology topo, CeedInt dim, CeedInt num_nodes
   CeedCallBackend(CeedSetBackendFunction(ceed, "Basis", basis, "Destroy", CeedBasisDestroyNonTensor_Cuda));
   return CEED_ERROR_SUCCESS;
 }
+
 //------------------------------------------------------------------------------

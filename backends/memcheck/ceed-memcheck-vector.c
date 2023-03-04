@@ -262,4 +262,5 @@ int CeedVectorCreate_Memcheck(CeedSize n, CeedVector vec) {
 
   return CEED_ERROR_SUCCESS;
 }
+
 //------------------------------------------------------------------------------

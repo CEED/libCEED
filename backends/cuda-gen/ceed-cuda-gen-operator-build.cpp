@@ -700,4 +700,5 @@ extern "C" int CeedCudaGenOperatorBuild(CeedOperator op) {
   CeedCallBackend(CeedOperatorSetSetupDone(op));
   return CEED_ERROR_SUCCESS;
 }
+
 //------------------------------------------------------------------------------

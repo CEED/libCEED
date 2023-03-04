@@ -70,4 +70,5 @@ static int CeedInit_Hip(const char *resource, Ceed ceed) {
 // Backend Register
 //------------------------------------------------------------------------------
 CEED_INTERN int CeedRegister_Hip(void) { return CeedRegister("/gpu/hip/ref", CeedInit_Hip, 40); }
+
 //------------------------------------------------------------------------------

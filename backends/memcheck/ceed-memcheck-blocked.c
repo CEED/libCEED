@@ -37,4 +37,5 @@ static int CeedInit_Memcheck(const char *resource, Ceed ceed) {
 // Backend Register
 //------------------------------------------------------------------------------
 CEED_INTERN int CeedRegister_Memcheck_Blocked(void) { return CeedRegister("/cpu/self/memcheck/blocked", CeedInit_Memcheck, 110); }
+
 //------------------------------------------------------------------------------
