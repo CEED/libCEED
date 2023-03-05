@@ -651,7 +651,7 @@ impl<'a> Vector<'a> {
     /// let x = ceed.vector_from_slice(&[0., 1., 2., 3., 4.])?;
     /// let mut y = ceed.vector_from_slice(&[0., 1., 2., 3., 4.])?;
     ///
-    /// y = y.axpby(-0.5, -0.5, &x)?;
+    /// y = y.axpby(-0.5, 1.0, &x)?;
     /// for (i, y) in y.view()?.iter().enumerate() {
     ///     assert_eq!(*y, (i as Scalar) / 2.0, "Value not set correctly");
     /// }
@@ -664,6 +664,7 @@ impl<'a> Vector<'a> {
         self.check_error(ierr)?;
         Ok(self)
     }
+
     /// Compute the pointwise multiplication w = x .* y for Vectors
     ///
     /// # arguments
