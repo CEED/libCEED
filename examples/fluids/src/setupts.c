@@ -37,18 +37,15 @@ PetscErrorCode ComputeLumpedMassMatrix(Ceed ceed, DM dm, CeedData ceed_data, Vec
   CeedOperatorSetField(op_mass, "v", ceed_data->elem_restr_q, ceed_data->basis_q, CEED_VECTOR_ACTIVE);
 
   // Place PETSc vector in CEED vector
-  CeedScalar  *m;
   PetscMemType m_mem_type;
   PetscCall(DMGetLocalVector(dm, &M_loc));
-  PetscCall(VecGetArrayAndMemType(M_loc, (PetscScalar **)&m, &m_mem_type));
-  CeedVectorSetArray(m_ceed, MemTypeP2C(m_mem_type), CEED_USE_POINTER, m);
+  PetscCall(VecP2C(M_loc, &m_mem_type, m_ceed));
 
   // Apply CEED Operator
   CeedOperatorApply(op_mass, ones_vec, m_ceed, CEED_REQUEST_IMMEDIATE);
 
   // Restore vectors
-  CeedVectorTakeArray(m_ceed, MemTypeP2C(m_mem_type), NULL);
-  PetscCall(VecRestoreArrayReadAndMemType(M_loc, (const PetscScalar **)&m));
+  PetscCall(VecC2P(m_ceed, m_mem_type, M_loc));
 
   // Local-to-Global
   PetscCall(VecZeroEntries(M));
@@ -94,7 +91,7 @@ PetscErrorCode UpdateContextLabel(PetscScalar *previous_value, PetscScalar updat
 //   This function takes in a state vector Q and writes into G
 PetscErrorCode RHS_NS(TS ts, PetscReal t, Vec Q, Vec G, void *user_data) {
   User         user = *(User *)user_data;
-  PetscScalar *q, *g, dt;
+  PetscScalar  dt;
   Vec          Q_loc = user->Q_loc, G_loc;
   PetscMemType q_mem_type, g_mem_type;
   PetscFunctionBeginUser;
@@ -112,19 +109,15 @@ PetscErrorCode RHS_NS(TS ts, PetscReal t, Vec Q, Vec G, void *user_data) {
   PetscCall(DMGlobalToLocal(user->dm, Q, INSERT_VALUES, Q_loc));
 
   // Place PETSc vectors in CEED vectors
-  PetscCall(VecGetArrayReadAndMemType(Q_loc, (const PetscScalar **)&q, &q_mem_type));
-  PetscCall(VecGetArrayAndMemType(G_loc, &g, &g_mem_type));
-  CeedVectorSetArray(user->q_ceed, MemTypeP2C(q_mem_type), CEED_USE_POINTER, q);
-  CeedVectorSetArray(user->g_ceed, MemTypeP2C(g_mem_type), CEED_USE_POINTER, g);
+  PetscCall(VecReadP2C(Q_loc, &q_mem_type, user->q_ceed));
+  PetscCall(VecP2C(G_loc, &g_mem_type, user->g_ceed));
 
   // Apply CEED operator
   CeedOperatorApply(user->op_rhs, user->q_ceed, user->g_ceed, CEED_REQUEST_IMMEDIATE);
 
   // Restore vectors
-  CeedVectorTakeArray(user->q_ceed, MemTypeP2C(q_mem_type), NULL);
-  CeedVectorTakeArray(user->g_ceed, MemTypeP2C(g_mem_type), NULL);
-  PetscCall(VecRestoreArrayReadAndMemType(Q_loc, (const PetscScalar **)&q));
-  PetscCall(VecRestoreArrayAndMemType(G_loc, &g));
+  PetscCall(VecReadC2P(user->q_ceed, q_mem_type, Q_loc));
+  PetscCall(VecC2P(user->g_ceed, g_mem_type, G_loc));
 
   // Local-to-Global
   PetscCall(VecZeroEntries(G));
@@ -143,8 +136,9 @@ PetscErrorCode RHS_NS(TS ts, PetscReal t, Vec Q, Vec G, void *user_data) {
 static PetscErrorCode Surface_Forces_NS(DM dm, Vec G_loc, PetscInt num_walls, const PetscInt walls[], PetscScalar *reaction_force) {
   DMLabel            face_label;
   const PetscScalar *g;
-  PetscInt           dim = 3;
+  PetscInt           dof, dim = 3;
   MPI_Comm           comm;
+  PetscSection       s;
 
   PetscFunctionBeginUser;
   PetscCall(PetscArrayzero(reaction_force, num_walls * dim));
@@ -154,19 +148,24 @@ static PetscErrorCode Surface_Forces_NS(DM dm, Vec G_loc, PetscInt num_walls, co
   for (PetscInt w = 0; w < num_walls; w++) {
     const PetscInt wall = walls[w];
     IS             wall_is;
+    PetscCall(DMGetLocalSection(dm, &s));
     PetscCall(DMLabelGetStratumIS(face_label, wall, &wall_is));
     if (wall_is) {  // There exist such points on this process
       PetscInt        num_points;
+      PetscInt        num_comp = 0;
       const PetscInt *points;
+      PetscCall(PetscSectionGetFieldComponents(s, 0, &num_comp));
       PetscCall(ISGetSize(wall_is, &num_points));
       PetscCall(ISGetIndices(wall_is, &points));
       for (PetscInt i = 0; i < num_points; i++) {
         const PetscInt           p = points[i];
         const StateConservative *r;
         PetscCall(DMPlexPointLocalRead(dm, p, g, &r));
-        if (!r) continue;
-        for (PetscInt j = 0; j < 3; j++) {
-          reaction_force[w * dim + j] -= r->momentum[j];
+        PetscCall(PetscSectionGetDof(s, p, &dof));
+        for (PetscInt node = 0; node < dof / num_comp; node++) {
+          for (PetscInt j = 0; j < 3; j++) {
+            reaction_force[w * dim + j] -= r[node].momentum[j];
+          }
         }
       }
       PetscCall(ISRestoreIndices(wall_is, &points));
@@ -182,11 +181,10 @@ static PetscErrorCode Surface_Forces_NS(DM dm, Vec G_loc, PetscInt num_walls, co
 
 // Implicit time-stepper function setup
 PetscErrorCode IFunction_NS(TS ts, PetscReal t, Vec Q, Vec Q_dot, Vec G, void *user_data) {
-  User               user = *(User *)user_data;
-  const PetscScalar *q, *q_dot;
-  PetscScalar       *g, dt;
-  Vec                Q_loc = user->Q_loc, Q_dot_loc = user->Q_dot_loc, G_loc;
-  PetscMemType       q_mem_type, q_dot_mem_type, g_mem_type;
+  User         user = *(User *)user_data;
+  PetscScalar  dt;
+  Vec          Q_loc = user->Q_loc, Q_dot_loc = user->Q_dot_loc, G_loc;
+  PetscMemType q_mem_type, q_dot_mem_type, g_mem_type;
   PetscFunctionBeginUser;
 
   // Get local vectors
@@ -205,23 +203,17 @@ PetscErrorCode IFunction_NS(TS ts, PetscReal t, Vec Q, Vec Q_dot, Vec G, void *u
   PetscCall(DMGlobalToLocalEnd(user->dm, Q_dot, INSERT_VALUES, Q_dot_loc));
 
   // Place PETSc vectors in CEED vectors
-  PetscCall(VecGetArrayReadAndMemType(Q_loc, &q, &q_mem_type));
-  PetscCall(VecGetArrayReadAndMemType(Q_dot_loc, &q_dot, &q_dot_mem_type));
-  PetscCall(VecGetArrayAndMemType(G_loc, &g, &g_mem_type));
-  CeedVectorSetArray(user->q_ceed, MemTypeP2C(q_mem_type), CEED_USE_POINTER, (PetscScalar *)q);
-  CeedVectorSetArray(user->q_dot_ceed, MemTypeP2C(q_dot_mem_type), CEED_USE_POINTER, (PetscScalar *)q_dot);
-  CeedVectorSetArray(user->g_ceed, MemTypeP2C(g_mem_type), CEED_USE_POINTER, g);
+  PetscCall(VecReadP2C(Q_loc, &q_mem_type, user->q_ceed));
+  PetscCall(VecReadP2C(Q_dot_loc, &q_dot_mem_type, user->q_dot_ceed));
+  PetscCall(VecP2C(G_loc, &g_mem_type, user->g_ceed));
 
   // Apply CEED operator
   CeedOperatorApply(user->op_ifunction, user->q_ceed, user->g_ceed, CEED_REQUEST_IMMEDIATE);
 
   // Restore vectors
-  CeedVectorTakeArray(user->q_ceed, MemTypeP2C(q_mem_type), NULL);
-  CeedVectorTakeArray(user->q_dot_ceed, MemTypeP2C(q_dot_mem_type), NULL);
-  CeedVectorTakeArray(user->g_ceed, MemTypeP2C(g_mem_type), NULL);
-  PetscCall(VecRestoreArrayReadAndMemType(Q_loc, &q));
-  PetscCall(VecRestoreArrayReadAndMemType(Q_dot_loc, &q_dot));
-  PetscCall(VecRestoreArrayAndMemType(G_loc, &g));
+  PetscCall(VecReadC2P(user->q_ceed, q_mem_type, Q_loc));
+  PetscCall(VecReadC2P(user->q_dot_ceed, q_dot_mem_type, Q_dot_loc));
+  PetscCall(VecC2P(user->g_ceed, g_mem_type, G_loc));
 
   // Local-to-Global
   PetscCall(VecZeroEntries(G));

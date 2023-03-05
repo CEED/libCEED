@@ -147,7 +147,6 @@ typedef struct {
   PetscInt              num_comp_stats;
   CeedVector            child_stats, parent_stats;  // collocated statistics data
   CeedVector            rhs_ceed;
-  Vec                   M_inv;       // Lumped Mass matrix inverse
   KSP                   ksp;         // For the L^2 projection solve
   CeedScalar            span_width;  // spanwise width of the child domain
   PetscBool             do_mms_test;
@@ -354,6 +353,8 @@ extern const PetscInt FLUIDS_FILE_TOKEN;
 
 // Create appropriate mass qfunction based on number of components N
 PetscErrorCode CreateMassQFunction(Ceed ceed, CeedInt N, CeedInt q_data_size, CeedQFunction *qf);
+
+PetscErrorCode ComputeL2Projection(Vec source_vec, Vec target_vec, MatopApplyContext rhs_matop_ctx, KSP ksp);
 
 PetscErrorCode CreateStatsDM(User user, ProblemData *problem, PetscInt degree, SimpleBC bc);
 

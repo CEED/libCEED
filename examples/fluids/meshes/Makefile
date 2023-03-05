@@ -1,11 +1,13 @@
 GMSH = gmsh
 
-ALL = $(foreach q,1,$(foreach n,20 40,cylinder-q$(q)-n$(n).msh))
+ALL = $(foreach q,1,$(foreach n,08 12 20 40,cylinder-q$(q)-n$(n).msh))
 
 all : $(ALL)
 
 cylinder-q1-n20.msh:
 
+cylinder-q1-n08.msh: GMSH_FLAGS = -order 1 -setnumber N 08 -setnumber Rb 0.7
+cylinder-q1-n12.msh: GMSH_FLAGS = -order 1 -setnumber N 12 -setnumber Rb 0.8
 cylinder-q1-n20.msh: GMSH_FLAGS = -order 1 -setnumber N 20
 cylinder-q1-n40.msh: GMSH_FLAGS = -order 1 -setnumber N 40
 cylinder-q2-n20.msh: GMSH_FLAGS = -order 2 -setnumber N 20
