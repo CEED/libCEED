@@ -660,9 +660,9 @@ impl<'a> Vector<'a> {
     /// ```
     #[allow(unused_mut)]
     pub fn axpby(
-        mut self, 
-        alpha: crate::Scalar, 
-        beta: crate::Scalar, 
+        mut self,
+        alpha: crate::Scalar,
+        beta: crate::Scalar,
         x: &crate::Vector,
     ) -> crate::Result<Self> {
         let ierr = unsafe { bind_ceed::CeedVectorAXPBY(self.ptr, alpha, beta, x.ptr) };
