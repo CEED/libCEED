@@ -179,6 +179,19 @@ static PetscErrorCode Surface_Forces_NS(DM dm, Vec G_loc, PetscInt num_walls, co
   PetscFunctionReturn(0);
 }
 
+// General distance functions
+static PetscErrorCode Distance_Function_NS(DM dm) {
+  DM   dmDist;
+  SNES snesDist;
+
+  PetscFunctionBeginUser;
+  PetscCall(SNESCreate(PETSC_COMM_WORLD, &snesDist));
+  PetscObjectSetOptionsPrefix((PetscObject)snesDist, "distance_");
+  PetscCall(DMClone(dm, &dmDist));
+
+  PetscFunctionReturn(0);
+}
+
 // Implicit time-stepper function setup
 PetscErrorCode IFunction_NS(TS ts, PetscReal t, Vec Q, Vec Q_dot, Vec G, void *user_data) {
   User         user = *(User *)user_data;
