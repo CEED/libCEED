@@ -1,6 +1,6 @@
 /// @file
 /// Test interpolation with a 2D Simplex non-tensor H1 basis
-/// \test Test interpolaton with a 2D Simplex non-tensor H1 basis
+/// \test Test interpolation with a 2D Simplex non-tensor H1 basis
 #include <ceed.h>
 #include <math.h>
 

@@ -1,6 +1,6 @@
 /// @file
-/// Test creation, transpose use, and destruction of a multicomponent element restriction
-/// \test Test creation, transpose use, and destruction of a multicomponent element restriction
+/// Test creation, transpose use, and destruction of a multi-component element restriction
+/// \test Test creation, transpose use, and destruction of a multi-component element restriction
 #include <ceed.h>
 #include <ceed/backend.h>
 

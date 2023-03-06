@@ -1,6 +1,6 @@
 /// @file
-/// Test creation, copying, and distruction of a H1Lagrange basis
-/// \test Test creation, copying, and distruction of a H1Lagrange basis
+/// Test creation, copying, and destruction of a H1Lagrange basis
+/// \test Test creation, copying, and destruction of a H1Lagrange basis
 #include <ceed.h>
 
 int main(int argc, char **argv) {
