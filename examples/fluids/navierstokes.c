@@ -158,6 +158,23 @@ int main(int argc, char **argv) {
     PetscCall(SetupStatsCollection(ceed, user, ceed_data, problem));
   }
 
+  // Destroy QFunction contexts after using
+  // ToDo: Simplify tracked libCEED objects, smaller struct
+  {
+    CeedQFunctionContextDestroy(&problem->apply_inflow_jacobian.qfunction_context);
+    CeedQFunctionContextDestroy(&problem->apply_inflow_jacobian.qfunction_context);
+    CeedQFunctionContextDestroy(&problem->apply_outflow_jacobian.qfunction_context);
+    CeedQFunctionContextDestroy(&problem->apply_outflow_jacobian.qfunction_context);
+    CeedQFunctionContextDestroy(&problem->apply_freestream_jacobian.qfunction_context);
+    CeedQFunctionContextDestroy(&problem->apply_freestream_jacobian.qfunction_context);
+    CeedQFunctionContextDestroy(&problem->setup_sur.qfunction_context);
+    CeedQFunctionContextDestroy(&problem->setup_vol.qfunction_context);
+    CeedQFunctionContextDestroy(&problem->ics.qfunction_context);
+    CeedQFunctionContextDestroy(&problem->apply_vol_rhs.qfunction_context);
+    CeedQFunctionContextDestroy(&problem->apply_vol_ifunction.qfunction_context);
+    CeedQFunctionContextDestroy(&problem->apply_vol_ijacobian.qfunction_context);
+  }
+
   // ---------------------------------------------------------------------------
   // Set up ICs
   // ---------------------------------------------------------------------------
@@ -314,17 +331,6 @@ int main(int argc, char **argv) {
   CeedVectorDestroy(&user->coo_values_amat);
   CeedVectorDestroy(&user->coo_values_pmat);
 
-  // -- QFunctions
-  CeedQFunctionDestroy(&ceed_data->qf_setup_vol);
-  CeedQFunctionDestroy(&ceed_data->qf_ics);
-  CeedQFunctionDestroy(&ceed_data->qf_rhs_vol);
-  CeedQFunctionDestroy(&ceed_data->qf_ifunction_vol);
-  CeedQFunctionDestroy(&ceed_data->qf_setup_sur);
-  CeedQFunctionDestroy(&ceed_data->qf_apply_inflow);
-  CeedQFunctionDestroy(&ceed_data->qf_apply_inflow_jacobian);
-  CeedQFunctionDestroy(&ceed_data->qf_apply_freestream);
-  CeedQFunctionDestroy(&ceed_data->qf_apply_freestream_jacobian);
-
   // -- Bases
   CeedBasisDestroy(&ceed_data->basis_q);
   CeedBasisDestroy(&ceed_data->basis_x);
@@ -336,6 +342,17 @@ int main(int argc, char **argv) {
   CeedElemRestrictionDestroy(&ceed_data->elem_restr_q);
   CeedElemRestrictionDestroy(&ceed_data->elem_restr_x);
   CeedElemRestrictionDestroy(&ceed_data->elem_restr_qd_i);
+
+  // -- QFunctions
+  CeedQFunctionDestroy(&ceed_data->qf_setup_vol);
+  CeedQFunctionDestroy(&ceed_data->qf_ics);
+  CeedQFunctionDestroy(&ceed_data->qf_rhs_vol);
+  CeedQFunctionDestroy(&ceed_data->qf_ifunction_vol);
+  CeedQFunctionDestroy(&ceed_data->qf_setup_sur);
+  CeedQFunctionDestroy(&ceed_data->qf_apply_inflow);
+  CeedQFunctionDestroy(&ceed_data->qf_apply_inflow_jacobian);
+  CeedQFunctionDestroy(&ceed_data->qf_apply_freestream);
+  CeedQFunctionDestroy(&ceed_data->qf_apply_freestream_jacobian);
 
   // -- Operators
   CeedOperatorDestroy(&ceed_data->op_setup_vol);
