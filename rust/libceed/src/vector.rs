@@ -663,7 +663,7 @@ impl<'a> Vector<'a> {
         mut self, 
         alpha: crate::Scalar, 
         beta: crate::Scalar, 
-        x: &crate::Vector
+        x: &crate::Vector,
     ) -> crate::Result<Self> {
         let ierr = unsafe { bind_ceed::CeedVectorAXPBY(self.ptr, alpha, beta, x.ptr) };
         self.check_error(ierr)?;
