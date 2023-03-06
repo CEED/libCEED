@@ -71,6 +71,11 @@ PetscErrorCode SetUpDM(DM dm, ProblemData *problem, PetscInt degree, SimpleBC bc
       PetscCall(DMAddBoundary(dm, DM_BC_ESSENTIAL, "slipz", label, bc->num_slip[2], bc->slips[2], 0, 1, comps, (void (*)(void))NULL, NULL,
                               problem->bc_ctx, NULL));
     }
+    // Set dirichlet boundary condition on cylinder walls
+    if (bc->num_wall > 0) {
+      PetscCall(DMAddBoundary(dm, DM_BC_ESSENTIAL, "cylinder_wall", label, bc->num_wall, bc->walls, 0, 5, bc->wall_comps, (void (*)(void))problem->bc,
+                              NULL, problem->bc_ctx, NULL));
+    }
     {
       PetscBool use_strongstg = PETSC_FALSE;
       PetscCall(PetscOptionsGetBool(NULL, NULL, "-stg_strong", &use_strongstg, NULL));
