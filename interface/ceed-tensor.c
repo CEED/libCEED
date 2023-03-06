@@ -150,7 +150,10 @@ int CeedTensorContractReference(CeedTensorContract contract) {
   @ref Backend
 **/
 int CeedTensorContractDestroy(CeedTensorContract *contract) {
-  if (!*contract || --(*contract)->ref_count > 0) return CEED_ERROR_SUCCESS;
+  if (!*contract || --(*contract)->ref_count > 0) {
+    *contract = NULL;
+    return CEED_ERROR_SUCCESS;
+  }
   if ((*contract)->Destroy) {
     CeedCall((*contract)->Destroy(*contract));
   }

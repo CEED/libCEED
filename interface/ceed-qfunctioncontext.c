@@ -942,8 +942,10 @@ int CeedQFunctionContextSetDataDestroy(CeedQFunctionContext ctx, CeedMemType f_m
   @ref User
 **/
 int CeedQFunctionContextDestroy(CeedQFunctionContext *ctx) {
-  if (!*ctx || --(*ctx)->ref_count > 0) return CEED_ERROR_SUCCESS;
-
+  if (!*ctx || --(*ctx)->ref_count > 0) {
+    *ctx = NULL;
+    return CEED_ERROR_SUCCESS;
+  }
   if ((*ctx) && ((*ctx)->state % 2) == 1) {
     // LCOV_EXCL_START
     return CeedError((*ctx)->ceed, 1, "Cannot destroy CeedQFunctionContext, the access lock is in use");

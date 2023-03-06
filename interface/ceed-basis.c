@@ -1404,7 +1404,10 @@ int CeedBasisGetDiv(CeedBasis basis, const CeedScalar **div) {
   @ref User
 **/
 int CeedBasisDestroy(CeedBasis *basis) {
-  if (!*basis || --(*basis)->ref_count > 0) return CEED_ERROR_SUCCESS;
+  if (!*basis || --(*basis)->ref_count > 0) {
+    *basis = NULL;
+    return CEED_ERROR_SUCCESS;
+  }
   if ((*basis)->Destroy) CeedCall((*basis)->Destroy(*basis));
   if ((*basis)->contract) CeedCall(CeedTensorContractDestroy(&(*basis)->contract));
   CeedCall(CeedFree(&(*basis)->interp));
