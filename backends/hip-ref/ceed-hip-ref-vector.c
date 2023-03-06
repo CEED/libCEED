@@ -598,10 +598,7 @@ static int CeedVectorAXPY_Hip(CeedVector y, CeedScalar alpha, CeedVector x) {
 // Compute y = alpha x + beta y on the host
 //------------------------------------------------------------------------------
 static int CeedHostAXPBY_Hip(CeedScalar *y_array, CeedScalar alpha, CeedScalar beta, CeedScalar *x_array, CeedInt length) {
-  for (int i = 0; i < length; i++) {
-    y_array[i] = beta * y_array[i];
-    y_array[i] += alpha * x_array[i];
-  }
+  for (int i = 0; i < length; i++) y_array[i] += alpha * x_array[i] + beta * y_array[i];
   return CEED_ERROR_SUCCESS;
 }
 

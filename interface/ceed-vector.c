@@ -247,10 +247,7 @@ int CeedVectorCopy(CeedVector vec, CeedVector *vec_copy) {
   CeedGetPreferredMemType(ceed, &mem_type_copy);
 
   // Check that both have same memory type
-
-  if (mem_type != mem_type_copy) {
-    mem_type = CEED_MEM_HOST;
-  }
+  if (mem_type != mem_type_copy) mem_type = CEED_MEM_HOST;
 
   // Copy the values from vec to vec_copy
   CeedCall(CeedVectorGetArray(vec, mem_type, &array));
@@ -801,10 +798,7 @@ int CeedVectorAXPBY(CeedVector y, CeedScalar alpha, CeedScalar beta, CeedVector 
   assert(x_array);
   assert(y_array);
 
-  for (CeedInt i = 0; i < n_y; i++) {
-    y_array[i] = beta * y_array[i];
-    y_array[i] += alpha * x_array[i];
-  }
+  for (CeedInt i = 0; i < n_y; i++) y_array[i] += alpha * x_array[i] + beta * y_array[i];
 
   CeedCall(CeedVectorRestoreArray(y, &y_array));
   CeedCall(CeedVectorRestoreArrayRead(x, &x_array));
