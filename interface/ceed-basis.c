@@ -903,7 +903,7 @@ int CeedBasisCreateProjection(CeedBasis basis_from, CeedBasis basis_to, CeedBasi
   Ceed ceed;
   CeedCall(CeedBasisGetCeed(basis_to, &ceed));
 
-  // Create projectior matrix
+  // Create projection matrix
   CeedScalar *interp_project, *grad_project;
   CeedCall(CeedBasisCreateProjectionMatrices(basis_from, basis_to, &interp_project, &grad_project));
 

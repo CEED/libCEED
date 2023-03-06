@@ -219,7 +219,7 @@ int CeedBasisCreateTensorH1_Hip(CeedInt dim, CeedInt P_1d, CeedInt Q_1d, const C
   CeedCallHip(ceed, hipMalloc((void **)&data->d_grad_1d, interp_bytes));
   CeedCallHip(ceed, hipMemcpy(data->d_grad_1d, grad_1d, interp_bytes, hipMemcpyHostToDevice));
 
-  // Complie basis kernels
+  // Compile basis kernels
   CeedInt ncomp;
   CeedCallBackend(CeedBasisGetNumComponents(basis, &ncomp));
   char *basis_kernel_path, *basis_kernel_source;
