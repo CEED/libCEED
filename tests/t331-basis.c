@@ -7,65 +7,76 @@
 #include "t330-basis.h"
 
 int main(int argc, char **argv) {
-  Ceed              ceed;
-  const CeedInt     num_nodes = 4, Q = 3, dim = 2, num_qpts = Q * Q;
-  CeedInt           num_comp = 1;                // one vector componenet
-  CeedInt           P        = dim * num_nodes;  // dof per element!
-  CeedBasis         b;
-  CeedScalar        q_ref[dim * num_qpts], q_weights[num_qpts];
-  CeedScalar        div[P * num_qpts], interp[P * dim * num_qpts];
-  CeedVector        X, Y;
-  const CeedScalar *y, *x;
+  Ceed          ceed;
+  const CeedInt num_nodes = 4, q = 3, dim = 2, num_qpts = q * q;
+  CeedInt       num_comp = 1;                // one vector component
+  CeedInt       p        = dim * num_nodes;  // DoF per element
+  CeedBasis     basis;
+  CeedScalar    q_ref[dim * num_qpts], q_weights[num_qpts];
+  CeedScalar    div[p * num_qpts], interp[p * dim * num_qpts];
+  CeedVector    u, v;
 
   CeedInit(argv[1], &ceed);
 
-  HdivBasisQuad(Q, q_ref, q_weights, interp, div, CEED_GAUSS);
-  CeedBasisCreateHdiv(ceed, CEED_TOPOLOGY_QUAD, num_comp, P, num_qpts, interp, div, q_ref, q_weights, &b);
+  BuildHdivQuadrilateral(q, q_ref, q_weights, interp, div, CEED_GAUSS);
+  CeedBasisCreateHdiv(ceed, CEED_TOPOLOGY_QUAD, num_comp, p, num_qpts, interp, div, q_ref, q_weights, &basis);
 
   // Test GetInterp for H(div)
-  const CeedScalar *interp2;
-  CeedBasisGetInterp(b, &interp2);
-  for (CeedInt i = 0; i < P * dim * num_qpts; i++) {
-    if (fabs(interp[i] - interp2[i]) > 100. * CEED_EPSILON) {
-      // LCOV_EXCL_START
-      printf("%f != %f\n", interp[i], interp2[i]);
-      // LCOV_EXCL_STOP
+  {
+    const CeedScalar *interp_2;
+    CeedBasisGetInterp(basis, &interp_2);
+    for (CeedInt i = 0; i < p * dim * num_qpts; i++) {
+      if (fabs(interp[i] - interp_2[i]) > 100. * CEED_EPSILON) {
+        // LCOV_EXCL_START
+        printf("%f != %f\n", interp[i], interp_2[i]);
+        // LCOV_EXCL_STOP
+      }
     }
   }
 
-  CeedVectorCreate(ceed, P, &X);
-  CeedVectorSetValue(X, 1.0);
-  CeedVectorCreate(ceed, num_qpts * dim, &Y);
-  CeedVectorSetValue(Y, 0.);
+  CeedVectorCreate(ceed, p, &u);
+  CeedVectorSetValue(u, 1.0);
+  CeedVectorCreate(ceed, num_qpts * dim, &v);
+  CeedVectorSetValue(v, 0.);
+
   // BasisApply for H(div): CEED_EVAL_INTERP, NOTRANSPOSE case
-  CeedBasisApply(b, 1, CEED_NOTRANSPOSE, CEED_EVAL_INTERP, X, Y);
+  CeedBasisApply(basis, 1, CEED_NOTRANSPOSE, CEED_EVAL_INTERP, u, v);
 
-  CeedVectorGetArrayRead(Y, CEED_MEM_HOST, &y);
-  for (CeedInt i = 0; i < dim * num_qpts; i++) {
-    if (fabs(q_ref[i] - y[i]) > 100. * CEED_EPSILON) {
-      // LCOV_EXCL_START
-      printf("%f != %f\n", q_ref[i], y[i]);
-      // LCOV_EXCL_STOP
+  {
+    const CeedScalar *v_array;
+
+    CeedVectorGetArrayRead(v, CEED_MEM_HOST, &v_array);
+    for (CeedInt i = 0; i < dim * num_qpts; i++) {
+      if (fabs(q_ref[i] - v_array[i]) > 100. * CEED_EPSILON) {
+        // LCOV_EXCL_START
+        printf("%f != %f\n", q_ref[i], v_array[i]);
+        // LCOV_EXCL_STOP
+      }
     }
+    CeedVectorRestoreArrayRead(v, &v_array);
   }
-  CeedVectorRestoreArrayRead(Y, &y);
 
-  CeedVectorSetValue(Y, 1.0);
-  CeedVectorSetValue(X, 0.0);
+  CeedVectorSetValue(v, 1.0);
+  CeedVectorSetValue(u, 0.0);
+
   // BasisApply for Hdiv: CEED_EVAL_INTERP, TRANSPOSE case
-  CeedBasisApply(b, 1, CEED_TRANSPOSE, CEED_EVAL_INTERP, Y, X);
+  CeedBasisApply(basis, 1, CEED_TRANSPOSE, CEED_EVAL_INTERP, v, u);
 
-  CeedVectorGetArrayRead(X, CEED_MEM_HOST, &x);
-  CeedScalar sum = 0.;
-  for (CeedInt i = 0; i < P; i++) {
-    sum += x[i];
+  {
+    const CeedScalar *u_array;
+
+    CeedVectorGetArrayRead(u, CEED_MEM_HOST, &u_array);
+    CeedScalar sum = 0.;
+    for (CeedInt i = 0; i < p; i++) {
+      sum += u_array[i];
+    }
+    if (fabs(sum) > 100. * CEED_EPSILON) printf("sum of array %f != %f\n", sum, 0.0);
+    CeedVectorRestoreArrayRead(u, &u_array);
   }
-  if (fabs(sum) > 100. * CEED_EPSILON) printf("sum of array %f != %f\n", sum, 0.0);
-  CeedVectorRestoreArrayRead(X, &x);
 
-  CeedBasisDestroy(&b);
-  CeedVectorDestroy(&X);
-  CeedVectorDestroy(&Y);
+  CeedBasisDestroy(&basis);
+  CeedVectorDestroy(&u);
+  CeedVectorDestroy(&v);
   CeedDestroy(&ceed);
   return 0;
 }

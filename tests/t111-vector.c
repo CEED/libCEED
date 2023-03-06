@@ -6,13 +6,12 @@
 int main(int argc, char **argv) {
   Ceed        ceed;
   CeedVector  x;
-  CeedInt     n;
-  CeedScalar *a, b[10];
+  CeedInt     len = 10;
+  CeedScalar *a, b[len];
 
   CeedInit(argv[1], &ceed);
 
-  n = 10;
-  CeedVectorCreate(ceed, n, &x);
+  CeedVectorCreate(ceed, len, &x);
   CeedVectorSetValue(x, 0.0);
 
   // Two write accesses should generate an error

@@ -6,13 +6,12 @@
 int main(int argc, char **argv) {
   Ceed        ceed;
   CeedVector  x;
-  CeedInt     n;
+  CeedInt     len = 10;
   CeedScalar *a;
 
   CeedInit(argv[1], &ceed);
 
-  n = 10;
-  CeedVectorCreate(ceed, n, &x);
+  CeedVectorCreate(ceed, len, &x);
   CeedVectorSetValue(x, 0.0);
   CeedVectorGetArray(x, CEED_MEM_HOST, &a);
 

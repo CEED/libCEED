@@ -19,7 +19,7 @@ Composite CeedOperator - setup
         Size: 1
         EvalMode: none
         Collocated basis
-  SubOperator 1 - quadralateral elements:
+  SubOperator 1 - quadrilateral elements:
     6 elements with 16 quadrature points each
     3 fields
     2 input fields:
@@ -60,7 +60,7 @@ Composite CeedOperator - mass
         Size: 1
         EvalMode: interpolation
         Active vector
-  SubOperator 1 - quadralateral elements:
+  SubOperator 1 - quadrilateral elements:
     6 elements with 16 quadrature points each
     3 fields
     2 input fields:

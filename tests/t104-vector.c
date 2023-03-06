@@ -6,21 +6,24 @@
 int main(int argc, char **argv) {
   Ceed          ceed;
   CeedVector    x;
-  const CeedInt n = 10;
-  CeedScalar    a[n];
-  CeedScalar   *b;
+  const CeedInt len = 10;
+  CeedScalar    array[len];
 
   CeedInit(argv[1], &ceed);
 
-  CeedVectorCreate(ceed, n, &x);
-  for (CeedInt i = 0; i < n; i++) a[i] = 0;
-  CeedVectorSetArray(x, CEED_MEM_HOST, CEED_USE_POINTER, a);
+  CeedVectorCreate(ceed, len, &x);
+  for (CeedInt i = 0; i < len; i++) array[i] = 0;
+  CeedVectorSetArray(x, CEED_MEM_HOST, CEED_USE_POINTER, array);
 
-  CeedVectorGetArray(x, CEED_MEM_HOST, &b);
-  b[3] = -3.14;
-  CeedVectorRestoreArray(x, &b);
+  {
+    CeedScalar *writable_array;
 
-  if (a[3] != (CeedScalar)(-3.14)) printf("Error writing array a[3] = %f\n", (CeedScalar)a[3]);
+    CeedVectorGetArray(x, CEED_MEM_HOST, &writable_array);
+    writable_array[3] = -3.14;
+    CeedVectorRestoreArray(x, &writable_array);
+  }
+
+  if (array[3] != (CeedScalar)(-3.14)) printf("Error writing array[3] = %f\n", (CeedScalar)array[3]);
 
   CeedVectorDestroy(&x);
   CeedDestroy(&ceed);

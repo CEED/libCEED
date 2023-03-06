@@ -1,59 +1,68 @@
 /// @file
 /// Test grad transpose with a 2D Simplex non-tensor H1 basis
-/// \test Test grad transposewith a 2D Simplex non-tensor H1 basis
+/// \test Test grad transpose with a 2D Simplex non-tensor H1 basis
 #include <ceed.h>
 #include <math.h>
 
 #include "t320-basis.h"
 
 int main(int argc, char **argv) {
-  Ceed              ceed;
-  CeedVector        In, Out;
-  const CeedInt     P = 6, Q = 4, dim = 2, num_comp = 3;
-  CeedBasis         b;
-  CeedScalar        q_ref[dim * Q], q_weight[Q];
-  CeedScalar        interp[P * Q], grad[dim * P * Q];
-  const CeedScalar *out;
-  CeedScalar        colsum[P], *in;
-
-  buildmats(q_ref, q_weight, interp, grad);
+  Ceed          ceed;
+  CeedVector    u, v;
+  const CeedInt p = 6, q = 4, dim = 2, num_comp = 3;
+  CeedBasis     basis;
+  CeedScalar    q_ref[dim * q], q_weight[q];
+  CeedScalar    interp[p * q], grad[dim * p * q];
+  CeedScalar    column_sum[p];
 
   CeedInit(argv[1], &ceed);
 
-  for (int i = 0; i < P; i++) {
-    colsum[i] = 0;
-    for (int j = 0; j < Q * dim; j++) {
-      colsum[i] += grad[i + j * P];
+  Build2DSimplex(q_ref, q_weight, interp, grad);
+  CeedBasisCreateH1(ceed, CEED_TOPOLOGY_TRIANGLE, num_comp, p, q, interp, grad, q_ref, q_weight, &basis);
+
+  CeedVectorCreate(ceed, q * dim * num_comp, &u);
+  {
+    CeedScalar *u_array;
+
+    CeedVectorGetArrayWrite(u, CEED_MEM_HOST, &u_array);
+    for (int d = 0; d < dim; d++) {
+      for (int i = 0; i < num_comp; i++) {
+        for (int j = 0; j < q; j++) u_array[j + (i + d * num_comp) * q] = i * 1.0;
+      }
     }
+    CeedVectorRestoreArray(u, &u_array);
   }
+  CeedVectorCreate(ceed, p * num_comp, &v);
+  CeedVectorSetValue(v, 0);
 
-  CeedBasisCreateH1(ceed, CEED_TOPOLOGY_TRIANGLE, num_comp, P, Q, interp, grad, q_ref, q_weight, &b);
-
-  CeedVectorCreate(ceed, Q * dim * num_comp, &In);
-  CeedVectorGetArrayWrite(In, CEED_MEM_HOST, &in);
-  for (int d = 0; d < dim; d++) {
-    for (int n = 0; n < num_comp; n++) {
-      for (int q = 0; q < Q; q++) in[q + (n + d * num_comp) * Q] = n * 1.0;
-    }
-  }
-  CeedVectorRestoreArray(In, &in);
-  CeedVectorCreate(ceed, P * num_comp, &Out);
-  CeedVectorSetValue(Out, 0);
-
-  CeedBasisApply(b, 1, CEED_TRANSPOSE, CEED_EVAL_GRAD, In, Out);
+  CeedBasisApply(basis, 1, CEED_TRANSPOSE, CEED_EVAL_GRAD, u, v);
 
   // Check values at quadrature points
-  CeedVectorGetArrayRead(Out, CEED_MEM_HOST, &out);
-  for (int p = 0; p < P; p++) {
-    for (int n = 0; n < num_comp; n++) {
-      if (fabs(n * colsum[p] - out[p + n * P]) > 100. * CEED_EPSILON) printf("[%" CeedInt_FMT "] %f != %f\n", p, out[p + n * P], n * colsum[p]);
+  for (int i = 0; i < p; i++) {
+    column_sum[i] = 0;
+    for (int j = 0; j < q * dim; j++) {
+      column_sum[i] += grad[i + j * p];
     }
   }
-  CeedVectorRestoreArrayRead(Out, &out);
+  {
+    const CeedScalar *v_array;
 
-  CeedVectorDestroy(&In);
-  CeedVectorDestroy(&Out);
-  CeedBasisDestroy(&b);
+    CeedVectorGetArrayRead(v, CEED_MEM_HOST, &v_array);
+    for (int i = 0; i < p; i++) {
+      for (int j = 0; j < num_comp; j++) {
+        if (fabs(j * column_sum[i] - v_array[i + j * p]) > 100. * CEED_EPSILON) {
+          // LCOV_EXCL_START
+          printf("[%" CeedInt_FMT "] %f != %f\n", i, v_array[i + j * p], j * column_sum[i]);
+          // LCOV_EXCL_STOP
+        }
+      }
+    }
+    CeedVectorRestoreArrayRead(v, &v_array);
+  }
+
+  CeedVectorDestroy(&u);
+  CeedVectorDestroy(&v);
+  CeedBasisDestroy(&basis);
   CeedDestroy(&ceed);
   return 0;
 }
