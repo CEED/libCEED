@@ -6,8 +6,16 @@ On this page we provide a summary of the main API changes, new features and exam
 
 ## Current `main` branch
 
+### Interface changes
+
+- Update `CeedOperatorContext*` functions to `CeedOperator*Context*` functions for consistency.
+For example, `CeedOperatorContextGetFieldLabel` was renamed to `CeedOperatorGetContextFieldLabel`.
+
 ### New features
+
 - Added {c:func}`CeedOperatorGetFieldByName` to access a specific `CeedOperatorField` by its name
+- Update `/cpu/self/memcheck/*` backends to help verify `CeedVector` array access assumptions and `CeedQFunction` user output assumptions.
+- Update {c:func}`CeedOperatorLinearAssembleDiagonal` to provide default implementation that supports `CeedOperator` with multiple active bases.
 
 (v0-11)=
 
