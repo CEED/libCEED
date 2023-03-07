@@ -945,8 +945,8 @@ int CeedBasisCreateProjection(CeedBasis basis_from, CeedBasis basis_to, CeedBasi
   @brief Copy the pointer to a CeedBasis.
            Both pointers should be destroyed with `CeedBasisDestroy()`.
 
-           Note: If `*basis_copy` is non-NULL, then it is assumed that `*basis_copy` is a pointer to a CeedBasis.
-             This CeedBasis will be destroyed if `*basis_copy` is the only reference to this CeedBasis.
+           Note: If the value of `basis_copy` passed into this function is non-NULL, then it is assumed that `basis_copy` is a pointer to a CeedBasis.
+             This CeedBasis will be destroyed if `basis_copy` is the only reference to this CeedBasis.
 
   @param[in]     basis      CeedBasis to copy reference to
   @param[in,out] basis_copy Variable to store copied reference

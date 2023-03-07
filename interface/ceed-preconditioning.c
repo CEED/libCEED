@@ -1001,8 +1001,10 @@ int CeedQFunctionAssemblyDataIsUpdateNeeded(CeedQFunctionAssemblyData data, bool
 /**
   @brief Copy the pointer to a CeedQFunctionAssemblyData.
            Both pointers should be destroyed with `CeedCeedQFunctionAssemblyDataDestroy()`.
-           Note: If `*data_copy` is non-NULL, then it is assumed that `*data_copy` is a pointer to a CeedQFunctionAssemblyData.
-             This CeedQFunctionAssemblyData will be destroyed if `*data_copy` is the only reference to this CeedQFunctionAssemblyData.
+
+           Note: If the value of `data_copy` passed to this function is non-NULL, then it is assumed that `*data_copy` is a pointer to a
+             CeedQFunctionAssemblyData. This CeedQFunctionAssemblyData will be destroyed if `data_copy` is the only reference to this
+             CeedQFunctionAssemblyData.
 
   @param[in]     data      CeedQFunctionAssemblyData to copy reference to
   @param[in,out] data_copy Variable to store copied reference

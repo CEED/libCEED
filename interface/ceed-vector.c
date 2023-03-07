@@ -203,8 +203,9 @@ int CeedVectorCreate(Ceed ceed, CeedSize length, CeedVector *vec) {
 /**
   @brief Copy the pointer to a CeedVector.
            Both pointers should be destroyed with `CeedVectorDestroy()`.
-           Note: If `*vec_copy` is non-NULL, then it is assumed that `*vec_copy` is a pointer to a CeedVector.
-             This CeedVector will be destroyed if `*vec_copy` is the only reference to this CeedVector.
+
+           Note: If the value of `vec_copy` passed to this function is non-NULL, then it is assumed that `vec_copy` is a pointer to a CeedVector.
+             This CeedVector will be destroyed if `vec_copy` is the only reference to this CeedVector.
 
   @param[in]     vec      CeedVector to copy reference to
   @param[in,out] vec_copy Variable to store copied reference

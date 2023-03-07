@@ -702,7 +702,8 @@ int CeedQFunctionCreateIdentity(Ceed ceed, CeedInt size, CeedEvalMode in_mode, C
 /**
   @brief Copy the pointer to a CeedQFunction.
            Both pointers should be destroyed with `CeedQFunctionDestroy()`.
-           Note: If `*qf_copy` is non-NULL, then it is assumed that `*qf_copy` is a pointer to a CeedQFunction.
+
+           Note: If the value of `qf_copy` passed to this function is non-NULL, then it is assumed that `*qf_copy` is a pointer to a CeedQFunction.
              This CeedQFunction will be destroyed if `*qf_copy` is the only reference to this CeedQFunction.
 
   @param[in]  qf      CeedQFunction to copy reference to

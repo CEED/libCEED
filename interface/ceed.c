@@ -906,9 +906,10 @@ int CeedInit(const char *resource, Ceed *ceed) {
 
 /**
   @brief Copy the pointer to a Ceed context.
-           Both pointers should be destroyed with `CeedDestroy()`;
-           Note: If `*ceed_copy` is non-NULL, then it is assumed that `*ceed_copy` is a pointer to a Ceed context.
-             This Ceed context will be destroyed if `*ceed_copy` is the only reference to this Ceed context.
+           Both pointers should be destroyed with `CeedDestroy()`.
+
+           Note: If the value of `ceed_copy` passed to this function is non-NULL, then it is assumed that `ceed_copy` is a pointer to a Ceed context.
+             This Ceed context will be destroyed if `ceed_copy` is the only reference to this Ceed context.
 
   @param[in]     ceed      Ceed context to copy reference to
   @param[in,out] ceed_copy Variable to store copied reference

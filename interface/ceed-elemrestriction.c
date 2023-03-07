@@ -677,8 +677,8 @@ int CeedElemRestrictionCreateBlockedStrided(Ceed ceed, CeedInt num_elem, CeedInt
   @brief Copy the pointer to a CeedElemRestriction.
            Both pointers should be destroyed with `CeedElemRestrictionDestroy()`.
 
-           Note: If `*rstr_copy` is non-NULL, then it is assumed that `*rstr_copy` is a pointer to a CeedElemRestriction.
-             This CeedElemRestriction will be destroyed if `*rstr_copy` is the only reference to this CeedElemRestriction.
+           Note: If the value of `rstr_copy` passed into this function is non-NULL, then it is assumed that `rstr_copy` is a pointer to a
+             CeedElemRestriction. This CeedElemRestriction will be destroyed if `rstr_copy` is the only reference to this CeedElemRestriction.
 
   @param[in]     rstr      CeedElemRestriction to copy reference to
   @param[in,out] rstr_copy Variable to store copied reference
