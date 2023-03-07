@@ -46,18 +46,18 @@ int main(int argc, char **argv) {
   CeedOperatorCreate(ceed, qf_sub_1, CEED_QFUNCTION_NONE, CEED_QFUNCTION_NONE, &op_sub_1);
 
   // Check setting field in operator
-  CeedOperatorContextGetFieldLabel(op_sub_1, "count", &count_label);
+  CeedOperatorGetContextFieldLabel(op_sub_1, "count", &count_label);
   int value_count = 43;
-  CeedOperatorContextSetInt32(op_sub_1, count_label, &value_count);
+  CeedOperatorSetContextInt32(op_sub_1, count_label, &value_count);
   if (ctx_data_1.count != 43) printf("Incorrect context data for count: %" CeedInt_FMT " != 43", ctx_data_1.count);
   {
     const int *values;
     size_t     num_values;
 
-    CeedOperatorContextGetInt32Read(op_sub_1, count_label, &num_values, &values);
+    CeedOperatorGetContextInt32Read(op_sub_1, count_label, &num_values, &values);
     if (num_values != 1) printf("Incorrect number of count values, found %ld but expected 1", num_values);
     if (values[0] != ctx_data_1.count) printf("Incorrect value found, found %d but expected %d", values[0], ctx_data_1.count);
-    CeedOperatorContextRestoreInt32Read(op_sub_1, count_label, &values);
+    CeedOperatorRestoreContextInt32Read(op_sub_1, count_label, &values);
   }
 
   // Second sub-operator
@@ -77,31 +77,31 @@ int main(int argc, char **argv) {
   CeedCompositeOperatorAddSub(op_composite, op_sub_2);
 
   // Check setting field in context of single sub-operator for composite operator
-  CeedOperatorContextGetFieldLabel(op_composite, "time", &time_label);
+  CeedOperatorGetContextFieldLabel(op_composite, "time", &time_label);
   double value_time = 2.0;
-  CeedOperatorContextSetDouble(op_composite, time_label, &value_time);
+  CeedOperatorSetContextDouble(op_composite, time_label, &value_time);
   if (ctx_data_2.time != 2.0) printf("Incorrect context data for time: %f != 2.0\n", ctx_data_2.time);
   {
     const double *values;
     size_t        num_values;
 
-    CeedOperatorContextGetDoubleRead(op_composite, time_label, &num_values, &values);
+    CeedOperatorGetContextDoubleRead(op_composite, time_label, &num_values, &values);
     if (num_values != 1) printf("Incorrect number of time values, found %ld but expected 1", num_values);
     if (values[0] != ctx_data_2.time) printf("Incorrect value found, found %f but expected %f", values[0], ctx_data_2.time);
-    CeedOperatorContextRestoreDoubleRead(op_composite, time_label, &values);
+    CeedOperatorRestoreContextDoubleRead(op_composite, time_label, &values);
   }
 
   // Check setting field in context of multiple sub-operators for composite operator
-  CeedOperatorContextGetFieldLabel(op_composite, "other", &other_label);
+  CeedOperatorGetContextFieldLabel(op_composite, "other", &other_label);
   // No issue requesting same label twice
-  CeedOperatorContextGetFieldLabel(op_composite, "other", &other_label);
+  CeedOperatorGetContextFieldLabel(op_composite, "other", &other_label);
   double value_other = 9000.;
-  CeedOperatorContextSetDouble(op_composite, other_label, &value_other);
+  CeedOperatorSetContextDouble(op_composite, other_label, &value_other);
   if (ctx_data_1.other != 9000.0) printf("Incorrect context data for other: %f != 2.0\n", ctx_data_1.other);
   if (ctx_data_2.other != 9000.0) printf("Incorrect context data for other: %f != 2.0\n", ctx_data_2.other);
 
   // Check requesting label for field that doesn't exist returns NULL
-  CeedOperatorContextGetFieldLabel(op_composite, "bad", &bad_label);
+  CeedOperatorGetContextFieldLabel(op_composite, "bad", &bad_label);
   if (bad_label) printf("Incorrect context label returned\n");
 
   {

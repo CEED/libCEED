@@ -423,8 +423,8 @@ PetscErrorCode CreateStatisticCollectionOperator(Ceed ceed, User user, CeedData 
   CeedOperatorSetField(user->spanstats.op_stats_collect, "x", ceed_data->elem_restr_x, ceed_data->basis_x, ceed_data->x_coord);
   CeedOperatorSetField(user->spanstats.op_stats_collect, "v", stats_data->elem_restr_child_colloc, CEED_BASIS_COLLOCATED, CEED_VECTOR_ACTIVE);
 
-  CeedOperatorContextGetFieldLabel(user->spanstats.op_stats_collect, "solution time", &user->spanstats.solution_time_label);
-  CeedOperatorContextGetFieldLabel(user->spanstats.op_stats_collect, "previous time", &user->spanstats.previous_time_label);
+  CeedOperatorGetContextFieldLabel(user->spanstats.op_stats_collect, "solution time", &user->spanstats.solution_time_label);
+  CeedOperatorGetContextFieldLabel(user->spanstats.op_stats_collect, "previous time", &user->spanstats.previous_time_label);
 
   CeedQFunctionDestroy(&qf_stats_collect);
   PetscFunctionReturn(0);
@@ -520,7 +520,7 @@ PetscErrorCode CollectStatistics(User user, PetscScalar solution_time, Vec Q) {
   PetscCall(PetscLogStagePush(stage_stats_collect));
 
   PetscCall(UpdateBoundaryValues(user, user->Q_loc, solution_time));
-  CeedOperatorContextSetDouble(user->spanstats.op_stats_collect, user->spanstats.solution_time_label, &solution_time);
+  CeedOperatorSetContextDouble(user->spanstats.op_stats_collect, user->spanstats.solution_time_label, &solution_time);
   PetscCall(DMGlobalToLocal(user->dm, Q, INSERT_VALUES, user->Q_loc));
   PetscCall(VecP2C(user->Q_loc, &q_mem_type, user->q_ceed));
 
@@ -528,7 +528,7 @@ PetscErrorCode CollectStatistics(User user, PetscScalar solution_time, Vec Q) {
 
   PetscCall(VecC2P(user->q_ceed, q_mem_type, user->Q_loc));
 
-  CeedOperatorContextSetDouble(user->spanstats.op_stats_collect, user->spanstats.previous_time_label, &solution_time);
+  CeedOperatorSetContextDouble(user->spanstats.op_stats_collect, user->spanstats.previous_time_label, &solution_time);
 
   PetscCall(PetscLogStagePop());
   PetscFunctionReturn(0);

@@ -79,7 +79,7 @@ PetscErrorCode UpdateContextLabel(PetscScalar *previous_value, PetscScalar updat
 
   if (*previous_value != update_value) {
     if (label) {
-      CeedOperatorContextSetDouble(op, label, &update_value);
+      CeedOperatorSetContextDouble(op, label, &update_value);
     }
     *previous_value = update_value;
   }
@@ -338,7 +338,7 @@ PetscErrorCode FormIJacobian_NS(TS ts, PetscReal t, Vec Q, Vec Q_dot, PetscReal 
   User      user = *(User *)user_data;
   PetscBool J_is_shell, J_is_mffd, J_pre_is_shell;
   PetscFunctionBeginUser;
-  if (user->phys->ijacobian_time_shift_label) CeedOperatorContextSetDouble(user->op_ijacobian, user->phys->ijacobian_time_shift_label, &shift);
+  if (user->phys->ijacobian_time_shift_label) CeedOperatorSetContextDouble(user->op_ijacobian, user->phys->ijacobian_time_shift_label, &shift);
   PetscCall(PetscObjectTypeCompare((PetscObject)J, MATMFFD, &J_is_mffd));
   PetscCall(PetscObjectTypeCompare((PetscObject)J, MATSHELL, &J_is_shell));
   PetscCall(PetscObjectTypeCompare((PetscObject)J_pre, MATSHELL, &J_pre_is_shell));
@@ -560,7 +560,7 @@ PetscErrorCode TSSolve_NS(DM dm, User user, AppCtx app_ctx, Physics phys, Vec *Q
   if (app_ctx->turb_spanstats_enable) {
     PetscCall(TSMonitorSet(*ts, TSMonitor_Statistics, user, NULL));
     CeedScalar previous_time = app_ctx->cont_time * user->units->second;
-    CeedOperatorContextSetDouble(user->spanstats.op_stats_collect, user->spanstats.previous_time_label, &previous_time);
+    CeedOperatorSetContextDouble(user->spanstats.op_stats_collect, user->spanstats.previous_time_label, &previous_time);
   }
 
   // Solve
