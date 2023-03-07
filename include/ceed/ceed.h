@@ -507,6 +507,7 @@ CEED_EXTERN int CeedOperatorGetCeed(CeedOperator op, Ceed *ceed);
 CEED_EXTERN int CeedOperatorGetNumElements(CeedOperator op, CeedInt *num_elem);
 CEED_EXTERN int CeedOperatorGetNumQuadraturePoints(CeedOperator op, CeedInt *num_qpts);
 CEED_EXTERN int CeedOperatorGetFlopsEstimate(CeedOperator op, CeedSize *flops);
+CEED_EXTERN int CeedOperatorGetContext(CeedOperator op, CeedQFunctionContext *ctx);
 CEED_EXTERN int CeedOperatorContextGetFieldLabel(CeedOperator op, const char *field_name, CeedContextFieldLabel *field_label);
 CEED_EXTERN int CeedOperatorContextSetDouble(CeedOperator op, CeedContextFieldLabel field_label, double *values);
 CEED_EXTERN int CeedOperatorContextGetDoubleRead(CeedOperator op, CeedContextFieldLabel field_label, size_t *num_values, const double **values);
