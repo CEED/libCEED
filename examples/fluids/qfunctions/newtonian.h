@@ -260,7 +260,7 @@ CEED_QFUNCTION_HELPER int IFunction_Newtonian(void *ctx, CeedInt Q, const CeedSc
     UnpackState_U(s_dot.U, U_dot);
 
     for (CeedInt j = 0; j < 5; j++) v[j][i] = wdetJ * (U_dot[j] - body_force[j]);
-    if(IDLramp_amplitude > 0) {
+    if (context->IDLramp_amplitude > 0) {
       const CeedScalar sigma     = RampCoefficient(context->IDLramp_amplitude, context->IDLramp_length, context->IDLramp_start, x_i[0]);
       const CeedScalar damp_Y[5] = {sigma * (s.Y.pressure - P0), 0, 0, 0, 0};
       CeedScalar       dx_i[3]   = {0};
@@ -369,7 +369,7 @@ CEED_QFUNCTION_HELPER int IJacobian_Newtonian(void *ctx, CeedInt Q, const CeedSc
     UnpackState_U(ds.U, dU);
     for (int j = 0; j < 5; j++) v[j][i] = wdetJ * (context->ijacobian_time_shift * dU[j] - dbody_force[j]);
 
-    if(IDLramp_amplitude > 0 ) {
+    if (context->IDLramp_amplitude > 0) {
       const CeedScalar sigma      = RampCoefficient(context->IDLramp_amplitude, context->IDLramp_length, context->IDLramp_start, x_i[0]);
       const CeedScalar damp_dY[5] = {sigma * ds.Y.pressure, 0, 0, 0, 0};
       CeedScalar       dx_i[3]    = {0};
