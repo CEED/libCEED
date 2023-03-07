@@ -364,7 +364,7 @@ def test_125(ceed_resource, capsys):
 
     y.axpby(-0.5, 1.0, x)
     with y.array() as b:
-        assert np.allclose(.5 * a, b)
+        assert np.allclose(1.5 * a, b)
 
 # -------------------------------------------------------------------------------
 # Test modification of reshaped array
