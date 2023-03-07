@@ -686,8 +686,9 @@ int CeedCompositeOperatorCreate(Ceed ceed, CeedOperator *op) {
 /**
   @brief Copy the pointer to a CeedOperator.
            Both pointers should be destroyed with `CeedOperatorDestroy()`.
-           Note: If `*op_copy` is non-NULL, then it is assumed that `*op_copy` is a pointer to a CeedOperator.
-             This CeedOperator will be destroyed if `*op_copy` is the only reference to this CeedOperator.
+
+           Note: If the value of `op_copy` passed to this function is non-NULL, then it is assumed that `op_copy` is a pointer to a CeedOperator.
+             This CeedOperator will be destroyed if `op_copy` is the only reference to this CeedOperator.
 
   @param[in]  op         CeedOperator to copy reference to
   @param[in,out] op_copy Variable to store copied reference
@@ -1427,8 +1428,9 @@ int CeedOperatorGetFlopsEstimate(CeedOperator op, CeedSize *flops) {
 
 /**
   @brief Get CeedQFunction global context for a CeedOperator.
-           Note: The caller is responsible for destroying `ctx` returned from this function via `CeedQFunctionContextDestroy()`.
-           Note: If the value of `ctx` passed into this function is non-NULL, then it is assumed that `ctx` is a valid pointer to a
+           The caller is responsible for destroying `ctx` returned from this function via `CeedQFunctionContextDestroy()`.
+
+           Note: If the value of `ctx` passed into this function is non-NULL, then it is assumed that `ctx` is a pointer to a
              CeedQFunctionContext. This CeedQFunctionContext will be destroyed if `ctx` is the only reference to this CeedQFunctionContext.
 
   @param[in]  qf  CeedQFunction

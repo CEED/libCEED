@@ -562,8 +562,9 @@ int CeedQFunctionContextCreate(Ceed ceed, CeedQFunctionContext *ctx) {
 /**
   @brief Copy the pointer to a CeedQFunctionContext.
            Both pointers should be destroyed with `CeedQFunctionContextDestroy()`.
-           Note: If `*ctx_copy` is non-NULL, then it is assumed that `*ctx_copy` is a pointer to a CeedQFunctionContext.
-             This CeedQFunctionContext will be destroyed if `*ctx_copy` is the only reference to this CeedQFunctionContext.
+
+           Note: If the value of `ctx_copy` passed to this function is non-NULL, then it is assumed that `ctx_copy` is a pointer to a
+             CeedQFunctionContext. This CeedQFunctionContext will be destroyed if `ctx_copy` is the only reference to this CeedQFunctionContext.
 
   @param[in]     ctx      CeedQFunctionContext to copy reference to
   @param[in,out] ctx_copy Variable to store copied reference
