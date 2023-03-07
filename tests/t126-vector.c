@@ -23,7 +23,7 @@ int main(int argc, char **argv) {
   CeedVectorSetArray(x, CEED_MEM_HOST, CEED_COPY_VALUES, a);
   CeedVectorSetArray(x_copy, CEED_MEM_HOST, CEED_COPY_VALUES, a2);
 
-  CeedVectorCopy(x, &x_copy); 
+  CeedVectorCopy(x, &x_copy);
 
   CeedSize len;
   CeedVectorGetLength(x_copy, &len);

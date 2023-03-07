@@ -214,7 +214,7 @@ def test_108(ceed_resource, capsys):
 
 
 def test_109(ceed_resource, capsys):
-        ceed = libceed.Ceed(ceed_resource)
+    ceed = libceed.Ceed(ceed_resource)
 
     n = 10
 
