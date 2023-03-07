@@ -1426,6 +1426,30 @@ int CeedOperatorGetFlopsEstimate(CeedOperator op, CeedSize *flops) {
 }
 
 /**
+  @brief Get CeedQFunction global context for a CeedOperator.
+           Note: The caller is responsible for destroying `ctx` returned from this function via `CeedQFunctionContextDestroy()`.
+           Note: If the value of `ctx` passed into this function is non-NULL, then it is assumed that `ctx` is a valid pointer to a
+             CeedQFunctionContext. This CeedQFunctionContext will be destroyed if `ctx` is the only reference to this CeedQFunctionContext.
+
+  @param[in]  qf  CeedQFunction
+  @param[out] ctx Variable to store CeedQFunctionContext
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Backend
+**/
+int CeedOperatorGetContext(CeedOperator op, CeedQFunctionContext *ctx) {
+  bool is_composite;
+
+  CeedCall(CeedOperatorIsComposite(op, &is_composite));
+  if (is_composite) return CeedError(op->ceed, CEED_ERROR_INCOMPATIBLE, "Cannot retrieve QFunctionContext for composite operator");
+
+  if (op->qf->ctx) CeedCall(CeedQFunctionContextReferenceCopy(op->qf->ctx, ctx));
+  else *ctx = NULL;
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
   @brief Get label for a registered QFunctionContext field, or `NULL` if no field has been registered with this `field_name`.
 
   @param[in]  op          CeedOperator

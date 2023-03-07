@@ -104,6 +104,18 @@ int main(int argc, char **argv) {
   CeedOperatorContextGetFieldLabel(op_composite, "bad", &bad_label);
   if (bad_label) printf("Incorrect context label returned\n");
 
+  {
+    // Check getting reference to QFunctionContext
+    CeedQFunctionContext ctx_copy = NULL;
+
+    CeedOperatorGetContext(op_sub_1, &ctx_copy);
+    if (ctx_copy != qf_ctx_sub_1) printf("Incorrect QFunctionContext retrieved");
+
+    CeedOperatorGetContext(op_sub_2, &ctx_copy);  // Destroys reference to qf_ctx_sub_1
+    if (ctx_copy != qf_ctx_sub_2) printf("Incorrect QFunctionContext retrieved");
+    CeedQFunctionContextDestroy(&ctx_copy);  // Cleanup to prevent leak
+  }
+
   CeedQFunctionContextDestroy(&qf_ctx_sub_1);
   CeedQFunctionContextDestroy(&qf_ctx_sub_2);
   CeedQFunctionDestroy(&qf_sub_1);
