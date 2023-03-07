@@ -113,8 +113,9 @@ PetscErrorCode NS_NEWTONIAN_IG(ProblemData *problem, DM dm, void *ctx, SimpleBC 
   PetscCall(DMGetBoundingBox(dm, domain_min, domain_max));
   for (PetscInt i = 0; i < 3; i++) domain_size[i] = domain_max[i] - domain_min[i];
 
-  StatePrimitive reference         = {.pressure = 1.01e5, .velocity = {0}, .temperature = 288.15};
-  CeedScalar     IDLramp_amplitude = 0, IDLramp_start = 0, IDLramp_length = 0;
+  StatePrimitive reference      = {.pressure = 1.01e5, .velocity = {0}, .temperature = 288.15};
+  CeedScalar     idl_decay_time = -1, idl_start = 0, idl_length = 0;
+  PetscBool      idl_enable = PETSC_FALSE;
 
   // ------------------------------------------------------
   //             Create the PETSc context
@@ -201,12 +202,15 @@ PetscErrorCode NS_NEWTONIAN_IG(ProblemData *problem, DM dm, void *ctx, SimpleBC 
     PetscCall(PetscPrintf(comm, "Warning! Use -stab supg only with -implicit\n"));
   }
   if (state_var == STATEVAR_PRIMITIVE && !implicit) {
-    SETERRQ(comm, PETSC_ERR_ARG_NULL, "RHSFunction is not provided for primitive variables (use -state_var primitive only with -implicit)\n");
+    SETERRQ(comm, PETSC_ERR_SUP, "RHSFunction is not provided for primitive variables (use -state_var primitive only with -implicit)\n");
   }
 
-  PetscCall(PetscOptionsScalar("-IDLramp_amplitude", "STG IDL amplitude", NULL, IDLramp_amplitude, &IDLramp_amplitude, NULL));
-  PetscCall(PetscOptionsScalar("-IDLramp_start", "STG IDL start", NULL, IDLramp_start, &IDLramp_start, NULL));
-  PetscCall(PetscOptionsScalar("-IDLramp_length", "STG IDL length", NULL, IDLramp_length, &IDLramp_length, NULL));
+  PetscCall(PetscOptionsScalar("-idl_decay_time", "Characteristic timescale of the pressure deviance decay. The timestep is good starting point",
+                               NULL, idl_decay_time, &idl_decay_time, &idl_enable));
+  if (idl_enable && idl_decay_time == 0) SETERRQ(comm, PETSC_ERR_SUP, "idl_decay_time may not be equal to zero.");
+  else if (idl_decay_time < 0) idl_enable = PETSC_FALSE;
+  PetscCall(PetscOptionsScalar("-idl_start", "Start of IDL in the x direction", NULL, idl_start, &idl_start, NULL));
+  PetscCall(PetscOptionsScalar("-idl_length", "Length of IDL in the positive x direction", NULL, idl_length, &idl_length, NULL));
   PetscOptionsEnd();
 
   // ------------------------------------------------------
@@ -249,25 +253,26 @@ PetscErrorCode NS_NEWTONIAN_IG(ProblemData *problem, DM dm, void *ctx, SimpleBC 
   user->phys->has_curr_time = has_curr_time;
 
   // -- QFunction Context
-  newtonian_ig_ctx->lambda            = lambda;
-  newtonian_ig_ctx->mu                = mu;
-  newtonian_ig_ctx->k                 = k;
-  newtonian_ig_ctx->cv                = cv;
-  newtonian_ig_ctx->cp                = cp;
-  newtonian_ig_ctx->c_tau             = c_tau;
-  newtonian_ig_ctx->Ctau_t            = Ctau_t;
-  newtonian_ig_ctx->Ctau_v            = Ctau_v;
-  newtonian_ig_ctx->Ctau_C            = Ctau_C;
-  newtonian_ig_ctx->Ctau_M            = Ctau_M;
-  newtonian_ig_ctx->Ctau_E            = Ctau_E;
-  newtonian_ig_ctx->P0                = reference.pressure;
-  newtonian_ig_ctx->stabilization     = stab;
-  newtonian_ig_ctx->P0                = reference.pressure;
-  newtonian_ig_ctx->is_implicit       = implicit;
-  newtonian_ig_ctx->state_var         = state_var;
-  newtonian_ig_ctx->IDLramp_amplitude = IDLramp_amplitude;
-  newtonian_ig_ctx->IDLramp_start     = IDLramp_start * meter;
-  newtonian_ig_ctx->IDLramp_length    = IDLramp_length * meter;
+  newtonian_ig_ctx->lambda        = lambda;
+  newtonian_ig_ctx->mu            = mu;
+  newtonian_ig_ctx->k             = k;
+  newtonian_ig_ctx->cv            = cv;
+  newtonian_ig_ctx->cp            = cp;
+  newtonian_ig_ctx->c_tau         = c_tau;
+  newtonian_ig_ctx->Ctau_t        = Ctau_t;
+  newtonian_ig_ctx->Ctau_v        = Ctau_v;
+  newtonian_ig_ctx->Ctau_C        = Ctau_C;
+  newtonian_ig_ctx->Ctau_M        = Ctau_M;
+  newtonian_ig_ctx->Ctau_E        = Ctau_E;
+  newtonian_ig_ctx->P0            = reference.pressure;
+  newtonian_ig_ctx->stabilization = stab;
+  newtonian_ig_ctx->P0            = reference.pressure;
+  newtonian_ig_ctx->is_implicit   = implicit;
+  newtonian_ig_ctx->state_var     = state_var;
+  newtonian_ig_ctx->idl_enable    = idl_enable;
+  newtonian_ig_ctx->idl_amplitude = 1 / (idl_decay_time * second);
+  newtonian_ig_ctx->idl_start     = idl_start * meter;
+  newtonian_ig_ctx->idl_length    = idl_length * meter;
   PetscCall(PetscArraycpy(newtonian_ig_ctx->g, g, 3));
 
   // -- Setup Context

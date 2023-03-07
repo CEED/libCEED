@@ -39,7 +39,7 @@ snes_lag_jacobian: 20
 snes_lag_jacobian_persists:
 
 ## Demonstrate acoustic wave dissipation using an internal damping layer
-# ramp:
-#   amplitude: 500
+# idl:
+#   decay_time: 2e-3
 #   start: 0
 #   length: .25
