@@ -18,7 +18,7 @@
 //     ./navierstokes -ceed /cpu/self -problem density_current -degree 1
 //     ./navierstokes -ceed /gpu/cuda -problem advection -degree 1
 //
-//TESTARGS(name="newtonianwave_idl") -ceed {ceed_resource} -test_type solver -options_file examples/fluids/newtonianwave.yaml -compare_final_state_atol 2e-11 -compare_final_state_filename examples/fluids/tests-output/fluids-navierstokes-newtonianwave-IDL.bin -dm_plex_box_faces 5,5,1 -ts_max_steps 5 -IDLramp_amplitude 500 -IDLramp_length 0.25 -IDLramp_start 0
+//TESTARGS(name="gaussianwave_idl") -ceed {ceed_resource} -test_type solver -options_file examples/fluids/gaussianwave.yaml -compare_final_state_atol 2e-11 -compare_final_state_filename examples/fluids/tests-output/fluids-navierstokes-gaussianwave-IDL.bin -dm_plex_box_faces 5,5,1 -ts_max_steps 5 -IDLramp_amplitude 500 -IDLramp_length 0.25 -IDLramp_start 0
 //TESTARGS(name="turb_spanstats") -ceed {ceed_resource} -test_type turb_spanstats -options_file examples/fluids/tests-output/stats_test.yaml -compare_final_state_atol 1E-11 -compare_final_state_filename examples/fluids/tests-output/fluids-navierstokes-turb-spanstats-stats.bin
 //TESTARGS(name="blasius") -ceed {ceed_resource} -test_type solver -options_file examples/fluids/tests-output/blasius_test.yaml -compare_final_state_atol 2E-11 -compare_final_state_filename examples/fluids/tests-output/fluids-navierstokes-blasius.bin
 //TESTARGS(name="blasius_STG") -ceed {ceed_resource} -test_type solver -options_file examples/fluids/tests-output/blasius_stgtest.yaml -compare_final_state_atol 2E-11 -compare_final_state_filename examples/fluids/tests-output/fluids-navierstokes-blasius_STG.bin

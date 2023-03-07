@@ -1,4 +1,4 @@
-problem: newtonian_wave
+problem: gaussian_wave
 mu: 0 # Effectively solving Euler momentum equations
 
 dm_plex_box_faces: 40,40,1

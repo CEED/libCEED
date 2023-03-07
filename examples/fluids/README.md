@@ -649,11 +649,11 @@ For the Density Current, Channel, and Blasius problems, the following common com
   - string
 :::
 
-#### Newtonian Wave
+#### Gaussian Wave
 
-The newtonian wave problem has the following command-line options in addition to the Newtonian Ideal Gas options:
+The gaussian wave problem has the following command-line options in addition to the Newtonian Ideal Gas options:
 
-:::{list-table} Newtonian Wave Runtime Options
+:::{list-table} Gaussian Wave Runtime Options
 :header-rows: 1
 
 * - Option
@@ -698,13 +698,13 @@ The newtonian wave problem has the following command-line options in addition to
 
 :::
 
-This problem can be run with the `newtonianwave.yaml` file via:
+This problem can be run with the `gaussianwave.yaml` file via:
 
 ```
-./navierstokes -options_file newtonianwave.yaml
+./navierstokes -options_file gaussianwave.yaml
 ```
 
-```{literalinclude} ../../../../../examples/fluids/newtonianwave.yaml
+```{literalinclude} ../../../../../examples/fluids/gaussianwave.yaml
 :language: yaml
 ```
 

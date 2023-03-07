@@ -398,7 +398,7 @@ The constant $C_{YZB}$ is set to 0.1 for piecewise linear elements in the curren
 
 (problem-density-current)=
 
-## Newtonian Wave
+## Gaussian Wave
 This test case is taken/inspired by that presented in {cite}`mengaldoCompressibleBC2014`. It is intended to test non-reflecting/Riemann boundary conditions. It's primarily intended for Euler equations, but has been implemented for the Navier-Stokes equations here for flexibility.
 
 The problem has a perturbed initial condition and lets it evolve in time. The initial condition contains a Gaussian perturbation in the pressure field:
