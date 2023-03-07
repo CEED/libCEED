@@ -273,15 +273,15 @@ impl<'a> Vector<'a> {
     ///
     /// # arguments
     ///
-    /// * `vec_copy` - vector to copy array values to
+    /// * `vec_source` - vector to copy array values from
     #[allow(unused_mut)]
-    fn vec_copy_mut(
+    fn copy_from(
         mut self,
-        vec_copy: crate::Vector,
+        vec_source: &crate::Vector,
     ) -> crate::Result<bind_ceed::CeedVector> {
-        let ierr = unsafe { bind_ceed::CeedVectorCopy(self, vec_copy) };
+        let ierr = unsafe { bind_ceed::CeedVectorCopy(vec_source.ptr, self.ptr) };
         self.check_error(ierr)?;
-        Ok(vec_copy)
+        Ok(self)
     }
 
     /// Create a Vector from a slice

@@ -209,29 +209,6 @@ def test_108(ceed_resource, capsys):
     assert abs(norm - 9.) < TOL
 
 # -------------------------------------------------------------------------------
-# Test vector copy
-# -------------------------------------------------------------------------------
-
-
-def test_109(ceed_resource, capsys):
-    ceed = libceed.Ceed(ceed_resource)
-
-    n = 10
-
-    x = ceed.Vector(n)
-    y = ceed.Vector(n)
-
-    a = np.arange(10, 10 + n, dtype=ceed.scalar_type())
-    x.set_array(a, cmode=libceed.USE_POINTER)
-
-    with x.array() as x_array:
-        y.copy(x_array)
-
-    with y.array_read() as y_array:
-        for i in range(n):
-            assert y_array[i] == x_array[i]
-
-# -------------------------------------------------------------------------------
 # Test taking the reciprocal of a vector
 # -------------------------------------------------------------------------------
 
@@ -365,6 +342,30 @@ def test_125(ceed_resource, capsys):
     y.axpby(-0.5, 1.0, x)
     with y.array() as b:
         assert np.allclose(1.5 * a, b)
+
+# -------------------------------------------------------------------------------
+# Test vector copy
+# -------------------------------------------------------------------------------
+
+
+def test_126(ceed_resource, capsys):
+    ceed = libceed.Ceed(ceed_resource)
+
+    n = 10
+
+    x = ceed.Vector(n)
+    y = ceed.Vector(n)
+
+    a = np.arange(10, 10 + n, dtype=ceed.scalar_type())
+    x.set_array(a, cmode=libceed.USE_POINTER)
+
+    with x.array() as x_array:
+        y.copy(x_array)
+
+    with y.array_read() as y_array:
+        for i in range(n):
+            assert y_array[i] == x_array[i]
+
 
 # -------------------------------------------------------------------------------
 # Test modification of reshaped array

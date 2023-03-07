@@ -6,35 +6,43 @@
 int main(int argc, char **argv) {
   Ceed              ceed;
   CeedVector        x, x_copy;
-  CeedInt           n;
-  CeedScalar        a[10], a2[10];
-  const CeedScalar *b;
+  CeedInt           len = 10;
 
   CeedInit(argv[1], &ceed);
 
-  n = 10;
-  CeedVectorCreate(ceed, n, &x);
-  CeedVectorCreate(ceed, n, &x_copy);
+  CeedVectorCreate(ceed, len, &x);
+  CeedVectorCreate(ceed, len, &x_copy);
 
-  for (CeedInt i = 0; i < n; i++) {
-    a[i]  = 10 + i;
-    a2[i] = i;
+  {
+    CeedScalar array[len], array_copy[len];
+
+    for (CeedInt i = 0; i < len; i++) {
+      array[i] = 10 + i;
+      array_copy[i] = i;
+    }
+
+    CeedVectorSetArray(x, CEED_MEM_HOST, CEED_COPY_VALUES, array);
+    CeedVectorSetArray(x_copy, CEED_MEM_HOST, CEED_COPY_VALUES, array_copy);
   }
-  CeedVectorSetArray(x, CEED_MEM_HOST, CEED_COPY_VALUES, a);
-  CeedVectorSetArray(x_copy, CEED_MEM_HOST, CEED_COPY_VALUES, a2);
 
-  CeedVectorCopy(x, &x_copy);
+  CeedVectorCopy(x, x_copy);
 
-  CeedSize len;
-  CeedVectorGetLength(x_copy, &len);
-  if (len != n) printf("Error copying CeedVector: %td\n", len);
+  {
+    CeedSize len_2;
 
-  // Check that new array from x_copy is the same as the original input array a
-  CeedVectorGetArrayRead(x_copy, CEED_MEM_HOST, &b);
-  for (CeedInt i = 0; i < n; i++) {
-    if (a[i] != b[i]) printf("Error in copying values of CeedVector: %f, %f\n", a[i], b[i]);
+    CeedVectorGetLength(x_copy, &len_2);
+    if (len != len_2) printf("Error copying CeedVector\n");
   }
-  CeedVectorRestoreArrayRead(x_copy, &b);
+
+  {
+    const CeedScalar *read_array;
+    // Check that new array from x_copy is the same as the original input array a
+    CeedVectorGetArrayRead(x_copy, CEED_MEM_HOST, &read_array);
+    for (CeedInt i = 0; i < len; i++) {
+      if ((10 + i) != read_array[i]) printf("Error in copying values of CeedVector\n");
+    }
+    CeedVectorRestoreArrayRead(x_copy, &read_array);
+  }
   CeedVectorDestroy(&x);
   CeedVectorDestroy(&x_copy);
   CeedDestroy(&ceed);

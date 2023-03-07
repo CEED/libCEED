@@ -66,7 +66,7 @@ class Vector():
              *vector: the Vector to copy to"""
 
         # libCEED call
-        err_code = lib.CeedVectorCopy(self._pointer[0], vec_copy._pointer)
+        err_code = lib.CeedVectorCopy(self._pointer[0], vec_copy._pointer[0])
         self._ceed._check_error(err_code)
 
     # Set Vector's data array

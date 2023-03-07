@@ -233,7 +233,7 @@ int CeedVectorReferenceCopy(CeedVector vec, CeedVector *vec_copy) {
 
   @ref User
 **/
-int CeedVectorCopy(CeedVector vec, CeedVector *vec_copy) {
+int CeedVectorCopy(CeedVector vec, CeedVector vec_copy) {
   Ceed        ceed;
   CeedMemType mem_type, mem_type_copy;
   CeedScalar *array;
@@ -243,7 +243,7 @@ int CeedVectorCopy(CeedVector vec, CeedVector *vec_copy) {
   CeedGetPreferredMemType(ceed, &mem_type);
 
   // Get the preferred memory type
-  CeedVectorGetCeed(*vec_copy, &ceed);
+  CeedVectorGetCeed(vec_copy, &ceed);
   CeedGetPreferredMemType(ceed, &mem_type_copy);
 
   // Check that both have same memory type
@@ -251,7 +251,7 @@ int CeedVectorCopy(CeedVector vec, CeedVector *vec_copy) {
 
   // Copy the values from vec to vec_copy
   CeedCall(CeedVectorGetArray(vec, mem_type, &array));
-  CeedCall(CeedVectorSetArray(*vec_copy, mem_type, CEED_COPY_VALUES, array));
+  CeedCall(CeedVectorSetArray(vec_copy, mem_type, CEED_COPY_VALUES, array));
 
   CeedCall(CeedVectorRestoreArray(vec, &array));
   return CEED_ERROR_SUCCESS;

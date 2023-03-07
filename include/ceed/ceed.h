@@ -209,7 +209,7 @@ typedef enum {
 
 CEED_EXTERN int CeedVectorCreate(Ceed ceed, CeedSize len, CeedVector *vec);
 CEED_EXTERN int CeedVectorReferenceCopy(CeedVector vec, CeedVector *vec_copy);
-CEED_EXTERN int CeedVectorCopy(CeedVector vec, CeedVector *vec_copy);
+CEED_EXTERN int CeedVectorCopy(CeedVector vec, CeedVector vec_copy);
 CEED_EXTERN int CeedVectorSetArray(CeedVector vec, CeedMemType mem_type, CeedCopyMode copy_mode, CeedScalar *array);
 CEED_EXTERN int CeedVectorSetValue(CeedVector vec, CeedScalar value);
 CEED_EXTERN int CeedVectorSyncArray(CeedVector vec, CeedMemType mem_type);
