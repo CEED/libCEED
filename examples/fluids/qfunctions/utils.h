@@ -35,4 +35,15 @@ CEED_QFUNCTION_HELPER void KMUnpack(const CeedScalar v[6], CeedScalar A[3][3]) {
   A[1][0] = A[0][1] = weight * v[5];
 }
 
+// @brief Linear ramp evaluation
+CEED_QFUNCTION_HELPER CeedScalar LinearRampCoefficient(CeedScalar amplitude, CeedScalar length, CeedScalar start, CeedScalar x) {
+  if (x < start) {
+    return amplitude;
+  } else if (x < start + length) {
+    return amplitude * ((x - start) * (-1 / length) + 1);
+  } else {
+    return 0;
+  }
+}
+
 #endif  // utils_h
