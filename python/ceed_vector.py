@@ -58,6 +58,17 @@ class Vector():
 
         return out_string
 
+    # Copy self to a different Vector
+    def copy(self, vec_copy):
+        """Copies the array of a self into the array of vec_copy.
+
+           Args:
+             *vector: the Vector to copy to"""
+
+        # libCEED call
+        err_code = lib.CeedVectorCopy(self._pointer[0], vec_copy._pointer)
+        self._ceed._check_error(err_code)
+
     # Set Vector's data array
     def set_array(self, array, memtype=MEM_HOST, cmode=COPY_VALUES):
         """Set the array used by a Vector, freeing any previously allocated
@@ -420,6 +431,17 @@ class Vector():
 
         # libCEED call
         err_code = lib.CeedVectorAXPY(self._pointer[0], alpha, x._pointer[0])
+        self._ceed._check_error(err_code)
+
+        return self
+
+    # Compute self = alpha x + beta self
+    def axpby(self, alpha, beta, x):
+        """Compute self = alpha x + beta self."""
+
+        # libCEED call
+        err_code = lib.CeedVectorAXPBY(
+            self._pointer[0], alpha, beta, x._pointer[0])
         self._ceed._check_error(err_code)
 
         return self

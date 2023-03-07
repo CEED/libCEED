@@ -269,6 +269,18 @@ impl<'a> Vector<'a> {
         Ok(ptr_copy)
     }
 
+    /// Copy the array of self into vec_copy
+    ///
+    /// # arguments
+    ///
+    /// * `vec_copy` - vector to copy array values to
+    #[allow(unused_mut)]
+    fn vec_copy_mut(mut self, &mut vec_copy) -> crate::Result<bind_ceed::CeedVector> {
+        let ierr = unsafe { bind_ceed::CeedVectorCopy(self, vec_copy.ptr) };
+        self.check_error(ierr)?;
+        Ok(vec_copy)
+    }
+
     /// Create a Vector from a slice
     ///
     /// # arguments
