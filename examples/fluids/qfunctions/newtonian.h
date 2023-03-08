@@ -38,17 +38,24 @@ CEED_QFUNCTION_HELPER int ICsNewtonianIG(void *ctx, CeedInt Q, const CeedScalar 
     CeedScalar x[3] = {X[0][i], X[1][i], X[2][i]};
     CeedScalar q[5] = {0.};
     State      s    = StateFromPrimitive(&context->gas, context->reference, x);
-    StateToQi(&context->gas, s, q);
+    if (StateToQi) {
+      StateToU(&context->gas, s, q);
+    } else {
+      StateToY(&context->gas, s, q);
+    }
+    //StateToQi(&context->gas, s, q);
     for (CeedInt j = 0; j < 5; j++) q0[j][i] = q[j];
   }  // End of Quadrature Point Loop
   return 0;
 }
 
 CEED_QFUNCTION(ICsNewtonianIG_Prim)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
-  return ICsNewtonianIG(ctx, Q, in, out, StateToY);
+  //return ICsNewtonianIG(ctx, Q, in, out, StateToY);
+  return ICsNewtonianIG(ctx, Q, in, out, 0);
 }
 CEED_QFUNCTION(ICsNewtonianIG_Conserv)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
-  return ICsNewtonianIG(ctx, Q, in, out, StateToU);
+  //return ICsNewtonianIG(ctx, Q, in, out, StateToU);
+  return ICsNewtonianIG(ctx, Q, in, out, 1);
 }
 
 // *****************************************************************************
@@ -200,7 +207,13 @@ CEED_QFUNCTION_HELPER int IFunction_Newtonian(void *ctx, CeedInt Q, const CeedSc
   CeedPragmaSIMD for (CeedInt i = 0; i < Q; i++) {
     const CeedScalar qi[5]  = {q[0][i], q[1][i], q[2][i], q[3][i], q[4][i]};
     const CeedScalar x_i[3] = {x[0][i], x[1][i], x[2][i]};
-    const State      s      = StateFromQi(context, qi, x_i);
+    //const State      s      = StateFromQi(context, qi, x_i);
+    State s;
+    if (StateFromQi) {
+      s = StateFromU(context, qi, x_i);
+    } else {
+      s = StateFromY(context, qi, x_i);
+    }
 
     // -- Interp-to-Interp q_data
     const CeedScalar wdetJ = q_data[0][i];
@@ -218,7 +231,12 @@ CEED_QFUNCTION_HELPER int IFunction_Newtonian(void *ctx, CeedInt Q, const CeedSc
         dqi[k] = Grad_q[0][k][i] * dXdx[0][j] + Grad_q[1][k][i] * dXdx[1][j] + Grad_q[2][k][i] * dXdx[2][j];
       }
       dx_i[j]   = 1.;
-      grad_s[j] = StateFromQi_fwd(context, s, dqi, x_i, dx_i);
+      if (StateFromQi_fwd) {
+        grad_s[j] = StateFromU_fwd(context, s, dqi, x_i, dx_i);
+      } else {
+        grad_s[j] = StateFromY_fwd(context, s, dqi, x_i, dx_i);
+      }
+      //grad_s[j] = StateFromQi_fwd(context, s, dqi, x_i, dx_i);
     }
 
     CeedScalar strain_rate[6], kmstress[6], stress[3][3], Fe[3];
@@ -245,7 +263,12 @@ CEED_QFUNCTION_HELPER int IFunction_Newtonian(void *ctx, CeedInt Q, const CeedSc
     // -- Stabilization method: none (Galerkin), SU, or SUPG
     CeedScalar Tau_d[3], stab[5][3], U_dot[5] = {0}, qi_dot[5], dx0[3] = {0};
     for (int j = 0; j < 5; j++) qi_dot[j] = q_dot[j][i];
-    State s_dot = StateFromQi_fwd(context, s, qi_dot, x_i, dx0);
+    State s_dot;
+    if(StateFromQi_fwd) {
+      s_dot = StateFromU_fwd(context, s, qi_dot, x_i, dx0);
+    } else {
+      s_dot = StateFromY_fwd(context, s, qi_dot, x_i, dx0);
+    }
     UnpackState_U(s_dot.U, U_dot);
 
     for (CeedInt j = 0; j < 5; j++) v[j][i] = wdetJ * (U_dot[j] - body_force[j]);
@@ -268,11 +291,11 @@ CEED_QFUNCTION_HELPER int IFunction_Newtonian(void *ctx, CeedInt Q, const CeedSc
 }
 
 CEED_QFUNCTION(IFunction_Newtonian_Conserv)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
-  return IFunction_Newtonian(ctx, Q, in, out, StateFromU, StateFromU_fwd);
+  return IFunction_Newtonian(ctx, Q, in, out, 1, 1);
 }
 
 CEED_QFUNCTION(IFunction_Newtonian_Prim)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
-  return IFunction_Newtonian(ctx, Q, in, out, StateFromY, StateFromY_fwd);
+  return IFunction_Newtonian(ctx, Q, in, out, 0, 0);
 }
 
 // *****************************************************************************
@@ -312,17 +335,33 @@ CEED_QFUNCTION_HELPER int IJacobian_Newtonian(void *ctx, CeedInt Q, const CeedSc
     for (int j = 0; j < 6; j++) kmstress[j] = jac_data[5 + j][i];
     for (int j = 0; j < 3; j++) Tau_d[j] = jac_data[5 + 6 + j][i];
     const CeedScalar x_i[3] = {x[0][i], x[1][i], x[2][i]};
-    State            s      = StateFromQi(context, qi, x_i);
+    State            s;
+    if (StateFromQi) {
+	s    = StateFromU(context, qi, x_i);
+    } else {
+	s    = StateFromY(context, qi, x_i);
+    }
 
     CeedScalar dqi[5], dx0[3] = {0};
     for (int j = 0; j < 5; j++) dqi[j] = dq[j][i];
-    State ds = StateFromQi_fwd(context, s, dqi, x_i, dx0);
+    State ds;
+    if (StateFromQi_fwd) {
+      ds = StateFromU_fwd(context, s, dqi, x_i, dx0);
+    } else {
+      ds = StateFromY_fwd(context, s, dqi, x_i, dx0);
+    }
 
     State grad_ds[3];
     for (int j = 0; j < 3; j++) {
       CeedScalar dqi_j[5];
       for (int k = 0; k < 5; k++) dqi_j[k] = Grad_dq[0][k][i] * dXdx[0][j] + Grad_dq[1][k][i] * dXdx[1][j] + Grad_dq[2][k][i] * dXdx[2][j];
-      grad_ds[j] = StateFromQi_fwd(context, s, dqi_j, x_i, dx0);
+      if (StateFromQi_fwd) {
+        grad_ds[j] = StateFromU_fwd(context, s, dqi_j, x_i, dx0);
+      }
+      else {
+        grad_ds[j] = StateFromY_fwd(context, s, dqi_j, x_i, dx0);
+      }
+      //grad_ds[j] = StateFromQi_fwd(context, s, dqi_j, x_i, dx0);
     }
 
     CeedScalar dstrain_rate[6], dkmstress[6], stress[3][3], dstress[3][3], dFe[3];
@@ -361,11 +400,11 @@ CEED_QFUNCTION_HELPER int IJacobian_Newtonian(void *ctx, CeedInt Q, const CeedSc
 }
 
 CEED_QFUNCTION(IJacobian_Newtonian_Conserv)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
-  return IJacobian_Newtonian(ctx, Q, in, out, StateFromU, StateFromU_fwd);
+  return IJacobian_Newtonian(ctx, Q, in, out, 1, 1);
 }
 
 CEED_QFUNCTION(IJacobian_Newtonian_Prim)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
-  return IJacobian_Newtonian(ctx, Q, in, out, StateFromY, StateFromY_fwd);
+  return IJacobian_Newtonian(ctx, Q, in, out, 0, 0);
 }
 
 // *****************************************************************************
@@ -387,7 +426,12 @@ CEED_QFUNCTION_HELPER int BoundaryIntegral(void *ctx, CeedInt Q, const CeedScala
   CeedPragmaSIMD for (CeedInt i = 0; i < Q; i++) {
     const CeedScalar x_i[3] = {x[0][i], x[1][i], x[2][i]};
     const CeedScalar qi[5]  = {q[0][i], q[1][i], q[2][i], q[3][i], q[4][i]};
-    State            s      = StateFromQi(context, qi, x_i);
+    State            s;
+    if(StateFromQi) {
+      s = StateFromU(context, qi, x_i);
+    } else {
+      s = StateFromY(context, qi, x_i);
+    }
 
     const CeedScalar wdetJb = (is_implicit ? -1. : 1.) * q_data_sur[0][i];
     // ---- Normal vector
@@ -403,7 +447,12 @@ CEED_QFUNCTION_HELPER int BoundaryIntegral(void *ctx, CeedInt Q, const CeedScala
       CeedScalar dx_i[3] = {0}, dqi[5];
       for (CeedInt k = 0; k < 5; k++) dqi[k] = Grad_q[0][k][i] * dXdx[0][j] + Grad_q[1][k][i] * dXdx[1][j];
       dx_i[j]   = 1.;
-      grad_s[j] = StateFromQi_fwd(context, s, dqi, x_i, dx_i);
+      if (StateFromQi_fwd) {
+        grad_s[j] = StateFromU_fwd(context, s, dqi, x_i, dx_i);
+      } else {
+        grad_s[j] = StateFromY_fwd(context, s, dqi, x_i, dx_i);
+      }
+      //grad_s[j] = StateFromQi_fwd(context, s, dqi, x_i, dx_i);
     }
 
     CeedScalar strain_rate[6], kmstress[6], stress[3][3], Fe[3];
@@ -427,11 +476,11 @@ CEED_QFUNCTION_HELPER int BoundaryIntegral(void *ctx, CeedInt Q, const CeedScala
 }
 
 CEED_QFUNCTION(BoundaryIntegral_Conserv)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
-  return BoundaryIntegral(ctx, Q, in, out, StateFromU, StateFromU_fwd);
+  return BoundaryIntegral(ctx, Q, in, out, 1, 1);
 }
 
 CEED_QFUNCTION(BoundaryIntegral_Prim)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
-  return BoundaryIntegral(ctx, Q, in, out, StateFromY, StateFromY_fwd);
+  return BoundaryIntegral(ctx, Q, in, out, 0, 0);
 }
 
 // *****************************************************************************
@@ -467,15 +516,29 @@ CEED_QFUNCTION_HELPER int BoundaryIntegral_Jacobian(void *ctx, CeedInt Q, const 
     for (int j = 0; j < 6; j++) kmstress[j] = jac_data_sur[5 + j][i];
     for (int j = 0; j < 5; j++) dqi[j] = dq[j][i];
 
-    State s  = StateFromQi(context, qi, x_i);
-    State ds = StateFromQi_fwd(context, s, dqi, x_i, dx_i);
+    State s, ds;
+    if (StateFromQi) {
+      s = StateFromU(context, qi, x_i);
+    } else {
+      s = StateFromY(context, qi, x_i);
+    }
+    if (StateFromQi_fwd) {
+      ds = StateFromU_fwd(context, s, dqi, x_i, dx_i);
+    } else {
+      ds = StateFromY_fwd(context, s, dqi, x_i, dx_i);
+    }
 
     State grad_ds[3];
     for (CeedInt j = 0; j < 3; j++) {
       CeedScalar dx_i[3] = {0}, dqi_j[5];
       for (CeedInt k = 0; k < 5; k++) dqi_j[k] = Grad_dq[0][k][i] * dXdx[0][j] + Grad_dq[1][k][i] * dXdx[1][j];
       dx_i[j]    = 1.;
-      grad_ds[j] = StateFromQi_fwd(context, s, dqi_j, x_i, dx_i);
+      if (StateFromQi_fwd) {
+        grad_ds[j] = StateFromU_fwd(context, s, dqi_j, x_i, dx_i);
+      } else {
+        grad_ds[j] = StateFromY_fwd(context, s, dqi_j, x_i, dx_i);
+      }
+      //grad_ds[j] = StateFromQi_fwd(context, s, dqi_j, x_i, dx_i);
     }
 
     CeedScalar dstrain_rate[6], dkmstress[6], stress[3][3], dstress[3][3], dFe[3];
@@ -497,11 +560,11 @@ CEED_QFUNCTION_HELPER int BoundaryIntegral_Jacobian(void *ctx, CeedInt Q, const 
 }
 
 CEED_QFUNCTION(BoundaryIntegral_Jacobian_Conserv)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
-  return BoundaryIntegral_Jacobian(ctx, Q, in, out, StateFromU, StateFromU_fwd);
+  return BoundaryIntegral_Jacobian(ctx, Q, in, out, 1, 1);
 }
 
 CEED_QFUNCTION(BoundaryIntegral_Jacobian_Prim)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
-  return BoundaryIntegral_Jacobian(ctx, Q, in, out, StateFromY, StateFromY_fwd);
+  return BoundaryIntegral_Jacobian(ctx, Q, in, out, 0, 0);
 }
 
 #endif  // newtonian_h

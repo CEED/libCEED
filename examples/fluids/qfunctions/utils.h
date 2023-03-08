@@ -22,7 +22,8 @@ CEED_QFUNCTION_HELPER CeedScalar Square(CeedScalar x) { return x * x; }
 CEED_QFUNCTION_HELPER CeedScalar Cube(CeedScalar x) { return x * x * x; }
 
 // @brief Dot product of 3 element vectors
-CEED_QFUNCTION_HELPER CeedScalar Dot3(const CeedScalar u[3], const CeedScalar v[3]) { return u[0] * v[0] + u[1] * v[1] + u[2] * v[2]; }
+//CEED_QFUNCTION_HELPER CeedScalar Dot3(const CeedScalar u[3], const CeedScalar v[3]) { return u[0] * v[0] + u[1] * v[1] + u[2] * v[2]; }
+CEED_QFUNCTION_HELPER CeedScalar Dot3(const CeedScalar *u, const CeedScalar *v) { return u[0] * v[0] + u[1] * v[1] + u[2] * v[2]; }
 
 // @brief Unpack Kelvin-Mandel notation symmetric tensor into full tensor
 CEED_QFUNCTION_HELPER void KMUnpack(const CeedScalar v[6], CeedScalar A[3][3]) {
