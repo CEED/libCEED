@@ -164,14 +164,17 @@ CEED_QFUNCTION_HELPER StateConservative StateConservativeAXPBYPCZ(CeedScalar a, 
 }
 
 // Function pointer types for generic state array -> State struct functions
-typedef State (*StateFromQi_t)(NewtonianIdealGasContext gas, const CeedScalar qi[5], const CeedScalar x[3]);
+//typedef State (*StateFromQi_t)(NewtonianIdealGasContext gas, const CeedScalar qi[5], const CeedScalar x[3]);
+typedef CeedInt StateFromQi_t;
 // Function pointer types for State struct -> generic state array
-typedef void (*StateToQi_t)(NewtonianIdealGasContext gas, const State input, CeedScalar qi[5]);
+//typedef void (*StateToQi_t)(NewtonianIdealGasContext gas, const State input, CeedScalar qi[5]);
+typedef CeedInt StateToQi_t;
 
 CEED_QFUNCTION_HELPER void StateToU(NewtonianIdealGasContext gas, const State input, CeedScalar U[5]) { UnpackState_U(input.U, U); }
 
 CEED_QFUNCTION_HELPER void StateToY(NewtonianIdealGasContext gas, const State input, CeedScalar Y[5]) { UnpackState_Y(input.Y, Y); }
-typedef State (*StateFromQi_fwd_t)(NewtonianIdealGasContext gas, State s, const CeedScalar dqi[5], const CeedScalar x[3], const CeedScalar dx[3]);
+//typedef State (*StateFromQi_fwd_t)(NewtonianIdealGasContext gas, State s, const CeedScalar dqi[5], const CeedScalar x[3], const CeedScalar dx[3]);
+typedef CeedInt StateFromQi_fwd_t;
 
 CEED_QFUNCTION_HELPER State StateFromU(NewtonianIdealGasContext gas, const CeedScalar U[5], const CeedScalar x[3]) {
   State s;
