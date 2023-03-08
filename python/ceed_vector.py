@@ -59,7 +59,7 @@ class Vector():
         return out_string
 
     # Copy the array from a vector into self
-    def copy(self, vec_source):
+    def copy_from(self, vec_source):
         """Copies the array of vec_source into the array of self.
 
            Args:
