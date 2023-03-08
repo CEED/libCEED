@@ -222,6 +222,43 @@ int CeedVectorReferenceCopy(CeedVector vec, CeedVector *vec_copy) {
 }
 
 /**
+  @brief Copy a CeedVector into a different CeedVector.
+          Both pointers should be destroyed with `CeedVectorDestroy()`.
+          Note: If `*vec_copy` is non-NULL, then it is assumed that `*vec_copy` is a pointer to a CeedVector.
+          This CeedVector will be destroyed if `*vec_copy` is the only reference to this CeedVector.
+
+  @param[in]     vec      CeedVector to copy
+  @param[in,out] vec_copy Variable to store copied CeedVector to
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref User
+**/
+int CeedVectorCopy(CeedVector vec, CeedVector vec_copy) {
+  Ceed        ceed;
+  CeedMemType mem_type, mem_type_copy;
+  CeedScalar *array;
+
+  // Get the preferred memory type
+  CeedVectorGetCeed(vec, &ceed);
+  CeedGetPreferredMemType(ceed, &mem_type);
+
+  // Get the preferred memory type
+  CeedVectorGetCeed(vec_copy, &ceed);
+  CeedGetPreferredMemType(ceed, &mem_type_copy);
+
+  // Check that both have same memory type
+  if (mem_type != mem_type_copy) mem_type = CEED_MEM_HOST;
+
+  // Copy the values from vec to vec_copy
+  CeedCall(CeedVectorGetArray(vec, mem_type, &array));
+  CeedCall(CeedVectorSetArray(vec_copy, mem_type, CEED_COPY_VALUES, array));
+
+  CeedCall(CeedVectorRestoreArray(vec, &array));
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
   @brief Set the array used by a CeedVector, freeing any previously allocated array if applicable.
            The backend may copy values to a different memtype, such as during @ref CeedOperatorApply().
            See also @ref CeedVectorSyncArray() and @ref CeedVectorTakeArray().
@@ -689,6 +726,80 @@ int CeedVectorAXPY(CeedVector y, CeedScalar alpha, CeedVector x) {
   assert(y_array);
 
   for (CeedInt i = 0; i < n_y; i++) y_array[i] += alpha * x_array[i];
+
+  CeedCall(CeedVectorRestoreArray(y, &y_array));
+  CeedCall(CeedVectorRestoreArrayRead(x, &x_array));
+
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
+  @brief Compute y = alpha x + beta y
+
+  @param[in,out] y     target vector for sum
+  @param[in]     alpha first scaling factor
+  @param[in]     beta  second scaling factor
+  @param[in]     x     second vector, must be different than y
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref User
+**/
+int CeedVectorAXPBY(CeedVector y, CeedScalar alpha, CeedScalar beta, CeedVector x) {
+  CeedScalar       *y_array = NULL;
+  CeedScalar const *x_array = NULL;
+  CeedSize          n_x, n_y;
+
+  CeedCall(CeedVectorGetLength(y, &n_y));
+  CeedCall(CeedVectorGetLength(x, &n_x));
+  if (n_x != n_y) {
+    // LCOV_EXCL_START
+    return CeedError(y->ceed, CEED_ERROR_UNSUPPORTED, "Cannot add vector of different lengths");
+    // LCOV_EXCL_STOP
+  }
+  if (x == y) {
+    // LCOV_EXCL_START
+    return CeedError(y->ceed, CEED_ERROR_UNSUPPORTED, "Cannot use same vector for x and y in CeedVectorAXPBY");
+    // LCOV_EXCL_STOP
+  }
+
+  bool has_valid_array_x = true, has_valid_array_y = true;
+  CeedCall(CeedVectorHasValidArray(x, &has_valid_array_x));
+  if (!has_valid_array_x) {
+    // LCOV_EXCL_START
+    return CeedError(x->ceed, CEED_ERROR_BACKEND, "CeedVector x has no valid data, must set data with CeedVectorSetValue or CeedVectorSetArray");
+    // LCOV_EXCL_STOP
+  }
+  CeedCall(CeedVectorHasValidArray(y, &has_valid_array_y));
+  if (!has_valid_array_y) {
+    // LCOV_EXCL_START
+    return CeedError(y->ceed, CEED_ERROR_BACKEND, "CeedVector y has no valid data, must set data with CeedVectorSetValue or CeedVectorSetArray");
+    // LCOV_EXCL_STOP
+  }
+
+  Ceed ceed_parent_x, ceed_parent_y;
+  CeedCall(CeedGetParent(x->ceed, &ceed_parent_x));
+  CeedCall(CeedGetParent(y->ceed, &ceed_parent_y));
+  if (ceed_parent_x != ceed_parent_y) {
+    // LCOV_EXCL_START
+    return CeedError(y->ceed, CEED_ERROR_INCOMPATIBLE, "Vectors x and y must be created by the same Ceed context");
+    // LCOV_EXCL_STOP
+  }
+
+  // Backend implementation
+  if (y->AXPBY) {
+    CeedCall(y->AXPBY(y, alpha, beta, x));
+    return CEED_ERROR_SUCCESS;
+  }
+
+  // Default implementation
+  CeedCall(CeedVectorGetArray(y, CEED_MEM_HOST, &y_array));
+  CeedCall(CeedVectorGetArrayRead(x, CEED_MEM_HOST, &x_array));
+
+  assert(x_array);
+  assert(y_array);
+
+  for (CeedInt i = 0; i < n_y; i++) y_array[i] += alpha * x_array[i] + beta * y_array[i];
 
   CeedCall(CeedVectorRestoreArray(y, &y_array));
   CeedCall(CeedVectorRestoreArrayRead(x, &x_array));

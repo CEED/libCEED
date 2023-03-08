@@ -97,6 +97,29 @@ extern "C" int CeedDeviceAXPY_Hip(CeedScalar *y_array, CeedScalar alpha, CeedSca
 }
 
 //------------------------------------------------------------------------------
+// Kernel for axpby
+//------------------------------------------------------------------------------
+__global__ static void axpbyValueK(CeedScalar *__restrict__ y, CeedScalar alpha, CeedScalar beta, CeedScalar *__restrict__ x, CeedInt size) {
+  int idx = threadIdx.x + blockDim.x * blockIdx.x;
+  if (idx >= size) return;
+  y[idx] = beta * y[idx];
+  y[idx] += alpha * x[idx];
+}
+
+//------------------------------------------------------------------------------
+// Compute y = alpha x + beta y on device
+//------------------------------------------------------------------------------
+extern "C" int CeedDeviceAXPBY_Hip(CeedScalar *y_array, CeedScalar alpha, CeedScalar beta, CeedScalar *x_array, CeedInt length) {
+  const int bsize    = 512;
+  const int vecsize  = length;
+  int       gridsize = vecsize / bsize;
+
+  if (bsize * gridsize < vecsize) gridsize += 1;
+  hipLaunchKernelGGL(axpbyValueK, dim3(gridsize), dim3(bsize), 0, 0, y_array, alpha, beta, x_array, length);
+  return 0;
+}
+
+//------------------------------------------------------------------------------
 // Kernel for pointwise mult
 //------------------------------------------------------------------------------
 __global__ static void pointwiseMultValueK(CeedScalar *__restrict__ w, CeedScalar *x, CeedScalar *__restrict__ y, CeedInt size) {

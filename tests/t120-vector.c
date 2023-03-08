@@ -1,6 +1,6 @@
 /// @file
-/// Test creation, copying, and destroying of a vector
-/// \test Test creation, copying, and destroying of a vector
+/// Test creation, reference copying, and destroying of a vector
+/// \test Test creation, reference copying, and destroying of a vector
 #include <ceed.h>
 
 int main(int argc, char **argv) {

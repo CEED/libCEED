@@ -324,6 +324,52 @@ def test_124(ceed_resource):
             assert a[i] == 3 * i
 
 # -------------------------------------------------------------------------------
+# Test AXPBY
+# -------------------------------------------------------------------------------
+
+
+def test_125(ceed_resource, capsys):
+    ceed = libceed.Ceed(ceed_resource)
+
+    n = 10
+    x = ceed.Vector(n)
+    y = ceed.Vector(n)
+
+    a = np.arange(10, 10 + n, dtype=ceed.scalar_type())
+    x.set_array(a, cmode=libceed.COPY_VALUES)
+    y.set_array(a, cmode=libceed.COPY_VALUES)
+
+    y.axpby(-0.5, 1.0, x)
+    with y.array() as b:
+        assert np.allclose(1.5 * a, b)
+
+# -------------------------------------------------------------------------------
+# Test vector copy
+# -------------------------------------------------------------------------------
+
+
+def test_126(ceed_resource, capsys):
+    ceed = libceed.Ceed(ceed_resource)
+
+    n = 10
+
+    x = ceed.Vector(n)
+    y = ceed.Vector(n)
+
+    a = np.arange(10, 10 + n, dtype=ceed.scalar_type())
+    x.set_array(a, cmode=libceed.USE_POINTER)
+
+    a2 = np.arange(10, n, dtype=ceed.scalar_type())
+    y.set_array(a2, cmode=libceed.USE_POINTER)
+
+    y.copy_from(x)
+
+    with y.array_read() as y_array:
+        for i in range(n):
+            assert y_array[i] == a[i]
+
+
+# -------------------------------------------------------------------------------
 # Test modification of reshaped array
 # -------------------------------------------------------------------------------
 

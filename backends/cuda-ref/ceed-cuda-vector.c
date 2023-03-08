@@ -595,6 +595,44 @@ static int CeedVectorAXPY_Cuda(CeedVector y, CeedScalar alpha, CeedVector x) {
 }
 
 //------------------------------------------------------------------------------
+// Compute y = alpha x + beta y on the host
+//------------------------------------------------------------------------------
+static int CeedHostAXPBY_Cuda(CeedScalar *y_array, CeedScalar alpha, CeedScalar beta, CeedScalar *x_array, CeedInt length) {
+  for (int i = 0; i < length; i++) y_array[i] += alpha * x_array[i] + beta * y_array[i];
+  return CEED_ERROR_SUCCESS;
+}
+
+//------------------------------------------------------------------------------
+// Compute y = alpha x + beta y on device (impl in .cu file)
+//------------------------------------------------------------------------------
+int CeedDeviceAXPBY_Cuda(CeedScalar *y_array, CeedScalar alpha, CeedScalar beta, CeedScalar *x_array, CeedInt length);
+
+//------------------------------------------------------------------------------
+// Compute y = alpha x + beta y
+//------------------------------------------------------------------------------
+static int CeedVectorAXPBY_Cuda(CeedVector y, CeedScalar alpha, CeedScalar beta, CeedVector x) {
+  Ceed ceed;
+  CeedCallBackend(CeedVectorGetCeed(y, &ceed));
+  CeedVector_Cuda *y_impl, *x_impl;
+  CeedCallBackend(CeedVectorGetData(y, &y_impl));
+  CeedCallBackend(CeedVectorGetData(x, &x_impl));
+  CeedSize length;
+  CeedCallBackend(CeedVectorGetLength(y, &length));
+
+  // Set value for synced device/host array
+  if (y_impl->d_array) {
+    CeedCallBackend(CeedVectorSyncArray(x, CEED_MEM_DEVICE));
+    CeedCallBackend(CeedDeviceAXPBY_Cuda(y_impl->d_array, alpha, beta, x_impl->d_array, length));
+  }
+  if (y_impl->h_array) {
+    CeedCallBackend(CeedVectorSyncArray(x, CEED_MEM_HOST));
+    CeedCallBackend(CeedHostAXPBY_Cuda(y_impl->h_array, alpha, beta, x_impl->h_array, length));
+  }
+
+  return CEED_ERROR_SUCCESS;
+}
+
+//------------------------------------------------------------------------------
 // Compute the pointwise multiplication w = x .* y on the host
 //------------------------------------------------------------------------------
 static int CeedHostPointwiseMult_Cuda(CeedScalar *w_array, CeedScalar *x_array, CeedScalar *y_array, CeedInt length) {

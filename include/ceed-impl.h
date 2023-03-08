@@ -135,6 +135,7 @@ struct CeedVector_private {
   int (*Norm)(CeedVector, CeedNormType, CeedScalar *);
   int (*Scale)(CeedVector, CeedScalar);
   int (*AXPY)(CeedVector, CeedScalar, CeedVector);
+  int (*AXPBY)(CeedVector, CeedScalar, CeedScalar, CeedVector);
   int (*PointwiseMult)(CeedVector, CeedVector, CeedVector);
   int (*Reciprocal)(CeedVector);
   int (*Destroy)(CeedVector);
