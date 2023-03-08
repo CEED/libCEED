@@ -60,7 +60,7 @@ class Vector():
 
     # Copy self to a different Vector
     def copy(self, vec_copy):
-        """Copies the array of a self into the array of vec_copy.
+        """Copies the array of self into the array of vec_copy.
 
            Args:
              *vector: the Vector to copy to"""

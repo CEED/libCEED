@@ -359,11 +359,14 @@ def test_126(ceed_resource, capsys):
     a = np.arange(10, 10 + n, dtype=ceed.scalar_type())
     x.set_array(a, cmode=libceed.USE_POINTER)
 
-    y.copy(x)
+    a2 = np.arange(10, n, dtype=ceed.scalar_type())
+    y.set_array(a2, cmode=libceed.USE_POINTER)
+
+    x.copy(y)
 
     with y.array_read() as y_array:
         for i in range(n):
-            assert y_array[i] == x_array[i]
+            assert y_array[i] == a[i]
 
 
 # -------------------------------------------------------------------------------
