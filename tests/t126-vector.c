@@ -4,9 +4,9 @@
 #include <ceed.h>
 
 int main(int argc, char **argv) {
-  Ceed              ceed;
-  CeedVector        x, x_copy;
-  CeedInt           len = 10;
+  Ceed       ceed;
+  CeedVector x, x_copy;
+  CeedInt    len = 10;
 
   CeedInit(argv[1], &ceed);
 
@@ -17,7 +17,7 @@ int main(int argc, char **argv) {
     CeedScalar array[len], array_copy[len];
 
     for (CeedInt i = 0; i < len; i++) {
-      array[i] = 10 + i;
+      array[i]      = 10 + i;
       array_copy[i] = i;
     }
 

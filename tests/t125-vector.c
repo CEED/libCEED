@@ -5,9 +5,9 @@
 #include <math.h>
 
 int main(int argc, char **argv) {
-  Ceed              ceed;
-  CeedVector        x, y;
-  CeedInt           len = 10;
+  Ceed       ceed;
+  CeedVector x, y;
+  CeedInt    len = 10;
 
   CeedInit(argv[1], &ceed);
 
