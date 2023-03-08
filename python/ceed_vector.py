@@ -58,15 +58,15 @@ class Vector():
 
         return out_string
 
-    # Copy self to a different Vector
-    def copy(self, vec_copy):
-        """Copies the array of self into the array of vec_copy.
+    # Copy the array from a vector into self
+    def copy(self, vec_source):
+        """Copies the array of vec_source into the array of self.
 
            Args:
-             *vector: the Vector to copy to"""
+             *vector: the Vector to copy from"""
 
         # libCEED call
-        err_code = lib.CeedVectorCopy(self._pointer[0], vec_copy._pointer[0])
+        err_code = lib.CeedVectorCopy(vec_source._pointer[0], self._pointer[0])
         self._ceed._check_error(err_code)
 
     # Set Vector's data array
