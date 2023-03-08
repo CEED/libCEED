@@ -1039,7 +1039,10 @@ int CeedView(Ceed ceed, FILE *stream) {
   @ref User
 **/
 int CeedDestroy(Ceed *ceed) {
-  if (!*ceed || --(*ceed)->ref_count > 0) return CEED_ERROR_SUCCESS;
+  if (!*ceed || --(*ceed)->ref_count > 0) {
+    *ceed = NULL;
+    return CEED_ERROR_SUCCESS;
+  }
   if ((*ceed)->delegate) CeedCall(CeedDestroy(&(*ceed)->delegate));
 
   if ((*ceed)->obj_delegate_count > 0) {

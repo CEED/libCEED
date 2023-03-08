@@ -1757,7 +1757,10 @@ int CeedOperatorApplyAdd(CeedOperator op, CeedVector in, CeedVector out, CeedReq
   @ref User
 **/
 int CeedOperatorDestroy(CeedOperator *op) {
-  if (!*op || --(*op)->ref_count > 0) return CEED_ERROR_SUCCESS;
+  if (!*op || --(*op)->ref_count > 0) {
+    *op = NULL;
+    return CEED_ERROR_SUCCESS;
+  }
   if ((*op)->Destroy) CeedCall((*op)->Destroy(*op));
   CeedCall(CeedDestroy(&(*op)->ceed));
   // Free fields

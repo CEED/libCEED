@@ -890,8 +890,10 @@ int CeedVectorGetLength(CeedVector vec, CeedSize *length) {
   @ref User
 **/
 int CeedVectorDestroy(CeedVector *vec) {
-  if (!*vec || --(*vec)->ref_count > 0) return CEED_ERROR_SUCCESS;
-
+  if (!*vec || --(*vec)->ref_count > 0) {
+    *vec = NULL;
+    return CEED_ERROR_SUCCESS;
+  }
   if (((*vec)->state % 2) == 1) {
     return CeedError((*vec)->ceed, CEED_ERROR_ACCESS, "Cannot destroy CeedVector, the writable access lock is in use");
   }

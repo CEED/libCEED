@@ -1025,7 +1025,10 @@ int CeedQFunctionApply(CeedQFunction qf, CeedInt Q, CeedVector *u, CeedVector *v
   @ref User
 **/
 int CeedQFunctionDestroy(CeedQFunction *qf) {
-  if (!*qf || --(*qf)->ref_count > 0) return CEED_ERROR_SUCCESS;
+  if (!*qf || --(*qf)->ref_count > 0) {
+    *qf = NULL;
+    return CEED_ERROR_SUCCESS;
+  }
   // Backend destroy
   if ((*qf)->Destroy) {
     CeedCall((*qf)->Destroy(*qf));

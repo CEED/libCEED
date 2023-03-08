@@ -1077,8 +1077,10 @@ int CeedQFunctionAssemblyDataGetObjects(CeedQFunctionAssemblyData data, CeedVect
   @ref Backend
 **/
 int CeedQFunctionAssemblyDataDestroy(CeedQFunctionAssemblyData *data) {
-  if (!*data || --(*data)->ref_count > 0) return CEED_ERROR_SUCCESS;
-
+  if (!*data || --(*data)->ref_count > 0) {
+    *data = NULL;
+    return CEED_ERROR_SUCCESS;
+  }
   CeedCall(CeedDestroy(&(*data)->ceed));
   CeedCall(CeedVectorDestroy(&(*data)->vec));
   CeedCall(CeedElemRestrictionDestroy(&(*data)->rstr));
@@ -1493,8 +1495,10 @@ int CeedOperatorAssemblyDataGetElemRestrictions(CeedOperatorAssemblyData data, C
   @ref Backend
 **/
 int CeedOperatorAssemblyDataDestroy(CeedOperatorAssemblyData *data) {
-  if (!*data) return CEED_ERROR_SUCCESS;
-
+  if (!*data) {
+    *data = NULL;
+    return CEED_ERROR_SUCCESS;
+  }
   CeedCall(CeedDestroy(&(*data)->ceed));
   for (CeedInt b = 0; b < (*data)->num_active_bases; b++) {
     CeedCall(CeedBasisDestroy(&(*data)->active_bases[b]));
