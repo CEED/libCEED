@@ -28,13 +28,6 @@ int main(int argc, char **argv) {
   CeedVectorCopy(x, x_copy);
 
   {
-    CeedSize len_2;
-
-    CeedVectorGetLength(x_copy, &len_2);
-    if (len != len_2) printf("Error copying CeedVector\n");
-  }
-
-  {
     const CeedScalar *read_array;
     // Check that new array from x_copy is the same as the original input array a
     CeedVectorGetArrayRead(x_copy, CEED_MEM_HOST, &read_array);

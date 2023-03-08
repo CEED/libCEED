@@ -275,7 +275,7 @@ impl<'a> Vector<'a> {
     ///
     /// * `vec_source` - vector to copy array values from
     #[allow(unused_mut)]
-    fn copy_from(&mut self, vec_source: &crate::Vector) -> crate::Result<bind_ceed::CeedVector> {
+    fn copy_from(mut self, vec_source: &crate::Vector) -> crate::Result<Self> {
         let ierr = unsafe { bind_ceed::CeedVectorCopy(vec_source.ptr, self.ptr) };
         self.check_error(ierr)?;
         Ok(self)
