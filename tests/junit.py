@@ -181,10 +181,13 @@ def run(test, backends, mode):
                 print('# $ {}'.format(test_case.args))
                 if test_case.is_error():
                     print('not ok {} - ERROR: {}'.format(index, (test_case.errors[0]['message'] or "NO MESSAGE").strip()))
-                    print(test_case.errors[0]['output'].strip())
+                    print('Output: \n{}'.format(test_case.errors[0]['output'].strip()))
+                    if test_case.is_failure():
+                        print('            FAIL: {}'.format(index, (test_case.failures[0]['message'] or "NO MESSAGE").strip()))
+                        print('Output: \n{}'.format(test_case.failures[0]['output'].strip()))
                 elif test_case.is_failure():
                     print('not ok {} - FAIL: {}'.format(index, (test_case.failures[0]['message'] or "NO MESSAGE").strip()))
-                    print(test_case.failures[0]['output'].strip())
+                    print('Output: \n{}'.format(test_case.failures[0]['output'].strip()))
                 elif test_case.is_skipped():
                     print('ok {} - SKIP: {}'.format(index, (test_case.skipped[0]['message'] or "NO MESSAGE").strip()))
                 else:
@@ -192,14 +195,15 @@ def run(test, backends, mode):
                 sys.stdout.flush()
             else:
                 # print error or failure information if JUNIT mode
-                if test_case.is_error():
+                if test_case.is_error() or test_case.is_failure():
                     print('Test: {} {}'.format(test_case.name.split(' ')[0], test_case.name.split(' ')[1]))
-                    print('ERROR: {}'.format((test_case.errors[0]['message'] or "NO MESSAGE").strip()))
-                    print('Output: {}'.format((test_case.errors[0]['output'] or "NO OUTPUT").strip()))
-                elif test_case.is_failure():
-                    print('Test: {} {}'.format(test_case.name.split(' ')[0], test_case.name.split(' ')[1]))
-                    print('FAIL: {}'.format((test_case.failures[0]['message'] or "NO MESSAGE").strip()))
-                    print('Output: {}'.format((test_case.failures[0]['output'] or "NO OUTPUT").strip()))
+                    print('  $ {}'.format(test_case.args))
+                    if test_case.is_error():
+                        print('ERROR: {}'.format((test_case.errors[0]['message'] or "NO MESSAGE").strip()))
+                        print('Output: \n{}'.format((test_case.errors[0]['output'] or "NO OUTPUT").strip()))
+                    if test_case.is_failure():
+                        print('FAIL: {}'.format((test_case.failures[0]['message'] or "NO MESSAGE").strip()))
+                        print('Output: \n{}'.format((test_case.failures[0]['output'] or "NO OUTPUT").strip()))
                 sys.stdout.flush()
             index += 1
 
