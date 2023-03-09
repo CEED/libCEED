@@ -647,11 +647,27 @@ For the Density Current, Channel, and Blasius problems, the following common com
   - State variables to solve solution with. `conservative` ($\rho, \rho \bm{u}, \rho e$) or `primitive` ($P, \bm{u}, T$)
   - `conservative`
   - string
+
+* - `-idl_decay_time`
+  - Characteristic timescale of the pressure deviance decay. The timestep is good starting point
+  - `-1` (disabled)
+  - `s`
+
+* - `-idl_start`
+  - Start of IDL in the x direction
+  - `0`
+  - `m`
+
+* - `-idl_length`
+  - Length of IDL in the positive x direction
+  - `0`
+  - `m`
+
 :::
 
 #### Gaussian Wave
 
-The gaussian wave problem has the following command-line options in addition to the Newtonian Ideal Gas options:
+The Gaussian wave problem has the following command-line options in addition to the Newtonian Ideal Gas options:
 
 :::{list-table} Gaussian Wave Runtime Options
 :header-rows: 1
