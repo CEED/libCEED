@@ -13,10 +13,6 @@
 #include "../navierstokes.h"
 #include "../qfunctions/newtonian_types.h"
 
-typedef enum {
-  RIEMANN_HLL,
-  RIEMANN_HLLC,
-} RiemannSolverType;
 static const char *const RiemannSolverTypes[] = {"hll", "hllc", "RiemannSolverTypes", "RIEMANN_", NULL};
 
 PetscErrorCode FreestreamBCSetup(ProblemData *problem, DM dm, void *ctx, NewtonianIdealGasContext newtonian_ig_ctx, const StatePrimitive *reference) {
@@ -24,7 +20,7 @@ PetscErrorCode FreestreamBCSetup(ProblemData *problem, DM dm, void *ctx, Newtoni
   MPI_Comm             comm = user->comm;
   FreestreamContext    freestream_ctx;
   CeedQFunctionContext freestream_context;
-  RiemannSolverType    riemann = RIEMANN_HLLC;
+  RiemannFluxType      riemann = RIEMANN_HLLC;
   PetscFunctionBeginUser;
   PetscScalar meter  = user->units->meter;
   PetscScalar second = user->units->second;
