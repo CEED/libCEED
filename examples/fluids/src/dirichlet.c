@@ -119,7 +119,7 @@ PetscErrorCode SetupStrongSTG_Ceed(Ceed ceed, CeedData ceed_data, DM dm, AppCtx 
     CeedOperatorDestroy(&op_stgdata);
   }
 
-  CeedOperatorContextGetFieldLabel(op_dirichlet, "solution time", &phys->stg_solution_time_label);
+  CeedOperatorGetContextFieldLabel(op_dirichlet, "solution time", &phys->stg_solution_time_label);
 
   CeedBasisDestroy(&basis_x_to_q_sur);
   CeedQFunctionDestroy(&qf_setup);
@@ -137,7 +137,7 @@ PetscErrorCode DMPlexInsertBoundaryValues_StrongBCCeed(DM dm, PetscBool insert_e
   PetscCall(DMGetApplicationContext(dm, &user));
 
   if (user->phys->stg_solution_time_label) {
-    CeedOperatorContextSetDouble(user->op_dirichlet, user->phys->stg_solution_time_label, &time);
+    CeedOperatorSetContextDouble(user->op_dirichlet, user->phys->stg_solution_time_label, &time);
   }
 
   // Mask Dirichlet entries

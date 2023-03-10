@@ -171,8 +171,8 @@ PetscErrorCode CreateOperatorForDomain(Ceed ceed, DM dm, SimpleBC bc, CeedData c
   }
 
   // ----- Get Context Labels for Operator
-  CeedOperatorContextGetFieldLabel(*op_apply, "solution time", &phys->solution_time_label);
-  CeedOperatorContextGetFieldLabel(*op_apply, "timestep size", &phys->timestep_size_label);
+  CeedOperatorGetContextFieldLabel(*op_apply, "solution time", &phys->solution_time_label);
+  CeedOperatorGetContextFieldLabel(*op_apply, "timestep size", &phys->timestep_size_label);
 
   PetscFunctionReturn(0);
 }
@@ -340,7 +340,7 @@ PetscErrorCode SetupLibceed(Ceed ceed, CeedData ceed_data, DM dm, User user, App
   CeedOperatorSetField(ceed_data->op_ics, "x", ceed_data->elem_restr_x, ceed_data->basis_xc, CEED_VECTOR_ACTIVE);
   CeedOperatorSetField(ceed_data->op_ics, "qdata", ceed_data->elem_restr_qd_i, CEED_BASIS_COLLOCATED, ceed_data->q_data);
   CeedOperatorSetField(ceed_data->op_ics, "q0", ceed_data->elem_restr_q, CEED_BASIS_COLLOCATED, CEED_VECTOR_ACTIVE);
-  CeedOperatorContextGetFieldLabel(ceed_data->op_ics, "evaluation time", &user->phys->ics_time_label);
+  CeedOperatorGetContextFieldLabel(ceed_data->op_ics, "evaluation time", &user->phys->ics_time_label);
 
   // Create CEED operator for RHS
   if (ceed_data->qf_rhs_vol) {
@@ -432,7 +432,7 @@ PetscErrorCode SetupLibceed(Ceed ceed, CeedData ceed_data, DM dm, User user, App
     PetscCall(CreateOperatorForDomain(ceed, dm, bc, ceed_data, user->phys, user->op_ifunction_vol, op_ijacobian_vol, height, P_sur, Q_sur,
                                       q_data_size_sur, jac_data_size_sur, &user->op_ifunction, op_ijacobian_vol ? &user->op_ijacobian : NULL));
     if (user->op_ijacobian) {
-      CeedOperatorContextGetFieldLabel(user->op_ijacobian, "ijacobian time shift", &user->phys->ijacobian_time_shift_label);
+      CeedOperatorGetContextFieldLabel(user->op_ijacobian, "ijacobian time shift", &user->phys->ijacobian_time_shift_label);
     }
     if (problem->use_dirichlet_ceed) {
       PetscCall(SetupStrongBC_Ceed(ceed, ceed_data, dm, user, app_ctx, problem, bc, Q_sur, q_data_size_sur));
