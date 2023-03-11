@@ -647,13 +647,29 @@ For the Density Current, Channel, and Blasius problems, the following common com
   - State variables to solve solution with. `conservative` ($\rho, \rho \bm{u}, \rho e$) or `primitive` ($P, \bm{u}, T$)
   - `conservative`
   - string
+
+* - `-idl_decay_time`
+  - Characteristic timescale of the pressure deviance decay. The timestep is good starting point
+  - `-1` (disabled)
+  - `s`
+
+* - `-idl_start`
+  - Start of IDL in the x direction
+  - `0`
+  - `m`
+
+* - `-idl_length`
+  - Length of IDL in the positive x direction
+  - `0`
+  - `m`
+
 :::
 
-#### Newtonian Wave
+#### Gaussian Wave
 
-The newtonian wave problem has the following command-line options in addition to the Newtonian Ideal Gas options:
+The Gaussian wave problem has the following command-line options in addition to the Newtonian Ideal Gas options:
 
-:::{list-table} Newtonian Wave Runtime Options
+:::{list-table} Gaussian Wave Runtime Options
 :header-rows: 1
 
 * - Option
@@ -698,13 +714,13 @@ The newtonian wave problem has the following command-line options in addition to
 
 :::
 
-This problem can be run with the `newtonianwave.yaml` file via:
+This problem can be run with the `gaussianwave.yaml` file via:
 
 ```
-./navierstokes -options_file newtonianwave.yaml
+./navierstokes -options_file gaussianwave.yaml
 ```
 
-```{literalinclude} ../../../../../examples/fluids/newtonianwave.yaml
+```{literalinclude} ../../../../../examples/fluids/gaussianwave.yaml
 :language: yaml
 ```
 

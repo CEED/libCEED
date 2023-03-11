@@ -38,6 +38,10 @@ struct NewtonianIdealGasContext_ {
   bool              is_implicit;
   StateVariable     state_var;
   StabilizationType stabilization;
+  bool              idl_enable;
+  CeedScalar        idl_amplitude;
+  CeedScalar        idl_start;
+  CeedScalar        idl_length;
 };
 
 typedef struct {

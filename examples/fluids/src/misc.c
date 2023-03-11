@@ -97,17 +97,45 @@ PetscErrorCode DMPlexInsertBoundaryValues_NS(DM dm, PetscBool insert_essential, 
   PetscFunctionReturn(0);
 }
 
+// @brief Load vector from binary file, possibly with embedded solution time and step number
+PetscErrorCode LoadFluidsBinaryVec(MPI_Comm comm, PetscViewer viewer, Vec Q, PetscReal *time, PetscInt *step_number) {
+  PetscInt  token, file_step_number;
+  PetscReal file_time;
+  PetscFunctionBeginUser;
+
+  // Attempt
+  PetscCall(PetscViewerBinaryRead(viewer, &token, 1, NULL, PETSC_INT));
+  if (token == FLUIDS_FILE_TOKEN) {  // New style format; we're reading a file with step number and time in the header
+    PetscCall(PetscViewerBinaryRead(viewer, &file_step_number, 1, NULL, PETSC_INT));
+    PetscCall(PetscViewerBinaryRead(viewer, &file_time, 1, NULL, PETSC_REAL));
+    if (time) *time = file_time;
+    if (step_number) *step_number = file_step_number;
+  } else if (token == VEC_FILE_CLASSID) {  // Legacy format of just the vector, encoded as [VEC_FILE_CLASSID, length, ]
+    PetscInt length, N;
+    PetscCall(PetscViewerBinaryRead(viewer, &length, 1, NULL, PETSC_INT));
+    PetscCall(VecGetSize(Q, &N));
+    PetscCheck(length == N, comm, PETSC_ERR_ARG_INCOMP, "File Vec has length %" PetscInt_FMT " but DM has global Vec size %" PetscInt_FMT, length, N);
+    PetscCall(PetscViewerBinarySetSkipHeader(viewer, PETSC_TRUE));
+  } else SETERRQ(comm, PETSC_ERR_FILE_UNEXPECTED, "Not a fluids header token or a PETSc Vec in file");
+
+  // Load Q from existent solution
+  PetscCall(VecLoad(Q, viewer));
+
+  PetscFunctionReturn(0);
+}
+
 // Compare reference solution values with current test run for CI
 PetscErrorCode RegressionTests_NS(AppCtx app_ctx, Vec Q) {
   Vec         Qref;
   PetscViewer viewer;
   PetscReal   error, Qrefnorm;
+  MPI_Comm    comm = PetscObjectComm((PetscObject)Q);
   PetscFunctionBegin;
 
   // Read reference file
   PetscCall(VecDuplicate(Q, &Qref));
-  PetscCall(PetscViewerBinaryOpen(PetscObjectComm((PetscObject)Q), app_ctx->test_file_path, FILE_MODE_READ, &viewer));
-  PetscCall(VecLoad(Qref, viewer));
+  PetscCall(PetscViewerBinaryOpen(comm, app_ctx->test_file_path, FILE_MODE_READ, &viewer));
+  PetscCall(LoadFluidsBinaryVec(comm, viewer, Qref, NULL, NULL));
 
   // Compute error with respect to reference solution
   PetscCall(VecAXPY(Q, -1.0, Qref));
@@ -192,33 +220,11 @@ const PetscInt FLUIDS_FILE_TOKEN = 0xceedf00;
 // Gather initial Q values in case of continuation of simulation
 PetscErrorCode SetupICsFromBinary(MPI_Comm comm, AppCtx app_ctx, Vec Q) {
   PetscViewer viewer;
-  PetscInt    token, step_number;
-  PetscReal   time;
 
   PetscFunctionBegin;
 
-  // Read input
   PetscCall(PetscViewerBinaryOpen(comm, app_ctx->cont_file, FILE_MODE_READ, &viewer));
-
-  // Attempt
-  PetscCall(PetscViewerBinaryRead(viewer, &token, 1, NULL, PETSC_INT));
-  if (token == FLUIDS_FILE_TOKEN) {  // New style format; we're reading a file with step number and time in the header
-    PetscCall(PetscViewerBinaryRead(viewer, &step_number, 1, NULL, PETSC_INT));
-    PetscCall(PetscViewerBinaryRead(viewer, &time, 1, NULL, PETSC_REAL));
-    app_ctx->cont_steps = step_number;
-    app_ctx->cont_time  = time;
-  } else if (token == VEC_FILE_CLASSID) {  // Legacy format of just the vector, encoded as [VEC_FILE_CLASSID, length, ]
-    PetscInt length, N;
-    PetscCall(PetscViewerBinaryRead(viewer, &length, 1, NULL, PETSC_INT));
-    PetscCall(VecGetSize(Q, &N));
-    PetscCheck(length == N, comm, PETSC_ERR_ARG_INCOMP, "File Vec has length %" PetscInt_FMT " but DM has global Vec size %" PetscInt_FMT, length, N);
-    PetscCall(PetscViewerBinarySetSkipHeader(viewer, PETSC_TRUE));
-  } else SETERRQ(comm, PETSC_ERR_FILE_UNEXPECTED, "Not a fluids header token or a PETSc Vec in file");
-
-  // Load Q from existent solution
-  PetscCall(VecLoad(Q, viewer));
-
-  // Cleanup
+  PetscCall(LoadFluidsBinaryVec(comm, viewer, Q, &app_ctx->cont_time, &app_ctx->cont_steps));
   PetscCall(PetscViewerDestroy(&viewer));
 
   PetscFunctionReturn(0);
