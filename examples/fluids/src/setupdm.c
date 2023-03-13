@@ -73,7 +73,7 @@ PetscErrorCode SetUpDM(DM dm, ProblemData *problem, PetscInt degree, SimpleBC bc
     }
     // Set dirichlet boundary condition on cylinder walls
     if (bc->num_wall > 0) {
-      PetscCall(DMAddBoundary(dm, DM_BC_ESSENTIAL, "cylinder_wall", label, bc->num_wall, bc->walls, 0, 5, bc->wall_comps, (void (*)(void))problem->bc,
+      PetscCall(DMAddBoundary(dm, DM_BC_ESSENTIAL, "cylinder_wall", label, bc->num_wall, bc->walls, 0, 1, bc->wall_comps, (void (*)(void))problem->bc,
                               NULL, problem->bc_ctx, NULL));
     }
     {
