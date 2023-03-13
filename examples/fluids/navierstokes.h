@@ -143,7 +143,6 @@ struct CeedData_private {
 // Distance functions
 struct Distance_private {
   DM           dm;
-  KSP          kspDist;
   SNES         snesDist;
   CeedOperator op_distance_function;
 };
