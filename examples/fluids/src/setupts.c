@@ -180,11 +180,15 @@ static PetscErrorCode Surface_Forces_NS(DM dm, Vec G_loc, PetscInt num_walls, co
 }
 
 // General distance functions
-static PetscErrorCode Distance_Function_NS(DM dm) {
-  DM   dmDist;
-  SNES snesDist;
+static PetscErrorCode Distance_Function_NS(DM dm, User user) {
+  DM       dmDist;
+  SNES     snesDist;
+  MPI_Comm comm;
 
   PetscFunctionBeginUser;
+  PetscBool distance_snes_monitor = PETSC_FALSE;
+  PetscCall(PetscOptionsHasName(NULL, NULL, "-distance_snes_monitor", &distance_snes_monitor));
+  PetscCall(PetscObjectGetComm((PetscObject)dm, &comm));
   PetscCall(SNESCreate(PETSC_COMM_WORLD, &snesDist));
   PetscObjectSetOptionsPrefix((PetscObject)snesDist, "distance_");
   PetscCall(DMClone(dm, &dmDist));
