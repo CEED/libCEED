@@ -159,23 +159,6 @@ int main(int argc, char **argv) {
     PetscCall(SetupStatsCollection(ceed, user, ceed_data, problem));
   }
 
-  // Destroy QFunction contexts after using
-  // ToDo: Simplify tracked libCEED objects, smaller struct
-  {
-    CeedQFunctionContextDestroy(&problem->apply_inflow_jacobian.qfunction_context);
-    CeedQFunctionContextDestroy(&problem->apply_inflow_jacobian.qfunction_context);
-    CeedQFunctionContextDestroy(&problem->apply_outflow_jacobian.qfunction_context);
-    CeedQFunctionContextDestroy(&problem->apply_outflow_jacobian.qfunction_context);
-    CeedQFunctionContextDestroy(&problem->apply_freestream_jacobian.qfunction_context);
-    CeedQFunctionContextDestroy(&problem->apply_freestream_jacobian.qfunction_context);
-    CeedQFunctionContextDestroy(&problem->setup_sur.qfunction_context);
-    CeedQFunctionContextDestroy(&problem->setup_vol.qfunction_context);
-    CeedQFunctionContextDestroy(&problem->ics.qfunction_context);
-    CeedQFunctionContextDestroy(&problem->apply_vol_rhs.qfunction_context);
-    CeedQFunctionContextDestroy(&problem->apply_vol_ifunction.qfunction_context);
-    CeedQFunctionContextDestroy(&problem->apply_vol_ijacobian.qfunction_context);
-  }
-
   // ---------------------------------------------------------------------------
   // Set up ICs
   // ---------------------------------------------------------------------------
@@ -343,6 +326,23 @@ int main(int argc, char **argv) {
   CeedElemRestrictionDestroy(&ceed_data->elem_restr_q);
   CeedElemRestrictionDestroy(&ceed_data->elem_restr_x);
   CeedElemRestrictionDestroy(&ceed_data->elem_restr_qd_i);
+
+  // Destroy QFunction contexts after using
+  // ToDo: Simplify tracked libCEED objects, smaller struct
+  {
+    CeedQFunctionContextDestroy(&problem->apply_inflow_jacobian.qfunction_context);
+    CeedQFunctionContextDestroy(&problem->apply_inflow_jacobian.qfunction_context);
+    CeedQFunctionContextDestroy(&problem->apply_outflow_jacobian.qfunction_context);
+    CeedQFunctionContextDestroy(&problem->apply_outflow_jacobian.qfunction_context);
+    CeedQFunctionContextDestroy(&problem->apply_freestream_jacobian.qfunction_context);
+    CeedQFunctionContextDestroy(&problem->apply_freestream_jacobian.qfunction_context);
+    CeedQFunctionContextDestroy(&problem->setup_sur.qfunction_context);
+    CeedQFunctionContextDestroy(&problem->setup_vol.qfunction_context);
+    CeedQFunctionContextDestroy(&problem->ics.qfunction_context);
+    CeedQFunctionContextDestroy(&problem->apply_vol_rhs.qfunction_context);
+    CeedQFunctionContextDestroy(&problem->apply_vol_ifunction.qfunction_context);
+    CeedQFunctionContextDestroy(&problem->apply_vol_ijacobian.qfunction_context);
+  }
 
   // -- QFunctions
   CeedQFunctionDestroy(&ceed_data->qf_setup_vol);
