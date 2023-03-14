@@ -115,6 +115,7 @@ int main(int argc, char **argv) {
       CeedGetResource(ceed, &resolved);
       if (strstr(resolved, "/gpu/cuda")) vec_type = VECCUDA;
       else if (strstr(resolved, "/gpu/hip")) vec_type = VECKOKKOS;
+      else if (strstr(resolved, "/gpu/sycl")) vec_type = VECKOKKOS;
       else vec_type = VECSTANDARD;
     }
   }
