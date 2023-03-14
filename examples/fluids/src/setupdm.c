@@ -42,12 +42,15 @@ PetscErrorCode SetUpDM(DM dm, ProblemData *problem, PetscInt degree, SimpleBC bc
     PetscFE  fe;
     PetscInt num_comp_q = 5;
     DMLabel  label;
+    DM       dmDist;
     PetscCall(PetscFECreateLagrange(PETSC_COMM_SELF, problem->dim, num_comp_q, PETSC_FALSE, degree, PETSC_DECIDE, &fe));
     PetscCall(PetscObjectSetName((PetscObject)fe, "Q"));
     PetscCall(DMAddField(dm, NULL, (PetscObject)fe));
     PetscCall(DMCreateDS(dm));
     PetscCall(DMGetLabel(dm, "Face Sets", &label));
     PetscCall(DMPlexLabelComplete(dm, label));
+    PetscCall(DMClone(dm, &dmDist));
+    PetscCall(DMAddField(dmDist, NULL, (PetscObject)fe));
     // Set wall BCs
     if (bc->num_wall > 0) {
       PetscCall(DMAddBoundary(dm, DM_BC_ESSENTIAL, "wall", label, bc->num_wall, bc->walls, 0, bc->num_comps, bc->wall_comps,
@@ -73,8 +76,8 @@ PetscErrorCode SetUpDM(DM dm, ProblemData *problem, PetscInt degree, SimpleBC bc
     }
     // Set dirichlet boundary condition on cylinder walls
     if (bc->num_wall > 0) {
-      PetscCall(DMAddBoundary(dm, DM_BC_ESSENTIAL, "cylinder_wall", label, bc->num_wall, bc->walls, 0, 1, bc->wall_comps, (void (*)(void))problem->bc,
-                              NULL, problem->bc_ctx, NULL));
+      PetscCall(DMAddBoundary(dmDist, DM_BC_ESSENTIAL, "cylinder_wall", label, bc->num_wall, bc->walls, 0, 1, bc->wall_comps,
+                              (void (*)(void))problem->bc, NULL, problem->bc_ctx, NULL));
     }
     {
       PetscBool use_strongstg = PETSC_FALSE;
