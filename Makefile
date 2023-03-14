@@ -652,8 +652,8 @@ $(OBJDIR)/ceed.pc : pkgconfig-prefix = $(prefix)
 	    -e "s:%prefix%:$(pkgconfig-prefix):" \
 	    -e "s:%libs_private%:$(pkgconfig-libs-private):" $< > $@
 
-$(OBJDIR)/interface/ceed-jit-source-root-default.o : CPPFLAGS += -DCEED_JIT_SOUCE_ROOT_DEFAULT="\"$(abspath ./include)/\""
-$(OBJDIR)/interface/ceed-jit-source-root-install.o : CPPFLAGS += -DCEED_JIT_SOUCE_ROOT_DEFAULT="\"$(abspath $(includedir))/\""
+$(OBJDIR)/interface/ceed-jit-source-root-default.o : CPPFLAGS += -DCEED_JIT_SOURCE_ROOT_DEFAULT="\"$(abspath ./include)/\""
+$(OBJDIR)/interface/ceed-jit-source-root-install.o : CPPFLAGS += -DCEED_JIT_SOURCE_ROOT_DEFAULT="\"$(abspath $(includedir))/\""
 
 install : $(libceed) $(OBJDIR)/ceed.pc
 	$(INSTALL) -d $(addprefix $(if $(DESTDIR),"$(DESTDIR)"),"$(includedir)"\
@@ -720,7 +720,7 @@ format    : format-c format-py
 CLANG_TIDY ?= clang-tidy
 
 %.c.tidy : %.c
-	$(CLANG_TIDY) $(TIDY_OPTS) $^ -- $(CPPFLAGS) --std=c99 -I$(CUDA_DIR)/include -I$(ROCM_DIR)/include -DCEED_JIT_SOUCE_ROOT_DEFAULT="\"$(abspath ./include)/\""
+	$(CLANG_TIDY) $(TIDY_OPTS) $^ -- $(CPPFLAGS) --std=c99 -I$(CUDA_DIR)/include -I$(ROCM_DIR)/include -DCEED_JIT_SOURCE_ROOT_DEFAULT="\"$(abspath ./include)/\""
 
 %.cpp.tidy : %.cpp
 	$(CLANG_TIDY) $(TIDY_OPTS) $^ -- $(CPPFLAGS) --std=c++11 -I$(CUDA_DIR)/include -I$(OCCA_DIR)/include -I$(ROCM_DIR)/include

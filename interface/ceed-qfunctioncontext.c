@@ -651,7 +651,7 @@ int CeedQFunctionContextTakeData(CeedQFunctionContext ctx, CeedMemType mem_type,
   CeedCall(CeedQFunctionContextHasBorrowedDataOfType(ctx, mem_type, &has_borrowed_data_of_type));
   if (!has_borrowed_data_of_type) {
     // LCOV_EXCL_START
-    return CeedError(ctx->ceed, CEED_ERROR_BACKEND, "CeedQFunctionContext has no borowed %s data, must set data with CeedQFunctionContextSetData",
+    return CeedError(ctx->ceed, CEED_ERROR_BACKEND, "CeedQFunctionContext has no borrowed %s data, must set data with CeedQFunctionContextSetData",
                      CeedMemTypes[mem_type]);
     // LCOV_EXCL_STOP
   }

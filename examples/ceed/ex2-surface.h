@@ -16,8 +16,8 @@ struct BuildContext {
 };
 
 /// libCEED Q-function for building quadrature data for a diffusion operator
-CEED_QFUNCTION(f_build_diff)(void *ctx, const CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
-  struct BuildContext *bc = (struct BuildContext *)ctx;
+CEED_QFUNCTION(build_diff)(void *ctx, const CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
+  struct BuildContext *build_data = (struct BuildContext *)ctx;
   // in[0] is Jacobians with shape [dim, nc=dim, Q]
   // in[1] is quadrature weights, size (Q)
   //
@@ -26,7 +26,7 @@ CEED_QFUNCTION(f_build_diff)(void *ctx, const CeedInt Q, const CeedScalar *const
   const CeedScalar *J = in[0], *w = in[1];
   CeedScalar       *q_data = out[0];
 
-  switch (bc->dim + 10 * bc->space_dim) {
+  switch (build_data->dim + 10 * build_data->space_dim) {
     case 11:
       CeedPragmaSIMD for (CeedInt i = 0; i < Q; i++) { q_data[i] = w[i] / J[i]; }  // End of Quadrature Point Loop
       break;
@@ -76,13 +76,13 @@ CEED_QFUNCTION(f_build_diff)(void *ctx, const CeedInt Q, const CeedScalar *const
 }
 
 /// libCEED Q-function for applying a diff operator
-CEED_QFUNCTION(f_apply_diff)(void *ctx, const CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
-  struct BuildContext *bc = (struct BuildContext *)ctx;
+CEED_QFUNCTION(apply_diff)(void *ctx, const CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
+  struct BuildContext *build_data = (struct BuildContext *)ctx;
   // in[0], out[0] have shape [dim, nc=1, Q]
   const CeedScalar *ug = in[0], *q_data = in[1];
   CeedScalar       *vg = out[0];
 
-  switch (bc->dim) {
+  switch (build_data->dim) {
     case 1:
       CeedPragmaSIMD for (CeedInt i = 0; i < Q; i++) { vg[i] = ug[i] * q_data[i]; }  // End of Quadrature Point Loop
       break;

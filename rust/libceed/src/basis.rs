@@ -418,7 +418,7 @@ impl<'a> Basis<'a> {
     ///
     /// Both bases must have the same quadrature space. The input bases need not
     /// be nested as function spaces; this interface solves a least squares
-    /// probles to find a representation in the `to` basis that agrees at
+    /// problem to find a representation in the `to` basis that agrees at
     /// quadrature points with the origin basis. Since the bases need not be
     /// Lagrange, the resulting projection "basis" will have empty quadrature
     /// points and weights.

@@ -200,7 +200,7 @@ int CeedLoadSourceToInitializedBuffer(Ceed ceed, const char *source_file_path, c
   @ref Backend
 **/
 int CeedLoadSourceToBuffer(Ceed ceed, const char *source_file_path, char **buffer) {
-  // Initalize buffer
+  // Initialize buffer
   CeedCall(CeedCalloc(1, buffer));
 
   // Load to initalized buffer

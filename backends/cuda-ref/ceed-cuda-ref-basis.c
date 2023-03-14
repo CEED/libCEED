@@ -223,7 +223,7 @@ int CeedBasisCreateTensorH1_Cuda(CeedInt dim, CeedInt P_1d, CeedInt Q_1d, const 
   CeedCallCuda(ceed, cudaMalloc((void **)&data->d_grad_1d, interp_bytes));
   CeedCallCuda(ceed, cudaMemcpy(data->d_grad_1d, grad_1d, interp_bytes, cudaMemcpyHostToDevice));
 
-  // Complie basis kernels
+  // Compile basis kernels
   CeedInt num_comp;
   CeedCallBackend(CeedBasisGetNumComponents(basis, &num_comp));
   char *basis_kernel_path, *basis_kernel_source;

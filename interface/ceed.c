@@ -122,10 +122,11 @@ int CeedRequestWait(CeedRequest *req) {
   @ref Developer
 **/
 int CeedRegisterImpl(const char *prefix, int (*init)(const char *, Ceed), unsigned int priority) {
-  if (num_backends >= sizeof(backends) / sizeof(backends[0]))
+  if (num_backends >= sizeof(backends) / sizeof(backends[0])) {
     // LCOV_EXCL_START
     return CeedError(NULL, CEED_ERROR_MAJOR, "Too many backends");
-  // LCOV_EXCL_STOP
+    // LCOV_EXCL_STOP
+  }
 
   strncpy(backends[num_backends].prefix, prefix, CEED_MAX_RESOURCE_LEN);
   backends[num_backends].prefix[CEED_MAX_RESOURCE_LEN - 1] = 0;
