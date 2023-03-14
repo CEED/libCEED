@@ -23,7 +23,7 @@ struct NewtonWaveContext_ {
   struct NewtonianIdealGasContext_ newt_ctx;
 };
 
-CEED_QFUNCTION_HELPER int IC_NewtonianWave(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out, StateToQi_t StateToQi) {
+CEED_QFUNCTION_HELPER int IC_NewtonianWave(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out, StateVariable state_var) {
   const CeedScalar(*X)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[0];
 
   CeedScalar(*q0)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA])out[0];
@@ -61,12 +61,7 @@ CEED_QFUNCTION_HELPER int IC_NewtonianWave(void *ctx, CeedInt Q, const CeedScala
     U[4] = S_infty.Y.pressure / (gamma - 1) * perturbation + e_kinetic;
 
     State initCond = StateFromU(newt_ctx, U, x);
-    // StateToQi(newt_ctx, initCond, qi);
-    if(StateToQi) {
-      StateToU(newt_ctx, initCond, qi);
-    } else {
-      StateToY(newt_ctx, initCond, qi);
-    }
+    StateToQ(newt_ctx, initCond, qi, state_var);
 
     for (CeedInt j = 0; j < 5; j++) q0[j][i] = qi[j];
   }  // End of Quadrature Point Loop
@@ -75,11 +70,9 @@ CEED_QFUNCTION_HELPER int IC_NewtonianWave(void *ctx, CeedInt Q, const CeedScala
 }
 
 CEED_QFUNCTION(IC_NewtonianWave_Conserv)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
-  //return IC_NewtonianWave(ctx, Q, in, out, StateToU);
-  return IC_NewtonianWave(ctx, Q, in, out, 1);
+  return IC_NewtonianWave(ctx, Q, in, out, STATEVAR_CONSERVATIVE);
 }
 
 CEED_QFUNCTION(IC_NewtonianWave_Prim)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
-  //return IC_NewtonianWave(ctx, Q, in, out, StateToY);
-  return IC_NewtonianWave(ctx, Q, in, out, 0);
+  return IC_NewtonianWave(ctx, Q, in, out, STATEVAR_PRIMITIVE);
 }
