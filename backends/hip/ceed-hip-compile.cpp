@@ -89,6 +89,7 @@ int CeedCompileHip(Ceed ceed, const char *source, hipModule_t *module, const Cee
 
   // Add string source argument provided in call
   code << source;
+//   printf("COMPILING KERNEL:\n %s\n", code.str().c_str());
 
   // Create Program
   CeedCallHiprtc(ceed, hiprtcCreateProgram(&prog, code.str().c_str(), NULL, 0, NULL, NULL));

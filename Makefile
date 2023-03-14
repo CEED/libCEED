@@ -140,7 +140,7 @@ MARCHFLAG := $(if $(call cc_check_flag,$(MARCHFLAG)),$(MARCHFLAG))
 OMP_SIMD_FLAG := $(OMP_SIMD_FLAG.$(CC_VENDOR))
 OMP_SIMD_FLAG := $(if $(call cc_check_flag,$(OMP_SIMD_FLAG)),$(OMP_SIMD_FLAG))
 
-OPT    ?= -O $(MARCHFLAG) $(OPT.$(CC_VENDOR)) $(OMP_SIMD_FLAG)
+OPT    ?= -O0 $(MARCHFLAG) $(OPT.$(CC_VENDOR)) $(OMP_SIMD_FLAG)
 CFLAGS ?= $(OPT) $(CFLAGS.$(CC_VENDOR))
 CXXFLAGS ?= $(OPT) $(CXXFLAGS.$(CC_VENDOR))
 LIBCXX ?= -lstdc++
@@ -201,7 +201,7 @@ libceed.c := $(filter-out interface/ceed-cuda.c interface/ceed-hip.c interface/c
 gallery.c := $(wildcard gallery/*/ceed*.c)
 libceed.c += $(gallery.c)
 libceeds = $(libceed)
-BACKENDS_BUILTIN := /cpu/self/ref/serial /cpu/self/ref/blocked /cpu/self/opt/serial /cpu/self/opt/blocked
+BACKENDS_BUILTIN := #/cpu/self/ref/serial /cpu/self/ref/blocked /cpu/self/opt/serial /cpu/self/opt/blocked
 BACKENDS_MAKE := $(BACKENDS_BUILTIN)
 TEST_BACKENDS := /cpu/self/tmpl /cpu/self/tmpl/sub
 
@@ -420,7 +420,7 @@ endif
 HIP_LIB_PATH := $(firstword $(wildcard $(foreach d,lib lib64,$(HIP_DIR)/$d/libamdhip64.${SO_EXT} $(HIP_DIR)/$d/libCHIP.${SO_EXT})))
 HIP_LIB      := $(patsubst lib%.${SO_EXT},%,$(notdir $(HIP_LIB_PATH)))
 HIP_LIB_DIR  := $(patsubst %/,%,$(dir $(HIP_LIB_PATH)))
-HIP_BACKENDS = /gpu/hip/ref /gpu/hip/shared /gpu/hip/gen
+HIP_BACKENDS = /gpu/hip/ref # /gpu/hip/shared /gpu/hip/gen 
 ifneq ($(HIP_LIB_DIR),)
   $(libceeds) : HIPCCFLAGS += -I./include
   ifneq ($(CXX), $(HIPCC))
@@ -429,7 +429,7 @@ ifneq ($(HIP_LIB_DIR),)
   $(libceeds) : CPPFLAGS += -I$(HIP_DIR)/include
   OPENCL_LIB_DIR = /soft/libraries/khronos/loader/master-2022.05.18/lib64
   ZE_LIB_DIR = /soft/restricted/CNDA/emb/intel-gpu-umd/20221031.1-pvc-prq-66/driver/lib64
-  HIPBLAS_LIBS = $(if $(filter amdhip64,$(HIP_LIB)),-lhipblas,-L$(HIPBLAS_LIB_DIR) -lhipblas-d)
+  HIPBLAS_LIBS = $(if $(filter amdhip64,$(HIP_LIB)),-lhipblas,-L$(HIPBLAS_LIB_DIR) -lhipblas)
   PKG_LIBS += -L$(abspath $(HIP_LIB_DIR)) -l$(HIP_LIB) $(HIPBLAS_LIBS) $(if $(filter CHIP,$(HIP_LIB)),-L$(OPENCL_LIB_DIR) -lOpenCL -L$(ZE_LIB_DIR) -lze_loader)
   # extracted from hipconfig
   # PKG_LIBS += -L/home/pvelesko/space/install/HIP/clang15/chip-spv-testing/lib -lCHIP -L/soft/libraries/khronos/loader/master-2022.05.18/lib64 -lOpenCL -L/soft/restricted/CNDA/emb/intel-gpu-umd/20221031.1-pvc-prq-66/driver/lib64 -lze_loader -Wl,-rpath,/home/pvelesko/space/install/HIP/clang15/chip-spv-testing/lib

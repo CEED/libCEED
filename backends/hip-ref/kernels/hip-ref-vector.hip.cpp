@@ -21,7 +21,7 @@ __global__ static void setValueK(CeedScalar *__restrict__ vec, CeedInt size, Cee
 // Set value on device memory
 //------------------------------------------------------------------------------
 extern "C" int CeedDeviceSetValue_Hip(CeedScalar *d_array, CeedInt length, CeedScalar val) {
-  const int bsize    = 512;
+  const int bsize    = 256;
   const int vecsize  = length;
   int       gridsize = vecsize / bsize;
 
@@ -43,7 +43,7 @@ __global__ static void rcpValueK(CeedScalar *__restrict__ vec, CeedInt size) {
 // Take vector reciprocal in device memory
 //------------------------------------------------------------------------------
 extern "C" int CeedDeviceReciprocal_Hip(CeedScalar *d_array, CeedInt length) {
-  const int bsize    = 512;
+  const int bsize    = 256;
   const int vecsize  = length;
   int       gridsize = vecsize / bsize;
 
@@ -65,7 +65,7 @@ __global__ static void scaleValueK(CeedScalar *__restrict__ x, CeedScalar alpha,
 // Compute x = alpha x on device
 //------------------------------------------------------------------------------
 extern "C" int CeedDeviceScale_Hip(CeedScalar *x_array, CeedScalar alpha, CeedInt length) {
-  const int bsize    = 512;
+  const int bsize    = 256;
   const int vecsize  = length;
   int       gridsize = vecsize / bsize;
 
@@ -87,7 +87,7 @@ __global__ static void axpyValueK(CeedScalar *__restrict__ y, CeedScalar alpha, 
 // Compute y = alpha x + y on device
 //------------------------------------------------------------------------------
 extern "C" int CeedDeviceAXPY_Hip(CeedScalar *y_array, CeedScalar alpha, CeedScalar *x_array, CeedInt length) {
-  const int bsize    = 512;
+  const int bsize    = 256;
   const int vecsize  = length;
   int       gridsize = vecsize / bsize;
 
@@ -132,7 +132,7 @@ __global__ static void pointwiseMultValueK(CeedScalar *__restrict__ w, CeedScala
 // Compute the pointwise multiplication w = x .* y on device
 //------------------------------------------------------------------------------
 extern "C" int CeedDevicePointwiseMult_Hip(CeedScalar *w_array, CeedScalar *x_array, CeedScalar *y_array, CeedInt length) {
-  const int bsize    = 512;
+  const int bsize    = 256;
   const int vecsize  = length;
   int       gridsize = vecsize / bsize;
 
