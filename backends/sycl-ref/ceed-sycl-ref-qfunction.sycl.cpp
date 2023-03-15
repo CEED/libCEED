@@ -67,7 +67,7 @@ static int CeedQFunctionApply_Sycl(CeedQFunction qf, CeedInt Q, CeedVector *U, C
     ++iarg;
     cgh.set_arg(iarg, Q);
     ++iarg;
-    // // Q: Can we forard the vector as a tuple?
+    // // Q: Can we forward the vector as a tuple?
     for (auto &input_i : inputs) {
       cgh.set_arg(iarg, input_i);
       ++iarg;
