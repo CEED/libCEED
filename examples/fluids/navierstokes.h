@@ -142,9 +142,11 @@ struct CeedData_private {
 
 // Distance functions
 struct Distance_private {
-  DM           dm;
-  SNES         snesDist;
-  CeedOperator op_distance_function;
+  DM            dm;
+  SNES          snesDist;
+  CeedVector    q_data;
+  CeedOperator  op_distance_function;
+  CeedQFunction qf_distance_function;
 };
 
 typedef struct {
