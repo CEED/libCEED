@@ -107,15 +107,19 @@ inline __device__ void Weight1d(SharedData_Hip &data, const CeedScalar *__restri
 // 2D tensor contraction x
 //------------------------------------------------------------------------------
 template <int NUM_COMP, int P_1D, int Q_1D>
-inline __device__ void ContractX2d(SharedData_Hip &data, const CeedScalar *U, const CeedScalar *B, CeedScalar *V) {
+inline __device__ void ContractX2d(SharedData_Hip &data, const CeedScalar *U, const CeedScalar *B, CeedScalar *V, const CeedInt num_elem) {
   data.slice[data.t_id_x + data.t_id_y * T_1D] = *U;
+
   __syncthreads();
-  *V = 0.0;
-  if (data.t_id_x < Q_1D && data.t_id_y < P_1D) {
-    for (CeedInt i = 0; i < P_1D; i++) {
-      *V += B[i + data.t_id_x * P_1D] * data.slice[i + data.t_id_y * T_1D];  // Contract x direction
+  for (CeedInt elem = blockIdx.x * blockDim.z + threadIdx.z; elem < num_elem; elem += gridDim.x * blockDim.z) {
+    *V = 0.0;
+    if (data.t_id_x < Q_1D && data.t_id_y < P_1D) {
+      for (CeedInt i = 0; i < P_1D; i++) {
+        *V += B[i + data.t_id_x * P_1D] * data.slice[i + data.t_id_y * T_1D];  // Contract x direction
+      }
     }
   }
+
   __syncthreads();
 }
 
@@ -123,15 +127,19 @@ inline __device__ void ContractX2d(SharedData_Hip &data, const CeedScalar *U, co
 // 2D tensor contract y
 //------------------------------------------------------------------------------
 template <int NUM_COMP, int P_1D, int Q_1D>
-inline __device__ void ContractY2d(SharedData_Hip &data, const CeedScalar *U, const CeedScalar *B, CeedScalar *V) {
+inline __device__ void ContractY2d(SharedData_Hip &data, const CeedScalar *U, const CeedScalar *B, CeedScalar *V, const CeedInt num_elem) {
   data.slice[data.t_id_x + data.t_id_y * T_1D] = *U;
   __syncthreads();
-  *V = 0.0;
-  if (data.t_id_x < Q_1D && data.t_id_y < Q_1D) {
-    for (CeedInt i = 0; i < P_1D; i++) {
-      *V += B[i + data.t_id_y * P_1D] * data.slice[data.t_id_x + i * T_1D];  // Contract y direction
+
+  for (CeedInt elem = blockIdx.x * blockDim.z + threadIdx.z; elem < num_elem; elem += gridDim.x * blockDim.z) {
+    *V = 0.0;
+    if (data.t_id_x < Q_1D && data.t_id_y < Q_1D) {
+      for (CeedInt i = 0; i < P_1D; i++) {
+        *V += B[i + data.t_id_y * P_1D] * data.slice[data.t_id_x + i * T_1D];  // Contract y direction
+      }
     }
   }
+
   __syncthreads();
 }
 
@@ -186,11 +194,11 @@ inline __device__ void ContractTransposeAddX2d(SharedData_Hip &data, const CeedS
 // 2D interpolate to quadrature points
 //------------------------------------------------------------------------------
 template <int NUM_COMP, int P_1D, int Q_1D>
-inline __device__ void InterpTensor2d(SharedData_Hip &data, const CeedScalar *__restrict__ r_U, const CeedScalar *c_B, CeedScalar *__restrict__ r_V) {
+inline __device__ void InterpTensor2d(SharedData_Hip &data, const CeedScalar *__restrict__ r_U, const CeedScalar *c_B, CeedScalar *__restrict__ r_V, const CeedInt num_elem) {
   CeedScalar r_t[1];
   for (CeedInt comp = 0; comp < NUM_COMP; comp++) {
-    ContractX2d<NUM_COMP, P_1D, Q_1D>(data, r_U + comp, c_B, r_t);
-    ContractY2d<NUM_COMP, P_1D, Q_1D>(data, r_t, c_B, r_V + comp);
+    ContractX2d<NUM_COMP, P_1D, Q_1D>(data, r_U + comp, c_B, r_t, num_elem);
+    ContractY2d<NUM_COMP, P_1D, Q_1D>(data, r_t, c_B, r_V + comp, num_elem);
   }
 }
 
