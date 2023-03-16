@@ -2,6 +2,9 @@ name: ICC and IFort
 
 on:
   push:
+    branches:
+      - main
+  pull_request:
 
 env:
   LINUX_CPP_COMPONENTS: intel-oneapi-compiler-dpcpp-cpp-and-cpp-classic
