@@ -216,7 +216,7 @@ int main(int argc, const char *argv[]) {
   CeedVectorCreate(ceed, sol_size, &u);
   CeedVectorCreate(ceed, sol_size, &v);
 
-  // Initialize 'u' and 'v' with ones.
+  // Initialize 'u' with ones.
   CeedVectorSetValue(u, 1.0);
 
   // Compute the mesh volume using the mass operator: volume = 1^T \cdot M \cdot 1
