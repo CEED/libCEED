@@ -350,6 +350,10 @@ The first row of each files stores the number of columns and rows in each file.
 Note that the weight coefficients are assumed to be in column-major order.
 This is done to keep consistent with legacy file compatibility.
 
+:::{note}
+The current data-driven model parameters are not accurate and are for regression testing only.
+:::
+
 (problem-advection)=
 
 ## Advection
