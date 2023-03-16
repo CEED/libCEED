@@ -19,10 +19,10 @@ static PetscErrorCode Distance_Function_NS(DM dm, User user) {
   PetscScalar  *r;
   DM            dmDist;
   PetscFE       fe;
-  PetscInt     *xl_size, dim = 3;
+  PetscInt     *xl_size, *l_size, *g_size, dim = 3;
   PetscInt      distance_function, distance_function_loc;
   SNES          snesDist;
-  Vec          *X_loc, rhs, rhs_loc;
+  Vec          *X, *X_loc, rhs, rhs_loc;
   PetscMemType  mem_type;
   Ceed          ceed;
   CeedVector    rhs_ceed;
@@ -37,6 +37,19 @@ static PetscErrorCode Distance_Function_NS(DM dm, User user) {
   PetscObjectSetOptionsPrefix((PetscObject)snesDist, "distance_");
   PetscCall(DMClone(dm, &dmDist));
   PetscCall(DMAddField(dmDist, NULL, (PetscObject)fe));
+
+  PetscCall(PetscMalloc1(1, &X));
+  PetscCall(PetscMalloc1(1, &X_loc));
+  PetscCall(PetscMalloc1(1, &l_size));
+  PetscCall(PetscMalloc1(1, &xl_size));
+  PetscCall(PetscMalloc1(1, &g_size));
+
+  // Create Vectors
+  PetscCall(DMCreateGlobalVector(dmDist, &X));
+  PetscCall(VecGetLocalSize(X, &l_size));
+  PetscCall(VecGetSize(X, &g_size));
+  PetscCall(DMCreateLocalVector(dmDist, &X_loc));
+  PetscCall(VecGetSize(X_loc, &xl_size));
 
   // Create RHS vector
   PetscCall(VecDuplicate(X_loc, &rhs_loc));
@@ -61,5 +74,24 @@ static PetscErrorCode Distance_Function_NS(DM dm, User user) {
 
   CeedOperatorCreate(ceed, qf_distance_function, CEED_QFUNCTION_NONE, CEED_QFUNCTION_NONE, &op_distance_function);
 
+  // Set up SNES
+  PetscCall(SNESCreate(PETSC_COMM_WORLD, &snesDist));
+
+  // Solve
+  PetscCall(SNESSolve(snesDist, rhs, X));
+  PetscCall(SNESGetSolution(snesDist, &X););
+
+  // Clean up
+  PetscCall(PetscFree(xl_size));
+  PetscCall(PetscFree(l_size));
+  PetscCall(PetscFree(g_size));
+  PetscCall(VecDestroy(&rhs));
+  PetscCall(VecDestroy(&rhs_loc));
+  PetscCall(SNESDestroy(&snesDist));
+  PetscCall(PetscFree(X));
+  PetscCall(PetscFree(X_loc));
+  CeedQFunctionDestroy(&qf_distance_function);
+  CeedOperatorDestroy(&op_distance_function);
+  CeedDestroy(&ceed);
   PetscFunctionReturn(0);
 }
