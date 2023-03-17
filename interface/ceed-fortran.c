@@ -452,28 +452,6 @@ CEED_EXTERN void fCeedBasisCreateH1(int *ceed, int *topo, int *num_comp, int *nn
 #define fCeedBasisView FORTRAN_NAME(ceedbasisview, CEEDBASISVIEW)
 CEED_EXTERN void fCeedBasisView(int *basis, int *err) { *err = CeedBasisView(CeedBasis_dict[*basis], stdout); }
 
-#define fCeedQRFactorization FORTRAN_NAME(ceedqrfactorization, CEEDQRFACTORIZATION)
-CEED_EXTERN void fCeedQRFactorization(int *ceed, CeedScalar *mat, CeedScalar *tau, int *m, int *n, int *err) {
-  *err = CeedQRFactorization(Ceed_dict[*ceed], mat, tau, *m, *n);
-}
-
-#define fCeedHouseholderApplyQ FORTRAN_NAME(ceedhouseholderapplyq, CEEDHOUSEHOLDERAPPLYQ)
-CEED_EXTERN void fCeedHouseholderApplyQ(CeedScalar *A, CeedScalar *Q, CeedScalar *tau, int *t_mode, int *m, int *n, int *k, int *row, int *col,
-                                        int *err) {
-  *err = CeedHouseholderApplyQ(A, Q, tau, (CeedTransposeMode)*t_mode, *m, *n, *k, *row, *col);
-}
-
-#define fCeedSymmetricSchurDecomposition FORTRAN_NAME(ceedsymmetricschurdecomposition, CEEDSYMMETRICSCHURDECOMPOSITION)
-CEED_EXTERN void fCeedSymmetricSchurDecomposition(int *ceed, CeedScalar *mat, CeedScalar *lambda, int *n, int *err) {
-  *err = CeedSymmetricSchurDecomposition(Ceed_dict[*ceed], mat, lambda, *n);
-}
-
-#define fCeedSimultaneousDiagonalization FORTRAN_NAME(ceedsimultaneousdiagonalization, CEEDSIMULTANEOUSDIAGONALIZATION)
-CEED_EXTERN void fCeedSimultaneousDiagonalization(int *ceed, CeedScalar *matA, CeedScalar *matB, CeedScalar *x, CeedScalar *lambda, int *n,
-                                                  int *err) {
-  *err = CeedSimultaneousDiagonalization(Ceed_dict[*ceed], matA, matB, x, lambda, *n);
-}
-
 #define fCeedBasisGetCollocatedGrad FORTRAN_NAME(ceedbasisgetcollocatedgrad, CEEDBASISGETCOLLOCATEDGRAD)
 CEED_EXTERN void fCeedBasisGetCollocatedGrad(int *basis, CeedScalar *colo_grad_1d, int *err) {
   *err = CeedBasisGetCollocatedGrad(CeedBasis_dict[*basis], colo_grad_1d);
