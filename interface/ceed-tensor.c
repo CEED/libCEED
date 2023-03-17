@@ -8,6 +8,7 @@
 #include <ceed-impl.h>
 #include <ceed/backend.h>
 #include <ceed/ceed.h>
+#include <stddef.h>
 
 /// @file
 /// Implementation of CeedTensorContract interfaces

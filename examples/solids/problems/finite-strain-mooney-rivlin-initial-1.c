@@ -8,6 +8,7 @@
 #include "../qfunctions/finite-strain-mooney-rivlin-initial-1.h"
 
 #include <ceed.h>
+#include <petsc.h>
 
 #include "../include/setup-libceed.h"
 #include "../include/structs.h"

@@ -3,6 +3,7 @@
 /// \test Test creation, transpose use, and destruction of an interlaced multi-component element restriction
 #include <ceed.h>
 #include <ceed/backend.h>
+#include <stdio.h>
 
 int main(int argc, char **argv) {
   Ceed                ceed;

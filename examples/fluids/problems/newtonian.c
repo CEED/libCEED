@@ -10,6 +10,9 @@
 
 #include "../qfunctions/newtonian.h"
 
+#include <ceed.h>
+#include <petsc.h>
+
 #include "../navierstokes.h"
 #include "../qfunctions/setupgeo.h"
 

@@ -2,6 +2,7 @@
 /// Test error storage for a CEED object
 /// \test Test error storage for a CEED object
 #include <ceed.h>
+#include <stdio.h>
 #include <string.h>
 
 int main(int argc, char **argv) {

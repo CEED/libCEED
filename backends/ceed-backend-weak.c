@@ -7,6 +7,7 @@
 
 #include <ceed/backend.h>
 #include <ceed/ceed.h>
+#include <stdarg.h>
 
 // LCOV_EXCL_START
 // This function provides improved error messages for uncompiled backends

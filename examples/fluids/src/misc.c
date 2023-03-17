@@ -8,6 +8,9 @@
 /// @file
 /// Miscellaneous utility functions
 
+#include <ceed.h>
+#include <petsc.h>
+
 #include "../navierstokes.h"
 #include "../qfunctions/mass.h"
 

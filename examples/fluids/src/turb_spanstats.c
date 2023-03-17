@@ -9,6 +9,9 @@
 
 #include "../qfunctions/turb_spanstats.h"
 
+#include <ceed.h>
+#include <petsc.h>
+
 #include "../include/matops.h"
 #include "../navierstokes.h"
 

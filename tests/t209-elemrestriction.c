@@ -2,6 +2,7 @@
 /// Test calculation of dof multiplicity in element restriction
 /// \test Test calculation of dof multiplicity in element restriction
 #include <ceed.h>
+#include <stdio.h>
 
 int main(int argc, char **argv) {
   Ceed                ceed;

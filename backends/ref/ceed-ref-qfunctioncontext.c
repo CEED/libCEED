@@ -7,6 +7,7 @@
 
 #include <ceed/backend.h>
 #include <ceed/ceed.h>
+#include <stdbool.h>
 #include <string.h>
 
 #include "ceed-ref.h"

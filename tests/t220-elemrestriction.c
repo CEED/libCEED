@@ -2,6 +2,7 @@
 /// Test creation, use, and destruction of an element restriction oriented
 /// \test Test creation, use, and destruction of an element restriction oriented
 #include <ceed.h>
+#include <stdio.h>
 
 int main(int argc, char **argv) {
   Ceed                ceed;

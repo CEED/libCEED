@@ -10,9 +10,6 @@
 
 #include <ceed.h>
 #include <petscdm.h>
-#include <petscdmplex.h>
-#include <petscsys.h>
-#include <petscts.h>
 #include <stdbool.h>
 
 #include "./include/matops.h"

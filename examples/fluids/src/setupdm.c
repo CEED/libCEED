@@ -8,6 +8,9 @@
 /// @file
 /// Setup DM for Navier-Stokes example using PETSc
 
+#include <ceed.h>
+#include <petsc.h>
+
 #include "../navierstokes.h"
 #include "../problems/stg_shur14.h"
 

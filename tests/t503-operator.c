@@ -3,6 +3,7 @@
 /// \test Test creation, action, and destruction for mass matrix operator with passive inputs and outputs
 #include <ceed.h>
 #include <math.h>
+#include <stdio.h>
 #include <stdlib.h>
 
 #include "t500-operator.h"

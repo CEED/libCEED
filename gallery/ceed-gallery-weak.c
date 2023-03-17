@@ -6,8 +6,6 @@
 // This file is part of CEED:  http://github.com/ceed
 
 #include <ceed/backend.h>
-#include <stdbool.h>
-#include <stdlib.h>
 
 // This function provides a debug target for weak symbols
 // LCOV_EXCL_START

@@ -3,6 +3,7 @@
 /// \test Test creation, action, and destruction for mass matrix operator with multigrid level, tensor basis and interpolation basis generation
 #include <ceed.h>
 #include <math.h>
+#include <stdio.h>
 #include <stdlib.h>
 
 #include "t502-operator.h"

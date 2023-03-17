@@ -8,6 +8,7 @@
 #ifndef neo_hookean_h
 #define neo_hookean_h
 
+#include <ceed.h>
 #include <petsc.h>
 
 #include "../include/structs.h"

@@ -10,6 +10,9 @@
 
 #include "../include/setup-libceed.h"
 
+#include <ceed.h>
+#include <petsc.h>
+
 #include "../include/structs.h"
 #include "../include/utils.h"
 #include "../qfunctions/constant-force.h"      // Constant forcing function

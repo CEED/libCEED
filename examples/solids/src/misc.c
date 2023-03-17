@@ -10,6 +10,9 @@
 
 #include "../include/misc.h"
 
+#include <ceed.h>
+#include <petsc.h>
+
 #include "../include/utils.h"
 
 // -----------------------------------------------------------------------------

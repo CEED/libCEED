@@ -2,6 +2,7 @@
 /// Test CeedVectorGetArrayWrite to modify array
 /// \test Test CeedVectorGetArrayWrite to modify array
 #include <ceed.h>
+#include <stdio.h>
 
 int main(int argc, char **argv) {
   Ceed          ceed;

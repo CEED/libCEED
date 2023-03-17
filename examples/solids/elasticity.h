@@ -10,9 +10,6 @@
 
 #include <ceed.h>
 #include <petsc.h>
-#include <petscdmplex.h>
-#include <petscfe.h>
-#include <petscksp.h>
 #include <stdbool.h>
 #include <string.h>
 

@@ -7,6 +7,7 @@
 
 #include <ceed/backend.h>
 #include <ceed/ceed.h>
+#include <stdio.h>
 #include <string.h>
 #include <valgrind/memcheck.h>
 

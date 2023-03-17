@@ -8,6 +8,7 @@
 #ifndef mooney_rivlin_h
 #define mooney_rivlin_h
 
+#include <ceed.h>
 #include <petsc.h>
 
 #include "../include/structs.h"

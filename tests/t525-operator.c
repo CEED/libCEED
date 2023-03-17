@@ -3,6 +3,7 @@
 /// \test Test setting QFunctionContext fields from Operator
 #include <ceed.h>
 #include <stddef.h>
+#include <stdio.h>
 
 #include "t500-operator.h"
 

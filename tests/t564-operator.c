@@ -3,6 +3,7 @@
 /// \test Test assembly of mass matrix operator (multi-component)
 #include <ceed.h>
 #include <math.h>
+#include <stdio.h>
 #include <stdlib.h>
 
 #include "t537-operator.h"

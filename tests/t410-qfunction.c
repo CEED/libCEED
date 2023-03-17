@@ -2,6 +2,7 @@
 /// Test creation, evaluation, and destruction for QFunction by name
 /// \test Test creation, evaluation, and destruction for QFunction by name
 #include <ceed.h>
+#include <stdio.h>
 
 int main(int argc, char **argv) {
   Ceed          ceed;

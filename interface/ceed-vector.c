@@ -10,6 +10,7 @@
 #include <ceed/backend.h>
 #include <ceed/ceed.h>
 #include <math.h>
+#include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
 

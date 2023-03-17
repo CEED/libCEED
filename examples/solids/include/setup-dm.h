@@ -10,8 +10,6 @@
 
 #include <ceed.h>
 #include <petsc.h>
-#include <petscdmplex.h>
-#include <petscfe.h>
 
 #include "../include/structs.h"
 

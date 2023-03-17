@@ -730,14 +730,13 @@ tidy-cpp : $(libceed.cpp:%=%.tidy)
 
 tidy : tidy-c tidy-cpp
 
+# Include-What-You-Use
 ifneq ($(wildcard ../iwyu/*),)
   IWYU_DIR ?= ../iwyu
   IWYU_CC  ?= $(IWYU_DIR)/build/bin/include-what-you-use
 endif
-
-# IWYU
-iwyu : CC=$(IWYU_CC)
-iwyu : lib
+iwyu :
+	 $(MAKE) -B CC=$(IWYU_CC)
 
 print :
 	@echo $(VAR)=$($(VAR))

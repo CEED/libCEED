@@ -2,6 +2,7 @@
 /// Test viewing of QFunction
 /// \test Test viewing of QFunction
 #include <ceed.h>
+#include <stdio.h>
 
 #include "t400-qfunction.h"
 

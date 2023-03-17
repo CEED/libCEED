@@ -8,6 +8,7 @@
 #include "../qfunctions/small-strain-neo-hookean.h"
 
 #include <ceed.h>
+#include <petsc.h>
 
 #include "../include/setup-libceed.h"
 #include "../include/structs.h"

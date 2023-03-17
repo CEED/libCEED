@@ -3,6 +3,7 @@
 /// \test Test full assembly of Poisson operator
 #include <ceed.h>
 #include <math.h>
+#include <stdio.h>
 #include <stdlib.h>
 
 #include "t534-operator.h"

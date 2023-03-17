@@ -37,8 +37,9 @@ PetscErrorCode PhysicsSmootherContext_MR(MPI_Comm comm, Ceed ceed, CeedQFunction
   PetscOptionsBegin(comm, NULL, "Mooney Rivlin physical parameters for smoother", NULL);
 
   PetscCall(PetscOptionsScalar("-nu_smoother", "Poisson's ratio for smoother", NULL, nu_smoother, &nu_smoother, &nu_flag));
-  if (nu_smoother < 0 || nu_smoother >= 0.5)
+  if (nu_smoother < 0 || nu_smoother >= 0.5) {
     SETERRQ(PETSC_COMM_SELF, PETSC_ERR_SUP, "Mooney-Rivlin model requires Poisson ratio -nu option in [0, .5)");
+  }
 
   PetscOptionsEnd();  // End of setting Physics
 

@@ -7,6 +7,7 @@
 
 #include <ceed/backend.h>
 #include <ceed/ceed.h>
+#include <stdbool.h>
 
 static bool register_all_called;
 

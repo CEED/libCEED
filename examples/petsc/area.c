@@ -40,7 +40,6 @@ static const char help[] = "Compute surface area of a cube or a cubed-sphere usi
 
 #include <ceed.h>
 #include <petsc.h>
-#include <petscdmplex.h>
 #include <stdbool.h>
 #include <string.h>
 

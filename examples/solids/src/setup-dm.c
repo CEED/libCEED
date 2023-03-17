@@ -10,6 +10,9 @@
 
 #include "../include/setup-dm.h"
 
+#include <ceed.h>
+#include <petsc.h>
+
 #include "../include/boundary.h"
 
 // -----------------------------------------------------------------------------

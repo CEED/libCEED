@@ -5,11 +5,9 @@
 //
 // This file is part of CEED:  http://github.com/ceed
 
-#include <ceed-impl.h>
 #include <ceed/backend.h>
 #include <ceed/ceed.h>
 #include <stdbool.h>
-#include <stdio.h>
 
 static bool register_all_called;
 

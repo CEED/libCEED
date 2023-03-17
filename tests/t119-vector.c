@@ -3,6 +3,7 @@
 /// \test Test taking the reciprocal of a vector
 #include <ceed.h>
 #include <math.h>
+#include <stdio.h>
 
 int main(int argc, char **argv) {
   Ceed       ceed;

@@ -3,6 +3,7 @@
 /// \test Test creation, use, and destruction of a blocked element restriction with multiple components in the lvector
 #include <ceed.h>
 #include <ceed/backend.h>
+#include <stdio.h>
 
 int main(int argc, char **argv) {
   Ceed                ceed;

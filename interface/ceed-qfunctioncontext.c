@@ -8,6 +8,7 @@
 #include <ceed-impl.h>
 #include <ceed/backend.h>
 #include <ceed/ceed.h>
+#include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <string.h>
