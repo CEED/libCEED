@@ -205,7 +205,7 @@ int CeedOperatorSingleView(CeedOperator op, bool sub, FILE *stream) {
 
   @return An error code: 0 - success, otherwise - failure
 
-  @ ref Developer
+  @ref Developer
 **/
 int CeedOperatorGetActiveBasis(CeedOperator op, CeedBasis *active_basis) {
   Ceed ceed;
@@ -1433,12 +1433,12 @@ int CeedOperatorGetFlopsEstimate(CeedOperator op, CeedSize *flops) {
            Note: If the value of `ctx` passed into this function is non-NULL, then it is assumed that `ctx` is a pointer to a
              CeedQFunctionContext. This CeedQFunctionContext will be destroyed if `ctx` is the only reference to this CeedQFunctionContext.
 
-  @param[in]  qf  CeedQFunction
+  @param[in]  op  CeedOperator
   @param[out] ctx Variable to store CeedQFunctionContext
 
   @return An error code: 0 - success, otherwise - failure
 
-  @ref Backend
+  @ref Advanced
 **/
 int CeedOperatorGetContext(CeedOperator op, CeedQFunctionContext *ctx) {
   bool is_composite;
@@ -1453,6 +1453,8 @@ int CeedOperatorGetContext(CeedOperator op, CeedQFunctionContext *ctx) {
 
 /**
   @brief Get label for a registered QFunctionContext field, or `NULL` if no field has been registered with this `field_name`.
+
+  Fields are registered via `CeedQFunctionContextRegister*()` functions (eg. `CeedQFunctionContextRegisterDouble()`).
 
   @param[in]  op          CeedOperator
   @param[in]  field_name  Name of field to retrieve label

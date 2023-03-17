@@ -90,8 +90,8 @@ typedef struct CeedQFunctionContext_private *CeedQFunctionContext;
 typedef struct CeedContextFieldLabel_private *CeedContextFieldLabel;
 /// Handle for object describing FE-type operators acting on vectors
 ///
-/// Given an element restriction \f$E\f$, basis evaluator \f$B\f$, and quadrature function\f$f\f$, a CeedOperator expresses operations of the form $$
-/// E^T B^T f(B E u) $$ acting on the vector \f$u\f$.
+/// Given an element restriction \f$E\f$, basis evaluator \f$B\f$, and quadrature function\f$f\f$, a CeedOperator expresses operations of the form
+/// \f$E^T B^T f(B E u)\f$ acting on the vector \f$u\f$.
 /// @ingroup CeedOperatorUser
 typedef struct CeedOperator_private *CeedOperator;
 
@@ -199,11 +199,11 @@ CEED_EXTERN const char *const CeedCopyModes[];
 /// Denotes type of vector norm to be computed
 /// @ingroup CeedVector
 typedef enum {
-  /// L_1 norm: sum_i |x_i|
+  /// \f$\Vert \bm{x}\Vert_1 = \sum_i \vert x_i\vert\f$
   CEED_NORM_1,
-  /// L_2 norm: sqrt(sum_i |x_i|^2)
+  /// \f$\Vert \bm{x} \Vert_2 = \sqrt{\sum_i x_i^2}\f$
   CEED_NORM_2,
-  /// L_Infinity norm: max_i |x_i|
+  /// \f$\Vert \bm{x} \Vert_\infty = \max_i \vert x_i \vert\f$
   CEED_NORM_MAX,
 } CeedNormType;
 

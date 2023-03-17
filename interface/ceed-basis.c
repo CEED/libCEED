@@ -542,7 +542,7 @@ int CeedMatrixMatrixMultiply(Ceed ceed, const CeedScalar *mat_A, const CeedScala
 /// @{
 
 /**
-  @brief Create a tensor-product basis for H^1 discretizations
+  @brief Create a tensor-product basis for \f$H^1\f$ discretizations
 
   @param[in]  ceed        Ceed object where the CeedBasis will be created
   @param[in]  dim         Topological dimension
@@ -724,7 +724,7 @@ cleanup:
 }
 
 /**
-  @brief Create a non tensor-product basis for H^1 discretizations
+  @brief Create a non tensor-product basis for \f$H^1\f$ discretizations
 
   @param[in]  ceed      Ceed object where the CeedBasis will be created
   @param[in]  topo      Topology of element, e.g. hypercube, simplex, ect
@@ -805,7 +805,7 @@ int CeedBasisCreateH1(Ceed ceed, CeedElemTopology topo, CeedInt num_comp, CeedIn
 }
 
 /**
-  @brief Create a non tensor-product basis for H(div) discretizations
+  @brief Create a non tensor-product basis for \f$H(\mathrm{div})\f$ discretizations
 
   @param[in]  ceed      Ceed object where the CeedBasis will be created
   @param[in]  topo      Topology of element (`CEED_TOPOLOGY_QUAD`, `CEED_TOPOLOGY_PRISM`, etc.), dimension of which is used in some array sizes below
@@ -1739,9 +1739,9 @@ CeedPragmaOptimizeOn
 
     /**
       @brief Return Simultaneous Diagonalization of two matrices.
-               This solves the generalized eigenvalue problem A x = lambda B x, where A and B are symmetric and B is positive definite.
-               We generate the matrix X and vector Lambda such that X^T A X = Lambda and X^T B X = I.
-               This is equivalent to the LAPACK routine 'sygv' with TYPE = 1.
+               This solves the generalized eigenvalue problem \f$A x = \lambda B x\f$, where \f$A\f$ and \f$B\f$ are symmetric and \f$B\f$ is positive
+    definite. We generate the matrix \f$X\f$ and diagonal \f$\Lambda\f$ such that \f$X^T A X = \Lambda\f$ and \f$X^T B X = I\f$. This is equivalent to
+    the LAPACK routine 'sygv' with `TYPE = 1`.
 
       @param[in]  ceed   Ceed context for error handling
       @param[in]  mat_A  Row-major matrix to be factorized with eigenvalues
