@@ -11,9 +11,9 @@
 
 static bool register_all_called;
 
-#define MACRO(name) CEED_INTERN int name(void);
+#define CEED_GALLERY_QFUNCTION(name) CEED_INTERN int name(void);
 #include "../gallery/ceed-gallery-list.h"
-#undef MACRO
+#undef CEED_GALLERY_QFUNCTION
 
 /**
   @brief Register the gallery of preconfigured QFunctions.
@@ -31,8 +31,8 @@ int CeedQFunctionRegisterAll() {
   if (register_all_called) return 0;
   register_all_called = true;
   CeedDebugEnv256(1, "\n---------- Registering Gallery QFunctions ----------\n");
-#define MACRO(name) CeedChk(name());
+#define CEED_GALLERY_QFUNCTION(name) CeedChk(name());
 #include "../gallery/ceed-gallery-list.h"
-#undef MACRO
+#undef CEED_GALLERY_QFUNCTION
   return CEED_ERROR_SUCCESS;
 }

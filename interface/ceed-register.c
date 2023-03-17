@@ -11,9 +11,9 @@
 
 static bool register_all_called;
 
-#define MACRO(name, ...) CEED_INTERN int name(void);
+#define CEED_BACKEND(name, ...) CEED_INTERN int name(void);
 #include "../backends/ceed-backend-list.h"
-#undef MACRO
+#undef CEED_BACKEND
 
 /**
   @brief Register all preconfigured backends.
@@ -31,8 +31,8 @@ int CeedRegisterAll() {
   if (register_all_called) return 0;
   register_all_called = true;
 
-#define MACRO(name, ...) CeedChk(name());
+#define CEED_BACKEND(name, ...) CeedChk(name());
 #include "../backends/ceed-backend-list.h"
-#undef MACRO
+#undef CEED_BACKEND
   return CEED_ERROR_SUCCESS;
 }
