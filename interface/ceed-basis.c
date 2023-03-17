@@ -1093,7 +1093,7 @@ int CeedBasisCreateH1(Ceed ceed, CeedElemTopology topo, CeedInt num_comp, CeedIn
 }
 
 /**
-  @brief Create a non tensor-product basis for H(div) discretizations
+  @brief Create a non tensor-product basis for \f$H(\mathrm{div})\f$ discretizations
 
   @param[in]  ceed      Ceed object where the CeedBasis will be created
   @param[in]  topo      Topology of element (`CEED_TOPOLOGY_QUAD`, `CEED_TOPOLOGY_PRISM`, etc.), dimension of which is used in some array sizes below
