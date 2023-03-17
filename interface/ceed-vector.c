@@ -817,7 +817,7 @@ int CeedVectorAXPBY(CeedVector y, CeedScalar alpha, CeedScalar beta, CeedVector 
 
   @return An error code: 0 - success, otherwise - failure
 
-  @ ref User
+  @ref User
 **/
 int CeedVectorPointwiseMult(CeedVector w, CeedVector x, CeedVector y) {
   CeedScalar       *w_array = NULL;

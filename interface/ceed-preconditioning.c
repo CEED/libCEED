@@ -1537,8 +1537,10 @@ int CeedOperatorAssemblyDataDestroy(CeedOperatorAssemblyData *data) {
   @brief Assemble a linear CeedQFunction associated with a CeedOperator
 
   This returns a CeedVector containing a matrix at each quadrature point providing the action of the CeedQFunction associated with the CeedOperator.
-    The vector 'assembled' is of shape [num_elements, num_input_fields, num_output_fields, num_quad_points] and contains column-major matrices
-representing the action of the CeedQFunction for a corresponding quadrature point on an element. Inputs and outputs are in the order provided by the
+    The vector `assembled` is of shape `[num_elements, num_input_fields, num_output_fields, num_quad_points]` and contains column-major matrices
+representing the action of the CeedQFunction for a corresponding quadrature point on an element.
+
+  Inputs and outputs are in the order provided by the
 user when adding CeedOperator fields. For example, a CeedQFunction with inputs 'u' and 'gradu' and outputs 'gradv' and 'v', provided in that order,
 would result in an assembled QFunction that consists of (1 + dim) x (dim + 1) matrices at each quadrature point acting on the input [u, du_0, du_1]
 and producing the output [dv_0, dv_1, v].
@@ -2285,9 +2287,9 @@ int CeedOperatorMultigridLevelCreateH1(CeedOperator op_fine, CeedVector p_mult_f
   @brief Build a FDM based approximate inverse for each element for a CeedOperator
 
   This returns a CeedOperator and CeedVector to apply a Fast Diagonalization Method based approximate inverse.
-    This function obtains the simultaneous diagonalization for the 1D mass and Laplacian operators, M = V^T V, K = V^T S V.
-    The assembled QFunction is used to modify the eigenvalues from simultaneous diagonalization and obtain an approximate inverse of the form V^T
-S^hat V. The CeedOperator must be linear and non-composite. The associated CeedQFunction must therefore also be linear.
+    This function obtains the simultaneous diagonalization for the 1D mass and Laplacian operators, \f$M = V^T V, K = V^T S V\f$.
+    The assembled QFunction is used to modify the eigenvalues from simultaneous diagonalization and obtain an approximate inverse of the form \f$V^T
+\hat S V\f$. The CeedOperator must be linear and non-composite. The associated CeedQFunction must therefore also be linear.
 
   Note: Calling this function asserts that setup is complete and sets the CeedOperator as immutable.
 

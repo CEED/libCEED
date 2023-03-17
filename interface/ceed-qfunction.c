@@ -669,9 +669,9 @@ int CeedQFunctionCreateInteriorByName(Ceed ceed, const char *name, CeedQFunction
 /**
   @brief Create an identity CeedQFunction.
            Inputs are written into outputs in the order given.
-           This is useful for CeedOperators that can be represented with only the action of a CeedRestriction and CeedBasis, such as restriction and
-prolongation operators for p-multigrid. Backends may optimize CeedOperators with this CeedQFunction to avoid the copy of input data to output fields
-by using the same memory location for both.
+           This is useful for CeedOperators that can be represented with only the action of a CeedElemRestriction and CeedBasis, such as restriction
+and prolongation operators for p-multigrid. Backends may optimize CeedOperators with this CeedQFunction to avoid the copy of input data to output
+fields by using the same memory location for both.
 
   @param[in]  ceed     Ceed object where the CeedQFunction will be created
   @param[in]  size     Size of the QFunction fields
@@ -901,7 +901,7 @@ int CeedQFunctionSetContext(CeedQFunction qf, CeedQFunctionContext ctx) {
 
 /**
   @brief Set writability of CeedQFunctionContext when calling the `CeedQFunctionUser`.
-           The default value is 'is_writable == true'.
+           The default value is `is_writable == true`.
 
            Setting `is_writable == true` indicates the `CeedQFunctionUser` writes into the CeedQFunctionContextData and requires memory syncronization
 after calling `CeedQFunctionApply()`.
