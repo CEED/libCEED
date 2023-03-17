@@ -7,7 +7,6 @@
 
 #include <ceed/backend.h>
 #include <ceed/ceed.h>
-#include <libxsmm.h>
 #include <stdbool.h>
 #include <string.h>
 

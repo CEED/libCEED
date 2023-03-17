@@ -55,7 +55,7 @@
 #include <stdio.h>
 
 /// Typedefs and macros used in public interfaces and user QFunction source
-#include "types.h"
+#include "types.h"  // IWYU pragma: export
 
 /// Library context created by CeedInit()
 /// @ingroup CeedUser
