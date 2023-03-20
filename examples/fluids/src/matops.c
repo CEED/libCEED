@@ -143,6 +143,26 @@ PetscErrorCode VecReadC2P(CeedVector x_ceed, PetscMemType mem_type, Vec X_petsc)
   PetscFunctionReturn(0);
 }
 
+/**
+  @brief Copy PETSc Vec data into CeedVector
+
+  @param[in]   X_petsc PETSc Vec
+  @param[out]  x_ceed  CeedVector
+
+  @return An error code: 0 - success, otherwise - failure
+**/
+PetscErrorCode VecCopyP2C(Vec X_petsc, CeedVector x_ceed) {
+  PetscScalar *x;
+  PetscMemType mem_type;
+
+  PetscFunctionBeginUser;
+  PetscCall(VecGetArrayReadAndMemType(X_petsc, (const PetscScalar **)&x, &mem_type));
+  CeedVectorSetArray(x_ceed, MemTypeP2C(mem_type), CEED_COPY_VALUES, x);
+  PetscCall(VecRestoreArrayReadAndMemType(X_petsc, (const PetscScalar **)&x));
+
+  PetscFunctionReturn(0);
+}
+
 // -----------------------------------------------------------------------------
 // Returns the computed diagonal of the operator
 // -----------------------------------------------------------------------------
