@@ -172,11 +172,9 @@ PetscErrorCode GetQuadratureCoords(Ceed ceed, DM dm, CeedElemRestriction elem_re
 }
 
 PetscErrorCode SpanStatsSetupDataCreate(Ceed ceed, User user, CeedData ceed_data, ProblemData *problem, SpanStatsSetupData *stats_data) {
-  DM                 dm = user->spanstats.dm;
-  CeedInt            dim, P, Q, num_comp_x, num_comp_stats = user->spanstats.num_comp_stats;
-  Vec                X_loc;
-  PetscMemType       X_loc_memtype;
-  const PetscScalar *X_loc_array;
+  DM      dm = user->spanstats.dm;
+  CeedInt dim, P, Q, num_comp_x, num_comp_stats = user->spanstats.num_comp_stats;
+  Vec     X_loc;
   PetscFunctionBeginUser;
 
   PetscCall(PetscNew(stats_data));
@@ -209,9 +207,7 @@ PetscErrorCode SpanStatsSetupDataCreate(Ceed ceed, User user, CeedData ceed_data
     }
   }
   PetscCall(VecScale(X_loc, problem->dm_scale));
-  PetscCall(VecGetArrayReadAndMemType(X_loc, &X_loc_array, &X_loc_memtype));
-  CeedVectorSetArray((*stats_data)->x_coord, MemTypeP2C(X_loc_memtype), CEED_COPY_VALUES, (PetscScalar *)X_loc_array);
-  PetscCall(VecRestoreArrayRead(X_loc, &X_loc_array));
+  PetscCall(VecCopyP2C(X_loc, (*stats_data)->x_coord));
 
   PetscFunctionReturn(0);
 }
