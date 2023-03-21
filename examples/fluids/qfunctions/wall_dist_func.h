@@ -13,16 +13,20 @@
 #include "newtonian_state.h"
 #include "utils.h"
 
-CEED_QFUNCTION_HELPER int DistanceFunction(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
+CEED_QFUNCTION(DistanceFunction)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
   // inputs
-  const CeedScalar(*q)[CEED_Q_VLA]      = (const CeedScalar(*)[CEED_Q_VLA])in[0];
-  const CeedScalar(*q_data)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[1];
-  const CeedScalar(*x)[CEED_Q_VLA]      = (const CeedScalar(*)[CEED_Q_VLA])in[2];
+  const CeedScalar(*u)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[0];
+  const CeedScalar(*q_data)        = in[1];
+  const CeedScalar(*x)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[2];
   //  Outputs
   CeedScalar(*v)[CEED_Q_VLA]  = (CeedScalar(*)[CEED_Q_VLA])out[0];
   CeedScalar(*dv)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA])out[1];
 
-  NewtonianIdealGasContext context = (NewtonianIdealGasContext)ctx;
+  // NewtonianIdealGasContext context = (NewtonianIdealGasContext)ctx;
+
+  CeedPragmaSIMD for (CeedInt i = 0; i < Q; i++) {
+    CeedPragmaSIMD for (CeedInt j = 0; j < 3; j++) { v[j][i] = q_data[i] * u[j][i]; }
+  }
 
   return 0;
 }
