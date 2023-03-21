@@ -9,7 +9,7 @@
 #define libceed_solids_examples_setup_dm_h
 
 #include <ceed.h>
-#include <petsc.h>
+#include <petscdm.h>
 
 #include "../include/structs.h"
 

@@ -11,7 +11,7 @@
 #include "../qfunctions/channel.h"
 
 #include <ceed.h>
-#include <petsc.h>
+#include <petscdm.h>
 
 #include "../navierstokes.h"
 

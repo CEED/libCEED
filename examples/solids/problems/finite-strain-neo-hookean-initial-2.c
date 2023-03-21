@@ -8,7 +8,7 @@
 #include "../qfunctions/finite-strain-neo-hookean-initial-2.h"
 
 #include <ceed.h>
-#include <petsc.h>
+#include <petscsys.h>
 
 #include "../include/setup-libceed.h"
 #include "../include/structs.h"

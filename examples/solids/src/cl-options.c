@@ -11,7 +11,7 @@
 #include "../include/cl-options.h"
 
 #include <ceed.h>
-#include <petsc.h>
+#include <petscsys.h>
 
 // -----------------------------------------------------------------------------
 // Process command line options

@@ -11,7 +11,8 @@
 #include "../include/setup-libceed.h"
 
 #include <ceed.h>
-#include <petsc.h>
+#include <petscdmplex.h>
+#include <petscmat.h>
 
 #include "../include/structs.h"
 #include "../include/utils.h"

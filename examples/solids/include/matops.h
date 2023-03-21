@@ -9,7 +9,8 @@
 #define libceed_solids_examples_matops_h
 
 #include <ceed.h>
-#include <petsc.h>
+#include <petscdm.h>
+#include <petscsnes.h>
 
 #include "../include/structs.h"
 

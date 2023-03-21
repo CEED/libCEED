@@ -10,7 +10,8 @@
 #include "../qfunctions/turb_spanstats.h"
 
 #include <ceed.h>
-#include <petsc.h>
+#include <petscdmplex.h>
+#include <petscsf.h>
 
 #include "../include/matops.h"
 #include "../navierstokes.h"

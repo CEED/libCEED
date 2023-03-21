@@ -9,7 +9,8 @@
 /// Time-stepping functions for Navier-Stokes example using PETSc
 
 #include <ceed.h>
-#include <petsc.h>
+#include <petscdmplex.h>
+#include <petscts.h>
 
 #include "../navierstokes.h"
 #include "../qfunctions/newtonian_state.h"

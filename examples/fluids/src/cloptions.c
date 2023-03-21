@@ -8,7 +8,8 @@
 /// @file
 /// Command line option processing for Navier-Stokes example using PETSc
 
-#include <petsc.h>
+#include <petscdevice.h>
+#include <petscsys.h>
 
 #include "../navierstokes.h"
 

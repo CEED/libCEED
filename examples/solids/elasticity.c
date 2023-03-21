@@ -37,7 +37,8 @@ const char help[] = "Solve solid Problems with CEED and PETSc DMPlex\n";
 #include "elasticity.h"
 
 #include <ceed.h>
-#include <petsc.h>
+#include <petscdmplex.h>
+#include <petscsnes.h>
 
 int main(int argc, char **argv) {
   MPI_Comm comm;

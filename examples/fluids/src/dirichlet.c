@@ -6,7 +6,7 @@
 // This file is part of CEED:  http://github.com/ceed
 
 #include <ceed.h>
-#include <petsc.h>
+#include <petscdmplex.h>
 
 #include "../navierstokes.h"
 #include "../problems/stg_shur14.h"

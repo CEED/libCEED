@@ -13,7 +13,7 @@
 
 #include <ceed.h>
 #include <math.h>
-#include <petsc.h>
+#include <petscdm.h>
 #include <stdlib.h>
 
 #include "../navierstokes.h"

@@ -9,7 +9,7 @@
 /// Setup libCEED for Navier-Stokes example using PETSc
 
 #include <ceed.h>
-#include <petsc.h>
+#include <petscdmplex.h>
 
 #include "../navierstokes.h"
 

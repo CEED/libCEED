@@ -35,7 +35,8 @@ static const char help[] = "Solve CEED BPs on a sphere using DMPlex in PETSc\n";
 #include "bpssphere.h"
 
 #include <ceed.h>
-#include <petsc.h>
+#include <petscdmplex.h>
+#include <petscksp.h>
 #include <stdbool.h>
 #include <string.h>
 

@@ -9,7 +9,8 @@
 /// Miscellaneous utility functions
 
 #include <ceed.h>
-#include <petsc.h>
+#include <petscdm.h>
+#include <petscts.h>
 
 #include "../navierstokes.h"
 #include "../qfunctions/mass.h"

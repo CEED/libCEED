@@ -8,7 +8,7 @@
 #include "../problems/mooney-rivlin.h"
 
 #include <ceed.h>
-#include <petsc.h>
+#include <petscsys.h>
 
 // Build libCEED context object
 PetscErrorCode PhysicsContext_MR(MPI_Comm comm, Ceed ceed, Units *units, CeedQFunctionContext *ctx) {

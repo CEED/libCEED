@@ -8,7 +8,7 @@
 #include "../problems/neo-hookean.h"
 
 #include <ceed.h>
-#include <petsc.h>
+#include <petscsys.h>
 
 // Build libCEED context object
 PetscErrorCode PhysicsContext_NH(MPI_Comm comm, Ceed ceed, Units *units, CeedQFunctionContext *ctx) {

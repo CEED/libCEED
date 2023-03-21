@@ -11,7 +11,7 @@
 #include "../include/matops.h"
 
 #include <ceed.h>
-#include <petsc.h>
+#include <petscdmplex.h>
 
 #include "../include/structs.h"
 #include "../include/utils.h"

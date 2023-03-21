@@ -9,7 +9,7 @@
 #define libceed_solids_examples_structs_h
 
 #include <ceed.h>
-#include <petsc.h>
+#include <petscdm.h>
 
 #include "../problems/cl-problems.h"
 
