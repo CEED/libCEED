@@ -162,9 +162,7 @@ typedef struct {
 } *NodalProjectionData;
 
 typedef struct {
-  DM       dm_anisotropy;
   DM       dm_sgs;
-  PetscInt num_comp_aniso;
   PetscInt num_comp_sgs;
 } *SGS_DD_Data;
 
@@ -399,7 +397,7 @@ PetscErrorCode SGS_DD_ModelSetup(Ceed ceed, User user, CeedData ceed_data, Probl
 PetscErrorCode SGS_DD_DataDestroy(SGS_DD_Data sgs_dd_data);
 PetscErrorCode VelocityGradientProjectionSetup(Ceed ceed, User user, CeedData ceed_data, ProblemData *problem);
 PetscErrorCode VelocityGradientProjectionApply(User user, Vec Q_loc, Vec *VelocityGradient);
-
+PetscErrorCode GridAnisotropyTensorProjectionSetupApply(Ceed ceed, User user, CeedData ceed_data, ProblemData *problem, CeedElemRestriction *elem_restr_anisotropy, CeedBasis *basis_anisotropy, CeedVector *anisotropy_vector);
 // -----------------------------------------------------------------------------
 // Boundary Condition Related Functions
 // -----------------------------------------------------------------------------
