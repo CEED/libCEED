@@ -20,7 +20,6 @@ static PetscErrorCode Distance_Function_NS(DM dm, User user) {
   DM                  dmDist;
   PetscFE             fe;
   PetscInt            xl_size, l_size, g_size, dim = 3;
-  PetscInt            distance_function, distance_function_loc, setup_distance_function, setup_distance_function_loc;
   SNES                snesDist;
   Vec                 X, Y, q_data, X_loc, rhs, rhs_loc;
   PetscMemType        mem_type;
@@ -29,8 +28,8 @@ static PetscErrorCode Distance_Function_NS(DM dm, User user) {
   CeedInt             num_nodes_x = num_elem + 1, num_nodes_phi = num_elem * (P - 1) + 1;
   CeedInt             ind_x[num_elem * 2], ind_phi[num_elem * P];
   CeedVector          rhs_ceed;
-  CeedOperator        op_distance_function, op_setup_distance_function;
-  CeedQFunction       qf_distance_function, qf_setup_distance_function;
+  CeedOperator        op_distance_function;
+  CeedQFunction       qf_distance_function;
   CeedBasis           basis_x, basis_phi;
   CeedElemRestriction elem_restr_x, elem_restr_phi;
 
@@ -75,23 +74,12 @@ static PetscErrorCode Distance_Function_NS(DM dm, User user) {
   CeedBasisCreateTensorH1Lagrange(ceed, dim, 1, P, Q, CEED_GAUSS, &basis_phi);
 
   // Create and Add QFunction fields
-  CeedQFunctionCreateInterior(ceed, dim, distance_function, distance_function_loc, &qf_distance_function);
-  CeedQFunctionCreateInterior(ceed, dim, setup_distance_function, setup_distance_function_loc, &qf_setup_distance_function);
+  CeedQFunctionCreateInterior(ceed, dim, DistanceFunction, DistanceFunction_loc, &qf_distance_function);
+
   CeedQFunctionAddInput(qf_distance_function, "v", dim, CEED_EVAL_INTERP);
   CeedQFunctionAddInput(qf_distance_function, "dphi", dim, CEED_EVAL_GRAD);
   CeedQFunctionAddInput(qf_distance_function, "q_data", dim * (dim + 1) / 2, CEED_EVAL_NONE);
   CeedQFunctionAddOutput(qf_distance_function, "dv", dim, CEED_EVAL_GRAD);
-
-  // Create Setup
-  CeedOperatorCreate(ceed, qf_setup_distance_function, CEED_QFUNCTION_NONE, CEED_QFUNCTION_NONE, &op_setup_distance_function);
-
-  // Set up Set
-  CeedOperatorSetField(op_setup_distance_function, "dx", elem_restr_x, basis_x, CEED_VECTOR_ACTIVE);
-  CeedOperatorSetField(op_setup_distance_function, "weight", CEED_ELEMRESTRICTION_NONE, basis_x, CEED_VECTOR_NONE);
-  CeedOperatorSetField(op_setup_distance_function, "qdata", elem_restr_phi, CEED_BASIS_COLLOCATED, CEED_VECTOR_ACTIVE);
-
-  // Set up Apply
-  CeedOperatorApply(op_setup_distance_function, X, q_data, CEED_REQUEST_IMMEDIATE);
 
   // Create Operator
   CeedOperatorCreate(ceed, qf_distance_function, CEED_QFUNCTION_NONE, CEED_QFUNCTION_NONE, &op_distance_function);
@@ -126,8 +114,6 @@ static PetscErrorCode Distance_Function_NS(DM dm, User user) {
   CeedElemRestrictionDestroy(&elem_restr_phi);
   CeedQFunctionDestroy(&qf_distance_function);
   CeedOperatorDestroy(&op_distance_function);
-  CeedQFunctionDestroy(&qf_setup_distance_function);
-  CeedOperatorDestroy(&op_setup_distance_function);
   CeedDestroy(&ceed);
   PetscFunctionReturn(0);
 }
