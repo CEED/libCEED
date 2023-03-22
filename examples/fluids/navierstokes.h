@@ -158,6 +158,13 @@ typedef struct {
   KSP                  ksp;
 } *NodalProjectionData;
 
+typedef struct {
+  DM                   dm_sgs;
+  PetscInt             num_comp_sgs;
+  OperatorApplyContext op_nodal_evaluation_ctx;
+  CeedVector           sgs_nodal_ceed;
+} *SGS_DD_Data;
+
 // PETSc user data
 struct User_private {
   MPI_Comm            comm;
@@ -175,6 +182,7 @@ struct User_private {
   CeedScalar          time_bc_set;
   Span_Stats          spanstats;
   NodalProjectionData grad_velo_proj;
+  SGS_DD_Data         sgs_dd_data;
 };
 
 // Units
@@ -384,6 +392,7 @@ PetscErrorCode DestroyStats(User user, CeedData ceed_data);
 // -----------------------------------------------------------------------------
 
 PetscErrorCode SGS_DD_ModelSetup(Ceed ceed, User user, CeedData ceed_data, ProblemData *problem);
+PetscErrorCode SGS_DD_DataDestroy(SGS_DD_Data sgs_dd_data);
 PetscErrorCode VelocityGradientProjectionSetup(Ceed ceed, User user, CeedData ceed_data, ProblemData *problem);
 PetscErrorCode VelocityGradientProjectionApply(User user, Vec Q_loc, Vec VelocityGradient);
 PetscErrorCode GridAnisotropyTensorProjectionSetupApply(Ceed ceed, User user, CeedData ceed_data, CeedElemRestriction *elem_restr_grid_aniso,

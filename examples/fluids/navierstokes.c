@@ -160,7 +160,7 @@ int main(int argc, char **argv) {
   PetscCall(SetupLibceed(ceed, ceed_data, dm, user, app_ctx, problem, bc));
 
   if (app_ctx->turb_spanstats_enable) PetscCall(SetupStatsCollection(ceed, user, ceed_data, problem));
-  PetscCall(SGS_DD_ModelSetup(ceed, user, ceed_data, problem));
+  if (user->phys->implicit) PetscCall(SGS_DD_ModelSetup(ceed, user, ceed_data, problem));
 
   // ---------------------------------------------------------------------------
   // Set up ICs
@@ -309,6 +309,7 @@ int main(int argc, char **argv) {
 
   PetscCall(DestroyStats(user, ceed_data));
   PetscCall(NodalProjectionDataDestroy(user->grad_velo_proj));
+  PetscCall(SGS_DD_DataDestroy(user->sgs_dd_data));
 
   // -- Vectors
   CeedVectorDestroy(&ceed_data->x_coord);
