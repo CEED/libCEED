@@ -198,7 +198,7 @@ For the case of a square/cubic mesh, the list of face indices to be used with `-
   - 4
 :::
 
-:::{list-table} 2D Face ID Labels
+:::{list-table} 3D Face ID Labels
 :header-rows: 1
 * - PETSc Face Name
   - Cartesian direction
