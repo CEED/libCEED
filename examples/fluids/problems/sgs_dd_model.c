@@ -11,6 +11,21 @@
 
 #include "../navierstokes.h"
 
+typedef struct {
+  CeedElemRestriction  elem_restr_grid_aniso, elem_restr_sgs;
+  CeedVector           grid_aniso_ceed;
+} *SGS_DD_ModelSetupData;
+
+PetscErrorCode SGS_DD_ModelSetupDataDestroy(SGS_DD_ModelSetupData sgs_dd_setup_data) {
+  PetscFunctionBeginUser;
+  CeedElemRestrictionDestroy(&sgs_dd_setup_data->elem_restr_grid_aniso);
+  CeedElemRestrictionDestroy(&sgs_dd_setup_data->elem_restr_sgs);
+  CeedVectorDestroy(&sgs_dd_setup_data->grid_aniso_ceed);
+
+  PetscCall(PetscFree(sgs_dd_setup_data));
+  PetscFunctionReturn(0);
+}
+
 // @brief B = A^T, A is NxM, B is MxN
 PetscErrorCode TransposeMatrix(const PetscScalar *A, PetscScalar *B, const PetscInt N, const PetscInt M) {
   PetscFunctionBeginUser;
@@ -74,10 +89,11 @@ PetscErrorCode SGS_DD_ModelContextFill(MPI_Comm comm, char data_dir[PETSC_MAX_PA
 }
 
 PetscErrorCode SGS_DD_ModelSetup(Ceed ceed, User user, CeedData ceed_data, ProblemData *problem) {
-  PetscReal          alpha;
-  SGS_DDModelContext sgsdd_ctx;
-  MPI_Comm           comm                           = user->comm;
-  char               sgs_dd_dir[PETSC_MAX_PATH_LEN] = "./dd_sgs_data";
+  PetscReal             alpha;
+  SGS_DDModelContext    sgsdd_ctx;
+  MPI_Comm              comm                           = user->comm;
+  char                  sgs_dd_dir[PETSC_MAX_PATH_LEN] = "./dd_sgs_data";
+  SGS_DD_ModelSetupData sgs_dd_setup_data;
   PetscFunctionBeginUser;
 
   PetscCall(VelocityGradientProjectionSetup(ceed, user, ceed_data, problem));
@@ -98,5 +114,12 @@ PetscErrorCode SGS_DD_ModelSetup(Ceed ceed, User user, CeedData ceed_data, Probl
 
   // PetscCall(SGS_DD_ModelContextFill(comm, sgs_dd_dir, &sgsdd_ctx));
 
+  PetscCall(PetscNew(&sgs_dd_setup_data));
+
+  // -- Compute and store anisotropy tensor
+  PetscCall(GridAnisotropyTensorProjectionSetupApply(ceed, user, ceed_data, &sgs_dd_setup_data->elem_restr_grid_aniso,
+                                                     &sgs_dd_setup_data->grid_aniso_ceed));
+
+  PetscCall(SGS_DD_ModelSetupDataDestroy(sgs_dd_setup_data));
   PetscFunctionReturn(0);
 }
