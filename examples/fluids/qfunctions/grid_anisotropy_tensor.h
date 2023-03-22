@@ -39,10 +39,12 @@ CEED_QFUNCTION_HELPER void AnisotropyTensor(const CeedScalar km_g_ij[6], CeedSca
 // @brief RHS for L^2 projection of anisotropic tensor and it's Frobenius norm
 CEED_QFUNCTION(AnisotropyTensorProjection)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
   const CeedScalar(*q_data)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[0];
+  const CeedScalar(*x)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[1];
   CeedScalar(*v)[CEED_Q_VLA]            = (CeedScalar(*)[CEED_Q_VLA])out[0];
 
   CeedPragmaSIMD for (CeedInt i = 0; i < Q; i++) {
     const CeedScalar wdetJ      = q_data[0][i];
+    const CeedScalar x_i[3] = {x[0][i], x[1][i], x[2][i]};
     const CeedScalar dXdx[3][3] = {
         {q_data[1][i], q_data[2][i], q_data[3][i]},
         {q_data[4][i], q_data[5][i], q_data[6][i]},

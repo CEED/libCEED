@@ -90,6 +90,8 @@ PetscErrorCode SetupStrongSTG_Ceed(Ceed ceed, CeedData ceed_data, DM dm, AppCtx 
     CeedOperatorCreate(ceed, qf_strongbc, NULL, NULL, &op_dirichlet_sub);
     CeedOperatorSetName(op_dirichlet_sub, "Strong STG");
 
+    // WARNING Possible that x should not be collocated here, but actually be basis_x_to_q_sur
+    // This is because the x coordinates are actually not necessarily collocated with the nodes (and may not even be the same number per element, ie. linear mesh with higher-order basis functions)
     CeedOperatorSetField(op_dirichlet_sub, "surface qdata", elem_restr_qd_sur, CEED_BASIS_COLLOCATED, q_data_sur);
     CeedOperatorSetField(op_dirichlet_sub, "x", elem_restr_x_stored, CEED_BASIS_COLLOCATED, x_stored);
     CeedOperatorSetField(op_dirichlet_sub, "scale", elem_restr_scale, CEED_BASIS_COLLOCATED, scale_stored);

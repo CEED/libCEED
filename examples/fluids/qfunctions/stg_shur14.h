@@ -327,9 +327,12 @@ CEED_QFUNCTION(ICsSTG)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedSc
 
       case STATEVAR_PRIMITIVE:
         q0[0][i] = P0;
-        q0[1][i] = u[0];
-        q0[2][i] = u[1];
-        q0[3][i] = u[2];
+        // q0[1][i] = u[0];
+        // q0[2][i] = u[1];
+        // q0[3][i] = u[2];
+        q0[1][i] = sin(x_i[0]) + x_i[1];
+        q0[2][i] = cos(x_i[0]) + x_i[2];
+        q0[3][i] = x_i[0] + x_i[1] + sin(x_i[2]*(6*M_PI/0.452));
         q0[4][i] = theta0;
         break;
     }

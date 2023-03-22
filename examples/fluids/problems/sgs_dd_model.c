@@ -95,7 +95,8 @@ PetscErrorCode SGS_DD_ModelSetupNodalEvaluation(Ceed ceed, User user, CeedData c
   PetscCall(GetRestrictionForDomain(ceed, sgs_dd_data->dm_sgs, 0, 0, 0, num_qpts_1d, 0, &elem_restr_sgs, NULL, NULL));
   CeedElemRestrictionCreateVector(elem_restr_sgs, &sgs_dd_data->sgs_nodal_ceed, NULL);
 
-  CeedBasisCreateTensorH1Lagrange(ceed, dim, num_comp_grad_velo, num_nodes_1d, num_qpts_1d, CEED_GAUSS_LOBATTO, &basis_grad_velo);
+  // TODO Don't need this, get rid of it
+  CeedBasisCreateTensorH1Lagrange(ceed, dim, num_comp_grad_velo, num_nodes_1d, num_nodes_1d, CEED_GAUSS_LOBATTO, &basis_grad_velo);
 
   // -- Create multiplicity scale for correcting nodal assembly
   CeedElemRestrictionCreateVector(ceed_data->elem_restr_q, &multiplicity, NULL);
@@ -127,23 +128,27 @@ PetscErrorCode SGS_DD_ModelSetupNodalEvaluation(Ceed ceed, User user, CeedData c
       SETERRQ(PetscObjectComm((PetscObject)user->dm), PETSC_ERR_SUP, "No statisics collection available for chosen state variable");
   }
   CeedQFunctionSetContext(qf_sgs_dd_nodal, sgs_dd_setup_data->sgsdd_qfctx);
-  CeedQFunctionAddInput(qf_sgs_dd_nodal, "q", num_comp_q, CEED_EVAL_INTERP);
-  CeedQFunctionAddInput(qf_sgs_dd_nodal, "x", num_comp_x, CEED_EVAL_INTERP);
-  CeedQFunctionAddInput(qf_sgs_dd_nodal, "gradient velocity", num_comp_grad_velo, CEED_EVAL_INTERP);
-  CeedQFunctionAddInput(qf_sgs_dd_nodal, "anisotropy tensor", num_comp_grid_aniso, CEED_EVAL_INTERP);
+  CeedQFunctionAddInput(qf_sgs_dd_nodal, "q", num_comp_q, CEED_EVAL_NONE);
+  CeedQFunctionAddInput(qf_sgs_dd_nodal, "x", num_comp_x, CEED_EVAL_NONE);
+  CeedQFunctionAddInput(qf_sgs_dd_nodal, "gradient velocity", num_comp_grad_velo, CEED_EVAL_NONE);
+  CeedQFunctionAddInput(qf_sgs_dd_nodal, "anisotropy tensor", num_comp_grid_aniso, CEED_EVAL_NONE);
   CeedQFunctionAddInput(qf_sgs_dd_nodal, "scale", 1, CEED_EVAL_NONE);
   CeedQFunctionAddOutput(qf_sgs_dd_nodal, "km_sgs", sgs_dd_data->num_comp_sgs, CEED_EVAL_NONE);
 
-  // WARNING These CeedBasis objects should be going to CEED_GAUSS_LOBATTO points, not CEED_GAUSS
-  // Evidence, grad_velo uses CEED_GAUSS_LOBATTO for it's basis evaluation
+
+  // WARNING Possible that x should not be collocated here, but actually be basis_x_to_q:
+  CeedBasis basis_x_to_q;
+  PetscCall(CeedBasisCreateProjection(ceed_data->basis_x_sur, ceed_data->basis_q_sur, &basis_x_to_q));
+  // This is because the x coordinates are actually not necessarily collocated with the nodes (and may not even be the same number per element, ie. linear mesh with higher-order basis functions)
   CeedOperatorCreate(ceed, qf_sgs_dd_nodal, NULL, NULL, &op_sgs_dd_nodal);
-  CeedOperatorSetField(op_sgs_dd_nodal, "q", ceed_data->elem_restr_q, ceed_data->basis_q, user->q_ceed);
-  CeedOperatorSetField(op_sgs_dd_nodal, "x", ceed_data->elem_restr_x, ceed_data->basis_x, ceed_data->x_coord);
-  CeedOperatorSetField(op_sgs_dd_nodal, "gradient velocity", elem_restr_grad_velo, basis_grad_velo, CEED_VECTOR_ACTIVE);
-  CeedOperatorSetField(op_sgs_dd_nodal, "anisotropy tensor", sgs_dd_setup_data->elem_restr_grid_aniso, sgs_dd_setup_data->basis_grid_aniso,
+  CeedOperatorSetField(op_sgs_dd_nodal, "q", ceed_data->elem_restr_q, CEED_BASIS_COLLOCATED, user->q_ceed);
+  CeedOperatorSetField(op_sgs_dd_nodal, "x", ceed_data->elem_restr_x, CEED_BASIS_COLLOCATED, ceed_data->x_coord);
+  CeedOperatorSetField(op_sgs_dd_nodal, "gradient velocity", elem_restr_grad_velo, CEED_BASIS_COLLOCATED, CEED_VECTOR_ACTIVE);
+  CeedOperatorSetField(op_sgs_dd_nodal, "anisotropy tensor", sgs_dd_setup_data->elem_restr_grid_aniso, CEED_BASIS_COLLOCATED,
                        sgs_dd_setup_data->grid_aniso_ceed);
   CeedOperatorSetField(op_sgs_dd_nodal, "scale", elem_restr_scale, CEED_BASIS_COLLOCATED, scale_stored);
   CeedOperatorSetField(op_sgs_dd_nodal, "km_sgs", elem_restr_sgs, CEED_BASIS_COLLOCATED, CEED_VECTOR_ACTIVE);
+  CeedOperatorSetNumQuadraturePoints(op_sgs_dd_nodal, elem_size);
 
   sgs_dd_data->op_nodal_evaluation  = op_sgs_dd_nodal;
   sgs_dd_setup_data->elem_restr_sgs = elem_restr_sgs;

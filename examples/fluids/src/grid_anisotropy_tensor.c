@@ -66,16 +66,21 @@ PetscErrorCode GridAnisotropyTensorProjectionSetupApply(Ceed ceed, User user, Ce
   CeedElemRestriction elem_restr_grid_aniso_colloc;
   PetscCall(GetRestrictionForDomain(ceed, grid_aniso_proj->dm, 0, 0, 0, num_qpts_1d, grid_aniso_proj->num_comp, elem_restr_grid_aniso, NULL, &elem_restr_grid_aniso_colloc));
 
-  CeedBasisCreateTensorH1Lagrange(ceed, dim, grid_aniso_proj->num_comp, num_nodes_1d, num_qpts_1d, CEED_GAUSS, basis_grid_aniso);
+  CeedBasis basis_x_to_grid_aniso;
+  CeedBasisCreateTensorH1Lagrange(ceed, dim, grid_aniso_proj->num_comp, num_nodes_1d, num_qpts_1d, CEED_GAUSS_LOBATTO, basis_grid_aniso);
+  CeedBasisCreateTensorH1Lagrange(ceed, dim, 3, 2, num_qpts_1d, CEED_GAUSS_LOBATTO, &basis_x_to_grid_aniso);
 
   // -- Build RHS operator
   CeedQFunctionCreateInterior(ceed, 1, AnisotropyTensorProjection, AnisotropyTensorProjection_loc, &qf_rhs_assemble);
 
+
   CeedQFunctionAddInput(qf_rhs_assemble, "qdata", q_data_size, CEED_EVAL_NONE);
+  CeedQFunctionAddInput(qf_rhs_assemble, "x", 3, CEED_EVAL_INTERP);
   CeedQFunctionAddOutput(qf_rhs_assemble, "v", grid_aniso_proj->num_comp, CEED_EVAL_INTERP);
 
   CeedOperatorCreate(ceed, qf_rhs_assemble, NULL, NULL, &op_rhs_assemble);
   CeedOperatorSetField(op_rhs_assemble, "qdata", ceed_data->elem_restr_qd_i, CEED_BASIS_COLLOCATED, ceed_data->q_data);
+  CeedOperatorSetField(op_rhs_assemble, "x", ceed_data->elem_restr_x, basis_x_to_grid_aniso, ceed_data->x_coord);
   CeedOperatorSetField(op_rhs_assemble, "v", *elem_restr_grid_aniso, *basis_grid_aniso, CEED_VECTOR_ACTIVE);
 
   CeedElemRestrictionCreateVector(ceed_data->elem_restr_q, &q_ceed, NULL);
