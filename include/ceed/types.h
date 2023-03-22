@@ -102,6 +102,7 @@ typedef int32_t CeedInt;
 /// Integer type, used array sizes
 /// @ingroup Ceed
 typedef ptrdiff_t CeedSize;
+#define CeedSize_FMT "td"
 
 /// Scalar (floating point) types
 ///

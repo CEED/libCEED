@@ -5,14 +5,13 @@
 //
 // This file is part of CEED:  http://github.com/ceed
 
-#ifndef matops_h
-#define matops_h
+#ifndef petsc_ops_h
+#define petsc_ops_h
 
 #include <ceed.h>
 #include <petscdm.h>
 
-// Data for PETSc Matshell
-typedef struct OperatorApplyContext_ *MatopApplyContext;
+typedef struct OperatorApplyContext_ *OperatorApplyContext;
 struct OperatorApplyContext_ {
   DM           dm_x, dm_y;
   Vec          X_loc, Y_loc;
@@ -21,11 +20,10 @@ struct OperatorApplyContext_ {
   Ceed         ceed;
 };
 
-PetscErrorCode MatopApplyContextCreate(DM dm_x, DM dm_y, Ceed ceed, CeedOperator op_apply, CeedVector x_ceed, CeedVector y_ceed, Vec X_loc, Vec Y_loc,
-                                       MatopApplyContext *op_apply_ctx);
-PetscErrorCode MatopApplyContextDestroy(MatopApplyContext op_apply_ctx);
+PetscErrorCode OperatorApplyContextCreate(DM dm_x, DM dm_y, Ceed ceed, CeedOperator op_apply, CeedVector x_ceed, CeedVector y_ceed, Vec X_loc,
+                                          Vec Y_loc, OperatorApplyContext *op_apply_ctx);
+PetscErrorCode OperatorApplyContextDestroy(OperatorApplyContext op_apply_ctx);
 PetscErrorCode MatGetDiag_Ceed(Mat A, Vec D);
-PetscErrorCode ApplyLocal_Ceed(Vec X, Vec Y, MatopApplyContext op_apply_ctx);
 PetscErrorCode MatMult_Ceed(Mat A, Vec X, Vec Y);
 
 PetscErrorCode VecP2C(Vec X_petsc, PetscMemType *mem_type, CeedVector x_ceed);
@@ -34,4 +32,9 @@ PetscErrorCode VecReadP2C(Vec X_petsc, PetscMemType *mem_type, CeedVector x_ceed
 PetscErrorCode VecReadC2P(CeedVector x_ceed, PetscMemType mem_type, Vec X_petsc);
 PetscErrorCode VecCopyP2C(Vec X_petsc, CeedVector x_ceed);
 
-#endif  // matops_h
+PetscErrorCode ApplyCeedOperatorGlobalToGlobal(Vec X, Vec Y, OperatorApplyContext ctx);
+PetscErrorCode ApplyCeedOperatorGlobalToLocal(Vec X, Vec Y_loc, OperatorApplyContext ctx);
+PetscErrorCode ApplyCeedOperatorLocalToGlobal(Vec X_loc, Vec Y, OperatorApplyContext ctx);
+PetscErrorCode ApplyAddCeedOperatorLocalToLocal(Vec X_loc, Vec Y_loc, OperatorApplyContext ctx);
+
+#endif  // petsc_ops_h

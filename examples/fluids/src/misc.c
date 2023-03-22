@@ -306,10 +306,10 @@ PetscErrorCode CreateMassQFunction(Ceed ceed, CeedInt N, CeedInt q_data_size, Ce
  * @param[in]  rhs_matop_ctx MatopApplyContext for performing the RHS evaluation
  * @param[in]  ksp           KSP for solving the consistent projection problem
  */
-PetscErrorCode ComputeL2Projection(Vec source_vec, Vec target_vec, MatopApplyContext rhs_matop_ctx, KSP ksp) {
+PetscErrorCode ComputeL2Projection(Vec source_vec, Vec target_vec, OperatorApplyContext rhs_matop_ctx, KSP ksp) {
   PetscFunctionBeginUser;
 
-  PetscCall(ApplyLocal_Ceed(source_vec, target_vec, rhs_matop_ctx));
+  PetscCall(ApplyCeedOperatorGlobalToGlobal(source_vec, target_vec, rhs_matop_ctx));
   PetscCall(KSPSolve(ksp, target_vec, target_vec));
 
   PetscFunctionReturn(0);

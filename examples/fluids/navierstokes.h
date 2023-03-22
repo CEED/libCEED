@@ -12,7 +12,7 @@
 #include <petscts.h>
 #include <stdbool.h>
 
-#include "./include/matops.h"
+#include "./include/petsc_ops.h"
 #include "qfunctions/newtonian_types.h"
 #include "qfunctions/stabilization_types.h"
 
@@ -147,7 +147,7 @@ typedef struct {
   KSP                   ksp;         // For the L^2 projection solve
   CeedScalar            span_width;  // spanwise width of the child domain
   PetscBool             do_mms_test;
-  MatopApplyContext     mms_error_ctx;
+  OperatorApplyContext  mms_error_ctx;
   CeedContextFieldLabel solution_time_label, previous_time_label;
 } Span_Stats;
 
@@ -351,7 +351,7 @@ extern const PetscInt FLUIDS_FILE_TOKEN;
 // Create appropriate mass qfunction based on number of components N
 PetscErrorCode CreateMassQFunction(Ceed ceed, CeedInt N, CeedInt q_data_size, CeedQFunction *qf);
 
-PetscErrorCode ComputeL2Projection(Vec source_vec, Vec target_vec, MatopApplyContext rhs_matop_ctx, KSP ksp);
+PetscErrorCode ComputeL2Projection(Vec source_vec, Vec target_vec, OperatorApplyContext rhs_matop_ctx, KSP ksp);
 
 PetscErrorCode CreateStatsDM(User user, ProblemData *problem, PetscInt degree, SimpleBC bc);
 
