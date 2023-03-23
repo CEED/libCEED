@@ -10,8 +10,8 @@
 #ifndef _ceed_impl_h
 #define _ceed_impl_h
 
+#include <ceed.h>
 #include <ceed/backend.h>
-#include <ceed/ceed.h>
 #include <stdbool.h>
 
 CEED_INTERN const char *CeedJitSourceRootDefault;

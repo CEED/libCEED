@@ -7,8 +7,8 @@
 
 #include "ceed-cuda-ref.h"
 
+#include <ceed.h>
 #include <ceed/backend.h>
-#include <ceed/ceed.h>
 #include <cublas_v2.h>
 #include <cuda.h>
 #include <cuda_runtime.h>

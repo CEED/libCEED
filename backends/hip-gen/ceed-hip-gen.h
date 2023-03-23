@@ -8,8 +8,8 @@
 #ifndef _ceed_hip_gen_h
 #define _ceed_hip_gen_h
 
+#include <ceed.h>
 #include <ceed/backend.h>
-#include <ceed/ceed.h>
 #include <hip/hip_runtime.h>
 
 #include "../hip/ceed-hip-common.h"

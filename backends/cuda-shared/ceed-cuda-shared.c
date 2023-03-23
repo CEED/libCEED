@@ -7,8 +7,8 @@
 
 #include "ceed-cuda-shared.h"
 
+#include <ceed.h>
 #include <ceed/backend.h>
-#include <ceed/ceed.h>
 #include <string.h>
 
 //------------------------------------------------------------------------------

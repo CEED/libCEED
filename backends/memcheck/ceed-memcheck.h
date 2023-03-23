@@ -8,8 +8,8 @@
 #ifndef _ceed_memcheck_h
 #define _ceed_memcheck_h
 
+#include <ceed.h>
 #include <ceed/backend.h>
-#include <ceed/ceed.h>
 
 typedef struct {
   int         mem_block_id;

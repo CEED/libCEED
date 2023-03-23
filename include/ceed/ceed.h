@@ -56,7 +56,7 @@
 
 /// Typedefs and macros used in public interfaces and user QFunction source
 #include "types.h"  // IWYU pragma: export
-/// This line prevents IWYU from suggesting "ceed/ceed.h"
+/// This line prevents IWYU from suggesting "ceed.h"
 // IWYU pragma: private, include <ceed.h>
 
 /// Library context created by CeedInit()

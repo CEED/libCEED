@@ -9,8 +9,8 @@
 #ifndef _ceed_magma_h
 #define _ceed_magma_h
 
+#include <ceed.h>
 #include <ceed/backend.h>
-#include <ceed/ceed.h>
 #include <magma_v2.h>
 
 #define MAGMA_MAXTHREADS_1D 128

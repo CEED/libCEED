@@ -46,7 +46,7 @@ fn main() {
         .unwrap();
 
     // Tell cargo to invalidate the built crate whenever the wrapper changes
-    println!("cargo:rerun-if-changed=c-src/include/ceed/ceed.h");
+    println!("cargo:rerun-if-changed=c-src/include/ceed.h");
     println!("cargo:rerun-if-changed=c-src/include/ceed/types.h");
     println!("cargo:rerun-if-changed=c-src/Makefile");
     if Path::new("c-src/config.mk").is_file() {
@@ -59,7 +59,7 @@ fn main() {
     let bindings = bindgen::Builder::default()
         // The input header we would like to generate
         // bindings for.
-        .header("c-src/include/ceed/ceed.h")
+        .header("c-src/include/ceed.h")
         .allowlist_function("Ceed.*")
         .allowlist_type("Ceed.*")
         .allowlist_var("Ceed.*")

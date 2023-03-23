@@ -7,8 +7,8 @@
 
 #include "ceed-hip-compile.h"
 
+#include <ceed.h>
 #include <ceed/backend.h>
-#include <ceed/ceed.h>
 #include <ceed/jit-tools.h>
 #include <hip/hiprtc.h>
 #include <stdarg.h>
