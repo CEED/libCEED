@@ -7,6 +7,11 @@
 
 #include "ceed-cuda-common.h"
 
+#include <ceed.h>
+#include <ceed/backend.h>
+#include <cublas_v2.h>
+#include <cuda_runtime.h>
+#include <stdlib.h>
 #include <string.h>
 
 //------------------------------------------------------------------------------

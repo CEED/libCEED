@@ -7,6 +7,7 @@
 
 #include <ceed.h>
 #include <ceed/backend.h>
+#include <ceed/jit-source/hip/hip-types.h>
 #include <stddef.h>
 
 #include "../hip/ceed-hip-compile.h"

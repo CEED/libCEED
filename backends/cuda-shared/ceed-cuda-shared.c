@@ -9,7 +9,10 @@
 
 #include <ceed.h>
 #include <ceed/backend.h>
+#include <stdbool.h>
 #include <string.h>
+
+#include "../cuda/ceed-cuda-common.h"
 
 //------------------------------------------------------------------------------
 // Backend init

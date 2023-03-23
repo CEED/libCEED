@@ -10,8 +10,10 @@
 #include <ceed/jit-tools.h>
 #include <cuda.h>
 #include <cuda_runtime.h>
+#include <stdbool.h>
 #include <stddef.h>
 
+#include "../cuda/ceed-cuda-common.h"
 #include "../cuda/ceed-cuda-compile.h"
 #include "ceed-cuda-shared.h"
 

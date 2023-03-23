@@ -10,6 +10,7 @@
 #include <ceed/jit-tools.h>
 #include <hip/hip_runtime.h>
 
+#include "../hip/ceed-hip-common.h"
 #include "../hip/ceed-hip-compile.h"
 #include "ceed-hip-ref.h"
 

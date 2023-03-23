@@ -13,6 +13,7 @@
 #include <stddef.h>
 #include <string.h>
 
+#include "../hip/ceed-hip-common.h"
 #include "../hip/ceed-hip-compile.h"
 #include "ceed-hip-ref.h"
 

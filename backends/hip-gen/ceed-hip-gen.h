@@ -10,9 +10,8 @@
 
 #include <ceed.h>
 #include <ceed/backend.h>
+#include <ceed/jit-source/hip/hip-types.h>
 #include <hip/hip_runtime.h>
-
-#include "../hip/ceed-hip-common.h"
 
 typedef struct {
   CeedInt       dim;

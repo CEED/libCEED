@@ -8,9 +8,8 @@
 #include <ceed.h>
 #include <ceed/backend.h>
 #include <cuda_runtime.h>
-#include <stdio.h>
-#include <string.h>
 
+#include "../cuda/ceed-cuda-common.h"
 #include "ceed-cuda-gen.h"
 
 //------------------------------------------------------------------------------

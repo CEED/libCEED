@@ -10,8 +10,10 @@
 #include <cublas_v2.h>
 #include <cuda_runtime.h>
 #include <math.h>
+#include <stdbool.h>
 #include <string.h>
 
+#include "../cuda/ceed-cuda-common.h"
 #include "ceed-cuda-ref.h"
 
 //------------------------------------------------------------------------------

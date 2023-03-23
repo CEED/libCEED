@@ -7,10 +7,10 @@
 
 #include <ceed.h>
 #include <ceed/backend.h>
+#include <ceed/jit-source/hip/hip-types.h>
 #include <hip/hip_runtime.h>
-#include <stdio.h>
-#include <string.h>
 
+#include "../hip/ceed-hip-common.h"
 #include "../hip/ceed-hip-compile.h"
 #include "ceed-hip-ref-qfunction-load.h"
 #include "ceed-hip-ref.h"

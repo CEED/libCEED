@@ -9,6 +9,7 @@
 #include <ceed.h>
 #include <ceed/backend.h>
 #include <ceed/cuda.h>
+#include <cuda.h>
 
 /**
   @brief Set CUDA function pointer to evaluate action at quadrature points

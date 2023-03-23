@@ -14,6 +14,7 @@
 #include <stddef.h>
 #include <string.h>
 
+#include "../cuda/ceed-cuda-common.h"
 #include "../cuda/ceed-cuda-compile.h"
 #include "ceed-cuda-ref.h"
 

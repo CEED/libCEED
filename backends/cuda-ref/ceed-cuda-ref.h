@@ -10,9 +10,9 @@
 
 #include <ceed.h>
 #include <ceed/backend.h>
+#include <ceed/jit-source/cuda/cuda-types.h>
+#include <cublas_v2.h>
 #include <cuda.h>
-
-#include "../cuda/ceed-cuda-common.h"
 
 typedef struct {
   CeedScalar *h_array;

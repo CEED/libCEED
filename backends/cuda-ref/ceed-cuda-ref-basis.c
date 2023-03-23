@@ -11,6 +11,7 @@
 #include <cuda.h>
 #include <cuda_runtime.h>
 
+#include "../cuda/ceed-cuda-common.h"
 #include "../cuda/ceed-cuda-compile.h"
 #include "ceed-cuda-ref.h"
 

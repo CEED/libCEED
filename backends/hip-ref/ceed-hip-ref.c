@@ -9,8 +9,10 @@
 
 #include <ceed.h>
 #include <ceed/backend.h>
-#include <stdlib.h>
+#include <stdbool.h>
 #include <string.h>
+
+#include "../hip/ceed-hip-common.h"
 
 //------------------------------------------------------------------------------
 // HIP preferred MemType
