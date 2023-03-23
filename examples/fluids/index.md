@@ -301,6 +301,49 @@ Note that this wave speed is specific to ideal gases as $\gamma$ is an ideal gas
 Currently, this demo provides three types of problems/physical models that can be selected at run time via the option `-problem`.
 {ref}`problem-advection`, the problem of the transport of energy in a uniform vector velocity field, {ref}`problem-euler-vortex`, the exact solution to the Euler equations, and the so called {ref}`problem-density-current` problem.
 
+### Subgrid Stress Modeling
+
+When a fluid simulation is under-resolved (the smallest length scale resolved by the grid is much larger smallest physical scale, the [Kolmogorov length scale](https://en.wikipedia.org/wiki/Kolmogorov_microscales)), this is mathematically interpreted as filtering the Navier-Stokes equations.
+This is known as large-eddy simulation (LES), as only the "large" scales of turbulence are resolved.
+This filtering operation results in an extra stress-like term, $\bm{\tau}^r$, representing the effect of unresolved (or "subgrid" scale) structures in the flow.
+Denoting the filtering operation by $\overline \cdot$, the LES governing equations are:
+
+$$
+\frac{\partial \bm{\overline q}}{\partial t} + \nabla \cdot \bm{\overline F}(\bm{\overline q}) -S(\bm{\overline q}) = 0 \, ,
+$$ (eq-vector-les)
+
+where
+
+$$
+\bm{\overline F}(\bm{\overline q}) =
+\bm{F} (\bm{\overline q}) +
+\begin{pmatrix}
+    0\\
+     \bm{\tau}^r \\
+     \bm{u}  \cdot \bm{\tau}^r
+\end{pmatrix}
+$$ (eq-les-flux)
+
+More details on deriving the above expression, filtering, and large eddy simulation can be found in {cite}`popeTurbulentFlows2000`.
+To close the problem, the subgrid stress must be defined.
+For implicit LES, the subgrid stress is set to zero and the numerical properties of the discretized system are assumed to account for the effect of subgrid scale structures on the filtered solution field.
+For explicit LES, it is defined by a subgrid stress model.
+
+#### Data-driven SGS Model
+
+The data-driven SGS model implemented here uses a small neural network to compute the SGS term.
+The SGS tensor is calculated at nodes using an $L^2$ projection of the velocity gradient and grid anisotropy tensor, and then interpolated onto quadrature points.
+More details regarding the theoretical background of the model can be found in {cite}`prakashDDSGS2022` and {cite}`prakashDDSGSAnisotropic2022`.
+
+The neural network itself consists of 1 layer and 20 neurons, using Leaky ReLU as its activation function.
+The slope parameter for the Leaky ReLU function is set via `-sgs_model_dd_leakyrelu_alpha`.
+The outputs of the network are assumed to be normalized on a min-max scale, so they must be rescaled by the original min-max bounds.
+Parameters for the neural network are put into files in a directory found in `-sgs_model_dd_parameter_dir`.
+These files store the network weights (`w1.dat` and `w2.dat`), biases (`b1.dat` and `b2.dat`), and scaling parameters (`OutScaling.dat`).
+The first row of each files stores the number of columns and rows in each file.
+Note that the weight coefficients are assumed to be in column-major order.
+This is done to keep consistent with legacy file compatibility.
+
 (problem-advection)=
 
 ## Advection
