@@ -3,6 +3,7 @@
 /// \test Test y = alpha x + beta y
 #include <ceed.h>
 #include <math.h>
+#include <stdio.h>
 
 int main(int argc, char **argv) {
   Ceed       ceed;

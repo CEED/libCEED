@@ -2,6 +2,7 @@
 /// Test creation, copying, and destruction of an element restriction
 /// \test Test creation, copying, and destruction of an element restriction
 #include <ceed.h>
+#include <stdio.h>
 
 int main(int argc, char **argv) {
   Ceed                ceed;

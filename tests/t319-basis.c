@@ -3,6 +3,7 @@
 /// \test Test projection interp and grad in multiple dimensions
 #include <ceed.h>
 #include <math.h>
+#include <stdio.h>
 
 static CeedScalar Eval(CeedInt dim, const CeedScalar x[]) {
   CeedScalar result = (x[0] + 0.1) * (x[0] + 0.1);

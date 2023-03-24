@@ -8,8 +8,8 @@
 #ifndef _ceed_ref_h
 #define _ceed_ref_h
 
+#include <ceed.h>
 #include <ceed/backend.h>
-#include <ceed/ceed.h>
 #include <stdbool.h>
 #include <stdint.h>
 

@@ -7,9 +7,11 @@
 
 #include "ceed-hip-gen.h"
 
+#include <ceed.h>
 #include <ceed/backend.h>
-#include <ceed/ceed.h>
 #include <string.h>
+
+#include "../hip/ceed-hip-common.h"
 
 //------------------------------------------------------------------------------
 // Backend init

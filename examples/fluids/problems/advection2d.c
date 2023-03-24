@@ -10,6 +10,9 @@
 
 #include "../qfunctions/advection2d.h"
 
+#include <ceed.h>
+#include <petscdm.h>
+
 #include "../navierstokes.h"
 #include "../qfunctions/setupgeo2d.h"
 

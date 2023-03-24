@@ -2,6 +2,7 @@
 /// Test setting one vector from array of another vector
 /// \test Test setting one vector from array of another vector
 #include <ceed.h>
+#include <stdio.h>
 
 int main(int argc, char **argv) {
   Ceed       ceed;

@@ -3,6 +3,7 @@
 /// \test Test creation, use, and destruction of a multicomponent element restriction
 #include <ceed.h>
 #include <ceed/backend.h>
+#include <stdio.h>
 
 int main(int argc, char **argv) {
   Ceed                ceed;

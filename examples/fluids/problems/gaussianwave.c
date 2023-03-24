@@ -10,6 +10,9 @@
 
 #include "../qfunctions/gaussianwave.h"
 
+#include <ceed.h>
+#include <petscdm.h>
+
 #include "../navierstokes.h"
 #include "../qfunctions/freestream_bc_type.h"
 

@@ -7,6 +7,9 @@
 
 #include "../include/matops.h"
 
+#include <ceed.h>
+#include <petscdm.h>
+
 #include "../navierstokes.h"
 
 // -----------------------------------------------------------------------------

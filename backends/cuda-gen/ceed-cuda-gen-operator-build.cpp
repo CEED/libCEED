@@ -7,8 +7,9 @@
 
 #define CEED_DEBUG_COLOR 12
 
+#include <ceed.h>
 #include <ceed/backend.h>
-#include <ceed/ceed.h>
+#include <ceed/jit-source/cuda/cuda-types.h>
 #include <ceed/jit-tools.h>
 #include <cuda_runtime.h>
 
@@ -17,6 +18,7 @@
 
 #include "../cuda-ref/ceed-cuda-ref.h"
 #include "../cuda-shared/ceed-cuda-shared.h"
+#include "../cuda/ceed-cuda-common.h"
 #include "../cuda/ceed-cuda-compile.h"
 #include "ceed-cuda-gen.h"
 

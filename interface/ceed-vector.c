@@ -7,9 +7,10 @@
 
 #include <assert.h>
 #include <ceed-impl.h>
+#include <ceed.h>
 #include <ceed/backend.h>
-#include <ceed/ceed.h>
 #include <math.h>
+#include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
 

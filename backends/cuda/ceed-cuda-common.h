@@ -8,11 +8,10 @@
 #ifndef _ceed_cuda_common_h
 #define _ceed_cuda_common_h
 
+#include <ceed.h>
 #include <ceed/backend.h>
-#include <ceed/jit-source/cuda/cuda-types.h>
 #include <cublas_v2.h>
 #include <cuda.h>
-#include <cuda_runtime.h>
 
 #define QUOTE(...) #__VA_ARGS__
 

@@ -2,6 +2,7 @@
 /// Test creation, copying, and destruction of a H1Lagrange basis
 /// \test Test creation, copying, and destruction of a H1Lagrange basis
 #include <ceed.h>
+#include <stdio.h>
 
 int main(int argc, char **argv) {
   Ceed      ceed;

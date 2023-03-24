@@ -3,6 +3,7 @@
 /// \test Test creation, evaluation, and destruction of identity QFunction
 #include <ceed.h>
 #include <math.h>
+#include <stdio.h>
 
 int main(int argc, char **argv) {
   Ceed          ceed;

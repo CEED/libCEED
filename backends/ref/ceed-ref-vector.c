@@ -5,8 +5,9 @@
 //
 // This file is part of CEED:  http://github.com/ceed
 
+#include <ceed.h>
 #include <ceed/backend.h>
-#include <ceed/ceed.h>
+#include <stdbool.h>
 #include <string.h>
 
 #include "ceed-ref.h"

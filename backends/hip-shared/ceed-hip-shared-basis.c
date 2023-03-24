@@ -5,10 +5,11 @@
 //
 // This file is part of CEED:  http://github.com/ceed
 
+#include <ceed.h>
 #include <ceed/backend.h>
-#include <ceed/ceed.h>
 #include <ceed/jit-tools.h>
 #include <hip/hip_runtime.h>
+#include <stdbool.h>
 #include <stddef.h>
 
 #include "../hip/ceed-hip-common.h"

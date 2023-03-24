@@ -3,6 +3,7 @@
 /// \test Test GetDiv and BasisApply for a 2D Quad non-tensor H(div) basis
 #include <ceed.h>
 #include <math.h>
+#include <stdio.h>
 
 #include "t330-basis.h"
 

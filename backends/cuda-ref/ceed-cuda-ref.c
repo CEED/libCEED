@@ -7,12 +7,13 @@
 
 #include "ceed-cuda-ref.h"
 
+#include <ceed.h>
 #include <ceed/backend.h>
-#include <ceed/ceed.h>
 #include <cublas_v2.h>
-#include <cuda.h>
-#include <cuda_runtime.h>
+#include <stdbool.h>
 #include <string.h>
+
+#include "../cuda/ceed-cuda-common.h"
 
 //------------------------------------------------------------------------------
 // CUDA preferred MemType

@@ -3,6 +3,7 @@
 /// \test Test creation reuse of the same QFunction for multiple operators
 #include <ceed.h>
 #include <math.h>
+#include <stdio.h>
 #include <stdlib.h>
 
 #include "t502-operator.h"

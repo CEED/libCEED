@@ -8,7 +8,7 @@
 #include "../problems/problems.h"
 
 #include <ceed.h>
-#include <petsc.h>
+#include <petscsys.h>
 
 PetscErrorCode RegisterProblems(ProblemFunctions problem_functions) {
   PetscFunctionBegin;

@@ -2,6 +2,7 @@
 /// Test GetNumNodes and GetNumQuadraturePoints for basis
 /// \test Test GetNumNodes and GetNumQuadraturePoints for basis
 #include <ceed.h>
+#include <stdio.h>
 
 int main(int argc, char **argv) {
   Ceed      ceed;

@@ -2,6 +2,7 @@
 /// Test creation, copying, and destruction for QFunction and QFunctionContext
 /// \test Test creation, copying, and destruction for QFunction and QFunctionContext
 #include <ceed.h>
+#include <stdio.h>
 
 #include "t400-qfunction.h"
 

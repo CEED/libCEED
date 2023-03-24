@@ -7,9 +7,11 @@
 
 #include "ceed-cuda-gen.h"
 
+#include <ceed.h>
 #include <ceed/backend.h>
-#include <ceed/ceed.h>
 #include <string.h>
+
+#include "../cuda/ceed-cuda-common.h"
 
 //------------------------------------------------------------------------------
 // Backend init

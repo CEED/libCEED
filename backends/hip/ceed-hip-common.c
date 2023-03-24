@@ -7,8 +7,8 @@
 
 #include "ceed-hip-common.h"
 
+#include <ceed.h>
 #include <ceed/backend.h>
-#include <ceed/ceed.h>
 #include <stdlib.h>
 #include <string.h>
 

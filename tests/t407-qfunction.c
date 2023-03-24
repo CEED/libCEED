@@ -4,6 +4,7 @@
 #include <ceed.h>
 #include <ceed/backend.h>
 #include <stddef.h>
+#include <stdio.h>
 #include <string.h>
 
 typedef struct {

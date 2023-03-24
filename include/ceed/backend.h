@@ -10,7 +10,7 @@
 #ifndef _ceed_backend_h
 #define _ceed_backend_h
 
-#include <ceed/ceed.h>
+#include <ceed.h>
 #include <limits.h>
 #include <stdbool.h>
 

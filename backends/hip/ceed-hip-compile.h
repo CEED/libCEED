@@ -8,8 +8,8 @@
 #ifndef _ceed_hip_compile_h
 #define _ceed_hip_compile_h
 
+#include <ceed.h>
 #include <ceed/backend.h>
-#include <ceed/ceed.h>
 #include <hip/hip_runtime.h>
 
 static inline CeedInt CeedDivUpInt(CeedInt numerator, CeedInt denominator) { return (numerator + denominator - 1) / denominator; }

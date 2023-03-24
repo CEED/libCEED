@@ -32,8 +32,8 @@
 const char help[] = "Solve CEED BPs using PETSc\n";
 
 #include <ceed.h>
+#include <petscdm.h>
 #include <petscksp.h>
-#include <petscsys.h>
 #include <stdbool.h>
 #include <string.h>
 

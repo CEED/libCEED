@@ -4,6 +4,7 @@
 #include "t405-qfunction.h"
 
 #include <ceed.h>
+#include <stdio.h>
 
 int main(int argc, char **argv) {
   Ceed          ceed;

@@ -2,6 +2,7 @@
 /// Test return of CEED backend preferred memory type
 /// \test Test return of CEED backend preferred memory type
 #include <ceed.h>
+#include <stdio.h>
 
 int main(int argc, char **argv) {
   Ceed    ceed;

@@ -3,7 +3,6 @@
 
 #include <ceed.h>
 #include <petsc.h>
-#include <petscdmplex.h>
 
 #include "structs.h"
 

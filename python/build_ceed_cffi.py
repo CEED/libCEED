@@ -72,7 +72,7 @@ ffibuilder.cdef(header)
 ffibuilder.set_source("_ceed_cffi",
                       """
   #define va_list const char *
-  #include <ceed/ceed.h>   // the C header of the library
+  #include <ceed.h>   // the C header of the library
   #include <ceed/backend.h> // declarations for the backend functions above
   """,
                       include_dirs=[

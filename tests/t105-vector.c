@@ -2,6 +2,7 @@
 /// Test creation, setting, reading, restoring, and destroying of a vector using CEED_MEM_DEVICE
 /// \test Test creation, setting, reading, restoring, and destroying of a vector
 #include <ceed.h>
+#include <stdio.h>
 
 int main(int argc, char **argv) {
   Ceed       ceed;

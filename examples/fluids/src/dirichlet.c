@@ -5,6 +5,9 @@
 //
 // This file is part of CEED:  http://github.com/ceed
 
+#include <ceed.h>
+#include <petscdmplex.h>
+
 #include "../navierstokes.h"
 #include "../problems/stg_shur14.h"
 #include "../qfunctions/dirichlet_boundary.h"

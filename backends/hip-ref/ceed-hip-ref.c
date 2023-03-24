@@ -7,10 +7,12 @@
 
 #include "ceed-hip-ref.h"
 
+#include <ceed.h>
 #include <ceed/backend.h>
-#include <ceed/ceed.h>
-#include <stdlib.h>
+#include <stdbool.h>
 #include <string.h>
+
+#include "../hip/ceed-hip-common.h"
 
 //------------------------------------------------------------------------------
 // HIP preferred MemType

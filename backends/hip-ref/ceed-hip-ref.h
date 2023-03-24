@@ -8,8 +8,9 @@
 #ifndef _ceed_hip_h
 #define _ceed_hip_h
 
+#include <ceed.h>
 #include <ceed/backend.h>
-#include <ceed/ceed.h>
+#include <ceed/jit-source/hip/hip-types.h>
 #include <hip/hip_runtime.h>
 
 #include "../hip/ceed-hip-common.h"

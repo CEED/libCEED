@@ -8,6 +8,10 @@
 /// @file
 /// Time-stepping functions for Navier-Stokes example using PETSc
 
+#include <ceed.h>
+#include <petscdmplex.h>
+#include <petscts.h>
+
 #include "../navierstokes.h"
 #include "../qfunctions/newtonian_state.h"
 
@@ -493,8 +497,9 @@ PetscErrorCode TSMonitor_NS(TS ts, PetscInt step_no, PetscReal time, Vec Q, void
 
   // Print every 'checkpoint_interval' steps
   if (user->app_ctx->checkpoint_interval <= 0 || step_no % user->app_ctx->checkpoint_interval != 0 ||
-      (user->app_ctx->cont_steps == step_no && step_no != 0))
+      (user->app_ctx->cont_steps == step_no && step_no != 0)) {
     PetscFunctionReturn(0);
+  }
 
   PetscCall(WriteOutput(user, Q, step_no, time));
 

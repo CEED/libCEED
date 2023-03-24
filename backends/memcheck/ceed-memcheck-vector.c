@@ -5,9 +5,10 @@
 //
 // This file is part of CEED:  http://github.com/ceed
 
+#include <ceed.h>
 #include <ceed/backend.h>
-#include <ceed/ceed.h>
 #include <math.h>
+#include <stdbool.h>
 #include <string.h>
 #include <valgrind/memcheck.h>
 

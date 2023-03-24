@@ -6,8 +6,9 @@
 // This file is part of CEED:  http://github.com/ceed
 
 #include <ceed-impl.h>
+#include <ceed.h>
 #include <ceed/backend.h>
-#include <ceed/ceed.h>
+#include <stddef.h>
 
 /// @file
 /// Implementation of CeedTensorContract interfaces

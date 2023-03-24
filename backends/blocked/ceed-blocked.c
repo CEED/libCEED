@@ -7,8 +7,8 @@
 
 #include "ceed-blocked.h"
 
+#include <ceed.h>
 #include <ceed/backend.h>
-#include <ceed/ceed.h>
 #include <stdbool.h>
 #include <string.h>
 

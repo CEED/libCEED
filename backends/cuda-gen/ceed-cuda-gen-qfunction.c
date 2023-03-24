@@ -5,12 +5,11 @@
 //
 // This file is part of CEED:  http://github.com/ceed
 
+#include <ceed.h>
 #include <ceed/backend.h>
-#include <ceed/ceed.h>
 #include <cuda_runtime.h>
-#include <stdio.h>
-#include <string.h>
 
+#include "../cuda/ceed-cuda-common.h"
 #include "ceed-cuda-gen.h"
 
 //------------------------------------------------------------------------------

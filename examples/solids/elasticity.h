@@ -9,10 +9,8 @@
 #define libceed_solids_examples_setup_h
 
 #include <ceed.h>
-#include <petsc.h>
 #include <petscdmplex.h>
-#include <petscfe.h>
-#include <petscksp.h>
+#include <petscsnes.h>
 #include <stdbool.h>
 #include <string.h>
 

@@ -5,8 +5,8 @@
 //
 // This file is part of CEED:  http://github.com/ceed
 
+#include <ceed.h>
 #include <ceed/backend.h>
-#include <ceed/ceed.h>
 
 const char *const CeedErrorTypesShifted[] = {
     [CEED_ERROR_SUCCESS - CEED_ERROR_UNSUPPORTED]      = "success",
