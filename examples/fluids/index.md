@@ -69,6 +69,8 @@ S(\bm{q}) &=
 \end{aligned}
 $$ (eq-ns-flux)
 
+### Finite Element Formulation (Spatial Discretization)
+
 Let the discrete solution be
 
 $$
@@ -77,61 +79,6 @@ $$
 
 with $P=p+1$ the number of nodes in the element $e$.
 We use tensor-product bases $\psi_{kji} = h_i(X_0)h_j(X_1)h_k(X_2)$.
-
-For the time discretization, we use two types of time stepping schemes.
-
-- Explicit time-stepping method
-
-  The following explicit formulation is solved with the adaptive Runge-Kutta-Fehlberg (RKF4-5) method by default (any explicit time-stepping scheme available in PETSc can be chosen at runtime)
-
-  $$
-  \bm{q}_N^{n+1} = \bm{q}_N^n + \Delta t \sum_{i=1}^{s} b_i k_i \, ,
-  $$
-
-  where
-
-  $$
-  \begin{aligned}
-     k_1 &= f(t^n, \bm{q}_N^n)\\
-     k_2 &= f(t^n + c_2 \Delta t, \bm{q}_N^n + \Delta t (a_{21} k_1))\\
-     k_3 &= f(t^n + c_3 \Delta t, \bm{q}_N^n + \Delta t (a_{31} k_1 + a_{32} k_2))\\
-     \vdots&\\
-     k_i &= f\left(t^n + c_i \Delta t, \bm{q}_N^n + \Delta t \sum_{j=1}^s a_{ij} k_j \right)\\
-  \end{aligned}
-  $$
-
-  and with
-
-  $$
-  f(t^n, \bm{q}_N^n) = - [\nabla \cdot \bm{F}(\bm{q}_N)]^n + [S(\bm{q}_N)]^n \, .
-  $$
-
-- Implicit time-stepping method
-
-  This time stepping method which can be selected using the option `-implicit` is solved with Backward Differentiation Formula (BDF) method by default (similarly, any implicit time-stepping scheme available in PETSc can be chosen at runtime).
-  The implicit formulation solves nonlinear systems for $\bm q_N$:
-
-  $$
-  \bm f(\bm q_N) \equiv \bm g(t^{n+1}, \bm{q}_N, \bm{\dot{q}}_N) = 0 \, ,
-  $$ (eq-ts-implicit-ns)
-
-  where the time derivative $\bm{\dot q}_N$ is defined by
-
-  $$
-  \bm{\dot{q}}_N(\bm q_N) = \alpha \bm q_N + \bm z_N
-  $$
-
-  in terms of $\bm z_N$ from prior state and $\alpha > 0$, both of which depend on the specific time integration scheme (backward difference formulas, generalized alpha, implicit Runge-Kutta, etc.).
-  Each nonlinear system {eq}`eq-ts-implicit-ns` will correspond to a weak form, as explained below.
-  In determining how difficult a given problem is to solve, we consider the Jacobian of {eq}`eq-ts-implicit-ns`,
-
-  $$
-  \frac{\partial \bm f}{\partial \bm q_N} = \frac{\partial \bm g}{\partial \bm q_N} + \alpha \frac{\partial \bm g}{\partial \bm{\dot q}_N}.
-  $$
-
-  The scalar "shift" $\alpha$ scales inversely with the time step $\Delta t$, so small time steps result in the Jacobian being dominated by the second term, which is a sort of "mass matrix", and typically well-conditioned independent of grid resolution with a simple preconditioner (such as Jacobi).
-  In contrast, the first term dominates for large time steps, with a condition number that grows with the diameter of the domain and polynomial degree of the approximation space.
-  Both terms are significant for time-accurate simulation and the setup costs of strong preconditioners must be balanced with the convergence rate of Krylov methods using weak preconditioners.
 
 To obtain a finite element discretization, we first multiply the strong form {eq}`eq-vector-ns` by a test function $\bm v \in H^1(\Omega)$ and integrate,
 
@@ -158,6 +105,65 @@ where $\bm{F}(\bm q_N) \cdot \widehat{\bm{n}}$ is typically replaced with a boun
 The notation $\nabla \bm v \!:\! \bm F$ represents contraction over both fields and spatial dimensions while a single dot represents contraction in just one, which should be clear from context, e.g., $\bm v \cdot \bm S$ contracts over fields while $\bm F \cdot \widehat{\bm n}$ contracts over spatial dimensions.
 :::
 
+### Time Discretization
+For the time discretization, we use two types of time stepping schemes through PETSc.
+
+#### Explicit time-stepping method
+
+  The following explicit formulation is solved with the adaptive Runge-Kutta-Fehlberg (RKF4-5) method by default (any explicit time-stepping scheme available in PETSc can be chosen at runtime)
+
+  $$
+  \bm{q}_N^{n+1} = \bm{q}_N^n + \Delta t \sum_{i=1}^{s} b_i k_i \, ,
+  $$
+
+  where
+
+  $$
+  \begin{aligned}
+     k_1 &= f(t^n, \bm{q}_N^n)\\
+     k_2 &= f(t^n + c_2 \Delta t, \bm{q}_N^n + \Delta t (a_{21} k_1))\\
+     k_3 &= f(t^n + c_3 \Delta t, \bm{q}_N^n + \Delta t (a_{31} k_1 + a_{32} k_2))\\
+     \vdots&\\
+     k_i &= f\left(t^n + c_i \Delta t, \bm{q}_N^n + \Delta t \sum_{j=1}^s a_{ij} k_j \right)\\
+  \end{aligned}
+  $$
+
+  and with
+
+  $$
+  f(t^n, \bm{q}_N^n) = - [\nabla \cdot \bm{F}(\bm{q}_N)]^n + [S(\bm{q}_N)]^n \, .
+  $$
+
+#### Implicit time-stepping method
+
+  This time stepping method which can be selected using the option `-implicit` is solved with Backward Differentiation Formula (BDF) method by default (similarly, any implicit time-stepping scheme available in PETSc can be chosen at runtime).
+  The implicit formulation solves nonlinear systems for $\bm q_N$:
+
+  $$
+  \bm f(\bm q_N) \equiv \bm g(t^{n+1}, \bm{q}_N, \bm{\dot{q}}_N) = 0 \, ,
+  $$ (eq-ts-implicit-ns)
+
+  where the time derivative $\bm{\dot q}_N$ is defined by
+
+  $$
+  \bm{\dot{q}}_N(\bm q_N) = \alpha \bm q_N + \bm z_N
+  $$
+
+  in terms of $\bm z_N$ from prior state and $\alpha > 0$, both of which depend on the specific time integration scheme (backward difference formulas, generalized alpha, implicit Runge-Kutta, etc.).
+  Each nonlinear system {eq}`eq-ts-implicit-ns` will correspond to a weak form, as explained below.
+  In determining how difficult a given problem is to solve, we consider the Jacobian of {eq}`eq-ts-implicit-ns`,
+
+  $$
+  \frac{\partial \bm f}{\partial \bm q_N} = \frac{\partial \bm g}{\partial \bm q_N} + \alpha \frac{\partial \bm g}{\partial \bm{\dot q}_N}.
+  $$
+
+  The scalar "shift" $\alpha$ scales inversely with the time step $\Delta t$, so small time steps result in the Jacobian being dominated by the second term, which is a sort of "mass matrix", and typically well-conditioned independent of grid resolution with a simple preconditioner (such as Jacobi).
+  In contrast, the first term dominates for large time steps, with a condition number that grows with the diameter of the domain and polynomial degree of the approximation space.
+  Both terms are significant for time-accurate simulation and the setup costs of strong preconditioners must be balanced with the convergence rate of Krylov methods using weak preconditioners.
+
+More details of PETSc's time stepping solvers can be found in the [TS User Guide](https://petsc.org/release/docs/manual/ts/).
+
+### Stabilization
 We solve {eq}`eq-weak-vector-ns` using a Galerkin discretization (default) or a stabilized method, as is necessary for most real-world flows.
 
 Galerkin methods produce oscillations for transport-dominated problems (any time the cell Péclet number is larger than 1), and those tend to blow up for nonlinear problems such as the Euler equations and (low-viscosity/poorly resolved) Navier-Stokes, in which case stabilization is necessary.
