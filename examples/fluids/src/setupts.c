@@ -539,7 +539,7 @@ PetscErrorCode TSSolve_NS(DM dm, User user, AppCtx app_ctx, Physics phys, Vec *Q
       }
     }
   } else {
-    if (!user->op_rhs) SETERRQ(comm, PETSC_ERR_ARG_NULL, "Problem does not provide RHSFunction");
+    PetscCheck(user->op_rhs, comm, PETSC_ERR_ARG_NULL, "Problem does not provide RHSFunction");
     PetscCall(TSSetType(*ts, TSRK));
     PetscCall(TSRKSetType(*ts, TSRK5F));
     PetscCall(TSSetRHSFunction(*ts, NULL, RHS_NS, &user));

@@ -95,7 +95,7 @@ PetscErrorCode ComputeChebyshevCoefficients(BlasiusContext blasius) {
   PetscCall(SNESSetFromOptions(snes));
   PetscCall(SNESSolve(snes, NULL, sol));
   PetscCall(SNESGetConvergedReason(snes, &reason));
-  if (reason < 0) SETERRQ(PETSC_COMM_WORLD, PETSC_ERR_CONV_FAILED, "The Chebyshev solve failed.\n");
+  PetscCheck(reason >= 0, PETSC_COMM_WORLD, PETSC_ERR_CONV_FAILED, "The Chebyshev solve failed.\n");
 
   // Assign Chebyshev coefficients
   PetscCall(VecGetArrayRead(sol, &cheb_coefs));
@@ -131,10 +131,9 @@ static PetscErrorCode GetYNodeLocs(const MPI_Comm comm, const char path[PETSC_MA
   for (PetscInt i = 0; i < dims[0]; i++) {
     PetscCall(PetscSynchronizedFGets(comm, fp, char_array_len, line));
     PetscCall(PetscStrToArray(line, ' ', &ndims, &array));
-    if (ndims < dims[1]) {
-      SETERRQ(comm, -1, "Line %" PetscInt_FMT " of %s does not contain enough columns (%" PetscInt_FMT " instead of %" PetscInt_FMT ")", i, path,
-              ndims, dims[1]);
-    }
+    PetscCheck(ndims == dims[1], comm, PETSC_ERR_FILE_UNEXPECTED,
+               "Line %" PetscInt_FMT " of %s does not contain correct number of columns (%" PetscInt_FMT " instead of %" PetscInt_FMT ")", i, path,
+               ndims, dims[1]);
 
     node_locs[i] = (PetscReal)atof(array[0]);
   }
@@ -207,13 +206,8 @@ static PetscErrorCode ModifyMesh(MPI_Comm comm, DM dm, PetscInt dim, PetscReal g
 
     *node_locs = temp_node_locs;
   } else {
-    // Error checking
-    if (*num_node_locs < faces[1] + 1) {
-      SETERRQ(comm, -1,
-              "The y_node_locs_path has too few locations; "
-              "There are %d + 1 nodes, but only %d locations given",
-              faces[1] + 1, *num_node_locs);
-    }
+    PetscCheck(*num_node_locs >= faces[1] + 1, comm, PETSC_ERR_FILE_UNEXPECTED,
+               "The y_node_locs_path has too few locations; There are %d + 1 nodes, but only %d locations given", faces[1] + 1, *num_node_locs);
     if (*num_node_locs > faces[1] + 1) {
       PetscCall(PetscPrintf(comm,
                             "WARNING: y_node_locs_path has more locations (%d) "
