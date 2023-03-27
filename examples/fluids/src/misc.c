@@ -357,9 +357,7 @@ PetscErrorCode PHASTADatFileOpen(const MPI_Comm comm, const char path[PETSC_MAX_
   PetscCall(PetscFOpen(comm, path, "r", fp));
   PetscCall(PetscSynchronizedFGets(comm, *fp, char_array_len, line));
   PetscCall(PetscStrToArray(line, ' ', &ndims, &array));
-  if (ndims != 2) {
-    SETERRQ(comm, -1, "Found %" PetscInt_FMT " dimensions instead of 2 on the first line of %s", ndims, path);
-  }
+  PetscCheck(ndims == 2, comm, PETSC_ERR_FILE_UNEXPECTED, "Found %" PetscInt_FMT " dimensions instead of 2 on the first line of %s", ndims, path);
 
   for (PetscInt i = 0; i < ndims; i++) dims[i] = atoi(array[i]);
   PetscCall(PetscStrToArrayDestroy(ndims, array));
@@ -402,10 +400,9 @@ PetscErrorCode PHASTADatFileReadToArrayReal(MPI_Comm comm, const char path[PETSC
   for (PetscInt i = 0; i < dims[0]; i++) {
     PetscCall(PetscSynchronizedFGets(comm, fp, char_array_len, line));
     PetscCall(PetscStrToArray(line, ' ', &ndims, &row_array));
-    if (ndims < dims[1]) {
-      SETERRQ(comm, -1, "Line %" PetscInt_FMT " of %s does not contain enough columns (%" PetscInt_FMT " instead of %" PetscInt_FMT ")", i, path,
-              ndims, dims[1]);
-    }
+    PetscCheck(ndims == dims[1], comm, PETSC_ERR_FILE_UNEXPECTED,
+               "Line %" PetscInt_FMT " of %s does not contain enough columns (%" PetscInt_FMT " instead of %" PetscInt_FMT ")", i, path, ndims,
+               dims[1]);
 
     for (PetscInt j = 0; j < dims[1]; j++) {
       array[i * dims[1] + j] = (PetscReal)atof(row_array[j]);

@@ -42,10 +42,8 @@ PetscErrorCode CalcCholeskyDecomp(MPI_Comm comm, PetscInt nprofs, const CeedScal
     Cij[5][i] = (Rij[5][i] - Cij[3][i] * Cij[4][i]) / Cij[1][i];
     Cij[2][i] = sqrt(Rij[2][i] - pow(Cij[4][i], 2) - pow(Cij[5][i], 2));
 
-    if (isnan(Cij[0][i]) || isnan(Cij[1][i]) || isnan(Cij[2][i])) {
-      SETERRQ(comm, -1, "Cholesky decomposition failed at profile point %" PetscInt_FMT ". Either STGInflow has non-SPD matrix or contains nan.",
-              i + 1);
-    }
+    PetscCheck(!isnan(Cij[0][i]) && !isnan(Cij[1][i]) && !isnan(Cij[2][i]), comm, PETSC_ERR_FP,
+               "Cholesky decomposition failed at profile point %" PetscInt_FMT ". Either STGInflow has non-SPD matrix or contains nan.", i + 1);
   }
   PetscFunctionReturn(0);
 }
@@ -82,10 +80,9 @@ static PetscErrorCode ReadSTGInflow(const MPI_Comm comm, const char path[PETSC_M
   for (PetscInt i = 0; i < stg_ctx->nprofs; i++) {
     PetscCall(PetscSynchronizedFGets(comm, fp, char_array_len, line));
     PetscCall(PetscStrToArray(line, ' ', &ndims, &array));
-    if (ndims < dims[1]) {
-      SETERRQ(comm, -1, "Line %" PetscInt_FMT " of %s does not contain enough columns (%" PetscInt_FMT " instead of %" PetscInt_FMT ")", i, path,
-              ndims, dims[1]);
-    }
+    PetscCheck(ndims == dims[1], comm, PETSC_ERR_FILE_UNEXPECTED,
+               "Line %" PetscInt_FMT " of %s does not contain enough columns (%" PetscInt_FMT " instead of %" PetscInt_FMT ")", i, path, ndims,
+               dims[1]);
 
     wall_dist[i] = (CeedScalar)atof(array[0]);
     ubar[0][i]   = (CeedScalar)atof(array[1]);
@@ -100,9 +97,9 @@ static PetscErrorCode ReadSTGInflow(const MPI_Comm comm, const char path[PETSC_M
     lt[i]        = (CeedScalar)atof(array[12]);
     eps[i]       = (CeedScalar)atof(array[13]);
 
-    if (wall_dist[i] < 0) SETERRQ(comm, -1, "Distance to wall in %s cannot be negative", path);
-    if (lt[i] < 0) SETERRQ(comm, -1, "Turbulent length scale in %s cannot be negative", path);
-    if (eps[i] < 0) SETERRQ(comm, -1, "Turbulent dissipation in %s cannot be negative", path);
+    PetscCheck(wall_dist[i] >= 0, comm, PETSC_ERR_FILE_UNEXPECTED, "Distance to wall in %s cannot be negative", path);
+    PetscCheck(lt[i] >= 0, comm, PETSC_ERR_FILE_UNEXPECTED, "Turbulent length scale in %s cannot be negative", path);
+    PetscCheck(eps[i] >= 0, comm, PETSC_ERR_FILE_UNEXPECTED, "Turbulent dissipation in %s cannot be negative", path);
   }
   CeedScalar(*cij)[stg_ctx->nprofs] = (CeedScalar(*)[stg_ctx->nprofs]) & stg_ctx->data[stg_ctx->offsets.cij];
   PetscCall(CalcCholeskyDecomp(comm, stg_ctx->nprofs, rij, cij));
@@ -138,10 +135,9 @@ static PetscErrorCode ReadSTGRand(const MPI_Comm comm, const char path[PETSC_MAX
   for (PetscInt i = 0; i < stg_ctx->nmodes; i++) {
     PetscCall(PetscSynchronizedFGets(comm, fp, char_array_len, line));
     PetscCall(PetscStrToArray(line, ' ', &ndims, &array));
-    if (ndims < dims[1]) {
-      SETERRQ(comm, -1, "Line %" PetscInt_FMT " of %s does not contain enough columns (%" PetscInt_FMT " instead of %" PetscInt_FMT ")", i, path,
-              ndims, dims[1]);
-    }
+    PetscCheck(ndims == dims[1], comm, PETSC_ERR_FILE_UNEXPECTED,
+               "Line %" PetscInt_FMT " of %s does not contain enough columns (%" PetscInt_FMT " instead of %" PetscInt_FMT ")", i, path, ndims,
+               dims[1]);
 
     d[0][i]     = (CeedScalar)atof(array[0]);
     d[1][i]     = (CeedScalar)atof(array[1]);
@@ -177,13 +173,9 @@ PetscErrorCode GetSTGContextData(const MPI_Comm comm, const DM dm, char stg_infl
   // Get options
   PetscCall(PHASTADatFileGetNRows(comm, stg_rand_path, &nmodes));
   PetscCall(PHASTADatFileGetNRows(comm, stg_inflow_path, &nprofs));
-  if (nmodes > STG_NMODES_MAX) {
-    SETERRQ(comm, 1,
-            "Number of wavemodes in %s (%" PetscInt_FMT ") exceeds STG_NMODES_MAX (%" PetscInt_FMT
-            "). "
-            "Change size of STG_NMODES_MAX and recompile",
-            stg_rand_path, nmodes, STG_NMODES_MAX);
-  }
+  PetscCheck(nmodes < STG_NMODES_MAX, comm, PETSC_ERR_SUP,
+             "Number of wavemodes in %s (%" PetscInt_FMT ") exceeds STG_NMODES_MAX (%" PetscInt_FMT "). Change size of STG_NMODES_MAX and recompile",
+             stg_rand_path, nmodes, STG_NMODES_MAX);
 
   {
     STGShur14Context s;
