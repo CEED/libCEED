@@ -213,6 +213,45 @@ PetscErrorCode VecCopyP2C(Vec X_petsc, CeedVector x_ceed) {
   PetscFunctionReturn(0);
 }
 
+//@brief Return VecType for the given DM
+VecType DMReturnVecType(DM dm) {
+  VecType vec_type;
+  DMGetVecType(dm, &vec_type);
+  return vec_type;
+}
+
+/**
+ * @brief Create local PETSc Vecs for CeedOperator's active input/outputs
+ *
+ * This is primarily used for when the active input/ouput vector does not correspond to a `DM` object, and thus `DMCreateLocalVector` or
+ * `DMGetLocalVector` are not applicable.
+ * For example, if statitics are being store at quadrature points, a `DM`-created `Vec` will not have the
+ * correct size.
+ *
+ * @param[in]  dm     DM overwhich the Vecs would be used
+ * @param[in]  op     Operator to make the Vecs for
+ * @param[out] input  Vec for CeedOperator active input
+ * @param[out] output Vec for CeedOperator active output
+ */
+PetscErrorCode CeedOperatorCreateLocalVecs(CeedOperator op, VecType vec_type, MPI_Comm comm, Vec *input, Vec *output) {
+  CeedSize input_size, output_size;
+
+  PetscFunctionBeginUser;
+  CeedOperatorGetActiveVectorLengths(op, &input_size, &output_size);
+  if (input) {
+    PetscCall(VecCreate(comm, input));
+    PetscCall(VecSetType(*input, vec_type));
+    PetscCall(VecSetSizes(*input, input_size, input_size));
+  }
+  if (output) {
+    PetscCall(VecCreate(comm, output));
+    PetscCall(VecSetType(*output, vec_type));
+    PetscCall(VecSetSizes(*output, output_size, output_size));
+  }
+
+  PetscFunctionReturn(0);
+}
+
 /**
  * @brief Apply FEM Operator defined by `OperatorApplyContext` to various input and output vectors
  *
