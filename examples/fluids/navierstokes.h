@@ -175,22 +175,23 @@ typedef struct {
 
 // PETSc user data
 struct User_private {
-  MPI_Comm            comm;
-  DM                  dm;
-  DM                  dm_viz;
-  Mat                 interp_viz;
-  Ceed                ceed;
-  Units               units;
-  Vec                 M, Q_loc, Q_dot_loc;
-  Physics             phys;
-  AppCtx              app_ctx;
-  CeedVector          q_ceed, q_dot_ceed, g_ceed, coo_values_amat, coo_values_pmat, x_ceed;
-  CeedOperator        op_rhs_vol, op_rhs, op_ifunction_vol, op_ifunction, op_ijacobian, op_dirichlet;
-  bool                matrices_set_up;
-  CeedScalar          time_bc_set;
-  Span_Stats          spanstats;
-  NodalProjectionData grad_velo_proj;
-  SGS_DD_Data         sgs_dd_data;
+  MPI_Comm             comm;
+  DM                   dm;
+  DM                   dm_viz;
+  Mat                  interp_viz;
+  Ceed                 ceed;
+  Units                units;
+  Vec                  M, Q_loc, Q_dot_loc;
+  Physics              phys;
+  AppCtx               app_ctx;
+  CeedVector           q_ceed, q_dot_ceed, g_ceed, coo_values_amat, coo_values_pmat, x_ceed;
+  CeedOperator         op_rhs_vol, op_rhs, op_ifunction_vol, op_ifunction, op_ijacobian;
+  OperatorApplyContext op_dirichlet_ctx;
+  bool                 matrices_set_up;
+  CeedScalar           time_bc_set;
+  Span_Stats           spanstats;
+  NodalProjectionData  grad_velo_proj;
+  SGS_DD_Data          sgs_dd_data;
 };
 
 // Units
