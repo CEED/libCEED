@@ -79,8 +79,20 @@ PetscErrorCode VecP2C(Vec X_petsc, PetscMemType *mem_type, CeedVector x_ceed) {
   PetscScalar *x;
 
   PetscFunctionBeginUser;
+  Ceed        ceed;
+  CeedMemType cmem_type;
+  CeedVectorGetCeed(x_ceed, &ceed);
+  CeedGetPreferredMemType(ceed, &cmem_type);
 
-  PetscCall(VecGetArrayAndMemType(X_petsc, &x, mem_type));
+  switch (cmem_type) {
+    case CEED_MEM_HOST:
+      PetscCall(VecGetArray(X_petsc, &x));
+      *mem_type = PETSC_MEMTYPE_HOST;
+      break;
+    case CEED_MEM_DEVICE:
+      PetscCall(VecGetArrayAndMemType(X_petsc, &x, mem_type));
+      break;
+  }
   CeedVectorSetArray(x_ceed, MemTypeP2C(*mem_type), CEED_USE_POINTER, x);
 
   PetscFunctionReturn(0);
@@ -99,10 +111,20 @@ PetscErrorCode VecC2P(CeedVector x_ceed, PetscMemType mem_type, Vec X_petsc) {
   PetscScalar *x;
 
   PetscFunctionBeginUser;
+  Ceed        ceed;
+  CeedMemType cmem_type;
+  CeedVectorGetCeed(x_ceed, &ceed);
+  CeedGetPreferredMemType(ceed, &cmem_type);
 
   CeedVectorTakeArray(x_ceed, MemTypeP2C(mem_type), &x);
-  PetscCall(VecRestoreArrayAndMemType(X_petsc, &x));
-
+  switch (cmem_type) {
+    case CEED_MEM_HOST:
+      PetscCall(VecRestoreArray(X_petsc, &x));
+      break;
+    case CEED_MEM_DEVICE:
+      PetscCall(VecRestoreArrayAndMemType(X_petsc, &x));
+      break;
+  }
   PetscFunctionReturn(0);
 }
 
@@ -119,8 +141,20 @@ PetscErrorCode VecReadP2C(Vec X_petsc, PetscMemType *mem_type, CeedVector x_ceed
   PetscScalar *x;
 
   PetscFunctionBeginUser;
+  Ceed        ceed;
+  CeedMemType cmem_type;
+  CeedVectorGetCeed(x_ceed, &ceed);
+  CeedGetPreferredMemType(ceed, &cmem_type);
 
-  PetscCall(VecGetArrayReadAndMemType(X_petsc, (const PetscScalar **)&x, mem_type));
+  switch (cmem_type) {
+    case CEED_MEM_HOST:
+      PetscCall(VecGetArrayRead(X_petsc, (const PetscScalar **)&x));
+      *mem_type = PETSC_MEMTYPE_HOST;
+      break;
+    case CEED_MEM_DEVICE:
+      PetscCall(VecGetArrayReadAndMemType(X_petsc, (const PetscScalar **)&x, mem_type));
+      break;
+  }
   CeedVectorSetArray(x_ceed, MemTypeP2C(*mem_type), CEED_USE_POINTER, x);
 
   PetscFunctionReturn(0);
@@ -139,9 +173,20 @@ PetscErrorCode VecReadC2P(CeedVector x_ceed, PetscMemType mem_type, Vec X_petsc)
   PetscScalar *x;
 
   PetscFunctionBeginUser;
+  Ceed        ceed;
+  CeedMemType cmem_type;
+  CeedVectorGetCeed(x_ceed, &ceed);
+  CeedGetPreferredMemType(ceed, &cmem_type);
 
   CeedVectorTakeArray(x_ceed, MemTypeP2C(mem_type), &x);
-  PetscCall(VecRestoreArrayReadAndMemType(X_petsc, (const PetscScalar **)&x));
+  switch (cmem_type) {
+    case CEED_MEM_HOST:
+      PetscCall(VecRestoreArrayRead(X_petsc, (const PetscScalar **)&x));
+      break;
+    case CEED_MEM_DEVICE:
+      PetscCall(VecRestoreArrayReadAndMemType(X_petsc, (const PetscScalar **)&x));
+      break;
+  }
 
   PetscFunctionReturn(0);
 }

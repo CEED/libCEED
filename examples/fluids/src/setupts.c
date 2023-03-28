@@ -244,10 +244,8 @@ PetscErrorCode IFunction_NS(TS ts, PetscReal t, Vec Q, Vec Q_dot, Vec G, void *u
 }
 
 static PetscErrorCode MatMult_NS_IJacobian(Mat J, Vec Q, Vec G) {
-  User               user;
-  const PetscScalar *q;
-  PetscScalar       *g;
-  PetscMemType       q_mem_type, g_mem_type;
+  User         user;
+  PetscMemType q_mem_type, g_mem_type;
   PetscFunctionBeginUser;
   PetscCall(MatShellGetContext(J, &user));
   Vec Q_loc = user->Q_dot_loc,  // Note - Q_dot_loc has zero BCs
@@ -260,19 +258,15 @@ static PetscErrorCode MatMult_NS_IJacobian(Mat J, Vec Q, Vec G) {
   PetscCall(DMGlobalToLocal(user->dm, Q, INSERT_VALUES, Q_loc));
 
   // Place PETSc vectors in CEED vectors
-  PetscCall(VecGetArrayReadAndMemType(Q_loc, &q, &q_mem_type));
-  PetscCall(VecGetArrayAndMemType(G_loc, &g, &g_mem_type));
-  CeedVectorSetArray(user->q_ceed, MemTypeP2C(q_mem_type), CEED_USE_POINTER, (PetscScalar *)q);
-  CeedVectorSetArray(user->g_ceed, MemTypeP2C(g_mem_type), CEED_USE_POINTER, g);
+  PetscCall(VecReadP2C(Q_loc, &q_mem_type, user->q_ceed));
+  PetscCall(VecP2C(G_loc, &g_mem_type, user->g_ceed));
 
   // Apply CEED operator
   CeedOperatorApply(user->op_ijacobian, user->q_ceed, user->g_ceed, CEED_REQUEST_IMMEDIATE);
 
   // Restore vectors
-  CeedVectorTakeArray(user->q_ceed, MemTypeP2C(q_mem_type), NULL);
-  CeedVectorTakeArray(user->g_ceed, MemTypeP2C(g_mem_type), NULL);
-  PetscCall(VecRestoreArrayReadAndMemType(Q_loc, &q));
-  PetscCall(VecRestoreArrayAndMemType(G_loc, &g));
+  PetscCall(VecReadC2P(user->q_ceed, q_mem_type, Q_loc));
+  PetscCall(VecC2P(user->g_ceed, g_mem_type, G_loc));
 
   // Local-to-Global
   PetscCall(VecZeroEntries(G));
@@ -340,7 +334,7 @@ static PetscErrorCode FormSetValues(User user, PetscBool pbdiagonal, Mat J, Ceed
 
   PetscFunctionBeginUser;
   PetscCall(MatGetType(J, &mat_type));
-  if (strstr(mat_type, "kokkos") || strstr(mat_type, "cusparse")) mem_type = CEED_MEM_DEVICE;
+  if (strstr(mat_type, "kokkos") || strstr(mat_type, "cusparse")) CeedGetPreferredMemType(user->ceed, &mem_type);
   if (user->app_ctx->pmat_pbdiagonal) {
     CeedOperatorLinearAssemblePointBlockDiagonal(user->op_ijacobian, coo_values, CEED_REQUEST_IMMEDIATE);
   } else {
