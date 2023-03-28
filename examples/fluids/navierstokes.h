@@ -149,10 +149,9 @@ struct CeedData_private {
 typedef struct {
   DM                    dm;
   PetscSF               sf;  // For communicating child data to parents
-  CeedOperator          op_stats_collect, op_stats_proj;
+  OperatorApplyContext  op_stats_collect_ctx, op_proj_rhs_ctx;
   PetscInt              num_comp_stats;
-  CeedVector            child_stats, parent_stats;  // collocated statistics data
-  CeedVector            rhs_ceed;
+  Vec                   Child_Stats_loc, Parent_Stats_loc;
   KSP                   ksp;         // For the L^2 projection solve
   CeedScalar            span_width;  // spanwise width of the child domain
   PetscBool             do_mms_test;
