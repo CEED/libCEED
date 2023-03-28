@@ -25,6 +25,7 @@ PetscErrorCode OperatorApplyContextCreate(DM dm_x, DM dm_y, Ceed ceed, CeedOpera
 PetscErrorCode OperatorApplyContextDestroy(OperatorApplyContext op_apply_ctx);
 PetscErrorCode MatGetDiag_Ceed(Mat A, Vec D);
 PetscErrorCode MatMult_Ceed(Mat A, Vec X, Vec Y);
+PetscErrorCode CreateMatShell_Ceed(OperatorApplyContext ctx, Mat *mat);
 
 PetscErrorCode VecP2C(Vec X_petsc, PetscMemType *mem_type, CeedVector x_ceed);
 PetscErrorCode VecC2P(CeedVector x_ceed, PetscMemType mem_type, Vec X_petsc);
