@@ -404,4 +404,35 @@ PetscErrorCode MatGetDiag_Ceed(Mat A, Vec D) {
   PetscFunctionReturn(0);
 };
 
+/**
+ * @brief Create PETSc MatShell object for the corresponding OperatorApplyContext
+ *
+ * @param[in]  ctx Context that does the action of the operator
+ * @param[out] mat MatShell for the operator
+ */
+PetscErrorCode CreateMatShell_Ceed(OperatorApplyContext ctx, Mat *mat) {
+  MPI_Comm comm_x = PetscObjectComm((PetscObject)(ctx->dm_x));
+  MPI_Comm comm_y = PetscObjectComm((PetscObject)(ctx->dm_y));
+  PetscInt X_loc_size, X_size, Y_size, Y_loc_size;
+  VecType  X_vec_type, Y_vec_type;
+
+  PetscFunctionBeginUser;
+
+  PetscCheck(comm_x == comm_y, PETSC_COMM_WORLD, PETSC_ERR_ARG_NOTSAMECOMM, "Input and output comm must be the same");
+
+  PetscCall(DMGetGlobalVectorInfo(ctx->dm_x, &X_loc_size, &X_size, &X_vec_type));
+  PetscCall(DMGetGlobalVectorInfo(ctx->dm_y, &Y_loc_size, &Y_size, &Y_vec_type));
+
+  PetscCall(MatCreateShell(comm_x, Y_loc_size, X_loc_size, Y_size, X_size, ctx, mat));
+  PetscCall(MatShellSetContextDestroy(*mat, (PetscErrorCode(*)(void *))OperatorApplyContextDestroy));
+  PetscCall(MatShellSetOperation(*mat, MATOP_MULT, (void (*)(void))MatMult_Ceed));
+  PetscCall(MatShellSetOperation(*mat, MATOP_GET_DIAGONAL, (void (*)(void))MatGetDiag_Ceed));
+
+  PetscCheck(X_vec_type == Y_vec_type, PETSC_COMM_WORLD, PETSC_ERR_ARG_NOTSAMETYPE, "Vec_type of ctx->dm_x (%s) and ctx->dm_y (%s) must be the same",
+             X_vec_type, Y_vec_type);
+  PetscCall(MatShellSetVecType(*mat, X_vec_type));
+
+  PetscFunctionReturn(0);
+}
+
 // -----------------------------------------------------------------------------
