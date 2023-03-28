@@ -52,7 +52,6 @@ PetscErrorCode VelocityGradientProjectionSetup(Ceed ceed, User user, CeedData ce
   CeedOperator         op_rhs_assemble, op_mass;
   CeedQFunction        qf_rhs_assemble, qf_mass;
   CeedBasis            basis_grad_velo;
-  CeedVector           q_ceed, rhs_ceed, mass_output;
   CeedElemRestriction  elem_restr_grad_velo;
   PetscInt             dim, num_comp_x, num_comp_q, q_data_size, num_qpts_1d, num_nodes_1d;
 
@@ -100,11 +99,7 @@ PetscErrorCode VelocityGradientProjectionSetup(Ceed ceed, User user, CeedData ce
   CeedOperatorSetField(op_rhs_assemble, "x", ceed_data->elem_restr_x, ceed_data->basis_x, ceed_data->x_coord);
   CeedOperatorSetField(op_rhs_assemble, "velocity gradient", elem_restr_grad_velo, basis_grad_velo, CEED_VECTOR_ACTIVE);
 
-  CeedElemRestrictionCreateVector(ceed_data->elem_restr_q, &q_ceed, NULL);
-  CeedElemRestrictionCreateVector(elem_restr_grad_velo, &rhs_ceed, NULL);
-
-  PetscCall(
-      OperatorApplyContextCreate(user->dm, grad_velo_proj->dm, ceed, op_rhs_assemble, q_ceed, rhs_ceed, NULL, NULL, &grad_velo_proj->l2_rhs_ctx));
+  PetscCall(OperatorApplyContextCreate(user->dm, grad_velo_proj->dm, ceed, op_rhs_assemble, NULL, NULL, NULL, NULL, &grad_velo_proj->l2_rhs_ctx));
 
   // -- Build Mass operator
   PetscCall(CreateMassQFunction(ceed, grad_velo_proj->num_comp, q_data_size, &qf_mass));
@@ -114,27 +109,11 @@ PetscErrorCode VelocityGradientProjectionSetup(Ceed ceed, User user, CeedData ce
   CeedOperatorSetField(op_mass, "v", elem_restr_grad_velo, basis_grad_velo, CEED_VECTOR_ACTIVE);
 
   {  // -- Setup KSP for L^2 projection with lumped mass operator
-    PetscInt l_size, g_size;
     Mat      mat_mass;
-    VecType  vec_type;
-    Vec      M_inv;
     MPI_Comm comm = PetscObjectComm((PetscObject)grad_velo_proj->dm);
 
-    PetscCall(DMGetGlobalVector(grad_velo_proj->dm, &M_inv));
-    PetscCall(VecGetLocalSize(M_inv, &l_size));
-    PetscCall(VecGetSize(M_inv, &g_size));
-    PetscCall(VecGetType(M_inv, &vec_type));
-    PetscCall(DMRestoreGlobalVector(grad_velo_proj->dm, &M_inv));
-
-    CeedElemRestrictionCreateVector(elem_restr_grad_velo, &mass_output, NULL);
-    PetscCall(OperatorApplyContextCreate(grad_velo_proj->dm, grad_velo_proj->dm, ceed, op_mass, rhs_ceed, mass_output, NULL, NULL, &mass_matop_ctx));
-    CeedVectorDestroy(&mass_output);
-
-    PetscCall(MatCreateShell(comm, l_size, l_size, g_size, g_size, mass_matop_ctx, &mat_mass));
-    PetscCall(MatShellSetContextDestroy(mat_mass, (PetscErrorCode(*)(void *))OperatorApplyContextDestroy));
-    PetscCall(MatShellSetOperation(mat_mass, MATOP_MULT, (void (*)(void))MatMult_Ceed));
-    PetscCall(MatShellSetOperation(mat_mass, MATOP_GET_DIAGONAL, (void (*)(void))MatGetDiag_Ceed));
-    PetscCall(MatShellSetVecType(mat_mass, vec_type));
+    PetscCall(OperatorApplyContextCreate(grad_velo_proj->dm, grad_velo_proj->dm, ceed, op_mass, NULL, NULL, NULL, NULL, &mass_matop_ctx));
+    PetscCall(CreateMatShell_Ceed(mass_matop_ctx, &mat_mass));
 
     PetscCall(KSPCreate(comm, &grad_velo_proj->ksp));
     PetscCall(KSPSetOptionsPrefix(grad_velo_proj->ksp, "velocity_gradient_projection_"));
@@ -151,8 +130,6 @@ PetscErrorCode VelocityGradientProjectionSetup(Ceed ceed, User user, CeedData ce
     PetscCall(KSPSetFromOptions(grad_velo_proj->ksp));
   }
 
-  CeedVectorDestroy(&q_ceed);
-  CeedVectorDestroy(&rhs_ceed);
   CeedBasisDestroy(&basis_grad_velo);
   CeedElemRestrictionDestroy(&elem_restr_grad_velo);
   CeedQFunctionDestroy(&qf_rhs_assemble);
