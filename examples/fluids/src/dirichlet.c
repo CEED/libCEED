@@ -20,9 +20,9 @@ PetscErrorCode SetupStrongSTG_Ceed(Ceed ceed, CeedData ceed_data, DM dm, AppCtx 
   CeedElemRestriction elem_restr_x_sur, elem_restr_q_sur, elem_restr_x_stored, elem_restr_scale, elem_restr_qd_sur, elem_restr_stgdata;
   CeedQFunction       qf_setup, qf_strongbc, qf_stgdata;
   CeedOperator        op_setup, op_dirichlet_sub, op_setup_sur, op_stgdata;
-  PetscFunctionBeginUser;
+  DMLabel             domain_label;
 
-  DMLabel domain_label;
+  PetscFunctionBeginUser;
   PetscCall(DMGetLabel(dm, "Face Sets", &domain_label));
 
   // Basis
@@ -86,7 +86,7 @@ PetscErrorCode SetupStrongSTG_Ceed(Ceed ceed, CeedData ceed_data, DM dm, AppCtx 
     CeedOperatorSetField(op_stgdata, "stg data", elem_restr_stgdata, CEED_BASIS_COLLOCATED, CEED_VECTOR_ACTIVE);
     CeedOperatorSetNumQuadraturePoints(op_stgdata, elem_size);
 
-    CeedOperatorApply(op_stgdata, NULL, stg_data, CEED_REQUEST_IMMEDIATE);
+    CeedOperatorApply(op_stgdata, CEED_VECTOR_NONE, stg_data, CEED_REQUEST_IMMEDIATE);
 
     // -- Setup BC QFunctions
     SetupStrongSTG_QF(ceed, problem, num_comp_x, num_comp_q, stg_data_size, q_data_size_sur, &qf_strongbc);
@@ -132,15 +132,14 @@ PetscErrorCode SetupStrongSTG_Ceed(Ceed ceed, CeedData ceed_data, DM dm, AppCtx 
 
 PetscErrorCode DMPlexInsertBoundaryValues_StrongBCCeed(DM dm, PetscBool insert_essential, Vec Q_loc, PetscReal time, Vec face_geom_FVM,
                                                        Vec cell_geom_FVM, Vec grad_FVM) {
-  Vec          boundary_mask;
-  User         user;
-  PetscMemType q_mem_type;
-  PetscFunctionBeginUser;
+  Vec  boundary_mask;
+  User user;
 
+  PetscFunctionBeginUser;
   PetscCall(DMGetApplicationContext(dm, &user));
 
   if (user->phys->stg_solution_time_label) {
-    CeedOperatorSetContextDouble(user->op_dirichlet, user->phys->stg_solution_time_label, &time);
+    CeedOperatorSetContextDouble(user->op_dirichlet_ctx->op, user->phys->stg_solution_time_label, &time);
   }
 
   // Mask Dirichlet entries
@@ -148,22 +147,16 @@ PetscErrorCode DMPlexInsertBoundaryValues_StrongBCCeed(DM dm, PetscBool insert_e
   PetscCall(VecPointwiseMult(Q_loc, Q_loc, boundary_mask));
   PetscCall(DMRestoreNamedLocalVector(dm, "boundary mask", &boundary_mask));
 
-  // Setup libCEED vector
-  PetscCall(VecP2C(Q_loc, &q_mem_type, user->q_ceed));
-
-  // Apply libCEED operator
-  CeedOperatorApplyAdd(user->op_dirichlet, CEED_VECTOR_NONE, user->q_ceed, CEED_REQUEST_IMMEDIATE);
-
-  // Restore PETSc vectors
-  PetscCall(VecC2P(user->q_ceed, q_mem_type, Q_loc));
+  PetscCall(ApplyAddCeedOperatorLocalToLocal(NULL, Q_loc, user->op_dirichlet_ctx));
 
   PetscFunctionReturn(0);
 }
 
 PetscErrorCode SetupStrongBC_Ceed(Ceed ceed, CeedData ceed_data, DM dm, User user, AppCtx app_ctx, ProblemData *problem, SimpleBC bc, CeedInt Q_sur,
                                   CeedInt q_data_size_sur) {
-  PetscFunctionBeginUser;
+  CeedOperator op_dirichlet;
 
+  PetscFunctionBeginUser;
   {
     Vec boundary_mask, global_vec;
 
@@ -176,15 +169,17 @@ PetscErrorCode SetupStrongBC_Ceed(Ceed ceed, CeedData ceed_data, DM dm, User use
     PetscCall(DMRestoreGlobalVector(dm, &global_vec));
   }
 
-  CeedCompositeOperatorCreate(ceed, &user->op_dirichlet);
+  CeedCompositeOperatorCreate(ceed, &op_dirichlet);
   {
     PetscBool use_strongstg = PETSC_FALSE;
     PetscCall(PetscOptionsGetBool(NULL, NULL, "-stg_strong", &use_strongstg, NULL));
 
     if (use_strongstg) {
-      PetscCall(SetupStrongSTG_Ceed(ceed, ceed_data, dm, app_ctx, problem, bc, user->phys, Q_sur, q_data_size_sur, user->op_dirichlet));
+      PetscCall(SetupStrongSTG_Ceed(ceed, ceed_data, dm, app_ctx, problem, bc, user->phys, Q_sur, q_data_size_sur, op_dirichlet));
     }
   }
+
+  PetscCall(OperatorApplyContextCreate(NULL, NULL, ceed, op_dirichlet, CEED_VECTOR_NONE, NULL, NULL, NULL, &user->op_dirichlet_ctx));
 
   PetscCall(PetscObjectComposeFunction((PetscObject)dm, "DMPlexInsertBoundaryValues_C", DMPlexInsertBoundaryValues_StrongBCCeed));
   PetscFunctionReturn(0);
