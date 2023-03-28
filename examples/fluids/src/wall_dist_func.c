@@ -27,7 +27,7 @@ static PetscErrorCode Distance_Function_NS(DM dm, User user) {
   CeedInt             num_elem = 10, P = 3, Q = P + 1;
   CeedInt             num_nodes_x = num_elem + 1, num_nodes_phi = num_elem * (P - 1) + 1;
   CeedInt             ind_x[num_elem * 2], ind_phi[num_elem * P];
-  CeedVector          rhs_ceed;
+  CeedVector          rhs_ceed, X_ceed, Y_ceed;
   CeedOperator        op_distance_function;
   CeedQFunction       qf_distance_function;
   CeedBasis           basis_x, basis_phi;
@@ -44,12 +44,17 @@ static PetscErrorCode Distance_Function_NS(DM dm, User user) {
 
   // Create Vectors
   PetscCall(DMCreateGlobalVector(dmDist, &X));
+  PetscCall(DMCreateGlobalVector(dmDist, &Y));
   PetscCall(VecGetLocalSize(X, &l_size));
   PetscCall(VecGetSize(X, &g_size));
   PetscCall(VecGetSize(q_data, &g_size));
   PetscCall(DMCreateLocalVector(dmDist, &X_loc));
   PetscCall(VecGetSize(X_loc, &xl_size));
   PetscCall(VecDuplicate(X, &rhs));
+
+  // Setup libCEED vector
+  PetscCall(VecP2C(X, &mem_type, X_ceed));
+  PetscCall(VecP2C(Y, &mem_type, Y_ceed));
 
   // Create RHS vector
   PetscCall(VecDuplicate(X_loc, &rhs_loc));
@@ -89,12 +94,16 @@ static PetscErrorCode Distance_Function_NS(DM dm, User user) {
   CeedOperatorSetField(op_distance_function, "v", elem_restr_x, basis_x, CEED_VECTOR_ACTIVE);
   CeedOperatorSetField(op_distance_function, "output", elem_restr_phi, CEED_BASIS_COLLOCATED, CEED_VECTOR_ACTIVE);
 
-  CeedVectorCreate(ceed, num_nodes_phi, &X);
-  CeedVectorSetValue(X, 0.0);
-  CeedVectorCreate(ceed, num_nodes_phi, &Y);
+  CeedVectorCreate(ceed, num_nodes_phi, &X_ceed);
+  CeedVectorSetValue(X_ceed, 0.0);
+  CeedVectorCreate(ceed, num_nodes_phi, &Y_ceed);
 
   // Apply Operator
-  CeedOperatorApply(op_distance_function, X, Y, CEED_REQUEST_IMMEDIATE);
+  CeedOperatorApply(op_distance_function, X_ceed, Y_ceed, CEED_REQUEST_IMMEDIATE);
+
+  // Restore PETSc vectors
+  PetscCall(VecC2P(X_ceed, mem_type, X));
+  PetscCall(VecC2P(Y_ceed, mem_type, Y));
 
   // Set up SNES
   PetscCall(SNESCreate(PETSC_COMM_WORLD, &snesDist));
