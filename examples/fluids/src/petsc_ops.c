@@ -12,17 +12,32 @@
 
 #include "../navierstokes.h"
 
-// -----------------------------------------------------------------------------
-// Setup apply operator context data
-// -----------------------------------------------------------------------------
+/**
+ * @brief Create OperatorApplyContext struct for applying FEM operator in a PETSc context
+ *
+ * All passed in objects are reference copied and may be destroyed if desired (with the exception of `CEED_VECTOR_NONE`).
+ * Resulting context should be destroyed with `OperatorApplyContextDestroy()`.
+ *
+ * @param[in]  dm_x     `DM` associated with the operator active input. May be `NULL`
+ * @param[in]  dm_y     `DM` associated with the operator active output. May be `NULL`
+ * @param[in]  ceed     `Ceed` object
+ * @param[in]  op_apply `CeedOperator` representing the local action of the FEM operator
+ * @param[in]  x_ceed   `CeedVector` for operator active input. May be `CEED_VECTOR_NONE` or `NULL`. If `NULL`, `CeedVector` will be automatically
+ *                      generated.
+ * @param[in]  y_ceed   `CeedVector` for operator active output. May be `CEED_VECTOR_NONE` or `NULL`. If `NULL`, `CeedVector` will be automatically
+ *                      generated.
+ * @param[in]  X_loc    Local `Vec` for operator active input. If `NULL`, vector will be obtained if needed at ApplyCeedOperator time.
+ * @param[in]  Y_loc    Local `Vec` for operator active output. If `NULL`, vector will be obtained if needed at ApplyCeedOperator time.
+ * @param[out] ctx      Struct containing all data necessary for applying the operator
+ */
 PetscErrorCode OperatorApplyContextCreate(DM dm_x, DM dm_y, Ceed ceed, CeedOperator op_apply, CeedVector x_ceed, CeedVector y_ceed, Vec X_loc,
-                                          Vec Y_loc, OperatorApplyContext *op_apply_ctx) {
-  PetscFunctionBeginUser;
+                                          Vec Y_loc, OperatorApplyContext *ctx) {
+  CeedSize x_size, y_size;
 
+  PetscFunctionBeginUser;
+  CeedOperatorGetActiveVectorLengths(op_apply, &x_size, &y_size);
   {  // Verify sizes
-    CeedSize x_size, y_size;
     PetscInt X_size, Y_size;
-    CeedOperatorGetActiveVectorLengths(op_apply, &x_size, &y_size);
     if (X_loc) {
       PetscCall(VecGetLocalSize(X_loc, &X_size));
       PetscCheck(X_size == x_size, PETSC_COMM_WORLD, PETSC_ERR_ARG_SIZ,
@@ -35,49 +50,55 @@ PetscErrorCode OperatorApplyContextCreate(DM dm_x, DM dm_y, Ceed ceed, CeedOpera
     }
   }
 
-  PetscCall(PetscNew(op_apply_ctx));
+  PetscCall(PetscNew(ctx));
 
   // Copy PETSc Objects
   if (dm_x) PetscCall(PetscObjectReference((PetscObject)dm_x));
-  (*op_apply_ctx)->dm_x = dm_x;
+  (*ctx)->dm_x = dm_x;
   if (dm_y) PetscCall(PetscObjectReference((PetscObject)dm_y));
-  (*op_apply_ctx)->dm_y = dm_y;
+  (*ctx)->dm_y = dm_y;
 
   if (X_loc) PetscCall(PetscObjectReference((PetscObject)X_loc));
-  (*op_apply_ctx)->X_loc = X_loc;
+  (*ctx)->X_loc = X_loc;
   if (Y_loc) PetscCall(PetscObjectReference((PetscObject)Y_loc));
-  (*op_apply_ctx)->Y_loc = Y_loc;
+  (*ctx)->Y_loc = Y_loc;
 
   // Copy libCEED objects
-  if (x_ceed) CeedVectorReferenceCopy(x_ceed, &(*op_apply_ctx)->x_ceed);
-  if (y_ceed) CeedVectorReferenceCopy(y_ceed, &(*op_apply_ctx)->y_ceed);
-  CeedOperatorReferenceCopy(op_apply, &(*op_apply_ctx)->op);
-  CeedReferenceCopy(ceed, &(*op_apply_ctx)->ceed);
+  if (x_ceed) CeedVectorReferenceCopy(x_ceed, &(*ctx)->x_ceed);
+  else CeedVectorCreate(ceed, x_size, &(*ctx)->x_ceed);
+
+  if (y_ceed) CeedVectorReferenceCopy(y_ceed, &(*ctx)->y_ceed);
+  else CeedVectorCreate(ceed, y_size, &(*ctx)->y_ceed);
+
+  CeedOperatorReferenceCopy(op_apply, &(*ctx)->op);
+  CeedReferenceCopy(ceed, &(*ctx)->ceed);
 
   PetscFunctionReturn(0);
 }
 
-// -----------------------------------------------------------------------------
-// Destroy apply operator context data
-// -----------------------------------------------------------------------------
-PetscErrorCode OperatorApplyContextDestroy(OperatorApplyContext op_apply_ctx) {
+/**
+ * @brief Destroy OperatorApplyContext struct
+ *
+ * @param[in,out] ctx Context to destroy
+ */
+PetscErrorCode OperatorApplyContextDestroy(OperatorApplyContext ctx) {
   PetscFunctionBeginUser;
 
-  if (!op_apply_ctx) PetscFunctionReturn(0);
+  if (!ctx) PetscFunctionReturn(0);
 
   // Destroy PETSc Objects
-  PetscCall(DMDestroy(&op_apply_ctx->dm_x));
-  PetscCall(DMDestroy(&op_apply_ctx->dm_y));
-  PetscCall(VecDestroy(&op_apply_ctx->X_loc));
-  PetscCall(VecDestroy(&op_apply_ctx->Y_loc));
+  PetscCall(DMDestroy(&ctx->dm_x));
+  PetscCall(DMDestroy(&ctx->dm_y));
+  PetscCall(VecDestroy(&ctx->X_loc));
+  PetscCall(VecDestroy(&ctx->Y_loc));
 
   // Destroy libCEED Objects
-  CeedVectorDestroy(&op_apply_ctx->x_ceed);
-  CeedVectorDestroy(&op_apply_ctx->y_ceed);
-  CeedOperatorDestroy(&op_apply_ctx->op);
-  CeedDestroy(&op_apply_ctx->ceed);
+  CeedVectorDestroy(&ctx->x_ceed);
+  CeedVectorDestroy(&ctx->y_ceed);
+  CeedOperatorDestroy(&ctx->op);
+  CeedDestroy(&ctx->ceed);
 
-  PetscCall(PetscFree(op_apply_ctx));
+  PetscCall(PetscFree(ctx));
 
   PetscFunctionReturn(0);
 }
