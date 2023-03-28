@@ -18,7 +18,6 @@ PetscErrorCode GridAnisotropyTensorProjectionSetupApply(Ceed ceed, User user, Ce
   CeedOperator         op_rhs_assemble, op_mass;
   CeedQFunction        qf_rhs_assemble, qf_mass;
   CeedBasis            basis_grid_aniso;
-  CeedVector           rhs_ceed;
   PetscInt             dim, q_data_size, num_qpts_1d, num_nodes_1d;
   MPI_Comm             comm = PetscObjectComm((PetscObject)user->dm);
   KSP                  ksp;
@@ -71,9 +70,7 @@ PetscErrorCode GridAnisotropyTensorProjectionSetupApply(Ceed ceed, User user, Ce
   CeedOperatorSetField(op_rhs_assemble, "qdata", ceed_data->elem_restr_qd_i, CEED_BASIS_COLLOCATED, ceed_data->q_data);
   CeedOperatorSetField(op_rhs_assemble, "v", *elem_restr_grid_aniso, basis_grid_aniso, CEED_VECTOR_ACTIVE);
 
-  CeedElemRestrictionCreateVector(*elem_restr_grid_aniso, &rhs_ceed, NULL);
-
-  PetscCall(OperatorApplyContextCreate(user->dm, grid_aniso_proj->dm, ceed, op_rhs_assemble, ceed_data->q_data, rhs_ceed, NULL, NULL, &l2_rhs_ctx));
+  PetscCall(OperatorApplyContextCreate(user->dm, grid_aniso_proj->dm, ceed, op_rhs_assemble, CEED_VECTOR_NONE, NULL, NULL, NULL, &l2_rhs_ctx));
 
   // -- Build Mass Operator
   PetscCall(CreateMassQFunction(ceed, grid_aniso_proj->num_comp, q_data_size, &qf_mass));
@@ -83,28 +80,9 @@ PetscErrorCode GridAnisotropyTensorProjectionSetupApply(Ceed ceed, User user, Ce
   CeedOperatorSetField(op_mass, "v", *elem_restr_grid_aniso, basis_grid_aniso, CEED_VECTOR_ACTIVE);
 
   {  // -- Setup KSP for L^2 projection
-    PetscInt   l_size, g_size;
-    Mat        mat_mass;
-    VecType    vec_type;
-    Vec        M_inv;
-    CeedVector mass_output;
-
-    PetscCall(DMGetGlobalVector(grid_aniso_proj->dm, &M_inv));
-    PetscCall(VecGetLocalSize(M_inv, &l_size));
-    PetscCall(VecGetSize(M_inv, &g_size));
-    PetscCall(VecGetType(M_inv, &vec_type));
-    PetscCall(DMRestoreGlobalVector(grid_aniso_proj->dm, &M_inv));
-
-    CeedElemRestrictionCreateVector(*elem_restr_grid_aniso, &mass_output, NULL);
-    PetscCall(
-        OperatorApplyContextCreate(grid_aniso_proj->dm, grid_aniso_proj->dm, ceed, op_mass, rhs_ceed, mass_output, NULL, NULL, &mass_matop_ctx));
-    CeedVectorDestroy(&mass_output);
-
-    PetscCall(MatCreateShell(comm, l_size, l_size, g_size, g_size, mass_matop_ctx, &mat_mass));
-    PetscCall(MatShellSetContextDestroy(mat_mass, (PetscErrorCode(*)(void *))OperatorApplyContextDestroy));
-    PetscCall(MatShellSetOperation(mat_mass, MATOP_MULT, (void (*)(void))MatMult_Ceed));
-    PetscCall(MatShellSetOperation(mat_mass, MATOP_GET_DIAGONAL, (void (*)(void))MatGetDiag_Ceed));
-    PetscCall(MatShellSetVecType(mat_mass, vec_type));
+    Mat mat_mass;
+    PetscCall(OperatorApplyContextCreate(grid_aniso_proj->dm, grid_aniso_proj->dm, ceed, op_mass, NULL, NULL, NULL, NULL, &mass_matop_ctx));
+    PetscCall(CreateMatShell_Ceed(mass_matop_ctx, &mat_mass));
 
     PetscCall(KSPCreate(comm, &ksp));
     PetscCall(KSPSetOptionsPrefix(ksp, "grid_anisotropy_tensor_projection_"));
@@ -122,22 +100,18 @@ PetscErrorCode GridAnisotropyTensorProjectionSetupApply(Ceed ceed, User user, Ce
   }
 
   {  // -- Project anisotropy data and store in CeedVector
-    Vec          Grid_Anisotropy, grid_anisotropy_loc;
-    PetscMemType mem_type;
+    Vec Grid_Anisotropy, grid_anisotropy_loc;
 
     // Get L^2 Projection RHS
     PetscCall(DMGetGlobalVector(grid_aniso_proj->dm, &Grid_Anisotropy));
-    PetscCall(DMGetLocalVector(grid_aniso_proj->dm, &grid_anisotropy_loc));
 
-    PetscCall(VecP2C(grid_anisotropy_loc, &mem_type, l2_rhs_ctx->y_ceed));
-    CeedOperatorApply(l2_rhs_ctx->op, CEED_VECTOR_NONE, l2_rhs_ctx->y_ceed, CEED_REQUEST_IMMEDIATE);
-    PetscCall(VecC2P(l2_rhs_ctx->y_ceed, mem_type, grid_anisotropy_loc));
-    PetscCall(DMLocalToGlobal(l2_rhs_ctx->dm_y, grid_anisotropy_loc, ADD_VALUES, Grid_Anisotropy));
+    PetscCall(ApplyCeedOperatorLocalToGlobal(NULL, Grid_Anisotropy, l2_rhs_ctx));
 
     // Solve projection problem
     PetscCall(KSPSolve(ksp, Grid_Anisotropy, Grid_Anisotropy));
 
     // Copy anisotropy tensor data to CeedVector
+    PetscCall(DMGetLocalVector(grid_aniso_proj->dm, &grid_anisotropy_loc));
     CeedElemRestrictionCreateVector(*elem_restr_grid_aniso, grid_aniso_vector, NULL);
     PetscCall(DMGlobalToLocal(grid_aniso_proj->dm, Grid_Anisotropy, INSERT_VALUES, grid_anisotropy_loc));
     PetscCall(VecCopyP2C(grid_anisotropy_loc, *grid_aniso_vector));
@@ -148,7 +122,6 @@ PetscErrorCode GridAnisotropyTensorProjectionSetupApply(Ceed ceed, User user, Ce
   // -- Cleanup
   PetscCall(NodalProjectionDataDestroy(grid_aniso_proj));
   PetscCall(OperatorApplyContextDestroy(l2_rhs_ctx));
-  CeedVectorDestroy(&rhs_ceed);
   CeedQFunctionDestroy(&qf_rhs_assemble);
   CeedQFunctionDestroy(&qf_mass);
   CeedBasisDestroy(&basis_grid_aniso);
