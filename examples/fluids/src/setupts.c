@@ -17,19 +17,16 @@
 
 // Compute mass matrix for explicit scheme
 PetscErrorCode ComputeLumpedMassMatrix(Ceed ceed, DM dm, CeedData ceed_data, Vec M) {
-  Vec           M_loc;
-  CeedQFunction qf_mass;
-  CeedOperator  op_mass;
-  CeedVector    m_ceed, ones_vec;
-  CeedInt       num_comp_q, q_data_size;
+  CeedQFunction        qf_mass;
+  CeedOperator         op_mass;
+  OperatorApplyContext op_mass_ctx;
+  Vec                  Ones_loc;
+  CeedInt              num_comp_q, q_data_size;
   PetscFunctionBeginUser;
 
   // CEED Restriction
   CeedElemRestrictionGetNumComponents(ceed_data->elem_restr_q, &num_comp_q);
   CeedElemRestrictionGetNumComponents(ceed_data->elem_restr_qd_i, &q_data_size);
-  CeedElemRestrictionCreateVector(ceed_data->elem_restr_q, &m_ceed, NULL);
-  CeedElemRestrictionCreateVector(ceed_data->elem_restr_q, &ones_vec, NULL);
-  CeedVectorSetValue(ones_vec, 1.0);
 
   // CEED QFunction
   PetscCall(CreateMassQFunction(ceed, num_comp_q, q_data_size, &qf_mass));
@@ -40,28 +37,18 @@ PetscErrorCode ComputeLumpedMassMatrix(Ceed ceed, DM dm, CeedData ceed_data, Vec
   CeedOperatorSetField(op_mass, "qdata", ceed_data->elem_restr_qd_i, CEED_BASIS_COLLOCATED, ceed_data->q_data);
   CeedOperatorSetField(op_mass, "v", ceed_data->elem_restr_q, ceed_data->basis_q, CEED_VECTOR_ACTIVE);
 
-  // Place PETSc vector in CEED vector
-  PetscMemType m_mem_type;
-  PetscCall(DMGetLocalVector(dm, &M_loc));
-  PetscCall(VecP2C(M_loc, &m_mem_type, m_ceed));
+  PetscCall(OperatorApplyContextCreate(NULL, dm, ceed, op_mass, NULL, NULL, NULL, NULL, &op_mass_ctx));
 
-  // Apply CEED Operator
-  CeedOperatorApply(op_mass, ones_vec, m_ceed, CEED_REQUEST_IMMEDIATE);
-
-  // Restore vectors
-  PetscCall(VecC2P(m_ceed, m_mem_type, M_loc));
-
-  // Local-to-Global
-  PetscCall(VecZeroEntries(M));
-  PetscCall(DMLocalToGlobal(dm, M_loc, ADD_VALUES, M));
-  PetscCall(DMRestoreLocalVector(dm, &M_loc));
+  PetscCall(DMGetLocalVector(dm, &Ones_loc));
+  PetscCall(VecSet(Ones_loc, 1));
+  PetscCall(ApplyCeedOperatorLocalToGlobal(Ones_loc, M, op_mass_ctx));
 
   // Invert diagonally lumped mass vector for RHS function
   PetscCall(VecReciprocal(M));
 
   // Cleanup
-  CeedVectorDestroy(&ones_vec);
-  CeedVectorDestroy(&m_ceed);
+  PetscCall(OperatorApplyContextDestroy(op_mass_ctx));
+  PetscCall(DMRestoreLocalVector(dm, &Ones_loc));
   CeedQFunctionDestroy(&qf_mass);
   CeedOperatorDestroy(&op_mass);
 
