@@ -78,6 +78,7 @@ static int CeedQFunctionApply_Sycl(CeedQFunction qf, CeedInt Q, CeedVector *U, C
     }
     cgh.parallel_for(Q, *(impl->QFunction));
   });
+  ceed_Sycl->sycl_queue.wait_and_throw();
 
   // Restore vectors
   U_i = U;

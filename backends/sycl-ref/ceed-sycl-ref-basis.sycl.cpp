@@ -107,6 +107,7 @@ static int CeedBasisApplyInterp_Sycl(sycl::queue &sycl_queue, CeedInt num_elem, 
       }
     });
   });
+  sycl_queue.wait_and_throw();
   return CEED_ERROR_SUCCESS;
 }
 
@@ -199,6 +200,7 @@ static int CeedBasisApplyGrad_Sycl(sycl::queue &sycl_queue, CeedInt num_elem, Ce
       }
     });
   });
+  sycl_queue.wait_and_throw();
   return CEED_ERROR_SUCCESS;
 }
 
