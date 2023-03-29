@@ -357,6 +357,12 @@ PetscErrorCode ApplyCeedOperatorGlobalToLocal(Vec X, Vec Y_loc, OperatorApplyCon
   PetscFunctionReturn(0);
 }
 
+PetscErrorCode ApplyCeedOperatorLocalToLocal(Vec X_loc, Vec Y_loc, OperatorApplyContext ctx) {
+  PetscFunctionBeginUser;
+  PetscCall(ApplyCeedOperator_Core(NULL, X_loc, ctx->x_ceed, ctx->y_ceed, Y_loc, NULL, ctx, false));
+  PetscFunctionReturn(0);
+}
+
 PetscErrorCode ApplyAddCeedOperatorLocalToLocal(Vec X_loc, Vec Y_loc, OperatorApplyContext ctx) {
   PetscFunctionBeginUser;
   PetscCall(ApplyCeedOperator_Core(NULL, X_loc, ctx->x_ceed, ctx->y_ceed, Y_loc, NULL, ctx, true));
