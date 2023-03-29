@@ -21,7 +21,7 @@ PetscErrorCode ICs_FixMultiplicity(DM dm, CeedData ceed_data, User user, Vec Q_l
   // ---------------------------------------------------------------------------
   // Update time for evaluation
   // ---------------------------------------------------------------------------
-  if (user->phys->ics_time_label) CeedOperatorSetContextDouble(ceed_data->op_ics, user->phys->ics_time_label, &time);
+  if (user->phys->ics_time_label) CeedOperatorSetContextDouble(ceed_data->op_ics_ctx->op, user->phys->ics_time_label, &time);
 
   // ---------------------------------------------------------------------------
   // ICs
@@ -31,18 +31,7 @@ PetscErrorCode ICs_FixMultiplicity(DM dm, CeedData ceed_data, User user, Vec Q_l
   CeedElemRestrictionCreateVector(ceed_data->elem_restr_q, &q0_ceed, NULL);
 
   // -- Place PETSc vector in CEED vector
-  PetscMemType q0_mem_type;
-  PetscCall(VecP2C(Q_loc, &q0_mem_type, q0_ceed));
-
-  // -- Apply CEED Operator
-  CeedOperatorApply(ceed_data->op_ics, ceed_data->x_coord, q0_ceed, CEED_REQUEST_IMMEDIATE);
-
-  // -- Restore vectors
-  PetscCall(VecC2P(q0_ceed, q0_mem_type, Q_loc));
-
-  // -- Local-to-Global
-  PetscCall(VecZeroEntries(Q));
-  PetscCall(DMLocalToGlobal(dm, Q_loc, ADD_VALUES, Q));
+  PetscCall(ApplyCeedOperatorLocalToGlobal(NULL, Q, ceed_data->op_ics_ctx));
 
   // ---------------------------------------------------------------------------
   // Fix multiplicity for output of ICs
