@@ -280,6 +280,7 @@ struct CeedContextFieldLabel_private {
   size_t                 offset;
   CeedInt                num_sub_labels;
   CeedContextFieldLabel *sub_labels;
+  bool                   from_op;
 };
 
 struct CeedOperatorField_private {

@@ -289,6 +289,20 @@ static int CeedOperatorContextSetGeneric(CeedOperator op, CeedContextFieldLabel 
     // LCOV_EXCL_STOP
   }
 
+  // Check if field_label and op correspond
+  if (field_label->from_op) {
+    CeedInt index = -1;
+
+    for (CeedInt i = 0; i < op->num_context_labels; i++) {
+      if (op->context_labels[i] == field_label) index = i;
+    }
+    if (index == -1) {
+      // LCOV_EXCL_START
+      return CeedError(op->ceed, CEED_ERROR_UNSUPPORTED, "ContextFieldLabel does not correspond to the operator");
+      // LCOV_EXCL_STOP
+    }
+  }
+
   bool is_composite = false;
   CeedCall(CeedOperatorIsComposite(op, &is_composite));
   if (is_composite) {
@@ -299,7 +313,7 @@ static int CeedOperatorContextSetGeneric(CeedOperator op, CeedContextFieldLabel 
     CeedCall(CeedCompositeOperatorGetSubList(op, &sub_operators));
     if (num_sub != field_label->num_sub_labels) {
       // LCOV_EXCL_START
-      return CeedError(op->ceed, CEED_ERROR_UNSUPPORTED, "ContextLabel does not correspond to the composite operator");
+      CeedError(op->ceed, CEED_ERROR_UNSUPPORTED, "Composite operator modified after ContextFieldLabel created");
       // LCOV_EXCL_STOP
     }
 
@@ -325,8 +339,8 @@ static int CeedOperatorContextSetGeneric(CeedOperator op, CeedContextFieldLabel 
 /**
   @brief Get QFunctionContext field values of the specified type, read-only.
            For composite operators, the values retrieved are for the first sub-operator QFunctionContext that have a matching `field_name`.
-           A non-zero error code is returned for single operators that do not have a matching field of the same type or composite operators that do
-not have any field of a matching type.
+           A non-zero error code is returned for single operators that do not have a matching field of the same type or composite operators that
+           do not have any field of a matching type.
 
   @param[in,out] op          CeedOperator
   @param[in]     field_label Label of field to set
@@ -349,6 +363,20 @@ static int CeedOperatorContextGetGenericRead(CeedOperator op, CeedContextFieldLa
   *(void **)values = NULL;
   *num_values      = 0;
 
+  // Check if field_label and op correspond
+  if (field_label->from_op) {
+    CeedInt index = -1;
+
+    for (CeedInt i = 0; i < op->num_context_labels; i++) {
+      if (op->context_labels[i] == field_label) index = i;
+    }
+    if (index == -1) {
+      // LCOV_EXCL_START
+      return CeedError(op->ceed, CEED_ERROR_UNSUPPORTED, "ContextFieldLabel does not correspond to the operator");
+      // LCOV_EXCL_STOP
+    }
+  }
+
   bool is_composite = false;
   CeedCall(CeedOperatorIsComposite(op, &is_composite));
   if (is_composite) {
@@ -359,7 +387,7 @@ static int CeedOperatorContextGetGenericRead(CeedOperator op, CeedContextFieldLa
     CeedCall(CeedCompositeOperatorGetSubList(op, &sub_operators));
     if (num_sub != field_label->num_sub_labels) {
       // LCOV_EXCL_START
-      return CeedError(op->ceed, CEED_ERROR_UNSUPPORTED, "ContextLabel does not correspond to composite operator");
+      return CeedError(op->ceed, CEED_ERROR_UNSUPPORTED, "Composite operator modified after ContextFieldLabel created");
       // LCOV_EXCL_STOP
     }
 
@@ -386,8 +414,8 @@ static int CeedOperatorContextGetGenericRead(CeedOperator op, CeedContextFieldLa
 /**
   @brief Restore QFunctionContext field values of the specified type, read-only.
            For composite operators, the values restored are for the first sub-operator QFunctionContext that have a matching `field_name`.
-           A non-zero error code is returned for single operators that do not have a matching field of the same type or composite operators that do
-not have any field of a matching type.
+           A non-zero error code is returned for single operators that do not have a matching field of the same type or composite operators
+           that do not have any field of a matching type.
 
   @param[in,out] op          CeedOperator
   @param[in]     field_label Label of field to set
@@ -405,6 +433,20 @@ static int CeedOperatorContextRestoreGenericRead(CeedOperator op, CeedContextFie
     // LCOV_EXCL_STOP
   }
 
+  // Check if field_label and op correspond
+  if (field_label->from_op) {
+    CeedInt index = -1;
+
+    for (CeedInt i = 0; i < op->num_context_labels; i++) {
+      if (op->context_labels[i] == field_label) index = i;
+    }
+    if (index == -1) {
+      // LCOV_EXCL_START
+      return CeedError(op->ceed, CEED_ERROR_UNSUPPORTED, "ContextFieldLabel does not correspond to the operator");
+      // LCOV_EXCL_STOP
+    }
+  }
+
   bool is_composite = false;
   CeedCall(CeedOperatorIsComposite(op, &is_composite));
   if (is_composite) {
@@ -415,7 +457,7 @@ static int CeedOperatorContextRestoreGenericRead(CeedOperator op, CeedContextFie
     CeedCall(CeedCompositeOperatorGetSubList(op, &sub_operators));
     if (num_sub != field_label->num_sub_labels) {
       // LCOV_EXCL_START
-      return CeedError(op->ceed, CEED_ERROR_UNSUPPORTED, "ContextLabel does not correspond to composite operator");
+      return CeedError(op->ceed, CEED_ERROR_UNSUPPORTED, "Composite operator modified after ContextFieldLabel created");
       // LCOV_EXCL_STOP
     }
 
@@ -718,8 +760,8 @@ int CeedOperatorReferenceCopy(CeedOperator op, CeedOperator *op_copy) {
   @param[in]     field_name Name of the field (to be matched with the name used by CeedQFunction)
   @param[in]     r          CeedElemRestriction
   @param[in]     b          CeedBasis in which the field resides or @ref CEED_BASIS_COLLOCATED if collocated with quadrature points
-  @param[in]     v          CeedVector to be used by CeedOperator or @ref CEED_VECTOR_ACTIVE if field is active or @ref CEED_VECTOR_NONE if using @ref
-CEED_EVAL_WEIGHT in the QFunction
+  @param[in]     v          CeedVector to be used by CeedOperator or @ref CEED_VECTOR_ACTIVE if field is active or @ref CEED_VECTOR_NONE
+                              if using @ref CEED_EVAL_WEIGHT in the QFunction
 
   @return An error code: 0 - success, otherwise - failure
 
@@ -1526,23 +1568,29 @@ int CeedOperatorGetContextFieldLabel(CeedOperator op, const char *field_name, Ce
       *field_label = NULL;
       // LCOV_EXCL_STOP
     } else {
-      // Move new composite label to operator
-      if (op->num_context_labels == 0) {
-        CeedCall(CeedCalloc(1, &op->context_labels));
-        op->max_context_labels = 1;
-      } else if (op->num_context_labels == op->max_context_labels) {
-        CeedCall(CeedRealloc(2 * op->num_context_labels, &op->context_labels));
-        op->max_context_labels *= 2;
-      }
-      op->context_labels[op->num_context_labels] = new_field_label;
-      *field_label                               = new_field_label;
-      op->num_context_labels++;
+      *field_label = new_field_label;
     }
-
-    return CEED_ERROR_SUCCESS;
   } else {
-    return CeedQFunctionContextGetFieldLabel(op->qf->ctx, field_name, field_label);
+    CeedCall(CeedQFunctionContextGetFieldLabel(op->qf->ctx, field_name, field_label));
   }
+
+  // Set label in operator
+  if (*field_label) {
+    (*field_label)->from_op = true;
+
+    // Move new composite label to operator
+    if (op->num_context_labels == 0) {
+      CeedCall(CeedCalloc(1, &op->context_labels));
+      op->max_context_labels = 1;
+    } else if (op->num_context_labels == op->max_context_labels) {
+      CeedCall(CeedRealloc(2 * op->num_context_labels, &op->context_labels));
+      op->max_context_labels *= 2;
+    }
+    op->context_labels[op->num_context_labels] = *field_label;
+    op->num_context_labels++;
+  }
+
+  return CEED_ERROR_SUCCESS;
 }
 
 /**
@@ -1651,8 +1699,8 @@ int CeedOperatorRestoreContextInt32Read(CeedOperator op, CeedContextFieldLabel f
 
   @param[in]  op      CeedOperator to apply
   @param[in]  in      CeedVector containing input state or @ref CEED_VECTOR_NONE if there are no active inputs
-  @param[out] out     CeedVector to store result of applying operator (must be distinct from @a in) or @ref CEED_VECTOR_NONE if there are no active
-outputs
+  @param[out] out     CeedVector to store result of applying operator (must be distinct from @a in) or @ref CEED_VECTOR_NONE if there are no
+active outputs
   @param[in]  request Address of CeedRequest for non-blocking completion, else @ref CEED_REQUEST_IMMEDIATE
 
   @return An error code: 0 - success, otherwise - failure
@@ -1804,9 +1852,11 @@ int CeedOperatorDestroy(CeedOperator *op) {
   CeedCall(CeedQFunctionDestroy(&(*op)->dqf));
   CeedCall(CeedQFunctionDestroy(&(*op)->dqfT));
   // Destroy any composite labels
-  for (CeedInt i = 0; i < (*op)->num_context_labels; i++) {
-    CeedCall(CeedFree(&(*op)->context_labels[i]->sub_labels));
-    CeedCall(CeedFree(&(*op)->context_labels[i]));
+  if ((*op)->is_composite) {
+    for (CeedInt i = 0; i < (*op)->num_context_labels; i++) {
+      CeedCall(CeedFree(&(*op)->context_labels[i]->sub_labels));
+      CeedCall(CeedFree(&(*op)->context_labels[i]));
+    }
   }
   CeedCall(CeedFree(&(*op)->context_labels));
 
