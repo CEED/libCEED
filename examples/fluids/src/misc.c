@@ -89,7 +89,7 @@ PetscErrorCode DMPlexInsertBoundaryValues_NS(DM dm, PetscBool insert_essential, 
   Vec Qbc, boundary_mask;
   PetscFunctionBegin;
 
-  // Mask (zero) Dirichlet entries
+  // Mask (zero) Strong BC entries
   PetscCall(DMGetNamedLocalVector(dm, "boundary mask", &boundary_mask));
   PetscCall(VecPointwiseMult(Q_loc, Q_loc, boundary_mask));
   PetscCall(DMRestoreNamedLocalVector(dm, "boundary mask", &boundary_mask));

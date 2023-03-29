@@ -5,21 +5,22 @@
 //
 // This file is part of CEED:  http://github.com/ceed
 
+#include "../qfunctions/strong_boundary_conditions.h"
+
 #include <ceed.h>
 #include <petscdmplex.h>
 
 #include "../navierstokes.h"
 #include "../problems/stg_shur14.h"
-#include "../qfunctions/dirichlet_boundary.h"
 
 PetscErrorCode SetupStrongSTG_Ceed(Ceed ceed, CeedData ceed_data, DM dm, AppCtx app_ctx, ProblemData *problem, SimpleBC bc, Physics phys,
-                                   CeedInt Q_sur, CeedInt q_data_size_sur, CeedOperator op_dirichlet) {
+                                   CeedInt Q_sur, CeedInt q_data_size_sur, CeedOperator op_strong_bc) {
   CeedInt             num_comp_x = problem->dim, num_comp_q = 5, num_elem, elem_size, stg_data_size = 1;
   CeedVector          multiplicity, x_stored, scale_stored, q_data_sur, stg_data;
   CeedBasis           basis_x_to_q_sur;
   CeedElemRestriction elem_restr_x_sur, elem_restr_q_sur, elem_restr_x_stored, elem_restr_scale, elem_restr_qd_sur, elem_restr_stgdata;
   CeedQFunction       qf_setup, qf_strongbc, qf_stgdata;
-  CeedOperator        op_setup, op_dirichlet_sub, op_setup_sur, op_stgdata;
+  CeedOperator        op_setup, op_strong_bc_sub, op_setup_sur, op_stgdata;
   DMLabel             domain_label;
 
   PetscFunctionBeginUser;
@@ -30,7 +31,7 @@ PetscErrorCode SetupStrongSTG_Ceed(Ceed ceed, CeedData ceed_data, DM dm, AppCtx 
   PetscCall(CeedBasisCreateProjection(ceed_data->basis_x_sur, ceed_data->basis_q_sur, &basis_x_to_q_sur));
 
   // Setup QFunction
-  CeedQFunctionCreateInterior(ceed, 1, SetupDirichletBC, SetupDirichletBC_loc, &qf_setup);
+  CeedQFunctionCreateInterior(ceed, 1, SetupStrongBC, SetupStrongBC_loc, &qf_setup);
   CeedQFunctionAddInput(qf_setup, "x", num_comp_x, CEED_EVAL_INTERP);
   CeedQFunctionAddInput(qf_setup, "multiplicity", num_comp_q, CEED_EVAL_NONE);
   CeedQFunctionAddOutput(qf_setup, "x stored", num_comp_x, CEED_EVAL_NONE);
@@ -90,18 +91,18 @@ PetscErrorCode SetupStrongSTG_Ceed(Ceed ceed, CeedData ceed_data, DM dm, AppCtx 
 
     // -- Setup BC QFunctions
     SetupStrongSTG_QF(ceed, problem, num_comp_x, num_comp_q, stg_data_size, q_data_size_sur, &qf_strongbc);
-    CeedOperatorCreate(ceed, qf_strongbc, NULL, NULL, &op_dirichlet_sub);
-    CeedOperatorSetName(op_dirichlet_sub, "Strong STG");
+    CeedOperatorCreate(ceed, qf_strongbc, NULL, NULL, &op_strong_bc_sub);
+    CeedOperatorSetName(op_strong_bc_sub, "Strong STG");
 
-    CeedOperatorSetField(op_dirichlet_sub, "surface qdata", elem_restr_qd_sur, CEED_BASIS_COLLOCATED, q_data_sur);
-    CeedOperatorSetField(op_dirichlet_sub, "x", elem_restr_x_stored, CEED_BASIS_COLLOCATED, x_stored);
-    CeedOperatorSetField(op_dirichlet_sub, "scale", elem_restr_scale, CEED_BASIS_COLLOCATED, scale_stored);
-    CeedOperatorSetField(op_dirichlet_sub, "stg data", elem_restr_stgdata, CEED_BASIS_COLLOCATED, stg_data);
-    CeedOperatorSetField(op_dirichlet_sub, "q", elem_restr_q_sur, CEED_BASIS_COLLOCATED, CEED_VECTOR_ACTIVE);
-    CeedOperatorSetNumQuadraturePoints(op_dirichlet_sub, elem_size);
+    CeedOperatorSetField(op_strong_bc_sub, "surface qdata", elem_restr_qd_sur, CEED_BASIS_COLLOCATED, q_data_sur);
+    CeedOperatorSetField(op_strong_bc_sub, "x", elem_restr_x_stored, CEED_BASIS_COLLOCATED, x_stored);
+    CeedOperatorSetField(op_strong_bc_sub, "scale", elem_restr_scale, CEED_BASIS_COLLOCATED, scale_stored);
+    CeedOperatorSetField(op_strong_bc_sub, "stg data", elem_restr_stgdata, CEED_BASIS_COLLOCATED, stg_data);
+    CeedOperatorSetField(op_strong_bc_sub, "q", elem_restr_q_sur, CEED_BASIS_COLLOCATED, CEED_VECTOR_ACTIVE);
+    CeedOperatorSetNumQuadraturePoints(op_strong_bc_sub, elem_size);
 
     // -- Add to composite operator
-    CeedCompositeOperatorAddSub(op_dirichlet, op_dirichlet_sub);
+    CeedCompositeOperatorAddSub(op_strong_bc, op_strong_bc_sub);
 
     CeedVectorDestroy(&q_data_sur);
     CeedVectorDestroy(&multiplicity);
@@ -117,12 +118,12 @@ PetscErrorCode SetupStrongSTG_Ceed(Ceed ceed, CeedData ceed_data, DM dm, AppCtx 
     CeedQFunctionDestroy(&qf_strongbc);
     CeedQFunctionDestroy(&qf_stgdata);
     CeedOperatorDestroy(&op_setup_sur);
-    CeedOperatorDestroy(&op_dirichlet_sub);
+    CeedOperatorDestroy(&op_strong_bc_sub);
     CeedOperatorDestroy(&op_setup);
     CeedOperatorDestroy(&op_stgdata);
   }
 
-  CeedOperatorGetContextFieldLabel(op_dirichlet, "solution time", &phys->stg_solution_time_label);
+  CeedOperatorGetContextFieldLabel(op_strong_bc, "solution time", &phys->stg_solution_time_label);
 
   CeedBasisDestroy(&basis_x_to_q_sur);
   CeedQFunctionDestroy(&qf_setup);
@@ -139,22 +140,22 @@ PetscErrorCode DMPlexInsertBoundaryValues_StrongBCCeed(DM dm, PetscBool insert_e
   PetscCall(DMGetApplicationContext(dm, &user));
 
   if (user->phys->stg_solution_time_label) {
-    CeedOperatorSetContextDouble(user->op_dirichlet_ctx->op, user->phys->stg_solution_time_label, &time);
+    CeedOperatorSetContextDouble(user->op_strong_bc_ctx->op, user->phys->stg_solution_time_label, &time);
   }
 
-  // Mask Dirichlet entries
+  // Mask Strong BC entries
   PetscCall(DMGetNamedLocalVector(dm, "boundary mask", &boundary_mask));
   PetscCall(VecPointwiseMult(Q_loc, Q_loc, boundary_mask));
   PetscCall(DMRestoreNamedLocalVector(dm, "boundary mask", &boundary_mask));
 
-  PetscCall(ApplyAddCeedOperatorLocalToLocal(NULL, Q_loc, user->op_dirichlet_ctx));
+  PetscCall(ApplyAddCeedOperatorLocalToLocal(NULL, Q_loc, user->op_strong_bc_ctx));
 
   PetscFunctionReturn(0);
 }
 
 PetscErrorCode SetupStrongBC_Ceed(Ceed ceed, CeedData ceed_data, DM dm, User user, AppCtx app_ctx, ProblemData *problem, SimpleBC bc, CeedInt Q_sur,
                                   CeedInt q_data_size_sur) {
-  CeedOperator op_dirichlet;
+  CeedOperator op_strong_bc;
 
   PetscFunctionBeginUser;
   {
@@ -169,17 +170,17 @@ PetscErrorCode SetupStrongBC_Ceed(Ceed ceed, CeedData ceed_data, DM dm, User use
     PetscCall(DMRestoreGlobalVector(dm, &global_vec));
   }
 
-  CeedCompositeOperatorCreate(ceed, &op_dirichlet);
+  CeedCompositeOperatorCreate(ceed, &op_strong_bc);
   {
     PetscBool use_strongstg = PETSC_FALSE;
     PetscCall(PetscOptionsGetBool(NULL, NULL, "-stg_strong", &use_strongstg, NULL));
 
     if (use_strongstg) {
-      PetscCall(SetupStrongSTG_Ceed(ceed, ceed_data, dm, app_ctx, problem, bc, user->phys, Q_sur, q_data_size_sur, op_dirichlet));
+      PetscCall(SetupStrongSTG_Ceed(ceed, ceed_data, dm, app_ctx, problem, bc, user->phys, Q_sur, q_data_size_sur, op_strong_bc));
     }
   }
 
-  PetscCall(OperatorApplyContextCreate(NULL, NULL, ceed, op_dirichlet, CEED_VECTOR_NONE, NULL, NULL, NULL, &user->op_dirichlet_ctx));
+  PetscCall(OperatorApplyContextCreate(NULL, NULL, ceed, op_strong_bc, CEED_VECTOR_NONE, NULL, NULL, NULL, &user->op_strong_bc_ctx));
 
   PetscCall(PetscObjectComposeFunction((PetscObject)dm, "DMPlexInsertBoundaryValues_C", DMPlexInsertBoundaryValues_StrongBCCeed));
   PetscFunctionReturn(0);
