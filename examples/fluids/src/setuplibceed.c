@@ -434,7 +434,7 @@ PetscErrorCode SetupLibceed(Ceed ceed, CeedData ceed_data, DM dm, User user, App
     if (user->op_ijacobian) {
       CeedOperatorGetContextFieldLabel(user->op_ijacobian, "ijacobian time shift", &user->phys->ijacobian_time_shift_label);
     }
-    if (problem->use_dirichlet_ceed) {
+    if (problem->use_strong_bc_ceed) {
       PetscCall(SetupStrongBC_Ceed(ceed, ceed_data, dm, user, app_ctx, problem, bc, Q_sur, q_data_size_sur));
     }
   }

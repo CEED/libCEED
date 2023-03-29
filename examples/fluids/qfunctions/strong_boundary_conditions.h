@@ -5,12 +5,12 @@
 //
 // This file is part of CEED:  http://github.com/ceed
 
-#ifndef dirichlet_boundary_h
-#define dirichlet_boundary_h
+#ifndef strong_boundary_conditions_h
+#define strong_boundary_conditions_h
 
 #include <ceed.h>
 
-CEED_QFUNCTION(SetupDirichletBC)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
+CEED_QFUNCTION(SetupStrongBC)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
   // Inputs
   const CeedScalar(*coords)[CEED_Q_VLA]       = (const CeedScalar(*)[CEED_Q_VLA])in[0];
   const CeedScalar(*multiplicity)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[1];
@@ -26,4 +26,4 @@ CEED_QFUNCTION(SetupDirichletBC)(void *ctx, CeedInt Q, const CeedScalar *const *
   return 0;
 }
 
-#endif  // dirichlet_boundary_h
+#endif  // strong_boundary_conditions_h

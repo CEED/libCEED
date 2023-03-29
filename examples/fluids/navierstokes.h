@@ -186,7 +186,7 @@ struct User_private {
   AppCtx               app_ctx;
   CeedVector           q_ceed, q_dot_ceed, g_ceed, coo_values_amat, coo_values_pmat, x_ceed;
   CeedOperator         op_rhs_vol, op_rhs, op_ifunction_vol, op_ifunction, op_ijacobian;
-  OperatorApplyContext op_dirichlet_ctx;
+  OperatorApplyContext op_strong_bc_ctx;
   bool                 matrices_set_up;
   CeedScalar           time_bc_set;
   Span_Stats           spanstats;
@@ -254,7 +254,7 @@ struct ProblemData_private {
   bool non_zero_time;
   PetscErrorCode (*bc)(PetscInt, PetscReal, const PetscReal[], PetscInt, PetscScalar[], void *);
   void     *bc_ctx;
-  PetscBool bc_from_ics, use_dirichlet_ceed;
+  PetscBool bc_from_ics, use_strong_bc_ceed;
   PetscErrorCode (*print_info)(ProblemData *, AppCtx);
 };
 

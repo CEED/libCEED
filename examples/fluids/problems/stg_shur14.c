@@ -292,7 +292,7 @@ PetscErrorCode SetupSTG(const MPI_Comm comm, const DM dm, ProblemData *problem, 
 
   if (use_stgstrong) {
     // Use default boundary integral QF (BoundaryIntegral) in newtonian.h
-    problem->use_dirichlet_ceed = PETSC_TRUE;
+    problem->use_strong_bc_ceed = PETSC_TRUE;
     problem->bc_from_ics        = PETSC_FALSE;
   } else {
     problem->apply_inflow.qfunction              = STGShur14_Inflow;
