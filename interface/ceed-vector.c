@@ -941,6 +941,45 @@ int CeedVectorReciprocal(CeedVector vec) {
 /**
   @brief View a CeedVector
 
+          Note: It is safe to use any unsigned values for `start` or `stop` and any nonzero integer for `step`.
+                Any portion of the provided range that is outside the range of valid indices for the CeedVector will be ignored.
+
+  @param[in] vec    CeedVector to view
+  @param[in] start  Index of first CeedVector entry to view
+  @param[in] stop   Index of last CeedVector entry to view
+  @param[in] step   Step between CeedVector entries to view
+  @param[in] fp_fmt Printing format
+  @param[in] stream Filestream to write to
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref User
+**/
+int CeedVectorViewRange(CeedVector vec, CeedSize start, CeedSize stop, CeedInt step, const char *fp_fmt, FILE *stream) {
+  const CeedScalar *x;
+  char              fmt[1024];
+
+  if (step == 0) return CeedError(vec->ceed, CEED_ERROR_MINOR, "View range 'step' must be nonzero");
+
+  fprintf(stream, "CeedVector length %ld\n", (long)vec->length);
+  if (start != 0 || stop != vec->length || step != 1) {
+    fprintf(stream, "  start: %ld\n  stop:  %ld\n  step:  %" CeedInt_FMT "\n", (long)start, (long)stop, step);
+  }
+  if (start > vec->length) start = vec->length;
+  if (stop > vec->length) stop = vec->length;
+
+  snprintf(fmt, sizeof fmt, "  %s\n", fp_fmt ? fp_fmt : "%g");
+  CeedCall(CeedVectorGetArrayRead(vec, CEED_MEM_HOST, &x));
+  for (CeedInt i = start; step > 0 ? (i < stop) : (i > stop); i += step) fprintf(stream, fmt, x[i]);
+  CeedCall(CeedVectorRestoreArrayRead(vec, &x));
+  if (stop != vec->length) fprintf(stream, "  ...\n");
+
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
+  @brief View a CeedVector
+
   @param[in] vec    CeedVector to view
   @param[in] fp_fmt Printing format
   @param[in] stream Filestream to write to
@@ -950,15 +989,7 @@ int CeedVectorReciprocal(CeedVector vec) {
   @ref User
 **/
 int CeedVectorView(CeedVector vec, const char *fp_fmt, FILE *stream) {
-  const CeedScalar *x;
-  CeedCall(CeedVectorGetArrayRead(vec, CEED_MEM_HOST, &x));
-
-  char fmt[1024];
-  fprintf(stream, "CeedVector length %ld\n", (long)vec->length);
-  snprintf(fmt, sizeof fmt, "  %s\n", fp_fmt ? fp_fmt : "%g");
-  for (CeedInt i = 0; i < vec->length; i++) fprintf(stream, fmt, x[i]);
-
-  CeedCall(CeedVectorRestoreArrayRead(vec, &x));
+  CeedCall(CeedVectorViewRange(vec, 0, vec->length, 1, fp_fmt, stream));
   return CEED_ERROR_SUCCESS;
 }
 
