@@ -144,15 +144,9 @@ int main(int argc, char **argv) {
 
   // -- Set up DM
   PetscCall(SetUpDM(dm, problem, app_ctx->degree, bc, phys_ctx));
-  PetscCall(CreateStatsDM(user, problem, app_ctx->degree, bc));
-  app_ctx->wall_forces.num_wall = bc->num_wall;
-  PetscMalloc1(bc->num_wall, &app_ctx->wall_forces.walls);
-  PetscCall(PetscArraycpy(app_ctx->wall_forces.walls, bc->walls, bc->num_wall));
 
   // -- Refine DM for high-order viz
-  if (app_ctx->viz_refine) {
-    PetscCall(VizRefineDM(dm, user, problem, bc, phys_ctx));
-  }
+  if (app_ctx->viz_refine) PetscCall(VizRefineDM(dm, user, problem, bc, phys_ctx));
 
   // ---------------------------------------------------------------------------
   // Create solution vectors
@@ -172,9 +166,6 @@ int main(int argc, char **argv) {
   // ---------------------------------------------------------------------------
   // -- Set up libCEED objects
   PetscCall(SetupLibceed(ceed, ceed_data, dm, user, app_ctx, problem, bc));
-
-  if (app_ctx->turb_spanstats_enable) PetscCall(SetupStatsCollection(ceed, user, ceed_data, problem));
-  if (app_ctx->sgs_model_type == SGS_MODEL_DATA_DRIVEN) PetscCall(SGS_DD_ModelSetup(ceed, user, ceed_data, problem));
 
   // ---------------------------------------------------------------------------
   // Set up ICs
@@ -311,7 +302,7 @@ int main(int argc, char **argv) {
   // Destroy libCEED objects
   // ---------------------------------------------------------------------------
 
-  PetscCall(DestroyStats(user, ceed_data));
+  PetscCall(TurbulenceStatisticsDestroy(user, ceed_data));
   PetscCall(NodalProjectionDataDestroy(user->grad_velo_proj));
   PetscCall(SGS_DD_DataDestroy(user->sgs_dd_data));
 

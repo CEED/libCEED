@@ -437,10 +437,12 @@ PetscErrorCode SetupLibceed(Ceed ceed, CeedData ceed_data, DM dm, User user, App
     if (user->op_ijacobian) {
       CeedOperatorGetContextFieldLabel(user->op_ijacobian, "ijacobian time shift", &user->phys->ijacobian_time_shift_label);
     }
-    if (problem->use_strong_bc_ceed) {
-      PetscCall(SetupStrongBC_Ceed(ceed, ceed_data, dm, user, app_ctx, problem, bc, Q_sur, q_data_size_sur));
-    }
+    if (problem->use_strong_bc_ceed) PetscCall(SetupStrongBC_Ceed(ceed, ceed_data, dm, user, problem, bc, Q_sur, q_data_size_sur));
+    if (app_ctx->sgs_model_type == SGS_MODEL_DATA_DRIVEN) PetscCall(SGS_DD_ModelSetup(ceed, user, ceed_data, problem));
   }
+
+  if (app_ctx->turb_spanstats_enable) PetscCall(TurbulenceStatisticsSetup(ceed, user, ceed_data, problem));
+
   CeedElemRestrictionDestroy(&elem_restr_jd_i);
   CeedOperatorDestroy(&op_ijacobian_vol);
   CeedVectorDestroy(&jac_data);
