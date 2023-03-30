@@ -216,7 +216,7 @@ int CeedVectorCreate(Ceed ceed, CeedSize length, CeedVector *vec) {
   @ref User
 **/
 int CeedVectorReferenceCopy(CeedVector vec, CeedVector *vec_copy) {
-  CeedCall(CeedVectorReference(vec));
+  if (vec != CEED_VECTOR_ACTIVE && vec != CEED_VECTOR_NONE) CeedCall(CeedVectorReference(vec));
   CeedCall(CeedVectorDestroy(vec_copy));
   *vec_copy = vec;
   return CEED_ERROR_SUCCESS;
@@ -1033,7 +1033,7 @@ int CeedVectorGetLength(CeedVector vec, CeedSize *length) {
   @ref User
 **/
 int CeedVectorDestroy(CeedVector *vec) {
-  if (!*vec || --(*vec)->ref_count > 0) {
+  if (!*vec || *vec == CEED_VECTOR_ACTIVE && *vec == CEED_VECTOR_NONE || --(*vec)->ref_count > 0) {
     *vec = NULL;
     return CEED_ERROR_SUCCESS;
   }
