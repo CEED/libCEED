@@ -392,10 +392,9 @@ PetscErrorCode PHASTADatFileReadToArrayReal(const MPI_Comm comm, const char path
 // Turbulence Statistics Collection Functions
 // -----------------------------------------------------------------------------
 
-PetscErrorCode CreateStatsDM(User user, ProblemData *problem, PetscInt degree, SimpleBC bc);
-PetscErrorCode SetupStatsCollection(Ceed ceed, User user, CeedData ceed_data, ProblemData *problem);
-PetscErrorCode TSMonitor_Statistics(TS ts, PetscInt steps, PetscReal solution_time, Vec Q, void *ctx);
-PetscErrorCode DestroyStats(User user, CeedData ceed_data);
+PetscErrorCode TurbulenceStatisticsSetup(Ceed ceed, User user, CeedData ceed_data, ProblemData *problem);
+PetscErrorCode TSMonitor_TurbulenceStatistics(TS ts, PetscInt steps, PetscReal solution_time, Vec Q, void *ctx);
+PetscErrorCode TurbulenceStatisticsDestroy(User user, CeedData ceed_data);
 
 // -----------------------------------------------------------------------------
 // Data-Driven Subgrid Stress (DD-SGS) Modeling Functions
@@ -414,7 +413,7 @@ PetscErrorCode GridAnisotropyTensorProjectionSetupApply(Ceed ceed, User user, Ce
 // -----------------------------------------------------------------------------
 
 // Setup StrongBCs that use QFunctions
-PetscErrorCode SetupStrongBC_Ceed(Ceed ceed, CeedData ceed_data, DM dm, User user, AppCtx app_ctx, ProblemData *problem, SimpleBC bc, CeedInt Q_sur,
+PetscErrorCode SetupStrongBC_Ceed(Ceed ceed, CeedData ceed_data, DM dm, User user, ProblemData *problem, SimpleBC bc, CeedInt Q_sur,
                                   CeedInt q_data_size_sur);
 
 PetscErrorCode FreestreamBCSetup(ProblemData *problem, DM dm, void *ctx, NewtonianIdealGasContext newtonian_ig_ctx, const StatePrimitive *reference);

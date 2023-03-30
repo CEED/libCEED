@@ -510,7 +510,7 @@ PetscErrorCode TSSolve_NS(DM dm, User user, AppCtx app_ctx, Physics phys, Vec *Q
     PetscCall(TSMonitorSet(*ts, TSMonitor_WallForce, user, NULL));
   }
   if (app_ctx->turb_spanstats_enable) {
-    PetscCall(TSMonitorSet(*ts, TSMonitor_Statistics, user, NULL));
+    PetscCall(TSMonitorSet(*ts, TSMonitor_TurbulenceStatistics, user, NULL));
     CeedScalar previous_time = app_ctx->cont_time * user->units->second;
     CeedOperatorSetContextDouble(user->spanstats.op_stats_collect_ctx->op, user->spanstats.previous_time_label, &previous_time);
   }

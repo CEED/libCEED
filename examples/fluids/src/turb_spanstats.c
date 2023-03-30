@@ -22,7 +22,7 @@ typedef struct {
   CeedVector          x_coord, q_data;
 } *SpanStatsSetupData;
 
-PetscErrorCode CreateStatsDM(User user, ProblemData *problem, PetscInt degree, SimpleBC bc) {
+PetscErrorCode CreateStatsDM(User user, ProblemData *problem, PetscInt degree) {
   user->spanstats.num_comp_stats = TURB_NUM_COMPONENTS;
   PetscReal     domain_min[3], domain_max[3];
   PetscFE       fe;
@@ -462,13 +462,17 @@ PetscErrorCode SetupMMSErrorChecking(Ceed ceed, User user, CeedData ceed_data, S
 }
 
 // Setup for statistics collection
-PetscErrorCode SetupStatsCollection(Ceed ceed, User user, CeedData ceed_data, ProblemData *problem) {
+PetscErrorCode TurbulenceStatisticsSetup(Ceed ceed, User user, CeedData ceed_data, ProblemData *problem) {
   SpanStatsSetupData stats_data;
   PetscLogStage      stage_stats_setup;
+
   PetscFunctionBeginUser;
   PetscCall(PetscLogStageGetId("Stats Setup", &stage_stats_setup));
   if (stage_stats_setup == -1) PetscCall(PetscLogStageRegister("Stats Setup", &stage_stats_setup));
   PetscCall(PetscLogStagePush(stage_stats_setup));
+
+  // Create parent DM
+  PetscCall(CreateStatsDM(user, problem, user->app_ctx->degree));
 
   // Create necessary CeedObjects for setting up statistics
   PetscCall(SpanStatsSetupDataCreate(ceed, user, ceed_data, problem, &stats_data));
@@ -571,7 +575,7 @@ PetscErrorCode ProcessStatistics(User user, Vec stats) {
 }
 
 // TSMonitor for the statistics collection and processing
-PetscErrorCode TSMonitor_Statistics(TS ts, PetscInt steps, PetscReal solution_time, Vec Q, void *ctx) {
+PetscErrorCode TSMonitor_TurbulenceStatistics(TS ts, PetscInt steps, PetscReal solution_time, Vec Q, void *ctx) {
   User              user = (User)ctx;
   Vec               stats;
   TSConvergedReason reason;
@@ -613,7 +617,7 @@ PetscErrorCode TSMonitor_Statistics(TS ts, PetscInt steps, PetscReal solution_ti
   PetscFunctionReturn(0);
 }
 
-PetscErrorCode DestroyStats(User user, CeedData ceed_data) {
+PetscErrorCode TurbulenceStatisticsDestroy(User user, CeedData ceed_data) {
   PetscFunctionBeginUser;
 
   // -- CeedVectors

@@ -449,8 +449,7 @@ PetscErrorCode CreateMatShell_Ceed(OperatorApplyContext ctx, Mat *mat) {
   VecType  X_vec_type, Y_vec_type;
 
   PetscFunctionBeginUser;
-
-  PetscCheck(comm_x == comm_y, PETSC_COMM_WORLD, PETSC_ERR_ARG_NOTSAMECOMM, "Input and output comm must be the same");
+  PetscCheck(comm_x == comm_y, PETSC_COMM_WORLD, PETSC_ERR_ARG_NOTSAMECOMM, "Input and output DM must have the same comm");
 
   PetscCall(DMGetGlobalVectorInfo(ctx->dm_x, &X_loc_size, &X_size, &X_vec_type));
   PetscCall(DMGetGlobalVectorInfo(ctx->dm_y, &Y_loc_size, &Y_size, &Y_vec_type));
