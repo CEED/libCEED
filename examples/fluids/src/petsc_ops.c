@@ -302,14 +302,14 @@ PetscErrorCode CeedOperatorCreateLocalVecs(CeedOperator op, VecType vec_type, MP
 /**
  * @brief Apply FEM Operator defined by `OperatorApplyContext` to various input and output vectors
  *
- * @param X             Input global `Vec`, maybe `NULL`
- * @param X_loc         Input local `Vec`, maybe `NULL`
- * @param x_ceed        Input `CeedVector`, maybe `CEED_VECTOR_NONE`
- * @param y_ceed        Output `CeedVector`, maybe `CEED_VECTOR_NONE`
- * @param Y_loc         Output local `Vec`, maybe `NULL`
- * @param Y             Output global `Vec`, maybe `NULL`
- * @param ctx           Context for the operator apply
- * @param use_apply_add Whether to use `CeedOperatorApply` or `CeedOperatorApplyAdd`
+ * @param[in]     X             Input global `Vec`, maybe `NULL`
+ * @param[in]     X_loc         Input local `Vec`, maybe `NULL`
+ * @param[in]     x_ceed        Input `CeedVector`, maybe `CEED_VECTOR_NONE`
+ * @param[in,out] y_ceed        Output `CeedVector`, maybe `CEED_VECTOR_NONE`
+ * @param[in,out] Y_loc         Output local `Vec`, maybe `NULL`
+ * @param[in,out] Y             Output global `Vec`, maybe `NULL`
+ * @param[in]     ctx           Context for the operator apply
+ * @param[in]     use_apply_add Whether to use `CeedOperatorApply` or `CeedOperatorApplyAdd`
  */
 PetscErrorCode ApplyCeedOperator_Core(Vec X, Vec X_loc, CeedVector x_ceed, CeedVector y_ceed, Vec Y_loc, Vec Y, OperatorApplyContext ctx,
                                       bool use_apply_add) {

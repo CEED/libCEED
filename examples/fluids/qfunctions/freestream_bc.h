@@ -145,10 +145,12 @@ CEED_QFUNCTION_HELPER void ComputeHLLSpeeds_Roe_fwd(NewtonianIdealGasContext gas
 // Taking in two states (left, right) and returns RiemannFlux_HLL.
 // The left and right states are specified from the perspective of an outward-facing normal vector pointing left to right.
 //
-// @param gas    NewtonianIdealGasContext for the fluid
-// @param left   Fluid state of the domain interior (the current solution)
-// @param right  Fluid state of the domain exterior (free stream conditions)
-// @param normal Normalized, outward facing boundary normal vector
+// @param[in] gas    NewtonianIdealGasContext for the fluid
+// @param[in] left   Fluid state of the domain interior (the current solution)
+// @param[in] right  Fluid state of the domain exterior (free stream conditions)
+// @param[in] normal Normalized, outward facing boundary normal vector
+//
+// @return StateConservative with HLL Riemann Flux
 // *****************************************************************************
 CEED_QFUNCTION_HELPER StateConservative RiemannFlux_HLL(NewtonianIdealGasContext gas, State left, State right, const CeedScalar normal[3]) {
   StateConservative flux_left  = FluxInviscidDotNormal(gas, left, normal);
@@ -179,6 +181,8 @@ CEED_QFUNCTION_HELPER StateConservative RiemannFlux_HLL(NewtonianIdealGasContext
 // @param dleft  Derivative of fluid state of the domain interior (the current solution)
 // @param dright Derivative of fluid state of the domain exterior (free stream conditions)
 // @param normal Normalized, outward facing boundary normal vector
+//
+// @return StateConservative with derivative of HLL Riemann Flux
 // *****************************************************************************
 CEED_QFUNCTION_HELPER StateConservative RiemannFlux_HLL_fwd(NewtonianIdealGasContext gas, State left, State dleft, State right, State dright,
                                                             const CeedScalar normal[3]) {
