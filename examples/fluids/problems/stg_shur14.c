@@ -156,18 +156,17 @@ static PetscErrorCode ReadSTGRand(const MPI_Comm comm, const char path[PETSC_MAX
  * @brief Read STG data from input paths and put in STGShur14Context
  *
  * Reads data from input paths and puts them into a STGShur14Context object.
- * Data stored initially in `*pstg_ctx` will be copied over to the new STGShur14Context instance.
+ * Data stored initially in `*stg_ctx` will be copied over to the new STGShur14Context instance.
  *
  * @param[in]     comm            MPI_Comm for the program
  * @param[in]     dm              DM for the program
  * @param[in]     stg_inflow_path Path to STGInflow.dat file
  * @param[in]     stg_rand_path   Path to STGRand.dat file
- * @param[in,out] pstg_ctx        Pointer to STGShur14Context where the data will be loaded into
+ * @param[in,out] stg_ctx         Pointer to STGShur14Context where the data will be loaded into
  */
 PetscErrorCode GetSTGContextData(const MPI_Comm comm, const DM dm, char stg_inflow_path[PETSC_MAX_PATH_LEN], char stg_rand_path[PETSC_MAX_PATH_LEN],
-                                 STGShur14Context *pstg_ctx, const CeedScalar ynodes[]) {
-  PetscInt         nmodes, nprofs;
-  STGShur14Context stg_ctx;
+                                 STGShur14Context *stg_ctx, const CeedScalar ynodes[]) {
+  PetscInt nmodes, nprofs;
   PetscFunctionBeginUser;
 
   // Get options
@@ -178,54 +177,52 @@ PetscErrorCode GetSTGContextData(const MPI_Comm comm, const DM dm, char stg_infl
              stg_rand_path, nmodes, STG_NMODES_MAX);
 
   {
-    STGShur14Context s;
-    PetscCall(PetscCalloc1(1, &s));
-    *s                         = **pstg_ctx;
-    s->nmodes                  = nmodes;
-    s->nprofs                  = nprofs;
-    s->offsets.sigma           = 0;
-    s->offsets.d               = nmodes * 3;
-    s->offsets.phi             = s->offsets.d + nmodes * 3;
-    s->offsets.kappa           = s->offsets.phi + nmodes;
-    s->offsets.wall_dist       = s->offsets.kappa + nmodes;
-    s->offsets.ubar            = s->offsets.wall_dist + nprofs;
-    s->offsets.cij             = s->offsets.ubar + nprofs * 3;
-    s->offsets.eps             = s->offsets.cij + nprofs * 6;
-    s->offsets.lt              = s->offsets.eps + nprofs;
-    s->offsets.ynodes          = s->offsets.lt + nprofs;
-    PetscInt total_num_scalars = s->offsets.ynodes + s->nynodes;
-    s->total_bytes             = sizeof(*stg_ctx) + total_num_scalars * sizeof(stg_ctx->data[0]);
-    PetscCall(PetscMalloc(s->total_bytes, &stg_ctx));
-    *stg_ctx = *s;
-    PetscCall(PetscFree(s));
+    STGShur14Context temp_ctx;
+    PetscCall(PetscCalloc1(1, &temp_ctx));
+    *temp_ctx                   = **stg_ctx;
+    temp_ctx->nmodes            = nmodes;
+    temp_ctx->nprofs            = nprofs;
+    temp_ctx->offsets.sigma     = 0;
+    temp_ctx->offsets.d         = nmodes * 3;
+    temp_ctx->offsets.phi       = temp_ctx->offsets.d + nmodes * 3;
+    temp_ctx->offsets.kappa     = temp_ctx->offsets.phi + nmodes;
+    temp_ctx->offsets.wall_dist = temp_ctx->offsets.kappa + nmodes;
+    temp_ctx->offsets.ubar      = temp_ctx->offsets.wall_dist + nprofs;
+    temp_ctx->offsets.cij       = temp_ctx->offsets.ubar + nprofs * 3;
+    temp_ctx->offsets.eps       = temp_ctx->offsets.cij + nprofs * 6;
+    temp_ctx->offsets.lt        = temp_ctx->offsets.eps + nprofs;
+    temp_ctx->offsets.ynodes    = temp_ctx->offsets.lt + nprofs;
+    PetscInt total_num_scalars  = temp_ctx->offsets.ynodes + temp_ctx->nynodes;
+    temp_ctx->total_bytes       = sizeof(*temp_ctx) + total_num_scalars * sizeof(temp_ctx->data[0]);
+    PetscCall(PetscFree(*stg_ctx));
+    PetscCall(PetscMalloc(temp_ctx->total_bytes, stg_ctx));
+    **stg_ctx = *temp_ctx;
+    PetscCall(PetscFree(temp_ctx));
   }
 
-  PetscCall(ReadSTGInflow(comm, stg_inflow_path, stg_ctx));
-  PetscCall(ReadSTGRand(comm, stg_rand_path, stg_ctx));
+  PetscCall(ReadSTGInflow(comm, stg_inflow_path, *stg_ctx));
+  PetscCall(ReadSTGRand(comm, stg_rand_path, *stg_ctx));
 
-  if (stg_ctx->nynodes > 0) {
-    CeedScalar *ynodes_ctx = &stg_ctx->data[stg_ctx->offsets.ynodes];
-    for (PetscInt i = 0; i < stg_ctx->nynodes; i++) ynodes_ctx[i] = ynodes[i];
+  if ((*stg_ctx)->nynodes > 0) {
+    CeedScalar *ynodes_ctx = &(*stg_ctx)->data[(*stg_ctx)->offsets.ynodes];
+    for (PetscInt i = 0; i < (*stg_ctx)->nynodes; i++) ynodes_ctx[i] = ynodes[i];
   }
 
-  // -- Calculate kappa
-  {
-    CeedScalar *kappa     = &stg_ctx->data[stg_ctx->offsets.kappa];
-    CeedScalar *wall_dist = &stg_ctx->data[stg_ctx->offsets.wall_dist];
-    CeedScalar *lt        = &stg_ctx->data[stg_ctx->offsets.lt];
+  {  // -- Calculate kappa
+    CeedScalar *kappa     = &(*stg_ctx)->data[(*stg_ctx)->offsets.kappa];
+    CeedScalar *wall_dist = &(*stg_ctx)->data[(*stg_ctx)->offsets.wall_dist];
+    CeedScalar *lt        = &(*stg_ctx)->data[(*stg_ctx)->offsets.lt];
     CeedScalar  le, le_max = 0;
 
-    CeedPragmaSIMD for (PetscInt i = 0; i < stg_ctx->nprofs; i++) {
+    CeedPragmaSIMD for (PetscInt i = 0; i < (*stg_ctx)->nprofs; i++) {
       le = PetscMin(2 * wall_dist[i], 3 * lt[i]);
       if (le_max < le) le_max = le;
     }
     CeedScalar kmin = M_PI / le_max;
 
-    CeedPragmaSIMD for (PetscInt i = 0; i < stg_ctx->nmodes; i++) { kappa[i] = kmin * pow(stg_ctx->alpha, i); }
-  }  // end calculate kappa
+    CeedPragmaSIMD for (PetscInt i = 0; i < (*stg_ctx)->nmodes; i++) { kappa[i] = kmin * pow((*stg_ctx)->alpha, i); }
+  }
 
-  PetscCall(PetscFree(*pstg_ctx));
-  *pstg_ctx = stg_ctx;
   PetscFunctionReturn(0);
 }
 
@@ -387,31 +384,27 @@ PetscErrorCode SetupStrongSTG(DM dm, SimpleBC bc, ProblemData *problem, Physics 
 }
 
 PetscErrorCode SetupStrongSTG_QF(Ceed ceed, ProblemData *problem, CeedInt num_comp_x, CeedInt num_comp_q, CeedInt stg_data_size,
-                                 CeedInt q_data_size_sur, CeedQFunction *pqf_strongbc) {
-  CeedQFunction qf_strongbc;
+                                 CeedInt q_data_size_sur, CeedQFunction *qf_strongbc) {
   PetscFunctionBeginUser;
-  CeedQFunctionCreateInterior(ceed, 1, STGShur14_Inflow_StrongQF, STGShur14_Inflow_StrongQF_loc, &qf_strongbc);
-  CeedQFunctionAddInput(qf_strongbc, "surface qdata", q_data_size_sur, CEED_EVAL_NONE);
-  CeedQFunctionAddInput(qf_strongbc, "x", num_comp_x, CEED_EVAL_NONE);
-  CeedQFunctionAddInput(qf_strongbc, "scale", 1, CEED_EVAL_NONE);
-  CeedQFunctionAddInput(qf_strongbc, "stg data", stg_data_size, CEED_EVAL_NONE);
-  CeedQFunctionAddOutput(qf_strongbc, "q", num_comp_q, CEED_EVAL_NONE);
+  CeedQFunctionCreateInterior(ceed, 1, STGShur14_Inflow_StrongQF, STGShur14_Inflow_StrongQF_loc, qf_strongbc);
+  CeedQFunctionAddInput(*qf_strongbc, "surface qdata", q_data_size_sur, CEED_EVAL_NONE);
+  CeedQFunctionAddInput(*qf_strongbc, "x", num_comp_x, CEED_EVAL_NONE);
+  CeedQFunctionAddInput(*qf_strongbc, "scale", 1, CEED_EVAL_NONE);
+  CeedQFunctionAddInput(*qf_strongbc, "stg data", stg_data_size, CEED_EVAL_NONE);
+  CeedQFunctionAddOutput(*qf_strongbc, "q", num_comp_q, CEED_EVAL_NONE);
 
-  CeedQFunctionSetContext(qf_strongbc, problem->ics.qfunction_context);
-  *pqf_strongbc = qf_strongbc;
+  CeedQFunctionSetContext(*qf_strongbc, problem->ics.qfunction_context);
   PetscFunctionReturn(0);
 }
 
 PetscErrorCode SetupStrongSTG_PreProcessing(Ceed ceed, ProblemData *problem, CeedInt num_comp_x, CeedInt stg_data_size, CeedInt q_data_size_sur,
-                                            CeedQFunction *pqf_strongbc) {
-  CeedQFunction qf_strongbc;
+                                            CeedQFunction *qf_strongbc) {
   PetscFunctionBeginUser;
-  CeedQFunctionCreateInterior(ceed, 1, Preprocess_STGShur14, Preprocess_STGShur14_loc, &qf_strongbc);
-  CeedQFunctionAddInput(qf_strongbc, "surface qdata", q_data_size_sur, CEED_EVAL_NONE);
-  CeedQFunctionAddInput(qf_strongbc, "x", num_comp_x, CEED_EVAL_NONE);
-  CeedQFunctionAddOutput(qf_strongbc, "stg data", stg_data_size, CEED_EVAL_NONE);
+  CeedQFunctionCreateInterior(ceed, 1, Preprocess_STGShur14, Preprocess_STGShur14_loc, qf_strongbc);
+  CeedQFunctionAddInput(*qf_strongbc, "surface qdata", q_data_size_sur, CEED_EVAL_NONE);
+  CeedQFunctionAddInput(*qf_strongbc, "x", num_comp_x, CEED_EVAL_NONE);
+  CeedQFunctionAddOutput(*qf_strongbc, "stg data", stg_data_size, CEED_EVAL_NONE);
 
-  CeedQFunctionSetContext(qf_strongbc, problem->ics.qfunction_context);
-  *pqf_strongbc = qf_strongbc;
+  CeedQFunctionSetContext(*qf_strongbc, problem->ics.qfunction_context);
   PetscFunctionReturn(0);
 }
