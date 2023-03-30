@@ -1245,7 +1245,7 @@ int CeedBasisCreateProjection(CeedBasis basis_from, CeedBasis basis_to, CeedBasi
   @ref User
 **/
 int CeedBasisReferenceCopy(CeedBasis basis, CeedBasis *basis_copy) {
-  CeedCall(CeedBasisReference(basis));
+  if (basis != CEED_BASIS_COLLOCATED) CeedCall(CeedBasisReference(basis));
   CeedCall(CeedBasisDestroy(basis_copy));
   *basis_copy = basis;
   return CEED_ERROR_SUCCESS;
@@ -1693,7 +1693,7 @@ int CeedBasisGetDiv(CeedBasis basis, const CeedScalar **div) {
   @ref User
 **/
 int CeedBasisDestroy(CeedBasis *basis) {
-  if (!*basis || --(*basis)->ref_count > 0) {
+  if (!*basis || basis == CEED_BASIS_COLLOCATED || --(*basis)->ref_count > 0) {
     *basis = NULL;
     return CEED_ERROR_SUCCESS;
   }

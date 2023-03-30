@@ -688,7 +688,7 @@ int CeedElemRestrictionCreateBlockedStrided(Ceed ceed, CeedInt num_elem, CeedInt
   @ref User
 **/
 int CeedElemRestrictionReferenceCopy(CeedElemRestriction rstr, CeedElemRestriction *rstr_copy) {
-  CeedCall(CeedElemRestrictionReference(rstr));
+  if (rstr != CEED_ELEMRESTRICTION_NONE) CeedCall(CeedElemRestrictionReference(rstr));
   CeedCall(CeedElemRestrictionDestroy(rstr_copy));
   *rstr_copy = rstr;
   return CEED_ERROR_SUCCESS;
@@ -989,7 +989,7 @@ int CeedElemRestrictionView(CeedElemRestriction rstr, FILE *stream) {
   @ref User
 **/
 int CeedElemRestrictionDestroy(CeedElemRestriction *rstr) {
-  if (!*rstr || --(*rstr)->ref_count > 0) {
+  if (!*rstr || *rstr == CEED_ELEMRESTRICTION_NONE || --(*rstr)->ref_count > 0) {
     *rstr = NULL;
     return CEED_ERROR_SUCCESS;
   }

@@ -858,25 +858,14 @@ found:
     }
   }
 
-  (*op_field)->vec = v;
-  if (v != CEED_VECTOR_ACTIVE && v != CEED_VECTOR_NONE) {
-    CeedCall(CeedVectorReference(v));
-  }
-
-  (*op_field)->elem_rstr = r;
-  CeedCall(CeedElemRestrictionReference(r));
+  CeedCall(CeedVectorReferenceCopy(v, &(*op_field)->vec));
+  CeedCall(CeedElemRestrictionReferenceCopy(r, &(*op_field)->elem_rstr));
   if (r != CEED_ELEMRESTRICTION_NONE) {
     op->num_elem        = num_elem;
     op->has_restriction = true;  // Restriction set, but num_elem may be 0
   }
-
-  (*op_field)->basis = b;
-  if (b != CEED_BASIS_COLLOCATED) {
-    if (!op->num_qpts) {
-      CeedCall(CeedOperatorSetNumQuadraturePoints(op, num_qpts));
-    }
-    CeedCall(CeedBasisReference(b));
-  }
+  CeedCall(CeedBasisReferenceCopy(b, &(*op_field)->basis));
+  if (!op->num_qpts && b != CEED_BASIS_COLLOCATED) CeedCall(CeedOperatorSetNumQuadraturePoints(op, num_qpts));
 
   op->num_fields += 1;
   CeedCall(CeedStringAllocCopy(field_name, (char **)&(*op_field)->field_name));
