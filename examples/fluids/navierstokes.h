@@ -71,8 +71,9 @@ typedef enum {
   TESTTYPE_NONE           = 0,
   TESTTYPE_SOLVER         = 1,
   TESTTYPE_TURB_SPANSTATS = 2,
+  TESTTYPE_DIFF_FILTER    = 3,
 } TestType;
-static const char *const TestTypes[] = {"none", "solver", "turb_spanstats", "TestType", "TESTTYPE_", NULL};
+static const char *const TestTypes[] = {"none", "solver", "turb_spanstats", "diff_filter", "TestType", "TESTTYPE_", NULL};
 
 // Test mode type
 typedef enum {
