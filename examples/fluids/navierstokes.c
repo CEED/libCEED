@@ -177,10 +177,10 @@ int main(int argc, char **argv) {
   // Set up lumped mass matrix
   // ---------------------------------------------------------------------------
   // -- Set up global mass vector
-  PetscCall(VecDuplicate(Q, &user->M));
+  PetscCall(VecDuplicate(Q, &user->M_inv));
 
   // -- Compute lumped mass matrix
-  PetscCall(ComputeLumpedMassMatrix(ceed, dm, ceed_data, user->M));
+  PetscCall(ComputeLumpedMassMatrix(ceed, dm, ceed_data, user->M_inv));
 
   // ---------------------------------------------------------------------------
   // Record boundary values from initial condition
@@ -372,7 +372,7 @@ int main(int argc, char **argv) {
   // ---------------------------------------------------------------------------
   // -- Vectors
   PetscCall(VecDestroy(&Q));
-  PetscCall(VecDestroy(&user->M));
+  PetscCall(VecDestroy(&user->M_inv));
   PetscCall(VecDestroy(&user->Q_loc));
   PetscCall(VecDestroy(&user->Q_dot_loc));
 
