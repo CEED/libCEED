@@ -12,6 +12,32 @@
 
 #include "../navierstokes.h"
 
+// @brief Get information about a DM's local vector
+PetscErrorCode DMGetLocalVectorInfo(DM dm, PetscInt *local_size, PetscInt *global_size, VecType *vec_type) {
+  Vec V_loc;
+
+  PetscFunctionBeginUser;
+  PetscCall(DMGetLocalVector(dm, &V_loc));
+  if (local_size) PetscCall(VecGetLocalSize(V_loc, local_size));
+  if (global_size) PetscCall(VecGetSize(V_loc, global_size));
+  if (vec_type) PetscCall(VecGetType(V_loc, vec_type));
+  PetscCall(DMRestoreLocalVector(dm, &V_loc));
+  PetscFunctionReturn(0);
+}
+
+// @brief Get information about a DM's global vector
+PetscErrorCode DMGetGlobalVectorInfo(DM dm, PetscInt *local_size, PetscInt *global_size, VecType *vec_type) {
+  Vec V;
+
+  PetscFunctionBeginUser;
+  PetscCall(DMGetGlobalVector(dm, &V));
+  if (local_size) PetscCall(VecGetLocalSize(V, local_size));
+  if (global_size) PetscCall(VecGetSize(V, global_size));
+  if (vec_type) PetscCall(VecGetType(V, vec_type));
+  PetscCall(DMRestoreGlobalVector(dm, &V));
+  PetscFunctionReturn(0);
+}
+
 /**
  * @brief Create OperatorApplyContext struct for applying FEM operator in a PETSc context
  *
