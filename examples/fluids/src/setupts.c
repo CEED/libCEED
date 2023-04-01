@@ -248,7 +248,7 @@ static PetscErrorCode FormSetValues(User user, PetscBool pbdiagonal, Mat J, Ceed
   PetscFunctionBeginUser;
   PetscCall(MatGetType(J, &mat_type));
   if (strstr(mat_type, "kokkos") || strstr(mat_type, "cusparse")) mem_type = CEED_MEM_DEVICE;
-  if (user->app_ctx->pmat_pbdiagonal) {
+  if (pbdiagonal) {
     CeedOperatorLinearAssemblePointBlockDiagonal(user->op_ijacobian, coo_values, CEED_REQUEST_IMMEDIATE);
   } else {
     CeedOperatorLinearAssemble(user->op_ijacobian, coo_values);
