@@ -93,45 +93,22 @@ PetscErrorCode UpdateContextLabel(MPI_Comm comm, PetscScalar update_value, CeedO
 //   This is the RHS of the ODE, given as u_t = G(t,u)
 //   This function takes in a state vector Q and writes into G
 PetscErrorCode RHS_NS(TS ts, PetscReal t, Vec Q, Vec G, void *user_data) {
-  User         user = *(User *)user_data;
-  MPI_Comm     comm = PetscObjectComm((PetscObject)ts);
-  PetscScalar  dt;
-  Vec          Q_loc = user->Q_loc, G_loc;
-  PetscMemType q_mem_type, g_mem_type;
+  User        user = *(User *)user_data;
+  MPI_Comm    comm = PetscObjectComm((PetscObject)ts);
+  PetscScalar dt;
+  Vec         Q_loc = user->Q_loc;
   PetscFunctionBeginUser;
-
-  // Get local vector
-  PetscCall(DMGetLocalVector(user->dm, &G_loc));
 
   // Update time dependent data
   PetscCall(UpdateBoundaryValues(user, Q_loc, t));
-  if (user->phys->solution_time_label) PetscCall(UpdateContextLabel(comm, t, user->op_rhs, user->phys->solution_time_label));
+  if (user->phys->solution_time_label) PetscCall(UpdateContextLabel(comm, t, user->op_rhs_ctx->op, user->phys->solution_time_label));
   PetscCall(TSGetTimeStep(ts, &dt));
-  if (user->phys->timestep_size_label) PetscCall(UpdateContextLabel(comm, dt, user->op_rhs, user->phys->timestep_size_label));
+  if (user->phys->timestep_size_label) PetscCall(UpdateContextLabel(comm, dt, user->op_rhs_ctx->op, user->phys->timestep_size_label));
 
-  // Global-to-local
-  PetscCall(DMGlobalToLocal(user->dm, Q, INSERT_VALUES, Q_loc));
-
-  // Place PETSc vectors in CEED vectors
-  PetscCall(VecReadP2C(Q_loc, &q_mem_type, user->q_ceed));
-  PetscCall(VecP2C(G_loc, &g_mem_type, user->g_ceed));
-
-  // Apply CEED operator
-  CeedOperatorApply(user->op_rhs, user->q_ceed, user->g_ceed, CEED_REQUEST_IMMEDIATE);
-
-  // Restore vectors
-  PetscCall(VecReadC2P(user->q_ceed, q_mem_type, Q_loc));
-  PetscCall(VecC2P(user->g_ceed, g_mem_type, G_loc));
-
-  // Local-to-Global
-  PetscCall(VecZeroEntries(G));
-  PetscCall(DMLocalToGlobal(user->dm, G_loc, ADD_VALUES, G));
+  PetscCall(ApplyCeedOperatorGlobalToGlobal(Q, G, user->op_rhs_ctx));
 
   // Inverse of the lumped mass matrix (M is Minv)
   PetscCall(VecPointwiseMult(G, G, user->M));
-
-  // Restore vectors
-  PetscCall(DMRestoreLocalVector(user->dm, &G_loc));
 
   PetscFunctionReturn(0);
 }
@@ -469,7 +446,7 @@ PetscErrorCode TSSolve_NS(DM dm, User user, AppCtx app_ctx, Physics phys, Vec *Q
       }
     }
   } else {
-    PetscCheck(user->op_rhs, comm, PETSC_ERR_ARG_NULL, "Problem does not provide RHSFunction");
+    PetscCheck(user->op_rhs_ctx, comm, PETSC_ERR_ARG_NULL, "Problem does not provide RHSFunction");
     PetscCall(TSSetType(*ts, TSRK));
     PetscCall(TSRKSetType(*ts, TSRK5F));
     PetscCall(TSSetRHSFunction(*ts, NULL, RHS_NS, &user));

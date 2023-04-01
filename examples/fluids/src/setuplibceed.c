@@ -429,8 +429,11 @@ PetscErrorCode SetupLibceed(Ceed ceed, CeedData ceed_data, DM dm, User user, App
 
   // -- Create and apply CEED Composite Operator for the entire domain
   if (!user->phys->implicit) {  // RHS
-    PetscCall(CreateOperatorForDomain(ceed, dm, bc, ceed_data, user->phys, user->op_rhs_vol, NULL, height, P_sur, Q_sur, q_data_size_sur, 0,
-                                      &user->op_rhs, NULL));
+    CeedOperator op_rhs;
+    PetscCall(CreateOperatorForDomain(ceed, dm, bc, ceed_data, user->phys, user->op_rhs_vol, NULL, height, P_sur, Q_sur, q_data_size_sur, 0, &op_rhs,
+                                      NULL));
+    PetscCall(OperatorApplyContextCreate(dm, dm, ceed, op_rhs, user->q_ceed, user->g_ceed, user->Q_loc, NULL, &user->op_rhs_ctx));
+    CeedOperatorDestroy(&op_rhs);
   } else {  // IFunction
     PetscCall(CreateOperatorForDomain(ceed, dm, bc, ceed_data, user->phys, user->op_ifunction_vol, op_ijacobian_vol, height, P_sur, Q_sur,
                                       q_data_size_sur, jac_data_size_sur, &user->op_ifunction, op_ijacobian_vol ? &user->op_ijacobian : NULL));

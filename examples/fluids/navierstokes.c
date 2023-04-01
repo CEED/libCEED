@@ -360,7 +360,7 @@ int main(int argc, char **argv) {
   PetscCall(OperatorApplyContextDestroy(ceed_data->op_ics_ctx));
   CeedOperatorDestroy(&user->op_rhs_vol);
   CeedOperatorDestroy(&user->op_ifunction_vol);
-  CeedOperatorDestroy(&user->op_rhs);
+  PetscCall(OperatorApplyContextDestroy(user->op_rhs_ctx));
   CeedOperatorDestroy(&user->op_ifunction);
   CeedOperatorDestroy(&user->op_ijacobian);
 
