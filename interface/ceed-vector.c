@@ -1033,7 +1033,7 @@ int CeedVectorGetLength(CeedVector vec, CeedSize *length) {
   @ref User
 **/
 int CeedVectorDestroy(CeedVector *vec) {
-  if (!*vec || *vec == CEED_VECTOR_ACTIVE && *vec == CEED_VECTOR_NONE || --(*vec)->ref_count > 0) {
+  if (!*vec || *vec == CEED_VECTOR_ACTIVE || *vec == CEED_VECTOR_NONE || --(*vec)->ref_count > 0) {
     *vec = NULL;
     return CEED_ERROR_SUCCESS;
   }
