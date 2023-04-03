@@ -449,6 +449,40 @@ CEED_EXTERN void fCeedBasisCreateH1(int *ceed, int *topo, int *num_comp, int *nn
   }
 }
 
+#define fCeedBasisCreateHdiv FORTRAN_NAME(ceedbasiscreatehdiv, CEEDBASISCREATEHDIV)
+CEED_EXTERN void fCeedBasisCreateHdiv(int *ceed, int *topo, int *num_comp, int *nnodes, int *nqpts, const CeedScalar *interp, const CeedScalar *div,
+                                      const CeedScalar *qref, const CeedScalar *qweight, int *basis, int *err) {
+  if (CeedBasis_count == CeedBasis_count_max) {
+    CeedBasis_count_max += CeedBasis_count_max / 2 + 1;
+    CeedRealloc(CeedBasis_count_max, &CeedBasis_dict);
+  }
+
+  *err = CeedBasisCreateHdiv(Ceed_dict[*ceed], (CeedElemTopology)*topo, *num_comp, *nnodes, *nqpts, interp, div, qref, qweight,
+                             &CeedBasis_dict[CeedBasis_count]);
+
+  if (*err == 0) {
+    *basis = CeedBasis_count++;
+    CeedBasis_n++;
+  }
+}
+
+#define fCeedBasisCreateHcurl FORTRAN_NAME(ceedbasiscreatehcurl, CEEDBASISCREATEHCURL)
+CEED_EXTERN void fCeedBasisCreateHcurl(int *ceed, int *topo, int *num_comp, int *nnodes, int *nqpts, const CeedScalar *interp, const CeedScalar *curl,
+                                       const CeedScalar *qref, const CeedScalar *qweight, int *basis, int *err) {
+  if (CeedBasis_count == CeedBasis_count_max) {
+    CeedBasis_count_max += CeedBasis_count_max / 2 + 1;
+    CeedRealloc(CeedBasis_count_max, &CeedBasis_dict);
+  }
+
+  *err = CeedBasisCreateHcurl(Ceed_dict[*ceed], (CeedElemTopology)*topo, *num_comp, *nnodes, *nqpts, interp, curl, qref, qweight,
+                              &CeedBasis_dict[CeedBasis_count]);
+
+  if (*err == 0) {
+    *basis = CeedBasis_count++;
+    CeedBasis_n++;
+  }
+}
+
 #define fCeedBasisView FORTRAN_NAME(ceedbasisview, CEEDBASISVIEW)
 CEED_EXTERN void fCeedBasisView(int *basis, int *err) { *err = CeedBasisView(CeedBasis_dict[*basis], stdout); }
 

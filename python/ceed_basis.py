@@ -339,6 +339,88 @@ class BasisH1(Basis):
 # ------------------------------------------------------------------------------
 
 
+class BasisHdiv(Basis):
+    """Ceed Hdiv Basis: finite element non tensor-product basis for H(div) discretizations."""
+
+    # Constructor
+    def __init__(self, ceed, topo, ncomp, nnodes,
+                 nqpts, interp, grad, qref, qweight):
+
+        # Setup arguments
+        self._pointer = ffi.new("CeedBasis *")
+
+        self._ceed = ceed
+
+        interp_pointer = ffi.new("CeedScalar *")
+        interp_pointer = ffi.cast(
+            "CeedScalar *",
+            interp.__array_interface__['data'][0])
+
+        div_pointer = ffi.new("CeedScalar *")
+        div_pointer = ffi.cast(
+            "CeedScalar *",
+            grad.__array_interface__['data'][0])
+
+        qref_pointer = ffi.new("CeedScalar *")
+        qref_pointer = ffi.cast(
+            "CeedScalar *",
+            qref.__array_interface__['data'][0])
+
+        qweight_pointer = ffi.new("CeedScalar *")
+        qweight_pointer = ffi.cast(
+            "CeedScalar *",
+            qweight.__array_interface__['data'][0])
+
+        # libCEED call
+        err_code = lib.CeedBasisCreateHdiv(self._ceed._pointer[0], topo, ncomp,
+                                           nnodes, nqpts, interp_pointer,
+                                           div_pointer, qref_pointer,
+                                           qweight_pointer, self._pointer)
+
+# ------------------------------------------------------------------------------
+
+
+class BasisHcurl(Basis):
+    """Ceed Hcurl Basis: finite element non tensor-product basis for H(curl) discretizations."""
+
+    # Constructor
+    def __init__(self, ceed, topo, ncomp, nnodes,
+                 nqpts, interp, grad, qref, qweight):
+
+        # Setup arguments
+        self._pointer = ffi.new("CeedBasis *")
+
+        self._ceed = ceed
+
+        interp_pointer = ffi.new("CeedScalar *")
+        interp_pointer = ffi.cast(
+            "CeedScalar *",
+            interp.__array_interface__['data'][0])
+
+        curl_pointer = ffi.new("CeedScalar *")
+        curl_pointer = ffi.cast(
+            "CeedScalar *",
+            grad.__array_interface__['data'][0])
+
+        qref_pointer = ffi.new("CeedScalar *")
+        qref_pointer = ffi.cast(
+            "CeedScalar *",
+            qref.__array_interface__['data'][0])
+
+        qweight_pointer = ffi.new("CeedScalar *")
+        qweight_pointer = ffi.cast(
+            "CeedScalar *",
+            qweight.__array_interface__['data'][0])
+
+        # libCEED call
+        err_code = lib.CeedBasisCreateHcurl(self._ceed._pointer[0], topo, ncomp,
+                                            nnodes, nqpts, interp_pointer,
+                                            curl_pointer, qref_pointer,
+                                            qweight_pointer, self._pointer)
+
+# ------------------------------------------------------------------------------
+
+
 class TransposeBasis():
     """Transpose Ceed Basis: transpose of finite element tensor-product basis objects."""
 
