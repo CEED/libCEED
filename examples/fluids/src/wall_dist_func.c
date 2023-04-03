@@ -16,30 +16,36 @@
 
 // General distance functions
 static PetscErrorCode Distance_Function_NS(DM dm, User user) {
+  MPI_Comm            comm;
   PetscScalar        *r;
   DM                  dmDist;
   PetscFE             fe;
   PetscInt            xl_size, l_size, g_size, dim = 3;
   SNES                snesDist;
+  Mat                 A;
   Vec                 X, Y, q_data, X_loc, rhs, rhs_loc;
+  VecType             vec_type;
   PetscMemType        mem_type;
   Ceed                ceed;
   CeedInt             num_elem = 10, P = 3, Q = P + 1;
   CeedInt             num_nodes_x = num_elem + 1, num_nodes_phi = num_elem * (P - 1) + 1;
   CeedInt             ind_x[num_elem * 2], ind_phi[num_elem * P];
-  CeedVector          rhs_ceed, X_ceed, Y_ceed;
+  CeedVector          rhs_ceed, X_ceed, Y_ceed, ones_vec;
   CeedOperator        op_distance_function;
   CeedQFunction       qf_distance_function;
   CeedBasis           basis_x, basis_phi;
   CeedElemRestriction elem_restr_x, elem_restr_phi;
 
   PetscFunctionBeginUser;
+  comm = PETSC_COMM_WORLD;
   PetscCall(PetscFECreateDefault(PETSC_COMM_SELF, dim, 1, PETSC_FALSE, NULL, PETSC_DETERMINE, &fe));
   PetscBool distance_snes_monitor = PETSC_FALSE;
   PetscCall(PetscOptionsHasName(NULL, NULL, "-distance_snes_monitor", &distance_snes_monitor));
   PetscCall(SNESCreate(PETSC_COMM_WORLD, &snesDist));
   PetscObjectSetOptionsPrefix((PetscObject)snesDist, "distance_");
   PetscCall(DMClone(dm, &dmDist));
+  PetscCall(DMGetVecType(dm, &vec_type));
+  PetscCall(DMSetVecType(dmDist, vec_type));
   PetscCall(DMAddField(dmDist, NULL, (PetscObject)fe));
 
   // Create Vectors
@@ -51,6 +57,11 @@ static PetscErrorCode Distance_Function_NS(DM dm, User user) {
   PetscCall(DMCreateLocalVector(dmDist, &X_loc));
   PetscCall(VecGetSize(X_loc, &xl_size));
   PetscCall(VecDuplicate(X, &rhs));
+
+  // Create Matshell Operator
+  PetscCall(MatCreateShell(comm, l_size, l_size, g_size, g_size, op_distance_function, &A));
+  PetscCall(MatShellSetOperation(A, MATOP_MULT, (void (*)(void))MatMult_Ceed));
+  PetscCall(MatShellSetVecType(A, vec_type));
 
   // Setup libCEED vector
   PetscCall(VecP2C(X, &mem_type, X_ceed));
@@ -97,6 +108,9 @@ static PetscErrorCode Distance_Function_NS(DM dm, User user) {
   CeedVectorCreate(ceed, num_nodes_phi, &X_ceed);
   CeedVectorSetValue(X_ceed, 0.0);
   CeedVectorCreate(ceed, num_nodes_phi, &Y_ceed);
+  CeedVectorSetValue(Y_ceed, 0.0);
+  CeedVectorCreate(ceed, num_nodes_phi, &ones_vec);
+  CeedVectorSetValue(ones_vec, 1.0);  // vector of ones to multiply mass matrix with
 
   // Apply Operator
   CeedOperatorApply(op_distance_function, X_ceed, Y_ceed, CEED_REQUEST_IMMEDIATE);
@@ -119,6 +133,8 @@ static PetscErrorCode Distance_Function_NS(DM dm, User user) {
   PetscCall(VecDestroy(&X));
   PetscCall(VecDestroy(&X_loc));
   PetscCall(VecDestroy(&q_data));
+  PetscCall(MatDestroy(&A));
+  CeedVectorDestroy(&ones_vec);
   CeedElemRestrictionDestroy(&elem_restr_x);
   CeedElemRestrictionDestroy(&elem_restr_phi);
   CeedQFunctionDestroy(&qf_distance_function);
