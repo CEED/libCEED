@@ -1693,7 +1693,7 @@ int CeedBasisGetDiv(CeedBasis basis, const CeedScalar **div) {
   @ref User
 **/
 int CeedBasisDestroy(CeedBasis *basis) {
-  if (!*basis || basis == CEED_BASIS_COLLOCATED || --(*basis)->ref_count > 0) {
+  if (!*basis || *basis == CEED_BASIS_COLLOCATED || --(*basis)->ref_count > 0) {
     *basis = NULL;
     return CEED_ERROR_SUCCESS;
   }

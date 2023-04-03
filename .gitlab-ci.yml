@@ -31,6 +31,9 @@ noether-cpu:
     - BACKENDS_CPU=$(make info-backends-all | grep -o '/cpu[^ ]*')
     - echo "-------------- libCEED -------------" && make info
     - echo "-------------- BACKENDS_CPU --------" && echo $BACKENDS_CPU
+    - make configure OPT='-O -march=native -ffp-contract=fast -Werror'
+    - make -j$NPROC_CPU OCCA_DIR=
+    - make configure OPT='-O -march=native -ffp-contract=fast'
     - make -j$NPROC_CPU
 # -- libCEED only tests
     - echo "-------------- core tests ----------"
@@ -219,7 +222,7 @@ noether-cuda:
   script:
     - rm -f .SUCCESS
 # libCEED
-    - make configure OPT='-O -march=native -ffp-contract=fast' CUDA_DIR=/usr
+    - make configure OPT='-O -march=native -ffp-contract=fast -Werror' CUDA_DIR=/usr
     - echo "-------------- libCEED -------------" && make info
     - BACKENDS_GPU=$(make info-backends | grep -o '/gpu[^ ]*')
     - echo "-------------- BACKENDS_GPU --------" && echo $BACKENDS_GPU
