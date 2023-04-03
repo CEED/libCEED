@@ -407,6 +407,8 @@ PetscErrorCode VelocityGradientProjectionSetup(Ceed ceed, User user, CeedData ce
 PetscErrorCode VelocityGradientProjectionApply(User user, Vec Q_loc, Vec VelocityGradient);
 PetscErrorCode GridAnisotropyTensorProjectionSetupApply(Ceed ceed, User user, CeedData ceed_data, CeedElemRestriction *elem_restr_grid_aniso,
                                                         CeedVector *grid_aniso_vector);
+PetscErrorCode GridAnisotropyTensorCalculateCollocatedVector(Ceed ceed, User user, CeedData ceed_data, CeedElemRestriction *elem_restr_grid_aniso,
+                                                             CeedVector *aniso_colloc_ceed, PetscInt *num_comp_aniso);
 
 // -----------------------------------------------------------------------------
 // Boundary Condition Related Functions
