@@ -29,12 +29,19 @@ enum DifferentialFilterComponent {
   DIFF_FILTER_NUM_COMPONENTS,
 };
 
+enum DifferentialFilterDampingFunction { DIFF_FILTER_DAMP_NONE, DIFF_FILTER_DAMP_VAN_DRIEST };
+static const char *const DifferentialFilterDampingFunctions[] = {"none", "van_driest", "DifferentialFilterDampingFunction", "DIFF_FILTER_DAMP_",
+                                                                 NULL};
+
 typedef struct DifferentialFilterContext_ *DifferentialFilterContext;
 struct DifferentialFilterContext_ {
-  bool                             grid_based_width;
-  CeedScalar                       width_scaling[3];
-  CeedScalar                       kernel_scaling;
-  struct NewtonianIdealGasContext_ gas;
+  bool                                   grid_based_width;
+  CeedScalar                             width_scaling[3];
+  CeedScalar                             kernel_scaling;
+  CeedScalar                             friction_length;
+  enum DifferentialFilterDampingFunction damping_function;
+  CeedScalar                             damping_constant;
+  struct NewtonianIdealGasContext_       gas;
 };
 
 CEED_QFUNCTION_HELPER int DifferentialFilter_RHS(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out, StateFromQi_t StateFromQi,
@@ -76,11 +83,16 @@ CEED_QFUNCTION(DifferentialFilter_RHS_Prim)(void *ctx, CeedInt Q, const CeedScal
   return DifferentialFilter_RHS(ctx, Q, in, out, StateFromY, StateFromY_fwd);
 }
 
+CEED_QFUNCTION_HELPER CeedScalar VanDriestWallDamping(const CeedScalar wall_dist_plus, const CeedScalar A_plus) {
+  return -expm1(-wall_dist_plus / A_plus);
+}
+
 CEED_QFUNCTION_HELPER int DifferentialFilter_LHS_N(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out, const CeedInt N) {
   const CeedScalar(*q)[CEED_Q_VLA]          = (const CeedScalar(*)[CEED_Q_VLA])in[0];
   const CeedScalar(*Grad_q)[CEED_Q_VLA]     = (const CeedScalar(*)[CEED_Q_VLA])in[1];
   const CeedScalar(*A_ij_delta)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[2];
-  const CeedScalar(*q_data)[CEED_Q_VLA]     = (const CeedScalar(*)[CEED_Q_VLA])in[3];
+  const CeedScalar(*x)[CEED_Q_VLA]          = (const CeedScalar(*)[CEED_Q_VLA])in[3];
+  const CeedScalar(*q_data)[CEED_Q_VLA]     = (const CeedScalar(*)[CEED_Q_VLA])in[4];
   CeedScalar(*v)[CEED_Q_VLA]                = (CeedScalar(*)[CEED_Q_VLA])out[0];
   CeedScalar(*Grad_v)[CEED_Q_VLA]           = (CeedScalar(*)[CEED_Q_VLA])out[1];
 
@@ -88,6 +100,7 @@ CEED_QFUNCTION_HELPER int DifferentialFilter_LHS_N(void *ctx, CeedInt Q, const C
 
   CeedPragmaSIMD for (CeedInt i = 0; i < Q; i++) {
     CeedPragmaSIMD for (CeedInt j = 0; j < N; j++) {
+      const CeedScalar x_i[3]     = {x[0][i], x[1][i], x[2][i]};
       const CeedScalar wdetJ      = q_data[0][i];
       const CeedScalar dXdx[3][3] = {
           {q_data[1][i], q_data[2][i], q_data[3][i]},
@@ -105,10 +118,17 @@ CEED_QFUNCTION_HELPER int DifferentialFilter_LHS_N(void *ctx, CeedInt Q, const C
         Delta_ij[0][0] = Delta_ij[1][1] = Delta_ij[2][2] = 1;
       }
 
-      CeedScalar scaling_matrix[3][3] = {{0.}};
-      scaling_matrix[0][0]            = context->width_scaling[0];
-      scaling_matrix[1][1]            = context->width_scaling[1];
-      scaling_matrix[2][2]            = context->width_scaling[2];
+      CeedScalar scaling_matrix[3][3] = {{0}};
+      if (context->damping_function == DIFF_FILTER_DAMP_VAN_DRIEST) {
+        const CeedScalar damping_coeff = VanDriestWallDamping(x_i[1] / context->friction_length, context->damping_constant);
+        scaling_matrix[0][0]           = Max(1, damping_coeff * context->width_scaling[0]);
+        scaling_matrix[1][1]           = damping_coeff * context->width_scaling[1];
+        scaling_matrix[2][2]           = Max(1, damping_coeff * context->width_scaling[2]);
+      } else if (context->damping_function == DIFF_FILTER_DAMP_NONE) {
+        scaling_matrix[0][0] = context->width_scaling[0];
+        scaling_matrix[1][1] = context->width_scaling[1];
+        scaling_matrix[2][2] = context->width_scaling[2];
+      }
 
       CeedScalar scaled_Delta_ij[3][3] = {{0.}};
       MatMat3(scaling_matrix, Delta_ij, CEED_NOTRANSPOSE, CEED_NOTRANSPOSE, scaled_Delta_ij);

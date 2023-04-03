@@ -97,6 +97,7 @@ PetscErrorCode DifferentialFilterCreateOperators(Ceed ceed, User user, CeedData 
     CeedQFunctionAddInput(qf_lhs, "q", num_comp_filter, CEED_EVAL_INTERP);
     CeedQFunctionAddInput(qf_lhs, "Grad_q", num_comp_filter * dim, CEED_EVAL_GRAD);
     CeedQFunctionAddInput(qf_lhs, "anisotropy tensor", num_comp_grid_aniso, CEED_EVAL_NONE);
+    CeedQFunctionAddInput(qf_lhs, "x", num_comp_x, CEED_EVAL_INTERP);
     CeedQFunctionAddInput(qf_lhs, "qdata", num_comp_qd, CEED_EVAL_NONE);
     CeedQFunctionAddOutput(qf_lhs, "v", num_comp_filter, CEED_EVAL_INTERP);
     CeedQFunctionAddOutput(qf_lhs, "Grad_v", num_comp_filter * dim, CEED_EVAL_GRAD);
@@ -105,6 +106,7 @@ PetscErrorCode DifferentialFilterCreateOperators(Ceed ceed, User user, CeedData 
     CeedOperatorSetField(op_lhs, "q", elem_restr_filter, basis_filter, CEED_VECTOR_ACTIVE);
     CeedOperatorSetField(op_lhs, "Grad_q", elem_restr_filter, basis_filter, CEED_VECTOR_ACTIVE);
     CeedOperatorSetField(op_lhs, "anisotropy tensor", elem_restr_grid_aniso, CEED_BASIS_COLLOCATED, grid_aniso_ceed);
+    CeedOperatorSetField(op_lhs, "x", ceed_data->elem_restr_x, ceed_data->basis_x, ceed_data->x_coord);
     CeedOperatorSetField(op_lhs, "qdata", ceed_data->elem_restr_qd_i, CEED_BASIS_COLLOCATED, ceed_data->q_data);
     CeedOperatorSetField(op_lhs, "v", elem_restr_filter, basis_filter, CEED_VECTOR_ACTIVE);
     CeedOperatorSetField(op_lhs, "Grad_v", elem_restr_filter, basis_filter, CEED_VECTOR_ACTIVE);
@@ -179,11 +181,13 @@ PetscErrorCode DifferentialFilterSetup(Ceed ceed, User user, CeedData ceed_data,
     PetscCall(PetscFEDestroy(&fe));
   }
 
-  // -- Create QFContext
   PetscCall(PetscNew(&diff_filter_ctx));
   diff_filter_ctx->grid_based_width = false;
   for (int i = 0; i < 3; i++) diff_filter_ctx->width_scaling[i] = 1;
-  diff_filter_ctx->kernel_scaling = 0.1;
+  diff_filter_ctx->kernel_scaling   = 0.1;
+  diff_filter_ctx->damping_function = DIFF_FILTER_DAMP_NONE;
+  diff_filter_ctx->friction_length  = 0;
+  diff_filter_ctx->damping_constant = 25;
 
   PetscOptionsBegin(comm, NULL, "Differential Filtering Options", NULL);
   PetscInt narray = 3;
@@ -193,11 +197,18 @@ PetscErrorCode DifferentialFilterSetup(Ceed ceed, User user, CeedData ceed_data,
                                   &narray, NULL));
   PetscCall(PetscOptionsReal("-diff_filter_kernel_scaling", "Scaling to make differential kernel size \"equivalent\" to other filter kernels", NULL,
                              diff_filter_ctx->kernel_scaling, &diff_filter_ctx->kernel_scaling, NULL));
+  PetscCall(PetscOptionsEnum("-diff_filter_wall_damping_function", "Damping function to use at the wall", NULL, DifferentialFilterDampingFunctions,
+                             (PetscEnum)(diff_filter_ctx->damping_function), (PetscEnum *)&diff_filter_ctx->damping_function, NULL));
+  PetscCall(PetscOptionsReal("-diff_filter_wall_damping_constant", "Contant for the wall-damping function", NULL, diff_filter_ctx->damping_constant,
+                             &diff_filter_ctx->damping_constant, NULL));
+  PetscCall(PetscOptionsReal("-diff_filter_friction_length", "Friction length associated with the flow, \\delta_\\nu. For wall-damping functions",
+                             NULL, diff_filter_ctx->friction_length, &diff_filter_ctx->friction_length, NULL));
   PetscOptionsEnd();
 
   Units units = user->units;
   for (int i = 0; i < 3; i++) diff_filter_ctx->width_scaling[i] *= units->meter;
   diff_filter_ctx->kernel_scaling *= units->meter;
+  diff_filter_ctx->friction_length *= units->meter;
 
   // -- Create QFContext
   CeedQFunctionContextGetDataRead(problem->apply_vol_ifunction.qfunction_context, CEED_MEM_HOST, &gas);
