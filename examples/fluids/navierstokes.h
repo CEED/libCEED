@@ -182,6 +182,7 @@ typedef struct {
   CeedInt              num_comp_filter;
   OperatorApplyContext op_rhs_ctx;
   KSP                  ksp;
+  PetscBool            do_mms_test;
 } *DiffFilterData;
 
 // PETSc user data
@@ -440,5 +441,6 @@ PetscErrorCode DifferentialFilterSetup(Ceed ceed, User user, CeedData ceed_data,
 PetscErrorCode DifferentialFilterDataDestroy(DiffFilterData diff_filter);
 PetscErrorCode TSMonitor_DifferentialFilter(TS ts, PetscInt steps, PetscReal solution_time, Vec Q, void *ctx);
 PetscErrorCode DifferentialFilterApply(User user, const PetscReal solution_time, const Vec Q, Vec Filtered_Solution);
+PetscErrorCode DifferentialFilter_MMS_ICSetup(ProblemData *problem);
 
 #endif  // libceed_fluids_examples_navier_stokes_h

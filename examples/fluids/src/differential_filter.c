@@ -46,6 +46,11 @@ PetscErrorCode DifferentialFilterCreateOperators(Ceed ceed, User user, CeedData 
       default:
         SETERRQ(PetscObjectComm((PetscObject)user->dm), PETSC_ERR_SUP, "Differential filtering not available for chosen state variable");
     }
+    if (diff_filter->do_mms_test) {
+      CeedQFunctionDestroy(&qf_rhs);
+      CeedQFunctionCreateInterior(ceed, 1, DifferentialFilter_MMS_RHS, DifferentialFilter_MMS_RHS_loc, &qf_rhs);
+    }
+
     CeedQFunctionSetContext(qf_rhs, diff_filter_qfctx);
     CeedQFunctionAddInput(qf_rhs, "q", num_comp_q, CEED_EVAL_INTERP);
     CeedQFunctionAddInput(qf_rhs, "qdata", num_comp_qd, CEED_EVAL_NONE);
@@ -146,13 +151,14 @@ PetscErrorCode DifferentialFilterSetup(Ceed ceed, User user, CeedData ceed_data,
 
   PetscFunctionBeginUser;
   PetscCall(PetscNew(&user->diff_filter));
+  PetscCall(PetscOptionsGetBool(NULL, NULL, "-diff_filter_mms", &user->diff_filter->do_mms_test, NULL));
 
   {  // Create DM for filtered quantities
     PetscFE      fe;
     PetscSection section;
     PetscInt     dim;
 
-    user->diff_filter->num_comp_filter = DIFF_FILTER_NUM_COMPONENTS;
+    user->diff_filter->num_comp_filter = user->diff_filter->do_mms_test ? 1 : DIFF_FILTER_NUM_COMPONENTS;
 
     PetscCall(DMClone(user->dm, &user->diff_filter->dm_filter));
     PetscCall(DMGetDimension(user->diff_filter->dm_filter, &dim));
@@ -166,17 +172,21 @@ PetscErrorCode DifferentialFilterSetup(Ceed ceed, User user, CeedData ceed_data,
 
     PetscCall(DMGetLocalSection(user->diff_filter->dm_filter, &section));
     PetscCall(PetscSectionSetFieldName(section, 0, ""));
-    PetscCall(PetscSectionSetComponentName(section, 0, DIFF_FILTER_PRESSURE, "FilteredPressure"));
-    PetscCall(PetscSectionSetComponentName(section, 0, DIFF_FILTER_VELOCITY_X, "FilteredVelocityX"));
-    PetscCall(PetscSectionSetComponentName(section, 0, DIFF_FILTER_VELOCITY_Y, "FilteredVelocityY"));
-    PetscCall(PetscSectionSetComponentName(section, 0, DIFF_FILTER_VELOCITY_Z, "FilteredVelocityZ"));
-    PetscCall(PetscSectionSetComponentName(section, 0, DIFF_FILTER_TEMPERATURE, "FilteredTemperature"));
-    PetscCall(PetscSectionSetComponentName(section, 0, DIFF_FILTER_VELOCITY_SQUARED_XX, "FilteredVelocitySquaredXX"));
-    PetscCall(PetscSectionSetComponentName(section, 0, DIFF_FILTER_VELOCITY_SQUARED_YY, "FilteredVelocitySquaredYY"));
-    PetscCall(PetscSectionSetComponentName(section, 0, DIFF_FILTER_VELOCITY_SQUARED_ZZ, "FilteredVelocitySquaredZZ"));
-    PetscCall(PetscSectionSetComponentName(section, 0, DIFF_FILTER_VELOCITY_SQUARED_YZ, "FilteredVelocitySquaredYZ"));
-    PetscCall(PetscSectionSetComponentName(section, 0, DIFF_FILTER_VELOCITY_SQUARED_XZ, "FilteredVelocitySquaredXZ"));
-    PetscCall(PetscSectionSetComponentName(section, 0, DIFF_FILTER_VELOCITY_SQUARED_XY, "FilteredVelocitySquaredXY"));
+    if (user->diff_filter->do_mms_test) {
+      PetscCall(PetscSectionSetComponentName(section, 0, 0, "FilteredPhi"));
+    } else {
+      PetscCall(PetscSectionSetComponentName(section, 0, DIFF_FILTER_PRESSURE, "FilteredPressure"));
+      PetscCall(PetscSectionSetComponentName(section, 0, DIFF_FILTER_VELOCITY_X, "FilteredVelocityX"));
+      PetscCall(PetscSectionSetComponentName(section, 0, DIFF_FILTER_VELOCITY_Y, "FilteredVelocityY"));
+      PetscCall(PetscSectionSetComponentName(section, 0, DIFF_FILTER_VELOCITY_Z, "FilteredVelocityZ"));
+      PetscCall(PetscSectionSetComponentName(section, 0, DIFF_FILTER_TEMPERATURE, "FilteredTemperature"));
+      PetscCall(PetscSectionSetComponentName(section, 0, DIFF_FILTER_VELOCITY_SQUARED_XX, "FilteredVelocitySquaredXX"));
+      PetscCall(PetscSectionSetComponentName(section, 0, DIFF_FILTER_VELOCITY_SQUARED_YY, "FilteredVelocitySquaredYY"));
+      PetscCall(PetscSectionSetComponentName(section, 0, DIFF_FILTER_VELOCITY_SQUARED_ZZ, "FilteredVelocitySquaredZZ"));
+      PetscCall(PetscSectionSetComponentName(section, 0, DIFF_FILTER_VELOCITY_SQUARED_YZ, "FilteredVelocitySquaredYZ"));
+      PetscCall(PetscSectionSetComponentName(section, 0, DIFF_FILTER_VELOCITY_SQUARED_XZ, "FilteredVelocitySquaredXZ"));
+      PetscCall(PetscSectionSetComponentName(section, 0, DIFF_FILTER_VELOCITY_SQUARED_XY, "FilteredVelocitySquaredXY"));
+    }
 
     PetscCall(PetscFEDestroy(&fe));
   }
@@ -252,7 +262,6 @@ PetscErrorCode TSMonitor_DifferentialFilter(TS ts, PetscInt steps, PetscReal sol
 
   PetscCall(DifferentialFilterApply(user, solution_time, Q, Filtered_Field));
   PetscCall(VecViewFromOptions(Filtered_Field, NULL, "-diff_filter_view"));
-
   if (user->app_ctx->test_type == TESTTYPE_DIFF_FILTER) PetscCall(RegressionTests_NS(user->app_ctx, Filtered_Field));
 
   PetscCall(DMRestoreGlobalVector(diff_filter->dm_filter, &Filtered_Field));
@@ -269,6 +278,14 @@ PetscErrorCode DifferentialFilterDataDestroy(DiffFilterData diff_filter) {
   PetscCall(KSPDestroy(&diff_filter->ksp));
 
   PetscCall(PetscFree(diff_filter));
+
+  PetscFunctionReturn(0);
+}
+
+PetscErrorCode DifferentialFilter_MMS_ICSetup(ProblemData *problem) {
+  PetscFunctionBeginUser;
+  problem->ics.qfunction     = DifferentialFilter_MMS_IC;
+  problem->ics.qfunction_loc = DifferentialFilter_MMS_IC_loc;
 
   PetscFunctionReturn(0);
 }

@@ -29,9 +29,9 @@ enum DifferentialFilterComponent {
   DIFF_FILTER_NUM_COMPONENTS,
 };
 
-enum DifferentialFilterDampingFunction { DIFF_FILTER_DAMP_NONE, DIFF_FILTER_DAMP_VAN_DRIEST };
-static const char *const DifferentialFilterDampingFunctions[] = {"none", "van_driest", "DifferentialFilterDampingFunction", "DIFF_FILTER_DAMP_",
-                                                                 NULL};
+enum DifferentialFilterDampingFunction { DIFF_FILTER_DAMP_NONE, DIFF_FILTER_DAMP_VAN_DRIEST, DIFF_FILTER_DAMP_MMS };
+static const char *const DifferentialFilterDampingFunctions[] = {
+    "none", "van_driest", "mms", "DifferentialFilterDampingFunction", "DIFF_FILTER_DAMP_", NULL};
 
 typedef struct DifferentialFilterContext_ *DifferentialFilterContext;
 struct DifferentialFilterContext_ {
@@ -128,6 +128,11 @@ CEED_QFUNCTION_HELPER int DifferentialFilter_LHS_N(void *ctx, CeedInt Q, const C
         scaling_matrix[0][0] = context->width_scaling[0];
         scaling_matrix[1][1] = context->width_scaling[1];
         scaling_matrix[2][2] = context->width_scaling[2];
+      } else if (context->damping_function == DIFF_FILTER_DAMP_MMS) {
+        const CeedScalar damping_coeff = tanh(60 * x_i[1]);
+        scaling_matrix[0][0]           = 1;
+        scaling_matrix[1][1]           = damping_coeff;
+        scaling_matrix[2][2]           = 1;
       }
 
       CeedScalar scaled_Delta_ij[3][3] = {{0.}};
@@ -163,4 +168,65 @@ CEED_QFUNCTION(DifferentialFilter_LHS_5)(void *ctx, CeedInt Q, const CeedScalar 
 
 CEED_QFUNCTION(DifferentialFilter_LHS_11)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
   return DifferentialFilter_LHS_N(ctx, Q, in, out, 11);
+}
+
+CEED_QFUNCTION_HELPER CeedScalar MMS_Solution(const CeedScalar x_i[3], const CeedScalar omega) {
+  return sin(6 * omega * x_i[0]) + sin(6 * omega * x_i[1]);
+}
+
+CEED_QFUNCTION(DifferentialFilter_MMS_RHS)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
+  const CeedScalar(*q)[CEED_Q_VLA]      = (const CeedScalar(*)[CEED_Q_VLA])in[0];
+  const CeedScalar(*q_data)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[1];
+  CeedScalar(*v)[CEED_Q_VLA]            = (CeedScalar(*)[CEED_Q_VLA])out[0];
+
+  CeedPragmaSIMD for (CeedInt i = 0; i < Q; i++) {
+    const CeedScalar wdetJ = q_data[0][i];
+    v[0][i]                = wdetJ * q[0][i];
+  }
+  return 0;
+}
+
+// @brief Generate initial condition such that the solution of the differential filtering is given by MMS_Solution() above
+//
+// This requires a *very* specific grid, as the anisotropic filtering is grid dependent.
+// It's for a 75x75x1 grid on a [0,0.5]x3 domain.
+// The grid is evenly distributed in x, but distributed based on the analytical mesh distribution \Delta_y = .001 + .01*tanh(6*y).
+// The MMS test can optionally include a wall damping function (must also be enabled for the differential filtering itself).
+// It can be run via:
+// ./navierstokes -options_file tests-output/blasius_test.yaml -diff_filter_enable -diff_filter_view cgns:filtered_solution.cgns -ts_max_steps 0
+// -diff_filter_mms -diff_filter_kernel_scaling 1 -diff_filter_wall_damping_function mms -dm_plex_box_upper 0.5,0.5,0.5 -dm_plex_box_faces 75,75,1
+// -platemesh_y_node_locs_path tests-output/diff_filter_mms_y_spacing.dat -platemesh_top_angle 0 -diff_filter_grid_based_width
+CEED_QFUNCTION(DifferentialFilter_MMS_IC)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
+  const CeedScalar(*x)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[0];
+  CeedScalar(*q0)[CEED_Q_VLA]      = (CeedScalar(*)[CEED_Q_VLA])out[0];
+
+  CeedPragmaSIMD for (CeedInt i = 0; i < Q; i++) {
+    const CeedScalar x_i[3] = {x[0][i], x[1][i], x[2][i]};
+
+    const CeedScalar aniso_scale_factor = 1;  // Must match the one passed in by -diff_filter_aniso_scale
+    const CeedScalar omega              = 2 * M_PI;
+    const CeedScalar omega6             = 6 * omega;
+    const CeedScalar phi_bar            = MMS_Solution(x_i, omega);
+    const CeedScalar dx                 = 0.5 / 75;
+    const CeedScalar dy_analytic        = .001 + .01 * tanh(6 * x_i[1]);
+    const CeedScalar dy                 = dy_analytic;
+    const CeedScalar d_dy_dy            = 0.06 * Square(1 / cosh(6 * x_i[1]));  // Change of \Delta_y w.r.t. y
+    CeedScalar       alpha[2]           = {Square(dx) * aniso_scale_factor, Square(dy) * aniso_scale_factor};
+    bool             damping            = true;
+    CeedScalar       dalpha1dy;
+    if (damping) {
+      CeedScalar damping_coeff   = tanh(60 * x_i[1]);
+      CeedScalar d_damping_coeff = 60 / Square(cosh(60 * x_i[1]));
+      dalpha1dy                  = aniso_scale_factor * 2 * (damping_coeff * dy) * (dy * d_damping_coeff + damping_coeff * d_dy_dy);
+      alpha[1] *= Square(damping_coeff);
+    } else {
+      dalpha1dy = aniso_scale_factor * 2 * dy * d_dy_dy;
+    }
+
+    CeedScalar phi = phi_bar + alpha[0] * Square(omega6) * sin(6 * omega * x_i[0]) + alpha[1] * Square(omega6) * sin(omega6 * x_i[1]);
+    phi -= dalpha1dy * omega6 * cos(omega6 * x_i[1]);
+
+    for (CeedInt j = 0; j < 5; j++) q0[j][i] = phi;
+  }
+  return 0;
 }
