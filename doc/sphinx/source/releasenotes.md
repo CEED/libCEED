@@ -17,6 +17,12 @@ For example, `CeedOperatorContextGetFieldLabel` was renamed to `CeedOperatorGetC
 - Update `/cpu/self/memcheck/*` backends to help verify `CeedVector` array access assumptions and `CeedQFunction` user output assumptions.
 - Update {c:func}`CeedOperatorLinearAssembleDiagonal` to provide default implementation that supports `CeedOperator` with multiple active bases.
 
+### Examples
+
+#### {ref}`example-petsc-bps`
+
+- Requires PETSc version >3.19
+
 (v0-11)=
 
 ## v0.11 (Dec 24, 2022)
