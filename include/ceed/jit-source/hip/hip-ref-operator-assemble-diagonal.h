@@ -8,25 +8,6 @@
 #include <ceed.h>
 
 //------------------------------------------------------------------------------
-// Diagonal assembly kernels
-//------------------------------------------------------------------------------
-typedef enum {
-  /// Perform no evaluation (either because there is no data or it is already at
-  /// quadrature points)
-  CEED_EVAL_NONE = 0,
-  /// Interpolate from nodes to quadrature points
-  CEED_EVAL_INTERP = 1,
-  /// Evaluate gradients at quadrature points from input in a nodal basis
-  CEED_EVAL_GRAD = 2,
-  /// Evaluate divergence at quadrature points from input in a nodal basis
-  CEED_EVAL_DIV = 4,
-  /// Evaluate curl at quadrature points from input in a nodal basis
-  CEED_EVAL_CURL = 8,
-  /// Using no input, evaluate quadrature weights on the reference element
-  CEED_EVAL_WEIGHT = 16,
-} CeedEvalMode;
-
-//------------------------------------------------------------------------------
 // Get Basis Emode Pointer
 //------------------------------------------------------------------------------
 extern "C" __device__ void CeedOperatorGetBasisPointer_Hip(const CeedScalar **basisptr, CeedEvalMode emode, const CeedScalar *identity,
