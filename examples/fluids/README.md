@@ -678,6 +678,41 @@ For the Density Current, Channel, and Blasius problems, the following common com
   - `./dd_sgs_parameters`
   - string
 
+* - `-diff_filter_monitor`
+  - Enable differential filter TSMonitor
+  - `false`
+  - boolean
+
+* - `-diff_filter_grid_based_width`
+  - Use filter width based on the grid size
+  - `false`
+  - boolean
+
+* - `-diff_filter_width_scaling`
+  - Anisotropic scaling for filter width in wall-aligned coordinates (snz)
+  - `1,1,1`
+  - `m`
+
+* - `-diff_filter_kernel_scaling`
+  - Scaling to make differential kernel size equivalent to other filter kernels
+  - `0.1`
+  - `m^2`
+
+* - `-diff_filter_wall_damping_function`
+  - Damping function to use at the wall for anisotropic filtering (`none`, `van_driest`)
+  - `none`
+  - string
+
+* - `-diff_filter_wall_damping_constant`
+  - Constant for the wall-damping function. $\A^+$ for `van_driest` damping function.
+  - 25
+  -
+
+* - `-diff_filter_friction_length`
+  - Friction length associated with the flow, $\delta_\nu$. Used in wall-damping functions
+  - 0
+  - `m`
+
 :::
 
 #### Gaussian Wave
