@@ -356,6 +356,98 @@ The current data-driven model parameters are not accurate and are for regression
 
 (problem-advection)=
 
+### Differential Filtering
+
+There is the option to filter the solution field using differential filtering.
+This was first proposed in {cite}`germanoDiffFilterLES1986`, using an inverse Hemholtz operator.
+The strong form of the differential equation is
+
+$$
+\overline{\phi} - \nabla \cdot (\beta (\bm{D}\bm{\Delta})^2 \nabla \overline{\phi} ) = \phi
+$$
+
+for $\phi$ the scalar solution field we want to filter, $\overline \phi$ the filtered scalar solution field, $\bm{\Delta} \in \mathbb{R}^{3 \times 3}$ a symmetric positive-definite rank 2 tensor defining the width of the filter, $\bm{D}$ is the filter width scaling tensor (also a rank 2 SPD tensor), and $\beta$ is a kernel scaling factor on the filter tensor.
+This admits the weak form:
+
+$$
+\int_\Omega \left( v \overline \phi + \beta \nabla v \cdot (\bm{D}\bm{\Delta})^2 \nabla \overline \phi \right) \,d\Omega
+- \cancel{\int_{\partial \Omega} \beta v \nabla \overline \phi \cdot (\bm{D}\bm{\Delta})^2 \bm{\hat{n}} \,d\partial\Omega} =
+\int_\Omega v \phi \, , \; \forall v \in \mathcal{V}_p
+$$
+
+The boundary integral resulting from integration-by-parts is crossed out, as we assume that $(\bm{D}\bm{\Delta})^2 = \bm{0} \Leftrightarrow \overline \phi = \phi$ at boundaries (this is reasonable at walls, but for convenience elsewhere).
+
+#### Filter width tensor $\bm{\Delta}$
+For homogenous filtering, $\bm{\Delta}$ is defined as the identity matrix.
+
+:::{note}
+It is common to denote a filter width dimensioned relative to the radial distance of the filter kernel.
+Note here we use the filter *diameter* instead, as that feels more natural (albeit mathematically less convenient).
+For example, under this definition a box filter would be defined as:
+
+$$
+B(\Delta; \bm{r}) =
+\begin{cases}
+1 & \Vert \bm{r} \Vert \leq \Delta/2 \\
+0 & \Vert \bm{r} \Vert > \Delta/2
+\end{cases}
+$$
+:::
+
+For inhomogeneous anisotropic filtering, we use the finite element grid itself to define $\bm{\Delta}$.
+This is set via `-diff_filter_grid_based_width`.
+Specifically, we use the filter width tensor defined in {cite}`prakashDDSGSAnisotropic2022`.
+For finite element grids, the filter width tensor is most conveniently defined by $\bm{\Delta} = \bm{g}^{-1/2}$ where $\bm g = \nabla_{\bm x} \bm{X} \cdot \nabla_{\bm x} \bm{X}$ is the metric tensor.
+
+#### Filter width scaling tensor, $\bm{D}$
+The filter width tensor $\bm{\Delta}$, be it defined from grid based sources or just the homogenous filtering, can be scaled anisotropically.
+The coefficients for that anisotropic scaling are given by `-diff_filter_width_scaling`, denoted here by $c_1, c_2, c_3$.
+The definition for $\bm{D}$ then becomes
+
+$$
+\bm{D} =
+\begin{bmatrix}
+    c_1 & 0        & 0        \\
+    0        & c_2 & 0        \\
+    0        & 0        & c_3 \\
+\end{bmatrix}
+$$
+
+In the case of $\bm{\Delta}$ being defined as homogenous, $\bm{D}\bm{\Delta}$ means that $\bm{D}$ effectively sets the filter width.
+
+The filtering at the wall may also be damped, to smoothly meet the $\overline \phi = \phi$ boundary condition at the wall.
+The selected damping function for this is the van Driest function {cite}`vandriestWallDamping1956`:
+
+$$
+\zeta = 1 - \exp\left(-\frac{y^+}{A^+}\right)
+$$
+
+where $y^+$ is the wall-friction scaled wall-distance ($y^+ = y u_\tau / \nu = y/\delta_\nu$), $A^+$ is some wall-friction scaled scale factor, and $\zeta$ is the damping coefficient.
+For this implementation, we assume that $\delta_\nu$ is constant across the wall and is defined by `-diff_filter_friction_length`.
+$A^+$ is defined by `-diff_filter_damping_constant`.
+
+To apply this scalar damping coefficient to the filter width tensor, we construct the wall-damping tensor from it.
+The construction implemented currently limits damping in the wall parallel directions to be no less than the original filter width defined by $\bm{\Delta}$.
+The wall-normal filter width is allowed to be damped to a zero filter width.
+It is currently assumed that the second component of the filter width tensor is in the wall-normal direction.
+Under these assumptions, $\bm{D}$ then becomes:
+
+$$
+\bm{D} =
+\begin{bmatrix}
+    \max(1, \zeta c_1) & 0         & 0                  \\
+    0                  & \zeta c_2 & 0                  \\
+    0                  & 0         & \max(1, \zeta c_3) \\
+\end{bmatrix}
+$$
+
+#### Filter kernel scaling, $\beta$
+While we define $\bm{D}\bm{\Delta}$ to be of a certain physical filter width, the actual width of the implied filter kernel is quite larger than "normal" kernels.
+To account for this, we use $\beta$ to scale the filter tensor to the appropriate size, as is done in {cite}`bullExplicitFilteringExact2016`.
+To match the "size" of a normal kernel to our differential kernel, we attempt to have them match second order moments with respect to the prescribed filter width.
+To match the box and Gaussian filters "sizes", we use $\beta = 1/10$ and $\beta = 1/6$, respectively.
+$\beta$ can be set via `-diff_filter_kernel_scaling`.
+
 ## Advection
 
 A simplified version of system {eq}`eq-ns`, only accounting for the transport of total energy, is given by
