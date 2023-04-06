@@ -31,6 +31,11 @@
 #else
 #define CEED_QFUNCTION_ATTR
 #endif
+#if defined(__GNUC__) || defined(__clang__)
+#define CEED_QFUNCTION_HELPER_ATTR CEED_QFUNCTION_ATTR __attribute__((always_inline))
+#else
+#define CEED_QFUNCTION_HELPER_ATTR CEED_QFUNCTION_ATTR
+#endif
 #endif
 
 /**
@@ -50,7 +55,7 @@ backends. It also creates a variable `name_loc` populated with the correct sourc
 values for CPU backends.
 **/
 #ifndef CEED_QFUNCTION_HELPER
-#define CEED_QFUNCTION_HELPER CEED_QFUNCTION_ATTR static inline
+#define CEED_QFUNCTION_HELPER CEED_QFUNCTION_HELPER_ATTR static inline
 #endif
 
 /**
