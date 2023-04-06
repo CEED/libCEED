@@ -24,6 +24,57 @@ end
     CEED_ERROR_UNSUPPORTED = -3
 end
 
+@cenum CeedMemType::UInt32 begin
+    CEED_MEM_HOST = 0
+    CEED_MEM_DEVICE = 1
+end
+
+@cenum CeedCopyMode::UInt32 begin
+    CEED_COPY_VALUES = 0
+    CEED_USE_POINTER = 1
+    CEED_OWN_POINTER = 2
+end
+
+@cenum CeedNormType::UInt32 begin
+    CEED_NORM_1 = 0
+    CEED_NORM_2 = 1
+    CEED_NORM_MAX = 2
+end
+
+@cenum CeedTransposeMode::UInt32 begin
+    CEED_NOTRANSPOSE = 0
+    CEED_TRANSPOSE = 1
+end
+
+@cenum CeedEvalMode::UInt32 begin
+    CEED_EVAL_NONE = 0
+    CEED_EVAL_INTERP = 1
+    CEED_EVAL_GRAD = 2
+    CEED_EVAL_DIV = 4
+    CEED_EVAL_CURL = 8
+    CEED_EVAL_WEIGHT = 16
+end
+
+@cenum CeedQuadMode::UInt32 begin
+    CEED_GAUSS = 0
+    CEED_GAUSS_LOBATTO = 1
+end
+
+@cenum CeedElemTopology::UInt32 begin
+    CEED_TOPOLOGY_LINE = 65536
+    CEED_TOPOLOGY_TRIANGLE = 131073
+    CEED_TOPOLOGY_QUAD = 131074
+    CEED_TOPOLOGY_TET = 196611
+    CEED_TOPOLOGY_PYRAMID = 196612
+    CEED_TOPOLOGY_PRISM = 196613
+    CEED_TOPOLOGY_HEX = 196614
+end
+
+@cenum CeedContextFieldType::UInt32 begin
+    CEED_CONTEXT_FIELD_DOUBLE = 1
+    CEED_CONTEXT_FIELD_INT32 = 2
+end
+
 mutable struct Ceed_private end
 
 const Ceed = Ptr{Ceed_private}
@@ -123,25 +174,8 @@ function CeedGetScalarType(scalar_type)
     ccall((:CeedGetScalarType, libceed), Cint, (Ptr{CeedScalarType},), scalar_type)
 end
 
-@cenum CeedMemType::UInt32 begin
-    CEED_MEM_HOST = 0
-    CEED_MEM_DEVICE = 1
-end
-
 function CeedGetPreferredMemType(ceed, type)
     ccall((:CeedGetPreferredMemType, libceed), Cint, (Ceed, Ptr{CeedMemType}), ceed, type)
-end
-
-@cenum CeedCopyMode::UInt32 begin
-    CEED_COPY_VALUES = 0
-    CEED_USE_POINTER = 1
-    CEED_OWN_POINTER = 2
-end
-
-@cenum CeedNormType::UInt32 begin
-    CEED_NORM_1 = 0
-    CEED_NORM_2 = 1
-    CEED_NORM_MAX = 2
 end
 
 function CeedVectorCreate(ceed, len, vec)
@@ -240,11 +274,6 @@ function CeedRequestWait(req)
     ccall((:CeedRequestWait, libceed), Cint, (Ptr{CeedRequest},), req)
 end
 
-@cenum CeedTransposeMode::UInt32 begin
-    CEED_NOTRANSPOSE = 0
-    CEED_TRANSPOSE = 1
-end
-
 function CeedElemRestrictionCreate(ceed, num_elem, elem_size, num_comp, comp_stride, l_size, mem_type, copy_mode, offsets, rstr)
     ccall((:CeedElemRestrictionCreate, libceed), Cint, (Ceed, CeedInt, CeedInt, CeedInt, CeedInt, CeedSize, CeedMemType, CeedCopyMode, Ptr{CeedInt}, Ptr{CeedElemRestriction}), ceed, num_elem, elem_size, num_comp, comp_stride, l_size, mem_type, copy_mode, offsets, rstr)
 end
@@ -323,30 +352,6 @@ end
 
 function CeedElemRestrictionDestroy(rstr)
     ccall((:CeedElemRestrictionDestroy, libceed), Cint, (Ptr{CeedElemRestriction},), rstr)
-end
-
-@cenum CeedEvalMode::UInt32 begin
-    CEED_EVAL_NONE = 0
-    CEED_EVAL_INTERP = 1
-    CEED_EVAL_GRAD = 2
-    CEED_EVAL_DIV = 4
-    CEED_EVAL_CURL = 8
-    CEED_EVAL_WEIGHT = 16
-end
-
-@cenum CeedQuadMode::UInt32 begin
-    CEED_GAUSS = 0
-    CEED_GAUSS_LOBATTO = 1
-end
-
-@cenum CeedElemTopology::UInt32 begin
-    CEED_TOPOLOGY_LINE = 65536
-    CEED_TOPOLOGY_TRIANGLE = 131073
-    CEED_TOPOLOGY_QUAD = 131074
-    CEED_TOPOLOGY_TET = 196611
-    CEED_TOPOLOGY_PYRAMID = 196612
-    CEED_TOPOLOGY_PRISM = 196613
-    CEED_TOPOLOGY_HEX = 196614
 end
 
 function CeedBasisCreateTensorH1Lagrange(ceed, dim, num_comp, P, Q, quad_mode, basis)
@@ -530,11 +535,6 @@ end
 
 function CeedQFunctionFieldGetEvalMode(qf_field, eval_mode)
     ccall((:CeedQFunctionFieldGetEvalMode, libceed), Cint, (CeedQFunctionField, Ptr{CeedEvalMode}), qf_field, eval_mode)
-end
-
-@cenum CeedContextFieldType::UInt32 begin
-    CEED_CONTEXT_FIELD_DOUBLE = 1
-    CEED_CONTEXT_FIELD_INT32 = 2
 end
 
 # typedef int ( * CeedQFunctionContextDataDestroyUser ) ( void * data )
@@ -1364,7 +1364,9 @@ end
 
 # Skipping MacroDefinition: CEED_EXTERN extern CEED_VISIBILITY ( default )
 
-# Skipping MacroDefinition: CEED_QFUNCTION_HELPER CEED_QFUNCTION_ATTR static inline
+# Skipping MacroDefinition: CEED_QFUNCTION_HELPER_ATTR CEED_QFUNCTION_ATTR __attribute__ ( ( always_inline ) )
+
+# Skipping MacroDefinition: CEED_QFUNCTION_HELPER CEED_QFUNCTION_HELPER_ATTR static inline
 
 const CeedInt_FMT = "d"
 
@@ -1374,7 +1376,7 @@ const CEED_VERSION_MINOR = 11
 
 const CEED_VERSION_PATCH = 0
 
-const CEED_VERSION_RELEASE = true
+const CEED_VERSION_RELEASE = false
 
 # Skipping MacroDefinition: CEED_INTERN extern CEED_VISIBILITY ( hidden )
 

@@ -150,7 +150,7 @@ include("Request.jl")
 include("Operator.jl")
 include("Misc.jl")
 
-const minimum_libceed_version = v"0.10.0"
+const minimum_libceed_version = v"0.12.0"
 
 function __init__()
     if !ceedversion_ge(minimum_libceed_version)
