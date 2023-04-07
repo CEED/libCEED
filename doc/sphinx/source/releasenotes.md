@@ -21,7 +21,7 @@ For example, `CeedOperatorContextGetFieldLabel` was renamed to `CeedOperatorGetC
 
 #### {ref}`example-petsc-bps`
 
-- Requires PETSc version >3.19
+- Requires PETSc version 3.19 or later
 
 (v0-11)=
 
