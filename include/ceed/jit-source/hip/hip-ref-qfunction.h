@@ -7,10 +7,10 @@
 
 #include <ceed.h>
 
-template <int SIZE>
 //------------------------------------------------------------------------------
 // Read from quadrature points
 //------------------------------------------------------------------------------
+template <int SIZE>
 inline __device__ void readQuads(const CeedInt quad, const CeedInt num_qpts, const CeedScalar* d_u, CeedScalar* r_u) {
   for (CeedInt comp = 0; comp < SIZE; comp++) {
     r_u[comp] = d_u[quad + num_qpts * comp];

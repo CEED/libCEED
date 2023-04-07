@@ -166,48 +166,17 @@ CEED_EXTERN int CeedGetVersion(int *major, int *minor, int *patch, bool *release
 
 CEED_EXTERN int CeedGetScalarType(CeedScalarType *scalar_type);
 
+/// String names for enum pretty printing
 CEED_EXTERN const char *const *CeedErrorTypes;
-
-/// Specify memory type
-///
-/// Many Ceed interfaces take or return pointers to memory.
-/// This enum is used to specify where the memory being provided or requested must reside.
-/// @ingroup Ceed
-typedef enum {
-  /// Memory resides on the host
-  CEED_MEM_HOST,
-  /// Memory resides on a device (corresponding to \ref Ceed resource)
-  CEED_MEM_DEVICE,
-} CeedMemType;
-CEED_EXTERN const char *const CeedMemTypes[];
+CEED_EXTERN const char *const  CeedMemTypes[];
+CEED_EXTERN const char *const  CeedCopyModes[];
+CEED_EXTERN const char *const  CeedTransposeModes[];
+CEED_EXTERN const char *const  CeedEvalModes[];
+CEED_EXTERN const char *const  CeedQuadModes[];
+CEED_EXTERN const char *const  CeedElemTopologies[];
+CEED_EXTERN const char *const  CeedContextFieldTypes[];
 
 CEED_EXTERN int CeedGetPreferredMemType(Ceed ceed, CeedMemType *type);
-
-/// Conveys ownership status of arrays passed to Ceed interfaces.
-/// @ingroup Ceed
-typedef enum {
-  /// Implementation will copy the values and not store the passed pointer.
-  CEED_COPY_VALUES,
-  /// Implementation can use and modify the data provided by the user, but does not take ownership.
-  CEED_USE_POINTER,
-  /// Implementation takes ownership of the pointer and will free using CeedFree() when done using it.
-  /// The user should not assume that the pointer remains valid after ownership has been transferred.
-  /// Note that arrays allocated using C++ operator new or other allocators cannot generally be freed using CeedFree().
-  /// CeedFree() is capable of freeing any memory that can be freed using free().
-  CEED_OWN_POINTER,
-} CeedCopyMode;
-CEED_EXTERN const char *const CeedCopyModes[];
-
-/// Denotes type of vector norm to be computed
-/// @ingroup CeedVector
-typedef enum {
-  /// \f$\Vert \bm{x}\Vert_1 = \sum_i \vert x_i\vert\f$
-  CEED_NORM_1,
-  /// \f$\Vert \bm{x} \Vert_2 = \sqrt{\sum_i x_i^2}\f$
-  CEED_NORM_2,
-  /// \f$\Vert \bm{x} \Vert_\infty = \max_i \vert x_i \vert\f$
-  CEED_NORM_MAX,
-} CeedNormType;
 
 CEED_EXTERN int CeedVectorCreate(Ceed ceed, CeedSize len, CeedVector *vec);
 CEED_EXTERN int CeedVectorReferenceCopy(CeedVector vec, CeedVector *vec_copy);
@@ -259,16 +228,6 @@ CEED_EXTERN const CeedElemRestriction CEED_ELEMRESTRICTION_NONE;
 /// @ingroup CeedQFunction
 CEED_EXTERN const CeedQFunction CEED_QFUNCTION_NONE;
 
-/// Denotes whether a linear transformation or its transpose should be applied
-/// @ingroup CeedBasis
-typedef enum {
-  /// Apply the linear transformation
-  CEED_NOTRANSPOSE,
-  /// Apply the transpose
-  CEED_TRANSPOSE
-} CeedTransposeMode;
-CEED_EXTERN const char *const CeedTransposeModes[];
-
 /// Argument for CeedElemRestrictionCreateStrided that L-vector is in the Ceed backend's preferred layout.
 /// This argument should only be used with vectors created by a Ceed backend.
 /// @ingroup CeedElemRestriction
@@ -306,58 +265,6 @@ CEED_EXTERN int CeedElemRestrictionDestroy(CeedElemRestriction *rstr);
 // The formalism here is that we have the structure
 //  \int_\Omega v^T f_0(u, \nabla u, qdata) + (\nabla v)^T f_1(u, \nabla u, qdata)
 // where gradients are with respect to the reference element.
-
-/// Basis evaluation mode
-///
-/// Modes can be bitwise ORed when passing to most functions.
-/// @ingroup CeedBasis
-typedef enum {
-  /// Perform no evaluation (either because there is no data or it is already at quadrature points)
-  CEED_EVAL_NONE = 0,
-  /// Interpolate from nodes to quadrature points
-  CEED_EVAL_INTERP = 1,
-  /// Evaluate gradients at quadrature points from input in a nodal basis
-  CEED_EVAL_GRAD = 2,
-  /// Evaluate divergence at quadrature points from input in a nodal basis
-  CEED_EVAL_DIV = 4,
-  /// Evaluate curl at quadrature points from input in a nodal basis
-  CEED_EVAL_CURL = 8,
-  /// Using no input, evaluate quadrature weights on the reference element
-  CEED_EVAL_WEIGHT = 16,
-} CeedEvalMode;
-CEED_EXTERN const char *const CeedEvalModes[];
-
-/// Type of quadrature; also used for location of nodes
-/// @ingroup CeedBasis
-typedef enum {
-  /// Gauss-Legendre quadrature
-  CEED_GAUSS = 0,
-  /// Gauss-Legendre-Lobatto quadrature
-  CEED_GAUSS_LOBATTO = 1,
-} CeedQuadMode;
-CEED_EXTERN const char *const CeedQuadModes[];
-
-/// Type of basis shape to create non-tensor H1 element basis
-///
-/// Dimension can be extracted with bitwise AND (CeedElemTopology & 2**(dim + 2)) == TRUE
-/// @ingroup CeedBasis
-typedef enum {
-  /// Line
-  CEED_TOPOLOGY_LINE = 1 << 16 | 0,
-  /// Triangle - 2D shape
-  CEED_TOPOLOGY_TRIANGLE = 2 << 16 | 1,
-  /// Quadralateral - 2D shape
-  CEED_TOPOLOGY_QUAD = 2 << 16 | 2,
-  /// Tetrahedron - 3D shape
-  CEED_TOPOLOGY_TET = 3 << 16 | 3,
-  /// Pyramid - 3D shape
-  CEED_TOPOLOGY_PYRAMID = 3 << 16 | 4,
-  /// Prism - 3D shape
-  CEED_TOPOLOGY_PRISM = 3 << 16 | 5,
-  /// Hexehedron - 3D shape
-  CEED_TOPOLOGY_HEX = 3 << 16 | 6,
-} CeedElemTopology;
-CEED_EXTERN const char *const CeedElemTopologies[];
 
 CEED_EXTERN int CeedBasisCreateTensorH1Lagrange(Ceed ceed, CeedInt dim, CeedInt num_comp, CeedInt P, CeedInt Q, CeedQuadMode quad_mode,
                                                 CeedBasis *basis);
@@ -428,16 +335,6 @@ CEED_EXTERN int CeedQFunctionDestroy(CeedQFunction *qf);
 CEED_EXTERN int CeedQFunctionFieldGetName(CeedQFunctionField qf_field, char **field_name);
 CEED_EXTERN int CeedQFunctionFieldGetSize(CeedQFunctionField qf_field, CeedInt *size);
 CEED_EXTERN int CeedQFunctionFieldGetEvalMode(CeedQFunctionField qf_field, CeedEvalMode *eval_mode);
-
-/// Denotes type of data stored in a CeedQFunctionContext field
-/// @ingroup CeedQFunction
-typedef enum {
-  /// Double precision value
-  CEED_CONTEXT_FIELD_DOUBLE = 1,
-  /// 32 bit integer value
-  CEED_CONTEXT_FIELD_INT32 = 2,
-} CeedContextFieldType;
-CEED_EXTERN const char *const CeedContextFieldTypes[];
 
 /** Handle for the user provided CeedQFunctionContextDataDestroy callback function
 
