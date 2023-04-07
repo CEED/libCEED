@@ -70,6 +70,23 @@ CEED_QFUNCTION(SetupDistanceFunctionRhs)(void *ctx, CeedInt Q, const CeedScalar 
   return 0;
 }
 
+// Qfunction for the mass matix
+CEED_QFUNCTION(Mass_N)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
+  // Inputs
+  const CeedInt N                  = 5;
+  const CeedScalar(*u)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[0];
+  const CeedScalar(*q_data)        = in[1];
+  // const CeedVector ones_vec = 1.0 ;
+
+  // Outputs
+  CeedScalar(*v)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA])out[0];
+
+  CeedPragmaSIMD for (CeedInt i = 0; i < Q; i++) {
+    CeedPragmaSIMD for (CeedInt j = 0; j < N; j++) { v[j][i] = q_data[i] * u[j][i]; }
+  }
+  return 0;
+}
+
 CEED_QFUNCTION(DistanceFunction)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
   // inputs
   const CeedScalar *phig    = in[0];
