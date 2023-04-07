@@ -23,8 +23,8 @@
 #include "include/utils.h"
 #include "problems/problems.h"
 
-#if PETSC_VERSION_LT(3, 17, 0)
-#error "PETSc v3.17 or later is required"
+#if PETSC_VERSION_LT(3, 19, 0)
+#error "PETSc v3.19 or later is required"
 #endif
 
 #endif  // libceed_solids_examples_setup_h

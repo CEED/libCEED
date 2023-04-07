@@ -47,13 +47,6 @@ const char help[] = "Solve CEED BPs using PETSc with DMPlex\n";
 #include "include/petscversion.h"
 #include "include/structs.h"
 
-#if PETSC_VERSION_LT(3, 12, 0)
-#ifdef PETSC_HAVE_CUDA
-#include <petsccuda.h>
-// Note: With PETSc prior to version 3.12.0, providing the source path to include 'cublas_v2.h' will be needed to use 'petsccuda.h'.
-#endif
-#endif
-
 // -----------------------------------------------------------------------------
 // Main body of program, called in a loop for performance benchmarking purposes
 // -----------------------------------------------------------------------------

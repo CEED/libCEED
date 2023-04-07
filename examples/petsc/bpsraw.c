@@ -43,13 +43,6 @@ const char help[] = "Solve CEED BPs using PETSc\n";
 #include "qfunctions/bps/bp4.h"
 #include "qfunctions/bps/common.h"
 
-#if PETSC_VERSION_LT(3, 12, 0)
-#ifdef PETSC_HAVE_CUDA
-#include <petsccuda.h>
-// Note: With PETSc prior to version 3.12.0, providing the source path to include 'cublas_v2.h' will be needed to use 'petsccuda.h'.
-#endif
-#endif
-
 static CeedMemType MemTypeP2C(PetscMemType mem_type) { return PetscMemTypeDevice(mem_type) ? CEED_MEM_DEVICE : CEED_MEM_HOST; }
 
 static void Split3(PetscInt size, PetscInt m[3], bool reverse) {

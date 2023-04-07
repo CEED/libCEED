@@ -45,13 +45,6 @@ const char help[] = "Solve CEED BPs using p-multigrid with PETSc and DMPlex\n";
 #include "include/petscversion.h"
 #include "include/structs.h"
 
-#if PETSC_VERSION_LT(3, 12, 0)
-#ifdef PETSC_HAVE_CUDA
-#include <petsccuda.h>
-// Note: With PETSc prior to version 3.12.0, providing the source path to include 'cublas_v2.h' will be needed to use 'petsccuda.h'.
-#endif
-#endif
-
 int main(int argc, char **argv) {
   MPI_Comm comm;
   char     filename[PETSC_MAX_PATH_LEN], ceed_resource[PETSC_MAX_PATH_LEN] = "/cpu/self";
