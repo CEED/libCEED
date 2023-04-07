@@ -90,7 +90,7 @@ static PetscErrorCode Distance_Function_NS(DM dm, User user) {
   CeedBasisCreateTensorH1Lagrange(ceed, dim, 1, P, Q, CEED_GAUSS, &basis_phi);
 
   // Create and Add QFunction fields
-  CeedQFunctionCreateInterior(ceed, dim, DistanceFunction, DistanceFunction_loc, &qf_distance_function);
+  CeedQFunctionCreateInterior(ceed, dim, DistanceFunction - Mass_N, DistanceFunction_loc, &qf_distance_function);
 
   CeedQFunctionAddInput(qf_distance_function, "v", dim, CEED_EVAL_INTERP);
   CeedQFunctionAddInput(qf_distance_function, "dphi", dim, CEED_EVAL_GRAD);
