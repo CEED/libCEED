@@ -134,6 +134,8 @@ struct AppCtx_private {
   } wall_forces;
   // Subgrid Stress Model
   SGSModelType sgs_model_type;
+  // Differential Filtering
+  PetscBool diff_filter_monitor;
 };
 
 // libCEED data struct
@@ -174,6 +176,13 @@ typedef struct {
   CeedVector           sgs_nodal_ceed;
 } *SGS_DD_Data;
 
+typedef struct {
+  DM                   dm_filter;
+  CeedInt              num_comp_filter;
+  OperatorApplyContext op_rhs_ctx;
+  KSP                  ksp;
+} *DiffFilterData;
+
 // PETSc user data
 struct User_private {
   MPI_Comm             comm;
@@ -193,6 +202,7 @@ struct User_private {
   Span_Stats           spanstats;
   NodalProjectionData  grad_velo_proj;
   SGS_DD_Data          sgs_dd_data;
+  DiffFilterData       diff_filter;
 };
 
 // Units
@@ -420,5 +430,14 @@ PetscErrorCode SetupStrongBC_Ceed(Ceed ceed, CeedData ceed_data, DM dm, User use
 
 PetscErrorCode FreestreamBCSetup(ProblemData *problem, DM dm, void *ctx, NewtonianIdealGasContext newtonian_ig_ctx, const StatePrimitive *reference);
 PetscErrorCode OutflowBCSetup(ProblemData *problem, DM dm, void *ctx, NewtonianIdealGasContext newtonian_ig_ctx, const StatePrimitive *reference);
+
+// -----------------------------------------------------------------------------
+// Differential Filtering Functions
+// -----------------------------------------------------------------------------
+
+PetscErrorCode DifferentialFilterSetup(Ceed ceed, User user, CeedData ceed_data, ProblemData *problem);
+PetscErrorCode DifferentialFilterDataDestroy(DiffFilterData diff_filter);
+PetscErrorCode TSMonitor_DifferentialFilter(TS ts, PetscInt steps, PetscReal solution_time, Vec Q, void *ctx);
+PetscErrorCode DifferentialFilterApply(User user, const PetscReal solution_time, const Vec Q, Vec Filtered_Solution);
 
 #endif  // libceed_fluids_examples_navier_stokes_h
