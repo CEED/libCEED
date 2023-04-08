@@ -305,6 +305,7 @@ int main(int argc, char **argv) {
   PetscCall(TurbulenceStatisticsDestroy(user, ceed_data));
   PetscCall(NodalProjectionDataDestroy(user->grad_velo_proj));
   PetscCall(SGS_DD_DataDestroy(user->sgs_dd_data));
+  PetscCall(DifferentialFilterDataDestroy(user->diff_filter));
 
   // -- Vectors
   CeedVectorDestroy(&ceed_data->x_coord);

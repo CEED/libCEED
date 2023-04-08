@@ -31,8 +31,9 @@ enum DifferentialFilterComponent {
 
 typedef struct DifferentialFilterContext_ *DifferentialFilterContext;
 struct DifferentialFilterContext_ {
-  CeedScalar                       delta;
-  CeedScalar                       filter_scaling;
+  bool                             grid_based_width;
+  CeedScalar                       width_scaling[3];
+  CeedScalar                       kernel_scaling;
   struct NewtonianIdealGasContext_ gas;
 };
 
@@ -94,18 +95,27 @@ CEED_QFUNCTION_HELPER int DifferentialFilter_LHS_N(void *ctx, CeedInt Q, const C
       };
 
       CeedScalar Delta_ij[3][3] = {{0.}};
-      if (context->delta > 0) {
-        Delta_ij[0][0] = Delta_ij[1][1] = Delta_ij[2][2] = context->delta;
-      } else {
+      if (context->grid_based_width) {
         CeedScalar       km_A_ij[6] = {A_ij_delta[0][i], A_ij_delta[1][i], A_ij_delta[2][i], A_ij_delta[3][i], A_ij_delta[4][i], A_ij_delta[5][i]};
         const CeedScalar delta      = A_ij_delta[6][i];
         ScaleN(km_A_ij, delta, 6);  // Dimensionalize the normalized anisotropy tensor
         KMUnpack(km_A_ij, Delta_ij);
+      } else {
+        Delta_ij[0][0] = Delta_ij[1][1] = Delta_ij[2][2] = 1;
       }
+
+      CeedScalar scaling_matrix[3][3] = {{0.}};
+      scaling_matrix[0][0]            = context->width_scaling[0];
+      scaling_matrix[1][1]            = context->width_scaling[1];
+      scaling_matrix[2][2]            = context->width_scaling[2];
+
+      CeedScalar scaled_Delta_ij[3][3] = {{0.}};
+      MatMat3(scaling_matrix, Delta_ij, CEED_NOTRANSPOSE, CEED_NOTRANSPOSE, scaled_Delta_ij);
+      CopyMat3(scaled_Delta_ij, Delta_ij);
 
       CeedScalar alpha_ij[3][3] = {{0.}};
       MatMat3(Delta_ij, Delta_ij, CEED_NOTRANSPOSE, CEED_NOTRANSPOSE, alpha_ij);
-      ScaleN((CeedScalar *)alpha_ij, context->filter_scaling, 9);
+      ScaleN((CeedScalar *)alpha_ij, context->kernel_scaling, 9);
 
       v[j][i] = wdetJ * q[j][i];
       CeedScalar dq[3], dq_dXdx[3] = {0.}, dq_dXdx_a[3] = {0.};
