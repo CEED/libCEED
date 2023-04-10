@@ -139,9 +139,13 @@ MARCHFLAG := $(if $(call cc_check_flag,$(MARCHFLAG)),$(MARCHFLAG))
 OMP_SIMD_FLAG := $(OMP_SIMD_FLAG.$(CC_VENDOR))
 OMP_SIMD_FLAG := $(if $(call cc_check_flag,$(OMP_SIMD_FLAG)),$(OMP_SIMD_FLAG))
 
+# Error checking flags
+PEDANTIC      ?=
+PEDANTICFLAGS := -Werror -pedantic
+
 OPT    ?= -O $(MARCHFLAG) $(OPT.$(CC_VENDOR)) $(OMP_SIMD_FLAG)
-CFLAGS ?= $(OPT) $(CFLAGS.$(CC_VENDOR))
-CXXFLAGS ?= $(OPT) $(CXXFLAGS.$(CC_VENDOR))
+CFLAGS ?= $(OPT) $(CFLAGS.$(CC_VENDOR)) $(if $(PEDANTIC),$(PEDANTICFLAGS))
+CXXFLAGS ?= $(OPT) $(CXXFLAGS.$(CC_VENDOR)) $(if $(PEDANTIC),$(PEDANTICFLAGS))
 LIBCXX ?= -lstdc++
 NVCCFLAGS ?= -ccbin $(CXX) -Xcompiler "$(OPT)" -Xcompiler -fPIC
 ifneq ($(CUDA_ARCH),)

@@ -119,7 +119,7 @@ CEED_EXTERN int CeedErrorImpl(Ceed, const char *, int, const char *, int, const 
 /// Use nonstandard ternary to convince the compiler/clang-tidy that this function never returns zero.
 #define CeedError(ceed, ecode, ...) (CeedErrorImpl((ceed), __FILE__, __LINE__, __func__, (ecode), __VA_ARGS__), (ecode))
 #else
-#define CeedError(ceed, ecode, ...) CeedErrorImpl((ceed), __FILE__, __LINE__, __func__, (ecode), __VA_ARGS__) ?: (ecode)
+#define CeedError(ceed, ecode, ...) CeedErrorImpl((ceed), __FILE__, __LINE__, __func__, (ecode), __VA_ARGS__) ? (ecode) : (ecode)
 #endif
 
 /// Ceed error handlers
