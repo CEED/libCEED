@@ -898,7 +898,6 @@ static int CeedOperatorLinearDiagonal_Sycl(sycl::queue &sycl_queue, const bool p
       }
     }
   });
-  sycl_queue.wait_and_throw();
   return CEED_ERROR_SUCCESS;
 }
 
@@ -1238,7 +1237,7 @@ static int CeedOperatorLinearAssemble_Sycl(sycl::queue &sycl_queue, const CeedOp
       }  // end of out component
     }    // end of in component
   });
-  sycl_queue.wait_and_throw();
+
   return CEED_ERROR_SUCCESS;
 }
 

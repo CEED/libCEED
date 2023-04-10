@@ -44,7 +44,6 @@ static int CeedElemRestrictionStridedNoTranspose_Sycl(sycl::queue &sycl_queue, c
       v[loc_node + comp * elem_size * num_elem + elem * elem_size] = u[loc_node * stride_nodes + comp * stride_comp + elem * stride_elem];
     }
   });
-  sycl_queue.wait_and_throw();
   return CEED_ERROR_SUCCESS;
 }
 
@@ -73,7 +72,6 @@ static int CeedElemRestrictionOffsetNoTranspose_Sycl(sycl::queue &sycl_queue, co
       v[loc_node + comp * elem_size * num_elem + elem * elem_size] = u[ind + comp * comp_stride];
     }
   });
-  sycl_queue.wait_and_throw();
   return CEED_ERROR_SUCCESS;
 }
 
@@ -101,7 +99,6 @@ static int CeedElemRestrictionStridedTranspose_Sycl(sycl::queue &sycl_queue, con
       v[loc_node * stride_nodes + comp * stride_comp + elem * stride_elem] += u[loc_node + comp * elem_size * num_elem + elem * elem_size];
     }
   });
-  sycl_queue.wait_and_throw();
   return CEED_ERROR_SUCCESS;
 }
 
@@ -142,7 +139,6 @@ static int CeedElemRestrictionOffsetTranspose_Sycl(sycl::queue &sycl_queue, cons
     }
     v[ind + comp * comp_stride] += value;
   });
-  sycl_queue.wait_and_throw();
   return CEED_ERROR_SUCCESS;
 }
 
