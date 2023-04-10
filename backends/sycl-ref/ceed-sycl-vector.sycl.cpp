@@ -64,8 +64,9 @@ static inline int CeedVectorSyncH2D_Sycl(const CeedVector vec) {
     impl->d_array = impl->d_array_owned;
   }
 
+  sycl::event e = data->sycl_queue.ext_oneapi_submit_barrier();
   // Copy from host to device
-  sycl::event copy_event = data->sycl_queue.copy<CeedScalar>(impl->h_array, impl->d_array, length);
+  sycl::event copy_event = data->sycl_queue.copy<CeedScalar>(impl->h_array, impl->d_array, length, {e});
   // Wait for copy to finish and handle exceptions.
   CeedCallSycl(ceed, copy_event.wait_and_throw());
 
@@ -101,8 +102,11 @@ static inline int CeedVectorSyncD2H_Sycl(const CeedVector vec) {
     impl->h_array = impl->h_array_owned;
   }
 
+  // Order queue
+  sycl::event e = data->sycl_queue.ext_oneapi_submit_barrier();
   // Copy from device to host
-  sycl::event copy_event = data->sycl_queue.copy<CeedScalar>(impl->d_array, impl->h_array, length);
+  sycl::event copy_event = data->sycl_queue.copy<CeedScalar>(impl->d_array, impl->h_array, length, {e});
+
   // Wait for copy to finish and handle exceptions.
   CeedCallSycl(ceed, copy_event.wait_and_throw());
 
@@ -240,6 +244,9 @@ static int CeedVectorSetArrayDevice_Sycl(const CeedVector vec, const CeedCopyMod
   Ceed_Sycl *data;
   CeedCallBackend(CeedGetData(ceed, &data));
 
+  // Order queue
+  sycl::event e = data->sycl_queue.ext_oneapi_submit_barrier();
+
   switch (copy_mode) {
     case CEED_COPY_VALUES: {
       CeedSize length;
@@ -249,23 +256,27 @@ static int CeedVectorSetArrayDevice_Sycl(const CeedVector vec, const CeedCopyMod
         impl->d_array = impl->d_array_owned;
       }
       if (array) {
-        sycl::event copy_event = data->sycl_queue.copy<CeedScalar>(array, impl->d_array, length);
+        sycl::event copy_event = data->sycl_queue.copy<CeedScalar>(array, impl->d_array, length, {e});
         // Wait for copy to finish and handle exceptions.
         CeedCallSycl(ceed, copy_event.wait_and_throw());
       }
     } break;
     case CEED_OWN_POINTER:
-      // Wait for all work to finish before freeing memory
-      CeedCallSycl(ceed, data->sycl_queue.wait_and_throw());
-      CeedCallSycl(ceed, sycl::free(impl->d_array_owned, data->sycl_context));
+      if (impl->d_array_owned) {
+        // Wait for all work to finish before freeing memory
+        CeedCallSycl(ceed, data->sycl_queue.wait_and_throw());
+        CeedCallSycl(ceed, sycl::free(impl->d_array_owned, data->sycl_context));
+      }
       impl->d_array_owned    = array;
       impl->d_array_borrowed = NULL;
       impl->d_array          = array;
       break;
     case CEED_USE_POINTER:
-      // Wait for all work to finish before freeing memory
-      CeedCallSycl(ceed, data->sycl_queue.wait_and_throw());
-      CeedCallSycl(ceed, sycl::free(impl->d_array_owned, data->sycl_context));
+      if (impl->d_array_owned) {
+        // Wait for all work to finish before freeing memory
+        CeedCallSycl(ceed, data->sycl_queue.wait_and_throw());
+        CeedCallSycl(ceed, sycl::free(impl->d_array_owned, data->sycl_context));
+      }
       impl->d_array_owned    = NULL;
       impl->d_array_borrowed = array;
       impl->d_array          = array;
@@ -308,7 +319,9 @@ static int CeedHostSetValue_Sycl(CeedScalar *h_array, CeedInt length, CeedScalar
 // Set device array to value
 //------------------------------------------------------------------------------
 static int CeedDeviceSetValue_Sycl(sycl::queue &sycl_queue, CeedScalar *d_array, CeedInt length, CeedScalar val) {
-  sycl_queue.fill(d_array, val, length);
+  // Order queue
+  sycl::event e = sycl_queue.ext_oneapi_submit_barrier();
+  sycl_queue.fill(d_array, val, length, {e});
   return CEED_ERROR_SUCCESS;
 }
 
@@ -479,32 +492,29 @@ static int CeedVectorNorm_Sycl(CeedVector vec, CeedNormType type, CeedScalar *no
   const CeedScalar *d_array;
   CeedCallBackend(CeedVectorGetArrayRead(vec, CEED_MEM_DEVICE, &d_array));
 
-  if (!impl->reduction_norm) {
-    CeedCallSycl(ceed, impl->reduction_norm = sycl::malloc_device<CeedScalar>(1, data->sycl_device, data->sycl_context));
-  }
   switch (type) {
     case CEED_NORM_1: {
-      auto sumReduction = sycl::reduction(impl->reduction_norm, sycl::plus<>());
-      data->sycl_queue.parallel_for(length, sumReduction, [=](sycl::id<1> i, auto &sum) { sum += abs(d_array[i]); });
-      break;
-    }
+      // Order queue
+      sycl::event e            = data->sycl_queue.ext_oneapi_submit_barrier();
+      auto        sumReduction = sycl::reduction(impl->reduction_norm, sycl::plus<>());
+      data->sycl_queue.parallel_for(length, {e}, sumReduction, [=](sycl::id<1> i, auto &sum) { sum += abs(d_array[i]); }).wait_and_throw();
+    } break;
     case CEED_NORM_2: {
-      auto sumReduction = sycl::reduction(impl->reduction_norm, sycl::plus<>());
-      data->sycl_queue.parallel_for(length, sumReduction, [=](sycl::id<1> i, auto &sum) { sum += (d_array[i] * d_array[i]); });
-      break;
-    }
+      // Order queue
+      sycl::event e            = data->sycl_queue.ext_oneapi_submit_barrier();
+      auto        sumReduction = sycl::reduction(impl->reduction_norm, sycl::plus<>());
+      data->sycl_queue.parallel_for(length, {e}, sumReduction, [=](sycl::id<1> i, auto &sum) { sum += (d_array[i] * d_array[i]); }).wait_and_throw();
+    } break;
     case CEED_NORM_MAX: {
-      auto maxReduction = sycl::reduction(impl->reduction_norm, sycl::maximum<>());
-      data->sycl_queue.parallel_for(length, maxReduction, [=](sycl::id<1> i, auto &max) { max.combine(abs(d_array[i])); });
-      break;
-    }
+      // Order queue
+      sycl::event e            = data->sycl_queue.ext_oneapi_submit_barrier();
+      auto        maxReduction = sycl::reduction(impl->reduction_norm, sycl::maximum<>());
+      data->sycl_queue.parallel_for(length, {e}, maxReduction, [=](sycl::id<1> i, auto &max) { max.combine(abs(d_array[i])); }).wait_and_throw();
+    } break;
   }
-  // Copy from device to host
-  sycl::event copy_event = data->sycl_queue.copy<CeedScalar>(impl->reduction_norm, norm, 1);
-  // Wait for copy to finish and handle exceptions
-  CeedCallSycl(ceed, copy_event.wait_and_throw());
   // L2 norm - square root over reduced value
-  if (type == CEED_NORM_2) *norm = sqrt(*norm);
+  if (type == CEED_NORM_2) *norm = sqrt(*impl->reduction_norm);
+  else *norm = *impl->reduction_norm;
 
   CeedCallBackend(CeedVectorRestoreArrayRead(vec, &d_array));
 
@@ -525,10 +535,11 @@ static int CeedHostReciprocal_Sycl(CeedScalar *h_array, CeedInt length) {
 // Take reciprocal of a vector on device
 //------------------------------------------------------------------------------
 static int CeedDeviceReciprocal_Sycl(sycl::queue &sycl_queue, CeedScalar *d_array, CeedInt length) {
-  sycl_queue.parallel_for(length, [=](sycl::id<1> i) {
+  // Order queue
+  sycl::event e = sycl_queue.ext_oneapi_submit_barrier();
+  sycl_queue.parallel_for(length, {e}, [=](sycl::id<1> i) {
     if (std::fabs(d_array[i]) > CEED_EPSILON) d_array[i] = 1. / d_array[i];
   });
-
   return CEED_ERROR_SUCCESS;
 }
 
@@ -564,7 +575,9 @@ static int CeedHostScale_Sycl(CeedScalar *x_array, CeedScalar alpha, CeedInt len
 // Compute x = alpha x on device
 //------------------------------------------------------------------------------
 static int CeedDeviceScale_Sycl(sycl::queue &sycl_queue, CeedScalar *x_array, CeedScalar alpha, CeedInt length) {
-  sycl_queue.parallel_for(length, [=](sycl::id<1> i) { x_array[i] *= alpha; });
+  // Order queue
+  sycl::event e = sycl_queue.ext_oneapi_submit_barrier();
+  sycl_queue.parallel_for(length, {e}, [=](sycl::id<1> i) { x_array[i] *= alpha; });
   return CEED_ERROR_SUCCESS;
 }
 
@@ -600,7 +613,9 @@ static int CeedHostAXPY_Sycl(CeedScalar *y_array, CeedScalar alpha, CeedScalar *
 // Compute y = alpha x + y on device
 //------------------------------------------------------------------------------
 static int CeedDeviceAXPY_Sycl(sycl::queue &sycl_queue, CeedScalar *y_array, CeedScalar alpha, CeedScalar *x_array, CeedInt length) {
-  sycl_queue.parallel_for(length, [=](sycl::id<1> i) { y_array[i] += alpha * x_array[i]; });
+  // Order queue
+  sycl::event e = sycl_queue.ext_oneapi_submit_barrier();
+  sycl_queue.parallel_for(length, {e}, [=](sycl::id<1> i) { y_array[i] += alpha * x_array[i]; });
   return CEED_ERROR_SUCCESS;
 }
 
@@ -643,7 +658,9 @@ static int CeedHostPointwiseMult_Sycl(CeedScalar *w_array, CeedScalar *x_array, 
 // Compute the pointwise multiplication w = x .* y on device (impl in .cu file)
 //------------------------------------------------------------------------------
 static int CeedDevicePointwiseMult_Sycl(sycl::queue &sycl_queue, CeedScalar *w_array, CeedScalar *x_array, CeedScalar *y_array, CeedInt length) {
-  sycl_queue.parallel_for(length, [=](sycl::id<1> i) { w_array[i] = x_array[i] * y_array[i]; });
+  // Order queue
+  sycl::event e = sycl_queue.ext_oneapi_submit_barrier();
+  sycl_queue.parallel_for(length, {e}, [=](sycl::id<1> i) { w_array[i] = x_array[i] * y_array[i]; });
   return CEED_ERROR_SUCCESS;
 }
 
@@ -709,6 +726,11 @@ int CeedVectorCreate_Sycl(CeedSize n, CeedVector vec) {
   CeedVector_Sycl *impl;
   Ceed             ceed;
   CeedCallBackend(CeedVectorGetCeed(vec, &ceed));
+  Ceed_Sycl *data;
+  CeedCallBackend(CeedGetData(ceed, &data));
+
+  CeedCallBackend(CeedCalloc(1, &impl));
+  CeedCallSycl(ceed, impl->reduction_norm = sycl::malloc_host<CeedScalar>(1, data->sycl_context));
 
   CeedCallBackend(CeedSetBackendFunctionCpp(ceed, "Vector", vec, "HasValidArray", CeedVectorHasValidArray_Sycl));
   CeedCallBackend(CeedSetBackendFunctionCpp(ceed, "Vector", vec, "HasBorrowedArrayOfType", CeedVectorHasBorrowedArrayOfType_Sycl));
@@ -726,7 +748,6 @@ int CeedVectorCreate_Sycl(CeedSize n, CeedVector vec) {
   CeedCallBackend(CeedSetBackendFunctionCpp(ceed, "Vector", vec, "PointwiseMult", CeedVectorPointwiseMult_Sycl));
   CeedCallBackend(CeedSetBackendFunctionCpp(ceed, "Vector", vec, "Destroy", CeedVectorDestroy_Sycl));
 
-  CeedCallBackend(CeedCalloc(1, &impl));
   CeedCallBackend(CeedVectorSetData(vec, impl));
 
   return CEED_ERROR_SUCCESS;

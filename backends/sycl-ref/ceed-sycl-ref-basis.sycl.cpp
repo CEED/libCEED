@@ -50,7 +50,10 @@ static int CeedBasisApplyInterp_Sycl(sycl::queue &sycl_queue, CeedInt num_elem, 
   sycl::range<1>      global_range(num_elem * work_group_size);
   sycl::nd_range<1>   kernel_range(global_range, local_range);
 
+  // Order queue
+  sycl::event e = sycl_queue.ext_oneapi_submit_barrier();
   sycl_queue.submit([&](sycl::handler &cgh) {
+    cgh.depends_on({e});
     sycl::local_accessor<CeedScalar> s_mem(P * Q + 2 * buf_len, cgh);
 
     cgh.parallel_for<CeedBasisSyclInterp>(kernel_range, [=](sycl::nd_item<1> work_item) {
@@ -138,7 +141,10 @@ static int CeedBasisApplyGrad_Sycl(sycl::queue &sycl_queue, CeedInt num_elem, Ce
   sycl::range<1>      global_range(num_elem * work_group_size);
   sycl::nd_range<1>   kernel_range(global_range, local_range);
 
+  // Order queue
+  sycl::event e = sycl_queue.ext_oneapi_submit_barrier();
   sycl_queue.submit([&](sycl::handler &cgh) {
+    cgh.depends_on({e});
     sycl::local_accessor<CeedScalar> s_mem(2 * (P * Q + buf_len), cgh);
 
     cgh.parallel_for<CeedBasisSyclGrad>(kernel_range, [=](sycl::nd_item<1> work_item) {
@@ -209,12 +215,13 @@ static int CeedBasisApplyWeight_Sycl(sycl::queue &sycl_queue, CeedInt num_elem, 
   const CeedInt  num_quad_z = (dim > 2) ? Q_1d : 1;
   sycl::range<3> kernel_range(num_elem * num_quad_z, num_quad_y, num_quad_x);
 
-  sycl_queue.parallel_for<CeedBasisSyclWeight>(kernel_range, [=](sycl::item<3> work_item) {
+  // Order queue
+  sycl::event e = sycl_queue.ext_oneapi_submit_barrier();
+  sycl_queue.parallel_for<CeedBasisSyclWeight>(kernel_range, {e}, [=](sycl::item<3> work_item) {
     if (dim == 1) w[work_item.get_linear_id()] = q_weight_1d[work_item[2]];
     if (dim == 2) w[work_item.get_linear_id()] = q_weight_1d[work_item[2]] * q_weight_1d[work_item[1]];
     if (dim == 3) w[work_item.get_linear_id()] = q_weight_1d[work_item[2]] * q_weight_1d[work_item[1]] * q_weight_1d[work_item[0] % Q_1d];
   });
-
   return CEED_ERROR_SUCCESS;
 }
 
@@ -299,7 +306,9 @@ static int CeedBasisApplyNonTensorInterp_Sycl(sycl::queue &sycl_queue, CeedInt n
 
   sycl::range<2> kernel_range(num_elem, v_size);
 
-  sycl_queue.parallel_for<CeedBasisSyclInterpNT>(kernel_range, [=](sycl::id<2> indx) {
+  // Order queue
+  sycl::event e = sycl_queue.ext_oneapi_submit_barrier();
+  sycl_queue.parallel_for<CeedBasisSyclInterpNT>(kernel_range, {e}, [=](sycl::id<2> indx) {
     const CeedInt i    = indx[1];
     const CeedInt elem = indx[0];
 
@@ -313,7 +322,6 @@ static int CeedBasisApplyNonTensorInterp_Sycl(sycl::queue &sycl_queue, CeedInt n
       d_V[i + elem * v_stride + comp * v_comp_stride] = V;
     }
   });
-
   return CEED_ERROR_SUCCESS;
 }
 
@@ -342,7 +350,9 @@ static int CeedBasisApplyNonTensorGrad_Sycl(sycl::queue &sycl_queue, CeedInt num
 
   sycl::range<2> kernel_range(num_elem, v_size);
 
-  sycl_queue.parallel_for<CeedBasisSyclGradNT>(kernel_range, [=](sycl::id<2> indx) {
+  // Order queue
+  sycl::event e = sycl_queue.ext_oneapi_submit_barrier();
+  sycl_queue.parallel_for<CeedBasisSyclGradNT>(kernel_range, {e}, [=](sycl::id<2> indx) {
     const CeedInt i    = indx[1];
     const CeedInt elem = indx[0];
 
@@ -366,7 +376,6 @@ static int CeedBasisApplyNonTensorGrad_Sycl(sycl::queue &sycl_queue, CeedInt num
       }
     }
   });
-
   return CEED_ERROR_SUCCESS;
 }
 
@@ -379,12 +388,13 @@ static int CeedBasisApplyNonTensorWeight_Sycl(sycl::queue &sycl_queue, CeedInt n
 
   sycl::range<2> kernel_range(num_elem, num_qpts);
 
-  sycl_queue.parallel_for<CeedBasisSyclWeightNT>(kernel_range, [=](sycl::id<2> indx) {
+  // Order queue
+  sycl::event e = sycl_queue.ext_oneapi_submit_barrier();
+  sycl_queue.parallel_for<CeedBasisSyclWeightNT>(kernel_range, {e}, [=](sycl::id<2> indx) {
     const CeedInt i          = indx[1];
     const CeedInt elem       = indx[0];
     d_V[i + elem * num_qpts] = q_weight[i];
   });
-
   return CEED_ERROR_SUCCESS;
 }
 
@@ -414,7 +424,9 @@ static int CeedBasisApplyNonTensor_Sycl(CeedBasis basis, const CeedInt num_elem,
   if (transpose) {
     CeedSize length;
     CeedCallBackend(CeedVectorGetLength(v, &length));
-    data->sycl_queue.fill<CeedScalar>(d_v, 0, length);
+    // Order queue
+    sycl::event e = data->sycl_queue.ext_oneapi_submit_barrier();
+    data->sycl_queue.fill<CeedScalar>(d_v, 0, length, {e});
   }
 
   // Apply basis operation
