@@ -30,11 +30,12 @@ static PetscErrorCode Distance_Function_NS(DM dm, User user) {
   CeedInt             num_elem = 10, P = 3, Q = P + 1;
   CeedInt             num_nodes_x = num_elem + 1, num_nodes_phi = num_elem * (P - 1) + 1;
   CeedInt             ind_x[num_elem * 2], ind_phi[num_elem * P];
-  CeedVector          rhs_ceed, X_ceed, Y_ceed, ones_vec;
-  CeedOperator        op_distance_function;
-  CeedQFunction       qf_distance_function;
+  CeedInt             strides_qd[3] = {1, Q, Q};
+  CeedVector          rhs_ceed, X_ceed, Y_ceed, q_data_ceed, ones_vec;
+  CeedOperator        op_distance_function, op_mass;
+  CeedQFunction       qf_distance_function, qf_mass;
   CeedBasis           basis_x, basis_phi;
-  CeedElemRestriction elem_restr_x, elem_restr_phi;
+  CeedElemRestriction elem_restr_x, elem_restr_phi, elem_restr_qd;
 
   PetscFunctionBeginUser;
   comm = PETSC_COMM_WORLD;
@@ -66,6 +67,7 @@ static PetscErrorCode Distance_Function_NS(DM dm, User user) {
   // Setup libCEED vector
   PetscCall(VecP2C(X, &mem_type, X_ceed));
   PetscCall(VecP2C(Y, &mem_type, Y_ceed));
+  PetscCall(VecP2C(q_data, &mem_type, q_data_ceed));
 
   // Create RHS vector
   PetscCall(VecDuplicate(X_loc, &rhs_loc));
@@ -84,26 +86,38 @@ static PetscErrorCode Distance_Function_NS(DM dm, User user) {
   // Create Element Restriction
   CeedElemRestrictionCreate(ceed, num_elem, 2, 1, 1, num_nodes_x, CEED_MEM_HOST, CEED_USE_POINTER, ind_x, &elem_restr_x);
   CeedElemRestrictionCreate(ceed, num_elem, 2, 1, 1, num_nodes_phi, CEED_MEM_HOST, CEED_USE_POINTER, ind_phi, &elem_restr_phi);
+  CeedElemRestrictionCreateStrided(ceed, num_elem, Q, 1, Q * num_elem, strides_qd, &elem_restr_qd);
 
   // Create Basis
   CeedBasisCreateTensorH1Lagrange(ceed, dim, 1, P, Q, CEED_GAUSS, &basis_x);
   CeedBasisCreateTensorH1Lagrange(ceed, dim, 1, P, Q, CEED_GAUSS, &basis_phi);
 
   // Create and Add QFunction fields
-  CeedQFunctionCreateInterior(ceed, dim, DistanceFunction - Mass_N, DistanceFunction_loc, &qf_distance_function);
+  CeedQFunctionCreateInterior(ceed, dim, DistanceFunction, DistanceFunction_loc, &qf_distance_function);
+  // CeedQFunctionCreateInterior(ceed, dim, DistanceFunction - Mass_N, DistanceFunction_loc, &qf_distance_function);
+  CeedQFunctionCreateInterior(ceed, dim, Mass_N, Mass_N_loc, &qf_mass);
 
   CeedQFunctionAddInput(qf_distance_function, "v", dim, CEED_EVAL_INTERP);
   CeedQFunctionAddInput(qf_distance_function, "dphi", dim, CEED_EVAL_GRAD);
   CeedQFunctionAddInput(qf_distance_function, "q_data", dim * (dim + 1) / 2, CEED_EVAL_NONE);
   CeedQFunctionAddOutput(qf_distance_function, "dv", dim, CEED_EVAL_GRAD);
 
+  CeedQFunctionAddInput(qf_mass, "rho", 1, CEED_EVAL_NONE);
+  CeedQFunctionAddInput(qf_mass, "phi", 1, CEED_EVAL_INTERP);
+  CeedQFunctionAddOutput(qf_mass, "v", 1, CEED_EVAL_INTERP);
+
   // Create Operator
   CeedOperatorCreate(ceed, qf_distance_function, CEED_QFUNCTION_NONE, CEED_QFUNCTION_NONE, &op_distance_function);
+  CeedOperatorCreate(ceed, qf_mass, CEED_QFUNCTION_NONE, CEED_QFUNCTION_NONE, &op_mass);
 
   // Operator set
   CeedOperatorSetField(op_distance_function, "phi", elem_restr_x, basis_x, CEED_VECTOR_ACTIVE);
   CeedOperatorSetField(op_distance_function, "v", elem_restr_x, basis_x, CEED_VECTOR_ACTIVE);
   CeedOperatorSetField(op_distance_function, "output", elem_restr_phi, CEED_BASIS_COLLOCATED, CEED_VECTOR_ACTIVE);
+
+  CeedOperatorSetField(op_mass, "rho", elem_restr_qd, CEED_BASIS_COLLOCATED, q_data_ceed);
+  CeedOperatorSetField(op_mass, "phi", elem_restr_phi, basis_phi, CEED_VECTOR_ACTIVE);
+  CeedOperatorSetField(op_mass, "v", elem_restr_phi, basis_phi, CEED_VECTOR_ACTIVE);
 
   CeedVectorCreate(ceed, num_nodes_phi, &X_ceed);
   CeedVectorSetValue(X_ceed, 0.0);
@@ -114,6 +128,7 @@ static PetscErrorCode Distance_Function_NS(DM dm, User user) {
 
   // Apply Operator
   CeedOperatorApply(op_distance_function, X_ceed, Y_ceed, CEED_REQUEST_IMMEDIATE);
+  CeedOperatorApply(op_mass, X_ceed, ones_vec, CEED_REQUEST_IMMEDIATE);
 
   // Restore PETSc vectors
   PetscCall(VecC2P(X_ceed, mem_type, X));
@@ -137,8 +152,10 @@ static PetscErrorCode Distance_Function_NS(DM dm, User user) {
   CeedVectorDestroy(&ones_vec);
   CeedElemRestrictionDestroy(&elem_restr_x);
   CeedElemRestrictionDestroy(&elem_restr_phi);
+  CeedElemRestrictionDestroy(&elem_restr_qd);
   CeedQFunctionDestroy(&qf_distance_function);
   CeedOperatorDestroy(&op_distance_function);
+  CeedOperatorDestroy(&op_mass);
   CeedDestroy(&ceed);
   PetscFunctionReturn(0);
 }
