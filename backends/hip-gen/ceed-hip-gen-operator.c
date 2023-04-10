@@ -43,7 +43,7 @@ static int CeedOperatorApplyAdd_Hip_gen(CeedOperator op, CeedVector input_vec, C
   CeedQFunctionField *qf_input_fields, *qf_output_fields;
   CeedCallBackend(CeedQFunctionGetFields(qf, NULL, &qf_input_fields, NULL, &qf_output_fields));
   CeedEvalMode eval_mode;
-  CeedVector   vec, output_vecs[CEED_FIELD_MAX] = {};
+  CeedVector   vec, output_vecs[CEED_FIELD_MAX] = {NULL};
 
   // Creation of the operator
   CeedCallBackend(CeedHipGenOperatorBuild(op));
