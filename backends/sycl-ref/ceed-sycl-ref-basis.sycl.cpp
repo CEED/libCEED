@@ -83,7 +83,8 @@ static int CeedBasisApplyInterp_Sycl(sycl::queue &sycl_queue, CeedInt num_elem, 
         CeedInt post = 1;
 
         for (CeedInt d = 0; d < dim; d++) {
-          sycl::group_barrier(work_group);
+          //sycl::group_barrier(work_group);
+	  work_item.barrier(sycl::access::fence_space::local_space);
 
           pre /= P;
           const CeedScalar *in  = d % 2 ? s_buffer_2 : s_buffer_1;
@@ -173,7 +174,8 @@ static int CeedBasisApplyGrad_Sycl(sycl::queue &sycl_queue, CeedInt num_elem, Ce
           CeedScalar       *cur_v = v + elem * v_stride + dim_1 * v_dim_stride + comp * v_comp_stride;
 
           for (CeedInt dim_2 = 0; dim_2 < dim; dim_2++) {
-            sycl::group_barrier(work_group);
+            //sycl::group_barrier(work_group);
+	    work_item.barrier(sycl::access::fence_space::local_space);
 
             pre /= P;
             const CeedScalar *op  = dim_1 == dim_2 ? s_grad_1d : s_interp_1d;
