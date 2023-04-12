@@ -237,9 +237,9 @@ CEED_QFUNCTION_HELPER int IFunction_NodalSubgridStress(void *ctx, CeedInt Q, con
     const CeedScalar km_sgs_i[6] = {km_sgs[0][i], km_sgs[1][i], km_sgs[2][i], km_sgs[3][i], km_sgs[4][i], km_sgs[5][i]};
     FluxSubgridStress(s.Y, km_sgs_i, Flux);
 
-    for (CeedInt j = 0; j < 3; j++) {
-      for (CeedInt k = 0; k < 5; k++) {
-        Grad_v[j][k][i] = -wdetJ * (dXdx[j][0] * Flux[k][0] + dXdx[j][1] * Flux[k][1] + dXdx[j][2] * Flux[k][2]);
+    for (CeedInt k = 0; k < 3; k++) {
+      for (CeedInt j = 0; j < 5; j++) {
+        Grad_v[k][j][i] = -wdetJ * (dXdx[k][0] * Flux[j][0] + dXdx[k][1] * Flux[j][1] + dXdx[k][2] * Flux[j][2]);
       }
     }
   }
