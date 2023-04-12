@@ -141,11 +141,11 @@ CEED_QFUNCTION(RHSFunction_Newtonian)(void *ctx, CeedInt Q, const CeedScalar *co
         {q_data[7][i], q_data[8][i], q_data[9][i]}
     };
     State grad_s[3];
-    for (CeedInt j = 0; j < 3; j++) {
+    for (CeedInt k = 0; k < 3; k++) {
       CeedScalar dx_i[3] = {0}, dU[5];
-      for (CeedInt k = 0; k < 5; k++) dU[k] = Grad_q[0][k][i] * dXdx[0][j] + Grad_q[1][k][i] * dXdx[1][j] + Grad_q[2][k][i] * dXdx[2][j];
-      dx_i[j]   = 1.;
-      grad_s[j] = StateFromU_fwd(context, s, dU, x_i, dx_i);
+      for (CeedInt j = 0; j < 5; j++) dU[j] = Grad_q[0][j][i] * dXdx[0][k] + Grad_q[1][j][i] * dXdx[1][k] + Grad_q[2][j][i] * dXdx[2][k];
+      dx_i[k]   = 1.;
+      grad_s[k] = StateFromU_fwd(context, s, dU, x_i, dx_i);
     }
 
     CeedScalar strain_rate[6], kmstress[6], stress[3][3], Fe[3];
@@ -161,8 +161,8 @@ CEED_QFUNCTION(RHSFunction_Newtonian)(void *ctx, CeedInt Q, const CeedScalar *co
     CeedScalar Flux[5][3];
     FluxTotal(F_inviscid, stress, Fe, Flux);
 
-    for (CeedInt j = 0; j < 3; j++) {
-      for (CeedInt k = 0; k < 5; k++) Grad_v[j][k][i] = wdetJ * (dXdx[j][0] * Flux[k][0] + dXdx[j][1] * Flux[k][1] + dXdx[j][2] * Flux[k][2]);
+    for (CeedInt j = 0; j < 5; j++) {
+      for (CeedInt k = 0; k < 3; k++) Grad_v[k][j][i] = wdetJ * (dXdx[k][0] * Flux[j][0] + dXdx[k][1] * Flux[j][1] + dXdx[k][2] * Flux[j][2]);
     }
 
     const CeedScalar body_force[5] = {0, s.U.density * g[0], s.U.density * g[1], s.U.density * g[2], 0};
@@ -225,13 +225,13 @@ CEED_QFUNCTION_HELPER int IFunction_Newtonian(void *ctx, CeedInt Q, const CeedSc
         {q_data[7][i], q_data[8][i], q_data[9][i]}
     };
     State grad_s[3];
-    for (CeedInt j = 0; j < 3; j++) {
+    for (CeedInt k = 0; k < 3; k++) {
       CeedScalar dx_i[3] = {0}, dqi[5];
-      for (CeedInt k = 0; k < 5; k++) {
-        dqi[k] = Grad_q[0][k][i] * dXdx[0][j] + Grad_q[1][k][i] * dXdx[1][j] + Grad_q[2][k][i] * dXdx[2][j];
+      for (CeedInt j = 0; j < 5; j++) {
+        dqi[j] = Grad_q[0][j][i] * dXdx[0][k] + Grad_q[1][j][i] * dXdx[1][k] + Grad_q[2][j][i] * dXdx[2][k];
       }
-      dx_i[j]   = 1.;
-      grad_s[j] = StateFromQi_fwd(context, s, dqi, x_i, dx_i);
+      dx_i[k]   = 1.;
+      grad_s[k] = StateFromQi_fwd(context, s, dqi, x_i, dx_i);
     }
 
     CeedScalar strain_rate[6], kmstress[6], stress[3][3], Fe[3];
@@ -247,9 +247,9 @@ CEED_QFUNCTION_HELPER int IFunction_Newtonian(void *ctx, CeedInt Q, const CeedSc
     CeedScalar Flux[5][3];
     FluxTotal(F_inviscid, stress, Fe, Flux);
 
-    for (CeedInt j = 0; j < 3; j++) {
-      for (CeedInt k = 0; k < 5; k++) {
-        Grad_v[j][k][i] = -wdetJ * (dXdx[j][0] * Flux[k][0] + dXdx[j][1] * Flux[k][1] + dXdx[j][2] * Flux[k][2]);
+    for (CeedInt j = 0; j < 5; j++) {
+      for (CeedInt k = 0; k < 3; k++) {
+        Grad_v[k][j][i] = -wdetJ * (dXdx[k][0] * Flux[j][0] + dXdx[k][1] * Flux[j][1] + dXdx[k][2] * Flux[j][2]);
       }
     }
 
@@ -338,10 +338,10 @@ CEED_QFUNCTION_HELPER int IJacobian_Newtonian(void *ctx, CeedInt Q, const CeedSc
     State ds = StateFromQi_fwd(context, s, dqi, x_i, dx0);
 
     State grad_ds[3];
-    for (int j = 0; j < 3; j++) {
+    for (int k = 0; k < 3; k++) {
       CeedScalar dqi_j[5];
-      for (int k = 0; k < 5; k++) dqi_j[k] = Grad_dq[0][k][i] * dXdx[0][j] + Grad_dq[1][k][i] * dXdx[1][j] + Grad_dq[2][k][i] * dXdx[2][j];
-      grad_ds[j] = StateFromQi_fwd(context, s, dqi_j, x_i, dx0);
+      for (int j = 0; j < 5; j++) dqi_j[j] = Grad_dq[0][j][i] * dXdx[0][k] + Grad_dq[1][j][i] * dXdx[1][k] + Grad_dq[2][j][i] * dXdx[2][k];
+      grad_ds[k] = StateFromQi_fwd(context, s, dqi_j, x_i, dx0);
     }
 
     CeedScalar dstrain_rate[6], dkmstress[6], stress[3][3], dstress[3][3], dFe[3];
@@ -425,11 +425,11 @@ CEED_QFUNCTION_HELPER int BoundaryIntegral(void *ctx, CeedInt Q, const CeedScala
     };
 
     State grad_s[3];
-    for (CeedInt j = 0; j < 3; j++) {
+    for (CeedInt k = 0; k < 3; k++) {
       CeedScalar dx_i[3] = {0}, dqi[5];
-      for (CeedInt k = 0; k < 5; k++) dqi[k] = Grad_q[0][k][i] * dXdx[0][j] + Grad_q[1][k][i] * dXdx[1][j];
-      dx_i[j]   = 1.;
-      grad_s[j] = StateFromQi_fwd(context, s, dqi, x_i, dx_i);
+      for (CeedInt j = 0; j < 5; j++) dqi[j] = Grad_q[0][j][i] * dXdx[0][k] + Grad_q[1][j][i] * dXdx[1][k];
+      dx_i[k]   = 1.;
+      grad_s[k] = StateFromQi_fwd(context, s, dqi, x_i, dx_i);
     }
 
     CeedScalar strain_rate[6], kmstress[6], stress[3][3], Fe[3];
@@ -497,11 +497,11 @@ CEED_QFUNCTION_HELPER int BoundaryIntegral_Jacobian(void *ctx, CeedInt Q, const 
     State ds = StateFromQi_fwd(context, s, dqi, x_i, dx_i);
 
     State grad_ds[3];
-    for (CeedInt j = 0; j < 3; j++) {
+    for (CeedInt k = 0; k < 3; k++) {
       CeedScalar dx_i[3] = {0}, dqi_j[5];
-      for (CeedInt k = 0; k < 5; k++) dqi_j[k] = Grad_dq[0][k][i] * dXdx[0][j] + Grad_dq[1][k][i] * dXdx[1][j];
-      dx_i[j]    = 1.;
-      grad_ds[j] = StateFromQi_fwd(context, s, dqi_j, x_i, dx_i);
+      for (CeedInt j = 0; j < 5; j++) dqi_j[j] = Grad_dq[0][j][i] * dXdx[0][k] + Grad_dq[1][j][i] * dXdx[1][k];
+      dx_i[k]    = 1.;
+      grad_ds[k] = StateFromQi_fwd(context, s, dqi_j, x_i, dx_i);
     }
 
     CeedScalar dstrain_rate[6], dkmstress[6], stress[3][3], dstress[3][3], dFe[3];

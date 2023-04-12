@@ -501,11 +501,11 @@ CEED_QFUNCTION_HELPER int RiemannOutflow(void *ctx, CeedInt Q, const CeedScalar 
     };
 
     State grad_s[3];
-    for (CeedInt j = 0; j < 3; j++) {
+    for (CeedInt k = 0; k < 3; k++) {
       CeedScalar dx_i[3] = {0}, dqi[5];
-      for (CeedInt k = 0; k < 5; k++) dqi[k] = Grad_q[0][k][i] * dXdx[0][j] + Grad_q[1][k][i] * dXdx[1][j];
-      dx_i[j]   = 1.;
-      grad_s[j] = StateFromQi_fwd(gas, s_int, dqi, x_i, dx_i);
+      for (CeedInt j = 0; j < 5; j++) dqi[j] = Grad_q[0][j][i] * dXdx[0][k] + Grad_q[1][j][i] * dXdx[1][k];
+      dx_i[k]   = 1.;
+      grad_s[k] = StateFromQi_fwd(gas, s_int, dqi, x_i, dx_i);
     }
 
     CeedScalar strain_rate[6], kmstress[6], stress[3][3], Fe[3];
@@ -591,11 +591,11 @@ CEED_QFUNCTION_HELPER int RiemannOutflow_Jacobian(void *ctx, CeedInt Q, const Ce
     State ds_ext = StateFromPrimitive_fwd(gas, s_ext, dy_ext, x_i, dx_i);
 
     State grad_ds[3];
-    for (CeedInt j = 0; j < 3; j++) {
+    for (CeedInt k = 0; k < 3; k++) {
       CeedScalar dx_i[3] = {0}, dqi_j[5];
-      for (CeedInt k = 0; k < 5; k++) dqi_j[k] = Grad_dq[0][k][i] * dXdx[0][j] + Grad_dq[1][k][i] * dXdx[1][j];
-      dx_i[j]    = 1.;
-      grad_ds[j] = StateFromQi_fwd(gas, s_int, dqi_j, x_i, dx_i);
+      for (CeedInt j = 0; j < 5; j++) dqi_j[j] = Grad_dq[0][j][i] * dXdx[0][k] + Grad_dq[1][j][i] * dXdx[1][k];
+      dx_i[k]    = 1.;
+      grad_ds[k] = StateFromQi_fwd(gas, s_int, dqi_j, x_i, dx_i);
     }
 
     CeedScalar dstrain_rate[6], dkmstress[6], stress[3][3], dstress[3][3], dFe[3];
@@ -670,11 +670,11 @@ CEED_QFUNCTION_HELPER int PressureOutflow(void *ctx, CeedInt Q, const CeedScalar
     };
 
     State grad_s[3];
-    for (CeedInt j = 0; j < 3; j++) {
+    for (CeedInt k = 0; k < 3; k++) {
       CeedScalar dx_i[3] = {0}, dqi[5];
-      for (CeedInt k = 0; k < 5; k++) dqi[k] = Grad_q[0][k][i] * dXdx[0][j] + Grad_q[1][k][i] * dXdx[1][j];
-      dx_i[j]   = 1.;
-      grad_s[j] = StateFromQi_fwd(gas, s, dqi, x_i, dx_i);
+      for (CeedInt j = 0; j < 5; j++) dqi[j] = Grad_q[0][j][i] * dXdx[0][k] + Grad_q[1][j][i] * dXdx[1][k];
+      dx_i[k]   = 1.;
+      grad_s[k] = StateFromQi_fwd(gas, s, dqi, x_i, dx_i);
     }
 
     CeedScalar strain_rate[6], kmstress[6], stress[3][3], Fe[3];
@@ -746,11 +746,11 @@ CEED_QFUNCTION_HELPER int PressureOutflow_Jacobian(void *ctx, CeedInt Q, const C
     ds.Y.pressure = 0.;
 
     State grad_ds[3];
-    for (CeedInt j = 0; j < 3; j++) {
+    for (CeedInt k = 0; k < 3; k++) {
       CeedScalar dx_i[3] = {0}, dqi_j[5];
-      for (CeedInt k = 0; k < 5; k++) dqi_j[k] = Grad_dq[0][k][i] * dXdx[0][j] + Grad_dq[1][k][i] * dXdx[1][j];
-      dx_i[j]    = 1.;
-      grad_ds[j] = StateFromQi_fwd(gas, s, dqi_j, x_i, dx_i);
+      for (CeedInt j = 0; j < 5; j++) dqi_j[j] = Grad_dq[0][j][i] * dXdx[0][k] + Grad_dq[1][j][i] * dXdx[1][k];
+      dx_i[k]    = 1.;
+      grad_ds[k] = StateFromQi_fwd(gas, s, dqi_j, x_i, dx_i);
     }
 
     CeedScalar dstrain_rate[6], dkmstress[6], stress[3][3], dstress[3][3], dFe[3];
