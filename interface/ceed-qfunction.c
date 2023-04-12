@@ -89,12 +89,16 @@ int CeedQFunctionRegister(const char *name, const char *source, CeedInt vec_leng
 
   @param[out] f           CeedQFunctionField
   @param[in]  field_name  Name of QFunction field
-  @param[in]  size        Size of QFunction field, (num_comp * dim) for @ref CEED_EVAL_GRAD or (num_comp * 1) for @ref CEED_EVAL_NONE, @ref
-CEED_EVAL_INTERP, and @ref CEED_EVAL_WEIGHT
+  @param[in]  size        Size of QFunction field, (num_comp * 1) for @ref CEED_EVAL_NONE and @ref CEED_EVAL_WEIGHT,
+(num_comp * 1) for @ref CEED_EVAL_INTERP for an H^1 space or (num_comp * dim) for an H(div) or H(curl) space,
+(num_comp * dim) for @ref CEED_EVAL_GRAD, or (num_comp * 1) for @ref CEED_EVAL_DIV, and
+(num_comp * curl_dim) with curl_dim = 1 if dim < 3 else dim for @ref CEED_EVAL_CURL.
   @param[in]  eval_mode   \ref CEED_EVAL_NONE to use values directly,
+                            \ref CEED_EVAL_WEIGHT to use quadrature weights,
                             \ref CEED_EVAL_INTERP to use interpolated values,
                             \ref CEED_EVAL_GRAD to use gradients,
-                            \ref CEED_EVAL_WEIGHT to use quadrature weights.
+                            \ref CEED_EVAL_DIV to use divergence,
+                            \ref CEED_EVAL_CURL to use curl.
 
   @return An error code: 0 - success, otherwise - failure
 
@@ -722,13 +726,17 @@ int CeedQFunctionReferenceCopy(CeedQFunction qf, CeedQFunction *qf_copy) {
 /**
   @brief Add a CeedQFunction input
 
-  @param[in,out] qf      CeedQFunction
-  @param[in]  field_name Name of QFunction field
-  @param[in]  size       Size of QFunction field, (num_comp * dim) for @ref CEED_EVAL_GRAD or (num_comp * 1) for @ref CEED_EVAL_NONE and @ref
-CEED_EVAL_INTERP
-  @param[in]  eval_mode  \ref CEED_EVAL_NONE to use values directly,
-                           \ref CEED_EVAL_INTERP to use interpolated values,
-                           \ref CEED_EVAL_GRAD to use gradients.
+  @param[in,out] qf         CeedQFunction
+  @param[in]     field_name Name of QFunction field
+  @param[in]     size       Size of QFunction field, (num_comp * 1) for @ref CEED_EVAL_NONE,
+(num_comp * 1) for @ref CEED_EVAL_INTERP for an H^1 space or (num_comp * dim) for an H(div) or H(curl) space,
+(num_comp * dim) for @ref CEED_EVAL_GRAD, or (num_comp * 1) for @ref CEED_EVAL_DIV, and
+(num_comp * curl_dim) with curl_dim = 1 if dim < 3 else dim for @ref CEED_EVAL_CURL.
+  @param[in]     eval_mode  \ref CEED_EVAL_NONE to use values directly,
+                              \ref CEED_EVAL_INTERP to use interpolated values,
+                              \ref CEED_EVAL_GRAD to use gradients,
+                              \ref CEED_EVAL_DIV to use divergence,
+                              \ref CEED_EVAL_CURL to use curl.
 
   @return An error code: 0 - success, otherwise - failure
 
@@ -769,11 +777,15 @@ int CeedQFunctionAddInput(CeedQFunction qf, const char *field_name, CeedInt size
 
   @param[in,out] qf         CeedQFunction
   @param[in]     field_name Name of QFunction field
-  @param[in]     size       Size of QFunction field, (num_comp * dim) for @ref CEED_EVAL_GRAD or (num_comp * 1) for @ref CEED_EVAL_NONE and @ref
-CEED_EVAL_INTERP
+  @param[in]     size       Size of QFunction field, (num_comp * 1) for @ref CEED_EVAL_NONE,
+(num_comp * 1) for @ref CEED_EVAL_INTERP for an H^1 space or (num_comp * dim) for an H(div) or H(curl) space,
+(num_comp * dim) for @ref CEED_EVAL_GRAD, or (num_comp * 1) for @ref CEED_EVAL_DIV, and
+(num_comp * curl_dim) with curl_dim = 1 if dim < 3 else dim for @ref CEED_EVAL_CURL.
   @param[in]     eval_mode  \ref CEED_EVAL_NONE to use values directly,
                               \ref CEED_EVAL_INTERP to use interpolated values,
-                              \ref CEED_EVAL_GRAD to use gradients.
+                              \ref CEED_EVAL_GRAD to use gradients,
+                              \ref CEED_EVAL_DIV to use divergence,
+                              \ref CEED_EVAL_CURL to use curl.
 
   @return An error code: 0 - success, otherwise - failure
 

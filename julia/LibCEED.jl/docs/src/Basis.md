@@ -14,11 +14,13 @@ BasisCollocated
 create_tensor_h1_lagrange_basis
 create_tensor_h1_basis
 create_h1_basis
+create_hdiv_basis
+create_hcurl_basis
 apply!(b::Basis, nelem, tmode::TransposeMode, emode::EvalMode, u::LibCEED.AbstractCeedVector, v::LibCEED.AbstractCeedVector)
 apply(b::Basis, u::AbstractVector; nelem=1, tmode=NOTRANSPOSE, emode=EVAL_INTERP)
 getdimension
 gettopology
-getnumcomponents(b::Basis)
+getnumcomponents
 getnumnodes
 getnumnodes1d
 getnumqpts
@@ -29,4 +31,6 @@ getinterp
 getinterp1d
 getgrad
 getgrad1d
+getdiv
+getcurl
 ```

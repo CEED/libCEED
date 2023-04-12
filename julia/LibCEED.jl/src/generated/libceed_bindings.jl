@@ -24,6 +24,57 @@ end
     CEED_ERROR_UNSUPPORTED = -3
 end
 
+@cenum CeedMemType::UInt32 begin
+    CEED_MEM_HOST = 0
+    CEED_MEM_DEVICE = 1
+end
+
+@cenum CeedCopyMode::UInt32 begin
+    CEED_COPY_VALUES = 0
+    CEED_USE_POINTER = 1
+    CEED_OWN_POINTER = 2
+end
+
+@cenum CeedNormType::UInt32 begin
+    CEED_NORM_1 = 0
+    CEED_NORM_2 = 1
+    CEED_NORM_MAX = 2
+end
+
+@cenum CeedTransposeMode::UInt32 begin
+    CEED_NOTRANSPOSE = 0
+    CEED_TRANSPOSE = 1
+end
+
+@cenum CeedEvalMode::UInt32 begin
+    CEED_EVAL_NONE = 0
+    CEED_EVAL_INTERP = 1
+    CEED_EVAL_GRAD = 2
+    CEED_EVAL_DIV = 4
+    CEED_EVAL_CURL = 8
+    CEED_EVAL_WEIGHT = 16
+end
+
+@cenum CeedQuadMode::UInt32 begin
+    CEED_GAUSS = 0
+    CEED_GAUSS_LOBATTO = 1
+end
+
+@cenum CeedElemTopology::UInt32 begin
+    CEED_TOPOLOGY_LINE = 65536
+    CEED_TOPOLOGY_TRIANGLE = 131073
+    CEED_TOPOLOGY_QUAD = 131074
+    CEED_TOPOLOGY_TET = 196611
+    CEED_TOPOLOGY_PYRAMID = 196612
+    CEED_TOPOLOGY_PRISM = 196613
+    CEED_TOPOLOGY_HEX = 196614
+end
+
+@cenum CeedContextFieldType::UInt32 begin
+    CEED_CONTEXT_FIELD_DOUBLE = 1
+    CEED_CONTEXT_FIELD_INT32 = 2
+end
+
 mutable struct Ceed_private end
 
 const Ceed = Ptr{Ceed_private}
@@ -123,25 +174,8 @@ function CeedGetScalarType(scalar_type)
     ccall((:CeedGetScalarType, libceed), Cint, (Ptr{CeedScalarType},), scalar_type)
 end
 
-@cenum CeedMemType::UInt32 begin
-    CEED_MEM_HOST = 0
-    CEED_MEM_DEVICE = 1
-end
-
 function CeedGetPreferredMemType(ceed, type)
     ccall((:CeedGetPreferredMemType, libceed), Cint, (Ceed, Ptr{CeedMemType}), ceed, type)
-end
-
-@cenum CeedCopyMode::UInt32 begin
-    CEED_COPY_VALUES = 0
-    CEED_USE_POINTER = 1
-    CEED_OWN_POINTER = 2
-end
-
-@cenum CeedNormType::UInt32 begin
-    CEED_NORM_1 = 0
-    CEED_NORM_2 = 1
-    CEED_NORM_MAX = 2
 end
 
 function CeedVectorCreate(ceed, len, vec)
@@ -150,6 +184,10 @@ end
 
 function CeedVectorReferenceCopy(vec, vec_copy)
     ccall((:CeedVectorReferenceCopy, libceed), Cint, (CeedVector, Ptr{CeedVector}), vec, vec_copy)
+end
+
+function CeedVectorCopy(vec, vec_copy)
+    ccall((:CeedVectorCopy, libceed), Cint, (CeedVector, CeedVector), vec, vec_copy)
 end
 
 function CeedVectorSetArray(vec, mem_type, copy_mode, array)
@@ -200,12 +238,20 @@ function CeedVectorAXPY(y, alpha, x)
     ccall((:CeedVectorAXPY, libceed), Cint, (CeedVector, CeedScalar, CeedVector), y, alpha, x)
 end
 
+function CeedVectorAXPBY(y, alpha, beta, x)
+    ccall((:CeedVectorAXPBY, libceed), Cint, (CeedVector, CeedScalar, CeedScalar, CeedVector), y, alpha, beta, x)
+end
+
 function CeedVectorPointwiseMult(w, x, y)
     ccall((:CeedVectorPointwiseMult, libceed), Cint, (CeedVector, CeedVector, CeedVector), w, x, y)
 end
 
 function CeedVectorReciprocal(vec)
     ccall((:CeedVectorReciprocal, libceed), Cint, (CeedVector,), vec)
+end
+
+function CeedVectorViewRange(vec, start, stop, step, fp_fmt, stream)
+    ccall((:CeedVectorViewRange, libceed), Cint, (CeedVector, CeedSize, CeedSize, CeedInt, Ptr{Cchar}, Ptr{Libc.FILE}), vec, start, stop, step, fp_fmt, stream)
 end
 
 function CeedVectorView(vec, fp_fmt, stream)
@@ -226,11 +272,6 @@ end
 
 function CeedRequestWait(req)
     ccall((:CeedRequestWait, libceed), Cint, (Ptr{CeedRequest},), req)
-end
-
-@cenum CeedTransposeMode::UInt32 begin
-    CEED_NOTRANSPOSE = 0
-    CEED_TRANSPOSE = 1
 end
 
 function CeedElemRestrictionCreate(ceed, num_elem, elem_size, num_comp, comp_stride, l_size, mem_type, copy_mode, offsets, rstr)
@@ -313,30 +354,6 @@ function CeedElemRestrictionDestroy(rstr)
     ccall((:CeedElemRestrictionDestroy, libceed), Cint, (Ptr{CeedElemRestriction},), rstr)
 end
 
-@cenum CeedEvalMode::UInt32 begin
-    CEED_EVAL_NONE = 0
-    CEED_EVAL_INTERP = 1
-    CEED_EVAL_GRAD = 2
-    CEED_EVAL_DIV = 4
-    CEED_EVAL_CURL = 8
-    CEED_EVAL_WEIGHT = 16
-end
-
-@cenum CeedQuadMode::UInt32 begin
-    CEED_GAUSS = 0
-    CEED_GAUSS_LOBATTO = 1
-end
-
-@cenum CeedElemTopology::UInt32 begin
-    CEED_TOPOLOGY_LINE = 65536
-    CEED_TOPOLOGY_TRIANGLE = 131073
-    CEED_TOPOLOGY_QUAD = 131074
-    CEED_TOPOLOGY_TET = 196611
-    CEED_TOPOLOGY_PYRAMID = 196612
-    CEED_TOPOLOGY_PRISM = 196613
-    CEED_TOPOLOGY_HEX = 196614
-end
-
 function CeedBasisCreateTensorH1Lagrange(ceed, dim, num_comp, P, Q, quad_mode, basis)
     ccall((:CeedBasisCreateTensorH1Lagrange, libceed), Cint, (Ceed, CeedInt, CeedInt, CeedInt, CeedInt, CeedQuadMode, Ptr{CeedBasis}), ceed, dim, num_comp, P, Q, quad_mode, basis)
 end
@@ -351,6 +368,10 @@ end
 
 function CeedBasisCreateHdiv(ceed, topo, num_comp, num_nodes, nqpts, interp, div, q_ref, q_weights, basis)
     ccall((:CeedBasisCreateHdiv, libceed), Cint, (Ceed, CeedElemTopology, CeedInt, CeedInt, CeedInt, Ptr{CeedScalar}, Ptr{CeedScalar}, Ptr{CeedScalar}, Ptr{CeedScalar}, Ptr{CeedBasis}), ceed, topo, num_comp, num_nodes, nqpts, interp, div, q_ref, q_weights, basis)
+end
+
+function CeedBasisCreateHcurl(ceed, topo, num_comp, num_nodes, nqpts, interp, curl, q_ref, q_weights, basis)
+    ccall((:CeedBasisCreateHcurl, libceed), Cint, (Ceed, CeedElemTopology, CeedInt, CeedInt, CeedInt, Ptr{CeedScalar}, Ptr{CeedScalar}, Ptr{CeedScalar}, Ptr{CeedScalar}, Ptr{CeedBasis}), ceed, topo, num_comp, num_nodes, nqpts, interp, curl, q_ref, q_weights, basis)
 end
 
 function CeedBasisCreateProjection(basis_from, basis_to, basis_project)
@@ -379,10 +400,6 @@ end
 
 function CeedBasisGetTopology(basis, topo)
     ccall((:CeedBasisGetTopology, libceed), Cint, (CeedBasis, Ptr{CeedElemTopology}), basis, topo)
-end
-
-function CeedBasisGetNumQuadratureComponents(basis, Q_comp)
-    ccall((:CeedBasisGetNumQuadratureComponents, libceed), Cint, (CeedBasis, Ptr{CeedInt}), basis, Q_comp)
 end
 
 function CeedBasisGetNumComponents(basis, num_comp)
@@ -431,6 +448,10 @@ end
 
 function CeedBasisGetDiv(basis, div)
     ccall((:CeedBasisGetDiv, libceed), Cint, (CeedBasis, Ptr{Ptr{CeedScalar}}), basis, div)
+end
+
+function CeedBasisGetCurl(basis, curl)
+    ccall((:CeedBasisGetCurl, libceed), Cint, (CeedBasis, Ptr{Ptr{CeedScalar}}), basis, curl)
 end
 
 function CeedBasisDestroy(basis)
@@ -514,11 +535,6 @@ end
 
 function CeedQFunctionFieldGetEvalMode(qf_field, eval_mode)
     ccall((:CeedQFunctionFieldGetEvalMode, libceed), Cint, (CeedQFunctionField, Ptr{CeedEvalMode}), qf_field, eval_mode)
-end
-
-@cenum CeedContextFieldType::UInt32 begin
-    CEED_CONTEXT_FIELD_DOUBLE = 1
-    CEED_CONTEXT_FIELD_INT32 = 2
 end
 
 # typedef int ( * CeedQFunctionContextDataDestroyUser ) ( void * data )
@@ -716,32 +732,36 @@ function CeedOperatorGetFlopsEstimate(op, flops)
     ccall((:CeedOperatorGetFlopsEstimate, libceed), Cint, (CeedOperator, Ptr{CeedSize}), op, flops)
 end
 
-function CeedOperatorContextGetFieldLabel(op, field_name, field_label)
-    ccall((:CeedOperatorContextGetFieldLabel, libceed), Cint, (CeedOperator, Ptr{Cchar}, Ptr{CeedContextFieldLabel}), op, field_name, field_label)
+function CeedOperatorGetContext(op, ctx)
+    ccall((:CeedOperatorGetContext, libceed), Cint, (CeedOperator, Ptr{CeedQFunctionContext}), op, ctx)
 end
 
-function CeedOperatorContextSetDouble(op, field_label, values)
-    ccall((:CeedOperatorContextSetDouble, libceed), Cint, (CeedOperator, CeedContextFieldLabel, Ptr{Cdouble}), op, field_label, values)
+function CeedOperatorGetContextFieldLabel(op, field_name, field_label)
+    ccall((:CeedOperatorGetContextFieldLabel, libceed), Cint, (CeedOperator, Ptr{Cchar}, Ptr{CeedContextFieldLabel}), op, field_name, field_label)
 end
 
-function CeedOperatorContextGetDoubleRead(op, field_label, num_values, values)
-    ccall((:CeedOperatorContextGetDoubleRead, libceed), Cint, (CeedOperator, CeedContextFieldLabel, Ptr{Csize_t}, Ptr{Ptr{Cdouble}}), op, field_label, num_values, values)
+function CeedOperatorSetContextDouble(op, field_label, values)
+    ccall((:CeedOperatorSetContextDouble, libceed), Cint, (CeedOperator, CeedContextFieldLabel, Ptr{Cdouble}), op, field_label, values)
 end
 
-function CeedOperatorContextRestoreDoubleRead(op, field_label, values)
-    ccall((:CeedOperatorContextRestoreDoubleRead, libceed), Cint, (CeedOperator, CeedContextFieldLabel, Ptr{Ptr{Cdouble}}), op, field_label, values)
+function CeedOperatorGetContextDoubleRead(op, field_label, num_values, values)
+    ccall((:CeedOperatorGetContextDoubleRead, libceed), Cint, (CeedOperator, CeedContextFieldLabel, Ptr{Csize_t}, Ptr{Ptr{Cdouble}}), op, field_label, num_values, values)
 end
 
-function CeedOperatorContextSetInt32(op, field_label, values)
-    ccall((:CeedOperatorContextSetInt32, libceed), Cint, (CeedOperator, CeedContextFieldLabel, Ptr{Cint}), op, field_label, values)
+function CeedOperatorRestoreContextDoubleRead(op, field_label, values)
+    ccall((:CeedOperatorRestoreContextDoubleRead, libceed), Cint, (CeedOperator, CeedContextFieldLabel, Ptr{Ptr{Cdouble}}), op, field_label, values)
 end
 
-function CeedOperatorContextGetInt32Read(op, field_label, num_values, values)
-    ccall((:CeedOperatorContextGetInt32Read, libceed), Cint, (CeedOperator, CeedContextFieldLabel, Ptr{Csize_t}, Ptr{Ptr{Cint}}), op, field_label, num_values, values)
+function CeedOperatorSetContextInt32(op, field_label, values)
+    ccall((:CeedOperatorSetContextInt32, libceed), Cint, (CeedOperator, CeedContextFieldLabel, Ptr{Cint}), op, field_label, values)
 end
 
-function CeedOperatorContextRestoreInt32Read(op, field_label, values)
-    ccall((:CeedOperatorContextRestoreInt32Read, libceed), Cint, (CeedOperator, CeedContextFieldLabel, Ptr{Ptr{Cint}}), op, field_label, values)
+function CeedOperatorGetContextInt32Read(op, field_label, num_values, values)
+    ccall((:CeedOperatorGetContextInt32Read, libceed), Cint, (CeedOperator, CeedContextFieldLabel, Ptr{Csize_t}, Ptr{Ptr{Cint}}), op, field_label, num_values, values)
+end
+
+function CeedOperatorRestoreContextInt32Read(op, field_label, values)
+    ccall((:CeedOperatorRestoreContextInt32Read, libceed), Cint, (CeedOperator, CeedContextFieldLabel, Ptr{Ptr{Cint}}), op, field_label, values)
 end
 
 function CeedOperatorApply(op, in, out, request)
@@ -987,6 +1007,7 @@ end
 @cenum CeedFESpace::UInt32 begin
     CEED_FE_SPACE_H1 = 1
     CEED_FE_SPACE_HDIV = 2
+    CEED_FE_SPACE_HCURL = 3
 end
 
 function CeedBasisGetCollocatedGrad(basis, colo_grad_1d)
@@ -1009,8 +1030,16 @@ function CeedBasisReference(basis)
     ccall((:CeedBasisReference, libceed), Cint, (CeedBasis,), basis)
 end
 
+function CeedBasisGetNumQuadratureComponents(basis, eval_mode, q_comp)
+    ccall((:CeedBasisGetNumQuadratureComponents, libceed), Cint, (CeedBasis, CeedEvalMode, Ptr{CeedInt}), basis, eval_mode, q_comp)
+end
+
 function CeedBasisGetFlopsEstimate(basis, t_mode, eval_mode, flops)
     ccall((:CeedBasisGetFlopsEstimate, libceed), Cint, (CeedBasis, CeedTransposeMode, CeedEvalMode, Ptr{CeedSize}), basis, t_mode, eval_mode, flops)
+end
+
+function CeedBasisGetFESpace(basis, fe_space)
+    ccall((:CeedBasisGetFESpace, libceed), Cint, (CeedBasis, Ptr{CeedFESpace}), basis, fe_space)
 end
 
 function CeedBasisGetTopologyDimension(topo, dim)
@@ -1031,6 +1060,10 @@ end
 
 function CeedTensorContractApply(contract, A, B, C, J, t, t_mode, Add, u, v)
     ccall((:CeedTensorContractApply, libceed), Cint, (CeedTensorContract, CeedInt, CeedInt, CeedInt, CeedInt, Ptr{CeedScalar}, CeedTransposeMode, CeedInt, Ptr{CeedScalar}, Ptr{CeedScalar}), contract, A, B, C, J, t, t_mode, Add, u, v)
+end
+
+function CeedTensorContractStridedApply(contract, A, B, C, D, J, t, t_mode, add, u, v)
+    ccall((:CeedTensorContractStridedApply, libceed), Cint, (CeedTensorContract, CeedInt, CeedInt, CeedInt, CeedInt, CeedInt, Ptr{CeedScalar}, CeedTransposeMode, CeedInt, Ptr{CeedScalar}, Ptr{CeedScalar}), contract, A, B, C, D, J, t, t_mode, add, u, v)
 end
 
 function CeedTensorContractGetCeed(contract, ceed)
@@ -1331,7 +1364,9 @@ end
 
 # Skipping MacroDefinition: CEED_EXTERN extern CEED_VISIBILITY ( default )
 
-# Skipping MacroDefinition: CEED_QFUNCTION_HELPER CEED_QFUNCTION_ATTR static inline
+# Skipping MacroDefinition: CEED_QFUNCTION_HELPER_ATTR CEED_QFUNCTION_ATTR __attribute__ ( ( always_inline ) )
+
+# Skipping MacroDefinition: CEED_QFUNCTION_HELPER CEED_QFUNCTION_HELPER_ATTR static inline
 
 const CeedInt_FMT = "d"
 
@@ -1341,7 +1376,7 @@ const CEED_VERSION_MINOR = 11
 
 const CEED_VERSION_PATCH = 0
 
-const CEED_VERSION_RELEASE = true
+const CEED_VERSION_RELEASE = false
 
 # Skipping MacroDefinition: CEED_INTERN extern CEED_VISIBILITY ( hidden )
 

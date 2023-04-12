@@ -820,6 +820,7 @@ int CeedInit(const char *resource, Ceed *ceed) {
       CEED_FTABLE_ENTRY(Ceed, BasisCreateTensorH1),
       CEED_FTABLE_ENTRY(Ceed, BasisCreateH1),
       CEED_FTABLE_ENTRY(Ceed, BasisCreateHdiv),
+      CEED_FTABLE_ENTRY(Ceed, BasisCreateHcurl),
       CEED_FTABLE_ENTRY(Ceed, TensorContractCreate),
       CEED_FTABLE_ENTRY(Ceed, QFunctionCreate),
       CEED_FTABLE_ENTRY(Ceed, QFunctionContextCreate),

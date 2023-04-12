@@ -79,6 +79,8 @@ export @interior_qf,
     create_elem_restriction_strided,
     create_evector,
     create_h1_basis,
+    create_hdiv_basis,
+    create_hcurl_basis,
     create_identity_qfunction,
     create_interior_qfunction,
     create_lvector,
@@ -150,7 +152,7 @@ include("Request.jl")
 include("Operator.jl")
 include("Misc.jl")
 
-const minimum_libceed_version = v"0.10.0"
+const minimum_libceed_version = v"0.12.0"
 
 function __init__()
     if !ceedversion_ge(minimum_libceed_version)

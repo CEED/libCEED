@@ -7,8 +7,8 @@
 
 #include <ceed.h>
 
-// Hdiv basis for quadrilateral linear BDM element in 2D
-// Local numbering is as follow (each edge has 2 vector DoF)
+// H(div) basis for quadrilateral linear BDM element in 2D
+// Local numbering is as follows (each edge has 2 vector dof)
 //     b4     b5
 //    2---------3
 //  b7|         |b3
@@ -40,6 +40,7 @@ int BuildNodalHdivQuadrilateral(CeedScalar *x, CeedScalar *Bx, CeedScalar *By) {
   By[7]            = 0.125 + -0.125 * y_hat * y_hat;
   return 0;
 }
+
 static void BuildHdivQuadrilateral(CeedInt q, CeedScalar *q_ref, CeedScalar *q_weights, CeedScalar *interp, CeedScalar *div, CeedQuadMode quad_mode) {
   // Get 1D quadrature on [-1,1]
   CeedScalar q_ref_1d[q], q_weight_1d[q];
@@ -56,10 +57,10 @@ static void BuildHdivQuadrilateral(CeedInt q, CeedScalar *q_ref, CeedScalar *q_w
 
   // Divergence operator; Divergence of nodal basis for ref element
   CeedScalar D[8] = {0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25};
-  // Loop over quadrature points
   CeedScalar Bx[8], By[8];
   CeedScalar X[2];
 
+  // Loop over quadrature points
   for (CeedInt i = 0; i < q; i++) {
     for (CeedInt j = 0; j < q; j++) {
       CeedInt k1        = q * i + j;

@@ -586,7 +586,7 @@ impl Ceed {
     /// * `nqpts`   - Total number of quadrature points
     /// * `interp`  - Row-major `(nqpts * nnodes)` matrix expressing the values of
     ///                 nodal basis functions at quadrature points
-    /// * `grad`    - Row-major `(nqpts * dim * nnodes)` matrix expressing
+    /// * `grad`    - Row-major `(dim * nqpts * nnodes)` matrix expressing
     ///                 derivatives of nodal basis functions at quadrature points
     /// * `qref`    - Array of length `nqpts` holding the locations of quadrature
     ///                 points on the reference element `[-1, 1]`
@@ -704,6 +704,198 @@ impl Ceed {
     ) -> Result<Basis<'a>> {
         Basis::create_H1(
             self, topo, ncomp, nnodes, nqpts, interp, grad, qref, qweight,
+        )
+    }
+
+    /// Returns an $H(div)$ Basis
+    ///
+    /// # arguments
+    ///
+    /// * `topo`    - Topology of element, e.g. hypercube, simplex, ect
+    /// * `ncomp`   - Number of field components (1 for scalar fields)
+    /// * `nnodes`  - Total number of nodes
+    /// * `nqpts`   - Total number of quadrature points
+    /// * `interp`  - Row-major `(dim * nqpts * nnodes)` matrix expressing the
+    ///                 values of basis functions at quadrature points
+    /// * `div`     - Row-major `(nqpts * nnodes)` matrix expressing the
+    ///                 divergence of basis functions at quadrature points
+    /// * `qref`    - Array of length `nqpts` holding the locations of quadrature
+    ///                 points on the reference element `[-1, 1]`
+    /// * `qweight` - Array of length `nqpts` holding the quadrature weights on
+    ///                 the reference element
+    ///
+    /// ```
+    /// # use libceed::prelude::*;
+    /// # fn main() -> libceed::Result<()> {
+    /// # let ceed = libceed::Ceed::default_init();
+    /// let interp = [
+    ///     0.00000000,
+    ///     -1.57735027,
+    ///     0.57735027,
+    ///     0.00000000,
+    ///     0.00000000,
+    ///     -1.57735027,
+    ///     0.57735027,
+    ///     0.00000000,
+    ///     0.00000000,
+    ///     -1.57735027,
+    ///     0.57735027,
+    ///     0.00000000,
+    ///     0.00000000,
+    ///     -0.42264973,
+    ///     -0.57735027,
+    ///     0.00000000,
+    ///     0.42264973,
+    ///     0.00000000,
+    ///     0.00000000,
+    ///     0.57735027,
+    ///     0.42264973,
+    ///     0.00000000,
+    ///     0.00000000,
+    ///     0.57735027,
+    ///     1.57735027,
+    ///     0.00000000,
+    ///     0.00000000,
+    ///     -0.57735027,
+    ///     1.57735027,
+    ///     0.00000000,
+    ///     0.00000000,
+    ///     -0.57735027,
+    /// ];
+    /// let div = [
+    ///     -1.00000000,
+    ///     1.00000000,
+    ///     -1.00000000,
+    ///     1.00000000,
+    ///     -1.00000000,
+    ///     1.00000000,
+    ///     -1.00000000,
+    ///     1.00000000,
+    ///     -1.00000000,
+    ///     1.00000000,
+    ///     -1.00000000,
+    ///     1.00000000,
+    ///     -1.00000000,
+    ///     1.00000000,
+    ///     -1.00000000,
+    ///     1.00000000,
+    /// ];
+    /// let qref = [
+    ///     0.57735026, 0.57735026, 0.57735026, 0.57735026, 0.57735026, 0.57735026, 0.57735026,
+    ///     0.57735026,
+    /// ];
+    /// let qweight = [1.00000000, 1.00000000, 1.00000000, 1.00000000];
+    /// let b = ceed.basis_Hdiv(ElemTopology::Quad, 1, 4, 4, &interp, &div, &qref, &qweight)?;
+    /// # Ok(())
+    /// # }
+    /// ```
+    pub fn basis_Hdiv<'a>(
+        &self,
+        topo: ElemTopology,
+        ncomp: usize,
+        nnodes: usize,
+        nqpts: usize,
+        interp: &[crate::Scalar],
+        div: &[crate::Scalar],
+        qref: &[crate::Scalar],
+        qweight: &[crate::Scalar],
+    ) -> Result<Basis<'a>> {
+        Basis::create_Hdiv(self, topo, ncomp, nnodes, nqpts, interp, div, qref, qweight)
+    }
+
+    /// Returns an $H(curl)$ Basis
+    ///
+    /// # arguments
+    ///
+    /// * `topo`    - Topology of element, e.g. hypercube, simplex, ect
+    /// * `ncomp`   - Number of field components (1 for scalar fields)
+    /// * `nnodes`  - Total number of nodes
+    /// * `nqpts`   - Total number of quadrature points
+    /// * `interp`  - Row-major `(dim * nqpts * nnodes)` matrix expressing the
+    ///                 values of basis functions at quadrature points
+    /// * `curl`    - Row-major `(curl_comp * nqpts * nnodes)`, `curl_comp = 1 if
+    ///                 dim < 3 else dim` matrix expressing the curl of basis
+    ///                 functions at quadrature points
+    /// * `qref`    - Array of length `nqpts` holding the locations of quadrature
+    ///                 points on the reference element `[-1, 1]`
+    /// * `qweight` - Array of length `nqpts` holding the quadrature weights on
+    ///                 the reference element
+    ///
+    /// ```
+    /// # use libceed::prelude::*;
+    /// # fn main() -> libceed::Result<()> {
+    /// # let ceed = libceed::Ceed::default_init();
+    /// let interp = [
+    ///     -0.20000000,
+    ///     0.20000000,
+    ///     0.80000000,
+    ///     -0.20000000,
+    ///     0.20000000,
+    ///     0.80000000,
+    ///     -0.33333333,
+    ///     0.33333333,
+    ///     0.66666667,
+    ///     -0.60000000,
+    ///     0.60000000,
+    ///     0.40000000,
+    ///     0.20000000,
+    ///     0.80000000,
+    ///     0.20000000,
+    ///     0.60000000,
+    ///     0.40000000,
+    ///     0.60000000,
+    ///     0.33333333,
+    ///     0.66666667,
+    ///     0.33333333,
+    ///     0.20000000,
+    ///     0.80000000,
+    ///     0.20000000,
+    /// ];
+    /// let curl = [
+    ///     2.00000000,
+    ///     -2.00000000,
+    ///     -2.00000000,
+    ///     2.00000000,
+    ///     -2.00000000,
+    ///     -2.00000000,
+    ///     2.00000000,
+    ///     -2.00000000,
+    ///     -2.00000000,
+    ///     2.00000000,
+    ///     -2.00000000,
+    ///     -2.00000000,
+    /// ];
+    /// let qref = [
+    ///     0.20000000, 0.60000000, 0.33333333, 0.20000000, 0.20000000, 0.20000000, 0.33333333,
+    ///     0.60000000,
+    /// ];
+    /// let qweight = [0.26041667, 0.26041667, -0.28125000, 0.26041667];
+    /// let b = ceed.basis_Hcurl(
+    ///     ElemTopology::Triangle,
+    ///     1,
+    ///     3,
+    ///     4,
+    ///     &interp,
+    ///     &curl,
+    ///     &qref,
+    ///     &qweight,
+    /// )?;
+    /// # Ok(())
+    /// # }
+    /// ```
+    pub fn basis_Hcurl<'a>(
+        &self,
+        topo: ElemTopology,
+        ncomp: usize,
+        nnodes: usize,
+        nqpts: usize,
+        interp: &[crate::Scalar],
+        curl: &[crate::Scalar],
+        qref: &[crate::Scalar],
+        qweight: &[crate::Scalar],
+    ) -> Result<Basis<'a>> {
+        Basis::create_Hcurl(
+            self, topo, ncomp, nnodes, nqpts, interp, curl, qref, qweight,
         )
     }
 

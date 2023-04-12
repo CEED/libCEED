@@ -35,7 +35,7 @@
 **/
 static int CeedOperatorCheckField(Ceed ceed, CeedQFunctionField qf_field, CeedElemRestriction r, CeedBasis b) {
   CeedEvalMode eval_mode = qf_field->eval_mode;
-  CeedInt      dim = 1, num_comp = 1, Q_comp = 1, restr_num_comp = 1, size = qf_field->size;
+  CeedInt      dim = 1, num_comp = 1, q_comp = 1, restr_num_comp = 1, size = qf_field->size;
 
   // Restriction
   if (r != CEED_ELEMRESTRICTION_NONE) {
@@ -61,7 +61,7 @@ static int CeedOperatorCheckField(Ceed ceed, CeedQFunctionField qf_field, CeedEl
     }
     CeedCall(CeedBasisGetDimension(b, &dim));
     CeedCall(CeedBasisGetNumComponents(b, &num_comp));
-    CeedCall(CeedBasisGetNumQuadratureComponents(b, &Q_comp));
+    CeedCall(CeedBasisGetNumQuadratureComponents(b, eval_mode, &q_comp));
     if (r != CEED_ELEMRESTRICTION_NONE && restr_num_comp != num_comp) {
       // LCOV_EXCL_START
       return CeedError(ceed, CEED_ERROR_DIMENSION,
@@ -88,38 +88,19 @@ static int CeedOperatorCheckField(Ceed ceed, CeedQFunctionField qf_field, CeedEl
       }
       break;
     case CEED_EVAL_INTERP:
-      if (size != num_comp * Q_comp) {
+    case CEED_EVAL_GRAD:
+    case CEED_EVAL_DIV:
+    case CEED_EVAL_CURL:
+      if (size != num_comp * q_comp) {
         // LCOV_EXCL_START
         return CeedError(ceed, CEED_ERROR_DIMENSION,
                          "Field '%s' of size %" CeedInt_FMT " and EvalMode %s: ElemRestriction/Basis has %" CeedInt_FMT " components",
-                         qf_field->field_name, qf_field->size, CeedEvalModes[qf_field->eval_mode], num_comp * Q_comp);
-        // LCOV_EXCL_STOP
-      }
-      break;
-    case CEED_EVAL_GRAD:
-      if (size != num_comp * dim) {
-        // LCOV_EXCL_START
-        return CeedError(ceed, CEED_ERROR_DIMENSION,
-                         "Field '%s' of size %" CeedInt_FMT " and EvalMode %s in %" CeedInt_FMT " dimensions: ElemRestriction/Basis has %" CeedInt_FMT
-                         " components",
-                         qf_field->field_name, qf_field->size, CeedEvalModes[qf_field->eval_mode], dim, num_comp);
+                         qf_field->field_name, qf_field->size, CeedEvalModes[qf_field->eval_mode], num_comp * q_comp);
         // LCOV_EXCL_STOP
       }
       break;
     case CEED_EVAL_WEIGHT:
       // No additional checks required
-      break;
-    case CEED_EVAL_DIV:
-      if (size != num_comp) {
-        // LCOV_EXCL_START
-        return CeedError(ceed, CEED_ERROR_DIMENSION,
-                         "Field '%s' of size %" CeedInt_FMT " and EvalMode %s: ElemRestriction/Basis has %" CeedInt_FMT " components",
-                         qf_field->field_name, qf_field->size, CeedEvalModes[qf_field->eval_mode], num_comp);
-        // LCOV_EXCL_STOP
-      }
-      break;
-    case CEED_EVAL_CURL:
-      // Not implemented
       break;
   }
   return CEED_ERROR_SUCCESS;

@@ -303,3 +303,86 @@ def test_323(ceed_resource):
             assert math.fabs(out_array[1 * Q + i] - value) < 10. * TOL
 
 # -------------------------------------------------------------------------------
+# Test interpolation with a 2D Quad non-tensor H(div) basis
+# -------------------------------------------------------------------------------
+
+
+def test_330(ceed_resource):
+    ceed = libceed.Ceed(ceed_resource)
+
+    P, Q, dim = 4, 4, 2
+
+    in_array = np.ones(P, dtype=ceed.scalar_type())
+    qref = np.empty(dim * Q, dtype=ceed.scalar_type())
+    qweight = np.empty(Q, dtype=ceed.scalar_type())
+
+    interp, div = bm.buildmatshdiv(qref, qweight, libceed.scalar_types[
+        libceed.lib.CEED_SCALAR_TYPE])
+
+    b = ceed.BasisHdiv(libceed.QUAD, 1, P, Q, interp, div, qref, qweight)
+
+    # Interpolate function to quadrature points
+    in_vec = ceed.Vector(P)
+    in_vec.set_array(in_array, cmode=libceed.USE_POINTER)
+    out_vec = ceed.Vector(Q * dim)
+    out_vec.set_value(0)
+
+    b.apply(1, libceed.EVAL_INTERP, in_vec, out_vec)
+
+    # Check values at quadrature points
+    with out_vec.array_read() as out_array:
+        for i in range(Q):
+            assert math.fabs(out_array[0 * Q + i] + 1.) < 10. * TOL
+            assert math.fabs(out_array[1 * Q + i] - 1.) < 10. * TOL
+
+# -------------------------------------------------------------------------------
+# Test interpolation with a 2D Simplex non-tensor H(curl) basis
+# -------------------------------------------------------------------------------
+
+
+def test_340(ceed_resource):
+    ceed = libceed.Ceed(ceed_resource)
+
+    P, Q, dim = 3, 4, 2
+
+    in_array = np.empty(P, dtype=ceed.scalar_type())
+    qref = np.empty(dim * Q, dtype=ceed.scalar_type())
+    qweight = np.empty(Q, dtype=ceed.scalar_type())
+
+    interp, curl = bm.buildmatshcurl(qref, qweight, libceed.scalar_types[
+        libceed.lib.CEED_SCALAR_TYPE])
+
+    b = ceed.BasisHcurl(libceed.TRIANGLE, 1, P, Q, interp, curl, qref, qweight)
+
+    # Interpolate function to quadrature points
+    in_array[0] = 1.
+    in_array[1] = 2.
+    in_array[2] = 1.
+
+    in_vec = ceed.Vector(P)
+    in_vec.set_array(in_array, cmode=libceed.USE_POINTER)
+    out_vec = ceed.Vector(Q * dim)
+    out_vec.set_value(0)
+
+    b.apply(1, libceed.EVAL_INTERP, in_vec, out_vec)
+
+    # Check values at quadrature points
+    with out_vec.array_read() as out_array:
+        for i in range(Q):
+            assert math.fabs(out_array[0 * Q + i] - 1.) < 10. * TOL
+
+    # Interpolate function to quadrature points
+    in_array[0] = -1.
+    in_array[1] = 1.
+    in_array[2] = 2.
+
+    out_vec.set_value(0)
+
+    b.apply(1, libceed.EVAL_INTERP, in_vec, out_vec)
+
+    # Check values at quadrature points
+    with out_vec.array_read() as out_array:
+        for i in range(Q):
+            assert math.fabs(out_array[1 * Q + i] - 1.) < 10. * TOL
+
+# -------------------------------------------------------------------------------

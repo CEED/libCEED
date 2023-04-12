@@ -274,6 +274,8 @@ CEED_EXTERN int CeedBasisCreateH1(Ceed ceed, CeedElemTopology topo, CeedInt num_
                                   const CeedScalar *grad, const CeedScalar *q_ref, const CeedScalar *q_weights, CeedBasis *basis);
 CEED_EXTERN int CeedBasisCreateHdiv(Ceed ceed, CeedElemTopology topo, CeedInt num_comp, CeedInt num_nodes, CeedInt nqpts, const CeedScalar *interp,
                                     const CeedScalar *div, const CeedScalar *q_ref, const CeedScalar *q_weights, CeedBasis *basis);
+CEED_EXTERN int CeedBasisCreateHcurl(Ceed ceed, CeedElemTopology topo, CeedInt num_comp, CeedInt num_nodes, CeedInt nqpts, const CeedScalar *interp,
+                                     const CeedScalar *curl, const CeedScalar *q_ref, const CeedScalar *q_weights, CeedBasis *basis);
 CEED_EXTERN int CeedBasisCreateProjection(CeedBasis basis_from, CeedBasis basis_to, CeedBasis *basis_project);
 CEED_EXTERN int CeedBasisReferenceCopy(CeedBasis basis, CeedBasis *basis_copy);
 CEED_EXTERN int CeedBasisView(CeedBasis basis, FILE *stream);
@@ -281,7 +283,6 @@ CEED_EXTERN int CeedBasisApply(CeedBasis basis, CeedInt num_elem, CeedTransposeM
 CEED_EXTERN int CeedBasisGetCeed(CeedBasis basis, Ceed *ceed);
 CEED_EXTERN int CeedBasisGetDimension(CeedBasis basis, CeedInt *dim);
 CEED_EXTERN int CeedBasisGetTopology(CeedBasis basis, CeedElemTopology *topo);
-CEED_EXTERN int CeedBasisGetNumQuadratureComponents(CeedBasis basis, CeedInt *Q_comp);
 CEED_EXTERN int CeedBasisGetNumComponents(CeedBasis basis, CeedInt *num_comp);
 CEED_EXTERN int CeedBasisGetNumNodes(CeedBasis basis, CeedInt *P);
 CEED_EXTERN int CeedBasisGetNumNodes1D(CeedBasis basis, CeedInt *P_1d);
@@ -294,6 +295,7 @@ CEED_EXTERN int CeedBasisGetInterp1D(CeedBasis basis, const CeedScalar **interp_
 CEED_EXTERN int CeedBasisGetGrad(CeedBasis basis, const CeedScalar **grad);
 CEED_EXTERN int CeedBasisGetGrad1D(CeedBasis basis, const CeedScalar **grad_1d);
 CEED_EXTERN int CeedBasisGetDiv(CeedBasis basis, const CeedScalar **div);
+CEED_EXTERN int CeedBasisGetCurl(CeedBasis basis, const CeedScalar **curl);
 CEED_EXTERN int CeedBasisDestroy(CeedBasis *basis);
 
 CEED_EXTERN int CeedGaussQuadrature(CeedInt Q, CeedScalar *q_ref_1d, CeedScalar *q_weight_1d);
