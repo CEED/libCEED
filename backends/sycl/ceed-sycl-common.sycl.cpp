@@ -98,3 +98,26 @@ int CeedDestroy_Sycl(Ceed ceed) {
 }
 
 //------------------------------------------------------------------------------
+// Use an external queue
+//------------------------------------------------------------------------------
+int CeedSetStream_Sycl(Ceed ceed, void* handle) {
+  Ceed_Sycl *data;
+  CeedCallBackend(CeedGetData(ceed, &data));
+
+  if (!handle) {
+    return CeedError(ceed, CEED_ERROR_BACKEND, "Stream handle is null");;
+  }
+  sycl::queue* q = static_cast<sycl::queue*>(handle);
+
+  // Ensure we are using the expected device
+  if (data->sycl_device != q->get_device()) {
+    return CeedError(ceed, CEED_ERROR_BACKEND, "Device mismatch between provided queue and ceed object");;
+  }
+  data->sycl_device = q->get_device();
+  data->sycl_context = q->get_context();
+  data->sycl_queue = *q;
+
+  return CEED_ERROR_SUCCESS;
+}
+
+//------------------------------------------------------------------------------
