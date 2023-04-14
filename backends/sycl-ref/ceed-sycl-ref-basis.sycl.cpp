@@ -44,7 +44,7 @@ static int CeedBasisApplyInterp_Sycl(sycl::queue &sycl_queue, CeedInt num_elem, 
   const CeedScalar *interp_1d = impl->d_interp_1d;
 
   const sycl::device &sycl_device         = sycl_queue.get_device();
-  const CeedInt       max_work_group_size = sycl_device.get_info<sycl::info::device::max_work_group_size>();
+  const CeedInt       max_work_group_size = 32;
   const CeedInt       work_group_size     = CeedIntMin(impl->num_qpts, max_work_group_size);
   sycl::range<1>      local_range(work_group_size);
   sycl::range<1>      global_range(num_elem * work_group_size);
@@ -136,8 +136,7 @@ static int CeedBasisApplyGrad_Sycl(sycl::queue &sycl_queue, CeedInt num_elem, Ce
   const CeedScalar *grad_1d   = impl->d_grad_1d;
 
   const sycl::device &sycl_device         = sycl_queue.get_device();
-  const CeedInt       max_work_group_size = sycl_device.get_info<sycl::info::device::max_work_group_size>();
-  const CeedInt       work_group_size     = max_work_group_size;
+  const CeedInt       work_group_size     = 32;
   sycl::range<1>      local_range(work_group_size);
   sycl::range<1>      global_range(num_elem * work_group_size);
   sycl::nd_range<1>   kernel_range(global_range, local_range);
