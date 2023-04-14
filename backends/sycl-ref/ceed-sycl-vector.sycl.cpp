@@ -373,6 +373,12 @@ static int CeedVectorTakeArray_Sycl(CeedVector vec, CeedMemType mem_type, CeedSc
   CeedVector_Sycl *impl;
   CeedCallBackend(CeedVectorGetData(vec, &impl));
 
+  Ceed_Sycl *data;
+  CeedCallBackend(CeedGetData(ceed, &data));
+
+  // Order queue
+  data->sycl_queue.ext_oneapi_submit_barrier();
+
   // Sync array to requested mem_type
   CeedCallBackend(CeedVectorSyncArray(vec, mem_type));
 
