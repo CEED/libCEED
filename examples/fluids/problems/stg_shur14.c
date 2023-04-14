@@ -81,8 +81,8 @@ static PetscErrorCode ReadSTGInflow(const MPI_Comm comm, const char path[PETSC_M
     PetscCall(PetscSynchronizedFGets(comm, fp, char_array_len, line));
     PetscCall(PetscStrToArray(line, ' ', &ndims, &array));
     PetscCheck(ndims == dims[1], comm, PETSC_ERR_FILE_UNEXPECTED,
-               "Line %" PetscInt_FMT " of %s does not contain enough columns (%" PetscInt_FMT " instead of %" PetscInt_FMT ")", i, path, ndims,
-               dims[1]);
+               "Line %" PetscInt_FMT " of %s does not have correct number of columns (%" PetscInt_FMT " instead of %" PetscInt_FMT ")", i, path,
+               ndims, dims[1]);
 
     wall_dist[i] = (CeedScalar)atof(array[0]);
     ubar[0][i]   = (CeedScalar)atof(array[1]);
@@ -136,8 +136,8 @@ static PetscErrorCode ReadSTGRand(const MPI_Comm comm, const char path[PETSC_MAX
     PetscCall(PetscSynchronizedFGets(comm, fp, char_array_len, line));
     PetscCall(PetscStrToArray(line, ' ', &ndims, &array));
     PetscCheck(ndims == dims[1], comm, PETSC_ERR_FILE_UNEXPECTED,
-               "Line %" PetscInt_FMT " of %s does not contain enough columns (%" PetscInt_FMT " instead of %" PetscInt_FMT ")", i, path, ndims,
-               dims[1]);
+               "Line %" PetscInt_FMT " of %s does not have correct number of columns (%" PetscInt_FMT " instead of %" PetscInt_FMT ")", i, path,
+               ndims, dims[1]);
 
     d[0][i]     = (CeedScalar)atof(array[0]);
     d[1][i]     = (CeedScalar)atof(array[1]);
