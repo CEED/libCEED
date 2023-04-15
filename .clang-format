@@ -12,3 +12,4 @@ ColumnLimit:                  150
 CommentPragmas:               'TESTARGS'
 TabWidth:                     4
 UseTab:                       Never
+StatementMacros:              [CeedPragmaOptimizeOn, CeedPragmaOptimizeOff]

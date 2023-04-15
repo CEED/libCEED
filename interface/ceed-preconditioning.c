@@ -899,8 +899,9 @@ static int CeedSingleOperatorMultigridLevel(CeedOperator op_fine, CeedVector p_m
 
   @ref Developer
 **/
-CeedPragmaOptimizeOff static int CeedBuildMassLaplace(const CeedScalar *interp_1d, const CeedScalar *grad_1d, const CeedScalar *q_weight_1d,
-                                                      CeedInt P_1d, CeedInt Q_1d, CeedInt dim, CeedScalar *mass, CeedScalar *laplace) {
+CeedPragmaOptimizeOff
+static int CeedBuildMassLaplace(const CeedScalar *interp_1d, const CeedScalar *grad_1d, const CeedScalar *q_weight_1d, CeedInt P_1d, CeedInt Q_1d,
+                                CeedInt dim, CeedScalar *mass, CeedScalar *laplace) {
   for (CeedInt i = 0; i < P_1d; i++) {
     for (CeedInt j = 0; j < P_1d; j++) {
       CeedScalar sum = 0.0;
@@ -920,7 +921,7 @@ CeedPragmaOptimizeOff static int CeedBuildMassLaplace(const CeedScalar *interp_1
   for (CeedInt i = 0; i < P_1d; i++) laplace[i + P_1d * i] += perturbation;
   return CEED_ERROR_SUCCESS;
 }
-CeedPragmaOptimizeOn;
+CeedPragmaOptimizeOn
 
 /// @}
 

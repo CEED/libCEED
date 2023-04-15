@@ -674,7 +674,8 @@ int CeedHouseholderApplyQ(CeedScalar *mat_A, const CeedScalar *mat_Q, const Ceed
 
   @ref Utility
 **/
-CeedPragmaOptimizeOff int CeedSymmetricSchurDecomposition(Ceed ceed, CeedScalar *mat, CeedScalar *lambda, CeedInt n) {
+CeedPragmaOptimizeOff
+int CeedSymmetricSchurDecomposition(Ceed ceed, CeedScalar *mat, CeedScalar *lambda, CeedInt n) {
   // Check bounds for clang-tidy
   if (n < 2) {
     // LCOV_EXCL_START
@@ -800,7 +801,7 @@ CeedPragmaOptimizeOff int CeedSymmetricSchurDecomposition(Ceed ceed, CeedScalar 
   }
   return CEED_ERROR_SUCCESS;
 }
-CeedPragmaOptimizeOn;
+CeedPragmaOptimizeOn
 
 /**
   @brief Return Simultaneous Diagonalization of two matrices.
@@ -820,8 +821,8 @@ CeedPragmaOptimizeOn;
 
   @ref Utility
 **/
-CeedPragmaOptimizeOff int CeedSimultaneousDiagonalization(Ceed ceed, CeedScalar *mat_A, CeedScalar *mat_B, CeedScalar *mat_X, CeedScalar *lambda,
-                                                          CeedInt n) {
+CeedPragmaOptimizeOff
+int CeedSimultaneousDiagonalization(Ceed ceed, CeedScalar *mat_A, CeedScalar *mat_B, CeedScalar *mat_X, CeedScalar *lambda, CeedInt n) {
   CeedScalar *mat_C, *mat_G, *vec_D;
   CeedCall(CeedCalloc(n * n, &mat_C));
   CeedCall(CeedCalloc(n * n, &mat_G));
@@ -895,7 +896,7 @@ CeedPragmaOptimizeOff int CeedSimultaneousDiagonalization(Ceed ceed, CeedScalar 
   CeedCall(CeedFree(&vec_D));
   return CEED_ERROR_SUCCESS;
 }
-CeedPragmaOptimizeOn;
+CeedPragmaOptimizeOn
 
 /// @}
 

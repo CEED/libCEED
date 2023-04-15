@@ -294,7 +294,7 @@ static int CeedOperatorContextSetGeneric(CeedOperator op, CeedContextFieldLabel 
     CeedCall(CeedCompositeOperatorGetSubList(op, &sub_operators));
     if (num_sub != field_label->num_sub_labels) {
       // LCOV_EXCL_START
-      CeedError(op->ceed, CEED_ERROR_UNSUPPORTED, "Composite operator modified after ContextFieldLabel created");
+      return CeedError(op->ceed, CEED_ERROR_UNSUPPORTED, "Composite operator modified after ContextFieldLabel created");
       // LCOV_EXCL_STOP
     }
 
