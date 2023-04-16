@@ -98,15 +98,25 @@ CEED_QFUNCTION_HELPER void DataDrivenInference(const CeedScalar *inputs, CeedSca
   MatVecNM(weight2, V, num_outputs, num_neurons, CEED_NOTRANSPOSE, outputs);
 }
 
-CEED_QFUNCTION_HELPER void ComputeSGS_DDAnisotropic(const CeedScalar grad_velo_aniso[3][3], const CeedScalar km_A_ij[6], const CeedScalar delta,
-                                                    const CeedScalar viscosity, CeedScalar kmsgs_stress[6], SGS_DDModelContext sgsdd_ctx) {
-  CeedScalar strain_sframe[3] = {0.}, vorticity_sframe[3] = {0.}, eigenvectors[3][3];
+/**
+ * @brief Compute model inputs for anisotropic data-driven model
+ *
+ * @param[in]  grad_velo_aniso     Gradient of velocity in physical (anisotropic) coordinates
+ * @param[in]  km_A_ij             Anisotropy tensor, in Kelvin-Mandel notation
+ * @param[in]  delta               Length used to create anisotropy tensor
+ * @param[in]  viscosity           Kinematic viscosity
+ * @param[out] eigenvectors        Eigenvectors of the (anisotropic) velocity gradient
+ * @param[out] inputs              Data-driven model inputs
+ * @param[out] grad_velo_magnitude Frobenius norm of the velocity gradient
+ */
+CEED_QFUNCTION_HELPER void ComputeSGS_DDAnisotropicInputs(const CeedScalar grad_velo_aniso[3][3], const CeedScalar km_A_ij[6], const CeedScalar delta,
+                                                          const CeedScalar viscosity, CeedScalar eigenvectors[3][3], CeedScalar inputs[6],
+                                                          CeedScalar *grad_velo_magnitude) {
+  CeedScalar strain_sframe[3] = {0.}, vorticity_sframe[3] = {0.};
   CeedScalar A_ij[3][3] = {{0.}}, grad_velo_iso[3][3] = {{0.}};
 
-  // -- Unpack anisotropy tensor
-  KMUnpack(km_A_ij, A_ij);
-
   // -- Transform physical, anisotropic velocity gradient to isotropic
+  KMUnpack(km_A_ij, A_ij);
   MatMat3(grad_velo_aniso, A_ij, CEED_NOTRANSPOSE, CEED_NOTRANSPOSE, grad_velo_iso);
 
   {  // -- Get Eigenframe
@@ -125,12 +135,23 @@ CEED_QFUNCTION_HELPER void ComputeSGS_DDAnisotropic(const CeedScalar grad_velo_a
     MatVec3(eigenvectors, vorticity_iso, CEED_NOTRANSPOSE, vorticity_sframe);
   }
 
-  // -- Setup DD model inputs
-  const CeedScalar grad_velo_magnitude = VelocityGradientMagnitude(strain_sframe, vorticity_sframe);
-  CeedScalar inputs[6] = {strain_sframe[0], strain_sframe[1], strain_sframe[2], vorticity_sframe[0], vorticity_sframe[1], viscosity / Square(delta)};
-  ScaleN(inputs, 1 / (grad_velo_magnitude + CEED_EPSILON), 6);
+  // -- Calculate DD model inputs
+  *grad_velo_magnitude = VelocityGradientMagnitude(strain_sframe, vorticity_sframe);
+  inputs[0]            = strain_sframe[0];
+  inputs[1]            = strain_sframe[1];
+  inputs[2]            = strain_sframe[2];
+  inputs[3]            = vorticity_sframe[0];
+  inputs[4]            = vorticity_sframe[1];
+  inputs[5]            = viscosity / Square(delta);
+  ScaleN(inputs, 1 / (*grad_velo_magnitude + CEED_EPSILON), 6);
+}
 
-  CeedScalar sgs_sframe_sym[6] = {0.};
+CEED_QFUNCTION_HELPER void ComputeSGS_DDAnisotropic(const CeedScalar grad_velo_aniso[3][3], const CeedScalar km_A_ij[6], const CeedScalar delta,
+                                                    const CeedScalar viscosity, CeedScalar kmsgs_stress[6], SGS_DDModelContext sgsdd_ctx) {
+  CeedScalar inputs[6], grad_velo_magnitude, eigenvectors[3][3], sgs_sframe_sym[6] = {0.};
+
+  ComputeSGS_DDAnisotropicInputs(grad_velo_aniso, km_A_ij, delta, viscosity, eigenvectors, inputs, &grad_velo_magnitude);
+
   DataDrivenInference(inputs, sgs_sframe_sym, sgsdd_ctx);
 
   CeedScalar old_bounds[6][2] = {{0}};
