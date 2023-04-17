@@ -1,10 +1,10 @@
 /// @file
 /// Test creation and destruction of a 2D Quad non-tensor H(div) basis
 /// \test Test creation and destruction of a 2D Quad non-tensor H(div) basis
+#include "t330-basis.h"
+
 #include <ceed.h>
 #include <stdio.h>
-
-#include "t330-basis.h"
 
 int main(int argc, char **argv) {
   Ceed          ceed;

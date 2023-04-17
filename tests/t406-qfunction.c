@@ -1,13 +1,13 @@
 /// @file
 /// Test QFunction helper macro
 /// \test Test QFunction helper macro
+#include "t406-qfunction.h"
+
 #include <ceed.h>
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-
-#include "t406-qfunction.h"
 
 int main(int argc, char **argv) {
   Ceed          ceed;

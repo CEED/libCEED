@@ -1,12 +1,12 @@
 /// @file
 /// Test assembly of mass matrix operator point block diagonal
 /// \test Test assembly of mass matrix operator point block diagonal
+#include "t537-operator.h"
+
 #include <ceed.h>
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
-
-#include "t537-operator.h"
 
 int main(int argc, char **argv) {
   Ceed                ceed;

@@ -1,12 +1,12 @@
 /// @file
 /// Test assembly of Poisson operator diagonal
 /// \test Test assembly of Poisson operator diagonal
+#include "t534-operator.h"
+
 #include <ceed.h>
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
-
-#include "t534-operator.h"
 
 int main(int argc, char **argv) {
   Ceed                ceed;

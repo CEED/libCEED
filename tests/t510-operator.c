@@ -1,13 +1,14 @@
 /// @file
 /// Test creation, action, and destruction for mass matrix operator
 /// \test Test creation, action, and destruction for mass matrix operator
+#include "t510-operator.h"
+
 #include <ceed.h>
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
 
 #include "t320-basis.h"
-#include "t510-operator.h"
 
 int main(int argc, char **argv) {
   Ceed                ceed;

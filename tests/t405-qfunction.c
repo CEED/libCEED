@@ -1,10 +1,10 @@
 /// @file
 /// Test QFunction helper macro
 /// \test Test QFunction helper macro
+#include "t405-qfunction.h"
+
 #include <ceed.h>
 #include <stdio.h>
-
-#include "t405-qfunction.h"
 
 int main(int argc, char **argv) {
   Ceed          ceed;
