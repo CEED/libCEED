@@ -314,13 +314,13 @@ PetscErrorCode SGS_DD_ModelSetup(Ceed ceed, User user, CeedData ceed_data, Probl
 
   PetscCall(PetscNew(&sgsdd_ctx));
 
-  PetscOptionsBegin(comm, NULL, "SGS Data-Drive Model Options", NULL);
+  PetscOptionsBegin(comm, NULL, "SGS Data-Driven Model Options", NULL);
   PetscCall(PetscOptionsReal("-sgs_model_dd_leakyrelu_alpha", "Slope parameter for Leaky ReLU activation function", NULL, alpha, &alpha, NULL));
   PetscCall(PetscOptionsString("-sgs_model_dd_parameter_dir", "Path to directory with model parameters (weights, biases, etc.)", NULL, sgs_dd_dir,
                                sgs_dd_dir, sizeof(sgs_dd_dir), NULL));
   PetscOptionsEnd();
 
-  sgsdd_ctx->num_layers  = 2;
+  sgsdd_ctx->num_layers  = 1;
   sgsdd_ctx->num_inputs  = 6;
   sgsdd_ctx->num_outputs = 6;
   sgsdd_ctx->num_neurons = 20;
