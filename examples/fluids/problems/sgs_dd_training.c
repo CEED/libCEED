@@ -215,6 +215,26 @@ PetscErrorCode SGS_DD_TrainingSetup(Ceed ceed, User user, CeedData ceed_data, Pr
   PetscFunctionReturn(0);
 }
 
+PetscErrorCode TSMonitor_SGS_DD_Training(TS ts, PetscInt step_num, PetscReal solution_time, Vec Q, void *ctx) {
+  User user = (User)ctx;
+  Vec  FilteredFields, DDModelInputs;
+
+  PetscFunctionBeginUser;
+  PetscCall(DMGetGlobalVector(user->diff_filter->dm_filter, &FilteredFields));
+  PetscCall(DMGetGlobalVector(user->sgs_dd_train->dm_dd_inputs, &DDModelInputs));
+
+  PetscCall(DifferentialFilterApply(user, solution_time, Q, FilteredFields));
+  PetscCall(UpdateBoundaryValues(user, user->Q_loc, solution_time));
+  PetscCall(DMGlobalToLocal(user->dm, Q, INSERT_VALUES, user->Q_loc));
+  PetscCall(SGS_DD_TrainingGetModelInputs(user, user->Q_loc, DDModelInputs));
+
+  // Send training data to SmartSim
+
+  PetscCall(DMRestoreGlobalVector(user->diff_filter->dm_filter, &FilteredFields));
+  PetscCall(DMRestoreGlobalVector(user->sgs_dd_train->dm_dd_inputs, &DDModelInputs));
+  PetscFunctionReturn(0);
+}
+
 PetscErrorCode SGS_DD_Training_DataDestroy(SGS_DD_Training_Data sgs_dd_train) {
   PetscFunctionBeginUser;
   if (!sgs_dd_train) PetscFunctionReturn(0);
