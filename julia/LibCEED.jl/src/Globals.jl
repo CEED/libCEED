@@ -14,6 +14,13 @@ Integer type, used for indexing. Equivalent to `Int32`.
 const CeedInt = C.CeedInt
 
 """
+    CeedInt8
+
+Integer type, for small integers. Equivalent to `Int8`.
+"""
+const CeedInt8 = C.CeedInt8
+
+"""
     CeedSize
 
 Integer type, used for array sizes. Equivalent to `Int`.

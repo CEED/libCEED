@@ -444,7 +444,7 @@ class TransposeBasis():
            Args:
              nelem: the number of elements to apply the basis evaluation to;
                       the backend will specify the ordering in a
-                      Blocked ElemRestriction
+                      BlockedElemRestriction
              **emode: basis evaluation mode
              u: input vector
              v: output vector"""
