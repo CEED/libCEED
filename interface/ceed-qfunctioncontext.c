@@ -677,7 +677,8 @@ int CeedQFunctionContextTakeData(CeedQFunctionContext ctx, CeedMemType mem_type,
   @param[out] data     Data on memory type mem_type
 
   @note The CeedQFunctionContextGetData() and @ref CeedQFunctionContextRestoreData() functions provide access to array pointers in the desired memory
-space. Pairing get/restore allows the Context to track access.
+space.
+        Pairing get/restore allows the Context to track access.
 
   @return An error code: 0 - success, otherwise - failure
 
@@ -724,7 +725,8 @@ int CeedQFunctionContextGetData(CeedQFunctionContext ctx, CeedMemType mem_type, 
   @param[out] data     Data on memory type mem_type
 
   @note The CeedQFunctionContextGetDataRead() and @ref CeedQFunctionContextRestoreDataRead() functions provide access to array pointers in the desired
-memory space. Pairing get/restore allows the Context to track access.
+memory space.
+        Pairing get/restore allows the Context to track access.
 
   @return An error code: 0 - success, otherwise - failure
 

@@ -421,7 +421,7 @@ int CeedVectorTakeArray(CeedVector vec, CeedMemType mem_type, CeedScalar **array
   @param[out]    array    Array on memory type mem_type
 
   @note The CeedVectorGetArray* and CeedVectorRestoreArray* functions provide access to array pointers in the desired memory space.
-    Pairing get/restore allows the Vector to track access, thus knowing if norms or other operations may need to be recomputed.
+        Pairing get/restore allows the Vector to track access, thus knowing if norms or other operations may need to be recomputed.
 
   @return An error code: 0 - success, otherwise - failure
 

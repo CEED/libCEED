@@ -66,7 +66,7 @@ CeedRequest *const CEED_REQUEST_IMMEDIATE = &ceed_request_immediate;
   @brief Request ordered completion
 
   This predefined constant is passed as the \ref CeedRequest argument to interfaces when the caller wishes for the operation to be completed in the
-  order that it is submitted to the device. It is typically used in a construct such as
+  order that it is submitted to the device. It is typically used in a construct such as:
 
   @code
     CeedRequest request;
@@ -375,7 +375,7 @@ int CeedGetDelegate(Ceed ceed, Ceed *delegate) {
   @brief Set a delegate Ceed context
 
   This function allows a Ceed context to set a delegate Ceed context.
-    All backend implementations default to the delegate Ceed context, unless overridden.
+  All backend implementations default to the delegate Ceed context, unless overridden.
 
   @param[in]  ceed     Ceed context to set delegate of
   @param[out] delegate Address to set the delegate to
@@ -419,8 +419,8 @@ int CeedGetObjectDelegate(Ceed ceed, Ceed *delegate, const char *obj_name) {
   @brief Set a delegate Ceed context for a specific object type
 
   This function allows a Ceed context to set a delegate Ceed context for a given type of Ceed object.
-    All backend implementations default to the delegate Ceed context for this object.
-    For example, CeedSetObjectDelegate(ceed, refceed, "Basis") uses refceed implementations for all CeedBasis backend functions.
+  All backend implementations default to the delegate Ceed context for this object.
+  For example, CeedSetObjectDelegate(ceed, refceed, "Basis") uses refceed implementations for all CeedBasis backend functions.
 
   @param[in,out] ceed     Ceed context to set delegate of
   @param[out]    delegate Address to set the delegate to
@@ -559,9 +559,9 @@ int CeedSetDeterministic(Ceed ceed, bool is_deterministic) {
   @brief Set a backend function
 
   This function is used for a backend to set the function associated with the Ceed objects.
-    For example, CeedSetBackendFunction(ceed, "Ceed", ceed, "VectorCreate", BackendVectorCreate) sets the backend implementation of 'CeedVectorCreate'
-and CeedSetBackendFunction(ceed, "Basis", basis, "Apply", BackendBasisApply) sets the backend implementation of 'CeedBasisApply'. Note, the prefix
-'Ceed' is not required for the object type ("Basis" vs "CeedBasis").
+  For example, CeedSetBackendFunction(ceed, "Ceed", ceed, "VectorCreate", BackendVectorCreate) sets the backend implementation of 'CeedVectorCreate'
+and CeedSetBackendFunction(ceed, "Basis", basis, "Apply", BackendBasisApply) sets the backend implementation of 'CeedBasisApply'.
+  Note, the prefix 'Ceed' is not required for the object type ("Basis" vs "CeedBasis").
 
   @param[in]  ceed      Ceed context for error handling
   @param[in]  type      Type of Ceed object to set function for

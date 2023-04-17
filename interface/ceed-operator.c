@@ -252,8 +252,8 @@ int CeedOperatorGetActiveElemRestriction(CeedOperator op, CeedElemRestriction *a
   @brief Set QFunctionContext field values of the specified type.
 
   For composite operators, the value is set in all sub-operator QFunctionContexts that have a matching `field_name`.
-  A non-zero error code is returned for single operators that do not have a matching field of the same type or composite operators that do
-not have any field of a matching type.
+  A non-zero error code is returned for single operators that do not have a matching field of the same type or composite operators that do not have
+any field of a matching type.
 
   @param[in,out] op          CeedOperator
   @param[in]     field_label Label of field to set
@@ -322,8 +322,8 @@ static int CeedOperatorContextSetGeneric(CeedOperator op, CeedContextFieldLabel 
   @brief Get QFunctionContext field values of the specified type, read-only.
 
   For composite operators, the values retrieved are for the first sub-operator QFunctionContext that have a matching `field_name`.
-  A non-zero error code is returned for single operators that do not have a matching field of the same type or composite operators that
-  do not have any field of a matching type.
+  A non-zero error code is returned for single operators that do not have a matching field of the same type or composite operators that do not have
+any field of a matching type.
 
   @param[in,out] op          CeedOperator
   @param[in]     field_label Label of field to set
@@ -398,8 +398,8 @@ static int CeedOperatorContextGetGenericRead(CeedOperator op, CeedContextFieldLa
   @brief Restore QFunctionContext field values of the specified type, read-only.
 
   For composite operators, the values restored are for the first sub-operator QFunctionContext that have a matching `field_name`.
-  A non-zero error code is returned for single operators that do not have a matching field of the same type or composite operators
-  that do not have any field of a matching type.
+  A non-zero error code is returned for single operators that do not have a matching field of the same type or composite operators that do not have
+any field of a matching type.
 
   @param[in,out] op          CeedOperator
   @param[in]     field_label Label of field to set
@@ -1180,8 +1180,9 @@ int CeedOperatorGetActiveVectorLengths(CeedOperator op, CeedSize *input_size, Ce
   @brief Set reuse of CeedQFunction data in CeedOperatorLinearAssemble* functions.
 
   When `reuse_assembly_data = false` (default), the CeedQFunction associated with this CeedOperator is re-assembled every time a
-`CeedOperatorLinearAssemble*` function is called. When `reuse_assembly_data = true`, the CeedQFunction associated with this CeedOperator is reused
-between calls to `CeedOperatorSetQFunctionAssemblyDataUpdated`.
+`CeedOperatorLinearAssemble*` function is called.
+  When `reuse_assembly_data = true`, the CeedQFunction associated with this CeedOperator is reused between calls to
+`CeedOperatorSetQFunctionAssemblyDataUpdated`.
 
   @param[in] op                  CeedOperator
   @param[in] reuse_assembly_data Boolean flag setting assembly data reuse
@@ -1438,10 +1439,11 @@ int CeedOperatorGetFlopsEstimate(CeedOperator op, CeedSize *flops) {
 
 /**
   @brief Get CeedQFunction global context for a CeedOperator.
-           The caller is responsible for destroying `ctx` returned from this function via `CeedQFunctionContextDestroy()`.
 
-           Note: If the value of `ctx` passed into this function is non-NULL, then it is assumed that `ctx` is a pointer to a
-             CeedQFunctionContext. This CeedQFunctionContext will be destroyed if `ctx` is the only reference to this CeedQFunctionContext.
+  The caller is responsible for destroying `ctx` returned from this function via `CeedQFunctionContextDestroy()`.
+
+  Note: If the value of `ctx` passed into this function is non-NULL, then it is assumed that `ctx` is a pointer to a CeedQFunctionContext.
+        This CeedQFunctionContext will be destroyed if `ctx` is the only reference to this CeedQFunctionContext.
 
   @param[in]  op  CeedOperator
   @param[out] ctx Variable to store CeedQFunctionContext

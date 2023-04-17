@@ -51,7 +51,7 @@ static size_t num_qfunctions;
 
   @param[in]  name       Name for this backend to respond to
   @param[in]  source     Absolute path to source of QFunction, "\path\CEED_DIR\gallery\folder\file.h:function_name"
-  @param[in]  vec_length Vector length.  Caller must ensure that number of quadrature points is a multiple of vec_length.
+  @param[in]  vec_length Vector length. Caller must ensure that number of quadrature points is a multiple of vec_length.
   @param[in]  f          Function pointer to evaluate action at quadrature points.
                            See \ref CeedQFunctionUser.
   @param[in]  init       Initialization function called by CeedQFunctionInit() when the QFunction is selected.
@@ -678,8 +678,9 @@ int CeedQFunctionCreateInteriorByName(Ceed ceed, const char *name, CeedQFunction
 
   Inputs are written into outputs in the order given.
   This is useful for CeedOperators that can be represented with only the action of a CeedElemRestriction and CeedBasis, such as restriction
-and prolongation operators for p-multigrid. Backends may optimize CeedOperators with this CeedQFunction to avoid the copy of input data to output
-fields by using the same memory location for both.
+and prolongation operators for p-multigrid.
+  Backends may optimize CeedOperators with this CeedQFunction to avoid the copy of input data to output fields by using the same memory location for
+both.
 
   @param[in]  ceed     Ceed object where the CeedQFunction will be created
   @param[in]  size     Size of the QFunction fields

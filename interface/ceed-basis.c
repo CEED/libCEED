@@ -1332,14 +1332,16 @@ int CeedBasisCreateHcurl(Ceed ceed, CeedElemTopology topo, CeedInt num_comp, Cee
 /**
   @brief Create a CeedBasis for projection from the nodes of `basis_from` to the nodes of `basis_to`.
 
-  Only `CEED_EVAL_INTERP` will be valid for the new basis, `basis_project`. For H^1 spaces, `CEED_EVAL_GRAD` will also be valid.
+  Only `CEED_EVAL_INTERP` will be valid for the new basis, `basis_project`.
+  For H^1 spaces, `CEED_EVAL_GRAD` will also be valid.
   The interpolation is given by `interp_project = interp_to^+ * interp_from`, where the pesudoinverse `interp_to^+` is given by QR
-factorization. The gradient (for the H^1 case) is given by `grad_project = interp_to^+ * grad_from`.
+factorization.
+  The gradient (for the H^1 case) is given by `grad_project = interp_to^+ * grad_from`.
 
   Note: `basis_from` and `basis_to` must have compatible quadrature spaces.
 
-  Note: `basis_project` will have the same number of components as `basis_from`, regardless of the number of components that `basis_to` has. If
-`basis_from` has 3 components and `basis_to` has 5 components, then `basis_project` will have 3 components.
+  Note: `basis_project` will have the same number of components as `basis_from`, regardless of the number of components that `basis_to` has.
+        If `basis_from` has 3 components and `basis_to` has 5 components, then `basis_project` will have 3 components.
 
   @param[in]  basis_from    CeedBasis to prolong from
   @param[in]  basis_to      CeedBasis to prolong to
