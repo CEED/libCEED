@@ -5,10 +5,10 @@
 //
 // This file is part of CEED:  http://github.com/ceed
 
-#include <assert.h>
 #include <ceed-impl.h>
 #include <ceed.h>
 #include <ceed/backend.h>
+#include <assert.h>
 #include <math.h>
 #include <stdbool.h>
 #include <stdint.h>

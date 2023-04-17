@@ -10,9 +10,9 @@
 #include <ceed.h>
 #include <ceed/backend.h>
 #include <ceed/jit-tools.h>
-#include <hip/hiprtc.h>
 #include <stdarg.h>
 #include <string.h>
+#include <hip/hiprtc.h>
 
 #include <sstream>
 
