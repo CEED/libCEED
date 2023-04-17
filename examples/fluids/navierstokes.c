@@ -258,6 +258,7 @@ int main(int argc, char **argv) {
   PetscCall(NodalProjectionDataDestroy(user->grad_velo_proj));
   PetscCall(SgsDDDataDestroy(user->sgs_dd_data));
   PetscCall(DifferentialFilterDataDestroy(user->diff_filter));
+  PetscCall(SGS_DD_TrainingDataDestroy(user->sgs_dd_train));
 
   // -- Vectors
   PetscCallCeed(ceed, CeedVectorDestroy(&ceed_data->x_coord));
