@@ -178,6 +178,12 @@ typedef struct {
 } *SGS_DD_Data;
 
 typedef struct {
+  DM                   dm_dd_inputs;
+  PetscInt             num_comp_dd_inputs;
+  OperatorApplyContext op_nodal_input_evaluation_ctx;
+} *SGS_DD_Training_Data;
+
+typedef struct {
   DM                   dm_filter;
   PetscInt             num_filtered_fields;
   CeedInt             *num_field_components;
@@ -206,6 +212,7 @@ struct User_private {
   NodalProjectionData  grad_velo_proj;
   SGS_DD_Data          sgs_dd_data;
   DiffFilterData       diff_filter;
+  SGS_DD_Training_Data sgs_dd_train;
 };
 
 // Units
