@@ -36,28 +36,6 @@ PetscErrorCode SmartSimTrainingSetup(User user) {
     PetscCall(SmartRedisVerifyPutTensor(smartsim->client, "check-run", 9));
   }
 
-  {  // -- Get minimum per-rank global vec size
-    PetscInt GlobalVecSize;
-    PetscCall(DMGetGlobalVectorInfo(user->dm, &GlobalVecSize, NULL, NULL));
-    PetscCallMPI(MPI_Allreduce(&GlobalVecSize, &smartsim->num_tensor_nodes, 1, MPIU_INT, MPI_MIN, user->comm));
-    smartsim->num_nodes_to_remove = GlobalVecSize - smartsim->num_tensor_nodes;
-  }
-
-  // Determine the size of the training data arrays... somehow
-  if (rank % smartsim->collocated_database_num_ranks == 0) {
-    size_t   array_dims[2] = {smartsim->num_tensor_nodes, 6}, array_info_dim = 6;
-    PetscInt array_info[6] = {0}, num_features = 6;
-
-    array_info[0] = array_dims[0];
-    array_info[1] = array_dims[1];
-    array_info[2] = num_features;
-    array_info[3] = num_ranks;
-    array_info[4] = smartsim->collocated_database_num_ranks;
-    array_info[5] = rank;
-
-    SmartRedisCall(put_tensor(smartsim->client, "array_info", 10, array_info, &array_info_dim, 1, SRTensorTypeInt32, SRMemLayoutContiguous));
-    PetscCall(SmartRedisVerifyPutTensor(smartsim->client, "array_info", 10));
-  }
   PetscFunctionReturn(0);
 }
 
