@@ -195,8 +195,6 @@ int main(int argc, char **argv) {
     PetscCall(SetBCsFromICs_NS(dm, Q, user->Q_loc));
   }
 
-  PetscCall(SmartSimSetup(user));
-
   // ---------------------------------------------------------------------------
   // Create output directory
   // ---------------------------------------------------------------------------
