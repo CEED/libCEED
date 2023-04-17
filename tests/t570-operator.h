@@ -8,9 +8,7 @@
 #include <ceed.h>
 
 // Compute det(A)
-CEED_QFUNCTION_HELPER CeedScalar MatDet2x2(const CeedScalar A[2][2]) {
-  return A[0][0] * A[1][1] - A[1][0] * A[0][1];
-}
+CEED_QFUNCTION_HELPER CeedScalar MatDet2x2(const CeedScalar A[2][2]) { return A[0][0] * A[1][1] - A[1][0] * A[0][1]; }
 
 // Compute alpha * A^T * B = C
 CEED_QFUNCTION_HELPER int AlphaMatTransposeMatMult2x2(const CeedScalar alpha, const CeedScalar A[2][2], const CeedScalar B[2][2],

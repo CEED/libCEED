@@ -442,7 +442,8 @@ static inline int CeedCompositeOperatorLinearAssembleAddDiagonal(CeedOperator op
 
   Users should generally use CeedOperatorLinearAssembleSymbolic()
 
-  Note: For operators using oriented element restrictions, entries in rows or cols may be negative indicating the assembled value at this nonzero should be negated
+  Note: For operators using oriented element restrictions, entries in rows or cols may be negative indicating the assembled value at this nonzero
+should be negated
 
   @param[in]  op     CeedOperator to assemble nonzero pattern
   @param[in]  offset Offset for number of entries

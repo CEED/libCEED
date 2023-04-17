@@ -1,13 +1,14 @@
 /// @file
 /// Test assembly of H(div) mass matrix operator diagonal
 /// \test Test assembly of H(div) mass matrix operator diagonal
+#include "t570-operator.h"
+
 #include <ceed.h>
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
 
 #include "t330-basis.h"
-#include "t570-operator.h"
 
 int main(int argc, char **argv) {
   Ceed                ceed;

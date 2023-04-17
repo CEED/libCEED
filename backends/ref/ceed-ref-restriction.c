@@ -16,8 +16,8 @@
 // Core ElemRestriction Apply Code
 //------------------------------------------------------------------------------
 static inline int CeedElemRestrictionApply_Ref_Core(CeedElemRestriction r, const CeedInt num_comp, const CeedInt blk_size, const CeedInt comp_stride,
-                                                    CeedInt start, CeedInt stop, bool use_orient, CeedTransposeMode t_mode, CeedVector u, CeedVector v,
-                                                    CeedRequest *request) {
+                                                    CeedInt start, CeedInt stop, bool use_orient, CeedTransposeMode t_mode, CeedVector u,
+                                                    CeedVector v, CeedRequest *request) {
   CeedElemRestriction_Ref *impl;
   CeedCallBackend(CeedElemRestrictionGetData(r, &impl));
   const CeedScalar *uu;
@@ -81,8 +81,7 @@ static inline int CeedElemRestrictionApply_Ref_Core(CeedElemRestriction r, const
           CeedPragmaSIMD for (CeedInt i = 0; i < elem_size * blk_size; i++) {
             if (!use_orient || !impl->orient) {
               // Unsigned restriction
-              vv[elem_size * (k * blk_size + num_comp * e) + i - v_offset] =
-                  uu[impl->offsets[i + elem_size * e] + k * comp_stride];
+              vv[elem_size * (k * blk_size + num_comp * e) + i - v_offset] = uu[impl->offsets[i + elem_size * e] + k * comp_stride];
             } else {
               // Signed restriction
               vv[elem_size * (k * blk_size + num_comp * e) + i - v_offset] =
@@ -138,8 +137,7 @@ static inline int CeedElemRestrictionApply_Ref_Core(CeedElemRestriction r, const
             for (CeedInt j = i; j < i + CeedIntMin(blk_size, num_elem - e); j++) {
               if (!use_orient || !impl->orient) {
                 // Unsigned restriction
-                vv[impl->offsets[j + e * elem_size] + k * comp_stride] +=
-                    uu[elem_size * (k * blk_size + num_comp * e) + j - v_offset];
+                vv[impl->offsets[j + e * elem_size] + k * comp_stride] += uu[elem_size * (k * blk_size + num_comp * e) + j - v_offset];
               } else {
                 // Signed restriction
                 vv[impl->offsets[j + e * elem_size] + k * comp_stride] +=
@@ -161,66 +159,78 @@ static inline int CeedElemRestrictionApply_Ref_Core(CeedElemRestriction r, const
 // ElemRestriction Apply - Common Sizes
 //------------------------------------------------------------------------------
 static int CeedElemRestrictionApply_Ref_110(CeedElemRestriction r, const CeedInt num_comp, const CeedInt blk_size, const CeedInt comp_stride,
-                                            CeedInt start, CeedInt stop, bool use_orient, CeedTransposeMode t_mode, CeedVector u, CeedVector v, CeedRequest *request) {
+                                            CeedInt start, CeedInt stop, bool use_orient, CeedTransposeMode t_mode, CeedVector u, CeedVector v,
+                                            CeedRequest *request) {
   return CeedElemRestrictionApply_Ref_Core(r, 1, 1, comp_stride, start, stop, use_orient, t_mode, u, v, request);
 }
 
 static int CeedElemRestrictionApply_Ref_111(CeedElemRestriction r, const CeedInt num_comp, const CeedInt blk_size, const CeedInt comp_stride,
-                                            CeedInt start, CeedInt stop, bool use_orient, CeedTransposeMode t_mode, CeedVector u, CeedVector v, CeedRequest *request) {
+                                            CeedInt start, CeedInt stop, bool use_orient, CeedTransposeMode t_mode, CeedVector u, CeedVector v,
+                                            CeedRequest *request) {
   return CeedElemRestrictionApply_Ref_Core(r, 1, 1, 1, start, stop, use_orient, t_mode, u, v, request);
 }
 
 static int CeedElemRestrictionApply_Ref_180(CeedElemRestriction r, const CeedInt num_comp, const CeedInt blk_size, const CeedInt comp_stride,
-                                            CeedInt start, CeedInt stop, bool use_orient, CeedTransposeMode t_mode, CeedVector u, CeedVector v, CeedRequest *request) {
+                                            CeedInt start, CeedInt stop, bool use_orient, CeedTransposeMode t_mode, CeedVector u, CeedVector v,
+                                            CeedRequest *request) {
   return CeedElemRestrictionApply_Ref_Core(r, 1, 8, comp_stride, start, stop, use_orient, t_mode, u, v, request);
 }
 
 static int CeedElemRestrictionApply_Ref_181(CeedElemRestriction r, const CeedInt num_comp, const CeedInt blk_size, const CeedInt comp_stride,
-                                            CeedInt start, CeedInt stop, bool use_orient, CeedTransposeMode t_mode, CeedVector u, CeedVector v, CeedRequest *request) {
+                                            CeedInt start, CeedInt stop, bool use_orient, CeedTransposeMode t_mode, CeedVector u, CeedVector v,
+                                            CeedRequest *request) {
   return CeedElemRestrictionApply_Ref_Core(r, 1, 8, 1, start, stop, use_orient, t_mode, u, v, request);
 }
 
 static int CeedElemRestrictionApply_Ref_310(CeedElemRestriction r, const CeedInt num_comp, const CeedInt blk_size, const CeedInt comp_stride,
-                                            CeedInt start, CeedInt stop, bool use_orient, CeedTransposeMode t_mode, CeedVector u, CeedVector v, CeedRequest *request) {
+                                            CeedInt start, CeedInt stop, bool use_orient, CeedTransposeMode t_mode, CeedVector u, CeedVector v,
+                                            CeedRequest *request) {
   return CeedElemRestrictionApply_Ref_Core(r, 3, 1, comp_stride, start, stop, use_orient, t_mode, u, v, request);
 }
 
 static int CeedElemRestrictionApply_Ref_311(CeedElemRestriction r, const CeedInt num_comp, const CeedInt blk_size, const CeedInt comp_stride,
-                                            CeedInt start, CeedInt stop, bool use_orient, CeedTransposeMode t_mode, CeedVector u, CeedVector v, CeedRequest *request) {
+                                            CeedInt start, CeedInt stop, bool use_orient, CeedTransposeMode t_mode, CeedVector u, CeedVector v,
+                                            CeedRequest *request) {
   return CeedElemRestrictionApply_Ref_Core(r, 3, 1, 1, start, stop, use_orient, t_mode, u, v, request);
 }
 
 static int CeedElemRestrictionApply_Ref_380(CeedElemRestriction r, const CeedInt num_comp, const CeedInt blk_size, const CeedInt comp_stride,
-                                            CeedInt start, CeedInt stop, bool use_orient, CeedTransposeMode t_mode, CeedVector u, CeedVector v, CeedRequest *request) {
+                                            CeedInt start, CeedInt stop, bool use_orient, CeedTransposeMode t_mode, CeedVector u, CeedVector v,
+                                            CeedRequest *request) {
   return CeedElemRestrictionApply_Ref_Core(r, 3, 8, comp_stride, start, stop, use_orient, t_mode, u, v, request);
 }
 
 static int CeedElemRestrictionApply_Ref_381(CeedElemRestriction r, const CeedInt num_comp, const CeedInt blk_size, const CeedInt comp_stride,
-                                            CeedInt start, CeedInt stop, bool use_orient, CeedTransposeMode t_mode, CeedVector u, CeedVector v, CeedRequest *request) {
+                                            CeedInt start, CeedInt stop, bool use_orient, CeedTransposeMode t_mode, CeedVector u, CeedVector v,
+                                            CeedRequest *request) {
   return CeedElemRestrictionApply_Ref_Core(r, 3, 8, 1, start, stop, use_orient, t_mode, u, v, request);
 }
 
 // LCOV_EXCL_START
 static int CeedElemRestrictionApply_Ref_510(CeedElemRestriction r, const CeedInt num_comp, const CeedInt blk_size, const CeedInt comp_stride,
-                                            CeedInt start, CeedInt stop, bool use_orient, CeedTransposeMode t_mode, CeedVector u, CeedVector v, CeedRequest *request) {
+                                            CeedInt start, CeedInt stop, bool use_orient, CeedTransposeMode t_mode, CeedVector u, CeedVector v,
+                                            CeedRequest *request) {
   return CeedElemRestrictionApply_Ref_Core(r, 5, 1, comp_stride, start, stop, use_orient, t_mode, u, v, request);
 }
 // LCOV_EXCL_STOP
 
 static int CeedElemRestrictionApply_Ref_511(CeedElemRestriction r, const CeedInt num_comp, const CeedInt blk_size, const CeedInt comp_stride,
-                                            CeedInt start, CeedInt stop, bool use_orient, CeedTransposeMode t_mode, CeedVector u, CeedVector v, CeedRequest *request) {
+                                            CeedInt start, CeedInt stop, bool use_orient, CeedTransposeMode t_mode, CeedVector u, CeedVector v,
+                                            CeedRequest *request) {
   return CeedElemRestrictionApply_Ref_Core(r, 5, 1, 1, start, stop, use_orient, t_mode, u, v, request);
 }
 
 // LCOV_EXCL_START
 static int CeedElemRestrictionApply_Ref_580(CeedElemRestriction r, const CeedInt num_comp, const CeedInt blk_size, const CeedInt comp_stride,
-                                            CeedInt start, CeedInt stop, bool use_orient, CeedTransposeMode t_mode, CeedVector u, CeedVector v, CeedRequest *request) {
+                                            CeedInt start, CeedInt stop, bool use_orient, CeedTransposeMode t_mode, CeedVector u, CeedVector v,
+                                            CeedRequest *request) {
   return CeedElemRestrictionApply_Ref_Core(r, 5, 8, comp_stride, start, stop, use_orient, t_mode, u, v, request);
 }
 // LCOV_EXCL_STOP
 
 static int CeedElemRestrictionApply_Ref_581(CeedElemRestriction r, const CeedInt num_comp, const CeedInt blk_size, const CeedInt comp_stride,
-                                            CeedInt start, CeedInt stop, bool use_orient, CeedTransposeMode t_mode, CeedVector u, CeedVector v, CeedRequest *request) {
+                                            CeedInt start, CeedInt stop, bool use_orient, CeedTransposeMode t_mode, CeedVector u, CeedVector v,
+                                            CeedRequest *request) {
   return CeedElemRestrictionApply_Ref_Core(r, 5, 8, 1, start, stop, use_orient, t_mode, u, v, request);
 }
 
