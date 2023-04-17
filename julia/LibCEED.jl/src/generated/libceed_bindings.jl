@@ -278,8 +278,12 @@ function CeedElemRestrictionCreate(ceed, num_elem, elem_size, num_comp, comp_str
     ccall((:CeedElemRestrictionCreate, libceed), Cint, (Ceed, CeedInt, CeedInt, CeedInt, CeedInt, CeedSize, CeedMemType, CeedCopyMode, Ptr{CeedInt}, Ptr{CeedElemRestriction}), ceed, num_elem, elem_size, num_comp, comp_stride, l_size, mem_type, copy_mode, offsets, rstr)
 end
 
-function CeedElemRestrictionCreateOriented(ceed, num_elem, elem_size, num_comp, comp_stride, l_size, mem_type, copy_mode, offsets, orient, rstr)
-    ccall((:CeedElemRestrictionCreateOriented, libceed), Cint, (Ceed, CeedInt, CeedInt, CeedInt, CeedInt, CeedSize, CeedMemType, CeedCopyMode, Ptr{CeedInt}, Ptr{Bool}, Ptr{CeedElemRestriction}), ceed, num_elem, elem_size, num_comp, comp_stride, l_size, mem_type, copy_mode, offsets, orient, rstr)
+function CeedElemRestrictionCreateOriented(ceed, num_elem, elem_size, num_comp, comp_stride, l_size, mem_type, copy_mode, offsets, orients, rstr)
+    ccall((:CeedElemRestrictionCreateOriented, libceed), Cint, (Ceed, CeedInt, CeedInt, CeedInt, CeedInt, CeedSize, CeedMemType, CeedCopyMode, Ptr{CeedInt}, Ptr{Bool}, Ptr{CeedElemRestriction}), ceed, num_elem, elem_size, num_comp, comp_stride, l_size, mem_type, copy_mode, offsets, orients, rstr)
+end
+
+function CeedElemRestrictionCreateCurlOriented(ceed, num_elem, elem_size, num_comp, comp_stride, l_size, mem_type, copy_mode, offsets, curl_orients, rstr)
+    ccall((:CeedElemRestrictionCreateCurlOriented, libceed), Cint, (Ceed, CeedInt, CeedInt, CeedInt, CeedInt, CeedSize, CeedMemType, CeedCopyMode, Ptr{CeedInt}, Ptr{CeedInt}, Ptr{CeedElemRestriction}), ceed, num_elem, elem_size, num_comp, comp_stride, l_size, mem_type, copy_mode, offsets, curl_orients, rstr)
 end
 
 function CeedElemRestrictionCreateStrided(ceed, num_elem, elem_size, num_comp, l_size, strides, rstr)
@@ -288,6 +292,14 @@ end
 
 function CeedElemRestrictionCreateBlocked(ceed, num_elem, elem_size, blk_size, num_comp, comp_stride, l_size, mem_type, copy_mode, offsets, rstr)
     ccall((:CeedElemRestrictionCreateBlocked, libceed), Cint, (Ceed, CeedInt, CeedInt, CeedInt, CeedInt, CeedInt, CeedSize, CeedMemType, CeedCopyMode, Ptr{CeedInt}, Ptr{CeedElemRestriction}), ceed, num_elem, elem_size, blk_size, num_comp, comp_stride, l_size, mem_type, copy_mode, offsets, rstr)
+end
+
+function CeedElemRestrictionCreateBlockedOriented(ceed, num_elem, elem_size, blk_size, num_comp, comp_stride, l_size, mem_type, copy_mode, offsets, orients, rstr)
+    ccall((:CeedElemRestrictionCreateBlockedOriented, libceed), Cint, (Ceed, CeedInt, CeedInt, CeedInt, CeedInt, CeedInt, CeedSize, CeedMemType, CeedCopyMode, Ptr{CeedInt}, Ptr{Bool}, Ptr{CeedElemRestriction}), ceed, num_elem, elem_size, blk_size, num_comp, comp_stride, l_size, mem_type, copy_mode, offsets, orients, rstr)
+end
+
+function CeedElemRestrictionCreateBlockedCurlOriented(ceed, num_elem, elem_size, blk_size, num_comp, comp_stride, l_size, mem_type, copy_mode, offsets, curl_orients, rstr)
+    ccall((:CeedElemRestrictionCreateBlockedCurlOriented, libceed), Cint, (Ceed, CeedInt, CeedInt, CeedInt, CeedInt, CeedInt, CeedSize, CeedMemType, CeedCopyMode, Ptr{CeedInt}, Ptr{CeedInt}, Ptr{CeedElemRestriction}), ceed, num_elem, elem_size, blk_size, num_comp, comp_stride, l_size, mem_type, copy_mode, offsets, curl_orients, rstr)
 end
 
 function CeedElemRestrictionCreateBlockedStrided(ceed, num_elem, elem_size, blk_size, num_comp, l_size, strides, rstr)
@@ -952,8 +964,16 @@ function CeedVectorReference(vec)
     ccall((:CeedVectorReference, libceed), Cint, (CeedVector,), vec)
 end
 
+function CeedElemRestrictionIsStrided(rstr, is_strided)
+    ccall((:CeedElemRestrictionIsStrided, libceed), Cint, (CeedElemRestriction, Ptr{Bool}), rstr, is_strided)
+end
+
 function CeedElemRestrictionGetStrides(rstr, strides)
     ccall((:CeedElemRestrictionGetStrides, libceed), Cint, (CeedElemRestriction, Ptr{NTuple{3, CeedInt}}), rstr, strides)
+end
+
+function CeedElemRestrictionHasBackendStrides(rstr, has_backend_strides)
+    ccall((:CeedElemRestrictionHasBackendStrides, libceed), Cint, (CeedElemRestriction, Ptr{Bool}), rstr, has_backend_strides)
 end
 
 function CeedElemRestrictionGetOffsets(rstr, mem_type, offsets)
@@ -964,16 +984,20 @@ function CeedElemRestrictionRestoreOffsets(rstr, offsets)
     ccall((:CeedElemRestrictionRestoreOffsets, libceed), Cint, (CeedElemRestriction, Ptr{Ptr{CeedInt}}), rstr, offsets)
 end
 
-function CeedElemRestrictionIsStrided(rstr, is_strided)
-    ccall((:CeedElemRestrictionIsStrided, libceed), Cint, (CeedElemRestriction, Ptr{Bool}), rstr, is_strided)
+function CeedElemRestrictionGetOrientations(rstr, mem_type, orients)
+    ccall((:CeedElemRestrictionGetOrientations, libceed), Cint, (CeedElemRestriction, CeedMemType, Ptr{Ptr{Bool}}), rstr, mem_type, orients)
 end
 
-function CeedElemRestrictionIsOriented(rstr, is_oriented)
-    ccall((:CeedElemRestrictionIsOriented, libceed), Cint, (CeedElemRestriction, Ptr{Bool}), rstr, is_oriented)
+function CeedElemRestrictionRestoreOrientations(rstr, orients)
+    ccall((:CeedElemRestrictionRestoreOrientations, libceed), Cint, (CeedElemRestriction, Ptr{Ptr{Bool}}), rstr, orients)
 end
 
-function CeedElemRestrictionHasBackendStrides(rstr, has_backend_strides)
-    ccall((:CeedElemRestrictionHasBackendStrides, libceed), Cint, (CeedElemRestriction, Ptr{Bool}), rstr, has_backend_strides)
+function CeedElemRestrictionGetCurlOrientations(rstr, mem_type, curl_orients)
+    ccall((:CeedElemRestrictionGetCurlOrientations, libceed), Cint, (CeedElemRestriction, CeedMemType, Ptr{Ptr{CeedInt}}), rstr, mem_type, curl_orients)
+end
+
+function CeedElemRestrictionRestoreCurlOrientations(rstr, curl_orients)
+    ccall((:CeedElemRestrictionRestoreCurlOrientations, libceed), Cint, (CeedElemRestriction, Ptr{Ptr{CeedInt}}), rstr, curl_orients)
 end
 
 function CeedElemRestrictionGetELayout(rstr, layout)

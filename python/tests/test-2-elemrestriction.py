@@ -254,3 +254,104 @@ def test_212(ceed_resource, capsys):
     assert stdout == ref_stdout
 
 # -------------------------------------------------------------------------------
+# Test creation, use, and destruction of an oriented element restriction
+# -------------------------------------------------------------------------------
+
+
+def test_213(ceed_resource):
+    ceed = libceed.Ceed(ceed_resource)
+
+    num_elem = 3
+
+    x = ceed.Vector(num_elem + 1)
+    a = np.arange(10, 10 + num_elem + 1, dtype=ceed.scalar_type())
+    x.set_array(a, cmode=libceed.USE_POINTER)
+
+    ind = np.zeros(2 * num_elem, dtype="int32")
+    orients = np.zeros(2 * num_elem, dtype="bool")
+    for i in range(num_elem):
+        ind[2 * i + 0] = i
+        ind[2 * i + 1] = i + 1
+        # flip the dofs on element 1, 3, ...
+        orients[2 * i + 0] = (i % 2) > 0
+        orients[2 * i + 1] = (i % 2) > 0
+    r = ceed.OrientedElemRestriction(
+        num_elem,
+        2,
+        1,
+        1,
+        num_elem + 1,
+        ind,
+        orients,
+        cmode=libceed.USE_POINTER)
+
+    y = ceed.Vector(2 * num_elem)
+    y.set_value(0)
+
+    r.apply(x, y)
+
+    with y.array_read() as y_array:
+        for i in range(num_elem):
+            for j in range(2):
+                k = j + 2 * i
+                assert 10 + (k + 1) // 2 == y_array[k] * pow(-1, i % 2)
+
+# -------------------------------------------------------------------------------
+# Test creation, use, and destruction of a curl-oriented element restriction
+# -------------------------------------------------------------------------------
+
+
+def test_214(ceed_resource):
+    ceed = libceed.Ceed(ceed_resource)
+
+    num_elem = 3
+
+    x = ceed.Vector(num_elem + 1)
+    a = np.arange(10, 10 + num_elem + 1, dtype=ceed.scalar_type())
+    x.set_array(a, cmode=libceed.USE_POINTER)
+
+    ind = np.zeros(2 * num_elem, dtype="int32")
+    curl_orients = np.zeros(3 * 2 * num_elem, dtype="int32")
+    for i in range(num_elem):
+        ind[2 * i + 0] = i
+        ind[2 * i + 1] = i + 1
+        curl_orients[3 * 2 * i] = curl_orients[3 * 2 * (i + 1) - 1] = 0
+        if i % 2 > 0:
+            # T = [0  -1]
+            #     [-1  0]
+            curl_orients[3 * 2 * i + 1] = 0
+            curl_orients[3 * 2 * i + 2] = -1
+            curl_orients[3 * 2 * i + 3] = -1
+            curl_orients[3 * 2 * i + 4] = 0
+        else:
+            # T = I
+            curl_orients[3 * 2 * i + 1] = 1
+            curl_orients[3 * 2 * i + 2] = 0
+            curl_orients[3 * 2 * i + 3] = 0
+            curl_orients[3 * 2 * i + 4] = 1
+    r = ceed.CurlOrientedElemRestriction(
+        num_elem,
+        2,
+        1,
+        1,
+        num_elem + 1,
+        ind,
+        curl_orients,
+        cmode=libceed.USE_POINTER)
+
+    y = ceed.Vector(2 * num_elem)
+    y.set_value(0)
+
+    r.apply(x, y)
+
+    with y.array_read() as y_array:
+        for i in range(num_elem):
+            for j in range(2):
+                k = j + 2 * i
+                if i % 2 > 0:
+                    assert j != 0 or 10 + i + 1 == -y_array[k]
+                    assert j != 1 or 10 + i == -y_array[k]
+                else:
+                    assert 10 + (k + 1) // 2 == y_array[k]
+
+# -------------------------------------------------------------------------------

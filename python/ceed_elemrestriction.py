@@ -181,6 +181,85 @@ class ElemRestriction(_ElemRestrictionBase):
 # ------------------------------------------------------------------------------
 
 
+class OrientedElemRestriction(_ElemRestrictionBase):
+    """Ceed Oriented ElemRestriction: oriented restriction from local vectors to elements."""
+
+    # Constructor
+    def __init__(self, ceed, nelem, elemsize, ncomp, compstride, lsize, offsets,
+                 orients, memtype=MEM_HOST, cmode=COPY_VALUES):
+        # CeedVector object
+        self._pointer = ffi.new("CeedElemRestriction *")
+
+        # Reference to Ceed
+        self._ceed = ceed
+
+        # Store array reference if needed
+        if cmode == USE_POINTER:
+            self._array_reference = offsets
+            self._array_reference_aux = orients
+        else:
+            self._array_reference = None
+            self._array_reference_aux = None
+
+        # Setup the numpy arrays for the libCEED call
+        offsets_pointer = ffi.new("const CeedInt *")
+        offsets_pointer = ffi.cast("const CeedInt *",
+                                   offsets.__array_interface__['data'][0])
+        orients_pointer = ffi.new("const bool *")
+        orients_pointer = ffi.cast("const bool *",
+                                   orients.__array_interface__['data'][0])
+
+        # libCEED call
+        err_code = lib.CeedElemRestrictionCreateOriented(self._ceed._pointer[0], nelem,
+                                                         elemsize, ncomp, compstride,
+                                                         lsize, memtype, cmode,
+                                                         offsets_pointer, orients_pointer,
+                                                         self._pointer)
+        self._ceed._check_error(err_code)
+
+# ------------------------------------------------------------------------------
+
+
+class CurlOrientedElemRestriction(_ElemRestrictionBase):
+    """Ceed Curl Oriented ElemRestriction: curl-oriented restriction from local vectors to elements."""
+
+    # Constructor
+    def __init__(self, ceed, nelem, elemsize, ncomp, compstride, lsize, offsets,
+                 curl_orients, memtype=MEM_HOST, cmode=COPY_VALUES):
+        # CeedVector object
+        self._pointer = ffi.new("CeedElemRestriction *")
+
+        # Reference to Ceed
+        self._ceed = ceed
+
+        # Store array reference if needed
+        if cmode == USE_POINTER:
+            self._array_reference = offsets
+            self._array_reference_aux = curl_orients
+        else:
+            self._array_reference = None
+            self._array_reference_aux = None
+
+        # Setup the numpy arrays for the libCEED call
+        offsets_pointer = ffi.new("const CeedInt *")
+        offsets_pointer = ffi.cast("const CeedInt *",
+                                   offsets.__array_interface__['data'][0])
+        curl_orients_pointer = ffi.new("const CeedInt *")
+        curl_orients_pointer = ffi.cast("const CeedInt *",
+                                        curl_orients.__array_interface__['data'][0])
+
+        # libCEED call
+        err_code = lib.CeedElemRestrictionCreateCurlOriented(self._ceed._pointer[0], nelem,
+                                                             elemsize, ncomp, compstride,
+                                                             lsize, memtype, cmode,
+                                                             offsets_pointer,
+                                                             curl_orients_pointer,
+                                                             self._pointer)
+        self._ceed._check_error(err_code)
+
+# ------------------------------------------------------------------------------
+
+
 class StridedElemRestriction(_ElemRestrictionBase):
     """Ceed Strided ElemRestriction: strided restriction from local vectors to elements."""
 
@@ -268,8 +347,70 @@ class BlockedElemRestriction(_ElemRestrictionBase):
 # ------------------------------------------------------------------------------
 
 
+class BlockedOrientedElemRestriction(BlockedElemRestriction):
+    """Ceed Blocked Oriented ElemRestriction: blocked oriented restriction from local vectors to elements."""
+
+    # Constructor
+    def __init__(self, ceed, nelem, elemsize, blksize, ncomp, compstride, lsize,
+                 offsets, orients, memtype=MEM_HOST, cmode=COPY_VALUES):
+        # CeedVector object
+        self._pointer = ffi.new("CeedElemRestriction *")
+
+        # Reference to Ceed
+        self._ceed = ceed
+
+        # Setup the numpy array for the libCEED call
+        offsets_pointer = ffi.new("const CeedInt *")
+        offsets_pointer = ffi.cast("const CeedInt *",
+                                   offsets.__array_interface__['data'][0])
+        orients_pointer = ffi.new("const bool *")
+        orients_pointer = ffi.cast("const bool *",
+                                   orients.__array_interface__['data'][0])
+
+        # libCEED call
+        err_code = lib.CeedElemRestrictionCreateBlockedOriented(self._ceed._pointer[0], nelem,
+                                                                elemsize, blksize, ncomp,
+                                                                compstride, lsize, memtype, cmode,
+                                                                offsets_pointer, orients_pointer,
+                                                                self._pointer)
+        self._ceed._check_error(err_code)
+
+# ------------------------------------------------------------------------------
+
+
+class BlockedCurlOrientedElemRestriction(BlockedElemRestriction):
+    """Ceed Blocked Curl Oriented ElemRestriction: blocked curl-oriented restriction from local vectors to elements."""
+
+    # Constructor
+    def __init__(self, ceed, nelem, elemsize, blksize, ncomp, compstride, lsize,
+                 offsets, curl_orients, memtype=MEM_HOST, cmode=COPY_VALUES):
+        # CeedVector object
+        self._pointer = ffi.new("CeedElemRestriction *")
+
+        # Reference to Ceed
+        self._ceed = ceed
+
+        # Setup the numpy array for the libCEED call
+        offsets_pointer = ffi.new("const CeedInt *")
+        offsets_pointer = ffi.cast("const CeedInt *",
+                                   offsets.__array_interface__['data'][0])
+        curl_orients_pointer = ffi.new("const CeedInt *")
+        curl_orients_pointer = ffi.cast("const CeedInt *",
+                                        curl_orients.__array_interface__['data'][0])
+
+        # libCEED call
+        err_code = lib.CeedElemRestrictionCreateBlockedCurlOriented(self._ceed._pointer[0], nelem,
+                                                                    elemsize, blksize, ncomp,
+                                                                    compstride, lsize, memtype, cmode,
+                                                                    offsets_pointer, curl_orients_pointer,
+                                                                    self._pointer)
+        self._ceed._check_error(err_code)
+
+# ------------------------------------------------------------------------------
+
+
 class BlockedStridedElemRestriction(BlockedElemRestriction):
-    """Ceed Blocked Strided ElemRestriction: strided restriction from local vectors to elements."""
+    """Ceed Blocked Strided ElemRestriction: blocked strided restriction from local vectors to elements."""
 
     # Constructor
     def __init__(self, ceed, nelem, elemsize, blksize, ncomp, lsize, strides):

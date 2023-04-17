@@ -193,6 +193,90 @@ impl<'a> ElemRestriction<'a> {
         })
     }
 
+    pub fn create_oriented(
+        ceed: &crate::Ceed,
+        nelem: usize,
+        elemsize: usize,
+        ncomp: usize,
+        compstride: usize,
+        lsize: usize,
+        mtype: crate::MemType,
+        offsets: &[i32],
+        orients: &[bool],
+    ) -> crate::Result<Self> {
+        let mut ptr = std::ptr::null_mut();
+        let (nelem, elemsize, ncomp, compstride, lsize, mtype) = (
+            i32::try_from(nelem).unwrap(),
+            i32::try_from(elemsize).unwrap(),
+            i32::try_from(ncomp).unwrap(),
+            i32::try_from(compstride).unwrap(),
+            isize::try_from(lsize).unwrap(),
+            mtype as bind_ceed::CeedMemType,
+        );
+        let ierr = unsafe {
+            bind_ceed::CeedElemRestrictionCreateOriented(
+                ceed.ptr,
+                nelem,
+                elemsize,
+                ncomp,
+                compstride,
+                lsize,
+                mtype,
+                crate::CopyMode::CopyValues as bind_ceed::CeedCopyMode,
+                offsets.as_ptr(),
+                orients.as_ptr(),
+                &mut ptr,
+            )
+        };
+        ceed.check_error(ierr)?;
+        Ok(Self {
+            ptr,
+            _lifeline: PhantomData,
+        })
+    }
+
+    pub fn create_curl_oriented(
+        ceed: &crate::Ceed,
+        nelem: usize,
+        elemsize: usize,
+        ncomp: usize,
+        compstride: usize,
+        lsize: usize,
+        mtype: crate::MemType,
+        offsets: &[i32],
+        curlorients: &[i32],
+    ) -> crate::Result<Self> {
+        let mut ptr = std::ptr::null_mut();
+        let (nelem, elemsize, ncomp, compstride, lsize, mtype) = (
+            i32::try_from(nelem).unwrap(),
+            i32::try_from(elemsize).unwrap(),
+            i32::try_from(ncomp).unwrap(),
+            i32::try_from(compstride).unwrap(),
+            isize::try_from(lsize).unwrap(),
+            mtype as bind_ceed::CeedMemType,
+        );
+        let ierr = unsafe {
+            bind_ceed::CeedElemRestrictionCreateCurlOriented(
+                ceed.ptr,
+                nelem,
+                elemsize,
+                ncomp,
+                compstride,
+                lsize,
+                mtype,
+                crate::CopyMode::CopyValues as bind_ceed::CeedCopyMode,
+                offsets.as_ptr(),
+                curlorients.as_ptr(),
+                &mut ptr,
+            )
+        };
+        ceed.check_error(ierr)?;
+        Ok(Self {
+            ptr,
+            _lifeline: PhantomData,
+        })
+    }
+
     pub fn create_strided(
         ceed: &crate::Ceed,
         nelem: usize,

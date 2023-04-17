@@ -416,7 +416,7 @@ impl Ceed {
     /// * `lsize`      - The size of the Lvector. This vector may be larger
     ///                    than the elements and fields given by this
     ///                    restriction.
-    /// * `mtype`     - Memory type of the offsets array, see CeedMemType
+    /// * `mtype`      - Memory type of the offsets array, see CeedMemType
     /// * `offsets`    - Array of shape `[nelem, elemsize]`. Row `i` holds the
     ///                    ordered list of the offsets (into the input CeedVector)
     ///                    for the unknowns corresponding to element `i`, where
@@ -449,6 +449,164 @@ impl Ceed {
     ) -> Result<ElemRestriction<'a>> {
         ElemRestriction::create(
             self, nelem, elemsize, ncomp, compstride, lsize, mtype, offsets,
+        )
+    }
+
+    /// Returns an oriented ElemRestriction, $\mathcal{E}$, which extracts the
+    ///   degrees of freedom for each element from the local vector into the
+    ///   element vector or assembles contributions from each element in the
+    ///   element vector to the local vector
+    ///
+    /// # arguments
+    ///
+    /// * `nelem`      - Number of elements described in the offsets array
+    /// * `elemsize`   - Size (number of "nodes") per element
+    /// * `ncomp`      - Number of field components per interpolation node (1
+    ///                    for scalar fields)
+    /// * `compstride` - Stride between components for the same Lvector "node".
+    ///                    Data for node `i`, component `j`, element `k` can be
+    ///                    found in the Lvector at index
+    ///                    `offsets[i + k*elemsize] + j*compstride`.
+    /// * `lsize`      - The size of the Lvector. This vector may be larger
+    ///                    than the elements and fields given by this
+    ///                    restriction.
+    /// * `mtype`      - Memory type of the offsets array, see CeedMemType
+    /// * `offsets`    - Array of shape `[nelem, elemsize]`. Row `i` holds the
+    ///                    ordered list of the offsets (into the input CeedVector)
+    ///                    for the unknowns corresponding to element `i`, where
+    ///                    `0 <= i < nelem`. All offsets must be in the range
+    ///                    `[0, lsize - 1]`.
+    /// * `orients`    - Array of shape `[nelem, elemsize]`. Row `i` holds the
+    ///                    ordered list of the orientations for the unknowns
+    ///                    corresponding to element `i`, with bool `false` used
+    ///                    for positively oriented and `true` to flip the
+    ///                    orientation.
+    ///
+    /// ```
+    /// # use libceed::prelude::*;
+    /// # fn main() -> libceed::Result<()> {
+    /// # let ceed = libceed::Ceed::default_init();
+    /// let nelem = 3;
+    /// let mut ind: Vec<i32> = vec![0; 2 * nelem];
+    /// let mut orients: Vec<bool> = vec![false; 2 * nelem];
+    /// for i in 0..nelem {
+    ///     ind[2 * i + 0] = i as i32;
+    ///     ind[2 * i + 1] = (i + 1) as i32;
+    ///     orients[2 * i + 0] = (i % 2) > 0; // flip the dofs on element 1, 3, ...
+    ///     orients[2 * i + 1] = (i % 2) > 0;
+    /// }
+    /// let r =
+    ///     ceed.oriented_elem_restriction(nelem, 2, 1, 1, nelem + 1, MemType::Host, &ind, &orients)?;
+    /// # Ok(())
+    /// # }
+    /// ```
+    pub fn oriented_elem_restriction<'a>(
+        &self,
+        nelem: usize,
+        elemsize: usize,
+        ncomp: usize,
+        compstride: usize,
+        lsize: usize,
+        mtype: MemType,
+        offsets: &[i32],
+        orients: &[bool],
+    ) -> Result<ElemRestriction<'a>> {
+        ElemRestriction::create_oriented(
+            self, nelem, elemsize, ncomp, compstride, lsize, mtype, offsets, orients,
+        )
+    }
+
+    /// Returns a curl-oriented ElemRestriction, $\mathcal{E}$, which extracts
+    ///   the degrees of freedom for each element from the local vector into
+    ///   the element vector or assembles contributions from each element in
+    ///   the element vector to the local vector
+    ///
+    /// # arguments
+    ///
+    /// * `nelem`       - Number of elements described in the offsets array
+    /// * `elemsize`    - Size (number of "nodes") per element
+    /// * `ncomp`       - Number of field components per interpolation node (1
+    ///                     for scalar fields)
+    /// * `compstride`  - Stride between components for the same Lvector "node".
+    ///                     Data for node `i`, component `j`, element `k` can be
+    ///                     found in the Lvector at index
+    ///                     `offsets[i + k*elemsize] + j*compstride`.
+    /// * `lsize`       - The size of the Lvector. This vector may be larger
+    ///                     than the elements and fields given by this
+    ///                     restriction.
+    /// * `mtype`       - Memory type of the offsets array, see CeedMemType
+    /// * `offsets`     - Array of shape `[nelem, elemsize]`. Row `i` holds the
+    ///                     ordered list of the offsets (into the input CeedVector)
+    ///                     for the unknowns corresponding to element `i`, where
+    ///                     `0 <= i < nelem`. All offsets must be in the range
+    ///                     `[0, lsize - 1]`.
+    /// * `curlorients` - Array of shape `[nelem, 3 * elemsize]`. Row `i` holds
+    ///                     a row-major tridiagonal matrix (`curlorients[i, 0] =
+    ///                     curlorients[i, 3 * elemsize - 1] = 0`, where
+    ///                     `0 <= i < nelem`) which is applied to the element
+    ///                     unknowns upon restriction.
+    ///
+    /// ```
+    /// # use libceed::prelude::*;
+    /// # fn main() -> libceed::Result<()> {
+    /// # let ceed = libceed::Ceed::default_init();
+    /// let nelem = 3;
+    /// let mut ind: Vec<i32> = vec![0; 2 * nelem];
+    /// let mut curlorients: Vec<i32> = vec![0; 3 * 2 * nelem];
+    /// for i in 0..nelem {
+    ///     ind[2 * i + 0] = i as i32;
+    ///     ind[2 * i + 1] = (i + 1) as i32;
+    ///     curlorients[3 * 2 * i] = 0;
+    ///     curlorients[3 * 2 * (i + 1) - 1] = 0;
+    ///     if (i % 2 > 0) {
+    ///         // T = [0  -1]
+    ///         //     [-1  0]
+    ///         curlorients[3 * 2 * i + 1] = 0;
+    ///         curlorients[3 * 2 * i + 2] = -1;
+    ///         curlorients[3 * 2 * i + 3] = -1;
+    ///         curlorients[3 * 2 * i + 4] = 0;
+    ///     } else {
+    ///         // T = I
+    ///         curlorients[3 * 2 * i + 1] = 1;
+    ///         curlorients[3 * 2 * i + 2] = 0;
+    ///         curlorients[3 * 2 * i + 3] = 0;
+    ///         curlorients[3 * 2 * i + 4] = 1;
+    ///     }
+    /// }
+    /// let r = ceed.curl_oriented_elem_restriction(
+    ///     nelem,
+    ///     2,
+    ///     1,
+    ///     1,
+    ///     nelem + 1,
+    ///     MemType::Host,
+    ///     &ind,
+    ///     &curlorients,
+    /// )?;
+    /// # Ok(())
+    /// # }
+    /// ```
+    pub fn curl_oriented_elem_restriction<'a>(
+        &self,
+        nelem: usize,
+        elemsize: usize,
+        ncomp: usize,
+        compstride: usize,
+        lsize: usize,
+        mtype: MemType,
+        offsets: &[i32],
+        curlorients: &[i32],
+    ) -> Result<ElemRestriction<'a>> {
+        ElemRestriction::create_curl_oriented(
+            self,
+            nelem,
+            elemsize,
+            ncomp,
+            compstride,
+            lsize,
+            mtype,
+            offsets,
+            curlorients,
         )
     }
 

@@ -8,7 +8,8 @@
 from .ceed import Ceed
 from .ceed_vector import Vector
 from .ceed_basis import Basis, BasisTensorH1, BasisTensorH1Lagrange, BasisH1, BasisHdiv, BasisHcurl
-from .ceed_elemrestriction import ElemRestriction, StridedElemRestriction, BlockedElemRestriction, BlockedStridedElemRestriction
+from .ceed_elemrestriction import ElemRestriction, OrientedElemRestriction, CurlOrientedElemRestriction, StridedElemRestriction
+from .ceed_elemrestriction import BlockedElemRestriction, BlockedOrientedElemRestriction, BlockedCurlOrientedElemRestriction, BlockedStridedElemRestriction
 from .ceed_qfunction import QFunction, QFunctionByName, IdentityQFunction
 from .ceed_operator import Operator, CompositeOperator
 from .ceed_constants import *
@@ -19,7 +20,8 @@ from .ceed_constants import *
 __all__ = ["Ceed",
            "Vector",
            "Basis", "BasisTensorH1", "BasisTensorH1Lagrange", "BasisH1", "BasisHdiv", "BasisHcurl",
-           "ElemRestriction", "StridedElemRestriction", "BlockedElemRestriction", "BlockedStridedelemRestriction",
+           "ElemRestriction", "OrientedElemRestriction", "CurlOrientedElemRestriction", "StridedElemRestriction",
+           "BlockedElemRestriction", "BlockedOrientedElemRestriction", "BlockedCurlOrientedElemRestriction", "BlockedStridedElemRestriction",
            "QFunction", "QFunctionByName", "IdentityQFunction",
            "Operator", "CompositeOperator",
            "MEM_HOST", "MEM_DEVICE", "mem_types",
