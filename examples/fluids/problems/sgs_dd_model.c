@@ -86,7 +86,7 @@ PetscErrorCode SGS_DD_ModelSetupNodalEvaluation(Ceed ceed, User user, CeedData c
     CeedElemRestrictionGetNumComponents(elem_restr_grad_velo, &num_comp_grad_velo);
   }
 
-  PetscCall(GetRestrictionForDomain(ceed, sgs_dd_data->dm_sgs, 0, 0, 0, num_qpts_1d, 0, &elem_restr_sgs, NULL, NULL));
+  PetscCall(GetRestrictionForDomain(ceed, sgs_dd_data->dm_sgs, 0, 0, 0, 0, num_qpts_1d, 0, &elem_restr_sgs, NULL, NULL));
   CeedElemRestrictionCreateVector(elem_restr_sgs, &sgs_dd_data->sgs_nodal_ceed, NULL);
 
   // -- Create inverse multiplicity for correcting nodal assembly

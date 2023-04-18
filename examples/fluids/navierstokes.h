@@ -305,11 +305,13 @@ extern PetscErrorCode PRINT_ADVECTION2D(ProblemData *problem, AppCtx app_ctx);
 PetscInt Involute(PetscInt i);
 
 // Utility function to create local CEED restriction
-PetscErrorCode CreateRestrictionFromPlex(Ceed ceed, DM dm, CeedInt height, DMLabel domain_label, CeedInt value, CeedElemRestriction *elem_restr);
+PetscErrorCode CreateRestrictionFromPlex(Ceed ceed, DM dm, CeedInt height, DMLabel domain_label, CeedInt label_value, PetscInt dm_field,
+                                         CeedElemRestriction *elem_restr);
 
 // Utility function to get Ceed Restriction for each domain
-PetscErrorCode GetRestrictionForDomain(Ceed ceed, DM dm, CeedInt height, DMLabel domain_label, PetscInt value, CeedInt Q, CeedInt q_data_size,
-                                       CeedElemRestriction *elem_restr_q, CeedElemRestriction *elem_restr_x, CeedElemRestriction *elem_restr_qd_i);
+PetscErrorCode GetRestrictionForDomain(Ceed ceed, DM dm, CeedInt height, DMLabel domain_label, PetscInt label_value, PetscInt dm_field, CeedInt Q,
+                                       CeedInt q_data_size, CeedElemRestriction *elem_restr_q, CeedElemRestriction *elem_restr_x,
+                                       CeedElemRestriction *elem_restr_qd_i);
 
 // Utility function to create CEED Composite Operator for the entire domain
 PetscErrorCode CreateOperatorForDomain(Ceed ceed, DM dm, SimpleBC bc, CeedData ceed_data, Physics phys, CeedOperator op_apply_vol,

@@ -30,7 +30,7 @@ PetscErrorCode DifferentialFilterCreateOperators(Ceed ceed, User user, CeedData 
   CeedBasisGetNumQuadraturePoints1D(ceed_data->basis_q, &num_qpts_1d);
   CeedBasisGetNumNodes1D(ceed_data->basis_q, &num_nodes_1d);
 
-  PetscCall(GetRestrictionForDomain(ceed, dm_filter, 0, 0, 0, num_qpts_1d, 0, &elem_restr_filter, NULL, NULL));
+  PetscCall(GetRestrictionForDomain(ceed, dm_filter, 0, 0, 0, 0, num_qpts_1d, 0, &elem_restr_filter, NULL, NULL));
   CeedBasisCreateTensorH1Lagrange(ceed, dim, num_comp_filter, num_nodes_1d, num_qpts_1d, CEED_GAUSS, &basis_filter);
 
   {  // -- Create RHS MatopApplyContext

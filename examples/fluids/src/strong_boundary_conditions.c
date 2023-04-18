@@ -43,7 +43,7 @@ PetscErrorCode SetupStrongSTG_Ceed(Ceed ceed, CeedData ceed_data, DM dm, Problem
   // Compute contribution on each boundary face
   for (CeedInt i = 0; i < bc->num_inflow; i++) {
     // -- Restrictions
-    PetscCall(GetRestrictionForDomain(ceed, dm, height, domain_label, bc->inflows[i], Q_sur, q_data_size_sur, &elem_restr_q_sur, &elem_restr_x_sur,
+    PetscCall(GetRestrictionForDomain(ceed, dm, height, domain_label, bc->inflows[i], 0, Q_sur, q_data_size_sur, &elem_restr_q_sur, &elem_restr_x_sur,
                                       &elem_restr_qd_sur));
     CeedElemRestrictionCreateVector(elem_restr_q_sur, &multiplicity, NULL);
     CeedElemRestrictionGetMultiplicity(elem_restr_q_sur, multiplicity);
