@@ -212,6 +212,8 @@ int main(int argc, char **argv) {
     PetscCall(SetupICsFromBinary(comm, app_ctx, Q));
   }
 
+  PetscCall(SGS_DD_TrainingSetup(ceed, user, ceed_data, problem));
+
   // ---------------------------------------------------------------------------
   // Print problem summary
   // ---------------------------------------------------------------------------

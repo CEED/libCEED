@@ -493,6 +493,8 @@ PetscErrorCode TSSolve_NS(DM dm, User user, AppCtx app_ctx, Physics phys, Vec *Q
   }
   if (app_ctx->diff_filter_monitor) PetscCall(TSMonitorSet(*ts, TSMonitor_DifferentialFilter, user, NULL));
 
+  PetscCall(TSMonitorSet(*ts, TSMonitor_SGS_DD_Training, user, NULL));
+
   // Solve
   PetscReal start_time;
   PetscInt  start_step;
