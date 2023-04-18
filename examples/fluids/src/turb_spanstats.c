@@ -187,7 +187,7 @@ PetscErrorCode SpanStatsSetupDataCreate(Ceed ceed, User user, CeedData ceed_data
   CeedBasisGetNumQuadraturePoints1D(ceed_data->basis_q, &Q);
   CeedBasisGetNumNodes1D(ceed_data->basis_q, &P);
 
-  PetscCall(GetRestrictionForDomain(ceed, dm, 0, 0, 0, Q, problem->q_data_size_sur, &(*stats_data)->elem_restr_parent_stats,
+  PetscCall(GetRestrictionForDomain(ceed, dm, 0, 0, 0, 0, Q, problem->q_data_size_sur, &(*stats_data)->elem_restr_parent_stats,
                                     &(*stats_data)->elem_restr_parent_x, &(*stats_data)->elem_restr_parent_qd));
   CeedElemRestrictionGetNumComponents((*stats_data)->elem_restr_parent_x, &num_comp_x);
   CeedElemRestrictionCreateVector((*stats_data)->elem_restr_parent_x, &(*stats_data)->x_coord, NULL);
