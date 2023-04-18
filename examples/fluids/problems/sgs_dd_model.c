@@ -216,7 +216,7 @@ PetscErrorCode SGS_DD_ModelApplyIFunction(User user, const Vec Q_loc, Vec G_loc)
 
   PetscFunctionBeginUser;
   PetscCall(DMGetGlobalVector(user->grad_velo_proj->dm, &VelocityGradient));
-  PetscCall(VelocityGradientProjectionApply(user, Q_loc, VelocityGradient));
+  PetscCall(VelocityGradientProjectionApply(user->grad_velo_proj, Q_loc, VelocityGradient));
 
   // -- Compute Nodal SGS tensor
   PetscCall(DMGetLocalVector(sgs_dd_data->dm_sgs, &SGSNodal_loc));
@@ -307,9 +307,10 @@ PetscErrorCode SGS_DD_ModelSetup(Ceed ceed, User user, CeedData ceed_data, Probl
   char                     sgs_dd_dir[PETSC_MAX_PATH_LEN] = "./dd_sgs_parameters";
   SGS_DD_ModelSetupData    sgs_dd_setup_data;
   NewtonianIdealGasContext gas;
-  PetscFunctionBeginUser;
 
-  PetscCall(VelocityGradientProjectionSetup(ceed, user, ceed_data, problem));
+  PetscFunctionBeginUser;
+  PetscCall(VelocityGradientProjectionSetup(ceed, user, ceed_data, problem, user->phys->state_var, ceed_data->elem_restr_q, ceed_data->basis_q,
+                                            &user->grad_velo_proj));
 
   PetscCall(PetscNew(&sgsdd_ctx));
 
