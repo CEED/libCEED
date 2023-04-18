@@ -146,39 +146,28 @@ static int CeedBasisCreateProjectionMatrices(CeedBasis basis_from, CeedBasis bas
   CeedInt Q_to, Q_from;
   CeedCall(CeedBasisGetNumQuadraturePoints(basis_to, &Q_to));
   CeedCall(CeedBasisGetNumQuadraturePoints(basis_from, &Q_from));
-  if (Q_to != Q_from) {
-    // LCOV_EXCL_START
-    return CeedError(ceed, CEED_ERROR_DIMENSION, "Bases must have compatible quadrature spaces");
-    // LCOV_EXCL_STOP
-  }
+  CeedCheck(Q_to == Q_from, ceed, CEED_ERROR_DIMENSION, "Bases must have compatible quadrature spaces");
 
   // Check for matching tensor or non-tensor
   CeedInt P_to, P_from, Q = Q_to;
   bool    is_tensor_to, is_tensor_from;
   CeedCall(CeedBasisIsTensor(basis_to, &is_tensor_to));
   CeedCall(CeedBasisIsTensor(basis_from, &is_tensor_from));
-  if (is_tensor_to && is_tensor_from) {
+  CeedCheck(is_tensor_to == is_tensor_from, ceed, CEED_ERROR_MINOR, "Bases must both be tensor or non-tensor");
+  if (is_tensor_to) {
     CeedCall(CeedBasisGetNumNodes1D(basis_to, &P_to));
     CeedCall(CeedBasisGetNumNodes1D(basis_from, &P_from));
     CeedCall(CeedBasisGetNumQuadraturePoints1D(basis_from, &Q));
-  } else if (!is_tensor_to && !is_tensor_from) {
+  } else {
     CeedCall(CeedBasisGetNumNodes(basis_to, &P_to));
     CeedCall(CeedBasisGetNumNodes(basis_from, &P_from));
-  } else {
-    // LCOV_EXCL_START
-    return CeedError(ceed, CEED_ERROR_MINOR, "Bases must both be tensor or non-tensor");
-    // LCOV_EXCL_STOP
   }
 
   // Check for matching FE space
   CeedFESpace fe_space_to, fe_space_from;
   CeedCall(CeedBasisGetFESpace(basis_to, &fe_space_to));
   CeedCall(CeedBasisGetFESpace(basis_from, &fe_space_from));
-  if (fe_space_to != fe_space_from) {
-    // LCOV_EXCL_START
-    return CeedError(ceed, CEED_ERROR_MINOR, "Bases must both be the same FE space type");
-    // LCOV_EXCL_STOP
-  }
+  CeedCheck(fe_space_to == fe_space_from, ceed, CEED_ERROR_MINOR, "Bases must both be the same FE space type");
 
   // Get source matrices
   CeedInt           dim, q_comp = 1;
@@ -450,11 +439,9 @@ int CeedBasisGetFlopsEstimate(CeedBasis basis, CeedTransposeMode t_mode, CeedEva
         *flops = tensor_flops * 2;
         break;
       case CEED_EVAL_DIV:
-        // LCOV_EXCL_START
-        return CeedError(basis->ceed, CEED_ERROR_INCOMPATIBLE, "Tensor CEED_EVAL_DIV not supported");
-        break;
       case CEED_EVAL_CURL:
-        return CeedError(basis->ceed, CEED_ERROR_INCOMPATIBLE, "Tensor CEED_EVAL_CURL not supported");
+        // LCOV_EXCL_START
+        return CeedError(basis->ceed, CEED_ERROR_INCOMPATIBLE, "Tensor basis evaluation for %s not supported", CeedEvalModes[eval_mode]);
         break;
       // LCOV_EXCL_STOP
       case CEED_EVAL_WEIGHT:
@@ -593,11 +580,7 @@ int CeedQRFactorization(Ceed ceed, CeedScalar *mat, CeedScalar *tau, CeedInt m, 
   CeedScalar v[m];
 
   // Check matrix shape
-  if (n > m) {
-    // LCOV_EXCL_START
-    return CeedError(ceed, CEED_ERROR_UNSUPPORTED, "Cannot compute QR factorization with n > m");
-    // LCOV_EXCL_STOP
-  }
+  CeedCheck(n <= m, ceed, CEED_ERROR_UNSUPPORTED, "Cannot compute QR factorization with n > m");
 
   for (CeedInt i = 0; i < n; i++) {
     if (i >= m - 1) {  // last row of matrix, no reflection needed
@@ -677,11 +660,7 @@ int CeedHouseholderApplyQ(CeedScalar *mat_A, const CeedScalar *mat_Q, const Ceed
 CeedPragmaOptimizeOff
 int CeedSymmetricSchurDecomposition(Ceed ceed, CeedScalar *mat, CeedScalar *lambda, CeedInt n) {
   // Check bounds for clang-tidy
-  if (n < 2) {
-    // LCOV_EXCL_START
-    return CeedError(ceed, CEED_ERROR_UNSUPPORTED, "Cannot compute symmetric Schur decomposition of scalars");
-    // LCOV_EXCL_STOP
-  }
+  CeedCheck(n > 1, ceed, CEED_ERROR_UNSUPPORTED, "Cannot compute symmetric Schur decomposition of scalars");
 
   CeedScalar v[n - 1], tau[n - 1], mat_T[n * n];
 
@@ -794,11 +773,7 @@ int CeedSymmetricSchurDecomposition(Ceed ceed, CeedScalar *mat, CeedScalar *lamb
   for (CeedInt i = 0; i < n; i++) lambda[i] = mat_T[i + n * i];
 
   // Check convergence
-  if (itr == max_itr && q < n - 1) {
-    // LCOV_EXCL_START
-    return CeedError(ceed, CEED_ERROR_MINOR, "Symmetric QR failed to converge");
-    // LCOV_EXCL_STOP
-  }
+  CeedCheck(itr < max_itr || q > n, ceed, CEED_ERROR_MINOR, "Symmetric QR failed to converge");
   return CEED_ERROR_SUCCESS;
 }
 CeedPragmaOptimizeOn
@@ -928,41 +903,17 @@ int CeedBasisCreateTensorH1(Ceed ceed, CeedInt dim, CeedInt num_comp, CeedInt P_
                             const CeedScalar *grad_1d, const CeedScalar *q_ref_1d, const CeedScalar *q_weight_1d, CeedBasis *basis) {
   if (!ceed->BasisCreateTensorH1) {
     Ceed delegate;
+
     CeedCall(CeedGetObjectDelegate(ceed, &delegate, "Basis"));
-
-    if (!delegate) {
-      // LCOV_EXCL_START
-      return CeedError(ceed, CEED_ERROR_UNSUPPORTED, "Backend does not support BasisCreateTensorH1");
-      // LCOV_EXCL_STOP
-    }
-
+    CeedCheck(delegate, ceed, CEED_ERROR_UNSUPPORTED, "Backend does not support BasisCreateTensorH1");
     CeedCall(CeedBasisCreateTensorH1(delegate, dim, num_comp, P_1d, Q_1d, interp_1d, grad_1d, q_ref_1d, q_weight_1d, basis));
     return CEED_ERROR_SUCCESS;
   }
 
-  if (dim < 1) {
-    // LCOV_EXCL_START
-    return CeedError(ceed, CEED_ERROR_DIMENSION, "Basis dimension must be a positive value");
-    // LCOV_EXCL_STOP
-  }
-
-  if (num_comp < 1) {
-    // LCOV_EXCL_START
-    return CeedError(ceed, CEED_ERROR_DIMENSION, "Basis must have at least 1 component");
-    // LCOV_EXCL_STOP
-  }
-
-  if (P_1d < 1) {
-    // LCOV_EXCL_START
-    return CeedError(ceed, CEED_ERROR_DIMENSION, "Basis must have at least 1 node");
-    // LCOV_EXCL_STOP
-  }
-
-  if (Q_1d < 1) {
-    // LCOV_EXCL_START
-    return CeedError(ceed, CEED_ERROR_DIMENSION, "Basis must have at least 1 quadrature point");
-    // LCOV_EXCL_STOP
-  }
+  CeedCheck(dim > 0, ceed, CEED_ERROR_DIMENSION, "Basis dimension must be a positive value");
+  CeedCheck(num_comp > 0, ceed, CEED_ERROR_DIMENSION, "Basis must have at least 1 component");
+  CeedCheck(P_1d > 0, ceed, CEED_ERROR_DIMENSION, "Basis must have at least 1 node");
+  CeedCheck(Q_1d > 0, ceed, CEED_ERROR_DIMENSION, "Basis must have at least 1 quadrature point");
 
   CeedElemTopology topo = dim == 1 ? CEED_TOPOLOGY_LINE : dim == 2 ? CEED_TOPOLOGY_QUAD : CEED_TOPOLOGY_HEX;
 
@@ -1012,29 +963,10 @@ int CeedBasisCreateTensorH1Lagrange(Ceed ceed, CeedInt dim, CeedInt num_comp, Ce
   int        ierr = CEED_ERROR_SUCCESS, i, j, k;
   CeedScalar c1, c2, c3, c4, dx, *nodes, *interp_1d, *grad_1d, *q_ref_1d, *q_weight_1d;
 
-  if (dim < 1) {
-    // LCOV_EXCL_START
-    return CeedError(ceed, CEED_ERROR_DIMENSION, "Basis dimension must be a positive value");
-    // LCOV_EXCL_STOP
-  }
-
-  if (num_comp < 1) {
-    // LCOV_EXCL_START
-    return CeedError(ceed, CEED_ERROR_DIMENSION, "Basis must have at least 1 component");
-    // LCOV_EXCL_STOP
-  }
-
-  if (P < 1) {
-    // LCOV_EXCL_START
-    return CeedError(ceed, CEED_ERROR_DIMENSION, "Basis must have at least 1 node");
-    // LCOV_EXCL_STOP
-  }
-
-  if (Q < 1) {
-    // LCOV_EXCL_START
-    return CeedError(ceed, CEED_ERROR_DIMENSION, "Basis must have at least 1 quadrature point");
-    // LCOV_EXCL_STOP
-  }
+  CeedCheck(dim > 0, ceed, CEED_ERROR_DIMENSION, "Basis dimension must be a positive value");
+  CeedCheck(num_comp > 0, ceed, CEED_ERROR_DIMENSION, "Basis must have at least 1 component");
+  CeedCheck(P > 0, ceed, CEED_ERROR_DIMENSION, "Basis must have at least 1 node");
+  CeedCheck(Q > 0, ceed, CEED_ERROR_DIMENSION, "Basis must have at least 1 quadrature point");
 
   // Get Nodes and Weights
   CeedCall(CeedCalloc(P * Q, &interp_1d));
@@ -1111,35 +1043,16 @@ int CeedBasisCreateH1(Ceed ceed, CeedElemTopology topo, CeedInt num_comp, CeedIn
 
   if (!ceed->BasisCreateH1) {
     Ceed delegate;
+
     CeedCall(CeedGetObjectDelegate(ceed, &delegate, "Basis"));
-
-    if (!delegate) {
-      // LCOV_EXCL_START
-      return CeedError(ceed, CEED_ERROR_UNSUPPORTED, "Backend does not support BasisCreateH1");
-      // LCOV_EXCL_STOP
-    }
-
+    CeedCheck(delegate, ceed, CEED_ERROR_UNSUPPORTED, "Backend does not support BasisCreateH1");
     CeedCall(CeedBasisCreateH1(delegate, topo, num_comp, num_nodes, num_qpts, interp, grad, q_ref, q_weight, basis));
     return CEED_ERROR_SUCCESS;
   }
 
-  if (num_comp < 1) {
-    // LCOV_EXCL_START
-    return CeedError(ceed, CEED_ERROR_DIMENSION, "Basis must have at least 1 component");
-    // LCOV_EXCL_STOP
-  }
-
-  if (num_nodes < 1) {
-    // LCOV_EXCL_START
-    return CeedError(ceed, CEED_ERROR_DIMENSION, "Basis must have at least 1 node");
-    // LCOV_EXCL_STOP
-  }
-
-  if (num_qpts < 1) {
-    // LCOV_EXCL_START
-    return CeedError(ceed, CEED_ERROR_DIMENSION, "Basis must have at least 1 quadrature point");
-    // LCOV_EXCL_STOP
-  }
+  CeedCheck(num_comp > 0, ceed, CEED_ERROR_DIMENSION, "Basis must have at least 1 component");
+  CeedCheck(num_nodes > 0, ceed, CEED_ERROR_DIMENSION, "Basis must have at least 1 node");
+  CeedCheck(num_qpts > 0, ceed, CEED_ERROR_DIMENSION, "Basis must have at least 1 quadrature point");
 
   CeedCall(CeedCalloc(1, basis));
 
@@ -1191,35 +1104,16 @@ int CeedBasisCreateHdiv(Ceed ceed, CeedElemTopology topo, CeedInt num_comp, Ceed
 
   if (!ceed->BasisCreateHdiv) {
     Ceed delegate;
+
     CeedCall(CeedGetObjectDelegate(ceed, &delegate, "Basis"));
-
-    if (!delegate) {
-      // LCOV_EXCL_START
-      return CeedError(ceed, CEED_ERROR_UNSUPPORTED, "Backend does not implement BasisCreateHdiv");
-      // LCOV_EXCL_STOP
-    }
-
+    CeedCheck(delegate, ceed, CEED_ERROR_UNSUPPORTED, "Backend does not implement BasisCreateHdiv");
     CeedCall(CeedBasisCreateHdiv(delegate, topo, num_comp, num_nodes, num_qpts, interp, div, q_ref, q_weight, basis));
     return CEED_ERROR_SUCCESS;
   }
 
-  if (num_comp < 1) {
-    // LCOV_EXCL_START
-    return CeedError(ceed, CEED_ERROR_DIMENSION, "Basis must have at least 1 component");
-    // LCOV_EXCL_STOP
-  }
-
-  if (num_nodes < 1) {
-    // LCOV_EXCL_START
-    return CeedError(ceed, CEED_ERROR_DIMENSION, "Basis must have at least 1 node");
-    // LCOV_EXCL_STOP
-  }
-
-  if (num_qpts < 1) {
-    // LCOV_EXCL_START
-    return CeedError(ceed, CEED_ERROR_DIMENSION, "Basis must have at least 1 quadrature point");
-    // LCOV_EXCL_STOP
-  }
+  CeedCheck(num_comp > 0, ceed, CEED_ERROR_DIMENSION, "Basis must have at least 1 component");
+  CeedCheck(num_nodes > 0, ceed, CEED_ERROR_DIMENSION, "Basis must have at least 1 node");
+  CeedCheck(num_qpts > 0, ceed, CEED_ERROR_DIMENSION, "Basis must have at least 1 quadrature point");
 
   CeedCall(CeedCalloc(1, basis));
 
@@ -1272,35 +1166,16 @@ int CeedBasisCreateHcurl(Ceed ceed, CeedElemTopology topo, CeedInt num_comp, Cee
 
   if (!ceed->BasisCreateHdiv) {
     Ceed delegate;
+
     CeedCall(CeedGetObjectDelegate(ceed, &delegate, "Basis"));
-
-    if (!delegate) {
-      // LCOV_EXCL_START
-      return CeedError(ceed, CEED_ERROR_UNSUPPORTED, "Backend does not implement BasisCreateHcurl");
-      // LCOV_EXCL_STOP
-    }
-
+    CeedCheck(delegate, ceed, CEED_ERROR_UNSUPPORTED, "Backend does not implement BasisCreateHcurl");
     CeedCall(CeedBasisCreateHcurl(delegate, topo, num_comp, num_nodes, num_qpts, interp, curl, q_ref, q_weight, basis));
     return CEED_ERROR_SUCCESS;
   }
 
-  if (num_comp < 1) {
-    // LCOV_EXCL_START
-    return CeedError(ceed, CEED_ERROR_DIMENSION, "Basis must have at least 1 component");
-    // LCOV_EXCL_STOP
-  }
-
-  if (num_nodes < 1) {
-    // LCOV_EXCL_START
-    return CeedError(ceed, CEED_ERROR_DIMENSION, "Basis must have at least 1 node");
-    // LCOV_EXCL_STOP
-  }
-
-  if (num_qpts < 1) {
-    // LCOV_EXCL_START
-    return CeedError(ceed, CEED_ERROR_DIMENSION, "Basis must have at least 1 quadrature point");
-    // LCOV_EXCL_STOP
-  }
+  CeedCheck(num_comp > 0, ceed, CEED_ERROR_DIMENSION, "Basis must have at least 1 component");
+  CeedCheck(num_nodes > 0, ceed, CEED_ERROR_DIMENSION, "Basis must have at least 1 node");
+  CeedCheck(num_qpts > 0, ceed, CEED_ERROR_DIMENSION, "Basis must have at least 1 quadrature point");
 
   CeedCall(CeedCalloc(1, basis));
 
@@ -1509,40 +1384,30 @@ int CeedBasisApply(CeedBasis basis, CeedInt num_elem, CeedTransposeMode t_mode, 
     CeedCall(CeedVectorGetLength(u, &u_length));
   }
 
-  if (!basis->Apply) {
-    // LCOV_EXCL_START
-    return CeedError(basis->ceed, CEED_ERROR_UNSUPPORTED, "Backend does not support BasisApply");
-    // LCOV_EXCL_STOP
-  }
+  CeedCheck(basis->Apply, basis->ceed, CEED_ERROR_UNSUPPORTED, "Backend does not support BasisApply");
 
   // Check compatibility of topological and geometrical dimensions
-  if ((t_mode == CEED_TRANSPOSE && (v_length % num_nodes != 0 || u_length % num_qpts != 0)) ||
-      (t_mode == CEED_NOTRANSPOSE && (u_length % num_nodes != 0 || v_length % num_qpts != 0))) {
-    // LCOV_EXCL_START
-    return CeedError(basis->ceed, CEED_ERROR_DIMENSION, "Length of input/output vectors incompatible with basis dimensions");
-    // LCOV_EXCL_STOP
-  }
+  CeedCheck((t_mode == CEED_TRANSPOSE && v_length % num_nodes == 0 && u_length % num_qpts == 0) ||
+                (t_mode == CEED_NOTRANSPOSE && u_length % num_nodes == 0 && v_length % num_qpts == 0),
+            basis->ceed, CEED_ERROR_DIMENSION, "Length of input/output vectors incompatible with basis dimensions");
 
   // Check vector lengths to prevent out of bounds issues
-  bool bad_dims = false;
+  bool good_dims = true;
   switch (eval_mode) {
     case CEED_EVAL_NONE:
     case CEED_EVAL_INTERP:
     case CEED_EVAL_GRAD:
     case CEED_EVAL_DIV:
     case CEED_EVAL_CURL:
-      bad_dims = ((t_mode == CEED_TRANSPOSE && (u_length < num_elem * num_comp * num_qpts * q_comp || v_length < num_elem * num_comp * num_nodes)) ||
-                  (t_mode == CEED_NOTRANSPOSE && (v_length < num_elem * num_qpts * num_comp * q_comp || u_length < num_elem * num_comp * num_nodes)));
+      good_dims =
+          ((t_mode == CEED_TRANSPOSE && u_length >= num_elem * num_comp * num_qpts * q_comp && v_length >= num_elem * num_comp * num_nodes) ||
+           (t_mode == CEED_NOTRANSPOSE && v_length >= num_elem * num_qpts * num_comp * q_comp && u_length >= num_elem * num_comp * num_nodes));
       break;
     case CEED_EVAL_WEIGHT:
-      bad_dims = v_length < num_elem * num_qpts;
+      good_dims = v_length >= num_elem * num_qpts;
       break;
   }
-  if (bad_dims) {
-    // LCOV_EXCL_START
-    return CeedError(basis->ceed, CEED_ERROR_DIMENSION, "Input/output vectors too short for basis and evaluation mode");
-    // LCOV_EXCL_STOP
-  }
+  CeedCheck(good_dims, basis->ceed, CEED_ERROR_DIMENSION, "Input/output vectors too short for basis and evaluation mode");
 
   CeedCall(basis->Apply(basis, num_elem, t_mode, eval_mode, u, v));
   return CEED_ERROR_SUCCESS;
@@ -1634,12 +1499,7 @@ int CeedBasisGetNumNodes(CeedBasis basis, CeedInt *P) {
   @ref Advanced
 **/
 int CeedBasisGetNumNodes1D(CeedBasis basis, CeedInt *P_1d) {
-  if (!basis->tensor_basis) {
-    // LCOV_EXCL_START
-    return CeedError(basis->ceed, CEED_ERROR_MINOR, "Cannot supply P_1d for non-tensor basis");
-    // LCOV_EXCL_STOP
-  }
-
+  CeedCheck(basis->tensor_basis, basis->ceed, CEED_ERROR_MINOR, "Cannot supply P_1d for non-tensor basis");
   *P_1d = basis->P_1d;
   return CEED_ERROR_SUCCESS;
 }
@@ -1670,12 +1530,7 @@ int CeedBasisGetNumQuadraturePoints(CeedBasis basis, CeedInt *Q) {
   @ref Advanced
 **/
 int CeedBasisGetNumQuadraturePoints1D(CeedBasis basis, CeedInt *Q_1d) {
-  if (!basis->tensor_basis) {
-    // LCOV_EXCL_START
-    return CeedError(basis->ceed, CEED_ERROR_MINOR, "Cannot supply Q_1d for non-tensor basis");
-    // LCOV_EXCL_STOP
-  }
-
+  CeedCheck(basis->tensor_basis, basis->ceed, CEED_ERROR_MINOR, "Cannot supply Q_1d for non-tensor basis");
   *Q_1d = basis->Q_1d;
   return CEED_ERROR_SUCCESS;
 }
@@ -1754,12 +1609,7 @@ int CeedBasisGetInterp(CeedBasis basis, const CeedScalar **interp) {
   @ref Backend
 **/
 int CeedBasisGetInterp1D(CeedBasis basis, const CeedScalar **interp_1d) {
-  if (!basis->tensor_basis) {
-    // LCOV_EXCL_START
-    return CeedError(basis->ceed, CEED_ERROR_MINOR, "CeedBasis is not a tensor product basis.");
-    // LCOV_EXCL_STOP
-  }
-
+  CeedCheck(basis->tensor_basis, basis->ceed, CEED_ERROR_MINOR, "CeedBasis is not a tensor product basis.");
   *interp_1d = basis->interp_1d;
   return CEED_ERROR_SUCCESS;
 }
@@ -1811,12 +1661,7 @@ int CeedBasisGetGrad(CeedBasis basis, const CeedScalar **grad) {
   @ref Advanced
 **/
 int CeedBasisGetGrad1D(CeedBasis basis, const CeedScalar **grad_1d) {
-  if (!basis->tensor_basis) {
-    // LCOV_EXCL_START
-    return CeedError(basis->ceed, CEED_ERROR_MINOR, "CeedBasis is not a tensor product basis.");
-    // LCOV_EXCL_STOP
-  }
-
+  CeedCheck(basis->tensor_basis, basis->ceed, CEED_ERROR_MINOR, "CeedBasis is not a tensor product basis.");
   *grad_1d = basis->grad_1d;
   return CEED_ERROR_SUCCESS;
 }
@@ -1832,12 +1677,7 @@ int CeedBasisGetGrad1D(CeedBasis basis, const CeedScalar **grad_1d) {
   @ref Advanced
 **/
 int CeedBasisGetDiv(CeedBasis basis, const CeedScalar **div) {
-  if (!basis->div) {
-    // LCOV_EXCL_START
-    return CeedError(basis->ceed, CEED_ERROR_MINOR, "CeedBasis does not have divergence matrix.");
-    // LCOV_EXCL_STOP
-  }
-
+  CeedCheck(basis->div, basis->ceed, CEED_ERROR_MINOR, "CeedBasis does not have divergence matrix.");
   *div = basis->div;
   return CEED_ERROR_SUCCESS;
 }
@@ -1853,12 +1693,7 @@ int CeedBasisGetDiv(CeedBasis basis, const CeedScalar **div) {
   @ref Advanced
 **/
 int CeedBasisGetCurl(CeedBasis basis, const CeedScalar **curl) {
-  if (!basis->curl) {
-    // LCOV_EXCL_START
-    return CeedError(basis->ceed, CEED_ERROR_MINOR, "CeedBasis does not have curl matrix.");
-    // LCOV_EXCL_STOP
-  }
-
+  CeedCheck(basis->curl, basis->ceed, CEED_ERROR_MINOR, "CeedBasis does not have curl matrix.");
   *curl = basis->curl;
   return CEED_ERROR_SUCCESS;
 }
@@ -1960,11 +1795,7 @@ int CeedLobattoQuadrature(CeedInt Q, CeedScalar *q_ref_1d, CeedScalar *q_weight_
   CeedScalar P0, P1, P2, dP2, d2P2, xi, wi, PI = 4.0 * atan(1.0);
   // Build q_ref_1d, q_weight_1d
   // Set endpoints
-  if (Q < 2) {
-    // LCOV_EXCL_START
-    return CeedError(NULL, CEED_ERROR_DIMENSION, "Cannot create Lobatto quadrature with Q=%" CeedInt_FMT " < 2 points", Q);
-    // LCOV_EXCL_STOP
-  }
+  CeedCheck(Q > 1, NULL, CEED_ERROR_DIMENSION, "Cannot create Lobatto quadrature with Q=%" CeedInt_FMT " < 2 points", Q);
   wi = 2.0 / ((CeedScalar)(Q * (Q - 1)));
   if (q_weight_1d) {
     q_weight_1d[0]     = wi;

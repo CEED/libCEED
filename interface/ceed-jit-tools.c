@@ -86,11 +86,7 @@ int CeedLoadSourceToInitializedBuffer(Ceed ceed, const char *source_file_path, c
 
   // Read file to temporary buffer
   source_file = fopen(source_file_path, "rb");
-  if (!source_file) {
-    // LCOV_EXCL_START
-    return CeedError(ceed, CEED_ERROR_MAJOR, "Couldn't open source file: %s", source_file_path);
-    // LCOV_EXCL_STOP
-  }
+  CeedCheck(source_file, ceed, CEED_ERROR_MAJOR, "Couldn't open source file: %s", source_file_path);
   // -- Compute size of source
   fseek(source_file, 0L, SEEK_END);
   file_size = ftell(source_file);
@@ -247,12 +243,7 @@ int CeedPathConcatenate(Ceed ceed, const char *base_file_path, const char *relat
 **/
 int CeedGetJitRelativePath(const char *absolute_file_path, const char **relative_file_path) {
   *(relative_file_path) = strstr(absolute_file_path, "ceed/jit-source");
-
-  if (!*relative_file_path) {
-    // LCOV_EXCL_START
-    return CeedError(NULL, CEED_ERROR_MAJOR, "Couldn't find relative path including 'ceed/jit-source' for: %s", absolute_file_path);
-    // LCOV_EXCL_STOP
-  }
+  CeedCheck(*relative_file_path, NULL, CEED_ERROR_MAJOR, "Couldn't find relative path including 'ceed/jit-source' for: %s", absolute_file_path);
   return CEED_ERROR_SUCCESS;
 }
 

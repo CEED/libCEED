@@ -19,11 +19,8 @@
 static int CeedInit_Cuda_gen(const char *resource, Ceed ceed) {
   char *resource_root;
   CeedCallBackend(CeedCudaGetResourceRoot(ceed, resource, &resource_root));
-  if (strcmp(resource_root, "/gpu/cuda") && strcmp(resource_root, "/gpu/cuda/gen")) {
-    // LCOV_EXCL_START
-    return CeedError(ceed, CEED_ERROR_BACKEND, "Cuda backend cannot use resource: %s", resource);
-    // LCOV_EXCL_STOP
-  }
+  CeedCheck(!strcmp(resource_root, "/gpu/cuda") || !strcmp(resource_root, "/gpu/cuda/gen"), ceed, CEED_ERROR_BACKEND,
+            "Cuda backend cannot use resource: %s", resource);
   CeedCallBackend(CeedFree(&resource_root));
 
   Ceed_Cuda *data;

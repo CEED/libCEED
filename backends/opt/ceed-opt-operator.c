@@ -294,9 +294,7 @@ static inline int CeedOperatorOutputBasis_Opt(CeedInt e, CeedInt Q, CeedQFunctio
       case CEED_EVAL_WEIGHT: {
         Ceed ceed;
         CeedCallBackend(CeedOperatorGetCeed(op, &ceed));
-        return CeedError(ceed, CEED_ERROR_BACKEND,
-                         "CEED_EVAL_WEIGHT cannot be an output "
-                         "evaluation mode");
+        return CeedError(ceed, CEED_ERROR_BACKEND, "CEED_EVAL_WEIGHT cannot be an output evaluation mode");
         // LCOV_EXCL_STOP
       }
     }
@@ -434,11 +432,7 @@ static inline int CeedOperatorLinearAssembleQFunctionCore_Opt(CeedOperator op, b
   CeedCallBackend(CeedOperatorSetup_Opt(op));
 
   // Check for identity
-  if (impl->is_identity_qf) {
-    // LCOV_EXCL_START
-    return CeedError(ceed, CEED_ERROR_BACKEND, "Assembling identity qfunctions not supported");
-    // LCOV_EXCL_STOP
-  }
+  CeedCheck(!impl->is_identity_qf, ceed, CEED_ERROR_BACKEND, "Assembling identity qfunctions not supported");
 
   // Input Evecs and Restriction
   CeedCallBackend(CeedOperatorSetupInputs_Opt(num_input_fields, qf_input_fields, op_input_fields, NULL, e_data, impl, request));
@@ -482,11 +476,7 @@ static inline int CeedOperatorLinearAssembleQFunctionCore_Opt(CeedOperator op, b
   }
 
   // Check sizes
-  if (!num_active_in || !num_active_out) {
-    // LCOV_EXCL_START
-    return CeedError(ceed, CEED_ERROR_BACKEND, "Cannot assemble QFunction without active inputs and outputs");
-    // LCOV_EXCL_STOP
-  }
+  CeedCheck(num_active_in > 0 && num_active_out > 0, ceed, CEED_ERROR_BACKEND, "Cannot assemble QFunction without active inputs and outputs");
 
   // Setup l_vec
   if (!l_vec) {
@@ -636,11 +626,7 @@ int CeedOperatorCreate_Opt(CeedOperator op) {
   CeedCallBackend(CeedCalloc(1, &impl));
   CeedCallBackend(CeedOperatorSetData(op, impl));
 
-  if (blk_size != 1 && blk_size != 8) {
-    // LCOV_EXCL_START
-    return CeedError(ceed, CEED_ERROR_BACKEND, "Opt backend cannot use blocksize: %" CeedInt_FMT, blk_size);
-    // LCOV_EXCL_STOP
-  }
+  CeedCheck(blk_size == 1 || blk_size == 8, ceed, CEED_ERROR_BACKEND, "Opt backend cannot use blocksize: %" CeedInt_FMT, blk_size);
 
   CeedCallBackend(CeedSetBackendFunction(ceed, "Operator", op, "LinearAssembleQFunction", CeedOperatorLinearAssembleQFunction_Opt));
   CeedCallBackend(CeedSetBackendFunction(ceed, "Operator", op, "LinearAssembleQFunctionUpdate", CeedOperatorLinearAssembleQFunctionUpdate_Opt));

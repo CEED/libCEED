@@ -31,9 +31,8 @@ int CeedBasisApply_Cuda(CeedBasis basis, const CeedInt num_elem, CeedTransposeMo
   // Read vectors
   const CeedScalar *d_u;
   CeedScalar       *d_v;
-  if (eval_mode != CEED_EVAL_WEIGHT) {
-    CeedCallBackend(CeedVectorGetArrayRead(u, CEED_MEM_DEVICE, &d_u));
-  }
+  if (u != CEED_VECTOR_NONE) CeedCallBackend(CeedVectorGetArrayRead(u, CEED_MEM_DEVICE, &d_u));
+  else CeedCheck(eval_mode == CEED_EVAL_WEIGHT, ceed, CEED_ERROR_BACKEND, "An input vector is required for this CeedEvalMode");
   CeedCallBackend(CeedVectorGetArrayWrite(v, CEED_MEM_DEVICE, &d_v));
 
   // Clear v for transpose operation

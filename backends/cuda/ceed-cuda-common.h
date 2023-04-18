@@ -38,13 +38,13 @@
   do {                          \
     int ierr_q_ = __VA_ARGS__;  \
     CeedChk_Cu(ceed, ierr_q_);  \
-  } while (0);
+  } while (0)
 
 #define CeedCallCublas(ceed, ...)  \
   do {                             \
     int ierr_q_ = __VA_ARGS__;     \
     CeedChk_Cublas(ceed, ierr_q_); \
-  } while (0);
+  } while (0)
 
 #define CASE(name) \
   case name:       \

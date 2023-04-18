@@ -124,7 +124,7 @@ CEED_INTERN int CeedBasisApplyElems_Cuda(CeedBasis basis, const CeedInt num_elem
 CEED_INTERN int CeedQFunctionApplyElems_Cuda(CeedQFunction qf, const CeedInt Q, const CeedVector *const u, const CeedVector *v);
 
 CEED_INTERN int CeedBasisCreateTensorH1_Cuda(CeedInt dim, CeedInt P_1d, CeedInt Q_1d, const CeedScalar *interp_1d, const CeedScalar *grad_1d,
-                                             const CeedScalar *qref_1d, const CeedScalar *qweight_1d, CeedBasis basis);
+                                             const CeedScalar *q_ref_1d, const CeedScalar *q_weight_1d, CeedBasis basis);
 
 CEED_INTERN int CeedBasisCreateH1_Cuda(CeedElemTopology, CeedInt, CeedInt, CeedInt, const CeedScalar *, const CeedScalar *, const CeedScalar *,
                                        const CeedScalar *, CeedBasis);

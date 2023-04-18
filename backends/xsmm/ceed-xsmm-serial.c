@@ -16,11 +16,8 @@
 // Backend Init
 //------------------------------------------------------------------------------
 static int CeedInit_Xsmm_Serial(const char *resource, Ceed ceed) {
-  if (strcmp(resource, "/cpu/self") && strcmp(resource, "/cpu/self/xsmm/serial")) {
-    // LCOV_EXCL_START
-    return CeedError(ceed, CEED_ERROR_BACKEND, "serial libXSMM backend cannot use resource: %s", resource);
-    // LCOV_EXCL_STOP
-  }
+  CeedCheck(!strcmp(resource, "/cpu/self") || !strcmp(resource, "/cpu/self/xsmm/serial"), ceed, CEED_ERROR_BACKEND,
+            "serial libXSMM backend cannot use resource: %s", resource);
   CeedCallBackend(CeedSetDeterministic(ceed, true));
 
   // Create reference Ceed that implementation will be dispatched through unless overridden

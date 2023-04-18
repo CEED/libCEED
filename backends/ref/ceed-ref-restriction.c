@@ -249,11 +249,7 @@ static int CeedElemRestrictionGetOffsets_Ref(CeedElemRestriction rstr, CeedMemTy
   Ceed ceed;
   CeedCallBackend(CeedElemRestrictionGetCeed(rstr, &ceed));
 
-  if (mem_type != CEED_MEM_HOST) {
-    // LCOV_EXCL_START
-    return CeedError(ceed, CEED_ERROR_BACKEND, "Can only provide to HOST memory");
-    // LCOV_EXCL_STOP
-  }
+  CeedCheck(mem_type == CEED_MEM_HOST, ceed, CEED_ERROR_BACKEND, "Can only provide to HOST memory");
 
   *offsets = impl->offsets;
   return CEED_ERROR_SUCCESS;
@@ -287,11 +283,7 @@ int CeedElemRestrictionCreate_Ref(CeedMemType mem_type, CeedCopyMode copy_mode, 
   Ceed ceed;
   CeedCallBackend(CeedElemRestrictionGetCeed(r, &ceed));
 
-  if (mem_type != CEED_MEM_HOST) {
-    // LCOV_EXCL_START
-    return CeedError(ceed, CEED_ERROR_BACKEND, "Only MemType = HOST supported");
-    // LCOV_EXCL_STOP
-  }
+  CeedCheck(mem_type == CEED_MEM_HOST, ceed, CEED_ERROR_BACKEND, "Only MemType = HOST supported");
   CeedCallBackend(CeedCalloc(1, &impl));
 
   // Offsets data
@@ -312,12 +304,8 @@ int CeedElemRestrictionCreate_Ref(CeedMemType mem_type, CeedCopyMode copy_mode, 
       CeedCallBackend(CeedElemRestrictionGetLVectorSize(r, &l_size));
 
       for (CeedInt i = 0; i < num_elem * elem_size; i++) {
-        if (offsets[i] < 0 || l_size <= offsets[i] + (num_comp - 1) * comp_stride) {
-          // LCOV_EXCL_START
-          return CeedError(ceed, CEED_ERROR_BACKEND, "Restriction offset %" CeedInt_FMT " (%" CeedInt_FMT ") out of range [0, %" CeedInt_FMT "]", i,
-                           offsets[i], l_size);
-          // LCOV_EXCL_STOP
-        }
+        CeedCheck(offsets[i] >= 0 && offsets[i] + (num_comp - 1) * comp_stride < l_size, ceed, CEED_ERROR_BACKEND,
+                  "Restriction offset %" CeedInt_FMT " (%" CeedInt_FMT ") out of range [0, %" CeedInt_FMT "]", i, offsets[i], l_size);
       }
     }
 

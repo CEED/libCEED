@@ -16,11 +16,7 @@
 static int CeedQFunctionInit_Vector3MassApply(Ceed ceed, const char *requested, CeedQFunction qf) {
   // Check QFunction name
   const char *name = "Vector3MassApply";
-  if (strcmp(name, requested)) {
-    // LCOV_EXCL_START
-    return CeedError(ceed, CEED_ERROR_UNSUPPORTED, "QFunction '%s' does not match requested name: %s", name, requested);
-    // LCOV_EXCL_STOP
-  }
+  CeedCheck(!strcmp(name, requested), ceed, CEED_ERROR_UNSUPPORTED, "QFunction '%s' does not match requested name: %s", name, requested);
 
   // Add QFunction fields
   const CeedInt num_comp = 3;

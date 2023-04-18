@@ -139,8 +139,6 @@ CEED_INTERN int CeedElemRestrictionCreate_Magma(CeedMemType mtype, CeedCopyMode 
 CEED_INTERN int CeedElemRestrictionCreateBlocked_Magma(const CeedMemType mtype, const CeedCopyMode cmode, const CeedInt *offsets,
                                                        const CeedElemRestriction res);
 
-CEED_INTERN int CeedOperatorCreate_Magma(CeedOperator op);
-
 // comment the line below to use the default magma_is_devptr function
 #define magma_is_devptr magma_isdevptr
 

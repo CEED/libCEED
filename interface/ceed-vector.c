@@ -50,14 +50,8 @@ const CeedVector CEED_VECTOR_NONE = &ceed_vector_none;
   @ref Backend
 **/
 int CeedVectorHasValidArray(CeedVector vec, bool *has_valid_array) {
-  if (!vec->HasValidArray) {
-    // LCOV_EXCL_START
-    return CeedError(vec->ceed, CEED_ERROR_UNSUPPORTED, "Backend does not support HasValidArray");
-    // LCOV_EXCL_STOP
-  }
-
+  CeedCheck(vec->HasValidArray, vec->ceed, CEED_ERROR_UNSUPPORTED, "Backend does not support HasValidArray");
   CeedCall(vec->HasValidArray(vec, has_valid_array));
-
   return CEED_ERROR_SUCCESS;
 }
 
@@ -73,14 +67,8 @@ int CeedVectorHasValidArray(CeedVector vec, bool *has_valid_array) {
   @ref Backend
 **/
 int CeedVectorHasBorrowedArrayOfType(CeedVector vec, CeedMemType mem_type, bool *has_borrowed_array_of_type) {
-  if (!vec->HasBorrowedArrayOfType) {
-    // LCOV_EXCL_START
-    return CeedError(vec->ceed, CEED_ERROR_UNSUPPORTED, "Backend does not support HasBorrowedArrayOfType");
-    // LCOV_EXCL_STOP
-  }
-
+  CeedCheck(vec->HasBorrowedArrayOfType, vec->ceed, CEED_ERROR_UNSUPPORTED, "Backend does not support HasBorrowedArrayOfType");
   CeedCall(vec->HasBorrowedArrayOfType(vec, mem_type, has_borrowed_array_of_type));
-
   return CEED_ERROR_SUCCESS;
 }
 
@@ -179,14 +167,9 @@ int CeedVectorReference(CeedVector vec) {
 int CeedVectorCreate(Ceed ceed, CeedSize length, CeedVector *vec) {
   if (!ceed->VectorCreate) {
     Ceed delegate;
+
     CeedCall(CeedGetObjectDelegate(ceed, &delegate, "Vector"));
-
-    if (!delegate) {
-      // LCOV_EXCL_START
-      return CeedError(ceed, CEED_ERROR_UNSUPPORTED, "Backend does not support VectorCreate");
-      // LCOV_EXCL_STOP
-    }
-
+    CeedCheck(delegate, ceed, CEED_ERROR_UNSUPPORTED, "Backend does not support VectorCreate");
     CeedCall(CeedVectorCreate(delegate, length, vec));
     return CEED_ERROR_SUCCESS;
   }
@@ -274,17 +257,9 @@ int CeedVectorCopy(CeedVector vec, CeedVector vec_copy) {
   @ref User
 **/
 int CeedVectorSetArray(CeedVector vec, CeedMemType mem_type, CeedCopyMode copy_mode, CeedScalar *array) {
-  if (!vec->SetArray) {
-    // LCOV_EXCL_START
-    return CeedError(vec->ceed, CEED_ERROR_UNSUPPORTED, "Backend does not support VectorSetArray");
-    // LCOV_EXCL_STOP
-  }
-  if (vec->state % 2 == 1) {
-    return CeedError(vec->ceed, CEED_ERROR_ACCESS, "Cannot grant CeedVector array access, the access lock is already in use");
-  }
-  if (vec->num_readers > 0) {
-    return CeedError(vec->ceed, CEED_ERROR_ACCESS, "Cannot grant CeedVector array access, a process has read access");
-  }
+  CeedCheck(vec->SetArray, vec->ceed, CEED_ERROR_UNSUPPORTED, "Backend does not support VectorSetArray");
+  CeedCheck(vec->state % 2 == 0, vec->ceed, CEED_ERROR_ACCESS, "Cannot grant CeedVector array access, the access lock is already in use");
+  CeedCheck(vec->num_readers == 0, vec->ceed, CEED_ERROR_ACCESS, "Cannot grant CeedVector array access, a process has read access");
 
   CeedCall(vec->SetArray(vec, mem_type, copy_mode, array));
   vec->state += 2;
@@ -302,16 +277,8 @@ int CeedVectorSetArray(CeedVector vec, CeedMemType mem_type, CeedCopyMode copy_m
   @ref User
 **/
 int CeedVectorSetValue(CeedVector vec, CeedScalar value) {
-  if (vec->state % 2 == 1) {
-    // LCOV_EXCL_START
-    return CeedError(vec->ceed, CEED_ERROR_ACCESS, "Cannot grant CeedVector array access, the access lock is already in use");
-    // LCOV_EXCL_STOP
-  }
-  if (vec->num_readers > 0) {
-    // LCOV_EXCL_START
-    return CeedError(vec->ceed, CEED_ERROR_ACCESS, "Cannot grant CeedVector array access, a process has read access");
-    // LCOV_EXCL_STOP
-  }
+  CeedCheck(vec->state % 2 == 0, vec->ceed, CEED_ERROR_ACCESS, "Cannot grant CeedVector array access, the access lock is already in use");
+  CeedCheck(vec->num_readers == 0, vec->ceed, CEED_ERROR_ACCESS, "Cannot grant CeedVector array access, a process has read access");
 
   if (vec->SetValue) {
     CeedCall(vec->SetValue(vec, value));
@@ -338,9 +305,7 @@ int CeedVectorSetValue(CeedVector vec, CeedScalar value) {
   @ref User
 **/
 int CeedVectorSyncArray(CeedVector vec, CeedMemType mem_type) {
-  if (vec->state % 2 == 1) {
-    return CeedError(vec->ceed, CEED_ERROR_ACCESS, "Cannot sync CeedVector, the access lock is already in use");
-  }
+  CeedCheck(vec->state % 2 == 0, vec->ceed, CEED_ERROR_ACCESS, "Cannot sync CeedVector, the access lock is already in use");
 
   if (vec->SyncArray) {
     CeedCall(vec->SyncArray(vec, mem_type));
@@ -367,36 +332,20 @@ int CeedVectorSyncArray(CeedVector vec, CeedMemType mem_type) {
   @ref User
 **/
 int CeedVectorTakeArray(CeedVector vec, CeedMemType mem_type, CeedScalar **array) {
-  if (vec->state % 2 == 1) {
-    // LCOV_EXCL_START
-    return CeedError(vec->ceed, CEED_ERROR_ACCESS, "Cannot take CeedVector array, the access lock is already in use");
-    // LCOV_EXCL_STOP
-  }
-  if (vec->num_readers > 0) {
-    // LCOV_EXCL_START
-    return CeedError(vec->ceed, CEED_ERROR_ACCESS, "Cannot take CeedVector array, a process has read access");
-    // LCOV_EXCL_STOP
-  }
+  CeedCheck(vec->state % 2 == 0, vec->ceed, CEED_ERROR_ACCESS, "Cannot take CeedVector array, the access lock is already in use");
+  CeedCheck(vec->num_readers == 0, vec->ceed, CEED_ERROR_ACCESS, "Cannot take CeedVector array, a process has read access");
 
   CeedScalar *temp_array = NULL;
   if (vec->length > 0) {
     bool has_borrowed_array_of_type = true;
     CeedCall(CeedVectorHasBorrowedArrayOfType(vec, mem_type, &has_borrowed_array_of_type));
-    if (!has_borrowed_array_of_type) {
-      // LCOV_EXCL_START
-      return CeedError(vec->ceed, CEED_ERROR_BACKEND, "CeedVector has no borrowed %s array, must set array with CeedVectorSetArray",
-                       CeedMemTypes[mem_type]);
-      // LCOV_EXCL_STOP
-    }
+    CeedCheck(has_borrowed_array_of_type, vec->ceed, CEED_ERROR_BACKEND,
+              "CeedVector has no borrowed %s array, must set array with CeedVectorSetArray", CeedMemTypes[mem_type]);
 
     bool has_valid_array = true;
     CeedCall(CeedVectorHasValidArray(vec, &has_valid_array));
-    if (!has_valid_array) {
-      // LCOV_EXCL_START
-      return CeedError(vec->ceed, CEED_ERROR_BACKEND,
-                       "CeedVector has no valid data to take, must set data with CeedVectorSetValue or CeedVectorSetArray");
-      // LCOV_EXCL_STOP
-    }
+    CeedCheck(has_valid_array, vec->ceed, CEED_ERROR_BACKEND,
+              "CeedVector has no valid data to take, must set data with CeedVectorSetValue or CeedVectorSetArray");
 
     CeedCall(vec->TakeArray(vec, mem_type, &temp_array));
   }
@@ -421,26 +370,14 @@ int CeedVectorTakeArray(CeedVector vec, CeedMemType mem_type, CeedScalar **array
   @ref User
 **/
 int CeedVectorGetArray(CeedVector vec, CeedMemType mem_type, CeedScalar **array) {
-  if (!vec->GetArray) {
-    // LCOV_EXCL_START
-    return CeedError(vec->ceed, CEED_ERROR_UNSUPPORTED, "Backend does not support GetArray");
-    // LCOV_EXCL_STOP
-  }
-  if (vec->state % 2 == 1) {
-    return CeedError(vec->ceed, CEED_ERROR_ACCESS, "Cannot grant CeedVector array access, the access lock is already in use");
-  }
-  if (vec->num_readers > 0) {
-    return CeedError(vec->ceed, CEED_ERROR_ACCESS, "Cannot grant CeedVector array access, a process has read access");
-  }
+  CeedCheck(vec->GetArray, vec->ceed, CEED_ERROR_UNSUPPORTED, "Backend does not support GetArray");
+  CeedCheck(vec->state % 2 == 0, vec->ceed, CEED_ERROR_ACCESS, "Cannot grant CeedVector array access, the access lock is already in use");
+  CeedCheck(vec->num_readers == 0, vec->ceed, CEED_ERROR_ACCESS, "Cannot grant CeedVector array access, a process has read access");
 
   bool has_valid_array = true;
   CeedCall(CeedVectorHasValidArray(vec, &has_valid_array));
-  if (!has_valid_array) {
-    // LCOV_EXCL_START
-    return CeedError(vec->ceed, CEED_ERROR_BACKEND,
-                     "CeedVector has no valid data to read, must set data with CeedVectorSetValue or CeedVectorSetArray");
-    // LCOV_EXCL_STOP
-  }
+  CeedCheck(has_valid_array, vec->ceed, CEED_ERROR_BACKEND,
+            "CeedVector has no valid data to read, must set data with CeedVectorSetValue or CeedVectorSetArray");
 
   CeedCall(vec->GetArray(vec, mem_type, array));
   vec->state++;
@@ -461,24 +398,14 @@ int CeedVectorGetArray(CeedVector vec, CeedMemType mem_type, CeedScalar **array)
   @ref User
 **/
 int CeedVectorGetArrayRead(CeedVector vec, CeedMemType mem_type, const CeedScalar **array) {
-  if (!vec->GetArrayRead) {
-    // LCOV_EXCL_START
-    return CeedError(vec->ceed, CEED_ERROR_UNSUPPORTED, "Backend does not support GetArrayRead");
-    // LCOV_EXCL_STOP
-  }
-  if (vec->state % 2 == 1) {
-    return CeedError(vec->ceed, CEED_ERROR_ACCESS, "Cannot grant CeedVector read-only array access, the access lock is already in use");
-  }
+  CeedCheck(vec->GetArrayRead, vec->ceed, CEED_ERROR_UNSUPPORTED, "Backend does not support GetArrayRead");
+  CeedCheck(vec->state % 2 == 0, vec->ceed, CEED_ERROR_ACCESS, "Cannot grant CeedVector read-only array access, the access lock is already in use");
 
   if (vec->length > 0) {
     bool has_valid_array = true;
     CeedCall(CeedVectorHasValidArray(vec, &has_valid_array));
-    if (!has_valid_array) {
-      // LCOV_EXCL_START
-      return CeedError(vec->ceed, CEED_ERROR_BACKEND,
-                       "CeedVector has no valid data to read, must set data with CeedVectorSetValue or CeedVectorSetArray");
-      // LCOV_EXCL_STOP
-    }
+    CeedCheck(has_valid_array, vec->ceed, CEED_ERROR_BACKEND,
+              "CeedVector has no valid data to read, must set data with CeedVectorSetValue or CeedVectorSetArray");
 
     CeedCall(vec->GetArrayRead(vec, mem_type, array));
   } else {
@@ -502,21 +429,9 @@ int CeedVectorGetArrayRead(CeedVector vec, CeedMemType mem_type, const CeedScala
   @ref User
 **/
 int CeedVectorGetArrayWrite(CeedVector vec, CeedMemType mem_type, CeedScalar **array) {
-  if (!vec->GetArrayWrite) {
-    // LCOV_EXCL_START
-    return CeedError(vec->ceed, CEED_ERROR_UNSUPPORTED, "Backend does not support GetArrayWrite");
-    // LCOV_EXCL_STOP
-  }
-  if (vec->state % 2 == 1) {
-    // LCOV_EXCL_START
-    return CeedError(vec->ceed, CEED_ERROR_ACCESS, "Cannot grant CeedVector array access, the access lock is already in use");
-    // LCOV_EXCL_STOP
-  }
-  if (vec->num_readers > 0) {
-    // LCOV_EXCL_START
-    return CeedError(vec->ceed, CEED_ERROR_ACCESS, "Cannot grant CeedVector array access, a process has read access");
-    // LCOV_EXCL_STOP
-  }
+  CeedCheck(vec->GetArrayWrite, vec->ceed, CEED_ERROR_UNSUPPORTED, "Backend does not support GetArrayWrite");
+  CeedCheck(vec->state % 2 == 0, vec->ceed, CEED_ERROR_ACCESS, "Cannot grant CeedVector array access, the access lock is already in use");
+  CeedCheck(vec->num_readers == 0, vec->ceed, CEED_ERROR_ACCESS, "Cannot grant CeedVector array access, a process has read access");
 
   CeedCall(vec->GetArrayWrite(vec, mem_type, array));
   vec->state++;
@@ -534,9 +449,7 @@ int CeedVectorGetArrayWrite(CeedVector vec, CeedMemType mem_type, CeedScalar **a
   @ref User
 **/
 int CeedVectorRestoreArray(CeedVector vec, CeedScalar **array) {
-  if (vec->state % 2 != 1) {
-    return CeedError(vec->ceed, CEED_ERROR_ACCESS, "Cannot restore CeedVector array access, access was not granted");
-  }
+  CeedCheck(vec->state % 2 == 1, vec->ceed, CEED_ERROR_ACCESS, "Cannot restore CeedVector array access, access was not granted");
   if (vec->RestoreArray) CeedCall(vec->RestoreArray(vec));
   *array = NULL;
   vec->state++;
@@ -554,11 +467,7 @@ int CeedVectorRestoreArray(CeedVector vec, CeedScalar **array) {
   @ref User
 **/
 int CeedVectorRestoreArrayRead(CeedVector vec, const CeedScalar **array) {
-  if (vec->num_readers == 0) {
-    // LCOV_EXCL_START
-    return CeedError(vec->ceed, CEED_ERROR_ACCESS, "Cannot restore CeedVector array read access, access was not granted");
-    // LCOV_EXCL_STOP
-  }
+  CeedCheck(vec->num_readers > 0, vec->ceed, CEED_ERROR_ACCESS, "Cannot restore CeedVector array read access, access was not granted");
 
   vec->num_readers--;
   if (vec->num_readers == 0 && vec->RestoreArrayRead) CeedCall(vec->RestoreArrayRead(vec));
@@ -585,12 +494,8 @@ duplicated or hanging nodes.
 int CeedVectorNorm(CeedVector vec, CeedNormType norm_type, CeedScalar *norm) {
   bool has_valid_array = true;
   CeedCall(CeedVectorHasValidArray(vec, &has_valid_array));
-  if (!has_valid_array) {
-    // LCOV_EXCL_START
-    return CeedError(vec->ceed, CEED_ERROR_BACKEND,
-                     "CeedVector has no valid data to compute norm, must set data with CeedVectorSetValue or CeedVectorSetArray");
-    // LCOV_EXCL_STOP
-  }
+  CeedCheck(has_valid_array, vec->ceed, CEED_ERROR_BACKEND,
+            "CeedVector has no valid data to compute norm, must set data with CeedVectorSetValue or CeedVectorSetArray");
 
   // Backend impl for GPU, if added
   if (vec->Norm) {
@@ -641,12 +546,8 @@ int CeedVectorScale(CeedVector x, CeedScalar alpha) {
 
   bool has_valid_array = true;
   CeedCall(CeedVectorHasValidArray(x, &has_valid_array));
-  if (!has_valid_array) {
-    // LCOV_EXCL_START
-    return CeedError(x->ceed, CEED_ERROR_BACKEND,
-                     "CeedVector has no valid data to scale, must set data with CeedVectorSetValue or CeedVectorSetArray");
-    // LCOV_EXCL_STOP
-  }
+  CeedCheck(has_valid_array, x->ceed, CEED_ERROR_BACKEND,
+            "CeedVector has no valid data to scale, must set data with CeedVectorSetValue or CeedVectorSetArray");
 
   CeedCall(CeedVectorGetLength(x, &n_x));
 
@@ -679,39 +580,21 @@ int CeedVectorAXPY(CeedVector y, CeedScalar alpha, CeedVector x) {
 
   CeedCall(CeedVectorGetLength(y, &n_y));
   CeedCall(CeedVectorGetLength(x, &n_x));
-  if (n_x != n_y) {
-    // LCOV_EXCL_START
-    return CeedError(y->ceed, CEED_ERROR_UNSUPPORTED, "Cannot add vector of different lengths");
-    // LCOV_EXCL_STOP
-  }
-  if (x == y) {
-    // LCOV_EXCL_START
-    return CeedError(y->ceed, CEED_ERROR_UNSUPPORTED, "Cannot use same vector for x and y in CeedVectorAXPY");
-    // LCOV_EXCL_STOP
-  }
+  CeedCheck(n_x == n_y, y->ceed, CEED_ERROR_UNSUPPORTED, "Cannot add vector of different lengths");
+  CeedCheck(x != y, y->ceed, CEED_ERROR_UNSUPPORTED, "Cannot use same vector for x and y in CeedVectorAXPY");
 
   bool has_valid_array_x = true, has_valid_array_y = true;
   CeedCall(CeedVectorHasValidArray(x, &has_valid_array_x));
-  if (!has_valid_array_x) {
-    // LCOV_EXCL_START
-    return CeedError(x->ceed, CEED_ERROR_BACKEND, "CeedVector x has no valid data, must set data with CeedVectorSetValue or CeedVectorSetArray");
-    // LCOV_EXCL_STOP
-  }
+  CeedCheck(has_valid_array_x, x->ceed, CEED_ERROR_BACKEND,
+            "CeedVector x has no valid data, must set data with CeedVectorSetValue or CeedVectorSetArray");
   CeedCall(CeedVectorHasValidArray(y, &has_valid_array_y));
-  if (!has_valid_array_y) {
-    // LCOV_EXCL_START
-    return CeedError(y->ceed, CEED_ERROR_BACKEND, "CeedVector y has no valid data, must set data with CeedVectorSetValue or CeedVectorSetArray");
-    // LCOV_EXCL_STOP
-  }
+  CeedCheck(has_valid_array_y, y->ceed, CEED_ERROR_BACKEND,
+            "CeedVector y has no valid data, must set data with CeedVectorSetValue or CeedVectorSetArray");
 
   Ceed ceed_parent_x, ceed_parent_y;
   CeedCall(CeedGetParent(x->ceed, &ceed_parent_x));
   CeedCall(CeedGetParent(y->ceed, &ceed_parent_y));
-  if (ceed_parent_x != ceed_parent_y) {
-    // LCOV_EXCL_START
-    return CeedError(y->ceed, CEED_ERROR_INCOMPATIBLE, "Vectors x and y must be created by the same Ceed context");
-    // LCOV_EXCL_STOP
-  }
+  CeedCheck(ceed_parent_x == ceed_parent_y, y->ceed, CEED_ERROR_INCOMPATIBLE, "Vectors x and y must be created by the same Ceed context");
 
   // Backend implementation
   if (y->AXPY) {
@@ -753,39 +636,21 @@ int CeedVectorAXPBY(CeedVector y, CeedScalar alpha, CeedScalar beta, CeedVector 
 
   CeedCall(CeedVectorGetLength(y, &n_y));
   CeedCall(CeedVectorGetLength(x, &n_x));
-  if (n_x != n_y) {
-    // LCOV_EXCL_START
-    return CeedError(y->ceed, CEED_ERROR_UNSUPPORTED, "Cannot add vector of different lengths");
-    // LCOV_EXCL_STOP
-  }
-  if (x == y) {
-    // LCOV_EXCL_START
-    return CeedError(y->ceed, CEED_ERROR_UNSUPPORTED, "Cannot use same vector for x and y in CeedVectorAXPBY");
-    // LCOV_EXCL_STOP
-  }
+  CeedCheck(n_x == n_y, y->ceed, CEED_ERROR_UNSUPPORTED, "Cannot add vector of different lengths");
+  CeedCheck(x != y, y->ceed, CEED_ERROR_UNSUPPORTED, "Cannot use same vector for x and y in CeedVectorAXPBY");
 
   bool has_valid_array_x = true, has_valid_array_y = true;
   CeedCall(CeedVectorHasValidArray(x, &has_valid_array_x));
-  if (!has_valid_array_x) {
-    // LCOV_EXCL_START
-    return CeedError(x->ceed, CEED_ERROR_BACKEND, "CeedVector x has no valid data, must set data with CeedVectorSetValue or CeedVectorSetArray");
-    // LCOV_EXCL_STOP
-  }
+  CeedCheck(has_valid_array_x, x->ceed, CEED_ERROR_BACKEND,
+            "CeedVector x has no valid data, must set data with CeedVectorSetValue or CeedVectorSetArray");
   CeedCall(CeedVectorHasValidArray(y, &has_valid_array_y));
-  if (!has_valid_array_y) {
-    // LCOV_EXCL_START
-    return CeedError(y->ceed, CEED_ERROR_BACKEND, "CeedVector y has no valid data, must set data with CeedVectorSetValue or CeedVectorSetArray");
-    // LCOV_EXCL_STOP
-  }
+  CeedCheck(has_valid_array_y, y->ceed, CEED_ERROR_BACKEND,
+            "CeedVector y has no valid data, must set data with CeedVectorSetValue or CeedVectorSetArray");
 
   Ceed ceed_parent_x, ceed_parent_y;
   CeedCall(CeedGetParent(x->ceed, &ceed_parent_x));
   CeedCall(CeedGetParent(y->ceed, &ceed_parent_y));
-  if (ceed_parent_x != ceed_parent_y) {
-    // LCOV_EXCL_START
-    return CeedError(y->ceed, CEED_ERROR_INCOMPATIBLE, "Vectors x and y must be created by the same Ceed context");
-    // LCOV_EXCL_STOP
-  }
+  CeedCheck(ceed_parent_x == ceed_parent_y, y->ceed, CEED_ERROR_INCOMPATIBLE, "Vectors x and y must be created by the same Ceed context");
 
   // Backend implementation
   if (y->AXPBY) {
@@ -828,35 +693,22 @@ int CeedVectorPointwiseMult(CeedVector w, CeedVector x, CeedVector y) {
   CeedCall(CeedVectorGetLength(w, &n_w));
   CeedCall(CeedVectorGetLength(x, &n_x));
   CeedCall(CeedVectorGetLength(y, &n_y));
-  if (n_w != n_x || n_w != n_y) {
-    // LCOV_EXCL_START
-    return CeedError(w->ceed, CEED_ERROR_UNSUPPORTED, "Cannot multiply vectors of different lengths");
-    // LCOV_EXCL_STOP
-  }
+  CeedCheck(n_w == n_x && n_w == n_y, w->ceed, CEED_ERROR_UNSUPPORTED, "Cannot multiply vectors of different lengths");
 
   Ceed ceed_parent_w, ceed_parent_x, ceed_parent_y;
   CeedCall(CeedGetParent(w->ceed, &ceed_parent_w));
   CeedCall(CeedGetParent(x->ceed, &ceed_parent_x));
   CeedCall(CeedGetParent(y->ceed, &ceed_parent_y));
-  if ((ceed_parent_w != ceed_parent_x) || (ceed_parent_w != ceed_parent_y)) {
-    // LCOV_EXCL_START
-    return CeedError(w->ceed, CEED_ERROR_INCOMPATIBLE, "Vectors w, x, and y must be created by the same Ceed context");
-    // LCOV_EXCL_STOP
-  }
+  CeedCheck(ceed_parent_w == ceed_parent_x && ceed_parent_w == ceed_parent_y, w->ceed, CEED_ERROR_INCOMPATIBLE,
+            "Vectors w, x, and y must be created by the same Ceed context");
 
   bool has_valid_array_x = true, has_valid_array_y = true;
   CeedCall(CeedVectorHasValidArray(x, &has_valid_array_x));
-  if (!has_valid_array_x) {
-    // LCOV_EXCL_START
-    return CeedError(x->ceed, CEED_ERROR_BACKEND, "CeedVector x has no valid data, must set data with CeedVectorSetValue or CeedVectorSetArray");
-    // LCOV_EXCL_STOP
-  }
+  CeedCheck(has_valid_array_x, x->ceed, CEED_ERROR_BACKEND,
+            "CeedVector x has no valid data, must set data with CeedVectorSetValue or CeedVectorSetArray");
   CeedCall(CeedVectorHasValidArray(y, &has_valid_array_y));
-  if (!has_valid_array_y) {
-    // LCOV_EXCL_START
-    return CeedError(y->ceed, CEED_ERROR_BACKEND, "CeedVector y has no valid data, must set data with CeedVectorSetValue or CeedVectorSetArray");
-    // LCOV_EXCL_STOP
-  }
+  CeedCheck(has_valid_array_y, y->ceed, CEED_ERROR_BACKEND,
+            "CeedVector y has no valid data, must set data with CeedVectorSetValue or CeedVectorSetArray");
 
   // Backend implementation
   if (w->PointwiseMult) {
@@ -906,19 +758,11 @@ int CeedVectorReciprocal(CeedVector vec) {
   bool has_valid_array = true;
   CeedCall(CeedVectorHasValidArray(vec, &has_valid_array));
 
-  if (!has_valid_array) {
-    // LCOV_EXCL_START
-    return CeedError(vec->ceed, CEED_ERROR_BACKEND,
-                     "CeedVector has no valid data to compute reciprocal, must set data with CeedVectorSetValue or CeedVectorSetArray");
-    // LCOV_EXCL_STOP
-  }
+  CeedCheck(has_valid_array, vec->ceed, CEED_ERROR_BACKEND,
+            "CeedVector has no valid data to compute reciprocal, must set data with CeedVectorSetValue or CeedVectorSetArray");
 
   // Check if vector data set
-  if (!vec->state) {
-    // LCOV_EXCL_START
-    return CeedError(vec->ceed, CEED_ERROR_INCOMPLETE, "CeedVector must have data set to take reciprocal");
-    // LCOV_EXCL_STOP
-  }
+  CeedCheck(vec->state > 0, vec->ceed, CEED_ERROR_INCOMPLETE, "CeedVector must have data set to take reciprocal");
 
   // Backend impl for GPU, if added
   if (vec->Reciprocal) {
@@ -959,7 +803,7 @@ int CeedVectorViewRange(CeedVector vec, CeedSize start, CeedSize stop, CeedInt s
   const CeedScalar *x;
   char              fmt[1024];
 
-  if (step == 0) return CeedError(vec->ceed, CEED_ERROR_MINOR, "View range 'step' must be nonzero");
+  CeedCheck(step != 0, vec->ceed, CEED_ERROR_MINOR, "View range 'step' must be nonzero");
 
   fprintf(stream, "CeedVector length %ld\n", (long)vec->length);
   if (start != 0 || stop != vec->length || step != 1) {
@@ -1037,14 +881,8 @@ int CeedVectorDestroy(CeedVector *vec) {
     *vec = NULL;
     return CEED_ERROR_SUCCESS;
   }
-  if (((*vec)->state % 2) == 1) {
-    return CeedError((*vec)->ceed, CEED_ERROR_ACCESS, "Cannot destroy CeedVector, the writable access lock is in use");
-  }
-  if ((*vec)->num_readers > 0) {
-    // LCOV_EXCL_START
-    return CeedError((*vec)->ceed, CEED_ERROR_ACCESS, "Cannot destroy CeedVector, a process has read access");
-    // LCOV_EXCL_STOP
-  }
+  CeedCheck((*vec)->state % 2 == 0, (*vec)->ceed, CEED_ERROR_ACCESS, "Cannot destroy CeedVector, the writable access lock is in use");
+  CeedCheck((*vec)->num_readers == 0, (*vec)->ceed, CEED_ERROR_ACCESS, "Cannot destroy CeedVector, a process has read access");
 
   if ((*vec)->Destroy) CeedCall((*vec)->Destroy(*vec));
 

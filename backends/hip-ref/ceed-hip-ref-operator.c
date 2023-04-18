@@ -163,7 +163,7 @@ static int CeedOperatorSetupFields_Hip(CeedQFunction qf, CeedOperator op, bool i
         CeedCallBackend(CeedOperatorFieldGetBasis(opfields[i], &basis));
         q_size = (CeedSize)numelements * Q;
         CeedCallBackend(CeedVectorCreate(ceed, q_size, &qvecs[i]));
-        CeedCallBackend(CeedBasisApply(basis, numelements, CEED_NOTRANSPOSE, CEED_EVAL_WEIGHT, NULL, qvecs[i]));
+        CeedCallBackend(CeedBasisApply(basis, numelements, CEED_NOTRANSPOSE, CEED_EVAL_WEIGHT, CEED_VECTOR_NONE, qvecs[i]));
         break;
       case CEED_EVAL_DIV:
         break;  // TODO: Not implemented
@@ -462,11 +462,7 @@ static inline int CeedOperatorLinearAssembleQFunctionCore_Hip(CeedOperator op, b
   // Check for identity
   bool identityqf;
   CeedCallBackend(CeedQFunctionIsIdentity(qf, &identityqf));
-  if (identityqf) {
-    // LCOV_EXCL_START
-    return CeedError(ceed, CEED_ERROR_BACKEND, "Assembling identity QFunctions not supported");
-    // LCOV_EXCL_STOP
-  }
+  CeedCheck(!identityqf, ceed, CEED_ERROR_BACKEND, "Assembling identity QFunctions not supported");
 
   // Input Evecs and Restriction
   CeedCallBackend(CeedOperatorSetupInputs_Hip(numinputfields, qfinputfields, opinputfields, NULL, true, edata, impl, request));
@@ -510,11 +506,7 @@ static inline int CeedOperatorLinearAssembleQFunctionCore_Hip(CeedOperator op, b
   }
 
   // Check sizes
-  if (!numactivein || !numactiveout) {
-    // LCOV_EXCL_START
-    return CeedError(ceed, CEED_ERROR_BACKEND, "Cannot assemble QFunction without active inputs and outputs");
-    // LCOV_EXCL_STOP
-  }
+  CeedCheck(numactivein > 0 && numactiveout > 0, ceed, CEED_ERROR_BACKEND, "Cannot assemble QFunction without active inputs and outputs");
 
   // Build objects if needed
   if (build_objects) {
@@ -650,11 +642,8 @@ static inline int CeedOperatorAssembleDiagonalSetup_Hip(CeedOperator op, const b
       CeedCallBackend(CeedBasisGetNumComponents(basisin, &ncomp));
       CeedCallBackend(CeedBasisGetDimension(basisin, &dim));
       CeedCallBackend(CeedOperatorFieldGetElemRestriction(opfields[i], &rstr));
-      if (rstrin && rstrin != rstr) {
-        // LCOV_EXCL_START
-        return CeedError(ceed, CEED_ERROR_BACKEND, "Backend does not implement multi-field non-composite operator diagonal assembly");
-        // LCOV_EXCL_STOP
-      }
+      CeedCheck(!rstrin || rstrin == rstr, ceed, CEED_ERROR_BACKEND,
+                "Backend does not implement multi-field non-composite operator diagonal assembly");
       rstrin = rstr;
       CeedEvalMode emode;
       CeedCallBackend(CeedQFunctionFieldGetEvalMode(qffields[i], &emode));
@@ -692,11 +681,8 @@ static inline int CeedOperatorAssembleDiagonalSetup_Hip(CeedOperator op, const b
       CeedElemRestriction rstr;
       CeedCallBackend(CeedOperatorFieldGetBasis(opfields[i], &basisout));
       CeedCallBackend(CeedOperatorFieldGetElemRestriction(opfields[i], &rstr));
-      if (rstrout && rstrout != rstr) {
-        // LCOV_EXCL_START
-        return CeedError(ceed, CEED_ERROR_BACKEND, "Backend does not implement multi-field non-composite operator diagonal assembly");
-        // LCOV_EXCL_STOP
-      }
+      CeedCheck(!rstrout || rstrout == rstr, ceed, CEED_ERROR_BACKEND,
+                "Backend does not implement multi-field non-composite operator diagonal assembly");
       rstrout = rstr;
       CeedEvalMode emode;
       CeedCallBackend(CeedQFunctionFieldGetEvalMode(qffields[i], &emode));
@@ -950,11 +936,7 @@ static int CeedSingleOperatorAssembleSetup_Hip(CeedOperator op) {
     if (vec == CEED_VECTOR_ACTIVE) {
       CeedCallBackend(CeedOperatorFieldGetBasis(output_fields[i], &basis_out));
       CeedCallBackend(CeedOperatorFieldGetElemRestriction(output_fields[i], &rstr_out));
-      if (rstr_out && rstr_out != rstr_in) {
-        // LCOV_EXCL_START
-        return CeedError(ceed, CEED_ERROR_BACKEND, "Backend does not implement multi-field non-composite operator assembly");
-        // LCOV_EXCL_STOP
-      }
+      CeedCheck(!rstr_out || rstr_out == rstr_in, ceed, CEED_ERROR_BACKEND, "Backend does not implement multi-field non-composite operator assembly");
       CeedEvalMode eval_mode;
       CeedCallBackend(CeedQFunctionFieldGetEvalMode(qf_fields[i], &eval_mode));
       if (eval_mode != CEED_EVAL_NONE) {
@@ -972,11 +954,7 @@ static int CeedSingleOperatorAssembleSetup_Hip(CeedOperator op) {
     }
   }
 
-  if (num_emode_in == 0 || num_emode_out == 0) {
-    // LCOV_EXCL_START
-    return CeedError(ceed, CEED_ERROR_UNSUPPORTED, "Cannot assemble operator without inputs/outputs");
-    // LCOV_EXCL_STOP
-  }
+  CeedCheck(num_emode_in > 0 && num_emode_out > 0, ceed, CEED_ERROR_UNSUPPORTED, "Cannot assemble operator without inputs/outputs");
 
   CeedInt nelem, ncomp;
   CeedCallBackend(CeedElemRestrictionGetNumElements(rstr_in, &nelem));

@@ -457,11 +457,7 @@ static int CeedSingleOperatorAssembleSymbolic(CeedOperator op, CeedInt offset, C
   CeedCall(CeedOperatorGetCeed(op, &ceed));
   CeedCall(CeedOperatorIsComposite(op, &is_composite));
 
-  if (is_composite) {
-    // LCOV_EXCL_START
-    return CeedError(ceed, CEED_ERROR_UNSUPPORTED, "Composite operator not supported");
-    // LCOV_EXCL_STOP
-  }
+  CeedCheck(!is_composite, ceed, CEED_ERROR_UNSUPPORTED, "Composite operator not supported");
 
   CeedSize num_nodes;
   CeedCall(CeedOperatorGetActiveVectorLengths(op, &num_nodes, NULL));
@@ -512,11 +508,7 @@ static int CeedSingleOperatorAssembleSymbolic(CeedOperator op, CeedInt offset, C
       }
     }
   }
-  if (count != local_num_entries) {
-    // LCOV_EXCL_START
-    return CeedError(ceed, CEED_ERROR_MAJOR, "Error computing assembled entries");
-    // LCOV_EXCL_STOP
-  }
+  CeedCheck(count == local_num_entries, ceed, CEED_ERROR_MAJOR, "Error computing assembled entries");
   CeedCall(CeedVectorRestoreArrayRead(elem_dof, &elem_dof_a));
   CeedCall(CeedVectorDestroy(&elem_dof));
 
@@ -542,11 +534,7 @@ static int CeedSingleOperatorAssemble(CeedOperator op, CeedInt offset, CeedVecto
   CeedCall(CeedOperatorGetCeed(op, &ceed));
   CeedCall(CeedOperatorIsComposite(op, &is_composite));
 
-  if (is_composite) {
-    // LCOV_EXCL_START
-    return CeedError(ceed, CEED_ERROR_UNSUPPORTED, "Composite operator not supported");
-    // LCOV_EXCL_STOP
-  }
+  CeedCheck(!is_composite, ceed, CEED_ERROR_UNSUPPORTED, "Composite operator not supported");
 
   // Early exit for empty operator
   {
@@ -596,16 +584,8 @@ static int CeedSingleOperatorAssemble(CeedOperator op, CeedInt offset, CeedVecto
   CeedCall(CeedOperatorAssemblyDataGetBases(data, NULL, &bases, NULL, NULL));
   CeedBasis basis_in = bases[0];
 
-  if (num_active_bases > 1) {
-    // LCOV_EXCL_START
-    return CeedError(ceed, CEED_ERROR_UNSUPPORTED, "Cannot assemble operator with multiple active bases");
-    // LCOV_EXCL_STOP
-  }
-  if (num_eval_modes_in[0] == 0 || num_eval_modes_out[0] == 0) {
-    // LCOV_EXCL_START
-    return CeedError(ceed, CEED_ERROR_UNSUPPORTED, "Cannot assemble operator with out inputs/outputs");
-    // LCOV_EXCL_STOP
-  }
+  CeedCheck(num_active_bases == 1, ceed, CEED_ERROR_UNSUPPORTED, "Cannot assemble operator with multiple active bases");
+  CeedCheck(num_eval_modes_in[0] > 0 && num_eval_modes_out[0] > 0, ceed, CEED_ERROR_UNSUPPORTED, "Cannot assemble operator with out inputs/outputs");
 
   CeedElemRestriction active_rstr;
   CeedInt             num_elem, elem_size, num_qpts, num_comp;
@@ -666,11 +646,7 @@ static int CeedSingleOperatorAssemble(CeedOperator op, CeedInt offset, CeedVecto
       }
     }
   }
-  if (count != local_num_entries) {
-    // LCOV_EXCL_START
-    return CeedError(ceed, CEED_ERROR_MAJOR, "Error computing entries");
-    // LCOV_EXCL_STOP
-  }
+  CeedCheck(count == local_num_entries, ceed, CEED_ERROR_MAJOR, "Error computing entries");
   CeedCall(CeedVectorRestoreArray(values, &vals));
 
   CeedCall(CeedVectorRestoreArrayRead(assembled_qf, &assembled_qf_array));
@@ -695,11 +671,7 @@ static int CeedSingleOperatorAssemblyCountEntries(CeedOperator op, CeedInt *num_
   CeedInt             num_elem, elem_size, num_comp;
 
   CeedCall(CeedOperatorIsComposite(op, &is_composite));
-  if (is_composite) {
-    // LCOV_EXCL_START
-    return CeedError(op->ceed, CEED_ERROR_UNSUPPORTED, "Composite operator not supported");
-    // LCOV_EXCL_STOP
-  }
+  CeedCheck(!is_composite, op->ceed, CEED_ERROR_UNSUPPORTED, "Composite operator not supported");
   CeedCall(CeedOperatorGetActiveElemRestriction(op, &rstr));
   CeedCall(CeedElemRestrictionGetNumElements(rstr, &num_elem));
   CeedCall(CeedElemRestrictionGetElementSize(rstr, &elem_size));
@@ -734,11 +706,7 @@ static int CeedSingleOperatorMultigridLevel(CeedOperator op_fine, CeedVector p_m
   // Check for composite operator
   bool is_composite;
   CeedCall(CeedOperatorIsComposite(op_fine, &is_composite));
-  if (is_composite) {
-    // LCOV_EXCL_START
-    return CeedError(ceed, CEED_ERROR_UNSUPPORTED, "Automatic multigrid setup for composite operators not supported");
-    // LCOV_EXCL_STOP
-  }
+  CeedCheck(!is_composite, ceed, CEED_ERROR_UNSUPPORTED, "Automatic multigrid setup for composite operators not supported");
 
   // Coarse Grid
   CeedCall(CeedOperatorCreate(ceed, op_fine->qf, op_fine->dqf, op_fine->dqfT, op_coarse));
@@ -769,11 +737,7 @@ static int CeedSingleOperatorMultigridLevel(CeedOperator op_fine, CeedVector p_m
   if (op_restrict || op_prolong) {
     CeedVector mult_e_vec;
 
-    if (!p_mult_fine) {
-      // LCOV_EXCL_START
-      return CeedError(ceed, CEED_ERROR_INCOMPATIBLE, "Prolongation or restriction operator creation requires fine grid multiplicity vector");
-      // LCOV_EXCL_STOP
-    }
+    CeedCheck(p_mult_fine, ceed, CEED_ERROR_INCOMPATIBLE, "Prolongation or restriction operator creation requires fine grid multiplicity vector");
     CeedCall(CeedElemRestrictionCreateVector(rstr_fine, &mult_vec, &mult_e_vec));
     CeedCall(CeedVectorSetValue(mult_e_vec, 0.0));
     CeedCall(CeedElemRestrictionApply(rstr_fine, CEED_NOTRANSPOSE, p_mult_fine, mult_e_vec, CEED_REQUEST_IMMEDIATE));
@@ -789,11 +753,8 @@ static int CeedSingleOperatorMultigridLevel(CeedOperator op_fine, CeedVector p_m
   CeedCall(CeedOperatorSetName(*op_coarse, op_fine->name));
 
   // Check that coarse to fine basis is provided if prolong/restrict operators are requested
-  if ((op_restrict || op_prolong) && !basis_c_to_f) {
-    // LCOV_EXCL_START
-    return CeedError(ceed, CEED_ERROR_INCOMPATIBLE, "Prolongation or restriction operator creation requires coarse-to-fine basis");
-    // LCOV_EXCL_STOP
-  }
+  CeedCheck(basis_c_to_f || (!op_restrict && !op_prolong), ceed, CEED_ERROR_INCOMPATIBLE,
+            "Prolongation or restriction operator creation requires coarse-to-fine basis");
 
   // Restriction/Prolongation Operators
   CeedInt num_comp;
@@ -1067,11 +1028,7 @@ int CeedQFunctionAssemblyDataSetObjects(CeedQFunctionAssemblyData data, CeedVect
 }
 
 int CeedQFunctionAssemblyDataGetObjects(CeedQFunctionAssemblyData data, CeedVector *vec, CeedElemRestriction *rstr) {
-  if (!data->is_setup) {
-    // LCOV_EXCL_START
-    return CeedError(data->ceed, CEED_ERROR_INCOMPLETE, "Internal objects not set; must call CeedQFunctionAssemblyDataSetObjects first.");
-    // LCOV_EXCL_STOP
-  }
+  CeedCheck(data->is_setup, data->ceed, CEED_ERROR_INCOMPLETE, "Internal objects not set; must call CeedQFunctionAssemblyDataSetObjects first.");
 
   CeedCall(CeedVectorReferenceCopy(data->vec, vec));
   CeedCall(CeedElemRestrictionReferenceCopy(data->rstr, rstr));
@@ -1550,13 +1507,8 @@ int CeedOperatorLinearAssembleQFunction(CeedOperator op, CeedVector *assembled, 
     CeedOperator op_fallback;
 
     CeedCall(CeedOperatorGetFallback(op, &op_fallback));
-    if (op_fallback) {
-      CeedCall(CeedOperatorLinearAssembleQFunction(op_fallback, assembled, rstr, request));
-    } else {
-      // LCOV_EXCL_START
-      return CeedError(op->ceed, CEED_ERROR_UNSUPPORTED, "Backend does not support CeedOperatorLinearAssembleQFunction");
-      // LCOV_EXCL_STOP
-    }
+    if (op_fallback) CeedCall(CeedOperatorLinearAssembleQFunction(op_fallback, assembled, rstr, request));
+    else return CeedError(op->ceed, CEED_ERROR_UNSUPPORTED, "Backend does not support CeedOperatorLinearAssembleQFunction");
   }
   return CEED_ERROR_SUCCESS;
 }
@@ -1612,13 +1564,8 @@ int CeedOperatorLinearAssembleQFunctionBuildOrUpdate(CeedOperator op, CeedVector
     CeedOperator op_fallback;
 
     CeedCall(CeedOperatorGetFallback(op, &op_fallback));
-    if (op_fallback) {
-      CeedCall(CeedOperatorLinearAssembleQFunctionBuildOrUpdate(op_fallback, assembled, rstr, request));
-    } else {
-      // LCOV_EXCL_START
-      return CeedError(op->ceed, CEED_ERROR_UNSUPPORTED, "Backend does not support CeedOperatorLinearAssembleQFunctionUpdate");
-      // LCOV_EXCL_STOP
-    }
+    if (op_fallback) CeedCall(CeedOperatorLinearAssembleQFunctionBuildOrUpdate(op_fallback, assembled, rstr, request));
+    else return CeedError(op->ceed, CEED_ERROR_UNSUPPORTED, "Backend does not support CeedOperatorLinearAssembleQFunctionUpdate");
   }
 
   return CEED_ERROR_SUCCESS;
@@ -1648,11 +1595,7 @@ int CeedOperatorLinearAssembleDiagonal(CeedOperator op, CeedVector assembled, Ce
 
   CeedSize input_size = 0, output_size = 0;
   CeedCall(CeedOperatorGetActiveVectorLengths(op, &input_size, &output_size));
-  if (input_size != output_size) {
-    // LCOV_EXCL_START
-    return CeedError(op->ceed, CEED_ERROR_DIMENSION, "Operator must be square");
-    // LCOV_EXCL_STOP
-  }
+  CeedCheck(input_size == output_size, op->ceed, CEED_ERROR_DIMENSION, "Operator must be square");
 
   // Early exit for empty operator
   if (!is_composite) {
@@ -1712,11 +1655,7 @@ int CeedOperatorLinearAssembleAddDiagonal(CeedOperator op, CeedVector assembled,
 
   CeedSize input_size = 0, output_size = 0;
   CeedCall(CeedOperatorGetActiveVectorLengths(op, &input_size, &output_size));
-  if (input_size != output_size) {
-    // LCOV_EXCL_START
-    return CeedError(op->ceed, CEED_ERROR_DIMENSION, "Operator must be square");
-    // LCOV_EXCL_STOP
-  }
+  CeedCheck(input_size == output_size, op->ceed, CEED_ERROR_DIMENSION, "Operator must be square");
 
   // Early exit for empty operator
   if (!is_composite) {
@@ -1776,11 +1715,7 @@ int CeedOperatorLinearAssemblePointBlockDiagonal(CeedOperator op, CeedVector ass
 
   CeedSize input_size = 0, output_size = 0;
   CeedCall(CeedOperatorGetActiveVectorLengths(op, &input_size, &output_size));
-  if (input_size != output_size) {
-    // LCOV_EXCL_START
-    return CeedError(op->ceed, CEED_ERROR_DIMENSION, "Operator must be square");
-    // LCOV_EXCL_STOP
-  }
+  CeedCheck(input_size == output_size, op->ceed, CEED_ERROR_DIMENSION, "Operator must be square");
 
   // Early exit for empty operator
   if (!is_composite) {
@@ -1842,11 +1777,7 @@ int CeedOperatorLinearAssembleAddPointBlockDiagonal(CeedOperator op, CeedVector 
 
   CeedSize input_size = 0, output_size = 0;
   CeedCall(CeedOperatorGetActiveVectorLengths(op, &input_size, &output_size));
-  if (input_size != output_size) {
-    // LCOV_EXCL_START
-    return CeedError(op->ceed, CEED_ERROR_DIMENSION, "Operator must be square");
-    // LCOV_EXCL_STOP
-  }
+  CeedCheck(input_size == output_size, op->ceed, CEED_ERROR_DIMENSION, "Operator must be square");
 
   // Early exit for empty operator
   if (!is_composite) {
@@ -2162,21 +2093,14 @@ int CeedOperatorMultigridLevelCreateTensorH1(CeedOperator op_fine, CeedVector p_
   CeedInt Q_f, Q_c;
   CeedCall(CeedBasisGetNumQuadraturePoints(basis_fine, &Q_f));
   CeedCall(CeedBasisGetNumQuadraturePoints(basis_coarse, &Q_c));
-  if (Q_f != Q_c) {
-    // LCOV_EXCL_START
-    return CeedError(ceed, CEED_ERROR_DIMENSION, "Bases must have compatible quadrature spaces");
-    // LCOV_EXCL_STOP
-  }
+  CeedCheck(Q_f == Q_c, ceed, CEED_ERROR_DIMENSION, "Bases must have compatible quadrature spaces");
 
   // Create coarse to fine basis, if required
   CeedBasis basis_c_to_f = NULL;
   if (op_prolong || op_restrict) {
     // Check if interpolation matrix is provided
-    if (!interp_c_to_f) {
-      // LCOV_EXCL_START
-      return CeedError(ceed, CEED_ERROR_INCOMPATIBLE, "Prolongation or restriction operator creation requires coarse-to-fine interpolation matrix");
-      // LCOV_EXCL_STOP
-    }
+    CeedCheck(interp_c_to_f, ceed, CEED_ERROR_INCOMPATIBLE,
+              "Prolongation or restriction operator creation requires coarse-to-fine interpolation matrix");
     CeedInt dim, num_comp, num_nodes_c, P_1d_f, P_1d_c;
     CeedCall(CeedBasisGetDimension(basis_fine, &dim));
     CeedCall(CeedBasisGetNumComponents(basis_fine, &num_comp));
@@ -2229,21 +2153,14 @@ int CeedOperatorMultigridLevelCreateH1(CeedOperator op_fine, CeedVector p_mult_f
   CeedInt Q_f, Q_c;
   CeedCall(CeedBasisGetNumQuadraturePoints(basis_fine, &Q_f));
   CeedCall(CeedBasisGetNumQuadraturePoints(basis_coarse, &Q_c));
-  if (Q_f != Q_c) {
-    // LCOV_EXCL_START
-    return CeedError(ceed, CEED_ERROR_DIMENSION, "Bases must have compatible quadrature spaces");
-    // LCOV_EXCL_STOP
-  }
+  CeedCheck(Q_f == Q_c, ceed, CEED_ERROR_DIMENSION, "Bases must have compatible quadrature spaces");
 
   // Coarse to fine basis
   CeedBasis basis_c_to_f = NULL;
   if (op_prolong || op_restrict) {
     // Check if interpolation matrix is provided
-    if (!interp_c_to_f) {
-      // LCOV_EXCL_START
-      return CeedError(ceed, CEED_ERROR_INCOMPATIBLE, "Prolongation or restriction operator creation requires coarse-to-fine interpolation matrix");
-      // LCOV_EXCL_STOP
-    }
+    CeedCheck(interp_c_to_f, ceed, CEED_ERROR_INCOMPATIBLE,
+              "Prolongation or restriction operator creation requires coarse-to-fine interpolation matrix");
     CeedElemTopology topo;
     CeedCall(CeedBasisGetTopology(basis_fine, &topo));
     CeedInt dim, num_comp, num_nodes_c, num_nodes_f;
@@ -2331,11 +2248,7 @@ int CeedOperatorCreateFDMElementInverse(CeedOperator op, CeedOperator *fdm_inv, 
       CeedCall(CeedOperatorFieldGetElemRestriction(op_fields[i], &rstr));
     }
   }
-  if (!basis) {
-    // LCOV_EXCL_START
-    return CeedError(ceed, CEED_ERROR_BACKEND, "No active field set");
-    // LCOV_EXCL_STOP
-  }
+  CeedCheck(basis, ceed, CEED_ERROR_BACKEND, "No active field set");
   CeedSize l_size = 1;
   CeedInt  P_1d, Q_1d, num_nodes, num_qpts, dim, num_comp = 1, num_elem = 1;
   CeedCall(CeedBasisGetNumNodes1D(basis, &P_1d));
@@ -2348,13 +2261,9 @@ int CeedOperatorCreateFDMElementInverse(CeedOperator op, CeedOperator *fdm_inv, 
   CeedCall(CeedElemRestrictionGetLVectorSize(rstr, &l_size));
 
   // Build and diagonalize 1D Mass and Laplacian
-  bool tensor_basis;
-  CeedCall(CeedBasisIsTensor(basis, &tensor_basis));
-  if (!tensor_basis) {
-    // LCOV_EXCL_START
-    return CeedError(ceed, CEED_ERROR_BACKEND, "FDMElementInverse only supported for tensor bases");
-    // LCOV_EXCL_STOP
-  }
+  bool is_tensor_basis;
+  CeedCall(CeedBasisIsTensor(basis, &is_tensor_basis));
+  CeedCheck(is_tensor_basis, ceed, CEED_ERROR_BACKEND, "FDMElementInverse only supported for tensor bases");
   CeedScalar *mass, *laplace, *x, *fdm_interp, *lambda;
   CeedCall(CeedCalloc(P_1d * P_1d, &mass));
   CeedCall(CeedCalloc(P_1d * P_1d, &laplace));

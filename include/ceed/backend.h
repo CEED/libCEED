@@ -123,6 +123,13 @@ CEED_INTERN int CeedFree(void *p);
     CeedChkBackend(ierr_q_);   \
   } while (0)
 
+#define CeedCheck(cond, ceed, ecode, ...)         \
+  do {                                            \
+    if (!(cond)) {                                \
+      return CeedError(ceed, ecode, __VA_ARGS__); \
+    }                                             \
+  } while (0)
+
 /* Note that CeedMalloc and CeedCalloc will, generally, return pointers with different memory alignments:
    CeedMalloc returns pointers aligned at CEED_ALIGN bytes, while CeedCalloc uses the alignment of calloc. */
 #define CeedMalloc(n, p) CeedMallocArray((n), sizeof(**(p)), p)

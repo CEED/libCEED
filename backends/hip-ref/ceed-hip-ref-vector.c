@@ -49,11 +49,7 @@ static inline int CeedVectorSyncH2D_Hip(const CeedVector vec) {
   CeedCallBackend(CeedVectorGetLength(vec, &length));
   size_t bytes = length * sizeof(CeedScalar);
 
-  if (!impl->h_array) {
-    // LCOV_EXCL_START
-    return CeedError(ceed, CEED_ERROR_BACKEND, "No valid host data to sync to device");
-    // LCOV_EXCL_STOP
-  }
+  CeedCheck(impl->h_array, ceed, CEED_ERROR_BACKEND, "No valid host data to sync to device");
 
   if (impl->d_array_borrowed) {
     impl->d_array = impl->d_array_borrowed;
@@ -78,11 +74,7 @@ static inline int CeedVectorSyncD2H_Hip(const CeedVector vec) {
   CeedVector_Hip *impl;
   CeedCallBackend(CeedVectorGetData(vec, &impl));
 
-  if (!impl->d_array) {
-    // LCOV_EXCL_START
-    return CeedError(ceed, CEED_ERROR_BACKEND, "No valid device data to sync to host");
-    // LCOV_EXCL_STOP
-  }
+  CeedCheck(impl->d_array, ceed, CEED_ERROR_BACKEND, "No valid device data to sync to host");
 
   if (impl->h_array_borrowed) {
     impl->h_array = impl->h_array_borrowed;

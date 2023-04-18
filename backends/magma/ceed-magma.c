@@ -23,18 +23,11 @@ static int CeedDestroy_Magma(Ceed ceed) {
 static int CeedInit_Magma(const char *resource, Ceed ceed) {
   int       ierr;
   const int nrc = 14;  // number of characters in resource
-  if (strncmp(resource, "/gpu/cuda/magma", nrc) && strncmp(resource, "/gpu/hip/magma", nrc)) {
-    // LCOV_EXCL_START
-    return CeedError(ceed, CEED_ERROR_BACKEND, "Magma backend cannot use resource: %s", resource);
-    // LCOV_EXCL_STOP
-  }
+  CeedCheck(!strncmp(resource, "/gpu/cuda/magma", nrc) || !strncmp(resource, "/gpu/hip/magma", nrc), ceed, CEED_ERROR_BACKEND,
+            "Magma backend cannot use resource: %s", resource);
 
   ierr = magma_init();
-  if (ierr) {
-    // LCOV_EXCL_START
-    return CeedError(ceed, CEED_ERROR_BACKEND, "error in magma_init(): %d\n", ierr);
-    // LCOV_EXCL_STOP
-  }
+  CeedCheck(ierr == 0, ceed, CEED_ERROR_BACKEND, "error in magma_init(): %d\n", ierr);
 
   Ceed_Magma *data;
   CeedCallBackend(CeedCalloc(sizeof(Ceed_Magma), &data));

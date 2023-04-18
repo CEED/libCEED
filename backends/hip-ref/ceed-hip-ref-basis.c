@@ -30,9 +30,8 @@ int CeedBasisApply_Hip(CeedBasis basis, const CeedInt num_elem, CeedTransposeMod
   // Read vectors
   const CeedScalar *d_u;
   CeedScalar       *d_v;
-  if (eval_mode != CEED_EVAL_WEIGHT) {
-    CeedCallBackend(CeedVectorGetArrayRead(u, CEED_MEM_DEVICE, &d_u));
-  }
+  if (u != CEED_VECTOR_NONE) CeedCallBackend(CeedVectorGetArrayRead(u, CEED_MEM_DEVICE, &d_u));
+  else CeedCheck(eval_mode == CEED_EVAL_WEIGHT, ceed, CEED_ERROR_BACKEND, "An input vector is required for this CeedEvalMode");
   CeedCallBackend(CeedVectorGetArrayWrite(v, CEED_MEM_DEVICE, &d_v));
 
   // Clear v for transpose operation
@@ -202,7 +201,7 @@ static int CeedBasisDestroyNonTensor_Hip(CeedBasis basis) {
 // Create tensor
 //------------------------------------------------------------------------------
 int CeedBasisCreateTensorH1_Hip(CeedInt dim, CeedInt P_1d, CeedInt Q_1d, const CeedScalar *interp_1d, const CeedScalar *grad_1d,
-                                const CeedScalar *qref1d, const CeedScalar *q_weight_1d, CeedBasis basis) {
+                                const CeedScalar *q_ref_1d, const CeedScalar *q_weight_1d, CeedBasis basis) {
   Ceed ceed;
   CeedCallBackend(CeedBasisGetCeed(basis, &ceed));
   CeedBasis_Hip *data;

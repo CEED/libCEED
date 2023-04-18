@@ -15,11 +15,8 @@
 // Backend Init
 //------------------------------------------------------------------------------
 static int CeedInit_Ref(const char *resource, Ceed ceed) {
-  if (strcmp(resource, "/cpu/self") && strcmp(resource, "/cpu/self/ref") && strcmp(resource, "/cpu/self/ref/serial")) {
-    // LCOV_EXCL_START
-    return CeedError(ceed, CEED_ERROR_BACKEND, "Ref backend cannot use resource: %s", resource);
-    // LCOV_EXCL_STOP
-  }
+  CeedCheck(!strcmp(resource, "/cpu/self") || !strcmp(resource, "/cpu/self/ref") || !strcmp(resource, "/cpu/self/ref/serial"), ceed,
+            CEED_ERROR_BACKEND, "Ref backend cannot use resource: %s", resource);
   CeedCallBackend(CeedSetDeterministic(ceed, true));
 
   CeedCallBackend(CeedSetBackendFunction(ceed, "Ceed", ceed, "VectorCreate", CeedVectorCreate_Ref));

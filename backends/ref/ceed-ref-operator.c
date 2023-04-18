@@ -252,9 +252,7 @@ static inline int CeedOperatorOutputBasis_Ref(CeedInt e, CeedInt Q, CeedQFunctio
       case CEED_EVAL_WEIGHT: {
         Ceed ceed;
         CeedCallBackend(CeedOperatorGetCeed(op, &ceed));
-        return CeedError(ceed, CEED_ERROR_BACKEND,
-                         "CEED_EVAL_WEIGHT cannot be an output "
-                         "evaluation mode");
+        return CeedError(ceed, CEED_ERROR_BACKEND, "CEED_EVAL_WEIGHT cannot be an output evaluation mode");
         // LCOV_EXCL_STOP
       }
     }
@@ -400,11 +398,7 @@ static inline int CeedOperatorLinearAssembleQFunctionCore_Ref(CeedOperator op, b
   CeedCallBackend(CeedOperatorSetup_Ref(op));
 
   // Check for identity
-  if (impl->is_identity_qf) {
-    // LCOV_EXCL_START
-    return CeedError(ceed, CEED_ERROR_BACKEND, "Assembling identity QFunctions not supported");
-    // LCOV_EXCL_STOP
-  }
+  CeedCheck(!impl->is_identity_qf, ceed, CEED_ERROR_BACKEND, "Assembling identity QFunctions not supported");
 
   // Input Evecs and Restriction
   CeedCallBackend(CeedOperatorSetupInputs_Ref(num_input_fields, qf_input_fields, op_input_fields, NULL, true, e_data_full, impl, request));
@@ -448,11 +442,7 @@ static inline int CeedOperatorLinearAssembleQFunctionCore_Ref(CeedOperator op, b
   }
 
   // Check sizes
-  if (!num_active_in || !num_active_out) {
-    // LCOV_EXCL_START
-    return CeedError(ceed, CEED_ERROR_BACKEND, "Cannot assemble QFunction without active inputs and outputs");
-    // LCOV_EXCL_STOP
-  }
+  CeedCheck(num_active_in > 0 && num_active_out > 0, ceed, CEED_ERROR_BACKEND, "Cannot assemble QFunction without active inputs and outputs");
 
   // Build objects if needed
   if (build_objects) {

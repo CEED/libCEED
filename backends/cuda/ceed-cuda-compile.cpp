@@ -30,7 +30,7 @@
   do {                            \
     int ierr_q_ = __VA_ARGS__;    \
     CeedChk_Nvrtc(ceed, ierr_q_); \
-  } while (0);
+  } while (0)
 
 //------------------------------------------------------------------------------
 // Compile CUDA kernel

@@ -12,9 +12,7 @@
 // LCOV_EXCL_START
 // This function provides improved error messages for uncompiled backends
 static int CeedInit_Weak(const char *resource, Ceed ceed) {
-  return CeedError(ceed, CEED_ERROR_UNSUPPORTED,
-                   "Backend not currently compiled: %s\n"
-                   "Consult the installation instructions to compile this backend",
+  return CeedError(ceed, CEED_ERROR_UNSUPPORTED, "Backend not currently compiled: %s\nConsult the installation instructions to compile this backend",
                    resource);
 }
 
