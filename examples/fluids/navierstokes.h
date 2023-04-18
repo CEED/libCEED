@@ -179,7 +179,8 @@ typedef struct {
 
 typedef struct {
   DM                   dm_filter;
-  CeedInt              num_comp_filter;
+  PetscInt             num_filtered_fields;
+  CeedInt             *num_field_components;
   OperatorApplyContext op_rhs_ctx;
   KSP                  ksp;
   PetscBool            do_mms_test;
