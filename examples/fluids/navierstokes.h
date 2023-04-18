@@ -181,6 +181,7 @@ typedef struct {
   DM                   dm_dd_inputs;
   PetscInt             num_comp_dd_inputs;
   OperatorApplyContext op_nodal_input_evaluation_ctx;
+  NodalProjectionData  filtered_grad_velo_proj;
 } *SGS_DD_TrainingData;
 
 typedef struct {
@@ -469,5 +470,8 @@ PetscErrorCode DifferentialFilter_MMS_ICSetup(ProblemData *problem);
 // SGS Data-Driven Training via SmartSim
 // -----------------------------------------------------------------------------
 PetscErrorCode SmartSimSetup(User user);
+PetscErrorCode SGS_DD_TrainingSetup(Ceed ceed, User user, CeedData ceed_data, ProblemData *problem);
+PetscErrorCode TSMonitor_SGS_DD_Training(TS ts, PetscInt step_num, PetscReal solution_time, Vec Q, void *ctx);
+PetscErrorCode SGS_DD_TrainingDataDestroy(SGS_DD_TrainingData sgs_dd_train);
 
 #endif  // libceed_fluids_examples_navier_stokes_h

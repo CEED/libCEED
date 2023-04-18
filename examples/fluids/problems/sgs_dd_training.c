@@ -52,7 +52,7 @@ PetscErrorCode SGS_DD_TrainingCreateDM(DM dm_source, DM *dm_dd_inputs, PetscInt 
 };
 
 // @brief Create CeedOperator to calculate inputs to the data-drive SGS model at nodes (for online ML training)
-static PetscErrorCode SGS_DD_TrainingSetupNodalInputEvaluation(Ceed ceed, User user, CeedData ceed_data,
+static PetscErrorCode SGS_DD_TrainingSetupNodalInputEvaluation(Ceed ceed, User user, CeedData ceed_data, ProblemData *problem,
                                                                SGS_DD_TrainingSetupData sgs_dd_train_setup_data) {
   SGS_DD_TrainingData sgs_dd_train = user->sgs_dd_train;
   CeedQFunction       qf_multiplicity, qf_sgs_dd_nodal;
@@ -96,15 +96,26 @@ static PetscErrorCode SGS_DD_TrainingSetupNodalInputEvaluation(Ceed ceed, User u
 
   CeedOperatorApply(op_multiplicity, multiplicity, inv_multiplicity, CEED_REQUEST_IMMEDIATE);
 
-  // -- Create operator for SGS DD model nodal evaluation
-  switch (user->phys->state_var) {
-    case STATEVAR_PRIMITIVE:
-      CeedQFunctionCreateInterior(ceed, 1, ComputeSGS_DDAnisotropicInputsNodal_Prim, ComputeSGS_DDAnisotropicInputsNodal_Prim_loc, &qf_sgs_dd_nodal);
-      break;
-    default:
-      SETERRQ(PetscObjectComm((PetscObject)user->dm), PETSC_ERR_SUP,
-              "Anisotropic data-driven model inputs nodal evaluation not available for chosen state variable");
+  CeedElemRestriction elem_restr_filtered_state;
+  CeedInt             num_comp_filtered_state;
+  {  // -- Setup filtered velocity gradient projection
+    CeedBasis         basis_filtered_state;
+    CeedOperatorField op_field;
+    CeedOperatorGetFieldByName(user->diff_filter->op_rhs_ctx->op, "v0", &op_field);
+    CeedOperatorFieldGetElemRestriction(op_field, &elem_restr_filtered_state);
+    CeedElemRestrictionGetNumComponents(elem_restr_filtered_state, &num_comp_filtered_state);
+    CeedOperatorFieldGetBasis(op_field, &basis_filtered_state);
+    PetscCall(VelocityGradientProjectionSetup(ceed, user, ceed_data, problem, STATEVAR_PRIMITIVE, elem_restr_filtered_state, basis_filtered_state,
+                                              &sgs_dd_train->filtered_grad_velo_proj));
+    // Get velocity gradient information
+    CeedOperatorGetFieldByName(sgs_dd_train->filtered_grad_velo_proj->l2_rhs_ctx->op, "velocity gradient", &op_field);
+    CeedOperatorFieldGetElemRestriction(op_field, &elem_restr_grad_velo);
+    CeedElemRestrictionGetNumComponents(elem_restr_grad_velo, &num_comp_grad_velo);
   }
+
+  // -- Create operator for SGS DD model nodal evaluation
+  // Differential Filter only provides filtered primitive variables
+  CeedQFunctionCreateInterior(ceed, 1, ComputeSGS_DDAnisotropicInputsNodal_Prim, ComputeSGS_DDAnisotropicInputsNodal_Prim_loc, &qf_sgs_dd_nodal);
 
   // Mesh/geometry order and solution basis order may differ, therefore must interpolate
   CeedBasis basis_x_to_q;
@@ -118,8 +129,10 @@ static PetscErrorCode SGS_DD_TrainingSetupNodalInputEvaluation(Ceed ceed, User u
   CeedQFunctionAddInput(qf_sgs_dd_nodal, "inverse multiplicity", 1, CEED_EVAL_NONE);
   CeedQFunctionAddOutput(qf_sgs_dd_nodal, "inputs", sgs_dd_train->num_comp_dd_inputs, CEED_EVAL_NONE);
 
+  CeedVector filtered_state;
+  CeedElemRestrictionCreateVector(elem_restr_filtered_state, &filtered_state, NULL);
   CeedOperatorCreate(ceed, qf_sgs_dd_nodal, NULL, NULL, &op_sgs_dd_nodal);
-  CeedOperatorSetField(op_sgs_dd_nodal, "q", ceed_data->elem_restr_q, CEED_BASIS_COLLOCATED, user->q_ceed);
+  CeedOperatorSetField(op_sgs_dd_nodal, "q", elem_restr_filtered_state, CEED_BASIS_COLLOCATED, filtered_state);
   CeedOperatorSetField(op_sgs_dd_nodal, "x", ceed_data->elem_restr_x, basis_x_to_q, ceed_data->x_coord);
   CeedOperatorSetField(op_sgs_dd_nodal, "gradient velocity", elem_restr_grad_velo, CEED_BASIS_COLLOCATED, CEED_VECTOR_ACTIVE);
   CeedOperatorSetField(op_sgs_dd_nodal, "anisotropy tensor", sgs_dd_train_setup_data->elem_restr_grid_aniso, CEED_BASIS_COLLOCATED,
@@ -127,8 +140,8 @@ static PetscErrorCode SGS_DD_TrainingSetupNodalInputEvaluation(Ceed ceed, User u
   CeedOperatorSetField(op_sgs_dd_nodal, "inverse multiplicity", elem_restr_inv_multiplicity, CEED_BASIS_COLLOCATED, inv_multiplicity);
   CeedOperatorSetField(op_sgs_dd_nodal, "inputs", elem_restr_sgs, CEED_BASIS_COLLOCATED, CEED_VECTOR_ACTIVE);
 
-  PetscCall(OperatorApplyContextCreate(user->grad_velo_proj->dm, sgs_dd_train->dm_dd_inputs, ceed, op_sgs_dd_nodal, NULL, NULL, NULL, NULL,
-                                       &sgs_dd_train->op_nodal_input_evaluation_ctx));
+  PetscCall(OperatorApplyContextCreate(sgs_dd_train->filtered_grad_velo_proj->dm, sgs_dd_train->dm_dd_inputs, ceed, op_sgs_dd_nodal, NULL, NULL, NULL,
+                                       NULL, &sgs_dd_train->op_nodal_input_evaluation_ctx));
 
   sgs_dd_train_setup_data->elem_restr_dd_inputs = elem_restr_sgs;
 
@@ -143,45 +156,18 @@ static PetscErrorCode SGS_DD_TrainingSetupNodalInputEvaluation(Ceed ceed, User u
   PetscFunctionReturn(0);
 }
 
-// @brief Calculate and add data-driven SGS residual to the global residual
-PetscErrorCode SGS_DD_TrainingGetModelInputs(User user, const Vec Q_loc, Vec Inputs_loc) {
-  SGS_DD_TrainingData sgs_dd_train = user->sgs_dd_train;
-  Vec                 VelocityGradient, SGSNodalInputs_loc;
-  PetscMemType        q_mem_type;
-
-  PetscFunctionBeginUser;
-  // TODO: This should be replaced by a grad_velo_proj defined for the filtered fields
-  PetscCall(DMGetGlobalVector(user->grad_velo_proj->dm, &VelocityGradient));
-  PetscCall(VelocityGradientProjectionApply(user->grad_velo_proj, Q_loc, VelocityGradient));
-
-  // -- Compute Nodal SGS tensor
-  PetscCall(DMGetLocalVector(sgs_dd_train->dm_dd_inputs, &SGSNodalInputs_loc));
-  PetscCall(VecP2C(Q_loc, &q_mem_type, user->q_ceed));  // q_ceed is an implicit input
-
-  PetscCall(ApplyCeedOperatorGlobalToLocal(VelocityGradient, SGSNodalInputs_loc, sgs_dd_train->op_nodal_input_evaluation_ctx));
-
-  PetscCall(VecC2P(user->q_ceed, q_mem_type, Q_loc));
-
-  PetscCall(DMRestoreLocalVector(sgs_dd_train->dm_dd_inputs, &SGSNodalInputs_loc));
-  PetscCall(DMRestoreGlobalVector(user->grad_velo_proj->dm, &VelocityGradient));
-
-  PetscFunctionReturn(0);
-}
-
 PetscErrorCode SGS_DD_TrainingSetup(Ceed ceed, User user, CeedData ceed_data, ProblemData *problem) {
   SGS_DDTrainingContext    sgsdd_train_ctx;
-  MPI_Comm                 comm = user->comm;
   SGS_DD_TrainingSetupData sgs_dd_train_setup_data;
 
   PetscFunctionBeginUser;
-  // if (!user->grad_velo_proj) PetscCall(VelocityGradientProjectionSetup(ceed, user, ceed_data, problem));
   if (!user->diff_filter) PetscCall(DifferentialFilterSetup(ceed, user, ceed_data, problem));
   if (!user->smartsim) PetscCall(SmartSimSetup(user));
 
   PetscCall(PetscNew(&sgsdd_train_ctx));
   PetscCall(PetscNew(&sgs_dd_train_setup_data));
 
-  PetscOptionsBegin(comm, NULL, "SGS Data-Driven Training Options", NULL);
+  PetscOptionsBegin(user->comm, NULL, "SGS Data-Driven Training Options", NULL);
 
   PetscOptionsEnd();
 
@@ -205,24 +191,54 @@ PetscErrorCode SGS_DD_TrainingSetup(Ceed ceed, User user, CeedData ceed_data, Pr
                                                      &sgs_dd_train_setup_data->grid_aniso_ceed));
 
   // -- Create Nodal Evaluation Operator
-  PetscCall(SGS_DD_TrainingSetupNodalInputEvaluation(ceed, user, ceed_data, sgs_dd_train_setup_data));
+  PetscCall(SGS_DD_TrainingSetupNodalInputEvaluation(ceed, user, ceed_data, problem, sgs_dd_train_setup_data));
 
   PetscCall(SGS_DD_TrainingSetupDataDestroy(sgs_dd_train_setup_data));
   PetscFunctionReturn(0);
 }
 
+// @brief Calculate and add data-driven SGS residual to the global residual
+PetscErrorCode SGS_DD_TrainingGetModelInputs(User user, Vec FilteredState_loc, Vec Inputs_loc) {
+  SGS_DD_TrainingData sgs_dd_train = user->sgs_dd_train;
+  Vec                 FilteredVelocityGradient, SGSNodalInputs_loc;
+  PetscMemType        filtered_state_mem_type;
+  CeedVector          filtered_state;
+
+  PetscFunctionBeginUser;
+  PetscCall(DMGetGlobalVector(sgs_dd_train->filtered_grad_velo_proj->dm, &FilteredVelocityGradient));
+  PetscCall(VelocityGradientProjectionApply(sgs_dd_train->filtered_grad_velo_proj, FilteredState_loc, FilteredVelocityGradient));
+
+  // -- Compute Nodal SGS tensor
+  PetscCall(DMGetLocalVector(sgs_dd_train->dm_dd_inputs, &SGSNodalInputs_loc));
+  {
+    CeedOperatorField op_field;
+    CeedOperatorGetFieldByName(sgs_dd_train->op_nodal_input_evaluation_ctx->op, "q", &op_field);
+    CeedOperatorFieldGetVector(op_field, &filtered_state);
+  }
+  PetscCall(VecP2C(FilteredState_loc, &filtered_state_mem_type, filtered_state));  // q_ceed is an implicit input
+
+  PetscCall(ApplyCeedOperatorGlobalToLocal(FilteredVelocityGradient, SGSNodalInputs_loc, sgs_dd_train->op_nodal_input_evaluation_ctx));
+
+  PetscCall(VecC2P(filtered_state, filtered_state_mem_type, FilteredState_loc));
+
+  PetscCall(DMRestoreLocalVector(sgs_dd_train->dm_dd_inputs, &SGSNodalInputs_loc));
+  PetscCall(DMRestoreGlobalVector(sgs_dd_train->filtered_grad_velo_proj->dm, &FilteredVelocityGradient));
+
+  PetscFunctionReturn(0);
+}
+
 PetscErrorCode TSMonitor_SGS_DD_Training(TS ts, PetscInt step_num, PetscReal solution_time, Vec Q, void *ctx) {
   User user = (User)ctx;
-  Vec  FilteredFields, DDModelInputs;
+  Vec  FilteredFields, FilteredFields_loc, DDModelInputs;
 
   PetscFunctionBeginUser;
   PetscCall(DMGetGlobalVector(user->diff_filter->dm_filter, &FilteredFields));
   PetscCall(DMGetGlobalVector(user->sgs_dd_train->dm_dd_inputs, &DDModelInputs));
 
   PetscCall(DifferentialFilterApply(user, solution_time, Q, FilteredFields));
-  PetscCall(UpdateBoundaryValues(user, user->Q_loc, solution_time));
-  PetscCall(DMGlobalToLocal(user->dm, Q, INSERT_VALUES, user->Q_loc));
-  PetscCall(SGS_DD_TrainingGetModelInputs(user, user->Q_loc, DDModelInputs));
+  PetscCall(DMGetLocalVector(user->diff_filter->dm_filter, &FilteredFields_loc));
+  PetscCall(DMGlobalToLocal(user->diff_filter->dm_filter, FilteredFields, INSERT_VALUES, FilteredFields_loc));
+  PetscCall(SGS_DD_TrainingGetModelInputs(user, FilteredFields_loc, DDModelInputs));
 
   // Send training data to SmartSim
 
