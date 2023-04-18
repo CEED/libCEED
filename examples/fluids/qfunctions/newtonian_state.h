@@ -364,6 +364,7 @@ CEED_QFUNCTION_HELPER void KMStrainRate_State(const State grad_s[3], CeedScalar 
   KMStrainRate(grad_velocity, strain_rate);
 }
 
+//@brief Given velocity gradient du_i/dx_j, return 0.5*(du_i/dx_j - du_j/dx_i)
 CEED_QFUNCTION_HELPER void RotationRate(const CeedScalar grad_velocity[3][3], CeedScalar rotation_rate[3][3]) {
   rotation_rate[0][0] = 0;
   rotation_rate[1][1] = 0;
