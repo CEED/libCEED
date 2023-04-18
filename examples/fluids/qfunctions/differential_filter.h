@@ -165,6 +165,10 @@ CEED_QFUNCTION(DifferentialFilter_LHS_5)(void *ctx, CeedInt Q, const CeedScalar 
   return DifferentialFilter_LHS_N(ctx, Q, in, out, 5);
 }
 
+CEED_QFUNCTION(DifferentialFilter_LHS_6)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
+  return DifferentialFilter_LHS_N(ctx, Q, in, out, 6);
+}
+
 CEED_QFUNCTION(DifferentialFilter_LHS_11)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
   return DifferentialFilter_LHS_N(ctx, Q, in, out, 11);
 }
