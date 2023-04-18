@@ -462,8 +462,9 @@ PetscErrorCode TurbulenceStatisticsDestroy(User user, CeedData ceed_data);
 PetscErrorCode SgsDDModelSetup(Ceed ceed, User user, CeedData ceed_data, ProblemData *problem);
 PetscErrorCode SgsDDDataDestroy(SgsDDData sgs_dd_data);
 PetscErrorCode SgsDDModelApplyIFunction(User user, const Vec Q_loc, Vec G_loc);
-PetscErrorCode VelocityGradientProjectionSetup(Ceed ceed, User user, CeedData ceed_data, ProblemData *problem);
-PetscErrorCode VelocityGradientProjectionApply(User user, Vec Q_loc, Vec VelocityGradient);
+PetscErrorCode VelocityGradientProjectionSetup(Ceed ceed, User user, CeedData ceed_data, ProblemData *problem, StateVariable state_var_input,
+                                               CeedElemRestriction elem_restr_input, CeedBasis basis_input, NodalProjectionData *pgrad_velo_proj);
+PetscErrorCode VelocityGradientProjectionApply(NodalProjectionData grad_velo_proj, Vec Q_loc, Vec VelocityGradient);
 PetscErrorCode GridAnisotropyTensorProjectionSetupApply(Ceed ceed, User user, CeedData ceed_data, CeedElemRestriction *elem_restr_grid_aniso,
                                                         CeedVector *grid_aniso_vector);
 PetscErrorCode GridAnisotropyTensorCalculateCollocatedVector(Ceed ceed, User user, CeedData ceed_data, CeedElemRestriction *elem_restr_grid_aniso,
