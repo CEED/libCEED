@@ -39,33 +39,34 @@ PetscErrorCode VelocityGradientProjectionCreateDM(NodalProjectionData grad_velo_
   PetscFunctionReturn(PETSC_SUCCESS);
 };
 
-PetscErrorCode VelocityGradientProjectionSetup(Ceed ceed, User user, CeedData ceed_data, ProblemData *problem) {
+PetscErrorCode VelocityGradientProjectionSetup(Ceed ceed, User user, CeedData ceed_data, ProblemData *problem, StateVariable state_var_input,
+                                               CeedElemRestriction elem_restr_input, CeedBasis basis_input, NodalProjectionData *pgrad_velo_proj) {
+  NodalProjectionData  grad_velo_proj;
   OperatorApplyContext mass_matop_ctx;
   CeedOperator         op_rhs_assemble, op_mass;
   CeedQFunction        qf_rhs_assemble, qf_mass;
   CeedBasis            basis_grad_velo;
   CeedElemRestriction  elem_restr_grad_velo;
   PetscInt             dim, label_value = 0, height = 0, dm_field = 0;
-  CeedInt              num_comp_x, num_comp_q, q_data_size;
+  CeedInt              num_comp_x, num_comp_input, q_data_size;
   DMLabel              domain_label = NULL;
 
   PetscFunctionBeginUser;
-  PetscCall(PetscNew(&user->grad_velo_proj));
-  NodalProjectionData grad_velo_proj = user->grad_velo_proj;
+  PetscCall(PetscNew(&grad_velo_proj));
 
   PetscCall(VelocityGradientProjectionCreateDM(grad_velo_proj, user, user->app_ctx->degree));
 
   // -- Get Pre-requisite things
   PetscCall(DMGetDimension(grad_velo_proj->dm, &dim));
   PetscCallCeed(ceed, CeedBasisGetNumComponents(ceed_data->basis_x, &num_comp_x));
-  PetscCallCeed(ceed, CeedBasisGetNumComponents(ceed_data->basis_q, &num_comp_q));
+  PetscCallCeed(ceed, CeedBasisGetNumComponents(ceed_data->basis_q, &num_comp_input));
   PetscCallCeed(ceed, CeedElemRestrictionGetNumComponents(ceed_data->elem_restr_qd_i, &q_data_size));
   PetscCall(DMPlexCeedElemRestrictionCreate(ceed, grad_velo_proj->dm, domain_label, label_value, height, dm_field, &elem_restr_grad_velo));
 
   PetscCall(CreateBasisFromPlex(ceed, grad_velo_proj->dm, domain_label, label_value, height, dm_field, &basis_grad_velo));
 
   // -- Build RHS operator
-  switch (user->phys->state_var) {
+  switch (state_var_input) {
     case STATEVAR_PRIMITIVE:
       PetscCallCeed(
           ceed, CeedQFunctionCreateInterior(ceed, 1, VelocityGradientProjectionRHS_Prim, VelocityGradientProjectionRHS_Prim_loc, &qf_rhs_assemble));
@@ -79,15 +80,15 @@ PetscErrorCode VelocityGradientProjectionSetup(Ceed ceed, User user, CeedData ce
   }
 
   PetscCallCeed(ceed, CeedQFunctionSetContext(qf_rhs_assemble, problem->apply_vol_ifunction.qfunction_context));
-  PetscCallCeed(ceed, CeedQFunctionAddInput(qf_rhs_assemble, "q", num_comp_q, CEED_EVAL_INTERP));
-  PetscCallCeed(ceed, CeedQFunctionAddInput(qf_rhs_assemble, "Grad_q", num_comp_q * dim, CEED_EVAL_GRAD));
+  PetscCallCeed(ceed, CeedQFunctionAddInput(qf_rhs_assemble, "q", num_comp_input, CEED_EVAL_INTERP));
+  PetscCallCeed(ceed, CeedQFunctionAddInput(qf_rhs_assemble, "Grad_q", num_comp_input * dim, CEED_EVAL_GRAD));
   PetscCallCeed(ceed, CeedQFunctionAddInput(qf_rhs_assemble, "qdata", q_data_size, CEED_EVAL_NONE));
   PetscCallCeed(ceed, CeedQFunctionAddInput(qf_rhs_assemble, "x", num_comp_x, CEED_EVAL_INTERP));
   PetscCallCeed(ceed, CeedQFunctionAddOutput(qf_rhs_assemble, "velocity gradient", grad_velo_proj->num_comp, CEED_EVAL_INTERP));
 
   PetscCallCeed(ceed, CeedOperatorCreate(ceed, qf_rhs_assemble, NULL, NULL, &op_rhs_assemble));
-  PetscCallCeed(ceed, CeedOperatorSetField(op_rhs_assemble, "q", ceed_data->elem_restr_q, ceed_data->basis_q, CEED_VECTOR_ACTIVE));
-  PetscCallCeed(ceed, CeedOperatorSetField(op_rhs_assemble, "Grad_q", ceed_data->elem_restr_q, ceed_data->basis_q, CEED_VECTOR_ACTIVE));
+  PetscCallCeed(ceed, CeedOperatorSetField(op_rhs_assemble, "q", elem_restr_input, basis_input, CEED_VECTOR_ACTIVE));
+  PetscCallCeed(ceed, CeedOperatorSetField(op_rhs_assemble, "Grad_q", elem_restr_input, basis_input, CEED_VECTOR_ACTIVE));
   PetscCallCeed(ceed, CeedOperatorSetField(op_rhs_assemble, "qdata", ceed_data->elem_restr_qd_i, CEED_BASIS_NONE, ceed_data->q_data));
   PetscCallCeed(ceed, CeedOperatorSetField(op_rhs_assemble, "x", ceed_data->elem_restr_x, ceed_data->basis_x, ceed_data->x_coord));
   PetscCallCeed(ceed, CeedOperatorSetField(op_rhs_assemble, "velocity gradient", elem_restr_grad_velo, basis_grad_velo, CEED_VECTOR_ACTIVE));
@@ -123,6 +124,8 @@ PetscErrorCode VelocityGradientProjectionSetup(Ceed ceed, User user, CeedData ce
     PetscCall(KSPSetFromOptions(grad_velo_proj->ksp));
   }
 
+  *pgrad_velo_proj = grad_velo_proj;
+
   PetscCallCeed(ceed, CeedBasisDestroy(&basis_grad_velo));
   PetscCallCeed(ceed, CeedElemRestrictionDestroy(&elem_restr_grad_velo));
   PetscCallCeed(ceed, CeedQFunctionDestroy(&qf_rhs_assemble));
@@ -132,9 +135,8 @@ PetscErrorCode VelocityGradientProjectionSetup(Ceed ceed, User user, CeedData ce
   PetscFunctionReturn(PETSC_SUCCESS);
 }
 
-PetscErrorCode VelocityGradientProjectionApply(User user, Vec Q_loc, Vec VelocityGradient) {
-  NodalProjectionData  grad_velo_proj = user->grad_velo_proj;
-  OperatorApplyContext l2_rhs_ctx     = grad_velo_proj->l2_rhs_ctx;
+PetscErrorCode VelocityGradientProjectionApply(NodalProjectionData grad_velo_proj, Vec Q_loc, Vec VelocityGradient) {
+  OperatorApplyContext l2_rhs_ctx = grad_velo_proj->l2_rhs_ctx;
 
   PetscFunctionBeginUser;
   PetscCall(ApplyCeedOperatorLocalToGlobal(Q_loc, VelocityGradient, l2_rhs_ctx));
