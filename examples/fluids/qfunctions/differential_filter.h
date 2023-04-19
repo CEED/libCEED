@@ -14,19 +14,23 @@
 #include "newtonian_types.h"
 #include "utils.h"
 
-enum DifferentialFilterComponent {
+enum DifferentialFilterStateComponent {
   DIFF_FILTER_PRESSURE,
   DIFF_FILTER_VELOCITY_X,
   DIFF_FILTER_VELOCITY_Y,
   DIFF_FILTER_VELOCITY_Z,
   DIFF_FILTER_TEMPERATURE,
+  DIFF_FILTER_STATE_NUM,
+};
+
+enum DifferentialFilterVelocitySquared {
   DIFF_FILTER_VELOCITY_SQUARED_XX,
   DIFF_FILTER_VELOCITY_SQUARED_YY,
   DIFF_FILTER_VELOCITY_SQUARED_ZZ,
   DIFF_FILTER_VELOCITY_SQUARED_YZ,
   DIFF_FILTER_VELOCITY_SQUARED_XZ,
   DIFF_FILTER_VELOCITY_SQUARED_XY,
-  DIFF_FILTER_NUM_COMPONENTS,
+  DIFF_FILTER_VELOCITY_SQUARED_NUM,
 };
 
 enum DifferentialFilterDampingFunction { DIFF_FILTER_DAMP_NONE, DIFF_FILTER_DAMP_VAN_DRIEST, DIFF_FILTER_DAMP_MMS };
@@ -49,7 +53,8 @@ CEED_QFUNCTION_HELPER int DifferentialFilter_RHS(void *ctx, CeedInt Q, const Cee
   const CeedScalar(*q)[CEED_Q_VLA]      = (const CeedScalar(*)[CEED_Q_VLA])in[0];
   const CeedScalar(*q_data)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[1];
   const CeedScalar(*x)[CEED_Q_VLA]      = (const CeedScalar(*)[CEED_Q_VLA])in[2];
-  CeedScalar(*v)[CEED_Q_VLA]            = (CeedScalar(*)[CEED_Q_VLA])out[0];
+  CeedScalar(*v0)[CEED_Q_VLA]           = (CeedScalar(*)[CEED_Q_VLA])out[0];
+  CeedScalar(*v1)[CEED_Q_VLA]           = (CeedScalar(*)[CEED_Q_VLA])out[1];
 
   DifferentialFilterContext context = (DifferentialFilterContext)ctx;
   NewtonianIdealGasContext  gas     = &context->gas;
@@ -60,17 +65,17 @@ CEED_QFUNCTION_HELPER int DifferentialFilter_RHS(void *ctx, CeedInt Q, const Cee
     const CeedScalar wdetJ  = q_data[0][i];
     const State      s      = StateFromQi(gas, qi, x_i);
 
-    v[DIFF_FILTER_PRESSURE][i]            = wdetJ * s.Y.pressure;
-    v[DIFF_FILTER_VELOCITY_X][i]          = wdetJ * s.Y.velocity[0];
-    v[DIFF_FILTER_VELOCITY_Y][i]          = wdetJ * s.Y.velocity[1];
-    v[DIFF_FILTER_VELOCITY_Z][i]          = wdetJ * s.Y.velocity[2];
-    v[DIFF_FILTER_TEMPERATURE][i]         = wdetJ * s.Y.temperature;
-    v[DIFF_FILTER_VELOCITY_SQUARED_XX][i] = wdetJ * s.Y.velocity[0] * s.Y.velocity[0];
-    v[DIFF_FILTER_VELOCITY_SQUARED_YY][i] = wdetJ * s.Y.velocity[1] * s.Y.velocity[1];
-    v[DIFF_FILTER_VELOCITY_SQUARED_ZZ][i] = wdetJ * s.Y.velocity[2] * s.Y.velocity[2];
-    v[DIFF_FILTER_VELOCITY_SQUARED_YZ][i] = wdetJ * s.Y.velocity[1] * s.Y.velocity[2];
-    v[DIFF_FILTER_VELOCITY_SQUARED_XZ][i] = wdetJ * s.Y.velocity[0] * s.Y.velocity[2];
-    v[DIFF_FILTER_VELOCITY_SQUARED_XY][i] = wdetJ * s.Y.velocity[0] * s.Y.velocity[1];
+    v0[DIFF_FILTER_PRESSURE][i]            = wdetJ * s.Y.pressure;
+    v0[DIFF_FILTER_VELOCITY_X][i]          = wdetJ * s.Y.velocity[0];
+    v0[DIFF_FILTER_VELOCITY_Y][i]          = wdetJ * s.Y.velocity[1];
+    v0[DIFF_FILTER_VELOCITY_Z][i]          = wdetJ * s.Y.velocity[2];
+    v0[DIFF_FILTER_TEMPERATURE][i]         = wdetJ * s.Y.temperature;
+    v1[DIFF_FILTER_VELOCITY_SQUARED_XX][i] = wdetJ * s.Y.velocity[0] * s.Y.velocity[0];
+    v1[DIFF_FILTER_VELOCITY_SQUARED_YY][i] = wdetJ * s.Y.velocity[1] * s.Y.velocity[1];
+    v1[DIFF_FILTER_VELOCITY_SQUARED_ZZ][i] = wdetJ * s.Y.velocity[2] * s.Y.velocity[2];
+    v1[DIFF_FILTER_VELOCITY_SQUARED_YZ][i] = wdetJ * s.Y.velocity[1] * s.Y.velocity[2];
+    v1[DIFF_FILTER_VELOCITY_SQUARED_XZ][i] = wdetJ * s.Y.velocity[0] * s.Y.velocity[2];
+    v1[DIFF_FILTER_VELOCITY_SQUARED_XY][i] = wdetJ * s.Y.velocity[0] * s.Y.velocity[1];
   }
   return 0;
 }

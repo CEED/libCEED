@@ -190,7 +190,7 @@ PetscErrorCode DifferentialFilterSetup(Ceed ceed, User user, CeedData ceed_data,
     PetscCall(DMGetDimension(diff_filter->dm_filter, &dim));
     PetscCall(PetscObjectSetName((PetscObject)diff_filter->dm_filter, "Differential Filtering"));
 
-    diff_filter->num_filtered_fields = diff_filter->do_mms_test ? 1 : 1;
+    diff_filter->num_filtered_fields = diff_filter->do_mms_test ? 1 : 2;
     PetscCall(PetscMalloc1(diff_filter->num_filtered_fields, &diff_filter->num_field_components));
 
     if (diff_filter->do_mms_test) {
@@ -205,26 +205,34 @@ PetscErrorCode DifferentialFilterSetup(Ceed ceed, User user, CeedData ceed_data,
       PetscCall(PetscSectionSetFieldName(section, 0, ""));
       PetscCall(PetscSectionSetComponentName(section, 0, 0, "FilteredPhi"));
     } else {
-      diff_filter->num_field_components[0] = DIFF_FILTER_NUM_COMPONENTS;
+      diff_filter->num_field_components[0] = DIFF_FILTER_STATE_NUM;
       PetscCall(
           PetscFECreateLagrange(PETSC_COMM_SELF, dim, diff_filter->num_field_components[0], PETSC_FALSE, user->app_ctx->degree, PETSC_DECIDE, &fe));
       PetscCall(PetscObjectSetName((PetscObject)fe, "Differential Filtering - Primitive State Variables"));
       PetscCall(DMAddField(diff_filter->dm_filter, NULL, (PetscObject)fe));
       PetscCall(PetscFEDestroy(&fe));
 
+      diff_filter->num_field_components[1] = DIFF_FILTER_VELOCITY_SQUARED_NUM;
+      PetscCall(
+          PetscFECreateLagrange(PETSC_COMM_SELF, dim, diff_filter->num_field_components[1], PETSC_FALSE, user->app_ctx->degree, PETSC_DECIDE, &fe));
+      PetscCall(PetscObjectSetName((PetscObject)fe, "Differential Filtering - Velocity Products"));
+      PetscCall(DMAddField(diff_filter->dm_filter, NULL, (PetscObject)fe));
+      PetscCall(PetscFEDestroy(&fe));
+
       PetscCall(DMGetLocalSection(diff_filter->dm_filter, &section));
-      PetscCall(PetscSectionSetFieldName(section, 0, ""));
+      PetscCall(PetscSectionSetFieldName(section, 0, "Filtered Primitive State Variables"));
       PetscCall(PetscSectionSetComponentName(section, 0, DIFF_FILTER_PRESSURE, "FilteredPressure"));
       PetscCall(PetscSectionSetComponentName(section, 0, DIFF_FILTER_VELOCITY_X, "FilteredVelocityX"));
       PetscCall(PetscSectionSetComponentName(section, 0, DIFF_FILTER_VELOCITY_Y, "FilteredVelocityY"));
       PetscCall(PetscSectionSetComponentName(section, 0, DIFF_FILTER_VELOCITY_Z, "FilteredVelocityZ"));
       PetscCall(PetscSectionSetComponentName(section, 0, DIFF_FILTER_TEMPERATURE, "FilteredTemperature"));
-      PetscCall(PetscSectionSetComponentName(section, 0, DIFF_FILTER_VELOCITY_SQUARED_XX, "FilteredVelocitySquaredXX"));
-      PetscCall(PetscSectionSetComponentName(section, 0, DIFF_FILTER_VELOCITY_SQUARED_YY, "FilteredVelocitySquaredYY"));
-      PetscCall(PetscSectionSetComponentName(section, 0, DIFF_FILTER_VELOCITY_SQUARED_ZZ, "FilteredVelocitySquaredZZ"));
-      PetscCall(PetscSectionSetComponentName(section, 0, DIFF_FILTER_VELOCITY_SQUARED_YZ, "FilteredVelocitySquaredYZ"));
-      PetscCall(PetscSectionSetComponentName(section, 0, DIFF_FILTER_VELOCITY_SQUARED_XZ, "FilteredVelocitySquaredXZ"));
-      PetscCall(PetscSectionSetComponentName(section, 0, DIFF_FILTER_VELOCITY_SQUARED_XY, "FilteredVelocitySquaredXY"));
+      PetscCall(PetscSectionSetFieldName(section, 1, "Filtered Velocity Products"));
+      PetscCall(PetscSectionSetComponentName(section, 1, DIFF_FILTER_VELOCITY_SQUARED_XX, "FilteredVelocitySquaredXX"));
+      PetscCall(PetscSectionSetComponentName(section, 1, DIFF_FILTER_VELOCITY_SQUARED_YY, "FilteredVelocitySquaredYY"));
+      PetscCall(PetscSectionSetComponentName(section, 1, DIFF_FILTER_VELOCITY_SQUARED_ZZ, "FilteredVelocitySquaredZZ"));
+      PetscCall(PetscSectionSetComponentName(section, 1, DIFF_FILTER_VELOCITY_SQUARED_YZ, "FilteredVelocitySquaredYZ"));
+      PetscCall(PetscSectionSetComponentName(section, 1, DIFF_FILTER_VELOCITY_SQUARED_XZ, "FilteredVelocitySquaredXZ"));
+      PetscCall(PetscSectionSetComponentName(section, 1, DIFF_FILTER_VELOCITY_SQUARED_XY, "FilteredVelocitySquaredXY"));
     }
 
     PetscCall(DMPlexSetClosurePermutationTensor(diff_filter->dm_filter, PETSC_DETERMINE, NULL));
