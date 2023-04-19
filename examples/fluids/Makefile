@@ -20,17 +20,21 @@ COMMON ?= ../../common.mk
 PETSc.pc := $(PETSC_DIR)/$(PETSC_ARCH)/lib/pkgconfig/PETSc.pc
 CEED_DIR ?= ../..
 ceed.pc := $(CEED_DIR)/lib/pkgconfig/ceed.pc
+SMARTREDIS_DIR ?=
+hiredis.pc := $(if $(SMARTREDIS_DIR),$(SMARTREDIS_DIR)/lib/pkgconfig/hiredis.pc,)
+redis++.pc := $(if $(SMARTREDIS_DIR),$(SMARTREDIS_DIR)/lib/pkgconfig/redis++.pc,)
+lsmartredis:= $(if $(SMARTREDIS_DIR),-lsmartredis,)
 
 CC = $(call pkgconf, --variable=ccompiler $(PETSc.pc) $(ceed.pc))
 CFLAGS = -std=c99 \
   $(call pkgconf, --variable=cflags_extra $(PETSc.pc)) \
   $(call pkgconf, --cflags-only-other $(PETSc.pc)) \
   $(OPT) $(OPT_EXAMPLES)
-CPPFLAGS = $(call pkgconf, --cflags-only-I $(PETSc.pc) $(ceed.pc)) \
+CPPFLAGS = $(call pkgconf, --cflags-only-I $(PETSc.pc) $(ceed.pc) $(hiredis.pc) $(redis++.pc)) \
   $(call pkgconf, --variable=cflags_dep $(PETSc.pc))
-LDFLAGS = $(call pkgconf, --libs-only-L --libs-only-other $(PETSc.pc) $(ceed.pc))
-LDFLAGS += $(patsubst -L%, $(call pkgconf, --variable=ldflag_rpath $(PETSc.pc))%, $(call pkgconf, --libs-only-L $(PETSc.pc) $(ceed.pc)))
-LDLIBS = $(call pkgconf, --libs-only-l $(PETSc.pc) $(ceed.pc)) -lm
+LDFLAGS = $(call pkgconf, --libs-only-L --libs-only-other $(PETSc.pc) $(ceed.pc) $(hiredis.pc) $(redis++.pc))
+LDFLAGS += $(patsubst -L%, $(call pkgconf, --variable=ldflag_rpath $(PETSc.pc))%, $(call pkgconf, --libs-only-L $(PETSc.pc) $(ceed.pc) $(hiredis.pc) $(redis++.pc)))
+LDLIBS = $(call pkgconf, --libs-only-l $(PETSc.pc) $(ceed.pc) $(hiredis.pc) $(redis++.pc)) $(lsmartredis) -lm
 
 OBJDIR := build
 SRCDIR := src
@@ -38,6 +42,10 @@ PROBLEMDIR := problems
 
 src.c := navierstokes.c $(sort $(wildcard $(PROBLEMDIR)/*.c)) $(sort $(wildcard $(SRCDIR)/*.c))
 src.o = $(src.c:%.c=$(OBJDIR)/%.o)
+
+ifeq ($(SMARTREDIS_DIR),)
+src.c := $(filter-out $(SRCDIR)/smartsim.c $(PROBLEMDIR)/sgs_dd_training.c,$(src.c))
+endif
 
 all: navierstokes
 
