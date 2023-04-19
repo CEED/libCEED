@@ -101,17 +101,17 @@ int main(int argc, char **argv) {
   CeedMemType mem_type_backend;
   CeedGetPreferredMemType(ceed, &mem_type_backend);
 
-  // {
-  //   const char *resource;
-  //   CeedGetResource(ceed, &resource);
-  //   if (strstr(resource, "/gpu/sycl")) {
-  //     PetscDeviceContext dctx;
-  //     PetscCall(PetscDeviceContextGetCurrentContext(&dctx));
-  //     void* stream_handle;
-  //     PetscCall(PetscDeviceContextGetStreamHandle(dctx,&stream_handle));
-  //     CeedSetStream_Sycl(ceed, stream_handle);
-  //   }
-  // }
+  {
+    const char *resource;
+    CeedGetResource(ceed, &resource);
+    if (strstr(resource, "/gpu/sycl")) {
+      PetscDeviceContext dctx;
+      PetscCall(PetscDeviceContextGetCurrentContext(&dctx));
+      void* stream_handle;
+      PetscCall(PetscDeviceContextGetStreamHandle(dctx,&stream_handle));
+      CeedSetStream_Sycl(ceed, stream_handle);
+    }
+  }
 
   // ---------------------------------------------------------------------------
   // Set up global mesh

@@ -781,44 +781,47 @@ static inline int CeedOperatorAssembleDiagonalSetup_Sycl(CeedOperator op, const 
   for (CeedInt i = 0; i < numemodein; i++) evalNone = evalNone || (emodein[i] == CEED_EVAL_NONE);
   for (CeedInt i = 0; i < numemodeout; i++) evalNone = evalNone || (emodeout[i] == CEED_EVAL_NONE);
 
+  // Order queue
+  sycl::event e = sycl_data->sycl_queue.ext_oneapi_submit_barrier();
+
   std::vector<sycl::event> copy_events;
   if (evalNone) {
     CeedCallBackend(CeedCalloc(nqpts * nnodes, &identity));
     for (CeedInt i = 0; i < (nnodes < nqpts ? nnodes : nqpts); i++) identity[i * nnodes + i] = 1.0;
     CeedCallSycl(ceed, diag->d_identity = sycl::malloc_device<CeedScalar>(iLen, sycl_data->sycl_device, sycl_data->sycl_context));
-    sycl::event identity_copy = sycl_data->sycl_queue.copy<CeedScalar>(identity, diag->d_identity, iLen);
+    sycl::event identity_copy = sycl_data->sycl_queue.copy<CeedScalar>(identity, diag->d_identity, iLen, {e});
     copy_events.push_back(identity_copy);
   }
 
   // CEED_EVAL_INTERP
   CeedCallBackend(CeedBasisGetInterp(basisin, &interpin));
   CeedCallSycl(ceed, diag->d_interpin = sycl::malloc_device<CeedScalar>(iLen, sycl_data->sycl_device, sycl_data->sycl_context));
-  sycl::event interpin_copy = sycl_data->sycl_queue.copy<CeedScalar>(interpin, diag->d_interpin, iLen);
+  sycl::event interpin_copy = sycl_data->sycl_queue.copy<CeedScalar>(interpin, diag->d_interpin, iLen, {e});
   copy_events.push_back(interpin_copy);
 
   CeedCallBackend(CeedBasisGetInterp(basisout, &interpout));
   CeedCallSycl(ceed, diag->d_interpout = sycl::malloc_device<CeedScalar>(iLen, sycl_data->sycl_device, sycl_data->sycl_context));
-  sycl::event interpout_copy = sycl_data->sycl_queue.copy<CeedScalar>(interpout, diag->d_interpout, iLen);
+  sycl::event interpout_copy = sycl_data->sycl_queue.copy<CeedScalar>(interpout, diag->d_interpout, iLen, {e});
   copy_events.push_back(interpout_copy);
 
   // CEED_EVAL_GRAD
   CeedCallBackend(CeedBasisGetGrad(basisin, &gradin));
   CeedCallSycl(ceed, diag->d_gradin = sycl::malloc_device<CeedScalar>(gLen, sycl_data->sycl_device, sycl_data->sycl_context));
-  sycl::event gradin_copy = sycl_data->sycl_queue.copy<CeedScalar>(gradin, diag->d_gradin, gLen);
+  sycl::event gradin_copy = sycl_data->sycl_queue.copy<CeedScalar>(gradin, diag->d_gradin, gLen, {e});
   copy_events.push_back(gradin_copy);
 
   CeedCallBackend(CeedBasisGetGrad(basisout, &gradout));
   CeedCallSycl(ceed, diag->d_gradout = sycl::malloc_device<CeedScalar>(gLen, sycl_data->sycl_device, sycl_data->sycl_context));
-  sycl::event gradout_copy = sycl_data->sycl_queue.copy<CeedScalar>(gradout, diag->d_gradout, gLen);
+  sycl::event gradout_copy = sycl_data->sycl_queue.copy<CeedScalar>(gradout, diag->d_gradout, gLen, {e});
   copy_events.push_back(gradout_copy);
 
   // Arrays of emodes
   CeedCallSycl(ceed, diag->d_emodein = sycl::malloc_device<CeedEvalMode>(numemodein, sycl_data->sycl_device, sycl_data->sycl_context));
-  sycl::event emodein_copy = sycl_data->sycl_queue.copy<CeedEvalMode>(emodein, diag->d_emodein, numemodein);
+  sycl::event emodein_copy = sycl_data->sycl_queue.copy<CeedEvalMode>(emodein, diag->d_emodein, numemodein, {e});
   copy_events.push_back(emodein_copy);
 
   CeedCallSycl(ceed, diag->d_emodeout = sycl::malloc_device<CeedEvalMode>(numemodeout, sycl_data->sycl_device, sycl_data->sycl_context));
-  sycl::event emodeout_copy = sycl_data->sycl_queue.copy<CeedEvalMode>(emodeout, diag->d_emodeout, numemodeout);
+  sycl::event emodeout_copy = sycl_data->sycl_queue.copy<CeedEvalMode>(emodeout, diag->d_emodeout, numemodeout, {e});
   copy_events.push_back(emodeout_copy);
 
   // Restriction
