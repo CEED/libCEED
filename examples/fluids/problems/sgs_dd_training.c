@@ -176,6 +176,7 @@ PetscErrorCode SGS_DD_TrainingSetup(Ceed ceed, User user, CeedData ceed_data, Pr
   PetscFunctionBeginUser;
   // if (!user->grad_velo_proj) PetscCall(VelocityGradientProjectionSetup(ceed, user, ceed_data, problem));
   if (!user->diff_filter) PetscCall(DifferentialFilterSetup(ceed, user, ceed_data, problem));
+  if (!user->smartsim) PetscCall(SmartSimSetup(user));
 
   PetscCall(PetscNew(&sgsdd_train_ctx));
   PetscCall(PetscNew(&sgs_dd_train_setup_data));
