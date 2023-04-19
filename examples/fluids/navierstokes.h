@@ -205,6 +205,12 @@ typedef struct {
   PetscBool            do_mms_test;
 } *DiffFilterData;
 
+typedef struct {
+  void    *client;
+  char     rank_id_name[16];
+  PetscInt collocated_database_num_ranks;
+} *SmartSimData;
+
 // PETSc user data
 struct User_private {
   MPI_Comm             comm;
@@ -225,6 +231,7 @@ struct User_private {
   NodalProjectionData  grad_velo_proj;
   SgsDDData            sgs_dd_data;
   DiffFilterData       diff_filter;
+  SmartSimData         smartsim;
 };
 
 // Units
@@ -469,5 +476,10 @@ PetscErrorCode DifferentialFilterDataDestroy(DiffFilterData diff_filter);
 PetscErrorCode TSMonitor_DifferentialFilter(TS ts, PetscInt steps, PetscReal solution_time, Vec Q, void *ctx);
 PetscErrorCode DifferentialFilterApply(User user, const PetscReal solution_time, const Vec Q, Vec Filtered_Solution);
 PetscErrorCode DifferentialFilterMmsICSetup(ProblemData *problem);
+
+// -----------------------------------------------------------------------------
+// SGS Data-Driven Training via SmartSim
+// -----------------------------------------------------------------------------
+PetscErrorCode SmartSimSetup(User user);
 
 #endif  // libceed_fluids_examples_navier_stokes_h
