@@ -41,13 +41,13 @@
   do {                                \
     hipError_t ierr_q_ = __VA_ARGS__; \
     CeedChk_Hip(ceed, ierr_q_);       \
-  } while (0);
+  } while (0)
 
 #define CeedCallHipblas(ceed, ...)         \
   do {                                     \
     hipblasStatus_t ierr_q_ = __VA_ARGS__; \
     CeedChk_Hipblas(ceed, ierr_q_);        \
-  } while (0);
+  } while (0)
 
 #define CASE(name) \
   case name:       \

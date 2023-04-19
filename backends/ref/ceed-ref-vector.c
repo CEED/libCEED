@@ -58,11 +58,7 @@ static int CeedVectorSetArray_Ref(CeedVector vec, CeedMemType mem_type, CeedCopy
   Ceed ceed;
   CeedCallBackend(CeedVectorGetCeed(vec, &ceed));
 
-  if (mem_type != CEED_MEM_HOST) {
-    // LCOV_EXCL_START
-    return CeedError(ceed, CEED_ERROR_BACKEND, "Can only set HOST memory for this backend");
-    // LCOV_EXCL_STOP
-  }
+  CeedCheck(mem_type == CEED_MEM_HOST, ceed, CEED_ERROR_BACKEND, "Can only set HOST memory for this backend");
 
   switch (copy_mode) {
     case CEED_COPY_VALUES:
@@ -96,11 +92,7 @@ static int CeedVectorTakeArray_Ref(CeedVector vec, CeedMemType mem_type, CeedSca
   Ceed ceed;
   CeedCallBackend(CeedVectorGetCeed(vec, &ceed));
 
-  if (mem_type != CEED_MEM_HOST) {
-    // LCOV_EXCL_START
-    return CeedError(ceed, CEED_ERROR_BACKEND, "Can only provide HOST memory for this backend");
-    // LCOV_EXCL_STOP
-  }
+  CeedCheck(mem_type == CEED_MEM_HOST, ceed, CEED_ERROR_BACKEND, "Can only provide HOST memory for this backend");
 
   (*array)             = impl->array_borrowed;
   impl->array_borrowed = NULL;
@@ -118,11 +110,7 @@ static int CeedVectorGetArrayCore_Ref(CeedVector vec, CeedMemType mem_type, Ceed
   Ceed ceed;
   CeedCallBackend(CeedVectorGetCeed(vec, &ceed));
 
-  if (mem_type != CEED_MEM_HOST) {
-    // LCOV_EXCL_START
-    return CeedError(ceed, CEED_ERROR_BACKEND, "Can only provide HOST memory for this backend");
-    // LCOV_EXCL_STOP
-  }
+  CeedCheck(mem_type == CEED_MEM_HOST, ceed, CEED_ERROR_BACKEND, "Can only provide HOST memory for this backend");
 
   *array = impl->array;
 

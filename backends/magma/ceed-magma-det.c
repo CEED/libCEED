@@ -12,13 +12,10 @@
 
 #include "ceed-magma.h"
 
-CEED_INTERN int CeedInit_Magma_Det(const char *resource, Ceed ceed) {
+static int CeedInit_Magma_Det(const char *resource, Ceed ceed) {
   const int nrc = 18;  // number of characters in resource
-  if (strncmp(resource, "/gpu/cuda/magma/det", nrc) && strncmp(resource, "/gpu/hip/magma/det", nrc)) {
-    // LCOV_EXCL_START
-    return CeedError(ceed, CEED_ERROR_BACKEND, "Magma backend cannot use resource: %s", resource);
-    // LCOV_EXCL_STOP
-  }
+  CeedCheck(!strncmp(resource, "/gpu/cuda/magma/det", nrc) || !strncmp(resource, "/gpu/hip/magma/det", nrc), ceed, CEED_ERROR_BACKEND,
+            "Magma backend cannot use resource: %s", resource);
   CeedCallBackend(CeedSetDeterministic(ceed, true));
 
   Ceed_Magma *data;

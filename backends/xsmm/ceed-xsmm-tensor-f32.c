@@ -106,10 +106,7 @@ int CeedTensorContractCreate_f32_Xsmm(CeedBasis basis, CeedTensorContract contra
                 float alpha = 1.0, beta = 1.0;
                 if (!add) beta = 0.0;
                 libxsmm_smmfunction kernel = libxsmm_smmdispatch(C, J, B, NULL, NULL, NULL, &alpha, &beta, &flags, NULL);
-                if (!kernel)
-                  // LCOV_EXCL_START
-                  return CeedError(ceed, CEED_ERROR_BACKEND, "LIBXSMM kernel failed to build.");
-                // LCOV_EXCL_STOP
+                CeedCheck(kernel, ceed, CEED_ERROR_BACKEND, "LIBXSMM kernel failed to build.");
                 // Add kernel to hash table
                 kh_value(impl->lookup_f32, k) = kernel;
               }
@@ -139,10 +136,7 @@ int CeedTensorContractCreate_f32_Xsmm(CeedBasis basis, CeedTensorContract contra
               float alpha = 1.0, beta = 1.0;
               if (!add) beta = 0.0;
               libxsmm_smmfunction kernel = libxsmm_smmdispatch(C, J, B, NULL, NULL, NULL, &alpha, &beta, &flags, NULL);
-              if (!kernel)
-                // LCOV_EXCL_START
-                return CeedError(ceed, CEED_ERROR_BACKEND, "LIBXSMM kernel failed to build.");
-              // LCOV_EXCL_STOP
+              CeedCheck(kernel, ceed, CEED_ERROR_BACKEND, "LIBXSMM kernel failed to build.");
               // Add kernel to hash table
               kh_value(impl->lookup_f32, k) = kernel;
             }

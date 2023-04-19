@@ -30,13 +30,8 @@ static int CeedBasisApply_Ref(CeedBasis basis, CeedInt num_elem, CeedTransposeMo
   const CeedInt     add = (t_mode == CEED_TRANSPOSE);
   const CeedScalar *u;
   CeedScalar       *v;
-  if (U != CEED_VECTOR_NONE) {
-    CeedCallBackend(CeedVectorGetArrayRead(U, CEED_MEM_HOST, &u));
-  } else if (eval_mode != CEED_EVAL_WEIGHT) {
-    // LCOV_EXCL_START
-    return CeedError(ceed, CEED_ERROR_BACKEND, "An input vector is required for this CeedEvalMode");
-    // LCOV_EXCL_STOP
-  }
+  if (U != CEED_VECTOR_NONE) CeedCallBackend(CeedVectorGetArrayRead(U, CEED_MEM_HOST, &u));
+  else CeedCheck(eval_mode == CEED_EVAL_WEIGHT, ceed, CEED_ERROR_BACKEND, "An input vector is required for this CeedEvalMode");
   CeedCallBackend(CeedVectorGetArrayWrite(V, CEED_MEM_HOST, &v));
 
   // Clear v if operating in transpose
@@ -157,11 +152,7 @@ static int CeedBasisApply_Ref(CeedBasis basis, CeedInt num_elem, CeedTransposeMo
       } break;
       // Retrieve interpolation weights
       case CEED_EVAL_WEIGHT: {
-        if (t_mode == CEED_TRANSPOSE) {
-          // LCOV_EXCL_START
-          return CeedError(ceed, CEED_ERROR_BACKEND, "CEED_EVAL_WEIGHT incompatible with CEED_TRANSPOSE");
-          // LCOV_EXCL_STOP
-        }
+        CeedCheck(t_mode == CEED_NOTRANSPOSE, ceed, CEED_ERROR_BACKEND, "CEED_EVAL_WEIGHT incompatible with CEED_TRANSPOSE");
         CeedInt           Q = Q_1d;
         const CeedScalar *q_weight_1d;
         CeedCallBackend(CeedBasisGetQWeights(basis, &q_weight_1d));
@@ -219,11 +210,7 @@ static int CeedBasisApply_Ref(CeedBasis basis, CeedInt num_elem, CeedTransposeMo
       } break;
       // Retrieve interpolation weights
       case CEED_EVAL_WEIGHT: {
-        if (t_mode == CEED_TRANSPOSE) {
-          // LCOV_EXCL_START
-          return CeedError(ceed, CEED_ERROR_BACKEND, "CEED_EVAL_WEIGHT incompatible with CEED_TRANSPOSE");
-          // LCOV_EXCL_STOP
-        }
+        CeedCheck(t_mode == CEED_NOTRANSPOSE, ceed, CEED_ERROR_BACKEND, "CEED_EVAL_WEIGHT incompatible with CEED_TRANSPOSE");
         const CeedScalar *q_weight;
         CeedCallBackend(CeedBasisGetQWeights(basis, &q_weight));
         for (CeedInt i = 0; i < num_qpts; i++) {

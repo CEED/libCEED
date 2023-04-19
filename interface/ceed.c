@@ -123,11 +123,7 @@ int CeedRequestWait(CeedRequest *req) {
   @ref Developer
 **/
 int CeedRegisterImpl(const char *prefix, int (*init)(const char *, Ceed), unsigned int priority) {
-  if (num_backends >= sizeof(backends) / sizeof(backends[0])) {
-    // LCOV_EXCL_START
-    return CeedError(NULL, CEED_ERROR_MAJOR, "Too many backends");
-    // LCOV_EXCL_STOP
-  }
+  CeedCheck(num_backends < sizeof(backends) / sizeof(backends[0]), NULL, CEED_ERROR_MAJOR, "Too many backends");
 
   strncpy(backends[num_backends].prefix, prefix, CEED_MAX_RESOURCE_LEN);
   backends[num_backends].prefix[CEED_MAX_RESOURCE_LEN - 1] = 0;
@@ -211,11 +207,7 @@ void CeedDebugImpl256(const unsigned char color, const char *format, ...) {
 **/
 int CeedMallocArray(size_t n, size_t unit, void *p) {
   int ierr = posix_memalign((void **)p, CEED_ALIGN, n * unit);
-  if (ierr) {
-    // LCOV_EXCL_START
-    return CeedError(NULL, CEED_ERROR_MAJOR, "posix_memalign failed to allocate %zd members of size %zd\n", n, unit);
-    // LCOV_EXCL_STOP
-  }
+  CeedCheck(ierr == 0, NULL, CEED_ERROR_MAJOR, "posix_memalign failed to allocate %zd members of size %zd\n", n, unit);
   return CEED_ERROR_SUCCESS;
 }
 
@@ -236,11 +228,7 @@ int CeedMallocArray(size_t n, size_t unit, void *p) {
 **/
 int CeedCallocArray(size_t n, size_t unit, void *p) {
   *(void **)p = calloc(n, unit);
-  if (n && unit && !*(void **)p) {
-    // LCOV_EXCL_START
-    return CeedError(NULL, CEED_ERROR_MAJOR, "calloc failed to allocate %zd members of size %zd\n", n, unit);
-    // LCOV_EXCL_STOP
-  }
+  CeedCheck(!n || !unit || *(void **)p, NULL, CEED_ERROR_MAJOR, "calloc failed to allocate %zd members of size %zd\n", n, unit);
   return CEED_ERROR_SUCCESS;
 }
 
@@ -261,11 +249,7 @@ int CeedCallocArray(size_t n, size_t unit, void *p) {
 **/
 int CeedReallocArray(size_t n, size_t unit, void *p) {
   *(void **)p = realloc(*(void **)p, n * unit);
-  if (n && unit && !*(void **)p) {
-    // LCOV_EXCL_START
-    return CeedError(NULL, CEED_ERROR_MAJOR, "realloc failed to allocate %zd members of size %zd\n", n, unit);
-    // LCOV_EXCL_STOP
-  }
+  CeedCheck(!n || !unit || *(void **)p, NULL, CEED_ERROR_MAJOR, "realloc failed to allocate %zd members of size %zd\n", n, unit);
   return CEED_ERROR_SUCCESS;
 }
 
@@ -668,10 +652,10 @@ array.
 int CeedRegistryGetList(size_t *n, char ***const resources, CeedInt **priorities) {
   *n         = 0;
   *resources = malloc(num_backends * sizeof(**resources));
-  if (!resources) return CeedError(NULL, CEED_ERROR_MAJOR, "malloc() failure");
+  CeedCheck(resources, NULL, CEED_ERROR_MAJOR, "malloc() failure");
   if (priorities) {
     *priorities = malloc(num_backends * sizeof(**priorities));
-    if (!priorities) return CeedError(NULL, CEED_ERROR_MAJOR, "malloc() failure");
+    CeedCheck(priorities, NULL, CEED_ERROR_MAJOR, "malloc() failure");
   }
   for (size_t i = 0; i < num_backends; i++) {
     // Only report compiled backends
@@ -681,16 +665,12 @@ int CeedRegistryGetList(size_t *n, char ***const resources, CeedInt **priorities
       *n += 1;
     }
   }
-  if (*n == 0) {
-    // LCOV_EXCL_START
-    return CeedError(NULL, CEED_ERROR_MAJOR, "No backends installed");
-    // LCOV_EXCL_STOP
-  }
+  CeedCheck(*n, NULL, CEED_ERROR_MAJOR, "No backends installed");
   *resources = realloc(*resources, *n * sizeof(**resources));
-  if (!resources) return CeedError(NULL, CEED_ERROR_MAJOR, "realloc() failure");
+  CeedCheck(resources, NULL, CEED_ERROR_MAJOR, "realloc() failure");
   if (priorities) {
     *priorities = realloc(*priorities, *n * sizeof(**priorities));
-    if (!priorities) return CeedError(NULL, CEED_ERROR_MAJOR, "realloc() failure");
+    CeedCheck(priorities, NULL, CEED_ERROR_MAJOR, "realloc() failure");
   }
   return CEED_ERROR_SUCCESS;
 }
@@ -713,11 +693,7 @@ int CeedInit(const char *resource, Ceed *ceed) {
   size_t match_len = 0, match_index = UINT_MAX, match_priority = CEED_MAX_BACKEND_PRIORITY, priority;
 
   // Find matching backend
-  if (!resource) {
-    // LCOV_EXCL_START
-    return CeedError(NULL, CEED_ERROR_MAJOR, "No resource provided");
-    // LCOV_EXCL_STOP
-  }
+  CeedCheck(resource, NULL, CEED_ERROR_MAJOR, "No resource provided");
   CeedCall(CeedRegisterAll());
 
   // Check for help request
@@ -785,14 +761,8 @@ int CeedInit(const char *resource, Ceed *ceed) {
     size_t      lev_length = 0;
     while (prefix_lev[lev_length] && prefix_lev[lev_length] != '\0') lev_length++;
     size_t m = (lev_length < stem_length) ? lev_length : stem_length;
-    if (lev_dis + 1 >= m) {
-      return CeedError(NULL, CEED_ERROR_MAJOR, "No suitable backend: %s", resource);
-    } else {
-      return CeedError(NULL, CEED_ERROR_MAJOR,
-                       "No suitable backend: %s\n"
-                       "Closest match: %s",
-                       resource, backends[lev_index].prefix);
-    }
+    if (lev_dis + 1 >= m) return CeedError(NULL, CEED_ERROR_MAJOR, "No suitable backend: %s", resource);
+    else return CeedError(NULL, CEED_ERROR_MAJOR, "No suitable backend: %s\nClosest match: %s", resource, backends[lev_index].prefix);
     // LCOV_EXCL_STOP
   }
 

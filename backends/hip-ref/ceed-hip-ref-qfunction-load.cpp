@@ -32,11 +32,7 @@ extern "C" int CeedHipBuildQFunction(CeedQFunction qf) {
   // QFunction is built
   if (data->QFunction) return CEED_ERROR_SUCCESS;
 
-  if (!data->qfunction_source) {
-    // LCOV_EXCL_START
-    return CeedError(ceed, CEED_ERROR_BACKEND, "No QFunction source or hipFunction_t provided.");
-    // LCOV_EXCL_STOP
-  }
+  CeedCheck(data->qfunction_source, ceed, CEED_ERROR_BACKEND, "No QFunction source or hipFunction_t provided.");
 
   // QFunction kernel generation
   CeedInt             num_input_fields, num_output_fields, size;

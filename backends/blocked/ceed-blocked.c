@@ -16,11 +16,8 @@
 // Backend Init
 //------------------------------------------------------------------------------
 CEED_INTERN int CeedInit_Blocked(const char *resource, Ceed ceed) {
-  if (strcmp(resource, "/cpu/self") && strcmp(resource, "/cpu/self/ref/blocked")) {
-    // LCOV_EXCL_START
-    return CeedError(ceed, CEED_ERROR_BACKEND, "Blocked backend cannot use resource: %s", resource);
-    // LCOV_EXCL_STOP
-  }
+  CeedCheck(!strcmp(resource, "/cpu/self") || !strcmp(resource, "/cpu/self/ref/blocked"), ceed, CEED_ERROR_BACKEND,
+            "Blocked backend cannot use resource: %s", resource);
   CeedCallBackend(CeedSetDeterministic(ceed, true));
 
   // Create reference Ceed that implementation will be dispatched through unless overridden
