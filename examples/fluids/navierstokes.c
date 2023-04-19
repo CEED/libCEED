@@ -367,6 +367,13 @@ int main(int argc, char **argv) {
   // -- Ceed
   CeedDestroy(&ceed);
 
+  if (app_ctx->test_type != TESTTYPE_NONE) {
+    PetscInt num_options_left = 0;
+    PetscCall(PetscOptionsLeftGet(NULL, &num_options_left, NULL, NULL));
+    PetscCheck(num_options_left == 0, PETSC_COMM_WORLD, -1,
+               "There are unused options. This is not allowed. See error message for the unused options (or use -options_left directly)");
+  }
+
   // ---------------------------------------------------------------------------
   // Clean up PETSc
   // ---------------------------------------------------------------------------
