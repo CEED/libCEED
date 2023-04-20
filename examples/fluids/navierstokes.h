@@ -182,7 +182,7 @@ typedef struct {
   PetscInt             num_comp_dd_inputs;
   OperatorApplyContext op_nodal_input_evaluation_ctx;
   NodalProjectionData  filtered_grad_velo_proj;
-} *SGS_DD_Training_Data;
+} *SGS_DD_TrainingData;
 
 typedef struct {
   DM                   dm_filter;
@@ -223,7 +223,7 @@ struct User_private {
   NodalProjectionData  grad_velo_proj;
   SGS_DD_Data          sgs_dd_data;
   DiffFilterData       diff_filter;
-  SGS_DD_Training_Data sgs_dd_train;
+  SGS_DD_TrainingData  sgs_dd_train;
   SmartSimData         smartsim;
 };
 
