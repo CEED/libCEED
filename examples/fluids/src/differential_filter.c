@@ -219,14 +219,16 @@ PetscErrorCode DifferentialFilterSetup(Ceed ceed, User user, CeedData ceed_data,
       PetscCall(DMAddField(diff_filter->dm_filter, NULL, (PetscObject)fe));
       PetscCall(PetscFEDestroy(&fe));
 
+      diff_filter->field_prim_state = 0;
+      diff_filter->field_velo_prod  = 1;
       PetscCall(DMGetLocalSection(diff_filter->dm_filter, &section));
-      PetscCall(PetscSectionSetFieldName(section, 0, "Filtered Primitive State Variables"));
+      PetscCall(PetscSectionSetFieldName(section, diff_filter->field_prim_state, "Filtered Primitive State Variables"));
       PetscCall(PetscSectionSetComponentName(section, 0, DIFF_FILTER_PRESSURE, "FilteredPressure"));
       PetscCall(PetscSectionSetComponentName(section, 0, DIFF_FILTER_VELOCITY_X, "FilteredVelocityX"));
       PetscCall(PetscSectionSetComponentName(section, 0, DIFF_FILTER_VELOCITY_Y, "FilteredVelocityY"));
       PetscCall(PetscSectionSetComponentName(section, 0, DIFF_FILTER_VELOCITY_Z, "FilteredVelocityZ"));
       PetscCall(PetscSectionSetComponentName(section, 0, DIFF_FILTER_TEMPERATURE, "FilteredTemperature"));
-      PetscCall(PetscSectionSetFieldName(section, 1, "Filtered Velocity Products"));
+      PetscCall(PetscSectionSetFieldName(section, diff_filter->field_velo_prod, "Filtered Velocity Products"));
       PetscCall(PetscSectionSetComponentName(section, 1, DIFF_FILTER_VELOCITY_SQUARED_XX, "FilteredVelocitySquaredXX"));
       PetscCall(PetscSectionSetComponentName(section, 1, DIFF_FILTER_VELOCITY_SQUARED_YY, "FilteredVelocitySquaredYY"));
       PetscCall(PetscSectionSetComponentName(section, 1, DIFF_FILTER_VELOCITY_SQUARED_ZZ, "FilteredVelocitySquaredZZ"));

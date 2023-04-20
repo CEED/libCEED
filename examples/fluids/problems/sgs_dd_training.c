@@ -51,15 +51,119 @@ PetscErrorCode SGS_DD_TrainingCreateDM(DM dm_source, DM *dm_dd_inputs, PetscInt 
   PetscFunctionReturn(0);
 };
 
+// @brief Create IS's for VecISCopy to copy training data to unified array
+PetscErrorCode SGS_DD_TrainingCreateIS(User user) {
+  SGS_DD_TrainingData sgs_dd_train         = user->sgs_dd_train;
+  const PetscInt      num_training_sources = 2;
+  PetscSection        local_sections[num_training_sources];          // sections to get the local Vec info from
+  PetscInt            field_ids[num_training_sources];               // fields of the section that contains the training data subset
+  PetscInt            num_comps[num_training_sources];               // number of components of the field
+  PetscInt            local_storage_sizes[num_training_sources];     // size of the local Vecs containing training data subset
+  PetscInt            training_array_offsets[num_training_sources];  // offset in the training data array for the training data subset
+  PetscInt            pStart, pEnd, num_comps_training_data = 0;
+  IS                  IS_vec_copies[num_training_sources];
+
+  PetscFunctionBeginUser;
+  // TODO: Possibly use PetscSectionCreateGlobalSection to create global section with local offsets and including constraints.
+  // This gives negative sizes and offsets to points not owned by this process.
+  PetscCall(DMGetLocalSection(sgs_dd_train->dm_dd_inputs, &local_sections[0]));
+  field_ids[0] = 0;
+  PetscCall(DMGetLocalSection(user->diff_filter->dm_filter, &local_sections[1]));
+  field_ids[1] = user->diff_filter->field_velo_prod;
+
+  // -- Get local Vec information and verify compatability
+  PetscInt tot_num_nodes[num_training_sources];
+  for (PetscInt i = 0; i < num_training_sources; i++) {
+    PetscCall(PetscSectionGetFieldComponents(local_sections[i], field_ids[i], &num_comps[i]));
+    PetscCall(PetscSectionGetStorageSize(local_sections[i], &local_storage_sizes[i]));
+    num_comps_training_data += num_comps[i];
+    if (i == 0) training_array_offsets[i] = 0;
+    else training_array_offsets[i] = training_array_offsets[i - 1] + num_comps[i - 1];
+
+    // Verify section properties/assumptions
+    PetscInt num_comps_section = 0, num_fields_section, num_comps_field;
+    PetscCall(PetscSectionGetNumFields(local_sections[i], &num_fields_section));
+    for (PetscInt j = 0; j < num_fields_section; j++) {
+      PetscCall(PetscSectionGetFieldComponents(local_sections[i], j, &num_comps_field));
+      num_comps_section += num_comps_field;
+    }
+    PetscCheck(local_storage_sizes[i] % num_comps_section == 0, PETSC_COMM_SELF, -1,
+               "The %dth local section size (%" PetscInt_FMT ") is not evenly divided by the number of components (%" PetscInt_FMT ").", i,
+               local_storage_sizes[i], num_comps[i]);
+    tot_num_nodes[i] = local_storage_sizes[i] / num_comps_section;
+    for (PetscInt j = 0; j < i; j++)
+      PetscCheck(tot_num_nodes[i] == tot_num_nodes[j], PETSC_COMM_SELF, -1,
+                 "Total number of local nodes for the %dth (%" PetscInt_FMT ") and %dth (%" PetscInt_FMT ") sections are not equal", i,
+                 tot_num_nodes[i], j, tot_num_nodes[j]);
+  }
+  sgs_dd_train->training_data_array_dims[0] = tot_num_nodes[0];
+  sgs_dd_train->training_data_array_dims[1] = num_comps_training_data;
+
+  // -- Create index arrays
+  for (PetscInt i = 0; i < num_training_sources; i++) {
+    PetscInt *index;
+    PetscCall(PetscMalloc1(local_storage_sizes[i], &index));
+    for (PetscInt j = 0; j < local_storage_sizes[i]; j++) index[j] = -1;
+
+    PetscInt offset, num_dofs, node_id = 0;
+    PetscCall(PetscSectionGetChart(local_sections[i], &pStart, &pEnd));
+    for (PetscInt p = pStart; p < pEnd; p++) {
+      PetscCall(PetscSectionGetFieldDof(local_sections[i], p, field_ids[i], &num_dofs));
+      PetscCall(PetscSectionGetFieldOffset(local_sections[i], p, field_ids[i], &offset));
+      PetscInt num_nodes = num_dofs / num_comps[i];
+      for (PetscInt node = 0; node < num_nodes; node++) {
+        for (PetscInt comp = 0; comp < num_comps[i]; comp++) {
+          index[offset + node * num_comps[i] + comp] = node_id * num_comps_training_data + training_array_offsets[i] + comp;
+        }
+        node_id++;
+      }
+    }
+    PetscCall(ISCreateGeneral(PETSC_COMM_SELF, local_storage_sizes[i], index, PETSC_OWN_POINTER, &IS_vec_copies[i]));
+  }
+  sgs_dd_train->is_dd_inputs         = IS_vec_copies[0];
+  sgs_dd_train->is_velocity_products = IS_vec_copies[1];
+  PetscCall(ISViewFromOptions(IS_vec_copies[1], NULL, "-sgs_training_is_view"));
+
+  {  // -- Verify that copying vecs using the resulting IS works correctly
+    Vec      TrainingData, FilteredVec_loc, DDModelInputs_loc;
+    PetscInt training_data_array_size = sgs_dd_train->training_data_array_dims[0] * sgs_dd_train->training_data_array_dims[1];
+
+    PetscCall(VecCreate(PETSC_COMM_SELF, &TrainingData));
+    PetscCall(VecSetType(TrainingData, DMReturnVecType(user->diff_filter->dm_filter)));
+    PetscCall(VecSetSizes(TrainingData, training_data_array_size, training_data_array_size));
+    PetscCall(VecSet(TrainingData, 1));
+
+    PetscCall(DMGetLocalVector(user->diff_filter->dm_filter, &FilteredVec_loc));
+    PetscCall(DMGetLocalVector(sgs_dd_train->dm_dd_inputs, &DDModelInputs_loc));
+
+    PetscCall(VecZeroEntries(FilteredVec_loc));
+    PetscCall(VecZeroEntries(DDModelInputs_loc));
+
+    PetscCall(VecISCopy(TrainingData, sgs_dd_train->is_dd_inputs, SCATTER_FORWARD, DDModelInputs_loc));
+    PetscCall(VecISCopy(TrainingData, sgs_dd_train->is_velocity_products, SCATTER_FORWARD, FilteredVec_loc));
+
+    PetscScalar norm;
+    PetscCall(VecNorm(TrainingData, NORM_MAX, &norm));
+    PetscCheck(norm == 0.0, PETSC_COMM_SELF, -1, "TrainingData Vec was not completely overwritten in testing VecISCopy. Norm max returned: %.16e",
+               norm);
+
+    PetscCall(DMRestoreLocalVector(user->diff_filter->dm_filter, &FilteredVec_loc));
+    PetscCall(DMRestoreLocalVector(sgs_dd_train->dm_dd_inputs, &DDModelInputs_loc));
+    PetscCall(VecDestroy(&TrainingData));
+  }
+
+  PetscFunctionReturn(0);
+}
+
 // @brief Create CeedOperator to calculate inputs to the data-drive SGS model at nodes (for online ML training)
 static PetscErrorCode SGS_DD_TrainingSetupNodalInputEvaluation(Ceed ceed, User user, CeedData ceed_data, ProblemData *problem,
                                                                SGS_DD_TrainingSetupData sgs_dd_train_setup_data) {
-  SGS_DD_Training_Data sgs_dd_train = user->sgs_dd_train;
-  CeedQFunction        qf_multiplicity, qf_sgs_dd_nodal;
-  CeedOperator         op_multiplicity, op_sgs_dd_nodal;
-  CeedInt              num_elem, elem_size, num_comp_q, dim, num_qpts_1d, num_comp_grad_velo, num_comp_x, num_comp_grid_aniso;
-  CeedVector           multiplicity, inv_multiplicity;
-  CeedElemRestriction  elem_restr_inv_multiplicity, elem_restr_grad_velo, elem_restr_sgs;
+  SGS_DD_TrainingData sgs_dd_train = user->sgs_dd_train;
+  CeedQFunction       qf_multiplicity, qf_sgs_dd_nodal;
+  CeedOperator        op_multiplicity, op_sgs_dd_nodal;
+  CeedInt             num_elem, elem_size, num_comp_q, dim, num_qpts_1d, num_comp_grad_velo, num_comp_x, num_comp_grid_aniso;
+  CeedVector          multiplicity, inv_multiplicity;
+  CeedElemRestriction elem_restr_inv_multiplicity, elem_restr_grad_velo, elem_restr_sgs;
 
   PetscFunctionBeginUser;
   PetscCall(DMGetDimension(user->dm, &dim));
@@ -165,9 +269,10 @@ PetscErrorCode SGS_DD_TrainingSetup(Ceed ceed, User user, CeedData ceed_data, Pr
 
   PetscOptionsEnd();
 
-  // -- Create DM for storing SGS tensor at nodes
+  // -- Create DM for storing training data
   PetscCall(PetscNew(&user->sgs_dd_train));
   PetscCall(SGS_DD_TrainingCreateDM(user->dm, &user->sgs_dd_train->dm_dd_inputs, user->app_ctx->degree, &user->sgs_dd_train->num_comp_dd_inputs));
+  PetscCall(SGS_DD_TrainingCreateIS(user));
 
   {  // -- Create QFunction Context
     NewtonianIdealGasContext gas;
@@ -193,10 +298,10 @@ PetscErrorCode SGS_DD_TrainingSetup(Ceed ceed, User user, CeedData ceed_data, Pr
 
 // @brief Calculate and add data-driven SGS residual to the global residual
 PetscErrorCode SGS_DD_TrainingGetModelInputs(User user, Vec FilteredState_loc, Vec Inputs_loc) {
-  SGS_DD_Training_Data sgs_dd_train = user->sgs_dd_train;
-  Vec                  FilteredVelocityGradient, SGSNodalInputs_loc;
-  PetscMemType         filtered_state_mem_type;
-  CeedVector           filtered_state;
+  SGS_DD_TrainingData sgs_dd_train = user->sgs_dd_train;
+  Vec                 FilteredVelocityGradient, SGSNodalInputs_loc;
+  PetscMemType        filtered_state_mem_type;
+  CeedVector          filtered_state;
 
   PetscFunctionBeginUser;
   PetscCall(DMGetGlobalVector(sgs_dd_train->filtered_grad_velo_proj->dm, &FilteredVelocityGradient));
@@ -222,8 +327,10 @@ PetscErrorCode SGS_DD_TrainingGetModelInputs(User user, Vec FilteredState_loc, V
 }
 
 PetscErrorCode TSMonitor_SGS_DD_Training(TS ts, PetscInt step_num, PetscReal solution_time, Vec Q, void *ctx) {
-  User user = (User)ctx;
-  Vec  FilteredFields, FilteredFields_loc, DDModelInputs;
+  User                user                     = (User)ctx;
+  SGS_DD_TrainingData sgs_dd_train             = user->sgs_dd_train;
+  PetscInt            training_data_array_size = sgs_dd_train->training_data_array_dims[0] * sgs_dd_train->training_data_array_dims[1];
+  Vec                 FilteredFields, FilteredFields_loc, DDModelInputs;
 
   PetscFunctionBeginUser;
   PetscCall(DMGetGlobalVector(user->diff_filter->dm_filter, &FilteredFields));
@@ -234,14 +341,31 @@ PetscErrorCode TSMonitor_SGS_DD_Training(TS ts, PetscInt step_num, PetscReal sol
   PetscCall(DMGlobalToLocal(user->diff_filter->dm_filter, FilteredFields, INSERT_VALUES, FilteredFields_loc));
   PetscCall(SGS_DD_TrainingGetModelInputs(user, FilteredFields_loc, DDModelInputs));
 
-  // Send training data to SmartSim
+  {  // -- Send training data to SmartSim
+    Vec TrainingData, DDModelInputs_loc;
+
+    PetscCall(VecCreate(PETSC_COMM_SELF, &TrainingData));
+    PetscCall(VecSetType(TrainingData, DMReturnVecType(user->diff_filter->dm_filter)));
+    PetscCall(VecSetSizes(TrainingData, training_data_array_size, training_data_array_size));
+
+    PetscCall(DMGetLocalVector(sgs_dd_train->dm_dd_inputs, &DDModelInputs_loc));
+    PetscCall(DMGlobalToLocal(sgs_dd_train->dm_dd_inputs, DDModelInputs, INSERT_VALUES, DDModelInputs_loc));
+
+    PetscCall(VecISCopy(TrainingData, sgs_dd_train->is_dd_inputs, SCATTER_FORWARD, DDModelInputs_loc));
+    PetscCall(VecISCopy(TrainingData, sgs_dd_train->is_velocity_products, SCATTER_FORWARD, FilteredFields_loc));
+
+    // Send Data (ie. put tensor)
+
+    PetscCall(DMRestoreLocalVector(sgs_dd_train->dm_dd_inputs, &DDModelInputs_loc));
+    PetscCall(VecDestroy(&TrainingData));
+  }
 
   PetscCall(DMRestoreGlobalVector(user->diff_filter->dm_filter, &FilteredFields));
   PetscCall(DMRestoreGlobalVector(user->sgs_dd_train->dm_dd_inputs, &DDModelInputs));
   PetscFunctionReturn(0);
 }
 
-PetscErrorCode SGS_DD_Training_DataDestroy(SGS_DD_Training_Data sgs_dd_train) {
+PetscErrorCode SGS_DD_TrainingDataDestroy(SGS_DD_TrainingData sgs_dd_train) {
   PetscFunctionBeginUser;
   if (!sgs_dd_train) PetscFunctionReturn(0);
 

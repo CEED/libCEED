@@ -179,7 +179,9 @@ typedef struct {
 
 typedef struct {
   DM                   dm_dd_inputs;
+  IS                   is_dd_inputs, is_velocity_products;
   PetscInt             num_comp_dd_inputs;
+  size_t               training_data_array_dims[2];
   OperatorApplyContext op_nodal_input_evaluation_ctx;
   NodalProjectionData  filtered_grad_velo_proj;
 } *SGS_DD_TrainingData;
@@ -188,6 +190,7 @@ typedef struct {
   DM                   dm_filter;
   PetscInt             num_filtered_fields;
   CeedInt             *num_field_components;
+  PetscInt             field_prim_state, field_velo_prod;
   OperatorApplyContext op_rhs_ctx;
   KSP                  ksp;
   PetscBool            do_mms_test;
