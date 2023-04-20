@@ -213,7 +213,8 @@ CEED_EXTERN int CeedTensorContractSetData(CeedTensorContract contract, void *dat
 CEED_EXTERN int CeedTensorContractReference(CeedTensorContract contract);
 CEED_EXTERN int CeedTensorContractDestroy(CeedTensorContract *contract);
 
-CEED_EXTERN int CeedQFunctionRegister(const char *, const char *, CeedInt, CeedQFunctionUser, int (*init)(Ceed, const char *, CeedQFunction));
+CEED_EXTERN int CeedQFunctionRegister(const char *name, const char *source, CeedInt vec_length, CeedQFunctionUser f,
+                                      int (*init)(Ceed, const char *, CeedQFunction));
 CEED_EXTERN int CeedQFunctionSetFortranStatus(CeedQFunction qf, bool status);
 CEED_EXTERN int CeedQFunctionGetVectorLength(CeedQFunction qf, CeedInt *vec_length);
 CEED_EXTERN int CeedQFunctionGetNumArgs(CeedQFunction qf, CeedInt *num_input_fields, CeedInt *num_output_fields);
