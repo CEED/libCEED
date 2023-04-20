@@ -115,19 +115,19 @@ CEED_INTERN int CeedVectorCreate_Cuda(CeedSize n, CeedVector vec);
 
 CEED_INTERN int CeedElemRestrictionCreate_Cuda(CeedMemType mem_type, CeedCopyMode copy_mode, const CeedInt *indices, CeedElemRestriction r);
 
-CEED_INTERN int CeedElemRestrictionCreateBlocked_Cuda(const CeedMemType mem_type, const CeedCopyMode copy_mode, const CeedInt *indices,
-                                                      const CeedElemRestriction res);
+CEED_INTERN int CeedElemRestrictionCreateBlocked_Cuda(const CeedMemType mem_type, CeedCopyMode copy_mode, const CeedInt *indices,
+                                                      CeedElemRestriction res);
 
-CEED_INTERN int CeedBasisApplyElems_Cuda(CeedBasis basis, const CeedInt num_elem, CeedTransposeMode t_mode, CeedEvalMode eval_mode,
-                                         const CeedVector u, CeedVector v);
+CEED_INTERN int CeedBasisApplyElems_Cuda(CeedBasis basis, CeedInt num_elem, CeedTransposeMode t_mode, CeedEvalMode eval_mode, const CeedVector u,
+                                         CeedVector v);
 
-CEED_INTERN int CeedQFunctionApplyElems_Cuda(CeedQFunction qf, const CeedInt Q, const CeedVector *const u, const CeedVector *v);
+CEED_INTERN int CeedQFunctionApplyElems_Cuda(CeedQFunction qf, CeedInt Q, const CeedVector *const u, const CeedVector *v);
 
 CEED_INTERN int CeedBasisCreateTensorH1_Cuda(CeedInt dim, CeedInt P_1d, CeedInt Q_1d, const CeedScalar *interp_1d, const CeedScalar *grad_1d,
                                              const CeedScalar *q_ref_1d, const CeedScalar *q_weight_1d, CeedBasis basis);
 
-CEED_INTERN int CeedBasisCreateH1_Cuda(CeedElemTopology, CeedInt, CeedInt, CeedInt, const CeedScalar *, const CeedScalar *, const CeedScalar *,
-                                       const CeedScalar *, CeedBasis);
+CEED_INTERN int CeedBasisCreateH1_Cuda(CeedElemTopology topo, CeedInt dim, CeedInt num_nodes, CeedInt num_qpts, const CeedScalar *interp,
+                                       const CeedScalar *grad, const CeedScalar *q_ref, const CeedScalar *q_weight, CeedBasis basis);
 
 CEED_INTERN int CeedQFunctionCreate_Cuda(CeedQFunction qf);
 
