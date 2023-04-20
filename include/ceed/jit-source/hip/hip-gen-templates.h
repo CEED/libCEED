@@ -218,23 +218,21 @@ inline __device__ void writeDofsStrided3d(SharedData_Hip& data, const CeedInt el
 template <int NCOMP, int Q1d>
 inline __device__ void gradCollo3d(SharedData_Hip& data, const CeedInt q, const CeedScalar* __restrict__ r_U, const CeedScalar* c_G,
                                    CeedScalar* __restrict__ r_V) {
-  if (data.t_id_x < Q1d && data.t_id_y < Q1d) {
-    for (CeedInt comp = 0; comp < NCOMP; ++comp) {
-      data.slice[data.t_id_x + data.t_id_y * T_1D] = r_U[q + comp * Q1d];
-      __syncthreads();
-      // X derivative
-      r_V[comp + 0 * NCOMP] = 0.0;
-      for (CeedInt i = 0; i < Q1d; ++i)
-        r_V[comp + 0 * NCOMP] += c_G[i + data.t_id_x * Q1d] * data.slice[i + data.t_id_y * T_1D];  // Contract x direction (X derivative)
-      // Y derivative
-      r_V[comp + 1 * NCOMP] = 0.0;
-      for (CeedInt i = 0; i < Q1d; ++i)
-        r_V[comp + 1 * NCOMP] += c_G[i + data.t_id_y * Q1d] * data.slice[data.t_id_x + i * T_1D];  // Contract y direction (Y derivative)
-      // Z derivative
-      r_V[comp + 2 * NCOMP] = 0.0;
-      for (CeedInt i = 0; i < Q1d; ++i) r_V[comp + 2 * NCOMP] += c_G[i + q * Q1d] * r_U[i + comp * Q1d];  // Contract z direction (Z derivative)
-      __syncthreads();
-    }
+  for (CeedInt comp = 0; comp < NCOMP; ++comp) {
+    data.slice[data.t_id_x + data.t_id_y * T_1D] = r_U[q + comp * Q1d];
+    __syncthreads();
+    // X derivative
+    r_V[comp + 0 * NCOMP] = 0.0;
+    for (CeedInt i = 0; i < Q1d; ++i)
+      r_V[comp + 0 * NCOMP] += c_G[i + data.t_id_x * Q1d] * data.slice[i + data.t_id_y * T_1D];  // Contract x direction (X derivative)
+    // Y derivative
+    r_V[comp + 1 * NCOMP] = 0.0;
+    for (CeedInt i = 0; i < Q1d; ++i)
+      r_V[comp + 1 * NCOMP] += c_G[i + data.t_id_y * Q1d] * data.slice[data.t_id_x + i * T_1D];  // Contract y direction (Y derivative)
+    // Z derivative
+    r_V[comp + 2 * NCOMP] = 0.0;
+    for (CeedInt i = 0; i < Q1d; ++i) r_V[comp + 2 * NCOMP] += c_G[i + q * Q1d] * r_U[i + comp * Q1d];  // Contract z direction (Z derivative)
+    __syncthreads();
   }
 }
 
@@ -244,24 +242,22 @@ inline __device__ void gradCollo3d(SharedData_Hip& data, const CeedInt q, const 
 template <int NCOMP, int Q1d>
 inline __device__ void gradColloTranspose3d(SharedData_Hip& data, const CeedInt q, const CeedScalar* __restrict__ r_U, const CeedScalar* c_G,
                                             CeedScalar* __restrict__ r_V) {
-  if (data.t_id_x < Q1d && data.t_id_y < Q1d) {
-    for (CeedInt comp = 0; comp < NCOMP; ++comp) {
-      // X derivative
-      data.slice[data.t_id_x + data.t_id_y * T_1D] = r_U[comp + 0 * NCOMP];
-      __syncthreads();
-      for (CeedInt i = 0; i < Q1d; ++i)
-        r_V[q + comp * Q1d] += c_G[data.t_id_x + i * Q1d] * data.slice[i + data.t_id_y * T_1D];  // Contract x direction (X derivative)
-      __syncthreads();
-      // Y derivative
-      data.slice[data.t_id_x + data.t_id_y * T_1D] = r_U[comp + 1 * NCOMP];
-      __syncthreads();
-      for (CeedInt i = 0; i < Q1d; ++i)
-        r_V[q + comp * Q1d] += c_G[data.t_id_y + i * Q1d] * data.slice[data.t_id_x + i * T_1D];  // Contract y direction (Y derivative)
-      __syncthreads();
-      // Z derivative
-      for (CeedInt i = 0; i < Q1d; ++i)
-        r_V[i + comp * Q1d] += c_G[i + q * Q1d] * r_U[comp + 2 * NCOMP];  // PARTIAL contract z direction (Z derivative)
-    }
+  for (CeedInt comp = 0; comp < NCOMP; ++comp) {
+    // X derivative
+    data.slice[data.t_id_x + data.t_id_y * T_1D] = r_U[comp + 0 * NCOMP];
+    __syncthreads();
+    for (CeedInt i = 0; i < Q1d; ++i)
+      r_V[q + comp * Q1d] += c_G[data.t_id_x + i * Q1d] * data.slice[i + data.t_id_y * T_1D];  // Contract x direction (X derivative)
+    __syncthreads();
+    // Y derivative
+    data.slice[data.t_id_x + data.t_id_y * T_1D] = r_U[comp + 1 * NCOMP];
+    __syncthreads();
+    for (CeedInt i = 0; i < Q1d; ++i)
+      r_V[q + comp * Q1d] += c_G[data.t_id_y + i * Q1d] * data.slice[data.t_id_x + i * T_1D];  // Contract y direction (Y derivative)
+    __syncthreads();
+    // Z derivative
+    for (CeedInt i = 0; i < Q1d; ++i)
+      r_V[i + comp * Q1d] += c_G[i + q * Q1d] * r_U[comp + 2 * NCOMP];  // PARTIAL contract z direction (Z derivative)
   }
 }
 
