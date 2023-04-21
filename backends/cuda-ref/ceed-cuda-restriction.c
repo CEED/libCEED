@@ -90,11 +90,11 @@ static int CeedElemRestrictionApply_Cuda(CeedElemRestriction r, CeedTransposeMod
 //------------------------------------------------------------------------------
 // Get offsets
 //------------------------------------------------------------------------------
-static int CeedElemRestrictionGetOffsets_Cuda(CeedElemRestriction rstr, CeedMemType m_type, const CeedInt **offsets) {
+static int CeedElemRestrictionGetOffsets_Cuda(CeedElemRestriction rstr, CeedMemType mem_type, const CeedInt **offsets) {
   CeedElemRestriction_Cuda *impl;
   CeedCallBackend(CeedElemRestrictionGetData(rstr, &impl));
 
-  switch (m_type) {
+  switch (mem_type) {
     case CEED_MEM_HOST:
       *offsets = impl->h_ind;
       break;
@@ -209,7 +209,7 @@ static int CeedElemRestrictionOffset_Cuda(const CeedElemRestriction r, const Cee
 //------------------------------------------------------------------------------
 // Create restriction
 //------------------------------------------------------------------------------
-int CeedElemRestrictionCreate_Cuda(CeedMemType m_type, CeedCopyMode copy_mode, const CeedInt *indices, CeedElemRestriction r) {
+int CeedElemRestrictionCreate_Cuda(CeedMemType mem_type, CeedCopyMode copy_mode, const CeedInt *indices, CeedElemRestriction r) {
   Ceed ceed;
   CeedCallBackend(CeedElemRestrictionGetCeed(r, &ceed));
   CeedElemRestriction_Cuda *impl;
@@ -247,7 +247,7 @@ int CeedElemRestrictionCreate_Cuda(CeedMemType m_type, CeedCopyMode copy_mode, c
   CeedCallBackend(CeedElemRestrictionSetELayout(r, layout));
 
   // Set up device indices/offset arrays
-  switch (m_type) {
+  switch (mem_type) {
     case CEED_MEM_HOST: {
       switch (copy_mode) {
         case CEED_OWN_POINTER:

@@ -115,14 +115,6 @@ CEED_INTERN int CeedVectorCreate_Cuda(CeedSize n, CeedVector vec);
 
 CEED_INTERN int CeedElemRestrictionCreate_Cuda(CeedMemType mem_type, CeedCopyMode copy_mode, const CeedInt *indices, CeedElemRestriction r);
 
-CEED_INTERN int CeedElemRestrictionCreateBlocked_Cuda(const CeedMemType mem_type, CeedCopyMode copy_mode, const CeedInt *indices,
-                                                      CeedElemRestriction res);
-
-CEED_INTERN int CeedBasisApplyElems_Cuda(CeedBasis basis, CeedInt num_elem, CeedTransposeMode t_mode, CeedEvalMode eval_mode, const CeedVector u,
-                                         CeedVector v);
-
-CEED_INTERN int CeedQFunctionApplyElems_Cuda(CeedQFunction qf, CeedInt Q, const CeedVector *const u, const CeedVector *v);
-
 CEED_INTERN int CeedBasisCreateTensorH1_Cuda(CeedInt dim, CeedInt P_1d, CeedInt Q_1d, const CeedScalar *interp_1d, const CeedScalar *grad_1d,
                                              const CeedScalar *q_ref_1d, const CeedScalar *q_weight_1d, CeedBasis basis);
 

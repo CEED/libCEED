@@ -88,11 +88,11 @@ static int CeedElemRestrictionApply_Hip(CeedElemRestriction r, CeedTransposeMode
 //------------------------------------------------------------------------------
 // Get offsets
 //------------------------------------------------------------------------------
-static int CeedElemRestrictionGetOffsets_Hip(CeedElemRestriction rstr, CeedMemType mtype, const CeedInt **offsets) {
+static int CeedElemRestrictionGetOffsets_Hip(CeedElemRestriction rstr, CeedMemType mem_type, const CeedInt **offsets) {
   CeedElemRestriction_Hip *impl;
   CeedCallBackend(CeedElemRestrictionGetData(rstr, &impl));
 
-  switch (mtype) {
+  switch (mem_type) {
     case CEED_MEM_HOST:
       *offsets = impl->h_ind;
       break;
@@ -207,7 +207,7 @@ static int CeedElemRestrictionOffset_Hip(const CeedElemRestriction r, const Ceed
 //------------------------------------------------------------------------------
 // Create restriction
 //------------------------------------------------------------------------------
-int CeedElemRestrictionCreate_Hip(CeedMemType mtype, CeedCopyMode cmode, const CeedInt *indices, CeedElemRestriction r) {
+int CeedElemRestrictionCreate_Hip(CeedMemType mem_type, CeedCopyMode copy_mode, const CeedInt *indices, CeedElemRestriction r) {
   Ceed ceed;
   CeedCallBackend(CeedElemRestrictionGetCeed(r, &ceed));
   CeedElemRestriction_Hip *impl;
@@ -245,9 +245,9 @@ int CeedElemRestrictionCreate_Hip(CeedMemType mtype, CeedCopyMode cmode, const C
   CeedCallBackend(CeedElemRestrictionSetELayout(r, layout));
 
   // Set up device indices/offset arrays
-  switch (mtype) {
+  switch (mem_type) {
     case CEED_MEM_HOST: {
-      switch (cmode) {
+      switch (copy_mode) {
         case CEED_OWN_POINTER:
           impl->h_ind_allocated = (CeedInt *)indices;
           impl->h_ind           = (CeedInt *)indices;
@@ -272,7 +272,7 @@ int CeedElemRestrictionCreate_Hip(CeedMemType mtype, CeedCopyMode cmode, const C
       break;
     }
     case CEED_MEM_DEVICE: {
-      switch (cmode) {
+      switch (copy_mode) {
         case CEED_COPY_VALUES:
           if (indices != NULL) {
             CeedCallHip(ceed, hipMalloc((void **)&impl->d_ind, size * sizeof(CeedInt)));
