@@ -86,13 +86,13 @@ int CeedBasisApplyTensor_Sycl_shared(CeedBasis basis, const CeedInt num_elem, Ce
       sycl::nd_range<3> kernel_range(global_range,local_range);
       //-----------
       sycl::kernel* grad_kernel = (t_mode == CEED_TRANSPOSE) ? impl->grad_transpose_kernel : impl->grad_kernel;
-
+      const CeedScalar* d_grad_1d = (impl->d_collo_grad_1d) ? impl->d_collo_grad_1d : impl->d_grad_1d;
       //Order queue
       sycl::event e = ceed_Sycl->sycl_queue.ext_oneapi_submit_barrier();
       
       ceed_Sycl->sycl_queue.submit([&](sycl::handler& cgh){
         cgh.depends_on(e);
-        cgh.set_args(num_elem, impl->d_interp_1d, impl->d_grad_1d, d_u, d_v);
+        cgh.set_args(num_elem, impl->d_interp_1d, d_grad_1d, d_u, d_v);
         cgh.parallel_for(kernel_range,*grad_kernel);
       });
     } break;
