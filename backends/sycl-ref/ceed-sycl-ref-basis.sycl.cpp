@@ -254,7 +254,7 @@ static int CeedBasisApply_Sycl(CeedBasis basis, const CeedInt num_elem, CeedTran
     CeedCallBackend(CeedVectorGetLength(v, &length));
     // Order queue
     sycl::event e = data->sycl_queue.ext_oneapi_submit_barrier();
-    data->sycl_queue.fill<CeedScalar>(d_v, 0, length, {e}).wait();
+    data->sycl_queue.fill<CeedScalar>(d_v, 0, length, {e});
   }
 
   // Basis action
@@ -429,7 +429,7 @@ static int CeedBasisApplyNonTensor_Sycl(CeedBasis basis, const CeedInt num_elem,
     CeedCallBackend(CeedVectorGetLength(v, &length));
     // Order queue
     sycl::event e = data->sycl_queue.ext_oneapi_submit_barrier();
-    data->sycl_queue.fill<CeedScalar>(d_v, 0, length, {e}).wait();
+    data->sycl_queue.fill<CeedScalar>(d_v, 0, length, {e});
   }
 
   // Apply basis operation

@@ -321,7 +321,7 @@ static int CeedHostSetValue_Sycl(CeedScalar *h_array, CeedInt length, CeedScalar
 static int CeedDeviceSetValue_Sycl(sycl::queue &sycl_queue, CeedScalar *d_array, CeedInt length, CeedScalar val) {
   // Order queue
   sycl::event e = sycl_queue.ext_oneapi_submit_barrier();
-  sycl_queue.fill(d_array, val, length, {e}).wait();
+  sycl_queue.fill(d_array, val, length, {e});
   return CEED_ERROR_SUCCESS;
 }
 
