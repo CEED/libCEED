@@ -60,11 +60,8 @@ typedef struct {
 
 CEED_INTERN int CeedVectorCreate_Ref(CeedSize n, CeedVector vec);
 
-CEED_INTERN int CeedElemRestrictionCreate_Ref(CeedMemType mem_type, CeedCopyMode copy_mode, const CeedInt *offsets, CeedElemRestriction r);
-CEED_INTERN int CeedElemRestrictionCreateOriented_Ref(CeedMemType mem_type, CeedCopyMode copy_mode, const CeedInt *offsets, const bool *orients,
-                                                      CeedElemRestriction r);
-CEED_INTERN int CeedElemRestrictionCreateCurlOriented_Ref(CeedMemType mem_type, CeedCopyMode copy_mode, const CeedInt *offsets,
-                                                          const CeedInt *curl_orients, CeedElemRestriction r);
+CEED_INTERN int CeedElemRestrictionCreate_Ref(CeedMemType mem_type, CeedCopyMode copy_mode, const CeedInt *offsets, const bool *orients,
+                                              const CeedInt *curl_orients, CeedElemRestriction r);
 
 CEED_INTERN int CeedBasisCreateTensorH1_Ref(CeedInt dim, CeedInt P_1d, CeedInt Q_1d, const CeedScalar *interp_1d, const CeedScalar *grad_1d,
                                             const CeedScalar *q_ref_1d, const CeedScalar *q_weight_1d, CeedBasis basis);

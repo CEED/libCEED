@@ -207,7 +207,8 @@ static int CeedElemRestrictionOffset_Hip(const CeedElemRestriction r, const Ceed
 //------------------------------------------------------------------------------
 // Create restriction
 //------------------------------------------------------------------------------
-int CeedElemRestrictionCreate_Hip(CeedMemType mem_type, CeedCopyMode copy_mode, const CeedInt *indices, CeedElemRestriction r) {
+int CeedElemRestrictionCreate_Hip(CeedMemType mem_type, CeedCopyMode copy_mode, const CeedInt *indices, const bool *orients,
+                                  const CeedInt *curl_orients, CeedElemRestriction r) {
   Ceed ceed;
   CeedCallBackend(CeedElemRestrictionGetCeed(r, &ceed));
   CeedElemRestriction_Hip *impl;

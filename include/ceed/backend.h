@@ -206,8 +206,22 @@ CEED_EXTERN int CeedVectorGetData(CeedVector vec, void *data);
 CEED_EXTERN int CeedVectorSetData(CeedVector vec, void *data);
 CEED_EXTERN int CeedVectorReference(CeedVector vec);
 
+/// Type of element restriction;
+/// @ingroup CeedElemRestriction
+typedef enum {
+  /// Default element restriction with offsets
+  CEED_RESTRICTION_DEFAULT = 1,
+  /// Oriented element restriction
+  CEED_RESTRICTION_ORIENTED = 2,
+  /// Curl-oriented element restriction
+  CEED_RESTRICTION_CURL_ORIENTED = 3,
+  /// Strided element restriction
+  CEED_RESTRICTION_STRIDED = 4,
+} CeedRestrictionType;
+
 CEED_EXTERN int CeedElemRestrictionApplyUnsigned(CeedElemRestriction rstr, CeedTransposeMode t_mode, CeedVector u, CeedVector ru,
                                                  CeedRequest *request);
+CEED_EXTERN int CeedElemRestrictionGetType(CeedElemRestriction rstr, CeedRestrictionType *rstr_type);
 CEED_EXTERN int CeedElemRestrictionIsStrided(CeedElemRestriction rstr, bool *is_strided);
 CEED_EXTERN int CeedElemRestrictionGetStrides(CeedElemRestriction rstr, CeedInt (*strides)[3]);
 CEED_EXTERN int CeedElemRestrictionHasBackendStrides(CeedElemRestriction rstr, bool *has_backend_strides);
