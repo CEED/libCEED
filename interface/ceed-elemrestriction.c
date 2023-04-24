@@ -656,20 +656,10 @@ int CeedElemRestrictionApplyUnsigned(CeedElemRestriction rstr, CeedTransposeMode
     m = rstr->l_size;
     n = rstr->num_blk * rstr->blk_size * rstr->elem_size * rstr->num_comp;
   }
-  if (n != u->length) {
-    // LCOV_EXCL_START
-    return CeedError(rstr->ceed, CEED_ERROR_DIMENSION,
-                     "Input vector size %" CeedInt_FMT " not compatible with element restriction (%" CeedInt_FMT ", %" CeedInt_FMT ")", u->length, m,
-                     n);
-    // LCOV_EXCL_STOP
-  }
-  if (m != ru->length) {
-    // LCOV_EXCL_START
-    return CeedError(rstr->ceed, CEED_ERROR_DIMENSION,
-                     "Output vector size %" CeedInt_FMT " not compatible with element restriction (%" CeedInt_FMT ", %" CeedInt_FMT ")", ru->length,
-                     m, n);
-    // LCOV_EXCL_STOP
-  }
+  CeedCheck(n == u->length, rstr->ceed, CEED_ERROR_DIMENSION,
+            "Input vector size %" CeedInt_FMT " not compatible with element restriction (%" CeedInt_FMT ", %" CeedInt_FMT ")", u->length, m, n);
+  CeedCheck(m == ru->length, rstr->ceed, CEED_ERROR_DIMENSION,
+            "Output vector size %" CeedInt_FMT " not compatible with element restriction (%" CeedInt_FMT ", %" CeedInt_FMT ")", ru->length, m, n);
   if (rstr->num_elem > 0) {
     if (rstr->ApplyUnsigned) CeedCall(rstr->ApplyUnsigned(rstr, t_mode, u, ru, request));
     else CeedCall(rstr->Apply(rstr, t_mode, u, ru, request));
