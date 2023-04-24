@@ -921,7 +921,7 @@ int CeedBasisCreateTensorH1(Ceed ceed, CeedInt dim, CeedInt num_comp, CeedInt P_
   (*basis)->ceed = ceed;
   CeedCall(CeedReference(ceed));
   (*basis)->ref_count       = 1;
-  (*basis)->is_tensor_basis = 1;
+  (*basis)->is_tensor_basis = true;
   (*basis)->dim             = dim;
   (*basis)->topo            = topo;
   (*basis)->num_comp        = num_comp;
@@ -1061,7 +1061,7 @@ int CeedBasisCreateH1(Ceed ceed, CeedElemTopology topo, CeedInt num_comp, CeedIn
   (*basis)->ceed = ceed;
   CeedCall(CeedReference(ceed));
   (*basis)->ref_count       = 1;
-  (*basis)->is_tensor_basis = 0;
+  (*basis)->is_tensor_basis = false;
   (*basis)->dim             = dim;
   (*basis)->topo            = topo;
   (*basis)->num_comp        = num_comp;
@@ -1122,7 +1122,7 @@ int CeedBasisCreateHdiv(Ceed ceed, CeedElemTopology topo, CeedInt num_comp, Ceed
   (*basis)->ceed = ceed;
   CeedCall(CeedReference(ceed));
   (*basis)->ref_count       = 1;
-  (*basis)->is_tensor_basis = 0;
+  (*basis)->is_tensor_basis = false;
   (*basis)->dim             = dim;
   (*basis)->topo            = topo;
   (*basis)->num_comp        = num_comp;
@@ -1185,7 +1185,7 @@ int CeedBasisCreateHcurl(Ceed ceed, CeedElemTopology topo, CeedInt num_comp, Cee
   (*basis)->ceed = ceed;
   CeedCall(CeedReference(ceed));
   (*basis)->ref_count       = 1;
-  (*basis)->is_tensor_basis = 0;
+  (*basis)->is_tensor_basis = false;
   (*basis)->dim             = dim;
   (*basis)->topo            = topo;
   (*basis)->num_comp        = num_comp;
