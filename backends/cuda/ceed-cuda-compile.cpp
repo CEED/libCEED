@@ -159,3 +159,5 @@ int CeedRunKernelDimSharedCuda(Ceed ceed, CUfunction kernel, const int grid_size
   } else CeedChk_Cu(ceed, result);
   return CEED_ERROR_SUCCESS;
 }
+
+//------------------------------------------------------------------------------

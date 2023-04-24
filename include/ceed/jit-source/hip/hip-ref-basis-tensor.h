@@ -28,8 +28,8 @@ extern "C" __global__ void Interp(const CeedInt num_elem, const CeedInt transpos
 
   const CeedInt P             = transpose ? BASIS_Q_1D : BASIS_P_1D;
   const CeedInt Q             = transpose ? BASIS_P_1D : BASIS_Q_1D;
-  const CeedInt stride0       = transpose ? 1 : BASIS_P_1D;
-  const CeedInt stride1       = transpose ? BASIS_P_1D : 1;
+  const CeedInt stride_0      = transpose ? 1 : BASIS_P_1D;
+  const CeedInt stride_1      = transpose ? BASIS_P_1D : 1;
   const CeedInt u_stride      = transpose ? BASIS_NUM_QPTS : BASIS_NUM_NODES;
   const CeedInt v_stride      = transpose ? BASIS_NUM_NODES : BASIS_NUM_QPTS;
   const CeedInt u_comp_stride = num_elem * (transpose ? BASIS_NUM_QPTS : BASIS_NUM_NODES);
@@ -61,7 +61,7 @@ extern "C" __global__ void Interp(const CeedInt num_elem, const CeedInt transpos
           const CeedInt a = k / (post * Q);
 
           CeedScalar vk = 0;
-          for (CeedInt b = 0; b < P; b++) vk += s_interp_1d[j * stride0 + b * stride1] * in[(a * P + b) * post + c];
+          for (CeedInt b = 0; b < P; b++) vk += s_interp_1d[j * stride_0 + b * stride_1] * in[(a * P + b) * post + c];
 
           out[k] = vk;
         }
@@ -91,8 +91,8 @@ extern "C" __global__ void Grad(const CeedInt num_elem, const CeedInt transpose,
 
   const CeedInt P             = transpose ? BASIS_Q_1D : BASIS_P_1D;
   const CeedInt Q             = transpose ? BASIS_P_1D : BASIS_Q_1D;
-  const CeedInt stride0       = transpose ? 1 : BASIS_P_1D;
-  const CeedInt stride1       = transpose ? BASIS_P_1D : 1;
+  const CeedInt stride_0      = transpose ? 1 : BASIS_P_1D;
+  const CeedInt stride_1      = transpose ? BASIS_P_1D : 1;
   const CeedInt u_stride      = transpose ? BASIS_NUM_QPTS : BASIS_NUM_NODES;
   const CeedInt v_stride      = transpose ? BASIS_NUM_NODES : BASIS_NUM_QPTS;
   const CeedInt u_comp_stride = num_elem * (transpose ? BASIS_NUM_QPTS : BASIS_NUM_NODES);
@@ -124,7 +124,7 @@ extern "C" __global__ void Grad(const CeedInt num_elem, const CeedInt transpose,
             const CeedInt j   = (k / post) % Q;
             const CeedInt a   = k / (post * Q);
             CeedScalar    v_k = 0;
-            for (CeedInt b = 0; b < P; b++) v_k += op[j * stride0 + b * stride1] * in[(a * P + b) * post + c];
+            for (CeedInt b = 0; b < P; b++) v_k += op[j * stride_0 + b * stride_1] * in[(a * P + b) * post + c];
 
             if (transpose && dim_2 == BASIS_DIM - 1) out[k] += v_k;
             else out[k] = v_k;

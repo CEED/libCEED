@@ -5,10 +5,10 @@
 //
 // This file is part of CEED:  http://github.com/ceed
 
-#include <assert.h>
 #include <ceed-impl.h>
 #include <ceed.h>
 #include <ceed/backend.h>
+#include <assert.h>
 #include <math.h>
 #include <stdbool.h>
 #include <stdio.h>
@@ -973,11 +973,12 @@ int CeedQFunctionAssemblyDataIsUpdateNeeded(CeedQFunctionAssemblyData data, bool
 
 /**
   @brief Copy the pointer to a CeedQFunctionAssemblyData.
-           Both pointers should be destroyed with `CeedCeedQFunctionAssemblyDataDestroy()`.
 
-           Note: If the value of `data_copy` passed to this function is non-NULL, then it is assumed that `*data_copy` is a pointer to a
-             CeedQFunctionAssemblyData. This CeedQFunctionAssemblyData will be destroyed if `data_copy` is the only reference to this
-             CeedQFunctionAssemblyData.
+  Both pointers should be destroyed with `CeedCeedQFunctionAssemblyDataDestroy()`.
+
+  Note: If the value of `data_copy` passed to this function is non-NULL, then it is assumed that `*data_copy` is a pointer to a
+        CeedQFunctionAssemblyData. This CeedQFunctionAssemblyData will be destroyed if `data_copy` is the only reference to this
+        CeedQFunctionAssemblyData.
 
   @param[in]     data      CeedQFunctionAssemblyData to copy reference to
   @param[in,out] data_copy Variable to store copied reference
@@ -1083,13 +1084,13 @@ int CeedOperatorGetOperatorAssemblyData(CeedOperator op, CeedOperatorAssemblyDat
 /**
   @brief Create object holding CeedOperator assembly data.
 
-    The CeedOperatorAssemblyData holds an array with references to every active CeedBasis used in the CeedOperator.
-    An array with references to the corresponding active CeedElemRestrictions is also stored.
-    For each active CeedBasis, the CeedOperatorAssemblyData holds an array of all input and output CeedEvalModes for this CeedBasis.
-    The CeedOperatorAssemblyData holds an array of offsets for indexing into the assembled CeedQFunction arrays to the row representing each
-      CeedEvalMode.
-    The number of input columns across all active bases for the assembled CeedQFunction is also stored.
-    Lastly, the CeedOperatorAssembly data holds assembled matrices representing the full action of the CeedBasis for all CeedEvalModes.
+  The CeedOperatorAssemblyData holds an array with references to every active CeedBasis used in the CeedOperator.
+  An array with references to the corresponding active CeedElemRestrictions is also stored.
+  For each active CeedBasis, the CeedOperatorAssemblyData holds an array of all input and output CeedEvalModes for this CeedBasis.
+  The CeedOperatorAssemblyData holds an array of offsets for indexing into the assembled CeedQFunction arrays to the row representing each
+CeedEvalMode.
+  The number of input columns across all active bases for the assembled CeedQFunction is also stored.
+  Lastly, the CeedOperatorAssembly data holds assembled matrices representing the full action of the CeedBasis for all CeedEvalModes.
 
   @param[in]  ceed Ceed object where the CeedOperatorAssemblyData will be created
   @param[in]  op   CeedOperator to be assembled
@@ -1254,7 +1255,7 @@ int CeedOperatorAssemblyDataCreate(Ceed ceed, CeedOperator op, CeedOperatorAssem
 /**
   @brief Get CeedOperator CeedEvalModes for assembly.
 
-    Note: See CeedOperatorAssemblyDataCreate for a full description of the data stored in this object.
+  Note: See CeedOperatorAssemblyDataCreate for a full description of the data stored in this object.
 
   @param[in]  data                  CeedOperatorAssemblyData
   @param[out] num_active_bases      Total number of active bases
@@ -1291,7 +1292,7 @@ int CeedOperatorAssemblyDataGetEvalModes(CeedOperatorAssemblyData data, CeedInt 
 /**
   @brief Get CeedOperator CeedBasis data for assembly.
 
-    Note: See CeedOperatorAssemblyDataCreate for a full description of the data stored in this object.
+  Note: See CeedOperatorAssemblyDataCreate for a full description of the data stored in this object.
 
   @param[in]  data                CeedOperatorAssemblyData
   @param[out] num_active_bases    Number of active bases, or NULL
@@ -1477,13 +1478,12 @@ int CeedOperatorAssemblyDataDestroy(CeedOperatorAssemblyData *data) {
   @brief Assemble a linear CeedQFunction associated with a CeedOperator
 
   This returns a CeedVector containing a matrix at each quadrature point providing the action of the CeedQFunction associated with the CeedOperator.
-    The vector `assembled` is of shape `[num_elements, num_input_fields, num_output_fields, num_quad_points]` and contains column-major matrices
+  The vector `assembled` is of shape `[num_elements, num_input_fields, num_output_fields, num_quad_points]` and contains column-major matrices
 representing the action of the CeedQFunction for a corresponding quadrature point on an element.
 
-  Inputs and outputs are in the order provided by the
-user when adding CeedOperator fields. For example, a CeedQFunction with inputs 'u' and 'gradu' and outputs 'gradv' and 'v', provided in that order,
-would result in an assembled QFunction that consists of (1 + dim) x (dim + 1) matrices at each quadrature point acting on the input [u, du_0, du_1]
-and producing the output [dv_0, dv_1, v].
+  Inputs and outputs are in the order provided by the user when adding CeedOperator fields.
+  For example, a CeedQFunction with inputs 'u' and 'gradu' and outputs 'gradv' and 'v', provided in that order, would result in an assembled QFunction
+that consists of (1 + dim) x (dim + 1) matrices at each quadrature point acting on the input [u, du_0, du_1] and producing the output [dv_0, dv_1, v].
 
   Note: Calling this function asserts that setup is complete and sets the CeedOperator as immutable.
 
@@ -1515,9 +1515,10 @@ int CeedOperatorLinearAssembleQFunction(CeedOperator op, CeedVector *assembled, 
 
 /**
   @brief Assemble CeedQFunction and store result internally.
-           Return copied references of stored data to the caller.
-           Caller is responsible for ownership and destruction of the copied references.
-           See also @ref CeedOperatorLinearAssembleQFunction
+
+  Return copied references of stored data to the caller.
+  Caller is responsible for ownership and destruction of the copied references.
+  See also @ref CeedOperatorLinearAssembleQFunction
 
   @param[in]  op        CeedOperator to assemble CeedQFunction
   @param[out] assembled CeedVector to store assembled CeedQFunction at quadrature points
@@ -1817,8 +1818,9 @@ int CeedOperatorLinearAssembleAddPointBlockDiagonal(CeedOperator op, CeedVector 
    Expected to be used in conjunction with CeedOperatorLinearAssemble().
 
    The assembly routines use coordinate format, with num_entries tuples of the form (i, j, value) which indicate that value should be added to the
-matrix in entry (i, j). Note that the (i, j) pairs are not unique and may repeat. This function returns the number of entries and their (i, j)
-locations, while CeedOperatorLinearAssemble() provides the values in the same ordering.
+matrix in entry (i, j).
+  Note that the (i, j) pairs are not unique and may repeat.
+  This function returns the number of entries and their (i, j) locations, while CeedOperatorLinearAssemble() provides the values in the same ordering.
 
    This will generally be slow unless your operator is low-order.
 
@@ -1894,8 +1896,9 @@ int CeedOperatorLinearAssembleSymbolic(CeedOperator op, CeedSize *num_entries, C
    Expected to be used in conjunction with CeedOperatorLinearAssembleSymbolic().
 
    The assembly routines use coordinate format, with num_entries tuples of the form (i, j, value) which indicate that value should be added to the
-matrix in entry (i, j). Note that the (i, j) pairs are not unique and may repeat. This function returns the values of the nonzero entries to be added,
-their (i, j) locations are provided by CeedOperatorLinearAssembleSymbolic()
+matrix in entry (i, j).
+  Note that the (i, j) pairs are not unique and may repeat.
+  This function returns the values of the nonzero entries to be added, their (i, j) locations are provided by CeedOperatorLinearAssembleSymbolic()
 
    This will generally be slow unless your operator is low-order.
 
@@ -2187,9 +2190,11 @@ int CeedOperatorMultigridLevelCreateH1(CeedOperator op_fine, CeedVector p_mult_f
   @brief Build a FDM based approximate inverse for each element for a CeedOperator
 
   This returns a CeedOperator and CeedVector to apply a Fast Diagonalization Method based approximate inverse.
-    This function obtains the simultaneous diagonalization for the 1D mass and Laplacian operators, \f$M = V^T V, K = V^T S V\f$.
-    The assembled QFunction is used to modify the eigenvalues from simultaneous diagonalization and obtain an approximate inverse of the form \f$V^T
-\hat S V\f$. The CeedOperator must be linear and non-composite. The associated CeedQFunction must therefore also be linear.
+  This function obtains the simultaneous diagonalization for the 1D mass and Laplacian operators, \f$M = V^T V, K = V^T S V\f$.
+  The assembled QFunction is used to modify the eigenvalues from simultaneous diagonalization and obtain an approximate inverse of the form \f$V^T
+\hat S V\f$.
+  The CeedOperator must be linear and non-composite.
+  The associated CeedQFunction must therefore also be linear.
 
   Note: Calling this function asserts that setup is complete and sets the CeedOperator as immutable.
 

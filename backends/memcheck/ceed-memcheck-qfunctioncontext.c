@@ -242,4 +242,5 @@ int CeedQFunctionContextCreate_Memcheck(CeedQFunctionContext ctx) {
 
   return CEED_ERROR_SUCCESS;
 }
+
 //------------------------------------------------------------------------------

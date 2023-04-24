@@ -195,4 +195,5 @@ int CeedVectorCreate_Ref(CeedSize n, CeedVector vec) {
 
   return CEED_ERROR_SUCCESS;
 }
+
 //------------------------------------------------------------------------------

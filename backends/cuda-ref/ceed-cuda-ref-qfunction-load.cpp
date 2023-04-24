@@ -119,4 +119,5 @@ extern "C" int CeedCudaBuildQFunction(CeedQFunction qf) {
 
   return CEED_ERROR_SUCCESS;
 }
+
 //------------------------------------------------------------------------------

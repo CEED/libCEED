@@ -8,10 +8,10 @@
 #include <ceed.h>
 #include <ceed/backend.h>
 #include <ceed/jit-tools.h>
-#include <hip/hip_runtime.h>
 #include <stdbool.h>
 #include <stddef.h>
 #include <string.h>
+#include <hip/hip_runtime.h>
 
 #include "../hip/ceed-hip-common.h"
 #include "../hip/ceed-hip-compile.h"
@@ -346,4 +346,5 @@ int CeedElemRestrictionCreateBlocked_Hip(const CeedMemType mtype, const CeedCopy
   CeedCallBackend(CeedElemRestrictionGetCeed(r, &ceed));
   return CeedError(ceed, CEED_ERROR_BACKEND, "Backend does not implement blocked restrictions");
 }
+
 //------------------------------------------------------------------------------

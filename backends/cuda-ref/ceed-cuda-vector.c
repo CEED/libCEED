@@ -716,3 +716,5 @@ int CeedVectorCreate_Cuda(CeedSize n, CeedVector vec) {
 
   return CEED_ERROR_SUCCESS;
 }
+
+//------------------------------------------------------------------------------

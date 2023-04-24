@@ -611,4 +611,5 @@ int CeedOperatorCreate_Blocked(CeedOperator op) {
   CeedCallBackend(CeedSetBackendFunction(ceed, "Operator", op, "Destroy", CeedOperatorDestroy_Blocked));
   return CEED_ERROR_SUCCESS;
 }
+
 //------------------------------------------------------------------------------

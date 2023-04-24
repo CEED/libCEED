@@ -7,10 +7,10 @@
 
 #include <ceed.h>
 #include <ceed/backend.h>
-#include <hip/hip_runtime.h>
 #include <math.h>
 #include <stdbool.h>
 #include <string.h>
+#include <hip/hip_runtime.h>
 
 #include "../hip/ceed-hip-common.h"
 #include "ceed-hip-ref.h"
@@ -716,3 +716,5 @@ int CeedVectorCreate_Hip(CeedSize n, CeedVector vec) {
 
   return CEED_ERROR_SUCCESS;
 }
+
+//------------------------------------------------------------------------------

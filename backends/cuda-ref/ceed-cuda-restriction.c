@@ -348,4 +348,5 @@ int CeedElemRestrictionCreateBlocked_Cuda(const CeedMemType m_type, const CeedCo
   CeedCallBackend(CeedElemRestrictionGetCeed(r, &ceed));
   return CeedError(ceed, CEED_ERROR_BACKEND, "Backend does not implement blocked restrictions");
 }
+
 //------------------------------------------------------------------------------

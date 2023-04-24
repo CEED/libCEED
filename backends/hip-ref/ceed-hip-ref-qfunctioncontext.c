@@ -7,9 +7,9 @@
 
 #include <ceed.h>
 #include <ceed/backend.h>
-#include <hip/hip_runtime.h>
 #include <stdbool.h>
 #include <string.h>
+#include <hip/hip_runtime.h>
 
 #include "../hip/ceed-hip-common.h"
 #include "ceed-hip-ref.h"
@@ -361,4 +361,5 @@ int CeedQFunctionContextCreate_Hip(CeedQFunctionContext ctx) {
 
   return CEED_ERROR_SUCCESS;
 }
+
 //------------------------------------------------------------------------------

@@ -1,5 +1,5 @@
 /// @file
-/// Test assembly of non-symmetric mass matrix operator (multi-component) see t537
+/// Test assembly of non-symmetric mass matrix operator (multi-component) (see t537)
 /// \test Test assembly of non-symmetric mass matrix operator (multi-component)
 #include "t566-operator.h"
 

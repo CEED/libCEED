@@ -1142,7 +1142,7 @@ int CeedBasisCreateHdiv(Ceed ceed, CeedElemTopology topo, CeedInt num_comp, Ceed
 }
 
 /**
-  @brief Create a non tensor-product basis for H(curl) discretizations
+  @brief Create a non tensor-product basis for \f$H(\mathrm{curl})\f$ discretizations
 
   @param[in]  ceed      Ceed object where the CeedBasis will be created
   @param[in]  topo      Topology of element (`CEED_TOPOLOGY_QUAD`, `CEED_TOPOLOGY_PRISM`, etc.), dimension of which is used in some array sizes below
@@ -1207,14 +1207,16 @@ int CeedBasisCreateHcurl(Ceed ceed, CeedElemTopology topo, CeedInt num_comp, Cee
 /**
   @brief Create a CeedBasis for projection from the nodes of `basis_from` to the nodes of `basis_to`.
 
-  Only `CEED_EVAL_INTERP` will be valid for the new basis, `basis_project`. For H^1 spaces, `CEED_EVAL_GRAD` will also be valid.
+  Only `CEED_EVAL_INTERP` will be valid for the new basis, `basis_project`.
+  For H^1 spaces, `CEED_EVAL_GRAD` will also be valid.
   The interpolation is given by `interp_project = interp_to^+ * interp_from`, where the pesudoinverse `interp_to^+` is given by QR
-factorization.  The gradient (for the H^1 case) is given by `grad_project = interp_to^+ * grad_from`.
+factorization.
+  The gradient (for the H^1 case) is given by `grad_project = interp_to^+ * grad_from`.
 
   Note: `basis_from` and `basis_to` must have compatible quadrature spaces.
 
-  Note: `basis_project` will have the same number of components as `basis_from`, regardless of the number of components that `basis_to` has. If
-`basis_from` has 3 components and `basis_to` has 5 components, then `basis_project` will have 3 components.
+  Note: `basis_project` will have the same number of components as `basis_from`, regardless of the number of components that `basis_to` has.
+        If `basis_from` has 3 components and `basis_to` has 5 components, then `basis_project` will have 3 components.
 
   @param[in]  basis_from    CeedBasis to prolong from
   @param[in]  basis_to      CeedBasis to prolong to
@@ -1284,7 +1286,7 @@ int CeedBasisCreateProjection(CeedBasis basis_from, CeedBasis basis_to, CeedBasi
   @brief Copy the pointer to a CeedBasis.
 
   Note: If the value of `basis_copy` passed into this function is non-NULL, then it is assumed that `basis_copy` is a pointer to a CeedBasis.
-  This CeedBasis will be destroyed if `basis_copy` is the only reference to this CeedBasis.
+        This CeedBasis will be destroyed if `basis_copy` is the only reference to this CeedBasis.
 
   @param[in]     basis      CeedBasis to copy reference to
   @param[in,out] basis_copy Variable to store copied reference

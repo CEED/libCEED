@@ -67,4 +67,5 @@ static int CeedInit_Cuda(const char *resource, Ceed ceed) {
 // Backend Register
 //------------------------------------------------------------------------------
 CEED_INTERN int CeedRegister_Cuda(void) { return CeedRegister("/gpu/cuda/ref", CeedInit_Cuda, 40); }
+
 //------------------------------------------------------------------------------

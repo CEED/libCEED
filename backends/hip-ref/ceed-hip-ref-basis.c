@@ -288,4 +288,5 @@ int CeedBasisCreateH1_Hip(CeedElemTopology topo, CeedInt dim, CeedInt num_nodes,
   CeedCallBackend(CeedSetBackendFunction(ceed, "Basis", basis, "Destroy", CeedBasisDestroyNonTensor_Hip));
   return CEED_ERROR_SUCCESS;
 }
+
 //------------------------------------------------------------------------------

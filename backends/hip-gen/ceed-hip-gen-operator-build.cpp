@@ -690,4 +690,5 @@ extern "C" int CeedHipGenOperatorBuild(CeedOperator op) {
   CeedCallBackend(CeedOperatorSetSetupDone(op));
   return CEED_ERROR_SUCCESS;
 }
+
 //------------------------------------------------------------------------------

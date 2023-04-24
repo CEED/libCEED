@@ -38,4 +38,5 @@ static int CeedInit_Avx(const char *resource, Ceed ceed) {
 // Backend Register
 //------------------------------------------------------------------------------
 CEED_INTERN int CeedRegister_Avx_Serial(void) { return CeedRegister("/cpu/self/avx/serial", CeedInit_Avx, 35); }
+
 //------------------------------------------------------------------------------

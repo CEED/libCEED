@@ -1,5 +1,5 @@
 /// @file
-/// Test full assembly of mass matrix operator
+/// Test full assembly of mass matrix operator (see t533)
 /// \test Test full assembly of mass matrix operator
 #include <ceed.h>
 #include <math.h>

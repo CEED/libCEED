@@ -99,4 +99,5 @@ int CeedQFunctionCreate_Hip(CeedQFunction qf) {
   CeedCallBackend(CeedSetBackendFunction(ceed, "QFunction", qf, "Destroy", CeedQFunctionDestroy_Hip));
   return CEED_ERROR_SUCCESS;
 }
+
 //------------------------------------------------------------------------------

@@ -48,7 +48,7 @@ extern "C" __global__ void Interp(const CeedInt num_elem, const CeedInt transpos
       CeedInt post = 1;
       for (CeedInt d = 0; d < BASIS_DIM; d++) {
         __syncthreads();
-        // Update bufferfers used
+        // Update buffers used
         pre /= P;
         const CeedScalar *in  = d % 2 ? s_buffer_2 : s_buffer_1;
         CeedScalar       *out = d == BASIS_DIM - 1 ? cur_v : (d % 2 ? s_buffer_1 : s_buffer_2);
