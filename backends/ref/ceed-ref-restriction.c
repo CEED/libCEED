@@ -26,6 +26,9 @@ static inline int CeedElemRestrictionApply_Ref_Core(CeedElemRestriction r, const
   CeedCallBackend(CeedElemRestrictionGetNumElements(r, &num_elem));
   CeedCallBackend(CeedElemRestrictionGetElementSize(r, &elem_size));
   v_offset = start * blk_size * elem_size * num_comp;
+  bool is_oriented, is_curl_oriented;
+  is_oriented      = (impl->orients != NULL);
+  is_curl_oriented = (impl->curl_orients != NULL);
 
   CeedCallBackend(CeedVectorGetArrayRead(u, CEED_MEM_HOST, &uu));
   if (t_mode == CEED_TRANSPOSE) {
@@ -77,10 +80,10 @@ static inline int CeedElemRestrictionApply_Ref_Core(CeedElemRestriction r, const
       for (CeedInt e = start * blk_size; e < stop * blk_size; e += blk_size) {
         CeedPragmaSIMD for (CeedInt k = 0; k < num_comp; k++) {
           CeedPragmaSIMD for (CeedInt i = 0; i < elem_size * blk_size; i++) {
-            if (!use_orients || (!impl->orients && !impl->curl_orients)) {
+            if (!use_orients || (!is_oriented && !is_curl_oriented)) {
               // Unsigned restriction
               vv[elem_size * (k * blk_size + num_comp * e) + i - v_offset] = uu[impl->offsets[i + elem_size * e] + k * comp_stride];
-            } else if (!impl->curl_orients) {
+            } else if (!is_curl_oriented) {
               // Signed restriction
               vv[elem_size * (k * blk_size + num_comp * e) + i - v_offset] =
                   uu[impl->offsets[i + elem_size * e] + k * comp_stride] * (impl->orients[i + elem_size * e] ? -1.0 : 1.0);
@@ -150,10 +153,10 @@ static inline int CeedElemRestrictionApply_Ref_Core(CeedElemRestriction r, const
           for (CeedInt i = 0; i < elem_size * blk_size; i += blk_size) {
             // Iteration bound set to discard padding elements
             for (CeedInt j = i; j < i + CeedIntMin(blk_size, num_elem - e); j++) {
-              if (!use_orients || (!impl->orients && !impl->curl_orients)) {
+              if (!use_orients || (!is_oriented && !is_curl_oriented)) {
                 // Unsigned restriction
                 vv[impl->offsets[j + e * elem_size] + k * comp_stride] += uu[elem_size * (k * blk_size + num_comp * e) + j - v_offset];
-              } else if (!impl->curl_orients) {
+              } else if (!is_curl_oriented) {
                 // Signed restriction
                 vv[impl->offsets[j + e * elem_size] + k * comp_stride] +=
                     uu[elem_size * (k * blk_size + num_comp * e) + j - v_offset] * (impl->orients[j + e * elem_size] ? -1.0 : 1.0);
