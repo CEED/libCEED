@@ -174,18 +174,18 @@ struct CeedBasis_private {
   int (*Apply)(CeedBasis, CeedInt, CeedTransposeMode, CeedEvalMode, CeedVector, CeedVector);
   int (*Destroy)(CeedBasis);
   int                ref_count;
-  bool               tensor_basis; /* flag for tensor basis */
-  CeedInt            dim;          /* topological dimension */
-  CeedElemTopology   topo;         /* element topology */
-  CeedInt            num_comp;     /* number of field components (1 for scalar fields) */
-  CeedInt            P_1d;         /* number of nodes in one dimension */
-  CeedInt            Q_1d;         /* number of quadrature points in one dimension */
-  CeedInt            P;            /* total number of nodes */
-  CeedInt            Q;            /* total number of quadrature points */
-  CeedFESpace        fe_space;     /* initialized in basis constructor with 1, 2, 3 for H^1, H(div), and H(curl) FE space */
-  CeedTensorContract contract;     /* tensor contraction object */
-  CeedScalar        *q_ref_1d;     /* array of length Q1d holding the locations of quadrature points on the 1D reference element [-1, 1] */
-  CeedScalar        *q_weight_1d;  /* array of length Q1d holding the quadrature weights on the reference element */
+  bool               is_tensor_basis; /* flag for tensor basis */
+  CeedInt            dim;             /* topological dimension */
+  CeedElemTopology   topo;            /* element topology */
+  CeedInt            num_comp;        /* number of field components (1 for scalar fields) */
+  CeedInt            P_1d;            /* number of nodes in one dimension */
+  CeedInt            Q_1d;            /* number of quadrature points in one dimension */
+  CeedInt            P;               /* total number of nodes */
+  CeedInt            Q;               /* total number of quadrature points */
+  CeedFESpace        fe_space;        /* initialized in basis constructor with 1, 2, 3 for H^1, H(div), and H(curl) FE space */
+  CeedTensorContract contract;        /* tensor contraction object */
+  CeedScalar        *q_ref_1d;        /* array of length Q1d holding the locations of quadrature points on the 1D reference element [-1, 1] */
+  CeedScalar        *q_weight_1d;     /* array of length Q1d holding the quadrature weights on the reference element */
   CeedScalar *interp; /* row-major matrix of shape [Q, P] or [dim * Q, P] expressing the values of nodal basis functions or vector basis functions at
                          quadrature points */
   CeedScalar *interp_1d; /* row-major matrix of shape [Q1d, P1d] expressing the values of nodal basis functions at quadrature points */
