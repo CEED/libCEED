@@ -516,7 +516,9 @@ L-vector at index offsets[i + k*elem_size] + j*comp_stride.
   @param[in]  offsets      Array of shape [@a num_elem, @a elem_size]. Row i holds the ordered list of the offsets (into the input CeedVector) for the
 unknowns corresponding to element i, where 0 <= i < @a num_elem. All offsets must be in the range [0, @a l_size - 1].
   @param[in]  curl_orients Array of shape [@a num_elem, @a 3 * elem_size] representing a row-major tridiagonal matrix (curl_orients[0] =
-curl_orients[(i + 1) * 3 * elem_size - 1] = 0, where 0 <= i < @a num_elem) which is applied to the element unknowns upon restriction.
+curl_orients[(i + 1) * 3 * elem_size - 1] = 0, where 0 <= i < @a num_elem) which is applied to the element unknowns upon restriction. This orientation
+matrix allows for pairs of face degrees of freedom on elements for H(curl) spaces to be coupled in the element restriction operation, which is a way
+to resolve face orientation issues for 3D meshes (https://dl.acm.org/doi/pdf/10.1145/3524456).
   @param[out] rstr         Address of the variable where the newly created CeedElemRestriction will be stored
 
   @return An error code: 0 - success, otherwise - failure
@@ -750,9 +752,11 @@ int CeedElemRestrictionCreateBlockedOriented(Ceed ceed, CeedInt num_elem, CeedIn
   @param[in]  offsets      Array of shape [@a num_elem, @a elem_size]. Row i holds the ordered list of the offsets (into the input CeedVector) for the
  unknowns corresponding to element i, where 0 <= i < @a num_elem. All offsets must be in the range [0, @a l_size - 1]. The backend will permute and
  pad this array to the desired ordering for the blocksize, which is typically given by the backend. The default reordering is to interlace elements.
-  @param[in]  curl_orients Array of shape [@a num_elem, @a 3 * elem_size] representing a tridiagonal matrix (curl_orients[0] = curl_orients[i * 3 *
- elem_size - 1] = 0, where 0 <= i < @a num_elem) which is applied to the element unknowns upon restriction. Will also be permuted and padded similarly
- to offsets.
+   @param[in]  curl_orients Array of shape [@a num_elem, @a 3 * elem_size] representing a row-major tridiagonal matrix (curl_orients[0] =
+curl_orients[(i + 1) * 3 * elem_size - 1] = 0, where 0 <= i < @a num_elem) which is applied to the element unknowns upon restriction. This orientation
+matrix allows for pairs of face degrees of freedom on elements for H(curl) spaces to be coupled in the element restriction operation, which is a way
+to resolve face orientation issues for 3D meshes (https://dl.acm.org/doi/pdf/10.1145/3524456). Will also be permuted and padded similarly to
+offsets.
   @param[out] rstr         Address of the variable where the newly created CeedElemRestriction will be stored
 
   @return An error code: 0 - success, otherwise - failure
