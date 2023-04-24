@@ -98,12 +98,8 @@ struct Ceed_private {
   int (*GetPreferredMemType)(CeedMemType *);
   int (*Destroy)(Ceed);
   int (*VectorCreate)(CeedSize, CeedVector);
-  int (*ElemRestrictionCreate)(CeedMemType, CeedCopyMode, const CeedInt *, CeedElemRestriction);
-  int (*ElemRestrictionCreateOriented)(CeedMemType, CeedCopyMode, const CeedInt *, const bool *, CeedElemRestriction);
-  int (*ElemRestrictionCreateCurlOriented)(CeedMemType, CeedCopyMode, const CeedInt *, const CeedInt *, CeedElemRestriction);
-  int (*ElemRestrictionCreateBlocked)(CeedMemType, CeedCopyMode, const CeedInt *, CeedElemRestriction);
-  int (*ElemRestrictionCreateBlockedOriented)(CeedMemType, CeedCopyMode, const CeedInt *, const bool *, CeedElemRestriction);
-  int (*ElemRestrictionCreateBlockedCurlOriented)(CeedMemType, CeedCopyMode, const CeedInt *, const CeedInt *, CeedElemRestriction);
+  int (*ElemRestrictionCreate)(CeedMemType, CeedCopyMode, const CeedInt *, const bool *, const CeedInt *, CeedElemRestriction);
+  int (*ElemRestrictionCreateBlocked)(CeedMemType, CeedCopyMode, const CeedInt *, const bool *, const CeedInt *, CeedElemRestriction);
   int (*BasisCreateTensorH1)(CeedInt, CeedInt, CeedInt, const CeedScalar *, const CeedScalar *, const CeedScalar *, const CeedScalar *, CeedBasis);
   int (*BasisCreateH1)(CeedElemTopology, CeedInt, CeedInt, CeedInt, const CeedScalar *, const CeedScalar *, const CeedScalar *, const CeedScalar *,
                        CeedBasis);
@@ -172,6 +168,8 @@ struct CeedElemRestriction_private {
   CeedInt  num_blk;     /* number of blocks of elements */
   CeedInt *strides;     /* strides between [nodes, components, elements] */
   CeedInt  layout[3];   /* E-vector layout [nodes, components, elements] */
+  CeedRestrictionType
+           rstr_type;   /* initialized in element restriction constructor for default, oriented, curl-oriented, or strided element restriction */
   uint64_t num_readers; /* number of instances of offset read only access */
   void    *data;        /* place for the backend to store any data */
 };

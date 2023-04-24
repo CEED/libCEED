@@ -151,7 +151,8 @@ static int CeedElemRestrictionDestroy_Magma(CeedElemRestriction r) {
   return CEED_ERROR_SUCCESS;
 }
 
-int CeedElemRestrictionCreate_Magma(CeedMemType mtype, CeedCopyMode cmode, const CeedInt *offsets, CeedElemRestriction r) {
+int CeedElemRestrictionCreate_Magma(CeedMemType mtype, CeedCopyMode cmode, const CeedInt *offsets, const bool *orients, const CeedInt *curl_orients,
+                                    CeedElemRestriction r) {
   Ceed ceed;
   CeedCallBackend(CeedElemRestrictionGetCeed(r, &ceed));
 
