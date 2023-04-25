@@ -386,11 +386,7 @@ static int CeedElemRestrictionGetOrientations_Ref(CeedElemRestriction rstr, Ceed
   Ceed ceed;
   CeedCallBackend(CeedElemRestrictionGetCeed(rstr, &ceed));
 
-  if (mem_type != CEED_MEM_HOST) {
-    // LCOV_EXCL_START
-    return CeedError(ceed, CEED_ERROR_BACKEND, "Can only provide to HOST memory");
-    // LCOV_EXCL_STOP
-  }
+  CeedCheck(mem_type == CEED_MEM_HOST, ceed, CEED_ERROR_BACKEND, "Can only provide to HOST memory");
 
   *orients = impl->orients;
   return CEED_ERROR_SUCCESS;
@@ -405,11 +401,7 @@ static int CeedElemRestrictionGetCurlOrientations_Ref(CeedElemRestriction rstr, 
   Ceed ceed;
   CeedCallBackend(CeedElemRestrictionGetCeed(rstr, &ceed));
 
-  if (mem_type != CEED_MEM_HOST) {
-    // LCOV_EXCL_START
-    return CeedError(ceed, CEED_ERROR_BACKEND, "Can only provide to HOST memory");
-    // LCOV_EXCL_STOP
-  }
+  CeedCheck(mem_type == CEED_MEM_HOST, ceed, CEED_ERROR_BACKEND, "Can only provide to HOST memory");
 
   *curl_orients = impl->curl_orients;
   return CEED_ERROR_SUCCESS;
