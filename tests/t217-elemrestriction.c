@@ -7,9 +7,9 @@
 int main(int argc, char **argv) {
   Ceed                ceed;
   CeedVector          x, y;
-  CeedInt             num_elem = 6, p = 2, dim = 1;
-  CeedInt             ind[p * num_elem];
-  bool                orients[p * num_elem];
+  CeedInt             num_elem = 6, elem_size = 2;
+  CeedInt             ind[elem_size * num_elem];
+  bool                orients[elem_size * num_elem];
   CeedScalar          x_array[num_elem + 1];
   CeedElemRestriction elem_restriction;
 
@@ -18,7 +18,7 @@ int main(int argc, char **argv) {
   CeedVectorCreate(ceed, num_elem + 1, &x);
   for (CeedInt i = 0; i < num_elem + 1; i++) x_array[i] = 10 + i;
   CeedVectorSetArray(x, CEED_MEM_HOST, CEED_USE_POINTER, x_array);
-  CeedVectorCreate(ceed, num_elem * 2, &y);
+  CeedVectorCreate(ceed, num_elem * elem_size, &y);
 
   for (CeedInt i = 0; i < num_elem; i++) {
     ind[2 * i + 0]     = i;
@@ -26,7 +26,7 @@ int main(int argc, char **argv) {
     orients[2 * i + 0] = (i % 2) > 0;  // flip the dofs on element 1, 3, ...
     orients[2 * i + 1] = (i % 2) > 0;
   }
-  CeedElemRestrictionCreateOriented(ceed, num_elem, p, dim, 1, num_elem + 1, CEED_MEM_HOST, CEED_USE_POINTER, ind, orients, &elem_restriction);
+  CeedElemRestrictionCreateOriented(ceed, num_elem, elem_size, 1, 1, num_elem + 1, CEED_MEM_HOST, CEED_USE_POINTER, ind, orients, &elem_restriction);
 
   // NoTranspose
   CeedElemRestrictionApply(elem_restriction, CEED_NOTRANSPOSE, x, y, CEED_REQUEST_IMMEDIATE);
@@ -35,8 +35,8 @@ int main(int argc, char **argv) {
 
     CeedVectorGetArrayRead(y, CEED_MEM_HOST, &y_array);
     for (CeedInt i = 0; i < num_elem; i++) {
-      for (CeedInt j = 0; j < p; j++) {
-        CeedInt k = j + p * i;
+      for (CeedInt j = 0; j < elem_size; j++) {
+        CeedInt k = j + elem_size * i;
         if (y_array[k] * CeedIntPow(-1, i % 2) != 10 + (k + 1) / 2) {
           // LCOV_EXCL_START
           printf("Error in restricted array y[%" CeedInt_FMT "] = %f\n", k, (CeedScalar)y_array[k]);
@@ -47,9 +47,8 @@ int main(int argc, char **argv) {
     CeedVectorRestoreArrayRead(y, &y_array);
   }
 
-  CeedVectorSetValue(x, 0);
-
   // Transpose
+  CeedVectorSetValue(x, 0);
   CeedElemRestrictionApply(elem_restriction, CEED_TRANSPOSE, y, x, CEED_REQUEST_IMMEDIATE);
   {
     const CeedScalar *x_array;
