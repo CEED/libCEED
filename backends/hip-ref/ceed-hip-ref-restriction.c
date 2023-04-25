@@ -86,18 +86,6 @@ static int CeedElemRestrictionApply_Hip(CeedElemRestriction r, CeedTransposeMode
 }
 
 //------------------------------------------------------------------------------
-// Blocked not supported
-//------------------------------------------------------------------------------
-int CeedElemRestrictionApplyBlock_Hip(CeedElemRestriction r, CeedInt block, CeedTransposeMode t_mode, CeedVector u, CeedVector v,
-                                      CeedRequest *request) {
-  // LCOV_EXCL_START
-  Ceed ceed;
-  CeedCallBackend(CeedElemRestrictionGetCeed(r, &ceed));
-  return CeedError(ceed, CEED_ERROR_BACKEND, "Backend does not implement blocked restrictions");
-  // LCOV_EXCL_STOP
-}
-
-//------------------------------------------------------------------------------
 // Get offsets
 //------------------------------------------------------------------------------
 static int CeedElemRestrictionGetOffsets_Hip(CeedElemRestriction rstr, CeedMemType mtype, const CeedInt **offsets) {
@@ -332,19 +320,9 @@ int CeedElemRestrictionCreate_Hip(CeedMemType mtype, CeedCopyMode cmode, const C
 
   // Register backend functions
   CeedCallBackend(CeedSetBackendFunction(ceed, "ElemRestriction", r, "Apply", CeedElemRestrictionApply_Hip));
-  CeedCallBackend(CeedSetBackendFunction(ceed, "ElemRestriction", r, "ApplyBlock", CeedElemRestrictionApplyBlock_Hip));
   CeedCallBackend(CeedSetBackendFunction(ceed, "ElemRestriction", r, "GetOffsets", CeedElemRestrictionGetOffsets_Hip));
   CeedCallBackend(CeedSetBackendFunction(ceed, "ElemRestriction", r, "Destroy", CeedElemRestrictionDestroy_Hip));
   return CEED_ERROR_SUCCESS;
-}
-
-//------------------------------------------------------------------------------
-// Blocked not supported
-//------------------------------------------------------------------------------
-int CeedElemRestrictionCreateBlocked_Hip(const CeedMemType mtype, const CeedCopyMode cmode, const CeedInt *indices, CeedElemRestriction r) {
-  Ceed ceed;
-  CeedCallBackend(CeedElemRestrictionGetCeed(r, &ceed));
-  return CeedError(ceed, CEED_ERROR_BACKEND, "Backend does not implement blocked restrictions");
 }
 
 //------------------------------------------------------------------------------

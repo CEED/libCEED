@@ -326,7 +326,7 @@ int CeedElemRestrictionCreate(Ceed ceed, CeedInt num_elem, CeedInt elem_size, Ce
   (*rstr)->l_size      = l_size;
   (*rstr)->num_blk     = num_elem;
   (*rstr)->blk_size    = 1;
-  (*rstr)->is_oriented = 0;
+  (*rstr)->is_oriented = false;
   CeedCall(ceed->ElemRestrictionCreate(mem_type, copy_mode, offsets, *rstr));
   return CEED_ERROR_SUCCESS;
 }
@@ -382,7 +382,7 @@ int CeedElemRestrictionCreateOriented(Ceed ceed, CeedInt num_elem, CeedInt elem_
   (*rstr)->l_size      = l_size;
   (*rstr)->num_blk     = num_elem;
   (*rstr)->blk_size    = 1;
-  (*rstr)->is_oriented = 1;
+  (*rstr)->is_oriented = true;
   CeedCall(ceed->ElemRestrictionCreateOriented(mem_type, copy_mode, offsets, orient, *rstr));
   return CEED_ERROR_SUCCESS;
 }
@@ -410,7 +410,7 @@ int CeedElemRestrictionCreateStrided(Ceed ceed, CeedInt num_elem, CeedInt elem_s
   if (!ceed->ElemRestrictionCreate) {
     Ceed delegate;
     CeedCall(CeedGetObjectDelegate(ceed, &delegate, "ElemRestriction"));
-    CeedCheck(delegate, ceed, CEED_ERROR_UNSUPPORTED, "Backend does not support ElemRestrictionCreate");
+    CeedCheck(delegate, ceed, CEED_ERROR_UNSUPPORTED, "Backend does not support ElemRestrictionCreateStrided");
     CeedCall(CeedElemRestrictionCreateStrided(delegate, num_elem, elem_size, num_comp, l_size, strides, rstr));
     return CEED_ERROR_SUCCESS;
   }
@@ -428,7 +428,7 @@ int CeedElemRestrictionCreateStrided(Ceed ceed, CeedInt num_elem, CeedInt elem_s
   (*rstr)->l_size      = l_size;
   (*rstr)->num_blk     = num_elem;
   (*rstr)->blk_size    = 1;
-  (*rstr)->is_oriented = 0;
+  (*rstr)->is_oriented = false;
   CeedCall(CeedMalloc(3, &(*rstr)->strides));
   for (CeedInt i = 0; i < 3; i++) (*rstr)->strides[i] = strides[i];
   CeedCall(ceed->ElemRestrictionCreate(CEED_MEM_HOST, CEED_OWN_POINTER, NULL, *rstr));
@@ -469,7 +469,7 @@ int CeedElemRestrictionCreateBlocked(Ceed ceed, CeedInt num_elem, CeedInt elem_s
     Ceed delegate;
 
     CeedCall(CeedGetObjectDelegate(ceed, &delegate, "ElemRestriction"));
-    CeedCheck(delegate, ceed, CEED_ERROR_UNSUPPORTED, "Backend does not support ElemRestrictionCreateBlocked");
+    CeedCheck(delegate, ceed, CEED_ERROR_UNSUPPORTED, "Backend does not implement ElemRestrictionCreateBlocked");
     CeedCall(
         CeedElemRestrictionCreateBlocked(delegate, num_elem, elem_size, blk_size, num_comp, comp_stride, l_size, mem_type, copy_mode, offsets, rstr));
     return CEED_ERROR_SUCCESS;
@@ -495,7 +495,7 @@ int CeedElemRestrictionCreateBlocked(Ceed ceed, CeedInt num_elem, CeedInt elem_s
   (*rstr)->l_size      = l_size;
   (*rstr)->num_blk     = num_blk;
   (*rstr)->blk_size    = blk_size;
-  (*rstr)->is_oriented = 0;
+  (*rstr)->is_oriented = false;
   CeedCall(ceed->ElemRestrictionCreateBlocked(CEED_MEM_HOST, CEED_OWN_POINTER, (const CeedInt *)blk_offsets, *rstr));
   if (copy_mode == CEED_OWN_POINTER) {
     CeedCall(CeedFree(&offsets));
@@ -530,7 +530,7 @@ int CeedElemRestrictionCreateBlockedStrided(Ceed ceed, CeedInt num_elem, CeedInt
     Ceed delegate;
 
     CeedCall(CeedGetObjectDelegate(ceed, &delegate, "ElemRestriction"));
-    CeedCheck(delegate, ceed, CEED_ERROR_UNSUPPORTED, "Backend does not support ElemRestrictionCreateBlocked");
+    CeedCheck(delegate, ceed, CEED_ERROR_UNSUPPORTED, "Backend does not implement ElemRestrictionCreateBlockedStrided");
     CeedCall(CeedElemRestrictionCreateBlockedStrided(delegate, num_elem, elem_size, blk_size, num_comp, l_size, strides, rstr));
     return CEED_ERROR_SUCCESS;
   }
@@ -550,7 +550,7 @@ int CeedElemRestrictionCreateBlockedStrided(Ceed ceed, CeedInt num_elem, CeedInt
   (*rstr)->l_size      = l_size;
   (*rstr)->num_blk     = num_blk;
   (*rstr)->blk_size    = blk_size;
-  (*rstr)->is_oriented = 0;
+  (*rstr)->is_oriented = false;
   CeedCall(CeedMalloc(3, &(*rstr)->strides));
   for (CeedInt i = 0; i < 3; i++) (*rstr)->strides[i] = strides[i];
   CeedCall(ceed->ElemRestrictionCreateBlocked(CEED_MEM_HOST, CEED_OWN_POINTER, NULL, *rstr));
@@ -650,6 +650,8 @@ int CeedElemRestrictionApply(CeedElemRestriction rstr, CeedTransposeMode t_mode,
 int CeedElemRestrictionApplyBlock(CeedElemRestriction rstr, CeedInt block, CeedTransposeMode t_mode, CeedVector u, CeedVector ru,
                                   CeedRequest *request) {
   CeedInt m, n;
+
+  CeedCheck(rstr->ApplyBlock, rstr->ceed, CEED_ERROR_UNSUPPORTED, "Backend does not implement ElemRestrictionApplyBlock");
 
   if (t_mode == CEED_NOTRANSPOSE) {
     m = rstr->blk_size * rstr->elem_size * rstr->num_comp;

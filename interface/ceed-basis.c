@@ -314,7 +314,7 @@ int CeedBasisGetCollocatedGrad(CeedBasis basis, CeedScalar *collo_grad_1d) {
   @ref Backend
 **/
 int CeedBasisIsTensor(CeedBasis basis, bool *is_tensor) {
-  *is_tensor = basis->tensor_basis;
+  *is_tensor = basis->is_tensor_basis;
   return CEED_ERROR_SUCCESS;
 }
 
@@ -920,16 +920,16 @@ int CeedBasisCreateTensorH1(Ceed ceed, CeedInt dim, CeedInt num_comp, CeedInt P_
   CeedCall(CeedCalloc(1, basis));
   (*basis)->ceed = ceed;
   CeedCall(CeedReference(ceed));
-  (*basis)->ref_count    = 1;
-  (*basis)->tensor_basis = 1;
-  (*basis)->dim          = dim;
-  (*basis)->topo         = topo;
-  (*basis)->num_comp     = num_comp;
-  (*basis)->P_1d         = P_1d;
-  (*basis)->Q_1d         = Q_1d;
-  (*basis)->P            = CeedIntPow(P_1d, dim);
-  (*basis)->Q            = CeedIntPow(Q_1d, dim);
-  (*basis)->fe_space     = CEED_FE_SPACE_H1;
+  (*basis)->ref_count       = 1;
+  (*basis)->is_tensor_basis = true;
+  (*basis)->dim             = dim;
+  (*basis)->topo            = topo;
+  (*basis)->num_comp        = num_comp;
+  (*basis)->P_1d            = P_1d;
+  (*basis)->Q_1d            = Q_1d;
+  (*basis)->P               = CeedIntPow(P_1d, dim);
+  (*basis)->Q               = CeedIntPow(Q_1d, dim);
+  (*basis)->fe_space        = CEED_FE_SPACE_H1;
   CeedCall(CeedCalloc(Q_1d, &(*basis)->q_ref_1d));
   CeedCall(CeedCalloc(Q_1d, &(*basis)->q_weight_1d));
   if (q_ref_1d) memcpy((*basis)->q_ref_1d, q_ref_1d, Q_1d * sizeof(q_ref_1d[0]));
@@ -1060,14 +1060,14 @@ int CeedBasisCreateH1(Ceed ceed, CeedElemTopology topo, CeedInt num_comp, CeedIn
 
   (*basis)->ceed = ceed;
   CeedCall(CeedReference(ceed));
-  (*basis)->ref_count    = 1;
-  (*basis)->tensor_basis = 0;
-  (*basis)->dim          = dim;
-  (*basis)->topo         = topo;
-  (*basis)->num_comp     = num_comp;
-  (*basis)->P            = P;
-  (*basis)->Q            = Q;
-  (*basis)->fe_space     = CEED_FE_SPACE_H1;
+  (*basis)->ref_count       = 1;
+  (*basis)->is_tensor_basis = false;
+  (*basis)->dim             = dim;
+  (*basis)->topo            = topo;
+  (*basis)->num_comp        = num_comp;
+  (*basis)->P               = P;
+  (*basis)->Q               = Q;
+  (*basis)->fe_space        = CEED_FE_SPACE_H1;
   CeedCall(CeedCalloc(Q * dim, &(*basis)->q_ref_1d));
   CeedCall(CeedCalloc(Q, &(*basis)->q_weight_1d));
   if (q_ref) memcpy((*basis)->q_ref_1d, q_ref, Q * dim * sizeof(q_ref[0]));
@@ -1121,14 +1121,14 @@ int CeedBasisCreateHdiv(Ceed ceed, CeedElemTopology topo, CeedInt num_comp, Ceed
 
   (*basis)->ceed = ceed;
   CeedCall(CeedReference(ceed));
-  (*basis)->ref_count    = 1;
-  (*basis)->tensor_basis = 0;
-  (*basis)->dim          = dim;
-  (*basis)->topo         = topo;
-  (*basis)->num_comp     = num_comp;
-  (*basis)->P            = P;
-  (*basis)->Q            = Q;
-  (*basis)->fe_space     = CEED_FE_SPACE_HDIV;
+  (*basis)->ref_count       = 1;
+  (*basis)->is_tensor_basis = false;
+  (*basis)->dim             = dim;
+  (*basis)->topo            = topo;
+  (*basis)->num_comp        = num_comp;
+  (*basis)->P               = P;
+  (*basis)->Q               = Q;
+  (*basis)->fe_space        = CEED_FE_SPACE_HDIV;
   CeedCall(CeedMalloc(Q * dim, &(*basis)->q_ref_1d));
   CeedCall(CeedMalloc(Q, &(*basis)->q_weight_1d));
   if (q_ref) memcpy((*basis)->q_ref_1d, q_ref, Q * dim * sizeof(q_ref[0]));
@@ -1184,14 +1184,14 @@ int CeedBasisCreateHcurl(Ceed ceed, CeedElemTopology topo, CeedInt num_comp, Cee
 
   (*basis)->ceed = ceed;
   CeedCall(CeedReference(ceed));
-  (*basis)->ref_count    = 1;
-  (*basis)->tensor_basis = 0;
-  (*basis)->dim          = dim;
-  (*basis)->topo         = topo;
-  (*basis)->num_comp     = num_comp;
-  (*basis)->P            = P;
-  (*basis)->Q            = Q;
-  (*basis)->fe_space     = CEED_FE_SPACE_HCURL;
+  (*basis)->ref_count       = 1;
+  (*basis)->is_tensor_basis = false;
+  (*basis)->dim             = dim;
+  (*basis)->topo            = topo;
+  (*basis)->num_comp        = num_comp;
+  (*basis)->P               = P;
+  (*basis)->Q               = Q;
+  (*basis)->fe_space        = CEED_FE_SPACE_HCURL;
   CeedCall(CeedMalloc(Q * dim, &(*basis)->q_ref_1d));
   CeedCall(CeedMalloc(Q, &(*basis)->q_weight_1d));
   if (q_ref) memcpy((*basis)->q_ref_1d, q_ref, Q * dim * sizeof(q_ref[0]));
@@ -1318,7 +1318,7 @@ int CeedBasisView(CeedBasis basis, FILE *stream) {
   CeedInt          q_comp   = 0;
 
   // Print FE space and element topology of the basis
-  if (basis->tensor_basis) {
+  if (basis->is_tensor_basis) {
     fprintf(stream, "CeedBasis (%s on a %s element): dim=%" CeedInt_FMT " P=%" CeedInt_FMT " Q=%" CeedInt_FMT "\n", CeedFESpaces[fe_space],
             CeedElemTopologies[topo], basis->dim, basis->P_1d, basis->Q_1d);
   } else {
@@ -1326,7 +1326,7 @@ int CeedBasisView(CeedBasis basis, FILE *stream) {
             CeedElemTopologies[topo], basis->dim, basis->P, basis->Q);
   }
   // Print quadrature data, interpolation/gradient/divergence/curl of the basis
-  if (basis->tensor_basis) {  // tensor basis
+  if (basis->is_tensor_basis) {  // tensor basis
     CeedCall(CeedScalarView("qref1d", "\t% 12.8f", 1, basis->Q_1d, basis->q_ref_1d, stream));
     CeedCall(CeedScalarView("qweight1d", "\t% 12.8f", 1, basis->Q_1d, basis->q_weight_1d, stream));
     CeedCall(CeedScalarView("interp1d", "\t% 12.8f", basis->Q_1d, basis->P_1d, basis->interp_1d, stream));
@@ -1501,7 +1501,7 @@ int CeedBasisGetNumNodes(CeedBasis basis, CeedInt *P) {
   @ref Advanced
 **/
 int CeedBasisGetNumNodes1D(CeedBasis basis, CeedInt *P_1d) {
-  CeedCheck(basis->tensor_basis, basis->ceed, CEED_ERROR_MINOR, "Cannot supply P_1d for non-tensor basis");
+  CeedCheck(basis->is_tensor_basis, basis->ceed, CEED_ERROR_MINOR, "Cannot supply P_1d for non-tensor basis");
   *P_1d = basis->P_1d;
   return CEED_ERROR_SUCCESS;
 }
@@ -1532,7 +1532,7 @@ int CeedBasisGetNumQuadraturePoints(CeedBasis basis, CeedInt *Q) {
   @ref Advanced
 **/
 int CeedBasisGetNumQuadraturePoints1D(CeedBasis basis, CeedInt *Q_1d) {
-  CeedCheck(basis->tensor_basis, basis->ceed, CEED_ERROR_MINOR, "Cannot supply Q_1d for non-tensor basis");
+  CeedCheck(basis->is_tensor_basis, basis->ceed, CEED_ERROR_MINOR, "Cannot supply Q_1d for non-tensor basis");
   *Q_1d = basis->Q_1d;
   return CEED_ERROR_SUCCESS;
 }
@@ -1578,7 +1578,7 @@ int CeedBasisGetQWeights(CeedBasis basis, const CeedScalar **q_weight) {
   @ref Advanced
 **/
 int CeedBasisGetInterp(CeedBasis basis, const CeedScalar **interp) {
-  if (!basis->interp && basis->tensor_basis) {
+  if (!basis->interp && basis->is_tensor_basis) {
     // Allocate
     CeedCall(CeedMalloc(basis->Q * basis->P, &basis->interp));
 
@@ -1611,7 +1611,7 @@ int CeedBasisGetInterp(CeedBasis basis, const CeedScalar **interp) {
   @ref Backend
 **/
 int CeedBasisGetInterp1D(CeedBasis basis, const CeedScalar **interp_1d) {
-  CeedCheck(basis->tensor_basis, basis->ceed, CEED_ERROR_MINOR, "CeedBasis is not a tensor product basis.");
+  CeedCheck(basis->is_tensor_basis, basis->ceed, CEED_ERROR_MINOR, "CeedBasis is not a tensor product basis.");
   *interp_1d = basis->interp_1d;
   return CEED_ERROR_SUCCESS;
 }
@@ -1627,7 +1627,7 @@ int CeedBasisGetInterp1D(CeedBasis basis, const CeedScalar **interp_1d) {
   @ref Advanced
 **/
 int CeedBasisGetGrad(CeedBasis basis, const CeedScalar **grad) {
-  if (!basis->grad && basis->tensor_basis) {
+  if (!basis->grad && basis->is_tensor_basis) {
     // Allocate
     CeedCall(CeedMalloc(basis->dim * basis->Q * basis->P, &basis->grad));
 
@@ -1663,7 +1663,7 @@ int CeedBasisGetGrad(CeedBasis basis, const CeedScalar **grad) {
   @ref Advanced
 **/
 int CeedBasisGetGrad1D(CeedBasis basis, const CeedScalar **grad_1d) {
-  CeedCheck(basis->tensor_basis, basis->ceed, CEED_ERROR_MINOR, "CeedBasis is not a tensor product basis.");
+  CeedCheck(basis->is_tensor_basis, basis->ceed, CEED_ERROR_MINOR, "CeedBasis is not a tensor product basis.");
   *grad_1d = basis->grad_1d;
   return CEED_ERROR_SUCCESS;
 }
