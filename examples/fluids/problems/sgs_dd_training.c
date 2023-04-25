@@ -9,6 +9,7 @@
 
 #include <petscdmplex.h>
 
+#include "../include/smartsim.h"
 #include "../navierstokes.h"
 
 typedef struct {
@@ -304,6 +305,33 @@ PetscErrorCode SGS_DD_TrainingSetup(Ceed ceed, User user, CeedData ceed_data, Pr
     CeedQFunctionContextSetDataDestroy(sgs_dd_train_setup_data->sgs_dd_train_qfctx, CEED_MEM_HOST, FreeContextPetsc);
   }
 
+  {  // -- Send training data array info to SmartRedis database
+    PetscMPIInt  rank;
+    SmartSimData smartsim = user->smartsim;
+    PetscInt     num_ranks;
+    PetscCallMPI(MPI_Comm_rank(user->comm, &rank));
+    PetscCallMPI(MPI_Comm_size(user->comm, &num_ranks));
+
+    // Get minimum per-rank global vec size
+    PetscCallMPI(MPI_Allreduce(&user->sgs_dd_train->training_data_array_dims[0], &smartsim->num_tensor_nodes, 1, MPIU_INT, MPI_MIN, user->comm));
+    smartsim->num_nodes_to_remove = user->sgs_dd_train->training_data_array_dims[0] - smartsim->num_tensor_nodes;
+
+    if (rank % smartsim->collocated_database_num_ranks == 0) {
+      size_t   array_info_dim = 6;
+      PetscInt array_info[6] = {0}, num_features = 6;
+
+      array_info[0] = user->sgs_dd_train->training_data_array_dims[0];  // or smartsim->num_tensor_nodes
+      array_info[1] = user->sgs_dd_train->training_data_array_dims[1];
+      array_info[2] = num_features;
+      array_info[3] = num_ranks;
+      array_info[4] = smartsim->collocated_database_num_ranks;
+      array_info[5] = rank;
+
+      SmartRedisCall(put_tensor(smartsim->client, "sizeInfo", 8, array_info, &array_info_dim, 1, SRTensorTypeInt32, SRMemLayoutContiguous));
+      PetscCall(SmartRedisVerifyPutTensor(smartsim->client, "sizeInfo", 8));
+    }
+  }
+
   // -- Compute and store anisotropy tensor
   PetscCall(GridAnisotropyTensorProjectionSetupApply(ceed, user, ceed_data, &sgs_dd_train_setup_data->elem_restr_grid_aniso,
                                                      &sgs_dd_train_setup_data->grid_aniso_ceed));
@@ -348,6 +376,7 @@ PetscErrorCode SGS_DD_TrainingGetModelInputs(User user, Vec FilteredState_loc, V
 PetscErrorCode TSMonitor_SGS_DD_Training(TS ts, PetscInt step_num, PetscReal solution_time, Vec Q, void *ctx) {
   User                user                     = (User)ctx;
   SGS_DD_TrainingData sgs_dd_train             = user->sgs_dd_train;
+  SmartSimData        smartsim                 = user->smartsim;
   PetscInt            training_data_array_size = sgs_dd_train->training_data_array_dims[0] * sgs_dd_train->training_data_array_dims[1];
   Vec                 FilteredFields, FilteredFields_loc, DDModelInputs;
 
@@ -373,7 +402,36 @@ PetscErrorCode TSMonitor_SGS_DD_Training(TS ts, PetscInt step_num, PetscReal sol
     PetscCall(VecISCopy(TrainingData, sgs_dd_train->is_dd_inputs, SCATTER_FORWARD, DDModelInputs_loc));
     PetscCall(VecISCopy(TrainingData, sgs_dd_train->is_velocity_products, SCATTER_FORWARD, FilteredFields_loc));
 
-    // Send Data (ie. put tensor)
+    {  // Send data
+      char        array_key[PETSC_MAX_PATH_LEN];
+      size_t      array_key_len;
+      PetscMPIInt rank;
+
+      PetscCallMPI(MPI_Comm_rank(user->comm, &rank));
+
+      if (smartsim->overwrite_tensors) {
+        PetscCall(PetscSNPrintf(array_key, sizeof array_key, "%s", smartsim->rank_id_name));
+      } else {
+        PetscCall(PetscSNPrintf(array_key, sizeof array_key, "%s.%" PetscInt_FMT, smartsim->rank_id_name, step_num));
+      }
+      PetscCall(PetscStrlen(array_key, &array_key_len));
+      printf("put_array with key '%s'\n", array_key);
+
+      {
+        const PetscScalar *training_data;
+        PetscCall(VecGetArrayRead(TrainingData, &training_data));
+        SmartRedisCall(put_tensor(smartsim->client, array_key, array_key_len, (void *)training_data, sgs_dd_train->training_data_array_dims, 2,
+                                  SRTensorTypeDouble, SRMemLayoutContiguous));
+        PetscCall(VecRestoreArrayRead(TrainingData, &training_data));
+      }
+      PetscCall(SmartRedisVerifyPutTensor(smartsim->client, array_key, array_key_len));
+
+      if (rank % smartsim->collocated_database_num_ranks == 0) {
+        size_t   dim_2[1]      = {2};
+        PetscInt step_array[2] = {step_num, step_num};
+        SmartRedisCall(put_tensor(smartsim->client, "step", 4, step_array, dim_2, 1, SRTensorTypeInt32, SRMemLayoutContiguous));
+      }
+    }
 
     PetscCall(DMRestoreLocalVector(sgs_dd_train->dm_dd_inputs, &DDModelInputs_loc));
     PetscCall(VecDestroy(&TrainingData));
