@@ -649,6 +649,8 @@ int CeedElemRestrictionApply(CeedElemRestriction rstr, CeedTransposeMode t_mode,
 int CeedElemRestrictionApplyUnsigned(CeedElemRestriction rstr, CeedTransposeMode t_mode, CeedVector u, CeedVector ru, CeedRequest *request) {
   CeedInt m, n;
 
+  CeedCheck(rstr->ApplyUnsigned, rstr->ceed, CEED_ERROR_UNSUPPORTED, "Backend does not implement ElemRestrictionApplyUnsigned");
+
   if (t_mode == CEED_NOTRANSPOSE) {
     m = rstr->num_blk * rstr->blk_size * rstr->elem_size * rstr->num_comp;
     n = rstr->l_size;
@@ -660,10 +662,7 @@ int CeedElemRestrictionApplyUnsigned(CeedElemRestriction rstr, CeedTransposeMode
             "Input vector size %" CeedInt_FMT " not compatible with element restriction (%" CeedInt_FMT ", %" CeedInt_FMT ")", u->length, m, n);
   CeedCheck(m == ru->length, rstr->ceed, CEED_ERROR_DIMENSION,
             "Output vector size %" CeedInt_FMT " not compatible with element restriction (%" CeedInt_FMT ", %" CeedInt_FMT ")", ru->length, m, n);
-  if (rstr->num_elem > 0) {
-    if (rstr->ApplyUnsigned) CeedCall(rstr->ApplyUnsigned(rstr, t_mode, u, ru, request));
-    else CeedCall(rstr->Apply(rstr, t_mode, u, ru, request));
-  }
+  if (rstr->num_elem > 0) CeedCall(rstr->ApplyUnsigned(rstr, t_mode, u, ru, request));
   return CEED_ERROR_SUCCESS;
 }
 
