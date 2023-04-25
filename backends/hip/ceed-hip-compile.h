@@ -18,12 +18,12 @@ CEED_INTERN int CeedCompileHip(Ceed ceed, const char *source, hipModule_t *modul
 
 CEED_INTERN int CeedGetKernelHip(Ceed ceed, hipModule_t module, const char *name, hipFunction_t *kernel);
 
-CEED_INTERN int CeedRunKernelHip(Ceed ceed, hipFunction_t kernel, const int grid_size, const int block_size, void **args);
+CEED_INTERN int CeedRunKernelHip(Ceed ceed, hipFunction_t kernel, int grid_size, int block_size, void **args);
 
-CEED_INTERN int CeedRunKernelDimHip(Ceed ceed, hipFunction_t kernel, const int grid_size, const int block_size_x, const int block_size_y,
-                                    const int block_size_z, void **args);
+CEED_INTERN int CeedRunKernelDimHip(Ceed ceed, hipFunction_t kernel, int grid_size, int block_size_x, int block_size_y, int block_size_z,
+                                    void **args);
 
-CEED_INTERN int CeedRunKernelDimSharedHip(Ceed ceed, hipFunction_t kernel, const int grid_size, const int block_size_x, const int block_size_y,
-                                          const int block_size_z, const int shared_mem_size, void **args);
+CEED_INTERN int CeedRunKernelDimSharedHip(Ceed ceed, hipFunction_t kernel, int grid_size, int block_size_x, int block_size_y, int block_size_z,
+                                          int shared_mem_size, void **args);
 
 #endif  // _ceed_hip_compile_h
