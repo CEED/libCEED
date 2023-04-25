@@ -56,24 +56,29 @@ PetscErrorCode SGS_DD_TrainingCreateIS(User user) {
   SGS_DD_TrainingData sgs_dd_train         = user->sgs_dd_train;
   const PetscInt      num_training_sources = 2;
   PetscSection        local_sections[num_training_sources];          // sections to get the local Vec info from
+  PetscSection        globalized_sections[num_training_sources];     // sections with local Vec offsets, but negative dofs for non-owned nodes
   PetscInt            field_ids[num_training_sources];               // fields of the section that contains the training data subset
   PetscInt            num_comps[num_training_sources];               // number of components of the field
   PetscInt            local_storage_sizes[num_training_sources];     // size of the local Vecs containing training data subset
   PetscInt            training_array_offsets[num_training_sources];  // offset in the training data array for the training data subset
   PetscInt            pStart, pEnd, num_comps_training_data = 0;
   IS                  IS_vec_copies[num_training_sources];
+  DM                  DMs[num_training_sources];
+  PetscSF             dm_point_sf;
 
   PetscFunctionBeginUser;
-  // TODO: Possibly use PetscSectionCreateGlobalSection to create global section with local offsets and including constraints.
-  // This gives negative sizes and offsets to points not owned by this process.
-  PetscCall(DMGetLocalSection(sgs_dd_train->dm_dd_inputs, &local_sections[0]));
+  DMs[0]       = sgs_dd_train->dm_dd_inputs;
   field_ids[0] = 0;
-  PetscCall(DMGetLocalSection(user->diff_filter->dm_filter, &local_sections[1]));
+  DMs[1]       = user->diff_filter->dm_filter;
   field_ids[1] = user->diff_filter->field_velo_prod;
 
-  // -- Get local Vec information and verify compatability
+  // -- Get sections and local Vec information
   PetscInt tot_num_nodes[num_training_sources];
   for (PetscInt i = 0; i < num_training_sources; i++) {
+    PetscCall(DMGetLocalSection(DMs[i], &local_sections[i]));
+    PetscCall(DMGetPointSF(DMs[i], &dm_point_sf));
+    PetscCall(PetscSectionCreateGlobalSection(local_sections[i], dm_point_sf, PETSC_TRUE, PETSC_TRUE, &globalized_sections[i]));
+
     PetscCall(PetscSectionGetFieldComponents(local_sections[i], field_ids[i], &num_comps[i]));
     PetscCall(PetscSectionGetStorageSize(local_sections[i], &local_storage_sizes[i]));
     num_comps_training_data += num_comps[i];
@@ -96,20 +101,21 @@ PetscErrorCode SGS_DD_TrainingCreateIS(User user) {
                  "Total number of local nodes for the %dth (%" PetscInt_FMT ") and %dth (%" PetscInt_FMT ") sections are not equal", i,
                  tot_num_nodes[i], j, tot_num_nodes[j]);
   }
-  sgs_dd_train->training_data_array_dims[0] = tot_num_nodes[0];
-  sgs_dd_train->training_data_array_dims[1] = num_comps_training_data;
 
   // -- Create index arrays
+  PetscInt num_owned_nodes[num_training_sources];
   for (PetscInt i = 0; i < num_training_sources; i++) {
     PetscInt *index;
     PetscCall(PetscMalloc1(local_storage_sizes[i], &index));
     for (PetscInt j = 0; j < local_storage_sizes[i]; j++) index[j] = -1;
 
     PetscInt offset, num_dofs, node_id = 0;
-    PetscCall(PetscSectionGetChart(local_sections[i], &pStart, &pEnd));
+    PetscCall(PetscSectionGetChart(globalized_sections[i], &pStart, &pEnd));
     for (PetscInt p = pStart; p < pEnd; p++) {
-      PetscCall(PetscSectionGetFieldDof(local_sections[i], p, field_ids[i], &num_dofs));
-      PetscCall(PetscSectionGetFieldOffset(local_sections[i], p, field_ids[i], &offset));
+      PetscCall(PetscSectionGetFieldDof(globalized_sections[i], p, field_ids[i], &num_dofs));
+      PetscCall(PetscSectionGetFieldOffset(globalized_sections[i], p, field_ids[i], &offset));
+
+      if (num_dofs < 0) continue;  // skip remote-owned DM points
       PetscInt num_nodes = num_dofs / num_comps[i];
       for (PetscInt node = 0; node < num_nodes; node++) {
         for (PetscInt comp = 0; comp < num_comps[i]; comp++) {
@@ -118,10 +124,17 @@ PetscErrorCode SGS_DD_TrainingCreateIS(User user) {
         node_id++;
       }
     }
+    num_owned_nodes[i] = node_id;
+    for (int j = 0; j < i; j++)
+      PetscCheck(num_owned_nodes[i] == num_owned_nodes[j], PETSC_COMM_SELF, -1,
+                 "Total number of owned nodes for the %dth (%" PetscInt_FMT ") and %dth (%" PetscInt_FMT ") sections are not equal", i,
+                 num_owned_nodes[i], j, num_owned_nodes[j]);
     PetscCall(ISCreateGeneral(PETSC_COMM_SELF, local_storage_sizes[i], index, PETSC_OWN_POINTER, &IS_vec_copies[i]));
   }
-  sgs_dd_train->is_dd_inputs         = IS_vec_copies[0];
-  sgs_dd_train->is_velocity_products = IS_vec_copies[1];
+  sgs_dd_train->training_data_array_dims[0] = num_owned_nodes[0];
+  sgs_dd_train->training_data_array_dims[1] = num_comps_training_data;
+  sgs_dd_train->is_dd_inputs                = IS_vec_copies[0];
+  sgs_dd_train->is_velocity_products        = IS_vec_copies[1];
   PetscCall(ISViewFromOptions(IS_vec_copies[1], NULL, "-sgs_training_is_view"));
 
   {  // -- Verify that copying vecs using the resulting IS works correctly
