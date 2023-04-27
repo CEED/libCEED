@@ -243,6 +243,8 @@ CEED_EXTERN int CeedElemRestrictionCreateBlockedStrided(Ceed ceed, CeedInt num_e
 CEED_EXTERN int CeedElemRestrictionReferenceCopy(CeedElemRestriction rstr, CeedElemRestriction *rstr_copy);
 CEED_EXTERN int CeedElemRestrictionCreateVector(CeedElemRestriction rstr, CeedVector *lvec, CeedVector *evec);
 CEED_EXTERN int CeedElemRestrictionApply(CeedElemRestriction rstr, CeedTransposeMode t_mode, CeedVector u, CeedVector ru, CeedRequest *request);
+CEED_EXTERN int CeedElemRestrictionApplyUnsigned(CeedElemRestriction rstr, CeedTransposeMode t_mode, CeedVector u, CeedVector ru,
+                                                 CeedRequest *request);
 CEED_EXTERN int CeedElemRestrictionApplyBlock(CeedElemRestriction rstr, CeedInt block, CeedTransposeMode t_mode, CeedVector u, CeedVector ru,
                                               CeedRequest *request);
 CEED_EXTERN int CeedElemRestrictionGetCeed(CeedElemRestriction rstr, Ceed *ceed);
