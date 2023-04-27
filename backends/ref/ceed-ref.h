@@ -31,7 +31,7 @@ typedef struct {
   bool          *orients_allocated;
   const CeedInt *curl_orients; /* Tridiagonal matrix (row-major) for a general transformation during restriction */
   CeedInt       *curl_orients_allocated;
-  int (*Apply)(CeedElemRestriction, CeedInt, CeedInt, CeedInt, CeedInt, CeedInt, bool, CeedTransposeMode, CeedVector, CeedVector, CeedRequest *);
+  int (*Apply)(CeedElemRestriction, CeedInt, CeedInt, CeedInt, CeedInt, CeedInt, CeedTransposeMode, CeedVector, CeedVector, CeedRequest *);
 } CeedElemRestriction_Ref;
 
 typedef struct {
