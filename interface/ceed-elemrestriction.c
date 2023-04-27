@@ -24,8 +24,9 @@
 /**
   @brief Permute and pad offsets for a blocked restriction
 
-  @param[in]  offsets     Array of shape [@a num_elem, @a elem_size]. Row i holds the ordered list of the offsets (into the input CeedVector) for the
-unknowns corresponding to element i, where 0 <= i < @a num_elem. All offsets must be in the range [0, @a l_size - 1].
+  @param[in]  offsets     Array of shape [@a num_elem, @a elem_size].
+                            Row i holds the ordered list of the offsets (into the input CeedVector) for the unknowns corresponding to element i, where
+0 <= i < @a num_elem. All offsets must be in the range [0, @a l_size - 1].
   @param[out] blk_offsets Array of permuted and padded offsets of shape [@a num_blk, @a elem_size, @a blk_size].
   @param[in]  num_blk     Number of blocks
   @param[in]  num_elem    Number of elements
@@ -50,7 +51,8 @@ int CeedPermutePadOffsets(const CeedInt *offsets, CeedInt *blk_offsets, CeedInt 
 /**
   @brief Permute and pad orientations for a blocked restriction
 
-  @param[in]  orients     Array of shape [@a num_elem, @a elem_size]. Row i holds the ordered list of the orientations (into the input CeedVector) for
+  @param[in]  orients     Array of shape [@a num_elem, @a elem_size].
+                            Row i holds the ordered list of the orientations (into the input CeedVector) for
 the unknowns corresponding to element i, where 0 <= i < @a num_elem.
   @param[out] blk_orients Array of permuted and padded orientations of shape [@a num_blk, @a elem_size, @a blk_size].
   @param[in]  num_blk     Number of blocks
@@ -180,9 +182,9 @@ int CeedElemRestrictionHasBackendStrides(CeedElemRestriction rstr, bool *has_bac
   @brief Get read-only access to a CeedElemRestriction offsets array by memtype
 
   @param[in]  rstr     CeedElemRestriction to retrieve offsets
-  @param[in]  mem_type Memory type on which to access the array. If the backend uses a different memory type, this will perform a copy (possibly
-cached).
-  @param[out] offsets Array on memory type mem_type
+  @param[in]  mem_type Memory type on which to access the array.
+                         If the backend uses a different memory type, this will perform a copy (possibly cached).
+  @param[out] offsets  Array on memory type mem_type
 
   @return An error code: 0 - success, otherwise - failure
 
@@ -223,8 +225,8 @@ int CeedElemRestrictionRestoreOffsets(CeedElemRestriction rstr, const CeedInt **
   @brief Get read-only access to a CeedElemRestriction orientations array by memtype
 
   @param[in]  rstr     CeedElemRestriction to retrieve orientations
-  @param[in]  mem_type Memory type on which to access the array. If the backend uses a different memory type, this will perform a copy (possibly
-cached).
+  @param[in]  mem_type Memory type on which to access the array.
+                         If the backend uses a different memory type, this will perform a copy (possibly cached).
   @param[out] orients  Array on memory type mem_type
 
   @return An error code: 0 - success, otherwise - failure
@@ -232,7 +234,7 @@ cached).
   @ref User
 **/
 int CeedElemRestrictionGetOrientations(CeedElemRestriction rstr, CeedMemType mem_type, const bool **orients) {
-  CeedCheck(rstr->GetOrientations, rstr->ceed, CEED_ERROR_UNSUPPORTED, "Backend does not implement GetOrientations");
+  CeedCheck(rstr->GetOrientations, rstr->ceed, CEED_ERROR_UNSUPPORTED, "Backend does not support GetOrientations");
   CeedCall(rstr->GetOrientations(rstr, mem_type, orients));
   rstr->num_readers++;
   return CEED_ERROR_SUCCESS;
@@ -258,8 +260,8 @@ int CeedElemRestrictionRestoreOrientations(CeedElemRestriction rstr, const bool 
   @brief Get read-only access to a CeedElemRestriction curl-conforming orientations array by memtype
 
   @param[in]  rstr         CeedElemRestriction to retrieve curl-conforming orientations
-  @param[in]  mem_type     Memory type on which to access the array. If the backend uses a different memory type, this will perform a copy (possibly
-cached).
+  @param[in]  mem_type     Memory type on which to access the array.
+                             If the backend uses a different memory type, this will perform a copy (possibly cached).
   @param[out] curl_orients Array on memory type mem_type
 
   @return An error code: 0 - success, otherwise - failure
@@ -267,7 +269,7 @@ cached).
   @ref User
 **/
 int CeedElemRestrictionGetCurlOrientations(CeedElemRestriction rstr, CeedMemType mem_type, const CeedInt **curl_orients) {
-  CeedCheck(rstr->GetCurlOrientations, rstr->ceed, CEED_ERROR_UNSUPPORTED, "Backend does not implement GetCurlOrientations");
+  CeedCheck(rstr->GetCurlOrientations, rstr->ceed, CEED_ERROR_UNSUPPORTED, "Backend does not support GetCurlOrientations");
   CeedCall(rstr->GetCurlOrientations(rstr, mem_type, curl_orients));
   rstr->num_readers++;
   return CEED_ERROR_SUCCESS;
@@ -294,8 +296,8 @@ int CeedElemRestrictionRestoreCurlOrientations(CeedElemRestriction rstr, const C
   @brief Get the E-vector layout of a CeedElemRestriction
 
   @param[in]  rstr    CeedElemRestriction
-  @param[out] layout  Variable to store layout array, stored as [nodes, components, elements]. The data for node i, component j, element k in the
-E-vector is given by i*layout[0] + j*layout[1] + k*layout[2]
+  @param[out] layout  Variable to store layout array, stored as [nodes, components, elements].
+                        The data for node i, component j, element k in the E-vector is given by i*layout[0] + j*layout[1] + k*layout[2]
 
   @return An error code: 0 - success, otherwise - failure
 
@@ -433,13 +435,15 @@ const CeedElemRestriction CEED_ELEMRESTRICTION_NONE = &ceed_elemrestriction_none
   @param[in]  num_elem    Number of elements described in the @a offsets array
   @param[in]  elem_size   Size (number of "nodes") per element
   @param[in]  num_comp    Number of field components per interpolation node (1 for scalar fields)
-  @param[in]  comp_stride Stride between components for the same L-vector "node". Data for node i, component j, element k can be found in the L-vector
-at index offsets[i + k*elem_size] + j*comp_stride.
-  @param[in]  l_size      The size of the L-vector. This vector may be larger than the elements and fields given by this restriction.
+  @param[in]  comp_stride Stride between components for the same L-vector "node".
+                            Data for node i, component j, element k can be found in the L-vector at index offsets[i + k*elem_size] + j*comp_stride.
+  @param[in]  l_size      The size of the L-vector.
+                            This vector may be larger than the elements and fields given by this restriction.
   @param[in]  mem_type    Memory type of the @a offsets array, see CeedMemType
   @param[in]  copy_mode   Copy mode for the @a offsets array, see CeedCopyMode
-  @param[in]  offsets     Array of shape [@a num_elem, @a elem_size]. Row i holds the ordered list of the offsets (into the input CeedVector) for the
-unknowns corresponding to element i, where 0 <= i < @a num_elem. All offsets must be in the range [0, @a l_size - 1].
+  @param[in]  offsets     Array of shape [@a num_elem, @a elem_size].
+                            Row i holds the ordered list of the offsets (into the input CeedVector) for the unknowns corresponding to element i, where
+0 <= i < @a num_elem. All offsets must be in the range [0, @a l_size - 1].
   @param[out] rstr        Address of the variable where the newly created CeedElemRestriction will be stored
 
   @return An error code: 0 - success, otherwise - failure
@@ -483,13 +487,15 @@ int CeedElemRestrictionCreate(Ceed ceed, CeedInt num_elem, CeedInt elem_size, Ce
   @param[in]  num_elem    Number of elements described in the @a offsets array
   @param[in]  elem_size   Size (number of "nodes") per element
   @param[in]  num_comp    Number of field components per interpolation node (1 for scalar fields)
-  @param[in]  comp_stride Stride between components for the same L-vector "node". Data for node i, component j, element k can be found in the L-vector
-at index offsets[i + k*elem_size] + j*comp_stride.
-  @param[in]  l_size      The size of the L-vector. This vector may be larger than the elements and fields given by this restriction.
+  @param[in]  comp_stride Stride between components for the same L-vector "node".
+                            Data for node i, component j, element k can be found in the L-vector at index offsets[i + k*elem_size] + j*comp_stride.
+  @param[in]  l_size      The size of the L-vector.
+                            This vector may be larger than the elements and fields given by this restriction.
   @param[in]  mem_type    Memory type of the @a offsets array, see CeedMemType
   @param[in]  copy_mode   Copy mode for the @a offsets array, see CeedCopyMode
-  @param[in]  offsets     Array of shape [@a num_elem, @a elem_size]. Row i holds the ordered list of the offsets (into the input CeedVector) for the
-unknowns corresponding to element i, where 0 <= i < @a num_elem. All offsets must be in the range [0, @a l_size - 1].
+  @param[in]  offsets     Array of shape [@a num_elem, @a elem_size].
+                            Row i holds the ordered list of the offsets (into the input CeedVector) for the unknowns corresponding to element i, where
+0 <= i < @a num_elem. All offsets must be in the range [0, @a l_size - 1].
   @param[in]  orients     Array of shape [@a num_elem, @a elem_size] with bool false for positively oriented and true to flip the orientation.
   @param[out] rstr        Address of the variable where the newly created CeedElemRestriction will be stored
 
@@ -536,13 +542,15 @@ int CeedElemRestrictionCreateOriented(Ceed ceed, CeedInt num_elem, CeedInt elem_
   @param[in]  num_elem     Number of elements described in the @a offsets array
   @param[in]  elem_size    Size (number of "nodes") per element
   @param[in]  num_comp     Number of field components per interpolation node (1 for scalar fields)
-  @param[in]  comp_stride  Stride between components for the same L-vector "node". Data for node i, component j, element k can be found in the
-L-vector at index offsets[i + k*elem_size] + j*comp_stride.
-  @param[in]  l_size       The size of the L-vector. This vector may be larger than the elements and fields given by this restriction.
+  @param[in]  comp_stride  Stride between components for the same L-vector "node".
+                             Data for node i, component j, element k can be found in the L-vector at index offsets[i + k*elem_size] + j*comp_stride.
+  @param[in]  l_size       The size of the L-vector.
+                             This vector may be larger than the elements and fields given by this restriction.
   @param[in]  mem_type     Memory type of the @a offsets array, see CeedMemType
   @param[in]  copy_mode    Copy mode for the @a offsets array, see CeedCopyMode
-  @param[in]  offsets      Array of shape [@a num_elem, @a elem_size]. Row i holds the ordered list of the offsets (into the input CeedVector) for the
-unknowns corresponding to element i, where 0 <= i < @a num_elem. All offsets must be in the range [0, @a l_size - 1].
+  @param[in]  offsets      Array of shape [@a num_elem, @a elem_size].
+                             Row i holds the ordered list of the offsets (into the input CeedVector) for the unknowns corresponding to element i,
+where 0 <= i < @a num_elem. All offsets must be in the range [0, @a l_size - 1].
   @param[in]  curl_orients Array of shape [@a num_elem, @a 3 * elem_size] representing a row-major tridiagonal matrix (curl_orients[0] =
 curl_orients[(i + 1) * 3 * elem_size - 1] = 0, where 0 <= i < @a num_elem) which is applied to the element unknowns upon restriction. This orientation
 matrix allows for pairs of face degrees of freedom on elements for H(curl) spaces to be coupled in the element restriction operation, which is a way
@@ -593,9 +601,11 @@ int CeedElemRestrictionCreateCurlOriented(Ceed ceed, CeedInt num_elem, CeedInt e
   @param[in]  num_elem  Number of elements described by the restriction
   @param[in]  elem_size Size (number of "nodes") per element
   @param[in]  num_comp  Number of field components per interpolation "node" (1 for scalar fields)
-  @param[in]  l_size    The size of the L-vector. This vector may be larger than the elements and fields given by this restriction.
-  @param[in]  strides   Array for strides between [nodes, components, elements]. Data for node i, component j, element k can be found in the L-vector
-at index i*strides[0] + j*strides[1] + k*strides[2]. @a CEED_STRIDES_BACKEND may be used with vectors created by a Ceed backend.
+  @param[in]  l_size    The size of the L-vector.
+                          This vector may be larger than the elements and fields given by this restriction.
+  @param[in]  strides   Array for strides between [nodes, components, elements].
+                          Data for node i, component j, element k can be found in the L-vector at index i*strides[0] + j*strides[1] + k*strides[2].
+                          @a CEED_STRIDES_BACKEND may be used with vectors created by a Ceed backend.
   @param[out] rstr      Address of the variable where the newly created CeedElemRestriction will be stored
 
   @return An error code: 0 - success, otherwise - failure
@@ -640,14 +650,16 @@ int CeedElemRestrictionCreateStrided(Ceed ceed, CeedInt num_elem, CeedInt elem_s
   @param[in]  elem_size   Size (number of unknowns) per element
   @param[in]  blk_size    Number of elements in a block
   @param[in]  num_comp    Number of field components per interpolation node (1 for scalar fields)
-  @param[in]  comp_stride Stride between components for the same L-vector "node". Data for node i, component j, element k can be found in the L-vector
- at index offsets[i + k*elem_size] + j*comp_stride.
-  @param[in]  l_size      The size of the L-vector. This vector may be larger than the elements and fields given by this restriction.
+  @param[in]  comp_stride Stride between components for the same L-vector "node".
+                            Data for node i, component j, element k can be found in the L-vector at index offsets[i + k*elem_size] + j*comp_stride.
+  @param[in]  l_size      The size of the L-vector.
+                            This vector may be larger than the elements and fields given by this restriction.
   @param[in]  mem_type    Memory type of the @a offsets array, see CeedMemType
   @param[in]  copy_mode   Copy mode for the @a offsets array, see CeedCopyMode
-  @param[in]  offsets     Array of shape [@a num_elem, @a elem_size]. Row i holds the ordered list of the offsets (into the input CeedVector) for the
- unknowns corresponding to element i, where 0 <= i < @a num_elem. All offsets must be in the range [0, @a l_size - 1]. The backend will permute and
- pad this array to the desired ordering for the blocksize, which is typically given by the backend. The default reordering is to interlace elements.
+  @param[in]  offsets     Array of shape [@a num_elem, @a elem_size].
+                            Row i holds the ordered list of the offsets (into the input CeedVector) for the unknowns corresponding to element i, where
+ 0 <= i < @a num_elem. All offsets must be in the range [0, @a l_size - 1]. The backend will permute and pad this array to the desired ordering for
+ the blocksize, which is typically given by the backend. The default reordering is to interlace elements.
   @param[out] rstr        Address of the variable where the newly created CeedElemRestriction will be stored
 
   @return An error code: 0 - success, otherwise - failure
@@ -704,16 +716,18 @@ int CeedElemRestrictionCreateBlocked(Ceed ceed, CeedInt num_elem, CeedInt elem_s
   @param[in]  elem_size   Size (number of unknowns) per element
   @param[in]  blk_size    Number of elements in a block
   @param[in]  num_comp    Number of field components per interpolation node (1 for scalar fields)
-  @param[in]  comp_stride Stride between components for the same L-vector "node". Data for node i, component j, element k can be found in the L-vector
- at index offsets[i + k*elem_size] + j*comp_stride.
-  @param[in]  l_size      The size of the L-vector. This vector may be larger than the elements and fields given by this restriction.
+  @param[in]  comp_stride Stride between components for the same L-vector "node".
+                            Data for node i, component j, element k can be found in the L-vector at index offsets[i + k*elem_size] + j*comp_stride.
+  @param[in]  l_size      The size of the L-vector.
+                            This vector may be larger than the elements and fields given by this restriction.
   @param[in]  mem_type    Memory type of the @a offsets array, see CeedMemType
   @param[in]  copy_mode   Copy mode for the @a offsets array, see CeedCopyMode
-  @param[in]  offsets     Array of shape [@a num_elem, @a elem_size]. Row i holds the ordered list of the offsets (into the input CeedVector) for the
- unknowns corresponding to element i, where 0 <= i < @a num_elem. All offsets must be in the range [0, @a l_size - 1]. The backend will permute and
- pad this array to the desired ordering for the blocksize, which is typically given by the backend. The default reordering is to interlace elements.
-  @param[in]  orients     Array of shape [@a num_elem, @a elem_size] with bool false for positively oriented and true to flip the orientation. Will
- also be permuted and padded similarly to offsets.
+  @param[in]  offsets     Array of shape [@a num_elem, @a elem_size].
+                            Row i holds the ordered list of the offsets (into the input CeedVector) for the unknowns corresponding to element i, where
+ 0 <= i < @a num_elem. All offsets must be in the range [0, @a l_size - 1]. The backend will permute and pad this array to the desired ordering for
+ the blocksize, which is typically given by the backend. The default reordering is to interlace elements.
+  @param[in]  orients     Array of shape [@a num_elem, @a elem_size] with bool false for positively oriented and true to flip the orientation.
+                            Will also be permuted and padded similarly to @a offsets.
   @param[out] rstr        Address of the variable where the newly created CeedElemRestriction will be stored
 
   @return An error code: 0 - success, otherwise - failure
@@ -775,19 +789,21 @@ int CeedElemRestrictionCreateBlockedOriented(Ceed ceed, CeedInt num_elem, CeedIn
   @param[in]  elem_size    Size (number of unknowns) per element
   @param[in]  blk_size     Number of elements in a block
   @param[in]  num_comp     Number of field components per interpolation node (1 for scalar fields)
-  @param[in]  comp_stride  Stride between components for the same L-vector "node". Data for node i, component j, element k can be found in the
- L-vector at index offsets[i + k*elem_size] + j*comp_stride.
-  @param[in]  l_size       The size of the L-vector. This vector may be larger than the elements and fields given by this restriction.
+  @param[in]  comp_stride  Stride between components for the same L-vector "node".
+                             Data for node i, component j, element k can be found in the L-vector at index offsets[i + k*elem_size] + j*comp_stride.
+  @param[in]  l_size       The size of the L-vector.
+                             This vector may be larger than the elements and fields given by this restriction.
   @param[in]  mem_type     Memory type of the @a offsets array, see CeedMemType
   @param[in]  copy_mode    Copy mode for the @a offsets array, see CeedCopyMode
-  @param[in]  offsets      Array of shape [@a num_elem, @a elem_size]. Row i holds the ordered list of the offsets (into the input CeedVector) for the
- unknowns corresponding to element i, where 0 <= i < @a num_elem. All offsets must be in the range [0, @a l_size - 1]. The backend will permute and
- pad this array to the desired ordering for the blocksize, which is typically given by the backend. The default reordering is to interlace elements.
-   @param[in]  curl_orients Array of shape [@a num_elem, @a 3 * elem_size] representing a row-major tridiagonal matrix (curl_orients[0] =
-curl_orients[(i + 1) * 3 * elem_size - 1] = 0, where 0 <= i < @a num_elem) which is applied to the element unknowns upon restriction. This orientation
-matrix allows for pairs of face degrees of freedom on elements for H(curl) spaces to be coupled in the element restriction operation, which is a way
-to resolve face orientation issues for 3D meshes (https://dl.acm.org/doi/pdf/10.1145/3524456). Will also be permuted and padded similarly to
-offsets.
+  @param[in]  offsets      Array of shape [@a num_elem, @a elem_size].
+                             Row i holds the ordered list of the offsets (into the input CeedVector) for the unknowns corresponding to element i,
+where 0 <= i < @a num_elem. All offsets must be in the range [0, @a l_size - 1]. The backend will permute and pad this array to the desired ordering
+for the blocksize, which is typically given by the backend. The default reordering is to interlace elements.
+  @param[in]  curl_orients Array of shape [@a num_elem, @a 3 * elem_size] representing a row-major tridiagonal matrix (curl_orients[0] =
+curl_orients[(i + 1) * 3 * elem_size - 1] = 0, where 0 <= i < @a num_elem) which is applied to the element unknowns upon restriction.
+                             This orientation matrix allows for pairs of face degrees of freedom on elements for H(curl) spaces to be coupled in the
+element restriction operation, which is a way to resolve face orientation issues for 3D meshes (https://dl.acm.org/doi/pdf/10.1145/3524456). Will also
+be permuted and padded similarly to @a offsets.
   @param[out] rstr         Address of the variable where the newly created CeedElemRestriction will be stored
 
   @return An error code: 0 - success, otherwise - failure
@@ -850,9 +866,11 @@ int CeedElemRestrictionCreateBlockedCurlOriented(Ceed ceed, CeedInt num_elem, Ce
   @param[in]  elem_size Size (number of "nodes") per element
   @param[in]  blk_size  Number of elements in a block
   @param[in]  num_comp  Number of field components per interpolation node (1 for scalar fields)
-  @param[in]  l_size    The size of the L-vector. This vector may be larger than the elements and fields given by this restriction.
-  @param[in]  strides   Array for strides between [nodes, components, elements]. Data for node i, component j, element k can be found in the L-vector
-at index i*strides[0] + j*strides[1] + k*strides[2]. @a CEED_STRIDES_BACKEND may be used with vectors created by a Ceed backend.
+  @param[in]  l_size    The size of the L-vector.
+                          This vector may be larger than the elements and fields given by this restriction.
+  @param[in]  strides   Array for strides between [nodes, components, elements].
+                          Data for node i, component j, element k can be found in the L-vector at index i*strides[0] + j*strides[1] + k*strides[2].
+                          @a CEED_STRIDES_BACKEND may be used with vectors created by a Ceed backend.
   @param[out] rstr      Address of the variable where the newly created CeedElemRestriction will be stored
 
   @return An error code: 0 - success, otherwise - failure
@@ -973,8 +991,8 @@ int CeedElemRestrictionCreateVector(CeedElemRestriction rstr, CeedVector *l_vec,
   @param[in]  rstr    CeedElemRestriction
   @param[in]  t_mode  Apply restriction or transpose
   @param[in]  u       Input vector (of size @a l_size when t_mode=@ref CEED_NOTRANSPOSE)
-  @param[out] ru      Output vector (of shape [@a num_elem * @a elem_size] when t_mode=@ref CEED_NOTRANSPOSE). Ordering of the e-vector is decided by
-the backend.
+  @param[out] ru      Output vector (of shape [@a num_elem * @a elem_size] when t_mode=@ref CEED_NOTRANSPOSE).
+                        Ordering of the e-vector is decided by the backend.
   @param[in]  request Request or @ref CEED_REQUEST_IMMEDIATE
 
   @return An error code: 0 - success, otherwise - failure
@@ -1007,8 +1025,8 @@ int CeedElemRestrictionApply(CeedElemRestriction rstr, CeedTransposeMode t_mode,
 : 4*blk_size]
   @param[in]  t_mode  Apply restriction or transpose
   @param[in]  u       Input vector (of size @a l_size when t_mode=@ref CEED_NOTRANSPOSE)
-  @param[out] ru      Output vector (of shape [@a blk_size * @a elem_size] when t_mode=@ref CEED_NOTRANSPOSE). Ordering of the e-vector is decided by
-the backend.
+  @param[out] ru      Output vector (of shape [@a blk_size * @a elem_size] when t_mode=@ref CEED_NOTRANSPOSE).
+                        Ordering of the e-vector is decided by the backend.
   @param[in]  request Request or @ref CEED_REQUEST_IMMEDIATE
 
   @return An error code: 0 - success, otherwise - failure
