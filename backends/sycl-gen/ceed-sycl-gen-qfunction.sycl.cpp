@@ -26,15 +26,20 @@ static int CeedQFunctionApply_Sycl_gen(CeedQFunction qf, CeedInt Q, CeedVector *
 // Destroy QFunction
 //------------------------------------------------------------------------------
 static int CeedQFunctionDestroy_Sycl_gen(CeedQFunction qf) {
-  // CeedQFunction_Sycl_gen *data;
-  // CeedCallBackend(CeedQFunctionGetData(qf, &data));
   Ceed ceed;
   CeedCallBackend(CeedQFunctionGetCeed(qf, &ceed));
-  // CeedCallSycl(ceed, syclFree(data->d_c));
-  // CeedCallBackend(CeedFree(&data->q_function_source));
-  // CeedCallBackend(CeedFree(&data));
-  // return CEED_ERROR_SUCCESS;
-  return CeedError(ceed, CEED_ERROR_BACKEND, "CeedQFunctionDestroy_Sycl_gen not implemented");
+  CeedQFunction_Sycl_gen *impl;
+  CeedCallBackend(CeedQFunctionGetData(qf, &impl));
+  Ceed_Sycl *data;
+  CeedCallBackend(CeedGetData(ceed, &data));
+
+  // Wait for all work to finish before freeing memory
+  CeedCallSycl(ceed, data->sycl_queue.wait_and_throw());
+  CeedCallSycl(ceed, sycl::free(impl->d_c, data->sycl_context));
+  
+  CeedCallBackend(CeedFree(&impl->q_function_source));
+  CeedCallBackend(CeedFree(&impl));
+  return CEED_ERROR_SUCCESS;
 }
 
 //------------------------------------------------------------------------------
@@ -43,20 +48,20 @@ static int CeedQFunctionDestroy_Sycl_gen(CeedQFunction qf) {
 int CeedQFunctionCreate_Sycl_gen(CeedQFunction qf) {
   Ceed ceed;
   CeedQFunctionGetCeed(qf, &ceed);
-  CeedQFunction_Sycl_gen *data;
-  CeedCallBackend(CeedCalloc(1, &data));
-  CeedCallBackend(CeedQFunctionSetData(qf, data));
+  CeedQFunction_Sycl_gen *impl;
+  CeedCallBackend(CeedCalloc(1, &impl));
+  CeedCallBackend(CeedQFunctionSetData(qf, impl));
 
   // Read QFunction source
-  // CeedCallBackend(CeedQFunctionGetKernelName(qf, &data->q_function_name));
-  // CeedDebug256(ceed, 2, "----- Loading QFunction User Source -----\n");
-  // CeedCallBackend(CeedQFunctionLoadSourceToBuffer(qf, &data->q_function_source));
-  // CeedDebug256(ceed, 2, "----- Loading QFunction User Source Complete! -----\n");
-  // if (!data->q_function_source) {
-  //   // LCOV_EXCL_START
-  //   return CeedError(ceed, CEED_ERROR_UNSUPPORTED, "/gpu/sycl/gen backend requires QFunction source code file");
-  //   // LCOV_EXCL_STOP
-  // }
+  CeedCallBackend(CeedQFunctionGetKernelName(qf, &impl->q_function_name));
+  CeedDebug256(ceed, 2, "----- Loading QFunction User Source -----\n");
+  CeedCallBackend(CeedQFunctionLoadSourceToBuffer(qf, &impl->q_function_source));
+  CeedDebug256(ceed, 2, "----- Loading QFunction User Source Complete! -----\n");
+  if (!impl->q_function_source) {
+    // LCOV_EXCL_START
+    return CeedError(ceed, CEED_ERROR_UNSUPPORTED, "/gpu/sycl/gen backend requires QFunction source code file");
+    // LCOV_EXCL_STOP
+  }
 
   CeedCallBackend(CeedSetBackendFunctionCpp(ceed, "QFunction", qf, "Apply", CeedQFunctionApply_Sycl_gen));
   CeedCallBackend(CeedSetBackendFunctionCpp(ceed, "QFunction", qf, "Destroy", CeedQFunctionDestroy_Sycl_gen));
