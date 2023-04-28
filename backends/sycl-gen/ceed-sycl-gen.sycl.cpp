@@ -5,7 +5,7 @@
 //
 // This file is part of CEED:  http://github.com/ceed
 
-#include "ceed-sycl-gen.h"
+#include "ceed-sycl-gen.hpp"
 
 #include <ceed/backend.h>
 #include <ceed/ceed.h>
@@ -45,9 +45,9 @@ static int CeedInit_Sycl_gen(const char *resource, Ceed ceed) {
   const char fallbackresource[] = "/gpu/sycl/ref";
   CeedCallBackend(CeedSetOperatorFallbackResource(ceed, fallbackresource));
 
-  CeedCallBackend(CeedSetBackendFunction(ceed, "Ceed", ceed, "QFunctionCreate", CeedQFunctionCreate_Sycl_gen));
-  CeedCallBackend(CeedSetBackendFunction(ceed, "Ceed", ceed, "OperatorCreate", CeedOperatorCreate_Sycl_gen));
-  CeedCallBackend(CeedSetBackendFunction(ceed, "Ceed", ceed, "Destroy", CeedDestroy_Sycl));
+  CeedCallBackend(CeedSetBackendFunctionCpp(ceed, "Ceed", ceed, "QFunctionCreate", CeedQFunctionCreate_Sycl_gen));
+  CeedCallBackend(CeedSetBackendFunctionCpp(ceed, "Ceed", ceed, "OperatorCreate", CeedOperatorCreate_Sycl_gen));
+  CeedCallBackend(CeedSetBackendFunctionCpp(ceed, "Ceed", ceed, "Destroy", CeedDestroy_Sycl));
   return CEED_ERROR_SUCCESS;
 }
 

@@ -10,16 +10,16 @@
 
 #include <ceed/backend.h>
 #include <ceed/ceed.h>
-#include <sycl/sycl_runtime.h>
+#include <sycl/sycl.hpp>
 
-#include "../sycl/ceed-sycl-common.h"
+#include "../sycl/ceed-sycl-common.hpp"
 
 typedef struct {
   CeedInt       dim;
   CeedInt       Q_1d;
   CeedInt       max_P_1d;
-  syclModule_t   module;
-  syclFunction_t op;
+  // syclModule_t   module;
+  // syclFunction_t op;
   FieldsInt_Sycl indices;
   Fields_Sycl    fields;
   Fields_Sycl    B;
