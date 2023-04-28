@@ -10,6 +10,7 @@
 #include <ceed/backend.h>
 #include <stdbool.h>
 #include <stdio.h>
+#include <string.h>
 
 /// @file
 /// Implementation of CeedElemRestriction interfaces
@@ -85,9 +86,13 @@ int CeedElemRestrictionGetStrides(CeedElemRestriction rstr, CeedInt (*strides)[3
   @ref User
 **/
 int CeedElemRestrictionGetOffsets(CeedElemRestriction rstr, CeedMemType mem_type, const CeedInt **offsets) {
-  CeedCheck(rstr->GetOffsets, rstr->ceed, CEED_ERROR_UNSUPPORTED, "Backend does not support GetOffsets");
-  CeedCall(rstr->GetOffsets(rstr, mem_type, offsets));
-  rstr->num_readers++;
+  if (rstr->rstr_signed) {
+    CeedCall(CeedElemRestrictionGetOffsets(rstr->rstr_signed, mem_type, offsets));
+  } else {
+    CeedCheck(rstr->GetOffsets, rstr->ceed, CEED_ERROR_UNSUPPORTED, "Backend does not support GetOffsets");
+    CeedCall(rstr->GetOffsets(rstr, mem_type, offsets));
+    rstr->num_readers++;
+  }
   return CEED_ERROR_SUCCESS;
 }
 
@@ -102,8 +107,12 @@ int CeedElemRestrictionGetOffsets(CeedElemRestriction rstr, CeedMemType mem_type
   @ref User
 **/
 int CeedElemRestrictionRestoreOffsets(CeedElemRestriction rstr, const CeedInt **offsets) {
-  *offsets = NULL;
-  rstr->num_readers--;
+  if (rstr->rstr_signed) {
+    CeedCall(CeedElemRestrictionRestoreOffsets(rstr->rstr_signed, offsets));
+  } else {
+    *offsets = NULL;
+    rstr->num_readers--;
+  }
   return CEED_ERROR_SUCCESS;
 }
 
@@ -559,6 +568,39 @@ int CeedElemRestrictionCreateBlockedStrided(Ceed ceed, CeedInt num_elem, CeedInt
 }
 
 /**
+  @brief Copy the pointer to a CeedElemRestriction and set `CeedElemRestrictionApply()` implementation to `CeedElemRestrictionApplyUnsigned()`.
+
+  Both pointers should be destroyed with `CeedElemRestrictionDestroy()`.
+
+  @param[in]     rstr          CeedElemRestriction to create unsigned reference to
+  @param[in,out] rstr_unsigned Variable to store unsigned CeedElemRestriction
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref User
+**/
+int CeedElemRestrictionCreateUnsignedCopy(CeedElemRestriction rstr, CeedElemRestriction *rstr_unsigned) {
+  CeedCall(CeedCalloc(1, rstr_unsigned));
+
+  // Copy old rstr
+  memcpy(*rstr_unsigned, rstr, sizeof(struct CeedElemRestriction_private));
+  (*rstr_unsigned)->ceed = NULL;
+  CeedCall(CeedReferenceCopy(rstr->ceed, &(*rstr_unsigned)->ceed));
+  (*rstr_unsigned)->ref_count = 1;
+  (*rstr_unsigned)->strides   = NULL;
+  if (rstr->strides) {
+    CeedCall(CeedMalloc(3, &(*rstr_unsigned)->strides));
+    for (CeedInt i = 0; i < 3; i++) (*rstr_unsigned)->strides[i] = rstr->strides[i];
+  }
+  CeedCall(CeedElemRestrictionReferenceCopy(rstr, &(*rstr_unsigned)->rstr_signed));
+
+  // Override Apply
+  (*rstr_unsigned)->Apply = rstr->ApplyUnsigned;
+
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
   @brief Copy the pointer to a CeedElemRestriction.
 
   Both pointers should be destroyed with `CeedElemRestrictionDestroy()`.
@@ -894,7 +936,11 @@ int CeedElemRestrictionDestroy(CeedElemRestriction *rstr) {
   }
   CeedCheck((*rstr)->num_readers == 0, (*rstr)->ceed, CEED_ERROR_ACCESS,
             "Cannot destroy CeedElemRestriction, a process has read access to the offset data");
-  if ((*rstr)->Destroy) CeedCall((*rstr)->Destroy(*rstr));
+
+  // Only destroy backend data once between rstr and unsigned copy
+  if ((*rstr)->rstr_signed) CeedCall(CeedElemRestrictionDestroy(&(*rstr)->rstr_signed));
+  else if ((*rstr)->Destroy) CeedCall((*rstr)->Destroy(*rstr));
+
   CeedCall(CeedFree(&(*rstr)->strides));
   CeedCall(CeedDestroy(&(*rstr)->ceed));
   CeedCall(CeedFree(rstr));
