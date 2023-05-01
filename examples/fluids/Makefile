@@ -22,8 +22,16 @@ CEED_DIR ?= ../..
 ceed.pc := $(CEED_DIR)/lib/pkgconfig/ceed.pc
 SMARTREDIS_DIR ?=
 hiredis.pc := $(if $(SMARTREDIS_DIR),$(SMARTREDIS_DIR)/lib/pkgconfig/hiredis.pc,)
-redis++.pc := $(if $(SMARTREDIS_DIR),$(SMARTREDIS_DIR)/lib/pkgconfig/redis++.pc,)
+# redis++.pc := $(if $(SMARTREDIS_DIR),$(SMARTREDIS_DIR)/lib/pkgconfig/redis++.pc,)
 lsmartredis:= $(if $(SMARTREDIS_DIR),-lsmartredis,)
+
+ifdef SMARTREDIS_DIR
+	ifneq (,$(wildcard $(SMARTREDIS_DIR)/lib/pkgconfig/redis++.pc))
+		redis++.pc = $(SMARTREDIS_DIR)/lib/pkgconfig/redis++.pc
+	else
+		redis++.pc = $(SMARTREDIS_DIR)/lib64/pkgconfig/redis++.pc
+	endif
+endif
 
 CC = $(call pkgconf, --variable=ccompiler $(PETSc.pc) $(ceed.pc))
 CFLAGS = -std=c99 \
@@ -33,7 +41,9 @@ CFLAGS = -std=c99 \
 CPPFLAGS = $(call pkgconf, --cflags-only-I $(PETSc.pc) $(ceed.pc) $(hiredis.pc) $(redis++.pc)) \
   $(call pkgconf, --variable=cflags_dep $(PETSc.pc))
 LDFLAGS = $(call pkgconf, --libs-only-L --libs-only-other $(PETSc.pc) $(ceed.pc) $(hiredis.pc) $(redis++.pc))
+LDFLAGS += -Wl,-rpath,$(SMARTREDIS_DIR)/lib64/
 LDFLAGS += $(patsubst -L%, $(call pkgconf, --variable=ldflag_rpath $(PETSc.pc))%, $(call pkgconf, --libs-only-L $(PETSc.pc) $(ceed.pc) $(hiredis.pc) $(redis++.pc)))
+LDFLAGS += -L$(SMARTREDIS_DIR)/lib64/
 LDLIBS = $(call pkgconf, --libs-only-l $(PETSc.pc) $(ceed.pc) $(hiredis.pc) $(redis++.pc)) $(lsmartredis) -lm
 
 OBJDIR := build
@@ -44,7 +54,7 @@ src.c := navierstokes.c $(sort $(wildcard $(PROBLEMDIR)/*.c)) $(sort $(wildcard 
 src.o = $(src.c:%.c=$(OBJDIR)/%.o)
 
 ifeq ($(SMARTREDIS_DIR),)
-src.c := $(filter-out $(SRCDIR)/smartsim.c $(PROBLEMDIR)/sgs_dd_training.c,$(src.c))
+	src.c := $(filter-out $(SRCDIR)/smartsim.c $(PROBLEMDIR)/sgs_dd_training.c,$(src.c))
 endif
 
 all: navierstokes
