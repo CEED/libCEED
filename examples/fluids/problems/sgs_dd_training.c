@@ -321,8 +321,8 @@ PetscErrorCode SGS_DD_TrainingSetup(Ceed ceed, User user, CeedData ceed_data, Pr
       array_info[4] = smartsim->collocated_database_num_ranks;
       array_info[5] = rank;
 
-      SmartRedisCall(put_tensor(smartsim->client, "array_info", 10, array_info, &array_info_dim, 1, SRTensorTypeInt32, SRMemLayoutContiguous));
-      PetscCall(SmartRedisVerifyPutTensor(smartsim->client, "array_info", 10));
+      SmartRedisCall(put_tensor(smartsim->client, "sizeInfo", 8, array_info, &array_info_dim, 1, SRTensorTypeInt32, SRMemLayoutContiguous));
+      PetscCall(SmartRedisVerifyPutTensor(smartsim->client, "sizeInfo", 8));
     }
   }
 
