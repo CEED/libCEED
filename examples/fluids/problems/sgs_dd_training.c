@@ -406,9 +406,10 @@ PetscErrorCode TSMonitor_SGS_DD_Training(TS ts, PetscInt step_num, PetscReal sol
       if (smartsim->overwrite_tensors) {
         PetscCall(PetscSNPrintf(array_key, sizeof array_key, "%s", smartsim->rank_id_name));
       } else {
-        PetscCall(PetscSNPrintf(array_key, sizeof array_key, "%s%" PetscInt_FMT, smartsim->rank_id_name, step_num));
+        PetscCall(PetscSNPrintf(array_key, sizeof array_key, "%s.%" PetscInt_FMT, smartsim->rank_id_name, step_num));
       }
       PetscCall(PetscStrlen(array_key, &array_key_len));
+      printf("put_array with key '%s'\n", array_key);
 
       {
         const PetscScalar *training_data;

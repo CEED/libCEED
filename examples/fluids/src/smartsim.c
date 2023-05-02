@@ -59,7 +59,7 @@ PetscErrorCode SmartSimSetup(User user) {
   PetscCall(PetscStrlen(smartsim->rank_id_name, &rank_id_name_len));
   // Create prefix to be put on tensor names
   PetscCallMPI(MPI_Comm_rank(user->comm, &rank));
-  PetscCall(PetscSNPrintf(smartsim->rank_id_name, sizeof smartsim->rank_id_name, "%06d_", rank));
+  PetscCall(PetscSNPrintf(smartsim->rank_id_name, sizeof smartsim->rank_id_name, "y.%d", rank));
 
   SmartRedisCall(SmartRedisCClient(num_orchestrator_nodes != 1, smartsim->rank_id_name, rank_id_name_len, &smartsim->client));
 

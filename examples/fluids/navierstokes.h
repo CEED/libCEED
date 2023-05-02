@@ -198,7 +198,7 @@ typedef struct {
 
 typedef struct {
   void     *client;
-  char      rank_id_name[7];
+  char      rank_id_name[16];
   PetscBool overwrite_tensors;
   PetscBool collocated_database;
   PetscInt  collocated_database_num_ranks;
