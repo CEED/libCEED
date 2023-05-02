@@ -164,6 +164,8 @@ int main(int argc, char **argv) {
   CeedElemRestrictionDestroy(&elem_restriction_q_data);
   CeedBasisDestroy(&basis_u);
   CeedBasisDestroy(&basis_x);
+  CeedBasisDestroy(&basis_u_coarse);
+  CeedBasisDestroy(&basis_coarse_to_fine);
   CeedQFunctionDestroy(&qf_setup);
   CeedQFunctionDestroy(&qf_mass);
   CeedOperatorDestroy(&op_setup);
