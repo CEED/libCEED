@@ -144,8 +144,10 @@ static int CeedVectorGetArrayRead_Memcheck(CeedVector vec, CeedMemType mem_type,
   CeedCallBackend(CeedVectorGetArray_Memcheck(vec, mem_type, (CeedScalar **)array));
 
   // Make copy to verify no write occurred
-  CeedCallBackend(CeedCalloc(length, &impl->array_read_only_copy));
-  memcpy(impl->array_read_only_copy, *array, length * sizeof((*array)[0]));
+  if (!impl->array_read_only_copy) {
+    CeedCallBackend(CeedCalloc(length, &impl->array_read_only_copy));
+    memcpy(impl->array_read_only_copy, *array, length * sizeof((*array)[0]));
+  }
 
   return CEED_ERROR_SUCCESS;
 }
