@@ -335,6 +335,28 @@ PetscErrorCode TSMonitor_SGS_DD_Training(TS ts, PetscInt step_num, PetscReal sol
   PetscFunctionReturn(0);
 }
 
+PetscErrorCode TSPostStep_SGS_DD_Training(TS ts) {
+  User         user;
+  const char   check_run_key[]   = "check-run";
+  PetscReal    check_run[2]      = {1};
+  const size_t check_run_dims[1] = {2};
+  size_t       check_run_key_size;
+
+  PetscFunctionBeginUser;
+  PetscCall(PetscStrlen(check_run_key, &check_run_key_size));
+  PetscCall(TSGetApplicationContext(ts, &user));
+  SmartSimData smartsim = user->smartsim;
+
+  SmartRedisCall(
+      unpack_tensor(smartsim->client, check_run_key, check_run_key_size, check_run, check_run_dims, 1, SRTensorTypeDouble, SRMemLayoutContiguous));
+  if (check_run[0] == 0) {
+    PetscCall(PetscPrintf(user->comm, "-- Simulation stopped by 'check-run' tensor in Redis database\n"));
+    PetscCall(TSSetConvergedReason(ts, TS_CONVERGED_USER));
+  }
+
+  PetscFunctionReturn(0);
+}
+
 PetscErrorCode SGS_DD_TrainingDataDestroy(SGS_DD_TrainingData sgs_dd_train) {
   PetscFunctionBeginUser;
   if (!sgs_dd_train) PetscFunctionReturn(0);
