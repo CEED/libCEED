@@ -475,6 +475,7 @@ PetscErrorCode DifferentialFilter_MMS_ICSetup(ProblemData *problem);
 PetscErrorCode SmartSimSetup(User user);
 PetscErrorCode SGS_DD_TrainingSetup(Ceed ceed, User user, CeedData ceed_data, ProblemData *problem);
 PetscErrorCode TSMonitor_SGS_DD_Training(TS ts, PetscInt step_num, PetscReal solution_time, Vec Q, void *ctx);
+PetscErrorCode TSPostStep_SGS_DD_Training(TS ts);
 PetscErrorCode SGS_DD_TrainingDataDestroy(SGS_DD_TrainingData sgs_dd_train);
 
 #endif  // libceed_fluids_examples_navier_stokes_h

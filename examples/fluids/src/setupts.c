@@ -426,6 +426,7 @@ PetscErrorCode TSSolve_NS(DM dm, User user, AppCtx app_ctx, Physics phys, Vec *Q
 
   PetscCall(TSCreate(comm, ts));
   PetscCall(TSSetDM(*ts, dm));
+  PetscCall(TSSetApplicationContext(*ts, user));
   if (phys->implicit) {
     PetscCall(TSSetType(*ts, TSBDF));
     if (user->op_ifunction) {
