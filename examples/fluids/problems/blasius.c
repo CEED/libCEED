@@ -231,7 +231,7 @@ static PetscErrorCode ModifyMesh(MPI_Comm comm, DM dm, PetscInt dim, PetscReal g
 
 PetscErrorCode NS_BLASIUS(ProblemData *problem, DM dm, void *ctx, SimpleBC bc) {
   User                     user    = *(User *)ctx;
-  MPI_Comm                 comm    = PETSC_COMM_WORLD;
+  MPI_Comm                 comm    = user->comm;
   PetscBool                use_stg = PETSC_FALSE;
   BlasiusContext           blasius_ctx;
   NewtonianIdealGasContext newtonian_ig_ctx;
