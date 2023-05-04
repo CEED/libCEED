@@ -326,9 +326,8 @@ int BuildCartesianRestriction(Ceed ceed, CeedInt dim, CeedInt num_xyz[dim], Ceed
 
 int SetCartesianMeshCoords(CeedInt dim, CeedInt num_xyz[dim], CeedInt mesh_degree, CeedVector mesh_coords) {
   CeedInt p = mesh_degree + 1;
-  CeedInt nd[3], num_elem = 1, scalar_size = 1;
+  CeedInt nd[3], scalar_size = 1;
   for (CeedInt d = 0; d < dim; d++) {
-    num_elem *= num_xyz[d];
     nd[d] = num_xyz[d] * (p - 1) + 1;
     scalar_size *= nd[d];
   }
