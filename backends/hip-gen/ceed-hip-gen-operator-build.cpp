@@ -448,7 +448,7 @@ extern "C" int CeedHipGenOperatorBuild(CeedOperator op) {
   // We treat quadrature points per slice in 3d to save registers
   if (use_collograd_parallelization) {
     code << "\n    // Note: Using planes of 3D elements\n";
-    code << "#pragma unroll\n";
+//    code << "#pragma unroll\n";
     code << "    for (CeedInt q = 0; q < Q_1d; q++) {\n";
     code << "      // -- Input fields --\n";
     for (CeedInt i = 0; i < num_input_fields; i++) {
@@ -565,15 +565,13 @@ extern "C" int CeedHipGenOperatorBuild(CeedOperator op) {
     code << "      out[" << i << "] = r_qq_" << i << ";\n";
   }
   code << "\n      // -- Apply QFunction --\n";
-  code << "      if (data.t_id_x < Q_1d && data.t_id_y < Q_1d) {\n";
-  code << "        " << q_function_name << "(ctx, ";
+  code << "      " << q_function_name << "(ctx, ";
   if (dim != 3 || use_collograd_parallelization) {
     code << "1";
   } else {
     code << "Q_1d";
   }
   code << ", in, out);\n";
-  code << "      }\n";
   if (use_collograd_parallelization) {
     code << "      // -- Output fields --\n";
     for (CeedInt i = 0; i < num_output_fields; i++) {
