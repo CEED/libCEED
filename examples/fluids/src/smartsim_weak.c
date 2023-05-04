@@ -29,3 +29,9 @@ PetscErrorCode SGS_DD_TrainingDataDestroy(SGS_DD_TrainingData sgs_dd_train) {
   PetscCall(PetscPrintf(PETSC_COMM_WORLD, "Warning: SGS_DD_TrainingData struct should not be initialized if SMARTREDIS_DIR isn't set on build..."));
   PetscFunctionReturn(PETSC_SUCCESS);
 }
+
+PetscErrorCode TSPostStep_SGS_DD_Training(TS ts) __attribute__((weak));
+PetscErrorCode TSPostStep_SGS_DD_Training(TS ts) {
+  PetscFunctionBeginUser;
+  SETERRQ(PETSC_COMM_WORLD, PETSC_ERR_SUP, "Must build with SMARTREDIS_DIR set to run %s", __func__);
+};
