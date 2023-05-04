@@ -188,7 +188,8 @@ static int CeedBasisCreateProjectionMatrices(CeedBasis basis_from, CeedBasis bas
   CeedCall(CeedMalloc(Q * q_comp, &tau));
 
   // `grad_project = interp_to^+ * grad_from` is computed for the H^1 space case so the
-  // projection basis will have a gradient operation
+  // projection basis will have a gradient operation (allocated even if not H^1 for the
+  // basis construction later on)
   const CeedScalar *grad_from_source = NULL;
   if (fe_space_to == CEED_FE_SPACE_H1) {
     if (is_tensor_to) {
@@ -196,18 +197,8 @@ static int CeedBasisCreateProjectionMatrices(CeedBasis basis_from, CeedBasis bas
     } else {
       CeedCall(CeedBasisGetGrad(basis_from, &grad_from_source));
     }
-    CeedCall(CeedCalloc(P_to * P_from * (is_tensor_to ? 1 : dim), grad_project));
-  } else {
-    // Projected derivate operator is only calculated for H^1 but we allocate it for the
-    // basis construction later
-    CeedInt q_comp_deriv = 1;
-    if (fe_space_to == CEED_FE_SPACE_HDIV) {
-      CeedCall(CeedBasisGetNumQuadratureComponents(basis_from, CEED_EVAL_DIV, &q_comp_deriv));
-    } else if (fe_space_to == CEED_FE_SPACE_HCURL) {
-      CeedCall(CeedBasisGetNumQuadratureComponents(basis_from, CEED_EVAL_CURL, &q_comp_deriv));
-    }
-    CeedCall(CeedCalloc(P_to * P_from * q_comp_deriv, grad_project));
   }
+  CeedCall(CeedCalloc(P_to * P_from * (is_tensor_to ? 1 : dim), grad_project));
 
   // QR Factorization, interp_to = Q R
   memcpy(interp_to, interp_to_source, Q * P_to * q_comp * sizeof(interp_to_source[0]));
@@ -1209,7 +1200,7 @@ int CeedBasisCreateHcurl(Ceed ceed, CeedElemTopology topo, CeedInt num_comp, Cee
 
   Only `CEED_EVAL_INTERP` will be valid for the new basis, `basis_project`.
   For H^1 spaces, `CEED_EVAL_GRAD` will also be valid.
-  The interpolation is given by `interp_project = interp_to^+ * interp_from`, where the pesudoinverse `interp_to^+` is given by QR
+  The interpolation is given by `interp_project = interp_to^+ * interp_from`, where the pseudoinverse `interp_to^+` is given by QR
 factorization.
   The gradient (for the H^1 case) is given by `grad_project = interp_to^+ * grad_from`.
 
@@ -1236,11 +1227,9 @@ int CeedBasisCreateProjection(CeedBasis basis_from, CeedBasis basis_to, CeedBasi
 
   // Build basis
   bool        is_tensor;
-  CeedFESpace fe_space;
   CeedInt     dim, num_comp;
   CeedScalar *q_ref, *q_weight;
   CeedCall(CeedBasisIsTensor(basis_to, &is_tensor));
-  CeedCall(CeedBasisGetFESpace(basis_to, &fe_space));
   CeedCall(CeedBasisGetDimension(basis_to, &dim));
   CeedCall(CeedBasisGetNumComponents(basis_from, &num_comp));
   if (is_tensor) {
@@ -1251,6 +1240,7 @@ int CeedBasisCreateProjection(CeedBasis basis_from, CeedBasis basis_to, CeedBasi
     CeedCall(CeedCalloc(P_1d_to, &q_weight));
     CeedCall(CeedBasisCreateTensorH1(ceed, dim, num_comp, P_1d_from, P_1d_to, interp_project, grad_project, q_ref, q_weight, basis_project));
   } else {
+    // Even if basis_to and basis_from are not H1, the resulting basis is H1 for interpolation to work
     CeedElemTopology topo;
     CeedCall(CeedBasisGetTopology(basis_to, &topo));
     CeedInt num_nodes_to, num_nodes_from;
@@ -1258,19 +1248,7 @@ int CeedBasisCreateProjection(CeedBasis basis_from, CeedBasis basis_to, CeedBasi
     CeedCall(CeedBasisGetNumNodes(basis_to, &num_nodes_to));
     CeedCall(CeedCalloc(num_nodes_to * dim, &q_ref));
     CeedCall(CeedCalloc(num_nodes_to, &q_weight));
-    switch (fe_space) {
-      case CEED_FE_SPACE_H1:
-        CeedCall(CeedBasisCreateH1(ceed, topo, num_comp, num_nodes_from, num_nodes_to, interp_project, grad_project, q_ref, q_weight, basis_project));
-        break;
-      case CEED_FE_SPACE_HDIV:
-        CeedCall(
-            CeedBasisCreateHdiv(ceed, topo, num_comp, num_nodes_from, num_nodes_to, interp_project, grad_project, q_ref, q_weight, basis_project));
-        break;
-      case CEED_FE_SPACE_HCURL:
-        CeedCall(
-            CeedBasisCreateHcurl(ceed, topo, num_comp, num_nodes_from, num_nodes_to, interp_project, grad_project, q_ref, q_weight, basis_project));
-        break;
-    }
+    CeedCall(CeedBasisCreateH1(ceed, topo, num_comp, num_nodes_from, num_nodes_to, interp_project, grad_project, q_ref, q_weight, basis_project));
   }
 
   // Cleanup
