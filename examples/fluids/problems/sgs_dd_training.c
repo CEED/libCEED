@@ -438,17 +438,18 @@ PetscErrorCode TSMonitor_SGS_DD_Training(TS ts, PetscInt step_num, PetscReal sol
 
 PetscErrorCode TSPostStep_SGS_DD_Training(TS ts) {
   User         user;
-  PetscInt     check_run[2]      = {0};
-  const size_t check_run_dims[1] = {2};
+  const char   check_run_key[]   = "check-run";
+  PetscReal    check_run[2]      = {0};
+  const size_t check_run_dims[1] = {2}, check_run_key_size = strlen(check_run_key);
 
   PetscFunctionBeginUser;
   PetscCall(TSGetApplicationContext(ts, &user));
   SmartSimData smartsim = user->smartsim;
 
-  SmartRedisCall(unpack_tensor(smartsim->client, "check-run", 9, check_run, check_run_dims, 1, SRTensorTypeDouble, SRMemLayoutContiguous));
-
+  SmartRedisCall(
+      unpack_tensor(smartsim->client, check_run_key, check_run_key_size, check_run, check_run_dims, 1, SRTensorTypeDouble, SRMemLayoutContiguous));
   if (check_run[0] == 0) {
-    PetscCall(PetscPrintf(user->comm, "Simulation stopped by 'check-run' tensor in Redis database\n"));
+    PetscCall(PetscPrintf(user->comm, "-- Simulation stopped by 'check-run' tensor in Redis database\n"));
     PetscCall(TSSetConvergedReason(ts, TS_CONVERGED_USER));
   }
 
