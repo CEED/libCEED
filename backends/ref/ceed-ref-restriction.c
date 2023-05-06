@@ -480,6 +480,7 @@ int CeedElemRestrictionCreate_Ref(CeedMemType mem_type, CeedCopyMode copy_mode, 
 
     // Orientation data
     if (rstr_type == CEED_RESTRICTION_ORIENTED) {
+      CeedCheck(orients != NULL, ceed, CEED_ERROR_BACKEND, "No orients array provided for oriented restriction");
       switch (copy_mode) {
         case CEED_COPY_VALUES:
           CeedCallBackend(CeedMalloc(num_elem * elem_size, &impl->orients_allocated));
@@ -494,6 +495,7 @@ int CeedElemRestrictionCreate_Ref(CeedMemType mem_type, CeedCopyMode copy_mode, 
           impl->orients = orients;
       }
     } else if (rstr_type == CEED_RESTRICTION_CURL_ORIENTED) {
+      CeedCheck(curl_orients != NULL, ceed, CEED_ERROR_BACKEND, "No curl_orients array provided for oriented restriction");
       switch (copy_mode) {
         case CEED_COPY_VALUES:
           CeedCallBackend(CeedMalloc(num_elem * 3 * elem_size, &impl->curl_orients_allocated));
