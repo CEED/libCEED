@@ -262,6 +262,7 @@ int CeedElemRestrictionCreate_Magma(CeedMemType mtype, CeedCopyMode cmode, const
   CeedCallBackend(CeedElemRestrictionSetELayout(r, layout));
   CeedCallBackend(CeedSetBackendFunction(ceed, "ElemRestriction", r, "Apply", CeedElemRestrictionApply_Magma));
   CeedCallBackend(CeedSetBackendFunction(ceed, "ElemRestriction", r, "ApplyUnsigned", CeedElemRestrictionApply_Magma));
+  CeedCallBackend(CeedSetBackendFunction(ceed, "ElemRestriction", r, "ApplyUnoriented", CeedElemRestrictionApply_Magma));
   CeedCallBackend(CeedSetBackendFunction(ceed, "ElemRestriction", r, "GetOffsets", CeedElemRestrictionGetOffsets_Magma));
   CeedCallBackend(CeedSetBackendFunction(ceed, "ElemRestriction", r, "Destroy", CeedElemRestrictionDestroy_Magma));
   CeedCallBackend(CeedFree(&restriction_kernel_path));

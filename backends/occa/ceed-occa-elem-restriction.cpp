@@ -318,6 +318,7 @@ int ElemRestriction::ceedCreate(CeedMemType memType, CeedCopyMode copyMode, cons
 
   CeedOccaRegisterFunction(r, "Apply", ElemRestriction::ceedApply);
   CeedOccaRegisterFunction(r, "ApplyUnsigned", ElemRestriction::ceedApply);
+  CeedOccaRegisterFunction(r, "ApplyUnoriented", ElemRestriction::ceedApply);
   CeedOccaRegisterFunction(r, "ApplyBlock", ElemRestriction::ceedApplyBlock);
   CeedOccaRegisterFunction(r, "GetOffsets", ElemRestriction::ceedGetOffsets);
   CeedOccaRegisterFunction(r, "Destroy", ElemRestriction::ceedDestroy);

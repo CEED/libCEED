@@ -106,42 +106,6 @@ int CeedPermutePadCurlOrients(const CeedInt8 *curl_orients, CeedInt8 *blk_curl_o
 /// @{
 
 /**
-  @brief Restrict an L-vector to an E-vector or apply its transpose ignoring any
-         provided orientations
-
-  @param[in]  rstr    CeedElemRestriction
-  @param[in]  t_mode  Apply restriction or transpose
-  @param[in]  u       Input vector (of size @a l_size when t_mode=@ref CEED_NOTRANSPOSE)
-  @param[out] ru      Output vector (of shape [@a num_elem * @a elem_size] when t_mode=@ref CEED_NOTRANSPOSE).
-                        Ordering of the e-vector is decided by the backend.
-  @param[in]  request Request or @ref CEED_REQUEST_IMMEDIATE
-
-  @return An error code: 0 - success, otherwise - failure
-
-  @ref User
-**/
-int CeedElemRestrictionApplyUnsigned(CeedElemRestriction rstr, CeedTransposeMode t_mode, CeedVector u, CeedVector ru, CeedRequest *request) {
-  CeedInt m, n;
-
-  CeedCheck(rstr->ApplyUnsigned, rstr->ceed, CEED_ERROR_UNSUPPORTED, "Backend does not support ElemRestrictionApplyUnsigned");
-
-  if (t_mode == CEED_NOTRANSPOSE) {
-    m = rstr->num_blk * rstr->blk_size * rstr->elem_size * rstr->num_comp;
-    n = rstr->l_size;
-  } else {
-    m = rstr->l_size;
-    n = rstr->num_blk * rstr->blk_size * rstr->elem_size * rstr->num_comp;
-  }
-  CeedCheck(n == u->length, rstr->ceed, CEED_ERROR_DIMENSION,
-            "Input vector size %" CeedInt_FMT " not compatible with element restriction (%" CeedInt_FMT ", %" CeedInt_FMT ")", u->length, m, n);
-  CeedCheck(m == ru->length, rstr->ceed, CEED_ERROR_DIMENSION,
-            "Output vector size %" CeedInt_FMT " not compatible with element restriction (%" CeedInt_FMT ", %" CeedInt_FMT ")", ru->length, m, n);
-  if (rstr->num_elem > 0) CeedCall(rstr->ApplyUnsigned(rstr, t_mode, u, ru, request));
-
-  return CEED_ERROR_SUCCESS;
-}
-
-/**
   @brief Get the type of a CeedElemRestriction
 
   @param[in]  rstr      CeedElemRestriction
@@ -213,8 +177,8 @@ int CeedElemRestrictionHasBackendStrides(CeedElemRestriction rstr, bool *has_bac
   @ref User
 **/
 int CeedElemRestrictionGetOffsets(CeedElemRestriction rstr, CeedMemType mem_type, const CeedInt **offsets) {
-  if (rstr->rstr_signed) {
-    CeedCall(CeedElemRestrictionGetOffsets(rstr->rstr_signed, mem_type, offsets));
+  if (rstr->rstr_base) {
+    CeedCall(CeedElemRestrictionGetOffsets(rstr->rstr_base, mem_type, offsets));
   } else {
     CeedCheck(rstr->GetOffsets, rstr->ceed, CEED_ERROR_UNSUPPORTED, "Backend does not support GetOffsets");
     CeedCall(rstr->GetOffsets(rstr, mem_type, offsets));
@@ -234,8 +198,8 @@ int CeedElemRestrictionGetOffsets(CeedElemRestriction rstr, CeedMemType mem_type
   @ref User
 **/
 int CeedElemRestrictionRestoreOffsets(CeedElemRestriction rstr, const CeedInt **offsets) {
-  if (rstr->rstr_signed) {
-    CeedCall(CeedElemRestrictionRestoreOffsets(rstr->rstr_signed, offsets));
+  if (rstr->rstr_base) {
+    CeedCall(CeedElemRestrictionRestoreOffsets(rstr->rstr_base, offsets));
   } else {
     *offsets = NULL;
     rstr->num_readers--;
@@ -573,10 +537,10 @@ int CeedElemRestrictionCreateOriented(Ceed ceed, CeedInt num_elem, CeedInt elem_
   @param[in]  offsets      Array of shape [@a num_elem, @a elem_size].
                              Row i holds the ordered list of the offsets (into the input CeedVector) for the unknowns corresponding to element i,
 where 0 <= i < @a num_elem. All offsets must be in the range [0, @a l_size - 1].
-  @param[in]  curl_orients Array of shape [@a num_elem, @a 3 * elem_size] representing a row-major tridiagonal matrix (curl_orients[0] =
-curl_orients[(i + 1) * 3 * elem_size - 1] = 0, where 0 <= i < @a num_elem) which is applied to the element unknowns upon restriction. This orientation
-matrix allows for pairs of face degrees of freedom on elements for H(curl) spaces to be coupled in the element restriction operation, which is a way
-to resolve face orientation issues for 3D meshes (https://dl.acm.org/doi/pdf/10.1145/3524456).
+  @param[in]  curl_orients Array of shape [@a num_elem, @a 3 * elem_size] representing a row-major tridiagonal matrix (curl_orients[i * 3 * elem_size]
+= curl_orients[(i + 1) * 3 * elem_size - 1] = 0, where 0 <= i < @a num_elem) which is applied to the element unknowns upon restriction. This
+orientation matrix allows for pairs of face degrees of freedom on elements for H(curl) spaces to be coupled in the element restriction operation,
+which is a way to resolve face orientation issues for 3D meshes (https://dl.acm.org/doi/pdf/10.1145/3524456).
   @param[out] rstr         Address of the variable where the newly created CeedElemRestriction will be stored
 
   @return An error code: 0 - success, otherwise - failure
@@ -818,11 +782,11 @@ int CeedElemRestrictionCreateBlockedOriented(Ceed ceed, CeedInt num_elem, CeedIn
                              Row i holds the ordered list of the offsets (into the input CeedVector) for the unknowns corresponding to element i,
 where 0 <= i < @a num_elem. All offsets must be in the range [0, @a l_size - 1]. The backend will permute and pad this array to the desired ordering
 for the blocksize, which is typically given by the backend. The default reordering is to interlace elements.
-  @param[in]  curl_orients Array of shape [@a num_elem, @a 3 * elem_size] representing a row-major tridiagonal matrix (curl_orients[0] =
-curl_orients[(i + 1) * 3 * elem_size - 1] = 0, where 0 <= i < @a num_elem) which is applied to the element unknowns upon restriction.
-                             This orientation matrix allows for pairs of face degrees of freedom on elements for H(curl) spaces to be coupled in the
-element restriction operation, which is a way to resolve face orientation issues for 3D meshes (https://dl.acm.org/doi/pdf/10.1145/3524456). Will also
-be permuted and padded similarly to @a offsets.
+  @param[in]  curl_orients Array of shape [@a num_elem, @a 3 * elem_size] representing a row-major tridiagonal matrix (curl_orients[i * 3 * elem_size]
+= curl_orients[(i + 1) * 3 * elem_size - 1] = 0, where 0 <= i < @a num_elem) which is applied to the element unknowns upon restriction. This
+orientation matrix allows for pairs of face degrees of freedom on elements for H(curl) spaces to be coupled in the element restriction operation,
+which is a way to resolve face orientation issues for 3D meshes (https://dl.acm.org/doi/pdf/10.1145/3524456). Will also be permuted and padded
+similarly to @a offsets.
   @param[out] rstr         Address of the variable where the newly created CeedElemRestriction will be stored
 
   @return An error code: 0 - success, otherwise - failure
@@ -928,7 +892,7 @@ int CeedElemRestrictionCreateBlockedStrided(Ceed ceed, CeedInt num_elem, CeedInt
 }
 
 /**
-  @brief Copy the pointer to a CeedElemRestriction and set `CeedElemRestrictionApply()` implementation to `CeedElemRestrictionApplyUnsigned()`.
+  @brief Copy the pointer to a CeedElemRestriction and set `CeedElemRestrictionApply()` implementation to use the unsigned version.
 
   Both pointers should be destroyed with `CeedElemRestrictionDestroy()`.
 
@@ -952,10 +916,43 @@ int CeedElemRestrictionCreateUnsignedCopy(CeedElemRestriction rstr, CeedElemRest
     CeedCall(CeedMalloc(3, &(*rstr_unsigned)->strides));
     for (CeedInt i = 0; i < 3; i++) (*rstr_unsigned)->strides[i] = rstr->strides[i];
   }
-  CeedCall(CeedElemRestrictionReferenceCopy(rstr, &(*rstr_unsigned)->rstr_signed));
+  CeedCall(CeedElemRestrictionReferenceCopy(rstr, &(*rstr_unsigned)->rstr_base));
 
   // Override Apply
   (*rstr_unsigned)->Apply = rstr->ApplyUnsigned;
+
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
+  @brief Copy the pointer to a CeedElemRestriction and set `CeedElemRestrictionApply()` implementation to use the unoriented version.
+
+  Both pointers should be destroyed with `CeedElemRestrictionDestroy()`.
+
+  @param[in]     rstr            CeedElemRestriction to create unoriented reference to
+  @param[in,out] rstr_unoriented Variable to store unoriented CeedElemRestriction
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref User
+**/
+int CeedElemRestrictionCreateUnorientedCopy(CeedElemRestriction rstr, CeedElemRestriction *rstr_unoriented) {
+  CeedCall(CeedCalloc(1, rstr_unoriented));
+
+  // Copy old rstr
+  memcpy(*rstr_unoriented, rstr, sizeof(struct CeedElemRestriction_private));
+  (*rstr_unoriented)->ceed = NULL;
+  CeedCall(CeedReferenceCopy(rstr->ceed, &(*rstr_unoriented)->ceed));
+  (*rstr_unoriented)->ref_count = 1;
+  (*rstr_unoriented)->strides   = NULL;
+  if (rstr->strides) {
+    CeedCall(CeedMalloc(3, &(*rstr_unoriented)->strides));
+    for (CeedInt i = 0; i < 3; i++) (*rstr_unoriented)->strides[i] = rstr->strides[i];
+  }
+  CeedCall(CeedElemRestrictionReferenceCopy(rstr, &(*rstr_unoriented)->rstr_base));
+
+  // Override Apply
+  (*rstr_unoriented)->Apply = rstr->ApplyUnoriented;
 
   return CEED_ERROR_SUCCESS;
 }
@@ -1263,7 +1260,7 @@ int CeedElemRestrictionDestroy(CeedElemRestriction *rstr) {
             "Cannot destroy CeedElemRestriction, a process has read access to the offset data");
 
   // Only destroy backend data once between rstr and unsigned copy
-  if ((*rstr)->rstr_signed) CeedCall(CeedElemRestrictionDestroy(&(*rstr)->rstr_signed));
+  if ((*rstr)->rstr_base) CeedCall(CeedElemRestrictionDestroy(&(*rstr)->rstr_base));
   else if ((*rstr)->Destroy) CeedCall((*rstr)->Destroy(*rstr));
 
   CeedCall(CeedFree(&(*rstr)->strides));
