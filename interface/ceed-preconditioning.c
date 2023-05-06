@@ -1353,7 +1353,7 @@ int CeedOperatorAssemblyDataGetBases(CeedOperatorAssemblyData data, CeedInt *num
           }
         }
       }
-      if (identity) CeedCall(CeedFree(identity));
+      if (identity) CeedCall(CeedFree(&identity));
       data->assembled_bases_in[b] = B_in;
     }
   }
@@ -1398,7 +1398,7 @@ int CeedOperatorAssemblyDataGetBases(CeedOperatorAssemblyData data, CeedInt *num
           }
         }
       }
-      if (identity) CeedCall(CeedFree(identity));
+      if (identity) CeedCall(CeedFree(&identity));
       data->assembled_bases_out[b] = B_out;
     }
   }
