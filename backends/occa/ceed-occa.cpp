@@ -290,7 +290,6 @@ static int registerMethods(Ceed ceed) {
   CeedOccaRegisterBaseFunction("BasisCreateTensorH1", ceed::occa::TensorBasis::ceedCreate);
   CeedOccaRegisterBaseFunction("BasisCreateH1", ceed::occa::SimplexBasis::ceedCreate);
   CeedOccaRegisterBaseFunction("ElemRestrictionCreate", ceed::occa::ElemRestriction::ceedCreate);
-  CeedOccaRegisterBaseFunction("ElemRestrictionCreateBlocked", ceed::occa::ElemRestriction::ceedCreateBlocked);
   CeedOccaRegisterBaseFunction("QFunctionCreate", ceed::occa::QFunction::ceedCreate);
   CeedOccaRegisterBaseFunction("QFunctionContextCreate", ceed::occa::QFunctionContext::ceedCreate);
   CeedOccaRegisterBaseFunction("OperatorCreate", ceed::occa::Operator::ceedCreate);

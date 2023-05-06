@@ -297,7 +297,8 @@ int ElemRestriction::registerCeedFunction(Ceed ceed, CeedElemRestriction r, cons
   return CeedSetBackendFunction(ceed, "ElemRestriction", r, fname, f);
 }
 
-int ElemRestriction::ceedCreate(CeedMemType memType, CeedCopyMode copyMode, const CeedInt *indicesInput, CeedElemRestriction r) {
+int ElemRestriction::ceedCreate(CeedMemType memType, CeedCopyMode copyMode, const CeedInt *indicesInput, const bool *orientsInput,
+                                const CeedInt *curlOrientsInput, CeedElemRestriction r) {
   Ceed ceed;
   CeedCallBackend(CeedElemRestrictionGetCeed(r, &ceed));
 
@@ -322,10 +323,6 @@ int ElemRestriction::ceedCreate(CeedMemType memType, CeedCopyMode copyMode, cons
   CeedOccaRegisterFunction(r, "Destroy", ElemRestriction::ceedDestroy);
 
   return CEED_ERROR_SUCCESS;
-}
-
-int ElemRestriction::ceedCreateBlocked(CeedMemType memType, CeedCopyMode copyMode, const CeedInt *indicesInput, CeedElemRestriction r) {
-  return staticCeedError("(OCCA) Backend does not implement CeedElemRestrictionCreateBlocked");
 }
 
 int ElemRestriction::ceedApply(CeedElemRestriction r, CeedTransposeMode tmode, CeedVector u, CeedVector v, CeedRequest *request) {
