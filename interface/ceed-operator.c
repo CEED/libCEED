@@ -1469,24 +1469,7 @@ active outputs
 int CeedOperatorApply(CeedOperator op, CeedVector in, CeedVector out, CeedRequest *request) {
   CeedCall(CeedOperatorCheckReady(op));
 
-  if (op->num_elem) {
-    // Standard Operator
-    if (op->Apply) {
-      CeedCall(op->Apply(op, in, out, request));
-    } else {
-      // Zero all output vectors
-      CeedQFunction qf = op->qf;
-      for (CeedInt i = 0; i < qf->num_output_fields; i++) {
-        CeedVector vec = op->output_fields[i]->vec;
-        if (vec == CEED_VECTOR_ACTIVE) vec = out;
-        if (vec != CEED_VECTOR_NONE) {
-          CeedCall(CeedVectorSetValue(vec, 0.0));
-        }
-      }
-      // Apply
-      CeedCall(op->ApplyAdd(op, in, out, request));
-    }
-  } else if (op->is_composite) {
+  if (op->is_composite) {
     // Composite Operator
     if (op->ApplyComposite) {
       CeedCall(op->ApplyComposite(op, in, out, request));
@@ -1497,9 +1480,7 @@ int CeedOperatorApply(CeedOperator op, CeedVector in, CeedVector out, CeedReques
       CeedCall(CeedCompositeOperatorGetSubList(op, &sub_operators));
 
       // Zero all output vectors
-      if (out != CEED_VECTOR_NONE) {
-        CeedCall(CeedVectorSetValue(out, 0.0));
-      }
+      if (out != CEED_VECTOR_NONE) CeedCall(CeedVectorSetValue(out, 0.0));
       for (CeedInt i = 0; i < num_suboperators; i++) {
         for (CeedInt j = 0; j < sub_operators[i]->qf->num_output_fields; j++) {
           CeedVector vec = sub_operators[i]->output_fields[j]->vec;
@@ -1512,6 +1493,21 @@ int CeedOperatorApply(CeedOperator op, CeedVector in, CeedVector out, CeedReques
       for (CeedInt i = 0; i < op->num_suboperators; i++) {
         CeedCall(CeedOperatorApplyAdd(op->sub_operators[i], in, out, request));
       }
+    }
+  } else {
+    // Standard Operator
+    if (op->Apply) {
+      CeedCall(op->Apply(op, in, out, request));
+    } else {
+      // Zero all output vectors
+      CeedQFunction qf = op->qf;
+      for (CeedInt i = 0; i < qf->num_output_fields; i++) {
+        CeedVector vec = op->output_fields[i]->vec;
+        if (vec == CEED_VECTOR_ACTIVE) vec = out;
+        if (vec != CEED_VECTOR_NONE) CeedCall(CeedVectorSetValue(vec, 0.0));
+      }
+      // Apply
+      if (op->num_elem) CeedCall(op->ApplyAdd(op, in, out, request));
     }
   }
   return CEED_ERROR_SUCCESS;
@@ -1535,10 +1531,7 @@ int CeedOperatorApply(CeedOperator op, CeedVector in, CeedVector out, CeedReques
 int CeedOperatorApplyAdd(CeedOperator op, CeedVector in, CeedVector out, CeedRequest *request) {
   CeedCall(CeedOperatorCheckReady(op));
 
-  if (op->num_elem) {
-    // Standard Operator
-    CeedCall(op->ApplyAdd(op, in, out, request));
-  } else if (op->is_composite) {
+  if (op->is_composite) {
     // Composite Operator
     if (op->ApplyAddComposite) {
       CeedCall(op->ApplyAddComposite(op, in, out, request));
@@ -1552,6 +1545,9 @@ int CeedOperatorApplyAdd(CeedOperator op, CeedVector in, CeedVector out, CeedReq
         CeedCall(CeedOperatorApplyAdd(sub_operators[i], in, out, request));
       }
     }
+  } else if (op->num_elem) {
+    // Standard Operator
+    CeedCall(op->ApplyAdd(op, in, out, request));
   }
   return CEED_ERROR_SUCCESS;
 }
