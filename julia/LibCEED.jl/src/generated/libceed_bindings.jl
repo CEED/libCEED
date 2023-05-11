@@ -940,10 +940,6 @@ function CeedVectorGetState(vec, state)
     ccall((:CeedVectorGetState, libceed), Cint, (CeedVector, Ptr{UInt64}), vec, state)
 end
 
-function CeedVectorAddReference(vec)
-    ccall((:CeedVectorAddReference, libceed), Cint, (CeedVector,), vec)
-end
-
 function CeedVectorGetData(vec, data)
     ccall((:CeedVectorGetData, libceed), Cint, (CeedVector, Ptr{Cvoid}), vec, data)
 end

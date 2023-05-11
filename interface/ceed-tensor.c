@@ -41,9 +41,7 @@ int CeedTensorContractCreate(Ceed ceed, CeedBasis basis, CeedTensorContract *con
   }
 
   CeedCall(CeedCalloc(1, contract));
-
-  (*contract)->ceed = ceed;
-  CeedCall(CeedReference(ceed));
+  CeedCall(CeedReferenceCopy(ceed, &(*contract)->ceed));
   CeedCall(ceed->TensorContractCreate(basis, *contract));
   return CEED_ERROR_SUCCESS;
 }

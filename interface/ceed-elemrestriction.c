@@ -360,8 +360,7 @@ int CeedElemRestrictionCreate(Ceed ceed, CeedInt num_elem, CeedInt elem_size, Ce
   CeedCheck(num_comp == 1 || comp_stride > 0, ceed, CEED_ERROR_DIMENSION, "ElemRestriction component stride must be at least 1");
 
   CeedCall(CeedCalloc(1, rstr));
-  (*rstr)->ceed = ceed;
-  CeedCall(CeedReference(ceed));
+  CeedCall(CeedReferenceCopy(ceed, &(*rstr)->ceed));
   (*rstr)->ref_count   = 1;
   (*rstr)->num_elem    = num_elem;
   (*rstr)->elem_size   = elem_size;
@@ -416,8 +415,7 @@ int CeedElemRestrictionCreateOriented(Ceed ceed, CeedInt num_elem, CeedInt elem_
   CeedCheck(num_comp == 1 || comp_stride > 0, ceed, CEED_ERROR_DIMENSION, "ElemRestriction component stride must be at least 1");
 
   CeedCall(CeedCalloc(1, rstr));
-  (*rstr)->ceed = ceed;
-  CeedCall(CeedReference(ceed));
+  CeedCall(CeedReferenceCopy(ceed, &(*rstr)->ceed));
   (*rstr)->ref_count   = 1;
   (*rstr)->num_elem    = num_elem;
   (*rstr)->elem_size   = elem_size;
@@ -464,8 +462,7 @@ int CeedElemRestrictionCreateStrided(Ceed ceed, CeedInt num_elem, CeedInt elem_s
   CeedCheck(num_comp > 0, ceed, CEED_ERROR_DIMENSION, "ElemRestriction must have at least 1 component");
 
   CeedCall(CeedCalloc(1, rstr));
-  (*rstr)->ceed = ceed;
-  CeedCall(CeedReference(ceed));
+  CeedCall(CeedReferenceCopy(ceed, &(*rstr)->ceed));
   (*rstr)->ref_count   = 1;
   (*rstr)->num_elem    = num_elem;
   (*rstr)->elem_size   = elem_size;
@@ -525,13 +522,11 @@ int CeedElemRestrictionCreateBlocked(Ceed ceed, CeedInt num_elem, CeedInt elem_s
   CeedCheck(num_comp > 0, ceed, CEED_ERROR_DIMENSION, "ElemRestriction must have at least 1 component");
   CeedCheck(num_comp == 1 || comp_stride > 0, ceed, CEED_ERROR_DIMENSION, "ElemRestriction component stride must be at least 1");
 
-  CeedCall(CeedCalloc(1, rstr));
-
   CeedCall(CeedCalloc(num_blk * blk_size * elem_size, &blk_offsets));
   CeedCall(CeedPermutePadOffsets(offsets, blk_offsets, num_blk, num_elem, blk_size, elem_size));
 
-  (*rstr)->ceed = ceed;
-  CeedCall(CeedReference(ceed));
+  CeedCall(CeedCalloc(1, rstr));
+  CeedCall(CeedReferenceCopy(ceed, &(*rstr)->ceed));
   (*rstr)->ref_count   = 1;
   (*rstr)->num_elem    = num_elem;
   (*rstr)->elem_size   = elem_size;
@@ -585,9 +580,7 @@ int CeedElemRestrictionCreateBlockedStrided(Ceed ceed, CeedInt num_elem, CeedInt
   CeedCheck(num_comp > 0, ceed, CEED_ERROR_DIMENSION, "ElemRestriction must have at least 1 component");
 
   CeedCall(CeedCalloc(1, rstr));
-
-  (*rstr)->ceed = ceed;
-  CeedCall(CeedReference(ceed));
+  CeedCall(CeedReferenceCopy(ceed, &(*rstr)->ceed));
   (*rstr)->ref_count   = 1;
   (*rstr)->num_elem    = num_elem;
   (*rstr)->elem_size   = elem_size;

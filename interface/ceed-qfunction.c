@@ -588,8 +588,7 @@ int CeedQFunctionCreateInterior(Ceed ceed, CeedInt vec_length, CeedQFunctionUser
             "Provided path to source does not include function name. Provided: \"%s\"\nRequired: \"\\abs_path\\file.h:function_name\"", source);
 
   CeedCall(CeedCalloc(1, qf));
-  (*qf)->ceed = ceed;
-  CeedCall(CeedReference(ceed));
+  CeedCall(CeedReferenceCopy(ceed, &(*qf)->ceed));
   (*qf)->ref_count           = 1;
   (*qf)->vec_length          = vec_length;
   (*qf)->is_identity         = false;
@@ -857,9 +856,7 @@ int CeedQFunctionFieldGetEvalMode(CeedQFunctionField qf_field, CeedEvalMode *eva
 int CeedQFunctionSetContext(CeedQFunction qf, CeedQFunctionContext ctx) {
   CeedCall(CeedQFunctionContextDestroy(&qf->ctx));
   qf->ctx = ctx;
-  if (ctx) {
-    CeedCall(CeedQFunctionContextReference(ctx));
-  }
+  if (ctx) CeedCall(CeedQFunctionContextReference(ctx));
   return CEED_ERROR_SUCCESS;
 }
 

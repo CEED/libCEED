@@ -88,20 +88,6 @@ int CeedVectorGetState(CeedVector vec, uint64_t *state) {
 }
 
 /**
-  @brief Add a reference to a CeedVector
-
-  @param[in,out] vec CeedVector to increment reference counter
-
-  @return An error code: 0 - success, otherwise - failure
-
-  @ref Backend
-**/
-int CeedVectorAddReference(CeedVector vec) {
-  vec->ref_count++;
-  return CEED_ERROR_SUCCESS;
-}
-
-/**
   @brief Get the backend data of a CeedVector
 
   @param[in]  vec  CeedVector to retrieve state
@@ -175,8 +161,7 @@ int CeedVectorCreate(Ceed ceed, CeedSize length, CeedVector *vec) {
   }
 
   CeedCall(CeedCalloc(1, vec));
-  (*vec)->ceed = ceed;
-  CeedCall(CeedReference(ceed));
+  CeedCall(CeedReferenceCopy(ceed, &(*vec)->ceed));
   (*vec)->ref_count = 1;
   (*vec)->length    = length;
   (*vec)->state     = 0;

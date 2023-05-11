@@ -125,9 +125,7 @@ static int CeedOperatorSetup_Ref(CeedOperator op) {
     if (in_mode == CEED_EVAL_NONE && out_mode == CEED_EVAL_NONE) {
       impl->is_identity_restr_op = true;
     } else {
-      CeedCallBackend(CeedVectorDestroy(&impl->q_vecs_out[0]));
-      impl->q_vecs_out[0] = impl->q_vecs_in[0];
-      CeedCallBackend(CeedVectorAddReference(impl->q_vecs_in[0]));
+      CeedCallBackend(CeedVectorReferenceCopy(impl->q_vecs_in[0], &impl->q_vecs_out[0]));
     }
   }
 
