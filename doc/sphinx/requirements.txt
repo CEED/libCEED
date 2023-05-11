@@ -1,4 +1,4 @@
-altair>=4.1
+altair>=4.1,<5.0
 breathe>=4.30
 myst-parser[linkify]>=0.14.0
 sphinx-hoverxref>=0.3b1
