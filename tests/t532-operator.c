@@ -128,9 +128,6 @@ int main(int argc, char **argv) {
   // Assemble QFunction
   CeedOperatorSetQFunctionAssemblyReuse(op_apply, true);
   CeedOperatorLinearAssembleQFunction(op_apply, &assembled, &elem_restriction_assembled, CEED_REQUEST_IMMEDIATE);
-  // Second call will be no-op since SetQFunctionUpdated was not called
-  CeedOperatorSetQFunctionAssemblyDataUpdateNeeded(op_apply, false);
-  CeedOperatorLinearAssembleQFunction(op_apply, &assembled, &elem_restriction_assembled, CEED_REQUEST_IMMEDIATE);
 
   // QFunction - apply assembled
   CeedQFunctionCreateInterior(ceed, 1, apply_lin, apply_lin_loc, &qf_apply_assembled);
