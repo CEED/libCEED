@@ -370,7 +370,7 @@ mr1["model"] = "Mooney-Rivlin"
 mr1["parameters"] = "mu_1=0.5, mu_2=0.5, nu=.4"
 
 df = pd.concat([nh, mr, mr1])
-highlight = alt.selection_single(
+highlight = alt.selection_point(
    on = "mouseover",
    nearest = True,
    fields=["model", "parameters"],
@@ -383,7 +383,7 @@ base = alt.Chart(df).encode(
    opacity=alt.condition(highlight, alt.value(1), alt.value(.5)),
    size=alt.condition(highlight, alt.value(2), alt.value(1)),
 )
-base.mark_point().add_selection(highlight) + base.mark_line()
+base.mark_point().add_params(highlight) + base.mark_line()
 ```
 :::
 

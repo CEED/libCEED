@@ -38,7 +38,7 @@ from sphinxcontrib import katex
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
 extensions = [
-    "altair.sphinxext.altairplot",
+    "sphinxext_altair.altairplot",
     "breathe",
     "hoverxref.extension",
     "sphinx_design",
