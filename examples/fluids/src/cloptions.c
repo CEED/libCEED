@@ -190,6 +190,9 @@ PetscErrorCode ProcessCommandLineOptions(MPI_Comm comm, AppCtx app_ctx, SimpleBC
   PetscCall(PetscOptionsEnum("-mesh_transform", "Mesh transform to perform", NULL, MeshTransformTypes, (PetscEnum)app_ctx->mesh_transform_type,
                              (PetscEnum *)&app_ctx->mesh_transform_type, NULL));
 
+  PetscCall(
+      PetscOptionsBool("-sgs_train_enable", "Enable Data-Driven SGS training", NULL, app_ctx->sgs_train_enable, &app_ctx->sgs_train_enable, NULL));
+
   PetscOptionsEnd();
   PetscFunctionReturn(PETSC_SUCCESS);
 }
