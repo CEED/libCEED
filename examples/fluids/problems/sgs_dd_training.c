@@ -278,13 +278,15 @@ PetscErrorCode SGS_DD_TrainingSetup(Ceed ceed, User user, CeedData ceed_data, Pr
 
   PetscCall(PetscNew(&sgsdd_train_ctx));
   PetscCall(PetscNew(&sgs_dd_train_setup_data));
+  PetscCall(PetscNew(&user->sgs_dd_train));
 
+  user->sgs_dd_train->put_tensor_interval = 1;
   PetscOptionsBegin(user->comm, NULL, "SGS Data-Driven Training Options", NULL);
-
+  PetscCall(PetscOptionsInt("-sgs_train_put_tensor_interval", "Number of timesteps between putting data into database", NULL,
+                            user->sgs_dd_train->put_tensor_interval, &user->sgs_dd_train->put_tensor_interval, NULL));
   PetscOptionsEnd();
 
   // -- Create DM for storing training data
-  PetscCall(PetscNew(&user->sgs_dd_train));
   PetscCall(SGS_DD_TrainingCreateDM(user->dm, &user->sgs_dd_train->dm_dd_inputs, user->app_ctx->degree, &user->sgs_dd_train->num_comp_dd_inputs));
   PetscCall(SGS_DD_TrainingCreateIS(user));
 
@@ -375,6 +377,7 @@ PetscErrorCode TSMonitor_SGS_DD_Training(TS ts, PetscInt step_num, PetscReal sol
   Vec                 FilteredFields, FilteredFields_loc, DDModelInputs;
 
   PetscFunctionBeginUser;
+  if (step_num % sgs_dd_train->put_tensor_interval != 0) PetscFunctionReturn(0);
   PetscCall(DMGetGlobalVector(user->diff_filter->dm_filter, &FilteredFields));
   PetscCall(DMGetGlobalVector(user->sgs_dd_train->dm_dd_inputs, &DDModelInputs));
 

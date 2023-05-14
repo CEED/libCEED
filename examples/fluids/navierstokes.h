@@ -181,7 +181,7 @@ typedef struct {
 typedef struct {
   DM                   dm_dd_inputs;
   IS                   is_dd_inputs, is_velocity_products;
-  PetscInt             num_comp_dd_inputs;
+  PetscInt             num_comp_dd_inputs, put_tensor_interval;
   size_t               training_data_array_dims[2];
   OperatorApplyContext op_nodal_input_evaluation_ctx;
   NodalProjectionData  filtered_grad_velo_proj;
