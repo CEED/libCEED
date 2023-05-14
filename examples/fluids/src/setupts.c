@@ -494,8 +494,10 @@ PetscErrorCode TSSolve_NS(DM dm, User user, AppCtx app_ctx, Physics phys, Vec *Q
   }
   if (app_ctx->diff_filter_monitor) PetscCall(TSMonitorSet(*ts, TSMonitor_DifferentialFilter, user, NULL));
 
-  PetscCall(TSMonitorSet(*ts, TSMonitor_SGS_DD_Training, user, NULL));
-  PetscCall(TSSetPostStep(*ts, TSPostStep_SGS_DD_Training));
+  if (app_ctx->sgs_train_enable) {
+    PetscCall(TSMonitorSet(*ts, TSMonitor_SGS_DD_Training, user, NULL));
+    PetscCall(TSSetPostStep(*ts, TSPostStep_SGS_DD_Training));
+  }
 
   // Solve
   PetscReal start_time;

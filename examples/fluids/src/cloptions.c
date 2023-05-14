@@ -186,6 +186,9 @@ PetscErrorCode ProcessCommandLineOptions(MPI_Comm comm, AppCtx app_ctx, SimpleBC
   PetscCall(PetscOptionsBool("-diff_filter_monitor", "Enable differential filtering TSMonitor", NULL, app_ctx->diff_filter_monitor,
                              &app_ctx->diff_filter_monitor, NULL));
 
+  PetscCall(
+      PetscOptionsBool("-sgs_train_enable", "Enable Data-Driven SGS training", NULL, app_ctx->sgs_train_enable, &app_ctx->sgs_train_enable, NULL));
+
   PetscOptionsEnd();
 
   PetscFunctionReturn(0);

@@ -448,6 +448,7 @@ PetscErrorCode SetupLibceed(Ceed ceed, CeedData ceed_data, DM dm, User user, App
 
   if (app_ctx->turb_spanstats_enable) PetscCall(TurbulenceStatisticsSetup(ceed, user, ceed_data, problem));
   if (app_ctx->diff_filter_monitor && !user->diff_filter) PetscCall(DifferentialFilterSetup(ceed, user, ceed_data, problem));
+  if (app_ctx->sgs_train_enable) PetscCall(SGS_DD_TrainingSetup(ceed, user, ceed_data, problem));
 
   CeedElemRestrictionDestroy(&elem_restr_jd_i);
   CeedOperatorDestroy(&op_ijacobian_vol);
