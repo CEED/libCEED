@@ -138,6 +138,7 @@ struct AppCtx_private {
   } wall_forces;
   // Subgrid Stress Model
   SGSModelType sgs_model_type;
+  PetscBool    sgs_train_enable;
   // Differential Filtering
   PetscBool diff_filter_monitor;
 };
