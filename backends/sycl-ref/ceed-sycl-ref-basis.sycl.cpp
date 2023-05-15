@@ -16,8 +16,7 @@
 #include "ceed-sycl-ref.hpp"
 
 class CeedBasisSyclInterp;
-class CeedBasisSyclGrad;
-//template<int> class CeedBasisSyclGrad;
+template<int> class CeedBasisSyclGrad;
 class CeedBasisSyclWeight;
 
 class CeedBasisSyclInterpNT;
@@ -92,7 +91,7 @@ static int CeedBasisApplyInterp_Sycl(sycl::queue &sycl_queue, CeedInt num_elem, 
 
         for (CeedInt d = 0; d < dim; d++) {
           //sycl::group_barrier(work_group);
-	        work_item.barrier(sycl::access::fence_space::local_space);
+          work_item.barrier(sycl::access::fence_space::local_space);
 
           pre /= P;
           const CeedScalar *in  = d % 2 ? s_buffer_2 : s_buffer_1;
@@ -122,8 +121,8 @@ static int CeedBasisApplyInterp_Sycl(sycl::queue &sycl_queue, CeedInt num_elem, 
 //------------------------------------------------------------------------------
 // Gradient kernel - tensor
 //------------------------------------------------------------------------------
-//template<int transpose>
-int CeedBasisApplyGrad_Sycl(const int transpose, sycl::queue &sycl_queue, const SyclModule_t& sycl_module, CeedInt num_elem, const CeedBasis_Sycl *impl, const CeedScalar *u,
+template<int transpose>
+static int CeedBasisApplyGrad_Sycl(sycl::queue &sycl_queue, const SyclModule_t& sycl_module, CeedInt num_elem, const CeedBasis_Sycl *impl, const CeedScalar *u,
                                    CeedScalar *v) {  
   const CeedInt buf_len       = impl->buf_len;
   const CeedInt op_len        = impl->op_len;
@@ -140,9 +139,11 @@ int CeedBasisApplyGrad_Sycl(const int transpose, sycl::queue &sycl_queue, const 
   sycl::event e = sycl_queue.ext_oneapi_submit_barrier();
   sycl_queue.submit([&](sycl::handler &cgh) {
     cgh.depends_on({e});
+    cgh.use_kernel_bundle(sycl_module);
+
     sycl::local_accessor<CeedScalar> s_mem(2 * (op_len + buf_len), cgh);
 
-    cgh.parallel_for<CeedBasisSyclGrad>(kernel_range, [=](sycl::nd_item<1> work_item, sycl::kernel_handler kh) {
+    cgh.parallel_for<CeedBasisSyclGrad<transpose>>(kernel_range, [=](sycl::nd_item<1> work_item, sycl::kernel_handler kh) {
       //-------------------------------------------------------------->
       // Retrieve spec constant values
       const CeedInt dim      = kh.get_specialization_constant<BASIS_DIM_ID>();
@@ -188,7 +189,7 @@ int CeedBasisApplyGrad_Sycl(const int transpose, sycl::queue &sycl_queue, const 
 
           for (CeedInt dim_2 = 0; dim_2 < dim; dim_2++) {
             //sycl::group_barrier(work_group);
-	          work_item.barrier(sycl::access::fence_space::local_space);
+            work_item.barrier(sycl::access::fence_space::local_space);
 
             pre /= P;
             const CeedScalar *op  = dim_1 == dim_2 ? s_grad_1d : s_interp_1d;
@@ -279,9 +280,9 @@ static int CeedBasisApply_Sycl(CeedBasis basis, const CeedInt num_elem, CeedTran
     } break;
     case CEED_EVAL_GRAD: {
       if(transpose) {
-        CeedCallBackend(CeedBasisApplyGrad_Sycl(1,data->sycl_queue, *impl->sycl_module, num_elem, impl, d_u, d_v));
+        CeedCallBackend(CeedBasisApplyGrad_Sycl<1>(data->sycl_queue, *impl->sycl_module, num_elem, impl, d_u, d_v));
       } else {
-        CeedCallBackend(CeedBasisApplyGrad_Sycl(0,data->sycl_queue, *impl->sycl_module, num_elem, impl, d_u, d_v));
+        CeedCallBackend(CeedBasisApplyGrad_Sycl<0>(data->sycl_queue, *impl->sycl_module, num_elem, impl, d_u, d_v));
       }
     } break;
     case CEED_EVAL_WEIGHT: {
@@ -573,8 +574,8 @@ int CeedBasisCreateTensorH1_Sycl(CeedInt dim, CeedInt P_1d, CeedInt Q_1d, const 
   CeedCallSycl(ceed, sycl::event::wait_and_throw({copy_weight, copy_interp, copy_grad}));
 
   std::vector<sycl::kernel_id> kernel_ids = {
-    sycl::get_kernel_id<CeedBasisSyclGrad>(),
-    //sycl::get_kernel_id<CeedBasisSyclGrad<0>>()
+    sycl::get_kernel_id<CeedBasisSyclGrad<1>>(),
+    sycl::get_kernel_id<CeedBasisSyclGrad<0>>()
   };
 
   sycl::kernel_bundle<sycl::bundle_state::input> input_bundle = sycl::get_kernel_bundle<sycl::bundle_state::input>(data->sycl_context, kernel_ids);
