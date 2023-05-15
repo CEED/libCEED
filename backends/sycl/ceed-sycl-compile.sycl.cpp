@@ -14,10 +14,11 @@
 
 #include <map>
 #include <sstream>
-#include <sycl/ext/intel/experimental/online_compiler.hpp>
+// #include <sycl/ext/intel/experimental/online_compiler.hpp>
 #include <sycl/sycl.hpp>
 
 #include "ceed-sycl-common.hpp"
+#include "./online_compiler.hpp"
 
 using ByteVector_t = std::vector<unsigned char>;
 
@@ -65,11 +66,11 @@ static inline int CeedJitGetFlags_Sycl(std::vector<std::string> &flags) {
 //------------------------------------------------------------------------------
 static inline int CeedJitCompileSource_Sycl(Ceed ceed, const sycl::device &sycl_device, const std::string &opencl_source, ByteVector_t &il_binary,
                                             const std::vector<std::string> &flags = {}) {
-  sycl::ext::intel::experimental::online_compiler<sycl::ext::intel::experimental::source_language::opencl_c> compiler(sycl_device);
+  sycl::ext::libceed::online_compiler<sycl::ext::libceed::source_language::opencl_c> compiler(sycl_device);
 
   try {
     il_binary = compiler.compile(opencl_source, flags);
-  } catch (sycl::ext::intel::experimental::online_compile_error &e) {
+  } catch (sycl::ext::libceed::online_compile_error &e) {
     return CeedError((ceed), CEED_ERROR_BACKEND, e.what());
   }
   return CEED_ERROR_SUCCESS;
