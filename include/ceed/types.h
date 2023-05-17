@@ -108,7 +108,7 @@ typedef enum {
   CEED_SCALAR_FP64
 } CeedScalarType;
 /// Base scalar type for the library to use: change which header is included to change the precision.
-#include "ceed-f32.h"
+#include "ceed-f64.h"
 
 /// Ceed Errors
 ///
