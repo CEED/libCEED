@@ -102,7 +102,7 @@ CEED_QFUNCTION_HELPER void ComputeSGS_DDAnisotropic(const CeedScalar grad_velo_a
 
 // @brief Calculate subgrid stress at nodes using anisotropic data-driven model
 CEED_QFUNCTION_HELPER int ComputeSGS_DDAnisotropicNodal(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out,
-                                                        StateFromQi_t StateFromQi) {
+                                                        StateVariable state_var) {
   const CeedScalar(*q)[CEED_Q_VLA]            = (const CeedScalar(*)[CEED_Q_VLA])in[0];
   const CeedScalar(*x)[CEED_Q_VLA]            = (const CeedScalar(*)[CEED_Q_VLA])in[1];
   const CeedScalar(*grad_velo)[3][CEED_Q_VLA] = (const CeedScalar(*)[3][CEED_Q_VLA])in[2];
@@ -123,7 +123,7 @@ CEED_QFUNCTION_HELPER int ComputeSGS_DDAnisotropicNodal(void *ctx, CeedInt Q, co
     };
     const CeedScalar km_A_ij[6] = {A_ij_delta[0][i], A_ij_delta[1][i], A_ij_delta[2][i], A_ij_delta[3][i], A_ij_delta[4][i], A_ij_delta[5][i]};
     const CeedScalar delta      = A_ij_delta[6][i];
-    const State      s          = StateFromQi(gas, qi, x_i);
+    const State      s          = StateFromQ(gas, qi, x_i, state_var);
     CeedScalar       km_sgs[6];
 
     ComputeSGS_DDAnisotropic(grad_velo_aniso, km_A_ij, delta, gas->mu / s.U.density, km_sgs, sgsdd_ctx);
@@ -134,11 +134,11 @@ CEED_QFUNCTION_HELPER int ComputeSGS_DDAnisotropicNodal(void *ctx, CeedInt Q, co
 }
 
 CEED_QFUNCTION(ComputeSGS_DDAnisotropicNodal_Prim)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
-  return ComputeSGS_DDAnisotropicNodal(ctx, Q, in, out, StateFromY);
+  return ComputeSGS_DDAnisotropicNodal(ctx, Q, in, out, STATEVAR_PRIMITIVE);
 }
 
 CEED_QFUNCTION(ComputeSGS_DDAnisotropicNodal_Conserv)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
-  return ComputeSGS_DDAnisotropicNodal(ctx, Q, in, out, StateFromU);
+  return ComputeSGS_DDAnisotropicNodal(ctx, Q, in, out, STATEVAR_CONSERVATIVE);
 }
 
 // @brief Adds subgrid stress to residual (during IFunction evaluation)
@@ -155,7 +155,7 @@ CEED_QFUNCTION_HELPER int FluxSubgridStress(const StatePrimitive Y, const CeedSc
 }
 
 CEED_QFUNCTION_HELPER int IFunction_NodalSubgridStress(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out,
-                                                       StateFromQi_t StateFromQi, StateFromQi_fwd_t StateFromQi_fwd) {
+                                                       StateVariable state_var) {
   const CeedScalar(*q)[CEED_Q_VLA]      = (const CeedScalar(*)[CEED_Q_VLA])in[0];
   const CeedScalar(*q_data)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[1];
   const CeedScalar(*x)[CEED_Q_VLA]      = (const CeedScalar(*)[CEED_Q_VLA])in[2];
@@ -168,7 +168,7 @@ CEED_QFUNCTION_HELPER int IFunction_NodalSubgridStress(void *ctx, CeedInt Q, con
   CeedPragmaSIMD for (CeedInt i = 0; i < Q; i++) {
     const CeedScalar qi[5]  = {q[0][i], q[1][i], q[2][i], q[3][i], q[4][i]};
     const CeedScalar x_i[3] = {x[0][i], x[1][i], x[2][i]};
-    const State      s      = StateFromQi(gas, qi, x_i);
+    const State      s      = StateFromQ(gas, qi, x_i, state_var);
 
     const CeedScalar wdetJ      = q_data[0][i];
     const CeedScalar dXdx[3][3] = {
@@ -191,11 +191,11 @@ CEED_QFUNCTION_HELPER int IFunction_NodalSubgridStress(void *ctx, CeedInt Q, con
 }
 
 CEED_QFUNCTION(IFunction_NodalSubgridStress_Conserv)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
-  return IFunction_NodalSubgridStress(ctx, Q, in, out, StateFromU, StateFromU_fwd);
+  return IFunction_NodalSubgridStress(ctx, Q, in, out, STATEVAR_CONSERVATIVE);
 }
 
 CEED_QFUNCTION(IFunction_NodalSubgridStress_Prim)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
-  return IFunction_NodalSubgridStress(ctx, Q, in, out, StateFromY, StateFromY_fwd);
+  return IFunction_NodalSubgridStress(ctx, Q, in, out, STATEVAR_PRIMITIVE);
 }
 
 #endif  // sgs_dd_model_h

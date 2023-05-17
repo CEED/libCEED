@@ -15,7 +15,7 @@
 #include "utils.h"
 
 CEED_QFUNCTION_HELPER int VelocityGradientProjectionRHS(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out,
-                                                        StateFromQi_t StateFromQi, StateFromQi_fwd_t StateFromQi_fwd) {
+                                                        StateVariable state_var) {
   const CeedScalar(*q)[CEED_Q_VLA]         = (const CeedScalar(*)[CEED_Q_VLA])in[0];
   const CeedScalar(*Grad_q)[5][CEED_Q_VLA] = (const CeedScalar(*)[5][CEED_Q_VLA])in[1];
   const CeedScalar(*q_data)[CEED_Q_VLA]    = (const CeedScalar(*)[CEED_Q_VLA])in[2];
@@ -34,7 +34,7 @@ CEED_QFUNCTION_HELPER int VelocityGradientProjectionRHS(void *ctx, CeedInt Q, co
         {q_data[7][i], q_data[8][i], q_data[9][i]}
     };
 
-    const State s = StateFromQi(context, qi, x_i);
+    const State s = StateFromQ(context, qi, x_i, state_var);
     State       grad_s[3];
     for (CeedInt k = 0; k < 3; k++) {
       CeedScalar dx_i[3] = {0}, dqi[5];
@@ -42,7 +42,7 @@ CEED_QFUNCTION_HELPER int VelocityGradientProjectionRHS(void *ctx, CeedInt Q, co
         dqi[j] = Grad_q[0][j][i] * dXdx[0][k] + Grad_q[1][j][i] * dXdx[1][k] + Grad_q[2][j][i] * dXdx[2][k];
       }
       dx_i[k]   = 1.;
-      grad_s[k] = StateFromQi_fwd(context, s, dqi, x_i, dx_i);
+      grad_s[k] = StateFromQ_fwd(context, s, dqi, x_i, dx_i, state_var);
     }
 
     CeedScalar grad_velocity[3][3];
@@ -58,10 +58,10 @@ CEED_QFUNCTION_HELPER int VelocityGradientProjectionRHS(void *ctx, CeedInt Q, co
 }
 
 CEED_QFUNCTION(VelocityGradientProjectionRHS_Conserv)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
-  return VelocityGradientProjectionRHS(ctx, Q, in, out, StateFromU, StateFromU_fwd);
+  return VelocityGradientProjectionRHS(ctx, Q, in, out, STATEVAR_CONSERVATIVE);
 }
 
 CEED_QFUNCTION(VelocityGradientProjectionRHS_Prim)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
-  return VelocityGradientProjectionRHS(ctx, Q, in, out, StateFromY, StateFromY_fwd);
+  return VelocityGradientProjectionRHS(ctx, Q, in, out, STATEVAR_PRIMITIVE);
 }
 #endif  // velocity_gradient_projection_h

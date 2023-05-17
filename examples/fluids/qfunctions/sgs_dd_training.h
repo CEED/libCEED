@@ -28,7 +28,7 @@ struct SGS_DD_TrainingContext_ {
 
 // @brief Calculate model inputs for anisotropic data-driven model at nodes
 CEED_QFUNCTION_HELPER int ComputeSGS_DDAnisotropicInputsNodal(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out,
-                                                              StateFromQi_t StateFromQi) {
+                                                              StateVariable state_var) {
   const CeedScalar(*q)[CEED_Q_VLA]            = (const CeedScalar(*)[CEED_Q_VLA])in[0];
   const CeedScalar(*x)[CEED_Q_VLA]            = (const CeedScalar(*)[CEED_Q_VLA])in[1];
   const CeedScalar(*grad_velo)[3][CEED_Q_VLA] = (const CeedScalar(*)[3][CEED_Q_VLA])in[2];
@@ -49,7 +49,7 @@ CEED_QFUNCTION_HELPER int ComputeSGS_DDAnisotropicInputsNodal(void *ctx, CeedInt
     };
     const CeedScalar km_A_ij[6] = {A_ij_delta[0][i], A_ij_delta[1][i], A_ij_delta[2][i], A_ij_delta[3][i], A_ij_delta[4][i], A_ij_delta[5][i]};
     const CeedScalar delta      = A_ij_delta[6][i];
-    const State      s          = StateFromQi(gas, qi, x_i);
+    const State      s          = StateFromQ(gas, qi, x_i, state_var);
     CeedScalar       inputs[6];
     CeedScalar       eigenvectors[3][3], grad_velo_magnitude;  // dummy variables, don't actually use them
 
@@ -61,7 +61,7 @@ CEED_QFUNCTION_HELPER int ComputeSGS_DDAnisotropicInputsNodal(void *ctx, CeedInt
 }
 
 CEED_QFUNCTION(ComputeSGS_DDAnisotropicInputsNodal_Prim)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
-  return ComputeSGS_DDAnisotropicInputsNodal(ctx, Q, in, out, StateFromY);
+  return ComputeSGS_DDAnisotropicInputsNodal(ctx, Q, in, out, STATEVAR_PRIMITIVE);
 }
 
 #endif  // sgs_dd_training_h
