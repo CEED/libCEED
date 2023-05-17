@@ -8,8 +8,9 @@
 #ifndef _ceed_hip_h
 #define _ceed_hip_h
 
+#include <ceed.h>
 #include <ceed/backend.h>
-#include <ceed/ceed.h>
+#include <ceed/jit-source/hip/hip-types.h>
 #include <hip/hip_runtime.h>
 
 #include "../hip/ceed-hip-common.h"
@@ -123,8 +124,8 @@ CEED_INTERN int CeedBasisApplyElems_Hip(CeedBasis basis, const CeedInt nelem, Ce
 
 CEED_INTERN int CeedQFunctionApplyElems_Hip(CeedQFunction qf, const CeedInt Q, const CeedVector *const u, const CeedVector *v);
 
-CEED_INTERN int CeedBasisCreateTensorH1_Hip(CeedInt dim, CeedInt P1d, CeedInt Q1d, const CeedScalar *interp1d, const CeedScalar *grad1d,
-                                            const CeedScalar *qref1d, const CeedScalar *qweight1d, CeedBasis basis);
+CEED_INTERN int CeedBasisCreateTensorH1_Hip(CeedInt dim, CeedInt P_1d, CeedInt Q_1d, const CeedScalar *interp_1d, const CeedScalar *grad_1d,
+                                            const CeedScalar *q_ref_1d, const CeedScalar *q_weight_1d, CeedBasis basis);
 
 CEED_INTERN int CeedBasisCreateH1_Hip(CeedElemTopology, CeedInt, CeedInt, CeedInt, const CeedScalar *, const CeedScalar *, const CeedScalar *,
                                       const CeedScalar *, CeedBasis);

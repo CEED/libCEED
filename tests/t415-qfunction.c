@@ -3,6 +3,7 @@
 /// \test Test creation, evaluation, and destruction for vector Poisson QFunction by name
 #include <ceed.h>
 #include <math.h>
+#include <stdio.h>
 #include <string.h>
 
 int main(int argc, char **argv) {

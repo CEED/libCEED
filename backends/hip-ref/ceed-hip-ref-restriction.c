@@ -5,14 +5,15 @@
 //
 // This file is part of CEED:  http://github.com/ceed
 
+#include <ceed.h>
 #include <ceed/backend.h>
-#include <ceed/ceed.h>
 #include <ceed/jit-tools.h>
 #include <hip/hip_runtime.h>
 #include <stdbool.h>
 #include <stddef.h>
 #include <string.h>
 
+#include "../hip/ceed-hip-common.h"
 #include "../hip/ceed-hip-compile.h"
 #include "ceed-hip-ref.h"
 
@@ -256,55 +257,60 @@ int CeedElemRestrictionCreate_Hip(CeedMemType mtype, CeedCopyMode cmode, const C
   CeedCallBackend(CeedElemRestrictionSetELayout(r, layout));
 
   // Set up device indices/offset arrays
-  if (mtype == CEED_MEM_HOST) {
-    switch (cmode) {
-      case CEED_OWN_POINTER:
-        impl->h_ind_allocated = (CeedInt *)indices;
-        impl->h_ind           = (CeedInt *)indices;
-        break;
-      case CEED_USE_POINTER:
-        impl->h_ind = (CeedInt *)indices;
-        break;
-      case CEED_COPY_VALUES:
-        if (indices != NULL) {
-          CeedCallBackend(CeedMalloc(elem_size * num_elem, &impl->h_ind_allocated));
-          memcpy(impl->h_ind_allocated, indices, elem_size * num_elem * sizeof(CeedInt));
-          impl->h_ind = impl->h_ind_allocated;
-        }
-        break;
+  switch (mtype) {
+    case CEED_MEM_HOST: {
+      switch (cmode) {
+        case CEED_OWN_POINTER:
+          impl->h_ind_allocated = (CeedInt *)indices;
+          impl->h_ind           = (CeedInt *)indices;
+          break;
+        case CEED_USE_POINTER:
+          impl->h_ind = (CeedInt *)indices;
+          break;
+        case CEED_COPY_VALUES:
+          if (indices != NULL) {
+            CeedCallBackend(CeedMalloc(elem_size * num_elem, &impl->h_ind_allocated));
+            memcpy(impl->h_ind_allocated, indices, elem_size * num_elem * sizeof(CeedInt));
+            impl->h_ind = impl->h_ind_allocated;
+          }
+          break;
+      }
+      if (indices != NULL) {
+        CeedCallHip(ceed, hipMalloc((void **)&impl->d_ind, size * sizeof(CeedInt)));
+        impl->d_ind_allocated = impl->d_ind;  // We own the device memory
+        CeedCallHip(ceed, hipMemcpy(impl->d_ind, indices, size * sizeof(CeedInt), hipMemcpyHostToDevice));
+        CeedCallBackend(CeedElemRestrictionOffset_Hip(r, indices));
+      }
+      break;
     }
-    if (indices != NULL) {
-      CeedCallHip(ceed, hipMalloc((void **)&impl->d_ind, size * sizeof(CeedInt)));
-      impl->d_ind_allocated = impl->d_ind;  // We own the device memory
-      CeedCallHip(ceed, hipMemcpy(impl->d_ind, indices, size * sizeof(CeedInt), hipMemcpyHostToDevice));
-      CeedCallBackend(CeedElemRestrictionOffset_Hip(r, indices));
+    case CEED_MEM_DEVICE: {
+      switch (cmode) {
+        case CEED_COPY_VALUES:
+          if (indices != NULL) {
+            CeedCallHip(ceed, hipMalloc((void **)&impl->d_ind, size * sizeof(CeedInt)));
+            impl->d_ind_allocated = impl->d_ind;  // We own the device memory
+            CeedCallHip(ceed, hipMemcpy(impl->d_ind, indices, size * sizeof(CeedInt), hipMemcpyDeviceToDevice));
+          }
+          break;
+        case CEED_OWN_POINTER:
+          impl->d_ind           = (CeedInt *)indices;
+          impl->d_ind_allocated = impl->d_ind;
+          break;
+        case CEED_USE_POINTER:
+          impl->d_ind = (CeedInt *)indices;
+      }
+      if (indices != NULL) {
+        CeedCallBackend(CeedMalloc(elem_size * num_elem, &impl->h_ind_allocated));
+        CeedCallHip(ceed, hipMemcpy(impl->h_ind_allocated, impl->d_ind, elem_size * num_elem * sizeof(CeedInt), hipMemcpyDeviceToHost));
+        impl->h_ind = impl->h_ind_allocated;
+        CeedCallBackend(CeedElemRestrictionOffset_Hip(r, indices));
+      }
+      break;
     }
-  } else if (mtype == CEED_MEM_DEVICE) {
-    switch (cmode) {
-      case CEED_COPY_VALUES:
-        if (indices != NULL) {
-          CeedCallHip(ceed, hipMalloc((void **)&impl->d_ind, size * sizeof(CeedInt)));
-          impl->d_ind_allocated = impl->d_ind;  // We own the device memory
-          CeedCallHip(ceed, hipMemcpy(impl->d_ind, indices, size * sizeof(CeedInt), hipMemcpyDeviceToDevice));
-        }
-        break;
-      case CEED_OWN_POINTER:
-        impl->d_ind           = (CeedInt *)indices;
-        impl->d_ind_allocated = impl->d_ind;
-        break;
-      case CEED_USE_POINTER:
-        impl->d_ind = (CeedInt *)indices;
-    }
-    if (indices != NULL) {
-      CeedCallBackend(CeedMalloc(elem_size * num_elem, &impl->h_ind_allocated));
-      CeedCallHip(ceed, hipMemcpy(impl->h_ind_allocated, impl->d_ind, elem_size * num_elem * sizeof(CeedInt), hipMemcpyDeviceToHost));
-      impl->h_ind = impl->h_ind_allocated;
-      CeedCallBackend(CeedElemRestrictionOffset_Hip(r, indices));
-    }
-  } else {
     // LCOV_EXCL_START
-    return CeedError(ceed, CEED_ERROR_BACKEND, "Only MemType = HOST or DEVICE supported");
-    // LCOV_EXCL_STOP
+    default:
+      return CeedError(ceed, CEED_ERROR_BACKEND, "Only MemType = HOST or DEVICE supported");
+      // LCOV_EXCL_STOP
   }
 
   // Compile HIP kernels

@@ -10,6 +10,9 @@
 
 #include "../qfunctions/densitycurrent.h"
 
+#include <ceed.h>
+#include <petscdm.h>
+
 #include "../navierstokes.h"
 
 PetscErrorCode NS_DENSITY_CURRENT(ProblemData *problem, DM dm, void *ctx, SimpleBC bc) {

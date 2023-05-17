@@ -9,8 +9,7 @@
 #define matops_h
 
 #include <ceed.h>
-#include <petsc.h>
-#include <petscdmplex.h>
+#include <petscdm.h>
 
 // Data for PETSc Matshell
 typedef struct OperatorApplyContext_ *MatopApplyContext;

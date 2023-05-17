@@ -5,9 +5,10 @@
 //
 // This file is part of CEED:  http://github.com/ceed
 
+#include <ceed.h>
 #include <ceed/backend.h>
-#include <ceed/ceed.h>
 #include <math.h>
+#include <stdbool.h>
 #include <string.h>
 #include <valgrind/memcheck.h>
 
@@ -59,11 +60,7 @@ static int CeedVectorSetArray_Memcheck(CeedVector vec, CeedMemType mem_type, Cee
   Ceed ceed;
   CeedCallBackend(CeedVectorGetCeed(vec, &ceed));
 
-  if (mem_type != CEED_MEM_HOST) {
-    // LCOV_EXCL_START
-    return CeedError(ceed, CEED_ERROR_BACKEND, "Can only set HOST memory for this backend");
-    // LCOV_EXCL_STOP
-  }
+  CeedCheck(mem_type == CEED_MEM_HOST, ceed, CEED_ERROR_BACKEND, "Can only set HOST memory for this backend");
 
   CeedCallBackend(CeedFree(&impl->array_allocated));
   CeedCallBackend(CeedFree(&impl->array_owned));
@@ -106,11 +103,7 @@ static int CeedVectorTakeArray_Memcheck(CeedVector vec, CeedMemType mem_type, Ce
   Ceed ceed;
   CeedCallBackend(CeedVectorGetCeed(vec, &ceed));
 
-  if (mem_type != CEED_MEM_HOST) {
-    // LCOV_EXCL_START
-    return CeedError(ceed, CEED_ERROR_BACKEND, "Can only provide HOST memory for this backend");
-    // LCOV_EXCL_STOP
-  }
+  CeedCheck(mem_type == CEED_MEM_HOST, ceed, CEED_ERROR_BACKEND, "Can only provide HOST memory for this backend");
 
   (*array)             = impl->array_borrowed;
   impl->array_borrowed = NULL;
@@ -130,11 +123,7 @@ static int CeedVectorGetArray_Memcheck(CeedVector vec, CeedMemType mem_type, Cee
   Ceed ceed;
   CeedCallBackend(CeedVectorGetCeed(vec, &ceed));
 
-  if (mem_type != CEED_MEM_HOST) {
-    // LCOV_EXCL_START
-    return CeedError(ceed, CEED_ERROR_BACKEND, "Can only provide HOST memory for this backend");
-    // LCOV_EXCL_STOP
-  }
+  CeedCheck(mem_type == CEED_MEM_HOST, ceed, CEED_ERROR_BACKEND, "Can only provide HOST memory for this backend");
 
   *array = impl->array;
 
@@ -212,11 +201,8 @@ static int CeedVectorRestoreArrayRead_Memcheck(CeedVector vec) {
   Ceed ceed;
   CeedCallBackend(CeedVectorGetCeed(vec, &ceed));
 
-  if (memcmp(impl->array, impl->array_read_only_copy, length * sizeof(impl->array[0]))) {
-    // LCOV_EXCL_START
-    return CeedError(ceed, CEED_ERROR_BACKEND, "Array data changed while accessed in read-only mode");
-    // LCOV_EXCL_STOP
-  }
+  CeedCheck(!memcmp(impl->array, impl->array_read_only_copy, length * sizeof(impl->array[0])), ceed, CEED_ERROR_BACKEND,
+            "Array data changed while accessed in read-only mode");
 
   CeedCallBackend(CeedFree(&impl->array_read_only_copy));
 

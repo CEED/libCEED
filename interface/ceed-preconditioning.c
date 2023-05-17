@@ -7,8 +7,8 @@
 
 #include <assert.h>
 #include <ceed-impl.h>
+#include <ceed.h>
 #include <ceed/backend.h>
-#include <ceed/ceed.h>
 #include <math.h>
 #include <stdbool.h>
 #include <stdio.h>
@@ -180,32 +180,36 @@ int CeedOperatorGetFallback(CeedOperator op, CeedOperator *op_fallback) {
 /**
   @brief Select correct basis matrix pointer based on CeedEvalMode
 
+  @param[in]  basis     CeedBasis from which to get the basis matrix
   @param[in]  eval_mode Current basis evaluation mode
   @param[in]  identity  Pointer to identity matrix
-  @param[in]  interp    Pointer to interpolation matrix
-  @param[in]  grad      Pointer to gradient matrix
   @param[out] basis_ptr Basis pointer to set
 
   @ref Developer
 **/
-static inline void CeedOperatorGetBasisPointer(CeedEvalMode eval_mode, const CeedScalar *identity, const CeedScalar *interp, const CeedScalar *grad,
-                                               const CeedScalar **basis_ptr) {
+static inline int CeedOperatorGetBasisPointer(CeedBasis basis, CeedEvalMode eval_mode, const CeedScalar *identity, const CeedScalar **basis_ptr) {
   switch (eval_mode) {
     case CEED_EVAL_NONE:
       *basis_ptr = identity;
       break;
     case CEED_EVAL_INTERP:
-      *basis_ptr = interp;
+      CeedCall(CeedBasisGetInterp(basis, basis_ptr));
       break;
     case CEED_EVAL_GRAD:
-      *basis_ptr = grad;
+      CeedCall(CeedBasisGetGrad(basis, basis_ptr));
+      break;
+    case CEED_EVAL_DIV:
+      CeedCall(CeedBasisGetDiv(basis, basis_ptr));
+      break;
+    case CEED_EVAL_CURL:
+      CeedCall(CeedBasisGetCurl(basis, basis_ptr));
       break;
     case CEED_EVAL_WEIGHT:
-    case CEED_EVAL_DIV:
-    case CEED_EVAL_CURL:
       break;  // Caught by QF Assembly
   }
   assert(*basis_ptr != NULL);
+
+  return CEED_ERROR_SUCCESS;
 }
 
 /**
@@ -287,7 +291,6 @@ static inline int CeedSingleOperatorAssembleAddDiagonal_Core(CeedOperator op, Ce
   CeedSize               **eval_mode_offsets_in, **eval_mode_offsets_out, num_output_components;
   CeedBasis               *active_bases;
   CeedElemRestriction     *active_elem_rstrs;
-
   CeedCall(CeedOperatorGetOperatorAssemblyData(op, &data));
   CeedCall(CeedOperatorAssemblyDataGetEvalModes(data, &num_active_bases, &num_eval_modes_in, &eval_modes_in, &eval_mode_offsets_in,
                                                 &num_eval_modes_out, &eval_modes_out, &eval_mode_offsets_out, &num_output_components));
@@ -321,10 +324,9 @@ static inline int CeedSingleOperatorAssembleAddDiagonal_Core(CeedOperator op, Ce
     CeedCall(CeedBasisGetNumComponents(active_bases[b], &num_components));
     CeedCall(CeedBasisGetNumQuadraturePoints(active_bases[b], &num_qpts));
 
-    // Basis matrices
-    const CeedScalar *interp, *grad;
-    CeedScalar       *identity      = NULL;
-    bool              has_eval_none = false;
+    // Construct identity matrix for basis if required
+    bool        has_eval_none = false;
+    CeedScalar *identity      = NULL;
     for (CeedInt i = 0; i < num_eval_modes_in[b]; i++) {
       has_eval_none = has_eval_none || (eval_modes_in[b][i] == CEED_EVAL_NONE);
     }
@@ -335,22 +337,35 @@ static inline int CeedSingleOperatorAssembleAddDiagonal_Core(CeedOperator op, Ce
       CeedCall(CeedCalloc(num_qpts * num_nodes, &identity));
       for (CeedInt i = 0; i < (num_nodes < num_qpts ? num_nodes : num_qpts); i++) identity[i * num_nodes + i] = 1.0;
     }
-    CeedCall(CeedBasisGetInterp(active_bases[b], &interp));
-    CeedCall(CeedBasisGetGrad(active_bases[b], &grad));
+
     // Compute the diagonal of B^T D B
     // Each element
     for (CeedInt e = 0; e < num_elem; e++) {
-      CeedInt d_out = -1;
       // Each basis eval mode pair
+      CeedInt      d_out              = 0, q_comp_out;
+      CeedEvalMode eval_mode_out_prev = CEED_EVAL_NONE;
       for (CeedInt e_out = 0; e_out < num_eval_modes_out[b]; e_out++) {
         const CeedScalar *B_t = NULL;
-        if (eval_modes_out[b][e_out] == CEED_EVAL_GRAD) d_out += 1;
-        CeedOperatorGetBasisPointer(eval_modes_out[b][e_out], identity, interp, &grad[d_out * num_qpts * num_nodes], &B_t);
-        CeedInt d_in = -1;
+        CeedOperatorGetBasisPointer(active_bases[b], eval_modes_out[b][e_out], identity, &B_t);
+        CeedCall(CeedBasisGetNumQuadratureComponents(active_bases[b], eval_modes_out[b][e_out], &q_comp_out));
+        if (q_comp_out > 1) {
+          if (e_out == 0 || eval_modes_out[b][e_out] != eval_mode_out_prev) d_out = 0;
+          else B_t = &B_t[(++d_out) * num_qpts * num_nodes];
+        }
+        eval_mode_out_prev = eval_modes_out[b][e_out];
+
+        CeedInt      d_in              = 0, q_comp_in;
+        CeedEvalMode eval_mode_in_prev = CEED_EVAL_NONE;
         for (CeedInt e_in = 0; e_in < num_eval_modes_in[b]; e_in++) {
           const CeedScalar *B = NULL;
-          if (eval_modes_in[b][e_in] == CEED_EVAL_GRAD) d_in += 1;
-          CeedOperatorGetBasisPointer(eval_modes_in[b][e_in], identity, interp, &grad[d_in * num_qpts * num_nodes], &B);
+          CeedOperatorGetBasisPointer(active_bases[b], eval_modes_in[b][e_in], identity, &B);
+          CeedCall(CeedBasisGetNumQuadratureComponents(active_bases[b], eval_modes_in[b][e_in], &q_comp_in));
+          if (q_comp_in > 1) {
+            if (e_in == 0 || eval_modes_in[b][e_in] != eval_mode_in_prev) d_in = 0;
+            else B = &B[(++d_in) * num_qpts * num_nodes];
+          }
+          eval_mode_in_prev = eval_modes_in[b][e_in];
+
           // Each component
           for (CeedInt c_out = 0; c_out < num_components; c_out++) {
             // Each qpt/node pair
@@ -442,11 +457,7 @@ static int CeedSingleOperatorAssembleSymbolic(CeedOperator op, CeedInt offset, C
   CeedCall(CeedOperatorGetCeed(op, &ceed));
   CeedCall(CeedOperatorIsComposite(op, &is_composite));
 
-  if (is_composite) {
-    // LCOV_EXCL_START
-    return CeedError(ceed, CEED_ERROR_UNSUPPORTED, "Composite operator not supported");
-    // LCOV_EXCL_STOP
-  }
+  CeedCheck(!is_composite, ceed, CEED_ERROR_UNSUPPORTED, "Composite operator not supported");
 
   CeedSize num_nodes;
   CeedCall(CeedOperatorGetActiveVectorLengths(op, &num_nodes, NULL));
@@ -497,11 +508,7 @@ static int CeedSingleOperatorAssembleSymbolic(CeedOperator op, CeedInt offset, C
       }
     }
   }
-  if (count != local_num_entries) {
-    // LCOV_EXCL_START
-    return CeedError(ceed, CEED_ERROR_MAJOR, "Error computing assembled entries");
-    // LCOV_EXCL_STOP
-  }
+  CeedCheck(count == local_num_entries, ceed, CEED_ERROR_MAJOR, "Error computing assembled entries");
   CeedCall(CeedVectorRestoreArrayRead(elem_dof, &elem_dof_a));
   CeedCall(CeedVectorDestroy(&elem_dof));
 
@@ -527,11 +534,7 @@ static int CeedSingleOperatorAssemble(CeedOperator op, CeedInt offset, CeedVecto
   CeedCall(CeedOperatorGetCeed(op, &ceed));
   CeedCall(CeedOperatorIsComposite(op, &is_composite));
 
-  if (is_composite) {
-    // LCOV_EXCL_START
-    return CeedError(ceed, CEED_ERROR_UNSUPPORTED, "Composite operator not supported");
-    // LCOV_EXCL_STOP
-  }
+  CeedCheck(!is_composite, ceed, CEED_ERROR_UNSUPPORTED, "Composite operator not supported");
 
   // Early exit for empty operator
   {
@@ -581,16 +584,8 @@ static int CeedSingleOperatorAssemble(CeedOperator op, CeedInt offset, CeedVecto
   CeedCall(CeedOperatorAssemblyDataGetBases(data, NULL, &bases, NULL, NULL));
   CeedBasis basis_in = bases[0];
 
-  if (num_active_bases > 1) {
-    // LCOV_EXCL_START
-    return CeedError(ceed, CEED_ERROR_UNSUPPORTED, "Cannot assemble operator with multiple active bases");
-    // LCOV_EXCL_STOP
-  }
-  if (num_eval_modes_in[0] == 0 || num_eval_modes_out[0] == 0) {
-    // LCOV_EXCL_START
-    return CeedError(ceed, CEED_ERROR_UNSUPPORTED, "Cannot assemble operator with out inputs/outputs");
-    // LCOV_EXCL_STOP
-  }
+  CeedCheck(num_active_bases == 1, ceed, CEED_ERROR_UNSUPPORTED, "Cannot assemble operator with multiple active bases");
+  CeedCheck(num_eval_modes_in[0] > 0 && num_eval_modes_out[0] > 0, ceed, CEED_ERROR_UNSUPPORTED, "Cannot assemble operator with out inputs/outputs");
 
   CeedElemRestriction active_rstr;
   CeedInt             num_elem, elem_size, num_qpts, num_comp;
@@ -603,10 +598,6 @@ static int CeedSingleOperatorAssemble(CeedOperator op, CeedInt offset, CeedVecto
   CeedInt local_num_entries = elem_size * num_comp * elem_size * num_comp * num_elem;
 
   // loop over elements and put in data structure
-  const CeedScalar *interp_in, *grad_in;
-  CeedCall(CeedBasisGetInterp(basis_in, &interp_in));
-  CeedCall(CeedBasisGetGrad(basis_in, &grad_in));
-
   const CeedScalar *assembled_qf_array;
   CeedCall(CeedVectorGetArrayRead(assembled_qf, CEED_MEM_HOST, &assembled_qf_array));
 
@@ -655,11 +646,7 @@ static int CeedSingleOperatorAssemble(CeedOperator op, CeedInt offset, CeedVecto
       }
     }
   }
-  if (count != local_num_entries) {
-    // LCOV_EXCL_START
-    return CeedError(ceed, CEED_ERROR_MAJOR, "Error computing entries");
-    // LCOV_EXCL_STOP
-  }
+  CeedCheck(count == local_num_entries, ceed, CEED_ERROR_MAJOR, "Error computing entries");
   CeedCall(CeedVectorRestoreArray(values, &vals));
 
   CeedCall(CeedVectorRestoreArrayRead(assembled_qf, &assembled_qf_array));
@@ -684,11 +671,7 @@ static int CeedSingleOperatorAssemblyCountEntries(CeedOperator op, CeedInt *num_
   CeedInt             num_elem, elem_size, num_comp;
 
   CeedCall(CeedOperatorIsComposite(op, &is_composite));
-  if (is_composite) {
-    // LCOV_EXCL_START
-    return CeedError(op->ceed, CEED_ERROR_UNSUPPORTED, "Composite operator not supported");
-    // LCOV_EXCL_STOP
-  }
+  CeedCheck(!is_composite, op->ceed, CEED_ERROR_UNSUPPORTED, "Composite operator not supported");
   CeedCall(CeedOperatorGetActiveElemRestriction(op, &rstr));
   CeedCall(CeedElemRestrictionGetNumElements(rstr, &num_elem));
   CeedCall(CeedElemRestrictionGetElementSize(rstr, &elem_size));
@@ -723,11 +706,7 @@ static int CeedSingleOperatorMultigridLevel(CeedOperator op_fine, CeedVector p_m
   // Check for composite operator
   bool is_composite;
   CeedCall(CeedOperatorIsComposite(op_fine, &is_composite));
-  if (is_composite) {
-    // LCOV_EXCL_START
-    return CeedError(ceed, CEED_ERROR_UNSUPPORTED, "Automatic multigrid setup for composite operators not supported");
-    // LCOV_EXCL_STOP
-  }
+  CeedCheck(!is_composite, ceed, CEED_ERROR_UNSUPPORTED, "Automatic multigrid setup for composite operators not supported");
 
   // Coarse Grid
   CeedCall(CeedOperatorCreate(ceed, op_fine->qf, op_fine->dqf, op_fine->dqfT, op_coarse));
@@ -758,11 +737,7 @@ static int CeedSingleOperatorMultigridLevel(CeedOperator op_fine, CeedVector p_m
   if (op_restrict || op_prolong) {
     CeedVector mult_e_vec;
 
-    if (!p_mult_fine) {
-      // LCOV_EXCL_START
-      return CeedError(ceed, CEED_ERROR_INCOMPATIBLE, "Prolongation or restriction operator creation requires fine grid multiplicity vector");
-      // LCOV_EXCL_STOP
-    }
+    CeedCheck(p_mult_fine, ceed, CEED_ERROR_INCOMPATIBLE, "Prolongation or restriction operator creation requires fine grid multiplicity vector");
     CeedCall(CeedElemRestrictionCreateVector(rstr_fine, &mult_vec, &mult_e_vec));
     CeedCall(CeedVectorSetValue(mult_e_vec, 0.0));
     CeedCall(CeedElemRestrictionApply(rstr_fine, CEED_NOTRANSPOSE, p_mult_fine, mult_e_vec, CEED_REQUEST_IMMEDIATE));
@@ -778,11 +753,8 @@ static int CeedSingleOperatorMultigridLevel(CeedOperator op_fine, CeedVector p_m
   CeedCall(CeedOperatorSetName(*op_coarse, op_fine->name));
 
   // Check that coarse to fine basis is provided if prolong/restrict operators are requested
-  if ((op_restrict || op_prolong) && !basis_c_to_f) {
-    // LCOV_EXCL_START
-    return CeedError(ceed, CEED_ERROR_INCOMPATIBLE, "Prolongation or restriction operator creation requires coarse-to-fine basis");
-    // LCOV_EXCL_STOP
-  }
+  CeedCheck(basis_c_to_f || (!op_restrict && !op_prolong), ceed, CEED_ERROR_INCOMPATIBLE,
+            "Prolongation or restriction operator creation requires coarse-to-fine basis");
 
   // Restriction/Prolongation Operators
   CeedInt num_comp;
@@ -888,8 +860,9 @@ static int CeedSingleOperatorMultigridLevel(CeedOperator op_fine, CeedVector p_m
 
   @ref Developer
 **/
-CeedPragmaOptimizeOff static int CeedBuildMassLaplace(const CeedScalar *interp_1d, const CeedScalar *grad_1d, const CeedScalar *q_weight_1d,
-                                                      CeedInt P_1d, CeedInt Q_1d, CeedInt dim, CeedScalar *mass, CeedScalar *laplace) {
+CeedPragmaOptimizeOff
+static int CeedBuildMassLaplace(const CeedScalar *interp_1d, const CeedScalar *grad_1d, const CeedScalar *q_weight_1d, CeedInt P_1d, CeedInt Q_1d,
+                                CeedInt dim, CeedScalar *mass, CeedScalar *laplace) {
   for (CeedInt i = 0; i < P_1d; i++) {
     for (CeedInt j = 0; j < P_1d; j++) {
       CeedScalar sum = 0.0;
@@ -909,7 +882,7 @@ CeedPragmaOptimizeOff static int CeedBuildMassLaplace(const CeedScalar *interp_1
   for (CeedInt i = 0; i < P_1d; i++) laplace[i + P_1d * i] += perturbation;
   return CEED_ERROR_SUCCESS;
 }
-CeedPragmaOptimizeOn;
+CeedPragmaOptimizeOn
 
 /// @}
 
@@ -1055,11 +1028,7 @@ int CeedQFunctionAssemblyDataSetObjects(CeedQFunctionAssemblyData data, CeedVect
 }
 
 int CeedQFunctionAssemblyDataGetObjects(CeedQFunctionAssemblyData data, CeedVector *vec, CeedElemRestriction *rstr) {
-  if (!data->is_setup) {
-    // LCOV_EXCL_START
-    return CeedError(data->ceed, CEED_ERROR_INCOMPLETE, "Internal objects not set; must call CeedQFunctionAssemblyDataSetObjects first.");
-    // LCOV_EXCL_STOP
-  }
+  CeedCheck(data->is_setup, data->ceed, CEED_ERROR_INCOMPLETE, "Internal objects not set; must call CeedQFunctionAssemblyDataSetObjects first.");
 
   CeedCall(CeedVectorReferenceCopy(data->vec, vec));
   CeedCall(CeedElemRestrictionReferenceCopy(data->rstr, rstr));
@@ -1151,26 +1120,23 @@ int CeedOperatorAssemblyDataCreate(Ceed ceed, CeedOperator op, CeedOperatorAssem
   CeedInt       *num_eval_modes_in = NULL, *num_eval_modes_out = NULL, offset = 0;
   CeedEvalMode **eval_modes_in = NULL, **eval_modes_out = NULL;
   CeedSize     **eval_mode_offsets_in = NULL, **eval_mode_offsets_out = NULL;
-
   for (CeedInt i = 0; i < num_input_fields; i++) {
     CeedVector vec;
-
     CeedCall(CeedOperatorFieldGetVector(op_fields[i], &vec));
     if (vec == CEED_VECTOR_ACTIVE) {
-      CeedInt      index = -1, dim = 1, num_components;
       CeedBasis    basis_in = NULL;
       CeedEvalMode eval_mode;
-
+      CeedInt      index = -1, dim, num_comp, q_comp;
       CeedCall(CeedOperatorFieldGetBasis(op_fields[i], &basis_in));
-      CeedCall(CeedBasisGetDimension(basis_in, &dim));
-      CeedCall(CeedBasisGetNumComponents(basis_in, &num_components));
       CeedCall(CeedQFunctionFieldGetEvalMode(qf_fields[i], &eval_mode));
+      CeedCall(CeedBasisGetDimension(basis_in, &dim));
+      CeedCall(CeedBasisGetNumComponents(basis_in, &num_comp));
+      CeedCall(CeedBasisGetNumQuadratureComponents(basis_in, eval_mode, &q_comp));
       for (CeedInt i = 0; i < num_active_bases; i++) {
         if ((*data)->active_bases[i] == basis_in) index = i;
       }
       if (index == -1) {
         CeedElemRestriction elem_rstr_in;
-
         index = num_active_bases;
         CeedCall(CeedRealloc(num_active_bases + 1, &(*data)->active_bases));
         (*data)->active_bases[num_active_bases] = NULL;
@@ -1197,30 +1163,16 @@ int CeedOperatorAssemblyDataCreate(Ceed ceed, CeedOperator op, CeedOperatorAssem
         (*data)->assembled_bases_out[index] = NULL;
         num_active_bases++;
       }
-      switch (eval_mode) {
-        case CEED_EVAL_NONE:
-        case CEED_EVAL_INTERP:
-          CeedCall(CeedRealloc(num_eval_modes_in[index] + 1, &eval_modes_in[index]));
-          CeedCall(CeedRealloc(num_eval_modes_in[index] + 1, &eval_mode_offsets_in[index]));
-          eval_modes_in[index][num_eval_modes_in[index]]        = eval_mode;
-          eval_mode_offsets_in[index][num_eval_modes_in[index]] = offset;
-          offset += num_components;
-          num_eval_modes_in[index] += 1;
-          break;
-        case CEED_EVAL_GRAD:
-          CeedCall(CeedRealloc(num_eval_modes_in[index] + dim, &eval_modes_in[index]));
-          CeedCall(CeedRealloc(num_eval_modes_in[index] + dim, &eval_mode_offsets_in[index]));
-          for (CeedInt d = 0; d < dim; d++) {
-            eval_modes_in[index][num_eval_modes_in[index] + d]        = eval_mode;
-            eval_mode_offsets_in[index][num_eval_modes_in[index] + d] = offset;
-            offset += num_components;
-          }
-          num_eval_modes_in[index] += dim;
-          break;
-        case CEED_EVAL_WEIGHT:
-        case CEED_EVAL_DIV:
-        case CEED_EVAL_CURL:
-          break;  // Caught by QF Assembly
+      if (eval_mode != CEED_EVAL_WEIGHT) {
+        // q_comp = 1 if CEED_EVAL_NONE, CEED_EVAL_WEIGHT caught by QF Assembly
+        CeedCall(CeedRealloc(num_eval_modes_in[index] + q_comp, &eval_modes_in[index]));
+        CeedCall(CeedRealloc(num_eval_modes_in[index] + q_comp, &eval_mode_offsets_in[index]));
+        for (CeedInt d = 0; d < q_comp; d++) {
+          eval_modes_in[index][num_eval_modes_in[index] + d]        = eval_mode;
+          eval_mode_offsets_in[index][num_eval_modes_in[index] + d] = offset;
+          offset += num_comp;
+        }
+        num_eval_modes_in[index] += q_comp;
       }
     }
   }
@@ -1230,23 +1182,21 @@ int CeedOperatorAssemblyDataCreate(Ceed ceed, CeedOperator op, CeedOperatorAssem
 
   // Determine active output basis
   CeedInt num_output_fields;
-
   CeedCall(CeedQFunctionGetFields(qf, NULL, NULL, &num_output_fields, &qf_fields));
   CeedCall(CeedOperatorGetFields(op, NULL, NULL, NULL, &op_fields));
   offset = 0;
   for (CeedInt i = 0; i < num_output_fields; i++) {
     CeedVector vec;
-
     CeedCall(CeedOperatorFieldGetVector(op_fields[i], &vec));
     if (vec == CEED_VECTOR_ACTIVE) {
-      CeedInt      index = -1, dim = 1, num_components;
       CeedBasis    basis_out = NULL;
       CeedEvalMode eval_mode;
-
+      CeedInt      index = -1, dim, num_comp, q_comp;
       CeedCall(CeedOperatorFieldGetBasis(op_fields[i], &basis_out));
-      CeedCall(CeedBasisGetDimension(basis_out, &dim));
-      CeedCall(CeedBasisGetNumComponents(basis_out, &num_components));
       CeedCall(CeedQFunctionFieldGetEvalMode(qf_fields[i], &eval_mode));
+      CeedCall(CeedBasisGetDimension(basis_out, &dim));
+      CeedCall(CeedBasisGetNumComponents(basis_out, &num_comp));
+      CeedCall(CeedBasisGetNumQuadratureComponents(basis_out, eval_mode, &q_comp));
       for (CeedInt i = 0; i < num_active_bases; i++) {
         if ((*data)->active_bases[i] == basis_out) index = i;
       }
@@ -1279,30 +1229,16 @@ int CeedOperatorAssemblyDataCreate(Ceed ceed, CeedOperator op, CeedOperatorAssem
         (*data)->assembled_bases_out[index] = NULL;
         num_active_bases++;
       }
-      switch (eval_mode) {
-        case CEED_EVAL_NONE:
-        case CEED_EVAL_INTERP:
-          CeedCall(CeedRealloc(num_eval_modes_out[index] + 1, &eval_modes_out[index]));
-          CeedCall(CeedRealloc(num_eval_modes_out[index] + 1, &eval_mode_offsets_out[index]));
-          eval_modes_out[index][num_eval_modes_out[index]]        = eval_mode;
-          eval_mode_offsets_out[index][num_eval_modes_out[index]] = offset;
-          offset += num_components;
-          num_eval_modes_out[index] += 1;
-          break;
-        case CEED_EVAL_GRAD:
-          CeedCall(CeedRealloc(num_eval_modes_out[index] + dim, &eval_modes_out[index]));
-          CeedCall(CeedRealloc(num_eval_modes_out[index] + dim, &eval_mode_offsets_out[index]));
-          for (CeedInt d = 0; d < dim; d++) {
-            eval_modes_out[index][num_eval_modes_out[index] + d]        = eval_mode;
-            eval_mode_offsets_out[index][num_eval_modes_out[index] + d] = offset;
-            offset += num_components;
-          }
-          num_eval_modes_out[index] += dim;
-          break;
-        case CEED_EVAL_WEIGHT:
-        case CEED_EVAL_DIV:
-        case CEED_EVAL_CURL:
-          break;  // Caught by QF Assembly
+      if (eval_mode != CEED_EVAL_WEIGHT) {
+        // q_comp = 1 if CEED_EVAL_NONE, CEED_EVAL_WEIGHT caught by QF Assembly
+        CeedCall(CeedRealloc(num_eval_modes_out[index] + q_comp, &eval_modes_out[index]));
+        CeedCall(CeedRealloc(num_eval_modes_out[index] + q_comp, &eval_mode_offsets_out[index]));
+        for (CeedInt d = 0; d < q_comp; d++) {
+          eval_modes_out[index][num_eval_modes_out[index] + d]        = eval_mode;
+          eval_mode_offsets_out[index][num_eval_modes_out[index] + d] = offset;
+          offset += num_comp;
+        }
+        num_eval_modes_out[index] += q_comp;
       }
     }
   }
@@ -1375,36 +1311,38 @@ int CeedOperatorAssemblyDataGetBases(CeedOperatorAssemblyData data, CeedInt *num
 
     CeedCall(CeedBasisGetNumQuadraturePoints(data->active_bases[0], &num_qpts));
     for (CeedInt b = 0; b < data->num_active_bases; b++) {
-      CeedInt           elem_size;
-      CeedScalar       *B_in = NULL, *identity = NULL;
-      const CeedScalar *interp_in, *grad_in;
-      bool              has_eval_none = false;
+      CeedInt     num_nodes;
+      CeedScalar *B_in = NULL, *identity = NULL;
+      bool        has_eval_none = false;
 
-      CeedCall(CeedBasisGetNumNodes(data->active_bases[b], &elem_size));
-      CeedCall(CeedCalloc(num_qpts * elem_size * data->num_eval_modes_in[b], &B_in));
+      CeedCall(CeedBasisGetNumNodes(data->active_bases[b], &num_nodes));
+      CeedCall(CeedCalloc(num_qpts * num_nodes * data->num_eval_modes_in[b], &B_in));
 
       for (CeedInt i = 0; i < data->num_eval_modes_in[b]; i++) {
         has_eval_none = has_eval_none || (data->eval_modes_in[b][i] == CEED_EVAL_NONE);
       }
       if (has_eval_none) {
-        CeedCall(CeedCalloc(num_qpts * elem_size, &identity));
-        for (CeedInt i = 0; i < (elem_size < num_qpts ? elem_size : num_qpts); i++) {
-          identity[i * elem_size + i] = 1.0;
+        CeedCall(CeedCalloc(num_qpts * num_nodes, &identity));
+        for (CeedInt i = 0; i < (num_nodes < num_qpts ? num_nodes : num_qpts); i++) {
+          identity[i * num_nodes + i] = 1.0;
         }
       }
-      CeedCall(CeedBasisGetInterp(data->active_bases[b], &interp_in));
-      CeedCall(CeedBasisGetGrad(data->active_bases[b], &grad_in));
 
       for (CeedInt q = 0; q < num_qpts; q++) {
-        for (CeedInt n = 0; n < elem_size; n++) {
-          CeedInt d_in = -1;
+        for (CeedInt n = 0; n < num_nodes; n++) {
+          CeedInt      d_in              = 0, q_comp_in;
+          CeedEvalMode eval_mode_in_prev = CEED_EVAL_NONE;
           for (CeedInt e_in = 0; e_in < data->num_eval_modes_in[b]; e_in++) {
             const CeedInt     qq = data->num_eval_modes_in[b] * q;
             const CeedScalar *B  = NULL;
-
-            if (data->eval_modes_in[b][e_in] == CEED_EVAL_GRAD) d_in++;
-            CeedOperatorGetBasisPointer(data->eval_modes_in[b][e_in], identity, interp_in, &grad_in[d_in * num_qpts * elem_size], &B);
-            B_in[(qq + e_in) * elem_size + n] = B[q * elem_size + n];
+            CeedOperatorGetBasisPointer(data->active_bases[b], data->eval_modes_in[b][e_in], identity, &B);
+            CeedCall(CeedBasisGetNumQuadratureComponents(data->active_bases[b], data->eval_modes_in[b][e_in], &q_comp_in));
+            if (q_comp_in > 1) {
+              if (e_in == 0 || data->eval_modes_in[b][e_in] != eval_mode_in_prev) d_in = 0;
+              else B = &B[(++d_in) * num_qpts * num_nodes];
+            }
+            eval_mode_in_prev                 = data->eval_modes_in[b][e_in];
+            B_in[(qq + e_in) * num_nodes + n] = B[q * num_nodes + n];
           }
         }
       }
@@ -1418,36 +1356,38 @@ int CeedOperatorAssemblyDataGetBases(CeedOperatorAssemblyData data, CeedInt *num
 
     CeedCall(CeedBasisGetNumQuadraturePoints(data->active_bases[0], &num_qpts));
     for (CeedInt b = 0; b < data->num_active_bases; b++) {
-      CeedInt           elem_size;
-      const CeedScalar *interp_out, *grad_out;
-      bool              has_eval_none = false;
-      CeedScalar       *B_out = NULL, *identity = NULL;
+      CeedInt     num_nodes;
+      bool        has_eval_none = false;
+      CeedScalar *B_out = NULL, *identity = NULL;
 
-      CeedCall(CeedBasisGetNumNodes(data->active_bases[b], &elem_size));
-      CeedCall(CeedCalloc(num_qpts * elem_size * data->num_eval_modes_out[b], &B_out));
+      CeedCall(CeedBasisGetNumNodes(data->active_bases[b], &num_nodes));
+      CeedCall(CeedCalloc(num_qpts * num_nodes * data->num_eval_modes_out[b], &B_out));
 
       for (CeedInt i = 0; i < data->num_eval_modes_out[b]; i++) {
         has_eval_none = has_eval_none || (data->eval_modes_out[b][i] == CEED_EVAL_NONE);
       }
       if (has_eval_none) {
-        CeedCall(CeedCalloc(num_qpts * elem_size, &identity));
-        for (CeedInt i = 0; i < (elem_size < num_qpts ? elem_size : num_qpts); i++) {
-          identity[i * elem_size + i] = 1.0;
+        CeedCall(CeedCalloc(num_qpts * num_nodes, &identity));
+        for (CeedInt i = 0; i < (num_nodes < num_qpts ? num_nodes : num_qpts); i++) {
+          identity[i * num_nodes + i] = 1.0;
         }
       }
-      CeedCall(CeedBasisGetInterp(data->active_bases[b], &interp_out));
-      CeedCall(CeedBasisGetGrad(data->active_bases[b], &grad_out));
 
       for (CeedInt q = 0; q < num_qpts; q++) {
-        for (CeedInt n = 0; n < elem_size; n++) {
-          CeedInt d_out = -1;
+        for (CeedInt n = 0; n < num_nodes; n++) {
+          CeedInt      d_out              = 0, q_comp_out;
+          CeedEvalMode eval_mode_out_prev = CEED_EVAL_NONE;
           for (CeedInt e_out = 0; e_out < data->num_eval_modes_out[b]; e_out++) {
             const CeedInt     qq = data->num_eval_modes_out[b] * q;
             const CeedScalar *B  = NULL;
-
-            if (data->eval_modes_out[b][e_out] == CEED_EVAL_GRAD) d_out++;
-            CeedOperatorGetBasisPointer(data->eval_modes_out[b][e_out], identity, interp_out, &grad_out[d_out * num_qpts * elem_size], &B);
-            B_out[(qq + e_out) * elem_size + n] = B[q * elem_size + n];
+            CeedOperatorGetBasisPointer(data->active_bases[b], data->eval_modes_out[b][e_out], identity, &B);
+            CeedCall(CeedBasisGetNumQuadratureComponents(data->active_bases[b], data->eval_modes_out[b][e_out], &q_comp_out));
+            if (q_comp_out > 1) {
+              if (e_out == 0 || data->eval_modes_out[b][e_out] != eval_mode_out_prev) d_out = 0;
+              else B = &B[(++d_out) * num_qpts * num_nodes];
+            }
+            eval_mode_out_prev                  = data->eval_modes_out[b][e_out];
+            B_out[(qq + e_out) * num_nodes + n] = B[q * num_nodes + n];
           }
         }
       }
@@ -1537,8 +1477,10 @@ int CeedOperatorAssemblyDataDestroy(CeedOperatorAssemblyData *data) {
   @brief Assemble a linear CeedQFunction associated with a CeedOperator
 
   This returns a CeedVector containing a matrix at each quadrature point providing the action of the CeedQFunction associated with the CeedOperator.
-    The vector 'assembled' is of shape [num_elements, num_input_fields, num_output_fields, num_quad_points] and contains column-major matrices
-representing the action of the CeedQFunction for a corresponding quadrature point on an element. Inputs and outputs are in the order provided by the
+    The vector `assembled` is of shape `[num_elements, num_input_fields, num_output_fields, num_quad_points]` and contains column-major matrices
+representing the action of the CeedQFunction for a corresponding quadrature point on an element.
+
+  Inputs and outputs are in the order provided by the
 user when adding CeedOperator fields. For example, a CeedQFunction with inputs 'u' and 'gradu' and outputs 'gradv' and 'v', provided in that order,
 would result in an assembled QFunction that consists of (1 + dim) x (dim + 1) matrices at each quadrature point acting on the input [u, du_0, du_1]
 and producing the output [dv_0, dv_1, v].
@@ -1565,13 +1507,8 @@ int CeedOperatorLinearAssembleQFunction(CeedOperator op, CeedVector *assembled, 
     CeedOperator op_fallback;
 
     CeedCall(CeedOperatorGetFallback(op, &op_fallback));
-    if (op_fallback) {
-      CeedCall(CeedOperatorLinearAssembleQFunction(op_fallback, assembled, rstr, request));
-    } else {
-      // LCOV_EXCL_START
-      return CeedError(op->ceed, CEED_ERROR_UNSUPPORTED, "Backend does not support CeedOperatorLinearAssembleQFunction");
-      // LCOV_EXCL_STOP
-    }
+    if (op_fallback) CeedCall(CeedOperatorLinearAssembleQFunction(op_fallback, assembled, rstr, request));
+    else return CeedError(op->ceed, CEED_ERROR_UNSUPPORTED, "Backend does not support CeedOperatorLinearAssembleQFunction");
   }
   return CEED_ERROR_SUCCESS;
 }
@@ -1627,13 +1564,8 @@ int CeedOperatorLinearAssembleQFunctionBuildOrUpdate(CeedOperator op, CeedVector
     CeedOperator op_fallback;
 
     CeedCall(CeedOperatorGetFallback(op, &op_fallback));
-    if (op_fallback) {
-      CeedCall(CeedOperatorLinearAssembleQFunctionBuildOrUpdate(op_fallback, assembled, rstr, request));
-    } else {
-      // LCOV_EXCL_START
-      return CeedError(op->ceed, CEED_ERROR_UNSUPPORTED, "Backend does not support CeedOperatorLinearAssembleQFunctionUpdate");
-      // LCOV_EXCL_STOP
-    }
+    if (op_fallback) CeedCall(CeedOperatorLinearAssembleQFunctionBuildOrUpdate(op_fallback, assembled, rstr, request));
+    else return CeedError(op->ceed, CEED_ERROR_UNSUPPORTED, "Backend does not support CeedOperatorLinearAssembleQFunctionUpdate");
   }
 
   return CEED_ERROR_SUCCESS;
@@ -1663,11 +1595,7 @@ int CeedOperatorLinearAssembleDiagonal(CeedOperator op, CeedVector assembled, Ce
 
   CeedSize input_size = 0, output_size = 0;
   CeedCall(CeedOperatorGetActiveVectorLengths(op, &input_size, &output_size));
-  if (input_size != output_size) {
-    // LCOV_EXCL_START
-    return CeedError(op->ceed, CEED_ERROR_DIMENSION, "Operator must be square");
-    // LCOV_EXCL_STOP
-  }
+  CeedCheck(input_size == output_size, op->ceed, CEED_ERROR_DIMENSION, "Operator must be square");
 
   // Early exit for empty operator
   if (!is_composite) {
@@ -1727,11 +1655,7 @@ int CeedOperatorLinearAssembleAddDiagonal(CeedOperator op, CeedVector assembled,
 
   CeedSize input_size = 0, output_size = 0;
   CeedCall(CeedOperatorGetActiveVectorLengths(op, &input_size, &output_size));
-  if (input_size != output_size) {
-    // LCOV_EXCL_START
-    return CeedError(op->ceed, CEED_ERROR_DIMENSION, "Operator must be square");
-    // LCOV_EXCL_STOP
-  }
+  CeedCheck(input_size == output_size, op->ceed, CEED_ERROR_DIMENSION, "Operator must be square");
 
   // Early exit for empty operator
   if (!is_composite) {
@@ -1791,11 +1715,7 @@ int CeedOperatorLinearAssemblePointBlockDiagonal(CeedOperator op, CeedVector ass
 
   CeedSize input_size = 0, output_size = 0;
   CeedCall(CeedOperatorGetActiveVectorLengths(op, &input_size, &output_size));
-  if (input_size != output_size) {
-    // LCOV_EXCL_START
-    return CeedError(op->ceed, CEED_ERROR_DIMENSION, "Operator must be square");
-    // LCOV_EXCL_STOP
-  }
+  CeedCheck(input_size == output_size, op->ceed, CEED_ERROR_DIMENSION, "Operator must be square");
 
   // Early exit for empty operator
   if (!is_composite) {
@@ -1857,11 +1777,7 @@ int CeedOperatorLinearAssembleAddPointBlockDiagonal(CeedOperator op, CeedVector 
 
   CeedSize input_size = 0, output_size = 0;
   CeedCall(CeedOperatorGetActiveVectorLengths(op, &input_size, &output_size));
-  if (input_size != output_size) {
-    // LCOV_EXCL_START
-    return CeedError(op->ceed, CEED_ERROR_DIMENSION, "Operator must be square");
-    // LCOV_EXCL_STOP
-  }
+  CeedCheck(input_size == output_size, op->ceed, CEED_ERROR_DIMENSION, "Operator must be square");
 
   // Early exit for empty operator
   if (!is_composite) {
@@ -2177,21 +2093,14 @@ int CeedOperatorMultigridLevelCreateTensorH1(CeedOperator op_fine, CeedVector p_
   CeedInt Q_f, Q_c;
   CeedCall(CeedBasisGetNumQuadraturePoints(basis_fine, &Q_f));
   CeedCall(CeedBasisGetNumQuadraturePoints(basis_coarse, &Q_c));
-  if (Q_f != Q_c) {
-    // LCOV_EXCL_START
-    return CeedError(ceed, CEED_ERROR_DIMENSION, "Bases must have compatible quadrature spaces");
-    // LCOV_EXCL_STOP
-  }
+  CeedCheck(Q_f == Q_c, ceed, CEED_ERROR_DIMENSION, "Bases must have compatible quadrature spaces");
 
   // Create coarse to fine basis, if required
   CeedBasis basis_c_to_f = NULL;
   if (op_prolong || op_restrict) {
     // Check if interpolation matrix is provided
-    if (!interp_c_to_f) {
-      // LCOV_EXCL_START
-      return CeedError(ceed, CEED_ERROR_INCOMPATIBLE, "Prolongation or restriction operator creation requires coarse-to-fine interpolation matrix");
-      // LCOV_EXCL_STOP
-    }
+    CeedCheck(interp_c_to_f, ceed, CEED_ERROR_INCOMPATIBLE,
+              "Prolongation or restriction operator creation requires coarse-to-fine interpolation matrix");
     CeedInt dim, num_comp, num_nodes_c, P_1d_f, P_1d_c;
     CeedCall(CeedBasisGetDimension(basis_fine, &dim));
     CeedCall(CeedBasisGetNumComponents(basis_fine, &num_comp));
@@ -2244,21 +2153,14 @@ int CeedOperatorMultigridLevelCreateH1(CeedOperator op_fine, CeedVector p_mult_f
   CeedInt Q_f, Q_c;
   CeedCall(CeedBasisGetNumQuadraturePoints(basis_fine, &Q_f));
   CeedCall(CeedBasisGetNumQuadraturePoints(basis_coarse, &Q_c));
-  if (Q_f != Q_c) {
-    // LCOV_EXCL_START
-    return CeedError(ceed, CEED_ERROR_DIMENSION, "Bases must have compatible quadrature spaces");
-    // LCOV_EXCL_STOP
-  }
+  CeedCheck(Q_f == Q_c, ceed, CEED_ERROR_DIMENSION, "Bases must have compatible quadrature spaces");
 
   // Coarse to fine basis
   CeedBasis basis_c_to_f = NULL;
   if (op_prolong || op_restrict) {
     // Check if interpolation matrix is provided
-    if (!interp_c_to_f) {
-      // LCOV_EXCL_START
-      return CeedError(ceed, CEED_ERROR_INCOMPATIBLE, "Prolongation or restriction operator creation requires coarse-to-fine interpolation matrix");
-      // LCOV_EXCL_STOP
-    }
+    CeedCheck(interp_c_to_f, ceed, CEED_ERROR_INCOMPATIBLE,
+              "Prolongation or restriction operator creation requires coarse-to-fine interpolation matrix");
     CeedElemTopology topo;
     CeedCall(CeedBasisGetTopology(basis_fine, &topo));
     CeedInt dim, num_comp, num_nodes_c, num_nodes_f;
@@ -2285,9 +2187,9 @@ int CeedOperatorMultigridLevelCreateH1(CeedOperator op_fine, CeedVector p_mult_f
   @brief Build a FDM based approximate inverse for each element for a CeedOperator
 
   This returns a CeedOperator and CeedVector to apply a Fast Diagonalization Method based approximate inverse.
-    This function obtains the simultaneous diagonalization for the 1D mass and Laplacian operators, M = V^T V, K = V^T S V.
-    The assembled QFunction is used to modify the eigenvalues from simultaneous diagonalization and obtain an approximate inverse of the form V^T
-S^hat V. The CeedOperator must be linear and non-composite. The associated CeedQFunction must therefore also be linear.
+    This function obtains the simultaneous diagonalization for the 1D mass and Laplacian operators, \f$M = V^T V, K = V^T S V\f$.
+    The assembled QFunction is used to modify the eigenvalues from simultaneous diagonalization and obtain an approximate inverse of the form \f$V^T
+\hat S V\f$. The CeedOperator must be linear and non-composite. The associated CeedQFunction must therefore also be linear.
 
   Note: Calling this function asserts that setup is complete and sets the CeedOperator as immutable.
 
@@ -2346,15 +2248,11 @@ int CeedOperatorCreateFDMElementInverse(CeedOperator op, CeedOperator *fdm_inv, 
       CeedCall(CeedOperatorFieldGetElemRestriction(op_fields[i], &rstr));
     }
   }
-  if (!basis) {
-    // LCOV_EXCL_START
-    return CeedError(ceed, CEED_ERROR_BACKEND, "No active field set");
-    // LCOV_EXCL_STOP
-  }
+  CeedCheck(basis, ceed, CEED_ERROR_BACKEND, "No active field set");
   CeedSize l_size = 1;
-  CeedInt  P_1d, Q_1d, elem_size, num_qpts, dim, num_comp = 1, num_elem = 1;
+  CeedInt  P_1d, Q_1d, num_nodes, num_qpts, dim, num_comp = 1, num_elem = 1;
   CeedCall(CeedBasisGetNumNodes1D(basis, &P_1d));
-  CeedCall(CeedBasisGetNumNodes(basis, &elem_size));
+  CeedCall(CeedBasisGetNumNodes(basis, &num_nodes));
   CeedCall(CeedBasisGetNumQuadraturePoints1D(basis, &Q_1d));
   CeedCall(CeedBasisGetNumQuadraturePoints(basis, &num_qpts));
   CeedCall(CeedBasisGetDimension(basis, &dim));
@@ -2363,13 +2261,9 @@ int CeedOperatorCreateFDMElementInverse(CeedOperator op, CeedOperator *fdm_inv, 
   CeedCall(CeedElemRestrictionGetLVectorSize(rstr, &l_size));
 
   // Build and diagonalize 1D Mass and Laplacian
-  bool tensor_basis;
-  CeedCall(CeedBasisIsTensor(basis, &tensor_basis));
-  if (!tensor_basis) {
-    // LCOV_EXCL_START
-    return CeedError(ceed, CEED_ERROR_BACKEND, "FDMElementInverse only supported for tensor bases");
-    // LCOV_EXCL_STOP
-  }
+  bool is_tensor_basis;
+  CeedCall(CeedBasisIsTensor(basis, &is_tensor_basis));
+  CeedCheck(is_tensor_basis, ceed, CEED_ERROR_BACKEND, "FDMElementInverse only supported for tensor bases");
   CeedScalar *mass, *laplace, *x, *fdm_interp, *lambda;
   CeedCall(CeedCalloc(P_1d * P_1d, &mass));
   CeedCall(CeedCalloc(P_1d * P_1d, &laplace));
@@ -2437,26 +2331,26 @@ int CeedOperatorCreateFDMElementInverse(CeedOperator op, CeedOperator *fdm_inv, 
   // Build FDM diagonal
   CeedVector  q_data;
   CeedScalar *q_data_array, *fdm_diagonal;
-  CeedCall(CeedCalloc(num_comp * elem_size, &fdm_diagonal));
-  const CeedScalar fdm_diagonal_bound = elem_size * CEED_EPSILON;
+  CeedCall(CeedCalloc(num_comp * num_nodes, &fdm_diagonal));
+  const CeedScalar fdm_diagonal_bound = num_nodes * CEED_EPSILON;
   for (CeedInt c = 0; c < num_comp; c++) {
-    for (CeedInt n = 0; n < elem_size; n++) {
-      if (interp) fdm_diagonal[c * elem_size + n] = 1.0;
+    for (CeedInt n = 0; n < num_nodes; n++) {
+      if (interp) fdm_diagonal[c * num_nodes + n] = 1.0;
       if (grad) {
         for (CeedInt d = 0; d < dim; d++) {
           CeedInt i = (n / CeedIntPow(P_1d, d)) % P_1d;
-          fdm_diagonal[c * elem_size + n] += lambda[i];
+          fdm_diagonal[c * num_nodes + n] += lambda[i];
         }
       }
-      if (fabs(fdm_diagonal[c * elem_size + n]) < fdm_diagonal_bound) fdm_diagonal[c * elem_size + n] = fdm_diagonal_bound;
+      if (fabs(fdm_diagonal[c * num_nodes + n]) < fdm_diagonal_bound) fdm_diagonal[c * num_nodes + n] = fdm_diagonal_bound;
     }
   }
-  CeedCall(CeedVectorCreate(ceed_parent, num_elem * num_comp * elem_size, &q_data));
+  CeedCall(CeedVectorCreate(ceed_parent, num_elem * num_comp * num_nodes, &q_data));
   CeedCall(CeedVectorSetValue(q_data, 0.0));
   CeedCall(CeedVectorGetArrayWrite(q_data, CEED_MEM_HOST, &q_data_array));
   for (CeedInt e = 0; e < num_elem; e++) {
     for (CeedInt c = 0; c < num_comp; c++) {
-      for (CeedInt n = 0; n < elem_size; n++) q_data_array[(e * num_comp + c) * elem_size + n] = 1. / (elem_avg[e] * fdm_diagonal[c * elem_size + n]);
+      for (CeedInt n = 0; n < num_nodes; n++) q_data_array[(e * num_comp + c) * num_nodes + n] = 1. / (elem_avg[e] * fdm_diagonal[c * num_nodes + n]);
     }
   }
   CeedCall(CeedFree(&elem_avg));
@@ -2479,8 +2373,8 @@ int CeedOperatorCreateFDMElementInverse(CeedOperator op, CeedOperator *fdm_inv, 
 
   // -- Restriction
   CeedElemRestriction rstr_qd_i;
-  CeedInt             strides[3] = {1, elem_size, elem_size * num_comp};
-  CeedCall(CeedElemRestrictionCreateStrided(ceed_parent, num_elem, elem_size, num_comp, num_elem * num_comp * elem_size, strides, &rstr_qd_i));
+  CeedInt             strides[3] = {1, num_nodes, num_nodes * num_comp};
+  CeedCall(CeedElemRestrictionCreateStrided(ceed_parent, num_elem, num_nodes, num_comp, num_elem * num_comp * num_nodes, strides, &rstr_qd_i));
   // -- QFunction
   CeedQFunction qf_fdm;
   CeedCall(CeedQFunctionCreateInteriorByName(ceed_parent, "Scale", &qf_fdm));

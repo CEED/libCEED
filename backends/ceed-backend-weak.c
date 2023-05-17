@@ -5,15 +5,14 @@
 //
 // This file is part of CEED:  http://github.com/ceed
 
+#include <ceed.h>
 #include <ceed/backend.h>
-#include <ceed/ceed.h>
+#include <stdarg.h>
 
 // LCOV_EXCL_START
 // This function provides improved error messages for uncompiled backends
 static int CeedInit_Weak(const char *resource, Ceed ceed) {
-  return CeedError(ceed, CEED_ERROR_UNSUPPORTED,
-                   "Backend not currently compiled: %s\n"
-                   "Consult the installation instructions to compile this backend",
+  return CeedError(ceed, CEED_ERROR_UNSUPPORTED, "Backend not currently compiled: %s\nConsult the installation instructions to compile this backend",
                    resource);
 }
 
@@ -34,8 +33,8 @@ static int CeedRegister_Weak(const char *name, int num_prefixes, ...) {
 }
 // LCOV_EXCL_STOP
 
-#define MACRO(name, num_prefixes, ...)              \
+#define CEED_BACKEND(name, num_prefixes, ...)       \
   CEED_INTERN int name(void) __attribute__((weak)); \
   int             name(void) { return CeedRegister_Weak(__func__, num_prefixes, __VA_ARGS__); }
 #include "ceed-backend-list.h"
-#undef MACRO
+#undef CEED_BACKEND

@@ -2,6 +2,7 @@
 /// Test CeedVectorSetValue
 /// \test Test CeedVectorSetValue
 #include <ceed.h>
+#include <stdio.h>
 
 static int CheckValues(Ceed ceed, CeedVector x, CeedScalar value) {
   const CeedScalar *read_array;

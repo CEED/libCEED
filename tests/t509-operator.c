@@ -3,6 +3,7 @@
 /// \test Test creation, action, and destruction for identity operator
 #include <ceed.h>
 #include <math.h>
+#include <stdio.h>
 #include <stdlib.h>
 
 int main(int argc, char **argv) {

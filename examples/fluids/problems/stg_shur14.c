@@ -11,8 +11,9 @@
 
 #include "stg_shur14.h"
 
+#include <ceed.h>
 #include <math.h>
-#include <petsc.h>
+#include <petscdm.h>
 #include <stdlib.h>
 
 #include "../navierstokes.h"
@@ -232,12 +233,13 @@ PetscErrorCode GetSTGContextData(const MPI_Comm comm, const DM dm, char stg_infl
   // Get options
   PetscCall(GetNRows(comm, stg_rand_path, &nmodes));
   PetscCall(GetNRows(comm, stg_inflow_path, &nprofs));
-  if (nmodes > STG_NMODES_MAX)
+  if (nmodes > STG_NMODES_MAX) {
     SETERRQ(comm, 1,
             "Number of wavemodes in %s (%" PetscInt_FMT ") exceeds STG_NMODES_MAX (%" PetscInt_FMT
             "). "
             "Change size of STG_NMODES_MAX and recompile",
             stg_rand_path, nmodes, STG_NMODES_MAX);
+  }
 
   {
     STGShur14Context s;

@@ -39,8 +39,8 @@ static const char help[] = "Compute surface area of a cube or a cubed-sphere usi
 #include "area.h"
 
 #include <ceed.h>
-#include <petsc.h>
 #include <petscdmplex.h>
+#include <petscksp.h>
 #include <stdbool.h>
 #include <string.h>
 
@@ -50,13 +50,6 @@ static const char help[] = "Compute surface area of a cube or a cubed-sphere usi
 #include "include/petscutils.h"
 #include "include/petscversion.h"
 #include "include/structs.h"
-
-#if PETSC_VERSION_LT(3, 12, 0)
-#ifdef PETSC_HAVE_CUDA
-#include <petsccuda.h>
-// Note: With PETSc prior to version 3.12.0, providing the source path to include 'cublas_v2.h' will be needed to use 'petsccuda.h'.
-#endif
-#endif
 
 #ifndef M_PI
 #define M_PI 3.14159265358979323846

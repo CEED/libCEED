@@ -2,6 +2,9 @@ name: Style
 
 on:
   push:
+    branches:
+      - main
+  pull_request:
 
 jobs:
   test:
@@ -16,7 +19,7 @@ jobs:
     - name: Environment setup
       uses: actions/checkout@v3
     - name: Install clang-format
-      run: sudo apt install clang-format-15
+      run: sudo apt update && sudo apt install clang-format-15
     - name: C style
       env:
         CC: ${{ matrix.compiler }}

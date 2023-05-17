@@ -6,13 +6,12 @@
 // This file is part of CEED:  http://github.com/ceed
 
 #include <ceed-impl.h>
+#include <ceed.h>
 #include <ceed/backend.h>
-#include <ceed/ceed.h>
 #include <ceed/jit-tools.h>
 #include <limits.h>
 #include <stdbool.h>
 #include <stdio.h>
-#include <stdlib.h>
 #include <string.h>
 
 /// @file
@@ -63,11 +62,7 @@ static size_t num_qfunctions;
 **/
 int CeedQFunctionRegister(const char *name, const char *source, CeedInt vec_length, CeedQFunctionUser f,
                           int (*init)(Ceed, const char *, CeedQFunction)) {
-  if (num_qfunctions >= sizeof(gallery_qfunctions) / sizeof(gallery_qfunctions[0])) {
-    // LCOV_EXCL_START
-    return CeedError(NULL, CEED_ERROR_MAJOR, "Too many gallery QFunctions");
-    // LCOV_EXCL_STOP
-  }
+  CeedCheck(num_qfunctions < sizeof(gallery_qfunctions) / sizeof(gallery_qfunctions[0]), NULL, CEED_ERROR_MAJOR, "Too many gallery QFunctions");
 
   CeedDebugEnv("Gallery Register: %s", name);
 
@@ -90,12 +85,16 @@ int CeedQFunctionRegister(const char *name, const char *source, CeedInt vec_leng
 
   @param[out] f           CeedQFunctionField
   @param[in]  field_name  Name of QFunction field
-  @param[in]  size        Size of QFunction field, (num_comp * dim) for @ref CEED_EVAL_GRAD or (num_comp * 1) for @ref CEED_EVAL_NONE, @ref
-CEED_EVAL_INTERP, and @ref CEED_EVAL_WEIGHT
+  @param[in]  size        Size of QFunction field, (num_comp * 1) for @ref CEED_EVAL_NONE and @ref CEED_EVAL_WEIGHT,
+(num_comp * 1) for @ref CEED_EVAL_INTERP for an H^1 space or (num_comp * dim) for an H(div) or H(curl) space,
+(num_comp * dim) for @ref CEED_EVAL_GRAD, or (num_comp * 1) for @ref CEED_EVAL_DIV, and
+(num_comp * curl_dim) with curl_dim = 1 if dim < 3 else dim for @ref CEED_EVAL_CURL.
   @param[in]  eval_mode   \ref CEED_EVAL_NONE to use values directly,
+                            \ref CEED_EVAL_WEIGHT to use quadrature weights,
                             \ref CEED_EVAL_INTERP to use interpolated values,
                             \ref CEED_EVAL_GRAD to use gradients,
-                            \ref CEED_EVAL_WEIGHT to use quadrature weights.
+                            \ref CEED_EVAL_DIV to use divergence,
+                            \ref CEED_EVAL_CURL to use curl.
 
   @return An error code: 0 - success, otherwise - failure
 
@@ -539,11 +538,7 @@ int CeedQFunctionReference(CeedQFunction qf) {
   @ref Backend
 **/
 int CeedQFunctionGetFlopsEstimate(CeedQFunction qf, CeedSize *flops) {
-  if (qf->user_flop_estimate == -1) {
-    // LCOV_EXCL_START
-    return CeedError(qf->ceed, CEED_ERROR_INCOMPLETE, "Must set FLOPs estimate with CeedQFunctionSetUserFlopsEstimate");
-    // LCOV_EXCL_STOP
-  }
+  CeedCheck(qf->user_flop_estimate > -1, qf->ceed, CEED_ERROR_INCOMPLETE, "Must set FLOPs estimate with CeedQFunctionSetUserFlopsEstimate");
   *flops = qf->user_flop_estimate;
   return CEED_ERROR_SUCCESS;
 }
@@ -578,25 +573,15 @@ int CeedQFunctionCreateInterior(Ceed ceed, CeedInt vec_length, CeedQFunctionUser
 
   if (!ceed->QFunctionCreate) {
     Ceed delegate;
+
     CeedCall(CeedGetObjectDelegate(ceed, &delegate, "QFunction"));
-
-    if (!delegate) {
-      // LCOV_EXCL_START
-      return CeedError(ceed, CEED_ERROR_UNSUPPORTED, "Backend does not support QFunctionCreate");
-      // LCOV_EXCL_STOP
-    }
-
+    CeedCheck(delegate, ceed, CEED_ERROR_UNSUPPORTED, "Backend does not support QFunctionCreate");
     CeedCall(CeedQFunctionCreateInterior(delegate, vec_length, f, source, qf));
     return CEED_ERROR_SUCCESS;
   }
 
-  if (strlen(source) && !strrchr(source, ':')) {
-    // LCOV_EXCL_START
-    return CeedError(ceed, CEED_ERROR_INCOMPLETE,
-                     "Provided path to source does not include function name. Provided: \"%s\"\nRequired: \"\\abs_path\\file.h:function_name\"",
-                     source);
-    // LCOV_EXCL_STOP
-  }
+  CeedCheck(!strlen(source) || strrchr(source, ':'), ceed, CEED_ERROR_INCOMPLETE,
+            "Provided path to source does not include function name. Provided: \"%s\"\nRequired: \"\\abs_path\\file.h:function_name\"", source);
 
   CeedCall(CeedCalloc(1, qf));
   (*qf)->ceed = ceed;
@@ -636,7 +621,7 @@ int CeedQFunctionCreateInteriorByName(Ceed ceed, const char *name, CeedQFunction
 
   CeedCall(CeedQFunctionRegisterAll());
   // Find matching backend
-  if (!name) return CeedError(ceed, CEED_ERROR_INCOMPLETE, "No QFunction name provided");
+  CeedCheck(name, ceed, CEED_ERROR_INCOMPLETE, "No QFunction name provided");
   for (size_t i = 0; i < num_qfunctions; i++) {
     size_t      n;
     const char *curr_name = gallery_qfunctions[i].name;
@@ -647,11 +632,7 @@ int CeedQFunctionCreateInteriorByName(Ceed ceed, const char *name, CeedQFunction
       match_index = i;
     }
   }
-  if (!match_len) {
-    // LCOV_EXCL_START
-    return CeedError(ceed, CEED_ERROR_UNSUPPORTED, "No suitable gallery QFunction");
-    // LCOV_EXCL_STOP
-  }
+  CeedCheck(match_len > 0, ceed, CEED_ERROR_UNSUPPORTED, "No suitable gallery QFunction");
 
   // Create QFunction
   CeedCall(CeedQFunctionCreateInterior(ceed, gallery_qfunctions[match_index].vec_length, gallery_qfunctions[match_index].f,
@@ -669,9 +650,9 @@ int CeedQFunctionCreateInteriorByName(Ceed ceed, const char *name, CeedQFunction
 /**
   @brief Create an identity CeedQFunction.
            Inputs are written into outputs in the order given.
-           This is useful for CeedOperators that can be represented with only the action of a CeedRestriction and CeedBasis, such as restriction and
-prolongation operators for p-multigrid. Backends may optimize CeedOperators with this CeedQFunction to avoid the copy of input data to output fields
-by using the same memory location for both.
+           This is useful for CeedOperators that can be represented with only the action of a CeedElemRestriction and CeedBasis, such as restriction
+and prolongation operators for p-multigrid. Backends may optimize CeedOperators with this CeedQFunction to avoid the copy of input data to output
+fields by using the same memory location for both.
 
   @param[in]  ceed     Ceed object where the CeedQFunction will be created
   @param[in]  size     Size of the QFunction fields
@@ -723,42 +704,30 @@ int CeedQFunctionReferenceCopy(CeedQFunction qf, CeedQFunction *qf_copy) {
 /**
   @brief Add a CeedQFunction input
 
-  @param[in,out] qf      CeedQFunction
-  @param[in]  field_name Name of QFunction field
-  @param[in]  size       Size of QFunction field, (num_comp * dim) for @ref CEED_EVAL_GRAD or (num_comp * 1) for @ref CEED_EVAL_NONE and @ref
-CEED_EVAL_INTERP
-  @param[in]  eval_mode  \ref CEED_EVAL_NONE to use values directly,
-                           \ref CEED_EVAL_INTERP to use interpolated values,
-                           \ref CEED_EVAL_GRAD to use gradients.
+  @param[in,out] qf         CeedQFunction
+  @param[in]     field_name Name of QFunction field
+  @param[in]     size       Size of QFunction field, (num_comp * 1) for @ref CEED_EVAL_NONE,
+(num_comp * 1) for @ref CEED_EVAL_INTERP for an H^1 space or (num_comp * dim) for an H(div) or H(curl) space,
+(num_comp * dim) for @ref CEED_EVAL_GRAD, or (num_comp * 1) for @ref CEED_EVAL_DIV, and
+(num_comp * curl_dim) with curl_dim = 1 if dim < 3 else dim for @ref CEED_EVAL_CURL.
+  @param[in]     eval_mode  \ref CEED_EVAL_NONE to use values directly,
+                              \ref CEED_EVAL_INTERP to use interpolated values,
+                              \ref CEED_EVAL_GRAD to use gradients,
+                              \ref CEED_EVAL_DIV to use divergence,
+                              \ref CEED_EVAL_CURL to use curl.
 
   @return An error code: 0 - success, otherwise - failure
 
   @ref User
 **/
 int CeedQFunctionAddInput(CeedQFunction qf, const char *field_name, CeedInt size, CeedEvalMode eval_mode) {
-  if (qf->is_immutable) {
-    // LCOV_EXCL_START
-    return CeedError(qf->ceed, CEED_ERROR_MAJOR, "QFunction cannot be changed after set as immutable");
-    // LCOV_EXCL_STOP
-  }
-  if ((eval_mode == CEED_EVAL_WEIGHT) && (size != 1)) {
-    // LCOV_EXCL_START
-    return CeedError(qf->ceed, CEED_ERROR_DIMENSION, "CEED_EVAL_WEIGHT should have size 1");
-    // LCOV_EXCL_STOP
-  }
+  CeedCheck(!qf->is_immutable, qf->ceed, CEED_ERROR_MAJOR, "QFunction cannot be changed after set as immutable");
+  CeedCheck(eval_mode != CEED_EVAL_WEIGHT || size == 1, qf->ceed, CEED_ERROR_DIMENSION, "CEED_EVAL_WEIGHT should have size 1");
   for (CeedInt i = 0; i < qf->num_input_fields; i++) {
-    if (!strcmp(field_name, qf->input_fields[i]->field_name)) {
-      // LCOV_EXCL_START
-      return CeedError(qf->ceed, CEED_ERROR_MINOR, "QFunction field names must be unique");
-      // LCOV_EXCL_STOP
-    }
+    CeedCheck(strcmp(field_name, qf->input_fields[i]->field_name), qf->ceed, CEED_ERROR_MINOR, "QFunction field names must be unique");
   }
   for (CeedInt i = 0; i < qf->num_output_fields; i++) {
-    if (!strcmp(field_name, qf->output_fields[i]->field_name)) {
-      // LCOV_EXCL_START
-      return CeedError(qf->ceed, CEED_ERROR_MINOR, "QFunction field names must be unique");
-      // LCOV_EXCL_STOP
-    }
+    CeedCheck(strcmp(field_name, qf->output_fields[i]->field_name), qf->ceed, CEED_ERROR_MINOR, "QFunction field names must be unique");
   }
   CeedCall(CeedQFunctionFieldSet(&qf->input_fields[qf->num_input_fields], field_name, size, eval_mode));
   qf->num_input_fields++;
@@ -770,40 +739,28 @@ int CeedQFunctionAddInput(CeedQFunction qf, const char *field_name, CeedInt size
 
   @param[in,out] qf         CeedQFunction
   @param[in]     field_name Name of QFunction field
-  @param[in]     size       Size of QFunction field, (num_comp * dim) for @ref CEED_EVAL_GRAD or (num_comp * 1) for @ref CEED_EVAL_NONE and @ref
-CEED_EVAL_INTERP
+  @param[in]     size       Size of QFunction field, (num_comp * 1) for @ref CEED_EVAL_NONE,
+(num_comp * 1) for @ref CEED_EVAL_INTERP for an H^1 space or (num_comp * dim) for an H(div) or H(curl) space,
+(num_comp * dim) for @ref CEED_EVAL_GRAD, or (num_comp * 1) for @ref CEED_EVAL_DIV, and
+(num_comp * curl_dim) with curl_dim = 1 if dim < 3 else dim for @ref CEED_EVAL_CURL.
   @param[in]     eval_mode  \ref CEED_EVAL_NONE to use values directly,
                               \ref CEED_EVAL_INTERP to use interpolated values,
-                              \ref CEED_EVAL_GRAD to use gradients.
+                              \ref CEED_EVAL_GRAD to use gradients,
+                              \ref CEED_EVAL_DIV to use divergence,
+                              \ref CEED_EVAL_CURL to use curl.
 
   @return An error code: 0 - success, otherwise - failure
 
   @ref User
 **/
 int CeedQFunctionAddOutput(CeedQFunction qf, const char *field_name, CeedInt size, CeedEvalMode eval_mode) {
-  if (qf->is_immutable) {
-    // LCOV_EXCL_START
-    return CeedError(qf->ceed, CEED_ERROR_MAJOR, "QFunction cannot be changed after set as immutable");
-    // LCOV_EXCL_STOP
-  }
-  if (eval_mode == CEED_EVAL_WEIGHT) {
-    // LCOV_EXCL_START
-    return CeedError(qf->ceed, CEED_ERROR_DIMENSION, "Cannot create QFunction output with CEED_EVAL_WEIGHT");
-    // LCOV_EXCL_STOP
-  }
+  CeedCheck(!qf->is_immutable, qf->ceed, CEED_ERROR_MAJOR, "QFunction cannot be changed after set as immutable");
+  CeedCheck(eval_mode != CEED_EVAL_WEIGHT, qf->ceed, CEED_ERROR_DIMENSION, "Cannot create QFunction output with CEED_EVAL_WEIGHT");
   for (CeedInt i = 0; i < qf->num_input_fields; i++) {
-    if (!strcmp(field_name, qf->input_fields[i]->field_name)) {
-      // LCOV_EXCL_START
-      return CeedError(qf->ceed, CEED_ERROR_MINOR, "QFunction field names must be unique");
-      // LCOV_EXCL_STOP
-    }
+    CeedCheck(strcmp(field_name, qf->input_fields[i]->field_name), qf->ceed, CEED_ERROR_MINOR, "QFunction field names must be unique");
   }
   for (CeedInt i = 0; i < qf->num_output_fields; i++) {
-    if (!strcmp(field_name, qf->output_fields[i]->field_name)) {
-      // LCOV_EXCL_START
-      return CeedError(qf->ceed, CEED_ERROR_MINOR, "QFunction field names must be unique");
-      // LCOV_EXCL_STOP
-    }
+    CeedCheck(strcmp(field_name, qf->output_fields[i]->field_name), qf->ceed, CEED_ERROR_MINOR, "QFunction field names must be unique");
   }
   CeedCall(CeedQFunctionFieldSet(&qf->output_fields[qf->num_output_fields], field_name, size, eval_mode));
   qf->num_output_fields++;
@@ -901,7 +858,7 @@ int CeedQFunctionSetContext(CeedQFunction qf, CeedQFunctionContext ctx) {
 
 /**
   @brief Set writability of CeedQFunctionContext when calling the `CeedQFunctionUser`.
-           The default value is 'is_writable == true'.
+           The default value is `is_writable == true`.
 
            Setting `is_writable == true` indicates the `CeedQFunctionUser` writes into the CeedQFunctionContextData and requires memory syncronization
 after calling `CeedQFunctionApply()`.
@@ -932,11 +889,7 @@ int CeedQFunctionSetContextWritable(CeedQFunction qf, bool is_writable) {
   @ref Backend
 **/
 int CeedQFunctionSetUserFlopsEstimate(CeedQFunction qf, CeedSize flops) {
-  if (flops < 0) {
-    // LCOV_EXCL_START
-    return CeedError(qf->ceed, CEED_ERROR_INCOMPATIBLE, "Must set non-negative FLOPs estimate");
-    // LCOV_EXCL_STOP
-  }
+  CeedCheck(flops >= 0, qf->ceed, CEED_ERROR_INCOMPATIBLE, "Must set non-negative FLOPs estimate");
   qf->user_flop_estimate = flops;
   return CEED_ERROR_SUCCESS;
 }
@@ -999,17 +952,9 @@ int CeedQFunctionGetCeed(CeedQFunction qf, Ceed *ceed) {
   @ref User
 **/
 int CeedQFunctionApply(CeedQFunction qf, CeedInt Q, CeedVector *u, CeedVector *v) {
-  if (!qf->Apply) {
-    // LCOV_EXCL_START
-    return CeedError(qf->ceed, CEED_ERROR_UNSUPPORTED, "Backend does not support QFunctionApply");
-    // LCOV_EXCL_STOP
-  }
-  if (Q % qf->vec_length) {
-    // LCOV_EXCL_START
-    return CeedError(qf->ceed, CEED_ERROR_DIMENSION, "Number of quadrature points %" CeedInt_FMT " must be a multiple of %" CeedInt_FMT, Q,
-                     qf->vec_length);
-    // LCOV_EXCL_STOP
-  }
+  CeedCheck(qf->Apply, qf->ceed, CEED_ERROR_UNSUPPORTED, "Backend does not support QFunctionApply");
+  CeedCheck(Q % qf->vec_length == 0, qf->ceed, CEED_ERROR_DIMENSION,
+            "Number of quadrature points %" CeedInt_FMT " must be a multiple of %" CeedInt_FMT, Q, qf->vec_length);
   qf->is_immutable = true;
   CeedCall(qf->Apply(qf, Q, u, v));
   return CEED_ERROR_SUCCESS;

@@ -6,9 +6,10 @@
 // This file is part of CEED:  http://github.com/ceed
 
 #include <ceed-impl.h>
+#include <ceed.h>
 #include <ceed/backend.h>
-#include <ceed/ceed.h>
 #include <ceed/hip.h>
+#include <hip/hip_runtime_api.h>
 
 /**
   @brief Set HIP function pointer to evaluate action at quadrature points

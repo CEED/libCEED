@@ -2,7 +2,9 @@
 /// Test Simultaneous Diagonalization
 /// \test Simultaneous Diagonalization
 #include <ceed.h>
+#include <ceed/backend.h>
 #include <math.h>
+#include <stdio.h>
 
 int main(int argc, char **argv) {
   Ceed              ceed;

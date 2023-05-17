@@ -31,6 +31,11 @@
 #else
 #define CEED_QFUNCTION_ATTR
 #endif
+#if defined(__GNUC__) || defined(__clang__)
+#define CEED_QFUNCTION_HELPER_ATTR CEED_QFUNCTION_ATTR __attribute__((always_inline))
+#else
+#define CEED_QFUNCTION_HELPER_ATTR CEED_QFUNCTION_ATTR
+#endif
 #endif
 
 /**
@@ -50,7 +55,7 @@ backends. It also creates a variable `name_loc` populated with the correct sourc
 values for CPU backends.
 **/
 #ifndef CEED_QFUNCTION_HELPER
-#define CEED_QFUNCTION_HELPER CEED_QFUNCTION_ATTR static inline
+#define CEED_QFUNCTION_HELPER CEED_QFUNCTION_HELPER_ATTR static inline
 #endif
 
 /**
@@ -108,9 +113,9 @@ typedef enum {
   CEED_SCALAR_FP64
 } CeedScalarType;
 /// Base scalar type for the library to use: change which header is included to change the precision.
-#include "ceed-f64.h"
+#include "ceed-f64.h"  // IWYU pragma: export
 
-/// Ceed Errors
+/// Ceed error code.
 ///
 /// This enum is used to specify the type of error returned by a function.
 /// A zero error code is success, negative error codes indicate terminal errors and positive error codes indicate nonterminal errors.
@@ -136,5 +141,105 @@ typedef enum {
   /// Major error, operation unsupported by current backend
   CEED_ERROR_UNSUPPORTED = -3,
 } CeedErrorType;
+
+/// Specify memory type.
+/// Many Ceed interfaces take or return pointers to memory.
+/// This enum is used to specify where the memory being provided or requested must reside.
+/// @ingroup Ceed
+typedef enum {
+  /// Memory resides on the host
+  CEED_MEM_HOST,
+  /// Memory resides on a device (corresponding to \ref Ceed resource)
+  CEED_MEM_DEVICE,
+} CeedMemType;
+
+/// Conveys ownership status of arrays passed to Ceed interfaces.
+/// @ingroup Ceed
+typedef enum {
+  /// Implementation will copy the values and not store the passed pointer.
+  CEED_COPY_VALUES,
+  /// Implementation can use and modify the data provided by the user, but does not take ownership.
+  CEED_USE_POINTER,
+  /// Implementation takes ownership of the pointer and will free using CeedFree() when done using it.
+  /// The user should not assume that the pointer remains valid after ownership has been transferred.
+  /// Note that arrays allocated using C++ operator new or other allocators cannot generally be freed using CeedFree().
+  /// CeedFree() is capable of freeing any memory that can be freed using free().
+  CEED_OWN_POINTER,
+} CeedCopyMode;
+
+/// Denotes type of vector norm to be computed
+/// @ingroup CeedVector
+typedef enum {
+  /// \f$\Vert \bm{x}\Vert_1 = \sum_i \vert x_i\vert\f$
+  CEED_NORM_1,
+  /// \f$\Vert \bm{x} \Vert_2 = \sqrt{\sum_i x_i^2}\f$
+  CEED_NORM_2,
+  /// \f$\Vert \bm{x} \Vert_\infty = \max_i \vert x_i \vert\f$
+  CEED_NORM_MAX,
+} CeedNormType;
+
+/// Denotes whether a linear transformation or its transpose should be applied
+/// @ingroup CeedBasis
+typedef enum {
+  /// Apply the linear transformation
+  CEED_NOTRANSPOSE,
+  /// Apply the transpose
+  CEED_TRANSPOSE
+} CeedTransposeMode;
+
+/// Basis evaluation mode
+/// @ingroup CeedBasis
+typedef enum {
+  /// Perform no evaluation (either because there is no data or it is already at quadrature points)
+  CEED_EVAL_NONE = 0,
+  /// Interpolate from nodes to quadrature points
+  CEED_EVAL_INTERP = 1,
+  /// Evaluate gradients at quadrature points from input in the basis
+  CEED_EVAL_GRAD = 2,
+  /// Evaluate divergence at quadrature points from input in the basis
+  CEED_EVAL_DIV = 4,
+  /// Evaluate curl at quadrature points from input in the basis
+  CEED_EVAL_CURL = 8,
+  /// Using no input, evaluate quadrature weights on the reference element
+  CEED_EVAL_WEIGHT = 16,
+} CeedEvalMode;
+
+/// Type of quadrature; also used for location of nodes
+/// @ingroup CeedBasis
+typedef enum {
+  /// Gauss-Legendre quadrature
+  CEED_GAUSS = 0,
+  /// Gauss-Legendre-Lobatto quadrature
+  CEED_GAUSS_LOBATTO = 1,
+} CeedQuadMode;
+
+/// Type of basis shape to create non-tensor element basis.
+/// Dimension can be extracted with bitwise AND (CeedElemTopology & 2**(dim + 2)) == TRUE
+/// @ingroup CeedBasis
+typedef enum {
+  /// Line
+  CEED_TOPOLOGY_LINE = 1 << 16 | 0,
+  /// Triangle - 2D shape
+  CEED_TOPOLOGY_TRIANGLE = 2 << 16 | 1,
+  /// Quadralateral - 2D shape
+  CEED_TOPOLOGY_QUAD = 2 << 16 | 2,
+  /// Tetrahedron - 3D shape
+  CEED_TOPOLOGY_TET = 3 << 16 | 3,
+  /// Pyramid - 3D shape
+  CEED_TOPOLOGY_PYRAMID = 3 << 16 | 4,
+  /// Prism - 3D shape
+  CEED_TOPOLOGY_PRISM = 3 << 16 | 5,
+  /// Hexehedron - 3D shape
+  CEED_TOPOLOGY_HEX = 3 << 16 | 6,
+} CeedElemTopology;
+
+/// Denotes type of data stored in a CeedQFunctionContext field
+/// @ingroup CeedQFunction
+typedef enum {
+  /// Double precision value
+  CEED_CONTEXT_FIELD_DOUBLE = 1,
+  /// 32 bit integer value
+  CEED_CONTEXT_FIELD_INT32 = 2,
+} CeedContextFieldType;
 
 #endif

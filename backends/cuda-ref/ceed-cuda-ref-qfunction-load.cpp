@@ -5,8 +5,8 @@
 //
 // This file is part of CEED:  http://github.com/ceed
 
+#include <ceed.h>
 #include <ceed/backend.h>
-#include <ceed/ceed.h>
 #include <ceed/jit-tools.h>
 #include <string.h>
 
@@ -30,11 +30,7 @@ extern "C" int CeedCudaBuildQFunction(CeedQFunction qf) {
   // QFunction is built
   if (data->QFunction) return CEED_ERROR_SUCCESS;
 
-  if (!data->qfunction_source) {
-    // LCOV_EXCL_START
-    return CeedError(ceed, CEED_ERROR_BACKEND, "No QFunction source or CUfunction provided.");
-    // LCOV_EXCL_STOP
-  }
+  CeedCheck(data->qfunction_source, ceed, CEED_ERROR_BACKEND, "No QFunction source or CUfunction provided.");
 
   // QFunction kernel generation
   CeedInt             num_input_fields, num_output_fields, size;

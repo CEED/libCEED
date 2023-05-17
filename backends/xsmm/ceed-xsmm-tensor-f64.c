@@ -5,8 +5,8 @@
 //
 // This file is part of CEED:  http://github.com/ceed
 
+#include <ceed.h>
 #include <ceed/backend.h>
-#include <ceed/ceed.h>
 #include <ceed/hash.h>
 #include <ceed/khash.h>
 #include <libxsmm.h>
@@ -106,10 +106,7 @@ int CeedTensorContractCreate_f64_Xsmm(CeedBasis basis, CeedTensorContract contra
                 double alpha = 1.0, beta = 1.0;
                 if (!add) beta = 0.0;
                 libxsmm_dmmfunction kernel = libxsmm_dmmdispatch(C, J, B, NULL, NULL, NULL, &alpha, &beta, &flags, NULL);
-                if (!kernel)
-                  // LCOV_EXCL_START
-                  return CeedError(ceed, CEED_ERROR_BACKEND, "LIBXSMM kernel failed to build.");
-                // LCOV_EXCL_STOP
+                CeedCheck(kernel, ceed, CEED_ERROR_BACKEND, "LIBXSMM kernel failed to build.");
                 // Add kernel to hash table
                 kh_value(impl->lookup_f64, k) = kernel;
               }
@@ -139,10 +136,7 @@ int CeedTensorContractCreate_f64_Xsmm(CeedBasis basis, CeedTensorContract contra
               double alpha = 1.0, beta = 1.0;
               if (!add) beta = 0.0;
               libxsmm_dmmfunction kernel = libxsmm_dmmdispatch(C, J, B, NULL, NULL, NULL, &alpha, &beta, &flags, NULL);
-              if (!kernel)
-                // LCOV_EXCL_START
-                return CeedError(ceed, CEED_ERROR_BACKEND, "LIBXSMM kernel failed to build.");
-              // LCOV_EXCL_STOP
+              CeedCheck(kernel, ceed, CEED_ERROR_BACKEND, "LIBXSMM kernel failed to build.");
               // Add kernel to hash table
               kh_value(impl->lookup_f64, k) = kernel;
             }

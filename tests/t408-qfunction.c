@@ -3,6 +3,7 @@
 /// \test Test read access for QFunctionContext data
 #include <ceed.h>
 #include <math.h>
+#include <stdio.h>
 
 int main(int argc, char **argv) {
   Ceed                 ceed;

@@ -659,8 +659,8 @@ $(OBJDIR)/ceed.pc : pkgconfig-prefix = $(prefix)
 	    -e "s:%prefix%:$(pkgconfig-prefix):" \
 	    -e "s:%libs_private%:$(pkgconfig-libs-private):" $< > $@
 
-$(OBJDIR)/interface/ceed-jit-source-root-default.o : CPPFLAGS += -DCEED_JIT_SOUCE_ROOT_DEFAULT="\"$(abspath ./include)/\""
-$(OBJDIR)/interface/ceed-jit-source-root-install.o : CPPFLAGS += -DCEED_JIT_SOUCE_ROOT_DEFAULT="\"$(abspath $(includedir))/\""
+$(OBJDIR)/interface/ceed-jit-source-root-default.o : CPPFLAGS += -DCEED_JIT_SOURCE_ROOT_DEFAULT="\"$(abspath ./include)/\""
+$(OBJDIR)/interface/ceed-jit-source-root-install.o : CPPFLAGS += -DCEED_JIT_SOURCE_ROOT_DEFAULT="\"$(abspath $(includedir))/\""
 
 install : $(libceed) $(OBJDIR)/ceed.pc
 	$(INSTALL) -d $(addprefix $(if $(DESTDIR),"$(DESTDIR)"),"$(includedir)"\
@@ -737,14 +737,13 @@ tidy-cpp : $(libceed.cpp:%=%.tidy)
 
 tidy : tidy-c tidy-cpp
 
+# Include-What-You-Use
 ifneq ($(wildcard ../iwyu/*),)
   IWYU_DIR ?= ../iwyu
   IWYU_CC  ?= $(IWYU_DIR)/build/bin/include-what-you-use
 endif
-
-# IWYU
-iwyu : CC=$(IWYU_CC)
-iwyu : lib
+iwyu :
+	 $(MAKE) -B CC=$(IWYU_CC)
 
 print :
 	@echo $(VAR)=$($(VAR))

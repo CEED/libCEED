@@ -10,6 +10,9 @@
 
 #include "../qfunctions/freestream_bc.h"
 
+#include <ceed.h>
+#include <petscdm.h>
+
 #include "../navierstokes.h"
 #include "../qfunctions/newtonian_types.h"
 

@@ -3,6 +3,7 @@
 /// \test Test polynomial derivative interpolation in 1D
 #include <ceed.h>
 #include <math.h>
+#include <stdio.h>
 
 #define ALEN(a) (sizeof(a) / sizeof((a)[0]))
 

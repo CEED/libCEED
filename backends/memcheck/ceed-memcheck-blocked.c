@@ -5,8 +5,8 @@
 //
 // This file is part of CEED:  http://github.com/ceed
 
+#include <ceed.h>
 #include <ceed/backend.h>
-#include <ceed/ceed.h>
 #include <string.h>
 
 #include "ceed-memcheck.h"
@@ -15,11 +15,7 @@
 // Backend Init
 //------------------------------------------------------------------------------
 static int CeedInit_Memcheck(const char *resource, Ceed ceed) {
-  if (strcmp(resource, "/cpu/self/memcheck/blocked")) {
-    // LCOV_EXCL_START
-    return CeedError(ceed, CEED_ERROR_BACKEND, "Valgrind Memcheck backend cannot use resource: %s", resource);
-    // LCOV_EXCL_STOP
-  }
+  CeedCheck(!strcmp(resource, "/cpu/self/memcheck/blocked"), ceed, CEED_ERROR_BACKEND, "Valgrind Memcheck backend cannot use resource: %s", resource);
 
   // Create reference Ceed that implementation will be dispatched through unless overridden
   Ceed ceed_ref;

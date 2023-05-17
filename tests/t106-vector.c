@@ -2,6 +2,7 @@
 /// Test syncing device data to host pointer
 /// \test Test syncing device data to host pointer
 #include <ceed.h>
+#include <stdio.h>
 
 int main(int argc, char **argv) {
   Ceed       ceed;

@@ -9,6 +9,7 @@
 /// Command line option processing for Navier-Stokes example using PETSc
 
 #include <petscdevice.h>
+#include <petscsys.h>
 
 #include "../navierstokes.h"
 
@@ -138,12 +139,17 @@ PetscErrorCode ProcessCommandLineOptions(MPI_Comm comm, AppCtx app_ctx, SimpleBC
   }
 
   // Error if wall and slip BCs are set on the same face
-  if (bc->user_bc)
-    for (PetscInt c = 0; c < 3; c++)
-      for (PetscInt s = 0; s < bc->num_slip[c]; s++)
-        for (PetscInt w = 0; w < bc->num_wall; w++)
-          if (bc->slips[c][s] == bc->walls[w])
+  if (bc->user_bc) {
+    for (PetscInt c = 0; c < 3; c++) {
+      for (PetscInt s = 0; s < bc->num_slip[c]; s++) {
+        for (PetscInt w = 0; w < bc->num_wall; w++) {
+          if (bc->slips[c][s] == bc->walls[w]) {
             SETERRQ(PETSC_COMM_SELF, PETSC_ERR_ARG_WRONG, "Boundary condition already set on face %" PetscInt_FMT "!\n", bc->walls[w]);
+          }
+        }
+      }
+    }
+  }
 
   // Inflow BCs
   bc->num_inflow = 16;

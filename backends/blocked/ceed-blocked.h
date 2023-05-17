@@ -8,8 +8,8 @@
 #ifndef _ceed_blocked_h
 #define _ceed_blocked_h
 
+#include <ceed.h>
 #include <ceed/backend.h>
-#include <ceed/ceed.h>
 #include <stdbool.h>
 #include <stdint.h>
 

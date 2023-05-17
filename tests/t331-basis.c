@@ -1,45 +1,40 @@
 /// @file
-/// Test GetInterp and BasisApply for a 2D Quad non-tensor H(div) basis
-/// \test Test GetInterp and BasisApply for a 2D Quad non-tensor H(div) basis
+/// Test interpolation with a 2D Quad non-tensor H(div) basis
+/// \test Test interpolation with a 2D Quad non-tensor H(div) basis
 #include <ceed.h>
 #include <math.h>
+#include <stdio.h>
 
 #include "t330-basis.h"
 
 int main(int argc, char **argv) {
   Ceed          ceed;
-  const CeedInt num_nodes = 4, q = 3, dim = 2, num_qpts = q * q;
-  CeedInt       num_comp = 1;                // one vector component
-  CeedInt       p        = dim * num_nodes;  // DoF per element
+  CeedVector    u, v;
+  const CeedInt p = 8, q = 3, dim = 2, num_qpts = q * q;
   CeedBasis     basis;
   CeedScalar    q_ref[dim * num_qpts], q_weights[num_qpts];
-  CeedScalar    div[p * num_qpts], interp[p * dim * num_qpts];
-  CeedVector    u, v;
+  CeedScalar    interp[dim * p * num_qpts], div[p * num_qpts];
 
   CeedInit(argv[1], &ceed);
 
   BuildHdivQuadrilateral(q, q_ref, q_weights, interp, div, CEED_GAUSS);
-  CeedBasisCreateHdiv(ceed, CEED_TOPOLOGY_QUAD, num_comp, p, num_qpts, interp, div, q_ref, q_weights, &basis);
+  CeedBasisCreateHdiv(ceed, CEED_TOPOLOGY_QUAD, 1, p, num_qpts, interp, div, q_ref, q_weights, &basis);
 
-  // Test GetInterp for H(div)
+  // Test interpolation for H(div)
   {
-    const CeedScalar *interp_2;
-    CeedBasisGetInterp(basis, &interp_2);
-    for (CeedInt i = 0; i < p * dim * num_qpts; i++) {
-      if (fabs(interp[i] - interp_2[i]) > 100. * CEED_EPSILON) {
-        // LCOV_EXCL_START
-        printf("%f != %f\n", interp[i], interp_2[i]);
-        // LCOV_EXCL_STOP
-      }
+    const CeedScalar *interp_in_basis;
+
+    CeedBasisGetInterp(basis, &interp_in_basis);
+    for (CeedInt i = 0; i < dim * p * num_qpts; i++) {
+      if (fabs(interp[i] - interp_in_basis[i]) > 100. * CEED_EPSILON) printf("%f != %f\n", interp[i], interp_in_basis[i]);
     }
   }
 
   CeedVectorCreate(ceed, p, &u);
   CeedVectorSetValue(u, 1.0);
-  CeedVectorCreate(ceed, num_qpts * dim, &v);
-  CeedVectorSetValue(v, 0.);
+  CeedVectorCreate(ceed, dim * num_qpts, &v);
+  CeedVectorSetValue(v, 0.0);
 
-  // BasisApply for H(div): CEED_EVAL_INTERP, NOTRANSPOSE case
   CeedBasisApply(basis, 1, CEED_NOTRANSPOSE, CEED_EVAL_INTERP, u, v);
 
   {
@@ -47,11 +42,7 @@ int main(int argc, char **argv) {
 
     CeedVectorGetArrayRead(v, CEED_MEM_HOST, &v_array);
     for (CeedInt i = 0; i < dim * num_qpts; i++) {
-      if (fabs(q_ref[i] - v_array[i]) > 100. * CEED_EPSILON) {
-        // LCOV_EXCL_START
-        printf("%f != %f\n", q_ref[i], v_array[i]);
-        // LCOV_EXCL_STOP
-      }
+      if (fabs(q_ref[i] - v_array[i]) > 100. * CEED_EPSILON) printf("%f != %f\n", q_ref[i], v_array[i]);
     }
     CeedVectorRestoreArrayRead(v, &v_array);
   }
@@ -59,7 +50,6 @@ int main(int argc, char **argv) {
   CeedVectorSetValue(v, 1.0);
   CeedVectorSetValue(u, 0.0);
 
-  // BasisApply for Hdiv: CEED_EVAL_INTERP, TRANSPOSE case
   CeedBasisApply(basis, 1, CEED_TRANSPOSE, CEED_EVAL_INTERP, v, u);
 
   {

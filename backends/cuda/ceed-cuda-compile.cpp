@@ -7,8 +7,8 @@
 
 #include "ceed-cuda-compile.h"
 
+#include <ceed.h>
 #include <ceed/backend.h>
-#include <ceed/ceed.h>
 #include <ceed/jit-tools.h>
 #include <cuda.h>
 #include <cuda_runtime.h>
@@ -30,7 +30,7 @@
   do {                            \
     int ierr_q_ = __VA_ARGS__;    \
     CeedChk_Nvrtc(ceed, ierr_q_); \
-  } while (0);
+  } while (0)
 
 //------------------------------------------------------------------------------
 // Compile CUDA kernel

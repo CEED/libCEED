@@ -2,6 +2,7 @@
 /// Test creation, setting, reading, restoring, and destroying of a vector
 /// \test Test creation, setting, reading, restoring, and destroying of a vector
 #include <ceed.h>
+#include <stdio.h>
 
 int main(int argc, char **argv) {
   Ceed       ceed;

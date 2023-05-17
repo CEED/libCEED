@@ -10,6 +10,9 @@
 
 #include "../qfunctions/eulervortex.h"
 
+#include <ceed.h>
+#include <petscdm.h>
+
 #include "../navierstokes.h"
 #include "../qfunctions/setupgeo.h"
 

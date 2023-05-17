@@ -5,8 +5,8 @@
 //
 // This file is part of CEED:  http://github.com/ceed
 
+#include <ceed.h>
 #include <ceed/backend.h>
-#include <ceed/ceed.h>
 #include <ceed/jit-tools.h>
 #include <string.h>
 
@@ -34,16 +34,11 @@ CEED_INTERN "C"
   Ceed_Magma *data;
   CeedCallBackend(CeedGetData(ceed, &data));
 
-  const CeedScalar *u;
-  CeedScalar       *v;
-  if (emode != CEED_EVAL_WEIGHT) {
-    CeedCallBackend(CeedVectorGetArrayRead(U, CEED_MEM_DEVICE, &u));
-  } else if (emode != CEED_EVAL_WEIGHT) {
-    // LCOV_EXCL_START
-    return CeedError(ceed, CEED_ERROR_BACKEND, "An input vector is required for this CeedEvalMode");
-    // LCOV_EXCL_STOP
-  }
-  CeedCallBackend(CeedVectorGetArrayWrite(V, CEED_MEM_DEVICE, &v));
+  const CeedScalar *du;
+  CeedScalar       *dv;
+  if (U != CEED_VECTOR_NONE) CeedCallBackend(CeedVectorGetArrayRead(U, CEED_MEM_DEVICE, &du));
+  else CeedCheck(emode == CEED_EVAL_WEIGHT, ceed, CEED_ERROR_BACKEND, "An input vector is required for this CeedEvalMode");
+  CeedCallBackend(CeedVectorGetArrayWrite(V, CEED_MEM_DEVICE, &dv));
 
   CeedBasis_Magma *impl;
   CeedCallBackend(CeedBasisGetData(basis, &impl));
@@ -58,9 +53,9 @@ CEED_INTERN "C"
     CeedSize length;
     CeedCallBackend(CeedVectorGetLength(V, &length));
     if (CEED_SCALAR_TYPE == CEED_SCALAR_FP32) {
-      magmablas_slaset(MagmaFull, length, 1, 0., 0., (float *)v, length, data->queue);
+      magmablas_slaset(MagmaFull, length, 1, 0., 0., (float *)dv, length, data->queue);
     } else {
-      magmablas_dlaset(MagmaFull, length, 1, 0., 0., (double *)v, length, data->queue);
+      magmablas_dlaset(MagmaFull, length, 1, 0., 0., (double *)dv, length, data->queue);
     }
     ceed_magma_queue_sync(data->queue);
   }
@@ -83,7 +78,7 @@ CEED_INTERN "C"
       //       node                            node
 
       // ---  Define strides for NOTRANSPOSE mode: ---
-      // Input (u) is E-vector, output (v) is Q-vector
+      // Input (du) is E-vector, output (dv) is Q-vector
 
       // Element strides
       CeedInt u_elstride = eldofssize;
@@ -94,7 +89,7 @@ CEED_INTERN "C"
 
       // ---  Swap strides for TRANSPOSE mode: ---
       if (tmode == CEED_TRANSPOSE) {
-        // Input (u) is Q-vector, output (v) is E-vector
+        // Input (du) is Q-vector, output (dv) is E-vector
         // Element strides
         v_elstride = eldofssize;
         u_elstride = elquadsize;
@@ -130,7 +125,7 @@ CEED_INTERN "C"
                                P * Q * Q));  // rU needs P^2xP, the intermediate output needs max(P^2xQ,PQ^2)
       }
       CeedInt grid   = (nelem + ntcol - 1) / ntcol;
-      void   *args[] = {&impl->dinterp1d, &u, &u_elstride, &u_compstride, &v, &v_elstride, &v_compstride, &nelem};
+      void   *args[] = {&impl->dinterp1d, &du, &u_elstride, &u_compstride, &dv, &v_elstride, &v_compstride, &nelem};
 
       if (tmode == CEED_TRANSPOSE) {
         CeedCallBackend(CeedRunKernelDimSharedMagma(ceed, impl->magma_interp_tr, grid, nthreads, ntcol, 1, shmem, args));
@@ -141,9 +136,9 @@ CEED_INTERN "C"
     case CEED_EVAL_GRAD: {
       CeedInt P = P1d, Q = Q1d;
       // In CEED_NOTRANSPOSE mode:
-      // u is (P^dim x nc), column-major layout (nc = ncomp)
-      // v is (Q^dim x nc x dim), column-major layout (nc = ncomp)
-      // In CEED_TRANSPOSE mode, the sizes of u and v are switched.
+      // du is (P^dim x nc), column-major layout (nc = ncomp)
+      // dv is (Q^dim x nc x dim), column-major layout (nc = ncomp)
+      // In CEED_TRANSPOSE mode, the sizes of du and dv are switched.
       if (tmode == CEED_TRANSPOSE) {
         P = Q1d, Q = P1d;
       }
@@ -159,7 +154,7 @@ CEED_INTERN "C"
       //       node                            node
 
       // ---  Define strides for NOTRANSPOSE mode: ---
-      // Input (u) is E-vector, output (v) is Q-vector
+      // Input (du) is E-vector, output (dv) is Q-vector
 
       // Element strides
       CeedInt u_elstride = eldofssize;
@@ -173,7 +168,7 @@ CEED_INTERN "C"
 
       // ---  Swap strides for TRANSPOSE mode: ---
       if (tmode == CEED_TRANSPOSE) {
-        // Input (u) is Q-vector, output (v) is E-vector
+        // Input (du) is Q-vector, output (dv) is E-vector
         // Element strides
         v_elstride = eldofssize;
         u_elstride = elquadsize;
@@ -212,7 +207,7 @@ CEED_INTERN "C"
                               (P * P * Q) + (P * Q * Q));  // rU needs P^2xP, the intermediate outputs need (P^2.Q + P.Q^2)
       }
       CeedInt grid   = (nelem + ntcol - 1) / ntcol;
-      void   *args[] = {&impl->dinterp1d, &impl->dgrad1d, &u,           &u_elstride, &u_compstride, &u_dimstride, &v,
+      void   *args[] = {&impl->dinterp1d, &impl->dgrad1d, &du,          &u_elstride, &u_compstride, &u_dimstride, &dv,
                         &v_elstride,      &v_compstride,  &v_dimstride, &nelem};
 
       if (tmode == CEED_TRANSPOSE) {
@@ -222,10 +217,7 @@ CEED_INTERN "C"
       }
     } break;
     case CEED_EVAL_WEIGHT: {
-      if (tmode == CEED_TRANSPOSE)
-        // LCOV_EXCL_START
-        return CeedError(ceed, CEED_ERROR_BACKEND, "CEED_EVAL_WEIGHT incompatible with CEED_TRANSPOSE");
-      // LCOV_EXCL_STOP
+      CeedCheck(tmode != CEED_TRANSPOSE, ceed, CEED_ERROR_BACKEND, "CEED_EVAL_WEIGHT incompatible with CEED_TRANSPOSE");
       CeedInt Q          = Q1d;
       CeedInt eldofssize = CeedIntPow(Q, dim);
       CeedInt nthreads   = 1;
@@ -250,7 +242,7 @@ CEED_INTERN "C"
           shmem += sizeof(CeedScalar) * Q;  // for dqweight1d
       }
       CeedInt grid   = (nelem + ntcol - 1) / ntcol;
-      void   *args[] = {&impl->dqweight1d, &v, &eldofssize, &nelem};
+      void   *args[] = {&impl->dqweight1d, &dv, &eldofssize, &nelem};
 
       CeedCallBackend(CeedRunKernelDimSharedMagma(ceed, impl->magma_weight, grid, nthreads, ntcol, 1, shmem, args));
     } break;
@@ -268,9 +260,9 @@ CEED_INTERN "C"
   ceed_magma_queue_sync(data->queue);
 
   if (emode != CEED_EVAL_WEIGHT) {
-    CeedCallBackend(CeedVectorRestoreArrayRead(U, &u));
+    CeedCallBackend(CeedVectorRestoreArrayRead(U, &du));
   }
-  CeedCallBackend(CeedVectorRestoreArray(V, &v));
+  CeedCallBackend(CeedVectorRestoreArray(V, &dv));
   return CEED_ERROR_SUCCESS;
 }
 
@@ -294,13 +286,8 @@ CEED_INTERN "C"
   CeedCallBackend(CeedBasisGetNumQuadraturePoints(basis, &nqpt));
   const CeedScalar *du;
   CeedScalar       *dv;
-  if (emode != CEED_EVAL_WEIGHT) {
-    CeedCallBackend(CeedVectorGetArrayRead(U, CEED_MEM_DEVICE, &du));
-  } else if (emode != CEED_EVAL_WEIGHT) {
-    // LCOV_EXCL_START
-    return CeedError(ceed, CEED_ERROR_BACKEND, "An input vector is required for this CeedEvalMode");
-    // LCOV_EXCL_STOP
-  }
+  if (U != CEED_VECTOR_NONE) CeedCallBackend(CeedVectorGetArrayRead(U, CEED_MEM_DEVICE, &du));
+  else CeedCheck(emode == CEED_EVAL_WEIGHT, ceed, CEED_ERROR_BACKEND, "An input vector is required for this CeedEvalMode");
   CeedCallBackend(CeedVectorGetArrayWrite(V, CEED_MEM_DEVICE, &dv));
 
   CeedBasisNonTensor_Magma *impl;
@@ -398,10 +385,7 @@ CEED_INTERN "C"
     } break;
 
     case CEED_EVAL_WEIGHT: {
-      if (tmode == CEED_TRANSPOSE)
-        // LCOV_EXCL_START
-        return CeedError(ceed, CEED_ERROR_BACKEND, "CEED_EVAL_WEIGHT incompatible with CEED_TRANSPOSE");
-      // LCOV_EXCL_STOP
+      CeedCheck(tmode != CEED_TRANSPOSE, ceed, CEED_ERROR_BACKEND, "CEED_EVAL_WEIGHT incompatible with CEED_TRANSPOSE");
 
       int elemsPerBlock = 1;  // basis->Q1d < 7 ? optElems[basis->Q1d] : 1;
       int grid          = nelem / elemsPerBlock + ((nelem / elemsPerBlock * elemsPerBlock < nelem) ? 1 : 0);

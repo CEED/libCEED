@@ -6,8 +6,9 @@
 // This file is part of CEED:  http://github.com/ceed
 
 #include <ceed-impl.h>
+#include <ceed.h>
 #include <ceed/backend.h>
-#include <ceed/ceed.h>
+#include <stddef.h>
 
 /// @file
 /// Implementation of CeedTensorContract interfaces
@@ -32,14 +33,9 @@
 int CeedTensorContractCreate(Ceed ceed, CeedBasis basis, CeedTensorContract *contract) {
   if (!ceed->TensorContractCreate) {
     Ceed delegate;
+
     CeedCall(CeedGetObjectDelegate(ceed, &delegate, "TensorContract"));
-
-    if (!delegate) {
-      // LCOV_EXCL_START
-      return CeedError(ceed, CEED_ERROR_UNSUPPORTED, "Backend does not support TensorContractCreate");
-      // LCOV_EXCL_STOP
-    }
-
+    CeedCheck(delegate, ceed, CEED_ERROR_UNSUPPORTED, "Backend does not support TensorContractCreate");
     CeedCall(CeedTensorContractCreate(delegate, basis, contract));
     return CEED_ERROR_SUCCESS;
   }
@@ -78,6 +74,44 @@ int CeedTensorContractCreate(Ceed ceed, CeedBasis basis, CeedTensorContract *con
 int CeedTensorContractApply(CeedTensorContract contract, CeedInt A, CeedInt B, CeedInt C, CeedInt J, const CeedScalar *restrict t,
                             CeedTransposeMode t_mode, const CeedInt add, const CeedScalar *restrict u, CeedScalar *restrict v) {
   CeedCall(contract->Apply(contract, A, B, C, J, t, t_mode, add, u, v));
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
+  @brief Apply tensor contraction
+
+    Contracts on the middle index
+    NOTRANSPOSE: v_dajc = t_djb u_abc
+    TRANSPOSE:   v_ajc  = t_dbj u_dabc
+    If add != 0, "=" is replaced by "+="
+
+  @param[in]  contract CeedTensorContract to use
+  @param[in]  A        First index of u, second index of v
+  @param[in]  B        Middle index of u, one of last two indices of t
+  @param[in]  C        Last index of u, v
+  @param[in]  D        First index of v, first index of t
+  @param[in]  J        Third index of v, one of last two indices of t
+  @param[in]  t        Tensor array to contract against
+  @param[in]  t_mode   Transpose mode for t, \ref CEED_NOTRANSPOSE for t_jb \ref CEED_TRANSPOSE for t_bj
+  @param[in]  add      Add mode
+  @param[in]  u        Input array
+  @param[out] v        Output array
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Backend
+**/
+int CeedTensorContractStridedApply(CeedTensorContract contract, CeedInt A, CeedInt B, CeedInt C, CeedInt D, CeedInt J, const CeedScalar *restrict t,
+                                   CeedTransposeMode t_mode, const CeedInt add, const CeedScalar *restrict u, CeedScalar *restrict v) {
+  if (t_mode == CEED_TRANSPOSE) {
+    for (CeedInt d = 0; d < D; d++) {
+      CeedCall(contract->Apply(contract, A, J, C, B, t + d * B * J, t_mode, add, u + d * A * J * C, v));
+    }
+  } else {
+    for (CeedInt d = 0; d < D; d++) {
+      CeedCall(contract->Apply(contract, A, B, C, J, t + d * B * J, t_mode, add, u, v + d * A * J * C));
+    }
+  }
   return CEED_ERROR_SUCCESS;
 }
 

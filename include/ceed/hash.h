@@ -10,7 +10,7 @@
 #ifndef _ceed_hash_h
 #define _ceed_hash_h
 
-#include <ceed/ceed.h>
+#include <ceed.h>
 #include <ceed/khash.h>
 
 /* Required for khash <= 0.2.5 */

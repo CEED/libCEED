@@ -5,8 +5,8 @@
 //
 // This file is part of CEED:  http://github.com/ceed
 
+#include <ceed.h>
 #include <ceed/backend.h>
-#include <ceed/ceed.h>
 
 const char *const CeedErrorTypesShifted[] = {
     [CEED_ERROR_SUCCESS - CEED_ERROR_UNSUPPORTED]      = "success",
@@ -59,6 +59,7 @@ const char *const CeedContextFieldTypes[] = {
 };
 
 const char *const CeedFESpaces[] = {
-    [CEED_FE_SPACE_H1]   = "H^1 space",
-    [CEED_FE_SPACE_HDIV] = "H(div) space",
+    [CEED_FE_SPACE_H1]    = "H^1 space",
+    [CEED_FE_SPACE_HDIV]  = "H(div) space",
+    [CEED_FE_SPACE_HCURL] = "H(curl) space",
 };

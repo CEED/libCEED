@@ -2426,7 +2426,7 @@ impl<'a> CompositeOperator<'a> {
     ///
     /// * `op`        - Operator to assemble QFunction
     /// * `assembled` - Vector to store assembled Operator diagonal
-    pub fn linear_asssemble_diagonal(&self, assembled: &mut Vector) -> crate::Result<i32> {
+    pub fn linear_assemble_diagonal(&self, assembled: &mut Vector) -> crate::Result<i32> {
         self.op_core.linear_assemble_add_diagonal(assembled)
     }
 

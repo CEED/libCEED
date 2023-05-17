@@ -1,8 +1,9 @@
 /// @file
-/// Test creation, transpose use, and destruction of an interlaced multicomponent element restriction
-/// \test Test creation, transpose use, and destruction of an interlaced multicomponent element restriction
+/// Test creation, transpose use, and destruction of an interlaced multi-component element restriction
+/// \test Test creation, transpose use, and destruction of an interlaced multi-component element restriction
 #include <ceed.h>
 #include <ceed/backend.h>
+#include <stdio.h>
 
 int main(int argc, char **argv) {
   Ceed                ceed;

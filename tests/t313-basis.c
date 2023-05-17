@@ -3,6 +3,7 @@
 /// \test Test interpolation in multiple dimensions
 #include <ceed.h>
 #include <math.h>
+#include <stdio.h>
 
 static CeedScalar Eval(CeedInt dim, const CeedScalar x[]) {
   CeedScalar result = 1, center = 0.1;

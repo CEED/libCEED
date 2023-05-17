@@ -3,6 +3,7 @@
 /// \test Test CeedVectorSetArray to remove array access
 #include <ceed.h>
 #include <math.h>
+#include <stdio.h>
 
 int main(int argc, char **argv) {
   Ceed          ceed;

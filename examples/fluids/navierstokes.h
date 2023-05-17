@@ -9,9 +9,6 @@
 #define libceed_fluids_examples_navier_stokes_h
 
 #include <ceed.h>
-#include <petscdm.h>
-#include <petscdmplex.h>
-#include <petscsys.h>
 #include <petscts.h>
 #include <stdbool.h>
 
@@ -22,8 +19,8 @@
 // -----------------------------------------------------------------------------
 // PETSc Version
 // -----------------------------------------------------------------------------
-#if PETSC_VERSION_LT(3, 17, 0)
-#error "PETSc v3.17 or later is required"
+#if PETSC_VERSION_LT(3, 19, 0)
+#error "PETSc v3.19 or later is required"
 #endif
 
 // -----------------------------------------------------------------------------

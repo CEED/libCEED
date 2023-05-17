@@ -8,6 +8,9 @@
 /// @file
 /// Setup libCEED for Navier-Stokes example using PETSc
 
+#include <ceed.h>
+#include <petscdmplex.h>
+
 #include "../navierstokes.h"
 
 // Utility function - essential BC dofs are encoded in closure indices as -(i+1).

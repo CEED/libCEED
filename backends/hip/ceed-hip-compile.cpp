@@ -7,8 +7,8 @@
 
 #include "ceed-hip-compile.h"
 
+#include <ceed.h>
 #include <ceed/backend.h>
-#include <ceed/ceed.h>
 #include <ceed/jit-tools.h>
 #include <hip/hiprtc.h>
 #include <stdarg.h>
@@ -28,7 +28,7 @@
   do {                             \
     int ierr_q_ = __VA_ARGS__;     \
     CeedChk_hiprtc(ceed, ierr_q_); \
-  } while (0);
+  } while (0)
 
 //------------------------------------------------------------------------------
 // Compile HIP kernel

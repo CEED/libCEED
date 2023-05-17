@@ -8,7 +8,7 @@
 #ifndef libceed_solids_examples_boundary_h
 #define libceed_solids_examples_boundary_h
 
-#include <petsc.h>
+#include <petscsys.h>
 
 typedef PetscErrorCode BCFunc(PetscInt, PetscReal, const PetscReal *, PetscInt, PetscScalar *, void *);
 BCFunc                 BCMMS, BCZero, BCClamp;

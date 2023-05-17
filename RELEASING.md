@@ -12,7 +12,7 @@ Some minor bookkeeping updates are needed when releasing a new version of the co
 
 The version number must be updated in
 
-* `include/ceed/ceed.h`
+* `include/ceed.h`
 * `ceed.pc.template`
 * `Doxyfile`
 * `CITATION.cff`

@@ -31,6 +31,7 @@ noether-cpu:
     - BACKENDS_CPU=$(make info-backends-all | grep -o '/cpu[^ ]*')
     - echo "-------------- libCEED -------------" && make info
     - echo "-------------- BACKENDS_CPU --------" && echo $BACKENDS_CPU
+    - OCCA_DIR= PEDANTIC=1 make -j$NPROC_CPU
     - make -j$NPROC_CPU
 # -- libCEED only tests
     - echo "-------------- core tests ----------"
@@ -223,17 +224,17 @@ noether-cuda:
     - echo "-------------- libCEED -------------" && make info
     - BACKENDS_GPU=$(make info-backends | grep -o '/gpu[^ ]*')
     - echo "-------------- BACKENDS_GPU --------" && echo $BACKENDS_GPU
-    - nice make -k -j$NPROC_CPU -l$NPROC_CPU
+    - PEDANTIC=1 make -k -j$NPROC_CPU -l$NPROC_CPU
 # -- libCEED only tests
     - echo "-------------- core tests ----------"
 #    Note: PETSC_DIR is set by default in GitLab runner env, unsetting to isolate core tests
     - export PETSC_DIR= PETSC_ARCH=
-    - nice make -k -j$NPROC_GPU BACKENDS="$BACKENDS_GPU" JUNIT_BATCH="cuda" junit realsearch=%
+    - make -k -j$NPROC_GPU BACKENDS="$BACKENDS_GPU" JUNIT_BATCH="cuda" junit realsearch=%
 # Libraries for examples
 # -- PETSc with CUDA (minimal)
     - export PETSC_DIR=/projects/petsc PETSC_ARCH=mpich-cuda-O PETSC_OPTIONS='-use_gpu_aware_mpi 0' && git -C $PETSC_DIR -c safe.directory=$PETSC_DIR describe
     - echo "-------------- PETSc ---------------" && make -C $PETSC_DIR info
-    - nice make -k -j$NPROC_GPU JUNIT_BATCH="cuda" junit BACKENDS="$BACKENDS_GPU" search="petsc fluids solids"
+    - make -k -j$NPROC_GPU JUNIT_BATCH="cuda" junit BACKENDS="$BACKENDS_GPU" search="petsc fluids solids"
 # Report status
     - touch .SUCCESS
   after_script:

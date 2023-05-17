@@ -3,6 +3,7 @@
 /// \test Test collocated grad in multiple dimensions
 #include <ceed.h>
 #include <math.h>
+#include <stdio.h>
 
 static CeedScalar Eval(CeedInt dim, const CeedScalar x[]) {
   CeedScalar result = tanh(x[0] + 0.1);

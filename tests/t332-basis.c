@@ -1,42 +1,40 @@
 /// @file
-/// Test GetDiv and BasisApply for a 2D Quad non-tensor H(div) basis
-/// \test Test GetDiv and BasisApply for a 2D Quad non-tensor H(div) basis
+/// Test div with a 2D Quad non-tensor H(div) basis
+/// \test Test div with a 2D Quad non-tensor H(div) basis
 #include <ceed.h>
 #include <math.h>
+#include <stdio.h>
 
 #include "t330-basis.h"
 
 int main(int argc, char **argv) {
   Ceed          ceed;
-  const CeedInt num_nodes = 4, q = 3, dim = 2, num_qpts = q * q;
-  CeedInt       num_comp = 1;                // one vector component
-  CeedInt       p        = dim * num_nodes;  // DoF per element
+  CeedVector    u, v;
+  const CeedInt p = 8, q = 3, dim = 2, num_qpts = q * q;
   CeedBasis     basis;
   CeedScalar    q_ref[dim * num_qpts], q_weights[num_qpts];
-  CeedScalar    div[p * num_qpts], interp[p * dim * num_qpts];
-  CeedVector    u, v;
+  CeedScalar    interp[dim * p * num_qpts], div[p * num_qpts];
 
   CeedInit(argv[1], &ceed);
 
   BuildHdivQuadrilateral(q, q_ref, q_weights, interp, div, CEED_GAUSS);
-  CeedBasisCreateHdiv(ceed, CEED_TOPOLOGY_QUAD, num_comp, p, num_qpts, interp, div, q_ref, q_weights, &basis);
+  CeedBasisCreateHdiv(ceed, CEED_TOPOLOGY_QUAD, 1, p, num_qpts, interp, div, q_ref, q_weights, &basis);
 
-  // Test GetDiv
+  // Test div for H(div)
   {
-    const CeedScalar *div_2;
+    const CeedScalar *div_in_basis;
 
-    CeedBasisGetDiv(basis, &div_2);
+    CeedBasisGetDiv(basis, &div_in_basis);
     for (CeedInt i = 0; i < p * num_qpts; i++) {
-      if (fabs(div[i] - div_2[i]) > 100. * CEED_EPSILON) printf("%f != %f\n", div[i], div_2[i]);
+      if (fabs(div[i] - div_in_basis[i]) > 100. * CEED_EPSILON) printf("%f != %f\n", div[i], div_in_basis[i]);
     }
   }
 
   CeedVectorCreate(ceed, p, &u);
-  CeedVectorSetValue(u, 1);
+  CeedVectorSetValue(u, 1.0);
   CeedVectorCreate(ceed, num_qpts, &v);
-  CeedVectorSetValue(v, 0);
+  CeedVectorSetValue(v, 0.0);
 
-  // BasisApply for H(div): CEED_EVAL_DIV, NOTRANSPOSE case
   CeedBasisApply(basis, 1, CEED_NOTRANSPOSE, CEED_EVAL_DIV, u, v);
 
   {
@@ -52,7 +50,6 @@ int main(int argc, char **argv) {
   CeedVectorSetValue(v, 1.0);
   CeedVectorSetValue(u, 0.0);
 
-  // BasisApply for H(div): CEED_EVAL_DIV, TRANSPOSE case
   CeedBasisApply(basis, 1, CEED_TRANSPOSE, CEED_EVAL_DIV, v, u);
 
   {

@@ -8,11 +8,10 @@
 #ifndef _ceed_cuda_gen_h
 #define _ceed_cuda_gen_h
 
+#include <ceed.h>
 #include <ceed/backend.h>
-#include <ceed/ceed.h>
+#include <ceed/jit-source/cuda/cuda-types.h>
 #include <cuda.h>
-
-#include "../cuda/ceed-cuda-common.h"
 
 typedef struct {
   CeedInt        dim;

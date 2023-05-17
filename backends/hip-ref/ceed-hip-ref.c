@@ -7,10 +7,12 @@
 
 #include "ceed-hip-ref.h"
 
+#include <ceed.h>
 #include <ceed/backend.h>
-#include <ceed/ceed.h>
-#include <stdlib.h>
+#include <stdbool.h>
 #include <string.h>
+
+#include "../hip/ceed-hip-common.h"
 
 //------------------------------------------------------------------------------
 // HIP preferred MemType
@@ -38,11 +40,7 @@ int CeedHipGetHipblasHandle(Ceed ceed, hipblasHandle_t *handle) {
 static int CeedInit_Hip(const char *resource, Ceed ceed) {
   char *resource_root;
   CeedCallBackend(CeedHipGetResourceRoot(ceed, resource, &resource_root));
-  if (strcmp(resource_root, "/gpu/hip/ref")) {
-    // LCOV_EXCL_START
-    return CeedError(ceed, CEED_ERROR_BACKEND, "Hip backend cannot use resource: %s", resource);
-    // LCOV_EXCL_STOP
-  }
+  CeedCheck(!strcmp(resource_root, "/gpu/hip/ref"), ceed, CEED_ERROR_BACKEND, "Hip backend cannot use resource: %s", resource);
   CeedCallBackend(CeedFree(&resource_root));
   CeedCallBackend(CeedSetDeterministic(ceed, true));
 

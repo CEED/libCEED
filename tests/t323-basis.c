@@ -1,8 +1,9 @@
 /// @file
-/// Test grad with a 2D Simplex non-tensor H1 basis
-/// \test Test grad with a 2D Simplex non-tensor H1 basis
+/// Test grad with a 2D Simplex non-tensor H^1 basis
+/// \test Test grad with a 2D Simplex non-tensor H^1 basis
 #include <ceed.h>
 #include <math.h>
+#include <stdio.h>
 
 #include "t320-basis.h"
 

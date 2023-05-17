@@ -5,8 +5,8 @@
 //
 // This file is part of CEED:  http://github.com/ceed
 
+#include <ceed.h>
 #include <ceed/backend.h>
-#include <ceed/ceed.h>
 #include <ceed/jit-source/gallery/ceed-massapply.h>
 #include <string.h>
 
@@ -16,11 +16,7 @@
 static int CeedQFunctionInit_MassApply(Ceed ceed, const char *requested, CeedQFunction qf) {
   // Check QFunction name
   const char *name = "MassApply";
-  if (strcmp(name, requested)) {
-    // LCOV_EXCL_START
-    return CeedError(ceed, CEED_ERROR_UNSUPPORTED, "QFunction '%s' does not match requested name: %s", name, requested);
-    // LCOV_EXCL_STOP
-  }
+  CeedCheck(!strcmp(name, requested), ceed, CEED_ERROR_UNSUPPORTED, "QFunction '%s' does not match requested name: %s", name, requested);
 
   // Add QFunction fields
   CeedCall(CeedQFunctionAddInput(qf, "u", 1, CEED_EVAL_INTERP));

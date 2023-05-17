@@ -3,6 +3,7 @@
 /// \test Test assembly of mass matrix operator QFunction
 #include <ceed.h>
 #include <math.h>
+#include <stdio.h>
 #include <stdlib.h>
 
 #include "t510-operator.h"

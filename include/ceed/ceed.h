@@ -55,7 +55,9 @@
 #include <stdio.h>
 
 /// Typedefs and macros used in public interfaces and user QFunction source
-#include "types.h"
+#include "types.h"  // IWYU pragma: export
+/// This line prevents IWYU from suggesting "ceed.h"
+// IWYU pragma: private, include <ceed.h>
 
 /// Library context created by CeedInit()
 /// @ingroup CeedUser
@@ -90,8 +92,8 @@ typedef struct CeedQFunctionContext_private *CeedQFunctionContext;
 typedef struct CeedContextFieldLabel_private *CeedContextFieldLabel;
 /// Handle for object describing FE-type operators acting on vectors
 ///
-/// Given an element restriction \f$E\f$, basis evaluator \f$B\f$, and quadrature function\f$f\f$, a CeedOperator expresses operations of the form $$
-/// E^T B^T f(B E u) $$ acting on the vector \f$u\f$.
+/// Given an element restriction \f$E\f$, basis evaluator \f$B\f$, and quadrature function\f$f\f$, a CeedOperator expresses operations of the form
+/// \f$E^T B^T f(B E u)\f$ acting on the vector \f$u\f$.
 /// @ingroup CeedOperatorUser
 typedef struct CeedOperator_private *CeedOperator;
 
@@ -113,12 +115,7 @@ CEED_EXTERN int CeedErrorImpl(Ceed, const char *, int, const char *, int, const 
 ///
 /// @ingroup Ceed
 /// @sa CeedSetErrorHandler()
-#if defined(__clang__)
-/// Use nonstandard ternary to convince the compiler/clang-tidy that this function never returns zero.
 #define CeedError(ceed, ecode, ...) (CeedErrorImpl((ceed), __FILE__, __LINE__, __func__, (ecode), __VA_ARGS__), (ecode))
-#else
-#define CeedError(ceed, ecode, ...) CeedErrorImpl((ceed), __FILE__, __LINE__, __func__, (ecode), __VA_ARGS__) ?: (ecode)
-#endif
 
 /// Ceed error handlers
 CEED_EXTERN int CeedErrorReturn(Ceed, const char *, int, const char *, int, const char *, va_list *);
@@ -135,7 +132,7 @@ CEED_EXTERN int CeedResetErrorMessage(Ceed, const char **err_msg);
 #define CEED_VERSION_MAJOR 0
 #define CEED_VERSION_MINOR 11
 #define CEED_VERSION_PATCH 0
-#define CEED_VERSION_RELEASE true
+#define CEED_VERSION_RELEASE false
 
 /// Compile-time check that the the current library version is at least as recent as the specified version.
 /// This macro is typically used in
@@ -164,48 +161,17 @@ CEED_EXTERN int CeedGetVersion(int *major, int *minor, int *patch, bool *release
 
 CEED_EXTERN int CeedGetScalarType(CeedScalarType *scalar_type);
 
+/// String names for enum pretty printing
 CEED_EXTERN const char *const *CeedErrorTypes;
-
-/// Specify memory type
-///
-/// Many Ceed interfaces take or return pointers to memory.
-/// This enum is used to specify where the memory being provided or requested must reside.
-/// @ingroup Ceed
-typedef enum {
-  /// Memory resides on the host
-  CEED_MEM_HOST,
-  /// Memory resides on a device (corresponding to \ref Ceed resource)
-  CEED_MEM_DEVICE,
-} CeedMemType;
-CEED_EXTERN const char *const CeedMemTypes[];
+CEED_EXTERN const char *const  CeedMemTypes[];
+CEED_EXTERN const char *const  CeedCopyModes[];
+CEED_EXTERN const char *const  CeedTransposeModes[];
+CEED_EXTERN const char *const  CeedEvalModes[];
+CEED_EXTERN const char *const  CeedQuadModes[];
+CEED_EXTERN const char *const  CeedElemTopologies[];
+CEED_EXTERN const char *const  CeedContextFieldTypes[];
 
 CEED_EXTERN int CeedGetPreferredMemType(Ceed ceed, CeedMemType *type);
-
-/// Conveys ownership status of arrays passed to Ceed interfaces.
-/// @ingroup Ceed
-typedef enum {
-  /// Implementation will copy the values and not store the passed pointer.
-  CEED_COPY_VALUES,
-  /// Implementation can use and modify the data provided by the user, but does not take ownership.
-  CEED_USE_POINTER,
-  /// Implementation takes ownership of the pointer and will free using CeedFree() when done using it.
-  /// The user should not assume that the pointer remains valid after ownership has been transferred.
-  /// Note that arrays allocated using C++ operator new or other allocators cannot generally be freed using CeedFree().
-  /// CeedFree() is capable of freeing any memory that can be freed using free().
-  CEED_OWN_POINTER,
-} CeedCopyMode;
-CEED_EXTERN const char *const CeedCopyModes[];
-
-/// Denotes type of vector norm to be computed
-/// @ingroup CeedVector
-typedef enum {
-  /// L_1 norm: sum_i |x_i|
-  CEED_NORM_1,
-  /// L_2 norm: sqrt(sum_i |x_i|^2)
-  CEED_NORM_2,
-  /// L_Infinity norm: max_i |x_i|
-  CEED_NORM_MAX,
-} CeedNormType;
 
 CEED_EXTERN int CeedVectorCreate(Ceed ceed, CeedSize len, CeedVector *vec);
 CEED_EXTERN int CeedVectorReferenceCopy(CeedVector vec, CeedVector *vec_copy);
@@ -225,6 +191,7 @@ CEED_EXTERN int CeedVectorAXPY(CeedVector y, CeedScalar alpha, CeedVector x);
 CEED_EXTERN int CeedVectorAXPBY(CeedVector y, CeedScalar alpha, CeedScalar beta, CeedVector x);
 CEED_EXTERN int CeedVectorPointwiseMult(CeedVector w, CeedVector x, CeedVector y);
 CEED_EXTERN int CeedVectorReciprocal(CeedVector vec);
+CEED_EXTERN int CeedVectorViewRange(CeedVector vec, CeedSize start, CeedSize stop, CeedInt step, const char *fp_fmt, FILE *stream);
 CEED_EXTERN int CeedVectorView(CeedVector vec, const char *fp_fmt, FILE *stream);
 CEED_EXTERN int CeedVectorGetCeed(CeedVector vec, Ceed *ceed);
 CEED_EXTERN int CeedVectorGetLength(CeedVector vec, CeedSize *length);
@@ -255,16 +222,6 @@ CEED_EXTERN const CeedElemRestriction CEED_ELEMRESTRICTION_NONE;
 /// If implemented, a backend may attempt to provide the action of these QFunctions.
 /// @ingroup CeedQFunction
 CEED_EXTERN const CeedQFunction CEED_QFUNCTION_NONE;
-
-/// Denotes whether a linear transformation or its transpose should be applied
-/// @ingroup CeedBasis
-typedef enum {
-  /// Apply the linear transformation
-  CEED_NOTRANSPOSE,
-  /// Apply the transpose
-  CEED_TRANSPOSE
-} CeedTransposeMode;
-CEED_EXTERN const char *const CeedTransposeModes[];
 
 /// Argument for CeedElemRestrictionCreateStrided that L-vector is in the Ceed backend's preferred layout.
 /// This argument should only be used with vectors created by a Ceed backend.
@@ -304,58 +261,6 @@ CEED_EXTERN int CeedElemRestrictionDestroy(CeedElemRestriction *rstr);
 //  \int_\Omega v^T f_0(u, \nabla u, qdata) + (\nabla v)^T f_1(u, \nabla u, qdata)
 // where gradients are with respect to the reference element.
 
-/// Basis evaluation mode
-///
-/// Modes can be bitwise ORed when passing to most functions.
-/// @ingroup CeedBasis
-typedef enum {
-  /// Perform no evaluation (either because there is no data or it is already at quadrature points)
-  CEED_EVAL_NONE = 0,
-  /// Interpolate from nodes to quadrature points
-  CEED_EVAL_INTERP = 1,
-  /// Evaluate gradients at quadrature points from input in a nodal basis
-  CEED_EVAL_GRAD = 2,
-  /// Evaluate divergence at quadrature points from input in a nodal basis
-  CEED_EVAL_DIV = 4,
-  /// Evaluate curl at quadrature points from input in a nodal basis
-  CEED_EVAL_CURL = 8,
-  /// Using no input, evaluate quadrature weights on the reference element
-  CEED_EVAL_WEIGHT = 16,
-} CeedEvalMode;
-CEED_EXTERN const char *const CeedEvalModes[];
-
-/// Type of quadrature; also used for location of nodes
-/// @ingroup CeedBasis
-typedef enum {
-  /// Gauss-Legendre quadrature
-  CEED_GAUSS = 0,
-  /// Gauss-Legendre-Lobatto quadrature
-  CEED_GAUSS_LOBATTO = 1,
-} CeedQuadMode;
-CEED_EXTERN const char *const CeedQuadModes[];
-
-/// Type of basis shape to create non-tensor H1 element basis
-///
-/// Dimension can be extracted with bitwise AND (CeedElemTopology & 2**(dim + 2)) == TRUE
-/// @ingroup CeedBasis
-typedef enum {
-  /// Line
-  CEED_TOPOLOGY_LINE = 1 << 16 | 0,
-  /// Triangle - 2D shape
-  CEED_TOPOLOGY_TRIANGLE = 2 << 16 | 1,
-  /// Quadralateral - 2D shape
-  CEED_TOPOLOGY_QUAD = 2 << 16 | 2,
-  /// Tetrahedron - 3D shape
-  CEED_TOPOLOGY_TET = 3 << 16 | 3,
-  /// Pyramid - 3D shape
-  CEED_TOPOLOGY_PYRAMID = 3 << 16 | 4,
-  /// Prism - 3D shape
-  CEED_TOPOLOGY_PRISM = 3 << 16 | 5,
-  /// Hexehedron - 3D shape
-  CEED_TOPOLOGY_HEX = 3 << 16 | 6,
-} CeedElemTopology;
-CEED_EXTERN const char *const CeedElemTopologies[];
-
 CEED_EXTERN int CeedBasisCreateTensorH1Lagrange(Ceed ceed, CeedInt dim, CeedInt num_comp, CeedInt P, CeedInt Q, CeedQuadMode quad_mode,
                                                 CeedBasis *basis);
 CEED_EXTERN int CeedBasisCreateTensorH1(Ceed ceed, CeedInt dim, CeedInt num_comp, CeedInt P_1d, CeedInt Q_1d, const CeedScalar *interp_1d,
@@ -364,6 +269,8 @@ CEED_EXTERN int CeedBasisCreateH1(Ceed ceed, CeedElemTopology topo, CeedInt num_
                                   const CeedScalar *grad, const CeedScalar *q_ref, const CeedScalar *q_weights, CeedBasis *basis);
 CEED_EXTERN int CeedBasisCreateHdiv(Ceed ceed, CeedElemTopology topo, CeedInt num_comp, CeedInt num_nodes, CeedInt nqpts, const CeedScalar *interp,
                                     const CeedScalar *div, const CeedScalar *q_ref, const CeedScalar *q_weights, CeedBasis *basis);
+CEED_EXTERN int CeedBasisCreateHcurl(Ceed ceed, CeedElemTopology topo, CeedInt num_comp, CeedInt num_nodes, CeedInt nqpts, const CeedScalar *interp,
+                                     const CeedScalar *curl, const CeedScalar *q_ref, const CeedScalar *q_weights, CeedBasis *basis);
 CEED_EXTERN int CeedBasisCreateProjection(CeedBasis basis_from, CeedBasis basis_to, CeedBasis *basis_project);
 CEED_EXTERN int CeedBasisReferenceCopy(CeedBasis basis, CeedBasis *basis_copy);
 CEED_EXTERN int CeedBasisView(CeedBasis basis, FILE *stream);
@@ -371,7 +278,6 @@ CEED_EXTERN int CeedBasisApply(CeedBasis basis, CeedInt num_elem, CeedTransposeM
 CEED_EXTERN int CeedBasisGetCeed(CeedBasis basis, Ceed *ceed);
 CEED_EXTERN int CeedBasisGetDimension(CeedBasis basis, CeedInt *dim);
 CEED_EXTERN int CeedBasisGetTopology(CeedBasis basis, CeedElemTopology *topo);
-CEED_EXTERN int CeedBasisGetNumQuadratureComponents(CeedBasis basis, CeedInt *Q_comp);
 CEED_EXTERN int CeedBasisGetNumComponents(CeedBasis basis, CeedInt *num_comp);
 CEED_EXTERN int CeedBasisGetNumNodes(CeedBasis basis, CeedInt *P);
 CEED_EXTERN int CeedBasisGetNumNodes1D(CeedBasis basis, CeedInt *P_1d);
@@ -384,13 +290,11 @@ CEED_EXTERN int CeedBasisGetInterp1D(CeedBasis basis, const CeedScalar **interp_
 CEED_EXTERN int CeedBasisGetGrad(CeedBasis basis, const CeedScalar **grad);
 CEED_EXTERN int CeedBasisGetGrad1D(CeedBasis basis, const CeedScalar **grad_1d);
 CEED_EXTERN int CeedBasisGetDiv(CeedBasis basis, const CeedScalar **div);
+CEED_EXTERN int CeedBasisGetCurl(CeedBasis basis, const CeedScalar **curl);
 CEED_EXTERN int CeedBasisDestroy(CeedBasis *basis);
 
 CEED_EXTERN int CeedGaussQuadrature(CeedInt Q, CeedScalar *q_ref_1d, CeedScalar *q_weight_1d);
 CEED_EXTERN int CeedLobattoQuadrature(CeedInt Q, CeedScalar *q_ref_1d, CeedScalar *q_weight_1d);
-CEED_EXTERN int CeedQRFactorization(Ceed ceed, CeedScalar *mat, CeedScalar *tau, CeedInt m, CeedInt n);
-CEED_EXTERN int CeedSymmetricSchurDecomposition(Ceed ceed, CeedScalar *mat, CeedScalar *lambda, CeedInt n);
-CEED_EXTERN int CeedSimultaneousDiagonalization(Ceed ceed, CeedScalar *mat_A, CeedScalar *mat_B, CeedScalar *x, CeedScalar *lambda, CeedInt n);
 
 /** Handle for the user provided CeedQFunction callback function
 
@@ -428,16 +332,6 @@ CEED_EXTERN int CeedQFunctionDestroy(CeedQFunction *qf);
 CEED_EXTERN int CeedQFunctionFieldGetName(CeedQFunctionField qf_field, char **field_name);
 CEED_EXTERN int CeedQFunctionFieldGetSize(CeedQFunctionField qf_field, CeedInt *size);
 CEED_EXTERN int CeedQFunctionFieldGetEvalMode(CeedQFunctionField qf_field, CeedEvalMode *eval_mode);
-
-/// Denotes type of data stored in a CeedQFunctionContext field
-/// @ingroup CeedQFunction
-typedef enum {
-  /// Double precision value
-  CEED_CONTEXT_FIELD_DOUBLE = 1,
-  /// 32 bit integer value
-  CEED_CONTEXT_FIELD_INT32 = 2,
-} CeedContextFieldType;
-CEED_EXTERN const char *const CeedContextFieldTypes[];
 
 /** Handle for the user provided CeedQFunctionContextDataDestroy callback function
 

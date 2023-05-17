@@ -3,6 +3,7 @@
 /// \test Test full assembly of composite operator
 #include <ceed.h>
 #include <math.h>
+#include <stdio.h>
 #include <stdlib.h>
 
 int main(int argc, char **argv) {
