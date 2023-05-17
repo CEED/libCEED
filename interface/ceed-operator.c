@@ -535,22 +535,15 @@ int CeedOperatorCreate(Ceed ceed, CeedQFunction qf, CeedQFunction dqf, CeedQFunc
   }
 
   CeedCheck(qf && qf != CEED_QFUNCTION_NONE, ceed, CEED_ERROR_MINOR, "Operator must have a valid QFunction.");
+
   CeedCall(CeedCalloc(1, op));
-  (*op)->ceed = ceed;
-  CeedCall(CeedReference(ceed));
+  CeedCall(CeedReferenceCopy(ceed, &(*op)->ceed));
   (*op)->ref_count   = 1;
-  (*op)->qf          = qf;
   (*op)->input_size  = -1;
   (*op)->output_size = -1;
-  CeedCall(CeedQFunctionReference(qf));
-  if (dqf && dqf != CEED_QFUNCTION_NONE) {
-    (*op)->dqf = dqf;
-    CeedCall(CeedQFunctionReference(dqf));
-  }
-  if (dqfT && dqfT != CEED_QFUNCTION_NONE) {
-    (*op)->dqfT = dqfT;
-    CeedCall(CeedQFunctionReference(dqfT));
-  }
+  CeedCall(CeedQFunctionReferenceCopy(qf, &(*op)->qf));
+  if (dqf && dqf != CEED_QFUNCTION_NONE) CeedCall(CeedQFunctionReferenceCopy(dqf, &(*op)->dqf));
+  if (dqfT && dqfT != CEED_QFUNCTION_NONE) CeedCall(CeedQFunctionReferenceCopy(dqfT, &(*op)->dqfT));
   CeedCall(CeedQFunctionAssemblyDataCreate(ceed, &(*op)->qf_assembled));
   CeedCall(CeedCalloc(CEED_FIELD_MAX, &(*op)->input_fields));
   CeedCall(CeedCalloc(CEED_FIELD_MAX, &(*op)->output_fields));
@@ -580,17 +573,14 @@ int CeedCompositeOperatorCreate(Ceed ceed, CeedOperator *op) {
   }
 
   CeedCall(CeedCalloc(1, op));
-  (*op)->ceed = ceed;
-  CeedCall(CeedReference(ceed));
+  CeedCall(CeedReferenceCopy(ceed, &(*op)->ceed));
   (*op)->ref_count    = 1;
   (*op)->is_composite = true;
   CeedCall(CeedCalloc(CEED_COMPOSITE_MAX, &(*op)->sub_operators));
   (*op)->input_size  = -1;
   (*op)->output_size = -1;
 
-  if (ceed->CompositeOperatorCreate) {
-    CeedCall(ceed->CompositeOperatorCreate(*op));
-  }
+  if (ceed->CompositeOperatorCreate) CeedCall(ceed->CompositeOperatorCreate(*op));
   return CEED_ERROR_SUCCESS;
 }
 

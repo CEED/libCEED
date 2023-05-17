@@ -909,8 +909,7 @@ int CeedBasisCreateTensorH1(Ceed ceed, CeedInt dim, CeedInt num_comp, CeedInt P_
   CeedElemTopology topo = dim == 1 ? CEED_TOPOLOGY_LINE : dim == 2 ? CEED_TOPOLOGY_QUAD : CEED_TOPOLOGY_HEX;
 
   CeedCall(CeedCalloc(1, basis));
-  (*basis)->ceed = ceed;
-  CeedCall(CeedReference(ceed));
+  CeedCall(CeedReferenceCopy(ceed, &(*basis)->ceed));
   (*basis)->ref_count       = 1;
   (*basis)->is_tensor_basis = true;
   (*basis)->dim             = dim;
@@ -1045,12 +1044,10 @@ int CeedBasisCreateH1(Ceed ceed, CeedElemTopology topo, CeedInt num_comp, CeedIn
   CeedCheck(num_nodes > 0, ceed, CEED_ERROR_DIMENSION, "Basis must have at least 1 node");
   CeedCheck(num_qpts > 0, ceed, CEED_ERROR_DIMENSION, "Basis must have at least 1 quadrature point");
 
-  CeedCall(CeedCalloc(1, basis));
-
   CeedCall(CeedBasisGetTopologyDimension(topo, &dim));
 
-  (*basis)->ceed = ceed;
-  CeedCall(CeedReference(ceed));
+  CeedCall(CeedCalloc(1, basis));
+  CeedCall(CeedReferenceCopy(ceed, &(*basis)->ceed));
   (*basis)->ref_count       = 1;
   (*basis)->is_tensor_basis = false;
   (*basis)->dim             = dim;
@@ -1106,12 +1103,10 @@ int CeedBasisCreateHdiv(Ceed ceed, CeedElemTopology topo, CeedInt num_comp, Ceed
   CeedCheck(num_nodes > 0, ceed, CEED_ERROR_DIMENSION, "Basis must have at least 1 node");
   CeedCheck(num_qpts > 0, ceed, CEED_ERROR_DIMENSION, "Basis must have at least 1 quadrature point");
 
-  CeedCall(CeedCalloc(1, basis));
-
   CeedCall(CeedBasisGetTopologyDimension(topo, &dim));
 
-  (*basis)->ceed = ceed;
-  CeedCall(CeedReference(ceed));
+  CeedCall(CeedCalloc(1, basis));
+  CeedCall(CeedReferenceCopy(ceed, &(*basis)->ceed));
   (*basis)->ref_count       = 1;
   (*basis)->is_tensor_basis = false;
   (*basis)->dim             = dim;
@@ -1168,13 +1163,11 @@ int CeedBasisCreateHcurl(Ceed ceed, CeedElemTopology topo, CeedInt num_comp, Cee
   CeedCheck(num_nodes > 0, ceed, CEED_ERROR_DIMENSION, "Basis must have at least 1 node");
   CeedCheck(num_qpts > 0, ceed, CEED_ERROR_DIMENSION, "Basis must have at least 1 quadrature point");
 
-  CeedCall(CeedCalloc(1, basis));
-
   CeedCall(CeedBasisGetTopologyDimension(topo, &dim));
   curl_comp = (dim < 3) ? 1 : dim;
 
-  (*basis)->ceed = ceed;
-  CeedCall(CeedReference(ceed));
+  CeedCall(CeedCalloc(1, basis));
+  CeedCall(CeedReferenceCopy(ceed, &(*basis)->ceed));
   (*basis)->ref_count       = 1;
   (*basis)->is_tensor_basis = false;
   (*basis)->dim             = dim;
