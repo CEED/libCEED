@@ -69,6 +69,8 @@ S(\bm{q}) &=
 \end{aligned}
 $$ (eq-ns-flux)
 
+### Finite Element Formulation (Spatial Discretization)
+
 Let the discrete solution be
 
 $$
@@ -77,61 +79,6 @@ $$
 
 with $P=p+1$ the number of nodes in the element $e$.
 We use tensor-product bases $\psi_{kji} = h_i(X_0)h_j(X_1)h_k(X_2)$.
-
-For the time discretization, we use two types of time stepping schemes.
-
-- Explicit time-stepping method
-
-  The following explicit formulation is solved with the adaptive Runge-Kutta-Fehlberg (RKF4-5) method by default (any explicit time-stepping scheme available in PETSc can be chosen at runtime)
-
-  $$
-  \bm{q}_N^{n+1} = \bm{q}_N^n + \Delta t \sum_{i=1}^{s} b_i k_i \, ,
-  $$
-
-  where
-
-  $$
-  \begin{aligned}
-     k_1 &= f(t^n, \bm{q}_N^n)\\
-     k_2 &= f(t^n + c_2 \Delta t, \bm{q}_N^n + \Delta t (a_{21} k_1))\\
-     k_3 &= f(t^n + c_3 \Delta t, \bm{q}_N^n + \Delta t (a_{31} k_1 + a_{32} k_2))\\
-     \vdots&\\
-     k_i &= f\left(t^n + c_i \Delta t, \bm{q}_N^n + \Delta t \sum_{j=1}^s a_{ij} k_j \right)\\
-  \end{aligned}
-  $$
-
-  and with
-
-  $$
-  f(t^n, \bm{q}_N^n) = - [\nabla \cdot \bm{F}(\bm{q}_N)]^n + [S(\bm{q}_N)]^n \, .
-  $$
-
-- Implicit time-stepping method
-
-  This time stepping method which can be selected using the option `-implicit` is solved with Backward Differentiation Formula (BDF) method by default (similarly, any implicit time-stepping scheme available in PETSc can be chosen at runtime).
-  The implicit formulation solves nonlinear systems for $\bm q_N$:
-
-  $$
-  \bm f(\bm q_N) \equiv \bm g(t^{n+1}, \bm{q}_N, \bm{\dot{q}}_N) = 0 \, ,
-  $$ (eq-ts-implicit-ns)
-
-  where the time derivative $\bm{\dot q}_N$ is defined by
-
-  $$
-  \bm{\dot{q}}_N(\bm q_N) = \alpha \bm q_N + \bm z_N
-  $$
-
-  in terms of $\bm z_N$ from prior state and $\alpha > 0$, both of which depend on the specific time integration scheme (backward difference formulas, generalized alpha, implicit Runge-Kutta, etc.).
-  Each nonlinear system {eq}`eq-ts-implicit-ns` will correspond to a weak form, as explained below.
-  In determining how difficult a given problem is to solve, we consider the Jacobian of {eq}`eq-ts-implicit-ns`,
-
-  $$
-  \frac{\partial \bm f}{\partial \bm q_N} = \frac{\partial \bm g}{\partial \bm q_N} + \alpha \frac{\partial \bm g}{\partial \bm{\dot q}_N}.
-  $$
-
-  The scalar "shift" $\alpha$ scales inversely with the time step $\Delta t$, so small time steps result in the Jacobian being dominated by the second term, which is a sort of "mass matrix", and typically well-conditioned independent of grid resolution with a simple preconditioner (such as Jacobi).
-  In contrast, the first term dominates for large time steps, with a condition number that grows with the diameter of the domain and polynomial degree of the approximation space.
-  Both terms are significant for time-accurate simulation and the setup costs of strong preconditioners must be balanced with the convergence rate of Krylov methods using weak preconditioners.
 
 To obtain a finite element discretization, we first multiply the strong form {eq}`eq-vector-ns` by a test function $\bm v \in H^1(\Omega)$ and integrate,
 
@@ -158,6 +105,65 @@ where $\bm{F}(\bm q_N) \cdot \widehat{\bm{n}}$ is typically replaced with a boun
 The notation $\nabla \bm v \!:\! \bm F$ represents contraction over both fields and spatial dimensions while a single dot represents contraction in just one, which should be clear from context, e.g., $\bm v \cdot \bm S$ contracts over fields while $\bm F \cdot \widehat{\bm n}$ contracts over spatial dimensions.
 :::
 
+### Time Discretization
+For the time discretization, we use two types of time stepping schemes through PETSc.
+
+#### Explicit time-stepping method
+
+  The following explicit formulation is solved with the adaptive Runge-Kutta-Fehlberg (RKF4-5) method by default (any explicit time-stepping scheme available in PETSc can be chosen at runtime)
+
+  $$
+  \bm{q}_N^{n+1} = \bm{q}_N^n + \Delta t \sum_{i=1}^{s} b_i k_i \, ,
+  $$
+
+  where
+
+  $$
+  \begin{aligned}
+     k_1 &= f(t^n, \bm{q}_N^n)\\
+     k_2 &= f(t^n + c_2 \Delta t, \bm{q}_N^n + \Delta t (a_{21} k_1))\\
+     k_3 &= f(t^n + c_3 \Delta t, \bm{q}_N^n + \Delta t (a_{31} k_1 + a_{32} k_2))\\
+     \vdots&\\
+     k_i &= f\left(t^n + c_i \Delta t, \bm{q}_N^n + \Delta t \sum_{j=1}^s a_{ij} k_j \right)\\
+  \end{aligned}
+  $$
+
+  and with
+
+  $$
+  f(t^n, \bm{q}_N^n) = - [\nabla \cdot \bm{F}(\bm{q}_N)]^n + [S(\bm{q}_N)]^n \, .
+  $$
+
+#### Implicit time-stepping method
+
+  This time stepping method which can be selected using the option `-implicit` is solved with Backward Differentiation Formula (BDF) method by default (similarly, any implicit time-stepping scheme available in PETSc can be chosen at runtime).
+  The implicit formulation solves nonlinear systems for $\bm q_N$:
+
+  $$
+  \bm f(\bm q_N) \equiv \bm g(t^{n+1}, \bm{q}_N, \bm{\dot{q}}_N) = 0 \, ,
+  $$ (eq-ts-implicit-ns)
+
+  where the time derivative $\bm{\dot q}_N$ is defined by
+
+  $$
+  \bm{\dot{q}}_N(\bm q_N) = \alpha \bm q_N + \bm z_N
+  $$
+
+  in terms of $\bm z_N$ from prior state and $\alpha > 0$, both of which depend on the specific time integration scheme (backward difference formulas, generalized alpha, implicit Runge-Kutta, etc.).
+  Each nonlinear system {eq}`eq-ts-implicit-ns` will correspond to a weak form, as explained below.
+  In determining how difficult a given problem is to solve, we consider the Jacobian of {eq}`eq-ts-implicit-ns`,
+
+  $$
+  \frac{\partial \bm f}{\partial \bm q_N} = \frac{\partial \bm g}{\partial \bm q_N} + \alpha \frac{\partial \bm g}{\partial \bm{\dot q}_N}.
+  $$
+
+  The scalar "shift" $\alpha$ scales inversely with the time step $\Delta t$, so small time steps result in the Jacobian being dominated by the second term, which is a sort of "mass matrix", and typically well-conditioned independent of grid resolution with a simple preconditioner (such as Jacobi).
+  In contrast, the first term dominates for large time steps, with a condition number that grows with the diameter of the domain and polynomial degree of the approximation space.
+  Both terms are significant for time-accurate simulation and the setup costs of strong preconditioners must be balanced with the convergence rate of Krylov methods using weak preconditioners.
+
+More details of PETSc's time stepping solvers can be found in the [TS User Guide](https://petsc.org/release/docs/manual/ts/).
+
+### Stabilization
 We solve {eq}`eq-weak-vector-ns` using a Galerkin discretization (default) or a stabilized method, as is necessary for most real-world flows.
 
 Galerkin methods produce oscillations for transport-dominated problems (any time the cell Péclet number is larger than 1), and those tend to blow up for nonlinear problems such as the Euler equations and (low-viscosity/poorly resolved) Navier-Stokes, in which case stabilization is necessary.
@@ -300,6 +306,53 @@ Note that this wave speed is specific to ideal gases as $\gamma$ is an ideal gas
 
 Currently, this demo provides three types of problems/physical models that can be selected at run time via the option `-problem`.
 {ref}`problem-advection`, the problem of the transport of energy in a uniform vector velocity field, {ref}`problem-euler-vortex`, the exact solution to the Euler equations, and the so called {ref}`problem-density-current` problem.
+
+### Subgrid Stress Modeling
+
+When a fluid simulation is under-resolved (the smallest length scale resolved by the grid is much larger than the smallest physical scale, the [Kolmogorov length scale](https://en.wikipedia.org/wiki/Kolmogorov_microscales)), this is mathematically interpreted as filtering the Navier-Stokes equations.
+This is known as large-eddy simulation (LES), as only the "large" scales of turbulence are resolved.
+This filtering operation results in an extra stress-like term, $\bm{\tau}^r$, representing the effect of unresolved (or "subgrid" scale) structures in the flow.
+Denoting the filtering operation by $\overline \cdot$, the LES governing equations are:
+
+$$
+\frac{\partial \bm{\overline q}}{\partial t} + \nabla \cdot \bm{\overline F}(\bm{\overline q}) -S(\bm{\overline q}) = 0 \, ,
+$$ (eq-vector-les)
+
+where
+
+$$
+\bm{\overline F}(\bm{\overline q}) =
+\bm{F} (\bm{\overline q}) +
+\begin{pmatrix}
+    0\\
+     \bm{\tau}^r \\
+     \bm{u}  \cdot \bm{\tau}^r
+\end{pmatrix}
+$$ (eq-les-flux)
+
+More details on deriving the above expression, filtering, and large eddy simulation can be found in {cite}`popeTurbulentFlows2000`.
+To close the problem, the subgrid stress must be defined.
+For implicit LES, the subgrid stress is set to zero and the numerical properties of the discretized system are assumed to account for the effect of subgrid scale structures on the filtered solution field.
+For explicit LES, it is defined by a subgrid stress model.
+
+#### Data-driven SGS Model
+
+The data-driven SGS model implemented here uses a small neural network to compute the SGS term.
+The SGS tensor is calculated at nodes using an $L^2$ projection of the velocity gradient and grid anisotropy tensor, and then interpolated onto quadrature points.
+More details regarding the theoretical background of the model can be found in {cite}`prakashDDSGS2022` and {cite}`prakashDDSGSAnisotropic2022`.
+
+The neural network itself consists of 1 hidden layer and 20 neurons, using Leaky ReLU as its activation function.
+The slope parameter for the Leaky ReLU function is set via `-sgs_model_dd_leakyrelu_alpha`.
+The outputs of the network are assumed to be normalized on a min-max scale, so they must be rescaled by the original min-max bounds.
+Parameters for the neural network are put into files in a directory found in `-sgs_model_dd_parameter_dir`.
+These files store the network weights (`w1.dat` and `w2.dat`), biases (`b1.dat` and `b2.dat`), and scaling parameters (`OutScaling.dat`).
+The first row of each files stores the number of columns and rows in each file.
+Note that the weight coefficients are assumed to be in column-major order.
+This is done to keep consistent with legacy file compatibility.
+
+:::{note}
+The current data-driven model parameters are not accurate and are for regression testing only.
+:::
 
 (problem-advection)=
 

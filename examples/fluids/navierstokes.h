@@ -12,7 +12,7 @@
 #include <petscts.h>
 #include <stdbool.h>
 
-#include "./include/matops.h"
+#include "./include/petsc_ops.h"
 #include "qfunctions/newtonian_types.h"
 #include "qfunctions/stabilization_types.h"
 
@@ -66,13 +66,20 @@ static const char *const EulerTestTypes[] = {"isentropic_vortex", "test_1",     
 // Stabilization methods
 static const char *const StabilizationTypes[] = {"none", "SU", "SUPG", "StabilizationType", "STAB_", NULL};
 
-// Euler - test cases
+// Test mode type
 typedef enum {
   TESTTYPE_NONE           = 0,
   TESTTYPE_SOLVER         = 1,
   TESTTYPE_TURB_SPANSTATS = 2,
 } TestType;
 static const char *const TestTypes[] = {"none", "solver", "turb_spanstats", "TestType", "TESTTYPE_", NULL};
+
+// Test mode type
+typedef enum {
+  SGS_MODEL_NONE        = 0,
+  SGS_MODEL_DATA_DRIVEN = 1,
+} SGSModelType;
+static const char *const SGSModelTypes[] = {"none", "data_driven", "SGSModelType", "SGS_MODEL_", NULL};
 
 // -----------------------------------------------------------------------------
 // Structs
@@ -125,6 +132,8 @@ struct AppCtx_private {
     PetscViewerFormat viewer_format;
     PetscBool         header_written;
   } wall_forces;
+  // Subgrid Stress Model
+  SGSModelType sgs_model_type;
 };
 
 // libCEED data struct
@@ -147,26 +156,42 @@ typedef struct {
   KSP                   ksp;         // For the L^2 projection solve
   CeedScalar            span_width;  // spanwise width of the child domain
   PetscBool             do_mms_test;
-  MatopApplyContext     mms_error_ctx;
+  OperatorApplyContext  mms_error_ctx;
   CeedContextFieldLabel solution_time_label, previous_time_label;
 } Span_Stats;
 
+typedef struct {
+  DM                   dm;
+  PetscInt             num_comp;
+  OperatorApplyContext l2_rhs_ctx;
+  KSP                  ksp;
+} *NodalProjectionData;
+
+typedef struct {
+  DM                   dm_sgs;
+  PetscInt             num_comp_sgs;
+  OperatorApplyContext op_nodal_evaluation_ctx, op_sgs_apply_ctx;
+  CeedVector           sgs_nodal_ceed;
+} *SGS_DD_Data;
+
 // PETSc user data
 struct User_private {
-  MPI_Comm     comm;
-  DM           dm;
-  DM           dm_viz;
-  Mat          interp_viz;
-  Ceed         ceed;
-  Units        units;
-  Vec          M, Q_loc, Q_dot_loc;
-  Physics      phys;
-  AppCtx       app_ctx;
-  CeedVector   q_ceed, q_dot_ceed, g_ceed, coo_values_amat, coo_values_pmat, x_ceed;
-  CeedOperator op_rhs_vol, op_rhs, op_ifunction_vol, op_ifunction, op_ijacobian, op_dirichlet;
-  bool         matrices_set_up;
-  CeedScalar   time_bc_set;
-  Span_Stats   spanstats;
+  MPI_Comm            comm;
+  DM                  dm;
+  DM                  dm_viz;
+  Mat                 interp_viz;
+  Ceed                ceed;
+  Units               units;
+  Vec                 M, Q_loc, Q_dot_loc;
+  Physics             phys;
+  AppCtx              app_ctx;
+  CeedVector          q_ceed, q_dot_ceed, g_ceed, coo_values_amat, coo_values_pmat, x_ceed;
+  CeedOperator        op_rhs_vol, op_rhs, op_ifunction_vol, op_ifunction, op_ijacobian, op_dirichlet;
+  bool                matrices_set_up;
+  CeedScalar          time_bc_set;
+  Span_Stats          spanstats;
+  NodalProjectionData grad_velo_proj;
+  SGS_DD_Data         sgs_dd_data;
 };
 
 // Units
@@ -351,15 +376,37 @@ extern const PetscInt FLUIDS_FILE_TOKEN;
 // Create appropriate mass qfunction based on number of components N
 PetscErrorCode CreateMassQFunction(Ceed ceed, CeedInt N, CeedInt q_data_size, CeedQFunction *qf);
 
-PetscErrorCode ComputeL2Projection(Vec source_vec, Vec target_vec, MatopApplyContext rhs_matop_ctx, KSP ksp);
+PetscErrorCode ComputeL2Projection(Vec source_vec, Vec target_vec, OperatorApplyContext rhs_matop_ctx, KSP ksp);
+
+PetscErrorCode NodalProjectionDataDestroy(NodalProjectionData context);
+
+PetscErrorCode PHASTADatFileOpen(const MPI_Comm comm, const char path[PETSC_MAX_PATH_LEN], const PetscInt char_array_len, PetscInt dims[2],
+                                 FILE **fp);
+
+PetscErrorCode PHASTADatFileGetNRows(const MPI_Comm comm, const char path[PETSC_MAX_PATH_LEN], PetscInt *nrows);
+
+PetscErrorCode PHASTADatFileReadToArrayReal(const MPI_Comm comm, const char path[PETSC_MAX_PATH_LEN], PetscReal array[]);
+
+// -----------------------------------------------------------------------------
+// Turbulence Statistics Collection Functions
+// -----------------------------------------------------------------------------
 
 PetscErrorCode CreateStatsDM(User user, ProblemData *problem, PetscInt degree, SimpleBC bc);
-
 PetscErrorCode SetupStatsCollection(Ceed ceed, User user, CeedData ceed_data, ProblemData *problem);
-
 PetscErrorCode TSMonitor_Statistics(TS ts, PetscInt steps, PetscReal solution_time, Vec Q, void *ctx);
-
 PetscErrorCode DestroyStats(User user, CeedData ceed_data);
+
+// -----------------------------------------------------------------------------
+// Data-Driven Subgrid Stress (DD-SGS) Modeling Functions
+// -----------------------------------------------------------------------------
+
+PetscErrorCode SGS_DD_ModelSetup(Ceed ceed, User user, CeedData ceed_data, ProblemData *problem);
+PetscErrorCode SGS_DD_DataDestroy(SGS_DD_Data sgs_dd_data);
+PetscErrorCode SGS_DD_ModelApplyIFunction(User user, const Vec Q_loc, Vec G_loc);
+PetscErrorCode VelocityGradientProjectionSetup(Ceed ceed, User user, CeedData ceed_data, ProblemData *problem);
+PetscErrorCode VelocityGradientProjectionApply(User user, Vec Q_loc, Vec VelocityGradient);
+PetscErrorCode GridAnisotropyTensorProjectionSetupApply(Ceed ceed, User user, CeedData ceed_data, CeedElemRestriction *elem_restr_grid_aniso,
+                                                        CeedVector *grid_aniso_vector);
 
 // -----------------------------------------------------------------------------
 // Boundary Condition Related Functions

@@ -233,6 +233,10 @@ PetscErrorCode IFunction_NS(TS ts, PetscReal t, Vec Q, Vec Q_dot, Vec G, void *u
   PetscCall(VecReadC2P(user->q_dot_ceed, q_dot_mem_type, Q_dot_loc));
   PetscCall(VecC2P(user->g_ceed, g_mem_type, G_loc));
 
+  if (user->app_ctx->sgs_model_type == SGS_MODEL_DATA_DRIVEN) {
+    PetscCall(SGS_DD_ModelApplyIFunction(user, Q_loc, G_loc));
+  }
+
   // Local-to-Global
   PetscCall(VecZeroEntries(G));
   PetscCall(DMLocalToGlobal(user->dm, G_loc, ADD_VALUES, G));
@@ -542,7 +546,7 @@ PetscErrorCode TSSolve_NS(DM dm, User user, AppCtx app_ctx, Physics phys, Vec *Q
   }
   PetscCall(TSSetMaxTime(*ts, 500. * user->units->second));
   PetscCall(TSSetExactFinalTime(*ts, TS_EXACTFINALTIME_STEPOVER));
-  PetscCall(TSSetErrorIfStepFails(*ts, PETSC_FALSE));
+  if (app_ctx->test_type == TESTTYPE_NONE) PetscCall(TSSetErrorIfStepFails(*ts, PETSC_FALSE));
   PetscCall(TSSetTimeStep(*ts, 1.e-2 * user->units->second));
   if (app_ctx->test_type != TESTTYPE_NONE) {
     PetscCall(TSSetMaxSteps(*ts, 10));

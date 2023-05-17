@@ -663,6 +663,21 @@ For the Density Current, Channel, and Blasius problems, the following common com
   - `0`
   - `m`
 
+* - `-sgs_model_type`
+  - Type of subgrid stress model to use. Currently only `data_driven` is available
+  - `none`
+  - string
+
+* - `-sgs_model_dd_leakyrelu_alpha`
+  - Slope parameter for Leaky ReLU activation function. `0` corresponds to normal ReLU
+  - 0
+  -
+
+* - `-sgs_model_dd_parameter_dir`
+  - Path to directory with data-driven model parameters (weights, biases, etc.)
+  - `./dd_sgs_parameters`
+  - string
+
 :::
 
 #### Gaussian Wave
