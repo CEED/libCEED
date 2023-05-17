@@ -23,7 +23,7 @@ struct GaussianWaveContext_ {
   struct NewtonianIdealGasContext_ newt_ctx;
 };
 
-CEED_QFUNCTION_HELPER int IC_GaussianWave(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out, StateToQi_t StateToQi) {
+CEED_QFUNCTION_HELPER int IC_GaussianWave(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out, StateVariable state_var) {
   const CeedScalar(*X)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[0];
 
   CeedScalar(*q0)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA])out[0];
@@ -55,7 +55,7 @@ CEED_QFUNCTION_HELPER int IC_GaussianWave(void *ctx, CeedInt Q, const CeedScalar
     U[4] = S_infty.Y.pressure / (gamma - 1) * perturbation + e_kinetic;
 
     State initCond = StateFromU(newt_ctx, U, x);
-    StateToQi(newt_ctx, initCond, qi);
+    StateToQ(newt_ctx, initCond, qi, state_var);
 
     for (CeedInt j = 0; j < 5; j++) q0[j][i] = qi[j];
   }
@@ -64,9 +64,9 @@ CEED_QFUNCTION_HELPER int IC_GaussianWave(void *ctx, CeedInt Q, const CeedScalar
 }
 
 CEED_QFUNCTION(IC_GaussianWave_Conserv)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
-  return IC_GaussianWave(ctx, Q, in, out, StateToU);
+  return IC_GaussianWave(ctx, Q, in, out, STATEVAR_CONSERVATIVE);
 }
 
 CEED_QFUNCTION(IC_GaussianWave_Prim)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
-  return IC_GaussianWave(ctx, Q, in, out, StateToY);
+  return IC_GaussianWave(ctx, Q, in, out, STATEVAR_PRIMITIVE);
 }

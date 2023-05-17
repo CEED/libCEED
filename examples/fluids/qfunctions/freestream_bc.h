@@ -12,8 +12,8 @@
 #include "newtonian_state.h"
 #include "newtonian_types.h"
 
-typedef StateConservative (*RiemannFluxFunction)(NewtonianIdealGasContext, State, State, const CeedScalar[3]);
-typedef StateConservative (*RiemannFluxFwdFunction)(NewtonianIdealGasContext, State, State, State, State, const CeedScalar[3]);
+enum RiemannFluxType_ { RIEMANN_HLL, RIEMANN_HLLC };
+typedef enum RiemannFluxType_ RiemannFluxType;
 
 typedef struct {
   CeedScalar left, right;
@@ -335,8 +335,8 @@ CEED_QFUNCTION_HELPER StateConservative RiemannFlux_HLLC_fwd(NewtonianIdealGasCo
 // *****************************************************************************
 // Freestream Boundary Condition
 // *****************************************************************************
-CEED_QFUNCTION_HELPER int Freestream(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out, StateFromQi_t StateFromQi,
-                                     StateFromQi_fwd_t StateFromQi_fwd, RiemannFluxFunction RiemannFlux) {
+CEED_QFUNCTION_HELPER int Freestream(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out, StateVariable state_var,
+                                     RiemannFluxType flux_type) {
   const CeedScalar(*q)[CEED_Q_VLA]          = (const CeedScalar(*)[CEED_Q_VLA])in[0];
   const CeedScalar(*q_data_sur)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[2];
   const CeedScalar(*x)[CEED_Q_VLA]          = (const CeedScalar(*)[CEED_Q_VLA])in[3];
@@ -351,14 +351,22 @@ CEED_QFUNCTION_HELPER int Freestream(void *ctx, CeedInt Q, const CeedScalar *con
   CeedPragmaSIMD for (CeedInt i = 0; i < Q; i++) {
     const CeedScalar x_i[3] = {x[0][i], x[1][i], x[2][i]};
     const CeedScalar qi[5]  = {q[0][i], q[1][i], q[2][i], q[3][i], q[4][i]};
-    State            s      = StateFromQi(newt_ctx, qi, x_i);
+    State            s      = StateFromQ(newt_ctx, qi, x_i, state_var);
 
     const CeedScalar wdetJb = (is_implicit ? -1. : 1.) * q_data_sur[0][i];
     // ---- Normal vector
     const CeedScalar norm[3] = {q_data_sur[1][i], q_data_sur[2][i], q_data_sur[3][i]};
 
-    StateConservative flux = RiemannFlux(newt_ctx, s, context->S_infty, norm);
-    CeedScalar        Flux[5];
+    StateConservative flux;
+    switch (flux_type) {
+      case RIEMANN_HLL:
+        flux = RiemannFlux_HLL(newt_ctx, s, context->S_infty, norm);
+        break;
+      case RIEMANN_HLLC:
+        flux = RiemannFlux_HLLC(newt_ctx, s, context->S_infty, norm);
+        break;
+    }
+    CeedScalar Flux[5];
     UnpackState_U(flux, Flux);
     for (CeedInt j = 0; j < 5; j++) v[j][i] = -wdetJb * Flux[j];
 
@@ -368,23 +376,23 @@ CEED_QFUNCTION_HELPER int Freestream(void *ctx, CeedInt Q, const CeedScalar *con
 }
 
 CEED_QFUNCTION(Freestream_Conserv_HLL)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
-  return Freestream(ctx, Q, in, out, StateFromU, StateFromU_fwd, RiemannFlux_HLL);
+  return Freestream(ctx, Q, in, out, STATEVAR_CONSERVATIVE, RIEMANN_HLL);
 }
 
 CEED_QFUNCTION(Freestream_Prim_HLL)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
-  return Freestream(ctx, Q, in, out, StateFromY, StateFromY_fwd, RiemannFlux_HLL);
+  return Freestream(ctx, Q, in, out, STATEVAR_PRIMITIVE, RIEMANN_HLL);
 }
 
 CEED_QFUNCTION(Freestream_Conserv_HLLC)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
-  return Freestream(ctx, Q, in, out, StateFromU, StateFromU_fwd, RiemannFlux_HLLC);
+  return Freestream(ctx, Q, in, out, STATEVAR_CONSERVATIVE, RIEMANN_HLLC);
 }
 
 CEED_QFUNCTION(Freestream_Prim_HLLC)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
-  return Freestream(ctx, Q, in, out, StateFromY, StateFromY_fwd, RiemannFlux_HLLC);
+  return Freestream(ctx, Q, in, out, STATEVAR_PRIMITIVE, RIEMANN_HLLC);
 }
 
-CEED_QFUNCTION_HELPER int Freestream_Jacobian(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out, StateFromQi_t StateFromQi,
-                                              StateFromQi_fwd_t StateFromQi_fwd, RiemannFluxFwdFunction RiemannFlux_fwd) {
+CEED_QFUNCTION_HELPER int Freestream_Jacobian(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out, StateVariable state_var,
+                                              RiemannFluxType flux_type) {
   const CeedScalar(*dq)[CEED_Q_VLA]           = (const CeedScalar(*)[CEED_Q_VLA])in[0];
   const CeedScalar(*q_data_sur)[CEED_Q_VLA]   = (const CeedScalar(*)[CEED_Q_VLA])in[2];
   const CeedScalar(*x)[CEED_Q_VLA]            = (const CeedScalar(*)[CEED_Q_VLA])in[3];
@@ -405,11 +413,19 @@ CEED_QFUNCTION_HELPER int Freestream_Jacobian(void *ctx, CeedInt Q, const CeedSc
     CeedScalar qi[5], dqi[5], dx_i[3] = {0.};
     for (int j = 0; j < 5; j++) qi[j] = jac_data_sur[j][i];
     for (int j = 0; j < 5; j++) dqi[j] = dq[j][i];
-    State s  = StateFromQi(newt_ctx, qi, x_i);
-    State ds = StateFromQi_fwd(newt_ctx, s, dqi, x_i, dx_i);
+    State s  = StateFromQ(newt_ctx, qi, x_i, state_var);
+    State ds = StateFromQ_fwd(newt_ctx, s, dqi, x_i, dx_i, state_var);
 
-    StateConservative dflux = RiemannFlux_fwd(newt_ctx, s, ds, context->S_infty, dS_infty, norm);
-    CeedScalar        dFlux[5];
+    StateConservative dflux;
+    switch (flux_type) {
+      case RIEMANN_HLL:
+        dflux = RiemannFlux_HLL_fwd(newt_ctx, s, ds, context->S_infty, dS_infty, norm);
+        break;
+      case RIEMANN_HLLC:
+        dflux = RiemannFlux_HLLC_fwd(newt_ctx, s, ds, context->S_infty, dS_infty, norm);
+        break;
+    }
+    CeedScalar dFlux[5];
     UnpackState_U(dflux, dFlux);
     for (CeedInt j = 0; j < 5; j++) v[j][i] = -wdetJb * dFlux[j];
   }
@@ -417,19 +433,19 @@ CEED_QFUNCTION_HELPER int Freestream_Jacobian(void *ctx, CeedInt Q, const CeedSc
 }
 
 CEED_QFUNCTION(Freestream_Jacobian_Conserv_HLL)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
-  return Freestream_Jacobian(ctx, Q, in, out, StateFromU, StateFromU_fwd, RiemannFlux_HLL_fwd);
+  return Freestream_Jacobian(ctx, Q, in, out, STATEVAR_CONSERVATIVE, RIEMANN_HLL);
 }
 
 CEED_QFUNCTION(Freestream_Jacobian_Prim_HLL)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
-  return Freestream_Jacobian(ctx, Q, in, out, StateFromY, StateFromY_fwd, RiemannFlux_HLL_fwd);
+  return Freestream_Jacobian(ctx, Q, in, out, STATEVAR_PRIMITIVE, RIEMANN_HLL);
 }
 
 CEED_QFUNCTION(Freestream_Jacobian_Conserv_HLLC)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
-  return Freestream_Jacobian(ctx, Q, in, out, StateFromU, StateFromU_fwd, RiemannFlux_HLLC_fwd);
+  return Freestream_Jacobian(ctx, Q, in, out, STATEVAR_CONSERVATIVE, RIEMANN_HLLC);
 }
 
 CEED_QFUNCTION(Freestream_Jacobian_Prim_HLLC)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
-  return Freestream_Jacobian(ctx, Q, in, out, StateFromY, StateFromY_fwd, RiemannFlux_HLLC_fwd);
+  return Freestream_Jacobian(ctx, Q, in, out, STATEVAR_PRIMITIVE, RIEMANN_HLLC);
 }
 
 // Note the identity
@@ -458,8 +474,7 @@ CEED_QFUNCTION_HELPER CeedScalar Softplus_fwd(CeedScalar x, CeedScalar dx, CeedS
 // keep it outflow. These parameters have been finnicky in practice and provide
 // little or no benefit in the tests we've run thus far, thus we recommend
 // skipping this feature and just allowing recirculation.
-CEED_QFUNCTION_HELPER int RiemannOutflow(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out, StateFromQi_t StateFromQi,
-                                         StateFromQi_fwd_t StateFromQi_fwd) {
+CEED_QFUNCTION_HELPER int RiemannOutflow(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out, StateVariable state_var) {
   // Inputs
   const CeedScalar(*q)[CEED_Q_VLA]          = (const CeedScalar(*)[CEED_Q_VLA])in[0];
   const CeedScalar(*Grad_q)[5][CEED_Q_VLA]  = (const CeedScalar(*)[5][CEED_Q_VLA])in[1];
@@ -479,7 +494,7 @@ CEED_QFUNCTION_HELPER int RiemannOutflow(void *ctx, CeedInt Q, const CeedScalar 
     const CeedScalar x_i[3]   = {x[0][i], x[1][i], x[2][i]};
     const CeedScalar norm[3]  = {q_data_sur[1][i], q_data_sur[2][i], q_data_sur[3][i]};
     const CeedScalar qi[5]    = {q[0][i], q[1][i], q[2][i], q[3][i], q[4][i]};
-    const State      s_int    = StateFromQi(gas, qi, x_i);
+    State            s_int    = StateFromQ(gas, qi, x_i, state_var);
     StatePrimitive   y_ext    = s_int.Y;
     y_ext.pressure            = outflow->pressure;
     y_ext.temperature         = outflow->temperature;
@@ -501,11 +516,11 @@ CEED_QFUNCTION_HELPER int RiemannOutflow(void *ctx, CeedInt Q, const CeedScalar 
     };
 
     State grad_s[3];
-    for (CeedInt k = 0; k < 3; k++) {
+    for (CeedInt j = 0; j < 3; j++) {
       CeedScalar dx_i[3] = {0}, dqi[5];
-      for (CeedInt j = 0; j < 5; j++) dqi[j] = Grad_q[0][j][i] * dXdx[0][k] + Grad_q[1][j][i] * dXdx[1][k];
-      dx_i[k]   = 1.;
-      grad_s[k] = StateFromQi_fwd(gas, s_int, dqi, x_i, dx_i);
+      for (CeedInt k = 0; k < 5; k++) dqi[k] = Grad_q[0][k][i] * dXdx[0][j] + Grad_q[1][k][i] * dXdx[1][j];
+      dx_i[j]   = 1.;
+      grad_s[j] = StateFromQ_fwd(gas, s_int, dqi, x_i, dx_i, state_var);
     }
 
     CeedScalar strain_rate[6], kmstress[6], stress[3][3], Fe[3];
@@ -529,18 +544,18 @@ CEED_QFUNCTION_HELPER int RiemannOutflow(void *ctx, CeedInt Q, const CeedScalar 
 }
 
 CEED_QFUNCTION(RiemannOutflow_Conserv)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
-  return RiemannOutflow(ctx, Q, in, out, StateFromU, StateFromU_fwd);
+  return RiemannOutflow(ctx, Q, in, out, STATEVAR_CONSERVATIVE);
 }
 
 CEED_QFUNCTION(RiemannOutflow_Prim)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
-  return RiemannOutflow(ctx, Q, in, out, StateFromY, StateFromY_fwd);
+  return RiemannOutflow(ctx, Q, in, out, STATEVAR_PRIMITIVE);
 }
 
 // *****************************************************************************
 // Jacobian for Riemann pressure/temperature outflow boundary condition
 // *****************************************************************************
 CEED_QFUNCTION_HELPER int RiemannOutflow_Jacobian(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out,
-                                                  StateFromQi_t StateFromQi, StateFromQi_fwd_t StateFromQi_fwd) {
+                                                  StateVariable state_var) {
   // Inputs
   const CeedScalar(*dq)[CEED_Q_VLA]           = (const CeedScalar(*)[CEED_Q_VLA])in[0];
   const CeedScalar(*Grad_dq)[5][CEED_Q_VLA]   = (const CeedScalar(*)[5][CEED_Q_VLA])in[1];
@@ -571,8 +586,8 @@ CEED_QFUNCTION_HELPER int RiemannOutflow_Jacobian(void *ctx, CeedInt Q, const Ce
     for (int j = 0; j < 6; j++) kmstress[j] = jac_data_sur[5 + j][i];
     for (int j = 0; j < 5; j++) dqi[j] = dq[j][i];
 
-    State          s_int  = StateFromQi(gas, qi, x_i);
-    State          ds_int = StateFromQi_fwd(gas, s_int, dqi, x_i, dx_i);
+    State          s_int  = StateFromQ(gas, qi, x_i, state_var);
+    const State    ds_int = StateFromQ_fwd(gas, s_int, dqi, x_i, dx_i, state_var);
     StatePrimitive y_ext = s_int.Y, dy_ext = ds_int.Y;
     y_ext.pressure             = outflow->pressure;
     y_ext.temperature          = outflow->temperature;
@@ -591,11 +606,11 @@ CEED_QFUNCTION_HELPER int RiemannOutflow_Jacobian(void *ctx, CeedInt Q, const Ce
     State ds_ext = StateFromPrimitive_fwd(gas, s_ext, dy_ext, x_i, dx_i);
 
     State grad_ds[3];
-    for (CeedInt k = 0; k < 3; k++) {
+    for (CeedInt j = 0; j < 3; j++) {
       CeedScalar dx_i[3] = {0}, dqi_j[5];
-      for (CeedInt j = 0; j < 5; j++) dqi_j[j] = Grad_dq[0][j][i] * dXdx[0][k] + Grad_dq[1][j][i] * dXdx[1][k];
-      dx_i[k]    = 1.;
-      grad_ds[k] = StateFromQi_fwd(gas, s_int, dqi_j, x_i, dx_i);
+      for (CeedInt k = 0; k < 5; k++) dqi_j[k] = Grad_dq[0][k][i] * dXdx[0][j] + Grad_dq[1][k][i] * dXdx[1][j];
+      dx_i[j]    = 1.;
+      grad_ds[j] = StateFromQ_fwd(gas, s_int, dqi_j, x_i, dx_i, state_var);
     }
 
     CeedScalar dstrain_rate[6], dkmstress[6], stress[3][3], dstress[3][3], dFe[3];
@@ -616,11 +631,11 @@ CEED_QFUNCTION_HELPER int RiemannOutflow_Jacobian(void *ctx, CeedInt Q, const Ce
 }
 
 CEED_QFUNCTION(RiemannOutflow_Jacobian_Conserv)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
-  return RiemannOutflow_Jacobian(ctx, Q, in, out, StateFromU, StateFromU_fwd);
+  return RiemannOutflow_Jacobian(ctx, Q, in, out, STATEVAR_CONSERVATIVE);
 }
 
 CEED_QFUNCTION(RiemannOutflow_Jacobian_Prim)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
-  return RiemannOutflow_Jacobian(ctx, Q, in, out, StateFromY, StateFromY_fwd);
+  return RiemannOutflow_Jacobian(ctx, Q, in, out, STATEVAR_PRIMITIVE);
 }
 
 // *****************************************************************************
@@ -630,8 +645,7 @@ CEED_QFUNCTION(RiemannOutflow_Jacobian_Prim)(void *ctx, CeedInt Q, const CeedSca
 // will crash if outflow ever becomes an inflow, as occurs with strong
 // acoustics, vortices, etc.
 // *****************************************************************************
-CEED_QFUNCTION_HELPER int PressureOutflow(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out, StateFromQi_t StateFromQi,
-                                          StateFromQi_fwd_t StateFromQi_fwd) {
+CEED_QFUNCTION_HELPER int PressureOutflow(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out, StateVariable state_var) {
   // Inputs
   const CeedScalar(*q)[CEED_Q_VLA]          = (const CeedScalar(*)[CEED_Q_VLA])in[0];
   const CeedScalar(*Grad_q)[5][CEED_Q_VLA]  = (const CeedScalar(*)[5][CEED_Q_VLA])in[1];
@@ -652,7 +666,7 @@ CEED_QFUNCTION_HELPER int PressureOutflow(void *ctx, CeedInt Q, const CeedScalar
     // -- Interp in
     const CeedScalar x_i[3] = {x[0][i], x[1][i], x[2][i]};
     const CeedScalar qi[5]  = {q[0][i], q[1][i], q[2][i], q[3][i], q[4][i]};
-    State            s      = StateFromQi(gas, qi, x_i);
+    State            s      = StateFromQ(gas, qi, x_i, state_var);
     s.Y.pressure            = outflow->pressure;
 
     // -- Interp-to-Interp q_data
@@ -670,11 +684,11 @@ CEED_QFUNCTION_HELPER int PressureOutflow(void *ctx, CeedInt Q, const CeedScalar
     };
 
     State grad_s[3];
-    for (CeedInt k = 0; k < 3; k++) {
+    for (CeedInt j = 0; j < 3; j++) {
       CeedScalar dx_i[3] = {0}, dqi[5];
-      for (CeedInt j = 0; j < 5; j++) dqi[j] = Grad_q[0][j][i] * dXdx[0][k] + Grad_q[1][j][i] * dXdx[1][k];
-      dx_i[k]   = 1.;
-      grad_s[k] = StateFromQi_fwd(gas, s, dqi, x_i, dx_i);
+      for (CeedInt k = 0; k < 5; k++) dqi[k] = Grad_q[0][k][i] * dXdx[0][j] + Grad_q[1][k][i] * dXdx[1][j];
+      dx_i[j]   = 1.;
+      grad_s[j] = StateFromQ_fwd(gas, s, dqi, x_i, dx_i, state_var);
     }
 
     CeedScalar strain_rate[6], kmstress[6], stress[3][3], Fe[3];
@@ -699,18 +713,18 @@ CEED_QFUNCTION_HELPER int PressureOutflow(void *ctx, CeedInt Q, const CeedScalar
 }
 
 CEED_QFUNCTION(PressureOutflow_Conserv)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
-  return PressureOutflow(ctx, Q, in, out, StateFromU, StateFromU_fwd);
+  return PressureOutflow(ctx, Q, in, out, STATEVAR_CONSERVATIVE);
 }
 
 CEED_QFUNCTION(PressureOutflow_Prim)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
-  return PressureOutflow(ctx, Q, in, out, StateFromY, StateFromY_fwd);
+  return PressureOutflow(ctx, Q, in, out, STATEVAR_PRIMITIVE);
 }
 
 // *****************************************************************************
 // Jacobian for weak-pressure outflow boundary condition
 // *****************************************************************************
 CEED_QFUNCTION_HELPER int PressureOutflow_Jacobian(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out,
-                                                   StateFromQi_t StateFromQi, StateFromQi_fwd_t StateFromQi_fwd) {
+                                                   StateVariable state_var) {
   // Inputs
   const CeedScalar(*dq)[CEED_Q_VLA]           = (const CeedScalar(*)[CEED_Q_VLA])in[0];
   const CeedScalar(*Grad_dq)[5][CEED_Q_VLA]   = (const CeedScalar(*)[5][CEED_Q_VLA])in[1];
@@ -740,17 +754,17 @@ CEED_QFUNCTION_HELPER int PressureOutflow_Jacobian(void *ctx, CeedInt Q, const C
     for (int j = 0; j < 6; j++) kmstress[j] = jac_data_sur[5 + j][i];
     for (int j = 0; j < 5; j++) dqi[j] = dq[j][i];
 
-    State s       = StateFromQi(gas, qi, x_i);
-    State ds      = StateFromQi_fwd(gas, s, dqi, x_i, dx_i);
+    State s       = StateFromQ(gas, qi, x_i, state_var);
+    State ds      = StateFromQ_fwd(gas, s, dqi, x_i, dx_i, state_var);
     s.Y.pressure  = outflow->pressure;
     ds.Y.pressure = 0.;
 
     State grad_ds[3];
-    for (CeedInt k = 0; k < 3; k++) {
+    for (CeedInt j = 0; j < 3; j++) {
       CeedScalar dx_i[3] = {0}, dqi_j[5];
-      for (CeedInt j = 0; j < 5; j++) dqi_j[j] = Grad_dq[0][j][i] * dXdx[0][k] + Grad_dq[1][j][i] * dXdx[1][k];
-      dx_i[k]    = 1.;
-      grad_ds[k] = StateFromQi_fwd(gas, s, dqi_j, x_i, dx_i);
+      for (CeedInt k = 0; k < 5; k++) dqi_j[k] = Grad_dq[0][k][i] * dXdx[0][j] + Grad_dq[1][k][i] * dXdx[1][j];
+      dx_i[j]    = 1.;
+      grad_ds[j] = StateFromQ_fwd(gas, s, dqi_j, x_i, dx_i, state_var);
     }
 
     CeedScalar dstrain_rate[6], dkmstress[6], stress[3][3], dstress[3][3], dFe[3];
@@ -772,9 +786,9 @@ CEED_QFUNCTION_HELPER int PressureOutflow_Jacobian(void *ctx, CeedInt Q, const C
 }
 
 CEED_QFUNCTION(PressureOutflow_Jacobian_Conserv)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
-  return PressureOutflow_Jacobian(ctx, Q, in, out, StateFromU, StateFromU_fwd);
+  return PressureOutflow_Jacobian(ctx, Q, in, out, STATEVAR_CONSERVATIVE);
 }
 
 CEED_QFUNCTION(PressureOutflow_Jacobian_Prim)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
-  return PressureOutflow_Jacobian(ctx, Q, in, out, StateFromY, StateFromY_fwd);
+  return PressureOutflow_Jacobian(ctx, Q, in, out, STATEVAR_PRIMITIVE);
 }

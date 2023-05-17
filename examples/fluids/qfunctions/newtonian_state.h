@@ -163,16 +163,20 @@ CEED_QFUNCTION_HELPER StateConservative StateConservativeAXPBYPCZ(CeedScalar a, 
   return R;
 }
 
-// Function pointer types for generic state array -> State struct functions
-typedef State (*StateFromQi_t)(NewtonianIdealGasContext gas, const CeedScalar qi[5], const CeedScalar x[3]);
-// Function pointer types for State struct -> generic state array
-typedef void (*StateToQi_t)(NewtonianIdealGasContext gas, const State input, CeedScalar qi[5]);
-
 CEED_QFUNCTION_HELPER void StateToU(NewtonianIdealGasContext gas, const State input, CeedScalar U[5]) { UnpackState_U(input.U, U); }
 
 CEED_QFUNCTION_HELPER void StateToY(NewtonianIdealGasContext gas, const State input, CeedScalar Y[5]) { UnpackState_Y(input.Y, Y); }
 
-typedef State (*StateFromQi_fwd_t)(NewtonianIdealGasContext gas, State s, const CeedScalar dqi[5], const CeedScalar x[3], const CeedScalar dx[3]);
+CEED_QFUNCTION_HELPER void StateToQ(NewtonianIdealGasContext gas, const State input, CeedScalar Q[5], StateVariable state_var) {
+  switch (state_var) {
+    case STATEVAR_CONSERVATIVE:
+      StateToU(gas, input, Q);
+      break;
+    case STATEVAR_PRIMITIVE:
+      StateToY(gas, input, Q);
+      break;
+  }
+}
 
 CEED_QFUNCTION_HELPER State StateFromU(NewtonianIdealGasContext gas, const CeedScalar U[5], const CeedScalar x[3]) {
   State s;
@@ -217,6 +221,33 @@ CEED_QFUNCTION_HELPER State StateFromY_fwd(NewtonianIdealGasContext gas, State s
   ds.Y.velocity[2] = dY[3];
   ds.Y.temperature = dY[4];
   ds.U             = StateConservativeFromPrimitive_fwd(gas, s, ds.Y, x, dx);
+  return ds;
+}
+
+CEED_QFUNCTION_HELPER State StateFromQ(NewtonianIdealGasContext gas, const CeedScalar Q[5], const CeedScalar x[3], StateVariable state_var) {
+  State s;
+  switch (state_var) {
+    case STATEVAR_CONSERVATIVE:
+      s = StateFromU(gas, Q, x);
+      break;
+    case STATEVAR_PRIMITIVE:
+      s = StateFromY(gas, Q, x);
+      break;
+  }
+  return s;
+}
+
+CEED_QFUNCTION_HELPER State StateFromQ_fwd(NewtonianIdealGasContext gas, State s, const CeedScalar dQ[5], const CeedScalar x[3],
+                                           const CeedScalar dx[3], StateVariable state_var) {
+  State ds;
+  switch (state_var) {
+    case STATEVAR_CONSERVATIVE:
+      ds = StateFromU_fwd(gas, s, dQ, x, dx);
+      break;
+    case STATEVAR_PRIMITIVE:
+      ds = StateFromY_fwd(gas, s, dQ, x, dx);
+      break;
+  }
   return ds;
 }
 
