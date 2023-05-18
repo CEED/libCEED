@@ -14,20 +14,22 @@
 #include <sycl/sycl.hpp>
 
 #include "../sycl/ceed-sycl-common.hpp"
+#include "../sycl/ceed-sycl-compile.hpp"
 
 typedef struct {
-  // CUmodule    module;
-  // CUfunction  Interp;
-  // CUfunction  InterpTranspose;
-  // CUfunction  Grad;
-  // CUfunction  GradTranspose;
-  // CUfunction  Weight;
+  CeedInt interp_local_range[3];
+  CeedInt grad_local_range[3];
+  CeedInt weight_local_range[3];
+  SyclModule_t *sycl_module;
+  sycl::kernel *interp_kernel;
+  sycl::kernel *interp_transpose_kernel;
+  sycl::kernel *grad_kernel;
+  sycl::kernel *grad_transpose_kernel;
+  sycl::kernel *weight_kernel;
   CeedScalar *d_interp_1d;
   CeedScalar *d_grad_1d;
-  CeedScalar *d_collo_grad_1d;
+  CeedScalar *d_collo_grad_1d; //eliminate 
   CeedScalar *d_q_weight_1d;
-  CeedScalar *c_B;
-  CeedScalar *c_G;
 } CeedBasis_Sycl_shared;
 
 CEED_INTERN int CeedBasisCreateTensorH1_Sycl_shared(CeedInt dim, CeedInt P_1d, CeedInt Q_1d, const CeedScalar *interp_1d, const CeedScalar *grad_1d,
