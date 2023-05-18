@@ -76,7 +76,10 @@ static int CeedQFunctionApply_Sycl(CeedQFunction qf, CeedInt Q, CeedVector *U, C
       cgh.set_arg(iarg, output_i);
       ++iarg;
     }
-    cgh.parallel_for(Q, *(impl->QFunction));
+    int wg_size = 384;
+    sycl::range<1> rounded_Q = ((Q + (wg_size- 1)) / wg_size) * wg_size;
+    sycl::nd_range<1> kernel_range(rounded_Q, wg_size);
+    cgh.parallel_for(kernel_range, *(impl->QFunction));
   });
 
   // Restore vectors
