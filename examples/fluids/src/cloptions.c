@@ -143,13 +143,15 @@ PetscErrorCode ProcessCommandLineOptions(MPI_Comm comm, AppCtx app_ctx, SimpleBC
     for (PetscInt c = 0; c < 3; c++) {
       for (PetscInt s = 0; s < bc->num_slip[c]; s++) {
         for (PetscInt w = 0; w < bc->num_wall; w++) {
-          if (bc->slips[c][s] == bc->walls[w]) {
-            SETERRQ(PETSC_COMM_SELF, PETSC_ERR_ARG_WRONG, "Boundary condition already set on face %" PetscInt_FMT "!\n", bc->walls[w]);
-          }
+          PetscCheck(bc->slips[c][s] != bc->walls[w], PETSC_COMM_SELF, PETSC_ERR_ARG_WRONG,
+                     "Boundary condition already set on face %" PetscInt_FMT "!\n", bc->walls[w]);
         }
       }
     }
   }
+  app_ctx->wall_forces.num_wall = bc->num_wall;
+  PetscMalloc1(bc->num_wall, &app_ctx->wall_forces.walls);
+  PetscCall(PetscArraycpy(app_ctx->wall_forces.walls, bc->walls, bc->num_wall));
 
   // Inflow BCs
   bc->num_inflow = 16;

@@ -138,33 +138,18 @@ int main(int argc, char **argv) {
   {
     PetscErrorCode (*p)(ProblemData *, DM, void *, SimpleBC);
     PetscCall(PetscFunctionListFind(app_ctx->problems, app_ctx->problem_name, &p));
-    if (!p) SETERRQ(PETSC_COMM_SELF, 1, "Problem '%s' not found", app_ctx->problem_name);
+    PetscCheck(p, PETSC_COMM_SELF, 1, "Problem '%s' not found", app_ctx->problem_name);
     PetscCall((*p)(problem, dm, &user, bc));
   }
 
   // -- Set up DM
   PetscCall(SetUpDM(dm, problem, app_ctx->degree, bc, phys_ctx));
-  PetscCall(CreateStatsDM(user, problem, app_ctx->degree, bc));
-  app_ctx->wall_forces.num_wall = bc->num_wall;
-  PetscMalloc1(bc->num_wall, &app_ctx->wall_forces.walls);
-  PetscCall(PetscArraycpy(app_ctx->wall_forces.walls, bc->walls, bc->num_wall));
 
   // -- Refine DM for high-order viz
-  if (app_ctx->viz_refine) {
-    PetscCall(VizRefineDM(dm, user, problem, bc, phys_ctx));
-  }
+  if (app_ctx->viz_refine) PetscCall(VizRefineDM(dm, user, problem, bc, phys_ctx));
 
   // ---------------------------------------------------------------------------
-  // Set up libCEED
-  // ---------------------------------------------------------------------------
-  // -- Set up libCEED objects
-  PetscCall(SetupLibceed(ceed, ceed_data, dm, user, app_ctx, problem, bc));
-
-  if (app_ctx->turb_spanstats_enable) PetscCall(SetupStatsCollection(ceed, user, ceed_data, problem));
-  if (app_ctx->sgs_model_type == SGS_MODEL_DATA_DRIVEN) PetscCall(SGS_DD_ModelSetup(ceed, user, ceed_data, problem));
-
-  // ---------------------------------------------------------------------------
-  // Set up ICs
+  // Create solution vectors
   // ---------------------------------------------------------------------------
   // -- Set up global state vector Q
   Vec Q;
@@ -176,6 +161,15 @@ int main(int argc, char **argv) {
   PetscCall(DMCreateLocalVector(dm, &user->Q_dot_loc));
   PetscCall(VecZeroEntries(user->Q_dot_loc));
 
+  // ---------------------------------------------------------------------------
+  // Set up libCEED
+  // ---------------------------------------------------------------------------
+  // -- Set up libCEED objects
+  PetscCall(SetupLibceed(ceed, ceed_data, dm, user, app_ctx, problem, bc));
+
+  // ---------------------------------------------------------------------------
+  // Set up ICs
+  // ---------------------------------------------------------------------------
   // -- Fix multiplicity for ICs
   PetscCall(ICs_FixMultiplicity(dm, ceed_data, user, user->Q_loc, Q, 0.0));
 
@@ -183,10 +177,10 @@ int main(int argc, char **argv) {
   // Set up lumped mass matrix
   // ---------------------------------------------------------------------------
   // -- Set up global mass vector
-  PetscCall(VecDuplicate(Q, &user->M));
+  PetscCall(VecDuplicate(Q, &user->M_inv));
 
   // -- Compute lumped mass matrix
-  PetscCall(ComputeLumpedMassMatrix(ceed, dm, ceed_data, user->M));
+  PetscCall(ComputeLumpedMassMatrix(ceed, dm, ceed_data, user->M_inv));
 
   // ---------------------------------------------------------------------------
   // Record boundary values from initial condition
@@ -308,7 +302,7 @@ int main(int argc, char **argv) {
   // Destroy libCEED objects
   // ---------------------------------------------------------------------------
 
-  PetscCall(DestroyStats(user, ceed_data));
+  PetscCall(TurbulenceStatisticsDestroy(user, ceed_data));
   PetscCall(NodalProjectionDataDestroy(user->grad_velo_proj));
   PetscCall(SGS_DD_DataDestroy(user->sgs_dd_data));
 
@@ -363,10 +357,10 @@ int main(int argc, char **argv) {
 
   // -- Operators
   CeedOperatorDestroy(&ceed_data->op_setup_vol);
-  CeedOperatorDestroy(&ceed_data->op_ics);
+  PetscCall(OperatorApplyContextDestroy(ceed_data->op_ics_ctx));
   CeedOperatorDestroy(&user->op_rhs_vol);
   CeedOperatorDestroy(&user->op_ifunction_vol);
-  CeedOperatorDestroy(&user->op_rhs);
+  PetscCall(OperatorApplyContextDestroy(user->op_rhs_ctx));
   CeedOperatorDestroy(&user->op_ifunction);
   CeedOperatorDestroy(&user->op_ijacobian);
 
@@ -378,7 +372,7 @@ int main(int argc, char **argv) {
   // ---------------------------------------------------------------------------
   // -- Vectors
   PetscCall(VecDestroy(&Q));
-  PetscCall(VecDestroy(&user->M));
+  PetscCall(VecDestroy(&user->M_inv));
   PetscCall(VecDestroy(&user->Q_loc));
   PetscCall(VecDestroy(&user->Q_dot_loc));
 

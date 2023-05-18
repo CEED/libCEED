@@ -204,9 +204,8 @@ PetscErrorCode NS_NEWTONIAN_IG(ProblemData *problem, DM dm, void *ctx, SimpleBC 
   if (stab == STAB_SUPG && !implicit) {
     PetscCall(PetscPrintf(comm, "Warning! Use -stab supg only with -implicit\n"));
   }
-  if (state_var == STATEVAR_PRIMITIVE && !implicit) {
-    SETERRQ(comm, PETSC_ERR_SUP, "RHSFunction is not provided for primitive variables (use -state_var primitive only with -implicit)\n");
-  }
+  PetscCheck(!(state_var == STATEVAR_PRIMITIVE && !implicit), comm, PETSC_ERR_SUP,
+             "RHSFunction is not provided for primitive variables (use -state_var primitive only with -implicit)\n");
 
   PetscCall(PetscOptionsScalar("-idl_decay_time", "Characteristic timescale of the pressure deviance decay. The timestep is good starting point",
                                NULL, idl_decay_time, &idl_decay_time, &idl_enable));

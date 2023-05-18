@@ -25,16 +25,20 @@ PetscErrorCode OperatorApplyContextCreate(DM dm_x, DM dm_y, Ceed ceed, CeedOpera
 PetscErrorCode OperatorApplyContextDestroy(OperatorApplyContext op_apply_ctx);
 PetscErrorCode MatGetDiag_Ceed(Mat A, Vec D);
 PetscErrorCode MatMult_Ceed(Mat A, Vec X, Vec Y);
+PetscErrorCode CreateMatShell_Ceed(OperatorApplyContext ctx, Mat *mat);
 
 PetscErrorCode VecP2C(Vec X_petsc, PetscMemType *mem_type, CeedVector x_ceed);
 PetscErrorCode VecC2P(CeedVector x_ceed, PetscMemType mem_type, Vec X_petsc);
 PetscErrorCode VecReadP2C(Vec X_petsc, PetscMemType *mem_type, CeedVector x_ceed);
 PetscErrorCode VecReadC2P(CeedVector x_ceed, PetscMemType mem_type, Vec X_petsc);
 PetscErrorCode VecCopyP2C(Vec X_petsc, CeedVector x_ceed);
+PetscErrorCode CeedOperatorCreateLocalVecs(CeedOperator op, VecType vec_type, MPI_Comm comm, Vec *input, Vec *output);
+VecType        DMReturnVecType(DM dm);
 
 PetscErrorCode ApplyCeedOperatorGlobalToGlobal(Vec X, Vec Y, OperatorApplyContext ctx);
 PetscErrorCode ApplyCeedOperatorGlobalToLocal(Vec X, Vec Y_loc, OperatorApplyContext ctx);
 PetscErrorCode ApplyCeedOperatorLocalToGlobal(Vec X_loc, Vec Y, OperatorApplyContext ctx);
+PetscErrorCode ApplyCeedOperatorLocalToLocal(Vec X_loc, Vec Y_loc, OperatorApplyContext ctx);
 PetscErrorCode ApplyAddCeedOperatorLocalToLocal(Vec X_loc, Vec Y_loc, OperatorApplyContext ctx);
 
 #endif  // petsc_ops_h
