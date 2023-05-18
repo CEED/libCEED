@@ -91,7 +91,7 @@ static int CeedJitLoadModule_Sycl(const sycl::context &sycl_context, const sycl:
                                   ZE_MODULE_FORMAT_IL_SPIRV,
                                   il_binary.size(),
                                   il_binary.data(),
-                                  "ze-opt-large-register-file",   // flags
+                                  " -ze-opt-large-register-file",   // flags
                                   nullptr};  // build log
 
   ze_module_handle_t lz_module;
