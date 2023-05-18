@@ -51,6 +51,8 @@ typedef struct {
   CeedInt     num_nodes;
   CeedInt     num_qpts;
   CeedInt     buf_len;
+  CeedInt     op_len;
+  SyclModule_t *sycl_module;
   CeedScalar *d_interp_1d;
   CeedScalar *d_grad_1d;
   CeedScalar *d_q_weight_1d;

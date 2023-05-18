@@ -19,6 +19,8 @@
 #include "../sycl/ceed-sycl-compile.hpp"
 #include "ceed-sycl-ref.hpp"
 
+#define SUB_GROUP_SIZE_QF 16
+
 //------------------------------------------------------------------------------
 // Build QFunction kernel
 //
@@ -82,7 +84,9 @@ extern "C" int CeedSyclBuildQFunction(CeedQFunction qf) {
   code << "\n";
 
   // Kernel function
-  code << "__kernel void " << kernel_name << "(__global void *ctx, CeedInt Q,\n";
+  // Here we are fixing a lower sub-group size value to avoid register spills
+  // This needs to be revisited if all qfunctions require this.
+  code << "__attribute__((intel_reqd_sub_group_size(" << SUB_GROUP_SIZE_QF << "))) __kernel void " << kernel_name << "(__global void *ctx, CeedInt Q,\n";
 
   // OpenCL doesn't allow for structs with pointers.
   // We will need to pass all of the arguments individually.
@@ -126,6 +130,8 @@ extern "C" int CeedSyclBuildQFunction(CeedQFunction qf) {
 
   code << "  const CeedInt q = get_global_linear_id();\n\n";
 
+  code << "if(q < Q){ \n\n";
+
   // Load inputs
   code << "  // -- Load inputs\n";
   for (CeedInt i = 0; i < num_input_fields; i++) {
@@ -147,6 +153,7 @@ extern "C" int CeedSyclBuildQFunction(CeedQFunction qf) {
   code << "\n";
 
   // End kernel function body
+  code << "}\n";
   code << "}\n";
 
   // View kernel for debugging
