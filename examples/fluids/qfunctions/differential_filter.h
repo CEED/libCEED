@@ -34,8 +34,8 @@ enum DifferentialFilterVelocitySquared {
 };
 
 enum DifferentialFilterDampingFunction { DIFF_FILTER_DAMP_NONE, DIFF_FILTER_DAMP_VAN_DRIEST, DIFF_FILTER_DAMP_MMS };
-static const char *const DifferentialFilterDampingFunctions[] = {
-    "none", "van_driest", "mms", "DifferentialFilterDampingFunction", "DIFF_FILTER_DAMP_", NULL};
+//static const char *const DifferentialFilterDampingFunctions[] = {
+//    "none", "van_driest", "mms", "DifferentialFilterDampingFunction", "DIFF_FILTER_DAMP_", NULL};
 
 typedef struct DifferentialFilterContext_ *DifferentialFilterContext;
 struct DifferentialFilterContext_ {
