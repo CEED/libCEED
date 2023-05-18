@@ -117,6 +117,14 @@ int CeedSetStream_Sycl(Ceed ceed, void* handle) {
   data->sycl_context = q->get_context();
   data->sycl_queue = *q;
 
+  // Revisit this when we have a hierarchy of delegates
+  Ceed ceed_delegate;
+  if(!CeedGetDelegate(ceed,&ceed_delegate)) {
+    ceed_delegate->sycl_device = q->get_device();
+    ceed_delegate->sycl_context = q->get_context();
+    ceed_delegate->sycl_queue = *q;
+  }
+
   return CEED_ERROR_SUCCESS;
 }
 
