@@ -101,7 +101,9 @@ static int CeedBasisApplyInterp_Sycl(sycl::queue &sycl_queue, const SyclModule_t
         CeedInt post = 1;
 
         for (CeedInt d = 0; d < dim; d++) {
-          //sycl::group_barrier(work_group);
+          // Use older version of sycl workgroup barrier for performance reasons
+          // Can be updated in future to align with SYCL2020 spec if performance bottleneck is removed
+          // sycl::group_barrier(work_group);
           work_item.barrier(sycl::access::fence_space::local_space);
 
           pre /= P;
@@ -199,6 +201,8 @@ static int CeedBasisApplyGrad_Sycl(sycl::queue &sycl_queue, const SyclModule_t& 
           CeedScalar       *cur_v = v + elem * v_stride + dim_1 * v_dim_stride + comp * v_comp_stride;
 
           for (CeedInt dim_2 = 0; dim_2 < dim; dim_2++) {
+            // Use older version of sycl workgroup barrier for performance reasons
+            // Can be updated in future to align with SYCL2020 spec if performance bottleneck is removed
             //sycl::group_barrier(work_group);
             work_item.barrier(sycl::access::fence_space::local_space);
 
@@ -288,9 +292,9 @@ static int CeedBasisApply_Sycl(CeedBasis basis, const CeedInt num_elem, CeedTran
   switch (eval_mode) {
     case CEED_EVAL_INTERP: {
       if(transpose) {
-        CeedCallBackend(CeedBasisApplyInterp_Sycl<1>(data->sycl_queue, *impl->sycl_module, num_elem, impl, d_u, d_v));
+        CeedCallBackend(CeedBasisApplyInterp_Sycl<CEED_TRANSPOSE>(data->sycl_queue, *impl->sycl_module, num_elem, impl, d_u, d_v));
       } else {
-        CeedCallBackend(CeedBasisApplyInterp_Sycl<0>(data->sycl_queue, *impl->sycl_module, num_elem, impl, d_u, d_v));
+        CeedCallBackend(CeedBasisApplyInterp_Sycl<CEED_NOTRANSPOSE>(data->sycl_queue, *impl->sycl_module, num_elem, impl, d_u, d_v));
       }
     } break;
     case CEED_EVAL_GRAD: {
