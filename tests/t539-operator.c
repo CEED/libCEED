@@ -16,8 +16,8 @@ int main(int argc, char **argv) {
   CeedOperator        op_setup_mass, op_setup_diff, op_apply;
   CeedVector          q_data_mass, q_data_diff, x, assembled, u, v;
   CeedInt             num_elem = 6, p_0 = 2, p_1 = 3, q = 4, dim = 2, num_comp_0 = 2, num_comp_1 = 1;
-  CeedInt             nx = 3, ny = 2;
-  CeedInt             num_dofs_0 = (nx * (p_0 - 1) + 1) * (ny * (p_0 - 1) + 1), num_dofs_1 = (nx * (p_1 - 1) + 1) * (ny * (p_1 - 1) + 1);
+  CeedInt             n_x = 3, n_y = 2;
+  CeedInt             num_dofs_0 = (n_x * (p_0 - 1) + 1) * (n_y * (p_0 - 1) + 1), num_dofs_1 = (n_x * (p_1 - 1) + 1) * (n_y * (p_1 - 1) + 1);
   CeedInt             num_qpts = num_elem * q * q;
   CeedInt             ind_u_0[num_elem * p_0 * p_0], ind_u_1[num_elem * p_1 * p_1];
   CeedScalar          assembled_true[num_comp_0 * num_dofs_0 + num_comp_1 * num_dofs_1];
@@ -29,10 +29,10 @@ int main(int argc, char **argv) {
   {
     CeedScalar x_array[dim * num_dofs_0];
 
-    for (CeedInt i = 0; i < nx * 2 + 1; i++) {
-      for (CeedInt j = 0; j < ny * 2 + 1; j++) {
-        x_array[i + j * (nx * 2 + 1) + 0 * num_dofs_0] = (CeedScalar)i / (2 * nx);
-        x_array[i + j * (nx * 2 + 1) + 1 * num_dofs_0] = (CeedScalar)j / (2 * ny);
+    for (CeedInt i = 0; i < n_x * (p_0 - 1) + 1; i++) {
+      for (CeedInt j = 0; j < n_y * (p_0 - 1) + 1; j++) {
+        x_array[i + j * (n_x * (p_0 - 1) + 1) + 0 * num_dofs_0] = (CeedScalar)i / ((p_0 - 1) * n_x);
+        x_array[i + j * (n_x * (p_0 - 1) + 1) + 1 * num_dofs_0] = (CeedScalar)j / ((p_0 - 1) * n_y);
       }
     }
     CeedVectorSetArray(x, CEED_MEM_HOST, CEED_COPY_VALUES, x_array);
@@ -45,15 +45,15 @@ int main(int argc, char **argv) {
   // Restrictions
   for (CeedInt i = 0; i < num_elem; i++) {
     CeedInt col, row, offset;
-    col    = i % nx;
-    row    = i / nx;
-    offset = col * (p_0 - 1) + row * (nx * (p_0 - 1) + 1) * (p_0 - 1);
+    col    = i % n_x;
+    row    = i / n_x;
+    offset = col * (p_0 - 1) + row * (n_x * (p_0 - 1) + 1) * (p_0 - 1);
     for (CeedInt j = 0; j < p_0; j++) {
-      for (CeedInt k = 0; k < p_0; k++) ind_u_0[p_0 * (p_0 * i + k) + j] = offset + k * (nx * (p_0 - 1) + 1) + j;
+      for (CeedInt k = 0; k < p_0; k++) ind_u_0[p_0 * (p_0 * i + k) + j] = offset + k * (n_x * (p_0 - 1) + 1) + j;
     }
-    offset = col * (p_1 - 1) + row * (nx * (p_1 - 1) + 1) * (p_1 - 1) + num_dofs_0 * num_comp_0;
+    offset = col * (p_1 - 1) + row * (n_x * (p_1 - 1) + 1) * (p_1 - 1) + num_dofs_0 * num_comp_0;
     for (CeedInt j = 0; j < p_1; j++) {
-      for (CeedInt k = 0; k < p_1; k++) ind_u_1[p_1 * (p_1 * i + k) + j] = offset + k * (nx * (p_1 - 1) + 1) + j;
+      for (CeedInt k = 0; k < p_1; k++) ind_u_1[p_1 * (p_1 * i + k) + j] = offset + k * (n_x * (p_1 - 1) + 1) + j;
     }
   }
   CeedElemRestrictionCreate(ceed, num_elem, p_0 * p_0, dim, num_dofs_0, dim * num_dofs_0, CEED_MEM_HOST, CEED_USE_POINTER, ind_u_0,

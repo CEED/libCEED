@@ -272,8 +272,8 @@ static inline int CeedSingleOperatorAssembleAddDiagonal_Core(CeedOperator op, Ce
   // Assemble QFunction
   CeedQFunction       qf;
   const CeedScalar   *assembled_qf_array;
-  CeedVector          assembled_qf;
-  CeedElemRestriction assembled_elem_rstr;
+  CeedVector          assembled_qf        = NULL;
+  CeedElemRestriction assembled_elem_rstr = NULL;
   CeedInt             num_input_fields, num_output_fields;
   CeedInt             layout[3];
 
@@ -565,8 +565,8 @@ static int CeedSingleOperatorAssemble(CeedOperator op, CeedInt offset, CeedVecto
   // Assemble QFunction
   CeedQFunction qf;
   CeedCall(CeedOperatorGetQFunction(op, &qf));
-  CeedVector          assembled_qf;
-  CeedElemRestriction rstr_q;
+  CeedVector          assembled_qf = NULL;
+  CeedElemRestriction rstr_q       = NULL;
   CeedCall(CeedOperatorLinearAssembleQFunctionBuildOrUpdate(op, &assembled_qf, &rstr_q, CEED_REQUEST_IMMEDIATE));
   CeedSize qf_length;
   CeedCall(CeedVectorGetLength(assembled_qf, &qf_length));
@@ -1526,6 +1526,9 @@ int CeedOperatorLinearAssembleQFunction(CeedOperator op, CeedVector *assembled, 
   Caller is responsible for ownership and destruction of the copied references.
   See also @ref CeedOperatorLinearAssembleQFunction
 
+  Note: If the value of `assembled` or `rstr` passed to this function are non-NULL, then it is assumed that they hold valid pointers.
+        These objects will be destroyed if `*assembled` or `*rstr` is the only reference to the object.
+
   @param[in]  op        CeedOperator to assemble CeedQFunction
   @param[out] assembled CeedVector to store assembled CeedQFunction at quadrature points
   @param[out] rstr      CeedElemRestriction for CeedVector containing assembledCeedQFunction
@@ -1550,9 +1553,7 @@ int CeedOperatorLinearAssembleQFunctionBuildOrUpdate(CeedOperator op, CeedVector
 
       CeedCall(CeedQFunctionAssemblyDataGetObjects(op->qf_assembled, &assembled_vec, &assembled_rstr));
       CeedCall(CeedQFunctionAssemblyDataIsUpdateNeeded(op->qf_assembled, &update_needed));
-      if (update_needed) {
-        CeedCall(op->LinearAssembleQFunctionUpdate(op, assembled_vec, assembled_rstr, request));
-      }
+      if (update_needed) CeedCall(op->LinearAssembleQFunctionUpdate(op, assembled_vec, assembled_rstr, request));
     } else {
       CeedCall(op->LinearAssembleQFunction(op, &assembled_vec, &assembled_rstr, request));
       CeedCall(CeedQFunctionAssemblyDataSetObjects(op->qf_assembled, assembled_vec, assembled_rstr));
@@ -1560,11 +1561,9 @@ int CeedOperatorLinearAssembleQFunctionBuildOrUpdate(CeedOperator op, CeedVector
     CeedCall(CeedQFunctionAssemblyDataSetUpdateNeeded(op->qf_assembled, false));
 
     // Copy reference from internally held copy
-    *assembled = NULL;
-    *rstr      = NULL;
     CeedCall(CeedVectorReferenceCopy(assembled_vec, assembled));
-    CeedCall(CeedVectorDestroy(&assembled_vec));
     CeedCall(CeedElemRestrictionReferenceCopy(assembled_rstr, rstr));
+    CeedCall(CeedVectorDestroy(&assembled_vec));
     CeedCall(CeedElemRestrictionDestroy(&assembled_rstr));
   } else {
     // Operator fallback
@@ -2298,8 +2297,8 @@ int CeedOperatorCreateFDMElementInverse(CeedOperator op, CeedOperator *fdm_inv, 
   CeedCall(CeedFree(&x));
 
   // Assemble QFunction
-  CeedVector          assembled;
-  CeedElemRestriction rstr_qf;
+  CeedVector          assembled = NULL;
+  CeedElemRestriction rstr_qf   = NULL;
   CeedCall(CeedOperatorLinearAssembleQFunctionBuildOrUpdate(op, &assembled, &rstr_qf, request));
   CeedInt layout[3];
   CeedCall(CeedElemRestrictionGetELayout(rstr_qf, &layout));

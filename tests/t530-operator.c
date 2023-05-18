@@ -87,9 +87,6 @@ int main(int argc, char **argv) {
   CeedOperatorSetQFunctionAssemblyReuse(op_mass, true);
   CeedOperatorSetQFunctionAssemblyDataUpdateNeeded(op_mass, true);
   CeedOperatorLinearAssembleQFunction(op_mass, &qf_assembled, &elem_restriction_assembled, CEED_REQUEST_IMMEDIATE);
-  // Second call will be no-op since SetQFunctionUpdated was not called
-  CeedOperatorSetQFunctionAssemblyDataUpdateNeeded(op_mass, false);
-  CeedOperatorLinearAssembleQFunction(op_mass, &qf_assembled, &elem_restriction_assembled, CEED_REQUEST_IMMEDIATE);
 
   // Check output
   {

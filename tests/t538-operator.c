@@ -26,10 +26,10 @@ int main(int argc, char **argv) {
   {
     CeedScalar x_array[dim * num_dofs];
 
-    for (CeedInt i = 0; i < n_x * 2 + 1; i++) {
-      for (CeedInt j = 0; j < n_y * 2 + 1; j++) {
-        x_array[i + j * (n_x * 2 + 1) + 0 * num_dofs] = (CeedScalar)i / (2 * n_x);
-        x_array[i + j * (n_x * 2 + 1) + 1 * num_dofs] = (CeedScalar)j / (2 * n_y);
+    for (CeedInt i = 0; i < n_x * (p - 1) + 1; i++) {
+      for (CeedInt j = 0; j < n_y * (p - 1) + 1; j++) {
+        x_array[i + j * (n_x * (p - 1) + 1) + 0 * num_dofs] = (CeedScalar)i / ((p - 1) * n_x);
+        x_array[i + j * (n_x * (p - 1) + 1) + 1 * num_dofs] = (CeedScalar)j / ((p - 1) * n_y);
       }
     }
     CeedVectorSetArray(x, CEED_MEM_HOST, CEED_COPY_VALUES, x_array);
