@@ -163,7 +163,7 @@ endif
 CFLAGS += $(if $(ASAN),$(AFLAGS))
 FFLAGS += $(if $(ASAN),$(AFLAGS))
 CEED_LDFLAGS += $(if $(ASAN),$(AFLAGS))
-CPPFLAGS += -I./include
+CPPFLAGS += -I./include -I/${HIPBLAS_LIB_DIR}/../include/hipblas
 CEED_LDLIBS = -lm
 OBJDIR := build
 for_install := $(filter install,$(MAKECMDGOALS))
@@ -422,15 +422,13 @@ HIP_LIB      := $(patsubst lib%.${SO_EXT},%,$(notdir $(HIP_LIB_PATH)))
 HIP_LIB_DIR  := $(patsubst %/,%,$(dir $(HIP_LIB_PATH)))
 HIP_BACKENDS = /gpu/hip/ref # /gpu/hip/shared /gpu/hip/gen 
 ifneq ($(HIP_LIB_DIR),)
-  $(libceeds) : HIPCCFLAGS += -I./include
+  $(libceeds) : HIPCCFLAGS += -I./include -I${HIPBLAS_LIB_DIR}/../include/hipblas
   ifneq ($(CXX), $(HIPCC))
     CPPFLAGS += $(filter-out -x hip --offload=spirv64 -nohipwrapperinc,$(shell $(HIP_DIR)/bin/hipconfig -C))
   endif
   $(libceeds) : CPPFLAGS += -I$(HIP_DIR)/include
-  OPENCL_LIB_DIR = /soft/libraries/khronos/loader/master-2022.05.18/lib64
-  ZE_LIB_DIR = /soft/restricted/CNDA/emb/intel-gpu-umd/20221031.1-pvc-prq-66/driver/lib64
   HIPBLAS_LIBS = $(if $(filter amdhip64,$(HIP_LIB)),-lhipblas,-L$(HIPBLAS_LIB_DIR) -lhipblas)
-  PKG_LIBS += -L$(abspath $(HIP_LIB_DIR)) -l$(HIP_LIB) $(HIPBLAS_LIBS) $(if $(filter CHIP,$(HIP_LIB)),-L$(OPENCL_LIB_DIR) -lOpenCL -L$(ZE_LIB_DIR) -lze_loader)
+  PKG_LIBS += -L$(abspath $(HIP_LIB_DIR)) -l$(HIP_LIB) $(HIPBLAS_LIBS)
   # extracted from hipconfig
   # PKG_LIBS += -L/home/pvelesko/space/install/HIP/clang15/chip-spv-testing/lib -lCHIP -L/soft/libraries/khronos/loader/master-2022.05.18/lib64 -lOpenCL -L/soft/restricted/CNDA/emb/intel-gpu-umd/20221031.1-pvc-prq-66/driver/lib64 -lze_loader -Wl,-rpath,/home/pvelesko/space/install/HIP/clang15/chip-spv-testing/lib
   LIBCEED_CONTAINS_CXX = 1
