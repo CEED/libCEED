@@ -50,6 +50,15 @@ CEED_QFUNCTION_HELPER void OrientBasisWithVector(CeedScalar basis[3][3], const C
   if (basis_1_orientation < 0) ScaleN(basis[1], -1, 3);
 }
 
+// @brief Denormalize outputs using min-max (de-)normalization
+CEED_QFUNCTION_HELPER void DenormalizeDDOutputs(CeedScalar output[6], const CeedScalar new_bounds[6][2], const CeedScalar old_bounds[6][2]) {
+  CeedScalar bounds_ratio;
+  for (int i = 0; i < 6; i++) {
+    bounds_ratio = (new_bounds[i][1] - new_bounds[i][0]) / (old_bounds[i][1] - old_bounds[i][0]);
+    output[i]    = bounds_ratio * (output[i] - old_bounds[i][1]) + new_bounds[i][1];
+  }
+}
+
 /**
  * @brief Compute model inputs for anisotropic data-driven model
  *
@@ -96,6 +105,41 @@ CEED_QFUNCTION_HELPER void ComputeSGS_DDAnisotropicInputs(const CeedScalar grad_
   inputs[4]            = vorticity_sframe[1];
   inputs[5]            = viscosity / Square(delta);
   ScaleN(inputs, 1 / (*grad_velo_magnitude + CEED_EPSILON), 6);
+}
+
+/**
+ * @brief Compute the physical SGS stresses from the neural-network output
+ *
+ * @param[in,out] outputs             Outputs from the neural-network
+ * @param[in]     delta               Length used to create anisotropy tensor
+ * @param[in]     eigenvectors        Eigenvectors of the (anisotropic) velocity gradient
+ * @param[in]     new_bounds          Bounds used for min-max de-normalization
+ * @param[in]     grad_velo_magnitude Magnitude of the velocity gradient
+ * @param[out]    kmsgs_stress        Physical SGS stresses in Kelvin-Mandel notation
+ */
+CEED_QFUNCTION_HELPER void ComputeSGS_DDAnisotropicOutputs(CeedScalar outputs[6], const CeedScalar delta, const CeedScalar eigenvectors[3][3],
+                                                           const CeedScalar new_bounds[6][2], const CeedScalar grad_velo_magnitude,
+                                                           CeedScalar kmsgs_stress[6]) {
+  CeedScalar old_bounds[6][2] = {{0}};
+  for (int j = 0; j < 6; j++) old_bounds[j][1] = 1;
+  DenormalizeDDOutputs(outputs, new_bounds, old_bounds);
+
+  // Re-dimensionalize sgs_stress
+  ScaleN(outputs, Square(delta) * Square(grad_velo_magnitude), 6);
+
+  CeedScalar sgs_stress[3][3] = {{0.}};
+  {  // Rotate SGS Stress back to physical frame, SGS_physical = E^T SGS_sframe E
+    CeedScalar       Evec_sgs[3][3]   = {{0.}};
+    const CeedScalar sgs_sframe[3][3] = {
+        {outputs[0], outputs[3], outputs[4]},
+        {outputs[3], outputs[1], outputs[5]},
+        {outputs[4], outputs[5], outputs[2]},
+    };
+    MatMat3(eigenvectors, sgs_sframe, CEED_TRANSPOSE, CEED_NOTRANSPOSE, Evec_sgs);
+    MatMat3(Evec_sgs, eigenvectors, CEED_NOTRANSPOSE, CEED_NOTRANSPOSE, sgs_stress);
+  }
+
+  KMPack(sgs_stress, kmsgs_stress);
 }
 
 #endif  // sgs_dd_utils_h

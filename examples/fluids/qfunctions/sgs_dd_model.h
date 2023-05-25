@@ -38,15 +38,6 @@ struct SGS_DD_ModelContext_ {
   CeedScalar data[1];
 };
 
-// @brief Denormalize outputs using min-max (de-)normalization
-CEED_QFUNCTION_HELPER void DenormalizeDDOutputs(CeedScalar output[6], const CeedScalar (*new_bounds)[2], const CeedScalar old_bounds[6][2]) {
-  CeedScalar bounds_ratio;
-  for (int i = 0; i < 6; i++) {
-    bounds_ratio = (new_bounds[i][1] - new_bounds[i][0]) / (old_bounds[i][1] - old_bounds[i][0]);
-    output[i]    = bounds_ratio * (output[i] - old_bounds[i][1]) + new_bounds[i][1];
-  }
-}
-
 CEED_QFUNCTION_HELPER void LeakyReLU(CeedScalar *x, const CeedScalar alpha, const CeedInt N) {
   for (CeedInt i = 0; i < N; i++) x[i] *= (x[i] < 0 ? alpha : 1.);
 }
@@ -72,32 +63,11 @@ CEED_QFUNCTION_HELPER void DataDrivenInference(const CeedScalar *inputs, CeedSca
 CEED_QFUNCTION_HELPER void ComputeSGS_DDAnisotropic(const CeedScalar grad_velo_aniso[3][3], const CeedScalar km_A_ij[6], const CeedScalar delta,
                                                     const CeedScalar viscosity, CeedScalar kmsgs_stress[6], SGS_DDModelContext sgsdd_ctx) {
   CeedScalar inputs[6], grad_velo_magnitude, eigenvectors[3][3], sgs_sframe_sym[6] = {0.};
+  const CeedScalar(*new_bounds)[2] = (const CeedScalar(*)[2]) & sgsdd_ctx->data[sgsdd_ctx->offsets.out_scaling];
 
   ComputeSGS_DDAnisotropicInputs(grad_velo_aniso, km_A_ij, delta, viscosity, eigenvectors, inputs, &grad_velo_magnitude);
-
   DataDrivenInference(inputs, sgs_sframe_sym, sgsdd_ctx);
-
-  CeedScalar old_bounds[6][2] = {{0}};
-  for (int j = 0; j < 6; j++) old_bounds[j][1] = 1;
-  const CeedScalar(*new_bounds)[2] = (const CeedScalar(*)[2]) & sgsdd_ctx->data[sgsdd_ctx->offsets.out_scaling];
-  DenormalizeDDOutputs(sgs_sframe_sym, new_bounds, old_bounds);
-
-  // Re-dimensionalize sgs_stress
-  ScaleN(sgs_sframe_sym, Square(delta) * Square(grad_velo_magnitude), 6);
-
-  CeedScalar sgs_stress[3][3] = {{0.}};
-  {  // Rotate SGS Stress back to physical frame, SGS_physical = E^T SGS_sframe E
-    CeedScalar       Evec_sgs[3][3]   = {{0.}};
-    const CeedScalar sgs_sframe[3][3] = {
-        {sgs_sframe_sym[0], sgs_sframe_sym[3], sgs_sframe_sym[4]},
-        {sgs_sframe_sym[3], sgs_sframe_sym[1], sgs_sframe_sym[5]},
-        {sgs_sframe_sym[4], sgs_sframe_sym[5], sgs_sframe_sym[2]},
-    };
-    MatMat3(eigenvectors, sgs_sframe, CEED_TRANSPOSE, CEED_NOTRANSPOSE, Evec_sgs);
-    MatMat3(Evec_sgs, eigenvectors, CEED_NOTRANSPOSE, CEED_NOTRANSPOSE, sgs_stress);
-  }
-
-  KMPack(sgs_stress, kmsgs_stress);
+  ComputeSGS_DDAnisotropicOutputs(sgs_sframe_sym, delta, eigenvectors, new_bounds, grad_velo_magnitude, kmsgs_stress);
 }
 
 // @brief Calculate subgrid stress at nodes using anisotropic data-driven model
