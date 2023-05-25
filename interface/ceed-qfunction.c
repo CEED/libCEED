@@ -376,6 +376,7 @@ int CeedQFunctionRestoreContextData(CeedQFunction qf, void *data) {
       CeedCall(CeedQFunctionContextRestoreDataRead(ctx, data));
     }
   }
+  *(void **)data = NULL;
   return CEED_ERROR_SUCCESS;
 }
 
@@ -456,6 +457,7 @@ int CeedQFunctionRestoreInnerContextData(CeedQFunction qf, void *data) {
       CeedCall(CeedQFunctionContextRestoreDataRead(ctx, data));
     }
   }
+  *(void **)data = NULL;
   return CEED_ERROR_SUCCESS;
 }
 
