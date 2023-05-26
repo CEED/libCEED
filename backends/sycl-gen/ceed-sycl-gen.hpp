@@ -13,13 +13,14 @@
 #include <sycl/sycl.hpp>
 
 #include "../sycl/ceed-sycl-common.hpp"
+#include "../sycl/ceed-sycl-compile.hpp"
 
 typedef struct {
   CeedInt       dim;
   CeedInt       Q_1d;
   CeedInt       max_P_1d;
-  // syclModule_t   module;
-  // syclFunction_t op;
+  SyclModule_t* sycl_module;
+  sycl::kernel* op;
   FieldsInt_Sycl indices;
   Fields_Sycl    fields;
   Fields_Sycl    B;

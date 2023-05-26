@@ -64,7 +64,9 @@ static inline int CeedJitGetFlags_Sycl(std::vector<std::string> &flags) {
 //------------------------------------------------------------------------------
 // Compile an OpenCL source to SPIR-V using Intel's online compiler extension
 //------------------------------------------------------------------------------
-static inline int CeedJitCompileSource_Sycl(Ceed ceed, const sycl::device &sycl_device, const std::string &opencl_source, ByteVector_t &il_binary,
+static inline int CeedJitCompileSource_Sycl(Ceed ceed, const sycl::device &sycl_device, 
+                                            const std::string &opencl_source, 
+                                            ByteVector_t &il_binary,
                                             const std::vector<std::string> &flags = {}) {
   sycl::ext::libceed::online_compiler<sycl::ext::libceed::source_language::opencl_c> compiler(sycl_device);
 
@@ -81,7 +83,9 @@ static inline int CeedJitCompileSource_Sycl(Ceed ceed, const sycl::device &sycl_
 // TODO: determine appropriate flags
 // TODO: Error handle lz calls
 // ------------------------------------------------------------------------------
-static int CeedJitLoadModule_Sycl(const sycl::context &sycl_context, const sycl::device &sycl_device, const ByteVector_t &il_binary,
+static int CeedJitLoadModule_Sycl(const sycl::context &sycl_context, 
+                                  const sycl::device &sycl_device, 
+                                  const ByteVector_t &il_binary,
                                   SyclModule_t **sycl_module) {
   auto lz_context = sycl::get_native<sycl::backend::ext_oneapi_level_zero>(sycl_context);
   auto lz_device  = sycl::get_native<sycl::backend::ext_oneapi_level_zero>(sycl_device);
@@ -131,7 +135,9 @@ int CeedJitBuildModule_Sycl(Ceed ceed, const std::string &kernel_source, SyclMod
 //
 // TODO: Error handle lz calls
 // ------------------------------------------------------------------------------
-int CeedJitGetKernel_Sycl(Ceed ceed, const SyclModule_t *sycl_module, const std::string &kernel_name, sycl::kernel **sycl_kernel) {
+int CeedJitGetKernel_Sycl(Ceed ceed, const SyclModule_t *sycl_module, 
+                          const std::string &kernel_name, 
+                          sycl::kernel **sycl_kernel) {
   Ceed_Sycl *data;
   CeedCallBackend(CeedGetData(ceed, &data));
 

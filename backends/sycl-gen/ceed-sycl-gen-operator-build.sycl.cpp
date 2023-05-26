@@ -9,6 +9,7 @@
 
 #include <ceed/backend.h>
 #include <ceed/ceed.h>
+#include <ceed/jit-source/sycl/sycl-types.h>
 #include <ceed/jit-tools.h>
 
 #include <iostream>
@@ -50,6 +51,8 @@ extern "C" int BlockGridCalculate_Sycl_gen(const CeedInt dim, const CeedInt P_1d
 
 //------------------------------------------------------------------------------
 // Build single operator kernel
+// - [ ] Check arguments to device functions reudsed from sycl-shared-basis are correct
+// - [ ] Do kernel jitting!
 //------------------------------------------------------------------------------
 extern "C" int CeedSyclGenOperatorBuild(CeedOperator op) {
   bool is_setup_done;
@@ -83,6 +86,9 @@ extern "C" int CeedSyclGenOperatorBuild(CeedOperator op) {
   CeedElemRestriction      Erestrict;
   CeedElemRestriction_Sycl *restr_impl;
 
+  CeedInt       block_sizes[3];
+  CeedCallBackend(BlockGridCalculate_Sycl_gen(dim, P_1d, Q_1d, block_sizes));
+
   // Check for restriction only identity operator
   bool is_identity_qf;
   CeedCallBackend(CeedQFunctionIsIdentity(qf, &is_identity_qf));
@@ -100,13 +106,13 @@ extern "C" int CeedSyclGenOperatorBuild(CeedOperator op) {
   std::ostringstream code;
   // TODO: generalize to accept different device functions?
   {
-    char *tensor_basis_kernel_path, *tensor_basis_kernel_source;
+    char *tensor_basis_kernel_path, *tensor_basis_code;
     CeedCallBackend(CeedGetJitAbsolutePath(ceed, "ceed/jit-source/sycl/sycl-shared-basis-tensor-templates.h", &tensor_basis_kernel_path));
     CeedDebug256(ceed, 2, "----- Loading Tensor Basis Kernel Source -----\n");
-    CeedCallBackend(CeedLoadSourceToBuffer(ceed, tensor_basis_kernel_path, &tensor_basis_kernel_source));
-    code << tensor_basis_kernel_source;
+    CeedCallBackend(CeedLoadSourceToBuffer(ceed, tensor_basis_kernel_path, &tensor_basis_code));
+    code << tensor_basis_code;
     CeedCallBackend(CeedFree(&tensor_basis_kernel_path));
-    CeedCallBackend(CeedFree(&tensor_basis_kernel_source));
+    CeedCallBackend(CeedFree(&tensor_basis_code));
   }
   {
     char *sycl_gen_template_path, *sycl_gen_template_source;
@@ -204,30 +210,36 @@ extern "C" int CeedSyclGenOperatorBuild(CeedOperator op) {
   }
 
   code << q_function_source;
-
-  // Setup
+  
+  // Kernel function 
   code << "\n// -----------------------------------------------------------------------------\n";
-  // code << "\nextern \"C\" __launch_bounds__(BLOCK_SIZE)\n";
-  // TODO: Need to convert the input structs like in sycl-ref
-  code << "kernel void " << operator_name << "(CeedInt num_elem, void* ctx, FieldsInt_Sycl indices, Fields_Sycl fields, Fields_Sycl B, Fields_Sycl G, CeedScalar* W) {\n";
+  code << "__attribute__((reqd_work_group_size(GROUP_SIZE_X, GROUP_SIZE_Y, GROUP_SIZE_Z)))\n";
+  code << "kernel void " << operator_name << "(";
+  code << "const CeedInt num_elem, ";
+  code << "void* ctx, ";
+  code << "global const FieldsInt_Sycl* indices, ";
+  code << "global Fields_Sycl* fields, ";
+  code << "global const Fields_Sycl* B, ";
+  code << "global const Fields_Sycl* G, ";
+  code << "global const CeedScalar * restrict W";
+  code << ") {\n"; 
+  
   for (CeedInt i = 0; i < num_input_fields; i++) {
     CeedCallBackend(CeedQFunctionFieldGetEvalMode(qf_input_fields[i], &eval_mode));
     if (eval_mode != CEED_EVAL_WEIGHT) {  // Skip CEED_EVAL_WEIGHT
-      code << "  const CeedScalar* d_u_" << i << " = fields.inputs[" << i << "];\n";
+      code << "  global const CeedScalar* d_u_" << i << " = fields->inputs[" << i << "];\n";
     }
   }
 
   for (CeedInt i = 0; i < num_output_fields; i++) {
-    code << "  CeedScalar* d_v_" << i << " = fields.outputs[" << i << "];\n";
+    code << "  global CeedScalar* d_v_" << i << " = fields->outputs[" << i << "];\n";
   }
+  
+  // TODO: Convert these to defined constants to save on GRF
+  code << "  const CeedInt DIM = " << dim << "\n";
+  code << "  const CeedInt Q_1D = " << Q_1d << "\n";
 
-  code << "  const CeedInt dim = " << dim << ";\n";
-  code << "  const CeedInt Q_1d = " << Q_1d << ";\n";
-
-  const CeedInt thread_1d = CeedIntMax(Q_1d, P_1d);
-  CeedInt       block_sizes[3];
-  CeedCallBackend(BlockGridCalculate_Sycl_gen(dim, P_1d, Q_1d, block_sizes));
-  const CeedInt scratch_size = block_sizes[2] * thread_1d * ((dim > 1) ? thread_1d : 1);
+  const CeedInt scratch_size = block_sizes[0] * block_sizes[1] * block_sizes[2];
   code << "  local CeedScalar scratch[" << scratch_size << "];\n";
   code << "  local CeedScalar * elem_scratch = scratch + get_local_id(2) * T_1D" << (dim > 1 ? "*T_1D" : "") << ";\n";
 
@@ -246,11 +258,11 @@ extern "C" int CeedSyclGenOperatorBuild(CeedOperator op) {
       CeedCallBackend(CeedOperatorFieldGetBasis(op_input_fields[i], &basis));
       if (basis != CEED_BASIS_COLLOCATED) {
         CeedCallBackend(CeedBasisGetNumNodes1D(basis, &P_1d));
-        code << "  const CeedInt P_in_" << i << " = " << P_1d << ";\n";
+        code << "  const CeedInt P_in_" << i << " = " << P_1d << "\n";
       } else {
-        code << "  const CeedInt P_in_" << i << " = " << Q_1d << ";\n";
+        code << "  const CeedInt P_in_" << i << " = " << Q_1d << "\n";
       }
-      code << "  const CeedInt num_comp_in_" << i << " = " << num_comp << ";\n";
+      code << "  const CeedInt num_comp_in_" << i << " = " << num_comp << "\n";
     }
 
     // Load basis data
@@ -262,27 +274,27 @@ extern "C" int CeedSyclGenOperatorBuild(CeedOperator op) {
         CeedCallBackend(CeedBasisGetData(basis, &basis_impl));
         impl->B.inputs[i] = basis_impl->d_interp_1d;
         code << "  local CeedScalar s_B_in_" << i << "[" << P_1d * Q_1d << "];\n";
-        code << "  loadMatrix(P_in_" << i << "*Q_1d, B.inputs[" << i << "], s_B_in_" << i << ");\n";
+        code << "  loadMatrix(P_in_" << i << "*Q_1D, B->inputs[" << i << "], s_B_in_" << i << ");\n";
         break;
       case CEED_EVAL_GRAD:
         CeedCallBackend(CeedBasisGetData(basis, &basis_impl));
         impl->B.inputs[i] = basis_impl->d_interp_1d;
         code << "  local CeedScalar s_B_in_" << i << "[" << P_1d * Q_1d << "];\n";
-        code << "  loadMatrix(P_in_" << i << "*Q_1d, B.inputs[" << i << "], s_B_in_" << i << ");\n";
+        code << "  loadMatrix(P_in_" << i << "*Q_1D, B->inputs[i]" << i << ", s_B_in_" << i << ");\n";
         if (use_collograd_parallelization) {
           impl->G.inputs[i] = basis_impl->d_collo_grad_1d;
           code << "  local CeedScalar s_G_in_" << i << "[" << Q_1d * Q_1d << "];\n";
-          code << "  loadMatrix(Q_1d*Q_1d, G.inputs[" << i << "], s_G_in_" << i << ");\n";
+          code << "  loadMatrix(Q_1D*Q_1D, G->inputs[" << i << "], s_G_in_" << i << ");\n";
         } else {
           bool has_collo_grad = !!basis_impl->d_collo_grad_1d;
           impl->G.inputs[i]   = has_collo_grad ? basis_impl->d_collo_grad_1d : basis_impl->d_grad_1d;
           code << "  local CeedScalar s_G_in_" << i << "[" << Q_1d * (has_collo_grad ? Q_1d : P_1d) << "];\n";
-          code << "  loadMatrix(" << (has_collo_grad ? "Q_1d" : ("P_in_" + std::to_string(i))) << "*Q_1d, G.inputs[" << i << "], s_G_in_" << i
+          code << "  loadMatrix(" << (has_collo_grad ? "Q_1D" : ("P_in_" + std::to_string(i))) << "*Q_1D, G->inputs[" << i << "], s_G_in_" << i
                << ");\n";
         }
         break;
       case CEED_EVAL_WEIGHT:
-        break;  // No action
+        break;  // No action 
       case CEED_EVAL_DIV:
         break;  // TODO: Not implemented
       case CEED_EVAL_CURL:
@@ -318,22 +330,22 @@ extern "C" int CeedSyclGenOperatorBuild(CeedOperator op) {
         CeedCallBackend(CeedBasisGetData(basis, &basis_impl));
         impl->B.outputs[i] = basis_impl->d_interp_1d;
         code << "  local CeedScalar s_B_out_" << i << "[" << P_1d * Q_1d << "];\n";
-        code << "  loadMatrix(P_out_" << i << "*Q_1d, B.outputs[" << i << "], s_B_out_" << i << ");\n";
+        code << "  loadMatrix(P_out_" << i << "*Q_1D, B->outputs[" << i << "], s_B_out_" << i << ");\n";
         break;
       case CEED_EVAL_GRAD:
         CeedCallBackend(CeedBasisGetData(basis, &basis_impl));
         impl->B.outputs[i] = basis_impl->d_interp_1d;
         code << "  local CeedScalar s_B_out_" << i << "[" << P_1d * Q_1d << "];\n";
-        code << "  loadMatrix(P_out_" << i << "*Q_1d, B.outputs[" << i << "], s_B_out_" << i << ");\n";
+        code << "  loadMatrix(P_out_" << i << "*Q_1D, B->outputs[" << i << "], s_B_out_" << i << ");\n";
         if (use_collograd_parallelization) {
           impl->G.outputs[i] = basis_impl->d_collo_grad_1d;
           code << "  local CeedScalar s_G_out_" << i << "[" << Q_1d * Q_1d << "];\n";
-          code << "  loadMatrix(Q_1d*Q_1d, G.outputs[" << i << "], s_G_out_" << i << ");\n";
+          code << "  loadMatrix(Q_1D*Q_1D, G->outputs[" << i << "], s_G_out_" << i << ");\n";
         } else {
           bool has_collo_grad = !!basis_impl->d_collo_grad_1d;
           impl->G.outputs[i]  = has_collo_grad ? basis_impl->d_collo_grad_1d : basis_impl->d_grad_1d;
           code << "  local CeedScalar s_G_out_" << i << "[" << Q_1d * (has_collo_grad ? Q_1d : P_1d) << "];\n";
-          code << "  loadMatrix(" << (has_collo_grad ? "Q_1d" : ("P_out_" + std::to_string(i))) << "*Q_1d, G.outputs[" << i << "], s_G_out_"
+          code << "  loadMatrix(" << (has_collo_grad ? "Q_1D" : ("P_out_" + std::to_string(i))) << "*Q_1D, G->outputs[" << i << "], s_G_out_"
                << i << ");\n";
         }
         break;
@@ -353,7 +365,8 @@ extern "C" int CeedSyclGenOperatorBuild(CeedOperator op) {
   }
   code << "\n  // -- Element loop --\n";
   code << "  work_group_barrier(CLK_LOCAL_MEM_FENCE);\n";
-  code << "  for (CeedInt elem = get_local_size(0)*get_local_size(2) + get_local_id(2); elem < num_elem; elem += get_group_id(0)*get_local_size(2)) {\n";
+
+  code << "  {\n";
   // Input basis apply if needed
   // Generate the correct eval mode code for each input
   code << "    // -- Input field restrictions and basis actions --\n";
@@ -380,7 +393,7 @@ extern "C" int CeedSyclGenOperatorBuild(CeedOperator op) {
         CeedCallBackend(CeedElemRestrictionGetData(Erestrict, &restr_impl));
         impl->indices.inputs[i] = restr_impl->d_ind;
         code << "    readDofsOffset" << dim << "d(num_comp_in_" << i << ", " << comp_stride << ", P_in_" << i << ", lsize_in_" << i
-             << ", elem, indices.inputs[" << i << "], d_u_" << i << ", r_u_" << i << ");\n";
+             << ", elem, indices->inputs[" << i << "], d_u_" << i << ", r_u_" << i << ");\n";
       } else {
         bool has_backend_strides;
         CeedCallBackend(CeedElemRestrictionHasBackendStrides(Erestrict, &has_backend_strides));
@@ -401,34 +414,34 @@ extern "C" int CeedSyclGenOperatorBuild(CeedOperator op) {
     switch (eval_mode) {
       case CEED_EVAL_NONE:
         if (!use_collograd_parallelization) {
-          code << "    CeedScalar* r_t_" << i << " = r_u_" << i << ";\n";
+          code << "    private CeedScalar* r_t_" << i << " = r_u_" << i << ";\n";
         }
         break;
       case CEED_EVAL_INTERP:
-        code << "    CeedScalar r_t_" << i << "[num_comp_in_" << i << "*Q_1d];\n";
-        code << "    Interp" << (dim > 1 ? "Tensor" : "") << dim << "d(num_comp_in_" << i << ", P_in_" << i << ", Q_1d, r_u_" << i << ", s_B_in_"
+        code << "    CeedScalar r_t_" << i << "[num_comp_in_" << i << "*Q_1D];\n";
+        code << "    Interp" << (dim > 1 ? "Tensor" : "") << dim << "d(num_comp_in_" << i << ", P_in_" << i << ", Q_1D, r_u_" << i << ", s_B_in_"
              << i << ", r_t_" << i << ");\n";
         break;
       case CEED_EVAL_GRAD:
         if (use_collograd_parallelization) {
-          code << "    CeedScalar r_t_" << i << "[num_comp_in_" << i << "*Q_1d];\n";
-          code << "    Interp" << (dim > 1 ? "Tensor" : "") << dim << "d(num_comp_in_" << i << ", P_in_" << i << ", Q_1d, r_u_" << i
+          code << "    CeedScalar r_t_" << i << "[num_comp_in_" << i << "*Q_1D];\n";
+          code << "    Interp" << (dim > 1 ? "Tensor" : "") << dim << "d(num_comp_in_" << i << ", P_in_" << i << ", Q_1D, r_u_" << i
                << ", s_B_in_" << i << ", r_t_" << i << ");\n";
         } else {
           CeedInt P_1d;
           CeedCallBackend(CeedOperatorFieldGetBasis(op_input_fields[i], &basis));
           CeedCallBackend(CeedBasisGetNumNodes1D(basis, &P_1d));
-          code << "    CeedScalar r_t_" << i << "[num_comp_in_" << i << "*dim*Q_1d];\n";
+          code << "    CeedScalar r_t_" << i << "[num_comp_in_" << i << "*DIM*Q_1D];\n";
           code << "    Grad" << (dim > 1 ? "Tensor" : "") << (dim == 3 && Q_1d >= P_1d ? "Collocated" : "") << dim << "d(num_comp_in_" << i
-               << ", P_in_" << i << ", Q_1d, r_u_" << i << ", s_B_in_" << i << ", s_G_in_" << i << ", r_t_" << i << ");\n";
+               << ", P_in_" << i << ", Q_1D, r_u_" << i << ", s_B_in_" << i << ", s_G_in_" << i << ", r_t_" << i << ");\n";
         }
         break;
       case CEED_EVAL_WEIGHT:
-        code << "    CeedScalar r_t_" << i << "[Q_1d];\n";
+        code << "    CeedScalar r_t_" << i << "[Q_1D];\n";
         CeedCallBackend(CeedOperatorFieldGetBasis(op_input_fields[i], &basis));
         CeedCallBackend(CeedBasisGetData(basis, &basis_impl));
         impl->W = basis_impl->d_q_weight_1d;
-        code << "    Weight" << (dim > 1 ? "Tensor" : "") << dim << "d(Q_1d, W, r_t_" << i << ");\n";
+        code << "    Weight" << (dim > 1 ? "Tensor" : "") << dim << "d(Q_1D, W, r_t_" << i << ");\n";
         break;  // No action
       case CEED_EVAL_DIV:
         break;  // TODO: Not implemented
@@ -445,25 +458,25 @@ extern "C" int CeedSyclGenOperatorBuild(CeedOperator op) {
     if (eval_mode == CEED_EVAL_GRAD) {
       if (use_collograd_parallelization) {
         // Accumulator for gradient slices
-        code << "    CeedScalar r_tt_" << i << "[num_comp_out_" << i << "*Q_1d];\n";
+        code << "    CeedScalar r_tt_" << i << "[num_comp_out_" << i << "*Q_1D];\n";
         code << "    for (CeedInt i = 0; i < num_comp_out_" << i << "; i++) {\n";
-        code << "      for (CeedInt j = 0; j < Q_1d; ++j) {\n";
-        code << "        r_tt_" << i << "[j + i*Q_1d] = 0.0;\n";
+        code << "      for (CeedInt j = 0; j < Q_1D; ++j) {\n";
+        code << "        r_tt_" << i << "[j + i*Q_1D] = 0.0;\n";
         code << "      }\n";
         code << "    }\n";
       } else {
-        code << "    CeedScalar r_tt_" << i << "[num_comp_out_" << i << "*dim*Q_1d];\n";
+        code << "    CeedScalar r_tt_" << i << "[num_comp_out_" << i << "*DIM*Q_1D];\n";
       }
     }
     if (eval_mode == CEED_EVAL_NONE || eval_mode == CEED_EVAL_INTERP) {
-      code << "    CeedScalar r_tt_" << i << "[num_comp_out_" << i << "*Q_1d];\n";
+      code << "    CeedScalar r_tt_" << i << "[num_comp_out_" << i << "*Q_1D];\n";
     }
   }
   // We treat quadrature points per slice in 3d to save registers
   if (use_collograd_parallelization) {
     code << "\n    // Note: Using planes of 3D elements\n";
-    code << "#pragma unroll\n"; // TODO: check syntax for OpenCL unrolling
-    code << "    for (CeedInt q = 0; q < Q_1d; q++) {\n";
+    code << "    __attribute__((opencl_unroll_hint))\n";
+    code << "    for (CeedInt q = 0; q < Q_1D; q++) {\n";
     code << "      // -- Input fields --\n";
     for (CeedInt i = 0; i < num_input_fields; i++) {
       code << "      // ---- Input field " << i << " ----\n";
@@ -487,7 +500,7 @@ extern "C" int CeedSyclGenOperatorBuild(CeedOperator op) {
             CeedCallBackend(CeedElemRestrictionGetData(Erestrict, &restr_impl));
             impl->indices.inputs[i] = restr_impl->d_ind;
             code << "      readSliceQuadsOffset"
-                 << "3d(num_comp_in_" << i << ", " << comp_stride << ", Q_1d, lsize_in_" << i << ", elem, q, indices.inputs[" << i << "], d_u_"
+                 << "3d(num_comp_in_" << i << ", " << comp_stride << ", Q_1D, lsize_in_" << i << ", elem, q, indices->inputs[" << i << "], d_u_"
                  << i << ", r_q_" << i << ");\n";
           } else {
             CeedCallBackend(CeedElemRestrictionGetElementSize(Erestrict, &elem_size));
@@ -502,19 +515,19 @@ extern "C" int CeedSyclGenOperatorBuild(CeedOperator op) {
             code << "      // Strides: {" << strides[0] << ", " << strides[1] << ", " << strides[2] << "}\n";
             code << "      readSliceQuadsStrided"
                  << "3d(num_comp_in_" << i
-                 << ", Q_1d,"
+                 << ", Q_1D,"
                  << strides[0] << ", " << strides[1] << ", " << strides[2] << ", elem, q, d_u_" << i << ", r_q_" << i << ");\n";
           }
           break;
         case CEED_EVAL_INTERP:
           code << "      CeedScalar r_q_" << i << "[num_comp_in_" << i << "];\n";
           code << "      for (CeedInt j = 0; j < num_comp_in_" << i << " ; ++j) {\n";
-          code << "        r_q_" << i << "[j] = r_t_" << i << "[q + j*Q_1d];\n";
+          code << "        r_q_" << i << "[j] = r_t_" << i << "[q + j*Q_1D];\n";
           code << "      }\n";
           break;
         case CEED_EVAL_GRAD:
-          code << "      CeedScalar r_q_" << i << "[num_comp_in_" << i << "*dim];\n";
-          code << "      gradCollo3d(num_comp_in_" << i << ", Q_1d, q, r_t_" << i << ", s_G_in_" << i << ", r_q_" << i << ");\n";
+          code << "      CeedScalar r_q_" << i << "[num_comp_in_" << i << "*DIM];\n";
+          code << "      gradCollo3d(num_comp_in_" << i << ", Q_1D, q, r_t_" << i << ", s_G_in_" << i << ", r_q_" << i << ");\n";
           break;
         case CEED_EVAL_WEIGHT:
           code << "      CeedScalar r_q_" << i << "[1];\n";
@@ -539,7 +552,7 @@ extern "C" int CeedSyclGenOperatorBuild(CeedOperator op) {
           code << "      CeedScalar r_qq_" << i << "[num_comp_out_" << i << "];\n";
           break;
         case CEED_EVAL_GRAD:
-          code << "      CeedScalar r_qq_" << i << "[num_comp_out_" << i << "*dim];\n";
+          code << "      CeedScalar r_qq_" << i << "[num_comp_out_" << i << "*DIM];\n";
           break;
         case CEED_EVAL_WEIGHT:
           break;  // Should not occur
@@ -554,14 +567,15 @@ extern "C" int CeedSyclGenOperatorBuild(CeedOperator op) {
     code << "      // -- Input fields --\n";
     for (CeedInt i = 0; i < num_input_fields; i++) {
       code << "      // ---- Input field " << i << " ----\n";
-      code << "      CeedScalar* r_q_" << i << " = r_t_" << i << ";\n";
+      code << "      private CeedScalar* r_q_" << i << " = r_t_" << i << ";\n";
     }
     code << "      // -- Output fields --\n";
     for (CeedInt i = 0; i < num_output_fields; i++) {
       code << "      // ---- Output field " << i << " ----\n";
-      code << "      CeedScalar* r_qq_" << i << " = r_tt_" << i << ";\n";
+      code << "      private CeedScalar* r_qq_" << i << " = r_tt_" << i << ";\n";
     }
   }
+  //--------------------------------------------------
   code << "\n      // -- QFunction Inputs and outputs --\n";
   code << "      CeedScalar* in[" << num_input_fields << "];\n";
   for (CeedInt i = 0; i < num_input_fields; i++) {
@@ -573,14 +587,17 @@ extern "C" int CeedSyclGenOperatorBuild(CeedOperator op) {
     code << "      // ---- Output field " << i << " ----\n";
     code << "      out[" << i << "] = r_qq_" << i << ";\n";
   }
+
   code << "\n      // -- Apply QFunction --\n";
   code << "      " << q_function_name << "(ctx, ";
   if (dim != 3 || use_collograd_parallelization) {
     code << "1";
   } else {
-    code << "Q_1d";
+    code << "Q_1D";
   }
   code << ", in, out);\n";
+  //--------------------------------------------------
+
   if (use_collograd_parallelization) {
     code << "      // -- Output fields --\n";
     for (CeedInt i = 0; i < num_output_fields; i++) {
@@ -591,16 +608,16 @@ extern "C" int CeedSyclGenOperatorBuild(CeedOperator op) {
       switch (eval_mode) {
         case CEED_EVAL_NONE:
           code << "      for (CeedInt j = 0; j < num_comp_out_" << i << " ; ++j) {\n";
-          code << "        r_tt_" << i << "[q + j*Q_1d] = r_qq_" << i << "[j];\n";
+          code << "        r_tt_" << i << "[q + j*Q_1D] = r_qq_" << i << "[j];\n";
           code << "      }\n";
           break;  // No action
         case CEED_EVAL_INTERP:
           code << "      for (CeedInt j = 0; j < num_comp_out_" << i << " ; ++j) {\n";
-          code << "        r_tt_" << i << "[q + j*Q_1d] = r_qq_" << i << "[j];\n";
+          code << "        r_tt_" << i << "[q + j*Q_1D] = r_qq_" << i << "[j];\n";
           code << "      }\n";
           break;
         case CEED_EVAL_GRAD:
-          code << "      gradColloTranspose3d(num_comp_out_" << i << ",Q_1d, q, r_qq_" << i << ", s_G_out_" << i << ", r_tt_" << i << ");\n";
+          code << "      gradColloTranspose3d(num_comp_out_" << i << ",Q_1D, q, r_qq_" << i << ", s_G_out_" << i << ", r_tt_" << i << ");\n";
           break;
         case CEED_EVAL_WEIGHT:
           break;  // Should not occur
@@ -627,24 +644,24 @@ extern "C" int CeedSyclGenOperatorBuild(CeedOperator op) {
     code << "    // EvalMode: " << CeedEvalModes[eval_mode] << "\n";
     switch (eval_mode) {
       case CEED_EVAL_NONE:
-        code << "    CeedScalar* r_v_" << i << " = r_tt_" << i << ";\n";
+        code << "    private CeedScalar* r_v_" << i << " = r_tt_" << i << ";\n";
         break;  // No action
       case CEED_EVAL_INTERP:
         code << "    CeedScalar r_v_" << i << "[num_comp_out_" << i << "*P_out_" << i << "];\n";
-        code << "    InterpTranspose" << (dim > 1 ? "Tensor" : "") << dim << "d(num_comp_out_" << i << ",P_out_" << i << ", Q_1d, r_tt_" << i
+        code << "    InterpTranspose" << (dim > 1 ? "Tensor" : "") << dim << "d(num_comp_out_" << i << ",P_out_" << i << ", Q_1D, r_tt_" << i
              << ", s_B_out_" << i << ", r_v_" << i << ");\n";
         break;
       case CEED_EVAL_GRAD:
         code << "    CeedScalar r_v_" << i << "[num_comp_out_" << i << "*P_out_" << i << "];\n";
         if (use_collograd_parallelization) {
-          code << "    InterpTranspose" << (dim > 1 ? "Tensor" : "") << dim << "d(num_comp_out_" << i << ",P_out_" << i << ", Q_1d, r_tt_" << i
+          code << "    InterpTranspose" << (dim > 1 ? "Tensor" : "") << dim << "d(num_comp_out_" << i << ",P_out_" << i << ", Q_1D, r_tt_" << i
                << ", s_B_out_" << i << ", r_v_" << i << ");\n";
         } else {
           CeedInt P_1d;
           CeedCallBackend(CeedOperatorFieldGetBasis(op_output_fields[i], &basis));
           CeedCallBackend(CeedBasisGetNumNodes1D(basis, &P_1d));
           code << "    GradTranspose" << (dim > 1 ? "Tensor" : "") << (dim == 3 && Q_1d >= P_1d ? "Collocated" : "") << dim << "d(num_comp_out_" << i
-               << ",P_out_" << i << ", Q_1d, r_tt_" << i << ", s_B_out_" << i << ", s_G_out_" << i << ", r_v_" << i << ");\n";
+               << ",P_out_" << i << ", Q_1D, r_tt_" << i << ", s_B_out_" << i << ", s_G_out_" << i << ", r_v_" << i << ");\n";
         }
         break;
       // LCOV_EXCL_START
@@ -672,7 +689,7 @@ extern "C" int CeedSyclGenOperatorBuild(CeedOperator op) {
       CeedCallBackend(CeedElemRestrictionGetData(Erestrict, &restr_impl));
       impl->indices.outputs[i] = restr_impl->d_ind;
       code << "    writeDofsOffset" << dim << "d(num_comp_out_" << i << ", " << comp_stride << ", P_out_" << i << ", lsize_out_" << i
-           << ", elem, indices.outputs[" << i << "], r_v_" << i << ", d_v_" << i << ");\n";
+           << ", elem, indices->outputs[" << i << "], r_v_" << i << ", d_v_" << i << ");\n";
     } else {
       bool has_backend_strides;
       CeedCallBackend(CeedElemRestrictionHasBackendStrides(Erestrict, &has_backend_strides));
@@ -692,20 +709,23 @@ extern "C" int CeedSyclGenOperatorBuild(CeedOperator op) {
   code << "}\n";
   code << "// -----------------------------------------------------------------------------\n\n";
 
-  std::cout << code.str() << std::endl;
   // View kernel for debugging
   CeedDebug256(ceed, 2, "Generated Operator Kernels:\n");
   CeedDebug(ceed, code.str().c_str());
 
-  // CeedInt block_sizes[3] = {0, 0, 0};
-  // CeedInt num_elem;
-  // CeedCallBackend(CeedOperatorGetNumElements(op, &num_elem));
-  // CeedCallBackend(BlockGridCalculate_Sycl_gen(dim, num_elem, impl->max_P_1d, Q_1d, block_sizes));
-  // CeedCallBackend(CeedCompileSycl(ceed, code.str().c_str(), &impl->module, 2, "T_1D", block_sizes[0], "BLOCK_SIZE",
-  //                                block_sizes[0] * block_sizes[1] * block_sizes[2]));
-  // CeedCallBackend(CeedGetKernelSycl(ceed, impl->module, operator_name.c_str(), &impl->op));
+  std::map<std::string, CeedInt> jit_constants;
+  jit_constants["T_1D"] = block_sizes[0];
+  jit_constants["GROUP_SIZE_X"] = block_sizes[0];
+  jit_constants["GROUP_SIZE_Y"] = block_sizes[1];
+  jit_constants["GROUP_SIZE_Z"] = block_sizes[2];
 
-  // CeedCallBackend(CeedOperatorSetSetupDone(op));
+  // Compile kernel into a kernel bundle
+  CeedCallBackend(CeedJitBuildModule_Sycl(ceed, code.str(), &impl->sycl_module,jit_constants));
+  
+  // Load kernel function
+  CeedCallBackend(CeedJitGetKernel_Sycl(ceed, impl->sycl_module, operator_name, &impl->op));
+  
+  CeedCallBackend(CeedOperatorSetSetupDone(op));
   return CEED_ERROR_SUCCESS;
 }
 //------------------------------------------------------------------------------
