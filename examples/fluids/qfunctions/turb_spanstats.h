@@ -11,8 +11,7 @@
 #include "turb_stats_types.h"
 #include "utils.h"
 
-CEED_QFUNCTION_HELPER int ChildStatsCollection(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out, StateFromQi_t StateFromQi,
-                                               StateFromQi_fwd_t StateFromQi_fwd) {
+CEED_QFUNCTION_HELPER int ChildStatsCollection(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out, StateVariable state_var) {
   const CeedScalar(*q)[CEED_Q_VLA]      = (const CeedScalar(*)[CEED_Q_VLA])in[0];
   const CeedScalar(*q_data)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[1];
   const CeedScalar(*x)[CEED_Q_VLA]      = (const CeedScalar(*)[CEED_Q_VLA])in[2];
@@ -27,7 +26,7 @@ CEED_QFUNCTION_HELPER int ChildStatsCollection(void *ctx, CeedInt Q, const CeedS
 
     const CeedScalar qi[5]  = {q[0][i], q[1][i], q[2][i], q[3][i], q[4][i]};
     const CeedScalar x_i[3] = {x[0][i], x[1][i], x[2][i]};
-    const State      s      = StateFromQi(gas, qi, x_i);
+    const State      s      = StateFromQ(gas, qi, x_i, state_var);
 
     v[TURB_MEAN_DENSITY][i]                    = wdetJ * s.U.density;
     v[TURB_MEAN_PRESSURE][i]                   = wdetJ * s.Y.pressure;
@@ -56,11 +55,11 @@ CEED_QFUNCTION_HELPER int ChildStatsCollection(void *ctx, CeedInt Q, const CeedS
 }
 
 CEED_QFUNCTION(ChildStatsCollection_Conserv)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
-  return ChildStatsCollection(ctx, Q, in, out, StateFromU, StateFromU_fwd);
+  return ChildStatsCollection(ctx, Q, in, out, STATEVAR_CONSERVATIVE);
 }
 
 CEED_QFUNCTION(ChildStatsCollection_Prim)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
-  return ChildStatsCollection(ctx, Q, in, out, StateFromY, StateFromY_fwd);
+  return ChildStatsCollection(ctx, Q, in, out, STATEVAR_PRIMITIVE);
 }
 
 // QFunctions for testing
