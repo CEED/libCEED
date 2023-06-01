@@ -12,6 +12,11 @@
 
 #include <ceed/types.h>
 
+#pragma OPENCL EXTENSION cl_khr_int64_base_atomics : enable
+#pragma OPENCL EXTENSION cl_khr_int64_extended_atomics : enable
+// TODO: Handle FP32 case
+typedef atomic_double CeedAtomicScalar;
+
 //------------------------------------------------------------------------------
 // Load matrices for basis actions
 //------------------------------------------------------------------------------
@@ -68,7 +73,7 @@ inline void readDofsStrided1d(const CeedInt num_comp, const CeedInt P_1D,
 //------------------------------------------------------------------------------
 inline void writeDofsOffset1d(const CeedInt num_comp, const CeedInt strides_comp, const CeedInt P_1D, 
   const CeedInt num_elem, const global CeedInt * restrict indices, 
-  const private CeedScalar * restrict r_v, global CeedScalar * restrict d_v) {
+  const private CeedScalar * restrict r_v, global CeedAtomicScalar * restrict d_v) {
 
   const CeedInt item_id_x = get_local_id(0);
   const CeedInt elem = get_global_id(2);
@@ -76,7 +81,8 @@ inline void writeDofsOffset1d(const CeedInt num_comp, const CeedInt strides_comp
   if (item_id_x < P_1D && elem < num_elem) {
     const CeedInt node = item_id_x;
     const CeedInt ind  = indices[node + elem * P_1D];
-    for (CeedInt comp = 0; comp < num_comp; ++comp) atomicAdd(&d_v[ind + strides_comp * comp], r_v[comp]);
+    for (CeedInt comp = 0; comp < num_comp; ++comp) 
+      atomic_fetch_add_explicit(&d_v[ind + strides_comp * comp], r_v[comp], memory_order_relaxed, memory_scope_device);
   }
 }
 
@@ -140,7 +146,7 @@ inline void readDofsStrided2d(const CeedInt num_comp, const CeedInt P_1D, const 
 //------------------------------------------------------------------------------
 // E-vector -> L-vector, offsets provided
 //------------------------------------------------------------------------------
-inline void writeDofsOffset2d(const CeedInt num_comp, const CeedInt strides_comp, const CeedInt P_1D, const CeedInt num_elem, const global CeedInt * restrict indices, const private CeedScalar * restrict r_v, global CeedScalar * restrict d_v) {
+inline void writeDofsOffset2d(const CeedInt num_comp, const CeedInt strides_comp, const CeedInt P_1D, const CeedInt num_elem, const global CeedInt * restrict indices, const private CeedScalar * restrict r_v, global CeedAtomicScalar * restrict d_v) {
   
   const CeedInt item_id_x = get_local_id(0);
   const CeedInt item_id_y = get_local_id(1);
@@ -149,7 +155,8 @@ inline void writeDofsOffset2d(const CeedInt num_comp, const CeedInt strides_comp
   if (item_id_x < P_1D && item_id_y < P_1D && elem < num_elem) {
     const CeedInt node = item_id_x + item_id_y * P_1D;
     const CeedInt ind  = indices[node + elem * P_1D * P_1D];
-    for (CeedInt comp = 0; comp < num_comp; ++comp) atomicAdd(&d_v[ind + strides_comp * comp], r_v[comp]);
+    for (CeedInt comp = 0; comp < num_comp; ++comp) 
+      atomic_fetch_add_explicit(&d_v[ind + strides_comp * comp], r_v[comp], memory_order_relaxed, memory_scope_device);
   }
 }
 
@@ -244,7 +251,7 @@ inline void readSliceQuadsStrided3d(const CeedInt num_comp, const CeedInt Q_1D, 
 //------------------------------------------------------------------------------
 // E-vector -> L-vector, offsets provided
 //------------------------------------------------------------------------------
-inline void writeDofsOffset3d(const CeedInt num_comp, const CeedInt strides_comp, const CeedInt P_1D, const CeedInt num_elem, const global CeedInt * restrict indices, const private CeedScalar * restrict r_v, global CeedScalar * restrict d_v) {
+inline void writeDofsOffset3d(const CeedInt num_comp, const CeedInt strides_comp, const CeedInt P_1D, const CeedInt num_elem, const global CeedInt * restrict indices, const private CeedScalar * restrict r_v, global CeedAtomicScalar * restrict d_v) {
   
   const CeedInt item_id_x = get_local_id(0);
   const CeedInt item_id_y = get_local_id(1);
@@ -254,7 +261,8 @@ inline void writeDofsOffset3d(const CeedInt num_comp, const CeedInt strides_comp
     for (CeedInt z = 0; z < P_1D; ++z) {
       const CeedInt node = item_id_x + item_id_y * P_1D + z * P_1D * P_1D;
       const CeedInt ind  = indices[node + elem * P_1D * P_1D * P_1D];
-      for (CeedInt comp = 0; comp < num_comp; ++comp) atomicAdd(&d_v[ind + strides_comp * comp], r_v[z + comp * P_1D]);
+      for (CeedInt comp = 0; comp < num_comp; ++comp) 
+        atomic_fetch_add_explicit(&d_v[ind + strides_comp * comp], r_v[z + comp * P_1D], memory_order_relaxed, memory_scope_device);
     }
   }
 }
@@ -315,7 +323,7 @@ inline void gradCollo3d(const CeedInt num_comp, const CeedInt Q_1D, const CeedIn
 //------------------------------------------------------------------------------
 // 3D collocated derivatives transpose
 //------------------------------------------------------------------------------
-inline void gradColloTranspose3d(const CeedInt num_comp, const CeedInt Q_1D, const CeedInt q, const private CeedScalar * restrict r_U, const local CeedScalar * restrict s_G, private CeedScalar * restrict r_V) {
+inline void gradColloTranspose3d(const CeedInt num_comp, const CeedInt Q_1D, const CeedInt q, const private CeedScalar * restrict r_U, const local CeedScalar * restrict s_G, private CeedScalar * restrict r_V, local CeedScalar * restrict scratch) {
   
   const CeedInt item_id_x = get_local_id(0);
   const CeedInt item_id_y = get_local_id(1);

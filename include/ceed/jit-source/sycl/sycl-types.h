@@ -14,14 +14,28 @@
 
 #define CEED_SYCL_NUMBER_FIELDS 16
 
+#ifdef __OPENCL_C_VERSION__
 typedef struct {
-  const CeedScalar* inputs[CEED_SYCL_NUMBER_FIELDS];
-  CeedScalar*       outputs[CEED_SYCL_NUMBER_FIELDS];
+  global const CeedScalar* inputs[CEED_SYCL_NUMBER_FIELDS];
+  global CeedScalar* outputs[CEED_SYCL_NUMBER_FIELDS];
 } Fields_Sycl;
 
 typedef struct {
-  CeedInt* inputs[CEED_SYCL_NUMBER_FIELDS];
+  global const CeedInt* inputs[CEED_SYCL_NUMBER_FIELDS];
+  global CeedInt* outputs[CEED_SYCL_NUMBER_FIELDS];
+} FieldsInt_Sycl;
+#else
+typedef struct {
+  const CeedScalar* inputs[CEED_SYCL_NUMBER_FIELDS];
+  CeedScalar* outputs[CEED_SYCL_NUMBER_FIELDS];
+} Fields_Sycl;
+
+typedef struct {
+  const CeedInt* inputs[CEED_SYCL_NUMBER_FIELDS];
   CeedInt* outputs[CEED_SYCL_NUMBER_FIELDS];
 } FieldsInt_Sycl;
+#endif
+
+
 
 #endif

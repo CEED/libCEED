@@ -216,7 +216,7 @@ extern "C" int CeedSyclGenOperatorBuild(CeedOperator op) {
   code << "__attribute__((reqd_work_group_size(GROUP_SIZE_X, GROUP_SIZE_Y, GROUP_SIZE_Z)))\n";
   code << "kernel void " << operator_name << "(";
   code << "const CeedInt num_elem, ";
-  code << "void* ctx, ";
+  code << "global void* ctx, ";
   code << "global const FieldsInt_Sycl* indices, ";
   code << "global Fields_Sycl* fields, ";
   code << "global const Fields_Sycl* B, ";
@@ -236,8 +236,8 @@ extern "C" int CeedSyclGenOperatorBuild(CeedOperator op) {
   }
   
   // TODO: Convert these to defined constants to save on GRF
-  code << "  const CeedInt DIM = " << dim << "\n";
-  code << "  const CeedInt Q_1D = " << Q_1d << "\n";
+  code << "  const CeedInt DIM = " << dim << ";\n";
+  code << "  const CeedInt Q_1D = " << Q_1d << ";\n";
 
   const CeedInt scratch_size = block_sizes[0] * block_sizes[1] * block_sizes[2];
   code << "  local CeedScalar scratch[" << scratch_size << "];\n";
@@ -258,11 +258,11 @@ extern "C" int CeedSyclGenOperatorBuild(CeedOperator op) {
       CeedCallBackend(CeedOperatorFieldGetBasis(op_input_fields[i], &basis));
       if (basis != CEED_BASIS_COLLOCATED) {
         CeedCallBackend(CeedBasisGetNumNodes1D(basis, &P_1d));
-        code << "  const CeedInt P_in_" << i << " = " << P_1d << "\n";
+        code << "  const CeedInt P_in_" << i << " = " << P_1d << ";\n";
       } else {
-        code << "  const CeedInt P_in_" << i << " = " << Q_1d << "\n";
+        code << "  const CeedInt P_in_" << i << " = " << Q_1d << ";\n";
       }
-      code << "  const CeedInt num_comp_in_" << i << " = " << num_comp << "\n";
+      code << "  const CeedInt num_comp_in_" << i << " = " << num_comp << ";\n";
     }
 
     // Load basis data
@@ -280,7 +280,7 @@ extern "C" int CeedSyclGenOperatorBuild(CeedOperator op) {
         CeedCallBackend(CeedBasisGetData(basis, &basis_impl));
         impl->B.inputs[i] = basis_impl->d_interp_1d;
         code << "  local CeedScalar s_B_in_" << i << "[" << P_1d * Q_1d << "];\n";
-        code << "  loadMatrix(P_in_" << i << "*Q_1D, B->inputs[i]" << i << ", s_B_in_" << i << ");\n";
+        code << "  loadMatrix(P_in_" << i << "*Q_1D, B->inputs[" << i << "], s_B_in_" << i << ");\n";
         if (use_collograd_parallelization) {
           impl->G.inputs[i] = basis_impl->d_collo_grad_1d;
           code << "  local CeedScalar s_G_in_" << i << "[" << Q_1d * Q_1d << "];\n";
@@ -420,20 +420,20 @@ extern "C" int CeedSyclGenOperatorBuild(CeedOperator op) {
       case CEED_EVAL_INTERP:
         code << "    CeedScalar r_t_" << i << "[num_comp_in_" << i << "*Q_1D];\n";
         code << "    Interp" << (dim > 1 ? "Tensor" : "") << dim << "d(num_comp_in_" << i << ", P_in_" << i << ", Q_1D, r_u_" << i << ", s_B_in_"
-             << i << ", r_t_" << i << ");\n";
+             << i << ", r_t_" << i << ", elem_scratch);\n";
         break;
       case CEED_EVAL_GRAD:
         if (use_collograd_parallelization) {
           code << "    CeedScalar r_t_" << i << "[num_comp_in_" << i << "*Q_1D];\n";
           code << "    Interp" << (dim > 1 ? "Tensor" : "") << dim << "d(num_comp_in_" << i << ", P_in_" << i << ", Q_1D, r_u_" << i
-               << ", s_B_in_" << i << ", r_t_" << i << ");\n";
+               << ", s_B_in_" << i << ", r_t_" << i << ", elem_scratch);\n";
         } else {
           CeedInt P_1d;
           CeedCallBackend(CeedOperatorFieldGetBasis(op_input_fields[i], &basis));
           CeedCallBackend(CeedBasisGetNumNodes1D(basis, &P_1d));
           code << "    CeedScalar r_t_" << i << "[num_comp_in_" << i << "*DIM*Q_1D];\n";
           code << "    Grad" << (dim > 1 ? "Tensor" : "") << (dim == 3 && Q_1d >= P_1d ? "Collocated" : "") << dim << "d(num_comp_in_" << i
-               << ", P_in_" << i << ", Q_1D, r_u_" << i << ", s_B_in_" << i << ", s_G_in_" << i << ", r_t_" << i << ");\n";
+               << ", P_in_" << i << ", Q_1D, r_u_" << i << ", s_B_in_" << i << ", s_G_in_" << i << ", r_t_" << i << ", elem_scratch);\n";
         }
         break;
       case CEED_EVAL_WEIGHT:
@@ -577,12 +577,12 @@ extern "C" int CeedSyclGenOperatorBuild(CeedOperator op) {
   }
   //--------------------------------------------------
   code << "\n      // -- QFunction Inputs and outputs --\n";
-  code << "      CeedScalar* in[" << num_input_fields << "];\n";
+  code << "      const CeedScalar * const in[" << num_input_fields << "];\n";
   for (CeedInt i = 0; i < num_input_fields; i++) {
     code << "      // ---- Input field " << i << " ----\n";
     code << "      in[" << i << "] = r_q_" << i << ";\n";
   }
-  code << "      CeedScalar* out[" << num_output_fields << "];\n";
+  code << "      CeedScalar * const out[" << num_output_fields << "];\n";
   for (CeedInt i = 0; i < num_output_fields; i++) {
     code << "      // ---- Output field " << i << " ----\n";
     code << "      out[" << i << "] = r_qq_" << i << ";\n";
@@ -649,19 +649,19 @@ extern "C" int CeedSyclGenOperatorBuild(CeedOperator op) {
       case CEED_EVAL_INTERP:
         code << "    CeedScalar r_v_" << i << "[num_comp_out_" << i << "*P_out_" << i << "];\n";
         code << "    InterpTranspose" << (dim > 1 ? "Tensor" : "") << dim << "d(num_comp_out_" << i << ",P_out_" << i << ", Q_1D, r_tt_" << i
-             << ", s_B_out_" << i << ", r_v_" << i << ");\n";
+             << ", s_B_out_" << i << ", r_v_" << i << ", elem_scratch);\n";
         break;
       case CEED_EVAL_GRAD:
         code << "    CeedScalar r_v_" << i << "[num_comp_out_" << i << "*P_out_" << i << "];\n";
         if (use_collograd_parallelization) {
           code << "    InterpTranspose" << (dim > 1 ? "Tensor" : "") << dim << "d(num_comp_out_" << i << ",P_out_" << i << ", Q_1D, r_tt_" << i
-               << ", s_B_out_" << i << ", r_v_" << i << ");\n";
+               << ", s_B_out_" << i << ", r_v_" << i << ", elem_scratch);\n";
         } else {
           CeedInt P_1d;
           CeedCallBackend(CeedOperatorFieldGetBasis(op_output_fields[i], &basis));
           CeedCallBackend(CeedBasisGetNumNodes1D(basis, &P_1d));
           code << "    GradTranspose" << (dim > 1 ? "Tensor" : "") << (dim == 3 && Q_1d >= P_1d ? "Collocated" : "") << dim << "d(num_comp_out_" << i
-               << ",P_out_" << i << ", Q_1D, r_tt_" << i << ", s_B_out_" << i << ", s_G_out_" << i << ", r_v_" << i << ");\n";
+               << ",P_out_" << i << ", Q_1D, r_tt_" << i << ", s_B_out_" << i << ", s_G_out_" << i << ", r_v_" << i << ", elem_scratch);\n";
         }
         break;
       // LCOV_EXCL_START
