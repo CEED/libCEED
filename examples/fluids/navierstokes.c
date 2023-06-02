@@ -45,6 +45,8 @@
 const char help[] = "Solve Navier-Stokes using PETSc and libCEED\n";
 
 #include "navierstokes.h"
+#include <ceed/sycl.h>
+#include <petscdevice.h>
 
 #include <ceed.h>
 #include <petscdmplex.h>
@@ -108,6 +110,18 @@ int main(int argc, char **argv) {
   CeedMemType mem_type_backend;
   CeedGetPreferredMemType(ceed, &mem_type_backend);
 
+  {
+    const char *resource;
+    CeedGetResource(ceed, &resource);
+    if (strstr(resource, "/gpu/sycl")) {
+      PetscDeviceContext dctx;
+      PetscCall(PetscDeviceContextGetCurrentContext(&dctx));
+      void* stream_handle;
+      PetscCall(PetscDeviceContextGetStreamHandle(dctx,&stream_handle));
+      CeedSetStream_Sycl(ceed, stream_handle);
+    }
+  }
+
   // ---------------------------------------------------------------------------
   // Set up global mesh
   // ---------------------------------------------------------------------------
@@ -124,6 +138,7 @@ int main(int argc, char **argv) {
       CeedGetResource(ceed, &resolved);
       if (strstr(resolved, "/gpu/cuda")) vec_type = VECCUDA;
       else if (strstr(resolved, "/gpu/hip")) vec_type = VECKOKKOS;
+      else if (strstr(resolved, "/gpu/sycl")) vec_type = VECKOKKOS;
       else vec_type = VECSTANDARD;
     }
   }
