@@ -147,6 +147,15 @@ struct CeedData_private {
       qf_apply_outflow_jacobian, qf_apply_freestream, qf_apply_freestream_jacobian;
 };
 
+// Distance functions
+struct Distance_private {
+  DM            dm;
+  SNES          snesDist;
+  CeedVector    q_data;
+  CeedOperator  op_distance_function;
+  CeedQFunction qf_distance_function;
+};
+
 typedef struct {
   DM                    dm;
   PetscSF               sf;  // For communicating child data to parents
