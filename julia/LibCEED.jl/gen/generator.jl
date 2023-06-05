@@ -3,7 +3,7 @@ using Clang.Generators
 function generate_ceed_bindings(ceed_path)
     # libCEED include dir and header files
     include_dir = joinpath(ceed_path, "include") |> normpath
-    header_files = ["ceed/ceed.h", "ceed/cuda.h", "ceed/backend.h"]
+    header_files = ["ceed.h", "ceed/cuda.h", "ceed/backend.h"]
     headers = [joinpath(include_dir, header) for header in header_files]
 
     # load options from generator TOML file

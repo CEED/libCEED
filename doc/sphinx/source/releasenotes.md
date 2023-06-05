@@ -6,6 +6,23 @@ On this page we provide a summary of the main API changes, new features and exam
 
 ## Current `main` branch
 
+### Interface changes
+
+- Update `CeedOperatorContext*` functions to `CeedOperator*Context*` functions for consistency.
+For example, `CeedOperatorContextGetFieldLabel` was renamed to `CeedOperatorGetContextFieldLabel`.
+
+### New features
+
+- Added {c:func}`CeedOperatorGetFieldByName` to access a specific `CeedOperatorField` by its name
+- Update `/cpu/self/memcheck/*` backends to help verify `CeedVector` array access assumptions and `CeedQFunction` user output assumptions.
+- Update {c:func}`CeedOperatorLinearAssembleDiagonal` to provide default implementation that supports `CeedOperator` with multiple active bases.
+
+### Examples
+
+#### {ref}`example-petsc-bps`
+
+- Requires PETSc version 3.19 or later
+
 (v0-11)=
 
 ## v0.11 (Dec 24, 2022)
@@ -20,7 +37,7 @@ On this page we provide a summary of the main API changes, new features and exam
 
 - Update `/cpu/self/memcheck/*` backends to help verify `CeedQFunctionContext` data sizes provided by user.
 - Improved support for $H(\text{div})$ bases.
-- Added `CeedInt_FMT` to support potential future use of larger interger sizes.
+- Added `CeedInt_FMT` to support potential future use of larger integer sizes.
 - Added `CEED_QFUNCTION_ATTR` for setting compiler attributes/pragmas to `CEED_QFUNCTION_HELPER` and `CEED_QFUNCTION`.
 - OCCA backend updated to latest OCCA release; DPC++ and OMP OCCA modes enabled.
 Due to a limitation of the OCCA parser, typedefs are required to use pointers to arrays in QFunctions with the OCCA backend.

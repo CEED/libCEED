@@ -31,6 +31,7 @@ noether-cpu:
     - BACKENDS_CPU=$(make info-backends-all | grep -o '/cpu[^ ]*')
     - echo "-------------- libCEED -------------" && make info
     - echo "-------------- BACKENDS_CPU --------" && echo $BACKENDS_CPU
+    - OCCA_DIR= PEDANTIC=1 make -j$NPROC_CPU
     - make -j$NPROC_CPU
 # -- libCEED only tests
     - echo "-------------- core tests ----------"
@@ -40,7 +41,7 @@ noether-cpu:
     - make -k -j$NPROC_CPU BACKENDS="$BACKENDS_CPU" JUNIT_BATCH="cpu" junit realsearch=%
 # Libraries for examples
 # -- PETSc with HIP (minimal)
-    - export PETSC_DIR=/projects/petsc PETSC_ARCH=mpich-hip && git -C $PETSC_DIR describe
+    - export PETSC_DIR=/projects/petsc PETSC_ARCH=mpich-hip && git -C $PETSC_DIR -c safe.directory=$PETSC_DIR describe
     - echo "-------------- PETSc ---------------" && make -C $PETSC_DIR info
     - make -k -j$NPROC_CPU BACKENDS="$BACKENDS_CPU" JUNIT_BATCH="cpu" junit search="petsc fluids solids"
 # -- MFEM v4.2
@@ -54,7 +55,8 @@ noether-cpu:
     - make -k -j$NPROC_CPU BACKENDS="$BACKENDS_CPU" JUNIT_BATCH="cpu" junit search=nek NEK5K_DIR=$NEK5K_DIR
 # Clang-tidy
     - echo "-------------- clang-tidy ----------" && clang-tidy --version
-    - TIDY_OPTS="-fix-errors" make -j$NPROC_CPU tidy && git diff --color=always --exit-code
+    - export OCCA_DIR= && make lib -j$NPROC_CPU
+    - make -j$NPROC_CPU tidy
 # Report status
     - touch .SUCCESS
   after_script:
@@ -91,11 +93,11 @@ noether-rocm:
 # Libraries for backends
 # -- MAGMA from dev branch
     - echo "-------------- MAGMA ---------------"
-    - export MAGMA_DIR=/projects/hipMAGMA && git -C $MAGMA_DIR describe
+    - export MAGMA_DIR=/projects/hipMAGMA && git -C $MAGMA_DIR -c safe.directory=$MAGMA_DIR describe
   script:
     - rm -f .SUCCESS
 # libCEED
-    - make configure HIP_DIR=/opt/rocm-5.4.1 OPT='-O -march=native -ffp-contract=fast'
+    - make configure ROCM_DIR=/opt/rocm-5.5.0 OPT='-O -march=native -ffp-contract=fast'
     - BACKENDS_CPU=$(make info-backends-all | grep -o '/cpu[^ ]*') && BACKENDS_GPU=$(make info-backends | grep -o '/gpu[^ ]*')
     - echo "-------------- libCEED -------------" && make info
     - echo "-------------- BACKENDS_GPU --------" && echo $BACKENDS_GPU
@@ -108,7 +110,7 @@ noether-rocm:
     - make -k -j$NPROC_GPU BACKENDS="$BACKENDS_GPU" JUNIT_BATCH="hip" junit realsearch=%
 # Libraries for examples
 # -- PETSc with HIP (minimal)
-    - export PETSC_DIR=/projects/petsc PETSC_ARCH=mpich-hip && git -C $PETSC_DIR describe
+    - export PETSC_DIR=/projects/petsc PETSC_ARCH=mpich-hip && git -C $PETSC_DIR -c safe.directory=$PETSC_DIR describe
     - echo "-------------- PETSc ---------------" && make -C $PETSC_DIR info
     - make -k -j$NPROC_GPU BACKENDS="$BACKENDS_GPU" JUNIT_BATCH="hip" junit search="petsc fluids solids"
 # -- MFEM v4.2
@@ -146,7 +148,7 @@ noether-float:
   stage: test:gpu-and-float
   tags:
     - cpu
-    - rocm 
+    - rocm
   interruptible: true
   before_script:
 # Environment
@@ -159,7 +161,7 @@ noether-float:
 # Libraries for backends
 # -- MAGMA from dev branch
     - echo "-------------- MAGMA ---------------"
-    - export MAGMA_DIR=/projects/hipMAGMA && git -C $MAGMA_DIR describe
+    - export MAGMA_DIR=/projects/hipMAGMA && git -C $MAGMA_DIR -c safe.directory=$MAGMA_DIR describe
 # -- LIBXSMM 44433be9426eddaed88415646c15b3bcc61afc85
     - cd .. && export XSMM_HASH=44433be9426eddaed88415646c15b3bcc61afc85 && { [[ -d libxsmm-$XSMM_HASH ]] || { curl -L https://github.com/libxsmm/libxsmm/archive/$XSMM_HASH.tar.gz -o xsmm.tar.gz && tar zvxf xsmm.tar.gz && rm xsmm.tar.gz && make -C libxsmm-$XSMM_HASH -j$(nproc); }; } && export XSMM_DIR=$PWD/libxsmm-$XSMM_HASH && cd libCEED
     - echo "-------------- LIBXSMM -------------" && basename $XSMM_DIR
@@ -167,9 +169,9 @@ noether-float:
     - rm -f .SUCCESS
 # libCEED
 # Change to single precision
-    - sed -i 's/ceed-f64/ceed-f32/1' include/ceed/types.h 
+    - sed -i 's/ceed-f64/ceed-f32/1' include/ceed/types.h
 # Build libCEED
-    - make configure HIP_DIR=/opt/rocm-5.4.1 OPT='-O -march=native -ffp-contract=fast'
+    - make configure ROCM_DIR=/opt/rocm-5.5.0 OPT='-O -march=native -ffp-contract=fast'
     - BACKENDS_CPU=$(make info-backends-all | grep -o '/cpu[^ ]*') && BACKENDS_GPU=$(make info-backends | grep -o '/gpu[^ ]*')
     - echo "-------------- libCEED -------------" && make info
     - echo "-------------- BACKENDS_CPU --------" && echo $BACKENDS_CPU
@@ -194,7 +196,7 @@ noether-float:
         bash <(curl -s https://codecov.io/bash) -f coverage.info -t ${CODECOV_ACCESS_TOKEN} -F tests;
         bash <(curl -s https://codecov.io/bash) -f coverage.info -t ${CODECOV_ACCESS_TOKEN} -F examples;
       fi
-    - sed -i 's/ceed-f32/ceed-f64/1' include/ceed/types.h 
+    - sed -i 's/ceed-f32/ceed-f64/1' include/ceed/types.h
   artifacts:
     paths:
       - build/*.junit
@@ -223,17 +225,17 @@ noether-cuda:
     - echo "-------------- libCEED -------------" && make info
     - BACKENDS_GPU=$(make info-backends | grep -o '/gpu[^ ]*')
     - echo "-------------- BACKENDS_GPU --------" && echo $BACKENDS_GPU
-    - nice make -k -j$NPROC_CPU -l$NPROC_CPU
+    - PEDANTIC=1 make -k -j$NPROC_CPU -l$NPROC_CPU
 # -- libCEED only tests
     - echo "-------------- core tests ----------"
 #    Note: PETSC_DIR is set by default in GitLab runner env, unsetting to isolate core tests
     - export PETSC_DIR= PETSC_ARCH=
-    - nice make -k -j$NPROC_GPU BACKENDS="$BACKENDS_GPU" JUNIT_BATCH="cuda" junit realsearch=%
+    - make -k -j$NPROC_GPU BACKENDS="$BACKENDS_GPU" JUNIT_BATCH="cuda" junit realsearch=%
 # Libraries for examples
 # -- PETSc with CUDA (minimal)
-    - export PETSC_DIR=/projects/petsc PETSC_ARCH=mpich-cuda-O PETSC_OPTIONS='-use_gpu_aware_mpi 0' && git -C $PETSC_DIR describe
+    - export PETSC_DIR=/projects/petsc PETSC_ARCH=mpich-cuda-O PETSC_OPTIONS='-use_gpu_aware_mpi 0' && git -C $PETSC_DIR -c safe.directory=$PETSC_DIR describe
     - echo "-------------- PETSc ---------------" && make -C $PETSC_DIR info
-    - nice make -k -j$NPROC_GPU JUNIT_BATCH="cuda" junit BACKENDS="$BACKENDS_GPU" search="petsc fluids solids"
+    - make -k -j$NPROC_GPU JUNIT_BATCH="cuda" junit BACKENDS="$BACKENDS_GPU" search="petsc fluids solids"
 # Report status
     - touch .SUCCESS
   after_script:

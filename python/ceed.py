@@ -13,7 +13,7 @@ import numpy as np
 import tempfile
 from abc import ABC
 from .ceed_vector import Vector
-from .ceed_basis import BasisTensorH1, BasisTensorH1Lagrange, BasisH1
+from .ceed_basis import BasisTensorH1, BasisTensorH1Lagrange, BasisH1, BasisHdiv, BasisHcurl
 from .ceed_elemrestriction import ElemRestriction, StridedElemRestriction, BlockedElemRestriction, BlockedStridedElemRestriction
 from .ceed_qfunction import QFunction, QFunctionByName, IdentityQFunction
 from .ceed_qfunctioncontext import QFunctionContext
@@ -176,111 +176,6 @@ class Ceed():
         self._check_error(err_code)
 
         return qref1d, qweight1d
-
-    # QR factorization
-    def qr_factorization(self, mat, tau, m, n):
-        """Return QR Factorization of a matrix.
-
-           Args:
-             ceed: Ceed context currently in use
-             *mat: Numpy array holding the row-major matrix to be factorized in place
-             *tau: Numpy array to hold the vector of lengt m of scaling factors
-             m: number of rows
-             n: numbef of columns"""
-
-        # Setup arguments
-        mat_pointer = ffi.new("CeedScalar *")
-        mat_pointer = ffi.cast(
-            "CeedScalar *",
-            mat.__array_interface__['data'][0])
-
-        tau_pointer = ffi.new("CeedScalar *")
-        tau_pointer = ffi.cast(
-            "CeedScalar *",
-            tau.__array_interface__['data'][0])
-
-        # libCEED call
-        err_code = lib.CeedQRFactorization(
-            self._pointer[0], mat_pointer, tau_pointer, m, n)
-        self._check_error(err_code)
-
-        return mat, tau
-
-    # Symmetric Schur decomposition
-    def symmetric_schur_decomposition(self, mat, n):
-        """Return symmetric Schur decomposition of a symmetric matrix
-             via symmetric QR factorization.
-
-           Args:
-             ceed: Ceed context currently in use
-             *mat: Numpy array holding the row-major matrix to be factorized in place
-             n: number of rows/columns
-
-           Returns:
-             lbda: Numpy array of length n holding eigenvalues"""
-
-        # Setup arguments
-        mat_pointer = ffi.new("CeedScalar *")
-        mat_pointer = ffi.cast(
-            "CeedScalar *",
-            mat.__array_interface__['data'][0])
-
-        lbda = np.empty(n, dtype=scalar_types[lib.CEED_SCALAR_TYPE])
-        l_pointer = ffi.new("CeedScalar *")
-        l_pointer = ffi.cast(
-            "CeedScalar *",
-            lbda.__array_interface__['data'][0])
-
-        # libCEED call
-        err_code = lib.CeedSymmetricSchurDecomposition(
-            self._pointer[0], mat_pointer, l_pointer, n)
-        self._check_error(err_code)
-
-        return lbda
-
-    # Simultaneous Diagonalization
-    def simultaneous_diagonalization(self, matA, matB, n):
-        """Return Simultaneous Diagonalization of two matrices.
-
-           Args:
-             ceed: Ceed context currently in use
-             *matA: Numpy array holding the row-major matrix to be factorized with
-                      eigenvalues
-             *matB: Numpy array holding the row-major matrix to be factorized to identity
-             n: number of rows/columns
-
-           Returns:
-             (x, lbda): Numpy array holding the row-major orthogonal matrix and
-                          Numpy array holding the vector of length n of generalized
-                          eigenvalues"""
-
-        # Setup arguments
-        matA_pointer = ffi.new("CeedScalar *")
-        matA_pointer = ffi.cast(
-            "CeedScalar *",
-            matA.__array_interface__['data'][0])
-
-        matB_pointer = ffi.new("CeedScalar *")
-        matB_pointer = ffi.cast(
-            "CeedScalar *",
-            matB.__array_interface__['data'][0])
-
-        lbda = np.empty(n, dtype=scalar_types[lib.CEED_SCALAR_TYPE])
-        l_pointer = ffi.new("CeedScalar *")
-        l_pointer = ffi.cast(
-            "CeedScalar *",
-            lbda.__array_interface__['data'][0])
-
-        x = np.empty(n * n, dtype=scalar_types[lib.CEED_SCALAR_TYPE])
-        x_pointer = ffi.new("CeedScalar *")
-        x_pointer = ffi.cast("CeedScalar *", x.__array_interface__['data'][0])
-
-        # libCEED call
-        err_code = lib.CeedSimultaneousDiagonalization(self._pointer[0], matA_pointer, matB_pointer,
-                                                       x_pointer, l_pointer, n)
-        self._check_error(err_code)
-
-        return x, lbda
 
     # --- libCEED objects ---
 
@@ -461,7 +356,7 @@ class Ceed():
              *interp: Numpy array holding the row-major (nqpts * nnodes) matrix
                        expressing the values of nodal basis functions at
                        quadrature points
-             *grad: Numpy array holding the row-major (nqpts * dim * nnodes)
+             *grad: Numpy array holding the row-major (dim * nqpts * nnodes)
                      matrix expressing the derivatives of nodal basis functions
                      at quadrature points
              *qref: Numpy array of length (nqpts * dim) holding the locations of
@@ -474,6 +369,59 @@ class Ceed():
 
         return BasisH1(self, topo, ncomp, nnodes, nqpts,
                        interp, grad, qref, qweight)
+
+    def BasisHdiv(self, topo, ncomp, nnodes, nqpts, interp, div, qref, qweight):
+        """Ceed Hdiv Basis: finite element non tensor-product basis for H(div)
+             discretizations.
+
+           Args:
+             topo: topology of the element, e.g. hypercube, simplex, etc
+             ncomp: number of field components (1 for scalar fields)
+             nnodes: total number of nodes
+             nqpts: total number of quadrature points
+             *interp: Numpy array holding the row-major (dim * nqpts * nnodes)
+                       matrix expressing the values of basis functions at
+                       quadrature points
+             *div: Numpy array holding the row-major (nqpts * nnodes) matrix
+                    expressing the divergence of basis functions at
+                    quadrature points
+             *qref: Numpy array of length (nqpts * dim) holding the locations of
+                     quadrature points on the reference element [-1, 1]
+             *qweight: Numpy array of length nnodes holding the quadrature
+                        weights on the reference element
+
+           Returns:
+             basis: Ceed Basis"""
+
+        return BasisHdiv(self, topo, ncomp, nnodes, nqpts,
+                         interp, div, qref, qweight)
+
+    def BasisHcurl(self, topo, ncomp, nnodes, nqpts,
+                   interp, curl, qref, qweight):
+        """Ceed Hcurl Basis: finite element non tensor-product basis for H(curl)
+             discretizations.
+
+           Args:
+             topo: topology of the element, e.g. hypercube, simplex, etc
+             ncomp: number of field components (1 for scalar fields)
+             nnodes: total number of nodes
+             nqpts: total number of quadrature points
+             *interp: Numpy array holding the row-major (dim * nqpts * nnodes)
+                       matrix expressing the values of basis functions at
+                       quadrature points
+             *curl: Numpy array holding the row-major (curlcomp * nqpts * nnodes),
+                     curlcomp = 1 if dim < 3 else dim, matrix expressing the curl
+                     of basis functions at quadrature points
+             *qref: Numpy array of length (nqpts * dim) holding the locations of
+                     quadrature points on the reference element [-1, 1]
+             *qweight: Numpy array of length nnodes holding the quadrature
+                        weights on the reference element
+
+           Returns:
+             basis: Ceed Basis"""
+
+        return BasisHcurl(self, topo, ncomp, nnodes, nqpts,
+                          interp, curl, qref, qweight)
 
     # CeedQFunction
     def QFunction(self, vlength, f, source):

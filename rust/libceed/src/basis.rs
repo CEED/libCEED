@@ -238,6 +238,84 @@ impl<'a> Basis<'a> {
         })
     }
 
+    pub fn create_Hdiv(
+        ceed: &crate::Ceed,
+        topo: crate::ElemTopology,
+        ncomp: usize,
+        nnodes: usize,
+        nqpts: usize,
+        interp: &[crate::Scalar],
+        div: &[crate::Scalar],
+        qref: &[crate::Scalar],
+        qweight: &[crate::Scalar],
+    ) -> crate::Result<Self> {
+        let mut ptr = std::ptr::null_mut();
+        let (topo, ncomp, nnodes, nqpts) = (
+            topo as bind_ceed::CeedElemTopology,
+            i32::try_from(ncomp).unwrap(),
+            i32::try_from(nnodes).unwrap(),
+            i32::try_from(nqpts).unwrap(),
+        );
+        let ierr = unsafe {
+            bind_ceed::CeedBasisCreateHdiv(
+                ceed.ptr,
+                topo,
+                ncomp,
+                nnodes,
+                nqpts,
+                interp.as_ptr(),
+                div.as_ptr(),
+                qref.as_ptr(),
+                qweight.as_ptr(),
+                &mut ptr,
+            )
+        };
+        ceed.check_error(ierr)?;
+        Ok(Self {
+            ptr,
+            _lifeline: PhantomData,
+        })
+    }
+
+    pub fn create_Hcurl(
+        ceed: &crate::Ceed,
+        topo: crate::ElemTopology,
+        ncomp: usize,
+        nnodes: usize,
+        nqpts: usize,
+        interp: &[crate::Scalar],
+        curl: &[crate::Scalar],
+        qref: &[crate::Scalar],
+        qweight: &[crate::Scalar],
+    ) -> crate::Result<Self> {
+        let mut ptr = std::ptr::null_mut();
+        let (topo, ncomp, nnodes, nqpts) = (
+            topo as bind_ceed::CeedElemTopology,
+            i32::try_from(ncomp).unwrap(),
+            i32::try_from(nnodes).unwrap(),
+            i32::try_from(nqpts).unwrap(),
+        );
+        let ierr = unsafe {
+            bind_ceed::CeedBasisCreateHcurl(
+                ceed.ptr,
+                topo,
+                ncomp,
+                nnodes,
+                nqpts,
+                interp.as_ptr(),
+                curl.as_ptr(),
+                qref.as_ptr(),
+                qweight.as_ptr(),
+                &mut ptr,
+            )
+        };
+        ceed.check_error(ierr)?;
+        Ok(Self {
+            ptr,
+            _lifeline: PhantomData,
+        })
+    }
+
     // Error handling
     #[doc(hidden)]
     fn check_error(&self, ierr: i32) -> crate::Result<i32> {
@@ -418,7 +496,7 @@ impl<'a> Basis<'a> {
     ///
     /// Both bases must have the same quadrature space. The input bases need not
     /// be nested as function spaces; this interface solves a least squares
-    /// probles to find a representation in the `to` basis that agrees at
+    /// problem to find a representation in the `to` basis that agrees at
     /// quadrature points with the origin basis. Since the bases need not be
     /// Lagrange, the resulting projection "basis" will have empty quadrature
     /// points and weights.

@@ -17,6 +17,8 @@ created using one of:
 - [`create_tensor_h1_lagrange_basis`](@ref)
 - [`create_tensor_h1_basis`](@ref)
 - [`create_h1_basis`](@ref)
+- [`create_hdiv_basis`](@ref)
+- [`create_hcurl_basis`](@ref)
 """
 mutable struct Basis <: AbstractBasis
     ref::RefValue{C.CeedBasis}
@@ -112,7 +114,7 @@ end
 @doc raw"""
     create_h1_basis(c::Ceed, topo::Topology, ncomp, nnodes, nqpts, interp, grad, qref, qweight)
 
-Create a non tensor-product basis for H^1 discretizations
+Create a non tensor-product basis for $H^1$ discretizations
 
 # Arguments:
 - `ceed`:    A [`Ceed`](@ref) object where the [`Basis`](@ref) will be created.
@@ -124,7 +126,7 @@ Create a non tensor-product basis for H^1 discretizations
              at quadrature points.
 - `grad`:    Array of size `(dim, nqpts, nnodes)` expressing derivatives of nodal basis
              functions at quadrature points.
-- `qref`:    Array of length `nqpts` holding the locations of quadrature points on the
+- `qref`:    Matrix of size `(dim, nqpts)` holding the locations of quadrature points on the
              reference element $[-1, 1]$.
 - `qweight`: Array of length `nqpts` holding the quadrature weights on the reference
              element.
@@ -143,12 +145,13 @@ function create_h1_basis(
     dim = getdimension(topo)
     @assert size(interp) == (nqpts, nnodes)
     @assert size(grad) == (dim, nqpts, nnodes)
-    @assert length(qref) == nqpts
+    @assert size(qref) == (dim, nqpts)
     @assert length(qweight) == nqpts
 
     # Convert from Julia matrices and tensors (column-major) to row-major format
     interp_rowmajor = collect(interp')
     grad_rowmajor = permutedims(grad, [3, 2, 1])
+    qref_rowmajor = collect(qref')
 
     ref = Ref{C.CeedBasis}()
     C.CeedBasisCreateH1(
@@ -159,7 +162,124 @@ function create_h1_basis(
         nqpts,
         interp_rowmajor,
         grad_rowmajor,
-        qref,
+        qref_rowmajor,
+        qweight,
+        ref,
+    )
+    Basis(ref)
+end
+
+@doc raw"""
+    create_hdiv_basis(c::Ceed, topo::Topology, ncomp, nnodes, nqpts, interp, div, qref, qweight)
+
+Create a non tensor-product basis for H(div) discretizations
+
+# Arguments:
+- `ceed`:    A [`Ceed`](@ref) object where the [`Basis`](@ref) will be created.
+- `topo`:    [`Topology`](@ref) of element, e.g. hypercube, simplex, etc.
+- `ncomp`:   Number of field components (1 for scalar fields).
+- `nnodes`:  Total number of nodes.
+- `nqpts`:   Total number of quadrature points.
+- `interp`:  Matrix of size `(dim, nqpts, nnodes)` expressing the values of basis functions
+             at quadrature points.
+- `div`:     Array of size `(nqpts, nnodes)` expressing divergence of basis functions at
+             quadrature points.
+- `qref`:    Matrix of size `(dim, nqpts)` holding the locations of quadrature points on the
+             reference element $[-1, 1]$.
+- `qweight`: Array of length `nqpts` holding the quadrature weights on the reference
+             element.
+"""
+function create_hdiv_basis(
+    c::Ceed,
+    topo::Topology,
+    ncomp,
+    nnodes,
+    nqpts,
+    interp::AbstractArray{CeedScalar},
+    div::AbstractArray{CeedScalar},
+    qref::AbstractArray{CeedScalar},
+    qweight::AbstractArray{CeedScalar},
+)
+    dim = getdimension(topo)
+    @assert size(interp) == (dim, nqpts, nnodes)
+    @assert size(div) == (nqpts, nnodes)
+    @assert size(qref) == (dim, nqpts)
+    @assert length(qweight) == nqpts
+
+    # Convert from Julia matrices and tensors (column-major) to row-major format
+    interp_rowmajor = permutedims(interp, [3, 2, 1])
+    div_rowmajor = collect(div')
+    qref_rowmajor = collect(qref')
+
+    ref = Ref{C.CeedBasis}()
+    C.CeedBasisCreateHdiv(
+        c[],
+        topo,
+        ncomp,
+        nnodes,
+        nqpts,
+        interp_rowmajor,
+        div_rowmajor,
+        qref_rowmajor,
+        qweight,
+        ref,
+    )
+    Basis(ref)
+end
+
+@doc raw"""
+    create_hcurl_basis(c::Ceed, topo::Topology, ncomp, nnodes, nqpts, interp, curl, qref, qweight)
+
+Create a non tensor-product basis for H(curl) discretizations
+
+# Arguments:
+- `ceed`:    A [`Ceed`](@ref) object where the [`Basis`](@ref) will be created.
+- `topo`:    [`Topology`](@ref) of element, e.g. hypercube, simplex, etc.
+- `ncomp`:   Number of field components (1 for scalar fields).
+- `nnodes`:  Total number of nodes.
+- `nqpts`:   Total number of quadrature points.
+- `interp`:  Matrix of size `(dim, nqpts, nnodes)` expressing the values of basis functions
+             at quadrature points.
+- `curl`:    Matrix of size `(curlcomp, nqpts, nnodes)`, `curlcomp = 1 if dim < 3 else dim`)
+             matrix expressing curl of basis functions at quadrature points.
+- `qref`:    Matrix of size `(dim, nqpts)` holding the locations of quadrature points on the
+             reference element $[-1, 1]$.
+- `qweight`: Array of length `nqpts` holding the quadrature weights on the reference
+             element.
+"""
+function create_hcurl_basis(
+    c::Ceed,
+    topo::Topology,
+    ncomp,
+    nnodes,
+    nqpts,
+    interp::AbstractArray{CeedScalar},
+    curl::AbstractArray{CeedScalar},
+    qref::AbstractArray{CeedScalar},
+    qweight::AbstractArray{CeedScalar},
+)
+    dim = getdimension(topo)
+    curlcomp = dim < 3 ? 1 : dim
+    @assert size(interp) == (dim, nqpts, nnodes)
+    @assert size(curl) == (curlcomp, nqpts, nnodes)
+    @assert size(qref) == (dim, nqpts)
+    @assert length(qweight) == nqpts
+
+    # Convert from Julia matrices and tensors (column-major) to row-major format
+    interp_rowmajor = permutedims(interp, [3, 2, 1])
+    curl_rowmajor = permutedims(curl, [3, 2, 1])
+    qref_rowmajor = collect(qref')
+
+    ref = Ref{C.CeedBasis}()
+    C.CeedBasisCreateHcurl(
+        c[],
+        topo,
+        ncomp,
+        nnodes,
+        nqpts,
+        interp_rowmajor,
+        curl_rowmajor,
+        qref_rowmajor,
         qweight,
         ref,
     )
@@ -211,10 +331,9 @@ function apply(b::Basis, u::AbstractVector; nelem=1, tmode=NOTRANSPOSE, emode=EV
 
     u_vec = CeedVector(c, u)
 
-    len_v = (tmode == TRANSPOSE) ? getnumnodes(b) : getnumqpts(b)
-    if emode == EVAL_GRAD
-        len_v *= getdimension(b)
-    end
+    qcomp = Ref{CeedInt}()
+    C.CeedBasisGetNumQuadratureComponents(b[], emode, qcomp)
+    len_v = (tmode == TRANSPOSE) ? getnumnodes(b) : qcomp[]*getnumqpts(b)
 
     v_vec = CeedVector(c, len_v)
 
@@ -320,11 +439,8 @@ function getqref(b::Basis)
     ref = Ref{Ptr{CeedScalar}}()
     C.CeedBasisGetQRef(b[], ref)
     copy(
-        unsafe_wrap(
-            Array,
-            ref[],
-            istensor[] ? getnumqpts1d(b) : (getnumqpts(b)*getdimension(b)),
-        ),
+        istensor[] ? unsafe_wrap(Array, ref[], getnumqpts1d(b)) :
+        unsafe_wrap(Array, ref[], (getnumqpts(b), getdimension(b)))',
     )
 end
 
@@ -342,18 +458,25 @@ function getqweights(b::Basis)
     copy(unsafe_wrap(Array, ref[], istensor[] ? getnumqpts1d(b) : getnumqpts(b)))
 end
 
-"""
+@doc raw"""
     getinterp(b::Basis)
 
 Get the interpolation matrix of the given [`Basis`](@ref). Returns a matrix of size
-`(getnumqpts(b), getnumnodes(b))`.
+`(getnumqpts(b), getnumnodes(b))` for a given $H^1$ basis or `(getdimension(b),
+getnumqpts(b), getnumnodes(b))` for a given vector $H(div)$ or $H(curl)$ basis.
 """
 function getinterp(b::Basis)
     ref = Ref{Ptr{CeedScalar}}()
     C.CeedBasisGetInterp(b[], ref)
     q = getnumqpts(b)
     p = getnumnodes(b)
-    collect(unsafe_wrap(Array, ref[], (p, q))')
+    qcomp = Ref{CeedInt}()
+    C.CeedBasisGetNumQuadratureComponents(b[], C.CEED_EVAL_INTERP, qcomp)
+    if qcomp[] == 1
+        collect(unsafe_wrap(Array, ref[], (p, q))')
+    else
+        permutedims(unsafe_wrap(Array, ref[], (p, q, qcomp[])), [3, 2, 1])
+    end
 end
 
 """
@@ -398,4 +521,35 @@ function getgrad1d(b::Basis)
     q = getnumqpts1d(b)
     p = getnumnodes1d(b)
     collect(unsafe_wrap(Array, ref[], (p, q))')
+end
+
+"""
+    getdiv(b::Basis)
+
+Get the divergence matrix of the given [`Basis`](@ref). Returns a tensor of size
+`(getnumqpts(b), getnumnodes(b))`.
+"""
+function getdiv(b::Basis)
+    ref = Ref{Ptr{CeedScalar}}()
+    C.CeedBasisGetDiv(b[], ref)
+    q = getnumqpts(b)
+    p = getnumnodes(b)
+    collect(unsafe_wrap(Array, ref[], (p, q))')
+end
+
+"""
+    getcurl(b::Basis)
+
+Get the curl matrix of the given [`Basis`](@ref). Returns a tensor of size
+`(curlcomp, getnumqpts(b), getnumnodes(b))`, `curlcomp = 1 if getdimension(b) < 3 else
+getdimension(b)`.
+"""
+function getcurl(b::Basis)
+    ref = Ref{Ptr{CeedScalar}}()
+    C.CeedBasisGetCurl(b[], ref)
+    q = getnumqpts(b)
+    p = getnumnodes(b)
+    qcomp = Ref{CeedInt}()
+    C.CeedBasisGetNumQuadratureComponents(b[], C.CEED_EVAL_CURL, qcomp)
+    permutedims(unsafe_wrap(Array, ref[], (p, q, qcomp[])), [3, 2, 1])
 end

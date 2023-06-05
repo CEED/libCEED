@@ -60,88 +60,6 @@ def test_300(ceed_resource, capsys):
         assert stdout == ref_stdout
 
 # -------------------------------------------------------------------------------
-# Test QR factorization
-# -------------------------------------------------------------------------------
-
-
-def test_301(ceed_resource):
-    ceed = libceed.Ceed(ceed_resource)
-
-    m = 4
-    n = 3
-    a = np.array([1, -1, 4, 1, 4, -2, 1, 4, 2, 1, -1, 0],
-                 dtype=ceed.scalar_type())
-    qr = np.array([1, -1, 4, 1, 4, -2, 1, 4, 2, 1, -1, 0],
-                  dtype=ceed.scalar_type())
-    tau = np.empty(3, dtype=ceed.scalar_type())
-
-    qr, tau = ceed.qr_factorization(qr, tau, m, n)
-    np_qr, np_tau = np.linalg.qr(a.reshape(m, n), mode="raw")
-
-    for i in range(n):
-        assert abs(tau[i] - np_tau[i]) < TOL
-
-    qr = qr.reshape(m, n)
-    for i in range(m):
-        for j in range(n):
-            assert abs(qr[i, j] - np_qr[j, i]) < TOL
-
-# -------------------------------------------------------------------------------
-# Test Symmetric Schur Decomposition
-# -------------------------------------------------------------------------------
-
-
-def test_304(ceed_resource):
-    ceed = libceed.Ceed(ceed_resource)
-
-    A = np.array([0.2, 0.0745355993, -0.0745355993, 0.0333333333,
-                  0.0745355993, 1., 0.1666666667, -0.0745355993,
-                  -0.0745355993, 0.1666666667, 1., 0.0745355993,
-                  0.0333333333, -0.0745355993, 0.0745355993, 0.2],
-                 dtype=ceed.scalar_type())
-
-    Q = A.copy()
-
-    lam = ceed.symmetric_schur_decomposition(Q, 4)
-    Q = Q.reshape(4, 4)
-    lam = np.diag(lam)
-
-    Q_lambda_Qt = np.matmul(np.matmul(Q, lam), Q.T)
-    assert np.max(Q_lambda_Qt - A.reshape(4, 4)) < TOL
-
-# -------------------------------------------------------------------------------
-# Test Simultaneous Diagonalization
-# -------------------------------------------------------------------------------
-
-
-def test_305(ceed_resource):
-    ceed = libceed.Ceed(ceed_resource)
-
-    M = np.array([0.2, 0.0745355993, -0.0745355993, 0.0333333333,
-                  0.0745355993, 1., 0.1666666667, -0.0745355993,
-                  -0.0745355993, 0.1666666667, 1., 0.0745355993,
-                  0.0333333333, -0.0745355993, 0.0745355993, 0.2],
-                 dtype=ceed.scalar_type())
-    K = np.array([3.0333333333, -3.4148928136, 0.4982261470, -0.1166666667,
-                  -3.4148928136, 5.8333333333, -2.9166666667, 0.4982261470,
-                  0.4982261470, -2.9166666667, 5.8333333333, -3.4148928136,
-                  -0.1166666667, 0.4982261470, -3.4148928136, 3.0333333333],
-                 dtype=ceed.scalar_type())
-
-    X, lam = ceed.simultaneous_diagonalization(K, M, 4)
-    X = X.reshape(4, 4)
-    np.diag(lam)
-
-    M = M.reshape(4, 4)
-    K = K.reshape(4, 4)
-
-    Xt_M_X = np.matmul(X.T, np.matmul(M, X))
-    assert np.max(Xt_M_X - np.identity(4)) < TOL
-
-    Xt_K_X = np.matmul(X.T, np.matmul(K, X))
-    assert np.max(Xt_K_X - lam) < TOL
-
-# -------------------------------------------------------------------------------
 # Test GetNumNodes and GetNumQuadraturePoints for basis
 # -------------------------------------------------------------------------------
 
@@ -383,5 +301,88 @@ def test_323(ceed_resource):
 
             value = dfeval(xq[1 * Q + i], xq[0 * Q + i])
             assert math.fabs(out_array[1 * Q + i] - value) < 10. * TOL
+
+# -------------------------------------------------------------------------------
+# Test interpolation with a 2D Quad non-tensor H(div) basis
+# -------------------------------------------------------------------------------
+
+
+def test_330(ceed_resource):
+    ceed = libceed.Ceed(ceed_resource)
+
+    P, Q, dim = 4, 4, 2
+
+    in_array = np.ones(P, dtype=ceed.scalar_type())
+    qref = np.empty(dim * Q, dtype=ceed.scalar_type())
+    qweight = np.empty(Q, dtype=ceed.scalar_type())
+
+    interp, div = bm.buildmatshdiv(qref, qweight, libceed.scalar_types[
+        libceed.lib.CEED_SCALAR_TYPE])
+
+    b = ceed.BasisHdiv(libceed.QUAD, 1, P, Q, interp, div, qref, qweight)
+
+    # Interpolate function to quadrature points
+    in_vec = ceed.Vector(P)
+    in_vec.set_array(in_array, cmode=libceed.USE_POINTER)
+    out_vec = ceed.Vector(Q * dim)
+    out_vec.set_value(0)
+
+    b.apply(1, libceed.EVAL_INTERP, in_vec, out_vec)
+
+    # Check values at quadrature points
+    with out_vec.array_read() as out_array:
+        for i in range(Q):
+            assert math.fabs(out_array[0 * Q + i] + 1.) < 10. * TOL
+            assert math.fabs(out_array[1 * Q + i] - 1.) < 10. * TOL
+
+# -------------------------------------------------------------------------------
+# Test interpolation with a 2D Simplex non-tensor H(curl) basis
+# -------------------------------------------------------------------------------
+
+
+def test_340(ceed_resource):
+    ceed = libceed.Ceed(ceed_resource)
+
+    P, Q, dim = 3, 4, 2
+
+    in_array = np.empty(P, dtype=ceed.scalar_type())
+    qref = np.empty(dim * Q, dtype=ceed.scalar_type())
+    qweight = np.empty(Q, dtype=ceed.scalar_type())
+
+    interp, curl = bm.buildmatshcurl(qref, qweight, libceed.scalar_types[
+        libceed.lib.CEED_SCALAR_TYPE])
+
+    b = ceed.BasisHcurl(libceed.TRIANGLE, 1, P, Q, interp, curl, qref, qweight)
+
+    # Interpolate function to quadrature points
+    in_array[0] = 1.
+    in_array[1] = 2.
+    in_array[2] = 1.
+
+    in_vec = ceed.Vector(P)
+    in_vec.set_array(in_array, cmode=libceed.USE_POINTER)
+    out_vec = ceed.Vector(Q * dim)
+    out_vec.set_value(0)
+
+    b.apply(1, libceed.EVAL_INTERP, in_vec, out_vec)
+
+    # Check values at quadrature points
+    with out_vec.array_read() as out_array:
+        for i in range(Q):
+            assert math.fabs(out_array[0 * Q + i] - 1.) < 10. * TOL
+
+    # Interpolate function to quadrature points
+    in_array[0] = -1.
+    in_array[1] = 1.
+    in_array[2] = 2.
+
+    out_vec.set_value(0)
+
+    b.apply(1, libceed.EVAL_INTERP, in_vec, out_vec)
+
+    # Check values at quadrature points
+    with out_vec.array_read() as out_array:
+        for i in range(Q):
+            assert math.fabs(out_array[1 * Q + i] - 1.) < 10. * TOL
 
 # -------------------------------------------------------------------------------

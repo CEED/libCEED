@@ -174,8 +174,18 @@ else
             @test getgrad1d(b2) == d1d
             @test checkoutput(showstr(b2), "b2.out")
 
-            b3 = create_h1_basis(c, LINE, 1, p, q, b1d, reshape(d1d, 1, q, p), q1d, w1d)
-            @test getqref(b3) == q1d
+            b3 = create_h1_basis(
+                c,
+                LINE,
+                1,
+                p,
+                q,
+                b1d,
+                reshape(d1d, 1, q, p),
+                reshape(q1d, 1, q),
+                w1d,
+            )
+            @test getqref(b3) == reshape(q1d, 1, q)
             @test getqweights(b3) == w1d
             @test checkoutput(showstr(b3), "b3.out")
 

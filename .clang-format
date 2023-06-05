@@ -6,9 +6,25 @@ AlignConsecutiveAssignments:  Consecutive
 AlignConsecutiveDeclarations: Consecutive
 AlignEscapedNewlines:         true
 AlignOperands:                Align
-AlignTrailingComments:        true
 AllowShortIfStatementsOnASingleLine: AllIfsAndElse
 ColumnLimit:                  150
 CommentPragmas:               'TESTARGS'
+IncludeBlocks:                Preserve
+IncludeCategories:
+  - Regex:                    '^<ceed/.*\.h>'
+    Priority:                 2
+  - Regex:                    '^<ceed.*\.h>'
+    Priority:                 1
+  - Regex:                    '^<.*/.*\.h>'
+    Priority:                 5
+  - Regex:                    '^<.*\.h>'
+    Priority:                 4
+  - Regex:                    '^<.*>'
+    Priority:                 3
+  - Regex:                    '^".*"'
+    Priority:                 6
+  - Regex:                    '.*'
+    Priority:                 7
 TabWidth:                     4
 UseTab:                       Never
+StatementMacros:              [CeedPragmaOptimizeOn, CeedPragmaOptimizeOff]

@@ -269,6 +269,18 @@ impl<'a> Vector<'a> {
         Ok(ptr_copy)
     }
 
+    /// Copy the array of self into vec_copy
+    ///
+    /// # arguments
+    ///
+    /// * `vec_source` - vector to copy array values from
+    #[allow(unused_mut)]
+    fn copy_from(mut self, vec_source: &crate::Vector) -> crate::Result<Self> {
+        let ierr = unsafe { bind_ceed::CeedVectorCopy(vec_source.ptr, self.ptr) };
+        self.check_error(ierr)?;
+        Ok(self)
+    }
+
     /// Create a Vector from a slice
     ///
     /// # arguments
@@ -632,6 +644,40 @@ impl<'a> Vector<'a> {
     #[allow(unused_mut)]
     pub fn axpy(mut self, alpha: crate::Scalar, x: &crate::Vector) -> crate::Result<Self> {
         let ierr = unsafe { bind_ceed::CeedVectorAXPY(self.ptr, alpha, x.ptr) };
+        self.check_error(ierr)?;
+        Ok(self)
+    }
+
+    /// Compute y = alpha x + beta y for a pair of Vectors
+    ///
+    /// # arguments
+    ///
+    /// * `alpha` - first scaling factor
+    /// * `beta`  - second scaling factor
+    /// * `x`     - second vector, must be different than self
+    ///
+    /// ```
+    /// # use libceed::prelude::*;
+    /// # fn main() -> libceed::Result<()> {
+    /// # let ceed = libceed::Ceed::default_init();
+    /// let x = ceed.vector_from_slice(&[0., 1., 2., 3., 4.])?;
+    /// let mut y = ceed.vector_from_slice(&[0., 1., 2., 3., 4.])?;
+    ///
+    /// y = y.axpby(-0.5, 1.0, &x)?;
+    /// for (i, y) in y.view()?.iter().enumerate() {
+    ///     assert_eq!(*y, (i as Scalar) * 1.5, "Value not set correctly");
+    /// }
+    /// # Ok(())
+    /// # }
+    /// ```
+    #[allow(unused_mut)]
+    pub fn axpby(
+        mut self,
+        alpha: crate::Scalar,
+        beta: crate::Scalar,
+        x: &crate::Vector,
+    ) -> crate::Result<Self> {
+        let ierr = unsafe { bind_ceed::CeedVectorAXPBY(self.ptr, alpha, beta, x.ptr) };
         self.check_error(ierr)?;
         Ok(self)
     }
