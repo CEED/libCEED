@@ -377,7 +377,7 @@ $$
 
 The boundary integral resulting from integration-by-parts is crossed out, as we assume that $(\bm{D}\bm{\Delta})^2 = \bm{0} \Leftrightarrow \overline \phi = \phi$ at boundaries (this is reasonable at walls, but for convenience elsewhere).
 
-#### Filter width tensor $\bm{\Delta}$
+#### Filter width tensor, Δ
 For homogenous filtering, $\bm{\Delta}$ is defined as the identity matrix.
 
 :::{note}
@@ -441,7 +441,7 @@ $$
 \end{bmatrix}
 $$
 
-#### Filter kernel scaling, $\beta$
+#### Filter kernel scaling, β
 While we define $\bm{D}\bm{\Delta}$ to be of a certain physical filter width, the actual width of the implied filter kernel is quite larger than "normal" kernels.
 To account for this, we use $\beta$ to scale the filter tensor to the appropriate size, as is done in {cite}`bullExplicitFilteringExact2016`.
 To match the "size" of a normal kernel to our differential kernel, we attempt to have them match second order moments with respect to the prescribed filter width.
