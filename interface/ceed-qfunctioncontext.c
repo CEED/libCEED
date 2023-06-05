@@ -487,8 +487,7 @@ int CeedQFunctionContextCreate(Ceed ceed, CeedQFunctionContext *ctx) {
   }
 
   CeedCall(CeedCalloc(1, ctx));
-  (*ctx)->ceed = ceed;
-  CeedCall(CeedReference(ceed));
+  CeedCall(CeedReferenceCopy(ceed, &(*ctx)->ceed));
   (*ctx)->ref_count = 1;
   CeedCall(ceed->QFunctionContextCreate(*ctx));
   return CEED_ERROR_SUCCESS;
