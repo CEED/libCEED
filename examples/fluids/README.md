@@ -704,7 +704,7 @@ For the Density Current, Channel, and Blasius problems, the following common com
   - string
 
 * - `-diff_filter_wall_damping_constant`
-  - Constant for the wall-damping function. $\A^+$ for `van_driest` damping function.
+  - Constant for the wall-damping function. $A^+$ for `van_driest` damping function.
   - 25
   -
 

@@ -199,6 +199,7 @@ latex_elements = {
     #
     "preamble": r"""
 \usepackage{amscd}
+\usepackage{cancel}
 \newcommand\bm[1]{\symbf{#1}}
 """
     + latex_macros,
