@@ -409,6 +409,7 @@ int CeedElemRestrictionCreateStrided(Ceed ceed, CeedInt num_elem, CeedInt elem_s
                                      CeedElemRestriction *rstr) {
   if (!ceed->ElemRestrictionCreate) {
     Ceed delegate;
+
     CeedCall(CeedGetObjectDelegate(ceed, &delegate, "ElemRestriction"));
     CeedCheck(delegate, ceed, CEED_ERROR_UNSUPPORTED, "Backend does not support ElemRestrictionCreateStrided");
     CeedCall(CeedElemRestrictionCreateStrided(delegate, num_elem, elem_size, num_comp, l_size, strides, rstr));
@@ -628,6 +629,41 @@ int CeedElemRestrictionApply(CeedElemRestriction rstr, CeedTransposeMode t_mode,
   CeedCheck(m == ru->length, rstr->ceed, CEED_ERROR_DIMENSION,
             "Output vector size %" CeedInt_FMT " not compatible with element restriction (%" CeedInt_FMT ", %" CeedInt_FMT ")", ru->length, m, n);
   if (rstr->num_elem > 0) CeedCall(rstr->Apply(rstr, t_mode, u, ru, request));
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
+  @brief Restrict an L-vector to an E-vector or apply its transpose ignoring any
+         provided orientations
+
+  @param[in]  rstr    CeedElemRestriction
+  @param[in]  t_mode  Apply restriction or transpose
+  @param[in]  u       Input vector (of size @a l_size when t_mode=@ref CEED_NOTRANSPOSE)
+  @param[out] ru      Output vector (of shape [@a num_elem * @a elem_size] when t_mode=@ref CEED_NOTRANSPOSE).
+                        Ordering of the e-vector is decided by the backend.
+  @param[in]  request Request or @ref CEED_REQUEST_IMMEDIATE
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref User
+**/
+int CeedElemRestrictionApplyUnsigned(CeedElemRestriction rstr, CeedTransposeMode t_mode, CeedVector u, CeedVector ru, CeedRequest *request) {
+  CeedInt m, n;
+
+  CeedCheck(rstr->ApplyUnsigned, rstr->ceed, CEED_ERROR_UNSUPPORTED, "Backend does not support ElemRestrictionApplyUnsigned");
+
+  if (t_mode == CEED_NOTRANSPOSE) {
+    m = rstr->num_blk * rstr->blk_size * rstr->elem_size * rstr->num_comp;
+    n = rstr->l_size;
+  } else {
+    m = rstr->l_size;
+    n = rstr->num_blk * rstr->blk_size * rstr->elem_size * rstr->num_comp;
+  }
+  CeedCheck(n == u->length, rstr->ceed, CEED_ERROR_DIMENSION,
+            "Input vector size %" CeedInt_FMT " not compatible with element restriction (%" CeedInt_FMT ", %" CeedInt_FMT ")", u->length, m, n);
+  CeedCheck(m == ru->length, rstr->ceed, CEED_ERROR_DIMENSION,
+            "Output vector size %" CeedInt_FMT " not compatible with element restriction (%" CeedInt_FMT ", %" CeedInt_FMT ")", ru->length, m, n);
+  if (rstr->num_elem > 0) CeedCall(rstr->ApplyUnsigned(rstr, t_mode, u, ru, request));
   return CEED_ERROR_SUCCESS;
 }
 

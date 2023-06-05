@@ -396,7 +396,7 @@ static inline int CeedSingleOperatorAssembleAddDiagonal_Core(CeedOperator op, Ce
     CeedCall(CeedVectorRestoreArray(elem_diag, &elem_diag_array));
 
     // Assemble local operator diagonal
-    CeedCall(CeedElemRestrictionApply(diag_elem_rstr, CEED_TRANSPOSE, elem_diag, assembled, request));
+    CeedCall(CeedElemRestrictionApplyUnsigned(diag_elem_rstr, CEED_TRANSPOSE, elem_diag, assembled, request));
 
     // Cleanup
     if (is_pointblock) CeedCall(CeedElemRestrictionDestroy(&diag_elem_rstr));
@@ -441,6 +441,9 @@ static inline int CeedCompositeOperatorLinearAssembleAddDiagonal(CeedOperator op
   @brief Build nonzero pattern for non-composite operator
 
   Users should generally use CeedOperatorLinearAssembleSymbolic()
+
+  Note: For operators using oriented element restrictions, entries in rows or cols may be negative indicating the assembled value at this nonzero
+should be negated
 
   @param[in]  op     CeedOperator to assemble nonzero pattern
   @param[in]  offset Offset for number of entries
