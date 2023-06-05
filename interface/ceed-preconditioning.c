@@ -459,19 +459,22 @@ static int CeedSingleOperatorAssembleSymbolic(CeedOperator op, CeedInt offset, C
   bool is_composite;
   CeedCall(CeedOperatorGetCeed(op, &ceed));
   CeedCall(CeedOperatorIsComposite(op, &is_composite));
-
   CeedCheck(!is_composite, ceed, CEED_ERROR_UNSUPPORTED, "Composite operator not supported");
 
   CeedSize num_nodes;
   CeedCall(CeedOperatorGetActiveVectorLengths(op, &num_nodes, NULL));
-  CeedElemRestriction rstr_in;
-  CeedCall(CeedOperatorGetActiveElemRestriction(op, &rstr_in));
+  CeedElemRestriction active_rstr;
+  CeedCall(CeedOperatorGetActiveElemRestriction(op, &active_rstr));
+  CeedRestrictionType rstr_type;
+  CeedCall(CeedElemRestrictionGetType(active_rstr, &rstr_type));
+  CeedCheck(rstr_type != CEED_RESTRICTION_CURL_ORIENTED, ceed, CEED_ERROR_UNSUPPORTED,
+            "Element restrictions created with CeedElemRestrictionCreateCurlOriented are not supported");
   CeedInt num_elem, elem_size, num_comp;
-  CeedCall(CeedElemRestrictionGetNumElements(rstr_in, &num_elem));
-  CeedCall(CeedElemRestrictionGetElementSize(rstr_in, &elem_size));
-  CeedCall(CeedElemRestrictionGetNumComponents(rstr_in, &num_comp));
+  CeedCall(CeedElemRestrictionGetNumElements(active_rstr, &num_elem));
+  CeedCall(CeedElemRestrictionGetElementSize(active_rstr, &elem_size));
+  CeedCall(CeedElemRestrictionGetNumComponents(active_rstr, &num_comp));
   CeedInt layout_er[3];
-  CeedCall(CeedElemRestrictionGetELayout(rstr_in, &layout_er));
+  CeedCall(CeedElemRestrictionGetELayout(active_rstr, &layout_er));
 
   CeedInt local_num_entries = elem_size * num_comp * elem_size * num_comp * num_elem;
 
@@ -485,7 +488,7 @@ static int CeedSingleOperatorAssembleSymbolic(CeedOperator op, CeedInt offset, C
   CeedVector elem_dof;
   CeedCall(CeedVectorCreate(ceed, num_elem * elem_size * num_comp, &elem_dof));
   CeedCall(CeedVectorSetValue(elem_dof, 0.0));
-  CeedCall(CeedElemRestrictionApply(rstr_in, CEED_NOTRANSPOSE, index_vec, elem_dof, CEED_REQUEST_IMMEDIATE));
+  CeedCall(CeedElemRestrictionApply(active_rstr, CEED_NOTRANSPOSE, index_vec, elem_dof, CEED_REQUEST_IMMEDIATE));
   const CeedScalar *elem_dof_a;
   CeedCall(CeedVectorGetArrayRead(elem_dof, CEED_MEM_HOST, &elem_dof_a));
   CeedCall(CeedVectorDestroy(&index_vec));
@@ -591,8 +594,8 @@ static int CeedSingleOperatorAssemble(CeedOperator op, CeedInt offset, CeedVecto
   CeedCheck(num_eval_modes_in[0] > 0 && num_eval_modes_out[0] > 0, ceed, CEED_ERROR_UNSUPPORTED, "Cannot assemble operator with out inputs/outputs");
 
   CeedElemRestriction active_rstr;
-  CeedInt             num_elem, elem_size, num_qpts, num_comp;
   CeedCall(CeedOperatorGetActiveElemRestriction(op, &active_rstr));
+  CeedInt num_elem, elem_size, num_qpts, num_comp;
   CeedCall(CeedElemRestrictionGetNumElements(active_rstr, &num_elem));
   CeedCall(CeedElemRestrictionGetElementSize(active_rstr, &elem_size));
   CeedCall(CeedElemRestrictionGetNumComponents(active_rstr, &num_comp));
@@ -739,10 +742,14 @@ static int CeedSingleOperatorMultigridLevel(CeedOperator op_fine, CeedVector p_m
 
   // Multiplicity vector
   if (op_restrict || op_prolong) {
-    CeedVector mult_e_vec;
+    CeedRestrictionType rstr_type;
+    CeedVector          mult_e_vec;
 
-    CeedCall(CeedElemRestrictionCreateUnsignedCopy(rstr_fine, &rstr_p_mult_fine));
+    CeedCall(CeedElemRestrictionGetType(rstr_fine, &rstr_type));
+    CeedCheck(rstr_type != CEED_RESTRICTION_CURL_ORIENTED, ceed, CEED_ERROR_UNSUPPORTED,
+              "Element restrictions created with CeedElemRestrictionCreateCurlOriented are not supported");
     CeedCheck(p_mult_fine, ceed, CEED_ERROR_INCOMPATIBLE, "Prolongation or restriction operator creation requires fine grid multiplicity vector");
+    CeedCall(CeedElemRestrictionCreateUnsignedCopy(rstr_fine, &rstr_p_mult_fine));
     CeedCall(CeedElemRestrictionCreateVector(rstr_fine, &mult_vec, &mult_e_vec));
     CeedCall(CeedVectorSetValue(mult_e_vec, 0.0));
     CeedCall(CeedElemRestrictionApply(rstr_p_mult_fine, CEED_NOTRANSPOSE, p_mult_fine, mult_e_vec, CEED_REQUEST_IMMEDIATE));
@@ -2016,7 +2023,11 @@ int CeedCompositeOperatorGetMultiplicity(CeedOperator op, CeedInt num_skip_indic
     }
 
     // -- Sub operator multiplicity
+    CeedRestrictionType rstr_type;
     CeedCall(CeedOperatorGetActiveElemRestriction(sub_operators[i], &elem_rstr));
+    CeedCall(CeedElemRestrictionGetType(elem_rstr, &rstr_type));
+    CeedCheck(rstr_type != CEED_RESTRICTION_CURL_ORIENTED, ceed, CEED_ERROR_UNSUPPORTED,
+              "Element restrictions created with CeedElemRestrictionCreateCurlOriented are not supported");
     CeedCall(CeedElemRestrictionCreateVector(elem_rstr, &sub_mult_l_vec, &ones_e_vec));
     CeedCall(CeedVectorSetValue(sub_mult_l_vec, 0.0));
     CeedCall(CeedElemRestrictionApply(elem_rstr, CEED_NOTRANSPOSE, ones_l_vec, ones_e_vec, CEED_REQUEST_IMMEDIATE));
