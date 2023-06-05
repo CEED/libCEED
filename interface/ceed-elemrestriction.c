@@ -579,8 +579,7 @@ int CeedElemRestrictionCreateCurlOriented(Ceed ceed, CeedInt num_elem, CeedInt e
   CeedCheck(num_comp == 1 || comp_stride > 0, ceed, CEED_ERROR_DIMENSION, "ElemRestriction component stride must be at least 1");
 
   CeedCall(CeedCalloc(1, rstr));
-  (*rstr)->ceed = ceed;
-  CeedCall(CeedReference(ceed));
+  CeedCall(CeedReferenceCopy(ceed, &(*rstr)->ceed));
   (*rstr)->ref_count   = 1;
   (*rstr)->num_elem    = num_elem;
   (*rstr)->elem_size   = elem_size;
@@ -756,15 +755,13 @@ int CeedElemRestrictionCreateBlockedOriented(Ceed ceed, CeedInt num_elem, CeedIn
   CeedCheck(num_comp > 0, ceed, CEED_ERROR_DIMENSION, "ElemRestriction must have at least 1 component");
   CeedCheck(num_comp == 1 || comp_stride > 0, ceed, CEED_ERROR_DIMENSION, "ElemRestriction component stride must be at least 1");
 
-  CeedCall(CeedCalloc(1, rstr));
-
   CeedCall(CeedCalloc(num_blk * blk_size * elem_size, &blk_offsets));
   CeedCall(CeedCalloc(num_blk * blk_size * elem_size, &blk_orients));
   CeedCall(CeedPermutePadOffsets(offsets, blk_offsets, num_blk, num_elem, blk_size, elem_size));
   CeedCall(CeedPermutePadOrientations(orients, blk_orients, num_blk, num_elem, blk_size, elem_size));
 
-  (*rstr)->ceed = ceed;
-  CeedCall(CeedReference(ceed));
+  CeedCall(CeedCalloc(1, rstr));
+  CeedCall(CeedReferenceCopy(ceed, &(*rstr)->ceed));
   (*rstr)->ref_count   = 1;
   (*rstr)->num_elem    = num_elem;
   (*rstr)->elem_size   = elem_size;
@@ -832,15 +829,13 @@ int CeedElemRestrictionCreateBlockedCurlOriented(Ceed ceed, CeedInt num_elem, Ce
   CeedCheck(num_comp > 0, ceed, CEED_ERROR_DIMENSION, "ElemRestriction must have at least 1 component");
   CeedCheck(num_comp == 1 || comp_stride > 0, ceed, CEED_ERROR_DIMENSION, "ElemRestriction component stride must be at least 1");
 
-  CeedCall(CeedCalloc(1, rstr));
-
   CeedCall(CeedCalloc(num_blk * blk_size * elem_size, &blk_offsets));
   CeedCall(CeedCalloc(num_blk * blk_size * 3 * elem_size, &blk_curl_orients));
   CeedCall(CeedPermutePadOffsets(offsets, blk_offsets, num_blk, num_elem, blk_size, elem_size));
   CeedCall(CeedPermutePadOffsets(curl_orients, blk_curl_orients, num_blk, num_elem, blk_size, 3 * elem_size));
 
-  (*rstr)->ceed = ceed;
-  CeedCall(CeedReference(ceed));
+  CeedCall(CeedCalloc(1, rstr));
+  CeedCall(CeedReferenceCopy(ceed, &(*rstr)->ceed));
   (*rstr)->ref_count   = 1;
   (*rstr)->num_elem    = num_elem;
   (*rstr)->elem_size   = elem_size;
