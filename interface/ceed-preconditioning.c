@@ -1544,27 +1544,22 @@ int CeedOperatorLinearAssembleQFunctionBuildOrUpdate(CeedOperator op, CeedVector
   if (op->LinearAssembleQFunctionUpdate) {
     // Backend version
     bool                qf_assembled_is_setup;
-    CeedVector          assembled_vec  = NULL;
-    CeedElemRestriction assembled_rstr = NULL;
 
     CeedCall(CeedQFunctionAssemblyDataIsSetup(op->qf_assembled, &qf_assembled_is_setup));
     if (qf_assembled_is_setup) {
       bool update_needed;
 
-      CeedCall(CeedQFunctionAssemblyDataGetObjects(op->qf_assembled, &assembled_vec, &assembled_rstr));
+      CeedCall(CeedVectorDestroy(assembled));
+      CeedCall(CeedElemRestrictionDestroy(rstr));
+
+      CeedCall(CeedQFunctionAssemblyDataGetObjects(op->qf_assembled, assembled, rstr));
       CeedCall(CeedQFunctionAssemblyDataIsUpdateNeeded(op->qf_assembled, &update_needed));
-      if (update_needed) CeedCall(op->LinearAssembleQFunctionUpdate(op, assembled_vec, assembled_rstr, request));
+      if (update_needed) CeedCall(op->LinearAssembleQFunctionUpdate(op, *assembled, *rstr, request));
     } else {
-      CeedCall(op->LinearAssembleQFunction(op, &assembled_vec, &assembled_rstr, request));
-      CeedCall(CeedQFunctionAssemblyDataSetObjects(op->qf_assembled, assembled_vec, assembled_rstr));
+      CeedCall(op->LinearAssembleQFunction(op, assembled, rstr, request));
+      CeedCall(CeedQFunctionAssemblyDataSetObjects(op->qf_assembled, *assembled, *rstr));
     }
     CeedCall(CeedQFunctionAssemblyDataSetUpdateNeeded(op->qf_assembled, false));
-
-    // Copy reference from internally held copy
-    CeedCall(CeedVectorReferenceCopy(assembled_vec, assembled));
-    CeedCall(CeedElemRestrictionReferenceCopy(assembled_rstr, rstr));
-    CeedCall(CeedVectorDestroy(&assembled_vec));
-    CeedCall(CeedElemRestrictionDestroy(&assembled_rstr));
   } else {
     // Operator fallback
     CeedOperator op_fallback;
