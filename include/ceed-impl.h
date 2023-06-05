@@ -149,7 +149,8 @@ struct CeedVector_private {
 };
 
 struct CeedElemRestriction_private {
-  Ceed ceed;
+  Ceed                ceed;
+  CeedElemRestriction rstr_signed;
   int (*Apply)(CeedElemRestriction, CeedTransposeMode, CeedVector, CeedVector, CeedRequest *);
   int (*ApplyUnsigned)(CeedElemRestriction, CeedTransposeMode, CeedVector, CeedVector, CeedRequest *);
   int (*ApplyBlock)(CeedElemRestriction, CeedInt, CeedTransposeMode, CeedVector, CeedVector, CeedRequest *);

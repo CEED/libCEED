@@ -702,8 +702,9 @@ static int CeedSingleOperatorAssemblyCountEntries(CeedOperator op, CeedInt *num_
 **/
 static int CeedSingleOperatorMultigridLevel(CeedOperator op_fine, CeedVector p_mult_fine, CeedElemRestriction rstr_coarse, CeedBasis basis_coarse,
                                             CeedBasis basis_c_to_f, CeedOperator *op_coarse, CeedOperator *op_prolong, CeedOperator *op_restrict) {
-  Ceed       ceed;
-  CeedVector mult_vec = NULL;
+  Ceed                ceed;
+  CeedVector          mult_vec         = NULL;
+  CeedElemRestriction rstr_p_mult_fine = NULL;
   CeedCall(CeedOperatorGetCeed(op_fine, &ceed));
 
   // Check for composite operator
@@ -740,12 +741,13 @@ static int CeedSingleOperatorMultigridLevel(CeedOperator op_fine, CeedVector p_m
   if (op_restrict || op_prolong) {
     CeedVector mult_e_vec;
 
+    CeedCall(CeedElemRestrictionCreateUnsignedCopy(rstr_fine, &rstr_p_mult_fine));
     CeedCheck(p_mult_fine, ceed, CEED_ERROR_INCOMPATIBLE, "Prolongation or restriction operator creation requires fine grid multiplicity vector");
     CeedCall(CeedElemRestrictionCreateVector(rstr_fine, &mult_vec, &mult_e_vec));
     CeedCall(CeedVectorSetValue(mult_e_vec, 0.0));
-    CeedCall(CeedElemRestrictionApply(rstr_fine, CEED_NOTRANSPOSE, p_mult_fine, mult_e_vec, CEED_REQUEST_IMMEDIATE));
+    CeedCall(CeedElemRestrictionApply(rstr_p_mult_fine, CEED_NOTRANSPOSE, p_mult_fine, mult_e_vec, CEED_REQUEST_IMMEDIATE));
     CeedCall(CeedVectorSetValue(mult_vec, 0.0));
-    CeedCall(CeedElemRestrictionApply(rstr_fine, CEED_TRANSPOSE, mult_e_vec, mult_vec, CEED_REQUEST_IMMEDIATE));
+    CeedCall(CeedElemRestrictionApply(rstr_p_mult_fine, CEED_TRANSPOSE, mult_e_vec, mult_vec, CEED_REQUEST_IMMEDIATE));
     CeedCall(CeedVectorDestroy(&mult_e_vec));
     CeedCall(CeedVectorReciprocal(mult_vec));
   }
@@ -783,7 +785,7 @@ static int CeedSingleOperatorMultigridLevel(CeedOperator op_fine, CeedVector p_m
 
     CeedCall(CeedOperatorCreate(ceed, qf_restrict, CEED_QFUNCTION_NONE, CEED_QFUNCTION_NONE, op_restrict));
     CeedCall(CeedOperatorSetField(*op_restrict, "input", rstr_fine, CEED_BASIS_COLLOCATED, CEED_VECTOR_ACTIVE));
-    CeedCall(CeedOperatorSetField(*op_restrict, "scale", rstr_fine, CEED_BASIS_COLLOCATED, mult_vec));
+    CeedCall(CeedOperatorSetField(*op_restrict, "scale", rstr_p_mult_fine, CEED_BASIS_COLLOCATED, mult_vec));
     CeedCall(CeedOperatorSetField(*op_restrict, "output", rstr_coarse, basis_c_to_f, CEED_VECTOR_ACTIVE));
 
     // Set name
@@ -820,7 +822,7 @@ static int CeedSingleOperatorMultigridLevel(CeedOperator op_fine, CeedVector p_m
 
     CeedCall(CeedOperatorCreate(ceed, qf_prolong, CEED_QFUNCTION_NONE, CEED_QFUNCTION_NONE, op_prolong));
     CeedCall(CeedOperatorSetField(*op_prolong, "input", rstr_coarse, basis_c_to_f, CEED_VECTOR_ACTIVE));
-    CeedCall(CeedOperatorSetField(*op_prolong, "scale", rstr_fine, CEED_BASIS_COLLOCATED, mult_vec));
+    CeedCall(CeedOperatorSetField(*op_prolong, "scale", rstr_p_mult_fine, CEED_BASIS_COLLOCATED, mult_vec));
     CeedCall(CeedOperatorSetField(*op_prolong, "output", rstr_fine, CEED_BASIS_COLLOCATED, CEED_VECTOR_ACTIVE));
 
     // Set name
@@ -842,6 +844,7 @@ static int CeedSingleOperatorMultigridLevel(CeedOperator op_fine, CeedVector p_m
 
   // Cleanup
   CeedCall(CeedVectorDestroy(&mult_vec));
+  CeedCall(CeedElemRestrictionDestroy(&rstr_p_mult_fine));
   CeedCall(CeedBasisDestroy(&basis_c_to_f));
 
   return CEED_ERROR_SUCCESS;
