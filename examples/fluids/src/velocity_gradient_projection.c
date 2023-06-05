@@ -69,7 +69,7 @@ PetscErrorCode VelocityGradientProjectionSetup(Ceed ceed, User user, CeedData ce
   CeedBasisGetNumNodes1D(ceed_data->basis_q, &num_nodes_1d);
   CeedElemRestrictionGetNumComponents(ceed_data->elem_restr_qd_i, &q_data_size);
 
-  PetscCall(GetRestrictionForDomain(ceed, grad_velo_proj->dm, 0, 0, 0, num_qpts_1d, q_data_size, &elem_restr_grad_velo, NULL, NULL));
+  PetscCall(GetRestrictionForDomain(ceed, grad_velo_proj->dm, 0, 0, 0, 0, num_qpts_1d, q_data_size, &elem_restr_grad_velo, NULL, NULL));
 
   CeedBasisCreateTensorH1Lagrange(ceed, dim, grad_velo_proj->num_comp, num_nodes_1d, num_qpts_1d, CEED_GAUSS, &basis_grad_velo);
 

@@ -71,8 +71,9 @@ typedef enum {
   TESTTYPE_NONE           = 0,
   TESTTYPE_SOLVER         = 1,
   TESTTYPE_TURB_SPANSTATS = 2,
+  TESTTYPE_DIFF_FILTER    = 3,
 } TestType;
-static const char *const TestTypes[] = {"none", "solver", "turb_spanstats", "TestType", "TESTTYPE_", NULL};
+static const char *const TestTypes[] = {"none", "solver", "turb_spanstats", "diff_filter", "TestType", "TESTTYPE_", NULL};
 
 // Test mode type
 typedef enum {
@@ -134,6 +135,8 @@ struct AppCtx_private {
   } wall_forces;
   // Subgrid Stress Model
   SGSModelType sgs_model_type;
+  // Differential Filtering
+  PetscBool diff_filter_monitor;
 };
 
 // libCEED data struct
@@ -174,6 +177,15 @@ typedef struct {
   CeedVector           sgs_nodal_ceed;
 } *SGS_DD_Data;
 
+typedef struct {
+  DM                   dm_filter;
+  PetscInt             num_filtered_fields;
+  CeedInt             *num_field_components;
+  OperatorApplyContext op_rhs_ctx;
+  KSP                  ksp;
+  PetscBool            do_mms_test;
+} *DiffFilterData;
+
 // PETSc user data
 struct User_private {
   MPI_Comm             comm;
@@ -193,6 +205,7 @@ struct User_private {
   Span_Stats           spanstats;
   NodalProjectionData  grad_velo_proj;
   SGS_DD_Data          sgs_dd_data;
+  DiffFilterData       diff_filter;
 };
 
 // Units
@@ -293,11 +306,13 @@ extern PetscErrorCode PRINT_ADVECTION2D(ProblemData *problem, AppCtx app_ctx);
 PetscInt Involute(PetscInt i);
 
 // Utility function to create local CEED restriction
-PetscErrorCode CreateRestrictionFromPlex(Ceed ceed, DM dm, CeedInt height, DMLabel domain_label, CeedInt value, CeedElemRestriction *elem_restr);
+PetscErrorCode CreateRestrictionFromPlex(Ceed ceed, DM dm, CeedInt height, DMLabel domain_label, CeedInt label_value, PetscInt dm_field,
+                                         CeedElemRestriction *elem_restr);
 
 // Utility function to get Ceed Restriction for each domain
-PetscErrorCode GetRestrictionForDomain(Ceed ceed, DM dm, CeedInt height, DMLabel domain_label, PetscInt value, CeedInt Q, CeedInt q_data_size,
-                                       CeedElemRestriction *elem_restr_q, CeedElemRestriction *elem_restr_x, CeedElemRestriction *elem_restr_qd_i);
+PetscErrorCode GetRestrictionForDomain(Ceed ceed, DM dm, CeedInt height, DMLabel domain_label, PetscInt label_value, PetscInt dm_field, CeedInt Q,
+                                       CeedInt q_data_size, CeedElemRestriction *elem_restr_q, CeedElemRestriction *elem_restr_x,
+                                       CeedElemRestriction *elem_restr_qd_i);
 
 // Utility function to create CEED Composite Operator for the entire domain
 PetscErrorCode CreateOperatorForDomain(Ceed ceed, DM dm, SimpleBC bc, CeedData ceed_data, Physics phys, CeedOperator op_apply_vol,
@@ -407,6 +422,8 @@ PetscErrorCode VelocityGradientProjectionSetup(Ceed ceed, User user, CeedData ce
 PetscErrorCode VelocityGradientProjectionApply(User user, Vec Q_loc, Vec VelocityGradient);
 PetscErrorCode GridAnisotropyTensorProjectionSetupApply(Ceed ceed, User user, CeedData ceed_data, CeedElemRestriction *elem_restr_grid_aniso,
                                                         CeedVector *grid_aniso_vector);
+PetscErrorCode GridAnisotropyTensorCalculateCollocatedVector(Ceed ceed, User user, CeedData ceed_data, CeedElemRestriction *elem_restr_grid_aniso,
+                                                             CeedVector *aniso_colloc_ceed, PetscInt *num_comp_aniso);
 
 // -----------------------------------------------------------------------------
 // Boundary Condition Related Functions
@@ -418,5 +435,15 @@ PetscErrorCode SetupStrongBC_Ceed(Ceed ceed, CeedData ceed_data, DM dm, User use
 
 PetscErrorCode FreestreamBCSetup(ProblemData *problem, DM dm, void *ctx, NewtonianIdealGasContext newtonian_ig_ctx, const StatePrimitive *reference);
 PetscErrorCode OutflowBCSetup(ProblemData *problem, DM dm, void *ctx, NewtonianIdealGasContext newtonian_ig_ctx, const StatePrimitive *reference);
+
+// -----------------------------------------------------------------------------
+// Differential Filtering Functions
+// -----------------------------------------------------------------------------
+
+PetscErrorCode DifferentialFilterSetup(Ceed ceed, User user, CeedData ceed_data, ProblemData *problem);
+PetscErrorCode DifferentialFilterDataDestroy(DiffFilterData diff_filter);
+PetscErrorCode TSMonitor_DifferentialFilter(TS ts, PetscInt steps, PetscReal solution_time, Vec Q, void *ctx);
+PetscErrorCode DifferentialFilterApply(User user, const PetscReal solution_time, const Vec Q, Vec Filtered_Solution);
+PetscErrorCode DifferentialFilter_MMS_ICSetup(ProblemData *problem);
 
 #endif  // libceed_fluids_examples_navier_stokes_h
