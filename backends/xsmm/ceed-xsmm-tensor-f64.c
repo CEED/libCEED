@@ -152,4 +152,5 @@ int CeedTensorContractCreate_f64_Xsmm(CeedBasis basis, CeedTensorContract contra
 
   return CEED_ERROR_SUCCESS;
 }
+
 //------------------------------------------------------------------------------

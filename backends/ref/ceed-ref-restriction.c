@@ -414,4 +414,5 @@ int CeedElemRestrictionCreateOriented_Ref(CeedMemType mem_type, CeedCopyMode cop
   }
   return CEED_ERROR_SUCCESS;
 }
+
 //------------------------------------------------------------------------------

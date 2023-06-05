@@ -39,9 +39,9 @@ static int CeedBasisApply_Ref(CeedBasis basis, CeedInt num_elem, CeedTransposeMo
     const CeedInt v_size = num_elem * num_comp * num_nodes;
     for (CeedInt i = 0; i < v_size; i++) v[i] = (CeedScalar)0.0;
   }
-  bool tensor_basis;
-  CeedCallBackend(CeedBasisIsTensor(basis, &tensor_basis));
-  if (tensor_basis) {
+  bool is_tensor_basis;
+  CeedCallBackend(CeedBasisIsTensor(basis, &is_tensor_basis));
+  if (is_tensor_basis) {
     // Tensor basis
     CeedInt P_1d, Q_1d;
     CeedCallBackend(CeedBasisGetNumNodes1D(basis, &P_1d));
@@ -228,6 +228,7 @@ static int CeedBasisApply_Ref(CeedBasis basis, CeedInt num_elem, CeedTransposeMo
     CeedCallBackend(CeedVectorRestoreArrayRead(U, &u));
   }
   CeedCallBackend(CeedVectorRestoreArray(V, &v));
+
   return CEED_ERROR_SUCCESS;
 }
 
@@ -335,6 +336,7 @@ int CeedBasisCreateTensorH1_Ref(CeedInt dim, CeedInt P_1d, CeedInt Q_1d, const C
 
   CeedCallBackend(CeedSetBackendFunction(ceed, "Basis", basis, "Apply", CeedBasisApply_Ref));
   CeedCallBackend(CeedSetBackendFunction(ceed, "Basis", basis, "Destroy", CeedBasisDestroyTensor_Ref));
+
   return CEED_ERROR_SUCCESS;
 }
 

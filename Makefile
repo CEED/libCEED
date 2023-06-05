@@ -348,9 +348,9 @@ libceed.c += $(ref.c)
 libceed.c += $(blocked.c)
 libceed.c += $(opt.c)
 
-# Memcheck Backend
-MEMCHK_STATUS = Disabled
-MEMCHK := $(shell echo "$(HASH)include <valgrind/memcheck.h>" | $(CC) $(CPPFLAGS) -E - >/dev/null 2>&1 && echo 1)
+# Memcheck Backends
+MEMCHK_STATUS   = Disabled
+MEMCHK         := $(shell echo "$(HASH)include <valgrind/memcheck.h>" | $(CC) $(CPPFLAGS) -E - >/dev/null 2>&1 && echo 1)
 MEMCHK_BACKENDS = /cpu/self/memcheck/serial /cpu/self/memcheck/blocked
 ifeq ($(MEMCHK),1)
   MEMCHK_STATUS = Enabled
@@ -358,10 +358,10 @@ ifeq ($(MEMCHK),1)
   BACKENDS_MAKE += $(MEMCHK_BACKENDS)
 endif
 
-# AVX Backed
-AVX_STATUS = Disabled
-AVX_FLAG := $(if $(filter clang,$(CC_VENDOR)),+avx,-mavx)
-AVX := $(filter $(AVX_FLAG),$(shell $(CC) $(CFLAGS:-M%=) -v -E -x c /dev/null 2>&1))
+# AVX Backeds
+AVX_STATUS   = Disabled
+AVX_FLAG    := $(if $(filter clang,$(CC_VENDOR)),+avx,-mavx)
+AVX         := $(filter $(AVX_FLAG),$(shell $(CC) $(CFLAGS:-M%=) -v -E -x c /dev/null 2>&1))
 AVX_BACKENDS = /cpu/self/avx/serial /cpu/self/avx/blocked
 ifneq ($(AVX),)
   AVX_STATUS = Enabled

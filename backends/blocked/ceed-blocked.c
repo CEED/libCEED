@@ -15,7 +15,7 @@
 //------------------------------------------------------------------------------
 // Backend Init
 //------------------------------------------------------------------------------
-CEED_INTERN int CeedInit_Blocked(const char *resource, Ceed ceed) {
+static int CeedInit_Blocked(const char *resource, Ceed ceed) {
   CeedCheck(!strcmp(resource, "/cpu/self") || !strcmp(resource, "/cpu/self/ref/blocked"), ceed, CEED_ERROR_BACKEND,
             "Blocked backend cannot use resource: %s", resource);
   CeedCallBackend(CeedSetDeterministic(ceed, true));
@@ -38,4 +38,5 @@ CEED_INTERN int CeedInit_Blocked(const char *resource, Ceed ceed) {
 // Backend Register
 //------------------------------------------------------------------------------
 CEED_INTERN int CeedRegister_Ref_Blocked(void) { return CeedRegister("/cpu/self/ref/blocked", CeedInit_Blocked, 55); }
+
 //------------------------------------------------------------------------------

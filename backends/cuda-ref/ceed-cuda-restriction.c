@@ -88,25 +88,13 @@ static int CeedElemRestrictionApply_Cuda(CeedElemRestriction r, CeedTransposeMod
 }
 
 //------------------------------------------------------------------------------
-// Blocked not supported
-//------------------------------------------------------------------------------
-int CeedElemRestrictionApplyBlock_Cuda(CeedElemRestriction r, CeedInt block, CeedTransposeMode t_mode, CeedVector u, CeedVector v,
-                                       CeedRequest *request) {
-  // LCOV_EXCL_START
-  Ceed ceed;
-  CeedCallBackend(CeedElemRestrictionGetCeed(r, &ceed));
-  return CeedError(ceed, CEED_ERROR_BACKEND, "Backend does not implement blocked restrictions");
-  // LCOV_EXCL_STOP
-}
-
-//------------------------------------------------------------------------------
 // Get offsets
 //------------------------------------------------------------------------------
-static int CeedElemRestrictionGetOffsets_Cuda(CeedElemRestriction rstr, CeedMemType m_type, const CeedInt **offsets) {
+static int CeedElemRestrictionGetOffsets_Cuda(CeedElemRestriction rstr, CeedMemType mem_type, const CeedInt **offsets) {
   CeedElemRestriction_Cuda *impl;
   CeedCallBackend(CeedElemRestrictionGetData(rstr, &impl));
 
-  switch (m_type) {
+  switch (mem_type) {
     case CEED_MEM_HOST:
       *offsets = impl->h_ind;
       break;
@@ -221,7 +209,7 @@ static int CeedElemRestrictionOffset_Cuda(const CeedElemRestriction r, const Cee
 //------------------------------------------------------------------------------
 // Create restriction
 //------------------------------------------------------------------------------
-int CeedElemRestrictionCreate_Cuda(CeedMemType m_type, CeedCopyMode copy_mode, const CeedInt *indices, CeedElemRestriction r) {
+int CeedElemRestrictionCreate_Cuda(CeedMemType mem_type, CeedCopyMode copy_mode, const CeedInt *indices, CeedElemRestriction r) {
   Ceed ceed;
   CeedCallBackend(CeedElemRestrictionGetCeed(r, &ceed));
   CeedElemRestriction_Cuda *impl;
@@ -259,7 +247,7 @@ int CeedElemRestrictionCreate_Cuda(CeedMemType m_type, CeedCopyMode copy_mode, c
   CeedCallBackend(CeedElemRestrictionSetELayout(r, layout));
 
   // Set up device indices/offset arrays
-  switch (m_type) {
+  switch (mem_type) {
     case CEED_MEM_HOST: {
       switch (copy_mode) {
         case CEED_OWN_POINTER:
@@ -334,18 +322,9 @@ int CeedElemRestrictionCreate_Cuda(CeedMemType m_type, CeedCopyMode copy_mode, c
 
   // Register backend functions
   CeedCallBackend(CeedSetBackendFunction(ceed, "ElemRestriction", r, "Apply", CeedElemRestrictionApply_Cuda));
-  CeedCallBackend(CeedSetBackendFunction(ceed, "ElemRestriction", r, "ApplyBlock", CeedElemRestrictionApplyBlock_Cuda));
   CeedCallBackend(CeedSetBackendFunction(ceed, "ElemRestriction", r, "GetOffsets", CeedElemRestrictionGetOffsets_Cuda));
   CeedCallBackend(CeedSetBackendFunction(ceed, "ElemRestriction", r, "Destroy", CeedElemRestrictionDestroy_Cuda));
   return CEED_ERROR_SUCCESS;
 }
 
-//------------------------------------------------------------------------------
-// Blocked not supported
-//------------------------------------------------------------------------------
-int CeedElemRestrictionCreateBlocked_Cuda(const CeedMemType m_type, const CeedCopyMode copy_mode, const CeedInt *indices, CeedElemRestriction r) {
-  Ceed ceed;
-  CeedCallBackend(CeedElemRestrictionGetCeed(r, &ceed));
-  return CeedError(ceed, CEED_ERROR_BACKEND, "Backend does not implement blocked restrictions");
-}
 //------------------------------------------------------------------------------

@@ -38,4 +38,5 @@ static int CeedInit_Xsmm_Serial(const char *resource, Ceed ceed) {
 // Backend Register
 //------------------------------------------------------------------------------
 CEED_INTERN int CeedRegister_Xsmm_Serial(void) { return CeedRegister("/cpu/self/xsmm/serial", CeedInit_Xsmm_Serial, 25); }
+
 //------------------------------------------------------------------------------

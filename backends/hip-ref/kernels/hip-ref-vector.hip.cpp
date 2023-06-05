@@ -140,3 +140,5 @@ extern "C" int CeedDevicePointwiseMult_Hip(CeedScalar *w_array, CeedScalar *x_ar
   hipLaunchKernelGGL(pointwiseMultValueK, dim3(gridsize), dim3(bsize), 0, 0, w_array, x_array, y_array, length);
   return 0;
 }
+
+//------------------------------------------------------------------------------

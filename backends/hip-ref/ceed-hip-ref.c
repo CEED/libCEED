@@ -54,7 +54,6 @@ static int CeedInit_Hip(const char *resource, Ceed ceed) {
   CeedCallBackend(CeedSetBackendFunction(ceed, "Ceed", ceed, "BasisCreateTensorH1", CeedBasisCreateTensorH1_Hip));
   CeedCallBackend(CeedSetBackendFunction(ceed, "Ceed", ceed, "BasisCreateH1", CeedBasisCreateH1_Hip));
   CeedCallBackend(CeedSetBackendFunction(ceed, "Ceed", ceed, "ElemRestrictionCreate", CeedElemRestrictionCreate_Hip));
-  CeedCallBackend(CeedSetBackendFunction(ceed, "Ceed", ceed, "ElemRestrictionCreateBlocked", CeedElemRestrictionCreateBlocked_Hip));
   CeedCallBackend(CeedSetBackendFunction(ceed, "Ceed", ceed, "QFunctionCreate", CeedQFunctionCreate_Hip));
   CeedCallBackend(CeedSetBackendFunction(ceed, "Ceed", ceed, "QFunctionContextCreate", CeedQFunctionContextCreate_Hip));
   CeedCallBackend(CeedSetBackendFunction(ceed, "Ceed", ceed, "OperatorCreate", CeedOperatorCreate_Hip));
@@ -66,4 +65,5 @@ static int CeedInit_Hip(const char *resource, Ceed ceed) {
 // Backend Register
 //------------------------------------------------------------------------------
 CEED_INTERN int CeedRegister_Hip(void) { return CeedRegister("/gpu/hip/ref", CeedInit_Hip, 40); }
+
 //------------------------------------------------------------------------------

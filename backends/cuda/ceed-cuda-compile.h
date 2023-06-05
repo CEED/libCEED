@@ -19,14 +19,13 @@ CEED_INTERN int CeedCompileCuda(Ceed ceed, const char *source, CUmodule *module,
 
 CEED_INTERN int CeedGetKernelCuda(Ceed ceed, CUmodule module, const char *name, CUfunction *kernel);
 
-CEED_INTERN int CeedRunKernelCuda(Ceed ceed, CUfunction kernel, const int grid_size, const int block_size, void **args);
+CEED_INTERN int CeedRunKernelCuda(Ceed ceed, CUfunction kernel, int grid_size, int block_size, void **args);
 
 CEED_INTERN int CeedRunKernelAutoblockCuda(Ceed ceed, CUfunction kernel, size_t points, void **args);
 
-CEED_INTERN int CeedRunKernelDimCuda(Ceed ceed, CUfunction kernel, const int grid_size, const int block_size_x, const int block_size_y,
-                                     const int block_size_z, void **args);
+CEED_INTERN int CeedRunKernelDimCuda(Ceed ceed, CUfunction kernel, int grid_size, int block_size_x, int block_size_y, int block_size_z, void **args);
 
-CEED_INTERN int CeedRunKernelDimSharedCuda(Ceed ceed, CUfunction kernel, const int grid_size, const int block_size_x, const int block_size_y,
-                                           const int block_size_z, const int shared_mem_size, void **args);
+CEED_INTERN int CeedRunKernelDimSharedCuda(Ceed ceed, CUfunction kernel, int grid_size, int block_size_x, int block_size_y, int block_size_z,
+                                           int shared_mem_size, void **args);
 
 #endif  // _ceed_cuda_compile_h

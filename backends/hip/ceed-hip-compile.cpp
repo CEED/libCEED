@@ -10,9 +10,9 @@
 #include <ceed.h>
 #include <ceed/backend.h>
 #include <ceed/jit-tools.h>
-#include <hip/hiprtc.h>
 #include <stdarg.h>
 #include <string.h>
+#include <hip/hiprtc.h>
 
 #include <sstream>
 
@@ -150,3 +150,5 @@ int CeedRunKernelDimSharedHip(Ceed ceed, hipFunction_t kernel, const int grid_si
   CeedCallHip(ceed, hipModuleLaunchKernel(kernel, grid_size, 1, 1, block_size_x, block_size_y, block_size_z, shared_mem_size, NULL, args, NULL));
   return CEED_ERROR_SUCCESS;
 }
+
+//------------------------------------------------------------------------------

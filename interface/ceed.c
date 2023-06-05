@@ -66,7 +66,7 @@ CeedRequest *const CEED_REQUEST_IMMEDIATE = &ceed_request_immediate;
   @brief Request ordered completion
 
   This predefined constant is passed as the \ref CeedRequest argument to interfaces when the caller wishes for the operation to be completed in the
-  order that it is submitted to the device. It is typically used in a construct such as
+  order that it is submitted to the device. It is typically used in a construct such as:
 
   @code
     CeedRequest request;
@@ -110,7 +110,8 @@ int CeedRequestWait(CeedRequest *req) {
 
 /**
   @brief Register a Ceed backend internally.
-           Note: Backends should call `CeedRegister` instead.
+
+  Note: Backends should call `CeedRegister` instead.
 
   @param[in] prefix    Prefix of resources for this backend to respond to.
                          For example, the reference backend responds to "/cpu/self".
@@ -358,7 +359,7 @@ int CeedGetDelegate(Ceed ceed, Ceed *delegate) {
   @brief Set a delegate Ceed context
 
   This function allows a Ceed context to set a delegate Ceed context.
-    All backend implementations default to the delegate Ceed context, unless overridden.
+  All backend implementations default to the delegate Ceed context, unless overridden.
 
   @param[in]  ceed     Ceed context to set delegate of
   @param[out] delegate Address to set the delegate to
@@ -402,8 +403,8 @@ int CeedGetObjectDelegate(Ceed ceed, Ceed *delegate, const char *obj_name) {
   @brief Set a delegate Ceed context for a specific object type
 
   This function allows a Ceed context to set a delegate Ceed context for a given type of Ceed object.
-    All backend implementations default to the delegate Ceed context for this object.
-    For example, CeedSetObjectDelegate(ceed, refceed, "Basis") uses refceed implementations for all CeedBasis backend functions.
+  All backend implementations default to the delegate Ceed context for this object.
+  For example, CeedSetObjectDelegate(ceed, refceed, "Basis") uses refceed implementations for all CeedBasis backend functions.
 
   @param[in,out] ceed     Ceed context to set delegate of
   @param[out]    delegate Address to set the delegate to
@@ -443,7 +444,6 @@ int CeedSetObjectDelegate(Ceed ceed, Ceed delegate, const char *obj_name) {
 
   @ref Backend
 **/
-
 int CeedGetOperatorFallbackResource(Ceed ceed, const char **resource) {
   *resource = (const char *)ceed->op_fallback_resource;
   return CEED_ERROR_SUCCESS;
@@ -459,7 +459,6 @@ int CeedGetOperatorFallbackResource(Ceed ceed, const char **resource) {
 
   @ref Backend
 **/
-
 int CeedGetOperatorFallbackCeed(Ceed ceed, Ceed *fallback_ceed) {
   if (ceed->has_valid_op_fallback_resource) {
     CeedDebug256(ceed, 1, "---------- CeedOperator Fallback ----------\n");
@@ -486,8 +485,9 @@ int CeedGetOperatorFallbackCeed(Ceed ceed, Ceed *fallback_ceed) {
 
 /**
   @brief Set the fallback resource for CeedOperators.
-           The current resource, if any, is freed by calling this function.
-           This string is freed upon the destruction of the Ceed context.
+
+  The current resource, if any, is freed by calling this function.
+  This string is freed upon the destruction of the Ceed context.
 
   @param[in,out] ceed     Ceed context
   @param[in]     resource Fallback resource to set
@@ -496,7 +496,6 @@ int CeedGetOperatorFallbackCeed(Ceed ceed, Ceed *fallback_ceed) {
 
   @ref Backend
 **/
-
 int CeedSetOperatorFallbackResource(Ceed ceed, const char *resource) {
   // Free old
   CeedCall(CeedFree(&ceed->op_fallback_resource));
@@ -520,7 +519,6 @@ int CeedSetOperatorFallbackResource(Ceed ceed, const char *resource) {
 
   @ref Backend
 **/
-
 int CeedGetOperatorFallbackParentCeed(Ceed ceed, Ceed *parent) {
   *parent = ceed->op_fallback_parent;
   return CEED_ERROR_SUCCESS;
@@ -536,7 +534,6 @@ int CeedGetOperatorFallbackParentCeed(Ceed ceed, Ceed *parent) {
 
   @ref Backend
 **/
-
 int CeedSetDeterministic(Ceed ceed, bool is_deterministic) {
   ceed->is_deterministic = is_deterministic;
   return CEED_ERROR_SUCCESS;
@@ -546,9 +543,9 @@ int CeedSetDeterministic(Ceed ceed, bool is_deterministic) {
   @brief Set a backend function
 
   This function is used for a backend to set the function associated with the Ceed objects.
-    For example, CeedSetBackendFunction(ceed, "Ceed", ceed, "VectorCreate", BackendVectorCreate) sets the backend implementation of 'CeedVectorCreate'
-and CeedSetBackendFunction(ceed, "Basis", basis, "Apply", BackendBasisApply) sets the backend implementation of 'CeedBasisApply'. Note, the prefix
-'Ceed' is not required for the object type ("Basis" vs "CeedBasis").
+  For example, CeedSetBackendFunction(ceed, "Ceed", ceed, "VectorCreate", BackendVectorCreate) sets the backend implementation of 'CeedVectorCreate'
+and CeedSetBackendFunction(ceed, "Basis", basis, "Apply", BackendBasisApply) sets the backend implementation of 'CeedBasisApply'.
+  Note, the prefix 'Ceed' is not required for the object type ("Basis" vs "CeedBasis").
 
   @param[in]  ceed      Ceed context for error handling
   @param[in]  type      Type of Ceed object to set function for
@@ -637,7 +634,8 @@ int CeedReference(Ceed ceed) {
 
 /**
   @brief Get the list of available resource names for Ceed contexts
-           Note: The caller is responsible for `free()`ing the resources and priorities arrays, but should not `free()` the contents of the resources
+
+  Note: The caller is responsible for `free()`ing the resources and priorities arrays, but should not `free()` the contents of the resources
 array.
 
   @param[out] n          Number of available resources
@@ -678,7 +676,8 @@ int CeedRegistryGetList(size_t *n, char ***const resources, CeedInt **priorities
 
 /**
   @brief Initialize a \ref Ceed context to use the specified resource.
-           Note: Prefixing the resource with "help:" (e.g. "help:/cpu/self") will result in CeedInt printing the current libCEED version number and a
+
+  Note: Prefixing the resource with "help:" (e.g. "help:/cpu/self") will result in CeedInt printing the current libCEED version number and a
 list of current available backend resources to stderr.
 
   @param[in]  resource Resource to use, e.g., "/cpu/self"
@@ -880,10 +879,11 @@ int CeedInit(const char *resource, Ceed *ceed) {
 
 /**
   @brief Copy the pointer to a Ceed context.
-           Both pointers should be destroyed with `CeedDestroy()`.
 
-           Note: If the value of `ceed_copy` passed to this function is non-NULL, then it is assumed that `ceed_copy` is a pointer to a Ceed context.
-             This Ceed context will be destroyed if `ceed_copy` is the only reference to this Ceed context.
+  Both pointers should be destroyed with `CeedDestroy()`.
+
+  Note: If the value of `ceed_copy` passed to this function is non-NULL, then it is assumed that `ceed_copy` is a pointer to a Ceed context.
+        This Ceed context will be destroyed if `ceed_copy` is the only reference to this Ceed context.
 
   @param[in]     ceed      Ceed context to copy reference to
   @param[in,out] ceed_copy Variable to store copied reference

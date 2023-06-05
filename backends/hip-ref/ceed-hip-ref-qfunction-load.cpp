@@ -122,4 +122,5 @@ extern "C" int CeedHipBuildQFunction(CeedQFunction qf) {
 
   return CEED_ERROR_SUCCESS;
 }
+
 //------------------------------------------------------------------------------

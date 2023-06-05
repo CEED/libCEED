@@ -496,10 +496,11 @@ int CeedQFunctionContextCreate(Ceed ceed, CeedQFunctionContext *ctx) {
 
 /**
   @brief Copy the pointer to a CeedQFunctionContext.
-           Both pointers should be destroyed with `CeedQFunctionContextDestroy()`.
 
-           Note: If the value of `ctx_copy` passed to this function is non-NULL, then it is assumed that `ctx_copy` is a pointer to a
-             CeedQFunctionContext. This CeedQFunctionContext will be destroyed if `ctx_copy` is the only reference to this CeedQFunctionContext.
+  Both pointers should be destroyed with `CeedQFunctionContextDestroy()`.
+
+  Note: If the value of `ctx_copy` passed to this function is non-NULL, then it is assumed that `ctx_copy` is a pointer to a
+        CeedQFunctionContext. This CeedQFunctionContext will be destroyed if `ctx_copy` is the only reference to this CeedQFunctionContext.
 
   @param[in]     ctx      CeedQFunctionContext to copy reference to
   @param[in,out] ctx_copy Variable to store copied reference
@@ -517,8 +518,9 @@ int CeedQFunctionContextReferenceCopy(CeedQFunctionContext ctx, CeedQFunctionCon
 
 /**
   @brief Set the data used by a CeedQFunctionContext, freeing any previously allocated data if applicable.
-           The backend may copy values to a different memtype, such as during @ref CeedQFunctionApply().
-           See also @ref CeedQFunctionContextTakeData().
+
+  The backend may copy values to a different memtype, such as during @ref CeedQFunctionApply().
+  See also @ref CeedQFunctionContextTakeData().
 
   @param[in,out] ctx       CeedQFunctionContext
   @param[in]     mem_type  Memory type of the data being passed
@@ -543,7 +545,8 @@ int CeedQFunctionContextSetData(CeedQFunctionContext ctx, CeedMemType mem_type, 
 
 /**
   @brief Take ownership of the data in a CeedQFunctionContext via the specified memory type.
-           The caller is responsible for managing and freeing the memory.
+
+  The caller is responsible for managing and freeing the memory.
 
   @param[in]  ctx      CeedQFunctionContext to access
   @param[in]  mem_type Memory type on which to access the data.
@@ -575,7 +578,8 @@ int CeedQFunctionContextTakeData(CeedQFunctionContext ctx, CeedMemType mem_type,
 
 /**
   @brief Get read/write access to a CeedQFunctionContext via the specified memory type.
-           Restore access with @ref CeedQFunctionContextRestoreData().
+
+  Restore access with @ref CeedQFunctionContextRestoreData().
 
   @param[in]  ctx      CeedQFunctionContext to access
   @param[in]  mem_type Memory type on which to access the data.
@@ -583,7 +587,8 @@ int CeedQFunctionContextTakeData(CeedQFunctionContext ctx, CeedMemType mem_type,
   @param[out] data     Data on memory type mem_type
 
   @note The CeedQFunctionContextGetData() and @ref CeedQFunctionContextRestoreData() functions provide access to array pointers in the desired memory
-space. Pairing get/restore allows the Context to track access.
+space.
+        Pairing get/restore allows the Context to track access.
 
   @return An error code: 0 - success, otherwise - failure
 
@@ -605,7 +610,8 @@ int CeedQFunctionContextGetData(CeedQFunctionContext ctx, CeedMemType mem_type, 
 
 /**
   @brief Get read only access to a CeedQFunctionContext via the specified memory type.
-           Restore access with @ref CeedQFunctionContextRestoreData().
+
+  Restore access with @ref CeedQFunctionContextRestoreData().
 
   @param[in]  ctx      CeedQFunctionContext to access
   @param[in]  mem_type Memory type on which to access the data.
@@ -613,7 +619,8 @@ int CeedQFunctionContextGetData(CeedQFunctionContext ctx, CeedMemType mem_type, 
   @param[out] data     Data on memory type mem_type
 
   @note The CeedQFunctionContextGetDataRead() and @ref CeedQFunctionContextRestoreDataRead() functions provide access to array pointers in the desired
-memory space. Pairing get/restore allows the Context to track access.
+memory space.
+        Pairing get/restore allows the Context to track access.
 
   @return An error code: 0 - success, otherwise - failure
 

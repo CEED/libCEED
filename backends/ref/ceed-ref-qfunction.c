@@ -79,4 +79,5 @@ int CeedQFunctionCreate_Ref(CeedQFunction qf) {
 
   return CEED_ERROR_SUCCESS;
 }
+
 //------------------------------------------------------------------------------

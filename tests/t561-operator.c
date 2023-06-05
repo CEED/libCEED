@@ -1,5 +1,5 @@
 /// @file
-/// Test full assembly of Poisson operator
+/// Test full assembly of Poisson operator (see t534)
 /// \test Test full assembly of Poisson operator
 #include <ceed.h>
 #include <math.h>

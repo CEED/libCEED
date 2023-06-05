@@ -38,4 +38,5 @@ static int CeedInit_Xsmm_Blocked(const char *resource, Ceed ceed) {
 // Backend Register
 //------------------------------------------------------------------------------
 CEED_INTERN int CeedRegister_Xsmm_Blocked(void) { return CeedRegister("/cpu/self/xsmm/blocked", CeedInit_Xsmm_Blocked, 20); }
+
 //------------------------------------------------------------------------------

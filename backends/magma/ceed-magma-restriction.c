@@ -110,15 +110,6 @@ static int CeedElemRestrictionApply_Magma(CeedElemRestriction r, CeedTransposeMo
   return CEED_ERROR_SUCCESS;
 }
 
-int CeedElemRestrictionApplyBlock_Magma(CeedElemRestriction r, CeedInt block, CeedTransposeMode tmode, CeedVector u, CeedVector v,
-                                        CeedRequest *request) {
-  // LCOV_EXCL_START
-  Ceed ceed;
-  CeedCallBackend(CeedElemRestrictionGetCeed(r, &ceed));
-  return CeedError(ceed, CEED_ERROR_BACKEND, "Backend does not implement blocked restrictions");
-  // LCOV_EXCL_STOP
-}
-
 static int CeedElemRestrictionGetOffsets_Magma(CeedElemRestriction rstr, CeedMemType mtype, const CeedInt **offsets) {
   CeedElemRestriction_Magma *impl;
   CeedCallBackend(CeedElemRestrictionGetData(rstr, &impl));
@@ -269,17 +260,10 @@ int CeedElemRestrictionCreate_Magma(CeedMemType mtype, CeedCopyMode cmode, const
   CeedInt layout[3] = {1, elemsize * nelem, elemsize};
   CeedCallBackend(CeedElemRestrictionSetELayout(r, layout));
   CeedCallBackend(CeedSetBackendFunction(ceed, "ElemRestriction", r, "Apply", CeedElemRestrictionApply_Magma));
-  CeedCallBackend(CeedSetBackendFunction(ceed, "ElemRestriction", r, "ApplyBlock", CeedElemRestrictionApplyBlock_Magma));
   CeedCallBackend(CeedSetBackendFunction(ceed, "ElemRestriction", r, "GetOffsets", CeedElemRestrictionGetOffsets_Magma));
   CeedCallBackend(CeedSetBackendFunction(ceed, "ElemRestriction", r, "Destroy", CeedElemRestrictionDestroy_Magma));
   CeedCallBackend(CeedFree(&restriction_kernel_path));
   CeedCallBackend(CeedFree(&restriction_kernel_source));
 
   return CEED_ERROR_SUCCESS;
-}
-
-int CeedElemRestrictionCreateBlocked_Magma(const CeedMemType mtype, const CeedCopyMode cmode, const CeedInt *offsets, const CeedElemRestriction r) {
-  Ceed ceed;
-  CeedCallBackend(CeedElemRestrictionGetCeed(r, &ceed));
-  return CeedError(ceed, CEED_ERROR_BACKEND, "Backend does not implement blocked restrictions");
 }

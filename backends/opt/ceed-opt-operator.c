@@ -634,4 +634,5 @@ int CeedOperatorCreate_Opt(CeedOperator op) {
   CeedCallBackend(CeedSetBackendFunction(ceed, "Operator", op, "Destroy", CeedOperatorDestroy_Opt));
   return CEED_ERROR_SUCCESS;
 }
+
 //------------------------------------------------------------------------------

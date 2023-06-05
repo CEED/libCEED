@@ -165,4 +165,5 @@ int CeedOperatorCreate_Hip_gen(CeedOperator op) {
   CeedCallBackend(CeedSetBackendFunction(ceed, "Operator", op, "Destroy", CeedOperatorDestroy_Hip_gen));
   return CEED_ERROR_SUCCESS;
 }
+
 //------------------------------------------------------------------------------

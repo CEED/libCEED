@@ -8,10 +8,10 @@
 #include <ceed.h>
 #include <ceed/backend.h>
 #include <ceed/jit-tools.h>
-#include <hip/hip_runtime.h>
 #include <stdbool.h>
 #include <stddef.h>
 #include <string.h>
+#include <hip/hip_runtime.h>
 
 #include "../hip/ceed-hip-common.h"
 #include "../hip/ceed-hip-compile.h"
@@ -86,25 +86,13 @@ static int CeedElemRestrictionApply_Hip(CeedElemRestriction r, CeedTransposeMode
 }
 
 //------------------------------------------------------------------------------
-// Blocked not supported
-//------------------------------------------------------------------------------
-int CeedElemRestrictionApplyBlock_Hip(CeedElemRestriction r, CeedInt block, CeedTransposeMode t_mode, CeedVector u, CeedVector v,
-                                      CeedRequest *request) {
-  // LCOV_EXCL_START
-  Ceed ceed;
-  CeedCallBackend(CeedElemRestrictionGetCeed(r, &ceed));
-  return CeedError(ceed, CEED_ERROR_BACKEND, "Backend does not implement blocked restrictions");
-  // LCOV_EXCL_STOP
-}
-
-//------------------------------------------------------------------------------
 // Get offsets
 //------------------------------------------------------------------------------
-static int CeedElemRestrictionGetOffsets_Hip(CeedElemRestriction rstr, CeedMemType mtype, const CeedInt **offsets) {
+static int CeedElemRestrictionGetOffsets_Hip(CeedElemRestriction rstr, CeedMemType mem_type, const CeedInt **offsets) {
   CeedElemRestriction_Hip *impl;
   CeedCallBackend(CeedElemRestrictionGetData(rstr, &impl));
 
-  switch (mtype) {
+  switch (mem_type) {
     case CEED_MEM_HOST:
       *offsets = impl->h_ind;
       break;
@@ -219,7 +207,7 @@ static int CeedElemRestrictionOffset_Hip(const CeedElemRestriction r, const Ceed
 //------------------------------------------------------------------------------
 // Create restriction
 //------------------------------------------------------------------------------
-int CeedElemRestrictionCreate_Hip(CeedMemType mtype, CeedCopyMode cmode, const CeedInt *indices, CeedElemRestriction r) {
+int CeedElemRestrictionCreate_Hip(CeedMemType mem_type, CeedCopyMode copy_mode, const CeedInt *indices, CeedElemRestriction r) {
   Ceed ceed;
   CeedCallBackend(CeedElemRestrictionGetCeed(r, &ceed));
   CeedElemRestriction_Hip *impl;
@@ -257,9 +245,9 @@ int CeedElemRestrictionCreate_Hip(CeedMemType mtype, CeedCopyMode cmode, const C
   CeedCallBackend(CeedElemRestrictionSetELayout(r, layout));
 
   // Set up device indices/offset arrays
-  switch (mtype) {
+  switch (mem_type) {
     case CEED_MEM_HOST: {
-      switch (cmode) {
+      switch (copy_mode) {
         case CEED_OWN_POINTER:
           impl->h_ind_allocated = (CeedInt *)indices;
           impl->h_ind           = (CeedInt *)indices;
@@ -284,7 +272,7 @@ int CeedElemRestrictionCreate_Hip(CeedMemType mtype, CeedCopyMode cmode, const C
       break;
     }
     case CEED_MEM_DEVICE: {
-      switch (cmode) {
+      switch (copy_mode) {
         case CEED_COPY_VALUES:
           if (indices != NULL) {
             CeedCallHip(ceed, hipMalloc((void **)&impl->d_ind, size * sizeof(CeedInt)));
@@ -332,18 +320,9 @@ int CeedElemRestrictionCreate_Hip(CeedMemType mtype, CeedCopyMode cmode, const C
 
   // Register backend functions
   CeedCallBackend(CeedSetBackendFunction(ceed, "ElemRestriction", r, "Apply", CeedElemRestrictionApply_Hip));
-  CeedCallBackend(CeedSetBackendFunction(ceed, "ElemRestriction", r, "ApplyBlock", CeedElemRestrictionApplyBlock_Hip));
   CeedCallBackend(CeedSetBackendFunction(ceed, "ElemRestriction", r, "GetOffsets", CeedElemRestrictionGetOffsets_Hip));
   CeedCallBackend(CeedSetBackendFunction(ceed, "ElemRestriction", r, "Destroy", CeedElemRestrictionDestroy_Hip));
   return CEED_ERROR_SUCCESS;
 }
 
-//------------------------------------------------------------------------------
-// Blocked not supported
-//------------------------------------------------------------------------------
-int CeedElemRestrictionCreateBlocked_Hip(const CeedMemType mtype, const CeedCopyMode cmode, const CeedInt *indices, CeedElemRestriction r) {
-  Ceed ceed;
-  CeedCallBackend(CeedElemRestrictionGetCeed(r, &ceed));
-  return CeedError(ceed, CEED_ERROR_BACKEND, "Backend does not implement blocked restrictions");
-}
 //------------------------------------------------------------------------------

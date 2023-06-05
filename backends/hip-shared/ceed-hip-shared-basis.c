@@ -8,9 +8,9 @@
 #include <ceed.h>
 #include <ceed/backend.h>
 #include <ceed/jit-tools.h>
-#include <hip/hip_runtime.h>
 #include <stdbool.h>
 #include <stddef.h>
+#include <hip/hip_runtime.h>
 
 #include "../hip/ceed-hip-common.h"
 #include "../hip/ceed-hip-compile.h"
@@ -317,4 +317,5 @@ int CeedBasisCreateTensorH1_Hip_shared(CeedInt dim, CeedInt P_1d, CeedInt Q_1d, 
   CeedCallBackend(CeedSetBackendFunction(ceed, "Basis", basis, "Destroy", CeedBasisDestroy_Hip_shared));
   return CEED_ERROR_SUCCESS;
 }
+
 //------------------------------------------------------------------------------

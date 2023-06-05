@@ -42,4 +42,5 @@ static int CeedInit_Hip_shared(const char *resource, Ceed ceed) {
 // Register backend
 //------------------------------------------------------------------------------
 CEED_INTERN int CeedRegister_Hip_Shared(void) { return CeedRegister("/gpu/hip/shared", CeedInit_Hip_shared, 25); }
+
 //------------------------------------------------------------------------------
