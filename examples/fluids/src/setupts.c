@@ -17,19 +17,16 @@
 
 // Compute mass matrix for explicit scheme
 PetscErrorCode ComputeLumpedMassMatrix(Ceed ceed, DM dm, CeedData ceed_data, Vec M) {
-  Vec           M_loc;
-  CeedQFunction qf_mass;
-  CeedOperator  op_mass;
-  CeedVector    m_ceed, ones_vec;
-  CeedInt       num_comp_q, q_data_size;
+  CeedQFunction        qf_mass;
+  CeedOperator         op_mass;
+  OperatorApplyContext op_mass_ctx;
+  Vec                  Ones_loc;
+  CeedInt              num_comp_q, q_data_size;
   PetscFunctionBeginUser;
 
   // CEED Restriction
   CeedElemRestrictionGetNumComponents(ceed_data->elem_restr_q, &num_comp_q);
   CeedElemRestrictionGetNumComponents(ceed_data->elem_restr_qd_i, &q_data_size);
-  CeedElemRestrictionCreateVector(ceed_data->elem_restr_q, &m_ceed, NULL);
-  CeedElemRestrictionCreateVector(ceed_data->elem_restr_q, &ones_vec, NULL);
-  CeedVectorSetValue(ones_vec, 1.0);
 
   // CEED QFunction
   PetscCall(CreateMassQFunction(ceed, num_comp_q, q_data_size, &qf_mass));
@@ -40,28 +37,18 @@ PetscErrorCode ComputeLumpedMassMatrix(Ceed ceed, DM dm, CeedData ceed_data, Vec
   CeedOperatorSetField(op_mass, "qdata", ceed_data->elem_restr_qd_i, CEED_BASIS_COLLOCATED, ceed_data->q_data);
   CeedOperatorSetField(op_mass, "v", ceed_data->elem_restr_q, ceed_data->basis_q, CEED_VECTOR_ACTIVE);
 
-  // Place PETSc vector in CEED vector
-  PetscMemType m_mem_type;
-  PetscCall(DMGetLocalVector(dm, &M_loc));
-  PetscCall(VecP2C(M_loc, &m_mem_type, m_ceed));
+  PetscCall(OperatorApplyContextCreate(NULL, dm, ceed, op_mass, NULL, NULL, NULL, NULL, &op_mass_ctx));
 
-  // Apply CEED Operator
-  CeedOperatorApply(op_mass, ones_vec, m_ceed, CEED_REQUEST_IMMEDIATE);
-
-  // Restore vectors
-  PetscCall(VecC2P(m_ceed, m_mem_type, M_loc));
-
-  // Local-to-Global
-  PetscCall(VecZeroEntries(M));
-  PetscCall(DMLocalToGlobal(dm, M_loc, ADD_VALUES, M));
-  PetscCall(DMRestoreLocalVector(dm, &M_loc));
+  PetscCall(DMGetLocalVector(dm, &Ones_loc));
+  PetscCall(VecSet(Ones_loc, 1));
+  PetscCall(ApplyCeedOperatorLocalToGlobal(Ones_loc, M, op_mass_ctx));
 
   // Invert diagonally lumped mass vector for RHS function
   PetscCall(VecReciprocal(M));
 
   // Cleanup
-  CeedVectorDestroy(&ones_vec);
-  CeedVectorDestroy(&m_ceed);
+  PetscCall(OperatorApplyContextDestroy(op_mass_ctx));
+  PetscCall(DMRestoreLocalVector(dm, &Ones_loc));
   CeedQFunctionDestroy(&qf_mass);
   CeedOperatorDestroy(&op_mass);
 
@@ -106,45 +93,22 @@ PetscErrorCode UpdateContextLabel(MPI_Comm comm, PetscScalar update_value, CeedO
 //   This is the RHS of the ODE, given as u_t = G(t,u)
 //   This function takes in a state vector Q and writes into G
 PetscErrorCode RHS_NS(TS ts, PetscReal t, Vec Q, Vec G, void *user_data) {
-  User         user = *(User *)user_data;
-  MPI_Comm     comm = PetscObjectComm((PetscObject)ts);
-  PetscScalar  dt;
-  Vec          Q_loc = user->Q_loc, G_loc;
-  PetscMemType q_mem_type, g_mem_type;
+  User        user = *(User *)user_data;
+  MPI_Comm    comm = PetscObjectComm((PetscObject)ts);
+  PetscScalar dt;
+  Vec         Q_loc = user->Q_loc;
   PetscFunctionBeginUser;
-
-  // Get local vector
-  PetscCall(DMGetLocalVector(user->dm, &G_loc));
 
   // Update time dependent data
   PetscCall(UpdateBoundaryValues(user, Q_loc, t));
-  if (user->phys->solution_time_label) PetscCall(UpdateContextLabel(comm, t, user->op_rhs, user->phys->solution_time_label));
+  if (user->phys->solution_time_label) PetscCall(UpdateContextLabel(comm, t, user->op_rhs_ctx->op, user->phys->solution_time_label));
   PetscCall(TSGetTimeStep(ts, &dt));
-  if (user->phys->timestep_size_label) PetscCall(UpdateContextLabel(comm, dt, user->op_rhs, user->phys->timestep_size_label));
+  if (user->phys->timestep_size_label) PetscCall(UpdateContextLabel(comm, dt, user->op_rhs_ctx->op, user->phys->timestep_size_label));
 
-  // Global-to-local
-  PetscCall(DMGlobalToLocal(user->dm, Q, INSERT_VALUES, Q_loc));
-
-  // Place PETSc vectors in CEED vectors
-  PetscCall(VecReadP2C(Q_loc, &q_mem_type, user->q_ceed));
-  PetscCall(VecP2C(G_loc, &g_mem_type, user->g_ceed));
-
-  // Apply CEED operator
-  CeedOperatorApply(user->op_rhs, user->q_ceed, user->g_ceed, CEED_REQUEST_IMMEDIATE);
-
-  // Restore vectors
-  PetscCall(VecReadC2P(user->q_ceed, q_mem_type, Q_loc));
-  PetscCall(VecC2P(user->g_ceed, g_mem_type, G_loc));
-
-  // Local-to-Global
-  PetscCall(VecZeroEntries(G));
-  PetscCall(DMLocalToGlobal(user->dm, G_loc, ADD_VALUES, G));
+  PetscCall(ApplyCeedOperatorGlobalToGlobal(Q, G, user->op_rhs_ctx));
 
   // Inverse of the lumped mass matrix (M is Minv)
-  PetscCall(VecPointwiseMult(G, G, user->M));
-
-  // Restore vectors
-  PetscCall(DMRestoreLocalVector(user->dm, &G_loc));
+  PetscCall(VecPointwiseMult(G, G, user->M_inv));
 
   PetscFunctionReturn(0);
 }
@@ -247,67 +211,6 @@ PetscErrorCode IFunction_NS(TS ts, PetscReal t, Vec Q, Vec Q_dot, Vec G, void *u
   PetscFunctionReturn(0);
 }
 
-static PetscErrorCode MatMult_NS_IJacobian(Mat J, Vec Q, Vec G) {
-  User               user;
-  const PetscScalar *q;
-  PetscScalar       *g;
-  PetscMemType       q_mem_type, g_mem_type;
-  PetscFunctionBeginUser;
-  PetscCall(MatShellGetContext(J, &user));
-  Vec Q_loc = user->Q_dot_loc,  // Note - Q_dot_loc has zero BCs
-      G_loc;
-
-  // Get local vectors
-  PetscCall(DMGetLocalVector(user->dm, &G_loc));
-
-  // Global-to-local
-  PetscCall(DMGlobalToLocal(user->dm, Q, INSERT_VALUES, Q_loc));
-
-  // Place PETSc vectors in CEED vectors
-  PetscCall(VecGetArrayReadAndMemType(Q_loc, &q, &q_mem_type));
-  PetscCall(VecGetArrayAndMemType(G_loc, &g, &g_mem_type));
-  CeedVectorSetArray(user->q_ceed, MemTypeP2C(q_mem_type), CEED_USE_POINTER, (PetscScalar *)q);
-  CeedVectorSetArray(user->g_ceed, MemTypeP2C(g_mem_type), CEED_USE_POINTER, g);
-
-  // Apply CEED operator
-  CeedOperatorApply(user->op_ijacobian, user->q_ceed, user->g_ceed, CEED_REQUEST_IMMEDIATE);
-
-  // Restore vectors
-  CeedVectorTakeArray(user->q_ceed, MemTypeP2C(q_mem_type), NULL);
-  CeedVectorTakeArray(user->g_ceed, MemTypeP2C(g_mem_type), NULL);
-  PetscCall(VecRestoreArrayReadAndMemType(Q_loc, &q));
-  PetscCall(VecRestoreArrayAndMemType(G_loc, &g));
-
-  // Local-to-Global
-  PetscCall(VecZeroEntries(G));
-  PetscCall(DMLocalToGlobal(user->dm, G_loc, ADD_VALUES, G));
-
-  // Restore vectors
-  PetscCall(DMRestoreLocalVector(user->dm, &G_loc));
-  PetscFunctionReturn(0);
-}
-
-PetscErrorCode MatGetDiagonal_NS_IJacobian(Mat A, Vec D) {
-  User         user;
-  Vec          D_loc;
-  PetscScalar *d;
-  PetscMemType mem_type;
-
-  PetscFunctionBeginUser;
-  MatShellGetContext(A, &user);
-  PetscCall(DMGetLocalVector(user->dm, &D_loc));
-  PetscCall(VecGetArrayAndMemType(D_loc, &d, &mem_type));
-  CeedVectorSetArray(user->g_ceed, MemTypeP2C(mem_type), CEED_USE_POINTER, d);
-  CeedOperatorLinearAssembleDiagonal(user->op_ijacobian, user->g_ceed, CEED_REQUEST_IMMEDIATE);
-  CeedVectorTakeArray(user->g_ceed, MemTypeP2C(mem_type), NULL);
-  PetscCall(VecRestoreArrayAndMemType(D_loc, &d));
-  PetscCall(VecZeroEntries(D));
-  PetscCall(DMLocalToGlobal(user->dm, D_loc, ADD_VALUES, D));
-  PetscCall(DMRestoreLocalVector(user->dm, &D_loc));
-  VecViewFromOptions(D, NULL, "-diag_vec_view");
-  PetscFunctionReturn(0);
-}
-
 static PetscErrorCode FormPreallocation(User user, PetscBool pbdiagonal, Mat J, CeedVector *coo_values) {
   PetscCount ncoo;
   PetscInt  *rows, *cols;
@@ -345,7 +248,7 @@ static PetscErrorCode FormSetValues(User user, PetscBool pbdiagonal, Mat J, Ceed
   PetscFunctionBeginUser;
   PetscCall(MatGetType(J, &mat_type));
   if (strstr(mat_type, "kokkos") || strstr(mat_type, "cusparse")) mem_type = CEED_MEM_DEVICE;
-  if (user->app_ctx->pmat_pbdiagonal) {
+  if (pbdiagonal) {
     CeedOperatorLinearAssemblePointBlockDiagonal(user->op_ijacobian, coo_values, CEED_REQUEST_IMMEDIATE);
   } else {
     CeedOperatorLinearAssemble(user->op_ijacobian, coo_values);
@@ -366,9 +269,13 @@ PetscErrorCode FormIJacobian_NS(TS ts, PetscReal t, Vec Q, Vec Q_dot, PetscReal 
   PetscCall(PetscObjectTypeCompare((PetscObject)J_pre, MATSHELL, &J_pre_is_shell));
   if (!user->matrices_set_up) {
     if (J_is_shell) {
-      PetscCall(MatShellSetContext(J, user));
-      PetscCall(MatShellSetOperation(J, MATOP_MULT, (void (*)(void))MatMult_NS_IJacobian));
-      PetscCall(MatShellSetOperation(J, MATOP_GET_DIAGONAL, (void (*)(void))MatGetDiagonal_NS_IJacobian));
+      OperatorApplyContext op_ijacobian_ctx;
+      OperatorApplyContextCreate(user->dm, user->dm, user->ceed, user->op_ijacobian, user->q_ceed, user->g_ceed, user->Q_dot_loc, NULL,
+                                 &op_ijacobian_ctx);
+      PetscCall(MatShellSetContext(J, op_ijacobian_ctx));
+      PetscCall(MatShellSetContextDestroy(J, (PetscErrorCode(*)(void *))OperatorApplyContextDestroy));
+      PetscCall(MatShellSetOperation(J, MATOP_MULT, (void (*)(void))MatMult_Ceed));
+      PetscCall(MatShellSetOperation(J, MATOP_GET_DIAGONAL, (void (*)(void))MatGetDiag_Ceed));
       PetscCall(MatSetUp(J));
     }
     if (!J_pre_is_shell) {
@@ -539,7 +446,7 @@ PetscErrorCode TSSolve_NS(DM dm, User user, AppCtx app_ctx, Physics phys, Vec *Q
       }
     }
   } else {
-    if (!user->op_rhs) SETERRQ(comm, PETSC_ERR_ARG_NULL, "Problem does not provide RHSFunction");
+    PetscCheck(user->op_rhs_ctx, comm, PETSC_ERR_ARG_NULL, "Problem does not provide RHSFunction");
     PetscCall(TSSetType(*ts, TSRK));
     PetscCall(TSRKSetType(*ts, TSRK5F));
     PetscCall(TSSetRHSFunction(*ts, NULL, RHS_NS, &user));
@@ -580,9 +487,9 @@ PetscErrorCode TSSolve_NS(DM dm, User user, AppCtx app_ctx, Physics phys, Vec *Q
     PetscCall(TSMonitorSet(*ts, TSMonitor_WallForce, user, NULL));
   }
   if (app_ctx->turb_spanstats_enable) {
-    PetscCall(TSMonitorSet(*ts, TSMonitor_Statistics, user, NULL));
+    PetscCall(TSMonitorSet(*ts, TSMonitor_TurbulenceStatistics, user, NULL));
     CeedScalar previous_time = app_ctx->cont_time * user->units->second;
-    CeedOperatorSetContextDouble(user->spanstats.op_stats_collect, user->spanstats.previous_time_label, &previous_time);
+    CeedOperatorSetContextDouble(user->spanstats.op_stats_collect_ctx->op, user->spanstats.previous_time_label, &previous_time);
   }
 
   // Solve

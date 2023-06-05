@@ -336,11 +336,14 @@ PetscErrorCode SetupLibceed(Ceed ceed, CeedData ceed_data, DM dm, User user, App
   CeedOperatorSetField(ceed_data->op_setup_vol, "qdata", ceed_data->elem_restr_qd_i, CEED_BASIS_COLLOCATED, CEED_VECTOR_ACTIVE);
 
   // -- Create CEED operator for ICs
-  CeedOperatorCreate(ceed, ceed_data->qf_ics, NULL, NULL, &ceed_data->op_ics);
-  CeedOperatorSetField(ceed_data->op_ics, "x", ceed_data->elem_restr_x, ceed_data->basis_xc, CEED_VECTOR_ACTIVE);
-  CeedOperatorSetField(ceed_data->op_ics, "qdata", ceed_data->elem_restr_qd_i, CEED_BASIS_COLLOCATED, ceed_data->q_data);
-  CeedOperatorSetField(ceed_data->op_ics, "q0", ceed_data->elem_restr_q, CEED_BASIS_COLLOCATED, CEED_VECTOR_ACTIVE);
-  CeedOperatorGetContextFieldLabel(ceed_data->op_ics, "evaluation time", &user->phys->ics_time_label);
+  CeedOperator op_ics;
+  CeedOperatorCreate(ceed, ceed_data->qf_ics, NULL, NULL, &op_ics);
+  CeedOperatorSetField(op_ics, "x", ceed_data->elem_restr_x, ceed_data->basis_xc, CEED_VECTOR_ACTIVE);
+  CeedOperatorSetField(op_ics, "qdata", ceed_data->elem_restr_qd_i, CEED_BASIS_COLLOCATED, ceed_data->q_data);
+  CeedOperatorSetField(op_ics, "q0", ceed_data->elem_restr_q, CEED_BASIS_COLLOCATED, CEED_VECTOR_ACTIVE);
+  CeedOperatorGetContextFieldLabel(op_ics, "evaluation time", &user->phys->ics_time_label);
+  PetscCall(OperatorApplyContextCreate(NULL, dm, user->ceed, op_ics, ceed_data->x_coord, NULL, NULL, user->Q_loc, &ceed_data->op_ics_ctx));
+  CeedOperatorDestroy(&op_ics);
 
   // Create CEED operator for RHS
   if (ceed_data->qf_rhs_vol) {
@@ -426,18 +429,23 @@ PetscErrorCode SetupLibceed(Ceed ceed, CeedData ceed_data, DM dm, User user, App
 
   // -- Create and apply CEED Composite Operator for the entire domain
   if (!user->phys->implicit) {  // RHS
-    PetscCall(CreateOperatorForDomain(ceed, dm, bc, ceed_data, user->phys, user->op_rhs_vol, NULL, height, P_sur, Q_sur, q_data_size_sur, 0,
-                                      &user->op_rhs, NULL));
+    CeedOperator op_rhs;
+    PetscCall(CreateOperatorForDomain(ceed, dm, bc, ceed_data, user->phys, user->op_rhs_vol, NULL, height, P_sur, Q_sur, q_data_size_sur, 0, &op_rhs,
+                                      NULL));
+    PetscCall(OperatorApplyContextCreate(dm, dm, ceed, op_rhs, user->q_ceed, user->g_ceed, user->Q_loc, NULL, &user->op_rhs_ctx));
+    CeedOperatorDestroy(&op_rhs);
   } else {  // IFunction
     PetscCall(CreateOperatorForDomain(ceed, dm, bc, ceed_data, user->phys, user->op_ifunction_vol, op_ijacobian_vol, height, P_sur, Q_sur,
                                       q_data_size_sur, jac_data_size_sur, &user->op_ifunction, op_ijacobian_vol ? &user->op_ijacobian : NULL));
     if (user->op_ijacobian) {
       CeedOperatorGetContextFieldLabel(user->op_ijacobian, "ijacobian time shift", &user->phys->ijacobian_time_shift_label);
     }
-    if (problem->use_dirichlet_ceed) {
-      PetscCall(SetupStrongBC_Ceed(ceed, ceed_data, dm, user, app_ctx, problem, bc, Q_sur, q_data_size_sur));
-    }
+    if (problem->use_strong_bc_ceed) PetscCall(SetupStrongBC_Ceed(ceed, ceed_data, dm, user, problem, bc, Q_sur, q_data_size_sur));
+    if (app_ctx->sgs_model_type == SGS_MODEL_DATA_DRIVEN) PetscCall(SGS_DD_ModelSetup(ceed, user, ceed_data, problem));
   }
+
+  if (app_ctx->turb_spanstats_enable) PetscCall(TurbulenceStatisticsSetup(ceed, user, ceed_data, problem));
+
   CeedElemRestrictionDestroy(&elem_restr_jd_i);
   CeedOperatorDestroy(&op_ijacobian_vol);
   CeedVectorDestroy(&jac_data);

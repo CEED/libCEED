@@ -138,21 +138,21 @@ struct AppCtx_private {
 
 // libCEED data struct
 struct CeedData_private {
-  CeedVector          x_coord, q_data;
-  CeedBasis           basis_x, basis_xc, basis_q, basis_x_sur, basis_q_sur, basis_xc_sur;
-  CeedElemRestriction elem_restr_x, elem_restr_q, elem_restr_qd_i;
-  CeedOperator        op_setup_vol, op_ics;
-  CeedQFunction       qf_setup_vol, qf_ics, qf_rhs_vol, qf_ifunction_vol, qf_setup_sur, qf_apply_inflow, qf_apply_inflow_jacobian, qf_apply_outflow,
+  CeedVector           x_coord, q_data;
+  CeedBasis            basis_x, basis_xc, basis_q, basis_x_sur, basis_q_sur, basis_xc_sur;
+  CeedElemRestriction  elem_restr_x, elem_restr_q, elem_restr_qd_i;
+  CeedOperator         op_setup_vol;
+  OperatorApplyContext op_ics_ctx;
+  CeedQFunction        qf_setup_vol, qf_ics, qf_rhs_vol, qf_ifunction_vol, qf_setup_sur, qf_apply_inflow, qf_apply_inflow_jacobian, qf_apply_outflow,
       qf_apply_outflow_jacobian, qf_apply_freestream, qf_apply_freestream_jacobian;
 };
 
 typedef struct {
   DM                    dm;
   PetscSF               sf;  // For communicating child data to parents
-  CeedOperator          op_stats_collect, op_stats_proj;
+  OperatorApplyContext  op_stats_collect_ctx, op_proj_rhs_ctx;
   PetscInt              num_comp_stats;
-  CeedVector            child_stats, parent_stats;  // collocated statistics data
-  CeedVector            rhs_ceed;
+  Vec                   Child_Stats_loc, Parent_Stats_loc;
   KSP                   ksp;         // For the L^2 projection solve
   CeedScalar            span_width;  // spanwise width of the child domain
   PetscBool             do_mms_test;
@@ -176,22 +176,23 @@ typedef struct {
 
 // PETSc user data
 struct User_private {
-  MPI_Comm            comm;
-  DM                  dm;
-  DM                  dm_viz;
-  Mat                 interp_viz;
-  Ceed                ceed;
-  Units               units;
-  Vec                 M, Q_loc, Q_dot_loc;
-  Physics             phys;
-  AppCtx              app_ctx;
-  CeedVector          q_ceed, q_dot_ceed, g_ceed, coo_values_amat, coo_values_pmat, x_ceed;
-  CeedOperator        op_rhs_vol, op_rhs, op_ifunction_vol, op_ifunction, op_ijacobian, op_dirichlet;
-  bool                matrices_set_up;
-  CeedScalar          time_bc_set;
-  Span_Stats          spanstats;
-  NodalProjectionData grad_velo_proj;
-  SGS_DD_Data         sgs_dd_data;
+  MPI_Comm             comm;
+  DM                   dm;
+  DM                   dm_viz;
+  Mat                  interp_viz;
+  Ceed                 ceed;
+  Units                units;
+  Vec                  M_inv, Q_loc, Q_dot_loc;
+  Physics              phys;
+  AppCtx               app_ctx;
+  CeedVector           q_ceed, q_dot_ceed, g_ceed, coo_values_amat, coo_values_pmat, x_ceed;
+  CeedOperator         op_rhs_vol, op_ifunction_vol, op_ifunction, op_ijacobian;
+  OperatorApplyContext op_rhs_ctx, op_strong_bc_ctx;
+  bool                 matrices_set_up;
+  CeedScalar           time_bc_set;
+  Span_Stats           spanstats;
+  NodalProjectionData  grad_velo_proj;
+  SGS_DD_Data          sgs_dd_data;
 };
 
 // Units
@@ -254,7 +255,7 @@ struct ProblemData_private {
   bool non_zero_time;
   PetscErrorCode (*bc)(PetscInt, PetscReal, const PetscReal[], PetscInt, PetscScalar[], void *);
   void     *bc_ctx;
-  PetscBool bc_from_ics, use_dirichlet_ceed;
+  PetscBool bc_from_ics, use_strong_bc_ceed;
   PetscErrorCode (*print_info)(ProblemData *, AppCtx);
 };
 
@@ -391,10 +392,9 @@ PetscErrorCode PHASTADatFileReadToArrayReal(const MPI_Comm comm, const char path
 // Turbulence Statistics Collection Functions
 // -----------------------------------------------------------------------------
 
-PetscErrorCode CreateStatsDM(User user, ProblemData *problem, PetscInt degree, SimpleBC bc);
-PetscErrorCode SetupStatsCollection(Ceed ceed, User user, CeedData ceed_data, ProblemData *problem);
-PetscErrorCode TSMonitor_Statistics(TS ts, PetscInt steps, PetscReal solution_time, Vec Q, void *ctx);
-PetscErrorCode DestroyStats(User user, CeedData ceed_data);
+PetscErrorCode TurbulenceStatisticsSetup(Ceed ceed, User user, CeedData ceed_data, ProblemData *problem);
+PetscErrorCode TSMonitor_TurbulenceStatistics(TS ts, PetscInt steps, PetscReal solution_time, Vec Q, void *ctx);
+PetscErrorCode TurbulenceStatisticsDestroy(User user, CeedData ceed_data);
 
 // -----------------------------------------------------------------------------
 // Data-Driven Subgrid Stress (DD-SGS) Modeling Functions
@@ -413,7 +413,7 @@ PetscErrorCode GridAnisotropyTensorProjectionSetupApply(Ceed ceed, User user, Ce
 // -----------------------------------------------------------------------------
 
 // Setup StrongBCs that use QFunctions
-PetscErrorCode SetupStrongBC_Ceed(Ceed ceed, CeedData ceed_data, DM dm, User user, AppCtx app_ctx, ProblemData *problem, SimpleBC bc, CeedInt Q_sur,
+PetscErrorCode SetupStrongBC_Ceed(Ceed ceed, CeedData ceed_data, DM dm, User user, ProblemData *problem, SimpleBC bc, CeedInt Q_sur,
                                   CeedInt q_data_size_sur);
 
 PetscErrorCode FreestreamBCSetup(ProblemData *problem, DM dm, void *ctx, NewtonianIdealGasContext newtonian_ig_ctx, const StatePrimitive *reference);

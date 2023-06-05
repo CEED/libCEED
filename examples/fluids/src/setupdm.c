@@ -77,10 +77,7 @@ PetscErrorCode SetUpDM(DM dm, ProblemData *problem, PetscInt degree, SimpleBC bc
     {
       PetscBool use_strongstg = PETSC_FALSE;
       PetscCall(PetscOptionsGetBool(NULL, NULL, "-stg_strong", &use_strongstg, NULL));
-
-      if (use_strongstg) {
-        PetscCall(SetupStrongSTG(dm, bc, problem, phys));
-      }
+      if (use_strongstg) PetscCall(SetupStrongSTG(dm, bc, problem, phys));
     }
 
     PetscCall(DMPlexSetClosurePermutationTensor(dm, PETSC_DETERMINE, NULL));

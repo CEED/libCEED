@@ -12,72 +12,144 @@
 
 #include "../navierstokes.h"
 
-// -----------------------------------------------------------------------------
-// Setup apply operator context data
-// -----------------------------------------------------------------------------
-PetscErrorCode OperatorApplyContextCreate(DM dm_x, DM dm_y, Ceed ceed, CeedOperator op_apply, CeedVector x_ceed, CeedVector y_ceed, Vec X_loc,
-                                          Vec Y_loc, OperatorApplyContext *op_apply_ctx) {
-  PetscFunctionBeginUser;
+// @brief Get information about a DM's local vector
+PetscErrorCode DMGetLocalVectorInfo(DM dm, PetscInt *local_size, PetscInt *global_size, VecType *vec_type) {
+  Vec V_loc;
 
+  PetscFunctionBeginUser;
+  PetscCall(DMGetLocalVector(dm, &V_loc));
+  if (local_size) PetscCall(VecGetLocalSize(V_loc, local_size));
+  if (global_size) PetscCall(VecGetSize(V_loc, global_size));
+  if (vec_type) PetscCall(VecGetType(V_loc, vec_type));
+  PetscCall(DMRestoreLocalVector(dm, &V_loc));
+  PetscFunctionReturn(0);
+}
+
+// @brief Get information about a DM's global vector
+PetscErrorCode DMGetGlobalVectorInfo(DM dm, PetscInt *local_size, PetscInt *global_size, VecType *vec_type) {
+  Vec V;
+
+  PetscFunctionBeginUser;
+  PetscCall(DMGetGlobalVector(dm, &V));
+  if (local_size) PetscCall(VecGetLocalSize(V, local_size));
+  if (global_size) PetscCall(VecGetSize(V, global_size));
+  if (vec_type) PetscCall(VecGetType(V, vec_type));
+  PetscCall(DMRestoreGlobalVector(dm, &V));
+  PetscFunctionReturn(0);
+}
+
+/**
+ * @brief Create OperatorApplyContext struct for applying FEM operator in a PETSc context
+ *
+ * All passed in objects are reference copied and may be destroyed if desired (with the exception of `CEED_VECTOR_NONE`).
+ * Resulting context should be destroyed with `OperatorApplyContextDestroy()`.
+ *
+ * @param[in]  dm_x     `DM` associated with the operator active input. May be `NULL`
+ * @param[in]  dm_y     `DM` associated with the operator active output. May be `NULL`
+ * @param[in]  ceed     `Ceed` object
+ * @param[in]  op_apply `CeedOperator` representing the local action of the FEM operator
+ * @param[in]  x_ceed   `CeedVector` for operator active input. May be `CEED_VECTOR_NONE` or `NULL`. If `NULL`, `CeedVector` will be automatically
+ *                      generated.
+ * @param[in]  y_ceed   `CeedVector` for operator active output. May be `CEED_VECTOR_NONE` or `NULL`. If `NULL`, `CeedVector` will be automatically
+ *                      generated.
+ * @param[in]  X_loc    Local `Vec` for operator active input. If `NULL`, vector will be obtained if needed at ApplyCeedOperator time.
+ * @param[in]  Y_loc    Local `Vec` for operator active output. If `NULL`, vector will be obtained if needed at ApplyCeedOperator time.
+ * @param[out] ctx      Struct containing all data necessary for applying the operator
+ */
+PetscErrorCode OperatorApplyContextCreate(DM dm_x, DM dm_y, Ceed ceed, CeedOperator op_apply, CeedVector x_ceed, CeedVector y_ceed, Vec X_loc,
+                                          Vec Y_loc, OperatorApplyContext *ctx) {
+  CeedSize x_size, y_size;
+
+  PetscFunctionBeginUser;
+  CeedOperatorGetActiveVectorLengths(op_apply, &x_size, &y_size);
   {  // Verify sizes
-    CeedSize x_size, y_size;
-    PetscInt X_size, Y_size;
-    CeedOperatorGetActiveVectorLengths(op_apply, &x_size, &y_size);
+    PetscInt X_size, Y_size, dm_X_size, dm_Y_size;
+    CeedSize x_ceed_size, y_ceed_size;
+    if (dm_x) PetscCall(DMGetLocalVectorInfo(dm_x, &dm_X_size, NULL, NULL));
+    if (dm_y) PetscCall(DMGetLocalVectorInfo(dm_y, &dm_Y_size, NULL, NULL));
     if (X_loc) {
       PetscCall(VecGetLocalSize(X_loc, &X_size));
       PetscCheck(X_size == x_size, PETSC_COMM_WORLD, PETSC_ERR_ARG_SIZ,
                  "X_loc (%" PetscInt_FMT ") not correct size for CeedOperator active input size (%" CeedSize_FMT ")", X_size, x_size);
+      if (dm_x)
+        PetscCheck(X_size == dm_X_size, PETSC_COMM_WORLD, PETSC_ERR_ARG_SIZ,
+                   "X_loc size (%" PetscInt_FMT ") does not match dm_x local vector size (%" PetscInt_FMT ")", X_size, dm_X_size);
     }
     if (Y_loc) {
       PetscCall(VecGetLocalSize(Y_loc, &Y_size));
       PetscCheck(Y_size == y_size, PETSC_COMM_WORLD, PETSC_ERR_ARG_SIZ,
                  "Y_loc (%" PetscInt_FMT ") not correct size for CeedOperator active output size (%" CeedSize_FMT ")", Y_size, y_size);
+      if (dm_y)
+        PetscCheck(Y_size == dm_Y_size, PETSC_COMM_WORLD, PETSC_ERR_ARG_SIZ,
+                   "Y_loc size (%" PetscInt_FMT ") does not match dm_y local vector size (%" PetscInt_FMT ")", Y_size, dm_Y_size);
+    }
+    if (x_ceed && x_ceed != CEED_VECTOR_NONE) {
+      CeedVectorGetLength(x_ceed, &x_ceed_size);
+      PetscCheck(x_size >= 0 ? x_ceed_size == x_size : true, PETSC_COMM_WORLD, PETSC_ERR_ARG_SIZ,
+                 "x_ceed (%" CeedSize_FMT ") not correct size for CeedOperator active input size (%" CeedSize_FMT ")", x_ceed_size, x_size);
+      if (dm_x)
+        PetscCheck(x_ceed_size == dm_X_size, PETSC_COMM_WORLD, PETSC_ERR_ARG_SIZ,
+                   "x_ceed size (%" CeedSize_FMT ") does not match dm_x local vector size (%" PetscInt_FMT ")", x_ceed_size, dm_X_size);
+    }
+    if (y_ceed && y_ceed != CEED_VECTOR_NONE) {
+      CeedVectorGetLength(y_ceed, &y_ceed_size);
+      PetscCheck(y_ceed_size == y_size, PETSC_COMM_WORLD, PETSC_ERR_ARG_SIZ,
+                 "y_ceed (%" CeedSize_FMT ") not correct size for CeedOperator active input size (%" CeedSize_FMT ")", y_ceed_size, y_size);
+      if (dm_y)
+        PetscCheck(y_ceed_size == dm_Y_size, PETSC_COMM_WORLD, PETSC_ERR_ARG_SIZ,
+                   "y_ceed size (%" CeedSize_FMT ") does not match dm_y local vector size (%" PetscInt_FMT ")", y_ceed_size, dm_Y_size);
     }
   }
 
-  PetscCall(PetscNew(op_apply_ctx));
+  PetscCall(PetscNew(ctx));
 
   // Copy PETSc Objects
   if (dm_x) PetscCall(PetscObjectReference((PetscObject)dm_x));
-  (*op_apply_ctx)->dm_x = dm_x;
+  (*ctx)->dm_x = dm_x;
   if (dm_y) PetscCall(PetscObjectReference((PetscObject)dm_y));
-  (*op_apply_ctx)->dm_y = dm_y;
+  (*ctx)->dm_y = dm_y;
 
   if (X_loc) PetscCall(PetscObjectReference((PetscObject)X_loc));
-  (*op_apply_ctx)->X_loc = X_loc;
+  (*ctx)->X_loc = X_loc;
   if (Y_loc) PetscCall(PetscObjectReference((PetscObject)Y_loc));
-  (*op_apply_ctx)->Y_loc = Y_loc;
+  (*ctx)->Y_loc = Y_loc;
 
   // Copy libCEED objects
-  if (x_ceed) CeedVectorReferenceCopy(x_ceed, &(*op_apply_ctx)->x_ceed);
-  if (y_ceed) CeedVectorReferenceCopy(y_ceed, &(*op_apply_ctx)->y_ceed);
-  CeedOperatorReferenceCopy(op_apply, &(*op_apply_ctx)->op);
-  CeedReferenceCopy(ceed, &(*op_apply_ctx)->ceed);
+  if (x_ceed) CeedVectorReferenceCopy(x_ceed, &(*ctx)->x_ceed);
+  else CeedVectorCreate(ceed, x_size, &(*ctx)->x_ceed);
+
+  if (y_ceed) CeedVectorReferenceCopy(y_ceed, &(*ctx)->y_ceed);
+  else CeedVectorCreate(ceed, y_size, &(*ctx)->y_ceed);
+
+  CeedOperatorReferenceCopy(op_apply, &(*ctx)->op);
+  CeedReferenceCopy(ceed, &(*ctx)->ceed);
 
   PetscFunctionReturn(0);
 }
 
-// -----------------------------------------------------------------------------
-// Destroy apply operator context data
-// -----------------------------------------------------------------------------
-PetscErrorCode OperatorApplyContextDestroy(OperatorApplyContext op_apply_ctx) {
+/**
+ * @brief Destroy OperatorApplyContext struct
+ *
+ * @param[in,out] ctx Context to destroy
+ */
+PetscErrorCode OperatorApplyContextDestroy(OperatorApplyContext ctx) {
   PetscFunctionBeginUser;
 
-  if (!op_apply_ctx) PetscFunctionReturn(0);
+  if (!ctx) PetscFunctionReturn(0);
 
   // Destroy PETSc Objects
-  PetscCall(DMDestroy(&op_apply_ctx->dm_x));
-  PetscCall(DMDestroy(&op_apply_ctx->dm_y));
-  PetscCall(VecDestroy(&op_apply_ctx->X_loc));
-  PetscCall(VecDestroy(&op_apply_ctx->Y_loc));
+  PetscCall(DMDestroy(&ctx->dm_x));
+  PetscCall(DMDestroy(&ctx->dm_y));
+  PetscCall(VecDestroy(&ctx->X_loc));
+  PetscCall(VecDestroy(&ctx->Y_loc));
 
   // Destroy libCEED Objects
-  CeedVectorDestroy(&op_apply_ctx->x_ceed);
-  CeedVectorDestroy(&op_apply_ctx->y_ceed);
-  CeedOperatorDestroy(&op_apply_ctx->op);
-  CeedDestroy(&op_apply_ctx->ceed);
+  CeedVectorDestroy(&ctx->x_ceed);
+  CeedVectorDestroy(&ctx->y_ceed);
+  CeedOperatorDestroy(&ctx->op);
+  CeedDestroy(&ctx->ceed);
 
-  PetscCall(PetscFree(op_apply_ctx));
+  PetscCall(PetscFree(ctx));
 
   PetscFunctionReturn(0);
 }
@@ -213,17 +285,56 @@ PetscErrorCode VecCopyP2C(Vec X_petsc, CeedVector x_ceed) {
   PetscFunctionReturn(0);
 }
 
+//@brief Return VecType for the given DM
+VecType DMReturnVecType(DM dm) {
+  VecType vec_type;
+  DMGetVecType(dm, &vec_type);
+  return vec_type;
+}
+
+/**
+ * @brief Create local PETSc Vecs for CeedOperator's active input/outputs
+ *
+ * This is primarily used for when the active input/ouput vector does not correspond to a `DM` object, and thus `DMCreateLocalVector` or
+ * `DMGetLocalVector` are not applicable.
+ * For example, if statitics are being store at quadrature points, a `DM`-created `Vec` will not have the
+ * correct size.
+ *
+ * @param[in]  dm     DM overwhich the Vecs would be used
+ * @param[in]  op     Operator to make the Vecs for
+ * @param[out] input  Vec for CeedOperator active input
+ * @param[out] output Vec for CeedOperator active output
+ */
+PetscErrorCode CeedOperatorCreateLocalVecs(CeedOperator op, VecType vec_type, MPI_Comm comm, Vec *input, Vec *output) {
+  CeedSize input_size, output_size;
+
+  PetscFunctionBeginUser;
+  CeedOperatorGetActiveVectorLengths(op, &input_size, &output_size);
+  if (input) {
+    PetscCall(VecCreate(comm, input));
+    PetscCall(VecSetType(*input, vec_type));
+    PetscCall(VecSetSizes(*input, input_size, input_size));
+  }
+  if (output) {
+    PetscCall(VecCreate(comm, output));
+    PetscCall(VecSetType(*output, vec_type));
+    PetscCall(VecSetSizes(*output, output_size, output_size));
+  }
+
+  PetscFunctionReturn(0);
+}
+
 /**
  * @brief Apply FEM Operator defined by `OperatorApplyContext` to various input and output vectors
  *
- * @param X             Input global `Vec`, maybe `NULL`
- * @param X_loc         Input local `Vec`, maybe `NULL`
- * @param x_ceed        Input `CeedVector`, maybe `CEED_VECTOR_NONE`
- * @param y_ceed        Output `CeedVector`, maybe `CEED_VECTOR_NONE`
- * @param Y_loc         Output local `Vec`, maybe `NULL`
- * @param Y             Output global `Vec`, maybe `NULL`
- * @param ctx           Context for the operator apply
- * @param use_apply_add Whether to use `CeedOperatorApply` or `CeedOperatorApplyAdd`
+ * @param[in]     X             Input global `Vec`, maybe `NULL`
+ * @param[in]     X_loc         Input local `Vec`, maybe `NULL`
+ * @param[in]     x_ceed        Input `CeedVector`, maybe `CEED_VECTOR_NONE`
+ * @param[in,out] y_ceed        Output `CeedVector`, maybe `CEED_VECTOR_NONE`
+ * @param[in,out] Y_loc         Output local `Vec`, maybe `NULL`
+ * @param[in,out] Y             Output global `Vec`, maybe `NULL`
+ * @param[in]     ctx           Context for the operator apply
+ * @param[in]     use_apply_add Whether to use `CeedOperatorApply` or `CeedOperatorApplyAdd`
  */
 PetscErrorCode ApplyCeedOperator_Core(Vec X, Vec X_loc, CeedVector x_ceed, CeedVector y_ceed, Vec Y_loc, Vec Y, OperatorApplyContext ctx,
                                       bool use_apply_add) {
@@ -297,6 +408,12 @@ PetscErrorCode ApplyCeedOperatorGlobalToLocal(Vec X, Vec Y_loc, OperatorApplyCon
   PetscFunctionReturn(0);
 }
 
+PetscErrorCode ApplyCeedOperatorLocalToLocal(Vec X_loc, Vec Y_loc, OperatorApplyContext ctx) {
+  PetscFunctionBeginUser;
+  PetscCall(ApplyCeedOperator_Core(NULL, X_loc, ctx->x_ceed, ctx->y_ceed, Y_loc, NULL, ctx, false));
+  PetscFunctionReturn(0);
+}
+
 PetscErrorCode ApplyAddCeedOperatorLocalToLocal(Vec X_loc, Vec Y_loc, OperatorApplyContext ctx) {
   PetscFunctionBeginUser;
   PetscCall(ApplyCeedOperator_Core(NULL, X_loc, ctx->x_ceed, ctx->y_ceed, Y_loc, NULL, ctx, true));
@@ -343,5 +460,35 @@ PetscErrorCode MatGetDiag_Ceed(Mat A, Vec D) {
   if (!ctx->Y_loc) PetscCall(DMRestoreLocalVector(ctx->dm_y, &Y_loc));
   PetscFunctionReturn(0);
 };
+
+/**
+ * @brief Create PETSc MatShell object for the corresponding OperatorApplyContext
+ *
+ * @param[in]  ctx Context that does the action of the operator
+ * @param[out] mat MatShell for the operator
+ */
+PetscErrorCode CreateMatShell_Ceed(OperatorApplyContext ctx, Mat *mat) {
+  MPI_Comm comm_x = PetscObjectComm((PetscObject)(ctx->dm_x));
+  MPI_Comm comm_y = PetscObjectComm((PetscObject)(ctx->dm_y));
+  PetscInt X_loc_size, X_size, Y_size, Y_loc_size;
+  VecType  X_vec_type, Y_vec_type;
+
+  PetscFunctionBeginUser;
+  PetscCheck(comm_x == comm_y, PETSC_COMM_WORLD, PETSC_ERR_ARG_NOTSAMECOMM, "Input and output DM must have the same comm");
+
+  PetscCall(DMGetGlobalVectorInfo(ctx->dm_x, &X_loc_size, &X_size, &X_vec_type));
+  PetscCall(DMGetGlobalVectorInfo(ctx->dm_y, &Y_loc_size, &Y_size, &Y_vec_type));
+
+  PetscCall(MatCreateShell(comm_x, Y_loc_size, X_loc_size, Y_size, X_size, ctx, mat));
+  PetscCall(MatShellSetContextDestroy(*mat, (PetscErrorCode(*)(void *))OperatorApplyContextDestroy));
+  PetscCall(MatShellSetOperation(*mat, MATOP_MULT, (void (*)(void))MatMult_Ceed));
+  PetscCall(MatShellSetOperation(*mat, MATOP_GET_DIAGONAL, (void (*)(void))MatGetDiag_Ceed));
+
+  PetscCheck(X_vec_type == Y_vec_type, PETSC_COMM_WORLD, PETSC_ERR_ARG_NOTSAMETYPE, "Vec_type of ctx->dm_x (%s) and ctx->dm_y (%s) must be the same",
+             X_vec_type, Y_vec_type);
+  PetscCall(MatShellSetVecType(*mat, X_vec_type));
+
+  PetscFunctionReturn(0);
+}
 
 // -----------------------------------------------------------------------------

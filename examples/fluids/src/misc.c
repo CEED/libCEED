@@ -21,7 +21,7 @@ PetscErrorCode ICs_FixMultiplicity(DM dm, CeedData ceed_data, User user, Vec Q_l
   // ---------------------------------------------------------------------------
   // Update time for evaluation
   // ---------------------------------------------------------------------------
-  if (user->phys->ics_time_label) CeedOperatorSetContextDouble(ceed_data->op_ics, user->phys->ics_time_label, &time);
+  if (user->phys->ics_time_label) CeedOperatorSetContextDouble(ceed_data->op_ics_ctx->op, user->phys->ics_time_label, &time);
 
   // ---------------------------------------------------------------------------
   // ICs
@@ -31,18 +31,7 @@ PetscErrorCode ICs_FixMultiplicity(DM dm, CeedData ceed_data, User user, Vec Q_l
   CeedElemRestrictionCreateVector(ceed_data->elem_restr_q, &q0_ceed, NULL);
 
   // -- Place PETSc vector in CEED vector
-  PetscMemType q0_mem_type;
-  PetscCall(VecP2C(Q_loc, &q0_mem_type, q0_ceed));
-
-  // -- Apply CEED Operator
-  CeedOperatorApply(ceed_data->op_ics, ceed_data->x_coord, q0_ceed, CEED_REQUEST_IMMEDIATE);
-
-  // -- Restore vectors
-  PetscCall(VecC2P(q0_ceed, q0_mem_type, Q_loc));
-
-  // -- Local-to-Global
-  PetscCall(VecZeroEntries(Q));
-  PetscCall(DMLocalToGlobal(dm, Q_loc, ADD_VALUES, Q));
+  PetscCall(ApplyCeedOperatorLocalToGlobal(NULL, Q, ceed_data->op_ics_ctx));
 
   // ---------------------------------------------------------------------------
   // Fix multiplicity for output of ICs
@@ -89,7 +78,7 @@ PetscErrorCode DMPlexInsertBoundaryValues_NS(DM dm, PetscBool insert_essential, 
   Vec Qbc, boundary_mask;
   PetscFunctionBegin;
 
-  // Mask (zero) Dirichlet entries
+  // Mask (zero) Strong BC entries
   PetscCall(DMGetNamedLocalVector(dm, "boundary mask", &boundary_mask));
   PetscCall(VecPointwiseMult(Q_loc, Q_loc, boundary_mask));
   PetscCall(DMRestoreNamedLocalVector(dm, "boundary mask", &boundary_mask));
@@ -265,35 +254,27 @@ int FreeContextPetsc(void *data) {
 
 // Return mass qfunction specification for number of components N
 PetscErrorCode CreateMassQFunction(Ceed ceed, CeedInt N, CeedInt q_data_size, CeedQFunction *qf) {
-  CeedQFunctionUser qfunction_ptr;
-  const char       *qfunction_loc;
   PetscFunctionBeginUser;
 
   switch (N) {
     case 1:
-      qfunction_ptr = Mass_1;
-      qfunction_loc = Mass_1_loc;
+      CeedQFunctionCreateInterior(ceed, 1, Mass_1, Mass_1_loc, qf);
       break;
     case 5:
-      qfunction_ptr = Mass_5;
-      qfunction_loc = Mass_5_loc;
+      CeedQFunctionCreateInterior(ceed, 1, Mass_5, Mass_5_loc, qf);
       break;
     case 7:
-      qfunction_ptr = Mass_7;
-      qfunction_loc = Mass_7_loc;
+      CeedQFunctionCreateInterior(ceed, 1, Mass_7, Mass_7_loc, qf);
       break;
     case 9:
-      qfunction_ptr = Mass_9;
-      qfunction_loc = Mass_9_loc;
+      CeedQFunctionCreateInterior(ceed, 1, Mass_9, Mass_9_loc, qf);
       break;
     case 22:
-      qfunction_ptr = Mass_22;
-      qfunction_loc = Mass_22_loc;
+      CeedQFunctionCreateInterior(ceed, 1, Mass_22, Mass_22_loc, qf);
       break;
     default:
-      SETERRQ(PETSC_COMM_WORLD, -1, "Could not find mass qfunction of size %d", N);
+      SETERRQ(PETSC_COMM_WORLD, PETSC_ERR_SUP, "Could not find mass qfunction of size %d", N);
   }
-  CeedQFunctionCreateInterior(ceed, 1, qfunction_ptr, qfunction_loc, qf);
 
   CeedQFunctionAddInput(*qf, "u", N, CEED_EVAL_INTERP);
   CeedQFunctionAddInput(*qf, "qdata", q_data_size, CEED_EVAL_NONE);
@@ -357,9 +338,7 @@ PetscErrorCode PHASTADatFileOpen(const MPI_Comm comm, const char path[PETSC_MAX_
   PetscCall(PetscFOpen(comm, path, "r", fp));
   PetscCall(PetscSynchronizedFGets(comm, *fp, char_array_len, line));
   PetscCall(PetscStrToArray(line, ' ', &ndims, &array));
-  if (ndims != 2) {
-    SETERRQ(comm, -1, "Found %" PetscInt_FMT " dimensions instead of 2 on the first line of %s", ndims, path);
-  }
+  PetscCheck(ndims == 2, comm, PETSC_ERR_FILE_UNEXPECTED, "Found %" PetscInt_FMT " dimensions instead of 2 on the first line of %s", ndims, path);
 
   for (PetscInt i = 0; i < ndims; i++) dims[i] = atoi(array[i]);
   PetscCall(PetscStrToArrayDestroy(ndims, array));
@@ -402,10 +381,9 @@ PetscErrorCode PHASTADatFileReadToArrayReal(MPI_Comm comm, const char path[PETSC
   for (PetscInt i = 0; i < dims[0]; i++) {
     PetscCall(PetscSynchronizedFGets(comm, fp, char_array_len, line));
     PetscCall(PetscStrToArray(line, ' ', &ndims, &row_array));
-    if (ndims < dims[1]) {
-      SETERRQ(comm, -1, "Line %" PetscInt_FMT " of %s does not contain enough columns (%" PetscInt_FMT " instead of %" PetscInt_FMT ")", i, path,
-              ndims, dims[1]);
-    }
+    PetscCheck(ndims == dims[1], comm, PETSC_ERR_FILE_UNEXPECTED,
+               "Line %" PetscInt_FMT " of %s does not contain enough columns (%" PetscInt_FMT " instead of %" PetscInt_FMT ")", i, path, ndims,
+               dims[1]);
 
     for (PetscInt j = 0; j < dims[1]; j++) {
       array[i * dims[1] + j] = (PetscReal)atof(row_array[j]);
