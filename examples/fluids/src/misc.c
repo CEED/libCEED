@@ -278,6 +278,10 @@ PetscErrorCode CreateMassQFunction(Ceed ceed, CeedInt N, CeedInt q_data_size, Ce
       qfunction_ptr = Mass_5;
       qfunction_loc = Mass_5_loc;
       break;
+    case 7:
+      qfunction_ptr = Mass_7;
+      qfunction_loc = Mass_7_loc;
+      break;
     case 9:
       qfunction_ptr = Mass_9;
       qfunction_loc = Mass_9_loc;
@@ -306,11 +310,109 @@ PetscErrorCode CreateMassQFunction(Ceed ceed, CeedInt N, CeedInt q_data_size, Ce
  * @param[in]  rhs_matop_ctx MatopApplyContext for performing the RHS evaluation
  * @param[in]  ksp           KSP for solving the consistent projection problem
  */
-PetscErrorCode ComputeL2Projection(Vec source_vec, Vec target_vec, MatopApplyContext rhs_matop_ctx, KSP ksp) {
+PetscErrorCode ComputeL2Projection(Vec source_vec, Vec target_vec, OperatorApplyContext rhs_matop_ctx, KSP ksp) {
   PetscFunctionBeginUser;
 
-  PetscCall(ApplyLocal_Ceed(source_vec, target_vec, rhs_matop_ctx));
+  PetscCall(ApplyCeedOperatorGlobalToGlobal(source_vec, target_vec, rhs_matop_ctx));
   PetscCall(KSPSolve(ksp, target_vec, target_vec));
+
+  PetscFunctionReturn(0);
+}
+
+PetscErrorCode NodalProjectionDataDestroy(NodalProjectionData context) {
+  PetscFunctionBeginUser;
+  if (context == NULL) PetscFunctionReturn(0);
+
+  PetscCall(DMDestroy(&context->dm));
+  PetscCall(KSPDestroy(&context->ksp));
+
+  PetscCall(OperatorApplyContextDestroy(context->l2_rhs_ctx));
+
+  PetscCall(PetscFree(context));
+
+  PetscFunctionReturn(0);
+}
+
+/*
+ * @brief Open a PHASTA *.dat file, grabbing dimensions and file pointer
+ *
+ * This function opens the file specified by `path` using `PetscFOpen` and passes the file pointer in `fp`.
+ * It is not closed in this function, thus `fp` must be closed sometime after this function has been called (using `PetscFClose` for example).
+ *
+ * Assumes that the first line of the file has the number of rows and columns as the only two entries, separated by a single space.
+ *
+ * @param[in]  comm           MPI_Comm for the program
+ * @param[in]  path           Path to the file
+ * @param[in]  char_array_len Length of the character array that should contain each line
+ * @param[out] dims           Dimensions of the file, taken from the first line of the file
+ * @param[out] fp File        pointer to the opened file
+ */
+PetscErrorCode PHASTADatFileOpen(const MPI_Comm comm, const char path[PETSC_MAX_PATH_LEN], const PetscInt char_array_len, PetscInt dims[2],
+                                 FILE **fp) {
+  PetscInt ndims;
+  char     line[char_array_len];
+  char   **array;
+
+  PetscFunctionBeginUser;
+  PetscCall(PetscFOpen(comm, path, "r", fp));
+  PetscCall(PetscSynchronizedFGets(comm, *fp, char_array_len, line));
+  PetscCall(PetscStrToArray(line, ' ', &ndims, &array));
+  if (ndims != 2) {
+    SETERRQ(comm, -1, "Found %" PetscInt_FMT " dimensions instead of 2 on the first line of %s", ndims, path);
+  }
+
+  for (PetscInt i = 0; i < ndims; i++) dims[i] = atoi(array[i]);
+  PetscCall(PetscStrToArrayDestroy(ndims, array));
+
+  PetscFunctionReturn(0);
+}
+
+/*
+ * @brief Get the number of rows for the PHASTA file at path.
+ *
+ * Assumes that the first line of the file has the number of rows and columns as the only two entries, separated by a single space.
+ *
+ * @param[in]  comm  MPI_Comm for the program
+ * @param[in]  path  Path to the file
+ * @param[out] nrows Number of rows
+ */
+PetscErrorCode PHASTADatFileGetNRows(const MPI_Comm comm, const char path[PETSC_MAX_PATH_LEN], PetscInt *nrows) {
+  const PetscInt char_array_len = 512;
+  PetscInt       dims[2];
+  FILE          *fp;
+
+  PetscFunctionBeginUser;
+  PetscCall(PHASTADatFileOpen(comm, path, char_array_len, dims, &fp));
+  *nrows = dims[0];
+  PetscCall(PetscFClose(comm, fp));
+
+  PetscFunctionReturn(0);
+}
+
+PetscErrorCode PHASTADatFileReadToArrayReal(MPI_Comm comm, const char path[PETSC_MAX_PATH_LEN], PetscReal array[]) {
+  PetscInt       ndims, dims[2];
+  FILE          *fp;
+  const PetscInt char_array_len = 512;
+  char           line[char_array_len];
+  char         **row_array;
+  PetscFunctionBeginUser;
+
+  PetscCall(PHASTADatFileOpen(comm, path, char_array_len, dims, &fp));
+
+  for (PetscInt i = 0; i < dims[0]; i++) {
+    PetscCall(PetscSynchronizedFGets(comm, fp, char_array_len, line));
+    PetscCall(PetscStrToArray(line, ' ', &ndims, &row_array));
+    if (ndims < dims[1]) {
+      SETERRQ(comm, -1, "Line %" PetscInt_FMT " of %s does not contain enough columns (%" PetscInt_FMT " instead of %" PetscInt_FMT ")", i, path,
+              ndims, dims[1]);
+    }
+
+    for (PetscInt j = 0; j < dims[1]; j++) {
+      array[i * dims[1] + j] = (PetscReal)atof(row_array[j]);
+    }
+  }
+
+  PetscCall(PetscFClose(comm, fp));
 
   PetscFunctionReturn(0);
 }

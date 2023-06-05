@@ -306,8 +306,7 @@ PetscErrorCode SetupLibceed(Ceed ceed, CeedData ceed_data, DM dm, User user, App
   CeedElemRestrictionCreateVector(ceed_data->elem_restr_x, &ceed_data->x_coord, NULL);
 
   // -- Copy PETSc vector in CEED vector
-  Vec                X_loc;
-  const PetscScalar *X_loc_array;
+  Vec X_loc;
   {
     DM cdm;
     PetscCall(DMGetCellCoordinateDM(dm, &cdm));
@@ -318,9 +317,7 @@ PetscErrorCode SetupLibceed(Ceed ceed, CeedData ceed_data, DM dm, User user, App
     }
   }
   PetscCall(VecScale(X_loc, problem->dm_scale));
-  PetscCall(VecGetArrayRead(X_loc, &X_loc_array));
-  CeedVectorSetArray(ceed_data->x_coord, CEED_MEM_HOST, CEED_COPY_VALUES, (PetscScalar *)X_loc_array);
-  PetscCall(VecRestoreArrayRead(X_loc, &X_loc_array));
+  PetscCall(VecCopyP2C(X_loc, ceed_data->x_coord));
 
   // -----------------------------------------------------------------------------
   // CEED vectors

@@ -13,7 +13,7 @@
 #include <petscdmplex.h>
 #include <petscsf.h>
 
-#include "../include/matops.h"
+#include "../include/petsc_ops.h"
 #include "../navierstokes.h"
 
 typedef struct {
@@ -172,11 +172,9 @@ PetscErrorCode GetQuadratureCoords(Ceed ceed, DM dm, CeedElemRestriction elem_re
 }
 
 PetscErrorCode SpanStatsSetupDataCreate(Ceed ceed, User user, CeedData ceed_data, ProblemData *problem, SpanStatsSetupData *stats_data) {
-  DM                 dm = user->spanstats.dm;
-  CeedInt            dim, P, Q, num_comp_x, num_comp_stats = user->spanstats.num_comp_stats;
-  Vec                X_loc;
-  PetscMemType       X_loc_memtype;
-  const PetscScalar *X_loc_array;
+  DM      dm = user->spanstats.dm;
+  CeedInt dim, P, Q, num_comp_x, num_comp_stats = user->spanstats.num_comp_stats;
+  Vec     X_loc;
   PetscFunctionBeginUser;
 
   PetscCall(PetscNew(stats_data));
@@ -209,9 +207,7 @@ PetscErrorCode SpanStatsSetupDataCreate(Ceed ceed, User user, CeedData ceed_data
     }
   }
   PetscCall(VecScale(X_loc, problem->dm_scale));
-  PetscCall(VecGetArrayReadAndMemType(X_loc, &X_loc_array, &X_loc_memtype));
-  CeedVectorSetArray((*stats_data)->x_coord, MemTypeP2C(X_loc_memtype), CEED_COPY_VALUES, (PetscScalar *)X_loc_array);
-  PetscCall(VecRestoreArrayRead(X_loc, &X_loc_array));
+  PetscCall(VecCopyP2C(X_loc, (*stats_data)->x_coord));
 
   PetscFunctionReturn(0);
 }
@@ -320,13 +316,13 @@ PetscErrorCode SetupL2ProjectionStats(Ceed ceed, User user, CeedData ceed_data, 
   CeedOperatorSetField(op_mass, "v", stats_data->elem_restr_parent_stats, stats_data->basis_stats, CEED_VECTOR_ACTIVE);
 
   {  // Setup KSP for L^2 projection
-    MatopApplyContext M_ctx;
-    PetscInt          l_size, g_size;
-    Mat               mat_mass;
-    VecType           vec_type;
-    KSP               ksp;
-    Vec               M_inv;
-    CeedVector        x_ceed, y_ceed;
+    OperatorApplyContext M_ctx;
+    PetscInt             l_size, g_size;
+    Mat                  mat_mass;
+    VecType              vec_type;
+    KSP                  ksp;
+    Vec                  M_inv;
+    CeedVector           x_ceed, y_ceed;
 
     PetscCall(DMGetGlobalVector(user->spanstats.dm, &M_inv));
     PetscCall(VecGetLocalSize(M_inv, &l_size));
@@ -336,12 +332,12 @@ PetscErrorCode SetupL2ProjectionStats(Ceed ceed, User user, CeedData ceed_data, 
 
     CeedElemRestrictionCreateVector(stats_data->elem_restr_parent_stats, &x_ceed, NULL);
     CeedElemRestrictionCreateVector(stats_data->elem_restr_parent_stats, &y_ceed, NULL);
-    PetscCall(MatopApplyContextCreate(user->spanstats.dm, user->spanstats.dm, user->ceed, op_mass, x_ceed, y_ceed, NULL, NULL, &M_ctx));
+    PetscCall(OperatorApplyContextCreate(user->spanstats.dm, user->spanstats.dm, user->ceed, op_mass, x_ceed, y_ceed, NULL, NULL, &M_ctx));
     CeedVectorDestroy(&x_ceed);
     CeedVectorDestroy(&y_ceed);
 
     PetscCall(MatCreateShell(comm, l_size, l_size, g_size, g_size, M_ctx, &mat_mass));
-    PetscCall(MatShellSetContextDestroy(mat_mass, (PetscErrorCode(*)(void *))MatopApplyContextDestroy));
+    PetscCall(MatShellSetContextDestroy(mat_mass, (PetscErrorCode(*)(void *))OperatorApplyContextDestroy));
     PetscCall(MatShellSetOperation(mat_mass, MATOP_MULT, (void (*)(void))MatMult_Ceed));
     PetscCall(MatShellSetOperation(mat_mass, MATOP_GET_DIAGONAL, (void (*)(void))MatGetDiag_Ceed));
     PetscCall(MatShellSetVecType(mat_mass, vec_type));
@@ -459,8 +455,8 @@ PetscErrorCode SetupMMSErrorChecking(Ceed ceed, User user, CeedData ceed_data, S
 
   CeedElemRestrictionCreateVector(stats_data->elem_restr_parent_stats, &x_ceed, NULL);
   CeedElemRestrictionCreateVector(stats_data->elem_restr_parent_stats, &y_ceed, NULL);
-  PetscCall(MatopApplyContextCreate(user->spanstats.dm, user->spanstats.dm, user->ceed, op_error, x_ceed, y_ceed, NULL, NULL,
-                                    &user->spanstats.mms_error_ctx));
+  PetscCall(OperatorApplyContextCreate(user->spanstats.dm, user->spanstats.dm, user->ceed, op_error, x_ceed, y_ceed, NULL, NULL,
+                                       &user->spanstats.mms_error_ctx));
 
   CeedOperatorDestroy(&op_error);
   CeedQFunctionDestroy(&qf_error);
@@ -629,7 +625,7 @@ PetscErrorCode TSMonitor_Statistics(TS ts, PetscInt steps, PetscReal solution_ti
       if (user->spanstats.do_mms_test && reason != TS_CONVERGED_ITERATING) {
         Vec error;
         PetscCall(VecDuplicate(stats, &error));
-        PetscCall(ApplyLocal_Ceed(stats, error, user->spanstats.mms_error_ctx));
+        PetscCall(ApplyCeedOperatorGlobalToGlobal(stats, error, user->spanstats.mms_error_ctx));
         PetscScalar error_sq = 0;
         PetscCall(VecSum(error, &error_sq));
         PetscScalar l2_error = sqrt(error_sq);
@@ -652,7 +648,7 @@ PetscErrorCode DestroyStats(User user, CeedData ceed_data) {
   // -- CeedOperators
   CeedOperatorDestroy(&user->spanstats.op_stats_collect);
   CeedOperatorDestroy(&user->spanstats.op_stats_proj);
-  PetscCall(MatopApplyContextDestroy(user->spanstats.mms_error_ctx));
+  PetscCall(OperatorApplyContextDestroy(user->spanstats.mms_error_ctx));
 
   // -- KSP
   PetscCall(KSPDestroy(&user->spanstats.ksp));

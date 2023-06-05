@@ -18,6 +18,7 @@
 //     ./navierstokes -ceed /cpu/self -problem density_current -degree 1
 //     ./navierstokes -ceed /gpu/cuda -problem advection -degree 1
 //
+//TESTARGS(name="blasius_SGS_DataDriven") -ceed {ceed_resource} -test_type solver -options_file examples/fluids/tests-output/blasius_stgtest.yaml -sgs_model_type data_driven -sgs_model_dd_leakyrelu_alpha 0.3 -sgs_model_dd_parameter_dir examples/fluids/dd_sgs_data -ts_dt 1e-9 -compare_final_state_atol 2e-12 -compare_final_state_filename examples/fluids/tests-output/fluids-navierstokes-blasius-sgs-data-driven.bin -state_var primitive
 //TESTARGS(name="gaussianwave_idl") -ceed {ceed_resource} -test_type solver -options_file examples/fluids/gaussianwave.yaml -compare_final_state_atol 2e-11 -compare_final_state_filename examples/fluids/tests-output/fluids-navierstokes-gaussianwave-IDL.bin -dm_plex_box_faces 5,5,1 -ts_max_steps 5 -idl_decay_time 2e-3 -idl_length 0.25 -idl_start 0
 //TESTARGS(name="turb_spanstats") -ceed {ceed_resource} -test_type turb_spanstats -options_file examples/fluids/tests-output/stats_test.yaml -compare_final_state_atol 1E-11 -compare_final_state_filename examples/fluids/tests-output/fluids-navierstokes-turb-spanstats-stats.bin
 //TESTARGS(name="blasius") -ceed {ceed_resource} -test_type solver -options_file examples/fluids/tests-output/blasius_test.yaml -compare_final_state_atol 2E-11 -compare_final_state_filename examples/fluids/tests-output/fluids-navierstokes-blasius.bin
@@ -174,9 +175,8 @@ int main(int argc, char **argv) {
   // -- Set up libCEED objects
   PetscCall(SetupLibceed(ceed, ceed_data, dm, user, app_ctx, problem, bc));
 
-  if (app_ctx->turb_spanstats_enable) {
-    PetscCall(SetupStatsCollection(ceed, user, ceed_data, problem));
-  }
+  if (app_ctx->turb_spanstats_enable) PetscCall(SetupStatsCollection(ceed, user, ceed_data, problem));
+  if (app_ctx->sgs_model_type == SGS_MODEL_DATA_DRIVEN) PetscCall(SGS_DD_ModelSetup(ceed, user, ceed_data, problem));
 
   // ---------------------------------------------------------------------------
   // Set up ICs
@@ -324,6 +324,8 @@ int main(int argc, char **argv) {
   // ---------------------------------------------------------------------------
 
   PetscCall(DestroyStats(user, ceed_data));
+  PetscCall(NodalProjectionDataDestroy(user->grad_velo_proj));
+  PetscCall(SGS_DD_DataDestroy(user->sgs_dd_data));
 
   // -- Vectors
   CeedVectorDestroy(&ceed_data->x_coord);

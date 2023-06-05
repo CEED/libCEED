@@ -520,7 +520,7 @@ CEED_QFUNCTION_HELPER int RiemannOutflow(void *ctx, CeedInt Q, const CeedScalar 
     }
 
     CeedScalar strain_rate[6], kmstress[6], stress[3][3], Fe[3];
-    KMStrainRate(grad_s, strain_rate);
+    KMStrainRate_State(grad_s, strain_rate);
     NewtonianStress(gas, strain_rate, kmstress);
     KMUnpack(kmstress, stress);
     ViscousEnergyFlux(gas, s_int.Y, grad_s, stress, Fe);
@@ -610,7 +610,7 @@ CEED_QFUNCTION_HELPER int RiemannOutflow_Jacobian(void *ctx, CeedInt Q, const Ce
     }
 
     CeedScalar dstrain_rate[6], dkmstress[6], stress[3][3], dstress[3][3], dFe[3];
-    KMStrainRate(grad_ds, dstrain_rate);
+    KMStrainRate_State(grad_ds, dstrain_rate);
     NewtonianStress(gas, dstrain_rate, dkmstress);
     KMUnpack(dkmstress, dstress);
     KMUnpack(kmstress, stress);
@@ -688,7 +688,7 @@ CEED_QFUNCTION_HELPER int PressureOutflow(void *ctx, CeedInt Q, const CeedScalar
     }
 
     CeedScalar strain_rate[6], kmstress[6], stress[3][3], Fe[3];
-    KMStrainRate(grad_s, strain_rate);
+    KMStrainRate_State(grad_s, strain_rate);
     NewtonianStress(gas, strain_rate, kmstress);
     KMUnpack(kmstress, stress);
     ViscousEnergyFlux(gas, s.Y, grad_s, stress, Fe);
@@ -764,7 +764,7 @@ CEED_QFUNCTION_HELPER int PressureOutflow_Jacobian(void *ctx, CeedInt Q, const C
     }
 
     CeedScalar dstrain_rate[6], dkmstress[6], stress[3][3], dstress[3][3], dFe[3];
-    KMStrainRate(grad_ds, dstrain_rate);
+    KMStrainRate_State(grad_ds, dstrain_rate);
     NewtonianStress(gas, dstrain_rate, dkmstress);
     KMUnpack(dkmstress, dstress);
     KMUnpack(kmstress, stress);
