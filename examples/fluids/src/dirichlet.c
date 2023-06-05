@@ -5,6 +5,9 @@
 //
 // This file is part of CEED:  http://github.com/ceed
 
+#include <ceed.h>
+#include <petscdmplex.h>
+
 #include "../navierstokes.h"
 #include "../problems/stg_shur14.h"
 #include "../qfunctions/dirichlet_boundary.h"
@@ -119,7 +122,7 @@ PetscErrorCode SetupStrongSTG_Ceed(Ceed ceed, CeedData ceed_data, DM dm, AppCtx 
     CeedOperatorDestroy(&op_stgdata);
   }
 
-  CeedOperatorContextGetFieldLabel(op_dirichlet, "solution time", &phys->stg_solution_time_label);
+  CeedOperatorGetContextFieldLabel(op_dirichlet, "solution time", &phys->stg_solution_time_label);
 
   CeedBasisDestroy(&basis_x_to_q_sur);
   CeedQFunctionDestroy(&qf_setup);
@@ -131,14 +134,13 @@ PetscErrorCode DMPlexInsertBoundaryValues_StrongBCCeed(DM dm, PetscBool insert_e
                                                        Vec cell_geom_FVM, Vec grad_FVM) {
   Vec          boundary_mask;
   User         user;
-  PetscScalar *q;
   PetscMemType q_mem_type;
   PetscFunctionBeginUser;
 
   PetscCall(DMGetApplicationContext(dm, &user));
 
   if (user->phys->stg_solution_time_label) {
-    CeedOperatorContextSetDouble(user->op_dirichlet, user->phys->stg_solution_time_label, &time);
+    CeedOperatorSetContextDouble(user->op_dirichlet, user->phys->stg_solution_time_label, &time);
   }
 
   // Mask Dirichlet entries
@@ -147,15 +149,13 @@ PetscErrorCode DMPlexInsertBoundaryValues_StrongBCCeed(DM dm, PetscBool insert_e
   PetscCall(DMRestoreNamedLocalVector(dm, "boundary mask", &boundary_mask));
 
   // Setup libCEED vector
-  PetscCall(VecGetArrayAndMemType(Q_loc, &q, &q_mem_type));
-  CeedVectorSetArray(user->q_ceed, MemTypeP2C(q_mem_type), CEED_USE_POINTER, q);
+  PetscCall(VecP2C(Q_loc, &q_mem_type, user->q_ceed));
 
   // Apply libCEED operator
   CeedOperatorApplyAdd(user->op_dirichlet, CEED_VECTOR_NONE, user->q_ceed, CEED_REQUEST_IMMEDIATE);
 
   // Restore PETSc vectors
-  CeedVectorTakeArray(user->q_ceed, MemTypeP2C(q_mem_type), NULL);
-  PetscCall(VecRestoreArrayAndMemType(Q_loc, &q));
+  PetscCall(VecC2P(user->q_ceed, q_mem_type, Q_loc));
 
   PetscFunctionReturn(0);
 }

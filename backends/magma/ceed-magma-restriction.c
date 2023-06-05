@@ -5,8 +5,8 @@
 //
 // This file is part of CEED:  http://github.com/ceed
 
+#include <ceed.h>
 #include <ceed/backend.h>
-#include <ceed/ceed.h>
 #include <ceed/jit-tools.h>
 #include <string.h>
 
@@ -112,9 +112,9 @@ static int CeedElemRestrictionApply_Magma(CeedElemRestriction r, CeedTransposeMo
 
 int CeedElemRestrictionApplyBlock_Magma(CeedElemRestriction r, CeedInt block, CeedTransposeMode tmode, CeedVector u, CeedVector v,
                                         CeedRequest *request) {
+  // LCOV_EXCL_START
   Ceed ceed;
   CeedCallBackend(CeedElemRestrictionGetCeed(r, &ceed));
-  // LCOV_EXCL_START
   return CeedError(ceed, CEED_ERROR_BACKEND, "Backend does not implement blocked restrictions");
   // LCOV_EXCL_STOP
 }
@@ -180,66 +180,76 @@ int CeedElemRestrictionCreate_Magma(CeedMemType mtype, CeedCopyMode cmode, const
   impl->own_     = OWNED_NONE;
   impl->down_    = 0;
 
-  if (mtype == CEED_MEM_HOST) {
-    // memory is on the host; own_ = 0
-    switch (cmode) {
-      case CEED_COPY_VALUES:
-        impl->own_ = OWNED_PINNED;
+  switch (mtype) {
+    case CEED_MEM_HOST: {
+      // memory is on the host; own_ = 0
+      switch (cmode) {
+        case CEED_COPY_VALUES:
+          impl->own_ = OWNED_PINNED;
 
-        if (offsets != NULL) {
+          if (offsets != NULL) {
+            CeedCallBackend(magma_malloc((void **)&impl->doffsets, size * sizeof(CeedInt)));
+            CeedCallBackend(magma_malloc_pinned((void **)&impl->offsets, size * sizeof(CeedInt)));
+            memcpy(impl->offsets, offsets, size * sizeof(CeedInt));
+
+            magma_setvector(size, sizeof(CeedInt), offsets, 1, impl->doffsets, 1, data->queue);
+          }
+          break;
+        case CEED_OWN_POINTER:
+          impl->own_ = OWNED_UNPINNED;
+
+          if (offsets != NULL) {
+            CeedCallBackend(magma_malloc((void **)&impl->doffsets, size * sizeof(CeedInt)));
+            impl->offsets = (CeedInt *)offsets;
+
+            magma_setvector(size, sizeof(CeedInt), offsets, 1, impl->doffsets, 1, data->queue);
+          }
+          break;
+        case CEED_USE_POINTER:
+          if (offsets != NULL) {
+            CeedCallBackend(magma_malloc((void **)&impl->doffsets, size * sizeof(CeedInt)));
+            magma_setvector(size, sizeof(CeedInt), offsets, 1, impl->doffsets, 1, data->queue);
+          }
+          impl->down_   = 1;
+          impl->offsets = (CeedInt *)offsets;
+      }
+      break;
+    }
+    case CEED_MEM_DEVICE: {
+      // memory is on the device; own = 0
+      switch (cmode) {
+        case CEED_COPY_VALUES:
           CeedCallBackend(magma_malloc((void **)&impl->doffsets, size * sizeof(CeedInt)));
           CeedCallBackend(magma_malloc_pinned((void **)&impl->offsets, size * sizeof(CeedInt)));
-          memcpy(impl->offsets, offsets, size * sizeof(CeedInt));
+          impl->own_ = OWNED_PINNED;
 
-          magma_setvector(size, sizeof(CeedInt), offsets, 1, impl->doffsets, 1, data->queue);
-        }
-        break;
-      case CEED_OWN_POINTER:
-        impl->own_ = OWNED_UNPINNED;
+          if (offsets) magma_getvector(size, sizeof(CeedInt), impl->doffsets, 1, (void *)offsets, 1, data->queue);
+          break;
+        case CEED_OWN_POINTER:
+          impl->doffsets = (CeedInt *)offsets;
+          CeedCallBackend(magma_malloc_pinned((void **)&impl->offsets, size * sizeof(CeedInt)));
+          impl->own_ = OWNED_PINNED;
 
-        if (offsets != NULL) {
-          CeedCallBackend(magma_malloc((void **)&impl->doffsets, size * sizeof(CeedInt)));
-          impl->offsets = (CeedInt *)offsets;
-
-          magma_setvector(size, sizeof(CeedInt), offsets, 1, impl->doffsets, 1, data->queue);
-        }
-        break;
-      case CEED_USE_POINTER:
-        if (offsets != NULL) {
-          CeedCallBackend(magma_malloc((void **)&impl->doffsets, size * sizeof(CeedInt)));
-          magma_setvector(size, sizeof(CeedInt), offsets, 1, impl->doffsets, 1, data->queue);
-        }
-        impl->down_   = 1;
-        impl->offsets = (CeedInt *)offsets;
+          break;
+        case CEED_USE_POINTER:
+          impl->doffsets = (CeedInt *)offsets;
+          impl->offsets  = NULL;
+      }
+      break;
     }
-  } else if (mtype == CEED_MEM_DEVICE) {
-    // memory is on the device; own = 0
-    switch (cmode) {
-      case CEED_COPY_VALUES:
-        CeedCallBackend(magma_malloc((void **)&impl->doffsets, size * sizeof(CeedInt)));
-        CeedCallBackend(magma_malloc_pinned((void **)&impl->offsets, size * sizeof(CeedInt)));
-        impl->own_ = OWNED_PINNED;
-
-        if (offsets) magma_getvector(size, sizeof(CeedInt), impl->doffsets, 1, (void *)offsets, 1, data->queue);
-        break;
-      case CEED_OWN_POINTER:
-        impl->doffsets = (CeedInt *)offsets;
-        CeedCallBackend(magma_malloc_pinned((void **)&impl->offsets, size * sizeof(CeedInt)));
-        impl->own_ = OWNED_PINNED;
-
-        break;
-      case CEED_USE_POINTER:
-        impl->doffsets = (CeedInt *)offsets;
-        impl->offsets  = NULL;
-    }
-
-  } else return CeedError(ceed, CEED_ERROR_BACKEND, "Only MemType = HOST or DEVICE supported");
+    // LCOV_EXCL_START
+    default:
+      return CeedError(ceed, CEED_ERROR_BACKEND, "Only MemType = HOST or DEVICE supported");
+      // LCOV_EXCL_STOP
+  }
   // Compile kernels
   char *magma_common_path;
   char *restriction_kernel_path, *restriction_kernel_source;
-  CeedCallBackend(CeedGetJitAbsolutePath(ceed, "ceed/jit-source/magma/magma_common_device.h", &magma_common_path));
+  CeedCallBackend(CeedGetJitAbsolutePath(ceed, "ceed/jit-source/magma/magma_common_defs.h", &magma_common_path));
   CeedDebug256(ceed, 2, "----- Loading Restriction Kernel Source -----\n");
   CeedCallBackend(CeedLoadSourceToBuffer(ceed, magma_common_path, &restriction_kernel_source));
+  CeedCallBackend(CeedGetJitAbsolutePath(ceed, "ceed/jit-source/magma/magma_common_tensor.h", &magma_common_path));
+  CeedCallBackend(CeedLoadSourceToInitializedBuffer(ceed, magma_common_path, &restriction_kernel_source));
   CeedCallBackend(CeedGetJitAbsolutePath(ceed, "ceed/jit-source/magma/elem_restriction.h", &restriction_kernel_path));
   CeedCallBackend(CeedLoadSourceToInitializedBuffer(ceed, restriction_kernel_path, &restriction_kernel_source));
   CeedDebug256(ceed, 2, "----- Loading Restriction Kernel Source Complete! -----\n");
@@ -271,9 +281,5 @@ int CeedElemRestrictionCreate_Magma(CeedMemType mtype, CeedCopyMode cmode, const
 int CeedElemRestrictionCreateBlocked_Magma(const CeedMemType mtype, const CeedCopyMode cmode, const CeedInt *offsets, const CeedElemRestriction r) {
   Ceed ceed;
   CeedCallBackend(CeedElemRestrictionGetCeed(r, &ceed));
-  // LCOV_EXCL_START
   return CeedError(ceed, CEED_ERROR_BACKEND, "Backend does not implement blocked restrictions");
-  // LCOV_EXCL_STOP
-
-  return CEED_ERROR_SUCCESS;
 }

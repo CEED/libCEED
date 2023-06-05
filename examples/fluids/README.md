@@ -36,9 +36,9 @@ The following options are common among all problem types:
   - CEED resource specifier
   - `/cpu/self/opt/blocked`
 
-* - `-test`
-  - Run in test mode
-  - `false`
+* - `-test_type`
+  - Run in test mode and specify whether solution (`solver`) or turbulent statistics (`turb_spanstats`) output should be verified
+  - `none`
 
 * - `-compare_final_state_atol`
   - Test absolute tolerance
@@ -140,6 +140,26 @@ The following options are common among all problem types:
   - Use freestream boundary conditions on this list of faces
   -
 
+* - `-ts_monitor_turbulence_spanstats_collect_interval`
+  - Number of timesteps between statistics collection
+  - `1`
+
+* - `-ts_monitor_turbulence_spanstats_viewer`
+  - Sets the PetscViewer for the statistics file writing, such as `cgns:output-%d.cgns` (requires PETSc `--download-cgns`). Also turns the statistics collection on.
+  -
+
+* - `-ts_monitor_turbulence_spanstats_viewer_interval`
+  - Number of timesteps between statistics file writing (`-1` means only at end of run)
+  - `-1`
+
+* - `-ts_monitor_turbulence_spanstats_viewer_cgns_batch_size`
+  - Number of frames written per CGNS file if the CGNS file name includes a format specifier (`%d`).
+  - `20`
+
+* - `-ts_monitor_wall_force`
+  - Viewer for the force on each no-slip wall, e.g., `ascii:force.csv:ascii_csv` to write a CSV file.
+  -
+
 * - `-snes_view`
   - View PETSc `SNES` nonlinear solver configuration
   -
@@ -178,7 +198,7 @@ For the case of a square/cubic mesh, the list of face indices to be used with `-
   - 4
 :::
 
-:::{list-table} 2D Face ID Labels
+:::{list-table} 3D Face ID Labels
 :header-rows: 1
 * - PETSc Face Name
   - Cartesian direction
@@ -224,11 +244,11 @@ These conditions may be either weak or strong, with the latter specifying veloci
 The strong approach gives sharper resolution of velocity structures.
 We have described the primitive variable formulation here; the conservative variants are similar, but not equivalent.
 
-### Outflow
+#### Outflow
 
 If you know the complete exterior state, `bc_freestream` is the least reflective boundary condition, but is disruptive to viscous flow structures.
 If thermal anomalies must exit the domain, the Riemann solver must resolve the contact wave to avoid reflections.
-The default Riemann solver, HLLC, is sufficient in this regard while the simpler HLL converts thermal structures exiting the domain into grid-scale reflecting acoustics. 
+The default Riemann solver, HLLC, is sufficient in this regard while the simpler HLL converts thermal structures exiting the domain into grid-scale reflecting acoustics.
 
 If acoustic reflections are not a concern and/or the flow is impacted by walls or interior structures that you wish to resolve to near the boundary, choose `bc_outflow`. This condition (with default `outflow_type: riemann`) is stable for both inflow and outflow, so can be used in areas that have recirculation and lateral boundaries in which the flow fluctuates.
 
@@ -236,20 +256,34 @@ The simpler `bc_outflow` variant, `outflow_type: pressure`, requires that the fl
 In our experience, `riemann` is slightly less reflective but produces similar flows in cases of strict outflow.
 The `pressure` variant is retained to facilitate comparison with other codes, such as PHASTA-C, but we recommend `riemann` for general use.
 
-### Periodicity
+#### Periodicity
 
 PETSc provides two ways to specify periodicity:
 
 1. Topological periodicity, in which the donor and receiver dofs are the same, obtained using:
 
-``` yaml
+```yaml
 dm_plex:
   shape: box
   box_faces: 10,12,4
   box_bd: none,none,periodic
 ```
 
-The coordinates for such cases are stored as a new field, and 
+The coordinates for such cases are stored as a new field with special cell-based indexing to enable wrapping through the boundary.
+This choice of coordinates prevents evaluating boundary integrals that cross the periodicity, such as for the outflow Riemann problem in the presence of spanwise periodicity.
+
+2. Isoperiodicity, in which the donor and receiver dofs are distinct in local vectors. This is obtained using `zbox`, as in:
+
+```yaml
+dm_plex:
+  shape: zbox
+  box_faces: 10,12,4
+  box_bd: none,none,periodic
+```
+
+Isoperiodicity enables standard boundary integrals, and is recommended for general use.
+At the time of this writing, it only supports one direction of periodicity.
+The `zbox` method uses [Z-ordering](https://en.wikipedia.org/wiki/Z-order_curve) to construct the mesh in parallel and provide an adequate initial partition, which makes it higher performance and avoids needing a partitioning package.
 
 ### Advection
 
@@ -396,7 +430,7 @@ For the 3D advection problem, the following additional command-line options are 
 
 * - `-bubble_type`
   - `sphere` (3D) or `cylinder` (2D)
-  - `shpere`
+  - `sphere`
   -
 
 * - `-bubble_continuity`
@@ -613,13 +647,29 @@ For the Density Current, Channel, and Blasius problems, the following common com
   - State variables to solve solution with. `conservative` ($\rho, \rho \bm{u}, \rho e$) or `primitive` ($P, \bm{u}, T$)
   - `conservative`
   - string
+
+* - `-idl_decay_time`
+  - Characteristic timescale of the pressure deviance decay. The timestep is good starting point
+  - `-1` (disabled)
+  - `s`
+
+* - `-idl_start`
+  - Start of IDL in the x direction
+  - `0`
+  - `m`
+
+* - `-idl_length`
+  - Length of IDL in the positive x direction
+  - `0`
+  - `m`
+
 :::
 
-#### Newtonian Wave
+#### Gaussian Wave
 
-The newtonian wave problem has the following command-line options in addition to the Newtonian Ideal Gas options:
+The Gaussian wave problem has the following command-line options in addition to the Newtonian Ideal Gas options:
 
-:::{list-table} Newtonian Wave Runtime Options
+:::{list-table} Gaussian Wave Runtime Options
 :header-rows: 1
 
 * - Option
@@ -664,13 +714,13 @@ The newtonian wave problem has the following command-line options in addition to
 
 :::
 
-This problem can be run with the `newtonianwave.yaml` file via:
+This problem can be run with the `gaussianwave.yaml` file via:
 
 ```
-./navierstokes -options_file newtonianwave.yaml
+./navierstokes -options_file gaussianwave.yaml
 ```
 
-```{literalinclude} ../../../../../examples/fluids/newtonianwave.yaml
+```{literalinclude} ../../../../../examples/fluids/gaussianwave.yaml
 :language: yaml
 ```
 
@@ -714,10 +764,15 @@ Then run by building the executable and running:
 
 ```console
 $ make build/fluids-navierstokes
-$ mpiexec -n 6 build/fluids-navierstokes -options_file vortexshedding.yaml
+$ mpiexec -n 6 build/fluids-navierstokes -options_file examples/fluids/vortexshedding.yaml -{ts,snes}_monitor_
 ```
 
-The vortex shedding period is roughly 6 and this problem runs until time 100 (2000 time steps).
+The vortex shedding period is roughly 5.6 and this problem runs until time 100 (2000 time steps).
+The above run writes a file named `force.csv` (see `ts_monitor_wall_force` in `vortexshedding.yaml`), which can be postprocessed by running to create a figure showing lift and drag coefficients over time.
+
+```console
+$ python examples/fluids/postprocess/vortexshedding.py
+```
 
 ```{literalinclude} ../../../../../examples/fluids/vortexshedding.yaml
 :language: yaml

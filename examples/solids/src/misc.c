@@ -10,6 +10,10 @@
 
 #include "../include/misc.h"
 
+#include <ceed.h>
+#include <petscdmplex.h>
+#include <petscmat.h>
+
 #include "../include/utils.h"
 
 // -----------------------------------------------------------------------------

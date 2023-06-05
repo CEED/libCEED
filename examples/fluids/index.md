@@ -398,7 +398,7 @@ The constant $C_{YZB}$ is set to 0.1 for piecewise linear elements in the curren
 
 (problem-density-current)=
 
-## Newtonian Wave
+## Gaussian Wave
 This test case is taken/inspired by that presented in {cite}`mengaldoCompressibleBC2014`. It is intended to test non-reflecting/Riemann boundary conditions. It's primarily intended for Euler equations, but has been implemented for the Navier-Stokes equations here for flexibility.
 
 The problem has a perturbed initial condition and lets it evolve in time. The initial condition contains a Gaussian perturbation in the pressure field:
@@ -430,6 +430,18 @@ As we evolve in time, eddies appear past the cylinder leading to a vortex sheddi
 
 The Gmsh input file, `examples/fluids/meshes/cylinder.geo` is parametrized to facilitate experimenting with similar configurations.
 The Strouhal number (nondimensional shedding frequency) is sensitive to the size of the computational domain and boundary conditions.
+
+Forces on the cylinder walls are computed using the "reaction force" method, which is variationally consistent with the volume operator.
+Given the force components $\bm F = (F_x, F_y, F_z)$ and surface area $S = \pi D L_z$ where $L_z$ is the spanwise extent of the domain, we define the coefficients of lift and drag as
+
+$$
+\begin{aligned}
+C_L &= \frac{2 F_y}{\rho_\infty u_\infty^2 S} \\
+C_D &= \frac{2 F_x}{\rho_\infty u_\infty^2 S} \\
+\end{aligned}
+$$
+
+where $\rho_\infty, u_\infty$ are the freestream (inflow) density and velocity respectively.
 
 ## Density Current
 
@@ -622,19 +634,36 @@ The `STGRand.dat` file is the table of the random number set, $\{\bm{\sigma}^n,
 The following table is presented to help clarify the dimensionality of the
 numerous terms in the STG formulation.
 
-| Math            | Label  | $f(\bm{x})$? | $f(n)$? |
-|-----------------|--------|--------------|---------|
-| $ \{\bm{\sigma}^n, \bm{d}^n, \phi^n\}_{n=1}^N$        | RN Set | No           | Yes     |
-| $\bm{\overline{u}}$ | ubar | Yes | No |
-| $U_0$           | U0     | No           | No      |
-| $l_t$           | l_t    | Yes          | No   |
-| $\varepsilon$   | eps    | Yes          | No   |
-| $\bm{R}$        | R_ij   | Yes          | No      |
-| $\bm{C}$        | C_ij   | Yes          | No      |
-| $q^n$           | q^n    | Yes           | Yes     |
-| $\{\kappa^n\}_{n=1}^N$ | k^n  | No           | Yes      |
-| $h_i$           | h_i    | Yes          | No   |
-| $d_w$           | d_w    | Yes          | No   |
+| Math                                           | Label    | $f(\bm{x})$?   | $f(n)$?   |
+| -----------------                              | -------- | -------------- | --------- |
+| $ \{\bm{\sigma}^n, \bm{d}^n, \phi^n\}_{n=1}^N$ | RN Set   | No             | Yes       |
+| $\bm{\overline{u}}$                            | ubar     | Yes            | No        |
+| $U_0$                                          | U0       | No             | No        |
+| $l_t$                                          | l_t      | Yes            | No        |
+| $\varepsilon$                                  | eps      | Yes            | No        |
+| $\bm{R}$                                       | R_ij     | Yes            | No        |
+| $\bm{C}$                                       | C_ij     | Yes            | No        |
+| $q^n$                                          | q^n      | Yes            | Yes       |
+| $\{\kappa^n\}_{n=1}^N$                         | k^n      | No             | Yes       |
+| $h_i$                                          | h_i      | Yes            | No        |
+| $d_w$                                          | d_w      | Yes            | No        |
+
+#### Internal Damping Layer (IDL)
+The STG inflow boundary condition creates large amplitude acoustic waves.
+We use an internal damping layer (IDL) to damp them out without disrupting the synthetic structures developing into natural turbulent structures. This implementation was inspired from
+{cite}`shurSTG2014`, but is implemented here as a ramped volumetric forcing
+term, similar to a sponge layer (see 8.4.2.4 in {cite}`colonius2023turbBC` for example). It takes the following form:
+
+$$
+S(\bm{q}) = -\sigma(\bm{x})\left.\frac{\partial \bm{q}}{\partial \bm{Y}}\right\rvert_{\bm{q}} \bm{Y}'
+$$
+
+where $\bm{Y}' = [P - P_\mathrm{ref}, \bm{0}, 0]^T$, and $\sigma(\bm{x})$ is a
+linear ramp starting at `-idl_start` with length `-idl_length` and an amplitude
+of inverse `-idl_decay_rate`. The damping is defined in terms of a pressure-primitive
+anomaly $\bm Y'$ converted to conservative source using $\partial
+\bm{q}/\partial \bm{Y}\rvert_{\bm{q}}$, which is linearized about the current
+flow state. $P_\mathrm{ref}$ is defined via the `-reference_pressure` flag.
 
 ### Meshing
 

@@ -1,4 +1,4 @@
-problem: newtonian_wave
+problem: gaussian_wave
 mu: 0 # Effectively solving Euler momentum equations
 
 dm_plex_box_faces: 40,40,1
@@ -8,12 +8,12 @@ dm_plex_dim: 3
 bc_freestream: 4,6,3,5
 bc_slip_z: 1,2
 
-freestream:
-  # riemann: hll # causes thermal bubble to reflect acoustic waves from boundary
-  velocity: 2,2,0
 reference:
   temperature: 0.25
   pressure: 71.75
+freestream:
+  # riemann: hll # causes thermal bubble to reflect acoustic waves from boundary
+  velocity: 2,2,0
 g: 0,0,0
 
 epicenter: 0.33,0.75,0
@@ -37,3 +37,9 @@ snes_rtol: 1e-4
 ksp_rtol: 1e-2
 snes_lag_jacobian: 20
 snes_lag_jacobian_persists:
+
+## Demonstrate acoustic wave dissipation using an internal damping layer
+# idl:
+#   decay_time: 2e-3
+#   start: 0
+#   length: .25

@@ -2,6 +2,7 @@
 /// Test creation and destruction of a CEED object
 /// \test Test creation and destruction of a CEED object
 #include <ceed.h>
+#include <stdio.h>
 
 int main(int argc, char **argv) {
   Ceed ceed;

@@ -20,6 +20,18 @@
 #include "stabilization.h"
 #include "utils.h"
 
+CEED_QFUNCTION_HELPER void InternalDampingLayer(const NewtonianIdealGasContext context, const State s, const CeedScalar x_i[3], CeedScalar damp_Y[5],
+                                                CeedScalar damp_residual[5]) {
+  const CeedScalar sigma = LinearRampCoefficient(context->idl_amplitude, context->idl_length, context->idl_start, x_i[0]);
+  ScaleN(damp_Y, sigma, 5);
+  CeedScalar dx_i[3] = {0};
+  State      damp_s  = StateFromY_fwd(context, s, damp_Y, x_i, dx_i);
+
+  CeedScalar U[5];
+  UnpackState_U(damp_s.U, U);
+  for (int i = 0; i < 5; i++) damp_residual[i] += U[i];
+}
+
 // *****************************************************************************
 // This QFunction sets a "still" initial condition for generic Newtonian IG problems
 // *****************************************************************************
@@ -194,6 +206,7 @@ CEED_QFUNCTION_HELPER int IFunction_Newtonian(void *ctx, CeedInt Q, const CeedSc
   NewtonianIdealGasContext context = (NewtonianIdealGasContext)ctx;
   const CeedScalar        *g       = context->g;
   const CeedScalar         dt      = context->dt;
+  const CeedScalar         P0      = context->P0;
 
   // Quadrature Point Loop
   CeedPragmaSIMD for (CeedInt i = 0; i < Q; i++) {
@@ -248,6 +261,12 @@ CEED_QFUNCTION_HELPER int IFunction_Newtonian(void *ctx, CeedInt Q, const CeedSc
     UnpackState_U(s_dot.U, U_dot);
 
     for (CeedInt j = 0; j < 5; j++) v[j][i] = wdetJ * (U_dot[j] - body_force[j]);
+    if (context->idl_enable) {
+      CeedScalar damp_state[5] = {s.Y.pressure - P0, 0, 0, 0, 0}, idl_residual[5] = {0.};
+      InternalDampingLayer(context, s, x_i, damp_state, idl_residual);
+      for (int j = 0; j < 5; j++) v[j][i] += wdetJ * idl_residual[j];
+    }
+
     Tau_diagPrim(context, s, dXdx, dt, Tau_d);
     Stabilization(context, s, Tau_d, grad_s, U_dot, body_force, x_i, stab);
 
@@ -345,6 +364,13 @@ CEED_QFUNCTION_HELPER int IJacobian_Newtonian(void *ctx, CeedInt Q, const CeedSc
     CeedScalar       dU[5]          = {0.};
     UnpackState_U(ds.U, dU);
     for (int j = 0; j < 5; j++) v[j][i] = wdetJ * (context->ijacobian_time_shift * dU[j] - dbody_force[j]);
+
+    if (context->idl_enable) {
+      CeedScalar damp_state[5] = {ds.Y.pressure, 0, 0, 0, 0}, idl_residual[5] = {0.};
+      // This is a Picard-type linearization of the damping and could be replaced by an InternalDampingLayer_fwd that uses s and ds.
+      InternalDampingLayer(context, s, x_i, damp_state, idl_residual);
+      for (int j = 0; j < 5; j++) v[j][i] += wdetJ * idl_residual[j];
+    }
 
     // -- Stabilization method: none (Galerkin), SU, or SUPG
     CeedScalar dstab[5][3], U_dot[5] = {0};

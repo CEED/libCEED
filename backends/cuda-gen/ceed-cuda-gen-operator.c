@@ -5,10 +5,13 @@
 //
 // This file is part of CEED:  http://github.com/ceed
 
+#include <ceed.h>
 #include <ceed/backend.h>
-#include <ceed/ceed.h>
+#include <ceed/jit-source/cuda/cuda-types.h>
+#include <cuda.h>
 #include <stddef.h>
 
+#include "../cuda/ceed-cuda-common.h"
 #include "../cuda/ceed-cuda-compile.h"
 #include "ceed-cuda-gen-operator-build.h"
 #include "ceed-cuda-gen.h"
@@ -104,7 +107,7 @@ static int CeedOperatorApplyAdd_Cuda_gen(CeedOperator op, CeedVector input_vec, 
   CeedQFunctionField *qf_input_fields, *qf_output_fields;
   CeedCallBackend(CeedQFunctionGetFields(qf, NULL, &qf_input_fields, NULL, &qf_output_fields));
   CeedEvalMode eval_mode;
-  CeedVector   vec, output_vecs[CEED_FIELD_MAX] = {};
+  CeedVector   vec, output_vecs[CEED_FIELD_MAX] = {NULL};
 
   // Creation of the operator
   CeedCallBackend(CeedCudaGenOperatorBuild(op));

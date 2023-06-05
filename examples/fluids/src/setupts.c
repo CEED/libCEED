@@ -8,8 +8,12 @@
 /// @file
 /// Time-stepping functions for Navier-Stokes example using PETSc
 
+#include <ceed.h>
+#include <petscdmplex.h>
+#include <petscts.h>
+
 #include "../navierstokes.h"
-#include "../qfunctions/mass.h"
+#include "../qfunctions/newtonian_state.h"
 
 // Compute mass matrix for explicit scheme
 PetscErrorCode ComputeLumpedMassMatrix(Ceed ceed, DM dm, CeedData ceed_data, Vec M) {
@@ -28,30 +32,24 @@ PetscErrorCode ComputeLumpedMassMatrix(Ceed ceed, DM dm, CeedData ceed_data, Vec
   CeedVectorSetValue(ones_vec, 1.0);
 
   // CEED QFunction
-  CeedQFunctionCreateInterior(ceed, 1, Mass, Mass_loc, &qf_mass);
-  CeedQFunctionAddInput(qf_mass, "q", num_comp_q, CEED_EVAL_INTERP);
-  CeedQFunctionAddInput(qf_mass, "qdata", q_data_size, CEED_EVAL_NONE);
-  CeedQFunctionAddOutput(qf_mass, "v", num_comp_q, CEED_EVAL_INTERP);
+  PetscCall(CreateMassQFunction(ceed, num_comp_q, q_data_size, &qf_mass));
 
   // CEED Operator
   CeedOperatorCreate(ceed, qf_mass, NULL, NULL, &op_mass);
-  CeedOperatorSetField(op_mass, "q", ceed_data->elem_restr_q, ceed_data->basis_q, CEED_VECTOR_ACTIVE);
+  CeedOperatorSetField(op_mass, "u", ceed_data->elem_restr_q, ceed_data->basis_q, CEED_VECTOR_ACTIVE);
   CeedOperatorSetField(op_mass, "qdata", ceed_data->elem_restr_qd_i, CEED_BASIS_COLLOCATED, ceed_data->q_data);
   CeedOperatorSetField(op_mass, "v", ceed_data->elem_restr_q, ceed_data->basis_q, CEED_VECTOR_ACTIVE);
 
   // Place PETSc vector in CEED vector
-  CeedScalar  *m;
   PetscMemType m_mem_type;
   PetscCall(DMGetLocalVector(dm, &M_loc));
-  PetscCall(VecGetArrayAndMemType(M_loc, (PetscScalar **)&m, &m_mem_type));
-  CeedVectorSetArray(m_ceed, MemTypeP2C(m_mem_type), CEED_USE_POINTER, m);
+  PetscCall(VecP2C(M_loc, &m_mem_type, m_ceed));
 
   // Apply CEED Operator
   CeedOperatorApply(op_mass, ones_vec, m_ceed, CEED_REQUEST_IMMEDIATE);
 
   // Restore vectors
-  CeedVectorTakeArray(m_ceed, MemTypeP2C(m_mem_type), NULL);
-  PetscCall(VecRestoreArrayReadAndMemType(M_loc, (const PetscScalar **)&m));
+  PetscCall(VecC2P(m_ceed, m_mem_type, M_loc));
 
   // Local-to-Global
   PetscCall(VecZeroEntries(M));
@@ -70,12 +68,47 @@ PetscErrorCode ComputeLumpedMassMatrix(Ceed ceed, DM dm, CeedData ceed_data, Vec
   PetscFunctionReturn(0);
 }
 
+// Insert Boundary values if it's a new time
+PetscErrorCode UpdateBoundaryValues(User user, Vec Q_loc, PetscReal t) {
+  PetscFunctionBeginUser;
+  if (user->time_bc_set != t) {
+    PetscCall(DMPlexInsertBoundaryValues(user->dm, PETSC_TRUE, Q_loc, t, NULL, NULL, NULL));
+    user->time_bc_set = t;
+  }
+  PetscFunctionReturn(0);
+}
+
+// @brief Update the context label value to new value if necessary.
+// @note This only supports labels with scalar label values (ie. not arrays)
+PetscErrorCode UpdateContextLabel(MPI_Comm comm, PetscScalar update_value, CeedOperator op, CeedContextFieldLabel label) {
+  PetscScalar label_value;
+
+  PetscFunctionBeginUser;
+  PetscCheck(label, comm, PETSC_ERR_ARG_BADPTR, "Label should be non-NULL");
+
+  {
+    size_t             num_elements;
+    const PetscScalar *label_values;
+    CeedOperatorGetContextDoubleRead(op, label, &num_elements, &label_values);
+    PetscCheck(num_elements == 1, comm, PETSC_ERR_SUP, "%s does not support labels with more than 1 value. Label has %zu values", __func__,
+               num_elements);
+    label_value = *label_values;
+    CeedOperatorRestoreContextDoubleRead(op, label, &label_values);
+  }
+
+  if (label_value != update_value) {
+    CeedOperatorSetContextDouble(op, label, &update_value);
+  }
+  PetscFunctionReturn(0);
+}
+
 // RHS (Explicit time-stepper) function setup
 //   This is the RHS of the ODE, given as u_t = G(t,u)
 //   This function takes in a state vector Q and writes into G
 PetscErrorCode RHS_NS(TS ts, PetscReal t, Vec Q, Vec G, void *user_data) {
   User         user = *(User *)user_data;
-  PetscScalar *q, *g;
+  MPI_Comm     comm = PetscObjectComm((PetscObject)ts);
+  PetscScalar  dt;
   Vec          Q_loc = user->Q_loc, G_loc;
   PetscMemType q_mem_type, g_mem_type;
   PetscFunctionBeginUser;
@@ -84,39 +117,24 @@ PetscErrorCode RHS_NS(TS ts, PetscReal t, Vec Q, Vec G, void *user_data) {
   PetscCall(DMGetLocalVector(user->dm, &G_loc));
 
   // Update time dependent data
-  if (user->time != t) {
-    PetscCall(DMPlexInsertBoundaryValues(user->dm, PETSC_TRUE, Q_loc, t, NULL, NULL, NULL));
-    if (user->phys->solution_time_label) {
-      CeedOperatorContextSetDouble(user->op_rhs, user->phys->solution_time_label, &t);
-    }
-    user->time = t;
-  }
-  if (user->phys->timestep_size_label) {
-    PetscScalar dt;
-    PetscCall(TSGetTimeStep(ts, &dt));
-    if (user->dt != dt) {
-      CeedOperatorContextSetDouble(user->op_rhs, user->phys->timestep_size_label, &dt);
-      user->dt = dt;
-    }
-  }
+  PetscCall(UpdateBoundaryValues(user, Q_loc, t));
+  if (user->phys->solution_time_label) PetscCall(UpdateContextLabel(comm, t, user->op_rhs, user->phys->solution_time_label));
+  PetscCall(TSGetTimeStep(ts, &dt));
+  if (user->phys->timestep_size_label) PetscCall(UpdateContextLabel(comm, dt, user->op_rhs, user->phys->timestep_size_label));
 
   // Global-to-local
   PetscCall(DMGlobalToLocal(user->dm, Q, INSERT_VALUES, Q_loc));
 
   // Place PETSc vectors in CEED vectors
-  PetscCall(VecGetArrayReadAndMemType(Q_loc, (const PetscScalar **)&q, &q_mem_type));
-  PetscCall(VecGetArrayAndMemType(G_loc, &g, &g_mem_type));
-  CeedVectorSetArray(user->q_ceed, MemTypeP2C(q_mem_type), CEED_USE_POINTER, q);
-  CeedVectorSetArray(user->g_ceed, MemTypeP2C(g_mem_type), CEED_USE_POINTER, g);
+  PetscCall(VecReadP2C(Q_loc, &q_mem_type, user->q_ceed));
+  PetscCall(VecP2C(G_loc, &g_mem_type, user->g_ceed));
 
   // Apply CEED operator
   CeedOperatorApply(user->op_rhs, user->q_ceed, user->g_ceed, CEED_REQUEST_IMMEDIATE);
 
   // Restore vectors
-  CeedVectorTakeArray(user->q_ceed, MemTypeP2C(q_mem_type), NULL);
-  CeedVectorTakeArray(user->g_ceed, MemTypeP2C(g_mem_type), NULL);
-  PetscCall(VecRestoreArrayReadAndMemType(Q_loc, (const PetscScalar **)&q));
-  PetscCall(VecRestoreArrayAndMemType(G_loc, &g));
+  PetscCall(VecReadC2P(user->q_ceed, q_mem_type, Q_loc));
+  PetscCall(VecC2P(user->g_ceed, g_mem_type, G_loc));
 
   // Local-to-Global
   PetscCall(VecZeroEntries(G));
@@ -131,64 +149,96 @@ PetscErrorCode RHS_NS(TS ts, PetscReal t, Vec Q, Vec G, void *user_data) {
   PetscFunctionReturn(0);
 }
 
+// Surface forces function setup
+static PetscErrorCode Surface_Forces_NS(DM dm, Vec G_loc, PetscInt num_walls, const PetscInt walls[], PetscScalar *reaction_force) {
+  DMLabel            face_label;
+  const PetscScalar *g;
+  PetscInt           dof, dim = 3;
+  MPI_Comm           comm;
+  PetscSection       s;
+
+  PetscFunctionBeginUser;
+  PetscCall(PetscArrayzero(reaction_force, num_walls * dim));
+  PetscCall(PetscObjectGetComm((PetscObject)dm, &comm));
+  PetscCall(DMGetLabel(dm, "Face Sets", &face_label));
+  PetscCall(VecGetArrayRead(G_loc, &g));
+  for (PetscInt w = 0; w < num_walls; w++) {
+    const PetscInt wall = walls[w];
+    IS             wall_is;
+    PetscCall(DMGetLocalSection(dm, &s));
+    PetscCall(DMLabelGetStratumIS(face_label, wall, &wall_is));
+    if (wall_is) {  // There exist such points on this process
+      PetscInt        num_points;
+      PetscInt        num_comp = 0;
+      const PetscInt *points;
+      PetscCall(PetscSectionGetFieldComponents(s, 0, &num_comp));
+      PetscCall(ISGetSize(wall_is, &num_points));
+      PetscCall(ISGetIndices(wall_is, &points));
+      for (PetscInt i = 0; i < num_points; i++) {
+        const PetscInt           p = points[i];
+        const StateConservative *r;
+        PetscCall(DMPlexPointLocalRead(dm, p, g, &r));
+        PetscCall(PetscSectionGetDof(s, p, &dof));
+        for (PetscInt node = 0; node < dof / num_comp; node++) {
+          for (PetscInt j = 0; j < 3; j++) {
+            reaction_force[w * dim + j] -= r[node].momentum[j];
+          }
+        }
+      }
+      PetscCall(ISRestoreIndices(wall_is, &points));
+    }
+    PetscCall(ISDestroy(&wall_is));
+  }
+  PetscCallMPI(MPI_Allreduce(MPI_IN_PLACE, reaction_force, dim * num_walls, MPIU_SCALAR, MPI_SUM, comm));
+  //  Restore Vectors
+  PetscCall(VecRestoreArrayRead(G_loc, &g));
+
+  PetscFunctionReturn(0);
+}
+
 // Implicit time-stepper function setup
 PetscErrorCode IFunction_NS(TS ts, PetscReal t, Vec Q, Vec Q_dot, Vec G, void *user_data) {
-  User               user = *(User *)user_data;
-  const PetscScalar *q, *q_dot;
-  PetscScalar       *g;
-  Vec                Q_loc = user->Q_loc, Q_dot_loc = user->Q_dot_loc, G_loc;
-  PetscMemType       q_mem_type, q_dot_mem_type, g_mem_type;
+  User         user = *(User *)user_data;
+  MPI_Comm     comm = PetscObjectComm((PetscObject)ts);
+  PetscScalar  dt;
+  Vec          Q_loc = user->Q_loc, Q_dot_loc = user->Q_dot_loc, G_loc;
+  PetscMemType q_mem_type, q_dot_mem_type, g_mem_type;
   PetscFunctionBeginUser;
 
   // Get local vectors
-  PetscCall(DMGetLocalVector(user->dm, &G_loc));
+  PetscCall(DMGetNamedLocalVector(user->dm, "ResidualLocal", &G_loc));
 
   // Update time dependent data
-  if (user->time != t) {
-    PetscCall(DMPlexInsertBoundaryValues(user->dm, PETSC_TRUE, Q_loc, t, NULL, NULL, NULL));
-    if (user->phys->solution_time_label) {
-      CeedOperatorContextSetDouble(user->op_ifunction, user->phys->solution_time_label, &t);
-    }
-    user->time = t;
-  }
-  if (user->phys->timestep_size_label) {
-    PetscScalar dt;
-    PetscCall(TSGetTimeStep(ts, &dt));
-    if (user->dt != dt) {
-      CeedOperatorContextSetDouble(user->op_ifunction, user->phys->timestep_size_label, &dt);
-      user->dt = dt;
-    }
-  }
+  PetscCall(UpdateBoundaryValues(user, Q_loc, t));
+  if (user->phys->solution_time_label) PetscCall(UpdateContextLabel(comm, t, user->op_ifunction, user->phys->solution_time_label));
+  PetscCall(TSGetTimeStep(ts, &dt));
+  if (user->phys->timestep_size_label) PetscCall(UpdateContextLabel(comm, dt, user->op_ifunction, user->phys->timestep_size_label));
 
   // Global-to-local
-  PetscCall(DMGlobalToLocal(user->dm, Q, INSERT_VALUES, Q_loc));
-  PetscCall(DMGlobalToLocal(user->dm, Q_dot, INSERT_VALUES, Q_dot_loc));
+  PetscCall(DMGlobalToLocalBegin(user->dm, Q, INSERT_VALUES, Q_loc));
+  PetscCall(DMGlobalToLocalBegin(user->dm, Q_dot, INSERT_VALUES, Q_dot_loc));
+  PetscCall(DMGlobalToLocalEnd(user->dm, Q, INSERT_VALUES, Q_loc));
+  PetscCall(DMGlobalToLocalEnd(user->dm, Q_dot, INSERT_VALUES, Q_dot_loc));
 
   // Place PETSc vectors in CEED vectors
-  PetscCall(VecGetArrayReadAndMemType(Q_loc, &q, &q_mem_type));
-  PetscCall(VecGetArrayReadAndMemType(Q_dot_loc, &q_dot, &q_dot_mem_type));
-  PetscCall(VecGetArrayAndMemType(G_loc, &g, &g_mem_type));
-  CeedVectorSetArray(user->q_ceed, MemTypeP2C(q_mem_type), CEED_USE_POINTER, (PetscScalar *)q);
-  CeedVectorSetArray(user->q_dot_ceed, MemTypeP2C(q_dot_mem_type), CEED_USE_POINTER, (PetscScalar *)q_dot);
-  CeedVectorSetArray(user->g_ceed, MemTypeP2C(g_mem_type), CEED_USE_POINTER, g);
+  PetscCall(VecReadP2C(Q_loc, &q_mem_type, user->q_ceed));
+  PetscCall(VecReadP2C(Q_dot_loc, &q_dot_mem_type, user->q_dot_ceed));
+  PetscCall(VecP2C(G_loc, &g_mem_type, user->g_ceed));
 
   // Apply CEED operator
   CeedOperatorApply(user->op_ifunction, user->q_ceed, user->g_ceed, CEED_REQUEST_IMMEDIATE);
 
   // Restore vectors
-  CeedVectorTakeArray(user->q_ceed, MemTypeP2C(q_mem_type), NULL);
-  CeedVectorTakeArray(user->q_dot_ceed, MemTypeP2C(q_dot_mem_type), NULL);
-  CeedVectorTakeArray(user->g_ceed, MemTypeP2C(g_mem_type), NULL);
-  PetscCall(VecRestoreArrayReadAndMemType(Q_loc, &q));
-  PetscCall(VecRestoreArrayReadAndMemType(Q_dot_loc, &q_dot));
-  PetscCall(VecRestoreArrayAndMemType(G_loc, &g));
+  PetscCall(VecReadC2P(user->q_ceed, q_mem_type, Q_loc));
+  PetscCall(VecReadC2P(user->q_dot_ceed, q_dot_mem_type, Q_dot_loc));
+  PetscCall(VecC2P(user->g_ceed, g_mem_type, G_loc));
 
   // Local-to-Global
   PetscCall(VecZeroEntries(G));
   PetscCall(DMLocalToGlobal(user->dm, G_loc, ADD_VALUES, G));
 
   // Restore vectors
-  PetscCall(DMRestoreLocalVector(user->dm, &G_loc));
+  PetscCall(DMRestoreNamedLocalVector(user->dm, "ResidualLocal", &G_loc));
 
   PetscFunctionReturn(0);
 }
@@ -306,7 +356,7 @@ PetscErrorCode FormIJacobian_NS(TS ts, PetscReal t, Vec Q, Vec Q_dot, PetscReal 
   User      user = *(User *)user_data;
   PetscBool J_is_shell, J_is_mffd, J_pre_is_shell;
   PetscFunctionBeginUser;
-  if (user->phys->ijacobian_time_shift_label) CeedOperatorContextSetDouble(user->op_ijacobian, user->phys->ijacobian_time_shift_label, &shift);
+  if (user->phys->ijacobian_time_shift_label) CeedOperatorSetContextDouble(user->op_ijacobian, user->phys->ijacobian_time_shift_label, &shift);
   PetscCall(PetscObjectTypeCompare((PetscObject)J, MATMFFD, &J_is_mffd));
   PetscCall(PetscObjectTypeCompare((PetscObject)J, MATSHELL, &J_is_shell));
   PetscCall(PetscObjectTypeCompare((PetscObject)J_pre, MATSHELL, &J_pre_is_shell));
@@ -399,6 +449,47 @@ PetscErrorCode WriteOutput(User user, Vec Q, PetscInt step_no, PetscScalar time)
   PetscFunctionReturn(0);
 }
 
+// CSV Monitor
+PetscErrorCode TSMonitor_WallForce(TS ts, PetscInt step_no, PetscReal time, Vec Q, void *ctx) {
+  User              user = ctx;
+  Vec               G_loc;
+  PetscInt          num_wall = user->app_ctx->wall_forces.num_wall, dim = 3;
+  const PetscInt   *walls  = user->app_ctx->wall_forces.walls;
+  PetscViewer       viewer = user->app_ctx->wall_forces.viewer;
+  PetscViewerFormat format = user->app_ctx->wall_forces.viewer_format;
+  PetscScalar      *reaction_force;
+  PetscBool         iascii;
+
+  PetscFunctionBeginUser;
+  if (!viewer) PetscFunctionReturn(0);
+  PetscCall(DMGetNamedLocalVector(user->dm, "ResidualLocal", &G_loc));
+  PetscCall(PetscMalloc1(num_wall * dim, &reaction_force));
+  PetscCall(Surface_Forces_NS(user->dm, G_loc, num_wall, walls, reaction_force));
+  PetscCall(DMRestoreNamedLocalVector(user->dm, "ResidualLocal", &G_loc));
+
+  PetscCall(PetscObjectTypeCompare((PetscObject)viewer, PETSCVIEWERASCII, &iascii));
+
+  if (iascii) {
+    if (format == PETSC_VIEWER_ASCII_CSV && !user->app_ctx->wall_forces.header_written) {
+      PetscCall(PetscViewerASCIIPrintf(viewer, "Step,Time,Wall,ForceX,ForceY,ForceZ\n"));
+      user->app_ctx->wall_forces.header_written = PETSC_TRUE;
+    }
+    for (PetscInt w = 0; w < num_wall; w++) {
+      PetscInt wall = walls[w];
+      if (format == PETSC_VIEWER_ASCII_CSV) {
+        PetscCall(PetscViewerASCIIPrintf(viewer, "%" PetscInt_FMT ",%g,%" PetscInt_FMT ",%g,%g,%g\n", step_no, time, wall,
+                                         reaction_force[w * dim + 0], reaction_force[w * dim + 1], reaction_force[w * dim + 2]));
+
+      } else {
+        PetscCall(PetscViewerASCIIPrintf(viewer, "Wall %" PetscInt_FMT " Forces: Force_x = %12g, Force_y = %12g, Force_z = %12g\n", wall,
+                                         reaction_force[w * dim + 0], reaction_force[w * dim + 1], reaction_force[w * dim + 2]));
+      }
+    }
+  }
+  PetscCall(PetscFree(reaction_force));
+  PetscFunctionReturn(0);
+}
+
 // User provided TS Monitor
 PetscErrorCode TSMonitor_NS(TS ts, PetscInt step_no, PetscReal time, Vec Q, void *ctx) {
   User user = ctx;
@@ -406,8 +497,9 @@ PetscErrorCode TSMonitor_NS(TS ts, PetscInt step_no, PetscReal time, Vec Q, void
 
   // Print every 'checkpoint_interval' steps
   if (user->app_ctx->checkpoint_interval <= 0 || step_no % user->app_ctx->checkpoint_interval != 0 ||
-      (user->app_ctx->cont_steps == step_no && step_no != 0))
+      (user->app_ctx->cont_steps == step_no && step_no != 0)) {
     PetscFunctionReturn(0);
+  }
 
   PetscCall(WriteOutput(user, Q, step_no, time));
 
@@ -452,16 +544,15 @@ PetscErrorCode TSSolve_NS(DM dm, User user, AppCtx app_ctx, Physics phys, Vec *Q
   PetscCall(TSSetExactFinalTime(*ts, TS_EXACTFINALTIME_STEPOVER));
   PetscCall(TSSetErrorIfStepFails(*ts, PETSC_FALSE));
   PetscCall(TSSetTimeStep(*ts, 1.e-2 * user->units->second));
-  if (app_ctx->test_mode) {
+  if (app_ctx->test_type != TESTTYPE_NONE) {
     PetscCall(TSSetMaxSteps(*ts, 10));
   }
   PetscCall(TSGetAdapt(*ts, &adapt));
   PetscCall(TSAdaptSetStepLimits(adapt, 1.e-12 * user->units->second, 1.e2 * user->units->second));
   PetscCall(TSSetFromOptions(*ts));
-  user->time = -1.0;  // require all BCs and ctx to be updated
-  user->dt   = -1.0;
+  user->time_bc_set = -1.0;    // require all BCs be updated
   if (!app_ctx->cont_steps) {  // print initial condition
-    if (!app_ctx->test_mode) {
+    if (app_ctx->test_type == TESTTYPE_NONE) {
       PetscCall(TSMonitor_NS(*ts, 0, 0., *Q, user));
     }
   } else {  // continue from time of last output
@@ -478,8 +569,16 @@ PetscErrorCode TSSolve_NS(DM dm, User user, AppCtx app_ctx, Physics phys, Vec *Q
     PetscCall(TSSetTime(*ts, app_ctx->cont_time * user->units->second));
     PetscCall(TSSetStepNumber(*ts, app_ctx->cont_steps));
   }
-  if (!app_ctx->test_mode) {
+  if (app_ctx->test_type == TESTTYPE_NONE) {
     PetscCall(TSMonitorSet(*ts, TSMonitor_NS, user, NULL));
+  }
+  if (app_ctx->wall_forces.viewer) {
+    PetscCall(TSMonitorSet(*ts, TSMonitor_WallForce, user, NULL));
+  }
+  if (app_ctx->turb_spanstats_enable) {
+    PetscCall(TSMonitorSet(*ts, TSMonitor_Statistics, user, NULL));
+    CeedScalar previous_time = app_ctx->cont_time * user->units->second;
+    CeedOperatorSetContextDouble(user->spanstats.op_stats_collect, user->spanstats.previous_time_label, &previous_time);
   }
 
   // Solve
@@ -515,10 +614,10 @@ PetscErrorCode TSSolve_NS(DM dm, User user, AppCtx app_ctx, Physics phys, Vec *Q
   PetscCall(TSGetSolveTime(*ts, &final_time));
   *f_time = final_time;
 
-  if (!app_ctx->test_mode) {
+  if (app_ctx->test_type == TESTTYPE_NONE) {
+    PetscInt step_no;
+    PetscCall(TSGetStepNumber(*ts, &step_no));
     if (user->app_ctx->checkpoint_interval > 0 || user->app_ctx->checkpoint_interval == -1) {
-      PetscInt step_no;
-      PetscCall(TSGetStepNumber(*ts, &step_no));
       PetscCall(WriteOutput(user, *Q, step_no, final_time));
     }
 

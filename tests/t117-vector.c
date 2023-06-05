@@ -6,12 +6,12 @@
 int main(int argc, char **argv) {
   Ceed        ceed;
   CeedVector  x;
-  CeedInt     n = 10;
+  CeedInt     len = 10;
   CeedScalar *a;
 
   CeedInit(argv[1], &ceed);
 
-  CeedVectorCreate(ceed, n, &x);
+  CeedVectorCreate(ceed, len, &x);
   CeedVectorSetValue(x, 0.0);
 
   // Should error because no GetArray was not called

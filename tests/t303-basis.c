@@ -6,24 +6,24 @@
 
 int main(int argc, char **argv) {
   Ceed       ceed;
-  CeedBasis  b;
-  CeedVector U, V;
-  CeedInt    Q = 8, P = 2, num_comp = 1, dim = 3, len = pow((CeedScalar)(Q), dim);
+  CeedBasis  basis;
+  CeedVector u, v;
+  CeedInt    q = 8, p = 2, num_comp = 1, dim = 3, len = pow((CeedScalar)(q), dim);
 
   CeedInit(argv[1], &ceed);
 
-  CeedVectorCreate(ceed, len, &U);
-  CeedVectorCreate(ceed, len + 1, &V);
+  CeedVectorCreate(ceed, len, &u);
+  CeedVectorCreate(ceed, len + 1, &v);
 
-  CeedBasisCreateTensorH1Lagrange(ceed, dim, num_comp, P, Q, CEED_GAUSS, &b);
+  CeedBasisCreateTensorH1Lagrange(ceed, dim, num_comp, p, q, CEED_GAUSS, &basis);
 
   // Basis apply will error because dimensions don't agree
-  CeedBasisApply(b, 1, CEED_NOTRANSPOSE, CEED_EVAL_INTERP, U, V);
+  CeedBasisApply(basis, 1, CEED_NOTRANSPOSE, CEED_EVAL_INTERP, u, v);
 
   // LCOV_EXCL_START
-  CeedBasisDestroy(&b);
-  CeedVectorDestroy(&U);
-  CeedVectorDestroy(&V);
+  CeedBasisDestroy(&basis);
+  CeedVectorDestroy(&u);
+  CeedVectorDestroy(&v);
   CeedDestroy(&ceed);
   return 0;
   // LCOV_EXCL_STOP

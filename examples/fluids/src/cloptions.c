@@ -9,6 +9,7 @@
 /// Command line option processing for Navier-Stokes example using PETSc
 
 #include <petscdevice.h>
+#include <petscsys.h>
 
 #include "../navierstokes.h"
 
@@ -24,7 +25,7 @@ PetscErrorCode RegisterProblems_NS(AppCtx app_ctx) {
   PetscCall(PetscFunctionListAdd(&app_ctx->problems, "advection2d", NS_ADVECTION2D));
   PetscCall(PetscFunctionListAdd(&app_ctx->problems, "blasius", NS_BLASIUS));
   PetscCall(PetscFunctionListAdd(&app_ctx->problems, "channel", NS_CHANNEL));
-  PetscCall(PetscFunctionListAdd(&app_ctx->problems, "newtonian_wave", NS_NEWTONIAN_WAVE));
+  PetscCall(PetscFunctionListAdd(&app_ctx->problems, "gaussian_wave", NS_GAUSSIAN_WAVE));
   PetscCall(PetscFunctionListAdd(&app_ctx->problems, "newtonian", NS_NEWTONIAN_IG));
 
   PetscFunctionReturn(0);
@@ -43,14 +44,15 @@ PetscErrorCode ProcessCommandLineOptions(MPI_Comm comm, AppCtx app_ctx, SimpleBC
   PetscCall(PetscOptionsString("-ceed", "CEED resource specifier", NULL, app_ctx->ceed_resource, app_ctx->ceed_resource,
                                sizeof(app_ctx->ceed_resource), &ceed_flag));
 
-  app_ctx->test_mode = PETSC_FALSE;
-  PetscCall(PetscOptionsBool("-test", "Run in test mode", NULL, app_ctx->test_mode, &app_ctx->test_mode, NULL));
+  app_ctx->test_type = TESTTYPE_NONE;
+  PetscCall(PetscOptionsEnum("-test_type", "Type of test to run", NULL, TestTypes, (PetscEnum)(app_ctx->test_type), (PetscEnum *)&app_ctx->test_type,
+                             NULL));
 
   app_ctx->test_tol = 1E-11;
   PetscCall(PetscOptionsScalar("-compare_final_state_atol", "Test absolute tolerance", NULL, app_ctx->test_tol, &app_ctx->test_tol, NULL));
 
-  PetscCall(PetscOptionsString("-compare_final_state_filename", "Test filename", NULL, app_ctx->file_path, app_ctx->file_path,
-                               sizeof(app_ctx->file_path), NULL));
+  PetscCall(PetscOptionsString("-compare_final_state_filename", "Test filename", NULL, app_ctx->test_file_path, app_ctx->test_file_path,
+                               sizeof(app_ctx->test_file_path), NULL));
 
   PetscCall(PetscOptionsFList("-problem", "Problem to solve", NULL, app_ctx->problems, app_ctx->problem_name, app_ctx->problem_name,
                               sizeof(app_ctx->problem_name), &problem_flag));
@@ -137,12 +139,17 @@ PetscErrorCode ProcessCommandLineOptions(MPI_Comm comm, AppCtx app_ctx, SimpleBC
   }
 
   // Error if wall and slip BCs are set on the same face
-  if (bc->user_bc)
-    for (PetscInt c = 0; c < 3; c++)
-      for (PetscInt s = 0; s < bc->num_slip[c]; s++)
-        for (PetscInt w = 0; w < bc->num_wall; w++)
-          if (bc->slips[c][s] == bc->walls[w])
+  if (bc->user_bc) {
+    for (PetscInt c = 0; c < 3; c++) {
+      for (PetscInt s = 0; s < bc->num_slip[c]; s++) {
+        for (PetscInt w = 0; w < bc->num_wall; w++) {
+          if (bc->slips[c][s] == bc->walls[w]) {
             SETERRQ(PETSC_COMM_SELF, PETSC_ERR_ARG_WRONG, "Boundary condition already set on face %" PetscInt_FMT "!\n", bc->walls[w]);
+          }
+        }
+      }
+    }
+  }
 
   // Inflow BCs
   bc->num_inflow = 16;
@@ -153,6 +160,21 @@ PetscErrorCode ProcessCommandLineOptions(MPI_Comm comm, AppCtx app_ctx, SimpleBC
   // Freestream BCs
   bc->num_freestream = 16;
   PetscCall(PetscOptionsIntArray("-bc_freestream", "Face IDs to apply freestream BC", NULL, bc->freestreams, &bc->num_freestream, NULL));
+
+  // Statistics Options
+  app_ctx->turb_spanstats_collect_interval = 1;
+  PetscCall(PetscOptionsInt("-ts_monitor_turbulence_spanstats_collect_interval", "Number of timesteps between statistics collection", NULL,
+                            app_ctx->turb_spanstats_collect_interval, &app_ctx->turb_spanstats_collect_interval, NULL));
+
+  app_ctx->turb_spanstats_viewer_interval = -1;
+  PetscCall(PetscOptionsInt("-ts_monitor_turbulence_spanstats_viewer_interval", "Number of timesteps between statistics viewer writing", NULL,
+                            app_ctx->turb_spanstats_viewer_interval, &app_ctx->turb_spanstats_viewer_interval, NULL));
+
+  PetscCall(PetscOptionsViewer("-ts_monitor_turbulence_spanstats_viewer", "Viewer for the statistics", NULL, &app_ctx->turb_spanstats_viewer,
+                               &app_ctx->turb_spanstats_viewer_format, &app_ctx->turb_spanstats_enable));
+
+  PetscCall(PetscOptionsViewer("-ts_monitor_wall_force", "Viewer for force on each (no-slip) wall", NULL, &app_ctx->wall_forces.viewer,
+                               &app_ctx->wall_forces.viewer_format, NULL));
 
   PetscOptionsEnd();
 

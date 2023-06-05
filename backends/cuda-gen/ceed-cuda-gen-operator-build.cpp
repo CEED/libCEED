@@ -7,8 +7,9 @@
 
 #define CEED_DEBUG_COLOR 12
 
+#include <ceed.h>
 #include <ceed/backend.h>
-#include <ceed/ceed.h>
+#include <ceed/jit-source/cuda/cuda-types.h>
 #include <ceed/jit-tools.h>
 #include <cuda_runtime.h>
 
@@ -17,6 +18,7 @@
 
 #include "../cuda-ref/ceed-cuda-ref.h"
 #include "../cuda-shared/ceed-cuda-shared.h"
+#include "../cuda/ceed-cuda-common.h"
 #include "../cuda/ceed-cuda-compile.h"
 #include "ceed-cuda-gen.h"
 
@@ -59,10 +61,8 @@ extern "C" int CeedCudaGenOperatorBuild(CeedOperator op) {
     CeedEvalMode eval_mode_in, eval_mode_out;
     CeedCallBackend(CeedQFunctionFieldGetEvalMode(qf_input_fields[0], &eval_mode_in));
     CeedCallBackend(CeedQFunctionFieldGetEvalMode(qf_output_fields[0], &eval_mode_out));
-    if (eval_mode_in == CEED_EVAL_NONE && eval_mode_out == CEED_EVAL_NONE)
-      // LCOV_EXCL_START
-      return CeedError(ceed, CEED_ERROR_BACKEND, "Backend does not implement restriction only identity operators");
-    // LCOV_EXCL_STOP
+    CeedCheck(eval_mode_in != CEED_EVAL_NONE || eval_mode_out != CEED_EVAL_NONE, ceed, CEED_ERROR_BACKEND,
+              "Backend does not implement restriction only identity operators");
   }
 
   ostringstream code;
@@ -122,15 +122,10 @@ extern "C" int CeedCudaGenOperatorBuild(CeedOperator op) {
       CeedCallBackend(CeedBasisGetDimension(basis, &dim));
       bool isTensor;
       CeedCallBackend(CeedBasisIsTensor(basis, &isTensor));
-      if (isTensor) {
-        CeedCallBackend(CeedBasisGetNumQuadraturePoints1D(basis, &Q_1d));
-        CeedCallBackend(CeedBasisGetNumNodes1D(basis, &P_1d));
-        if (P_1d > data->max_P_1d) data->max_P_1d = P_1d;
-      } else {
-        // LCOV_EXCL_START
-        return CeedError(ceed, CEED_ERROR_BACKEND, "Backend does not implement operators with non-tensor basis");
-        // LCOV_EXCL_STOP
-      }
+      CeedCheck(isTensor, ceed, CEED_ERROR_BACKEND, "Backend does not implement operators with non-tensor basis");
+      CeedCallBackend(CeedBasisGetNumQuadraturePoints1D(basis, &Q_1d));
+      CeedCallBackend(CeedBasisGetNumNodes1D(basis, &P_1d));
+      if (P_1d > data->max_P_1d) data->max_P_1d = P_1d;
     }
   }
   // Check output bases for Q_1d, dim as well
@@ -146,13 +141,8 @@ extern "C" int CeedCudaGenOperatorBuild(CeedOperator op) {
       CeedCallBackend(CeedBasisGetDimension(basis, &dim));
       bool isTensor;
       CeedCallBackend(CeedBasisIsTensor(basis, &isTensor));
-      if (isTensor) {
-        CeedCallBackend(CeedBasisGetNumQuadraturePoints1D(basis, &Q_1d));
-      } else {
-        // LCOV_EXCL_START
-        return CeedError(ceed, CEED_ERROR_BACKEND, "Backend does not implement operators with non-tensor basis");
-        // LCOV_EXCL_STOP
-      }
+      CeedCheck(isTensor, ceed, CEED_ERROR_BACKEND, "Backend does not implement operators with non-tensor basis");
+      CeedCallBackend(CeedBasisGetNumQuadraturePoints1D(basis, &Q_1d));
     }
   }
   data->dim  = dim;

@@ -8,7 +8,7 @@
 #ifndef libceed_solids_examples_cl_options_h
 #define libceed_solids_examples_cl_options_h
 
-#include <petsc.h>
+#include <petscsys.h>
 
 #include "../include/structs.h"
 

@@ -32,8 +32,8 @@
 const char help[] = "Solve CEED BPs using PETSc\n";
 
 #include <ceed.h>
+#include <petscdm.h>
 #include <petscksp.h>
-#include <petscsys.h>
 #include <stdbool.h>
 #include <string.h>
 
@@ -42,13 +42,6 @@ const char help[] = "Solve CEED BPs using PETSc\n";
 #include "qfunctions/bps/bp3.h"
 #include "qfunctions/bps/bp4.h"
 #include "qfunctions/bps/common.h"
-
-#if PETSC_VERSION_LT(3, 12, 0)
-#ifdef PETSC_HAVE_CUDA
-#include <petsccuda.h>
-// Note: With PETSc prior to version 3.12.0, providing the source path to include 'cublas_v2.h' will be needed to use 'petsccuda.h'.
-#endif
-#endif
 
 static CeedMemType MemTypeP2C(PetscMemType mem_type) { return PetscMemTypeDevice(mem_type) ? CEED_MEM_DEVICE : CEED_MEM_HOST; }
 
@@ -64,7 +57,7 @@ static void Split3(PetscInt size, PetscInt m[3], bool reverse) {
 static PetscInt Max3(const PetscInt a[3]) { return PetscMax(a[0], PetscMax(a[1], a[2])); }
 static PetscInt Min3(const PetscInt a[3]) { return PetscMin(a[0], PetscMin(a[1], a[2])); }
 static void     GlobalNodes(const PetscInt p[3], const PetscInt i_rank[3], PetscInt degree, const PetscInt mesh_elem[3], PetscInt m_nodes[3]) {
-      for (int d = 0; d < 3; d++) m_nodes[d] = degree * mesh_elem[d] + (i_rank[d] == p[d] - 1);
+  for (int d = 0; d < 3; d++) m_nodes[d] = degree * mesh_elem[d] + (i_rank[d] == p[d] - 1);
 }
 static PetscInt GlobalStart(const PetscInt p[3], const PetscInt i_rank[3], PetscInt degree, const PetscInt mesh_elem[3]) {
   PetscInt start = 0;

@@ -10,7 +10,7 @@
 #ifndef _ceed_backend_h
 #define _ceed_backend_h
 
-#include <ceed/ceed.h>
+#include <ceed.h>
 #include <limits.h>
 #include <stdbool.h>
 
@@ -116,12 +116,19 @@ CEED_INTERN int CeedFree(void *p);
   do {                         \
     int ierr_q_ = __VA_ARGS__; \
     CeedChk(ierr_q_);          \
-  } while (0);
+  } while (0)
 #define CeedCallBackend(...)   \
   do {                         \
     int ierr_q_ = __VA_ARGS__; \
     CeedChkBackend(ierr_q_);   \
-  } while (0);
+  } while (0)
+
+#define CeedCheck(cond, ceed, ecode, ...)         \
+  do {                                            \
+    if (!(cond)) {                                \
+      return CeedError(ceed, ecode, __VA_ARGS__); \
+    }                                             \
+  } while (0)
 
 /* Note that CeedMalloc and CeedCalloc will, generally, return pointers with different memory alignments:
    CeedMalloc returns pointers aligned at CEED_ALIGN bytes, while CeedCalloc uses the alignment of calloc. */
@@ -173,29 +180,33 @@ CEED_EXTERN int CeedElemRestrictionGetFlopsEstimate(CeedElemRestriction rstr, Ce
 /// Type of FE space;
 /// @ingroup CeedBasis
 typedef enum {
-  /// H1 FE space
+  /// H^1 FE space
   CEED_FE_SPACE_H1 = 1,
   /// H(div) FE space
   CEED_FE_SPACE_HDIV = 2,
+  /// H(curl) FE space
+  CEED_FE_SPACE_HCURL = 3,
 } CeedFESpace;
 CEED_EXTERN const char *const CeedFESpaces[];
 
 CEED_EXTERN int CeedBasisGetCollocatedGrad(CeedBasis basis, CeedScalar *colo_grad_1d);
-CEED_EXTERN int CeedHouseholderApplyQ(CeedScalar *A, const CeedScalar *Q, const CeedScalar *tau, CeedTransposeMode t_mode, CeedInt m, CeedInt n,
-                                      CeedInt k, CeedInt row, CeedInt col);
 CEED_EXTERN int CeedBasisIsTensor(CeedBasis basis, bool *is_tensor);
 CEED_EXTERN int CeedBasisGetData(CeedBasis basis, void *data);
 CEED_EXTERN int CeedBasisSetData(CeedBasis basis, void *data);
 CEED_EXTERN int CeedBasisReference(CeedBasis basis);
+CEED_EXTERN int CeedBasisGetNumQuadratureComponents(CeedBasis basis, CeedEvalMode eval_mode, CeedInt *q_comp);
 CEED_EXTERN int CeedBasisGetFlopsEstimate(CeedBasis basis, CeedTransposeMode t_mode, CeedEvalMode eval_mode, CeedSize *flops);
-
+CEED_EXTERN int CeedBasisGetFESpace(CeedBasis basis, CeedFESpace *fe_space);
 CEED_EXTERN int CeedBasisGetTopologyDimension(CeedElemTopology topo, CeedInt *dim);
-
 CEED_EXTERN int CeedBasisGetTensorContract(CeedBasis basis, CeedTensorContract *contract);
 CEED_EXTERN int CeedBasisSetTensorContract(CeedBasis basis, CeedTensorContract contract);
+
 CEED_EXTERN int CeedTensorContractCreate(Ceed ceed, CeedBasis basis, CeedTensorContract *contract);
 CEED_EXTERN int CeedTensorContractApply(CeedTensorContract contract, CeedInt A, CeedInt B, CeedInt C, CeedInt J, const CeedScalar *__restrict__ t,
                                         CeedTransposeMode t_mode, const CeedInt Add, const CeedScalar *__restrict__ u, CeedScalar *__restrict__ v);
+CEED_EXTERN int CeedTensorContractStridedApply(CeedTensorContract contract, CeedInt A, CeedInt B, CeedInt C, CeedInt D, CeedInt J,
+                                               const CeedScalar *__restrict__ t, CeedTransposeMode t_mode, const CeedInt add,
+                                               const CeedScalar *__restrict__ u, CeedScalar *__restrict__ v);
 CEED_EXTERN int CeedTensorContractGetCeed(CeedTensorContract contract, Ceed *ceed);
 CEED_EXTERN int CeedTensorContractGetData(CeedTensorContract contract, void *data);
 CEED_EXTERN int CeedTensorContractSetData(CeedTensorContract contract, void *data);
@@ -232,8 +243,17 @@ CEED_EXTERN int CeedQFunctionContextSetBackendData(CeedQFunctionContext ctx, voi
 CEED_EXTERN int CeedQFunctionContextGetFieldLabel(CeedQFunctionContext ctx, const char *field_name, CeedContextFieldLabel *field_label);
 CEED_EXTERN int CeedQFunctionContextSetGeneric(CeedQFunctionContext ctx, CeedContextFieldLabel field_label, CeedContextFieldType field_type,
                                                void *value);
+CEED_EXTERN int CeedQFunctionContextGetGenericRead(CeedQFunctionContext ctx, CeedContextFieldLabel field_label, CeedContextFieldType field_type,
+                                                   size_t *num_values, void *value);
+CEED_EXTERN int CeedQFunctionContextRestoreGenericRead(CeedQFunctionContext ctx, CeedContextFieldLabel field_label, CeedContextFieldType field_type,
+                                                       void *value);
 CEED_EXTERN int CeedQFunctionContextSetDouble(CeedQFunctionContext ctx, CeedContextFieldLabel field_label, double *values);
+CEED_EXTERN int CeedQFunctionContextGetDoubleRead(CeedQFunctionContext ctx, CeedContextFieldLabel field_label, size_t *num_values,
+                                                  const double **values);
+CEED_EXTERN int CeedQFunctionContextRestoreDoubleRead(CeedQFunctionContext ctx, CeedContextFieldLabel field_label, const double **values);
 CEED_EXTERN int CeedQFunctionContextSetInt32(CeedQFunctionContext ctx, CeedContextFieldLabel field_label, int *values);
+CEED_EXTERN int CeedQFunctionContextGetInt32Read(CeedQFunctionContext ctx, CeedContextFieldLabel field_label, size_t *num_values, const int **values);
+CEED_EXTERN int CeedQFunctionContextRestoreInt32Read(CeedQFunctionContext ctx, CeedContextFieldLabel field_label, const int **values);
 CEED_EXTERN int CeedQFunctionContextGetDataDestroy(CeedQFunctionContext ctx, CeedMemType *f_mem_type, CeedQFunctionContextDataDestroyUser *f);
 CEED_EXTERN int CeedQFunctionContextReference(CeedQFunctionContext ctx);
 
@@ -249,10 +269,14 @@ CEED_EXTERN int CeedQFunctionAssemblyDataGetObjects(CeedQFunctionAssemblyData da
 CEED_EXTERN int CeedQFunctionAssemblyDataDestroy(CeedQFunctionAssemblyData *data);
 
 CEED_EXTERN int CeedOperatorAssemblyDataCreate(Ceed ceed, CeedOperator op, CeedOperatorAssemblyData *data);
-CEED_EXTERN int CeedOperatorAssemblyDataGetEvalModes(CeedOperatorAssemblyData data, CeedInt *num_eval_mode_in, const CeedEvalMode **eval_mode_in,
-                                                     CeedInt *num_eval_mode_out, const CeedEvalMode **eval_mode_out);
-CEED_EXTERN int CeedOperatorAssemblyDataGetBases(CeedOperatorAssemblyData data, CeedBasis *basis_in, const CeedScalar **B_in, CeedBasis *basis_out,
-                                                 const CeedScalar **B_out);
+CEED_EXTERN int CeedOperatorAssemblyDataGetEvalModes(CeedOperatorAssemblyData data, CeedInt *num_active_bases, CeedInt **num_eval_modes_in,
+                                                     const CeedEvalMode ***eval_modes_in, CeedSize ***eval_mode_offsets_in,
+                                                     CeedInt **num_eval_modes_out, const CeedEvalMode ***eval_modes_out,
+                                                     CeedSize ***eval_mode_offsets_out, CeedSize *num_output_components);
+CEED_EXTERN int CeedOperatorAssemblyDataGetBases(CeedOperatorAssemblyData data, CeedInt *num_active_bases, CeedBasis **active_bases,
+                                                 const CeedScalar ***assembled_bases_in, const CeedScalar ***assembled_bases_out);
+CEED_EXTERN int CeedOperatorAssemblyDataGetElemRestrictions(CeedOperatorAssemblyData data, CeedInt *num_active_elem_rstrs,
+                                                            CeedElemRestriction **active_elem_rstrs);
 CEED_EXTERN int CeedOperatorAssemblyDataDestroy(CeedOperatorAssemblyData *data);
 
 CEED_EXTERN int CeedOperatorGetOperatorAssemblyData(CeedOperator op, CeedOperatorAssemblyData *data);
@@ -269,5 +293,10 @@ CEED_EXTERN int CeedOperatorSetSetupDone(CeedOperator op);
 
 CEED_INTERN int CeedMatrixMatrixMultiply(Ceed ceed, const CeedScalar *mat_A, const CeedScalar *mat_B, CeedScalar *mat_C, CeedInt m, CeedInt n,
                                          CeedInt kk);
+CEED_EXTERN int CeedQRFactorization(Ceed ceed, CeedScalar *mat, CeedScalar *tau, CeedInt m, CeedInt n);
+CEED_EXTERN int CeedHouseholderApplyQ(CeedScalar *mat_A, const CeedScalar *mat_Q, const CeedScalar *tau, CeedTransposeMode t_mode, CeedInt m,
+                                      CeedInt n, CeedInt k, CeedInt row, CeedInt col);
+CEED_EXTERN int CeedSymmetricSchurDecomposition(Ceed ceed, CeedScalar *mat, CeedScalar *lambda, CeedInt n);
+CEED_EXTERN int CeedSimultaneousDiagonalization(Ceed ceed, CeedScalar *mat_A, CeedScalar *mat_B, CeedScalar *x, CeedScalar *lambda, CeedInt n);
 
 #endif

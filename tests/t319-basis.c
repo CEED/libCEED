@@ -3,6 +3,7 @@
 /// \test Test projection interp and grad in multiple dimensions
 #include <ceed.h>
 #include <math.h>
+#include <stdio.h>
 
 static CeedScalar Eval(CeedInt dim, const CeedScalar x[]) {
   CeedScalar result = (x[0] + 0.1) * (x[0] + 0.1);
@@ -39,93 +40,107 @@ int main(int argc, char **argv) {
   CeedInit(argv[1], &ceed);
 
   for (CeedInt dim = 1; dim <= 3; dim++) {
-    CeedVector        X_corners, X_from, X_to, U_from, U_to, dU_to;
-    CeedBasis         basis_x, basis_from, basis_to, basis_project;
-    CeedInt           P_from = 5, P_to = 6, Q = 7, X_dim = CeedIntPow(2, dim), P_from_dim = CeedIntPow(P_from, dim), P_to_dim = CeedIntPow(P_to, dim);
-    CeedScalar        x[X_dim * dim], u_from[P_from_dim];
-    const CeedScalar *u_to, *du_to, *x_from, *x_to;
+    CeedVector x_corners, x_from, x_to, u_from, u_to, du_to;
+    CeedBasis  basis_x, basis_from, basis_to, basis_project;
+    CeedInt    p_from = 5, p_to = 6, q = 7, x_dim = CeedIntPow(2, dim), p_from_dim = CeedIntPow(p_from, dim), p_to_dim = CeedIntPow(p_to, dim);
 
-    for (CeedInt d = 0; d < dim; d++) {
-      for (CeedInt i = 0; i < X_dim; i++) x[X_dim * d + i] = (i % CeedIntPow(2, dim - d)) / CeedIntPow(2, dim - d - 1) ? 1 : -1;
+    CeedVectorCreate(ceed, x_dim * dim, &x_corners);
+    {
+      CeedScalar x_array[x_dim * dim];
+
+      for (CeedInt d = 0; d < dim; d++) {
+        for (CeedInt i = 0; i < x_dim; i++) x_array[x_dim * d + i] = (i % CeedIntPow(2, dim - d)) / CeedIntPow(2, dim - d - 1) ? 1 : -1;
+      }
+      CeedVectorSetArray(x_corners, CEED_MEM_HOST, CEED_COPY_VALUES, x_array);
     }
-
-    CeedVectorCreate(ceed, X_dim * dim, &X_corners);
-    CeedVectorSetArray(X_corners, CEED_MEM_HOST, CEED_USE_POINTER, x);
-    CeedVectorCreate(ceed, P_from_dim * dim, &X_from);
-    CeedVectorCreate(ceed, P_to_dim * dim, &X_to);
-    CeedVectorCreate(ceed, P_from_dim, &U_from);
-    CeedVectorSetValue(U_from, 0);
-    CeedVectorCreate(ceed, P_to_dim, &U_to);
-    CeedVectorSetValue(U_to, 0);
-    CeedVectorCreate(ceed, P_to_dim * dim, &dU_to);
-    CeedVectorSetValue(dU_to, 0);
+    CeedVectorCreate(ceed, p_from_dim * dim, &x_from);
+    CeedVectorCreate(ceed, p_to_dim * dim, &x_to);
+    CeedVectorCreate(ceed, p_from_dim, &u_from);
+    CeedVectorSetValue(u_from, 0);
+    CeedVectorCreate(ceed, p_to_dim, &u_to);
+    CeedVectorSetValue(u_to, 0);
+    CeedVectorCreate(ceed, p_to_dim * dim, &du_to);
+    CeedVectorSetValue(du_to, 0);
 
     // Get nodal coordinates
-    CeedBasisCreateTensorH1Lagrange(ceed, dim, dim, 2, P_from, CEED_GAUSS_LOBATTO, &basis_x);
-    CeedBasisApply(basis_x, 1, CEED_NOTRANSPOSE, CEED_EVAL_INTERP, X_corners, X_from);
+    CeedBasisCreateTensorH1Lagrange(ceed, dim, dim, 2, p_from, CEED_GAUSS_LOBATTO, &basis_x);
+    CeedBasisApply(basis_x, 1, CEED_NOTRANSPOSE, CEED_EVAL_INTERP, x_corners, x_from);
     CeedBasisDestroy(&basis_x);
-    CeedBasisCreateTensorH1Lagrange(ceed, dim, dim, 2, P_to, CEED_GAUSS_LOBATTO, &basis_x);
-    CeedBasisApply(basis_x, 1, CEED_NOTRANSPOSE, CEED_EVAL_INTERP, X_corners, X_to);
+    CeedBasisCreateTensorH1Lagrange(ceed, dim, dim, 2, p_to, CEED_GAUSS_LOBATTO, &basis_x);
+    CeedBasisApply(basis_x, 1, CEED_NOTRANSPOSE, CEED_EVAL_INTERP, x_corners, x_to);
     CeedBasisDestroy(&basis_x);
 
     // Create U and projection bases
-    CeedBasisCreateTensorH1Lagrange(ceed, dim, 1, P_from, Q, CEED_GAUSS, &basis_from);
-    CeedBasisCreateTensorH1Lagrange(ceed, dim, 1, P_to, Q, CEED_GAUSS, &basis_to);
+    CeedBasisCreateTensorH1Lagrange(ceed, dim, 1, p_from, q, CEED_GAUSS, &basis_from);
+    CeedBasisCreateTensorH1Lagrange(ceed, dim, 1, p_to, q, CEED_GAUSS, &basis_to);
     CeedBasisCreateProjection(basis_from, basis_to, &basis_project);
 
     // Setup coarse solution
-    CeedVectorGetArrayRead(X_from, CEED_MEM_HOST, &x_from);
-    for (CeedInt i = 0; i < P_from_dim; i++) {
-      CeedScalar xx[dim];
-      for (CeedInt d = 0; d < dim; d++) xx[d] = x_from[P_from_dim * d + i];
-      u_from[i] = Eval(dim, xx);
+    {
+      const CeedScalar *x_array;
+      CeedScalar        u_array[p_from_dim];
+
+      CeedVectorGetArrayRead(x_from, CEED_MEM_HOST, &x_array);
+      for (CeedInt i = 0; i < p_from_dim; i++) {
+        CeedScalar coord[dim];
+        for (CeedInt d = 0; d < dim; d++) coord[d] = x_array[p_from_dim * d + i];
+        u_array[i] = Eval(dim, coord);
+      }
+      CeedVectorRestoreArrayRead(x_from, &x_array);
+      CeedVectorSetArray(u_from, CEED_MEM_HOST, CEED_COPY_VALUES, u_array);
     }
-    CeedVectorRestoreArrayRead(X_from, &x_from);
-    CeedVectorSetArray(U_from, CEED_MEM_HOST, CEED_USE_POINTER, u_from);
 
     // Project to fine basis
-    CeedBasisApply(basis_project, 1, CEED_NOTRANSPOSE, CEED_EVAL_INTERP, U_from, U_to);
+    CeedBasisApply(basis_project, 1, CEED_NOTRANSPOSE, CEED_EVAL_INTERP, u_from, u_to);
 
     // Check solution
-    CeedVectorGetArrayRead(U_to, CEED_MEM_HOST, &u_to);
-    CeedVectorGetArrayRead(X_to, CEED_MEM_HOST, &x_to);
     CeedScalar tol = GetTolerance(CEED_SCALAR_TYPE, dim);
-    for (CeedInt i = 0; i < P_to_dim; i++) {
-      CeedScalar xx[dim];
-      for (CeedInt d = 0; d < dim; d++) xx[d] = x_to[d * P_to_dim + i];
-      const CeedScalar u = Eval(dim, xx);
-      if (fabs(u - u_to[i]) > tol) printf("[%" CeedInt_FMT ", %" CeedInt_FMT "] %f != %f\n", dim, i, u_to[i], u);
+    {
+      const CeedScalar *x_array, *u_array;
+
+      CeedVectorGetArrayRead(x_to, CEED_MEM_HOST, &x_array);
+      CeedVectorGetArrayRead(u_to, CEED_MEM_HOST, &u_array);
+      for (CeedInt i = 0; i < p_to_dim; i++) {
+        CeedScalar coord[dim];
+        for (CeedInt d = 0; d < dim; d++) coord[d] = x_array[d * p_to_dim + i];
+        const CeedScalar u = Eval(dim, coord);
+        if (fabs(u - u_array[i]) > tol) printf("[%" CeedInt_FMT ", %" CeedInt_FMT "] %f != %f\n", dim, i, u_array[i], u);
+      }
+      CeedVectorRestoreArrayRead(x_to, &x_array);
+      CeedVectorRestoreArrayRead(u_to, &u_array);
     }
-    CeedVectorRestoreArrayRead(X_to, &x_to);
-    CeedVectorRestoreArrayRead(U_to, &u_to);
 
     // Project and take gradient
-    CeedBasisApply(basis_project, 1, CEED_NOTRANSPOSE, CEED_EVAL_GRAD, U_from, dU_to);
+    CeedBasisApply(basis_project, 1, CEED_NOTRANSPOSE, CEED_EVAL_GRAD, u_from, du_to);
 
     // Check solution
-    CeedVectorGetArrayRead(dU_to, CEED_MEM_HOST, &du_to);
-    CeedVectorGetArrayRead(X_to, CEED_MEM_HOST, &x_to);
-    for (CeedInt i = 0; i < P_to_dim; i++) {
-      CeedScalar xx[dim];
-      for (CeedInt d = 0; d < dim; d++) xx[d] = x_to[P_to_dim * d + i];
-      for (CeedInt d = 0; d < dim; d++) {
-        const CeedScalar du = EvalGrad(d, xx);
-        if (fabs(du - du_to[P_to_dim * (dim - 1 - d) + i]) > tol) {
-          // LCOV_EXCL_START
-          printf("[%" CeedInt_FMT ", %" CeedInt_FMT ", %" CeedInt_FMT "] %f != %f\n", dim, i, d, du_to[P_to_dim * (dim - 1 - d) + i], du);
-          // LCOV_EXCL_STOP
+    {
+      const CeedScalar *x_array, *du_array;
+
+      CeedVectorGetArrayRead(x_to, CEED_MEM_HOST, &x_array);
+      CeedVectorGetArrayRead(du_to, CEED_MEM_HOST, &du_array);
+      for (CeedInt i = 0; i < p_to_dim; i++) {
+        CeedScalar coord[dim];
+        for (CeedInt d = 0; d < dim; d++) coord[d] = x_array[p_to_dim * d + i];
+        for (CeedInt d = 0; d < dim; d++) {
+          const CeedScalar du = EvalGrad(d, coord);
+          if (fabs(du - du_array[p_to_dim * (dim - 1 - d) + i]) > tol) {
+            // LCOV_EXCL_START
+            printf("[%" CeedInt_FMT ", %" CeedInt_FMT ", %" CeedInt_FMT "] %f != %f\n", dim, i, d, du_array[p_to_dim * (dim - 1 - d) + i], du);
+            // LCOV_EXCL_STOP
+          }
         }
       }
+      CeedVectorRestoreArrayRead(x_to, &x_array);
+      CeedVectorRestoreArrayRead(du_to, &du_array);
     }
-    CeedVectorRestoreArrayRead(X_to, &x_to);
-    CeedVectorRestoreArrayRead(dU_to, &du_to);
 
-    CeedVectorDestroy(&X_corners);
-    CeedVectorDestroy(&X_from);
-    CeedVectorDestroy(&X_to);
-    CeedVectorDestroy(&U_from);
-    CeedVectorDestroy(&U_to);
-    CeedVectorDestroy(&dU_to);
+    CeedVectorDestroy(&x_corners);
+    CeedVectorDestroy(&x_from);
+    CeedVectorDestroy(&x_to);
+    CeedVectorDestroy(&u_from);
+    CeedVectorDestroy(&u_to);
+    CeedVectorDestroy(&du_to);
     CeedBasisDestroy(&basis_from);
     CeedBasisDestroy(&basis_to);
     CeedBasisDestroy(&basis_project);

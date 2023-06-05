@@ -5,13 +5,15 @@
 //
 // This file is part of CEED:  http://github.com/ceed
 
+#include <ceed.h>
 #include <ceed/backend.h>
-#include <ceed/ceed.h>
 #include <cublas_v2.h>
 #include <cuda_runtime.h>
 #include <math.h>
+#include <stdbool.h>
 #include <string.h>
 
+#include "../cuda/ceed-cuda-common.h"
 #include "ceed-cuda-ref.h"
 
 //------------------------------------------------------------------------------
@@ -44,11 +46,7 @@ static inline int CeedVectorSyncH2D_Cuda(const CeedVector vec) {
   CeedVector_Cuda *impl;
   CeedCallBackend(CeedVectorGetData(vec, &impl));
 
-  if (!impl->h_array) {
-    // LCOV_EXCL_START
-    return CeedError(ceed, CEED_ERROR_BACKEND, "No valid host data to sync to device");
-    // LCOV_EXCL_STOP
-  }
+  CeedCheck(impl->h_array, ceed, CEED_ERROR_BACKEND, "No valid host data to sync to device");
 
   CeedSize length;
   CeedCallBackend(CeedVectorGetLength(vec, &length));
@@ -77,11 +75,7 @@ static inline int CeedVectorSyncD2H_Cuda(const CeedVector vec) {
   CeedVector_Cuda *impl;
   CeedCallBackend(CeedVectorGetData(vec, &impl));
 
-  if (!impl->d_array) {
-    // LCOV_EXCL_START
-    return CeedError(ceed, CEED_ERROR_BACKEND, "No valid device data to sync to host");
-    // LCOV_EXCL_STOP
-  }
+  CeedCheck(impl->d_array, ceed, CEED_ERROR_BACKEND, "No valid device data to sync to host");
 
   if (impl->h_array_borrowed) {
     impl->h_array = impl->h_array_borrowed;
@@ -595,6 +589,44 @@ static int CeedVectorAXPY_Cuda(CeedVector y, CeedScalar alpha, CeedVector x) {
 }
 
 //------------------------------------------------------------------------------
+// Compute y = alpha x + beta y on the host
+//------------------------------------------------------------------------------
+static int CeedHostAXPBY_Cuda(CeedScalar *y_array, CeedScalar alpha, CeedScalar beta, CeedScalar *x_array, CeedInt length) {
+  for (int i = 0; i < length; i++) y_array[i] += alpha * x_array[i] + beta * y_array[i];
+  return CEED_ERROR_SUCCESS;
+}
+
+//------------------------------------------------------------------------------
+// Compute y = alpha x + beta y on device (impl in .cu file)
+//------------------------------------------------------------------------------
+int CeedDeviceAXPBY_Cuda(CeedScalar *y_array, CeedScalar alpha, CeedScalar beta, CeedScalar *x_array, CeedInt length);
+
+//------------------------------------------------------------------------------
+// Compute y = alpha x + beta y
+//------------------------------------------------------------------------------
+static int CeedVectorAXPBY_Cuda(CeedVector y, CeedScalar alpha, CeedScalar beta, CeedVector x) {
+  Ceed ceed;
+  CeedCallBackend(CeedVectorGetCeed(y, &ceed));
+  CeedVector_Cuda *y_impl, *x_impl;
+  CeedCallBackend(CeedVectorGetData(y, &y_impl));
+  CeedCallBackend(CeedVectorGetData(x, &x_impl));
+  CeedSize length;
+  CeedCallBackend(CeedVectorGetLength(y, &length));
+
+  // Set value for synced device/host array
+  if (y_impl->d_array) {
+    CeedCallBackend(CeedVectorSyncArray(x, CEED_MEM_DEVICE));
+    CeedCallBackend(CeedDeviceAXPBY_Cuda(y_impl->d_array, alpha, beta, x_impl->d_array, length));
+  }
+  if (y_impl->h_array) {
+    CeedCallBackend(CeedVectorSyncArray(x, CEED_MEM_HOST));
+    CeedCallBackend(CeedHostAXPBY_Cuda(y_impl->h_array, alpha, beta, x_impl->h_array, length));
+  }
+
+  return CEED_ERROR_SUCCESS;
+}
+
+//------------------------------------------------------------------------------
 // Compute the pointwise multiplication w = x .* y on the host
 //------------------------------------------------------------------------------
 static int CeedHostPointwiseMult_Cuda(CeedScalar *w_array, CeedScalar *x_array, CeedScalar *y_array, CeedInt length) {
@@ -666,15 +698,16 @@ int CeedVectorCreate_Cuda(CeedSize n, CeedVector vec) {
   CeedCallBackend(CeedSetBackendFunction(ceed, "Vector", vec, "HasBorrowedArrayOfType", CeedVectorHasBorrowedArrayOfType_Cuda));
   CeedCallBackend(CeedSetBackendFunction(ceed, "Vector", vec, "SetArray", CeedVectorSetArray_Cuda));
   CeedCallBackend(CeedSetBackendFunction(ceed, "Vector", vec, "TakeArray", CeedVectorTakeArray_Cuda));
-  CeedCallBackend(CeedSetBackendFunction(ceed, "Vector", vec, "SetValue", (int (*)())(CeedVectorSetValue_Cuda)));
+  CeedCallBackend(CeedSetBackendFunction(ceed, "Vector", vec, "SetValue", CeedVectorSetValue_Cuda));
   CeedCallBackend(CeedSetBackendFunction(ceed, "Vector", vec, "SyncArray", CeedVectorSyncArray_Cuda));
   CeedCallBackend(CeedSetBackendFunction(ceed, "Vector", vec, "GetArray", CeedVectorGetArray_Cuda));
   CeedCallBackend(CeedSetBackendFunction(ceed, "Vector", vec, "GetArrayRead", CeedVectorGetArrayRead_Cuda));
   CeedCallBackend(CeedSetBackendFunction(ceed, "Vector", vec, "GetArrayWrite", CeedVectorGetArrayWrite_Cuda));
   CeedCallBackend(CeedSetBackendFunction(ceed, "Vector", vec, "Norm", CeedVectorNorm_Cuda));
   CeedCallBackend(CeedSetBackendFunction(ceed, "Vector", vec, "Reciprocal", CeedVectorReciprocal_Cuda));
-  CeedCallBackend(CeedSetBackendFunction(ceed, "Vector", vec, "AXPY", (int (*)())(CeedVectorAXPY_Cuda)));
-  CeedCallBackend(CeedSetBackendFunction(ceed, "Vector", vec, "Scale", (int (*)())(CeedVectorScale_Cuda)));
+  CeedCallBackend(CeedSetBackendFunction(ceed, "Vector", vec, "AXPY", CeedVectorAXPY_Cuda));
+  CeedCallBackend(CeedSetBackendFunction(ceed, "Vector", vec, "AXPBY", CeedVectorAXPBY_Cuda));
+  CeedCallBackend(CeedSetBackendFunction(ceed, "Vector", vec, "Scale", CeedVectorScale_Cuda));
   CeedCallBackend(CeedSetBackendFunction(ceed, "Vector", vec, "PointwiseMult", CeedVectorPointwiseMult_Cuda));
   CeedCallBackend(CeedSetBackendFunction(ceed, "Vector", vec, "Destroy", CeedVectorDestroy_Cuda));
 

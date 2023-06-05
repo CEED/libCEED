@@ -1,8 +1,9 @@
 /// @file
-/// Test creation, transpose use, and destruction of an interlaced multicomponent element restriction
-/// \test Test creation, transpose use, and destruction of an interlaced multicomponent element restriction
+/// Test creation, transpose use, and destruction of an interlaced multi-component element restriction
+/// \test Test creation, transpose use, and destruction of an interlaced multi-component element restriction
 #include <ceed.h>
 #include <ceed/backend.h>
+#include <stdio.h>
 
 int main(int argc, char **argv) {
   Ceed                ceed;
@@ -11,11 +12,11 @@ int main(int argc, char **argv) {
   CeedInt             ind[2 * num_elem];
   CeedInt             layout[3];
   CeedScalar          mult;
-  CeedScalar          a[2 * (num_elem * 2)];
-  const CeedScalar   *yy;
-  CeedElemRestriction r;
+  CeedElemRestriction elem_restriction;
 
   CeedInit(argv[1], &ceed);
+  CeedVectorCreate(ceed, 2 * (num_elem + 1), &y);
+  CeedVectorSetValue(y, 0.0);  // Allocates array
 
   // Setup
   CeedVectorCreate(ceed, 2 * (num_elem * 2), &x);
@@ -24,44 +25,50 @@ int main(int argc, char **argv) {
     ind[2 * i + 0] = 2 * i;
     ind[2 * i + 1] = 2 * (i + 1);
   }
-  CeedElemRestrictionCreate(ceed, num_elem, 2, 2, 1, 2 * (num_elem + 1), CEED_MEM_HOST, CEED_USE_POINTER, ind, &r);
-  CeedVectorCreate(ceed, 2 * (num_elem + 1), &y);
-  CeedVectorSetValue(y, 0);  // Allocates array
+  CeedElemRestrictionCreate(ceed, num_elem, 2, 2, 1, 2 * (num_elem + 1), CEED_MEM_HOST, CEED_USE_POINTER, ind, &elem_restriction);
 
   // Set x data in backend E-layout
-  CeedElemRestrictionGetELayout(r, &layout);
-  for (CeedInt i = 0; i < 2; i++) {             // Node
-    for (CeedInt j = 0; j < 2; j++) {           // Component
-      for (CeedInt k = 0; k < num_elem; k++) {  // Element
-        a[i * layout[0] + j * layout[1] + k * layout[2]] = 10 * j + (2 * k + i + 1) / 2;
+  CeedElemRestrictionGetELayout(elem_restriction, &layout);
+  {
+    CeedScalar x_array[2 * (num_elem * 2)];
+
+    for (CeedInt i = 0; i < 2; i++) {             // Node
+      for (CeedInt j = 0; j < 2; j++) {           // Component
+        for (CeedInt k = 0; k < num_elem; k++) {  // Element
+          x_array[i * layout[0] + j * layout[1] + k * layout[2]] = 10 * j + (2 * k + i + 1) / 2;
+        }
       }
     }
+    CeedVectorSetArray(x, CEED_MEM_HOST, CEED_COPY_VALUES, x_array);
   }
-  CeedVectorSetArray(x, CEED_MEM_HOST, CEED_USE_POINTER, a);
 
   // Restrict
-  CeedElemRestrictionApply(r, CEED_TRANSPOSE, x, y, CEED_REQUEST_IMMEDIATE);
+  CeedElemRestrictionApply(elem_restriction, CEED_TRANSPOSE, x, y, CEED_REQUEST_IMMEDIATE);
 
   // Check
-  CeedVectorGetArrayRead(y, CEED_MEM_HOST, &yy);
-  for (CeedInt i = 0; i < num_elem + 1; i++) {
-    mult = i > 0 && i < num_elem ? 2 : 1;
-    if (yy[2 * i] != i * mult) {
-      // LCOV_EXCL_START
-      printf("Error in restricted array y[%" CeedInt_FMT "] = %f != %f\n", 2 * i, (CeedScalar)yy[2 * i], i * mult);
-      // LCOV_EXCL_STOP
+  {
+    const CeedScalar *y_array;
+
+    CeedVectorGetArrayRead(y, CEED_MEM_HOST, &y_array);
+    for (CeedInt i = 0; i < num_elem + 1; i++) {
+      mult = i > 0 && i < num_elem ? 2 : 1;
+      if (y_array[2 * i] != i * mult) {
+        // LCOV_EXCL_START
+        printf("Error in restricted array y[%" CeedInt_FMT "] = %f != %f\n", 2 * i, (CeedScalar)y_array[2 * i], i * mult);
+        // LCOV_EXCL_STOP
+      }
+      if (y_array[2 * i + 1] != (10 + i) * mult) {
+        // LCOV_EXCL_START
+        printf("Error in restricted array y[%" CeedInt_FMT "] = %f != %f\n", 2 * i + 1, (CeedScalar)y_array[2 * i + 1], (10. + i) * mult);
+        // LCOV_EXCL_STOP
+      }
     }
-    if (yy[2 * i + 1] != (10 + i) * mult) {
-      // LCOV_EXCL_START
-      printf("Error in restricted array y[%" CeedInt_FMT "] = %f != %f\n", 2 * i + 1, (CeedScalar)yy[2 * i + 1], (10. + i) * mult);
-      // LCOV_EXCL_STOP
-    }
+    CeedVectorRestoreArrayRead(y, &y_array);
   }
 
-  CeedVectorRestoreArrayRead(y, &yy);
   CeedVectorDestroy(&x);
   CeedVectorDestroy(&y);
-  CeedElemRestrictionDestroy(&r);
+  CeedElemRestrictionDestroy(&elem_restriction);
   CeedDestroy(&ceed);
   return 0;
 }

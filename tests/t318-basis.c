@@ -3,6 +3,7 @@
 /// \test Test high order interpolation in multiple dimensions
 #include <ceed.h>
 #include <math.h>
+#include <stdio.h>
 
 static CeedScalar Eval(CeedInt dim, const CeedScalar x[]) {
   CeedScalar result = 1, center = 0.1;
@@ -18,68 +19,78 @@ int main(int argc, char **argv) {
 
   CeedInit(argv[1], &ceed);
   for (CeedInt dim = 1; dim <= 3; dim++) {
-    CeedVector        X, X_q, U, U_q;
-    CeedBasis         basis_x_lobatto, basis_u_lobatto, basis_x_gauss, basis_u_gauss;
-    CeedInt           Q = 11, Q_dim = CeedIntPow(Q, dim), X_dim = CeedIntPow(2, dim);
-    CeedScalar        x[X_dim * dim];
-    const CeedScalar *xq, *u;
-    CeedScalar        uq[Q_dim];
+    CeedVector x, x_q, u, u_q;
+    CeedBasis  basis_x_lobatto, basis_u_lobatto, basis_x_gauss, basis_u_gauss;
+    CeedInt    q = 11, q_dim = CeedIntPow(q, dim), x_dim = CeedIntPow(2, dim);
 
-    for (CeedInt d = 0; d < dim; d++)
-      for (CeedInt i = 0; i < X_dim; i++) x[d * X_dim + i] = (i % CeedIntPow(2, dim - d)) / CeedIntPow(2, dim - d - 1) ? 1 : -1;
+    CeedVectorCreate(ceed, x_dim * dim, &x);
+    {
+      CeedScalar x_array[x_dim * dim];
 
-    CeedVectorCreate(ceed, X_dim * dim, &X);
-    CeedVectorSetArray(X, CEED_MEM_HOST, CEED_USE_POINTER, x);
-    CeedVectorCreate(ceed, Q_dim * dim, &X_q);
-    CeedVectorSetValue(X_q, 0);
-    CeedVectorCreate(ceed, Q_dim, &U);
-    CeedVectorSetValue(U, 0);
-    CeedVectorCreate(ceed, Q_dim, &U_q);
-
-    CeedBasisCreateTensorH1Lagrange(ceed, dim, dim, 2, Q, CEED_GAUSS_LOBATTO, &basis_x_lobatto);
-    CeedBasisCreateTensorH1Lagrange(ceed, dim, 1, Q, Q, CEED_GAUSS_LOBATTO, &basis_u_lobatto);
-
-    CeedBasisApply(basis_x_lobatto, 1, CEED_NOTRANSPOSE, CEED_EVAL_INTERP, X, X_q);
-
-    CeedVectorGetArrayRead(X_q, CEED_MEM_HOST, &xq);
-    for (CeedInt i = 0; i < Q_dim; i++) {
-      CeedScalar xx[dim];
-      for (CeedInt d = 0; d < dim; d++) xx[d] = xq[d * Q_dim + i];
-      uq[i] = Eval(dim, xx);
+      for (CeedInt d = 0; d < dim; d++) {
+        for (CeedInt i = 0; i < x_dim; i++) x_array[d * x_dim + i] = (i % CeedIntPow(2, dim - d)) / CeedIntPow(2, dim - d - 1) ? 1 : -1;
+      }
+      CeedVectorSetArray(x, CEED_MEM_HOST, CEED_COPY_VALUES, x_array);
     }
-    CeedVectorRestoreArrayRead(X_q, &xq);
-    CeedVectorSetArray(U_q, CEED_MEM_HOST, CEED_USE_POINTER, uq);
+    CeedVectorCreate(ceed, q_dim * dim, &x_q);
+    CeedVectorSetValue(x_q, 0);
+    CeedVectorCreate(ceed, q_dim, &u);
+    CeedVectorSetValue(u, 0);
+    CeedVectorCreate(ceed, q_dim, &u_q);
+
+    CeedBasisCreateTensorH1Lagrange(ceed, dim, dim, 2, q, CEED_GAUSS_LOBATTO, &basis_x_lobatto);
+    CeedBasisCreateTensorH1Lagrange(ceed, dim, 1, q, q, CEED_GAUSS_LOBATTO, &basis_u_lobatto);
+
+    CeedBasisApply(basis_x_lobatto, 1, CEED_NOTRANSPOSE, CEED_EVAL_INTERP, x, x_q);
+
+    {
+      const CeedScalar *x_q_array;
+      CeedScalar        u_q_array[q_dim];
+
+      CeedVectorGetArrayRead(x_q, CEED_MEM_HOST, &x_q_array);
+      for (CeedInt i = 0; i < q_dim; i++) {
+        CeedScalar coord[dim];
+        for (CeedInt d = 0; d < dim; d++) coord[d] = x_q_array[d * q_dim + i];
+        u_q_array[i] = Eval(dim, coord);
+      }
+      CeedVectorRestoreArrayRead(x_q, &x_q_array);
+      CeedVectorSetArray(u_q, CEED_MEM_HOST, CEED_COPY_VALUES, u_q_array);
+    }
 
     // This operation is the identity because the quadrature is collocated
-    CeedBasisApply(basis_u_lobatto, 1, CEED_TRANSPOSE, CEED_EVAL_INTERP, U_q, U);
+    CeedBasisApply(basis_u_lobatto, 1, CEED_TRANSPOSE, CEED_EVAL_INTERP, u_q, u);
 
-    CeedBasisCreateTensorH1Lagrange(ceed, dim, dim, 2, Q, CEED_GAUSS, &basis_x_gauss);
-    CeedBasisCreateTensorH1Lagrange(ceed, dim, 1, Q, Q, CEED_GAUSS, &basis_u_gauss);
+    CeedBasisCreateTensorH1Lagrange(ceed, dim, dim, 2, q, CEED_GAUSS, &basis_x_gauss);
+    CeedBasisCreateTensorH1Lagrange(ceed, dim, 1, q, q, CEED_GAUSS, &basis_u_gauss);
 
-    CeedBasisApply(basis_x_gauss, 1, CEED_NOTRANSPOSE, CEED_EVAL_INTERP, X, X_q);
-    CeedBasisApply(basis_u_gauss, 1, CEED_NOTRANSPOSE, CEED_EVAL_INTERP, U, U_q);
+    CeedBasisApply(basis_x_gauss, 1, CEED_NOTRANSPOSE, CEED_EVAL_INTERP, x, x_q);
+    CeedBasisApply(basis_u_gauss, 1, CEED_NOTRANSPOSE, CEED_EVAL_INTERP, u, u_q);
 
-    CeedVectorGetArrayRead(X_q, CEED_MEM_HOST, &xq);
-    CeedVectorGetArrayRead(U_q, CEED_MEM_HOST, &u);
-    for (CeedInt i = 0; i < Q_dim; i++) {
-      CeedScalar xx[dim];
-      for (CeedInt d = 0; d < dim; d++) xx[d] = xq[d * Q_dim + i];
-      CeedScalar fx = Eval(dim, xx);
-      if (fabs(u[i] - fx) > 1E-4) {
-        // LCOV_EXCL_START
-        printf("[%" CeedInt_FMT "] %f != %f = f(%f", dim, u[i], fx, xx[0]);
-        for (CeedInt d = 1; d < dim; d++) printf(",%f", xx[d]);
-        puts(")");
-        // LCOV_EXCL_STOP
+    {
+      const CeedScalar *x_q_array, *u_array;
+
+      CeedVectorGetArrayRead(x_q, CEED_MEM_HOST, &x_q_array);
+      CeedVectorGetArrayRead(u_q, CEED_MEM_HOST, &u_array);
+      for (CeedInt i = 0; i < q_dim; i++) {
+        CeedScalar coord[dim];
+        for (CeedInt d = 0; d < dim; d++) coord[d] = x_q_array[d * q_dim + i];
+        CeedScalar fx = Eval(dim, coord);
+        if (fabs(u_array[i] - fx) > 1E-4) {
+          // LCOV_EXCL_START
+          printf("[%" CeedInt_FMT "] %f != %f = f(%f", dim, u_array[i], fx, coord[0]);
+          for (CeedInt d = 1; d < dim; d++) printf(",%f", coord[d]);
+          puts(")");
+          // LCOV_EXCL_STOP
+        }
       }
+      CeedVectorRestoreArrayRead(x_q, &x_q_array);
+      CeedVectorRestoreArrayRead(u_q, &u_array);
     }
-    CeedVectorRestoreArrayRead(X_q, &xq);
-    CeedVectorRestoreArrayRead(U_q, &u);
 
-    CeedVectorDestroy(&X);
-    CeedVectorDestroy(&X_q);
-    CeedVectorDestroy(&U);
-    CeedVectorDestroy(&U_q);
+    CeedVectorDestroy(&x);
+    CeedVectorDestroy(&x_q);
+    CeedVectorDestroy(&u);
+    CeedVectorDestroy(&u_q);
     CeedBasisDestroy(&basis_x_lobatto);
     CeedBasisDestroy(&basis_u_lobatto);
     CeedBasisDestroy(&basis_x_gauss);

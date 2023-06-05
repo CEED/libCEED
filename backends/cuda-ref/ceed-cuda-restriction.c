@@ -5,8 +5,8 @@
 //
 // This file is part of CEED:  http://github.com/ceed
 
+#include <ceed.h>
 #include <ceed/backend.h>
-#include <ceed/ceed.h>
 #include <ceed/jit-tools.h>
 #include <cuda.h>
 #include <cuda_runtime.h>
@@ -14,6 +14,7 @@
 #include <stddef.h>
 #include <string.h>
 
+#include "../cuda/ceed-cuda-common.h"
 #include "../cuda/ceed-cuda-compile.h"
 #include "ceed-cuda-ref.h"
 
@@ -258,55 +259,60 @@ int CeedElemRestrictionCreate_Cuda(CeedMemType m_type, CeedCopyMode copy_mode, c
   CeedCallBackend(CeedElemRestrictionSetELayout(r, layout));
 
   // Set up device indices/offset arrays
-  if (m_type == CEED_MEM_HOST) {
-    switch (copy_mode) {
-      case CEED_OWN_POINTER:
-        impl->h_ind_allocated = (CeedInt *)indices;
-        impl->h_ind           = (CeedInt *)indices;
-        break;
-      case CEED_USE_POINTER:
-        impl->h_ind = (CeedInt *)indices;
-        break;
-      case CEED_COPY_VALUES:
-        if (indices != NULL) {
-          CeedCallBackend(CeedMalloc(elem_size * num_elem, &impl->h_ind_allocated));
-          memcpy(impl->h_ind_allocated, indices, elem_size * num_elem * sizeof(CeedInt));
-          impl->h_ind = impl->h_ind_allocated;
-        }
-        break;
+  switch (m_type) {
+    case CEED_MEM_HOST: {
+      switch (copy_mode) {
+        case CEED_OWN_POINTER:
+          impl->h_ind_allocated = (CeedInt *)indices;
+          impl->h_ind           = (CeedInt *)indices;
+          break;
+        case CEED_USE_POINTER:
+          impl->h_ind = (CeedInt *)indices;
+          break;
+        case CEED_COPY_VALUES:
+          if (indices != NULL) {
+            CeedCallBackend(CeedMalloc(elem_size * num_elem, &impl->h_ind_allocated));
+            memcpy(impl->h_ind_allocated, indices, elem_size * num_elem * sizeof(CeedInt));
+            impl->h_ind = impl->h_ind_allocated;
+          }
+          break;
+      }
+      if (indices != NULL) {
+        CeedCallCuda(ceed, cudaMalloc((void **)&impl->d_ind, size * sizeof(CeedInt)));
+        impl->d_ind_allocated = impl->d_ind;  // We own the device memory
+        CeedCallCuda(ceed, cudaMemcpy(impl->d_ind, indices, size * sizeof(CeedInt), cudaMemcpyHostToDevice));
+        CeedCallBackend(CeedElemRestrictionOffset_Cuda(r, indices));
+      }
+      break;
     }
-    if (indices != NULL) {
-      CeedCallCuda(ceed, cudaMalloc((void **)&impl->d_ind, size * sizeof(CeedInt)));
-      impl->d_ind_allocated = impl->d_ind;  // We own the device memory
-      CeedCallCuda(ceed, cudaMemcpy(impl->d_ind, indices, size * sizeof(CeedInt), cudaMemcpyHostToDevice));
-      CeedCallBackend(CeedElemRestrictionOffset_Cuda(r, indices));
+    case CEED_MEM_DEVICE: {
+      switch (copy_mode) {
+        case CEED_COPY_VALUES:
+          if (indices != NULL) {
+            CeedCallCuda(ceed, cudaMalloc((void **)&impl->d_ind, size * sizeof(CeedInt)));
+            impl->d_ind_allocated = impl->d_ind;  // We own the device memory
+            CeedCallCuda(ceed, cudaMemcpy(impl->d_ind, indices, size * sizeof(CeedInt), cudaMemcpyDeviceToDevice));
+          }
+          break;
+        case CEED_OWN_POINTER:
+          impl->d_ind           = (CeedInt *)indices;
+          impl->d_ind_allocated = impl->d_ind;
+          break;
+        case CEED_USE_POINTER:
+          impl->d_ind = (CeedInt *)indices;
+      }
+      if (indices != NULL) {
+        CeedCallBackend(CeedMalloc(elem_size * num_elem, &impl->h_ind_allocated));
+        CeedCallCuda(ceed, cudaMemcpy(impl->h_ind_allocated, impl->d_ind, elem_size * num_elem * sizeof(CeedInt), cudaMemcpyDeviceToHost));
+        impl->h_ind = impl->h_ind_allocated;
+        CeedCallBackend(CeedElemRestrictionOffset_Cuda(r, indices));
+      }
+      break;
     }
-  } else if (m_type == CEED_MEM_DEVICE) {
-    switch (copy_mode) {
-      case CEED_COPY_VALUES:
-        if (indices != NULL) {
-          CeedCallCuda(ceed, cudaMalloc((void **)&impl->d_ind, size * sizeof(CeedInt)));
-          impl->d_ind_allocated = impl->d_ind;  // We own the device memory
-          CeedCallCuda(ceed, cudaMemcpy(impl->d_ind, indices, size * sizeof(CeedInt), cudaMemcpyDeviceToDevice));
-        }
-        break;
-      case CEED_OWN_POINTER:
-        impl->d_ind           = (CeedInt *)indices;
-        impl->d_ind_allocated = impl->d_ind;
-        break;
-      case CEED_USE_POINTER:
-        impl->d_ind = (CeedInt *)indices;
-    }
-    if (indices != NULL) {
-      CeedCallBackend(CeedMalloc(elem_size * num_elem, &impl->h_ind_allocated));
-      CeedCallCuda(ceed, cudaMemcpy(impl->h_ind_allocated, impl->d_ind, elem_size * num_elem * sizeof(CeedInt), cudaMemcpyDeviceToHost));
-      impl->h_ind = impl->h_ind_allocated;
-      CeedCallBackend(CeedElemRestrictionOffset_Cuda(r, indices));
-    }
-  } else {
     // LCOV_EXCL_START
-    return CeedError(ceed, CEED_ERROR_BACKEND, "Only MemType = HOST or DEVICE supported");
-    // LCOV_EXCL_STOP
+    default:
+      return CeedError(ceed, CEED_ERROR_BACKEND, "Only MemType = HOST or DEVICE supported");
+      // LCOV_EXCL_STOP
   }
 
   // Compile CUDA kernels

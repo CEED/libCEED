@@ -7,9 +7,11 @@
 
 #include "ceed-hip-gen.h"
 
+#include <ceed.h>
 #include <ceed/backend.h>
-#include <ceed/ceed.h>
 #include <string.h>
+
+#include "../hip/ceed-hip-common.h"
 
 //------------------------------------------------------------------------------
 // Backend init
@@ -17,11 +19,8 @@
 static int CeedInit_Hip_gen(const char *resource, Ceed ceed) {
   char *resource_root;
   CeedCallBackend(CeedHipGetResourceRoot(ceed, resource, &resource_root));
-  if (strcmp(resource_root, "/gpu/hip") && strcmp(resource_root, "/gpu/hip/gen")) {
-    // LCOV_EXCL_START
-    return CeedError(ceed, CEED_ERROR_BACKEND, "Hip backend cannot use resource: %s", resource);
-    // LCOV_EXCL_STOP
-  }
+  CeedCheck(!strcmp(resource_root, "/gpu/hip") || !strcmp(resource_root, "/gpu/hip/gen"), ceed, CEED_ERROR_BACKEND,
+            "Hip backend cannot use resource: %s", resource);
   CeedCallBackend(CeedFree(&resource_root));
 
   Ceed_Hip *data;

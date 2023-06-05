@@ -3,6 +3,7 @@
 /// \test Test setting QFunctionContext fields from Operator
 #include <ceed.h>
 #include <stddef.h>
+#include <stdio.h>
 
 #include "t500-operator.h"
 
@@ -46,10 +47,19 @@ int main(int argc, char **argv) {
   CeedOperatorCreate(ceed, qf_sub_1, CEED_QFUNCTION_NONE, CEED_QFUNCTION_NONE, &op_sub_1);
 
   // Check setting field in operator
-  CeedOperatorContextGetFieldLabel(op_sub_1, "count", &count_label);
+  CeedOperatorGetContextFieldLabel(op_sub_1, "count", &count_label);
   int value_count = 43;
-  CeedOperatorContextSetInt32(op_sub_1, count_label, &value_count);
+  CeedOperatorSetContextInt32(op_sub_1, count_label, &value_count);
   if (ctx_data_1.count != 43) printf("Incorrect context data for count: %" CeedInt_FMT " != 43", ctx_data_1.count);
+  {
+    const int *values;
+    size_t     num_values;
+
+    CeedOperatorGetContextInt32Read(op_sub_1, count_label, &num_values, &values);
+    if (num_values != 1) printf("Incorrect number of count values, found %ld but expected 1", num_values);
+    if (values[0] != ctx_data_1.count) printf("Incorrect value found, found %d but expected %d", values[0], ctx_data_1.count);
+    CeedOperatorRestoreContextInt32Read(op_sub_1, count_label, &values);
+  }
 
   // Second sub-operator
   CeedQFunctionContextCreate(ceed, &qf_ctx_sub_2);
@@ -68,23 +78,44 @@ int main(int argc, char **argv) {
   CeedCompositeOperatorAddSub(op_composite, op_sub_2);
 
   // Check setting field in context of single sub-operator for composite operator
-  CeedOperatorContextGetFieldLabel(op_composite, "time", &time_label);
+  CeedOperatorGetContextFieldLabel(op_composite, "time", &time_label);
   double value_time = 2.0;
-  CeedOperatorContextSetDouble(op_composite, time_label, &value_time);
+  CeedOperatorSetContextDouble(op_composite, time_label, &value_time);
   if (ctx_data_2.time != 2.0) printf("Incorrect context data for time: %f != 2.0\n", ctx_data_2.time);
+  {
+    const double *values;
+    size_t        num_values;
+
+    CeedOperatorGetContextDoubleRead(op_composite, time_label, &num_values, &values);
+    if (num_values != 1) printf("Incorrect number of time values, found %ld but expected 1", num_values);
+    if (values[0] != ctx_data_2.time) printf("Incorrect value found, found %f but expected %f", values[0], ctx_data_2.time);
+    CeedOperatorRestoreContextDoubleRead(op_composite, time_label, &values);
+  }
 
   // Check setting field in context of multiple sub-operators for composite operator
-  CeedOperatorContextGetFieldLabel(op_composite, "other", &other_label);
+  CeedOperatorGetContextFieldLabel(op_composite, "other", &other_label);
   // No issue requesting same label twice
-  CeedOperatorContextGetFieldLabel(op_composite, "other", &other_label);
+  CeedOperatorGetContextFieldLabel(op_composite, "other", &other_label);
   double value_other = 9000.;
-  CeedOperatorContextSetDouble(op_composite, other_label, &value_other);
+  CeedOperatorSetContextDouble(op_composite, other_label, &value_other);
   if (ctx_data_1.other != 9000.0) printf("Incorrect context data for other: %f != 2.0\n", ctx_data_1.other);
   if (ctx_data_2.other != 9000.0) printf("Incorrect context data for other: %f != 2.0\n", ctx_data_2.other);
 
   // Check requesting label for field that doesn't exist returns NULL
-  CeedOperatorContextGetFieldLabel(op_composite, "bad", &bad_label);
+  CeedOperatorGetContextFieldLabel(op_composite, "bad", &bad_label);
   if (bad_label) printf("Incorrect context label returned\n");
+
+  {
+    // Check getting reference to QFunctionContext
+    CeedQFunctionContext ctx_copy = NULL;
+
+    CeedOperatorGetContext(op_sub_1, &ctx_copy);
+    if (ctx_copy != qf_ctx_sub_1) printf("Incorrect QFunctionContext retrieved");
+
+    CeedOperatorGetContext(op_sub_2, &ctx_copy);  // Destroys reference to qf_ctx_sub_1
+    if (ctx_copy != qf_ctx_sub_2) printf("Incorrect QFunctionContext retrieved");
+    CeedQFunctionContextDestroy(&ctx_copy);  // Cleanup to prevent leak
+  }
 
   CeedQFunctionContextDestroy(&qf_ctx_sub_1);
   CeedQFunctionContextDestroy(&qf_ctx_sub_2);

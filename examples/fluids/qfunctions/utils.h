@@ -21,6 +21,11 @@ CEED_QFUNCTION_HELPER CeedScalar Min(CeedScalar a, CeedScalar b) { return a < b 
 CEED_QFUNCTION_HELPER CeedScalar Square(CeedScalar x) { return x * x; }
 CEED_QFUNCTION_HELPER CeedScalar Cube(CeedScalar x) { return x * x * x; }
 
+// @brief Scale vector of length N by scalar alpha
+CEED_QFUNCTION_HELPER void ScaleN(CeedScalar *u, const CeedScalar alpha, const CeedInt N) {
+  CeedPragmaSIMD for (CeedInt i = 0; i < N; i++) { u[i] *= alpha; }
+}
+
 // @brief Dot product of 3 element vectors
 CEED_QFUNCTION_HELPER CeedScalar Dot3(const CeedScalar *u, const CeedScalar *v) { return u[0] * v[0] + u[1] * v[1] + u[2] * v[2]; }
 
@@ -33,6 +38,17 @@ CEED_QFUNCTION_HELPER void KMUnpack(const CeedScalar v[6], CeedScalar A[3][3]) {
   A[2][1] = A[1][2] = weight * v[3];
   A[2][0] = A[0][2] = weight * v[4];
   A[1][0] = A[0][1] = weight * v[5];
+}
+
+// @brief Linear ramp evaluation
+CEED_QFUNCTION_HELPER CeedScalar LinearRampCoefficient(CeedScalar amplitude, CeedScalar length, CeedScalar start, CeedScalar x) {
+  if (x < start) {
+    return amplitude;
+  } else if (x < start + length) {
+    return amplitude * ((x - start) * (-1 / length) + 1);
+  } else {
+    return 0;
+  }
 }
 
 #endif  // utils_h

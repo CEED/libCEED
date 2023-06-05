@@ -8,7 +8,12 @@
 /// @file
 /// Miscellaneous utility functions
 
+#include <ceed.h>
+#include <petscdm.h>
+#include <petscts.h>
+
 #include "../navierstokes.h"
+#include "../qfunctions/mass.h"
 
 PetscErrorCode ICs_FixMultiplicity(DM dm, CeedData ceed_data, User user, Vec Q_loc, Vec Q, CeedScalar time) {
   PetscFunctionBeginUser;
@@ -16,7 +21,7 @@ PetscErrorCode ICs_FixMultiplicity(DM dm, CeedData ceed_data, User user, Vec Q_l
   // ---------------------------------------------------------------------------
   // Update time for evaluation
   // ---------------------------------------------------------------------------
-  if (user->phys->ics_time_label) CeedOperatorContextSetDouble(ceed_data->op_ics, user->phys->ics_time_label, &time);
+  if (user->phys->ics_time_label) CeedOperatorSetContextDouble(ceed_data->op_ics, user->phys->ics_time_label, &time);
 
   // ---------------------------------------------------------------------------
   // ICs
@@ -26,17 +31,14 @@ PetscErrorCode ICs_FixMultiplicity(DM dm, CeedData ceed_data, User user, Vec Q_l
   CeedElemRestrictionCreateVector(ceed_data->elem_restr_q, &q0_ceed, NULL);
 
   // -- Place PETSc vector in CEED vector
-  CeedScalar  *q0;
   PetscMemType q0_mem_type;
-  PetscCall(VecGetArrayAndMemType(Q_loc, (PetscScalar **)&q0, &q0_mem_type));
-  CeedVectorSetArray(q0_ceed, MemTypeP2C(q0_mem_type), CEED_USE_POINTER, q0);
+  PetscCall(VecP2C(Q_loc, &q0_mem_type, q0_ceed));
 
   // -- Apply CEED Operator
   CeedOperatorApply(ceed_data->op_ics, ceed_data->x_coord, q0_ceed, CEED_REQUEST_IMMEDIATE);
 
   // -- Restore vectors
-  CeedVectorTakeArray(q0_ceed, MemTypeP2C(q0_mem_type), NULL);
-  PetscCall(VecRestoreArrayReadAndMemType(Q_loc, (const PetscScalar **)&q0));
+  PetscCall(VecC2P(q0_ceed, q0_mem_type, Q_loc));
 
   // -- Local-to-Global
   PetscCall(VecZeroEntries(Q));
@@ -50,19 +52,16 @@ PetscErrorCode ICs_FixMultiplicity(DM dm, CeedData ceed_data, User user, Vec Q_l
   CeedElemRestrictionCreateVector(ceed_data->elem_restr_q, &mult_vec, NULL);
 
   // -- Place PETSc vector in CEED vector
-  CeedScalar  *mult;
   PetscMemType m_mem_type;
   Vec          multiplicity_loc;
   PetscCall(DMGetLocalVector(dm, &multiplicity_loc));
-  PetscCall(VecGetArrayAndMemType(multiplicity_loc, (PetscScalar **)&mult, &m_mem_type));
-  CeedVectorSetArray(mult_vec, MemTypeP2C(m_mem_type), CEED_USE_POINTER, mult);
+  PetscCall(VecP2C(multiplicity_loc, &m_mem_type, mult_vec));
 
   // -- Get multiplicity
   CeedElemRestrictionGetMultiplicity(ceed_data->elem_restr_q, mult_vec);
 
   // -- Restore vectors
-  CeedVectorTakeArray(mult_vec, MemTypeP2C(m_mem_type), NULL);
-  PetscCall(VecRestoreArrayReadAndMemType(multiplicity_loc, (const PetscScalar **)&mult));
+  PetscCall(VecC2P(mult_vec, m_mem_type, multiplicity_loc));
 
   // -- Local-to-Global
   Vec multiplicity;
@@ -102,17 +101,45 @@ PetscErrorCode DMPlexInsertBoundaryValues_NS(DM dm, PetscBool insert_essential, 
   PetscFunctionReturn(0);
 }
 
+// @brief Load vector from binary file, possibly with embedded solution time and step number
+PetscErrorCode LoadFluidsBinaryVec(MPI_Comm comm, PetscViewer viewer, Vec Q, PetscReal *time, PetscInt *step_number) {
+  PetscInt  token, file_step_number;
+  PetscReal file_time;
+  PetscFunctionBeginUser;
+
+  // Attempt
+  PetscCall(PetscViewerBinaryRead(viewer, &token, 1, NULL, PETSC_INT));
+  if (token == FLUIDS_FILE_TOKEN) {  // New style format; we're reading a file with step number and time in the header
+    PetscCall(PetscViewerBinaryRead(viewer, &file_step_number, 1, NULL, PETSC_INT));
+    PetscCall(PetscViewerBinaryRead(viewer, &file_time, 1, NULL, PETSC_REAL));
+    if (time) *time = file_time;
+    if (step_number) *step_number = file_step_number;
+  } else if (token == VEC_FILE_CLASSID) {  // Legacy format of just the vector, encoded as [VEC_FILE_CLASSID, length, ]
+    PetscInt length, N;
+    PetscCall(PetscViewerBinaryRead(viewer, &length, 1, NULL, PETSC_INT));
+    PetscCall(VecGetSize(Q, &N));
+    PetscCheck(length == N, comm, PETSC_ERR_ARG_INCOMP, "File Vec has length %" PetscInt_FMT " but DM has global Vec size %" PetscInt_FMT, length, N);
+    PetscCall(PetscViewerBinarySetSkipHeader(viewer, PETSC_TRUE));
+  } else SETERRQ(comm, PETSC_ERR_FILE_UNEXPECTED, "Not a fluids header token or a PETSc Vec in file");
+
+  // Load Q from existent solution
+  PetscCall(VecLoad(Q, viewer));
+
+  PetscFunctionReturn(0);
+}
+
 // Compare reference solution values with current test run for CI
 PetscErrorCode RegressionTests_NS(AppCtx app_ctx, Vec Q) {
   Vec         Qref;
   PetscViewer viewer;
   PetscReal   error, Qrefnorm;
+  MPI_Comm    comm = PetscObjectComm((PetscObject)Q);
   PetscFunctionBegin;
 
   // Read reference file
   PetscCall(VecDuplicate(Q, &Qref));
-  PetscCall(PetscViewerBinaryOpen(PetscObjectComm((PetscObject)Q), app_ctx->file_path, FILE_MODE_READ, &viewer));
-  PetscCall(VecLoad(Qref, viewer));
+  PetscCall(PetscViewerBinaryOpen(comm, app_ctx->test_file_path, FILE_MODE_READ, &viewer));
+  PetscCall(LoadFluidsBinaryVec(comm, viewer, Qref, NULL, NULL));
 
   // Compute error with respect to reference solution
   PetscCall(VecAXPY(Q, -1.0, Qref));
@@ -169,14 +196,14 @@ PetscErrorCode PostProcess_NS(TS ts, CeedData ceed_data, DM dm, ProblemData *pro
   PetscFunctionBegin;
 
   // Print relative error
-  if (problem->non_zero_time && !user->app_ctx->test_mode) {
+  if (problem->non_zero_time && user->app_ctx->test_type == TESTTYPE_NONE) {
     PetscCall(GetError_NS(ceed_data, dm, user, Q, final_time));
   }
 
   // Print final time and number of steps
   PetscCall(TSGetStepNumber(ts, &steps));
   PetscCall(TSGetConvergedReason(ts, &reason));
-  if (!user->app_ctx->test_mode) {
+  if (user->app_ctx->test_type == TESTTYPE_NONE) {
     PetscCall(PetscPrintf(PETSC_COMM_WORLD, "Time integrator %s on time step %" PetscInt_FMT " with final time %g\n", TSConvergedReasons[reason],
                           steps, (double)final_time));
   }
@@ -185,7 +212,7 @@ PetscErrorCode PostProcess_NS(TS ts, CeedData ceed_data, DM dm, ProblemData *pro
   PetscCall(VecViewFromOptions(Q, NULL, "-vec_view"));
 
   // Compare reference solution values with current test run for CI
-  if (user->app_ctx->test_mode) {
+  if (user->app_ctx->test_type == TESTTYPE_SOLVER) {
     PetscCall(RegressionTests_NS(user->app_ctx, Q));
   }
 
@@ -197,33 +224,11 @@ const PetscInt FLUIDS_FILE_TOKEN = 0xceedf00;
 // Gather initial Q values in case of continuation of simulation
 PetscErrorCode SetupICsFromBinary(MPI_Comm comm, AppCtx app_ctx, Vec Q) {
   PetscViewer viewer;
-  PetscInt    token, step_number;
-  PetscReal   time;
 
   PetscFunctionBegin;
 
-  // Read input
   PetscCall(PetscViewerBinaryOpen(comm, app_ctx->cont_file, FILE_MODE_READ, &viewer));
-
-  // Attempt
-  PetscCall(PetscViewerBinaryRead(viewer, &token, 1, NULL, PETSC_INT));
-  if (token == FLUIDS_FILE_TOKEN) {  // New style format; we're reading a file with step number and time in the header
-    PetscCall(PetscViewerBinaryRead(viewer, &step_number, 1, NULL, PETSC_INT));
-    PetscCall(PetscViewerBinaryRead(viewer, &time, 1, NULL, PETSC_REAL));
-    app_ctx->cont_steps = step_number;
-    app_ctx->cont_time  = time;
-  } else if (token == VEC_FILE_CLASSID) {  // Legacy format of just the vector, encoded as [VEC_FILE_CLASSID, length, ]
-    PetscInt length, N;
-    PetscCall(PetscViewerBinaryRead(viewer, &length, 1, NULL, PETSC_INT));
-    PetscCall(VecGetSize(Q, &N));
-    PetscCheck(length == N, comm, PETSC_ERR_ARG_INCOMP, "File Vec has length %" PetscInt_FMT " but DM has global Vec size %" PetscInt_FMT, length, N);
-    PetscCall(PetscViewerBinarySetSkipHeader(viewer, PETSC_TRUE));
-  } else SETERRQ(comm, PETSC_ERR_FILE_UNEXPECTED, "Not a fluids header token or a PETSc Vec in file");
-
-  // Load Q from existent solution
-  PetscCall(VecLoad(Q, viewer));
-
-  // Cleanup
+  PetscCall(LoadFluidsBinaryVec(comm, viewer, Q, &app_ctx->cont_time, &app_ctx->cont_steps));
   PetscCall(PetscViewerDestroy(&viewer));
 
   PetscFunctionReturn(0);
@@ -256,4 +261,56 @@ PetscErrorCode SetBCsFromICs_NS(DM dm, Vec Q, Vec Q_loc) {
 int FreeContextPetsc(void *data) {
   if (PetscFree(data)) return CeedError(NULL, CEED_ERROR_ACCESS, "PetscFree failed");
   return CEED_ERROR_SUCCESS;
+}
+
+// Return mass qfunction specification for number of components N
+PetscErrorCode CreateMassQFunction(Ceed ceed, CeedInt N, CeedInt q_data_size, CeedQFunction *qf) {
+  CeedQFunctionUser qfunction_ptr;
+  const char       *qfunction_loc;
+  PetscFunctionBeginUser;
+
+  switch (N) {
+    case 1:
+      qfunction_ptr = Mass_1;
+      qfunction_loc = Mass_1_loc;
+      break;
+    case 5:
+      qfunction_ptr = Mass_5;
+      qfunction_loc = Mass_5_loc;
+      break;
+    case 9:
+      qfunction_ptr = Mass_9;
+      qfunction_loc = Mass_9_loc;
+      break;
+    case 22:
+      qfunction_ptr = Mass_22;
+      qfunction_loc = Mass_22_loc;
+      break;
+    default:
+      SETERRQ(PETSC_COMM_WORLD, -1, "Could not find mass qfunction of size %d", N);
+  }
+  CeedQFunctionCreateInterior(ceed, 1, qfunction_ptr, qfunction_loc, qf);
+
+  CeedQFunctionAddInput(*qf, "u", N, CEED_EVAL_INTERP);
+  CeedQFunctionAddInput(*qf, "qdata", q_data_size, CEED_EVAL_NONE);
+  CeedQFunctionAddOutput(*qf, "v", N, CEED_EVAL_INTERP);
+  PetscFunctionReturn(0);
+}
+
+/* @brief L^2 Projection of a source FEM function to a target FEM space
+ *
+ * To solve system using a lumped mass matrix, pass a KSP object with ksp_type=preonly, pc_type=jacobi, pc_jacobi_type=rowsum.
+ *
+ * @param[in]  source_vec    Global Vec of the source FEM function. NULL indicates using rhs_matop_ctx->X_loc
+ * @param[out] target_vec    Global Vec of the target (result) FEM function. NULL indicates using rhs_matop_ctx->Y_loc
+ * @param[in]  rhs_matop_ctx MatopApplyContext for performing the RHS evaluation
+ * @param[in]  ksp           KSP for solving the consistent projection problem
+ */
+PetscErrorCode ComputeL2Projection(Vec source_vec, Vec target_vec, MatopApplyContext rhs_matop_ctx, KSP ksp) {
+  PetscFunctionBeginUser;
+
+  PetscCall(ApplyLocal_Ceed(source_vec, target_vec, rhs_matop_ctx));
+  PetscCall(KSPSolve(ksp, target_vec, target_vec));
+
+  PetscFunctionReturn(0);
 }

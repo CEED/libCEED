@@ -5,9 +5,9 @@
 //
 // This file is part of CEED:  http://github.com/ceed
 
+#include <ceed.h>
 #include <ceed/backend.h>
-#include <ceed/ceed.h>
-#include <string.h>
+#include <stdio.h>
 #include <valgrind/memcheck.h>
 
 #include "ceed-memcheck.h"

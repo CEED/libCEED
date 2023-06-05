@@ -4,44 +4,50 @@
 /// generation
 #include <ceed.h>
 #include <math.h>
+#include <stdio.h>
 #include <stdlib.h>
 
 #include "t502-operator.h"
 
 int main(int argc, char **argv) {
-  Ceed              ceed;
-  CeedOperator      op_mass_c, op_mass_f, op_prolong, op_restrict;
-  CeedVector        X, U_c, U_f, V_c, V_f, p_mult_f;
-  const CeedScalar *hv;
-  CeedInt           num_elem = 15, num_elem_sub = 5, num_sub_ops = 3, P_c = 3, P_f = 5, Q = 8, num_comp = 2;
-  CeedInt           num_dofs_x = num_elem + 1, num_dofs_u_c = num_elem * (P_c - 1) + 1, num_dofs_u_f = num_elem * (P_f - 1) + 1;
-  CeedInt           ind_u_c[num_elem_sub * P_c], ind_u_f[num_elem_sub * P_f], ind_x[num_elem_sub * 2];
-  CeedScalar        x[num_dofs_x];
-  CeedScalar        sum;
+  Ceed         ceed;
+  CeedOperator op_mass_coarse, op_mass_fine, op_prolong, op_restrict;
+  CeedVector   x, u_coarse, u_fine, v_coarse, v_fine, p_mult_fine;
+  CeedInt      num_elem = 15, num_elem_sub = 5, num_sub_ops = 3, p_coarse = 3, p_fine = 5, q = 8, num_comp = 2;
+  CeedInt      num_dofs_x = num_elem + 1, num_dofs_u_coarse = num_elem * (p_coarse - 1) + 1, num_dofs_u_fine = num_elem * (p_fine - 1) + 1;
+  CeedInt      ind_u_coarse[num_elem_sub * p_coarse], ind_u_fine[num_elem_sub * p_fine], ind_x[num_elem_sub * 2];
 
   CeedInit(argv[1], &ceed);
 
+  // Vectors
+  CeedVectorCreate(ceed, num_dofs_x, &x);
+  {
+    CeedScalar x_array[num_dofs_x];
+
+    for (CeedInt i = 0; i < num_dofs_x; i++) x_array[i] = (CeedScalar)i / (num_dofs_x - 1);
+    CeedVectorSetArray(x, CEED_MEM_HOST, CEED_COPY_VALUES, x_array);
+  }
+  CeedVectorCreate(ceed, num_comp * num_dofs_u_coarse, &u_coarse);
+  CeedVectorCreate(ceed, num_comp * num_dofs_u_coarse, &v_coarse);
+  CeedVectorCreate(ceed, num_comp * num_dofs_u_fine, &u_fine);
+  CeedVectorCreate(ceed, num_comp * num_dofs_u_fine, &v_fine);
+
   // Composite operators
-  CeedCompositeOperatorCreate(ceed, &op_mass_c);
-  CeedCompositeOperatorCreate(ceed, &op_mass_f);
+  CeedCompositeOperatorCreate(ceed, &op_mass_coarse);
+  CeedCompositeOperatorCreate(ceed, &op_mass_fine);
   CeedCompositeOperatorCreate(ceed, &op_prolong);
   CeedCompositeOperatorCreate(ceed, &op_restrict);
-
-  // Coordinates
-  for (CeedInt i = 0; i < num_dofs_x; i++) x[i] = (CeedScalar)i / (num_dofs_x - 1);
-  CeedVectorCreate(ceed, num_dofs_x, &X);
-  CeedVectorSetArray(X, CEED_MEM_HOST, CEED_USE_POINTER, x);
 
   // Setup fine suboperators
   for (CeedInt i = 0; i < num_sub_ops; i++) {
     CeedVector          q_data;
-    CeedElemRestriction elem_restr_x, elem_restr_qd_i, elem_restr_u_f;
-    CeedBasis           basis_x, basis_u_f;
+    CeedElemRestriction elem_restriction_x, elem_restriction_q_data, elem_restriction_u_fine;
+    CeedBasis           basis_x, basis_u_fine;
     CeedQFunction       qf_setup, qf_mass;
-    CeedOperator        sub_op_setup, sub_op_mass_f;
+    CeedOperator        sub_op_setup, sub_op_mass_fine;
 
     // -- QData
-    CeedVectorCreate(ceed, num_elem * Q, &q_data);
+    CeedVectorCreate(ceed, num_elem * q, &q_data);
 
     // -- Restrictions
     CeedInt offset = num_elem_sub * i;
@@ -49,161 +55,168 @@ int main(int argc, char **argv) {
       ind_x[2 * j + 0] = offset + j;
       ind_x[2 * j + 1] = offset + j + 1;
     }
-    CeedElemRestrictionCreate(ceed, num_elem_sub, 2, 1, 1, num_dofs_x, CEED_MEM_HOST, CEED_COPY_VALUES, ind_x, &elem_restr_x);
+    CeedElemRestrictionCreate(ceed, num_elem_sub, 2, 1, 1, num_dofs_x, CEED_MEM_HOST, CEED_COPY_VALUES, ind_x, &elem_restriction_x);
 
-    offset = num_elem_sub * i * (P_f - 1);
+    offset = num_elem_sub * i * (p_fine - 1);
     for (CeedInt j = 0; j < num_elem_sub; j++) {
-      for (CeedInt k = 0; k < P_f; k++) {
-        ind_u_f[P_f * j + k] = offset + j * (P_f - 1) + k;
+      for (CeedInt k = 0; k < p_fine; k++) {
+        ind_u_fine[p_fine * j + k] = offset + j * (p_fine - 1) + k;
       }
     }
-    CeedElemRestrictionCreate(ceed, num_elem_sub, P_f, num_comp, num_dofs_u_f, num_comp * num_dofs_u_f, CEED_MEM_HOST, CEED_COPY_VALUES, ind_u_f,
-                              &elem_restr_u_f);
+    CeedElemRestrictionCreate(ceed, num_elem_sub, p_fine, num_comp, num_dofs_u_fine, num_comp * num_dofs_u_fine, CEED_MEM_HOST, CEED_COPY_VALUES,
+                              ind_u_fine, &elem_restriction_u_fine);
 
-    CeedInt strides_qd[3] = {1, Q, Q};
-    CeedElemRestrictionCreateStrided(ceed, num_elem_sub, Q, 1, Q * num_elem, strides_qd, &elem_restr_qd_i);
+    CeedInt strides_q_data[3] = {1, q, q};
+    CeedElemRestrictionCreateStrided(ceed, num_elem_sub, q, 1, q * num_elem, strides_q_data, &elem_restriction_q_data);
 
     // -- Bases
-    CeedBasisCreateTensorH1Lagrange(ceed, 1, 1, 2, Q, CEED_GAUSS, &basis_x);
-    CeedBasisCreateTensorH1Lagrange(ceed, 1, num_comp, P_f, Q, CEED_GAUSS, &basis_u_f);
+    CeedBasisCreateTensorH1Lagrange(ceed, 1, 1, 2, q, CEED_GAUSS, &basis_x);
+    CeedBasisCreateTensorH1Lagrange(ceed, 1, num_comp, p_fine, q, CEED_GAUSS, &basis_u_fine);
 
     // -- QFunctions
     CeedQFunctionCreateInterior(ceed, 1, setup, setup_loc, &qf_setup);
     CeedQFunctionAddInput(qf_setup, "weight", 1, CEED_EVAL_WEIGHT);
     CeedQFunctionAddInput(qf_setup, "dx", 1 * 1, CEED_EVAL_GRAD);
-    CeedQFunctionAddOutput(qf_setup, "qdata", 1, CEED_EVAL_NONE);
+    CeedQFunctionAddOutput(qf_setup, "q data", 1, CEED_EVAL_NONE);
 
     CeedQFunctionCreateInterior(ceed, 1, mass, mass_loc, &qf_mass);
-    CeedQFunctionAddInput(qf_mass, "qdata", 1, CEED_EVAL_NONE);
+    CeedQFunctionAddInput(qf_mass, "q data", 1, CEED_EVAL_NONE);
     CeedQFunctionAddInput(qf_mass, "u", num_comp, CEED_EVAL_INTERP);
     CeedQFunctionAddOutput(qf_mass, "v", num_comp, CEED_EVAL_INTERP);
 
     // -- Operators
     CeedOperatorCreate(ceed, qf_setup, CEED_QFUNCTION_NONE, CEED_QFUNCTION_NONE, &sub_op_setup);
-    CeedOperatorCreate(ceed, qf_mass, CEED_QFUNCTION_NONE, CEED_QFUNCTION_NONE, &sub_op_mass_f);
-
     CeedOperatorSetField(sub_op_setup, "weight", CEED_ELEMRESTRICTION_NONE, basis_x, CEED_VECTOR_NONE);
-    CeedOperatorSetField(sub_op_setup, "dx", elem_restr_x, basis_x, CEED_VECTOR_ACTIVE);
-    CeedOperatorSetField(sub_op_setup, "qdata", elem_restr_qd_i, CEED_BASIS_COLLOCATED, CEED_VECTOR_ACTIVE);
+    CeedOperatorSetField(sub_op_setup, "dx", elem_restriction_x, basis_x, CEED_VECTOR_ACTIVE);
+    CeedOperatorSetField(sub_op_setup, "q data", elem_restriction_q_data, CEED_BASIS_COLLOCATED, CEED_VECTOR_ACTIVE);
 
-    CeedOperatorSetField(sub_op_mass_f, "qdata", elem_restr_qd_i, CEED_BASIS_COLLOCATED, q_data);
-    CeedOperatorSetField(sub_op_mass_f, "u", elem_restr_u_f, basis_u_f, CEED_VECTOR_ACTIVE);
-    CeedOperatorSetField(sub_op_mass_f, "v", elem_restr_u_f, basis_u_f, CEED_VECTOR_ACTIVE);
+    CeedOperatorCreate(ceed, qf_mass, CEED_QFUNCTION_NONE, CEED_QFUNCTION_NONE, &sub_op_mass_fine);
+    CeedOperatorSetField(sub_op_mass_fine, "q data", elem_restriction_q_data, CEED_BASIS_COLLOCATED, q_data);
+    CeedOperatorSetField(sub_op_mass_fine, "u", elem_restriction_u_fine, basis_u_fine, CEED_VECTOR_ACTIVE);
+    CeedOperatorSetField(sub_op_mass_fine, "v", elem_restriction_u_fine, basis_u_fine, CEED_VECTOR_ACTIVE);
 
     // -- Create qdata
-    CeedOperatorApply(sub_op_setup, X, q_data, CEED_REQUEST_IMMEDIATE);
+    CeedOperatorApply(sub_op_setup, x, q_data, CEED_REQUEST_IMMEDIATE);
 
     // -- Composite operators
-    CeedCompositeOperatorAddSub(op_mass_f, sub_op_mass_f);
+    CeedCompositeOperatorAddSub(op_mass_fine, sub_op_mass_fine);
 
     // -- Cleanup
     CeedVectorDestroy(&q_data);
-    CeedElemRestrictionDestroy(&elem_restr_u_f);
-    CeedElemRestrictionDestroy(&elem_restr_x);
-    CeedElemRestrictionDestroy(&elem_restr_qd_i);
-    CeedBasisDestroy(&basis_u_f);
+    CeedElemRestrictionDestroy(&elem_restriction_u_fine);
+    CeedElemRestrictionDestroy(&elem_restriction_x);
+    CeedElemRestrictionDestroy(&elem_restriction_q_data);
+    CeedBasisDestroy(&basis_u_fine);
     CeedBasisDestroy(&basis_x);
     CeedQFunctionDestroy(&qf_setup);
     CeedQFunctionDestroy(&qf_mass);
     CeedOperatorDestroy(&sub_op_setup);
-    CeedOperatorDestroy(&sub_op_mass_f);
+    CeedOperatorDestroy(&sub_op_mass_fine);
   }
 
   // Scale for suboperator multiplicity
-  CeedVectorCreate(ceed, num_comp * num_dofs_u_f, &p_mult_f);
-  CeedCompositeOperatorGetMultiplicity(op_mass_f, 0, NULL, p_mult_f);
+  CeedVectorCreate(ceed, num_comp * num_dofs_u_fine, &p_mult_fine);
+  CeedCompositeOperatorGetMultiplicity(op_mass_fine, 0, NULL, p_mult_fine);
 
   // Setup coarse and prolong/restriction suboperators
   for (CeedInt i = 0; i < num_sub_ops; i++) {
-    CeedElemRestriction elem_restr_u_c;
-    CeedBasis           basis_u_c;
-    CeedOperator       *sub_ops_mass_f, sub_op_mass_c, sub_op_prolong, sub_op_restrict;
+    CeedElemRestriction elem_restriction_u_coarse;
+    CeedBasis           basis_u_coarse;
+    CeedOperator       *sub_ops_mass_fine, sub_op_mass_coarse, sub_op_prolong, sub_op_restrict;
 
     // -- Fine grid operator
-    CeedCompositeOperatorGetSubList(op_mass_f, &sub_ops_mass_f);
+    CeedCompositeOperatorGetSubList(op_mass_fine, &sub_ops_mass_fine);
 
     // -- Restrictions
-    CeedInt offset = num_elem_sub * i * (P_c - 1);
+    CeedInt offset = num_elem_sub * i * (p_coarse - 1);
     for (CeedInt j = 0; j < num_elem_sub; j++) {
-      for (CeedInt k = 0; k < P_c; k++) {
-        ind_u_c[P_c * j + k] = offset + j * (P_c - 1) + k;
+      for (CeedInt k = 0; k < p_coarse; k++) {
+        ind_u_coarse[p_coarse * j + k] = offset + j * (p_coarse - 1) + k;
       }
     }
-    CeedElemRestrictionCreate(ceed, num_elem_sub, P_c, num_comp, num_dofs_u_c, num_comp * num_dofs_u_c, CEED_MEM_HOST, CEED_COPY_VALUES, ind_u_c,
-                              &elem_restr_u_c);
+    CeedElemRestrictionCreate(ceed, num_elem_sub, p_coarse, num_comp, num_dofs_u_coarse, num_comp * num_dofs_u_coarse, CEED_MEM_HOST,
+                              CEED_COPY_VALUES, ind_u_coarse, &elem_restriction_u_coarse);
 
     // -- Bases
-    CeedBasisCreateTensorH1Lagrange(ceed, 1, num_comp, P_c, Q, CEED_GAUSS, &basis_u_c);
+    CeedBasisCreateTensorH1Lagrange(ceed, 1, num_comp, p_coarse, q, CEED_GAUSS, &basis_u_coarse);
 
     // -- Create multigrid level
-    CeedOperatorMultigridLevelCreate(sub_ops_mass_f[i], p_mult_f, elem_restr_u_c, basis_u_c, &sub_op_mass_c, &sub_op_prolong, &sub_op_restrict);
+    CeedOperatorMultigridLevelCreate(sub_ops_mass_fine[i], p_mult_fine, elem_restriction_u_coarse, basis_u_coarse, &sub_op_mass_coarse,
+                                     &sub_op_prolong, &sub_op_restrict);
 
     // -- Composite operators
-    CeedCompositeOperatorAddSub(op_mass_c, sub_op_mass_c);
+    CeedCompositeOperatorAddSub(op_mass_coarse, sub_op_mass_coarse);
     CeedCompositeOperatorAddSub(op_prolong, sub_op_prolong);
     CeedCompositeOperatorAddSub(op_restrict, sub_op_restrict);
 
     // -- Cleanup
-    CeedElemRestrictionDestroy(&elem_restr_u_c);
-    CeedBasisDestroy(&basis_u_c);
-    CeedOperatorDestroy(&sub_op_mass_c);
+    CeedElemRestrictionDestroy(&elem_restriction_u_coarse);
+    CeedBasisDestroy(&basis_u_coarse);
+    CeedOperatorDestroy(&sub_op_mass_coarse);
     CeedOperatorDestroy(&sub_op_prolong);
     CeedOperatorDestroy(&sub_op_restrict);
   }
 
   // Coarse problem
-  CeedVectorCreate(ceed, num_comp * num_dofs_u_c, &U_c);
-  CeedVectorSetValue(U_c, 1.0);
-  CeedVectorCreate(ceed, num_comp * num_dofs_u_c, &V_c);
-  CeedOperatorApply(op_mass_c, U_c, V_c, CEED_REQUEST_IMMEDIATE);
+  CeedVectorSetValue(u_coarse, 1.0);
+  CeedOperatorApply(op_mass_coarse, u_coarse, v_coarse, CEED_REQUEST_IMMEDIATE);
 
   // Check output
-  CeedVectorGetArrayRead(V_c, CEED_MEM_HOST, &hv);
-  sum = 0.;
-  for (CeedInt i = 0; i < num_comp * num_dofs_u_c; i++) {
-    sum += hv[i];
+  {
+    const CeedScalar *v_array;
+    CeedScalar        sum = 0.;
+
+    CeedVectorGetArrayRead(v_coarse, CEED_MEM_HOST, &v_array);
+    for (CeedInt i = 0; i < num_comp * num_dofs_u_coarse; i++) {
+      sum += v_array[i];
+    }
+    CeedVectorRestoreArrayRead(v_coarse, &v_array);
+    if (fabs(sum - 2.) > 1000. * CEED_EPSILON) printf("Computed Area Coarse Grid: %f != True Area: 2.0\n", sum);
   }
-  if (fabs(sum - 2.) > 1000. * CEED_EPSILON) printf("Computed Area Coarse Grid: %f != True Area: 2.0\n", sum);
-  CeedVectorRestoreArrayRead(V_c, &hv);
 
   // Prolong coarse u
-  CeedVectorCreate(ceed, num_comp * num_dofs_u_f, &U_f);
-  CeedOperatorApply(op_prolong, U_c, U_f, CEED_REQUEST_IMMEDIATE);
+  CeedOperatorApply(op_prolong, u_coarse, u_fine, CEED_REQUEST_IMMEDIATE);
 
   // Fine problem
-  CeedVectorCreate(ceed, num_comp * num_dofs_u_f, &V_f);
-  CeedOperatorApply(op_mass_f, U_f, V_f, CEED_REQUEST_IMMEDIATE);
+  CeedOperatorApply(op_mass_fine, u_fine, v_fine, CEED_REQUEST_IMMEDIATE);
 
   // Check output
-  CeedVectorGetArrayRead(V_f, CEED_MEM_HOST, &hv);
-  sum = 0.;
-  for (CeedInt i = 0; i < num_comp * num_dofs_u_f; i++) {
-    sum += hv[i];
-  }
-  if (fabs(sum - 2.) > 1000. * CEED_EPSILON) printf("Computed Area Fine Grid: %f != True Area: 2.0\n", sum);
-  CeedVectorRestoreArrayRead(V_f, &hv);
+  {
+    const CeedScalar *v_array;
+    CeedScalar        sum = 0.;
+    CeedVectorGetArrayRead(v_fine, CEED_MEM_HOST, &v_array);
+    for (CeedInt i = 0; i < num_comp * num_dofs_u_fine; i++) {
+      sum += v_array[i];
+    }
+    CeedVectorRestoreArrayRead(v_fine, &v_array);
 
+    if (fabs(sum - 2.) > 1000. * CEED_EPSILON) printf("Computed Area Fine Grid: %f != True Area: 2.0\n", sum);
+  }
   // Restrict state to coarse grid
-  CeedOperatorApply(op_restrict, V_f, V_c, CEED_REQUEST_IMMEDIATE);
+  CeedOperatorApply(op_restrict, v_fine, v_coarse, CEED_REQUEST_IMMEDIATE);
 
   // Check output
-  CeedVectorGetArrayRead(V_c, CEED_MEM_HOST, &hv);
-  sum = 0.;
-  for (CeedInt i = 0; i < num_comp * num_dofs_u_c; i++) {
-    sum += hv[i];
+  {
+    const CeedScalar *v_array;
+    CeedScalar        sum = 0.;
+
+    CeedVectorGetArrayRead(v_coarse, CEED_MEM_HOST, &v_array);
+    for (CeedInt i = 0; i < num_comp * num_dofs_u_coarse; i++) {
+      sum += v_array[i];
+    }
+    CeedVectorRestoreArrayRead(v_coarse, &v_array);
+    if (fabs(sum - 2.) > 1000. * CEED_EPSILON) printf("Computed Area Coarse Grid: %f != True Area: 2.0\n", sum);
   }
-  if (fabs(sum - 2.) > 1000. * CEED_EPSILON) printf("Computed Area Coarse Grid: %f != True Area: 2.0\n", sum);
-  CeedVectorRestoreArrayRead(V_c, &hv);
 
   // Cleanup
-  CeedVectorDestroy(&X);
-  CeedVectorDestroy(&U_c);
-  CeedVectorDestroy(&U_f);
-  CeedVectorDestroy(&V_c);
-  CeedVectorDestroy(&V_f);
-  CeedVectorDestroy(&p_mult_f);
-  CeedOperatorDestroy(&op_mass_c);
-  CeedOperatorDestroy(&op_mass_f);
+  CeedVectorDestroy(&x);
+  CeedVectorDestroy(&u_coarse);
+  CeedVectorDestroy(&u_fine);
+  CeedVectorDestroy(&v_coarse);
+  CeedVectorDestroy(&v_fine);
+  CeedVectorDestroy(&p_mult_fine);
+  CeedOperatorDestroy(&op_mass_coarse);
+  CeedOperatorDestroy(&op_mass_fine);
   CeedOperatorDestroy(&op_prolong);
   CeedOperatorDestroy(&op_restrict);
   CeedDestroy(&ceed);

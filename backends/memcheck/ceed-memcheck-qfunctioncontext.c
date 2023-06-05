@@ -5,8 +5,9 @@
 //
 // This file is part of CEED:  http://github.com/ceed
 
+#include <ceed.h>
 #include <ceed/backend.h>
-#include <ceed/ceed.h>
+#include <stdbool.h>
 #include <string.h>
 #include <valgrind/memcheck.h>
 
@@ -58,11 +59,7 @@ static int CeedQFunctionContextSetData_Memcheck(CeedQFunctionContext ctx, CeedMe
   Ceed ceed;
   CeedCallBackend(CeedQFunctionContextGetCeed(ctx, &ceed));
 
-  if (mem_type != CEED_MEM_HOST) {
-    // LCOV_EXCL_START
-    return CeedError(ceed, CEED_ERROR_BACKEND, "Can only set HOST memory for this backend");
-    // LCOV_EXCL_STOP
-  }
+  CeedCheck(mem_type == CEED_MEM_HOST, ceed, CEED_ERROR_BACKEND, "Can only set HOST memory for this backend");
 
   CeedCallBackend(CeedFree(&impl->data_allocated));
   CeedCallBackend(CeedFree(&impl->data_owned));
@@ -101,11 +98,7 @@ static int CeedQFunctionContextTakeData_Memcheck(CeedQFunctionContext ctx, CeedM
   Ceed ceed;
   CeedCallBackend(CeedQFunctionContextGetCeed(ctx, &ceed));
 
-  if (mem_type != CEED_MEM_HOST) {
-    // LCOV_EXCL_START
-    return CeedError(ceed, CEED_ERROR_BACKEND, "Can only provide HOST memory for this backend");
-    // LCOV_EXCL_STOP
-  }
+  CeedCheck(mem_type == CEED_MEM_HOST, ceed, CEED_ERROR_BACKEND, "Can only provide HOST memory for this backend");
 
   *(void **)data      = impl->data_borrowed;
   impl->data_borrowed = NULL;
@@ -125,11 +118,7 @@ static int CeedQFunctionContextGetData_Memcheck(CeedQFunctionContext ctx, CeedMe
   Ceed ceed;
   CeedCallBackend(CeedQFunctionContextGetCeed(ctx, &ceed));
 
-  if (mem_type != CEED_MEM_HOST) {
-    // LCOV_EXCL_START
-    return CeedError(ceed, CEED_ERROR_BACKEND, "Can only provide HOST memory for this backend");
-    // LCOV_EXCL_STOP
-  }
+  CeedCheck(mem_type == CEED_MEM_HOST, ceed, CEED_ERROR_BACKEND, "Can only provide HOST memory for this backend");
 
   *(void **)data = impl->data;
 
@@ -186,11 +175,8 @@ static int CeedQFunctionContextRestoreDataRead_Memcheck(CeedQFunctionContext ctx
   Ceed ceed;
   CeedCallBackend(CeedQFunctionContextGetCeed(ctx, &ceed));
 
-  if (memcmp(impl->data, impl->data_read_only_copy, ctx_size)) {
-    // LCOV_EXCL_START
-    return CeedError(ceed, CEED_ERROR_BACKEND, "Context data changed while accessed in read-only mode");
-    // LCOV_EXCL_STOP
-  }
+  CeedCheck(!memcmp(impl->data, impl->data_read_only_copy, ctx_size), ceed, CEED_ERROR_BACKEND,
+            "Context data changed while accessed in read-only mode");
 
   CeedCallBackend(CeedFree(&impl->data_read_only_copy));
 
@@ -209,11 +195,7 @@ static int CeedQFunctionContextDataDestroy_Memcheck(CeedQFunctionContext ctx) {
   Ceed ceed;
   CeedCallBackend(CeedQFunctionContextGetCeed(ctx, &ceed));
 
-  if (data_destroy_mem_type != CEED_MEM_HOST) {
-    // LCOV_EXCL_START
-    return CeedError(ceed, CEED_ERROR_BACKEND, "Can only destroy HOST memory for this backend");
-    // LCOV_EXCL_STOP
-  }
+  CeedCheck(data_destroy_mem_type == CEED_MEM_HOST, ceed, CEED_ERROR_BACKEND, "Can only destroy HOST memory for this backend");
 
   if (data_destroy_function) {
     CeedCallBackend(data_destroy_function(impl->data_borrowed ? impl->data_borrowed : impl->data_owned));

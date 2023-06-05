@@ -8,7 +8,7 @@
 #ifndef CEED_MAGMA_WEIGHT_H
 #define CEED_MAGMA_WEIGHT_H
 
-#include <ceed/ceed.h>
+#include <ceed.h>
 
 #include "magma_v2.h"
 

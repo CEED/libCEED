@@ -5,12 +5,12 @@
 //
 // This file is part of CEED:  http://github.com/ceed
 
+#include <ceed.h>
 #include <ceed/backend.h>
-#include <ceed/ceed.h>
+#include <ceed/jit-source/cuda/cuda-types.h>
 #include <cuda.h>
-#include <stdio.h>
-#include <string.h>
 
+#include "../cuda/ceed-cuda-common.h"
 #include "../cuda/ceed-cuda-compile.h"
 #include "ceed-cuda-ref-qfunction-load.h"
 #include "ceed-cuda-ref.h"

@@ -399,7 +399,7 @@ CEED_QFUNCTION_HELPER int Freestream_Jacobian(void *ctx, CeedInt Q, const CeedSc
   const FreestreamContext        context     = (FreestreamContext)ctx;
   const NewtonianIdealGasContext newt_ctx    = &context->newtonian_ctx;
   const bool                     is_implicit = newt_ctx->is_implicit;
-  const State                    dS_infty    = {{0}};
+  const State                    dS_infty    = {0};
 
   CeedPragmaSIMD for (CeedInt i = 0; i < Q; i++) {
     const CeedScalar x_i[3]  = {x[0][i], x[1][i], x[2][i]};
@@ -487,8 +487,6 @@ CEED_QFUNCTION_HELPER int RiemannOutflow(void *ctx, CeedInt Q, const CeedScalar 
 
   // Quadrature Point Loop
   CeedPragmaSIMD for (CeedInt i = 0; i < Q; i++) {
-    // Setup
-    // -- Interp in
     const CeedScalar x_i[3]   = {x[0][i], x[1][i], x[2][i]};
     const CeedScalar norm[3]  = {q_data_sur[1][i], q_data_sur[2][i], q_data_sur[3][i]};
     const CeedScalar qi[5]    = {q[0][i], q[1][i], q[2][i], q[3][i], q[4][i]};
@@ -507,10 +505,7 @@ CEED_QFUNCTION_HELPER int RiemannOutflow(void *ctx, CeedInt Q, const CeedScalar 
     // For explicit mode, the surface integral is on the RHS of ODE q_dot = f(q).
     // For implicit mode, it gets pulled to the LHS of implicit ODE/DAE g(q_dot, q).
     // We can effect this by swapping the sign on this weight
-    const CeedScalar wdetJb = (implicit ? -1. : 1.) * q_data_sur[0][i];
-
-    // ---- Normal vector
-
+    const CeedScalar wdetJb     = (implicit ? -1. : 1.) * q_data_sur[0][i];
     const CeedScalar dXdx[2][3] = {
         {q_data_sur[4][i], q_data_sur[5][i], q_data_sur[6][i]},
         {q_data_sur[7][i], q_data_sur[8][i], q_data_sur[9][i]}

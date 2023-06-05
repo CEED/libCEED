@@ -8,6 +8,7 @@
 #include "../qfunctions/linear.h"
 
 #include <ceed.h>
+#include <petscsys.h>
 
 #include "../include/setup-libceed.h"
 #include "../include/structs.h"

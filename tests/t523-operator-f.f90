@@ -186,7 +186,7 @@
 ! ---- Setup Hex
       call ceedoperatorcreate(ceed,qf_setuphex,ceed_qfunction_none,&
      & ceed_qfunction_none,op_setuphex,err)
-      call ceedoperatorsetname(op_setuphex,'quadralateral elements',err)
+      call ceedoperatorsetname(op_setuphex,'quadrilateral elements',err)
       call ceedoperatorsetfield(op_setuphex,'weight',&
      & ceed_elemrestriction_none,bxhex,ceed_vector_none,err)
       call ceedoperatorsetfield(op_setuphex,'dx',erestrictxhex,&
@@ -196,7 +196,7 @@
 ! ---- Mass Hex
       call ceedoperatorcreate(ceed,qf_masshex,ceed_qfunction_none,&
      & ceed_qfunction_none,op_masshex,err)
-      call ceedoperatorsetname(op_masshex,'quadralateral elements',err)
+      call ceedoperatorsetname(op_masshex,'quadrilateral elements',err)
       call ceedoperatorsetfield(op_masshex,'rho',erestrictuihex,&
      & ceed_basis_collocated,qdatahex,err)
       call ceedoperatorsetfield(op_masshex,'u',erestrictuhex,&

@@ -3,6 +3,7 @@
 /// \test Test creation, copying, and destruction for mass matrix operator
 #include <ceed.h>
 #include <math.h>
+#include <stdio.h>
 #include <stdlib.h>
 
 #include "t500-operator.h"

@@ -8,8 +8,8 @@
 #ifndef _ceed_ref_h
 #define _ceed_ref_h
 
+#include <ceed.h>
 #include <ceed/backend.h>
-#include <ceed/ceed.h>
 #include <stdbool.h>
 #include <stdint.h>
 
@@ -70,6 +70,8 @@ CEED_INTERN int CeedBasisCreateH1_Ref(CeedElemTopology topo, CeedInt dim, CeedIn
                                       const CeedScalar *grad, const CeedScalar *q_ref, const CeedScalar *q_weight, CeedBasis basis);
 CEED_INTERN int CeedBasisCreateHdiv_Ref(CeedElemTopology topo, CeedInt dim, CeedInt num_nodes, CeedInt num_qpts, const CeedScalar *interp,
                                         const CeedScalar *div, const CeedScalar *q_ref, const CeedScalar *q_weight, CeedBasis basis);
+CEED_INTERN int CeedBasisCreateHcurl_Ref(CeedElemTopology topo, CeedInt dim, CeedInt num_nodes, CeedInt num_qpts, const CeedScalar *interp,
+                                         const CeedScalar *curl, const CeedScalar *q_ref, const CeedScalar *q_weight, CeedBasis basis);
 
 CEED_INTERN int CeedTensorContractCreate_Ref(CeedBasis basis, CeedTensorContract contract);
 

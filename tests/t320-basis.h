@@ -7,7 +7,7 @@
 
 #include <ceed.h>
 
-static void buildmats(CeedScalar *q_ref, CeedScalar *q_weight, CeedScalar *interp, CeedScalar *grad) {
+static void Build2DSimplex(CeedScalar *q_ref, CeedScalar *q_weight, CeedScalar *interp, CeedScalar *grad) {
   CeedInt P = 6, Q = 4;
 
   q_ref[0]    = 0.2;

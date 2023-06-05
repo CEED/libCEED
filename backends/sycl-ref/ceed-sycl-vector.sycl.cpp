@@ -82,7 +82,7 @@ static inline int CeedVectorSyncD2H_Sycl(const CeedVector vec) {
   CeedVector_Sycl *impl;
   CeedCallBackend(CeedVectorGetData(vec, &impl));
   Ceed_Sycl *data;
-  CeedCallBackend(CeedGetData(ceed, &data))
+  CeedCallBackend(CeedGetData(ceed, &data));
 
       if (!impl->d_array) {
     // LCOV_EXCL_START

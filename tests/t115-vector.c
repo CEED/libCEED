@@ -6,14 +6,13 @@
 int main(int argc, char **argv) {
   Ceed              ceed;
   CeedVector        x;
-  CeedInt           n;
+  CeedInt           len = 10;
   CeedScalar       *a;
   const CeedScalar *b;
 
   CeedInit(argv[1], &ceed);
 
-  n = 10;
-  CeedVectorCreate(ceed, n, &x);
+  CeedVectorCreate(ceed, len, &x);
   CeedVectorSetValue(x, 0.0);
 
   // Write access followed by read access should generate an error

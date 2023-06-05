@@ -8,11 +8,9 @@
 #ifndef _ceed_hip_shared_h
 #define _ceed_hip_shared_h
 
+#include <ceed.h>
 #include <ceed/backend.h>
-#include <ceed/ceed.h>
 #include <hip/hip_runtime.h>
-
-#include "../hip/ceed-hip-common.h"
 
 typedef struct {
   hipModule_t   module;
@@ -28,7 +26,7 @@ typedef struct {
   CeedScalar   *d_q_weight_1d;
 } CeedBasis_Hip_shared;
 
-CEED_INTERN int CeedBasisCreateTensorH1_Hip_shared(CeedInt dim, CeedInt P1d, CeedInt Q1d, const CeedScalar *interp1d, const CeedScalar *grad1d,
-                                                   const CeedScalar *qref1d, const CeedScalar *qweight1d, CeedBasis basis);
+CEED_INTERN int CeedBasisCreateTensorH1_Hip_shared(CeedInt dim, CeedInt P_1d, CeedInt Q_1d, const CeedScalar *interp_1d, const CeedScalar *grad_1d,
+                                                   const CeedScalar *q_ref_1d, const CeedScalar *q_weight_1d, CeedBasis basis);
 
 #endif  // _ceed_hip_shared_h

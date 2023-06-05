@@ -8,7 +8,7 @@
 #ifndef _ceed_jit_h
 #define _ceed_jit_h
 
-#include <ceed/ceed.h>
+#include <ceed.h>
 
 CEED_EXTERN int CeedCheckFilePath(Ceed ceed, const char *source_file_path, bool *is_valid);
 CEED_EXTERN int CeedLoadSourceToBuffer(Ceed ceed, const char *source_file_path, char **buffer);

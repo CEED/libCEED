@@ -5,8 +5,8 @@
 //
 // This file is part of CEED:  http://github.com/ceed
 
+#include <ceed.h>
 #include <ceed/backend.h>
-#include <ceed/ceed.h>
 #include <stdbool.h>
 #include <string.h>
 
@@ -27,11 +27,8 @@ static int CeedDestroy_Opt(Ceed ceed) {
 // Backend Init
 //------------------------------------------------------------------------------
 static int CeedInit_Opt_Serial(const char *resource, Ceed ceed) {
-  if (strcmp(resource, "/cpu/self") && strcmp(resource, "/cpu/self/opt/serial")) {
-    // LCOV_EXCL_START
-    return CeedError(ceed, CEED_ERROR_BACKEND, "Opt backend cannot use resource: %s", resource);
-    // LCOV_EXCL_STOP
-  }
+  CeedCheck(!strcmp(resource, "/cpu/self") || !strcmp(resource, "/cpu/self/opt/serial"), ceed, CEED_ERROR_BACKEND,
+            "Opt backend cannot use resource: %s", resource);
   CeedCallBackend(CeedSetDeterministic(ceed, true));
 
   // Create reference Ceed that implementation will be dispatched through unless overridden

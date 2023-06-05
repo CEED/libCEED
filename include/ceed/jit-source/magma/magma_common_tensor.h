@@ -5,16 +5,8 @@
 //
 // This file is part of CEED:  http://github.com/ceed
 
-#ifndef CEED_MAGMA_COMMON_DEVICE_H
-#define CEED_MAGMA_COMMON_DEVICE_H
-
-#ifdef CEED_MAGMA_USE_HIP
-#define MAGMA_DEVICE_SHARED(type, name) HIP_DYNAMIC_SHARED(type, name)
-#else
-#define MAGMA_DEVICE_SHARED(type, name) extern __shared__ type name[];
-#endif
-
-typedef enum { MagmaNoTrans = 111, MagmaTrans = 112, MagmaConjTrans = 113, Magma_ConjTrans = MagmaConjTrans } magma_trans_t;
+#ifndef CEED_MAGMA_COMMON_TENSOR_H
+#define CEED_MAGMA_COMMON_TENSOR_H
 
 #define MAGMA_MAXTHREADS_1D 128
 #define MAGMA_MAXTHREADS_2D 128
@@ -25,9 +17,6 @@ typedef enum { MagmaNoTrans = 111, MagmaTrans = 112, MagmaConjTrans = 113, Magma
 // Define macro for computing the total threads in a block
 // for use with __launch_bounds__()
 #define MAGMA_BASIS_BOUNDS(x, maxt) (x * MAGMA_BASIS_NTCOL(x, maxt))
-
-#define MAGMA_D_ZERO 0.0
-#define MAGMA_D_ONE 1.0
 
 //////////////////////////////////////////////////////////////////////////////////////////
 // read U or V of a 1D element into shared memory sU[][] or sV[][] --  for all components
@@ -292,4 +281,4 @@ __device__ __inline__ void dgemm_ceed_device(const int tx, const int A, const in
   dwrite_V_reg2gsm<J>(C, tx_, rV, dV);
 }
 
-#endif  // CEED_MAGMA_COMMON_DEVICE_H
+#endif  // CEED_MAGMA_COMMON_TENSOR_H

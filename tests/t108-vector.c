@@ -3,18 +3,19 @@
 /// \test Test vector norms
 #include <ceed.h>
 #include <math.h>
+#include <stdio.h>
 
 int main(int argc, char **argv) {
   Ceed       ceed;
   CeedVector x;
-  CeedInt    n = 10;
-  CeedScalar a[10];
+  CeedInt    len = 10;
+  CeedScalar array[len];
 
   CeedInit(argv[1], &ceed);
 
-  CeedVectorCreate(ceed, n, &x);
-  for (CeedInt i = 0; i < n; i++) a[i] = i * (i % 2 ? 1 : -1);
-  CeedVectorSetArray(x, CEED_MEM_HOST, CEED_USE_POINTER, a);
+  CeedVectorCreate(ceed, len, &x);
+  for (CeedInt i = 0; i < len; i++) array[i] = i * (i % 2 ? 1 : -1);
+  CeedVectorSetArray(x, CEED_MEM_HOST, CEED_USE_POINTER, array);
   {
     // Sync memtype to device for GPU backends
     CeedMemType type = CEED_MEM_HOST;

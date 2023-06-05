@@ -5,12 +5,14 @@
 //
 // This file is part of CEED:  http://github.com/ceed
 
+#include <ceed.h>
 #include <ceed/backend.h>
-#include <ceed/ceed.h>
 #include <hip/hip_runtime.h>
 #include <math.h>
+#include <stdbool.h>
 #include <string.h>
 
+#include "../hip/ceed-hip-common.h"
 #include "ceed-hip-ref.h"
 
 //------------------------------------------------------------------------------
@@ -47,11 +49,7 @@ static inline int CeedVectorSyncH2D_Hip(const CeedVector vec) {
   CeedCallBackend(CeedVectorGetLength(vec, &length));
   size_t bytes = length * sizeof(CeedScalar);
 
-  if (!impl->h_array) {
-    // LCOV_EXCL_START
-    return CeedError(ceed, CEED_ERROR_BACKEND, "No valid host data to sync to device");
-    // LCOV_EXCL_STOP
-  }
+  CeedCheck(impl->h_array, ceed, CEED_ERROR_BACKEND, "No valid host data to sync to device");
 
   if (impl->d_array_borrowed) {
     impl->d_array = impl->d_array_borrowed;
@@ -76,11 +74,7 @@ static inline int CeedVectorSyncD2H_Hip(const CeedVector vec) {
   CeedVector_Hip *impl;
   CeedCallBackend(CeedVectorGetData(vec, &impl));
 
-  if (!impl->d_array) {
-    // LCOV_EXCL_START
-    return CeedError(ceed, CEED_ERROR_BACKEND, "No valid device data to sync to host");
-    // LCOV_EXCL_STOP
-  }
+  CeedCheck(impl->d_array, ceed, CEED_ERROR_BACKEND, "No valid device data to sync to host");
 
   if (impl->h_array_borrowed) {
     impl->h_array = impl->h_array_borrowed;
@@ -594,6 +588,43 @@ static int CeedVectorAXPY_Hip(CeedVector y, CeedScalar alpha, CeedVector x) {
 
   return CEED_ERROR_SUCCESS;
 }
+//------------------------------------------------------------------------------
+// Compute y = alpha x + beta y on the host
+//------------------------------------------------------------------------------
+static int CeedHostAXPBY_Hip(CeedScalar *y_array, CeedScalar alpha, CeedScalar beta, CeedScalar *x_array, CeedInt length) {
+  for (int i = 0; i < length; i++) y_array[i] += alpha * x_array[i] + beta * y_array[i];
+  return CEED_ERROR_SUCCESS;
+}
+
+//------------------------------------------------------------------------------
+// Compute y = alpha x + beta y on device (impl in .cu file)
+//------------------------------------------------------------------------------
+int CeedDeviceAXPBY_Hip(CeedScalar *y_array, CeedScalar alpha, CeedScalar beta, CeedScalar *x_array, CeedInt length);
+
+//------------------------------------------------------------------------------
+// Compute y = alpha x + beta y
+//------------------------------------------------------------------------------
+static int CeedVectorAXPBY_Hip(CeedVector y, CeedScalar alpha, CeedScalar beta, CeedVector x) {
+  Ceed ceed;
+  CeedCallBackend(CeedVectorGetCeed(y, &ceed));
+  CeedVector_Hip *y_impl, *x_impl;
+  CeedCallBackend(CeedVectorGetData(y, &y_impl));
+  CeedCallBackend(CeedVectorGetData(x, &x_impl));
+  CeedSize length;
+  CeedCallBackend(CeedVectorGetLength(y, &length));
+
+  // Set value for synced device/host array
+  if (y_impl->d_array) {
+    CeedCallBackend(CeedVectorSyncArray(x, CEED_MEM_DEVICE));
+    CeedCallBackend(CeedDeviceAXPBY_Hip(y_impl->d_array, alpha, beta, x_impl->d_array, length));
+  }
+  if (y_impl->h_array) {
+    CeedCallBackend(CeedVectorSyncArray(x, CEED_MEM_HOST));
+    CeedCallBackend(CeedHostAXPBY_Hip(y_impl->h_array, alpha, beta, x_impl->h_array, length));
+  }
+
+  return CEED_ERROR_SUCCESS;
+}
 
 //------------------------------------------------------------------------------
 // Compute the pointwise multiplication w = x .* y on the host
@@ -667,15 +698,16 @@ int CeedVectorCreate_Hip(CeedSize n, CeedVector vec) {
   CeedCallBackend(CeedSetBackendFunction(ceed, "Vector", vec, "HasBorrowedArrayOfType", CeedVectorHasBorrowedArrayOfType_Hip));
   CeedCallBackend(CeedSetBackendFunction(ceed, "Vector", vec, "SetArray", CeedVectorSetArray_Hip));
   CeedCallBackend(CeedSetBackendFunction(ceed, "Vector", vec, "TakeArray", CeedVectorTakeArray_Hip));
-  CeedCallBackend(CeedSetBackendFunction(ceed, "Vector", vec, "SetValue", (int (*)())(CeedVectorSetValue_Hip)));
+  CeedCallBackend(CeedSetBackendFunction(ceed, "Vector", vec, "SetValue", CeedVectorSetValue_Hip));
   CeedCallBackend(CeedSetBackendFunction(ceed, "Vector", vec, "SyncArray", CeedVectorSyncArray_Hip));
   CeedCallBackend(CeedSetBackendFunction(ceed, "Vector", vec, "GetArray", CeedVectorGetArray_Hip));
   CeedCallBackend(CeedSetBackendFunction(ceed, "Vector", vec, "GetArrayRead", CeedVectorGetArrayRead_Hip));
   CeedCallBackend(CeedSetBackendFunction(ceed, "Vector", vec, "GetArrayWrite", CeedVectorGetArrayWrite_Hip));
   CeedCallBackend(CeedSetBackendFunction(ceed, "Vector", vec, "Norm", CeedVectorNorm_Hip));
   CeedCallBackend(CeedSetBackendFunction(ceed, "Vector", vec, "Reciprocal", CeedVectorReciprocal_Hip));
-  CeedCallBackend(CeedSetBackendFunction(ceed, "Vector", vec, "Scale", (int (*)())(CeedVectorScale_Hip)));
-  CeedCallBackend(CeedSetBackendFunction(ceed, "Vector", vec, "AXPY", (int (*)())(CeedVectorAXPY_Hip)));
+  CeedCallBackend(CeedSetBackendFunction(ceed, "Vector", vec, "Scale", CeedVectorScale_Hip));
+  CeedCallBackend(CeedSetBackendFunction(ceed, "Vector", vec, "AXPY", CeedVectorAXPY_Hip));
+  CeedCallBackend(CeedSetBackendFunction(ceed, "Vector", vec, "AXPBY", CeedVectorAXPBY_Hip));
   CeedCallBackend(CeedSetBackendFunction(ceed, "Vector", vec, "PointwiseMult", CeedVectorPointwiseMult_Hip));
   CeedCallBackend(CeedSetBackendFunction(ceed, "Vector", vec, "Destroy", CeedVectorDestroy_Hip));
 

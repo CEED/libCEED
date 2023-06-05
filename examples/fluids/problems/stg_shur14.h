@@ -6,7 +6,7 @@
 // This file is part of CEED:  http://github.com/ceed
 
 #include <ceed.h>
-#include <petsc.h>
+#include <petscsys.h>
 
 #include "../navierstokes.h"
 #include "../qfunctions/stg_shur14_type.h"

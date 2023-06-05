@@ -8,7 +8,7 @@ int main(int argc, char **argv) {
   CeedInt             num_elem = 3;
   CeedInt             ind[2 * num_elem];
   const CeedInt      *offsets;
-  CeedElemRestriction r;
+  CeedElemRestriction elem_restriction;
 
   CeedInit(argv[1], &ceed);
 
@@ -16,13 +16,13 @@ int main(int argc, char **argv) {
     ind[2 * i + 0] = i;
     ind[2 * i + 1] = i + 1;
   }
-  CeedElemRestrictionCreate(ceed, num_elem, 2, 1, 1, num_elem + 1, CEED_MEM_HOST, CEED_USE_POINTER, ind, &r);
+  CeedElemRestrictionCreate(ceed, num_elem, 2, 1, 1, num_elem + 1, CEED_MEM_HOST, CEED_USE_POINTER, ind, &elem_restriction);
 
   // Get offsets and restore them
-  CeedElemRestrictionGetOffsets(r, CEED_MEM_HOST, &offsets);
-  CeedElemRestrictionRestoreOffsets(r, &offsets);
+  CeedElemRestrictionGetOffsets(elem_restriction, CEED_MEM_HOST, &offsets);
+  CeedElemRestrictionRestoreOffsets(elem_restriction, &offsets);
 
-  CeedElemRestrictionDestroy(&r);
+  CeedElemRestrictionDestroy(&elem_restriction);
   // LCOV_EXCL_START
   CeedDestroy(&ceed);
   // LCOV_EXCL_STOP

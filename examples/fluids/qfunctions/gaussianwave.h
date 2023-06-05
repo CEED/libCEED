@@ -14,8 +14,8 @@
 #include "newtonian_state.h"
 #include "utils.h"
 
-typedef struct NewtonWaveContext_ *NewtonWaveContext;
-struct NewtonWaveContext_ {
+typedef struct GaussianWaveContext_ *GaussianWaveContext;
+struct GaussianWaveContext_ {
   CeedScalar                       epicenter[3];  // Location of the perturbation
   CeedScalar                       width;         // Controls width of the perturbation
   CeedScalar                       amplitude;     // Amplitude of the perturbation
@@ -28,7 +28,7 @@ CEED_QFUNCTION_HELPER int IC_NewtonianWave(void *ctx, CeedInt Q, const CeedScala
 
   CeedScalar(*q0)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA])out[0];
 
-  const NewtonWaveContext        context  = (NewtonWaveContext)ctx;
+  const GaussianWaveContext      context  = (GaussianWaveContext)ctx;
   const NewtonianIdealGasContext newt_ctx = &context->newt_ctx;
 
   const CeedScalar amplitude = context->amplitude;
@@ -39,21 +39,15 @@ CEED_QFUNCTION_HELPER int IC_NewtonianWave(void *ctx, CeedInt Q, const CeedScala
 
   const CeedScalar gamma = HeatCapacityRatio(newt_ctx);
 
-  for (CeedInt i = 0; i < Q; i++) {
-    CeedScalar U[5]  = {0.};
-    CeedScalar qi[5] = {0.};
-
-    // Setup
-    // -- Coordinates
-    const CeedScalar x[3] = {X[0][i], X[1][i], X[2][i]};
-    const CeedScalar x0   = x[0] - xc;
-    const CeedScalar y0   = x[1] - yc;
+  CeedPragmaSIMD for (CeedInt i = 0; i < Q; i++) {
+    CeedScalar       U[5] = {0.}, qi[5] = {0.};
+    const CeedScalar x[3]      = {X[0][i], X[1][i], X[2][i]};
+    const CeedScalar x0        = x[0] - xc;
+    const CeedScalar y0        = x[1] - yc;
+    const CeedScalar e_kinetic = 0.5 * S_infty.U.density * Dot3(S_infty.Y.velocity, S_infty.Y.velocity);
 
     const CeedScalar perturbation = 1 + amplitude * exp(-(Square(x0) + Square(y0)) / (2 * Square(width)));
 
-    const CeedScalar e_kinetic = 0.5 * S_infty.U.density * Dot3(S_infty.Y.velocity, S_infty.Y.velocity);
-
-    // Initial Conditions
     U[0] = S_infty.U.density * perturbation;
     U[1] = S_infty.Y.velocity[0] * U[0];
     U[2] = S_infty.Y.velocity[1] * U[0];
@@ -64,7 +58,7 @@ CEED_QFUNCTION_HELPER int IC_NewtonianWave(void *ctx, CeedInt Q, const CeedScala
     StateToQ(newt_ctx, initCond, qi, state_var);
 
     for (CeedInt j = 0; j < 5; j++) q0[j][i] = qi[j];
-  }  // End of Quadrature Point Loop
+  }
 
   return 0;
 }

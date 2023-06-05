@@ -2,32 +2,39 @@
 /// Test creation, setting, reading, restoring, and destroying of a vector using CEED_MEM_DEVICE
 /// \test Test creation, setting, reading, restoring, and destroying of a vector
 #include <ceed.h>
+#include <stdio.h>
 
 int main(int argc, char **argv) {
-  Ceed              ceed;
-  CeedVector        x;
-  CeedVector        y;
-  CeedInt           n;
-  CeedScalar        a[10];
-  const CeedScalar *b, *c;
+  Ceed       ceed;
+  CeedVector x, y;
+  CeedInt    len = 10;
 
   CeedInit(argv[1], &ceed);
 
-  n = 10;
-  CeedVectorCreate(ceed, n, &x);
-  CeedVectorCreate(ceed, n, &y);
-  for (CeedInt i = 0; i < n; i++) a[i] = 10 + i;
-  CeedVectorSetArray(x, CEED_MEM_HOST, CEED_USE_POINTER, a);
+  CeedVectorCreate(ceed, len, &x);
+  CeedVectorCreate(ceed, len, &y);
+  {
+    CeedScalar array[len];
 
-  CeedVectorGetArrayRead(x, CEED_MEM_DEVICE, &b);
-  CeedVectorSetArray(y, CEED_MEM_DEVICE, CEED_COPY_VALUES, (CeedScalar *)b);
-  CeedVectorRestoreArrayRead(x, &b);
-
-  CeedVectorGetArrayRead(y, CEED_MEM_HOST, &c);
-  for (CeedInt i = 0; i < n; i++) {
-    if (c[i] != 10 + i) printf("Error reading array c[%" CeedInt_FMT "] = %f\n", i, (CeedScalar)c[i]);
+    for (CeedInt i = 0; i < len; i++) array[i] = len + i;
+    CeedVectorSetArray(x, CEED_MEM_HOST, CEED_COPY_VALUES, array);
   }
-  CeedVectorRestoreArrayRead(y, &c);
+  {
+    const CeedScalar *read_array;
+
+    CeedVectorGetArrayRead(x, CEED_MEM_DEVICE, &read_array);
+    CeedVectorSetArray(y, CEED_MEM_DEVICE, CEED_COPY_VALUES, (CeedScalar *)read_array);
+    CeedVectorRestoreArrayRead(x, &read_array);
+  }
+  {
+    const CeedScalar *read_array;
+
+    CeedVectorGetArrayRead(y, CEED_MEM_HOST, &read_array);
+    for (CeedInt i = 0; i < len; i++) {
+      if (read_array[i] != len + i) printf("Error reading array[%" CeedInt_FMT "] = %f\n", i, (CeedScalar)read_array[i]);
+    }
+    CeedVectorRestoreArrayRead(y, &read_array);
+  }
 
   CeedVectorDestroy(&x);
   CeedVectorDestroy(&y);

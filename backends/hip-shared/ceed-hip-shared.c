@@ -7,10 +7,12 @@
 
 #include "ceed-hip-shared.h"
 
+#include <ceed.h>
 #include <ceed/backend.h>
-#include <ceed/ceed.h>
 #include <stdbool.h>
 #include <string.h>
+
+#include "../hip/ceed-hip-common.h"
 
 //------------------------------------------------------------------------------
 // Backend init
@@ -18,11 +20,7 @@
 static int CeedInit_Hip_shared(const char *resource, Ceed ceed) {
   char *resource_root;
   CeedCallBackend(CeedHipGetResourceRoot(ceed, resource, &resource_root));
-  if (strcmp(resource_root, "/gpu/hip/shared")) {
-    // LCOV_EXCL_START
-    return CeedError(ceed, CEED_ERROR_BACKEND, "Hip backend cannot use resource: %s", resource);
-    // LCOV_EXCL_STOP
-  }
+  CeedCheck(!strcmp(resource_root, "/gpu/hip/shared"), ceed, CEED_ERROR_BACKEND, "Hip backend cannot use resource: %s", resource);
   CeedCallBackend(CeedFree(&resource_root));
   CeedCallBackend(CeedSetDeterministic(ceed, true));
 

@@ -7,10 +7,11 @@
 
 #define _POSIX_C_SOURCE 200112
 #include <ceed-impl.h>
+#include <ceed.h>
 #include <ceed/backend.h>
-#include <ceed/ceed.h>
 #include <limits.h>
 #include <stdarg.h>
+#include <stdbool.h>
 #include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -27,8 +28,10 @@ static struct {
 } backends[32];
 static size_t num_backends;
 
-#define CEED_FTABLE_ENTRY(class, method) \
-  { #class #method, offsetof(struct class##_private, method) }
+#define CEED_FTABLE_ENTRY(class, method)                     \
+  {                                                          \
+#class #method, offsetof(struct class##_private, method) \
+  }
 /// @endcond
 
 /// @file
@@ -120,10 +123,7 @@ int CeedRequestWait(CeedRequest *req) {
   @ref Developer
 **/
 int CeedRegisterImpl(const char *prefix, int (*init)(const char *, Ceed), unsigned int priority) {
-  if (num_backends >= sizeof(backends) / sizeof(backends[0]))
-    // LCOV_EXCL_START
-    return CeedError(NULL, CEED_ERROR_MAJOR, "Too many backends");
-  // LCOV_EXCL_STOP
+  CeedCheck(num_backends < sizeof(backends) / sizeof(backends[0]), NULL, CEED_ERROR_MAJOR, "Too many backends");
 
   strncpy(backends[num_backends].prefix, prefix, CEED_MAX_RESOURCE_LEN);
   backends[num_backends].prefix[CEED_MAX_RESOURCE_LEN - 1] = 0;
@@ -207,11 +207,7 @@ void CeedDebugImpl256(const unsigned char color, const char *format, ...) {
 **/
 int CeedMallocArray(size_t n, size_t unit, void *p) {
   int ierr = posix_memalign((void **)p, CEED_ALIGN, n * unit);
-  if (ierr) {
-    // LCOV_EXCL_START
-    return CeedError(NULL, CEED_ERROR_MAJOR, "posix_memalign failed to allocate %zd members of size %zd\n", n, unit);
-    // LCOV_EXCL_STOP
-  }
+  CeedCheck(ierr == 0, NULL, CEED_ERROR_MAJOR, "posix_memalign failed to allocate %zd members of size %zd\n", n, unit);
   return CEED_ERROR_SUCCESS;
 }
 
@@ -232,11 +228,7 @@ int CeedMallocArray(size_t n, size_t unit, void *p) {
 **/
 int CeedCallocArray(size_t n, size_t unit, void *p) {
   *(void **)p = calloc(n, unit);
-  if (n && unit && !*(void **)p) {
-    // LCOV_EXCL_START
-    return CeedError(NULL, CEED_ERROR_MAJOR, "calloc failed to allocate %zd members of size %zd\n", n, unit);
-    // LCOV_EXCL_STOP
-  }
+  CeedCheck(!n || !unit || *(void **)p, NULL, CEED_ERROR_MAJOR, "calloc failed to allocate %zd members of size %zd\n", n, unit);
   return CEED_ERROR_SUCCESS;
 }
 
@@ -257,11 +249,7 @@ int CeedCallocArray(size_t n, size_t unit, void *p) {
 **/
 int CeedReallocArray(size_t n, size_t unit, void *p) {
   *(void **)p = realloc(*(void **)p, n * unit);
-  if (n && unit && !*(void **)p) {
-    // LCOV_EXCL_START
-    return CeedError(NULL, CEED_ERROR_MAJOR, "realloc failed to allocate %zd members of size %zd\n", n, unit);
-    // LCOV_EXCL_STOP
-  }
+  CeedCheck(!n || !unit || *(void **)p, NULL, CEED_ERROR_MAJOR, "realloc failed to allocate %zd members of size %zd\n", n, unit);
   return CEED_ERROR_SUCCESS;
 }
 
@@ -664,10 +652,10 @@ array.
 int CeedRegistryGetList(size_t *n, char ***const resources, CeedInt **priorities) {
   *n         = 0;
   *resources = malloc(num_backends * sizeof(**resources));
-  if (!resources) return CeedError(NULL, CEED_ERROR_MAJOR, "malloc() failure");
+  CeedCheck(resources, NULL, CEED_ERROR_MAJOR, "malloc() failure");
   if (priorities) {
     *priorities = malloc(num_backends * sizeof(**priorities));
-    if (!priorities) return CeedError(NULL, CEED_ERROR_MAJOR, "malloc() failure");
+    CeedCheck(priorities, NULL, CEED_ERROR_MAJOR, "malloc() failure");
   }
   for (size_t i = 0; i < num_backends; i++) {
     // Only report compiled backends
@@ -677,16 +665,12 @@ int CeedRegistryGetList(size_t *n, char ***const resources, CeedInt **priorities
       *n += 1;
     }
   }
-  if (*n == 0) {
-    // LCOV_EXCL_START
-    return CeedError(NULL, CEED_ERROR_MAJOR, "No backends installed");
-    // LCOV_EXCL_STOP
-  }
+  CeedCheck(*n, NULL, CEED_ERROR_MAJOR, "No backends installed");
   *resources = realloc(*resources, *n * sizeof(**resources));
-  if (!resources) return CeedError(NULL, CEED_ERROR_MAJOR, "realloc() failure");
+  CeedCheck(resources, NULL, CEED_ERROR_MAJOR, "realloc() failure");
   if (priorities) {
     *priorities = realloc(*priorities, *n * sizeof(**priorities));
-    if (!priorities) return CeedError(NULL, CEED_ERROR_MAJOR, "realloc() failure");
+    CeedCheck(priorities, NULL, CEED_ERROR_MAJOR, "realloc() failure");
   }
   return CEED_ERROR_SUCCESS;
 }
@@ -709,11 +693,7 @@ int CeedInit(const char *resource, Ceed *ceed) {
   size_t match_len = 0, match_index = UINT_MAX, match_priority = CEED_MAX_BACKEND_PRIORITY, priority;
 
   // Find matching backend
-  if (!resource) {
-    // LCOV_EXCL_START
-    return CeedError(NULL, CEED_ERROR_MAJOR, "No resource provided");
-    // LCOV_EXCL_STOP
-  }
+  CeedCheck(resource, NULL, CEED_ERROR_MAJOR, "No resource provided");
   CeedCall(CeedRegisterAll());
 
   // Check for help request
@@ -781,14 +761,8 @@ int CeedInit(const char *resource, Ceed *ceed) {
     size_t      lev_length = 0;
     while (prefix_lev[lev_length] && prefix_lev[lev_length] != '\0') lev_length++;
     size_t m = (lev_length < stem_length) ? lev_length : stem_length;
-    if (lev_dis + 1 >= m) {
-      return CeedError(NULL, CEED_ERROR_MAJOR, "No suitable backend: %s", resource);
-    } else {
-      return CeedError(NULL, CEED_ERROR_MAJOR,
-                       "No suitable backend: %s\n"
-                       "Closest match: %s",
-                       resource, backends[lev_index].prefix);
-    }
+    if (lev_dis + 1 >= m) return CeedError(NULL, CEED_ERROR_MAJOR, "No suitable backend: %s", resource);
+    else return CeedError(NULL, CEED_ERROR_MAJOR, "No suitable backend: %s\nClosest match: %s", resource, backends[lev_index].prefix);
     // LCOV_EXCL_STOP
   }
 
@@ -816,6 +790,7 @@ int CeedInit(const char *resource, Ceed *ceed) {
       CEED_FTABLE_ENTRY(Ceed, BasisCreateTensorH1),
       CEED_FTABLE_ENTRY(Ceed, BasisCreateH1),
       CEED_FTABLE_ENTRY(Ceed, BasisCreateHdiv),
+      CEED_FTABLE_ENTRY(Ceed, BasisCreateHcurl),
       CEED_FTABLE_ENTRY(Ceed, TensorContractCreate),
       CEED_FTABLE_ENTRY(Ceed, QFunctionCreate),
       CEED_FTABLE_ENTRY(Ceed, QFunctionContextCreate),
@@ -835,6 +810,7 @@ int CeedInit(const char *resource, Ceed *ceed) {
       CEED_FTABLE_ENTRY(CeedVector, Norm),
       CEED_FTABLE_ENTRY(CeedVector, Scale),
       CEED_FTABLE_ENTRY(CeedVector, AXPY),
+      CEED_FTABLE_ENTRY(CeedVector, AXPBY),
       CEED_FTABLE_ENTRY(CeedVector, PointwiseMult),
       CEED_FTABLE_ENTRY(CeedVector, Reciprocal),
       CEED_FTABLE_ENTRY(CeedVector, Destroy),
@@ -904,9 +880,10 @@ int CeedInit(const char *resource, Ceed *ceed) {
 
 /**
   @brief Copy the pointer to a Ceed context.
-           Both pointers should be destroyed with `CeedDestroy()`;
-           Note: If `*ceed_copy` is non-NULL, then it is assumed that `*ceed_copy` is a pointer to a Ceed context.
-             This Ceed context will be destroyed if `*ceed_copy` is the only reference to this Ceed context.
+           Both pointers should be destroyed with `CeedDestroy()`.
+
+           Note: If the value of `ceed_copy` passed to this function is non-NULL, then it is assumed that `ceed_copy` is a pointer to a Ceed context.
+             This Ceed context will be destroyed if `ceed_copy` is the only reference to this Ceed context.
 
   @param[in]     ceed      Ceed context to copy reference to
   @param[in,out] ceed_copy Variable to store copied reference
@@ -1036,7 +1013,10 @@ int CeedView(Ceed ceed, FILE *stream) {
   @ref User
 **/
 int CeedDestroy(Ceed *ceed) {
-  if (!*ceed || --(*ceed)->ref_count > 0) return CEED_ERROR_SUCCESS;
+  if (!*ceed || --(*ceed)->ref_count > 0) {
+    *ceed = NULL;
+    return CEED_ERROR_SUCCESS;
+  }
   if ((*ceed)->delegate) CeedCall(CeedDestroy(&(*ceed)->delegate));
 
   if ((*ceed)->obj_delegate_count > 0) {

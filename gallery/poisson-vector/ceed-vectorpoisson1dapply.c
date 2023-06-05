@@ -5,8 +5,8 @@
 //
 // This file is part of CEED:  http://github.com/ceed
 
+#include <ceed.h>
 #include <ceed/backend.h>
-#include <ceed/ceed.h>
 #include <ceed/jit-source/gallery/ceed-vectorpoisson1dapply.h>
 #include <string.h>
 
@@ -16,11 +16,7 @@
 static int CeedQFunctionInit_Vector3Poisson1DApply(Ceed ceed, const char *requested, CeedQFunction qf) {
   // Check QFunction name
   const char *name = "Vector3Poisson1DApply";
-  if (strcmp(name, requested)) {
-    // LCOV_EXCL_START
-    return CeedError(ceed, CEED_ERROR_UNSUPPORTED, "QFunction '%s' does not match requested name: %s", name, requested);
-    // LCOV_EXCL_STOP
-  }
+  CeedCheck(!strcmp(name, requested), ceed, CEED_ERROR_UNSUPPORTED, "QFunction '%s' does not match requested name: %s", name, requested);
 
   // Add QFunction fields
   const CeedInt dim = 1, num_comp = 3;
