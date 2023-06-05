@@ -231,7 +231,7 @@ static PetscErrorCode ModifyMesh(MPI_Comm comm, DM dm, PetscInt dim, PetscReal g
 
 PetscErrorCode NS_BLASIUS(ProblemData *problem, DM dm, void *ctx, SimpleBC bc) {
   User                     user    = *(User *)ctx;
-  MPI_Comm                 comm    = PETSC_COMM_WORLD;
+  MPI_Comm                 comm    = user->comm;
   PetscBool                use_stg = PETSC_FALSE;
   BlasiusContext           blasius_ctx;
   NewtonianIdealGasContext newtonian_ig_ctx;
@@ -321,7 +321,9 @@ PetscErrorCode NS_BLASIUS(ProblemData *problem, DM dm, void *ctx, SimpleBC bc) {
     blasius_ctx->x_inflow = domain_min[0];
     blasius_ctx->eta_max  = 5 * domain_max[1] / blasius_ctx->delta0;
   }
-  if (!use_stg) PetscCall(ComputeChebyshevCoefficients(blasius_ctx));
+  PetscBool diff_filter_mms = PETSC_FALSE;
+  PetscCall(PetscOptionsGetBool(NULL, NULL, "-diff_filter_mms", &diff_filter_mms, NULL));
+  if (!use_stg && !diff_filter_mms) PetscCall(ComputeChebyshevCoefficients(blasius_ctx));
 
   CeedQFunctionContextRestoreData(problem->apply_vol_rhs.qfunction_context, &newtonian_ig_ctx);
 
@@ -333,6 +335,8 @@ PetscErrorCode NS_BLASIUS(ProblemData *problem, DM dm, void *ctx, SimpleBC bc) {
   problem->ics.qfunction_context = blasius_context;
   if (use_stg) {
     PetscCall(SetupSTG(comm, dm, problem, user, weakT, T_inf, P0, mesh_ynodes, mesh_nynodes));
+  } else if (diff_filter_mms) {
+    PetscCall(DifferentialFilter_MMS_ICSetup(problem));
   } else {
     problem->apply_inflow.qfunction              = Blasius_Inflow;
     problem->apply_inflow.qfunction_loc          = Blasius_Inflow_loc;

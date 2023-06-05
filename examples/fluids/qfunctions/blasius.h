@@ -103,35 +103,37 @@ State CEED_QFUNCTION_HELPER(BlasiusSolution)(const BlasiusContext blasius, const
 // This QFunction sets a Blasius boundary layer for the initial condition
 // *****************************************************************************
 CEED_QFUNCTION(ICsBlasius)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
-  // Inputs
   const CeedScalar(*X)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[0];
+  CeedScalar(*q0)[CEED_Q_VLA]      = (CeedScalar(*)[CEED_Q_VLA])out[0];
 
-  // Outputs
-  CeedScalar(*q0)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA])out[0];
+  const BlasiusContext           context  = (BlasiusContext)ctx;
+  const NewtonianIdealGasContext gas      = &context->newtonian_ctx;
+  const CeedScalar               mu       = context->newtonian_ctx.mu;
+  const CeedScalar               delta0   = context->delta0;
+  const CeedScalar               x_inflow = context->x_inflow;
+  CeedScalar                     t12;
 
-  const BlasiusContext context    = (BlasiusContext)ctx;
-  const CeedScalar     cv         = context->newtonian_ctx.cv;
-  const CeedScalar     mu         = context->newtonian_ctx.mu;
-  const CeedScalar     T_inf      = context->T_inf;
-  const CeedScalar     P0         = context->P0;
-  const CeedScalar     delta0     = context->delta0;
-  const CeedScalar     U_inf      = context->U_inf;
-  const CeedScalar     x_inflow   = context->x_inflow;
-  const CeedScalar     gamma      = HeatCapacityRatio(&context->newtonian_ctx);
-  const CeedScalar     e_internal = cv * T_inf;
-  const CeedScalar     rho        = P0 / ((gamma - 1) * e_internal);
-  const CeedScalar     x0         = U_inf * rho / (mu * 25 / (delta0 * delta0));
-  CeedScalar           t12;
+  const CeedScalar Y_inf[5]  = {context->P0, context->U_inf, 0, 0, context->T_inf};
+  const CeedScalar x_zero[3] = {0};
+  const State      s_inf     = StateFromY(gas, Y_inf, x_zero);
 
-  // Quadrature Point Loop
+  const CeedScalar x0 = context->U_inf * s_inf.U.density / (mu * 25 / Square(delta0));
+
   CeedPragmaSIMD for (CeedInt i = 0; i < Q; i++) {
-    const CeedScalar x[3] = {X[0][i], X[1][i], 0.};
-    State            s    = BlasiusSolution(context, x, x0, x_inflow, rho, &t12);
+    const CeedScalar x[3] = {X[0][i], X[1][i], X[2][i]};
+    State            s    = BlasiusSolution(context, x, x0, x_inflow, s_inf.U.density, &t12);
     CeedScalar       q[5] = {0};
-    UnpackState_U(s.U, q);
-    for (CeedInt j = 0; j < 5; j++) q0[j][i] = q[j];
 
-  }  // End of Quadrature Point Loop
+    switch (gas->state_var) {
+      case STATEVAR_CONSERVATIVE:
+        UnpackState_U(s.U, q);
+        break;
+      case STATEVAR_PRIMITIVE:
+        UnpackState_Y(s.Y, q);
+        break;
+    }
+    for (CeedInt j = 0; j < 5; j++) q0[j][i] = q[j];
+  }
   return 0;
 }
 

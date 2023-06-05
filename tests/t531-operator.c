@@ -10,11 +10,11 @@
 
 int main(int argc, char **argv) {
   Ceed                ceed;
-  CeedElemRestriction elem_restriction_x, elem_restriction_u, elem_restriction_q_data, elem_restriction_assembled;
+  CeedElemRestriction elem_restriction_x, elem_restriction_u, elem_restriction_q_data, elem_restriction_assembled = NULL;
   CeedBasis           basis_x, basis_u;
   CeedQFunction       qf_setup, qf_diff, qf_diff_assembled;
   CeedOperator        op_setup, op_diff, op_diff_assembled;
-  CeedVector          q_data, x, assembled, u, v;
+  CeedVector          q_data, x, assembled = NULL, u, v;
   CeedInt             num_elem = 6, p = 3, q = 4, dim = 2;
   CeedInt             nx = 3, ny = 2;
   CeedInt             num_dofs = (nx * 2 + 1) * (ny * 2 + 1), num_qpts = num_elem * q * q;
@@ -104,10 +104,10 @@ int main(int argc, char **argv) {
 
   // Assemble QFunction
   CeedOperatorSetQFunctionAssemblyReuse(op_diff, true);
-  CeedOperatorLinearAssembleQFunction(op_diff, &assembled, &elem_restriction_assembled, CEED_REQUEST_IMMEDIATE);
+  CeedOperatorLinearAssembleQFunctionBuildOrUpdate(op_diff, &assembled, &elem_restriction_assembled, CEED_REQUEST_IMMEDIATE);
   // Second call will be no-op since SetQFunctionUpdated was not called
   CeedOperatorSetQFunctionAssemblyDataUpdateNeeded(op_diff, false);
-  CeedOperatorLinearAssembleQFunction(op_diff, &assembled, &elem_restriction_assembled, CEED_REQUEST_IMMEDIATE);
+  CeedOperatorLinearAssembleQFunctionBuildOrUpdate(op_diff, &assembled, &elem_restriction_assembled, CEED_REQUEST_IMMEDIATE);
 
   // QFunction - apply assembled
   CeedQFunctionCreateInterior(ceed, 1, diff_lin, diff_lin_loc, &qf_diff_assembled);

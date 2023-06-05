@@ -18,6 +18,8 @@
 //     ./navierstokes -ceed /cpu/self -problem density_current -degree 1
 //     ./navierstokes -ceed /gpu/cuda -problem advection -degree 1
 //
+//TESTARGS(name="blasius_aniso_diff_filter") -ceed {ceed_resource} -test_type diff_filter -options_file examples/fluids/tests-output/blasius_test.yaml -compare_final_state_atol 5e-10 -compare_final_state_filename examples/fluids/tests-output/fluids-navierstokes-blasius_diff_filter_aniso_vandriest.bin -diff_filter_monitor -ts_max_steps 0 -state_var primitive -diff_filter_friction_length 1e-5 -diff_filter_wall_damping_function van_driest -diff_filter_ksp_rtol 1e-8 -diff_filter_grid_based_width -diff_filter_width_scaling 1,0.7,1
+//TESTARGS(name="blasius_iso_diff_filter") -ceed {ceed_resource} -test_type diff_filter -options_file examples/fluids/tests-output/blasius_test.yaml -compare_final_state_atol 2e-12 -compare_final_state_filename examples/fluids/tests-output/fluids-navierstokes-blasius_diff_filter_iso.bin -diff_filter_monitor -ts_max_steps 0 -diff_filter_width_scaling 4.2e-5,4.2e-5,4.2e-5 -diff_filter_ksp_atol 1e-14 -diff_filter_ksp_rtol 1e-16
 //TESTARGS(name="blasius_SGS_DataDriven") -ceed {ceed_resource} -test_type solver -options_file examples/fluids/tests-output/blasius_stgtest.yaml -sgs_model_type data_driven -sgs_model_dd_leakyrelu_alpha 0.3 -sgs_model_dd_parameter_dir examples/fluids/dd_sgs_data -ts_dt 1e-9 -compare_final_state_atol 2e-12 -compare_final_state_filename examples/fluids/tests-output/fluids-navierstokes-blasius-sgs-data-driven.bin -state_var primitive
 //TESTARGS(name="gaussianwave_idl") -ceed {ceed_resource} -test_type solver -options_file examples/fluids/gaussianwave.yaml -compare_final_state_atol 2e-11 -compare_final_state_filename examples/fluids/tests-output/fluids-navierstokes-gaussianwave-IDL.bin -dm_plex_box_faces 5,5,1 -ts_max_steps 5 -idl_decay_time 2e-3 -idl_length 0.25 -idl_start 0
 //TESTARGS(name="turb_spanstats") -ceed {ceed_resource} -test_type turb_spanstats -options_file examples/fluids/tests-output/stats_test.yaml -compare_final_state_atol 1E-11 -compare_final_state_filename examples/fluids/tests-output/fluids-navierstokes-turb-spanstats-stats.bin
@@ -320,6 +322,7 @@ int main(int argc, char **argv) {
   PetscCall(TurbulenceStatisticsDestroy(user, ceed_data));
   PetscCall(NodalProjectionDataDestroy(user->grad_velo_proj));
   PetscCall(SGS_DD_DataDestroy(user->sgs_dd_data));
+  PetscCall(DifferentialFilterDataDestroy(user->diff_filter));
 
   // -- Vectors
   CeedVectorDestroy(&ceed_data->x_coord);
@@ -381,6 +384,13 @@ int main(int argc, char **argv) {
 
   // -- Ceed
   CeedDestroy(&ceed);
+
+  if (app_ctx->test_type != TESTTYPE_NONE) {
+    PetscInt num_options_left = 0;
+    PetscCall(PetscOptionsLeftGet(NULL, &num_options_left, NULL, NULL));
+    PetscCheck(num_options_left == 0, PETSC_COMM_WORLD, -1,
+               "There are unused options. This is not allowed. See error message for the unused options (or use -options_left directly)");
+  }
 
   // ---------------------------------------------------------------------------
   // Clean up PETSc

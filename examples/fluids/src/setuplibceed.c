@@ -17,11 +17,12 @@
 PetscInt Involute(PetscInt i) { return i >= 0 ? i : -(i + 1); }
 
 // Utility function to create local CEED restriction
-PetscErrorCode CreateRestrictionFromPlex(Ceed ceed, DM dm, CeedInt height, DMLabel domain_label, CeedInt value, CeedElemRestriction *elem_restr) {
+PetscErrorCode CreateRestrictionFromPlex(Ceed ceed, DM dm, CeedInt height, DMLabel domain_label, CeedInt label_value, PetscInt dm_field,
+                                         CeedElemRestriction *elem_restr) {
   PetscInt num_elem, elem_size, num_dof, num_comp, *elem_restr_offsets;
 
   PetscFunctionBeginUser;
-  PetscCall(DMPlexGetLocalOffsets(dm, domain_label, value, height, 0, &num_elem, &elem_size, &num_comp, &num_dof, &elem_restr_offsets));
+  PetscCall(DMPlexGetLocalOffsets(dm, domain_label, label_value, height, dm_field, &num_elem, &elem_size, &num_comp, &num_dof, &elem_restr_offsets));
 
   CeedElemRestrictionCreate(ceed, num_elem, elem_size, num_comp, 1, num_dof, CEED_MEM_HOST, CEED_COPY_VALUES, elem_restr_offsets, elem_restr);
   PetscCall(PetscFree(elem_restr_offsets));
@@ -30,8 +31,9 @@ PetscErrorCode CreateRestrictionFromPlex(Ceed ceed, DM dm, CeedInt height, DMLab
 }
 
 // Utility function to get Ceed Restriction for each domain
-PetscErrorCode GetRestrictionForDomain(Ceed ceed, DM dm, CeedInt height, DMLabel domain_label, PetscInt value, CeedInt Q, CeedInt q_data_size,
-                                       CeedElemRestriction *elem_restr_q, CeedElemRestriction *elem_restr_x, CeedElemRestriction *elem_restr_qd_i) {
+PetscErrorCode GetRestrictionForDomain(Ceed ceed, DM dm, CeedInt height, DMLabel domain_label, PetscInt label_value, PetscInt dm_field, CeedInt Q,
+                                       CeedInt q_data_size, CeedElemRestriction *elem_restr_q, CeedElemRestriction *elem_restr_x,
+                                       CeedElemRestriction *elem_restr_qd_i) {
   DM                  dm_coord;
   CeedInt             dim, loc_num_elem;
   CeedInt             Q_dim;
@@ -41,7 +43,7 @@ PetscErrorCode GetRestrictionForDomain(Ceed ceed, DM dm, CeedInt height, DMLabel
   PetscCall(DMGetDimension(dm, &dim));
   dim -= height;
   Q_dim = CeedIntPow(Q, dim);
-  PetscCall(CreateRestrictionFromPlex(ceed, dm, height, domain_label, value, &elem_restr_tmp));
+  PetscCall(CreateRestrictionFromPlex(ceed, dm, height, domain_label, label_value, dm_field, &elem_restr_tmp));
   if (elem_restr_q) *elem_restr_q = elem_restr_tmp;
   if (elem_restr_x) {
     PetscCall(DMGetCellCoordinateDM(dm, &dm_coord));
@@ -49,7 +51,7 @@ PetscErrorCode GetRestrictionForDomain(Ceed ceed, DM dm, CeedInt height, DMLabel
       PetscCall(DMGetCoordinateDM(dm, &dm_coord));
     }
     PetscCall(DMPlexSetClosurePermutationTensor(dm_coord, PETSC_DETERMINE, NULL));
-    PetscCall(CreateRestrictionFromPlex(ceed, dm_coord, height, domain_label, value, elem_restr_x));
+    PetscCall(CreateRestrictionFromPlex(ceed, dm_coord, height, domain_label, label_value, dm_field, elem_restr_x));
   }
   if (elem_restr_qd_i) {
     CeedElemRestrictionGetNumElements(elem_restr_tmp, &loc_num_elem);
@@ -60,7 +62,7 @@ PetscErrorCode GetRestrictionForDomain(Ceed ceed, DM dm, CeedInt height, DMLabel
   PetscFunctionReturn(0);
 }
 
-PetscErrorCode AddBCSubOperator(Ceed ceed, DM dm, CeedData ceed_data, DMLabel domain_label, PetscInt value, CeedInt height, CeedInt Q_sur,
+PetscErrorCode AddBCSubOperator(Ceed ceed, DM dm, CeedData ceed_data, DMLabel domain_label, PetscInt label_value, CeedInt height, CeedInt Q_sur,
                                 CeedInt q_data_size_sur, CeedInt jac_data_size_sur, CeedQFunction qf_apply_bc, CeedQFunction qf_apply_bc_jacobian,
                                 CeedOperator *op_apply, CeedOperator *op_apply_ijacobian) {
   CeedVector          q_data_sur, jac_data_sur;
@@ -73,11 +75,11 @@ PetscErrorCode AddBCSubOperator(Ceed ceed, DM dm, CeedData ceed_data, DMLabel do
   CeedBasisGetNumQuadraturePoints(ceed_data->basis_q_sur, &num_qpts_sur);
 
   // ---- CEED Restriction
-  PetscCall(GetRestrictionForDomain(ceed, dm, height, domain_label, value, Q_sur, q_data_size_sur, &elem_restr_q_sur, &elem_restr_x_sur,
+  PetscCall(GetRestrictionForDomain(ceed, dm, height, domain_label, label_value, 0, Q_sur, q_data_size_sur, &elem_restr_q_sur, &elem_restr_x_sur,
                                     &elem_restr_qd_i_sur));
   if (jac_data_size_sur > 0) {
     // State-dependent data will be passed from residual to Jacobian. This will be collocated.
-    PetscCall(GetRestrictionForDomain(ceed, dm, height, domain_label, value, Q_sur, jac_data_size_sur, NULL, NULL, &elem_restr_jd_i_sur));
+    PetscCall(GetRestrictionForDomain(ceed, dm, height, domain_label, label_value, 0, Q_sur, jac_data_size_sur, NULL, NULL, &elem_restr_jd_i_sur));
     CeedElemRestrictionCreateVector(elem_restr_jd_i_sur, &jac_data_sur, NULL);
   } else {
     elem_restr_jd_i_sur = NULL;
@@ -231,10 +233,10 @@ PetscErrorCode SetupLibceed(Ceed ceed, CeedData ceed_data, DM dm, User user, App
   // CEED Restrictions
   // -----------------------------------------------------------------------------
   // -- Create restriction
-  PetscCall(GetRestrictionForDomain(ceed, dm, 0, 0, 0, Q, q_data_size_vol, &ceed_data->elem_restr_q, &ceed_data->elem_restr_x,
+  PetscCall(GetRestrictionForDomain(ceed, dm, 0, 0, 0, 0, Q, q_data_size_vol, &ceed_data->elem_restr_q, &ceed_data->elem_restr_x,
                                     &ceed_data->elem_restr_qd_i));
 
-  PetscCall(GetRestrictionForDomain(ceed, dm, 0, 0, 0, Q, jac_data_size_vol, NULL, NULL, &elem_restr_jd_i));
+  PetscCall(GetRestrictionForDomain(ceed, dm, 0, 0, 0, 0, Q, jac_data_size_vol, NULL, NULL, &elem_restr_jd_i));
   // -- Create E vectors
   CeedElemRestrictionCreateVector(ceed_data->elem_restr_q, &user->q_ceed, NULL);
   CeedElemRestrictionCreateVector(ceed_data->elem_restr_q, &user->q_dot_ceed, NULL);
@@ -445,6 +447,7 @@ PetscErrorCode SetupLibceed(Ceed ceed, CeedData ceed_data, DM dm, User user, App
   }
 
   if (app_ctx->turb_spanstats_enable) PetscCall(TurbulenceStatisticsSetup(ceed, user, ceed_data, problem));
+  if (app_ctx->diff_filter_monitor) PetscCall(DifferentialFilterSetup(ceed, user, ceed_data, problem));
 
   CeedElemRestrictionDestroy(&elem_restr_jd_i);
   CeedOperatorDestroy(&op_ijacobian_vol);

@@ -183,6 +183,9 @@ PetscErrorCode ProcessCommandLineOptions(MPI_Comm comm, AppCtx app_ctx, SimpleBC
   PetscCall(PetscOptionsEnum("-sgs_model_type", "Subgrid Stress Model type", NULL, SGSModelTypes, (PetscEnum)app_ctx->sgs_model_type,
                              (PetscEnum *)&app_ctx->sgs_model_type, NULL));
 
+  PetscCall(PetscOptionsBool("-diff_filter_monitor", "Enable differential filtering TSMonitor", NULL, app_ctx->diff_filter_monitor,
+                             &app_ctx->diff_filter_monitor, NULL));
+
   PetscOptionsEnd();
 
   PetscFunctionReturn(0);

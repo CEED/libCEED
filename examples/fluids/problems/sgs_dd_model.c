@@ -67,7 +67,7 @@ PetscErrorCode SGS_DD_ModelSetupNodalEvaluation(Ceed ceed, User user, CeedData c
   CeedQFunction       qf_multiplicity, qf_sgs_dd_nodal;
   CeedOperator        op_multiplicity, op_sgs_dd_nodal;
   CeedInt             num_elem, elem_size, num_comp_q, dim, num_qpts_1d, num_comp_grad_velo, num_comp_x, num_comp_grid_aniso;
-  CeedVector          multiplicity, inv_multiplicity, grad_velo_ceed;
+  CeedVector          multiplicity, inv_multiplicity;
   CeedElemRestriction elem_restr_inv_multiplicity, elem_restr_grad_velo, elem_restr_sgs;
 
   PetscFunctionBeginUser;
@@ -84,10 +84,9 @@ PetscErrorCode SGS_DD_ModelSetupNodalEvaluation(Ceed ceed, User user, CeedData c
     CeedOperatorGetFieldByName(user->grad_velo_proj->l2_rhs_ctx->op, "velocity gradient", &op_field);
     CeedOperatorFieldGetElemRestriction(op_field, &elem_restr_grad_velo);
     CeedElemRestrictionGetNumComponents(elem_restr_grad_velo, &num_comp_grad_velo);
-    CeedElemRestrictionCreateVector(elem_restr_grad_velo, &grad_velo_ceed, NULL);
   }
 
-  PetscCall(GetRestrictionForDomain(ceed, sgs_dd_data->dm_sgs, 0, 0, 0, num_qpts_1d, 0, &elem_restr_sgs, NULL, NULL));
+  PetscCall(GetRestrictionForDomain(ceed, sgs_dd_data->dm_sgs, 0, 0, 0, 0, num_qpts_1d, 0, &elem_restr_sgs, NULL, NULL));
   CeedElemRestrictionCreateVector(elem_restr_sgs, &sgs_dd_data->sgs_nodal_ceed, NULL);
 
   // -- Create inverse multiplicity for correcting nodal assembly
@@ -142,14 +141,13 @@ PetscErrorCode SGS_DD_ModelSetupNodalEvaluation(Ceed ceed, User user, CeedData c
   CeedOperatorSetField(op_sgs_dd_nodal, "inverse multiplicity", elem_restr_inv_multiplicity, CEED_BASIS_COLLOCATED, inv_multiplicity);
   CeedOperatorSetField(op_sgs_dd_nodal, "km_sgs", elem_restr_sgs, CEED_BASIS_COLLOCATED, CEED_VECTOR_ACTIVE);
 
-  PetscCall(OperatorApplyContextCreate(user->grad_velo_proj->dm, sgs_dd_data->dm_sgs, ceed, op_sgs_dd_nodal, grad_velo_ceed,
-                                       sgs_dd_data->sgs_nodal_ceed, NULL, NULL, &sgs_dd_data->op_nodal_evaluation_ctx));
+  PetscCall(OperatorApplyContextCreate(user->grad_velo_proj->dm, sgs_dd_data->dm_sgs, ceed, op_sgs_dd_nodal, NULL, sgs_dd_data->sgs_nodal_ceed, NULL,
+                                       NULL, &sgs_dd_data->op_nodal_evaluation_ctx));
 
   sgs_dd_setup_data->elem_restr_sgs = elem_restr_sgs;
 
   CeedVectorDestroy(&multiplicity);
   CeedVectorDestroy(&inv_multiplicity);
-  CeedVectorDestroy(&grad_velo_ceed);
   CeedBasisDestroy(&basis_x_to_q);
   CeedElemRestrictionDestroy(&elem_restr_inv_multiplicity);
   CeedQFunctionDestroy(&qf_multiplicity);
@@ -315,13 +313,13 @@ PetscErrorCode SGS_DD_ModelSetup(Ceed ceed, User user, CeedData ceed_data, Probl
 
   PetscCall(PetscNew(&sgsdd_ctx));
 
-  PetscOptionsBegin(comm, NULL, "SGS Data-Drive Model Options", NULL);
+  PetscOptionsBegin(comm, NULL, "SGS Data-Driven Model Options", NULL);
   PetscCall(PetscOptionsReal("-sgs_model_dd_leakyrelu_alpha", "Slope parameter for Leaky ReLU activation function", NULL, alpha, &alpha, NULL));
   PetscCall(PetscOptionsString("-sgs_model_dd_parameter_dir", "Path to directory with model parameters (weights, biases, etc.)", NULL, sgs_dd_dir,
                                sgs_dd_dir, sizeof(sgs_dd_dir), NULL));
   PetscOptionsEnd();
 
-  sgsdd_ctx->num_layers  = 2;
+  sgsdd_ctx->num_layers  = 1;
   sgsdd_ctx->num_inputs  = 6;
   sgsdd_ctx->num_outputs = 6;
   sgsdd_ctx->num_neurons = 20;

@@ -16,8 +16,8 @@ int main(int argc, char **argv) {
   CeedOperator        op_setup, op_mass;
   CeedVector          q_data, x, assembled, u, v;
   CeedInt             num_elem = 6, p = 3, q = 4, dim = 2, num_comp = 2;
-  CeedInt             nx = 3, ny = 2;
-  CeedInt             num_dofs = (nx * 2 + 1) * (ny * 2 + 1), num_qpts = num_elem * q * q;
+  CeedInt             n_x = 3, n_y = 2;
+  CeedInt             num_dofs = (n_x * 2 + 1) * (n_y * 2 + 1), num_qpts = num_elem * q * q;
   CeedInt             ind_x[num_elem * p * p];
   CeedScalar          assembled_true[num_comp * num_comp * num_dofs];
 
@@ -28,10 +28,10 @@ int main(int argc, char **argv) {
   {
     CeedScalar x_array[dim * num_dofs];
 
-    for (CeedInt i = 0; i < nx * 2 + 1; i++) {
-      for (CeedInt j = 0; j < ny * 2 + 1; j++) {
-        x_array[i + j * (nx * 2 + 1) + 0 * num_dofs] = (CeedScalar)i / (2 * nx);
-        x_array[i + j * (nx * 2 + 1) + 1 * num_dofs] = (CeedScalar)j / (2 * ny);
+    for (CeedInt i = 0; i < n_x * (p - 1) + 1; i++) {
+      for (CeedInt j = 0; j < n_y * (p - 1) + 1; j++) {
+        x_array[i + j * (n_x * (p - 1) + 1) + 0 * num_dofs] = (CeedScalar)i / ((p - 1) * n_x);
+        x_array[i + j * (n_x * (p - 1) + 1) + 1 * num_dofs] = (CeedScalar)j / ((p - 1) * n_y);
       }
     }
     CeedVectorSetArray(x, CEED_MEM_HOST, CEED_COPY_VALUES, x_array);
@@ -41,11 +41,11 @@ int main(int argc, char **argv) {
   // Restrictions
   for (CeedInt i = 0; i < num_elem; i++) {
     CeedInt col, row, offset;
-    col    = i % nx;
-    row    = i / nx;
-    offset = col * (p - 1) + row * (nx * 2 + 1) * (p - 1);
+    col    = i % n_x;
+    row    = i / n_x;
+    offset = col * (p - 1) + row * (n_x * 2 + 1) * (p - 1);
     for (CeedInt j = 0; j < p; j++) {
-      for (CeedInt k = 0; k < p; k++) ind_x[p * (p * i + k) + j] = offset + k * (nx * 2 + 1) + j;
+      for (CeedInt k = 0; k < p; k++) ind_x[p * (p * i + k) + j] = offset + k * (n_x * 2 + 1) + j;
     }
   }
   CeedElemRestrictionCreate(ceed, num_elem, p * p, dim, num_dofs, dim * num_dofs, CEED_MEM_HOST, CEED_USE_POINTER, ind_x, &elem_restriction_x);
