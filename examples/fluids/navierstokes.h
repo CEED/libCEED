@@ -82,6 +82,9 @@ typedef enum {
 } SGSModelType;
 static const char *const SGSModelTypes[] = {"none", "data_driven", "SGSModelType", "SGS_MODEL_", NULL};
 
+static const char *const DifferentialFilterDampingFunctions[] = {
+    "none", "van_driest", "mms", "DifferentialFilterDampingFunction", "DIFF_FILTER_DAMP_", NULL};
+
 // -----------------------------------------------------------------------------
 // Structs
 // -----------------------------------------------------------------------------
