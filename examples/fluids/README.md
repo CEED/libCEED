@@ -8,6 +8,8 @@ The state variables are mass density, momentum density, and energy density.
 
 The main Navier-Stokes solver for libCEED is defined in [`navierstokes.c`](navierstokes.c) with different problem definitions according to the application of interest.
 
+## Build Instructions
+
 Build by using:
 
 `make`
@@ -16,6 +18,12 @@ and run with:
 
 ```
 ./navierstokes -ceed [ceed] -problem [problem type] -degree [degree]
+```
+
+If you want to do *in situ* machine-learning training, specify `SMARTREDIS_DIR` in the make command like:
+
+```
+make SMARTREDIS_DIR=~/software/smartredis/install
 ```
 
 ## Runtime options
@@ -235,7 +243,7 @@ For the case of a square/cubic mesh, the list of face indices to be used with `-
 
 ### Boundary conditions
 
-Boundary conditions for compressible viscous flows are notoriously tricky. Here we offer some recommendations
+Boundary conditions for compressible viscous flows are notoriously tricky. Here we offer some recommendations.
 
 #### Inflow
 
@@ -717,6 +725,25 @@ For the Density Current, Channel, and Blasius problems, the following common com
   - 0
   - `m`
 
+* - `-sgs_train_enable`
+  - Whether to enable *in situ* training of data-driven SGS model. Require building with SmartRedis.
+  - `false`
+  - boolean
+
+* - `-sgs_train_write_data_interval`
+  - Number of timesteps between writing training data into SmartRedis database
+  - `1`
+  -
+
+* - `-sgs_train_overwrite_data`
+  - Whether new training data should overwrite old data on database
+  - `true`
+  - boolean
+
+* - `-smartsim_collocated_num_ranks`
+  - Number of MPI ranks associated with each collocated database (i.e. ranks per node)
+  - `1`
+  -
 :::
 
 #### Gaussian Wave
