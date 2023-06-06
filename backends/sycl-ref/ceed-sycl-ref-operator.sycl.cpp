@@ -916,8 +916,8 @@ static inline int CeedOperatorAssembleDiagonalCore_Sycl(CeedOperator op, CeedVec
   CeedCallBackend(CeedGetData(ceed, &sycl_data));
 
   // Assemble QFunction
-  CeedVector          assembledqf;
-  CeedElemRestriction rstr;
+  CeedVector          assembledqf = NULL;
+  CeedElemRestriction rstr        = NULL;
   CeedCallBackend(CeedOperatorLinearAssembleQFunctionBuildOrUpdate(op, &assembledqf, &rstr, request));
   CeedCallBackend(CeedElemRestrictionDestroy(&rstr));
 
@@ -1343,8 +1343,8 @@ static int CeedSingleOperatorAssemble_Sycl(CeedOperator op, CeedInt offset, Ceed
   }
 
   // Assemble QFunction
-  CeedVector          assembled_qf;
-  CeedElemRestriction rstr_q;
+  CeedVector          assembled_qf = NULL;
+  CeedElemRestriction rstr_q       = NULL;
   CeedCallBackend(CeedOperatorLinearAssembleQFunctionBuildOrUpdate(op, &assembled_qf, &rstr_q, CEED_REQUEST_IMMEDIATE));
   CeedCallBackend(CeedElemRestrictionDestroy(&rstr_q));
   CeedScalar *values_array;
