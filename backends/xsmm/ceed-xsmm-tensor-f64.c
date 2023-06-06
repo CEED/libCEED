@@ -94,7 +94,9 @@ int CeedTensorContractCreate_f64_Xsmm(CeedBasis basis, CeedTensorContract contra
         for (CeedInt t_mode = 0; t_mode <= 1; t_mode++) {
           for (CeedInt grad = 0; grad <= 1; grad++) {
             for (CeedInt dim = 0; dim < impl->dim; dim++) {
-              const int flags = LIBXSMM_GEMM_FLAGS('N', t_mode ? 'T' : 'N');
+              const int flags_t  = LIBXSMM_GEMM_FLAGS('N', t_mode ? 'T' : 'N');
+              const int flags_ab = (!add) ? LIBXSMM_GEMM_FLAG_BETA_0 : 0;
+              const int flags    = (flags_t | flags_ab);
               CeedInt   B = grad ? impl->Q : (t_mode ? impl->Q : impl->P), J = grad ? impl->Q : (t_mode ? impl->P : impl->Q),
                       C = num_elem * CeedIntPow(J, dim);
               // Add key, kernel pair to hash table
@@ -103,9 +105,7 @@ int CeedTensorContractCreate_f64_Xsmm(CeedBasis basis, CeedTensorContract contra
               khint_t          k = kh_put(f64, impl->lookup_f64, key, &new_item);
               if (new_item) {
                 // Build kernel
-                double alpha = 1.0, beta = 1.0;
-                if (!add) beta = 0.0;
-                libxsmm_dmmfunction kernel = libxsmm_dmmdispatch(C, J, B, NULL, NULL, NULL, &alpha, &beta, &flags, NULL);
+                libxsmm_dmmfunction kernel = libxsmm_dmmdispatch_v2(C, J, B, NULL, NULL, NULL, &flags);
                 CeedCheck(kernel, ceed, CEED_ERROR_BACKEND, "LIBXSMM kernel failed to build.");
                 // Add kernel to hash table
                 kh_value(impl->lookup_f64, k) = kernel;
@@ -125,7 +125,9 @@ int CeedTensorContractCreate_f64_Xsmm(CeedBasis basis, CeedTensorContract contra
         for (CeedInt t_mode = 0; t_mode <= 1; t_mode++) {
           CeedInt gradstride = CeedIntMax(impl->dim - 1, 1);
           for (CeedInt grad = 1; grad <= impl->dim; grad += gradstride) {
-            const int flags = LIBXSMM_GEMM_FLAGS('N', t_mode ? 'T' : 'N');
+            const int flags_t  = LIBXSMM_GEMM_FLAGS('N', t_mode ? 'T' : 'N');
+            const int flags_ab = (!add) ? LIBXSMM_GEMM_FLAG_BETA_0 : 0;
+            const int flags    = (flags_t | flags_ab);
             CeedInt   B = t_mode ? grad * impl->Q : impl->P, J = t_mode ? impl->P : grad * impl->Q, C = num_elem;
             // Add key, kernel pair to hash table
             CeedHashIJKLMKey key = {B, C, J, t_mode, add};
@@ -133,9 +135,7 @@ int CeedTensorContractCreate_f64_Xsmm(CeedBasis basis, CeedTensorContract contra
             khint_t          k = kh_put(f64, impl->lookup_f64, key, &new_item);
             if (new_item) {
               // Build kernel
-              double alpha = 1.0, beta = 1.0;
-              if (!add) beta = 0.0;
-              libxsmm_dmmfunction kernel = libxsmm_dmmdispatch(C, J, B, NULL, NULL, NULL, &alpha, &beta, &flags, NULL);
+              libxsmm_dmmfunction kernel = libxsmm_dmmdispatch_v2(C, J, B, NULL, NULL, NULL, &flags);
               CeedCheck(kernel, ceed, CEED_ERROR_BACKEND, "LIBXSMM kernel failed to build.");
               // Add kernel to hash table
               kh_value(impl->lookup_f64, k) = kernel;
