@@ -154,3 +154,27 @@ int CeedJitGetKernel_Sycl(Ceed ceed, const SyclModule_t *sycl_module,
 
   return CEED_ERROR_SUCCESS;
 }
+
+//------------------------------------------------------------------------------
+// Run SYCL kernel for spatial dimension with shared memory
+//------------------------------------------------------------------------------
+int CeedRunKernelDimSharedSycl(Ceed ceed, sycl::kernel* kernel, const int grid_size, const int block_size_x, const int block_size_y,
+                               const int block_size_z, const int shared_mem_size, void **kernel_args) {
+  sycl::range<3> local_range(block_size_z, block_size_y, block_size_x);
+  sycl::range<3> global_range(grid_size*block_size_z, block_size_y, block_size_x);
+  sycl::nd_range<3> kernel_range(global_range,local_range);
+  
+  //-----------
+  //Order queue
+  Ceed_Sycl *ceed_Sycl;
+  CeedCallBackend(CeedGetData(ceed, &ceed_Sycl));
+  sycl::event e = ceed_Sycl->sycl_queue.ext_oneapi_submit_barrier();
+  
+  ceed_Sycl->sycl_queue.submit([&](sycl::handler& cgh){
+    cgh.depends_on(e);
+    cgh.set_args(*kernel_args);
+    cgh.parallel_for(kernel_range,*kernel);
+  });
+
+  return CEED_ERROR_SUCCESS;
+}
