@@ -184,6 +184,7 @@ typedef struct {
   DM                   dm_filter;
   PetscInt             num_filtered_fields;
   CeedInt             *num_field_components;
+  PetscInt             field_prim_state, field_velo_prod;
   OperatorApplyContext op_rhs_ctx;
   KSP                  ksp;
   PetscBool            do_mms_test;
