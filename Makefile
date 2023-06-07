@@ -190,6 +190,8 @@ pkgconfigdir = $(libdir)/pkgconfig
 INSTALL = install
 INSTALL_PROGRAM = $(INSTALL)
 INSTALL_DATA = $(INSTALL) -m644
+INSTALL_LIBS = $(INSTALL) -m755
+INSTALL_LIBS = $(INSTALL) $(if $(STATIC),-m644,-m755)
 
 # Get number of processors of the machine
 NPROCS := $(shell getconf _NPROCESSORS_ONLN)
@@ -700,7 +702,7 @@ install : $(libceed) $(OBJDIR)/ceed.pc
 	$(INSTALL_DATA) include/ceed/hip.h "$(DESTDIR)$(includedir)/ceed/"
 	$(INSTALL_DATA) include/ceed/hash.h "$(DESTDIR)$(includedir)/ceed/"
 	$(INSTALL_DATA) include/ceed/khash.h "$(DESTDIR)$(includedir)/ceed/"
-	$(INSTALL_DATA) $(libceed) "$(DESTDIR)$(libdir)/"
+	$(INSTALL_LIBS) $(libceed) "$(DESTDIR)$(libdir)/"
 	$(INSTALL_DATA) $(OBJDIR)/ceed.pc "$(DESTDIR)$(pkgconfigdir)/"
 	$(INSTALL_DATA) include/ceed.h "$(DESTDIR)$(includedir)/"
 	$(INSTALL_DATA) include/ceedf.h "$(DESTDIR)$(includedir)/"
