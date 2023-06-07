@@ -47,6 +47,20 @@ PROBLEMDIR := problems
 src.c := navierstokes.c $(sort $(wildcard $(PROBLEMDIR)/*.c)) $(sort $(wildcard $(SRCDIR)/*.c))
 src.o = $(src.c:%.c=$(OBJDIR)/%.o)
 
+# Path to install directory for SmartRedis. Example: /software/smartredis/install
+SMARTREDIS_DIR ?=
+ifdef SMARTREDIS_DIR
+	hiredis.pc := $(SMARTREDIS_DIR)/lib/pkgconfig/hiredis.pc
+	lsmartredis:= -lsmartredis
+	redis++.pc = $(wildcard $(SMARTREDIS_DIR)/lib/pkgconfig/redis++.pc $(SMARTREDIS_DIR)/lib64/pkgconfig/redis++.pc)
+
+	CPPFLAGS += $(call pkgconf, --cflags-only-I $(hiredis.pc) $(redis++.pc))
+	LDFLAGS += $(call pkgconf, --libs-only-L --libs-only-other $(hiredis.pc) $(redis++.pc))
+	LDFLAGS += $(patsubst -L%, $(call pkgconf, --variable=ldflag_rpath $(PETSc.pc))%, $(call pkgconf, --libs-only-L $(hiredis.pc) $(redis++.pc)))
+	LDLIBS += $(call pkgconf, --libs-only-l $(hiredis.pc) $(redis++.pc)) $(lsmartredis)
+	src.c += $(sort $(wildcard $(SRCDIR)/smartsim/*.c))
+endif
+
 all: navierstokes
 
 navierstokes: $(src.o) | $(PETSc.pc) $(ceed.pc)
@@ -62,9 +76,6 @@ quiet ?= $($(1))
 
 $(OBJDIR)/%.o : %.c | $$(@D)/.DIR
 	$(call quiet,CC) $(CPPFLAGS) $(CFLAGS) -c -o $@ $(abspath $<)
-
-# Rules for building the examples
-#%: %.c
 
 print: $(PETSc.pc) $(ceed.pc)
 	$(info CC      : $(CC))
