@@ -10,28 +10,10 @@
 
 #include <ceed.h>
 
+#include "differential_filter_enums.h"
 #include "newtonian_state.h"
 #include "newtonian_types.h"
 #include "utils.h"
-
-enum DifferentialFilterStateComponent {
-  DIFF_FILTER_PRESSURE,
-  DIFF_FILTER_VELOCITY_X,
-  DIFF_FILTER_VELOCITY_Y,
-  DIFF_FILTER_VELOCITY_Z,
-  DIFF_FILTER_TEMPERATURE,
-  DIFF_FILTER_STATE_NUM,
-};
-
-enum DifferentialFilterVelocitySquared {
-  DIFF_FILTER_VELOCITY_SQUARED_XX,
-  DIFF_FILTER_VELOCITY_SQUARED_YY,
-  DIFF_FILTER_VELOCITY_SQUARED_ZZ,
-  DIFF_FILTER_VELOCITY_SQUARED_YZ,
-  DIFF_FILTER_VELOCITY_SQUARED_XZ,
-  DIFF_FILTER_VELOCITY_SQUARED_XY,
-  DIFF_FILTER_VELOCITY_SQUARED_NUM,
-};
 
 enum DifferentialFilterDampingFunction { DIFF_FILTER_DAMP_NONE, DIFF_FILTER_DAMP_VAN_DRIEST, DIFF_FILTER_DAMP_MMS };
 
