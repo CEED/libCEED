@@ -239,7 +239,8 @@ For the case of a square/cubic mesh, the list of face indices to be used with `-
 
 ### Boundary conditions
 
-Boundary conditions for compressible viscous flows are notoriously tricky. Here we offer some recommendations.
+Boundary conditions for compressible viscous flows are notoriously tricky.
+Here we offer some recommendations.
 
 #### Inflow
 
