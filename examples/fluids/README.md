@@ -8,7 +8,7 @@ The state variables are mass density, momentum density, and energy density.
 
 The main Navier-Stokes solver for libCEED is defined in [`navierstokes.c`](navierstokes.c) with different problem definitions according to the application of interest.
 
-## Build Instructions
+## Build instructions
 
 Build by using:
 
