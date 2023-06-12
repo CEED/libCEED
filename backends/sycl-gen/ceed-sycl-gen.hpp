@@ -21,10 +21,10 @@ typedef struct {
   CeedInt       max_P_1d;
   SyclModule_t* sycl_module;
   sycl::kernel* op;
-  FieldsInt_Sycl indices;
-  Fields_Sycl    fields;
-  Fields_Sycl    B;
-  Fields_Sycl    G;
+  FieldsInt_Sycl *indices;
+  Fields_Sycl    *fields;
+  Fields_Sycl    *B;
+  Fields_Sycl    *G;
   CeedScalar   *W;
 } CeedOperator_Sycl_gen;
 

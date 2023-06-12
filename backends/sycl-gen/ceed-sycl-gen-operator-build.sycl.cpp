@@ -66,6 +66,8 @@ extern "C" int CeedSyclGenOperatorBuild(CeedOperator op) {
 
   CeedOperator_Sycl_gen *impl;
   CeedCallBackend(CeedOperatorGetData(op, &impl));
+  Fields_Sycl h_B, h_G;
+  FieldsInt_Sycl h_indices;
   CeedQFunction          qf;
   CeedQFunction_Sycl_gen *qf_impl;
   CeedCallBackend(CeedOperatorGetQFunction(op, &qf));
@@ -85,9 +87,6 @@ extern "C" int CeedSyclGenOperatorBuild(CeedOperator op) {
   CeedBasis_Sycl_shared    *basis_impl;
   CeedElemRestriction      Erestrict;
   CeedElemRestriction_Sycl *restr_impl;
-
-  CeedInt       block_sizes[3];
-  CeedCallBackend(BlockGridCalculate_Sycl_gen(dim, P_1d, Q_1d, block_sizes));
 
   // Check for restriction only identity operator
   bool is_identity_qf;
@@ -201,6 +200,9 @@ extern "C" int CeedSyclGenOperatorBuild(CeedOperator op) {
     }
   }
 
+  CeedInt       block_sizes[3];
+  CeedCallBackend(BlockGridCalculate_Sycl_gen(dim, P_1d, Q_1d, block_sizes));
+
   // Define CEED_Q_VLA
   code << "\n#undef CEED_Q_VLA\n";
   if (dim != 3 || use_collograd_parallelization) {
@@ -272,22 +274,22 @@ extern "C" int CeedSyclGenOperatorBuild(CeedOperator op) {
         break;
       case CEED_EVAL_INTERP:
         CeedCallBackend(CeedBasisGetData(basis, &basis_impl));
-        impl->B.inputs[i] = basis_impl->d_interp_1d;
+        h_B.inputs[i] = basis_impl->d_interp_1d;
         code << "  local CeedScalar s_B_in_" << i << "[" << P_1d * Q_1d << "];\n";
         code << "  loadMatrix(P_in_" << i << "*Q_1D, B->inputs[" << i << "], s_B_in_" << i << ");\n";
         break;
       case CEED_EVAL_GRAD:
         CeedCallBackend(CeedBasisGetData(basis, &basis_impl));
-        impl->B.inputs[i] = basis_impl->d_interp_1d;
+        h_B.inputs[i] = basis_impl->d_interp_1d;
         code << "  local CeedScalar s_B_in_" << i << "[" << P_1d * Q_1d << "];\n";
         code << "  loadMatrix(P_in_" << i << "*Q_1D, B->inputs[" << i << "], s_B_in_" << i << ");\n";
         if (use_collograd_parallelization) {
-          impl->G.inputs[i] = basis_impl->d_collo_grad_1d;
+          h_G.inputs[i] = basis_impl->d_collo_grad_1d;
           code << "  local CeedScalar s_G_in_" << i << "[" << Q_1d * Q_1d << "];\n";
           code << "  loadMatrix(Q_1D*Q_1D, G->inputs[" << i << "], s_G_in_" << i << ");\n";
         } else {
           bool has_collo_grad = !!basis_impl->d_collo_grad_1d;
-          impl->G.inputs[i]   = has_collo_grad ? basis_impl->d_collo_grad_1d : basis_impl->d_grad_1d;
+          h_G.inputs[i]   = has_collo_grad ? basis_impl->d_collo_grad_1d : basis_impl->d_grad_1d;
           code << "  local CeedScalar s_G_in_" << i << "[" << Q_1d * (has_collo_grad ? Q_1d : P_1d) << "];\n";
           code << "  loadMatrix(" << (has_collo_grad ? "Q_1D" : ("P_in_" + std::to_string(i))) << "*Q_1D, G->inputs[" << i << "], s_G_in_" << i
                << ");\n";
@@ -328,22 +330,22 @@ extern "C" int CeedSyclGenOperatorBuild(CeedOperator op) {
         break;  // No action
       case CEED_EVAL_INTERP:
         CeedCallBackend(CeedBasisGetData(basis, &basis_impl));
-        impl->B.outputs[i] = basis_impl->d_interp_1d;
+        h_B.outputs[i] = basis_impl->d_interp_1d;
         code << "  local CeedScalar s_B_out_" << i << "[" << P_1d * Q_1d << "];\n";
         code << "  loadMatrix(P_out_" << i << "*Q_1D, B->outputs[" << i << "], s_B_out_" << i << ");\n";
         break;
       case CEED_EVAL_GRAD:
         CeedCallBackend(CeedBasisGetData(basis, &basis_impl));
-        impl->B.outputs[i] = basis_impl->d_interp_1d;
+        h_B.outputs[i] = basis_impl->d_interp_1d;
         code << "  local CeedScalar s_B_out_" << i << "[" << P_1d * Q_1d << "];\n";
         code << "  loadMatrix(P_out_" << i << "*Q_1D, B->outputs[" << i << "], s_B_out_" << i << ");\n";
         if (use_collograd_parallelization) {
-          impl->G.outputs[i] = basis_impl->d_collo_grad_1d;
+          h_G.outputs[i] = basis_impl->d_collo_grad_1d;
           code << "  local CeedScalar s_G_out_" << i << "[" << Q_1d * Q_1d << "];\n";
           code << "  loadMatrix(Q_1D*Q_1D, G->outputs[" << i << "], s_G_out_" << i << ");\n";
         } else {
           bool has_collo_grad = !!basis_impl->d_collo_grad_1d;
-          impl->G.outputs[i]  = has_collo_grad ? basis_impl->d_collo_grad_1d : basis_impl->d_grad_1d;
+          h_G.outputs[i]  = has_collo_grad ? basis_impl->d_collo_grad_1d : basis_impl->d_grad_1d;
           code << "  local CeedScalar s_G_out_" << i << "[" << Q_1d * (has_collo_grad ? Q_1d : P_1d) << "];\n";
           code << "  loadMatrix(" << (has_collo_grad ? "Q_1D" : ("P_out_" + std::to_string(i))) << "*Q_1D, G->outputs[" << i << "], s_G_out_"
                << i << ");\n";
@@ -365,7 +367,8 @@ extern "C" int CeedSyclGenOperatorBuild(CeedOperator op) {
   }
   code << "\n  // -- Element loop --\n";
   code << "  work_group_barrier(CLK_LOCAL_MEM_FENCE);\n";
-
+  code << "  int elem = get_group_id(2);\n";
+  code << "  if( elem < num_elem ) ";
   code << "  {\n";
   // Input basis apply if needed
   // Generate the correct eval mode code for each input
@@ -391,8 +394,8 @@ extern "C" int CeedSyclGenOperatorBuild(CeedOperator op) {
         CeedCallBackend(CeedElemRestrictionGetCompStride(Erestrict, &comp_stride));
         code << "    // CompStride: " << comp_stride << "\n";
         CeedCallBackend(CeedElemRestrictionGetData(Erestrict, &restr_impl));
-        impl->indices.inputs[i] = restr_impl->d_ind;
-        code << "    readDofsOffset" << dim << "d(num_comp_in_" << i << ", " << comp_stride << ", P_in_" << i << ", lsize_in_" << i
+        h_indices.inputs[i] = restr_impl->d_ind;
+        code << "    readDofsOffset" << dim << "d(num_comp_in_" << i << ", " << comp_stride << ", P_in_" << i
              << ", elem, indices->inputs[" << i << "], d_u_" << i << ", r_u_" << i << ");\n";
       } else {
         bool has_backend_strides;
@@ -498,7 +501,7 @@ extern "C" int CeedSyclGenOperatorBuild(CeedOperator op) {
             CeedCallBackend(CeedElemRestrictionGetCompStride(Erestrict, &comp_stride));
             code << "      // CompStride: " << comp_stride << "\n";
             CeedCallBackend(CeedElemRestrictionGetData(Erestrict, &restr_impl));
-            impl->indices.inputs[i] = restr_impl->d_ind;
+            h_indices.inputs[i] = restr_impl->d_ind;
             code << "      readSliceQuadsOffset"
                  << "3d(num_comp_in_" << i << ", " << comp_stride << ", Q_1D, lsize_in_" << i << ", elem, q, indices->inputs[" << i << "], d_u_"
                  << i << ", r_q_" << i << ");\n";
@@ -577,12 +580,12 @@ extern "C" int CeedSyclGenOperatorBuild(CeedOperator op) {
   }
   //--------------------------------------------------
   code << "\n      // -- QFunction Inputs and outputs --\n";
-  code << "      const CeedScalar * const in[" << num_input_fields << "];\n";
+  code << "      const CeedScalar * in[" << num_input_fields << "];\n";
   for (CeedInt i = 0; i < num_input_fields; i++) {
     code << "      // ---- Input field " << i << " ----\n";
     code << "      in[" << i << "] = r_q_" << i << ";\n";
   }
-  code << "      CeedScalar * const out[" << num_output_fields << "];\n";
+  code << "      CeedScalar * out[" << num_output_fields << "];\n";
   for (CeedInt i = 0; i < num_output_fields; i++) {
     code << "      // ---- Output field " << i << " ----\n";
     code << "      out[" << i << "] = r_qq_" << i << ";\n";
@@ -687,8 +690,8 @@ extern "C" int CeedSyclGenOperatorBuild(CeedOperator op) {
       CeedCallBackend(CeedElemRestrictionGetCompStride(Erestrict, &comp_stride));
       code << "    // CompStride: " << comp_stride << "\n";
       CeedCallBackend(CeedElemRestrictionGetData(Erestrict, &restr_impl));
-      impl->indices.outputs[i] = restr_impl->d_ind;
-      code << "    writeDofsOffset" << dim << "d(num_comp_out_" << i << ", " << comp_stride << ", P_out_" << i << ", lsize_out_" << i
+      h_indices.outputs[i] = restr_impl->d_ind;
+      code << "    writeDofsOffset" << dim << "d(num_comp_out_" << i << ", " << comp_stride << ", P_out_" << i
            << ", elem, indices->outputs[" << i << "], r_v_" << i << ", d_v_" << i << ");\n";
     } else {
       bool has_backend_strides;
@@ -709,9 +712,18 @@ extern "C" int CeedSyclGenOperatorBuild(CeedOperator op) {
   code << "}\n";
   code << "// -----------------------------------------------------------------------------\n\n";
 
+  // Copy the struct (containing device addresses) from the host to the device
+  sycl::event copy_B = sycl_data->sycl_queue.copy<Fields_Sycl>(&h_B,impl->B,1);
+  sycl::event copy_G = sycl_data->sycl_queue.copy<Fields_Sycl>(&h_G,impl->G,1);
+  sycl::event copy_indices = sycl_data->sycl_queue.copy<FieldsInt_Sycl>(&h_indices,impl->indices,1);
+  // These copies can happen while the JIT is being done
+  CeedCallSycl(ceed,sycl::event::wait_and_throw({copy_B, copy_G, copy_indices}));
+
   // View kernel for debugging
   CeedDebug256(ceed, 2, "Generated Operator Kernels:\n");
   CeedDebug(ceed, code.str().c_str());
+  //std::cout<<" Generated Operator Kernels:\n";
+  //std::cout<<code.str();
 
   std::map<std::string, CeedInt> jit_constants;
   jit_constants["T_1D"] = block_sizes[0];
