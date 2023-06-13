@@ -64,7 +64,9 @@ static inline int CeedJitGetFlags_Sycl(std::vector<std::string> &flags) {
 //------------------------------------------------------------------------------
 // Compile an OpenCL source to SPIR-V using Intel's online compiler extension
 //------------------------------------------------------------------------------
-static inline int CeedJitCompileSource_Sycl(Ceed ceed, const sycl::device &sycl_device, const std::string &opencl_source, ByteVector_t &il_binary,
+static inline int CeedJitCompileSource_Sycl(Ceed ceed, const sycl::device &sycl_device, 
+                                            const std::string &opencl_source, 
+                                            ByteVector_t &il_binary,
                                             const std::vector<std::string> &flags = {}) {
   sycl::ext::libceed::online_compiler<sycl::ext::libceed::source_language::opencl_c> compiler(sycl_device);
 
@@ -81,7 +83,9 @@ static inline int CeedJitCompileSource_Sycl(Ceed ceed, const sycl::device &sycl_
 // TODO: determine appropriate flags
 // TODO: Error handle lz calls
 // ------------------------------------------------------------------------------
-static int CeedJitLoadModule_Sycl(const sycl::context &sycl_context, const sycl::device &sycl_device, const ByteVector_t &il_binary,
+static int CeedJitLoadModule_Sycl(const sycl::context &sycl_context, 
+                                  const sycl::device &sycl_device, 
+                                  const ByteVector_t &il_binary,
                                   SyclModule_t **sycl_module) {
   auto lz_context = sycl::get_native<sycl::backend::ext_oneapi_level_zero>(sycl_context);
   auto lz_device  = sycl::get_native<sycl::backend::ext_oneapi_level_zero>(sycl_device);
@@ -131,7 +135,9 @@ int CeedJitBuildModule_Sycl(Ceed ceed, const std::string &kernel_source, SyclMod
 //
 // TODO: Error handle lz calls
 // ------------------------------------------------------------------------------
-int CeedJitGetKernel_Sycl(Ceed ceed, const SyclModule_t *sycl_module, const std::string &kernel_name, sycl::kernel **sycl_kernel) {
+int CeedJitGetKernel_Sycl(Ceed ceed, const SyclModule_t *sycl_module, 
+                          const std::string &kernel_name, 
+                          sycl::kernel **sycl_kernel) {
   Ceed_Sycl *data;
   CeedCallBackend(CeedGetData(ceed, &data));
 
@@ -145,6 +151,30 @@ int CeedJitGetKernel_Sycl(Ceed ceed, const SyclModule_t *sycl_module, const std:
 
   *sycl_kernel = new sycl::kernel(sycl::make_kernel<sycl::backend::ext_oneapi_level_zero>(
       {*sycl_module, lz_kernel, sycl::ext::oneapi::level_zero::ownership::transfer}, data->sycl_context));
+
+  return CEED_ERROR_SUCCESS;
+}
+
+//------------------------------------------------------------------------------
+// Run SYCL kernel for spatial dimension with shared memory
+//------------------------------------------------------------------------------
+int CeedRunKernelDimSharedSycl(Ceed ceed, sycl::kernel* kernel, const int grid_size, const int block_size_x, const int block_size_y,
+                               const int block_size_z, const int shared_mem_size, void **kernel_args) {
+  sycl::range<3> local_range(block_size_z, block_size_y, block_size_x);
+  sycl::range<3> global_range(grid_size*block_size_z, block_size_y, block_size_x);
+  sycl::nd_range<3> kernel_range(global_range,local_range);
+  
+  //-----------
+  //Order queue
+  Ceed_Sycl *ceed_Sycl;
+  CeedCallBackend(CeedGetData(ceed, &ceed_Sycl));
+  sycl::event e = ceed_Sycl->sycl_queue.ext_oneapi_submit_barrier();
+  
+  ceed_Sycl->sycl_queue.submit([&](sycl::handler& cgh){
+    cgh.depends_on(e);
+    cgh.set_args(*kernel_args);
+    cgh.parallel_for(kernel_range,*kernel);
+  });
 
   return CEED_ERROR_SUCCESS;
 }

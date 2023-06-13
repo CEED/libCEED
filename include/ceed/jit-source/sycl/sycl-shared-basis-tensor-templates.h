@@ -95,6 +95,7 @@ inline void InterpTranspose1d(const CeedInt NUM_COMP, const CeedInt P_1D, const 
 //------------------------------------------------------------------------------
 inline void Grad1d(const CeedInt NUM_COMP, const CeedInt P_1D, const CeedInt Q_1D,
   private const CeedScalar * restrict r_U, 
+  local const CeedScalar * restrict s_B,
   local const CeedScalar * restrict s_G,
   private CeedScalar * restrict r_V,
   local CeedScalar * restrict scratch) {
@@ -109,6 +110,7 @@ inline void Grad1d(const CeedInt NUM_COMP, const CeedInt P_1D, const CeedInt Q_1
 //------------------------------------------------------------------------------
 inline void GradTranspose1d(const CeedInt NUM_COMP, const CeedInt P_1D, const CeedInt Q_1D,
   private const CeedScalar * restrict r_U, 
+  local const CeedScalar * restrict s_B,
   local const CeedScalar * restrict s_G,
   private CeedScalar * restrict r_V,
   local CeedScalar * restrict scratch) {
