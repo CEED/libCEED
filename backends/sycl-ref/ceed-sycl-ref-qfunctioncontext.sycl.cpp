@@ -269,7 +269,7 @@ static int CeedQFunctionContextTakeData_Sycl(const CeedQFunctionContext ctx, con
   CeedCallBackend(CeedQFunctionContextGetCeed(ctx, &ceed));
   CeedQFunctionContext_Sycl *impl;
   CeedCallBackend(CeedQFunctionContextGetBackendData(ctx, &impl));
-  
+
   Ceed_Sycl *ceedSycl;
   CeedCallBackend(CeedGetData(ceed, &ceedSycl));
 

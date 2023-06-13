@@ -6,12 +6,12 @@
 //
 //===----------------------------------------------------------------------===//
 #include <cstring>
-#include <dlfcn.h>
 #include <string>
+#include <dlfcn.h>
 
 #include <sycl/sycl.hpp>
-#include "online_compiler.hpp"
 #include "ocloc_api.h"
+#include "online_compiler.hpp"
 
 namespace sycl {
 namespace ext::libceed {
@@ -22,8 +22,7 @@ void *loadOsLibrary(const std::string &PluginPath) {
   void *so = dlopen(PluginPath.c_str(), RTLD_NOW);
   if (!so) {
     char *Error = dlerror();
-    std::cerr << "dlopen(" << PluginPath << ") failed with <"
-              << (Error ? Error : "unknown error") << ">" << std::endl;
+    std::cerr << "dlopen(" << PluginPath << ") failed with <" << (Error ? Error : "unknown error") << ">" << std::endl;
   }
   return so;
 }
@@ -36,36 +35,32 @@ void *loadOsLibrary(const std::string &PluginPath) {
 //   return dlclose(Library);
 // }
 
-void *getOsLibraryFuncAddress(void *Library, const std::string &FunctionName) {
-  return dlsym(Library, FunctionName.c_str());
-}
+void *getOsLibraryFuncAddress(void *Library, const std::string &FunctionName) { return dlsym(Library, FunctionName.c_str()); }
 
-static std::vector<const char *>
-prepareOclocArgs(sycl::info::device_type DeviceType, device_arch DeviceArch,
-                 bool Is64Bit, const std::string &DeviceStepping,
-                 const std::string &UserArgs) {
+static std::vector<const char *> prepareOclocArgs(sycl::info::device_type DeviceType, device_arch DeviceArch, bool Is64Bit,
+                                                  const std::string &DeviceStepping, const std::string &UserArgs) {
   std::vector<const char *> Args = {"ocloc", "-q", "-spv_only", "-device"};
 
   if (DeviceType == sycl::info::device_type::gpu) {
     switch (DeviceArch) {
-    case device_arch::gpu_gen9:
-      Args.push_back("skl");
-      break;
+      case device_arch::gpu_gen9:
+        Args.push_back("skl");
+        break;
 
-    case device_arch::gpu_gen9_5:
-      Args.push_back("cfl");
-      break;
+      case device_arch::gpu_gen9_5:
+        Args.push_back("cfl");
+        break;
 
-    case device_arch::gpu_gen11:
-      Args.push_back("icllp");
-      break;
+      case device_arch::gpu_gen11:
+        Args.push_back("icllp");
+        break;
 
-    case device_arch::gpu_gen12:
-      Args.push_back("tgllp");
-      break;
+      case device_arch::gpu_gen12:
+        Args.push_back("tgllp");
+        break;
 
-    default:
-      Args.push_back("pvc");
+      default:
+        Args.push_back("pvc");
     }
   } else {
     // TODO: change that to generic device when ocloc adds support for it.
@@ -102,13 +97,9 @@ prepareOclocArgs(sycl::info::device_type DeviceType, device_arch DeviceArch,
 ///                                 of the library function freeing memory
 ///                                 allocated during the compilation.
 /// @param UserArgs - User's options to ocloc compiler.
-static std::vector<byte>
-compileToSPIRV(const std::string &Source, sycl::info::device_type DeviceType,
-               device_arch DeviceArch, bool Is64Bit,
-               const std::string &DeviceStepping, void *&CompileToSPIRVHandle,
-               void *&FreeSPIRVOutputsHandle,
-               const std::vector<std::string> &UserArgs) {
-
+static std::vector<byte> compileToSPIRV(const std::string &Source, sycl::info::device_type DeviceType, device_arch DeviceArch, bool Is64Bit,
+                                        const std::string &DeviceStepping, void *&CompileToSPIRVHandle, void *&FreeSPIRVOutputsHandle,
+                                        const std::vector<std::string> &UserArgs) {
   if (!CompileToSPIRVHandle) {
 #ifdef __SYCL_RT_OS_WINDOWS
     static const std::string OclocLibraryName = "ocloc64.dll";
@@ -116,83 +107,62 @@ compileToSPIRV(const std::string &Source, sycl::info::device_type DeviceType,
     static const std::string OclocLibraryName = "libocloc.so";
 #endif
     void *OclocLibrary = loadOsLibrary(OclocLibraryName);
-    if (!OclocLibrary)
-      throw online_compile_error("Cannot load ocloc library: " +
-                                 OclocLibraryName);
-    void *OclocVersionHandle =
-        getOsLibraryFuncAddress(OclocLibrary, "oclocVersion");
+    if (!OclocLibrary) throw online_compile_error("Cannot load ocloc library: " + OclocLibraryName);
+    void *OclocVersionHandle = getOsLibraryFuncAddress(OclocLibrary, "oclocVersion");
     // The initial versions of ocloc library did not have the oclocVersion()
     // function. Those versions had the same API as the first version of ocloc
     // library having that oclocVersion() function.
     int LoadedVersion = ocloc_version_t::OCLOC_VERSION_1_0;
     if (OclocVersionHandle) {
-      decltype(::oclocVersion) *OclocVersionFunc =
-          reinterpret_cast<decltype(::oclocVersion) *>(OclocVersionHandle);
-      LoadedVersion = OclocVersionFunc();
+      decltype(::oclocVersion) *OclocVersionFunc = reinterpret_cast<decltype(::oclocVersion) *>(OclocVersionHandle);
+      LoadedVersion                              = OclocVersionFunc();
     }
     // The loaded library with version (A.B) is compatible with expected API/ABI
     // version (X.Y) used here if A == B and B >= Y.
-    int LoadedVersionMajor = LoadedVersion >> 16;
-    int LoadedVersionMinor = LoadedVersion & 0xffff;
+    int LoadedVersionMajor  = LoadedVersion >> 16;
+    int LoadedVersionMinor  = LoadedVersion & 0xffff;
     int CurrentVersionMajor = ocloc_version_t::OCLOC_VERSION_CURRENT >> 16;
     int CurrentVersionMinor = ocloc_version_t::OCLOC_VERSION_CURRENT & 0xffff;
-    if (LoadedVersionMajor != CurrentVersionMajor ||
-        LoadedVersionMinor < CurrentVersionMinor)
-      throw online_compile_error(
-          std::string("Found incompatible version of ocloc library: (") +
-          std::to_string(LoadedVersionMajor) + "." +
-          std::to_string(LoadedVersionMinor) +
-          "). The supported versions are (" +
-          std::to_string(CurrentVersionMajor) +
-          ".N), where (N >= " + std::to_string(CurrentVersionMinor) + ").");
+    if (LoadedVersionMajor != CurrentVersionMajor || LoadedVersionMinor < CurrentVersionMinor)
+      throw online_compile_error(std::string("Found incompatible version of ocloc library: (") + std::to_string(LoadedVersionMajor) + "." +
+                                 std::to_string(LoadedVersionMinor) + "). The supported versions are (" + std::to_string(CurrentVersionMajor) +
+                                 ".N), where (N >= " + std::to_string(CurrentVersionMinor) + ").");
 
-    CompileToSPIRVHandle =
-        getOsLibraryFuncAddress(OclocLibrary, "oclocInvoke");
-    if (!CompileToSPIRVHandle)
-      throw online_compile_error("Cannot load oclocInvoke() function");
-    FreeSPIRVOutputsHandle = getOsLibraryFuncAddress(
-        OclocLibrary, "oclocFreeOutput");
-    if (!FreeSPIRVOutputsHandle)
-      throw online_compile_error("Cannot load oclocFreeOutput() function");
+    CompileToSPIRVHandle = getOsLibraryFuncAddress(OclocLibrary, "oclocInvoke");
+    if (!CompileToSPIRVHandle) throw online_compile_error("Cannot load oclocInvoke() function");
+    FreeSPIRVOutputsHandle = getOsLibraryFuncAddress(OclocLibrary, "oclocFreeOutput");
+    if (!FreeSPIRVOutputsHandle) throw online_compile_error("Cannot load oclocFreeOutput() function");
   }
 
   std::string CombinedUserArgs;
   for (auto UserArg : UserArgs) {
-    if (UserArg == "")
-      continue;
-    if (CombinedUserArgs != "")
-      CombinedUserArgs = CombinedUserArgs + " " + UserArg;
-    else
-      CombinedUserArgs = UserArg;
+    if (UserArg == "") continue;
+    if (CombinedUserArgs != "") CombinedUserArgs = CombinedUserArgs + " " + UserArg;
+    else CombinedUserArgs = UserArg;
   }
-  std::vector<const char *> Args = prepareOclocArgs(
-      DeviceType, DeviceArch, Is64Bit, DeviceStepping, CombinedUserArgs);
+  std::vector<const char *> Args = prepareOclocArgs(DeviceType, DeviceArch, Is64Bit, DeviceStepping, CombinedUserArgs);
 
-  uint32_t NumOutputs = 0;
-  byte **Outputs = nullptr;
+  uint32_t  NumOutputs    = 0;
+  byte    **Outputs       = nullptr;
   uint64_t *OutputLengths = nullptr;
-  char **OutputNames = nullptr;
+  char    **OutputNames   = nullptr;
 
-  const byte *Sources[] = {reinterpret_cast<const byte *>(Source.c_str())};
-  const char *SourceName = "main.cl";
+  const byte    *Sources[]       = {reinterpret_cast<const byte *>(Source.c_str())};
+  const char    *SourceName      = "main.cl";
   const uint64_t SourceLengths[] = {Source.length() + 1};
 
   Args.push_back("-file");
   Args.push_back(SourceName);
 
-  decltype(::oclocInvoke) *OclocInvokeFunc =
-      reinterpret_cast<decltype(::oclocInvoke) *>(CompileToSPIRVHandle);
-  int CompileError =
-      OclocInvokeFunc(Args.size(), Args.data(), 1, Sources, SourceLengths,
-                      &SourceName, 0, nullptr, nullptr, nullptr, &NumOutputs,
-                      &Outputs, &OutputLengths, &OutputNames);
+  decltype(::oclocInvoke) *OclocInvokeFunc = reinterpret_cast<decltype(::oclocInvoke) *>(CompileToSPIRVHandle);
+  int CompileError = OclocInvokeFunc(Args.size(), Args.data(), 1, Sources, SourceLengths, &SourceName, 0, nullptr, nullptr, nullptr, &NumOutputs,
+                                     &Outputs, &OutputLengths, &OutputNames);
 
   std::vector<byte> SpirV;
-  std::string CompileLog;
+  std::string       CompileLog;
   for (uint32_t I = 0; I < NumOutputs; I++) {
     size_t NameLen = strlen(OutputNames[I]);
-    if (NameLen >= 4 && strstr(OutputNames[I], ".spv") != nullptr &&
-        Outputs[I] != nullptr) {
+    if (NameLen >= 4 && strstr(OutputNames[I], ".spv") != nullptr && Outputs[I] != nullptr) {
       assert(SpirV.size() == 0 && "More than one SPIR-V output found.");
       SpirV = std::vector<byte>(Outputs[I], Outputs[I] + OutputLengths[I]);
     } else if (!strcmp(OutputNames[I], "stdout.log")) {
@@ -201,58 +171,39 @@ compileToSPIRV(const std::string &Source, sycl::info::device_type DeviceType,
   }
 
   // Try to free memory before reporting possible error.
-  decltype(::oclocFreeOutput) *OclocFreeOutputFunc =
-      reinterpret_cast<decltype(::oclocFreeOutput) *>(FreeSPIRVOutputsHandle);
-  int MemFreeError =
-      OclocFreeOutputFunc(&NumOutputs, &Outputs, &OutputLengths, &OutputNames);
+  decltype(::oclocFreeOutput) *OclocFreeOutputFunc = reinterpret_cast<decltype(::oclocFreeOutput) *>(FreeSPIRVOutputsHandle);
+  int                          MemFreeError        = OclocFreeOutputFunc(&NumOutputs, &Outputs, &OutputLengths, &OutputNames);
 
-  if (CompileError)
-    throw online_compile_error("ocloc reported compilation errors: {\n" +
-                               CompileLog + "\n}");
-  if (SpirV.empty())
-    throw online_compile_error(
-        "Unexpected output: ocloc did not return SPIR-V");
-  if (MemFreeError)
-    throw online_compile_error("ocloc cannot safely free resources");
+  if (CompileError) throw online_compile_error("ocloc reported compilation errors: {\n" + CompileLog + "\n}");
+  if (SpirV.empty()) throw online_compile_error("Unexpected output: ocloc did not return SPIR-V");
+  if (MemFreeError) throw online_compile_error("ocloc cannot safely free resources");
 
   return SpirV;
 }
 
 template <>
 template <>
-std::vector<byte> online_compiler<source_language::opencl_c>::compile(
-    const std::string &Source, const std::vector<std::string> &UserArgs) {
-
+std::vector<byte> online_compiler<source_language::opencl_c>::compile(const std::string &Source, const std::vector<std::string> &UserArgs) {
   if (OutputFormatVersion != std::pair<int, int>{0, 0}) {
-    std::string Version = std::to_string(OutputFormatVersion.first) + ", " +
-                          std::to_string(OutputFormatVersion.second);
-    throw online_compile_error(std::string("The output format version (") +
-                               Version + ") is not supported yet");
+    std::string Version = std::to_string(OutputFormatVersion.first) + ", " + std::to_string(OutputFormatVersion.second);
+    throw online_compile_error(std::string("The output format version (") + Version + ") is not supported yet");
   }
 
-  return compileToSPIRV(Source, DeviceType, DeviceArch, Is64Bit,
-                                DeviceStepping, CompileToSPIRVHandle,
-                                FreeSPIRVOutputsHandle, UserArgs);
+  return compileToSPIRV(Source, DeviceType, DeviceArch, Is64Bit, DeviceStepping, CompileToSPIRVHandle, FreeSPIRVOutputsHandle, UserArgs);
 }
 
 template <>
 template <>
-std::vector<byte> online_compiler<source_language::cm>::compile(
-    const std::string &Source, const std::vector<std::string> &UserArgs) {
-
+std::vector<byte> online_compiler<source_language::cm>::compile(const std::string &Source, const std::vector<std::string> &UserArgs) {
   if (OutputFormatVersion != std::pair<int, int>{0, 0}) {
-    std::string Version = std::to_string(OutputFormatVersion.first) + ", " +
-                          std::to_string(OutputFormatVersion.second);
-    throw online_compile_error(std::string("The output format version (") +
-                               Version + ") is not supported yet");
+    std::string Version = std::to_string(OutputFormatVersion.first) + ", " + std::to_string(OutputFormatVersion.second);
+    throw online_compile_error(std::string("The output format version (") + Version + ") is not supported yet");
   }
 
   std::vector<std::string> CMUserArgs = UserArgs;
   CMUserArgs.push_back("-cmc");
-  return compileToSPIRV(Source, DeviceType, DeviceArch, Is64Bit,
-                                DeviceStepping, CompileToSPIRVHandle,
-                                FreeSPIRVOutputsHandle, CMUserArgs);
+  return compileToSPIRV(Source, DeviceType, DeviceArch, Is64Bit, DeviceStepping, CompileToSPIRVHandle, FreeSPIRVOutputsHandle, CMUserArgs);
 }
 
-} // namespace ext::libceed
-} // namespace sycl
+}  // namespace ext::libceed
+}  // namespace sycl

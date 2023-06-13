@@ -86,7 +86,8 @@ extern "C" int CeedSyclBuildQFunction(CeedQFunction qf) {
   // Kernel function
   // Here we are fixing a lower sub-group size value to avoid register spills
   // This needs to be revisited if all qfunctions require this.
-  code << "__attribute__((intel_reqd_sub_group_size(" << SUB_GROUP_SIZE_QF << "))) __kernel void " << kernel_name << "(__global void *ctx, CeedInt Q,\n";
+  code << "__attribute__((intel_reqd_sub_group_size(" << SUB_GROUP_SIZE_QF << "))) __kernel void " << kernel_name
+       << "(__global void *ctx, CeedInt Q,\n";
 
   // OpenCL doesn't allow for structs with pointers.
   // We will need to pass all of the arguments individually.

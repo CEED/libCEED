@@ -52,7 +52,7 @@ const char help[] = "Solve Navier-Stokes using PETSc and libCEED\n";
 #include <petscdmplex.h>
 #include <petscts.h>
 
-int CeedSetStream_Sycl(Ceed ceed, void* handle) __attribute__((weak));
+int CeedSetStream_Sycl(Ceed ceed, void *handle) __attribute__((weak));
 int main(int argc, char **argv) {
   // ---------------------------------------------------------------------------
   // Initialize PETSc
@@ -117,8 +117,8 @@ int main(int argc, char **argv) {
     if (strstr(resource, "/gpu/sycl")) {
       PetscDeviceContext dctx;
       PetscCall(PetscDeviceContextGetCurrentContext(&dctx));
-      void* stream_handle;
-      PetscCall(PetscDeviceContextGetStreamHandle(dctx,&stream_handle));
+      void *stream_handle;
+      PetscCall(PetscDeviceContextGetStreamHandle(dctx, &stream_handle));
       CeedSetStream_Sycl(ceed, stream_handle);
     }
   }

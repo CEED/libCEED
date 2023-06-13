@@ -84,7 +84,7 @@ static inline int CeedVectorSyncD2H_Sycl(const CeedVector vec) {
   Ceed_Sycl *data;
   CeedCallBackend(CeedGetData(ceed, &data));
 
-      if (!impl->d_array) {
+  if (!impl->d_array) {
     // LCOV_EXCL_START
     return CeedError(ceed, CEED_ERROR_BACKEND, "No valid device data to sync to host");
     // LCOV_EXCL_STOP
@@ -508,15 +508,13 @@ static int CeedVectorNorm_Sycl(CeedVector vec, CeedNormType type, CeedScalar *no
     case CEED_NORM_2: {
       // Order queue
       sycl::event e            = data->sycl_queue.ext_oneapi_submit_barrier();
-      auto        sumReduction = sycl::reduction(impl->reduction_norm, sycl::plus<>(),
-      {sycl::property::reduction::initialize_to_identity{}});
+      auto        sumReduction = sycl::reduction(impl->reduction_norm, sycl::plus<>(), {sycl::property::reduction::initialize_to_identity{}});
       data->sycl_queue.parallel_for(length, {e}, sumReduction, [=](sycl::id<1> i, auto &sum) { sum += (d_array[i] * d_array[i]); }).wait_and_throw();
     } break;
     case CEED_NORM_MAX: {
       // Order queue
       sycl::event e            = data->sycl_queue.ext_oneapi_submit_barrier();
-      auto        maxReduction = sycl::reduction(impl->reduction_norm, sycl::maximum<>(),
-      {sycl::property::reduction::initialize_to_identity{}});
+      auto        maxReduction = sycl::reduction(impl->reduction_norm, sycl::maximum<>(), {sycl::property::reduction::initialize_to_identity{}});
       data->sycl_queue.parallel_for(length, {e}, maxReduction, [=](sycl::id<1> i, auto &max) { max.combine(abs(d_array[i])); }).wait_and_throw();
     } break;
   }

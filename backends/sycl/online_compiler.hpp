@@ -19,11 +19,11 @@ namespace ext::libceed {
 using byte = unsigned char;
 
 enum class compiled_code_format {
-  spir_v = 0 // the only format supported for now
+  spir_v = 0  // the only format supported for now
 };
 
 class device_arch {
-public:
+ public:
   static constexpr int any = 0;
 
   device_arch(int Val) : Val(Val) {}
@@ -33,17 +33,17 @@ public:
   // The API must allow user to define the target GPU option even if it is
   // not listed in this enumerator below.
   enum gpu {
-    gpu_any = 1,
-    gpu_gen9 = 2,
-    gpu_skl = gpu_gen9,
+    gpu_any    = 1,
+    gpu_gen9   = 2,
+    gpu_skl    = gpu_gen9,
     gpu_gen9_5 = 3,
-    gpu_kbl = gpu_gen9_5,
-    gpu_cfl = gpu_gen9_5,
-    gpu_gen11 = 4,
-    gpu_icl = gpu_gen11,
-    gpu_gen12 = 5,
-    gpu_tgl = gpu_gen12,
-    gpu_tgllp = gpu_gen12
+    gpu_kbl    = gpu_gen9_5,
+    gpu_cfl    = gpu_gen9_5,
+    gpu_gen11  = 4,
+    gpu_icl    = gpu_gen11,
+    gpu_gen12  = 5,
+    gpu_tgl    = gpu_gen12,
+    gpu_tgllp  = gpu_gen12
   };
 
   enum cpu {
@@ -56,13 +56,13 @@ public:
 
   operator int() { return Val; }
 
-private:
+ private:
   int Val;
 };
 
 /// Represents an error happend during online compilation.
 class online_compile_error : public sycl::exception {
-public:
+ public:
   online_compile_error() = default;
   online_compile_error(const std::string &Msg) : sycl::exception(Msg) {}
 };
@@ -72,35 +72,40 @@ enum class source_language { opencl_c = 0, cm = 1 };
 
 /// Represents an online compiler for the language given as template
 /// parameter.
-template <source_language Lang> class online_compiler {
-public:
+template <source_language Lang>
+class online_compiler {
+ public:
   /// Constructs online compiler which can target any device and produces
   /// given compiled code format. Produces 64-bit device code.
   /// The created compiler is "optimistic" - it assumes all applicable SYCL
   /// device capabilities are supported by the target device(s).
   online_compiler(compiled_code_format fmt = compiled_code_format::spir_v)
-      : OutputFormat(fmt), OutputFormatVersion({0, 0}),
-        DeviceType(sycl::info::device_type::all), DeviceArch(device_arch::any),
-        Is64Bit(true), DeviceStepping("") {}
+      : OutputFormat(fmt),
+        OutputFormatVersion({0, 0}),
+        DeviceType(sycl::info::device_type::all),
+        DeviceArch(device_arch::any),
+        Is64Bit(true),
+        DeviceStepping("") {}
 
   /// Constructs online compiler which targets given architecture and produces
   /// given compiled code format. Produces 64-bit device code.
   /// Throws online_compile_error if values of constructor arguments are
   /// contradictory or not supported - e.g. if the source language is not
   /// supported for given device type.
-  online_compiler(sycl::info::device_type dev_type, device_arch arch,
-                  compiled_code_format fmt = compiled_code_format::spir_v)
-      : OutputFormat(fmt), OutputFormatVersion({0, 0}), DeviceType(dev_type),
-        DeviceArch(arch), Is64Bit(true), DeviceStepping("") {}
+  online_compiler(sycl::info::device_type dev_type, device_arch arch, compiled_code_format fmt = compiled_code_format::spir_v)
+      : OutputFormat(fmt), OutputFormatVersion({0, 0}), DeviceType(dev_type), DeviceArch(arch), Is64Bit(true), DeviceStepping("") {}
 
   /// Constructs online compiler for the target specified by given SYCL device.
   // TODO: the initial version generates the generic code (SKL now), need
   // to do additional device::info calls to determine the device by it's
   // features.
   online_compiler(const sycl::device &)
-      : OutputFormat(compiled_code_format::spir_v), OutputFormatVersion({0, 0}),
-        DeviceType(sycl::info::device_type::all), DeviceArch(device_arch::any),
-        Is64Bit(true), DeviceStepping("") {}
+      : OutputFormat(compiled_code_format::spir_v),
+        OutputFormatVersion({0, 0}),
+        DeviceType(sycl::info::device_type::all),
+        DeviceArch(device_arch::any),
+        Is64Bit(true),
+        DeviceStepping("") {}
 
   /// Compiles given in-memory \c Lang source to a binary blob. Blob format,
   /// other parameters are set in the constructor by the compilation target
@@ -155,7 +160,7 @@ public:
     return *this;
   }
 
-private:
+ private:
   /// Compiled code format.
   compiled_code_format OutputFormat;
 
@@ -175,7 +180,7 @@ private:
   std::string DeviceStepping;
 
   /// Handles to helper functions used by the implementation.
-  void *CompileToSPIRVHandle = nullptr;
+  void *CompileToSPIRVHandle   = nullptr;
   void *FreeSPIRVOutputsHandle = nullptr;
 };
 
@@ -188,9 +193,7 @@ private:
 ///   OpenCL JIT compiler options must be supported.
 template <>
 template <>
-std::vector<byte>
-online_compiler<source_language::opencl_c>::compile(
-    const std::string &src, const std::vector<std::string> &options);
+std::vector<byte> online_compiler<source_language::opencl_c>::compile(const std::string &src, const std::vector<std::string> &options);
 
 /// Compiles the given OpenCL source. May throw \c online_compile_error.
 /// @param src - contents of the source.
@@ -206,8 +209,7 @@ online_compiler<source_language::opencl_c>::compile(
 /// @param options - compilation options (implementation defined).
 template <>
 template <>
-std::vector<byte> online_compiler<source_language::cm>::compile(
-    const std::string &src, const std::vector<std::string> &options);
+std::vector<byte> online_compiler<source_language::cm>::compile(const std::string &src, const std::vector<std::string> &options);
 
 /// Compiles the given CM source \p src.
 // template <>
@@ -216,5 +218,5 @@ std::vector<byte> online_compiler<source_language::cm>::compile(
 //   return compile(src, std::vector<std::string>{});
 // }
 
-} // namespace ext::libceed
-} // namespace sycl
+}  // namespace ext::libceed
+}  // namespace sycl

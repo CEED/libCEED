@@ -15,8 +15,10 @@
 #include "../sycl/ceed-sycl-compile.hpp"
 #include "ceed-sycl-ref.hpp"
 
-template<int> class CeedBasisSyclInterp;
-template<int> class CeedBasisSyclGrad;
+template <int>
+class CeedBasisSyclInterp;
+template <int>
+class CeedBasisSyclGrad;
 class CeedBasisSyclWeight;
 
 class CeedBasisSyclInterpNT;
@@ -33,11 +35,11 @@ static constexpr SpecID BASIS_Q_1D_ID;
 //------------------------------------------------------------------------------
 // Interpolation kernel - tensor
 //------------------------------------------------------------------------------
-template<int transpose>
-static int CeedBasisApplyInterp_Sycl(sycl::queue &sycl_queue, const SyclModule_t& sycl_module, CeedInt num_elem, const CeedBasis_Sycl *impl, const CeedScalar *u,
-                                     CeedScalar *v) {
-  const CeedInt buf_len       = impl->buf_len;
-  const CeedInt op_len        = impl->op_len;
+template <int transpose>
+static int CeedBasisApplyInterp_Sycl(sycl::queue &sycl_queue, const SyclModule_t &sycl_module, CeedInt num_elem, const CeedBasis_Sycl *impl,
+                                     const CeedScalar *u, CeedScalar *v) {
+  const CeedInt     buf_len   = impl->buf_len;
+  const CeedInt     op_len    = impl->op_len;
   const CeedScalar *interp_1d = impl->d_interp_1d;
 
   const sycl::device &sycl_device         = sycl_queue.get_device();
@@ -63,8 +65,8 @@ static int CeedBasisApplyInterp_Sycl(sycl::queue &sycl_queue, const SyclModule_t
       const CeedInt P_1d     = kh.get_specialization_constant<BASIS_P_1D_ID>();
       const CeedInt Q_1d     = kh.get_specialization_constant<BASIS_Q_1D_ID>();
       //-------------------------------------------------------------->
-      const CeedInt num_nodes     = CeedIntPow(P_1d,dim);
-      const CeedInt num_qpts      = CeedIntPow(Q_1d,dim);
+      const CeedInt num_nodes     = CeedIntPow(P_1d, dim);
+      const CeedInt num_qpts      = CeedIntPow(Q_1d, dim);
       const CeedInt P             = transpose ? Q_1d : P_1d;
       const CeedInt Q             = transpose ? P_1d : Q_1d;
       const CeedInt stride_0      = transpose ? 1 : P_1d;
@@ -134,16 +136,16 @@ static int CeedBasisApplyInterp_Sycl(sycl::queue &sycl_queue, const SyclModule_t
 //------------------------------------------------------------------------------
 // Gradient kernel - tensor
 //------------------------------------------------------------------------------
-template<int transpose>
-static int CeedBasisApplyGrad_Sycl(sycl::queue &sycl_queue, const SyclModule_t& sycl_module, CeedInt num_elem, const CeedBasis_Sycl *impl, const CeedScalar *u,
-                                   CeedScalar *v) {  
-  const CeedInt buf_len       = impl->buf_len;
-  const CeedInt op_len        = impl->op_len;
+template <int transpose>
+static int CeedBasisApplyGrad_Sycl(sycl::queue &sycl_queue, const SyclModule_t &sycl_module, CeedInt num_elem, const CeedBasis_Sycl *impl,
+                                   const CeedScalar *u, CeedScalar *v) {
+  const CeedInt     buf_len   = impl->buf_len;
+  const CeedInt     op_len    = impl->op_len;
   const CeedScalar *interp_1d = impl->d_interp_1d;
   const CeedScalar *grad_1d   = impl->d_grad_1d;
 
-  const sycl::device &sycl_device         = sycl_queue.get_device();
-  const CeedInt       work_group_size     = 32;
+  const sycl::device &sycl_device     = sycl_queue.get_device();
+  const CeedInt       work_group_size = 32;
   sycl::range<1>      local_range(work_group_size);
   sycl::range<1>      global_range(num_elem * work_group_size);
   sycl::nd_range<1>   kernel_range(global_range, local_range);
@@ -164,19 +166,19 @@ static int CeedBasisApplyGrad_Sycl(sycl::queue &sycl_queue, const SyclModule_t& 
       const CeedInt P_1d     = kh.get_specialization_constant<BASIS_P_1D_ID>();
       const CeedInt Q_1d     = kh.get_specialization_constant<BASIS_Q_1D_ID>();
       //-------------------------------------------------------------->
-      const CeedInt num_nodes = CeedIntPow(P_1d,dim);
-      const CeedInt num_qpts  = CeedIntPow(Q_1d,dim);
-      const CeedInt P = transpose ? Q_1d : P_1d;
-      const CeedInt Q = transpose ? P_1d : Q_1d;
-      const CeedInt stride_0 = transpose ? 1 : P_1d;
-      const CeedInt stride_1 = transpose ? P_1d : 1;
-      const CeedInt u_stride = transpose ? num_qpts : num_nodes;
-      const CeedInt v_stride = transpose ? num_nodes : num_qpts;
+      const CeedInt num_nodes     = CeedIntPow(P_1d, dim);
+      const CeedInt num_qpts      = CeedIntPow(Q_1d, dim);
+      const CeedInt P             = transpose ? Q_1d : P_1d;
+      const CeedInt Q             = transpose ? P_1d : Q_1d;
+      const CeedInt stride_0      = transpose ? 1 : P_1d;
+      const CeedInt stride_1      = transpose ? P_1d : 1;
+      const CeedInt u_stride      = transpose ? num_qpts : num_nodes;
+      const CeedInt v_stride      = transpose ? num_nodes : num_qpts;
       const CeedInt u_comp_stride = num_elem * u_stride;
       const CeedInt v_comp_stride = num_elem * v_stride;
       const CeedInt u_dim_stride  = transpose ? num_elem * num_qpts * num_comp : 0;
       const CeedInt v_dim_stride  = transpose ? 0 : num_elem * num_qpts * num_comp;
-      
+
       sycl::group   work_group = work_item.get_group();
       const CeedInt i          = work_item.get_local_linear_id();
       const CeedInt group_size = work_group.get_local_linear_range();
@@ -203,7 +205,7 @@ static int CeedBasisApplyGrad_Sycl(sycl::queue &sycl_queue, const SyclModule_t& 
           for (CeedInt dim_2 = 0; dim_2 < dim; dim_2++) {
             // Use older version of sycl workgroup barrier for performance reasons
             // Can be updated in future to align with SYCL2020 spec if performance bottleneck is removed
-            //sycl::group_barrier(work_group);
+            // sycl::group_barrier(work_group);
             work_item.barrier(sycl::access::fence_space::local_space);
 
             pre /= P;
@@ -291,14 +293,14 @@ static int CeedBasisApply_Sycl(CeedBasis basis, const CeedInt num_elem, CeedTran
   // Basis action
   switch (eval_mode) {
     case CEED_EVAL_INTERP: {
-      if(transpose) {
+      if (transpose) {
         CeedCallBackend(CeedBasisApplyInterp_Sycl<CEED_TRANSPOSE>(data->sycl_queue, *impl->sycl_module, num_elem, impl, d_u, d_v));
       } else {
         CeedCallBackend(CeedBasisApplyInterp_Sycl<CEED_NOTRANSPOSE>(data->sycl_queue, *impl->sycl_module, num_elem, impl, d_u, d_v));
       }
     } break;
     case CEED_EVAL_GRAD: {
-      if(transpose) {
+      if (transpose) {
         CeedCallBackend(CeedBasisApplyGrad_Sycl<1>(data->sycl_queue, *impl->sycl_module, num_elem, impl, d_u, d_v));
       } else {
         CeedCallBackend(CeedBasisApplyGrad_Sycl<0>(data->sycl_queue, *impl->sycl_module, num_elem, impl, d_u, d_v));
@@ -581,23 +583,19 @@ int CeedBasisCreateTensorH1_Sycl(CeedInt dim, CeedInt P_1d, CeedInt Q_1d, const 
   sycl::event e = data->sycl_queue.ext_oneapi_submit_barrier();
 
   CeedCallSycl(ceed, impl->d_q_weight_1d = sycl::malloc_device<CeedScalar>(Q_1d, data->sycl_device, data->sycl_context));
-  sycl::event copy_weight = data->sycl_queue.copy<CeedScalar>(q_weight_1d, impl->d_q_weight_1d, Q_1d,{e});
+  sycl::event copy_weight = data->sycl_queue.copy<CeedScalar>(q_weight_1d, impl->d_q_weight_1d, Q_1d, {e});
 
   const CeedInt interp_length = Q_1d * P_1d;
   CeedCallSycl(ceed, impl->d_interp_1d = sycl::malloc_device<CeedScalar>(interp_length, data->sycl_device, data->sycl_context));
-  sycl::event copy_interp = data->sycl_queue.copy<CeedScalar>(interp_1d, impl->d_interp_1d, interp_length,{e});
+  sycl::event copy_interp = data->sycl_queue.copy<CeedScalar>(interp_1d, impl->d_interp_1d, interp_length, {e});
 
   CeedCallSycl(ceed, impl->d_grad_1d = sycl::malloc_device<CeedScalar>(interp_length, data->sycl_device, data->sycl_context));
-  sycl::event copy_grad = data->sycl_queue.copy<CeedScalar>(grad_1d, impl->d_grad_1d, interp_length,{e});
+  sycl::event copy_grad = data->sycl_queue.copy<CeedScalar>(grad_1d, impl->d_grad_1d, interp_length, {e});
 
   CeedCallSycl(ceed, sycl::event::wait_and_throw({copy_weight, copy_interp, copy_grad}));
 
-  std::vector<sycl::kernel_id> kernel_ids = {
-    sycl::get_kernel_id<CeedBasisSyclInterp<1>>(),
-    sycl::get_kernel_id<CeedBasisSyclInterp<0>>(),
-    sycl::get_kernel_id<CeedBasisSyclGrad<1>>(),
-    sycl::get_kernel_id<CeedBasisSyclGrad<0>>()
-  };
+  std::vector<sycl::kernel_id> kernel_ids = {sycl::get_kernel_id<CeedBasisSyclInterp<1>>(), sycl::get_kernel_id<CeedBasisSyclInterp<0>>(),
+                                             sycl::get_kernel_id<CeedBasisSyclGrad<1>>(), sycl::get_kernel_id<CeedBasisSyclGrad<0>>()};
 
   sycl::kernel_bundle<sycl::bundle_state::input> input_bundle = sycl::get_kernel_bundle<sycl::bundle_state::input>(data->sycl_context, kernel_ids);
   input_bundle.set_specialization_constant<BASIS_DIM_ID>(dim);
@@ -605,7 +603,7 @@ int CeedBasisCreateTensorH1_Sycl(CeedInt dim, CeedInt P_1d, CeedInt Q_1d, const 
   input_bundle.set_specialization_constant<BASIS_Q_1D_ID>(Q_1d);
   input_bundle.set_specialization_constant<BASIS_P_1D_ID>(P_1d);
 
-  CeedCallSycl(ceed,impl->sycl_module = new SyclModule_t(sycl::build(input_bundle)));
+  CeedCallSycl(ceed, impl->sycl_module = new SyclModule_t(sycl::build(input_bundle)));
 
   CeedCallBackend(CeedBasisSetData(basis, impl));
 
@@ -639,15 +637,15 @@ int CeedBasisCreateH1_Sycl(CeedElemTopology topo, CeedInt dim, CeedInt num_nodes
   sycl::event e = data->sycl_queue.ext_oneapi_submit_barrier();
 
   CeedCallSycl(ceed, impl->d_q_weight = sycl::malloc_device<CeedScalar>(num_qpts, data->sycl_device, data->sycl_context));
-  sycl::event copy_weight = data->sycl_queue.copy<CeedScalar>(q_weight, impl->d_q_weight, num_qpts,{e});
+  sycl::event copy_weight = data->sycl_queue.copy<CeedScalar>(q_weight, impl->d_q_weight, num_qpts, {e});
 
   const CeedInt interp_length = num_qpts * num_nodes;
   CeedCallSycl(ceed, impl->d_interp = sycl::malloc_device<CeedScalar>(interp_length, data->sycl_device, data->sycl_context));
-  sycl::event copy_interp = data->sycl_queue.copy<CeedScalar>(interp, impl->d_interp, interp_length,{e});
+  sycl::event copy_interp = data->sycl_queue.copy<CeedScalar>(interp, impl->d_interp, interp_length, {e});
 
   const CeedInt grad_length = num_qpts * num_nodes * dim;
   CeedCallSycl(ceed, impl->d_grad = sycl::malloc_device<CeedScalar>(grad_length, data->sycl_device, data->sycl_context));
-  sycl::event copy_grad = data->sycl_queue.copy<CeedScalar>(grad, impl->d_grad, grad_length,{e});
+  sycl::event copy_grad = data->sycl_queue.copy<CeedScalar>(grad, impl->d_grad, grad_length, {e});
 
   CeedCallSycl(ceed, sycl::event::wait_and_throw({copy_weight, copy_interp, copy_grad}));
 

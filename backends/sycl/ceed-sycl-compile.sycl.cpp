@@ -17,8 +17,8 @@
 // #include <sycl/ext/intel/experimental/online_compiler.hpp>
 #include <sycl/sycl.hpp>
 
-#include "ceed-sycl-common.hpp"
 #include "./online_compiler.hpp"
+#include "ceed-sycl-common.hpp"
 
 using ByteVector_t = std::vector<unsigned char>;
 
@@ -91,8 +91,8 @@ static int CeedJitLoadModule_Sycl(const sycl::context &sycl_context, const sycl:
                                   ZE_MODULE_FORMAT_IL_SPIRV,
                                   il_binary.size(),
                                   il_binary.data(),
-                                  " -ze-opt-large-register-file",   // flags
-                                  nullptr};  // build log
+                                  " -ze-opt-large-register-file",  // flags
+                                  nullptr};                        // build log
 
   ze_module_handle_t lz_module;
   zeModuleCreate(lz_context, lz_device, &lz_mod_desc, &lz_module, nullptr);

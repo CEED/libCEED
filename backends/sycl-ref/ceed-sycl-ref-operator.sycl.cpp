@@ -348,7 +348,7 @@ static inline int CeedOperatorRestoreInputs_Sycl(CeedInt numinputfields, CeedQFu
     CeedCallBackend(CeedQFunctionFieldGetEvalMode(qfinputfields[i], &emode));
     if (emode == CEED_EVAL_WEIGHT) {  // Skip
     } else {
-      if (!impl->evecs[i]) {          // This was a skiprestrict case
+      if (!impl->evecs[i]) {  // This was a skiprestrict case
         CeedCallBackend(CeedOperatorFieldGetVector(opinputfields[i], &vec));
         CeedCallBackend(CeedVectorRestoreArrayRead(vec, (const CeedScalar **)&edata[i]));
       } else {
