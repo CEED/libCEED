@@ -41,7 +41,7 @@ static int CeedQFunctionCreateFallback(Ceed fallback_ceed, CeedQFunction qf, Cee
   CeedDebug256(qf->ceed, 1, "---------- CeedOperator Fallback ----------\n");
   CeedDebug(qf->ceed, "Creating fallback CeedQFunction\n");
 
-  char *source_path_with_name = "";
+  char *source_path_with_name = NULL;
   if (qf->source_path) {
     size_t path_len = strlen(qf->source_path), name_len = strlen(qf->kernel_name);
     CeedCall(CeedCalloc(path_len + name_len + 2, &source_path_with_name));
