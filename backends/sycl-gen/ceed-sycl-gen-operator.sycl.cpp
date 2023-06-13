@@ -51,16 +51,16 @@ static int CeedOperatorApplyAdd_Sycl_gen(CeedOperator op, CeedVector input_vec, 
 
   // Input vectors
   for (CeedInt i = 0; i < num_input_fields; i++) {
-     CeedCallBackend(CeedQFunctionFieldGetEvalMode(qf_input_fields[i], &eval_mode));
-     if (eval_mode == CEED_EVAL_WEIGHT) {  // Skip
-       impl->fields->inputs[i] = NULL;
-     } else {
-       // Get input vector
-       CeedCallBackend(CeedOperatorFieldGetVector(op_input_fields[i], &vec));
-       if (vec == CEED_VECTOR_ACTIVE) vec = input_vec;
-       CeedCallBackend(CeedVectorGetArrayRead(vec, CEED_MEM_DEVICE, &impl->fields->inputs[i]));
-     }
-   }
+    CeedCallBackend(CeedQFunctionFieldGetEvalMode(qf_input_fields[i], &eval_mode));
+    if (eval_mode == CEED_EVAL_WEIGHT) {  // Skip
+      impl->fields->inputs[i] = NULL;
+    } else {
+      // Get input vector
+      CeedCallBackend(CeedOperatorFieldGetVector(op_input_fields[i], &vec));
+      if (vec == CEED_VECTOR_ACTIVE) vec = input_vec;
+      CeedCallBackend(CeedVectorGetArrayRead(vec, CEED_MEM_DEVICE, &impl->fields->inputs[i]));
+    }
+  }
 
   // Output vectors
   for (CeedInt i = 0; i < num_output_fields; i++) {
@@ -121,13 +121,15 @@ static int CeedOperatorApplyAdd_Sycl_gen(CeedOperator op, CeedVector input_vec, 
   //Order queue
   sycl::event e = ceed_Sycl->sycl_queue.ext_oneapi_submit_barrier();
   
-  CeedCallSycl(ceed,
+  // CeedCallSycl(ceed,
   ceed_Sycl->sycl_queue.submit([&](sycl::handler& cgh){
     cgh.depends_on(e);
     cgh.set_args(num_elem, qf_impl->d_c, impl->indices, impl->fields, impl->B, impl->G, impl->W);
     cgh.parallel_for(kernel_range,*(impl->op));
-  }));
-  CeedCallSycl(ceed,ceed_Sycl->sycl_queue.wait_and_throw());
+  });
+  //);
+  //CeedCallSycl(ceed,ceed_Sycl->sycl_queue.wait_and_throw());
+  ceed_Sycl->sycl_queue.wait_and_throw();
 
   // Restore input arrays
   for (CeedInt i = 0; i < num_input_fields; i++) {

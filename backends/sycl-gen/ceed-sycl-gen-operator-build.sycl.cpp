@@ -367,8 +367,6 @@ extern "C" int CeedSyclGenOperatorBuild(CeedOperator op) {
   }
   code << "\n  // -- Element loop --\n";
   code << "  work_group_barrier(CLK_LOCAL_MEM_FENCE);\n";
-  code << "  int elem = get_group_id(2);\n";
-  code << "  if( elem < num_elem ) ";
   code << "  {\n";
   // Input basis apply if needed
   // Generate the correct eval mode code for each input
@@ -396,7 +394,7 @@ extern "C" int CeedSyclGenOperatorBuild(CeedOperator op) {
         CeedCallBackend(CeedElemRestrictionGetData(Erestrict, &restr_impl));
         h_indices.inputs[i] = restr_impl->d_ind;
         code << "    readDofsOffset" << dim << "d(num_comp_in_" << i << ", " << comp_stride << ", P_in_" << i
-             << ", elem, indices->inputs[" << i << "], d_u_" << i << ", r_u_" << i << ");\n";
+             << ", num_elem, indices->inputs[" << i << "], d_u_" << i << ", r_u_" << i << ");\n";
       } else {
         bool has_backend_strides;
         CeedCallBackend(CeedElemRestrictionHasBackendStrides(Erestrict, &has_backend_strides));
@@ -408,7 +406,7 @@ extern "C" int CeedSyclGenOperatorBuild(CeedOperator op) {
         }
         code << "    // Strides: {" << strides[0] << ", " << strides[1] << ", " << strides[2] << "}\n";
         code << "    readDofsStrided" << dim << "d(num_comp_in_" << i << ",P_in_" << i << "," << strides[0] << "," << strides[1] << "," << strides[2]
-             << ", elem, d_u_" << i << ", r_u_" << i << ");\n";
+             << ", num_elem, d_u_" << i << ", r_u_" << i << ");\n";
       }
     }
 
@@ -503,7 +501,7 @@ extern "C" int CeedSyclGenOperatorBuild(CeedOperator op) {
             CeedCallBackend(CeedElemRestrictionGetData(Erestrict, &restr_impl));
             h_indices.inputs[i] = restr_impl->d_ind;
             code << "      readSliceQuadsOffset"
-                 << "3d(num_comp_in_" << i << ", " << comp_stride << ", Q_1D, lsize_in_" << i << ", elem, q, indices->inputs[" << i << "], d_u_"
+                 << "3d(num_comp_in_" << i << ", " << comp_stride << ", Q_1D, lsize_in_" << i << ", num_elem, q, indices->inputs[" << i << "], d_u_"
                  << i << ", r_q_" << i << ");\n";
           } else {
             CeedCallBackend(CeedElemRestrictionGetElementSize(Erestrict, &elem_size));
@@ -519,7 +517,7 @@ extern "C" int CeedSyclGenOperatorBuild(CeedOperator op) {
             code << "      readSliceQuadsStrided"
                  << "3d(num_comp_in_" << i
                  << ", Q_1D,"
-                 << strides[0] << ", " << strides[1] << ", " << strides[2] << ", elem, q, d_u_" << i << ", r_q_" << i << ");\n";
+                 << strides[0] << ", " << strides[1] << ", " << strides[2] << ", num_elem, q, d_u_" << i << ", r_q_" << i << ");\n";
           }
           break;
         case CEED_EVAL_INTERP:
@@ -530,7 +528,7 @@ extern "C" int CeedSyclGenOperatorBuild(CeedOperator op) {
           break;
         case CEED_EVAL_GRAD:
           code << "      CeedScalar r_q_" << i << "[num_comp_in_" << i << "*DIM];\n";
-          code << "      gradCollo3d(num_comp_in_" << i << ", Q_1D, q, r_t_" << i << ", s_G_in_" << i << ", r_q_" << i << ");\n";
+          code << "      gradCollo3d(num_comp_in_" << i << ", Q_1D, q, r_t_" << i << ", s_G_in_" << i << ", r_q_" << i << ", elem_scratch);\n";
           break;
         case CEED_EVAL_WEIGHT:
           code << "      CeedScalar r_q_" << i << "[1];\n";
@@ -620,7 +618,7 @@ extern "C" int CeedSyclGenOperatorBuild(CeedOperator op) {
           code << "      }\n";
           break;
         case CEED_EVAL_GRAD:
-          code << "      gradColloTranspose3d(num_comp_out_" << i << ",Q_1D, q, r_qq_" << i << ", s_G_out_" << i << ", r_tt_" << i << ");\n";
+          code << "      gradColloTranspose3d(num_comp_out_" << i << ",Q_1D, q, r_qq_" << i << ", s_G_out_" << i << ", r_tt_" << i << ", elem_scratch);\n";
           break;
         case CEED_EVAL_WEIGHT:
           break;  // Should not occur
@@ -692,7 +690,7 @@ extern "C" int CeedSyclGenOperatorBuild(CeedOperator op) {
       CeedCallBackend(CeedElemRestrictionGetData(Erestrict, &restr_impl));
       h_indices.outputs[i] = restr_impl->d_ind;
       code << "    writeDofsOffset" << dim << "d(num_comp_out_" << i << ", " << comp_stride << ", P_out_" << i
-           << ", elem, indices->outputs[" << i << "], r_v_" << i << ", d_v_" << i << ");\n";
+           << ", num_elem, indices->outputs[" << i << "], r_v_" << i << ", d_v_" << i << ");\n";
     } else {
       bool has_backend_strides;
       CeedCallBackend(CeedElemRestrictionHasBackendStrides(Erestrict, &has_backend_strides));
@@ -704,7 +702,7 @@ extern "C" int CeedSyclGenOperatorBuild(CeedOperator op) {
       }
       code << "    // Strides: {" << strides[0] << ", " << strides[1] << ", " << strides[2] << "}\n";
       code << "    writeDofsStrided" << dim << "d(num_comp_out_" << i << ",P_out_" << i << "," << strides[0] << "," << strides[1] << "," << strides[2]
-           << ", elem, r_v_" << i << ", d_v_" << i << ");\n";
+           << ", num_elem, r_v_" << i << ", d_v_" << i << ");\n";
     }
   }
 
@@ -722,8 +720,6 @@ extern "C" int CeedSyclGenOperatorBuild(CeedOperator op) {
   // View kernel for debugging
   CeedDebug256(ceed, 2, "Generated Operator Kernels:\n");
   CeedDebug(ceed, code.str().c_str());
-  //std::cout<<" Generated Operator Kernels:\n";
-  //std::cout<<code.str();
 
   std::map<std::string, CeedInt> jit_constants;
   jit_constants["T_1D"] = block_sizes[0];
