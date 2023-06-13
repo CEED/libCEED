@@ -92,24 +92,20 @@ static int CeedOperatorApplyAdd_Sycl_gen(CeedOperator op, CeedVector input_vec, 
   CeedCallBackend(CeedQFunctionGetInnerContextData(qf, CEED_MEM_DEVICE, &qf_impl->d_c));
 
   // Apply operator
-  void         *opargs[]  = {(void *)&num_elem, &qf_impl->d_c, &impl->indices, &impl->fields, &impl->B, &impl->G, &impl->W};
   const CeedInt dim       = impl->dim;
   const CeedInt Q_1d      = impl->Q_1d;
   const CeedInt P_1d      = impl->max_P_1d;
   const CeedInt thread_1d = CeedIntMax(Q_1d, P_1d);
-  CeedInt       block_sizes[3], grid = 0, sharedMem = 0;
+  CeedInt       block_sizes[3], grid = 0;
   CeedCallBackend(BlockGridCalculate_Sycl_gen(dim, P_1d, Q_1d, block_sizes));
   if (dim == 1) {
     grid      = num_elem / block_sizes[2] + ((num_elem / block_sizes[2] * block_sizes[2] < num_elem) ? 1 : 0);
-    sharedMem = block_sizes[2] * thread_1d * sizeof(CeedScalar);
     //CeedCallBackend(CeedRunKernelDimSharedSycl(ceed, impl->op, grid, block_sizes[0], block_sizes[1], block_sizes[2], sharedMem, opargs));
   } else if (dim == 2) {
     grid      = num_elem / block_sizes[2] + ((num_elem / block_sizes[2] * block_sizes[2] < num_elem) ? 1 : 0);
-    sharedMem = block_sizes[2] * thread_1d * thread_1d * sizeof(CeedScalar);
     //CeedCallBackend(CeedRunKernelDimSharedSycl(ceed, impl->op, grid, block_sizes[0], block_sizes[1], block_sizes[2], sharedMem, opargs));
   } else if (dim == 3) {
     grid      = num_elem / block_sizes[2] + ((num_elem / block_sizes[2] * block_sizes[2] < num_elem) ? 1 : 0);
-    sharedMem = block_sizes[2] * thread_1d * thread_1d * sizeof(CeedScalar);
     //CeedCallBackend(CeedRunKernelDimSharedSycl(ceed, impl->op, grid, block_sizes[0], block_sizes[1], block_sizes[2], sharedMem, opargs));
   }
 
@@ -121,15 +117,13 @@ static int CeedOperatorApplyAdd_Sycl_gen(CeedOperator op, CeedVector input_vec, 
   //Order queue
   sycl::event e = ceed_Sycl->sycl_queue.ext_oneapi_submit_barrier();
   
-  // CeedCallSycl(ceed,
+  CeedCallSycl(ceed,
   ceed_Sycl->sycl_queue.submit([&](sycl::handler& cgh){
     cgh.depends_on(e);
     cgh.set_args(num_elem, qf_impl->d_c, impl->indices, impl->fields, impl->B, impl->G, impl->W);
     cgh.parallel_for(kernel_range,*(impl->op));
-  });
-  //);
-  //CeedCallSycl(ceed,ceed_Sycl->sycl_queue.wait_and_throw());
-  ceed_Sycl->sycl_queue.wait_and_throw();
+  }));
+  CeedCallSycl(ceed,ceed_Sycl->sycl_queue.wait_and_throw());
 
   // Restore input arrays
   for (CeedInt i = 0; i < num_input_fields; i++) {
