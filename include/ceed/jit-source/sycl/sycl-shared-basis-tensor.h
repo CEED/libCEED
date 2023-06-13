@@ -36,6 +36,7 @@ kernel void Interp(const CeedInt num_elem,
   local CeedScalar * elem_scratch  = scratch + get_local_id(2) * T_1D * (BASIS_DIM > 1 ? T_1D : 1);
 
   loadMatrix(BASIS_P_1D * BASIS_Q_1D, d_interp_1d, s_B);
+  work_group_barrier(CLK_LOCAL_MEM_FENCE);
 
   if (BASIS_DIM == 1) {
     
@@ -72,6 +73,7 @@ kernel void InterpTranspose(const CeedInt num_elem,
   local CeedScalar * elem_scratch  = scratch + get_local_id(2) * T_1D * (BASIS_DIM > 1 ? T_1D : 1);
 
   loadMatrix(BASIS_P_1D * BASIS_Q_1D, d_interp_1d, s_B);
+  work_group_barrier(CLK_LOCAL_MEM_FENCE);
 
   if (BASIS_DIM == 1) {
 
@@ -113,6 +115,7 @@ kernel void Grad(const CeedInt num_elem,
 
   loadMatrix(BASIS_P_1D * BASIS_Q_1D, d_interp_1d, s_B);
   loadMatrix(BASIS_Q_1D * (BASIS_HAS_COLLOCATED_GRAD ? BASIS_Q_1D : BASIS_P_1D), d_grad_1d, s_G);
+  work_group_barrier(CLK_LOCAL_MEM_FENCE);
 
   if (BASIS_DIM == 1) {
     
@@ -153,6 +156,7 @@ kernel void GradTranspose(const CeedInt num_elem,
 
   loadMatrix(BASIS_P_1D * BASIS_Q_1D, d_interp_1d, s_B);
   loadMatrix(BASIS_Q_1D * (BASIS_HAS_COLLOCATED_GRAD ? BASIS_Q_1D : BASIS_P_1D), d_grad_1d, s_G);
+  work_group_barrier(CLK_LOCAL_MEM_FENCE);
 
   if (BASIS_DIM == 1) {
 

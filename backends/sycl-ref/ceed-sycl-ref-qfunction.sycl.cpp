@@ -18,6 +18,8 @@
 #include "ceed-sycl-ref-qfunction-load.hpp"
 #include "ceed-sycl-ref.hpp"
 
+#define WG_SIZE_QF 384
+
 //------------------------------------------------------------------------------
 // Apply QFunction
 //------------------------------------------------------------------------------
@@ -67,7 +69,6 @@ static int CeedQFunctionApply_Sycl(CeedQFunction qf, CeedInt Q, CeedVector *U, C
     ++iarg;
     cgh.set_arg(iarg, Q);
     ++iarg;
-    // // Q: Can we forward the vector as a tuple?
     for (auto &input_i : inputs) {
       cgh.set_arg(iarg, input_i);
       ++iarg;
@@ -76,7 +77,13 @@ static int CeedQFunctionApply_Sycl(CeedQFunction qf, CeedInt Q, CeedVector *U, C
       cgh.set_arg(iarg, output_i);
       ++iarg;
     }
-    cgh.parallel_for(Q, *(impl->QFunction));
+    // Hard-coding the work-group size for now
+    // We could use the Level Zero API to query and set an appropriate size in future
+    // Equivalent of CUDA Occupancy Calculator
+    int wg_size = WG_SIZE_QF;
+    sycl::range<1> rounded_Q = ((Q + (wg_size- 1)) / wg_size) * wg_size;
+    sycl::nd_range<1> kernel_range(rounded_Q, wg_size);
+    cgh.parallel_for(kernel_range, *(impl->QFunction));
   });
 
   // Restore vectors
