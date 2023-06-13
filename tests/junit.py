@@ -128,6 +128,8 @@ def run(test, backends, mode):
                     test_case.add_skipped_info('device memory not supported {} {}'.format(test, ceed_resource))
                 elif 'Test not implemented in single precision' in proc.stderr:
                     test_case.add_skipped_info('not implemented {} {}'.format(test, ceed_resource))
+                elif 'No SYCL devices of the requested type are available' in proc.stderr:
+                    test_case.add_skipped_info('sycl device type not available {} {}'.format(test, ceed_resource))
 
             # check required failures
             if not test_case.is_skipped():
