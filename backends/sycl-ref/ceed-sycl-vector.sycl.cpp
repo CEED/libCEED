@@ -84,11 +84,7 @@ static inline int CeedVectorSyncD2H_Sycl(const CeedVector vec) {
   Ceed_Sycl *data;
   CeedCallBackend(CeedGetData(ceed, &data));
 
-  if (!impl->d_array) {
-    // LCOV_EXCL_START
-    return CeedError(ceed, CEED_ERROR_BACKEND, "No valid device data to sync to host");
-    // LCOV_EXCL_STOP
-  }
+  CeedCheck(impl->d_array, ceed, CEED_ERROR_BACKEND, "No valid device data to sync to host");
 
   CeedSize length;
   CeedCallBackend(CeedVectorGetLength(vec, &length));

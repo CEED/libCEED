@@ -20,11 +20,8 @@
 static int CeedInit_Sycl_shared(const char *resource, Ceed ceed) {
   char *resource_root;
   CeedCallBackend(CeedSyclGetResourceRoot(ceed, resource, &resource_root));
-  if (std::strcmp(resource_root, "/gpu/sycl/shared") && std::strcmp(resource_root, "/cpu/sycl/shared")) {
-    // LCOV_EXCL_START
-    return CeedError(ceed, CEED_ERROR_BACKEND, "Sycl backend cannot use resource: %s", resource);
-    // LCOV_EXCL_STOP
-  }
+  CeedCheck(!std::strcmp(resource_root, "/gpu/sycl/shared") || !std::strcmp(resource_root, "/cpu/sycl/shared"), ceed, CEED_ERROR_BACKEND,
+            "Sycl backend cannot use resource: %s", resource);
   std::string_view root_view = resource_root;
 
   auto suffix_length = root_view.size() - root_view.rfind("shared");
