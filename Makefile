@@ -265,6 +265,9 @@ hip-shared.c   := $(sort $(wildcard backends/hip-shared/*.c))
 hip-gen.c      := $(sort $(wildcard backends/hip-gen/*.c))
 hip-gen.cpp    := $(sort $(wildcard backends/hip-gen/*.cpp))
 
+hip-all.c := interface/ceed-hip.c $(hip.c) $(hip-ref.c) $(hip-shared.c) $(hip-gen.c)
+hip-all.cpp := $(hip.cpp) $(hip-ref.cpp) $(hip-gen.cpp)
+
 # Quiet, color output
 quiet ?= $($(1))
 
@@ -424,16 +427,15 @@ HIP_LIB_DIR := $(wildcard $(foreach d,lib lib64,$(ROCM_DIR)/$d/libamdhip64.${SO_
 HIP_LIB_DIR := $(patsubst %/,%,$(dir $(firstword $(HIP_LIB_DIR))))
 HIP_BACKENDS = /gpu/hip/ref /gpu/hip/shared /gpu/hip/gen
 ifneq ($(HIP_LIB_DIR),)
-  $(libceeds) : HIPCCFLAGS += -I./include
+	HIPCONFIG_CPPFLAGS := $(subst =,,$(shell $(ROCM_DIR)/bin/hipconfig -C))
+  $(hip-all.c:%.c=$(OBJDIR)/%.o) $(hip-all.c:%=%.tidy): CPPFLAGS += $(HIPCONFIG_CPPFLAGS)
   ifneq ($(CXX), $(HIPCC))
-    CPPFLAGS += $(subst =,,$(shell $(ROCM_DIR)/bin/hipconfig -C))
+    $(hip-all.cpp:%.cpp=$(OBJDIR)/%.o) $(hip-all.cpp:%=%.tidy): CPPFLAGS += $(HIPCONFIG_CPPFLAGS)
   endif
-  $(libceeds) : CPPFLAGS += -I$(ROCM_DIR)/include
   PKG_LIBS += -L$(abspath $(HIP_LIB_DIR)) -lamdhip64 -lhipblas
   LIBCEED_CONTAINS_CXX = 1
-  libceed.c     += interface/ceed-hip.c
-  libceed.c     += $(hip.c) $(hip-ref.c) $(hip-shared.c) $(hip-gen.c)
-  libceed.cpp   += $(hip.cpp) $(hip-ref.cpp) $(hip-gen.cpp)
+  libceed.c     += $(hip-all.c)
+  libceed.cpp   += $(hip-all.cpp)
   libceed.hip   += $(hip-ref.hip)
   BACKENDS_MAKE += $(HIP_BACKENDS)
 endif
@@ -470,14 +472,9 @@ ifneq ($(wildcard $(MAGMA_DIR)/lib/libmagma.*),)
       libceed.c   += $(magma.c)
       libceed.cpp += $(magma.cpp)
       libceed.hip += $(magma.hip)
-      ifneq ($(CXX), $(HIPCC))
-        $(magma.c:%.c=$(OBJDIR)/%.o) $(magma.c:%=%.tidy) : CPPFLAGS += -I$(MAGMA_DIR)/include -I$(HIP_INC_DIR_MAGMA)/include -DCEED_MAGMA_USE_HIP -DADD_
-        $(magma.cpp:%.cpp=$(OBJDIR)/%.o) $(magma.cpp:%=%.tidy) : CPPFLAGS += -I$(MAGMA_DIR)/include -I$(HIP_INC_DIR_MAGMA)/include -DCEED_MAGMA_USE_HIP -DADD_
-      else
-        $(magma.c:%.c=$(OBJDIR)/%.o) $(magma.c:%=%.tidy) : HIPCCFLAGS += -I$(MAGMA_DIR)/include -I$(HIP_INC_DIR_MAGMA)/include -DCEED_MAGMA_USE_HIP -DADD_
-        $(magma.cpp:%.cpp=$(OBJDIR)/%.o) $(magma.cpp:%=%.tidy) : HIPCCFLAGS += -I$(MAGMA_DIR)/include -I$(HIP_INC_DIR_MAGMA)/include -DCEED_MAGMA_USE_HIP -DADD_
-      endif
-      $(magma.hip:%.hip.cpp=$(OBJDIR)/%.o) : HIPCCFLAGS += -I$(MAGMA_DIR)/include -I$(MAGMA_DIR)/magmablas -I$(HIP_INC_DIR_MAGMA)/include -DCEED_MAGMA_USE_HIP -DADD_
+      $(magma.c:%.c=$(OBJDIR)/%.o) $(magma.c:%=%.tidy) : CPPFLAGS += $(HIPCONFIG_CPPFLAGS) -I$(MAGMA_DIR)/include -I$(HIP_INC_DIR_MAGMA)/include -DCEED_MAGMA_USE_HIP -DADD_
+      $(magma.cpp:%.cpp=$(OBJDIR)/%.o) $(magma.cpp:%=%.tidy) : CPPFLAGS += $(HIPCONFIG_CPPFLAGS) -I$(MAGMA_DIR)/include -I$(HIP_INC_DIR_MAGMA)/include -DCEED_MAGMA_USE_HIP -DADD_
+      $(magma.hip:%.hip.cpp=$(OBJDIR)/%.o) : CPPFLAGS += -I$(MAGMA_DIR)/include -I$(MAGMA_DIR)/magmablas -I$(HIP_INC_DIR_MAGMA)/include -DCEED_MAGMA_USE_HIP -DADD_
       MAGMA_BACKENDS = /gpu/hip/magma /gpu/hip/magma/det
     endif
   endif
@@ -529,7 +526,7 @@ $(OBJDIR)/%.o : $(CURDIR)/%.cu | $$(@D)/.DIR
 	$(call quiet,NVCC) $(filter-out -Wno-unused-function, $(CPPFLAGS)) $(NVCCFLAGS) -c -o $@ $(abspath $<)
 
 $(OBJDIR)/%.o : $(CURDIR)/%.hip.cpp | $$(@D)/.DIR
-	$(call quiet,HIPCC) $(HIPCCFLAGS) -c -o $@ $(abspath $<)
+	$(call quiet,HIPCC) $(CPPFLAGS) $(HIPCCFLAGS) -c -o $@ $(abspath $<)
 
 $(OBJDIR)/%$(EXE_SUFFIX) : tests/%.c | $$(@D)/.DIR
 	$(call quiet,LINK.c) $(CEED_LDFLAGS) -o $@ $(abspath $<) $(CEED_LIBS) $(CEED_LDLIBS) $(LDLIBS)
