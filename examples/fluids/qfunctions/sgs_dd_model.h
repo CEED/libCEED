@@ -52,7 +52,7 @@ CEED_QFUNCTION_HELPER CeedScalar VelocityGradientMagnitude(const CeedScalar stra
 };
 
 // @brief Denormalize outputs using min-max (de-)normalization
-CEED_QFUNCTION_HELPER void DenormalizeDDOutputs(CeedScalar output[6], const CeedScalar new_bounds[6][2], const CeedScalar old_bounds[6][2]) {
+CEED_QFUNCTION_HELPER void DenormalizeDDOutputs(CeedScalar output[6], const CeedScalar (*new_bounds)[2], const CeedScalar old_bounds[6][2]) {
   CeedScalar bounds_ratio;
   for (int i = 0; i < 6; i++) {
     bounds_ratio = (new_bounds[i][1] - new_bounds[i][0]) / (old_bounds[i][1] - old_bounds[i][0]);
