@@ -100,7 +100,7 @@ int CeedDestroy_Sycl(Ceed ceed) {
 //------------------------------------------------------------------------------
 // Use an external queue
 //------------------------------------------------------------------------------
-int CeedSetStream_Sycl(Ceed ceed, void *handle) {
+int CeedSetSyclStream(Ceed ceed, void *handle) {
   Ceed_Sycl *data;
   CeedCallBackend(CeedGetData(ceed, &data));
 

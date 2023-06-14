@@ -118,7 +118,7 @@ int main(int argc, char **argv) {
       PetscCall(PetscDeviceContextGetCurrentContext(&dctx));
       void *stream_handle;
       PetscCall(PetscDeviceContextGetStreamHandle(dctx, &stream_handle));
-      CeedSetStream_Sycl(ceed, stream_handle);
+      CeedSetSyclStream(ceed, stream_handle);
     }
   }
 
