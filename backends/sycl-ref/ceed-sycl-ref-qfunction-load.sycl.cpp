@@ -26,7 +26,7 @@
 //
 // TODO: Refactor
 //------------------------------------------------------------------------------
-extern "C" int CeedSyclBuildQFunction(CeedQFunction qf) {
+extern "C" int CeedBuildQFunction_Sycl(CeedQFunction qf) {
   CeedQFunction_Sycl* impl;
   CeedCallBackend(CeedQFunctionGetData(qf, (void**)&impl));
   // QFunction is built

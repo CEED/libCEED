@@ -8,6 +8,6 @@
 #ifndef _ceed_sycl_qfunction_load_hpp
 #define _ceed_sycl_qfunction_load_hpp
 
-CEED_INTERN int CeedSyclBuildQFunction(CeedQFunction qf);
+CEED_INTERN int CeedBuildQFunction_Sycl(CeedQFunction qf);
 
 #endif  // _ceed_sycl_qfunction_load_hpp
