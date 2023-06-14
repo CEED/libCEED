@@ -12,4 +12,10 @@
 
 CEED_EXTERN int CeedSetStream_Sycl(Ceed ceed, void *handle);
 
+int CeedSetStream_Sycl(Ceed ceed, void *handle) __attribute__((weak));
+int CeedSetStream_Sycl(Ceed ceed, void *handle) {
+  // TODO Add Error to say that sycl needs to be installed for this to work.
+  return -1;
+}
+
 #endif
