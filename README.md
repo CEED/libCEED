@@ -199,6 +199,9 @@ The `/gpu/hip/*` backends provide GPU performance strictly using HIP.
 They are based on the `/gpu/cuda/*` backends.
 ROCm version 4.2 or newer is required.
 
+The `/gpu/sycl/*` backends provide GPU performance strictly using SYCL.
+They are based on the `/gpu/cuda/*` and `/gpu/hip/*` backends.
+
 The `/gpu/*/magma/*` backends rely upon the [MAGMA](https://bitbucket.org/icl/magma) package.
 To enable the MAGMA backends, the environment variable `MAGMA_DIR` must point to the top-level MAGMA directory, with the MAGMA library located in `$(MAGMA_DIR)/lib/`.
 By default, `MAGMA_DIR` is set to `../magma`; to build the MAGMA backends with a MAGMA installation located elsewhere, create a link to `magma/` in libCEED's parent directory, or set `MAGMA_DIR` to the proper location.
