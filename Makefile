@@ -96,7 +96,7 @@ endif
 AFLAGS = -fsanitize=address #-fsanitize=undefined -fno-omit-frame-pointer
 
 # Note: Intel oneAPI C/C++ compiler is now icx/icpx
-CC_VENDOR := $(firstword $(filter gcc clang icc oneAPI XL emcc,$(subst -, ,$(shell $(CC) --version))))
+CC_VENDOR := $(subst icc_orig,icc,$(firstword $(filter gcc clang icc icc_orig oneAPI XL emcc,$(subst -, ,$(shell $(CC) --version)))))
 FC_VENDOR := $(if $(FC),$(firstword $(filter GNU ifort ifx XL,$(shell $(FC) --version 2>&1 || $(FC) -qversion))))
 
 # Default extra flags by vendor
