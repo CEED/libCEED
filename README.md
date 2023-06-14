@@ -63,6 +63,7 @@ if your compiler does not support gcc-style options, if you are cross compiling,
 
 To enable CUDA support, add `CUDA_DIR=/opt/cuda` or an appropriate directory to your `make` invocation.
 To enable HIP support, add `ROCM_DIR=/opt/rocm` or an appropriate directory.
+To enable SYCL support, add `SYCL_DIR=/opt/sycl` or an appropriate directory.
 To store these or other arguments as defaults for future invocations of `make`, use:
 
 ```console
@@ -157,6 +158,10 @@ There are multiple supported backends, which can be selected at runtime in the e
 | `/gpu/hip/shared`          | Optimized pure HIP kernels using shared memory    | Yes                   |
 | `/gpu/hip/gen`             | Optimized pure HIP kernels using code generation  | No                    |
 ||
+| **SYCL Native**            |
+| `/gpu/sycl/ref`            | Reference pure SYCL kernels                       | Yes                   |
+| `/gpu/sycl/shared`         | Optimized pure SYCL kernels using shared memory   | Yes                   |
+||
 | **MAGMA**                  |
 | `/gpu/cuda/magma`          | CUDA MAGMA kernels                                | No                    |
 | `/gpu/cuda/magma/det`      | CUDA MAGMA kernels                                | Yes                   |
@@ -167,7 +172,7 @@ There are multiple supported backends, which can be selected at runtime in the e
 | `/*/occa`                  | Selects backend based on available OCCA modes     | Yes                   |
 | `/cpu/self/occa`           | OCCA backend with serial CPU kernels              | Yes                   |
 | `/cpu/openmp/occa`         | OCCA backend with OpenMP kernels                  | Yes                   |
-| `/cpu/dpcpp/occa`          | OCCA backend with CPC++ kernels                   | Yes                   |
+| `/cpu/dpcpp/occa`          | OCCA backend with DPC++ kernels                   | Yes                   |
 | `/gpu/cuda/occa`           | OCCA backend with CUDA kernels                    | Yes                   |
 | `/gpu/hip/occa`~           | OCCA backend with HIP kernels                     | Yes                   |
 

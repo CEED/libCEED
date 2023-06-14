@@ -16,6 +16,7 @@ For example, `CeedOperatorContextGetFieldLabel` was renamed to `CeedOperatorGetC
 - Added {c:func}`CeedOperatorGetFieldByName` to access a specific `CeedOperatorField` by its name
 - Update `/cpu/self/memcheck/*` backends to help verify `CeedVector` array access assumptions and `CeedQFunction` user output assumptions.
 - Update {c:func}`CeedOperatorLinearAssembleDiagonal` to provide default implementation that supports `CeedOperator` with multiple active bases.
+- Added Sycl backends `/gpu/sycl/ref` and `/gpu/sycl/shared`
 
 ### Examples
 
