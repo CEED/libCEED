@@ -118,9 +118,6 @@ CEED_INTERN int CeedVectorCreate_Sycl(CeedSize n, CeedVector vec);
 
 CEED_INTERN int CeedElemRestrictionCreate_Sycl(CeedMemType mem_type, CeedCopyMode copy_mode, const CeedInt *indices, CeedElemRestriction r);
 
-CEED_INTERN int CeedElemRestrictionCreateBlocked_Sycl(const CeedMemType mem_type, const CeedCopyMode copy_mode, const CeedInt *indices,
-                                                      const CeedElemRestriction res);
-
 CEED_INTERN int CeedBasisApplyElems_Sycl(CeedBasis basis, const CeedInt num_elem, CeedTransposeMode t_mode, CeedEvalMode eval_mode,
                                          const CeedVector u, CeedVector v);
 
