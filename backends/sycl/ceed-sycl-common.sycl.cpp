@@ -106,14 +106,12 @@ int CeedSetSyclStream(Ceed ceed, void *handle) {
 
   if (!handle) {
     return CeedError(ceed, CEED_ERROR_BACKEND, "Stream handle is null");
-    ;
   }
   sycl::queue *q = static_cast<sycl::queue *>(handle);
 
   // Ensure we are using the expected device
   if (data->sycl_device != q->get_device()) {
     return CeedError(ceed, CEED_ERROR_BACKEND, "Device mismatch between provided queue and ceed object");
-    ;
   }
   data->sycl_device  = q->get_device();
   data->sycl_context = q->get_context();
