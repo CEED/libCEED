@@ -24,6 +24,8 @@
 
 #include "ceed-sycl-gen.hpp"
 
+#define SUB_GROUP_SIZE_OP 16
+
 //------------------------------------------------------------------------------
 // Calculate the block size used for launching the operator kernel
 //------------------------------------------------------------------------------
@@ -215,7 +217,7 @@ extern "C" int CeedSyclGenOperatorBuild(CeedOperator op) {
   
   // Kernel function 
   code << "\n// -----------------------------------------------------------------------------\n";
-  code << "__attribute__((reqd_work_group_size(GROUP_SIZE_X, GROUP_SIZE_Y, GROUP_SIZE_Z)))\n";
+  code << "__attribute__((reqd_work_group_size(GROUP_SIZE_X, GROUP_SIZE_Y, GROUP_SIZE_Z), intel_reqd_sub_group_size(" << SUB_GROUP_SIZE_OP << ")))\n";
   code << "kernel void " << operator_name << "(";
   code << "const CeedInt num_elem, ";
   code << "global void* ctx, ";
