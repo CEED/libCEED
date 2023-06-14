@@ -112,8 +112,6 @@ typedef struct {
   CeedOperatorAssemble_Sycl *asmb;
 } CeedOperator_Sycl;
 
-// CEED_INTERN int CeedSyclGetCublasHandle(Ceed ceed, cublasHandle_t *handle);
-
 CEED_INTERN int CeedVectorCreate_Sycl(CeedSize n, CeedVector vec);
 
 CEED_INTERN int CeedElemRestrictionCreate_Sycl(CeedMemType mem_type, CeedCopyMode copy_mode, const CeedInt *indices, CeedElemRestriction r);

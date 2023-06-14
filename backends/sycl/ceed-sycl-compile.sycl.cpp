@@ -14,7 +14,6 @@
 
 #include <map>
 #include <sstream>
-// #include <sycl/ext/intel/experimental/online_compiler.hpp>
 #include <sycl/sycl.hpp>
 
 #include "./online_compiler.hpp"
