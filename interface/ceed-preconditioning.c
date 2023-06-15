@@ -442,8 +442,8 @@ static inline int CeedCompositeOperatorLinearAssembleAddDiagonal(CeedOperator op
 
   Users should generally use CeedOperatorLinearAssembleSymbolic()
 
-  Note: For operators using oriented element restrictions, entries in rows or cols may be negative indicating the assembled value at this nonzero
-should be negated
+  Note: For operators using oriented element restrictions, entries in rows or cols may be negative indicating the assembled value at this entry should
+be negated and the true row/col corresponds to -row/col - 1
 
   @param[in]  op     CeedOperator to assemble nonzero pattern
   @param[in]  offset Offset for number of entries
@@ -483,7 +483,7 @@ static int CeedSingleOperatorAssembleSymbolic(CeedOperator op, CeedInt offset, C
   CeedCall(CeedVectorCreate(ceed, num_nodes, &index_vec));
   CeedScalar *array;
   CeedCall(CeedVectorGetArrayWrite(index_vec, CEED_MEM_HOST, &array));
-  for (CeedInt i = 0; i < num_nodes; i++) array[i] = i;
+  for (CeedInt i = 0; i < num_nodes; i++) array[i] = i + 1;
   CeedCall(CeedVectorRestoreArray(index_vec, &array));
   CeedVector elem_dof;
   CeedCall(CeedVectorCreate(ceed, num_elem * elem_size * num_comp, &elem_dof));
@@ -506,8 +506,8 @@ static int CeedSingleOperatorAssembleSymbolic(CeedOperator op, CeedInt offset, C
             const CeedInt row = elem_dof_a[elem_dof_index_row];
             const CeedInt col = elem_dof_a[elem_dof_index_col];
 
-            rows[offset + count] = row;
-            cols[offset + count] = col;
+            rows[offset + count] = (row > 0) ? row - 1 : row;
+            cols[offset + count] = (col > 0) ? col - 1 : col;
             count++;
           }
         }
@@ -571,8 +571,6 @@ static int CeedSingleOperatorAssemble(CeedOperator op, CeedInt offset, CeedVecto
   CeedVector          assembled_qf = NULL;
   CeedElemRestriction rstr_q       = NULL;
   CeedCall(CeedOperatorLinearAssembleQFunctionBuildOrUpdate(op, &assembled_qf, &rstr_q, CEED_REQUEST_IMMEDIATE));
-  CeedSize qf_length;
-  CeedCall(CeedVectorGetLength(assembled_qf, &qf_length));
 
   CeedInt            num_input_fields, num_output_fields;
   CeedOperatorField *input_fields;
@@ -1140,10 +1138,9 @@ int CeedOperatorAssemblyDataCreate(Ceed ceed, CeedOperator op, CeedOperatorAssem
     if (vec == CEED_VECTOR_ACTIVE) {
       CeedBasis    basis_in = NULL;
       CeedEvalMode eval_mode;
-      CeedInt      index = -1, dim, num_comp, q_comp;
+      CeedInt      index = -1, num_comp, q_comp;
       CeedCall(CeedOperatorFieldGetBasis(op_fields[i], &basis_in));
       CeedCall(CeedQFunctionFieldGetEvalMode(qf_fields[i], &eval_mode));
-      CeedCall(CeedBasisGetDimension(basis_in, &dim));
       CeedCall(CeedBasisGetNumComponents(basis_in, &num_comp));
       CeedCall(CeedBasisGetNumQuadratureComponents(basis_in, eval_mode, &q_comp));
       for (CeedInt i = 0; i < num_active_bases; i++) {
@@ -1205,10 +1202,9 @@ int CeedOperatorAssemblyDataCreate(Ceed ceed, CeedOperator op, CeedOperatorAssem
     if (vec == CEED_VECTOR_ACTIVE) {
       CeedBasis    basis_out = NULL;
       CeedEvalMode eval_mode;
-      CeedInt      index = -1, dim, num_comp, q_comp;
+      CeedInt      index = -1, num_comp, q_comp;
       CeedCall(CeedOperatorFieldGetBasis(op_fields[i], &basis_out));
       CeedCall(CeedQFunctionFieldGetEvalMode(qf_fields[i], &eval_mode));
-      CeedCall(CeedBasisGetDimension(basis_out, &dim));
       CeedCall(CeedBasisGetNumComponents(basis_out, &num_comp));
       CeedCall(CeedBasisGetNumQuadratureComponents(basis_out, eval_mode, &q_comp));
       for (CeedInt i = 0; i < num_active_bases; i++) {
@@ -1216,7 +1212,6 @@ int CeedOperatorAssemblyDataCreate(Ceed ceed, CeedOperator op, CeedOperatorAssem
       }
       if (index == -1) {
         CeedElemRestriction elem_rstr_out;
-
         index = num_active_bases;
         CeedCall(CeedRealloc(num_active_bases + 1, &(*data)->active_bases));
         (*data)->active_bases[num_active_bases] = NULL;
