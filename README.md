@@ -64,6 +64,12 @@ if your compiler does not support gcc-style options, if you are cross compiling,
 To enable CUDA support, add `CUDA_DIR=/opt/cuda` or an appropriate directory to your `make` invocation.
 To enable HIP support, add `ROCM_DIR=/opt/rocm` or an appropriate directory.
 To enable SYCL support, add `SYCL_DIR=/opt/sycl` or an appropriate directory.
+Note that SYCL backends require building with oneAPI compilers as well:
+```console
+$ . /opt/intel/oneapi/setvars.sh
+$ make SYCL_DIR=/opt/intel/oneapi/compiler/latest/linux SYCLCXX=icpx CC=icx CXX=icpx
+```
+
 To store these or other arguments as defaults for future invocations of `make`, use:
 
 ```console
