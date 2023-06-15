@@ -462,12 +462,12 @@ PetscErrorCode OutflowBCSetup(ProblemData *problem, DM dm, void *ctx, NewtonianI
 // -----------------------------------------------------------------------------
 // Differential Filtering Functions
 // -----------------------------------------------------------------------------
-
 PetscErrorCode DifferentialFilterSetup(Ceed ceed, User user, CeedData ceed_data, ProblemData *problem);
 PetscErrorCode DifferentialFilterDataDestroy(DiffFilterData diff_filter);
 PetscErrorCode TSMonitor_DifferentialFilter(TS ts, PetscInt steps, PetscReal solution_time, Vec Q, void *ctx);
 PetscErrorCode DifferentialFilterApply(User user, const PetscReal solution_time, const Vec Q, Vec Filtered_Solution);
 PetscErrorCode DifferentialFilter_MMS_ICSetup(ProblemData *problem);
+extern PetscLogEvent FilterData;
 
 // -----------------------------------------------------------------------------
 // SGS Data-Driven Training via SmartSim
@@ -477,5 +477,9 @@ PetscErrorCode SGS_DD_TrainingSetup(Ceed ceed, User user, CeedData ceed_data, Pr
 PetscErrorCode TSMonitor_SGS_DD_Training(TS ts, PetscInt step_num, PetscReal solution_time, Vec Q, void *ctx);
 PetscErrorCode TSPostStep_SGS_DD_Training(TS ts);
 PetscErrorCode SGS_DD_TrainingDataDestroy(SGS_DD_TrainingData sgs_dd_train);
+extern PetscLogEvent SmartRedis_Init;
+extern PetscLogEvent SmartRedis_Meta;
+extern PetscLogEvent SmartRedis_Train;
+extern PetscLogEvent TrainDataCompute;
 
 #endif  // libceed_fluids_examples_navier_stokes_h

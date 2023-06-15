@@ -22,9 +22,11 @@ PetscErrorCode SmartSimTrainingSetup(User user) {
   PetscCallMPI(MPI_Comm_size(user->comm, &num_ranks));
 
   if (rank % smartsim->collocated_database_num_ranks == 0) {
+    PetscCall(PetscLogEventBegin(SmartRedis_Meta, 0, 0, 0, 0));
     // -- Send array that communicates when ML is done training
     SmartRedisCall(put_tensor(smartsim->client, "check-run", 9, checkrun, dim_2, 1, SRTensorTypeDouble, SRMemLayoutContiguous));
     PetscCall(SmartRedisVerifyPutTensor(smartsim->client, "check-run", 9));
+    PetscCall(PetscLogEventEnd(SmartRedis_Meta, 0, 0, 0, 0));
   }
 
   PetscFunctionReturn(0);
@@ -50,7 +52,9 @@ PetscErrorCode SmartSimSetup(User user) {
   PetscCallMPI(MPI_Comm_rank(user->comm, &rank));
   PetscCall(PetscSNPrintf(smartsim->rank_id_name, sizeof smartsim->rank_id_name, "y.%d", rank));
 
+  PetscCall(PetscLogEventBegin(SmartRedis_Init, 0, 0, 0, 0));
   SmartRedisCall(SmartRedisCClient(num_orchestrator_nodes != 1, smartsim->rank_id_name, rank_id_name_len, &smartsim->client));
+  PetscCall(PetscLogEventEnd(SmartRedis_Init, 0, 0, 0, 0));
 
   PetscCall(SmartSimTrainingSetup(user));
 
