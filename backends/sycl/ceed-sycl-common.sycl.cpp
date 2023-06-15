@@ -118,13 +118,25 @@ int CeedSetStream_Sycl(Ceed ceed, void* handle) {
   data->sycl_queue = *q;
 
   // Revisit this when we have a hierarchy of delegates
-  Ceed ceed_delegate;
-  if(!CeedGetDelegate(ceed,&ceed_delegate)) {
+  Ceed ceed_delegate = NULL;
+  CeedGetDelegate(ceed,&ceed_delegate);
+  if(ceed_delegate) {
     Ceed_Sycl *delegate_data;
     CeedCallBackend(CeedGetData(ceed_delegate, &delegate_data));
     delegate_data->sycl_device = q->get_device();
     delegate_data->sycl_context = q->get_context();
     delegate_data->sycl_queue = *q;
+  }
+
+  // Set queue and context for Ceed Fallback object
+  Ceed ceed_fallback = NULL;
+  CeedGetOperatorFallbackCeed(ceed,&ceed_fallback);
+  if(ceed_fallback) {
+    Ceed_Sycl *fallback_data;
+    CeedCallBackend(CeedGetData(ceed_fallback, &fallback_data));
+    fallback_data->sycl_device = q->get_device();
+    fallback_data->sycl_context = q->get_context();
+    fallback_data->sycl_queue = *q;
   }
 
   return CEED_ERROR_SUCCESS;
