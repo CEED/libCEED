@@ -31,6 +31,7 @@ endif
 NVCC ?= $(CUDA_DIR)/bin/nvcc
 NVCC_CXX ?= $(CXX)
 HIPCC ?= $(ROCM_DIR)/bin/hipcc
+SYCLCXX ?= $(CXX)
 SED ?= sed
 ifneq ($(EMSCRIPTEN),)
   STATIC = 1
@@ -95,7 +96,7 @@ endif
 AFLAGS = -fsanitize=address #-fsanitize=undefined -fno-omit-frame-pointer
 
 # Note: Intel oneAPI C/C++ compiler is now icx/icpx
-CC_VENDOR := $(subst icc_orig,icc,$(subst oneAPI,icc,$(firstword $(filter gcc clang icc icc_orig oneAPI XL emcc,$(subst -, ,$(shell $(CC) --version))))))
+CC_VENDOR := $(subst icc_orig,icc,$(firstword $(filter gcc clang icc icc_orig oneAPI XL emcc,$(subst -, ,$(shell $(CC) --version)))))
 FC_VENDOR := $(if $(FC),$(firstword $(filter GNU ifort ifx XL,$(shell $(FC) --version 2>&1 || $(FC) -qversion))))
 
 # Default extra flags by vendor
@@ -107,6 +108,10 @@ OMP_SIMD_FLAG.gcc       := -fopenmp-simd
 OMP_SIMD_FLAG.clang     := $(OMP_SIMD_FLAG.gcc)
 OMP_SIMD_FLAG.icc       := -qopenmp-simd
 OMP_SIMD_FLAG.oneAPI    := $(OMP_SIMD_FLAG.clang)
+SYCL_FLAG.gcc           :=
+SYCL_FLAG.clang         := -fsycl
+SYCL_FLAG.icc           :=
+SYCL_FLAG.oneAPI        := -fsycl
 OPT.gcc                 := -g -ffp-contract=fast
 OPT.clang               := $(OPT.gcc)
 OPT.oneAPI              := $(OPT.clang)
@@ -155,6 +160,9 @@ HIPCCFLAGS ?= $(filter-out $(OMP_SIMD_FLAG),$(OPT)) -fPIC -munsafe-fp-atomics
 ifneq ($(HIP_ARCH),)
   HIPCCFLAGS += --amdgpu-target=$(HIP_ARCH)
 endif
+
+SYCL_FLAG := $(SYCL_FLAG.$(CC_VENDOR))
+SYCLFLAGS ?= $(SYCL_FLAG) -fPIC -std=c++17 $(filter-out -std=c++11,$(CXXFLAGS)) $(filter-out $(OMP_SIMD_FLAG),$(OPT))
 FFLAGS ?= $(OPT) $(FFLAGS.$(FC_VENDOR))
 
 ifeq ($(COVERAGE), 1)
@@ -264,6 +272,9 @@ hip-ref.hip    := $(sort $(wildcard backends/hip-ref/kernels/*.hip.cpp))
 hip-shared.c   := $(sort $(wildcard backends/hip-shared/*.c))
 hip-gen.c      := $(sort $(wildcard backends/hip-gen/*.c))
 hip-gen.cpp    := $(sort $(wildcard backends/hip-gen/*.cpp))
+sycl-core.cpp  := $(sort $(wildcard backends/sycl/*.sycl.cpp))
+sycl-ref.cpp   := $(sort $(wildcard backends/sycl-ref/*.sycl.cpp))
+sycl-shared.cpp:= $(sort $(wildcard backends/sycl-shared/*.sycl.cpp))
 
 hip-all.c := interface/ceed-hip.c $(hip.c) $(hip-ref.c) $(hip-shared.c) $(hip-gen.c)
 hip-all.cpp := $(hip.cpp) $(hip-ref.cpp) $(hip-gen.cpp)
@@ -297,6 +308,7 @@ info:
 	$(info FFLAGS        = $(value FFLAGS))
 	$(info NVCCFLAGS     = $(value NVCCFLAGS))
 	$(info HIPCCFLAGS    = $(value HIPCCFLAGS))
+	$(info SYCLFLAGS     = $(value SYCLFLAGS))
 	$(info CEED_LDFLAGS  = $(value CEED_LDFLAGS))
 	$(info CEED_LDLIBS   = $(value CEED_LDLIBS))
 	$(info AR            = $(AR))
@@ -313,6 +325,7 @@ info:
 	$(info MAGMA_DIR     = $(MAGMA_DIR)$(call backend_status,$(MAGMA_BACKENDS)))
 	$(info CUDA_DIR      = $(CUDA_DIR)$(call backend_status,$(CUDA_BACKENDS)))
 	$(info ROCM_DIR      = $(ROCM_DIR)$(call backend_status,$(HIP_BACKENDS)))
+	$(info SYCL_DIR      = $(SYCL_DIR)$(call backend_status,$(SYCL_BACKENDS)))
 	$(info ------------------------------------)
 	$(info MFEM_DIR      = $(MFEM_DIR))
 	$(info NEK5K_DIR     = $(NEK5K_DIR))
@@ -440,6 +453,19 @@ ifneq ($(HIP_LIB_DIR),)
   BACKENDS_MAKE += $(HIP_BACKENDS)
 endif
 
+# SYCL Backends
+SYCL_BACKENDS = /gpu/sycl/ref /gpu/sycl/shared
+ifneq ($(SYCL_DIR),)
+	SYCL_LIB_DIR := $(wildcard $(foreach d,lib lib64,$(SYCL_DIR)/$d/libsycl.${SO_EXT}))
+	SYCL_LIB_DIR := $(patsubst %/,%,$(dir $(firstword $(SYCL_LIB_DIR))))
+endif
+ifneq ($(SYCL_LIB_DIR),)
+	PKG_LIBS += $(SYCL_FLAG) -lze_loader
+	LIBCEED_CONTAINS_CXX = 1
+	libceed.sycl += $(sycl-core.cpp) $(sycl-ref.cpp) $(sycl-shared.cpp)
+	BACKENDS_MAKE += $(SYCL_BACKENDS)
+endif
+
 # MAGMA Backends
 ifneq ($(wildcard $(MAGMA_DIR)/lib/libmagma.*),)
   MAGMA_ARCH=$(shell nm -g $(MAGMA_DIR)/lib/libmagma.* | grep -c "hipblas")
@@ -507,7 +533,7 @@ endif
 # when creating shared or static libraries.
 weak_last = $(filter-out %-weak.o,$(1)) $(filter %-weak.o,$(1))
 
-libceed.o = $(libceed.c:%.c=$(OBJDIR)/%.o) $(libceed.cpp:%.cpp=$(OBJDIR)/%.o) $(libceed.cu:%.cu=$(OBJDIR)/%.o) $(libceed.hip:%.hip.cpp=$(OBJDIR)/%.o)
+libceed.o = $(libceed.c:%.c=$(OBJDIR)/%.o) $(libceed.cpp:%.cpp=$(OBJDIR)/%.o) $(libceed.cu:%.cu=$(OBJDIR)/%.o) $(libceed.hip:%.hip.cpp=$(OBJDIR)/%.o) $(libceed.sycl:%.sycl.cpp=$(OBJDIR)/%.o)
 $(filter %fortran.o,$(libceed.o)) : CPPFLAGS += $(if $(filter 1,$(UNDERSCORE)),-DUNDERSCORE)
 $(libceed.o): | info-backends
 $(libceed.so) : $(call weak_last,$(libceed.o)) | $$(@D)/.DIR
@@ -527,6 +553,9 @@ $(OBJDIR)/%.o : $(CURDIR)/%.cu | $$(@D)/.DIR
 
 $(OBJDIR)/%.o : $(CURDIR)/%.hip.cpp | $$(@D)/.DIR
 	$(call quiet,HIPCC) $(CPPFLAGS) $(HIPCCFLAGS) -c -o $@ $(abspath $<)
+
+$(OBJDIR)/%.o : $(CURDIR)/%.sycl.cpp | $$(@D)/.DIR
+	$(call quiet,SYCLCXX) $(SYCLFLAGS) $(CPPFLAGS) -c -o $@ $(abspath $<)
 
 $(OBJDIR)/%$(EXE_SUFFIX) : tests/%.c | $$(@D)/.DIR
 	$(call quiet,LINK.c) $(CEED_LDFLAGS) -o $@ $(abspath $<) $(CEED_LIBS) $(CEED_LDLIBS) $(LDLIBS)
@@ -768,9 +797,9 @@ print-% :
 
 # All variables to consider for caching
 CONFIG_VARS = CC CXX FC NVCC NVCC_CXX HIPCC \
-	OPT CFLAGS CPPFLAGS CXXFLAGS FFLAGS NVCCFLAGS HIPCCFLAGS \
+	OPT CFLAGS CPPFLAGS CXXFLAGS FFLAGS NVCCFLAGS HIPCCFLAGS SYCLFLAGS \
 	AR ARFLAGS LDFLAGS LDLIBS LIBCXX SED \
-	MAGMA_DIR OCCA_DIR XSMM_DIR CUDA_DIR CUDA_ARCH MFEM_DIR PETSC_DIR NEK5K_DIR ROCM_DIR HIP_ARCH
+	MAGMA_DIR OCCA_DIR XSMM_DIR CUDA_DIR CUDA_ARCH MFEM_DIR PETSC_DIR NEK5K_DIR ROCM_DIR HIP_ARCH SYCL_DIR
 
 # $(call needs_save,CFLAGS) returns true (a nonempty string) if CFLAGS
 # was set on the command line or in config.mk (where it will appear as

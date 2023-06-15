@@ -63,6 +63,13 @@ if your compiler does not support gcc-style options, if you are cross compiling,
 
 To enable CUDA support, add `CUDA_DIR=/opt/cuda` or an appropriate directory to your `make` invocation.
 To enable HIP support, add `ROCM_DIR=/opt/rocm` or an appropriate directory.
+To enable SYCL support, add `SYCL_DIR=/opt/sycl` or an appropriate directory.
+Note that SYCL backends require building with oneAPI compilers as well:
+```console
+$ . /opt/intel/oneapi/setvars.sh
+$ make SYCL_DIR=/opt/intel/oneapi/compiler/latest/linux SYCLCXX=icpx CC=icx CXX=icpx
+```
+
 To store these or other arguments as defaults for future invocations of `make`, use:
 
 ```console
@@ -157,6 +164,10 @@ There are multiple supported backends, which can be selected at runtime in the e
 | `/gpu/hip/shared`          | Optimized pure HIP kernels using shared memory    | Yes                   |
 | `/gpu/hip/gen`             | Optimized pure HIP kernels using code generation  | No                    |
 ||
+| **SYCL Native**            |
+| `/gpu/sycl/ref`            | Reference pure SYCL kernels                       | Yes                   |
+| `/gpu/sycl/shared`         | Optimized pure SYCL kernels using shared memory   | Yes                   |
+||
 | **MAGMA**                  |
 | `/gpu/cuda/magma`          | CUDA MAGMA kernels                                | No                    |
 | `/gpu/cuda/magma/det`      | CUDA MAGMA kernels                                | Yes                   |
@@ -167,7 +178,7 @@ There are multiple supported backends, which can be selected at runtime in the e
 | `/*/occa`                  | Selects backend based on available OCCA modes     | Yes                   |
 | `/cpu/self/occa`           | OCCA backend with serial CPU kernels              | Yes                   |
 | `/cpu/openmp/occa`         | OCCA backend with OpenMP kernels                  | Yes                   |
-| `/cpu/dpcpp/occa`          | OCCA backend with CPC++ kernels                   | Yes                   |
+| `/cpu/dpcpp/occa`          | OCCA backend with DPC++ kernels                   | Yes                   |
 | `/gpu/cuda/occa`           | OCCA backend with CUDA kernels                    | Yes                   |
 | `/gpu/hip/occa`~           | OCCA backend with HIP kernels                     | Yes                   |
 
@@ -193,6 +204,9 @@ The `/gpu/cuda/*` backends provide GPU performance strictly using CUDA.
 The `/gpu/hip/*` backends provide GPU performance strictly using HIP.
 They are based on the `/gpu/cuda/*` backends.
 ROCm version 4.2 or newer is required.
+
+The `/gpu/sycl/*` backends provide GPU performance strictly using SYCL.
+They are based on the `/gpu/cuda/*` and `/gpu/hip/*` backends.
 
 The `/gpu/*/magma/*` backends rely upon the [MAGMA](https://bitbucket.org/icl/magma) package.
 To enable the MAGMA backends, the environment variable `MAGMA_DIR` must point to the top-level MAGMA directory, with the MAGMA library located in `$(MAGMA_DIR)/lib/`.
