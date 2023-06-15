@@ -139,4 +139,5 @@ int CeedQFunctionCreate_Sycl(CeedQFunction qf) {
   CeedCallBackend(CeedSetBackendFunctionCpp(ceed, "QFunction", qf, "Destroy", CeedQFunctionDestroy_Sycl));
   return CEED_ERROR_SUCCESS;
 }
+
 //------------------------------------------------------------------------------

@@ -13,8 +13,6 @@
 #include <ceed/jit-source/hip/hip-types.h>
 #include <hip/hip_runtime.h>
 
-#include "../hip/ceed-hip-common.h"
-
 typedef struct {
   CeedScalar *h_array;
   CeedScalar *h_array_borrowed;

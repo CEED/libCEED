@@ -64,4 +64,5 @@ CEED_INTERN int CeedRegister_Sycl_Shared(void) {
   CeedCallBackend(CeedRegister("/cpu/sycl/shared", CeedInit_Sycl_shared, 35));
   return CEED_ERROR_SUCCESS;
 }
+
 //------------------------------------------------------------------------------

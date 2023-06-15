@@ -588,6 +588,7 @@ static int CeedVectorAXPY_Hip(CeedVector y, CeedScalar alpha, CeedVector x) {
 
   return CEED_ERROR_SUCCESS;
 }
+
 //------------------------------------------------------------------------------
 // Compute y = alpha x + beta y on the host
 //------------------------------------------------------------------------------
