@@ -40,14 +40,20 @@ static int CeedTensorContractApply_Xsmm(CeedTensorContract contract, CeedInt A, 
   CeedCallBackend(CeedTensorContractGetData(contract, &impl));
 
   // Get kernel
-  libxsmm_smmfunction kernel;
-  CeedHashIJKLMKey    key = {B, C, J, t_mode, add};
-  khint_t             k   = kh_get(f32, impl->lookup_f32, key);
+  libxsmm_gemmfunction kernel;
+  CeedHashIJKLMKey     key = {B, C, J, t_mode, add};
+  khint_t              k   = kh_get(f32, impl->lookup_f32, key);
   CeedHashGetValue(impl->lookup_f32, k, kernel);
 
   // Run kernel or fallback to default implementation
   if (C != 1) {
-    for (CeedInt a = 0; a < A; a++) LIBXSMM_MMFUNCTION_KERNEL(&u[a * B * C], &t[0], &v[a * J * C]);
+    libxsmm_gemm_param gemm_param;
+    gemm_param.b.primary = (float *)&t[0];
+    for (CeedInt a = 0; a < A; a++) {
+      gemm_param.a.primary = (float *)&u[a * B * C];
+      gemm_param.c.primary = (float *)&v[a * J * C];
+      kernel(&gemm_param);
+    }
   } else {
     CeedTensorContract_Xsmm_C1(contract, A, B, C, J, t, t_mode, add, u, v);
   }
@@ -60,10 +66,10 @@ static int CeedTensorContractApply_Xsmm(CeedTensorContract contract, CeedInt A, 
 //------------------------------------------------------------------------------
 static int CeedTensorContractDestroy_Xsmm(CeedTensorContract contract) {
   CeedTensorContract_Xsmm *impl;
-  libxsmm_smmfunction      kernel;
-
   CeedCallBackend(CeedTensorContractGetData(contract, &impl));
+
   // Free kernels
+  libxsmm_gemmfunction kernel;
   kh_foreach_value(impl->lookup_f32, kernel, libxsmm_release_kernel(&kernel));
   kh_destroy(f32, impl->lookup_f32);
   CeedCallBackend(CeedFree(&impl));
@@ -105,7 +111,10 @@ int CeedTensorContractCreate_f32_Xsmm(CeedBasis basis, CeedTensorContract contra
               khint_t          k = kh_put(f32, impl->lookup_f32, key, &new_item);
               if (new_item) {
                 // Build kernel
-                libxsmm_smmfunction kernel = libxsmm_smmdispatch_v2(C, J, B, NULL, NULL, NULL, &flags);
+                const libxsmm_gemm_shape gemm_shape = libxsmm_create_gemm_shape(C, J, B, C, !t_mode ? B : J, C, LIBXSMM_DATATYPE_F32,
+                                                                                LIBXSMM_DATATYPE_F32, LIBXSMM_DATATYPE_F32, LIBXSMM_DATATYPE_F32);
+                libxsmm_gemmfunction     kernel =
+                    libxsmm_dispatch_gemm_v2(gemm_shape, (libxsmm_bitfield)(flags), (libxsmm_bitfield)LIBXSMM_GEMM_PREFETCH_NONE);
                 CeedCheck(kernel, ceed, CEED_ERROR_BACKEND, "LIBXSMM kernel failed to build.");
                 // Add kernel to hash table
                 kh_value(impl->lookup_f32, k) = kernel;
@@ -135,7 +144,10 @@ int CeedTensorContractCreate_f32_Xsmm(CeedBasis basis, CeedTensorContract contra
             khint_t          k = kh_put(f32, impl->lookup_f32, key, &new_item);
             if (new_item) {
               // Build kernel
-              libxsmm_smmfunction kernel = libxsmm_smmdispatch_v2(C, J, B, NULL, NULL, NULL, &flags);
+              const libxsmm_gemm_shape gemm_shape = libxsmm_create_gemm_shape(C, J, B, C, !t_mode ? B : J, C, LIBXSMM_DATATYPE_F32,
+                                                                              LIBXSMM_DATATYPE_F32, LIBXSMM_DATATYPE_F32, LIBXSMM_DATATYPE_F32);
+              libxsmm_gemmfunction     kernel =
+                  libxsmm_dispatch_gemm_v2(gemm_shape, (libxsmm_bitfield)(flags), (libxsmm_bitfield)LIBXSMM_GEMM_PREFETCH_NONE);
               CeedCheck(kernel, ceed, CEED_ERROR_BACKEND, "LIBXSMM kernel failed to build.");
               // Add kernel to hash table
               kh_value(impl->lookup_f32, k) = kernel;

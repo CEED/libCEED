@@ -90,7 +90,7 @@ int CeedTensorContractApply(CeedTensorContract contract, CeedInt A, CeedInt B, C
   @param[in]  D        First index of v, first index of t
   @param[in]  J        Third index of v, one of last two indices of t
   @param[in]  t        Tensor array to contract against
-  @param[in]  t_mode   Transpose mode for t, \ref CEED_NOTRANSPOSE for t_jb \ref CEED_TRANSPOSE for t_bj
+  @param[in]  t_mode   Transpose mode for t, \ref CEED_NOTRANSPOSE for t_djb \ref CEED_TRANSPOSE for t_dbj
   @param[in]  add      Add mode
   @param[in]  u        Input array
   @param[out] v        Output array

@@ -21,14 +21,8 @@
                                        (LIBXSMM_VERSION_UPDATE > update || (LIBXSMM_VERSION_UPDATE == update && LIBXSMM_VERSION_PATCH >= patch))))))
 #endif
 
-#if LIBXSMM_VERSION_GE(1, 17, 0, 0)
-#define LIBXSMM_MMFUNCTION_KERNEL(a, b, c) kernel(a, b, c)
-#else
-#define LIBXSMM_MMFUNCTION_KERNEL(a, b, c) kernel(a, b, c, NULL, NULL, NULL)
-#endif
-
 // Instantiate khash structs and methods
-CeedHashIJKLMInit(f32, libxsmm_smmfunction) CeedHashIJKLMInit(f64, libxsmm_dmmfunction)
+CeedHashIJKLMInit(f32, libxsmm_gemmfunction) CeedHashIJKLMInit(f64, libxsmm_gemmfunction)
 
     typedef struct {
   bool    is_tensor;
