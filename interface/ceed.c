@@ -912,9 +912,18 @@ int CeedInit(const char *resource, Ceed *ceed) {
 **/
 int CeedSetStream(Ceed ceed, void *handle) {
   CeedCheck(handle, ceed, CEED_ERROR_INCOMPATIBLE, "Stream handle must be non-null");
-  CeedCheck(ceed->SetStream, ceed, CEED_ERROR_UNSUPPORTED, "Backend does not support setting stream");
-  CeedCall(ceed->SetStream(ceed, handle));
+  if (ceed->SetStream) {
+    CeedCall(ceed->SetStream(ceed, handle));
+  } else {
+    Ceed delegate;
+    CeedCall(CeedGetDelegate(ceed, &delegate));
 
+    if (delegate) {
+      CeedCall(CeedSetStream(delegate, handle));
+    } else {
+      CeedError(ceed, CEED_ERROR_UNSUPPORTED, "Backend does not support setting stream");
+    }
+  }
   return CEED_ERROR_SUCCESS;
 }
 
