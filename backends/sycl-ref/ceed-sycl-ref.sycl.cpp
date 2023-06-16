@@ -38,6 +38,7 @@ static int CeedInit_Sycl(const char *resource, Ceed ceed) {
   CeedCallBackend(CeedSetData(ceed, data));
   CeedCallBackend(CeedSyclInit(ceed, resource));
 
+  CeedCallBackend(CeedSetBackendFunctionCpp(ceed, "Ceed", ceed, "SetStream", CeedSetStream_Sycl));
   CeedCallBackend(CeedSetBackendFunctionCpp(ceed, "Ceed", ceed, "GetPreferredMemType", CeedGetPreferredMemType_Sycl));
   CeedCallBackend(CeedSetBackendFunctionCpp(ceed, "Ceed", ceed, "VectorCreate", &CeedVectorCreate_Sycl));
   CeedCallBackend(CeedSetBackendFunctionCpp(ceed, "Ceed", ceed, "BasisCreateTensorH1", &CeedBasisCreateTensorH1_Sycl));

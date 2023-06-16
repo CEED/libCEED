@@ -780,6 +780,7 @@ int CeedInit(const char *resource, Ceed *ceed) {
   // Set lookup table
   FOffset f_offsets[] = {
       CEED_FTABLE_ENTRY(Ceed, Error),
+      CEED_FTABLE_ENTRY(Ceed, SetStream),
       CEED_FTABLE_ENTRY(Ceed, GetPreferredMemType),
       CEED_FTABLE_ENTRY(Ceed, Destroy),
       CEED_FTABLE_ENTRY(Ceed, VectorCreate),
@@ -874,6 +875,24 @@ int CeedInit(const char *resource, Ceed *ceed) {
 
   // Backend specific setup
   CeedCall(backends[match_index].init(&resource[match_help], *ceed));
+
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
+  @brief Set the GPU stream for a Ceed context
+
+  @param[in,out] ceed   Ceed context to set the stream
+  @param[in]     handle Handle to GPU stream
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref User
+**/
+int CeedSetStream(Ceed ceed, void *handle) {
+  CeedCheck(handle, ceed, CEED_ERROR_INCOMPATIBLE, "Stream handle must be non-null");
+  CeedCheck(ceed->SetStream, ceed, CEED_ERROR_UNSUPPORTED, "Backend does not support setting stream");
+  CeedCall(ceed->SetStream(ceed, handle));
 
   return CEED_ERROR_SUCCESS;
 }

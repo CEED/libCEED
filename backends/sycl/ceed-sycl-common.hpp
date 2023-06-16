@@ -45,6 +45,4 @@ CEED_INTERN int CeedSyclInit(Ceed ceed, const char *resource);
 
 CEED_INTERN int CeedDestroy_Sycl(Ceed ceed);
 
-CEED_EXTERN int CeedSetSyclStream(Ceed ceed, void *handle);
-
 #endif  // _ceed_sycl_common_h

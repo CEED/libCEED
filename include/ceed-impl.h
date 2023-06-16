@@ -94,6 +94,7 @@ struct Ceed_private {
   char       **jit_source_roots;
   CeedInt      num_jit_source_roots;
   int (*Error)(Ceed, const char *, int, const char *, int, const char *, va_list *);
+  int (*SetStream)(Ceed, void *);
   int (*GetPreferredMemType)(CeedMemType *);
   int (*Destroy)(Ceed);
   int (*VectorCreate)(CeedSize, CeedVector);
