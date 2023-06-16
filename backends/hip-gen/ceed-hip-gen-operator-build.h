@@ -9,6 +9,6 @@
 #define _ceed_hip_gen_operator_build_h
 
 CEED_INTERN int BlockGridCalculate_Hip_gen(CeedInt dim, CeedInt num_elem, CeedInt P_1d, CeedInt Q_1d, CeedInt *block_sizes);
-CEED_INTERN int CeedHipGenOperatorBuild(CeedOperator op);
+CEED_INTERN int CeedOperatorBuildKernel_Hip_gen(CeedOperator op);
 
 #endif  // _ceed_hip_gen_operator_build_h

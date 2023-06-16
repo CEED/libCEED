@@ -26,7 +26,7 @@ static int CeedInit_Cuda_shared(const char *resource, Ceed ceed) {
   Ceed_Cuda *data;
   CeedCallBackend(CeedCalloc(1, &data));
   CeedCallBackend(CeedSetData(ceed, data));
-  CeedCallBackend(CeedCudaInit(ceed, resource));
+  CeedCallBackend(CeedInit_Cuda(ceed, resource));
 
   Ceed ceed_ref;
   CeedCallBackend(CeedInit("/gpu/cuda/ref", &ceed_ref));

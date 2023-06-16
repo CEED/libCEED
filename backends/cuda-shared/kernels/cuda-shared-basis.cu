@@ -15,7 +15,7 @@ __constant__ CeedScalar c_G[sizeMax*sizeMax];
 //------------------------------------------------------------------------------
 // Interp device initalization
 //------------------------------------------------------------------------------
-extern "C" int CeedCudaInitInterp(CeedScalar *d_B, CeedInt P_1d, CeedInt Q_1d,
+extern "C" int CeedInit_CudaInterp(CeedScalar *d_B, CeedInt P_1d, CeedInt Q_1d,
                                   CeedScalar **c_B_ptr) {
   const int bytes = P_1d*Q_1d*sizeof(CeedScalar);
   cudaMemcpyToSymbol(c_B, d_B, bytes, 0, cudaMemcpyDeviceToDevice);
@@ -27,7 +27,7 @@ extern "C" int CeedCudaInitInterp(CeedScalar *d_B, CeedInt P_1d, CeedInt Q_1d,
 //------------------------------------------------------------------------------
 // Grad device initalization
 //------------------------------------------------------------------------------
-extern "C" int CeedCudaInitGrad(CeedScalar *d_B, CeedScalar *d_G,
+extern "C" int CeedInit_CudaGrad(CeedScalar *d_B, CeedScalar *d_G,
     CeedInt P_1d, CeedInt Q_1d, CeedScalar **c_B_ptr, CeedScalar **c_G_ptr) {
   const int bytes = P_1d*Q_1d*sizeof(CeedScalar);
   cudaMemcpyToSymbol(c_B, d_B, bytes, 0, cudaMemcpyDeviceToDevice);
@@ -41,7 +41,7 @@ extern "C" int CeedCudaInitGrad(CeedScalar *d_B, CeedScalar *d_G,
 //------------------------------------------------------------------------------
 // Collocated grad device initalization
 //------------------------------------------------------------------------------
-extern "C" int CeedCudaInitCollocatedGrad(CeedScalar *d_B, CeedScalar *d_G,
+extern "C" int CeedInit_CudaCollocatedGrad(CeedScalar *d_B, CeedScalar *d_G,
     CeedInt P_1d, CeedInt Q_1d, CeedScalar **c_B_ptr, CeedScalar **c_G_ptr) {
   const int bytes_interp = P_1d*Q_1d*sizeof(CeedScalar);
   cudaMemcpyToSymbol(c_B, d_B, bytes_interp, 0, cudaMemcpyDeviceToDevice);

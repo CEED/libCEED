@@ -26,7 +26,7 @@ static int CeedGetPreferredMemType_Cuda(CeedMemType *mem_type) {
 //------------------------------------------------------------------------------
 // Get CUBLAS handle
 //------------------------------------------------------------------------------
-int CeedCudaGetCublasHandle(Ceed ceed, cublasHandle_t *handle) {
+int CeedGetCublasHandle_Cuda(Ceed ceed, cublasHandle_t *handle) {
   Ceed_Cuda *data;
   CeedCallBackend(CeedGetData(ceed, &data));
 
@@ -38,7 +38,7 @@ int CeedCudaGetCublasHandle(Ceed ceed, cublasHandle_t *handle) {
 //------------------------------------------------------------------------------
 // Backend Init
 //------------------------------------------------------------------------------
-static int CeedInit_Cuda(const char *resource, Ceed ceed) {
+static int CeedInit_Cuda_ref(const char *resource, Ceed ceed) {
   char *resource_root;
   CeedCallBackend(CeedGetResourceRoot(ceed, resource, ":", &resource_root));
   CeedCheck(!strcmp(resource_root, "/gpu/cuda/ref"), ceed, CEED_ERROR_BACKEND, "Cuda backend cannot use resource: %s", resource);
@@ -48,7 +48,7 @@ static int CeedInit_Cuda(const char *resource, Ceed ceed) {
   Ceed_Cuda *data;
   CeedCallBackend(CeedCalloc(1, &data));
   CeedCallBackend(CeedSetData(ceed, data));
-  CeedCallBackend(CeedCudaInit(ceed, resource));
+  CeedCallBackend(CeedInit_Cuda(ceed, resource));
 
   CeedCallBackend(CeedSetBackendFunction(ceed, "Ceed", ceed, "GetPreferredMemType", CeedGetPreferredMemType_Cuda));
   CeedCallBackend(CeedSetBackendFunction(ceed, "Ceed", ceed, "VectorCreate", CeedVectorCreate_Cuda));
@@ -65,6 +65,6 @@ static int CeedInit_Cuda(const char *resource, Ceed ceed) {
 //------------------------------------------------------------------------------
 // Backend Register
 //------------------------------------------------------------------------------
-CEED_INTERN int CeedRegister_Cuda(void) { return CeedRegister("/gpu/cuda/ref", CeedInit_Cuda, 40); }
+CEED_INTERN int CeedRegister_Cuda(void) { return CeedRegister("/gpu/cuda/ref", CeedInit_Cuda_ref, 40); }
 
 //------------------------------------------------------------------------------

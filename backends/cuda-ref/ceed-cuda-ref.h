@@ -109,7 +109,7 @@ typedef struct {
   CeedOperatorAssemble_Cuda *asmb;
 } CeedOperator_Cuda;
 
-CEED_INTERN int CeedCudaGetCublasHandle(Ceed ceed, cublasHandle_t *handle);
+CEED_INTERN int CeedGetCublasHandle_Cuda(Ceed ceed, cublasHandle_t *handle);
 
 CEED_INTERN int CeedVectorCreate_Cuda(CeedSize n, CeedVector vec);
 

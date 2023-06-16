@@ -106,8 +106,7 @@ static int CeedJitLoadModule_Sycl(const sycl::context &sycl_context, const sycl:
 // ------------------------------------------------------------------------------
 // Compile kernel source to an executable `sycl::kernel_bundle`
 // ------------------------------------------------------------------------------
-int CeedJitBuildModule_Sycl(Ceed ceed, const std::string &kernel_source, SyclModule_t **sycl_module,
-                            const std::map<std::string, CeedInt> &constants) {
+int CeedBuildModule_Sycl(Ceed ceed, const std::string &kernel_source, SyclModule_t **sycl_module, const std::map<std::string, CeedInt> &constants) {
   Ceed_Sycl *data;
   CeedCallBackend(CeedGetData(ceed, &data));
 
@@ -130,7 +129,7 @@ int CeedJitBuildModule_Sycl(Ceed ceed, const std::string &kernel_source, SyclMod
 //
 // TODO: Error handle lz calls
 // ------------------------------------------------------------------------------
-int CeedJitGetKernel_Sycl(Ceed ceed, const SyclModule_t *sycl_module, const std::string &kernel_name, sycl::kernel **sycl_kernel) {
+int CeedGetKernel_Sycl(Ceed ceed, const SyclModule_t *sycl_module, const std::string &kernel_name, sycl::kernel **sycl_kernel) {
   Ceed_Sycl *data;
   CeedCallBackend(CeedGetData(ceed, &data));
 

@@ -116,11 +116,6 @@ CEED_INTERN int CeedVectorCreate_Sycl(CeedSize n, CeedVector vec);
 
 CEED_INTERN int CeedElemRestrictionCreate_Sycl(CeedMemType mem_type, CeedCopyMode copy_mode, const CeedInt *indices, CeedElemRestriction r);
 
-CEED_INTERN int CeedBasisApplyElems_Sycl(CeedBasis basis, const CeedInt num_elem, CeedTransposeMode t_mode, CeedEvalMode eval_mode,
-                                         const CeedVector u, CeedVector v);
-
-CEED_INTERN int CeedQFunctionApplyElems_Sycl(CeedQFunction qf, const CeedInt Q, const CeedVector *const u, const CeedVector *v);
-
 CEED_INTERN int CeedBasisCreateTensorH1_Sycl(CeedInt dim, CeedInt P_1d, CeedInt Q_1d, const CeedScalar *interp_1d, const CeedScalar *grad_1d,
                                              const CeedScalar *qref_1d, const CeedScalar *qweight_1d, CeedBasis basis);
 

@@ -15,7 +15,7 @@
 //------------------------------------------------------------------------------
 // Device information backend init
 //------------------------------------------------------------------------------
-int CeedHipInit(Ceed ceed, const char *resource) {
+int CeedInit_Hip(Ceed ceed, const char *resource) {
   const char *device_spec = strstr(resource, ":device_id=");
   const int   device_id   = (device_spec) ? atoi(device_spec + 11) : -1;
 

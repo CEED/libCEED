@@ -8,6 +8,6 @@
 #ifndef _ceed_cuda_gen_operator_build_h
 #define _ceed_cuda_gen_operator_build_h
 
-CEED_INTERN int CeedCudaGenOperatorBuild(CeedOperator op);
+CEED_INTERN int CeedOperatorBuildKernel_Cuda_gen(CeedOperator op);
 
 #endif  // _ceed_cuda_gen_operator_build_h

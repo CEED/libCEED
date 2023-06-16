@@ -23,7 +23,7 @@ static int CeedQFunctionApply_Cuda(CeedQFunction qf, CeedInt Q, CeedVector *U, C
   CeedCallBackend(CeedQFunctionGetCeed(qf, &ceed));
 
   // Build and compile kernel, if not done
-  CeedCallBackend(CeedCudaBuildQFunction(qf));
+  CeedCallBackend(CeedQFunctionBuildKernel_Cuda_ref(qf));
 
   CeedQFunction_Cuda *data;
   CeedCallBackend(CeedQFunctionGetData(qf, &data));

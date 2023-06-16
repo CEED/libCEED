@@ -14,7 +14,7 @@
 //------------------------------------------------------------------------------
 // Device information backend init
 //------------------------------------------------------------------------------
-int CeedSyclInit(Ceed ceed, const char *resource) {
+int CeedInit_Sycl(Ceed ceed, const char *resource) {
   const char *device_spec = std::strstr(resource, ":device_id=");
   const int   device_id   = (device_spec) ? atoi(device_spec + 11) : 0;
 

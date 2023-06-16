@@ -50,13 +50,13 @@ int CeedBasisApply_Hip(CeedBasis basis, const CeedInt num_elem, CeedTransposeMod
       CeedCallBackend(CeedBasisGetDimension(basis, &dim));
       CeedInt block_size = CeedIntMin(CeedIntPow(Q_1d, dim), max_block_size);
 
-      CeedCallBackend(CeedRunKernelHip(ceed, data->Interp, num_elem, block_size, interp_args));
+      CeedCallBackend(CeedRunKernel_Hip(ceed, data->Interp, num_elem, block_size, interp_args));
     } break;
     case CEED_EVAL_GRAD: {
       void   *grad_args[] = {(void *)&num_elem, (void *)&transpose, &data->d_interp_1d, &data->d_grad_1d, &d_u, &d_v};
       CeedInt block_size  = max_block_size;
 
-      CeedCallBackend(CeedRunKernelHip(ceed, data->Grad, num_elem, block_size, grad_args));
+      CeedCallBackend(CeedRunKernel_Hip(ceed, data->Grad, num_elem, block_size, grad_args));
     } break;
     case CEED_EVAL_WEIGHT: {
       void     *weight_args[] = {(void *)&num_elem, (void *)&data->d_q_weight_1d, &d_v};
@@ -64,7 +64,7 @@ int CeedBasisApply_Hip(CeedBasis basis, const CeedInt num_elem, CeedTransposeMod
       int       grid_size     = num_elem / block_size;
       if (block_size * grid_size < num_elem) grid_size += 1;
 
-      CeedCallBackend(CeedRunKernelHip(ceed, data->Weight, grid_size, block_size, weight_args));
+      CeedCallBackend(CeedRunKernel_Hip(ceed, data->Weight, grid_size, block_size, weight_args));
     } break;
     // LCOV_EXCL_START
     // Evaluate the divergence to/from the quadrature points
@@ -125,16 +125,16 @@ int CeedBasisApplyNonTensor_Hip(CeedBasis basis, const CeedInt num_elem, CeedTra
     case CEED_EVAL_INTERP: {
       void     *interp_args[] = {(void *)&num_elem, (void *)&transpose, &data->d_interp, &d_u, &d_v};
       const int block_size_x  = transpose ? num_nodes : num_qpts;
-      CeedCallBackend(CeedRunKernelDimHip(ceed, data->Interp, grid, block_size_x, 1, elemsPerBlock, interp_args));
+      CeedCallBackend(CeedRunKernelDim_Hip(ceed, data->Interp, grid, block_size_x, 1, elemsPerBlock, interp_args));
     } break;
     case CEED_EVAL_GRAD: {
       void     *grad_args[]  = {(void *)&num_elem, (void *)&transpose, &data->d_grad, &d_u, &d_v};
       const int block_size_x = transpose ? num_nodes : num_qpts;
-      CeedCallBackend(CeedRunKernelDimHip(ceed, data->Grad, grid, block_size_x, 1, elemsPerBlock, grad_args));
+      CeedCallBackend(CeedRunKernelDim_Hip(ceed, data->Grad, grid, block_size_x, 1, elemsPerBlock, grad_args));
     } break;
     case CEED_EVAL_WEIGHT: {
       void *weight_args[] = {(void *)&num_elem, (void *)&data->d_q_weight, &d_v};
-      CeedCallBackend(CeedRunKernelDimHip(ceed, data->Weight, grid, num_qpts, 1, elemsPerBlock, weight_args));
+      CeedCallBackend(CeedRunKernelDim_Hip(ceed, data->Weight, grid, num_qpts, 1, elemsPerBlock, weight_args));
     } break;
     // LCOV_EXCL_START
     // Evaluate the divergence to/from the quadrature points
@@ -227,12 +227,12 @@ int CeedBasisCreateTensorH1_Hip(CeedInt dim, CeedInt P_1d, CeedInt Q_1d, const C
   CeedDebug256(ceed, 2, "----- Loading Basis Kernel Source -----\n");
   CeedCallBackend(CeedLoadSourceToBuffer(ceed, basis_kernel_path, &basis_kernel_source));
   CeedDebug256(ceed, 2, "----- Loading Basis Kernel Source Complete! -----\n");
-  CeedCallBackend(CeedCompileHip(ceed, basis_kernel_source, &data->module, 7, "BASIS_Q_1D", Q_1d, "BASIS_P_1D", P_1d, "BASIS_BUF_LEN",
-                                 ncomp * CeedIntPow(Q_1d > P_1d ? Q_1d : P_1d, dim), "BASIS_DIM", dim, "BASIS_NUM_COMP", ncomp, "BASIS_NUM_NODES",
-                                 CeedIntPow(P_1d, dim), "BASIS_NUM_QPTS", CeedIntPow(Q_1d, dim)));
-  CeedCallBackend(CeedGetKernelHip(ceed, data->module, "Interp", &data->Interp));
-  CeedCallBackend(CeedGetKernelHip(ceed, data->module, "Grad", &data->Grad));
-  CeedCallBackend(CeedGetKernelHip(ceed, data->module, "Weight", &data->Weight));
+  CeedCallBackend(CeedCompile_Hip(ceed, basis_kernel_source, &data->module, 7, "BASIS_Q_1D", Q_1d, "BASIS_P_1D", P_1d, "BASIS_BUF_LEN",
+                                  ncomp * CeedIntPow(Q_1d > P_1d ? Q_1d : P_1d, dim), "BASIS_DIM", dim, "BASIS_NUM_COMP", ncomp, "BASIS_NUM_NODES",
+                                  CeedIntPow(P_1d, dim), "BASIS_NUM_QPTS", CeedIntPow(Q_1d, dim)));
+  CeedCallBackend(CeedGetKernel_Hip(ceed, data->module, "Interp", &data->Interp));
+  CeedCallBackend(CeedGetKernel_Hip(ceed, data->module, "Grad", &data->Grad));
+  CeedCallBackend(CeedGetKernel_Hip(ceed, data->module, "Weight", &data->Weight));
   CeedCallBackend(CeedFree(&basis_kernel_path));
   CeedCallBackend(CeedFree(&basis_kernel_source));
 
@@ -274,11 +274,11 @@ int CeedBasisCreateH1_Hip(CeedElemTopology topo, CeedInt dim, CeedInt num_nodes,
   CeedDebug256(ceed, 2, "----- Loading Basis Kernel Source -----\n");
   CeedCallBackend(CeedLoadSourceToBuffer(ceed, basis_kernel_path, &basis_kernel_source));
   CeedDebug256(ceed, 2, "----- Loading Basis Kernel Source Complete! -----\n");
-  CeedCallBackend(CeedCompileHip(ceed, basis_kernel_source, &data->module, 4, "BASIS_Q", num_qpts, "BASIS_P", num_nodes, "BASIS_DIM", dim,
-                                 "BASIS_NUM_COMP", ncomp));
-  CeedCallBackend(CeedGetKernelHip(ceed, data->module, "Interp", &data->Interp));
-  CeedCallBackend(CeedGetKernelHip(ceed, data->module, "Grad", &data->Grad));
-  CeedCallBackend(CeedGetKernelHip(ceed, data->module, "Weight", &data->Weight));
+  CeedCallBackend(CeedCompile_Hip(ceed, basis_kernel_source, &data->module, 4, "BASIS_Q", num_qpts, "BASIS_P", num_nodes, "BASIS_DIM", dim,
+                                  "BASIS_NUM_COMP", ncomp));
+  CeedCallBackend(CeedGetKernel_Hip(ceed, data->module, "Interp", &data->Interp));
+  CeedCallBackend(CeedGetKernel_Hip(ceed, data->module, "Grad", &data->Grad));
+  CeedCallBackend(CeedGetKernel_Hip(ceed, data->module, "Weight", &data->Weight));
   CeedCallBackend(CeedFree(&basis_kernel_path));
   CeedCallBackend(CeedFree(&basis_kernel_source));
   CeedCallBackend(CeedBasisSetData(basis, data));

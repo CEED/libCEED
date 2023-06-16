@@ -19,7 +19,7 @@
 //------------------------------------------------------------------------------
 // Build QFunction kernel
 //------------------------------------------------------------------------------
-extern "C" int CeedCudaBuildQFunction(CeedQFunction qf) {
+extern "C" int CeedQFunctionBuildKernel_Cuda_ref(CeedQFunction qf) {
   using std::ostringstream;
   using std::string;
   Ceed ceed;
@@ -109,8 +109,8 @@ extern "C" int CeedCudaBuildQFunction(CeedQFunction qf) {
   CeedDebug(ceed, code.str().c_str());
 
   // Compile kernel
-  CeedCallBackend(CeedCompileCuda(ceed, code.str().c_str(), &data->module, 0));
-  CeedCallBackend(CeedGetKernelCuda(ceed, data->module, kernel_name.c_str(), &data->QFunction));
+  CeedCallBackend(CeedCompile_Cuda(ceed, code.str().c_str(), &data->module, 0));
+  CeedCallBackend(CeedGetKernel_Cuda(ceed, data->module, kernel_name.c_str(), &data->QFunction));
 
   // Cleanup
   CeedCallBackend(CeedFree(&data->qfunction_source));

@@ -26,7 +26,7 @@ static int CeedInit_Hip_gen(const char *resource, Ceed ceed) {
   Ceed_Hip *data;
   CeedCallBackend(CeedCalloc(1, &data));
   CeedCallBackend(CeedSetData(ceed, data));
-  CeedCallBackend(CeedHipInit(ceed, resource));
+  CeedCallBackend(CeedInit_Hip(ceed, resource));
 
   Ceed ceedshared;
   CeedCallBackend(CeedInit("/gpu/hip/shared", &ceedshared));

@@ -38,19 +38,19 @@
 #ifdef CEED_MAGMA_USE_HIP
 typedef hipModule_t   CeedMagmaModule;
 typedef hipFunction_t CeedMagmaFunction;
-#define CeedCompileMagma CeedCompileHip
-#define CeedGetKernelMagma CeedGetKernelHip
-#define CeedRunKernelMagma CeedRunKernelHip
-#define CeedRunKernelDimMagma CeedRunKernelDimHip
-#define CeedRunKernelDimSharedMagma CeedRunKernelDimSharedHip
+#define CeedCompileMagma CeedCompile_Hip
+#define CeedGetKernelMagma CeedGetKernel_Hip
+#define CeedRunKernelMagma CeedRunKernel_Hip
+#define CeedRunKernelDimMagma CeedRunKernelDim_Hip
+#define CeedRunKernelDimSharedMagma CeedRunKernelDimShared_Hip
 #else
 typedef CUmodule   CeedMagmaModule;
 typedef CUfunction CeedMagmaFunction;
-#define CeedCompileMagma CeedCompileCuda
-#define CeedGetKernelMagma CeedGetKernelCuda
-#define CeedRunKernelMagma CeedRunKernelCuda
-#define CeedRunKernelDimMagma CeedRunKernelDimCuda
-#define CeedRunKernelDimSharedMagma CeedRunKernelDimSharedCuda
+#define CeedCompileMagma CeedCompile_Cuda
+#define CeedGetKernelMagma CeedGetKernel_Cuda
+#define CeedRunKernelMagma CeedRunKernel_Cuda
+#define CeedRunKernelDimMagma CeedRunKernelDim_Cuda
+#define CeedRunKernelDimSharedMagma CeedRunKernelDimShared_Cuda
 #endif
 
 typedef enum { MAGMA_KERNEL_DIM_GENERIC = 101, MAGMA_KERNEL_DIM_SPECIFIC = 102 } magma_kernel_mode_t;

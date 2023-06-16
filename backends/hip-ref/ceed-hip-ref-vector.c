@@ -447,7 +447,7 @@ static int CeedVectorNorm_Hip(CeedVector vec, CeedNormType type, CeedScalar *nor
   CeedSize length;
   CeedCallBackend(CeedVectorGetLength(vec, &length));
   hipblasHandle_t handle;
-  CeedCallBackend(CeedHipGetHipblasHandle(ceed, &handle));
+  CeedCallBackend(CeedGetHipblasHandle_Hip(ceed, &handle));
 
   // Compute norm
   const CeedScalar *d_array;

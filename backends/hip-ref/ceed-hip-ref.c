@@ -25,7 +25,7 @@ static int CeedGetPreferredMemType_Hip(CeedMemType *type) {
 //------------------------------------------------------------------------------
 // Get hipBLAS handle
 //------------------------------------------------------------------------------
-int CeedHipGetHipblasHandle(Ceed ceed, hipblasHandle_t *handle) {
+int CeedGetHipblasHandle_Hip(Ceed ceed, hipblasHandle_t *handle) {
   Ceed_Hip *data;
   CeedCallBackend(CeedGetData(ceed, &data));
 
@@ -37,7 +37,7 @@ int CeedHipGetHipblasHandle(Ceed ceed, hipblasHandle_t *handle) {
 //------------------------------------------------------------------------------
 // Backend Init
 //------------------------------------------------------------------------------
-static int CeedInit_Hip(const char *resource, Ceed ceed) {
+static int CeedInit_Hip_ref(const char *resource, Ceed ceed) {
   char *resource_root;
   CeedCallBackend(CeedGetResourceRoot(ceed, resource, ":", &resource_root));
   CeedCheck(!strcmp(resource_root, "/gpu/hip/ref"), ceed, CEED_ERROR_BACKEND, "Hip backend cannot use resource: %s", resource);
@@ -47,7 +47,7 @@ static int CeedInit_Hip(const char *resource, Ceed ceed) {
   Ceed_Hip *data;
   CeedCallBackend(CeedCalloc(1, &data));
   CeedCallBackend(CeedSetData(ceed, data));
-  CeedCallBackend(CeedHipInit(ceed, resource));
+  CeedCallBackend(CeedInit_Hip(ceed, resource));
 
   CeedCallBackend(CeedSetBackendFunction(ceed, "Ceed", ceed, "GetPreferredMemType", CeedGetPreferredMemType_Hip));
   CeedCallBackend(CeedSetBackendFunction(ceed, "Ceed", ceed, "VectorCreate", CeedVectorCreate_Hip));
@@ -64,6 +64,6 @@ static int CeedInit_Hip(const char *resource, Ceed ceed) {
 //------------------------------------------------------------------------------
 // Backend Register
 //------------------------------------------------------------------------------
-CEED_INTERN int CeedRegister_Hip(void) { return CeedRegister("/gpu/hip/ref", CeedInit_Hip, 40); }
+CEED_INTERN int CeedRegister_Hip(void) { return CeedRegister("/gpu/hip/ref", CeedInit_Hip_ref, 40); }
 
 //------------------------------------------------------------------------------
