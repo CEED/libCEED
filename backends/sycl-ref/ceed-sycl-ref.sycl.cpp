@@ -27,7 +27,7 @@ static int CeedGetPreferredMemType_Sycl(CeedMemType *mem_type) {
 //------------------------------------------------------------------------------
 static int CeedInit_Sycl(const char *resource, Ceed ceed) {
   char *resource_root;
-  CeedCallBackend(CeedSyclGetResourceRoot(ceed, resource, &resource_root));
+  CeedCallBackend(CeedGetResourceRoot(ceed, resource, ":", &resource_root));
   CeedCheck(!std::strcmp(resource_root, "/gpu/sycl/ref") || !std::strcmp(resource_root, "/cpu/sycl/ref"), ceed, CEED_ERROR_BACKEND,
             "Sycl backend cannot use resource: %s", resource);
   CeedCallBackend(CeedFree(&resource_root));

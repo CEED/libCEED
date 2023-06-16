@@ -72,8 +72,6 @@ typedef struct {
   struct cudaDeviceProp device_prop;
 } Ceed_Cuda;
 
-CEED_INTERN int CeedCudaGetResourceRoot(Ceed ceed, const char *resource, char **resource_root);
-
 CEED_INTERN int CeedCudaInit(Ceed ceed, const char *resource);
 
 CEED_INTERN int CeedDestroy_Cuda(Ceed ceed);

@@ -19,7 +19,7 @@
 //------------------------------------------------------------------------------
 static int CeedInit_Hip_shared(const char *resource, Ceed ceed) {
   char *resource_root;
-  CeedCallBackend(CeedHipGetResourceRoot(ceed, resource, &resource_root));
+  CeedCallBackend(CeedGetResourceRoot(ceed, resource, ":", &resource_root));
   CeedCheck(!strcmp(resource_root, "/gpu/hip/shared"), ceed, CEED_ERROR_BACKEND, "Hip backend cannot use resource: %s", resource);
   CeedCallBackend(CeedFree(&resource_root));
   CeedCallBackend(CeedSetDeterministic(ceed, true));

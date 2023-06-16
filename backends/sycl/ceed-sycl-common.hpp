@@ -39,8 +39,6 @@ typedef struct {
   sycl::queue   sycl_queue;
 } Ceed_Sycl;
 
-CEED_INTERN int CeedSyclGetResourceRoot(Ceed ceed, const char *resource, char **resource_root);
-
 CEED_INTERN int CeedSyclInit(Ceed ceed, const char *resource);
 
 CEED_INTERN int CeedDestroy_Sycl(Ceed ceed);

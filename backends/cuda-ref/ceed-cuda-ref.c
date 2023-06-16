@@ -40,7 +40,7 @@ int CeedCudaGetCublasHandle(Ceed ceed, cublasHandle_t *handle) {
 //------------------------------------------------------------------------------
 static int CeedInit_Cuda(const char *resource, Ceed ceed) {
   char *resource_root;
-  CeedCallBackend(CeedCudaGetResourceRoot(ceed, resource, &resource_root));
+  CeedCallBackend(CeedGetResourceRoot(ceed, resource, ":", &resource_root));
   CeedCheck(!strcmp(resource_root, "/gpu/cuda/ref"), ceed, CEED_ERROR_BACKEND, "Cuda backend cannot use resource: %s", resource);
   CeedCallBackend(CeedFree(&resource_root));
   CeedCallBackend(CeedSetDeterministic(ceed, true));

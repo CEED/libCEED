@@ -19,7 +19,7 @@
 //------------------------------------------------------------------------------
 static int CeedInit_Sycl_shared(const char *resource, Ceed ceed) {
   char *resource_root;
-  CeedCallBackend(CeedSyclGetResourceRoot(ceed, resource, &resource_root));
+  CeedCallBackend(CeedGetResourceRoot(ceed, resource, ":", &resource_root));
   CeedCheck(!std::strcmp(resource_root, "/gpu/sycl/shared") || !std::strcmp(resource_root, "/cpu/sycl/shared"), ceed, CEED_ERROR_BACKEND,
             "Sycl backend cannot use resource: %s", resource);
   std::string_view root_view = resource_root;
