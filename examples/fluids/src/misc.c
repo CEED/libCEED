@@ -394,3 +394,19 @@ PetscErrorCode PHASTADatFileReadToArrayReal(MPI_Comm comm, const char path[PETSC
 
   PetscFunctionReturn(0);
 }
+
+PetscLogEvent       FLUIDS_CeedOperatorApply;
+PetscLogEvent       FLUIDS_CeedOperatorAssemble;
+PetscLogEvent       FLUIDS_CeedOperatorAssembleDiagonal;
+PetscLogEvent       FLUIDS_CeedOperatorAssemblePointBlockDiagonal;
+static PetscClassId libCEED_classid;
+
+PetscErrorCode RegisterLogEvents() {
+  PetscFunctionBeginUser;
+  PetscCall(PetscClassIdRegister("libCEED", &libCEED_classid));
+  PetscCall(PetscLogEventRegister("CeedOpApply", libCEED_classid, &FLUIDS_CeedOperatorApply));
+  PetscCall(PetscLogEventRegister("CeedOpAsm", libCEED_classid, &FLUIDS_CeedOperatorAssemble));
+  PetscCall(PetscLogEventRegister("CeedOpAsmD", libCEED_classid, &FLUIDS_CeedOperatorAssembleDiagonal));
+  PetscCall(PetscLogEventRegister("CeedOpAsmPBD", libCEED_classid, &FLUIDS_CeedOperatorAssemblePointBlockDiagonal));
+  PetscFunctionReturn(0);
+}

@@ -87,6 +87,8 @@ int main(int argc, char **argv) {
   user->phys           = phys_ctx;
   problem->bc_from_ics = PETSC_TRUE;
 
+  PetscCall(RegisterLogEvents());
+
   // ---------------------------------------------------------------------------
   // Process command line options
   // ---------------------------------------------------------------------------
