@@ -66,7 +66,8 @@ PetscErrorCode SGS_DD_ModelSetupNodalEvaluation(Ceed ceed, User user, CeedData c
   SGS_DD_Data         sgs_dd_data = user->sgs_dd_data;
   CeedQFunction       qf_multiplicity, qf_sgs_dd_nodal;
   CeedOperator        op_multiplicity, op_sgs_dd_nodal;
-  CeedInt             num_elem, elem_size, num_comp_q, dim, num_qpts_1d, num_comp_grad_velo, num_comp_x, num_comp_grid_aniso;
+  CeedInt             num_elem, elem_size, num_comp_q, num_qpts_1d, num_comp_grad_velo, num_comp_x, num_comp_grid_aniso;
+  PetscInt            dim;
   CeedVector          multiplicity, inv_multiplicity;
   CeedElemRestriction elem_restr_inv_multiplicity, elem_restr_grad_velo, elem_restr_sgs;
 
@@ -160,7 +161,8 @@ PetscErrorCode SGS_DD_ModelSetupNodalEvaluation(Ceed ceed, User user, CeedData c
 // @brief Create CeedOperator to compute SGS contribution to the residual
 PetscErrorCode SGS_ModelSetupNodalIFunction(Ceed ceed, User user, CeedData ceed_data, SGS_DD_ModelSetupData sgs_dd_setup_data) {
   SGS_DD_Data   sgs_dd_data = user->sgs_dd_data;
-  CeedInt       dim, num_comp_q, num_comp_qd, num_comp_x, num_qpts_1d, num_nodes_1d;
+  CeedInt       num_comp_q, num_comp_qd, num_comp_x, num_qpts_1d, num_nodes_1d;
+  PetscInt      dim;
   CeedQFunction qf_sgs_apply;
   CeedOperator  op_sgs_apply;
   CeedBasis     basis_sgs;

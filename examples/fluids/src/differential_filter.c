@@ -17,7 +17,8 @@
 PetscErrorCode DifferentialFilterCreateOperators(Ceed ceed, User user, CeedData ceed_data, CeedQFunctionContext diff_filter_qfctx) {
   DiffFilterData diff_filter = user->diff_filter;
   DM             dm_filter   = diff_filter->dm_filter;
-  CeedInt        num_comp_q, num_comp_qd, dim, num_qpts_1d, num_nodes_1d, num_comp_x;
+  CeedInt        num_comp_q, num_comp_qd, num_qpts_1d, num_nodes_1d, num_comp_x;
+  PetscInt       dim;
 
   PetscFunctionBeginUser;
   PetscCall(DMGetDimension(user->dm, &dim));
@@ -81,7 +82,8 @@ PetscErrorCode DifferentialFilterCreateOperators(Ceed ceed, User user, CeedData 
     CeedOperator         op_lhs;
     OperatorApplyContext mat_ctx;
     Mat                  mat_lhs;
-    CeedInt              num_comp_qd, dim, num_comp_grid_aniso;
+    CeedInt              num_comp_qd;
+    PetscInt             dim, num_comp_grid_aniso;
     CeedElemRestriction  elem_restr_grid_aniso;
     CeedVector           grid_aniso_ceed;
 
@@ -113,7 +115,8 @@ PetscErrorCode DifferentialFilterCreateOperators(Ceed ceed, User user, CeedData 
           CeedQFunctionCreateInterior(ceed, 1, DifferentialFilter_LHS_11, DifferentialFilter_LHS_11_loc, &qf_lhs);
           break;
         default:
-          SETERRQ(PetscObjectComm((PetscObject)user->dm), PETSC_ERR_SUP, "Differential filtering not available for (%d) components", num_comp_filter);
+          SETERRQ(PetscObjectComm((PetscObject)user->dm), PETSC_ERR_SUP, "Differential filtering not available for (%" PetscInt_FMT ") components",
+                  num_comp_filter);
       }
 
       CeedQFunctionSetContext(qf_lhs, diff_filter_qfctx);

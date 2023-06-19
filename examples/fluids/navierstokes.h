@@ -415,6 +415,9 @@ PetscErrorCode PHASTADatFileGetNRows(const MPI_Comm comm, const char path[PETSC_
 
 PetscErrorCode PHASTADatFileReadToArrayReal(const MPI_Comm comm, const char path[PETSC_MAX_PATH_LEN], PetscReal array[]);
 
+PetscErrorCode IntArrayC2P(PetscInt num_entries, CeedInt **array_ceed, PetscInt **array_petsc);
+PetscErrorCode IntArrayP2C(PetscInt num_entries, PetscInt **array_petsc, CeedInt **array_ceed);
+
 // -----------------------------------------------------------------------------
 // Turbulence Statistics Collection Functions
 // -----------------------------------------------------------------------------

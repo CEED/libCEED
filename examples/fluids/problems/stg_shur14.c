@@ -61,7 +61,8 @@ PetscErrorCode CalcCholeskyDecomp(MPI_Comm comm, PetscInt nprofs, const CeedScal
  * @param[in,out] stg_ctx STGShur14Context where the data will be loaded into
  */
 static PetscErrorCode ReadSTGInflow(const MPI_Comm comm, const char path[PETSC_MAX_PATH_LEN], STGShur14Context stg_ctx) {
-  PetscInt       ndims, dims[2];
+  PetscInt       dims[2];
+  int            ndims;
   FILE          *fp;
   const PetscInt char_array_len = 512;
   char           line[char_array_len];
@@ -81,8 +82,7 @@ static PetscErrorCode ReadSTGInflow(const MPI_Comm comm, const char path[PETSC_M
     PetscCall(PetscSynchronizedFGets(comm, fp, char_array_len, line));
     PetscCall(PetscStrToArray(line, ' ', &ndims, &array));
     PetscCheck(ndims == dims[1], comm, PETSC_ERR_FILE_UNEXPECTED,
-               "Line %" PetscInt_FMT " of %s does not have correct number of columns (%" PetscInt_FMT " instead of %" PetscInt_FMT ")", i, path,
-               ndims, dims[1]);
+               "Line %" PetscInt_FMT " of %s does not have correct number of columns (%d instead of %" PetscInt_FMT ")", i, path, ndims, dims[1]);
 
     wall_dist[i] = (CeedScalar)atof(array[0]);
     ubar[0][i]   = (CeedScalar)atof(array[1]);
@@ -119,7 +119,8 @@ static PetscErrorCode ReadSTGInflow(const MPI_Comm comm, const char path[PETSC_M
  * @param[in,out] stg_ctx STGShur14Context where the data will be loaded into
  */
 static PetscErrorCode ReadSTGRand(const MPI_Comm comm, const char path[PETSC_MAX_PATH_LEN], STGShur14Context stg_ctx) {
-  PetscInt       ndims, dims[2];
+  PetscInt       dims[2];
+  int            ndims;
   FILE          *fp;
   const PetscInt char_array_len = 512;
   char           line[char_array_len];
@@ -136,8 +137,7 @@ static PetscErrorCode ReadSTGRand(const MPI_Comm comm, const char path[PETSC_MAX
     PetscCall(PetscSynchronizedFGets(comm, fp, char_array_len, line));
     PetscCall(PetscStrToArray(line, ' ', &ndims, &array));
     PetscCheck(ndims == dims[1], comm, PETSC_ERR_FILE_UNEXPECTED,
-               "Line %" PetscInt_FMT " of %s does not have correct number of columns (%" PetscInt_FMT " instead of %" PetscInt_FMT ")", i, path,
-               ndims, dims[1]);
+               "Line %" PetscInt_FMT " of %s does not have correct number of columns (%d instead of %" PetscInt_FMT ")", i, path, ndims, dims[1]);
 
     d[0][i]     = (CeedScalar)atof(array[0]);
     d[1][i]     = (CeedScalar)atof(array[1]);
@@ -173,8 +173,8 @@ PetscErrorCode GetSTGContextData(const MPI_Comm comm, const DM dm, char stg_infl
   PetscCall(PHASTADatFileGetNRows(comm, stg_rand_path, &nmodes));
   PetscCall(PHASTADatFileGetNRows(comm, stg_inflow_path, &nprofs));
   PetscCheck(nmodes < STG_NMODES_MAX, comm, PETSC_ERR_SUP,
-             "Number of wavemodes in %s (%" PetscInt_FMT ") exceeds STG_NMODES_MAX (%" PetscInt_FMT "). Change size of STG_NMODES_MAX and recompile",
-             stg_rand_path, nmodes, STG_NMODES_MAX);
+             "Number of wavemodes in %s (%" PetscInt_FMT ") exceeds STG_NMODES_MAX (%d). Change size of STG_NMODES_MAX and recompile", stg_rand_path,
+             nmodes, STG_NMODES_MAX);
 
   {
     STGShur14Context temp_ctx;

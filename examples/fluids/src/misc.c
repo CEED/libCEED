@@ -330,15 +330,15 @@ PetscErrorCode NodalProjectionDataDestroy(NodalProjectionData context) {
  */
 PetscErrorCode PHASTADatFileOpen(const MPI_Comm comm, const char path[PETSC_MAX_PATH_LEN], const PetscInt char_array_len, PetscInt dims[2],
                                  FILE **fp) {
-  PetscInt ndims;
-  char     line[char_array_len];
-  char   **array;
+  int    ndims;
+  char   line[char_array_len];
+  char **array;
 
   PetscFunctionBeginUser;
   PetscCall(PetscFOpen(comm, path, "r", fp));
   PetscCall(PetscSynchronizedFGets(comm, *fp, char_array_len, line));
   PetscCall(PetscStrToArray(line, ' ', &ndims, &array));
-  PetscCheck(ndims == 2, comm, PETSC_ERR_FILE_UNEXPECTED, "Found %" PetscInt_FMT " dimensions instead of 2 on the first line of %s", ndims, path);
+  PetscCheck(ndims == 2, comm, PETSC_ERR_FILE_UNEXPECTED, "Found %d dimensions instead of 2 on the first line of %s", ndims, path);
 
   for (PetscInt i = 0; i < ndims; i++) dims[i] = atoi(array[i]);
   PetscCall(PetscStrToArrayDestroy(ndims, array));
@@ -369,7 +369,8 @@ PetscErrorCode PHASTADatFileGetNRows(const MPI_Comm comm, const char path[PETSC_
 }
 
 PetscErrorCode PHASTADatFileReadToArrayReal(MPI_Comm comm, const char path[PETSC_MAX_PATH_LEN], PetscReal array[]) {
-  PetscInt       ndims, dims[2];
+  PetscInt       dims[2];
+  int            ndims;
   FILE          *fp;
   const PetscInt char_array_len = 512;
   char           line[char_array_len];
@@ -382,8 +383,7 @@ PetscErrorCode PHASTADatFileReadToArrayReal(MPI_Comm comm, const char path[PETSC
     PetscCall(PetscSynchronizedFGets(comm, fp, char_array_len, line));
     PetscCall(PetscStrToArray(line, ' ', &ndims, &row_array));
     PetscCheck(ndims == dims[1], comm, PETSC_ERR_FILE_UNEXPECTED,
-               "Line %" PetscInt_FMT " of %s does not contain enough columns (%" PetscInt_FMT " instead of %" PetscInt_FMT ")", i, path, ndims,
-               dims[1]);
+               "Line %" PetscInt_FMT " of %s does not contain enough columns (%d instead of %" PetscInt_FMT ")", i, path, ndims, dims[1]);
 
     for (PetscInt j = 0; j < dims[1]; j++) {
       array[i * dims[1] + j] = (PetscReal)atof(row_array[j]);
@@ -408,5 +408,57 @@ PetscErrorCode RegisterLogEvents() {
   PetscCall(PetscLogEventRegister("CeedOpAsm", libCEED_classid, &FLUIDS_CeedOperatorAssemble));
   PetscCall(PetscLogEventRegister("CeedOpAsmD", libCEED_classid, &FLUIDS_CeedOperatorAssembleDiagonal));
   PetscCall(PetscLogEventRegister("CeedOpAsmPBD", libCEED_classid, &FLUIDS_CeedOperatorAssemblePointBlockDiagonal));
+  PetscFunctionReturn(PETSC_SUCCESS);
+}
+
+/**
+  @brief Translate array of CeedInt to PetscInt.
+    If the types differ, `array_ceed` is freed with `free()` and `array_petsc` is allocated with `malloc()`.
+    Caller is responsible for freeing `array_petsc` with `free()`.
+
+  @param[in]      num_entries  Number of array entries
+  @param[in,out]  array_ceed   Array of CeedInts
+  @param[out]     array_petsc  Array of PetscInts
+**/
+PetscErrorCode IntArrayC2P(PetscInt num_entries, CeedInt **array_ceed, PetscInt **array_petsc) {
+  CeedInt  int_c = 0;
+  PetscInt int_p = 0;
+
+  PetscFunctionBeginUser;
+  if (sizeof(int_c) == sizeof(int_p)) {
+    *array_petsc = (PetscInt *)*array_ceed;
+  } else {
+    *array_petsc = malloc(num_entries * sizeof(PetscInt));
+    for (PetscInt i = 0; i < num_entries; i++) (*array_petsc)[i] = (*array_ceed)[i];
+    free(*array_ceed);
+  }
+  *array_ceed = NULL;
+
+  PetscFunctionReturn(PETSC_SUCCESS);
+}
+
+/**
+  @brief Translate array of PetscInt to CeedInt.
+    If the types differ, `array_petsc` is freed with `PetscFree()` and `array_ceed` is allocated with `PetscMalloc1()`.
+    Caller is responsible for freeing `array_ceed` with `PetscFree()`.
+
+  @param[in]      num_entries  Number of array entries
+  @param[in,out]  array_petsc  Array of PetscInts
+  @param[out]     array_ceed   Array of CeedInts
+**/
+PetscErrorCode IntArrayP2C(PetscInt num_entries, PetscInt **array_petsc, CeedInt **array_ceed) {
+  CeedInt  int_c = 0;
+  PetscInt int_p = 0;
+
+  PetscFunctionBeginUser;
+  if (sizeof(int_c) == sizeof(int_p)) {
+    *array_ceed = (CeedInt *)*array_petsc;
+  } else {
+    PetscCall(PetscMalloc1(num_entries, array_ceed));
+    for (PetscInt i = 0; i < num_entries; i++) (*array_ceed)[i] = (*array_petsc)[i];
+    PetscCall(PetscFree(*array_petsc));
+  }
+  *array_petsc = NULL;
+
   PetscFunctionReturn(PETSC_SUCCESS);
 }

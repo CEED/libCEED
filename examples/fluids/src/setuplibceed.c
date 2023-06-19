@@ -19,13 +19,16 @@ PetscInt Involute(PetscInt i) { return i >= 0 ? i : -(i + 1); }
 // Utility function to create local CEED restriction
 PetscErrorCode CreateRestrictionFromPlex(Ceed ceed, DM dm, CeedInt height, DMLabel domain_label, CeedInt label_value, PetscInt dm_field,
                                          CeedElemRestriction *elem_restr) {
-  PetscInt num_elem, elem_size, num_dof, num_comp, *elem_restr_offsets;
+  PetscInt num_elem, elem_size, num_dof, num_comp, *elem_restr_offsets_petsc;
+  CeedInt *elem_restr_offsets_ceed;
 
   PetscFunctionBeginUser;
-  PetscCall(DMPlexGetLocalOffsets(dm, domain_label, label_value, height, dm_field, &num_elem, &elem_size, &num_comp, &num_dof, &elem_restr_offsets));
+  PetscCall(
+      DMPlexGetLocalOffsets(dm, domain_label, label_value, height, dm_field, &num_elem, &elem_size, &num_comp, &num_dof, &elem_restr_offsets_petsc));
 
-  CeedElemRestrictionCreate(ceed, num_elem, elem_size, num_comp, 1, num_dof, CEED_MEM_HOST, CEED_COPY_VALUES, elem_restr_offsets, elem_restr);
-  PetscCall(PetscFree(elem_restr_offsets));
+  PetscCall(IntArrayP2C(num_elem * elem_size, &elem_restr_offsets_petsc, &elem_restr_offsets_ceed));
+  CeedElemRestrictionCreate(ceed, num_elem, elem_size, num_comp, 1, num_dof, CEED_MEM_HOST, CEED_COPY_VALUES, elem_restr_offsets_ceed, elem_restr);
+  PetscCall(PetscFree(elem_restr_offsets_ceed));
 
   PetscFunctionReturn(PETSC_SUCCESS);
 }
@@ -35,8 +38,8 @@ PetscErrorCode GetRestrictionForDomain(Ceed ceed, DM dm, CeedInt height, DMLabel
                                        CeedInt q_data_size, CeedElemRestriction *elem_restr_q, CeedElemRestriction *elem_restr_x,
                                        CeedElemRestriction *elem_restr_qd_i) {
   DM                  dm_coord;
-  CeedInt             dim, loc_num_elem;
-  CeedInt             Q_dim;
+  CeedInt             Q_dim, loc_num_elem;
+  PetscInt            dim;
   CeedElemRestriction elem_restr_tmp;
   PetscFunctionBeginUser;
 
@@ -87,7 +90,7 @@ PetscErrorCode AddBCSubOperator(Ceed ceed, DM dm, CeedData ceed_data, DMLabel do
   }
 
   // ---- CEED Vector
-  PetscInt loc_num_elem_sur;
+  CeedInt loc_num_elem_sur;
   CeedElemRestrictionGetNumElements(elem_restr_q_sur, &loc_num_elem_sur);
   CeedVectorCreate(ceed, q_data_size_sur * loc_num_elem_sur * num_qpts_sur, &q_data_sur);
 
