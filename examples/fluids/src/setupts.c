@@ -461,12 +461,8 @@ PetscErrorCode TSSolve_NS(DM dm, User user, AppCtx app_ctx, Physics phys, Vec *Q
   PetscCall(TSGetAdapt(*ts, &adapt));
   PetscCall(TSAdaptSetStepLimits(adapt, 1.e-12 * user->units->second, 1.e2 * user->units->second));
   PetscCall(TSSetFromOptions(*ts));
-  user->time_bc_set = -1.0;    // require all BCs be updated
-  if (!app_ctx->cont_steps) {  // print initial condition
-    if (app_ctx->test_type == TESTTYPE_NONE) {
-      PetscCall(TSMonitor_NS(*ts, 0, 0., *Q, user));
-    }
-  } else {  // continue from time of last output
+  user->time_bc_set = -1.0;   // require all BCs be updated
+  if (app_ctx->cont_steps) {  // continue from previous timestep data
     PetscInt    count;
     PetscViewer viewer;
 
