@@ -92,13 +92,15 @@ PetscErrorCode DMPlexInsertBoundaryValues_NS(DM dm, PetscBool insert_essential, 
 
 // @brief Load vector from binary file, possibly with embedded solution time and step number
 PetscErrorCode LoadFluidsBinaryVec(MPI_Comm comm, PetscViewer viewer, Vec Q, PetscReal *time, PetscInt *step_number) {
-  PetscInt  token, file_step_number;
-  PetscReal file_time;
+  PetscInt   file_step_number;
+  PetscInt32 token;
+  PetscReal  file_time;
   PetscFunctionBeginUser;
 
   // Attempt
-  PetscCall(PetscViewerBinaryRead(viewer, &token, 1, NULL, PETSC_INT));
-  if (token == FLUIDS_FILE_TOKEN) {  // New style format; we're reading a file with step number and time in the header
+  PetscCall(PetscViewerBinaryRead(viewer, &token, 1, NULL, PETSC_INT32));
+  if (token == FLUIDS_FILE_TOKEN_32 || token == FLUIDS_FILE_TOKEN_64 ||
+      token == FLUIDS_FILE_TOKEN) {  // New style format; we're reading a file with step number and time in the header
     PetscCall(PetscViewerBinaryRead(viewer, &file_step_number, 1, NULL, PETSC_INT));
     PetscCall(PetscViewerBinaryRead(viewer, &file_time, 1, NULL, PETSC_REAL));
     if (time) *time = file_time;
@@ -204,11 +206,12 @@ PetscErrorCode PostProcess_NS(TS ts, CeedData ceed_data, DM dm, ProblemData *pro
   if (user->app_ctx->test_type == TESTTYPE_SOLVER) {
     PetscCall(RegressionTests_NS(user->app_ctx, Q));
   }
-
   PetscFunctionReturn(PETSC_SUCCESS);
 }
 
-const PetscInt FLUIDS_FILE_TOKEN = 0xceedf00;
+const PetscInt32 FLUIDS_FILE_TOKEN    = 0xceedf00;  // for backwards compatibility
+const PetscInt32 FLUIDS_FILE_TOKEN_32 = 0xceedf32;
+const PetscInt32 FLUIDS_FILE_TOKEN_64 = 0xceedf64;
 
 // Gather initial Q values in case of continuation of simulation
 PetscErrorCode SetupICsFromBinary(MPI_Comm comm, AppCtx app_ctx, Vec Q) {

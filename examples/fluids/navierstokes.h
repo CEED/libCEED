@@ -397,7 +397,9 @@ PetscErrorCode SetupICsFromBinary(MPI_Comm comm, AppCtx app_ctx, Vec Q);
 PetscErrorCode SetBCsFromICs_NS(DM dm, Vec Q, Vec Q_loc);
 
 // Versioning token for binary checkpoints
-extern const PetscInt FLUIDS_FILE_TOKEN;
+extern const PetscInt32 FLUIDS_FILE_TOKEN;  // for backwards compatibility
+extern const PetscInt32 FLUIDS_FILE_TOKEN_32;
+extern const PetscInt32 FLUIDS_FILE_TOKEN_64;
 
 // Create appropriate mass qfunction based on number of components N
 PetscErrorCode CreateMassQFunction(Ceed ceed, CeedInt N, CeedInt q_data_size, CeedQFunction *qf);
