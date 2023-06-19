@@ -190,7 +190,11 @@ PetscErrorCode IFunction_NS(TS ts, PetscReal t, Vec Q, Vec Q_dot, Vec G, void *u
   PetscCall(VecP2C(G_loc, &g_mem_type, user->g_ceed));
 
   // Apply CEED operator
+  PetscCall(PetscLogEventBegin(FLUIDS_CeedOperatorApply, Q, G, 0, 0));
+  PetscCall(PetscLogGpuTimeBegin());
   CeedOperatorApply(user->op_ifunction, user->q_ceed, user->g_ceed, CEED_REQUEST_IMMEDIATE);
+  PetscCall(PetscLogGpuTimeEnd());
+  PetscCall(PetscLogEventEnd(FLUIDS_CeedOperatorApply, Q, G, 0, 0));
 
   // Restore vectors
   PetscCall(VecReadC2P(user->q_ceed, q_mem_type, Q_loc));
@@ -249,9 +253,17 @@ static PetscErrorCode FormSetValues(User user, PetscBool pbdiagonal, Mat J, Ceed
   PetscCall(MatGetType(J, &mat_type));
   if (strstr(mat_type, "kokkos") || strstr(mat_type, "cusparse")) mem_type = CEED_MEM_DEVICE;
   if (pbdiagonal) {
+    PetscCall(PetscLogEventBegin(FLUIDS_CeedOperatorAssemblePointBlockDiagonal, J, 0, 0, 0));
+    PetscCall(PetscLogGpuTimeBegin());
     CeedOperatorLinearAssemblePointBlockDiagonal(user->op_ijacobian, coo_values, CEED_REQUEST_IMMEDIATE);
+    PetscCall(PetscLogGpuTimeEnd());
+    PetscCall(PetscLogEventEnd(FLUIDS_CeedOperatorAssemblePointBlockDiagonal, J, 0, 0, 0));
   } else {
+    PetscCall(PetscLogEventBegin(FLUIDS_CeedOperatorAssemble, J, 0, 0, 0));
+    PetscCall(PetscLogGpuTimeBegin());
     CeedOperatorLinearAssemble(user->op_ijacobian, coo_values);
+    PetscCall(PetscLogGpuTimeEnd());
+    PetscCall(PetscLogEventEnd(FLUIDS_CeedOperatorAssemble, J, 0, 0, 0));
   }
   CeedVectorGetArrayRead(coo_values, mem_type, &values);
   PetscCall(MatSetValuesCOO(J, values, INSERT_VALUES));
@@ -529,7 +541,7 @@ PetscErrorCode TSSolve_NS(DM dm, User user, AppCtx app_ctx, Physics phys, Vec *Q
       PetscCall(WriteOutput(user, *Q, step_no, final_time));
     }
 
-    PetscLogEvent stage_id;
+    PetscLogStage stage_id;
     PetscStageLog stage_log;
 
     PetscCall(PetscLogStageGetId("Fluids Solve", &stage_id));

@@ -86,6 +86,15 @@ static const char *const DifferentialFilterDampingFunctions[] = {
     "none", "van_driest", "mms", "DifferentialFilterDampingFunction", "DIFF_FILTER_DAMP_", NULL};
 
 // -----------------------------------------------------------------------------
+// Log Events
+// -----------------------------------------------------------------------------
+extern PetscLogEvent FLUIDS_CeedOperatorApply;
+extern PetscLogEvent FLUIDS_CeedOperatorAssemble;
+extern PetscLogEvent FLUIDS_CeedOperatorAssembleDiagonal;
+extern PetscLogEvent FLUIDS_CeedOperatorAssemblePointBlockDiagonal;
+PetscErrorCode       RegisterLogEvents();
+
+// -----------------------------------------------------------------------------
 // Structs
 // -----------------------------------------------------------------------------
 // Structs declarations

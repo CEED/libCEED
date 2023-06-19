@@ -346,8 +346,12 @@ PetscErrorCode ApplyCeedOperator_Core(Vec X, Vec X_loc, CeedVector x_ceed, CeedV
 
   if (Y_loc) PetscCall(VecP2C(Y_loc, &y_mem_type, y_ceed));
 
+  PetscCall(PetscLogEventBegin(FLUIDS_CeedOperatorApply, X, Y, 0, 0));
+  PetscCall(PetscLogGpuTimeBegin());
   if (use_apply_add) CeedOperatorApplyAdd(ctx->op, x_ceed, y_ceed, CEED_REQUEST_IMMEDIATE);
   else CeedOperatorApply(ctx->op, x_ceed, y_ceed, CEED_REQUEST_IMMEDIATE);
+  PetscCall(PetscLogGpuTimeEnd());
+  PetscCall(PetscLogEventEnd(FLUIDS_CeedOperatorApply, X, Y, 0, 0));
 
   if (X_loc) PetscCall(VecReadC2P(ctx->x_ceed, x_mem_type, X_loc));
 
@@ -450,7 +454,11 @@ PetscErrorCode MatGetDiag_Ceed(Mat A, Vec D) {
   PetscCall(VecP2C(Y_loc, &mem_type, ctx->y_ceed));
 
   // -- Compute Diagonal
+  PetscCall(PetscLogEventBegin(FLUIDS_CeedOperatorAssembleDiagonal, A, D, 0, 0));
+  PetscCall(PetscLogGpuTimeBegin());
   CeedOperatorLinearAssembleDiagonal(ctx->op, ctx->y_ceed, CEED_REQUEST_IMMEDIATE);
+  PetscCall(PetscLogGpuTimeEnd());
+  PetscCall(PetscLogEventEnd(FLUIDS_CeedOperatorAssembleDiagonal, A, D, 0, 0));
 
   // -- Local-to-Global
   PetscCall(VecC2P(ctx->y_ceed, mem_type, Y_loc));
