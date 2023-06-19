@@ -22,7 +22,6 @@ static int CeedTensorContract_Xsmm_C1(CeedTensorContract contract, CeedInt A, Ce
   float alpha = 1.0, beta = 1.0;
   char  trans_u = 'N', trans_t = 'N';
   if ((t_mode == CEED_TRANSPOSE && C != 1) || (t_mode == CEED_NOTRANSPOSE && C == 1)) trans_t = 'T';
-
   if (!add) beta = 0.0;
 
   // libXSMM GEMM
@@ -68,9 +67,7 @@ static int CeedTensorContractDestroy_Xsmm(CeedTensorContract contract) {
   CeedTensorContract_Xsmm *impl;
   CeedCallBackend(CeedTensorContractGetData(contract, &impl));
 
-  // Free kernels
-  libxsmm_gemmfunction kernel;
-  kh_foreach_value(impl->lookup_f32, kernel, libxsmm_release_kernel(&kernel));
+  // Release the hash table (no need to free kernels)
   kh_destroy(f32, impl->lookup_f32);
   CeedCallBackend(CeedFree(&impl));
   return CEED_ERROR_SUCCESS;
@@ -132,12 +129,12 @@ int CeedTensorContractCreate_f32_Xsmm(CeedBasis basis, CeedTensorContract contra
     for (CeedInt num_elem = 1; num_elem <= 8; num_elem += 7) {
       for (CeedInt add = 0; add <= 1; add++) {
         for (CeedInt t_mode = 0; t_mode <= 1; t_mode++) {
-          CeedInt gradstride = CeedIntMax(impl->dim - 1, 1);
-          for (CeedInt grad = 1; grad <= impl->dim; grad += gradstride) {
+          CeedInt q_comp_stride = CeedIntMax(impl->dim - 1, 1);
+          for (CeedInt q_comp = 1; q_comp <= impl->dim; q_comp += q_comp_stride) {
             const int flags_t  = LIBXSMM_GEMM_FLAGS('N', t_mode ? 'T' : 'N');
             const int flags_ab = (!add) ? LIBXSMM_GEMM_FLAG_BETA_0 : 0;
             const int flags    = (flags_t | flags_ab);
-            CeedInt   B = t_mode ? grad * impl->Q : impl->P, J = t_mode ? impl->P : grad * impl->Q, C = num_elem;
+            CeedInt   B = t_mode ? q_comp * impl->Q : impl->P, J = t_mode ? impl->P : q_comp * impl->Q, C = num_elem;
             // Add key, kernel pair to hash table
             CeedHashIJKLMKey key = {B, C, J, t_mode, add};
             int              new_item;
