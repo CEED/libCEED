@@ -18,7 +18,7 @@ __constant__ CeedScalar c_G[sizeMax * sizeMax];
 //------------------------------------------------------------------------------
 // Interp device initalization
 //------------------------------------------------------------------------------
-extern "C" int CeedSyclInitInterp(CeedScalar *d_B, CeedInt P_1d, CeedInt Q_1d, CeedScalar **c_B_ptr) {
+extern "C" int CeedInit_SyclInterp(CeedScalar *d_B, CeedInt P_1d, CeedInt Q_1d, CeedScalar **c_B_ptr) {
   const int bytes = P_1d * Q_1d * sizeof(CeedScalar);
   syclMemcpyToSymbol(c_B, d_B, bytes, 0, syclMemcpyDeviceToDevice);
   syclGetSymbolAddress((void **)c_B_ptr, c_B);
@@ -29,7 +29,7 @@ extern "C" int CeedSyclInitInterp(CeedScalar *d_B, CeedInt P_1d, CeedInt Q_1d, C
 //------------------------------------------------------------------------------
 // Grad device initalization
 //------------------------------------------------------------------------------
-extern "C" int CeedSyclInitGrad(CeedScalar *d_B, CeedScalar *d_G, CeedInt P_1d, CeedInt Q_1d, CeedScalar **c_B_ptr, CeedScalar **c_G_ptr) {
+extern "C" int CeedInit_SyclGrad(CeedScalar *d_B, CeedScalar *d_G, CeedInt P_1d, CeedInt Q_1d, CeedScalar **c_B_ptr, CeedScalar **c_G_ptr) {
   const int bytes = P_1d * Q_1d * sizeof(CeedScalar);
   syclMemcpyToSymbol(c_B, d_B, bytes, 0, syclMemcpyDeviceToDevice);
   syclGetSymbolAddress((void **)c_B_ptr, c_B);
@@ -42,7 +42,7 @@ extern "C" int CeedSyclInitGrad(CeedScalar *d_B, CeedScalar *d_G, CeedInt P_1d, 
 //------------------------------------------------------------------------------
 // Collocated grad device initalization
 //------------------------------------------------------------------------------
-extern "C" int CeedSyclInitCollocatedGrad(CeedScalar *d_B, CeedScalar *d_G, CeedInt P_1d, CeedInt Q_1d, CeedScalar **c_B_ptr, CeedScalar **c_G_ptr) {
+extern "C" int CeedInit_SyclCollocatedGrad(CeedScalar *d_B, CeedScalar *d_G, CeedInt P_1d, CeedInt Q_1d, CeedScalar **c_B_ptr, CeedScalar **c_G_ptr) {
   const int bytes_interp = P_1d * Q_1d * sizeof(CeedScalar);
   syclMemcpyToSymbol(c_B, d_B, bytes_interp, 0, syclMemcpyDeviceToDevice);
   syclGetSymbolAddress((void **)c_B_ptr, c_B);

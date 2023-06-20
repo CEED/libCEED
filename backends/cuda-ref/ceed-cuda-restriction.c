@@ -56,13 +56,13 @@ static int CeedElemRestrictionApply_Cuda(CeedElemRestriction r, CeedTransposeMod
       kernel             = impl->OffsetNoTranspose;
       void   *args[]     = {&num_elem, &impl->d_ind, &d_u, &d_v};
       CeedInt block_size = elem_size < 1024 ? (elem_size > 32 ? elem_size : 32) : 1024;
-      CeedCallBackend(CeedRunKernelCuda(ceed, kernel, CeedDivUpInt(num_nodes, block_size), block_size, args));
+      CeedCallBackend(CeedRunKernel_Cuda(ceed, kernel, CeedDivUpInt(num_nodes, block_size), block_size, args));
     } else {
       // -- Strided restriction
       kernel             = impl->StridedNoTranspose;
       void   *args[]     = {&num_elem, &d_u, &d_v};
       CeedInt block_size = elem_size < 1024 ? (elem_size > 32 ? elem_size : 32) : 1024;
-      CeedCallBackend(CeedRunKernelCuda(ceed, kernel, CeedDivUpInt(num_nodes, block_size), block_size, args));
+      CeedCallBackend(CeedRunKernel_Cuda(ceed, kernel, CeedDivUpInt(num_nodes, block_size), block_size, args));
     }
   } else {
     // E-vector -> L-vector
@@ -70,12 +70,12 @@ static int CeedElemRestrictionApply_Cuda(CeedElemRestriction r, CeedTransposeMod
       // -- Offsets provided
       kernel       = impl->OffsetTranspose;
       void *args[] = {&impl->d_l_vec_indices, &impl->d_t_indices, &impl->d_t_offsets, &d_u, &d_v};
-      CeedCallBackend(CeedRunKernelCuda(ceed, kernel, CeedDivUpInt(num_nodes, block_size), block_size, args));
+      CeedCallBackend(CeedRunKernel_Cuda(ceed, kernel, CeedDivUpInt(num_nodes, block_size), block_size, args));
     } else {
       // -- Strided restriction
       kernel       = impl->StridedTranspose;
       void *args[] = {&num_elem, &d_u, &d_v};
-      CeedCallBackend(CeedRunKernelCuda(ceed, kernel, CeedDivUpInt(num_nodes, block_size), block_size, args));
+      CeedCallBackend(CeedRunKernel_Cuda(ceed, kernel, CeedDivUpInt(num_nodes, block_size), block_size, args));
     }
   }
 
@@ -310,13 +310,13 @@ int CeedElemRestrictionCreate_Cuda(CeedMemType mem_type, CeedCopyMode copy_mode,
   CeedDebug256(ceed, 2, "----- Loading Restriction Kernel Source -----\n");
   CeedCallBackend(CeedLoadSourceToBuffer(ceed, restriction_kernel_path, &restriction_kernel_source));
   CeedDebug256(ceed, 2, "----- Loading Restriction Kernel Source Complete! -----\n");
-  CeedCallBackend(CeedCompileCuda(ceed, restriction_kernel_source, &impl->module, 8, "RESTR_ELEM_SIZE", elem_size, "RESTR_NUM_ELEM", num_elem,
-                                  "RESTR_NUM_COMP", num_comp, "RESTR_NUM_NODES", num_nodes, "RESTR_COMP_STRIDE", comp_stride, "RESTR_STRIDE_NODES",
-                                  strides[0], "RESTR_STRIDE_COMP", strides[1], "RESTR_STRIDE_ELEM", strides[2]));
-  CeedCallBackend(CeedGetKernelCuda(ceed, impl->module, "StridedTranspose", &impl->StridedTranspose));
-  CeedCallBackend(CeedGetKernelCuda(ceed, impl->module, "StridedNoTranspose", &impl->StridedNoTranspose));
-  CeedCallBackend(CeedGetKernelCuda(ceed, impl->module, "OffsetTranspose", &impl->OffsetTranspose));
-  CeedCallBackend(CeedGetKernelCuda(ceed, impl->module, "OffsetNoTranspose", &impl->OffsetNoTranspose));
+  CeedCallBackend(CeedCompile_Cuda(ceed, restriction_kernel_source, &impl->module, 8, "RESTR_ELEM_SIZE", elem_size, "RESTR_NUM_ELEM", num_elem,
+                                   "RESTR_NUM_COMP", num_comp, "RESTR_NUM_NODES", num_nodes, "RESTR_COMP_STRIDE", comp_stride, "RESTR_STRIDE_NODES",
+                                   strides[0], "RESTR_STRIDE_COMP", strides[1], "RESTR_STRIDE_ELEM", strides[2]));
+  CeedCallBackend(CeedGetKernel_Cuda(ceed, impl->module, "StridedTranspose", &impl->StridedTranspose));
+  CeedCallBackend(CeedGetKernel_Cuda(ceed, impl->module, "StridedNoTranspose", &impl->StridedNoTranspose));
+  CeedCallBackend(CeedGetKernel_Cuda(ceed, impl->module, "OffsetTranspose", &impl->OffsetTranspose));
+  CeedCallBackend(CeedGetKernel_Cuda(ceed, impl->module, "OffsetNoTranspose", &impl->OffsetNoTranspose));
   CeedCallBackend(CeedFree(&restriction_kernel_path));
   CeedCallBackend(CeedFree(&restriction_kernel_source));
 

@@ -20,9 +20,9 @@
 //------------------------------------------------------------------------------
 // Device initalization
 //------------------------------------------------------------------------------
-int CeedCudaInitInterp(CeedScalar *d_B, CeedInt P_1d, CeedInt Q_1d, CeedScalar **c_B);
-int CeedCudaInitGrad(CeedScalar *d_B, CeedScalar *d_G, CeedInt P_1d, CeedInt Q_1d, CeedScalar **c_B_ptr, CeedScalar **c_G_ptr);
-int CeedCudaInitCollocatedGrad(CeedScalar *d_B, CeedScalar *d_G, CeedInt P_1d, CeedInt Q_1d, CeedScalar **c_B_ptr, CeedScalar **c_G_ptr);
+int CeedInit_CudaInterp(CeedScalar *d_B, CeedInt P_1d, CeedInt Q_1d, CeedScalar **c_B);
+int CeedInit_CudaGrad(CeedScalar *d_B, CeedScalar *d_G, CeedInt P_1d, CeedInt Q_1d, CeedScalar **c_B_ptr, CeedScalar **c_G_ptr);
+int CeedInit_CudaCollocatedGrad(CeedScalar *d_B, CeedScalar *d_G, CeedInt P_1d, CeedInt Q_1d, CeedScalar **c_B_ptr, CeedScalar **c_G_ptr);
 
 //------------------------------------------------------------------------------
 // Apply basis
@@ -53,7 +53,7 @@ int CeedBasisApplyTensor_Cuda_shared(CeedBasis basis, const CeedInt num_elem, Ce
       CeedCallBackend(CeedBasisGetNumNodes1D(basis, &P_1d));
       CeedCallBackend(CeedBasisGetNumQuadraturePoints1D(basis, &Q_1d));
       CeedInt thread_1d = CeedIntMax(Q_1d, P_1d);
-      CeedCallBackend(CeedCudaInitInterp(data->d_interp_1d, P_1d, Q_1d, &data->c_B));
+      CeedCallBackend(CeedInit_CudaInterp(data->d_interp_1d, P_1d, Q_1d, &data->c_B));
       void *interp_args[] = {(void *)&num_elem, &data->c_B, &d_u, &d_v};
       if (dim == 1) {
         CeedInt elems_per_block = CeedIntMin(ceed_Cuda->device_prop.maxThreadsDim[2], CeedIntMax(512 / thread_1d,
@@ -61,9 +61,9 @@ int CeedBasisApplyTensor_Cuda_shared(CeedBasis basis, const CeedInt num_elem, Ce
         CeedInt grid            = num_elem / elems_per_block + ((num_elem / elems_per_block * elems_per_block < num_elem) ? 1 : 0);
         CeedInt shared_mem      = elems_per_block * thread_1d * sizeof(CeedScalar);
         if (t_mode == CEED_TRANSPOSE) {
-          CeedCallBackend(CeedRunKernelDimSharedCuda(ceed, data->InterpTranspose, grid, thread_1d, 1, elems_per_block, shared_mem, interp_args));
+          CeedCallBackend(CeedRunKernelDimShared_Cuda(ceed, data->InterpTranspose, grid, thread_1d, 1, elems_per_block, shared_mem, interp_args));
         } else {
-          CeedCallBackend(CeedRunKernelDimSharedCuda(ceed, data->Interp, grid, thread_1d, 1, elems_per_block, shared_mem, interp_args));
+          CeedCallBackend(CeedRunKernelDimShared_Cuda(ceed, data->Interp, grid, thread_1d, 1, elems_per_block, shared_mem, interp_args));
         }
       } else if (dim == 2) {
         const CeedInt opt_elems[7] = {0, 32, 8, 6, 4, 2, 8};
@@ -73,9 +73,9 @@ int CeedBasisApplyTensor_Cuda_shared(CeedBasis basis, const CeedInt num_elem, Ce
         CeedInt shared_mem      = elems_per_block * thread_1d * thread_1d * sizeof(CeedScalar);
         if (t_mode == CEED_TRANSPOSE) {
           CeedCallBackend(
-              CeedRunKernelDimSharedCuda(ceed, data->InterpTranspose, grid, thread_1d, thread_1d, elems_per_block, shared_mem, interp_args));
+              CeedRunKernelDimShared_Cuda(ceed, data->InterpTranspose, grid, thread_1d, thread_1d, elems_per_block, shared_mem, interp_args));
         } else {
-          CeedCallBackend(CeedRunKernelDimSharedCuda(ceed, data->Interp, grid, thread_1d, thread_1d, elems_per_block, shared_mem, interp_args));
+          CeedCallBackend(CeedRunKernelDimShared_Cuda(ceed, data->Interp, grid, thread_1d, thread_1d, elems_per_block, shared_mem, interp_args));
         }
       } else if (dim == 3) {
         CeedInt elems_per_block = 1;
@@ -83,9 +83,9 @@ int CeedBasisApplyTensor_Cuda_shared(CeedBasis basis, const CeedInt num_elem, Ce
         CeedInt shared_mem      = elems_per_block * thread_1d * thread_1d * sizeof(CeedScalar);
         if (t_mode == CEED_TRANSPOSE) {
           CeedCallBackend(
-              CeedRunKernelDimSharedCuda(ceed, data->InterpTranspose, grid, thread_1d, thread_1d, elems_per_block, shared_mem, interp_args));
+              CeedRunKernelDimShared_Cuda(ceed, data->InterpTranspose, grid, thread_1d, thread_1d, elems_per_block, shared_mem, interp_args));
         } else {
-          CeedCallBackend(CeedRunKernelDimSharedCuda(ceed, data->Interp, grid, thread_1d, thread_1d, elems_per_block, shared_mem, interp_args));
+          CeedCallBackend(CeedRunKernelDimShared_Cuda(ceed, data->Interp, grid, thread_1d, thread_1d, elems_per_block, shared_mem, interp_args));
         }
       }
     } break;
@@ -95,9 +95,9 @@ int CeedBasisApplyTensor_Cuda_shared(CeedBasis basis, const CeedInt num_elem, Ce
       CeedCallBackend(CeedBasisGetNumQuadraturePoints1D(basis, &Q_1d));
       CeedInt thread_1d = CeedIntMax(Q_1d, P_1d);
       if (data->d_collo_grad_1d) {
-        CeedCallBackend(CeedCudaInitCollocatedGrad(data->d_interp_1d, data->d_collo_grad_1d, P_1d, Q_1d, &data->c_B, &data->c_G));
+        CeedCallBackend(CeedInit_CudaCollocatedGrad(data->d_interp_1d, data->d_collo_grad_1d, P_1d, Q_1d, &data->c_B, &data->c_G));
       } else {
-        CeedCallBackend(CeedCudaInitGrad(data->d_interp_1d, data->d_grad_1d, P_1d, Q_1d, &data->c_B, &data->c_G));
+        CeedCallBackend(CeedInit_CudaGrad(data->d_interp_1d, data->d_grad_1d, P_1d, Q_1d, &data->c_B, &data->c_G));
       }
       void *grad_args[] = {(void *)&num_elem, &data->c_B, &data->c_G, &d_u, &d_v};
       if (dim == 1) {
@@ -106,9 +106,9 @@ int CeedBasisApplyTensor_Cuda_shared(CeedBasis basis, const CeedInt num_elem, Ce
         CeedInt grid            = num_elem / elems_per_block + ((num_elem / elems_per_block * elems_per_block < num_elem) ? 1 : 0);
         CeedInt shared_mem      = elems_per_block * thread_1d * sizeof(CeedScalar);
         if (t_mode == CEED_TRANSPOSE) {
-          CeedCallBackend(CeedRunKernelDimSharedCuda(ceed, data->GradTranspose, grid, thread_1d, 1, elems_per_block, shared_mem, grad_args));
+          CeedCallBackend(CeedRunKernelDimShared_Cuda(ceed, data->GradTranspose, grid, thread_1d, 1, elems_per_block, shared_mem, grad_args));
         } else {
-          CeedCallBackend(CeedRunKernelDimSharedCuda(ceed, data->Grad, grid, thread_1d, 1, elems_per_block, shared_mem, grad_args));
+          CeedCallBackend(CeedRunKernelDimShared_Cuda(ceed, data->Grad, grid, thread_1d, 1, elems_per_block, shared_mem, grad_args));
         }
       } else if (dim == 2) {
         const CeedInt opt_elems[7] = {0, 32, 8, 6, 4, 2, 8};
@@ -117,18 +117,18 @@ int CeedBasisApplyTensor_Cuda_shared(CeedBasis basis, const CeedInt num_elem, Ce
         CeedInt grid            = num_elem / elems_per_block + ((num_elem / elems_per_block * elems_per_block < num_elem) ? 1 : 0);
         CeedInt shared_mem      = elems_per_block * thread_1d * thread_1d * sizeof(CeedScalar);
         if (t_mode == CEED_TRANSPOSE) {
-          CeedCallBackend(CeedRunKernelDimSharedCuda(ceed, data->GradTranspose, grid, thread_1d, thread_1d, elems_per_block, shared_mem, grad_args));
+          CeedCallBackend(CeedRunKernelDimShared_Cuda(ceed, data->GradTranspose, grid, thread_1d, thread_1d, elems_per_block, shared_mem, grad_args));
         } else {
-          CeedCallBackend(CeedRunKernelDimSharedCuda(ceed, data->Grad, grid, thread_1d, thread_1d, elems_per_block, shared_mem, grad_args));
+          CeedCallBackend(CeedRunKernelDimShared_Cuda(ceed, data->Grad, grid, thread_1d, thread_1d, elems_per_block, shared_mem, grad_args));
         }
       } else if (dim == 3) {
         CeedInt elems_per_block = 1;
         CeedInt grid            = num_elem / elems_per_block + ((num_elem / elems_per_block * elems_per_block < num_elem) ? 1 : 0);
         CeedInt shared_mem      = elems_per_block * thread_1d * thread_1d * sizeof(CeedScalar);
         if (t_mode == CEED_TRANSPOSE) {
-          CeedCallBackend(CeedRunKernelDimSharedCuda(ceed, data->GradTranspose, grid, thread_1d, thread_1d, elems_per_block, shared_mem, grad_args));
+          CeedCallBackend(CeedRunKernelDimShared_Cuda(ceed, data->GradTranspose, grid, thread_1d, thread_1d, elems_per_block, shared_mem, grad_args));
         } else {
-          CeedCallBackend(CeedRunKernelDimSharedCuda(ceed, data->Grad, grid, thread_1d, thread_1d, elems_per_block, shared_mem, grad_args));
+          CeedCallBackend(CeedRunKernelDimShared_Cuda(ceed, data->Grad, grid, thread_1d, thread_1d, elems_per_block, shared_mem, grad_args));
         }
       }
     } break;
@@ -139,17 +139,17 @@ int CeedBasisApplyTensor_Cuda_shared(CeedBasis basis, const CeedInt num_elem, Ce
       if (dim == 1) {
         const CeedInt elems_per_block = 32 / Q_1d;
         const CeedInt gridsize        = num_elem / elems_per_block + ((num_elem / elems_per_block * elems_per_block < num_elem) ? 1 : 0);
-        CeedCallBackend(CeedRunKernelDimCuda(ceed, data->Weight, gridsize, Q_1d, elems_per_block, 1, weight_args));
+        CeedCallBackend(CeedRunKernelDim_Cuda(ceed, data->Weight, gridsize, Q_1d, elems_per_block, 1, weight_args));
       } else if (dim == 2) {
         const CeedInt opt_elems       = 32 / (Q_1d * Q_1d);
         const CeedInt elems_per_block = opt_elems > 0 ? opt_elems : 1;
         const CeedInt gridsize        = num_elem / elems_per_block + ((num_elem / elems_per_block * elems_per_block < num_elem) ? 1 : 0);
-        CeedCallBackend(CeedRunKernelDimCuda(ceed, data->Weight, gridsize, Q_1d, Q_1d, elems_per_block, weight_args));
+        CeedCallBackend(CeedRunKernelDim_Cuda(ceed, data->Weight, gridsize, Q_1d, Q_1d, elems_per_block, weight_args));
       } else if (dim == 3) {
         const CeedInt opt_elems       = 32 / (Q_1d * Q_1d);
         const CeedInt elems_per_block = opt_elems > 0 ? opt_elems : 1;
         const CeedInt gridsize        = num_elem / elems_per_block + ((num_elem / elems_per_block * elems_per_block < num_elem) ? 1 : 0);
-        CeedCallBackend(CeedRunKernelDimCuda(ceed, data->Weight, gridsize, Q_1d, Q_1d, elems_per_block, weight_args));
+        CeedCallBackend(CeedRunKernelDim_Cuda(ceed, data->Weight, gridsize, Q_1d, Q_1d, elems_per_block, weight_args));
       }
     } break;
     // LCOV_EXCL_START
@@ -237,14 +237,14 @@ int CeedBasisCreateTensorH1_Cuda_shared(CeedInt dim, CeedInt P_1d, CeedInt Q_1d,
   CeedDebug256(ceed, 2, "----- Loading Basis Kernel Source -----\n");
   CeedCallBackend(CeedLoadSourceToBuffer(ceed, basis_kernel_path, &basis_kernel_source));
   CeedDebug256(ceed, 2, "----- Loading Basis Kernel Source Complete -----\n");
-  CeedCallBackend(CeedCompileCuda(ceed, basis_kernel_source, &data->module, 8, "BASIS_Q_1D", Q_1d, "BASIS_P_1D", P_1d, "T_1D", CeedIntMax(Q_1d, P_1d),
-                                  "BASIS_DIM", dim, "BASIS_NUM_COMP", num_comp, "BASIS_NUM_NODES", CeedIntPow(P_1d, dim), "BASIS_NUM_QPTS",
-                                  CeedIntPow(Q_1d, dim), "BASIS_HAS_COLLOCATED_GRAD", has_collocated_grad));
-  CeedCallBackend(CeedGetKernelCuda(ceed, data->module, "Interp", &data->Interp));
-  CeedCallBackend(CeedGetKernelCuda(ceed, data->module, "InterpTranspose", &data->InterpTranspose));
-  CeedCallBackend(CeedGetKernelCuda(ceed, data->module, "Grad", &data->Grad));
-  CeedCallBackend(CeedGetKernelCuda(ceed, data->module, "GradTranspose", &data->GradTranspose));
-  CeedCallBackend(CeedGetKernelCuda(ceed, data->module, "Weight", &data->Weight));
+  CeedCallBackend(CeedCompile_Cuda(ceed, basis_kernel_source, &data->module, 8, "BASIS_Q_1D", Q_1d, "BASIS_P_1D", P_1d, "T_1D",
+                                   CeedIntMax(Q_1d, P_1d), "BASIS_DIM", dim, "BASIS_NUM_COMP", num_comp, "BASIS_NUM_NODES", CeedIntPow(P_1d, dim),
+                                   "BASIS_NUM_QPTS", CeedIntPow(Q_1d, dim), "BASIS_HAS_COLLOCATED_GRAD", has_collocated_grad));
+  CeedCallBackend(CeedGetKernel_Cuda(ceed, data->module, "Interp", &data->Interp));
+  CeedCallBackend(CeedGetKernel_Cuda(ceed, data->module, "InterpTranspose", &data->InterpTranspose));
+  CeedCallBackend(CeedGetKernel_Cuda(ceed, data->module, "Grad", &data->Grad));
+  CeedCallBackend(CeedGetKernel_Cuda(ceed, data->module, "GradTranspose", &data->GradTranspose));
+  CeedCallBackend(CeedGetKernel_Cuda(ceed, data->module, "Weight", &data->Weight));
   CeedCallBackend(CeedFree(&basis_kernel_path));
   CeedCallBackend(CeedFree(&basis_kernel_source));
 

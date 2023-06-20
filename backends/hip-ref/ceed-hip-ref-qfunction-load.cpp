@@ -19,7 +19,7 @@
 //------------------------------------------------------------------------------
 // Build QFunction kernel
 //------------------------------------------------------------------------------
-extern "C" int CeedHipBuildQFunction(CeedQFunction qf) {
+extern "C" int CeedQFunctionBuildKernel_Hip_ref(CeedQFunction qf) {
   using std::ostringstream;
   using std::string;
   Ceed ceed;
@@ -112,8 +112,8 @@ extern "C" int CeedHipBuildQFunction(CeedQFunction qf) {
   CeedDebug(ceed, code.str().c_str());
 
   // Compile kernel
-  CeedCallBackend(CeedCompileHip(ceed, code.str().c_str(), &data->module, 1, "BLOCK_SIZE", ceed_Hip->opt_block_size));
-  CeedCallBackend(CeedGetKernelHip(ceed, data->module, kernel_name.c_str(), &data->QFunction));
+  CeedCallBackend(CeedCompile_Hip(ceed, code.str().c_str(), &data->module, 1, "BLOCK_SIZE", ceed_Hip->opt_block_size));
+  CeedCallBackend(CeedGetKernel_Hip(ceed, data->module, kernel_name.c_str(), &data->QFunction));
 
   // Cleanup
   CeedCallBackend(CeedFree(&data->qfunction_source));

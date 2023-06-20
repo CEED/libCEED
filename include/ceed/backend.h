@@ -140,6 +140,7 @@ CEED_EXTERN int CeedRegister(const char *prefix, int (*init)(const char *, Ceed)
 CEED_EXTERN int CeedRegisterImpl(const char *prefix, int (*init)(const char *, Ceed), unsigned int priority);
 
 CEED_EXTERN int CeedIsDebug(Ceed ceed, bool *is_debug);
+CEED_EXTERN int CeedGetResourceRoot(Ceed ceed, const char *resource, const char *delineator, char **resource_root);
 CEED_EXTERN int CeedGetParent(Ceed ceed, Ceed *parent);
 CEED_EXTERN int CeedGetDelegate(Ceed ceed, Ceed *delegate);
 CEED_EXTERN int CeedSetDelegate(Ceed ceed, Ceed delegate);

@@ -33,7 +33,7 @@
 //------------------------------------------------------------------------------
 // Compile HIP kernel
 //------------------------------------------------------------------------------
-int CeedCompileHip(Ceed ceed, const char *source, hipModule_t *module, const CeedInt num_defines, ...) {
+int CeedCompile_Hip(Ceed ceed, const char *source, hipModule_t *module, const CeedInt num_defines, ...) {
   hipFree(0);  // Make sure a Context exists for hiprtc
   hiprtcProgram prog;
 
@@ -120,7 +120,7 @@ int CeedCompileHip(Ceed ceed, const char *source, hipModule_t *module, const Cee
 //------------------------------------------------------------------------------
 // Get HIP kernel
 //------------------------------------------------------------------------------
-int CeedGetKernelHip(Ceed ceed, hipModule_t module, const char *name, hipFunction_t *kernel) {
+int CeedGetKernel_Hip(Ceed ceed, hipModule_t module, const char *name, hipFunction_t *kernel) {
   CeedCallHip(ceed, hipModuleGetFunction(kernel, module, name));
   return CEED_ERROR_SUCCESS;
 }
@@ -128,7 +128,7 @@ int CeedGetKernelHip(Ceed ceed, hipModule_t module, const char *name, hipFunctio
 //------------------------------------------------------------------------------
 // Run HIP kernel
 //------------------------------------------------------------------------------
-int CeedRunKernelHip(Ceed ceed, hipFunction_t kernel, const int grid_size, const int block_size, void **args) {
+int CeedRunKernel_Hip(Ceed ceed, hipFunction_t kernel, const int grid_size, const int block_size, void **args) {
   CeedCallHip(ceed, hipModuleLaunchKernel(kernel, grid_size, 1, 1, block_size, 1, 1, 0, NULL, args, NULL));
   return CEED_ERROR_SUCCESS;
 }
@@ -136,8 +136,8 @@ int CeedRunKernelHip(Ceed ceed, hipFunction_t kernel, const int grid_size, const
 //------------------------------------------------------------------------------
 // Run HIP kernel for spatial dimension
 //------------------------------------------------------------------------------
-int CeedRunKernelDimHip(Ceed ceed, hipFunction_t kernel, const int grid_size, const int block_size_x, const int block_size_y, const int block_size_z,
-                        void **args) {
+int CeedRunKernelDim_Hip(Ceed ceed, hipFunction_t kernel, const int grid_size, const int block_size_x, const int block_size_y, const int block_size_z,
+                         void **args) {
   CeedCallHip(ceed, hipModuleLaunchKernel(kernel, grid_size, 1, 1, block_size_x, block_size_y, block_size_z, 0, NULL, args, NULL));
   return CEED_ERROR_SUCCESS;
 }
@@ -145,8 +145,8 @@ int CeedRunKernelDimHip(Ceed ceed, hipFunction_t kernel, const int grid_size, co
 //------------------------------------------------------------------------------
 // Run HIP kernel for spatial dimension with shared memory
 //------------------------------------------------------------------------------
-int CeedRunKernelDimSharedHip(Ceed ceed, hipFunction_t kernel, const int grid_size, const int block_size_x, const int block_size_y,
-                              const int block_size_z, const int shared_mem_size, void **args) {
+int CeedRunKernelDimShared_Hip(Ceed ceed, hipFunction_t kernel, const int grid_size, const int block_size_x, const int block_size_y,
+                               const int block_size_z, const int shared_mem_size, void **args) {
   CeedCallHip(ceed, hipModuleLaunchKernel(kernel, grid_size, 1, 1, block_size_x, block_size_y, block_size_z, shared_mem_size, NULL, args, NULL));
   return CEED_ERROR_SUCCESS;
 }

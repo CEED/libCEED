@@ -446,7 +446,7 @@ static int CeedVectorNorm_Cuda(CeedVector vec, CeedNormType type, CeedScalar *no
   CeedSize length;
   CeedCallBackend(CeedVectorGetLength(vec, &length));
   cublasHandle_t handle;
-  CeedCallBackend(CeedCudaGetCublasHandle(ceed, &handle));
+  CeedCallBackend(CeedGetCublasHandle_Cuda(ceed, &handle));
 
   // Compute norm
   const CeedScalar *d_array;

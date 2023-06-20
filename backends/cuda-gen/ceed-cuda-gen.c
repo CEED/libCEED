@@ -18,7 +18,7 @@
 //------------------------------------------------------------------------------
 static int CeedInit_Cuda_gen(const char *resource, Ceed ceed) {
   char *resource_root;
-  CeedCallBackend(CeedCudaGetResourceRoot(ceed, resource, &resource_root));
+  CeedCallBackend(CeedGetResourceRoot(ceed, resource, ":", &resource_root));
   CeedCheck(!strcmp(resource_root, "/gpu/cuda") || !strcmp(resource_root, "/gpu/cuda/gen"), ceed, CEED_ERROR_BACKEND,
             "Cuda backend cannot use resource: %s", resource);
   CeedCallBackend(CeedFree(&resource_root));
@@ -26,7 +26,7 @@ static int CeedInit_Cuda_gen(const char *resource, Ceed ceed) {
   Ceed_Cuda *data;
   CeedCallBackend(CeedCalloc(1, &data));
   CeedCallBackend(CeedSetData(ceed, data));
-  CeedCallBackend(CeedCudaInit(ceed, resource));
+  CeedCallBackend(CeedInit_Cuda(ceed, resource));
 
   Ceed ceedshared;
   CeedCall(CeedInit("/gpu/cuda/shared", &ceedshared));

@@ -48,7 +48,7 @@ extern "C" int BlockGridCalculate_Hip_gen(const CeedInt dim, const CeedInt num_e
 //------------------------------------------------------------------------------
 // Build single operator kernel
 //------------------------------------------------------------------------------
-extern "C" int CeedHipGenOperatorBuild(CeedOperator op) {
+extern "C" int CeedOperatorBuildKernel_Hip_gen(CeedOperator op) {
   using std::ostringstream;
   using std::string;
   bool is_setup_done;
@@ -683,9 +683,9 @@ extern "C" int CeedHipGenOperatorBuild(CeedOperator op) {
   CeedInt num_elem;
   CeedCallBackend(CeedOperatorGetNumElements(op, &num_elem));
   CeedCallBackend(BlockGridCalculate_Hip_gen(dim, num_elem, data->max_P_1d, Q_1d, block_sizes));
-  CeedCallBackend(CeedCompileHip(ceed, code.str().c_str(), &data->module, 2, "T_1D", block_sizes[0], "BLOCK_SIZE",
-                                 block_sizes[0] * block_sizes[1] * block_sizes[2]));
-  CeedCallBackend(CeedGetKernelHip(ceed, data->module, operator_name.c_str(), &data->op));
+  CeedCallBackend(CeedCompile_Hip(ceed, code.str().c_str(), &data->module, 2, "T_1D", block_sizes[0], "BLOCK_SIZE",
+                                  block_sizes[0] * block_sizes[1] * block_sizes[2]));
+  CeedCallBackend(CeedGetKernel_Hip(ceed, data->module, operator_name.c_str(), &data->op));
 
   CeedCallBackend(CeedOperatorSetSetupDone(op));
   return CEED_ERROR_SUCCESS;

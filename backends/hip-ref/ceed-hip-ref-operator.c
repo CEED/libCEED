@@ -729,10 +729,10 @@ static inline int CeedOperatorAssembleDiagonalSetup_Hip(CeedOperator op, const b
   CeedCallBackend(CeedBasisGetNumNodes(basisin, &nnodes));
   CeedCallBackend(CeedBasisGetNumQuadraturePoints(basisin, &nqpts));
   diag->nnodes = nnodes;
-  CeedCallBackend(CeedCompileHip(ceed, diagonal_kernel_source, &diag->module, 5, "NUMEMODEIN", numemodein, "NUMEMODEOUT", numemodeout, "NNODES",
-                                 nnodes, "NQPTS", nqpts, "NCOMP", ncomp));
-  CeedCallBackend(CeedGetKernelHip(ceed, diag->module, "linearDiagonal", &diag->linearDiagonal));
-  CeedCallBackend(CeedGetKernelHip(ceed, diag->module, "linearPointBlockDiagonal", &diag->linearPointBlock));
+  CeedCallBackend(CeedCompile_Hip(ceed, diagonal_kernel_source, &diag->module, 5, "NUMEMODEIN", numemodein, "NUMEMODEOUT", numemodeout, "NNODES",
+                                  nnodes, "NQPTS", nqpts, "NCOMP", ncomp));
+  CeedCallBackend(CeedGetKernel_Hip(ceed, diag->module, "linearDiagonal", &diag->linearDiagonal));
+  CeedCallBackend(CeedGetKernel_Hip(ceed, diag->module, "linearPointBlockDiagonal", &diag->linearPointBlock));
   CeedCallBackend(CeedFree(&diagonal_kernel_path));
   CeedCallBackend(CeedFree(&diagonal_kernel_source));
 
@@ -835,9 +835,9 @@ static inline int CeedOperatorAssembleDiagonalCore_Hip(CeedOperator op, CeedVect
   void *args[]        = {(void *)&nelem,   &diag->d_identity, &diag->d_interpin, &diag->d_gradin,   &diag->d_interpout,
                          &diag->d_gradout, &diag->d_emodein,  &diag->d_emodeout, &assembledqfarray, &elemdiagarray};
   if (pointBlock) {
-    CeedCallBackend(CeedRunKernelDimHip(ceed, diag->linearPointBlock, grid, diag->nnodes, 1, elemsPerBlock, args));
+    CeedCallBackend(CeedRunKernelDim_Hip(ceed, diag->linearPointBlock, grid, diag->nnodes, 1, elemsPerBlock, args));
   } else {
-    CeedCallBackend(CeedRunKernelDimHip(ceed, diag->linearDiagonal, grid, diag->nnodes, 1, elemsPerBlock, args));
+    CeedCallBackend(CeedRunKernelDim_Hip(ceed, diag->linearDiagonal, grid, diag->nnodes, 1, elemsPerBlock, args));
   }
 
   // Restore arrays
@@ -982,9 +982,9 @@ static int CeedSingleOperatorAssembleSetup_Hip(CeedOperator op) {
     asmb->block_size_x = esize;
     asmb->block_size_y = esize;
   }
-  CeedCallBackend(CeedCompileHip(ceed, assembly_kernel_source, &asmb->module, 7, "NELEM", nelem, "NUMEMODEIN", num_emode_in, "NUMEMODEOUT",
-                                 num_emode_out, "NQPTS", nqpts, "NNODES", esize, "BLOCK_SIZE", block_size, "NCOMP", ncomp));
-  CeedCallBackend(CeedGetKernelHip(ceed, asmb->module, fallback ? "linearAssembleFallback" : "linearAssemble", &asmb->linearAssemble));
+  CeedCallBackend(CeedCompile_Hip(ceed, assembly_kernel_source, &asmb->module, 7, "NELEM", nelem, "NUMEMODEIN", num_emode_in, "NUMEMODEOUT",
+                                  num_emode_out, "NQPTS", nqpts, "NNODES", esize, "BLOCK_SIZE", block_size, "NCOMP", ncomp));
+  CeedCallBackend(CeedGetKernel_Hip(ceed, asmb->module, fallback ? "linearAssembleFallback" : "linearAssemble", &asmb->linearAssemble));
   CeedCallBackend(CeedFree(&assembly_kernel_path));
   CeedCallBackend(CeedFree(&assembly_kernel_source));
 
@@ -1073,7 +1073,7 @@ static int CeedSingleOperatorAssemble_Hip(CeedOperator op, CeedInt offset, CeedV
   const CeedInt grid          = nelem / elemsPerBlock + ((nelem / elemsPerBlock * elemsPerBlock < nelem) ? 1 : 0);
   void         *args[]        = {&impl->asmb->d_B_in, &impl->asmb->d_B_out, &qf_array, &values_array};
   CeedCallBackend(
-      CeedRunKernelDimHip(ceed, impl->asmb->linearAssemble, grid, impl->asmb->block_size_x, impl->asmb->block_size_y, elemsPerBlock, args));
+      CeedRunKernelDim_Hip(ceed, impl->asmb->linearAssemble, grid, impl->asmb->block_size_x, impl->asmb->block_size_y, elemsPerBlock, args));
 
   // Restore arrays
   CeedCallBackend(CeedVectorRestoreArray(values, &values_array));

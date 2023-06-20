@@ -110,7 +110,7 @@ typedef struct {
   CeedOperatorAssemble_Hip *asmb;
 } CeedOperator_Hip;
 
-CEED_INTERN int CeedHipGetHipblasHandle(Ceed ceed, hipblasHandle_t *handle);
+CEED_INTERN int CeedGetHipblasHandle_Hip(Ceed ceed, hipblasHandle_t *handle);
 
 CEED_INTERN int CeedVectorCreate_Hip(CeedSize n, CeedVector vec);
 

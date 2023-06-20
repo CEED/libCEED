@@ -322,6 +322,27 @@ int CeedIsDebug(Ceed ceed, bool *is_debug) {
 }
 
 /**
+  @brief Get the root of the requested resource
+
+  @param[in]  ceed          Ceed context to get resource name of
+  @param[in]  resource      ull user specified resource
+  @param[in]  delineator    Delinator to break resource_root and resource_spec
+  @param[out] resource_root Variable to store resource root
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Backend
+**/
+int CeedGetResourceRoot(Ceed ceed, const char *resource, const char *delineator, char **resource_root) {
+  char  *device_spec       = strstr(resource, delineator);
+  size_t resource_root_len = device_spec ? (size_t)(device_spec - resource) + 1 : strlen(resource) + 1;
+  CeedCall(CeedCalloc(resource_root_len, resource_root));
+  memcpy(*resource_root, resource, resource_root_len - 1);
+
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
   @brief Retrieve a parent Ceed context
 
   @param[in]  ceed   Ceed context to retrieve parent of
@@ -780,6 +801,7 @@ int CeedInit(const char *resource, Ceed *ceed) {
   // Set lookup table
   FOffset f_offsets[] = {
       CEED_FTABLE_ENTRY(Ceed, Error),
+      CEED_FTABLE_ENTRY(Ceed, SetStream),
       CEED_FTABLE_ENTRY(Ceed, GetPreferredMemType),
       CEED_FTABLE_ENTRY(Ceed, Destroy),
       CEED_FTABLE_ENTRY(Ceed, VectorCreate),
@@ -875,6 +897,33 @@ int CeedInit(const char *resource, Ceed *ceed) {
   // Backend specific setup
   CeedCall(backends[match_index].init(&resource[match_help], *ceed));
 
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
+  @brief Set the GPU stream for a Ceed context
+
+  @param[in,out] ceed   Ceed context to set the stream
+  @param[in]     handle Handle to GPU stream
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref User
+**/
+int CeedSetStream(Ceed ceed, void *handle) {
+  CeedCheck(handle, ceed, CEED_ERROR_INCOMPATIBLE, "Stream handle must be non-null");
+  if (ceed->SetStream) {
+    CeedCall(ceed->SetStream(ceed, handle));
+  } else {
+    Ceed delegate;
+    CeedCall(CeedGetDelegate(ceed, &delegate));
+
+    if (delegate) {
+      CeedCall(CeedSetStream(delegate, handle));
+    } else {
+      CeedError(ceed, CEED_ERROR_UNSUPPORTED, "Backend does not support setting stream");
+    }
+  }
   return CEED_ERROR_SUCCESS;
 }
 

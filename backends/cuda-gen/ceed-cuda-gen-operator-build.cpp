@@ -25,7 +25,7 @@
 //------------------------------------------------------------------------------
 // Build singe operator kernel
 //------------------------------------------------------------------------------
-extern "C" int CeedCudaGenOperatorBuild(CeedOperator op) {
+extern "C" int CeedOperatorBuildKernel_Cuda_gen(CeedOperator op) {
   using std::ostringstream;
   using std::string;
   bool is_setup_done;
@@ -682,8 +682,8 @@ extern "C" int CeedCudaGenOperatorBuild(CeedOperator op) {
   CeedDebug256(ceed, 2, "Generated Operator Kernels:\n");
   CeedDebug(ceed, code.str().c_str());
 
-  CeedCallBackend(CeedCompileCuda(ceed, code.str().c_str(), &data->module, 1, "T_1D", CeedIntMax(Q_1d, data->max_P_1d)));
-  CeedCallBackend(CeedGetKernelCuda(ceed, data->module, operator_name.c_str(), &data->op));
+  CeedCallBackend(CeedCompile_Cuda(ceed, code.str().c_str(), &data->module, 1, "T_1D", CeedIntMax(Q_1d, data->max_P_1d)));
+  CeedCallBackend(CeedGetKernel_Cuda(ceed, data->module, operator_name.c_str(), &data->op));
 
   CeedCallBackend(CeedOperatorSetSetupDone(op));
   return CEED_ERROR_SUCCESS;

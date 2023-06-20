@@ -26,7 +26,7 @@
 //
 // TODO: Refactor
 //------------------------------------------------------------------------------
-extern "C" int CeedBuildQFunction_Sycl(CeedQFunction qf) {
+extern "C" int CeedQFunctionBuildKernel_Sycl(CeedQFunction qf) {
   CeedQFunction_Sycl* impl;
   CeedCallBackend(CeedQFunctionGetData(qf, (void**)&impl));
   // QFunction is built
@@ -162,8 +162,8 @@ extern "C" int CeedBuildQFunction_Sycl(CeedQFunction qf) {
   CeedDebug(ceed, code.str().c_str());
 
   // Compile kernel
-  CeedCallBackend(CeedJitBuildModule_Sycl(ceed, code.str(), &impl->sycl_module));
-  CeedCallBackend(CeedJitGetKernel_Sycl(ceed, impl->sycl_module, kernel_name, &impl->QFunction));
+  CeedCallBackend(CeedBuildModule_Sycl(ceed, code.str(), &impl->sycl_module));
+  CeedCallBackend(CeedGetKernel_Sycl(ceed, impl->sycl_module, kernel_name, &impl->QFunction));
 
   // Cleanup
   CeedCallBackend(CeedFree(&qfunction_source));
