@@ -27,7 +27,7 @@ PetscErrorCode CreateBCLabel(DM dm, const char name[]) {
   PetscCall(DMGetLabel(dm, name, &label));
   PetscCall(DMPlexMarkBoundaryFaces(dm, 1, label));
 
-  PetscFunctionReturn(0);
+  PetscFunctionReturn(PETSC_SUCCESS);
 };
 
 // Read mesh and distribute DM in parallel
@@ -58,7 +58,7 @@ PetscErrorCode CreateDistributedDM(MPI_Comm comm, AppCtx app_ctx, DM *dm) {
   }
   PetscCall(DMViewFromOptions(*dm, NULL, "-dm_view"));
 
-  PetscFunctionReturn(0);
+  PetscFunctionReturn(PETSC_SUCCESS);
 };
 
 // Setup DM with FE space of appropriate degree
@@ -133,5 +133,5 @@ PetscErrorCode SetupDMByDegree(DM dm, AppCtx app_ctx, PetscInt order, PetscBool 
   // Cleanup
   PetscCall(PetscFEDestroy(&fe));
 
-  PetscFunctionReturn(0);
+  PetscFunctionReturn(PETSC_SUCCESS);
 };

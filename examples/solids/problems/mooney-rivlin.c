@@ -23,7 +23,7 @@ PetscErrorCode PhysicsContext_MR(MPI_Comm comm, Ceed ceed, Units *units, CeedQFu
   CeedQFunctionContextSetData(*ctx, CEED_MEM_HOST, CEED_COPY_VALUES, sizeof(*phys), phys);
   PetscCall(PetscFree(phys));
 
-  PetscFunctionReturn(0);
+  PetscFunctionReturn(PETSC_SUCCESS);
 }
 
 // Build libCEED smoother context object
@@ -58,7 +58,7 @@ PetscErrorCode PhysicsSmootherContext_MR(MPI_Comm comm, Ceed ceed, CeedQFunction
     *ctx_smoother = NULL;
   }
 
-  PetscFunctionReturn(0);
+  PetscFunctionReturn(PETSC_SUCCESS);
 }
 
 // Process physics options - Mooney-Rivlin
@@ -104,5 +104,5 @@ PetscErrorCode ProcessPhysics_MR(MPI_Comm comm, Physics_MR phys, Units units) {
   phys->mu_2 *= units->Pascal;
   phys->lambda *= units->Pascal;
 
-  PetscFunctionReturn(0);
+  PetscFunctionReturn(PETSC_SUCCESS);
 };

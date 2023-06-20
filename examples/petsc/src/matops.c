@@ -17,7 +17,7 @@ PetscErrorCode SetupApplyOperatorCtx(MPI_Comm comm, DM dm, Ceed ceed, CeedData c
   op_apply_ctx->op     = ceed_data->op_apply;
   op_apply_ctx->ceed   = ceed;
 
-  PetscFunctionReturn(0);
+  PetscFunctionReturn(PETSC_SUCCESS);
 }
 
 // -----------------------------------------------------------------------------
@@ -36,7 +36,7 @@ PetscErrorCode SetupErrorOperatorCtx(MPI_Comm comm, DM dm, Ceed ceed, CeedData c
   op_error_ctx->op     = op_error;
   op_error_ctx->ceed   = ceed;
 
-  PetscFunctionReturn(0);
+  PetscFunctionReturn(PETSC_SUCCESS);
 }
 
 // -----------------------------------------------------------------------------
@@ -66,7 +66,7 @@ PetscErrorCode MatGetDiag(Mat A, Vec D) {
   PetscCall(VecZeroEntries(D));
   PetscCall(DMLocalToGlobal(op_apply_ctx->dm, op_apply_ctx->Y_loc, ADD_VALUES, D));
 
-  PetscFunctionReturn(0);
+  PetscFunctionReturn(PETSC_SUCCESS);
 };
 
 // -----------------------------------------------------------------------------
@@ -100,7 +100,7 @@ PetscErrorCode ApplyLocal_Ceed(Vec X, Vec Y, OperatorApplyContext op_apply_ctx) 
   PetscCall(VecZeroEntries(Y));
   PetscCall(DMLocalToGlobal(op_apply_ctx->dm, op_apply_ctx->Y_loc, ADD_VALUES, Y));
 
-  PetscFunctionReturn(0);
+  PetscFunctionReturn(PETSC_SUCCESS);
 };
 
 // -----------------------------------------------------------------------------
@@ -116,7 +116,7 @@ PetscErrorCode MatMult_Ceed(Mat A, Vec X, Vec Y) {
   // libCEED for local action of residual evaluator
   PetscCall(ApplyLocal_Ceed(X, Y, op_apply_ctx));
 
-  PetscFunctionReturn(0);
+  PetscFunctionReturn(PETSC_SUCCESS);
 };
 
 // -----------------------------------------------------------------------------
@@ -157,7 +157,7 @@ PetscErrorCode MatMult_Prolong(Mat A, Vec X, Vec Y) {
   PetscCall(VecZeroEntries(Y));
   PetscCall(DMLocalToGlobal(pr_restr_ctx->dmf, pr_restr_ctx->loc_vec_f, ADD_VALUES, Y));
 
-  PetscFunctionReturn(0);
+  PetscFunctionReturn(PETSC_SUCCESS);
 };
 
 // -----------------------------------------------------------------------------
@@ -198,7 +198,7 @@ PetscErrorCode MatMult_Restrict(Mat A, Vec X, Vec Y) {
   PetscCall(VecZeroEntries(Y));
   PetscCall(DMLocalToGlobal(pr_restr_ctx->dmc, pr_restr_ctx->loc_vec_c, ADD_VALUES, Y));
 
-  PetscFunctionReturn(0);
+  PetscFunctionReturn(PETSC_SUCCESS);
 };
 
 // -----------------------------------------------------------------------------
@@ -213,7 +213,7 @@ PetscErrorCode ComputeL2Error(Vec X, PetscScalar *l2_error, OperatorApplyContext
   PetscCall(VecSum(E, &error_sq));
   *l2_error = sqrt(error_sq);
 
-  PetscFunctionReturn(0);
+  PetscFunctionReturn(PETSC_SUCCESS);
 };
 
 // -----------------------------------------------------------------------------

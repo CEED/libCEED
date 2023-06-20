@@ -27,7 +27,7 @@ PetscErrorCode CeedDataDestroy(CeedInt i, CeedData data) {
   }
   PetscCall(PetscFree(data));
 
-  PetscFunctionReturn(0);
+  PetscFunctionReturn(PETSC_SUCCESS);
 };
 
 // -----------------------------------------------------------------------------
@@ -164,7 +164,7 @@ PetscErrorCode SetupLibceedByDegree(DM dm, Ceed ceed, CeedInt degree, CeedInt to
   data->y_ceed          = y_ceed;
   data->q_data_size     = q_data_size;
 
-  PetscFunctionReturn(0);
+  PetscFunctionReturn(PETSC_SUCCESS);
 };
 
 // -----------------------------------------------------------------------------
@@ -207,7 +207,7 @@ PetscErrorCode CeedLevelTransferSetup(DM dm, Ceed ceed, CeedInt level, CeedInt n
   data[level]->op_restrict  = op_restrict;
 
   CeedBasisDestroy(&basis_u);
-  PetscFunctionReturn(0);
+  PetscFunctionReturn(PETSC_SUCCESS);
 };
 
 // -----------------------------------------------------------------------------

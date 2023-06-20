@@ -66,7 +66,7 @@ PetscErrorCode CompressibleBlasiusResidual(SNES snes, Vec X, Vec R, void *ctx) {
   // Restore vectors
   PetscCall(VecRestoreArrayRead(X, &Tf));
   PetscCall(VecRestoreArray(R, &r));
-  PetscFunctionReturn(0);
+  PetscFunctionReturn(PETSC_SUCCESS);
 }
 
 PetscErrorCode ComputeChebyshevCoefficients(BlasiusContext blasius) {
@@ -107,7 +107,7 @@ PetscErrorCode ComputeChebyshevCoefficients(BlasiusContext blasius) {
   PetscCall(VecDestroy(&sol));
   PetscCall(VecDestroy(&res));
   PetscCall(SNESDestroy(&snes));
-  PetscFunctionReturn(0);
+  PetscFunctionReturn(PETSC_SUCCESS);
 }
 
 static PetscErrorCode GetYNodeLocs(const MPI_Comm comm, const char path[PETSC_MAX_PATH_LEN], PetscReal **pynodes, PetscInt *nynodes) {
@@ -139,7 +139,7 @@ static PetscErrorCode GetYNodeLocs(const MPI_Comm comm, const char path[PETSC_MA
   }
   PetscCall(PetscFClose(comm, fp));
   *pynodes = node_locs;
-  PetscFunctionReturn(0);
+  PetscFunctionReturn(PETSC_SUCCESS);
 }
 
 /* \brief Modify the domain and mesh for blasius
@@ -226,7 +226,7 @@ static PetscErrorCode ModifyMesh(MPI_Comm comm, DM dm, PetscInt dim, PetscReal g
   PetscCall(VecRestoreArray(vec_coords, &arr_coords));
   PetscCall(DMSetCoordinatesLocal(dm, vec_coords));
 
-  PetscFunctionReturn(0);
+  PetscFunctionReturn(PETSC_SUCCESS);
 }
 
 PetscErrorCode NS_BLASIUS(ProblemData *problem, DM dm, void *ctx, SimpleBC bc) {
@@ -346,5 +346,5 @@ PetscErrorCode NS_BLASIUS(ProblemData *problem, DM dm, void *ctx, SimpleBC bc) {
     CeedQFunctionContextReferenceCopy(blasius_context, &problem->apply_inflow_jacobian.qfunction_context);
   }
   PetscCall(PetscFree(mesh_ynodes));
-  PetscFunctionReturn(0);
+  PetscFunctionReturn(PETSC_SUCCESS);
 }

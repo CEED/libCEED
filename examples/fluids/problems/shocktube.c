@@ -147,7 +147,7 @@ PetscErrorCode NS_SHOCKTUBE(ProblemData *problem, DM dm, void *ctx, SimpleBC bc)
   CeedQFunctionContextSetData(shocktube_context, CEED_MEM_HOST, CEED_USE_POINTER, sizeof(*shocktube_ctx), shocktube_ctx);
   CeedQFunctionContextSetDataDestroy(shocktube_context, CEED_MEM_HOST, FreeContextPetsc);
   problem->apply_vol_rhs.qfunction_context = shocktube_context;
-  PetscFunctionReturn(0);
+  PetscFunctionReturn(PETSC_SUCCESS);
 }
 
 PetscErrorCode PRINT_SHOCKTUBE(ProblemData *problem, AppCtx app_ctx) {
@@ -159,5 +159,5 @@ PetscErrorCode PRINT_SHOCKTUBE(ProblemData *problem, AppCtx app_ctx) {
                         "    Problem Name                       : %s\n",
                         app_ctx->problem_name));
 
-  PetscFunctionReturn(0);
+  PetscFunctionReturn(PETSC_SUCCESS);
 }

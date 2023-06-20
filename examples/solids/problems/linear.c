@@ -43,7 +43,7 @@ PetscErrorCode SetupLibceedFineLevel_ElasLinear(DM dm, DM dm_energy, DM dm_diagn
   PetscCall(SetupLibceedFineLevel(dm, dm_energy, dm_diagnostic, ceed, app_ctx, phys_ctx, linear_elasticity, fine_level, num_comp_u, U_g_size,
                                   U_loc_size, force_ceed, neumann_ceed, data));
 
-  PetscFunctionReturn(0);
+  PetscFunctionReturn(PETSC_SUCCESS);
 };
 
 PetscErrorCode SetupLibceedLevel_ElasLinear(DM dm, Ceed ceed, AppCtx app_ctx, PetscInt level, PetscInt num_comp_u, PetscInt U_g_size,
@@ -52,5 +52,5 @@ PetscErrorCode SetupLibceedLevel_ElasLinear(DM dm, Ceed ceed, AppCtx app_ctx, Pe
 
   PetscCall(SetupLibceedLevel(dm, ceed, app_ctx, linear_elasticity, level, num_comp_u, U_g_size, U_loc_size, fine_mult, data));
 
-  PetscFunctionReturn(0);
+  PetscFunctionReturn(PETSC_SUCCESS);
 };

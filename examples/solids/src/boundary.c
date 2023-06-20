@@ -31,7 +31,7 @@ PetscErrorCode BCMMS(PetscInt dim, PetscReal load_increment, const PetscReal coo
   u[1] = exp(3 * y) * sin(4 * z) * cos(2 * x) / 1e8 * load_increment;
   u[2] = exp(4 * z) * sin(2 * x) * cos(3 * y) / 1e8 * load_increment;
 
-  PetscFunctionReturn(0);
+  PetscFunctionReturn(PETSC_SUCCESS);
 };
 
 #ifndef M_PI
@@ -61,5 +61,5 @@ PetscErrorCode BCClamp(PetscInt dim, PetscReal load_increment, const PetscReal c
   u[0] = lx + s * (-kz * y + ky * z) + (1 - c) * (-(ky * ky + kz * kz) * x + kx * ky * y + kx * kz * z);
   u[1] = ly + s * (kz * x + -kx * z) + (1 - c) * (kx * ky * x + -(kx * kx + kz * kz) * y + ky * kz * z);
   u[2] = lz + s * (-ky * x + kx * y) + (1 - c) * (kx * kz * x + ky * kz * y + -(kx * kx + ky * ky) * z);
-  PetscFunctionReturn(0);
+  PetscFunctionReturn(PETSC_SUCCESS);
 };

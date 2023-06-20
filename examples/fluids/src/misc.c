@@ -70,7 +70,7 @@ PetscErrorCode ICs_FixMultiplicity(DM dm, CeedData ceed_data, User user, Vec Q_l
   CeedVectorDestroy(&mult_vec);
   CeedVectorDestroy(&q0_ceed);
 
-  PetscFunctionReturn(0);
+  PetscFunctionReturn(PETSC_SUCCESS);
 }
 
 PetscErrorCode DMPlexInsertBoundaryValues_NS(DM dm, PetscBool insert_essential, Vec Q_loc, PetscReal time, Vec face_geom_FVM, Vec cell_geom_FVM,
@@ -87,7 +87,7 @@ PetscErrorCode DMPlexInsertBoundaryValues_NS(DM dm, PetscBool insert_essential, 
   PetscCall(VecAXPY(Q_loc, 1., Qbc));
   PetscCall(DMRestoreNamedLocalVector(dm, "Qbc", &Qbc));
 
-  PetscFunctionReturn(0);
+  PetscFunctionReturn(PETSC_SUCCESS);
 }
 
 // @brief Load vector from binary file, possibly with embedded solution time and step number
@@ -114,7 +114,7 @@ PetscErrorCode LoadFluidsBinaryVec(MPI_Comm comm, PetscViewer viewer, Vec Q, Pet
   // Load Q from existent solution
   PetscCall(VecLoad(Q, viewer));
 
-  PetscFunctionReturn(0);
+  PetscFunctionReturn(PETSC_SUCCESS);
 }
 
 // Compare reference solution values with current test run for CI
@@ -145,7 +145,7 @@ PetscErrorCode RegressionTests_NS(AppCtx app_ctx, Vec Q) {
   PetscCall(PetscViewerDestroy(&viewer));
   PetscCall(VecDestroy(&Qref));
 
-  PetscFunctionReturn(0);
+  PetscFunctionReturn(PETSC_SUCCESS);
 }
 
 // Get error for problems with exact solutions
@@ -175,7 +175,7 @@ PetscErrorCode GetError_NS(CeedData ceed_data, DM dm, User user, Vec Q, PetscSca
   PetscCall(DMRestoreLocalVector(dm, &Q_exact_loc));
   PetscCall(VecDestroy(&Q_exact));
 
-  PetscFunctionReturn(0);
+  PetscFunctionReturn(PETSC_SUCCESS);
 }
 
 // Post-processing
@@ -205,7 +205,7 @@ PetscErrorCode PostProcess_NS(TS ts, CeedData ceed_data, DM dm, ProblemData *pro
     PetscCall(RegressionTests_NS(user->app_ctx, Q));
   }
 
-  PetscFunctionReturn(0);
+  PetscFunctionReturn(PETSC_SUCCESS);
 }
 
 const PetscInt FLUIDS_FILE_TOKEN = 0xceedf00;
@@ -220,7 +220,7 @@ PetscErrorCode SetupICsFromBinary(MPI_Comm comm, AppCtx app_ctx, Vec Q) {
   PetscCall(LoadFluidsBinaryVec(comm, viewer, Q, &app_ctx->cont_time, &app_ctx->cont_steps));
   PetscCall(PetscViewerDestroy(&viewer));
 
-  PetscFunctionReturn(0);
+  PetscFunctionReturn(PETSC_SUCCESS);
 }
 
 // Record boundary values from initial condition
@@ -243,7 +243,7 @@ PetscErrorCode SetBCsFromICs_NS(DM dm, Vec Q, Vec Q_loc) {
   PetscCall(DMGlobalToLocal(dm, Q, INSERT_VALUES, boundary_mask));
   PetscCall(DMRestoreNamedLocalVector(dm, "boundary mask", &boundary_mask));
 
-  PetscFunctionReturn(0);
+  PetscFunctionReturn(PETSC_SUCCESS);
 }
 
 // Free a plain data context that was allocated using PETSc; returning libCEED error codes
@@ -279,7 +279,7 @@ PetscErrorCode CreateMassQFunction(Ceed ceed, CeedInt N, CeedInt q_data_size, Ce
   CeedQFunctionAddInput(*qf, "u", N, CEED_EVAL_INTERP);
   CeedQFunctionAddInput(*qf, "qdata", q_data_size, CEED_EVAL_NONE);
   CeedQFunctionAddOutput(*qf, "v", N, CEED_EVAL_INTERP);
-  PetscFunctionReturn(0);
+  PetscFunctionReturn(PETSC_SUCCESS);
 }
 
 /* @brief L^2 Projection of a source FEM function to a target FEM space
@@ -297,12 +297,12 @@ PetscErrorCode ComputeL2Projection(Vec source_vec, Vec target_vec, OperatorApply
   PetscCall(ApplyCeedOperatorGlobalToGlobal(source_vec, target_vec, rhs_matop_ctx));
   PetscCall(KSPSolve(ksp, target_vec, target_vec));
 
-  PetscFunctionReturn(0);
+  PetscFunctionReturn(PETSC_SUCCESS);
 }
 
 PetscErrorCode NodalProjectionDataDestroy(NodalProjectionData context) {
   PetscFunctionBeginUser;
-  if (context == NULL) PetscFunctionReturn(0);
+  if (context == NULL) PetscFunctionReturn(PETSC_SUCCESS);
 
   PetscCall(DMDestroy(&context->dm));
   PetscCall(KSPDestroy(&context->ksp));
@@ -311,7 +311,7 @@ PetscErrorCode NodalProjectionDataDestroy(NodalProjectionData context) {
 
   PetscCall(PetscFree(context));
 
-  PetscFunctionReturn(0);
+  PetscFunctionReturn(PETSC_SUCCESS);
 }
 
 /*
@@ -343,7 +343,7 @@ PetscErrorCode PHASTADatFileOpen(const MPI_Comm comm, const char path[PETSC_MAX_
   for (PetscInt i = 0; i < ndims; i++) dims[i] = atoi(array[i]);
   PetscCall(PetscStrToArrayDestroy(ndims, array));
 
-  PetscFunctionReturn(0);
+  PetscFunctionReturn(PETSC_SUCCESS);
 }
 
 /*
@@ -365,7 +365,7 @@ PetscErrorCode PHASTADatFileGetNRows(const MPI_Comm comm, const char path[PETSC_
   *nrows = dims[0];
   PetscCall(PetscFClose(comm, fp));
 
-  PetscFunctionReturn(0);
+  PetscFunctionReturn(PETSC_SUCCESS);
 }
 
 PetscErrorCode PHASTADatFileReadToArrayReal(MPI_Comm comm, const char path[PETSC_MAX_PATH_LEN], PetscReal array[]) {
@@ -392,7 +392,7 @@ PetscErrorCode PHASTADatFileReadToArrayReal(MPI_Comm comm, const char path[PETSC
 
   PetscCall(PetscFClose(comm, fp));
 
-  PetscFunctionReturn(0);
+  PetscFunctionReturn(PETSC_SUCCESS);
 }
 
 PetscLogEvent       FLUIDS_CeedOperatorApply;
@@ -408,5 +408,5 @@ PetscErrorCode RegisterLogEvents() {
   PetscCall(PetscLogEventRegister("CeedOpAsm", libCEED_classid, &FLUIDS_CeedOperatorAssemble));
   PetscCall(PetscLogEventRegister("CeedOpAsmD", libCEED_classid, &FLUIDS_CeedOperatorAssembleDiagonal));
   PetscCall(PetscLogEventRegister("CeedOpAsmPBD", libCEED_classid, &FLUIDS_CeedOperatorAssemblePointBlockDiagonal));
-  PetscFunctionReturn(0);
+  PetscFunctionReturn(PETSC_SUCCESS);
 }

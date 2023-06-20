@@ -49,7 +49,7 @@ PetscErrorCode ApplyLocalCeedOp(Vec X, Vec Y, UserMult user) {
   PetscCall(VecZeroEntries(Y));
   PetscCall(DMLocalToGlobal(user->dm, user->Y_loc, ADD_VALUES, Y));
 
-  PetscFunctionReturn(0);
+  PetscFunctionReturn(PETSC_SUCCESS);
 };
 
 // This function uses libCEED to compute the non-linear residual
@@ -70,7 +70,7 @@ PetscErrorCode FormResidual_Ceed(SNES snes, Vec X, Vec Y, void *ctx) {
     PetscCall(VecAXPY(Y, -user->load_increment, user->neumann_bcs));
   }
 
-  PetscFunctionReturn(0);
+  PetscFunctionReturn(PETSC_SUCCESS);
 };
 
 // This function uses libCEED to apply the Jacobian for assembly via a SNES
@@ -85,7 +85,7 @@ PetscErrorCode ApplyJacobianCoarse_Ceed(SNES snes, Vec X, Vec Y, void *ctx) {
   // libCEED for local action of residual evaluator
   PetscCall(ApplyLocalCeedOp(X, Y, user));
 
-  PetscFunctionReturn(0);
+  PetscFunctionReturn(PETSC_SUCCESS);
 };
 
 // This function uses libCEED to compute the action of the Jacobian
@@ -101,7 +101,7 @@ PetscErrorCode ApplyJacobian_Ceed(Mat A, Vec X, Vec Y) {
   // libCEED for local action of Jacobian
   PetscCall(ApplyLocalCeedOp(X, Y, user));
 
-  PetscFunctionReturn(0);
+  PetscFunctionReturn(PETSC_SUCCESS);
 };
 
 // This function uses libCEED to compute the action of the prolongation operator
@@ -138,7 +138,7 @@ PetscErrorCode Prolong_Ceed(Mat A, Vec X, Vec Y) {
   PetscCall(VecZeroEntries(Y));
   PetscCall(DMLocalToGlobal(user->dm_f, user->loc_vec_f, ADD_VALUES, Y));
 
-  PetscFunctionReturn(0);
+  PetscFunctionReturn(PETSC_SUCCESS);
 }
 
 // This function uses libCEED to compute the action of the restriction operator
@@ -175,7 +175,7 @@ PetscErrorCode Restrict_Ceed(Mat A, Vec X, Vec Y) {
   PetscCall(VecZeroEntries(Y));
   PetscCall(DMLocalToGlobal(user->dm_c, user->loc_vec_c, ADD_VALUES, Y));
 
-  PetscFunctionReturn(0);
+  PetscFunctionReturn(PETSC_SUCCESS);
 };
 
 // This function returns the computed diagonal of the operator
@@ -212,7 +212,7 @@ PetscErrorCode GetDiag_Ceed(Mat A, Vec D) {
   // Cleanup
   PetscCall(VecZeroEntries(user->X_loc));
 
-  PetscFunctionReturn(0);
+  PetscFunctionReturn(PETSC_SUCCESS);
 };
 
 // This function calculates the strain energy in the final solution
@@ -257,5 +257,5 @@ PetscErrorCode ComputeStrainEnergy(DM dmEnergy, UserMult user, CeedOperator op_e
 
   PetscCall(MPI_Allreduce(MPI_IN_PLACE, energy, 1, MPIU_REAL, MPIU_SUM, user->comm));
 
-  PetscFunctionReturn(0);
+  PetscFunctionReturn(PETSC_SUCCESS);
 };

@@ -301,7 +301,7 @@ static PetscErrorCode RunWithDM(RunParams rp, DM dm, const char *ceed_resource) 
   CeedQFunctionDestroy(&qf_error);
   CeedOperatorDestroy(&op_error);
   CeedDestroy(&ceed);
-  PetscFunctionReturn(0);
+  PetscFunctionReturn(PETSC_SUCCESS);
 }
 
 static PetscErrorCode Run(RunParams rp, PetscInt num_resources, char *const *ceed_resources, PetscInt num_bp_choices, const BPType *bp_choices) {
@@ -333,7 +333,7 @@ static PetscErrorCode Run(RunParams rp, PetscInt num_resources, char *const *cee
   }
 
   PetscCall(DMDestroy(&dm));
-  PetscFunctionReturn(0);
+  PetscFunctionReturn(PETSC_SUCCESS);
 }
 
 int main(int argc, char **argv) {

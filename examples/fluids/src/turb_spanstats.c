@@ -119,7 +119,7 @@ PetscErrorCode CreateStatsDM(User user, ProblemData *problem, PetscInt degree) {
   PetscCall(PetscFEDestroy(&fe));
 
   PetscCall(PetscLogStagePop());
-  PetscFunctionReturn(0);
+  PetscFunctionReturn(PETSC_SUCCESS);
 }
 
 // Create CeedElemRestriction for collocated data based on associated CeedBasis and CeedElemRestriction
@@ -135,7 +135,7 @@ PetscErrorCode CreateElemRestrColloc(Ceed ceed, CeedInt num_comp, CeedBasis basi
   const CeedInt strides[] = {num_comp, 1, num_elem_qpts * num_comp};
   CeedElemRestrictionCreateStrided(ceed, loc_num_elem, num_elem_qpts, num_comp, num_comp * loc_num_elem * num_elem_qpts, strides,
                                    elem_restr_collocated);
-  PetscFunctionReturn(0);
+  PetscFunctionReturn(PETSC_SUCCESS);
 }
 
 // Get coordinates of quadrature points
@@ -172,7 +172,7 @@ PetscErrorCode GetQuadratureCoords(Ceed ceed, DM dm, CeedElemRestriction elem_re
   CeedElemRestrictionDestroy(&elem_restr_qx);
   CeedQFunctionDestroy(&qf_quad_coords);
   CeedOperatorDestroy(&op_quad_coords);
-  PetscFunctionReturn(0);
+  PetscFunctionReturn(PETSC_SUCCESS);
 }
 
 PetscErrorCode SpanStatsSetupDataCreate(Ceed ceed, User user, CeedData ceed_data, ProblemData *problem, SpanStatsSetupData *stats_data) {
@@ -212,7 +212,7 @@ PetscErrorCode SpanStatsSetupDataCreate(Ceed ceed, User user, CeedData ceed_data
   PetscCall(VecScale(X_loc, problem->dm_scale));
   PetscCall(VecCopyP2C(X_loc, (*stats_data)->x_coord));
 
-  PetscFunctionReturn(0);
+  PetscFunctionReturn(PETSC_SUCCESS);
 }
 
 PetscErrorCode SpanStatsSetupDataDestroy(SpanStatsSetupData data) {
@@ -231,7 +231,7 @@ PetscErrorCode SpanStatsSetupDataDestroy(SpanStatsSetupData data) {
   CeedVectorDestroy(&data->q_data);
 
   PetscCall(PetscFree(data));
-  PetscFunctionReturn(0);
+  PetscFunctionReturn(PETSC_SUCCESS);
 }
 
 // Create PetscSF for child-to-parent communication
@@ -278,7 +278,7 @@ PetscErrorCode CreateStatsSF(Ceed ceed, CeedData ceed_data, SpanStatsSetupData s
 
   PetscCall(VecDestroy(&Child_qx_coords));
   PetscCall(VecDestroy(&Parent_qx_coords));
-  PetscFunctionReturn(0);
+  PetscFunctionReturn(PETSC_SUCCESS);
 }
 
 // @brief Setup RHS and LHS for L^2 projection of statistics
@@ -349,7 +349,7 @@ PetscErrorCode SetupL2ProjectionStats(Ceed ceed, User user, CeedData ceed_data, 
   CeedOperatorDestroy(&op_mass);
   CeedOperatorDestroy(&op_setup_sur);
   CeedOperatorDestroy(&op_proj_rhs);
-  PetscFunctionReturn(0);
+  PetscFunctionReturn(PETSC_SUCCESS);
 }
 
 // Create CeedOperator for statistics collection
@@ -423,7 +423,7 @@ PetscErrorCode CreateStatisticCollectionOperator(Ceed ceed, User user, CeedData 
 
   CeedQFunctionDestroy(&qf_stats_collect);
   CeedOperatorDestroy(&op_stats_collect);
-  PetscFunctionReturn(0);
+  PetscFunctionReturn(PETSC_SUCCESS);
 }
 
 // Creates operator for calculating error of method of manufactured solution (MMS) test
@@ -458,7 +458,7 @@ PetscErrorCode SetupMMSErrorChecking(Ceed ceed, User user, CeedData ceed_data, S
   CeedQFunctionDestroy(&qf_error);
   CeedVectorDestroy(&x_ceed);
   CeedVectorDestroy(&y_ceed);
-  PetscFunctionReturn(0);
+  PetscFunctionReturn(PETSC_SUCCESS);
 }
 
 // Setup for statistics collection
@@ -502,7 +502,7 @@ PetscErrorCode TurbulenceStatisticsSetup(Ceed ceed, User user, CeedData ceed_dat
 
   PetscCall(SpanStatsSetupDataDestroy(stats_data));
   PetscCall(PetscLogStagePop());
-  PetscFunctionReturn(0);
+  PetscFunctionReturn(PETSC_SUCCESS);
 }
 
 // Collect statistics based on the solution Q
@@ -523,7 +523,7 @@ PetscErrorCode CollectStatistics(User user, PetscScalar solution_time, Vec Q) {
   CeedOperatorSetContextDouble(user_stats.op_stats_collect_ctx->op, user_stats.previous_time_label, &solution_time);
 
   PetscCall(PetscLogStagePop());
-  PetscFunctionReturn(0);
+  PetscFunctionReturn(PETSC_SUCCESS);
 }
 
 // Process the child statistics into parent statistics and project them onto stats
@@ -571,7 +571,7 @@ PetscErrorCode ProcessStatistics(User user, Vec stats) {
 
   PetscCall(DMRestoreGlobalVector(user_stats.dm, &RHS));
   PetscCall(PetscLogStagePop());
-  PetscFunctionReturn(0);
+  PetscFunctionReturn(PETSC_SUCCESS);
 }
 
 // TSMonitor for the statistics collection and processing
@@ -583,7 +583,7 @@ PetscErrorCode TSMonitor_TurbulenceStatistics(TS ts, PetscInt steps, PetscReal s
   PetscFunctionBeginUser;
   PetscCall(TSGetConvergedReason(ts, &reason));
   // Do not collect or process on the first step of the run (ie. on the initial condition)
-  if (steps == user->app_ctx->cont_steps && reason == TS_CONVERGED_ITERATING) PetscFunctionReturn(0);
+  if (steps == user->app_ctx->cont_steps && reason == TS_CONVERGED_ITERATING) PetscFunctionReturn(PETSC_SUCCESS);
 
   PetscBool run_processing_and_viewer = (steps % viewer_interval == 0 && viewer_interval != -1) || reason != TS_CONVERGED_ITERATING;
 
@@ -614,7 +614,7 @@ PetscErrorCode TSMonitor_TurbulenceStatistics(TS ts, PetscInt steps, PetscReal s
       PetscCall(DMRestoreGlobalVector(user->spanstats.dm, &stats));
     }
   }
-  PetscFunctionReturn(0);
+  PetscFunctionReturn(PETSC_SUCCESS);
 }
 
 PetscErrorCode TurbulenceStatisticsDestroy(User user, CeedData ceed_data) {
@@ -638,5 +638,5 @@ PetscErrorCode TurbulenceStatisticsDestroy(User user, CeedData ceed_data) {
   // -- DM
   PetscCall(DMDestroy(&user->spanstats.dm));
 
-  PetscFunctionReturn(0);
+  PetscFunctionReturn(PETSC_SUCCESS);
 }

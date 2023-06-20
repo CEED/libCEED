@@ -22,7 +22,7 @@ PetscErrorCode DMGetLocalVectorInfo(DM dm, PetscInt *local_size, PetscInt *globa
   if (global_size) PetscCall(VecGetSize(V_loc, global_size));
   if (vec_type) PetscCall(VecGetType(V_loc, vec_type));
   PetscCall(DMRestoreLocalVector(dm, &V_loc));
-  PetscFunctionReturn(0);
+  PetscFunctionReturn(PETSC_SUCCESS);
 }
 
 // @brief Get information about a DM's global vector
@@ -35,7 +35,7 @@ PetscErrorCode DMGetGlobalVectorInfo(DM dm, PetscInt *local_size, PetscInt *glob
   if (global_size) PetscCall(VecGetSize(V, global_size));
   if (vec_type) PetscCall(VecGetType(V, vec_type));
   PetscCall(DMRestoreGlobalVector(dm, &V));
-  PetscFunctionReturn(0);
+  PetscFunctionReturn(PETSC_SUCCESS);
 }
 
 /**
@@ -124,7 +124,7 @@ PetscErrorCode OperatorApplyContextCreate(DM dm_x, DM dm_y, Ceed ceed, CeedOpera
   CeedOperatorReferenceCopy(op_apply, &(*ctx)->op);
   CeedReferenceCopy(ceed, &(*ctx)->ceed);
 
-  PetscFunctionReturn(0);
+  PetscFunctionReturn(PETSC_SUCCESS);
 }
 
 /**
@@ -135,7 +135,7 @@ PetscErrorCode OperatorApplyContextCreate(DM dm_x, DM dm_y, Ceed ceed, CeedOpera
 PetscErrorCode OperatorApplyContextDestroy(OperatorApplyContext ctx) {
   PetscFunctionBeginUser;
 
-  if (!ctx) PetscFunctionReturn(0);
+  if (!ctx) PetscFunctionReturn(PETSC_SUCCESS);
 
   // Destroy PETSc Objects
   PetscCall(DMDestroy(&ctx->dm_x));
@@ -151,7 +151,7 @@ PetscErrorCode OperatorApplyContextDestroy(OperatorApplyContext ctx) {
 
   PetscCall(PetscFree(ctx));
 
-  PetscFunctionReturn(0);
+  PetscFunctionReturn(PETSC_SUCCESS);
 }
 
 /**
@@ -177,7 +177,7 @@ PetscErrorCode VecP2C(Vec X_petsc, PetscMemType *mem_type, CeedVector x_ceed) {
   PetscCall(VecGetArrayAndMemType(X_petsc, &x, mem_type));
   CeedVectorSetArray(x_ceed, MemTypeP2C(*mem_type), CEED_USE_POINTER, x);
 
-  PetscFunctionReturn(0);
+  PetscFunctionReturn(PETSC_SUCCESS);
 }
 
 /**
@@ -203,7 +203,7 @@ PetscErrorCode VecC2P(CeedVector x_ceed, PetscMemType mem_type, Vec X_petsc) {
   CeedVectorTakeArray(x_ceed, MemTypeP2C(mem_type), &x);
   PetscCall(VecRestoreArrayAndMemType(X_petsc, &x));
 
-  PetscFunctionReturn(0);
+  PetscFunctionReturn(PETSC_SUCCESS);
 }
 
 /**
@@ -229,7 +229,7 @@ PetscErrorCode VecReadP2C(Vec X_petsc, PetscMemType *mem_type, CeedVector x_ceed
   PetscCall(VecGetArrayReadAndMemType(X_petsc, (const PetscScalar **)&x, mem_type));
   CeedVectorSetArray(x_ceed, MemTypeP2C(*mem_type), CEED_USE_POINTER, x);
 
-  PetscFunctionReturn(0);
+  PetscFunctionReturn(PETSC_SUCCESS);
 }
 
 /**
@@ -255,7 +255,7 @@ PetscErrorCode VecReadC2P(CeedVector x_ceed, PetscMemType mem_type, Vec X_petsc)
   CeedVectorTakeArray(x_ceed, MemTypeP2C(mem_type), &x);
   PetscCall(VecRestoreArrayReadAndMemType(X_petsc, (const PetscScalar **)&x));
 
-  PetscFunctionReturn(0);
+  PetscFunctionReturn(PETSC_SUCCESS);
 }
 
 /**
@@ -282,7 +282,7 @@ PetscErrorCode VecCopyP2C(Vec X_petsc, CeedVector x_ceed) {
   CeedVectorSetArray(x_ceed, MemTypeP2C(mem_type), CEED_COPY_VALUES, x);
   PetscCall(VecRestoreArrayReadAndMemType(X_petsc, (const PetscScalar **)&x));
 
-  PetscFunctionReturn(0);
+  PetscFunctionReturn(PETSC_SUCCESS);
 }
 
 //@brief Return VecType for the given DM
@@ -321,7 +321,7 @@ PetscErrorCode CeedOperatorCreateLocalVecs(CeedOperator op, VecType vec_type, MP
     PetscCall(VecSetSizes(*output, output_size, output_size));
   }
 
-  PetscFunctionReturn(0);
+  PetscFunctionReturn(PETSC_SUCCESS);
 }
 
 /**
@@ -358,7 +358,7 @@ PetscErrorCode ApplyCeedOperator_Core(Vec X, Vec X_loc, CeedVector x_ceed, CeedV
   if (Y_loc) PetscCall(VecC2P(ctx->y_ceed, y_mem_type, Y_loc));
   if (Y) PetscCall(DMLocalToGlobal(ctx->dm_y, Y_loc, ADD_VALUES, Y));
 
-  PetscFunctionReturn(0);
+  PetscFunctionReturn(PETSC_SUCCESS);
 };
 
 PetscErrorCode ApplyCeedOperatorGlobalToGlobal(Vec X, Vec Y, OperatorApplyContext ctx) {
@@ -377,7 +377,7 @@ PetscErrorCode ApplyCeedOperatorGlobalToGlobal(Vec X, Vec Y, OperatorApplyContex
   if (!ctx->X_loc) PetscCall(DMRestoreLocalVector(ctx->dm_x, &X_loc));
   if (!ctx->Y_loc) PetscCall(DMRestoreLocalVector(ctx->dm_y, &Y_loc));
 
-  PetscFunctionReturn(0);
+  PetscFunctionReturn(PETSC_SUCCESS);
 }
 
 PetscErrorCode ApplyCeedOperatorLocalToGlobal(Vec X_loc, Vec Y, OperatorApplyContext ctx) {
@@ -394,7 +394,7 @@ PetscErrorCode ApplyCeedOperatorLocalToGlobal(Vec X_loc, Vec Y, OperatorApplyCon
   // Restore local vectors (if needed)
   if (!ctx->Y_loc) PetscCall(DMRestoreLocalVector(ctx->dm_y, &Y_loc));
 
-  PetscFunctionReturn(0);
+  PetscFunctionReturn(PETSC_SUCCESS);
 }
 
 PetscErrorCode ApplyCeedOperatorGlobalToLocal(Vec X, Vec Y_loc, OperatorApplyContext ctx) {
@@ -409,19 +409,19 @@ PetscErrorCode ApplyCeedOperatorGlobalToLocal(Vec X, Vec Y_loc, OperatorApplyCon
   // Restore local vector (if needed)
   if (!ctx->X_loc) PetscCall(DMRestoreLocalVector(ctx->dm_x, &X_loc));
 
-  PetscFunctionReturn(0);
+  PetscFunctionReturn(PETSC_SUCCESS);
 }
 
 PetscErrorCode ApplyCeedOperatorLocalToLocal(Vec X_loc, Vec Y_loc, OperatorApplyContext ctx) {
   PetscFunctionBeginUser;
   PetscCall(ApplyCeedOperator_Core(NULL, X_loc, ctx->x_ceed, ctx->y_ceed, Y_loc, NULL, ctx, false));
-  PetscFunctionReturn(0);
+  PetscFunctionReturn(PETSC_SUCCESS);
 }
 
 PetscErrorCode ApplyAddCeedOperatorLocalToLocal(Vec X_loc, Vec Y_loc, OperatorApplyContext ctx) {
   PetscFunctionBeginUser;
   PetscCall(ApplyCeedOperator_Core(NULL, X_loc, ctx->x_ceed, ctx->y_ceed, Y_loc, NULL, ctx, true));
-  PetscFunctionReturn(0);
+  PetscFunctionReturn(PETSC_SUCCESS);
 }
 
 // -----------------------------------------------------------------------------
@@ -434,7 +434,7 @@ PetscErrorCode MatMult_Ceed(Mat A, Vec X, Vec Y) {
   PetscCall(MatShellGetContext(A, &ctx));
   PetscCall(ApplyCeedOperatorGlobalToGlobal(X, Y, ctx));
 
-  PetscFunctionReturn(0);
+  PetscFunctionReturn(PETSC_SUCCESS);
 };
 
 // -----------------------------------------------------------------------------
@@ -466,7 +466,7 @@ PetscErrorCode MatGetDiag_Ceed(Mat A, Vec D) {
   PetscCall(DMLocalToGlobal(ctx->dm_y, Y_loc, ADD_VALUES, D));
 
   if (!ctx->Y_loc) PetscCall(DMRestoreLocalVector(ctx->dm_y, &Y_loc));
-  PetscFunctionReturn(0);
+  PetscFunctionReturn(PETSC_SUCCESS);
 };
 
 /**
@@ -496,7 +496,7 @@ PetscErrorCode CreateMatShell_Ceed(OperatorApplyContext ctx, Mat *mat) {
              X_vec_type, Y_vec_type);
   PetscCall(MatShellSetVecType(*mat, X_vec_type));
 
-  PetscFunctionReturn(0);
+  PetscFunctionReturn(PETSC_SUCCESS);
 }
 
 // -----------------------------------------------------------------------------
