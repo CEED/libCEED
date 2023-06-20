@@ -185,7 +185,7 @@ PetscErrorCode NS_ADVECTION(ProblemData *problem, DM dm, void *ctx, SimpleBC bc)
   problem->apply_vol_rhs.qfunction_context = advection_context;
   CeedQFunctionContextReferenceCopy(advection_context, &problem->apply_vol_ifunction.qfunction_context);
   CeedQFunctionContextReferenceCopy(advection_context, &problem->apply_inflow.qfunction_context);
-  PetscFunctionReturn(0);
+  PetscFunctionReturn(PETSC_SUCCESS);
 }
 
 PetscErrorCode PRINT_ADVECTION(ProblemData *problem, AppCtx app_ctx) {
@@ -212,5 +212,5 @@ PetscErrorCode PRINT_ADVECTION(ProblemData *problem, AppCtx app_ctx) {
   }
   CeedQFunctionContextRestoreData(problem->ics.qfunction_context, &setup_ctx);
   CeedQFunctionContextRestoreData(problem->apply_vol_rhs.qfunction_context, &advection_ctx);
-  PetscFunctionReturn(0);
+  PetscFunctionReturn(PETSC_SUCCESS);
 }

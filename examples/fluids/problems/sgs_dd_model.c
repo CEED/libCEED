@@ -25,7 +25,7 @@ PetscErrorCode SGS_DD_ModelSetupDataDestroy(SGS_DD_ModelSetupData sgs_dd_setup_d
   CeedQFunctionContextDestroy(&sgs_dd_setup_data->sgsdd_qfctx);
 
   PetscCall(PetscFree(sgs_dd_setup_data));
-  PetscFunctionReturn(0);
+  PetscFunctionReturn(PETSC_SUCCESS);
 }
 
 // @brief Create DM for storing subgrid stress at nodes
@@ -58,7 +58,7 @@ PetscErrorCode SGS_DD_ModelCreateDM(DM dm_source, DM *dm_sgs, PetscInt degree, P
 
   PetscCall(PetscFEDestroy(&fe));
 
-  PetscFunctionReturn(0);
+  PetscFunctionReturn(PETSC_SUCCESS);
 };
 
 // @brief Create CeedOperator to calculate data-drive SGS at nodes
@@ -154,7 +154,7 @@ PetscErrorCode SGS_DD_ModelSetupNodalEvaluation(Ceed ceed, User user, CeedData c
   CeedQFunctionDestroy(&qf_sgs_dd_nodal);
   CeedOperatorDestroy(&op_multiplicity);
   CeedOperatorDestroy(&op_sgs_dd_nodal);
-  PetscFunctionReturn(0);
+  PetscFunctionReturn(PETSC_SUCCESS);
 }
 
 // @brief Create CeedOperator to compute SGS contribution to the residual
@@ -205,7 +205,7 @@ PetscErrorCode SGS_ModelSetupNodalIFunction(Ceed ceed, User user, CeedData ceed_
 
   CeedOperatorDestroy(&op_sgs_apply);
   CeedQFunctionDestroy(&qf_sgs_apply);
-  PetscFunctionReturn(0);
+  PetscFunctionReturn(PETSC_SUCCESS);
 }
 
 // @brief Calculate and add data-driven SGS residual to the global residual
@@ -235,7 +235,7 @@ PetscErrorCode SGS_DD_ModelApplyIFunction(User user, const Vec Q_loc, Vec G_loc)
   PetscCall(DMRestoreLocalVector(sgs_dd_data->dm_sgs, &SGSNodal_loc));
   PetscCall(DMRestoreGlobalVector(user->grad_velo_proj->dm, &VelocityGradient));
 
-  PetscFunctionReturn(0);
+  PetscFunctionReturn(PETSC_SUCCESS);
 }
 
 // @brief B = A^T, A is NxM, B is MxN
@@ -246,7 +246,7 @@ PetscErrorCode TransposeMatrix(const PetscScalar *A, PetscScalar *B, const Petsc
       B[j * N + i] = A[i * M + j];
     }
   }
-  PetscFunctionReturn(0);
+  PetscFunctionReturn(PETSC_SUCCESS);
 }
 
 // @brief Read neural network coefficients from file and put into context struct
@@ -297,7 +297,7 @@ PetscErrorCode SGS_DD_ModelContextFill(MPI_Comm comm, char data_dir[PETSC_MAX_PA
 
   PetscCall(PetscFree(*psgsdd_ctx));
   *psgsdd_ctx = sgsdd_ctx;
-  PetscFunctionReturn(0);
+  PetscFunctionReturn(PETSC_SUCCESS);
 }
 
 PetscErrorCode SGS_DD_ModelSetup(Ceed ceed, User user, CeedData ceed_data, ProblemData *problem) {
@@ -351,17 +351,17 @@ PetscErrorCode SGS_DD_ModelSetup(Ceed ceed, User user, CeedData ceed_data, Probl
   PetscCall(SGS_ModelSetupNodalIFunction(ceed, user, ceed_data, sgs_dd_setup_data));
 
   PetscCall(SGS_DD_ModelSetupDataDestroy(sgs_dd_setup_data));
-  PetscFunctionReturn(0);
+  PetscFunctionReturn(PETSC_SUCCESS);
 }
 
 PetscErrorCode SGS_DD_DataDestroy(SGS_DD_Data sgs_dd_data) {
   PetscFunctionBeginUser;
-  if (!sgs_dd_data) PetscFunctionReturn(0);
+  if (!sgs_dd_data) PetscFunctionReturn(PETSC_SUCCESS);
 
   CeedVectorDestroy(&sgs_dd_data->sgs_nodal_ceed);
   PetscCall(OperatorApplyContextDestroy(sgs_dd_data->op_nodal_evaluation_ctx));
   PetscCall(DMDestroy(&sgs_dd_data->dm_sgs));
   PetscCall(PetscFree(sgs_dd_data));
 
-  PetscFunctionReturn(0);
+  PetscFunctionReturn(PETSC_SUCCESS);
 }

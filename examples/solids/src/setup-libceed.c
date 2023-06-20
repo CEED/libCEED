@@ -79,7 +79,7 @@ PetscErrorCode CeedDataDestroy(CeedInt level, CeedData data) {
 
   PetscCall(PetscFree(data));
 
-  PetscFunctionReturn(0);
+  PetscFunctionReturn(PETSC_SUCCESS);
 };
 
 // Utility function to create local CEED restriction from DMPlex
@@ -92,7 +92,7 @@ PetscErrorCode CreateRestrictionFromPlex(Ceed ceed, DM dm, CeedInt height, DMLab
   CeedElemRestrictionCreate(ceed, num_elem, elem_size, num_comp, 1, num_dof, CEED_MEM_HOST, CEED_COPY_VALUES, elem_restr_offsets, elem_restr);
   PetscCall(PetscFree(elem_restr_offsets));
 
-  PetscFunctionReturn(0);
+  PetscFunctionReturn(PETSC_SUCCESS);
 };
 
 // Utility function to get Ceed Restriction for each domain
@@ -121,7 +121,7 @@ PetscErrorCode GetRestrictionForDomain(Ceed ceed, DM dm, CeedInt height, DMLabel
                                      elem_restr_qd_i);
   }
 
-  PetscFunctionReturn(0);
+  PetscFunctionReturn(PETSC_SUCCESS);
 };
 
 // Set up libCEED on the fine grid for a given degree
@@ -490,7 +490,7 @@ PetscErrorCode SetupLibceedFineLevel(DM dm, DM dm_energy, DM dm_diagnostic, Ceed
   // ---------------------------------------------------------------------------
   CeedVectorDestroy(&x_coord);
 
-  PetscFunctionReturn(0);
+  PetscFunctionReturn(PETSC_SUCCESS);
 };
 
 // Set up libCEED multigrid level for a given degree
@@ -538,5 +538,5 @@ PetscErrorCode SetupLibceedLevel(DM dm, Ceed ceed, AppCtx app_ctx, ProblemData p
   data[level + 1]->op_prolong  = op_prolong;
   data[level + 1]->op_restrict = op_restrict;
 
-  PetscFunctionReturn(0);
+  PetscFunctionReturn(PETSC_SUCCESS);
 };

@@ -44,7 +44,7 @@ PetscErrorCode VelocityGradientProjectionCreateDM(NodalProjectionData grad_velo_
   PetscCall(PetscSectionSetComponentName(section, 0, 8, "VelocityGradientZZ"));
 
   PetscCall(PetscFEDestroy(&fe));
-  PetscFunctionReturn(0);
+  PetscFunctionReturn(PETSC_SUCCESS);
 };
 
 PetscErrorCode VelocityGradientProjectionSetup(Ceed ceed, User user, CeedData ceed_data, ProblemData *problem) {
@@ -136,7 +136,7 @@ PetscErrorCode VelocityGradientProjectionSetup(Ceed ceed, User user, CeedData ce
   CeedQFunctionDestroy(&qf_mass);
   CeedOperatorDestroy(&op_rhs_assemble);
   CeedOperatorDestroy(&op_mass);
-  PetscFunctionReturn(0);
+  PetscFunctionReturn(PETSC_SUCCESS);
 }
 
 PetscErrorCode VelocityGradientProjectionApply(User user, Vec Q_loc, Vec VelocityGradient) {
@@ -148,5 +148,5 @@ PetscErrorCode VelocityGradientProjectionApply(User user, Vec Q_loc, Vec Velocit
 
   PetscCall(KSPSolve(grad_velo_proj->ksp, VelocityGradient, VelocityGradient));
 
-  PetscFunctionReturn(0);
+  PetscFunctionReturn(PETSC_SUCCESS);
 }

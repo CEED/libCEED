@@ -98,7 +98,7 @@ PetscErrorCode FreestreamBCSetup(ProblemData *problem, DM dm, void *ctx, Newtoni
   CeedQFunctionContextSetDataDestroy(freestream_context, CEED_MEM_HOST, FreeContextPetsc);
   problem->apply_freestream.qfunction_context = freestream_context;
   CeedQFunctionContextReferenceCopy(freestream_context, &problem->apply_freestream_jacobian.qfunction_context);
-  PetscFunctionReturn(0);
+  PetscFunctionReturn(PETSC_SUCCESS);
 }
 
 static const char *const OutflowTypes[] = {"RIEMANN", "PRESSURE", "OutflowType", "OUTFLOW_", NULL};
@@ -180,5 +180,5 @@ PetscErrorCode OutflowBCSetup(ProblemData *problem, DM dm, void *ctx, NewtonianI
   CeedQFunctionContextSetDataDestroy(outflow_context, CEED_MEM_HOST, FreeContextPetsc);
   problem->apply_outflow.qfunction_context = outflow_context;
   CeedQFunctionContextReferenceCopy(outflow_context, &problem->apply_outflow_jacobian.qfunction_context);
-  PetscFunctionReturn(0);
+  PetscFunctionReturn(PETSC_SUCCESS);
 }

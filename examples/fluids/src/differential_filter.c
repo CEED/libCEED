@@ -166,7 +166,7 @@ PetscErrorCode DifferentialFilterCreateOperators(Ceed ceed, User user, CeedData 
 
     CeedOperatorDestroy(&op_lhs);
   }
-  PetscFunctionReturn(0);
+  PetscFunctionReturn(PETSC_SUCCESS);
 }
 
 // @brief Setup DM, operators, contexts, etc. for performing differential filtering
@@ -281,7 +281,7 @@ PetscErrorCode DifferentialFilterSetup(Ceed ceed, User user, CeedData ceed_data,
   PetscCall(DifferentialFilterCreateOperators(ceed, user, ceed_data, diff_filter_qfctx));
 
   CeedQFunctionContextDestroy(&diff_filter_qfctx);
-  PetscFunctionReturn(0);
+  PetscFunctionReturn(PETSC_SUCCESS);
 }
 
 // @brief Apply differential filter to the solution given by Q
@@ -295,7 +295,7 @@ PetscErrorCode DifferentialFilterApply(User user, const PetscReal solution_time,
 
   PetscCall(KSPSolve(diff_filter->ksp, Filtered_Solution, Filtered_Solution));
 
-  PetscFunctionReturn(0);
+  PetscFunctionReturn(PETSC_SUCCESS);
 }
 
 // @brief TSMonitor for just applying differential filtering to the simulation
@@ -314,12 +314,12 @@ PetscErrorCode TSMonitor_DifferentialFilter(TS ts, PetscInt steps, PetscReal sol
 
   PetscCall(DMRestoreGlobalVector(diff_filter->dm_filter, &Filtered_Field));
 
-  PetscFunctionReturn(0);
+  PetscFunctionReturn(PETSC_SUCCESS);
 }
 
 PetscErrorCode DifferentialFilterDataDestroy(DiffFilterData diff_filter) {
   PetscFunctionBeginUser;
-  if (!diff_filter) PetscFunctionReturn(0);
+  if (!diff_filter) PetscFunctionReturn(PETSC_SUCCESS);
 
   OperatorApplyContextDestroy(diff_filter->op_rhs_ctx);
   PetscCall(DMDestroy(&diff_filter->dm_filter));
@@ -328,7 +328,7 @@ PetscErrorCode DifferentialFilterDataDestroy(DiffFilterData diff_filter) {
   PetscCall(PetscFree(diff_filter->num_field_components));
   PetscCall(PetscFree(diff_filter));
 
-  PetscFunctionReturn(0);
+  PetscFunctionReturn(PETSC_SUCCESS);
 }
 
 PetscErrorCode DifferentialFilter_MMS_ICSetup(ProblemData *problem) {
@@ -336,5 +336,5 @@ PetscErrorCode DifferentialFilter_MMS_ICSetup(ProblemData *problem) {
   problem->ics.qfunction     = DifferentialFilter_MMS_IC;
   problem->ics.qfunction_loc = DifferentialFilter_MMS_IC_loc;
 
-  PetscFunctionReturn(0);
+  PetscFunctionReturn(PETSC_SUCCESS);
 }

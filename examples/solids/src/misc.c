@@ -44,7 +44,7 @@ PetscErrorCode SetupJacobianCtx(MPI_Comm comm, AppCtx app_ctx, DM dm, Vec V, Vec
   // Physics
   jacobian_ctx->ctx_phys          = ctx_phys;
   jacobian_ctx->ctx_phys_smoother = ctx_phys_smoother;
-  PetscFunctionReturn(0);
+  PetscFunctionReturn(PETSC_SUCCESS);
 };
 
 // Setup context data for prolongation and restriction operators
@@ -69,7 +69,7 @@ PetscErrorCode SetupProlongRestrictCtx(MPI_Comm comm, AppCtx app_ctx, DM dm_c, D
 
   // Ceed
   prolong_restr_ctx->ceed = ceed;
-  PetscFunctionReturn(0);
+  PetscFunctionReturn(PETSC_SUCCESS);
 };
 
 // -----------------------------------------------------------------------------
@@ -103,7 +103,7 @@ PetscErrorCode FormJacobian(SNES snes, Vec U, Mat J, Mat J_pre, void *ctx) {
     PetscCall(MatAssemblyBegin(J, MAT_FINAL_ASSEMBLY));
     PetscCall(MatAssemblyEnd(J, MAT_FINAL_ASSEMBLY));
   }
-  PetscFunctionReturn(0);
+  PetscFunctionReturn(PETSC_SUCCESS);
 };
 
 // -----------------------------------------------------------------------------
@@ -135,7 +135,7 @@ PetscErrorCode ViewSolution(MPI_Comm comm, AppCtx app_ctx, Vec U, PetscInt incre
   PetscCall(VecView(U, viewer));
   PetscCall(PetscViewerDestroy(&viewer));
 
-  PetscFunctionReturn(0);
+  PetscFunctionReturn(PETSC_SUCCESS);
 };
 
 // -----------------------------------------------------------------------------
@@ -225,7 +225,7 @@ PetscErrorCode ViewDiagnosticQuantities(MPI_Comm comm, DM dmU, UserMult user, Ap
   PetscCall(VecDestroy(&Y_loc));
   CeedVectorDestroy(&y_ceed);
 
-  PetscFunctionReturn(0);
+  PetscFunctionReturn(PETSC_SUCCESS);
 };
 
 // -----------------------------------------------------------------------------
@@ -246,5 +246,5 @@ PetscErrorCode RegressionTests_solids(AppCtx app_ctx, PetscReal energy) {
                             (double)energy_ref, (double)error, app_ctx->test_tol));
     }
   }
-  PetscFunctionReturn(0);
+  PetscFunctionReturn(PETSC_SUCCESS);
 };

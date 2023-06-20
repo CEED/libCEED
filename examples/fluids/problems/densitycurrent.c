@@ -102,5 +102,5 @@ PetscErrorCode NS_DENSITY_CURRENT(ProblemData *problem, DM dm, void *ctx, Simple
   CeedQFunctionContextSetDataDestroy(density_current_context, CEED_MEM_HOST, FreeContextPetsc);
   problem->ics.qfunction_context = density_current_context;
 
-  PetscFunctionReturn(0);
+  PetscFunctionReturn(PETSC_SUCCESS);
 }

@@ -100,5 +100,5 @@ PetscErrorCode NS_CHANNEL(ProblemData *problem, DM dm, void *ctx, SimpleBC bc) {
   problem->ics.qfunction_context = channel_context;
   CeedQFunctionContextReferenceCopy(channel_context, &problem->apply_inflow.qfunction_context);
   CeedQFunctionContextReferenceCopy(channel_context, &problem->apply_outflow.qfunction_context);
-  PetscFunctionReturn(0);
+  PetscFunctionReturn(PETSC_SUCCESS);
 }

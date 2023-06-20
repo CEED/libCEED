@@ -34,7 +34,7 @@ PetscErrorCode CreateDM(MPI_Comm comm, ProblemData *problem, MatType mat_type, V
   // Set CL options
   PetscCall(DMSetFromOptions(*dm));
   PetscCall(DMViewFromOptions(*dm, NULL, "-dm_view"));
-  PetscFunctionReturn(0);
+  PetscFunctionReturn(PETSC_SUCCESS);
 }
 
 // Setup DM
@@ -105,7 +105,7 @@ PetscErrorCode SetUpDM(DM dm, ProblemData *problem, PetscInt degree, SimpleBC bc
       PetscCall(PetscSectionSetComponentName(section, 0, 4, "Temperature"));
       break;
   }
-  PetscFunctionReturn(0);
+  PetscFunctionReturn(PETSC_SUCCESS);
 }
 
 // Refine DM for high-order viz
@@ -143,5 +143,5 @@ PetscErrorCode VizRefineDM(DM dm, User user, ProblemData *problem, SimpleBC bc, 
   }
   user->dm_viz = dm_hierarchy[user->app_ctx->viz_refine];
 
-  PetscFunctionReturn(0);
+  PetscFunctionReturn(PETSC_SUCCESS);
 }

@@ -151,7 +151,7 @@ PetscErrorCode NS_EULER_VORTEX(ProblemData *problem, DM dm, void *ctx, SimpleBC 
   CeedQFunctionContextReferenceCopy(euler_context, &problem->apply_vol_ifunction.qfunction_context);
   CeedQFunctionContextReferenceCopy(euler_context, &problem->apply_inflow.qfunction_context);
   CeedQFunctionContextReferenceCopy(euler_context, &problem->apply_outflow.qfunction_context);
-  PetscFunctionReturn(0);
+  PetscFunctionReturn(PETSC_SUCCESS);
 }
 
 PetscErrorCode PRINT_EULER_VORTEX(ProblemData *problem, AppCtx app_ctx) {
@@ -170,5 +170,5 @@ PetscErrorCode PRINT_EULER_VORTEX(ProblemData *problem, AppCtx app_ctx) {
                         euler_ctx->mean_velocity[2], StabilizationTypes[euler_ctx->stabilization]));
 
   CeedQFunctionContextRestoreData(problem->ics.qfunction_context, &euler_ctx);
-  PetscFunctionReturn(0);
+  PetscFunctionReturn(PETSC_SUCCESS);
 }

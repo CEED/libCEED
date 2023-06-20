@@ -45,7 +45,7 @@ PetscErrorCode SetupLibceedFineLevel_ElasFSCurrentNH2(DM dm, DM dm_energy, DM dm
   PetscCall(SetupLibceedFineLevel(dm, dm_energy, dm_diagnostic, ceed, app_ctx, phys_ctx, finite_strain_neo_Hookean_current_2, fine_level, num_comp_u,
                                   U_g_size, U_loc_size, force_ceed, neumann_ceed, data));
 
-  PetscFunctionReturn(0);
+  PetscFunctionReturn(PETSC_SUCCESS);
 };
 
 PetscErrorCode SetupLibceedLevel_ElasFSCurrentNH2(DM dm, Ceed ceed, AppCtx app_ctx, PetscInt level, PetscInt num_comp_u, PetscInt U_g_size,
@@ -54,5 +54,5 @@ PetscErrorCode SetupLibceedLevel_ElasFSCurrentNH2(DM dm, Ceed ceed, AppCtx app_c
 
   PetscCall(SetupLibceedLevel(dm, ceed, app_ctx, finite_strain_neo_Hookean_current_2, level, num_comp_u, U_g_size, U_loc_size, fine_mult, data));
 
-  PetscFunctionReturn(0);
+  PetscFunctionReturn(PETSC_SUCCESS);
 };

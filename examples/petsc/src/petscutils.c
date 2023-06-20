@@ -66,7 +66,7 @@ PetscErrorCode Kershaw(DM dm_orig, PetscScalar eps) {
     }
   }
   PetscCall(VecRestoreArray(coord, &c));
-  PetscFunctionReturn(0);
+  PetscFunctionReturn(PETSC_SUCCESS);
 }
 
 // -----------------------------------------------------------------------------
@@ -82,7 +82,7 @@ static PetscErrorCode CreateBCLabel(DM dm, const char name[]) {
   PetscCall(DMPlexMarkBoundaryFaces(dm, PETSC_DETERMINE, label));
   PetscCall(DMPlexLabelComplete(dm, label));
 
-  PetscFunctionReturn(0);
+  PetscFunctionReturn(PETSC_SUCCESS);
 };
 
 // -----------------------------------------------------------------------------
@@ -140,7 +140,7 @@ PetscErrorCode SetupDMByDegree(DM dm, PetscInt p_degree, PetscInt q_extra, Petsc
   }
   PetscCall(PetscFEDestroy(&fe));
 
-  PetscFunctionReturn(0);
+  PetscFunctionReturn(PETSC_SUCCESS);
 };
 
 // -----------------------------------------------------------------------------
@@ -156,7 +156,7 @@ PetscErrorCode CreateRestrictionFromPlex(Ceed ceed, DM dm, CeedInt height, DMLab
   CeedElemRestrictionCreate(ceed, num_elem, elem_size, num_comp, 1, num_dof, CEED_MEM_HOST, CEED_COPY_VALUES, elem_restr_offsets, elem_restr);
   PetscCall(PetscFree(elem_restr_offsets));
 
-  PetscFunctionReturn(0);
+  PetscFunctionReturn(PETSC_SUCCESS);
 };
 
 // -----------------------------------------------------------------------------
@@ -202,7 +202,7 @@ PetscErrorCode DMFieldToDSField(DM dm, DMLabel domain_label, PetscInt dm_field, 
 
   if (*ds_field == -1) SETERRQ(PetscObjectComm((PetscObject)dm), PETSC_ERR_SUP, "Could not find dm_field %" PetscInt_FMT " in DS", dm_field);
 
-  PetscFunctionReturn(0);
+  PetscFunctionReturn(PETSC_SUCCESS);
 }
 
 // -----------------------------------------------------------------------------
@@ -299,7 +299,7 @@ PetscErrorCode BasisCreateFromTabulation(Ceed ceed, DM dm, DMLabel domain_label,
   PetscCall(PetscFree(interp));
   PetscCall(PetscFree(grad));
 
-  PetscFunctionReturn(0);
+  PetscFunctionReturn(PETSC_SUCCESS);
 }
 
 // -----------------------------------------------------------------------------
@@ -350,7 +350,7 @@ PetscErrorCode CreateBasisFromPlex(Ceed ceed, DM dm, DMLabel domain_label, CeedI
     CeedBasisCreateTensorH1Lagrange(ceed, dim, num_comp, P_1d, Q_1d, bp_data.q_mode, basis);
   }
 
-  PetscFunctionReturn(0);
+  PetscFunctionReturn(PETSC_SUCCESS);
 }
 
 // -----------------------------------------------------------------------------
@@ -396,7 +396,7 @@ PetscErrorCode CreateDistributedDM(RunParams rp, DM *dm) {
   PetscCall(DMSetFromOptions(*dm));
   PetscCall(DMViewFromOptions(*dm, NULL, "-dm_view"));
 
-  PetscFunctionReturn(0);
+  PetscFunctionReturn(PETSC_SUCCESS);
 }
 
 // -----------------------------------------------------------------------------

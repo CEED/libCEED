@@ -52,7 +52,7 @@ PetscErrorCode ComputeLumpedMassMatrix(Ceed ceed, DM dm, CeedData ceed_data, Vec
   CeedQFunctionDestroy(&qf_mass);
   CeedOperatorDestroy(&op_mass);
 
-  PetscFunctionReturn(0);
+  PetscFunctionReturn(PETSC_SUCCESS);
 }
 
 // Insert Boundary values if it's a new time
@@ -62,7 +62,7 @@ PetscErrorCode UpdateBoundaryValues(User user, Vec Q_loc, PetscReal t) {
     PetscCall(DMPlexInsertBoundaryValues(user->dm, PETSC_TRUE, Q_loc, t, NULL, NULL, NULL));
     user->time_bc_set = t;
   }
-  PetscFunctionReturn(0);
+  PetscFunctionReturn(PETSC_SUCCESS);
 }
 
 // @brief Update the context label value to new value if necessary.
@@ -86,7 +86,7 @@ PetscErrorCode UpdateContextLabel(MPI_Comm comm, PetscScalar update_value, CeedO
   if (label_value != update_value) {
     CeedOperatorSetContextDouble(op, label, &update_value);
   }
-  PetscFunctionReturn(0);
+  PetscFunctionReturn(PETSC_SUCCESS);
 }
 
 // RHS (Explicit time-stepper) function setup
@@ -110,7 +110,7 @@ PetscErrorCode RHS_NS(TS ts, PetscReal t, Vec Q, Vec G, void *user_data) {
   // Inverse of the lumped mass matrix (M is Minv)
   PetscCall(VecPointwiseMult(G, G, user->M_inv));
 
-  PetscFunctionReturn(0);
+  PetscFunctionReturn(PETSC_SUCCESS);
 }
 
 // Surface forces function setup
@@ -157,7 +157,7 @@ static PetscErrorCode Surface_Forces_NS(DM dm, Vec G_loc, PetscInt num_walls, co
   //  Restore Vectors
   PetscCall(VecRestoreArrayRead(G_loc, &g));
 
-  PetscFunctionReturn(0);
+  PetscFunctionReturn(PETSC_SUCCESS);
 }
 
 // Implicit time-stepper function setup
@@ -212,7 +212,7 @@ PetscErrorCode IFunction_NS(TS ts, PetscReal t, Vec Q, Vec Q_dot, Vec G, void *u
   // Restore vectors
   PetscCall(DMRestoreNamedLocalVector(user->dm, "ResidualLocal", &G_loc));
 
-  PetscFunctionReturn(0);
+  PetscFunctionReturn(PETSC_SUCCESS);
 }
 
 static PetscErrorCode FormPreallocation(User user, PetscBool pbdiagonal, Mat J, CeedVector *coo_values) {
@@ -241,7 +241,7 @@ static PetscErrorCode FormPreallocation(User user, PetscBool pbdiagonal, Mat J, 
   free(rows);
   free(cols);
   CeedVectorCreate(user->ceed, ncoo, coo_values);
-  PetscFunctionReturn(0);
+  PetscFunctionReturn(PETSC_SUCCESS);
 }
 
 static PetscErrorCode FormSetValues(User user, PetscBool pbdiagonal, Mat J, CeedVector coo_values) {
@@ -268,7 +268,7 @@ static PetscErrorCode FormSetValues(User user, PetscBool pbdiagonal, Mat J, Ceed
   CeedVectorGetArrayRead(coo_values, mem_type, &values);
   PetscCall(MatSetValuesCOO(J, values, INSERT_VALUES));
   CeedVectorRestoreArrayRead(coo_values, &values);
-  PetscFunctionReturn(0);
+  PetscFunctionReturn(PETSC_SUCCESS);
 }
 
 PetscErrorCode FormIJacobian_NS(TS ts, PetscReal t, Vec Q, Vec Q_dot, PetscReal shift, Mat J, Mat J_pre, void *user_data) {
@@ -307,7 +307,7 @@ PetscErrorCode FormIJacobian_NS(TS ts, PetscReal t, Vec Q, Vec Q_dot, PetscReal 
     PetscCall(MatAssemblyBegin(J, MAT_FINAL_ASSEMBLY));
     PetscCall(MatAssemblyEnd(J, MAT_FINAL_ASSEMBLY));
   }
-  PetscFunctionReturn(0);
+  PetscFunctionReturn(PETSC_SUCCESS);
 }
 
 PetscErrorCode WriteOutput(User user, Vec Q, PetscInt step_no, PetscScalar time) {
@@ -369,7 +369,7 @@ PetscErrorCode WriteOutput(User user, Vec Q, PetscInt step_no, PetscScalar time)
   PetscCall(PetscViewerBinaryWrite(viewer, &time, 1, PETSC_REAL));
   PetscCall(VecView(Q, viewer));
   PetscCall(PetscViewerDestroy(&viewer));
-  PetscFunctionReturn(0);
+  PetscFunctionReturn(PETSC_SUCCESS);
 }
 
 // CSV Monitor
@@ -384,7 +384,7 @@ PetscErrorCode TSMonitor_WallForce(TS ts, PetscInt step_no, PetscReal time, Vec 
   PetscBool         iascii;
 
   PetscFunctionBeginUser;
-  if (!viewer) PetscFunctionReturn(0);
+  if (!viewer) PetscFunctionReturn(PETSC_SUCCESS);
   PetscCall(DMGetNamedLocalVector(user->dm, "ResidualLocal", &G_loc));
   PetscCall(PetscMalloc1(num_wall * dim, &reaction_force));
   PetscCall(Surface_Forces_NS(user->dm, G_loc, num_wall, walls, reaction_force));
@@ -410,7 +410,7 @@ PetscErrorCode TSMonitor_WallForce(TS ts, PetscInt step_no, PetscReal time, Vec 
     }
   }
   PetscCall(PetscFree(reaction_force));
-  PetscFunctionReturn(0);
+  PetscFunctionReturn(PETSC_SUCCESS);
 }
 
 // User provided TS Monitor
@@ -421,12 +421,12 @@ PetscErrorCode TSMonitor_NS(TS ts, PetscInt step_no, PetscReal time, Vec Q, void
   // Print every 'checkpoint_interval' steps
   if (user->app_ctx->checkpoint_interval <= 0 || step_no % user->app_ctx->checkpoint_interval != 0 ||
       (user->app_ctx->cont_steps == step_no && step_no != 0)) {
-    PetscFunctionReturn(0);
+    PetscFunctionReturn(PETSC_SUCCESS);
   }
 
   PetscCall(WriteOutput(user, Q, step_no, time));
 
-  PetscFunctionReturn(0);
+  PetscFunctionReturn(PETSC_SUCCESS);
 }
 
 // TS: Create, setup, and solve
@@ -548,5 +548,5 @@ PetscErrorCode TSSolve_NS(DM dm, User user, AppCtx app_ctx, Physics phys, Vec *Q
     PetscCall(PetscLogGetStageLog(&stage_log));
     PetscCall(PetscPrintf(PETSC_COMM_WORLD, "Time taken for solution (sec): %g\n", stage_log->stageInfo[stage_id].perfInfo.time));
   }
-  PetscFunctionReturn(0);
+  PetscFunctionReturn(PETSC_SUCCESS);
 }

@@ -23,7 +23,7 @@ PetscErrorCode PhysicsContext_NH(MPI_Comm comm, Ceed ceed, Units *units, CeedQFu
   CeedQFunctionContextSetData(*ctx, CEED_MEM_HOST, CEED_COPY_VALUES, sizeof(*phys), phys);
   PetscCall(PetscFree(phys));
 
-  PetscFunctionReturn(0);
+  PetscFunctionReturn(PETSC_SUCCESS);
 }
 
 // Build libCEED smoother context object
@@ -55,7 +55,7 @@ PetscErrorCode PhysicsSmootherContext_NH(MPI_Comm comm, Ceed ceed, CeedQFunction
     *ctx_smoother = NULL;
   }
 
-  PetscFunctionReturn(0);
+  PetscFunctionReturn(PETSC_SUCCESS);
 }
 
 // Process physics options - Neo-Hookean
@@ -101,5 +101,5 @@ PetscErrorCode ProcessPhysics_NH(MPI_Comm comm, Physics_NH phys, Units units) {
   // Scale E to Pa
   phys->E *= units->Pascal;
 
-  PetscFunctionReturn(0);
+  PetscFunctionReturn(PETSC_SUCCESS);
 };

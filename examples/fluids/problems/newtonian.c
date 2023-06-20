@@ -33,7 +33,7 @@ static PetscErrorCode CheckPrimitiveWithTolerance(StatePrimitive sY, StatePrimit
     if (fabs(eY.velocity[j]) > rtol_velocity) printf("%s: velocity[%d] error %g\n", name, j, eY.velocity[j]);
   }
   if (fabs(eY.temperature) > rtol_temperature) printf("%s: temperature error %g\n", name, eY.temperature);
-  PetscFunctionReturn(0);
+  PetscFunctionReturn(PETSC_SUCCESS);
 }
 
 static PetscErrorCode UnitTests_Newtonian(User user, NewtonianIdealGasContext gas) {
@@ -61,7 +61,7 @@ static PetscErrorCode UnitTests_Newtonian(User user, NewtonianIdealGasContext ga
     snprintf(buf, sizeof buf, "StateFromU_fwd i=%d", i);
     PetscCall(CheckPrimitiveWithTolerance(dY, ds.Y, dY, buf, 5e-6, 1e-6, 1e-6));
   }
-  PetscFunctionReturn(0);
+  PetscFunctionReturn(PETSC_SUCCESS);
 }
 
 PetscErrorCode NS_NEWTONIAN_IG(ProblemData *problem, DM dm, void *ctx, SimpleBC bc) {
@@ -313,7 +313,7 @@ PetscErrorCode NS_NEWTONIAN_IG(ProblemData *problem, DM dm, void *ctx, SimpleBC 
   if (unit_tests) {
     PetscCall(UnitTests_Newtonian(user, newtonian_ig_ctx));
   }
-  PetscFunctionReturn(0);
+  PetscFunctionReturn(PETSC_SUCCESS);
 }
 
 PetscErrorCode PRINT_NEWTONIAN(ProblemData *problem, AppCtx app_ctx) {
@@ -328,5 +328,5 @@ PetscErrorCode PRINT_NEWTONIAN(ProblemData *problem, AppCtx app_ctx) {
                         "    Stabilization                      : %s\n",
                         app_ctx->problem_name, StabilizationTypes[newtonian_ctx->stabilization]));
   CeedQFunctionContextRestoreData(problem->apply_vol_rhs.qfunction_context, &newtonian_ctx);
-  PetscFunctionReturn(0);
+  PetscFunctionReturn(PETSC_SUCCESS);
 }
