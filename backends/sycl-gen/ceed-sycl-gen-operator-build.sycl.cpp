@@ -486,7 +486,6 @@ extern "C" int CeedSyclGenOperatorBuild(CeedOperator op) {
   // We treat quadrature points per slice in 3d to save registers
   if (use_collograd_parallelization) {
     code << "\n    // Note: Using planes of 3D elements\n";
-    code << "    __attribute__((opencl_unroll_hint))\n";
     code << "    for (CeedInt q = 0; q < Q_1D; q++) {\n";
     code << "      // -- Input fields --\n";
     for (CeedInt i = 0; i < num_input_fields; i++) {
