@@ -918,11 +918,8 @@ int CeedSetStream(Ceed ceed, void *handle) {
     Ceed delegate;
     CeedCall(CeedGetDelegate(ceed, &delegate));
 
-    if (delegate) {
-      CeedCall(CeedSetStream(delegate, handle));
-    } else {
-      CeedError(ceed, CEED_ERROR_UNSUPPORTED, "Backend does not support setting stream");
-    }
+    if (delegate) CeedCall(CeedSetStream(delegate, handle));
+    else return CeedError(ceed, CEED_ERROR_UNSUPPORTED, "Backend does not support setting stream");
   }
   return CEED_ERROR_SUCCESS;
 }
