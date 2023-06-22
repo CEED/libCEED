@@ -98,8 +98,8 @@ struct Ceed_private {
   int (*GetPreferredMemType)(CeedMemType *);
   int (*Destroy)(Ceed);
   int (*VectorCreate)(CeedSize, CeedVector);
-  int (*ElemRestrictionCreate)(CeedMemType, CeedCopyMode, const CeedInt *, const bool *, const CeedInt *, CeedElemRestriction);
-  int (*ElemRestrictionCreateBlocked)(CeedMemType, CeedCopyMode, const CeedInt *, const bool *, const CeedInt *, CeedElemRestriction);
+  int (*ElemRestrictionCreate)(CeedMemType, CeedCopyMode, const CeedInt *, const bool *, const CeedInt8 *, CeedElemRestriction);
+  int (*ElemRestrictionCreateBlocked)(CeedMemType, CeedCopyMode, const CeedInt *, const bool *, const CeedInt8 *, CeedElemRestriction);
   int (*BasisCreateTensorH1)(CeedInt, CeedInt, CeedInt, const CeedScalar *, const CeedScalar *, const CeedScalar *, const CeedScalar *, CeedBasis);
   int (*BasisCreateH1)(CeedElemTopology, CeedInt, CeedInt, CeedInt, const CeedScalar *, const CeedScalar *, const CeedScalar *, const CeedScalar *,
                        CeedBasis);
@@ -156,7 +156,7 @@ struct CeedElemRestriction_private {
   int (*ApplyBlock)(CeedElemRestriction, CeedInt, CeedTransposeMode, CeedVector, CeedVector, CeedRequest *);
   int (*GetOffsets)(CeedElemRestriction, CeedMemType, const CeedInt **);
   int (*GetOrientations)(CeedElemRestriction, CeedMemType, const bool **);
-  int (*GetCurlOrientations)(CeedElemRestriction, CeedMemType, const CeedInt **);
+  int (*GetCurlOrientations)(CeedElemRestriction, CeedMemType, const CeedInt8 **);
   int (*Destroy)(CeedElemRestriction);
   int      ref_count;
   CeedInt  num_elem;    /* number of elements */
