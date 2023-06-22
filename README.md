@@ -180,7 +180,7 @@ There are multiple supported backends, which can be selected at runtime in the e
 | `/cpu/openmp/occa`         | OCCA backend with OpenMP kernels                  | Yes                   |
 | `/cpu/dpcpp/occa`          | OCCA backend with DPC++ kernels                   | Yes                   |
 | `/gpu/cuda/occa`           | OCCA backend with CUDA kernels                    | Yes                   |
-| `/gpu/hip/occa`~           | OCCA backend with HIP kernels                     | Yes                   |
+| `/gpu/hip/occa`            | OCCA backend with HIP kernels                     | Yes                   |
 
 The `/cpu/self/*/serial` backends process one element at a time and are intended for meshes with a smaller number of high order elements.
 The `/cpu/self/*/blocked` backends process blocked batches of eight interlaced elements and are intended for meshes with higher numbers of elements.
