@@ -25,9 +25,7 @@
   @brief Permute and pad offsets for a blocked restriction
 
   @param[in]  offsets     Array of shape [@a num_elem, @a elem_size].
-                            Row i holds the ordered list of the offsets (into the input CeedVector) for the unknowns corresponding to element i, where
-0 <= i < @a num_elem. All offsets must be in the range [0, @a l_size - 1].
-  @param[out] blk_offsets Array of permuted and padded offsets of shape [@a num_blk, @a elem_size, @a blk_size].
+  @param[out] blk_offsets Array of permuted and padded array values of shape [@a num_blk, @a elem_size, @a blk_size].
   @param[in]  num_blk     Number of blocks
   @param[in]  num_elem    Number of elements
   @param[in]  blk_size    Number of elements in a block
@@ -52,9 +50,7 @@ int CeedPermutePadOffsets(const CeedInt *offsets, CeedInt *blk_offsets, CeedInt 
   @brief Permute and pad orientations for a blocked restriction
 
   @param[in]  orients     Array of shape [@a num_elem, @a elem_size].
-                            Row i holds the ordered list of the orientations (into the input CeedVector) for
-the unknowns corresponding to element i, where 0 <= i < @a num_elem.
-  @param[out] blk_orients Array of permuted and padded orientations of shape [@a num_blk, @a elem_size, @a blk_size].
+  @param[out] blk_orients Array of permuted and padded array values of shape [@a num_blk, @a elem_size, @a blk_size].
   @param[in]  num_blk     Number of blocks
   @param[in]  num_elem    Number of elements
   @param[in]  blk_size    Number of elements in a block
@@ -64,11 +60,37 @@ the unknowns corresponding to element i, where 0 <= i < @a num_elem.
 
   @ref Utility
 **/
-int CeedPermutePadOrientations(const bool *orients, bool *blk_orients, CeedInt num_blk, CeedInt num_elem, CeedInt blk_size, CeedInt elem_size) {
+int CeedPermutePadOrients(const bool *orients, bool *blk_orients, CeedInt num_blk, CeedInt num_elem, CeedInt blk_size, CeedInt elem_size) {
   for (CeedInt e = 0; e < num_blk * blk_size; e += blk_size) {
     for (CeedInt j = 0; j < blk_size; j++) {
       for (CeedInt k = 0; k < elem_size; k++) {
         blk_orients[e * elem_size + k * blk_size + j] = orients[CeedIntMin(e + j, num_elem - 1) * elem_size + k];
+      }
+    }
+  }
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
+  @brief Permute and pad curl-conforming orientations for a blocked restriction
+
+  @param[in]  curl_orients     Array of shape [@a num_elem, @a 3 * elem_size].
+  @param[out] blk_curl_orients Array of permuted and padded array values of shape [@a num_blk, @a elem_size, @a blk_size].
+  @param[in]  num_blk          Number of blocks
+  @param[in]  num_elem         Number of elements
+  @param[in]  blk_size         Number of elements in a block
+  @param[in]  elem_size        Size of each element
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Utility
+**/
+int CeedPermutePadCurlOrients(const CeedInt8 *curl_orients, CeedInt8 *blk_curl_orients, CeedInt num_blk, CeedInt num_elem, CeedInt blk_size,
+                              CeedInt elem_size) {
+  for (CeedInt e = 0; e < num_blk * blk_size; e += blk_size) {
+    for (CeedInt j = 0; j < blk_size; j++) {
+      for (CeedInt k = 0; k < elem_size; k++) {
+        blk_curl_orients[e * elem_size + k * blk_size + j] = curl_orients[CeedIntMin(e + j, num_elem - 1) * elem_size + k];
       }
     }
   }
@@ -268,7 +290,7 @@ int CeedElemRestrictionRestoreOrientations(CeedElemRestriction rstr, const bool 
 
   @ref User
 **/
-int CeedElemRestrictionGetCurlOrientations(CeedElemRestriction rstr, CeedMemType mem_type, const CeedInt **curl_orients) {
+int CeedElemRestrictionGetCurlOrientations(CeedElemRestriction rstr, CeedMemType mem_type, const CeedInt8 **curl_orients) {
   CeedCheck(rstr->GetCurlOrientations, rstr->ceed, CEED_ERROR_UNSUPPORTED, "Backend does not support GetCurlOrientations");
   CeedCall(rstr->GetCurlOrientations(rstr, mem_type, curl_orients));
   rstr->num_readers++;
@@ -285,7 +307,7 @@ int CeedElemRestrictionGetCurlOrientations(CeedElemRestriction rstr, CeedMemType
 
   @ref User
 **/
-int CeedElemRestrictionRestoreCurlOrientations(CeedElemRestriction rstr, const CeedInt **curl_orients) {
+int CeedElemRestrictionRestoreCurlOrientations(CeedElemRestriction rstr, const CeedInt8 **curl_orients) {
   *curl_orients = NULL;
   rstr->num_readers--;
   return CEED_ERROR_SUCCESS;
@@ -380,9 +402,9 @@ int CeedElemRestrictionReference(CeedElemRestriction rstr) {
   @ref Backend
 **/
 int CeedElemRestrictionGetFlopsEstimate(CeedElemRestriction rstr, CeedTransposeMode t_mode, CeedSize *flops) {
-  const bool    *orients      = NULL;
-  const CeedInt *curl_orients = NULL;
-  CeedInt        e_size = rstr->num_blk * rstr->blk_size * rstr->elem_size * rstr->num_comp, scale = 0;
+  const bool     *orients      = NULL;
+  const CeedInt8 *curl_orients = NULL;
+  CeedInt         e_size = rstr->num_blk * rstr->blk_size * rstr->elem_size * rstr->num_comp, scale = 0;
 
   CeedCall(CeedElemRestrictionGetOrientations(rstr, CEED_MEM_HOST, &orients));
   CeedCall(CeedElemRestrictionGetCurlOrientations(rstr, CEED_MEM_HOST, &curl_orients));
@@ -562,7 +584,7 @@ to resolve face orientation issues for 3D meshes (https://dl.acm.org/doi/pdf/10.
   @ref User
 **/
 int CeedElemRestrictionCreateCurlOriented(Ceed ceed, CeedInt num_elem, CeedInt elem_size, CeedInt num_comp, CeedInt comp_stride, CeedSize l_size,
-                                          CeedMemType mem_type, CeedCopyMode copy_mode, const CeedInt *offsets, const CeedInt *curl_orients,
+                                          CeedMemType mem_type, CeedCopyMode copy_mode, const CeedInt *offsets, const CeedInt8 *curl_orients,
                                           CeedElemRestriction *rstr) {
   if (!ceed->ElemRestrictionCreate) {
     Ceed delegate;
@@ -758,7 +780,7 @@ int CeedElemRestrictionCreateBlockedOriented(Ceed ceed, CeedInt num_elem, CeedIn
   CeedCall(CeedCalloc(num_blk * blk_size * elem_size, &blk_offsets));
   CeedCall(CeedCalloc(num_blk * blk_size * elem_size, &blk_orients));
   CeedCall(CeedPermutePadOffsets(offsets, blk_offsets, num_blk, num_elem, blk_size, elem_size));
-  CeedCall(CeedPermutePadOrientations(orients, blk_orients, num_blk, num_elem, blk_size, elem_size));
+  CeedCall(CeedPermutePadOrients(orients, blk_orients, num_blk, num_elem, blk_size, elem_size));
 
   CeedCall(CeedCalloc(1, rstr));
   CeedCall(CeedReferenceCopy(ceed, &(*rstr)->ceed));
@@ -809,10 +831,10 @@ be permuted and padded similarly to @a offsets.
  **/
 int CeedElemRestrictionCreateBlockedCurlOriented(Ceed ceed, CeedInt num_elem, CeedInt elem_size, CeedInt blk_size, CeedInt num_comp,
                                                  CeedInt comp_stride, CeedSize l_size, CeedMemType mem_type, CeedCopyMode copy_mode,
-                                                 const CeedInt *offsets, const CeedInt *curl_orients, CeedElemRestriction *rstr) {
-  CeedInt *blk_offsets;
-  CeedInt *blk_curl_orients;
-  CeedInt  num_blk = (num_elem / blk_size) + !!(num_elem % blk_size);
+                                                 const CeedInt *offsets, const CeedInt8 *curl_orients, CeedElemRestriction *rstr) {
+  CeedInt  *blk_offsets;
+  CeedInt8 *blk_curl_orients;
+  CeedInt   num_blk = (num_elem / blk_size) + !!(num_elem % blk_size);
 
   if (!ceed->ElemRestrictionCreateBlocked) {
     Ceed delegate;
@@ -832,7 +854,7 @@ int CeedElemRestrictionCreateBlockedCurlOriented(Ceed ceed, CeedInt num_elem, Ce
   CeedCall(CeedCalloc(num_blk * blk_size * elem_size, &blk_offsets));
   CeedCall(CeedCalloc(num_blk * blk_size * 3 * elem_size, &blk_curl_orients));
   CeedCall(CeedPermutePadOffsets(offsets, blk_offsets, num_blk, num_elem, blk_size, elem_size));
-  CeedCall(CeedPermutePadOffsets(curl_orients, blk_curl_orients, num_blk, num_elem, blk_size, 3 * elem_size));
+  CeedCall(CeedPermutePadCurlOrients(curl_orients, blk_curl_orients, num_blk, num_elem, blk_size, 3 * elem_size));
 
   CeedCall(CeedCalloc(1, rstr));
   CeedCall(CeedReferenceCopy(ceed, &(*rstr)->ceed));
@@ -845,7 +867,7 @@ int CeedElemRestrictionCreateBlockedCurlOriented(Ceed ceed, CeedInt num_elem, Ce
   (*rstr)->num_blk     = num_blk;
   (*rstr)->blk_size    = blk_size;
   (*rstr)->rstr_type   = CEED_RESTRICTION_CURL_ORIENTED;
-  CeedCall(ceed->ElemRestrictionCreateBlocked(CEED_MEM_HOST, CEED_OWN_POINTER, (const CeedInt *)blk_offsets, NULL, (const CeedInt *)blk_curl_orients,
+  CeedCall(ceed->ElemRestrictionCreateBlocked(CEED_MEM_HOST, CEED_OWN_POINTER, (const CeedInt *)blk_offsets, NULL, (const CeedInt8 *)blk_curl_orients,
                                               *rstr));
   if (copy_mode == CEED_OWN_POINTER) {
     CeedCall(CeedFree(&offsets));

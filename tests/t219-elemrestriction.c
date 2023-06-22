@@ -10,7 +10,8 @@ int main(int argc, char **argv) {
   CeedVector          x, y;
   CeedInt             num_elem = 6, elem_size = 2;
   CeedInt             num_blk = 2, blk_size = 4;
-  CeedInt             ind[elem_size * num_elem], curl_orients[3 * elem_size * num_elem];
+  CeedInt             ind[elem_size * num_elem];
+  CeedInt8            curl_orients[3 * elem_size * num_elem];
   CeedScalar          x_array[num_elem + 1];
   CeedInt             layout[3];
   CeedElemRestriction elem_restriction;

@@ -16,9 +16,11 @@
 //------------------------------------------------------------------------------
 // Core ElemRestriction Apply Code
 //------------------------------------------------------------------------------
-static inline int CeedElemRestrictionApply_Ref_Core(CeedElemRestriction r, const CeedInt num_comp, const CeedInt blk_size, const CeedInt comp_stride,
-                                                    CeedInt start, CeedInt stop, bool use_orients, CeedTransposeMode t_mode, CeedVector u,
-                                                    CeedVector v, CeedRequest *request) {
+static inline int CeedElemRestrictionApplyNoTranspose_Ref_Core(CeedElemRestriction r, const CeedInt num_comp, const CeedInt blk_size,
+                                                               const CeedInt comp_stride, CeedInt start, CeedInt stop, bool use_orients, CeedVector u,
+                                                               CeedVector v, CeedRequest *request) {
+  Ceed ceed;
+  CeedCallBackend(CeedElemRestrictionGetCeed(r, &ceed));
   CeedElemRestriction_Ref *impl;
   CeedCallBackend(CeedElemRestrictionGetData(r, &impl));
   const CeedScalar *uu;
@@ -30,207 +32,246 @@ static inline int CeedElemRestrictionApply_Ref_Core(CeedElemRestriction r, const
   CeedRestrictionType rstr_type;
   CeedCallBackend(CeedElemRestrictionGetType(r, &rstr_type));
 
+  // Restriction from L-vector to E-vector
+  // Perform: v = r * u
+  // vv has shape [elem_size, num_comp, num_elem], row-major
+  // uu has shape [nnodes, num_comp]
+  // Overwrite for notranspose mode
   CeedCallBackend(CeedVectorGetArrayRead(u, CEED_MEM_HOST, &uu));
-  if (t_mode == CEED_TRANSPOSE) {
-    // Sum into for transpose mode, e-vec to l-vec
-    CeedCallBackend(CeedVectorGetArray(v, CEED_MEM_HOST, &vv));
-  } else {
-    // Overwrite for notranspose mode, l-vec to e-vec
-    CeedCallBackend(CeedVectorGetArrayWrite(v, CEED_MEM_HOST, &vv));
+  CeedCallBackend(CeedVectorGetArrayWrite(v, CEED_MEM_HOST, &vv));
+  switch (rstr_type) {
+    case CEED_RESTRICTION_STRIDED: {
+      // No offsets provided, Identity Restriction
+      bool has_backend_strides;
+      CeedCallBackend(CeedElemRestrictionHasBackendStrides(r, &has_backend_strides));
+      if (has_backend_strides) {
+        // CPU backend strides are {1, elem_size, elem_size*num_comp}
+        // This if branch is left separate to allow better inlining
+        for (CeedInt e = start * blk_size; e < stop * blk_size; e += blk_size) {
+          CeedPragmaSIMD for (CeedInt k = 0; k < num_comp; k++) {
+            CeedPragmaSIMD for (CeedInt n = 0; n < elem_size; n++) {
+              CeedPragmaSIMD for (CeedInt j = 0; j < blk_size; j++) {
+                vv[e * elem_size * num_comp + (k * elem_size + n) * blk_size + j - v_offset] =
+                    uu[n + k * elem_size + CeedIntMin(e + j, num_elem - 1) * elem_size * num_comp];
+              }
+            }
+          }
+        }
+      } else {
+        // User provided strides
+        CeedInt strides[3];
+        CeedCallBackend(CeedElemRestrictionGetStrides(r, &strides));
+        for (CeedInt e = start * blk_size; e < stop * blk_size; e += blk_size) {
+          CeedPragmaSIMD for (CeedInt k = 0; k < num_comp; k++) {
+            CeedPragmaSIMD for (CeedInt n = 0; n < elem_size; n++) {
+              CeedPragmaSIMD for (CeedInt j = 0; j < blk_size; j++) {
+                vv[e * elem_size * num_comp + (k * elem_size + n) * blk_size + j - v_offset] =
+                    uu[n * strides[0] + k * strides[1] + CeedIntMin(e + j, num_elem - 1) * strides[2]];
+              }
+            }
+          }
+        }
+      }
+    } break;
+    case CEED_RESTRICTION_DEFAULT: {
+      // Default restriction with offsets
+      for (CeedInt e = start * blk_size; e < stop * blk_size; e += blk_size) {
+        CeedPragmaSIMD for (CeedInt k = 0; k < num_comp; k++) {
+          CeedPragmaSIMD for (CeedInt i = 0; i < elem_size * blk_size; i++) {
+            vv[elem_size * (k * blk_size + e * num_comp) + i - v_offset] = uu[impl->offsets[i + e * elem_size] + k * comp_stride];
+          }
+        }
+      }
+    } break;
+    case CEED_RESTRICTION_ORIENTED: {
+      // Restriction with orientations
+      for (CeedInt e = start * blk_size; e < stop * blk_size; e += blk_size) {
+        CeedPragmaSIMD for (CeedInt k = 0; k < num_comp; k++) {
+          CeedPragmaSIMD for (CeedInt i = 0; i < elem_size * blk_size; i++) {
+            vv[elem_size * (k * blk_size + e * num_comp) + i - v_offset] =
+                uu[impl->offsets[i + e * elem_size] + k * comp_stride] * (use_orients && impl->orients[i + e * elem_size] ? -1.0 : 1.0);
+          }
+        }
+      }
+    } break;
+    case CEED_RESTRICTION_CURL_ORIENTED: {
+      // Restriction with tridiagonal transformation
+      CeedCheck(elem_size > 1, ceed, CEED_ERROR_BACKEND, "CEED_RESTRICTION_CURL_ORIENTED should always have elem_size > 1");
+      for (CeedInt e = start * blk_size; e < stop * blk_size; e += blk_size) {
+        CeedPragmaSIMD for (CeedInt k = 0; k < num_comp; k++) {
+          CeedInt n = 0;
+          CeedPragmaSIMD for (CeedInt j = 0; j < blk_size; j++) {
+            vv[e * elem_size * num_comp + (k * elem_size + n) * blk_size + j - v_offset] =
+                uu[impl->offsets[j + n * blk_size + e * elem_size] + k * comp_stride] *
+                    (use_orients ? impl->curl_orients[j + (3 * n + 1) * blk_size + e * 3 * elem_size]
+                                 : abs(impl->curl_orients[j + (3 * n + 1) * blk_size + e * 3 * elem_size])) +
+                uu[impl->offsets[j + (n + 1) * blk_size + e * elem_size] + k * comp_stride] *
+                    (use_orients ? impl->curl_orients[j + (3 * n + 2) * blk_size + e * 3 * elem_size]
+                                 : abs(impl->curl_orients[j + (3 * n + 2) * blk_size + e * 3 * elem_size]));
+          }
+          for (n = 1; n < elem_size - 1; n++) {
+            CeedPragmaSIMD for (CeedInt j = 0; j < blk_size; j++) {
+              vv[e * elem_size * num_comp + (k * elem_size + n) * blk_size + j - v_offset] =
+                  uu[impl->offsets[j + (n - 1) * blk_size + e * elem_size] + k * comp_stride] *
+                      (use_orients ? impl->curl_orients[j + (3 * n + 0) * blk_size + e * 3 * elem_size]
+                                   : abs(impl->curl_orients[j + (3 * n + 0) * blk_size + e * 3 * elem_size])) +
+                  uu[impl->offsets[j + n * blk_size + e * elem_size] + k * comp_stride] *
+                      (use_orients ? impl->curl_orients[j + (3 * n + 1) * blk_size + e * 3 * elem_size]
+                                   : abs(impl->curl_orients[j + (3 * n + 1) * blk_size + e * 3 * elem_size])) +
+                  uu[impl->offsets[j + (n + 1) * blk_size + e * elem_size] + k * comp_stride] *
+                      (use_orients ? impl->curl_orients[j + (3 * n + 2) * blk_size + e * 3 * elem_size]
+                                   : abs(impl->curl_orients[j + (3 * n + 2) * blk_size + e * 3 * elem_size]));
+            }
+          }
+          CeedPragmaSIMD for (CeedInt j = 0; j < blk_size; j++) {
+            vv[e * elem_size * num_comp + (k * elem_size + n) * blk_size + j - v_offset] =
+                uu[impl->offsets[j + (n - 1) * blk_size + e * elem_size] + k * comp_stride] *
+                    (use_orients ? impl->curl_orients[j + (3 * n + 0) * blk_size + e * 3 * elem_size]
+                                 : abs(impl->curl_orients[j + (3 * n + 0) * blk_size + e * 3 * elem_size])) +
+                uu[impl->offsets[j + n * blk_size + e * elem_size] + k * comp_stride] *
+                    (use_orients ? impl->curl_orients[j + (3 * n + 1) * blk_size + e * 3 * elem_size]
+                                 : abs(impl->curl_orients[j + (3 * n + 1) * blk_size + e * 3 * elem_size]));
+          }
+        }
+      }
+    } break;
   }
-  if (t_mode == CEED_NOTRANSPOSE) {
-    // Restriction from L-vector to E-vector
-    // Perform: v = r * u
-    // vv has shape [elem_size, num_comp, num_elem], row-major
-    // uu has shape [nnodes, num_comp]
-    switch (rstr_type) {
-      case CEED_RESTRICTION_STRIDED: {
-        // No offsets provided, Identity Restriction
-        bool has_backend_strides;
-        CeedCallBackend(CeedElemRestrictionHasBackendStrides(r, &has_backend_strides));
-        if (has_backend_strides) {
-          // CPU backend strides are {1, elem_size, elem_size*num_comp}
-          // This if branch is left separate to allow better inlining
-          for (CeedInt e = start * blk_size; e < stop * blk_size; e += blk_size) {
-            CeedPragmaSIMD for (CeedInt k = 0; k < num_comp; k++) {
-              CeedPragmaSIMD for (CeedInt n = 0; n < elem_size; n++) {
-                CeedPragmaSIMD for (CeedInt j = 0; j < blk_size; j++) {
-                  vv[e * elem_size * num_comp + (k * elem_size + n) * blk_size + j - v_offset] =
-                      uu[n + k * elem_size + CeedIntMin(e + j, num_elem - 1) * elem_size * num_comp];
-                }
-              }
-            }
-          }
-        } else {
-          // User provided strides
-          CeedInt strides[3];
-          CeedCallBackend(CeedElemRestrictionGetStrides(r, &strides));
-          for (CeedInt e = start * blk_size; e < stop * blk_size; e += blk_size) {
-            CeedPragmaSIMD for (CeedInt k = 0; k < num_comp; k++) {
-              CeedPragmaSIMD for (CeedInt n = 0; n < elem_size; n++) {
-                CeedPragmaSIMD for (CeedInt j = 0; j < blk_size; j++) {
-                  vv[e * elem_size * num_comp + (k * elem_size + n) * blk_size + j - v_offset] =
-                      uu[n * strides[0] + k * strides[1] + CeedIntMin(e + j, num_elem - 1) * strides[2]];
-                }
-              }
-            }
-          }
-        }
-      } break;
-      case CEED_RESTRICTION_DEFAULT:
-        // Default restriction with offsets
+  CeedCallBackend(CeedVectorRestoreArrayRead(u, &uu));
+  CeedCallBackend(CeedVectorRestoreArray(v, &vv));
+  if (request != CEED_REQUEST_IMMEDIATE && request != CEED_REQUEST_ORDERED) *request = NULL;
+  return CEED_ERROR_SUCCESS;
+}
+
+//------------------------------------------------------------------------------
+// Core ElemRestriction Apply Transpose Code
+//------------------------------------------------------------------------------
+static inline int CeedElemRestrictionApplyTranspose_Ref_Core(CeedElemRestriction r, const CeedInt num_comp, const CeedInt blk_size,
+                                                             const CeedInt comp_stride, CeedInt start, CeedInt stop, bool use_orients, CeedVector u,
+                                                             CeedVector v, CeedRequest *request) {
+  Ceed ceed;
+  CeedCallBackend(CeedElemRestrictionGetCeed(r, &ceed));
+  CeedElemRestriction_Ref *impl;
+  CeedCallBackend(CeedElemRestrictionGetData(r, &impl));
+  const CeedScalar *uu;
+  CeedScalar       *vv;
+  CeedInt           num_elem, elem_size, v_offset;
+  CeedCallBackend(CeedElemRestrictionGetNumElements(r, &num_elem));
+  CeedCallBackend(CeedElemRestrictionGetElementSize(r, &elem_size));
+  v_offset = start * blk_size * elem_size * num_comp;
+  CeedRestrictionType rstr_type;
+  CeedCallBackend(CeedElemRestrictionGetType(r, &rstr_type));
+
+  // Restriction from E-vector to L-vector
+  // Performing v += r^T * u
+  // uu has shape [elem_size, num_comp, num_elem], row-major
+  // vv has shape [nnodes, num_comp]
+  // Sum into for transpose mode
+  CeedCallBackend(CeedVectorGetArrayRead(u, CEED_MEM_HOST, &uu));
+  CeedCallBackend(CeedVectorGetArray(v, CEED_MEM_HOST, &vv));
+  switch (rstr_type) {
+    case CEED_RESTRICTION_STRIDED: {
+      // No offsets provided, Identity Restriction
+      bool has_backend_strides;
+      CeedCallBackend(CeedElemRestrictionHasBackendStrides(r, &has_backend_strides));
+      if (has_backend_strides) {
+        // CPU backend strides are {1, elem_size, elem_size*num_comp}
+        // This if brach is left separate to allow better inlining
         for (CeedInt e = start * blk_size; e < stop * blk_size; e += blk_size) {
           CeedPragmaSIMD for (CeedInt k = 0; k < num_comp; k++) {
-            CeedPragmaSIMD for (CeedInt i = 0; i < elem_size * blk_size; i++) {
-              vv[elem_size * (k * blk_size + num_comp * e) + i - v_offset] = uu[impl->offsets[i + elem_size * e] + k * comp_stride];
+            CeedPragmaSIMD for (CeedInt n = 0; n < elem_size; n++) {
+              CeedPragmaSIMD for (CeedInt j = 0; j < CeedIntMin(blk_size, num_elem - e); j++) {
+                vv[n + k * elem_size + (e + j) * elem_size * num_comp] +=
+                    uu[e * elem_size * num_comp + (k * elem_size + n) * blk_size + j - v_offset];
+              }
             }
           }
         }
-        break;
-      case CEED_RESTRICTION_ORIENTED:
-        // Restriction with orientations
+      } else {
+        // User provided strides
+        CeedInt strides[3];
+        CeedCallBackend(CeedElemRestrictionGetStrides(r, &strides));
         for (CeedInt e = start * blk_size; e < stop * blk_size; e += blk_size) {
           CeedPragmaSIMD for (CeedInt k = 0; k < num_comp; k++) {
-            CeedPragmaSIMD for (CeedInt i = 0; i < elem_size * blk_size; i++) {
-              vv[elem_size * (k * blk_size + num_comp * e) + i - v_offset] =
-                  uu[impl->offsets[i + elem_size * e] + k * comp_stride] * (use_orients && impl->orients[i + elem_size * e] ? -1.0 : 1.0);
-            }
-          }
-        }
-        break;
-      case CEED_RESTRICTION_CURL_ORIENTED:
-        // Restriction with tridiagonal transformation
-        for (CeedInt e = start * blk_size; e < stop * blk_size; e += blk_size) {
-          CeedPragmaSIMD for (CeedInt k = 0; k < num_comp; k++) {
-            CeedPragmaSIMD for (CeedInt i = 0; i < elem_size * blk_size; i++) {
-              CeedInt ii = 3 * blk_size * (i / blk_size) + i % blk_size;
-              if (use_orients) {
-                vv[elem_size * (k * blk_size + num_comp * e) + i - v_offset] =
-                    uu[impl->offsets[i + 0 * blk_size + elem_size * e] + k * comp_stride] *
-                        impl->curl_orients[ii + 1 * blk_size + 3 * elem_size * e] +
-                    (i >= blk_size ? uu[impl->offsets[i - 1 * blk_size + elem_size * e] + k * comp_stride] *
-                                         impl->curl_orients[ii + 0 * blk_size + 3 * elem_size * e]
-                                   : 0.0) +
-                    (i < (elem_size - 1) * blk_size ? uu[impl->offsets[i + 1 * blk_size + elem_size * e] + k * comp_stride] *
-                                                          impl->curl_orients[ii + 2 * blk_size + 3 * elem_size * e]
-                                                    : 0.0);
-              } else {
-                vv[elem_size * (k * blk_size + num_comp * e) + i - v_offset] =
-                    uu[impl->offsets[i + 0 * blk_size + elem_size * e] + k * comp_stride] *
-                        abs(impl->curl_orients[ii + 1 * blk_size + 3 * elem_size * e]) +
-                    (i >= blk_size ? uu[impl->offsets[i - 1 * blk_size + elem_size * e] + k * comp_stride] *
-                                         abs(impl->curl_orients[ii + 0 * blk_size + 3 * elem_size * e])
-                                   : 0.0) +
-                    (i < (elem_size - 1) * blk_size ? uu[impl->offsets[i + 1 * blk_size + elem_size * e] + k * comp_stride] *
-                                                          abs(impl->curl_orients[ii + 2 * blk_size + 3 * elem_size * e])
-                                                    : 0.0);
+            CeedPragmaSIMD for (CeedInt n = 0; n < elem_size; n++) {
+              CeedPragmaSIMD for (CeedInt j = 0; j < CeedIntMin(blk_size, num_elem - e); j++) {
+                vv[n * strides[0] + k * strides[1] + (e + j) * strides[2]] +=
+                    uu[e * elem_size * num_comp + (k * elem_size + n) * blk_size + j - v_offset];
               }
             }
           }
         }
-        break;
-    }
-  } else {
-    // Restriction from E-vector to L-vector
-    // Performing v += r^T * u
-    // uu has shape [elem_size, num_comp, num_elem], row-major
-    // vv has shape [nnodes, num_comp]
-    switch (rstr_type) {
-      case CEED_RESTRICTION_STRIDED: {
-        // No offsets provided, Identity Restriction
-        bool has_backend_strides;
-        CeedCallBackend(CeedElemRestrictionHasBackendStrides(r, &has_backend_strides));
-        if (has_backend_strides) {
-          // CPU backend strides are {1, elem_size, elem_size*num_comp}
-          // This if brach is left separate to allow better inlining
-          for (CeedInt e = start * blk_size; e < stop * blk_size; e += blk_size) {
-            CeedPragmaSIMD for (CeedInt k = 0; k < num_comp; k++) {
-              CeedPragmaSIMD for (CeedInt n = 0; n < elem_size; n++) {
-                CeedPragmaSIMD for (CeedInt j = 0; j < CeedIntMin(blk_size, num_elem - e); j++) {
-                  vv[n + k * elem_size + (e + j) * elem_size * num_comp] +=
-                      uu[e * elem_size * num_comp + (k * elem_size + n) * blk_size + j - v_offset];
-                }
-              }
-            }
-          }
-        } else {
-          // User provided strides
-          CeedInt strides[3];
-          CeedCallBackend(CeedElemRestrictionGetStrides(r, &strides));
-          for (CeedInt e = start * blk_size; e < stop * blk_size; e += blk_size) {
-            CeedPragmaSIMD for (CeedInt k = 0; k < num_comp; k++) {
-              CeedPragmaSIMD for (CeedInt n = 0; n < elem_size; n++) {
-                CeedPragmaSIMD for (CeedInt j = 0; j < CeedIntMin(blk_size, num_elem - e); j++) {
-                  vv[n * strides[0] + k * strides[1] + (e + j) * strides[2]] +=
-                      uu[e * elem_size * num_comp + (k * elem_size + n) * blk_size + j - v_offset];
-                }
-              }
+      }
+    } break;
+    case CEED_RESTRICTION_DEFAULT: {
+      // Default restriction with offsets
+      for (CeedInt e = start * blk_size; e < stop * blk_size; e += blk_size) {
+        for (CeedInt k = 0; k < num_comp; k++) {
+          for (CeedInt i = 0; i < elem_size * blk_size; i += blk_size) {
+            // Iteration bound set to discard padding elements
+            for (CeedInt j = i; j < i + CeedIntMin(blk_size, num_elem - e); j++) {
+              vv[impl->offsets[j + e * elem_size] + k * comp_stride] += uu[elem_size * (k * blk_size + e * num_comp) + j - v_offset];
             }
           }
         }
-      } break;
-      case CEED_RESTRICTION_DEFAULT:
-        // Default restriction with offsets
-        for (CeedInt e = start * blk_size; e < stop * blk_size; e += blk_size) {
-          for (CeedInt k = 0; k < num_comp; k++) {
-            for (CeedInt i = 0; i < elem_size * blk_size; i += blk_size) {
-              // Iteration bound set to discard padding elements
-              for (CeedInt j = i; j < i + CeedIntMin(blk_size, num_elem - e); j++) {
-                vv[impl->offsets[j + e * elem_size] + k * comp_stride] += uu[elem_size * (k * blk_size + num_comp * e) + j - v_offset];
-              }
+      }
+    } break;
+    case CEED_RESTRICTION_ORIENTED: {
+      // Restriction with orientations
+      for (CeedInt e = start * blk_size; e < stop * blk_size; e += blk_size) {
+        for (CeedInt k = 0; k < num_comp; k++) {
+          for (CeedInt i = 0; i < elem_size * blk_size; i += blk_size) {
+            // Iteration bound set to discard padding elements
+            for (CeedInt j = i; j < i + CeedIntMin(blk_size, num_elem - e); j++) {
+              vv[impl->offsets[j + e * elem_size] + k * comp_stride] +=
+                  uu[elem_size * (k * blk_size + e * num_comp) + j - v_offset] * (use_orients && impl->orients[j + e * elem_size] ? -1.0 : 1.0);
             }
           }
         }
-        break;
-      case CEED_RESTRICTION_ORIENTED:
-        // Restriction with orientations
-        for (CeedInt e = start * blk_size; e < stop * blk_size; e += blk_size) {
-          for (CeedInt k = 0; k < num_comp; k++) {
-            for (CeedInt i = 0; i < elem_size * blk_size; i += blk_size) {
-              // Iteration bound set to discard padding elements
-              for (CeedInt j = i; j < i + CeedIntMin(blk_size, num_elem - e); j++) {
-                vv[impl->offsets[j + e * elem_size] + k * comp_stride] +=
-                    uu[elem_size * (k * blk_size + num_comp * e) + j - v_offset] * (use_orients && impl->orients[j + e * elem_size] ? -1.0 : 1.0);
-              }
+      }
+    } break;
+    case CEED_RESTRICTION_CURL_ORIENTED: {
+      // Restriction with tridiagonal transformation
+      CeedCheck(elem_size > 1, ceed, CEED_ERROR_BACKEND, "CEED_RESTRICTION_CURL_ORIENTED should always have elem_size > 1");
+      for (CeedInt e = start * blk_size; e < stop * blk_size; e += blk_size) {
+        for (CeedInt k = 0; k < num_comp; k++) {
+          // Iteration bound set to discard padding elements
+          CeedInt    blk_end = CeedIntMin(blk_size, num_elem - e), n = 0;
+          CeedScalar vvn[blk_size];
+          for (CeedInt j = 0; j < blk_end; j++) {
+            vv[impl->offsets[j + n * blk_size + e * elem_size] + k * comp_stride] +=
+                uu[e * elem_size * num_comp + (k * elem_size + n) * blk_size + j - v_offset] *
+                    (use_orients ? impl->curl_orients[j + (3 * n + 1) * blk_size + e * 3 * elem_size]
+                                 : abs(impl->curl_orients[j + (3 * n + 1) * blk_size + e * 3 * elem_size])) +
+                uu[e * elem_size * num_comp + (k * elem_size + n + 1) * blk_size + j - v_offset] *
+                    (use_orients ? impl->curl_orients[j + (3 * n + 3) * blk_size + e * 3 * elem_size]
+                                 : abs(impl->curl_orients[j + (3 * n + 3) * blk_size + e * 3 * elem_size]));
+          }
+          for (n = 1; n < elem_size - 1; n++) {
+            for (CeedInt j = 0; j < blk_end; j++) {
+              vv[impl->offsets[j + n * blk_size + e * elem_size] + k * comp_stride] +=
+                  uu[e * elem_size * num_comp + (k * elem_size + n - 1) * blk_size + j - v_offset] *
+                      (use_orients ? impl->curl_orients[j + (3 * n - 1) * blk_size + e * 3 * elem_size]
+                                   : abs(impl->curl_orients[j + (3 * n - 1) * blk_size + e * 3 * elem_size])) +
+                  uu[e * elem_size * num_comp + (k * elem_size + n) * blk_size + j - v_offset] *
+                      (use_orients ? impl->curl_orients[j + (3 * n + 1) * blk_size + e * 3 * elem_size]
+                                   : abs(impl->curl_orients[j + (3 * n + 1) * blk_size + e * 3 * elem_size])) +
+                  uu[e * elem_size * num_comp + (k * elem_size + n + 1) * blk_size + j - v_offset] *
+                      (use_orients ? impl->curl_orients[j + (3 * n + 3) * blk_size + e * 3 * elem_size]
+                                   : abs(impl->curl_orients[j + (3 * n + 3) * blk_size + e * 3 * elem_size]));
             }
           }
-        }
-        break;
-      case CEED_RESTRICTION_CURL_ORIENTED:
-        // Restriction with tridiagonal transformation
-        for (CeedInt e = start * blk_size; e < stop * blk_size; e += blk_size) {
-          for (CeedInt k = 0; k < num_comp; k++) {
-            for (CeedInt i = 0; i < elem_size * blk_size; i += blk_size) {
-              // Iteration bound set to discard padding elements
-              for (CeedInt j = i; j < i + CeedIntMin(blk_size, num_elem - e); j++) {
-                CeedInt jj = 3 * blk_size * (j / blk_size + 0) + j % blk_size;
-                if (use_orients) {
-                  vv[impl->offsets[j + e * elem_size] + k * comp_stride] +=
-                      uu[elem_size * (k * blk_size + num_comp * e) + j + 0 * blk_size - v_offset] *
-                          impl->curl_orients[jj + 1 * blk_size + e * 3 * elem_size] +
-                      (j >= blk_size ? uu[elem_size * (k * blk_size + num_comp * e) + j - 1 * blk_size - v_offset] *
-                                           impl->curl_orients[jj - 1 * blk_size + e * 3 * elem_size]
-                                     : 0.0) +
-                      (j < (elem_size - 1) * blk_size ? uu[elem_size * (k * blk_size + num_comp * e) + j + 1 * blk_size - v_offset] *
-                                                            impl->curl_orients[jj + 3 * blk_size + e * 3 * elem_size]
-                                                      : 0.0);
-                } else {
-                  vv[impl->offsets[j + e * elem_size] + k * comp_stride] +=
-                      uu[elem_size * (k * blk_size + num_comp * e) + j + 0 * blk_size - v_offset] *
-                          abs(impl->curl_orients[jj + 1 * blk_size + e * 3 * elem_size]) +
-                      (j >= blk_size ? uu[elem_size * (k * blk_size + num_comp * e) + j - 1 * blk_size - v_offset] *
-                                           abs(impl->curl_orients[jj - 1 * blk_size + e * 3 * elem_size])
-                                     : 0.0) +
-                      (j < (elem_size - 1) * blk_size ? uu[elem_size * (k * blk_size + num_comp * e) + j + 1 * blk_size - v_offset] *
-                                                            abs(impl->curl_orients[jj + 3 * blk_size + e * 3 * elem_size])
-                                                      : 0.0);
-                }
-              }
-            }
+          for (CeedInt j = 0; j < blk_end; j++) {
+            vv[impl->offsets[j + n * blk_size + e * elem_size] + k * comp_stride] +=
+                uu[e * elem_size * num_comp + (k * elem_size + n - 1) * blk_size + j - v_offset] *
+                    (use_orients ? impl->curl_orients[j + (3 * n - 1) * blk_size + e * 3 * elem_size]
+                                 : abs(impl->curl_orients[j + (3 * n - 1) * blk_size + e * 3 * elem_size])) +
+                uu[e * elem_size * num_comp + (k * elem_size + n) * blk_size + j - v_offset] *
+                    (use_orients ? impl->curl_orients[j + (3 * n + 1) * blk_size + e * 3 * elem_size]
+                                 : abs(impl->curl_orients[j + (3 * n + 1) * blk_size + e * 3 * elem_size]));
           }
         }
-        break;
-    }
+      }
+    } break;
   }
   CeedCallBackend(CeedVectorRestoreArrayRead(u, &uu));
   CeedCallBackend(CeedVectorRestoreArray(v, &vv));
@@ -244,77 +285,135 @@ static inline int CeedElemRestrictionApply_Ref_Core(CeedElemRestriction r, const
 static int CeedElemRestrictionApply_Ref_110(CeedElemRestriction r, const CeedInt num_comp, const CeedInt blk_size, const CeedInt comp_stride,
                                             CeedInt start, CeedInt stop, bool use_orients, CeedTransposeMode t_mode, CeedVector u, CeedVector v,
                                             CeedRequest *request) {
-  return CeedElemRestrictionApply_Ref_Core(r, 1, 1, comp_stride, start, stop, use_orients, t_mode, u, v, request);
+  if (t_mode == CEED_TRANSPOSE) {
+    return CeedElemRestrictionApplyTranspose_Ref_Core(r, 1, 1, comp_stride, start, stop, use_orients, u, v, request);
+  } else {
+    return CeedElemRestrictionApplyNoTranspose_Ref_Core(r, 1, 1, comp_stride, start, stop, use_orients, u, v, request);
+  }
 }
 
 static int CeedElemRestrictionApply_Ref_111(CeedElemRestriction r, const CeedInt num_comp, const CeedInt blk_size, const CeedInt comp_stride,
                                             CeedInt start, CeedInt stop, bool use_orients, CeedTransposeMode t_mode, CeedVector u, CeedVector v,
                                             CeedRequest *request) {
-  return CeedElemRestrictionApply_Ref_Core(r, 1, 1, 1, start, stop, use_orients, t_mode, u, v, request);
+  if (t_mode == CEED_TRANSPOSE) {
+    return CeedElemRestrictionApplyTranspose_Ref_Core(r, 1, 1, 1, start, stop, use_orients, u, v, request);
+  } else {
+    return CeedElemRestrictionApplyNoTranspose_Ref_Core(r, 1, 1, 1, start, stop, use_orients, u, v, request);
+  }
 }
 
 static int CeedElemRestrictionApply_Ref_180(CeedElemRestriction r, const CeedInt num_comp, const CeedInt blk_size, const CeedInt comp_stride,
                                             CeedInt start, CeedInt stop, bool use_orients, CeedTransposeMode t_mode, CeedVector u, CeedVector v,
                                             CeedRequest *request) {
-  return CeedElemRestrictionApply_Ref_Core(r, 1, 8, comp_stride, start, stop, use_orients, t_mode, u, v, request);
+  if (t_mode == CEED_TRANSPOSE) {
+    return CeedElemRestrictionApplyTranspose_Ref_Core(r, 1, 8, comp_stride, start, stop, use_orients, u, v, request);
+  } else {
+    return CeedElemRestrictionApplyNoTranspose_Ref_Core(r, 1, 8, comp_stride, start, stop, use_orients, u, v, request);
+  }
 }
 
 static int CeedElemRestrictionApply_Ref_181(CeedElemRestriction r, const CeedInt num_comp, const CeedInt blk_size, const CeedInt comp_stride,
                                             CeedInt start, CeedInt stop, bool use_orients, CeedTransposeMode t_mode, CeedVector u, CeedVector v,
                                             CeedRequest *request) {
-  return CeedElemRestrictionApply_Ref_Core(r, 1, 8, 1, start, stop, use_orients, t_mode, u, v, request);
+  if (t_mode == CEED_TRANSPOSE) {
+    return CeedElemRestrictionApplyTranspose_Ref_Core(r, 1, 8, 1, start, stop, use_orients, u, v, request);
+  } else {
+    return CeedElemRestrictionApplyNoTranspose_Ref_Core(r, 1, 8, 1, start, stop, use_orients, u, v, request);
+  }
 }
 
 static int CeedElemRestrictionApply_Ref_310(CeedElemRestriction r, const CeedInt num_comp, const CeedInt blk_size, const CeedInt comp_stride,
                                             CeedInt start, CeedInt stop, bool use_orients, CeedTransposeMode t_mode, CeedVector u, CeedVector v,
                                             CeedRequest *request) {
-  return CeedElemRestrictionApply_Ref_Core(r, 3, 1, comp_stride, start, stop, use_orients, t_mode, u, v, request);
+  if (t_mode == CEED_TRANSPOSE) {
+    return CeedElemRestrictionApplyTranspose_Ref_Core(r, 3, 1, comp_stride, start, stop, use_orients, u, v, request);
+  } else {
+    return CeedElemRestrictionApplyNoTranspose_Ref_Core(r, 3, 1, comp_stride, start, stop, use_orients, u, v, request);
+  }
 }
 
 static int CeedElemRestrictionApply_Ref_311(CeedElemRestriction r, const CeedInt num_comp, const CeedInt blk_size, const CeedInt comp_stride,
                                             CeedInt start, CeedInt stop, bool use_orients, CeedTransposeMode t_mode, CeedVector u, CeedVector v,
                                             CeedRequest *request) {
-  return CeedElemRestrictionApply_Ref_Core(r, 3, 1, 1, start, stop, use_orients, t_mode, u, v, request);
+  if (t_mode == CEED_TRANSPOSE) {
+    return CeedElemRestrictionApplyTranspose_Ref_Core(r, 3, 1, 1, start, stop, use_orients, u, v, request);
+  } else {
+    return CeedElemRestrictionApplyNoTranspose_Ref_Core(r, 3, 1, 1, start, stop, use_orients, u, v, request);
+  }
 }
 
 static int CeedElemRestrictionApply_Ref_380(CeedElemRestriction r, const CeedInt num_comp, const CeedInt blk_size, const CeedInt comp_stride,
                                             CeedInt start, CeedInt stop, bool use_orients, CeedTransposeMode t_mode, CeedVector u, CeedVector v,
                                             CeedRequest *request) {
-  return CeedElemRestrictionApply_Ref_Core(r, 3, 8, comp_stride, start, stop, use_orients, t_mode, u, v, request);
+  if (t_mode == CEED_TRANSPOSE) {
+    return CeedElemRestrictionApplyTranspose_Ref_Core(r, 3, 8, comp_stride, start, stop, use_orients, u, v, request);
+  } else {
+    return CeedElemRestrictionApplyNoTranspose_Ref_Core(r, 3, 8, comp_stride, start, stop, use_orients, u, v, request);
+  }
 }
 
 static int CeedElemRestrictionApply_Ref_381(CeedElemRestriction r, const CeedInt num_comp, const CeedInt blk_size, const CeedInt comp_stride,
                                             CeedInt start, CeedInt stop, bool use_orients, CeedTransposeMode t_mode, CeedVector u, CeedVector v,
                                             CeedRequest *request) {
-  return CeedElemRestrictionApply_Ref_Core(r, 3, 8, 1, start, stop, use_orients, t_mode, u, v, request);
+  if (t_mode == CEED_TRANSPOSE) {
+    return CeedElemRestrictionApplyTranspose_Ref_Core(r, 3, 8, 1, start, stop, use_orients, u, v, request);
+  } else {
+    return CeedElemRestrictionApplyNoTranspose_Ref_Core(r, 3, 8, 1, start, stop, use_orients, u, v, request);
+  }
 }
 
 // LCOV_EXCL_START
 static int CeedElemRestrictionApply_Ref_510(CeedElemRestriction r, const CeedInt num_comp, const CeedInt blk_size, const CeedInt comp_stride,
                                             CeedInt start, CeedInt stop, bool use_orients, CeedTransposeMode t_mode, CeedVector u, CeedVector v,
                                             CeedRequest *request) {
-  return CeedElemRestrictionApply_Ref_Core(r, 5, 1, comp_stride, start, stop, use_orients, t_mode, u, v, request);
+  if (t_mode == CEED_TRANSPOSE) {
+    return CeedElemRestrictionApplyTranspose_Ref_Core(r, 5, 1, comp_stride, start, stop, use_orients, u, v, request);
+  } else {
+    return CeedElemRestrictionApplyNoTranspose_Ref_Core(r, 5, 1, comp_stride, start, stop, use_orients, u, v, request);
+  }
 }
 // LCOV_EXCL_STOP
 
 static int CeedElemRestrictionApply_Ref_511(CeedElemRestriction r, const CeedInt num_comp, const CeedInt blk_size, const CeedInt comp_stride,
                                             CeedInt start, CeedInt stop, bool use_orients, CeedTransposeMode t_mode, CeedVector u, CeedVector v,
                                             CeedRequest *request) {
-  return CeedElemRestrictionApply_Ref_Core(r, 5, 1, 1, start, stop, use_orients, t_mode, u, v, request);
+  if (t_mode == CEED_TRANSPOSE) {
+    return CeedElemRestrictionApplyTranspose_Ref_Core(r, 5, 1, 1, start, stop, use_orients, u, v, request);
+  } else {
+    return CeedElemRestrictionApplyNoTranspose_Ref_Core(r, 5, 1, 1, start, stop, use_orients, u, v, request);
+  }
 }
 
 // LCOV_EXCL_START
 static int CeedElemRestrictionApply_Ref_580(CeedElemRestriction r, const CeedInt num_comp, const CeedInt blk_size, const CeedInt comp_stride,
                                             CeedInt start, CeedInt stop, bool use_orients, CeedTransposeMode t_mode, CeedVector u, CeedVector v,
                                             CeedRequest *request) {
-  return CeedElemRestrictionApply_Ref_Core(r, 5, 8, comp_stride, start, stop, use_orients, t_mode, u, v, request);
+  if (t_mode == CEED_TRANSPOSE) {
+    return CeedElemRestrictionApplyTranspose_Ref_Core(r, 5, 8, comp_stride, start, stop, use_orients, u, v, request);
+  } else {
+    return CeedElemRestrictionApplyNoTranspose_Ref_Core(r, 5, 8, comp_stride, start, stop, use_orients, u, v, request);
+  }
 }
 // LCOV_EXCL_STOP
 
 static int CeedElemRestrictionApply_Ref_581(CeedElemRestriction r, const CeedInt num_comp, const CeedInt blk_size, const CeedInt comp_stride,
                                             CeedInt start, CeedInt stop, bool use_orients, CeedTransposeMode t_mode, CeedVector u, CeedVector v,
                                             CeedRequest *request) {
-  return CeedElemRestrictionApply_Ref_Core(r, 5, 8, 1, start, stop, use_orients, t_mode, u, v, request);
+  if (t_mode == CEED_TRANSPOSE) {
+    return CeedElemRestrictionApplyTranspose_Ref_Core(r, 5, 8, 1, start, stop, use_orients, u, v, request);
+  } else {
+    return CeedElemRestrictionApplyNoTranspose_Ref_Core(r, 5, 8, 1, start, stop, use_orients, u, v, request);
+  }
+}
+
+static inline int CeedElemRestrictionApply_Ref_Core(CeedElemRestriction r, const CeedInt num_comp, const CeedInt blk_size, const CeedInt comp_stride,
+                                                    CeedInt start, CeedInt stop, bool use_orients, CeedTransposeMode t_mode, CeedVector u,
+                                                    CeedVector v, CeedRequest *request) {
+  if (t_mode == CEED_TRANSPOSE) {
+    return CeedElemRestrictionApplyTranspose_Ref_Core(r, num_comp, blk_size, comp_stride, start, stop, use_orients, u, v, request);
+  } else {
+    return CeedElemRestrictionApplyNoTranspose_Ref_Core(r, num_comp, blk_size, comp_stride, start, stop, use_orients, u, v, request);
+  }
 }
 
 //------------------------------------------------------------------------------
@@ -395,7 +494,7 @@ static int CeedElemRestrictionGetOrientations_Ref(CeedElemRestriction rstr, Ceed
 //------------------------------------------------------------------------------
 // ElemRestriction Get Curl-Conforming Orientations
 //------------------------------------------------------------------------------
-static int CeedElemRestrictionGetCurlOrientations_Ref(CeedElemRestriction rstr, CeedMemType mem_type, const CeedInt **curl_orients) {
+static int CeedElemRestrictionGetCurlOrientations_Ref(CeedElemRestriction rstr, CeedMemType mem_type, const CeedInt8 **curl_orients) {
   CeedElemRestriction_Ref *impl;
   CeedCallBackend(CeedElemRestrictionGetData(rstr, &impl));
   Ceed ceed;
@@ -425,7 +524,7 @@ static int CeedElemRestrictionDestroy_Ref(CeedElemRestriction r) {
 // ElemRestriction Create
 //------------------------------------------------------------------------------
 int CeedElemRestrictionCreate_Ref(CeedMemType mem_type, CeedCopyMode copy_mode, const CeedInt *offsets, const bool *orients,
-                                  const CeedInt *curl_orients, CeedElemRestriction r) {
+                                  const CeedInt8 *curl_orients, CeedElemRestriction r) {
   CeedElemRestriction_Ref *impl;
   CeedInt                  num_elem, elem_size, num_blk, blk_size, num_comp, comp_stride;
   CeedCallBackend(CeedElemRestrictionGetNumElements(r, &num_elem));
@@ -503,7 +602,7 @@ int CeedElemRestrictionCreate_Ref(CeedMemType mem_type, CeedCopyMode copy_mode, 
           impl->curl_orients = impl->curl_orients_allocated;
           break;
         case CEED_OWN_POINTER:
-          impl->curl_orients_allocated = (CeedInt *)curl_orients;
+          impl->curl_orients_allocated = (CeedInt8 *)curl_orients;
           impl->curl_orients           = impl->curl_orients_allocated;
           break;
         case CEED_USE_POINTER:

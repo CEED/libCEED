@@ -72,8 +72,8 @@ static int CeedOperatorSetupFields_Blocked(CeedQFunction qf, CeedOperator op, bo
           CeedCallBackend(CeedElemRestrictionRestoreOrientations(r, &orients));
         } break;
         case CEED_RESTRICTION_CURL_ORIENTED: {
-          const CeedInt *offsets      = NULL;
-          const CeedInt *curl_orients = NULL;
+          const CeedInt  *offsets      = NULL;
+          const CeedInt8 *curl_orients = NULL;
           CeedCallBackend(CeedElemRestrictionGetOffsets(r, CEED_MEM_HOST, &offsets));
           CeedCallBackend(CeedElemRestrictionGetCurlOrientations(r, CEED_MEM_HOST, &curl_orients));
           CeedCallBackend(CeedElemRestrictionCreateBlockedCurlOriented(ceed, num_elem, elem_size, blk_size, num_comp, comp_stride, l_size,

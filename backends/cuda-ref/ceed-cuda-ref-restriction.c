@@ -210,7 +210,7 @@ static int CeedElemRestrictionOffset_Cuda(const CeedElemRestriction r, const Cee
 // Create restriction
 //------------------------------------------------------------------------------
 int CeedElemRestrictionCreate_Cuda(CeedMemType mem_type, CeedCopyMode copy_mode, const CeedInt *indices, const bool *orients,
-                                   const CeedInt *curl_orients, CeedElemRestriction r) {
+                                   const CeedInt8 *curl_orients, CeedElemRestriction r) {
   Ceed ceed;
   CeedCallBackend(CeedElemRestrictionGetCeed(r, &ceed));
   CeedElemRestriction_Cuda *impl;
