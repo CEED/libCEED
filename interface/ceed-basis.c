@@ -1686,7 +1686,7 @@ int CeedBasisDestroy(CeedBasis *basis) {
     return CEED_ERROR_SUCCESS;
   }
   if ((*basis)->Destroy) CeedCall((*basis)->Destroy(*basis));
-  if ((*basis)->contract) CeedCall(CeedTensorContractDestroy(&(*basis)->contract));
+  CeedCall(CeedTensorContractDestroy(&(*basis)->contract));
   CeedCall(CeedFree(&(*basis)->q_ref_1d));
   CeedCall(CeedFree(&(*basis)->q_weight_1d));
   CeedCall(CeedFree(&(*basis)->interp));
