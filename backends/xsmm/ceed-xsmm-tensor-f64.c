@@ -129,26 +129,24 @@ int CeedTensorContractCreate_f64_Xsmm(CeedBasis basis, CeedTensorContract contra
     for (CeedInt num_elem = 1; num_elem <= 8; num_elem += 7) {
       for (CeedInt add = 0; add <= 1; add++) {
         for (CeedInt t_mode = 0; t_mode <= 1; t_mode++) {
-          CeedInt q_comp_stride = CeedIntMax(impl->dim - 1, 1);
-          for (CeedInt q_comp = 1; q_comp <= impl->dim; q_comp += q_comp_stride) {
-            const int flags_t  = LIBXSMM_GEMM_FLAGS('N', t_mode ? 'T' : 'N');
-            const int flags_ab = (!add) ? LIBXSMM_GEMM_FLAG_BETA_0 : 0;
-            const int flags    = (flags_t | flags_ab);
-            CeedInt   B = t_mode ? q_comp * impl->Q : impl->P, J = t_mode ? impl->P : q_comp * impl->Q, C = num_elem;
-            // Add key, kernel pair to hash table
-            CeedHashIJKLMKey key = {B, C, J, t_mode, add};
-            int              new_item;
-            khint_t          k = kh_put(f64, impl->lookup_f64, key, &new_item);
-            if (new_item) {
-              // Build kernel
-              const libxsmm_gemm_shape gemm_shape = libxsmm_create_gemm_shape(C, J, B, C, !t_mode ? B : J, C, LIBXSMM_DATATYPE_F64,
-                                                                              LIBXSMM_DATATYPE_F64, LIBXSMM_DATATYPE_F64, LIBXSMM_DATATYPE_F64);
-              libxsmm_gemmfunction     kernel =
-                  libxsmm_dispatch_gemm_v2(gemm_shape, (libxsmm_bitfield)(flags), (libxsmm_bitfield)LIBXSMM_GEMM_PREFETCH_NONE);
-              CeedCheck(kernel, ceed, CEED_ERROR_BACKEND, "LIBXSMM kernel failed to build.");
-              // Add kernel to hash table
-              kh_value(impl->lookup_f64, k) = kernel;
-            }
+          const CeedInt q_comp = 1;
+          const int flags_t  = LIBXSMM_GEMM_FLAGS('N', t_mode ? 'T' : 'N');
+          const int flags_ab = (!add) ? LIBXSMM_GEMM_FLAG_BETA_0 : 0;
+          const int flags    = (flags_t | flags_ab);
+          CeedInt   B = t_mode ? q_comp * impl->Q : impl->P, J = t_mode ? impl->P : q_comp * impl->Q, C = num_elem;
+          // Add key, kernel pair to hash table
+          CeedHashIJKLMKey key = {B, C, J, t_mode, add};
+          int              new_item;
+          khint_t          k = kh_put(f64, impl->lookup_f64, key, &new_item);
+          if (new_item) {
+            // Build kernel
+            const libxsmm_gemm_shape gemm_shape = libxsmm_create_gemm_shape(C, J, B, C, !t_mode ? B : J, C, LIBXSMM_DATATYPE_F64,
+                                                                            LIBXSMM_DATATYPE_F64, LIBXSMM_DATATYPE_F64, LIBXSMM_DATATYPE_F64);
+            libxsmm_gemmfunction     kernel =
+                libxsmm_dispatch_gemm_v2(gemm_shape, (libxsmm_bitfield)(flags), (libxsmm_bitfield)LIBXSMM_GEMM_PREFETCH_NONE);
+            CeedCheck(kernel, ceed, CEED_ERROR_BACKEND, "LIBXSMM kernel failed to build.");
+            // Add kernel to hash table
+            kh_value(impl->lookup_f64, k) = kernel;
           }
         }
       }

@@ -101,21 +101,13 @@ int CeedTensorContractApply(CeedTensorContract contract, CeedInt A, CeedInt B, C
 **/
 int CeedTensorContractStridedApply(CeedTensorContract contract, CeedInt A, CeedInt B, CeedInt C, CeedInt D, CeedInt J, const CeedScalar *restrict t,
                                    CeedTransposeMode t_mode, const CeedInt add, const CeedScalar *restrict u, CeedScalar *restrict v) {
-  if (A != 1) {
-    if (t_mode == CEED_TRANSPOSE) {
-      for (CeedInt d = 0; d < D; d++) {
-        CeedCall(contract->Apply(contract, A, J, C, B, t + d * B * J, t_mode, add, u + d * A * J * C, v));
-      }
-    } else {
-      for (CeedInt d = 0; d < D; d++) {
-        CeedCall(contract->Apply(contract, A, B, C, J, t + d * B * J, t_mode, add, u, v + d * A * J * C));
-      }
+  if (t_mode == CEED_TRANSPOSE) {
+    for (CeedInt d = 0; d < D; d++) {
+      CeedCall(contract->Apply(contract, A, J, C, B, t + d * B * J, t_mode, add, u + d * A * J * C, v));
     }
   } else {
-    if (t_mode == CEED_TRANSPOSE) {
-      CeedCall(contract->Apply(contract, A, D * J, C, B, t, t_mode, add, u, v));
-    } else {
-      CeedCall(contract->Apply(contract, A, B, C, D * J, t, t_mode, add, u, v));
+    for (CeedInt d = 0; d < D; d++) {
+      CeedCall(contract->Apply(contract, A, B, C, J, t + d * B * J, t_mode, add, u, v + d * A * J * C));
     }
   }
   return CEED_ERROR_SUCCESS;
