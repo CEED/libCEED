@@ -53,7 +53,8 @@ PetscErrorCode VelocityGradientProjectionSetup(Ceed ceed, User user, CeedData ce
   CeedQFunction        qf_rhs_assemble, qf_mass;
   CeedBasis            basis_grad_velo;
   CeedElemRestriction  elem_restr_grad_velo;
-  PetscInt             dim, num_comp_x, num_comp_q, q_data_size, num_qpts_1d, num_nodes_1d;
+  PetscInt             dim;
+  CeedInt              num_comp_x, num_comp_q, q_data_size, num_qpts_1d, num_nodes_1d;
 
   PetscFunctionBeginUser;
   PetscCall(PetscNew(&user->grad_velo_proj));

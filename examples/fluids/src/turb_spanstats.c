@@ -144,7 +144,7 @@ PetscErrorCode GetQuadratureCoords(Ceed ceed, DM dm, CeedElemRestriction elem_re
   CeedElemRestriction  elem_restr_qx;
   CeedQFunction        qf_quad_coords;
   CeedOperator         op_quad_coords;
-  PetscInt             num_comp_x, loc_num_elem, num_elem_qpts;
+  CeedInt              num_comp_x, loc_num_elem, num_elem_qpts;
   OperatorApplyContext op_quad_coords_ctx;
 
   PetscFunctionBeginUser;
@@ -176,9 +176,10 @@ PetscErrorCode GetQuadratureCoords(Ceed ceed, DM dm, CeedElemRestriction elem_re
 }
 
 PetscErrorCode SpanStatsSetupDataCreate(Ceed ceed, User user, CeedData ceed_data, ProblemData *problem, SpanStatsSetupData *stats_data) {
-  DM      dm = user->spanstats.dm;
-  CeedInt dim, P, Q, num_comp_x, num_comp_stats = user->spanstats.num_comp_stats;
-  Vec     X_loc;
+  DM       dm = user->spanstats.dm;
+  PetscInt dim;
+  CeedInt  P, Q, num_comp_x, num_comp_stats = user->spanstats.num_comp_stats;
+  Vec      X_loc;
   PetscFunctionBeginUser;
 
   PetscCall(PetscNew(stats_data));
@@ -236,7 +237,8 @@ PetscErrorCode SpanStatsSetupDataDestroy(SpanStatsSetupData data) {
 
 // Create PetscSF for child-to-parent communication
 PetscErrorCode CreateStatsSF(Ceed ceed, CeedData ceed_data, SpanStatsSetupData stats_data, DM parentdm, DM childdm, PetscSF *statssf) {
-  PetscInt child_num_qpnts, parent_num_qpnts, num_comp_x;
+  PetscInt child_num_qpnts, parent_num_qpnts;
+  CeedInt  num_comp_x;
   Vec      Child_qx_coords, Parent_qx_coords;
 
   PetscFunctionBeginUser;

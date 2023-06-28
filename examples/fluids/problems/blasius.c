@@ -111,7 +111,7 @@ PetscErrorCode ComputeChebyshevCoefficients(BlasiusContext blasius) {
 }
 
 static PetscErrorCode GetYNodeLocs(const MPI_Comm comm, const char path[PETSC_MAX_PATH_LEN], PetscReal **pynodes, PetscInt *nynodes) {
-  PetscInt       ndims, dims[2];
+  int            ndims, dims[2];
   FILE          *fp;
   const PetscInt char_array_len = 512;
   char           line[char_array_len];
@@ -132,8 +132,7 @@ static PetscErrorCode GetYNodeLocs(const MPI_Comm comm, const char path[PETSC_MA
     PetscCall(PetscSynchronizedFGets(comm, fp, char_array_len, line));
     PetscCall(PetscStrToArray(line, ' ', &ndims, &array));
     PetscCheck(ndims == dims[1], comm, PETSC_ERR_FILE_UNEXPECTED,
-               "Line %" PetscInt_FMT " of %s does not contain correct number of columns (%" PetscInt_FMT " instead of %" PetscInt_FMT ")", i, path,
-               ndims, dims[1]);
+               "Line %" PetscInt_FMT " of %s does not contain correct number of columns (%d instead of %d)", i, path, ndims, dims[1]);
 
     node_locs[i] = (PetscReal)atof(array[0]);
   }
@@ -207,11 +206,12 @@ static PetscErrorCode ModifyMesh(MPI_Comm comm, DM dm, PetscInt dim, PetscReal g
     *node_locs = temp_node_locs;
   } else {
     PetscCheck(*num_node_locs >= faces[1] + 1, comm, PETSC_ERR_FILE_UNEXPECTED,
-               "The y_node_locs_path has too few locations; There are %d + 1 nodes, but only %d locations given", faces[1] + 1, *num_node_locs);
+               "The y_node_locs_path has too few locations; There are %" PetscInt_FMT " + 1 nodes, but only %" PetscInt_FMT " locations given",
+               faces[1] + 1, *num_node_locs);
     if (*num_node_locs > faces[1] + 1) {
       PetscCall(PetscPrintf(comm,
-                            "WARNING: y_node_locs_path has more locations (%d) "
-                            "than the mesh has nodes (%d). This maybe unintended.\n",
+                            "WARNING: y_node_locs_path has more locations (%" PetscInt_FMT ") "
+                            "than the mesh has nodes (%" PetscInt_FMT "). This maybe unintended.\n",
                             *num_node_locs, faces[1] + 1));
     }
     PetscScalar max_y = (*node_locs)[faces[1]];
@@ -252,7 +252,7 @@ PetscErrorCode NS_BLASIUS(ProblemData *problem, DM dm, void *ctx, SimpleBC bc) {
   CeedScalar T_wall                               = 288.;         // K
   CeedScalar delta0                               = 4.2e-3;       // m
   CeedScalar P0                                   = 1.01e5;       // Pa
-  CeedInt    N                                    = 20;           // Number of Chebyshev terms
+  PetscInt   N                                    = 20;           // Number of Chebyshev terms
   PetscBool  weakT                                = PETSC_FALSE;  // weak density or temperature
   PetscReal  mesh_refine_height                   = 5.9e-4;       // m
   PetscReal  mesh_growth                          = 1.08;         // [-]

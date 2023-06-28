@@ -92,13 +92,15 @@ PetscErrorCode DMPlexInsertBoundaryValues_NS(DM dm, PetscBool insert_essential, 
 
 // @brief Load vector from binary file, possibly with embedded solution time and step number
 PetscErrorCode LoadFluidsBinaryVec(MPI_Comm comm, PetscViewer viewer, Vec Q, PetscReal *time, PetscInt *step_number) {
-  PetscInt  token, file_step_number;
-  PetscReal file_time;
+  PetscInt   file_step_number;
+  PetscInt32 token;
+  PetscReal  file_time;
   PetscFunctionBeginUser;
 
   // Attempt
-  PetscCall(PetscViewerBinaryRead(viewer, &token, 1, NULL, PETSC_INT));
-  if (token == FLUIDS_FILE_TOKEN) {  // New style format; we're reading a file with step number and time in the header
+  PetscCall(PetscViewerBinaryRead(viewer, &token, 1, NULL, PETSC_INT32));
+  if (token == FLUIDS_FILE_TOKEN_32 || token == FLUIDS_FILE_TOKEN_64 ||
+      token == FLUIDS_FILE_TOKEN) {  // New style format; we're reading a file with step number and time in the header
     PetscCall(PetscViewerBinaryRead(viewer, &file_step_number, 1, NULL, PETSC_INT));
     PetscCall(PetscViewerBinaryRead(viewer, &file_time, 1, NULL, PETSC_REAL));
     if (time) *time = file_time;
@@ -204,11 +206,12 @@ PetscErrorCode PostProcess_NS(TS ts, CeedData ceed_data, DM dm, ProblemData *pro
   if (user->app_ctx->test_type == TESTTYPE_SOLVER) {
     PetscCall(RegressionTests_NS(user->app_ctx, Q));
   }
-
   PetscFunctionReturn(PETSC_SUCCESS);
 }
 
-const PetscInt FLUIDS_FILE_TOKEN = 0xceedf00;
+const PetscInt32 FLUIDS_FILE_TOKEN    = 0xceedf00;  // for backwards compatibility
+const PetscInt32 FLUIDS_FILE_TOKEN_32 = 0xceedf32;
+const PetscInt32 FLUIDS_FILE_TOKEN_64 = 0xceedf64;
 
 // Gather initial Q values in case of continuation of simulation
 PetscErrorCode SetupICsFromBinary(MPI_Comm comm, AppCtx app_ctx, Vec Q) {
@@ -330,15 +333,15 @@ PetscErrorCode NodalProjectionDataDestroy(NodalProjectionData context) {
  */
 PetscErrorCode PHASTADatFileOpen(const MPI_Comm comm, const char path[PETSC_MAX_PATH_LEN], const PetscInt char_array_len, PetscInt dims[2],
                                  FILE **fp) {
-  PetscInt ndims;
-  char     line[char_array_len];
-  char   **array;
+  int    ndims;
+  char   line[char_array_len];
+  char **array;
 
   PetscFunctionBeginUser;
   PetscCall(PetscFOpen(comm, path, "r", fp));
   PetscCall(PetscSynchronizedFGets(comm, *fp, char_array_len, line));
   PetscCall(PetscStrToArray(line, ' ', &ndims, &array));
-  PetscCheck(ndims == 2, comm, PETSC_ERR_FILE_UNEXPECTED, "Found %" PetscInt_FMT " dimensions instead of 2 on the first line of %s", ndims, path);
+  PetscCheck(ndims == 2, comm, PETSC_ERR_FILE_UNEXPECTED, "Found %d dimensions instead of 2 on the first line of %s", ndims, path);
 
   for (PetscInt i = 0; i < ndims; i++) dims[i] = atoi(array[i]);
   PetscCall(PetscStrToArrayDestroy(ndims, array));
@@ -369,7 +372,8 @@ PetscErrorCode PHASTADatFileGetNRows(const MPI_Comm comm, const char path[PETSC_
 }
 
 PetscErrorCode PHASTADatFileReadToArrayReal(MPI_Comm comm, const char path[PETSC_MAX_PATH_LEN], PetscReal array[]) {
-  PetscInt       ndims, dims[2];
+  PetscInt       dims[2];
+  int            ndims;
   FILE          *fp;
   const PetscInt char_array_len = 512;
   char           line[char_array_len];
@@ -382,8 +386,7 @@ PetscErrorCode PHASTADatFileReadToArrayReal(MPI_Comm comm, const char path[PETSC
     PetscCall(PetscSynchronizedFGets(comm, fp, char_array_len, line));
     PetscCall(PetscStrToArray(line, ' ', &ndims, &row_array));
     PetscCheck(ndims == dims[1], comm, PETSC_ERR_FILE_UNEXPECTED,
-               "Line %" PetscInt_FMT " of %s does not contain enough columns (%" PetscInt_FMT " instead of %" PetscInt_FMT ")", i, path, ndims,
-               dims[1]);
+               "Line %" PetscInt_FMT " of %s does not contain enough columns (%d instead of %" PetscInt_FMT ")", i, path, ndims, dims[1]);
 
     for (PetscInt j = 0; j < dims[1]; j++) {
       array[i * dims[1] + j] = (PetscReal)atof(row_array[j]);
@@ -408,5 +411,57 @@ PetscErrorCode RegisterLogEvents() {
   PetscCall(PetscLogEventRegister("CeedOpAsm", libCEED_classid, &FLUIDS_CeedOperatorAssemble));
   PetscCall(PetscLogEventRegister("CeedOpAsmD", libCEED_classid, &FLUIDS_CeedOperatorAssembleDiagonal));
   PetscCall(PetscLogEventRegister("CeedOpAsmPBD", libCEED_classid, &FLUIDS_CeedOperatorAssemblePointBlockDiagonal));
+  PetscFunctionReturn(PETSC_SUCCESS);
+}
+
+/**
+  @brief Translate array of CeedInt to PetscInt.
+    If the types differ, `array_ceed` is freed with `free()` and `array_petsc` is allocated with `malloc()`.
+    Caller is responsible for freeing `array_petsc` with `free()`.
+
+  @param[in]      num_entries  Number of array entries
+  @param[in,out]  array_ceed   Array of CeedInts
+  @param[out]     array_petsc  Array of PetscInts
+**/
+PetscErrorCode IntArrayC2P(PetscInt num_entries, CeedInt **array_ceed, PetscInt **array_petsc) {
+  CeedInt  int_c = 0;
+  PetscInt int_p = 0;
+
+  PetscFunctionBeginUser;
+  if (sizeof(int_c) == sizeof(int_p)) {
+    *array_petsc = (PetscInt *)*array_ceed;
+  } else {
+    *array_petsc = malloc(num_entries * sizeof(PetscInt));
+    for (PetscInt i = 0; i < num_entries; i++) (*array_petsc)[i] = (*array_ceed)[i];
+    free(*array_ceed);
+  }
+  *array_ceed = NULL;
+
+  PetscFunctionReturn(PETSC_SUCCESS);
+}
+
+/**
+  @brief Translate array of PetscInt to CeedInt.
+    If the types differ, `array_petsc` is freed with `PetscFree()` and `array_ceed` is allocated with `PetscMalloc1()`.
+    Caller is responsible for freeing `array_ceed` with `PetscFree()`.
+
+  @param[in]      num_entries  Number of array entries
+  @param[in,out]  array_petsc  Array of PetscInts
+  @param[out]     array_ceed   Array of CeedInts
+**/
+PetscErrorCode IntArrayP2C(PetscInt num_entries, PetscInt **array_petsc, CeedInt **array_ceed) {
+  CeedInt  int_c = 0;
+  PetscInt int_p = 0;
+
+  PetscFunctionBeginUser;
+  if (sizeof(int_c) == sizeof(int_p)) {
+    *array_ceed = (CeedInt *)*array_petsc;
+  } else {
+    PetscCall(PetscMalloc1(num_entries, array_ceed));
+    for (PetscInt i = 0; i < num_entries; i++) (*array_ceed)[i] = (*array_petsc)[i];
+    PetscCall(PetscFree(*array_petsc));
+  }
+  *array_petsc = NULL;
+
   PetscFunctionReturn(PETSC_SUCCESS);
 }

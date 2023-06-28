@@ -53,26 +53,22 @@ PetscErrorCode SetUpDM(DM dm, ProblemData *problem, PetscInt degree, SimpleBC bc
     PetscCall(DMPlexLabelComplete(dm, label));
     // Set wall BCs
     if (bc->num_wall > 0) {
-      PetscCall(DMAddBoundary(dm, DM_BC_ESSENTIAL, "wall", label, bc->num_wall, bc->walls, 0, bc->num_comps, bc->wall_comps,
-                              (void (*)(void))problem->bc, NULL, problem->bc_ctx, NULL));
+      PetscCall(DMAddBoundary(dm, DM_BC_ESSENTIAL, "wall", label, bc->num_wall, bc->walls, 0, bc->num_comps, bc->wall_comps, NULL, NULL, NULL, NULL));
     }
     // Set slip BCs in the x direction
     if (bc->num_slip[0] > 0) {
       PetscInt comps[1] = {1};
-      PetscCall(DMAddBoundary(dm, DM_BC_ESSENTIAL, "slipx", label, bc->num_slip[0], bc->slips[0], 0, 1, comps, (void (*)(void))NULL, NULL,
-                              problem->bc_ctx, NULL));
+      PetscCall(DMAddBoundary(dm, DM_BC_ESSENTIAL, "slipx", label, bc->num_slip[0], bc->slips[0], 0, 1, comps, NULL, NULL, NULL, NULL));
     }
     // Set slip BCs in the y direction
     if (bc->num_slip[1] > 0) {
       PetscInt comps[1] = {2};
-      PetscCall(DMAddBoundary(dm, DM_BC_ESSENTIAL, "slipy", label, bc->num_slip[1], bc->slips[1], 0, 1, comps, (void (*)(void))NULL, NULL,
-                              problem->bc_ctx, NULL));
+      PetscCall(DMAddBoundary(dm, DM_BC_ESSENTIAL, "slipy", label, bc->num_slip[1], bc->slips[1], 0, 1, comps, NULL, NULL, NULL, NULL));
     }
     // Set slip BCs in the z direction
     if (bc->num_slip[2] > 0) {
       PetscInt comps[1] = {3};
-      PetscCall(DMAddBoundary(dm, DM_BC_ESSENTIAL, "slipz", label, bc->num_slip[2], bc->slips[2], 0, 1, comps, (void (*)(void))NULL, NULL,
-                              problem->bc_ctx, NULL));
+      PetscCall(DMAddBoundary(dm, DM_BC_ESSENTIAL, "slipz", label, bc->num_slip[2], bc->slips[2], 0, 1, comps, NULL, NULL, NULL, NULL));
     }
     {
       PetscBool use_strongstg = PETSC_FALSE;

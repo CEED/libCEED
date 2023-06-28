@@ -277,9 +277,7 @@ struct ProblemData_private {
   CeedScalar           dm_scale;
   ProblemQFunctionSpec setup_vol, setup_sur, ics, apply_vol_rhs, apply_vol_ifunction, apply_vol_ijacobian, apply_inflow, apply_outflow,
       apply_freestream, apply_inflow_jacobian, apply_outflow_jacobian, apply_freestream_jacobian;
-  bool non_zero_time;
-  PetscErrorCode (*bc)(PetscInt, PetscReal, const PetscReal[], PetscInt, PetscScalar[], void *);
-  void     *bc_ctx;
+  bool      non_zero_time;
   PetscBool bc_from_ics, use_strong_bc_ceed;
   PetscErrorCode (*print_info)(ProblemData *, AppCtx);
 };
@@ -399,7 +397,9 @@ PetscErrorCode SetupICsFromBinary(MPI_Comm comm, AppCtx app_ctx, Vec Q);
 PetscErrorCode SetBCsFromICs_NS(DM dm, Vec Q, Vec Q_loc);
 
 // Versioning token for binary checkpoints
-extern const PetscInt FLUIDS_FILE_TOKEN;
+extern const PetscInt32 FLUIDS_FILE_TOKEN;  // for backwards compatibility
+extern const PetscInt32 FLUIDS_FILE_TOKEN_32;
+extern const PetscInt32 FLUIDS_FILE_TOKEN_64;
 
 // Create appropriate mass qfunction based on number of components N
 PetscErrorCode CreateMassQFunction(Ceed ceed, CeedInt N, CeedInt q_data_size, CeedQFunction *qf);
@@ -414,6 +414,9 @@ PetscErrorCode PHASTADatFileOpen(const MPI_Comm comm, const char path[PETSC_MAX_
 PetscErrorCode PHASTADatFileGetNRows(const MPI_Comm comm, const char path[PETSC_MAX_PATH_LEN], PetscInt *nrows);
 
 PetscErrorCode PHASTADatFileReadToArrayReal(const MPI_Comm comm, const char path[PETSC_MAX_PATH_LEN], PetscReal array[]);
+
+PetscErrorCode IntArrayC2P(PetscInt num_entries, CeedInt **array_ceed, PetscInt **array_petsc);
+PetscErrorCode IntArrayP2C(PetscInt num_entries, PetscInt **array_petsc, CeedInt **array_ceed);
 
 // -----------------------------------------------------------------------------
 // Turbulence Statistics Collection Functions

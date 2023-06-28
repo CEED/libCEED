@@ -217,29 +217,32 @@ PetscErrorCode IFunction_NS(TS ts, PetscReal t, Vec Q, Vec Q_dot, Vec G, void *u
 
 static PetscErrorCode FormPreallocation(User user, PetscBool pbdiagonal, Mat J, CeedVector *coo_values) {
   PetscCount ncoo;
-  PetscInt  *rows, *cols;
+  PetscInt  *rows_petsc, *cols_petsc;
 
   PetscFunctionBeginUser;
   if (pbdiagonal) {
     CeedSize l_size;
     CeedOperatorGetActiveVectorLengths(user->op_ijacobian, &l_size, NULL);
-    ncoo = l_size * 5;
-    rows = malloc(ncoo * sizeof(rows[0]));
-    cols = malloc(ncoo * sizeof(cols[0]));
+    ncoo       = l_size * 5;
+    rows_petsc = malloc(ncoo * sizeof(rows_petsc));
+    cols_petsc = malloc(ncoo * sizeof(cols_petsc));
     for (PetscCount n = 0; n < l_size / 5; n++) {
       for (PetscInt i = 0; i < 5; i++) {
         for (PetscInt j = 0; j < 5; j++) {
-          rows[(n * 5 + i) * 5 + j] = n * 5 + i;
-          cols[(n * 5 + i) * 5 + j] = n * 5 + j;
+          rows_petsc[(n * 5 + i) * 5 + j] = n * 5 + i;
+          cols_petsc[(n * 5 + i) * 5 + j] = n * 5 + j;
         }
       }
     }
   } else {
-    PetscCall(CeedOperatorLinearAssembleSymbolic(user->op_ijacobian, &ncoo, &rows, &cols));
+    CeedInt *rows_ceed, *cols_ceed;
+    PetscCall(CeedOperatorLinearAssembleSymbolic(user->op_ijacobian, &ncoo, &rows_ceed, &cols_ceed));
+    PetscCall(IntArrayC2P(ncoo, &rows_ceed, &rows_petsc));
+    PetscCall(IntArrayC2P(ncoo, &cols_ceed, &cols_petsc));
   }
-  PetscCall(MatSetPreallocationCOOLocal(J, ncoo, rows, cols));
-  free(rows);
-  free(cols);
+  PetscCall(MatSetPreallocationCOOLocal(J, ncoo, rows_petsc, cols_petsc));
+  free(rows_petsc);
+  free(cols_petsc);
   CeedVectorCreate(user->ceed, ncoo, coo_values);
   PetscFunctionReturn(PETSC_SUCCESS);
 }
@@ -362,8 +365,8 @@ PetscErrorCode WriteOutput(User user, Vec Q, PetscInt step_no, PetscScalar time)
   }
   PetscCall(PetscViewerBinaryOpen(user->comm, file_path, FILE_MODE_WRITE, &viewer));
 
-  PetscInt token = FLUIDS_FILE_TOKEN;
-  PetscCall(PetscViewerBinaryWrite(viewer, &token, 1, PETSC_INT));
+  PetscInt32 token = PetscDefined(USE_64BIT_INDICES) ? FLUIDS_FILE_TOKEN_64 : FLUIDS_FILE_TOKEN_32;
+  PetscCall(PetscViewerBinaryWrite(viewer, &token, 1, PETSC_INT32));
   PetscCall(PetscViewerBinaryWrite(viewer, &step_no, 1, PETSC_INT));
   time /= user->units->second;  // Dimensionalize time back
   PetscCall(PetscViewerBinaryWrite(viewer, &time, 1, PETSC_REAL));

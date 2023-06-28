@@ -51,8 +51,6 @@ PetscErrorCode NS_ADVECTION(ProblemData *problem, DM dm, void *ctx, SimpleBC bc)
   problem->apply_vol_ifunction.qfunction_loc = IFunction_Advection_loc;
   problem->apply_inflow.qfunction            = Advection_InOutFlow;
   problem->apply_inflow.qfunction_loc        = Advection_InOutFlow_loc;
-  problem->bc                                = Exact_Advection;
-  problem->bc_ctx                            = setup_context;
   problem->non_zero_time                     = PETSC_FALSE;
   problem->print_info                        = PRINT_ADVECTION;
 

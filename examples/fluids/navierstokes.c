@@ -280,7 +280,7 @@ int main(int argc, char **argv) {
     }
     // Mesh
     const PetscInt num_comp_q = 5;
-    CeedInt        glob_dofs, owned_dofs;
+    PetscInt       glob_dofs, owned_dofs;
     PetscInt       glob_nodes, local_nodes;
     const CeedInt  num_P = app_ctx->degree + 1, num_Q = num_P + app_ctx->q_extra;
     // -- Get global size
