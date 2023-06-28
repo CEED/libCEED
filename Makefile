@@ -93,7 +93,7 @@ endif
 
 # Warning: SANTIZ options still don't run with /gpu/occa
 # export LSAN_OPTIONS=suppressions=.asanignore
-AFLAGS = -fsanitize=address #-fsanitize=undefined -fno-omit-frame-pointer
+AFLAGS ?= -fsanitize=address #-fsanitize=undefined -fno-omit-frame-pointer
 
 # Note: Intel oneAPI C/C++ compiler is now icx/icpx
 CC_VENDOR := $(subst icc_orig,icc,$(firstword $(filter gcc clang icc icc_orig oneAPI XL emcc,$(subst -, ,$(shell $(CC) --version)))))
