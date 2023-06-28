@@ -616,7 +616,7 @@ static int CreatePBRestriction(CeedElemRestriction rstr, CeedElemRestriction *pb
 //------------------------------------------------------------------------------
 // Assemble diagonal setup
 //------------------------------------------------------------------------------
-static inline int CeedOperatorAssembleDiagonalSetup_Hip(CeedOperator op, const bool pointBlock) {
+static inline int CeedOperatorAssembleDiagonalSetup_Hip(CeedOperator op, const bool pointBlock, CeedInt use_ceedsize_idx) {
   Ceed ceed;
   CeedCallBackend(CeedOperatorGetCeed(op, &ceed));
   CeedQFunction qf;
@@ -729,8 +729,8 @@ static inline int CeedOperatorAssembleDiagonalSetup_Hip(CeedOperator op, const b
   CeedCallBackend(CeedBasisGetNumNodes(basisin, &nnodes));
   CeedCallBackend(CeedBasisGetNumQuadraturePoints(basisin, &nqpts));
   diag->nnodes = nnodes;
-  CeedCallBackend(CeedCompile_Hip(ceed, diagonal_kernel_source, &diag->module, 5, "NUMEMODEIN", numemodein, "NUMEMODEOUT", numemodeout, "NNODES",
-                                  nnodes, "NQPTS", nqpts, "NCOMP", ncomp));
+  CeedCallBackend(CeedCompile_Hip(ceed, diagonal_kernel_source, &diag->module, 6, "NUMEMODEIN", numemodein, "NUMEMODEOUT", numemodeout, "NNODES",
+                                  nnodes, "NQPTS", nqpts, "NCOMP", ncomp, "CEEDSIZE", use_ceedsize_idx));
   CeedCallBackend(CeedGetKernel_Hip(ceed, diag->module, "linearDiagonal", &diag->linearDiagonal));
   CeedCallBackend(CeedGetKernel_Hip(ceed, diag->module, "linearPointBlockDiagonal", &diag->linearPointBlock));
   CeedCallBackend(CeedFree(&diagonal_kernel_path));
@@ -798,8 +798,14 @@ static inline int CeedOperatorAssembleDiagonalCore_Hip(CeedOperator op, CeedVect
   CeedCallBackend(CeedOperatorLinearAssembleQFunctionBuildOrUpdate(op, &assembledqf, &rstr, request));
   CeedCallBackend(CeedElemRestrictionDestroy(&rstr));
 
+  CeedSize assembled_length = 0, assembledqf_length = 0;
+  CeedCallBackend(CeedVectorGetLength(assembled, &assembled_length));
+  CeedCallBackend(CeedVectorGetLength(assembledqf, &assembledqf_length));
+  CeedInt use_ceedsize_idx = 0;
+  if ((assembled_length > INT_MAX) || (assembledqf_length > INT_MAX)) use_ceedsize_idx = 1;
+
   // Setup
-  if (!impl->diag) CeedCallBackend(CeedOperatorAssembleDiagonalSetup_Hip(op, pointBlock));
+  if (!impl->diag) CeedCallBackend(CeedOperatorAssembleDiagonalSetup_Hip(op, pointBlock, use_ceedsize_idx));
   CeedOperatorDiag_Hip *diag = impl->diag;
   assert(diag != NULL);
 
@@ -872,7 +878,7 @@ static int CeedOperatorLinearAssembleAddPointBlockDiagonal_Hip(CeedOperator op, 
 //------------------------------------------------------------------------------
 // Single operator assembly setup
 //------------------------------------------------------------------------------
-static int CeedSingleOperatorAssembleSetup_Hip(CeedOperator op) {
+static int CeedSingleOperatorAssembleSetup_Hip(CeedOperator op, CeedInt use_ceedsize_idx) {
   Ceed ceed;
   CeedCallBackend(CeedOperatorGetCeed(op, &ceed));
   CeedOperator_Hip *impl;
@@ -982,8 +988,9 @@ static int CeedSingleOperatorAssembleSetup_Hip(CeedOperator op) {
     asmb->block_size_x = esize;
     asmb->block_size_y = esize;
   }
-  CeedCallBackend(CeedCompile_Hip(ceed, assembly_kernel_source, &asmb->module, 7, "NELEM", nelem, "NUMEMODEIN", num_emode_in, "NUMEMODEOUT",
-                                  num_emode_out, "NQPTS", nqpts, "NNODES", esize, "BLOCK_SIZE", block_size, "NCOMP", ncomp));
+  CeedCallBackend(CeedCompile_Hip(ceed, assembly_kernel_source, &asmb->module, 8, "NELEM", nelem, "NUMEMODEIN", num_emode_in, "NUMEMODEOUT",
+                                  num_emode_out, "NQPTS", nqpts, "NNODES", esize, "BLOCK_SIZE", block_size, "NCOMP", ncomp, "CEEDSIZE",
+                                  use_ceedsize_idx));
   CeedCallBackend(CeedGetKernel_Hip(ceed, asmb->module, fallback ? "linearAssembleFallback" : "linearAssemble", &asmb->linearAssemble));
   CeedCallBackend(CeedFree(&assembly_kernel_path));
   CeedCallBackend(CeedFree(&assembly_kernel_source));
@@ -1050,12 +1057,6 @@ static int CeedSingleOperatorAssemble_Hip(CeedOperator op, CeedInt offset, CeedV
   CeedOperator_Hip *impl;
   CeedCallBackend(CeedOperatorGetData(op, &impl));
 
-  // Setup
-  if (!impl->asmb) {
-    CeedCallBackend(CeedSingleOperatorAssembleSetup_Hip(op));
-    assert(impl->asmb != NULL);
-  }
-
   // Assemble QFunction
   CeedVector          assembled_qf = NULL;
   CeedElemRestriction rstr_q       = NULL;
@@ -1066,6 +1067,17 @@ static int CeedSingleOperatorAssemble_Hip(CeedOperator op, CeedInt offset, CeedV
   values_array += offset;
   const CeedScalar *qf_array;
   CeedCallBackend(CeedVectorGetArrayRead(assembled_qf, CEED_MEM_DEVICE, &qf_array));
+
+  CeedSize values_length = 0, assembled_qf_length = 0;
+  CeedCallBackend(CeedVectorGetLength(values, &values_length));
+  CeedCallBackend(CeedVectorGetLength(assembled_qf, &assembled_qf_length));
+  CeedInt use_ceedsize_idx = 0;
+  if ((values_length > INT_MAX) || (assembled_qf_length > INT_MAX)) use_ceedsize_idx = 1;
+  // Setup
+  if (!impl->asmb) {
+    CeedCallBackend(CeedSingleOperatorAssembleSetup_Hip(op, use_ceedsize_idx));
+    assert(impl->asmb != NULL);
+  }
 
   // Compute B^T D B
   const CeedInt nelem         = impl->asmb->nelem;  // to satisfy clang-tidy

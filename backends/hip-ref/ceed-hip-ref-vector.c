@@ -279,15 +279,15 @@ static int CeedVectorSetArray_Hip(const CeedVector vec, const CeedMemType mem_ty
 //------------------------------------------------------------------------------
 // Set host array to value
 //------------------------------------------------------------------------------
-static int CeedHostSetValue_Hip(CeedScalar *h_array, CeedInt length, CeedScalar val) {
-  for (int i = 0; i < length; i++) h_array[i] = val;
+static int CeedHostSetValue_Hip(CeedScalar *h_array, CeedSize length, CeedScalar val) {
+  for (CeedSize i = 0; i < length; i++) h_array[i] = val;
   return CEED_ERROR_SUCCESS;
 }
 
 //------------------------------------------------------------------------------
 // Set device array to value (impl in .hip file)
 //------------------------------------------------------------------------------
-int CeedDeviceSetValue_Hip(CeedScalar *d_array, CeedInt length, CeedScalar val);
+int CeedDeviceSetValue_Hip(CeedScalar *d_array, CeedSize length, CeedScalar val);
 
 //------------------------------------------------------------------------------
 // Set a vector to a value,
@@ -449,36 +449,118 @@ static int CeedVectorNorm_Hip(CeedVector vec, CeedNormType type, CeedScalar *nor
   hipblasHandle_t handle;
   CeedCallBackend(CeedGetHipblasHandle_Hip(ceed, &handle));
 
+  // Is the vector too long to handle with int32? If so, we will divide
+  // it up into "int32-sized" subsections and make repeated BLAS calls.
+  CeedSize num_calls = length / INT_MAX;
+  if (length % INT_MAX > 0) num_calls += 1;
+
   // Compute norm
   const CeedScalar *d_array;
   CeedCallBackend(CeedVectorGetArrayRead(vec, CEED_MEM_DEVICE, &d_array));
   switch (type) {
     case CEED_NORM_1: {
       if (CEED_SCALAR_TYPE == CEED_SCALAR_FP32) {
-        CeedCallHipblas(ceed, hipblasSasum(handle, length, (float *)d_array, 1, (float *)norm));
+        if (num_calls <= 1) CeedCallHipblas(ceed, hipblasSasum(handle, (CeedInt)length, (float *)d_array, 1, (float *)norm));
+        else {
+          float  sub_norm = 0.0;
+          float *d_array_start;
+          for (CeedInt i = 0; i < num_calls; i++) {
+            d_array_start             = (float *)d_array + (CeedSize)(i)*INT_MAX;
+            CeedSize remaining_length = length - (CeedSize)(i)*INT_MAX;
+            CeedInt  sub_length       = (i == num_calls - 1) ? (CeedInt)(remaining_length) : INT_MAX;
+            CeedCallHipblas(ceed, hipblasSasum(handle, (CeedInt)sub_length, (float *)d_array_start, 1, &sub_norm));
+            *norm += sub_norm;
+          }
+        }
       } else {
-        CeedCallHipblas(ceed, hipblasDasum(handle, length, (double *)d_array, 1, (double *)norm));
+        if (num_calls <= 1) CeedCallHipblas(ceed, hipblasDasum(handle, (CeedInt)length, (double *)d_array, 1, (double *)norm));
+        else {
+          double  sub_norm = 0.0;
+          double *d_array_start;
+          for (CeedInt i = 0; i < num_calls; i++) {
+            d_array_start             = (double *)d_array + (CeedSize)(i)*INT_MAX;
+            CeedSize remaining_length = length - (CeedSize)(i)*INT_MAX;
+            CeedInt  sub_length       = (i == num_calls - 1) ? (CeedInt)(remaining_length) : INT_MAX;
+            CeedCallHipblas(ceed, hipblasDasum(handle, (CeedInt)sub_length, (double *)d_array_start, 1, &sub_norm));
+            *norm += sub_norm;
+          }
+        }
       }
       break;
     }
     case CEED_NORM_2: {
       if (CEED_SCALAR_TYPE == CEED_SCALAR_FP32) {
-        CeedCallHipblas(ceed, hipblasSnrm2(handle, length, (float *)d_array, 1, (float *)norm));
+        if (num_calls <= 1) CeedCallHipblas(ceed, hipblasSnrm2(handle, (CeedInt)length, (float *)d_array, 1, (float *)norm));
+        else {
+          float  sub_norm = 0.0, norm_sum = 0.0;
+          float *d_array_start;
+          for (CeedInt i = 0; i < num_calls; i++) {
+            d_array_start             = (float *)d_array + (CeedSize)(i)*INT_MAX;
+            CeedSize remaining_length = length - (CeedSize)(i)*INT_MAX;
+            CeedInt  sub_length       = (i == num_calls - 1) ? (CeedInt)(remaining_length) : INT_MAX;
+            CeedCallHipblas(ceed, hipblasSnrm2(handle, (CeedInt)sub_length, (float *)d_array_start, 1, &sub_norm));
+            norm_sum += sub_norm * sub_norm;
+          }
+          *norm = sqrt(norm_sum);
+        }
       } else {
-        CeedCallHipblas(ceed, hipblasDnrm2(handle, length, (double *)d_array, 1, (double *)norm));
+        if (num_calls <= 1) CeedCallHipblas(ceed, hipblasDnrm2(handle, (CeedInt)length, (double *)d_array, 1, (double *)norm));
+        else {
+          double  sub_norm = 0.0, norm_sum = 0.0;
+          double *d_array_start;
+          for (CeedInt i = 0; i < num_calls; i++) {
+            d_array_start             = (double *)d_array + (CeedSize)(i)*INT_MAX;
+            CeedSize remaining_length = length - (CeedSize)(i)*INT_MAX;
+            CeedInt  sub_length       = (i == num_calls - 1) ? (CeedInt)(remaining_length) : INT_MAX;
+            CeedCallHipblas(ceed, hipblasDnrm2(handle, (CeedInt)sub_length, (double *)d_array_start, 1, &sub_norm));
+            norm_sum += sub_norm * sub_norm;
+          }
+          *norm = sqrt(norm_sum);
+        }
       }
       break;
     }
     case CEED_NORM_MAX: {
       CeedInt indx;
       if (CEED_SCALAR_TYPE == CEED_SCALAR_FP32) {
-        CeedCallHipblas(ceed, hipblasIsamax(handle, length, (float *)d_array, 1, &indx));
+        if (num_calls <= 1) {
+          CeedCallHipblas(ceed, hipblasIsamax(handle, (CeedInt)length, (float *)d_array, 1, &indx));
+          CeedScalar normNoAbs;
+          CeedCallHip(ceed, hipMemcpy(&normNoAbs, impl->d_array + indx - 1, sizeof(CeedScalar), hipMemcpyDeviceToHost));
+          *norm = fabs(normNoAbs);
+        } else {
+          float  sub_max = 0.0, current_max = 0.0;
+          float *d_array_start;
+          for (CeedInt i = 0; i < num_calls; i++) {
+            d_array_start             = (float *)d_array + (CeedSize)(i)*INT_MAX;
+            CeedSize remaining_length = length - (CeedSize)(i)*INT_MAX;
+            CeedInt  sub_length       = (i == num_calls - 1) ? (CeedInt)(remaining_length) : INT_MAX;
+            CeedCallHipblas(ceed, hipblasIsamax(handle, (CeedInt)sub_length, (float *)d_array_start, 1, &indx));
+            CeedCallHip(ceed, hipMemcpy(&sub_max, d_array_start + indx - 1, sizeof(CeedScalar), hipMemcpyDeviceToHost));
+            if (fabs(sub_max) > current_max) current_max = fabs(sub_max);
+          }
+          *norm = current_max;
+        }
       } else {
-        CeedCallHipblas(ceed, hipblasIdamax(handle, length, (double *)d_array, 1, &indx));
+        if (num_calls <= 1) {
+          CeedCallHipblas(ceed, hipblasIdamax(handle, (CeedInt)length, (double *)d_array, 1, &indx));
+          CeedScalar normNoAbs;
+          CeedCallHip(ceed, hipMemcpy(&normNoAbs, impl->d_array + indx - 1, sizeof(CeedScalar), hipMemcpyDeviceToHost));
+          *norm = fabs(normNoAbs);
+        } else {
+          double  sub_max = 0.0, current_max = 0.0;
+          double *d_array_start;
+          for (CeedInt i = 0; i < num_calls; i++) {
+            d_array_start             = (double *)d_array + (CeedSize)(i)*INT_MAX;
+            CeedSize remaining_length = length - (CeedSize)(i)*INT_MAX;
+            CeedInt  sub_length       = (i == num_calls - 1) ? (CeedInt)(remaining_length) : INT_MAX;
+            CeedCallHipblas(ceed, hipblasIdamax(handle, (CeedInt)sub_length, (double *)d_array_start, 1, &indx));
+            CeedCallHip(ceed, hipMemcpy(&sub_max, d_array_start + indx - 1, sizeof(CeedScalar), hipMemcpyDeviceToHost));
+            if (fabs(sub_max) > current_max) current_max = fabs(sub_max);
+          }
+          *norm = current_max;
+        }
       }
-      CeedScalar normNoAbs;
-      CeedCallHip(ceed, hipMemcpy(&normNoAbs, impl->d_array + indx - 1, sizeof(CeedScalar), hipMemcpyDeviceToHost));
-      *norm = fabs(normNoAbs);
       break;
     }
   }
@@ -490,8 +572,8 @@ static int CeedVectorNorm_Hip(CeedVector vec, CeedNormType type, CeedScalar *nor
 //------------------------------------------------------------------------------
 // Take reciprocal of a vector on host
 //------------------------------------------------------------------------------
-static int CeedHostReciprocal_Hip(CeedScalar *h_array, CeedInt length) {
-  for (int i = 0; i < length; i++) {
+static int CeedHostReciprocal_Hip(CeedScalar *h_array, CeedSize length) {
+  for (CeedSize i = 0; i < length; i++) {
     if (fabs(h_array[i]) > CEED_EPSILON) h_array[i] = 1. / h_array[i];
   }
   return CEED_ERROR_SUCCESS;
@@ -500,7 +582,7 @@ static int CeedHostReciprocal_Hip(CeedScalar *h_array, CeedInt length) {
 //------------------------------------------------------------------------------
 // Take reciprocal of a vector on device (impl in .cu file)
 //------------------------------------------------------------------------------
-int CeedDeviceReciprocal_Hip(CeedScalar *d_array, CeedInt length);
+int CeedDeviceReciprocal_Hip(CeedScalar *d_array, CeedSize length);
 
 //------------------------------------------------------------------------------
 // Take reciprocal of a vector
@@ -523,15 +605,15 @@ static int CeedVectorReciprocal_Hip(CeedVector vec) {
 //------------------------------------------------------------------------------
 // Compute x = alpha x on the host
 //------------------------------------------------------------------------------
-static int CeedHostScale_Hip(CeedScalar *x_array, CeedScalar alpha, CeedInt length) {
-  for (int i = 0; i < length; i++) x_array[i] *= alpha;
+static int CeedHostScale_Hip(CeedScalar *x_array, CeedScalar alpha, CeedSize length) {
+  for (CeedSize i = 0; i < length; i++) x_array[i] *= alpha;
   return CEED_ERROR_SUCCESS;
 }
 
 //------------------------------------------------------------------------------
 // Compute x = alpha x on device (impl in .cu file)
 //------------------------------------------------------------------------------
-int CeedDeviceScale_Hip(CeedScalar *x_array, CeedScalar alpha, CeedInt length);
+int CeedDeviceScale_Hip(CeedScalar *x_array, CeedScalar alpha, CeedSize length);
 
 //------------------------------------------------------------------------------
 // Compute x = alpha x
@@ -554,15 +636,15 @@ static int CeedVectorScale_Hip(CeedVector x, CeedScalar alpha) {
 //------------------------------------------------------------------------------
 // Compute y = alpha x + y on the host
 //------------------------------------------------------------------------------
-static int CeedHostAXPY_Hip(CeedScalar *y_array, CeedScalar alpha, CeedScalar *x_array, CeedInt length) {
-  for (int i = 0; i < length; i++) y_array[i] += alpha * x_array[i];
+static int CeedHostAXPY_Hip(CeedScalar *y_array, CeedScalar alpha, CeedScalar *x_array, CeedSize length) {
+  for (CeedSize i = 0; i < length; i++) y_array[i] += alpha * x_array[i];
   return CEED_ERROR_SUCCESS;
 }
 
 //------------------------------------------------------------------------------
 // Compute y = alpha x + y on device (impl in .cu file)
 //------------------------------------------------------------------------------
-int CeedDeviceAXPY_Hip(CeedScalar *y_array, CeedScalar alpha, CeedScalar *x_array, CeedInt length);
+int CeedDeviceAXPY_Hip(CeedScalar *y_array, CeedScalar alpha, CeedScalar *x_array, CeedSize length);
 
 //------------------------------------------------------------------------------
 // Compute y = alpha x + y
@@ -592,15 +674,15 @@ static int CeedVectorAXPY_Hip(CeedVector y, CeedScalar alpha, CeedVector x) {
 //------------------------------------------------------------------------------
 // Compute y = alpha x + beta y on the host
 //------------------------------------------------------------------------------
-static int CeedHostAXPBY_Hip(CeedScalar *y_array, CeedScalar alpha, CeedScalar beta, CeedScalar *x_array, CeedInt length) {
-  for (int i = 0; i < length; i++) y_array[i] += alpha * x_array[i] + beta * y_array[i];
+static int CeedHostAXPBY_Hip(CeedScalar *y_array, CeedScalar alpha, CeedScalar beta, CeedScalar *x_array, CeedSize length) {
+  for (CeedSize i = 0; i < length; i++) y_array[i] += alpha * x_array[i] + beta * y_array[i];
   return CEED_ERROR_SUCCESS;
 }
 
 //------------------------------------------------------------------------------
 // Compute y = alpha x + beta y on device (impl in .cu file)
 //------------------------------------------------------------------------------
-int CeedDeviceAXPBY_Hip(CeedScalar *y_array, CeedScalar alpha, CeedScalar beta, CeedScalar *x_array, CeedInt length);
+int CeedDeviceAXPBY_Hip(CeedScalar *y_array, CeedScalar alpha, CeedScalar beta, CeedScalar *x_array, CeedSize length);
 
 //------------------------------------------------------------------------------
 // Compute y = alpha x + beta y
@@ -630,15 +712,15 @@ static int CeedVectorAXPBY_Hip(CeedVector y, CeedScalar alpha, CeedScalar beta, 
 //------------------------------------------------------------------------------
 // Compute the pointwise multiplication w = x .* y on the host
 //------------------------------------------------------------------------------
-static int CeedHostPointwiseMult_Hip(CeedScalar *w_array, CeedScalar *x_array, CeedScalar *y_array, CeedInt length) {
-  for (int i = 0; i < length; i++) w_array[i] = x_array[i] * y_array[i];
+static int CeedHostPointwiseMult_Hip(CeedScalar *w_array, CeedScalar *x_array, CeedScalar *y_array, CeedSize length) {
+  for (CeedSize i = 0; i < length; i++) w_array[i] = x_array[i] * y_array[i];
   return CEED_ERROR_SUCCESS;
 }
 
 //------------------------------------------------------------------------------
 // Compute the pointwise multiplication w = x .* y on device (impl in .cu file)
 //------------------------------------------------------------------------------
-int CeedDevicePointwiseMult_Hip(CeedScalar *w_array, CeedScalar *x_array, CeedScalar *y_array, CeedInt length);
+int CeedDevicePointwiseMult_Hip(CeedScalar *w_array, CeedScalar *x_array, CeedScalar *y_array, CeedSize length);
 
 //------------------------------------------------------------------------------
 // Compute the pointwise multiplication w = x .* y
