@@ -460,106 +460,80 @@ static int CeedVectorNorm_Hip(CeedVector vec, CeedNormType type, CeedScalar *nor
   switch (type) {
     case CEED_NORM_1: {
       if (CEED_SCALAR_TYPE == CEED_SCALAR_FP32) {
-        if (num_calls <= 1) CeedCallHipblas(ceed, hipblasSasum(handle, (CeedInt)length, (float *)d_array, 1, (float *)norm));
-        else {
-          float  sub_norm = 0.0;
-          float *d_array_start;
-          for (CeedInt i = 0; i < num_calls; i++) {
-            d_array_start             = (float *)d_array + (CeedSize)(i)*INT_MAX;
-            CeedSize remaining_length = length - (CeedSize)(i)*INT_MAX;
-            CeedInt  sub_length       = (i == num_calls - 1) ? (CeedInt)(remaining_length) : INT_MAX;
-            CeedCallHipblas(ceed, hipblasSasum(handle, (CeedInt)sub_length, (float *)d_array_start, 1, &sub_norm));
-            *norm += sub_norm;
-          }
+        float  sub_norm = 0.0;
+        float *d_array_start;
+        for (CeedInt i = 0; i < num_calls; i++) {
+          d_array_start             = (float *)d_array + (CeedSize)(i)*INT_MAX;
+          CeedSize remaining_length = length - (CeedSize)(i)*INT_MAX;
+          CeedInt  sub_length       = (i == num_calls - 1) ? (CeedInt)(remaining_length) : INT_MAX;
+          CeedCallHipblas(ceed, hipblasSasum(handle, (CeedInt)sub_length, (float *)d_array_start, 1, &sub_norm));
+          *norm += sub_norm;
         }
       } else {
-        if (num_calls <= 1) CeedCallHipblas(ceed, hipblasDasum(handle, (CeedInt)length, (double *)d_array, 1, (double *)norm));
-        else {
-          double  sub_norm = 0.0;
-          double *d_array_start;
-          for (CeedInt i = 0; i < num_calls; i++) {
-            d_array_start             = (double *)d_array + (CeedSize)(i)*INT_MAX;
-            CeedSize remaining_length = length - (CeedSize)(i)*INT_MAX;
-            CeedInt  sub_length       = (i == num_calls - 1) ? (CeedInt)(remaining_length) : INT_MAX;
-            CeedCallHipblas(ceed, hipblasDasum(handle, (CeedInt)sub_length, (double *)d_array_start, 1, &sub_norm));
-            *norm += sub_norm;
-          }
+        double  sub_norm = 0.0;
+        double *d_array_start;
+        for (CeedInt i = 0; i < num_calls; i++) {
+          d_array_start             = (double *)d_array + (CeedSize)(i)*INT_MAX;
+          CeedSize remaining_length = length - (CeedSize)(i)*INT_MAX;
+          CeedInt  sub_length       = (i == num_calls - 1) ? (CeedInt)(remaining_length) : INT_MAX;
+          CeedCallHipblas(ceed, hipblasDasum(handle, (CeedInt)sub_length, (double *)d_array_start, 1, &sub_norm));
+          *norm += sub_norm;
         }
       }
       break;
     }
     case CEED_NORM_2: {
       if (CEED_SCALAR_TYPE == CEED_SCALAR_FP32) {
-        if (num_calls <= 1) CeedCallHipblas(ceed, hipblasSnrm2(handle, (CeedInt)length, (float *)d_array, 1, (float *)norm));
-        else {
-          float  sub_norm = 0.0, norm_sum = 0.0;
-          float *d_array_start;
-          for (CeedInt i = 0; i < num_calls; i++) {
-            d_array_start             = (float *)d_array + (CeedSize)(i)*INT_MAX;
-            CeedSize remaining_length = length - (CeedSize)(i)*INT_MAX;
-            CeedInt  sub_length       = (i == num_calls - 1) ? (CeedInt)(remaining_length) : INT_MAX;
-            CeedCallHipblas(ceed, hipblasSnrm2(handle, (CeedInt)sub_length, (float *)d_array_start, 1, &sub_norm));
-            norm_sum += sub_norm * sub_norm;
-          }
-          *norm = sqrt(norm_sum);
+        float  sub_norm = 0.0, norm_sum = 0.0;
+        float *d_array_start;
+        for (CeedInt i = 0; i < num_calls; i++) {
+          d_array_start             = (float *)d_array + (CeedSize)(i)*INT_MAX;
+          CeedSize remaining_length = length - (CeedSize)(i)*INT_MAX;
+          CeedInt  sub_length       = (i == num_calls - 1) ? (CeedInt)(remaining_length) : INT_MAX;
+          CeedCallHipblas(ceed, hipblasSnrm2(handle, (CeedInt)sub_length, (float *)d_array_start, 1, &sub_norm));
+          norm_sum += sub_norm * sub_norm;
         }
+        *norm = sqrt(norm_sum);
       } else {
-        if (num_calls <= 1) CeedCallHipblas(ceed, hipblasDnrm2(handle, (CeedInt)length, (double *)d_array, 1, (double *)norm));
-        else {
-          double  sub_norm = 0.0, norm_sum = 0.0;
-          double *d_array_start;
-          for (CeedInt i = 0; i < num_calls; i++) {
-            d_array_start             = (double *)d_array + (CeedSize)(i)*INT_MAX;
-            CeedSize remaining_length = length - (CeedSize)(i)*INT_MAX;
-            CeedInt  sub_length       = (i == num_calls - 1) ? (CeedInt)(remaining_length) : INT_MAX;
-            CeedCallHipblas(ceed, hipblasDnrm2(handle, (CeedInt)sub_length, (double *)d_array_start, 1, &sub_norm));
-            norm_sum += sub_norm * sub_norm;
-          }
-          *norm = sqrt(norm_sum);
+        double  sub_norm = 0.0, norm_sum = 0.0;
+        double *d_array_start;
+        for (CeedInt i = 0; i < num_calls; i++) {
+          d_array_start             = (double *)d_array + (CeedSize)(i)*INT_MAX;
+          CeedSize remaining_length = length - (CeedSize)(i)*INT_MAX;
+          CeedInt  sub_length       = (i == num_calls - 1) ? (CeedInt)(remaining_length) : INT_MAX;
+          CeedCallHipblas(ceed, hipblasDnrm2(handle, (CeedInt)sub_length, (double *)d_array_start, 1, &sub_norm));
+          norm_sum += sub_norm * sub_norm;
         }
+        *norm = sqrt(norm_sum);
       }
       break;
     }
     case CEED_NORM_MAX: {
       CeedInt indx;
       if (CEED_SCALAR_TYPE == CEED_SCALAR_FP32) {
-        if (num_calls <= 1) {
-          CeedCallHipblas(ceed, hipblasIsamax(handle, (CeedInt)length, (float *)d_array, 1, &indx));
-          CeedScalar normNoAbs;
-          CeedCallHip(ceed, hipMemcpy(&normNoAbs, impl->d_array + indx - 1, sizeof(CeedScalar), hipMemcpyDeviceToHost));
-          *norm = fabs(normNoAbs);
-        } else {
-          float  sub_max = 0.0, current_max = 0.0;
-          float *d_array_start;
-          for (CeedInt i = 0; i < num_calls; i++) {
-            d_array_start             = (float *)d_array + (CeedSize)(i)*INT_MAX;
-            CeedSize remaining_length = length - (CeedSize)(i)*INT_MAX;
-            CeedInt  sub_length       = (i == num_calls - 1) ? (CeedInt)(remaining_length) : INT_MAX;
-            CeedCallHipblas(ceed, hipblasIsamax(handle, (CeedInt)sub_length, (float *)d_array_start, 1, &indx));
-            CeedCallHip(ceed, hipMemcpy(&sub_max, d_array_start + indx - 1, sizeof(CeedScalar), hipMemcpyDeviceToHost));
-            if (fabs(sub_max) > current_max) current_max = fabs(sub_max);
-          }
-          *norm = current_max;
+        float  sub_max = 0.0, current_max = 0.0;
+        float *d_array_start;
+        for (CeedInt i = 0; i < num_calls; i++) {
+          d_array_start             = (float *)d_array + (CeedSize)(i)*INT_MAX;
+          CeedSize remaining_length = length - (CeedSize)(i)*INT_MAX;
+          CeedInt  sub_length       = (i == num_calls - 1) ? (CeedInt)(remaining_length) : INT_MAX;
+          CeedCallHipblas(ceed, hipblasIsamax(handle, (CeedInt)sub_length, (float *)d_array_start, 1, &indx));
+          CeedCallHip(ceed, hipMemcpy(&sub_max, d_array_start + indx - 1, sizeof(CeedScalar), hipMemcpyDeviceToHost));
+          if (fabs(sub_max) > current_max) current_max = fabs(sub_max);
         }
+        *norm = current_max;
       } else {
-        if (num_calls <= 1) {
-          CeedCallHipblas(ceed, hipblasIdamax(handle, (CeedInt)length, (double *)d_array, 1, &indx));
-          CeedScalar normNoAbs;
-          CeedCallHip(ceed, hipMemcpy(&normNoAbs, impl->d_array + indx - 1, sizeof(CeedScalar), hipMemcpyDeviceToHost));
-          *norm = fabs(normNoAbs);
-        } else {
-          double  sub_max = 0.0, current_max = 0.0;
-          double *d_array_start;
-          for (CeedInt i = 0; i < num_calls; i++) {
-            d_array_start             = (double *)d_array + (CeedSize)(i)*INT_MAX;
-            CeedSize remaining_length = length - (CeedSize)(i)*INT_MAX;
-            CeedInt  sub_length       = (i == num_calls - 1) ? (CeedInt)(remaining_length) : INT_MAX;
-            CeedCallHipblas(ceed, hipblasIdamax(handle, (CeedInt)sub_length, (double *)d_array_start, 1, &indx));
-            CeedCallHip(ceed, hipMemcpy(&sub_max, d_array_start + indx - 1, sizeof(CeedScalar), hipMemcpyDeviceToHost));
-            if (fabs(sub_max) > current_max) current_max = fabs(sub_max);
-          }
-          *norm = current_max;
+        double  sub_max = 0.0, current_max = 0.0;
+        double *d_array_start;
+        for (CeedInt i = 0; i < num_calls; i++) {
+          d_array_start             = (double *)d_array + (CeedSize)(i)*INT_MAX;
+          CeedSize remaining_length = length - (CeedSize)(i)*INT_MAX;
+          CeedInt  sub_length       = (i == num_calls - 1) ? (CeedInt)(remaining_length) : INT_MAX;
+          CeedCallHipblas(ceed, hipblasIdamax(handle, (CeedInt)sub_length, (double *)d_array_start, 1, &indx));
+          CeedCallHip(ceed, hipMemcpy(&sub_max, d_array_start + indx - 1, sizeof(CeedScalar), hipMemcpyDeviceToHost));
+          if (fabs(sub_max) > current_max) current_max = fabs(sub_max);
         }
+        *norm = current_max;
       }
       break;
     }
