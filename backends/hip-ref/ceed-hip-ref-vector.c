@@ -459,6 +459,7 @@ static int CeedVectorNorm_Hip(CeedVector vec, CeedNormType type, CeedScalar *nor
   CeedCallBackend(CeedVectorGetArrayRead(vec, CEED_MEM_DEVICE, &d_array));
   switch (type) {
     case CEED_NORM_1: {
+      *norm = 0.0;
       if (CEED_SCALAR_TYPE == CEED_SCALAR_FP32) {
         float  sub_norm = 0.0;
         float *d_array_start;

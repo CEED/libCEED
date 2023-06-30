@@ -462,6 +462,7 @@ static int CeedVectorNorm_Cuda(CeedVector vec, CeedNormType type, CeedScalar *no
   CeedCallBackend(CeedVectorGetArrayRead(vec, CEED_MEM_DEVICE, &d_array));
   switch (type) {
     case CEED_NORM_1: {
+      *norm = 0.0;
       if (CEED_SCALAR_TYPE == CEED_SCALAR_FP32) {
 #if CUDA_VERSION >= 12000  // We have CUDA 12, and can use 64-bit integers
         CeedCallCublas(ceed, cublasSasum_64(handle, (int64_t)length, (float *)d_array, 1, (float *)norm));
