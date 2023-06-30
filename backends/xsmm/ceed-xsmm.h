@@ -13,14 +13,6 @@
 #include <ceed/hash.h>
 #include <libxsmm.h>
 
-#if !defined(LIBXSMM_VERSION_GE)
-#define LIBXSMM_VERSION_GE(major, minor, update, patch)                  \
-  (LIBXSMM_VERSION_MAJOR > major ||                                      \
-   (LIBXSMM_VERSION_MAJOR == major &&                                    \
-    (LIBXSMM_VERSION_MINOR > minor || (LIBXSMM_VERSION_MINOR == minor && \
-                                       (LIBXSMM_VERSION_UPDATE > update || (LIBXSMM_VERSION_UPDATE == update && LIBXSMM_VERSION_PATCH >= patch))))))
-#endif
-
 // Instantiate khash structs and methods
 CeedHashIJKLMInit(f32, libxsmm_gemmfunction) CeedHashIJKLMInit(f64, libxsmm_gemmfunction)
 
