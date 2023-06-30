@@ -34,14 +34,14 @@ static int CeedQFunctionApply_Memcheck(CeedQFunction qf, CeedInt Q, CeedVector *
   int mem_block_ids[num_out];
   for (CeedInt i = 0; i < num_out; i++) {
     CeedSize len;
-    char     name[30] = "";
+    char     name[32] = "";
 
     CeedCallBackend(CeedVectorGetArrayWrite(V[i], CEED_MEM_HOST, &impl->outputs[i]));
 
     CeedCallBackend(CeedVectorGetLength(V[i], &len));
     VALGRIND_MAKE_MEM_UNDEFINED(impl->outputs[i], len);
 
-    snprintf(name, 30, "'QFunction output %" CeedInt_FMT "'", i);
+    snprintf(name, 32, "'QFunction output %" CeedInt_FMT "'", i);
     mem_block_ids[i] = VALGRIND_CREATE_BLOCK(impl->outputs[i], len, name);
   }
 

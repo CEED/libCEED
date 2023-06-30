@@ -72,8 +72,8 @@ int main(int argc, char **argv) {
   CeedQFunctionAddOutput(qf_setup, "qdata", dim * (dim + 1) / 2, CEED_EVAL_NONE);
 
   CeedQFunctionCreateInterior(ceed, 1, diff, diff_loc, &qf_diff);
-  CeedQFunctionAddInput(qf_diff, "qdata", dim * (dim + 1) / 2, CEED_EVAL_NONE);
   CeedQFunctionAddInput(qf_diff, "du", num_comp * dim, CEED_EVAL_GRAD);
+  CeedQFunctionAddInput(qf_diff, "qdata", dim * (dim + 1) / 2, CEED_EVAL_NONE);
   CeedQFunctionAddInput(qf_diff, "dummy u", num_comp, CEED_EVAL_INTERP);
   CeedQFunctionAddOutput(qf_diff, "dv", num_comp * dim, CEED_EVAL_GRAD);
 
