@@ -399,4 +399,5 @@ int CeedQFunctionContextCreate_Sycl(CeedQFunctionContext ctx) {
 
   return CEED_ERROR_SUCCESS;
 }
+
 //------------------------------------------------------------------------------

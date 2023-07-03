@@ -420,6 +420,7 @@ static int CeedVectorGetArrayCore_Sycl(const CeedVector vec, const CeedMemType m
 
   return CEED_ERROR_SUCCESS;
 }
+
 //------------------------------------------------------------------------------
 // Get read-only access to a vector via the specified mem_type
 //------------------------------------------------------------------------------

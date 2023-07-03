@@ -60,4 +60,5 @@ CEED_INTERN int CeedRegister_Sycl(void) {
   CeedCallBackend(CeedRegister("/cpu/sycl/ref", CeedInit_Sycl_ref, 50));
   return CEED_ERROR_SUCCESS;
 }
+
 //------------------------------------------------------------------------------

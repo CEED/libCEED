@@ -172,4 +172,5 @@ extern "C" int CeedQFunctionBuildKernel_Sycl(CeedQFunction qf) {
 
   return CEED_ERROR_SUCCESS;
 }
+
 //------------------------------------------------------------------------------
