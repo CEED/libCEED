@@ -129,11 +129,11 @@ int CeedTensorContractCreate_f32_Xsmm(CeedBasis basis, CeedTensorContract contra
     for (CeedInt num_elem = 1; num_elem <= 8; num_elem += 7) {
       for (CeedInt add = 0; add <= 1; add++) {
         for (CeedInt t_mode = 0; t_mode <= 1; t_mode++) {
-          const CeedInt q_comp = 1;
-          const int flags_t  = LIBXSMM_GEMM_FLAGS('N', t_mode ? 'T' : 'N');
-          const int flags_ab = (!add) ? LIBXSMM_GEMM_FLAG_BETA_0 : 0;
-          const int flags    = (flags_t | flags_ab);
-          CeedInt   B = t_mode ? q_comp * impl->Q : impl->P, J = t_mode ? impl->P : q_comp * impl->Q, C = num_elem;
+          const CeedInt q_comp   = 1;
+          const int     flags_t  = LIBXSMM_GEMM_FLAGS('N', t_mode ? 'T' : 'N');
+          const int     flags_ab = (!add) ? LIBXSMM_GEMM_FLAG_BETA_0 : 0;
+          const int     flags    = (flags_t | flags_ab);
+          CeedInt       B = t_mode ? q_comp * impl->Q : impl->P, J = t_mode ? impl->P : q_comp * impl->Q, C = num_elem;
           // Add key, kernel pair to hash table
           CeedHashIJKLMKey key = {B, C, J, t_mode, add};
           int              new_item;
