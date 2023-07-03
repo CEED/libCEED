@@ -42,10 +42,11 @@
 /// @file
 /// Navier-Stokes example using PETSc
 
+#include "petscsf.h"
 const char help[] = "Solve Navier-Stokes using PETSc and libCEED\n";
 
-#include "navierstokes.h"
 #include <petscdevice.h>
+#include "navierstokes.h"
 
 #include <ceed.h>
 #include <petscdmplex.h>
@@ -280,26 +281,83 @@ int main(int argc, char **argv) {
     }
     // Mesh
     const PetscInt num_comp_q = 5;
-    PetscInt       glob_dofs, owned_dofs;
-    PetscInt       glob_nodes, local_nodes;
+    PetscInt       glob_dofs, owned_dofs, local_dofs;
     const CeedInt  num_P = app_ctx->degree + 1, num_Q = num_P + app_ctx->q_extra;
     // -- Get global size
-    PetscCall(VecGetSize(Q, &glob_dofs));
-    PetscCall(VecGetLocalSize(Q, &owned_dofs));
-    glob_nodes = glob_dofs / num_comp_q;
+    PetscCall(DMGetGlobalVectorInfo(user->dm, &owned_dofs, &glob_dofs, NULL));
     // -- Get local size
-    PetscCall(VecGetSize(user->Q_loc, &local_nodes));
-    local_nodes /= num_comp_q;
+    PetscCall(DMGetLocalVectorInfo(user->dm, &local_dofs, NULL, NULL));
     PetscCall(PetscPrintf(comm,
                           "  Mesh:\n"
                           "    Number of 1D Basis Nodes (P)       : %" CeedInt_FMT "\n"
                           "    Number of 1D Quadrature Points (Q) : %" CeedInt_FMT "\n"
                           "    Global DoFs                        : %" PetscInt_FMT "\n"
-                          "    Owned DoFs                         : %" PetscInt_FMT "\n"
                           "    DoFs per node                      : %" PetscInt_FMT "\n"
-                          "    Global nodes (DoFs / %" PetscInt_FMT ")            : %" PetscInt_FMT "\n"
-                          "    Local nodes                        : %" PetscInt_FMT "\n",
-                          num_P, num_Q, glob_dofs, owned_dofs, num_comp_q, num_comp_q, glob_nodes, local_nodes));
+                          "    Global nodes                       : %" PetscInt_FMT "\n",
+                          num_P, num_Q, glob_dofs, num_comp_q, glob_dofs / num_comp_q));
+    // -- Get Partition Statistics
+    PetscCall(PetscPrintf(comm, "  Partition:                             (min,max,median,ratio)\n"));
+    {
+      PetscInt    *gather_buffer = NULL;
+      PetscInt     part_owned_dofs[3], part_local_dofs[3], part_shared_dofs[3];
+      PetscInt     median_index = comm_size % 2 ? comm_size / 2 : comm_size / 2 - 1;
+      MPI_Datatype PetscInt_MPI;
+      PetscCall(PetscDataTypeToMPIDataType(PETSC_INT, &PetscInt_MPI));
+      if (!rank) PetscCall(PetscMalloc1(comm_size, &gather_buffer));
+
+      PetscCallMPI(MPI_Gather(&owned_dofs, 1, PetscInt_MPI, gather_buffer, 1, PetscInt_MPI, 0, comm));
+      if (!rank) {
+        PetscCall(PetscSortInt(comm_size, gather_buffer));
+        part_owned_dofs[0]             = gather_buffer[0];              // min
+        part_owned_dofs[1]             = gather_buffer[comm_size - 1];  // max
+        part_owned_dofs[2]             = gather_buffer[median_index];   // median
+        PetscReal part_owned_dof_ratio = (PetscReal)part_owned_dofs[1] / (PetscReal)part_owned_dofs[2];
+        PetscCall(PetscPrintf(comm, "    Owned free nodes                   : %" PetscInt_FMT ", %" PetscInt_FMT ", %" PetscInt_FMT ", %f\n",
+                              part_owned_dofs[0] / num_comp_q, part_owned_dofs[1] / num_comp_q, part_owned_dofs[2] / num_comp_q,
+                              part_owned_dof_ratio));
+      }
+
+      PetscCallMPI(MPI_Gather(&local_dofs, 1, PetscInt_MPI, gather_buffer, 1, PetscInt_MPI, 0, comm));
+      if (!rank) {
+        PetscCall(PetscSortInt(comm_size, gather_buffer));
+        part_local_dofs[0]             = gather_buffer[0];              // min
+        part_local_dofs[1]             = gather_buffer[comm_size - 1];  // max
+        part_local_dofs[2]             = gather_buffer[median_index];   // median
+        PetscReal part_local_dof_ratio = (PetscReal)part_local_dofs[1] / (PetscReal)part_local_dofs[2];
+        PetscCall(PetscPrintf(comm, "    Local nodes                        : %" PetscInt_FMT ", %" PetscInt_FMT ", %" PetscInt_FMT ", %f\n",
+                              part_local_dofs[0] / num_comp_q, part_local_dofs[1] / num_comp_q, part_local_dofs[2] / num_comp_q,
+                              part_local_dof_ratio));
+      }
+
+      PetscInt num_remote_roots_total = 0;
+      {
+        PetscSF            sf;
+        PetscInt           nrranks;
+        const PetscInt    *roffset, *rmine, *rremote;
+        const PetscMPIInt *rranks;
+        PetscCall(DMGetSectionSF(user->dm, &sf));
+        PetscCall(PetscSFGetRootRanks(sf, &nrranks, &rranks, &roffset, &rmine, &rremote));
+        for (PetscInt i = 0; i < nrranks; i++) {
+          if (rranks[i] == rank) continue;  // Ignore same-part global->local transfers
+          num_remote_roots_total += roffset[i + 1] - roffset[i];
+        }
+      }
+      PetscCallMPI(MPI_Gather(&num_remote_roots_total, 1, PetscInt_MPI, gather_buffer, 1, PetscInt_MPI, 0, comm));
+      if (!rank) {
+        PetscCall(PetscSortInt(comm_size, gather_buffer));
+        part_shared_dofs[0]             = gather_buffer[0];              // min
+        part_shared_dofs[1]             = gather_buffer[comm_size - 1];  // max
+        part_shared_dofs[2]             = gather_buffer[median_index];   // median
+        PetscReal part_shared_dof_ratio = (PetscReal)part_shared_dofs[1] / (PetscReal)part_shared_dofs[2];
+        PetscCall(PetscPrintf(comm, "    Shared nodes                       : %" PetscInt_FMT ", %" PetscInt_FMT ", %" PetscInt_FMT ", %f\n",
+                              part_shared_dofs[0] / num_comp_q, part_shared_dofs[1] / num_comp_q, part_shared_dofs[2] / num_comp_q,
+                              part_shared_dof_ratio));
+      }
+
+      if (!rank) PetscCall(PetscFree(gather_buffer));
+    }
+
+    PetscCall(PetscPrintf(comm, "(nodes == DoFs / %" PetscInt_FMT ")\n", num_comp_q));
   }
   // -- Zero Q_loc
   PetscCall(VecZeroEntries(user->Q_loc));
