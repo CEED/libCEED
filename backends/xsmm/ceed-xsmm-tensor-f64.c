@@ -12,22 +12,6 @@
 #include "ceed-xsmm.h"
 
 //------------------------------------------------------------------------------
-// Tensor Contract C=1
-//------------------------------------------------------------------------------
-static int CeedTensorContract_Xsmm_C1(CeedTensorContract contract, CeedInt A, CeedInt B, CeedInt C, CeedInt J, const double *restrict t,
-                                      CeedTransposeMode t_mode, const CeedInt add, const double *restrict u, double *restrict v) {
-  double alpha = 1.0, beta = 1.0;
-  char   trans_u = 'N', trans_t = 'N';
-  if ((t_mode == CEED_TRANSPOSE && C != 1) || (t_mode == CEED_NOTRANSPOSE && C == 1)) trans_t = 'T';
-  if (!add) beta = 0.0;
-
-  // LIBXSMM GEMM
-  libxsmm_dgemm(&trans_t, &trans_u, &J, &A, &B, &alpha, &t[0], NULL, &u[0], NULL, &beta, &v[0], NULL);
-
-  return CEED_ERROR_SUCCESS;
-}
-
-//------------------------------------------------------------------------------
 // Tensor Contract Apply
 //------------------------------------------------------------------------------
 static int CeedTensorContractApply_Xsmm(CeedTensorContract contract, CeedInt A, CeedInt B, CeedInt C, CeedInt J, const double *restrict t,
@@ -36,7 +20,21 @@ static int CeedTensorContractApply_Xsmm(CeedTensorContract contract, CeedInt A, 
   CeedCallBackend(CeedTensorContractGetCeed(contract, &ceed));
 
   if (C == 1) {
-    CeedTensorContract_Xsmm_C1(contract, A, B, C, J, t, t_mode, add, u, v);
+    // Build or query the required kernel
+    const int                  flags_t    = LIBXSMM_GEMM_FLAGS(!t_mode ? 'T' : 'N', 'N');
+    const int                  flags_ab   = (!add) ? LIBXSMM_GEMM_FLAG_BETA_0 : 0;
+    const int                  flags      = (flags_t | flags_ab);
+    const libxsmm_gemm_shape   gemm_shape = libxsmm_create_gemm_shape(J, A, B, !t_mode ? B : J, B, J, LIBXSMM_DATATYPE_F64, LIBXSMM_DATATYPE_F64,
+                                                                      LIBXSMM_DATATYPE_F64, LIBXSMM_DATATYPE_F64);
+    const libxsmm_gemmfunction kernel = libxsmm_dispatch_gemm_v2(gemm_shape, (libxsmm_bitfield)(flags), (libxsmm_bitfield)LIBXSMM_GEMM_PREFETCH_NONE);
+    CeedCheck(kernel, ceed, CEED_ERROR_BACKEND, "LIBXSMM kernel failed to build.");
+
+    // Run kernel
+    libxsmm_gemm_param gemm_param;
+    gemm_param.a.primary = (double *)&t[0];
+    gemm_param.b.primary = (double *)&u[0];
+    gemm_param.c.primary = (double *)&v[0];
+    kernel(&gemm_param);
   } else {
     // Build or query the required kernel
     const int                  flags_t    = LIBXSMM_GEMM_FLAGS('N', t_mode ? 'T' : 'N');
