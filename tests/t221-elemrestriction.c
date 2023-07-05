@@ -13,7 +13,7 @@ int main(int argc, char **argv) {
   CeedInt             ind[p * num_elem];
   bool                orient[p * num_elem];
   CeedScalar          x_array[num_elem + 1];
-  CeedElemRestriction elem_restriction, elem_restriction_copy;
+  CeedElemRestriction elem_restriction, elem_restriction_unsigned, elem_restriction_copy;
 
   CeedInit(argv[1], &ceed);
 
@@ -32,10 +32,11 @@ int main(int argc, char **argv) {
     orient[2 * i + 1] = (i % (2)) * -1 < 0;
   }
   CeedElemRestrictionCreateOriented(ceed, num_elem, p, dim, 1, num_elem + 1, CEED_MEM_HOST, CEED_USE_POINTER, ind, orient, &elem_restriction);
+  CeedElemRestrictionCreate(ceed, num_elem, p, dim, 1, num_elem + 1, CEED_MEM_HOST, CEED_USE_POINTER, ind, &elem_restriction_unsigned);
   CeedElemRestrictionCreateUnsignedCopy(elem_restriction, &elem_restriction_copy);
 
   CeedElemRestrictionApply(elem_restriction, CEED_NOTRANSPOSE, x, y_oriented, CEED_REQUEST_IMMEDIATE);
-  CeedElemRestrictionApplyUnsigned(elem_restriction, CEED_NOTRANSPOSE, x, y_unsigned, CEED_REQUEST_IMMEDIATE);
+  CeedElemRestrictionApply(elem_restriction_unsigned, CEED_NOTRANSPOSE, x, y_unsigned, CEED_REQUEST_IMMEDIATE);
   CeedElemRestrictionApply(elem_restriction_copy, CEED_NOTRANSPOSE, x, y_unsigned_copy, CEED_REQUEST_IMMEDIATE);
 
   {
@@ -75,6 +76,7 @@ int main(int argc, char **argv) {
   CeedVectorDestroy(&y_unsigned);
   CeedVectorDestroy(&y_unsigned_copy);
   CeedElemRestrictionDestroy(&elem_restriction);
+  CeedElemRestrictionDestroy(&elem_restriction_unsigned);
   CeedElemRestrictionDestroy(&elem_restriction_copy);
   CeedDestroy(&ceed);
   return 0;
