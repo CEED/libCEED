@@ -13,6 +13,7 @@
 
 typedef struct {
   int         mem_block_id;
+  bool        is_write_only_access;
   CeedScalar *array;
   CeedScalar *array_allocated;
   CeedScalar *array_owned;
