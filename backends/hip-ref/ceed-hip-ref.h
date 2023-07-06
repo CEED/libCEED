@@ -13,6 +13,12 @@
 #include <ceed/jit-source/hip/hip-types.h>
 #include <hip/hip_runtime.h>
 
+#if (HIP_VERSION >= 50200000)
+#include <hipblas/hipblas.h>  // IWYU pragma: export
+#else
+#include <hipblas.h>  // IWYU pragma: export
+#endif
+
 typedef struct {
   CeedScalar *h_array;
   CeedScalar *h_array_borrowed;
