@@ -274,7 +274,7 @@ int CeedVectorSetValue(CeedVector vec, CeedScalar value) {
   } else {
     CeedScalar *array;
     CeedCall(CeedVectorGetArrayWrite(vec, CEED_MEM_HOST, &array));
-    for (CeedInt i = 0; i < vec->length; i++) array[i] = value;
+    for (CeedSize i = 0; i < vec->length; i++) array[i] = value;
     CeedCall(CeedVectorRestoreArray(vec, &array));
   }
   vec->state += 2;
@@ -503,17 +503,17 @@ int CeedVectorNorm(CeedVector vec, CeedNormType norm_type, CeedScalar *norm) {
   *norm = 0.;
   switch (norm_type) {
     case CEED_NORM_1:
-      for (CeedInt i = 0; i < vec->length; i++) {
+      for (CeedSize i = 0; i < vec->length; i++) {
         *norm += fabs(array[i]);
       }
       break;
     case CEED_NORM_2:
-      for (CeedInt i = 0; i < vec->length; i++) {
+      for (CeedSize i = 0; i < vec->length; i++) {
         *norm += fabs(array[i]) * fabs(array[i]);
       }
       break;
     case CEED_NORM_MAX:
-      for (CeedInt i = 0; i < vec->length; i++) {
+      for (CeedSize i = 0; i < vec->length; i++) {
         const CeedScalar abs_v_i = fabs(array[i]);
         *norm                    = *norm > abs_v_i ? *norm : abs_v_i;
       }
@@ -550,7 +550,7 @@ int CeedVectorScale(CeedVector x, CeedScalar alpha) {
 
   // Default implementation
   CeedCall(CeedVectorGetArrayWrite(x, CEED_MEM_HOST, &x_array));
-  for (CeedInt i = 0; i < n_x; i++) x_array[i] *= alpha;
+  for (CeedSize i = 0; i < n_x; i++) x_array[i] *= alpha;
   CeedCall(CeedVectorRestoreArray(x, &x_array));
 
   return CEED_ERROR_SUCCESS;
@@ -603,7 +603,7 @@ int CeedVectorAXPY(CeedVector y, CeedScalar alpha, CeedVector x) {
   assert(x_array);
   assert(y_array);
 
-  for (CeedInt i = 0; i < n_y; i++) y_array[i] += alpha * x_array[i];
+  for (CeedSize i = 0; i < n_y; i++) y_array[i] += alpha * x_array[i];
 
   CeedCall(CeedVectorRestoreArray(y, &y_array));
   CeedCall(CeedVectorRestoreArrayRead(x, &x_array));
@@ -659,7 +659,7 @@ int CeedVectorAXPBY(CeedVector y, CeedScalar alpha, CeedScalar beta, CeedVector 
   assert(x_array);
   assert(y_array);
 
-  for (CeedInt i = 0; i < n_y; i++) y_array[i] += alpha * x_array[i] + beta * y_array[i];
+  for (CeedSize i = 0; i < n_y; i++) y_array[i] += alpha * x_array[i] + beta * y_array[i];
 
   CeedCall(CeedVectorRestoreArray(y, &y_array));
   CeedCall(CeedVectorRestoreArrayRead(x, &x_array));
@@ -732,7 +732,7 @@ int CeedVectorPointwiseMult(CeedVector w, CeedVector x, CeedVector y) {
   assert(x_array);
   assert(y_array);
 
-  for (CeedInt i = 0; i < n_w; i++) w_array[i] = x_array[i] * y_array[i];
+  for (CeedSize i = 0; i < n_w; i++) w_array[i] = x_array[i] * y_array[i];
 
   if (y != w && y != x) CeedCall(CeedVectorRestoreArrayRead(y, &y_array));
   if (x != w) CeedCall(CeedVectorRestoreArrayRead(x, &x_array));
@@ -769,7 +769,7 @@ int CeedVectorReciprocal(CeedVector vec) {
   CeedCall(CeedVectorGetLength(vec, &len));
   CeedScalar *array;
   CeedCall(CeedVectorGetArrayWrite(vec, CEED_MEM_HOST, &array));
-  for (CeedInt i = 0; i < len; i++) {
+  for (CeedSize i = 0; i < len; i++) {
     if (fabs(array[i]) > CEED_EPSILON) array[i] = 1. / array[i];
   }
 
@@ -809,7 +809,7 @@ int CeedVectorViewRange(CeedVector vec, CeedSize start, CeedSize stop, CeedInt s
 
   snprintf(fmt, sizeof fmt, "  %s\n", fp_fmt ? fp_fmt : "%g");
   CeedCall(CeedVectorGetArrayRead(vec, CEED_MEM_HOST, &x));
-  for (CeedInt i = start; step > 0 ? (i < stop) : (i > stop); i += step) fprintf(stream, fmt, x[i]);
+  for (CeedSize i = start; step > 0 ? (i < stop) : (i > stop); i += step) fprintf(stream, fmt, x[i]);
   CeedCall(CeedVectorRestoreArrayRead(vec, &x));
   if (stop != vec->length) fprintf(stream, "  ...\n");
 

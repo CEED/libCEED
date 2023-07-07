@@ -13,6 +13,7 @@
 #include <iostream>
 #include <sstream>
 
+#include "../hip/ceed-hip-common.h"
 #include "../hip/ceed-hip-compile.h"
 #include "ceed-hip-ref.h"
 

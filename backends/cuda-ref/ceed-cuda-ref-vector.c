@@ -277,18 +277,18 @@ static int CeedVectorSetArray_Cuda(const CeedVector vec, const CeedMemType mem_t
 //------------------------------------------------------------------------------
 // Set host array to value
 //------------------------------------------------------------------------------
-static int CeedHostSetValue_Cuda(CeedScalar *h_array, CeedInt length, CeedScalar val) {
-  for (int i = 0; i < length; i++) h_array[i] = val;
+static int CeedHostSetValue_Cuda(CeedScalar *h_array, CeedSize length, CeedScalar val) {
+  for (CeedSize i = 0; i < length; i++) h_array[i] = val;
   return CEED_ERROR_SUCCESS;
 }
 
 //------------------------------------------------------------------------------
 // Set device array to value (impl in .cu file)
 //------------------------------------------------------------------------------
-int CeedDeviceSetValue_Cuda(CeedScalar *d_array, CeedInt length, CeedScalar val);
+int CeedDeviceSetValue_Cuda(CeedScalar *d_array, CeedSize length, CeedScalar val);
 
 //------------------------------------------------------------------------------
-// Set a vector to a value,
+// Set a vector to a value
 //------------------------------------------------------------------------------
 static int CeedVectorSetValue_Cuda(CeedVector vec, CeedScalar val) {
   Ceed ceed;
@@ -449,36 +449,129 @@ static int CeedVectorNorm_Cuda(CeedVector vec, CeedNormType type, CeedScalar *no
   cublasHandle_t handle;
   CeedCallBackend(CeedGetCublasHandle_Cuda(ceed, &handle));
 
+#if CUDA_VERSION < 12000
+  // With CUDA 12, we can use the 64-bit integer interface. Prior to that,
+  // we need to check if the vector is too long to handle with int32,
+  // and if so, divide it into subsections for repeated cuBLAS calls
+  CeedSize num_calls = length / INT_MAX;
+  if (length % INT_MAX > 0) num_calls += 1;
+#endif
+
   // Compute norm
   const CeedScalar *d_array;
   CeedCallBackend(CeedVectorGetArrayRead(vec, CEED_MEM_DEVICE, &d_array));
   switch (type) {
     case CEED_NORM_1: {
+      *norm = 0.0;
       if (CEED_SCALAR_TYPE == CEED_SCALAR_FP32) {
-        CeedCallCublas(ceed, cublasSasum(handle, length, (float *)d_array, 1, (float *)norm));
+#if CUDA_VERSION >= 12000  // We have CUDA 12, and can use 64-bit integers
+        CeedCallCublas(ceed, cublasSasum_64(handle, (int64_t)length, (float *)d_array, 1, (float *)norm));
+#else
+        float  sub_norm = 0.0;
+        float *d_array_start;
+        for (CeedInt i = 0; i < num_calls; i++) {
+          d_array_start             = (float *)d_array + (CeedSize)(i)*INT_MAX;
+          CeedSize remaining_length = length - (CeedSize)(i)*INT_MAX;
+          CeedInt  sub_length       = (i == num_calls - 1) ? (CeedInt)(remaining_length) : INT_MAX;
+          CeedCallCublas(ceed, cublasSasum(handle, (CeedInt)sub_length, (float *)d_array_start, 1, &sub_norm));
+          *norm += sub_norm;
+        }
+#endif
       } else {
-        CeedCallCublas(ceed, cublasDasum(handle, length, (double *)d_array, 1, (double *)norm));
+#if CUDA_VERSION >= 12000
+        CeedCallCublas(ceed, cublasDasum_64(handle, (int64_t)length, (double *)d_array, 1, (double *)norm));
+#else
+        double  sub_norm = 0.0;
+        double *d_array_start;
+        for (CeedInt i = 0; i < num_calls; i++) {
+          d_array_start             = (double *)d_array + (CeedSize)(i)*INT_MAX;
+          CeedSize remaining_length = length - (CeedSize)(i)*INT_MAX;
+          CeedInt  sub_length       = (i == num_calls - 1) ? (CeedInt)(remaining_length) : INT_MAX;
+          CeedCallCublas(ceed, cublasDasum(handle, (CeedInt)sub_length, (double *)d_array_start, 1, &sub_norm));
+          *norm += sub_norm;
+        }
+#endif
       }
       break;
     }
     case CEED_NORM_2: {
       if (CEED_SCALAR_TYPE == CEED_SCALAR_FP32) {
-        CeedCallCublas(ceed, cublasSnrm2(handle, length, (float *)d_array, 1, (float *)norm));
+#if CUDA_VERSION >= 12000
+        CeedCallCublas(ceed, cublasSnrm2_64(handle, (int64_t)length, (float *)d_array, 1, (float *)norm));
+#else
+        float  sub_norm = 0.0, norm_sum = 0.0;
+        float *d_array_start;
+        for (CeedInt i = 0; i < num_calls; i++) {
+          d_array_start             = (float *)d_array + (CeedSize)(i)*INT_MAX;
+          CeedSize remaining_length = length - (CeedSize)(i)*INT_MAX;
+          CeedInt  sub_length       = (i == num_calls - 1) ? (CeedInt)(remaining_length) : INT_MAX;
+          CeedCallCublas(ceed, cublasSnrm2(handle, (CeedInt)sub_length, (float *)d_array_start, 1, &sub_norm));
+          norm_sum += sub_norm * sub_norm;
+        }
+        *norm            = sqrt(norm_sum);
+#endif
       } else {
-        CeedCallCublas(ceed, cublasDnrm2(handle, length, (double *)d_array, 1, (double *)norm));
+#if CUDA_VERSION >= 12000
+        CeedCallCublas(ceed, cublasDnrm2_64(handle, (int64_t)length, (double *)d_array, 1, (double *)norm));
+#else
+        double  sub_norm = 0.0, norm_sum = 0.0;
+        double *d_array_start;
+        for (CeedInt i = 0; i < num_calls; i++) {
+          d_array_start             = (double *)d_array + (CeedSize)(i)*INT_MAX;
+          CeedSize remaining_length = length - (CeedSize)(i)*INT_MAX;
+          CeedInt  sub_length       = (i == num_calls - 1) ? (CeedInt)(remaining_length) : INT_MAX;
+          CeedCallCublas(ceed, cublasDnrm2(handle, (CeedInt)sub_length, (double *)d_array_start, 1, &sub_norm));
+          norm_sum += sub_norm * sub_norm;
+        }
+        *norm = sqrt(norm_sum);
+#endif
       }
       break;
     }
     case CEED_NORM_MAX: {
-      CeedInt indx;
       if (CEED_SCALAR_TYPE == CEED_SCALAR_FP32) {
-        CeedCallCublas(ceed, cublasIsamax(handle, length, (float *)d_array, 1, &indx));
+#if CUDA_VERSION >= 12000
+        int64_t indx;
+        CeedCallCublas(ceed, cublasIsamax_64(handle, (int64_t)length, (float *)d_array, 1, &indx));
+        CeedScalar normNoAbs;
+        CeedCallCuda(ceed, cudaMemcpy(&normNoAbs, impl->d_array + indx - 1, sizeof(CeedScalar), cudaMemcpyDeviceToHost));
+        *norm = fabs(normNoAbs);
+#else
+        CeedInt indx;
+        float   sub_max = 0.0, current_max = 0.0;
+        float  *d_array_start;
+        for (CeedInt i = 0; i < num_calls; i++) {
+          d_array_start             = (float *)d_array + (CeedSize)(i)*INT_MAX;
+          CeedSize remaining_length = length - (CeedSize)(i)*INT_MAX;
+          CeedInt  sub_length       = (i == num_calls - 1) ? (CeedInt)(remaining_length) : INT_MAX;
+          CeedCallCublas(ceed, cublasIsamax(handle, (CeedInt)sub_length, (float *)d_array_start, 1, &indx));
+          CeedCallCuda(ceed, cudaMemcpy(&sub_max, d_array_start + indx - 1, sizeof(CeedScalar), cudaMemcpyDeviceToHost));
+          if (fabs(sub_max) > current_max) current_max = fabs(sub_max);
+        }
+        *norm = current_max;
+#endif
       } else {
-        CeedCallCublas(ceed, cublasIdamax(handle, length, (double *)d_array, 1, &indx));
+#if CUDA_VERSION >= 12000
+        int64_t indx;
+        CeedCallCublas(ceed, cublasIdamax_64(handle, (int64_t)length, (double *)d_array, 1, &indx));
+        CeedScalar normNoAbs;
+        CeedCallCuda(ceed, cudaMemcpy(&normNoAbs, impl->d_array + indx - 1, sizeof(CeedScalar), cudaMemcpyDeviceToHost));
+        *norm = fabs(normNoAbs);
+#else
+        CeedInt indx;
+        double  sub_max = 0.0, current_max = 0.0;
+        double *d_array_start;
+        for (CeedInt i = 0; i < num_calls; i++) {
+          d_array_start             = (double *)d_array + (CeedSize)(i)*INT_MAX;
+          CeedSize remaining_length = length - (CeedSize)(i)*INT_MAX;
+          CeedInt  sub_length       = (i == num_calls - 1) ? (CeedInt)(remaining_length) : INT_MAX;
+          CeedCallCublas(ceed, cublasIdamax(handle, (CeedInt)sub_length, (double *)d_array_start, 1, &indx));
+          CeedCallCuda(ceed, cudaMemcpy(&sub_max, d_array_start + indx - 1, sizeof(CeedScalar), cudaMemcpyDeviceToHost));
+          if (fabs(sub_max) > current_max) current_max = fabs(sub_max);
+        }
+        *norm = current_max;
+#endif
       }
-      CeedScalar normNoAbs;
-      CeedCallCuda(ceed, cudaMemcpy(&normNoAbs, impl->d_array + indx - 1, sizeof(CeedScalar), cudaMemcpyDeviceToHost));
-      *norm = fabs(normNoAbs);
       break;
     }
   }
@@ -490,8 +583,8 @@ static int CeedVectorNorm_Cuda(CeedVector vec, CeedNormType type, CeedScalar *no
 //------------------------------------------------------------------------------
 // Take reciprocal of a vector on host
 //------------------------------------------------------------------------------
-static int CeedHostReciprocal_Cuda(CeedScalar *h_array, CeedInt length) {
-  for (int i = 0; i < length; i++) {
+static int CeedHostReciprocal_Cuda(CeedScalar *h_array, CeedSize length) {
+  for (CeedSize i = 0; i < length; i++) {
     if (fabs(h_array[i]) > CEED_EPSILON) h_array[i] = 1. / h_array[i];
   }
   return CEED_ERROR_SUCCESS;
@@ -500,7 +593,7 @@ static int CeedHostReciprocal_Cuda(CeedScalar *h_array, CeedInt length) {
 //------------------------------------------------------------------------------
 // Take reciprocal of a vector on device (impl in .cu file)
 //------------------------------------------------------------------------------
-int CeedDeviceReciprocal_Cuda(CeedScalar *d_array, CeedInt length);
+int CeedDeviceReciprocal_Cuda(CeedScalar *d_array, CeedSize length);
 
 //------------------------------------------------------------------------------
 // Take reciprocal of a vector
@@ -523,15 +616,15 @@ static int CeedVectorReciprocal_Cuda(CeedVector vec) {
 //------------------------------------------------------------------------------
 // Compute x = alpha x on the host
 //------------------------------------------------------------------------------
-static int CeedHostScale_Cuda(CeedScalar *x_array, CeedScalar alpha, CeedInt length) {
-  for (int i = 0; i < length; i++) x_array[i] *= alpha;
+static int CeedHostScale_Cuda(CeedScalar *x_array, CeedScalar alpha, CeedSize length) {
+  for (CeedSize i = 0; i < length; i++) x_array[i] *= alpha;
   return CEED_ERROR_SUCCESS;
 }
 
 //------------------------------------------------------------------------------
 // Compute x = alpha x on device (impl in .cu file)
 //------------------------------------------------------------------------------
-int CeedDeviceScale_Cuda(CeedScalar *x_array, CeedScalar alpha, CeedInt length);
+int CeedDeviceScale_Cuda(CeedScalar *x_array, CeedScalar alpha, CeedSize length);
 
 //------------------------------------------------------------------------------
 // Compute x = alpha x
@@ -554,15 +647,15 @@ static int CeedVectorScale_Cuda(CeedVector x, CeedScalar alpha) {
 //------------------------------------------------------------------------------
 // Compute y = alpha x + y on the host
 //------------------------------------------------------------------------------
-static int CeedHostAXPY_Cuda(CeedScalar *y_array, CeedScalar alpha, CeedScalar *x_array, CeedInt length) {
-  for (int i = 0; i < length; i++) y_array[i] += alpha * x_array[i];
+static int CeedHostAXPY_Cuda(CeedScalar *y_array, CeedScalar alpha, CeedScalar *x_array, CeedSize length) {
+  for (CeedSize i = 0; i < length; i++) y_array[i] += alpha * x_array[i];
   return CEED_ERROR_SUCCESS;
 }
 
 //------------------------------------------------------------------------------
 // Compute y = alpha x + y on device (impl in .cu file)
 //------------------------------------------------------------------------------
-int CeedDeviceAXPY_Cuda(CeedScalar *y_array, CeedScalar alpha, CeedScalar *x_array, CeedInt length);
+int CeedDeviceAXPY_Cuda(CeedScalar *y_array, CeedScalar alpha, CeedScalar *x_array, CeedSize length);
 
 //------------------------------------------------------------------------------
 // Compute y = alpha x + y
@@ -592,15 +685,15 @@ static int CeedVectorAXPY_Cuda(CeedVector y, CeedScalar alpha, CeedVector x) {
 //------------------------------------------------------------------------------
 // Compute y = alpha x + beta y on the host
 //------------------------------------------------------------------------------
-static int CeedHostAXPBY_Cuda(CeedScalar *y_array, CeedScalar alpha, CeedScalar beta, CeedScalar *x_array, CeedInt length) {
-  for (int i = 0; i < length; i++) y_array[i] += alpha * x_array[i] + beta * y_array[i];
+static int CeedHostAXPBY_Cuda(CeedScalar *y_array, CeedScalar alpha, CeedScalar beta, CeedScalar *x_array, CeedSize length) {
+  for (CeedSize i = 0; i < length; i++) y_array[i] += alpha * x_array[i] + beta * y_array[i];
   return CEED_ERROR_SUCCESS;
 }
 
 //------------------------------------------------------------------------------
 // Compute y = alpha x + beta y on device (impl in .cu file)
 //------------------------------------------------------------------------------
-int CeedDeviceAXPBY_Cuda(CeedScalar *y_array, CeedScalar alpha, CeedScalar beta, CeedScalar *x_array, CeedInt length);
+int CeedDeviceAXPBY_Cuda(CeedScalar *y_array, CeedScalar alpha, CeedScalar beta, CeedScalar *x_array, CeedSize length);
 
 //------------------------------------------------------------------------------
 // Compute y = alpha x + beta y
@@ -630,15 +723,15 @@ static int CeedVectorAXPBY_Cuda(CeedVector y, CeedScalar alpha, CeedScalar beta,
 //------------------------------------------------------------------------------
 // Compute the pointwise multiplication w = x .* y on the host
 //------------------------------------------------------------------------------
-static int CeedHostPointwiseMult_Cuda(CeedScalar *w_array, CeedScalar *x_array, CeedScalar *y_array, CeedInt length) {
-  for (int i = 0; i < length; i++) w_array[i] = x_array[i] * y_array[i];
+static int CeedHostPointwiseMult_Cuda(CeedScalar *w_array, CeedScalar *x_array, CeedScalar *y_array, CeedSize length) {
+  for (CeedSize i = 0; i < length; i++) w_array[i] = x_array[i] * y_array[i];
   return CEED_ERROR_SUCCESS;
 }
 
 //------------------------------------------------------------------------------
 // Compute the pointwise multiplication w = x .* y on device (impl in .cu file)
 //------------------------------------------------------------------------------
-int CeedDevicePointwiseMult_Cuda(CeedScalar *w_array, CeedScalar *x_array, CeedScalar *y_array, CeedInt length);
+int CeedDevicePointwiseMult_Cuda(CeedScalar *w_array, CeedScalar *x_array, CeedScalar *y_array, CeedSize length);
 
 //------------------------------------------------------------------------------
 // Compute the pointwise multiplication w = x .* y

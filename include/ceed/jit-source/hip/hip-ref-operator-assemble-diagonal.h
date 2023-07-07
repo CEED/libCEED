@@ -7,6 +7,12 @@
 
 #include <ceed.h>
 
+#if CEEDSIZE
+typedef CeedSize IndexType;
+#else
+typedef CeedInt IndexType;
+#endif
+
 //------------------------------------------------------------------------------
 // Get Basis Emode Pointer
 //------------------------------------------------------------------------------
@@ -40,26 +46,26 @@ __device__ void diagonalCore(const CeedInt nelem, const bool pointBlock, const C
 
   // Compute the diagonal of B^T D B
   // Each element
-  for (CeedInt e = blockIdx.x * blockDim.z + threadIdx.z; e < nelem; e += gridDim.x * blockDim.z) {
-    CeedInt dout = -1;
+  for (IndexType e = blockIdx.x * blockDim.z + threadIdx.z; e < nelem; e += gridDim.x * blockDim.z) {
+    IndexType dout = -1;
     // Each basis eval mode pair
-    for (CeedInt eout = 0; eout < NUMEMODEOUT; eout++) {
+    for (IndexType eout = 0; eout < NUMEMODEOUT; eout++) {
       const CeedScalar *bt = NULL;
       if (emodeout[eout] == CEED_EVAL_GRAD) dout += 1;
       CeedOperatorGetBasisPointer_Hip(&bt, emodeout[eout], identity, interpout, &gradout[dout * NQPTS * NNODES]);
-      CeedInt din = -1;
-      for (CeedInt ein = 0; ein < NUMEMODEIN; ein++) {
+      IndexType din = -1;
+      for (IndexType ein = 0; ein < NUMEMODEIN; ein++) {
         const CeedScalar *b = NULL;
         if (emodein[ein] == CEED_EVAL_GRAD) din += 1;
         CeedOperatorGetBasisPointer_Hip(&b, emodein[ein], identity, interpin, &gradin[din * NQPTS * NNODES]);
         // Each component
-        for (CeedInt compOut = 0; compOut < NCOMP; compOut++) {
+        for (IndexType compOut = 0; compOut < NCOMP; compOut++) {
           // Each qpoint/node pair
           if (pointBlock) {
             // Point Block Diagonal
-            for (CeedInt compIn = 0; compIn < NCOMP; compIn++) {
+            for (IndexType compIn = 0; compIn < NCOMP; compIn++) {
               CeedScalar evalue = 0.;
-              for (CeedInt q = 0; q < NQPTS; q++) {
+              for (IndexType q = 0; q < NQPTS; q++) {
                 const CeedScalar qfvalue =
                     assembledqfarray[((((ein * NCOMP + compIn) * NUMEMODEOUT + eout) * NCOMP + compOut) * nelem + e) * NQPTS + q];
                 evalue += bt[q * NNODES + tid] * qfvalue * b[q * NNODES + tid];
@@ -69,7 +75,7 @@ __device__ void diagonalCore(const CeedInt nelem, const bool pointBlock, const C
           } else {
             // Diagonal Only
             CeedScalar evalue = 0.;
-            for (CeedInt q = 0; q < NQPTS; q++) {
+            for (IndexType q = 0; q < NQPTS; q++) {
               const CeedScalar qfvalue =
                   assembledqfarray[((((ein * NCOMP + compOut) * NUMEMODEOUT + eout) * NCOMP + compOut) * nelem + e) * NQPTS + q];
               evalue += bt[q * NNODES + tid] * qfvalue * b[q * NNODES + tid];

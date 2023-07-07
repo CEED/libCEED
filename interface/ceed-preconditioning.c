@@ -340,7 +340,7 @@ static inline int CeedSingleOperatorAssembleAddDiagonal_Core(CeedOperator op, Ce
 
     // Compute the diagonal of B^T D B
     // Each element
-    for (CeedInt e = 0; e < num_elem; e++) {
+    for (CeedSize e = 0; e < num_elem; e++) {
       // Each basis eval mode pair
       CeedInt      d_out              = 0, q_comp_out;
       CeedEvalMode eval_mode_out_prev = CEED_EVAL_NONE;
@@ -373,7 +373,7 @@ static inline int CeedSingleOperatorAssembleAddDiagonal_Core(CeedOperator op, Ce
               if (is_pointblock) {
                 // Point Block Diagonal
                 for (CeedInt c_in = 0; c_in < num_components; c_in++) {
-                  const CeedInt c_offset = (eval_mode_offsets_in[b][e_in] + c_in) * num_output_components + eval_mode_offsets_out[b][e_out] + c_out;
+                  const CeedSize c_offset = (eval_mode_offsets_in[b][e_in] + c_in) * num_output_components + eval_mode_offsets_out[b][e_out] + c_out;
                   const CeedScalar qf_value = assembled_qf_array[q * layout[0] + c_offset * layout[1] + e * layout[2]];
                   for (CeedInt n = 0; n < num_nodes; n++) {
                     elem_diag_array[((e * num_components + c_out) * num_components + c_in) * num_nodes + n] +=
@@ -491,7 +491,7 @@ static int CeedSingleOperatorAssembleSymbolic(CeedOperator op, CeedInt offset, C
   CeedCall(CeedVectorDestroy(&index_vec));
 
   // Determine i, j locations for element matrices
-  CeedInt count = 0;
+  CeedSize count = 0;
   for (CeedInt e = 0; e < num_elem; e++) {
     for (CeedInt comp_in = 0; comp_in < num_comp; comp_in++) {
       for (CeedInt comp_out = 0; comp_out < num_comp; comp_out++) {
@@ -614,22 +614,22 @@ static int CeedSingleOperatorAssemble(CeedOperator op, CeedInt offset, CeedVecto
   const CeedScalar *B_mat_in = B_mats_in[0], *B_mat_out = B_mats_out[0];
   CeedScalar        BTD_mat[elem_size * num_qpts * num_eval_modes_in[0]];
   CeedScalar        elem_mat[elem_size * elem_size];
-  CeedInt           count = 0;
+  CeedSize          count = 0;
   CeedScalar       *vals;
   CeedCall(CeedVectorGetArray(values, CEED_MEM_HOST, &vals));
-  for (CeedInt e = 0; e < num_elem; e++) {
+  for (CeedSize e = 0; e < num_elem; e++) {
     for (CeedInt comp_in = 0; comp_in < num_comp; comp_in++) {
       for (CeedInt comp_out = 0; comp_out < num_comp; comp_out++) {
         // Compute B^T*D
-        for (CeedInt n = 0; n < elem_size; n++) {
-          for (CeedInt q = 0; q < num_qpts; q++) {
+        for (CeedSize n = 0; n < elem_size; n++) {
+          for (CeedSize q = 0; q < num_qpts; q++) {
             for (CeedInt e_in = 0; e_in < num_eval_modes_in[0]; e_in++) {
-              const CeedInt btd_index = n * (num_qpts * num_eval_modes_in[0]) + (num_eval_modes_in[0] * q + e_in);
-              CeedScalar    sum       = 0.0;
+              const CeedSize btd_index = n * (num_qpts * num_eval_modes_in[0]) + (num_eval_modes_in[0] * q + e_in);
+              CeedScalar     sum       = 0.0;
               for (CeedInt e_out = 0; e_out < num_eval_modes_out[0]; e_out++) {
-                const CeedInt b_out_index     = (num_eval_modes_out[0] * q + e_out) * elem_size + n;
-                const CeedInt eval_mode_index = ((e_in * num_comp + comp_in) * num_eval_modes_out[0] + e_out) * num_comp + comp_out;
-                const CeedInt qf_index        = q * layout_qf[0] + eval_mode_index * layout_qf[1] + e * layout_qf[2];
+                const CeedSize b_out_index     = (num_eval_modes_out[0] * q + e_out) * elem_size + n;
+                const CeedSize eval_mode_index = ((e_in * num_comp + comp_in) * num_eval_modes_out[0] + e_out) * num_comp + comp_out;
+                const CeedSize qf_index        = q * layout_qf[0] + eval_mode_index * layout_qf[1] + e * layout_qf[2];
                 sum += B_mat_out[b_out_index] * assembled_qf_array[qf_index];
               }
               BTD_mat[btd_index] = sum;
@@ -668,7 +668,7 @@ static int CeedSingleOperatorAssemble(CeedOperator op, CeedInt offset, CeedVecto
 
   @ref Utility
 **/
-static int CeedSingleOperatorAssemblyCountEntries(CeedOperator op, CeedInt *num_entries) {
+static int CeedSingleOperatorAssemblyCountEntries(CeedOperator op, CeedSize *num_entries) {
   bool                is_composite;
   CeedElemRestriction rstr;
   CeedInt             num_elem, elem_size, num_comp;
@@ -679,7 +679,7 @@ static int CeedSingleOperatorAssemblyCountEntries(CeedOperator op, CeedInt *num_
   CeedCall(CeedElemRestrictionGetNumElements(rstr, &num_elem));
   CeedCall(CeedElemRestrictionGetElementSize(rstr, &elem_size));
   CeedCall(CeedElemRestrictionGetNumComponents(rstr, &num_comp));
-  *num_entries = elem_size * num_comp * elem_size * num_comp * num_elem;
+  *num_entries = (CeedSize)elem_size * num_comp * elem_size * num_comp * num_elem;
 
   return CEED_ERROR_SUCCESS;
 }
@@ -1839,7 +1839,8 @@ matrix in entry (i, j).
    @ref User
 **/
 int CeedOperatorLinearAssembleSymbolic(CeedOperator op, CeedSize *num_entries, CeedInt **rows, CeedInt **cols) {
-  CeedInt       num_suboperators, single_entries;
+  CeedInt       num_suboperators;
+  CeedSize      single_entries;
   CeedOperator *sub_operators;
   bool          is_composite;
   CeedCall(CeedOperatorCheckReady(op));
@@ -1915,7 +1916,8 @@ matrix in entry (i, j).
    @ref User
 **/
 int CeedOperatorLinearAssemble(CeedOperator op, CeedVector values) {
-  CeedInt       num_suboperators, single_entries = 0;
+  CeedInt       num_suboperators;
+  CeedSize      single_entries = 0;
   CeedOperator *sub_operators;
   bool          is_composite;
   CeedCall(CeedOperatorCheckReady(op));
