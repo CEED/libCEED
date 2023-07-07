@@ -30,12 +30,10 @@
 #define CEED_COMPOSITE_MAX 16
 #define CEED_FIELD_MAX 16
 
-/**
-  @ingroup Ceed
-  This macro provides the ability to disable optimization flags for functions that are sensitive to floating point optimizations.
-**/
 #ifndef CeedPragmaOptimizeOff
 #if defined(__clang__)
+/// This macro provides the ability to disable optimization flags for functions that are sensitive to floating point optimizations.
+/// @ingroup Ceed
 #define CeedPragmaOptimizeOff _Pragma("clang optimize off")
 #elif defined(__GNUC__)
 #define CeedPragmaOptimizeOff _Pragma("GCC push_options") _Pragma("GCC optimize 0")
@@ -46,12 +44,10 @@
 #endif
 #endif
 
-/**
-  @ingroup Ceed
-  This macro restores previously set optimization flags after CeedPragmaOptimizeOff.
-**/
 #ifndef CeedPragmaOptimizeOn
 #if defined(__clang__)
+/// This macro restores previously set optimization flags after CeedPragmaOptimizeOff.
+/// @ingroup Ceed
 #define CeedPragmaOptimizeOn _Pragma("clang optimize on")
 #elif defined(__GNUC__)
 #define CeedPragmaOptimizeOn _Pragma("GCC pop_options")
@@ -62,9 +58,13 @@
 #endif
 #endif
 
-/// Common colors for CeedDebug256 debugging output.
-/// Set CEED_DEBUG=1 to activate debugging output.
-/// @ingroup CeedBackend
+/**
+  This enum supples common colors for CeedDebug256 debugging output.
+  Set the environment variable `CEED_DEBUG = 1` to activate debugging output.
+
+  @ingroup Ceed
+  @ref     Backend
+**/
 typedef enum {
   /// Success color
   CEED_DEBUG_COLOR_SUCCESS = 108,
@@ -79,15 +79,46 @@ typedef enum {
 CEED_EXTERN void CeedDebugImpl256(const unsigned char, const char *, ...);
 CEED_EXTERN bool CeedDebugFlag(const Ceed ceed);
 CEED_EXTERN bool CeedDebugFlagEnv(void);
+/**
+  Print debugging information in color
+
+  @param[in] ceed  Ceed
+  @param[in] color Color to print with
+
+  @ingroup Ceed
+  @ref     Backend
+**/
 #define CeedDebug256(ceed, color, ...)                               \
   {                                                                  \
     if (CeedDebugFlag(ceed)) CeedDebugImpl256(color, ##__VA_ARGS__); \
   }
+/**
+  Print debugging information to terminal
+
+  @param[in] ceed  Ceed
+
+  @ingroup Ceed
+  @ref     Backend
+**/
 #define CeedDebug(ceed, ...) CeedDebug256(ceed, (unsigned char)CEED_DEBUG_COLOR_NONE, ##__VA_ARGS__)
+/**
+  Print debugging information in color without Ceed to reference
+
+  @param[in] color Color to print with
+
+  @ingroup Ceed
+  @ref     Backend
+**/
 #define CeedDebugEnv256(color, ...)                                 \
   {                                                                 \
     if (CeedDebugFlagEnv()) CeedDebugImpl256(color, ##__VA_ARGS__); \
   }
+/**
+  Print debugging information to terminal without Ceed to reference
+
+  @ingroup Ceed
+  @ref     Backend
+**/
 #define CeedDebugEnv(...) CeedDebugEnv256((unsigned char)CEED_DEBUG_COLOR_NONE, ##__VA_ARGS__)
 
 /// Handle for object handling TensorContraction
