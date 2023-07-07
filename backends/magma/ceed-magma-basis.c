@@ -487,7 +487,7 @@ CEED_INTERN "C"
   char *interp_path, *grad_path, *weight_path;
   char *basis_kernel_source;
   CeedCallBackend(CeedGetJitAbsolutePath(ceed, "ceed/jit-source/magma/magma_common_defs.h", &magma_common_path));
-  CeedDebug256(ceed, 2, "----- Loading Basis Kernel Source -----\n");
+  CeedDebug256(ceed, CEED_DEBUG_COLOR_SUCCESS, "----- Loading Basis Kernel Source -----\n");
   CeedCallBackend(CeedLoadSourceToBuffer(ceed, magma_common_path, &basis_kernel_source));
   CeedCallBackend(CeedGetJitAbsolutePath(ceed, "ceed/jit-source/magma/magma_common_tensor.h", &magma_common_path));
   CeedCallBackend(CeedLoadSourceToInitializedBuffer(ceed, magma_common_path, &basis_kernel_source));
@@ -509,7 +509,7 @@ CEED_INTERN "C"
   snprintf(weight_name, weight_name_len, "%s-%" CeedInt_FMT "d.h", weight_name_base, dim);
   CeedCallBackend(CeedGetJitAbsolutePath(ceed, weight_name, &weight_path));
   CeedCallBackend(CeedLoadSourceToInitializedBuffer(ceed, weight_path, &basis_kernel_source));
-  CeedDebug256(ceed, 2, "----- Loading Basis Kernel Source Complete! -----\n");
+  CeedDebug256(ceed, CEED_DEBUG_COLOR_SUCCESS, "----- Loading Basis Kernel Source Complete! -----\n");
   // The RTC compilation code expects a Ceed with the common Ceed_Cuda or Ceed_Hip
   // data
   Ceed delegate;
@@ -589,7 +589,7 @@ CEED_INTERN "C"
   char *interp_path, *grad_path;
   char *basis_kernel_source;
   CeedCallBackend(CeedGetJitAbsolutePath(ceed, "ceed/jit-source/magma/magma_common_defs.h", &magma_common_path));
-  CeedDebug256(ceed, 2, "----- Loading Basis Kernel Source -----\n");
+  CeedDebug256(ceed, CEED_DEBUG_COLOR_SUCCESS, "----- Loading Basis Kernel Source -----\n");
   CeedCallBackend(CeedLoadSourceToBuffer(ceed, magma_common_path, &basis_kernel_source));
   CeedCallBackend(CeedGetJitAbsolutePath(ceed, "ceed/jit-source/magma/magma_common_nontensor.h", &magma_common_path));
   CeedCallBackend(CeedLoadSourceToInitializedBuffer(ceed, magma_common_path, &basis_kernel_source));

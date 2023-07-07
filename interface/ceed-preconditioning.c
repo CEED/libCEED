@@ -167,7 +167,7 @@ int CeedOperatorGetFallback(CeedOperator op, CeedOperator *op_fallback) {
       CeedCall(CeedGetResource(ceed, &resource));
       CeedCall(CeedGetResource(ceed_fallback, &resource_fallback));
 
-      CeedDebug256(ceed, 1, "---------- CeedOperator Fallback ----------\n");
+      CeedDebug256(ceed, CEED_DEBUG_COLOR_SUCCESS, "---------- CeedOperator Fallback ----------\n");
       CeedDebug(ceed, "Falling back from %s operator at address %ld to %s operator at address %ld\n", resource, op, resource_fallback,
                 op->op_fallback);
     }

@@ -185,7 +185,7 @@ static int CeedVectorRestoreArray_Memcheck(CeedVector vec) {
 
   if (impl->is_write_only_access) {
     for (CeedSize i = 0; i < length; i++) {
-      if (isnan(impl->array[i])) CeedDebug256(ceed, 196, "WARNING: Vec entry %ld is NaN after restoring write-only access", i);
+      if (isnan(impl->array[i])) CeedDebug256(ceed, CEED_DEBUG_COLOR_WARNING, "WARNING: Vec entry %ld is NaN after restoring write-only access", i);
     }
     impl->is_write_only_access = false;
   }

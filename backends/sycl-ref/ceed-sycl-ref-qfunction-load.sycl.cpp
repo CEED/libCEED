@@ -60,17 +60,17 @@ extern "C" int CeedQFunctionBuildKernel_Sycl(CeedQFunction qf) {
   CeedCallBackend(CeedQFunctionGetKernelName(qf, &qfunction_name));
 
   char* qfunction_source;
-  CeedDebug256(ceed, 2, "----- Loading QFunction User Source -----\n");
+  CeedDebug256(ceed, CEED_DEBUG_COLOR_SUCCESS, "----- Loading QFunction User Source -----\n");
   CeedCallBackend(CeedQFunctionLoadSourceToBuffer(qf, &qfunction_source));
-  CeedDebug256(ceed, 2, "----- Loading QFunction User Source Complete! -----\n");
+  CeedDebug256(ceed, CEED_DEBUG_COLOR_SUCCESS, "----- Loading QFunction User Source Complete! -----\n");
 
   char* read_write_kernel_path;
   CeedCallBackend(CeedGetJitAbsolutePath(ceed, "ceed/jit-source/sycl/sycl-ref-qfunction.h", &read_write_kernel_path));
 
   char* read_write_kernel_source;
-  CeedDebug256(ceed, 2, "----- Loading QFunction Read/Write Kernel Source -----\n");
+  CeedDebug256(ceed, CEED_DEBUG_COLOR_SUCCESS, "----- Loading QFunction Read/Write Kernel Source -----\n");
   CeedCallBackend(CeedLoadSourceToBuffer(ceed, read_write_kernel_path, &read_write_kernel_source));
-  CeedDebug256(ceed, 2, "----- Loading QFunction Read/Write Kernel Source Complete! -----\n");
+  CeedDebug256(ceed, CEED_DEBUG_COLOR_SUCCESS, "----- Loading QFunction Read/Write Kernel Source Complete! -----\n");
 
   std::string_view  qf_name_view(qfunction_name);
   std::string_view  qf_source_view(qfunction_source);
@@ -158,7 +158,7 @@ extern "C" int CeedQFunctionBuildKernel_Sycl(CeedQFunction qf) {
   code << "}\n";
 
   // View kernel for debugging
-  CeedDebug256(ceed, 2, "Generated QFunction Kernels:\n");
+  CeedDebug256(ceed, CEED_DEBUG_COLOR_SUCCESS, "Generated QFunction Kernels:\n");
   CeedDebug(ceed, code.str().c_str());
 
   // Compile kernel

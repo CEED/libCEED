@@ -92,7 +92,7 @@ extern "C" int CeedOperatorBuildKernel_Hip_gen(CeedOperator op) {
   {
     char *tensor_basis_kernel_path, *tensor_basis_kernel_source;
     CeedCallBackend(CeedGetJitAbsolutePath(ceed, "ceed/jit-source/hip/hip-shared-basis-tensor-templates.h", &tensor_basis_kernel_path));
-    CeedDebug256(ceed, 2, "----- Loading Tensor Basis Kernel Source -----\n");
+    CeedDebug256(ceed, CEED_DEBUG_COLOR_SUCCESS, "----- Loading Tensor Basis Kernel Source -----\n");
     CeedCallBackend(CeedLoadSourceToBuffer(ceed, tensor_basis_kernel_path, &tensor_basis_kernel_source));
     code << tensor_basis_kernel_source;
     CeedCallBackend(CeedFree(&tensor_basis_kernel_path));
@@ -101,7 +101,7 @@ extern "C" int CeedOperatorBuildKernel_Hip_gen(CeedOperator op) {
   {
     char *hip_gen_template_path, *hip_gen_template_source;
     CeedCallBackend(CeedGetJitAbsolutePath(ceed, "ceed/jit-source/hip/hip-gen-templates.h", &hip_gen_template_path));
-    CeedDebug256(ceed, 2, "----- Loading Hip-Gen Template Source -----\n");
+    CeedDebug256(ceed, CEED_DEBUG_COLOR_SUCCESS, "----- Loading Hip-Gen Template Source -----\n");
     CeedCallBackend(CeedLoadSourceToBuffer(ceed, hip_gen_template_path, &hip_gen_template_source));
     code << hip_gen_template_source;
     CeedCallBackend(CeedFree(&hip_gen_template_path));
@@ -676,7 +676,7 @@ extern "C" int CeedOperatorBuildKernel_Hip_gen(CeedOperator op) {
   code << "// -----------------------------------------------------------------------------\n\n";
 
   // View kernel for debugging
-  CeedDebug256(ceed, 2, "Generated Operator Kernels:\n");
+  CeedDebug256(ceed, CEED_DEBUG_COLOR_SUCCESS, "Generated Operator Kernels:\n");
   CeedDebug(ceed, code.str().c_str());
 
   CeedInt block_sizes[3] = {0, 0, 0};

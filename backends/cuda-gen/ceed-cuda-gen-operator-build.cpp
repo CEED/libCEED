@@ -76,7 +76,7 @@ extern "C" int CeedOperatorBuildKernel_Cuda_gen(CeedOperator op) {
   if ((prop.major < 6) && (CEED_SCALAR_TYPE != CEED_SCALAR_FP32)) {
     char *atomic_add_path, *atomic_add_source;
     CeedCallBackend(CeedGetJitAbsolutePath(ceed, "ceed/jit-source/cuda/cuda-atomic-add-fallback.h", &atomic_add_path));
-    CeedDebug256(ceed, 2, "----- Loading Atomic Add Source -----\n");
+    CeedDebug256(ceed, CEED_DEBUG_COLOR_SUCCESS, "----- Loading Atomic Add Source -----\n");
     CeedCallBackend(CeedLoadSourceToBuffer(ceed, atomic_add_path, &atomic_add_source));
     code << atomic_add_source;
     CeedCallBackend(CeedFree(&atomic_add_path));
@@ -88,7 +88,7 @@ extern "C" int CeedOperatorBuildKernel_Cuda_gen(CeedOperator op) {
   {
     char *tensor_basis_kernel_path, *tensor_basis_kernel_source;
     CeedCallBackend(CeedGetJitAbsolutePath(ceed, "ceed/jit-source/cuda/cuda-shared-basis-tensor-templates.h", &tensor_basis_kernel_path));
-    CeedDebug256(ceed, 2, "----- Loading Tensor Basis Kernel Source -----\n");
+    CeedDebug256(ceed, CEED_DEBUG_COLOR_SUCCESS, "----- Loading Tensor Basis Kernel Source -----\n");
     CeedCallBackend(CeedLoadSourceToBuffer(ceed, tensor_basis_kernel_path, &tensor_basis_kernel_source));
     code << tensor_basis_kernel_source;
     CeedCallBackend(CeedFree(&tensor_basis_kernel_path));
@@ -97,7 +97,7 @@ extern "C" int CeedOperatorBuildKernel_Cuda_gen(CeedOperator op) {
   {
     char *cuda_gen_template_path, *cuda_gen_template_source;
     CeedCallBackend(CeedGetJitAbsolutePath(ceed, "ceed/jit-source/cuda/cuda-gen-templates.h", &cuda_gen_template_path));
-    CeedDebug256(ceed, 2, "----- Loading Cuda-Gen Template Source -----\n");
+    CeedDebug256(ceed, CEED_DEBUG_COLOR_SUCCESS, "----- Loading Cuda-Gen Template Source -----\n");
     CeedCallBackend(CeedLoadSourceToBuffer(ceed, cuda_gen_template_path, &cuda_gen_template_source));
     code << cuda_gen_template_source;
     CeedCallBackend(CeedFree(&cuda_gen_template_path));
@@ -679,7 +679,7 @@ extern "C" int CeedOperatorBuildKernel_Cuda_gen(CeedOperator op) {
   code << "// -----------------------------------------------------------------------------\n\n";
 
   // View kernel for debugging
-  CeedDebug256(ceed, 2, "Generated Operator Kernels:\n");
+  CeedDebug256(ceed, CEED_DEBUG_COLOR_SUCCESS, "Generated Operator Kernels:\n");
   CeedDebug(ceed, code.str().c_str());
 
   CeedCallBackend(CeedCompile_Cuda(ceed, code.str().c_str(), &data->module, 1, "T_1D", CeedIntMax(Q_1d, data->max_P_1d)));

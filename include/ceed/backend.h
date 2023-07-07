@@ -62,8 +62,19 @@
 #endif
 #endif
 
-/// CEED_DEBUG_COLOR default value, forward CeedDebug* declarations & macros
-#define CEED_DEBUG_COLOR_NONE 255
+/// Common colors for CeedDebug256 debugging output.
+/// Set CEED_DEBUG=1 to activate debugging output.
+/// @ingroup CeedBackend
+typedef enum {
+  /// Success color
+  CEED_DEBUG_COLOR_SUCCESS = 108,
+  /// Warning color
+  CEED_DEBUG_COLOR_WARNING = 208,
+  /// Error color
+  CEED_DEBUG_COLOR_ERROR = 196,
+  /// Use native terminal coloring
+  CEED_DEBUG_COLOR_NONE = 255,
+} CeedDebugColor;
 
 CEED_EXTERN void CeedDebugImpl256(const unsigned char, const char *, ...);
 CEED_EXTERN bool CeedDebugFlag(const Ceed ceed);
