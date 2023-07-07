@@ -1568,8 +1568,47 @@ int CeedBasisApplyAtPoints(CeedBasis basis, CeedInt num_points, CeedTransposeMod
       CeedCall(CeedVectorRestoreArray(v, &v_array));
       break;
     }
-    case CEED_TRANSPOSE:
-      return CeedError(basis->ceed, CEED_ERROR_UNSUPPORTED, "CEED_TRANSPOSE unsupported for arbitrary basis point evaluation");
+    case CEED_TRANSPOSE: {
+      // Arbitrary points to nodes
+      CeedScalar       *chebyshev_coeffs;
+      const CeedScalar *u_array, *x_array_read;
+
+      // -- Transpose of evaluaton of Chebyshev polynomials at arbitrary points
+      CeedCall(CeedVectorGetArrayWrite(basis->vec_chebyshev, CEED_MEM_HOST, &chebyshev_coeffs));
+      CeedCall(CeedVectorGetArrayRead(x_ref, CEED_MEM_HOST, &x_array_read));
+      CeedCall(CeedVectorGetArrayRead(u, CEED_MEM_HOST, &u_array));
+      {
+        CeedScalar tmp[2][num_comp * CeedIntPow(Q_1d, dim)], chebyshev_x[Q_1d];
+
+        // ---- Values at point
+        for (CeedInt p = 0; p < num_points; p++) {
+          CeedInt pre = num_comp * 1, post = 1;
+
+          for (CeedInt d = dim - 1; d >= 0; d--) {
+            // ------ Compute Chebyshev polynomial values
+            {
+              const CeedScalar x = x_array_read[p * dim + d];
+
+              chebyshev_x[0] = 1.0;
+              chebyshev_x[1] = 2 * x;
+              for (CeedInt j = 2; j < Q_1d; j++) chebyshev_x[j] = 2 * x * chebyshev_x[j - 1] - chebyshev_x[j - 2];
+            }
+            // ------ Tensor contract
+            CeedCall(CeedTensorContractApply(basis->contract, pre, 1, post, Q_1d, chebyshev_x, t_mode, p > 0 && d == 0,
+                                             d == (dim - 1) ? &u_array[p * num_comp] : tmp[d % 2], d == 0 ? chebyshev_coeffs : tmp[(d + 1) % 2]));
+            pre /= 1;
+            post *= Q_1d;
+          }
+        }
+      }
+      CeedCall(CeedVectorRestoreArray(basis->vec_chebyshev, &chebyshev_coeffs));
+      CeedCall(CeedVectorRestoreArrayRead(x_ref, &x_array_read));
+      CeedCall(CeedVectorRestoreArrayRead(u, &u_array));
+
+      // -- Interpolate transpose from Chebyshev coefficients
+      CeedCall(CeedBasisApply(basis->basis_chebyshev, 1, CEED_TRANSPOSE, CEED_EVAL_INTERP, basis->vec_chebyshev, v));
+      break;
+    }
   }
 
   return CEED_ERROR_SUCCESS;

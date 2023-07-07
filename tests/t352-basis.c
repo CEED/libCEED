@@ -61,7 +61,7 @@ int main(int argc, char **argv) {
     // Interpolate to arbitrary points
     CeedBasisCreateTensorH1Lagrange(ceed, dim, num_comp, p, q, CEED_GAUSS, &basis_u);
     {
-      CeedScalar x_array[12] = {-0.33, -0.65, .16, 0.99, -0.65, .16, 0.99, -0.33, .16, 0.99, -0.33, -0.65};
+      CeedScalar x_array[12] = {-0.33, -0.65, 0.16, 0.99, -0.65, 0.16, 0.99, -0.33, 0.16, 0.99, -0.33, -0.65};
 
       CeedVectorSetArray(x_points, CEED_MEM_HOST, CEED_COPY_VALUES, x_array);
     }
