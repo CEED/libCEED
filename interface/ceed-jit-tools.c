@@ -39,7 +39,7 @@ int CeedCheckFilePath(Ceed ceed, const char *source_file_path, bool *is_valid) {
   }
 
   // Debug
-  CeedDebug256(ceed, 1, "Checking for source file: ");
+  CeedDebug256(ceed, CEED_DEBUG_COLOR_SUCCESS, "Checking for source file: ");
   CeedDebug(ceed, "%s\n", source_file_path_only);
 
   // Check for valid file path
@@ -49,7 +49,7 @@ int CeedCheckFilePath(Ceed ceed, const char *source_file_path, bool *is_valid) {
 
   if (*is_valid) {
     // Debug
-    CeedDebug256(ceed, 1, "Found JiT source file: ");
+    CeedDebug256(ceed, CEED_DEBUG_COLOR_SUCCESS, "Found JiT source file: ");
     CeedDebug(ceed, "%s\n", source_file_path_only);
 
     fclose(source_file);
@@ -78,10 +78,10 @@ int CeedLoadSourceToInitializedBuffer(Ceed ceed, const char *source_file_path, c
   char *temp_buffer;
 
   // Debug
-  CeedDebug256(ceed, 1, "---------- Ceed JiT ----------\n");
-  CeedDebug256(ceed, 1, "Current source file: ");
+  CeedDebug256(ceed, CEED_DEBUG_COLOR_SUCCESS, "---------- Ceed JiT ----------\n");
+  CeedDebug256(ceed, CEED_DEBUG_COLOR_SUCCESS, "Current source file: ");
   CeedDebug(ceed, "%s\n", source_file_path);
-  CeedDebug256(ceed, 1, "Current buffer:\n");
+  CeedDebug256(ceed, CEED_DEBUG_COLOR_SUCCESS, "Current buffer:\n");
   CeedDebug(ceed, "%s\n", *buffer);
 
   // Read file to temporary buffer
@@ -153,7 +153,7 @@ int CeedLoadSourceToInitializedBuffer(Ceed ceed, const char *source_file_path, c
           CeedCall(CeedFree(&ceed_relative_path));
         }
         // ---- Recursive call to load source to buffer
-        CeedDebug256(ceed, 2, "JiT Including: %s\n", include_source_path);
+        CeedDebug256(ceed, CEED_DEBUG_COLOR_SUCCESS, "JiT Including: %s\n", include_source_path);
         CeedCall(CeedLoadSourceToInitializedBuffer(ceed, include_source_path, buffer));
         CeedCall(CeedFree(&include_source_path));
       }
@@ -174,10 +174,10 @@ int CeedLoadSourceToInitializedBuffer(Ceed ceed, const char *source_file_path, c
   CeedCall(CeedFree(&temp_buffer));
 
   // Debug
-  CeedDebug256(ceed, 1, "---------- Ceed JiT ----------\n");
-  CeedDebug256(ceed, 1, "Current source file: ");
+  CeedDebug256(ceed, CEED_DEBUG_COLOR_SUCCESS, "---------- Ceed JiT ----------\n");
+  CeedDebug256(ceed, CEED_DEBUG_COLOR_SUCCESS, "Current source file: ");
   CeedDebug(ceed, "%s\n", source_file_path);
-  CeedDebug256(ceed, 1, "Final buffer:\n");
+  CeedDebug256(ceed, CEED_DEBUG_COLOR_SUCCESS, "Final buffer:\n");
   CeedDebug(ceed, "%s\n", *buffer);
 
   return CEED_ERROR_SUCCESS;
@@ -265,8 +265,8 @@ int CeedGetJitAbsolutePath(Ceed ceed, const char *relative_file_path, char **abs
   Ceed ceed_parent;
 
   // Debug
-  CeedDebug256(ceed, 1, "---------- Ceed JiT ----------\n");
-  CeedDebug256(ceed, 1, "Relative JiT source file: ");
+  CeedDebug256(ceed, CEED_DEBUG_COLOR_SUCCESS, "---------- Ceed JiT ----------\n");
+  CeedDebug256(ceed, CEED_DEBUG_COLOR_SUCCESS, "Relative JiT source file: ");
   CeedDebug(ceed, "%s\n", relative_file_path);
 
   CeedCall(CeedGetParent(ceed, &ceed_parent));
@@ -274,7 +274,7 @@ int CeedGetJitAbsolutePath(Ceed ceed, const char *relative_file_path, char **abs
     bool is_valid;
 
     // Debug
-    CeedDebug256(ceed, 1, "Checking JiT root: ");
+    CeedDebug256(ceed, CEED_DEBUG_COLOR_SUCCESS, "Checking JiT root: ");
     CeedDebug(ceed, "%s\n", ceed_parent->jit_source_roots[i]);
 
     // Build and check absolute path with current root

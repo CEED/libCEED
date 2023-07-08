@@ -722,9 +722,9 @@ static inline int CeedOperatorAssembleDiagonalSetup_Cuda(CeedOperator op, const 
   // Assemble kernel
   char *diagonal_kernel_path, *diagonal_kernel_source;
   CeedCallBackend(CeedGetJitAbsolutePath(ceed, "ceed/jit-source/cuda/cuda-ref-operator-assemble-diagonal.h", &diagonal_kernel_path));
-  CeedDebug256(ceed, 2, "----- Loading Diagonal Assembly Kernel Source -----\n");
+  CeedDebug256(ceed, CEED_DEBUG_COLOR_SUCCESS, "----- Loading Diagonal Assembly Kernel Source -----\n");
   CeedCallBackend(CeedLoadSourceToBuffer(ceed, diagonal_kernel_path, &diagonal_kernel_source));
-  CeedDebug256(ceed, 2, "----- Loading Diagonal Assembly Source Complete! -----\n");
+  CeedDebug256(ceed, CEED_DEBUG_COLOR_SUCCESS, "----- Loading Diagonal Assembly Source Complete! -----\n");
   CeedInt nnodes, nqpts;
   CeedCallBackend(CeedBasisGetNumNodes(basisin, &nnodes));
   CeedCallBackend(CeedBasisGetNumQuadraturePoints(basisin, &nqpts));
@@ -978,9 +978,9 @@ static int CeedSingleOperatorAssembleSetup_Cuda(CeedOperator op, CeedInt use_cee
   CeedCallBackend(CeedGetData(ceed, &cuda_data));
   char *assembly_kernel_path, *assembly_kernel_source;
   CeedCallBackend(CeedGetJitAbsolutePath(ceed, "ceed/jit-source/cuda/cuda-ref-operator-assemble.h", &assembly_kernel_path));
-  CeedDebug256(ceed, 2, "----- Loading Assembly Kernel Source -----\n");
+  CeedDebug256(ceed, CEED_DEBUG_COLOR_SUCCESS, "----- Loading Assembly Kernel Source -----\n");
   CeedCallBackend(CeedLoadSourceToBuffer(ceed, assembly_kernel_path, &assembly_kernel_source));
-  CeedDebug256(ceed, 2, "----- Loading Assembly Source Complete! -----\n");
+  CeedDebug256(ceed, CEED_DEBUG_COLOR_SUCCESS, "----- Loading Assembly Source Complete! -----\n");
   bool fallback = block_size > cuda_data->device_prop.maxThreadsPerBlock;
   if (fallback) {
     // Use fallback kernel with 1D threadblock

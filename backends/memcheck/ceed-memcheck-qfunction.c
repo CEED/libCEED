@@ -7,6 +7,7 @@
 
 #include <ceed.h>
 #include <ceed/backend.h>
+#include <math.h>
 #include <stdio.h>
 #include <valgrind/memcheck.h>
 
@@ -16,6 +17,9 @@
 // QFunction Apply
 //------------------------------------------------------------------------------
 static int CeedQFunctionApply_Memcheck(CeedQFunction qf, CeedInt Q, CeedVector *U, CeedVector *V) {
+  Ceed ceed;
+  CeedCallBackend(CeedQFunctionGetCeed(qf, &ceed));
+
   CeedQFunction_Memcheck *impl;
   CeedCallBackend(CeedQFunctionGetData(qf, &impl));
 
@@ -51,6 +55,13 @@ static int CeedQFunctionApply_Memcheck(CeedQFunction qf, CeedInt Q, CeedVector *
     CeedCallBackend(CeedVectorRestoreArrayRead(U[i], &impl->inputs[i]));
   }
   for (CeedInt i = 0; i < num_out; i++) {
+    CeedSize length;
+
+    CeedCallBackend(CeedVectorGetLength(V[i], &length));
+    for (CeedSize j = 0; j < length; j++) {
+      CeedCheck(!isnan(impl->outputs[i][j]), ceed, CEED_ERROR_BACKEND, "QFunction output %d entry %ld is NaN after restoring write-only access", i,
+                j);
+    }
     CeedCallBackend(CeedVectorRestoreArray(V[i], &impl->outputs[i]));
     VALGRIND_DISCARD(mem_block_ids[i]);
   }

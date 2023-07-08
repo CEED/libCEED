@@ -195,8 +195,8 @@ template <>
 template <>
 std::vector<byte> online_compiler<source_language::opencl_c>::compile(const std::string &src, const std::vector<std::string> &options);
 
-/// Compiles the given OpenCL source. May throw \c online_compile_error.
-/// @param src - contents of the source.
+// /// Compiles the given OpenCL source. May throw \c online_compile_error.
+// /// @param src - contents of the source.
 // template <>
 // template <>
 // std::vector<byte>

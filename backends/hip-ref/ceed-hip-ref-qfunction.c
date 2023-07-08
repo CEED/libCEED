@@ -90,9 +90,9 @@ int CeedQFunctionCreate_Hip(CeedQFunction qf) {
 
   // Read QFunction source
   CeedCallBackend(CeedQFunctionGetKernelName(qf, &data->qfunction_name));
-  CeedDebug256(ceed, 2, "----- Loading QFunction User Source -----\n");
+  CeedDebug256(ceed, CEED_DEBUG_COLOR_SUCCESS, "----- Loading QFunction User Source -----\n");
   CeedCallBackend(CeedQFunctionLoadSourceToBuffer(qf, &data->qfunction_source));
-  CeedDebug256(ceed, 2, "----- Loading QFunction User Source Complete! -----\n");
+  CeedDebug256(ceed, CEED_DEBUG_COLOR_SUCCESS, "----- Loading QFunction User Source Complete! -----\n");
 
   // Register backend functions
   CeedCallBackend(CeedSetBackendFunction(ceed, "QFunction", qf, "Apply", CeedQFunctionApply_Hip));

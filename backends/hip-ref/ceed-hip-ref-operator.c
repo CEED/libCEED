@@ -722,9 +722,9 @@ static inline int CeedOperatorAssembleDiagonalSetup_Hip(CeedOperator op, const b
 
   char *diagonal_kernel_path, *diagonal_kernel_source;
   CeedCallBackend(CeedGetJitAbsolutePath(ceed, "ceed/jit-source/hip/hip-ref-operator-assemble-diagonal.h", &diagonal_kernel_path));
-  CeedDebug256(ceed, 2, "----- Loading Diagonal Assembly Kernel Source -----\n");
+  CeedDebug256(ceed, CEED_DEBUG_COLOR_SUCCESS, "----- Loading Diagonal Assembly Kernel Source -----\n");
   CeedCallBackend(CeedLoadSourceToBuffer(ceed, diagonal_kernel_path, &diagonal_kernel_source));
-  CeedDebug256(ceed, 2, "----- Loading Diagonal Assembly Source Complete! -----\n");
+  CeedDebug256(ceed, CEED_DEBUG_COLOR_SUCCESS, "----- Loading Diagonal Assembly Source Complete! -----\n");
   CeedInt nnodes, nqpts;
   CeedCallBackend(CeedBasisGetNumNodes(basisin, &nnodes));
   CeedCallBackend(CeedBasisGetNumQuadraturePoints(basisin, &nqpts));
@@ -976,9 +976,9 @@ static int CeedSingleOperatorAssembleSetup_Hip(CeedOperator op, CeedInt use_ceed
   CeedInt block_size  = esize * esize * elemsPerBlock;
   char   *assembly_kernel_path, *assembly_kernel_source;
   CeedCallBackend(CeedGetJitAbsolutePath(ceed, "ceed/jit-source/hip/hip-ref-operator-assemble.h", &assembly_kernel_path));
-  CeedDebug256(ceed, 2, "----- Loading Assembly Kernel Source -----\n");
+  CeedDebug256(ceed, CEED_DEBUG_COLOR_SUCCESS, "----- Loading Assembly Kernel Source -----\n");
   CeedCallBackend(CeedLoadSourceToBuffer(ceed, assembly_kernel_path, &assembly_kernel_source));
-  CeedDebug256(ceed, 2, "----- Loading Assembly Source Complete! -----\n");
+  CeedDebug256(ceed, CEED_DEBUG_COLOR_SUCCESS, "----- Loading Assembly Source Complete! -----\n");
   bool fallback = block_size > 1024;
   if (fallback) {  // Use fallback kernel with 1D threadblock
     block_size         = esize * elemsPerBlock;

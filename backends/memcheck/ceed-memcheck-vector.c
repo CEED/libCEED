@@ -166,7 +166,8 @@ static int CeedVectorGetArrayWrite_Memcheck(CeedVector vec, CeedMemType mem_type
   // Invalidate data to make sure no read occurs
   if (!impl->array) CeedCallBackend(CeedVectorSetArray_Memcheck(vec, mem_type, CEED_COPY_VALUES, NULL));
   CeedCallBackend(CeedVectorGetArray_Memcheck(vec, mem_type, array));
-  for (CeedInt i = 0; i < length; i++) (*array)[i] = NAN;
+  for (CeedSize i = 0; i < length; i++) (*array)[i] = NAN;
+  impl->is_write_only_access = true;
 
   return CEED_ERROR_SUCCESS;
 }
@@ -182,6 +183,12 @@ static int CeedVectorRestoreArray_Memcheck(CeedVector vec) {
   Ceed ceed;
   CeedCallBackend(CeedVectorGetCeed(vec, &ceed));
 
+  if (impl->is_write_only_access) {
+    for (CeedSize i = 0; i < length; i++) {
+      if (isnan(impl->array[i])) CeedDebug256(ceed, CEED_DEBUG_COLOR_WARNING, "WARNING: Vec entry %ld is NaN after restoring write-only access", i);
+    }
+    impl->is_write_only_access = false;
+  }
   if (impl->array_borrowed) {
     memcpy(impl->array_borrowed, impl->array, length * sizeof(impl->array[0]));
   }

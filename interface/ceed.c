@@ -482,7 +482,7 @@ int CeedGetOperatorFallbackResource(Ceed ceed, const char **resource) {
 **/
 int CeedGetOperatorFallbackCeed(Ceed ceed, Ceed *fallback_ceed) {
   if (ceed->has_valid_op_fallback_resource) {
-    CeedDebug256(ceed, 1, "---------- CeedOperator Fallback ----------\n");
+    CeedDebug256(ceed, CEED_DEBUG_COLOR_SUCCESS, "---------- CeedOperator Fallback ----------\n");
     CeedDebug(ceed, "Getting fallback from %s to %s\n", ceed->resource, ceed->op_fallback_resource);
   }
 
