@@ -82,7 +82,7 @@ CEED_QFUNCTION(Newtonian_L2Error)(void *ctx, CeedInt Q, const CeedScalar *const 
       q_s[j] = q_soln[j][i];
       q_t[j] = q_true[j][i];  // Automatically provided in the same variables as the solution.
     }
-    for (CeedInt j = 0; j < 5; j++) q_error[j][i] = q_data[0][i] * (q_t[j] - q_s[j]) * (q_t[j] - q_s[j]);
+    for (CeedInt j = 0; j < 5; j++) q_error[j][i] = q_data[0][i] * Square(q_t[j] - q_s[j]);
   }  // End of Quadrature Point Loop
   return 0;
 }
@@ -114,7 +114,7 @@ CEED_QFUNCTION(Newtonian_L2ErrorAsPrimitive)(void *ctx, CeedInt Q, const CeedSca
     StateToY(context, s_t, q_p_t);
     State s_s = StateFromU(context, q_c_s, x);
     StateToY(context, s_s, q_p_s);
-    for (CeedInt j = 0; j < 5; j++) q_target_error[j][i] = q_data[0][i] * (q_p_t[j] - q_p_s[j]) * (q_p_t[j] - q_p_s[j]);
+    for (CeedInt j = 0; j < 5; j++) q_target_error[j][i] = q_data[0][i] * Square(q_p_t[j] - q_p_s[j]);
   }  // End of Quadrature Point Loop
   return 0;
 }
@@ -146,7 +146,7 @@ CEED_QFUNCTION(Newtonian_L2ErrorAsConservative)(void *ctx, CeedInt Q, const Ceed
     StateToU(context, s_t, q_c_t);
     State s_s = StateFromY(context, q_p_s, x);
     StateToU(context, s_s, q_c_s);
-    for (CeedInt j = 0; j < 5; j++) q_target_error[j][i] = q_data[0][i] * (q_c_t[j] - q_c_s[j]) * (q_c_t[j] - q_c_s[j]);
+    for (CeedInt j = 0; j < 5; j++) q_target_error[j][i] = q_data[0][i] * Square(q_c_t[j] - q_c_s[j]);
   }  // End of Quadrature Point Loop
   return 0;
 }
