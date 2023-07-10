@@ -164,7 +164,7 @@ PetscErrorCode GetError_NS(CeedData ceed_data, DM dm, User user, ProblemData *pr
   // Get the local values of the final solution
   PetscCall(DMGetLocalVector(dm, &Q_loc));
   PetscCall(DMGlobalToLocal(dm, Q, INSERT_VALUES, Q_loc));
-  PetscCall(DMPlexInsertBoundaryValues_NS(dm, PETSC_TRUE, Q_loc, final_time, NULL, NULL, NULL));
+  PetscCall(UpdateBoundaryValues(user, Q_loc, final_time));
 
   // Compute the L2 error in the source state variables
   if (user->phys->ics_time_label) PetscCall(UpdateContextLabel(user->comm, final_time, ceed_data->op_ics_ctx->op, user->phys->ics_time_label));
