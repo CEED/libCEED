@@ -88,10 +88,14 @@ CEED_QFUNCTION(Newtonian_L2Error)(void *ctx, CeedInt Q, const CeedScalar *const 
 }
 
 // *****************************************************************************
-// This QFunction computes the L2 error in primitive variables if
-//   the simulation is run in conservative variables.
+// This QFunction computes the L2 error for each component in the source
+//   state variable and convert them to the target state variable.
+//
+//   Source state variable: STATEVAR_CONSERVATIVE or STATEVAR_PRIMITIVE
+//   Target state variable: STATEVAR_PRIMITIVE or STATEVAR_CONSERVATIVE
 // *****************************************************************************
-CEED_QFUNCTION(Newtonian_L2ErrorAsPrimitive)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
+CEED_QFUNCTION_HELPER int Newtonian_ConvertL2Error(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out,
+                                                   StateVariable target_state_var) {
   // Inputs
   const CeedScalar(*X)[CEED_Q_VLA]             = (const CeedScalar(*)[CEED_Q_VLA])in[0];
   const CeedScalar(*q_data)[CEED_Q_VLA]        = (const CeedScalar(*)[CEED_Q_VLA])in[1];
@@ -104,51 +108,31 @@ CEED_QFUNCTION(Newtonian_L2ErrorAsPrimitive)(void *ctx, CeedInt Q, const CeedSca
   NewtonianIdealGasContext context = (NewtonianIdealGasContext)ctx;
   // Quadrature Point Loop
   CeedPragmaSIMD for (CeedInt i = 0; i < Q; i++) {
-    const CeedScalar x[3]     = {X[0][i], X[1][i], X[2][i]};
-    CeedScalar       q_c_t[5] = {0}, q_c_s[5] = {0}, q_p_t[5] = {0}, q_p_s[5] = {0};
+    const CeedScalar x[3]            = {X[0][i], X[1][i], X[2][i]};
+    CeedScalar       Qsource_true[5] = {0}, Qsource_soln[5] = {0}, Qtarget_true[5] = {0}, Qtarget_soln[5] = {0};
     for (CeedInt j = 0; j < 5; j++) {
-      q_c_s[j] = q_source_soln[j][i];
-      q_c_t[j] = q_source_true[j][i];  // Automatically provided in the same variables as the solution.
+      Qsource_soln[j] = q_source_soln[j][i];
+      Qsource_true[j] = q_source_true[j][i];  // Automatically provided in the same variables as the solution.
     }
-    State s_t = StateFromU(context, q_c_t, x);
-    StateToY(context, s_t, q_p_t);
-    State s_s = StateFromU(context, q_c_s, x);
-    StateToY(context, s_s, q_p_s);
-    for (CeedInt j = 0; j < 5; j++) q_target_error[j][i] = q_data[0][i] * Square(q_p_t[j] - q_p_s[j]);
+    // Convert the simulation solution to the target state variable
+    State state_soln = StateFromQ(context, Qsource_soln, x, context->state_var);
+    StateToQ(context, state_soln, Qtarget_soln, target_state_var);
+
+    // Convert the true solution to the target state variable
+    State state_true = StateFromQ(context, Qsource_true, x, context->state_var);
+    StateToQ(context, state_true, Qtarget_true, target_state_var);
+
+    // L2 error in the target state variable
+    for (CeedInt j = 0; j < 5; j++) q_target_error[j][i] = q_data[0][i] * Square(Qtarget_true[j] - Qtarget_soln[j]);
   }  // End of Quadrature Point Loop
   return 0;
 }
 
-// *****************************************************************************
-// This QFunction computes the L2 error in conservative variables if
-//   the simulation is run in primitive variables.
-// *****************************************************************************
+CEED_QFUNCTION(Newtonian_L2ErrorAsPrimitive)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
+  return Newtonian_ConvertL2Error(ctx, Q, in, out, STATEVAR_PRIMITIVE);
+}
 CEED_QFUNCTION(Newtonian_L2ErrorAsConservative)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
-  // Inputs
-  const CeedScalar(*X)[CEED_Q_VLA]             = (const CeedScalar(*)[CEED_Q_VLA])in[0];
-  const CeedScalar(*q_data)[CEED_Q_VLA]        = (const CeedScalar(*)[CEED_Q_VLA])in[1];
-  const CeedScalar(*q_source_true)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[2];
-  const CeedScalar(*q_source_soln)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[3];
-
-  // Outputs
-  CeedScalar(*q_target_error)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA])out[0];
-
-  NewtonianIdealGasContext context = (NewtonianIdealGasContext)ctx;
-  // Quadrature Point Loop
-  CeedPragmaSIMD for (CeedInt i = 0; i < Q; i++) {
-    const CeedScalar x[3]     = {X[0][i], X[1][i], X[2][i]};
-    CeedScalar       q_p_t[5] = {0}, q_p_s[5] = {0}, q_c_t[5] = {0}, q_c_s[5] = {0};
-    for (CeedInt j = 0; j < 5; j++) {
-      q_p_s[j] = q_source_soln[j][i];
-      q_p_t[j] = q_source_true[j][i];  // Automatically provided in the same variables as the solution.
-    }
-    State s_t = StateFromY(context, q_p_t, x);
-    StateToU(context, s_t, q_c_t);
-    State s_s = StateFromY(context, q_p_s, x);
-    StateToU(context, s_s, q_c_s);
-    for (CeedInt j = 0; j < 5; j++) q_target_error[j][i] = q_data[0][i] * Square(q_c_t[j] - q_c_s[j]);
-  }  // End of Quadrature Point Loop
-  return 0;
+  return Newtonian_ConvertL2Error(ctx, Q, in, out, STATEVAR_CONSERVATIVE);
 }
 
 // *****************************************************************************
