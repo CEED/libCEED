@@ -23,7 +23,7 @@ PetscErrorCode ICs_FixMultiplicity(DM dm, CeedData ceed_data, User user, Vec Q_l
   PetscFunctionBeginUser;
 
   // Update time for evaluation
-  if (user->phys->ics_time_label) CeedOperatorSetContextDouble(ceed_data->op_ics_ctx->op, user->phys->ics_time_label, &time);
+  if (user->phys->ics_time_label) PetscCall(UpdateContextLabel(user->comm, time, ceed_data->op_ics_ctx->op, user->phys->ics_time_label));
 
   // Place PETSc vector in CEED vector
   PetscCall(ApplyCeedOperatorLocalToGlobal(NULL, Q, ceed_data->op_ics_ctx));
