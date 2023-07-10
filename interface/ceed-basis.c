@@ -315,37 +315,21 @@ static int CeedBasisCreateProjectionMatrices(CeedBasis basis_from, CeedBasis bas
 **/
 int CeedBasisGetCollocatedGrad(CeedBasis basis, CeedScalar *collo_grad_1d) {
   Ceed        ceed;
-  CeedInt     P_1d = (basis)->P_1d, Q_1d = (basis)->Q_1d;
-  CeedScalar *interp_1d, *grad_1d, *tau;
-
-  CeedCall(CeedMalloc(Q_1d * P_1d, &interp_1d));
-  CeedCall(CeedMalloc(Q_1d * P_1d, &grad_1d));
-  CeedCall(CeedMalloc(Q_1d, &tau));
-  memcpy(interp_1d, (basis)->interp_1d, Q_1d * P_1d * sizeof(basis)->interp_1d[0]);
-  memcpy(grad_1d, (basis)->grad_1d, Q_1d * P_1d * sizeof(basis)->interp_1d[0]);
+  CeedInt     P_1d, Q_1d;
+  CeedScalar *interp_1d_pinv;
 
   // QR Factorization, interp_1d = Q R
   CeedCall(CeedBasisGetCeed(basis, &ceed));
-  CeedCall(CeedQRFactorization(ceed, interp_1d, tau, Q_1d, P_1d));
-  // Note: This function is for backend use, so all errors are terminal and we do not need to clean up memory on failure.
+  CeedCall(CeedBasisGetNumNodes1D(basis, &P_1d));
+  CeedCall(CeedBasisGetNumQuadraturePoints1D(basis, &Q_1d));
 
-  // Apply R_inv, collo_grad_1d = grad_1d R_inv
-  for (CeedInt i = 0; i < Q_1d; i++) {  // Row i
-    collo_grad_1d[Q_1d * i] = grad_1d[P_1d * i] / interp_1d[0];
-    for (CeedInt j = 1; j < P_1d; j++) {  // Column j
-      collo_grad_1d[j + Q_1d * i] = grad_1d[j + P_1d * i];
-      for (CeedInt k = 0; k < j; k++) collo_grad_1d[j + Q_1d * i] -= interp_1d[j + P_1d * k] * collo_grad_1d[k + Q_1d * i];
-      collo_grad_1d[j + Q_1d * i] /= interp_1d[j + P_1d * j];
-    }
-    for (CeedInt j = P_1d; j < Q_1d; j++) collo_grad_1d[j + Q_1d * i] = 0;
-  }
+  // QR Factorization, interp_1d = Q R
+  CeedCall(CeedCalloc(P_1d * Q_1d, &interp_1d_pinv));
 
-  // Apply Q^T, collo_grad_1d = collo_grad_1d Q^T
-  CeedCall(CeedHouseholderApplyQ(collo_grad_1d, interp_1d, tau, CEED_NOTRANSPOSE, Q_1d, Q_1d, P_1d, 1, Q_1d));
+  CeedCall(CeedMatrixPseudoinverse(ceed, basis->interp_1d, Q_1d, P_1d, interp_1d_pinv));
+  CeedCall(CeedMatrixMatrixMultiply(ceed, basis->grad_1d, (const CeedScalar *)interp_1d_pinv, collo_grad_1d, Q_1d, Q_1d, P_1d));
 
-  CeedCall(CeedFree(&interp_1d));
-  CeedCall(CeedFree(&grad_1d));
-  CeedCall(CeedFree(&tau));
+  CeedCall(CeedFree(&interp_1d_pinv));
   return CEED_ERROR_SUCCESS;
 }
 
@@ -693,6 +677,50 @@ int CeedHouseholderApplyQ(CeedScalar *mat_A, const CeedScalar *mat_Q, const Ceed
     CeedCall(CeedHouseholderReflect(&mat_A[i * row], &v[i], tau[i], m - i, n, row, col));
   }
   CeedCall(CeedFree(&v));
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
+  @brief Return pseudoinverse of a matrix
+
+  @param[in]     ceed      Ceed context for error handling
+  @param[in]     mat       Row-major matrix to be factorized in place
+  @param[in]     m         Number of rows
+  @param[in]     n         Number of columns
+  @param[out]    mat_pinv  Row-major pseudoinverse matrix
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Utility
+**/
+int CeedMatrixPseudoinverse(Ceed ceed, CeedScalar *mat, CeedInt m, CeedInt n, CeedScalar *mat_pinv) {
+  CeedScalar *tau, *I, *mat_copy;
+
+  CeedCall(CeedCalloc(m, &tau));
+  CeedCall(CeedCalloc(m * m, &I));
+  CeedCall(CeedCalloc(m * n, &mat_copy));
+  memcpy(mat_copy, mat, m * n * sizeof mat[0]);
+
+  // QR Factorization, mat = Q R
+  CeedCall(CeedQRFactorization(ceed, mat_copy, tau, m, n));
+
+  // -- Apply Q^T, I = Q^T * I
+  for (CeedInt i = 0; i < m; i++) I[i * m + i] = 1.0;
+  CeedCall(CeedHouseholderApplyQ(I, mat_copy, tau, CEED_TRANSPOSE, m, m, n, m, 1));
+  // -- Apply R_inv, mat_pinv = R_inv * Q^T
+  for (CeedInt j = 0; j < m; j++) {  // Column j
+    mat_pinv[j + m * (n - 1)] = I[j + m * (n - 1)] / mat_copy[n * n - 1];
+    for (CeedInt i = n - 2; i >= 0; i--) {  // Row i
+      mat_pinv[j + m * i] = I[j + m * i];
+      for (CeedInt k = i + 1; k < n; k++) mat_pinv[j + m * i] -= mat_copy[k + n * i] * mat_pinv[j + m * k];
+      mat_pinv[j + m * i] /= mat_copy[i + n * i];
+    }
+  }
+
+  // Cleanup
+  CeedCall(CeedFree(&I));
+  CeedCall(CeedFree(&tau));
+  CeedCall(CeedFree(&mat_copy));
   return CEED_ERROR_SUCCESS;
 }
 
