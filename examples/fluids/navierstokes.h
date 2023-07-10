@@ -354,6 +354,9 @@ PetscErrorCode TSSolve_NS(DM dm, User user, AppCtx app_ctx, Physics phys, Vec *Q
 // Update Boundary Values when time has changed
 PetscErrorCode UpdateBoundaryValues(User user, Vec Q_loc, PetscReal t);
 
+// Update the context label value to new value if necessary
+PetscErrorCode UpdateContextLabel(MPI_Comm comm, PetscScalar update_value, CeedOperator op, CeedContextFieldLabel label);
+
 // -----------------------------------------------------------------------------
 // Setup DM
 // -----------------------------------------------------------------------------
@@ -387,7 +390,7 @@ PetscErrorCode DMPlexInsertBoundaryValues_NS(DM dm, PetscBool insert_essential, 
 PetscErrorCode RegressionTests_NS(AppCtx app_ctx, Vec Q);
 
 // Get error for problems with exact solutions
-PetscErrorCode ComputeL2Error(Vec Q_loc, PetscReal l2_error[5], OperatorApplyContext op_error_ctx, CeedContextFieldLabel time_label, CeedScalar time);
+PetscErrorCode ComputeL2Error(MPI_Comm comm, Vec Q_loc, PetscReal l2_error[5], OperatorApplyContext op_error_ctx, CeedContextFieldLabel time_label, CeedScalar time);
 PetscErrorCode GetError_NS(CeedData ceed_data, DM dm, User user, ProblemData *problem, Vec Qsource_soln, PetscScalar final_time);
 
 // Post-processing

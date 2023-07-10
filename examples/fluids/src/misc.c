@@ -137,13 +137,13 @@ PetscErrorCode RegressionTests_NS(AppCtx app_ctx, Vec Q) {
   PetscFunctionReturn(PETSC_SUCCESS);
 }
 
-PetscErrorCode ComputeL2Error(Vec Q_loc, PetscReal l2_error[5], OperatorApplyContext op_error_ctx, CeedContextFieldLabel time_label,
+PetscErrorCode ComputeL2Error(MPI_Comm comm, Vec Q_loc, PetscReal l2_error[5], OperatorApplyContext op_error_ctx, CeedContextFieldLabel time_label,
                               CeedScalar time) {
   Vec       E;
   PetscReal l2_norm[5];
   PetscFunctionBeginUser;
 
-  if (time_label) CeedOperatorSetContextDouble(op_error_ctx->op, time_label, &time);
+  if (time_label) PetscCall(UpdateContextLabel(comm, time, op_error_ctx->op, time_label));
   PetscCall(VecDuplicate(Q_loc, &E));
   PetscCall(ApplyCeedOperatorLocalToGlobal(Q_loc, E, op_error_ctx));
   PetscCall(VecStrideNormAll(E, NORM_1, l2_norm));
@@ -167,9 +167,9 @@ PetscErrorCode GetError_NS(CeedData ceed_data, DM dm, User user, ProblemData *pr
   PetscCall(DMPlexInsertBoundaryValues_NS(dm, PETSC_TRUE, Q_loc, final_time, NULL, NULL, NULL));
 
   // Compute the L2 error in the source state variables
-  if (user->phys->ics_time_label) CeedOperatorSetContextDouble(ceed_data->op_ics_ctx->op, user->phys->ics_time_label, &final_time);
+  if (user->phys->ics_time_label) PetscCall(UpdateContextLabel(user->comm, final_time, ceed_data->op_ics_ctx->op, user->phys->ics_time_label));
   CeedOperatorApply(ceed_data->op_ics_ctx->op, ceed_data->x_coord, ceed_data->q_true, CEED_REQUEST_IMMEDIATE);
-  PetscCall(ComputeL2Error(Q_loc, l2_error, ceed_data->op_error_ctx, NULL, final_time));
+  PetscCall(ComputeL2Error(user->comm, Q_loc, l2_error, ceed_data->op_error_ctx, NULL, final_time));
 
   // Print the error
   PetscCall(PetscPrintf(PETSC_COMM_WORLD, "\nL2 Error:\n"));
@@ -181,7 +181,7 @@ PetscErrorCode GetError_NS(CeedData ceed_data, DM dm, User user, ProblemData *pr
     const char *state_var_target = "Primitive";
 
     // Convert the L2 error to the target state variable
-    PetscCall(ComputeL2Error(Q_loc, l2_error_converted, ceed_data->op_convert_error_ctx, user->phys->ics_time_label, final_time));
+    PetscCall(ComputeL2Error(user->comm, Q_loc, l2_error_converted, ceed_data->op_convert_error_ctx, user->phys->ics_time_label, final_time));
 
     // Print the error
     if (user->phys->state_var == STATEVAR_PRIMITIVE) state_var_target = "Conservative";
