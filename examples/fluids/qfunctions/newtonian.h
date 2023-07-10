@@ -91,7 +91,7 @@ CEED_QFUNCTION(Newtonian_L2Error)(void *ctx, CeedInt Q, const CeedScalar *const 
 // This QFunction computes the L2 error in primitive variables if
 //   the simulation is run in conservative variables.
 // *****************************************************************************
-CEED_QFUNCTION(Newtonian_ToPrimitive)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
+CEED_QFUNCTION(Newtonian_L2ErrorAsPrimitive)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
   // Inputs
   const CeedScalar(*X)[CEED_Q_VLA]             = (const CeedScalar(*)[CEED_Q_VLA])in[0];
   const CeedScalar(*q_data)[CEED_Q_VLA]        = (const CeedScalar(*)[CEED_Q_VLA])in[1];
@@ -123,7 +123,7 @@ CEED_QFUNCTION(Newtonian_ToPrimitive)(void *ctx, CeedInt Q, const CeedScalar *co
 // This QFunction computes the L2 error in conservative variables if
 //   the simulation is run in primitive variables.
 // *****************************************************************************
-CEED_QFUNCTION(Newtonian_ToConservative)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
+CEED_QFUNCTION(Newtonian_L2ErrorAsConservative)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
   // Inputs
   const CeedScalar(*X)[CEED_Q_VLA]             = (const CeedScalar(*)[CEED_Q_VLA])in[0];
   const CeedScalar(*q_data)[CEED_Q_VLA]        = (const CeedScalar(*)[CEED_Q_VLA])in[1];

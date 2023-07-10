@@ -151,8 +151,8 @@ PetscErrorCode NS_NEWTONIAN_IG(ProblemData *problem, DM dm, void *ctx, SimpleBC 
       problem->apply_inflow.qfunction_loc          = BoundaryIntegral_Conserv_loc;
       problem->apply_inflow_jacobian.qfunction     = BoundaryIntegral_Jacobian_Conserv;
       problem->apply_inflow_jacobian.qfunction_loc = BoundaryIntegral_Jacobian_Conserv_loc;
-      problem->convert_error.qfunction             = Newtonian_ToPrimitive;
-      problem->convert_error.qfunction_loc         = Newtonian_ToPrimitive_loc;
+      problem->convert_error.qfunction             = Newtonian_L2ErrorAsPrimitive;
+      problem->convert_error.qfunction_loc         = Newtonian_L2ErrorAsPrimitive_loc;
       break;
 
     case STATEVAR_PRIMITIVE:
@@ -166,8 +166,8 @@ PetscErrorCode NS_NEWTONIAN_IG(ProblemData *problem, DM dm, void *ctx, SimpleBC 
       problem->apply_inflow.qfunction_loc          = BoundaryIntegral_Prim_loc;
       problem->apply_inflow_jacobian.qfunction     = BoundaryIntegral_Jacobian_Prim;
       problem->apply_inflow_jacobian.qfunction_loc = BoundaryIntegral_Jacobian_Prim_loc;
-      problem->convert_error.qfunction             = Newtonian_ToConservative;
-      problem->convert_error.qfunction_loc         = Newtonian_ToConservative_loc;
+      problem->convert_error.qfunction             = Newtonian_L2ErrorAsConservative;
+      problem->convert_error.qfunction_loc         = Newtonian_L2ErrorAsConservative_loc;
       break;
   }
 
