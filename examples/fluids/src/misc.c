@@ -63,7 +63,7 @@ PetscErrorCode ICs_FixMultiplicity(DM dm, CeedData ceed_data, User user, Vec Q_l
 PetscErrorCode DMPlexInsertBoundaryValues_NS(DM dm, PetscBool insert_essential, Vec Q_loc, PetscReal time, Vec face_geom_FVM, Vec cell_geom_FVM,
                                              Vec grad_FVM) {
   Vec Qbc, boundary_mask;
-  PetscFunctionBegin;
+  PetscFunctionBeginUser;
 
   // Mask (zero) Strong BC entries
   PetscCall(DMGetNamedLocalVector(dm, "boundary mask", &boundary_mask));
@@ -112,7 +112,7 @@ PetscErrorCode RegressionTests_NS(AppCtx app_ctx, Vec Q) {
   PetscViewer viewer;
   PetscReal   error, Qrefnorm;
   MPI_Comm    comm = PetscObjectComm((PetscObject)Q);
-  PetscFunctionBegin;
+  PetscFunctionBeginUser;
 
   // Read reference file
   PetscCall(VecDuplicate(Q, &Qref));
@@ -159,7 +159,7 @@ PetscErrorCode GetError_NS(CeedData ceed_data, DM dm, User user, ProblemData *pr
   Vec         Q_loc;
   PetscReal   l2_error[5];
   const char *state_var_source = "Conservative";
-  PetscFunctionBegin;
+  PetscFunctionBeginUser;
 
   // Get the local values of the final solution
   PetscCall(DMGetLocalVector(dm, &Q_loc));
@@ -205,7 +205,7 @@ PetscErrorCode GetError_NS(CeedData ceed_data, DM dm, User user, ProblemData *pr
 PetscErrorCode PostProcess_NS(TS ts, CeedData ceed_data, DM dm, ProblemData *problem, User user, Vec Q, PetscScalar final_time) {
   PetscInt          steps;
   TSConvergedReason reason;
-  PetscFunctionBegin;
+  PetscFunctionBeginUser;
 
   // Print relative error
   if (problem->non_zero_time && user->app_ctx->test_type == TESTTYPE_NONE) {
@@ -238,7 +238,7 @@ const PetscInt32 FLUIDS_FILE_TOKEN_64 = 0xceedf64;
 PetscErrorCode SetupICsFromBinary(MPI_Comm comm, AppCtx app_ctx, Vec Q) {
   PetscViewer viewer;
 
-  PetscFunctionBegin;
+  PetscFunctionBeginUser;
 
   PetscCall(PetscViewerBinaryOpen(comm, app_ctx->cont_file, FILE_MODE_READ, &viewer));
   PetscCall(LoadFluidsBinaryVec(comm, viewer, Q, &app_ctx->cont_time, &app_ctx->cont_steps));
@@ -250,7 +250,7 @@ PetscErrorCode SetupICsFromBinary(MPI_Comm comm, AppCtx app_ctx, Vec Q) {
 // Record boundary values from initial condition
 PetscErrorCode SetBCsFromICs_NS(DM dm, Vec Q, Vec Q_loc) {
   Vec Qbc, boundary_mask;
-  PetscFunctionBegin;
+  PetscFunctionBeginUser;
 
   PetscCall(DMGetNamedLocalVector(dm, "Qbc", &Qbc));
   PetscCall(VecCopy(Q_loc, Qbc));
