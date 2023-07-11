@@ -147,6 +147,7 @@ PetscErrorCode ComputeL2Error(MPI_Comm comm, Vec Q_loc, PetscReal l2_error[5], O
   PetscCall(VecDuplicate(Q_loc, &E));
   PetscCall(ApplyCeedOperatorLocalToGlobal(Q_loc, E, op_error_ctx));
   PetscCall(VecStrideNormAll(E, NORM_1, l2_norm));
+  PetscCallMPI(MPI_Allreduce(MPI_IN_PLACE, l2_norm, 5, MPIU_REAL, MPI_SUM, PETSC_COMM_WORLD));
   for (int i = 0; i < 5; i++) l2_error[i] = sqrt(l2_norm[i]);
 
   PetscCall(VecDestroy(&E));
