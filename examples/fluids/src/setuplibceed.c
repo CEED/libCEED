@@ -265,7 +265,7 @@ PetscErrorCode SetupLibceed(Ceed ceed, CeedData ceed_data, DM dm, User user, App
   CeedQFunctionAddOutput(ceed_data->qf_ics, "q0", num_comp_q, CEED_EVAL_NONE);
 
   // -- Create QFunction for computing the L2 error
-  if (problem->non_zero_time && user->app_ctx->test_type == TESTTYPE_NONE) {
+  if (problem->has_true_soln && user->app_ctx->test_type == TESTTYPE_NONE) {
     CeedQFunctionCreateInterior(ceed, 1, problem->error.qfunction, problem->error.qfunction_loc, &ceed_data->qf_error);
     CeedQFunctionAddInput(ceed_data->qf_error, "qdata", q_data_size_vol, CEED_EVAL_NONE);
     CeedQFunctionAddInput(ceed_data->qf_error, "q_true", num_comp_q, CEED_EVAL_NONE);

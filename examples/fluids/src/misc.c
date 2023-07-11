@@ -208,7 +208,7 @@ PetscErrorCode PostProcess_NS(TS ts, CeedData ceed_data, DM dm, ProblemData *pro
   PetscFunctionBeginUser;
 
   // Print relative error
-  if (problem->non_zero_time && user->app_ctx->test_type == TESTTYPE_NONE) {
+  if (problem->has_true_soln && user->app_ctx->test_type == TESTTYPE_NONE) {
     PetscCall(GetError_NS(ceed_data, dm, user, problem, Q, final_time));
   }
 

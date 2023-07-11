@@ -50,7 +50,7 @@ PetscErrorCode NS_EULER_VORTEX(ProblemData *problem, DM dm, void *ctx, SimpleBC 
   problem->apply_inflow.qfunction_loc        = TravelingVortex_Inflow_loc;
   problem->apply_outflow.qfunction           = Euler_Outflow;
   problem->apply_outflow.qfunction_loc       = Euler_Outflow_loc;
-  problem->non_zero_time                     = PETSC_TRUE;
+  problem->has_true_soln                     = PETSC_TRUE;
   problem->print_info                        = PRINT_EULER_VORTEX;
 
   // ------------------------------------------------------

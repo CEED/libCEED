@@ -49,7 +49,7 @@ PetscErrorCode NS_ADVECTION2D(ProblemData *problem, DM dm, void *ctx, SimpleBC b
   problem->apply_vol_ifunction.qfunction_loc = IFunction_Advection2d_loc;
   problem->apply_inflow.qfunction            = Advection2d_InOutFlow;
   problem->apply_inflow.qfunction_loc        = Advection2d_InOutFlow_loc;
-  problem->non_zero_time                     = PETSC_TRUE;
+  problem->has_true_soln                     = PETSC_TRUE;
   problem->print_info                        = PRINT_ADVECTION2D;
 
   // ------------------------------------------------------

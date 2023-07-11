@@ -277,7 +277,7 @@ struct ProblemData_private {
   CeedScalar           dm_scale;
   ProblemQFunctionSpec setup_vol, setup_sur, ics, apply_vol_rhs, apply_vol_ifunction, apply_vol_ijacobian, apply_inflow, apply_outflow,
       apply_freestream, apply_inflow_jacobian, apply_outflow_jacobian, apply_freestream_jacobian, error, convert_error;
-  bool      non_zero_time;
+  bool      has_true_soln;
   PetscBool bc_from_ics, use_strong_bc_ceed;
   PetscErrorCode (*print_info)(ProblemData *, AppCtx);
 };
