@@ -169,7 +169,7 @@ PetscErrorCode GetError_NS(CeedData ceed_data, DM dm, User user, ProblemData *pr
   // Compute the L2 error in the source state variables
   if (user->phys->ics_time_label) PetscCall(UpdateContextLabel(user->comm, final_time, ceed_data->op_ics_ctx->op, user->phys->ics_time_label));
   CeedOperatorApply(ceed_data->op_ics_ctx->op, ceed_data->x_coord, ceed_data->q_true, CEED_REQUEST_IMMEDIATE);
-  PetscCall(ComputeL2Error(user->comm, Q_loc, l2_error, ceed_data->op_error_ctx, NULL, final_time));
+  PetscCall(ComputeL2Error(user->comm, Q_loc, l2_error, ceed_data->op_error_ctx, user->phys->ics_time_label, final_time));
 
   // Print the error
   PetscCall(PetscPrintf(PETSC_COMM_WORLD, "\nL2 Error:\n"));

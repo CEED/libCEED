@@ -267,6 +267,9 @@ PetscErrorCode SetupLibceed(Ceed ceed, CeedData ceed_data, DM dm, User user, App
   // -- Create QFunction for computing the L2 error
   if (problem->has_true_soln && user->app_ctx->test_type == TESTTYPE_NONE) {
     CeedQFunctionCreateInterior(ceed, 1, problem->error.qfunction, problem->error.qfunction_loc, &ceed_data->qf_error);
+    CeedQFunctionSetContext(ceed_data->qf_error, problem->error.qfunction_context);
+    CeedQFunctionContextDestroy(&problem->error.qfunction_context);
+    CeedQFunctionAddInput(ceed_data->qf_error, "x", num_comp_x, CEED_EVAL_INTERP);
     CeedQFunctionAddInput(ceed_data->qf_error, "qdata", q_data_size_vol, CEED_EVAL_NONE);
     CeedQFunctionAddInput(ceed_data->qf_error, "q_true", num_comp_q, CEED_EVAL_NONE);
     CeedQFunctionAddInput(ceed_data->qf_error, "q_soln", num_comp_q, CEED_EVAL_INTERP);
@@ -376,10 +379,12 @@ PetscErrorCode SetupLibceed(Ceed ceed, CeedData ceed_data, DM dm, User user, App
     CeedOperator op_error;
     CeedElemRestrictionCreateVector(ceed_data->elem_restr_q, &ceed_data->q_true, NULL);
     CeedOperatorCreate(ceed, ceed_data->qf_error, NULL, NULL, &op_error);
+    CeedOperatorSetField(op_error, "x", ceed_data->elem_restr_x, ceed_data->basis_x, ceed_data->x_coord);
     CeedOperatorSetField(op_error, "qdata", ceed_data->elem_restr_qd_i, CEED_BASIS_COLLOCATED, ceed_data->q_data);
     CeedOperatorSetField(op_error, "q_true", ceed_data->elem_restr_q, CEED_BASIS_COLLOCATED, ceed_data->q_true);
     CeedOperatorSetField(op_error, "q_soln", ceed_data->elem_restr_q, ceed_data->basis_q, CEED_VECTOR_ACTIVE);
     CeedOperatorSetField(op_error, "q_error", ceed_data->elem_restr_q, ceed_data->basis_q, CEED_VECTOR_ACTIVE);
+    CeedOperatorGetContextFieldLabel(op_error, "evaluation time", &user->phys->ics_time_label);
     PetscCall(OperatorApplyContextCreate(dm, dm, user->ceed, op_error, NULL, NULL, NULL, NULL, &ceed_data->op_error_ctx));
     CeedOperatorDestroy(&op_error);
   }
