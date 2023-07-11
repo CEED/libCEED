@@ -77,12 +77,12 @@ CEED_QFUNCTION(Newtonian_L2Error)(void *ctx, CeedInt Q, const CeedScalar *const 
 
   // Quadrature Point Loop
   CeedPragmaSIMD for (CeedInt i = 0; i < Q; i++) {
-    CeedScalar q_t[5] = {0}, q_s[5] = {0};
+    CeedScalar Qtrue[5] = {0}, Qsoln[5] = {0};
     for (CeedInt j = 0; j < 5; j++) {
-      q_s[j] = q_soln[j][i];
-      q_t[j] = q_true[j][i];  // Automatically provided in the same variables as the solution.
+      Qsoln[j] = q_soln[j][i];
+      Qtrue[j] = q_true[j][i];  // Automatically provided in the same variables as the solution.
     }
-    for (CeedInt j = 0; j < 5; j++) q_error[j][i] = q_data[0][i] * Square(q_t[j] - q_s[j]);
+    for (CeedInt j = 0; j < 5; j++) q_error[j][i] = q_data[0][i] * Square(Qtrue[j] - Qsoln[j]);
   }  // End of Quadrature Point Loop
   return 0;
 }
