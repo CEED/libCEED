@@ -22,9 +22,9 @@ static int CeedTensorContractApply_Xsmm(CeedTensorContract contract, CeedInt A, 
   if (C == 1) {
     // Build or query the required kernel
     const int                  flags_t    = LIBXSMM_GEMM_FLAGS(!t_mode ? 'T' : 'N', 'N');
-    const int                  flags_ab   = (!add) ? LIBXSMM_GEMM_FLAG_BETA_0 : 0;
+    const int                  flags_ab   = (!add) ? LIBXSMM_GEMM_FLAG_BETA_0 : LIBXSMM_BASIC_GEMM_FLAG_NONE;
     const int                  flags      = (flags_t | flags_ab);
-    const libxsmm_gemm_shape   gemm_shape = (CEED_SCALAR_TYPE != CEED_SCALAR_FP32)
+    const libxsmm_gemm_shape   gemm_shape = (CEED_SCALAR_TYPE == CEED_SCALAR_FP64)
                                                 ? libxsmm_create_gemm_shape(J, A, B, !t_mode ? B : J, B, J, LIBXSMM_DATATYPE_F64, LIBXSMM_DATATYPE_F64,
                                                                             LIBXSMM_DATATYPE_F64, LIBXSMM_DATATYPE_F64)
                                                 : libxsmm_create_gemm_shape(J, A, B, !t_mode ? B : J, B, J, LIBXSMM_DATATYPE_F32, LIBXSMM_DATATYPE_F32,
@@ -41,9 +41,9 @@ static int CeedTensorContractApply_Xsmm(CeedTensorContract contract, CeedInt A, 
   } else {
     // Build or query the required kernel
     const int                  flags_t    = LIBXSMM_GEMM_FLAGS('N', t_mode ? 'T' : 'N');
-    const int                  flags_ab   = (!add) ? LIBXSMM_GEMM_FLAG_BETA_0 : 0;
+    const int                  flags_ab   = (!add) ? LIBXSMM_GEMM_FLAG_BETA_0 : LIBXSMM_BASIC_GEMM_FLAG_NONE;
     const int                  flags      = (flags_t | flags_ab);
-    const libxsmm_gemm_shape   gemm_shape = (CEED_SCALAR_TYPE != CEED_SCALAR_FP32)
+    const libxsmm_gemm_shape   gemm_shape = (CEED_SCALAR_TYPE == CEED_SCALAR_FP64)
                                                 ? libxsmm_create_gemm_shape(C, J, B, C, !t_mode ? B : J, C, LIBXSMM_DATATYPE_F64, LIBXSMM_DATATYPE_F64,
                                                                             LIBXSMM_DATATYPE_F64, LIBXSMM_DATATYPE_F64)
                                                 : libxsmm_create_gemm_shape(C, J, B, C, !t_mode ? B : J, C, LIBXSMM_DATATYPE_F32, LIBXSMM_DATATYPE_F32,
