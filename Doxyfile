@@ -1007,7 +1007,6 @@ RECURSIVE              = YES
 # run.
 
 EXCLUDE                = benchmarks \
-                         include/ceed/khash.h \
                          include/ceedf.h \
                          include/ceed/jit-source \
                          tests/junit-xml \

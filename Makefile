@@ -380,18 +380,17 @@ PKG_STUBS_LIBS =
 # libXSMM Backends
 XSMM_BACKENDS = /cpu/self/xsmm/serial /cpu/self/xsmm/blocked
 ifneq ($(wildcard $(XSMM_DIR)/lib/libxsmm.*),)
-  PKG_LIBS += -L$(abspath $(XSMM_DIR))/lib -lxsmm -ldl
+  PKG_LIBS += -L$(abspath $(XSMM_DIR))/lib -lxsmm
   MKL ?=
   ifeq (,$(MKL)$(MKLROOT))
-    BLAS_LIB = -lblas
+    BLAS_LIB ?= -lblas -ldl
   else
     ifneq ($(MKLROOT),)
       # Some installs put everything inside an intel64 subdirectory, others not
       MKL_LIBDIR = $(dir $(firstword $(wildcard $(MKLROOT)/lib/intel64/libmkl_sequential.* $(MKLROOT)/lib/libmkl_sequential.*)))
       MKL_LINK = -L$(MKL_LIBDIR)
-      PKG_LIB_DIRS += $(MKL_LIBDIR)
     endif
-    BLAS_LIB = $(MKL_LINK) -Wl,--push-state,--no-as-needed -lmkl_intel_lp64 -lmkl_sequential -lmkl_core -lpthread -lm -ldl -Wl,--pop-state
+    BLAS_LIB ?= $(MKL_LINK) -Wl,--push-state,--no-as-needed -lmkl_intel_lp64 -lmkl_sequential -lmkl_core -lpthread -lm -ldl -Wl,--pop-state
   endif
   PKG_LIBS += $(BLAS_LIB)
   libceed.c += $(xsmm.c)
@@ -698,8 +697,6 @@ install : $(libceed) $(OBJDIR)/ceed.pc
 	$(INSTALL_DATA) include/ceed/backend.h "$(DESTDIR)$(includedir)/ceed/"
 	$(INSTALL_DATA) include/ceed/cuda.h "$(DESTDIR)$(includedir)/ceed/"
 	$(INSTALL_DATA) include/ceed/hip.h "$(DESTDIR)$(includedir)/ceed/"
-	$(INSTALL_DATA) include/ceed/hash.h "$(DESTDIR)$(includedir)/ceed/"
-	$(INSTALL_DATA) include/ceed/khash.h "$(DESTDIR)$(includedir)/ceed/"
 	$(INSTALL_DATA) $(libceed) "$(DESTDIR)$(libdir)/"
 	$(INSTALL_DATA) $(OBJDIR)/ceed.pc "$(DESTDIR)$(pkgconfigdir)/"
 	$(INSTALL_DATA) include/ceed.h "$(DESTDIR)$(includedir)/"

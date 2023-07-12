@@ -25,11 +25,7 @@ static int CeedInit_Xsmm_Serial(const char *resource, Ceed ceed) {
   CeedCallBackend(CeedInit("/cpu/self/opt/serial", &ceed_ref));
   CeedCallBackend(CeedSetDelegate(ceed, ceed_ref));
 
-  if (CEED_SCALAR_TYPE == CEED_SCALAR_FP64) {
-    CeedCallBackend(CeedSetBackendFunction(ceed, "Ceed", ceed, "TensorContractCreate", CeedTensorContractCreate_f64_Xsmm));
-  } else {
-    CeedCallBackend(CeedSetBackendFunction(ceed, "Ceed", ceed, "TensorContractCreate", CeedTensorContractCreate_f32_Xsmm));
-  }
+  CeedCallBackend(CeedSetBackendFunction(ceed, "Ceed", ceed, "TensorContractCreate", CeedTensorContractCreate_Xsmm));
 
   return CEED_ERROR_SUCCESS;
 }
