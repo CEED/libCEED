@@ -179,6 +179,30 @@ CEED_QFUNCTION_HELPER int Exact_Euler(CeedInt dim, CeedScalar time, const CeedSc
 }
 
 // *****************************************************************************
+// This QFunction computes the L2 error.
+// *****************************************************************************
+CEED_QFUNCTION(Euler_L2Error)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
+  // Inputs
+  const CeedScalar(*q_data)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[1];
+  const CeedScalar(*q_true)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[2];
+  const CeedScalar(*q_soln)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[3];
+
+  // Outputs
+  CeedScalar(*q_error)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA])out[0];
+
+  // Quadrature Point Loop
+  CeedPragmaSIMD for (CeedInt i = 0; i < Q; i++) {
+    CeedScalar Qtrue[5] = {0}, Qsoln[5] = {0};
+    for (CeedInt j = 0; j < 5; j++) {
+      Qsoln[j] = q_soln[j][i];
+      Qtrue[j] = q_true[j][i];  // Automatically provided in the same variables as the solution.
+    }
+    for (CeedInt j = 0; j < 5; j++) q_error[j][i] = q_data[0][i] * Square(Qtrue[j] - Qsoln[j]);
+  }  // End of Quadrature Point Loop
+  return 0;
+}
+
+// *****************************************************************************
 // Helper function for computing flux Jacobian
 // *****************************************************************************
 CEED_QFUNCTION_HELPER void ConvectiveFluxJacobian_Euler(CeedScalar dF[3][5][5], const CeedScalar rho, const CeedScalar u[3], const CeedScalar E,
