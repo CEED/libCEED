@@ -15,6 +15,7 @@ The tests are organized by API object, and some tests are further organized, as 
     3.2. CeedBasis simplex basis tests  
     3.3. CeedBasis non-tensor H(div) basis tests  
     3.4. CeedBasis non-tensor H(curl) basis tests  
+    3.5. CeedBasis evaluation at arbitrary points tests  
 4. CeedQFunction Tests  
     4.0. CeedQFunction user code tests  
     4.1. CeedQFunction gallery code tests  
