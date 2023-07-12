@@ -191,12 +191,12 @@ The `/cpu/self/opt/*` backends are written in pure C and use partial e-vectors t
 
 The `/cpu/self/avx/*` backends rely upon AVX instructions to provide vectorized CPU performance.
 
-The `/cpu/self/memcheck/*` backends rely upon the [Valgrind](http://valgrind.org/) Memcheck tool to help verify that user QFunctions have no undefined values.
+The `/cpu/self/memcheck/*` backends rely upon the [Valgrind](https://valgrind.org/) Memcheck tool to help verify that user QFunctions have no undefined values.
 To use, run your code with Valgrind and the Memcheck backends, e.g. `valgrind ./build/ex1 -ceed /cpu/self/ref/memcheck`.
 A 'development' or 'debugging' version of Valgrind with headers is required to use this backend.
 This backend can be run in serial or blocked mode and defaults to running in the serial mode if `/cpu/self/memcheck` is selected at runtime.
 
-The `/cpu/self/xsmm/*` backends rely upon the [LIBXSMM](http://github.com/hfp/libxsmm) package to provide vectorized CPU performance.
+The `/cpu/self/xsmm/*` backends rely upon the [LIBXSMM](https://github.com/libxsmm/libxsmm) package to provide vectorized CPU performance.
 If linking MKL and LIBXSMM is desired but the Makefile is not detecting `MKLROOT`, linking libCEED against MKL can be forced by setting the environment variable `MKL=1`.
 
 The `/gpu/cuda/*` backends provide GPU performance strictly using CUDA.
