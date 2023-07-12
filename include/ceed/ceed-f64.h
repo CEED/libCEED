@@ -11,7 +11,7 @@
 #ifndef _ceed_f64_h
 #define _ceed_f64_h
 
-/// Set base scalar type to FP64.  (See CeedScalarType enum in ceed.h for all options.)
+/// Set base scalar type to FP64. (See CeedScalarType enum in ceed.h for all options.)
 #define CEED_SCALAR_TYPE CEED_SCALAR_FP64
 typedef double CeedScalar;
 
