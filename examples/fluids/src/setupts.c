@@ -475,6 +475,13 @@ PetscErrorCode TSSolve_NS(DM dm, User user, AppCtx app_ctx, Physics phys, Vec *Q
   }
   PetscCall(TSGetAdapt(*ts, &adapt));
   PetscCall(TSAdaptSetStepLimits(adapt, 1.e-12 * user->units->second, 1.e2 * user->units->second));
+  {
+    SNES snes;
+    KSP  ksp;
+    PetscCall(TSGetSNES(*ts, &snes));
+    PetscCall(SNESGetKSP(snes, &ksp));
+    PetscCall(KSPSetTolerances(ksp, PETSC_DEFAULT, PETSC_DEFAULT, PETSC_DEFAULT, 1000));
+  }
   PetscCall(TSSetFromOptions(*ts));
   user->time_bc_set = -1.0;   // require all BCs be updated
   if (app_ctx->cont_steps) {  // continue from previous timestep data
