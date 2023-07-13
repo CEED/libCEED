@@ -244,8 +244,8 @@ class CurlOrientedElemRestriction(_ElemRestrictionBase):
         offsets_pointer = ffi.new("const CeedInt *")
         offsets_pointer = ffi.cast("const CeedInt *",
                                    offsets.__array_interface__['data'][0])
-        curl_orients_pointer = ffi.new("const CeedInt *")
-        curl_orients_pointer = ffi.cast("const CeedInt *",
+        curl_orients_pointer = ffi.new("const CeedInt8 *")
+        curl_orients_pointer = ffi.cast("const CeedInt8 *",
                                         curl_orients.__array_interface__['data'][0])
 
         # libCEED call
@@ -394,8 +394,8 @@ class BlockedCurlOrientedElemRestriction(BlockedElemRestriction):
         offsets_pointer = ffi.new("const CeedInt *")
         offsets_pointer = ffi.cast("const CeedInt *",
                                    offsets.__array_interface__['data'][0])
-        curl_orients_pointer = ffi.new("const CeedInt *")
-        curl_orients_pointer = ffi.cast("const CeedInt *",
+        curl_orients_pointer = ffi.new("const CeedInt8 *")
+        curl_orients_pointer = ffi.cast("const CeedInt8 *",
                                         curl_orients.__array_interface__['data'][0])
 
         # libCEED call

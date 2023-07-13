@@ -552,25 +552,25 @@ impl Ceed {
     /// # let ceed = libceed::Ceed::default_init();
     /// let nelem = 3;
     /// let mut ind: Vec<i32> = vec![0; 2 * nelem];
-    /// let mut curlorients: Vec<i32> = vec![0; 3 * 2 * nelem];
+    /// let mut curlorients: Vec<i8> = vec![0; 3 * 2 * nelem];
     /// for i in 0..nelem {
     ///     ind[2 * i + 0] = i as i32;
     ///     ind[2 * i + 1] = (i + 1) as i32;
-    ///     curlorients[3 * 2 * i] = 0;
-    ///     curlorients[3 * 2 * (i + 1) - 1] = 0;
+    ///     curlorients[3 * 2 * i] = 0 as i8;
+    ///     curlorients[3 * 2 * (i + 1) - 1] = 0 as i8;
     ///     if (i % 2 > 0) {
     ///         // T = [0  -1]
     ///         //     [-1  0]
-    ///         curlorients[3 * 2 * i + 1] = 0;
-    ///         curlorients[3 * 2 * i + 2] = -1;
-    ///         curlorients[3 * 2 * i + 3] = -1;
-    ///         curlorients[3 * 2 * i + 4] = 0;
+    ///         curlorients[3 * 2 * i + 1] = 0 as i8;
+    ///         curlorients[3 * 2 * i + 2] = -1 as i8;
+    ///         curlorients[3 * 2 * i + 3] = -1 as i8;
+    ///         curlorients[3 * 2 * i + 4] = 0 as i8;
     ///     } else {
     ///         // T = I
-    ///         curlorients[3 * 2 * i + 1] = 1;
-    ///         curlorients[3 * 2 * i + 2] = 0;
-    ///         curlorients[3 * 2 * i + 3] = 0;
-    ///         curlorients[3 * 2 * i + 4] = 1;
+    ///         curlorients[3 * 2 * i + 1] = 1 as i8;
+    ///         curlorients[3 * 2 * i + 2] = 0 as i8;
+    ///         curlorients[3 * 2 * i + 3] = 0 as i8;
+    ///         curlorients[3 * 2 * i + 4] = 1 as i8;
     ///     }
     /// }
     /// let r = ceed.curl_oriented_elem_restriction(
@@ -595,7 +595,7 @@ impl Ceed {
         lsize: usize,
         mtype: MemType,
         offsets: &[i32],
-        curlorients: &[i32],
+        curlorients: &[i8],
     ) -> Result<ElemRestriction<'a>> {
         ElemRestriction::create_curl_oriented(
             self,

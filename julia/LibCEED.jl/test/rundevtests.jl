@@ -84,7 +84,7 @@ include("buildmats.jl")
             end
         end
 
-        curlorients = Array{CeedInt}(undef, 3*elemsize, nelem)
+        curlorients = Array{CeedInt8}(undef, 3*elemsize, nelem)
         for i = 1:nelem
             curlorients[1, i] = curlorients[6, i] = 0
             if (i - 1)%2 > 0

@@ -7,6 +7,8 @@ const CeedInt = Int32
 
 const CeedSize = Cptrdiff_t
 
+const CeedInt8 = Int8
+
 @cenum CeedScalarType::UInt32 begin
     CEED_SCALAR_FP32 = 0
     CEED_SCALAR_FP64 = 1
@@ -125,6 +127,10 @@ end
 
 function CeedInit(resource, ceed)
     ccall((:CeedInit, libceed), Cint, (Ptr{Cchar}, Ptr{Ceed}), resource, ceed)
+end
+
+function CeedSetStream(ceed, handle)
+    ccall((:CeedSetStream, libceed), Cint, (Ceed, Ptr{Cvoid}), ceed, handle)
 end
 
 function CeedReferenceCopy(ceed, ceed_copy)
@@ -283,7 +289,7 @@ function CeedElemRestrictionCreateOriented(ceed, num_elem, elem_size, num_comp, 
 end
 
 function CeedElemRestrictionCreateCurlOriented(ceed, num_elem, elem_size, num_comp, comp_stride, l_size, mem_type, copy_mode, offsets, curl_orients, rstr)
-    ccall((:CeedElemRestrictionCreateCurlOriented, libceed), Cint, (Ceed, CeedInt, CeedInt, CeedInt, CeedInt, CeedSize, CeedMemType, CeedCopyMode, Ptr{CeedInt}, Ptr{CeedInt}, Ptr{CeedElemRestriction}), ceed, num_elem, elem_size, num_comp, comp_stride, l_size, mem_type, copy_mode, offsets, curl_orients, rstr)
+    ccall((:CeedElemRestrictionCreateCurlOriented, libceed), Cint, (Ceed, CeedInt, CeedInt, CeedInt, CeedInt, CeedSize, CeedMemType, CeedCopyMode, Ptr{CeedInt}, Ptr{CeedInt8}, Ptr{CeedElemRestriction}), ceed, num_elem, elem_size, num_comp, comp_stride, l_size, mem_type, copy_mode, offsets, curl_orients, rstr)
 end
 
 function CeedElemRestrictionCreateStrided(ceed, num_elem, elem_size, num_comp, l_size, strides, rstr)
@@ -299,11 +305,19 @@ function CeedElemRestrictionCreateBlockedOriented(ceed, num_elem, elem_size, blk
 end
 
 function CeedElemRestrictionCreateBlockedCurlOriented(ceed, num_elem, elem_size, blk_size, num_comp, comp_stride, l_size, mem_type, copy_mode, offsets, curl_orients, rstr)
-    ccall((:CeedElemRestrictionCreateBlockedCurlOriented, libceed), Cint, (Ceed, CeedInt, CeedInt, CeedInt, CeedInt, CeedInt, CeedSize, CeedMemType, CeedCopyMode, Ptr{CeedInt}, Ptr{CeedInt}, Ptr{CeedElemRestriction}), ceed, num_elem, elem_size, blk_size, num_comp, comp_stride, l_size, mem_type, copy_mode, offsets, curl_orients, rstr)
+    ccall((:CeedElemRestrictionCreateBlockedCurlOriented, libceed), Cint, (Ceed, CeedInt, CeedInt, CeedInt, CeedInt, CeedInt, CeedSize, CeedMemType, CeedCopyMode, Ptr{CeedInt}, Ptr{CeedInt8}, Ptr{CeedElemRestriction}), ceed, num_elem, elem_size, blk_size, num_comp, comp_stride, l_size, mem_type, copy_mode, offsets, curl_orients, rstr)
 end
 
 function CeedElemRestrictionCreateBlockedStrided(ceed, num_elem, elem_size, blk_size, num_comp, l_size, strides, rstr)
     ccall((:CeedElemRestrictionCreateBlockedStrided, libceed), Cint, (Ceed, CeedInt, CeedInt, CeedInt, CeedInt, CeedSize, Ptr{CeedInt}, Ptr{CeedElemRestriction}), ceed, num_elem, elem_size, blk_size, num_comp, l_size, strides, rstr)
+end
+
+function CeedElemRestrictionCreateUnsignedCopy(rstr, rstr_unsigned)
+    ccall((:CeedElemRestrictionCreateUnsignedCopy, libceed), Cint, (CeedElemRestriction, Ptr{CeedElemRestriction}), rstr, rstr_unsigned)
+end
+
+function CeedElemRestrictionCreateUnorientedCopy(rstr, rstr_unoriented)
+    ccall((:CeedElemRestrictionCreateUnorientedCopy, libceed), Cint, (CeedElemRestriction, Ptr{CeedElemRestriction}), rstr, rstr_unoriented)
 end
 
 function CeedElemRestrictionReferenceCopy(rstr, rstr_copy)
@@ -400,6 +414,10 @@ end
 
 function CeedBasisApply(basis, num_elem, t_mode, eval_mode, u, v)
     ccall((:CeedBasisApply, libceed), Cint, (CeedBasis, CeedInt, CeedTransposeMode, CeedEvalMode, CeedVector, CeedVector), basis, num_elem, t_mode, eval_mode, u, v)
+end
+
+function CeedBasisApplyAtPoints(basis, num_points, t_mode, eval_mode, x_ref, u, v)
+    ccall((:CeedBasisApplyAtPoints, libceed), Cint, (CeedBasis, CeedInt, CeedTransposeMode, CeedEvalMode, CeedVector, CeedVector, CeedVector), basis, num_points, t_mode, eval_mode, x_ref, u, v)
 end
 
 function CeedBasisGetCeed(basis, ceed)
@@ -852,6 +870,13 @@ function CeedReallocArray(n, unit, p)
     ccall((:CeedReallocArray, libceed), Cint, (Csize_t, Csize_t, Ptr{Cvoid}), n, unit, p)
 end
 
+@cenum CeedDebugColor::UInt32 begin
+    CEED_DEBUG_COLOR_SUCCESS = 108
+    CEED_DEBUG_COLOR_WARNING = 208
+    CEED_DEBUG_COLOR_ERROR = 196
+    CEED_DEBUG_COLOR_NONE = 255
+end
+
 mutable struct CeedTensorContract_private end
 
 const CeedTensorContract = Ptr{CeedTensorContract_private}
@@ -882,6 +907,10 @@ end
 
 function CeedIsDebug(ceed, is_debug)
     ccall((:CeedIsDebug, libceed), Cint, (Ceed, Ptr{Bool}), ceed, is_debug)
+end
+
+function CeedGetResourceRoot(ceed, resource, delineator, resource_root)
+    ccall((:CeedGetResourceRoot, libceed), Cint, (Ceed, Ptr{Cchar}, Ptr{Cchar}, Ptr{Ptr{Cchar}}), ceed, resource, delineator, resource_root)
 end
 
 function CeedGetParent(ceed, parent)
@@ -964,6 +993,17 @@ function CeedVectorReference(vec)
     ccall((:CeedVectorReference, libceed), Cint, (CeedVector,), vec)
 end
 
+@cenum CeedRestrictionType::UInt32 begin
+    CEED_RESTRICTION_DEFAULT = 1
+    CEED_RESTRICTION_ORIENTED = 2
+    CEED_RESTRICTION_CURL_ORIENTED = 3
+    CEED_RESTRICTION_STRIDED = 4
+end
+
+function CeedElemRestrictionGetType(rstr, rstr_type)
+    ccall((:CeedElemRestrictionGetType, libceed), Cint, (CeedElemRestriction, Ptr{CeedRestrictionType}), rstr, rstr_type)
+end
+
 function CeedElemRestrictionIsStrided(rstr, is_strided)
     ccall((:CeedElemRestrictionIsStrided, libceed), Cint, (CeedElemRestriction, Ptr{Bool}), rstr, is_strided)
 end
@@ -993,11 +1033,11 @@ function CeedElemRestrictionRestoreOrientations(rstr, orients)
 end
 
 function CeedElemRestrictionGetCurlOrientations(rstr, mem_type, curl_orients)
-    ccall((:CeedElemRestrictionGetCurlOrientations, libceed), Cint, (CeedElemRestriction, CeedMemType, Ptr{Ptr{CeedInt}}), rstr, mem_type, curl_orients)
+    ccall((:CeedElemRestrictionGetCurlOrientations, libceed), Cint, (CeedElemRestriction, CeedMemType, Ptr{Ptr{CeedInt8}}), rstr, mem_type, curl_orients)
 end
 
 function CeedElemRestrictionRestoreCurlOrientations(rstr, curl_orients)
-    ccall((:CeedElemRestrictionRestoreCurlOrientations, libceed), Cint, (CeedElemRestriction, Ptr{Ptr{CeedInt}}), rstr, curl_orients)
+    ccall((:CeedElemRestrictionRestoreCurlOrientations, libceed), Cint, (CeedElemRestriction, Ptr{Ptr{CeedInt8}}), rstr, curl_orients)
 end
 
 function CeedElemRestrictionGetELayout(rstr, layout)
@@ -1106,8 +1146,8 @@ function CeedTensorContractDestroy(contract)
     ccall((:CeedTensorContractDestroy, libceed), Cint, (Ptr{CeedTensorContract},), contract)
 end
 
-function CeedQFunctionRegister(arg1, arg2, arg3, arg4, init)
-    ccall((:CeedQFunctionRegister, libceed), Cint, (Ptr{Cchar}, Ptr{Cchar}, CeedInt, CeedQFunctionUser, Ptr{Cvoid}), arg1, arg2, arg3, arg4, init)
+function CeedQFunctionRegister(name, source, vec_length, f, init)
+    ccall((:CeedQFunctionRegister, libceed), Cint, (Ptr{Cchar}, Ptr{Cchar}, CeedInt, CeedQFunctionUser, Ptr{Cvoid}), name, source, vec_length, f, init)
 end
 
 function CeedQFunctionSetFortranStatus(qf, status)
@@ -1390,6 +1430,10 @@ end
 
 const CeedInt_FMT = "d"
 
+const CeedSize_FMT = "td"
+
+const CeedInt8_FMT = "d"
+
 const CEED_VERSION_MAJOR = 0
 
 const CEED_VERSION_MINOR = 11
@@ -1413,5 +1457,3 @@ const CEED_FIELD_MAX = 16
 # Skipping MacroDefinition: CeedPragmaOptimizeOff _Pragma ( "clang optimize off" )
 
 # Skipping MacroDefinition: CeedPragmaOptimizeOn _Pragma ( "clang optimize on" )
-
-const CEED_DEBUG_COLOR_NONE = 255

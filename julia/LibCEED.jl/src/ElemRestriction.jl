@@ -211,7 +211,7 @@ function create_elem_restriction_curl_oriented(
     compstride,
     lsize,
     offsets::AbstractArray{CeedInt},
-    curlorients::AbstractArray{CeedInt};
+    curlorients::AbstractArray{CeedInt8};
     mtype::MemType=MEM_HOST,
     cmode::CopyMode=COPY_VALUES,
 )

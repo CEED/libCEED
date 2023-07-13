@@ -311,7 +311,7 @@ def test_214(ceed_resource):
     x.set_array(a, cmode=libceed.USE_POINTER)
 
     ind = np.zeros(2 * num_elem, dtype="int32")
-    curl_orients = np.zeros(3 * 2 * num_elem, dtype="int32")
+    curl_orients = np.zeros(3 * 2 * num_elem, dtype="int8")
     for i in range(num_elem):
         ind[2 * i + 0] = i
         ind[2 * i + 1] = i + 1

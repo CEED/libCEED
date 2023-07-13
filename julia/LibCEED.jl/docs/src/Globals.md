@@ -3,6 +3,7 @@
 ```@docs
 CeedScalar
 CeedInt
+CeedInt8
 CeedSize
 QuadMode
 MemType
