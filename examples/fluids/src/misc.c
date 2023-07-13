@@ -10,6 +10,7 @@
 
 #include <ceed.h>
 #include <petscdm.h>
+#include <petscsf.h>
 #include <petscts.h>
 
 #include "../navierstokes.h"
@@ -462,6 +463,178 @@ PetscErrorCode IntArrayP2C(PetscInt num_entries, PetscInt **array_petsc, CeedInt
     PetscCall(PetscFree(*array_petsc));
   }
   *array_petsc = NULL;
+
+  PetscFunctionReturn(PETSC_SUCCESS);
+}
+
+// Print information about the given simulation run
+PetscErrorCode PrintRunInfo(User user, Physics phys_ctx, ProblemData *problem, MPI_Comm comm) {
+  PetscFunctionBeginUser;
+  // Header and rank
+  char        host_name[PETSC_MAX_PATH_LEN];
+  PetscMPIInt rank, comm_size;
+  PetscCall(PetscGetHostName(host_name, sizeof host_name));
+  PetscCallMPI(MPI_Comm_rank(comm, &rank));
+  PetscCallMPI(MPI_Comm_size(comm, &comm_size));
+  PetscCall(PetscPrintf(comm,
+                        "\n-- Navier-Stokes solver - libCEED + PETSc --\n"
+                        "  MPI:\n"
+                        "    Host Name                          : %s\n"
+                        "    Total ranks                        : %d\n",
+                        host_name, comm_size));
+
+  // Problem specific info
+  PetscCall(problem->print_info(problem, user->app_ctx));
+
+  // libCEED
+  const char *used_resource;
+  CeedMemType mem_type_backend;
+  CeedGetResource(user->ceed, &used_resource);
+  CeedGetPreferredMemType(user->ceed, &mem_type_backend);
+  PetscCall(PetscPrintf(comm,
+                        "  libCEED:\n"
+                        "    libCEED Backend                    : %s\n"
+                        "    libCEED Backend MemType            : %s\n",
+                        used_resource, CeedMemTypes[mem_type_backend]));
+  // PETSc
+  char box_faces_str[PETSC_MAX_PATH_LEN] = "3,3,3";
+  if (problem->dim == 2) box_faces_str[3] = '\0';
+  PetscCall(PetscOptionsGetString(NULL, NULL, "-dm_plex_box_faces", box_faces_str, sizeof(box_faces_str), NULL));
+  MatType mat_type;
+  VecType vec_type;
+  PetscCall(DMGetMatType(user->dm, &mat_type));
+  PetscCall(DMGetVecType(user->dm, &vec_type));
+  PetscCall(PetscPrintf(comm,
+                        "  PETSc:\n"
+                        "    Box Faces                          : %s\n"
+                        "    DM MatType                         : %s\n"
+                        "    DM VecType                         : %s\n"
+                        "    Time Stepping Scheme               : %s\n",
+                        box_faces_str, mat_type, vec_type, phys_ctx->implicit ? "implicit" : "explicit"));
+  if (user->app_ctx->cont_steps) {
+    PetscCall(PetscPrintf(comm,
+                          "  Continue:\n"
+                          "    Filename:                          : %s\n"
+                          "    Step:                              : %" PetscInt_FMT "\n"
+                          "    Time:                              : %g\n",
+                          user->app_ctx->cont_file, user->app_ctx->cont_steps, user->app_ctx->cont_time));
+  }
+  // Mesh
+  const PetscInt num_comp_q = 5;
+  PetscInt       glob_dofs, owned_dofs, local_dofs;
+  const CeedInt  num_P = user->app_ctx->degree + 1, num_Q = num_P + user->app_ctx->q_extra;
+  // -- Get global size
+  PetscCall(DMGetGlobalVectorInfo(user->dm, &owned_dofs, &glob_dofs, NULL));
+  // -- Get local size
+  PetscCall(DMGetLocalVectorInfo(user->dm, &local_dofs, NULL, NULL));
+  PetscCall(PetscPrintf(comm,
+                        "  Mesh:\n"
+                        "    Number of 1D Basis Nodes (P)       : %" CeedInt_FMT "\n"
+                        "    Number of 1D Quadrature Points (Q) : %" CeedInt_FMT "\n"
+                        "    Global DoFs                        : %" PetscInt_FMT "\n"
+                        "    DoFs per node                      : %" PetscInt_FMT "\n"
+                        "    Global %" PetscInt_FMT "-DoF nodes                 : %" PetscInt_FMT "\n",
+                        num_P, num_Q, glob_dofs, num_comp_q, num_comp_q, glob_dofs / num_comp_q));
+  // -- Get Partition Statistics
+  PetscCall(PetscPrintf(comm, "  Partition:                             (min,max,median,max/median)\n"));
+  {
+    PetscInt *gather_buffer = NULL;
+    PetscInt  part_owned_dofs[3], part_local_dofs[3], part_boundary_dofs[3], part_neighbors[3];
+    PetscInt  median_index = comm_size % 2 ? comm_size / 2 : comm_size / 2 - 1;
+    if (!rank) PetscCall(PetscMalloc1(comm_size, &gather_buffer));
+
+    PetscCallMPI(MPI_Gather(&owned_dofs, 1, MPIU_INT, gather_buffer, 1, MPIU_INT, 0, comm));
+    if (!rank) {
+      PetscCall(PetscSortInt(comm_size, gather_buffer));
+      part_owned_dofs[0]             = gather_buffer[0];              // min
+      part_owned_dofs[1]             = gather_buffer[comm_size - 1];  // max
+      part_owned_dofs[2]             = gather_buffer[median_index];   // median
+      PetscReal part_owned_dof_ratio = (PetscReal)part_owned_dofs[1] / (PetscReal)part_owned_dofs[2];
+      PetscCall(PetscPrintf(
+          comm, "    Global Vector %" PetscInt_FMT "-DoF nodes          : %" PetscInt_FMT ", %" PetscInt_FMT ", %" PetscInt_FMT ", %f\n", num_comp_q,
+          part_owned_dofs[0] / num_comp_q, part_owned_dofs[1] / num_comp_q, part_owned_dofs[2] / num_comp_q, part_owned_dof_ratio));
+    }
+
+    PetscCallMPI(MPI_Gather(&local_dofs, 1, MPIU_INT, gather_buffer, 1, MPIU_INT, 0, comm));
+    if (!rank) {
+      PetscCall(PetscSortInt(comm_size, gather_buffer));
+      part_local_dofs[0]             = gather_buffer[0];              // min
+      part_local_dofs[1]             = gather_buffer[comm_size - 1];  // max
+      part_local_dofs[2]             = gather_buffer[median_index];   // median
+      PetscReal part_local_dof_ratio = (PetscReal)part_local_dofs[1] / (PetscReal)part_local_dofs[2];
+      PetscCall(PetscPrintf(
+          comm, "    Local Vector %" PetscInt_FMT "-DoF nodes           : %" PetscInt_FMT ", %" PetscInt_FMT ", %" PetscInt_FMT ", %f\n", num_comp_q,
+          part_local_dofs[0] / num_comp_q, part_local_dofs[1] / num_comp_q, part_local_dofs[2] / num_comp_q, part_local_dof_ratio));
+    }
+
+    PetscInt num_remote_roots_total = 0, num_remote_leaves_total = 0, num_ghost_interface_ranks = 0, num_owned_interface_ranks = 0;
+    {
+      PetscSF            sf;
+      PetscInt           nrranks, niranks;
+      const PetscInt    *roffset, *rmine, *rremote, *ioffset, *irootloc;
+      const PetscMPIInt *rranks, *iranks;
+      PetscCall(DMGetSectionSF(user->dm, &sf));
+      PetscCall(PetscSFGetRootRanks(sf, &nrranks, &rranks, &roffset, &rmine, &rremote));
+      PetscCall(PetscSFGetLeafRanks(sf, &niranks, &iranks, &ioffset, &irootloc));
+      for (PetscInt i = 0; i < nrranks; i++) {
+        if (rranks[i] == rank) continue;  // Ignore same-part global->local transfers
+        num_remote_roots_total += roffset[i + 1] - roffset[i];
+        num_ghost_interface_ranks++;
+      }
+      for (PetscInt i = 0; i < niranks; i++) {
+        if (iranks[i] == rank) continue;
+        num_remote_leaves_total += ioffset[i + 1] - ioffset[i];
+        num_owned_interface_ranks++;
+      }
+    }
+    PetscCallMPI(MPI_Gather(&num_remote_roots_total, 1, MPIU_INT, gather_buffer, 1, MPIU_INT, 0, comm));
+    if (!rank) {
+      PetscCall(PetscSortInt(comm_size, gather_buffer));
+      part_boundary_dofs[0]           = gather_buffer[0];              // min
+      part_boundary_dofs[1]           = gather_buffer[comm_size - 1];  // max
+      part_boundary_dofs[2]           = gather_buffer[median_index];   // median
+      PetscReal part_shared_dof_ratio = (PetscReal)part_boundary_dofs[1] / (PetscReal)part_boundary_dofs[2];
+      PetscCall(PetscPrintf(
+          comm, "    Ghost Interface %" PetscInt_FMT "-DoF nodes        : %" PetscInt_FMT ", %" PetscInt_FMT ", %" PetscInt_FMT ", %f\n", num_comp_q,
+          part_boundary_dofs[0] / num_comp_q, part_boundary_dofs[1] / num_comp_q, part_boundary_dofs[2] / num_comp_q, part_shared_dof_ratio));
+    }
+
+    PetscCallMPI(MPI_Gather(&num_ghost_interface_ranks, 1, MPIU_INT, gather_buffer, 1, MPIU_INT, 0, comm));
+    if (!rank) {
+      PetscCall(PetscSortInt(comm_size, gather_buffer));
+      part_neighbors[0]              = gather_buffer[0];              // min
+      part_neighbors[1]              = gather_buffer[comm_size - 1];  // max
+      part_neighbors[2]              = gather_buffer[median_index];   // median
+      PetscReal part_neighbors_ratio = (PetscReal)part_neighbors[1] / (PetscReal)part_neighbors[2];
+      PetscCall(PetscPrintf(comm, "    Ghost Interface Ranks              : %" PetscInt_FMT ", %" PetscInt_FMT ", %" PetscInt_FMT ", %f\n",
+                            part_neighbors[0], part_neighbors[1], part_neighbors[2], part_neighbors_ratio));
+    }
+
+    PetscCallMPI(MPI_Gather(&num_remote_leaves_total, 1, MPIU_INT, gather_buffer, 1, MPIU_INT, 0, comm));
+    if (!rank) {
+      PetscCall(PetscSortInt(comm_size, gather_buffer));
+      part_boundary_dofs[0]           = gather_buffer[0];              // min
+      part_boundary_dofs[1]           = gather_buffer[comm_size - 1];  // max
+      part_boundary_dofs[2]           = gather_buffer[median_index];   // median
+      PetscReal part_shared_dof_ratio = (PetscReal)part_boundary_dofs[1] / (PetscReal)part_boundary_dofs[2];
+      PetscCall(PetscPrintf(
+          comm, "    Owned Interface %" PetscInt_FMT "-DoF nodes        : %" PetscInt_FMT ", %" PetscInt_FMT ", %" PetscInt_FMT ", %f\n", num_comp_q,
+          part_boundary_dofs[0] / num_comp_q, part_boundary_dofs[1] / num_comp_q, part_boundary_dofs[2] / num_comp_q, part_shared_dof_ratio));
+    }
+
+    PetscCallMPI(MPI_Gather(&num_owned_interface_ranks, 1, MPIU_INT, gather_buffer, 1, MPIU_INT, 0, comm));
+    if (!rank) {
+      PetscCall(PetscSortInt(comm_size, gather_buffer));
+      part_neighbors[0]              = gather_buffer[0];              // min
+      part_neighbors[1]              = gather_buffer[comm_size - 1];  // max
+      part_neighbors[2]              = gather_buffer[median_index];   // median
+      PetscReal part_neighbors_ratio = (PetscReal)part_neighbors[1] / (PetscReal)part_neighbors[2];
+      PetscCall(PetscPrintf(comm, "    Owned Interface Ranks              : %" PetscInt_FMT ", %" PetscInt_FMT ", %" PetscInt_FMT ", %f\n",
+                            part_neighbors[0], part_neighbors[1], part_neighbors[2], part_neighbors_ratio));
+    }
+
+    if (!rank) PetscCall(PetscFree(gather_buffer));
+  }
 
   PetscFunctionReturn(PETSC_SUCCESS);
 }

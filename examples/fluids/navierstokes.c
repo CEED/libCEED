@@ -228,79 +228,9 @@ int main(int argc, char **argv) {
     PetscCall(SetupICsFromBinary(comm, app_ctx, Q));
   }
 
-  // ---------------------------------------------------------------------------
   // Print problem summary
-  // ---------------------------------------------------------------------------
-  if (app_ctx->test_type == TESTTYPE_NONE) {
-    // Header and rank
-    char host_name[PETSC_MAX_PATH_LEN];
-    int  comm_size;
-    PetscCall(PetscGetHostName(host_name, sizeof host_name));
-    PetscCall(MPI_Comm_size(comm, &comm_size));
-    PetscCall(PetscPrintf(comm,
-                          "\n-- Navier-Stokes solver - libCEED + PETSc --\n"
-                          "  MPI:\n"
-                          "    Host Name                          : %s\n"
-                          "    Total ranks                        : %d\n",
-                          host_name, comm_size));
+  if (app_ctx->test_type == TESTTYPE_NONE) PetscCall(PrintRunInfo(user, phys_ctx, problem, comm));
 
-    // Problem specific info
-    PetscCall(problem->print_info(problem, app_ctx));
-
-    // libCEED
-    const char *used_resource;
-    CeedGetResource(ceed, &used_resource);
-    PetscCall(PetscPrintf(comm,
-                          "  libCEED:\n"
-                          "    libCEED Backend                    : %s\n"
-                          "    libCEED Backend MemType            : %s\n",
-                          used_resource, CeedMemTypes[mem_type_backend]));
-    // PETSc
-    char box_faces_str[PETSC_MAX_PATH_LEN] = "3,3,3";
-    if (problem->dim == 2) box_faces_str[3] = '\0';
-    PetscCall(PetscOptionsGetString(NULL, NULL, "-dm_plex_box_faces", box_faces_str, sizeof(box_faces_str), NULL));
-    MatType mat_type;
-    VecType vec_type;
-    PetscCall(DMGetMatType(dm, &mat_type));
-    PetscCall(DMGetVecType(dm, &vec_type));
-    PetscCall(PetscPrintf(comm,
-                          "  PETSc:\n"
-                          "    Box Faces                          : %s\n"
-                          "    DM MatType                         : %s\n"
-                          "    DM VecType                         : %s\n"
-                          "    Time Stepping Scheme               : %s\n",
-                          box_faces_str, mat_type, vec_type, phys_ctx->implicit ? "implicit" : "explicit"));
-    if (app_ctx->cont_steps) {
-      PetscCall(PetscPrintf(comm,
-                            "  Continue:\n"
-                            "    Filename:                          : %s\n"
-                            "    Step:                              : %" PetscInt_FMT "\n"
-                            "    Time:                              : %g\n",
-                            app_ctx->cont_file, app_ctx->cont_steps, app_ctx->cont_time));
-    }
-    // Mesh
-    const PetscInt num_comp_q = 5;
-    PetscInt       glob_dofs, owned_dofs;
-    PetscInt       glob_nodes, local_nodes;
-    const CeedInt  num_P = app_ctx->degree + 1, num_Q = num_P + app_ctx->q_extra;
-    // -- Get global size
-    PetscCall(VecGetSize(Q, &glob_dofs));
-    PetscCall(VecGetLocalSize(Q, &owned_dofs));
-    glob_nodes = glob_dofs / num_comp_q;
-    // -- Get local size
-    PetscCall(VecGetSize(user->Q_loc, &local_nodes));
-    local_nodes /= num_comp_q;
-    PetscCall(PetscPrintf(comm,
-                          "  Mesh:\n"
-                          "    Number of 1D Basis Nodes (P)       : %" CeedInt_FMT "\n"
-                          "    Number of 1D Quadrature Points (Q) : %" CeedInt_FMT "\n"
-                          "    Global DoFs                        : %" PetscInt_FMT "\n"
-                          "    Owned DoFs                         : %" PetscInt_FMT "\n"
-                          "    DoFs per node                      : %" PetscInt_FMT "\n"
-                          "    Global nodes (DoFs / %" PetscInt_FMT ")            : %" PetscInt_FMT "\n"
-                          "    Local nodes                        : %" PetscInt_FMT "\n",
-                          num_P, num_Q, glob_dofs, owned_dofs, num_comp_q, num_comp_q, glob_nodes, local_nodes));
-  }
   // -- Zero Q_loc
   PetscCall(VecZeroEntries(user->Q_loc));
 
