@@ -286,24 +286,6 @@ PetscErrorCode CreateMassQFunction(Ceed ceed, CeedInt N, CeedInt q_data_size, Ce
   PetscFunctionReturn(PETSC_SUCCESS);
 }
 
-/* @brief L^2 Projection of a source FEM function to a target FEM space
- *
- * To solve system using a lumped mass matrix, pass a KSP object with ksp_type=preonly, pc_type=jacobi, pc_jacobi_type=rowsum.
- *
- * @param[in]  source_vec    Global Vec of the source FEM function. NULL indicates using rhs_matop_ctx->X_loc
- * @param[out] target_vec    Global Vec of the target (result) FEM function. NULL indicates using rhs_matop_ctx->Y_loc
- * @param[in]  rhs_matop_ctx MatopApplyContext for performing the RHS evaluation
- * @param[in]  ksp           KSP for solving the consistent projection problem
- */
-PetscErrorCode ComputeL2Projection(Vec source_vec, Vec target_vec, OperatorApplyContext rhs_matop_ctx, KSP ksp) {
-  PetscFunctionBeginUser;
-
-  PetscCall(ApplyCeedOperatorGlobalToGlobal(source_vec, target_vec, rhs_matop_ctx));
-  PetscCall(KSPSolve(ksp, target_vec, target_vec));
-
-  PetscFunctionReturn(PETSC_SUCCESS);
-}
-
 PetscErrorCode NodalProjectionDataDestroy(NodalProjectionData context) {
   PetscFunctionBeginUser;
   if (context == NULL) PetscFunctionReturn(PETSC_SUCCESS);
