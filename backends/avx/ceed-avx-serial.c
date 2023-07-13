@@ -25,11 +25,7 @@ static int CeedInit_Avx(const char *resource, Ceed ceed) {
   CeedCallBackend(CeedInit("/cpu/self/opt/serial", &ceed_ref));
   CeedCallBackend(CeedSetDelegate(ceed, ceed_ref));
 
-  if (CEED_SCALAR_TYPE == CEED_SCALAR_FP64) {
-    CeedCallBackend(CeedSetBackendFunction(ceed, "Ceed", ceed, "TensorContractCreate", CeedTensorContractCreate_f64_Avx));
-  } else {
-    CeedCallBackend(CeedSetBackendFunction(ceed, "Ceed", ceed, "TensorContractCreate", CeedTensorContractCreate_f32_Avx));
-  }
+  CeedCallBackend(CeedSetBackendFunction(ceed, "Ceed", ceed, "TensorContractCreate", CeedTensorContractCreate_Avx));
 
   return CEED_ERROR_SUCCESS;
 }

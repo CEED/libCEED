@@ -11,7 +11,7 @@
 #ifndef _ceed_f32_h
 #define _ceed_f32_h
 
-/// Set base scalar type to FP32.  (See CeedScalarType enum in ceed.h for all options.)
+/// Set base scalar type to FP32. (See CeedScalarType enum in ceed.h for all options.)
 #define CEED_SCALAR_TYPE CEED_SCALAR_FP32
 typedef float CeedScalar;
 
