@@ -159,7 +159,6 @@ PetscErrorCode ComputeL2Error(MPI_Comm comm, Vec Q_loc, PetscReal l2_error[5], O
 PetscErrorCode GetError_NS(CeedData ceed_data, DM dm, User user, ProblemData *problem, Vec Q, PetscScalar final_time) {
   Vec         Q_loc;
   PetscReal   l2_error[5];
-  Vec         E_source;
   const char *state_var_source = "Conservative";
   PetscFunctionBeginUser;
 
@@ -169,14 +168,14 @@ PetscErrorCode GetError_NS(CeedData ceed_data, DM dm, User user, ProblemData *pr
   PetscCall(UpdateBoundaryValues(user, Q_loc, final_time));
 
   // Compute the L2 error in the source state variables
-  PetscCall(VecDuplicate(Q, &E_source));
   if (user->phys->ics_time_label) PetscCall(UpdateContextLabel(user->comm, final_time, ceed_data->op_ics_ctx->op, user->phys->ics_time_label));
   CeedOperatorApply(ceed_data->op_ics_ctx->op, ceed_data->x_coord, ceed_data->q_true, CEED_REQUEST_IMMEDIATE);
   PetscCall(ComputeL2Error(user->comm, Q_loc, l2_error, ceed_data->op_error_ctx, user->phys->ics_time_label, final_time));
 
   // Print the error
-  if (user->app_ctx->test_type != TESTTYPE_POST_PROCESS) {
+  if (user->app_ctx->test_type == TESTTYPE_POST_PROCESS) {
     // PetscOptionsRealArray(... "-expected_l2_error_primitive", ...);
+  } else {
     PetscCall(PetscPrintf(PETSC_COMM_WORLD, "\nL2 Error:\n"));
     if (user->phys->state_var == STATEVAR_PRIMITIVE) state_var_source = "Primitive";
     for (int i = 0; i < 5; i++) {
@@ -185,13 +184,14 @@ PetscErrorCode GetError_NS(CeedData ceed_data, DM dm, User user, ProblemData *pr
   }
   if (problem->convert_error.qfunction) {
     PetscReal   l2_error_converted[5];
-    Vec         E_target;
     const char *state_var_target = "Primitive";
     if (user->phys->state_var == STATEVAR_PRIMITIVE) state_var_target = "Conservative";
 
     // Convert the L2 error to the target state variable
+    PetscCall(ComputeL2Error(user->comm, Q_loc, l2_error_converted, ceed_data->op_convert_error_ctx, user->phys->ics_time_label, final_time));
+
     if (user->app_ctx->test_type == TESTTYPE_POST_PROCESS) {
-      PetscCall(RegressionTests_NS(user->app_ctx, E_target));
+      // PetscOptionsRealArray(... "-expected_l2_error_primitive", ...);
     } else {
       for (int i = 0; i < 5; i++) {
         PetscCall(PetscPrintf(PETSC_COMM_WORLD, "  %s variables-Component %d: %g\n", state_var_target, i, (double)l2_error_converted[i]));
