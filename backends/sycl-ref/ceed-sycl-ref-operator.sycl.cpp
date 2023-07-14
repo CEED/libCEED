@@ -787,7 +787,7 @@ static inline int CeedOperatorAssembleDiagonalSetup_Sycl(CeedOperator op, const 
   std::vector<sycl::event> copy_events;
   if (evalNone) {
     CeedCallBackend(CeedCalloc(nqpts * nnodes, &identity));
-    for (CeedInt i = 0; i < (nnodes < nqpts ? nnodes : nqpts); i++) identity[i * nnodes + i] = 1.0;
+    for (CeedSize i = 0; i < (nnodes < nqpts ? nnodes : nqpts); i++) identity[i * nnodes + i] = 1.0;
     CeedCallSycl(ceed, diag->d_identity = sycl::malloc_device<CeedScalar>(iLen, sycl_data->sycl_device, sycl_data->sycl_context));
     sycl::event identity_copy = sycl_data->sycl_queue.copy<CeedScalar>(identity, diag->d_identity, iLen, {e});
     copy_events.push_back(identity_copy);
@@ -838,11 +838,11 @@ static inline int CeedOperatorAssembleDiagonalSetup_Sycl(CeedOperator op, const 
 //------------------------------------------------------------------------------
 static int CeedOperatorLinearDiagonal_Sycl(sycl::queue &sycl_queue, const bool pointBlock, const CeedInt nelem, const CeedOperatorDiag_Sycl *diag,
                                            const CeedScalar *assembledqfarray, CeedScalar *elemdiagarray) {
-  const CeedInt nnodes      = diag->nnodes;
-  const CeedInt nqpts       = diag->nqpts;
-  const CeedInt ncomp       = diag->ncomp;
-  const CeedInt numemodein  = diag->numemodein;
-  const CeedInt numemodeout = diag->numemodeout;
+  const CeedSize nnodes      = diag->nnodes;
+  const CeedSize nqpts       = diag->nqpts;
+  const CeedSize ncomp       = diag->ncomp;
+  const CeedSize numemodein  = diag->numemodein;
+  const CeedSize numemodeout = diag->numemodeout;
 
   const CeedScalar   *identity  = diag->d_identity;
   const CeedScalar   *interpin  = diag->d_interpin;
@@ -864,23 +864,23 @@ static int CeedOperatorLinearDiagonal_Sycl(sycl::queue &sycl_queue, const bool p
     // Each element
     CeedInt dout = -1;
     // Each basis eval mode pair
-    for (CeedInt eout = 0; eout < numemodeout; eout++) {
+    for (CeedSize eout = 0; eout < numemodeout; eout++) {
       const CeedScalar *bt = NULL;
       if (emodeout[eout] == CEED_EVAL_GRAD) ++dout;
       CeedOperatorGetBasisPointer_Sycl(&bt, emodeout[eout], identity, interpout, &gradout[dout * nqpts * nnodes]);
       CeedInt din = -1;
-      for (CeedInt ein = 0; ein < numemodein; ein++) {
+      for (CeedSize ein = 0; ein < numemodein; ein++) {
         const CeedScalar *b = NULL;
         if (emodein[ein] == CEED_EVAL_GRAD) ++din;
         CeedOperatorGetBasisPointer_Sycl(&b, emodein[ein], identity, interpin, &gradin[din * nqpts * nnodes]);
         // Each component
-        for (CeedInt compOut = 0; compOut < ncomp; compOut++) {
+        for (CeedSize compOut = 0; compOut < ncomp; compOut++) {
           // Each qpoint/node pair
           if (pointBlock) {
             // Point Block Diagonal
             for (CeedInt compIn = 0; compIn < ncomp; compIn++) {
               CeedScalar evalue = 0.0;
-              for (CeedInt q = 0; q < nqpts; q++) {
+              for (CeedSize q = 0; q < nqpts; q++) {
                 const CeedScalar qfvalue =
                     assembledqfarray[((((ein * ncomp + compIn) * numemodeout + eout) * ncomp + compOut) * nelem + e) * nqpts + q];
                 evalue += bt[q * nnodes + tid] * qfvalue * b[q * nnodes + tid];
@@ -890,7 +890,7 @@ static int CeedOperatorLinearDiagonal_Sycl(sycl::queue &sycl_queue, const bool p
           } else {
             // Diagonal Only
             CeedScalar evalue = 0.0;
-            for (CeedInt q = 0; q < nqpts; q++) {
+            for (CeedSize q = 0; q < nqpts; q++) {
               const CeedScalar qfvalue =
                   assembledqfarray[((((ein * ncomp + compOut) * numemodeout + eout) * ncomp + compOut) * nelem + e) * nqpts + q];
               evalue += bt[q * nnodes + tid] * qfvalue * b[q * nnodes + tid];
@@ -1187,23 +1187,23 @@ static int CeedOperatorLinearAssemble_Sycl(sycl::queue &sycl_queue, const CeedOp
   // TODO: expand to more general cases
   CeedOperatorAssemble_Sycl *asmb        = impl->asmb;
   const CeedInt              nelem       = asmb->nelem;
-  const CeedInt              nnodes      = asmb->nnodes;
-  const CeedInt              ncomp       = asmb->ncomp;
-  const CeedInt              nqpts       = asmb->nqpts;
-  const CeedInt              numemodein  = asmb->numemodein;
-  const CeedInt              numemodeout = asmb->numemodeout;
+  const CeedSize             nnodes      = asmb->nnodes;
+  const CeedSize             ncomp       = asmb->ncomp;
+  const CeedSize             nqpts       = asmb->nqpts;
+  const CeedSize             numemodein  = asmb->numemodein;
+  const CeedSize             numemodeout = asmb->numemodeout;
 
   // Strides for final output ordering, determined by the reference (inference) implementation of the symbolic assembly, slowest --> fastest: element,
   // comp_in, comp_out, node_row, node_col
-  const CeedInt comp_out_stride = nnodes * nnodes;
-  const CeedInt comp_in_stride  = comp_out_stride * ncomp;
-  const CeedInt e_stride        = comp_in_stride * ncomp;
+  const CeedSize comp_out_stride = nnodes * nnodes;
+  const CeedSize comp_in_stride  = comp_out_stride * ncomp;
+  const CeedSize e_stride        = comp_in_stride * ncomp;
   // Strides for QF array, slowest --> fastest: emode_in, comp_in, emode_out, comp_out, elem, qpt
-  const CeedInt qe_stride         = nqpts;
-  const CeedInt qcomp_out_stride  = nelem * qe_stride;
-  const CeedInt qemode_out_stride = qcomp_out_stride * ncomp;
-  const CeedInt qcomp_in_stride   = qemode_out_stride * numemodeout;
-  const CeedInt qemode_in_stride  = qcomp_in_stride * ncomp;
+  const CeedSize qe_stride         = nqpts;
+  const CeedSize qcomp_out_stride  = nelem * qe_stride;
+  const CeedSize qemode_out_stride = qcomp_out_stride * ncomp;
+  const CeedSize qcomp_in_stride   = qemode_out_stride * numemodeout;
+  const CeedSize qemode_in_stride  = qcomp_in_stride * ncomp;
 
   CeedScalar *B_in, *B_out;
   B_in                       = asmb->d_B_in;
@@ -1220,23 +1220,23 @@ static int CeedOperatorLinearAssemble_Sycl(sycl::queue &sycl_queue, const CeedOp
     const int l = idx.get(1);  // The output column index of each B^TDB operation
     const int i = idx.get(2);  // The output row index of each B^TDB operation
                                // such that we have (Bout^T)_ij D_jk Bin_kl = C_il
-    for (CeedInt comp_in = 0; comp_in < ncomp; comp_in++) {
-      for (CeedInt comp_out = 0; comp_out < ncomp; comp_out++) {
-        CeedScalar result        = 0.0;
-        CeedInt    qf_index_comp = qcomp_in_stride * comp_in + qcomp_out_stride * comp_out + qe_stride * e;
-        for (CeedInt emode_in = 0; emode_in < numemodein; emode_in++) {
-          CeedInt b_in_index = emode_in * nqpts * nnodes;
-          for (CeedInt emode_out = 0; emode_out < numemodeout; emode_out++) {
-            CeedInt b_out_index = emode_out * nqpts * nnodes;
-            CeedInt qf_index    = qf_index_comp + qemode_out_stride * emode_out + qemode_in_stride * emode_in;
+    for (CeedSize comp_in = 0; comp_in < ncomp; comp_in++) {
+      for (CeedSize comp_out = 0; comp_out < ncomp; comp_out++) {
+        CeedScalar result         = 0.0;
+        CeedSize    qf_index_comp = qcomp_in_stride * comp_in + qcomp_out_stride * comp_out + qe_stride * e;
+        for (CeedSize emode_in = 0; emode_in < numemodein; emode_in++) {
+          CeedSize b_in_index = emode_in * nqpts * nnodes;
+          for (CeedSize emode_out = 0; emode_out < numemodeout; emode_out++) {
+            CeedSize b_out_index = emode_out * nqpts * nnodes;
+            CeedSize qf_index    = qf_index_comp + qemode_out_stride * emode_out + qemode_in_stride * emode_in;
             // Perform the B^T D B operation for this 'chunk' of D (the qf_array)
-            for (CeedInt j = 0; j < nqpts; j++) {
+            for (CeedSize j = 0; j < nqpts; j++) {
               result += B_out[b_out_index + j * nnodes + i] * qf_array[qf_index + j] * B_in[b_in_index + j * nnodes + l];
             }
           }  // end of emode_out
         }    // end of emode_in
-        CeedInt val_index       = comp_in_stride * comp_in + comp_out_stride * comp_out + e_stride * e + nnodes * i + l;
-        values_array[val_index] = result;
+        CeedSize val_index       = comp_in_stride * comp_in + comp_out_stride * comp_out + e_stride * e + nnodes * i + l;
+        values_array[val_index]  = result;
       }  // end of out component
     }    // end of in component
   });

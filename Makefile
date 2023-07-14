@@ -111,7 +111,7 @@ OMP_SIMD_FLAG.oneAPI    := $(OMP_SIMD_FLAG.clang)
 SYCL_FLAG.gcc           :=
 SYCL_FLAG.clang         := -fsycl
 SYCL_FLAG.icc           :=
-SYCL_FLAG.oneAPI        := -fsycl
+SYCL_FLAG.oneAPI        := -fsycl -fno-sycl-id-queries-fit-in-int
 OPT.gcc                 := -g -ffp-contract=fast
 OPT.clang               := $(OPT.gcc)
 OPT.oneAPI              := $(OPT.clang)
