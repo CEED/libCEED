@@ -1222,8 +1222,8 @@ static int CeedOperatorLinearAssemble_Sycl(sycl::queue &sycl_queue, const CeedOp
                                // such that we have (Bout^T)_ij D_jk Bin_kl = C_il
     for (CeedSize comp_in = 0; comp_in < ncomp; comp_in++) {
       for (CeedSize comp_out = 0; comp_out < ncomp; comp_out++) {
-        CeedScalar result         = 0.0;
-        CeedSize    qf_index_comp = qcomp_in_stride * comp_in + qcomp_out_stride * comp_out + qe_stride * e;
+        CeedScalar result        = 0.0;
+        CeedSize   qf_index_comp = qcomp_in_stride * comp_in + qcomp_out_stride * comp_out + qe_stride * e;
         for (CeedSize emode_in = 0; emode_in < numemodein; emode_in++) {
           CeedSize b_in_index = emode_in * nqpts * nnodes;
           for (CeedSize emode_out = 0; emode_out < numemodeout; emode_out++) {
@@ -1235,8 +1235,8 @@ static int CeedOperatorLinearAssemble_Sycl(sycl::queue &sycl_queue, const CeedOp
             }
           }  // end of emode_out
         }    // end of emode_in
-        CeedSize val_index       = comp_in_stride * comp_in + comp_out_stride * comp_out + e_stride * e + nnodes * i + l;
-        values_array[val_index]  = result;
+        CeedSize val_index      = comp_in_stride * comp_in + comp_out_stride * comp_out + e_stride * e + nnodes * i + l;
+        values_array[val_index] = result;
       }  // end of out component
     }    // end of in component
   });

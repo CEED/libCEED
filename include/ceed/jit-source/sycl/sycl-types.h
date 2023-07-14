@@ -36,6 +36,4 @@ typedef struct {
 } FieldsInt_Sycl;
 #endif
 
-
-
 #endif

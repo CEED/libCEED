@@ -10,9 +10,9 @@
 #include <ceed/backend.h>
 #include <ceed/ceed.h>
 
-#include <string.h>
 #include <string>
 #include <string_view>
+#include <string.h>
 
 //------------------------------------------------------------------------------
 // Backend init

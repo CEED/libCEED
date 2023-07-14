@@ -16,16 +16,16 @@
 #include "../sycl/ceed-sycl-compile.hpp"
 
 typedef struct {
-  CeedInt       dim;
-  CeedInt       Q_1d;
-  CeedInt       max_P_1d;
-  SyclModule_t* sycl_module;
-  sycl::kernel* op;
+  CeedInt         dim;
+  CeedInt         Q_1d;
+  CeedInt         max_P_1d;
+  SyclModule_t   *sycl_module;
+  sycl::kernel   *op;
   FieldsInt_Sycl *indices;
   Fields_Sycl    *fields;
   Fields_Sycl    *B;
   Fields_Sycl    *G;
-  CeedScalar   *W;
+  CeedScalar     *W;
 } CeedOperator_Sycl_gen;
 
 typedef struct {

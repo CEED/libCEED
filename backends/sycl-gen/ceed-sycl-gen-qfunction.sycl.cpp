@@ -36,7 +36,7 @@ static int CeedQFunctionDestroy_Sycl_gen(CeedQFunction qf) {
   // Wait for all work to finish before freeing memory
   CeedCallSycl(ceed, data->sycl_queue.wait_and_throw());
   CeedCallSycl(ceed, sycl::free(impl->d_c, data->sycl_context));
-  
+
   CeedCallBackend(CeedFree(&impl->q_function_source));
   CeedCallBackend(CeedFree(&impl));
   return CEED_ERROR_SUCCESS;

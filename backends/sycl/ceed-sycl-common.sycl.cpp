@@ -126,13 +126,13 @@ int CeedSetStream_Sycl(Ceed ceed, void *handle) {
 
   // Set queue and context for Ceed Fallback object
   Ceed ceed_fallback = NULL;
-  CeedGetOperatorFallbackCeed(ceed,&ceed_fallback);
-  if(ceed_fallback) {
+  CeedGetOperatorFallbackCeed(ceed, &ceed_fallback);
+  if (ceed_fallback) {
     Ceed_Sycl *fallback_data;
     CeedCallBackend(CeedGetData(ceed_fallback, &fallback_data));
-    fallback_data->sycl_device = q->get_device();
+    fallback_data->sycl_device  = q->get_device();
     fallback_data->sycl_context = q->get_context();
-    fallback_data->sycl_queue = *q;
+    fallback_data->sycl_queue   = *q;
   }
 
   return CEED_ERROR_SUCCESS;
