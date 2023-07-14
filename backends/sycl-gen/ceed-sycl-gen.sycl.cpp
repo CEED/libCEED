@@ -19,7 +19,7 @@
 //------------------------------------------------------------------------------
 static int CeedInit_Sycl_gen(const char *resource, Ceed ceed) {
   char *resource_root;
-  CeedCallBackend(CeedSyclGetResourceRoot(ceed, resource, &resource_root));
+  CeedCallBackend(CeedGetResourceRoot_Sycl(ceed, resource, &resource_root));
   if (strcmp(resource_root, "/gpu/sycl") && strcmp(resource_root, "/gpu/sycl/gen")) {
     // LCOV_EXCL_START
     return CeedError(ceed, CEED_ERROR_BACKEND, "Sycl backend cannot use resource: %s", resource);
@@ -30,7 +30,7 @@ static int CeedInit_Sycl_gen(const char *resource, Ceed ceed) {
   Ceed_Sycl *data;
   CeedCallBackend(CeedCalloc(1, &data));
   CeedCallBackend(CeedSetData(ceed, data));
-  CeedCallBackend(CeedSyclInit(ceed, resource));
+  CeedCallBackend(CeedInit_Sycl(ceed, resource));
 
   Ceed ceed_shared;
   CeedCallBackend(CeedInit("/gpu/sycl/shared", &ceed_shared));

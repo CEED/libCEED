@@ -78,7 +78,7 @@ static inline int CeedJitCompileSource_Sycl(Ceed ceed, const sycl::device &sycl_
 // ------------------------------------------------------------------------------
 // Load (compile) SPIR-V source and wrap in sycl kernel_bundle
 // ------------------------------------------------------------------------------
-static int CeedJitLoadModule_Sycl(const sycl::context &sycl_context, const sycl::device &sycl_device, const ByteVector_t &il_binary,
+static int CeedJitLoadModule_Sycl(Ceed ceed, const sycl::context &sycl_context, const sycl::device &sycl_device, const ByteVector_t &il_binary,
                                   SyclModule_t **sycl_module) {
   auto lz_context = sycl::get_native<sycl::backend::ext_oneapi_level_zero>(sycl_context);
   auto lz_device  = sycl::get_native<sycl::backend::ext_oneapi_level_zero>(sycl_device);
@@ -116,7 +116,7 @@ static int CeedJitLoadModule_Sycl(const sycl::context &sycl_context, const sycl:
 // ------------------------------------------------------------------------------
 // Compile kernel source to an executable `sycl::kernel_bundle`
 // ------------------------------------------------------------------------------
-int CeedBuildModule_Sycl(Ceed ceed, const std::string &kernel_source, SyclModule_t **sycl_module, const std::map<std::string, CeedInt> &constants) {
+int CeedJitBuildModule_Sycl(Ceed ceed, const std::string &kernel_source, SyclModule_t **sycl_module, const std::map<std::string, CeedInt> &constants) {
   Ceed_Sycl *data;
   CeedCallBackend(CeedGetData(ceed, &data));
 

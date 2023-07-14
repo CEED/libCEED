@@ -122,6 +122,7 @@ int CeedSetStream_Sycl(Ceed ceed, void *handle) {
     delegate_data->sycl_device  = q->get_device();
     delegate_data->sycl_context = q->get_context();
     delegate_data->sycl_queue   = *q;
+  }
 
   // Set queue and context for Ceed Fallback object
   Ceed ceed_fallback = NULL;
