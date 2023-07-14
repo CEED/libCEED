@@ -237,16 +237,16 @@ int CeedBasisCreateTensorH1_Sycl_shared(CeedInt dim, CeedInt P_1d, CeedInt Q_1d,
   CeedDebug256(ceed, CEED_DEBUG_COLOR_SUCCESS, "----- Loading Basis Kernel Source -----\n");
   CeedCallBackend(CeedLoadSourceToBuffer(ceed, basis_kernel_path, &basis_kernel_source));
   CeedDebug256(ceed, CEED_DEBUG_COLOR_SUCCESS, "----- Loading Basis Kernel Source Complete -----\n");
-
+  
   // Compile kernels into a kernel bundle
-  CeedCallBackend(CeedBuildModule_Sycl(ceed, basis_kernel_source, &impl->sycl_module, jit_constants));
+  CeedCallBackend(CeedJitBuildModule_Sycl(ceed, basis_kernel_source, &impl->sycl_module,jit_constants));
 
   // Load kernel functions
-  CeedCallBackend(CeedGetKernel_Sycl(ceed, impl->sycl_module, "Interp", &impl->interp_kernel));
-  CeedCallBackend(CeedGetKernel_Sycl(ceed, impl->sycl_module, "InterpTranspose", &impl->interp_transpose_kernel));
-  CeedCallBackend(CeedGetKernel_Sycl(ceed, impl->sycl_module, "Grad", &impl->grad_kernel));
-  CeedCallBackend(CeedGetKernel_Sycl(ceed, impl->sycl_module, "GradTranspose", &impl->grad_transpose_kernel));
-  CeedCallBackend(CeedGetKernel_Sycl(ceed, impl->sycl_module, "Weight", &impl->weight_kernel));
+  CeedCallBackend(CeedJitGetKernel_Sycl(ceed, impl->sycl_module, "Interp", &impl->interp_kernel));
+  CeedCallBackend(CeedJitGetKernel_Sycl(ceed, impl->sycl_module, "InterpTranspose", &impl->interp_transpose_kernel));
+  CeedCallBackend(CeedJitGetKernel_Sycl(ceed, impl->sycl_module, "Grad", &impl->grad_kernel));
+  CeedCallBackend(CeedJitGetKernel_Sycl(ceed, impl->sycl_module, "GradTranspose", &impl->grad_transpose_kernel));
+  CeedCallBackend(CeedJitGetKernel_Sycl(ceed, impl->sycl_module, "Weight", &impl->weight_kernel));
 
   // Clean-up
   CeedCallBackend(CeedFree(&basis_kernel_path));
@@ -260,5 +260,4 @@ int CeedBasisCreateTensorH1_Sycl_shared(CeedInt dim, CeedInt P_1d, CeedInt Q_1d,
   CeedCallBackend(CeedSetBackendFunctionCpp(ceed, "Basis", basis, "Destroy", CeedBasisDestroy_Sycl_shared));
   return CEED_ERROR_SUCCESS;
 }
-
 //------------------------------------------------------------------------------

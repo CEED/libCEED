@@ -275,6 +275,7 @@ hip-gen.cpp    := $(sort $(wildcard backends/hip-gen/*.cpp))
 sycl-core.cpp  := $(sort $(wildcard backends/sycl/*.sycl.cpp))
 sycl-ref.cpp   := $(sort $(wildcard backends/sycl-ref/*.sycl.cpp))
 sycl-shared.cpp:= $(sort $(wildcard backends/sycl-shared/*.sycl.cpp))
+sycl-gen.cpp	 := $(sort $(wildcard backends/sycl-gen/*.sycl.cpp))
 
 hip-all.c := interface/ceed-hip.c $(hip.c) $(hip-ref.c) $(hip-shared.c) $(hip-gen.c)
 hip-all.cpp := $(hip.cpp) $(hip-ref.cpp) $(hip-gen.cpp)
@@ -453,7 +454,7 @@ ifneq ($(HIP_LIB_DIR),)
 endif
 
 # SYCL Backends
-SYCL_BACKENDS = /gpu/sycl/ref /gpu/sycl/shared
+SYCL_BACKENDS = /gpu/sycl/ref /gpu/sycl/shared /gpu/sycl/gen
 ifneq ($(SYCL_DIR),)
 	SYCL_LIB_DIR := $(wildcard $(foreach d,lib lib64,$(SYCL_DIR)/$d/libsycl.${SO_EXT}))
 	SYCL_LIB_DIR := $(patsubst %/,%,$(dir $(firstword $(SYCL_LIB_DIR))))
@@ -461,11 +462,11 @@ endif
 ifneq ($(SYCL_LIB_DIR),)
 	PKG_LIBS += $(SYCL_FLAG) -lze_loader
 	LIBCEED_CONTAINS_CXX = 1
-	libceed.sycl += $(sycl-core.cpp) $(sycl-ref.cpp) $(sycl-shared.cpp)
+	libceed.sycl += $(sycl-core.cpp) $(sycl-ref.cpp) $(sycl-shared.cpp) $(sycl-gen.cpp)
 	BACKENDS_MAKE += $(SYCL_BACKENDS)
 endif
 
-# MAGMA Backends
+# MAGMA Backend
 ifneq ($(wildcard $(MAGMA_DIR)/lib/libmagma.*),)
   MAGMA_ARCH=$(shell nm -g $(MAGMA_DIR)/lib/libmagma.* | grep -c "hipblas")
   ifeq ($(MAGMA_ARCH), 0) #CUDA MAGMA
@@ -552,6 +553,9 @@ $(OBJDIR)/%.o : $(CURDIR)/%.cu | $$(@D)/.DIR
 
 $(OBJDIR)/%.o : $(CURDIR)/%.hip.cpp | $$(@D)/.DIR
 	$(call quiet,HIPCC) $(CPPFLAGS) $(HIPCCFLAGS) -c -o $@ $(abspath $<)
+
+$(OBJDIR)/%.o : $(CURDIR)/%.sycl.cpp | $$(@D)/.DIR
+	$(call quiet,SYCLCXX) $(SYCLFLAGS) $(CPPFLAGS) -c -o $@ $(abspath $<)
 
 $(OBJDIR)/%.o : $(CURDIR)/%.sycl.cpp | $$(@D)/.DIR
 	$(call quiet,SYCLCXX) $(SYCLFLAGS) $(CPPFLAGS) -c -o $@ $(abspath $<)

@@ -5,9 +5,11 @@
 //
 // This file is part of CEED:  http://github.com/ceed
 
-#ifndef _ceed_sycl_qfunction_load_hpp
-#define _ceed_sycl_qfunction_load_hpp
+#ifndef _ceed_sycl_h
+#define _ceed_sycl_h
 
-CEED_INTERN int CeedSyclBuildQFunction(CeedQFunction qf);
+#include <ceed/ceed.h>
 
-#endif  // _ceed_sycl_qfunction_load_hpp
+CEED_EXTERN int CeedSetStream_Sycl(Ceed ceed, void* handle);
+
+#endif

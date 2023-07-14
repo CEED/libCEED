@@ -20,5 +20,4 @@ inline void readQuads(CeedInt N, CeedInt stride, CeedInt offset, const CeedScala
 inline void writeQuads(CeedInt N, CeedInt stride, CeedInt offset, const CeedScalar *src, CeedScalar *dest) {
   for (CeedInt i = 0; i < N; ++i) dest[stride * i + offset] = src[i];
 }
-
 //------------------------------------------------------------------------------

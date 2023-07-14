@@ -48,7 +48,6 @@ static int CeedInit_Sycl_shared(const char *resource, Ceed ceed) {
   ref_data->sycl_queue   = data->sycl_queue;
   ref_data->sycl_context = data->sycl_context;
   ref_data->sycl_device  = data->sycl_device;
-
   CeedCallBackend(CeedSetDelegate(ceed, ceed_ref));
 
   CeedCallBackend(CeedSetBackendFunctionCpp(ceed, "Ceed", ceed, "BasisCreateTensorH1", CeedBasisCreateTensorH1_Sycl_shared));
@@ -64,5 +63,4 @@ CEED_INTERN int CeedRegister_Sycl_Shared(void) {
   CeedCallBackend(CeedRegister("/cpu/sycl/shared", CeedInit_Sycl_shared, 35));
   return CEED_ERROR_SUCCESS;
 }
-
 //------------------------------------------------------------------------------

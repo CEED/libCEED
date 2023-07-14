@@ -178,7 +178,6 @@ static int CeedBasisApplyGrad_Sycl(sycl::queue &sycl_queue, const SyclModule_t &
       const CeedInt v_comp_stride = num_elem * v_stride;
       const CeedInt u_dim_stride  = transpose ? num_elem * num_qpts * num_comp : 0;
       const CeedInt v_dim_stride  = transpose ? 0 : num_elem * num_qpts * num_comp;
-
       sycl::group   work_group = work_item.get_group();
       const CeedInt i          = work_item.get_local_linear_id();
       const CeedInt group_size = work_group.get_local_linear_range();
@@ -656,5 +655,4 @@ int CeedBasisCreateH1_Sycl(CeedElemTopology topo, CeedInt dim, CeedInt num_nodes
   CeedCallBackend(CeedSetBackendFunctionCpp(ceed, "Basis", basis, "Destroy", CeedBasisDestroyNonTensor_Sycl));
   return CEED_ERROR_SUCCESS;
 }
-
 //------------------------------------------------------------------------------

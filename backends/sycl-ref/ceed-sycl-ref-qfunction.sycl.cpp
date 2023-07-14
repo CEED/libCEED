@@ -28,7 +28,7 @@ static int CeedQFunctionApply_Sycl(CeedQFunction qf, CeedInt Q, CeedVector *U, C
   CeedCallBackend(CeedQFunctionGetData(qf, &impl));
 
   // Build and compile kernel, if not done
-  if (!impl->QFunction) CeedCallBackend(CeedQFunctionBuildKernel_Sycl(qf));
+  if (!impl->QFunction) CeedCallBackend(CeedSyclBuildQFunction(qf));
 
   Ceed ceed;
   CeedCallBackend(CeedQFunctionGetCeed(qf, &ceed));
@@ -139,5 +139,4 @@ int CeedQFunctionCreate_Sycl(CeedQFunction qf) {
   CeedCallBackend(CeedSetBackendFunctionCpp(ceed, "QFunction", qf, "Destroy", CeedQFunctionDestroy_Sycl));
   return CEED_ERROR_SUCCESS;
 }
-
 //------------------------------------------------------------------------------

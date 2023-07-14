@@ -22,7 +22,7 @@
 using ByteVector_t = std::vector<unsigned char>;
 
 //------------------------------------------------------------------------------
-//
+// Add defined constants at the beginning of kernel source
 //------------------------------------------------------------------------------
 static int CeedJitAddDefinitions_Sycl(Ceed ceed, const std::string &kernel_source, std::string &jit_source,
                                       const std::map<std::string, CeedInt> &constants = {}) {
@@ -77,8 +77,6 @@ static inline int CeedJitCompileSource_Sycl(Ceed ceed, const sycl::device &sycl_
 
 // ------------------------------------------------------------------------------
 // Load (compile) SPIR-V source and wrap in sycl kernel_bundle
-// TODO: determine appropriate flags
-// TODO: Error handle lz calls
 // ------------------------------------------------------------------------------
 static int CeedJitLoadModule_Sycl(const sycl::context &sycl_context, const sycl::device &sycl_device, const ByteVector_t &il_binary,
                                   SyclModule_t **sycl_module) {
@@ -86,15 +84,27 @@ static int CeedJitLoadModule_Sycl(const sycl::context &sycl_context, const sycl:
   auto lz_device  = sycl::get_native<sycl::backend::ext_oneapi_level_zero>(sycl_device);
 
   ze_module_desc_t lz_mod_desc = {ZE_STRUCTURE_TYPE_MODULE_DESC,
-                                  nullptr,
+                                  nullptr,                         // extension specific structs
                                   ZE_MODULE_FORMAT_IL_SPIRV,
                                   il_binary.size(),
                                   il_binary.data(),
                                   " -ze-opt-large-register-file",  // flags
-                                  nullptr};                        // build log
+                                  nullptr};                        // specialization constants
 
   ze_module_handle_t lz_module;
-  zeModuleCreate(lz_context, lz_device, &lz_mod_desc, &lz_module, nullptr);
+  ze_module_build_log_handle_t lz_log;
+  ze_result_t lz_err = zeModuleCreate(lz_context, lz_device, &lz_mod_desc, &lz_module, &lz_log);
+
+  if (ZE_RESULT_SUCCESS != lz_err) {
+    size_t log_size = 0;
+    zeModuleBuildLogGetString(lz_log, &log_size, nullptr);
+
+    char* log_message;
+    CeedCall(CeedCalloc(log_size, &log_message));
+    zeModuleBuildLogGetString(lz_log, &log_size, log_message);
+
+    return CeedError(ceed, CEED_ERROR_BACKEND, "Failed to compile Level Zero module:\n%s",log_message);
+  }
 
   // sycl make_<type> only throws errors for backend mismatch--assume we have vetted this already
   *sycl_module = new SyclModule_t(sycl::make_kernel_bundle<sycl::backend::ext_oneapi_level_zero, sycl::bundle_state::executable>(
@@ -119,7 +129,7 @@ int CeedBuildModule_Sycl(Ceed ceed, const std::string &kernel_source, SyclModule
   ByteVector_t il_binary;
   CeedCallBackend(CeedJitCompileSource_Sycl(ceed, data->sycl_device, jit_source, il_binary, flags));
 
-  CeedCallBackend(CeedJitLoadModule_Sycl(data->sycl_context, data->sycl_device, il_binary, sycl_module));
+  CeedCallBackend(CeedJitLoadModule_Sycl(ceed, data->sycl_context, data->sycl_device, il_binary, sycl_module));
 
   return CEED_ERROR_SUCCESS;
 }
@@ -129,7 +139,7 @@ int CeedBuildModule_Sycl(Ceed ceed, const std::string &kernel_source, SyclModule
 //
 // TODO: Error handle lz calls
 // ------------------------------------------------------------------------------
-int CeedGetKernel_Sycl(Ceed ceed, const SyclModule_t *sycl_module, const std::string &kernel_name, sycl::kernel **sycl_kernel) {
+int CeedJitGetKernel_Sycl(Ceed ceed, const SyclModule_t *sycl_module, const std::string &kernel_name, sycl::kernel **sycl_kernel) {
   Ceed_Sycl *data;
   CeedCallBackend(CeedGetData(ceed, &data));
 
@@ -139,10 +149,38 @@ int CeedGetKernel_Sycl(Ceed ceed, const SyclModule_t *sycl_module, const std::st
 
   ze_kernel_desc_t   lz_kernel_desc = {ZE_STRUCTURE_TYPE_KERNEL_DESC, nullptr, 0, kernel_name.c_str()};
   ze_kernel_handle_t lz_kernel;
-  zeKernelCreate(lz_module, &lz_kernel_desc, &lz_kernel);
+  ze_result_t lz_err = zeKernelCreate(lz_module, &lz_kernel_desc, &lz_kernel);
+
+  if (ZE_RESULT_SUCCESS != lz_err) {
+    return CeedError(ceed,CEED_ERROR_BACKEND,"Failed to retrieve kernel from Level Zero module");
+  }
 
   *sycl_kernel = new sycl::kernel(sycl::make_kernel<sycl::backend::ext_oneapi_level_zero>(
       {*sycl_module, lz_kernel, sycl::ext::oneapi::level_zero::ownership::transfer}, data->sycl_context));
+
+  return CEED_ERROR_SUCCESS;
+}
+
+//------------------------------------------------------------------------------
+// Run SYCL kernel for spatial dimension with shared memory
+//------------------------------------------------------------------------------
+int CeedRunKernelDimSharedSycl(Ceed ceed, sycl::kernel* kernel, const int grid_size, const int block_size_x, const int block_size_y,
+                               const int block_size_z, const int shared_mem_size, void **kernel_args) {
+  sycl::range<3> local_range(block_size_z, block_size_y, block_size_x);
+  sycl::range<3> global_range(grid_size*block_size_z, block_size_y, block_size_x);
+  sycl::nd_range<3> kernel_range(global_range,local_range);
+  
+  //-----------
+  //Order queue
+  Ceed_Sycl *ceed_Sycl;
+  CeedCallBackend(CeedGetData(ceed, &ceed_Sycl));
+  sycl::event e = ceed_Sycl->sycl_queue.ext_oneapi_submit_barrier();
+  
+  ceed_Sycl->sycl_queue.submit([&](sycl::handler& cgh){
+    cgh.depends_on(e);
+    cgh.set_args(*kernel_args);
+    cgh.parallel_for(kernel_range,*kernel);
+  });
 
   return CEED_ERROR_SUCCESS;
 }
