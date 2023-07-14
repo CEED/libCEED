@@ -176,6 +176,7 @@ PetscErrorCode GetError_NS(CeedData ceed_data, DM dm, User user, ProblemData *pr
 
   // Print the error
   if (user->app_ctx->test_type != TESTTYPE_POST_PROCESS) {
+    // PetscOptionsRealArray(... "-expected_l2_error_primitive", ...);
     PetscCall(PetscPrintf(PETSC_COMM_WORLD, "\nL2 Error:\n"));
     if (user->phys->state_var == STATEVAR_PRIMITIVE) state_var_source = "Primitive";
     for (int i = 0; i < 5; i++) {
