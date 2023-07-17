@@ -50,7 +50,6 @@ PetscErrorCode SgsDDModelCreateDM(DM dm_source, DM *dm_sgs, PetscInt degree, Pet
   PetscCall(PetscSectionSetComponentName(section, 0, 3, "KMSubgridStressYZ"));
   PetscCall(PetscSectionSetComponentName(section, 0, 4, "KMSubgridStressXZ"));
   PetscCall(PetscSectionSetComponentName(section, 0, 5, "KMSubgridStressXY"));
-
   PetscFunctionReturn(PETSC_SUCCESS);
 };
 
@@ -229,7 +228,6 @@ PetscErrorCode SgsDDModelApplyIFunction(User user, const Vec Q_loc, Vec G_loc) {
   PetscCall(VecC2P(sgs_dd_data->sgs_nodal_ceed, sgs_nodal_mem_type, SGSNodal_loc));
   PetscCall(DMRestoreLocalVector(sgs_dd_data->dm_sgs, &SGSNodal_loc));
   PetscCall(DMRestoreGlobalVector(user->grad_velo_proj->dm, &VelocityGradient));
-
   PetscFunctionReturn(PETSC_SUCCESS);
 }
 
@@ -302,8 +300,8 @@ PetscErrorCode SgsDDModelSetup(Ceed ceed, User user, CeedData ceed_data, Problem
   char                     sgs_dd_dir[PETSC_MAX_PATH_LEN] = "./dd_sgs_parameters";
   SgsDDModelSetupData      sgs_dd_setup_data;
   NewtonianIdealGasContext gas;
-  PetscFunctionBeginUser;
 
+  PetscFunctionBeginUser;
   PetscCall(VelocityGradientProjectionSetup(ceed, user, ceed_data, problem));
 
   PetscCall(PetscNew(&sgsdd_ctx));
@@ -360,6 +358,5 @@ PetscErrorCode SgsDDDataDestroy(SgsDDData sgs_dd_data) {
   PetscCall(OperatorApplyContextDestroy(sgs_dd_data->op_nodal_evaluation_ctx));
   PetscCall(DMDestroy(&sgs_dd_data->dm_sgs));
   PetscCall(PetscFree(sgs_dd_data));
-
   PetscFunctionReturn(PETSC_SUCCESS);
 }

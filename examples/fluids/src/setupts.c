@@ -22,8 +22,8 @@ PetscErrorCode ComputeLumpedMassMatrix(Ceed ceed, DM dm, CeedData ceed_data, Vec
   OperatorApplyContext op_mass_ctx;
   Vec                  Ones_loc;
   CeedInt              num_comp_q, q_data_size;
-  PetscFunctionBeginUser;
 
+  PetscFunctionBeginUser;
   // CEED Restriction
   PetscCallCeed(ceed, CeedElemRestrictionGetNumComponents(ceed_data->elem_restr_q, &num_comp_q));
   PetscCallCeed(ceed, CeedElemRestrictionGetNumComponents(ceed_data->elem_restr_qd_i, &q_data_size));
@@ -51,7 +51,6 @@ PetscErrorCode ComputeLumpedMassMatrix(Ceed ceed, DM dm, CeedData ceed_data, Vec
   PetscCall(DMRestoreLocalVector(dm, &Ones_loc));
   PetscCallCeed(ceed, CeedQFunctionDestroy(&qf_mass));
   PetscCallCeed(ceed, CeedOperatorDestroy(&op_mass));
-
   PetscFunctionReturn(PETSC_SUCCESS);
 }
 
@@ -97,8 +96,8 @@ PetscErrorCode RHS_NS(TS ts, PetscReal t, Vec Q, Vec G, void *user_data) {
   MPI_Comm    comm = PetscObjectComm((PetscObject)ts);
   PetscScalar dt;
   Vec         Q_loc = user->Q_loc;
-  PetscFunctionBeginUser;
 
+  PetscFunctionBeginUser;
   // Update time dependent data
   PetscCall(UpdateBoundaryValues(user, Q_loc, t));
   if (user->phys->solution_time_label) PetscCall(UpdateContextLabel(user->ceed, comm, t, user->op_rhs_ctx->op, user->phys->solution_time_label));
@@ -109,7 +108,6 @@ PetscErrorCode RHS_NS(TS ts, PetscReal t, Vec Q, Vec G, void *user_data) {
 
   // Inverse of the lumped mass matrix
   PetscCall(VecPointwiseMult(G, G, user->M_inv));
-
   PetscFunctionReturn(PETSC_SUCCESS);
 }
 
@@ -156,7 +154,6 @@ static PetscErrorCode Surface_Forces_NS(DM dm, Vec G_loc, PetscInt num_walls, co
   PetscCallMPI(MPI_Allreduce(MPI_IN_PLACE, reaction_force, dim * num_walls, MPIU_SCALAR, MPI_SUM, comm));
   //  Restore Vectors
   PetscCall(VecRestoreArrayRead(G_loc, &g));
-
   PetscFunctionReturn(PETSC_SUCCESS);
 }
 
@@ -167,8 +164,8 @@ PetscErrorCode IFunction_NS(TS ts, PetscReal t, Vec Q, Vec Q_dot, Vec G, void *u
   PetscScalar  dt;
   Vec          Q_loc = user->Q_loc, Q_dot_loc = user->Q_dot_loc, G_loc;
   PetscMemType q_mem_type, q_dot_mem_type, g_mem_type;
-  PetscFunctionBeginUser;
 
+  PetscFunctionBeginUser;
   // Get local vectors
   PetscCall(DMGetNamedLocalVector(user->dm, "ResidualLocal", &G_loc));
 
@@ -211,7 +208,6 @@ PetscErrorCode IFunction_NS(TS ts, PetscReal t, Vec Q, Vec Q_dot, Vec G, void *u
 
   // Restore vectors
   PetscCall(DMRestoreNamedLocalVector(user->dm, "ResidualLocal", &G_loc));
-
   PetscFunctionReturn(PETSC_SUCCESS);
 }
 
@@ -278,6 +274,7 @@ PetscErrorCode FormIJacobian_NS(TS ts, PetscReal t, Vec Q, Vec Q_dot, PetscReal 
   User      user = *(User *)user_data;
   Ceed      ceed = user->ceed;
   PetscBool J_is_shell, J_is_mffd, J_pre_is_shell;
+
   PetscFunctionBeginUser;
   if (user->phys->ijacobian_time_shift_label)
     PetscCallCeed(ceed, CeedOperatorSetContextDouble(user->op_ijacobian, user->phys->ijacobian_time_shift_label, &shift));
@@ -319,8 +316,8 @@ PetscErrorCode WriteOutput(User user, Vec Q, PetscInt step_no, PetscScalar time)
   Vec         Q_loc;
   char        file_path[PETSC_MAX_PATH_LEN];
   PetscViewer viewer;
-  PetscFunctionBeginUser;
 
+  PetscFunctionBeginUser;
   if (user->app_ctx->checkpoint_vtk) {
     // Set up output
     PetscCall(DMGetLocalVector(user->dm, &Q_loc));
@@ -421,8 +418,8 @@ PetscErrorCode TSMonitor_WallForce(TS ts, PetscInt step_no, PetscReal time, Vec 
 // User provided TS Monitor
 PetscErrorCode TSMonitor_NS(TS ts, PetscInt step_no, PetscReal time, Vec Q, void *ctx) {
   User user = ctx;
-  PetscFunctionBeginUser;
 
+  PetscFunctionBeginUser;
   // Print every 'checkpoint_interval' steps
   if (user->app_ctx->checkpoint_interval <= 0 || step_no % user->app_ctx->checkpoint_interval != 0 ||
       (user->app_ctx->cont_steps == step_no && step_no != 0)) {
@@ -430,7 +427,6 @@ PetscErrorCode TSMonitor_NS(TS ts, PetscInt step_no, PetscReal time, Vec Q, void
   }
 
   PetscCall(WriteOutput(user, Q, step_no, time));
-
   PetscFunctionReturn(PETSC_SUCCESS);
 }
 
@@ -439,8 +435,8 @@ PetscErrorCode TSSolve_NS(DM dm, User user, AppCtx app_ctx, Physics phys, Vec *Q
   MPI_Comm    comm = user->comm;
   TSAdapt     adapt;
   PetscScalar final_time;
-  PetscFunctionBeginUser;
 
+  PetscFunctionBeginUser;
   PetscCall(TSCreate(comm, ts));
   PetscCall(TSSetDM(*ts, dm));
   if (phys->implicit) {

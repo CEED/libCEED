@@ -16,8 +16,8 @@
 // Register problems to be available on the command line
 PetscErrorCode RegisterProblems_NS(AppCtx app_ctx) {
   app_ctx->problems = NULL;
-  PetscFunctionBeginUser;
 
+  PetscFunctionBeginUser;
   PetscCall(PetscFunctionListAdd(&app_ctx->problems, "density_current", NS_DENSITY_CURRENT));
   PetscCall(PetscFunctionListAdd(&app_ctx->problems, "euler_vortex", NS_EULER_VORTEX));
   PetscCall(PetscFunctionListAdd(&app_ctx->problems, "shocktube", NS_SHOCKTUBE));
@@ -28,7 +28,6 @@ PetscErrorCode RegisterProblems_NS(AppCtx app_ctx) {
   PetscCall(PetscFunctionListAdd(&app_ctx->problems, "gaussian_wave", NS_GAUSSIAN_WAVE));
   PetscCall(PetscFunctionListAdd(&app_ctx->problems, "newtonian", NS_NEWTONIAN_IG));
   PetscCall(PetscFunctionListAdd(&app_ctx->problems, "taylor_green", NS_TAYLOR_GREEN));
-
   PetscFunctionReturn(PETSC_SUCCESS);
 }
 
@@ -39,7 +38,6 @@ PetscErrorCode ProcessCommandLineOptions(MPI_Comm comm, AppCtx app_ctx, SimpleBC
   PetscBool option_set   = PETSC_FALSE;
 
   PetscFunctionBeginUser;
-
   PetscOptionsBegin(comm, NULL, "Navier-Stokes in PETSc with libCEED", NULL);
 
   PetscCall(PetscOptionsString("-ceed", "CEED resource specifier", NULL, app_ctx->ceed_resource, app_ctx->ceed_resource,
@@ -193,6 +191,5 @@ PetscErrorCode ProcessCommandLineOptions(MPI_Comm comm, AppCtx app_ctx, SimpleBC
                              (PetscEnum *)&app_ctx->mesh_transform_type, NULL));
 
   PetscOptionsEnd();
-
   PetscFunctionReturn(PETSC_SUCCESS);
 }

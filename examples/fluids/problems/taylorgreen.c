@@ -18,6 +18,5 @@ PetscErrorCode NS_TAYLOR_GREEN(ProblemData *problem, DM dm, void *ctx, SimpleBC 
 
   problem->ics.qfunction     = ICsTaylorGreen;
   problem->ics.qfunction_loc = ICsTaylorGreen_loc;
-
   PetscFunctionReturn(PETSC_SUCCESS);
 }

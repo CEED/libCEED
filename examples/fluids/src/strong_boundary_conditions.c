@@ -125,7 +125,6 @@ PetscErrorCode SetupStrongSTG_Ceed(Ceed ceed, CeedData ceed_data, DM dm, Problem
 
   PetscCallCeed(ceed, CeedBasisDestroy(&basis_x_to_q_sur));
   PetscCallCeed(ceed, CeedQFunctionDestroy(&qf_setup));
-
   PetscFunctionReturn(PETSC_SUCCESS);
 }
 
@@ -147,7 +146,6 @@ PetscErrorCode DMPlexInsertBoundaryValues_StrongBCCeed(DM dm, PetscBool insert_e
   PetscCall(DMRestoreNamedLocalVector(dm, "boundary mask", &boundary_mask));
 
   PetscCall(ApplyAddCeedOperatorLocalToLocal(NULL, Q_loc, user->op_strong_bc_ctx));
-
   PetscFunctionReturn(PETSC_SUCCESS);
 }
 

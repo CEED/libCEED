@@ -152,12 +152,11 @@ PetscErrorCode NS_SHOCKTUBE(ProblemData *problem, DM dm, void *ctx, SimpleBC bc)
 
 PetscErrorCode PRINT_SHOCKTUBE(User user, ProblemData *problem, AppCtx app_ctx) {
   MPI_Comm comm = user->comm;
-  PetscFunctionBeginUser;
 
+  PetscFunctionBeginUser;
   PetscCall(PetscPrintf(comm,
                         "  Problem:\n"
                         "    Problem Name                       : %s\n",
                         app_ctx->problem_name));
-
   PetscFunctionReturn(PETSC_SUCCESS);
 }

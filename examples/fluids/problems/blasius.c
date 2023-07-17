@@ -21,10 +21,12 @@ PetscErrorCode CompressibleBlasiusResidual(SNES snes, Vec X, Vec R, void *ctx) {
   const BlasiusContext blasius = (BlasiusContext)ctx;
   const PetscScalar   *Tf, *Th;  // Chebyshev coefficients
   PetscScalar         *r, f[4], h[4];
-  PetscInt             N  = blasius->n_cheb;
-  PetscScalar          Ma = Mach(&blasius->newtonian_ctx, blasius->T_inf, blasius->U_inf), Pr = Prandtl(&blasius->newtonian_ctx),
+  PetscInt             N = blasius->n_cheb;
+
+  PetscFunctionBeginUser;
+  PetscScalar Ma = Mach(&blasius->newtonian_ctx, blasius->T_inf, blasius->U_inf), Pr = Prandtl(&blasius->newtonian_ctx),
               gamma = HeatCapacityRatio(&blasius->newtonian_ctx);
-  PetscFunctionBegin;
+
   PetscCall(VecGetArrayRead(X, &Tf));
   Th = Tf + N;
   PetscCall(VecGetArray(R, &r));
@@ -76,8 +78,8 @@ PetscErrorCode ComputeChebyshevCoefficients(BlasiusContext blasius) {
   PetscInt            N = blasius->n_cheb;
   SNESConvergedReason reason;
   const PetscScalar  *cheb_coefs;
-  PetscFunctionBegin;
 
+  PetscFunctionBeginUser;
   // Allocate memory
   PetscCall(PetscMalloc2(N - 3, &blasius->X, N - 3, &w));
   PetscCall(PetscDTGaussQuadrature(N - 3, -1., 1., blasius->X, w));
@@ -117,8 +119,8 @@ static PetscErrorCode GetYNodeLocs(const MPI_Comm comm, const char path[PETSC_MA
   char           line[char_array_len];
   char         **array;
   PetscReal     *node_locs;
-  PetscFunctionBeginUser;
 
+  PetscFunctionBeginUser;
   PetscCall(PetscFOpen(comm, path, "r", &fp));
   PetscCall(PetscSynchronizedFGets(comm, fp, char_array_len, line));
   PetscCall(PetscStrToArray(line, ' ', &ndims, &array));
@@ -158,10 +160,9 @@ static PetscErrorCode ModifyMesh(MPI_Comm comm, DM dm, PetscInt dim, PetscReal g
   PetscReal    domain_min[3], domain_max[3], domain_size[3];
   PetscScalar *arr_coords;
   Vec          vec_coords;
+
   PetscFunctionBeginUser;
-
   PetscReal angle_coeff = tan(top_angle * (M_PI / 180));
-
   // Get domain boundary information
   PetscCall(DMGetBoundingBox(dm, domain_min, domain_max));
   for (PetscInt i = 0; i < 3; i++) domain_size[i] = domain_max[i] - domain_min[i];
@@ -225,7 +226,6 @@ static PetscErrorCode ModifyMesh(MPI_Comm comm, DM dm, PetscInt dim, PetscReal g
 
   PetscCall(VecRestoreArray(vec_coords, &arr_coords));
   PetscCall(DMSetCoordinatesLocal(dm, vec_coords));
-
   PetscFunctionReturn(PETSC_SUCCESS);
 }
 

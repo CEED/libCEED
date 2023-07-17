@@ -19,7 +19,6 @@
 PetscErrorCode ICs_FixMultiplicity(DM dm, CeedData ceed_data, User user, Vec Q_loc, Vec Q, CeedScalar time) {
   Ceed ceed = user->ceed;
   PetscFunctionBeginUser;
-
   // ---------------------------------------------------------------------------
   // Update time for evaluation
   // ---------------------------------------------------------------------------
@@ -71,15 +70,14 @@ PetscErrorCode ICs_FixMultiplicity(DM dm, CeedData ceed_data, User user, Vec Q_l
   // Cleanup
   PetscCallCeed(ceed, CeedVectorDestroy(&mult_vec));
   PetscCallCeed(ceed, CeedVectorDestroy(&q0_ceed));
-
   PetscFunctionReturn(PETSC_SUCCESS);
 }
 
 PetscErrorCode DMPlexInsertBoundaryValues_NS(DM dm, PetscBool insert_essential, Vec Q_loc, PetscReal time, Vec face_geom_FVM, Vec cell_geom_FVM,
                                              Vec grad_FVM) {
   Vec Qbc, boundary_mask;
-  PetscFunctionBegin;
 
+  PetscFunctionBeginUser;
   // Mask (zero) Strong BC entries
   PetscCall(DMGetNamedLocalVector(dm, "boundary mask", &boundary_mask));
   PetscCall(VecPointwiseMult(Q_loc, Q_loc, boundary_mask));
@@ -88,7 +86,6 @@ PetscErrorCode DMPlexInsertBoundaryValues_NS(DM dm, PetscBool insert_essential, 
   PetscCall(DMGetNamedLocalVector(dm, "Qbc", &Qbc));
   PetscCall(VecAXPY(Q_loc, 1., Qbc));
   PetscCall(DMRestoreNamedLocalVector(dm, "Qbc", &Qbc));
-
   PetscFunctionReturn(PETSC_SUCCESS);
 }
 
@@ -97,8 +94,8 @@ PetscErrorCode LoadFluidsBinaryVec(MPI_Comm comm, PetscViewer viewer, Vec Q, Pet
   PetscInt   file_step_number;
   PetscInt32 token;
   PetscReal  file_time;
-  PetscFunctionBeginUser;
 
+  PetscFunctionBeginUser;
   // Attempt
   PetscCall(PetscViewerBinaryRead(viewer, &token, 1, NULL, PETSC_INT32));
   if (token == FLUIDS_FILE_TOKEN_32 || token == FLUIDS_FILE_TOKEN_64 ||
@@ -117,7 +114,6 @@ PetscErrorCode LoadFluidsBinaryVec(MPI_Comm comm, PetscViewer viewer, Vec Q, Pet
 
   // Load Q from existent solution
   PetscCall(VecLoad(Q, viewer));
-
   PetscFunctionReturn(PETSC_SUCCESS);
 }
 
@@ -127,8 +123,8 @@ PetscErrorCode RegressionTests_NS(AppCtx app_ctx, Vec Q) {
   PetscViewer viewer;
   PetscReal   error, Qrefnorm;
   MPI_Comm    comm = PetscObjectComm((PetscObject)Q);
-  PetscFunctionBegin;
 
+  PetscFunctionBeginUser;
   // Read reference file
   PetscCall(VecDuplicate(Q, &Qref));
   PetscCall(PetscViewerBinaryOpen(comm, app_ctx->test_file_path, FILE_MODE_READ, &viewer));
@@ -148,7 +144,6 @@ PetscErrorCode RegressionTests_NS(AppCtx app_ctx, Vec Q) {
   // Cleanup
   PetscCall(PetscViewerDestroy(&viewer));
   PetscCall(VecDestroy(&Qref));
-
   PetscFunctionReturn(PETSC_SUCCESS);
 }
 
@@ -157,8 +152,8 @@ PetscErrorCode GetError_NS(CeedData ceed_data, DM dm, User user, Vec Q, PetscSca
   PetscInt  loc_nodes;
   Vec       Q_exact, Q_exact_loc;
   PetscReal rel_error, norm_error, norm_exact;
-  PetscFunctionBegin;
 
+  PetscFunctionBeginUser;
   // Get exact solution at final time
   PetscCall(DMCreateGlobalVector(dm, &Q_exact));
   PetscCall(DMGetLocalVector(dm, &Q_exact_loc));
@@ -178,7 +173,6 @@ PetscErrorCode GetError_NS(CeedData ceed_data, DM dm, User user, Vec Q, PetscSca
   // Cleanup
   PetscCall(DMRestoreLocalVector(dm, &Q_exact_loc));
   PetscCall(VecDestroy(&Q_exact));
-
   PetscFunctionReturn(PETSC_SUCCESS);
 }
 
@@ -186,8 +180,8 @@ PetscErrorCode GetError_NS(CeedData ceed_data, DM dm, User user, Vec Q, PetscSca
 PetscErrorCode PostProcess_NS(TS ts, CeedData ceed_data, DM dm, ProblemData *problem, User user, Vec Q, PetscScalar final_time) {
   PetscInt          steps;
   TSConvergedReason reason;
-  PetscFunctionBegin;
 
+  PetscFunctionBeginUser;
   // Print relative error
   if (problem->non_zero_time && user->app_ctx->test_type == TESTTYPE_NONE) {
     PetscCall(GetError_NS(ceed_data, dm, user, Q, final_time));
@@ -219,20 +213,18 @@ const PetscInt32 FLUIDS_FILE_TOKEN_64 = 0xceedf64;
 PetscErrorCode SetupICsFromBinary(MPI_Comm comm, AppCtx app_ctx, Vec Q) {
   PetscViewer viewer;
 
-  PetscFunctionBegin;
-
+  PetscFunctionBeginUser;
   PetscCall(PetscViewerBinaryOpen(comm, app_ctx->cont_file, FILE_MODE_READ, &viewer));
   PetscCall(LoadFluidsBinaryVec(comm, viewer, Q, &app_ctx->cont_time, &app_ctx->cont_steps));
   PetscCall(PetscViewerDestroy(&viewer));
-
   PetscFunctionReturn(PETSC_SUCCESS);
 }
 
 // Record boundary values from initial condition
 PetscErrorCode SetBCsFromICs_NS(DM dm, Vec Q, Vec Q_loc) {
   Vec Qbc, boundary_mask;
-  PetscFunctionBegin;
 
+  PetscFunctionBeginUser;
   PetscCall(DMGetNamedLocalVector(dm, "Qbc", &Qbc));
   PetscCall(VecCopy(Q_loc, Qbc));
   PetscCall(VecZeroEntries(Q_loc));
@@ -247,7 +239,6 @@ PetscErrorCode SetBCsFromICs_NS(DM dm, Vec Q, Vec Q_loc) {
   PetscCall(VecSet(Q, 1.0));
   PetscCall(DMGlobalToLocal(dm, Q, INSERT_VALUES, boundary_mask));
   PetscCall(DMRestoreNamedLocalVector(dm, "boundary mask", &boundary_mask));
-
   PetscFunctionReturn(PETSC_SUCCESS);
 }
 
@@ -260,7 +251,6 @@ int FreeContextPetsc(void *data) {
 // Return mass qfunction specification for number of components N
 PetscErrorCode CreateMassQFunction(Ceed ceed, CeedInt N, CeedInt q_data_size, CeedQFunction *qf) {
   PetscFunctionBeginUser;
-
   switch (N) {
     case 1:
       PetscCallCeed(ceed, CeedQFunctionCreateInterior(ceed, 1, Mass_1, Mass_1_loc, qf));
@@ -297,7 +287,6 @@ PetscErrorCode NodalProjectionDataDestroy(NodalProjectionData context) {
   PetscCall(OperatorApplyContextDestroy(context->l2_rhs_ctx));
 
   PetscCall(PetscFree(context));
-
   PetscFunctionReturn(PETSC_SUCCESS);
 }
 
@@ -329,7 +318,6 @@ PetscErrorCode PhastaDatFileOpen(const MPI_Comm comm, const char path[PETSC_MAX_
 
   for (PetscInt i = 0; i < ndims; i++) dims[i] = atoi(array[i]);
   PetscCall(PetscStrToArrayDestroy(ndims, array));
-
   PetscFunctionReturn(PETSC_SUCCESS);
 }
 
@@ -351,7 +339,6 @@ PetscErrorCode PhastaDatFileGetNRows(const MPI_Comm comm, const char path[PETSC_
   PetscCall(PhastaDatFileOpen(comm, path, char_array_len, dims, &fp));
   *nrows = dims[0];
   PetscCall(PetscFClose(comm, fp));
-
   PetscFunctionReturn(PETSC_SUCCESS);
 }
 
@@ -362,8 +349,8 @@ PetscErrorCode PhastaDatFileReadToArrayReal(MPI_Comm comm, const char path[PETSC
   const PetscInt char_array_len = 512;
   char           line[char_array_len];
   char         **row_array;
-  PetscFunctionBeginUser;
 
+  PetscFunctionBeginUser;
   PetscCall(PhastaDatFileOpen(comm, path, char_array_len, dims, &fp));
 
   for (PetscInt i = 0; i < dims[0]; i++) {
@@ -378,7 +365,6 @@ PetscErrorCode PhastaDatFileReadToArrayReal(MPI_Comm comm, const char path[PETSC
   }
 
   PetscCall(PetscFClose(comm, fp));
-
   PetscFunctionReturn(PETSC_SUCCESS);
 }
 
@@ -420,7 +406,6 @@ PetscErrorCode IntArrayC2P(PetscInt num_entries, CeedInt **array_ceed, PetscInt 
     free(*array_ceed);
   }
   *array_ceed = NULL;
-
   PetscFunctionReturn(PETSC_SUCCESS);
 }
 
@@ -446,7 +431,6 @@ PetscErrorCode IntArrayP2C(PetscInt num_entries, PetscInt **array_petsc, CeedInt
     PetscCall(PetscFree(*array_petsc));
   }
   *array_petsc = NULL;
-
   PetscFunctionReturn(PETSC_SUCCESS);
 }
 
@@ -623,6 +607,5 @@ PetscErrorCode PrintRunInfo(User user, Physics phys_ctx, ProblemData *problem, M
 
     if (!rank) PetscCall(PetscFree(gather_buffer));
   }
-
   PetscFunctionReturn(PETSC_SUCCESS);
 }

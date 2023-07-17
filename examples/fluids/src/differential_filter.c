@@ -276,7 +276,6 @@ PetscErrorCode DifferentialFilterApply(User user, const PetscReal solution_time,
   PetscCall(VecViewFromOptions(Filtered_Solution, NULL, "-diff_filter_rhs_view"));
 
   PetscCall(KSPSolve(diff_filter->ksp, Filtered_Solution, Filtered_Solution));
-
   PetscFunctionReturn(PETSC_SUCCESS);
 }
 
@@ -295,7 +294,6 @@ PetscErrorCode TSMonitor_DifferentialFilter(TS ts, PetscInt steps, PetscReal sol
   if (user->app_ctx->test_type == TESTTYPE_DIFF_FILTER) PetscCall(RegressionTests_NS(user->app_ctx, Filtered_Field));
 
   PetscCall(DMRestoreGlobalVector(diff_filter->dm_filter, &Filtered_Field));
-
   PetscFunctionReturn(PETSC_SUCCESS);
 }
 
@@ -309,7 +307,6 @@ PetscErrorCode DifferentialFilterDataDestroy(DiffFilterData diff_filter) {
 
   PetscCall(PetscFree(diff_filter->num_field_components));
   PetscCall(PetscFree(diff_filter));
-
   PetscFunctionReturn(PETSC_SUCCESS);
 }
 
@@ -317,6 +314,5 @@ PetscErrorCode DifferentialFilterMmsICSetup(ProblemData *problem) {
   PetscFunctionBeginUser;
   problem->ics.qfunction     = DifferentialFilter_MMS_IC;
   problem->ics.qfunction_loc = DifferentialFilter_MMS_IC_loc;
-
   PetscFunctionReturn(PETSC_SUCCESS);
 }

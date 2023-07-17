@@ -28,8 +28,8 @@ PetscErrorCode CreateStatsDM(User user, ProblemData *problem, PetscInt degree) {
   PetscSection  section;
   PetscLogStage stage_stats_setup;
   MPI_Comm      comm = PetscObjectComm((PetscObject)user->dm);
-  PetscFunctionBeginUser;
 
+  PetscFunctionBeginUser;
   PetscCall(PetscLogStageGetId("Stats Setup", &stage_stats_setup));
   if (stage_stats_setup == -1) PetscCall(PetscLogStageRegister("Stats Setup", &stage_stats_setup));
   PetscCall(PetscLogStagePush(stage_stats_setup));
@@ -125,8 +125,8 @@ PetscErrorCode CreateStatsDM(User user, ProblemData *problem, PetscInt degree) {
 PetscErrorCode CreateElemRestrColloc(Ceed ceed, CeedInt num_comp, CeedBasis basis, CeedElemRestriction elem_restr_base,
                                      CeedElemRestriction *elem_restr_collocated) {
   CeedInt num_elem_qpts, loc_num_elem;
-  PetscFunctionBeginUser;
 
+  PetscFunctionBeginUser;
   PetscCallCeed(ceed, CeedBasisGetNumQuadraturePoints(basis, &num_elem_qpts));
   PetscCallCeed(ceed, CeedElemRestrictionGetNumElements(elem_restr_base, &loc_num_elem));
 
@@ -178,8 +178,8 @@ PetscErrorCode SpanStatsSetupDataCreate(Ceed ceed, User user, CeedData ceed_data
   PetscInt dim;
   CeedInt  num_qpts_child1d, num_comp_x, num_comp_stats = user->spanstats.num_comp_stats;
   Vec      X_loc;
-  PetscFunctionBeginUser;
 
+  PetscFunctionBeginUser;
   PetscCall(PetscNew(stats_data));
 
   PetscCall(DMGetDimension(dm, &dim));
@@ -213,7 +213,6 @@ PetscErrorCode SpanStatsSetupDataCreate(Ceed ceed, User user, CeedData ceed_data
   }
   PetscCall(VecScale(X_loc, problem->dm_scale));
   PetscCall(VecCopyP2C(X_loc, (*stats_data)->x_coord));
-
   PetscFunctionReturn(PETSC_SUCCESS);
 }
 
@@ -439,8 +438,8 @@ PetscErrorCode SetupMMSErrorChecking(Ceed ceed, User user, CeedData ceed_data, S
   CeedQFunction qf_error;
   CeedOperator  op_error;
   CeedVector    x_ceed, y_ceed;
-  PetscFunctionBeginUser;
 
+  PetscFunctionBeginUser;
   PetscCallCeed(ceed, CeedElemRestrictionGetNumComponents(stats_data->elem_restr_parent_qd, &q_data_size));
   PetscCallCeed(ceed, CeedBasisGetNumComponents(stats_data->basis_x, &num_comp_x));
 
@@ -587,6 +586,7 @@ PetscErrorCode TSMonitor_TurbulenceStatistics(TS ts, PetscInt steps, PetscReal s
   Vec               stats;
   TSConvergedReason reason;
   PetscInt collect_interval = user->app_ctx->turb_spanstats_collect_interval, viewer_interval = user->app_ctx->turb_spanstats_viewer_interval;
+
   PetscFunctionBeginUser;
   PetscCall(TSGetConvergedReason(ts, &reason));
   // Do not collect or process on the first step of the run (ie. on the initial condition)
