@@ -139,7 +139,7 @@ PetscErrorCode RegressionTests_NS(AppCtx app_ctx, Vec Q) {
 
 PetscErrorCode ComputeL2Error(DM dm, User user, CeedData ceed_data, Vec Q, PetscReal l2_error[5], OperatorApplyContext op_error_ctx,
                               CeedContextFieldLabel time_label, CeedScalar time) {
-  PetscReal    l2_norm[5];
+  PetscReal    l2_error_sq[5];
   CeedVector   e;
   PetscMemType e_mem_type;
   Vec          Q_loc, E_loc;
@@ -159,9 +159,9 @@ PetscErrorCode ComputeL2Error(DM dm, User user, CeedData ceed_data, Vec Q, Petsc
   CeedOperatorApply(op_error_ctx->op, ceed_data->q_true, e, CEED_REQUEST_IMMEDIATE);
   PetscCall(VecC2P(e, e_mem_type, E_loc));
 
-  PetscCall(VecStrideSumAll(E_loc, l2_norm));
-  PetscCallMPI(MPI_Allreduce(MPI_IN_PLACE, l2_norm, 5, MPIU_REAL, MPI_SUM, PETSC_COMM_WORLD));
-  for (int i = 0; i < 5; i++) l2_error[i] = sqrt(l2_norm[i]);
+  PetscCall(VecStrideSumAll(E_loc, l2_error_sq));
+  PetscCallMPI(MPI_Allreduce(MPI_IN_PLACE, l2_error_sq, 5, MPIU_REAL, MPI_SUM, PETSC_COMM_WORLD));
+  for (int i = 0; i < 5; i++) l2_error[i] = sqrt(l2_error_sq[i]);
 
   PetscCall(DMRestoreLocalVector(dm, &Q_loc));
   PetscCall(VecDestroy(&E_loc));
