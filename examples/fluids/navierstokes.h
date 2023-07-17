@@ -405,23 +405,23 @@ PetscErrorCode ProcessCommandLineOptions(MPI_Comm comm, AppCtx app_ctx, SimpleBC
 // -----------------------------------------------------------------------------
 PetscErrorCode ICs_FixMultiplicity(DM dm, CeedData ceed_data, User user, Vec Q_loc, Vec Q, CeedScalar time);
 
-PetscErrorCode DMPlexInsertBoundaryValues_NS(DM dm, PetscBool insert_essential, Vec Q_loc, PetscReal time, Vec face_geom_FVM, Vec cell_geom_FVM,
-                                             Vec grad_FVM);
+PetscErrorCode DMPlexInsertBoundaryValues_FromICs(DM dm, PetscBool insert_essential, Vec Q_loc, PetscReal time, Vec face_geom_FVM, Vec cell_geom_FVM,
+                                                  Vec grad_FVM);
 
 // Compare reference solution values with current test run for CI
-PetscErrorCode RegressionTests_NS(AppCtx app_ctx, Vec Q);
+PetscErrorCode RegressionTest(AppCtx app_ctx, Vec Q);
 
 // Get error for problems with exact solutions
-PetscErrorCode GetError_NS(CeedData ceed_data, DM dm, User user, Vec Q, PetscScalar final_time);
+PetscErrorCode PrintError(CeedData ceed_data, DM dm, User user, Vec Q, PetscScalar final_time);
 
 // Post-processing
-PetscErrorCode PostProcess_NS(TS ts, CeedData ceed_data, DM dm, ProblemData *problem, User user, Vec Q, PetscScalar final_time);
+PetscErrorCode PostProcess(TS ts, CeedData ceed_data, DM dm, ProblemData *problem, User user, Vec Q, PetscScalar final_time);
 
 // -- Gather initial Q values in case of continuation of simulation
 PetscErrorCode SetupICsFromBinary(MPI_Comm comm, AppCtx app_ctx, Vec Q);
 
 // Record boundary values from initial condition
-PetscErrorCode SetBCsFromICs_NS(DM dm, Vec Q, Vec Q_loc);
+PetscErrorCode SetBCsFromICs(DM dm, Vec Q, Vec Q_loc);
 
 // Versioning token for binary checkpoints
 extern const PetscInt32 FLUIDS_FILE_TOKEN;  // for backwards compatibility

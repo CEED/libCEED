@@ -73,8 +73,30 @@ PetscErrorCode ICs_FixMultiplicity(DM dm, CeedData ceed_data, User user, Vec Q_l
   PetscFunctionReturn(PETSC_SUCCESS);
 }
 
-PetscErrorCode DMPlexInsertBoundaryValues_NS(DM dm, PetscBool insert_essential, Vec Q_loc, PetscReal time, Vec face_geom_FVM, Vec cell_geom_FVM,
-                                             Vec grad_FVM) {
+// Record boundary values from initial condition
+PetscErrorCode SetBCsFromICs(DM dm, Vec Q, Vec Q_loc) {
+  Vec Qbc, boundary_mask;
+
+  PetscFunctionBeginUser;
+  PetscCall(DMGetNamedLocalVector(dm, "Qbc", &Qbc));
+  PetscCall(VecCopy(Q_loc, Qbc));
+  PetscCall(VecZeroEntries(Q_loc));
+  PetscCall(DMGlobalToLocal(dm, Q, INSERT_VALUES, Q_loc));
+  PetscCall(VecAXPY(Qbc, -1., Q_loc));
+  PetscCall(DMRestoreNamedLocalVector(dm, "Qbc", &Qbc));
+  PetscCall(PetscObjectComposeFunction((PetscObject)dm, "DMPlexInsertBoundaryValues_C", DMPlexInsertBoundaryValues_FromICs));
+
+  PetscCall(DMGetNamedLocalVector(dm, "boundary mask", &boundary_mask));
+  PetscCall(DMGetGlobalVector(dm, &Q));
+  PetscCall(VecZeroEntries(boundary_mask));
+  PetscCall(VecSet(Q, 1.0));
+  PetscCall(DMGlobalToLocal(dm, Q, INSERT_VALUES, boundary_mask));
+  PetscCall(DMRestoreNamedLocalVector(dm, "boundary mask", &boundary_mask));
+  PetscFunctionReturn(PETSC_SUCCESS);
+}
+
+PetscErrorCode DMPlexInsertBoundaryValues_FromICs(DM dm, PetscBool insert_essential, Vec Q_loc, PetscReal time, Vec face_geom_FVM, Vec cell_geom_FVM,
+                                                  Vec grad_FVM) {
   Vec Qbc, boundary_mask;
 
   PetscFunctionBeginUser;
@@ -118,7 +140,7 @@ PetscErrorCode LoadFluidsBinaryVec(MPI_Comm comm, PetscViewer viewer, Vec Q, Pet
 }
 
 // Compare reference solution values with current test run for CI
-PetscErrorCode RegressionTests_NS(AppCtx app_ctx, Vec Q) {
+PetscErrorCode RegressionTest(AppCtx app_ctx, Vec Q) {
   Vec         Qref;
   PetscViewer viewer;
   PetscReal   error, Qrefnorm;
@@ -148,7 +170,7 @@ PetscErrorCode RegressionTests_NS(AppCtx app_ctx, Vec Q) {
 }
 
 // Get error for problems with exact solutions
-PetscErrorCode GetError_NS(CeedData ceed_data, DM dm, User user, Vec Q, PetscScalar final_time) {
+PetscErrorCode PrintError(CeedData ceed_data, DM dm, User user, Vec Q, PetscScalar final_time) {
   PetscInt  loc_nodes;
   Vec       Q_exact, Q_exact_loc;
   PetscReal rel_error, norm_error, norm_exact;
@@ -177,14 +199,14 @@ PetscErrorCode GetError_NS(CeedData ceed_data, DM dm, User user, Vec Q, PetscSca
 }
 
 // Post-processing
-PetscErrorCode PostProcess_NS(TS ts, CeedData ceed_data, DM dm, ProblemData *problem, User user, Vec Q, PetscScalar final_time) {
+PetscErrorCode PostProcess(TS ts, CeedData ceed_data, DM dm, ProblemData *problem, User user, Vec Q, PetscScalar final_time) {
   PetscInt          steps;
   TSConvergedReason reason;
 
   PetscFunctionBeginUser;
   // Print relative error
   if (problem->non_zero_time && user->app_ctx->test_type == TESTTYPE_NONE) {
-    PetscCall(GetError_NS(ceed_data, dm, user, Q, final_time));
+    PetscCall(PrintError(ceed_data, dm, user, Q, final_time));
   }
 
   // Print final time and number of steps
@@ -200,7 +222,7 @@ PetscErrorCode PostProcess_NS(TS ts, CeedData ceed_data, DM dm, ProblemData *pro
 
   // Compare reference solution values with current test run for CI
   if (user->app_ctx->test_type == TESTTYPE_SOLVER) {
-    PetscCall(RegressionTests_NS(user->app_ctx, Q));
+    PetscCall(RegressionTest(user->app_ctx, Q));
   }
   PetscFunctionReturn(PETSC_SUCCESS);
 }
@@ -217,28 +239,6 @@ PetscErrorCode SetupICsFromBinary(MPI_Comm comm, AppCtx app_ctx, Vec Q) {
   PetscCall(PetscViewerBinaryOpen(comm, app_ctx->cont_file, FILE_MODE_READ, &viewer));
   PetscCall(LoadFluidsBinaryVec(comm, viewer, Q, &app_ctx->cont_time, &app_ctx->cont_steps));
   PetscCall(PetscViewerDestroy(&viewer));
-  PetscFunctionReturn(PETSC_SUCCESS);
-}
-
-// Record boundary values from initial condition
-PetscErrorCode SetBCsFromICs_NS(DM dm, Vec Q, Vec Q_loc) {
-  Vec Qbc, boundary_mask;
-
-  PetscFunctionBeginUser;
-  PetscCall(DMGetNamedLocalVector(dm, "Qbc", &Qbc));
-  PetscCall(VecCopy(Q_loc, Qbc));
-  PetscCall(VecZeroEntries(Q_loc));
-  PetscCall(DMGlobalToLocal(dm, Q, INSERT_VALUES, Q_loc));
-  PetscCall(VecAXPY(Qbc, -1., Q_loc));
-  PetscCall(DMRestoreNamedLocalVector(dm, "Qbc", &Qbc));
-  PetscCall(PetscObjectComposeFunction((PetscObject)dm, "DMPlexInsertBoundaryValues_C", DMPlexInsertBoundaryValues_NS));
-
-  PetscCall(DMGetNamedLocalVector(dm, "boundary mask", &boundary_mask));
-  PetscCall(DMGetGlobalVector(dm, &Q));
-  PetscCall(VecZeroEntries(boundary_mask));
-  PetscCall(VecSet(Q, 1.0));
-  PetscCall(DMGlobalToLocal(dm, Q, INSERT_VALUES, boundary_mask));
-  PetscCall(DMRestoreNamedLocalVector(dm, "boundary mask", &boundary_mask));
   PetscFunctionReturn(PETSC_SUCCESS);
 }
 

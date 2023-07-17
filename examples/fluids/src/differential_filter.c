@@ -291,7 +291,7 @@ PetscErrorCode TSMonitor_DifferentialFilter(TS ts, PetscInt steps, PetscReal sol
 
   PetscCall(DifferentialFilterApply(user, solution_time, Q, Filtered_Field));
   PetscCall(VecViewFromOptions(Filtered_Field, NULL, "-diff_filter_view"));
-  if (user->app_ctx->test_type == TESTTYPE_DIFF_FILTER) PetscCall(RegressionTests_NS(user->app_ctx, Filtered_Field));
+  if (user->app_ctx->test_type == TESTTYPE_DIFF_FILTER) PetscCall(RegressionTest(user->app_ctx, Filtered_Field));
 
   PetscCall(DMRestoreGlobalVector(diff_filter->dm_filter, &Filtered_Field));
   PetscFunctionReturn(PETSC_SUCCESS);

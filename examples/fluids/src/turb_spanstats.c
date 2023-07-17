@@ -607,7 +607,7 @@ PetscErrorCode TSMonitor_TurbulenceStatistics(TS ts, PetscInt steps, PetscReal s
         PetscCall(PetscViewerPopFormat(user->app_ctx->turb_spanstats_viewer));
       }
       if (user->app_ctx->test_type == TESTTYPE_TURB_SPANSTATS && reason != TS_CONVERGED_ITERATING) {
-        PetscCall(RegressionTests_NS(user->app_ctx, stats));
+        PetscCall(RegressionTest(user->app_ctx, stats));
       }
       if (user->spanstats.do_mms_test && reason != TS_CONVERGED_ITERATING) {
         Vec error;
