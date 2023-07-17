@@ -17,59 +17,34 @@
 #include "../qfunctions/mass.h"
 
 PetscErrorCode ICs_FixMultiplicity(DM dm, CeedData ceed_data, User user, Vec Q_loc, Vec Q, CeedScalar time) {
-  Ceed ceed = user->ceed;
+  Ceed         ceed = user->ceed;
+  CeedVector   mult_vec;
+  PetscMemType m_mem_type;
+  Vec          Multiplicity, Multiplicity_loc;
+
   PetscFunctionBeginUser;
-  // ---------------------------------------------------------------------------
-  // Update time for evaluation
-  // ---------------------------------------------------------------------------
   if (user->phys->ics_time_label) PetscCallCeed(ceed, CeedOperatorSetContextDouble(ceed_data->op_ics_ctx->op, user->phys->ics_time_label, &time));
-
-  // ---------------------------------------------------------------------------
-  // ICs
-  // ---------------------------------------------------------------------------
-  // -- CEED Restriction
-  CeedVector q0_ceed;
-  PetscCallCeed(ceed, CeedElemRestrictionCreateVector(ceed_data->elem_restr_q, &q0_ceed, NULL));
-
-  // -- Place PETSc vector in CEED vector
   PetscCall(ApplyCeedOperatorLocalToGlobal(NULL, Q, ceed_data->op_ics_ctx));
 
-  // ---------------------------------------------------------------------------
-  // Fix multiplicity for output of ICs
-  // ---------------------------------------------------------------------------
-  // -- CEED Restriction
-  CeedVector mult_vec;
   PetscCallCeed(ceed, CeedElemRestrictionCreateVector(ceed_data->elem_restr_q, &mult_vec, NULL));
 
-  // -- Place PETSc vector in CEED vector
-  PetscMemType m_mem_type;
-  Vec          multiplicity_loc;
-  PetscCall(DMGetLocalVector(dm, &multiplicity_loc));
-  PetscCall(VecP2C(multiplicity_loc, &m_mem_type, mult_vec));
-
   // -- Get multiplicity
+  PetscCall(DMGetLocalVector(dm, &Multiplicity_loc));
+  PetscCall(VecP2C(Multiplicity_loc, &m_mem_type, mult_vec));
   PetscCallCeed(ceed, CeedElemRestrictionGetMultiplicity(ceed_data->elem_restr_q, mult_vec));
+  PetscCall(VecC2P(mult_vec, m_mem_type, Multiplicity_loc));
 
-  // -- Restore vectors
-  PetscCall(VecC2P(mult_vec, m_mem_type, multiplicity_loc));
-
-  // -- Local-to-Global
-  Vec multiplicity;
-  PetscCall(DMGetGlobalVector(dm, &multiplicity));
-  PetscCall(VecZeroEntries(multiplicity));
-  PetscCall(DMLocalToGlobal(dm, multiplicity_loc, ADD_VALUES, multiplicity));
+  PetscCall(DMGetGlobalVector(dm, &Multiplicity));
+  PetscCall(VecZeroEntries(Multiplicity));
+  PetscCall(DMLocalToGlobal(dm, Multiplicity_loc, ADD_VALUES, Multiplicity));
 
   // -- Fix multiplicity
-  PetscCall(VecPointwiseDivide(Q, Q, multiplicity));
-  PetscCall(VecPointwiseDivide(Q_loc, Q_loc, multiplicity_loc));
+  PetscCall(VecPointwiseDivide(Q, Q, Multiplicity));
+  PetscCall(VecPointwiseDivide(Q_loc, Q_loc, Multiplicity_loc));
 
-  // -- Restore vectors
-  PetscCall(DMRestoreLocalVector(dm, &multiplicity_loc));
-  PetscCall(DMRestoreGlobalVector(dm, &multiplicity));
-
-  // Cleanup
+  PetscCall(DMRestoreLocalVector(dm, &Multiplicity_loc));
+  PetscCall(DMRestoreGlobalVector(dm, &Multiplicity));
   PetscCallCeed(ceed, CeedVectorDestroy(&mult_vec));
-  PetscCallCeed(ceed, CeedVectorDestroy(&q0_ceed));
   PetscFunctionReturn(PETSC_SUCCESS);
 }
 
@@ -118,7 +93,6 @@ PetscErrorCode LoadFluidsBinaryVec(MPI_Comm comm, PetscViewer viewer, Vec Q, Pet
   PetscReal  file_time;
 
   PetscFunctionBeginUser;
-  // Attempt
   PetscCall(PetscViewerBinaryRead(viewer, &token, 1, NULL, PETSC_INT32));
   if (token == FLUIDS_FILE_TOKEN_32 || token == FLUIDS_FILE_TOKEN_64 ||
       token == FLUIDS_FILE_TOKEN) {  // New style format; we're reading a file with step number and time in the header
@@ -134,7 +108,6 @@ PetscErrorCode LoadFluidsBinaryVec(MPI_Comm comm, PetscViewer viewer, Vec Q, Pet
     PetscCall(PetscViewerBinarySetSkipHeader(viewer, PETSC_TRUE));
   } else SETERRQ(comm, PETSC_ERR_FILE_UNEXPECTED, "Not a fluids header token or a PETSc Vec in file");
 
-  // Load Q from existent solution
   PetscCall(VecLoad(Q, viewer));
   PetscFunctionReturn(PETSC_SUCCESS);
 }
@@ -177,7 +150,7 @@ PetscErrorCode PrintError(CeedData ceed_data, DM dm, User user, Vec Q, PetscScal
 
   PetscFunctionBeginUser;
   // Get exact solution at final time
-  PetscCall(DMCreateGlobalVector(dm, &Q_exact));
+  PetscCall(DMGetGlobalVector(dm, &Q_exact));
   PetscCall(DMGetLocalVector(dm, &Q_exact_loc));
   PetscCall(VecGetSize(Q_exact_loc, &loc_nodes));
   PetscCall(ICs_FixMultiplicity(dm, ceed_data, user, Q_exact_loc, Q_exact, final_time));
@@ -187,14 +160,10 @@ PetscErrorCode PrintError(CeedData ceed_data, DM dm, User user, Vec Q, PetscScal
   PetscCall(VecAXPY(Q, -1.0, Q_exact));
   PetscCall(VecNorm(Q, NORM_1, &norm_error));
 
-  // Compute relative error
   rel_error = norm_error / norm_exact;
-
-  // Output relative error
   PetscCall(PetscPrintf(PETSC_COMM_WORLD, "Relative Error: %g\n", (double)rel_error));
-  // Cleanup
   PetscCall(DMRestoreLocalVector(dm, &Q_exact_loc));
-  PetscCall(VecDestroy(&Q_exact));
+  PetscCall(DMRestoreGlobalVector(dm, &Q_exact));
   PetscFunctionReturn(PETSC_SUCCESS);
 }
 
@@ -491,9 +460,7 @@ PetscErrorCode PrintRunInfo(User user, Physics phys_ctx, ProblemData *problem, M
   const PetscInt num_comp_q = 5;
   PetscInt       glob_dofs, owned_dofs, local_dofs;
   const CeedInt  num_P = user->app_ctx->degree + 1, num_Q = num_P + user->app_ctx->q_extra;
-  // -- Get global size
   PetscCall(DMGetGlobalVectorInfo(user->dm, &owned_dofs, &glob_dofs, NULL));
-  // -- Get local size
   PetscCall(DMGetLocalVectorInfo(user->dm, &local_dofs, NULL, NULL));
   PetscCall(PetscPrintf(comm,
                         "  Mesh:\n"
