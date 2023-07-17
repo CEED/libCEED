@@ -313,7 +313,7 @@ PetscErrorCode DifferentialFilterDataDestroy(DiffFilterData diff_filter) {
   PetscFunctionReturn(PETSC_SUCCESS);
 }
 
-PetscErrorCode DifferentialFilter_MMS_ICSetup(ProblemData *problem) {
+PetscErrorCode DifferentialFilterMmsICSetup(ProblemData *problem) {
   PetscFunctionBeginUser;
   problem->ics.qfunction     = DifferentialFilter_MMS_IC;
   problem->ics.qfunction_loc = DifferentialFilter_MMS_IC_loc;

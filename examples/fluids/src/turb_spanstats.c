@@ -514,7 +514,7 @@ PetscErrorCode TurbulenceStatisticsSetup(Ceed ceed, User user, CeedData ceed_dat
 
 // Collect statistics based on the solution Q
 PetscErrorCode CollectStatistics(User user, PetscScalar solution_time, Vec Q) {
-  Span_Stats user_stats = user->spanstats;
+  SpanStatsData user_stats = user->spanstats;
 
   PetscFunctionBeginUser;
   PetscLogStage stage_stats_collect;
@@ -535,7 +535,7 @@ PetscErrorCode CollectStatistics(User user, PetscScalar solution_time, Vec Q) {
 
 // Process the child statistics into parent statistics and project them onto stats
 PetscErrorCode ProcessStatistics(User user, Vec stats) {
-  Span_Stats         user_stats = user->spanstats;
+  SpanStatsData      user_stats = user->spanstats;
   const PetscScalar *child_stats;
   PetscScalar       *parent_stats;
   MPI_Datatype       unit;

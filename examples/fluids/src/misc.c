@@ -315,7 +315,7 @@ PetscErrorCode NodalProjectionDataDestroy(NodalProjectionData context) {
  * @param[out] dims           Dimensions of the file, taken from the first line of the file
  * @param[out] fp File        pointer to the opened file
  */
-PetscErrorCode PHASTADatFileOpen(const MPI_Comm comm, const char path[PETSC_MAX_PATH_LEN], const PetscInt char_array_len, PetscInt dims[2],
+PetscErrorCode PhastaDatFileOpen(const MPI_Comm comm, const char path[PETSC_MAX_PATH_LEN], const PetscInt char_array_len, PetscInt dims[2],
                                  FILE **fp) {
   int    ndims;
   char   line[char_array_len];
@@ -342,20 +342,20 @@ PetscErrorCode PHASTADatFileOpen(const MPI_Comm comm, const char path[PETSC_MAX_
  * @param[in]  path  Path to the file
  * @param[out] nrows Number of rows
  */
-PetscErrorCode PHASTADatFileGetNRows(const MPI_Comm comm, const char path[PETSC_MAX_PATH_LEN], PetscInt *nrows) {
+PetscErrorCode PhastaDatFileGetNRows(const MPI_Comm comm, const char path[PETSC_MAX_PATH_LEN], PetscInt *nrows) {
   const PetscInt char_array_len = 512;
   PetscInt       dims[2];
   FILE          *fp;
 
   PetscFunctionBeginUser;
-  PetscCall(PHASTADatFileOpen(comm, path, char_array_len, dims, &fp));
+  PetscCall(PhastaDatFileOpen(comm, path, char_array_len, dims, &fp));
   *nrows = dims[0];
   PetscCall(PetscFClose(comm, fp));
 
   PetscFunctionReturn(PETSC_SUCCESS);
 }
 
-PetscErrorCode PHASTADatFileReadToArrayReal(MPI_Comm comm, const char path[PETSC_MAX_PATH_LEN], PetscReal array[]) {
+PetscErrorCode PhastaDatFileReadToArrayReal(MPI_Comm comm, const char path[PETSC_MAX_PATH_LEN], PetscReal array[]) {
   PetscInt       dims[2];
   int            ndims;
   FILE          *fp;
@@ -364,7 +364,7 @@ PetscErrorCode PHASTADatFileReadToArrayReal(MPI_Comm comm, const char path[PETSC
   char         **row_array;
   PetscFunctionBeginUser;
 
-  PetscCall(PHASTADatFileOpen(comm, path, char_array_len, dims, &fp));
+  PetscCall(PhastaDatFileOpen(comm, path, char_array_len, dims, &fp));
 
   for (PetscInt i = 0; i < dims[0]; i++) {
     PetscCall(PetscSynchronizedFGets(comm, fp, char_array_len, line));

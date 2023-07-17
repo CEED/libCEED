@@ -193,7 +193,7 @@ typedef struct {
   PetscBool             do_mms_test;
   OperatorApplyContext  mms_error_ctx;
   CeedContextFieldLabel solution_time_label, previous_time_label;
-} Span_Stats;
+} SpanStatsData;
 
 typedef struct {
   DM                   dm;
@@ -207,7 +207,7 @@ typedef struct {
   PetscInt             num_comp_sgs;
   OperatorApplyContext op_nodal_evaluation_ctx, op_sgs_apply_ctx;
   CeedVector           sgs_nodal_ceed;
-} *SGS_DD_Data;
+} *SgsDDData;
 
 typedef struct {
   DM                   dm_filter;
@@ -234,9 +234,9 @@ struct User_private {
   OperatorApplyContext op_rhs_ctx, op_strong_bc_ctx;
   bool                 matrices_set_up;
   CeedScalar           time_bc_set;
-  Span_Stats           spanstats;
+  SpanStatsData        spanstats;
   NodalProjectionData  grad_velo_proj;
-  SGS_DD_Data          sgs_dd_data;
+  SgsDDData            sgs_dd_data;
   DiffFilterData       diff_filter;
 };
 
@@ -433,12 +433,12 @@ PetscErrorCode CreateMassQFunction(Ceed ceed, CeedInt N, CeedInt q_data_size, Ce
 
 PetscErrorCode NodalProjectionDataDestroy(NodalProjectionData context);
 
-PetscErrorCode PHASTADatFileOpen(const MPI_Comm comm, const char path[PETSC_MAX_PATH_LEN], const PetscInt char_array_len, PetscInt dims[2],
+PetscErrorCode PhastaDatFileOpen(const MPI_Comm comm, const char path[PETSC_MAX_PATH_LEN], const PetscInt char_array_len, PetscInt dims[2],
                                  FILE **fp);
 
-PetscErrorCode PHASTADatFileGetNRows(const MPI_Comm comm, const char path[PETSC_MAX_PATH_LEN], PetscInt *nrows);
+PetscErrorCode PhastaDatFileGetNRows(const MPI_Comm comm, const char path[PETSC_MAX_PATH_LEN], PetscInt *nrows);
 
-PetscErrorCode PHASTADatFileReadToArrayReal(const MPI_Comm comm, const char path[PETSC_MAX_PATH_LEN], PetscReal array[]);
+PetscErrorCode PhastaDatFileReadToArrayReal(const MPI_Comm comm, const char path[PETSC_MAX_PATH_LEN], PetscReal array[]);
 
 PetscErrorCode IntArrayC2P(PetscInt num_entries, CeedInt **array_ceed, PetscInt **array_petsc);
 PetscErrorCode IntArrayP2C(PetscInt num_entries, PetscInt **array_petsc, CeedInt **array_ceed);
@@ -455,9 +455,9 @@ PetscErrorCode TurbulenceStatisticsDestroy(User user, CeedData ceed_data);
 // Data-Driven Subgrid Stress (DD-SGS) Modeling Functions
 // -----------------------------------------------------------------------------
 
-PetscErrorCode SGS_DD_ModelSetup(Ceed ceed, User user, CeedData ceed_data, ProblemData *problem);
-PetscErrorCode SGS_DD_DataDestroy(SGS_DD_Data sgs_dd_data);
-PetscErrorCode SGS_DD_ModelApplyIFunction(User user, const Vec Q_loc, Vec G_loc);
+PetscErrorCode SgsDDModelSetup(Ceed ceed, User user, CeedData ceed_data, ProblemData *problem);
+PetscErrorCode SgsDDDataDestroy(SgsDDData sgs_dd_data);
+PetscErrorCode SgsDDModelApplyIFunction(User user, const Vec Q_loc, Vec G_loc);
 PetscErrorCode VelocityGradientProjectionSetup(Ceed ceed, User user, CeedData ceed_data, ProblemData *problem);
 PetscErrorCode VelocityGradientProjectionApply(User user, Vec Q_loc, Vec VelocityGradient);
 PetscErrorCode GridAnisotropyTensorProjectionSetupApply(Ceed ceed, User user, CeedData ceed_data, CeedElemRestriction *elem_restr_grid_aniso,
@@ -483,6 +483,6 @@ PetscErrorCode DifferentialFilterSetup(Ceed ceed, User user, CeedData ceed_data,
 PetscErrorCode DifferentialFilterDataDestroy(DiffFilterData diff_filter);
 PetscErrorCode TSMonitor_DifferentialFilter(TS ts, PetscInt steps, PetscReal solution_time, Vec Q, void *ctx);
 PetscErrorCode DifferentialFilterApply(User user, const PetscReal solution_time, const Vec Q, Vec Filtered_Solution);
-PetscErrorCode DifferentialFilter_MMS_ICSetup(ProblemData *problem);
+PetscErrorCode DifferentialFilterMmsICSetup(ProblemData *problem);
 
 #endif  // libceed_fluids_examples_navier_stokes_h

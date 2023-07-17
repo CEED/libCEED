@@ -71,7 +71,7 @@ PetscErrorCode SetUpDM(DM dm, ProblemData *problem, PetscInt degree, PetscInt q_
     {
       PetscBool use_strongstg = PETSC_FALSE;
       PetscCall(PetscOptionsGetBool(NULL, NULL, "-stg_strong", &use_strongstg, NULL));
-      if (use_strongstg) PetscCall(SetupStrongSTG(dm, bc, problem, phys));
+      if (use_strongstg) PetscCall(SetupStrongStg(dm, bc, problem, phys));
     }
   }
 

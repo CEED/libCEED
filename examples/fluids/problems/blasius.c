@@ -338,9 +338,9 @@ PetscErrorCode NS_BLASIUS(ProblemData *problem, DM dm, void *ctx, SimpleBC bc) {
   PetscCallCeed(ceed, CeedQFunctionContextDestroy(&problem->ics.qfunction_context));
   problem->ics.qfunction_context = blasius_context;
   if (use_stg) {
-    PetscCall(SetupSTG(comm, dm, problem, user, weakT, T_inf, P0));
+    PetscCall(SetupStg(comm, dm, problem, user, weakT, T_inf, P0));
   } else if (diff_filter_mms) {
-    PetscCall(DifferentialFilter_MMS_ICSetup(problem));
+    PetscCall(DifferentialFilterMmsICSetup(problem));
   } else {
     problem->apply_inflow.qfunction              = Blasius_Inflow;
     problem->apply_inflow.qfunction_loc          = Blasius_Inflow_loc;
