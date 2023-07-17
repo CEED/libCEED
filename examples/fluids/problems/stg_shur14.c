@@ -169,7 +169,6 @@ PetscErrorCode GetStgContextData(const MPI_Comm comm, const DM dm, char stg_infl
   PetscInt nmodes, nprofs;
   PetscFunctionBeginUser;
 
-  // Get options
   PetscCall(PhastaDatFileGetNRows(comm, stg_rand_path, &nmodes));
   PetscCall(PhastaDatFileGetNRows(comm, stg_inflow_path, &nprofs));
   PetscCheck(nmodes < STG_NMODES_MAX, comm, PETSC_ERR_SUP,

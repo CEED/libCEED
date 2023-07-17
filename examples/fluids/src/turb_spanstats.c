@@ -626,24 +626,15 @@ PetscErrorCode TSMonitor_TurbulenceStatistics(TS ts, PetscInt steps, PetscReal s
 
 PetscErrorCode TurbulenceStatisticsDestroy(User user, CeedData ceed_data) {
   PetscFunctionBeginUser;
-
-  // -- CeedVectors
   PetscCall(VecDestroy(&user->spanstats.Child_Stats_loc));
   PetscCall(VecDestroy(&user->spanstats.Parent_Stats_loc));
 
-  // -- CeedOperators
   PetscCall(OperatorApplyContextDestroy(user->spanstats.op_stats_collect_ctx));
   PetscCall(OperatorApplyContextDestroy(user->spanstats.op_proj_rhs_ctx));
   PetscCall(OperatorApplyContextDestroy(user->spanstats.mms_error_ctx));
 
-  // -- KSP
   PetscCall(KSPDestroy(&user->spanstats.ksp));
-
-  // -- SF
   PetscCall(PetscSFDestroy(&user->spanstats.sf));
-
-  // -- DM
   PetscCall(DMDestroy(&user->spanstats.dm));
-
   PetscFunctionReturn(PETSC_SUCCESS);
 }

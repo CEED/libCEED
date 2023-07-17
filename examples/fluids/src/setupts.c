@@ -107,7 +107,7 @@ PetscErrorCode RHS_NS(TS ts, PetscReal t, Vec Q, Vec G, void *user_data) {
 
   PetscCall(ApplyCeedOperatorGlobalToGlobal(Q, G, user->op_rhs_ctx));
 
-  // Inverse of the lumped mass matrix (M is Minv)
+  // Inverse of the lumped mass matrix
   PetscCall(VecPointwiseMult(G, G, user->M_inv));
 
   PetscFunctionReturn(PETSC_SUCCESS);
