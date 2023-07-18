@@ -8,7 +8,7 @@ on:
 
 env:
   LINUX_CPP_COMPONENTS: intel-oneapi-compiler-dpcpp-cpp-and-cpp-classic
-  LINUX_FORTRAN_COMPONENTS: intel-oneapi-ifort
+  LINUX_FORTRAN_COMPONENTS: intel-oneapi-compiler-fortran
 
 jobs:
   test:
