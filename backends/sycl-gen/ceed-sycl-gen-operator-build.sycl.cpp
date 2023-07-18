@@ -444,7 +444,7 @@ extern "C" int CeedSyclGenOperatorBuild(CeedOperator op) {
           CeedCallBackend(CeedBasisGetNumNodes1D(basis, &P_1d));
           code << "    CeedScalar r_t_" << i << "[num_comp_in_" << i << "*DIM*Q_1D];\n";
           code << "    Grad" << (dim > 1 ? "Tensor" : "") << (dim == 3 && Q_1d >= P_1d ? "Collocated" : "") << dim << "d(num_comp_in_" << i
-               << ", P_in_" << i << ", Q_1D, r_u_" << i << ", s_B_in_" << i << ", s_G_in_" << i << ", r_t_" << i << ", elem_scratch);\n";
+               << ", P_in_" << i << ", Q_1D, r_u_" << i << (dim > 1 ? ", s_B_in_" : "") << (dim > 1 ? std::to_string(i) : "") << ", s_G_in_" << i << ", r_t_" << i << ", elem_scratch);\n";
         }
         break;
       case CEED_EVAL_WEIGHT:
@@ -671,7 +671,7 @@ extern "C" int CeedSyclGenOperatorBuild(CeedOperator op) {
           CeedCallBackend(CeedOperatorFieldGetBasis(op_output_fields[i], &basis));
           CeedCallBackend(CeedBasisGetNumNodes1D(basis, &P_1d));
           code << "    GradTranspose" << (dim > 1 ? "Tensor" : "") << (dim == 3 && Q_1d >= P_1d ? "Collocated" : "") << dim << "d(num_comp_out_" << i
-               << ",P_out_" << i << ", Q_1D, r_tt_" << i << ", s_B_out_" << i << ", s_G_out_" << i << ", r_v_" << i << ", elem_scratch);\n";
+               << ",P_out_" << i << ", Q_1D, r_tt_" << i << (dim > 1 ? ", s_B_out_" : "") << (dim > 1 ? std::to_string(i) : "") << ", s_G_out_" << i << ", r_v_" << i << ", elem_scratch);\n";
         }
         break;
       // LCOV_EXCL_START
