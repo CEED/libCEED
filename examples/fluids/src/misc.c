@@ -567,70 +567,74 @@ PetscErrorCode PrintRunInfo(User user, Physics phys_ctx, ProblemData *problem, M
           part_local_dofs[0] / num_comp_q, part_local_dofs[1] / num_comp_q, part_local_dofs[2] / num_comp_q, part_local_dof_ratio));
     }
 
-    PetscInt num_remote_roots_total = 0, num_remote_leaves_total = 0, num_ghost_interface_ranks = 0, num_owned_interface_ranks = 0;
-    {
-      PetscSF            sf;
-      PetscInt           nrranks, niranks;
-      const PetscInt    *roffset, *rmine, *rremote, *ioffset, *irootloc;
-      const PetscMPIInt *rranks, *iranks;
-      PetscCall(DMGetSectionSF(user->dm, &sf));
-      PetscCall(PetscSFGetRootRanks(sf, &nrranks, &rranks, &roffset, &rmine, &rremote));
-      PetscCall(PetscSFGetLeafRanks(sf, &niranks, &iranks, &ioffset, &irootloc));
-      for (PetscInt i = 0; i < nrranks; i++) {
-        if (rranks[i] == rank) continue;  // Ignore same-part global->local transfers
-        num_remote_roots_total += roffset[i + 1] - roffset[i];
-        num_ghost_interface_ranks++;
+    if (comm_size != 1) {
+      PetscInt num_remote_roots_total = 0, num_remote_leaves_total = 0, num_ghost_interface_ranks = 0, num_owned_interface_ranks = 0;
+      {
+        PetscSF            sf;
+        PetscInt           nrranks, niranks;
+        const PetscInt    *roffset, *rmine, *rremote, *ioffset, *irootloc;
+        const PetscMPIInt *rranks, *iranks;
+        PetscCall(DMGetSectionSF(user->dm, &sf));
+        PetscCall(PetscSFGetRootRanks(sf, &nrranks, &rranks, &roffset, &rmine, &rremote));
+        PetscCall(PetscSFGetLeafRanks(sf, &niranks, &iranks, &ioffset, &irootloc));
+        for (PetscInt i = 0; i < nrranks; i++) {
+          if (rranks[i] == rank) continue;  // Ignore same-part global->local transfers
+          num_remote_roots_total += roffset[i + 1] - roffset[i];
+          num_ghost_interface_ranks++;
+        }
+        for (PetscInt i = 0; i < niranks; i++) {
+          if (iranks[i] == rank) continue;
+          num_remote_leaves_total += ioffset[i + 1] - ioffset[i];
+          num_owned_interface_ranks++;
+        }
       }
-      for (PetscInt i = 0; i < niranks; i++) {
-        if (iranks[i] == rank) continue;
-        num_remote_leaves_total += ioffset[i + 1] - ioffset[i];
-        num_owned_interface_ranks++;
+      PetscCallMPI(MPI_Gather(&num_remote_roots_total, 1, MPIU_INT, gather_buffer, 1, MPIU_INT, 0, comm));
+      if (!rank) {
+        PetscCall(PetscSortInt(comm_size, gather_buffer));
+        part_boundary_dofs[0]           = gather_buffer[0];              // min
+        part_boundary_dofs[1]           = gather_buffer[comm_size - 1];  // max
+        part_boundary_dofs[2]           = gather_buffer[median_index];   // median
+        PetscReal part_shared_dof_ratio = (PetscReal)part_boundary_dofs[1] / (PetscReal)part_boundary_dofs[2];
+        PetscCall(PetscPrintf(
+            comm, "    Ghost Interface %" PetscInt_FMT "-DoF nodes        : %" PetscInt_FMT ", %" PetscInt_FMT ", %" PetscInt_FMT ", %f\n",
+            num_comp_q, part_boundary_dofs[0] / num_comp_q, part_boundary_dofs[1] / num_comp_q, part_boundary_dofs[2] / num_comp_q,
+            part_shared_dof_ratio));
       }
-    }
-    PetscCallMPI(MPI_Gather(&num_remote_roots_total, 1, MPIU_INT, gather_buffer, 1, MPIU_INT, 0, comm));
-    if (!rank) {
-      PetscCall(PetscSortInt(comm_size, gather_buffer));
-      part_boundary_dofs[0]           = gather_buffer[0];              // min
-      part_boundary_dofs[1]           = gather_buffer[comm_size - 1];  // max
-      part_boundary_dofs[2]           = gather_buffer[median_index];   // median
-      PetscReal part_shared_dof_ratio = (PetscReal)part_boundary_dofs[1] / (PetscReal)part_boundary_dofs[2];
-      PetscCall(PetscPrintf(
-          comm, "    Ghost Interface %" PetscInt_FMT "-DoF nodes        : %" PetscInt_FMT ", %" PetscInt_FMT ", %" PetscInt_FMT ", %f\n", num_comp_q,
-          part_boundary_dofs[0] / num_comp_q, part_boundary_dofs[1] / num_comp_q, part_boundary_dofs[2] / num_comp_q, part_shared_dof_ratio));
-    }
 
-    PetscCallMPI(MPI_Gather(&num_ghost_interface_ranks, 1, MPIU_INT, gather_buffer, 1, MPIU_INT, 0, comm));
-    if (!rank) {
-      PetscCall(PetscSortInt(comm_size, gather_buffer));
-      part_neighbors[0]              = gather_buffer[0];              // min
-      part_neighbors[1]              = gather_buffer[comm_size - 1];  // max
-      part_neighbors[2]              = gather_buffer[median_index];   // median
-      PetscReal part_neighbors_ratio = (PetscReal)part_neighbors[1] / (PetscReal)part_neighbors[2];
-      PetscCall(PetscPrintf(comm, "    Ghost Interface Ranks              : %" PetscInt_FMT ", %" PetscInt_FMT ", %" PetscInt_FMT ", %f\n",
-                            part_neighbors[0], part_neighbors[1], part_neighbors[2], part_neighbors_ratio));
-    }
+      PetscCallMPI(MPI_Gather(&num_ghost_interface_ranks, 1, MPIU_INT, gather_buffer, 1, MPIU_INT, 0, comm));
+      if (!rank) {
+        PetscCall(PetscSortInt(comm_size, gather_buffer));
+        part_neighbors[0]              = gather_buffer[0];              // min
+        part_neighbors[1]              = gather_buffer[comm_size - 1];  // max
+        part_neighbors[2]              = gather_buffer[median_index];   // median
+        PetscReal part_neighbors_ratio = (PetscReal)part_neighbors[1] / (PetscReal)part_neighbors[2];
+        PetscCall(PetscPrintf(comm, "    Ghost Interface Ranks              : %" PetscInt_FMT ", %" PetscInt_FMT ", %" PetscInt_FMT ", %f\n",
+                              part_neighbors[0], part_neighbors[1], part_neighbors[2], part_neighbors_ratio));
+      }
 
-    PetscCallMPI(MPI_Gather(&num_remote_leaves_total, 1, MPIU_INT, gather_buffer, 1, MPIU_INT, 0, comm));
-    if (!rank) {
-      PetscCall(PetscSortInt(comm_size, gather_buffer));
-      part_boundary_dofs[0]           = gather_buffer[0];              // min
-      part_boundary_dofs[1]           = gather_buffer[comm_size - 1];  // max
-      part_boundary_dofs[2]           = gather_buffer[median_index];   // median
-      PetscReal part_shared_dof_ratio = (PetscReal)part_boundary_dofs[1] / (PetscReal)part_boundary_dofs[2];
-      PetscCall(PetscPrintf(
-          comm, "    Owned Interface %" PetscInt_FMT "-DoF nodes        : %" PetscInt_FMT ", %" PetscInt_FMT ", %" PetscInt_FMT ", %f\n", num_comp_q,
-          part_boundary_dofs[0] / num_comp_q, part_boundary_dofs[1] / num_comp_q, part_boundary_dofs[2] / num_comp_q, part_shared_dof_ratio));
-    }
+      PetscCallMPI(MPI_Gather(&num_remote_leaves_total, 1, MPIU_INT, gather_buffer, 1, MPIU_INT, 0, comm));
+      if (!rank) {
+        PetscCall(PetscSortInt(comm_size, gather_buffer));
+        part_boundary_dofs[0]           = gather_buffer[0];              // min
+        part_boundary_dofs[1]           = gather_buffer[comm_size - 1];  // max
+        part_boundary_dofs[2]           = gather_buffer[median_index];   // median
+        PetscReal part_shared_dof_ratio = (PetscReal)part_boundary_dofs[1] / (PetscReal)part_boundary_dofs[2];
+        PetscCall(PetscPrintf(
+            comm, "    Owned Interface %" PetscInt_FMT "-DoF nodes        : %" PetscInt_FMT ", %" PetscInt_FMT ", %" PetscInt_FMT ", %f\n",
+            num_comp_q, part_boundary_dofs[0] / num_comp_q, part_boundary_dofs[1] / num_comp_q, part_boundary_dofs[2] / num_comp_q,
+            part_shared_dof_ratio));
+      }
 
-    PetscCallMPI(MPI_Gather(&num_owned_interface_ranks, 1, MPIU_INT, gather_buffer, 1, MPIU_INT, 0, comm));
-    if (!rank) {
-      PetscCall(PetscSortInt(comm_size, gather_buffer));
-      part_neighbors[0]              = gather_buffer[0];              // min
-      part_neighbors[1]              = gather_buffer[comm_size - 1];  // max
-      part_neighbors[2]              = gather_buffer[median_index];   // median
-      PetscReal part_neighbors_ratio = (PetscReal)part_neighbors[1] / (PetscReal)part_neighbors[2];
-      PetscCall(PetscPrintf(comm, "    Owned Interface Ranks              : %" PetscInt_FMT ", %" PetscInt_FMT ", %" PetscInt_FMT ", %f\n",
-                            part_neighbors[0], part_neighbors[1], part_neighbors[2], part_neighbors_ratio));
+      PetscCallMPI(MPI_Gather(&num_owned_interface_ranks, 1, MPIU_INT, gather_buffer, 1, MPIU_INT, 0, comm));
+      if (!rank) {
+        PetscCall(PetscSortInt(comm_size, gather_buffer));
+        part_neighbors[0]              = gather_buffer[0];              // min
+        part_neighbors[1]              = gather_buffer[comm_size - 1];  // max
+        part_neighbors[2]              = gather_buffer[median_index];   // median
+        PetscReal part_neighbors_ratio = (PetscReal)part_neighbors[1] / (PetscReal)part_neighbors[2];
+        PetscCall(PetscPrintf(comm, "    Owned Interface Ranks              : %" PetscInt_FMT ", %" PetscInt_FMT ", %" PetscInt_FMT ", %f\n",
+                              part_neighbors[0], part_neighbors[1], part_neighbors[2], part_neighbors_ratio));
+      }
     }
 
     if (!rank) PetscCall(PetscFree(gather_buffer));
