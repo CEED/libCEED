@@ -92,9 +92,9 @@ static int CeedOperatorApplyAdd_Sycl_gen(CeedOperator op, CeedVector input_vec, 
   CeedCallBackend(CeedQFunctionGetInnerContextData(qf, CEED_MEM_DEVICE, &qf_impl->d_c));
 
   // Apply operator
-  const CeedInt dim       = impl->dim;
-  const CeedInt Q_1d      = impl->Q_1d;
-  const CeedInt P_1d      = impl->max_P_1d;
+  const CeedInt dim  = impl->dim;
+  const CeedInt Q_1d = impl->Q_1d;
+  const CeedInt P_1d = impl->max_P_1d;
   CeedInt       block_sizes[3], grid = 0;
   CeedCallBackend(BlockGridCalculate_Sycl_gen(dim, P_1d, Q_1d, block_sizes));
   if (dim == 1) {
