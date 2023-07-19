@@ -466,7 +466,7 @@ ifneq ($(SYCL_LIB_DIR),)
 	BACKENDS_MAKE += $(SYCL_BACKENDS)
 endif
 
-# MAGMA Backend
+# MAGMA Backends
 ifneq ($(wildcard $(MAGMA_DIR)/lib/libmagma.*),)
   MAGMA_ARCH=$(shell nm -g $(MAGMA_DIR)/lib/libmagma.* | grep -c "hipblas")
   ifeq ($(MAGMA_ARCH), 0) #CUDA MAGMA
