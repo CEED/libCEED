@@ -1431,6 +1431,9 @@ int CeedBasisApplyAtPoints(CeedBasis basis, CeedInt num_points, CeedTransposeMod
                    (t_mode == CEED_NOTRANSPOSE && (v_length >= num_points * num_q_comp || u_length >= num_nodes * num_comp)));
       break;
     case CEED_EVAL_GRAD:
+      good_dims = ((t_mode == CEED_TRANSPOSE && (u_length >= num_points * num_q_comp * dim || v_length >= num_nodes * num_comp)) ||
+                   (t_mode == CEED_NOTRANSPOSE && (v_length >= num_points * num_q_comp * dim || u_length >= num_nodes * num_comp)));
+      break;
     case CEED_EVAL_NONE:
     case CEED_EVAL_WEIGHT:
     case CEED_EVAL_DIV:
@@ -1449,6 +1452,8 @@ int CeedBasisApplyAtPoints(CeedBasis basis, CeedInt num_points, CeedTransposeMod
 
   // Default implementation
   CeedCheck(basis->is_tensor_basis, basis->ceed, CEED_ERROR_UNSUPPORTED, "Evaluation at arbitrary points only supported for tensor product bases");
+  CeedCheck(eval_mode == CEED_EVAL_INTERP || t_mode == CEED_NOTRANSPOSE, basis->ceed, CEED_ERROR_UNSUPPORTED, "%s evaluation only supported for %s",
+            CeedEvalModes[eval_mode], CeedTransposeModes[CEED_NOTRANSPOSE]);
   if (!basis->basis_chebyshev) {
     // Build matrix mapping from quadrature point values to Chebyshev coefficients
     CeedScalar       *tau, *C, *I, *chebyshev_coeffs_1d;
@@ -1539,29 +1544,79 @@ int CeedBasisApplyAtPoints(CeedBasis basis, CeedInt num_points, CeedTransposeMod
       CeedCall(CeedVectorGetArrayRead(basis->vec_chebyshev, CEED_MEM_HOST, &chebyshev_coeffs));
       CeedCall(CeedVectorGetArrayRead(x_ref, CEED_MEM_HOST, &x_array_read));
       CeedCall(CeedVectorGetArrayWrite(v, CEED_MEM_HOST, &v_array));
-      {
-        CeedScalar tmp[2][num_comp * CeedIntPow(Q_1d, dim)], chebyshev_x[Q_1d];
+      switch (eval_mode) {
+        case CEED_EVAL_INTERP: {
+          CeedScalar tmp[2][num_comp * CeedIntPow(Q_1d, dim)], chebyshev_x[Q_1d];
 
-        // ---- Values at point
-        for (CeedInt p = 0; p < num_points; p++) {
-          CeedInt pre = num_comp * CeedIntPow(Q_1d, dim - 1), post = 1;
+          // ---- Values at point
+          for (CeedInt p = 0; p < num_points; p++) {
+            CeedInt pre = num_comp * CeedIntPow(Q_1d, dim - 1), post = 1;
 
-          for (CeedInt d = dim - 1; d >= 0; d--) {
-            // ------ Compute Chebyshev polynomial values
-            {
-              const CeedScalar x = x_array_read[p * dim + d];
+            for (CeedInt d = dim - 1; d >= 0; d--) {
+              // ------ Compute Chebyshev polynomial values
+              {
+                const CeedScalar x = x_array_read[p * dim + d];
 
-              chebyshev_x[0] = 1.0;
-              chebyshev_x[1] = 2 * x;
-              for (CeedInt j = 2; j < Q_1d; j++) chebyshev_x[j] = 2 * x * chebyshev_x[j - 1] - chebyshev_x[j - 2];
+                chebyshev_x[0] = 1.0;
+                chebyshev_x[1] = 2 * x;
+                for (CeedInt j = 2; j < Q_1d; j++) chebyshev_x[j] = 2 * x * chebyshev_x[j - 1] - chebyshev_x[j - 2];
+              }
+              // ------ Tensor contract
+              CeedCall(CeedTensorContractApply(basis->contract, pre, Q_1d, post, 1, chebyshev_x, t_mode, false,
+                                               d == (dim - 1) ? chebyshev_coeffs : tmp[d % 2], d == 0 ? &v_array[p * num_comp] : tmp[(d + 1) % 2]));
+              pre /= Q_1d;
+              post *= 1;
             }
-            // ------ Tensor contract
-            CeedCall(CeedTensorContractApply(basis->contract, pre, Q_1d, post, 1, chebyshev_x, t_mode, false,
-                                             d == (dim - 1) ? chebyshev_coeffs : tmp[d % 2], d == 0 ? &v_array[p * num_comp] : tmp[(d + 1) % 2]));
-            pre /= Q_1d;
-            post *= 1;
           }
+          break;
         }
+        case CEED_EVAL_GRAD: {
+          CeedScalar tmp[2][num_comp * CeedIntPow(Q_1d, dim)], chebyshev_x[Q_1d];
+
+          // ---- Values at point
+          for (CeedInt p = 0; p < num_points; p++) {
+            // Dim**2 contractions, apply grad when pass == dim
+            for (CeedInt pass = dim - 1; pass >= 0; pass--) {
+              CeedInt pre = num_comp * CeedIntPow(Q_1d, dim - 1), post = 1;
+
+              for (CeedInt d = dim - 1; d >= 0; d--) {
+                const CeedScalar x = x_array_read[p * dim + d];
+
+                // ------ Compute Chebyshev polynomial values
+                if (pass == d) {
+                  // chebyshev_temp holds the original series values
+                  // chebyshev_x holds the derivative of the original series
+                  CeedScalar chebyshev_temp[3];
+
+                  chebyshev_temp[1] = 1.0;
+                  chebyshev_temp[2] = 2 * x;
+                  chebyshev_x[0]    = 0.0;
+                  chebyshev_x[1]    = 2.0;
+                  for (CeedInt j = 2; j < Q_1d; j++) {
+                    chebyshev_temp[0] = chebyshev_temp[1];
+                    chebyshev_temp[1] = chebyshev_temp[2];
+                    chebyshev_temp[2] = 2 * x * chebyshev_temp[1] - chebyshev_temp[0];
+                    chebyshev_x[j]    = 2 * x * chebyshev_x[j - 1] + 2 * chebyshev_temp[1] - chebyshev_x[j - 2];
+                  }
+                } else {
+                  chebyshev_x[0] = 1.0;
+                  chebyshev_x[1] = 2 * x;
+                  for (CeedInt j = 2; j < Q_1d; j++) chebyshev_x[j] = 2 * x * chebyshev_x[j - 1] - chebyshev_x[j - 2];
+                }
+                // ------ Tensor contract
+                CeedCall(CeedTensorContractApply(basis->contract, pre, Q_1d, post, 1, chebyshev_x, t_mode, false,
+                                                 d == (dim - 1) ? chebyshev_coeffs : tmp[d % 2],
+                                                 d == 0 ? &v_array[p * num_comp * dim + pass] : tmp[(d + 1) % 2]));
+                pre /= Q_1d;
+                post *= 1;
+              }
+            }
+          }
+          break;
+        }
+        default:
+          // Nothing to do, this won't occur
+          break;
       }
       CeedCall(CeedVectorRestoreArrayRead(basis->vec_chebyshev, &chebyshev_coeffs));
       CeedCall(CeedVectorRestoreArrayRead(x_ref, &x_array_read));
