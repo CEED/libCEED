@@ -672,7 +672,7 @@ extern "C" int CeedSyclGenOperatorBuild(CeedOperator op) {
           CeedCallBackend(CeedOperatorFieldGetBasis(op_output_fields[i], &basis));
           CeedCallBackend(CeedBasisGetNumNodes1D(basis, &P_1d));
           code << "    GradTranspose" << (dim > 1 ? "Tensor" : "") << (dim == 3 && Q_1d >= P_1d ? "Collocated" : "") << dim << "d(num_comp_out_" << i
-               << ", P_out_" << i << ", Q_1D, r_tt_" << i << (dim > 1 ? ", s_B_out_" : "") << (dim > 1 ? std::to_string(i) : "") << ", s_G_out_" << i 
+               << ", P_out_" << i << ", Q_1D, r_tt_" << i << (dim > 1 ? ", s_B_out_" : "") << (dim > 1 ? std::to_string(i) : "") << ", s_G_out_" << i
                << ", r_v_" << i << ", elem_scratch);\n";
         }
         break;
