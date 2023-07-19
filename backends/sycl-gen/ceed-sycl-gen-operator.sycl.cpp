@@ -47,7 +47,7 @@ static int CeedOperatorApplyAdd_Sycl_gen(CeedOperator op, CeedVector input_vec, 
   CeedVector   vec, output_vecs[CEED_FIELD_MAX] = {};
 
   // Creation of the operator
-  CeedCallBackend(CeedSyclGenOperatorBuild(op));
+  CeedCallBackend(CeedOperatorBuildKernel_Sycl_gen(op));
 
   // Input vectors
   for (CeedInt i = 0; i < num_input_fields; i++) {

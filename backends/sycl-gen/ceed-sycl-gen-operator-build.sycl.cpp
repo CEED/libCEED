@@ -54,7 +54,7 @@ extern "C" int BlockGridCalculate_Sycl_gen(const CeedInt dim, const CeedInt P_1d
 // - [ ] Check arguments to device functions reudsed from sycl-shared-basis are correct
 // - [ ] Do kernel jitting!
 //------------------------------------------------------------------------------
-extern "C" int CeedSyclGenOperatorBuild(CeedOperator op) {
+extern "C" int CeedOperatorBuildKernel_Sycl_gen(CeedOperator op) {
   bool is_setup_done;
   CeedCallBackend(CeedOperatorIsSetupDone(op, &is_setup_done));
   if (is_setup_done) return CEED_ERROR_SUCCESS;
@@ -739,10 +739,10 @@ extern "C" int CeedSyclGenOperatorBuild(CeedOperator op) {
   jit_constants["GROUP_SIZE_Z"] = block_sizes[2];
 
   // Compile kernel into a kernel bundle
-  CeedCallBackend(CeedJitBuildModule_Sycl(ceed, code.str(), &impl->sycl_module, jit_constants));
+  CeedCallBackend(CeedBuildModule_Sycl(ceed, code.str(), &impl->sycl_module, jit_constants));
 
   // Load kernel function
-  CeedCallBackend(CeedJitGetKernel_Sycl(ceed, impl->sycl_module, operator_name, &impl->op));
+  CeedCallBackend(CeedGetKernel_Sycl(ceed, impl->sycl_module, operator_name, &impl->op));
 
   CeedCallBackend(CeedOperatorSetSetupDone(op));
   return CEED_ERROR_SUCCESS;

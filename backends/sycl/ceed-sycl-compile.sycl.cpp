@@ -78,7 +78,7 @@ static inline int CeedJitCompileSource_Sycl(Ceed ceed, const sycl::device &sycl_
 // ------------------------------------------------------------------------------
 // Load (compile) SPIR-V source and wrap in sycl kernel_bundle
 // ------------------------------------------------------------------------------
-static int CeedJitLoadModule_Sycl(Ceed ceed, const sycl::context &sycl_context, const sycl::device &sycl_device, const ByteVector_t &il_binary,
+static int CeedLoadModule_Sycl(Ceed ceed, const sycl::context &sycl_context, const sycl::device &sycl_device, const ByteVector_t &il_binary,
                                   SyclModule_t **sycl_module) {
   auto lz_context = sycl::get_native<sycl::backend::ext_oneapi_level_zero>(sycl_context);
   auto lz_device  = sycl::get_native<sycl::backend::ext_oneapi_level_zero>(sycl_device);
@@ -116,7 +116,7 @@ static int CeedJitLoadModule_Sycl(Ceed ceed, const sycl::context &sycl_context, 
 // ------------------------------------------------------------------------------
 // Compile kernel source to an executable `sycl::kernel_bundle`
 // ------------------------------------------------------------------------------
-int CeedJitBuildModule_Sycl(Ceed ceed, const std::string &kernel_source, SyclModule_t **sycl_module,
+int CeedBuildModule_Sycl(Ceed ceed, const std::string &kernel_source, SyclModule_t **sycl_module,
                             const std::map<std::string, CeedInt> &constants) {
   Ceed_Sycl *data;
   CeedCallBackend(CeedGetData(ceed, &data));
@@ -130,7 +130,7 @@ int CeedJitBuildModule_Sycl(Ceed ceed, const std::string &kernel_source, SyclMod
   ByteVector_t il_binary;
   CeedCallBackend(CeedJitCompileSource_Sycl(ceed, data->sycl_device, jit_source, il_binary, flags));
 
-  CeedCallBackend(CeedJitLoadModule_Sycl(ceed, data->sycl_context, data->sycl_device, il_binary, sycl_module));
+  CeedCallBackend(CeedLoadModule_Sycl(ceed, data->sycl_context, data->sycl_device, il_binary, sycl_module));
 
   return CEED_ERROR_SUCCESS;
 }
@@ -140,7 +140,7 @@ int CeedJitBuildModule_Sycl(Ceed ceed, const std::string &kernel_source, SyclMod
 //
 // TODO: Error handle lz calls
 // ------------------------------------------------------------------------------
-int CeedJitGetKernel_Sycl(Ceed ceed, const SyclModule_t *sycl_module, const std::string &kernel_name, sycl::kernel **sycl_kernel) {
+int CeedGetKernel_Sycl(Ceed ceed, const SyclModule_t *sycl_module, const std::string &kernel_name, sycl::kernel **sycl_kernel) {
   Ceed_Sycl *data;
   CeedCallBackend(CeedGetData(ceed, &data));
 

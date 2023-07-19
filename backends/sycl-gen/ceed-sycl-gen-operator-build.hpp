@@ -9,6 +9,6 @@
 #define _ceed_sycl_gen_operator_build_h
 
 CEED_INTERN int BlockGridCalculate_Sycl_gen(const CeedInt dim, const CeedInt P_1d, const CeedInt Q_1d, CeedInt *block_sizes);
-CEED_INTERN int CeedSyclGenOperatorBuild(CeedOperator op);
+CEED_INTERN int CeedOperatorBuildKernel_Sycl_gen(CeedOperator op);
 
 #endif  // _ceed_sycl_gen_operator_build_h
