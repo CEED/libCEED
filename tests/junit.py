@@ -22,6 +22,8 @@ class TestSpec:
 
 def parse_test_line(line: str) -> TestSpec:
     args = line.strip().split()
+    if args[0] == 'TESTARGS':
+        return TestSpec(name='', args=args[1:])
     test_args = args[0][args[0].index('TESTARGS(')+9:args[0].rindex(')')]
     # transform 'name="myname",only="serial,int32"' into {'name': 'myname', 'only': 'serial,int32'}
     test_args = dict([''.join(t).split('=') for t in re.findall(r"""([^,=]+)(=)"([^"]*)\"""", test_args)])
