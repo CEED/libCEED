@@ -10,6 +10,5 @@
 
 #include <ceed/ceed.h>
 
-CEED_EXTERN int CeedSetStream_Sycl(Ceed ceed, void* handle);
 
 #endif

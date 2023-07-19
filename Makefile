@@ -275,7 +275,7 @@ hip-gen.cpp    := $(sort $(wildcard backends/hip-gen/*.cpp))
 sycl-core.cpp  := $(sort $(wildcard backends/sycl/*.sycl.cpp))
 sycl-ref.cpp   := $(sort $(wildcard backends/sycl-ref/*.sycl.cpp))
 sycl-shared.cpp:= $(sort $(wildcard backends/sycl-shared/*.sycl.cpp))
-sycl-gen.cpp	 := $(sort $(wildcard backends/sycl-gen/*.sycl.cpp))
+sycl-gen.cpp   := $(sort $(wildcard backends/sycl-gen/*.sycl.cpp))
 
 hip-all.c := interface/ceed-hip.c $(hip.c) $(hip-ref.c) $(hip-shared.c) $(hip-gen.c)
 hip-all.cpp := $(hip.cpp) $(hip-ref.cpp) $(hip-gen.cpp)
