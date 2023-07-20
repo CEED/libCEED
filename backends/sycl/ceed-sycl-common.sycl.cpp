@@ -92,6 +92,7 @@ int CeedSetStream_Sycl(Ceed ceed, void *handle) {
   Ceed_Sycl *data;
   CeedCallBackend(CeedGetData(ceed, &data));
 
+  CeedCheck(handle, ceed, CEED_ERROR_BACKEND, "Stream handle is null");
   sycl::queue *q = static_cast<sycl::queue *>(handle);
 
   // Ensure we are using the expected device
@@ -109,6 +110,17 @@ int CeedSetStream_Sycl(Ceed ceed, void *handle) {
     delegate_data->sycl_device  = q->get_device();
     delegate_data->sycl_context = q->get_context();
     delegate_data->sycl_queue   = *q;
+  }
+
+  // Set queue and context for Ceed Fallback object
+  Ceed ceed_fallback = NULL;
+  CeedGetOperatorFallbackCeed(ceed, &ceed_fallback);
+  if (ceed_fallback) {
+    Ceed_Sycl *fallback_data;
+    CeedCallBackend(CeedGetData(ceed_fallback, &fallback_data));
+    fallback_data->sycl_device  = q->get_device();
+    fallback_data->sycl_context = q->get_context();
+    fallback_data->sycl_queue   = *q;
   }
 
   return CEED_ERROR_SUCCESS;

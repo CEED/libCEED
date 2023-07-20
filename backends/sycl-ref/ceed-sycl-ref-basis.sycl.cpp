@@ -178,11 +178,10 @@ static int CeedBasisApplyGrad_Sycl(sycl::queue &sycl_queue, const SyclModule_t &
       const CeedInt v_comp_stride = num_elem * v_stride;
       const CeedInt u_dim_stride  = transpose ? num_elem * num_qpts * num_comp : 0;
       const CeedInt v_dim_stride  = transpose ? 0 : num_elem * num_qpts * num_comp;
-
-      sycl::group   work_group = work_item.get_group();
-      const CeedInt i          = work_item.get_local_linear_id();
-      const CeedInt group_size = work_group.get_local_linear_range();
-      const CeedInt elem       = work_group.get_group_linear_id();
+      sycl::group   work_group    = work_item.get_group();
+      const CeedInt i             = work_item.get_local_linear_id();
+      const CeedInt group_size    = work_group.get_local_linear_range();
+      const CeedInt elem          = work_group.get_group_linear_id();
 
       CeedScalar *s_interp_1d = s_mem.get_pointer();
       CeedScalar *s_grad_1d   = s_interp_1d + P * Q;
