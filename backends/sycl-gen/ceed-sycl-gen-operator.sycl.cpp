@@ -184,4 +184,5 @@ int CeedOperatorCreate_Sycl_gen(CeedOperator op) {
   CeedCallBackend(CeedSetBackendFunctionCpp(ceed, "Operator", op, "Destroy", CeedOperatorDestroy_Sycl_gen));
   return CEED_ERROR_SUCCESS;
 }
+
 //------------------------------------------------------------------------------

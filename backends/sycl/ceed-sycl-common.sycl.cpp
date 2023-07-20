@@ -12,18 +12,6 @@
 #include <sycl/sycl.hpp>
 
 //------------------------------------------------------------------------------
-// Get root resource without device spec
-//------------------------------------------------------------------------------
-int CeedGetResourceRoot_Sycl(Ceed ceed, const char *resource, char **resource_root) {
-  const char *device_spec       = std::strstr(resource, ":device_id=");
-  size_t      resource_root_len = device_spec ? (size_t)(device_spec - resource) + 1 : strlen(resource) + 1;
-  CeedCallBackend(CeedCalloc(resource_root_len, resource_root));
-  memcpy(*resource_root, resource, resource_root_len - 1);
-
-  return CEED_ERROR_SUCCESS;
-}
-
-//------------------------------------------------------------------------------
 // Device information backend init
 //------------------------------------------------------------------------------
 int CeedInit_Sycl(Ceed ceed, const char *resource) {

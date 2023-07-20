@@ -747,4 +747,5 @@ extern "C" int CeedOperatorBuildKernel_Sycl_gen(CeedOperator op) {
   CeedCallBackend(CeedOperatorSetSetupDone(op));
   return CEED_ERROR_SUCCESS;
 }
+
 //------------------------------------------------------------------------------
