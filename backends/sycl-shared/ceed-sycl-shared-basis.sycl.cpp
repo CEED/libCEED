@@ -260,4 +260,5 @@ int CeedBasisCreateTensorH1_Sycl_shared(CeedInt dim, CeedInt P_1d, CeedInt Q_1d,
   CeedCallBackend(CeedSetBackendFunctionCpp(ceed, "Basis", basis, "Destroy", CeedBasisDestroy_Sycl_shared));
   return CEED_ERROR_SUCCESS;
 }
+
 //------------------------------------------------------------------------------

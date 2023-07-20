@@ -25,6 +25,7 @@ inline void ContractX1d(const CeedInt P_1D, const CeedInt Q_1D, private const Ce
 
   scratch[item_id_x] = *U;
   work_group_barrier(CLK_LOCAL_MEM_FENCE);
+
   *V = 0.0;
   if (item_id_x < Q_1D) {
     for (CeedInt i = 0; i < P_1D; i++) {
@@ -175,6 +176,7 @@ inline void ContractTransposeX2d(const CeedInt P_1D, const CeedInt Q_1D, private
 
   scratch[item_id_x + item_id_y * T_1D] = *U;
   work_group_barrier(CLK_LOCAL_MEM_FENCE);
+  
   *V = 0.0;
   if (item_id_x < P_1D && item_id_y < P_1D) {
     for (CeedInt i = 0; i < Q_1D; i++) {

@@ -655,4 +655,5 @@ int CeedBasisCreateH1_Sycl(CeedElemTopology topo, CeedInt dim, CeedInt num_nodes
   CeedCallBackend(CeedSetBackendFunctionCpp(ceed, "Basis", basis, "Destroy", CeedBasisDestroyNonTensor_Sycl));
   return CEED_ERROR_SUCCESS;
 }
+
 //------------------------------------------------------------------------------
