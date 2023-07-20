@@ -41,8 +41,9 @@ static int CeedOperatorSetupFields_Opt(CeedQFunction qf, CeedOperator op, bool i
     CeedCallBackend(CeedQFunctionFieldGetEvalMode(qf_fields[i], &eval_mode));
 
     if (eval_mode != CEED_EVAL_WEIGHT) {
+      Ceed ceed_rstr;
       CeedCallBackend(CeedOperatorFieldGetElemRestriction(op_fields[i], &r));
-      CeedCallBackend(CeedElemRestrictionGetCeed(r, &ceed));
+      CeedCallBackend(CeedElemRestrictionGetCeed(r, &ceed_rstr));
       CeedSize l_size;
       CeedInt  num_elem, elem_size, comp_stride;
       CeedCallBackend(CeedElemRestrictionGetNumElements(r, &num_elem));
@@ -57,7 +58,7 @@ static int CeedOperatorSetupFields_Opt(CeedQFunction qf, CeedOperator op, bool i
         case CEED_RESTRICTION_DEFAULT: {
           const CeedInt *offsets = NULL;
           CeedCallBackend(CeedElemRestrictionGetOffsets(r, CEED_MEM_HOST, &offsets));
-          CeedCallBackend(CeedElemRestrictionCreateBlocked(ceed, num_elem, elem_size, blk_size, num_comp, comp_stride, l_size, CEED_MEM_HOST,
+          CeedCallBackend(CeedElemRestrictionCreateBlocked(ceed_rstr, num_elem, elem_size, blk_size, num_comp, comp_stride, l_size, CEED_MEM_HOST,
                                                            CEED_COPY_VALUES, offsets, &blk_restr[i + start_e]));
           CeedCallBackend(CeedElemRestrictionRestoreOffsets(r, &offsets));
         } break;
@@ -66,8 +67,8 @@ static int CeedOperatorSetupFields_Opt(CeedQFunction qf, CeedOperator op, bool i
           const bool    *orients = NULL;
           CeedCallBackend(CeedElemRestrictionGetOffsets(r, CEED_MEM_HOST, &offsets));
           CeedCallBackend(CeedElemRestrictionGetOrientations(r, CEED_MEM_HOST, &orients));
-          CeedCallBackend(CeedElemRestrictionCreateBlockedOriented(ceed, num_elem, elem_size, blk_size, num_comp, comp_stride, l_size, CEED_MEM_HOST,
-                                                                   CEED_COPY_VALUES, offsets, orients, &blk_restr[i + start_e]));
+          CeedCallBackend(CeedElemRestrictionCreateBlockedOriented(ceed_rstr, num_elem, elem_size, blk_size, num_comp, comp_stride, l_size,
+                                                                   CEED_MEM_HOST, CEED_COPY_VALUES, offsets, orients, &blk_restr[i + start_e]));
           CeedCallBackend(CeedElemRestrictionRestoreOffsets(r, &offsets));
           CeedCallBackend(CeedElemRestrictionRestoreOrientations(r, &orients));
         } break;
@@ -76,7 +77,7 @@ static int CeedOperatorSetupFields_Opt(CeedQFunction qf, CeedOperator op, bool i
           const CeedInt8 *curl_orients = NULL;
           CeedCallBackend(CeedElemRestrictionGetOffsets(r, CEED_MEM_HOST, &offsets));
           CeedCallBackend(CeedElemRestrictionGetCurlOrientations(r, CEED_MEM_HOST, &curl_orients));
-          CeedCallBackend(CeedElemRestrictionCreateBlockedCurlOriented(ceed, num_elem, elem_size, blk_size, num_comp, comp_stride, l_size,
+          CeedCallBackend(CeedElemRestrictionCreateBlockedCurlOriented(ceed_rstr, num_elem, elem_size, blk_size, num_comp, comp_stride, l_size,
                                                                        CEED_MEM_HOST, CEED_COPY_VALUES, offsets, curl_orients,
                                                                        &blk_restr[i + start_e]));
           CeedCallBackend(CeedElemRestrictionRestoreOffsets(r, &offsets));
@@ -86,7 +87,7 @@ static int CeedOperatorSetupFields_Opt(CeedQFunction qf, CeedOperator op, bool i
           CeedInt strides[3];
           CeedCallBackend(CeedElemRestrictionGetStrides(r, &strides));
           CeedCallBackend(
-              CeedElemRestrictionCreateBlockedStrided(ceed, num_elem, elem_size, blk_size, num_comp, l_size, strides, &blk_restr[i + start_e]));
+              CeedElemRestrictionCreateBlockedStrided(ceed_rstr, num_elem, elem_size, blk_size, num_comp, l_size, strides, &blk_restr[i + start_e]));
         } break;
       }
       CeedCallBackend(CeedElemRestrictionCreateVector(blk_restr[i + start_e], NULL, &e_vecs_full[i + start_e]));
