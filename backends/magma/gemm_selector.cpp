@@ -2,33 +2,38 @@
 #include <sys/time.h>
 
 #include <array>
+#include <cmath>
 #include <limits>
 #include <vector>
 
 #include "./gemm_tuning/indices.h"
-#include "ceed-magma.h"
-#ifdef CEED_MAGMA_USE_HIP
+#include "gemm_selector.h"
+#if defined(CEED_MAGMA_USE_HIP)
 #include "./gemm_tuning/mi100.h"
 #include "./gemm_tuning/mi250x.h"
 #include "./gemm_tuning/mi250x_grad_rtc.h"
 #include "./gemm_tuning/mi250x_interp_rtc.h"
-#else
+#elif defined(CEED_MAGMA_USE_CUDA)
 #include "./gemm_tuning/a100.h"
 #include "./gemm_tuning/a100_grad_rtc.h"
 #include "./gemm_tuning/a100_interp_rtc.h"
 #include "./gemm_tuning/v100.h"
+#else
+#include "./gemm_tuning/pvc.h"
 #endif
 
 ////////////////////////////////////////////////////////////////////////////////
 static void *gemm_selector_get_data(int gpu_arch, char precision, char transA) {
 // a default
-#ifdef CEED_MAGMA_USE_HIP
+#if defined(CEED_MAGMA_USE_HIP)
   void *data = (void *)&sgemm_nn_mi250x;
-#else
+#elif defined(CEED_MAGMA_USE_CUDA)
   void *data = (void *)&sgemm_nn_a100;
+#else
+  void *data = (void *)&sgemm_nn_pvc;
 #endif
 
-#ifdef CEED_MAGMA_USE_HIP
+#if defined(CEED_MAGMA_USE_HIP)
   if (gpu_arch >= 910) {
     // gfx90a or newer
     data = (precision == 's') ? ((transA == 'n') ? (void *)&sgemm_nn_mi250x : (void *)&sgemm_tn_mi250x)
@@ -38,7 +43,7 @@ static void *gemm_selector_get_data(int gpu_arch, char precision, char transA) {
     data = (precision == 's') ? ((transA == 'n') ? (void *)&sgemm_nn_mi100 : (void *)&sgemm_tn_mi100)
                               : ((transA == 'n') ? (void *)&dgemm_nn_mi100 : (void *)&dgemm_tn_mi100);
   }
-#else
+#elif defined(CEED_MAGMA_USE_CUDA)
   if (gpu_arch >= 800) {
     // sm80 or newer
     data = (precision == 's') ? ((transA == 'n') ? (void *)&sgemm_nn_a100 : (void *)&sgemm_tn_a100)
@@ -48,6 +53,9 @@ static void *gemm_selector_get_data(int gpu_arch, char precision, char transA) {
     data = (precision == 's') ? ((transA == 'n') ? (void *)&sgemm_nn_v100 : (void *)&sgemm_tn_v100)
                               : ((transA == 'n') ? (void *)&dgemm_nn_v100 : (void *)&dgemm_tn_v100);
   }
+#else
+  data       = (precision == 's') ? ((transA == 'n') ? (void *)&sgemm_nn_pvc : (void *)&sgemm_tn_pvc)
+                                  : ((transA == 'n') ? (void *)&dgemm_nn_pvc : (void *)&dgemm_tn_pvc);
 #endif
 
   return data;
@@ -101,19 +109,21 @@ void gemm_selector(int gpu_arch, char precision, char transA, int m, int n, int 
 ////////////////////////////////////////////////////////////////////////////////
 static void *nontensor_rtc_get_data(int gpu_arch, char precision, CeedEvalMode emode, CeedTransposeMode tmode) {
 // a default
-#ifdef CEED_MAGMA_USE_HIP
+#if defined(CEED_MAGMA_USE_HIP)
   void *data = (void *)&dinterp_n_mi250x;
-#else
+#elif defined(CEED_MAGMA_USE_CUDA)
   void *data = (void *)&dinterp_n_a100;
+#else  // Not implemented for SYCL at the moment
+  void *data = NULL;
 #endif
 
-#ifdef CEED_MAGMA_USE_HIP
+#if defined(CEED_MAGMA_USE_HIP)
   if (emode == CEED_EVAL_INTERP) {
     data = (tmode == CEED_TRANSPOSE) ? (void *)&dinterp_t_mi250x : (void *)&dinterp_n_mi250x;
   } else if (emode == CEED_EVAL_GRAD) {
     data = (tmode == CEED_TRANSPOSE) ? (void *)&dgrad_t_mi250x : (void *)&dgrad_n_mi250x;
   }
-#else
+#elif defined(CEED_MAGMA_USE_CUDA)
   if (emode == CEED_EVAL_INTERP) {
     data = (tmode == CEED_TRANSPOSE) ? (void *)&dinterp_t_a100 : (void *)&dinterp_n_a100;
   } else if (emode == CEED_EVAL_GRAD) {

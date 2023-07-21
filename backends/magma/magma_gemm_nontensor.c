@@ -6,17 +6,23 @@
 // This file is part of CEED:  http://github.com/ceed
 
 #include "ceed-magma.h"
+#include "gemm_selector.h"
+#ifdef CEED_MAGMA_USE_SYCL
+#include "ceed-magma-sycl.h"
+#endif
 
-#ifdef CEED_MAGMA_USE_HIP
+#if defined(CEED_MAGMA_USE_HIP)
 #define devblasDgemmStridedBatched hipblasDgemmStridedBatched
 #define devblasSgemmStridedBatched hipblasSgemmStridedBatched
 #define magma_queue_get_devblas_handle magma_queue_get_hipblas_handle
 #define devblas_trans_const hipblas_trans_const
-#else
+
+#elif defined(CEED_MAGMA_USE_CUDA)
 #define devblasDgemmStridedBatched cublasDgemmStridedBatched
 #define devblasSgemmStridedBatched cublasSgemmStridedBatched
 #define magma_queue_get_devblas_handle magma_queue_get_cublas_handle
 #define devblas_trans_const cublas_trans_const
+
 #endif
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -59,6 +65,7 @@ static int devblas_gemm(magma_trans_t transA, magma_trans_t transB, magma_int_t 
   return 0;
 }
 
+#ifndef CEED_MAGMA_USE_SYCL
 ////////////////////////////////////////////////////////////////////////////////
 static int devblas_gemm_batched_strided(magma_trans_t transA, magma_trans_t transB, magma_int_t m, magma_int_t n, magma_int_t k, CeedScalar alpha,
                                         const CeedScalar *dA, magma_int_t ldda, magma_int_t strideA, const CeedScalar *dB, magma_int_t lddb,
@@ -75,6 +82,7 @@ static int devblas_gemm_batched_strided(magma_trans_t transA, magma_trans_t tran
   }
   return 0;
 }
+#endif
 
 ////////////////////////////////////////////////////////////////////////////////
 int magma_gemm_nontensor(magma_trans_t transA, magma_trans_t transB, magma_int_t m, magma_int_t n, magma_int_t k, CeedScalar alpha,
@@ -125,14 +133,24 @@ int magma_gemm_nontensor(magma_trans_t transA, magma_trans_t transB, magma_int_t
       }
     } else {
       if (batchCount > 0) {
+#ifndef CEED_MAGMA_USE_SYCL
         devblas_gemm_batched_strided(transA, transB, m, nbatch, k, alpha, dA, ldda, strideA, dB, lddb, strideB, beta, dC, lddc, strideC, batchCount,
                                      queue);
+#else
+        mkl_gemm_batched_strided(transA, transB, m, nbatch, k, alpha, dA, ldda, strideA, dB, lddb, strideB, beta, dC, lddc, strideC, batchCount,
+                                 queue);
+#endif
       }
 
       // cleanup
       if (n2 > 0) {
+#ifndef CEED_MAGMA_USE_SYCL
         devblas_gemm_batched_strided(transA, transB, m, n2, k, alpha, dA, ldda, strideA, dB + batchCount * strideB, lddb, strideB, beta,
                                      dC + batchCount * strideC, lddc, strideC, 1, queue);
+#else
+        mkl_gemm_batched_strided(transA, transB, m, n2, k, alpha, dA, ldda, strideA, dB + batchCount * strideB, lddb, strideB, beta,
+                                 dC + batchCount * strideC, lddc, strideC, 1, queue);
+#endif
       }
     }
   }

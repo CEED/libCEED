@@ -24,8 +24,14 @@
 #define MAGMA_NONTENSOR_BASIS_NTCOL(N) (CeedIntMax(1, (MAGMA_NONTENSOR_MAXTHREADS / (N))))
 #define MAGMA_CEILDIV(A, B) (((A) + (B)-1) / (B))
 
+#ifdef CEED_MAGMA_USE_SYCL
+// Currently not using custom kernels for SYCL
+#define MAGMA_NONTENSOR_CUSTOM_KERNEL_MAX_P (0)
+#define MAGMA_NONTENSOR_CUSTOM_KERNEL_MAX_Q (0)
+#else
 #define MAGMA_NONTENSOR_CUSTOM_KERNEL_MAX_P (40)
 #define MAGMA_NONTENSOR_CUSTOM_KERNEL_MAX_Q (40)
+#endif
 
 // Define macro for computing the total threads in a block
 // for use with __launch_bounds__()
@@ -35,7 +41,7 @@
 #define MAGMA_NONTENSOR_KERNEL_INSTANCES (5)
 #define MAGMA_NONTENSOR_N_VALUES 10240, 51200, 102400, 512000, 1024000
 
-#ifdef CEED_MAGMA_USE_HIP
+#if defined(CEED_MAGMA_USE_HIP)
 typedef hipModule_t   CeedMagmaModule;
 typedef hipFunction_t CeedMagmaFunction;
 #define CeedCompileMagma CeedCompile_Hip
@@ -43,7 +49,8 @@ typedef hipFunction_t CeedMagmaFunction;
 #define CeedRunKernelMagma CeedRunKernel_Hip
 #define CeedRunKernelDimMagma CeedRunKernelDim_Hip
 #define CeedRunKernelDimSharedMagma CeedRunKernelDimShared_Hip
-#else
+
+#elif defined(CEED_MAGMA_USE_CUDA)
 typedef CUmodule   CeedMagmaModule;
 typedef CUfunction CeedMagmaFunction;
 #define CeedCompileMagma CeedCompile_Cuda
@@ -51,6 +58,15 @@ typedef CUfunction CeedMagmaFunction;
 #define CeedRunKernelMagma CeedRunKernel_Cuda
 #define CeedRunKernelDimMagma CeedRunKernelDim_Cuda
 #define CeedRunKernelDimSharedMagma CeedRunKernelDimShared_Cuda
+
+#elif defined(CEED_MAGMA_USE_SYCL)
+// typedef SyclModule_t CeedMagmaModule;
+// typedef sycl::kernel CeedMagmaFunction;
+#define CeedCompileMagma CeedBuildModule_Sycl
+#define CeedGetKernelMagma CeedGetKernel_Sycl
+#define CeedRunKernelMagma CeedRunKernelMagma_Sycl  // todo: implement these for MAGMA only?
+#define CeedRunKernelDimMagma CeedRunKernelDimMagma_Sycl
+#define CeedRunKernelDimSharedMagma CeedRunKernelDimMagma_Sycl
 #endif
 
 typedef enum { MAGMA_KERNEL_DIM_GENERIC = 101, MAGMA_KERNEL_DIM_SPECIFIC = 102 } magma_kernel_mode_t;
@@ -62,28 +78,32 @@ typedef struct {
 } Ceed_Magma;
 
 typedef struct {
+#ifndef CEED_MAGMA_USE_SYCL
   CeedMagmaModule   module;
   CeedMagmaFunction magma_interp;
   CeedMagmaFunction magma_interp_tr;
   CeedMagmaFunction magma_grad;
   CeedMagmaFunction magma_grad_tr;
   CeedMagmaFunction magma_weight;
-  CeedScalar       *dqref1d;
-  CeedScalar       *dinterp1d;
-  CeedScalar       *dgrad1d;
-  CeedScalar       *dqweight1d;
+#endif
+  CeedScalar *dqref1d;
+  CeedScalar *dinterp1d;
+  CeedScalar *dgrad1d;
+  CeedScalar *dqweight1d;
 } CeedBasis_Magma;
 
 typedef struct {
+#ifndef CEED_MAGMA_USE_SYCL
   CeedMagmaModule   module[MAGMA_NONTENSOR_KERNEL_INSTANCES];
   CeedMagmaFunction magma_interp_nontensor[MAGMA_NONTENSOR_KERNEL_INSTANCES];
   CeedMagmaFunction magma_interp_tr_nontensor[MAGMA_NONTENSOR_KERNEL_INSTANCES];
   CeedMagmaFunction magma_grad_nontensor[MAGMA_NONTENSOR_KERNEL_INSTANCES];
   CeedMagmaFunction magma_grad_tr_nontensor[MAGMA_NONTENSOR_KERNEL_INSTANCES];
-  CeedScalar       *dqref;
-  CeedScalar       *dinterp;
-  CeedScalar       *dgrad;
-  CeedScalar       *dqweight;
+#endif
+  CeedScalar *dqref;
+  CeedScalar *dinterp;
+  CeedScalar *dgrad;
+  CeedScalar *dqweight;
 } CeedBasisNonTensor_Magma;
 
 typedef enum {
@@ -93,15 +113,17 @@ typedef enum {
 } OwnershipMode;
 
 typedef struct {
+#ifndef CEED_MAGMA_USE_SYCL
   CeedMagmaModule   module;
   CeedMagmaFunction StridedTranspose;
   CeedMagmaFunction StridedNoTranspose;
   CeedMagmaFunction OffsetTranspose;
   CeedMagmaFunction OffsetNoTranspose;
-  CeedInt          *offsets;
-  CeedInt          *doffsets;
-  OwnershipMode     own_;
-  int               down_;  // cover a case where we own Device memory
+#endif
+  CeedInt      *offsets;
+  CeedInt      *doffsets;
+  OwnershipMode own_;
+  int           down_;  // cover a case where we own Device memory
 } CeedElemRestriction_Magma;
 
 typedef struct {
@@ -122,10 +144,6 @@ CEED_INTERN int magma_gemm_nontensor(magma_trans_t transA, magma_trans_t transB,
                                      const CeedScalar *dA, magma_int_t ldda, const CeedScalar *dB, magma_int_t lddb, CeedScalar beta, CeedScalar *dC,
                                      magma_int_t lddc, magma_queue_t queue);
 
-CEED_INTERN void gemm_selector(int gpu_arch, char precision, char transA, int m, int n, int k, int *nbatch, int *use_magma);
-
-CEED_INTERN CeedInt nontensor_rtc_get_nb(int gpu_arch, char precision, CeedEvalMode emode, CeedTransposeMode tmode, int P_, int N, int Q_);
-
 CEED_INTERN magma_int_t magma_isdevptr(const void *A);
 
 CEED_INTERN int CeedBasisCreateTensorH1_Magma(CeedInt dim, CeedInt P1d, CeedInt Q1d, const CeedScalar *interp1d, const CeedScalar *grad1d,
@@ -136,12 +154,20 @@ CEED_INTERN int CeedBasisCreateH1_Magma(CeedElemTopology topo, CeedInt dim, Ceed
 
 CEED_INTERN int CeedElemRestrictionCreate_Magma(CeedMemType mtype, CeedCopyMode cmode, const CeedInt *offsets, CeedElemRestriction r);
 
+#ifdef CEED_MAGMA_USE_SYCL
+CEED_INTERN int CeedSetStream_Magma(Ceed ceed, void *handle);
+#endif
+
 // comment the line below to use the default magma_is_devptr function
 #define magma_is_devptr magma_isdevptr
 
+#ifdef CEED_MAGMA_USE_SYCL
+#define ceed_magma_queue_sync CeedMagmaQueueSync_Sycl
+#else
 // if magma and cuda/ref are using the null stream, then ceed_magma_queue_sync
 // should do nothing
 #define ceed_magma_queue_sync(...)
+#endif
 
 // batch stride, override using -DMAGMA_BATCH_STRIDE=<desired-value>
 #ifndef MAGMA_BATCH_STRIDE

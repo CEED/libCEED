@@ -261,9 +261,11 @@ cuda-gen.cpp   := $(sort $(wildcard backends/cuda-gen/*.cpp))
 cuda-gen.cu    := $(sort $(wildcard backends/cuda-gen/kernels/*.cu))
 occa.cpp       := $(sort $(shell find backends/occa -type f -name *.cpp))
 magma.c        := $(sort $(wildcard backends/magma/*.c))
-magma.cpp      := $(sort $(wildcard backends/magma/*.cpp))
 magma.cu       := $(sort $(wildcard backends/magma/kernels/cuda/*.cu))
 magma.hip      := $(sort $(wildcard backends/magma/kernels/hip/*.hip.cpp))
+magma.sycl     := $(sort $(wildcard backends/magma/kernels/sycl/*.sycl.cpp))
+magma.sycl     += $(sort $(wildcard backends/magma/*.sycl.cpp))
+magma.cpp      := $(filter-out $(magma.sycl),$(sort $(wildcard backends/magma/*.cpp)))
 hip.c          := $(sort $(wildcard backends/hip/*.c))
 hip.cpp        := $(sort $(wildcard backends/hip/*.cpp))
 hip-ref.c      := $(sort $(wildcard backends/hip-ref/*.c))
@@ -469,22 +471,41 @@ endif
 # MAGMA Backends
 ifneq ($(wildcard $(MAGMA_DIR)/lib/libmagma.*),)
   MAGMA_ARCH=$(shell nm -g $(MAGMA_DIR)/lib/libmagma.* | grep -c "hipblas")
-  ifeq ($(MAGMA_ARCH), 0) #CUDA MAGMA
-    ifneq ($(CUDA_LIB_DIR),)
-      cuda_link = $(if $(STATIC),,-Wl,-rpath,$(CUDA_LIB_DIR)) -L$(CUDA_LIB_DIR) -lcublas -lcusparse -lcudart
-      omp_link = -fopenmp
-      magma_link_static = -L$(MAGMA_DIR)/lib -lmagma $(cuda_link) $(omp_link)
-      magma_link_shared = -L$(MAGMA_DIR)/lib $(if $(STATIC),,-Wl,-rpath,$(abspath $(MAGMA_DIR)/lib)) -lmagma
-      magma_link := $(if $(wildcard $(MAGMA_DIR)/lib/libmagma.${SO_EXT}),$(magma_link_shared),$(magma_link_static))
-      PKG_LIBS += $(magma_link)
-      libceed.c   += $(magma.c)
-      libceed.cpp += $(magma.cpp)
-      libceed.cu  += $(magma.cu)
-      $(magma.c:%.c=$(OBJDIR)/%.o) $(magma.c:%=%.tidy) : CPPFLAGS += -DADD_ -I$(MAGMA_DIR)/include -I$(CUDA_DIR)/include
-      $(magma.cpp:%.cpp=$(OBJDIR)/%.o) $(magma.cpp:%=%.tidy) : CPPFLAGS += -DADD_ -I$(MAGMA_DIR)/include -I$(CUDA_DIR)/include
-      $(magma.cu:%.cu=$(OBJDIR)/%.o) : CPPFLAGS += --compiler-options=-fPIC -DADD_ -I$(MAGMA_DIR)/include -I$(MAGMA_DIR)/magmablas -I$(CUDA_DIR)/include
-      MAGMA_BACKENDS = /gpu/cuda/magma /gpu/cuda/magma/det
-    endif
+  ifeq ($(MAGMA_ARCH), 0) #CUDA MAGMA or SYCL MAGMA
+    MAGMA_ARCH=$(shell nm -g $(MAGMA_DIR)/lib/libmagma.* | grep -c "sycl")
+    ifeq ($(MAGMA_ARCH), 0) #CUDA MAGMA
+      ifneq ($(CUDA_LIB_DIR),)
+        cuda_link = $(if $(STATIC),,-Wl,-rpath,$(CUDA_LIB_DIR)) -L$(CUDA_LIB_DIR) -lcublas -lcusparse -lcudart
+        omp_link = -fopenmp
+        magma_link_static = -L$(MAGMA_DIR)/lib -lmagma $(cuda_link) $(omp_link)
+        magma_link_shared = -L$(MAGMA_DIR)/lib $(if $(STATIC),,-Wl,-rpath,$(abspath $(MAGMA_DIR)/lib)) -lmagma
+        magma_link := $(if $(wildcard $(MAGMA_DIR)/lib/libmagma.${SO_EXT}),$(magma_link_shared),$(magma_link_static))
+        PKG_LIBS += $(magma_link)
+        libceed.c   += $(magma.c)
+        libceed.cpp += $(magma.cpp)
+        libceed.cu  += $(magma.cu)
+        $(magma.c:%.c=$(OBJDIR)/%.o) $(magma.c:%=%.tidy) : CPPFLAGS += -DADD_ -I$(MAGMA_DIR)/include -I$(CUDA_DIR)/include -DCEED_MAGMA_USE_CUDA
+        $(magma.cpp:%.cpp=$(OBJDIR)/%.o) $(magma.cpp:%=%.tidy) : CPPFLAGS += -DADD_ -I$(MAGMA_DIR)/include -I$(CUDA_DIR)/include -DCEED_MAGMA_USE_CUDA
+        $(magma.cu:%.cu=$(OBJDIR)/%.o) : CPPFLAGS += --compiler-options=-fPIC -DADD_ -I$(MAGMA_DIR)/include -I$(MAGMA_DIR)/magmablas -I$(CUDA_DIR)/include -DCEED_MAGMA_USE_CUDA
+        MAGMA_BACKENDS = /gpu/cuda/magma /gpu/cuda/magma/det
+      endif
+    else # SYCL MAGMA
+      ifneq ($(SYCL_LIB_DIR),)
+        sycl_link = $(if $(STATIC),,-Wl,-rpath,$(SYCL_LIB_DIR)) -L$(SYCL_LIB_DIR) -L$(MKLROOT)/lib/intel64 -lmkl_sycl -lmkl_intel_lp64 -lmkl_sequential -lmkl_core -lsycl
+        omp_link = -fopenmp
+        magma_link_static = -L$(MAGMA_DIR)/lib -lmagma $(sycl_link) $(omp_link)
+        magma_link_shared = -L$(MAGMA_DIR)/lib $(if $(STATIC),,-Wl,-rpath,$(abspath $(MAGMA_DIR)/lib)) -lmagma
+        magma_link := $(if $(wildcard $(MAGMA_DIR)/lib/libmagma.${SO_EXT}),$(magma_link_shared),$(magma_link_static))
+        PKG_LIBS += $(magma_link)
+        libceed.c   += $(magma.c)
+        libceed.cpp += $(magma.cpp)
+        libceed.sycl += $(magma.sycl)
+        $(magma.c:%.c=$(OBJDIR)/%.o) $(magma.c:%=%.tidy) : CPPFLAGS += -DADD_ -I$(MAGMA_DIR)/include -I$(SYCL_DIR)/include -DCEED_MAGMA_USE_SYCL
+        $(magma.cpp:%.cpp=$(OBJDIR)/%.o) $(magma.cpp:%=%.tidy) : CPPFLAGS += -DADD_ -I$(MAGMA_DIR)/include -I$(SYCL_DIR)/include/sycl -DCEED_MAGMA_USE_SYCL
+        $(magma.sycl:%.sycl.cpp=$(OBJDIR)/%.o) : SYCLFLAGS += -DADD_ -I$(MAGMA_DIR)/include -I$(MKLROOT)/include -I$(SYCL_DIR)/include/sycl -DCEED_MAGMA_USE_SYCL
+        MAGMA_BACKENDS = /gpu/sycl/magma /gpu/sycl/magma/det
+      endif
+     endif
   else  # HIP MAGMA
     ifneq ($(HIP_LIB_DIR),)
       HIP_LIB_DIR_MAGMA=$(ROCM_DIR)/lib

@@ -11,14 +11,15 @@
 #include <string.h>
 
 #include "ceed-magma.h"
-#ifdef CEED_MAGMA_USE_HIP
+#if defined(CEED_MAGMA_USE_HIP)
 #include "../hip/ceed-hip-common.h"
 #include "../hip/ceed-hip-compile.h"
-#else
+#elif defined(CEED_MAGMA_USE_CUDA)
 #include "../cuda/ceed-cuda-common.h"
 #include "../cuda/ceed-cuda-compile.h"
 #endif
 
+#ifndef CEED_MAGMA_USE_SYCL
 static int CeedElemRestrictionApply_Magma(CeedElemRestriction r, CeedTransposeMode tmode, CeedVector u, CeedVector v, CeedRequest *request) {
   CeedElemRestriction_Magma *impl;
   CeedCallBackend(CeedElemRestrictionGetData(r, &impl));
@@ -142,9 +143,9 @@ static int CeedElemRestrictionDestroy_Magma(CeedElemRestriction r) {
   }
   Ceed ceed;
   CeedCallBackend(CeedElemRestrictionGetCeed(r, &ceed));
-#ifdef CEED_MAGMA_USE_HIP
+#if defined(CEED_MAGMA_USE_HIP)
   CeedCallHip(ceed, hipModuleUnload(impl->module));
-#else
+#elif defined(CEED_MAGMA_USE_CUDA)
   CeedCallCuda(ceed, cuModuleUnload(impl->module));
 #endif
   CeedCallBackend(CeedFree(&impl));
@@ -268,3 +269,4 @@ int CeedElemRestrictionCreate_Magma(CeedMemType mtype, CeedCopyMode cmode, const
 
   return CEED_ERROR_SUCCESS;
 }
+#endif
