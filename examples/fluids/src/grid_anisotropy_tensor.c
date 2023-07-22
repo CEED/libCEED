@@ -59,8 +59,9 @@ PetscErrorCode GridAnisotropyTensorProjectionSetupApply(Ceed ceed, User user, Ce
   CeedBasisGetNumNodes1D(ceed_data->basis_q, &num_nodes_1d);
   CeedElemRestrictionGetNumComponents(ceed_data->elem_restr_qd_i, &q_data_size);
 
+//HACK to get to compile but won't work until code changed to get basis from PetscFE added extra 0 to arg list
   PetscCall(
-      GetRestrictionForDomain(ceed, grid_aniso_proj->dm, 0, 0, 0, 0, num_qpts_1d, grid_aniso_proj->num_comp, elem_restr_grid_aniso, NULL, NULL));
+      GetRestrictionForDomain(ceed, grid_aniso_proj->dm, 0, 0, 0, 0, num_qpts_1d, 0,grid_aniso_proj->num_comp, elem_restr_grid_aniso, NULL, NULL));
   CeedBasisCreateTensorH1Lagrange(ceed, dim, grid_aniso_proj->num_comp, num_nodes_1d, num_qpts_1d, CEED_GAUSS, &basis_grid_aniso);
 
   // -- Build RHS operator
@@ -149,7 +150,7 @@ PetscErrorCode GridAnisotropyTensorCalculateCollocatedVector(Ceed ceed, User use
   CeedBasisGetNumNodes1D(ceed_data->basis_q, &num_nodes_1d);
   CeedElemRestrictionGetNumComponents(ceed_data->elem_restr_qd_i, &q_data_size);
 
-  PetscCall(GetRestrictionForDomain(ceed, user->dm, 0, 0, 0, 0, num_qpts_1d, *num_comp_aniso, NULL, NULL, elem_restr_grid_aniso));
+  PetscCall(GetRestrictionForDomain(ceed, user->dm, 0, 0, 0, 0, num_qpts_1d, 0,*num_comp_aniso, NULL, NULL, elem_restr_grid_aniso));
 
   CeedInt Q_dim = CeedIntPow(num_qpts_1d, dim);
   CeedElemRestrictionGetNumElements(ceed_data->elem_restr_q, &loc_num_elem);

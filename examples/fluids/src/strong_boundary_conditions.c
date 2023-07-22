@@ -29,6 +29,9 @@ PetscErrorCode SetupStrongSTG_Ceed(Ceed ceed, CeedData ceed_data, DM dm, Problem
   // Basis
   CeedInt height = 1;
   PetscCall(CeedBasisCreateProjection(ceed_data->basis_x_sur, ceed_data->basis_q_sur, &basis_x_to_q_sur));
+  // --- Get number of quadrature points for the boundaries
+  CeedInt num_qpts_sur;
+  CeedBasisGetNumQuadraturePoints(ceed_data->basis_q_sur, &num_qpts_sur);
 
   // Setup QFunction
   CeedQFunctionCreateInterior(ceed, 1, SetupStrongBC, SetupStrongBC_loc, &qf_setup);
@@ -43,7 +46,7 @@ PetscErrorCode SetupStrongSTG_Ceed(Ceed ceed, CeedData ceed_data, DM dm, Problem
   // Compute contribution on each boundary face
   for (CeedInt i = 0; i < bc->num_inflow; i++) {
     // -- Restrictions
-    PetscCall(GetRestrictionForDomain(ceed, dm, height, domain_label, bc->inflows[i], 0, Q_sur, q_data_size_sur, &elem_restr_q_sur, &elem_restr_x_sur,
+    PetscCall(GetRestrictionForDomain(ceed, dm, height, domain_label, bc->inflows[i], 0, Q_sur, num_qpts_sur, q_data_size_sur, &elem_restr_q_sur, &elem_restr_x_sur,
                                       &elem_restr_qd_sur));
     CeedElemRestrictionCreateVector(elem_restr_q_sur, &multiplicity, NULL);
     CeedElemRestrictionGetMultiplicity(elem_restr_q_sur, multiplicity);
