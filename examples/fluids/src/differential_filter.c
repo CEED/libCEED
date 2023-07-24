@@ -64,8 +64,8 @@ PetscErrorCode DifferentialFilterCreateOperators(Ceed ceed, User user, CeedData 
       char                field_name[PETSC_MAX_PATH_LEN];
       CeedElemRestriction elem_restr_filter;
       CeedBasis           basis_filter;
-
-      PetscCall(GetRestrictionForDomain(ceed, dm_filter, 0, 0, 0, i, num_qpts_1d, 0, &elem_restr_filter, NULL, NULL));
+//                                                             0   added FIXME
+      PetscCall(GetRestrictionForDomain(ceed, dm_filter, 0, 0, 0, i, num_qpts_1d, 0,0, &elem_restr_filter, NULL, NULL));
       CeedBasisCreateTensorH1Lagrange(ceed, dim, diff_filter->num_field_components[i], num_nodes_1d, num_qpts_1d, CEED_GAUSS, &basis_filter);
 
       PetscCall(PetscSNPrintf(field_name, PETSC_MAX_PATH_LEN, "v%" PetscInt_FMT, i));

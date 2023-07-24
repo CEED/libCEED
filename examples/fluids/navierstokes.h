@@ -322,7 +322,7 @@ PetscErrorCode CreateRestrictionFromPlex(Ceed ceed, DM dm, CeedInt height, DMLab
                                          CeedElemRestriction *elem_restr);
 
 // Utility function to get Ceed Restriction for each domain
-PetscErrorCode GetRestrictionForDomain(Ceed ceed, DM dm, CeedInt height, DMLabel domain_label, PetscInt label_value, PetscInt dm_field, CeedInt Q,
+PetscErrorCode GetRestrictionForDomain(Ceed ceed, DM dm, CeedInt height, DMLabel domain_label, PetscInt label_value, PetscInt dm_field, CeedInt Q,  CeedInt Q_dim, 
                                        CeedInt q_data_size, CeedElemRestriction *elem_restr_q, CeedElemRestriction *elem_restr_x,
                                        CeedElemRestriction *elem_restr_qd_i);
 
