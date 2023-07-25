@@ -209,8 +209,8 @@ CEED_EXTERN int CeedVectorReference(CeedVector vec);
 /// Type of element restriction;
 /// @ingroup CeedElemRestriction
 typedef enum {
-  /// Default element restriction with offsets
-  CEED_RESTRICTION_DEFAULT = 1,
+  /// Standard element restriction with offsets
+  CEED_RESTRICTION_STANDARD = 1,
   /// Oriented element restriction
   CEED_RESTRICTION_ORIENTED = 2,
   /// Curl-oriented element restriction

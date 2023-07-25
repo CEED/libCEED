@@ -994,7 +994,7 @@ function CeedVectorReference(vec)
 end
 
 @cenum CeedRestrictionType::UInt32 begin
-    CEED_RESTRICTION_DEFAULT = 1
+    CEED_RESTRICTION_STANDARD = 1
     CEED_RESTRICTION_ORIENTED = 2
     CEED_RESTRICTION_CURL_ORIENTED = 3
     CEED_RESTRICTION_STRIDED = 4

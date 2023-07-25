@@ -461,7 +461,7 @@ int CeedElemRestrictionCreate(Ceed ceed, CeedInt num_elem, CeedInt elem_size, Ce
   (*rstr)->l_size      = l_size;
   (*rstr)->num_blk     = num_elem;
   (*rstr)->blk_size    = 1;
-  (*rstr)->rstr_type   = CEED_RESTRICTION_DEFAULT;
+  (*rstr)->rstr_type   = CEED_RESTRICTION_STANDARD;
   CeedCall(ceed->ElemRestrictionCreate(mem_type, copy_mode, offsets, NULL, NULL, *rstr));
   return CEED_ERROR_SUCCESS;
 }
@@ -685,7 +685,7 @@ int CeedElemRestrictionCreateBlocked(Ceed ceed, CeedInt num_elem, CeedInt elem_s
   (*rstr)->l_size      = l_size;
   (*rstr)->num_blk     = num_blk;
   (*rstr)->blk_size    = blk_size;
-  (*rstr)->rstr_type   = CEED_RESTRICTION_DEFAULT;
+  (*rstr)->rstr_type   = CEED_RESTRICTION_STANDARD;
   CeedCall(ceed->ElemRestrictionCreateBlocked(CEED_MEM_HOST, CEED_OWN_POINTER, (const CeedInt *)blk_offsets, NULL, NULL, *rstr));
   if (copy_mode == CEED_OWN_POINTER) {
     CeedCall(CeedFree(&offsets));
