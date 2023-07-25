@@ -114,13 +114,14 @@ typedef struct {
 
 CEED_INTERN int CeedVectorCreate_Sycl(CeedSize n, CeedVector vec);
 
-CEED_INTERN int CeedElemRestrictionCreate_Sycl(CeedMemType mem_type, CeedCopyMode copy_mode, const CeedInt *indices, CeedElemRestriction r);
-
 CEED_INTERN int CeedBasisCreateTensorH1_Sycl(CeedInt dim, CeedInt P_1d, CeedInt Q_1d, const CeedScalar *interp_1d, const CeedScalar *grad_1d,
                                              const CeedScalar *qref_1d, const CeedScalar *qweight_1d, CeedBasis basis);
 
-CEED_INTERN int CeedBasisCreateH1_Sycl(CeedElemTopology, CeedInt, CeedInt, CeedInt, const CeedScalar *, const CeedScalar *, const CeedScalar *,
-                                       const CeedScalar *, CeedBasis);
+CEED_INTERN int CeedBasisCreateH1_Sycl(CeedElemTopology topo, CeedInt dim, CeedInt ndof, CeedInt nqpts, const CeedScalar *interp,
+                                       const CeedScalar *grad, const CeedScalar *qref, const CeedScalar *qweight, CeedBasis basis);
+
+CEED_INTERN int CeedElemRestrictionCreate_Sycl(CeedMemType mem_type, CeedCopyMode copy_mode, const CeedInt *indices, const bool *orients,
+                                               const CeedInt8 *curl_orients, CeedElemRestriction r);
 
 CEED_INTERN int CeedQFunctionCreate_Sycl(CeedQFunction qf);
 
