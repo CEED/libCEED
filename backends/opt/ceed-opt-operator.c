@@ -55,7 +55,7 @@ static int CeedOperatorSetupFields_Opt(CeedQFunction qf, CeedOperator op, bool i
       CeedRestrictionType rstr_type;
       CeedCallBackend(CeedElemRestrictionGetType(r, &rstr_type));
       switch (rstr_type) {
-        case CEED_RESTRICTION_DEFAULT: {
+        case CEED_RESTRICTION_STANDARD: {
           const CeedInt *offsets = NULL;
           CeedCallBackend(CeedElemRestrictionGetOffsets(r, CEED_MEM_HOST, &offsets));
           CeedCallBackend(CeedElemRestrictionCreateBlocked(ceed_rstr, num_elem, elem_size, blk_size, num_comp, comp_stride, l_size, CEED_MEM_HOST,
