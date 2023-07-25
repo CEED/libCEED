@@ -39,23 +39,23 @@ PetscErrorCode CreateDM(MPI_Comm comm, ProblemData *problem, MatType mat_type, V
 }
 
 // Setup DM
-PetscErrorCode SetUpDM(DM dm, ProblemData *problem, PetscInt degree, SimpleBC bc, Physics phys) {
+PetscErrorCode SetUpDM(DM dm, ProblemData *problem, PetscInt degree, PetscInt q_extra, SimpleBC bc, Physics phys) {
+  PetscInt q_order = degree + q_extra;
   PetscFunctionBeginUser;
   {
     PetscBool is_simplex = PETSC_TRUE;
-    
-  // Check if simplex or tensor-product mesh
+
+    // Check if simplex or tensor-product mesh
     PetscCall(DMPlexIsSimplex(dm, &is_simplex));
     // Configure the finite element space and boundary conditions
     PetscFE  fe;
     PetscInt num_comp_q = 5;
     DMLabel  label;
-    PetscCall(PetscFECreateLagrange(PETSC_COMM_SELF, problem->dim, num_comp_q, is_simplex, degree, PETSC_DECIDE, &fe));
+    PetscCall(PetscFECreateLagrange(PETSC_COMM_SELF, problem->dim, num_comp_q, is_simplex, degree, q_order, &fe));
     PetscCall(PetscObjectSetName((PetscObject)fe, "Q"));
     PetscCall(DMAddField(dm, NULL, (PetscObject)fe));
     PetscCall(DMCreateDS(dm));
-  // Project coordinates to enrich quadrature space
-    {
+    {  // Project coordinates to enrich quadrature space
       DM             dm_coord;
       PetscDS        ds_coord;
       PetscFE        fe_coord_current, fe_coord_new;
@@ -64,14 +64,14 @@ PetscErrorCode SetUpDM(DM dm, ProblemData *problem, PetscInt degree, SimpleBC bc
 
       PetscCall(DMGetCoordinateDM(dm, &dm_coord));
       PetscCall(DMGetCoordinateDim(dm, &num_comp_coord));
-      PetscCall(DMGetRegionDS(dm_coord, NULL, NULL, &ds_coord,NULL));
+      PetscCall(DMGetRegionDS(dm_coord, NULL, NULL, &ds_coord, NULL));
       PetscCall(PetscDSGetDiscretization(ds_coord, 0, (PetscObject *)&fe_coord_current));
       PetscCall(PetscFEGetDualSpace(fe_coord_current, &fe_coord_dual_space));
       PetscCall(PetscDualSpaceGetOrder(fe_coord_dual_space, &fe_coord_order));
 
-    // Create FE for coordinates
-      fe_coord_order = 1 ;
-      PetscCall(PetscFECreateLagrange(PETSC_COMM_SELF, problem->dim, num_comp_coord, is_simplex, fe_coord_order, degree, &fe_coord_new));
+      // Create FE for coordinates
+      fe_coord_order = 1;
+      PetscCall(PetscFECreateLagrange(PETSC_COMM_SELF, problem->dim, num_comp_coord, is_simplex, fe_coord_order, q_order, &fe_coord_new));
       PetscCall(DMProjectCoordinates(dm, fe_coord_new));
       PetscCall(PetscFEDestroy(&fe_coord_new));
     }
@@ -157,7 +157,7 @@ PetscErrorCode VizRefineDM(DM dm, User user, ProblemData *problem, SimpleBC bc, 
     if (i + 1 == user->app_ctx->viz_refine) d = 1;
     PetscCall(DMGetVecType(dm, &vec_type));
     PetscCall(DMSetVecType(dm_hierarchy[i + 1], vec_type));
-    PetscCall(SetUpDM(dm_hierarchy[i + 1], problem, d, bc, phys));
+    PetscCall(SetUpDM(dm_hierarchy[i + 1], problem, d, 0, bc, phys));
     PetscCall(DMCreateInterpolation(dm_hierarchy[i], dm_hierarchy[i + 1], &interp_next, NULL));
     if (!i) user->interp_viz = interp_next;
     else {

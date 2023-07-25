@@ -358,7 +358,7 @@ PetscErrorCode UpdateBoundaryValues(User user, Vec Q_loc, PetscReal t);
 PetscErrorCode CreateDM(MPI_Comm comm, ProblemData *problem, MatType, VecType, DM *dm);
 
 // Set up DM
-PetscErrorCode SetUpDM(DM dm, ProblemData *problem, PetscInt degree, SimpleBC bc, Physics phys);
+PetscErrorCode SetUpDM(DM dm, ProblemData *problem, PetscInt degree, PetscInt q_extra, SimpleBC bc, Physics phys);
 
 // Refine DM for high-order viz
 PetscErrorCode VizRefineDM(DM dm, User user, ProblemData *problem, SimpleBC bc, Physics phys);
