@@ -178,24 +178,27 @@ PetscErrorCode GetQuadratureCoords(Ceed ceed, DM dm, CeedElemRestriction elem_re
 PetscErrorCode SpanStatsSetupDataCreate(Ceed ceed, User user, CeedData ceed_data, ProblemData *problem, SpanStatsSetupData *stats_data) {
   DM       dm = user->spanstats.dm;
   PetscInt dim;
-  CeedInt  P, Q, num_comp_x, num_comp_stats = user->spanstats.num_comp_stats;
+  CeedInt  num_qpts_child, num_comp_x, num_comp_stats = user->spanstats.num_comp_stats;
   Vec      X_loc;
   PetscFunctionBeginUser;
 
   PetscCall(PetscNew(stats_data));
 
   PetscCall(DMGetDimension(dm, &dim));
-  CeedBasisGetNumQuadraturePoints1D(ceed_data->basis_q, &Q);
-  CeedBasisGetNumNodes1D(ceed_data->basis_q, &P);
-//                                                           inserted this zero just to get it to compile  FIXME
-  PetscCall(GetRestrictionForDomain(ceed, dm, 0, 0, 0, 0, Q, 0, problem->q_data_size_sur, &(*stats_data)->elem_restr_parent_stats,
+  CeedBasisGetNumQuadraturePoints1D(ceed_data->basis_q, &num_qpts_child);
+  num_qpts_child *= dim;
+  PetscCall(GetRestrictionForDomain(ceed, dm, 0, 0, 0, 0, num_qpts_child, problem->q_data_size_sur, &(*stats_data)->elem_restr_parent_stats,
                                     &(*stats_data)->elem_restr_parent_x, &(*stats_data)->elem_restr_parent_qd));
   CeedElemRestrictionGetNumComponents((*stats_data)->elem_restr_parent_x, &num_comp_x);
   CeedElemRestrictionCreateVector((*stats_data)->elem_restr_parent_x, &(*stats_data)->x_coord, NULL);
   CeedElemRestrictionCreateVector((*stats_data)->elem_restr_parent_qd, &(*stats_data)->q_data, NULL);
 
-  CeedBasisCreateTensorH1Lagrange(ceed, dim, num_comp_x, 2, Q, CEED_GAUSS, &(*stats_data)->basis_x);
-  CeedBasisCreateTensorH1Lagrange(ceed, dim, num_comp_stats, P, Q, CEED_GAUSS, &(*stats_data)->basis_stats);
+  {
+    DM dm_coord;
+    PetscCall(DMGetCoordinateDM(dm, &dm_coord));
+    PetscCall(CreateBasisFromPlex(ceed, dm_coord, 0, 0, 0, 0, CEED_GAUSS, &(*stats_data)->basis_x));
+    PetscCall(CreateBasisFromPlex(ceed, dm, 0, 0, 0, 0, CEED_GAUSS, &(*stats_data)->basis_stats));
+  }
 
   PetscCall(CreateElemRestrColloc(ceed, num_comp_stats, (*stats_data)->basis_stats, (*stats_data)->elem_restr_parent_stats,
                                   &(*stats_data)->elem_restr_parent_colloc));
