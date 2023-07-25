@@ -15,9 +15,6 @@
 #include <petscds.h> 
 
 
-// Utility function - essential BC dofs are encoded in closure indices as -(i+1).
-PetscInt Involute(PetscInt i) { return i >= 0 ? i : -(i + 1); }
-
 // Utility function to create local CEED restriction
 PetscErrorCode CreateRestrictionFromPlex(Ceed ceed, DM dm, CeedInt height, DMLabel domain_label, CeedInt label_value, PetscInt dm_field,
                                          CeedElemRestriction *elem_restr) {

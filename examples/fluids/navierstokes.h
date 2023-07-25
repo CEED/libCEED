@@ -314,9 +314,6 @@ PetscErrorCode PrintRunInfo(User user, Physics phys_ctx, ProblemData *problem, M
 // -----------------------------------------------------------------------------
 // libCEED functions
 // -----------------------------------------------------------------------------
-// Utility function - essential BC dofs are encoded in closure indices as -(i+1).
-PetscInt Involute(PetscInt i);
-
 // Utility function to create local CEED restriction
 PetscErrorCode CreateRestrictionFromPlex(Ceed ceed, DM dm, CeedInt height, DMLabel domain_label, CeedInt label_value, PetscInt dm_field,
                                          CeedElemRestriction *elem_restr);
