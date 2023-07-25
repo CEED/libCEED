@@ -143,7 +143,7 @@ CEED_INTERN int CeedQFunctionContextCreate_Occa(CeedQFunctionContext ctx);
 
 // *****************************************************************************
 CEED_INTERN int CeedElemRestrictionCreate_Occa(const CeedMemType mtype, const CeedCopyMode cmode, const CeedInt *indices, const bool *orients,
-                                               const CeedInt *curl_orients, const CeedElemRestriction res);
+                                               const CeedInt8 *curl_orients, const CeedElemRestriction res);
 
 // *****************************************************************************
 CEED_INTERN int CeedVectorCreate_Occa(CeedInt n, CeedVector vec);

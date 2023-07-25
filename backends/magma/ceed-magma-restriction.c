@@ -164,6 +164,11 @@ int CeedElemRestrictionCreate_Magma(CeedMemType mtype, CeedCopyMode cmode, const
   CeedCallBackend(CeedElemRestrictionGetElementSize(r, &elemsize));
   CeedInt size = elemsize * nelem;
 
+  CeedRestrictionType rstr_type;
+  CeedCallBackend(CeedElemRestrictionGetType(r, &rstr_type));
+  CeedCheck(rstr_type != CEED_RESTRICTION_ORIENTED && rstr_type != CEED_RESTRICTION_CURL_ORIENTED, ceed, CEED_ERROR_BACKEND,
+            "Backend does not implement CeedElemRestrictionCreateOriented or CeedElemRestrictionCreateCurlOriented");
+
   CeedElemRestriction_Magma *impl;
   CeedCallBackend(CeedCalloc(1, &impl));
 

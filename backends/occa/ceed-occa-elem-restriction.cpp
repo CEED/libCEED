@@ -298,12 +298,18 @@ int ElemRestriction::registerCeedFunction(Ceed ceed, CeedElemRestriction r, cons
 }
 
 int ElemRestriction::ceedCreate(CeedMemType memType, CeedCopyMode copyMode, const CeedInt *indicesInput, const bool *orientsInput,
-                                const CeedInt *curlOrientsInput, CeedElemRestriction r) {
+                                const CeedInt8 *curlOrientsInput, CeedElemRestriction r) {
   Ceed ceed;
   CeedCallBackend(CeedElemRestrictionGetCeed(r, &ceed));
 
   if ((memType != CEED_MEM_DEVICE) && (memType != CEED_MEM_HOST)) {
     return staticCeedError("Only HOST and DEVICE CeedMemType supported");
+  }
+
+  CeedRestrictionType rstr_type;
+  CeedCallBackend(CeedElemRestrictionGetType(r, &rstr_type));
+  if ((rstr_type == CEED_RESTRICTION_ORIENTED) || (rstr_type == CEED_RESTRICTION_CURL_ORIENTED)) {
+    return staticCeedError("(OCCA) Backend does not implement CeedElemRestrictionCreateOriented or CeedElemRestrictionCreateCurlOriented");
   }
 
   ElemRestriction *elemRestriction = new ElemRestriction();

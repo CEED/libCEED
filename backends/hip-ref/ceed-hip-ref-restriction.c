@@ -221,6 +221,11 @@ int CeedElemRestrictionCreate_Hip(CeedMemType mem_type, CeedCopyMode copy_mode, 
   CeedInt strides[3]  = {1, size, elem_size};
   CeedInt comp_stride = 1;
 
+  CeedRestrictionType rstr_type;
+  CeedCallBackend(CeedElemRestrictionGetType(r, &rstr_type));
+  CeedCheck(rstr_type != CEED_RESTRICTION_ORIENTED && rstr_type != CEED_RESTRICTION_CURL_ORIENTED, ceed, CEED_ERROR_BACKEND,
+            "Backend does not implement CeedElemRestrictionCreateOriented or CeedElemRestrictionCreateCurlOriented");
+
   // Stride data
   bool is_strided;
   CeedCallBackend(CeedElemRestrictionIsStrided(r, &is_strided));
