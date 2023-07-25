@@ -10,6 +10,7 @@
 
 #include <ceed.h>
 #include <petscdmplex.h>
+#include <petscds.h>
 
 #include "../navierstokes.h"
 #include "../problems/stg_shur14.h"
