@@ -1593,6 +1593,7 @@ int CeedBasisApplyAtPoints(CeedBasis basis, CeedInt num_points, CeedTransposeMod
           for (CeedInt p = 0; p < num_points; p++) {
             CeedInt pre = num_comp * CeedIntPow(Q_1d, dim - 1), post = 1;
 
+            // Note: stepping "backwards" through the tensor contractions to agree with the ordering of the Chebyshev coefficients
             for (CeedInt d = dim - 1; d >= 0; d--) {
               // ------ Tensor contract with current Chebyshev polynomial values
               CeedCall(CeedChebyshevPolynomialsAtPoint(x_array_read[p * dim + d], Q_1d, chebyshev_x));
@@ -1609,6 +1610,7 @@ int CeedBasisApplyAtPoints(CeedBasis basis, CeedInt num_points, CeedTransposeMod
 
           // ---- Values at point
           for (CeedInt p = 0; p < num_points; p++) {
+            // Note: stepping "backwards" through the tensor contractions to agree with the ordering of the Chebyshev coefficients
             // Dim**2 contractions, apply grad when pass == dim
             for (CeedInt pass = dim - 1; pass >= 0; pass--) {
               CeedInt pre = num_comp * CeedIntPow(Q_1d, dim - 1), post = 1;
@@ -1653,6 +1655,7 @@ int CeedBasisApplyAtPoints(CeedBasis basis, CeedInt num_points, CeedTransposeMod
         for (CeedInt p = 0; p < num_points; p++) {
           CeedInt pre = num_comp * 1, post = 1;
 
+          // Note: stepping "backwards" through the tensor contractions to agree with the ordering of the Chebyshev coefficients
           for (CeedInt d = dim - 1; d >= 0; d--) {
             // ------ Tensor contract with current Chebyshev polynomial values
             CeedCall(CeedChebyshevPolynomialsAtPoint(x_array_read[p * dim + d], Q_1d, chebyshev_x));
