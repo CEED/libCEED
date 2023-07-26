@@ -54,7 +54,7 @@ PetscErrorCode VelocityGradientProjectionSetup(Ceed ceed, User user, CeedData ce
   CeedBasis            basis_grad_velo;
   CeedElemRestriction  elem_restr_grad_velo;
   PetscInt             dim;
-  CeedInt              num_comp_x, num_comp_q, q_data_size, num_qpts_1d, num_nodes_1d;
+  CeedInt              num_comp_x, num_comp_q, q_data_size;
 
   PetscFunctionBeginUser;
   PetscCall(PetscNew(&user->grad_velo_proj));
@@ -66,13 +66,10 @@ PetscErrorCode VelocityGradientProjectionSetup(Ceed ceed, User user, CeedData ce
   PetscCall(DMGetDimension(grad_velo_proj->dm, &dim));
   CeedBasisGetNumComponents(ceed_data->basis_x, &num_comp_x);
   CeedBasisGetNumComponents(ceed_data->basis_q, &num_comp_q);
-  CeedBasisGetNumQuadraturePoints1D(ceed_data->basis_q, &num_qpts_1d);
-  CeedBasisGetNumNodes1D(ceed_data->basis_q, &num_nodes_1d);
   CeedElemRestrictionGetNumComponents(ceed_data->elem_restr_qd_i, &q_data_size);
-//                                                                                     inserted zero just to compile FIXME
-  PetscCall(GetRestrictionForDomain(ceed, grad_velo_proj->dm, 0, 0, 0, 0, num_qpts_1d, 0, q_data_size, &elem_restr_grad_velo, NULL, NULL));
+  PetscCall(GetRestrictionForDomain(ceed, grad_velo_proj->dm, 0, 0, 0, 0, -1, 0, &elem_restr_grad_velo, NULL, NULL));
 
-  CeedBasisCreateTensorH1Lagrange(ceed, dim, grad_velo_proj->num_comp, num_nodes_1d, num_qpts_1d, CEED_GAUSS, &basis_grad_velo);
+  PetscCall(CreateBasisFromPlex(ceed, grad_velo_proj->dm, 0, 0, 0, 0, CEED_GAUSS, &basis_grad_velo));
 
   // -- Build RHS operator
   switch (user->phys->state_var) {

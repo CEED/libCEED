@@ -66,7 +66,7 @@ PetscErrorCode SGS_DD_ModelSetupNodalEvaluation(Ceed ceed, User user, CeedData c
   SGS_DD_Data         sgs_dd_data = user->sgs_dd_data;
   CeedQFunction       qf_multiplicity, qf_sgs_dd_nodal;
   CeedOperator        op_multiplicity, op_sgs_dd_nodal;
-  CeedInt             num_elem, elem_size, num_comp_q, num_qpts_1d, num_comp_grad_velo, num_comp_x, num_comp_grid_aniso;
+  CeedInt             num_elem, elem_size, num_comp_q, num_comp_grad_velo, num_comp_x, num_comp_grid_aniso;
   PetscInt            dim;
   CeedVector          multiplicity, inv_multiplicity;
   CeedElemRestriction elem_restr_inv_multiplicity, elem_restr_grad_velo, elem_restr_sgs;
@@ -78,7 +78,6 @@ PetscErrorCode SGS_DD_ModelSetupNodalEvaluation(Ceed ceed, User user, CeedData c
   CeedElemRestrictionGetNumComponents(sgs_dd_setup_data->elem_restr_grid_aniso, &num_comp_grid_aniso);
   CeedElemRestrictionGetNumElements(ceed_data->elem_restr_q, &num_elem);
   CeedElemRestrictionGetElementSize(ceed_data->elem_restr_q, &elem_size);
-  CeedBasisGetNumQuadraturePoints1D(ceed_data->basis_q, &num_qpts_1d);
 
   {  // Get velocity gradient information
     CeedOperatorField op_field;
@@ -86,8 +85,7 @@ PetscErrorCode SGS_DD_ModelSetupNodalEvaluation(Ceed ceed, User user, CeedData c
     CeedOperatorFieldGetElemRestriction(op_field, &elem_restr_grad_velo);
     CeedElemRestrictionGetNumComponents(elem_restr_grad_velo, &num_comp_grad_velo);
   }
-
-  PetscCall(GetRestrictionForDomain(ceed, sgs_dd_data->dm_sgs, 0, 0, 0, 0, num_qpts_1d, 0,0, &elem_restr_sgs, NULL, NULL));
+  PetscCall(GetRestrictionForDomain(ceed, sgs_dd_data->dm_sgs, 0, 0, 0, 0, -1, 0, &elem_restr_sgs, NULL, NULL));
   CeedElemRestrictionCreateVector(elem_restr_sgs, &sgs_dd_data->sgs_nodal_ceed, NULL);
 
   // -- Create inverse multiplicity for correcting nodal assembly
@@ -161,7 +159,7 @@ PetscErrorCode SGS_DD_ModelSetupNodalEvaluation(Ceed ceed, User user, CeedData c
 // @brief Create CeedOperator to compute SGS contribution to the residual
 PetscErrorCode SGS_ModelSetupNodalIFunction(Ceed ceed, User user, CeedData ceed_data, SGS_DD_ModelSetupData sgs_dd_setup_data) {
   SGS_DD_Data   sgs_dd_data = user->sgs_dd_data;
-  CeedInt       num_comp_q, num_comp_qd, num_comp_x, num_qpts_1d, num_nodes_1d;
+  CeedInt       num_comp_q, num_comp_qd, num_comp_x;
   PetscInt      dim;
   CeedQFunction qf_sgs_apply;
   CeedOperator  op_sgs_apply;
@@ -172,10 +170,8 @@ PetscErrorCode SGS_ModelSetupNodalIFunction(Ceed ceed, User user, CeedData ceed_
   CeedElemRestrictionGetNumComponents(ceed_data->elem_restr_q, &num_comp_q);
   CeedElemRestrictionGetNumComponents(ceed_data->elem_restr_qd_i, &num_comp_qd);
   CeedElemRestrictionGetNumComponents(ceed_data->elem_restr_x, &num_comp_x);
-  CeedBasisGetNumQuadraturePoints1D(ceed_data->basis_q, &num_qpts_1d);
-  CeedBasisGetNumNodes1D(ceed_data->basis_q, &num_nodes_1d);
 
-  CeedBasisCreateTensorH1Lagrange(ceed, dim, sgs_dd_data->num_comp_sgs, num_nodes_1d, num_qpts_1d, CEED_GAUSS, &basis_sgs);
+  PetscCall(CreateBasisFromPlex(ceed, sgs_dd_data->dm_sgs, 0, 0, 0, 0, CEED_GAUSS, &basis_sgs));
 
   switch (user->phys->state_var) {
     case STATEVAR_PRIMITIVE:

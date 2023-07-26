@@ -11,12 +11,8 @@
 #include <ceed.h>
 #include <petscdmplex.h>
 
+#include <petscds.h>
 #include "../navierstokes.h"
-#include <petscds.h> 
-
-
-// Utility function - essential BC dofs are encoded in closure indices as -(i+1).
-PetscInt Involute(PetscInt i) { return i >= 0 ? i : -(i + 1); }
 
 // Utility function to create local CEED restriction
 PetscErrorCode CreateRestrictionFromPlex(Ceed ceed, DM dm, CeedInt height, DMLabel domain_label, CeedInt label_value, PetscInt dm_field,
@@ -37,10 +33,9 @@ PetscErrorCode CreateRestrictionFromPlex(Ceed ceed, DM dm, CeedInt height, DMLab
 
 // Utility function to get Ceed Restriction for each domain
 PetscErrorCode GetRestrictionForDomain(Ceed ceed, DM dm, CeedInt height, DMLabel domain_label, PetscInt label_value, PetscInt dm_field, CeedInt Q,
-                                       CeedInt Q_dim, CeedInt q_data_size, CeedElemRestriction *elem_restr_q, CeedElemRestriction *elem_restr_x,
+                                       CeedInt q_data_size, CeedElemRestriction *elem_restr_q, CeedElemRestriction *elem_restr_x,
                                        CeedElemRestriction *elem_restr_qd_i) {
   DM                  dm_coord;
-// now passed in/out  CeedInt             Q_dim
   CeedInt             loc_num_elem;
   PetscInt            dim;
   CeedElemRestriction elem_restr_tmp;
@@ -48,7 +43,6 @@ PetscErrorCode GetRestrictionForDomain(Ceed ceed, DM dm, CeedInt height, DMLabel
 
   PetscCall(DMGetDimension(dm, &dim));
   dim -= height;
-// now passed in/out for simplex set by PetscFE  Q_dim = CeedIntPow(Q, dim);
   PetscCall(CreateRestrictionFromPlex(ceed, dm, height, domain_label, label_value, dm_field, &elem_restr_tmp));
   if (elem_restr_q) *elem_restr_q = elem_restr_tmp;
   if (elem_restr_x) {
@@ -61,8 +55,7 @@ PetscErrorCode GetRestrictionForDomain(Ceed ceed, DM dm, CeedInt height, DMLabel
   }
   if (elem_restr_qd_i) {
     CeedElemRestrictionGetNumElements(elem_restr_tmp, &loc_num_elem);
-    CeedElemRestrictionCreateStrided(ceed, loc_num_elem, Q_dim, q_data_size, q_data_size * loc_num_elem * Q_dim, CEED_STRIDES_BACKEND,
-                                     elem_restr_qd_i);
+    CeedElemRestrictionCreateStrided(ceed, loc_num_elem, Q, q_data_size, q_data_size * loc_num_elem * Q, CEED_STRIDES_BACKEND, elem_restr_qd_i);
   }
   if (!elem_restr_q) CeedElemRestrictionDestroy(&elem_restr_tmp);
   PetscFunctionReturn(PETSC_SUCCESS);
@@ -81,11 +74,12 @@ PetscErrorCode AddBCSubOperator(Ceed ceed, DM dm, CeedData ceed_data, DMLabel do
   CeedBasisGetNumQuadraturePoints(ceed_data->basis_q_sur, &num_qpts_sur);
 
   // ---- CEED Restriction
-  PetscCall(GetRestrictionForDomain(ceed, dm, height, domain_label, label_value, 0, Q_sur, num_qpts_sur, q_data_size_sur, &elem_restr_q_sur, &elem_restr_x_sur,
-                                    &elem_restr_qd_i_sur));
+  PetscCall(GetRestrictionForDomain(ceed, dm, height, domain_label, label_value, 0, num_qpts_sur, q_data_size_sur, &elem_restr_q_sur,
+                                    &elem_restr_x_sur, &elem_restr_qd_i_sur));
   if (jac_data_size_sur > 0) {
     // State-dependent data will be passed from residual to Jacobian. This will be collocated.
-    PetscCall(GetRestrictionForDomain(ceed, dm, height, domain_label, label_value, 0, Q_sur, num_qpts_sur, jac_data_size_sur, NULL, NULL, &elem_restr_jd_i_sur));
+    PetscCall(
+        GetRestrictionForDomain(ceed, dm, height, domain_label, label_value, 0, num_qpts_sur, jac_data_size_sur, NULL, NULL, &elem_restr_jd_i_sur));
     CeedElemRestrictionCreateVector(elem_restr_jd_i_sur, &jac_data_sur, NULL);
   } else {
     elem_restr_jd_i_sur = NULL;
@@ -216,7 +210,6 @@ PetscErrorCode SetupBCQFunctions(Ceed ceed, PetscInt dim_sur, PetscInt num_comp_
   PetscFunctionReturn(PETSC_SUCCESS);
 }
 
-
 // -----------------------------------------------------------------------------
 // Convert DM field to DS field
 // -----------------------------------------------------------------------------
@@ -236,15 +229,14 @@ PetscErrorCode DMFieldToDSField(DM dm, DMLabel domain_label, PetscInt dm_field, 
     if (dm_field == fields[i]) {
       *ds_field = i;
       break;
-    }   
+    }
   }
   PetscCall(ISRestoreIndices(field_is, &fields));
 
   if (*ds_field == -1) SETERRQ(PetscObjectComm((PetscObject)dm), PETSC_ERR_SUP, "Could not find dm_field %" PetscInt_FMT " in DS", dm_field);
 
-  PetscFunctionReturn(0);
+  PetscFunctionReturn(PETSC_SUCCESS);
 }
-
 
 // -----------------------------------------------------------------------------
 // Utility function - convert from DMPolytopeType to CeedElemTopology
@@ -263,7 +255,6 @@ CeedElemTopology ElemTopologyP2C(DMPolytopeType cell_type) {
       return 0;
   }
 }
-
 
 // -----------------------------------------------------------------------------
 // Create libCEED Basis from PetscTabulation
@@ -317,8 +308,7 @@ PetscErrorCode BasisCreateFromTabulation(Ceed ceed, DM dm, DMLabel domain_label,
     }
   }
 
-  // Convert to libCEED orientation
-  {
+  {  // Convert to libCEED orientation
     PetscBool       is_simplex  = PETSC_FALSE;
     IS              permutation = NULL;
     const PetscInt *permutation_indices;
@@ -359,15 +349,14 @@ PetscErrorCode BasisCreateFromTabulation(Ceed ceed, DM dm, DMLabel domain_label,
   PetscCall(PetscFree(interp));
   PetscCall(PetscFree(grad));
 
-  PetscFunctionReturn(0);
+  PetscFunctionReturn(PETSC_SUCCESS);
 }
-
 
 // -----------------------------------------------------------------------------
 // Get CEED Basis from DMPlex
 // -----------------------------------------------------------------------------
-PetscErrorCode CreateBasisFromPlex(Ceed ceed, DM dm, DMLabel domain_label, CeedInt label_value, CeedInt height, CeedInt dm_field, CeedQuadMode quadMode,
-                                   CeedBasis *basis) {
+PetscErrorCode CreateBasisFromPlex(Ceed ceed, DM dm, DMLabel domain_label, CeedInt label_value, CeedInt height, CeedInt dm_field,
+                                   CeedQuadMode quadMode, CeedBasis *basis) {
   PetscDS         ds;
   PetscFE         fe;
   PetscQuadrature quadrature;
@@ -411,9 +400,8 @@ PetscErrorCode CreateBasisFromPlex(Ceed ceed, DM dm, DMLabel domain_label, CeedI
     CeedBasisCreateTensorH1Lagrange(ceed, dim, num_comp, P_1d, Q_1d, quadMode, basis);
   }
 
-  PetscFunctionReturn(0);
+  PetscFunctionReturn(PETSC_SUCCESS);
 }
-
 
 PetscErrorCode SetupLibceed(Ceed ceed, CeedData ceed_data, DM dm, User user, AppCtx app_ctx, ProblemData *problem, SimpleBC bc) {
   PetscFunctionBeginUser;
@@ -422,32 +410,30 @@ PetscErrorCode SetupLibceed(Ceed ceed, CeedData ceed_data, DM dm, User user, App
   // Set up CEED objects for the interior domain (volume)
   // *****************************************************************************
   const PetscInt num_comp_q = 5;
-  const CeedInt  dim = problem->dim, num_comp_x = problem->dim, q_data_size_vol = problem->q_data_size_vol, jac_data_size_vol = num_comp_q + 6 + 3,
-                P = app_ctx->degree + 1, Q = P + app_ctx->q_extra;
+  const CeedInt  dim = problem->dim, num_comp_x = problem->dim, q_data_size_vol = problem->q_data_size_vol, jac_data_size_vol = num_comp_q + 6 + 3;
   CeedElemRestriction elem_restr_jd_i;
   CeedVector          jac_data;
-  CeedInt num_qpts;
+  CeedInt             num_qpts;
 
   // -----------------------------------------------------------------------------
   // CEED Bases
   // -----------------------------------------------------------------------------
-  DM      dm_coord;
+  DM dm_coord;
   PetscCall(DMGetCoordinateDM(dm, &dm_coord));
 
   PetscCall(CreateBasisFromPlex(ceed, dm, 0, 0, 0, 0, CEED_GAUSS, &ceed_data->basis_q));
   PetscCall(CreateBasisFromPlex(ceed, dm_coord, 0, 0, 0, 0, CEED_GAUSS, &ceed_data->basis_x));
   PetscCall(CeedBasisCreateProjection(ceed_data->basis_x, ceed_data->basis_q, &ceed_data->basis_xc));
-  // --- Get number of quadrature points for the boundaries
   CeedBasisGetNumQuadraturePoints(ceed_data->basis_q, &num_qpts);
 
   // -----------------------------------------------------------------------------
   // CEED Restrictions
   // -----------------------------------------------------------------------------
   // -- Create restriction
-  PetscCall(GetRestrictionForDomain(ceed, dm, 0, 0, 0, 0, Q, num_qpts, q_data_size_vol, &ceed_data->elem_restr_q, &ceed_data->elem_restr_x,
+  PetscCall(GetRestrictionForDomain(ceed, dm, 0, 0, 0, 0, num_qpts, q_data_size_vol, &ceed_data->elem_restr_q, &ceed_data->elem_restr_x,
                                     &ceed_data->elem_restr_qd_i));
 
-  PetscCall(GetRestrictionForDomain(ceed, dm, 0, 0, 0, 0, Q, num_qpts, jac_data_size_vol, NULL, NULL, &elem_restr_jd_i));
+  PetscCall(GetRestrictionForDomain(ceed, dm, 0, 0, 0, 0, num_qpts, jac_data_size_vol, NULL, NULL, &elem_restr_jd_i));
   // -- Create E vectors
   CeedElemRestrictionCreateVector(ceed_data->elem_restr_q, &user->q_ceed, NULL);
   CeedElemRestrictionCreateVector(ceed_data->elem_restr_q, &user->q_dot_ceed, NULL);
@@ -612,9 +598,9 @@ PetscErrorCode SetupLibceed(Ceed ceed, CeedData ceed_data, DM dm, User user, App
   // CEED Bases
   // -----------------------------------------------------------------------------
 
-  DMLabel label = 0;
+  DMLabel  label   = 0;
   PetscInt face_id = 0;
-  PetscInt field = 0; // Still want the normal, default field
+  PetscInt field   = 0;  // Still want the normal, default field
   PetscCall(CreateBasisFromPlex(ceed, dm, label, face_id, height, field, CEED_GAUSS, &ceed_data->basis_q_sur));
   PetscCall(CreateBasisFromPlex(ceed, dm_coord, label, face_id, height, field, CEED_GAUSS, &ceed_data->basis_x_sur));
   PetscCall(CeedBasisCreateProjection(ceed_data->basis_x_sur, ceed_data->basis_q_sur, &ceed_data->basis_xc_sur));
@@ -657,7 +643,7 @@ PetscErrorCode SetupLibceed(Ceed ceed, CeedData ceed_data, DM dm, User user, App
     if (user->op_ijacobian) {
       CeedOperatorGetContextFieldLabel(user->op_ijacobian, "ijacobian time shift", &user->phys->ijacobian_time_shift_label);
     }
-    if (problem->use_strong_bc_ceed) PetscCall(SetupStrongBC_Ceed(ceed, ceed_data, dm, user, problem, bc, Q_sur, q_data_size_sur));
+    if (problem->use_strong_bc_ceed) PetscCall(SetupStrongBC_Ceed(ceed, ceed_data, dm, user, problem, bc, q_data_size_sur));
     if (app_ctx->sgs_model_type == SGS_MODEL_DATA_DRIVEN) PetscCall(SGS_DD_ModelSetup(ceed, user, ceed_data, problem));
   }
 

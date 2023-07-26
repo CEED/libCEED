@@ -13,8 +13,8 @@
 #include "../navierstokes.h"
 #include "../problems/stg_shur14.h"
 
-PetscErrorCode SetupStrongSTG_Ceed(Ceed ceed, CeedData ceed_data, DM dm, ProblemData *problem, SimpleBC bc, Physics phys, CeedInt Q_sur,
-                                   CeedInt q_data_size_sur, CeedOperator op_strong_bc) {
+PetscErrorCode SetupStrongSTG_Ceed(Ceed ceed, CeedData ceed_data, DM dm, ProblemData *problem, SimpleBC bc, Physics phys, CeedInt q_data_size_sur,
+                                   CeedOperator op_strong_bc) {
   CeedInt             num_comp_x = problem->dim, num_comp_q = 5, num_elem, elem_size, stg_data_size = 1;
   CeedVector          multiplicity, x_stored, scale_stored, q_data_sur, stg_data;
   CeedBasis           basis_x_to_q_sur;
@@ -46,8 +46,8 @@ PetscErrorCode SetupStrongSTG_Ceed(Ceed ceed, CeedData ceed_data, DM dm, Problem
   // Compute contribution on each boundary face
   for (CeedInt i = 0; i < bc->num_inflow; i++) {
     // -- Restrictions
-    PetscCall(GetRestrictionForDomain(ceed, dm, height, domain_label, bc->inflows[i], 0, Q_sur, num_qpts_sur, q_data_size_sur, &elem_restr_q_sur, &elem_restr_x_sur,
-                                      &elem_restr_qd_sur));
+    PetscCall(GetRestrictionForDomain(ceed, dm, height, domain_label, bc->inflows[i], 0, num_qpts_sur, q_data_size_sur, &elem_restr_q_sur,
+                                      &elem_restr_x_sur, &elem_restr_qd_sur));
     CeedElemRestrictionCreateVector(elem_restr_q_sur, &multiplicity, NULL);
     CeedElemRestrictionGetMultiplicity(elem_restr_q_sur, multiplicity);
     CeedElemRestrictionGetNumElements(elem_restr_q_sur, &num_elem);
@@ -156,8 +156,7 @@ PetscErrorCode DMPlexInsertBoundaryValues_StrongBCCeed(DM dm, PetscBool insert_e
   PetscFunctionReturn(PETSC_SUCCESS);
 }
 
-PetscErrorCode SetupStrongBC_Ceed(Ceed ceed, CeedData ceed_data, DM dm, User user, ProblemData *problem, SimpleBC bc, CeedInt Q_sur,
-                                  CeedInt q_data_size_sur) {
+PetscErrorCode SetupStrongBC_Ceed(Ceed ceed, CeedData ceed_data, DM dm, User user, ProblemData *problem, SimpleBC bc, CeedInt q_data_size_sur) {
   CeedOperator op_strong_bc;
 
   PetscFunctionBeginUser;
@@ -179,7 +178,7 @@ PetscErrorCode SetupStrongBC_Ceed(Ceed ceed, CeedData ceed_data, DM dm, User use
     PetscCall(PetscOptionsGetBool(NULL, NULL, "-stg_strong", &use_strongstg, NULL));
 
     if (use_strongstg) {
-      PetscCall(SetupStrongSTG_Ceed(ceed, ceed_data, dm, problem, bc, user->phys, Q_sur, q_data_size_sur, op_strong_bc));
+      PetscCall(SetupStrongSTG_Ceed(ceed, ceed_data, dm, problem, bc, user->phys, q_data_size_sur, op_strong_bc));
     }
   }
 

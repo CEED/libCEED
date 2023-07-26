@@ -17,7 +17,7 @@
 PetscErrorCode DifferentialFilterCreateOperators(Ceed ceed, User user, CeedData ceed_data, CeedQFunctionContext diff_filter_qfctx) {
   DiffFilterData diff_filter = user->diff_filter;
   DM             dm_filter   = diff_filter->dm_filter;
-  CeedInt        num_comp_q, num_comp_qd, num_qpts_1d, num_nodes_1d, num_comp_x;
+  CeedInt        num_comp_q, num_comp_qd, num_comp_x;
   PetscInt       dim;
 
   PetscFunctionBeginUser;
@@ -25,8 +25,6 @@ PetscErrorCode DifferentialFilterCreateOperators(Ceed ceed, User user, CeedData 
   CeedElemRestrictionGetNumComponents(ceed_data->elem_restr_x, &num_comp_x);
   CeedElemRestrictionGetNumComponents(ceed_data->elem_restr_q, &num_comp_q);
   CeedElemRestrictionGetNumComponents(ceed_data->elem_restr_qd_i, &num_comp_qd);
-  CeedBasisGetNumQuadraturePoints1D(ceed_data->basis_q, &num_qpts_1d);
-  CeedBasisGetNumNodes1D(ceed_data->basis_q, &num_nodes_1d);
 
   {  // -- Create RHS MatopApplyContext
     CeedQFunction qf_rhs;
@@ -64,9 +62,8 @@ PetscErrorCode DifferentialFilterCreateOperators(Ceed ceed, User user, CeedData 
       char                field_name[PETSC_MAX_PATH_LEN];
       CeedElemRestriction elem_restr_filter;
       CeedBasis           basis_filter;
-
-      PetscCall(GetRestrictionForDomain(ceed, dm_filter, 0, 0, 0, i, num_qpts_1d, 0,0, &elem_restr_filter, NULL, NULL));
-      CeedBasisCreateTensorH1Lagrange(ceed, dim, diff_filter->num_field_components[i], num_nodes_1d, num_qpts_1d, CEED_GAUSS, &basis_filter);
+      PetscCall(GetRestrictionForDomain(ceed, dm_filter, 0, 0, 0, i, -1, 0, &elem_restr_filter, NULL, NULL));
+      PetscCall(CreateBasisFromPlex(ceed, dm_filter, 0, 0, 0, i, CEED_GAUSS, &basis_filter));
 
       PetscCall(PetscSNPrintf(field_name, PETSC_MAX_PATH_LEN, "v%" PetscInt_FMT, i));
       CeedOperatorSetField(op_rhs, field_name, elem_restr_filter, basis_filter, CEED_VECTOR_ACTIVE);
