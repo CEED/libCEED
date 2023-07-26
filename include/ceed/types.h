@@ -106,7 +106,7 @@ typedef ptrdiff_t CeedSize;
 
 /// Integer type, for small integers
 /// @ingroup Ceed
-typedef int8_t CeedInt8;
+typedef signed char CeedInt8;
 #define CeedInt8_FMT "d"
 
 /// Scalar (floating point) types

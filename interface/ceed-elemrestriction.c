@@ -366,31 +366,36 @@ int CeedElemRestrictionReference(CeedElemRestriction rstr) {
   @ref Backend
 **/
 int CeedElemRestrictionGetFlopsEstimate(CeedElemRestriction rstr, CeedTransposeMode t_mode, CeedSize *flops) {
-  const bool     *orients      = NULL;
-  const CeedInt8 *curl_orients = NULL;
-  CeedInt         e_size = rstr->num_blk * rstr->blk_size * rstr->elem_size * rstr->num_comp, scale = 0;
-
-  CeedCall(CeedElemRestrictionGetOrientations(rstr, CEED_MEM_HOST, &orients));
-  CeedCall(CeedElemRestrictionGetCurlOrientations(rstr, CEED_MEM_HOST, &curl_orients));
+  CeedInt             e_size = rstr->num_blk * rstr->blk_size * rstr->elem_size * rstr->num_comp, scale = 0;
+  CeedRestrictionType rstr_type;
+  CeedCall(CeedElemRestrictionGetType(rstr, &rstr_type));
   if (t_mode == CEED_TRANSPOSE) {
-    if (!orients && !curl_orients) {
-      scale = 1;
-    } else if (!curl_orients) {
-      scale = 2;
-    } else {
-      scale = 6;
+    switch (rstr_type) {
+      case CEED_RESTRICTION_STRIDED:
+      case CEED_RESTRICTION_STANDARD:
+        scale = 1;
+        break;
+      case CEED_RESTRICTION_ORIENTED:
+        scale = 2;
+        break;
+      case CEED_RESTRICTION_CURL_ORIENTED:
+        scale = 6;
+        break;
     }
   } else {
-    if (!orients && !curl_orients) {
-      scale = 0;
-    } else if (!curl_orients) {
-      scale = 1;
-    } else {
-      scale = 5;
+    switch (rstr_type) {
+      case CEED_RESTRICTION_STRIDED:
+      case CEED_RESTRICTION_STANDARD:
+        scale = 0;
+        break;
+      case CEED_RESTRICTION_ORIENTED:
+        scale = 1;
+        break;
+      case CEED_RESTRICTION_CURL_ORIENTED:
+        scale = 5;
+        break;
     }
   }
-  CeedCall(CeedElemRestrictionRestoreOrientations(rstr, &orients));
-  CeedCall(CeedElemRestrictionRestoreCurlOrientations(rstr, &curl_orients));
   *flops = e_size * scale;
 
   return CEED_ERROR_SUCCESS;
