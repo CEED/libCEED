@@ -178,16 +178,16 @@ PetscErrorCode GetQuadratureCoords(Ceed ceed, DM dm, CeedElemRestriction elem_re
 PetscErrorCode SpanStatsSetupDataCreate(Ceed ceed, User user, CeedData ceed_data, ProblemData *problem, SpanStatsSetupData *stats_data) {
   DM       dm = user->spanstats.dm;
   PetscInt dim;
-  CeedInt  num_qpts_child, num_comp_x, num_comp_stats = user->spanstats.num_comp_stats;
+  CeedInt  num_qpts_child1d, num_comp_x, num_comp_stats = user->spanstats.num_comp_stats;
   Vec      X_loc;
   PetscFunctionBeginUser;
 
   PetscCall(PetscNew(stats_data));
 
   PetscCall(DMGetDimension(dm, &dim));
-  CeedBasisGetNumQuadraturePoints1D(ceed_data->basis_q, &num_qpts_child);
-  num_qpts_child *= dim;
-  PetscCall(GetRestrictionForDomain(ceed, dm, 0, 0, 0, 0, num_qpts_child, problem->q_data_size_sur, &(*stats_data)->elem_restr_parent_stats,
+  CeedBasisGetNumQuadraturePoints1D(ceed_data->basis_q, &num_qpts_child1d);
+  CeedInt num_qpts_parent = CeedIntPow(num_qpts_child1d, dim);
+  PetscCall(GetRestrictionForDomain(ceed, dm, 0, 0, 0, 0, num_qpts_parent, problem->q_data_size_sur, &(*stats_data)->elem_restr_parent_stats,
                                     &(*stats_data)->elem_restr_parent_x, &(*stats_data)->elem_restr_parent_qd));
   CeedElemRestrictionGetNumComponents((*stats_data)->elem_restr_parent_x, &num_comp_x);
   CeedElemRestrictionCreateVector((*stats_data)->elem_restr_parent_x, &(*stats_data)->x_coord, NULL);
