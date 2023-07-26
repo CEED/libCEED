@@ -313,14 +313,14 @@ class BlockedElemRestriction(_ElemRestrictionBase):
     # Transpose a Blocked ElemRestriction
     @property
     def T(self):
-        """Transpose a BlockedElemRestriction."""
+        """Transpose a Blocked ElemRestriction."""
 
         return TransposeBlockedElemRestriction(self)
 
     # Transpose a Blocked ElemRestriction
     @property
     def transpose(self):
-        """Transpose a BlockedElemRestriction."""
+        """Transpose a Blocked ElemRestriction."""
 
         return TransposeBlockedElemRestriction(self)
 
