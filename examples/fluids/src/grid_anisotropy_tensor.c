@@ -35,7 +35,8 @@ PetscErrorCode GridAnisotropyTensorProjectionSetupApply(Ceed ceed, User user, Ce
   {  // -- Setup DM
     PetscFE      fe;
     PetscSection section;
-    PetscCall(PetscFECreateLagrange(PETSC_COMM_SELF, dim, grid_aniso_proj->num_comp, PETSC_FALSE, user->app_ctx->degree, PETSC_DECIDE, &fe));
+    PetscInt     q_order = user->app_ctx->degree + user->app_ctx->q_extra;
+    PetscCall(PetscFECreateLagrange(PETSC_COMM_SELF, dim, grid_aniso_proj->num_comp, PETSC_FALSE, user->app_ctx->degree, q_order, &fe));
     PetscCall(PetscObjectSetName((PetscObject)fe, "Grid Anisotropy Tensor Projection"));
     PetscCall(DMAddField(grid_aniso_proj->dm, NULL, (PetscObject)fe));
     PetscCall(DMCreateDS(grid_aniso_proj->dm));

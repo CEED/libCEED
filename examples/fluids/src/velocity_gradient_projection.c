@@ -25,7 +25,8 @@ PetscErrorCode VelocityGradientProjectionCreateDM(NodalProjectionData grad_velo_
   PetscCall(DMGetDimension(grad_velo_proj->dm, &dim));
   PetscCall(PetscObjectSetName((PetscObject)grad_velo_proj->dm, "Velocity Gradient Projection"));
 
-  PetscCall(PetscFECreateLagrange(PETSC_COMM_SELF, dim, grad_velo_proj->num_comp, PETSC_FALSE, degree, PETSC_DECIDE, &fe));
+  PetscInt q_order = user->app_ctx->degree + user->app_ctx->q_extra;
+  PetscCall(PetscFECreateLagrange(PETSC_COMM_SELF, dim, grad_velo_proj->num_comp, PETSC_FALSE, degree, q_order, &fe));
   PetscCall(PetscObjectSetName((PetscObject)fe, "Velocity Gradient Projection"));
   PetscCall(DMAddField(grad_velo_proj->dm, NULL, (PetscObject)fe));
   PetscCall(DMCreateDS(grad_velo_proj->dm));
