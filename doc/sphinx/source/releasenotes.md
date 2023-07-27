@@ -13,16 +13,18 @@ For example, `CeedOperatorContextGetFieldLabel` was renamed to `CeedOperatorGetC
 
 ### New features
 
-- Added {c:func}`CeedOperatorGetFieldByName` to access a specific `CeedOperatorField` by its name
+- Added {c:func}`CeedOperatorGetFieldByName` to access a specific `CeedOperatorField` by its name.
 - Update `/cpu/self/memcheck/*` backends to help verify `CeedVector` array access assumptions and `CeedQFunction` user output assumptions.
 - Update {c:func}`CeedOperatorLinearAssembleDiagonal` to provide default implementation that supports `CeedOperator` with multiple active bases.
-- Added Sycl backends `/gpu/sycl/ref` and `/gpu/sycl/shared`
+- Added Sycl backends `/gpu/sycl/ref` and `/gpu/sycl/shared`.
+- Added support for non-tensor $H(\text{curl})$ finite element spaces with {c:func}`CeedBasisCreateHcurl`.
+- Added {c:func}`CeedElemRestrictionCreateCurlOriented`, similar to {c:func}`CeedElemRestrictionCreateOriented`, for element restrictions requiring more general element transformations such as those for high-order $H(\text{curl})$ spaces on tetrahedra (see [https://dl.acm.org/doi/pdf/10.1145/3524456](https://dl.acm.org/doi/pdf/10.1145/3524456)).
 
 ### Examples
 
 #### {ref}`example-petsc-bps`
 
-- Requires PETSc version 3.19 or later
+- Requires PETSc version 3.19 or later.
 
 (v0-11)=
 
@@ -125,7 +127,7 @@ This reduces time to compile the library and increases the range of parameters f
 - `CeedDebugEnv()` macro created to provide debugging outputs when Ceed context is not present.
 - Added {c:func}`CeedStringAllocCopy` to reduce repeated code for copying strings internally.
 - Added {c:func}`CeedPathConcatenate` to facilitate loading kernel source files with a path relative to the current file.
-- Added support for non-tensor H(div) elements, to include CPU backend implementations and {c:func}`CeedBasisCreateHdiv` convenience constructor.
+- Added support for non-tensor $H(\text{div})$ elements, to include CPU backend implementations and {c:func}`CeedBasisCreateHdiv` convenience constructor.
 - Added {c:func}`CeedQFunctionSetContextWritable` and read-only access to `CeedQFunctionContext` data as an optional feature to improve GPU performance. By default, calling the `CeedQFunctionUser` during {c:func}`CeedQFunctionApply` is assumed to write into the `CeedQFunctionContext` data, consistent with the previous behavior. Note that if a user asserts that their `CeedQFunctionUser` does not write into the `CeedQFunctionContext` data, they are responsible for the validity of this assertion.
 - Added support for element matrix assembly in GPU backends.
 
