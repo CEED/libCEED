@@ -38,11 +38,11 @@ static inline int CeedElemRestrictionApply_Ref_Core(CeedElemRestriction r, const
     // Overwrite for notranspose mode, l-vec to e-vec
     CeedCallBackend(CeedVectorGetArrayWrite(v, CEED_MEM_HOST, &vv));
   }
-  // Restriction from L-vector to E-vector
-  // Perform: v = r * u
-  // vv has shape [elem_size, num_comp, num_elem], row-major
-  // uu has shape [nnodes, num_comp]
   if (t_mode == CEED_NOTRANSPOSE) {
+    // Restriction from L-vector to E-vector
+    // Perform: v = r * u
+    // vv has shape [elem_size, num_comp, num_elem], row-major
+    // uu has shape [nnodes, num_comp]
     switch (rstr_type) {
       case CEED_RESTRICTION_STRIDED: {
         // No offsets provided, Identity Restriction
@@ -103,37 +103,27 @@ static inline int CeedElemRestrictionApply_Ref_Core(CeedElemRestriction r, const
         for (CeedInt e = start * blk_size; e < stop * blk_size; e += blk_size) {
           CeedPragmaSIMD for (CeedInt k = 0; k < num_comp; k++) {
             CeedPragmaSIMD for (CeedInt i = 0; i < elem_size * blk_size; i++) {
-              CeedInt ii = i % elem_size;
+              CeedInt ii = 3 * blk_size * (i / blk_size) + i % blk_size;
               if (use_orients) {
-                if (ii == 0) {
-                  vv[elem_size * (k * blk_size + num_comp * e) + i - v_offset] =
-                      uu[impl->offsets[i + 0 + elem_size * e] + k * comp_stride] * impl->curl_orients[3 * i + 1 + 3 * elem_size * e] +
-                      uu[impl->offsets[i + 1 + elem_size * e] + k * comp_stride] * impl->curl_orients[3 * i + 2 + 3 * elem_size * e];
-                } else if (ii == elem_size - 1) {
-                  vv[elem_size * (k * blk_size + num_comp * e) + i - v_offset] =
-                      uu[impl->offsets[i - 1 + elem_size * e] + k * comp_stride] * impl->curl_orients[3 * i + 0 + 3 * elem_size * e] +
-                      uu[impl->offsets[i + 0 + elem_size * e] + k * comp_stride] * impl->curl_orients[3 * i + 1 + 3 * elem_size * e];
-                } else {
-                  vv[elem_size * (k * blk_size + num_comp * e) + i - v_offset] =
-                      uu[impl->offsets[i - 1 + elem_size * e] + k * comp_stride] * impl->curl_orients[3 * i + 0 + 3 * elem_size * e] +
-                      uu[impl->offsets[i + 0 + elem_size * e] + k * comp_stride] * impl->curl_orients[3 * i + 1 + 3 * elem_size * e] +
-                      uu[impl->offsets[i + 1 + elem_size * e] + k * comp_stride] * impl->curl_orients[3 * i + 2 + 3 * elem_size * e];
-                }
+                vv[elem_size * (k * blk_size + num_comp * e) + i - v_offset] =
+                    uu[impl->offsets[i + 0 * blk_size + elem_size * e] + k * comp_stride] *
+                        impl->curl_orients[ii + 1 * blk_size + 3 * elem_size * e] +
+                    (i >= blk_size ? uu[impl->offsets[i - 1 * blk_size + elem_size * e] + k * comp_stride] *
+                                         impl->curl_orients[ii + 0 * blk_size + 3 * elem_size * e]
+                                   : 0.0) +
+                    (i < (elem_size - 1) * blk_size ? uu[impl->offsets[i + 1 * blk_size + elem_size * e] + k * comp_stride] *
+                                                          impl->curl_orients[ii + 2 * blk_size + 3 * elem_size * e]
+                                                    : 0.0);
               } else {
-                if (ii == 0) {
-                  vv[elem_size * (k * blk_size + num_comp * e) + i - v_offset] =
-                      uu[impl->offsets[i + 0 + elem_size * e] + k * comp_stride] * abs(impl->curl_orients[3 * i + 1 + 3 * elem_size * e]) +
-                      uu[impl->offsets[i + 1 + elem_size * e] + k * comp_stride] * abs(impl->curl_orients[3 * i + 2 + 3 * elem_size * e]);
-                } else if (ii == elem_size - 1) {
-                  vv[elem_size * (k * blk_size + num_comp * e) + i - v_offset] =
-                      uu[impl->offsets[i - 1 + elem_size * e] + k * comp_stride] * abs(impl->curl_orients[3 * i + 0 + 3 * elem_size * e]) +
-                      uu[impl->offsets[i + 0 + elem_size * e] + k * comp_stride] * abs(impl->curl_orients[3 * i + 1 + 3 * elem_size * e]);
-                } else {
-                  vv[elem_size * (k * blk_size + num_comp * e) + i - v_offset] =
-                      uu[impl->offsets[i - 1 + elem_size * e] + k * comp_stride] * abs(impl->curl_orients[3 * i + 0 + 3 * elem_size * e]) +
-                      uu[impl->offsets[i + 0 + elem_size * e] + k * comp_stride] * abs(impl->curl_orients[3 * i + 1 + 3 * elem_size * e]) +
-                      uu[impl->offsets[i + 1 + elem_size * e] + k * comp_stride] * abs(impl->curl_orients[3 * i + 2 + 3 * elem_size * e]);
-                }
+                vv[elem_size * (k * blk_size + num_comp * e) + i - v_offset] =
+                    uu[impl->offsets[i + 0 * blk_size + elem_size * e] + k * comp_stride] *
+                        abs(impl->curl_orients[ii + 1 * blk_size + 3 * elem_size * e]) +
+                    (i >= blk_size ? uu[impl->offsets[i - 1 * blk_size + elem_size * e] + k * comp_stride] *
+                                         abs(impl->curl_orients[ii + 0 * blk_size + 3 * elem_size * e])
+                                   : 0.0) +
+                    (i < (elem_size - 1) * blk_size ? uu[impl->offsets[i + 1 * blk_size + elem_size * e] + k * comp_stride] *
+                                                          abs(impl->curl_orients[ii + 2 * blk_size + 3 * elem_size * e])
+                                                    : 0.0);
               }
             }
           }
@@ -143,7 +133,7 @@ static inline int CeedElemRestrictionApply_Ref_Core(CeedElemRestriction r, const
   } else {
     // Restriction from E-vector to L-vector
     // Performing v += r^T * u
-    // uu has shape [elem_size, num_comp, num_elem]
+    // uu has shape [elem_size, num_comp, num_elem], row-major
     // vv has shape [nnodes, num_comp]
     switch (rstr_type) {
       case CEED_RESTRICTION_STRIDED: {
@@ -213,41 +203,27 @@ static inline int CeedElemRestrictionApply_Ref_Core(CeedElemRestriction r, const
             for (CeedInt i = 0; i < elem_size * blk_size; i += blk_size) {
               // Iteration bound set to discard padding elements
               for (CeedInt j = i; j < i + CeedIntMin(blk_size, num_elem - e); j++) {
-                CeedInt jj = j % elem_size;
+                CeedInt jj = 3 * blk_size * (j / blk_size + 0) + j % blk_size;
                 if (use_orients) {
-                  if (jj == 0) {
-                    vv[impl->offsets[j + e * elem_size] + k * comp_stride] +=
-                        uu[elem_size * (k * blk_size + num_comp * e) + j + 0 - v_offset] * impl->curl_orients[(j + 0) * 3 + 1 + e * 3 * elem_size] +
-                        uu[elem_size * (k * blk_size + num_comp * e) + j + 1 - v_offset] * impl->curl_orients[(j + 1) * 3 + 0 + e * 3 * elem_size];
-                  } else if (jj == elem_size - 1) {
-                    vv[impl->offsets[j + e * elem_size] + k * comp_stride] +=
-                        uu[elem_size * (k * blk_size + num_comp * e) + j - 1 - v_offset] * impl->curl_orients[(j - 1) * 3 + 2 + e * 3 * elem_size] +
-                        uu[elem_size * (k * blk_size + num_comp * e) + j + 0 - v_offset] * impl->curl_orients[(j + 0) * 3 + 1 + e * 3 * elem_size];
-                  } else {
-                    vv[impl->offsets[j + e * elem_size] + k * comp_stride] +=
-                        uu[elem_size * (k * blk_size + num_comp * e) + j - 1 - v_offset] * impl->curl_orients[(j - 1) * 3 + 2 + e * 3 * elem_size] +
-                        uu[elem_size * (k * blk_size + num_comp * e) + j + 0 - v_offset] * impl->curl_orients[(j + 0) * 3 + 1 + e * 3 * elem_size] +
-                        uu[elem_size * (k * blk_size + num_comp * e) + j + 1 - v_offset] * impl->curl_orients[(j + 1) * 3 + 0 + e * 3 * elem_size];
-                  }
+                  vv[impl->offsets[j + e * elem_size] + k * comp_stride] +=
+                      uu[elem_size * (k * blk_size + num_comp * e) + j + 0 * blk_size - v_offset] *
+                          impl->curl_orients[jj + 1 * blk_size + e * 3 * elem_size] +
+                      (j >= blk_size ? uu[elem_size * (k * blk_size + num_comp * e) + j - 1 * blk_size - v_offset] *
+                                           impl->curl_orients[jj - 1 * blk_size + e * 3 * elem_size]
+                                     : 0.0) +
+                      (j < (elem_size - 1) * blk_size ? uu[elem_size * (k * blk_size + num_comp * e) + j + 1 * blk_size - v_offset] *
+                                                            impl->curl_orients[jj + 3 * blk_size + e * 3 * elem_size]
+                                                      : 0.0);
                 } else {
-                  if (jj == 0) {
-                    vv[impl->offsets[j + e * elem_size] + k * comp_stride] += uu[elem_size * (k * blk_size + num_comp * e) + j + 0 - v_offset] *
-                                                                                  abs(impl->curl_orients[(j + 0) * 3 + 1 + e * 3 * elem_size]) +
-                                                                              uu[elem_size * (k * blk_size + num_comp * e) + j + 1 - v_offset] *
-                                                                                  abs(impl->curl_orients[(j + 1) * 3 + 0 + e * 3 * elem_size]);
-                  } else if (jj == elem_size - 1) {
-                    vv[impl->offsets[j + e * elem_size] + k * comp_stride] += uu[elem_size * (k * blk_size + num_comp * e) + j - 1 - v_offset] *
-                                                                                  abs(impl->curl_orients[(j - 1) * 3 + 2 + e * 3 * elem_size]) +
-                                                                              uu[elem_size * (k * blk_size + num_comp * e) + j + 0 - v_offset] *
-                                                                                  abs(impl->curl_orients[(j + 0) * 3 + 1 + e * 3 * elem_size]);
-                  } else {
-                    vv[impl->offsets[j + e * elem_size] + k * comp_stride] += uu[elem_size * (k * blk_size + num_comp * e) + j - 1 - v_offset] *
-                                                                                  abs(impl->curl_orients[(j - 1) * 3 + 2 + e * 3 * elem_size]) +
-                                                                              uu[elem_size * (k * blk_size + num_comp * e) + j + 0 - v_offset] *
-                                                                                  abs(impl->curl_orients[(j + 0) * 3 + 1 + e * 3 * elem_size]) +
-                                                                              uu[elem_size * (k * blk_size + num_comp * e) + j + 1 - v_offset] *
-                                                                                  abs(impl->curl_orients[(j + 1) * 3 + 0 + e * 3 * elem_size]);
-                  }
+                  vv[impl->offsets[j + e * elem_size] + k * comp_stride] +=
+                      uu[elem_size * (k * blk_size + num_comp * e) + j + 0 * blk_size - v_offset] *
+                          abs(impl->curl_orients[jj + 1 * blk_size + e * 3 * elem_size]) +
+                      (j >= blk_size ? uu[elem_size * (k * blk_size + num_comp * e) + j - 1 * blk_size - v_offset] *
+                                           abs(impl->curl_orients[jj - 1 * blk_size + e * 3 * elem_size])
+                                     : 0.0) +
+                      (j < (elem_size - 1) * blk_size ? uu[elem_size * (k * blk_size + num_comp * e) + j + 1 * blk_size - v_offset] *
+                                                            abs(impl->curl_orients[jj + 3 * blk_size + e * 3 * elem_size])
+                                                      : 0.0);
                 }
               }
             }
