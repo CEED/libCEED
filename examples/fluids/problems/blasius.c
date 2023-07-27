@@ -24,7 +24,7 @@ PetscErrorCode CompressibleBlasiusResidual(SNES snes, Vec X, Vec R, void *ctx) {
   PetscInt             N  = blasius->n_cheb;
   PetscScalar          Ma = Mach(&blasius->newtonian_ctx, blasius->T_inf, blasius->U_inf), Pr = Prandtl(&blasius->newtonian_ctx),
               gamma = HeatCapacityRatio(&blasius->newtonian_ctx);
-  PetscFunctionBegin;
+  PetscFunctionBeginUser;
   PetscCall(VecGetArrayRead(X, &Tf));
   Th = Tf + N;
   PetscCall(VecGetArray(R, &r));
@@ -76,7 +76,7 @@ PetscErrorCode ComputeChebyshevCoefficients(BlasiusContext blasius) {
   PetscInt            N = blasius->n_cheb;
   SNESConvergedReason reason;
   const PetscScalar  *cheb_coefs;
-  PetscFunctionBegin;
+  PetscFunctionBeginUser;
 
   // Allocate memory
   PetscCall(PetscMalloc2(N - 3, &blasius->X, N - 3, &w));
@@ -246,6 +246,7 @@ PetscErrorCode NS_BLASIUS(ProblemData *problem, DM dm, void *ctx, SimpleBC bc) {
   // ------------------------------------------------------
   problem->ics.qfunction     = ICsBlasius;
   problem->ics.qfunction_loc = ICsBlasius_loc;
+  problem->has_true_soln     = PETSC_TRUE;
 
   CeedScalar U_inf                                = 40;           // m/s
   CeedScalar T_inf                                = 288.;         // K

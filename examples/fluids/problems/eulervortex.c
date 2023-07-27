@@ -50,7 +50,9 @@ PetscErrorCode NS_EULER_VORTEX(ProblemData *problem, DM dm, void *ctx, SimpleBC 
   problem->apply_inflow.qfunction_loc        = TravelingVortex_Inflow_loc;
   problem->apply_outflow.qfunction           = Euler_Outflow;
   problem->apply_outflow.qfunction_loc       = Euler_Outflow_loc;
-  problem->non_zero_time                     = PETSC_TRUE;
+  problem->error.qfunction                   = Euler_L2Error;
+  problem->error.qfunction_loc               = Euler_L2Error_loc;
+  problem->has_true_soln                     = PETSC_TRUE;
   problem->print_info                        = PRINT_EULER_VORTEX;
 
   // ------------------------------------------------------
@@ -149,6 +151,7 @@ PetscErrorCode NS_EULER_VORTEX(ProblemData *problem, DM dm, void *ctx, SimpleBC 
   CeedQFunctionContextReferenceCopy(euler_context, &problem->apply_vol_ifunction.qfunction_context);
   CeedQFunctionContextReferenceCopy(euler_context, &problem->apply_inflow.qfunction_context);
   CeedQFunctionContextReferenceCopy(euler_context, &problem->apply_outflow.qfunction_context);
+  CeedQFunctionContextReferenceCopy(euler_context, &problem->error.qfunction_context);
   PetscFunctionReturn(PETSC_SUCCESS);
 }
 
