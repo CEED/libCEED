@@ -26,7 +26,9 @@ static struct {
   int (*init)(const char *resource, Ceed f);
   unsigned int priority;
 } backends[32];
+CeedPragmaThreadPrivate(backends)
 static size_t num_backends;
+CeedPragmaThreadPrivate(num_backends)
 
 #define CEED_FTABLE_ENTRY(class, method) \
   { #class #method, offsetof(struct class##_private, method) }

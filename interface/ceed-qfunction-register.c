@@ -10,6 +10,7 @@
 #include <stdbool.h>
 
 static bool register_all_called;
+CeedPragmaThreadPrivate(register_all_called)
 
 #define CEED_GALLERY_QFUNCTION(name) CEED_INTERN int name(void);
 #include "../gallery/ceed-gallery-list.h"

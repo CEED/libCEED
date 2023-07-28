@@ -187,7 +187,10 @@ static inline int CeedElemRestrictionApplyStridedTranspose_Ref_Core(CeedElemRest
       CeedPragmaSIMD for (CeedInt k = 0; k < num_comp; k++) {
         CeedPragmaSIMD for (CeedInt n = 0; n < elem_size; n++) {
           CeedPragmaSIMD for (CeedInt j = 0; j < CeedIntMin(block_size, num_elem - e); j++) {
-            vv[n + k * elem_size + (e + j) * elem_size * num_comp] += uu[e * elem_size * num_comp + (k * elem_size + n) * block_size + j - v_offset];
+            CeedScalar uu_val;
+
+            uu_val = uu[e * elem_size * num_comp + (k * elem_size + n) * block_size + j - v_offset];
+            CeedPragmaAtomic vv[n + k * elem_size + (e + j) * elem_size * num_comp] += uu_val;
           }
         }
       }
@@ -201,8 +204,10 @@ static inline int CeedElemRestrictionApplyStridedTranspose_Ref_Core(CeedElemRest
       CeedPragmaSIMD for (CeedInt k = 0; k < num_comp; k++) {
         CeedPragmaSIMD for (CeedInt n = 0; n < elem_size; n++) {
           CeedPragmaSIMD for (CeedInt j = 0; j < CeedIntMin(block_size, num_elem - e); j++) {
-            vv[n * strides[0] + k * strides[1] + (e + j) * strides[2]] +=
-                uu[e * elem_size * num_comp + (k * elem_size + n) * block_size + j - v_offset];
+            CeedScalar uu_val;
+
+            uu_val = uu[e * elem_size * num_comp + (k * elem_size + n) * block_size + j - v_offset];
+            CeedPragmaAtomic vv[n * strides[0] + k * strides[1] + (e + j) * strides[2]] += uu_val;
           }
         }
       }
@@ -223,7 +228,10 @@ static inline int CeedElemRestrictionApplyStandardTranspose_Ref_Core(CeedElemRes
       for (CeedInt i = 0; i < elem_size * block_size; i += block_size) {
         // Iteration bound set to discard padding elements
         for (CeedInt j = i; j < i + CeedIntMin(block_size, num_elem - e); j++) {
-          vv[impl->offsets[j + e * elem_size] + k * comp_stride] += uu[elem_size * (k * block_size + e * num_comp) + j - v_offset];
+          CeedScalar uu_val;
+
+          uu_val = uu[elem_size * (k * block_size + e * num_comp) + j - v_offset];
+          CeedPragmaAtomic vv[impl->offsets[j + e * elem_size] + k * comp_stride] += uu_val;
         }
       }
     }
@@ -243,8 +251,10 @@ static inline int CeedElemRestrictionApplyOrientedTranspose_Ref_Core(CeedElemRes
       for (CeedInt i = 0; i < elem_size * block_size; i += block_size) {
         // Iteration bound set to discard padding elements
         for (CeedInt j = i; j < i + CeedIntMin(block_size, num_elem - e); j++) {
-          vv[impl->offsets[j + e * elem_size] + k * comp_stride] +=
-              uu[elem_size * (k * block_size + e * num_comp) + j - v_offset] * (impl->orients[j + e * elem_size] ? -1.0 : 1.0);
+          CeedScalar uu_val;
+
+          uu_val = uu[elem_size * (k * block_size + e * num_comp) + j - v_offset] * (impl->orients[j + e * elem_size] ? -1.0 : 1.0);
+          CeedPragmaAtomic vv[impl->offsets[j + e * elem_size] + k * comp_stride] += uu_val;
         }
       }
     }
@@ -262,31 +272,39 @@ static inline int CeedElemRestrictionApplyCurlOrientedTranspose_Ref_Core(CeedEle
   for (CeedInt e = start * block_size; e < stop * block_size; e += block_size) {
     for (CeedInt k = 0; k < num_comp; k++) {
       // Iteration bound set to discard padding elements
-      CeedInt block_end = CeedIntMin(block_size, num_elem - e), n = 0;
+      const CeedInt block_end = CeedIntMin(block_size, num_elem - e);
+      CeedInt       n         = 0;
+
       for (CeedInt j = 0; j < block_end; j++) {
-        vv[impl->offsets[j + n * block_size + e * elem_size] + k * comp_stride] +=
-            uu[e * elem_size * num_comp + (k * elem_size + n) * block_size + j - v_offset] *
-                impl->curl_orients[j + (3 * n + 1) * block_size + e * 3 * elem_size] +
-            uu[e * elem_size * num_comp + (k * elem_size + n + 1) * block_size + j - v_offset] *
-                impl->curl_orients[j + (3 * n + 3) * block_size + e * 3 * elem_size];
+        CeedScalar uu_val;
+
+        uu_val = uu[e * elem_size * num_comp + (k * elem_size + n) * block_size + j - v_offset] *
+                     impl->curl_orients[j + (3 * n + 1) * block_size + e * 3 * elem_size] +
+                 uu[e * elem_size * num_comp + (k * elem_size + n + 1) * block_size + j - v_offset] *
+                     impl->curl_orients[j + (3 * n + 3) * block_size + e * 3 * elem_size];
+        CeedPragmaAtomic vv[impl->offsets[j + n * block_size + e * elem_size] + k * comp_stride] += uu_val;
       }
       for (n = 1; n < elem_size - 1; n++) {
         for (CeedInt j = 0; j < block_end; j++) {
-          vv[impl->offsets[j + n * block_size + e * elem_size] + k * comp_stride] +=
-              uu[e * elem_size * num_comp + (k * elem_size + n - 1) * block_size + j - v_offset] *
-                  impl->curl_orients[j + (3 * n - 1) * block_size + e * 3 * elem_size] +
-              uu[e * elem_size * num_comp + (k * elem_size + n) * block_size + j - v_offset] *
-                  impl->curl_orients[j + (3 * n + 1) * block_size + e * 3 * elem_size] +
-              uu[e * elem_size * num_comp + (k * elem_size + n + 1) * block_size + j - v_offset] *
-                  impl->curl_orients[j + (3 * n + 3) * block_size + e * 3 * elem_size];
+          CeedScalar uu_val;
+
+          uu_val = uu[e * elem_size * num_comp + (k * elem_size + n - 1) * block_size + j - v_offset] *
+                       impl->curl_orients[j + (3 * n - 1) * block_size + e * 3 * elem_size] +
+                   uu[e * elem_size * num_comp + (k * elem_size + n) * block_size + j - v_offset] *
+                       impl->curl_orients[j + (3 * n + 1) * block_size + e * 3 * elem_size] +
+                   uu[e * elem_size * num_comp + (k * elem_size + n + 1) * block_size + j - v_offset] *
+                       impl->curl_orients[j + (3 * n + 3) * block_size + e * 3 * elem_size];
+          CeedPragmaAtomic vv[impl->offsets[j + n * block_size + e * elem_size] + k * comp_stride] += uu_val;
         }
       }
       for (CeedInt j = 0; j < block_end; j++) {
-        vv[impl->offsets[j + n * block_size + e * elem_size] + k * comp_stride] +=
-            uu[e * elem_size * num_comp + (k * elem_size + n - 1) * block_size + j - v_offset] *
-                impl->curl_orients[j + (3 * n - 1) * block_size + e * 3 * elem_size] +
-            uu[e * elem_size * num_comp + (k * elem_size + n) * block_size + j - v_offset] *
-                impl->curl_orients[j + (3 * n + 1) * block_size + e * 3 * elem_size];
+        CeedScalar uu_val;
+
+        uu_val = uu[e * elem_size * num_comp + (k * elem_size + n - 1) * block_size + j - v_offset] *
+                     impl->curl_orients[j + (3 * n - 1) * block_size + e * 3 * elem_size] +
+                 uu[e * elem_size * num_comp + (k * elem_size + n) * block_size + j - v_offset] *
+                     impl->curl_orients[j + (3 * n + 1) * block_size + e * 3 * elem_size];
+        CeedPragmaAtomic vv[impl->offsets[j + n * block_size + e * elem_size] + k * comp_stride] += uu_val;
       }
     }
   }
@@ -304,33 +322,39 @@ static inline int CeedElemRestrictionApplyCurlOrientedUnsignedTranspose_Ref_Core
   for (CeedInt e = start * block_size; e < stop * block_size; e += block_size) {
     for (CeedInt k = 0; k < num_comp; k++) {
       // Iteration bound set to discard padding elements
-      CeedInt       n         = 0;
       const CeedInt block_end = CeedIntMin(block_size, num_elem - e);
+      CeedInt       n         = 0;
 
       for (CeedInt j = 0; j < block_end; j++) {
-        vv[impl->offsets[j + n * block_size + e * elem_size] + k * comp_stride] +=
-            uu[e * elem_size * num_comp + (k * elem_size + n) * block_size + j - v_offset] *
-                abs(impl->curl_orients[j + (3 * n + 1) * block_size + e * 3 * elem_size]) +
-            uu[e * elem_size * num_comp + (k * elem_size + n + 1) * block_size + j - v_offset] *
-                abs(impl->curl_orients[j + (3 * n + 3) * block_size + e * 3 * elem_size]);
+        CeedScalar uu_val;
+
+        uu_val = uu[e * elem_size * num_comp + (k * elem_size + n) * block_size + j - v_offset] *
+                     abs(impl->curl_orients[j + (3 * n + 1) * block_size + e * 3 * elem_size]) +
+                 uu[e * elem_size * num_comp + (k * elem_size + n + 1) * block_size + j - v_offset] *
+                     abs(impl->curl_orients[j + (3 * n + 3) * block_size + e * 3 * elem_size]);
+        CeedPragmaAtomic vv[impl->offsets[j + n * block_size + e * elem_size] + k * comp_stride] += uu_val;
       }
       for (n = 1; n < elem_size - 1; n++) {
         for (CeedInt j = 0; j < block_end; j++) {
-          vv[impl->offsets[j + n * block_size + e * elem_size] + k * comp_stride] +=
-              uu[e * elem_size * num_comp + (k * elem_size + n - 1) * block_size + j - v_offset] *
-                  abs(impl->curl_orients[j + (3 * n - 1) * block_size + e * 3 * elem_size]) +
-              uu[e * elem_size * num_comp + (k * elem_size + n) * block_size + j - v_offset] *
-                  abs(impl->curl_orients[j + (3 * n + 1) * block_size + e * 3 * elem_size]) +
-              uu[e * elem_size * num_comp + (k * elem_size + n + 1) * block_size + j - v_offset] *
-                  abs(impl->curl_orients[j + (3 * n + 3) * block_size + e * 3 * elem_size]);
+          CeedScalar uu_val;
+
+          uu_val = uu[e * elem_size * num_comp + (k * elem_size + n - 1) * block_size + j - v_offset] *
+                       abs(impl->curl_orients[j + (3 * n - 1) * block_size + e * 3 * elem_size]) +
+                   uu[e * elem_size * num_comp + (k * elem_size + n) * block_size + j - v_offset] *
+                       abs(impl->curl_orients[j + (3 * n + 1) * block_size + e * 3 * elem_size]) +
+                   uu[e * elem_size * num_comp + (k * elem_size + n + 1) * block_size + j - v_offset] *
+                       abs(impl->curl_orients[j + (3 * n + 3) * block_size + e * 3 * elem_size]);
+          CeedPragmaAtomic vv[impl->offsets[j + n * block_size + e * elem_size] + k * comp_stride] += uu_val;
         }
       }
       for (CeedInt j = 0; j < block_end; j++) {
-        vv[impl->offsets[j + n * block_size + e * elem_size] + k * comp_stride] +=
-            uu[e * elem_size * num_comp + (k * elem_size + n - 1) * block_size + j - v_offset] *
-                abs(impl->curl_orients[j + (3 * n - 1) * block_size + e * 3 * elem_size]) +
-            uu[e * elem_size * num_comp + (k * elem_size + n) * block_size + j - v_offset] *
-                abs(impl->curl_orients[j + (3 * n + 1) * block_size + e * 3 * elem_size]);
+        CeedScalar uu_val;
+
+        uu_val = uu[e * elem_size * num_comp + (k * elem_size + n - 1) * block_size + j - v_offset] *
+                     abs(impl->curl_orients[j + (3 * n - 1) * block_size + e * 3 * elem_size]) +
+                 uu[e * elem_size * num_comp + (k * elem_size + n) * block_size + j - v_offset] *
+                     abs(impl->curl_orients[j + (3 * n + 1) * block_size + e * 3 * elem_size]);
+        CeedPragmaAtomic vv[impl->offsets[j + n * block_size + e * elem_size] + k * comp_stride] += uu_val;
       }
     }
   }

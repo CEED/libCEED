@@ -107,13 +107,18 @@ MARCHFLAG.oneAPI        := $(MARCHFLAG.clang)
 OMP_SIMD_FLAG.gcc       := -fopenmp-simd
 OMP_SIMD_FLAG.clang     := $(OMP_SIMD_FLAG.gcc)
 OMP_SIMD_FLAG.icc       := -qopenmp-simd
-OMP_SIMD_FLAG.oneAPI    := $(OMP_SIMD_FLAG.clang)
+OMP_SIMD_FLAG.oneAPI    := $(OMP_SIMD_FLAG.icc)
+OMP_FLAG.gcc            := -fopenmp
+OMP_FLAG.clang          := $(OMP_FLAG.gcc)
+OMP_FLAG.icc            := -qopenmp
+OMP_FLAG.oneAPI         := $(OMP_FLAG.icc)
 SYCL_FLAG.gcc           :=
 SYCL_FLAG.clang         := -fsycl
 SYCL_FLAG.icc           :=
 SYCL_FLAG.oneAPI        := -fsycl -fno-sycl-id-queries-fit-in-int
 OPT.gcc                 := -g -ffp-contract=fast
 OPT.clang               := $(OPT.gcc)
+OPT.icc                 := $(OPT.gcc)
 OPT.oneAPI              := $(OPT.clang)
 OPT.emcc                :=
 CFLAGS.gcc              := $(if $(STATIC),,-fPIC) -std=c99 -Wall -Wextra -Wno-unused-parameter -MMD -MP
@@ -151,6 +156,7 @@ PEDANTICFLAGS ?= -Werror -pedantic
 OPT    ?= -O $(MARCHFLAG) $(OPT.$(CC_VENDOR)) $(OMP_SIMD_FLAG)
 CFLAGS ?= $(OPT) $(CFLAGS.$(CC_VENDOR)) $(if $(PEDANTIC),$(PEDANTICFLAGS))
 CXXFLAGS ?= $(OPT) $(CXXFLAGS.$(CC_VENDOR)) $(if $(PEDANTIC),$(PEDANTICFLAGS))
+FFLAGS ?= $(OPT) $(FFLAGS.$(FC_VENDOR))
 LIBCXX ?= -lstdc++
 NVCCFLAGS ?= -ccbin $(CXX) -Xcompiler "$(OPT)" -Xcompiler -fPIC
 ifneq ($(CUDA_ARCH),)
@@ -160,10 +166,16 @@ HIPCCFLAGS ?= $(filter-out $(OMP_SIMD_FLAG),$(OPT)) -fPIC -munsafe-fp-atomics
 ifneq ($(HIP_ARCH),)
   HIPCCFLAGS += --amdgpu-target=$(HIP_ARCH)
 endif
-
 SYCL_FLAG := $(SYCL_FLAG.$(CC_VENDOR))
 SYCLFLAGS ?= $(SYCL_FLAG) -fPIC -std=c++17 $(filter-out -std=c++11,$(CXXFLAGS)) $(filter-out $(OMP_SIMD_FLAG),$(OPT))
-FFLAGS ?= $(OPT) $(FFLAGS.$(FC_VENDOR))
+
+OPENMP ?=
+ifneq ($(OPENMP),)
+	OMP_FLAG := $(OMP_FLAG.$(CC_VENDOR))
+	OMP_FLAG := $(if $(call cc_check_flag,$(OMP_FLAG)),$(OMP_FLAG))
+  CFLAGS += $(OMP_FLAG) -DCEED_USE_OPENMP
+  CEED_LDFLAGS += $(OMP_FLAG)
+endif
 
 ifeq ($(COVERAGE), 1)
   CFLAGS += --coverage

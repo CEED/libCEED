@@ -37,7 +37,9 @@ static struct {
   CeedQFunctionUser f;
   int (*init)(Ceed ceed, const char *name, CeedQFunction qf);
 } gallery_qfunctions[1024];
+CeedPragmaThreadPrivate(gallery_qfunctions)
 static size_t num_qfunctions;
+CeedPragmaThreadPrivate(num_qfunctions)
 /// @endcond
 
 /// ----------------------------------------------------------------------------

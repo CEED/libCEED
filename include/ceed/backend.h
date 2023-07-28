@@ -58,6 +58,21 @@
 #endif
 #endif
 
+/// This macro provides the appropriate OpenMP Pragmas for the compilation environment.
+/// @ingroup Ceed
+#ifdef CEED_USE_OPENMP
+#ifndef CeedPragmaAtomic
+#define CeedPragmaAtomic _Pragma("omp atomic update")
+#endif
+#ifndef CeedPragmaThreadPrivate
+#define CeedPragma(x) _Pragma(#x)
+#define CeedPragmaThreadPrivate(x) CeedPragma(omp threadprivate(x))
+#endif
+#else
+#define CeedPragmaAtomic
+#define CeedPragmaThreadPrivate(x)
+#endif
+
 /**
   This enum supples common colors for CeedDebug256 debugging output.
   Set the environment variable `CEED_DEBUG = 1` to activate debugging output.

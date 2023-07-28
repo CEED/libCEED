@@ -29,4 +29,4 @@ IncludeCategories:
 PointerAlignment:             Right
 TabWidth:                     4
 UseTab:                       Never
-StatementMacros:              [CeedPragmaOptimizeOn, CeedPragmaOptimizeOff]
+StatementMacros:              [CeedPragmaOptimizeOn, CeedPragmaOptimizeOff, CeedPragmaThreadPrivate]

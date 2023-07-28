@@ -10,6 +10,7 @@
 #include <stdbool.h>
 
 static bool register_all_called;
+CeedPragmaThreadPrivate(register_all_called)
 
 #define CEED_BACKEND(name, ...) CEED_INTERN int name(void);
 #include "../backends/ceed-backend-list.h"
