@@ -103,10 +103,10 @@ PetscErrorCode SetUpDM(DM dm, ProblemData *problem, PetscInt degree, PetscInt q_
       if (use_strongstg) PetscCall(SetupStrongSTG(dm, bc, problem, phys));
     }
 
-    PetscCall(DMPlexSetClosurePermutationTensor(dm, PETSC_DETERMINE, NULL));
     if (!is_simplex) {
       DM dm_coord;
       PetscCall(DMGetCoordinateDM(dm, &dm_coord));
+      PetscCall(DMPlexSetClosurePermutationTensor(dm, PETSC_DETERMINE, NULL));
       PetscCall(DMPlexSetClosurePermutationTensor(dm_coord, PETSC_DETERMINE, NULL));
     }
 
