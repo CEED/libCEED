@@ -112,9 +112,16 @@ static int CeedGivensRotation(CeedScalar *A, CeedScalar c, CeedScalar s, CeedTra
   @ref Developer
 **/
 static int CeedScalarView(const char *name, const char *fp_fmt, CeedInt m, CeedInt n, const CeedScalar *a, FILE *stream) {
+  if (m > 1) {
+    fprintf(stream, "  %s:\n", name);
+  } else {
+    char padded_name[12];
+
+    snprintf(padded_name, 11, "%s:", name);
+    fprintf(stream, "  %-10s", padded_name);
+  }
   for (CeedInt i = 0; i < m; i++) {
-    if (m > 1) fprintf(stream, "%12s[%" CeedInt_FMT "]:", name, i);
-    else fprintf(stream, "%12s:", name);
+    if (m > 1) fprintf(stream, "    [%" CeedInt_FMT "]", i);
     for (CeedInt j = 0; j < n; j++) fprintf(stream, fp_fmt, fabs(a[i * n + j]) > 1E-14 ? a[i * n + j] : 0);
     fputs("\n", stream);
   }
@@ -1288,13 +1295,13 @@ int CeedBasisView(CeedBasis basis, FILE *stream) {
   CeedInt          q_comp   = 0;
 
   // Print FE space and element topology of the basis
+  fprintf(stream, "CeedBasis in a %s on a %s element\n", CeedFESpaces[fe_space], CeedElemTopologies[topo]);
   if (basis->is_tensor_basis) {
-    fprintf(stream, "CeedBasis (%s on a %s element): dim=%" CeedInt_FMT " P=%" CeedInt_FMT " Q=%" CeedInt_FMT "\n", CeedFESpaces[fe_space],
-            CeedElemTopologies[topo], basis->dim, basis->P_1d, basis->Q_1d);
+    fprintf(stream, "  P: %" CeedInt_FMT "\n  Q: %" CeedInt_FMT "\n", basis->P_1d, basis->Q_1d);
   } else {
-    fprintf(stream, "CeedBasis (%s on a %s element): dim=%" CeedInt_FMT " P=%" CeedInt_FMT " Q=%" CeedInt_FMT "\n", CeedFESpaces[fe_space],
-            CeedElemTopologies[topo], basis->dim, basis->P, basis->Q);
+    fprintf(stream, "  P: %" CeedInt_FMT "\n  Q: %" CeedInt_FMT "\n", basis->P, basis->Q);
   }
+  fprintf(stream, "  dimension: %" CeedInt_FMT "\n  field components: %" CeedInt_FMT "\n", basis->dim, basis->num_comp);
   // Print quadrature data, interpolation/gradient/divergence/curl of the basis
   if (basis->is_tensor_basis) {  // tensor basis
     CeedCall(CeedScalarView("qref1d", "\t% 12.8f", 1, basis->Q_1d, basis->q_ref_1d, stream));

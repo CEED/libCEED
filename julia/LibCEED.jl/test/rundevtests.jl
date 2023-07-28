@@ -2,9 +2,51 @@ using Test, LibCEED, LinearAlgebra, StaticArrays
 
 include("buildmats.jl")
 
+function checkoutput(str, fname)
+    if str != getoutput(fname)
+        write(fname, str)
+        return false
+    end
+    return true
+end
+
 @testset "LibCEED Development Tests" begin
     @testset "Basis" begin
         c = Ceed()
+        dim = 3
+        ncomp = 1
+        p = 4
+        q = 6
+        b1 = create_tensor_h1_lagrange_basis(c, dim, ncomp, p, q, GAUSS_LOBATTO)
+
+        @test checkoutput(showstr(b1), "b1.out")
+
+        b1d = CeedScalar[1.0 0.0; 0.5 0.5; 0.0 1.0]
+        d1d = CeedScalar[-0.5 0.5; -0.5 0.5; -0.5 0.5]
+        q1d = CeedScalar[-1.0, 0.0, 1.0]
+        w1d = CeedScalar[1/3, 4/3, 1/3]
+        q, p = size(b1d)
+        d2d = zeros(CeedScalar, 2, q*q, p*p)
+        d2d[1, :, :] = kron(b1d, d1d)
+        d2d[2, :, :] = kron(d1d, b1d)
+
+        dim2 = 2
+        b2 = create_tensor_h1_basis(c, dim2, 1, p, q, b1d, d1d, q1d, w1d)
+        @test checkoutput(showstr(b2), "b2.out")
+
+        b3 = create_h1_basis(
+            c,
+            LINE,
+            1,
+            p,
+            q,
+            b1d,
+            reshape(d1d, 1, q, p),
+            reshape(q1d, 1, q),
+            w1d,
+        )
+        @test checkoutput(showstr(b3), "b3.out")
+
         dim = 2
         ncomp = 1
         p1 = 4
