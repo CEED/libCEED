@@ -1,6 +1,6 @@
 /// @file
-/// Test creation, use, and destruction of an element restriction oriented with unsigned application
-/// \test Test creation, use, and destruction of an element restriction oriented with unsigned application
+/// Test creation, use, and destruction of an oriented element restriction with unsigned application
+/// \test Test creation, use, and destruction of an oriented element restriction with unsigned application
 #include <ceed.h>
 #include <ceed/backend.h>
 #include <math.h>
@@ -25,10 +25,9 @@ int main(int argc, char **argv) {
   CeedVectorCreate(ceed, num_elem * 2, &y_unsigned_copy);
 
   for (CeedInt i = 0; i < num_elem; i++) {
-    ind[2 * i + 0] = i;
-    ind[2 * i + 1] = i + 1;
-    // flip the dofs on element 1,3,...
-    orient[2 * i + 0] = (i % (2)) * -1 < 0;
+    ind[2 * i + 0]    = i;
+    ind[2 * i + 1]    = i + 1;
+    orient[2 * i + 0] = (i % (2)) * -1 < 0;  // flip the dofs on element 1, 3, ...
     orient[2 * i + 1] = (i % (2)) * -1 < 0;
   }
   CeedElemRestrictionCreateOriented(ceed, num_elem, p, dim, 1, num_elem + 1, CEED_MEM_HOST, CEED_USE_POINTER, ind, orient, &elem_restriction);
@@ -38,7 +37,6 @@ int main(int argc, char **argv) {
   CeedElemRestrictionApply(elem_restriction, CEED_NOTRANSPOSE, x, y_oriented, CEED_REQUEST_IMMEDIATE);
   CeedElemRestrictionApply(elem_restriction_unsigned, CEED_NOTRANSPOSE, x, y_unsigned, CEED_REQUEST_IMMEDIATE);
   CeedElemRestrictionApply(elem_restriction_copy, CEED_NOTRANSPOSE, x, y_unsigned_copy, CEED_REQUEST_IMMEDIATE);
-
   {
     const CeedScalar *y_oriented_array, *y_unsigned_array, *y_unsigned_copy_array;
 

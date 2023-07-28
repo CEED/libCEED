@@ -34,7 +34,7 @@ CEED_QFUNCTION_HELPER int AlphaMatVecMult2x2(const CeedScalar alpha, const CeedS
   }
 
   return 0;
-};
+}
 
 CEED_QFUNCTION(mass)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
   // Inputs
