@@ -189,7 +189,35 @@ if __name__ == '__main__':
     args = create_argparser().parse_args()
 
     # run tests
-    result: TestSuite = run_tests(args.test, args.ceed_backends, args.mode, args.nproc, CeedSuiteSpec(), args.pool_size)
+    if 'smartsim' in args.test:
+        sys.path.insert(0, str(Path(__file__).parents[1] / "examples" / "fluids"))
+        from smartsim_regression_framework import SmartSimTest
+
+        test_framework = SmartSimTest(Path(__file__).parent / 'test_dir')
+        test_framework.setup()
+        test_cases = []
+        print(f'1..1')
+        is_new_subtest = True
+        subtest_ok = True
+        for i, backend in enumerate(args.ceed_backends):
+            test_cases.append(test_framework.test_junit(backend))
+            if is_new_subtest and args.mode == RunMode.TAP:
+                is_new_subtest = False
+                print(f'# Subtest: {test_cases[0].category}')
+                print(f'    1..{len(args.ceed_backends)}')
+            print(test_case_output_string(test_cases[i], TestSpec("SmartSim Tests"), args.mode, backend, '', i))
+        if args.mode == RunMode.TAP:
+            print(f'{"" if subtest_ok else "not "}ok 1 - {test_cases[0].category}')
+        test_framework.teardown()
+        result: TestSuite = TestSuite('SmartSim Tests', test_cases)
+    else:
+        result: TestSuite = run_tests(
+            args.test,
+            args.ceed_backends,
+            args.mode,
+            args.nproc,
+            CeedSuiteSpec(),
+            args.pool_size)
 
     # write output and check for failures
     if args.mode is RunMode.JUNIT:
