@@ -12,6 +12,7 @@
 #include <petscdm.h>
 #include <petscsf.h>
 #include <petscts.h>
+#include <unistd.h>
 
 #include "../navierstokes.h"
 #include "../qfunctions/mass.h"
@@ -575,4 +576,19 @@ PetscErrorCode PrintRunInfo(User user, Physics phys_ctx, ProblemData *problem, M
     if (!rank) PetscCall(PetscFree(gather_buffer));
   }
   PetscFunctionReturn(PETSC_SUCCESS);
+}
+
+// @brief For running tests that execute a script external to the code
+PetscErrorCode RunExternalTest(void) {
+  char      test_path[PETSC_MAX_PATH_LEN];
+  PetscBool is_set = PETSC_FALSE;
+
+  PetscFunctionBeginUser;
+  PetscCall(PetscOptionsGetString(NULL, NULL, "-external_test_path", test_path, PETSC_MAX_PATH_LEN, &is_set));
+  PetscCheck(is_set, PETSC_COMM_WORLD, PETSC_ERR_ARG_INCOMP, "'-external_test_path' flag must be set if '-test_type %s'",
+             TestTypes[TESTTYPE_EXTERNAL]);
+  char *test[] = {NULL};
+  execv(test_path, test);
+
+  PetscFunctionReturn(0);
 }

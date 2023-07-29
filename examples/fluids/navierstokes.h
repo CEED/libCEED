@@ -84,8 +84,11 @@ typedef enum {
   TESTTYPE_SOLVER         = 1,
   TESTTYPE_TURB_SPANSTATS = 2,
   TESTTYPE_DIFF_FILTER    = 3,
+  TESTTYPE_EXTERNAL       = 4,
 } TestType;
-static const char *const TestTypes[] = {"none", "solver", "turb_spanstats", "diff_filter", "TestType", "TESTTYPE_", NULL};
+static const char *const TestTypes[] = {"none", "solver", "turb_spanstats", "diff_filter", "external", "TestType", "TESTTYPE_", NULL};
+
+PetscErrorCode RunExternalTest(void);
 
 // Subgrid-Stress mode type
 typedef enum {
