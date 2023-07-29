@@ -312,6 +312,47 @@ def diff_cgns(test_cgns: Path, true_cgns: Path, tolerance: float = 1e-12) -> str
     return proc.stderr.decode('utf-8') + proc.stdout.decode('utf-8')
 
 
+def test_case_output_string(test_case: TestCase, spec: TestSpec, mode: RunMode,
+                            backend: str, test: str, index: int) -> str:
+    output_str = ''
+    if mode is RunMode.TAP:
+        # print incremental output if TAP mode
+        if test_case.is_skipped():
+            output_str += f'    ok {index} - {spec.name}, {backend} # SKIP {test_case.skipped[0]["message"]}\n'
+        elif test_case.is_failure() or test_case.is_error():
+            output_str += f'    not ok {index} - {spec.name}, {backend}\n'
+        else:
+            output_str += f'    ok {index} - {spec.name}, {backend}\n'
+        output_str += f'      ---\n'
+        if spec.only:
+            output_str += f'      only: {",".join(spec.only)}\n'
+        output_str += f'      args: {test_case.args}\n'
+        if test_case.is_error():
+            output_str += f'      error: {test_case.errors[0]["message"]}\n'
+        if test_case.is_failure():
+            output_str += f'      num_failures: {len(test_case.failures)}\n'
+            for i, failure in enumerate(test_case.failures):
+                output_str += f'      failure_{i}: {failure["message"]}\n'
+                output_str += f'        message: {failure["message"]}\n'
+                if failure["output"]:
+                    out = failure["output"].strip().replace('\n', '\n          ')
+                    output_str += f'        output: |\n          {out}\n'
+        output_str += f'      ...\n'
+    else:
+        # print error or failure information if JUNIT mode
+        if test_case.is_error() or test_case.is_failure():
+            output_str += f'Test: {test} {spec.name}\n'
+            output_str += f'  $ {test_case.args}\n'
+            if test_case.is_error():
+                output_str += 'ERROR: {}\n'.format((test_case.errors[0]['message'] or 'NO MESSAGE').strip())
+                output_str += 'Output: \n{}\n'.format((test_case.errors[0]['output'] or 'NO MESSAGE').strip())
+            if test_case.is_failure():
+                for failure in test_case.failures:
+                    output_str += 'FAIL: {}\n'.format((failure['message'] or 'NO MESSAGE').strip())
+                    output_str += 'Output: \n{}\n'.format((failure['output'] or 'NO MESSAGE').strip())
+    return output_str
+
+
 def run_test(index: int, test: str, spec: TestSpec, backend: str,
              mode: RunMode, nproc: int, suite_spec: SuiteSpec) -> TestCase:
     """Run a single test case and backend combination
@@ -439,43 +480,7 @@ def run_test(index: int, test: str, spec: TestSpec, backend: str,
 
     # store result
     test_case.args = ' '.join(str(arg) for arg in run_args)
-    output_str = ''
-    # print output
-    if mode is RunMode.TAP:
-        # print incremental output if TAP mode
-        if test_case.is_skipped():
-            output_str += f'    ok {index} - {spec.name}, {backend} # SKIP {test_case.skipped[0]["message"]}\n'
-        elif test_case.is_failure() or test_case.is_error():
-            output_str += f'    not ok {index} - {spec.name}, {backend}\n'
-        else:
-            output_str += f'    ok {index} - {spec.name}, {backend}\n'
-        output_str += f'      ---\n'
-        if spec.only:
-            output_str += f'      only: {",".join(spec.only)}\n'
-        output_str += f'      args: {test_case.args}\n'
-        if test_case.is_error():
-            output_str += f'      error: {test_case.errors[0]["message"]}\n'
-        if test_case.is_failure():
-            output_str += f'      num_failures: {len(test_case.failures)}\n'
-            for i, failure in enumerate(test_case.failures):
-                output_str += f'      failure_{i}: {failure["message"]}\n'
-                output_str += f'        message: {failure["message"]}\n'
-                if failure["output"]:
-                    out = failure["output"].strip().replace('\n', '\n          ')
-                    output_str += f'        output: |\n          {out}\n'
-        output_str += f'      ...\n'
-    else:
-        # print error or failure information if JUNIT mode
-        if test_case.is_error() or test_case.is_failure():
-            output_str += f'Test: {test} {spec.name}\n'
-            output_str += f'  $ {test_case.args}\n'
-            if test_case.is_error():
-                output_str += 'ERROR: {}\n'.format((test_case.errors[0]['message'] or 'NO MESSAGE').strip())
-                output_str += 'Output: \n{}\n'.format((test_case.errors[0]['output'] or 'NO MESSAGE').strip())
-            if test_case.is_failure():
-                for failure in test_case.failures:
-                    output_str += 'FAIL: {}\n'.format((failure['message'] or 'NO MESSAGE').strip())
-                    output_str += 'Output: \n{}\n'.format((failure['output'] or 'NO MESSAGE').strip())
+    output_str = test_case_output_string(test_case, spec, mode, backend, test, index)
 
     return test_case, output_str
 
