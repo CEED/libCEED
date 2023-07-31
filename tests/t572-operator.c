@@ -1,6 +1,6 @@
 /// @file
-/// Test creation, action, and destruction for mass matrix operator using a trivial oriented element restriction (see t510)
-/// \test Test creation, action, and destruction for mass matrix operator using a trivial oriented element restriction
+/// Test creation, action, and destruction for mass matrix operator using a trivial curl-oriented element restriction (see t510)
+/// \test Test creation, action, and destruction for mass matrix operator using a trivial curl-oriented element restriction
 #include "t510-operator.h"
 
 #include <ceed.h>
@@ -22,7 +22,7 @@ int main(int argc, char **argv) {
   CeedInt             row, col, offset;
   CeedInt             num_dofs = (nx * 2 + 1) * (ny * 2 + 1), num_qpts = num_elem * q;
   CeedInt             ind_x[num_elem * p];
-  bool                orients_u[num_elem * p];
+  CeedInt8            curl_orients_u[3 * num_elem * p];
   CeedScalar          q_ref[dim * q], q_weight[q];
   CeedScalar          interp[p * q], grad[dim * p * q];
 
@@ -63,11 +63,14 @@ int main(int argc, char **argv) {
     ind_x[i * 2 * p + 11] = 16 + offset;
 
     for (CeedInt j = 0; j < 12; j++) {
-      orients_u[i * 2 * p + j] = false;
+      curl_orients_u[3 * (i * 2 * p + j) + 0] = 0;
+      curl_orients_u[3 * (i * 2 * p + j) + 1] = 1;
+      curl_orients_u[3 * (i * 2 * p + j) + 2] = 0;
     }
   }
   CeedElemRestrictionCreate(ceed, num_elem, p, dim, num_dofs, dim * num_dofs, CEED_MEM_HOST, CEED_USE_POINTER, ind_x, &elem_restriction_x);
-  CeedElemRestrictionCreateOriented(ceed, num_elem, p, 1, 1, num_dofs, CEED_MEM_HOST, CEED_USE_POINTER, ind_x, orients_u, &elem_restriction_u);
+  CeedElemRestrictionCreateCurlOriented(ceed, num_elem, p, 1, 1, num_dofs, CEED_MEM_HOST, CEED_USE_POINTER, ind_x, curl_orients_u,
+                                        &elem_restriction_u);
 
   CeedInt strides_q_data[3] = {1, q, q};
   CeedElemRestrictionCreateStrided(ceed, num_elem, q, 1, num_qpts, strides_q_data, &elem_restriction_q_data);
