@@ -191,8 +191,6 @@ else
             vd = apply(b3, v; emode=EVAL_GRAD)
             @test vq ≈ b1d*v
             @test vd ≈ d1d*v
-
-            @test BasisCollocated()[] == LibCEED.C.CEED_BASIS_COLLOCATED[]
         end
 
         @testset "Request" begin

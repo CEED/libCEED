@@ -106,9 +106,9 @@
       call ceedoperatorsetfield(op_setup_small,'x',erestrictx,&
      & bx_small,ceed_vector_active,err)
       call ceedoperatorsetfield(op_setup_small,'rho',erestrictui_small,&
-     & ceed_basis_collocated,ceed_vector_active,err)
+     ceed_basis_none,ceed_vector_active,err)
       call ceedoperatorsetfield(op_mass_small,'rho',erestrictui_small,&
-     & ceed_basis_collocated,qdata_small,err)
+     ceed_basis_none,qdata_small,err)
       call ceedoperatorsetfield(op_mass_small,'u',erestrictu,&
      & bu_small,ceed_vector_active,err)
       call ceedoperatorsetfield(op_mass_small,'v',erestrictu,&
@@ -128,9 +128,9 @@
       call ceedoperatorsetfield(op_setup_large,'x',erestrictx,&
      & bx_large,ceed_vector_active,err)
       call ceedoperatorsetfield(op_setup_large,'rho',erestrictui_large,&
-     & ceed_basis_collocated,ceed_vector_active,err)
+     ceed_basis_none,ceed_vector_active,err)
       call ceedoperatorsetfield(op_mass_large,'rho',erestrictui_large,&
-     & ceed_basis_collocated,qdata_large,err)
+     ceed_basis_none,qdata_large,err)
       call ceedoperatorsetfield(op_mass_large,'u',erestrictu,&
      & bu_large,ceed_vector_active,err)
       call ceedoperatorsetfield(op_mass_large,'v',erestrictu,&

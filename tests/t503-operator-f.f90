@@ -96,9 +96,9 @@
      & bx,ceed_vector_none,err)
       call ceedoperatorsetfield(op_setup,'dx',erestrictx,bx,x,err)
       call ceedoperatorsetfield(op_setup,'rho',erestrictui,&
-     & ceed_basis_collocated,qdata,err)
+     ceed_basis_none,qdata,err)
       call ceedoperatorsetfield(op_mass,'rho',erestrictui,&
-     & ceed_basis_collocated,qdata,err)
+     ceed_basis_none,qdata,err)
       call ceedoperatorsetfield(op_mass,'u',erestrictu,bu,u,err)
       call ceedoperatorsetfield(op_mass,'v',erestrictu,bu,v,err)
 

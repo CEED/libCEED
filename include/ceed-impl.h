@@ -297,7 +297,7 @@ struct CeedContextFieldLabel_private {
 
 struct CeedOperatorField_private {
   CeedElemRestriction elem_rstr;  /* Restriction from L-vector */
-  CeedBasis           basis;      /* Basis or CEED_BASIS_COLLOCATED for collocated fields */
+  CeedBasis           basis;      /* Basis or CEED_BASIS_NONE for collocated fields */
   CeedVector          vec;        /* State vector for passive fields or CEED_VECTOR_NONE for no vector */
   const char         *field_name; /* matching QFunction field name */
 };

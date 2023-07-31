@@ -95,11 +95,11 @@ int main(int argc, char **argv) {
   CeedOperatorSetName(op_setup_tet, "triangle elements");
   CeedOperatorSetField(op_setup_tet, "weight", CEED_ELEMRESTRICTION_NONE, basis_x_tet, CEED_VECTOR_NONE);
   CeedOperatorSetField(op_setup_tet, "dx", elem_restriction_x_tet, basis_x_tet, CEED_VECTOR_ACTIVE);
-  CeedOperatorSetField(op_setup_tet, "rho", elem_restr_qd_tet, CEED_BASIS_COLLOCATED, q_data_tet);
+  CeedOperatorSetField(op_setup_tet, "rho", elem_restr_qd_tet, CEED_BASIS_NONE, q_data_tet);
   // ---- Mass _tet
   CeedOperatorCreate(ceed, qf_mass_tet, CEED_QFUNCTION_NONE, CEED_QFUNCTION_NONE, &op_mass_tet);
   CeedOperatorSetName(op_mass_tet, "triangle elements");
-  CeedOperatorSetField(op_mass_tet, "rho", elem_restr_qd_tet, CEED_BASIS_COLLOCATED, q_data_tet);
+  CeedOperatorSetField(op_mass_tet, "rho", elem_restr_qd_tet, CEED_BASIS_NONE, q_data_tet);
   CeedOperatorSetField(op_mass_tet, "u", elem_restriction_u_tet, basis_u_tet, CEED_VECTOR_ACTIVE);
   CeedOperatorSetField(op_mass_tet, "v", elem_restriction_u_tet, basis_u_tet, CEED_VECTOR_ACTIVE);
 
@@ -140,11 +140,11 @@ int main(int argc, char **argv) {
   CeedOperatorSetName(op_setup_hex, "quadrilateral elements");
   CeedOperatorSetField(op_setup_hex, "weight", CEED_ELEMRESTRICTION_NONE, basis_x_hex, CEED_VECTOR_NONE);
   CeedOperatorSetField(op_setup_hex, "dx", elem_restriction_x_hex, basis_x_hex, CEED_VECTOR_ACTIVE);
-  CeedOperatorSetField(op_setup_hex, "rho", elem_restriction_q_data_hex, CEED_BASIS_COLLOCATED, q_data_hex);
+  CeedOperatorSetField(op_setup_hex, "rho", elem_restriction_q_data_hex, CEED_BASIS_NONE, q_data_hex);
 
   CeedOperatorCreate(ceed, qf_mass_hex, CEED_QFUNCTION_NONE, CEED_QFUNCTION_NONE, &op_mass_hex);
   CeedOperatorSetName(op_mass_hex, "quadrilateral elements");
-  CeedOperatorSetField(op_mass_hex, "rho", elem_restriction_q_data_hex, CEED_BASIS_COLLOCATED, q_data_hex);
+  CeedOperatorSetField(op_mass_hex, "rho", elem_restriction_q_data_hex, CEED_BASIS_NONE, q_data_hex);
   CeedOperatorSetField(op_mass_hex, "u", elem_restriction_u_hex, basis_u_hex, CEED_VECTOR_ACTIVE);
   CeedOperatorSetField(op_mass_hex, "v", elem_restriction_u_hex, basis_u_hex, CEED_VECTOR_ACTIVE);
 

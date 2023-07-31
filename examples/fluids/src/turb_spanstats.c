@@ -164,7 +164,7 @@ PetscErrorCode GetQuadratureCoords(Ceed ceed, DM dm, CeedElemRestriction elem_re
   // Create Operator
   PetscCallCeed(ceed, CeedOperatorCreate(ceed, qf_quad_coords, NULL, NULL, &op_quad_coords));
   PetscCallCeed(ceed, CeedOperatorSetField(op_quad_coords, "input", elem_restr_x, basis_x, x_coords));
-  PetscCallCeed(ceed, CeedOperatorSetField(op_quad_coords, "output", elem_restr_qx, CEED_BASIS_COLLOCATED, CEED_VECTOR_ACTIVE));
+  PetscCallCeed(ceed, CeedOperatorSetField(op_quad_coords, "output", elem_restr_qx, CEED_BASIS_NONE, CEED_VECTOR_ACTIVE));
 
   PetscCall(CeedOperatorCreateLocalVecs(op_quad_coords, DMReturnVecType(dm), PetscObjectComm((PetscObject)dm), NULL, Qx_coords));
   PetscCall(OperatorApplyContextCreate(NULL, NULL, ceed, op_quad_coords, CEED_VECTOR_NONE, NULL, NULL, NULL, &op_quad_coords_ctx));
@@ -307,7 +307,7 @@ PetscErrorCode SetupL2ProjectionStats(Ceed ceed, User user, CeedData ceed_data, 
   PetscCallCeed(ceed, CeedQFunctionCreateIdentity(ceed, num_comp_stats, CEED_EVAL_NONE, CEED_EVAL_INTERP, &qf_stats_proj));
 
   PetscCallCeed(ceed, CeedOperatorCreate(ceed, qf_stats_proj, NULL, NULL, &op_proj_rhs));
-  PetscCallCeed(ceed, CeedOperatorSetField(op_proj_rhs, "input", stats_data->elem_restr_parent_colloc, CEED_BASIS_COLLOCATED, CEED_VECTOR_ACTIVE));
+  PetscCallCeed(ceed, CeedOperatorSetField(op_proj_rhs, "input", stats_data->elem_restr_parent_colloc, CEED_BASIS_NONE, CEED_VECTOR_ACTIVE));
   PetscCallCeed(ceed, CeedOperatorSetField(op_proj_rhs, "output", stats_data->elem_restr_parent_stats, stats_data->basis_stats, CEED_VECTOR_ACTIVE));
 
   PetscCall(OperatorApplyContextCreate(NULL, user->spanstats.dm, ceed, op_proj_rhs, NULL, NULL, NULL, NULL, &user->spanstats.op_proj_rhs_ctx));
@@ -318,8 +318,7 @@ PetscErrorCode SetupL2ProjectionStats(Ceed ceed, User user, CeedData ceed_data, 
   PetscCallCeed(ceed, CeedOperatorCreate(ceed, ceed_data->qf_setup_sur, NULL, NULL, &op_setup_sur));
   PetscCallCeed(ceed, CeedOperatorSetField(op_setup_sur, "dx", stats_data->elem_restr_parent_x, stats_data->basis_x, CEED_VECTOR_ACTIVE));
   PetscCallCeed(ceed, CeedOperatorSetField(op_setup_sur, "weight", CEED_ELEMRESTRICTION_NONE, stats_data->basis_x, CEED_VECTOR_NONE));
-  PetscCallCeed(ceed,
-                CeedOperatorSetField(op_setup_sur, "surface qdata", stats_data->elem_restr_parent_qd, CEED_BASIS_COLLOCATED, CEED_VECTOR_ACTIVE));
+  PetscCallCeed(ceed, CeedOperatorSetField(op_setup_sur, "surface qdata", stats_data->elem_restr_parent_qd, CEED_BASIS_NONE, CEED_VECTOR_ACTIVE));
   PetscCallCeed(ceed, CeedOperatorApply(op_setup_sur, stats_data->x_coord, stats_data->q_data, CEED_REQUEST_IMMEDIATE));
 
   // CEED Restriction
@@ -329,7 +328,7 @@ PetscErrorCode SetupL2ProjectionStats(Ceed ceed, User user, CeedData ceed_data, 
   PetscCall(CreateMassQFunction(ceed, num_comp_stats, q_data_size, &qf_mass));
   PetscCallCeed(ceed, CeedOperatorCreate(ceed, qf_mass, NULL, NULL, &op_mass));
   PetscCallCeed(ceed, CeedOperatorSetField(op_mass, "u", stats_data->elem_restr_parent_stats, stats_data->basis_stats, CEED_VECTOR_ACTIVE));
-  PetscCallCeed(ceed, CeedOperatorSetField(op_mass, "qdata", stats_data->elem_restr_parent_qd, CEED_BASIS_COLLOCATED, stats_data->q_data));
+  PetscCallCeed(ceed, CeedOperatorSetField(op_mass, "qdata", stats_data->elem_restr_parent_qd, CEED_BASIS_NONE, stats_data->q_data));
   PetscCallCeed(ceed, CeedOperatorSetField(op_mass, "v", stats_data->elem_restr_parent_stats, stats_data->basis_stats, CEED_VECTOR_ACTIVE));
 
   {  // Setup KSP for L^2 projection
@@ -421,9 +420,9 @@ PetscErrorCode CreateStatisticCollectionOperator(Ceed ceed, User user, CeedData 
 
   PetscCallCeed(ceed, CeedOperatorCreate(ceed, qf_stats_collect, NULL, NULL, &op_stats_collect));
   PetscCallCeed(ceed, CeedOperatorSetField(op_stats_collect, "q", ceed_data->elem_restr_q, ceed_data->basis_q, CEED_VECTOR_ACTIVE));
-  PetscCallCeed(ceed, CeedOperatorSetField(op_stats_collect, "q_data", ceed_data->elem_restr_qd_i, CEED_BASIS_COLLOCATED, ceed_data->q_data));
+  PetscCallCeed(ceed, CeedOperatorSetField(op_stats_collect, "q_data", ceed_data->elem_restr_qd_i, CEED_BASIS_NONE, ceed_data->q_data));
   PetscCallCeed(ceed, CeedOperatorSetField(op_stats_collect, "x", ceed_data->elem_restr_x, ceed_data->basis_x, ceed_data->x_coord));
-  PetscCallCeed(ceed, CeedOperatorSetField(op_stats_collect, "v", stats_data->elem_restr_child_colloc, CEED_BASIS_COLLOCATED, CEED_VECTOR_ACTIVE));
+  PetscCallCeed(ceed, CeedOperatorSetField(op_stats_collect, "v", stats_data->elem_restr_child_colloc, CEED_BASIS_NONE, CEED_VECTOR_ACTIVE));
 
   PetscCallCeed(ceed, CeedOperatorGetContextFieldLabel(op_stats_collect, "solution time", &user->spanstats.solution_time_label));
   PetscCallCeed(ceed, CeedOperatorGetContextFieldLabel(op_stats_collect, "previous time", &user->spanstats.previous_time_label));
@@ -459,7 +458,7 @@ PetscErrorCode SetupMMSErrorChecking(Ceed ceed, User user, CeedData ceed_data, S
 
   PetscCallCeed(ceed, CeedOperatorCreate(ceed, qf_error, NULL, NULL, &op_error));
   PetscCallCeed(ceed, CeedOperatorSetField(op_error, "q", stats_data->elem_restr_parent_stats, stats_data->basis_stats, CEED_VECTOR_ACTIVE));
-  PetscCallCeed(ceed, CeedOperatorSetField(op_error, "qdata", stats_data->elem_restr_parent_qd, CEED_BASIS_COLLOCATED, stats_data->q_data));
+  PetscCallCeed(ceed, CeedOperatorSetField(op_error, "qdata", stats_data->elem_restr_parent_qd, CEED_BASIS_NONE, stats_data->q_data));
   PetscCallCeed(ceed, CeedOperatorSetField(op_error, "x", stats_data->elem_restr_parent_x, stats_data->basis_x, stats_data->x_coord));
   PetscCallCeed(ceed, CeedOperatorSetField(op_error, "v", stats_data->elem_restr_parent_stats, stats_data->basis_stats, CEED_VECTOR_ACTIVE));
 

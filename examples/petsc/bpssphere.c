@@ -196,8 +196,8 @@ int main(int argc, char **argv) {
   // Create the error operator
   CeedOperatorCreate(ceed, qf_error, NULL, NULL, &op_error);
   CeedOperatorSetField(op_error, "u", ceed_data->elem_restr_u, ceed_data->basis_u, CEED_VECTOR_ACTIVE);
-  CeedOperatorSetField(op_error, "true_soln", ceed_data->elem_restr_u_i, CEED_BASIS_COLLOCATED, target);
-  CeedOperatorSetField(op_error, "qdata", ceed_data->elem_restr_qd_i, CEED_BASIS_COLLOCATED, ceed_data->q_data);
+  CeedOperatorSetField(op_error, "true_soln", ceed_data->elem_restr_u_i, CEED_BASIS_NONE, target);
+  CeedOperatorSetField(op_error, "qdata", ceed_data->elem_restr_qd_i, CEED_BASIS_NONE, ceed_data->q_data);
   CeedOperatorSetField(op_error, "error", ceed_data->elem_restr_u, ceed_data->basis_u, CEED_VECTOR_ACTIVE);
 
   // Set up apply operator context

@@ -838,7 +838,7 @@ C     Create ceed operators
       call ceedoperatorsetfield(op_setup,'weight',
      $  ceed_elemrestriction_none,basisx,ceed_vector_none,err)
       call ceedoperatorsetfield(op_setup,'qdata',erstrctw,
-     $  ceed_basis_collocated,ceed_vector_active,err)
+     $  CEED_BASIS_NONE,ceed_vector_active,err)
       call ceedoperatorsetfield(op_setup,'rhs',erstrctu,
      $  basisu,vec_rhs,err)
 
@@ -847,7 +847,7 @@ C     Create ceed operators
       call ceedoperatorsetfield(op_mass,'u',erstrctu,
      $  basisu,ceed_vector_active,err)
       call ceedoperatorsetfield(op_mass,'qdata',erstrctw,
-     $  ceed_basis_collocated,vec_qdata,err)
+     $  CEED_BASIS_NONE,vec_qdata,err)
       call ceedoperatorsetfield(op_mass,'v',erstrctu,
      $  basisu,ceed_vector_active,err)
 
@@ -1157,7 +1157,7 @@ C     Create ceed operators
       call ceedoperatorsetfield(op_setup,'weight',
      $  ceed_elemrestriction_none,basisx,ceed_vector_none,err)
       call ceedoperatorsetfield(op_setup,'qdata',erstrctw,
-     $  ceed_basis_collocated,ceed_vector_active,err)
+     $  CEED_BASIS_NONE,ceed_vector_active,err)
       call ceedoperatorsetfield(op_setup,'rhs',erstrctu,
      $  basisu,vec_rhs,err)
 
@@ -1166,7 +1166,7 @@ C     Create ceed operators
       call ceedoperatorsetfield(op_diffusion,'u',erstrctu,
      $  basisu,ceed_vector_active,err)
       call ceedoperatorsetfield(op_diffusion,'qdata',erstrctw,
-     $  ceed_basis_collocated,vec_qdata,err)
+     $  CEED_BASIS_NONE,vec_qdata,err)
       call ceedoperatorsetfield(op_diffusion,'v',erstrctu,
      $  basisu,ceed_vector_active,err)
 

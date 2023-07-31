@@ -100,7 +100,7 @@
       call ceedoperatorsetfield(op_setup,'weight',ceed_elemrestriction_none,&
      & bx,ceed_vector_none,err)
       call ceedoperatorsetfield(op_setup,'qdata',erestrictqi,&
-     & ceed_basis_collocated,ceed_vector_active,err)
+     ceed_basis_none,ceed_vector_active,err)
 
 ! Apply Setup Operator
       call ceedoperatorapply(op_setup,x,qdata,ceed_request_immediate,err)
@@ -119,7 +119,7 @@
       call ceedoperatorsetfield(op_diff,'du',erestrictu,&
      & bu,ceed_vector_active,err)
       call ceedoperatorsetfield(op_diff,'qdata',erestrictqi,&
-     & ceed_basis_collocated,qdata,err)
+     ceed_basis_none,qdata,err)
       call ceedoperatorsetfield(op_diff,'dv',erestrictu,&
      & bu,ceed_vector_active,err)
 

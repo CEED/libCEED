@@ -329,7 +329,7 @@ function run_ex1_c(; ceed_spec, dim, mesh_order, sol_order, num_qpts, prob_size)
         build_oper[],
         "qdata",
         sol_restr_i[],
-        C.CEED_BASIS_COLLOCATED[],
+        C.CEED_BASIS_NONE[],
         C.CEED_VECTOR_ACTIVE[],
     )
 
@@ -377,13 +377,7 @@ function run_ex1_c(; ceed_spec, dim, mesh_order, sol_order, num_qpts, prob_size)
         oper,
     )
     C.CeedOperatorSetField(oper[], "u", sol_restr[], sol_basis[], C.CEED_VECTOR_ACTIVE[])
-    C.CeedOperatorSetField(
-        oper[],
-        "qdata",
-        sol_restr_i[],
-        C.CEED_BASIS_COLLOCATED[],
-        qdata[],
-    )
+    C.CeedOperatorSetField(oper[], "qdata", sol_restr_i[], C.CEED_BASIS_NONE[], qdata[])
     C.CeedOperatorSetField(oper[], "v", sol_restr[], sol_basis[], C.CEED_VECTOR_ACTIVE[])
 
     # Compute the mesh volume using the mass operator: vol = 1^T \cdot M \cdot 1

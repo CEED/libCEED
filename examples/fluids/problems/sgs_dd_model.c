@@ -92,9 +92,9 @@ PetscErrorCode SgsDDModelSetupNodalEvaluation(Ceed ceed, User user, CeedData cee
 
   PetscCallCeed(ceed, CeedOperatorCreate(ceed, qf_multiplicity, NULL, NULL, &op_multiplicity));
   PetscCallCeed(ceed, CeedOperatorSetName(op_multiplicity, "SGS DD Model - Create Multiplicity Scaling"));
-  PetscCallCeed(ceed, CeedOperatorSetField(op_multiplicity, "multiplicity", ceed_data->elem_restr_q, CEED_BASIS_COLLOCATED, CEED_VECTOR_ACTIVE));
-  PetscCallCeed(
-      ceed, CeedOperatorSetField(op_multiplicity, "inverse multiplicity", elem_restr_inv_multiplicity, CEED_BASIS_COLLOCATED, CEED_VECTOR_ACTIVE));
+  PetscCallCeed(ceed, CeedOperatorSetField(op_multiplicity, "multiplicity", ceed_data->elem_restr_q, CEED_BASIS_NONE, CEED_VECTOR_ACTIVE));
+  PetscCallCeed(ceed,
+                CeedOperatorSetField(op_multiplicity, "inverse multiplicity", elem_restr_inv_multiplicity, CEED_BASIS_NONE, CEED_VECTOR_ACTIVE));
 
   PetscCallCeed(ceed, CeedOperatorApply(op_multiplicity, multiplicity, inv_multiplicity, CEED_REQUEST_IMMEDIATE));
 
@@ -126,14 +126,13 @@ PetscErrorCode SgsDDModelSetupNodalEvaluation(Ceed ceed, User user, CeedData cee
   PetscCallCeed(ceed, CeedQFunctionAddOutput(qf_sgs_dd_nodal, "km_sgs", sgs_dd_data->num_comp_sgs, CEED_EVAL_NONE));
 
   PetscCallCeed(ceed, CeedOperatorCreate(ceed, qf_sgs_dd_nodal, NULL, NULL, &op_sgs_dd_nodal));
-  PetscCallCeed(ceed, CeedOperatorSetField(op_sgs_dd_nodal, "q", ceed_data->elem_restr_q, CEED_BASIS_COLLOCATED, user->q_ceed));
+  PetscCallCeed(ceed, CeedOperatorSetField(op_sgs_dd_nodal, "q", ceed_data->elem_restr_q, CEED_BASIS_NONE, user->q_ceed));
   PetscCallCeed(ceed, CeedOperatorSetField(op_sgs_dd_nodal, "x", ceed_data->elem_restr_x, basis_x_to_q, ceed_data->x_coord));
-  PetscCallCeed(ceed, CeedOperatorSetField(op_sgs_dd_nodal, "gradient velocity", elem_restr_grad_velo, CEED_BASIS_COLLOCATED, CEED_VECTOR_ACTIVE));
-  PetscCallCeed(ceed, CeedOperatorSetField(op_sgs_dd_nodal, "anisotropy tensor", sgs_dd_setup_data->elem_restr_grid_aniso, CEED_BASIS_COLLOCATED,
+  PetscCallCeed(ceed, CeedOperatorSetField(op_sgs_dd_nodal, "gradient velocity", elem_restr_grad_velo, CEED_BASIS_NONE, CEED_VECTOR_ACTIVE));
+  PetscCallCeed(ceed, CeedOperatorSetField(op_sgs_dd_nodal, "anisotropy tensor", sgs_dd_setup_data->elem_restr_grid_aniso, CEED_BASIS_NONE,
                                            sgs_dd_setup_data->grid_aniso_ceed));
-  PetscCallCeed(ceed,
-                CeedOperatorSetField(op_sgs_dd_nodal, "inverse multiplicity", elem_restr_inv_multiplicity, CEED_BASIS_COLLOCATED, inv_multiplicity));
-  PetscCallCeed(ceed, CeedOperatorSetField(op_sgs_dd_nodal, "km_sgs", elem_restr_sgs, CEED_BASIS_COLLOCATED, CEED_VECTOR_ACTIVE));
+  PetscCallCeed(ceed, CeedOperatorSetField(op_sgs_dd_nodal, "inverse multiplicity", elem_restr_inv_multiplicity, CEED_BASIS_NONE, inv_multiplicity));
+  PetscCallCeed(ceed, CeedOperatorSetField(op_sgs_dd_nodal, "km_sgs", elem_restr_sgs, CEED_BASIS_NONE, CEED_VECTOR_ACTIVE));
 
   PetscCall(OperatorApplyContextCreate(user->grad_velo_proj->dm, sgs_dd_data->dm_sgs, ceed, op_sgs_dd_nodal, NULL, sgs_dd_data->sgs_nodal_ceed, NULL,
                                        NULL, &sgs_dd_data->op_nodal_evaluation_ctx));
@@ -188,7 +187,7 @@ PetscErrorCode SgsModelSetupNodalIFunction(Ceed ceed, User user, CeedData ceed_d
 
   PetscCallCeed(ceed, CeedOperatorCreate(ceed, qf_sgs_apply, NULL, NULL, &op_sgs_apply));
   PetscCallCeed(ceed, CeedOperatorSetField(op_sgs_apply, "q", ceed_data->elem_restr_q, ceed_data->basis_q, CEED_VECTOR_ACTIVE));
-  PetscCallCeed(ceed, CeedOperatorSetField(op_sgs_apply, "qdata", ceed_data->elem_restr_qd_i, CEED_BASIS_COLLOCATED, ceed_data->q_data));
+  PetscCallCeed(ceed, CeedOperatorSetField(op_sgs_apply, "qdata", ceed_data->elem_restr_qd_i, CEED_BASIS_NONE, ceed_data->q_data));
   PetscCallCeed(ceed, CeedOperatorSetField(op_sgs_apply, "x", ceed_data->elem_restr_x, ceed_data->basis_x, ceed_data->x_coord));
   PetscCallCeed(ceed, CeedOperatorSetField(op_sgs_apply, "km_sgs", sgs_dd_setup_data->elem_restr_sgs, basis_sgs, sgs_dd_data->sgs_nodal_ceed));
   PetscCallCeed(ceed, CeedOperatorSetField(op_sgs_apply, "Grad_v", ceed_data->elem_restr_q, ceed_data->basis_q, CEED_VECTOR_ACTIVE));

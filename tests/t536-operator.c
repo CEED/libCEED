@@ -90,7 +90,7 @@ int main(int argc, char **argv) {
   CeedOperatorCreate(ceed, qf_setup_mass, CEED_QFUNCTION_NONE, CEED_QFUNCTION_NONE, &op_setup_mass);
   CeedOperatorSetField(op_setup_mass, "dx", elem_restriction_x, basis_x, CEED_VECTOR_ACTIVE);
   CeedOperatorSetField(op_setup_mass, "weight", CEED_ELEMRESTRICTION_NONE, basis_x, CEED_VECTOR_NONE);
-  CeedOperatorSetField(op_setup_mass, "q data", elem_restriction_q_data_mass, CEED_BASIS_COLLOCATED, CEED_VECTOR_ACTIVE);
+  CeedOperatorSetField(op_setup_mass, "q data", elem_restriction_q_data_mass, CEED_BASIS_NONE, CEED_VECTOR_ACTIVE);
 
   // QFunction - setup diff
   CeedQFunctionCreateInterior(ceed, 1, setup_diff, setup_diff_loc, &qf_setup_diff);
@@ -102,7 +102,7 @@ int main(int argc, char **argv) {
   CeedOperatorCreate(ceed, qf_setup_diff, CEED_QFUNCTION_NONE, CEED_QFUNCTION_NONE, &op_setup_diff);
   CeedOperatorSetField(op_setup_diff, "dx", elem_restriction_x, basis_x, CEED_VECTOR_ACTIVE);
   CeedOperatorSetField(op_setup_diff, "weight", CEED_ELEMRESTRICTION_NONE, basis_x, CEED_VECTOR_NONE);
-  CeedOperatorSetField(op_setup_diff, "q data", elem_restriction_q_data_diff, CEED_BASIS_COLLOCATED, CEED_VECTOR_ACTIVE);
+  CeedOperatorSetField(op_setup_diff, "q data", elem_restriction_q_data_diff, CEED_BASIS_NONE, CEED_VECTOR_ACTIVE);
 
   // Apply Setup Operators
   CeedOperatorApply(op_setup_mass, x, q_data_mass, CEED_REQUEST_IMMEDIATE);
@@ -120,8 +120,8 @@ int main(int argc, char **argv) {
   // Operator - apply
   CeedOperatorCreate(ceed, qf_apply, CEED_QFUNCTION_NONE, CEED_QFUNCTION_NONE, &op_apply);
   CeedOperatorSetField(op_apply, "du", elem_restriction_u, basis_u, CEED_VECTOR_ACTIVE);
-  CeedOperatorSetField(op_apply, "mass q data", elem_restriction_q_data_mass, CEED_BASIS_COLLOCATED, q_data_mass);
-  CeedOperatorSetField(op_apply, "diff q data", elem_restriction_q_data_diff, CEED_BASIS_COLLOCATED, q_data_diff);
+  CeedOperatorSetField(op_apply, "mass q data", elem_restriction_q_data_mass, CEED_BASIS_NONE, q_data_mass);
+  CeedOperatorSetField(op_apply, "diff q data", elem_restriction_q_data_diff, CEED_BASIS_NONE, q_data_diff);
   CeedOperatorSetField(op_apply, "u", elem_restriction_u, basis_u, CEED_VECTOR_ACTIVE);
   CeedOperatorSetField(op_apply, "v", elem_restriction_u, basis_u, CEED_VECTOR_ACTIVE);
   CeedOperatorSetField(op_apply, "dv", elem_restriction_u, basis_u, CEED_VECTOR_ACTIVE);

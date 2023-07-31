@@ -91,7 +91,7 @@ PetscErrorCode SetupLibceedByDegree(DM dm, Ceed ceed, CeedInt degree, CeedInt to
   CeedOperatorSetField(op_setup_geo, "x", elem_restr_x, basis_x, CEED_VECTOR_ACTIVE);
   CeedOperatorSetField(op_setup_geo, "dx", elem_restr_x, basis_x, CEED_VECTOR_ACTIVE);
   CeedOperatorSetField(op_setup_geo, "weight", CEED_ELEMRESTRICTION_NONE, basis_x, CEED_VECTOR_NONE);
-  CeedOperatorSetField(op_setup_geo, "qdata", elem_restr_qd_i, CEED_BASIS_COLLOCATED, CEED_VECTOR_ACTIVE);
+  CeedOperatorSetField(op_setup_geo, "qdata", elem_restr_qd_i, CEED_BASIS_NONE, CEED_VECTOR_ACTIVE);
 
   // Setup q_data
   CeedOperatorApply(op_setup_geo, x_coord, q_data, CEED_REQUEST_IMMEDIATE);
@@ -107,7 +107,7 @@ PetscErrorCode SetupLibceedByDegree(DM dm, Ceed ceed, CeedInt degree, CeedInt to
   // Create the mass or diff operator
   CeedOperatorCreate(ceed, qf_apply, NULL, NULL, &op_apply);
   CeedOperatorSetField(op_apply, "u", elem_restr_u, basis_u, CEED_VECTOR_ACTIVE);
-  CeedOperatorSetField(op_apply, "qdata", elem_restr_qd_i, CEED_BASIS_COLLOCATED, q_data);
+  CeedOperatorSetField(op_apply, "qdata", elem_restr_qd_i, CEED_BASIS_NONE, q_data);
   CeedOperatorSetField(op_apply, "v", elem_restr_u, basis_u, CEED_VECTOR_ACTIVE);
 
   // Set up RHS if needed
@@ -125,8 +125,8 @@ PetscErrorCode SetupLibceedByDegree(DM dm, Ceed ceed, CeedInt degree, CeedInt to
     // Create the operator that builds the RHS and true solution
     CeedOperatorCreate(ceed, qf_setup_rhs, NULL, NULL, &op_setup_rhs);
     CeedOperatorSetField(op_setup_rhs, "x", elem_restr_x, basis_x, CEED_VECTOR_ACTIVE);
-    CeedOperatorSetField(op_setup_rhs, "qdata", elem_restr_qd_i, CEED_BASIS_COLLOCATED, q_data);
-    CeedOperatorSetField(op_setup_rhs, "true solution", elem_restr_u_i, CEED_BASIS_COLLOCATED, *target);
+    CeedOperatorSetField(op_setup_rhs, "qdata", elem_restr_qd_i, CEED_BASIS_NONE, q_data);
+    CeedOperatorSetField(op_setup_rhs, "true solution", elem_restr_u_i, CEED_BASIS_NONE, *target);
     CeedOperatorSetField(op_setup_rhs, "rhs", elem_restr_u, basis_u, CEED_VECTOR_ACTIVE);
 
     // Set up the libCEED context

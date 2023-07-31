@@ -37,7 +37,7 @@ build_oper = Operator(
     fields=[
         (:J, mesh_restr, mesh_basis, CeedVectorActive()),
         (:w, ElemRestrictionNone(), mesh_basis, CeedVectorNone()),
-        (:qdata, sol_restr_i, BasisCollocated(), CeedVectorActive())
+        (:qdata, sol_restr_i, BasisNone(), CeedVectorActive())
     ]
 )
 ```

@@ -51,7 +51,7 @@ impl<'a> OperatorField<'a> {
     ///     .operator(&qf, QFunctionOpt::None, QFunctionOpt::None)?
     ///     .field("dx", &r, &b, VectorOpt::Active)?
     ///     .field("weights", ElemRestrictionOpt::None, &b, VectorOpt::None)?
-    ///     .field("qdata", &rq, BasisOpt::Collocated, VectorOpt::Active)?;
+    ///     .field("qdata", &rq, BasisOpt::None, VectorOpt::Active)?;
     ///
     /// let inputs = op.inputs()?;
     ///
@@ -95,7 +95,7 @@ impl<'a> OperatorField<'a> {
     ///     .operator(&qf, QFunctionOpt::None, QFunctionOpt::None)?
     ///     .field("dx", &r, &b, VectorOpt::Active)?
     ///     .field("weights", ElemRestrictionOpt::None, &b, VectorOpt::None)?
-    ///     .field("qdata", &rq, BasisOpt::Collocated, VectorOpt::Active)?;
+    ///     .field("qdata", &rq, BasisOpt::None, VectorOpt::Active)?;
     ///
     /// let inputs = op.inputs()?;
     ///
@@ -163,7 +163,7 @@ impl<'a> OperatorField<'a> {
     ///     .operator(&qf, QFunctionOpt::None, QFunctionOpt::None)?
     ///     .field("dx", &r, &b, VectorOpt::Active)?
     ///     .field("weights", ElemRestrictionOpt::None, &b, VectorOpt::None)?
-    ///     .field("qdata", &rq, BasisOpt::Collocated, VectorOpt::Active)?;
+    ///     .field("qdata", &rq, BasisOpt::None, VectorOpt::Active)?;
     ///
     /// let inputs = op.inputs()?;
     ///
@@ -186,7 +186,7 @@ impl<'a> OperatorField<'a> {
     ///
     /// let outputs = op.outputs()?;
     ///
-    /// assert!(outputs[0].basis().is_collocated(), "Incorrect field Basis");
+    /// assert!(outputs[0].basis().is_none(), "Incorrect field Basis");
     /// # Ok(())
     /// # }
     /// ```
@@ -195,8 +195,8 @@ impl<'a> OperatorField<'a> {
         unsafe {
             bind_ceed::CeedOperatorFieldGetBasis(self.ptr, &mut ptr);
         }
-        if ptr == unsafe { bind_ceed::CEED_BASIS_COLLOCATED } {
-            BasisOpt::Collocated
+        if ptr == unsafe { bind_ceed::CEED_BASIS_NONE } {
+            BasisOpt::None
         } else {
             let slice = unsafe {
                 std::slice::from_raw_parts(
@@ -235,7 +235,7 @@ impl<'a> OperatorField<'a> {
     ///     .operator(&qf, QFunctionOpt::None, QFunctionOpt::None)?
     ///     .field("dx", &r, &b, VectorOpt::Active)?
     ///     .field("weights", ElemRestrictionOpt::None, &b, VectorOpt::None)?
-    ///     .field("qdata", &rq, BasisOpt::Collocated, VectorOpt::Active)?;
+    ///     .field("qdata", &rq, BasisOpt::None, VectorOpt::Active)?;
     ///
     /// let inputs = op.inputs()?;
     ///
@@ -340,7 +340,7 @@ impl<'a> fmt::Display for OperatorCore<'a> {
 ///     .name("mass")?
 ///     .field("dx", &r, &b, VectorOpt::Active)?
 ///     .field("weights", ElemRestrictionOpt::None, &b, VectorOpt::None)?
-///     .field("qdata", &rq, BasisOpt::Collocated, VectorOpt::Active)?;
+///     .field("qdata", &rq, BasisOpt::None, VectorOpt::Active)?;
 ///
 /// println!("{}", op);
 /// # Ok(())
@@ -381,7 +381,7 @@ impl<'a> fmt::Display for Operator<'a> {
 ///     .operator(&qf_mass, QFunctionOpt::None, QFunctionOpt::None)?
 ///     .name("Mass term")?
 ///     .field("u", &r, &b, VectorOpt::Active)?
-///     .field("qdata", &rq, BasisOpt::Collocated, &qdata_mass)?
+///     .field("qdata", &rq, BasisOpt::None, &qdata_mass)?
 ///     .field("v", &r, &b, VectorOpt::Active)?;
 ///
 /// let qf_diff = ceed.q_function_interior_by_name("Poisson1DApply")?;
@@ -389,7 +389,7 @@ impl<'a> fmt::Display for Operator<'a> {
 ///     .operator(&qf_diff, QFunctionOpt::None, QFunctionOpt::None)?
 ///     .name("Poisson term")?
 ///     .field("du", &r, &b, VectorOpt::Active)?
-///     .field("qdata", &rq, BasisOpt::Collocated, &qdata_diff)?
+///     .field("qdata", &rq, BasisOpt::None, &qdata_diff)?
 ///     .field("dv", &r, &b, VectorOpt::Active)?;
 ///
 /// let op = ceed
@@ -578,7 +578,7 @@ impl<'a> Operator<'a> {
     ///     .name("mass")?
     ///     .field("dx", &r, &b, VectorOpt::Active)?
     ///     .field("weights", ElemRestrictionOpt::None, &b, VectorOpt::None)?
-    ///     .field("qdata", &rq, BasisOpt::Collocated, VectorOpt::Active)?;
+    ///     .field("qdata", &rq, BasisOpt::None, VectorOpt::Active)?;
     /// # Ok(())
     /// # }
     /// ```
@@ -636,7 +636,7 @@ impl<'a> Operator<'a> {
     /// ceed.operator(&qf_build, QFunctionOpt::None, QFunctionOpt::None)?
     ///     .field("dx", &rx, &bx, VectorOpt::Active)?
     ///     .field("weights", ElemRestrictionOpt::None, &bx, VectorOpt::None)?
-    ///     .field("qdata", &rq, BasisOpt::Collocated, VectorOpt::Active)?
+    ///     .field("qdata", &rq, BasisOpt::None, VectorOpt::Active)?
     ///     .apply(&x, &mut qdata)?;
     ///
     /// // Mass operator
@@ -644,7 +644,7 @@ impl<'a> Operator<'a> {
     /// let op_mass = ceed
     ///     .operator(&qf_mass, QFunctionOpt::None, QFunctionOpt::None)?
     ///     .field("u", &ru, &bu, VectorOpt::Active)?
-    ///     .field("qdata", &rq, BasisOpt::Collocated, &qdata)?
+    ///     .field("qdata", &rq, BasisOpt::None, &qdata)?
     ///     .field("v", &ru, &bu, VectorOpt::Active)?;
     ///
     /// v.set_value(0.0);
@@ -710,7 +710,7 @@ impl<'a> Operator<'a> {
     /// ceed.operator(&qf_build, QFunctionOpt::None, QFunctionOpt::None)?
     ///     .field("dx", &rx, &bx, VectorOpt::Active)?
     ///     .field("weights", ElemRestrictionOpt::None, &bx, VectorOpt::None)?
-    ///     .field("qdata", &rq, BasisOpt::Collocated, VectorOpt::Active)?
+    ///     .field("qdata", &rq, BasisOpt::None, VectorOpt::Active)?
     ///     .apply(&x, &mut qdata)?;
     ///
     /// // Mass operator
@@ -718,7 +718,7 @@ impl<'a> Operator<'a> {
     /// let op_mass = ceed
     ///     .operator(&qf_mass, QFunctionOpt::None, QFunctionOpt::None)?
     ///     .field("u", &ru, &bu, VectorOpt::Active)?
-    ///     .field("qdata", &rq, BasisOpt::Collocated, &qdata)?
+    ///     .field("qdata", &rq, BasisOpt::None, &qdata)?
     ///     .field("v", &ru, &bu, VectorOpt::Active)?;
     ///
     /// v.set_value(1.0);
@@ -742,10 +742,9 @@ impl<'a> Operator<'a> {
     /// * `fieldname` - Name of the field (to be matched with the name used by
     ///                   the QFunction)
     /// * `r`         - ElemRestriction
-    /// * `b`         - Basis in which the field resides or `BasisCollocated` if
-    ///                   collocated with quadrature points
-    /// * `v`         - Vector to be used by Operator or `VectorActive` if field
-    ///                   is active or `VectorNone` if using `Weight` with the
+    /// * `b`         - Basis in which the field resides or `BasisOpt::None`
+    /// * `v`         - Vector to be used by Operator or `VectorOpt::Active` if field
+    ///                   is active or `VectorOpt::None` if using `Weight` with the
     ///                   QFunction
     ///
     ///
@@ -823,7 +822,7 @@ impl<'a> Operator<'a> {
     ///     .operator(&qf, QFunctionOpt::None, QFunctionOpt::None)?
     ///     .field("dx", &r, &b, VectorOpt::Active)?
     ///     .field("weights", ElemRestrictionOpt::None, &b, VectorOpt::None)?
-    ///     .field("qdata", &rq, BasisOpt::Collocated, VectorOpt::Active)?;
+    ///     .field("qdata", &rq, BasisOpt::None, VectorOpt::Active)?;
     ///
     /// let inputs = op.inputs()?;
     ///
@@ -882,7 +881,7 @@ impl<'a> Operator<'a> {
     ///     .operator(&qf, QFunctionOpt::None, QFunctionOpt::None)?
     ///     .field("dx", &r, &b, VectorOpt::Active)?
     ///     .field("weights", ElemRestrictionOpt::None, &b, VectorOpt::None)?
-    ///     .field("qdata", &rq, BasisOpt::Collocated, VectorOpt::Active)?;
+    ///     .field("qdata", &rq, BasisOpt::None, VectorOpt::Active)?;
     ///
     /// let outputs = op.outputs()?;
     ///
@@ -944,7 +943,7 @@ impl<'a> Operator<'a> {
     ///     .operator(&qf_build, QFunctionOpt::None, QFunctionOpt::None)?
     ///     .field("dx", &rx, &bx, VectorOpt::Active)?
     ///     .field("weights", ElemRestrictionOpt::None, &bx, VectorOpt::None)?
-    ///     .field("qdata", &rq, BasisOpt::Collocated, VectorOpt::Active)?;
+    ///     .field("qdata", &rq, BasisOpt::None, VectorOpt::Active)?;
     ///
     /// // Check
     /// assert!(op_build.check().is_ok(), "Operator setup incorrectly");
@@ -1087,7 +1086,7 @@ impl<'a> Operator<'a> {
     /// ceed.operator(&qf_build, QFunctionOpt::None, QFunctionOpt::None)?
     ///     .field("dx", &rx, &bx, VectorOpt::Active)?
     ///     .field("weights", ElemRestrictionOpt::None, &bx, VectorOpt::None)?
-    ///     .field("qdata", &rq, BasisOpt::Collocated, VectorOpt::Active)?
+    ///     .field("qdata", &rq, BasisOpt::None, VectorOpt::Active)?
     ///     .apply(&x, &mut qdata)?;
     ///
     /// // Mass operator
@@ -1095,7 +1094,7 @@ impl<'a> Operator<'a> {
     /// let op_mass = ceed
     ///     .operator(&qf_mass, QFunctionOpt::None, QFunctionOpt::None)?
     ///     .field("u", &ru, &bu, VectorOpt::Active)?
-    ///     .field("qdata", &rq, BasisOpt::Collocated, &qdata)?
+    ///     .field("qdata", &rq, BasisOpt::None, &qdata)?
     ///     .field("v", &ru, &bu, VectorOpt::Active)?;
     ///
     /// // Diagonal
@@ -1194,7 +1193,7 @@ impl<'a> Operator<'a> {
     /// ceed.operator(&qf_build, QFunctionOpt::None, QFunctionOpt::None)?
     ///     .field("dx", &rx, &bx, VectorOpt::Active)?
     ///     .field("weights", ElemRestrictionOpt::None, &bx, VectorOpt::None)?
-    ///     .field("qdata", &rq, BasisOpt::Collocated, VectorOpt::Active)?
+    ///     .field("qdata", &rq, BasisOpt::None, VectorOpt::Active)?
     ///     .apply(&x, &mut qdata)?;
     ///
     /// // Mass operator
@@ -1202,7 +1201,7 @@ impl<'a> Operator<'a> {
     /// let op_mass = ceed
     ///     .operator(&qf_mass, QFunctionOpt::None, QFunctionOpt::None)?
     ///     .field("u", &ru, &bu, VectorOpt::Active)?
-    ///     .field("qdata", &rq, BasisOpt::Collocated, &qdata)?
+    ///     .field("qdata", &rq, BasisOpt::None, &qdata)?
     ///     .field("v", &ru, &bu, VectorOpt::Active)?;
     ///
     /// // Diagonal
@@ -1307,7 +1306,7 @@ impl<'a> Operator<'a> {
     /// ceed.operator(&qf_build, QFunctionOpt::None, QFunctionOpt::None)?
     ///     .field("dx", &rx, &bx, VectorOpt::Active)?
     ///     .field("weights", ElemRestrictionOpt::None, &bx, VectorOpt::None)?
-    ///     .field("qdata", &rq, BasisOpt::Collocated, VectorOpt::Active)?
+    ///     .field("qdata", &rq, BasisOpt::None, VectorOpt::Active)?
     ///     .apply(&x, &mut qdata)?;
     ///
     /// // Mass operator
@@ -1334,7 +1333,7 @@ impl<'a> Operator<'a> {
     /// let op_mass = ceed
     ///     .operator(&qf_mass, QFunctionOpt::None, QFunctionOpt::None)?
     ///     .field("u", &ru, &bu, VectorOpt::Active)?
-    ///     .field("qdata", &rq, BasisOpt::Collocated, &qdata)?
+    ///     .field("qdata", &rq, BasisOpt::None, &qdata)?
     ///     .field("v", &ru, &bu, VectorOpt::Active)?;
     ///
     /// // Diagonal
@@ -1446,7 +1445,7 @@ impl<'a> Operator<'a> {
     /// ceed.operator(&qf_build, QFunctionOpt::None, QFunctionOpt::None)?
     ///     .field("dx", &rx, &bx, VectorOpt::Active)?
     ///     .field("weights", ElemRestrictionOpt::None, &bx, VectorOpt::None)?
-    ///     .field("qdata", &rq, BasisOpt::Collocated, VectorOpt::Active)?
+    ///     .field("qdata", &rq, BasisOpt::None, VectorOpt::Active)?
     ///     .apply(&x, &mut qdata)?;
     ///
     /// // Mass operator
@@ -1473,7 +1472,7 @@ impl<'a> Operator<'a> {
     /// let op_mass = ceed
     ///     .operator(&qf_mass, QFunctionOpt::None, QFunctionOpt::None)?
     ///     .field("u", &ru, &bu, VectorOpt::Active)?
-    ///     .field("qdata", &rq, BasisOpt::Collocated, &qdata)?
+    ///     .field("qdata", &rq, BasisOpt::None, &qdata)?
     ///     .field("v", &ru, &bu, VectorOpt::Active)?;
     ///
     /// // Diagonal
@@ -1607,7 +1606,7 @@ impl<'a> Operator<'a> {
     /// ceed.operator(&qf_build, QFunctionOpt::None, QFunctionOpt::None)?
     ///     .field("dx", &rx, &bx, VectorOpt::Active)?
     ///     .field("weights", ElemRestrictionOpt::None, &bx, VectorOpt::None)?
-    ///     .field("qdata", &rq, BasisOpt::Collocated, VectorOpt::Active)?
+    ///     .field("qdata", &rq, BasisOpt::None, VectorOpt::Active)?
     ///     .apply(&x, &mut qdata)?;
     ///
     /// // Mass operator
@@ -1615,7 +1614,7 @@ impl<'a> Operator<'a> {
     /// let op_mass_fine = ceed
     ///     .operator(&qf_mass, QFunctionOpt::None, QFunctionOpt::None)?
     ///     .field("u", &ru_fine, &bu_fine, VectorOpt::Active)?
-    ///     .field("qdata", &rq, BasisOpt::Collocated, &qdata)?
+    ///     .field("qdata", &rq, BasisOpt::None, &qdata)?
     ///     .field("v", &ru_fine, &bu_fine, VectorOpt::Active)?;
     ///
     /// // Multigrid setup
@@ -1767,7 +1766,7 @@ impl<'a> Operator<'a> {
     /// ceed.operator(&qf_build, QFunctionOpt::None, QFunctionOpt::None)?
     ///     .field("dx", &rx, &bx, VectorOpt::Active)?
     ///     .field("weights", ElemRestrictionOpt::None, &bx, VectorOpt::None)?
-    ///     .field("qdata", &rq, BasisOpt::Collocated, VectorOpt::Active)?
+    ///     .field("qdata", &rq, BasisOpt::None, VectorOpt::Active)?
     ///     .apply(&x, &mut qdata)?;
     ///
     /// // Mass operator
@@ -1775,7 +1774,7 @@ impl<'a> Operator<'a> {
     /// let op_mass_fine = ceed
     ///     .operator(&qf_mass, QFunctionOpt::None, QFunctionOpt::None)?
     ///     .field("u", &ru_fine, &bu_fine, VectorOpt::Active)?
-    ///     .field("qdata", &rq, BasisOpt::Collocated, &qdata)?
+    ///     .field("qdata", &rq, BasisOpt::None, &qdata)?
     ///     .field("v", &ru_fine, &bu_fine, VectorOpt::Active)?;
     ///
     /// // Multigrid setup
@@ -1958,7 +1957,7 @@ impl<'a> Operator<'a> {
     /// ceed.operator(&qf_build, QFunctionOpt::None, QFunctionOpt::None)?
     ///     .field("dx", &rx, &bx, VectorOpt::Active)?
     ///     .field("weights", ElemRestrictionOpt::None, &bx, VectorOpt::None)?
-    ///     .field("qdata", &rq, BasisOpt::Collocated, VectorOpt::Active)?
+    ///     .field("qdata", &rq, BasisOpt::None, VectorOpt::Active)?
     ///     .apply(&x, &mut qdata)?;
     ///
     /// // Mass operator
@@ -1966,7 +1965,7 @@ impl<'a> Operator<'a> {
     /// let op_mass_fine = ceed
     ///     .operator(&qf_mass, QFunctionOpt::None, QFunctionOpt::None)?
     ///     .field("u", &ru_fine, &bu_fine, VectorOpt::Active)?
-    ///     .field("qdata", &rq, BasisOpt::Collocated, &qdata)?
+    ///     .field("qdata", &rq, BasisOpt::None, &qdata)?
     ///     .field("v", &ru_fine, &bu_fine, VectorOpt::Active)?;
     ///
     /// // Multigrid setup
@@ -2116,7 +2115,7 @@ impl<'a> CompositeOperator<'a> {
     ///     .operator(&qf_mass, QFunctionOpt::None, QFunctionOpt::None)?
     ///     .name("Mass term")?
     ///     .field("u", &r, &b, VectorOpt::Active)?
-    ///     .field("qdata", &rq, BasisOpt::Collocated, &qdata_mass)?
+    ///     .field("qdata", &rq, BasisOpt::None, &qdata_mass)?
     ///     .field("v", &r, &b, VectorOpt::Active)?;
     ///
     /// let qf_diff = ceed.q_function_interior_by_name("Poisson1DApply")?;
@@ -2124,7 +2123,7 @@ impl<'a> CompositeOperator<'a> {
     ///     .operator(&qf_diff, QFunctionOpt::None, QFunctionOpt::None)?
     ///     .name("Poisson term")?
     ///     .field("du", &r, &b, VectorOpt::Active)?
-    ///     .field("qdata", &rq, BasisOpt::Collocated, &qdata_diff)?
+    ///     .field("qdata", &rq, BasisOpt::None, &qdata_diff)?
     ///     .field("dv", &r, &b, VectorOpt::Active)?;
     ///
     /// let op = ceed
@@ -2192,14 +2191,14 @@ impl<'a> CompositeOperator<'a> {
     /// ceed.operator(&qf_build_mass, QFunctionOpt::None, QFunctionOpt::None)?
     ///     .field("dx", &rx, &bx, VectorOpt::Active)?
     ///     .field("weights", ElemRestrictionOpt::None, &bx, VectorOpt::None)?
-    ///     .field("qdata", &rq, BasisOpt::Collocated, VectorOpt::Active)?
+    ///     .field("qdata", &rq, BasisOpt::None, VectorOpt::Active)?
     ///     .apply(&x, &mut qdata_mass)?;
     ///
     /// let qf_build_diff = ceed.q_function_interior_by_name("Poisson1DBuild")?;
     /// ceed.operator(&qf_build_diff, QFunctionOpt::None, QFunctionOpt::None)?
     ///     .field("dx", &rx, &bx, VectorOpt::Active)?
     ///     .field("weights", ElemRestrictionOpt::None, &bx, VectorOpt::None)?
-    ///     .field("qdata", &rq, BasisOpt::Collocated, VectorOpt::Active)?
+    ///     .field("qdata", &rq, BasisOpt::None, VectorOpt::Active)?
     ///     .apply(&x, &mut qdata_diff)?;
     ///
     /// // Application operator
@@ -2207,14 +2206,14 @@ impl<'a> CompositeOperator<'a> {
     /// let op_mass = ceed
     ///     .operator(&qf_mass, QFunctionOpt::None, QFunctionOpt::None)?
     ///     .field("u", &ru, &bu, VectorOpt::Active)?
-    ///     .field("qdata", &rq, BasisOpt::Collocated, &qdata_mass)?
+    ///     .field("qdata", &rq, BasisOpt::None, &qdata_mass)?
     ///     .field("v", &ru, &bu, VectorOpt::Active)?;
     ///
     /// let qf_diff = ceed.q_function_interior_by_name("Poisson1DApply")?;
     /// let op_diff = ceed
     ///     .operator(&qf_diff, QFunctionOpt::None, QFunctionOpt::None)?
     ///     .field("du", &ru, &bu, VectorOpt::Active)?
-    ///     .field("qdata", &rq, BasisOpt::Collocated, &qdata_diff)?
+    ///     .field("qdata", &rq, BasisOpt::None, &qdata_diff)?
     ///     .field("dv", &ru, &bu, VectorOpt::Active)?;
     ///
     /// let op_composite = ceed
@@ -2289,14 +2288,14 @@ impl<'a> CompositeOperator<'a> {
     /// ceed.operator(&qf_build_mass, QFunctionOpt::None, QFunctionOpt::None)?
     ///     .field("dx", &rx, &bx, VectorOpt::Active)?
     ///     .field("weights", ElemRestrictionOpt::None, &bx, VectorOpt::None)?
-    ///     .field("qdata", &rq, BasisOpt::Collocated, VectorOpt::Active)?
+    ///     .field("qdata", &rq, BasisOpt::None, VectorOpt::Active)?
     ///     .apply(&x, &mut qdata_mass)?;
     ///
     /// let qf_build_diff = ceed.q_function_interior_by_name("Poisson1DBuild")?;
     /// ceed.operator(&qf_build_diff, QFunctionOpt::None, QFunctionOpt::None)?
     ///     .field("dx", &rx, &bx, VectorOpt::Active)?
     ///     .field("weights", ElemRestrictionOpt::None, &bx, VectorOpt::None)?
-    ///     .field("qdata", &rq, BasisOpt::Collocated, VectorOpt::Active)?
+    ///     .field("qdata", &rq, BasisOpt::None, VectorOpt::Active)?
     ///     .apply(&x, &mut qdata_diff)?;
     ///
     /// // Application operator
@@ -2304,14 +2303,14 @@ impl<'a> CompositeOperator<'a> {
     /// let op_mass = ceed
     ///     .operator(&qf_mass, QFunctionOpt::None, QFunctionOpt::None)?
     ///     .field("u", &ru, &bu, VectorOpt::Active)?
-    ///     .field("qdata", &rq, BasisOpt::Collocated, &qdata_mass)?
+    ///     .field("qdata", &rq, BasisOpt::None, &qdata_mass)?
     ///     .field("v", &ru, &bu, VectorOpt::Active)?;
     ///
     /// let qf_diff = ceed.q_function_interior_by_name("Poisson1DApply")?;
     /// let op_diff = ceed
     ///     .operator(&qf_diff, QFunctionOpt::None, QFunctionOpt::None)?
     ///     .field("du", &ru, &bu, VectorOpt::Active)?
-    ///     .field("qdata", &rq, BasisOpt::Collocated, &qdata_diff)?
+    ///     .field("qdata", &rq, BasisOpt::None, &qdata_diff)?
     ///     .field("dv", &ru, &bu, VectorOpt::Active)?;
     ///
     /// let op_composite = ceed
@@ -2393,14 +2392,14 @@ impl<'a> CompositeOperator<'a> {
     ///     .operator(&qf_build_mass, QFunctionOpt::None, QFunctionOpt::None)?
     ///     .field("dx", &rx, &bx, VectorOpt::Active)?
     ///     .field("weights", ElemRestrictionOpt::None, &bx, VectorOpt::None)?
-    ///     .field("qdata", &rq, BasisOpt::Collocated, VectorOpt::Active)?;
+    ///     .field("qdata", &rq, BasisOpt::None, VectorOpt::Active)?;
     ///
     /// let qf_build_diff = ceed.q_function_interior_by_name("Poisson1DBuild")?;
     /// let op_build_diff = ceed
     ///     .operator(&qf_build_diff, QFunctionOpt::None, QFunctionOpt::None)?
     ///     .field("dx", &rx, &bx, VectorOpt::Active)?
     ///     .field("weights", ElemRestrictionOpt::None, &bx, VectorOpt::None)?
-    ///     .field("qdata", &rq, BasisOpt::Collocated, VectorOpt::Active)?;
+    ///     .field("qdata", &rq, BasisOpt::None, VectorOpt::Active)?;
     ///
     /// let op_build = ceed
     ///     .composite_operator()?

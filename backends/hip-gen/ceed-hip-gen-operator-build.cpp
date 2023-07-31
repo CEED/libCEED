@@ -122,7 +122,7 @@ extern "C" int CeedOperatorBuildKernel_Hip_gen(CeedOperator op) {
   data->max_P_1d = 0;
   for (CeedInt i = 0; i < num_input_fields; i++) {
     CeedCallBackend(CeedOperatorFieldGetBasis(op_input_fields[i], &basis));
-    if (basis != CEED_BASIS_COLLOCATED) {
+    if (basis != CEED_BASIS_NONE) {
       CeedCallBackend(CeedBasisGetData(basis, &basis_data));
       CeedCallBackend(CeedQFunctionFieldGetEvalMode(qf_input_fields[i], &eval_mode));
 
@@ -137,11 +137,11 @@ extern "C" int CeedOperatorBuildKernel_Hip_gen(CeedOperator op) {
     }
   }
   // Check output bases for Q_1d, dim as well
-  //   The only input basis might be CEED_BASIS_COLLOCATED
+  //   The only input basis might be CEED_BASIS_NONE
   for (CeedInt i = 0; i < num_output_fields; i++) {
     CeedCallBackend(CeedOperatorFieldGetBasis(op_output_fields[i], &basis));
 
-    if (basis != CEED_BASIS_COLLOCATED) {
+    if (basis != CEED_BASIS_NONE) {
       CeedCallBackend(CeedBasisGetData(basis, &basis_data));
       CeedCallBackend(CeedQFunctionFieldGetEvalMode(qf_output_fields[i], &eval_mode));
 
@@ -233,7 +233,7 @@ extern "C" int CeedOperatorBuildKernel_Hip_gen(CeedOperator op) {
     // Set field constants
     if (eval_mode != CEED_EVAL_WEIGHT) {
       CeedCallBackend(CeedOperatorFieldGetBasis(op_input_fields[i], &basis));
-      if (basis != CEED_BASIS_COLLOCATED) {
+      if (basis != CEED_BASIS_NONE) {
         CeedCallBackend(CeedBasisGetNumNodes1D(basis, &P_1d));
         code << "  const CeedInt P_in_" << i << " = " << P_1d << ";\n";
       } else {
@@ -290,7 +290,7 @@ extern "C" int CeedOperatorBuildKernel_Hip_gen(CeedOperator op) {
 
     // Set field constants
     CeedCallBackend(CeedOperatorFieldGetBasis(op_output_fields[i], &basis));
-    if (basis != CEED_BASIS_COLLOCATED) {
+    if (basis != CEED_BASIS_NONE) {
       CeedCallBackend(CeedBasisGetNumNodes1D(basis, &P_1d));
       code << "  const CeedInt P_out_" << i << " = " << P_1d << ";\n";
     } else {

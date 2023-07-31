@@ -136,12 +136,12 @@
       call ceedoperatorsetfield(op_setuptet,'dx',erestrictxtet,&
      & bxtet,ceed_vector_active,err)
       call ceedoperatorsetfield(op_setuptet,'rho',erestrictuitet,&
-     & ceed_basis_collocated,qdatatet,err)
+     ceed_basis_none,qdatatet,err)
 ! ---- Mass Tet
       call ceedoperatorcreate(ceed,qf_masstet,ceed_qfunction_none,&
      & ceed_qfunction_none,op_masstet,err)
       call ceedoperatorsetfield(op_masstet,'rho',erestrictuitet,&
-     & ceed_basis_collocated,qdatatet,err)
+     ceed_basis_none,qdatatet,err)
       call ceedoperatorsetfield(op_masstet,'u',erestrictutet,&
      & butet,ceed_vector_active,err)
       call ceedoperatorsetfield(op_masstet,'v',erestrictutet,&
@@ -199,12 +199,12 @@
       call ceedoperatorsetfield(op_setuphex,'dx',erestrictxhex,&
      & bxhex,ceed_vector_active,err)
       call ceedoperatorsetfield(op_setuphex,'rho',erestrictuihex,&
-     & ceed_basis_collocated,qdatahex,err)
+     ceed_basis_none,qdatahex,err)
 ! ---- Mass Hex
       call ceedoperatorcreate(ceed,qf_masshex,ceed_qfunction_none,&
      & ceed_qfunction_none,op_masshex,err)
       call ceedoperatorsetfield(op_masshex,'rho',erestrictuihex,&
-     & ceed_basis_collocated,qdatahex,err)
+     ceed_basis_none,qdatahex,err)
       call ceedoperatorsetfield(op_masshex,'u',erestrictuhex,&
      & buhex,ceed_vector_active,err)
       call ceedoperatorsetfield(op_masshex,'v',erestrictuhex,&

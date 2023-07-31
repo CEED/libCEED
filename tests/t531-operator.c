@@ -70,7 +70,7 @@ int main(int argc, char **argv) {
   CeedOperatorCreate(ceed, qf_setup, CEED_QFUNCTION_NONE, CEED_QFUNCTION_NONE, &op_setup);
   CeedOperatorSetField(op_setup, "dx", elem_restriction_x, basis_x, CEED_VECTOR_ACTIVE);
   CeedOperatorSetField(op_setup, "weight", CEED_ELEMRESTRICTION_NONE, basis_x, CEED_VECTOR_NONE);
-  CeedOperatorSetField(op_setup, "q data", elem_restriction_q_data, CEED_BASIS_COLLOCATED, CEED_VECTOR_ACTIVE);
+  CeedOperatorSetField(op_setup, "q data", elem_restriction_q_data, CEED_BASIS_NONE, CEED_VECTOR_ACTIVE);
 
   // Apply Setup Operator
   CeedOperatorApply(op_setup, x, q_data, CEED_REQUEST_IMMEDIATE);
@@ -84,7 +84,7 @@ int main(int argc, char **argv) {
   // Operator - apply
   CeedOperatorCreate(ceed, qf_diff, CEED_QFUNCTION_NONE, CEED_QFUNCTION_NONE, &op_diff);
   CeedOperatorSetField(op_diff, "du", elem_restriction_u, basis_u, CEED_VECTOR_ACTIVE);
-  CeedOperatorSetField(op_diff, "q data", elem_restriction_q_data, CEED_BASIS_COLLOCATED, q_data);
+  CeedOperatorSetField(op_diff, "q data", elem_restriction_q_data, CEED_BASIS_NONE, q_data);
   CeedOperatorSetField(op_diff, "dv", elem_restriction_u, basis_u, CEED_VECTOR_ACTIVE);
 
   // Apply original Poisson Operator
@@ -118,7 +118,7 @@ int main(int argc, char **argv) {
   // Operator - apply assembled
   CeedOperatorCreate(ceed, qf_diff_assembled, CEED_QFUNCTION_NONE, CEED_QFUNCTION_NONE, &op_diff_assembled);
   CeedOperatorSetField(op_diff_assembled, "du", elem_restriction_u, basis_u, CEED_VECTOR_ACTIVE);
-  CeedOperatorSetField(op_diff_assembled, "q data", elem_restriction_assembled, CEED_BASIS_COLLOCATED, assembled);
+  CeedOperatorSetField(op_diff_assembled, "q data", elem_restriction_assembled, CEED_BASIS_NONE, assembled);
   CeedOperatorSetField(op_diff_assembled, "dv", elem_restriction_u, basis_u, CEED_VECTOR_ACTIVE);
 
   // Apply new Poisson Operator

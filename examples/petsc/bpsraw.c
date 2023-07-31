@@ -622,27 +622,27 @@ int main(int argc, char **argv) {
   CeedOperatorSetField(op_setup_geo, "x", elem_restr_x, basis_x, CEED_VECTOR_ACTIVE);
   CeedOperatorSetField(op_setup_geo, "dx", elem_restr_x, basis_x, CEED_VECTOR_ACTIVE);
   CeedOperatorSetField(op_setup_geo, "weight", CEED_ELEMRESTRICTION_NONE, basis_x, CEED_VECTOR_NONE);
-  CeedOperatorSetField(op_setup_geo, "q_data", elem_restr_qd_i, CEED_BASIS_COLLOCATED, CEED_VECTOR_ACTIVE);
+  CeedOperatorSetField(op_setup_geo, "q_data", elem_restr_qd_i, CEED_BASIS_NONE, CEED_VECTOR_ACTIVE);
 
   // Create the operator that builds the RHS and true solution
   CeedOperatorCreate(ceed, qf_setup_rhs, CEED_QFUNCTION_NONE, CEED_QFUNCTION_NONE, &op_setup_rhs);
   CeedOperatorSetField(op_setup_rhs, "x", elem_restr_x, basis_x, CEED_VECTOR_ACTIVE);
-  CeedOperatorSetField(op_setup_rhs, "q_data", elem_restr_qd_i, CEED_BASIS_COLLOCATED, q_data);
-  CeedOperatorSetField(op_setup_rhs, "true_soln", elem_restr_u_i, CEED_BASIS_COLLOCATED, target);
+  CeedOperatorSetField(op_setup_rhs, "q_data", elem_restr_qd_i, CEED_BASIS_NONE, q_data);
+  CeedOperatorSetField(op_setup_rhs, "true_soln", elem_restr_u_i, CEED_BASIS_NONE, target);
   CeedOperatorSetField(op_setup_rhs, "rhs", elem_restr_u, basis_u, CEED_VECTOR_ACTIVE);
 
   // Create the mass or diff operator
   CeedOperatorCreate(ceed, qf_apply, CEED_QFUNCTION_NONE, CEED_QFUNCTION_NONE, &op_apply);
   CeedOperatorSetField(op_apply, "u", elem_restr_u, basis_u, CEED_VECTOR_ACTIVE);
-  CeedOperatorSetField(op_apply, "q_data", elem_restr_qd_i, CEED_BASIS_COLLOCATED, q_data);
+  CeedOperatorSetField(op_apply, "q_data", elem_restr_qd_i, CEED_BASIS_NONE, q_data);
   CeedOperatorSetField(op_apply, "v", elem_restr_u, basis_u, CEED_VECTOR_ACTIVE);
 
   // Create the error operator
   CeedOperatorCreate(ceed, qf_error, CEED_QFUNCTION_NONE, CEED_QFUNCTION_NONE, &op_error);
   CeedOperatorSetField(op_error, "u", elem_restr_u, basis_u, CEED_VECTOR_ACTIVE);
-  CeedOperatorSetField(op_error, "true_soln", elem_restr_u_i, CEED_BASIS_COLLOCATED, target);
-  CeedOperatorSetField(op_error, "qdata", elem_restr_qd_i, CEED_BASIS_COLLOCATED, q_data);
-  CeedOperatorSetField(op_error, "error", elem_restr_u_i, CEED_BASIS_COLLOCATED, CEED_VECTOR_ACTIVE);
+  CeedOperatorSetField(op_error, "true_soln", elem_restr_u_i, CEED_BASIS_NONE, target);
+  CeedOperatorSetField(op_error, "qdata", elem_restr_qd_i, CEED_BASIS_NONE, q_data);
+  CeedOperatorSetField(op_error, "error", elem_restr_u_i, CEED_BASIS_NONE, CEED_VECTOR_ACTIVE);
 
   // Set up Mat
   PetscCall(PetscMalloc1(1, &op_apply_ctx));

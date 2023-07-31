@@ -107,10 +107,10 @@ int main(int argc, char **argv) {
   CeedOperatorCreate(ceed, qf_setup_tet, CEED_QFUNCTION_NONE, CEED_QFUNCTION_NONE, &op_setup_tet);
   CeedOperatorSetField(op_setup_tet, "weight", CEED_ELEMRESTRICTION_NONE, basis_x_tet, CEED_VECTOR_NONE);
   CeedOperatorSetField(op_setup_tet, "dx", elem_restriction_x_tet, basis_x_tet, CEED_VECTOR_ACTIVE);
-  CeedOperatorSetField(op_setup_tet, "rho", elem_restriction_q_data_tet, CEED_BASIS_COLLOCATED, q_data_tet);
+  CeedOperatorSetField(op_setup_tet, "rho", elem_restriction_q_data_tet, CEED_BASIS_NONE, q_data_tet);
   // ---- Diff Tet
   CeedOperatorCreate(ceed, qf_diff_tet, CEED_QFUNCTION_NONE, CEED_QFUNCTION_NONE, &op_diff_tet);
-  CeedOperatorSetField(op_diff_tet, "rho", elem_restriction_q_data_tet, CEED_BASIS_COLLOCATED, q_data_tet);
+  CeedOperatorSetField(op_diff_tet, "rho", elem_restriction_q_data_tet, CEED_BASIS_NONE, q_data_tet);
   CeedOperatorSetField(op_diff_tet, "u", elem_restriction_u_tet, basis_u_tet, CEED_VECTOR_ACTIVE);
   CeedOperatorSetField(op_diff_tet, "v", elem_restriction_u_tet, basis_u_tet, CEED_VECTOR_ACTIVE);
 
@@ -151,10 +151,10 @@ int main(int argc, char **argv) {
   CeedOperatorCreate(ceed, qf_setup_hex, CEED_QFUNCTION_NONE, CEED_QFUNCTION_NONE, &op_setup_hex);
   CeedOperatorSetField(op_setup_hex, "weight", CEED_ELEMRESTRICTION_NONE, basis_x_hex, CEED_VECTOR_NONE);
   CeedOperatorSetField(op_setup_hex, "dx", elem_restriction_x_hex, basis_x_hex, CEED_VECTOR_ACTIVE);
-  CeedOperatorSetField(op_setup_hex, "rho", elem_restriction_q_data_hex, CEED_BASIS_COLLOCATED, q_data_hex);
+  CeedOperatorSetField(op_setup_hex, "rho", elem_restriction_q_data_hex, CEED_BASIS_NONE, q_data_hex);
 
   CeedOperatorCreate(ceed, qf_diff_hex, CEED_QFUNCTION_NONE, CEED_QFUNCTION_NONE, &op_diff_hex);
-  CeedOperatorSetField(op_diff_hex, "rho", elem_restriction_q_data_hex, CEED_BASIS_COLLOCATED, q_data_hex);
+  CeedOperatorSetField(op_diff_hex, "rho", elem_restriction_q_data_hex, CEED_BASIS_NONE, q_data_hex);
   CeedOperatorSetField(op_diff_hex, "u", elem_restriction_u_hex, basis_u_hex, CEED_VECTOR_ACTIVE);
   CeedOperatorSetField(op_diff_hex, "v", elem_restriction_u_hex, basis_u_hex, CEED_VECTOR_ACTIVE);
 

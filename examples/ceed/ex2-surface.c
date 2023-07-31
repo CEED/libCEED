@@ -188,7 +188,7 @@ int main(int argc, const char *argv[]) {
   CeedOperatorCreate(ceed, qf_build, CEED_QFUNCTION_NONE, CEED_QFUNCTION_NONE, &op_build);
   CeedOperatorSetField(op_build, "dx", mesh_restriction, mesh_basis, CEED_VECTOR_ACTIVE);
   CeedOperatorSetField(op_build, "weights", CEED_ELEMRESTRICTION_NONE, mesh_basis, CEED_VECTOR_NONE);
-  CeedOperatorSetField(op_build, "qdata", q_data_restriction, CEED_BASIS_COLLOCATED, CEED_VECTOR_ACTIVE);
+  CeedOperatorSetField(op_build, "qdata", q_data_restriction, CEED_BASIS_NONE, CEED_VECTOR_ACTIVE);
 
   // Compute the quadrature data for the diffusion operator.
   CeedVector q_data;
@@ -218,7 +218,7 @@ int main(int argc, const char *argv[]) {
   CeedOperator op_apply;
   CeedOperatorCreate(ceed, qf_apply, CEED_QFUNCTION_NONE, CEED_QFUNCTION_NONE, &op_apply);
   CeedOperatorSetField(op_apply, "du", sol_restriction, sol_basis, CEED_VECTOR_ACTIVE);
-  CeedOperatorSetField(op_apply, "qdata", q_data_restriction, CEED_BASIS_COLLOCATED, q_data);
+  CeedOperatorSetField(op_apply, "qdata", q_data_restriction, CEED_BASIS_NONE, q_data);
   CeedOperatorSetField(op_apply, "dv", sol_restriction, sol_basis, CEED_VECTOR_ACTIVE);
 
   // Create auxiliary solution-size vectors.

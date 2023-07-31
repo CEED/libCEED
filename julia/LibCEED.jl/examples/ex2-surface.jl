@@ -93,7 +93,7 @@ function run_ex2(; ceed_spec, dim, mesh_order, sol_order, num_qpts, prob_size, g
         fields=[
             (gallery ? :dx : :J, mesh_restr, mesh_basis, CeedVectorActive()),
             (gallery ? :weights : :w, ElemRestrictionNone(), mesh_basis, CeedVectorNone()),
-            (:qdata, qdata_restr_i, BasisCollocated(), CeedVectorActive()),
+            (:qdata, qdata_restr_i, BasisNone(), CeedVectorActive()),
         ],
     )
 
@@ -129,7 +129,7 @@ function run_ex2(; ceed_spec, dim, mesh_order, sol_order, num_qpts, prob_size, g
         qf=apply_qfunc,
         fields=[
             (:du, sol_restr, sol_basis, CeedVectorActive()),
-            (:qdata, qdata_restr_i, BasisCollocated(), qdata),
+            (:qdata, qdata_restr_i, BasisNone(), qdata),
             (:dv, sol_restr, sol_basis, CeedVectorActive()),
         ],
     )

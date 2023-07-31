@@ -17,7 +17,7 @@ CeedOperator
       Name: "rho"
       Size: 1
       EvalMode: none
-      Collocated basis
+      No basis
       Active vector
 
 CeedOperator
@@ -28,7 +28,7 @@ CeedOperator
       Name: "rho"
       Size: 1
       EvalMode: none
-      Collocated basis
+      No basis
     Input field 1:
       Name: "u"
       Size: 1
