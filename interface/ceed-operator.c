@@ -690,7 +690,7 @@ found:
     op->has_restriction = true;  // Restriction set, but num_elem may be 0
   }
   CeedCall(CeedBasisReferenceCopy(b, &(*op_field)->basis));
-  if (!op->num_qpts && b != CEED_BASIS_COLLOCATED) CeedCall(CeedOperatorSetNumQuadraturePoints(op, num_qpts));
+  if (op->num_qpts == 0) CeedCall(CeedOperatorSetNumQuadraturePoints(op, num_qpts));
 
   op->num_fields += 1;
   CeedCall(CeedStringAllocCopy(field_name, (char **)&(*op_field)->field_name));
