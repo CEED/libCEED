@@ -42,7 +42,7 @@ impl<'a> OperatorField<'a> {
     /// }
     /// let r = ceed.elem_restriction(ne, 2, 1, 1, ne + 1, MemType::Host, &ind)?;
     /// let strides: [i32; 3] = [1, q as i32, q as i32];
-    /// let rq = ceed.strided_elem_restriction(ne, 2, 1, q * ne, strides)?;
+    /// let rq = ceed.strided_elem_restriction(ne, q, 1, q * ne, strides)?;
     ///
     /// let b = ceed.basis_tensor_H1_Lagrange(1, 1, 2, q, QuadMode::Gauss)?;
     ///
@@ -86,7 +86,7 @@ impl<'a> OperatorField<'a> {
     /// }
     /// let r = ceed.elem_restriction(ne, 2, 1, 1, ne + 1, MemType::Host, &ind)?;
     /// let strides: [i32; 3] = [1, q as i32, q as i32];
-    /// let rq = ceed.strided_elem_restriction(ne, 2, 1, q * ne, strides)?;
+    /// let rq = ceed.strided_elem_restriction(ne, q, 1, q * ne, strides)?;
     ///
     /// let b = ceed.basis_tensor_H1_Lagrange(1, 1, 2, q, QuadMode::Gauss)?;
     ///
@@ -154,7 +154,7 @@ impl<'a> OperatorField<'a> {
     /// }
     /// let r = ceed.elem_restriction(ne, 2, 1, 1, ne + 1, MemType::Host, &ind)?;
     /// let strides: [i32; 3] = [1, q as i32, q as i32];
-    /// let rq = ceed.strided_elem_restriction(ne, 2, 1, q * ne, strides)?;
+    /// let rq = ceed.strided_elem_restriction(ne, q, 1, q * ne, strides)?;
     ///
     /// let b = ceed.basis_tensor_H1_Lagrange(1, 1, 2, q, QuadMode::Gauss)?;
     ///
@@ -226,7 +226,7 @@ impl<'a> OperatorField<'a> {
     /// }
     /// let r = ceed.elem_restriction(ne, 2, 1, 1, ne + 1, MemType::Host, &ind)?;
     /// let strides: [i32; 3] = [1, q as i32, q as i32];
-    /// let rq = ceed.strided_elem_restriction(ne, 2, 1, q * ne, strides)?;
+    /// let rq = ceed.strided_elem_restriction(ne, q, 1, q * ne, strides)?;
     ///
     /// let b = ceed.basis_tensor_H1_Lagrange(1, 1, 2, q, QuadMode::Gauss)?;
     ///
@@ -330,7 +330,7 @@ impl<'a> fmt::Display for OperatorCore<'a> {
 /// }
 /// let r = ceed.elem_restriction(ne, 2, 1, 1, ne + 1, MemType::Host, &ind)?;
 /// let strides: [i32; 3] = [1, q as i32, q as i32];
-/// let rq = ceed.strided_elem_restriction(ne, 2, 1, q * ne, strides)?;
+/// let rq = ceed.strided_elem_restriction(ne, q, 1, q * ne, strides)?;
 ///
 /// let b = ceed.basis_tensor_H1_Lagrange(1, 1, 2, q, QuadMode::Gauss)?;
 ///
@@ -369,7 +369,7 @@ impl<'a> fmt::Display for Operator<'a> {
 /// }
 /// let r = ceed.elem_restriction(ne, 2, 1, 1, ne + 1, MemType::Host, &ind)?;
 /// let strides: [i32; 3] = [1, q as i32, q as i32];
-/// let rq = ceed.strided_elem_restriction(ne, 2, 1, q * ne, strides)?;
+/// let rq = ceed.strided_elem_restriction(ne, q, 1, q * ne, strides)?;
 ///
 /// let b = ceed.basis_tensor_H1_Lagrange(1, 1, 2, q, QuadMode::Gauss)?;
 ///
@@ -568,7 +568,7 @@ impl<'a> Operator<'a> {
     /// }
     /// let r = ceed.elem_restriction(ne, 2, 1, 1, ne + 1, MemType::Host, &ind)?;
     /// let strides: [i32; 3] = [1, q as i32, q as i32];
-    /// let rq = ceed.strided_elem_restriction(ne, 2, 1, q * ne, strides)?;
+    /// let rq = ceed.strided_elem_restriction(ne, q, 1, q * ne, strides)?;
     ///
     /// let b = ceed.basis_tensor_H1_Lagrange(1, 1, 2, q, QuadMode::Gauss)?;
     ///
@@ -814,7 +814,7 @@ impl<'a> Operator<'a> {
     /// }
     /// let r = ceed.elem_restriction(ne, 2, 1, 1, ne + 1, MemType::Host, &ind)?;
     /// let strides: [i32; 3] = [1, q as i32, q as i32];
-    /// let rq = ceed.strided_elem_restriction(ne, 2, 1, q * ne, strides)?;
+    /// let rq = ceed.strided_elem_restriction(ne, q, 1, q * ne, strides)?;
     ///
     /// let b = ceed.basis_tensor_H1_Lagrange(1, 1, 2, q, QuadMode::Gauss)?;
     ///
@@ -873,7 +873,7 @@ impl<'a> Operator<'a> {
     /// }
     /// let r = ceed.elem_restriction(ne, 2, 1, 1, ne + 1, MemType::Host, &ind)?;
     /// let strides: [i32; 3] = [1, q as i32, q as i32];
-    /// let rq = ceed.strided_elem_restriction(ne, 2, 1, q * ne, strides)?;
+    /// let rq = ceed.strided_elem_restriction(ne, q, 1, q * ne, strides)?;
     ///
     /// let b = ceed.basis_tensor_H1_Lagrange(1, 1, 2, q, QuadMode::Gauss)?;
     ///
@@ -2104,7 +2104,7 @@ impl<'a> CompositeOperator<'a> {
     /// }
     /// let r = ceed.elem_restriction(ne, 2, 1, 1, ne + 1, MemType::Host, &ind)?;
     /// let strides: [i32; 3] = [1, q as i32, q as i32];
-    /// let rq = ceed.strided_elem_restriction(ne, 2, 1, q * ne, strides)?;
+    /// let rq = ceed.strided_elem_restriction(ne, q, 1, q * ne, strides)?;
     ///
     /// let b = ceed.basis_tensor_H1_Lagrange(1, 1, 2, q, QuadMode::Gauss)?;
     ///
