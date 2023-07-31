@@ -157,7 +157,6 @@ PetscErrorCode GridAnisotropyTensorCalculateCollocatedVector(Ceed ceed, User use
   CeedOperatorSetField(op_colloc, "qdata", ceed_data->elem_restr_qd_i, CEED_BASIS_COLLOCATED, ceed_data->q_data);
   CeedOperatorSetField(op_colloc, "v", *elem_restr_grid_aniso, CEED_BASIS_COLLOCATED, CEED_VECTOR_ACTIVE);
   CeedBasisGetNumQuadraturePoints(ceed_data->basis_q, &num_qpts);
-  CeedOperatorSetNumQuadraturePoints(op_colloc, num_qpts);
 
   CeedElemRestrictionCreateVector(*elem_restr_grid_aniso, aniso_colloc_ceed, NULL);
 

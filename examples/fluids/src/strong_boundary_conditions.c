@@ -85,7 +85,6 @@ PetscErrorCode SetupStrongSTG_Ceed(Ceed ceed, CeedData ceed_data, DM dm, Problem
     CeedOperatorSetField(op_stgdata, "surface qdata", elem_restr_qd_sur, CEED_BASIS_COLLOCATED, q_data_sur);
     CeedOperatorSetField(op_stgdata, "x", elem_restr_x_stored, CEED_BASIS_COLLOCATED, x_stored);
     CeedOperatorSetField(op_stgdata, "stg data", elem_restr_stgdata, CEED_BASIS_COLLOCATED, CEED_VECTOR_ACTIVE);
-    CeedOperatorSetNumQuadraturePoints(op_stgdata, elem_size);
 
     CeedOperatorApply(op_stgdata, CEED_VECTOR_NONE, stg_data, CEED_REQUEST_IMMEDIATE);
 
@@ -99,7 +98,6 @@ PetscErrorCode SetupStrongSTG_Ceed(Ceed ceed, CeedData ceed_data, DM dm, Problem
     CeedOperatorSetField(op_strong_bc_sub, "scale", elem_restr_scale, CEED_BASIS_COLLOCATED, scale_stored);
     CeedOperatorSetField(op_strong_bc_sub, "stg data", elem_restr_stgdata, CEED_BASIS_COLLOCATED, stg_data);
     CeedOperatorSetField(op_strong_bc_sub, "q", elem_restr_q_sur, CEED_BASIS_COLLOCATED, CEED_VECTOR_ACTIVE);
-    CeedOperatorSetNumQuadraturePoints(op_strong_bc_sub, elem_size);
 
     // -- Add to composite operator
     CeedCompositeOperatorAddSub(op_strong_bc, op_strong_bc_sub);
