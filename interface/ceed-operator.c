@@ -616,6 +616,9 @@ int CeedOperatorReferenceCopy(CeedOperator op, CeedOperator *op_copy) {
   Active fields must be specified using this function, but their data (in a CeedVector) is passed in CeedOperatorApply().
   There can be at most one active input CeedVector and at most one active output CeedVector passed to CeedOperatorApply().
 
+  The number of quadrature points must agree across all points.
+  When using @ref CEED_BASIS_COLLOCATED, the number of quadrature points is determined by the element size of r.
+
   @param[in,out] op         CeedOperator on which to provide the field
   @param[in]     field_name Name of the field (to be matched with the name used by CeedQFunction)
   @param[in]     r          CeedElemRestriction
@@ -642,8 +645,10 @@ int CeedOperatorSetField(CeedOperator op, const char *field_name, CeedElemRestri
   CeedInt num_qpts = 0;
   if (b == CEED_BASIS_COLLOCATED) CeedCall(CeedElemRestrictionGetElementSize(r, &num_qpts));
   else CeedCall(CeedBasisGetNumQuadraturePoints(b, &num_qpts));
-  CeedCheck(!op->num_qpts || op->num_qpts == num_qpts, op->ceed, CEED_ERROR_DIMENSION,
-            "Basis with %" CeedInt_FMT " quadrature points incompatible with prior %" CeedInt_FMT " points", num_qpts, op->num_qpts);
+  CeedCheck(op->num_qpts == 0 || op->num_qpts == num_qpts, op->ceed, CEED_ERROR_DIMENSION,
+            "%s must correspond to the same number of quadrature points as previously added Bases. Found %" CeedInt_FMT
+            " quadrature points but expected %" CeedInt_FMT " quadrature points.",
+            b == CEED_BASIS_COLLOCATED ? "ElemRestriction" : "Basis", num_qpts, op->num_qpts);
   CeedQFunctionField qf_field;
   CeedOperatorField *op_field;
   bool               is_input = true;
