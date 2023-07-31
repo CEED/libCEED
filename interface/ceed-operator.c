@@ -640,8 +640,9 @@ int CeedOperatorSetField(CeedOperator op, const char *field_name, CeedElemRestri
             "ElemRestriction with %" CeedInt_FMT " elements incompatible with prior %" CeedInt_FMT " elements", num_elem, op->num_elem);
 
   CeedInt num_qpts = 0;
-  CeedCall(CeedBasisGetNumQuadraturePoints(b, &num_qpts));
-  CeedCheck(b == CEED_BASIS_COLLOCATED || !op->num_qpts || op->num_qpts == num_qpts, op->ceed, CEED_ERROR_DIMENSION,
+  if (b == CEED_BASIS_COLLOCATED) CeedCall(CeedElemRestrictionGetElementSize(r, &num_qpts));
+  else CeedCall(CeedBasisGetNumQuadraturePoints(b, &num_qpts));
+  CeedCheck(!op->num_qpts || op->num_qpts == num_qpts, op->ceed, CEED_ERROR_DIMENSION,
             "Basis with %" CeedInt_FMT " quadrature points incompatible with prior %" CeedInt_FMT " points", num_qpts, op->num_qpts);
   CeedQFunctionField qf_field;
   CeedOperatorField *op_field;
