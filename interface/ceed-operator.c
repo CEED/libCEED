@@ -1262,7 +1262,8 @@ int CeedOperatorGetContextFieldLabel(CeedOperator op, const char *field_name, Ce
   CeedCall(CeedOperatorIsComposite(op, &is_composite));
 
   if (is_composite) {
-    // Check if composite label already created
+    // Composite operator
+    // -- Check if composite label already created
     for (CeedInt i = 0; i < op->num_context_labels; i++) {
       if (!strcmp(op->context_labels[i]->name, field_name)) {
         *field_label = op->context_labels[i];
@@ -1270,7 +1271,7 @@ int CeedOperatorGetContextFieldLabel(CeedOperator op, const char *field_name, Ce
       }
     }
 
-    // Create composite label if needed
+    // -- Create composite label if needed
     CeedInt               num_sub;
     CeedOperator         *sub_operators;
     CeedContextFieldLabel new_field_label;
@@ -1281,13 +1282,13 @@ int CeedOperatorGetContextFieldLabel(CeedOperator op, const char *field_name, Ce
     CeedCall(CeedCalloc(num_sub, &new_field_label->sub_labels));
     new_field_label->num_sub_labels = num_sub;
 
-    bool label_found = false;
+    bool field_found = false;
     for (CeedInt i = 0; i < num_sub; i++) {
       if (sub_operators[i]->qf->ctx) {
         CeedContextFieldLabel new_field_label_i;
         CeedCall(CeedQFunctionContextGetFieldLabel(sub_operators[i]->qf->ctx, field_name, &new_field_label_i));
         if (new_field_label_i) {
-          label_found                    = true;
+          field_found                    = true;
           new_field_label->sub_labels[i] = new_field_label_i;
           new_field_label->name          = new_field_label_i->name;
           new_field_label->description   = new_field_label_i->description;
@@ -1312,17 +1313,23 @@ int CeedOperatorGetContextFieldLabel(CeedOperator op, const char *field_name, Ce
         }
       }
     }
-    if (!label_found) {
+    // -- Cleanup if field was found
+    if (field_found) {
+      *field_label = new_field_label;
+    } else {
       // LCOV_EXCL_START
       CeedCall(CeedFree(&new_field_label->sub_labels));
       CeedCall(CeedFree(&new_field_label));
       *field_label = NULL;
       // LCOV_EXCL_STOP
-    } else {
-      *field_label = new_field_label;
     }
   } else {
-    CeedCall(CeedQFunctionContextGetFieldLabel(op->qf->ctx, field_name, field_label));
+    // Single, non-composite operator
+    if (op->qf->ctx) {
+      CeedCall(CeedQFunctionContextGetFieldLabel(op->qf->ctx, field_name, field_label));
+    } else {
+      *field_label = NULL;
+    }
   }
 
   // Set label in operator
