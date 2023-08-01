@@ -18,7 +18,8 @@
 
 PetscErrorCode NS_GAUSSIAN_WAVE(ProblemData *problem, DM dm, void *ctx, SimpleBC bc) {
   User                     user = *(User *)ctx;
-  MPI_Comm                 comm = PETSC_COMM_WORLD;
+  MPI_Comm                 comm = user->comm;
+  Ceed                     ceed = user->ceed;
   GaussianWaveContext      gausswave_ctx;
   FreestreamContext        freestream_ctx;
   NewtonianIdealGasContext newtonian_ig_ctx;
@@ -56,8 +57,8 @@ PetscErrorCode NS_GAUSSIAN_WAVE(ProblemData *problem, DM dm, void *ctx, SimpleBC
 
   // -- Set gausswave_ctx struct values
   PetscCall(PetscCalloc1(1, &gausswave_ctx));
-  CeedQFunctionContextGetData(problem->apply_vol_rhs.qfunction_context, CEED_MEM_HOST, &newtonian_ig_ctx);
-  CeedQFunctionContextGetData(problem->apply_freestream.qfunction_context, CEED_MEM_HOST, &freestream_ctx);
+  PetscCallCeed(ceed, CeedQFunctionContextGetData(problem->apply_vol_rhs.qfunction_context, CEED_MEM_HOST, &newtonian_ig_ctx));
+  PetscCallCeed(ceed, CeedQFunctionContextGetData(problem->apply_freestream.qfunction_context, CEED_MEM_HOST, &freestream_ctx));
 
   gausswave_ctx->amplitude = amplitude;
   gausswave_ctx->width     = width;
@@ -65,13 +66,13 @@ PetscErrorCode NS_GAUSSIAN_WAVE(ProblemData *problem, DM dm, void *ctx, SimpleBC
   gausswave_ctx->newt_ctx  = *newtonian_ig_ctx;
   PetscCall(PetscArraycpy(gausswave_ctx->epicenter, epicenter, 3));
 
-  CeedQFunctionContextRestoreData(problem->apply_vol_rhs.qfunction_context, &newtonian_ig_ctx);
-  CeedQFunctionContextRestoreData(problem->apply_freestream.qfunction_context, &freestream_ctx);
+  PetscCallCeed(ceed, CeedQFunctionContextRestoreData(problem->apply_vol_rhs.qfunction_context, &newtonian_ig_ctx));
+  PetscCallCeed(ceed, CeedQFunctionContextRestoreData(problem->apply_freestream.qfunction_context, &freestream_ctx));
 
-  CeedQFunctionContextCreate(user->ceed, &gausswave_context);
-  CeedQFunctionContextSetData(gausswave_context, CEED_MEM_HOST, CEED_USE_POINTER, sizeof(*gausswave_ctx), gausswave_ctx);
-  CeedQFunctionContextSetDataDestroy(gausswave_context, CEED_MEM_HOST, FreeContextPetsc);
-  CeedQFunctionContextDestroy(&problem->ics.qfunction_context);
+  PetscCallCeed(ceed, CeedQFunctionContextCreate(user->ceed, &gausswave_context));
+  PetscCallCeed(ceed, CeedQFunctionContextSetData(gausswave_context, CEED_MEM_HOST, CEED_USE_POINTER, sizeof(*gausswave_ctx), gausswave_ctx));
+  PetscCallCeed(ceed, CeedQFunctionContextSetDataDestroy(gausswave_context, CEED_MEM_HOST, FreeContextPetsc));
+  PetscCallCeed(ceed, CeedQFunctionContextDestroy(&problem->ics.qfunction_context));
   problem->ics.qfunction_context = gausswave_context;
 
   PetscFunctionReturn(PETSC_SUCCESS);

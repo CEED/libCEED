@@ -21,6 +21,7 @@ static const char *const RiemannSolverTypes[] = {"hll", "hllc", "RiemannSolverTy
 PetscErrorCode FreestreamBCSetup(ProblemData *problem, DM dm, void *ctx, NewtonianIdealGasContext newtonian_ig_ctx, const StatePrimitive *reference) {
   User                 user = *(User *)ctx;
   MPI_Comm             comm = user->comm;
+  Ceed                 ceed = user->ceed;
   FreestreamContext    freestream_ctx;
   CeedQFunctionContext freestream_context;
   RiemannFluxType      riemann = RIEMANN_HLLC;
@@ -93,11 +94,11 @@ PetscErrorCode FreestreamBCSetup(ProblemData *problem, DM dm, void *ctx, Newtoni
   freestream_ctx->newtonian_ctx = *newtonian_ig_ctx;
   freestream_ctx->S_infty       = S_infty;
 
-  CeedQFunctionContextCreate(user->ceed, &freestream_context);
-  CeedQFunctionContextSetData(freestream_context, CEED_MEM_HOST, CEED_USE_POINTER, sizeof(*freestream_ctx), freestream_ctx);
-  CeedQFunctionContextSetDataDestroy(freestream_context, CEED_MEM_HOST, FreeContextPetsc);
+  PetscCallCeed(ceed, CeedQFunctionContextCreate(user->ceed, &freestream_context));
+  PetscCallCeed(ceed, CeedQFunctionContextSetData(freestream_context, CEED_MEM_HOST, CEED_USE_POINTER, sizeof(*freestream_ctx), freestream_ctx));
+  PetscCallCeed(ceed, CeedQFunctionContextSetDataDestroy(freestream_context, CEED_MEM_HOST, FreeContextPetsc));
   problem->apply_freestream.qfunction_context = freestream_context;
-  CeedQFunctionContextReferenceCopy(freestream_context, &problem->apply_freestream_jacobian.qfunction_context);
+  PetscCallCeed(ceed, CeedQFunctionContextReferenceCopy(freestream_context, &problem->apply_freestream_jacobian.qfunction_context));
   PetscFunctionReturn(PETSC_SUCCESS);
 }
 
@@ -109,6 +110,7 @@ typedef enum {
 
 PetscErrorCode OutflowBCSetup(ProblemData *problem, DM dm, void *ctx, NewtonianIdealGasContext newtonian_ig_ctx, const StatePrimitive *reference) {
   User                 user = *(User *)ctx;
+  Ceed                 ceed = user->ceed;
   OutflowContext       outflow_ctx;
   OutflowType          outflow_type = OUTFLOW_RIEMANN;
   CeedQFunctionContext outflow_context;
@@ -175,10 +177,10 @@ PetscErrorCode OutflowBCSetup(ProblemData *problem, DM dm, void *ctx, NewtonianI
   outflow_ctx->pressure          = pressure;
   outflow_ctx->temperature       = temperature;
 
-  CeedQFunctionContextCreate(user->ceed, &outflow_context);
-  CeedQFunctionContextSetData(outflow_context, CEED_MEM_HOST, CEED_USE_POINTER, sizeof(*outflow_ctx), outflow_ctx);
-  CeedQFunctionContextSetDataDestroy(outflow_context, CEED_MEM_HOST, FreeContextPetsc);
+  PetscCallCeed(ceed, CeedQFunctionContextCreate(user->ceed, &outflow_context));
+  PetscCallCeed(ceed, CeedQFunctionContextSetData(outflow_context, CEED_MEM_HOST, CEED_USE_POINTER, sizeof(*outflow_ctx), outflow_ctx));
+  PetscCallCeed(ceed, CeedQFunctionContextSetDataDestroy(outflow_context, CEED_MEM_HOST, FreeContextPetsc));
   problem->apply_outflow.qfunction_context = outflow_context;
-  CeedQFunctionContextReferenceCopy(outflow_context, &problem->apply_outflow_jacobian.qfunction_context);
+  PetscCallCeed(ceed, CeedQFunctionContextReferenceCopy(outflow_context, &problem->apply_outflow_jacobian.qfunction_context));
   PetscFunctionReturn(PETSC_SUCCESS);
 }

@@ -17,7 +17,8 @@
 
 PetscErrorCode NS_CHANNEL(ProblemData *problem, DM dm, void *ctx, SimpleBC bc) {
   User                     user = *(User *)ctx;
-  MPI_Comm                 comm = PETSC_COMM_WORLD;
+  MPI_Comm                 comm = user->comm;
+  Ceed                     ceed = user->ceed;
   ChannelContext           channel_ctx;
   NewtonianIdealGasContext newtonian_ig_ctx;
   CeedQFunctionContext     channel_context;
@@ -29,7 +30,7 @@ PetscErrorCode NS_CHANNEL(ProblemData *problem, DM dm, void *ctx, SimpleBC bc) {
   // ------------------------------------------------------
   //               SET UP Channel
   // ------------------------------------------------------
-  CeedQFunctionContextDestroy(&problem->ics.qfunction_context);
+  PetscCallCeed(ceed, CeedQFunctionContextDestroy(&problem->ics.qfunction_context));
   problem->ics.qfunction     = ICsChannel;
   problem->ics.qfunction_loc = ICsChannel_loc;
   if (user->phys->state_var == STATEVAR_CONSERVATIVE) {
@@ -72,7 +73,7 @@ PetscErrorCode NS_CHANNEL(ProblemData *problem, DM dm, void *ctx, SimpleBC bc) {
   }
 
   // Some properties depend on parameters from NewtonianIdealGas
-  CeedQFunctionContextGetData(problem->apply_vol_rhs.qfunction_context, CEED_MEM_HOST, &newtonian_ig_ctx);
+  PetscCallCeed(ceed, CeedQFunctionContextGetData(problem->apply_vol_rhs.qfunction_context, CEED_MEM_HOST, &newtonian_ig_ctx));
 
   channel_ctx->center   = center;
   channel_ctx->H        = H;
@@ -91,14 +92,14 @@ PetscErrorCode NS_CHANNEL(ProblemData *problem, DM dm, void *ctx, SimpleBC bc) {
     PetscCall(PetscArraycpy(newtonian_ig_ctx->g, g, 3));
   }
   channel_ctx->newtonian_ctx = *newtonian_ig_ctx;
-  CeedQFunctionContextRestoreData(problem->apply_vol_rhs.qfunction_context, &newtonian_ig_ctx);
+  PetscCallCeed(ceed, CeedQFunctionContextRestoreData(problem->apply_vol_rhs.qfunction_context, &newtonian_ig_ctx));
 
-  CeedQFunctionContextCreate(user->ceed, &channel_context);
-  CeedQFunctionContextSetData(channel_context, CEED_MEM_HOST, CEED_USE_POINTER, sizeof(*channel_ctx), channel_ctx);
-  CeedQFunctionContextSetDataDestroy(channel_context, CEED_MEM_HOST, FreeContextPetsc);
+  PetscCallCeed(ceed, CeedQFunctionContextCreate(user->ceed, &channel_context));
+  PetscCallCeed(ceed, CeedQFunctionContextSetData(channel_context, CEED_MEM_HOST, CEED_USE_POINTER, sizeof(*channel_ctx), channel_ctx));
+  PetscCallCeed(ceed, CeedQFunctionContextSetDataDestroy(channel_context, CEED_MEM_HOST, FreeContextPetsc));
 
   problem->ics.qfunction_context = channel_context;
-  CeedQFunctionContextReferenceCopy(channel_context, &problem->apply_inflow.qfunction_context);
-  CeedQFunctionContextReferenceCopy(channel_context, &problem->apply_outflow.qfunction_context);
+  PetscCallCeed(ceed, CeedQFunctionContextReferenceCopy(channel_context, &problem->apply_inflow.qfunction_context));
+  PetscCallCeed(ceed, CeedQFunctionContextReferenceCopy(channel_context, &problem->apply_outflow.qfunction_context));
   PetscFunctionReturn(PETSC_SUCCESS);
 }

@@ -70,7 +70,8 @@ PetscErrorCode NS_NEWTONIAN_IG(ProblemData *problem, DM dm, void *ctx, SimpleBC 
   CeedInt                  degree = user->app_ctx->degree;
   StabilizationType        stab;
   StateVariable            state_var;
-  MPI_Comm                 comm = PETSC_COMM_WORLD;
+  MPI_Comm                 comm = user->comm;
+  Ceed                     ceed = user->ceed;
   PetscBool                implicit;
   PetscBool                has_curr_time = PETSC_FALSE, unit_tests;
   NewtonianIdealGasContext newtonian_ig_ctx;
@@ -286,27 +287,30 @@ PetscErrorCode NS_NEWTONIAN_IG(ProblemData *problem, DM dm, void *ctx, SimpleBC 
   if (bc->num_freestream > 0) PetscCall(FreestreamBCSetup(problem, dm, ctx, newtonian_ig_ctx, &reference));
   if (bc->num_outflow > 0) PetscCall(OutflowBCSetup(problem, dm, ctx, newtonian_ig_ctx, &reference));
 
-  CeedQFunctionContextCreate(user->ceed, &problem->ics.qfunction_context);
-  CeedQFunctionContextSetData(problem->ics.qfunction_context, CEED_MEM_HOST, CEED_USE_POINTER, sizeof(*setup_context), setup_context);
-  CeedQFunctionContextSetDataDestroy(problem->ics.qfunction_context, CEED_MEM_HOST, FreeContextPetsc);
-  CeedQFunctionContextRegisterDouble(problem->ics.qfunction_context, "evaluation time", offsetof(struct SetupContext_, time), 1,
-                                     "Time of evaluation");
+  PetscCallCeed(ceed, CeedQFunctionContextCreate(user->ceed, &problem->ics.qfunction_context));
+  PetscCallCeed(ceed,
+                CeedQFunctionContextSetData(problem->ics.qfunction_context, CEED_MEM_HOST, CEED_USE_POINTER, sizeof(*setup_context), setup_context));
+  PetscCallCeed(ceed, CeedQFunctionContextSetDataDestroy(problem->ics.qfunction_context, CEED_MEM_HOST, FreeContextPetsc));
+  PetscCallCeed(ceed, CeedQFunctionContextRegisterDouble(problem->ics.qfunction_context, "evaluation time", offsetof(struct SetupContext_, time), 1,
+                                                         "Time of evaluation"));
 
-  CeedQFunctionContextCreate(user->ceed, &newtonian_ig_context);
-  CeedQFunctionContextSetData(newtonian_ig_context, CEED_MEM_HOST, CEED_USE_POINTER, sizeof(*newtonian_ig_ctx), newtonian_ig_ctx);
-  CeedQFunctionContextSetDataDestroy(newtonian_ig_context, CEED_MEM_HOST, FreeContextPetsc);
-  CeedQFunctionContextRegisterDouble(newtonian_ig_context, "timestep size", offsetof(struct NewtonianIdealGasContext_, dt), 1,
-                                     "Size of timestep, delta t");
-  CeedQFunctionContextRegisterDouble(newtonian_ig_context, "ijacobian time shift", offsetof(struct NewtonianIdealGasContext_, ijacobian_time_shift),
-                                     1, "Shift for mass matrix in IJacobian");
-  CeedQFunctionContextRegisterDouble(newtonian_ig_context, "solution time", offsetof(struct NewtonianIdealGasContext_, time), 1,
-                                     "Current solution time");
+  PetscCallCeed(ceed, CeedQFunctionContextCreate(user->ceed, &newtonian_ig_context));
+  PetscCallCeed(ceed,
+                CeedQFunctionContextSetData(newtonian_ig_context, CEED_MEM_HOST, CEED_USE_POINTER, sizeof(*newtonian_ig_ctx), newtonian_ig_ctx));
+  PetscCallCeed(ceed, CeedQFunctionContextSetDataDestroy(newtonian_ig_context, CEED_MEM_HOST, FreeContextPetsc));
+  PetscCallCeed(ceed, CeedQFunctionContextRegisterDouble(newtonian_ig_context, "timestep size", offsetof(struct NewtonianIdealGasContext_, dt), 1,
+                                                         "Size of timestep, delta t"));
+  PetscCallCeed(ceed, CeedQFunctionContextRegisterDouble(newtonian_ig_context, "ijacobian time shift",
+                                                         offsetof(struct NewtonianIdealGasContext_, ijacobian_time_shift), 1,
+                                                         "Shift for mass matrix in IJacobian"));
+  PetscCallCeed(ceed, CeedQFunctionContextRegisterDouble(newtonian_ig_context, "solution time", offsetof(struct NewtonianIdealGasContext_, time), 1,
+                                                         "Current solution time"));
 
   problem->apply_vol_rhs.qfunction_context = newtonian_ig_context;
-  CeedQFunctionContextReferenceCopy(newtonian_ig_context, &problem->apply_vol_ifunction.qfunction_context);
-  CeedQFunctionContextReferenceCopy(newtonian_ig_context, &problem->apply_vol_ijacobian.qfunction_context);
-  CeedQFunctionContextReferenceCopy(newtonian_ig_context, &problem->apply_inflow.qfunction_context);
-  CeedQFunctionContextReferenceCopy(newtonian_ig_context, &problem->apply_inflow_jacobian.qfunction_context);
+  PetscCallCeed(ceed, CeedQFunctionContextReferenceCopy(newtonian_ig_context, &problem->apply_vol_ifunction.qfunction_context));
+  PetscCallCeed(ceed, CeedQFunctionContextReferenceCopy(newtonian_ig_context, &problem->apply_vol_ijacobian.qfunction_context));
+  PetscCallCeed(ceed, CeedQFunctionContextReferenceCopy(newtonian_ig_context, &problem->apply_inflow.qfunction_context));
+  PetscCallCeed(ceed, CeedQFunctionContextReferenceCopy(newtonian_ig_context, &problem->apply_inflow_jacobian.qfunction_context));
 
   if (unit_tests) {
     PetscCall(UnitTests_Newtonian(user, newtonian_ig_ctx));
@@ -316,15 +320,16 @@ PetscErrorCode NS_NEWTONIAN_IG(ProblemData *problem, DM dm, void *ctx, SimpleBC 
 
 PetscErrorCode PRINT_NEWTONIAN(User user, ProblemData *problem, AppCtx app_ctx) {
   MPI_Comm                 comm = user->comm;
+  Ceed                     ceed = user->ceed;
   NewtonianIdealGasContext newtonian_ctx;
 
   PetscFunctionBeginUser;
-  CeedQFunctionContextGetData(problem->apply_vol_rhs.qfunction_context, CEED_MEM_HOST, &newtonian_ctx);
+  PetscCallCeed(ceed, CeedQFunctionContextGetData(problem->apply_vol_rhs.qfunction_context, CEED_MEM_HOST, &newtonian_ctx));
   PetscCall(PetscPrintf(comm,
                         "  Problem:\n"
                         "    Problem Name                       : %s\n"
                         "    Stabilization                      : %s\n",
                         app_ctx->problem_name, StabilizationTypes[newtonian_ctx->stabilization]));
-  CeedQFunctionContextRestoreData(problem->apply_vol_rhs.qfunction_context, &newtonian_ctx);
+  PetscCallCeed(ceed, CeedQFunctionContextRestoreData(problem->apply_vol_rhs.qfunction_context, &newtonian_ctx));
   PetscFunctionReturn(PETSC_SUCCESS);
 }

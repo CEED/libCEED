@@ -22,42 +22,42 @@ PetscErrorCode DifferentialFilterCreateOperators(Ceed ceed, User user, CeedData 
 
   PetscFunctionBeginUser;
   PetscCall(DMGetDimension(user->dm, &dim));
-  CeedElemRestrictionGetNumComponents(ceed_data->elem_restr_x, &num_comp_x);
-  CeedElemRestrictionGetNumComponents(ceed_data->elem_restr_q, &num_comp_q);
-  CeedElemRestrictionGetNumComponents(ceed_data->elem_restr_qd_i, &num_comp_qd);
+  PetscCallCeed(ceed, CeedElemRestrictionGetNumComponents(ceed_data->elem_restr_x, &num_comp_x));
+  PetscCallCeed(ceed, CeedElemRestrictionGetNumComponents(ceed_data->elem_restr_q, &num_comp_q));
+  PetscCallCeed(ceed, CeedElemRestrictionGetNumComponents(ceed_data->elem_restr_qd_i, &num_comp_qd));
 
   {  // -- Create RHS MatopApplyContext
     CeedQFunction qf_rhs;
     CeedOperator  op_rhs;
     switch (user->phys->state_var) {
       case STATEVAR_PRIMITIVE:
-        CeedQFunctionCreateInterior(ceed, 1, DifferentialFilter_RHS_Prim, DifferentialFilter_RHS_Prim_loc, &qf_rhs);
+        PetscCallCeed(ceed, CeedQFunctionCreateInterior(ceed, 1, DifferentialFilter_RHS_Prim, DifferentialFilter_RHS_Prim_loc, &qf_rhs));
         break;
       case STATEVAR_CONSERVATIVE:
-        CeedQFunctionCreateInterior(ceed, 1, DifferentialFilter_RHS_Conserv, DifferentialFilter_RHS_Conserv_loc, &qf_rhs);
+        PetscCallCeed(ceed, CeedQFunctionCreateInterior(ceed, 1, DifferentialFilter_RHS_Conserv, DifferentialFilter_RHS_Conserv_loc, &qf_rhs));
         break;
       default:
         SETERRQ(PetscObjectComm((PetscObject)user->dm), PETSC_ERR_SUP, "Differential filtering not available for chosen state variable");
     }
     if (diff_filter->do_mms_test) {
-      CeedQFunctionDestroy(&qf_rhs);
-      CeedQFunctionCreateInterior(ceed, 1, DifferentialFilter_MMS_RHS, DifferentialFilter_MMS_RHS_loc, &qf_rhs);
+      PetscCallCeed(ceed, CeedQFunctionDestroy(&qf_rhs));
+      PetscCallCeed(ceed, CeedQFunctionCreateInterior(ceed, 1, DifferentialFilter_MMS_RHS, DifferentialFilter_MMS_RHS_loc, &qf_rhs));
     }
 
-    CeedQFunctionSetContext(qf_rhs, diff_filter_qfctx);
-    CeedQFunctionAddInput(qf_rhs, "q", num_comp_q, CEED_EVAL_INTERP);
-    CeedQFunctionAddInput(qf_rhs, "qdata", num_comp_qd, CEED_EVAL_NONE);
-    CeedQFunctionAddInput(qf_rhs, "x", num_comp_x, CEED_EVAL_INTERP);
+    PetscCallCeed(ceed, CeedQFunctionSetContext(qf_rhs, diff_filter_qfctx));
+    PetscCallCeed(ceed, CeedQFunctionAddInput(qf_rhs, "q", num_comp_q, CEED_EVAL_INTERP));
+    PetscCallCeed(ceed, CeedQFunctionAddInput(qf_rhs, "qdata", num_comp_qd, CEED_EVAL_NONE));
+    PetscCallCeed(ceed, CeedQFunctionAddInput(qf_rhs, "x", num_comp_x, CEED_EVAL_INTERP));
     for (PetscInt i = 0; i < diff_filter->num_filtered_fields; i++) {
       char field_name[PETSC_MAX_PATH_LEN];
       PetscCall(PetscSNPrintf(field_name, PETSC_MAX_PATH_LEN, "v%" PetscInt_FMT, i));
-      CeedQFunctionAddOutput(qf_rhs, field_name, diff_filter->num_field_components[i], CEED_EVAL_INTERP);
+      PetscCallCeed(ceed, CeedQFunctionAddOutput(qf_rhs, field_name, diff_filter->num_field_components[i], CEED_EVAL_INTERP));
     }
 
-    CeedOperatorCreate(ceed, qf_rhs, NULL, NULL, &op_rhs);
-    CeedOperatorSetField(op_rhs, "q", ceed_data->elem_restr_q, ceed_data->basis_q, CEED_VECTOR_ACTIVE);
-    CeedOperatorSetField(op_rhs, "qdata", ceed_data->elem_restr_qd_i, CEED_BASIS_COLLOCATED, ceed_data->q_data);
-    CeedOperatorSetField(op_rhs, "x", ceed_data->elem_restr_x, ceed_data->basis_x, ceed_data->x_coord);
+    PetscCallCeed(ceed, CeedOperatorCreate(ceed, qf_rhs, NULL, NULL, &op_rhs));
+    PetscCallCeed(ceed, CeedOperatorSetField(op_rhs, "q", ceed_data->elem_restr_q, ceed_data->basis_q, CEED_VECTOR_ACTIVE));
+    PetscCallCeed(ceed, CeedOperatorSetField(op_rhs, "qdata", ceed_data->elem_restr_qd_i, CEED_BASIS_COLLOCATED, ceed_data->q_data));
+    PetscCallCeed(ceed, CeedOperatorSetField(op_rhs, "x", ceed_data->elem_restr_x, ceed_data->basis_x, ceed_data->x_coord));
     for (PetscInt i = 0; i < diff_filter->num_filtered_fields; i++) {
       char                field_name[PETSC_MAX_PATH_LEN];
       CeedElemRestriction elem_restr_filter;
@@ -66,13 +66,13 @@ PetscErrorCode DifferentialFilterCreateOperators(Ceed ceed, User user, CeedData 
       PetscCall(CreateBasisFromPlex(ceed, dm_filter, 0, 0, 0, i, &basis_filter));
 
       PetscCall(PetscSNPrintf(field_name, PETSC_MAX_PATH_LEN, "v%" PetscInt_FMT, i));
-      CeedOperatorSetField(op_rhs, field_name, elem_restr_filter, basis_filter, CEED_VECTOR_ACTIVE);
+      PetscCallCeed(ceed, CeedOperatorSetField(op_rhs, field_name, elem_restr_filter, basis_filter, CEED_VECTOR_ACTIVE));
     }
 
     PetscCall(OperatorApplyContextCreate(user->dm, dm_filter, ceed, op_rhs, NULL, NULL, user->Q_loc, NULL, &diff_filter->op_rhs_ctx));
 
-    CeedQFunctionDestroy(&qf_rhs);
-    CeedOperatorDestroy(&op_rhs);
+    PetscCallCeed(ceed, CeedQFunctionDestroy(&qf_rhs));
+    PetscCallCeed(ceed, CeedOperatorDestroy(&op_rhs));
   }
 
   {  // Setup LHS Operator and KSP for the differential filtering solve
@@ -85,12 +85,12 @@ PetscErrorCode DifferentialFilterCreateOperators(Ceed ceed, User user, CeedData 
     CeedVector           grid_aniso_ceed;
 
     PetscCall(DMGetDimension(user->dm, &dim));
-    CeedElemRestrictionGetNumComponents(ceed_data->elem_restr_qd_i, &num_comp_qd);
+    PetscCallCeed(ceed, CeedElemRestrictionGetNumComponents(ceed_data->elem_restr_qd_i, &num_comp_qd));
 
     // -- Get Grid anisotropy tensor
     PetscCall(GridAnisotropyTensorCalculateCollocatedVector(ceed, user, ceed_data, &elem_restr_grid_aniso, &grid_aniso_ceed, &num_comp_grid_aniso));
 
-    CeedCompositeOperatorCreate(ceed, &op_lhs);
+    PetscCallCeed(ceed, CeedCompositeOperatorCreate(ceed, &op_lhs));
     for (PetscInt i = 0; i < diff_filter->num_filtered_fields; i++) {
       CeedQFunction       qf_lhs;
       PetscInt            num_comp_filter = diff_filter->num_field_components[i];
@@ -100,52 +100,52 @@ PetscErrorCode DifferentialFilterCreateOperators(Ceed ceed, User user, CeedData 
 
       switch (num_comp_filter) {
         case 1:
-          CeedQFunctionCreateInterior(ceed, 1, DifferentialFilter_LHS_1, DifferentialFilter_LHS_1_loc, &qf_lhs);
+          PetscCallCeed(ceed, CeedQFunctionCreateInterior(ceed, 1, DifferentialFilter_LHS_1, DifferentialFilter_LHS_1_loc, &qf_lhs));
           break;
         case 5:
-          CeedQFunctionCreateInterior(ceed, 1, DifferentialFilter_LHS_5, DifferentialFilter_LHS_5_loc, &qf_lhs);
+          PetscCallCeed(ceed, CeedQFunctionCreateInterior(ceed, 1, DifferentialFilter_LHS_5, DifferentialFilter_LHS_5_loc, &qf_lhs));
           break;
         case 6:
-          CeedQFunctionCreateInterior(ceed, 1, DifferentialFilter_LHS_6, DifferentialFilter_LHS_6_loc, &qf_lhs);
+          PetscCallCeed(ceed, CeedQFunctionCreateInterior(ceed, 1, DifferentialFilter_LHS_6, DifferentialFilter_LHS_6_loc, &qf_lhs));
           break;
         case 11:
-          CeedQFunctionCreateInterior(ceed, 1, DifferentialFilter_LHS_11, DifferentialFilter_LHS_11_loc, &qf_lhs);
+          PetscCallCeed(ceed, CeedQFunctionCreateInterior(ceed, 1, DifferentialFilter_LHS_11, DifferentialFilter_LHS_11_loc, &qf_lhs));
           break;
         default:
           SETERRQ(PetscObjectComm((PetscObject)user->dm), PETSC_ERR_SUP, "Differential filtering not available for (%" PetscInt_FMT ") components",
                   num_comp_filter);
       }
 
-      CeedQFunctionSetContext(qf_lhs, diff_filter_qfctx);
-      CeedQFunctionAddInput(qf_lhs, "q", num_comp_filter, CEED_EVAL_INTERP);
-      CeedQFunctionAddInput(qf_lhs, "Grad_q", num_comp_filter * dim, CEED_EVAL_GRAD);
-      CeedQFunctionAddInput(qf_lhs, "anisotropy tensor", num_comp_grid_aniso, CEED_EVAL_NONE);
-      CeedQFunctionAddInput(qf_lhs, "x", num_comp_x, CEED_EVAL_INTERP);
-      CeedQFunctionAddInput(qf_lhs, "qdata", num_comp_qd, CEED_EVAL_NONE);
-      CeedQFunctionAddOutput(qf_lhs, "v", num_comp_filter, CEED_EVAL_INTERP);
-      CeedQFunctionAddOutput(qf_lhs, "Grad_v", num_comp_filter * dim, CEED_EVAL_GRAD);
+      PetscCallCeed(ceed, CeedQFunctionSetContext(qf_lhs, diff_filter_qfctx));
+      PetscCallCeed(ceed, CeedQFunctionAddInput(qf_lhs, "q", num_comp_filter, CEED_EVAL_INTERP));
+      PetscCallCeed(ceed, CeedQFunctionAddInput(qf_lhs, "Grad_q", num_comp_filter * dim, CEED_EVAL_GRAD));
+      PetscCallCeed(ceed, CeedQFunctionAddInput(qf_lhs, "anisotropy tensor", num_comp_grid_aniso, CEED_EVAL_NONE));
+      PetscCallCeed(ceed, CeedQFunctionAddInput(qf_lhs, "x", num_comp_x, CEED_EVAL_INTERP));
+      PetscCallCeed(ceed, CeedQFunctionAddInput(qf_lhs, "qdata", num_comp_qd, CEED_EVAL_NONE));
+      PetscCallCeed(ceed, CeedQFunctionAddOutput(qf_lhs, "v", num_comp_filter, CEED_EVAL_INTERP));
+      PetscCallCeed(ceed, CeedQFunctionAddOutput(qf_lhs, "Grad_v", num_comp_filter * dim, CEED_EVAL_GRAD));
 
       {
         CeedOperatorField op_field;
         char              field_name[PETSC_MAX_PATH_LEN];
         PetscCall(PetscSNPrintf(field_name, PETSC_MAX_PATH_LEN, "v%" PetscInt_FMT, i));
-        CeedOperatorGetFieldByName(diff_filter->op_rhs_ctx->op, field_name, &op_field);
-        CeedOperatorFieldGetElemRestriction(op_field, &elem_restr_filter);
-        CeedOperatorFieldGetBasis(op_field, &basis_filter);
+        PetscCallCeed(ceed, CeedOperatorGetFieldByName(diff_filter->op_rhs_ctx->op, field_name, &op_field));
+        PetscCallCeed(ceed, CeedOperatorFieldGetElemRestriction(op_field, &elem_restr_filter));
+        PetscCallCeed(ceed, CeedOperatorFieldGetBasis(op_field, &basis_filter));
       }
 
-      CeedOperatorCreate(ceed, qf_lhs, NULL, NULL, &op_lhs_sub);
-      CeedOperatorSetField(op_lhs_sub, "q", elem_restr_filter, basis_filter, CEED_VECTOR_ACTIVE);
-      CeedOperatorSetField(op_lhs_sub, "Grad_q", elem_restr_filter, basis_filter, CEED_VECTOR_ACTIVE);
-      CeedOperatorSetField(op_lhs_sub, "anisotropy tensor", elem_restr_grid_aniso, CEED_BASIS_COLLOCATED, grid_aniso_ceed);
-      CeedOperatorSetField(op_lhs_sub, "x", ceed_data->elem_restr_x, ceed_data->basis_x, ceed_data->x_coord);
-      CeedOperatorSetField(op_lhs_sub, "qdata", ceed_data->elem_restr_qd_i, CEED_BASIS_COLLOCATED, ceed_data->q_data);
-      CeedOperatorSetField(op_lhs_sub, "v", elem_restr_filter, basis_filter, CEED_VECTOR_ACTIVE);
-      CeedOperatorSetField(op_lhs_sub, "Grad_v", elem_restr_filter, basis_filter, CEED_VECTOR_ACTIVE);
+      PetscCallCeed(ceed, CeedOperatorCreate(ceed, qf_lhs, NULL, NULL, &op_lhs_sub));
+      PetscCallCeed(ceed, CeedOperatorSetField(op_lhs_sub, "q", elem_restr_filter, basis_filter, CEED_VECTOR_ACTIVE));
+      PetscCallCeed(ceed, CeedOperatorSetField(op_lhs_sub, "Grad_q", elem_restr_filter, basis_filter, CEED_VECTOR_ACTIVE));
+      PetscCallCeed(ceed, CeedOperatorSetField(op_lhs_sub, "anisotropy tensor", elem_restr_grid_aniso, CEED_BASIS_COLLOCATED, grid_aniso_ceed));
+      PetscCallCeed(ceed, CeedOperatorSetField(op_lhs_sub, "x", ceed_data->elem_restr_x, ceed_data->basis_x, ceed_data->x_coord));
+      PetscCallCeed(ceed, CeedOperatorSetField(op_lhs_sub, "qdata", ceed_data->elem_restr_qd_i, CEED_BASIS_COLLOCATED, ceed_data->q_data));
+      PetscCallCeed(ceed, CeedOperatorSetField(op_lhs_sub, "v", elem_restr_filter, basis_filter, CEED_VECTOR_ACTIVE));
+      PetscCallCeed(ceed, CeedOperatorSetField(op_lhs_sub, "Grad_v", elem_restr_filter, basis_filter, CEED_VECTOR_ACTIVE));
 
-      CeedCompositeOperatorAddSub(op_lhs, op_lhs_sub);
-      CeedQFunctionDestroy(&qf_lhs);
-      CeedOperatorDestroy(&op_lhs_sub);
+      PetscCallCeed(ceed, CeedCompositeOperatorAddSub(op_lhs, op_lhs_sub));
+      PetscCallCeed(ceed, CeedQFunctionDestroy(&qf_lhs));
+      PetscCallCeed(ceed, CeedOperatorDestroy(&op_lhs_sub));
     }
     PetscCall(OperatorApplyContextCreate(dm_filter, dm_filter, ceed, op_lhs, NULL, NULL, NULL, NULL, &mat_ctx));
     PetscCall(CreateMatShell_Ceed(mat_ctx, &mat_lhs));
@@ -164,7 +164,7 @@ PetscErrorCode DifferentialFilterCreateOperators(Ceed ceed, User user, CeedData 
     PetscCall(KSPSetOperators(diff_filter->ksp, mat_lhs, mat_lhs));
     PetscCall(KSPSetFromOptions(diff_filter->ksp));
 
-    CeedOperatorDestroy(&op_lhs);
+    PetscCallCeed(ceed, CeedOperatorDestroy(&op_lhs));
   }
   PetscFunctionReturn(PETSC_SUCCESS);
 }
@@ -266,18 +266,18 @@ PetscErrorCode DifferentialFilterSetup(Ceed ceed, User user, CeedData ceed_data,
   diff_filter_ctx->friction_length *= units->meter;
 
   // -- Create QFContext
-  CeedQFunctionContextGetDataRead(problem->apply_vol_ifunction.qfunction_context, CEED_MEM_HOST, &gas);
+  PetscCallCeed(ceed, CeedQFunctionContextGetDataRead(problem->apply_vol_ifunction.qfunction_context, CEED_MEM_HOST, &gas));
   diff_filter_ctx->gas = *gas;
-  CeedQFunctionContextRestoreDataRead(problem->apply_vol_ifunction.qfunction_context, &gas);
+  PetscCallCeed(ceed, CeedQFunctionContextRestoreDataRead(problem->apply_vol_ifunction.qfunction_context, &gas));
 
-  CeedQFunctionContextCreate(ceed, &diff_filter_qfctx);
-  CeedQFunctionContextSetData(diff_filter_qfctx, CEED_MEM_HOST, CEED_USE_POINTER, sizeof(*diff_filter_ctx), diff_filter_ctx);
-  CeedQFunctionContextSetDataDestroy(diff_filter_qfctx, CEED_MEM_HOST, FreeContextPetsc);
+  PetscCallCeed(ceed, CeedQFunctionContextCreate(ceed, &diff_filter_qfctx));
+  PetscCallCeed(ceed, CeedQFunctionContextSetData(diff_filter_qfctx, CEED_MEM_HOST, CEED_USE_POINTER, sizeof(*diff_filter_ctx), diff_filter_ctx));
+  PetscCallCeed(ceed, CeedQFunctionContextSetDataDestroy(diff_filter_qfctx, CEED_MEM_HOST, FreeContextPetsc));
 
   // -- Setup Operators
   PetscCall(DifferentialFilterCreateOperators(ceed, user, ceed_data, diff_filter_qfctx));
 
-  CeedQFunctionContextDestroy(&diff_filter_qfctx);
+  PetscCallCeed(ceed, CeedQFunctionContextDestroy(&diff_filter_qfctx));
   PetscFunctionReturn(PETSC_SUCCESS);
 }
 

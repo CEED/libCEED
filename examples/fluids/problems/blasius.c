@@ -232,6 +232,7 @@ static PetscErrorCode ModifyMesh(MPI_Comm comm, DM dm, PetscInt dim, PetscReal g
 PetscErrorCode NS_BLASIUS(ProblemData *problem, DM dm, void *ctx, SimpleBC bc) {
   User                     user    = *(User *)ctx;
   MPI_Comm                 comm    = user->comm;
+  Ceed                     ceed    = user->ceed;
   PetscBool                use_stg = PETSC_FALSE;
   BlasiusContext           blasius_ctx;
   NewtonianIdealGasContext newtonian_ig_ctx;
@@ -302,7 +303,7 @@ PetscErrorCode NS_BLASIUS(ProblemData *problem, DM dm, void *ctx, SimpleBC bc) {
   PetscCall(ModifyMesh(comm, dm, problem->dim, mesh_growth, mesh_Ndelta, mesh_refine_height, mesh_top_angle, &mesh_ynodes, &mesh_nynodes));
 
   // Some properties depend on parameters from NewtonianIdealGas
-  CeedQFunctionContextGetData(problem->apply_vol_rhs.qfunction_context, CEED_MEM_HOST, &newtonian_ig_ctx);
+  PetscCallCeed(ceed, CeedQFunctionContextGetData(problem->apply_vol_rhs.qfunction_context, CEED_MEM_HOST, &newtonian_ig_ctx));
 
   blasius_ctx->weakT         = weakT;
   blasius_ctx->U_inf         = U_inf;
@@ -325,13 +326,13 @@ PetscErrorCode NS_BLASIUS(ProblemData *problem, DM dm, void *ctx, SimpleBC bc) {
   PetscCall(PetscOptionsGetBool(NULL, NULL, "-diff_filter_mms", &diff_filter_mms, NULL));
   if (!use_stg && !diff_filter_mms) PetscCall(ComputeChebyshevCoefficients(blasius_ctx));
 
-  CeedQFunctionContextRestoreData(problem->apply_vol_rhs.qfunction_context, &newtonian_ig_ctx);
+  PetscCallCeed(ceed, CeedQFunctionContextRestoreData(problem->apply_vol_rhs.qfunction_context, &newtonian_ig_ctx));
 
-  CeedQFunctionContextCreate(user->ceed, &blasius_context);
-  CeedQFunctionContextSetData(blasius_context, CEED_MEM_HOST, CEED_USE_POINTER, sizeof(*blasius_ctx), blasius_ctx);
-  CeedQFunctionContextSetDataDestroy(blasius_context, CEED_MEM_HOST, FreeContextPetsc);
+  PetscCallCeed(ceed, CeedQFunctionContextCreate(user->ceed, &blasius_context));
+  PetscCallCeed(ceed, CeedQFunctionContextSetData(blasius_context, CEED_MEM_HOST, CEED_USE_POINTER, sizeof(*blasius_ctx), blasius_ctx));
+  PetscCallCeed(ceed, CeedQFunctionContextSetDataDestroy(blasius_context, CEED_MEM_HOST, FreeContextPetsc));
 
-  CeedQFunctionContextDestroy(&problem->ics.qfunction_context);
+  PetscCallCeed(ceed, CeedQFunctionContextDestroy(&problem->ics.qfunction_context));
   problem->ics.qfunction_context = blasius_context;
   if (use_stg) {
     PetscCall(SetupSTG(comm, dm, problem, user, weakT, T_inf, P0, mesh_ynodes, mesh_nynodes));
@@ -342,8 +343,8 @@ PetscErrorCode NS_BLASIUS(ProblemData *problem, DM dm, void *ctx, SimpleBC bc) {
     problem->apply_inflow.qfunction_loc          = Blasius_Inflow_loc;
     problem->apply_inflow_jacobian.qfunction     = Blasius_Inflow_Jacobian;
     problem->apply_inflow_jacobian.qfunction_loc = Blasius_Inflow_Jacobian_loc;
-    CeedQFunctionContextReferenceCopy(blasius_context, &problem->apply_inflow.qfunction_context);
-    CeedQFunctionContextReferenceCopy(blasius_context, &problem->apply_inflow_jacobian.qfunction_context);
+    PetscCallCeed(ceed, CeedQFunctionContextReferenceCopy(blasius_context, &problem->apply_inflow.qfunction_context));
+    PetscCallCeed(ceed, CeedQFunctionContextReferenceCopy(blasius_context, &problem->apply_inflow_jacobian.qfunction_context));
   }
   PetscCall(PetscFree(mesh_ynodes));
   PetscFunctionReturn(PETSC_SUCCESS);

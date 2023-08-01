@@ -21,7 +21,8 @@ PetscErrorCode NS_ADVECTION2D(ProblemData *problem, DM dm, void *ctx, SimpleBC b
   StabilizationType    stab;
   SetupContextAdv2D    setup_context;
   User                 user = *(User *)ctx;
-  MPI_Comm             comm = PETSC_COMM_WORLD;
+  MPI_Comm             comm = user->comm;
+  Ceed                 ceed = user->ceed;
   PetscBool            implicit;
   PetscBool            has_curr_time = PETSC_FALSE;
   AdvectionContext     advection_ctx;
@@ -156,27 +157,29 @@ PetscErrorCode NS_ADVECTION2D(ProblemData *problem, DM dm, void *ctx, SimpleBC b
   advection_ctx->strong_form   = strong_form;
   advection_ctx->stabilization = stab;
 
-  CeedQFunctionContextCreate(user->ceed, &problem->ics.qfunction_context);
-  CeedQFunctionContextSetData(problem->ics.qfunction_context, CEED_MEM_HOST, CEED_USE_POINTER, sizeof(*setup_context), setup_context);
-  CeedQFunctionContextSetDataDestroy(problem->ics.qfunction_context, CEED_MEM_HOST, FreeContextPetsc);
+  PetscCallCeed(ceed, CeedQFunctionContextCreate(user->ceed, &problem->ics.qfunction_context));
+  PetscCallCeed(ceed,
+                CeedQFunctionContextSetData(problem->ics.qfunction_context, CEED_MEM_HOST, CEED_USE_POINTER, sizeof(*setup_context), setup_context));
+  PetscCallCeed(ceed, CeedQFunctionContextSetDataDestroy(problem->ics.qfunction_context, CEED_MEM_HOST, FreeContextPetsc));
 
-  CeedQFunctionContextCreate(user->ceed, &advection_context);
-  CeedQFunctionContextSetData(advection_context, CEED_MEM_HOST, CEED_USE_POINTER, sizeof(*advection_ctx), advection_ctx);
-  CeedQFunctionContextSetDataDestroy(advection_context, CEED_MEM_HOST, FreeContextPetsc);
+  PetscCallCeed(ceed, CeedQFunctionContextCreate(user->ceed, &advection_context));
+  PetscCallCeed(ceed, CeedQFunctionContextSetData(advection_context, CEED_MEM_HOST, CEED_USE_POINTER, sizeof(*advection_ctx), advection_ctx));
+  PetscCallCeed(ceed, CeedQFunctionContextSetDataDestroy(advection_context, CEED_MEM_HOST, FreeContextPetsc));
   problem->apply_vol_rhs.qfunction_context = advection_context;
-  CeedQFunctionContextReferenceCopy(advection_context, &problem->apply_vol_ifunction.qfunction_context);
-  CeedQFunctionContextReferenceCopy(advection_context, &problem->apply_inflow.qfunction_context);
+  PetscCallCeed(ceed, CeedQFunctionContextReferenceCopy(advection_context, &problem->apply_vol_ifunction.qfunction_context));
+  PetscCallCeed(ceed, CeedQFunctionContextReferenceCopy(advection_context, &problem->apply_inflow.qfunction_context));
   PetscFunctionReturn(PETSC_SUCCESS);
 }
 
 PetscErrorCode PRINT_ADVECTION2D(User user, ProblemData *problem, AppCtx app_ctx) {
   MPI_Comm          comm = user->comm;
+  Ceed              ceed = user->ceed;
   SetupContextAdv2D setup_ctx;
   AdvectionContext  advection_ctx;
 
   PetscFunctionBeginUser;
-  CeedQFunctionContextGetData(problem->ics.qfunction_context, CEED_MEM_HOST, &setup_ctx);
-  CeedQFunctionContextGetData(problem->apply_vol_rhs.qfunction_context, CEED_MEM_HOST, &advection_ctx);
+  PetscCallCeed(ceed, CeedQFunctionContextGetData(problem->ics.qfunction_context, CEED_MEM_HOST, &setup_ctx));
+  PetscCallCeed(ceed, CeedQFunctionContextGetData(problem->apply_vol_rhs.qfunction_context, CEED_MEM_HOST, &advection_ctx));
   PetscCall(PetscPrintf(comm,
                         "  Problem:\n"
                         "    Problem Name                       : %s\n"
@@ -187,7 +190,7 @@ PetscErrorCode PRINT_ADVECTION2D(User user, ProblemData *problem, AppCtx app_ctx
   if (setup_ctx->wind_type == WIND_TRANSLATION) {
     PetscCall(PetscPrintf(comm, "    Background Wind                    : %f,%f\n", setup_ctx->wind[0], setup_ctx->wind[1]));
   }
-  CeedQFunctionContextRestoreData(problem->ics.qfunction_context, &setup_ctx);
-  CeedQFunctionContextRestoreData(problem->apply_vol_rhs.qfunction_context, &advection_ctx);
+  PetscCallCeed(ceed, CeedQFunctionContextRestoreData(problem->ics.qfunction_context, &setup_ctx));
+  PetscCallCeed(ceed, CeedQFunctionContextRestoreData(problem->apply_vol_rhs.qfunction_context, &advection_ctx));
   PetscFunctionReturn(PETSC_SUCCESS);
 }

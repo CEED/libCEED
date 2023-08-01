@@ -16,8 +16,9 @@
 #include "../navierstokes.h"
 
 PetscErrorCode NS_DENSITY_CURRENT(ProblemData *problem, DM dm, void *ctx, SimpleBC bc) {
-  MPI_Comm                 comm = PETSC_COMM_WORLD;
   User                     user = *(User *)ctx;
+  MPI_Comm                 comm = user->comm;
+  Ceed                     ceed = user->ceed;
   DensityCurrentContext    dc_ctx;
   CeedQFunctionContext     density_current_context;
   NewtonianIdealGasContext newtonian_ig_ctx;
@@ -28,7 +29,7 @@ PetscErrorCode NS_DENSITY_CURRENT(ProblemData *problem, DM dm, void *ctx, Simple
   // ------------------------------------------------------
   //               SET UP DENSITY_CURRENT
   // ------------------------------------------------------
-  CeedQFunctionContextDestroy(&problem->ics.qfunction_context);
+  PetscCallCeed(ceed, CeedQFunctionContextDestroy(&problem->ics.qfunction_context));
   problem->ics.qfunction     = ICsDC;
   problem->ics.qfunction_loc = ICsDC_loc;
 
@@ -94,12 +95,12 @@ PetscErrorCode NS_DENSITY_CURRENT(ProblemData *problem, DM dm, void *ctx, Simple
   dc_ctx->dc_axis[1] = dc_axis[1];
   dc_ctx->dc_axis[2] = dc_axis[2];
 
-  CeedQFunctionContextGetData(problem->apply_vol_rhs.qfunction_context, CEED_MEM_HOST, &newtonian_ig_ctx);
+  PetscCallCeed(ceed, CeedQFunctionContextGetData(problem->apply_vol_rhs.qfunction_context, CEED_MEM_HOST, &newtonian_ig_ctx));
   dc_ctx->newtonian_ctx = *newtonian_ig_ctx;
-  CeedQFunctionContextRestoreData(problem->apply_vol_rhs.qfunction_context, &newtonian_ig_ctx);
-  CeedQFunctionContextCreate(user->ceed, &density_current_context);
-  CeedQFunctionContextSetData(density_current_context, CEED_MEM_HOST, CEED_USE_POINTER, sizeof(*dc_ctx), dc_ctx);
-  CeedQFunctionContextSetDataDestroy(density_current_context, CEED_MEM_HOST, FreeContextPetsc);
+  PetscCallCeed(ceed, CeedQFunctionContextRestoreData(problem->apply_vol_rhs.qfunction_context, &newtonian_ig_ctx));
+  PetscCallCeed(ceed, CeedQFunctionContextCreate(user->ceed, &density_current_context));
+  PetscCallCeed(ceed, CeedQFunctionContextSetData(density_current_context, CEED_MEM_HOST, CEED_USE_POINTER, sizeof(*dc_ctx), dc_ctx));
+  PetscCallCeed(ceed, CeedQFunctionContextSetDataDestroy(density_current_context, CEED_MEM_HOST, FreeContextPetsc));
   problem->ics.qfunction_context = density_current_context;
 
   PetscFunctionReturn(PETSC_SUCCESS);

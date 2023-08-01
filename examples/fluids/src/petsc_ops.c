@@ -61,7 +61,7 @@ PetscErrorCode OperatorApplyContextCreate(DM dm_x, DM dm_y, Ceed ceed, CeedOpera
   CeedSize x_size, y_size;
 
   PetscFunctionBeginUser;
-  CeedOperatorGetActiveVectorLengths(op_apply, &x_size, &y_size);
+  PetscCallCeed(ceed, CeedOperatorGetActiveVectorLengths(op_apply, &x_size, &y_size));
   {  // Verify sizes
     PetscInt X_size, Y_size, dm_X_size, dm_Y_size;
     CeedSize x_ceed_size, y_ceed_size;
@@ -84,7 +84,7 @@ PetscErrorCode OperatorApplyContextCreate(DM dm_x, DM dm_y, Ceed ceed, CeedOpera
                    "Y_loc size (%" PetscInt_FMT ") does not match dm_y local vector size (%" PetscInt_FMT ")", Y_size, dm_Y_size);
     }
     if (x_ceed && x_ceed != CEED_VECTOR_NONE) {
-      CeedVectorGetLength(x_ceed, &x_ceed_size);
+      PetscCallCeed(ceed, CeedVectorGetLength(x_ceed, &x_ceed_size));
       PetscCheck(x_size >= 0 ? x_ceed_size == x_size : true, PETSC_COMM_WORLD, PETSC_ERR_ARG_SIZ,
                  "x_ceed (%" CeedSize_FMT ") not correct size for CeedOperator active input size (%" CeedSize_FMT ")", x_ceed_size, x_size);
       if (dm_x)
@@ -92,7 +92,7 @@ PetscErrorCode OperatorApplyContextCreate(DM dm_x, DM dm_y, Ceed ceed, CeedOpera
                    "x_ceed size (%" CeedSize_FMT ") does not match dm_x local vector size (%" PetscInt_FMT ")", x_ceed_size, dm_X_size);
     }
     if (y_ceed && y_ceed != CEED_VECTOR_NONE) {
-      CeedVectorGetLength(y_ceed, &y_ceed_size);
+      PetscCallCeed(ceed, CeedVectorGetLength(y_ceed, &y_ceed_size));
       PetscCheck(y_ceed_size == y_size, PETSC_COMM_WORLD, PETSC_ERR_ARG_SIZ,
                  "y_ceed (%" CeedSize_FMT ") not correct size for CeedOperator active input size (%" CeedSize_FMT ")", y_ceed_size, y_size);
       if (dm_y)
@@ -115,14 +115,14 @@ PetscErrorCode OperatorApplyContextCreate(DM dm_x, DM dm_y, Ceed ceed, CeedOpera
   (*ctx)->Y_loc = Y_loc;
 
   // Copy libCEED objects
-  if (x_ceed) CeedVectorReferenceCopy(x_ceed, &(*ctx)->x_ceed);
-  else CeedVectorCreate(ceed, x_size, &(*ctx)->x_ceed);
+  if (x_ceed) PetscCallCeed(ceed, CeedVectorReferenceCopy(x_ceed, &(*ctx)->x_ceed));
+  else PetscCallCeed(ceed, CeedVectorCreate(ceed, x_size, &(*ctx)->x_ceed));
 
-  if (y_ceed) CeedVectorReferenceCopy(y_ceed, &(*ctx)->y_ceed);
-  else CeedVectorCreate(ceed, y_size, &(*ctx)->y_ceed);
+  if (y_ceed) PetscCallCeed(ceed, CeedVectorReferenceCopy(y_ceed, &(*ctx)->y_ceed));
+  else PetscCallCeed(ceed, CeedVectorCreate(ceed, y_size, &(*ctx)->y_ceed));
 
-  CeedOperatorReferenceCopy(op_apply, &(*ctx)->op);
-  CeedReferenceCopy(ceed, &(*ctx)->ceed);
+  PetscCallCeed(ceed, CeedOperatorReferenceCopy(op_apply, &(*ctx)->op));
+  PetscCallCeed(ceed, CeedReferenceCopy(ceed, &(*ctx)->ceed));
 
   PetscFunctionReturn(PETSC_SUCCESS);
 }
@@ -134,8 +134,8 @@ PetscErrorCode OperatorApplyContextCreate(DM dm_x, DM dm_y, Ceed ceed, CeedOpera
  */
 PetscErrorCode OperatorApplyContextDestroy(OperatorApplyContext ctx) {
   PetscFunctionBeginUser;
-
   if (!ctx) PetscFunctionReturn(PETSC_SUCCESS);
+  Ceed ceed = ctx->ceed;
 
   // Destroy PETSc Objects
   PetscCall(DMDestroy(&ctx->dm_x));
@@ -144,10 +144,10 @@ PetscErrorCode OperatorApplyContextDestroy(OperatorApplyContext ctx) {
   PetscCall(VecDestroy(&ctx->Y_loc));
 
   // Destroy libCEED Objects
-  CeedVectorDestroy(&ctx->x_ceed);
-  CeedVectorDestroy(&ctx->y_ceed);
-  CeedOperatorDestroy(&ctx->op);
-  CeedDestroy(&ctx->ceed);
+  PetscCallCeed(ceed, CeedVectorDestroy(&ctx->x_ceed));
+  PetscCallCeed(ceed, CeedVectorDestroy(&ctx->y_ceed));
+  PetscCallCeed(ceed, CeedOperatorDestroy(&ctx->op));
+  PetscCallCeed(ceed, CeedDestroy(&ctx->ceed));
 
   PetscCall(PetscFree(ctx));
 
@@ -167,15 +167,17 @@ PetscErrorCode VecP2C(Vec X_petsc, PetscMemType *mem_type, CeedVector x_ceed) {
   PetscScalar *x;
   PetscInt     X_size;
   CeedSize     x_size;
+  Ceed         ceed;
 
   PetscFunctionBeginUser;
+  PetscCall(CeedVectorGetCeed(x_ceed, &ceed));
   PetscCall(VecGetLocalSize(X_petsc, &X_size));
-  CeedVectorGetLength(x_ceed, &x_size);
+  PetscCallCeed(ceed, CeedVectorGetLength(x_ceed, &x_size));
   PetscCheck(X_size == x_size, PETSC_COMM_WORLD, PETSC_ERR_ARG_SIZ, "X_petsc (%" PetscInt_FMT ") and x_ceed (%" CeedSize_FMT ") must be same size",
              X_size, x_size);
 
   PetscCall(VecGetArrayAndMemType(X_petsc, &x, mem_type));
-  CeedVectorSetArray(x_ceed, MemTypeP2C(*mem_type), CEED_USE_POINTER, x);
+  PetscCallCeed(ceed, CeedVectorSetArray(x_ceed, MemTypeP2C(*mem_type), CEED_USE_POINTER, x));
 
   PetscFunctionReturn(PETSC_SUCCESS);
 }
@@ -193,14 +195,16 @@ PetscErrorCode VecC2P(CeedVector x_ceed, PetscMemType mem_type, Vec X_petsc) {
   PetscScalar *x;
   PetscInt     X_size;
   CeedSize     x_size;
+  Ceed         ceed;
 
   PetscFunctionBeginUser;
+  PetscCall(CeedVectorGetCeed(x_ceed, &ceed));
   PetscCall(VecGetLocalSize(X_petsc, &X_size));
-  CeedVectorGetLength(x_ceed, &x_size);
+  PetscCallCeed(ceed, CeedVectorGetLength(x_ceed, &x_size));
   PetscCheck(X_size == x_size, PETSC_COMM_WORLD, PETSC_ERR_ARG_SIZ, "X_petsc (%" PetscInt_FMT ") and x_ceed (%" CeedSize_FMT ") must be same size",
              X_size, x_size);
 
-  CeedVectorTakeArray(x_ceed, MemTypeP2C(mem_type), &x);
+  PetscCallCeed(ceed, CeedVectorTakeArray(x_ceed, MemTypeP2C(mem_type), &x));
   PetscCall(VecRestoreArrayAndMemType(X_petsc, &x));
 
   PetscFunctionReturn(PETSC_SUCCESS);
@@ -219,15 +223,17 @@ PetscErrorCode VecReadP2C(Vec X_petsc, PetscMemType *mem_type, CeedVector x_ceed
   PetscScalar *x;
   PetscInt     X_size;
   CeedSize     x_size;
+  Ceed         ceed;
 
   PetscFunctionBeginUser;
+  PetscCall(CeedVectorGetCeed(x_ceed, &ceed));
   PetscCall(VecGetLocalSize(X_petsc, &X_size));
-  CeedVectorGetLength(x_ceed, &x_size);
+  PetscCallCeed(ceed, CeedVectorGetLength(x_ceed, &x_size));
   PetscCheck(X_size == x_size, PETSC_COMM_WORLD, PETSC_ERR_ARG_SIZ, "X_petsc (%" PetscInt_FMT ") and x_ceed (%" CeedSize_FMT ") must be same size",
              X_size, x_size);
 
   PetscCall(VecGetArrayReadAndMemType(X_petsc, (const PetscScalar **)&x, mem_type));
-  CeedVectorSetArray(x_ceed, MemTypeP2C(*mem_type), CEED_USE_POINTER, x);
+  PetscCallCeed(ceed, CeedVectorSetArray(x_ceed, MemTypeP2C(*mem_type), CEED_USE_POINTER, x));
 
   PetscFunctionReturn(PETSC_SUCCESS);
 }
@@ -245,14 +251,16 @@ PetscErrorCode VecReadC2P(CeedVector x_ceed, PetscMemType mem_type, Vec X_petsc)
   PetscScalar *x;
   PetscInt     X_size;
   CeedSize     x_size;
+  Ceed         ceed;
 
   PetscFunctionBeginUser;
+  PetscCall(CeedVectorGetCeed(x_ceed, &ceed));
   PetscCall(VecGetLocalSize(X_petsc, &X_size));
-  CeedVectorGetLength(x_ceed, &x_size);
+  PetscCallCeed(ceed, CeedVectorGetLength(x_ceed, &x_size));
   PetscCheck(X_size == x_size, PETSC_COMM_WORLD, PETSC_ERR_ARG_SIZ, "X_petsc (%" PetscInt_FMT ") and x_ceed (%" CeedSize_FMT ") must be same size",
              X_size, x_size);
 
-  CeedVectorTakeArray(x_ceed, MemTypeP2C(mem_type), &x);
+  PetscCallCeed(ceed, CeedVectorTakeArray(x_ceed, MemTypeP2C(mem_type), &x));
   PetscCall(VecRestoreArrayReadAndMemType(X_petsc, (const PetscScalar **)&x));
 
   PetscFunctionReturn(PETSC_SUCCESS);
@@ -271,15 +279,17 @@ PetscErrorCode VecCopyP2C(Vec X_petsc, CeedVector x_ceed) {
   PetscMemType mem_type;
   PetscInt     X_size;
   CeedSize     x_size;
+  Ceed         ceed;
 
   PetscFunctionBeginUser;
+  PetscCall(CeedVectorGetCeed(x_ceed, &ceed));
   PetscCall(VecGetLocalSize(X_petsc, &X_size));
-  CeedVectorGetLength(x_ceed, &x_size);
+  PetscCallCeed(ceed, CeedVectorGetLength(x_ceed, &x_size));
   PetscCheck(X_size == x_size, PETSC_COMM_WORLD, PETSC_ERR_ARG_SIZ, "X_petsc (%" PetscInt_FMT ") and x_ceed (%" CeedSize_FMT ") must be same size",
              X_size, x_size);
 
   PetscCall(VecGetArrayReadAndMemType(X_petsc, (const PetscScalar **)&x, &mem_type));
-  CeedVectorSetArray(x_ceed, MemTypeP2C(mem_type), CEED_COPY_VALUES, x);
+  PetscCallCeed(ceed, CeedVectorSetArray(x_ceed, MemTypeP2C(mem_type), CEED_COPY_VALUES, x));
   PetscCall(VecRestoreArrayReadAndMemType(X_petsc, (const PetscScalar **)&x));
 
   PetscFunctionReturn(PETSC_SUCCESS);
@@ -307,9 +317,11 @@ VecType DMReturnVecType(DM dm) {
  */
 PetscErrorCode CeedOperatorCreateLocalVecs(CeedOperator op, VecType vec_type, MPI_Comm comm, Vec *input, Vec *output) {
   CeedSize input_size, output_size;
+  Ceed     ceed;
 
   PetscFunctionBeginUser;
-  CeedOperatorGetActiveVectorLengths(op, &input_size, &output_size);
+  PetscCall(CeedOperatorGetCeed(op, &ceed));
+  PetscCallCeed(ceed, CeedOperatorGetActiveVectorLengths(op, &input_size, &output_size));
   if (input) {
     PetscCall(VecCreate(comm, input));
     PetscCall(VecSetType(*input, vec_type));
@@ -339,6 +351,7 @@ PetscErrorCode CeedOperatorCreateLocalVecs(CeedOperator op, VecType vec_type, MP
 PetscErrorCode ApplyCeedOperator_Core(Vec X, Vec X_loc, CeedVector x_ceed, CeedVector y_ceed, Vec Y_loc, Vec Y, OperatorApplyContext ctx,
                                       bool use_apply_add) {
   PetscMemType x_mem_type, y_mem_type;
+  Ceed         ceed = ctx->ceed;
 
   PetscFunctionBeginUser;
   if (X) PetscCall(DMGlobalToLocal(ctx->dm_x, X, INSERT_VALUES, X_loc));
@@ -348,8 +361,8 @@ PetscErrorCode ApplyCeedOperator_Core(Vec X, Vec X_loc, CeedVector x_ceed, CeedV
 
   PetscCall(PetscLogEventBegin(FLUIDS_CeedOperatorApply, X, Y, 0, 0));
   PetscCall(PetscLogGpuTimeBegin());
-  if (use_apply_add) CeedOperatorApplyAdd(ctx->op, x_ceed, y_ceed, CEED_REQUEST_IMMEDIATE);
-  else CeedOperatorApply(ctx->op, x_ceed, y_ceed, CEED_REQUEST_IMMEDIATE);
+  if (use_apply_add) PetscCallCeed(ceed, CeedOperatorApplyAdd(ctx->op, x_ceed, y_ceed, CEED_REQUEST_IMMEDIATE));
+  else PetscCallCeed(ceed, CeedOperatorApply(ctx->op, x_ceed, y_ceed, CEED_REQUEST_IMMEDIATE));
   PetscCall(PetscLogGpuTimeEnd());
   PetscCall(PetscLogEventEnd(FLUIDS_CeedOperatorApply, X, Y, 0, 0));
 
@@ -447,6 +460,7 @@ PetscErrorCode MatGetDiag_Ceed(Mat A, Vec D) {
   PetscFunctionBeginUser;
 
   PetscCall(MatShellGetContext(A, &ctx));
+  Ceed ceed = ctx->ceed;
   if (ctx->Y_loc) Y_loc = ctx->Y_loc;
   else PetscCall(DMGetLocalVector(ctx->dm_y, &Y_loc));
 
@@ -456,7 +470,7 @@ PetscErrorCode MatGetDiag_Ceed(Mat A, Vec D) {
   // -- Compute Diagonal
   PetscCall(PetscLogEventBegin(FLUIDS_CeedOperatorAssembleDiagonal, A, D, 0, 0));
   PetscCall(PetscLogGpuTimeBegin());
-  CeedOperatorLinearAssembleDiagonal(ctx->op, ctx->y_ceed, CEED_REQUEST_IMMEDIATE);
+  PetscCallCeed(ceed, CeedOperatorLinearAssembleDiagonal(ctx->op, ctx->y_ceed, CEED_REQUEST_IMMEDIATE));
   PetscCall(PetscLogGpuTimeEnd());
   PetscCall(PetscLogEventEnd(FLUIDS_CeedOperatorAssembleDiagonal, A, D, 0, 0));
 

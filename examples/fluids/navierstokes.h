@@ -16,12 +16,24 @@
 #include "qfunctions/newtonian_types.h"
 #include "qfunctions/stabilization_types.h"
 
-// -----------------------------------------------------------------------------
-// PETSc Version
-// -----------------------------------------------------------------------------
 #if PETSC_VERSION_LT(3, 19, 0)
 #error "PETSc v3.19 or later is required"
 #endif
+
+#define PetscCeedChk(ceed, ierr)                                    \
+  do {                                                              \
+    if (ierr != CEED_ERROR_SUCCESS) {                               \
+      const char *error_message;                                    \
+      CeedGetErrorMessage(ceed, &error_message);                    \
+      SETERRQ(PETSC_COMM_SELF, PETSC_ERR_LIB, "%s", error_message); \
+    }                                                               \
+  } while (0)
+
+#define PetscCallCeed(ceed, ...) \
+  do {                           \
+    int ierr_q_ = __VA_ARGS__;   \
+    PetscCeedChk(ceed, ierr_q_); \
+  } while (0)
 
 // -----------------------------------------------------------------------------
 // Enums
