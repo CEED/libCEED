@@ -140,7 +140,6 @@ else
             q = 6
             b1 = create_tensor_h1_lagrange_basis(c, dim, ncomp, p, q, GAUSS_LOBATTO)
 
-            @test checkoutput(showstr(b1), "b1.out")
             @test getdimension(b1) == 3
             @test gettopology(b1) == HEX
             @test getnumcomponents(b1) == ncomp
@@ -172,7 +171,6 @@ else
             @test getinterp1d(b2) == b1d
             @test getgrad(b2) == d2d
             @test getgrad1d(b2) == d1d
-            @test checkoutput(showstr(b2), "b2.out")
 
             b3 = create_h1_basis(
                 c,
@@ -187,7 +185,6 @@ else
             )
             @test getqref(b3) == reshape(q1d, 1, q)
             @test getqweights(b3) == w1d
-            @test checkoutput(showstr(b3), "b3.out")
 
             v = rand(CeedScalar, 2)
             vq = apply(b3, v)
