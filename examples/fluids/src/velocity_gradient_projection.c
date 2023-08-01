@@ -70,7 +70,7 @@ PetscErrorCode VelocityGradientProjectionSetup(Ceed ceed, User user, CeedData ce
   CeedElemRestrictionGetNumComponents(ceed_data->elem_restr_qd_i, &q_data_size);
   PetscCall(GetRestrictionForDomain(ceed, grad_velo_proj->dm, 0, 0, 0, 0, -1, 0, &elem_restr_grad_velo, NULL, NULL));
 
-  PetscCall(CreateBasisFromPlex(ceed, grad_velo_proj->dm, 0, 0, 0, 0, CEED_GAUSS, &basis_grad_velo));
+  PetscCall(CreateBasisFromPlex(ceed, grad_velo_proj->dm, 0, 0, 0, 0, &basis_grad_velo));
 
   // -- Build RHS operator
   switch (user->phys->state_var) {

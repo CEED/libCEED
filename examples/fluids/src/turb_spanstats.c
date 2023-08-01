@@ -196,8 +196,8 @@ PetscErrorCode SpanStatsSetupDataCreate(Ceed ceed, User user, CeedData ceed_data
   {
     DM dm_coord;
     PetscCall(DMGetCoordinateDM(dm, &dm_coord));
-    PetscCall(CreateBasisFromPlex(ceed, dm_coord, 0, 0, 0, 0, CEED_GAUSS, &(*stats_data)->basis_x));
-    PetscCall(CreateBasisFromPlex(ceed, dm, 0, 0, 0, 0, CEED_GAUSS, &(*stats_data)->basis_stats));
+    PetscCall(CreateBasisFromPlex(ceed, dm_coord, 0, 0, 0, 0, &(*stats_data)->basis_x));
+    PetscCall(CreateBasisFromPlex(ceed, dm, 0, 0, 0, 0, &(*stats_data)->basis_stats));
   }
 
   PetscCall(CreateElemRestrColloc(ceed, num_comp_stats, (*stats_data)->basis_stats, (*stats_data)->elem_restr_parent_stats,

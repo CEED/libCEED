@@ -171,7 +171,7 @@ PetscErrorCode SGS_ModelSetupNodalIFunction(Ceed ceed, User user, CeedData ceed_
   CeedElemRestrictionGetNumComponents(ceed_data->elem_restr_qd_i, &num_comp_qd);
   CeedElemRestrictionGetNumComponents(ceed_data->elem_restr_x, &num_comp_x);
 
-  PetscCall(CreateBasisFromPlex(ceed, sgs_dd_data->dm_sgs, 0, 0, 0, 0, CEED_GAUSS, &basis_sgs));
+  PetscCall(CreateBasisFromPlex(ceed, sgs_dd_data->dm_sgs, 0, 0, 0, 0, &basis_sgs));
 
   switch (user->phys->state_var) {
     case STATEVAR_PRIMITIVE:

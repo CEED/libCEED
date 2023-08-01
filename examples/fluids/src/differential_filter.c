@@ -63,7 +63,7 @@ PetscErrorCode DifferentialFilterCreateOperators(Ceed ceed, User user, CeedData 
       CeedElemRestriction elem_restr_filter;
       CeedBasis           basis_filter;
       PetscCall(GetRestrictionForDomain(ceed, dm_filter, 0, 0, 0, i, -1, 0, &elem_restr_filter, NULL, NULL));
-      PetscCall(CreateBasisFromPlex(ceed, dm_filter, 0, 0, 0, i, CEED_GAUSS, &basis_filter));
+      PetscCall(CreateBasisFromPlex(ceed, dm_filter, 0, 0, 0, i, &basis_filter));
 
       PetscCall(PetscSNPrintf(field_name, PETSC_MAX_PATH_LEN, "v%" PetscInt_FMT, i));
       CeedOperatorSetField(op_rhs, field_name, elem_restr_filter, basis_filter, CEED_VECTOR_ACTIVE);

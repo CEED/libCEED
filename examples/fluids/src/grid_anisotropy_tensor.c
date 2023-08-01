@@ -59,7 +59,7 @@ PetscErrorCode GridAnisotropyTensorProjectionSetupApply(Ceed ceed, User user, Ce
   CeedElemRestrictionGetNumComponents(ceed_data->elem_restr_qd_i, &q_data_size);
 
   PetscCall(GetRestrictionForDomain(ceed, grid_aniso_proj->dm, 0, 0, 0, 0, -1, grid_aniso_proj->num_comp, elem_restr_grid_aniso, NULL, NULL));
-  PetscCall(CreateBasisFromPlex(ceed, grid_aniso_proj->dm, 0, 0, 0, 0, CEED_GAUSS, &basis_grid_aniso));
+  PetscCall(CreateBasisFromPlex(ceed, grid_aniso_proj->dm, 0, 0, 0, 0, &basis_grid_aniso));
 
   // -- Build RHS operator
   CeedQFunctionCreateInterior(ceed, 1, AnisotropyTensorProjection, AnisotropyTensorProjection_loc, &qf_rhs_assemble);
