@@ -466,7 +466,7 @@ PetscErrorCode PrintRunInfo(User user, Physics phys_ctx, ProblemData *problem, M
                         host_name, comm_size));
 
   // Problem specific info
-  PetscCall(problem->print_info(problem, user->app_ctx));
+  PetscCall(problem->print_info(user, problem, user->app_ctx));
 
   // libCEED
   const char *used_resource;

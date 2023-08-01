@@ -148,8 +148,8 @@ PetscErrorCode NS_SHOCKTUBE(ProblemData *problem, DM dm, void *ctx, SimpleBC bc)
   PetscFunctionReturn(PETSC_SUCCESS);
 }
 
-PetscErrorCode PRINT_SHOCKTUBE(ProblemData *problem, AppCtx app_ctx) {
-  MPI_Comm comm = PETSC_COMM_WORLD;
+PetscErrorCode PRINT_SHOCKTUBE(User user, ProblemData *problem, AppCtx app_ctx) {
+  MPI_Comm comm = user->comm;
   PetscFunctionBeginUser;
 
   PetscCall(PetscPrintf(comm,

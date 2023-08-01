@@ -169,8 +169,8 @@ PetscErrorCode NS_ADVECTION2D(ProblemData *problem, DM dm, void *ctx, SimpleBC b
   PetscFunctionReturn(PETSC_SUCCESS);
 }
 
-PetscErrorCode PRINT_ADVECTION2D(ProblemData *problem, AppCtx app_ctx) {
-  MPI_Comm          comm = PETSC_COMM_WORLD;
+PetscErrorCode PRINT_ADVECTION2D(User user, ProblemData *problem, AppCtx app_ctx) {
+  MPI_Comm          comm = user->comm;
   SetupContextAdv2D setup_ctx;
   AdvectionContext  advection_ctx;
 

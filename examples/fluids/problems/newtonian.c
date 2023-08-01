@@ -314,8 +314,8 @@ PetscErrorCode NS_NEWTONIAN_IG(ProblemData *problem, DM dm, void *ctx, SimpleBC 
   PetscFunctionReturn(PETSC_SUCCESS);
 }
 
-PetscErrorCode PRINT_NEWTONIAN(ProblemData *problem, AppCtx app_ctx) {
-  MPI_Comm                 comm = PETSC_COMM_WORLD;
+PetscErrorCode PRINT_NEWTONIAN(User user, ProblemData *problem, AppCtx app_ctx) {
+  MPI_Comm                 comm = user->comm;
   NewtonianIdealGasContext newtonian_ctx;
 
   PetscFunctionBeginUser;

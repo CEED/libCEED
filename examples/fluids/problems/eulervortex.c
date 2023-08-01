@@ -152,8 +152,8 @@ PetscErrorCode NS_EULER_VORTEX(ProblemData *problem, DM dm, void *ctx, SimpleBC 
   PetscFunctionReturn(PETSC_SUCCESS);
 }
 
-PetscErrorCode PRINT_EULER_VORTEX(ProblemData *problem, AppCtx app_ctx) {
-  MPI_Comm     comm = PETSC_COMM_WORLD;
+PetscErrorCode PRINT_EULER_VORTEX(User user, ProblemData *problem, AppCtx app_ctx) {
+  MPI_Comm     comm = user->comm;
   EulerContext euler_ctx;
 
   PetscFunctionBeginUser;

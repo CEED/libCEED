@@ -279,7 +279,7 @@ struct ProblemData_private {
       apply_freestream, apply_inflow_jacobian, apply_outflow_jacobian, apply_freestream_jacobian;
   bool      non_zero_time;
   PetscBool bc_from_ics, use_strong_bc_ceed;
-  PetscErrorCode (*print_info)(ProblemData *, AppCtx);
+  PetscErrorCode (*print_info)(User, ProblemData *, AppCtx);
 };
 
 extern int FreeContextPetsc(void *);
@@ -299,15 +299,15 @@ extern PetscErrorCode NS_ADVECTION(ProblemData *problem, DM dm, void *ctx, Simpl
 extern PetscErrorCode NS_ADVECTION2D(ProblemData *problem, DM dm, void *ctx, SimpleBC bc);
 
 // Print function for each problem
-extern PetscErrorCode PRINT_NEWTONIAN(ProblemData *problem, AppCtx app_ctx);
+extern PetscErrorCode PRINT_NEWTONIAN(User user, ProblemData *problem, AppCtx app_ctx);
 
-extern PetscErrorCode PRINT_EULER_VORTEX(ProblemData *problem, AppCtx app_ctx);
+extern PetscErrorCode PRINT_EULER_VORTEX(User user, ProblemData *problem, AppCtx app_ctx);
 
-extern PetscErrorCode PRINT_SHOCKTUBE(ProblemData *problem, AppCtx app_ctx);
+extern PetscErrorCode PRINT_SHOCKTUBE(User user, ProblemData *problem, AppCtx app_ctx);
 
-extern PetscErrorCode PRINT_ADVECTION(ProblemData *problem, AppCtx app_ctx);
+extern PetscErrorCode PRINT_ADVECTION(User user, ProblemData *problem, AppCtx app_ctx);
 
-extern PetscErrorCode PRINT_ADVECTION2D(ProblemData *problem, AppCtx app_ctx);
+extern PetscErrorCode PRINT_ADVECTION2D(User user, ProblemData *problem, AppCtx app_ctx);
 
 PetscErrorCode PrintRunInfo(User user, Physics phys_ctx, ProblemData *problem, MPI_Comm comm);
 
