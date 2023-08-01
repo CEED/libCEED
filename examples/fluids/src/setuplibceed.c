@@ -356,7 +356,7 @@ PetscErrorCode BasisCreateFromTabulation(Ceed ceed, DM dm, DMLabel domain_label,
 // Get CEED Basis from DMPlex
 // -----------------------------------------------------------------------------
 PetscErrorCode CreateBasisFromPlex(Ceed ceed, DM dm, DMLabel domain_label, CeedInt label_value, CeedInt height, CeedInt dm_field,
-                                   CeedQuadMode quadMode, CeedBasis *basis) {
+                                   CeedQuadMode quad_mode, CeedBasis *basis) {
   PetscDS         ds;
   PetscFE         fe;
   PetscQuadrature quadrature;
@@ -397,7 +397,7 @@ PetscErrorCode CreateBasisFromPlex(Ceed ceed, DM dm, DMLabel domain_label, CeedI
     CeedInt P_1d = (CeedInt)round(pow(P, 1.0 / dim));
     CeedInt Q_1d = (CeedInt)round(pow(Q, 1.0 / dim));
 
-    CeedBasisCreateTensorH1Lagrange(ceed, dim, num_comp, P_1d, Q_1d, quadMode, basis);
+    CeedBasisCreateTensorH1Lagrange(ceed, dim, num_comp, P_1d, Q_1d, quad_mode, basis);
   }
 
   PetscFunctionReturn(PETSC_SUCCESS);

@@ -58,7 +58,7 @@ PetscErrorCode SetUpDM(DM dm, ProblemData *problem, PetscInt degree, PetscInt q_
     {  // Project coordinates to enrich quadrature space
       DM             dm_coord;
       PetscDS        ds_coord;
-      PetscFE        fe_coord_current, fe_coord_new;
+      PetscFE        fe_coord_current, fe_coord_new, fe_coord_face_new;
       PetscDualSpace fe_coord_dual_space;
       PetscInt       fe_coord_order, num_comp_coord;
 
@@ -70,8 +70,10 @@ PetscErrorCode SetUpDM(DM dm, ProblemData *problem, PetscInt degree, PetscInt q_
       PetscCall(PetscDualSpaceGetOrder(fe_coord_dual_space, &fe_coord_order));
 
       // Create FE for coordinates
-      fe_coord_order = 1;
+      PetscCheck(fe_coord_order == 1, PetscObjectComm((PetscObject)dm), PETSC_ERR_USER_INPUT,
+                 "Only linear mesh geometry supported. Recieved %d order", fe_coord_order);
       PetscCall(PetscFECreateLagrange(PETSC_COMM_SELF, problem->dim, num_comp_coord, is_simplex, fe_coord_order, q_order, &fe_coord_new));
+      PetscCall(PetscFEGetHeightSubspace(fe_coord_new, 1, &fe_coord_face_new));
       PetscCall(DMProjectCoordinates(dm, fe_coord_new));
       PetscCall(PetscFEDestroy(&fe_coord_new));
     }
@@ -152,11 +154,12 @@ PetscErrorCode VizRefineDM(DM dm, User user, ProblemData *problem, SimpleBC bc, 
     PetscCall(DMClearDS(dm_hierarchy[i + 1]));
     PetscCall(DMClearFields(dm_hierarchy[i + 1]));
     PetscCall(DMSetCoarseDM(dm_hierarchy[i + 1], dm_hierarchy[i]));
-    d = (d + 1) / 2;
+    d                = (d + 1) / 2;
+    PetscInt q_order = d + user->app_ctx->q_extra;
     if (i + 1 == user->app_ctx->viz_refine) d = 1;
     PetscCall(DMGetVecType(dm, &vec_type));
     PetscCall(DMSetVecType(dm_hierarchy[i + 1], vec_type));
-    PetscCall(SetUpDM(dm_hierarchy[i + 1], problem, d, 0, bc, phys));
+    PetscCall(SetUpDM(dm_hierarchy[i + 1], problem, d, q_order, bc, phys));
     PetscCall(DMCreateInterpolation(dm_hierarchy[i], dm_hierarchy[i + 1], &interp_next, NULL));
     if (!i) user->interp_viz = interp_next;
     else {
