@@ -616,6 +616,9 @@ int CeedOperatorReferenceCopy(CeedOperator op, CeedOperator *op_copy) {
   Active fields must be specified using this function, but their data (in a CeedVector) is passed in CeedOperatorApply().
   There can be at most one active input CeedVector and at most one active output CeedVector passed to CeedOperatorApply().
 
+  The number of quadrature points must agree across all points.
+  When using @ref CEED_BASIS_COLLOCATED, the number of quadrature points is determined by the element size of r.
+
   @param[in,out] op         CeedOperator on which to provide the field
   @param[in]     field_name Name of the field (to be matched with the name used by CeedQFunction)
   @param[in]     r          CeedElemRestriction
@@ -640,9 +643,12 @@ int CeedOperatorSetField(CeedOperator op, const char *field_name, CeedElemRestri
             "ElemRestriction with %" CeedInt_FMT " elements incompatible with prior %" CeedInt_FMT " elements", num_elem, op->num_elem);
 
   CeedInt num_qpts = 0;
-  CeedCall(CeedBasisGetNumQuadraturePoints(b, &num_qpts));
-  CeedCheck(b == CEED_BASIS_COLLOCATED || !op->num_qpts || op->num_qpts == num_qpts, op->ceed, CEED_ERROR_DIMENSION,
-            "Basis with %" CeedInt_FMT " quadrature points incompatible with prior %" CeedInt_FMT " points", num_qpts, op->num_qpts);
+  if (b == CEED_BASIS_COLLOCATED) CeedCall(CeedElemRestrictionGetElementSize(r, &num_qpts));
+  else CeedCall(CeedBasisGetNumQuadraturePoints(b, &num_qpts));
+  CeedCheck(op->num_qpts == 0 || op->num_qpts == num_qpts, op->ceed, CEED_ERROR_DIMENSION,
+            "%s must correspond to the same number of quadrature points as previously added Bases. Found %" CeedInt_FMT
+            " quadrature points but expected %" CeedInt_FMT " quadrature points.",
+            b == CEED_BASIS_COLLOCATED ? "ElemRestriction" : "Basis", num_qpts, op->num_qpts);
   CeedQFunctionField qf_field;
   CeedOperatorField *op_field;
   bool               is_input = true;
@@ -689,7 +695,7 @@ found:
     op->has_restriction = true;  // Restriction set, but num_elem may be 0
   }
   CeedCall(CeedBasisReferenceCopy(b, &(*op_field)->basis));
-  if (!op->num_qpts && b != CEED_BASIS_COLLOCATED) CeedCall(CeedOperatorSetNumQuadraturePoints(op, num_qpts));
+  if (op->num_qpts == 0) CeedCall(CeedOperatorSetNumQuadraturePoints(op, num_qpts));
 
   op->num_fields += 1;
   CeedCall(CeedStringAllocCopy(field_name, (char **)&(*op_field)->field_name));

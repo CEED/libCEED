@@ -274,11 +274,25 @@ impl<'a> Vector<'a> {
     /// # arguments
     ///
     /// * `vec_source` - vector to copy array values from
-    #[allow(unused_mut)]
-    fn copy_from(mut self, vec_source: &crate::Vector) -> crate::Result<Self> {
+    ///
+    /// ```
+    /// # use libceed::prelude::*;
+    /// # fn main() -> libceed::Result<()> {
+    /// # let ceed = libceed::Ceed::default_init();
+    /// let a = ceed.vector_from_slice(&[1., 2., 3.])?;
+    /// let mut b = ceed.vector(3)?;
+    ///
+    /// b.copy_from(&a)?;
+    /// for (i, v) in b.view()?.iter().enumerate() {
+    ///     assert_eq!(*v, (i + 1) as Scalar, "Copy contents not set correctly");
+    /// }
+    /// # Ok(())
+    /// # }
+    /// ```
+    /// ```
+    pub fn copy_from(&mut self, vec_source: &crate::Vector) -> crate::Result<i32> {
         let ierr = unsafe { bind_ceed::CeedVectorCopy(vec_source.ptr, self.ptr) };
-        self.check_error(ierr)?;
-        Ok(self)
+        self.check_error(ierr)
     }
 
     /// Create a Vector from a slice
