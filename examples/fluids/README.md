@@ -963,6 +963,11 @@ The Blasius problem has the following command-line options in addition to the Ne
   - `1.01E5`
   - `Pa`
 
+* - `-platemesh_modify_mesh`
+  - Whether to modify the mesh using the given options below.
+  - `false`
+  -
+
 * - `-platemesh_refine_height`
   - Height at which `-platemesh_Ndelta` number of elements should refined into
   - `5.9E-4`
@@ -983,14 +988,14 @@ The Blasius problem has the following command-line options in addition to the Ne
   - `5`
   - `degrees`
 
-* - `-stg_use`
-  - Whether to use stg for the inflow conditions
-  - `false`
-  -
-
 * - `-platemesh_y_node_locs_path`
   - Path to file with y node locations. If empty, will use mesh warping instead.
   - `""`
+  -
+
+* - `-stg_use`
+  - Whether to use STG for the inflow conditions
+  - `false`
   -
 
 * - `-n_chebyshev`
