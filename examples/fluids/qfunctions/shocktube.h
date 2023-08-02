@@ -94,7 +94,7 @@ CEED_QFUNCTION_HELPER CeedInt Exact_ShockTube(CeedInt dim, CeedScalar time, cons
   CeedScalar rho, P, u[3] = {0.};
 
   // Initial Conditions
-  if (x <= mid_point) {
+  if (x <= mid_point + 200 * CEED_EPSILON) {
     rho = rho_high;
     P   = P_high;
   } else {

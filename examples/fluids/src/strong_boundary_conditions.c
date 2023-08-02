@@ -13,8 +13,8 @@
 #include "../navierstokes.h"
 #include "../problems/stg_shur14.h"
 
-PetscErrorCode SetupStrongSTG_Ceed(Ceed ceed, CeedData ceed_data, DM dm, ProblemData *problem, SimpleBC bc, Physics phys, CeedInt Q_sur,
-                                   CeedInt q_data_size_sur, CeedOperator op_strong_bc) {
+PetscErrorCode SetupStrongSTG_Ceed(Ceed ceed, CeedData ceed_data, DM dm, ProblemData *problem, SimpleBC bc, Physics phys, CeedInt q_data_size_sur,
+                                   CeedOperator op_strong_bc) {
   CeedInt             num_comp_x = problem->dim, num_comp_q = 5, num_elem, elem_size, stg_data_size = 1;
   CeedVector          multiplicity, x_stored, scale_stored, q_data_sur, stg_data;
   CeedBasis           basis_x_to_q_sur;
@@ -29,6 +29,9 @@ PetscErrorCode SetupStrongSTG_Ceed(Ceed ceed, CeedData ceed_data, DM dm, Problem
   // Basis
   CeedInt height = 1;
   PetscCall(CeedBasisCreateProjection(ceed_data->basis_x_sur, ceed_data->basis_q_sur, &basis_x_to_q_sur));
+  // --- Get number of quadrature points for the boundaries
+  CeedInt num_qpts_sur;
+  CeedBasisGetNumQuadraturePoints(ceed_data->basis_q_sur, &num_qpts_sur);
 
   // Setup QFunction
   CeedQFunctionCreateInterior(ceed, 1, SetupStrongBC, SetupStrongBC_loc, &qf_setup);
@@ -43,12 +46,13 @@ PetscErrorCode SetupStrongSTG_Ceed(Ceed ceed, CeedData ceed_data, DM dm, Problem
   // Compute contribution on each boundary face
   for (CeedInt i = 0; i < bc->num_inflow; i++) {
     // -- Restrictions
-    PetscCall(GetRestrictionForDomain(ceed, dm, height, domain_label, bc->inflows[i], 0, Q_sur, q_data_size_sur, &elem_restr_q_sur, &elem_restr_x_sur,
-                                      &elem_restr_qd_sur));
+    PetscCall(GetRestrictionForDomain(ceed, dm, height, domain_label, bc->inflows[i], 0, -1, -1, &elem_restr_q_sur, &elem_restr_x_sur, NULL));
     CeedElemRestrictionCreateVector(elem_restr_q_sur, &multiplicity, NULL);
     CeedElemRestrictionGetMultiplicity(elem_restr_q_sur, multiplicity);
     CeedElemRestrictionGetNumElements(elem_restr_q_sur, &num_elem);
     CeedElemRestrictionGetElementSize(elem_restr_q_sur, &elem_size);
+    PetscCall(GetRestrictionForDomain(ceed, dm, height, domain_label, bc->inflows[i], 0, elem_size, q_data_size_sur, NULL, NULL, &elem_restr_qd_sur));
+
     CeedElemRestrictionCreateStrided(ceed, num_elem, elem_size, num_comp_x, num_elem * elem_size * num_comp_x, CEED_STRIDES_BACKEND,
                                      &elem_restr_x_stored);
     CeedElemRestrictionCreateVector(elem_restr_x_stored, &x_stored, NULL);
@@ -151,8 +155,7 @@ PetscErrorCode DMPlexInsertBoundaryValues_StrongBCCeed(DM dm, PetscBool insert_e
   PetscFunctionReturn(PETSC_SUCCESS);
 }
 
-PetscErrorCode SetupStrongBC_Ceed(Ceed ceed, CeedData ceed_data, DM dm, User user, ProblemData *problem, SimpleBC bc, CeedInt Q_sur,
-                                  CeedInt q_data_size_sur) {
+PetscErrorCode SetupStrongBC_Ceed(Ceed ceed, CeedData ceed_data, DM dm, User user, ProblemData *problem, SimpleBC bc, CeedInt q_data_size_sur) {
   CeedOperator op_strong_bc;
 
   PetscFunctionBeginUser;
@@ -174,7 +177,7 @@ PetscErrorCode SetupStrongBC_Ceed(Ceed ceed, CeedData ceed_data, DM dm, User use
     PetscCall(PetscOptionsGetBool(NULL, NULL, "-stg_strong", &use_strongstg, NULL));
 
     if (use_strongstg) {
-      PetscCall(SetupStrongSTG_Ceed(ceed, ceed_data, dm, problem, bc, user->phys, Q_sur, q_data_size_sur, op_strong_bc));
+      PetscCall(SetupStrongSTG_Ceed(ceed, ceed_data, dm, problem, bc, user->phys, q_data_size_sur, op_strong_bc));
     }
   }
 

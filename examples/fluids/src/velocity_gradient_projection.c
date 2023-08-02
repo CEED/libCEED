@@ -25,7 +25,8 @@ PetscErrorCode VelocityGradientProjectionCreateDM(NodalProjectionData grad_velo_
   PetscCall(DMGetDimension(grad_velo_proj->dm, &dim));
   PetscCall(PetscObjectSetName((PetscObject)grad_velo_proj->dm, "Velocity Gradient Projection"));
 
-  PetscCall(PetscFECreateLagrange(PETSC_COMM_SELF, dim, grad_velo_proj->num_comp, PETSC_FALSE, degree, PETSC_DECIDE, &fe));
+  PetscInt q_order = user->app_ctx->degree + user->app_ctx->q_extra;
+  PetscCall(PetscFECreateLagrange(PETSC_COMM_SELF, dim, grad_velo_proj->num_comp, PETSC_FALSE, degree, q_order, &fe));
   PetscCall(PetscObjectSetName((PetscObject)fe, "Velocity Gradient Projection"));
   PetscCall(DMAddField(grad_velo_proj->dm, NULL, (PetscObject)fe));
   PetscCall(DMCreateDS(grad_velo_proj->dm));
@@ -54,7 +55,7 @@ PetscErrorCode VelocityGradientProjectionSetup(Ceed ceed, User user, CeedData ce
   CeedBasis            basis_grad_velo;
   CeedElemRestriction  elem_restr_grad_velo;
   PetscInt             dim;
-  CeedInt              num_comp_x, num_comp_q, q_data_size, num_qpts_1d, num_nodes_1d;
+  CeedInt              num_comp_x, num_comp_q, q_data_size;
 
   PetscFunctionBeginUser;
   PetscCall(PetscNew(&user->grad_velo_proj));
@@ -66,13 +67,10 @@ PetscErrorCode VelocityGradientProjectionSetup(Ceed ceed, User user, CeedData ce
   PetscCall(DMGetDimension(grad_velo_proj->dm, &dim));
   CeedBasisGetNumComponents(ceed_data->basis_x, &num_comp_x);
   CeedBasisGetNumComponents(ceed_data->basis_q, &num_comp_q);
-  CeedBasisGetNumQuadraturePoints1D(ceed_data->basis_q, &num_qpts_1d);
-  CeedBasisGetNumNodes1D(ceed_data->basis_q, &num_nodes_1d);
   CeedElemRestrictionGetNumComponents(ceed_data->elem_restr_qd_i, &q_data_size);
+  PetscCall(GetRestrictionForDomain(ceed, grad_velo_proj->dm, 0, 0, 0, 0, -1, 0, &elem_restr_grad_velo, NULL, NULL));
 
-  PetscCall(GetRestrictionForDomain(ceed, grad_velo_proj->dm, 0, 0, 0, 0, num_qpts_1d, q_data_size, &elem_restr_grad_velo, NULL, NULL));
-
-  CeedBasisCreateTensorH1Lagrange(ceed, dim, grad_velo_proj->num_comp, num_nodes_1d, num_qpts_1d, CEED_GAUSS, &basis_grad_velo);
+  PetscCall(CreateBasisFromPlex(ceed, grad_velo_proj->dm, 0, 0, 0, 0, &basis_grad_velo));
 
   // -- Build RHS operator
   switch (user->phys->state_var) {
