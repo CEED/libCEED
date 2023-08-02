@@ -298,11 +298,12 @@ PetscErrorCode NS_BLASIUS(ProblemData *problem, DM dm, void *ctx, SimpleBC bc) {
   U_inf *= meter / second;
   delta0 *= meter;
 
-  PetscReal *mesh_ynodes  = NULL;
-  PetscInt   mesh_nynodes = 0;
   if (use_mesh_modification) {
+    PetscReal *mesh_ynodes  = NULL;
+    PetscInt   mesh_nynodes = 0;
     if (strcmp(mesh_ynodes_path, "")) PetscCall(GetYNodeLocs(comm, mesh_ynodes_path, &mesh_ynodes, &mesh_nynodes));
     PetscCall(ModifyMesh(comm, dm, problem->dim, mesh_growth, mesh_Ndelta, mesh_refine_height, mesh_top_angle, &mesh_ynodes, &mesh_nynodes));
+    PetscCall(PetscFree(mesh_ynodes));
   }
 
   // Some properties depend on parameters from NewtonianIdealGas
@@ -338,7 +339,7 @@ PetscErrorCode NS_BLASIUS(ProblemData *problem, DM dm, void *ctx, SimpleBC bc) {
   PetscCallCeed(ceed, CeedQFunctionContextDestroy(&problem->ics.qfunction_context));
   problem->ics.qfunction_context = blasius_context;
   if (use_stg) {
-    PetscCall(SetupSTG(comm, dm, problem, user, weakT, T_inf, P0, mesh_ynodes, mesh_nynodes));
+    PetscCall(SetupSTG(comm, dm, problem, user, weakT, T_inf, P0));
   } else if (diff_filter_mms) {
     PetscCall(DifferentialFilter_MMS_ICSetup(problem));
   } else {
@@ -349,6 +350,5 @@ PetscErrorCode NS_BLASIUS(ProblemData *problem, DM dm, void *ctx, SimpleBC bc) {
     PetscCallCeed(ceed, CeedQFunctionContextReferenceCopy(blasius_context, &problem->apply_inflow.qfunction_context));
     PetscCallCeed(ceed, CeedQFunctionContextReferenceCopy(blasius_context, &problem->apply_inflow_jacobian.qfunction_context));
   }
-  PetscCall(PetscFree(mesh_ynodes));
   PetscFunctionReturn(PETSC_SUCCESS);
 }

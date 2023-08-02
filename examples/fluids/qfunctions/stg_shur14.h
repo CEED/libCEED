@@ -90,13 +90,13 @@ CEED_QFUNCTION_HELPER void InterpolateProfile(const CeedScalar wall_dist, CeedSc
  *
  * Calculates q_n at a given distance to the wall
  *
- * @param[in]  kappa  nth wavenumber
- * @param[in]  dkappa Difference between wavenumbers
- * @param[in]  keta   Dissipation wavenumber
- * @param[in]  kcut   Mesh-induced cutoff wavenumber
- * @param[in]  ke     Energy-containing wavenumber
- * @param[in]  Ektot  Total turbulent kinetic energy of spectrum
- * @returns    qn     Spectrum coefficient
+ * @param[in]  kappa     nth wavenumber
+ * @param[in]  dkappa    Difference between wavenumbers
+ * @param[in]  keta      Dissipation wavenumber
+ * @param[in]  kcut      Mesh-induced cutoff wavenumber
+ * @param[in]  ke        Energy-containing wavenumber
+ * @param[in]  Ektot_inv Inverse of total turbulent kinetic energy of spectrum
+ * @returns    qn        Spectrum coefficient
  */
 CEED_QFUNCTION_HELPER CeedScalar Calc_qn(const CeedScalar kappa, const CeedScalar dkappa, const CeedScalar keta, const CeedScalar kcut,
                                          const CeedScalar ke, const CeedScalar Ektot_inv) {
@@ -523,7 +523,7 @@ CEED_QFUNCTION(STGShur14_Inflow_StrongQF)(void *ctx, CeedInt Q, const CeedScalar
   const CeedScalar(*q_data_sur)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[0];
   const CeedScalar(*coords)[CEED_Q_VLA]     = (const CeedScalar(*)[CEED_Q_VLA])in[1];
   const CeedScalar(*scale)                  = (const CeedScalar(*))in[2];
-  const CeedScalar(*stg_data)[CEED_Q_VLA]   = (const CeedScalar(*)[CEED_Q_VLA])in[3];
+  const CeedScalar(*inv_Ektotal)            = (const CeedScalar(*))in[3];
 
   CeedScalar(*bcval)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA])out[0];
 
@@ -551,7 +551,7 @@ CEED_QFUNCTION(STGShur14_Inflow_StrongQF)(void *ctx, CeedInt Q, const CeedScalar
     InterpolateProfile(coords[1][i], ubar, cij, &eps, &lt, stg_ctx);
     if (!mean_only) {
       if (1) {
-        STGShur14_Calc_PrecompEktot(x, time, ubar, cij, stg_data[0][i], h, x[1], eps, lt, nu, u, stg_ctx);
+        STGShur14_Calc_PrecompEktot(x, time, ubar, cij, inv_Ektotal[i], h, x[1], eps, lt, nu, u, stg_ctx);
       } else {  // Original way
         CeedScalar qn[STG_NMODES_MAX];
         CalcSpectrum(coords[1][i], eps, lt, h, nu, qn, stg_ctx);

@@ -165,7 +165,7 @@ static PetscErrorCode ReadSTGRand(const MPI_Comm comm, const char path[PETSC_MAX
  * @param[in,out] stg_ctx         Pointer to STGShur14Context where the data will be loaded into
  */
 PetscErrorCode GetSTGContextData(const MPI_Comm comm, const DM dm, char stg_inflow_path[PETSC_MAX_PATH_LEN], char stg_rand_path[PETSC_MAX_PATH_LEN],
-                                 STGShur14Context *stg_ctx, const CeedScalar ynodes[]) {
+                                 STGShur14Context *stg_ctx) {
   PetscInt nmodes, nprofs;
   PetscFunctionBeginUser;
 
@@ -191,8 +191,7 @@ PetscErrorCode GetSTGContextData(const MPI_Comm comm, const DM dm, char stg_infl
     temp_ctx->offsets.cij       = temp_ctx->offsets.ubar + nprofs * 3;
     temp_ctx->offsets.eps       = temp_ctx->offsets.cij + nprofs * 6;
     temp_ctx->offsets.lt        = temp_ctx->offsets.eps + nprofs;
-    temp_ctx->offsets.ynodes    = temp_ctx->offsets.lt + nprofs;
-    PetscInt total_num_scalars  = temp_ctx->offsets.ynodes + temp_ctx->nynodes;
+    PetscInt total_num_scalars  = temp_ctx->offsets.lt + nprofs;
     temp_ctx->total_bytes       = sizeof(*temp_ctx) + total_num_scalars * sizeof(temp_ctx->data[0]);
     PetscCall(PetscFree(*stg_ctx));
     PetscCall(PetscMalloc(temp_ctx->total_bytes, stg_ctx));
@@ -202,11 +201,6 @@ PetscErrorCode GetSTGContextData(const MPI_Comm comm, const DM dm, char stg_infl
 
   PetscCall(ReadSTGInflow(comm, stg_inflow_path, *stg_ctx));
   PetscCall(ReadSTGRand(comm, stg_rand_path, *stg_ctx));
-
-  if ((*stg_ctx)->nynodes > 0) {
-    CeedScalar *ynodes_ctx = &(*stg_ctx)->data[(*stg_ctx)->offsets.ynodes];
-    for (PetscInt i = 0; i < (*stg_ctx)->nynodes; i++) ynodes_ctx[i] = ynodes[i];
-  }
 
   {  // -- Calculate kappa
     CeedScalar *kappa     = &(*stg_ctx)->data[(*stg_ctx)->offsets.kappa];
@@ -227,7 +221,7 @@ PetscErrorCode GetSTGContextData(const MPI_Comm comm, const DM dm, char stg_infl
 }
 
 PetscErrorCode SetupSTG(const MPI_Comm comm, const DM dm, ProblemData *problem, User user, const bool prescribe_T, const CeedScalar theta0,
-                        const CeedScalar P0, const CeedScalar ynodes[], const CeedInt nynodes) {
+                        const CeedScalar P0) {
   Ceed                     ceed                                = user->ceed;
   char                     stg_inflow_path[PETSC_MAX_PATH_LEN] = "./STGInflow.dat";
   char                     stg_rand_path[PETSC_MAX_PATH_LEN]   = "./STGRand.dat";
@@ -259,7 +253,6 @@ PetscErrorCode SetupSTG(const MPI_Comm comm, const DM dm, ProblemData *problem, 
   global_stg_ctx->use_fluctuating_IC = use_fluctuating_IC;
   global_stg_ctx->theta0             = theta0;
   global_stg_ctx->P0                 = P0;
-  global_stg_ctx->nynodes            = nynodes;
 
   {
     // Calculate dx assuming constant spacing
@@ -270,14 +263,13 @@ PetscErrorCode SetupSTG(const MPI_Comm comm, const DM dm, ProblemData *problem, 
     PetscInt nmax = 3, faces[3];
     PetscCall(PetscOptionsGetIntArray(NULL, NULL, "-dm_plex_box_faces", faces, &nmax, NULL));
     global_stg_ctx->dx = given_stg_dx ? stg_dx : domain_size[0] / faces[0];
-    global_stg_ctx->dz = domain_size[2] / faces[2];
   }
 
   PetscCallCeed(ceed, CeedQFunctionContextGetData(problem->apply_vol_rhs.qfunction_context, CEED_MEM_HOST, &newtonian_ig_ctx));
   global_stg_ctx->newtonian_ctx = *newtonian_ig_ctx;
   PetscCallCeed(ceed, CeedQFunctionContextRestoreData(problem->apply_vol_rhs.qfunction_context, &newtonian_ig_ctx));
 
-  PetscCall(GetSTGContextData(comm, dm, stg_inflow_path, stg_rand_path, &global_stg_ctx, ynodes));
+  PetscCall(GetSTGContextData(comm, dm, stg_inflow_path, stg_rand_path, &global_stg_ctx));
 
   PetscCallCeed(ceed, CeedQFunctionContextCreate(user->ceed, &stg_context));
   PetscCallCeed(ceed, CeedQFunctionContextSetData(stg_context, CEED_MEM_HOST, CEED_USE_POINTER, global_stg_ctx->total_bytes, global_stg_ctx));
@@ -307,58 +299,7 @@ PetscErrorCode SetupSTG(const MPI_Comm comm, const DM dm, ProblemData *problem, 
   PetscFunctionReturn(PETSC_SUCCESS);
 }
 
-static inline PetscScalar FindDy(const PetscScalar ynodes[], const PetscInt nynodes, const PetscScalar y) {
-  const PetscScalar half_mindy = 0.5 * (ynodes[1] - ynodes[0]);
-  // ^^assuming min(dy) is first element off the wall
-  PetscInt idx = -1;  // Index
-
-  for (PetscInt i = 0; i < nynodes; i++) {
-    if (y < ynodes[i] + half_mindy) {
-      idx = i;
-      break;
-    }
-  }
-  if (idx == 0) return ynodes[1] - ynodes[0];
-  else if (idx == nynodes - 1) return ynodes[nynodes - 2] - ynodes[nynodes - 1];
-  else return 0.5 * (ynodes[idx + 1] - ynodes[idx - 1]);
-}
-
-// Function passed to DMAddBoundary
-// NOTE: Not used in favor of QFunction-based method
-PetscErrorCode StrongSTGbcFunc(PetscInt dim, PetscReal time, const PetscReal x[], PetscInt Nc, PetscScalar bcval[], void *ctx) {
-  PetscFunctionBeginUser;
-
-  const STGShur14Context stg_ctx = (STGShur14Context)ctx;
-  PetscScalar            qn[stg_ctx->nmodes], u[3], ubar[3], cij[6], eps, lt;
-  const bool             mean_only = stg_ctx->mean_only;
-  const PetscScalar      dx        = stg_ctx->dx;
-  const PetscScalar      dz        = stg_ctx->dz;
-  const PetscScalar      mu        = stg_ctx->newtonian_ctx.mu;
-  const PetscScalar      theta0    = stg_ctx->theta0;
-  const PetscScalar      P0        = stg_ctx->P0;
-  const PetscScalar      cv        = stg_ctx->newtonian_ctx.cv;
-  const PetscScalar      cp        = stg_ctx->newtonian_ctx.cp;
-  const PetscScalar      Rd        = cp - cv;
-
-  const CeedScalar rho = P0 / (Rd * theta0);
-  InterpolateProfile(x[1], ubar, cij, &eps, &lt, stg_ctx);
-  if (!mean_only) {
-    const PetscInt     nynodes = stg_ctx->nynodes;
-    const PetscScalar *ynodes  = &stg_ctx->data[stg_ctx->offsets.ynodes];
-    const PetscScalar  h[3]    = {dx, FindDy(ynodes, nynodes, x[1]), dz};
-    CalcSpectrum(x[1], eps, lt, h, mu / rho, qn, stg_ctx);
-    STGShur14_Calc(x, time, ubar, cij, qn, u, stg_ctx);
-  } else {
-    for (CeedInt j = 0; j < 3; j++) u[j] = ubar[j];
-  }
-
-  bcval[0] = rho;
-  bcval[1] = rho * u[0];
-  bcval[2] = rho * u[1];
-  bcval[3] = rho * u[2];
-  PetscFunctionReturn(PETSC_SUCCESS);
-}
-
+// @brief Set STG strongly enforce components using DMAddBoundary
 PetscErrorCode SetupStrongSTG(DM dm, SimpleBC bc, ProblemData *problem, Physics phys) {
   DMLabel label;
   PetscFunctionBeginUser;
@@ -377,10 +318,8 @@ PetscErrorCode SetupStrongSTG(DM dm, SimpleBC bc, ProblemData *problem, Physics 
   }
 
   PetscCall(DMGetLabel(dm, "Face Sets", &label));
-  // Set wall BCs
   if (bc->num_inflow > 0) {
-    PetscCall(DMAddBoundary(dm, DM_BC_ESSENTIAL, "STG", label, bc->num_inflow, bc->inflows, 0, num_comps, comps, (void (*)(void))StrongSTGbcFunc,
-                            NULL, global_stg_ctx, NULL));
+    PetscCall(DMAddBoundary(dm, DM_BC_ESSENTIAL, "STG", label, bc->num_inflow, bc->inflows, 0, num_comps, comps, NULL, NULL, NULL, NULL));
   }
 
   PetscFunctionReturn(PETSC_SUCCESS);
