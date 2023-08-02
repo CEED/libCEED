@@ -17,6 +17,7 @@ For example, `CeedOperatorContextGetFieldLabel` was renamed to `CeedOperatorGetC
 - Update `/cpu/self/memcheck/*` backends to help verify `CeedVector` array access assumptions and `CeedQFunction` user output assumptions.
 - Update {c:func}`CeedOperatorLinearAssembleDiagonal` to provide default implementation that supports `CeedOperator` with multiple active bases.
 - Added Sycl backends `/gpu/sycl/ref` and `/gpu/sycl/shared`
+- Added {c:func}`CeedBasisApplyAtPoints` for evalution of values and derivaties at arbitrary points inside elements
 
 ### Examples
 
@@ -60,7 +61,7 @@ This issue will be fixed in a future OCCA release.
 - Support for primitive variables for more accurate boundary layers and all-speed flow.
 - Added $YZ\beta$ shock capturing scheme and Shock Tube example.
 - Added Channel example, with comparison to analytic solutions.
-- Added Flat Plate with boundary layer mesh and compressible Blasius inflow condition based on Chebyshev collocation solution of the Blasius equations. 
+- Added Flat Plate with boundary layer mesh and compressible Blasius inflow condition based on Chebyshev collocation solution of the Blasius equations.
 - Added strong and weak synthetic turbulence generation (STG) inflow boundary conditions.
 - Added "freestream" boundary conditions based on HLLC Riemann solver.
 - Automated stabilization coefficients for different basis degree.
