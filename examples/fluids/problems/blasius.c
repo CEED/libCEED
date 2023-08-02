@@ -254,6 +254,7 @@ PetscErrorCode NS_BLASIUS(ProblemData *problem, DM dm, void *ctx, SimpleBC bc) {
   CeedScalar P0                                   = 1.01e5;       // Pa
   PetscInt   N                                    = 20;           // Number of Chebyshev terms
   PetscBool  weakT                                = PETSC_FALSE;  // weak density or temperature
+  PetscBool  use_mesh_modification                = PETSC_FALSE;  // Whether to modify the mesh at all
   PetscReal  mesh_refine_height                   = 5.9e-4;       // m
   PetscReal  mesh_growth                          = 1.08;         // [-]
   PetscInt   mesh_Ndelta                          = 45;           // [-]
@@ -270,6 +271,8 @@ PetscErrorCode NS_BLASIUS(ProblemData *problem, DM dm, void *ctx, SimpleBC bc) {
   PetscCall(PetscOptionsInt("-n_chebyshev", "Number of Chebyshev terms", NULL, N, &N, NULL));
   PetscCheck(3 <= N && N <= BLASIUS_MAX_N_CHEBYSHEV, comm, PETSC_ERR_ARG_OUTOFRANGE, "-n_chebyshev %" PetscInt_FMT " must be in range [3, %d]", N,
              BLASIUS_MAX_N_CHEBYSHEV);
+  PetscCall(PetscOptionsBool("-platemesh_modify_mesh", "Whether to modify the mesh based on settings (for box meshes only)", NULL,
+                             use_mesh_modification, &use_mesh_modification, NULL));
   PetscCall(PetscOptionsBoundedInt("-platemesh_Ndelta", "Velocity at boundary layer edge", NULL, mesh_Ndelta, &mesh_Ndelta, NULL, 1));
   PetscCall(PetscOptionsScalar("-platemesh_refine_height", "Height of boundary layer mesh refinement", NULL, mesh_refine_height, &mesh_refine_height,
                                NULL));
@@ -294,11 +297,12 @@ PetscErrorCode NS_BLASIUS(ProblemData *problem, DM dm, void *ctx, SimpleBC bc) {
   U_inf *= meter / second;
   delta0 *= meter;
 
-  PetscReal *mesh_ynodes  = NULL;
-  PetscInt   mesh_nynodes = 0;
-  if (strcmp(mesh_ynodes_path, "")) {
-    PetscCall(GetYNodeLocs(comm, mesh_ynodes_path, &mesh_ynodes, &mesh_nynodes));
+  if (use_mesh_modification) {
+    PetscReal *mesh_ynodes  = NULL;
+    PetscInt   mesh_nynodes = 0;
+    if (strcmp(mesh_ynodes_path, "")) PetscCall(GetYNodeLocs(comm, mesh_ynodes_path, &mesh_ynodes, &mesh_nynodes));
     PetscCall(ModifyMesh(comm, dm, problem->dim, mesh_growth, mesh_Ndelta, mesh_refine_height, mesh_top_angle, &mesh_ynodes, &mesh_nynodes));
+    PetscCall(PetscFree(mesh_ynodes));
   }
 
   // Some properties depend on parameters from NewtonianIdealGas

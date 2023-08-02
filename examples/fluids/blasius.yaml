@@ -13,12 +13,14 @@ checkpoint_interval: 10
 ## Linear Settings:
 degree: 1
 dm_plex_box_faces: 40,60,1
+platemesh_modify_mesh: true
 platemesh_nDelta: 45
 
 # # Quadratic Settings:
 # degree: 2
 # dm_plex_box_faces: 20,30,1
 # platemesh:
+#   modify_mesh: true
 #   nDelta: 22
 #   growth: 1.1664 # 1.08^2
 
