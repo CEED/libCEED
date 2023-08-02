@@ -68,7 +68,7 @@ static int CeedInit_Magma(const char *resource, Ceed ceed) {
   Ceed ceedref;
 #if defined(CEED_MAGMA_USE_HIP)
   CeedCallBackend(CeedInit("/gpu/hip/ref", &ceedref));
-#elif defined(Ceed_MAGMA_USE_CUDA)
+#elif defined(CEED_MAGMA_USE_CUDA)
   CeedCallBackend(CeedInit("/gpu/cuda/ref", &ceedref));
 #else
   CeedCallBackend(CeedInit("/gpu/sycl/ref", &ceedref));
