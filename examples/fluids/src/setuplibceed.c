@@ -355,8 +355,7 @@ PetscErrorCode BasisCreateFromTabulation(Ceed ceed, DM dm, DMLabel domain_label,
 // -----------------------------------------------------------------------------
 // Get CEED Basis from DMPlex
 // -----------------------------------------------------------------------------
-PetscErrorCode CreateBasisFromPlex(Ceed ceed, DM dm, DMLabel domain_label, CeedInt label_value, CeedInt height, CeedInt dm_field,
-                                   CeedQuadMode quadMode, CeedBasis *basis) {
+PetscErrorCode CreateBasisFromPlex(Ceed ceed, DM dm, DMLabel domain_label, CeedInt label_value, CeedInt height, CeedInt dm_field, CeedBasis *basis) {
   PetscDS         ds;
   PetscFE         fe;
   PetscQuadrature quadrature;
@@ -397,7 +396,7 @@ PetscErrorCode CreateBasisFromPlex(Ceed ceed, DM dm, DMLabel domain_label, CeedI
     CeedInt P_1d = (CeedInt)round(pow(P, 1.0 / dim));
     CeedInt Q_1d = (CeedInt)round(pow(Q, 1.0 / dim));
 
-    CeedBasisCreateTensorH1Lagrange(ceed, dim, num_comp, P_1d, Q_1d, quadMode, basis);
+    CeedBasisCreateTensorH1Lagrange(ceed, dim, num_comp, P_1d, Q_1d, CEED_GAUSS, basis);
   }
 
   PetscFunctionReturn(PETSC_SUCCESS);
@@ -421,8 +420,8 @@ PetscErrorCode SetupLibceed(Ceed ceed, CeedData ceed_data, DM dm, User user, App
   DM dm_coord;
   PetscCall(DMGetCoordinateDM(dm, &dm_coord));
 
-  PetscCall(CreateBasisFromPlex(ceed, dm, 0, 0, 0, 0, CEED_GAUSS, &ceed_data->basis_q));
-  PetscCall(CreateBasisFromPlex(ceed, dm_coord, 0, 0, 0, 0, CEED_GAUSS, &ceed_data->basis_x));
+  PetscCall(CreateBasisFromPlex(ceed, dm, 0, 0, 0, 0, &ceed_data->basis_q));
+  PetscCall(CreateBasisFromPlex(ceed, dm_coord, 0, 0, 0, 0, &ceed_data->basis_x));
   PetscCall(CeedBasisCreateProjection(ceed_data->basis_x, ceed_data->basis_q, &ceed_data->basis_xc));
   CeedBasisGetNumQuadraturePoints(ceed_data->basis_q, &num_qpts);
 
@@ -455,7 +454,7 @@ PetscErrorCode SetupLibceed(Ceed ceed, CeedData ceed_data, DM dm, User user, App
   CeedQFunctionCreateInterior(ceed, 1, problem->ics.qfunction, problem->ics.qfunction_loc, &ceed_data->qf_ics);
   CeedQFunctionSetContext(ceed_data->qf_ics, problem->ics.qfunction_context);
   CeedQFunctionAddInput(ceed_data->qf_ics, "x", num_comp_x, CEED_EVAL_INTERP);
-  CeedQFunctionAddInput(ceed_data->qf_ics, "qdata", q_data_size_vol, CEED_EVAL_NONE);
+  CeedQFunctionAddInput(ceed_data->qf_ics, "dx", num_comp_x * dim, CEED_EVAL_GRAD);
   CeedQFunctionAddOutput(ceed_data->qf_ics, "q0", num_comp_q, CEED_EVAL_NONE);
 
   // -- Create QFunction for RHS
@@ -538,7 +537,7 @@ PetscErrorCode SetupLibceed(Ceed ceed, CeedData ceed_data, DM dm, User user, App
   CeedOperator op_ics;
   CeedOperatorCreate(ceed, ceed_data->qf_ics, NULL, NULL, &op_ics);
   CeedOperatorSetField(op_ics, "x", ceed_data->elem_restr_x, ceed_data->basis_xc, CEED_VECTOR_ACTIVE);
-  CeedOperatorSetField(op_ics, "qdata", ceed_data->elem_restr_qd_i, CEED_BASIS_COLLOCATED, ceed_data->q_data);
+  CeedOperatorSetField(op_ics, "dx", ceed_data->elem_restr_x, ceed_data->basis_xc, CEED_VECTOR_ACTIVE);
   CeedOperatorSetField(op_ics, "q0", ceed_data->elem_restr_q, CEED_BASIS_COLLOCATED, CEED_VECTOR_ACTIVE);
   CeedOperatorGetContextFieldLabel(op_ics, "evaluation time", &user->phys->ics_time_label);
   PetscCall(OperatorApplyContextCreate(NULL, dm, user->ceed, op_ics, ceed_data->x_coord, NULL, NULL, user->Q_loc, &ceed_data->op_ics_ctx));
@@ -601,8 +600,8 @@ PetscErrorCode SetupLibceed(Ceed ceed, CeedData ceed_data, DM dm, User user, App
   DMLabel  label   = 0;
   PetscInt face_id = 0;
   PetscInt field   = 0;  // Still want the normal, default field
-  PetscCall(CreateBasisFromPlex(ceed, dm, label, face_id, height, field, CEED_GAUSS, &ceed_data->basis_q_sur));
-  PetscCall(CreateBasisFromPlex(ceed, dm_coord, label, face_id, height, field, CEED_GAUSS, &ceed_data->basis_x_sur));
+  PetscCall(CreateBasisFromPlex(ceed, dm, label, face_id, height, field, &ceed_data->basis_q_sur));
+  PetscCall(CreateBasisFromPlex(ceed, dm_coord, label, face_id, height, field, &ceed_data->basis_x_sur));
   PetscCall(CeedBasisCreateProjection(ceed_data->basis_x_sur, ceed_data->basis_q_sur, &ceed_data->basis_xc_sur));
 
   // -----------------------------------------------------------------------------

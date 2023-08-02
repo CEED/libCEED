@@ -63,7 +63,7 @@ PetscErrorCode DifferentialFilterCreateOperators(Ceed ceed, User user, CeedData 
       CeedElemRestriction elem_restr_filter;
       CeedBasis           basis_filter;
       PetscCall(GetRestrictionForDomain(ceed, dm_filter, 0, 0, 0, i, -1, 0, &elem_restr_filter, NULL, NULL));
-      PetscCall(CreateBasisFromPlex(ceed, dm_filter, 0, 0, 0, i, CEED_GAUSS, &basis_filter));
+      PetscCall(CreateBasisFromPlex(ceed, dm_filter, 0, 0, 0, i, &basis_filter));
 
       PetscCall(PetscSNPrintf(field_name, PETSC_MAX_PATH_LEN, "v%" PetscInt_FMT, i));
       CeedOperatorSetField(op_rhs, field_name, elem_restr_filter, basis_filter, CEED_VECTOR_ACTIVE);
@@ -184,7 +184,7 @@ PetscErrorCode DifferentialFilterSetup(Ceed ceed, User user, CeedData ceed_data,
   {  // Create DM for filtered quantities
     PetscFE      fe;
     PetscSection section;
-    PetscInt     dim;
+    PetscInt     dim, q_order = user->app_ctx->degree + user->app_ctx->q_extra;
 
     PetscCall(DMClone(user->dm, &diff_filter->dm_filter));
     PetscCall(DMGetDimension(diff_filter->dm_filter, &dim));
@@ -195,8 +195,7 @@ PetscErrorCode DifferentialFilterSetup(Ceed ceed, User user, CeedData ceed_data,
 
     if (diff_filter->do_mms_test) {
       diff_filter->num_field_components[0] = 1;
-      PetscCall(
-          PetscFECreateLagrange(PETSC_COMM_SELF, dim, diff_filter->num_field_components[0], PETSC_FALSE, user->app_ctx->degree, PETSC_DECIDE, &fe));
+      PetscCall(PetscFECreateLagrange(PETSC_COMM_SELF, dim, diff_filter->num_field_components[0], PETSC_FALSE, user->app_ctx->degree, q_order, &fe));
       PetscCall(PetscObjectSetName((PetscObject)fe, "Differential Filtering - MMS"));
       PetscCall(DMAddField(diff_filter->dm_filter, NULL, (PetscObject)fe));
       PetscCall(PetscFEDestroy(&fe));
@@ -206,15 +205,13 @@ PetscErrorCode DifferentialFilterSetup(Ceed ceed, User user, CeedData ceed_data,
       PetscCall(PetscSectionSetComponentName(section, 0, 0, "FilteredPhi"));
     } else {
       diff_filter->num_field_components[0] = DIFF_FILTER_STATE_NUM;
-      PetscCall(
-          PetscFECreateLagrange(PETSC_COMM_SELF, dim, diff_filter->num_field_components[0], PETSC_FALSE, user->app_ctx->degree, PETSC_DECIDE, &fe));
+      PetscCall(PetscFECreateLagrange(PETSC_COMM_SELF, dim, diff_filter->num_field_components[0], PETSC_FALSE, user->app_ctx->degree, q_order, &fe));
       PetscCall(PetscObjectSetName((PetscObject)fe, "Differential Filtering - Primitive State Variables"));
       PetscCall(DMAddField(diff_filter->dm_filter, NULL, (PetscObject)fe));
       PetscCall(PetscFEDestroy(&fe));
 
       diff_filter->num_field_components[1] = DIFF_FILTER_VELOCITY_SQUARED_NUM;
-      PetscCall(
-          PetscFECreateLagrange(PETSC_COMM_SELF, dim, diff_filter->num_field_components[1], PETSC_FALSE, user->app_ctx->degree, PETSC_DECIDE, &fe));
+      PetscCall(PetscFECreateLagrange(PETSC_COMM_SELF, dim, diff_filter->num_field_components[1], PETSC_FALSE, user->app_ctx->degree, q_order, &fe));
       PetscCall(PetscObjectSetName((PetscObject)fe, "Differential Filtering - Velocity Products"));
       PetscCall(DMAddField(diff_filter->dm_filter, NULL, (PetscObject)fe));
       PetscCall(PetscFEDestroy(&fe));

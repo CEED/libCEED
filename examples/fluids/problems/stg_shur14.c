@@ -246,6 +246,7 @@ PetscErrorCode SetupSTG(const MPI_Comm comm, const DM dm, ProblemData *problem, 
   PetscCall(PetscOptionsBool("-stg_strong", "Enforce STG inflow strongly", NULL, use_stgstrong, &use_stgstrong, NULL));
   PetscCall(PetscOptionsBool("-stg_fluctuating_IC", "\"Extrude\" the fluctuations through the domain as an initial condition", NULL,
                              use_fluctuating_IC, &use_fluctuating_IC, NULL));
+  PetscCall(PetscOptionsBool("-stg_dx", "dx at wall-inflow", NULL, stgdx, &stgdx, NULL));
   PetscOptionsEnd();
 
   PetscCall(PetscCalloc1(1, &global_stg_ctx));
@@ -267,8 +268,8 @@ PetscErrorCode SetupSTG(const MPI_Comm comm, const DM dm, ProblemData *problem, 
 
     PetscInt nmax = 3, faces[3];
     PetscCall(PetscOptionsGetIntArray(NULL, NULL, "-dm_plex_box_faces", faces, &nmax, NULL));
-    global_stg_ctx->dx = domain_size[0] / faces[0];
-    global_stg_ctx->dz = domain_size[2] / faces[2];
+    global_stg_ctx->dx = stgdx; //domain_size[0] / faces[0];
+    global_stg_ctx->dz = stgdx/2.5; //domain_size[2] / faces[2];
   }
 
   CeedQFunctionContextGetData(problem->apply_vol_rhs.qfunction_context, CEED_MEM_HOST, &newtonian_ig_ctx);

@@ -35,7 +35,8 @@ PetscErrorCode GridAnisotropyTensorProjectionSetupApply(Ceed ceed, User user, Ce
   {  // -- Setup DM
     PetscFE      fe;
     PetscSection section;
-    PetscCall(PetscFECreateLagrange(PETSC_COMM_SELF, dim, grid_aniso_proj->num_comp, PETSC_FALSE, user->app_ctx->degree, PETSC_DECIDE, &fe));
+    PetscInt     q_order = user->app_ctx->degree + user->app_ctx->q_extra;
+    PetscCall(PetscFECreateLagrange(PETSC_COMM_SELF, dim, grid_aniso_proj->num_comp, PETSC_FALSE, user->app_ctx->degree, q_order, &fe));
     PetscCall(PetscObjectSetName((PetscObject)fe, "Grid Anisotropy Tensor Projection"));
     PetscCall(DMAddField(grid_aniso_proj->dm, NULL, (PetscObject)fe));
     PetscCall(DMCreateDS(grid_aniso_proj->dm));
@@ -58,7 +59,7 @@ PetscErrorCode GridAnisotropyTensorProjectionSetupApply(Ceed ceed, User user, Ce
   CeedElemRestrictionGetNumComponents(ceed_data->elem_restr_qd_i, &q_data_size);
 
   PetscCall(GetRestrictionForDomain(ceed, grid_aniso_proj->dm, 0, 0, 0, 0, -1, grid_aniso_proj->num_comp, elem_restr_grid_aniso, NULL, NULL));
-  PetscCall(CreateBasisFromPlex(ceed, grid_aniso_proj->dm, 0, 0, 0, 0, CEED_GAUSS, &basis_grid_aniso));
+  PetscCall(CreateBasisFromPlex(ceed, grid_aniso_proj->dm, 0, 0, 0, 0, &basis_grid_aniso));
 
   // -- Build RHS operator
   CeedQFunctionCreateInterior(ceed, 1, AnisotropyTensorProjection, AnisotropyTensorProjection_loc, &qf_rhs_assemble);
@@ -133,15 +134,15 @@ PetscErrorCode GridAnisotropyTensorProjectionSetupApply(Ceed ceed, User user, Ce
 
 PetscErrorCode GridAnisotropyTensorCalculateCollocatedVector(Ceed ceed, User user, CeedData ceed_data, CeedElemRestriction *elem_restr_grid_aniso,
                                                              CeedVector *aniso_colloc_ceed, PetscInt *num_comp_aniso) {
-  CeedInt       q_data_size, num_qpts;
+  CeedInt       q_data_size, num_nodes;
   CeedQFunction qf_colloc;
   CeedOperator  op_colloc;
 
   PetscFunctionBeginUser;
   *num_comp_aniso = 7;
-  CeedBasisGetNumQuadraturePoints(ceed_data->basis_q, &num_qpts);
+  CeedBasisGetNumNodes(ceed_data->basis_q, &num_nodes);
   CeedElemRestrictionGetNumComponents(ceed_data->elem_restr_qd_i, &q_data_size);
-  PetscCall(GetRestrictionForDomain(ceed, user->dm, 0, 0, 0, 0, num_qpts, *num_comp_aniso, NULL, NULL, elem_restr_grid_aniso));
+  PetscCall(GetRestrictionForDomain(ceed, user->dm, 0, 0, 0, 0, num_nodes, *num_comp_aniso, NULL, NULL, elem_restr_grid_aniso));
 
   // -- Build collocation operator
   CeedQFunctionCreateInterior(ceed, 1, AnisotropyTensorCollocate, AnisotropyTensorCollocate_loc, &qf_colloc);
@@ -151,7 +152,6 @@ PetscErrorCode GridAnisotropyTensorCalculateCollocatedVector(Ceed ceed, User use
   CeedOperatorCreate(ceed, qf_colloc, NULL, NULL, &op_colloc);
   CeedOperatorSetField(op_colloc, "qdata", ceed_data->elem_restr_qd_i, CEED_BASIS_COLLOCATED, ceed_data->q_data);
   CeedOperatorSetField(op_colloc, "v", *elem_restr_grid_aniso, CEED_BASIS_COLLOCATED, CEED_VECTOR_ACTIVE);
-  CeedOperatorSetNumQuadraturePoints(op_colloc, num_qpts);
 
   CeedElemRestrictionCreateVector(*elem_restr_grid_aniso, aniso_colloc_ceed, NULL);
 
