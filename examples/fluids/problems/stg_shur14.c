@@ -231,7 +231,7 @@ PetscErrorCode SetupSTG(const MPI_Comm comm, const DM dm, ProblemData *problem, 
   char                     stg_inflow_path[PETSC_MAX_PATH_LEN] = "./STGInflow.dat";
   char                     stg_rand_path[PETSC_MAX_PATH_LEN]   = "./STGRand.dat";
   PetscBool                mean_only = PETSC_FALSE, use_stgstrong = PETSC_FALSE, use_fluctuating_IC = PETSC_FALSE;
-  CeedScalar               u0 = 0.0, alpha = 1.01;
+  CeedScalar               u0 = 0.0, alpha = 1.01, stgdx=1.0e-3; 
   CeedQFunctionContext     stg_context;
   NewtonianIdealGasContext newtonian_ig_ctx;
   PetscFunctionBeginUser;
@@ -246,7 +246,7 @@ PetscErrorCode SetupSTG(const MPI_Comm comm, const DM dm, ProblemData *problem, 
   PetscCall(PetscOptionsBool("-stg_strong", "Enforce STG inflow strongly", NULL, use_stgstrong, &use_stgstrong, NULL));
   PetscCall(PetscOptionsBool("-stg_fluctuating_IC", "\"Extrude\" the fluctuations through the domain as an initial condition", NULL,
                              use_fluctuating_IC, &use_fluctuating_IC, NULL));
-  PetscCall(PetscOptionsBool("-stg_dx", "dx at wall-inflow", NULL, stgdx, &stgdx, NULL));
+  PetscCall(PetscOptionsReal("-stg_dx", "dx at wall-inflow", NULL, stgdx, &stgdx, NULL));
   PetscOptionsEnd();
 
   PetscCall(PetscCalloc1(1, &global_stg_ctx));
