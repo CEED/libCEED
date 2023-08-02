@@ -322,7 +322,7 @@ struct CeedOperatorAssemblyData_private {
 
 struct CeedOperator_private {
   Ceed         ceed;
-  CeedOperator op_fallback;
+  CeedOperator op_fallback, op_fallback_parent;
   int          ref_count;
   int (*LinearAssembleQFunction)(CeedOperator, CeedVector *, CeedElemRestriction *, CeedRequest *);
   int (*LinearAssembleQFunctionUpdate)(CeedOperator, CeedVector, CeedElemRestriction, CeedRequest *);

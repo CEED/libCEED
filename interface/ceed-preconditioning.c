@@ -132,7 +132,10 @@ static int CeedOperatorCreateFallback(CeedOperator op) {
   }
   CeedCall(CeedOperatorSetName(op_fallback, op->name));
   CeedCall(CeedOperatorCheckReady(op_fallback));
-  op->op_fallback = op_fallback;
+  // Note: No ref-counting here so we don't get caught in a reference loop.
+  //       The op holds the only reference to op_fallback and is responsible for deleting itself and op_fallback.
+  op->op_fallback                 = op_fallback;
+  op_fallback->op_fallback_parent = op;
 
   return CEED_ERROR_SUCCESS;
 }
@@ -1537,10 +1540,25 @@ int CeedOperatorLinearAssembleQFunction(CeedOperator op, CeedVector *assembled, 
   @ref User
 **/
 int CeedOperatorLinearAssembleQFunctionBuildOrUpdate(CeedOperator op, CeedVector *assembled, CeedElemRestriction *rstr, CeedRequest *request) {
+  int (*LinearAssembleQFunctionUpdate)(CeedOperator, CeedVector, CeedElemRestriction, CeedRequest *) = NULL;
+  CeedOperator op_assemble                                                                           = NULL;
+
   CeedCall(CeedOperatorCheckReady(op));
 
-  if (op->LinearAssembleQFunctionUpdate) {
-    // Backend version
+  // Determine if fallback parent or operator has implementation
+  if (op->op_fallback_parent && op->op_fallback_parent->LinearAssembleQFunctionUpdate) {
+    // -- Backend version for op fallback parent is faster, if it exists
+    LinearAssembleQFunctionUpdate = op->op_fallback_parent->LinearAssembleQFunctionUpdate;
+    op_assemble                   = op->op_fallback_parent;
+  } else if (op->LinearAssembleQFunctionUpdate) {
+    // -- Backend version for op
+    LinearAssembleQFunctionUpdate = op->LinearAssembleQFunctionUpdate;
+    op_assemble                   = op;
+  }
+
+  // Assemble QFunction
+  if (LinearAssembleQFunctionUpdate) {
+    // Backend or fallback parent version
     bool                qf_assembled_is_setup;
     CeedVector          assembled_vec  = NULL;
     CeedElemRestriction assembled_rstr = NULL;
@@ -1551,9 +1569,9 @@ int CeedOperatorLinearAssembleQFunctionBuildOrUpdate(CeedOperator op, CeedVector
 
       CeedCall(CeedQFunctionAssemblyDataGetObjects(op->qf_assembled, &assembled_vec, &assembled_rstr));
       CeedCall(CeedQFunctionAssemblyDataIsUpdateNeeded(op->qf_assembled, &update_needed));
-      if (update_needed) CeedCall(op->LinearAssembleQFunctionUpdate(op, assembled_vec, assembled_rstr, request));
+      if (update_needed) CeedCall(LinearAssembleQFunctionUpdate(op_assemble, assembled_vec, assembled_rstr, request));
     } else {
-      CeedCall(op->LinearAssembleQFunction(op, &assembled_vec, &assembled_rstr, request));
+      CeedCall(CeedOperatorLinearAssembleQFunction(op_assemble, &assembled_vec, &assembled_rstr, request));
       CeedCall(CeedQFunctionAssemblyDataSetObjects(op->qf_assembled, assembled_vec, assembled_rstr));
     }
     CeedCall(CeedQFunctionAssemblyDataSetUpdateNeeded(op->qf_assembled, false));
