@@ -140,37 +140,44 @@ CEED_INTERN int CeedReallocArray(size_t n, size_t unit, void *p);
 CEED_INTERN int CeedStringAllocCopy(const char *source, char **copy);
 CEED_INTERN int CeedFree(void *p);
 
-#define CeedChk(ierr)        \
+/**
+  @brief Calls a libCEED function and then checks the resulting error code.
+  If the error code is non-zero, then the error handler is called and the call from the current function with the error code.
+
+  @ref Developer
+**/
+#define CeedCall(...)        \
   do {                       \
-    int ierr_ = ierr;        \
+    int ierr_ = __VA_ARGS__; \
     if (ierr_) return ierr_; \
   } while (0)
-#define CeedChkBackend(ierr)                                     \
-  do {                                                           \
-    int ierr_ = ierr;                                            \
-    if (ierr_) {                                                 \
-      if (ierr_ > CEED_ERROR_SUCCESS) return CEED_ERROR_BACKEND; \
-      else return ierr_;                                         \
-    }                                                            \
+
+/**
+  @brief Calls a libCEED function and then checks the resulting error code.
+  If the error code is non-zero, then the error handler is called and the call from the current function with the error code.
+  All interface level error codes are upgraded to `CEED_ERROR_BACKEND`.
+
+  @ref Developer
+**/
+#define CeedCallBackend(...)                                                     \
+  do {                                                                           \
+    int ierr_ = __VA_ARGS__;                                                     \
+    if (ierr_) return (ierr_ > CEED_ERROR_SUCCESS) ? CEED_ERROR_BACKEND : ierr_; \
   } while (0)
 
-#define CeedCall(...)          \
-  do {                         \
-    int ierr_q_ = __VA_ARGS__; \
-    CeedChk(ierr_q_);          \
-  } while (0)
-#define CeedCallBackend(...)   \
-  do {                         \
-    int ierr_q_ = __VA_ARGS__; \
-    CeedChkBackend(ierr_q_);   \
+/**
+  @brief Check that a particular condition is true and returns a `CeedError` if not.
+
+  @ref Developer
+**/
+#define CeedCheck(cond, ceed, ecode, ...)                    \
+  do {                                                       \
+    if (!(cond)) return CeedError(ceed, ecode, __VA_ARGS__); \
   } while (0)
 
-#define CeedCheck(cond, ceed, ecode, ...)         \
-  do {                                            \
-    if (!(cond)) {                                \
-      return CeedError(ceed, ecode, __VA_ARGS__); \
-    }                                             \
-  } while (0)
+/* Note - these are legacy macros that should be removed eventually */
+#define CeedChk(...) CeedCall(__VA_ARGS__)
+#define CeedChkBackend(...) CeedCallBackend(__VA_ARGS__)
 
 /* Note that CeedMalloc and CeedCalloc will, generally, return pointers with different memory alignments:
    CeedMalloc returns pointers aligned at CEED_ALIGN bytes, while CeedCalloc uses the alignment of calloc. */
