@@ -151,7 +151,8 @@ static int CeedElemRestrictionDestroy_Magma(CeedElemRestriction r) {
   return CEED_ERROR_SUCCESS;
 }
 
-int CeedElemRestrictionCreate_Magma(CeedMemType mtype, CeedCopyMode cmode, const CeedInt *offsets, CeedElemRestriction r) {
+int CeedElemRestrictionCreate_Magma(CeedMemType mtype, CeedCopyMode cmode, const CeedInt *offsets, const bool *orients, const CeedInt8 *curl_orients,
+                                    CeedElemRestriction r) {
   Ceed ceed;
   CeedCallBackend(CeedElemRestrictionGetCeed(r, &ceed));
 
@@ -162,6 +163,11 @@ int CeedElemRestrictionCreate_Magma(CeedMemType mtype, CeedCopyMode cmode, const
   CeedCallBackend(CeedElemRestrictionGetNumElements(r, &nelem));
   CeedCallBackend(CeedElemRestrictionGetElementSize(r, &elemsize));
   CeedInt size = elemsize * nelem;
+
+  CeedRestrictionType rstr_type;
+  CeedCallBackend(CeedElemRestrictionGetType(r, &rstr_type));
+  CeedCheck(rstr_type != CEED_RESTRICTION_ORIENTED && rstr_type != CEED_RESTRICTION_CURL_ORIENTED, ceed, CEED_ERROR_BACKEND,
+            "Backend does not implement CeedElemRestrictionCreateOriented or CeedElemRestrictionCreateCurlOriented");
 
   CeedElemRestriction_Magma *impl;
   CeedCallBackend(CeedCalloc(1, &impl));
@@ -261,6 +267,7 @@ int CeedElemRestrictionCreate_Magma(CeedMemType mtype, CeedCopyMode cmode, const
   CeedCallBackend(CeedElemRestrictionSetELayout(r, layout));
   CeedCallBackend(CeedSetBackendFunction(ceed, "ElemRestriction", r, "Apply", CeedElemRestrictionApply_Magma));
   CeedCallBackend(CeedSetBackendFunction(ceed, "ElemRestriction", r, "ApplyUnsigned", CeedElemRestrictionApply_Magma));
+  CeedCallBackend(CeedSetBackendFunction(ceed, "ElemRestriction", r, "ApplyUnoriented", CeedElemRestrictionApply_Magma));
   CeedCallBackend(CeedSetBackendFunction(ceed, "ElemRestriction", r, "GetOffsets", CeedElemRestrictionGetOffsets_Magma));
   CeedCallBackend(CeedSetBackendFunction(ceed, "ElemRestriction", r, "Destroy", CeedElemRestrictionDestroy_Magma));
   CeedCallBackend(CeedFree(&restriction_kernel_path));

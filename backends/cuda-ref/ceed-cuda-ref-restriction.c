@@ -209,7 +209,8 @@ static int CeedElemRestrictionOffset_Cuda(const CeedElemRestriction r, const Cee
 //------------------------------------------------------------------------------
 // Create restriction
 //------------------------------------------------------------------------------
-int CeedElemRestrictionCreate_Cuda(CeedMemType mem_type, CeedCopyMode copy_mode, const CeedInt *indices, CeedElemRestriction r) {
+int CeedElemRestrictionCreate_Cuda(CeedMemType mem_type, CeedCopyMode copy_mode, const CeedInt *indices, const bool *orients,
+                                   const CeedInt8 *curl_orients, CeedElemRestriction r) {
   Ceed ceed;
   CeedCallBackend(CeedElemRestrictionGetCeed(r, &ceed));
   CeedElemRestriction_Cuda *impl;
@@ -221,6 +222,11 @@ int CeedElemRestrictionCreate_Cuda(CeedMemType mem_type, CeedCopyMode copy_mode,
   CeedInt size        = num_elem * elem_size;
   CeedInt strides[3]  = {1, size, elem_size};
   CeedInt comp_stride = 1;
+
+  CeedRestrictionType rstr_type;
+  CeedCallBackend(CeedElemRestrictionGetType(r, &rstr_type));
+  CeedCheck(rstr_type != CEED_RESTRICTION_ORIENTED && rstr_type != CEED_RESTRICTION_CURL_ORIENTED, ceed, CEED_ERROR_BACKEND,
+            "Backend does not implement CeedElemRestrictionCreateOriented or CeedElemRestrictionCreateCurlOriented");
 
   // Stride data
   bool is_strided;
@@ -323,6 +329,7 @@ int CeedElemRestrictionCreate_Cuda(CeedMemType mem_type, CeedCopyMode copy_mode,
   // Register backend functions
   CeedCallBackend(CeedSetBackendFunction(ceed, "ElemRestriction", r, "Apply", CeedElemRestrictionApply_Cuda));
   CeedCallBackend(CeedSetBackendFunction(ceed, "ElemRestriction", r, "ApplyUnsigned", CeedElemRestrictionApply_Cuda));
+  CeedCallBackend(CeedSetBackendFunction(ceed, "ElemRestriction", r, "ApplyUnoriented", CeedElemRestrictionApply_Cuda));
   CeedCallBackend(CeedSetBackendFunction(ceed, "ElemRestriction", r, "GetOffsets", CeedElemRestrictionGetOffsets_Cuda));
   CeedCallBackend(CeedSetBackendFunction(ceed, "ElemRestriction", r, "Destroy", CeedElemRestrictionDestroy_Cuda));
   return CEED_ERROR_SUCCESS;

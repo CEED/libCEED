@@ -113,7 +113,8 @@ CEED_INTERN int CeedGetCublasHandle_Cuda(Ceed ceed, cublasHandle_t *handle);
 
 CEED_INTERN int CeedVectorCreate_Cuda(CeedSize n, CeedVector vec);
 
-CEED_INTERN int CeedElemRestrictionCreate_Cuda(CeedMemType mem_type, CeedCopyMode copy_mode, const CeedInt *indices, CeedElemRestriction r);
+CEED_INTERN int CeedElemRestrictionCreate_Cuda(CeedMemType mem_type, CeedCopyMode copy_mode, const CeedInt *indices, const bool *orients,
+                                               const CeedInt8 *curl_orients, CeedElemRestriction r);
 
 CEED_INTERN int CeedBasisCreateTensorH1_Cuda(CeedInt dim, CeedInt P_1d, CeedInt Q_1d, const CeedScalar *interp_1d, const CeedScalar *grad_1d,
                                              const CeedScalar *q_ref_1d, const CeedScalar *q_weight_1d, CeedBasis basis);

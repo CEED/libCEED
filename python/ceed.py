@@ -14,7 +14,8 @@ import tempfile
 from abc import ABC
 from .ceed_vector import Vector
 from .ceed_basis import BasisTensorH1, BasisTensorH1Lagrange, BasisH1, BasisHdiv, BasisHcurl
-from .ceed_elemrestriction import ElemRestriction, StridedElemRestriction, BlockedElemRestriction, BlockedStridedElemRestriction
+from .ceed_elemrestriction import ElemRestriction, OrientedElemRestriction, CurlOrientedElemRestriction, StridedElemRestriction
+from .ceed_elemrestriction import BlockedElemRestriction, BlockedOrientedElemRestriction, BlockedCurlOrientedElemRestriction, BlockedStridedElemRestriction
 from .ceed_qfunction import QFunction, QFunctionByName, IdentityQFunction
 from .ceed_qfunctioncontext import QFunctionContext
 from .ceed_operator import Operator, CompositeOperator
@@ -220,6 +221,72 @@ class Ceed():
         return ElemRestriction(self, nelem, elemsize, ncomp, compstride, lsize,
                                offsets, memtype=memtype, cmode=cmode)
 
+    def OrientedElemRestriction(self, nelem, elemsize, ncomp, compstride, lsize,
+                                offsets, orients, memtype=lib.CEED_MEM_HOST, cmode=lib.CEED_COPY_VALUES):
+        """Ceed Oriented ElemRestriction: oriented restriction from local vectors
+             to elements.
+
+           Args:
+             nelem: number of elements described by the restriction
+             elemsize: size (number of nodes) per element
+             ncomp: number of field components per interpolation node
+                      (1 for scalar fields)
+             compstride: Stride between components for the same L-vector "node".
+                           Data for node i, component k can be found in the
+                           L-vector at index [offsets[i] + k*compstride].
+             lsize: The size of the L-vector. This vector may be larger than
+                       the elements and fields given by this restriction.
+             *offsets: Numpy array of shape [nelem, elemsize]. Row i holds the
+                         ordered list of the offsets (into the input Ceed Vector)
+                         for the unknowns corresponding to element i, where
+                         0 <= i < nelem. All offsets must be in the range
+                         [0, lsize - 1].
+             *orients: Numpy array of shape [nelem, elemsize]. Row i holds the
+                         ordered list of the orientations for the unknowns
+                         corresponding to element i, with bool false used for
+                         positively oriented and true to flip the orientation.
+             **memtype: memory type of the offsets array, default CEED_MEM_HOST
+             **cmode: copy mode for the offsets array, default CEED_COPY_VALUES
+
+           Returns:
+             elemrestriction: Ceed Oriented ElemRestiction"""
+
+        return OrientedElemRestriction(self, nelem, elemsize, ncomp, compstride, lsize,
+                                       offsets, orients, memtype=memtype, cmode=cmode)
+
+    def CurlOrientedElemRestriction(self, nelem, elemsize, ncomp, compstride, lsize,
+                                    offsets, curl_orients, memtype=lib.CEED_MEM_HOST, cmode=lib.CEED_COPY_VALUES):
+        """Ceed Curl Oriented ElemRestriction: curl-oriented restriction from local
+             vectors to elements.
+
+           Args:
+             nelem: number of elements described by the restriction
+             elemsize: size (number of nodes) per element
+             ncomp: number of field components per interpolation node
+                      (1 for scalar fields)
+             compstride: Stride between components for the same L-vector "node".
+                           Data for node i, component k can be found in the
+                           L-vector at index [offsets[i] + k*compstride].
+             lsize: The size of the L-vector. This vector may be larger than
+                       the elements and fields given by this restriction.
+             *offsets: Numpy array of shape [nelem, elemsize]. Row i holds the
+                         ordered list of the offsets (into the input Ceed Vector)
+                         for the unknowns corresponding to element i, where
+                         0 <= i < nelem. All offsets must be in the range
+                         [0, lsize - 1].
+             *curl_orients: Numpy array of shape [nelem, 3 * elemsize]. Row i holds
+                              a row-major tridiagonal matrix (curl_orients[i, 0] =
+                              curl_orients[i, 3 * elemsize - 1] = 0, where 0 <= i < nelem)
+                              which is applied to the element unknowns upon restriction.
+             **memtype: memory type of the offsets array, default CEED_MEM_HOST
+             **cmode: copy mode for the offsets array, default CEED_COPY_VALUES
+
+           Returns:
+             elemrestriction: Ceed Curl Oriented ElemRestiction"""
+
+        return CurlOrientedElemRestriction(
+            self, nelem, elemsize, ncomp, compstride, lsize, offsets, curl_orients, memtype=memtype, cmode=cmode)
+
     def StridedElemRestriction(self, nelem, elemsize, ncomp, lsize, strides):
         """Ceed Identity ElemRestriction: strided restriction from local vectors
              to elements.
@@ -274,6 +341,80 @@ class Ceed():
                                       compstride, lsize, offsets,
                                       memtype=memtype, cmode=cmode)
 
+    def BlockedOrientedElemRestriction(self, nelem, elemsize, blksize, ncomp, compstride,
+                                       lsize, offsets, orients, memtype=lib.CEED_MEM_HOST, cmode=lib.CEED_COPY_VALUES):
+        """Ceed Blocked Oriented ElemRestriction: blocked oriented restriction
+             from local vectors to elements.
+
+           Args:
+             nelem: number of elements described by the restriction
+             elemsize: size (number of nodes) per element
+             blksize: number of elements in a block
+             ncomp: number of field components per interpolation node
+                      (1 for scalar fields)
+             compstride: Stride between components for the same L-vector "node".
+                           Data for node i, component k can be found in the
+                           L-vector at index [offsets[i] + k*compstride].
+             lsize: The size of the L-vector. This vector may be larger than
+                       the elements and fields given by this restriction.
+             *offsets: Numpy array of shape [nelem, elemsize]. Row i holds the
+                         ordered list of the offsets (into the input Ceed Vector)
+                         for the unknowns corresponding to element i, where
+                         0 <= i < nelem. All offsets must be in the range
+                         [0, lsize - 1]. The backend will permute and pad this
+                         array to the desired ordering for the blocksize, which is
+                         typically given by the backend. The default reordering is
+                         to interlace elements.
+             *orients: Numpy array of shape [nelem, elemsize]. Row i holds the
+                         ordered list of the orientations for the unknowns
+                         corresponding to element i, with ool false is used for
+                         positively oriented and true to flip the orientation.
+             **memtype: memory type of the offsets array, default CEED_MEM_HOST
+             **cmode: copy mode for the offsets array, default CEED_COPY_VALUES
+
+           Returns:
+             elemrestriction: Ceed Blocked Oriented ElemRestiction"""
+
+        return BlockedOrientedElemRestriction(self, nelem, elemsize, blksize, ncomp, compstride, lsize,
+                                              offsets, orients, memtype=memtype, cmode=cmode)
+
+    def BlockedCurlOrientedElemRestriction(self, nelem, elemsize, blksize, ncomp, compstride,
+                                           lsize, offsets, curl_orients, memtype=lib.CEED_MEM_HOST, cmode=lib.CEED_COPY_VALUES):
+        """Ceed Blocked Curl Oriented ElemRestriction: blocked curl-oriented
+             restriction from local vectors to elements.
+
+           Args:
+             nelem: number of elements described by the restriction
+             elemsize: size (number of nodes) per element
+             blksize: number of elements in a block
+             ncomp: number of field components per interpolation node
+                      (1 for scalar fields)
+             compstride: Stride between components for the same L-vector "node".
+                           Data for node i, component k can be found in the
+                           L-vector at index [offsets[i] + k*compstride].
+             lsize: The size of the L-vector. This vector may be larger than
+                       the elements and fields given by this restriction.
+             *offsets: Numpy array of shape [nelem, elemsize]. Row i holds the
+                         ordered list of the offsets (into the input Ceed Vector)
+                         for the unknowns corresponding to element i, where
+                         0 <= i < nelem. All offsets must be in the range
+                         [0, lsize - 1]. The backend will permute and pad this
+                         array to the desired ordering for the blocksize, which is
+                         typically given by the backend. The default reordering is
+                         to interlace elements.
+             *curl_orients: Numpy array of shape [nelem, 3 * elemsize]. Row i holds
+                              a row-major tridiagonal matrix (curl_orients[i, 0] =
+                              curl_orients[i, 3 * elemsize - 1] = 0, where 0 <= i < nelem)
+                              which is applied to the element unknowns upon restriction.
+             **memtype: memory type of the offsets array, default CEED_MEM_HOST
+             **cmode: copy mode for the offsets array, default CEED_COPY_VALUES
+
+           Returns:
+             elemrestriction: Ceed Blocked Curl Oriented ElemRestiction"""
+
+        return BlockedCurlOrientedElemRestriction(
+            self, nelem, elemsize, blksize, ncomp, compstride, lsize, offsets, curl_orients, memtype=memtype, cmode=cmode)
+
     def BlockedStridedElemRestriction(self, nelem, elemsize, blksize, ncomp,
                                       lsize, strides):
         """Ceed Blocked Strided ElemRestriction: blocked and strided restriction
@@ -293,7 +434,7 @@ class Ceed():
                            i*strides[0] + j*strides[1] + k*strides[2]
 
            Returns:
-             elemrestriction: Ceed Strided ElemRestiction"""
+             elemrestriction: Ceed Blocked Strided ElemRestiction"""
 
         return BlockedStridedElemRestriction(self, nelem, elemsize, blksize,
                                              ncomp, lsize, strides)

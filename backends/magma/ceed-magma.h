@@ -134,7 +134,8 @@ CEED_INTERN int CeedBasisCreateTensorH1_Magma(CeedInt dim, CeedInt P1d, CeedInt 
 CEED_INTERN int CeedBasisCreateH1_Magma(CeedElemTopology topo, CeedInt dim, CeedInt ndof, CeedInt nqpts, const CeedScalar *interp,
                                         const CeedScalar *grad, const CeedScalar *qref, const CeedScalar *qweight, CeedBasis basis);
 
-CEED_INTERN int CeedElemRestrictionCreate_Magma(CeedMemType mtype, CeedCopyMode cmode, const CeedInt *offsets, CeedElemRestriction r);
+CEED_INTERN int CeedElemRestrictionCreate_Magma(CeedMemType mtype, CeedCopyMode cmode, const CeedInt *indices, const bool *orients,
+                                                const CeedInt8 *curl_orients, CeedElemRestriction r);
 
 // comment the line below to use the default magma_is_devptr function
 #define magma_is_devptr magma_isdevptr

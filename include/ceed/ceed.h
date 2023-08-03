@@ -233,15 +233,25 @@ CEED_EXTERN int CeedElemRestrictionCreate(Ceed ceed, CeedInt num_elem, CeedInt e
                                           CeedMemType mem_type, CeedCopyMode copy_mode, const CeedInt *offsets, CeedElemRestriction *rstr);
 CEED_EXTERN int CeedElemRestrictionCreateOriented(Ceed ceed, CeedInt num_elem, CeedInt elem_size, CeedInt num_comp, CeedInt comp_stride,
                                                   CeedSize l_size, CeedMemType mem_type, CeedCopyMode copy_mode, const CeedInt *offsets,
-                                                  const bool *orient, CeedElemRestriction *rstr);
+                                                  const bool *orients, CeedElemRestriction *rstr);
+CEED_EXTERN int CeedElemRestrictionCreateCurlOriented(Ceed ceed, CeedInt num_elem, CeedInt elem_size, CeedInt num_comp, CeedInt comp_stride,
+                                                      CeedSize l_size, CeedMemType mem_type, CeedCopyMode copy_mode, const CeedInt *offsets,
+                                                      const CeedInt8 *curl_orients, CeedElemRestriction *rstr);
 CEED_EXTERN int CeedElemRestrictionCreateStrided(Ceed ceed, CeedInt num_elem, CeedInt elem_size, CeedInt num_comp, CeedSize l_size,
                                                  const CeedInt strides[3], CeedElemRestriction *rstr);
 CEED_EXTERN int CeedElemRestrictionCreateBlocked(Ceed ceed, CeedInt num_elem, CeedInt elem_size, CeedInt blk_size, CeedInt num_comp,
                                                  CeedInt comp_stride, CeedSize l_size, CeedMemType mem_type, CeedCopyMode copy_mode,
                                                  const CeedInt *offsets, CeedElemRestriction *rstr);
+CEED_EXTERN int CeedElemRestrictionCreateBlockedOriented(Ceed ceed, CeedInt num_elem, CeedInt elem_size, CeedInt blk_size, CeedInt num_comp,
+                                                         CeedInt comp_stride, CeedSize l_size, CeedMemType mem_type, CeedCopyMode copy_mode,
+                                                         const CeedInt *offsets, const bool *orients, CeedElemRestriction *rstr);
+CEED_EXTERN int CeedElemRestrictionCreateBlockedCurlOriented(Ceed ceed, CeedInt num_elem, CeedInt elem_size, CeedInt blk_size, CeedInt num_comp,
+                                                             CeedInt comp_stride, CeedSize l_size, CeedMemType mem_type, CeedCopyMode copy_mode,
+                                                             const CeedInt *offsets, const CeedInt8 *curl_orients, CeedElemRestriction *rstr);
 CEED_EXTERN int CeedElemRestrictionCreateBlockedStrided(Ceed ceed, CeedInt num_elem, CeedInt elem_size, CeedInt blk_size, CeedInt num_comp,
                                                         CeedSize l_size, const CeedInt strides[3], CeedElemRestriction *rstr);
 CEED_EXTERN int CeedElemRestrictionCreateUnsignedCopy(CeedElemRestriction rstr, CeedElemRestriction *rstr_unsigned);
+CEED_EXTERN int CeedElemRestrictionCreateUnorientedCopy(CeedElemRestriction rstr, CeedElemRestriction *rstr_unoriented);
 CEED_EXTERN int CeedElemRestrictionReferenceCopy(CeedElemRestriction rstr, CeedElemRestriction *rstr_copy);
 CEED_EXTERN int CeedElemRestrictionCreateVector(CeedElemRestriction rstr, CeedVector *lvec, CeedVector *evec);
 CEED_EXTERN int CeedElemRestrictionApply(CeedElemRestriction rstr, CeedTransposeMode t_mode, CeedVector u, CeedVector ru, CeedRequest *request);

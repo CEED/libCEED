@@ -98,9 +98,8 @@ struct Ceed_private {
   int (*GetPreferredMemType)(CeedMemType *);
   int (*Destroy)(Ceed);
   int (*VectorCreate)(CeedSize, CeedVector);
-  int (*ElemRestrictionCreate)(CeedMemType, CeedCopyMode, const CeedInt *, CeedElemRestriction);
-  int (*ElemRestrictionCreateOriented)(CeedMemType, CeedCopyMode, const CeedInt *, const bool *, CeedElemRestriction);
-  int (*ElemRestrictionCreateBlocked)(CeedMemType, CeedCopyMode, const CeedInt *, CeedElemRestriction);
+  int (*ElemRestrictionCreate)(CeedMemType, CeedCopyMode, const CeedInt *, const bool *, const CeedInt8 *, CeedElemRestriction);
+  int (*ElemRestrictionCreateBlocked)(CeedMemType, CeedCopyMode, const CeedInt *, const bool *, const CeedInt8 *, CeedElemRestriction);
   int (*BasisCreateTensorH1)(CeedInt, CeedInt, CeedInt, const CeedScalar *, const CeedScalar *, const CeedScalar *, const CeedScalar *, CeedBasis);
   int (*BasisCreateH1)(CeedElemTopology, CeedInt, CeedInt, CeedInt, const CeedScalar *, const CeedScalar *, const CeedScalar *, const CeedScalar *,
                        CeedBasis);
@@ -151,11 +150,14 @@ struct CeedVector_private {
 
 struct CeedElemRestriction_private {
   Ceed                ceed;
-  CeedElemRestriction rstr_signed;
+  CeedElemRestriction rstr_base;
   int (*Apply)(CeedElemRestriction, CeedTransposeMode, CeedVector, CeedVector, CeedRequest *);
   int (*ApplyUnsigned)(CeedElemRestriction, CeedTransposeMode, CeedVector, CeedVector, CeedRequest *);
+  int (*ApplyUnoriented)(CeedElemRestriction, CeedTransposeMode, CeedVector, CeedVector, CeedRequest *);
   int (*ApplyBlock)(CeedElemRestriction, CeedInt, CeedTransposeMode, CeedVector, CeedVector, CeedRequest *);
   int (*GetOffsets)(CeedElemRestriction, CeedMemType, const CeedInt **);
+  int (*GetOrientations)(CeedElemRestriction, CeedMemType, const bool **);
+  int (*GetCurlOrientations)(CeedElemRestriction, CeedMemType, const CeedInt8 **);
   int (*Destroy)(CeedElemRestriction);
   int      ref_count;
   CeedInt  num_elem;    /* number of elements */
@@ -167,8 +169,9 @@ struct CeedElemRestriction_private {
   CeedInt  num_blk;     /* number of blocks of elements */
   CeedInt *strides;     /* strides between [nodes, components, elements] */
   CeedInt  layout[3];   /* E-vector layout [nodes, components, elements] */
+  CeedRestrictionType
+           rstr_type;   /* initialized in element restriction constructor for default, oriented, curl-oriented, or strided element restriction */
   uint64_t num_readers; /* number of instances of offset read only access */
-  bool     is_oriented; /* flag for oriented restriction */
   void    *data;        /* place for the backend to store any data */
 };
 

@@ -333,7 +333,8 @@ static int CeedElemRestrictionOffset_Sycl(const CeedElemRestriction r, const Cee
 //------------------------------------------------------------------------------
 // Create restriction
 //------------------------------------------------------------------------------
-int CeedElemRestrictionCreate_Sycl(CeedMemType m_type, CeedCopyMode copy_mode, const CeedInt *indices, CeedElemRestriction r) {
+int CeedElemRestrictionCreate_Sycl(CeedMemType mem_type, CeedCopyMode copy_mode, const CeedInt *indices, const bool *orients,
+                                   const CeedInt8 *curl_orients, CeedElemRestriction r) {
   Ceed ceed;
   CeedCallBackend(CeedElemRestrictionGetCeed(r, &ceed));
   Ceed_Sycl *data;
@@ -347,6 +348,11 @@ int CeedElemRestrictionCreate_Sycl(CeedMemType m_type, CeedCopyMode copy_mode, c
   CeedInt size        = num_elem * elem_size;
   CeedInt strides[3]  = {1, size, elem_size};
   CeedInt comp_stride = 1;
+
+  CeedRestrictionType rstr_type;
+  CeedCallBackend(CeedElemRestrictionGetType(r, &rstr_type));
+  CeedCheck(rstr_type != CEED_RESTRICTION_ORIENTED && rstr_type != CEED_RESTRICTION_CURL_ORIENTED, ceed, CEED_ERROR_BACKEND,
+            "Backend does not implement CeedElemRestrictionCreateOriented or CeedElemRestrictionCreateCurlOriented");
 
   // Stride data
   bool is_strided;
@@ -448,6 +454,7 @@ int CeedElemRestrictionCreate_Sycl(CeedMemType m_type, CeedCopyMode copy_mode, c
   // Register backend functions
   CeedCallBackend(CeedSetBackendFunctionCpp(ceed, "ElemRestriction", r, "Apply", CeedElemRestrictionApply_Sycl));
   CeedCallBackend(CeedSetBackendFunctionCpp(ceed, "ElemRestriction", r, "ApplyUnsigned", CeedElemRestrictionApply_Sycl));
+  CeedCallBackend(CeedSetBackendFunctionCpp(ceed, "ElemRestriction", r, "ApplyUnoriented", CeedElemRestrictionApply_Sycl));
   CeedCallBackend(CeedSetBackendFunctionCpp(ceed, "ElemRestriction", r, "GetOffsets", CeedElemRestrictionGetOffsets_Sycl));
   CeedCallBackend(CeedSetBackendFunctionCpp(ceed, "ElemRestriction", r, "Destroy", CeedElemRestrictionDestroy_Sycl));
   return CEED_ERROR_SUCCESS;

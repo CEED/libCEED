@@ -297,12 +297,19 @@ int ElemRestriction::registerCeedFunction(Ceed ceed, CeedElemRestriction r, cons
   return CeedSetBackendFunction(ceed, "ElemRestriction", r, fname, f);
 }
 
-int ElemRestriction::ceedCreate(CeedMemType memType, CeedCopyMode copyMode, const CeedInt *indicesInput, CeedElemRestriction r) {
+int ElemRestriction::ceedCreate(CeedMemType memType, CeedCopyMode copyMode, const CeedInt *indicesInput, const bool *orientsInput,
+                                const CeedInt8 *curlOrientsInput, CeedElemRestriction r) {
   Ceed ceed;
   CeedCallBackend(CeedElemRestrictionGetCeed(r, &ceed));
 
   if ((memType != CEED_MEM_DEVICE) && (memType != CEED_MEM_HOST)) {
     return staticCeedError("Only HOST and DEVICE CeedMemType supported");
+  }
+
+  CeedRestrictionType rstr_type;
+  CeedCallBackend(CeedElemRestrictionGetType(r, &rstr_type));
+  if ((rstr_type == CEED_RESTRICTION_ORIENTED) || (rstr_type == CEED_RESTRICTION_CURL_ORIENTED)) {
+    return staticCeedError("(OCCA) Backend does not implement CeedElemRestrictionCreateOriented or CeedElemRestrictionCreateCurlOriented");
   }
 
   ElemRestriction *elemRestriction = new ElemRestriction();
@@ -317,15 +324,12 @@ int ElemRestriction::ceedCreate(CeedMemType memType, CeedCopyMode copyMode, cons
 
   CeedOccaRegisterFunction(r, "Apply", ElemRestriction::ceedApply);
   CeedOccaRegisterFunction(r, "ApplyUnsigned", ElemRestriction::ceedApply);
+  CeedOccaRegisterFunction(r, "ApplyUnoriented", ElemRestriction::ceedApply);
   CeedOccaRegisterFunction(r, "ApplyBlock", ElemRestriction::ceedApplyBlock);
   CeedOccaRegisterFunction(r, "GetOffsets", ElemRestriction::ceedGetOffsets);
   CeedOccaRegisterFunction(r, "Destroy", ElemRestriction::ceedDestroy);
 
   return CEED_ERROR_SUCCESS;
-}
-
-int ElemRestriction::ceedCreateBlocked(CeedMemType memType, CeedCopyMode copyMode, const CeedInt *indicesInput, CeedElemRestriction r) {
-  return staticCeedError("(OCCA) Backend does not implement CeedElemRestrictionCreateBlocked");
 }
 
 int ElemRestriction::ceedApply(CeedElemRestriction r, CeedTransposeMode tmode, CeedVector u, CeedVector v, CeedRequest *request) {

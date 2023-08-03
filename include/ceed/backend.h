@@ -206,14 +206,29 @@ CEED_EXTERN int CeedVectorGetData(CeedVector vec, void *data);
 CEED_EXTERN int CeedVectorSetData(CeedVector vec, void *data);
 CEED_EXTERN int CeedVectorReference(CeedVector vec);
 
-CEED_EXTERN int CeedElemRestrictionApplyUnsigned(CeedElemRestriction rstr, CeedTransposeMode t_mode, CeedVector u, CeedVector ru,
-                                                 CeedRequest *request);
+/// Type of element restriction;
+/// @ingroup CeedElemRestriction
+typedef enum {
+  /// Standard element restriction with offsets
+  CEED_RESTRICTION_STANDARD = 1,
+  /// Oriented element restriction
+  CEED_RESTRICTION_ORIENTED = 2,
+  /// Curl-oriented element restriction
+  CEED_RESTRICTION_CURL_ORIENTED = 3,
+  /// Strided element restriction
+  CEED_RESTRICTION_STRIDED = 4,
+} CeedRestrictionType;
+
+CEED_EXTERN int CeedElemRestrictionGetType(CeedElemRestriction rstr, CeedRestrictionType *rstr_type);
+CEED_EXTERN int CeedElemRestrictionIsStrided(CeedElemRestriction rstr, bool *is_strided);
 CEED_EXTERN int CeedElemRestrictionGetStrides(CeedElemRestriction rstr, CeedInt (*strides)[3]);
+CEED_EXTERN int CeedElemRestrictionHasBackendStrides(CeedElemRestriction rstr, bool *has_backend_strides);
 CEED_EXTERN int CeedElemRestrictionGetOffsets(CeedElemRestriction rstr, CeedMemType mem_type, const CeedInt **offsets);
 CEED_EXTERN int CeedElemRestrictionRestoreOffsets(CeedElemRestriction rstr, const CeedInt **offsets);
-CEED_EXTERN int CeedElemRestrictionIsStrided(CeedElemRestriction rstr, bool *is_strided);
-CEED_EXTERN int CeedElemRestrictionIsOriented(CeedElemRestriction rstr, bool *is_oriented);
-CEED_EXTERN int CeedElemRestrictionHasBackendStrides(CeedElemRestriction rstr, bool *has_backend_strides);
+CEED_EXTERN int CeedElemRestrictionGetOrientations(CeedElemRestriction rstr, CeedMemType mem_type, const bool **orients);
+CEED_EXTERN int CeedElemRestrictionRestoreOrientations(CeedElemRestriction rstr, const bool **orients);
+CEED_EXTERN int CeedElemRestrictionGetCurlOrientations(CeedElemRestriction rstr, CeedMemType mem_type, const CeedInt8 **curl_orients);
+CEED_EXTERN int CeedElemRestrictionRestoreCurlOrientations(CeedElemRestriction rstr, const CeedInt8 **curl_orients);
 CEED_EXTERN int CeedElemRestrictionGetELayout(CeedElemRestriction rstr, CeedInt (*layout)[3]);
 CEED_EXTERN int CeedElemRestrictionSetELayout(CeedElemRestriction rstr, CeedInt layout[3]);
 CEED_EXTERN int CeedElemRestrictionGetData(CeedElemRestriction rstr, void *data);

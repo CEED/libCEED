@@ -77,9 +77,8 @@ class ElemRestriction : public CeedObject {
   //---[ Ceed Callbacks ]-----------
   static int registerCeedFunction(Ceed ceed, CeedElemRestriction r, const char *fname, ceed::occa::ceedFunction f);
 
-  static int ceedCreate(CeedMemType memType, CeedCopyMode copyMode, const CeedInt *indicesInput, CeedElemRestriction r);
-
-  static int ceedCreateBlocked(CeedMemType memType, CeedCopyMode copyMode, const CeedInt *indicesInput, CeedElemRestriction r);
+  static int ceedCreate(CeedMemType memType, CeedCopyMode copyMode, const CeedInt *indicesInput, const bool *orientsInput,
+                        const CeedInt8 *curlOrientsInput, CeedElemRestriction r);
 
   static int ceedApply(CeedElemRestriction r, CeedTransposeMode tmode, CeedVector u, CeedVector v, CeedRequest *request);
 

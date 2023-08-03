@@ -25,9 +25,7 @@
   @brief Permute and pad offsets for a blocked restriction
 
   @param[in]  offsets     Array of shape [@a num_elem, @a elem_size].
-                            Row i holds the ordered list of the offsets (into the input CeedVector) for the unknowns corresponding to element i, where
-0 <= i < @a num_elem. All offsets must be in the range [0, @a l_size - 1].
-  @param[out] blk_offsets Array of permuted and padded offsets of shape [@a num_blk, @a elem_size, @a blk_size].
+  @param[out] blk_offsets Array of permuted and padded array values of shape [@a num_blk, @a elem_size, @a blk_size].
   @param[in]  num_blk     Number of blocks
   @param[in]  num_elem    Number of elements
   @param[in]  blk_size    Number of elements in a block
@@ -48,6 +46,57 @@ int CeedPermutePadOffsets(const CeedInt *offsets, CeedInt *blk_offsets, CeedInt 
   return CEED_ERROR_SUCCESS;
 }
 
+/**
+  @brief Permute and pad orientations for a blocked restriction
+
+  @param[in]  orients     Array of shape [@a num_elem, @a elem_size].
+  @param[out] blk_orients Array of permuted and padded array values of shape [@a num_blk, @a elem_size, @a blk_size].
+  @param[in]  num_blk     Number of blocks
+  @param[in]  num_elem    Number of elements
+  @param[in]  blk_size    Number of elements in a block
+  @param[in]  elem_size   Size of each element
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Utility
+**/
+int CeedPermutePadOrients(const bool *orients, bool *blk_orients, CeedInt num_blk, CeedInt num_elem, CeedInt blk_size, CeedInt elem_size) {
+  for (CeedInt e = 0; e < num_blk * blk_size; e += blk_size) {
+    for (CeedInt j = 0; j < blk_size; j++) {
+      for (CeedInt k = 0; k < elem_size; k++) {
+        blk_orients[e * elem_size + k * blk_size + j] = orients[CeedIntMin(e + j, num_elem - 1) * elem_size + k];
+      }
+    }
+  }
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
+  @brief Permute and pad curl-conforming orientations for a blocked restriction
+
+  @param[in]  curl_orients     Array of shape [@a num_elem, @a 3 * elem_size].
+  @param[out] blk_curl_orients Array of permuted and padded array values of shape [@a num_blk, @a elem_size, @a blk_size].
+  @param[in]  num_blk          Number of blocks
+  @param[in]  num_elem         Number of elements
+  @param[in]  blk_size         Number of elements in a block
+  @param[in]  elem_size        Size of each element
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Utility
+**/
+int CeedPermutePadCurlOrients(const CeedInt8 *curl_orients, CeedInt8 *blk_curl_orients, CeedInt num_blk, CeedInt num_elem, CeedInt blk_size,
+                              CeedInt elem_size) {
+  for (CeedInt e = 0; e < num_blk * blk_size; e += blk_size) {
+    for (CeedInt j = 0; j < blk_size; j++) {
+      for (CeedInt k = 0; k < elem_size; k++) {
+        blk_curl_orients[e * elem_size + k * blk_size + j] = curl_orients[CeedIntMin(e + j, num_elem - 1) * elem_size + k];
+      }
+    }
+  }
+  return CEED_ERROR_SUCCESS;
+}
+
 /// @}
 
 /// ----------------------------------------------------------------------------
@@ -57,42 +106,32 @@ int CeedPermutePadOffsets(const CeedInt *offsets, CeedInt *blk_offsets, CeedInt 
 /// @{
 
 /**
-  @brief Restrict an L-vector to an E-vector or apply its transpose ignoring any
-         provided orientations
+  @brief Get the type of a CeedElemRestriction
 
-  @param[in]  rstr    CeedElemRestriction
-  @param[in]  t_mode  Apply restriction or transpose
-  @param[in]  u       Input vector (of size @a l_size when t_mode=@ref CEED_NOTRANSPOSE)
-  @param[out] ru      Output vector (of shape [@a num_elem * @a elem_size] when t_mode=@ref CEED_NOTRANSPOSE).
-                        Ordering of the e-vector is decided by the backend.
-  @param[in]  request Request or @ref CEED_REQUEST_IMMEDIATE
+  @param[in]  rstr      CeedElemRestriction
+  @param[out] rstr_type Variable to store restriction type
 
   @return An error code: 0 - success, otherwise - failure
 
-  @ref User
+  @ref Backend
 **/
-int CeedElemRestrictionApplyUnsigned(CeedElemRestriction rstr, CeedTransposeMode t_mode, CeedVector u, CeedVector ru, CeedRequest *request) {
-  CeedInt m, n;
-
-  CeedCheck(rstr->ApplyUnsigned, rstr->ceed, CEED_ERROR_UNSUPPORTED, "Backend does not support ElemRestrictionApplyUnsigned");
-
-  if (t_mode == CEED_NOTRANSPOSE) {
-    m = rstr->num_blk * rstr->blk_size * rstr->elem_size * rstr->num_comp;
-    n = rstr->l_size;
-  } else {
-    m = rstr->l_size;
-    n = rstr->num_blk * rstr->blk_size * rstr->elem_size * rstr->num_comp;
-  }
-  CeedCheck(n == u->length, rstr->ceed, CEED_ERROR_DIMENSION,
-            "Input vector size %" CeedInt_FMT " not compatible with element restriction (%" CeedInt_FMT ", %" CeedInt_FMT ")", u->length, m, n);
-  CeedCheck(m == ru->length, rstr->ceed, CEED_ERROR_DIMENSION,
-            "Output vector size %" CeedInt_FMT " not compatible with element restriction (%" CeedInt_FMT ", %" CeedInt_FMT ")", ru->length, m, n);
-  if (rstr->num_elem > 0) CeedCall(rstr->ApplyUnsigned(rstr, t_mode, u, ru, request));
+int CeedElemRestrictionGetType(CeedElemRestriction rstr, CeedRestrictionType *rstr_type) {
+  *rstr_type = rstr->rstr_type;
   return CEED_ERROR_SUCCESS;
 }
 
 /**
+  @brief Get the strided status of a CeedElemRestriction
 
+  @param[in]  rstr       CeedElemRestriction
+  @param[out] is_strided Variable to store strided status, 1 if strided else 0
+**/
+int CeedElemRestrictionIsStrided(CeedElemRestriction rstr, bool *is_strided) {
+  *is_strided = (rstr->rstr_type == CEED_RESTRICTION_STRIDED);
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
   @brief Get the strides of a strided CeedElemRestriction
 
   @param[in]  rstr    CeedElemRestriction
@@ -109,20 +148,37 @@ int CeedElemRestrictionGetStrides(CeedElemRestriction rstr, CeedInt (*strides)[3
 }
 
 /**
+  @brief Get the backend stride status of a CeedElemRestriction
+
+  @param[in]  rstr                 CeedElemRestriction
+  @param[out] has_backend_strides  Variable to store stride status
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Backend
+**/
+int CeedElemRestrictionHasBackendStrides(CeedElemRestriction rstr, bool *has_backend_strides) {
+  CeedCheck(rstr->strides, rstr->ceed, CEED_ERROR_MINOR, "ElemRestriction has no stride data");
+  *has_backend_strides = ((rstr->strides[0] == CEED_STRIDES_BACKEND[0]) && (rstr->strides[1] == CEED_STRIDES_BACKEND[1]) &&
+                          (rstr->strides[2] == CEED_STRIDES_BACKEND[2]));
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
   @brief Get read-only access to a CeedElemRestriction offsets array by memtype
 
   @param[in]  rstr     CeedElemRestriction to retrieve offsets
   @param[in]  mem_type Memory type on which to access the array.
                          If the backend uses a different memory type, this will perform a copy (possibly cached).
-  @param[out] offsets Array on memory type mem_type
+  @param[out] offsets  Array on memory type mem_type
 
   @return An error code: 0 - success, otherwise - failure
 
   @ref User
 **/
 int CeedElemRestrictionGetOffsets(CeedElemRestriction rstr, CeedMemType mem_type, const CeedInt **offsets) {
-  if (rstr->rstr_signed) {
-    CeedCall(CeedElemRestrictionGetOffsets(rstr->rstr_signed, mem_type, offsets));
+  if (rstr->rstr_base) {
+    CeedCall(CeedElemRestrictionGetOffsets(rstr->rstr_base, mem_type, offsets));
   } else {
     CeedCheck(rstr->GetOffsets, rstr->ceed, CEED_ERROR_UNSUPPORTED, "Backend does not support GetOffsets");
     CeedCall(rstr->GetOffsets(rstr, mem_type, offsets));
@@ -142,8 +198,8 @@ int CeedElemRestrictionGetOffsets(CeedElemRestriction rstr, CeedMemType mem_type
   @ref User
 **/
 int CeedElemRestrictionRestoreOffsets(CeedElemRestriction rstr, const CeedInt **offsets) {
-  if (rstr->rstr_signed) {
-    CeedCall(CeedElemRestrictionRestoreOffsets(rstr->rstr_signed, offsets));
+  if (rstr->rstr_base) {
+    CeedCall(CeedElemRestrictionRestoreOffsets(rstr->rstr_base, offsets));
   } else {
     *offsets = NULL;
     rstr->num_readers--;
@@ -152,49 +208,72 @@ int CeedElemRestrictionRestoreOffsets(CeedElemRestriction rstr, const CeedInt **
 }
 
 /**
-  @brief Get the strided status of a CeedElemRestriction
+  @brief Get read-only access to a CeedElemRestriction orientations array by memtype
 
-  @param[in]  rstr        CeedElemRestriction
-  @param[out] is_strided  Variable to store strided status, 1 if strided else 0
+  @param[in]  rstr     CeedElemRestriction to retrieve orientations
+  @param[in]  mem_type Memory type on which to access the array.
+                         If the backend uses a different memory type, this will perform a copy (possibly cached).
+  @param[out] orients  Array on memory type mem_type
 
   @return An error code: 0 - success, otherwise - failure
 
-  @ref Backend
+  @ref User
 **/
-int CeedElemRestrictionIsStrided(CeedElemRestriction rstr, bool *is_strided) {
-  *is_strided = rstr->strides ? true : false;
+int CeedElemRestrictionGetOrientations(CeedElemRestriction rstr, CeedMemType mem_type, const bool **orients) {
+  CeedCheck(rstr->GetOrientations, rstr->ceed, CEED_ERROR_UNSUPPORTED, "Backend does not support GetOrientations");
+  CeedCall(rstr->GetOrientations(rstr, mem_type, orients));
+  rstr->num_readers++;
   return CEED_ERROR_SUCCESS;
 }
 
 /**
-  @brief Get oriented status of a CeedElemRestriction
+  @brief Restore an orientations array obtained using CeedElemRestrictionGetOrientations()
 
-  @param[in]  rstr         CeedElemRestriction
-  @param[out] is_oriented  Variable to store oriented status, 1 if oriented else 0
+  @param[in] rstr    CeedElemRestriction to restore
+  @param[in] orients Array of orientation data
 
   @return An error code: 0 - success, otherwise - failure
 
-  @ref Backend
+  @ref User
 **/
-int CeedElemRestrictionIsOriented(CeedElemRestriction rstr, bool *is_oriented) {
-  *is_oriented = rstr->is_oriented;
+int CeedElemRestrictionRestoreOrientations(CeedElemRestriction rstr, const bool **orients) {
+  *orients = NULL;
+  rstr->num_readers--;
   return CEED_ERROR_SUCCESS;
 }
 
 /**
-  @brief Get the backend stride status of a CeedElemRestriction
+  @brief Get read-only access to a CeedElemRestriction curl-conforming orientations array by memtype
 
-  @param[in]  rstr                 CeedElemRestriction
-  @param[out] has_backend_strides  Variable to store stride status
+  @param[in]  rstr         CeedElemRestriction to retrieve curl-conforming orientations
+  @param[in]  mem_type     Memory type on which to access the array.
+                             If the backend uses a different memory type, this will perform a copy (possibly cached).
+  @param[out] curl_orients Array on memory type mem_type
 
   @return An error code: 0 - success, otherwise - failure
 
-  @ref Backend
+  @ref User
 **/
-int CeedElemRestrictionHasBackendStrides(CeedElemRestriction rstr, bool *has_backend_strides) {
-  CeedCheck(rstr->strides, rstr->ceed, CEED_ERROR_MINOR, "ElemRestriction has no stride data");
-  *has_backend_strides = ((rstr->strides[0] == CEED_STRIDES_BACKEND[0]) && (rstr->strides[1] == CEED_STRIDES_BACKEND[1]) &&
-                          (rstr->strides[2] == CEED_STRIDES_BACKEND[2]));
+int CeedElemRestrictionGetCurlOrientations(CeedElemRestriction rstr, CeedMemType mem_type, const CeedInt8 **curl_orients) {
+  CeedCheck(rstr->GetCurlOrientations, rstr->ceed, CEED_ERROR_UNSUPPORTED, "Backend does not support GetCurlOrientations");
+  CeedCall(rstr->GetCurlOrientations(rstr, mem_type, curl_orients));
+  rstr->num_readers++;
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
+  @brief Restore an orientations array obtained using CeedElemRestrictionGetCurlOrientations()
+
+  @param[in] rstr         CeedElemRestriction to restore
+  @param[in] curl_orients Array of orientation data
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref User
+**/
+int CeedElemRestrictionRestoreCurlOrientations(CeedElemRestriction rstr, const CeedInt8 **curl_orients) {
+  *curl_orients = NULL;
+  rstr->num_readers--;
   return CEED_ERROR_SUCCESS;
 }
 
@@ -287,17 +366,35 @@ int CeedElemRestrictionReference(CeedElemRestriction rstr) {
   @ref Backend
 **/
 int CeedElemRestrictionGetFlopsEstimate(CeedElemRestriction rstr, CeedTransposeMode t_mode, CeedSize *flops) {
-  bool    is_oriented;
-  CeedInt e_size = rstr->num_blk * rstr->blk_size * rstr->elem_size * rstr->num_comp, scale = 0;
-
-  CeedCall(CeedElemRestrictionIsOriented(rstr, &is_oriented));
-  switch (t_mode) {
-    case CEED_NOTRANSPOSE:
-      scale = is_oriented ? 1 : 0;
-      break;
-    case CEED_TRANSPOSE:
-      scale = is_oriented ? 2 : 1;
-      break;
+  CeedInt             e_size = rstr->num_blk * rstr->blk_size * rstr->elem_size * rstr->num_comp, scale = 0;
+  CeedRestrictionType rstr_type;
+  CeedCall(CeedElemRestrictionGetType(rstr, &rstr_type));
+  if (t_mode == CEED_TRANSPOSE) {
+    switch (rstr_type) {
+      case CEED_RESTRICTION_STRIDED:
+      case CEED_RESTRICTION_STANDARD:
+        scale = 1;
+        break;
+      case CEED_RESTRICTION_ORIENTED:
+        scale = 2;
+        break;
+      case CEED_RESTRICTION_CURL_ORIENTED:
+        scale = 6;
+        break;
+    }
+  } else {
+    switch (rstr_type) {
+      case CEED_RESTRICTION_STRIDED:
+      case CEED_RESTRICTION_STANDARD:
+        scale = 0;
+        break;
+      case CEED_RESTRICTION_ORIENTED:
+        scale = 1;
+        break;
+      case CEED_RESTRICTION_CURL_ORIENTED:
+        scale = 5;
+        break;
+    }
   }
   *flops = e_size * scale;
 
@@ -338,7 +435,7 @@ const CeedElemRestriction CEED_ELEMRESTRICTION_NONE = &ceed_elemrestriction_none
   @param[in]  offsets     Array of shape [@a num_elem, @a elem_size].
                             Row i holds the ordered list of the offsets (into the input CeedVector) for the unknowns corresponding to element i, where
 0 <= i < @a num_elem. All offsets must be in the range [0, @a l_size - 1].
-  @param[out] rstr    Address of the variable where the newly created CeedElemRestriction will be stored
+  @param[out] rstr        Address of the variable where the newly created CeedElemRestriction will be stored
 
   @return An error code: 0 - success, otherwise - failure
 
@@ -350,7 +447,7 @@ int CeedElemRestrictionCreate(Ceed ceed, CeedInt num_elem, CeedInt elem_size, Ce
     Ceed delegate;
 
     CeedCall(CeedGetObjectDelegate(ceed, &delegate, "ElemRestriction"));
-    CeedCheck(delegate, ceed, CEED_ERROR_UNSUPPORTED, "Backend does not support ElemRestrictionCreate");
+    CeedCheck(delegate, ceed, CEED_ERROR_UNSUPPORTED, "Backend does not implement ElemRestrictionCreate");
     CeedCall(CeedElemRestrictionCreate(delegate, num_elem, elem_size, num_comp, comp_stride, l_size, mem_type, copy_mode, offsets, rstr));
     return CEED_ERROR_SUCCESS;
   }
@@ -369,13 +466,13 @@ int CeedElemRestrictionCreate(Ceed ceed, CeedInt num_elem, CeedInt elem_size, Ce
   (*rstr)->l_size      = l_size;
   (*rstr)->num_blk     = num_elem;
   (*rstr)->blk_size    = 1;
-  (*rstr)->is_oriented = false;
-  CeedCall(ceed->ElemRestrictionCreate(mem_type, copy_mode, offsets, *rstr));
+  (*rstr)->rstr_type   = CEED_RESTRICTION_STANDARD;
+  CeedCall(ceed->ElemRestrictionCreate(mem_type, copy_mode, offsets, NULL, NULL, *rstr));
   return CEED_ERROR_SUCCESS;
 }
 
 /**
-  @brief Create a CeedElemRestriction with orientation sign
+  @brief Create a CeedElemRestriction with orientation signs
 
   @param[in]  ceed        Ceed object where the CeedElemRestriction will be created
   @param[in]  num_elem    Number of elements described in the @a offsets array
@@ -390,23 +487,23 @@ int CeedElemRestrictionCreate(Ceed ceed, CeedInt num_elem, CeedInt elem_size, Ce
   @param[in]  offsets     Array of shape [@a num_elem, @a elem_size].
                             Row i holds the ordered list of the offsets (into the input CeedVector) for the unknowns corresponding to element i, where
 0 <= i < @a num_elem. All offsets must be in the range [0, @a l_size - 1].
-  @param[in]  orient      Array of shape [@a num_elem, @a elem_size] with bool false for positively oriented and true to flip the orientation.
-  @param[out] rstr       Address of the variable where the newly created CeedElemRestriction will be stored
+  @param[in]  orients     Array of shape [@a num_elem, @a elem_size] with bool false for positively oriented and true to flip the orientation.
+  @param[out] rstr        Address of the variable where the newly created CeedElemRestriction will be stored
 
   @return An error code: 0 - success, otherwise - failure
 
   @ref User
 **/
 int CeedElemRestrictionCreateOriented(Ceed ceed, CeedInt num_elem, CeedInt elem_size, CeedInt num_comp, CeedInt comp_stride, CeedSize l_size,
-                                      CeedMemType mem_type, CeedCopyMode copy_mode, const CeedInt *offsets, const bool *orient,
+                                      CeedMemType mem_type, CeedCopyMode copy_mode, const CeedInt *offsets, const bool *orients,
                                       CeedElemRestriction *rstr) {
-  if (!ceed->ElemRestrictionCreateOriented) {
+  if (!ceed->ElemRestrictionCreate) {
     Ceed delegate;
 
     CeedCall(CeedGetObjectDelegate(ceed, &delegate, "ElemRestriction"));
-    CeedCheck(delegate, ceed, CEED_ERROR_UNSUPPORTED, "Backend does not implement ElemRestrictionCreateOriented");
+    CeedCheck(delegate, ceed, CEED_ERROR_UNSUPPORTED, "Backend does not implement ElemRestrictionCreate");
     CeedCall(
-        CeedElemRestrictionCreateOriented(delegate, num_elem, elem_size, num_comp, comp_stride, l_size, mem_type, copy_mode, offsets, orient, rstr));
+        CeedElemRestrictionCreateOriented(delegate, num_elem, elem_size, num_comp, comp_stride, l_size, mem_type, copy_mode, offsets, orients, rstr));
     return CEED_ERROR_SUCCESS;
   }
 
@@ -424,8 +521,66 @@ int CeedElemRestrictionCreateOriented(Ceed ceed, CeedInt num_elem, CeedInt elem_
   (*rstr)->l_size      = l_size;
   (*rstr)->num_blk     = num_elem;
   (*rstr)->blk_size    = 1;
-  (*rstr)->is_oriented = true;
-  CeedCall(ceed->ElemRestrictionCreateOriented(mem_type, copy_mode, offsets, orient, *rstr));
+  (*rstr)->rstr_type   = CEED_RESTRICTION_ORIENTED;
+  CeedCall(ceed->ElemRestrictionCreate(mem_type, copy_mode, offsets, orients, NULL, *rstr));
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
+  @brief Create a CeedElemRestriction with a general tridiagonal transformation matrix for curl-conforming elements
+
+  @param[in]  ceed         Ceed object where the CeedElemRestriction will be created
+  @param[in]  num_elem     Number of elements described in the @a offsets array
+  @param[in]  elem_size    Size (number of "nodes") per element
+  @param[in]  num_comp     Number of field components per interpolation node (1 for scalar fields)
+  @param[in]  comp_stride  Stride between components for the same L-vector "node".
+                             Data for node i, component j, element k can be found in the L-vector at index offsets[i + k*elem_size] + j*comp_stride.
+  @param[in]  l_size       The size of the L-vector.
+                             This vector may be larger than the elements and fields given by this restriction.
+  @param[in]  mem_type     Memory type of the @a offsets array, see CeedMemType
+  @param[in]  copy_mode    Copy mode for the @a offsets array, see CeedCopyMode
+  @param[in]  offsets      Array of shape [@a num_elem, @a elem_size].
+                             Row i holds the ordered list of the offsets (into the input CeedVector) for the unknowns corresponding to element i,
+where 0 <= i < @a num_elem. All offsets must be in the range [0, @a l_size - 1].
+  @param[in]  curl_orients Array of shape [@a num_elem, @a 3 * elem_size] representing a row-major tridiagonal matrix (curl_orients[i * 3 * elem_size]
+= curl_orients[(i + 1) * 3 * elem_size - 1] = 0, where 0 <= i < @a num_elem) which is applied to the element unknowns upon restriction. This
+orientation matrix allows for pairs of face degrees of freedom on elements for H(curl) spaces to be coupled in the element restriction operation,
+which is a way to resolve face orientation issues for 3D meshes (https://dl.acm.org/doi/pdf/10.1145/3524456).
+  @param[out] rstr         Address of the variable where the newly created CeedElemRestriction will be stored
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref User
+**/
+int CeedElemRestrictionCreateCurlOriented(Ceed ceed, CeedInt num_elem, CeedInt elem_size, CeedInt num_comp, CeedInt comp_stride, CeedSize l_size,
+                                          CeedMemType mem_type, CeedCopyMode copy_mode, const CeedInt *offsets, const CeedInt8 *curl_orients,
+                                          CeedElemRestriction *rstr) {
+  if (!ceed->ElemRestrictionCreate) {
+    Ceed delegate;
+
+    CeedCall(CeedGetObjectDelegate(ceed, &delegate, "ElemRestriction"));
+    CeedCheck(delegate, ceed, CEED_ERROR_UNSUPPORTED, "Backend does not implement ElemRestrictionCreate");
+    CeedCall(CeedElemRestrictionCreateCurlOriented(delegate, num_elem, elem_size, num_comp, comp_stride, l_size, mem_type, copy_mode, offsets,
+                                                   curl_orients, rstr));
+    return CEED_ERROR_SUCCESS;
+  }
+
+  CeedCheck(elem_size > 0, ceed, CEED_ERROR_DIMENSION, "Element size must be at least 1");
+  CeedCheck(num_comp > 0, ceed, CEED_ERROR_DIMENSION, "ElemRestriction must have at least 1 component");
+  CeedCheck(num_comp == 1 || comp_stride > 0, ceed, CEED_ERROR_DIMENSION, "ElemRestriction component stride must be at least 1");
+
+  CeedCall(CeedCalloc(1, rstr));
+  CeedCall(CeedReferenceCopy(ceed, &(*rstr)->ceed));
+  (*rstr)->ref_count   = 1;
+  (*rstr)->num_elem    = num_elem;
+  (*rstr)->elem_size   = elem_size;
+  (*rstr)->num_comp    = num_comp;
+  (*rstr)->comp_stride = comp_stride;
+  (*rstr)->l_size      = l_size;
+  (*rstr)->num_blk     = num_elem;
+  (*rstr)->blk_size    = 1;
+  (*rstr)->rstr_type   = CEED_RESTRICTION_CURL_ORIENTED;
+  CeedCall(ceed->ElemRestrictionCreate(mem_type, copy_mode, offsets, NULL, curl_orients, *rstr));
   return CEED_ERROR_SUCCESS;
 }
 
@@ -453,7 +608,7 @@ int CeedElemRestrictionCreateStrided(Ceed ceed, CeedInt num_elem, CeedInt elem_s
     Ceed delegate;
 
     CeedCall(CeedGetObjectDelegate(ceed, &delegate, "ElemRestriction"));
-    CeedCheck(delegate, ceed, CEED_ERROR_UNSUPPORTED, "Backend does not support ElemRestrictionCreateStrided");
+    CeedCheck(delegate, ceed, CEED_ERROR_UNSUPPORTED, "Backend does not implement ElemRestrictionCreate");
     CeedCall(CeedElemRestrictionCreateStrided(delegate, num_elem, elem_size, num_comp, l_size, strides, rstr));
     return CEED_ERROR_SUCCESS;
   }
@@ -463,17 +618,17 @@ int CeedElemRestrictionCreateStrided(Ceed ceed, CeedInt num_elem, CeedInt elem_s
 
   CeedCall(CeedCalloc(1, rstr));
   CeedCall(CeedReferenceCopy(ceed, &(*rstr)->ceed));
-  (*rstr)->ref_count   = 1;
-  (*rstr)->num_elem    = num_elem;
-  (*rstr)->elem_size   = elem_size;
-  (*rstr)->num_comp    = num_comp;
-  (*rstr)->l_size      = l_size;
-  (*rstr)->num_blk     = num_elem;
-  (*rstr)->blk_size    = 1;
-  (*rstr)->is_oriented = false;
+  (*rstr)->ref_count = 1;
+  (*rstr)->num_elem  = num_elem;
+  (*rstr)->elem_size = elem_size;
+  (*rstr)->num_comp  = num_comp;
+  (*rstr)->l_size    = l_size;
+  (*rstr)->num_blk   = num_elem;
+  (*rstr)->blk_size  = 1;
+  (*rstr)->rstr_type = CEED_RESTRICTION_STRIDED;
   CeedCall(CeedMalloc(3, &(*rstr)->strides));
   for (CeedInt i = 0; i < 3; i++) (*rstr)->strides[i] = strides[i];
-  CeedCall(ceed->ElemRestrictionCreate(CEED_MEM_HOST, CEED_OWN_POINTER, NULL, *rstr));
+  CeedCall(ceed->ElemRestrictionCreate(CEED_MEM_HOST, CEED_OWN_POINTER, NULL, NULL, NULL, *rstr));
   return CEED_ERROR_SUCCESS;
 }
 
@@ -535,8 +690,8 @@ int CeedElemRestrictionCreateBlocked(Ceed ceed, CeedInt num_elem, CeedInt elem_s
   (*rstr)->l_size      = l_size;
   (*rstr)->num_blk     = num_blk;
   (*rstr)->blk_size    = blk_size;
-  (*rstr)->is_oriented = false;
-  CeedCall(ceed->ElemRestrictionCreateBlocked(CEED_MEM_HOST, CEED_OWN_POINTER, (const CeedInt *)blk_offsets, *rstr));
+  (*rstr)->rstr_type   = CEED_RESTRICTION_STANDARD;
+  CeedCall(ceed->ElemRestrictionCreateBlocked(CEED_MEM_HOST, CEED_OWN_POINTER, (const CeedInt *)blk_offsets, NULL, NULL, *rstr));
   if (copy_mode == CEED_OWN_POINTER) {
     CeedCall(CeedFree(&offsets));
   }
@@ -544,7 +699,153 @@ int CeedElemRestrictionCreateBlocked(Ceed ceed, CeedInt num_elem, CeedInt elem_s
 }
 
 /**
-  @brief Create a blocked strided CeedElemRestriction
+  @brief Create a blocked oriented CeedElemRestriction, typically only called by backends
+
+  @param[in]  ceed        Ceed object where the CeedElemRestriction will be created.
+  @param[in]  num_elem    Number of elements described in the @a offsets array.
+  @param[in]  elem_size   Size (number of unknowns) per element
+  @param[in]  blk_size    Number of elements in a block
+  @param[in]  num_comp    Number of field components per interpolation node (1 for scalar fields)
+  @param[in]  comp_stride Stride between components for the same L-vector "node".
+                            Data for node i, component j, element k can be found in the L-vector at index offsets[i + k*elem_size] + j*comp_stride.
+  @param[in]  l_size      The size of the L-vector.
+                            This vector may be larger than the elements and fields given by this restriction.
+  @param[in]  mem_type    Memory type of the @a offsets array, see CeedMemType
+  @param[in]  copy_mode   Copy mode for the @a offsets array, see CeedCopyMode
+  @param[in]  offsets     Array of shape [@a num_elem, @a elem_size].
+                            Row i holds the ordered list of the offsets (into the input CeedVector) for the unknowns corresponding to element i, where
+ 0 <= i < @a num_elem. All offsets must be in the range [0, @a l_size - 1]. The backend will permute and pad this array to the desired ordering for
+ the blocksize, which is typically given by the backend. The default reordering is to interlace elements.
+  @param[in]  orients     Array of shape [@a num_elem, @a elem_size] with bool false for positively oriented and true to flip the orientation.
+                            Will also be permuted and padded similarly to @a offsets.
+  @param[out] rstr        Address of the variable where the newly created CeedElemRestriction will be stored
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Backend
+ **/
+int CeedElemRestrictionCreateBlockedOriented(Ceed ceed, CeedInt num_elem, CeedInt elem_size, CeedInt blk_size, CeedInt num_comp, CeedInt comp_stride,
+                                             CeedSize l_size, CeedMemType mem_type, CeedCopyMode copy_mode, const CeedInt *offsets,
+                                             const bool *orients, CeedElemRestriction *rstr) {
+  CeedInt *blk_offsets;
+  bool    *blk_orients;
+  CeedInt  num_blk = (num_elem / blk_size) + !!(num_elem % blk_size);
+
+  if (!ceed->ElemRestrictionCreateBlocked) {
+    Ceed delegate;
+
+    CeedCall(CeedGetObjectDelegate(ceed, &delegate, "ElemRestriction"));
+    CeedCheck(delegate, ceed, CEED_ERROR_UNSUPPORTED, "Backend does not implement ElemRestrictionCreateBlocked");
+    CeedCall(CeedElemRestrictionCreateBlockedOriented(delegate, num_elem, elem_size, blk_size, num_comp, comp_stride, l_size, mem_type, copy_mode,
+                                                      offsets, orients, rstr));
+    return CEED_ERROR_SUCCESS;
+  }
+
+  CeedCheck(elem_size > 0, ceed, CEED_ERROR_DIMENSION, "Element size must be at least 1");
+  CeedCheck(blk_size > 0, ceed, CEED_ERROR_DIMENSION, "Block size must be at least 1");
+  CeedCheck(num_comp > 0, ceed, CEED_ERROR_DIMENSION, "ElemRestriction must have at least 1 component");
+  CeedCheck(num_comp == 1 || comp_stride > 0, ceed, CEED_ERROR_DIMENSION, "ElemRestriction component stride must be at least 1");
+
+  CeedCall(CeedCalloc(num_blk * blk_size * elem_size, &blk_offsets));
+  CeedCall(CeedCalloc(num_blk * blk_size * elem_size, &blk_orients));
+  CeedCall(CeedPermutePadOffsets(offsets, blk_offsets, num_blk, num_elem, blk_size, elem_size));
+  CeedCall(CeedPermutePadOrients(orients, blk_orients, num_blk, num_elem, blk_size, elem_size));
+
+  CeedCall(CeedCalloc(1, rstr));
+  CeedCall(CeedReferenceCopy(ceed, &(*rstr)->ceed));
+  (*rstr)->ref_count   = 1;
+  (*rstr)->num_elem    = num_elem;
+  (*rstr)->elem_size   = elem_size;
+  (*rstr)->num_comp    = num_comp;
+  (*rstr)->comp_stride = comp_stride;
+  (*rstr)->l_size      = l_size;
+  (*rstr)->num_blk     = num_blk;
+  (*rstr)->blk_size    = blk_size;
+  (*rstr)->rstr_type   = CEED_RESTRICTION_ORIENTED;
+  CeedCall(ceed->ElemRestrictionCreateBlocked(CEED_MEM_HOST, CEED_OWN_POINTER, (const CeedInt *)blk_offsets, (const bool *)blk_orients, NULL, *rstr));
+  if (copy_mode == CEED_OWN_POINTER) {
+    CeedCall(CeedFree(&offsets));
+  }
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
+  @brief Create a blocked curl-oriented CeedElemRestriction, typically only called by backends
+
+  @param[in]  ceed         Ceed object where the CeedElemRestriction will be created.
+  @param[in]  num_elem     Number of elements described in the @a offsets array.
+  @param[in]  elem_size    Size (number of unknowns) per element
+  @param[in]  blk_size     Number of elements in a block
+  @param[in]  num_comp     Number of field components per interpolation node (1 for scalar fields)
+  @param[in]  comp_stride  Stride between components for the same L-vector "node".
+                             Data for node i, component j, element k can be found in the L-vector at index offsets[i + k*elem_size] + j*comp_stride.
+  @param[in]  l_size       The size of the L-vector.
+                             This vector may be larger than the elements and fields given by this restriction.
+  @param[in]  mem_type     Memory type of the @a offsets array, see CeedMemType
+  @param[in]  copy_mode    Copy mode for the @a offsets array, see CeedCopyMode
+  @param[in]  offsets      Array of shape [@a num_elem, @a elem_size].
+                             Row i holds the ordered list of the offsets (into the input CeedVector) for the unknowns corresponding to element i,
+where 0 <= i < @a num_elem. All offsets must be in the range [0, @a l_size - 1]. The backend will permute and pad this array to the desired ordering
+for the blocksize, which is typically given by the backend. The default reordering is to interlace elements.
+  @param[in]  curl_orients Array of shape [@a num_elem, @a 3 * elem_size] representing a row-major tridiagonal matrix (curl_orients[i * 3 * elem_size]
+= curl_orients[(i + 1) * 3 * elem_size - 1] = 0, where 0 <= i < @a num_elem) which is applied to the element unknowns upon restriction. This
+orientation matrix allows for pairs of face degrees of freedom on elements for H(curl) spaces to be coupled in the element restriction operation,
+which is a way to resolve face orientation issues for 3D meshes (https://dl.acm.org/doi/pdf/10.1145/3524456). Will also be permuted and padded
+similarly to @a offsets.
+  @param[out] rstr         Address of the variable where the newly created CeedElemRestriction will be stored
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Backend
+ **/
+int CeedElemRestrictionCreateBlockedCurlOriented(Ceed ceed, CeedInt num_elem, CeedInt elem_size, CeedInt blk_size, CeedInt num_comp,
+                                                 CeedInt comp_stride, CeedSize l_size, CeedMemType mem_type, CeedCopyMode copy_mode,
+                                                 const CeedInt *offsets, const CeedInt8 *curl_orients, CeedElemRestriction *rstr) {
+  CeedInt  *blk_offsets;
+  CeedInt8 *blk_curl_orients;
+  CeedInt   num_blk = (num_elem / blk_size) + !!(num_elem % blk_size);
+
+  if (!ceed->ElemRestrictionCreateBlocked) {
+    Ceed delegate;
+
+    CeedCall(CeedGetObjectDelegate(ceed, &delegate, "ElemRestriction"));
+    CeedCheck(delegate, ceed, CEED_ERROR_UNSUPPORTED, "Backend does not implement ElemRestrictionCreateBlocked");
+    CeedCall(CeedElemRestrictionCreateBlockedCurlOriented(delegate, num_elem, elem_size, blk_size, num_comp, comp_stride, l_size, mem_type, copy_mode,
+                                                          offsets, curl_orients, rstr));
+    return CEED_ERROR_SUCCESS;
+  }
+
+  CeedCheck(elem_size > 0, ceed, CEED_ERROR_DIMENSION, "Element size must be at least 1");
+  CeedCheck(blk_size > 0, ceed, CEED_ERROR_DIMENSION, "Block size must be at least 1");
+  CeedCheck(num_comp > 0, ceed, CEED_ERROR_DIMENSION, "ElemRestriction must have at least 1 component");
+  CeedCheck(num_comp == 1 || comp_stride > 0, ceed, CEED_ERROR_DIMENSION, "ElemRestriction component stride must be at least 1");
+
+  CeedCall(CeedCalloc(num_blk * blk_size * elem_size, &blk_offsets));
+  CeedCall(CeedCalloc(num_blk * blk_size * 3 * elem_size, &blk_curl_orients));
+  CeedCall(CeedPermutePadOffsets(offsets, blk_offsets, num_blk, num_elem, blk_size, elem_size));
+  CeedCall(CeedPermutePadCurlOrients(curl_orients, blk_curl_orients, num_blk, num_elem, blk_size, 3 * elem_size));
+
+  CeedCall(CeedCalloc(1, rstr));
+  CeedCall(CeedReferenceCopy(ceed, &(*rstr)->ceed));
+  (*rstr)->ref_count   = 1;
+  (*rstr)->num_elem    = num_elem;
+  (*rstr)->elem_size   = elem_size;
+  (*rstr)->num_comp    = num_comp;
+  (*rstr)->comp_stride = comp_stride;
+  (*rstr)->l_size      = l_size;
+  (*rstr)->num_blk     = num_blk;
+  (*rstr)->blk_size    = blk_size;
+  (*rstr)->rstr_type   = CEED_RESTRICTION_CURL_ORIENTED;
+  CeedCall(ceed->ElemRestrictionCreateBlocked(CEED_MEM_HOST, CEED_OWN_POINTER, (const CeedInt *)blk_offsets, NULL, (const CeedInt8 *)blk_curl_orients,
+                                              *rstr));
+  if (copy_mode == CEED_OWN_POINTER) {
+    CeedCall(CeedFree(&offsets));
+  }
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
+  @brief Create a blocked strided CeedElemRestriction, typically only called by backends
 
   @param[in]  ceed      Ceed object where the CeedElemRestriction will be created
   @param[in]  num_elem  Number of elements described by the restriction
@@ -570,7 +871,7 @@ int CeedElemRestrictionCreateBlockedStrided(Ceed ceed, CeedInt num_elem, CeedInt
     Ceed delegate;
 
     CeedCall(CeedGetObjectDelegate(ceed, &delegate, "ElemRestriction"));
-    CeedCheck(delegate, ceed, CEED_ERROR_UNSUPPORTED, "Backend does not implement ElemRestrictionCreateBlockedStrided");
+    CeedCheck(delegate, ceed, CEED_ERROR_UNSUPPORTED, "Backend does not implement ElemRestrictionCreateBlocked");
     CeedCall(CeedElemRestrictionCreateBlockedStrided(delegate, num_elem, elem_size, blk_size, num_comp, l_size, strides, rstr));
     return CEED_ERROR_SUCCESS;
   }
@@ -581,22 +882,22 @@ int CeedElemRestrictionCreateBlockedStrided(Ceed ceed, CeedInt num_elem, CeedInt
 
   CeedCall(CeedCalloc(1, rstr));
   CeedCall(CeedReferenceCopy(ceed, &(*rstr)->ceed));
-  (*rstr)->ref_count   = 1;
-  (*rstr)->num_elem    = num_elem;
-  (*rstr)->elem_size   = elem_size;
-  (*rstr)->num_comp    = num_comp;
-  (*rstr)->l_size      = l_size;
-  (*rstr)->num_blk     = num_blk;
-  (*rstr)->blk_size    = blk_size;
-  (*rstr)->is_oriented = false;
+  (*rstr)->ref_count = 1;
+  (*rstr)->num_elem  = num_elem;
+  (*rstr)->elem_size = elem_size;
+  (*rstr)->num_comp  = num_comp;
+  (*rstr)->l_size    = l_size;
+  (*rstr)->num_blk   = num_blk;
+  (*rstr)->blk_size  = blk_size;
+  (*rstr)->rstr_type = CEED_RESTRICTION_STRIDED;
   CeedCall(CeedMalloc(3, &(*rstr)->strides));
   for (CeedInt i = 0; i < 3; i++) (*rstr)->strides[i] = strides[i];
-  CeedCall(ceed->ElemRestrictionCreateBlocked(CEED_MEM_HOST, CEED_OWN_POINTER, NULL, *rstr));
+  CeedCall(ceed->ElemRestrictionCreateBlocked(CEED_MEM_HOST, CEED_OWN_POINTER, NULL, NULL, NULL, *rstr));
   return CEED_ERROR_SUCCESS;
 }
 
 /**
-  @brief Copy the pointer to a CeedElemRestriction and set `CeedElemRestrictionApply()` implementation to `CeedElemRestrictionApplyUnsigned()`.
+  @brief Copy the pointer to a CeedElemRestriction and set `CeedElemRestrictionApply()` implementation to use the unsigned version.
 
   Both pointers should be destroyed with `CeedElemRestrictionDestroy()`.
 
@@ -620,10 +921,43 @@ int CeedElemRestrictionCreateUnsignedCopy(CeedElemRestriction rstr, CeedElemRest
     CeedCall(CeedMalloc(3, &(*rstr_unsigned)->strides));
     for (CeedInt i = 0; i < 3; i++) (*rstr_unsigned)->strides[i] = rstr->strides[i];
   }
-  CeedCall(CeedElemRestrictionReferenceCopy(rstr, &(*rstr_unsigned)->rstr_signed));
+  CeedCall(CeedElemRestrictionReferenceCopy(rstr, &(*rstr_unsigned)->rstr_base));
 
   // Override Apply
   (*rstr_unsigned)->Apply = rstr->ApplyUnsigned;
+
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
+  @brief Copy the pointer to a CeedElemRestriction and set `CeedElemRestrictionApply()` implementation to use the unoriented version.
+
+  Both pointers should be destroyed with `CeedElemRestrictionDestroy()`.
+
+  @param[in]     rstr            CeedElemRestriction to create unoriented reference to
+  @param[in,out] rstr_unoriented Variable to store unoriented CeedElemRestriction
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref User
+**/
+int CeedElemRestrictionCreateUnorientedCopy(CeedElemRestriction rstr, CeedElemRestriction *rstr_unoriented) {
+  CeedCall(CeedCalloc(1, rstr_unoriented));
+
+  // Copy old rstr
+  memcpy(*rstr_unoriented, rstr, sizeof(struct CeedElemRestriction_private));
+  (*rstr_unoriented)->ceed = NULL;
+  CeedCall(CeedReferenceCopy(rstr->ceed, &(*rstr_unoriented)->ceed));
+  (*rstr_unoriented)->ref_count = 1;
+  (*rstr_unoriented)->strides   = NULL;
+  if (rstr->strides) {
+    CeedCall(CeedMalloc(3, &(*rstr_unoriented)->strides));
+    for (CeedInt i = 0; i < 3; i++) (*rstr_unoriented)->strides[i] = rstr->strides[i];
+  }
+  CeedCall(CeedElemRestrictionReferenceCopy(rstr, &(*rstr_unoriented)->rstr_base));
+
+  // Override Apply
+  (*rstr_unoriented)->Apply = rstr->ApplyUnoriented;
 
   return CEED_ERROR_SUCCESS;
 }
@@ -931,7 +1265,7 @@ int CeedElemRestrictionDestroy(CeedElemRestriction *rstr) {
             "Cannot destroy CeedElemRestriction, a process has read access to the offset data");
 
   // Only destroy backend data once between rstr and unsigned copy
-  if ((*rstr)->rstr_signed) CeedCall(CeedElemRestrictionDestroy(&(*rstr)->rstr_signed));
+  if ((*rstr)->rstr_base) CeedCall(CeedElemRestrictionDestroy(&(*rstr)->rstr_base));
   else if ((*rstr)->Destroy) CeedCall((*rstr)->Destroy(*rstr));
 
   CeedCall(CeedFree(&(*rstr)->strides));

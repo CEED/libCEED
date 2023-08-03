@@ -25,12 +25,14 @@ typedef struct {
 } CeedVector_Ref;
 
 typedef struct {
-  const CeedInt *offsets;
-  CeedInt       *offsets_allocated;
-  // Orientation, if it exists, is true when the face must be flipped (multiplies by -1.).
-  const bool *orient;
-  bool       *orient_allocated;
-  int (*Apply)(CeedElemRestriction, CeedInt, CeedInt, CeedInt, CeedInt, CeedInt, bool, CeedTransposeMode, CeedVector, CeedVector, CeedRequest *);
+  const CeedInt  *offsets;
+  CeedInt        *offsets_allocated;
+  const bool     *orients; /* Orientation, if it exists, is true when the dof must be flipped */
+  bool           *orients_allocated;
+  const CeedInt8 *curl_orients; /* Tridiagonal matrix (row-major) for a general transformation during restriction */
+  CeedInt8       *curl_orients_allocated;
+  int (*Apply)(CeedElemRestriction, CeedInt, CeedInt, CeedInt, CeedInt, CeedInt, CeedTransposeMode, bool, bool, CeedVector, CeedVector,
+               CeedRequest *);
 } CeedElemRestriction_Ref;
 
 typedef struct {
@@ -59,9 +61,8 @@ typedef struct {
 
 CEED_INTERN int CeedVectorCreate_Ref(CeedSize n, CeedVector vec);
 
-CEED_INTERN int CeedElemRestrictionCreate_Ref(CeedMemType mem_type, CeedCopyMode copy_mode, const CeedInt *offsets, CeedElemRestriction r);
-CEED_INTERN int CeedElemRestrictionCreateOriented_Ref(CeedMemType mem_type, CeedCopyMode copy_mode, const CeedInt *offsets, const bool *orient,
-                                                      CeedElemRestriction r);
+CEED_INTERN int CeedElemRestrictionCreate_Ref(CeedMemType mem_type, CeedCopyMode copy_mode, const CeedInt *offsets, const bool *orients,
+                                              const CeedInt8 *curl_orients, CeedElemRestriction r);
 
 CEED_INTERN int CeedBasisCreateTensorH1_Ref(CeedInt dim, CeedInt P_1d, CeedInt Q_1d, const CeedScalar *interp_1d, const CeedScalar *grad_1d,
                                             const CeedScalar *q_ref_1d, const CeedScalar *q_weight_1d, CeedBasis basis);

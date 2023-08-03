@@ -239,6 +239,49 @@ CEED_EXTERN void fCeedElemRestrictionCreate(int *ceed, int *nelements, int *esiz
   }
 }
 
+#define fCeedElemRestrictionCreateOriented FORTRAN_NAME(ceedelemrestrictioncreateoriented, CEEDELEMRESTRICTIONCREATEORIENTED)
+CEED_EXTERN void fCeedElemRestrictionCreateOriented(int *ceed, int *nelements, int *esize, int *num_comp, int *comp_stride, int *lsize, int *memtype,
+                                                    int *copymode, const int *offsets, const bool *orients, int *elemrestriction, int *err) {
+  if (CeedElemRestriction_count == CeedElemRestriction_count_max) {
+    CeedElemRestriction_count_max += CeedElemRestriction_count_max / 2 + 1;
+    CeedRealloc(CeedElemRestriction_count_max, &CeedElemRestriction_dict);
+  }
+
+  const int  *offsets_ = offsets;
+  const bool *orients_ = orients;
+
+  CeedElemRestriction *elemrestriction_ = &CeedElemRestriction_dict[CeedElemRestriction_count];
+  *err = CeedElemRestrictionCreateOriented(Ceed_dict[*ceed], *nelements, *esize, *num_comp, *comp_stride, *lsize, (CeedMemType)*memtype,
+                                           (CeedCopyMode)*copymode, offsets_, orients_, elemrestriction_);
+
+  if (*err == 0) {
+    *elemrestriction = CeedElemRestriction_count++;
+    CeedElemRestriction_n++;
+  }
+}
+
+#define fCeedElemRestrictionCreateCurlOriented FORTRAN_NAME(ceedelemrestrictioncreatecurloriented, CEEDELEMRESTRICTIONCREATECURLORIENTED)
+CEED_EXTERN void fCeedElemRestrictionCreateCurlOriented(int *ceed, int *nelements, int *esize, int *num_comp, int *comp_stride, int *lsize,
+                                                        int *memtype, int *copymode, const int *offsets, const int8_t *curlorients,
+                                                        int *elemrestriction, int *err) {
+  if (CeedElemRestriction_count == CeedElemRestriction_count_max) {
+    CeedElemRestriction_count_max += CeedElemRestriction_count_max / 2 + 1;
+    CeedRealloc(CeedElemRestriction_count_max, &CeedElemRestriction_dict);
+  }
+
+  const int    *offsets_     = offsets;
+  const int8_t *curlorients_ = curlorients;
+
+  CeedElemRestriction *elemrestriction_ = &CeedElemRestriction_dict[CeedElemRestriction_count];
+  *err = CeedElemRestrictionCreateCurlOriented(Ceed_dict[*ceed], *nelements, *esize, *num_comp, *comp_stride, *lsize, (CeedMemType)*memtype,
+                                               (CeedCopyMode)*copymode, offsets_, curlorients_, elemrestriction_);
+
+  if (*err == 0) {
+    *elemrestriction = CeedElemRestriction_count++;
+    CeedElemRestriction_n++;
+  }
+}
+
 #define fCeedElemRestrictionCreateStrided FORTRAN_NAME(ceedelemrestrictioncreatestrided, CEEDELEMRESTRICTIONCREATESTRIDED)
 CEED_EXTERN void fCeedElemRestrictionCreateStrided(int *ceed, int *nelements, int *esize, int *num_comp, int *lsize, int *strides,
                                                    int *elemrestriction, int *err) {
@@ -250,6 +293,7 @@ CEED_EXTERN void fCeedElemRestrictionCreateStrided(int *ceed, int *nelements, in
   CeedElemRestriction *elemrestriction_ = &CeedElemRestriction_dict[CeedElemRestriction_count];
   *err                                  = CeedElemRestrictionCreateStrided(Ceed_dict[*ceed], *nelements, *esize, *num_comp, *lsize,
                                           *strides == FORTRAN_STRIDES_BACKEND ? CEED_STRIDES_BACKEND : strides, elemrestriction_);
+
   if (*err == 0) {
     *elemrestriction = CeedElemRestriction_count++;
     CeedElemRestriction_n++;
@@ -258,15 +302,62 @@ CEED_EXTERN void fCeedElemRestrictionCreateStrided(int *ceed, int *nelements, in
 
 #define fCeedElemRestrictionCreateBlocked FORTRAN_NAME(ceedelemrestrictioncreateblocked, CEEDELEMRESTRICTIONCREATEBLOCKED)
 CEED_EXTERN void fCeedElemRestrictionCreateBlocked(int *ceed, int *nelements, int *esize, int *blocksize, int *num_comp, int *comp_stride, int *lsize,
-                                                   int *mtype, int *cmode, int *blkindices, int *elemrestriction, int *err) {
+                                                   int *memtype, int *copymode, const int *offsets, int *elemrestriction, int *err) {
   if (CeedElemRestriction_count == CeedElemRestriction_count_max) {
     CeedElemRestriction_count_max += CeedElemRestriction_count_max / 2 + 1;
     CeedRealloc(CeedElemRestriction_count_max, &CeedElemRestriction_dict);
   }
 
+  const int *offsets_ = offsets;
+
   CeedElemRestriction *elemrestriction_ = &CeedElemRestriction_dict[CeedElemRestriction_count];
-  *err = CeedElemRestrictionCreateBlocked(Ceed_dict[*ceed], *nelements, *esize, *blocksize, *num_comp, *comp_stride, *lsize, (CeedMemType)*mtype,
-                                          (CeedCopyMode)*cmode, blkindices, elemrestriction_);
+  *err = CeedElemRestrictionCreateBlocked(Ceed_dict[*ceed], *nelements, *esize, *blocksize, *num_comp, *comp_stride, *lsize, (CeedMemType)*memtype,
+                                          (CeedCopyMode)*copymode, offsets_, elemrestriction_);
+
+  if (*err == 0) {
+    *elemrestriction = CeedElemRestriction_count++;
+    CeedElemRestriction_n++;
+  }
+}
+
+#define fCeedElemRestrictionCreateBlockedOriented FORTRAN_NAME(ceedelemrestrictioncreateblockedoriented, CEEDELEMRESTRICTIONCREATEBLOCKEDORIENTED)
+CEED_EXTERN void fCeedElemRestrictionCreateBlockedOriented(int *ceed, int *nelements, int *esize, int *blocksize, int *num_comp, int *comp_stride,
+                                                           int *lsize, int *memtype, int *copymode, const int *offsets, const bool *orients,
+                                                           int *elemrestriction, int *err) {
+  if (CeedElemRestriction_count == CeedElemRestriction_count_max) {
+    CeedElemRestriction_count_max += CeedElemRestriction_count_max / 2 + 1;
+    CeedRealloc(CeedElemRestriction_count_max, &CeedElemRestriction_dict);
+  }
+
+  const int  *offsets_ = offsets;
+  const bool *orients_ = orients;
+
+  CeedElemRestriction *elemrestriction_ = &CeedElemRestriction_dict[CeedElemRestriction_count];
+  *err = CeedElemRestrictionCreateBlockedOriented(Ceed_dict[*ceed], *nelements, *esize, *blocksize, *num_comp, *comp_stride, *lsize,
+                                                  (CeedMemType)*memtype, (CeedCopyMode)*copymode, offsets_, orients_, elemrestriction_);
+
+  if (*err == 0) {
+    *elemrestriction = CeedElemRestriction_count++;
+    CeedElemRestriction_n++;
+  }
+}
+
+#define fCeedElemRestrictionCreateBlockedCurlOriented \
+  FORTRAN_NAME(ceedelemrestrictioncreateblockedcurloriented, CEEDELEMRESTRICTIONCREATEBLOCKEDCURLORIENTED)
+CEED_EXTERN void fCeedElemRestrictionCreateBlockedCurlOriented(int *ceed, int *nelements, int *esize, int *blocksize, int *num_comp, int *comp_stride,
+                                                               int *lsize, int *memtype, int *copymode, const int *offsets, const int8_t *curlorients,
+                                                               int *elemrestriction, int *err) {
+  if (CeedElemRestriction_count == CeedElemRestriction_count_max) {
+    CeedElemRestriction_count_max += CeedElemRestriction_count_max / 2 + 1;
+    CeedRealloc(CeedElemRestriction_count_max, &CeedElemRestriction_dict);
+  }
+
+  const int    *offsets_     = offsets;
+  const int8_t *curlorients_ = curlorients;
+
+  CeedElemRestriction *elemrestriction_ = &CeedElemRestriction_dict[CeedElemRestriction_count];
+  *err = CeedElemRestrictionCreateBlockedCurlOriented(Ceed_dict[*ceed], *nelements, *esize, *blocksize, *num_comp, *comp_stride, *lsize,
+                                                      (CeedMemType)*memtype, (CeedCopyMode)*copymode, offsets_, curlorients_, elemrestriction_);
 
   if (*err == 0) {
     *elemrestriction = CeedElemRestriction_count++;
@@ -284,6 +375,7 @@ CEED_EXTERN void fCeedElemRestrictionCreateBlockedStrided(int *ceed, int *neleme
 
   CeedElemRestriction *elemrestriction_ = &CeedElemRestriction_dict[CeedElemRestriction_count];
   *err = CeedElemRestrictionCreateBlockedStrided(Ceed_dict[*ceed], *nelements, *esize, *blk_size, *num_comp, *lsize, strides, elemrestriction_);
+
   if (*err == 0) {
     *elemrestriction = CeedElemRestriction_count++;
     CeedElemRestriction_n++;

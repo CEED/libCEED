@@ -104,6 +104,11 @@ typedef int32_t CeedInt;
 typedef ptrdiff_t CeedSize;
 #define CeedSize_FMT "td"
 
+/// Integer type, for small integers
+/// @ingroup Ceed
+typedef signed char CeedInt8;
+#define CeedInt8_FMT "d"
+
 /// Scalar (floating point) types
 ///
 /// @ingroup Ceed
