@@ -350,7 +350,7 @@ static int CeedOperatorApplyAdd_Cuda(CeedOperator op, CeedVector invec, CeedVect
   CeedVector          vec;
   CeedBasis           basis;
   CeedElemRestriction Erestrict;
-  CeedScalar         *edata[2 * CEED_FIELD_MAX] = {0};
+  CeedScalar         *edata[2 * CEED_FIELD_MAX] = {NULL};
 
   // Setup
   CeedCallBackend(CeedOperatorSetup_Cuda(op));
@@ -454,8 +454,8 @@ static inline int CeedOperatorLinearAssembleQFunctionCore_Cuda(CeedOperator op, 
   Ceed        ceed, ceedparent;
   CeedCallBackend(CeedOperatorGetCeed(op, &ceed));
   CeedCallBackend(CeedGetOperatorFallbackParentCeed(ceed, &ceedparent));
-  ceedparent = ceedparent ? ceedparent : ceed;
-  CeedScalar *edata[2 * CEED_FIELD_MAX];
+  ceedparent                            = ceedparent ? ceedparent : ceed;
+  CeedScalar *edata[2 * CEED_FIELD_MAX] = {NULL};
 
   // Setup
   CeedCallBackend(CeedOperatorSetup_Cuda(op));

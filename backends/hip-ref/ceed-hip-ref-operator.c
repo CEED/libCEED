@@ -349,7 +349,7 @@ static int CeedOperatorApplyAdd_Hip(CeedOperator op, CeedVector invec, CeedVecto
   CeedVector          vec;
   CeedBasis           basis;
   CeedElemRestriction Erestrict;
-  CeedScalar         *edata[2 * CEED_FIELD_MAX];
+  CeedScalar         *edata[2 * CEED_FIELD_MAX] = {NULL};
 
   // Setup
   CeedCallBackend(CeedOperatorSetup_Hip(op));
@@ -453,8 +453,8 @@ static inline int CeedOperatorLinearAssembleQFunctionCore_Hip(CeedOperator op, b
   Ceed        ceed, ceedparent;
   CeedCallBackend(CeedOperatorGetCeed(op, &ceed));
   CeedCallBackend(CeedGetOperatorFallbackParentCeed(ceed, &ceedparent));
-  ceedparent = ceedparent ? ceedparent : ceed;
-  CeedScalar *edata[2 * CEED_FIELD_MAX];
+  ceedparent                            = ceedparent ? ceedparent : ceed;
+  CeedScalar *edata[2 * CEED_FIELD_MAX] = {NULL};
 
   // Setup
   CeedCallBackend(CeedOperatorSetup_Hip(op));

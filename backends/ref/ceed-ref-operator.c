@@ -300,7 +300,7 @@ static int CeedOperatorApplyAdd_Ref(CeedOperator op, CeedVector in_vec, CeedVect
   CeedEvalMode        eval_mode;
   CeedVector          vec;
   CeedElemRestriction elem_restr;
-  CeedScalar         *e_data_full[2 * CEED_FIELD_MAX] = {0};
+  CeedScalar         *e_data_full[2 * CEED_FIELD_MAX] = {NULL};
 
   // Setup
   CeedCallBackend(CeedOperatorSetup_Ref(op));
@@ -390,7 +390,7 @@ static inline int CeedOperatorLinearAssembleQFunctionCore_Ref(CeedOperator op, b
   CeedCallBackend(CeedOperatorGetCeed(op, &ceed));
   CeedCallBackend(CeedGetOperatorFallbackParentCeed(ceed, &ceed_parent));
   ceed_parent                                 = ceed_parent ? ceed_parent : ceed;
-  CeedScalar *e_data_full[2 * CEED_FIELD_MAX] = {0};
+  CeedScalar *e_data_full[2 * CEED_FIELD_MAX] = {NULL};
 
   // Setup
   CeedCallBackend(CeedOperatorSetup_Ref(op));
