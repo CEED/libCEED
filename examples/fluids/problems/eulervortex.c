@@ -20,7 +20,8 @@ PetscErrorCode NS_EULER_VORTEX(ProblemData *problem, DM dm, void *ctx, SimpleBC 
   EulerTestType        euler_test;
   User                 user = *(User *)ctx;
   StabilizationType    stab;
-  MPI_Comm             comm = PETSC_COMM_WORLD;
+  MPI_Comm             comm = user->comm;
+  Ceed                 ceed = user->ceed;
   PetscBool            implicit;
   PetscBool            has_curr_time = PETSC_TRUE;
   PetscBool            has_neumann   = PETSC_TRUE;
@@ -140,24 +141,26 @@ PetscErrorCode NS_EULER_VORTEX(ProblemData *problem, DM dm, void *ctx, SimpleBC 
   euler_ctx->mean_velocity[2] = mean_velocity[2];
   euler_ctx->stabilization    = stab;
 
-  CeedQFunctionContextCreate(user->ceed, &euler_context);
-  CeedQFunctionContextSetData(euler_context, CEED_MEM_HOST, CEED_USE_POINTER, sizeof(*euler_ctx), euler_ctx);
-  CeedQFunctionContextSetDataDestroy(euler_context, CEED_MEM_HOST, FreeContextPetsc);
-  CeedQFunctionContextRegisterDouble(euler_context, "solution time", offsetof(struct EulerContext_, curr_time), 1, "Physical time of the solution");
-  CeedQFunctionContextReferenceCopy(euler_context, &problem->ics.qfunction_context);
-  CeedQFunctionContextReferenceCopy(euler_context, &problem->apply_vol_rhs.qfunction_context);
-  CeedQFunctionContextReferenceCopy(euler_context, &problem->apply_vol_ifunction.qfunction_context);
-  CeedQFunctionContextReferenceCopy(euler_context, &problem->apply_inflow.qfunction_context);
-  CeedQFunctionContextReferenceCopy(euler_context, &problem->apply_outflow.qfunction_context);
+  PetscCallCeed(ceed, CeedQFunctionContextCreate(user->ceed, &euler_context));
+  PetscCallCeed(ceed, CeedQFunctionContextSetData(euler_context, CEED_MEM_HOST, CEED_USE_POINTER, sizeof(*euler_ctx), euler_ctx));
+  PetscCallCeed(ceed, CeedQFunctionContextSetDataDestroy(euler_context, CEED_MEM_HOST, FreeContextPetsc));
+  PetscCallCeed(ceed, CeedQFunctionContextRegisterDouble(euler_context, "solution time", offsetof(struct EulerContext_, curr_time), 1,
+                                                         "Physical time of the solution"));
+  PetscCallCeed(ceed, CeedQFunctionContextReferenceCopy(euler_context, &problem->ics.qfunction_context));
+  PetscCallCeed(ceed, CeedQFunctionContextReferenceCopy(euler_context, &problem->apply_vol_rhs.qfunction_context));
+  PetscCallCeed(ceed, CeedQFunctionContextReferenceCopy(euler_context, &problem->apply_vol_ifunction.qfunction_context));
+  PetscCallCeed(ceed, CeedQFunctionContextReferenceCopy(euler_context, &problem->apply_inflow.qfunction_context));
+  PetscCallCeed(ceed, CeedQFunctionContextReferenceCopy(euler_context, &problem->apply_outflow.qfunction_context));
   PetscFunctionReturn(PETSC_SUCCESS);
 }
 
-PetscErrorCode PRINT_EULER_VORTEX(ProblemData *problem, AppCtx app_ctx) {
-  MPI_Comm     comm = PETSC_COMM_WORLD;
+PetscErrorCode PRINT_EULER_VORTEX(User user, ProblemData *problem, AppCtx app_ctx) {
+  MPI_Comm     comm = user->comm;
+  Ceed         ceed = user->ceed;
   EulerContext euler_ctx;
 
   PetscFunctionBeginUser;
-  CeedQFunctionContextGetData(problem->ics.qfunction_context, CEED_MEM_HOST, &euler_ctx);
+  PetscCallCeed(ceed, CeedQFunctionContextGetData(problem->ics.qfunction_context, CEED_MEM_HOST, &euler_ctx));
   PetscCall(PetscPrintf(comm,
                         "  Problem:\n"
                         "    Problem Name                       : %s\n"
@@ -167,6 +170,6 @@ PetscErrorCode PRINT_EULER_VORTEX(ProblemData *problem, AppCtx app_ctx) {
                         app_ctx->problem_name, EulerTestTypes[euler_ctx->euler_test], euler_ctx->mean_velocity[0], euler_ctx->mean_velocity[1],
                         euler_ctx->mean_velocity[2], StabilizationTypes[euler_ctx->stabilization]));
 
-  CeedQFunctionContextRestoreData(problem->ics.qfunction_context, &euler_ctx);
+  PetscCallCeed(ceed, CeedQFunctionContextRestoreData(problem->ics.qfunction_context, &euler_ctx));
   PetscFunctionReturn(PETSC_SUCCESS);
 }

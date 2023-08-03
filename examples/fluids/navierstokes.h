@@ -16,12 +16,24 @@
 #include "qfunctions/newtonian_types.h"
 #include "qfunctions/stabilization_types.h"
 
-// -----------------------------------------------------------------------------
-// PETSc Version
-// -----------------------------------------------------------------------------
 #if PETSC_VERSION_LT(3, 19, 0)
 #error "PETSc v3.19 or later is required"
 #endif
+
+#define PetscCeedChk(ceed, ierr)                                    \
+  do {                                                              \
+    if (ierr != CEED_ERROR_SUCCESS) {                               \
+      const char *error_message;                                    \
+      CeedGetErrorMessage(ceed, &error_message);                    \
+      SETERRQ(PETSC_COMM_SELF, PETSC_ERR_LIB, "%s", error_message); \
+    }                                                               \
+  } while (0)
+
+#define PetscCallCeed(ceed, ...) \
+  do {                           \
+    int ierr_q_ = __VA_ARGS__;   \
+    PetscCeedChk(ceed, ierr_q_); \
+  } while (0)
 
 // -----------------------------------------------------------------------------
 // Enums
@@ -279,7 +291,7 @@ struct ProblemData_private {
       apply_freestream, apply_inflow_jacobian, apply_outflow_jacobian, apply_freestream_jacobian;
   bool      non_zero_time;
   PetscBool bc_from_ics, use_strong_bc_ceed;
-  PetscErrorCode (*print_info)(ProblemData *, AppCtx);
+  PetscErrorCode (*print_info)(User, ProblemData *, AppCtx);
 };
 
 extern int FreeContextPetsc(void *);
@@ -299,15 +311,15 @@ extern PetscErrorCode NS_ADVECTION(ProblemData *problem, DM dm, void *ctx, Simpl
 extern PetscErrorCode NS_ADVECTION2D(ProblemData *problem, DM dm, void *ctx, SimpleBC bc);
 
 // Print function for each problem
-extern PetscErrorCode PRINT_NEWTONIAN(ProblemData *problem, AppCtx app_ctx);
+extern PetscErrorCode PRINT_NEWTONIAN(User user, ProblemData *problem, AppCtx app_ctx);
 
-extern PetscErrorCode PRINT_EULER_VORTEX(ProblemData *problem, AppCtx app_ctx);
+extern PetscErrorCode PRINT_EULER_VORTEX(User user, ProblemData *problem, AppCtx app_ctx);
 
-extern PetscErrorCode PRINT_SHOCKTUBE(ProblemData *problem, AppCtx app_ctx);
+extern PetscErrorCode PRINT_SHOCKTUBE(User user, ProblemData *problem, AppCtx app_ctx);
 
-extern PetscErrorCode PRINT_ADVECTION(ProblemData *problem, AppCtx app_ctx);
+extern PetscErrorCode PRINT_ADVECTION(User user, ProblemData *problem, AppCtx app_ctx);
 
-extern PetscErrorCode PRINT_ADVECTION2D(ProblemData *problem, AppCtx app_ctx);
+extern PetscErrorCode PRINT_ADVECTION2D(User user, ProblemData *problem, AppCtx app_ctx);
 
 PetscErrorCode PrintRunInfo(User user, Physics phys_ctx, ProblemData *problem, MPI_Comm comm);
 

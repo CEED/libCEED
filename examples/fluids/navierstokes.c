@@ -104,22 +104,24 @@ int main(int argc, char **argv) {
   // ---------------------------------------------------------------------------
   // -- Initialize backend
   Ceed ceed;
-  CeedInit(app_ctx->ceed_resource, &ceed);
+  PetscCheck(CeedInit(app_ctx->ceed_resource, &ceed) == CEED_ERROR_SUCCESS, comm, PETSC_ERR_LIB, "Ceed initialization failed");
   user->ceed = ceed;
+
+  PetscCheck(CeedSetErrorHandler(ceed, CeedErrorStore) == CEED_ERROR_SUCCESS, comm, PETSC_ERR_LIB, "Setting libCEED error handler failed");
 
   // -- Check preferred MemType
   CeedMemType mem_type_backend;
-  CeedGetPreferredMemType(ceed, &mem_type_backend);
+  PetscCallCeed(ceed, CeedGetPreferredMemType(ceed, &mem_type_backend));
 
   {
     const char *resource;
-    CeedGetResource(ceed, &resource);
+    PetscCallCeed(ceed, CeedGetResource(ceed, &resource));
     if (strstr(resource, "/gpu/sycl")) {
       PetscDeviceContext dctx;
       PetscCall(PetscDeviceContextGetCurrentContext(&dctx));
       void *stream_handle;
       PetscCall(PetscDeviceContextGetStreamHandle(dctx, &stream_handle));
-      CeedSetStream(ceed, stream_handle);
+      PetscCallCeed(ceed, CeedSetStream(ceed, stream_handle));
     }
   }
 
@@ -136,7 +138,7 @@ int main(int argc, char **argv) {
       break;
     case CEED_MEM_DEVICE: {
       const char *resolved;
-      CeedGetResource(ceed, &resolved);
+      PetscCallCeed(ceed, CeedGetResource(ceed, &resolved));
       if (strstr(resolved, "/gpu/cuda")) vec_type = VECCUDA;
       else if (strstr(resolved, "/gpu/hip")) vec_type = VECKOKKOS;
       else if (strstr(resolved, "/gpu/sycl")) vec_type = VECKOKKOS;
@@ -256,65 +258,65 @@ int main(int argc, char **argv) {
   PetscCall(DifferentialFilterDataDestroy(user->diff_filter));
 
   // -- Vectors
-  CeedVectorDestroy(&ceed_data->x_coord);
-  CeedVectorDestroy(&ceed_data->q_data);
-  CeedVectorDestroy(&user->q_ceed);
-  CeedVectorDestroy(&user->q_dot_ceed);
-  CeedVectorDestroy(&user->g_ceed);
-  CeedVectorDestroy(&user->coo_values_amat);
-  CeedVectorDestroy(&user->coo_values_pmat);
+  PetscCallCeed(ceed, CeedVectorDestroy(&ceed_data->x_coord));
+  PetscCallCeed(ceed, CeedVectorDestroy(&ceed_data->q_data));
+  PetscCallCeed(ceed, CeedVectorDestroy(&user->q_ceed));
+  PetscCallCeed(ceed, CeedVectorDestroy(&user->q_dot_ceed));
+  PetscCallCeed(ceed, CeedVectorDestroy(&user->g_ceed));
+  PetscCallCeed(ceed, CeedVectorDestroy(&user->coo_values_amat));
+  PetscCallCeed(ceed, CeedVectorDestroy(&user->coo_values_pmat));
 
   // -- Bases
-  CeedBasisDestroy(&ceed_data->basis_q);
-  CeedBasisDestroy(&ceed_data->basis_x);
-  CeedBasisDestroy(&ceed_data->basis_xc);
-  CeedBasisDestroy(&ceed_data->basis_q_sur);
-  CeedBasisDestroy(&ceed_data->basis_x_sur);
+  PetscCallCeed(ceed, CeedBasisDestroy(&ceed_data->basis_q));
+  PetscCallCeed(ceed, CeedBasisDestroy(&ceed_data->basis_x));
+  PetscCallCeed(ceed, CeedBasisDestroy(&ceed_data->basis_xc));
+  PetscCallCeed(ceed, CeedBasisDestroy(&ceed_data->basis_q_sur));
+  PetscCallCeed(ceed, CeedBasisDestroy(&ceed_data->basis_x_sur));
 
   // -- Restrictions
-  CeedElemRestrictionDestroy(&ceed_data->elem_restr_q);
-  CeedElemRestrictionDestroy(&ceed_data->elem_restr_x);
-  CeedElemRestrictionDestroy(&ceed_data->elem_restr_qd_i);
+  PetscCallCeed(ceed, CeedElemRestrictionDestroy(&ceed_data->elem_restr_q));
+  PetscCallCeed(ceed, CeedElemRestrictionDestroy(&ceed_data->elem_restr_x));
+  PetscCallCeed(ceed, CeedElemRestrictionDestroy(&ceed_data->elem_restr_qd_i));
 
   // Destroy QFunction contexts after using
   // ToDo: Simplify tracked libCEED objects, smaller struct
   {
-    CeedQFunctionContextDestroy(&problem->apply_inflow_jacobian.qfunction_context);
-    CeedQFunctionContextDestroy(&problem->apply_inflow_jacobian.qfunction_context);
-    CeedQFunctionContextDestroy(&problem->apply_outflow_jacobian.qfunction_context);
-    CeedQFunctionContextDestroy(&problem->apply_outflow_jacobian.qfunction_context);
-    CeedQFunctionContextDestroy(&problem->apply_freestream_jacobian.qfunction_context);
-    CeedQFunctionContextDestroy(&problem->apply_freestream_jacobian.qfunction_context);
-    CeedQFunctionContextDestroy(&problem->setup_sur.qfunction_context);
-    CeedQFunctionContextDestroy(&problem->setup_vol.qfunction_context);
-    CeedQFunctionContextDestroy(&problem->ics.qfunction_context);
-    CeedQFunctionContextDestroy(&problem->apply_vol_rhs.qfunction_context);
-    CeedQFunctionContextDestroy(&problem->apply_vol_ifunction.qfunction_context);
-    CeedQFunctionContextDestroy(&problem->apply_vol_ijacobian.qfunction_context);
+    PetscCallCeed(ceed, CeedQFunctionContextDestroy(&problem->apply_inflow_jacobian.qfunction_context));
+    PetscCallCeed(ceed, CeedQFunctionContextDestroy(&problem->apply_inflow_jacobian.qfunction_context));
+    PetscCallCeed(ceed, CeedQFunctionContextDestroy(&problem->apply_outflow_jacobian.qfunction_context));
+    PetscCallCeed(ceed, CeedQFunctionContextDestroy(&problem->apply_outflow_jacobian.qfunction_context));
+    PetscCallCeed(ceed, CeedQFunctionContextDestroy(&problem->apply_freestream_jacobian.qfunction_context));
+    PetscCallCeed(ceed, CeedQFunctionContextDestroy(&problem->apply_freestream_jacobian.qfunction_context));
+    PetscCallCeed(ceed, CeedQFunctionContextDestroy(&problem->setup_sur.qfunction_context));
+    PetscCallCeed(ceed, CeedQFunctionContextDestroy(&problem->setup_vol.qfunction_context));
+    PetscCallCeed(ceed, CeedQFunctionContextDestroy(&problem->ics.qfunction_context));
+    PetscCallCeed(ceed, CeedQFunctionContextDestroy(&problem->apply_vol_rhs.qfunction_context));
+    PetscCallCeed(ceed, CeedQFunctionContextDestroy(&problem->apply_vol_ifunction.qfunction_context));
+    PetscCallCeed(ceed, CeedQFunctionContextDestroy(&problem->apply_vol_ijacobian.qfunction_context));
   }
 
   // -- QFunctions
-  CeedQFunctionDestroy(&ceed_data->qf_setup_vol);
-  CeedQFunctionDestroy(&ceed_data->qf_ics);
-  CeedQFunctionDestroy(&ceed_data->qf_rhs_vol);
-  CeedQFunctionDestroy(&ceed_data->qf_ifunction_vol);
-  CeedQFunctionDestroy(&ceed_data->qf_setup_sur);
-  CeedQFunctionDestroy(&ceed_data->qf_apply_inflow);
-  CeedQFunctionDestroy(&ceed_data->qf_apply_inflow_jacobian);
-  CeedQFunctionDestroy(&ceed_data->qf_apply_freestream);
-  CeedQFunctionDestroy(&ceed_data->qf_apply_freestream_jacobian);
+  PetscCallCeed(ceed, CeedQFunctionDestroy(&ceed_data->qf_setup_vol));
+  PetscCallCeed(ceed, CeedQFunctionDestroy(&ceed_data->qf_ics));
+  PetscCallCeed(ceed, CeedQFunctionDestroy(&ceed_data->qf_rhs_vol));
+  PetscCallCeed(ceed, CeedQFunctionDestroy(&ceed_data->qf_ifunction_vol));
+  PetscCallCeed(ceed, CeedQFunctionDestroy(&ceed_data->qf_setup_sur));
+  PetscCallCeed(ceed, CeedQFunctionDestroy(&ceed_data->qf_apply_inflow));
+  PetscCallCeed(ceed, CeedQFunctionDestroy(&ceed_data->qf_apply_inflow_jacobian));
+  PetscCallCeed(ceed, CeedQFunctionDestroy(&ceed_data->qf_apply_freestream));
+  PetscCallCeed(ceed, CeedQFunctionDestroy(&ceed_data->qf_apply_freestream_jacobian));
 
   // -- Operators
-  CeedOperatorDestroy(&ceed_data->op_setup_vol);
+  PetscCallCeed(ceed, CeedOperatorDestroy(&ceed_data->op_setup_vol));
   PetscCall(OperatorApplyContextDestroy(ceed_data->op_ics_ctx));
-  CeedOperatorDestroy(&user->op_rhs_vol);
-  CeedOperatorDestroy(&user->op_ifunction_vol);
+  PetscCallCeed(ceed, CeedOperatorDestroy(&user->op_rhs_vol));
+  PetscCallCeed(ceed, CeedOperatorDestroy(&user->op_ifunction_vol));
   PetscCall(OperatorApplyContextDestroy(user->op_rhs_ctx));
-  CeedOperatorDestroy(&user->op_ifunction);
-  CeedOperatorDestroy(&user->op_ijacobian);
+  PetscCallCeed(ceed, CeedOperatorDestroy(&user->op_ifunction));
+  PetscCallCeed(ceed, CeedOperatorDestroy(&user->op_ijacobian));
 
   // -- Ceed
-  CeedDestroy(&ceed);
+  PetscCheck(CeedDestroy(&ceed) == CEED_ERROR_SUCCESS, comm, PETSC_ERR_LIB, "Destroying Ceed object failed");
 
   if (app_ctx->test_type != TESTTYPE_NONE) {
     PetscInt num_options_left = 0;

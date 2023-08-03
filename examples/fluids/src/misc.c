@@ -17,19 +17,20 @@
 #include "../qfunctions/mass.h"
 
 PetscErrorCode ICs_FixMultiplicity(DM dm, CeedData ceed_data, User user, Vec Q_loc, Vec Q, CeedScalar time) {
+  Ceed ceed = user->ceed;
   PetscFunctionBeginUser;
 
   // ---------------------------------------------------------------------------
   // Update time for evaluation
   // ---------------------------------------------------------------------------
-  if (user->phys->ics_time_label) CeedOperatorSetContextDouble(ceed_data->op_ics_ctx->op, user->phys->ics_time_label, &time);
+  if (user->phys->ics_time_label) PetscCallCeed(ceed, CeedOperatorSetContextDouble(ceed_data->op_ics_ctx->op, user->phys->ics_time_label, &time));
 
   // ---------------------------------------------------------------------------
   // ICs
   // ---------------------------------------------------------------------------
   // -- CEED Restriction
   CeedVector q0_ceed;
-  CeedElemRestrictionCreateVector(ceed_data->elem_restr_q, &q0_ceed, NULL);
+  PetscCallCeed(ceed, CeedElemRestrictionCreateVector(ceed_data->elem_restr_q, &q0_ceed, NULL));
 
   // -- Place PETSc vector in CEED vector
   PetscCall(ApplyCeedOperatorLocalToGlobal(NULL, Q, ceed_data->op_ics_ctx));
@@ -39,7 +40,7 @@ PetscErrorCode ICs_FixMultiplicity(DM dm, CeedData ceed_data, User user, Vec Q_l
   // ---------------------------------------------------------------------------
   // -- CEED Restriction
   CeedVector mult_vec;
-  CeedElemRestrictionCreateVector(ceed_data->elem_restr_q, &mult_vec, NULL);
+  PetscCallCeed(ceed, CeedElemRestrictionCreateVector(ceed_data->elem_restr_q, &mult_vec, NULL));
 
   // -- Place PETSc vector in CEED vector
   PetscMemType m_mem_type;
@@ -48,7 +49,7 @@ PetscErrorCode ICs_FixMultiplicity(DM dm, CeedData ceed_data, User user, Vec Q_l
   PetscCall(VecP2C(multiplicity_loc, &m_mem_type, mult_vec));
 
   // -- Get multiplicity
-  CeedElemRestrictionGetMultiplicity(ceed_data->elem_restr_q, mult_vec);
+  PetscCallCeed(ceed, CeedElemRestrictionGetMultiplicity(ceed_data->elem_restr_q, mult_vec));
 
   // -- Restore vectors
   PetscCall(VecC2P(mult_vec, m_mem_type, multiplicity_loc));
@@ -68,8 +69,8 @@ PetscErrorCode ICs_FixMultiplicity(DM dm, CeedData ceed_data, User user, Vec Q_l
   PetscCall(DMRestoreGlobalVector(dm, &multiplicity));
 
   // Cleanup
-  CeedVectorDestroy(&mult_vec);
-  CeedVectorDestroy(&q0_ceed);
+  PetscCallCeed(ceed, CeedVectorDestroy(&mult_vec));
+  PetscCallCeed(ceed, CeedVectorDestroy(&q0_ceed));
 
   PetscFunctionReturn(PETSC_SUCCESS);
 }
@@ -262,27 +263,27 @@ PetscErrorCode CreateMassQFunction(Ceed ceed, CeedInt N, CeedInt q_data_size, Ce
 
   switch (N) {
     case 1:
-      CeedQFunctionCreateInterior(ceed, 1, Mass_1, Mass_1_loc, qf);
+      PetscCallCeed(ceed, CeedQFunctionCreateInterior(ceed, 1, Mass_1, Mass_1_loc, qf));
       break;
     case 5:
-      CeedQFunctionCreateInterior(ceed, 1, Mass_5, Mass_5_loc, qf);
+      PetscCallCeed(ceed, CeedQFunctionCreateInterior(ceed, 1, Mass_5, Mass_5_loc, qf));
       break;
     case 7:
-      CeedQFunctionCreateInterior(ceed, 1, Mass_7, Mass_7_loc, qf);
+      PetscCallCeed(ceed, CeedQFunctionCreateInterior(ceed, 1, Mass_7, Mass_7_loc, qf));
       break;
     case 9:
-      CeedQFunctionCreateInterior(ceed, 1, Mass_9, Mass_9_loc, qf);
+      PetscCallCeed(ceed, CeedQFunctionCreateInterior(ceed, 1, Mass_9, Mass_9_loc, qf));
       break;
     case 22:
-      CeedQFunctionCreateInterior(ceed, 1, Mass_22, Mass_22_loc, qf);
+      PetscCallCeed(ceed, CeedQFunctionCreateInterior(ceed, 1, Mass_22, Mass_22_loc, qf));
       break;
     default:
       SETERRQ(PETSC_COMM_WORLD, PETSC_ERR_SUP, "Could not find mass qfunction of size %d", N);
   }
 
-  CeedQFunctionAddInput(*qf, "u", N, CEED_EVAL_INTERP);
-  CeedQFunctionAddInput(*qf, "qdata", q_data_size, CEED_EVAL_NONE);
-  CeedQFunctionAddOutput(*qf, "v", N, CEED_EVAL_INTERP);
+  PetscCallCeed(ceed, CeedQFunctionAddInput(*qf, "u", N, CEED_EVAL_INTERP));
+  PetscCallCeed(ceed, CeedQFunctionAddInput(*qf, "qdata", q_data_size, CEED_EVAL_NONE));
+  PetscCallCeed(ceed, CeedQFunctionAddOutput(*qf, "v", N, CEED_EVAL_INTERP));
   PetscFunctionReturn(PETSC_SUCCESS);
 }
 
@@ -451,6 +452,7 @@ PetscErrorCode IntArrayP2C(PetscInt num_entries, PetscInt **array_petsc, CeedInt
 
 // Print information about the given simulation run
 PetscErrorCode PrintRunInfo(User user, Physics phys_ctx, ProblemData *problem, MPI_Comm comm) {
+  Ceed ceed = user->ceed;
   PetscFunctionBeginUser;
   // Header and rank
   char        host_name[PETSC_MAX_PATH_LEN];
@@ -466,13 +468,13 @@ PetscErrorCode PrintRunInfo(User user, Physics phys_ctx, ProblemData *problem, M
                         host_name, comm_size));
 
   // Problem specific info
-  PetscCall(problem->print_info(problem, user->app_ctx));
+  PetscCall(problem->print_info(user, problem, user->app_ctx));
 
   // libCEED
   const char *used_resource;
   CeedMemType mem_type_backend;
-  CeedGetResource(user->ceed, &used_resource);
-  CeedGetPreferredMemType(user->ceed, &mem_type_backend);
+  PetscCallCeed(ceed, CeedGetResource(user->ceed, &used_resource));
+  PetscCallCeed(ceed, CeedGetPreferredMemType(user->ceed, &mem_type_backend));
   PetscCall(PetscPrintf(comm,
                         "  libCEED:\n"
                         "    libCEED Backend                    : %s\n"
