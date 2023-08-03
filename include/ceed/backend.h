@@ -277,6 +277,7 @@ CEED_EXTERN int CeedTensorContractGetCeed(CeedTensorContract contract, Ceed *cee
 CEED_EXTERN int CeedTensorContractGetData(CeedTensorContract contract, void *data);
 CEED_EXTERN int CeedTensorContractSetData(CeedTensorContract contract, void *data);
 CEED_EXTERN int CeedTensorContractReference(CeedTensorContract contract);
+CEED_EXTERN int CeedTensorContractReferenceCopy(CeedTensorContract tensor, CeedTensorContract *tensor_copy);
 CEED_EXTERN int CeedTensorContractDestroy(CeedTensorContract *contract);
 
 CEED_EXTERN int CeedQFunctionRegister(const char *name, const char *source, CeedInt vec_length, CeedQFunctionUser f,

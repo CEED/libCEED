@@ -1567,13 +1567,15 @@ int CeedBasisApplyAtPoints(CeedBasis basis, CeedInt num_points, CeedTransposeMod
   // Create TensorContract object if needed, such as a basis from the GPU backends
   if (!basis->contract) {
     Ceed      ceed_ref;
-    CeedBasis basis_ref;
+    CeedBasis basis_ref = NULL;
 
     CeedCall(CeedInit("/cpu/self", &ceed_ref));
     // Only need matching tensor contraction dimensions, any type of basis will work
     CeedCall(CeedBasisCreateTensorH1Lagrange(ceed_ref, dim, num_comp, Q_1d, Q_1d, CEED_GAUSS, &basis_ref));
-    CeedCall(CeedTensorContractReference(basis_ref->contract));
-    basis->contract = basis_ref->contract;
+    // Note - clang-tidy doesn't know basis_ref->contract must be valid here
+    CeedCheck(basis_ref && basis_ref->contract, basis->ceed, CEED_ERROR_UNSUPPORTED,
+              "Refrence CPU ceed failed to create a tensor contraction object");
+    CeedCall(CeedTensorContractReferenceCopy(basis_ref->contract, &basis->contract));
     CeedCall(CeedBasisDestroy(&basis_ref));
     CeedCall(CeedDestroy(&ceed_ref));
   }
