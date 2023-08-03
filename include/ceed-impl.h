@@ -368,6 +368,4 @@ struct CeedOperator_private {
   CeedContextFieldLabel    *context_labels;
 };
 
-CEED_INTERN int CeedOperatorGetFallback(CeedOperator op, CeedOperator *op_fallback);
-
 #endif

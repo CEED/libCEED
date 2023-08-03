@@ -176,6 +176,36 @@ int CeedOperatorGetFallback(CeedOperator op, CeedOperator *op_fallback) {
 }
 
 /**
+  @brief Get the parent Ceed context associated with a fallback Ceed context for a CeedOperator
+
+  @param[in]  op     CeedOperator context
+  @param[out] parent Variable to store parent CeedOperator context
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Developer
+**/
+int CeedOperatorGetFallbackParent(CeedOperator op, CeedOperator *parent) {
+  *parent = op->op_fallback_parent ? op->op_fallback_parent : NULL;
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
+  @brief Get the parent Ceed context associated with a fallback Ceed context for a CeedOperator
+
+  @param[in]  op     CeedOperator context
+  @param[out] parent Variable to store parent Ceed context
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Developer
+**/
+int CeedOperatorGetFallbackParentCeed(CeedOperator op, Ceed *parent) {
+  *parent = op->op_fallback_parent ? op->op_fallback_parent->ceed : NULL;
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
   @brief Select correct basis matrix pointer based on CeedEvalMode
 
   @param[in]  basis     CeedBasis from which to get the basis matrix
@@ -1578,14 +1608,16 @@ int CeedOperatorLinearAssembleQFunction(CeedOperator op, CeedVector *assembled, 
 int CeedOperatorLinearAssembleQFunctionBuildOrUpdate(CeedOperator op, CeedVector *assembled, CeedElemRestriction *rstr, CeedRequest *request) {
   int (*LinearAssembleQFunctionUpdate)(CeedOperator, CeedVector, CeedElemRestriction, CeedRequest *) = NULL;
   CeedOperator op_assemble                                                                           = NULL;
+  CeedOperator op_fallback_parent                                                                    = NULL;
 
   CeedCall(CeedOperatorCheckReady(op));
 
   // Determine if fallback parent or operator has implementation
-  if (op->op_fallback_parent && op->op_fallback_parent->LinearAssembleQFunctionUpdate) {
+  CeedCall(CeedOperatorGetFallbackParent(op, &op_fallback_parent));
+  if (op_fallback_parent && op_fallback_parent->LinearAssembleQFunctionUpdate) {
     // -- Backend version for op fallback parent is faster, if it exists
-    LinearAssembleQFunctionUpdate = op->op_fallback_parent->LinearAssembleQFunctionUpdate;
-    op_assemble                   = op->op_fallback_parent;
+    LinearAssembleQFunctionUpdate = op_fallback_parent->LinearAssembleQFunctionUpdate;
+    op_assemble                   = op_fallback_parent;
   } else if (op->LinearAssembleQFunctionUpdate) {
     // -- Backend version for op
     LinearAssembleQFunctionUpdate = op->LinearAssembleQFunctionUpdate;
@@ -2300,7 +2332,7 @@ int CeedOperatorCreateFDMElementInverse(CeedOperator op, CeedOperator *fdm_inv, 
 
   // Default interface implementation
   CeedCall(CeedOperatorGetCeed(op, &ceed));
-  CeedCall(CeedGetOperatorFallbackParentCeed(ceed, &ceed_parent));
+  CeedCall(CeedOperatorGetFallbackParentCeed(op, &ceed_parent));
   ceed_parent = ceed_parent ? ceed_parent : ceed;
   CeedCall(CeedOperatorGetQFunction(op, &qf));
 

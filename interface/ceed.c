@@ -529,21 +529,6 @@ int CeedSetOperatorFallbackResource(Ceed ceed, const char *resource) {
 }
 
 /**
-  @brief Get the parent Ceed context associated with a fallback Ceed context for a CeedOperator
-
-  @param[in]  ceed   Ceed context
-  @param[out] parent Variable to store parent Ceed context
-
-  @return An error code: 0 - success, otherwise - failure
-
-  @ref Backend
-**/
-int CeedGetOperatorFallbackParentCeed(Ceed ceed, Ceed *parent) {
-  *parent = ceed->op_fallback_parent;
-  return CEED_ERROR_SUCCESS;
-}
-
-/**
   @brief Flag Ceed context as deterministic
 
   @param[in]  ceed             Ceed to flag as deterministic

@@ -222,7 +222,6 @@ CEED_EXTERN int CeedSetObjectDelegate(Ceed ceed, Ceed delegate, const char *obj_
 CEED_EXTERN int CeedGetOperatorFallbackResource(Ceed ceed, const char **resource);
 CEED_EXTERN int CeedGetOperatorFallbackCeed(Ceed ceed, Ceed *fallback_ceed);
 CEED_EXTERN int CeedSetOperatorFallbackResource(Ceed ceed, const char *resource);
-CEED_EXTERN int CeedGetOperatorFallbackParentCeed(Ceed ceed, Ceed *parent);
 CEED_EXTERN int CeedSetDeterministic(Ceed ceed, bool is_deterministic);
 CEED_EXTERN int CeedSetBackendFunction(Ceed ceed, const char *type, void *object, const char *func_name, int (*f)());
 CEED_EXTERN int CeedGetData(Ceed ceed, void *data);
@@ -381,6 +380,9 @@ CEED_EXTERN int CeedOperatorIsComposite(CeedOperator op, bool *is_composite);
 CEED_EXTERN int CeedOperatorGetData(CeedOperator op, void *data);
 CEED_EXTERN int CeedOperatorSetData(CeedOperator op, void *data);
 CEED_EXTERN int CeedOperatorReference(CeedOperator op);
+CEED_EXTERN int CeedOperatorGetFallback(CeedOperator op, CeedOperator *op_fallback);
+CEED_EXTERN int CeedOperatorGetFallbackParent(CeedOperator op, CeedOperator *parent);
+CEED_EXTERN int CeedOperatorGetFallbackParentCeed(CeedOperator op, Ceed *parent);
 CEED_EXTERN int CeedOperatorSetSetupDone(CeedOperator op);
 
 CEED_INTERN int CeedMatrixMatrixMultiply(Ceed ceed, const CeedScalar *mat_A, const CeedScalar *mat_B, CeedScalar *mat_C, CeedInt m, CeedInt n,

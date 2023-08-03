@@ -453,7 +453,7 @@ static inline int CeedOperatorLinearAssembleQFunctionCore_Cuda(CeedOperator op, 
   CeedScalar *a, *tmp;
   Ceed        ceed, ceedparent;
   CeedCallBackend(CeedOperatorGetCeed(op, &ceed));
-  CeedCallBackend(CeedGetOperatorFallbackParentCeed(ceed, &ceedparent));
+  CeedCallBackend(CeedOperatorGetFallbackParentCeed(op, &ceedparent));
   ceedparent                            = ceedparent ? ceedparent : ceed;
   CeedScalar *edata[2 * CEED_FIELD_MAX] = {NULL};
 

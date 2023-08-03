@@ -945,10 +945,6 @@ function CeedSetOperatorFallbackResource(ceed, resource)
     ccall((:CeedSetOperatorFallbackResource, libceed), Cint, (Ceed, Ptr{Cchar}), ceed, resource)
 end
 
-function CeedGetOperatorFallbackParentCeed(ceed, parent)
-    ccall((:CeedGetOperatorFallbackParentCeed, libceed), Cint, (Ceed, Ptr{Ceed}), ceed, parent)
-end
-
 function CeedSetDeterministic(ceed, is_deterministic)
     ccall((:CeedSetDeterministic, libceed), Cint, (Ceed, Bool), ceed, is_deterministic)
 end
