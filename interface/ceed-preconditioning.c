@@ -201,7 +201,7 @@ int CeedOperatorGetFallbackParent(CeedOperator op, CeedOperator *parent) {
   @ref Developer
 **/
 int CeedOperatorGetFallbackParentCeed(CeedOperator op, Ceed *parent) {
-  *parent = op->op_fallback_parent ? op->op_fallback_parent->ceed : NULL;
+  *parent = op->op_fallback_parent ? op->op_fallback_parent->ceed : op->ceed;
   return CEED_ERROR_SUCCESS;
 }
 
@@ -2333,7 +2333,6 @@ int CeedOperatorCreateFDMElementInverse(CeedOperator op, CeedOperator *fdm_inv, 
   // Default interface implementation
   CeedCall(CeedOperatorGetCeed(op, &ceed));
   CeedCall(CeedOperatorGetFallbackParentCeed(op, &ceed_parent));
-  ceed_parent = ceed_parent ? ceed_parent : ceed;
   CeedCall(CeedOperatorGetQFunction(op, &qf));
 
   // Determine active input basis

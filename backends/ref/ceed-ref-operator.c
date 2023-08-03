@@ -370,27 +370,25 @@ static int CeedOperatorApplyAdd_Ref(CeedOperator op, CeedVector in_vec, CeedVect
 //------------------------------------------------------------------------------
 static inline int CeedOperatorLinearAssembleQFunctionCore_Ref(CeedOperator op, bool build_objects, CeedVector *assembled, CeedElemRestriction *rstr,
                                                               CeedRequest *request) {
-  CeedOperator_Ref *impl;
-  CeedCallBackend(CeedOperatorGetData(op, &impl));
-  CeedQFunction qf;
-  CeedCallBackend(CeedOperatorGetQFunction(op, &qf));
-  CeedInt  Q, num_elem, num_input_fields, num_output_fields, size;
-  CeedSize q_size;
-  CeedCallBackend(CeedOperatorGetNumQuadraturePoints(op, &Q));
-  CeedCallBackend(CeedOperatorGetNumElements(op, &num_elem));
-  CeedOperatorField *op_input_fields, *op_output_fields;
-  CeedCallBackend(CeedOperatorGetFields(op, &num_input_fields, &op_input_fields, &num_output_fields, &op_output_fields));
+  Ceed                ceed, ceed_parent;
+  CeedOperator_Ref   *impl;
+  CeedQFunction       qf;
   CeedQFunctionField *qf_input_fields, *qf_output_fields;
-  CeedCallBackend(CeedQFunctionGetFields(qf, NULL, &qf_input_fields, NULL, &qf_output_fields));
-  CeedVector  vec;
-  CeedInt     num_active_in = impl->num_active_in, num_active_out = impl->num_active_out;
-  CeedVector *active_in = impl->qf_active_in;
-  CeedScalar *a, *tmp;
-  Ceed        ceed, ceed_parent;
+  CeedOperatorField  *op_input_fields, *op_output_fields;
+  CeedVector          vec, *active_in;
+  CeedInt             num_active_in, num_active_out, Q, num_elem, num_input_fields, num_output_fields, size;
+  CeedSize            q_size;
+  CeedScalar         *a, *tmp, *e_data_full[2 * CEED_FIELD_MAX] = {NULL};
   CeedCallBackend(CeedOperatorGetCeed(op, &ceed));
   CeedCallBackend(CeedOperatorGetFallbackParentCeed(op, &ceed_parent));
-  ceed_parent                                 = ceed_parent ? ceed_parent : ceed;
-  CeedScalar *e_data_full[2 * CEED_FIELD_MAX] = {NULL};
+  CeedCallBackend(CeedOperatorGetData(op, &impl));
+  active_in     = impl->qf_active_in;
+  num_active_in = impl->num_active_in, num_active_out = impl->num_active_out;
+  CeedCallBackend(CeedOperatorGetQFunction(op, &qf));
+  CeedCallBackend(CeedOperatorGetNumQuadraturePoints(op, &Q));
+  CeedCallBackend(CeedOperatorGetNumElements(op, &num_elem));
+  CeedCallBackend(CeedQFunctionGetFields(qf, NULL, &qf_input_fields, NULL, &qf_output_fields));
+  CeedCallBackend(CeedOperatorGetFields(op, &num_input_fields, &op_input_fields, &num_output_fields, &op_output_fields));
 
   // Setup
   CeedCallBackend(CeedOperatorSetup_Ref(op));
