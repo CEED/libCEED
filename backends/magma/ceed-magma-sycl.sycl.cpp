@@ -6,16 +6,15 @@
 // This file is part of CEED:  http://github.com/ceed
 
 #include <ceed/backend.h>
-#include <magma_v2.h>
 #include <string>
 #include <sycl/sycl.hpp>
+#include <magma_v2.h>
 
-#include "ceed-magma.h"
-#include "ceed-magma-sycl.h"
 #include "../sycl/ceed-sycl-common.hpp"
+#include "ceed-magma-sycl.h"
+#include "ceed-magma.h"
 
 int CeedInitMagma_Sycl(Ceed ceed, int device_id) {
-
   Ceed_Magma *data;
   CeedCallBackend(CeedGetData(ceed, &data));
 
@@ -56,8 +55,7 @@ int CeedInitMagma_Sycl(Ceed ceed, int device_id) {
   };
 
   sycl::context sycl_context{sycl_device.get_platform().get_devices()};
-  sycl::queue *sycl_queue = new sycl::queue(sycl_context, sycl_device, sycl_async_handler,
-		                            {sycl::property::queue::in_order()});
+  sycl::queue  *sycl_queue = new sycl::queue(sycl_context, sycl_device, sycl_async_handler, {sycl::property::queue::in_order()});
 
   data->device = device_id;
   magma_queue_create_from_sycl(data->device, sycl_queue, sycl_queue, sycl_queue, &(data->queue));
@@ -67,17 +65,17 @@ int CeedInitMagma_Sycl(Ceed ceed, int device_id) {
 
 // Set *handle to point to a sycl queue (C-friendly way to access the
 // sycl::queue inside magma_queue_t)
-CEED_INTERN 
-int CeedMagmaGetSyclHandle(Ceed ceed, void **handle) { 
+CEED_INTERN
+int CeedMagmaGetSyclHandle(Ceed ceed, void **handle) {
   Ceed_Magma *data;
   CeedCallBackend(CeedGetData(ceed, &data));
 
-  *handle = (void *) magma_queue_get_sycl_stream(data->queue);
+  *handle = (void *)magma_queue_get_sycl_stream(data->queue);
 
   return CEED_ERROR_SUCCESS;
 }
 
-// Backend implementation of CeedSetStream
+// Backend implementation of CeedSetStream for the MAGMA backend
 int CeedSetStream_Magma(Ceed ceed, void *handle) {
   Ceed_Magma *data;
   CeedCallBackend(CeedGetData(ceed, &data));
@@ -92,45 +90,35 @@ int CeedSetStream_Magma(Ceed ceed, void *handle) {
   CeedCheck(sycl_devices[data->device] == q->get_device(), ceed, CEED_ERROR_BACKEND, "Device mismatch between provided queue and ceed object");
   magma_queue_create_from_sycl(data->device, q, NULL, NULL, &(data->queue));
 
-  // Set the sycl-ref delegate stream to match this one
+  // Set the delegate stream to match this one
   Ceed ceed_delegate = NULL;
   CeedCallBackend(CeedGetDelegate(ceed, &ceed_delegate));
   if (ceed_delegate) {
-    Ceed_Sycl *delegate_data;
-    CeedCallBackend(CeedGetData(ceed_delegate, &delegate_data));
-    delegate_data->sycl_device  = q->get_device();
-    delegate_data->sycl_context = q->get_context();
-    delegate_data->sycl_queue   = *q;
+    CeedCallBackend(CeedSetStream(ceed_delegate, q));
+  }
+  // The deterministic MAGMA backend has an object delegate for the element restriction;
+  //  if present, we should set that stream, as well
+  Ceed ceed_rstr_delegate = NULL;
+  CeedCallBackend(CeedGetObjectDelegate(ceed, &ceed_rstr_delegate, "ElemRestriction"));
+  if (ceed_rstr_delegate) {
+    CeedCallBackend(CeedSetStream(ceed_rstr_delegate, q));
   }
 
   return CEED_ERROR_SUCCESS;
 }
 
-CEED_INTERN void CeedMagmaQueueSync_Sycl(magma_queue_t queue) {
-    magma_queue_get_sycl_stream(queue)->wait();
-}
+CEED_INTERN void CeedMagmaQueueSync_Sycl(magma_queue_t queue) { magma_queue_get_sycl_stream(queue)->wait(); }
 
 // C++ wrapper for MKL GEMM routine
-CEED_INTERN int mkl_gemm_batched_strided(magma_trans_t transA, magma_trans_t transB,
-		                         magma_int_t m, magma_int_t n, magma_int_t k,
-					 CeedScalar alpha,
-                                         const CeedScalar *dA, magma_int_t ldda, magma_int_t strideA,
-					 const CeedScalar *dB, magma_int_t lddb, magma_int_t strideB,
-                                         CeedScalar beta,
-					 CeedScalar *dC, magma_int_t lddc, magma_int_t strideC,
+CEED_INTERN int mkl_gemm_batched_strided(magma_trans_t transA, magma_trans_t transB, magma_int_t m, magma_int_t n, magma_int_t k, CeedScalar alpha,
+                                         const CeedScalar *dA, magma_int_t ldda, magma_int_t strideA, const CeedScalar *dB, magma_int_t lddb,
+                                         magma_int_t strideB, CeedScalar beta, CeedScalar *dC, magma_int_t lddc, magma_int_t strideC,
                                          magma_int_t batchCount, magma_queue_t queue) {
-
-	sycl::queue *sycl_queue = magma_queue_get_sycl_stream(queue);
-     	oneapi::mkl::transpose transpose_ct1 = syclblas_trans_const(transA);
-        oneapi::mkl::transpose transpose_ct2 = syclblas_trans_const(transB);
-        oneapi::mkl::blas::column_major::gemm_batch(
-                                 *sycl_queue, transpose_ct1, transpose_ct2,
-                                 std::int64_t(m), std::int64_t(n), std::int64_t(k),
-                                 alpha,
-                                 dA, std::int64_t(ldda), std::int64_t(strideA),
-                                 dB, std::int64_t(lddb), std::int64_t(strideB),
-                                 beta,
-                                 dC, std::int64_t(lddc), std::int64_t(strideC),
-                                 std::int64_t(batchCount), {});
-	return CEED_ERROR_SUCCESS;
+  sycl::queue           *sycl_queue    = magma_queue_get_sycl_stream(queue);
+  oneapi::mkl::transpose transpose_ct1 = syclblas_trans_const(transA);
+  oneapi::mkl::transpose transpose_ct2 = syclblas_trans_const(transB);
+  oneapi::mkl::blas::column_major::gemm_batch(*sycl_queue, transpose_ct1, transpose_ct2, std::int64_t(m), std::int64_t(n), std::int64_t(k), alpha, dA,
+                                              std::int64_t(ldda), std::int64_t(strideA), dB, std::int64_t(lddb), std::int64_t(strideB), beta, dC,
+                                              std::int64_t(lddc), std::int64_t(strideC), std::int64_t(batchCount), {});
+  return CEED_ERROR_SUCCESS;
 }
