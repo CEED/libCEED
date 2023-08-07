@@ -308,6 +308,7 @@ extern int FreeContextPetsc(void *);
 // Set up problems
 // -----------------------------------------------------------------------------
 // Set up function for each problem
+extern PetscErrorCode NS_TAYLOR_GREEN(ProblemData *problem, DM dm, void *ctx, SimpleBC bc);
 extern PetscErrorCode NS_GAUSSIAN_WAVE(ProblemData *problem, DM dm, void *ctx, SimpleBC bc);
 extern PetscErrorCode NS_CHANNEL(ProblemData *problem, DM dm, void *ctx, SimpleBC bc);
 extern PetscErrorCode NS_BLASIUS(ProblemData *problem, DM dm, void *ctx, SimpleBC bc);

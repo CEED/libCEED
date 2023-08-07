@@ -27,6 +27,7 @@ PetscErrorCode RegisterProblems_NS(AppCtx app_ctx) {
   PetscCall(PetscFunctionListAdd(&app_ctx->problems, "channel", NS_CHANNEL));
   PetscCall(PetscFunctionListAdd(&app_ctx->problems, "gaussian_wave", NS_GAUSSIAN_WAVE));
   PetscCall(PetscFunctionListAdd(&app_ctx->problems, "newtonian", NS_NEWTONIAN_IG));
+  PetscCall(PetscFunctionListAdd(&app_ctx->problems, "taylor_green", NS_TAYLOR_GREEN));
 
   PetscFunctionReturn(PETSC_SUCCESS);
 }
