@@ -5,18 +5,18 @@
 #include <limits>
 #include <vector>
 
-#include "./gemm_tuning/indices.h"
 #include "ceed-magma.h"
+#include "tuning/indices.h"
 #ifdef CEED_MAGMA_USE_HIP
-#include "./gemm_tuning/mi100.h"
-#include "./gemm_tuning/mi250x.h"
-#include "./gemm_tuning/mi250x_grad_rtc.h"
-#include "./gemm_tuning/mi250x_interp_rtc.h"
+#include "tuning/mi100.h"
+#include "tuning/mi250x.h"
+#include "tuning/mi250x_grad_rtc.h"
+#include "tuning/mi250x_interp_rtc.h"
 #else
-#include "./gemm_tuning/a100.h"
-#include "./gemm_tuning/a100_grad_rtc.h"
-#include "./gemm_tuning/a100_interp_rtc.h"
-#include "./gemm_tuning/v100.h"
+#include "tuning/a100.h"
+#include "tuning/a100_grad_rtc.h"
+#include "tuning/a100_interp_rtc.h"
+#include "tuning/v100.h"
 #endif
 
 ////////////////////////////////////////////////////////////////////////////////

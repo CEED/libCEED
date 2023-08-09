@@ -488,26 +488,26 @@ CEED_INTERN "C"
   CeedCallBackend(CeedGetData(ceed, &data));
 
   // Compile kernels
-  CeedCallBackend(CeedGetJitAbsolutePath(ceed, "ceed/jit-source/magma/magma_common_defs.h", &magma_common_path));
+  CeedCallBackend(CeedGetJitAbsolutePath(ceed, "ceed/jit-source/magma/magma-common-defs.h", &magma_common_path));
   CeedDebug256(ceed, CEED_DEBUG_COLOR_SUCCESS, "----- Loading Basis Kernel Source -----\n");
   CeedCallBackend(CeedLoadSourceToBuffer(ceed, magma_common_path, &basis_kernel_source));
-  CeedCallBackend(CeedGetJitAbsolutePath(ceed, "ceed/jit-source/magma/magma_common_tensor.h", &magma_common_path));
+  CeedCallBackend(CeedGetJitAbsolutePath(ceed, "ceed/jit-source/magma/magma-common-tensor.h", &magma_common_path));
   CeedCallBackend(CeedLoadSourceToInitializedBuffer(ceed, magma_common_path, &basis_kernel_source));
-  char   *interp_name_base = "ceed/jit-source/magma/interp";
+  char   *interp_name_base = "ceed/jit-source/magma/magma-basis-interp";
   CeedInt interp_name_len  = strlen(interp_name_base) + 6;
   char    interp_name[interp_name_len];
 
   snprintf(interp_name, interp_name_len, "%s-%" CeedInt_FMT "d.h", interp_name_base, dim);
   CeedCallBackend(CeedGetJitAbsolutePath(ceed, interp_name, &interp_path));
   CeedCallBackend(CeedLoadSourceToInitializedBuffer(ceed, interp_path, &basis_kernel_source));
-  char   *grad_name_base = "ceed/jit-source/magma/grad";
+  char   *grad_name_base = "ceed/jit-source/magma/magma-basis-grad";
   CeedInt grad_name_len  = strlen(grad_name_base) + 6;
   char    grad_name[grad_name_len];
 
   snprintf(grad_name, grad_name_len, "%s-%" CeedInt_FMT "d.h", grad_name_base, dim);
   CeedCallBackend(CeedGetJitAbsolutePath(ceed, grad_name, &grad_path));
   CeedCallBackend(CeedLoadSourceToInitializedBuffer(ceed, grad_path, &basis_kernel_source));
-  char   *weight_name_base = "ceed/jit-source/magma/weight";
+  char   *weight_name_base = "ceed/jit-source/magma/magma-basis-weight";
   CeedInt weight_name_len  = strlen(weight_name_base) + 6;
   char    weight_name[weight_name_len];
 
@@ -590,14 +590,14 @@ CEED_INTERN "C"
 
   CeedCallBackend(CeedCalloc(1, &impl));
   // Compile kernels
-  CeedCallBackend(CeedGetJitAbsolutePath(ceed, "ceed/jit-source/magma/magma_common_defs.h", &magma_common_path));
+  CeedCallBackend(CeedGetJitAbsolutePath(ceed, "ceed/jit-source/magma/magma-common-defs.h", &magma_common_path));
   CeedDebug256(ceed, CEED_DEBUG_COLOR_SUCCESS, "----- Loading Basis Kernel Source -----\n");
   CeedCallBackend(CeedLoadSourceToBuffer(ceed, magma_common_path, &basis_kernel_source));
-  CeedCallBackend(CeedGetJitAbsolutePath(ceed, "ceed/jit-source/magma/magma_common_nontensor.h", &magma_common_path));
+  CeedCallBackend(CeedGetJitAbsolutePath(ceed, "ceed/jit-source/magma/magma-common-nontensor.h", &magma_common_path));
   CeedCallBackend(CeedLoadSourceToInitializedBuffer(ceed, magma_common_path, &basis_kernel_source));
-  CeedCallBackend(CeedGetJitAbsolutePath(ceed, "ceed/jit-source/magma/interp-nontensor.h", &interp_path));
+  CeedCallBackend(CeedGetJitAbsolutePath(ceed, "ceed/jit-source/magma/magma-basis-interp-nontensor.h", &interp_path));
   CeedCallBackend(CeedLoadSourceToInitializedBuffer(ceed, interp_path, &basis_kernel_source));
-  CeedCallBackend(CeedGetJitAbsolutePath(ceed, "ceed/jit-source/magma/grad-nontensor.h", &grad_path));
+  CeedCallBackend(CeedGetJitAbsolutePath(ceed, "ceed/jit-source/magma/magma-basis-grad-nontensor.h", &grad_path));
   CeedCallBackend(CeedLoadSourceToInitializedBuffer(ceed, grad_path, &basis_kernel_source));
 
   // tuning parameters for nb
