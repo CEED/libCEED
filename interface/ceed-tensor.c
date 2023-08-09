@@ -173,6 +173,28 @@ int CeedTensorContractReference(CeedTensorContract contract) {
 }
 
 /**
+  @brief Copy the pointer to a CeedTensorContract.
+
+  Both pointers should be destroyed with `CeedTensorContractDestroy()`.
+
+  Note: If the value of `tensor_copy` passed to this function is non-NULL, then it is assumed that `tensor_copy` is a pointer to a CeedTensorContract.
+        This CeedTensorContract will be destroyed if `tensor_copy` is the only reference to this CeedVector.
+
+  @param[in]     tensor      CeedTensorContract to copy reference to
+  @param[in,out] tensor_copy Variable to store copied reference
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref User
+**/
+int CeedTensorContractReferenceCopy(CeedTensorContract tensor, CeedTensorContract *tensor_copy) {
+  CeedCall(CeedTensorContractReference(tensor));
+  CeedCall(CeedTensorContractDestroy(tensor_copy));
+  *tensor_copy = tensor;
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
   @brief Destroy a CeedTensorContract
 
   @param[in,out] contract CeedTensorContract to destroy
