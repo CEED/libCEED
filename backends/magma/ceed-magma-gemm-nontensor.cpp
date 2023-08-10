@@ -5,7 +5,9 @@
 //
 // This file is part of CEED:  http://github.com/ceed
 
-#include "ceed-magma.h"
+#include "ceed-magma-gemm-nontensor.h"
+
+#include "ceed-magma-gemm-selector.h"
 
 #ifdef CEED_MAGMA_USE_HIP
 #define devblasDgemmStridedBatched hipblasDgemmStridedBatched
@@ -20,9 +22,9 @@
 #endif
 
 ////////////////////////////////////////////////////////////////////////////////
-static int magmablas_gemm(magma_trans_t trans_A, magma_trans_t trans_B, magma_int_t m, magma_int_t n, magma_int_t k, CeedScalar alpha,
-                          const CeedScalar *d_A, magma_int_t ldda, const CeedScalar *d_B, magma_int_t lddb, CeedScalar beta, CeedScalar *d_C,
-                          magma_int_t lddc, magma_queue_t queue) {
+static inline int magmablas_gemm(magma_trans_t trans_A, magma_trans_t trans_B, magma_int_t m, magma_int_t n, magma_int_t k, CeedScalar alpha,
+                                 const CeedScalar *d_A, magma_int_t ldda, const CeedScalar *d_B, magma_int_t lddb, CeedScalar beta, CeedScalar *d_C,
+                                 magma_int_t lddc, magma_queue_t queue) {
   if (CEED_SCALAR_TYPE == CEED_SCALAR_FP32) {
     magmablas_sgemm(trans_A, trans_B, m, n, k, (float)alpha, (const float *)d_A, ldda, (const float *)d_B, lddb, (float)beta, (float *)d_C, lddc,
                     queue);
@@ -34,10 +36,10 @@ static int magmablas_gemm(magma_trans_t trans_A, magma_trans_t trans_B, magma_in
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-static int magmablas_gemm_batched_strided(magma_trans_t trans_A, magma_trans_t trans_B, magma_int_t m, magma_int_t n, magma_int_t k, CeedScalar alpha,
-                                          const CeedScalar *d_A, magma_int_t ldda, magma_int_t strideA, const CeedScalar *d_B, magma_int_t lddb,
-                                          magma_int_t strideB, CeedScalar beta, CeedScalar *d_C, magma_int_t lddc, magma_int_t strideC,
-                                          magma_int_t batchCount, magma_queue_t queue) {
+static inline int magmablas_gemm_batched_strided(magma_trans_t trans_A, magma_trans_t trans_B, magma_int_t m, magma_int_t n, magma_int_t k,
+                                                 CeedScalar alpha, const CeedScalar *d_A, magma_int_t ldda, magma_int_t strideA,
+                                                 const CeedScalar *d_B, magma_int_t lddb, magma_int_t strideB, CeedScalar beta, CeedScalar *d_C,
+                                                 magma_int_t lddc, magma_int_t strideC, magma_int_t batchCount, magma_queue_t queue) {
   if (CEED_SCALAR_TYPE == CEED_SCALAR_FP32) {
     magmablas_sgemm_batched_strided(trans_A, trans_B, m, n, k, (float)alpha, (const float *)d_A, ldda, strideA, (const float *)d_B, lddb, strideB,
                                     (float)beta, (float *)d_C, lddc, strideC, batchCount, queue);
@@ -49,9 +51,9 @@ static int magmablas_gemm_batched_strided(magma_trans_t trans_A, magma_trans_t t
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-static int devblas_gemm(magma_trans_t trans_A, magma_trans_t trans_B, magma_int_t m, magma_int_t n, magma_int_t k, CeedScalar alpha,
-                        const CeedScalar *d_A, magma_int_t ldda, const CeedScalar *d_B, magma_int_t lddb, CeedScalar beta, CeedScalar *d_C,
-                        magma_int_t lddc, magma_queue_t queue) {
+static inline int devblas_gemm(magma_trans_t trans_A, magma_trans_t trans_B, magma_int_t m, magma_int_t n, magma_int_t k, CeedScalar alpha,
+                               const CeedScalar *d_A, magma_int_t ldda, const CeedScalar *d_B, magma_int_t lddb, CeedScalar beta, CeedScalar *d_C,
+                               magma_int_t lddc, magma_queue_t queue) {
   if (CEED_SCALAR_TYPE == CEED_SCALAR_FP32) {
     magma_sgemm(trans_A, trans_B, m, n, k, (float)alpha, (const float *)d_A, ldda, (const float *)d_B, lddb, (float)beta, (float *)d_C, lddc, queue);
   } else {
@@ -62,10 +64,10 @@ static int devblas_gemm(magma_trans_t trans_A, magma_trans_t trans_B, magma_int_
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-static int devblas_gemm_batched_strided(magma_trans_t trans_A, magma_trans_t trans_B, magma_int_t m, magma_int_t n, magma_int_t k, CeedScalar alpha,
-                                        const CeedScalar *d_A, magma_int_t ldda, magma_int_t strideA, const CeedScalar *d_B, magma_int_t lddb,
-                                        magma_int_t strideB, CeedScalar beta, CeedScalar *d_C, magma_int_t lddc, magma_int_t strideC,
-                                        magma_int_t batchCount, magma_queue_t queue) {
+static inline int devblas_gemm_batched_strided(magma_trans_t trans_A, magma_trans_t trans_B, magma_int_t m, magma_int_t n, magma_int_t k,
+                                               CeedScalar alpha, const CeedScalar *d_A, magma_int_t ldda, magma_int_t strideA, const CeedScalar *d_B,
+                                               magma_int_t lddb, magma_int_t strideB, CeedScalar beta, CeedScalar *d_C, magma_int_t lddc,
+                                               magma_int_t strideC, magma_int_t batchCount, magma_queue_t queue) {
   if (CEED_SCALAR_TYPE == CEED_SCALAR_FP32) {
     devblasSgemmStridedBatched(magma_queue_get_devblas_handle(queue), devblas_trans_const(trans_A), devblas_trans_const(trans_B), (int)m, (int)n,
                                (int)k, (const float *)&alpha, (const float *)d_A, (int)ldda, strideA, (const float *)d_B, (int)lddb, strideB,

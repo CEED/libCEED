@@ -16,10 +16,10 @@
 // Device information backend init
 //------------------------------------------------------------------------------
 int CeedInit_Magma_common(Ceed ceed, const char *resource) {
+  Ceed_Magma *data;
   const char *device_spec = strstr(resource, ":device_id=");
   const int   device_id   = (device_spec) ? atoi(device_spec + 11) : -1;
   int         current_device_id;
-  Ceed_Magma *data;
 
   CeedCallBackend(magma_init());
 
@@ -28,6 +28,7 @@ int CeedInit_Magma_common(Ceed ceed, const char *resource) {
     magma_setdevice(device_id);
     current_device_id = device_id;
   }
+
   CeedCallBackend(CeedGetData(ceed, &data));
   data->device_id = current_device_id;
 #ifdef CEED_MAGMA_USE_HIP
