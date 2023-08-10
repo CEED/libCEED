@@ -357,4 +357,6 @@ inline void gradColloTranspose3d(const CeedInt num_comp, const CeedInt Q_1D, con
   }
 }
 
+//------------------------------------------------------------------------------
+
 #endif
