@@ -17,12 +17,14 @@ from junit_xml import TestCase, TestSuite  # nopep8
 
 @dataclass
 class TestSpec:
+    """Dataclass storing information about a single test case"""
     name: str
     only: list = field(default_factory=list)
     args: list = field(default_factory=list)
 
 
 class RunMode(Enum):
+    """Enumeration of run modes, either `RunMode.TAP` or `RunMode.JUNIT`"""
     TAP: str = 'tap'
     JUNIT: str = 'junit'
 
@@ -30,34 +32,114 @@ class RunMode(Enum):
 class SuiteSpec(ABC):
     @abstractmethod
     def get_source_path(self, test: str) -> Path:
+        """Compute path to test source file
+
+        Args:
+            test (str): Name of test
+
+        Returns:
+            Path: Path to source file
+        """
         raise NotImplementedError
 
     @abstractmethod
     def get_run_path(self, test: str) -> Path:
+        """Compute path to built test executable file
+
+        Args:
+            test (str): Name of test
+
+        Returns:
+            Path: Path to test executable
+        """
         raise NotImplementedError
 
     @abstractmethod
     def get_output_path(self, test: str, output_file: str) -> Path:
+        """Compute path to expected output file
+
+        Args:
+            test (str): Name of test
+            output_file (str): File name of output file
+
+        Returns:
+            Path: Path to expected output file
+        """
         raise NotImplementedError
 
     def post_test_hook(self, test: str, spec: TestSpec) -> None:
+        """Function callback ran after each test case
+
+        Args:
+            test (str): Name of test
+            spec (TestSpec): Test case specification
+        """
         pass
 
     def check_pre_skip(self, test: str, spec: TestSpec, resource: str, nproc: int) -> Optional[str]:
+        """Check if a test case should be skipped prior to running, returning the reason for skipping
+
+        Args:
+            test (str): Name of test
+            spec (TestSpec): Test case specification
+            resource (str): libCEED backend
+            nproc (int): Number of MPI processes to use when running test case
+
+        Returns:
+            Optional[str]: Skip reason, or `None` if test case should not be skipped
+        """
         return None
 
     def check_post_skip(self, test: str, spec: TestSpec, resource: str, stderr: str) -> Optional[str]:
+        """Check if a test case should be allowed to fail, based on its stderr output
+
+        Args:
+            test (str): Name of test
+            spec (TestSpec): Test case specification
+            resource (str): libCEED backend
+            stderr (str): Standard error output from test case execution
+
+        Returns:
+            Optional[str]: Skip reason, or `None` if unexpeced error
+        """
         return None
 
     def check_required_failure(self, test: str, spec: TestSpec, resource: str, stderr: str) -> tuple[str, bool]:
+        """Check whether a test case is expected to fail and if it failed expectedly
+
+        Args:
+            test (str): Name of test
+            spec (TestSpec): Test case specification
+            resource (str): libCEED backend
+            stderr (str): Standard error output from test case execution
+
+        Returns:
+            tuple[str, bool]: Tuple of the expected failure string and whether it was present in `stderr`
+        """
         return '', True
 
     def check_allowed_stdout(self, test: str) -> bool:
+        """Check whether a test is allowed to print console output
+
+        Args:
+            test (str): Name of test
+
+        Returns:
+            bool: True if the test is allowed to print console output
+        """
         return False
 
 
 # parse source file test case line
 def parse_test_line(line: str) -> TestSpec:
+    """Parse a single line of TESTARGS and CLI arguments into a `TestSpec` object
+
+    Args:
+        line (str): String containing TESTARGS specification and CLI arguments
+
+    Returns:
+        TestSpec: Parsed specification of test case
+    """
     args: list[str] = re.findall("(?:\".*?\"|\\S)+", line.strip())
     if args[0] == 'TESTARGS':
         return TestSpec(name='', args=args[1:])
@@ -72,6 +154,11 @@ def parse_test_line(line: str) -> TestSpec:
 
 
 def has_cgnsdiff() -> bool:
+    """Check whether `cgnsdiff` is an executable program in the current environment
+
+    Returns:
+        bool: True if `cgnsdiff` is found
+    """
     my_env: dict = os.environ.copy()
     proc = subprocess.run('cgnsdiff',
                           shell=True,
@@ -83,6 +170,17 @@ def has_cgnsdiff() -> bool:
 
 # get all test cases from source file
 def get_test_args(source_file: Path) -> list[TestSpec]:
+    """Parse all test cases from a given source file
+
+    Args:
+        source_file (Path): Path to source file
+
+    Raises:
+        RuntimeError: Errors if source file extension is unsupported
+
+    Returns:
+        list[TestSpec]: List of parsed `TestSpec` objects, or a list containing a single, default `TestSpec` if none were found
+    """
     comment_str: str = ''
     if source_file.suffix in ['.c', '.cpp']:
         comment_str = '//'
@@ -100,8 +198,18 @@ def get_test_args(source_file: Path) -> list[TestSpec]:
             if line.startswith(f'{comment_str}TESTARGS')] or [TestSpec('', args=['{ceed_resource}'])]
 
 
-# diff output CSV and test file
 def diff_csv(test_csv: Path, true_csv: Path, zero_tol: float = 3e-10, rel_tol: float = 1e-2) -> str:
+    """Compare CSV results against an expected CSV file with tolerances
+
+    Args:
+        test_csv (Path): Path to output CSV results
+        true_csv (Path): Path to expected CSV results
+        zero_tol (float, optional): Tolerance below which values are considered to be zero. Defaults to 3e-10.
+        rel_tol (float, optional): Relative tolerance for comparing non-zero values. Defaults to 1e-2.
+
+    Returns:
+        str: Diff output between result and expected CSVs
+    """
     test_lines: list[str] = test_csv.read_text().splitlines()
     true_lines: list[str] = true_csv.read_text().splitlines()
 
@@ -127,11 +235,20 @@ def diff_csv(test_csv: Path, true_csv: Path, zero_tol: float = 3e-10, rel_tol: f
     return '\n'.join(diff_lines)
 
 
-# diff output CGNS and test file
-def diff_cgns(test_cgns: Path, true_cgns: Path) -> str:
+def diff_cgns(test_cgns: Path, true_cgns: Path, tolerance: float = 1e-12) -> str:
+    """Compare CGNS results against an expected CGSN file with tolerance
+
+    Args:
+        test_cgns (Path): Path to output CGNS file
+        true_cgns (Path): Path to expected CGNS file
+        tolerance (float, optional): Tolerance for comparing floating-point values
+
+    Returns:
+        str: Diff output between result and expected CGNS files
+    """
     my_env: dict = os.environ.copy()
 
-    run_args: list[str] = ['cgnsdiff', '-d', '-t', '1e-12', str(test_cgns), str(true_cgns)]
+    run_args: list[str] = ['cgnsdiff', '-d', '-t', f'{tolerance}', str(test_cgns), str(true_cgns)]
     proc = subprocess.run(' '.join(run_args),
                           shell=True,
                           stdout=subprocess.PIPE,
@@ -143,6 +260,18 @@ def diff_cgns(test_cgns: Path, true_cgns: Path) -> str:
 
 # driver to run full test suite
 def run_tests(test: str, ceed_backends: list[str], mode: RunMode, nproc: int, suite_spec: SuiteSpec) -> TestSuite:
+    """Run all test cases for `test` with each of the provided `ceed_backends`
+
+    Args:
+        test (str): Name of test
+        ceed_backends (list[str]): List of libCEED backends
+        mode (RunMode): Output mode, either `RunMode.TAP` or `RunMode.JUNIT`
+        nproc (int): Number of MPI processes to use when running each test case
+        suite_spec (SuiteSpec): Object defining required methods for running tests
+
+    Returns:
+        TestSuite: JUnit `TestSuite` containing results of all test cases
+    """
     source_path: Path = suite_spec.get_source_path(test)
     test_specs: list[TestSpec] = get_test_args(source_path)
 

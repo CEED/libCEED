@@ -4,12 +4,38 @@ import argparse
 from junit_common import *
 
 
-def contains_any(resource: str, substrings: list[str]) -> bool:
-    return any((sub in resource for sub in substrings))
+def contains_any(base: str, substrings: list[str]) -> bool:
+    """Checks if any of the substrings are included in the base string
+
+    Args:
+        base (str): Base string to search in
+        substrings (list[str]): List of potential substrings
+
+    Returns:
+        bool: True if any substrings are included in base string
+    """
+    return any((sub in base for sub in substrings))
 
 
-# create parser for command line arguments
+def startswith_any(base: str, prefixes: list[str]) -> bool:
+    """Checks if the base string is prefixed by any of `prefixes`
+
+    Args:
+        base (str): Base string to search
+        prefixes (list[str]): List of potential prefixes
+
+    Returns:
+        bool: True if base string is prefixed by any of the prefixes
+    """
+    return any((base.startswith(prefix) for prefix in prefixes))
+
+
 def create_argparser() -> argparse.ArgumentParser:
+    """Creates argument parser to read command line arguments
+
+    Returns:
+        argparse.ArgumentParser: Created `ArgumentParser`
+    """
     parser = argparse.ArgumentParser('Test runner with JUnit and TAP output')
     parser.add_argument('-c', '--ceed-backends', type=str, nargs='*', default=['/cpu/self'], help='libCEED backend to use with convergence tests')
     parser.add_argument('-m', '--mode', help='Output mode, JUnit or TAP', default='JUnit')
@@ -23,6 +49,14 @@ def create_argparser() -> argparse.ArgumentParser:
 # Necessary functions for running tests
 class CeedSuiteSpec(SuiteSpec):
     def get_source_path(self, test: str) -> Path:
+        """Compute path to test source file
+
+        Args:
+            test (str): Name of test
+
+        Returns:
+            Path: Path to source file
+        """
         prefix, rest = test.split('-', 1)
         if prefix == 'petsc':
             return (Path('examples') / 'petsc' / rest).with_suffix('.c')
@@ -43,39 +77,83 @@ class CeedSuiteSpec(SuiteSpec):
 
     # get path to executable
     def get_run_path(self, test: str) -> Path:
+        """Compute path to built test executable file
+
+        Args:
+            test (str): Name of test
+
+        Returns:
+            Path: Path to test executable
+        """
         return Path('build') / test
 
     def get_output_path(self, test: str, output_file: str) -> Path:
+        """Compute path to expected output file
+
+        Args:
+            test (str): Name of test
+            output_file (str): File name of output file
+
+        Returns:
+            Path: Path to expected output file
+        """
         return Path('tests') / 'output' / output_file
 
     def check_pre_skip(self, test: str, spec: TestSpec, resource: str, nproc: int) -> Optional[str]:
-        return 'Pre-Check Skipped' if any((
-            test.startswith('t4') and contains_any(resource, ['occa']),
-            test.startswith('t5') and contains_any(resource, ['occa']),
-            test.startswith('ex') and contains_any(resource, ['occa']),
-            test.startswith('mfem') and contains_any(resource, ['occa']),
-            test.startswith('nek') and contains_any(resource, ['occa']),
-            test.startswith('petsc-') and contains_any(resource, ['occa']),
-            test.startswith('fluids-') and contains_any(resource, ['occa']),
-            test.startswith('solids-') and contains_any(resource, ['occa']),
-            test.startswith('t318') and contains_any(resource, ['/gpu/cuda/ref']),
-            test.startswith('t506') and contains_any(resource, ['/gpu/cuda/shared']),
-        )) else None
+        """Check if a test case should be skipped prior to running, returning the reason for skipping
+
+        Args:
+            test (str): Name of test
+            spec (TestSpec): Test case specification
+            resource (str): libCEED backend
+            nproc (int): Number of MPI processes to use when running test case
+
+        Returns:
+            Optional[str]: Skip reason, or `None` if test case should not be skipped
+        """
+        if contains_any(resource, ['occa']) and startswith_any(test, ['t4', 't5', 'ex', 'mfem', 'nek', 'petsc', 'fluids', 'solids']):
+            return 'OCCA mode not supported'
+        if test.startswith('t318') and contains_any(resource, ['/gpu/cuda/ref']):
+            return 'CUDA ref backend not supported'
+        if test.startswith('t506') and contains_any(resource, ['/gpu/cuda/shared']):
+            return 'CUDA shared backend not supported'
 
     def check_post_skip(self, test: str, spec: TestSpec, resource: str, stderr: str) -> Optional[str]:
+        """Check if a test case should be allowed to fail, based on its stderr output
+
+        Args:
+            test (str): Name of test
+            spec (TestSpec): Test case specification
+            resource (str): libCEED backend
+            stderr (str): Standard error output from test case execution
+
+        Returns:
+            Optional[str]: Skip reason, or `None` if unexpeced error
+        """
         if 'OCCA backend failed to use' in stderr:
-            return f'occa mode not supported {test} {resource}'
+            return f'OCCA mode not supported'
         elif 'Backend does not implement' in stderr:
-            return f'not implemented {test} {resource}'
+            return f'Backend does not implement'
         elif 'Can only provide HOST memory for this backend' in stderr:
-            return f'device memory not supported {test} {resource}'
+            return f'Device memory not supported'
         elif 'Test not implemented in single precision' in stderr:
-            return f'not implemented {test} {resource}'
+            return f'Test not implemented in single precision'
         elif 'No SYCL devices of the requested type are available' in stderr:
-            return f'sycl device type not available {test} {resource}'
+            return f'SYCL device type not available'
         return None
 
     def check_required_failure(self, test: str, spec: TestSpec, resource: str, stderr: str) -> tuple[str, bool]:
+        """Check whether a test case is expected to fail and if it failed expectedly
+
+        Args:
+            test (str): Name of test
+            spec (TestSpec): Test case specification
+            resource (str): libCEED backend
+            stderr (str): Standard error output from test case execution
+
+        Returns:
+            tuple[str, bool]: Tuple of the expected failure string and whether it was present in `stderr`
+        """
         test_id: str = test[:4]
         fail_str: str = ''
         if test_id in ['t006', 't007']:
@@ -104,6 +182,14 @@ class CeedSuiteSpec(SuiteSpec):
         return fail_str, fail_str in stderr
 
     def check_allowed_stdout(self, test: str) -> bool:
+        """Check whether a test is allowed to print console output
+
+        Args:
+            test (str): Name of test
+
+        Returns:
+            bool: True if the test is allowed to print console output
+        """
         return test[:4] in ['t003']
 
 
