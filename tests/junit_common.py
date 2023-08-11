@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+import argparse
 from dataclasses import dataclass, field
 import difflib
 from enum import Enum
@@ -15,6 +16,25 @@ sys.path.insert(0, str(Path(__file__).parent / "junit-xml"))
 from junit_xml import TestCase, TestSuite  # nopep8
 
 
+class CaseInsensitiveEnumAction(argparse.Action):
+    """Action to convert input values to lower case prior to converting to an Enum type"""
+
+    def __init__(self, option_strings, dest, type, **kwargs):
+        if not (issubclass(type, Enum) and issubclass(type, str)):
+            raise ValueError(f"{type} must be a StrEnum or str and Enum")
+        # store provided enum type
+        self.enum_type = type
+        # prevent automatic type conversion
+        super().__init__(option_strings, dest, type=str, **kwargs)
+
+    def __call__(self, parser, namespace, values, option_string=None):
+        if isinstance(values, str):
+            values = self.enum_type(values.lower())
+        else:
+            values = [self.enum_type(v.lower()) for v in values]
+        setattr(namespace, self.dest, values)
+
+
 @dataclass
 class TestSpec:
     """Dataclass storing information about a single test case"""
@@ -23,13 +43,16 @@ class TestSpec:
     args: list = field(default_factory=list)
 
 
-class RunMode(Enum):
+class RunMode(str, Enum):
     """Enumeration of run modes, either `RunMode.TAP` or `RunMode.JUNIT`"""
+    __str__ = str.__str__
+    __format__ = str.__format__
     TAP: str = 'tap'
     JUNIT: str = 'junit'
 
 
 class SuiteSpec(ABC):
+    """Abstract Base Class defining the required interface for running a test suite"""
     @abstractmethod
     def get_source_path(self, test: str) -> Path:
         """Compute path to test source file
@@ -130,7 +153,47 @@ class SuiteSpec(ABC):
         return False
 
 
-# parse source file test case line
+def has_cgnsdiff() -> bool:
+    """Check whether `cgnsdiff` is an executable program in the current environment
+
+    Returns:
+        bool: True if `cgnsdiff` is found
+    """
+    my_env: dict = os.environ.copy()
+    proc = subprocess.run('cgnsdiff',
+                          shell=True,
+                          stdout=subprocess.PIPE,
+                          stderr=subprocess.PIPE,
+                          env=my_env)
+    return 'not found' not in proc.stderr.decode('utf-8')
+
+
+def contains_any(base: str, substrings: list[str]) -> bool:
+    """Helper function, checks if any of the substrings are included in the base string
+
+    Args:
+        base (str): Base string to search in
+        substrings (list[str]): List of potential substrings
+
+    Returns:
+        bool: True if any substrings are included in base string
+    """
+    return any((sub in base for sub in substrings))
+
+
+def startswith_any(base: str, prefixes: list[str]) -> bool:
+    """Helper function, checks if the base string is prefixed by any of `prefixes`
+
+    Args:
+        base (str): Base string to search
+        prefixes (list[str]): List of potential prefixes
+
+    Returns:
+        bool: True if base string is prefixed by any of the prefixes
+    """
+    return any((base.startswith(prefix) for prefix in prefixes))
+
+
 def parse_test_line(line: str) -> TestSpec:
     """Parse a single line of TESTARGS and CLI arguments into a `TestSpec` object
 
@@ -153,22 +216,6 @@ def parse_test_line(line: str) -> TestSpec:
         return TestSpec(name=test_args['name'], only=constraints)
 
 
-def has_cgnsdiff() -> bool:
-    """Check whether `cgnsdiff` is an executable program in the current environment
-
-    Returns:
-        bool: True if `cgnsdiff` is found
-    """
-    my_env: dict = os.environ.copy()
-    proc = subprocess.run('cgnsdiff',
-                          shell=True,
-                          stdout=subprocess.PIPE,
-                          stderr=subprocess.PIPE,
-                          env=my_env)
-    return 'not found' not in proc.stderr.decode('utf-8')
-
-
-# get all test cases from source file
 def get_test_args(source_file: Path) -> list[TestSpec]:
     """Parse all test cases from a given source file
 
@@ -258,7 +305,6 @@ def diff_cgns(test_cgns: Path, true_cgns: Path, tolerance: float = 1e-12) -> str
     return proc.stderr.decode('utf-8') + proc.stdout.decode('utf-8')
 
 
-# driver to run full test suite
 def run_tests(test: str, ceed_backends: list[str], mode: RunMode, nproc: int, suite_spec: SuiteSpec) -> TestSuite:
     """Run all test cases for `test` with each of the provided `ceed_backends`
 
@@ -416,3 +462,27 @@ def run_tests(test: str, ceed_backends: list[str], mode: RunMode, nproc: int, su
             index += 1
 
     return TestSuite(test, test_cases)
+
+
+def write_junit_xml(test_suite: TestSuite, output_file: Optional[Path], batch: str = '') -> None:
+    """Write a JUnit XML file containing the results of a `TestSuite`
+
+    Args:
+        test_suite (TestSuite): JUnit `TestSuite` to write
+        output_file (Optional[Path]): Path to output file, or `None` to generate automatically as `build/{test_suite.name}{batch}.junit`
+        batch (str): Name of JUnit batch, defaults to empty string
+    """
+    output_file: Path = output_file or Path('build') / (f'{test_suite.name}{batch}.junit')
+    output_file.write_text(to_xml_report_string([test_suite]))
+
+
+def has_failures(test_suite: TestSuite) -> bool:
+    """Check whether any test cases in a `TestSuite` failed
+
+    Args:
+        test_suite (TestSuite): JUnit `TestSuite` to check
+
+    Returns:
+        bool: True if any test cases failed
+    """
+    return any(c.is_failure() or c.is_error() for c in test_suite.test_cases)

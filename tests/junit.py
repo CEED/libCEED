@@ -1,33 +1,5 @@
 #!/usr/bin/env python3
-
-import argparse
 from junit_common import *
-
-
-def contains_any(base: str, substrings: list[str]) -> bool:
-    """Checks if any of the substrings are included in the base string
-
-    Args:
-        base (str): Base string to search in
-        substrings (list[str]): List of potential substrings
-
-    Returns:
-        bool: True if any substrings are included in base string
-    """
-    return any((sub in base for sub in substrings))
-
-
-def startswith_any(base: str, prefixes: list[str]) -> bool:
-    """Checks if the base string is prefixed by any of `prefixes`
-
-    Args:
-        base (str): Base string to search
-        prefixes (list[str]): List of potential prefixes
-
-    Returns:
-        bool: True if base string is prefixed by any of the prefixes
-    """
-    return any((base.startswith(prefix) for prefix in prefixes))
 
 
 def create_argparser() -> argparse.ArgumentParser:
@@ -38,9 +10,10 @@ def create_argparser() -> argparse.ArgumentParser:
     """
     parser = argparse.ArgumentParser('Test runner with JUnit and TAP output')
     parser.add_argument('-c', '--ceed-backends', type=str, nargs='*', default=['/cpu/self'], help='libCEED backend to use with convergence tests')
-    parser.add_argument('-m', '--mode', help='Output mode, JUnit or TAP', default='JUnit')
+    parser.add_argument('-m', '--mode', type=RunMode, action=CaseInsensitiveEnumAction, help='Output mode, JUnit or TAP', default='JUnit')
     parser.add_argument('-n', '--nproc', type=int, default=1, help='number of MPI processes')
-    parser.add_argument('-o', '--output', help='Output file to write test', default=None)
+    parser.add_argument('-o', '--output', type=Optional[Path], default=None, help='Output file to write test')
+    parser.add_argument('-b', '--junit-batch', type=str, default='', help='Name of JUnit batch for output file')
     parser.add_argument('test', help='Test executable', nargs='?')
 
     return parser
@@ -197,18 +170,10 @@ if __name__ == '__main__':
     args = create_argparser().parse_args()
 
     # run tests
-    mode: RunMode = RunMode(args.mode.lower())
-    result: TestSuite = run_tests(args.test, args.ceed_backends, mode, args.nproc, CeedSuiteSpec())
+    result: TestSuite = run_tests(args.test, args.ceed_backends, args.mode, args.nproc, CeedSuiteSpec())
 
-    # build output
-    if mode is RunMode.JUNIT:
-        junit_batch: str = f'-{os.environ["JUNIT_BATCH"]}' if 'JUNIT_BATCH' in os.environ else ''
-        output: Path = Path('build') / (args.test + junit_batch + '.junit') if args.output is None else Path(args.output)
-        with output.open('w') as fd:
-            TestSuite.to_file(fd, [result])
-
-    # check return code
-    for t in result.test_cases:
-        any_failures: bool = any(c.is_failure() or c.is_error() for c in result.test_cases)
-        if any_failures and mode is not RunMode.TAP:
+    # write output and check for failures
+    if args.mode is RunMode.JUNIT:
+        write_junit_xml(result, args.output, args.junit_batch)
+        if has_failures(result):
             sys.exit(1)
