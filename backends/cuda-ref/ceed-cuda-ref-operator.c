@@ -805,9 +805,7 @@ static inline int CeedOperatorAssembleDiagonalCore_Cuda(CeedOperator op, CeedVec
   if ((assembled_length > INT_MAX) || (assembledqf_length > INT_MAX)) use_ceedsize_idx = 1;
 
   // Setup
-  if (!impl->diag) {
-    CeedCallBackend(CeedOperatorAssembleDiagonalSetup_Cuda(op, pointBlock, use_ceedsize_idx));
-  }
+  if (!impl->diag) CeedCallBackend(CeedOperatorAssembleDiagonalSetup_Cuda(op, pointBlock, use_ceedsize_idx));
   CeedOperatorDiag_Cuda *diag = impl->diag;
   assert(diag != NULL);
 
@@ -991,10 +989,10 @@ static int CeedSingleOperatorAssembleSetup_Cuda(CeedOperator op, CeedInt use_cee
     asmb->block_size_x = esize;
     asmb->block_size_y = esize;
   }
-  CeedCallCuda(
-      ceed, CeedCompile_Cuda(ceed, assembly_kernel_source, &asmb->module, 8, "NELEM", nelem, "NUMEMODEIN", num_emode_in, "NUMEMODEOUT", num_emode_out,
-                             "NQPTS", nqpts, "NNODES", esize, "BLOCK_SIZE", block_size, "NCOMP", ncomp, "CEEDSIZE", use_ceedsize_idx));
-  CeedCallCuda(ceed, CeedGetKernel_Cuda(ceed, asmb->module, fallback ? "linearAssembleFallback" : "linearAssemble", &asmb->linearAssemble));
+  CeedCallBackend(CeedCompile_Cuda(ceed, assembly_kernel_source, &asmb->module, 8, "NELEM", nelem, "NUMEMODEIN", num_emode_in, "NUMEMODEOUT",
+                                   num_emode_out, "NQPTS", nqpts, "NNODES", esize, "BLOCK_SIZE", block_size, "NCOMP", ncomp, "CEEDSIZE",
+                                   use_ceedsize_idx));
+  CeedCallBackend(CeedGetKernel_Cuda(ceed, asmb->module, fallback ? "linearAssembleFallback" : "linearAssemble", &asmb->linearAssemble));
   CeedCallBackend(CeedFree(&assembly_kernel_path));
   CeedCallBackend(CeedFree(&assembly_kernel_source));
 

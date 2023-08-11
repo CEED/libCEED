@@ -34,7 +34,8 @@ static int CeedInit_Cuda_shared(const char *resource, Ceed ceed) {
 
   CeedCallBackend(CeedSetBackendFunction(ceed, "Ceed", ceed, "BasisCreateTensorH1", CeedBasisCreateTensorH1_Cuda_shared));
   CeedCallBackend(CeedSetBackendFunction(ceed, "Ceed", ceed, "Destroy", CeedDestroy_Cuda));
-  return 0;
+
+  return CEED_ERROR_SUCCESS;
 }
 
 //------------------------------------------------------------------------------

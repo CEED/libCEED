@@ -157,6 +157,9 @@ static int CeedVectorGetArrayWrite_Ref(CeedVector vec, CeedMemType mem_type, con
 //------------------------------------------------------------------------------
 static int CeedVectorRestoreArray_Ref(CeedVector vec) { return CEED_ERROR_SUCCESS; }
 
+//------------------------------------------------------------------------------
+// Vector Restore Array Read
+//------------------------------------------------------------------------------
 static int CeedVectorRestoreArrayRead_Ref(CeedVector vec) { return CEED_ERROR_SUCCESS; }
 
 //------------------------------------------------------------------------------

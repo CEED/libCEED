@@ -10,7 +10,6 @@
 #include <ceed.h>
 #include <ceed/backend.h>
 #include <ceed/jit-tools.h>
-#include <cuda.h>
 #include <cuda_runtime.h>
 #include <nvrtc.h>
 #include <stdarg.h>
@@ -113,8 +112,11 @@ int CeedGetKernel_Cuda(Ceed ceed, CUmodule module, const char *name, CUfunction 
   return CEED_ERROR_SUCCESS;
 }
 
-// Run kernel with block size selected automatically based on the kernel (which may use enough registers to require a smaller block size than the
-// hardware is capable).
+//------------------------------------------------------------------------------
+// Run CUDA kernel with block size selected automatically based on the kernel
+//     (which may use enough registers to require a smaller block size than the
+//      hardware is capable)
+//------------------------------------------------------------------------------
 int CeedRunKernelAutoblockCuda(Ceed ceed, CUfunction kernel, size_t points, void **args) {
   int min_grid_size, max_block_size;
   CeedCallCuda(ceed, cuOccupancyMaxPotentialBlockSize(&min_grid_size, &max_block_size, kernel, NULL, 0, 0x10000));

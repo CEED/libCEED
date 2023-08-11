@@ -10,6 +10,7 @@
 #include <ceed/jit-source/hip/hip-types.h>
 #include <stddef.h>
 
+#include "../hip/ceed-hip-common.h"
 #include "../hip/ceed-hip-compile.h"
 #include "ceed-hip-gen-operator-build.h"
 #include "ceed-hip-gen.h"

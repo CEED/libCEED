@@ -11,7 +11,6 @@
 #include <ceed.h>
 #include <ceed/backend.h>
 #include <hip/hip_runtime.h>
-
 #if (HIP_VERSION >= 50200000)
 #include <hipblas/hipblas.h>  // IWYU pragma: export
 #else
@@ -71,9 +70,10 @@ CEED_UNUSED static const char *hipblasGetErrorName(hipblasStatus_t error) {
 // LCOV_EXCL_STOP
 
 typedef struct {
-  int             opt_block_size;
-  int             device_id;
-  hipblasHandle_t hipblas_handle;
+  int                    device_id;
+  hipblasHandle_t        hipblas_handle;
+  struct hipDeviceProp_t device_prop;
+  int                    opt_block_size;
 } Ceed_Hip;
 
 CEED_INTERN int CeedInit_Hip(Ceed ceed, const char *resource);

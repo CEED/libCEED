@@ -25,13 +25,10 @@ int CeedInit_Hip(Ceed ceed, const char *resource) {
     CeedCallHip(ceed, hipSetDevice(device_id));
     current_device_id = device_id;
   }
-
-  struct hipDeviceProp_t device_prop;
-  CeedCallHip(ceed, hipGetDeviceProperties(&device_prop, current_device_id));
-
   Ceed_Hip *data;
   CeedCallBackend(CeedGetData(ceed, &data));
-  data->device_id      = current_device_id;
+  data->device_id = current_device_id;
+  CeedCallHip(ceed, hipGetDeviceProperties(&data->device_prop, current_device_id));
   data->opt_block_size = 256;
   return CEED_ERROR_SUCCESS;
 }
@@ -42,9 +39,7 @@ int CeedInit_Hip(Ceed ceed, const char *resource) {
 int CeedDestroy_Hip(Ceed ceed) {
   Ceed_Hip *data;
   CeedCallBackend(CeedGetData(ceed, &data));
-  if (data->hipblas_handle) {
-    CeedCallHipblas(ceed, hipblasDestroy(data->hipblas_handle));
-  }
+  if (data->hipblas_handle) CeedCallHipblas(ceed, hipblasDestroy(data->hipblas_handle));
   CeedCallBackend(CeedFree(&data));
   return CEED_ERROR_SUCCESS;
 }

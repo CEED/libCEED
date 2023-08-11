@@ -44,7 +44,7 @@ static int CeedInit_Opt_Blocked(const char *resource, Ceed ceed) {
   CeedCallBackend(CeedSetBackendFunction(ceed, "Ceed", ceed, "Destroy", CeedDestroy_Opt));
   CeedCallBackend(CeedSetBackendFunction(ceed, "Ceed", ceed, "OperatorCreate", CeedOperatorCreate_Opt));
 
-  // Set blocksize
+  // Set block size
   Ceed_Opt *data;
   CeedCallBackend(CeedCalloc(1, &data));
   data->blk_size = 8;

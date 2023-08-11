@@ -5,6 +5,11 @@
 //
 // This file is part of CEED:  http://github.com/ceed
 
+/// @file
+/// Internal header for HIP element restriction kernels
+#ifndef _ceed_hip_ref_restriction_h
+#define _ceed_hip_ref_restriction_h
+
 #include <ceed.h>
 
 //------------------------------------------------------------------------------
@@ -95,3 +100,5 @@ extern "C" __global__ void OffsetTransposeDet(const CeedInt *__restrict__ l_vec_
 }
 
 //------------------------------------------------------------------------------
+
+#endif

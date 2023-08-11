@@ -21,6 +21,7 @@
 extern "C" __launch_bounds__(BASIS_INTERP_BLOCK_SIZE) __global__
     void Interp(const CeedInt num_elem, const CeedScalar *d_interp_1d, const CeedScalar *__restrict__ d_U, CeedScalar *__restrict__ d_V) {
   extern __shared__ CeedScalar slice[];
+
   // load interp_1d into shared memory
   __shared__ CeedScalar s_B[BASIS_P_1D * BASIS_Q_1D];
   loadMatrix<BASIS_P_1D * BASIS_Q_1D>(d_interp_1d, s_B);
@@ -58,6 +59,7 @@ extern "C" __launch_bounds__(BASIS_INTERP_BLOCK_SIZE) __global__
 extern "C" __launch_bounds__(BASIS_INTERP_BLOCK_SIZE) __global__
     void InterpTranspose(const CeedInt num_elem, const CeedScalar *d_interp_1d, const CeedScalar *__restrict__ d_U, CeedScalar *__restrict__ d_V) {
   extern __shared__ CeedScalar slice[];
+
   // load interp_1d into shared memory
   __shared__ CeedScalar s_B[BASIS_P_1D * BASIS_Q_1D];
   loadMatrix<BASIS_P_1D * BASIS_Q_1D>(d_interp_1d, s_B);
@@ -99,6 +101,7 @@ extern "C" __launch_bounds__(BASIS_GRAD_BLOCK_SIZE) __global__
     void Grad(const CeedInt num_elem, const CeedScalar *d_interp_1d, const CeedScalar *d_grad_1d, const CeedScalar *__restrict__ d_U,
               CeedScalar *__restrict__ d_V) {
   extern __shared__ CeedScalar slice[];
+
   // load interp_1d and grad_1d into shared memory
   __shared__ CeedScalar s_B[BASIS_P_1D * BASIS_Q_1D];
   loadMatrix<BASIS_P_1D * BASIS_Q_1D>(d_interp_1d, s_B);
@@ -141,6 +144,7 @@ extern "C" __launch_bounds__(BASIS_GRAD_BLOCK_SIZE) __global__
     void GradTranspose(const CeedInt num_elem, const CeedScalar *d_interp_1d, const CeedScalar *d_grad_1d, const CeedScalar *__restrict__ d_U,
                        CeedScalar *__restrict__ d_V) {
   extern __shared__ CeedScalar slice[];
+
   // load interp_1d and grad_1d into shared memory
   __shared__ CeedScalar s_B[BASIS_P_1D * BASIS_Q_1D];
   loadMatrix<BASIS_P_1D * BASIS_Q_1D>(d_interp_1d, s_B);

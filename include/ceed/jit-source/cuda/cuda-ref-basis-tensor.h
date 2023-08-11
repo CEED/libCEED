@@ -5,6 +5,11 @@
 //
 // This file is part of CEED:  http://github.com/ceed
 
+/// @file
+/// Internal header for CUDA tensor product basis
+#ifndef _ceed_cuda_ref_basis_tensor_h
+#define _ceed_cuda_ref_basis_tensor_h
+
 #include <ceed.h>
 
 //------------------------------------------------------------------------------
@@ -111,7 +116,7 @@ extern "C" __global__ void Grad(const CeedInt num_elem, const CeedInt transpose,
         CeedScalar       *cur_v = v + elem * v_stride + dim_1 * v_dim_stride + comp * v_comp_stride;
         for (CeedInt dim_2 = 0; dim_2 < BASIS_DIM; dim_2++) {
           __syncthreads();
-          // Update bufferfers used
+          // Update buffers used
           pre /= P;
           const CeedScalar *op  = dim_1 == dim_2 ? s_grad_1d : s_interp_1d;
           const CeedScalar *in  = dim_2 == 0 ? cur_u : (dim_2 % 2 ? s_buffer_2 : s_buffer_1);
@@ -190,3 +195,5 @@ extern "C" __global__ void Weight(const CeedInt num_elem, const CeedScalar *__re
 }
 
 //------------------------------------------------------------------------------
+
+#endif

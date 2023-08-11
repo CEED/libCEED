@@ -8,7 +8,6 @@
 #include <ceed.h>
 #include <ceed/backend.h>
 #include <ceed/jit-source/cuda/cuda-types.h>
-#include <cuda.h>
 #include <stddef.h>
 
 #include "../cuda/ceed-cuda-common.h"
@@ -29,7 +28,7 @@ static int CeedOperatorDestroy_Cuda_gen(CeedOperator op) {
 static int Waste(int threads_per_sm, int warp_size, int threads_per_elem, int elems_per_block) {
   int useful_threads_per_block = threads_per_elem * elems_per_block;
   // round up to nearest multiple of warp_size
-  int block_size    = ((useful_threads_per_block + warp_size - 1) / warp_size) * warp_size;
+  int block_size    = CeedDivUpInt(useful_threads_per_block, warp_size) * warp_size;
   int blocks_per_sm = threads_per_sm / block_size;
   return threads_per_sm - useful_threads_per_block * blocks_per_sm;
 }
@@ -79,7 +78,7 @@ static int BlockGridCalculate(CeedInt num_elem, int blocks_per_sm, int max_threa
   // In low-order elements, threads_per_elem may be sufficiently low to give an elems_per_block greater than allowable for the device, so we must
   // check before setting the z-dimension size of the block.
   block[2] = CeedIntMin(elems_per_block, max_threads_z);
-  *grid    = (num_elem + elems_per_block - 1) / elems_per_block;
+  *grid    = CeedDivUpInt(num_elem, elems_per_block);
   return CEED_ERROR_SUCCESS;
 }
 

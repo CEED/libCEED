@@ -5,6 +5,11 @@
 //
 // This file is part of CEED:  http://github.com/ceed
 
+/// @file
+/// Internal header for CUDA non-tensor product basis
+#ifndef _ceed_cuda_ref_basis_nontensor_h
+#define _ceed_cuda_ref_basis_nontensor_h
+
 #include <ceed.h>
 
 //------------------------------------------------------------------------------
@@ -90,3 +95,5 @@ extern "C" __global__ void Weight(const CeedInt num_elem, const CeedScalar *__re
 }
 
 //------------------------------------------------------------------------------
+
+#endif
