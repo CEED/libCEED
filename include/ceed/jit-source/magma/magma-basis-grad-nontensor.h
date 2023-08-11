@@ -5,116 +5,106 @@
 //
 // This file is part of CEED:  http://github.com/ceed
 
+/// @file
+/// Internal header for Magma non-tensor basis gradient
 #ifndef CEED_MAGMA_GRAD_NONTENSOR_H
 #define CEED_MAGMA_GRAD_NONTENSOR_H
 
+#include "magma-common-nontensor.h"
+
 ////////////////////////////////////////////////////////////////////////////////
-// Different A's and C's, same B
-extern "C" __global__ __launch_bounds__(Q *MAGMA_NONTENSOR_BASIS_NTCOL(Q)) void magma_grad_nontensor_n(magma_trans_t transA, magma_trans_t transB,
-                                                                                                       int n, CeedScalar const *dA, int ldda,
-                                                                                                       CeedScalar const *dB, int lddb, CeedScalar *dC,
-                                                                                                       int lddc) {
+extern "C" __launch_bounds__(MAGMA_BASIS_BOUNDS(BASIS_Q, MAGMA_MAXTHREADS_1D)) __global__
+    void magma_grad_nontensor_n(int n, CeedScalar const *dA, int ldda, CeedScalar const *dB, int lddb, CeedScalar *dC, int lddc) {
   MAGMA_DEVICE_SHARED(CeedScalar, shared_data);
 
   const int tx      = threadIdx.x;
   const int ty      = threadIdx.y;
-  const int bx      = blockIdx.x;
-  const int id      = bx * blockDim.y + ty;
-  const int nblocks = MAGMA_CEILDIV(n, NB_GRAD_N);
-  const int myn     = min(NB_GRAD_N, n - id * NB_GRAD_N);
+  const int id      = blockIdx.x * blockDim.y + ty;
+  const int nblocks = MAGMA_CEILDIV(n, BASIS_NB_GRAD_N);
+  const int myn     = min(BASIS_NB_GRAD_N, n - id * BASIS_NB_GRAD_N);
 
-  const double alpha = MAGMA_D_ONE;
+  dB += id * BASIS_NB_GRAD_N * lddb;
+  dC += id * BASIS_NB_GRAD_N * lddc;
 
-  dB += id * NB_GRAD_N * lddb;
-  dC += id * NB_GRAD_N * lddc;
-
-  // A is P x Q
-  const int   slda = P;
-  const int   sldb = P;
-  CeedScalar *sA   = (CeedScalar *)(shared_data);
-  CeedScalar *sB   = sA + Q * P;
-  sB += ty * sldb * NB_GRAD_N;
+  // A is BASIS_P x BASIS_Q
+  const int   slda = BASIS_P;
+  const int   sldb = BASIS_P;
+  CeedScalar *sA   = (CeedScalar *)shared_data;
+  CeedScalar *sB   = sA + BASIS_Q * BASIS_P;
+  sB += ty * sldb * BASIS_NB_GRAD_N;
 
   // read B once for all C's
   if (id < nblocks) {
-    read_B_g2s_1D_nosync<CeedScalar, Q, NB_GRAD_N, P>(tx, myn, dB, lddb, sB, sldb);
+    read_B_g2s_1D_nosync<CeedScalar, BASIS_Q, BASIS_P, BASIS_NB_GRAD_N>(tx, myn, dB, lddb, sB, sldb);
   }
-  __syncthreads();
 
-  // unrolling this loop yields dramatic performance drop using hipcc
-  // let the compiler decide (no pragma unroll)
-  for (int idim = 0; idim < DIM; idim++) {
-    // read A (P x Q) using all threads
-    CeedScalar rA[P] = {MAGMA_D_ZERO};
-    read_A_trans_g2r_1D_nosync<CeedScalar, Q, NB_GRAD_N, P>(tx, ty, dA, ldda, sA, slda, rA);
-
+  // unrolling this loop yields dramatic performance drop using hipcc, let the compiler decide (no pragma unroll)
+  for (int d = 0; d < BASIS_DIM; d++) {
+    // read A (BASIS_P x BASIS_Q) using all threads
+    CeedScalar rA[BASIS_P] = {MAGMA_D_ZERO};
     __syncthreads();
+    read_A_trans_g2r_1D_nosync<CeedScalar, BASIS_Q, BASIS_P, BASIS_NB_GRAD_N>(tx, ty, dA, ldda, sA, slda, rA);
 
     // init rC
-    CeedScalar rC[NB_GRAD_N] = {MAGMA_D_ZERO};
+    CeedScalar rC[BASIS_NB_GRAD_N] = {MAGMA_D_ZERO};
     if (id < nblocks) {
-      mul_rAsBrC_1D_nosync<CeedScalar, Q, NB_GRAD_N, P>(tx, alpha, rA, sB, sldb, rC);
-    }
-    __syncthreads();
-
-    if (id < nblocks) {
-      write_C_r2g_1D_nosync<CeedScalar, Q, NB_GRAD_N, P>(tx, myn, rC, dC, lddc);
+      mul_rAsBrC_1D_nosync<CeedScalar, BASIS_Q, BASIS_P, BASIS_NB_GRAD_N>(tx, rA, sB, sldb, rC);
     }
 
-    dA += Q * P;
-    dC += Q * n;
+    // write C
+    if (id < nblocks) {
+      write_C_r2g_1D_nosync<CeedScalar, BASIS_Q, BASIS_P, BASIS_NB_GRAD_N>(tx, myn, rC, dC, lddc);
+    }
+
+    dA += BASIS_Q * BASIS_P;
+    dC += BASIS_Q * n;
   }
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-// Different A's and B's, same C
-extern "C" __global__ __launch_bounds__(P *MAGMA_NONTENSOR_BASIS_NTCOL(P)) void magma_grad_nontensor_t(magma_trans_t transA, magma_trans_t transB,
-                                                                                                       int n, CeedScalar const *dA, int ldda,
-                                                                                                       CeedScalar const *dB, int lddb, CeedScalar *dC,
-                                                                                                       int lddc) {
+extern "C" __launch_bounds__(MAGMA_BASIS_BOUNDS(BASIS_P, MAGMA_MAXTHREADS_1D)) __global__
+    void magma_grad_nontensor_t(int n, CeedScalar const *dA, int ldda, CeedScalar const *dB, int lddb, CeedScalar *dC, int lddc) {
   MAGMA_DEVICE_SHARED(CeedScalar, shared_data);
 
   const int tx      = threadIdx.x;
   const int ty      = threadIdx.y;
-  const int bx      = blockIdx.x;
-  const int id      = bx * blockDim.y + ty;
-  const int nblocks = MAGMA_CEILDIV(n, NB_GRAD_T);
-  const int myn     = min(NB_GRAD_T, n - id * NB_GRAD_T);
+  const int id      = blockIdx.x * blockDim.y + ty;
+  const int nblocks = MAGMA_CEILDIV(n, BASIS_NB_GRAD_T);
+  const int myn     = min(BASIS_NB_GRAD_T, n - id * BASIS_NB_GRAD_T);
+
+  // terminate threads with no work
   if (id >= nblocks) return;
 
-  dB += id * NB_GRAD_T * lddb;
-  dC += id * NB_GRAD_T * lddc;
+  dB += id * BASIS_NB_GRAD_T * lddb;
+  dC += id * BASIS_NB_GRAD_T * lddc;
 
-  const double alpha = MAGMA_D_ONE;
+  // A is BASIS_P x BASIS_Q
+  const int   sldb = BASIS_Q;
+  CeedScalar *sB   = (CeedScalar *)shared_data;
+  sB += ty * sldb * BASIS_NB_GRAD_T;
 
-  // A is P x Q
-  const int   sldb = Q;
-  CeedScalar *sB   = (CeedScalar *)(shared_data);
-  sB += ty * sldb * NB_GRAD_T;
+  // init rA, rC
+  CeedScalar rA[BASIS_Q]         = {MAGMA_D_ZERO};
+  CeedScalar rC[BASIS_NB_GRAD_T] = {MAGMA_D_ZERO};
 
-  // init rC
-  CeedScalar rC[NB_GRAD_T] = {MAGMA_D_ZERO};
-
-  CeedScalar rA[Q] = {MAGMA_D_ZERO};
-
-  // unrolling this loop yields dramatic performance drop using hipcc
-  // let the compiler decide (no pragma unroll)
-  for (int idim = 0; idim < DIM; idim++) {
-    __syncthreads();
+  // unrolling this loop yields dramatic performance drop using hipcc, let the compiler decide (no pragma unroll)
+  for (int d = 0; d < BASIS_DIM; d++) {
     // read A
-    read_A_notrans_g2r_1D_nosync<CeedScalar, P, NB_GRAD_T, Q>(tx, dA, ldda, NULL, 0, rA);
+    read_A_notrans_g2r_1D_nosync<CeedScalar, BASIS_P, BASIS_Q, BASIS_NB_GRAD_T>(tx, dA, ldda, NULL, 0, rA);
 
     // read B
-    read_B_g2s_1D_nosync<CeedScalar, P, NB_GRAD_T, Q>(tx, myn, dB, lddb, sB, sldb);
+    __syncthreads();
+    read_B_g2s_1D_nosync<CeedScalar, BASIS_P, BASIS_Q, BASIS_NB_GRAD_T>(tx, myn, dB, lddb, sB, sldb);
     __syncthreads();
 
-    mul_rAsBrC_1D_nosync<CeedScalar, P, NB_GRAD_T, Q>(tx, alpha, rA, sB, sldb, rC);
+    addmul_rAsBrC_1D_nosync<CeedScalar, BASIS_P, BASIS_Q, BASIS_NB_GRAD_T>(tx, rA, sB, sldb, rC);
 
-    // advance A and B
-    dA += P * Q;
-    dB += Q * n;
+    dA += BASIS_P * BASIS_Q;
+    dB += BASIS_Q * n;
   }
-  write_C_r2g_1D_nosync<CeedScalar, P, NB_GRAD_T, Q>(tx, myn, rC, dC, lddc);
+
+  // write C
+  write_C_r2g_1D_nosync<CeedScalar, BASIS_P, BASIS_Q, BASIS_NB_GRAD_T>(tx, myn, rC, dC, lddc);
 }
 
 #endif  // CEED_MAGMA_GRAD_NONTENSOR_H
