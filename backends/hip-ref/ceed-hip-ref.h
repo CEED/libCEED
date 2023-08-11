@@ -57,10 +57,14 @@ typedef struct {
 typedef struct {
   hipModule_t   module;
   hipFunction_t Interp;
-  hipFunction_t Grad;
+  hipFunction_t InterpTranspose;
+  hipFunction_t Deriv;
+  hipFunction_t DerivTranspose;
   hipFunction_t Weight;
   CeedScalar   *d_interp;
   CeedScalar   *d_grad;
+  CeedScalar   *d_div;
+  CeedScalar   *d_curl;
   CeedScalar   *d_q_weight;
 } CeedBasisNonTensor_Hip;
 
@@ -122,9 +126,12 @@ CEED_INTERN int CeedElemRestrictionCreate_Hip(CeedMemType mem_type, CeedCopyMode
 
 CEED_INTERN int CeedBasisCreateTensorH1_Hip(CeedInt dim, CeedInt P_1d, CeedInt Q_1d, const CeedScalar *interp_1d, const CeedScalar *grad_1d,
                                             const CeedScalar *q_ref_1d, const CeedScalar *q_weight_1d, CeedBasis basis);
-
 CEED_INTERN int CeedBasisCreateH1_Hip(CeedElemTopology topo, CeedInt dim, CeedInt num_nodes, CeedInt num_qpts, const CeedScalar *interp,
                                       const CeedScalar *grad, const CeedScalar *q_ref, const CeedScalar *q_weight, CeedBasis basis);
+CEED_INTERN int CeedBasisCreateHdiv_Hip(CeedElemTopology topo, CeedInt dim, CeedInt num_nodes, CeedInt num_qpts, const CeedScalar *interp,
+                                        const CeedScalar *div, const CeedScalar *q_ref, const CeedScalar *q_weight, CeedBasis basis);
+CEED_INTERN int CeedBasisCreateHcurl_Hip(CeedElemTopology topo, CeedInt dim, CeedInt num_nodes, CeedInt num_qpts, const CeedScalar *interp,
+                                         const CeedScalar *curl, const CeedScalar *q_ref, const CeedScalar *q_weight, CeedBasis basis);
 
 CEED_INTERN int CeedQFunctionCreate_Hip(CeedQFunction qf);
 
