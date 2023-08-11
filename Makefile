@@ -642,6 +642,7 @@ allexamples = $(examples) $(external_examples)
 search ?= t ex
 realsearch = $(search:%=%%)
 matched = $(foreach pattern,$(realsearch),$(filter $(OBJDIR)/$(pattern),$(tests) $(allexamples)))
+JUNIT_BATCH ?= ''
 
 # Test core libCEED
 test : $(matched:$(OBJDIR)/%=run-%)
@@ -661,7 +662,7 @@ prove-all :
 	+$(MAKE) prove realsearch=%
 
 junit-% : $(OBJDIR)/%
-	@printf "  %10s %s\n" TEST $(<:$(OBJDIR)/%=%); $(PYTHON) tests/junit.py --ceed-backends $(BACKENDS) --nproc $(NPROC_TEST) $(<:$(OBJDIR)/%=%)
+	@printf "  %10s %s\n" TEST $(<:$(OBJDIR)/%=%); $(PYTHON) tests/junit.py --ceed-backends $(BACKENDS) --nproc $(NPROC_TEST) --junit-batch $(JUNIT_BATCH) $(<:$(OBJDIR)/%=%)
 
 junit : $(matched:$(OBJDIR)/%=junit-%)
 
