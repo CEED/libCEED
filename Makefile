@@ -616,8 +616,12 @@ $(examples) : $(libceed)
 $(tests) : $(libceed)
 $(tests) $(examples) : override LDFLAGS += $(if $(STATIC),,-Wl,-rpath,$(abspath $(LIBDIR))) -L$(LIBDIR)
 
+# Set number processes for testing
+NPROC_TEST ?= 1
+export NPROC_TEST
+
 run-% : $(OBJDIR)/%
-	@$(PYTHON) tests/junit.py --mode tap $(<:$(OBJDIR)/%=%)
+	@$(PYTHON) tests/junit.py --mode tap --ceed-backends $(BACKENDS) --nproc $(NPROC_TEST) $(<:$(OBJDIR)/%=%)
 
 external_examples := \
 	$(if $(MFEM_DIR),$(mfemexamples)) \
@@ -638,6 +642,7 @@ allexamples = $(examples) $(external_examples)
 search ?= t ex
 realsearch = $(search:%=%%)
 matched = $(foreach pattern,$(realsearch),$(filter $(OBJDIR)/$(pattern),$(tests) $(allexamples)))
+JUNIT_BATCH ?= ''
 
 # Test core libCEED
 test : $(matched:$(OBJDIR)/%=run-%)
@@ -649,7 +654,7 @@ ctc-% : $(ctests);@$(foreach tst,$(ctests),$(tst) /cpu/$*;)
 
 prove : $(matched)
 	$(info Testing backends: $(BACKENDS))
-	$(PROVE) $(PROVE_OPTS) --exec 'tests/junit.py --mode tap' $(matched:$(OBJDIR)/%=%)
+	$(PROVE) $(PROVE_OPTS) --exec 'tests/junit.py --mode tap --ceed-backends $(BACKENDS) --nproc $(NPROC_TEST)' $(matched:$(OBJDIR)/%=%)
 # Run prove target in parallel
 prv : ;@$(MAKE) $(MFLAGS) V=$(V) prove
 
@@ -657,7 +662,7 @@ prove-all :
 	+$(MAKE) prove realsearch=%
 
 junit-% : $(OBJDIR)/%
-	@printf "  %10s %s\n" TEST $(<:$(OBJDIR)/%=%); $(PYTHON) tests/junit.py $(<:$(OBJDIR)/%=%)
+	@printf "  %10s %s\n" TEST $(<:$(OBJDIR)/%=%); $(PYTHON) tests/junit.py --ceed-backends $(BACKENDS) --nproc $(NPROC_TEST) --junit-batch $(JUNIT_BATCH) $(<:$(OBJDIR)/%=%)
 
 junit : $(matched:$(OBJDIR)/%=junit-%)
 
