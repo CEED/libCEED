@@ -13,19 +13,23 @@ import time
 from typing import Optional
 
 sys.path.insert(0, str(Path(__file__).parent / "junit-xml"))
-from junit_xml import TestCase, TestSuite  # nopep8
+from junit_xml import TestCase, TestSuite, to_xml_report_string  # nopep8
 
 
 class CaseInsensitiveEnumAction(argparse.Action):
     """Action to convert input values to lower case prior to converting to an Enum type"""
 
-    def __init__(self, option_strings, dest, type, **kwargs):
+    def __init__(self, option_strings, dest, type, default, **kwargs):
         if not (issubclass(type, Enum) and issubclass(type, str)):
             raise ValueError(f"{type} must be a StrEnum or str and Enum")
         # store provided enum type
         self.enum_type = type
+        if isinstance(default, str):
+            default = self.enum_type(default.lower())
+        else:
+            default = [self.enum_type(v.lower()) for v in default]
         # prevent automatic type conversion
-        super().__init__(option_strings, dest, type=str, **kwargs)
+        super().__init__(option_strings, dest, default=default, **kwargs)
 
     def __call__(self, parser, namespace, values, option_string=None):
         if isinstance(values, str):

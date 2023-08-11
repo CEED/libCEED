@@ -10,7 +10,7 @@ def create_argparser() -> argparse.ArgumentParser:
     """
     parser = argparse.ArgumentParser('Test runner with JUnit and TAP output')
     parser.add_argument('-c', '--ceed-backends', type=str, nargs='*', default=['/cpu/self'], help='libCEED backend to use with convergence tests')
-    parser.add_argument('-m', '--mode', type=RunMode, action=CaseInsensitiveEnumAction, help='Output mode, JUnit or TAP', default='JUnit')
+    parser.add_argument('-m', '--mode', type=RunMode, action=CaseInsensitiveEnumAction, help='Output mode, junit or tap', default=RunMode.JUNIT)
     parser.add_argument('-n', '--nproc', type=int, default=1, help='number of MPI processes')
     parser.add_argument('-o', '--output', type=Optional[Path], default=None, help='Output file to write test')
     parser.add_argument('-b', '--junit-batch', type=str, default='', help='Name of JUnit batch for output file')
