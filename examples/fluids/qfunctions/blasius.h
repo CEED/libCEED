@@ -131,6 +131,9 @@ CEED_QFUNCTION(ICsBlasius)(void *ctx, CeedInt Q, const CeedScalar *const *in, Ce
       case STATEVAR_PRIMITIVE:
         UnpackState_Y(s.Y, q);
         break;
+      case STATEVAR_ENTROPY:
+        UnpackState_V(s.V, q);
+        break;
     }
     for (CeedInt j = 0; j < 5; j++) q0[j][i] = q[j];
   }
@@ -182,9 +185,11 @@ CEED_QFUNCTION(Blasius_Inflow)(void *ctx, CeedInt Q, const CeedScalar *const *in
     if (weakT) {  // density from the current solution
       s.U.density = s_int.U.density;
       s.Y         = StatePrimitiveFromConservative(gas, s.U, x);
+      s.V         = StateEntropyFromConservative(gas, s.U, x);
     } else {  // Total energy from current solution
       s.U.E_total = s_int.U.E_total;
       s.Y         = StatePrimitiveFromConservative(gas, s.U, x);
+      s.V         = StateEntropyFromConservative(gas, s.U, x);
     }
 
     // ---- Normal vect

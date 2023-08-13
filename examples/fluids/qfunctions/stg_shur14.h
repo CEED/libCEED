@@ -342,6 +342,8 @@ CEED_QFUNCTION(ICsSTG)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedSc
     } else {
       for (CeedInt j = 0; j < 3; j++) u[j] = ubar[j];
     }
+    CeedScalar gamma   = HeatCapacityRatio(&stg_ctx->newtonian_ctx);
+    CeedScalar entropy = log(P0) - gamma * log(rho);
 
     switch (stg_ctx->newtonian_ctx.state_var) {
       case STATEVAR_CONSERVATIVE:
@@ -358,6 +360,14 @@ CEED_QFUNCTION(ICsSTG)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedSc
         q0[2][i] = u[1];
         q0[3][i] = u[2];
         q0[4][i] = theta0;
+        break;
+
+      case STATEVAR_ENTROPY:
+        q0[0][i] = (gamma - entropy) / (gamma - 1) - rho * 0.5 * Dot3(u, u) / P0;
+        q0[1][i] = rho * u[0] / P0;
+        q0[2][i] = rho * u[1] / P0;
+        q0[3][i] = rho * u[2] / P0;
+        q0[4][i] = -rho / P0;
         break;
     }
   }  // End of Quadrature Point Loop
@@ -534,7 +544,8 @@ CEED_QFUNCTION(STGShur14_Inflow_StrongQF)(void *ctx, CeedInt Q, const CeedScalar
   const CeedScalar       time      = stg_ctx->time;
   const CeedScalar       theta0    = stg_ctx->theta0;
   const CeedScalar       P0        = stg_ctx->P0;
-  const CeedScalar       rho       = P0 / (GasConstant(&stg_ctx->newtonian_ctx) * theta0);
+  const CeedScalar       Rd        = GasConstant(&stg_ctx->newtonian_ctx);
+  const CeedScalar       rho       = P0 / (Rd * theta0);
   const CeedScalar       nu        = stg_ctx->newtonian_ctx.mu / rho;
 
   CeedPragmaSIMD for (CeedInt i = 0; i < Q; i++) {
@@ -576,6 +587,14 @@ CEED_QFUNCTION(STGShur14_Inflow_StrongQF)(void *ctx, CeedInt Q, const CeedScalar
         bcval[2][i] = scale[i] * u[1];
         bcval[3][i] = scale[i] * u[2];
         bcval[4][i] = scale[i] * theta0;
+        break;
+
+      case STATEVAR_ENTROPY:
+        bcval[0][i] = 0;
+        bcval[1][i] = scale[i] * u[0] / (Rd * theta0);
+        bcval[2][i] = scale[i] * u[1] / (Rd * theta0);
+        bcval[3][i] = scale[i] * u[2] / (Rd * theta0);
+        bcval[4][i] = scale[i] * (-1 / (Rd * theta0));
         break;
     }
   }

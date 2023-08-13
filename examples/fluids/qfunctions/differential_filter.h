@@ -85,6 +85,10 @@ CEED_QFUNCTION(DifferentialFilter_RHS_Prim)(void *ctx, CeedInt Q, const CeedScal
   return DifferentialFilter_RHS(ctx, Q, in, out, STATEVAR_PRIMITIVE);
 }
 
+CEED_QFUNCTION(DifferentialFilter_RHS_Entropy)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
+  return DifferentialFilter_RHS(ctx, Q, in, out, STATEVAR_ENTROPY);
+}
+
 CEED_QFUNCTION_HELPER CeedScalar VanDriestWallDamping(const CeedScalar wall_dist_plus, const CeedScalar A_plus) {
   return -expm1(-wall_dist_plus / A_plus);
 }

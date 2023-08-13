@@ -383,12 +383,20 @@ CEED_QFUNCTION(Freestream_Prim_HLL)(void *ctx, CeedInt Q, const CeedScalar *cons
   return Freestream(ctx, Q, in, out, STATEVAR_PRIMITIVE, RIEMANN_HLL);
 }
 
+CEED_QFUNCTION(Freestream_Entropy_HLL)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
+  return Freestream(ctx, Q, in, out, STATEVAR_ENTROPY, RIEMANN_HLL);
+}
+
 CEED_QFUNCTION(Freestream_Conserv_HLLC)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
   return Freestream(ctx, Q, in, out, STATEVAR_CONSERVATIVE, RIEMANN_HLLC);
 }
 
 CEED_QFUNCTION(Freestream_Prim_HLLC)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
   return Freestream(ctx, Q, in, out, STATEVAR_PRIMITIVE, RIEMANN_HLLC);
+}
+
+CEED_QFUNCTION(Freestream_Entropy_HLLC)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
+  return Freestream(ctx, Q, in, out, STATEVAR_ENTROPY, RIEMANN_HLLC);
 }
 
 CEED_QFUNCTION_HELPER int Freestream_Jacobian(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out, StateVariable state_var,
@@ -440,12 +448,20 @@ CEED_QFUNCTION(Freestream_Jacobian_Prim_HLL)(void *ctx, CeedInt Q, const CeedSca
   return Freestream_Jacobian(ctx, Q, in, out, STATEVAR_PRIMITIVE, RIEMANN_HLL);
 }
 
+CEED_QFUNCTION(Freestream_Jacobian_Entropy_HLL)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
+  return Freestream_Jacobian(ctx, Q, in, out, STATEVAR_ENTROPY, RIEMANN_HLL);
+}
+
 CEED_QFUNCTION(Freestream_Jacobian_Conserv_HLLC)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
   return Freestream_Jacobian(ctx, Q, in, out, STATEVAR_CONSERVATIVE, RIEMANN_HLLC);
 }
 
 CEED_QFUNCTION(Freestream_Jacobian_Prim_HLLC)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
   return Freestream_Jacobian(ctx, Q, in, out, STATEVAR_PRIMITIVE, RIEMANN_HLLC);
+}
+
+CEED_QFUNCTION(Freestream_Jacobian_Entropy_HLLC)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
+  return Freestream_Jacobian(ctx, Q, in, out, STATEVAR_ENTROPY, RIEMANN_HLLC);
 }
 
 // Note the identity
@@ -551,6 +567,10 @@ CEED_QFUNCTION(RiemannOutflow_Prim)(void *ctx, CeedInt Q, const CeedScalar *cons
   return RiemannOutflow(ctx, Q, in, out, STATEVAR_PRIMITIVE);
 }
 
+CEED_QFUNCTION(RiemannOutflow_Entropy)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
+  return RiemannOutflow(ctx, Q, in, out, STATEVAR_ENTROPY);
+}
+
 // *****************************************************************************
 // Jacobian for Riemann pressure/temperature outflow boundary condition
 // *****************************************************************************
@@ -638,6 +658,10 @@ CEED_QFUNCTION(RiemannOutflow_Jacobian_Prim)(void *ctx, CeedInt Q, const CeedSca
   return RiemannOutflow_Jacobian(ctx, Q, in, out, STATEVAR_PRIMITIVE);
 }
 
+CEED_QFUNCTION(RiemannOutflow_Jacobian_Entropy)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
+  return RiemannOutflow_Jacobian(ctx, Q, in, out, STATEVAR_ENTROPY);
+}
+
 // *****************************************************************************
 // Outflow boundary condition, weakly setting a constant pressure. This is the
 // classic outflow condition used by PHASTA-C and retained largely for
@@ -720,6 +744,10 @@ CEED_QFUNCTION(PressureOutflow_Prim)(void *ctx, CeedInt Q, const CeedScalar *con
   return PressureOutflow(ctx, Q, in, out, STATEVAR_PRIMITIVE);
 }
 
+CEED_QFUNCTION(PressureOutflow_Entropy)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
+  return PressureOutflow(ctx, Q, in, out, STATEVAR_ENTROPY);
+}
+
 // *****************************************************************************
 // Jacobian for weak-pressure outflow boundary condition
 // *****************************************************************************
@@ -791,4 +819,8 @@ CEED_QFUNCTION(PressureOutflow_Jacobian_Conserv)(void *ctx, CeedInt Q, const Cee
 
 CEED_QFUNCTION(PressureOutflow_Jacobian_Prim)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
   return PressureOutflow_Jacobian(ctx, Q, in, out, STATEVAR_PRIMITIVE);
+}
+
+CEED_QFUNCTION(PressureOutflow_Jacobian_Entropy)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
+  return PressureOutflow_Jacobian(ctx, Q, in, out, STATEVAR_ENTROPY);
 }

@@ -552,7 +552,7 @@ PetscErrorCode TSSolve_NS(DM dm, User user, AppCtx app_ctx, Physics phys, Vec *Q
 
     PetscCall(PetscLogStageGetId("Fluids Solve", &stage_id));
     PetscCall(PetscLogGetStageLog(&stage_log));
-    PetscCall(PetscPrintf(PETSC_COMM_WORLD, "Time taken for solution (sec): %g\n", stage_log->stageInfo[stage_id].perfInfo.time));
+    // PetscCall(PetscPrintf(PETSC_COMM_WORLD, "Time taken for solution (sec): %g\n", stage_log->stageInfo[stage_id].perfInfo.time));
   }
   PetscFunctionReturn(PETSC_SUCCESS);
 }

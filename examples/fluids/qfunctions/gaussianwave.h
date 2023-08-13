@@ -70,3 +70,7 @@ CEED_QFUNCTION(IC_GaussianWave_Conserv)(void *ctx, CeedInt Q, const CeedScalar *
 CEED_QFUNCTION(IC_GaussianWave_Prim)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
   return IC_GaussianWave(ctx, Q, in, out, STATEVAR_PRIMITIVE);
 }
+
+CEED_QFUNCTION(IC_GaussianWave_Entropy)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
+  return IC_GaussianWave(ctx, Q, in, out, STATEVAR_ENTROPY);
+}

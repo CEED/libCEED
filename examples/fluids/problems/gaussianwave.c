@@ -37,6 +37,10 @@ PetscErrorCode NS_GAUSSIAN_WAVE(ProblemData *problem, DM dm, void *ctx, SimpleBC
       problem->ics.qfunction     = IC_GaussianWave_Prim;
       problem->ics.qfunction_loc = IC_GaussianWave_Prim_loc;
       break;
+    case STATEVAR_ENTROPY:
+      problem->ics.qfunction     = IC_GaussianWave_Entropy;
+      problem->ics.qfunction_loc = IC_GaussianWave_Entropy_loc;
+      break;
   }
 
   // -- Option Defaults

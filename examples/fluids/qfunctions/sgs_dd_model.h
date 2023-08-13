@@ -197,6 +197,10 @@ CEED_QFUNCTION(ComputeSGS_DDAnisotropicNodal_Conserv)(void *ctx, CeedInt Q, cons
   return ComputeSGS_DDAnisotropicNodal(ctx, Q, in, out, STATEVAR_CONSERVATIVE);
 }
 
+CEED_QFUNCTION(ComputeSGS_DDAnisotropicNodal_Entropy)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
+  return ComputeSGS_DDAnisotropicNodal(ctx, Q, in, out, STATEVAR_ENTROPY);
+}
+
 // @brief Adds subgrid stress to residual (during IFunction evaluation)
 CEED_QFUNCTION_HELPER int FluxSubgridStress(const StatePrimitive Y, const CeedScalar km_sgs[6], CeedScalar Flux[5][3]) {
   CeedScalar sgs[3][3];
@@ -252,6 +256,10 @@ CEED_QFUNCTION(IFunction_NodalSubgridStress_Conserv)(void *ctx, CeedInt Q, const
 
 CEED_QFUNCTION(IFunction_NodalSubgridStress_Prim)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
   return IFunction_NodalSubgridStress(ctx, Q, in, out, STATEVAR_PRIMITIVE);
+}
+
+CEED_QFUNCTION(IFunction_NodalSubgridStress_Entropy)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
+  return IFunction_NodalSubgridStress(ctx, Q, in, out, STATEVAR_ENTROPY);
 }
 
 #endif  // sgs_dd_model_h

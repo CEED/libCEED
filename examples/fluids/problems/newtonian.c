@@ -17,9 +17,27 @@
 #include "../qfunctions/setupgeo.h"
 
 // For use with PetscOptionsEnum
-static const char *const StateVariables[] = {"CONSERVATIVE", "PRIMITIVE", "StateVariable", "STATEVAR_", NULL};
+static const char *const StateVariables[] = {"CONSERVATIVE", "PRIMITIVE", "ENTROPY", "StateVariable", "STATEVAR_", NULL};
 
 // Compute relative error |a - b|/|s|
+static PetscErrorCode CheckConservativeWithTolerance(StateConservative sU, StateConservative aU, StateConservative bU, const char *name,
+                                                     PetscReal rtol_density, PetscReal rtol_momentum, PetscReal rtol_E_total) {
+  PetscFunctionBeginUser;
+  StateConservative eU;  // relative error
+  eU.density    = (aU.density - bU.density) / sU.density;
+  PetscScalar u = sqrt(Square(sU.momentum[0]) + Square(sU.momentum[1]) + Square(sU.momentum[2]));
+  for (int j = 0; j < 3; j++) eU.momentum[j] = (aU.momentum[j] - bU.momentum[j]) / u;
+  eU.E_total = (aU.E_total - bU.E_total) / sU.E_total;
+  if (fabs(eU.density) > rtol_density) printf("%s: density error %g (expected %g, got %g)\n", name, eU.density, sU.density, aU.density);
+  for (int j = 0; j < 3; j++) {
+    if (fabs(eU.momentum[j]) > rtol_momentum) {
+      printf("%s: momentum[%d] error %g (expected %g, got %g)\n", name, j, eU.momentum[j], sU.momentum[j], aU.momentum[j]);
+    }
+  }
+  if (fabs(eU.E_total) > rtol_E_total) printf("%s: E_total error %g (expected %g, got %g)\n", name, eU.E_total, sU.E_total, aU.E_total);
+  PetscFunctionReturn(PETSC_SUCCESS);
+}
+
 static PetscErrorCode CheckPrimitiveWithTolerance(StatePrimitive sY, StatePrimitive aY, StatePrimitive bY, const char *name, PetscReal rtol_pressure,
                                                   PetscReal rtol_velocity, PetscReal rtol_temperature) {
   PetscFunctionBeginUser;
@@ -28,38 +46,166 @@ static PetscErrorCode CheckPrimitiveWithTolerance(StatePrimitive sY, StatePrimit
   PetscScalar u = sqrt(Square(sY.velocity[0]) + Square(sY.velocity[1]) + Square(sY.velocity[2]));
   for (int j = 0; j < 3; j++) eY.velocity[j] = (aY.velocity[j] - bY.velocity[j]) / u;
   eY.temperature = (aY.temperature - bY.temperature) / sY.temperature;
-  if (fabs(eY.pressure) > rtol_pressure) printf("%s: pressure error %g\n", name, eY.pressure);
+  if (fabs(eY.pressure) > rtol_pressure) printf("%s: pressure error %g (expected %g, got %g)\n", name, eY.pressure, sY.pressure, aY.pressure);
   for (int j = 0; j < 3; j++) {
-    if (fabs(eY.velocity[j]) > rtol_velocity) printf("%s: velocity[%d] error %g\n", name, j, eY.velocity[j]);
+    if (fabs(eY.velocity[j]) > rtol_velocity) {
+      printf("%s: velocity[%d] error %g (expected %g, got %g)\n", name, j, eY.velocity[j], sY.velocity[j], aY.velocity[j]);
+    }
   }
-  if (fabs(eY.temperature) > rtol_temperature) printf("%s: temperature error %g\n", name, eY.temperature);
+  if (fabs(eY.temperature) > rtol_temperature)
+    printf("%s: temperature error %g (expected %g, got %g)\n", name, eY.temperature, sY.temperature, aY.temperature);
+  PetscFunctionReturn(PETSC_SUCCESS);
+}
+
+static PetscErrorCode CheckEntropyWithTolerance(StateEntropy sV, StateEntropy aV, StateEntropy bV, const char *name, PetscReal rtol_v1,
+                                                PetscReal rtol_velocity, PetscReal rtol_temperature_inv) {
+  PetscFunctionBeginUser;
+  StateEntropy eV;  // relative error
+  eV.S_density  = (aV.S_density - bV.S_density) / (fabs(sV.S_density) > 1e-16 ? sV.S_density : 1);
+  PetscScalar u = sqrt(Square(sV.S_momentum[0]) + Square(sV.S_momentum[1]) + Square(sV.S_momentum[2]));
+  for (int j = 0; j < 3; j++) eV.S_momentum[j] = (aV.S_momentum[j] - bV.S_momentum[j]) / (fabs(u) > 1e-16 ? u : 1);
+  eV.S_energy = (aV.S_energy - bV.S_energy) / (fabs(sV.S_energy) > 1e-16 ? sV.S_energy : 1);
+  if (fabs(eV.S_density) > rtol_v1) {
+    printf("%s: V1 error %g (expected %g, got %g)\n", name, eV.S_density, sV.S_density, aV.S_density);
+  }
+  for (int j = 0; j < 3; j++) {
+    if (fabs(eV.S_momentum[j]) > rtol_velocity) {
+      printf("%s: S_momentum[%d] error %g (expected %g, got %g)\n", name, j, eV.S_momentum[j], sV.S_momentum[j], aV.S_momentum[j]);
+    }
+  }
+  if (fabs(eV.S_energy) > rtol_temperature_inv) {
+    printf("%s: S_energy error %g (expected %g, got %g)\n", name, eV.S_energy, sV.S_energy, aV.S_energy);
+  }
   PetscFunctionReturn(PETSC_SUCCESS);
 }
 
 static PetscErrorCode UnitTests_Newtonian(User user, NewtonianIdealGasContext gas) {
   Units            units = user->units;
   const CeedScalar eps   = 1e-6;
-  const CeedScalar kg = units->kilogram, m = units->meter, sec = units->second, Pascal = units->Pascal;
+  const CeedScalar rtol  = 1e-4;
+  const CeedScalar kg = units->kilogram, m = units->meter, sec = units->second, K = units->Kelvin;
   PetscFunctionBeginUser;
-  const CeedScalar rho = 1.2 * kg / (m * m * m), u = 40 * m / sec;
-  CeedScalar       U[5] = {rho, rho * u, rho * u * 1.1, rho * u * 1.2, 250e3 * Pascal + .5 * rho * u * u};
-  const CeedScalar x[3] = {.1, .2, .3};
-  State            s    = StateFromU(gas, U, x);
-  for (int i = 0; i < 8; i++) {
-    CeedScalar dU[5] = {0}, dx[3] = {0};
-    if (i < 5) dU[i] = U[i];
-    else dx[i - 5] = x[i - 5];
-    State ds = StateFromU_fwd(gas, s, dU, x, dx);
-    for (int j = 0; j < 5; j++) dU[j] = (1 + eps * (i == j)) * U[j];
-    for (int j = 0; j < 3; j++) dx[j] = (1 + eps * (i == 5 + j)) * x[j];
-    State          t = StateFromU(gas, dU, dx);
-    StatePrimitive dY;
-    dY.pressure = (t.Y.pressure - s.Y.pressure) / eps;
-    for (int j = 0; j < 3; j++) dY.velocity[j] = (t.Y.velocity[j] - s.Y.velocity[j]) / eps;
-    dY.temperature = (t.Y.temperature - s.Y.temperature) / eps;
-    char buf[128];
-    snprintf(buf, sizeof buf, "StateFromU_fwd i=%d", i);
-    PetscCall(CheckPrimitiveWithTolerance(dY, ds.Y, dY, buf, 5e-6, 1e-6, 1e-6));
+  const CeedScalar T   = 200 * K;
+  const CeedScalar rho = 1.2 * kg / Cube(m), u_base = 40 * m / sec;
+  const CeedScalar P           = (HeatCapacityRatio(gas) - 1) * rho * gas->cv * T;
+  const CeedScalar u[3]        = {u_base, u_base * 1.1, u_base * 1.2};
+  const CeedScalar e_kinetic   = 0.5 * Dot3(u, u);
+  const CeedScalar x[3]        = {3 * m, 4 * m, 5 * m};
+  const CeedScalar e_potential = -Dot3(gas->g, x);
+  const CeedScalar e_internal  = gas->cv * T;
+  const CeedScalar e_total     = e_kinetic + e_potential + e_internal;
+  {
+    const CeedScalar U[5] = {rho, rho * u[0], rho * u[1], rho * u[2], rho * e_total};
+    const State      s    = StateFromU(gas, U, x);
+    for (int i = 0; i < 8; i++) {
+      CeedScalar dU[5] = {0}, dx[3] = {0};
+      if (i < 5) dU[i] = U[i];
+      else dx[i - 5] = x[i - 5];
+      State ds = StateFromU_fwd(gas, s, dU, x, dx);
+      for (int j = 0; j < 5; j++) dU[j] = (1 + eps * (i == j)) * U[j];
+      for (int j = 0; j < 3; j++) dx[j] = (1 + eps * (i == 5 + j)) * x[j];
+      State          t = StateFromU(gas, dU, dx);
+      StatePrimitive dY;
+      dY.pressure = (t.Y.pressure - s.Y.pressure) / eps;
+      for (int j = 0; j < 3; j++) dY.velocity[j] = (t.Y.velocity[j] - s.Y.velocity[j]) / eps;
+      dY.temperature = (t.Y.temperature - s.Y.temperature) / eps;
+      char buf[128];
+      snprintf(buf, sizeof buf, "U->Y: StateFromU_fwd i=%d", i);
+      PetscCall(CheckPrimitiveWithTolerance(dY, ds.Y, dY, buf, rtol, rtol, rtol));
+    }
+    for (int i = 0; i < 8; i++) {
+      CeedScalar dU[5] = {0}, dx[3] = {0};
+      if (i < 5) dU[i] = U[i];
+      else dx[i - 5] = x[i - 5];
+      State ds = StateFromU_fwd(gas, s, dU, x, dx);
+      for (int j = 0; j < 5; j++) dU[j] = (1 + eps * (i == j)) * U[j];
+      for (int j = 0; j < 3; j++) dx[j] = (1 + eps * (i == 5 + j)) * x[j];
+      State        t = StateFromU(gas, dU, dx);
+      StateEntropy dV;
+      dV.S_density = (t.V.S_density - s.V.S_density) / eps;
+      for (int j = 0; j < 3; j++) dV.S_momentum[j] = (t.V.S_momentum[j] - s.V.S_momentum[j]) / eps;
+      dV.S_energy = (t.V.S_energy - s.V.S_energy) / eps;
+      char buf[128];
+      snprintf(buf, sizeof buf, "U->V: StateFromU_fwd i=%d", i);
+      PetscCall(CheckEntropyWithTolerance(dV, ds.V, dV, buf, 5 * rtol, rtol, rtol));
+    }
+  }
+  {
+    CeedScalar  Y[5] = {P, u[0], u[1], u[2], T};
+    const State s    = StateFromY(gas, Y, x);
+    for (int i = 0; i < 8; i++) {
+      CeedScalar dY[5] = {0}, dx[3] = {0};
+      if (i < 5) dY[i] = Y[i];
+      else dx[i - 5] = x[i - 5];
+      State ds = StateFromY_fwd(gas, s, dY, x, dx);
+      for (int j = 0; j < 5; j++) dY[j] = (1 + eps * (i == j)) * Y[j];
+      for (int j = 0; j < 3; j++) dx[j] = (1 + eps * (i == 5 + j)) * x[j];
+      State        t = StateFromY(gas, dY, dx);
+      StateEntropy dV;
+      dV.S_density = (t.V.S_density - s.V.S_density) / eps;
+      for (int j = 0; j < 3; j++) dV.S_momentum[j] = (t.V.S_momentum[j] - s.V.S_momentum[j]) / eps;
+      dV.S_energy = (t.V.S_energy - s.V.S_energy) / eps;
+      char buf[128];
+      snprintf(buf, sizeof buf, "Y->V: StateFromY_fwd i=%d", i);
+      PetscCall(CheckEntropyWithTolerance(dV, ds.V, dV, buf, rtol, rtol, rtol));
+    }
+    for (int i = 0; i < 8; i++) {
+      CeedScalar dY[5] = {0}, dx[3] = {0};
+      if (i < 5) dY[i] = Y[i];
+      else dx[i - 5] = x[i - 5];
+      State ds = StateFromY_fwd(gas, s, dY, x, dx);
+      for (int j = 0; j < 5; j++) dY[j] = (1 + eps * (i == j)) * Y[j];
+      for (int j = 0; j < 3; j++) dx[j] = (1 + eps * (i == 5 + j)) * x[j];
+      State             t = StateFromY(gas, dY, dx);
+      StateConservative dU;
+      dU.density = (t.U.density - s.U.density) / eps;
+      for (int j = 0; j < 3; j++) dU.momentum[j] = (t.U.momentum[j] - s.U.momentum[j]) / eps;
+      dU.E_total = (t.U.E_total - s.U.E_total) / eps;
+      char buf[128];
+      snprintf(buf, sizeof buf, "Y->U: StateFromY_fwd i=%d", i);
+      PetscCall(CheckConservativeWithTolerance(dU, ds.U, dU, buf, rtol, rtol, rtol));
+    }
+  }
+  {
+    const CeedScalar gamma     = HeatCapacityRatio(gas);
+    const CeedScalar entropy   = log(P) - gamma * log(rho);
+    const CeedScalar rho_div_p = rho / P;
+
+    const CeedScalar V[5] = {(gamma - entropy) / (gamma - 1) - rho_div_p * (e_kinetic + e_potential), rho_div_p * u[0], rho_div_p * u[1],
+                             rho_div_p * u[2], -rho_div_p};
+    const State      s    = StateFromV(gas, V, x);
+    for (int i = 0; i < 8; i++) {
+      CeedScalar dV[5] = {0}, dx[3] = {0};
+      if (i < 5) dV[i] = V[i];
+      else dx[i - 5] = x[i - 5];
+      State ds = StateFromV_fwd(gas, s, dV, x, dx);
+      for (int j = 0; j < 5; j++) dV[j] = (1 + eps * (i == j)) * V[j];
+      for (int j = 0; j < 3; j++) dx[j] = (1 + eps * (i == 5 + j)) * x[j];
+      State          t = StateFromV(gas, dV, dx);
+      StatePrimitive dY;
+      dY.pressure = (t.Y.pressure - s.Y.pressure) / eps;
+      for (int j = 0; j < 3; j++) dY.velocity[j] = (t.Y.velocity[j] - s.Y.velocity[j]) / eps;
+      dY.temperature = (t.Y.temperature - s.Y.temperature) / eps;
+      char buf[128];
+      snprintf(buf, sizeof buf, "V->Y: StateFromV_fwd i=%d", i);
+      PetscCall(CheckPrimitiveWithTolerance(dY, ds.Y, dY, buf, rtol, rtol, rtol));
+    }
+    for (int i = 0; i < 8; i++) {
+      CeedScalar dV[5] = {0}, dx[3] = {0};
+      if (i < 5) dV[i] = V[i];
+      else dx[i - 5] = x[i - 5];
+      State ds = StateFromV_fwd(gas, s, dV, x, dx);
+      for (int j = 0; j < 5; j++) dV[j] = (1 + eps * (i == j)) * V[j];
+      for (int j = 0; j < 3; j++) dx[j] = (1 + eps * (i == 5 + j)) * x[j];
+      State             t = StateFromV(gas, dV, dx);
+      StateConservative dU;
+      dU.density = (t.U.density - s.U.density) / eps;
+      for (int j = 0; j < 3; j++) dU.momentum[j] = (t.U.momentum[j] - s.U.momentum[j]) / eps;
+      dU.E_total = (t.U.E_total - s.U.E_total) / eps;
+      char buf[128];
+      snprintf(buf, sizeof buf, "V->U: StateFromV_fwd i=%d", i);
+      PetscCall(CheckConservativeWithTolerance(dU, ds.U, dU, buf, rtol, rtol, rtol));
+    }
   }
   PetscFunctionReturn(PETSC_SUCCESS);
 }
@@ -163,6 +309,19 @@ PetscErrorCode NS_NEWTONIAN_IG(ProblemData *problem, DM dm, void *ctx, SimpleBC 
       problem->apply_inflow.qfunction_loc          = BoundaryIntegral_Prim_loc;
       problem->apply_inflow_jacobian.qfunction     = BoundaryIntegral_Jacobian_Prim;
       problem->apply_inflow_jacobian.qfunction_loc = BoundaryIntegral_Jacobian_Prim_loc;
+      break;
+
+    case STATEVAR_ENTROPY:
+      problem->ics.qfunction                       = ICsNewtonianIG_Entropy;
+      problem->ics.qfunction_loc                   = ICsNewtonianIG_Entropy_loc;
+      problem->apply_vol_ifunction.qfunction       = IFunction_Newtonian_Entropy;
+      problem->apply_vol_ifunction.qfunction_loc   = IFunction_Newtonian_Entropy_loc;
+      problem->apply_vol_ijacobian.qfunction       = IJacobian_Newtonian_Entropy;
+      problem->apply_vol_ijacobian.qfunction_loc   = IJacobian_Newtonian_Entropy_loc;
+      problem->apply_inflow.qfunction              = BoundaryIntegral_Entropy;
+      problem->apply_inflow.qfunction_loc          = BoundaryIntegral_Entropy_loc;
+      problem->apply_inflow_jacobian.qfunction     = BoundaryIntegral_Jacobian_Entropy;
+      problem->apply_inflow_jacobian.qfunction_loc = BoundaryIntegral_Jacobian_Entropy_loc;
       break;
   }
 

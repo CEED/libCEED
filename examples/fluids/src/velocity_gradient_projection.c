@@ -82,6 +82,10 @@ PetscErrorCode VelocityGradientProjectionSetup(Ceed ceed, User user, CeedData ce
       PetscCallCeed(ceed, CeedQFunctionCreateInterior(ceed, 1, VelocityGradientProjectionRHS_Conserv, VelocityGradientProjectionRHS_Conserv_loc,
                                                       &qf_rhs_assemble));
       break;
+    case STATEVAR_ENTROPY:
+      PetscCallCeed(ceed, CeedQFunctionCreateInterior(ceed, 1, VelocityGradientProjectionRHS_Entropy, VelocityGradientProjectionRHS_Entropy_loc,
+                                                      &qf_rhs_assemble));
+      break;
     default:
       SETERRQ(PetscObjectComm((PetscObject)user->dm), PETSC_ERR_SUP, "No velocity gradient projection QFunction for chosen state variable");
   }

@@ -86,6 +86,9 @@ CEED_QFUNCTION(ICsChannel)(void *ctx, CeedInt Q, const CeedScalar *const *in, Ce
       case STATEVAR_PRIMITIVE:
         UnpackState_Y(s.Y, q);
         break;
+      case STATEVAR_ENTROPY:
+        UnpackState_V(s.V, q);
+        break;
     }
 
     for (CeedInt j = 0; j < 5; j++) q0[j][i] = q[j];

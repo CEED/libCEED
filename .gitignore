@@ -65,6 +65,7 @@ doc/sphinx/source/examples/
 *.webm
 *.xz
 *.zstd
+*.cgns
 perf.data
 
 # Editor Misc
