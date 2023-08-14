@@ -98,14 +98,14 @@ PetscErrorCode NS_NEWTONIAN_IG(ProblemData *problem, DM dm, void *ctx, SimpleBC 
   // ------------------------------------------------------
   //             Create the libCEED context
   // ------------------------------------------------------
-  CeedScalar cv         = 717.;           // J/(kg K)
-  CeedScalar cp         = 1004.;          // J/(kg K)
-  CeedScalar g[3]       = {0, 0, -9.81};  // m/s^2
-  CeedScalar lambda     = -2. / 3.;       // -
-  CeedScalar mu         = 1.8e-5;         // Pa s, dynamic viscosity
-  CeedScalar k          = 0.02638;        // W/(m K)
-  CeedScalar c_tau      = 0.5 / degree;   // -
-  CeedScalar Ctau_t     = 1.0;            // -
+  CeedScalar cv         = 717.;          // J/(kg K)
+  CeedScalar cp         = 1004.;         // J/(kg K)
+  CeedScalar g[3]       = {0, 0, 0};     // m/s^2
+  CeedScalar lambda     = -2. / 3.;      // -
+  CeedScalar mu         = 1.8e-5;        // Pa s, dynamic viscosity
+  CeedScalar k          = 0.02638;       // W/(m K)
+  CeedScalar c_tau      = 0.5 / degree;  // -
+  CeedScalar Ctau_t     = 1.0;           // -
   CeedScalar Cv_func[3] = {36, 60, 128};
   CeedScalar Ctau_v     = Cv_func[(CeedInt)Min(3, degree) - 1];
   CeedScalar Ctau_C     = 0.25 / degree;
@@ -131,6 +131,7 @@ PetscErrorCode NS_NEWTONIAN_IG(ProblemData *problem, DM dm, void *ctx, SimpleBC 
   // ------------------------------------------------------
   //              Command line Options
   // ------------------------------------------------------
+  PetscBool given_option = PETSC_FALSE;
   PetscOptionsBegin(comm, NULL, "Options for Newtonian Ideal Gas based problem", NULL);
   // -- Conservative vs Primitive variables
   PetscCall(PetscOptionsEnum("-state_var", "State variables used", NULL, StateVariables, (PetscEnum)(state_var = STATEVAR_CONSERVATIVE),
@@ -174,7 +175,12 @@ PetscErrorCode NS_NEWTONIAN_IG(ProblemData *problem, DM dm, void *ctx, SimpleBC 
   PetscCall(PetscOptionsScalar("-k", "Thermal conductivity", NULL, k, &k, NULL));
 
   PetscInt dim = problem->dim;
-  PetscCall(PetscOptionsRealArray("-g", "Gravitational acceleration", NULL, g, &dim, NULL));
+  PetscCall(PetscOptionsDeprecated("-g", "-gravity", "libCEED 0.11.1", NULL));
+  PetscCall(PetscOptionsRealArray("-g", "Gravitational acceleration vector", NULL, g, &dim, &given_option));
+  dim = problem->dim;
+  PetscCall(PetscOptionsRealArray("-gravity", "Gravitational acceleration vector", NULL, g, &dim, &given_option));
+  if (given_option) PetscCheck(dim == 3, comm, PETSC_ERR_ARG_SIZ, "Gravity vector must be size 3, %" PetscInt_FMT " values given", dim);
+
   PetscCall(PetscOptionsEnum("-stab", "Stabilization method", NULL, StabilizationTypes, (PetscEnum)(stab = STAB_NONE), (PetscEnum *)&stab, NULL));
   PetscCall(PetscOptionsScalar("-c_tau", "Stabilization constant", NULL, c_tau, &c_tau, NULL));
   PetscCall(PetscOptionsScalar("-Ctau_t", "Stabilization time constant", NULL, Ctau_t, &Ctau_t, NULL));
