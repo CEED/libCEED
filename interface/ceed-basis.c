@@ -1544,14 +1544,14 @@ int CeedBasisApplyAtPoints(CeedBasis basis, CeedInt num_points, CeedTransposeMod
     CeedScalar       *chebyshev_interp_1d, *chebyshev_grad_1d, *chebyshev_q_weight_1d;
     const CeedScalar *interp_1d;
 
-    CeedCall(CeedCalloc(Q_1d * Q_1d, &chebyshev_interp_1d));
-    CeedCall(CeedCalloc(Q_1d * Q_1d, &chebyshev_grad_1d));
+    CeedCall(CeedCalloc(P_1d * Q_1d, &chebyshev_interp_1d));
+    CeedCall(CeedCalloc(P_1d * Q_1d, &chebyshev_grad_1d));
     CeedCall(CeedCalloc(Q_1d, &chebyshev_q_weight_1d));
     CeedCall(CeedBasisGetInterp1D(basis, &interp_1d));
     CeedCall(CeedMatrixMatrixMultiply(basis->ceed, chebyshev_coeffs_1d, interp_1d, chebyshev_interp_1d, Q_1d, P_1d, Q_1d));
 
     CeedCall(CeedVectorCreate(basis->ceed, num_comp * CeedIntPow(Q_1d, dim), &basis->vec_chebyshev));
-    CeedCall(CeedBasisCreateTensorH1(basis->ceed, dim, num_comp, Q_1d, Q_1d, chebyshev_interp_1d, chebyshev_grad_1d, q_ref_1d, chebyshev_q_weight_1d,
+    CeedCall(CeedBasisCreateTensorH1(basis->ceed, dim, num_comp, P_1d, Q_1d, chebyshev_interp_1d, chebyshev_grad_1d, q_ref_1d, chebyshev_q_weight_1d,
                                      &basis->basis_chebyshev));
 
     // Cleanup
@@ -1571,7 +1571,7 @@ int CeedBasisApplyAtPoints(CeedBasis basis, CeedInt num_points, CeedTransposeMod
 
     CeedCall(CeedInit("/cpu/self", &ceed_ref));
     // Only need matching tensor contraction dimensions, any type of basis will work
-    CeedCall(CeedBasisCreateTensorH1Lagrange(ceed_ref, dim, num_comp, Q_1d, Q_1d, CEED_GAUSS, &basis_ref));
+    CeedCall(CeedBasisCreateTensorH1Lagrange(ceed_ref, dim, num_comp, P_1d, Q_1d, CEED_GAUSS, &basis_ref));
     // Note - clang-tidy doesn't know basis_ref->contract must be valid here
     CeedCheck(basis_ref && basis_ref->contract, basis->ceed, CEED_ERROR_UNSUPPORTED,
               "Refrence CPU ceed failed to create a tensor contraction object");

@@ -22,7 +22,7 @@ int main(int argc, char **argv) {
   for (CeedInt dim = 1; dim <= 3; dim++) {
     CeedVector    x, x_nodes, x_points, u, v;
     CeedBasis     basis_x, basis_u;
-    const CeedInt p = 9, q = 9, num_points = 4, x_dim = CeedIntPow(2, dim), p_dim = CeedIntPow(p, dim);
+    const CeedInt p = 9, q = 10, num_points = 4, x_dim = CeedIntPow(2, dim), p_dim = CeedIntPow(p, dim);
 
     CeedVectorCreate(ceed, x_dim * dim, &x);
     CeedVectorCreate(ceed, p_dim * dim, &x_nodes);
