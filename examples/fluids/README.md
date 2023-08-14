@@ -618,9 +618,9 @@ For the Density Current, Channel, and Blasius problems, the following common com
   - `1004`
   - `J/(kg K)`
 
-* - `-g`
-  - Gravitational acceleration
-  - `9.81`
+* - `-gravity`
+  - Gravitational acceleration vector
+  - `0,0,0`
   - `m/s^2`
 
 * - `-lambda`
@@ -630,7 +630,7 @@ For the Density Current, Channel, and Blasius problems, the following common com
 
 * - `-mu`
   - Shear dynamic viscosity coefficient
-  - `75`
+  - `1.8e-5`
   -  `Pa s`
 
 * - `-k`
