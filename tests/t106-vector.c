@@ -1,8 +1,12 @@
 /// @file
 /// Test syncing device data to host pointer
 /// \test Test syncing device data to host pointer
+
+//TESTARGS(name="length 10") {ceed_resource} 10
+//TESTARGS(name="length 0") {ceed_resource} 0
 #include <ceed.h>
 #include <stdio.h>
+#include <stdlib.h>
 
 int main(int argc, char **argv) {
   Ceed       ceed;
@@ -11,6 +15,7 @@ int main(int argc, char **argv) {
   CeedScalar x_array[len];
 
   CeedInit(argv[1], &ceed);
+  len = argc > 2 ? atoi(argv[2]) : len;
 
   CeedVectorCreate(ceed, len, &x);
   CeedVectorCreate(ceed, len, &y);

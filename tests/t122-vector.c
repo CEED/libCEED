@@ -1,9 +1,13 @@
 /// @file
 /// Test pointwise multiplication of a pair of vectors
 /// \test Test pointwise multiplication of a pair of vectors
+
+//TESTARGS(name="length 10") {ceed_resource} 10
+//TESTARGS(name="length 0") {ceed_resource} 0
 #include <ceed.h>
 #include <math.h>
 #include <stdio.h>
+#include <stdlib.h>
 
 int main(int argc, char **argv) {
   Ceed              ceed;
@@ -12,6 +16,7 @@ int main(int argc, char **argv) {
   const CeedScalar *read_array;
 
   CeedInit(argv[1], &ceed);
+  len = argc > 2 ? atoi(argv[2]) : len;
 
   CeedVectorCreate(ceed, len, &x);
   CeedVectorCreate(ceed, len, &y);
