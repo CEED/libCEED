@@ -34,6 +34,12 @@ typedef struct {
   hipFunction_t OffsetNoTranspose;
   hipFunction_t OffsetTranspose;
   hipFunction_t OffsetTransposeDet;
+  hipFunction_t OrientedNoTranspose;
+  hipFunction_t OrientedTranspose;
+  hipFunction_t CurlOrientedNoTranspose;
+  hipFunction_t CurlOrientedTranspose;
+  hipFunction_t CurlOrientedUnsignedNoTranspose;
+  hipFunction_t CurlOrientedUnsignedTranspose;
   CeedInt       num_nodes;
   CeedInt      *h_ind;
   CeedInt      *h_ind_allocated;
@@ -42,6 +48,14 @@ typedef struct {
   CeedInt      *d_t_offsets;
   CeedInt      *d_t_indices;
   CeedInt      *d_l_vec_indices;
+  bool         *h_orients;
+  bool         *h_orients_allocated;
+  bool         *d_orients;
+  bool         *d_orients_allocated;
+  CeedInt8     *h_curl_orients;
+  CeedInt8     *h_curl_orients_allocated;
+  CeedInt8     *d_curl_orients;
+  CeedInt8     *d_curl_orients_allocated;
 } CeedElemRestriction_Hip;
 
 typedef struct {
