@@ -8,6 +8,7 @@
 #include <ceed-impl.h>
 #include <ceed.h>
 #include <ceed/backend.h>
+#include <assert.h>
 #include <math.h>
 #include <stdbool.h>
 #include <stdint.h>
@@ -520,6 +521,7 @@ int CeedVectorNorm(CeedVector vec, CeedNormType norm_type, CeedScalar *norm) {
 
   const CeedScalar *array;
   CeedCall(CeedVectorGetArrayRead(vec, CEED_MEM_HOST, &array));
+  assert(array);
 
   *norm = 0.;
   switch (norm_type) {
@@ -574,6 +576,7 @@ int CeedVectorScale(CeedVector x, CeedScalar alpha) {
 
   // Default implementation
   CeedCall(CeedVectorGetArrayWrite(x, CEED_MEM_HOST, &x_array));
+  assert(x_array);
   for (CeedSize i = 0; i < n_x; i++) x_array[i] *= alpha;
   CeedCall(CeedVectorRestoreArray(x, &x_array));
 
@@ -626,6 +629,9 @@ int CeedVectorAXPY(CeedVector y, CeedScalar alpha, CeedVector x) {
   // Default implementation
   CeedCall(CeedVectorGetArrayWrite(y, CEED_MEM_HOST, &y_array));
   CeedCall(CeedVectorGetArrayRead(x, CEED_MEM_HOST, &x_array));
+
+  assert(x_array);
+  assert(y_array);
 
   for (CeedSize i = 0; i < n_y; i++) y_array[i] += alpha * x_array[i];
 
@@ -682,6 +688,9 @@ int CeedVectorAXPBY(CeedVector y, CeedScalar alpha, CeedScalar beta, CeedVector 
   // Default implementation
   CeedCall(CeedVectorGetArray(y, CEED_MEM_HOST, &y_array));
   CeedCall(CeedVectorGetArrayRead(x, CEED_MEM_HOST, &x_array));
+
+  assert(x_array);
+  assert(y_array);
 
   for (CeedSize i = 0; i < n_y; i++) y_array[i] += alpha * x_array[i] + beta * y_array[i];
 
@@ -756,6 +765,10 @@ int CeedVectorPointwiseMult(CeedVector w, CeedVector x, CeedVector y) {
   } else if (y == w) {
     y_array = w_array;
   }
+
+  assert(w_array);
+  assert(x_array);
+  assert(y_array);
 
   for (CeedSize i = 0; i < n_w; i++) w_array[i] = x_array[i] * y_array[i];
 
