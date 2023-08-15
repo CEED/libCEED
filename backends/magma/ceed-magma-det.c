@@ -19,40 +19,17 @@ static int CeedInit_Magma_Det(const char *resource, Ceed ceed) {
   CeedCallBackend(CeedSetDeterministic(ceed, true));
 
   Ceed_Magma *data;
-  CeedCallBackend(CeedCalloc(sizeof(Ceed_Magma), &data));
+  CeedCallBackend(CeedCalloc(1, &data));
   CeedCallBackend(CeedSetData(ceed, data));
 
-  // get/set device ID
-  const char *device_spec = strstr(resource, ":device_id=");
-  const int   deviceID    = (device_spec) ? atoi(device_spec + 11) : -1;
-
-  int currentDeviceID;
-  magma_getdevice(&currentDeviceID);
-  if (deviceID >= 0 && currentDeviceID != deviceID) {
-    magma_setdevice(deviceID);
-    currentDeviceID = deviceID;
-  }
-  // create a queue that uses the null stream
-  data->device = currentDeviceID;
-
-  // Create reference CEED that implementation will be dispatched
-  //   through unless overridden
-  Ceed ceedref;
+  // Create reference Ceed that implementation will be dispatched through
+  Ceed ceed_ref;
 #ifdef CEED_MAGMA_USE_HIP
-  CeedCallBackend(CeedInit("/gpu/hip/magma", &ceedref));
+  CeedCallBackend(CeedInit("/gpu/hip/magma", &ceed_ref));
 #else
-  CeedCallBackend(CeedInit("/gpu/cuda/magma", &ceedref));
+  CeedCallBackend(CeedInit("/gpu/cuda/magma", &ceed_ref));
 #endif
-  CeedCallBackend(CeedSetDelegate(ceed, ceedref));
-
-  // Create reference CEED for restriction
-  Ceed restrictionceedref;
-#ifdef CEED_MAGMA_USE_HIP
-  CeedInit("/gpu/hip/ref", &restrictionceedref);
-#else
-  CeedInit("/gpu/cuda/ref", &restrictionceedref);
-#endif
-  CeedCallBackend(CeedSetObjectDelegate(ceed, restrictionceedref, "ElemRestriction"));
+  CeedCallBackend(CeedSetDelegate(ceed, ceed_ref));
 
   return CEED_ERROR_SUCCESS;
 }

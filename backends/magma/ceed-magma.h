@@ -53,12 +53,9 @@ typedef CUfunction CeedMagmaFunction;
 #define CeedRunKernelDimSharedMagma CeedRunKernelDimShared_Cuda
 #endif
 
-typedef enum { MAGMA_KERNEL_DIM_GENERIC = 101, MAGMA_KERNEL_DIM_SPECIFIC = 102 } magma_kernel_mode_t;
-
 typedef struct {
-  magma_kernel_mode_t basis_kernel_mode;
-  magma_device_t      device;
-  magma_queue_t       queue;
+  magma_device_t device_id;
+  magma_queue_t  queue;
 } Ceed_Magma;
 
 typedef struct {
@@ -86,35 +83,6 @@ typedef struct {
   CeedScalar       *dqweight;
 } CeedBasisNonTensor_Magma;
 
-typedef enum {
-  OWNED_NONE = 0,
-  OWNED_UNPINNED,
-  OWNED_PINNED,
-} OwnershipMode;
-
-typedef struct {
-  CeedMagmaModule   module;
-  CeedMagmaFunction StridedTranspose;
-  CeedMagmaFunction StridedNoTranspose;
-  CeedMagmaFunction OffsetTranspose;
-  CeedMagmaFunction OffsetNoTranspose;
-  CeedInt          *offsets;
-  CeedInt          *doffsets;
-  OwnershipMode     own_;
-  int               down_;  // cover a case where we own Device memory
-} CeedElemRestriction_Magma;
-
-typedef struct {
-  const CeedScalar **inputs;
-  CeedScalar       **outputs;
-  bool               setupdone;
-} CeedQFunction_Magma;
-
-#define USE_MAGMA_BATCH
-#define USE_MAGMA_BATCH2
-#define USE_MAGMA_BATCH3
-#define USE_MAGMA_BATCH4
-
 CEED_INTERN void magma_weight_nontensor(magma_int_t grid, magma_int_t threads, magma_int_t nelem, magma_int_t Q, CeedScalar *dqweight, CeedScalar *dv,
                                         magma_queue_t queue);
 
@@ -134,19 +102,10 @@ CEED_INTERN int CeedBasisCreateTensorH1_Magma(CeedInt dim, CeedInt P1d, CeedInt 
 CEED_INTERN int CeedBasisCreateH1_Magma(CeedElemTopology topo, CeedInt dim, CeedInt ndof, CeedInt nqpts, const CeedScalar *interp,
                                         const CeedScalar *grad, const CeedScalar *qref, const CeedScalar *qweight, CeedBasis basis);
 
-CEED_INTERN int CeedElemRestrictionCreate_Magma(CeedMemType mtype, CeedCopyMode cmode, const CeedInt *indices, const bool *orients,
-                                                const CeedInt8 *curl_orients, CeedElemRestriction r);
-
-// comment the line below to use the default magma_is_devptr function
+// Comment the line below to use the default magma_is_devptr function
 #define magma_is_devptr magma_isdevptr
 
-// if magma and cuda/ref are using the null stream, then ceed_magma_queue_sync
-// should do nothing
+// If magma and cuda/ref are using the null stream, then ceed_magma_queue_sync should do nothing
 #define ceed_magma_queue_sync(...)
-
-// batch stride, override using -DMAGMA_BATCH_STRIDE=<desired-value>
-#ifndef MAGMA_BATCH_STRIDE
-#define MAGMA_BATCH_STRIDE (1000)
-#endif
 
 #endif  // _ceed_magma_h

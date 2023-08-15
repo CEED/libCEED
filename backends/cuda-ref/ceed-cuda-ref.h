@@ -25,10 +25,11 @@ typedef struct {
 
 typedef struct {
   CUmodule   module;
-  CUfunction StridedTranspose;
   CUfunction StridedNoTranspose;
-  CUfunction OffsetTranspose;
+  CUfunction StridedTranspose;
   CUfunction OffsetNoTranspose;
+  CUfunction OffsetTranspose;
+  CUfunction OffsetTransposeDet;
   CeedInt    num_nodes;
   CeedInt   *h_ind;
   CeedInt   *h_ind_allocated;
