@@ -109,6 +109,8 @@ class CeedSuiteSpec(SuiteSpec):
             return f'Backend does not implement'
         elif 'Can only provide HOST memory for this backend' in stderr:
             return f'Device memory not supported'
+        elif 'Can only set HOST memory for this backend' in stderr:
+            return f'Device memory not supported'
         elif 'Test not implemented in single precision' in stderr:
             return f'Test not implemented in single precision'
         elif 'No SYCL devices of the requested type are available' in stderr:

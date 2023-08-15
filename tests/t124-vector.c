@@ -1,15 +1,20 @@
 /// @file
 /// Test CeedVectorGetArrayWrite to modify array
 /// \test Test CeedVectorGetArrayWrite to modify array
+
+//TESTARGS(name="length 10") {ceed_resource} 10
+//TESTARGS(name="length 0") {ceed_resource} 0
 #include <ceed.h>
 #include <stdio.h>
+#include <stdlib.h>
 
 int main(int argc, char **argv) {
-  Ceed          ceed;
-  CeedVector    x;
-  const CeedInt len = 10;
+  Ceed       ceed;
+  CeedVector x;
+  CeedInt    len = 10;
 
   CeedInit(argv[1], &ceed);
+  len = argc > 2 ? atoi(argv[2]) : len;
 
   CeedVectorCreate(ceed, len, &x);
   {
