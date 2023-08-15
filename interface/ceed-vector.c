@@ -366,12 +366,17 @@ int CeedVectorGetArray(CeedVector vec, CeedMemType mem_type, CeedScalar **array)
   CeedCheck(vec->state % 2 == 0, vec->ceed, CEED_ERROR_ACCESS, "Cannot grant CeedVector array access, the access lock is already in use");
   CeedCheck(vec->num_readers == 0, vec->ceed, CEED_ERROR_ACCESS, "Cannot grant CeedVector array access, a process has read access");
 
-  bool has_valid_array = true;
-  CeedCall(CeedVectorHasValidArray(vec, &has_valid_array));
-  CeedCheck(has_valid_array, vec->ceed, CEED_ERROR_BACKEND,
-            "CeedVector has no valid data to read, must set data with CeedVectorSetValue or CeedVectorSetArray");
+  if (vec->length > 0) {
+    bool has_valid_array = true;
 
-  CeedCall(vec->GetArray(vec, mem_type, array));
+    CeedCall(CeedVectorHasValidArray(vec, &has_valid_array));
+    CeedCheck(has_valid_array, vec->ceed, CEED_ERROR_BACKEND,
+              "CeedVector has no valid data to read, must set data with CeedVectorSetValue or CeedVectorSetArray");
+
+    CeedCall(vec->GetArray(vec, mem_type, array));
+  } else {
+    *array = NULL;
+  }
   vec->state++;
   return CEED_ERROR_SUCCESS;
 }
@@ -396,6 +401,7 @@ int CeedVectorGetArrayRead(CeedVector vec, CeedMemType mem_type, const CeedScala
 
   if (vec->length > 0) {
     bool has_valid_array = true;
+
     CeedCall(CeedVectorHasValidArray(vec, &has_valid_array));
     CeedCheck(has_valid_array, vec->ceed, CEED_ERROR_BACKEND,
               "CeedVector has no valid data to read, must set data with CeedVectorSetValue or CeedVectorSetArray");
@@ -427,7 +433,11 @@ int CeedVectorGetArrayWrite(CeedVector vec, CeedMemType mem_type, CeedScalar **a
   CeedCheck(vec->state % 2 == 0, vec->ceed, CEED_ERROR_ACCESS, "Cannot grant CeedVector array access, the access lock is already in use");
   CeedCheck(vec->num_readers == 0, vec->ceed, CEED_ERROR_ACCESS, "Cannot grant CeedVector array access, a process has read access");
 
-  CeedCall(vec->GetArrayWrite(vec, mem_type, array));
+  if (vec->length > 0) {
+    CeedCall(vec->GetArrayWrite(vec, mem_type, array));
+  } else {
+    *array = NULL;
+  }
   vec->state++;
   return CEED_ERROR_SUCCESS;
 }
