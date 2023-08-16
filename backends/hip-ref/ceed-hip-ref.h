@@ -102,21 +102,19 @@ typedef struct {
 
 typedef struct {
   hipModule_t         module;
-  hipFunction_t       linearDiagonal;
-  hipFunction_t       linearPointBlock;
-  CeedBasis           basis_in, basis_out;
+  hipFunction_t       LinearDiagonal;
+  hipFunction_t       LinearPointBlock;
   CeedElemRestriction diag_rstr, point_block_diag_rstr;
   CeedVector          elem_diag, point_block_elem_diag;
-  CeedInt             num_e_mode_in, num_e_mode_out, num_modes;
-  CeedEvalMode       *h_e_mode_in, *h_e_mode_out;
-  CeedEvalMode       *d_e_mode_in, *d_e_mode_out;
-  CeedScalar         *d_identity, *d_interp_in, *d_interp_out, *d_grad_in, *d_grad_out;
+  CeedEvalMode       *d_eval_modes_in, *d_eval_modes_out;
+  CeedScalar         *d_identity, *d_interp_in, *d_grad_in, *d_div_in, *d_curl_in;
+  CeedScalar         *d_interp_out, *d_grad_out, *d_div_out, *d_curl_out;
 } CeedOperatorDiag_Hip;
 
 typedef struct {
   hipModule_t   module;
-  hipFunction_t linearAssemble;
-  CeedInt       num_elem, block_size_x, block_size_y, elem_per_block;
+  hipFunction_t LinearAssemble;
+  CeedInt       block_size_x, block_size_y, elems_per_block;
   CeedScalar   *d_B_in, *d_B_out;
 } CeedOperatorAssemble_Hip;
 
