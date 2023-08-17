@@ -83,7 +83,7 @@ static PetscErrorCode CreateBCLabel(DM dm, const char name[]) {
   PetscCall(DMPlexLabelComplete(dm, label));
 
   PetscFunctionReturn(PETSC_SUCCESS);
-};
+}
 
 // -----------------------------------------------------------------------------
 // This function sets up a DM for a given degree
@@ -141,7 +141,7 @@ PetscErrorCode SetupDMByDegree(DM dm, PetscInt p_degree, PetscInt q_extra, Petsc
   PetscCall(PetscFEDestroy(&fe));
 
   PetscFunctionReturn(PETSC_SUCCESS);
-};
+}
 
 // -----------------------------------------------------------------------------
 // Get CEED restriction data from DMPlex
@@ -157,7 +157,7 @@ PetscErrorCode CreateRestrictionFromPlex(Ceed ceed, DM dm, CeedInt height, DMLab
   PetscCall(PetscFree(elem_restr_offsets));
 
   PetscFunctionReturn(PETSC_SUCCESS);
-};
+}
 
 // -----------------------------------------------------------------------------
 // Utility function - convert from DMPolytopeType to CeedElemTopology
