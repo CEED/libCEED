@@ -10,7 +10,6 @@
 #include <ceed/jit-tools.h>
 #include <string.h>
 
-#include "ceed-magma.h"
 #ifdef CEED_MAGMA_USE_HIP
 #include "../hip/ceed-hip-common.h"
 #include "../hip/ceed-hip-compile.h"
@@ -18,6 +17,8 @@
 #include "../cuda/ceed-cuda-common.h"
 #include "../cuda/ceed-cuda-compile.h"
 #endif
+#include "ceed-magma-common.h"
+#include "ceed-magma.h"
 
 #ifdef __cplusplus
 CEED_INTERN "C"

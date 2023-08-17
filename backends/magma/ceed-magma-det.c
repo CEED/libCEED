@@ -10,8 +10,11 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "ceed-magma.h"
+#include "ceed-magma-common.h"
 
+//------------------------------------------------------------------------------
+// Backend Init
+//------------------------------------------------------------------------------
 static int CeedInit_Magma_Det(const char *resource, Ceed ceed) {
   const int nrc = 18;  // number of characters in resource
   CeedCheck(!strncmp(resource, "/gpu/cuda/magma/det", nrc) || !strncmp(resource, "/gpu/hip/magma/det", nrc), ceed, CEED_ERROR_BACKEND,
@@ -21,6 +24,7 @@ static int CeedInit_Magma_Det(const char *resource, Ceed ceed) {
   Ceed_Magma *data;
   CeedCallBackend(CeedCalloc(1, &data));
   CeedCallBackend(CeedSetData(ceed, data));
+  CeedCallBackend(CeedInit_Magma_common(ceed, resource));
 
   // Create reference Ceed that implementation will be dispatched through
   Ceed ceed_ref;
@@ -31,9 +35,14 @@ static int CeedInit_Magma_Det(const char *resource, Ceed ceed) {
 #endif
   CeedCallBackend(CeedSetDelegate(ceed, ceed_ref));
 
+  CeedCallBackend(CeedSetBackendFunction(ceed, "Ceed", ceed, "Destroy", CeedDestroy_Magma));
+
   return CEED_ERROR_SUCCESS;
 }
 
+//------------------------------------------------------------------------------
+// Backend Register
+//------------------------------------------------------------------------------
 CEED_INTERN int CeedRegister_Magma_Det(void) {
 #ifdef CEED_MAGMA_USE_HIP
   return CeedRegister("/gpu/hip/magma/det", CeedInit_Magma_Det, 125);
@@ -41,3 +50,5 @@ CEED_INTERN int CeedRegister_Magma_Det(void) {
   return CeedRegister("/gpu/cuda/magma/det", CeedInit_Magma_Det, 125);
 #endif
 }
+
+//------------------------------------------------------------------------------

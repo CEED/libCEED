@@ -54,11 +54,6 @@ typedef CUfunction CeedMagmaFunction;
 #endif
 
 typedef struct {
-  magma_device_t device_id;
-  magma_queue_t  queue;
-} Ceed_Magma;
-
-typedef struct {
   CeedMagmaModule   module;
   CeedMagmaFunction magma_interp;
   CeedMagmaFunction magma_interp_tr;
