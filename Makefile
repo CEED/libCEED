@@ -171,8 +171,8 @@ SYCLFLAGS ?= $(SYCL_FLAG) -fPIC -std=c++17 $(filter-out -std=c++11,$(CXXFLAGS)) 
 
 OPENMP ?=
 ifneq ($(OPENMP),)
-	OMP_FLAG := $(OMP_FLAG.$(CC_VENDOR))
-	OMP_FLAG := $(if $(call cc_check_flag,$(OMP_FLAG)),$(OMP_FLAG))
+  OMP_FLAG := $(OMP_FLAG.$(CC_VENDOR))
+  OMP_FLAG := $(if $(call cc_check_flag,$(OMP_FLAG)),$(OMP_FLAG))
   CFLAGS += $(OMP_FLAG) -DCEED_USE_OPENMP
   CEED_LDFLAGS += $(OMP_FLAG)
 endif
@@ -430,8 +430,8 @@ endif
 
 # CUDA Backends
 ifneq ($(CUDA_DIR),)
-	CUDA_LIB_DIR := $(wildcard $(foreach d,lib lib64 lib/x86_64-linux-gnu,$(CUDA_DIR)/$d/libcudart.${SO_EXT}))
-	CUDA_LIB_DIR := $(patsubst %/,%,$(dir $(firstword $(CUDA_LIB_DIR))))
+  CUDA_LIB_DIR := $(wildcard $(foreach d,lib lib64 lib/x86_64-linux-gnu,$(CUDA_DIR)/$d/libcudart.${SO_EXT}))
+  CUDA_LIB_DIR := $(patsubst %/,%,$(dir $(firstword $(CUDA_LIB_DIR))))
 endif
 CUDA_LIB_DIR_STUBS := $(CUDA_LIB_DIR)/stubs
 CUDA_BACKENDS = /gpu/cuda/ref /gpu/cuda/shared /gpu/cuda/gen
@@ -452,7 +452,7 @@ HIP_LIB_DIR := $(wildcard $(foreach d,lib lib64,$(ROCM_DIR)/$d/libamdhip64.${SO_
 HIP_LIB_DIR := $(patsubst %/,%,$(dir $(firstword $(HIP_LIB_DIR))))
 HIP_BACKENDS = /gpu/hip/ref /gpu/hip/shared /gpu/hip/gen
 ifneq ($(HIP_LIB_DIR),)
-	HIPCONFIG_CPPFLAGS := $(subst =,,$(shell $(ROCM_DIR)/bin/hipconfig -C))
+  HIPCONFIG_CPPFLAGS := $(subst =,,$(shell $(ROCM_DIR)/bin/hipconfig -C))
   $(hip-all.c:%.c=$(OBJDIR)/%.o) $(hip-all.c:%=%.tidy): CPPFLAGS += $(HIPCONFIG_CPPFLAGS)
   ifneq ($(CXX), $(HIPCC))
     $(hip-all.cpp:%.cpp=$(OBJDIR)/%.o) $(hip-all.cpp:%=%.tidy): CPPFLAGS += $(HIPCONFIG_CPPFLAGS)
@@ -468,14 +468,14 @@ endif
 # SYCL Backends
 SYCL_BACKENDS = /gpu/sycl/ref /gpu/sycl/shared /gpu/sycl/gen
 ifneq ($(SYCL_DIR),)
-	SYCL_LIB_DIR := $(wildcard $(foreach d,lib lib64,$(SYCL_DIR)/$d/libsycl.${SO_EXT}))
-	SYCL_LIB_DIR := $(patsubst %/,%,$(dir $(firstword $(SYCL_LIB_DIR))))
+  SYCL_LIB_DIR := $(wildcard $(foreach d,lib lib64,$(SYCL_DIR)/$d/libsycl.${SO_EXT}))
+  SYCL_LIB_DIR := $(patsubst %/,%,$(dir $(firstword $(SYCL_LIB_DIR))))
 endif
 ifneq ($(SYCL_LIB_DIR),)
-	PKG_LIBS += $(SYCL_FLAG) -lze_loader
-	LIBCEED_CONTAINS_CXX = 1
-	libceed.sycl += $(sycl-core.cpp) $(sycl-ref.cpp) $(sycl-shared.cpp) $(sycl-gen.cpp)
-	BACKENDS_MAKE += $(SYCL_BACKENDS)
+  PKG_LIBS += $(SYCL_FLAG) -lze_loader
+  LIBCEED_CONTAINS_CXX = 1
+  libceed.sycl += $(sycl-core.cpp) $(sycl-ref.cpp) $(sycl-shared.cpp) $(sycl-gen.cpp)
+  BACKENDS_MAKE += $(SYCL_BACKENDS)
 endif
 
 # MAGMA Backends
@@ -537,7 +537,7 @@ ifeq ($(LIBCEED_CONTAINS_CXX),1)
   $(libceeds) : LINK = $(CXX)
   ifeq ($(STATIC),1)
     $(examples) $(tests) : CEED_LDLIBS += $(LIBCXX)
-	  pkgconfig-libs-private += $(LIBCXX)
+    pkgconfig-libs-private += $(LIBCXX)
   endif
 endif
 
@@ -784,7 +784,7 @@ ifneq ($(wildcard ../iwyu/*),)
   IWYU_CC  ?= $(IWYU_DIR)/build/bin/include-what-you-use
 endif
 iwyu :
-	 $(MAKE) -B CC=$(IWYU_CC)
+	$(MAKE) -B CC=$(IWYU_CC)
 
 print :
 	@echo $(VAR)=$($(VAR))
@@ -815,9 +815,9 @@ print-% :
 
 # All variables to consider for caching
 CONFIG_VARS = CC CXX FC NVCC NVCC_CXX HIPCC \
-	OPT CFLAGS CPPFLAGS CXXFLAGS FFLAGS NVCCFLAGS HIPCCFLAGS SYCLFLAGS \
-	AR ARFLAGS LDFLAGS LDLIBS LIBCXX SED \
-	MAGMA_DIR OCCA_DIR XSMM_DIR CUDA_DIR CUDA_ARCH MFEM_DIR PETSC_DIR NEK5K_DIR ROCM_DIR HIP_ARCH SYCL_DIR
+  OPT CFLAGS CPPFLAGS CXXFLAGS FFLAGS NVCCFLAGS HIPCCFLAGS SYCLFLAGS \
+  AR ARFLAGS LDFLAGS LDLIBS LIBCXX SED \
+  MAGMA_DIR OCCA_DIR XSMM_DIR CUDA_DIR CUDA_ARCH MFEM_DIR PETSC_DIR NEK5K_DIR ROCM_DIR HIP_ARCH SYCL_DIR
 
 # $(call needs_save,CFLAGS) returns true (a nonempty string) if CFLAGS
 # was set on the command line or in config.mk (where it will appear as
@@ -834,8 +834,8 @@ wheel : export MARCHFLAG = -march=generic
 wheel : export WHEEL_PLAT = manylinux2010_x86_64
 wheel :
 	docker run -it --user $(shell id -u):$(shell id -g) --rm -v $(PWD):/io -w /io \
-		-e MARCHFLAG -e WHEEL_PLAT \
-		quay.io/pypa/$(WHEEL_PLAT) python/make-wheels.sh
+	  -e MARCHFLAG -e WHEEL_PLAT \
+	  quay.io/pypa/$(WHEEL_PLAT) python/make-wheels.sh
 
 .PHONY : configure wheel
 
