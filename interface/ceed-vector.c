@@ -575,7 +575,7 @@ int CeedVectorScale(CeedVector x, CeedScalar alpha) {
   if (x->Scale) return x->Scale(x, alpha);
 
   // Default implementation
-  CeedCall(CeedVectorGetArrayWrite(x, CEED_MEM_HOST, &x_array));
+  CeedCall(CeedVectorGetArray(x, CEED_MEM_HOST, &x_array));
   assert(x_array);
   for (CeedSize i = 0; i < n_x; i++) x_array[i] *= alpha;
   CeedCall(CeedVectorRestoreArray(x, &x_array));
@@ -627,7 +627,7 @@ int CeedVectorAXPY(CeedVector y, CeedScalar alpha, CeedVector x) {
   }
 
   // Default implementation
-  CeedCall(CeedVectorGetArrayWrite(y, CEED_MEM_HOST, &y_array));
+  CeedCall(CeedVectorGetArray(y, CEED_MEM_HOST, &y_array));
   CeedCall(CeedVectorGetArrayRead(x, CEED_MEM_HOST, &x_array));
 
   assert(x_array);
@@ -809,7 +809,7 @@ int CeedVectorReciprocal(CeedVector vec) {
   CeedSize len;
   CeedCall(CeedVectorGetLength(vec, &len));
   CeedScalar *array;
-  CeedCall(CeedVectorGetArrayWrite(vec, CEED_MEM_HOST, &array));
+  CeedCall(CeedVectorGetArray(vec, CEED_MEM_HOST, &array));
   for (CeedSize i = 0; i < len; i++) {
     if (fabs(array[i]) > CEED_EPSILON) array[i] = 1. / array[i];
   }
