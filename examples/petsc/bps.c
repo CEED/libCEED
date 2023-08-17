@@ -346,7 +346,7 @@ int main(int argc, char **argv) {
   char      hostname[PETSC_MAX_PATH_LEN];
 
   PetscInt    dim = 3, mesh_elem[3] = {3, 3, 3};
-  PetscInt    num_degrees = 30, degree[30] = {}, num_local_nodes = 2, local_nodes[2] = {};
+  PetscInt    num_degrees = 30, degree[30] = {0}, num_local_nodes = 2, local_nodes[2] = {0};
   PetscMPIInt ranks_per_node;
   PetscBool   degree_set;
   BPType      bp_choices[10];

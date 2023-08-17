@@ -67,7 +67,7 @@ PetscErrorCode MatGetDiag(Mat A, Vec D) {
   PetscCall(DMLocalToGlobal(op_apply_ctx->dm, op_apply_ctx->Y_loc, ADD_VALUES, D));
 
   PetscFunctionReturn(PETSC_SUCCESS);
-};
+}
 
 // -----------------------------------------------------------------------------
 // This function uses libCEED to compute the action of the Laplacian with Dirichlet boundary conditions
@@ -101,7 +101,7 @@ PetscErrorCode ApplyLocal_Ceed(Vec X, Vec Y, OperatorApplyContext op_apply_ctx) 
   PetscCall(DMLocalToGlobal(op_apply_ctx->dm, op_apply_ctx->Y_loc, ADD_VALUES, Y));
 
   PetscFunctionReturn(PETSC_SUCCESS);
-};
+}
 
 // -----------------------------------------------------------------------------
 // This function wraps the libCEED operator for a MatShell
@@ -117,7 +117,7 @@ PetscErrorCode MatMult_Ceed(Mat A, Vec X, Vec Y) {
   PetscCall(ApplyLocal_Ceed(X, Y, op_apply_ctx));
 
   PetscFunctionReturn(PETSC_SUCCESS);
-};
+}
 
 // -----------------------------------------------------------------------------
 // This function uses libCEED to compute the action of the prolongation operator
@@ -158,7 +158,7 @@ PetscErrorCode MatMult_Prolong(Mat A, Vec X, Vec Y) {
   PetscCall(DMLocalToGlobal(pr_restr_ctx->dmf, pr_restr_ctx->loc_vec_f, ADD_VALUES, Y));
 
   PetscFunctionReturn(PETSC_SUCCESS);
-};
+}
 
 // -----------------------------------------------------------------------------
 // This function uses libCEED to compute the action of the restriction operator
@@ -199,7 +199,7 @@ PetscErrorCode MatMult_Restrict(Mat A, Vec X, Vec Y) {
   PetscCall(DMLocalToGlobal(pr_restr_ctx->dmc, pr_restr_ctx->loc_vec_c, ADD_VALUES, Y));
 
   PetscFunctionReturn(PETSC_SUCCESS);
-};
+}
 
 // -----------------------------------------------------------------------------
 // This function calculates the error in the final solution
@@ -214,6 +214,6 @@ PetscErrorCode ComputeL2Error(Vec X, PetscScalar *l2_error, OperatorApplyContext
   *l2_error = sqrt(error_sq);
 
   PetscFunctionReturn(PETSC_SUCCESS);
-};
+}
 
 // -----------------------------------------------------------------------------
