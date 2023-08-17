@@ -120,6 +120,14 @@ CEED_EXTERN bool CeedDebugFlagEnv(void);
   @ref     Backend
 **/
 #define CeedDebugEnv(...) CeedDebugEnv256((unsigned char)CEED_DEBUG_COLOR_NONE, ##__VA_ARGS__)
+/**
+  Print warning information in color
+
+  @ingroup Ceed
+  @ref     Backend
+**/
+#define CeedWarn(...) \
+  { CeedDebugImpl256(CEED_DEBUG_COLOR_WARNING, ##__VA_ARGS__); }
 
 /// Handle for object handling TensorContraction
 /// @ingroup CeedBasis
