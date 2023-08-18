@@ -513,6 +513,7 @@ PetscErrorCode TSSolve_NS(DM dm, User user, AppCtx app_ctx, Physics phys, Vec *Q
   PetscCall(TSGetTime(*ts, &start_time));
   PetscCall(TSGetStepNumber(*ts, &start_step));
 
+  PetscCall(PetscLogDefaultBegin());  // So we can use PetscLogStageGetPerfInfo without -log_view
   PetscPreLoadBegin(PETSC_FALSE, "Fluids Solve");
   PetscCall(TSSetTime(*ts, start_time));
   PetscCall(TSSetStepNumber(*ts, start_step));
@@ -547,12 +548,12 @@ PetscErrorCode TSSolve_NS(DM dm, User user, AppCtx app_ctx, Physics phys, Vec *Q
       PetscCall(WriteOutput(user, *Q, step_no, final_time));
     }
 
-    PetscLogStage stage_id;
-    PetscStageLog stage_log;
+    PetscLogStage      stage_id;
+    PetscEventPerfInfo stage_perf;
 
     PetscCall(PetscLogStageGetId("Fluids Solve", &stage_id));
-    PetscCall(PetscLogGetStageLog(&stage_log));
-    PetscCall(PetscPrintf(PETSC_COMM_WORLD, "Time taken for solution (sec): %g\n", stage_log->stageInfo[stage_id].perfInfo.time));
+    PetscCall(PetscLogStageGetPerfInfo(stage_id, &stage_perf));
+    PetscCall(PetscPrintf(PETSC_COMM_WORLD, "Time taken for solution (sec): %g\n", stage_perf.time));
   }
   PetscFunctionReturn(PETSC_SUCCESS);
 }
