@@ -97,7 +97,7 @@ noether-rocm:
   script:
     - rm -f .SUCCESS
 # libCEED
-    - make configure ROCM_DIR=/opt/rocm-5.5.0 OPT='-O -march=native -ffp-contract=fast'
+    - make configure ROCM_DIR=/opt/rocm-5.6.0 OPT='-O -march=native -ffp-contract=fast'
     - BACKENDS_CPU=$(make info-backends-all | grep -o '/cpu[^ ]*' | tr '\n' ' ') && BACKENDS_GPU=$(make info-backends | grep -o '/gpu[^ ]*' | tr '\n' ' ')
     - echo "-------------- libCEED -------------" && make info
     - echo "-------------- BACKENDS_GPU --------" && echo $BACKENDS_GPU
@@ -171,7 +171,7 @@ noether-float:
 # Change to single precision
     - sed -i 's/ceed-f64/ceed-f32/1' include/ceed/types.h
 # Build libCEED
-    - make configure ROCM_DIR=/opt/rocm-5.5.0 OPT='-O -march=native -ffp-contract=fast'
+    - make configure ROCM_DIR=/opt/rocm-5.6.0 OPT='-O -march=native -ffp-contract=fast'
     - BACKENDS_CPU=$(make info-backends-all | grep -o '/cpu[^ ]*' | tr '\n' ' ') && BACKENDS_GPU=$(make info-backends | grep -o '/gpu[^ ]*' | tr '\n' ' ')
     - echo "-------------- libCEED -------------" && make info
     - echo "-------------- BACKENDS_CPU --------" && echo $BACKENDS_CPU
