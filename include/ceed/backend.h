@@ -52,7 +52,7 @@
 #elif defined(__GNUC__)
 #define CeedPragmaOptimizeOn _Pragma("GCC pop_options")
 #elif defined(__INTEL_COMPILER) || defined(__INTEL_LLVM_COMPILER)
-#define CeedPragmaOptimizeOff _Pragma("optimize('', on)")
+#define CeedPragmaOptimizeOn _Pragma("optimize('', on)")
 #else
 #define CeedPragmaOptimizeOn
 #endif
