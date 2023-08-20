@@ -160,6 +160,10 @@ The following options are common among all problem types:
   - Viewer for the force on each no-slip wall, e.g., `ascii:force.csv:ascii_csv` to write a CSV file.
   -
 
+* - `-mesh_transform`
+  - Transform the mesh, usually for an initial box mesh.
+  - `none`
+
 * - `-snes_view`
   - View PETSc `SNES` nonlinear solver configuration
   -

@@ -813,7 +813,7 @@ flow state. $P_\mathrm{ref}$ is defined via the `-reference_pressure` flag.
 ### Meshing
 
 The flat plate boundary layer example has custom meshing features to better resolve the flow when using a generated box mesh.
-These meshing features modify the nodal layout of the default, equispaced box mesh and are enabled via `-platemesh_modify_mesh true`.
+These meshing features modify the nodal layout of the default, equispaced box mesh and are enabled via `-mesh_transform platemesh`.
 One of those is tilting the top of the domain, allowing for it to be a outflow boundary condition.
 The angle of this tilt is controlled by `-platemesh_top_angle`.
 

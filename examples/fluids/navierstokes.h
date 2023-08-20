@@ -87,12 +87,19 @@ typedef enum {
 } TestType;
 static const char *const TestTypes[] = {"none", "solver", "turb_spanstats", "diff_filter", "TestType", "TESTTYPE_", NULL};
 
-// Test mode type
+// Subgrid-Stress mode type
 typedef enum {
   SGS_MODEL_NONE        = 0,
   SGS_MODEL_DATA_DRIVEN = 1,
 } SGSModelType;
 static const char *const SGSModelTypes[] = {"none", "data_driven", "SGSModelType", "SGS_MODEL_", NULL};
+
+// Mesh transformation type
+typedef enum {
+  MESH_TRANSFORM_NONE      = 0,
+  MESH_TRANSFORM_PLATEMESH = 1,
+} MeshTransformType;
+static const char *const MeshTransformTypes[] = {"none", "platemesh", "MeshTransformType", "MESH_TRANSFORM_", NULL};
 
 static const char *const DifferentialFilterDampingFunctions[] = {
     "none", "van_driest", "mms", "DifferentialFilterDampingFunction", "DIFF_FILTER_DAMP_", NULL};
@@ -160,7 +167,8 @@ struct AppCtx_private {
   // Subgrid Stress Model
   SGSModelType sgs_model_type;
   // Differential Filtering
-  PetscBool diff_filter_monitor;
+  PetscBool         diff_filter_monitor;
+  MeshTransformType mesh_transform_type;
 };
 
 // libCEED data struct
