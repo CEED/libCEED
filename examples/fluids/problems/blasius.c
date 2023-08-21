@@ -271,16 +271,18 @@ PetscErrorCode NS_BLASIUS(ProblemData *problem, DM dm, void *ctx, SimpleBC bc) {
   PetscCall(PetscOptionsInt("-n_chebyshev", "Number of Chebyshev terms", NULL, N, &N, NULL));
   PetscCheck(3 <= N && N <= BLASIUS_MAX_N_CHEBYSHEV, comm, PETSC_ERR_ARG_OUTOFRANGE, "-n_chebyshev %" PetscInt_FMT " must be in range [3, %d]", N,
              BLASIUS_MAX_N_CHEBYSHEV);
-  PetscCall(PetscOptionsBoundedInt("-platemesh_Ndelta", "Velocity at boundary layer edge", NULL, mesh_Ndelta, &mesh_Ndelta, NULL, 1));
-  PetscCall(PetscOptionsScalar("-platemesh_refine_height", "Height of boundary layer mesh refinement", NULL, mesh_refine_height, &mesh_refine_height,
-                               NULL));
-  PetscCall(PetscOptionsScalar("-platemesh_growth", "Geometric growth rate of boundary layer mesh", NULL, mesh_growth, &mesh_growth, NULL));
-  PetscCall(
-      PetscOptionsScalar("-platemesh_top_angle", "Geometric top_angle rate of boundary layer mesh", NULL, mesh_top_angle, &mesh_top_angle, NULL));
-  PetscCall(PetscOptionsString("-platemesh_y_node_locs_path",
-                               "Path to file with y node locations. "
-                               "If empty, will use the algorithmic mesh warping.",
-                               NULL, mesh_ynodes_path, mesh_ynodes_path, sizeof(mesh_ynodes_path), NULL));
+  if (user->app_ctx->mesh_transform_type == MESH_TRANSFORM_PLATEMESH) {
+    PetscCall(PetscOptionsBoundedInt("-platemesh_Ndelta", "Velocity at boundary layer edge", NULL, mesh_Ndelta, &mesh_Ndelta, NULL, 1));
+    PetscCall(PetscOptionsScalar("-platemesh_refine_height", "Height of boundary layer mesh refinement", NULL, mesh_refine_height,
+                                 &mesh_refine_height, NULL));
+    PetscCall(PetscOptionsScalar("-platemesh_growth", "Geometric growth rate of boundary layer mesh", NULL, mesh_growth, &mesh_growth, NULL));
+    PetscCall(
+        PetscOptionsScalar("-platemesh_top_angle", "Geometric top_angle rate of boundary layer mesh", NULL, mesh_top_angle, &mesh_top_angle, NULL));
+    PetscCall(PetscOptionsString("-platemesh_y_node_locs_path",
+                                 "Path to file with y node locations. "
+                                 "If empty, will use the algorithmic mesh warping.",
+                                 NULL, mesh_ynodes_path, mesh_ynodes_path, sizeof(mesh_ynodes_path), NULL));
+  }
   PetscCall(PetscOptionsBool("-stg_use", "Use STG inflow boundary condition", NULL, use_stg, &use_stg, NULL));
   PetscOptionsEnd();
 
@@ -295,12 +297,13 @@ PetscErrorCode NS_BLASIUS(ProblemData *problem, DM dm, void *ctx, SimpleBC bc) {
   U_inf *= meter / second;
   delta0 *= meter;
 
-  PetscReal *mesh_ynodes  = NULL;
-  PetscInt   mesh_nynodes = 0;
-  if (strcmp(mesh_ynodes_path, "")) {
-    PetscCall(GetYNodeLocs(comm, mesh_ynodes_path, &mesh_ynodes, &mesh_nynodes));
+  if (user->app_ctx->mesh_transform_type == MESH_TRANSFORM_PLATEMESH) {
+    PetscReal *mesh_ynodes  = NULL;
+    PetscInt   mesh_nynodes = 0;
+    if (strcmp(mesh_ynodes_path, "")) PetscCall(GetYNodeLocs(comm, mesh_ynodes_path, &mesh_ynodes, &mesh_nynodes));
+    PetscCall(ModifyMesh(comm, dm, problem->dim, mesh_growth, mesh_Ndelta, mesh_refine_height, mesh_top_angle, &mesh_ynodes, &mesh_nynodes));
+    PetscCall(PetscFree(mesh_ynodes));
   }
-  PetscCall(ModifyMesh(comm, dm, problem->dim, mesh_growth, mesh_Ndelta, mesh_refine_height, mesh_top_angle, &mesh_ynodes, &mesh_nynodes));
 
   // Some properties depend on parameters from NewtonianIdealGas
   PetscCallCeed(ceed, CeedQFunctionContextGetData(problem->apply_vol_rhs.qfunction_context, CEED_MEM_HOST, &newtonian_ig_ctx));
@@ -335,7 +338,7 @@ PetscErrorCode NS_BLASIUS(ProblemData *problem, DM dm, void *ctx, SimpleBC bc) {
   PetscCallCeed(ceed, CeedQFunctionContextDestroy(&problem->ics.qfunction_context));
   problem->ics.qfunction_context = blasius_context;
   if (use_stg) {
-    PetscCall(SetupSTG(comm, dm, problem, user, weakT, T_inf, P0, mesh_ynodes, mesh_nynodes));
+    PetscCall(SetupSTG(comm, dm, problem, user, weakT, T_inf, P0));
   } else if (diff_filter_mms) {
     PetscCall(DifferentialFilter_MMS_ICSetup(problem));
   } else {
@@ -346,6 +349,5 @@ PetscErrorCode NS_BLASIUS(ProblemData *problem, DM dm, void *ctx, SimpleBC bc) {
     PetscCallCeed(ceed, CeedQFunctionContextReferenceCopy(blasius_context, &problem->apply_inflow.qfunction_context));
     PetscCallCeed(ceed, CeedQFunctionContextReferenceCopy(blasius_context, &problem->apply_inflow_jacobian.qfunction_context));
   }
-  PetscCall(PetscFree(mesh_ynodes));
   PetscFunctionReturn(PETSC_SUCCESS);
 }

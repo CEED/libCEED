@@ -8,6 +8,7 @@ ts:
   max_steps: 5
 
 dm_plex_box_faces: 3,20,1
+mesh_transform: platemesh
 platemesh:
   Ndelta: 15
   growth: 1.3
