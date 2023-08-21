@@ -21,6 +21,7 @@
 #include <stdlib.h>
 
 #include "newtonian_state.h"
+#include "setupgeo_helpers.h"
 #include "stg_shur14_type.h"
 #include "utils.h"
 
@@ -299,38 +300,7 @@ CEED_QFUNCTION(ICsSTG)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedSc
   CeedPragmaSIMD for (CeedInt i = 0; i < Q; i++) {
     const CeedScalar x_i[3] = {x[0][i], x[1][i], x[2][i]};
     CeedScalar       dXdx[3][3];
-    {
-      const CeedScalar J11  = J[0][0][i];
-      const CeedScalar J21  = J[0][1][i];
-      const CeedScalar J31  = J[0][2][i];
-      const CeedScalar J12  = J[1][0][i];
-      const CeedScalar J22  = J[1][1][i];
-      const CeedScalar J32  = J[1][2][i];
-      const CeedScalar J13  = J[2][0][i];
-      const CeedScalar J23  = J[2][1][i];
-      const CeedScalar J33  = J[2][2][i];
-      const CeedScalar A11  = J22 * J33 - J23 * J32;
-      const CeedScalar A12  = J13 * J32 - J12 * J33;
-      const CeedScalar A13  = J12 * J23 - J13 * J22;
-      const CeedScalar A21  = J23 * J31 - J21 * J33;
-      const CeedScalar A22  = J11 * J33 - J13 * J31;
-      const CeedScalar A23  = J13 * J21 - J11 * J23;
-      const CeedScalar A31  = J21 * J32 - J22 * J31;
-      const CeedScalar A32  = J12 * J31 - J11 * J32;
-      const CeedScalar A33  = J11 * J22 - J12 * J21;
-      const CeedScalar detJ = J11 * A11 + J21 * A12 + J31 * A13;
-
-      dXdx[0][0] = A11 / detJ;
-      dXdx[0][1] = A12 / detJ;
-      dXdx[0][2] = A13 / detJ;
-      dXdx[1][0] = A21 / detJ;
-      dXdx[1][1] = A22 / detJ;
-      dXdx[1][2] = A23 / detJ;
-      dXdx[2][0] = A31 / detJ;
-      dXdx[2][1] = A32 / detJ;
-      dXdx[2][2] = A33 / detJ;
-    }
-
+    InvertMappingJacobian_3D(Q, i, J, dXdx, NULL);
     CeedScalar h[3];
     h[0] = dx;
     for (CeedInt j = 1; j < 3; j++) h[j] = 2 / sqrt(Square(dXdx[0][j]) + Square(dXdx[1][j]) + Square(dXdx[2][j]));
