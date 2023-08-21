@@ -14,6 +14,8 @@
 #include <ceed.h>
 #include <math.h>
 
+#include "utils.h"
+
 typedef struct SetupContextAdv_ *SetupContextAdv;
 struct SetupContextAdv_ {
   CeedScalar rc;
@@ -35,8 +37,6 @@ struct AdvectionContext_ {
   bool       implicit;
   int        stabilization;  // See StabilizationType: 0=none, 1=SU, 2=SUPG
 };
-
-CEED_QFUNCTION_HELPER CeedScalar Square(CeedScalar x) { return x * x; }
 
 // *****************************************************************************
 // This QFunction sets the initial conditions and the boundary conditions
