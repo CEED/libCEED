@@ -65,10 +65,19 @@ To enable CUDA support, add `CUDA_DIR=/opt/cuda` or an appropriate directory to 
 To enable HIP support, add `ROCM_DIR=/opt/rocm` or an appropriate directory.
 To enable SYCL support, add `SYCL_DIR=/opt/sycl` or an appropriate directory.
 Note that SYCL backends require building with oneAPI compilers as well:
+
 ```console
 $ . /opt/intel/oneapi/setvars.sh
 $ make SYCL_DIR=/opt/intel/oneapi/compiler/latest/linux SYCLCXX=icpx CC=icx CXX=icpx
 ```
+
+The library can be configured for host applications which use OpenMP paralellism via:
+
+```console
+$ make OPENMP=1
+```
+
+which will allow operators created and applied from different threads inside an `omp parallel` region.
 
 To store these or other arguments as defaults for future invocations of `make`, use:
 
