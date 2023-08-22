@@ -173,7 +173,7 @@ OPENMP ?=
 ifneq ($(OPENMP),)
   OMP_FLAG := $(OMP_FLAG.$(CC_VENDOR))
   OMP_FLAG := $(if $(call cc_check_flag,$(OMP_FLAG)),$(OMP_FLAG))
-  CFLAGS += $(OMP_FLAG) -DCEED_USE_OPENMP
+  CFLAGS += $(OMP_FLAG)
   CEED_LDFLAGS += $(OMP_FLAG)
 endif
 

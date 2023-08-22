@@ -60,17 +60,19 @@
 
 /// This macro provides the appropriate OpenMP Pragmas for the compilation environment.
 /// @ingroup Ceed
-#ifdef CEED_USE_OPENMP
+#ifndef CeedPragmaOMP
+#ifdef _OPENMP
+#define CeedPragmaOMPHelper(x) _Pragma(#x)
+#define CeedPragmaOMP(x) CeedPragmaOMPHelper(omp x)
+#else
+#define CeedPragmaOMP(x)
+#endif
+#endif
 #ifndef CeedPragmaAtomic
-#define CeedPragmaAtomic _Pragma("omp atomic update")
+#define CeedPragmaAtomic CeedPragmaOMP(atomic update)
 #endif
 #ifndef CeedPragmaThreadPrivate
-#define CeedPragma(x) _Pragma(#x)
-#define CeedPragmaThreadPrivate(x) CeedPragma(omp threadprivate(x))
-#endif
-#else
-#define CeedPragmaAtomic
-#define CeedPragmaThreadPrivate(x)
+#define CeedPragmaThreadPrivate(x) CeedPragmaOMP(threadprivate(x))
 #endif
 
 /**
