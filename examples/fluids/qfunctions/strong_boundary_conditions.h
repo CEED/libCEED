@@ -9,6 +9,7 @@
 #define strong_boundary_conditions_h
 
 #include <ceed.h>
+#include <petscsys.h>
 
 CEED_QFUNCTION(SetupStrongBC)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
   // Inputs
@@ -18,11 +19,16 @@ CEED_QFUNCTION(SetupStrongBC)(void *ctx, CeedInt Q, const CeedScalar *const *in,
   // Outputs
   CeedScalar(*coords_stored)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA])out[0];
   CeedScalar(*scale_stored)              = (CeedScalar(*))out[1];
+  CeedScalar(*dXdx_q)[CEED_Q_VLA]        = (CeedScalar(*)[CEED_Q_VLA])out[2];
 
   CeedPragmaSIMD for (CeedInt i = 0; i < Q; i++) {
     for (int j = 0; j < 3; j++) coords_stored[j][i] = coords[j][i];
     scale_stored[i] = 1.0 / multiplicity[0][i];
+
+    dXdx_q[0][i] = 1;
+    dXdx_q[1][i] = 1;
   }
+  CHKMEMQ;
   return 0;
 }
 

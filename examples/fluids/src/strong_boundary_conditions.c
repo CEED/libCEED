@@ -33,12 +33,18 @@ PetscErrorCode SetupStrongSTG_Ceed(Ceed ceed, CeedData ceed_data, DM dm, Problem
   CeedInt num_qpts_sur;
   PetscCallCeed(ceed, CeedBasisGetNumQuadraturePoints(ceed_data->basis_q_sur, &num_qpts_sur));
 
+  CeedInt dXdx_size = 2;
+  CeedVector dXdx;
+  CeedElemRestriction elem_restr_dXdx;
+
   // Setup QFunction
   PetscCallCeed(ceed, CeedQFunctionCreateInterior(ceed, 1, SetupStrongBC, SetupStrongBC_loc, &qf_setup));
   PetscCallCeed(ceed, CeedQFunctionAddInput(qf_setup, "x", num_comp_x, CEED_EVAL_INTERP));
   PetscCallCeed(ceed, CeedQFunctionAddInput(qf_setup, "multiplicity", num_comp_q, CEED_EVAL_NONE));
   PetscCallCeed(ceed, CeedQFunctionAddOutput(qf_setup, "x stored", num_comp_x, CEED_EVAL_NONE));
   PetscCallCeed(ceed, CeedQFunctionAddOutput(qf_setup, "scale", 1, CEED_EVAL_NONE));
+  PetscCallCeed(ceed, CeedQFunctionAddOutput(qf_setup, "dXdx", dXdx_size, CEED_EVAL_NONE));
+  CHKMEMQ;
 
   // Setup STG Setup QFunction
   PetscCall(SetupStrongSTG_PreProcessing(ceed, problem, num_comp_x, stg_data_size, q_data_size_sur, &qf_stgdata));
@@ -64,6 +70,9 @@ PetscErrorCode SetupStrongSTG_Ceed(Ceed ceed, CeedData ceed_data, DM dm, Problem
     PetscCallCeed(ceed, CeedElemRestrictionCreateStrided(ceed, num_elem, elem_size, stg_data_size, num_elem * elem_size, CEED_STRIDES_BACKEND,
                                                          &elem_restr_stgdata));
     PetscCallCeed(ceed, CeedElemRestrictionCreateVector(elem_restr_stgdata, &stg_data, NULL));
+    PetscCallCeed(ceed, CeedElemRestrictionCreateStrided(ceed, num_elem, elem_size, dXdx_size, num_elem * elem_size, CEED_STRIDES_BACKEND,
+                                                         &elem_restr_dXdx));
+    PetscCallCeed(ceed, CeedElemRestrictionCreateVector(elem_restr_stgdata, &dXdx, NULL));
 
     PetscCallCeed(ceed, CeedVectorCreate(ceed, q_data_size_sur * num_elem * elem_size, &q_data_sur));
 
@@ -74,9 +83,12 @@ PetscErrorCode SetupStrongSTG_Ceed(Ceed ceed, CeedData ceed_data, DM dm, Problem
     PetscCallCeed(ceed, CeedOperatorSetField(op_setup, "multiplicity", elem_restr_q_sur, CEED_BASIS_COLLOCATED, multiplicity));
     PetscCallCeed(ceed, CeedOperatorSetField(op_setup, "x stored", elem_restr_x_stored, CEED_BASIS_COLLOCATED, x_stored));
     PetscCallCeed(ceed, CeedOperatorSetField(op_setup, "scale", elem_restr_scale, CEED_BASIS_COLLOCATED, scale_stored));
+    PetscCallCeed(ceed, CeedOperatorSetField(op_setup, "dXdx", elem_restr_dXdx, CEED_BASIS_COLLOCATED, dXdx));
 
     // -- Compute geometric factors
+    CHKMEMQ;
     PetscCallCeed(ceed, CeedOperatorApply(op_setup, ceed_data->x_coord, CEED_VECTOR_NONE, CEED_REQUEST_IMMEDIATE));
+    CHKMEMQ;
 
     // -- Compute QData for the surface
     PetscCallCeed(ceed, CeedOperatorCreate(ceed, ceed_data->qf_setup_sur, NULL, NULL, &op_setup_sur));
