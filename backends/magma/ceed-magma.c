@@ -12,65 +12,40 @@
 #include <stdlib.h>
 #include <string.h>
 
-static int CeedDestroy_Magma(Ceed ceed) {
-  Ceed_Magma *data;
-  CeedCallBackend(CeedGetData(ceed, &data));
-  magma_queue_destroy(data->queue);
-  CeedCallBackend(CeedFree(&data));
-  return CEED_ERROR_SUCCESS;
-}
+#include "ceed-magma-common.h"
 
+//------------------------------------------------------------------------------
+// Backend Init
+//------------------------------------------------------------------------------
 static int CeedInit_Magma(const char *resource, Ceed ceed) {
-  int       ierr;
   const int nrc = 14;  // number of characters in resource
   CeedCheck(!strncmp(resource, "/gpu/cuda/magma", nrc) || !strncmp(resource, "/gpu/hip/magma", nrc), ceed, CEED_ERROR_BACKEND,
             "Magma backend cannot use resource: %s", resource);
 
-  ierr = magma_init();
-  CeedCheck(ierr == 0, ceed, CEED_ERROR_BACKEND, "error in magma_init(): %d\n", ierr);
-
   Ceed_Magma *data;
-  CeedCallBackend(CeedCalloc(sizeof(Ceed_Magma), &data));
+  CeedCallBackend(CeedCalloc(1, &data));
   CeedCallBackend(CeedSetData(ceed, data));
+  CeedCallBackend(CeedInit_Magma_common(ceed, resource));
 
-  // kernel selection
-  data->basis_kernel_mode = MAGMA_KERNEL_DIM_SPECIFIC;
-
-  // get/set device ID
-  const char *device_spec = strstr(resource, ":device_id=");
-  const int   deviceID    = (device_spec) ? atoi(device_spec + 11) : -1;
-
-  int currentDeviceID;
-  magma_getdevice(&currentDeviceID);
-  if (deviceID >= 0 && currentDeviceID != deviceID) {
-    magma_setdevice(deviceID);
-    currentDeviceID = deviceID;
-  }
-  // create a queue that uses the null stream
-  data->device = currentDeviceID;
+  // Create reference Ceed that implementation will be dispatched through unless overridden
+  Ceed ceed_ref;
 #ifdef CEED_MAGMA_USE_HIP
-  magma_queue_create_from_hip(data->device, NULL, NULL, NULL, &(data->queue));
+  CeedCallBackend(CeedInit("/gpu/hip/ref", &ceed_ref));
 #else
-  magma_queue_create_from_cuda(data->device, NULL, NULL, NULL, &(data->queue));
+  CeedCallBackend(CeedInit("/gpu/cuda/ref", &ceed_ref));
 #endif
+  CeedCallBackend(CeedSetDelegate(ceed, ceed_ref));
 
-  // Create reference CEED that implementation will be dispatched
-  //   through unless overridden
-  Ceed ceedref;
-#ifdef CEED_MAGMA_USE_HIP
-  CeedCallBackend(CeedInit("/gpu/hip/ref", &ceedref));
-#else
-  CeedCallBackend(CeedInit("/gpu/cuda/ref", &ceedref));
-#endif
-  CeedCallBackend(CeedSetDelegate(ceed, ceedref));
-
-  CeedCallBackend(CeedSetBackendFunction(ceed, "Ceed", ceed, "ElemRestrictionCreate", CeedElemRestrictionCreate_Magma));
   CeedCallBackend(CeedSetBackendFunction(ceed, "Ceed", ceed, "BasisCreateTensorH1", CeedBasisCreateTensorH1_Magma));
   CeedCallBackend(CeedSetBackendFunction(ceed, "Ceed", ceed, "BasisCreateH1", CeedBasisCreateH1_Magma));
   CeedCallBackend(CeedSetBackendFunction(ceed, "Ceed", ceed, "Destroy", CeedDestroy_Magma));
+
   return CEED_ERROR_SUCCESS;
 }
 
+//------------------------------------------------------------------------------
+// Backend Register
+//------------------------------------------------------------------------------
 CEED_INTERN int CeedRegister_Magma(void) {
 #ifdef CEED_MAGMA_USE_HIP
   return CeedRegister("/gpu/hip/magma", CeedInit_Magma, 120);
@@ -78,3 +53,5 @@ CEED_INTERN int CeedRegister_Magma(void) {
   return CeedRegister("/gpu/cuda/magma", CeedInit_Magma, 120);
 #endif
 }
+
+//------------------------------------------------------------------------------

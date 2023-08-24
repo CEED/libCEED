@@ -28,9 +28,7 @@ static int CeedElemRestrictionApply_Cuda(CeedElemRestriction r, CeedTransposeMod
   CeedCallBackend(CeedElemRestrictionGetCeed(r, &ceed));
   Ceed_Cuda *data;
   CeedCallBackend(CeedGetData(ceed, &data));
-  const CeedInt warp_size  = 32;
-  const CeedInt block_size = warp_size;
-  const CeedInt num_nodes  = impl->num_nodes;
+  const CeedInt num_nodes = impl->num_nodes;
   CeedInt       num_elem, elem_size;
   CeedElemRestrictionGetNumElements(r, &num_elem);
   CeedCallBackend(CeedElemRestrictionGetElementSize(r, &elem_size));
@@ -56,25 +54,38 @@ static int CeedElemRestrictionApply_Cuda(CeedElemRestriction r, CeedTransposeMod
       kernel             = impl->OffsetNoTranspose;
       void   *args[]     = {&num_elem, &impl->d_ind, &d_u, &d_v};
       CeedInt block_size = elem_size < 1024 ? (elem_size > 32 ? elem_size : 32) : 1024;
+
       CeedCallBackend(CeedRunKernel_Cuda(ceed, kernel, CeedDivUpInt(num_nodes, block_size), block_size, args));
     } else {
       // -- Strided restriction
       kernel             = impl->StridedNoTranspose;
       void   *args[]     = {&num_elem, &d_u, &d_v};
       CeedInt block_size = elem_size < 1024 ? (elem_size > 32 ? elem_size : 32) : 1024;
+
       CeedCallBackend(CeedRunKernel_Cuda(ceed, kernel, CeedDivUpInt(num_nodes, block_size), block_size, args));
     }
   } else {
     // E-vector -> L-vector
     if (impl->d_ind) {
       // -- Offsets provided
-      kernel       = impl->OffsetTranspose;
-      void *args[] = {&impl->d_l_vec_indices, &impl->d_t_indices, &impl->d_t_offsets, &d_u, &d_v};
-      CeedCallBackend(CeedRunKernel_Cuda(ceed, kernel, CeedDivUpInt(num_nodes, block_size), block_size, args));
+      CeedInt block_size = 32;
+      if (impl->OffsetTranspose) {
+        kernel       = impl->OffsetTranspose;
+        void *args[] = {&num_elem, &impl->d_ind, &d_u, &d_v};
+
+        CeedCallBackend(CeedRunKernel_Cuda(ceed, kernel, CeedDivUpInt(num_nodes, block_size), block_size, args));
+      } else {
+        kernel       = impl->OffsetTransposeDet;
+        void *args[] = {&impl->d_l_vec_indices, &impl->d_t_indices, &impl->d_t_offsets, &d_u, &d_v};
+
+        CeedCallBackend(CeedRunKernel_Cuda(ceed, kernel, CeedDivUpInt(num_nodes, block_size), block_size, args));
+      }
     } else {
       // -- Strided restriction
-      kernel       = impl->StridedTranspose;
-      void *args[] = {&num_elem, &d_u, &d_v};
+      kernel             = impl->StridedTranspose;
+      void   *args[]     = {&num_elem, &d_u, &d_v};
+      CeedInt block_size = 32;
+
       CeedCallBackend(CeedRunKernel_Cuda(ceed, kernel, CeedDivUpInt(num_nodes, block_size), block_size, args));
     }
   }
@@ -215,6 +226,10 @@ int CeedElemRestrictionCreate_Cuda(CeedMemType mem_type, CeedCopyMode copy_mode,
   CeedCallBackend(CeedElemRestrictionGetCeed(r, &ceed));
   CeedElemRestriction_Cuda *impl;
   CeedCallBackend(CeedCalloc(1, &impl));
+  Ceed parent;
+  CeedCallBackend(CeedGetParent(ceed, &parent));
+  bool is_deterministic;
+  CeedCallBackend(CeedIsDeterministic(parent, &is_deterministic));
   CeedInt num_elem, num_comp, elem_size;
   CeedCallBackend(CeedElemRestrictionGetNumElements(r, &num_elem));
   CeedCallBackend(CeedElemRestrictionGetNumComponents(r, &num_comp));
@@ -275,7 +290,7 @@ int CeedElemRestrictionCreate_Cuda(CeedMemType mem_type, CeedCopyMode copy_mode,
         CeedCallCuda(ceed, cudaMalloc((void **)&impl->d_ind, size * sizeof(CeedInt)));
         impl->d_ind_allocated = impl->d_ind;  // We own the device memory
         CeedCallCuda(ceed, cudaMemcpy(impl->d_ind, indices, size * sizeof(CeedInt), cudaMemcpyHostToDevice));
-        CeedCallBackend(CeedElemRestrictionOffset_Cuda(r, indices));
+        if (is_deterministic) CeedCallBackend(CeedElemRestrictionOffset_Cuda(r, indices));
       }
       break;
     }
@@ -299,7 +314,7 @@ int CeedElemRestrictionCreate_Cuda(CeedMemType mem_type, CeedCopyMode copy_mode,
         CeedCallBackend(CeedMalloc(elem_size * num_elem, &impl->h_ind_allocated));
         CeedCallCuda(ceed, cudaMemcpy(impl->h_ind_allocated, impl->d_ind, elem_size * num_elem * sizeof(CeedInt), cudaMemcpyDeviceToHost));
         impl->h_ind = impl->h_ind_allocated;
-        CeedCallBackend(CeedElemRestrictionOffset_Cuda(r, indices));
+        if (is_deterministic) CeedCallBackend(CeedElemRestrictionOffset_Cuda(r, indices));
       }
       break;
     }
@@ -309,20 +324,39 @@ int CeedElemRestrictionCreate_Cuda(CeedMemType mem_type, CeedCopyMode copy_mode,
       // LCOV_EXCL_STOP
   }
 
-  // Compile CUDA kernels
+  // Compile CUDA kernels (add atomicAdd function for old NVidia architectures)
   CeedInt num_nodes = impl->num_nodes;
-  char   *restriction_kernel_path, *restriction_kernel_source;
+  char   *restriction_kernel_path, *restriction_kernel_source = NULL;
   CeedCallBackend(CeedGetJitAbsolutePath(ceed, "ceed/jit-source/cuda/cuda-ref-restriction.h", &restriction_kernel_path));
   CeedDebug256(ceed, CEED_DEBUG_COLOR_SUCCESS, "----- Loading Restriction Kernel Source -----\n");
-  CeedCallBackend(CeedLoadSourceToBuffer(ceed, restriction_kernel_path, &restriction_kernel_source));
+  if (!is_deterministic) {
+    struct cudaDeviceProp prop;
+    Ceed_Cuda            *ceed_data;
+    CeedCallBackend(CeedGetData(ceed, &ceed_data));
+    CeedCallBackend(cudaGetDeviceProperties(&prop, ceed_data->device_id));
+    if ((prop.major < 6) && (CEED_SCALAR_TYPE != CEED_SCALAR_FP32)) {
+      char *atomic_add_path;
+      CeedCallBackend(CeedGetJitAbsolutePath(ceed, "ceed/jit-source/cuda/cuda-atomic-add-fallback.h", &atomic_add_path));
+      CeedCallBackend(CeedLoadSourceToBuffer(ceed, atomic_add_path, &restriction_kernel_source));
+      CeedCallBackend(CeedLoadSourceToInitializedBuffer(ceed, restriction_kernel_path, &restriction_kernel_source));
+      CeedCallBackend(CeedFree(&atomic_add_path));
+    }
+  }
+  if (!restriction_kernel_source) {
+    CeedCallBackend(CeedLoadSourceToBuffer(ceed, restriction_kernel_path, &restriction_kernel_source));
+  }
   CeedDebug256(ceed, CEED_DEBUG_COLOR_SUCCESS, "----- Loading Restriction Kernel Source Complete! -----\n");
   CeedCallBackend(CeedCompile_Cuda(ceed, restriction_kernel_source, &impl->module, 8, "RESTR_ELEM_SIZE", elem_size, "RESTR_NUM_ELEM", num_elem,
                                    "RESTR_NUM_COMP", num_comp, "RESTR_NUM_NODES", num_nodes, "RESTR_COMP_STRIDE", comp_stride, "RESTR_STRIDE_NODES",
                                    strides[0], "RESTR_STRIDE_COMP", strides[1], "RESTR_STRIDE_ELEM", strides[2]));
-  CeedCallBackend(CeedGetKernel_Cuda(ceed, impl->module, "StridedTranspose", &impl->StridedTranspose));
   CeedCallBackend(CeedGetKernel_Cuda(ceed, impl->module, "StridedNoTranspose", &impl->StridedNoTranspose));
-  CeedCallBackend(CeedGetKernel_Cuda(ceed, impl->module, "OffsetTranspose", &impl->OffsetTranspose));
+  CeedCallBackend(CeedGetKernel_Cuda(ceed, impl->module, "StridedTranspose", &impl->StridedTranspose));
   CeedCallBackend(CeedGetKernel_Cuda(ceed, impl->module, "OffsetNoTranspose", &impl->OffsetNoTranspose));
+  if (!is_deterministic) {
+    CeedCallBackend(CeedGetKernel_Cuda(ceed, impl->module, "OffsetTranspose", &impl->OffsetTranspose));
+  } else {
+    CeedCallBackend(CeedGetKernel_Cuda(ceed, impl->module, "OffsetTransposeDet", &impl->OffsetTransposeDet));
+  }
   CeedCallBackend(CeedFree(&restriction_kernel_path));
   CeedCallBackend(CeedFree(&restriction_kernel_source));
 

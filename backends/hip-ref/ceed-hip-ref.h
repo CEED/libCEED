@@ -30,10 +30,11 @@ typedef struct {
 
 typedef struct {
   hipModule_t   module;
-  hipFunction_t StridedTranspose;
   hipFunction_t StridedNoTranspose;
-  hipFunction_t OffsetTranspose;
+  hipFunction_t StridedTranspose;
   hipFunction_t OffsetNoTranspose;
+  hipFunction_t OffsetTranspose;
+  hipFunction_t OffsetTransposeDet;
   CeedInt       num_nodes;
   CeedInt      *h_ind;
   CeedInt      *h_ind_allocated;
