@@ -325,11 +325,11 @@ PetscErrorCode SetupStrongSTG(DM dm, SimpleBC bc, ProblemData *problem, Physics 
   PetscFunctionReturn(PETSC_SUCCESS);
 }
 
-PetscErrorCode SetupStrongSTG_QF(Ceed ceed, ProblemData *problem, CeedInt num_comp_x, CeedInt num_comp_q, CeedInt stg_data_size,
-                                 CeedInt q_data_size_sur, CeedQFunction *qf_strongbc) {
+PetscErrorCode SetupStrongSTG_QF(Ceed ceed, ProblemData *problem, CeedInt num_comp_x, CeedInt num_comp_q, CeedInt stg_data_size, CeedInt dXdx_size,
+                                 CeedQFunction *qf_strongbc) {
   PetscFunctionBeginUser;
   PetscCallCeed(ceed, CeedQFunctionCreateInterior(ceed, 1, STGShur14_Inflow_StrongQF, STGShur14_Inflow_StrongQF_loc, qf_strongbc));
-  PetscCallCeed(ceed, CeedQFunctionAddInput(*qf_strongbc, "surface qdata", q_data_size_sur, CEED_EVAL_NONE));
+  PetscCallCeed(ceed, CeedQFunctionAddInput(*qf_strongbc, "dXdx", dXdx_size, CEED_EVAL_NONE));
   PetscCallCeed(ceed, CeedQFunctionAddInput(*qf_strongbc, "x", num_comp_x, CEED_EVAL_NONE));
   PetscCallCeed(ceed, CeedQFunctionAddInput(*qf_strongbc, "scale", 1, CEED_EVAL_NONE));
   PetscCallCeed(ceed, CeedQFunctionAddInput(*qf_strongbc, "stg data", stg_data_size, CEED_EVAL_NONE));
@@ -339,11 +339,11 @@ PetscErrorCode SetupStrongSTG_QF(Ceed ceed, ProblemData *problem, CeedInt num_co
   PetscFunctionReturn(PETSC_SUCCESS);
 }
 
-PetscErrorCode SetupStrongSTG_PreProcessing(Ceed ceed, ProblemData *problem, CeedInt num_comp_x, CeedInt stg_data_size, CeedInt q_data_size_sur,
+PetscErrorCode SetupStrongSTG_PreProcessing(Ceed ceed, ProblemData *problem, CeedInt num_comp_x, CeedInt stg_data_size, CeedInt dXdx_size,
                                             CeedQFunction *qf_strongbc) {
   PetscFunctionBeginUser;
   PetscCallCeed(ceed, CeedQFunctionCreateInterior(ceed, 1, Preprocess_STGShur14, Preprocess_STGShur14_loc, qf_strongbc));
-  PetscCallCeed(ceed, CeedQFunctionAddInput(*qf_strongbc, "surface qdata", q_data_size_sur, CEED_EVAL_NONE));
+  PetscCallCeed(ceed, CeedQFunctionAddInput(*qf_strongbc, "dXdx", dXdx_size, CEED_EVAL_NONE));
   PetscCallCeed(ceed, CeedQFunctionAddInput(*qf_strongbc, "x", num_comp_x, CEED_EVAL_NONE));
   PetscCallCeed(ceed, CeedQFunctionAddOutput(*qf_strongbc, "stg data", stg_data_size, CEED_EVAL_NONE));
 
