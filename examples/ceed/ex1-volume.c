@@ -26,12 +26,12 @@
 //     ./ex1-volume -ceed /gpu/cuda
 //
 // Test in 1D-3D
-//TESTARGS(name="1D_User_QFunction") -ceed {ceed_resource} -d 1 -t
-//TESTARGS(name="2D_User_QFunction") -ceed {ceed_resource} -d 2 -t
-//TESTARGS(name="3D_User_QFunction") -ceed {ceed_resource} -d 3 -t
-//TESTARGS(name="1D_Gallery_QFunction") -ceed {ceed_resource} -d 1 -t -g
-//TESTARGS(name="2D_Gallery_QFunction") -ceed {ceed_resource} -d 2 -t -g
-//TESTARGS(name="3D_Gallery_QFunction") -ceed {ceed_resource} -d 3 -t -g
+//TESTARGS(name="1D User QFunction") -ceed {ceed_resource} -d 1 -t
+//TESTARGS(name="2D User QFunction") -ceed {ceed_resource} -d 2 -t
+//TESTARGS(name="3D User QFunction") -ceed {ceed_resource} -d 3 -t
+//TESTARGS(name="1D Gallery QFunction") -ceed {ceed_resource} -d 1 -t -g
+//TESTARGS(name="2D Gallery QFunction") -ceed {ceed_resource} -d 2 -t -g
+//TESTARGS(name="3D Gallery QFunction") -ceed {ceed_resource} -d 3 -t -g
 
 /// @file
 /// libCEED example using mass operator to compute volume
