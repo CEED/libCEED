@@ -5,11 +5,8 @@
 // SPDX-License-Identifier: BSD-2-Clause
 //
 // This file is part of CEED:  http://github.com/ceed
-#ifndef _ceed_sycl_kernels_ref_vector_hpp
-#define _ceed_sycl_kernels_ref_vector_hpp
 
 #include <ceed/ceed.h>
-
 #include <sycl/sycl.hpp>
 
 //------------------------------------------------------------------------------
@@ -122,4 +119,4 @@ extern "C" int CeedDevicePointwiseMult_Sycl(CeedScalar *w_array, CeedScalar *x_a
   return 0;
 }
 
-#endif
+//------------------------------------------------------------------------------

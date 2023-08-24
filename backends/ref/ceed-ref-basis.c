@@ -233,6 +233,57 @@ static int CeedBasisApply_Ref(CeedBasis basis, CeedInt num_elem, CeedTransposeMo
 }
 
 //------------------------------------------------------------------------------
+// Basis Destroy Tensor
+//------------------------------------------------------------------------------
+static int CeedBasisDestroyTensor_Ref(CeedBasis basis) {
+  CeedBasis_Ref *impl;
+  CeedCallBackend(CeedBasisGetData(basis, &impl));
+  CeedCallBackend(CeedFree(&impl->collo_grad_1d));
+  CeedCallBackend(CeedFree(&impl));
+
+  return CEED_ERROR_SUCCESS;
+}
+
+//------------------------------------------------------------------------------
+// Basis Create Tensor
+//------------------------------------------------------------------------------
+int CeedBasisCreateTensorH1_Ref(CeedInt dim, CeedInt P_1d, CeedInt Q_1d, const CeedScalar *interp_1d, const CeedScalar *grad_1d,
+                                const CeedScalar *q_ref_1d, const CeedScalar *q_weight_1d, CeedBasis basis) {
+  Ceed ceed;
+  CeedCallBackend(CeedBasisGetCeed(basis, &ceed));
+  CeedBasis_Ref *impl;
+  CeedCallBackend(CeedCalloc(1, &impl));
+  // Check for collocated interp
+  if (Q_1d == P_1d) {
+    bool collocated = 1;
+    for (CeedInt i = 0; i < P_1d; i++) {
+      collocated = collocated && (fabs(interp_1d[i + P_1d * i] - 1.0) < 1e-14);
+      for (CeedInt j = 0; j < P_1d; j++) {
+        if (j != i) collocated = collocated && (fabs(interp_1d[j + P_1d * i]) < 1e-14);
+      }
+    }
+    impl->has_collo_interp = collocated;
+  }
+  // Calculate collocated grad
+  if (Q_1d >= P_1d && !impl->has_collo_interp) {
+    CeedCallBackend(CeedMalloc(Q_1d * Q_1d, &impl->collo_grad_1d));
+    CeedCallBackend(CeedBasisGetCollocatedGrad(basis, impl->collo_grad_1d));
+  }
+  CeedCallBackend(CeedBasisSetData(basis, impl));
+
+  Ceed parent;
+  CeedCallBackend(CeedGetParent(ceed, &parent));
+  CeedTensorContract contract;
+  CeedCallBackend(CeedTensorContractCreate(parent, basis, &contract));
+  CeedCallBackend(CeedBasisSetTensorContract(basis, contract));
+
+  CeedCallBackend(CeedSetBackendFunction(ceed, "Basis", basis, "Apply", CeedBasisApply_Ref));
+  CeedCallBackend(CeedSetBackendFunction(ceed, "Basis", basis, "Destroy", CeedBasisDestroyTensor_Ref));
+
+  return CEED_ERROR_SUCCESS;
+}
+
+//------------------------------------------------------------------------------
 // Basis Create Non-Tensor H^1
 //------------------------------------------------------------------------------
 int CeedBasisCreateH1_Ref(CeedElemTopology topo, CeedInt dim, CeedInt num_nodes, CeedInt num_qpts, const CeedScalar *interp, const CeedScalar *grad,
@@ -285,57 +336,6 @@ int CeedBasisCreateHcurl_Ref(CeedElemTopology topo, CeedInt dim, CeedInt num_nod
   CeedCallBackend(CeedBasisSetTensorContract(basis, contract));
 
   CeedCallBackend(CeedSetBackendFunction(ceed, "Basis", basis, "Apply", CeedBasisApply_Ref));
-
-  return CEED_ERROR_SUCCESS;
-}
-
-//------------------------------------------------------------------------------
-// Basis Destroy Tensor
-//------------------------------------------------------------------------------
-static int CeedBasisDestroyTensor_Ref(CeedBasis basis) {
-  CeedBasis_Ref *impl;
-  CeedCallBackend(CeedBasisGetData(basis, &impl));
-  CeedCallBackend(CeedFree(&impl->collo_grad_1d));
-  CeedCallBackend(CeedFree(&impl));
-
-  return CEED_ERROR_SUCCESS;
-}
-
-//------------------------------------------------------------------------------
-// Basis Create Tensor
-//------------------------------------------------------------------------------
-int CeedBasisCreateTensorH1_Ref(CeedInt dim, CeedInt P_1d, CeedInt Q_1d, const CeedScalar *interp_1d, const CeedScalar *grad_1d,
-                                const CeedScalar *q_ref_1d, const CeedScalar *q_weight_1d, CeedBasis basis) {
-  Ceed ceed;
-  CeedCallBackend(CeedBasisGetCeed(basis, &ceed));
-  CeedBasis_Ref *impl;
-  CeedCallBackend(CeedCalloc(1, &impl));
-  // Check for collocated interp
-  if (Q_1d == P_1d) {
-    bool collocated = 1;
-    for (CeedInt i = 0; i < P_1d; i++) {
-      collocated = collocated && (fabs(interp_1d[i + P_1d * i] - 1.0) < 1e-14);
-      for (CeedInt j = 0; j < P_1d; j++) {
-        if (j != i) collocated = collocated && (fabs(interp_1d[j + P_1d * i]) < 1e-14);
-      }
-    }
-    impl->has_collo_interp = collocated;
-  }
-  // Calculate collocated grad
-  if (Q_1d >= P_1d && !impl->has_collo_interp) {
-    CeedCallBackend(CeedMalloc(Q_1d * Q_1d, &impl->collo_grad_1d));
-    CeedCallBackend(CeedBasisGetCollocatedGrad(basis, impl->collo_grad_1d));
-  }
-  CeedCallBackend(CeedBasisSetData(basis, impl));
-
-  Ceed parent;
-  CeedCallBackend(CeedGetParent(ceed, &parent));
-  CeedTensorContract contract;
-  CeedCallBackend(CeedTensorContractCreate(parent, basis, &contract));
-  CeedCallBackend(CeedBasisSetTensorContract(basis, contract));
-
-  CeedCallBackend(CeedSetBackendFunction(ceed, "Basis", basis, "Apply", CeedBasisApply_Ref));
-  CeedCallBackend(CeedSetBackendFunction(ceed, "Basis", basis, "Destroy", CeedBasisDestroyTensor_Ref));
 
   return CEED_ERROR_SUCCESS;
 }

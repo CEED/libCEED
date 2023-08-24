@@ -17,6 +17,7 @@
 
 #include "../hip-ref/ceed-hip-ref.h"
 #include "../hip-shared/ceed-hip-shared.h"
+#include "../hip/ceed-hip-common.h"
 #include "../hip/ceed-hip-compile.h"
 #include "ceed-hip-gen.h"
 
@@ -76,6 +77,7 @@ extern "C" int CeedOperatorBuildKernel_Hip_gen(CeedOperator op) {
   CeedElemRestriction      Erestrict;
   CeedElemRestriction_Hip *restr_data;
 
+  // TODO: put in a function?
   // Check for restriction only identity operator
   bool is_identity_qf;
   CeedCallBackend(CeedQFunctionIsIdentity(qf, &is_identity_qf));
@@ -88,6 +90,8 @@ extern "C" int CeedOperatorBuildKernel_Hip_gen(CeedOperator op) {
   }
 
   ostringstream code;
+
+  // Load basis source files
   // TODO: generalize to accept different device functions?
   {
     char *tensor_basis_kernel_path, *tensor_basis_kernel_source;
@@ -108,6 +112,7 @@ extern "C" int CeedOperatorBuildKernel_Hip_gen(CeedOperator op) {
     CeedCallBackend(CeedFree(&hip_gen_template_source));
   }
 
+  // Get QFunction source and name
   string q_function_source(qf_data->q_function_source);
   string q_function_name(qf_data->q_function_name);
   string operator_name;
@@ -206,6 +211,7 @@ extern "C" int CeedOperatorBuildKernel_Hip_gen(CeedOperator op) {
   code << "  const CeedInt Q_1d = " << Q_1d << ";\n";
 
   code << "  HIP_DYNAMIC_SHARED( CeedScalar, slice)\n";
+  // TODO put in a function? InitSharedData_Hip?
   code << "  SharedData_Hip data;\n";
   code << "  data.t_id_x = threadIdx.x;\n";
   code << "  data.t_id_y = threadIdx.y;\n";
@@ -214,6 +220,7 @@ extern "C" int CeedOperatorBuildKernel_Hip_gen(CeedOperator op) {
   code << "  data.slice = slice+data.t_id_z*T_1D" << (dim > 1 ? "*T_1D" : "") << ";\n";
 
   code << "\n  // -- Input field constants and basis data --\n";
+  // TODO: Put in a function?
   // Initialize constants, and matrices B and G
   for (CeedInt i = 0; i < num_input_fields; i++) {
     code << "  // ---- Input field " << i << " ----\n";
@@ -378,6 +385,7 @@ extern "C" int CeedOperatorBuildKernel_Hip_gen(CeedOperator op) {
       }
     }
 
+    // TODO: put in a function?
     // Basis action
     code << "    // EvalMode: " << CeedEvalModes[eval_mode] << "\n";
     switch (eval_mode) {
@@ -419,6 +427,7 @@ extern "C" int CeedOperatorBuildKernel_Hip_gen(CeedOperator op) {
     }
   }
 
+  // TODO: put in a function + separate collograd logic
   // Q function
   code << "\n    // -- Output field setup --\n";
   for (CeedInt i = 0; i < num_output_fields; i++) {
@@ -606,6 +615,7 @@ extern "C" int CeedOperatorBuildKernel_Hip_gen(CeedOperator op) {
     CeedCallBackend(CeedElemRestrictionGetElementSize(Erestrict, &elem_size));
     CeedCallBackend(CeedQFunctionFieldGetEvalMode(qf_output_fields[i], &eval_mode));
     CeedCallBackend(CeedElemRestrictionGetNumComponents(Erestrict, &num_comp));
+    // TODO put in a function
     // Basis action
     code << "    // EvalMode: " << CeedEvalModes[eval_mode] << "\n";
     switch (eval_mode) {
@@ -643,6 +653,7 @@ extern "C" int CeedOperatorBuildKernel_Hip_gen(CeedOperator op) {
         break;  // TODO: Not implemented
                 // LCOV_EXCL_STOP
     }
+    // TODO put in a function
     // Restriction
     bool is_strided;
     CeedCallBackend(CeedElemRestrictionIsStrided(Erestrict, &is_strided));

@@ -103,7 +103,7 @@ static inline int CeedQFunctionContextHasValidData_Hip(const CeedQFunctionContex
   CeedQFunctionContext_Hip *impl;
   CeedCallBackend(CeedQFunctionContextGetBackendData(ctx, &impl));
 
-  *has_valid_data = !!impl->h_data || !!impl->d_data;
+  *has_valid_data = impl && (!!impl->h_data || !!impl->d_data);
 
   return CEED_ERROR_SUCCESS;
 }
@@ -216,7 +216,8 @@ static int CeedQFunctionContextSetDataDevice_Hip(const CeedQFunctionContext ctx,
 }
 
 //------------------------------------------------------------------------------
-// Set the data used by a user context, freeing any previously allocated data if applicable
+// Set the data used by a user context,
+//    freeing any previously allocated data if applicable
 //------------------------------------------------------------------------------
 static int CeedQFunctionContextSetData_Hip(const CeedQFunctionContext ctx, const CeedMemType mem_type, const CeedCopyMode copy_mode, void *data) {
   Ceed ceed;
@@ -245,9 +246,7 @@ static int CeedQFunctionContextTakeData_Hip(const CeedQFunctionContext ctx, cons
   // Sync data to requested mem_type
   bool need_sync = false;
   CeedCallBackend(CeedQFunctionContextNeedSync_Hip(ctx, mem_type, &need_sync));
-  if (need_sync) {
-    CeedCallBackend(CeedQFunctionContextSync_Hip(ctx, mem_type));
-  }
+  if (need_sync) CeedCallBackend(CeedQFunctionContextSync_Hip(ctx, mem_type));
 
   // Update pointer
   switch (mem_type) {
@@ -281,7 +280,7 @@ static int CeedQFunctionContextGetDataCore_Hip(const CeedQFunctionContext ctx, c
   CeedCallBackend(CeedQFunctionContextNeedSync_Hip(ctx, mem_type, &need_sync));
   if (need_sync) CeedCallBackend(CeedQFunctionContextSync_Hip(ctx, mem_type));
 
-  // Sync data to requested mem_type and update pointer
+  // Update pointer
   switch (mem_type) {
     case CEED_MEM_HOST:
       *(void **)data = impl->h_data;

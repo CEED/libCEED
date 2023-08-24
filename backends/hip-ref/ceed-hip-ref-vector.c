@@ -127,7 +127,7 @@ static inline int CeedVectorSetAllInvalid_Hip(const CeedVector vec) {
 }
 
 //------------------------------------------------------------------------------
-// Check if CeedVector has any valid pointers
+// Check if CeedVector has any valid pointer
 //------------------------------------------------------------------------------
 static inline int CeedVectorHasValidArray_Hip(const CeedVector vec, bool *has_valid_array) {
   CeedVector_Hip *impl;
@@ -139,7 +139,7 @@ static inline int CeedVectorHasValidArray_Hip(const CeedVector vec, bool *has_va
 }
 
 //------------------------------------------------------------------------------
-// Check if has any array of given type
+// Check if has array of given type
 //------------------------------------------------------------------------------
 static inline int CeedVectorHasArrayOfType_Hip(const CeedVector vec, CeedMemType mem_type, bool *has_array_of_type) {
   CeedVector_Hip *impl;
@@ -231,12 +231,10 @@ static int CeedVectorSetArrayDevice_Hip(const CeedVector vec, const CeedCopyMode
       size_t bytes = length * sizeof(CeedScalar);
       if (!impl->d_array_owned) {
         CeedCallHip(ceed, hipMalloc((void **)&impl->d_array_owned, bytes));
+        impl->d_array = impl->d_array_owned;
       }
       impl->d_array_borrowed = NULL;
-      impl->d_array          = impl->d_array_owned;
-      if (array) {
-        CeedCallHip(ceed, hipMemcpy(impl->d_array, array, bytes, hipMemcpyDeviceToDevice));
-      }
+      if (array) CeedCallHip(ceed, hipMemcpy(impl->d_array, array, bytes, hipMemcpyDeviceToDevice));
     } break;
     case CEED_OWN_POINTER:
       CeedCallHip(ceed, hipFree(impl->d_array_owned));
@@ -290,7 +288,7 @@ static int CeedHostSetValue_Hip(CeedScalar *h_array, CeedSize length, CeedScalar
 int CeedDeviceSetValue_Hip(CeedScalar *d_array, CeedSize length, CeedScalar val);
 
 //------------------------------------------------------------------------------
-// Set a vector to a value,
+// Set a vector to a value
 //------------------------------------------------------------------------------
 static int CeedVectorSetValue_Hip(CeedVector vec, CeedScalar val) {
   Ceed ceed;
@@ -316,9 +314,11 @@ static int CeedVectorSetValue_Hip(CeedVector vec, CeedScalar val) {
   }
   if (impl->d_array) {
     CeedCallBackend(CeedDeviceSetValue_Hip(impl->d_array, length, val));
+    impl->h_array = NULL;
   }
   if (impl->h_array) {
     CeedCallBackend(CeedHostSetValue_Hip(impl->h_array, length, val));
+    impl->d_array = NULL;
   }
 
   return CEED_ERROR_SUCCESS;

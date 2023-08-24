@@ -5,6 +5,11 @@
 //
 // This file is part of CEED:  http://github.com/ceed
 
+/// @file
+/// Internal header for CUDA operator full assembly
+#ifndef _ceed_cuda_ref_operator_assemble_h
+#define _ceed_cuda_ref_operator_assemble_h
+
 #include <ceed.h>
 
 #if CEEDSIZE
@@ -111,3 +116,5 @@ extern "C" __launch_bounds__(BLOCK_SIZE) __global__
 }
 
 //------------------------------------------------------------------------------
+
+#endif

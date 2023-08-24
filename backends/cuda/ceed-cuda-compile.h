@@ -11,7 +11,6 @@
 #include <ceed.h>
 #include <ceed/backend.h>
 #include <cuda.h>
-#include <nvrtc.h>
 
 static inline CeedInt CeedDivUpInt(CeedInt numerator, CeedInt denominator) { return (numerator + denominator - 1) / denominator; }
 

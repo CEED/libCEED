@@ -31,7 +31,7 @@ static int CeedQFunctionApply_Hip(CeedQFunction qf, CeedInt Q, CeedVector *U, Ce
   CeedCallBackend(CeedGetData(ceed, &ceed_Hip));
   CeedInt num_input_fields, num_output_fields;
   CeedCallBackend(CeedQFunctionGetNumArgs(qf, &num_input_fields, &num_output_fields));
-  const int blocksize = ceed_Hip->opt_block_size;
+  const int block_size = ceed_Hip->opt_block_size;
 
   // Read vectors
   for (CeedInt i = 0; i < num_input_fields; i++) {
@@ -46,7 +46,7 @@ static int CeedQFunctionApply_Hip(CeedQFunction qf, CeedInt Q, CeedVector *U, Ce
 
   // Run kernel
   void *args[] = {&data->d_c, (void *)&Q, &data->fields};
-  CeedCallBackend(CeedRunKernel_Hip(ceed, data->QFunction, CeedDivUpInt(Q, blocksize), blocksize, args));
+  CeedCallBackend(CeedRunKernel_Hip(ceed, data->QFunction, CeedDivUpInt(Q, block_size), block_size, args));
 
   // Restore vectors
   for (CeedInt i = 0; i < num_input_fields; i++) {

@@ -5,6 +5,11 @@
 //
 // This file is part of CEED:  http://github.com/ceed
 
+/// @file
+/// Internal header for HIP tensor product basis
+#ifndef _ceed_hip_ref_basis_tensor_h
+#define _ceed_hip_ref_basis_tensor_h
+
 #include <ceed.h>
 
 //------------------------------------------------------------------------------
@@ -141,45 +146,43 @@ extern "C" __global__ void Grad(const CeedInt num_elem, const CeedInt transpose,
 // 1D quadrature weights
 //------------------------------------------------------------------------------
 __device__ void Weight1d(const CeedInt num_elem, const CeedScalar *q_weight_1d, CeedScalar *w) {
-  CeedScalar w1d[BASIS_Q_1D];
-  for (CeedInt i = 0; i < BASIS_Q_1D; i++) w1d[i] = q_weight_1d[i];
-
-  for (CeedInt e = blockIdx.x * blockDim.x + threadIdx.x; e < num_elem; e += blockDim.x * gridDim.x)
-    for (CeedInt i = 0; i < BASIS_Q_1D; i++) {
-      const CeedInt ind = e * BASIS_Q_1D + i;  // sequential
-      w[ind]            = w1d[i];
-    }
+  const CeedInt i = threadIdx.x;
+  if (i < BASIS_Q_1D) {
+    const size_t elem = blockIdx.x;
+    if (elem < num_elem) w[elem * BASIS_Q_1D + i] = q_weight_1d[i];
+  }
 }
 
 //------------------------------------------------------------------------------
 // 2D quadrature weights
 //------------------------------------------------------------------------------
 __device__ void Weight2d(const CeedInt num_elem, const CeedScalar *q_weight_1d, CeedScalar *w) {
-  CeedScalar w1d[BASIS_Q_1D];
-  for (CeedInt i = 0; i < BASIS_Q_1D; i++) w1d[i] = q_weight_1d[i];
-
-  for (CeedInt e = blockIdx.x * blockDim.x + threadIdx.x; e < num_elem; e += blockDim.x * gridDim.x)
-    for (CeedInt i = 0; i < BASIS_Q_1D; i++)
-      for (CeedInt j = 0; j < BASIS_Q_1D; j++) {
-        const CeedInt ind = e * BASIS_Q_1D * BASIS_Q_1D + i + j * BASIS_Q_1D;  // sequential
-        w[ind]            = w1d[i] * w1d[j];
-      }
+  const CeedInt i = threadIdx.x;
+  const CeedInt j = threadIdx.y;
+  if (i < BASIS_Q_1D && j < BASIS_Q_1D) {
+    const size_t elem = blockIdx.x;
+    if (elem < num_elem) {
+      const size_t ind = (elem * BASIS_Q_1D + j) * BASIS_Q_1D + i;
+      w[ind]           = q_weight_1d[i] * q_weight_1d[j];
+    }
+  }
 }
 
 //------------------------------------------------------------------------------
 // 3D quadrature weights
 //------------------------------------------------------------------------------
 __device__ void Weight3d(const CeedInt num_elem, const CeedScalar *q_weight_1d, CeedScalar *w) {
-  CeedScalar w1d[BASIS_Q_1D];
-  for (CeedInt i = 0; i < BASIS_Q_1D; i++) w1d[i] = q_weight_1d[i];
-
-  for (CeedInt e = blockIdx.x * blockDim.x + threadIdx.x; e < num_elem; e += blockDim.x * gridDim.x)
-    for (CeedInt i = 0; i < BASIS_Q_1D; i++)
-      for (CeedInt j = 0; j < BASIS_Q_1D; j++)
-        for (CeedInt k = 0; k < BASIS_Q_1D; k++) {
-          const CeedInt ind = e * BASIS_Q_1D * BASIS_Q_1D * BASIS_Q_1D + i + j * BASIS_Q_1D + k * BASIS_Q_1D * BASIS_Q_1D;  // sequential
-          w[ind]            = w1d[i] * w1d[j] * w1d[k];
-        }
+  const CeedInt i = threadIdx.x;
+  const CeedInt j = threadIdx.y;
+  if (i < BASIS_Q_1D && j < BASIS_Q_1D) {
+    const size_t elem = blockIdx.x;
+    if (elem < num_elem) {
+      for (CeedInt k = 0; k < BASIS_Q_1D; k++) {
+        const size_t ind = ((elem * BASIS_Q_1D + k) * BASIS_Q_1D + j) * BASIS_Q_1D + i;
+        w[ind]           = q_weight_1d[i] * q_weight_1d[j] * q_weight_1d[k];
+      }
+    }
+  }
 }
 
 //------------------------------------------------------------------------------
@@ -192,3 +195,5 @@ extern "C" __global__ void Weight(const CeedInt num_elem, const CeedScalar *__re
 }
 
 //------------------------------------------------------------------------------
+
+#endif

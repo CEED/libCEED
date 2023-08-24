@@ -5,6 +5,11 @@
 //
 // This file is part of CEED:  http://github.com/ceed
 
+/// @file
+/// Internal header for CUDA operator diagonal assembly
+#ifndef _ceed_cuda_ref_operator_assemble_diagonal_h
+#define _ceed_cuda_ref_operator_assemble_diagonal_h
+
 #include <ceed.h>
 
 #if CEEDSIZE
@@ -109,3 +114,5 @@ extern "C" __global__ void linearPointBlockDiagonal(const CeedInt nelem, const C
 }
 
 //------------------------------------------------------------------------------
+
+#endif

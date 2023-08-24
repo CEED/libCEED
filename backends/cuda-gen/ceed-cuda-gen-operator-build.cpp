@@ -9,12 +9,12 @@
 
 #include <ceed.h>
 #include <ceed/backend.h>
-#include <ceed/jit-source/cuda/cuda-types.h>
 #include <ceed/jit-tools.h>
 #include <cuda_runtime.h>
 
 #include <iostream>
 #include <sstream>
+#include <string>
 
 #include "../cuda-ref/ceed-cuda-ref.h"
 #include "../cuda-shared/ceed-cuda-shared.h"
@@ -23,7 +23,7 @@
 #include "ceed-cuda-gen.h"
 
 //------------------------------------------------------------------------------
-// Build singe operator kernel
+// Build single operator kernel
 //------------------------------------------------------------------------------
 extern "C" int CeedOperatorBuildKernel_Cuda_gen(CeedOperator op) {
   using std::ostringstream;
@@ -363,12 +363,12 @@ extern "C" int CeedOperatorBuildKernel_Cuda_gen(CeedOperator op) {
         code << "    readDofsOffset" << dim << "d<num_comp_in_" << i << ", " << comp_stride << ", P_in_" << i << ">(data, lsize_in_" << i
              << ", elem, indices.inputs[" << i << "], d_u_" << i << ", r_u_" << i << ");\n";
       } else {
-        bool backendstrides;
-        CeedCallBackend(CeedElemRestrictionHasBackendStrides(Erestrict, &backendstrides));
+        bool has_backend_strides;
+        CeedCallBackend(CeedElemRestrictionHasBackendStrides(Erestrict, &has_backend_strides));
         CeedInt num_elem;
         CeedCallBackend(CeedElemRestrictionGetNumElements(Erestrict, &num_elem));
         CeedInt strides[3] = {1, elem_size * num_elem, elem_size};
-        if (!backendstrides) {
+        if (!has_backend_strides) {
           CeedCallBackend(CeedElemRestrictionGetStrides(Erestrict, &strides));
         }
         code << "    // Strides: {" << strides[0] << ", " << strides[1] << ", " << strides[2] << "}\n";
@@ -474,12 +474,12 @@ extern "C" int CeedOperatorBuildKernel_Cuda_gen(CeedOperator op) {
                  << i << ", r_q_" << i << ");\n";
           } else {
             CeedCallBackend(CeedElemRestrictionGetElementSize(Erestrict, &elem_size));
-            bool backendstrides;
-            CeedCallBackend(CeedElemRestrictionHasBackendStrides(Erestrict, &backendstrides));
+            bool has_backend_strides;
+            CeedCallBackend(CeedElemRestrictionHasBackendStrides(Erestrict, &has_backend_strides));
             CeedInt num_elem;
             CeedCallBackend(CeedElemRestrictionGetNumElements(Erestrict, &num_elem));
             CeedInt strides[3] = {1, elem_size * num_elem, elem_size};
-            if (!backendstrides) {
+            if (!has_backend_strides) {
               CeedCallBackend(CeedElemRestrictionGetStrides(Erestrict, &strides));
             }
             code << "      // Strides: {" << strides[0] << ", " << strides[1] << ", " << strides[2] << "}\n";

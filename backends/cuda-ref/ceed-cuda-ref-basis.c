@@ -48,21 +48,23 @@ int CeedBasisApply_Cuda(CeedBasis basis, const CeedInt num_elem, CeedTransposeMo
   // Basis action
   switch (eval_mode) {
     case CEED_EVAL_INTERP: {
-      void   *interp_args[] = {(void *)&num_elem, (void *)&transpose, &data->d_interp_1d, &d_u, &d_v};
-      CeedInt block_size    = CeedIntMin(CeedIntPow(Q_1d, dim), max_block_size);
+      void         *interp_args[] = {(void *)&num_elem, (void *)&transpose, &data->d_interp_1d, &d_u, &d_v};
+      const CeedInt block_size    = CeedIntMin(CeedIntPow(Q_1d, dim), max_block_size);
 
       CeedCallBackend(CeedRunKernel_Cuda(ceed, data->Interp, num_elem, block_size, interp_args));
     } break;
     case CEED_EVAL_GRAD: {
-      void   *grad_args[] = {(void *)&num_elem, (void *)&transpose, &data->d_interp_1d, &data->d_grad_1d, &d_u, &d_v};
-      CeedInt block_size  = max_block_size;
+      void         *grad_args[] = {(void *)&num_elem, (void *)&transpose, &data->d_interp_1d, &data->d_grad_1d, &d_u, &d_v};
+      const CeedInt block_size  = max_block_size;
 
       CeedCallBackend(CeedRunKernel_Cuda(ceed, data->Grad, num_elem, block_size, grad_args));
     } break;
     case CEED_EVAL_WEIGHT: {
       void     *weight_args[] = {(void *)&num_elem, (void *)&data->d_q_weight_1d, &d_v};
-      const int grid_size     = num_elem;
-      CeedCallBackend(CeedRunKernelDim_Cuda(ceed, data->Weight, grid_size, Q_1d, dim >= 2 ? Q_1d : 1, 1, weight_args));
+      const int block_size_x  = Q_1d;
+      const int block_size_y  = dim >= 2 ? Q_1d : 1;
+
+      CeedCallBackend(CeedRunKernelDim_Cuda(ceed, data->Weight, num_elem, block_size_x, block_size_y, 1, weight_args));
     } break;
     // LCOV_EXCL_START
     // Evaluate the divergence to/from the quadrature points
@@ -121,23 +123,20 @@ int CeedBasisApplyNonTensor_Cuda(CeedBasis basis, const CeedInt num_elem, CeedTr
   // Apply basis operation
   switch (eval_mode) {
     case CEED_EVAL_INTERP: {
-      void *interp_args[] = {(void *)&num_elem, (void *)&transpose, &data->d_interp, &d_u, &d_v};
-      if (transpose) {
-        CeedCallBackend(CeedRunKernelDim_Cuda(ceed, data->Interp, grid, num_nodes, 1, elems_per_block, interp_args));
-      } else {
-        CeedCallBackend(CeedRunKernelDim_Cuda(ceed, data->Interp, grid, num_qpts, 1, elems_per_block, interp_args));
-      }
+      void     *interp_args[] = {(void *)&num_elem, (void *)&transpose, &data->d_interp, &d_u, &d_v};
+      const int block_size_x  = transpose ? num_nodes : num_qpts;
+
+      CeedCallBackend(CeedRunKernelDim_Cuda(ceed, data->Interp, grid, block_size_x, 1, elems_per_block, interp_args));
     } break;
     case CEED_EVAL_GRAD: {
-      void *grad_args[] = {(void *)&num_elem, (void *)&transpose, &data->d_grad, &d_u, &d_v};
-      if (transpose) {
-        CeedCallBackend(CeedRunKernelDim_Cuda(ceed, data->Grad, grid, num_nodes, 1, elems_per_block, grad_args));
-      } else {
-        CeedCallBackend(CeedRunKernelDim_Cuda(ceed, data->Grad, grid, num_qpts, 1, elems_per_block, grad_args));
-      }
+      void     *grad_args[]  = {(void *)&num_elem, (void *)&transpose, &data->d_grad, &d_u, &d_v};
+      const int block_size_x = transpose ? num_nodes : num_qpts;
+
+      CeedCallBackend(CeedRunKernelDim_Cuda(ceed, data->Grad, grid, block_size_x, 1, elems_per_block, grad_args));
     } break;
     case CEED_EVAL_WEIGHT: {
       void *weight_args[] = {(void *)&num_elem, (void *)&data->d_q_weight, &d_v};
+
       CeedCallBackend(CeedRunKernelDim_Cuda(ceed, data->Weight, grid, num_qpts, 1, elems_per_block, weight_args));
     } break;
     // LCOV_EXCL_START

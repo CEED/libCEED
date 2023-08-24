@@ -7,7 +7,6 @@
 
 #include <ceed.h>
 #include <ceed/backend.h>
-#include <cublas_v2.h>
 #include <cuda_runtime.h>
 #include <math.h>
 #include <stdbool.h>
@@ -234,6 +233,7 @@ static int CeedVectorSetArrayDevice_Cuda(const CeedVector vec, const CeedCopyMod
         CeedCallCuda(ceed, cudaMalloc((void **)&impl->d_array_owned, bytes));
         impl->d_array = impl->d_array_owned;
       }
+      impl->d_array_borrowed = NULL;
       if (array) CeedCallCuda(ceed, cudaMemcpy(impl->d_array, array, bytes, cudaMemcpyDeviceToDevice));
     } break;
     case CEED_OWN_POINTER:
@@ -452,7 +452,7 @@ static int CeedVectorNorm_Cuda(CeedVector vec, CeedNormType type, CeedScalar *no
 #if CUDA_VERSION < 12000
   // With CUDA 12, we can use the 64-bit integer interface. Prior to that,
   // we need to check if the vector is too long to handle with int32,
-  // and if so, divide it into subsections for repeated cuBLAS calls
+  // and if so, divide it into subsections for repeated cuBLAS calls.
   CeedSize num_calls = length / INT_MAX;
   if (length % INT_MAX > 0) num_calls += 1;
 #endif

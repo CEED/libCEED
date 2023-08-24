@@ -5,14 +5,13 @@
 //
 // This file is part of CEED:  http://github.com/ceed
 
-#ifndef _ceed_hip_h
-#define _ceed_hip_h
+#ifndef _ceed_hip_ref_h
+#define _ceed_hip_ref_h
 
 #include <ceed.h>
 #include <ceed/backend.h>
 #include <ceed/jit-source/hip/hip-types.h>
 #include <hip/hip_runtime.h>
-
 #if (HIP_VERSION >= 50200000)
 #include <hipblas/hipblas.h>  // IWYU pragma: export
 #else
@@ -134,4 +133,4 @@ CEED_INTERN int CeedQFunctionContextCreate_Hip(CeedQFunctionContext ctx);
 
 CEED_INTERN int CeedOperatorCreate_Hip(CeedOperator op);
 
-#endif
+#endif  // _ceed_hip_ref_h
