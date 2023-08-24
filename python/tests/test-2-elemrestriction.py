@@ -225,7 +225,7 @@ def test_211(ceed_resource, capsys):
     num_elem = 3
 
     strides = np.array([1, 2, 2], dtype="int32")
-    r = ceed.StridedElemRestriction(num_elem, 2, 1, num_elem + 1, strides)
+    r = ceed.StridedElemRestriction(num_elem, 2, 1, num_elem * 2, strides)
 
     print(r)
 
@@ -245,7 +245,7 @@ def test_212(ceed_resource, capsys):
 
     strides = np.array([1, 2, 2], dtype="int32")
     r = ceed.BlockedStridedElemRestriction(
-        num_elem, 2, 2, 1, num_elem + 1, strides)
+        num_elem, 2, 2, 1, num_elem * 2, strides)
 
     print(r)
 
