@@ -835,3 +835,23 @@ used exactly at the inlet (assumed to be $\min(x)$) and linearly
 stretched/squeezed to match the slanted top boundary condition. The file is
 specified via `-platemesh_y_node_locs_path`. If this flag is given an empty
 string, then the algorithmic approach will be performed.
+
+## Taylor-Green Vortex
+
+This problem is really just an initial condition, the [Taylor-Green Vortex](https://en.wikipedia.org/wiki/Taylor%E2%80%93Green_vortex):
+
+$$
+\begin{align*}
+u &= V_0 \sin(\hat x) \cos(\hat y) \sin(\hat z) \\
+v &= -V_0 \cos(\hat x) \sin(\hat y) \sin(\hat z) \\
+w &= 0 \\
+p &= p_0 + \frac{\rho_0 V_0^2}{16} \left ( \cos(2 \hat x) + \cos(2 \hat y)\right) \left( \cos(2 \hat z) + 2 \right) \\
+\rho &= \frac{p}{R T_0} \\
+\end{align*}
+$$
+
+where $\hat x = 2 \pi x / L$ for $L$ the length of the domain in that specific direction.
+This coordinate modification is done to transform a given grid onto a domain of $x,y,z \in [0, 2\pi)$.
+
+This initial condition is traditionally given for the incompressible Navier-Stokes equations.
+The reference state is selected using the `-reference_{velocity,pressure,temperature}` flags (Euclidean norm of `-reference_velocity` is used for $V_0$).

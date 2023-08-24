@@ -49,11 +49,11 @@ The following options are common among all problem types:
   -
 
 * - `-problem`
-  - Problem to solve (`advection`, `advection2d`, `density_current`, or `euler_vortex`)
+  - Problem to solve (`advection`, `advection2d`, `density_current`, `euler_vortex`, `shocktube`, `blasius`, `channel`, `gaussian_wave`, and `taylor_green`)
   - `density_current`
 
 * - `-implicit`
-  - Use implicit time integartor formulation
+  - Use implicit time integrator formulation
   -
 
 * - `-degree`
