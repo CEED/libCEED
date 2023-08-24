@@ -16,7 +16,7 @@
       call ceedinit(trim(arg)//char(0),ceed,err)
 
       strides=[1,2,2]
-      call ceedelemrestrictioncreateblockedstrided(ceed,ne,2,2,1,ne+1,&
+      call ceedelemrestrictioncreateblockedstrided(ceed,ne,2,2,1,ne*2,&
      & strides,r,err)
 
       call ceedelemrestrictionview(r,err)
