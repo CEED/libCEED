@@ -22,8 +22,8 @@
 //     multigrid -problem bp5 -ceed /cpu/self
 //     multigrid -problem bp6 -ceed /gpu/cuda
 //
-//TESTARGS -ceed {ceed_resource} -test -problem bp3 -degree 3
-//TESTARGS -ceed {ceed_resource} -test -problem bp3 -degree 3 -simplex
+//TESTARGS(name="BP3, hex elements") -ceed {ceed_resource} -test -problem bp3 -degree 3
+//TESTARGS(name="BP3, tet elements") -ceed {ceed_resource} -test -problem bp3 -degree 3 -simplex
 
 /// @file
 /// CEED BPs 1-6 multigrid example using PETSc
