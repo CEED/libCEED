@@ -122,17 +122,17 @@ PetscErrorCode SetUpDM(DM dm, ProblemData *problem, PetscInt degree, PetscInt q_
   switch (phys->state_var) {
     case STATEVAR_CONSERVATIVE:
       PetscCall(PetscSectionSetComponentName(section, 0, 0, "Density"));
-      PetscCall(PetscSectionSetComponentName(section, 0, 1, "Momentum X"));
-      PetscCall(PetscSectionSetComponentName(section, 0, 2, "Momentum Y"));
-      PetscCall(PetscSectionSetComponentName(section, 0, 3, "Momentum Z"));
-      PetscCall(PetscSectionSetComponentName(section, 0, 4, "Energy Density"));
+      PetscCall(PetscSectionSetComponentName(section, 0, 1, "MomentumX"));
+      PetscCall(PetscSectionSetComponentName(section, 0, 2, "MomentumY"));
+      PetscCall(PetscSectionSetComponentName(section, 0, 3, "MomentumZ"));
+      PetscCall(PetscSectionSetComponentName(section, 0, 4, "TotalEnergy"));
       break;
 
     case STATEVAR_PRIMITIVE:
       PetscCall(PetscSectionSetComponentName(section, 0, 0, "Pressure"));
-      PetscCall(PetscSectionSetComponentName(section, 0, 1, "Velocity X"));
-      PetscCall(PetscSectionSetComponentName(section, 0, 2, "Velocity Y"));
-      PetscCall(PetscSectionSetComponentName(section, 0, 3, "Velocity Z"));
+      PetscCall(PetscSectionSetComponentName(section, 0, 1, "VelocityX"));
+      PetscCall(PetscSectionSetComponentName(section, 0, 2, "VelocityY"));
+      PetscCall(PetscSectionSetComponentName(section, 0, 3, "VelocityZ"));
       PetscCall(PetscSectionSetComponentName(section, 0, 4, "Temperature"));
       break;
   }
