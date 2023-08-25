@@ -17,6 +17,8 @@
 // Sample runs:
 //
 //     ./dmswarm
+///
+//TESTARGS -ceed {ceed_resource} -test -dm_plex_dim 3 -dm_plex_box_faces 3,3,3 -dm_plex_simplex 0
 
 /// @file
 /// libCEED example using PETSc with DMSwarm
@@ -30,7 +32,6 @@ const char help[] = "libCEED example using PETSc with DMSwarm\n";
 #include <petscksp.h>
 #include <petsc/private/petscfeimpl.h> /* For interpolation */
 
-#include "include/bpsproblemdata.h"
 #include "include/petscutils.h"
 
 static PetscScalar EvalU(PetscInt dim, const PetscScalar x[]) {
@@ -116,16 +117,30 @@ PetscErrorCode DMSwarmCreateReferenceCoordinates(DM dm_swarm, DM dm_mesh, IS *is
 
 int main(int argc, char **argv) {
   MPI_Comm            comm;
+  char                ceed_resource[PETSC_MAX_PATH_LEN] = "/cpu/self";
+  PetscBool           test_mode                         = PETSC_FALSE;
   DM                  dm_mesh, dm_swarm;
   Vec                 U_mesh;
-  PetscInt            dim = 3, num_comp = 1, num_points = 10, geometry_order = 1, mesh_order = 2, q_order = 3;
+  PetscInt            dim = 3, num_comp = 1, num_points = 10, geometry_order = 1, mesh_order = 2, q_extra = 3;
   Ceed                ceed;
   CeedBasis           basis_mesh_u;
   CeedElemRestriction restriction_mesh_u;
 
   PetscCall(PetscInitialize(&argc, &argv, NULL, help));
   comm = PETSC_COMM_WORLD;
-  CeedInit("/cpu/self", &ceed);
+
+  // Read command line options
+  PetscOptionsBegin(comm, NULL, "libCEED example using PETSc with DMSwarm", NULL);
+
+  PetscCall(PetscOptionsBool("-test", "Testing mode (do not print unless error is large)", NULL, test_mode, &test_mode, NULL));
+  PetscCall(PetscOptionsInt("-order", "Order of mesh solution space", NULL, mesh_order, &mesh_order, NULL));
+  PetscCall(PetscOptionsInt("-q_extra", "Number of extra quadrature points (-1 for auto)", NULL, q_extra, &q_extra, NULL));
+  PetscCall(PetscOptionsString("-ceed", "CEED resource specifier", NULL, ceed_resource, ceed_resource, sizeof(ceed_resource), NULL));
+
+  PetscOptionsEnd();
+
+  // Initialize libCEED
+  CeedInit(ceed_resource, &ceed);
 
   // Create background mesh
   PetscCall(DMCreate(comm, &dm_mesh));
@@ -133,11 +148,12 @@ int main(int argc, char **argv) {
   PetscCall(DMSetFromOptions(dm_mesh));
 
   // -- Mesh FE space
+  PetscCall(DMGetDimension(dm_mesh, &dim));
   {
     PetscFE fe;
 
     PetscCall(DMGetDimension(dm_mesh, &dim));
-    PetscCall(PetscFECreateLagrange(comm, dim, num_comp, PETSC_FALSE, mesh_order, q_order, &fe));
+    PetscCall(PetscFECreateLagrange(comm, dim, num_comp, PETSC_FALSE, mesh_order, mesh_order + q_extra, &fe));
     PetscCall(DMAddField(dm_mesh, NULL, (PetscObject)fe));
     PetscCall(PetscFEDestroy(&fe));
   }
@@ -147,7 +163,7 @@ int main(int argc, char **argv) {
   {
     PetscFE fe_coord;
 
-    PetscCall(PetscFECreateLagrange(comm, dim, dim, PETSC_FALSE, geometry_order, q_order, &fe_coord));
+    PetscCall(PetscFECreateLagrange(comm, dim, dim, PETSC_FALSE, geometry_order, mesh_order + q_extra, &fe_coord));
     PetscCall(DMProjectCoordinates(dm_mesh, fe_coord));
     PetscCall(DMProjectCoordinates(dm_mesh, fe_coord));
     PetscCall(PetscFEDestroy(&fe_coord));
@@ -158,8 +174,12 @@ int main(int argc, char **argv) {
   PetscCall(DMViewFromOptions(dm_mesh, NULL, "-dm_mesh_view"));
 
   // -- libCEED objects from background mesh
-  PetscCall(CreateBasisFromPlex(ceed, dm_mesh, NULL, 0, 0, 0, /* Don't want BP data here */ bp_options[CEED_BP1], &basis_mesh_u));
-  PetscCall(CreateRestrictionFromPlex(ceed, dm_mesh, 0, NULL, 0, &restriction_mesh_u));
+  {
+    BPData bp_data = {.q_mode = CEED_GAUSS};
+
+    PetscCall(CreateBasisFromPlex(ceed, dm_mesh, NULL, 0, 0, 0, bp_data, &basis_mesh_u));
+    PetscCall(CreateRestrictionFromPlex(ceed, dm_mesh, 0, NULL, 0, &restriction_mesh_u));
+  }
 
   // Create particle swarm
   PetscCall(DMCreate(comm, &dm_swarm));
@@ -193,6 +213,7 @@ int main(int argc, char **argv) {
   PetscCall(DMViewFromOptions(dm_swarm, NULL, "-dm_swarm_view"));
 
   // Set field values on background mesh
+  PetscCall(DMCreateGlobalVector(dm_mesh, &U_mesh));
   {
     Vec                X_loc, U_loc;
     PetscInt           num_mesh_points_loc;
@@ -304,7 +325,7 @@ int main(int argc, char **argv) {
 
       PetscCall(VecGetArrayRead(U_loc, &u_array));
       CeedElemRestrictionCreateVector(restriction_mesh_u, &u_lvec, &u_evec);
-      CeedVectorSetArray(u_lvec, CEED_USE_POINTER, CEED_MEM_HOST, (CeedScalar *)u_array);
+      CeedVectorSetArray(u_lvec, CEED_MEM_HOST, CEED_USE_POINTER, (CeedScalar *)u_array);
       CeedElemRestrictionApply(restriction_mesh_u, CEED_NOTRANSPOSE, u_lvec, u_evec, CEED_REQUEST_IMMEDIATE);
       CeedVectorTakeArray(u_lvec, CEED_MEM_HOST, (CeedScalar **)&u_array);
       PetscCall(VecRestoreArrayRead(U_loc, &u_array));
@@ -359,7 +380,7 @@ int main(int argc, char **argv) {
         CeedBasisGetNumNodes(basis_mesh_u, &P);
         CeedVectorGetArrayRead(u_evec, CEED_MEM_HOST, &u_evec_array);
         u_cell_array = &u_evec_array[cell * P];
-        CeedVectorSetArray(u_cell, CEED_USE_POINTER, CEED_MEM_HOST, (CeedScalar *)u_cell_array);
+        CeedVectorSetArray(u_cell, CEED_MEM_HOST, CEED_USE_POINTER, (CeedScalar *)u_cell_array);
         CeedBasisApplyAtPoints(basis_mesh_u, num_points_in_cell, CEED_NOTRANSPOSE, CEED_EVAL_INTERP, x_points, u_cell, u_points);
         CeedVectorTakeArray(u_cell, CEED_MEM_HOST, (CeedScalar **)&u_cell_array);
         CeedVectorRestoreArrayRead(u_evec, &u_evec_array);
@@ -390,7 +411,6 @@ int main(int argc, char **argv) {
 
     // -- Cleanup
     PetscCall(DMSwarmRestoreField(dm_swarm, "u", NULL, NULL, (void **)&u_all_points_array));
-    PetscCall(DMSwarmSortRestoreAccess(dm_swarm));
     PetscCall(DMRestoreLocalVector(dm_mesh, &U_loc));
     PetscCall(ISRestoreIndices(is_points, &all_points));
     PetscCall(ISDestroy(&is_points));
