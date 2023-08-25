@@ -18,7 +18,7 @@
 //
 //     ./dmswarm
 ///
-//TESTARGS -ceed {ceed_resource} -test -dm_plex_dim 3 -dm_plex_box_faces 3,3,3 -dm_plex_simplex 0
+//TESTARGS -ceed {ceed_resource} -test -dm_plex_dim 3 -dm_plex_box_faces 3,3,3 -dm_plex_box_lower -1.0,-1.0,-1.0 -dm_plex_simplex 0
 
 /// @file
 /// libCEED example using PETSc with DMSwarm
@@ -121,7 +121,7 @@ int main(int argc, char **argv) {
   PetscBool           test_mode                         = PETSC_FALSE;
   DM                  dm_mesh, dm_swarm;
   Vec                 U_mesh;
-  PetscInt            dim = 3, num_comp = 1, num_points = 10, geometry_order = 1, mesh_order = 2, q_extra = 3;
+  PetscInt            dim = 3, num_comp = 1, num_points = 40, geometry_order = 1, mesh_order = 2, q_extra = 3;
   Ceed                ceed;
   CeedBasis           basis_mesh_u;
   CeedElemRestriction restriction_mesh_u;
@@ -134,7 +134,8 @@ int main(int argc, char **argv) {
 
   PetscCall(PetscOptionsBool("-test", "Testing mode (do not print unless error is large)", NULL, test_mode, &test_mode, NULL));
   PetscCall(PetscOptionsInt("-order", "Order of mesh solution space", NULL, mesh_order, &mesh_order, NULL));
-  PetscCall(PetscOptionsInt("-q_extra", "Number of extra quadrature points (-1 for auto)", NULL, q_extra, &q_extra, NULL));
+  PetscCall(PetscOptionsInt("-q_extra", "Number of extra quadrature points", NULL, q_extra, &q_extra, NULL));
+  PetscCall(PetscOptionsInt("-points", "Number of swarm points", NULL, num_points, &num_points, NULL));
   PetscCall(PetscOptionsString("-ceed", "CEED resource specifier", NULL, ceed_resource, ceed_resource, sizeof(ceed_resource), NULL));
 
   PetscOptionsEnd();
@@ -279,18 +280,19 @@ int main(int argc, char **argv) {
       PetscCall(PetscFECreateTabulation(fe, 1, num_points_in_cell, coords_points_ref, 1, &tabulation));
       PetscCall(DMPlexComputeCellGeometryFEM(dm_mesh, cell, NULL, v, J, invJ, &detJ));
       PetscCall(DMPlexVecGetClosure(dm_mesh, NULL, U_loc, cell, NULL, &u_cell));
+      PetscCall(PetscFEGetQuadrature(fe, &quadrature));
+      PetscCall(PetscFECreateCellGeometry(fe, quadrature, &fe_geometry));
       for (PetscInt p = 0; p < num_points_in_cell; p++) {
         PetscScalar x[dim];
 
-        PetscCall(PetscFEGetQuadrature(fe, &quadrature));
-        PetscCall(PetscFECreateCellGeometry(fe, quadrature, &fe_geometry));
         PetscCall(PetscFEInterpolateAtPoints_Static(fe, tabulation, u_cell, &fe_geometry, p, &u_all_points_array[points[p]]));
-        PetscCall(PetscFEDestroyCellGeometry(fe, &fe_geometry));
         for (PetscInt d = 0; d < dim; d++) x[d] = coords_points_true[p * dim + d];
-        PetscCheck(PetscAbs(u_all_points_array[points[p]] - EvalU(dim, x)) > 1E-4, comm, PETSC_ERR_USER, "Incorrect interpolated value from PETSc");
+        PetscCheck(PetscAbs(u_all_points_array[points[p]] - EvalU(dim, x)) > 1E-4, comm, PETSC_ERR_USER,
+                   "Incorrect interpolated value from PETSc, cell %" PetscInt_FMT " point %" PetscInt_FMT, cell, p);
       }
 
       // ---- Cleanup
+      PetscCall(PetscFEDestroyCellGeometry(fe, &fe_geometry));
       PetscCall(DMPlexVecRestoreClosure(dm_mesh, NULL, U_loc, cell, NULL, &u_cell));
       PetscCall(DMRestoreWorkArray(dm_mesh, num_points_in_cell * dim, MPIU_REAL, &coords_points_true));
       PetscCall(DMRestoreWorkArray(dm_mesh, num_points_in_cell * dim, MPIU_REAL, &coords_points_ref));
@@ -391,13 +393,14 @@ int main(int argc, char **argv) {
         const CeedScalar *u_points_array;
 
         CeedVectorGetArrayRead(u_points, CEED_MEM_HOST, &u_points_array);
-        for (PetscInt i = 0; i < num_points_local; i++) {
-          if (all_points[i] == cell) {
+        for (PetscInt p = 0; p < num_points_local; p++) {
+          if (all_points[p] == cell) {
             PetscScalar x[dim];
 
-            for (PetscInt d = 0; d < dim; d++) x[d] = coords_points_ref[i * dim + d];
-            PetscCheck(PetscAbs(u_points_array[i] - EvalU(dim, x)) > 1E-4, comm, PETSC_ERR_USER, "Incorrect interpolated value from libCEED");
-            PetscCheck(PetscAbs(u_points_array[i] - u_all_points_array[i]) > 1E-4, comm, PETSC_ERR_USER,
+            for (PetscInt d = 0; d < dim; d++) x[d] = coords_points_ref[p * dim + d];
+            PetscCheck(PetscAbs(u_points_array[p] - EvalU(dim, x)) > 1E-4, comm, PETSC_ERR_USER,
+                       "Incorrect interpolated value from libCEED, cell %" PetscInt_FMT " point %" PetscInt_FMT, cell, p);
+            PetscCheck(PetscAbs(u_points_array[p] - u_all_points_array[p]) > 1E-4, comm, PETSC_ERR_USER,
                        "Significant difference between libCEED and PETSc");
           }
         }
