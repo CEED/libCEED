@@ -18,7 +18,6 @@ PetscErrorCode GridAnisotropyTensorProjectionSetupApply(Ceed ceed, User user, Ce
   CeedOperator         op_rhs_assemble, op_mass;
   CeedQFunction        qf_rhs_assemble, qf_mass;
   CeedBasis            basis_grid_aniso;
-  PetscInt             dim;
   CeedInt              q_data_size;
   MPI_Comm             comm = PetscObjectComm((PetscObject)user->dm);
   KSP                  ksp;
@@ -29,18 +28,12 @@ PetscErrorCode GridAnisotropyTensorProjectionSetupApply(Ceed ceed, User user, Ce
   // -- Create DM for Anisotropic tensor L^2 projection
   grid_aniso_proj->num_comp = 7;
   PetscCall(DMClone(user->dm, &grid_aniso_proj->dm));
-  PetscCall(DMGetDimension(grid_aniso_proj->dm, &dim));
   PetscCall(PetscObjectSetName((PetscObject)grid_aniso_proj->dm, "Grid Anisotropy Tensor Projection"));
 
   {  // -- Setup DM
-    PetscFE      fe;
     PetscSection section;
-    PetscInt     q_order = user->app_ctx->degree + user->app_ctx->q_extra;
-    PetscCall(PetscFECreateLagrange(PETSC_COMM_SELF, dim, grid_aniso_proj->num_comp, PETSC_FALSE, user->app_ctx->degree, q_order, &fe));
-    PetscCall(PetscObjectSetName((PetscObject)fe, "Grid Anisotropy Tensor Projection"));
-    PetscCall(DMAddField(grid_aniso_proj->dm, NULL, (PetscObject)fe));
-    PetscCall(DMCreateDS(grid_aniso_proj->dm));
-    PetscCall(DMPlexSetClosurePermutationTensor(grid_aniso_proj->dm, PETSC_DETERMINE, NULL));
+    PetscCall(DMSetupByOrder_FEM(PETSC_TRUE, PETSC_TRUE, user->app_ctx->degree, 1, user->app_ctx->q_extra, 1, &grid_aniso_proj->num_comp,
+                                 grid_aniso_proj->dm));
 
     PetscCall(DMGetLocalSection(grid_aniso_proj->dm, &section));
     PetscCall(PetscSectionSetFieldName(section, 0, ""));
@@ -51,8 +44,6 @@ PetscErrorCode GridAnisotropyTensorProjectionSetupApply(Ceed ceed, User user, Ce
     PetscCall(PetscSectionSetComponentName(section, 0, 4, "KMGridAnisotropyTensorXZ"));
     PetscCall(PetscSectionSetComponentName(section, 0, 5, "KMGridAnisotropyTensorXY"));
     PetscCall(PetscSectionSetComponentName(section, 0, 6, "GridAnisotropyTensorFrobNorm"));
-
-    PetscCall(PetscFEDestroy(&fe));
   }
 
   // -- Get Pre-requisite things

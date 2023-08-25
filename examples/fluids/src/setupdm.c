@@ -40,44 +40,13 @@ PetscErrorCode CreateDM(MPI_Comm comm, ProblemData *problem, MatType mat_type, V
 
 // Setup DM
 PetscErrorCode SetUpDM(DM dm, ProblemData *problem, PetscInt degree, PetscInt q_extra, SimpleBC bc, Physics phys) {
-  PetscInt q_order = degree + q_extra;
+  PetscInt num_comp_q = 5;
   PetscFunctionBeginUser;
-  {
-    PetscBool is_simplex = PETSC_TRUE;
 
-    // Check if simplex or tensor-product mesh
-    PetscCall(DMPlexIsSimplex(dm, &is_simplex));
-    // Configure the finite element space and boundary conditions
-    PetscFE  fe;
-    PetscInt num_comp_q = 5;
-    DMLabel  label;
-    PetscCall(PetscFECreateLagrange(PETSC_COMM_SELF, problem->dim, num_comp_q, is_simplex, degree, q_order, &fe));
-    PetscCall(PetscObjectSetName((PetscObject)fe, "Q"));
-    PetscCall(DMAddField(dm, NULL, (PetscObject)fe));
-    PetscCall(DMCreateDS(dm));
-    {  // Project coordinates to enrich quadrature space
-      DM             dm_coord;
-      PetscDS        ds_coord;
-      PetscFE        fe_coord_current, fe_coord_new, fe_coord_face_new;
-      PetscDualSpace fe_coord_dual_space;
-      PetscInt       fe_coord_order, num_comp_coord;
+  PetscCall(DMSetupByOrderBegin_FEM(PETSC_TRUE, PETSC_TRUE, degree, 1, q_extra, 1, &num_comp_q, dm));
 
-      PetscCall(DMGetCoordinateDM(dm, &dm_coord));
-      PetscCall(DMGetCoordinateDim(dm, &num_comp_coord));
-      PetscCall(DMGetRegionDS(dm_coord, NULL, NULL, &ds_coord, NULL));
-      PetscCall(PetscDSGetDiscretization(ds_coord, 0, (PetscObject *)&fe_coord_current));
-      PetscCall(PetscFEGetDualSpace(fe_coord_current, &fe_coord_dual_space));
-      PetscCall(PetscDualSpaceGetOrder(fe_coord_dual_space, &fe_coord_order));
-
-      // Create FE for coordinates
-      PetscCheck(fe_coord_order == 1, PetscObjectComm((PetscObject)dm), PETSC_ERR_USER_INPUT,
-                 "Only linear mesh geometry supported. Recieved %d order", fe_coord_order);
-      PetscCall(PetscFECreateLagrange(PETSC_COMM_SELF, problem->dim, num_comp_coord, is_simplex, fe_coord_order, q_order, &fe_coord_new));
-      PetscCall(PetscFEGetHeightSubspace(fe_coord_new, 1, &fe_coord_face_new));
-      PetscCall(DMProjectCoordinates(dm, fe_coord_new));
-      PetscCall(PetscFEDestroy(&fe_coord_new));
-    }
-
+  {  // Add strong boundary conditions to DM
+    DMLabel label;
     PetscCall(DMGetLabel(dm, "Face Sets", &label));
     PetscCall(DMPlexLabelComplete(dm, label));
     // Set wall BCs
@@ -104,16 +73,9 @@ PetscErrorCode SetUpDM(DM dm, ProblemData *problem, PetscInt degree, PetscInt q_
       PetscCall(PetscOptionsGetBool(NULL, NULL, "-stg_strong", &use_strongstg, NULL));
       if (use_strongstg) PetscCall(SetupStrongSTG(dm, bc, problem, phys));
     }
-
-    if (!is_simplex) {
-      DM dm_coord;
-      PetscCall(DMGetCoordinateDM(dm, &dm_coord));
-      PetscCall(DMPlexSetClosurePermutationTensor(dm, PETSC_DETERMINE, NULL));
-      PetscCall(DMPlexSetClosurePermutationTensor(dm_coord, PETSC_DETERMINE, NULL));
-    }
-
-    PetscCall(PetscFEDestroy(&fe));
   }
+
+  PetscCall(DMSetupByOrderEnd_FEM(PETSC_TRUE, dm));
 
   // Empty name for conserved field (because there is only one field)
   PetscSection section;

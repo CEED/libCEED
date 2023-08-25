@@ -199,9 +199,9 @@ CEED_QFUNCTION(DifferentialFilter_MMS_RHS)(void *ctx, CeedInt Q, const CeedScala
 // The grid is evenly distributed in x, but distributed based on the analytical mesh distribution \Delta_y = .001 + .01*tanh(6*y).
 // The MMS test can optionally include a wall damping function (must also be enabled for the differential filtering itself).
 // It can be run via:
-// ./navierstokes -options_file tests-output/blasius_test.yaml -diff_filter_enable -diff_filter_view cgns:filtered_solution.cgns -ts_max_steps 0
+// ./navierstokes -options_file tests-output/blasius_test.yaml -diff_filter_monitor -diff_filter_view cgns:filtered_solution.cgns -ts_max_steps 0
 // -diff_filter_mms -diff_filter_kernel_scaling 1 -diff_filter_wall_damping_function mms -dm_plex_box_upper 0.5,0.5,0.5 -dm_plex_box_faces 75,75,1
-// -platemesh_modify_mesh true -platemesh_y_node_locs_path tests-output/diff_filter_mms_y_spacing.dat -platemesh_top_angle 0
+// -mesh_transform platemesh -platemesh_y_node_locs_path tests-output/diff_filter_mms_y_spacing.dat -platemesh_top_angle 0
 // -diff_filter_grid_based_width
 CEED_QFUNCTION(DifferentialFilter_MMS_IC)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
   const CeedScalar(*x)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[0];
