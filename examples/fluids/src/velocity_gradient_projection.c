@@ -45,8 +45,9 @@ PetscErrorCode VelocityGradientProjectionSetup(Ceed ceed, User user, CeedData ce
   CeedQFunction        qf_rhs_assemble, qf_mass;
   CeedBasis            basis_grad_velo;
   CeedElemRestriction  elem_restr_grad_velo;
-  PetscInt             dim;
+  PetscInt             dim, label_value = 0, height = 0, dm_field = 0;
   CeedInt              num_comp_x, num_comp_q, q_data_size;
+  DMLabel              domain_label = NULL;
 
   PetscFunctionBeginUser;
   PetscCall(PetscNew(&user->grad_velo_proj));
@@ -59,9 +60,9 @@ PetscErrorCode VelocityGradientProjectionSetup(Ceed ceed, User user, CeedData ce
   PetscCallCeed(ceed, CeedBasisGetNumComponents(ceed_data->basis_x, &num_comp_x));
   PetscCallCeed(ceed, CeedBasisGetNumComponents(ceed_data->basis_q, &num_comp_q));
   PetscCallCeed(ceed, CeedElemRestrictionGetNumComponents(ceed_data->elem_restr_qd_i, &q_data_size));
-  PetscCall(GetRestrictionForDomain(ceed, grad_velo_proj->dm, 0, 0, 0, 0, -1, 0, &elem_restr_grad_velo, NULL, NULL));
+  PetscCall(DMPlexCeedElemRestrictionCreate(ceed, grad_velo_proj->dm, domain_label, label_value, height, dm_field, &elem_restr_grad_velo));
 
-  PetscCall(CreateBasisFromPlex(ceed, grad_velo_proj->dm, 0, 0, 0, 0, &basis_grad_velo));
+  PetscCall(CreateBasisFromPlex(ceed, grad_velo_proj->dm, domain_label, label_value, height, dm_field, &basis_grad_velo));
 
   // -- Build RHS operator
   switch (user->phys->state_var) {

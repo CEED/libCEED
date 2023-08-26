@@ -58,18 +58,18 @@ PetscErrorCode SgsDDModelSetupNodalEvaluation(Ceed ceed, User user, CeedData cee
   SgsDDData           sgs_dd_data = user->sgs_dd_data;
   CeedQFunction       qf_multiplicity, qf_sgs_dd_nodal;
   CeedOperator        op_multiplicity, op_sgs_dd_nodal;
-  CeedInt             num_elem, elem_size, num_comp_q, num_comp_grad_velo, num_comp_x, num_comp_grid_aniso;
+  CeedInt             num_comp_q, num_comp_grad_velo, num_comp_x, num_comp_grid_aniso;
   PetscInt            dim;
   CeedVector          multiplicity, inv_multiplicity;
   CeedElemRestriction elem_restr_inv_multiplicity, elem_restr_grad_velo, elem_restr_sgs;
+  DMLabel             domain_label = NULL;
+  PetscInt            label_value = 0, height = 0, dm_field = 0;
 
   PetscFunctionBeginUser;
   PetscCall(DMGetDimension(user->dm, &dim));
   PetscCallCeed(ceed, CeedElemRestrictionGetNumComponents(ceed_data->elem_restr_x, &num_comp_x));
   PetscCallCeed(ceed, CeedElemRestrictionGetNumComponents(ceed_data->elem_restr_q, &num_comp_q));
   PetscCallCeed(ceed, CeedElemRestrictionGetNumComponents(sgs_dd_setup_data->elem_restr_grid_aniso, &num_comp_grid_aniso));
-  PetscCallCeed(ceed, CeedElemRestrictionGetNumElements(ceed_data->elem_restr_q, &num_elem));
-  PetscCallCeed(ceed, CeedElemRestrictionGetElementSize(ceed_data->elem_restr_q, &elem_size));
 
   {  // Get velocity gradient information
     CeedOperatorField op_field;
@@ -77,14 +77,13 @@ PetscErrorCode SgsDDModelSetupNodalEvaluation(Ceed ceed, User user, CeedData cee
     PetscCallCeed(ceed, CeedOperatorFieldGetElemRestriction(op_field, &elem_restr_grad_velo));
     PetscCallCeed(ceed, CeedElemRestrictionGetNumComponents(elem_restr_grad_velo, &num_comp_grad_velo));
   }
-  PetscCall(GetRestrictionForDomain(ceed, sgs_dd_data->dm_sgs, 0, 0, 0, 0, -1, 0, &elem_restr_sgs, NULL, NULL));
+  PetscCall(DMPlexCeedElemRestrictionCreate(ceed, sgs_dd_data->dm_sgs, domain_label, label_value, height, dm_field, &elem_restr_sgs));
   PetscCallCeed(ceed, CeedElemRestrictionCreateVector(elem_restr_sgs, &sgs_dd_data->sgs_nodal_ceed, NULL));
 
   // -- Create inverse multiplicity for correcting nodal assembly
   PetscCallCeed(ceed, CeedElemRestrictionCreateVector(ceed_data->elem_restr_q, &multiplicity, NULL));
   PetscCallCeed(ceed, CeedElemRestrictionGetMultiplicity(ceed_data->elem_restr_q, multiplicity));
-  PetscCallCeed(
-      ceed, CeedElemRestrictionCreateStrided(ceed, num_elem, elem_size, 1, num_elem * elem_size, CEED_STRIDES_BACKEND, &elem_restr_inv_multiplicity));
+  PetscCall(DMPlexCeedElemRestrictionCollocatedCreate(ceed, sgs_dd_data->dm_sgs, domain_label, label_value, height, 1, &elem_restr_inv_multiplicity));
   PetscCallCeed(ceed, CeedElemRestrictionCreateVector(elem_restr_inv_multiplicity, &inv_multiplicity, NULL));
 
   PetscCallCeed(ceed, CeedQFunctionCreateInterior(ceed, 1, InverseMultiplicity, InverseMultiplicity_loc, &qf_multiplicity));

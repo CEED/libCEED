@@ -14,13 +14,14 @@
 #include "../problems/stg_shur14.h"
 
 PetscErrorCode SetupStrongSTG_Ceed(Ceed ceed, CeedData ceed_data, DM dm, ProblemData *problem, SimpleBC bc, Physics phys, CeedOperator op_strong_bc) {
-  CeedInt num_comp_x = problem->dim, num_comp_q = 5, num_elem, elem_size, stg_data_size = 1, dim_boundary = 2, dXdx_size = num_comp_x * dim_boundary;
+  CeedInt             num_comp_x = problem->dim, num_comp_q = 5, stg_data_size = 1, dim_boundary = 2, dXdx_size = num_comp_x * dim_boundary;
   CeedVector          multiplicity, x_stored, scale_stored, stg_data, dXdx;
   CeedBasis           basis_x_to_q_sur;
   CeedElemRestriction elem_restr_x_sur, elem_restr_q_sur, elem_restr_x_stored, elem_restr_scale, elem_restr_stgdata, elem_restr_dXdx;
   CeedQFunction       qf_setup, qf_strongbc, qf_stgdata;
   CeedOperator        op_setup, op_strong_bc_sub, op_stgdata;
   DMLabel             domain_label;
+  PetscInt            dm_field = 0;
 
   PetscFunctionBeginUser;
   PetscCall(DMGetLabel(dm, "Face Sets", &domain_label));
@@ -47,25 +48,18 @@ PetscErrorCode SetupStrongSTG_Ceed(Ceed ceed, CeedData ceed_data, DM dm, Problem
   // Compute contribution on each boundary face
   for (CeedInt i = 0; i < bc->num_inflow; i++) {
     // -- Restrictions
-    PetscCall(GetRestrictionForDomain(ceed, dm, height, domain_label, bc->inflows[i], 0, -1, -1, &elem_restr_q_sur, &elem_restr_x_sur, NULL));
+    PetscCall(DMPlexCeedElemRestrictionCreate(ceed, dm, domain_label, bc->inflows[i], height, dm_field, &elem_restr_q_sur));
+    PetscCall(DMPlexCeedElemRestrictionCoordinateCreate(ceed, dm, domain_label, bc->inflows[i], height, &elem_restr_x_sur));
     PetscCallCeed(ceed, CeedElemRestrictionCreateVector(elem_restr_q_sur, &multiplicity, NULL));
     PetscCallCeed(ceed, CeedElemRestrictionGetMultiplicity(elem_restr_q_sur, multiplicity));
-    PetscCallCeed(ceed, CeedElemRestrictionGetNumElements(elem_restr_q_sur, &num_elem));
-    PetscCallCeed(ceed, CeedElemRestrictionGetElementSize(elem_restr_q_sur, &elem_size));
 
-    PetscCallCeed(ceed, CeedElemRestrictionCreateStrided(ceed, num_elem, elem_size, num_comp_x, num_elem * elem_size * num_comp_x,
-                                                         CEED_STRIDES_BACKEND, &elem_restr_x_stored));
+    PetscCall(DMPlexCeedElemRestrictionCollocatedCreate(ceed, dm, domain_label, bc->inflows[i], height, num_comp_x, &elem_restr_x_stored));
+    PetscCall(DMPlexCeedElemRestrictionCollocatedCreate(ceed, dm, domain_label, bc->inflows[i], height, 1, &elem_restr_scale));
+    PetscCall(DMPlexCeedElemRestrictionCollocatedCreate(ceed, dm, domain_label, bc->inflows[i], height, stg_data_size, &elem_restr_stgdata));
+    PetscCall(DMPlexCeedElemRestrictionCollocatedCreate(ceed, dm, domain_label, bc->inflows[i], height, dXdx_size, &elem_restr_dXdx));
     PetscCallCeed(ceed, CeedElemRestrictionCreateVector(elem_restr_x_stored, &x_stored, NULL));
-
-    PetscCallCeed(ceed,
-                  CeedElemRestrictionCreateStrided(ceed, num_elem, elem_size, 1, num_elem * elem_size, CEED_STRIDES_BACKEND, &elem_restr_scale));
     PetscCallCeed(ceed, CeedElemRestrictionCreateVector(elem_restr_scale, &scale_stored, NULL));
-
-    PetscCallCeed(ceed, CeedElemRestrictionCreateStrided(ceed, num_elem, elem_size, stg_data_size, num_elem * elem_size * stg_data_size,
-                                                         CEED_STRIDES_BACKEND, &elem_restr_stgdata));
     PetscCallCeed(ceed, CeedElemRestrictionCreateVector(elem_restr_stgdata, &stg_data, NULL));
-    PetscCallCeed(ceed, CeedElemRestrictionCreateStrided(ceed, num_elem, elem_size, dXdx_size, num_elem * elem_size * dXdx_size, CEED_STRIDES_BACKEND,
-                                                         &elem_restr_dXdx));
     PetscCallCeed(ceed, CeedElemRestrictionCreateVector(elem_restr_dXdx, &dXdx, NULL));
 
     // -- Setup Operator

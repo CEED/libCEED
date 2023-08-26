@@ -58,14 +58,16 @@ PetscErrorCode DifferentialFilterCreateOperators(Ceed ceed, User user, CeedData 
     PetscCallCeed(ceed, CeedOperatorSetField(op_rhs, "q", ceed_data->elem_restr_q, ceed_data->basis_q, CEED_VECTOR_ACTIVE));
     PetscCallCeed(ceed, CeedOperatorSetField(op_rhs, "qdata", ceed_data->elem_restr_qd_i, CEED_BASIS_COLLOCATED, ceed_data->q_data));
     PetscCallCeed(ceed, CeedOperatorSetField(op_rhs, "x", ceed_data->elem_restr_x, ceed_data->basis_x, ceed_data->x_coord));
-    for (PetscInt i = 0; i < diff_filter->num_filtered_fields; i++) {
+    for (PetscInt dm_field = 0; dm_field < diff_filter->num_filtered_fields; dm_field++) {
       char                field_name[PETSC_MAX_PATH_LEN];
       CeedElemRestriction elem_restr_filter;
       CeedBasis           basis_filter;
-      PetscCall(GetRestrictionForDomain(ceed, dm_filter, 0, 0, 0, i, -1, 0, &elem_restr_filter, NULL, NULL));
-      PetscCall(CreateBasisFromPlex(ceed, dm_filter, 0, 0, 0, i, &basis_filter));
+      DMLabel             domain_label = NULL;
+      PetscInt            label_value = 0, height = 0;
+      PetscCall(DMPlexCeedElemRestrictionCreate(ceed, dm_filter, domain_label, label_value, height, dm_field, &elem_restr_filter));
+      PetscCall(CreateBasisFromPlex(ceed, dm_filter, domain_label, label_value, height, dm_field, &basis_filter));
 
-      PetscCall(PetscSNPrintf(field_name, PETSC_MAX_PATH_LEN, "v%" PetscInt_FMT, i));
+      PetscCall(PetscSNPrintf(field_name, PETSC_MAX_PATH_LEN, "v%" PetscInt_FMT, dm_field));
       PetscCallCeed(ceed, CeedOperatorSetField(op_rhs, field_name, elem_restr_filter, basis_filter, CEED_VECTOR_ACTIVE));
     }
 

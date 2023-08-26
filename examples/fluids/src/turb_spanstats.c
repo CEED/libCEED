@@ -176,17 +176,19 @@ PetscErrorCode GetQuadratureCoords(Ceed ceed, DM dm, CeedElemRestriction elem_re
 PetscErrorCode SpanStatsSetupDataCreate(Ceed ceed, User user, CeedData ceed_data, ProblemData *problem, SpanStatsSetupData *stats_data) {
   DM       dm = user->spanstats.dm;
   PetscInt dim;
-  CeedInt  num_qpts_child1d, num_comp_x, num_comp_stats = user->spanstats.num_comp_stats;
+  CeedInt  num_comp_x, num_comp_stats = user->spanstats.num_comp_stats;
   Vec      X_loc;
+  DMLabel  domain_label = NULL;
+  PetscInt label_value = 0, height = 0, dm_field = 0;
 
   PetscFunctionBeginUser;
   PetscCall(PetscNew(stats_data));
 
   PetscCall(DMGetDimension(dm, &dim));
-  PetscCallCeed(ceed, CeedBasisGetNumQuadraturePoints1D(ceed_data->basis_q, &num_qpts_child1d));
-  CeedInt num_qpts_parent = CeedIntPow(num_qpts_child1d, dim);
-  PetscCall(GetRestrictionForDomain(ceed, dm, 0, 0, 0, 0, num_qpts_parent, problem->q_data_size_sur, &(*stats_data)->elem_restr_parent_stats,
-                                    &(*stats_data)->elem_restr_parent_x, &(*stats_data)->elem_restr_parent_qd));
+  PetscCall(DMPlexCeedElemRestrictionCreate(ceed, dm, domain_label, label_value, height, dm_field, &(*stats_data)->elem_restr_parent_stats));
+  PetscCall(DMPlexCeedElemRestrictionCoordinateCreate(ceed, dm, domain_label, label_value, height, &(*stats_data)->elem_restr_parent_x));
+  PetscCall(DMPlexCeedElemRestrictionQDataCreate(ceed, dm, domain_label, label_value, height, problem->q_data_size_sur,
+                                                 &(*stats_data)->elem_restr_parent_qd));
   PetscCallCeed(ceed, CeedElemRestrictionGetNumComponents((*stats_data)->elem_restr_parent_x, &num_comp_x));
   PetscCallCeed(ceed, CeedElemRestrictionCreateVector((*stats_data)->elem_restr_parent_x, &(*stats_data)->x_coord, NULL));
   PetscCallCeed(ceed, CeedElemRestrictionCreateVector((*stats_data)->elem_restr_parent_qd, &(*stats_data)->q_data, NULL));
@@ -194,8 +196,8 @@ PetscErrorCode SpanStatsSetupDataCreate(Ceed ceed, User user, CeedData ceed_data
   {
     DM dm_coord;
     PetscCall(DMGetCoordinateDM(dm, &dm_coord));
-    PetscCall(CreateBasisFromPlex(ceed, dm_coord, 0, 0, 0, 0, &(*stats_data)->basis_x));
-    PetscCall(CreateBasisFromPlex(ceed, dm, 0, 0, 0, 0, &(*stats_data)->basis_stats));
+    PetscCall(CreateBasisFromPlex(ceed, dm_coord, domain_label, label_value, height, dm_field, &(*stats_data)->basis_x));
+    PetscCall(CreateBasisFromPlex(ceed, dm, domain_label, label_value, height, dm_field, &(*stats_data)->basis_stats));
   }
 
   PetscCall(CreateElemRestrColloc(ceed, num_comp_stats, (*stats_data)->basis_stats, (*stats_data)->elem_restr_parent_stats,
