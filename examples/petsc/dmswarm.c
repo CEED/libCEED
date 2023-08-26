@@ -234,6 +234,7 @@ int main(int argc, char **argv) {
     }
     PetscCall(VecRestoreArray(U_loc, &u_array));
     PetscCall(VecRestoreArrayRead(X_loc, &x_array));
+    PetscCall(VecZeroEntries(U_mesh));
     PetscCall(DMLocalToGlobal(dm_mesh, U_loc, INSERT_VALUES, U_mesh));
     PetscCall(DMRestoreLocalVector(dm_mesh, &U_loc));
   }
@@ -250,6 +251,7 @@ int main(int argc, char **argv) {
     const PetscScalar *coord_points;
 
     PetscCall(DMGetLocalVector(dm_mesh, &U_loc));
+    PetscCall(VecZeroEntries(U_loc));
     PetscCall(DMGlobalToLocal(dm_mesh, U_mesh, INSERT_VALUES, U_loc));
 
     PetscCall(DMGetDS(dm_mesh, &ds));
@@ -283,12 +285,14 @@ int main(int argc, char **argv) {
       PetscCall(PetscFEGetQuadrature(fe, &quadrature));
       PetscCall(PetscFECreateCellGeometry(fe, quadrature, &fe_geometry));
       for (PetscInt p = 0; p < num_points_in_cell; p++) {
-        PetscScalar x[dim];
+        PetscScalar x[dim], u_true = 0.0;
 
         PetscCall(PetscFEInterpolateAtPoints_Static(fe, tabulation, u_cell, &fe_geometry, p, &u_all_points_array[points[p]]));
         for (PetscInt d = 0; d < dim; d++) x[d] = coords_points_true[p * dim + d];
-        PetscCheck(PetscAbs(u_all_points_array[points[p]] - EvalU(dim, x)) > 1E-4, comm, PETSC_ERR_USER,
-                   "Incorrect interpolated value from PETSc, cell %" PetscInt_FMT " point %" PetscInt_FMT, cell, p);
+        u_true = EvalU(dim, x);
+        PetscCheck(PetscAbs(u_all_points_array[points[p]] - u_true) > 1E-4, comm, PETSC_ERR_USER,
+                   "Incorrect interpolated value from PETSc, cell %" PetscInt_FMT " point %" PetscInt_FMT ", found %f expected %f", cell, p,
+                   u_all_points_array[points[p]], u_true);
       }
 
       // ---- Cleanup
@@ -320,6 +324,7 @@ int main(int argc, char **argv) {
 
     // -- Get mesh values
     PetscCall(DMGetLocalVector(dm_mesh, &U_loc));
+    PetscCall(VecZeroEntries(U_loc));
     PetscCall(DMGlobalToLocal(dm_mesh, U_mesh, INSERT_VALUES, U_loc));
     {
       const PetscScalar *u_array;
@@ -395,13 +400,15 @@ int main(int argc, char **argv) {
         CeedVectorGetArrayRead(u_points, CEED_MEM_HOST, &u_points_array);
         for (PetscInt p = 0; p < num_points_local; p++) {
           if (all_points[p] == cell) {
-            PetscScalar x[dim];
+            PetscScalar x[dim], u_true = 0.0;
 
             for (PetscInt d = 0; d < dim; d++) x[d] = coords_points_ref[p * dim + d];
+            u_true = EvalU(dim, x);
             PetscCheck(PetscAbs(u_points_array[p] - EvalU(dim, x)) > 1E-4, comm, PETSC_ERR_USER,
-                       "Incorrect interpolated value from libCEED, cell %" PetscInt_FMT " point %" PetscInt_FMT, cell, p);
+                       "Incorrect interpolated value from libCEED, point %" PetscInt_FMT ", found %f expected %f", p, u_points_array[p], u_true);
             PetscCheck(PetscAbs(u_points_array[p] - u_all_points_array[p]) > 1E-4, comm, PETSC_ERR_USER,
-                       "Significant difference between libCEED and PETSc");
+                       "Significant difference between libCEED and PETSc, point %" PetscInt_FMT ", found %f expected %f", p, u_points_array[p],
+                       u_all_points_array[p]);
           }
         }
         CeedVectorRestoreArrayRead(u_points, &u_points_array);
