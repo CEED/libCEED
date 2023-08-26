@@ -5,7 +5,11 @@
 //
 // This file is part of CEED:  http://github.com/ceed
 /// @file
-/// Functions for setting up and performing statistics collection
+/// Functions for setting up and performing spanwise-statistics collection
+///
+/// "Parent" refers to the 2D plane on which statistics are collected *onto*.
+/// "Child" refers to the 3D domain where statistics are gathered *from*.
+/// Each quadrature point on the parent plane has several children in the child domain that it performs spanwise averaging with.
 
 #include "../qfunctions/turb_spanstats.h"
 
@@ -120,10 +124,12 @@ PetscErrorCode CreateStatsDM(User user, ProblemData *problem, PetscInt degree) {
   PetscFunctionReturn(PETSC_SUCCESS);
 }
 
-// Create CeedElemRestriction for collocated data based on associated CeedBasis and CeedElemRestriction
-// Number of quadrature points is used from the CeedBasis, and number of elements is used from the CeedElemRestriction
-PetscErrorCode CreateElemRestrColloc(Ceed ceed, CeedInt num_comp, CeedBasis basis, CeedElemRestriction elem_restr_base,
-                                     CeedElemRestriction *elem_restr_collocated) {
+/** @brief Create CeedElemRestriction for collocated data in component-major order.
+a. Sets the strides of the restriction to component-major order
+ Number of quadrature points is used from the CeedBasis, and number of elements is used from the CeedElemRestriction.
+*/
+static PetscErrorCode CreateElemRestrColloc_CompMajor(Ceed ceed, CeedInt num_comp, CeedBasis basis, CeedElemRestriction elem_restr_base,
+                                                      CeedElemRestriction *elem_restr_collocated) {
   CeedInt num_elem_qpts, loc_num_elem;
 
   PetscFunctionBeginUser;
@@ -142,16 +148,15 @@ PetscErrorCode GetQuadratureCoords(Ceed ceed, DM dm, CeedElemRestriction elem_re
   CeedElemRestriction  elem_restr_qx;
   CeedQFunction        qf_quad_coords;
   CeedOperator         op_quad_coords;
-  CeedInt              num_comp_x, loc_num_elem, num_elem_qpts;
+  CeedInt              num_comp_x;
+  CeedSize             l_vec_size;
   OperatorApplyContext op_quad_coords_ctx;
 
   PetscFunctionBeginUser;
-  // Create Element Restriction and CeedVector for quadrature coordinates
-  PetscCallCeed(ceed, CeedBasisGetNumQuadraturePoints(basis_x, &num_elem_qpts));
-  PetscCallCeed(ceed, CeedElemRestrictionGetNumElements(elem_restr_x, &loc_num_elem));
   PetscCallCeed(ceed, CeedElemRestrictionGetNumComponents(elem_restr_x, &num_comp_x));
-  *total_nqpnts = num_elem_qpts * loc_num_elem;
-  PetscCall(CreateElemRestrColloc(ceed, num_comp_x, basis_x, elem_restr_x, &elem_restr_qx));
+  PetscCall(CreateElemRestrColloc_CompMajor(ceed, num_comp_x, basis_x, elem_restr_x, &elem_restr_qx));
+  PetscCallCeed(ceed, CeedElemRestrictionGetLVectorSize(elem_restr_qx, &l_vec_size));
+  *total_nqpnts = l_vec_size / num_comp_x;
 
   // Create QFunction
   PetscCallCeed(ceed, CeedQFunctionCreateIdentity(ceed, num_comp_x, CEED_EVAL_INTERP, CEED_EVAL_NONE, &qf_quad_coords));
@@ -200,9 +205,10 @@ PetscErrorCode SpanStatsSetupDataCreate(Ceed ceed, User user, CeedData ceed_data
     PetscCall(CreateBasisFromPlex(ceed, dm, domain_label, label_value, height, dm_field, &(*stats_data)->basis_stats));
   }
 
-  PetscCall(CreateElemRestrColloc(ceed, num_comp_stats, (*stats_data)->basis_stats, (*stats_data)->elem_restr_parent_stats,
-                                  &(*stats_data)->elem_restr_parent_colloc));
-  PetscCall(CreateElemRestrColloc(ceed, num_comp_stats, ceed_data->basis_q, ceed_data->elem_restr_q, &(*stats_data)->elem_restr_child_colloc));
+  PetscCall(CreateElemRestrColloc_CompMajor(ceed, num_comp_stats, (*stats_data)->basis_stats, (*stats_data)->elem_restr_parent_stats,
+                                            &(*stats_data)->elem_restr_parent_colloc));
+  PetscCall(
+      CreateElemRestrColloc_CompMajor(ceed, num_comp_stats, ceed_data->basis_q, ceed_data->elem_restr_q, &(*stats_data)->elem_restr_child_colloc));
 
   {  // -- Copy DM coordinates into CeedVector
     DM cdm;
