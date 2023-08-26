@@ -148,6 +148,14 @@ int main(int argc, char **argv) {
   PetscCall(DMSetType(dm_mesh, DMPLEX));
   PetscCall(DMSetFromOptions(dm_mesh));
 
+  // -- Check for tensor product mesh
+  {
+    PetscBool is_simplex;
+
+    PetscCall(DMPlexIsSimplex(dm_mesh, &is_simplex));
+    PetscCheck(!is_simplex, comm, PETSC_ERR_USER, "Only tensor-product background meshes supported");
+  }
+
   // -- Mesh FE space
   PetscCall(DMGetDimension(dm_mesh, &dim));
   {
@@ -168,6 +176,15 @@ int main(int argc, char **argv) {
     PetscCall(DMProjectCoordinates(dm_mesh, fe_coord));
     PetscCall(DMProjectCoordinates(dm_mesh, fe_coord));
     PetscCall(PetscFEDestroy(&fe_coord));
+  }
+
+  // -- Set tensor permutation
+  {
+    DM dm_coord;
+
+    PetscCall(DMGetCoordinateDM(dm_mesh, &dm_coord));
+    PetscCall(DMPlexSetClosurePermutationTensor(dm_mesh, PETSC_DETERMINE, NULL));
+    PetscCall(DMPlexSetClosurePermutationTensor(dm_coord, PETSC_DETERMINE, NULL));
   }
 
   // -- Final background mesh
