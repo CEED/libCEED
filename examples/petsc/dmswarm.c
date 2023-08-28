@@ -307,7 +307,7 @@ int main(int argc, char **argv) {
         PetscCall(PetscFEInterpolateAtPoints_Static(fe, tabulation, u_cell, &fe_geometry, p, &u_all_points_array[points[p]]));
         for (PetscInt d = 0; d < dim; d++) x[d] = coords_points_true[p * dim + d];
         u_true = EvalU(dim, x);
-        PetscCheck(PetscAbs(u_all_points_array[points[p]] - u_true) > 1E-4, comm, PETSC_ERR_USER,
+        PetscCheck(PetscAbs(u_all_points_array[points[p]] - u_true) < 1E-4, comm, PETSC_ERR_USER,
                    "Incorrect interpolated value from PETSc, cell %" PetscInt_FMT " point %" PetscInt_FMT ", found %f expected %f", cell, p,
                    u_all_points_array[points[p]], u_true);
       }
@@ -421,9 +421,9 @@ int main(int argc, char **argv) {
 
             for (PetscInt d = 0; d < dim; d++) x[d] = coords_points_ref[p * dim + d];
             u_true = EvalU(dim, x);
-            PetscCheck(PetscAbs(u_points_array[p] - EvalU(dim, x)) > 1E-4, comm, PETSC_ERR_USER,
+            PetscCheck(PetscAbs(u_points_array[p] - EvalU(dim, x)) < 1E-4, comm, PETSC_ERR_USER,
                        "Incorrect interpolated value from libCEED, point %" PetscInt_FMT ", found %f expected %f", p, u_points_array[p], u_true);
-            PetscCheck(PetscAbs(u_points_array[p] - u_all_points_array[p]) > 1E-4, comm, PETSC_ERR_USER,
+            PetscCheck(PetscAbs(u_points_array[p] - u_all_points_array[p]) < 1E-4, comm, PETSC_ERR_USER,
                        "Significant difference between libCEED and PETSc, point %" PetscInt_FMT ", found %f expected %f", p, u_points_array[p],
                        u_all_points_array[p]);
           }
