@@ -179,13 +179,13 @@ int main(int argc, char **argv) {
   }
 
   // -- Set tensor permutation
-  {
+  /* {
     DM dm_coord;
 
     PetscCall(DMGetCoordinateDM(dm_mesh, &dm_coord));
     PetscCall(DMPlexSetClosurePermutationTensor(dm_mesh, PETSC_DETERMINE, NULL));
     PetscCall(DMPlexSetClosurePermutationTensor(dm_coord, PETSC_DETERMINE, NULL));
-  }
+  } */
 
   // -- Final background mesh
   PetscCall(PetscObjectSetName((PetscObject)dm_mesh, "Background Mesh"));
