@@ -25,14 +25,12 @@ PetscErrorCode FreestreamBCSetup(ProblemData *problem, DM dm, void *ctx, Newtoni
   FreestreamContext    freestream_ctx;
   CeedQFunctionContext freestream_context;
   RiemannFluxType      riemann = RIEMANN_HLLC;
+  PetscScalar          meter   = user->units->meter;
+  PetscScalar          second  = user->units->second;
+  PetscScalar          Kelvin  = user->units->Kelvin;
+  PetscScalar          Pascal  = user->units->Pascal;
+
   PetscFunctionBeginUser;
-  PetscScalar meter  = user->units->meter;
-  PetscScalar second = user->units->second;
-  PetscScalar Kelvin = user->units->Kelvin;
-  PetscScalar Pascal = user->units->Pascal;
-
-  // -- Option Defaults
-
   // Freestream inherits reference state. We re-dimensionalize so the defaults
   // in -help will be visible in SI units.
   StatePrimitive Y_inf = {.pressure = reference->pressure / Pascal, .velocity = {0}, .temperature = reference->temperature / Kelvin};

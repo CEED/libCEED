@@ -15,7 +15,7 @@
 /* Access data arrays via:
  *  CeedScalar (*sigma)[ctx->nmodes] = (CeedScalar (*)[ctx->nmodes])&ctx->data[ctx->offsets.sigma];
  *  CeedScalar *eps = &ctx->data[ctx->offsets.eps]; */
-typedef struct STGShur14Context_ *STGShur14Context;
+typedef struct STGShur14Context_ *StgShur14Context;
 struct STGShur14Context_ {
   CeedInt                          nmodes;              // !< Number of wavemodes
   CeedInt                          nprofs;              // !< Number of profile points in STGInflow.dat

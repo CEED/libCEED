@@ -42,7 +42,7 @@ PetscErrorCode SetupStrongSTG_Ceed(Ceed ceed, CeedData ceed_data, DM dm, Problem
   PetscCallCeed(ceed, CeedQFunctionAddOutput(qf_setup, "dXdx", dXdx_size, CEED_EVAL_NONE));
 
   // Setup STG Setup QFunction
-  PetscCall(SetupStrongSTG_PreProcessing(ceed, problem, num_comp_x, stg_data_size, dXdx_size, &qf_stgdata));
+  PetscCall(SetupStrongStg_PreProcessing(ceed, problem, num_comp_x, stg_data_size, dXdx_size, &qf_stgdata));
 
   // Compute contribution on each boundary face
   for (CeedInt i = 0; i < bc->num_inflow; i++) {
@@ -90,7 +90,7 @@ PetscErrorCode SetupStrongSTG_Ceed(Ceed ceed, CeedData ceed_data, DM dm, Problem
     PetscCallCeed(ceed, CeedOperatorApply(op_stgdata, CEED_VECTOR_NONE, stg_data, CEED_REQUEST_IMMEDIATE));
 
     // -- Setup BC QFunctions
-    SetupStrongSTG_QF(ceed, problem, num_comp_x, num_comp_q, stg_data_size, dXdx_size, &qf_strongbc);
+    SetupStrongStg_QF(ceed, problem, num_comp_x, num_comp_q, stg_data_size, dXdx_size, &qf_strongbc);
     PetscCallCeed(ceed, CeedOperatorCreate(ceed, qf_strongbc, NULL, NULL, &op_strong_bc_sub));
     PetscCallCeed(ceed, CeedOperatorSetName(op_strong_bc_sub, "Strong STG"));
 
@@ -125,7 +125,6 @@ PetscErrorCode SetupStrongSTG_Ceed(Ceed ceed, CeedData ceed_data, DM dm, Problem
 
   PetscCallCeed(ceed, CeedBasisDestroy(&basis_x_to_q_sur));
   PetscCallCeed(ceed, CeedQFunctionDestroy(&qf_setup));
-
   PetscFunctionReturn(PETSC_SUCCESS);
 }
 
@@ -147,7 +146,6 @@ PetscErrorCode DMPlexInsertBoundaryValues_StrongBCCeed(DM dm, PetscBool insert_e
   PetscCall(DMRestoreNamedLocalVector(dm, "boundary mask", &boundary_mask));
 
   PetscCall(ApplyAddCeedOperatorLocalToLocal(NULL, Q_loc, user->op_strong_bc_ctx));
-
   PetscFunctionReturn(PETSC_SUCCESS);
 }
 

@@ -28,8 +28,8 @@ PetscErrorCode CreateStatsDM(User user, ProblemData *problem, PetscInt degree) {
   PetscSection  section;
   PetscLogStage stage_stats_setup;
   MPI_Comm      comm = PetscObjectComm((PetscObject)user->dm);
-  PetscFunctionBeginUser;
 
+  PetscFunctionBeginUser;
   PetscCall(PetscLogStageGetId("Stats Setup", &stage_stats_setup));
   if (stage_stats_setup == -1) PetscCall(PetscLogStageRegister("Stats Setup", &stage_stats_setup));
   PetscCall(PetscLogStagePush(stage_stats_setup));
@@ -125,8 +125,8 @@ PetscErrorCode CreateStatsDM(User user, ProblemData *problem, PetscInt degree) {
 PetscErrorCode CreateElemRestrColloc(Ceed ceed, CeedInt num_comp, CeedBasis basis, CeedElemRestriction elem_restr_base,
                                      CeedElemRestriction *elem_restr_collocated) {
   CeedInt num_elem_qpts, loc_num_elem;
-  PetscFunctionBeginUser;
 
+  PetscFunctionBeginUser;
   PetscCallCeed(ceed, CeedBasisGetNumQuadraturePoints(basis, &num_elem_qpts));
   PetscCallCeed(ceed, CeedElemRestrictionGetNumElements(elem_restr_base, &loc_num_elem));
 
@@ -178,8 +178,8 @@ PetscErrorCode SpanStatsSetupDataCreate(Ceed ceed, User user, CeedData ceed_data
   PetscInt dim;
   CeedInt  num_qpts_child1d, num_comp_x, num_comp_stats = user->spanstats.num_comp_stats;
   Vec      X_loc;
-  PetscFunctionBeginUser;
 
+  PetscFunctionBeginUser;
   PetscCall(PetscNew(stats_data));
 
   PetscCall(DMGetDimension(dm, &dim));
@@ -213,7 +213,6 @@ PetscErrorCode SpanStatsSetupDataCreate(Ceed ceed, User user, CeedData ceed_data
   }
   PetscCall(VecScale(X_loc, problem->dm_scale));
   PetscCall(VecCopyP2C(X_loc, (*stats_data)->x_coord));
-
   PetscFunctionReturn(PETSC_SUCCESS);
 }
 
@@ -439,8 +438,8 @@ PetscErrorCode SetupMMSErrorChecking(Ceed ceed, User user, CeedData ceed_data, S
   CeedQFunction qf_error;
   CeedOperator  op_error;
   CeedVector    x_ceed, y_ceed;
-  PetscFunctionBeginUser;
 
+  PetscFunctionBeginUser;
   PetscCallCeed(ceed, CeedElemRestrictionGetNumComponents(stats_data->elem_restr_parent_qd, &q_data_size));
   PetscCallCeed(ceed, CeedBasisGetNumComponents(stats_data->basis_x, &num_comp_x));
 
@@ -514,7 +513,7 @@ PetscErrorCode TurbulenceStatisticsSetup(Ceed ceed, User user, CeedData ceed_dat
 
 // Collect statistics based on the solution Q
 PetscErrorCode CollectStatistics(User user, PetscScalar solution_time, Vec Q) {
-  Span_Stats user_stats = user->spanstats;
+  SpanStatsData user_stats = user->spanstats;
 
   PetscFunctionBeginUser;
   PetscLogStage stage_stats_collect;
@@ -535,7 +534,7 @@ PetscErrorCode CollectStatistics(User user, PetscScalar solution_time, Vec Q) {
 
 // Process the child statistics into parent statistics and project them onto stats
 PetscErrorCode ProcessStatistics(User user, Vec stats) {
-  Span_Stats         user_stats = user->spanstats;
+  SpanStatsData      user_stats = user->spanstats;
   const PetscScalar *child_stats;
   PetscScalar       *parent_stats;
   MPI_Datatype       unit;
@@ -587,6 +586,7 @@ PetscErrorCode TSMonitor_TurbulenceStatistics(TS ts, PetscInt steps, PetscReal s
   Vec               stats;
   TSConvergedReason reason;
   PetscInt collect_interval = user->app_ctx->turb_spanstats_collect_interval, viewer_interval = user->app_ctx->turb_spanstats_viewer_interval;
+
   PetscFunctionBeginUser;
   PetscCall(TSGetConvergedReason(ts, &reason));
   // Do not collect or process on the first step of the run (ie. on the initial condition)
@@ -607,7 +607,7 @@ PetscErrorCode TSMonitor_TurbulenceStatistics(TS ts, PetscInt steps, PetscReal s
         PetscCall(PetscViewerPopFormat(user->app_ctx->turb_spanstats_viewer));
       }
       if (user->app_ctx->test_type == TESTTYPE_TURB_SPANSTATS && reason != TS_CONVERGED_ITERATING) {
-        PetscCall(RegressionTests_NS(user->app_ctx, stats));
+        PetscCall(RegressionTest(user->app_ctx, stats));
       }
       if (user->spanstats.do_mms_test && reason != TS_CONVERGED_ITERATING) {
         Vec error;
@@ -626,24 +626,15 @@ PetscErrorCode TSMonitor_TurbulenceStatistics(TS ts, PetscInt steps, PetscReal s
 
 PetscErrorCode TurbulenceStatisticsDestroy(User user, CeedData ceed_data) {
   PetscFunctionBeginUser;
-
-  // -- CeedVectors
   PetscCall(VecDestroy(&user->spanstats.Child_Stats_loc));
   PetscCall(VecDestroy(&user->spanstats.Parent_Stats_loc));
 
-  // -- CeedOperators
   PetscCall(OperatorApplyContextDestroy(user->spanstats.op_stats_collect_ctx));
   PetscCall(OperatorApplyContextDestroy(user->spanstats.op_proj_rhs_ctx));
   PetscCall(OperatorApplyContextDestroy(user->spanstats.mms_error_ctx));
 
-  // -- KSP
   PetscCall(KSPDestroy(&user->spanstats.ksp));
-
-  // -- SF
   PetscCall(PetscSFDestroy(&user->spanstats.sf));
-
-  // -- DM
   PetscCall(DMDestroy(&user->spanstats.dm));
-
   PetscFunctionReturn(PETSC_SUCCESS);
 }

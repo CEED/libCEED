@@ -71,7 +71,7 @@ PetscErrorCode SetUpDM(DM dm, ProblemData *problem, PetscInt degree, PetscInt q_
     {
       PetscBool use_strongstg = PETSC_FALSE;
       PetscCall(PetscOptionsGetBool(NULL, NULL, "-stg_strong", &use_strongstg, NULL));
-      if (use_strongstg) PetscCall(SetupStrongSTG(dm, bc, problem, phys));
+      if (use_strongstg) PetscCall(SetupStrongStg(dm, bc, problem, phys));
     }
   }
 
@@ -105,8 +105,8 @@ PetscErrorCode SetUpDM(DM dm, ProblemData *problem, PetscInt degree, PetscInt q_
 PetscErrorCode VizRefineDM(DM dm, User user, ProblemData *problem, SimpleBC bc, Physics phys) {
   DM      dm_hierarchy[user->app_ctx->viz_refine + 1];
   VecType vec_type;
-  PetscFunctionBeginUser;
 
+  PetscFunctionBeginUser;
   PetscCall(DMPlexSetRefinementUniform(dm, PETSC_TRUE));
 
   dm_hierarchy[0] = dm;
@@ -136,6 +136,5 @@ PetscErrorCode VizRefineDM(DM dm, User user, ProblemData *problem, SimpleBC bc, 
     PetscCall(DMDestroy(&dm_hierarchy[i]));
   }
   user->dm_viz = dm_hierarchy[user->app_ctx->viz_refine];
-
   PetscFunctionReturn(PETSC_SUCCESS);
 }

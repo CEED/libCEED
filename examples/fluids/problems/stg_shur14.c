@@ -19,7 +19,7 @@
 #include "../navierstokes.h"
 #include "../qfunctions/stg_shur14.h"
 
-STGShur14Context global_stg_ctx;
+StgShur14Context global_stg_ctx;
 
 /*
  * @brief Perform Cholesky decomposition on array of symmetric 3x3 matrices
@@ -60,7 +60,7 @@ PetscErrorCode CalcCholeskyDecomp(MPI_Comm comm, PetscInt nprofs, const CeedScal
  * @param[in]     path    Path to the STGInflow.dat file
  * @param[in,out] stg_ctx STGShur14Context where the data will be loaded into
  */
-static PetscErrorCode ReadSTGInflow(const MPI_Comm comm, const char path[PETSC_MAX_PATH_LEN], STGShur14Context stg_ctx) {
+static PetscErrorCode ReadStgInflow(const MPI_Comm comm, const char path[PETSC_MAX_PATH_LEN], StgShur14Context stg_ctx) {
   PetscInt       dims[2];
   int            ndims;
   FILE          *fp;
@@ -69,8 +69,7 @@ static PetscErrorCode ReadSTGInflow(const MPI_Comm comm, const char path[PETSC_M
   char         **array;
 
   PetscFunctionBeginUser;
-
-  PetscCall(PHASTADatFileOpen(comm, path, char_array_len, dims, &fp));
+  PetscCall(PhastaDatFileOpen(comm, path, char_array_len, dims, &fp));
 
   CeedScalar  rij[6][stg_ctx->nprofs];
   CeedScalar *wall_dist              = &stg_ctx->data[stg_ctx->offsets.wall_dist];
@@ -104,7 +103,6 @@ static PetscErrorCode ReadSTGInflow(const MPI_Comm comm, const char path[PETSC_M
   CeedScalar(*cij)[stg_ctx->nprofs] = (CeedScalar(*)[stg_ctx->nprofs]) & stg_ctx->data[stg_ctx->offsets.cij];
   PetscCall(CalcCholeskyDecomp(comm, stg_ctx->nprofs, rij, cij));
   PetscCall(PetscFClose(comm, fp));
-
   PetscFunctionReturn(PETSC_SUCCESS);
 }
 
@@ -118,7 +116,7 @@ static PetscErrorCode ReadSTGInflow(const MPI_Comm comm, const char path[PETSC_M
  * @param[in]     path    Path to the STGRand.dat file
  * @param[in,out] stg_ctx STGShur14Context where the data will be loaded into
  */
-static PetscErrorCode ReadSTGRand(const MPI_Comm comm, const char path[PETSC_MAX_PATH_LEN], STGShur14Context stg_ctx) {
+static PetscErrorCode ReadStgRand(const MPI_Comm comm, const char path[PETSC_MAX_PATH_LEN], StgShur14Context stg_ctx) {
   PetscInt       dims[2];
   int            ndims;
   FILE          *fp;
@@ -127,7 +125,7 @@ static PetscErrorCode ReadSTGRand(const MPI_Comm comm, const char path[PETSC_MAX
   char         **array;
 
   PetscFunctionBeginUser;
-  PetscCall(PHASTADatFileOpen(comm, path, char_array_len, dims, &fp));
+  PetscCall(PhastaDatFileOpen(comm, path, char_array_len, dims, &fp));
 
   CeedScalar *phi                     = &stg_ctx->data[stg_ctx->offsets.phi];
   CeedScalar(*d)[stg_ctx->nmodes]     = (CeedScalar(*)[stg_ctx->nmodes]) & stg_ctx->data[stg_ctx->offsets.d];
@@ -148,7 +146,6 @@ static PetscErrorCode ReadSTGRand(const MPI_Comm comm, const char path[PETSC_MAX
     sigma[2][i] = (CeedScalar)atof(array[6]);
   }
   PetscCall(PetscFClose(comm, fp));
-
   PetscFunctionReturn(PETSC_SUCCESS);
 }
 
@@ -164,20 +161,19 @@ static PetscErrorCode ReadSTGRand(const MPI_Comm comm, const char path[PETSC_MAX
  * @param[in]     stg_rand_path   Path to STGRand.dat file
  * @param[in,out] stg_ctx         Pointer to STGShur14Context where the data will be loaded into
  */
-PetscErrorCode GetSTGContextData(const MPI_Comm comm, const DM dm, char stg_inflow_path[PETSC_MAX_PATH_LEN], char stg_rand_path[PETSC_MAX_PATH_LEN],
-                                 STGShur14Context *stg_ctx) {
+PetscErrorCode GetStgContextData(const MPI_Comm comm, const DM dm, char stg_inflow_path[PETSC_MAX_PATH_LEN], char stg_rand_path[PETSC_MAX_PATH_LEN],
+                                 StgShur14Context *stg_ctx) {
   PetscInt nmodes, nprofs;
-  PetscFunctionBeginUser;
 
-  // Get options
-  PetscCall(PHASTADatFileGetNRows(comm, stg_rand_path, &nmodes));
-  PetscCall(PHASTADatFileGetNRows(comm, stg_inflow_path, &nprofs));
+  PetscFunctionBeginUser;
+  PetscCall(PhastaDatFileGetNRows(comm, stg_rand_path, &nmodes));
+  PetscCall(PhastaDatFileGetNRows(comm, stg_inflow_path, &nprofs));
   PetscCheck(nmodes < STG_NMODES_MAX, comm, PETSC_ERR_SUP,
              "Number of wavemodes in %s (%" PetscInt_FMT ") exceeds STG_NMODES_MAX (%d). Change size of STG_NMODES_MAX and recompile", stg_rand_path,
              nmodes, STG_NMODES_MAX);
 
   {
-    STGShur14Context temp_ctx;
+    StgShur14Context temp_ctx;
     PetscCall(PetscCalloc1(1, &temp_ctx));
     *temp_ctx                   = **stg_ctx;
     temp_ctx->nmodes            = nmodes;
@@ -199,8 +195,8 @@ PetscErrorCode GetSTGContextData(const MPI_Comm comm, const DM dm, char stg_infl
     PetscCall(PetscFree(temp_ctx));
   }
 
-  PetscCall(ReadSTGInflow(comm, stg_inflow_path, *stg_ctx));
-  PetscCall(ReadSTGRand(comm, stg_rand_path, *stg_ctx));
+  PetscCall(ReadStgInflow(comm, stg_inflow_path, *stg_ctx));
+  PetscCall(ReadStgRand(comm, stg_rand_path, *stg_ctx));
 
   {  // -- Calculate kappa
     CeedScalar *kappa     = &(*stg_ctx)->data[(*stg_ctx)->offsets.kappa];
@@ -216,11 +212,10 @@ PetscErrorCode GetSTGContextData(const MPI_Comm comm, const DM dm, char stg_infl
 
     CeedPragmaSIMD for (PetscInt i = 0; i < (*stg_ctx)->nmodes; i++) { kappa[i] = kmin * pow((*stg_ctx)->alpha, i); }
   }
-
   PetscFunctionReturn(PETSC_SUCCESS);
 }
 
-PetscErrorCode SetupSTG(const MPI_Comm comm, const DM dm, ProblemData *problem, User user, const bool prescribe_T, const CeedScalar theta0,
+PetscErrorCode SetupStg(const MPI_Comm comm, const DM dm, ProblemData *problem, User user, const bool prescribe_T, const CeedScalar theta0,
                         const CeedScalar P0) {
   Ceed                     ceed                                = user->ceed;
   char                     stg_inflow_path[PETSC_MAX_PATH_LEN] = "./STGInflow.dat";
@@ -229,9 +224,8 @@ PetscErrorCode SetupSTG(const MPI_Comm comm, const DM dm, ProblemData *problem, 
   CeedScalar               u0 = 0.0, alpha = 1.01, stg_dx = 1.0e-3;
   CeedQFunctionContext     stg_context;
   NewtonianIdealGasContext newtonian_ig_ctx;
-  PetscFunctionBeginUser;
 
-  // Get options
+  PetscFunctionBeginUser;
   PetscOptionsBegin(comm, NULL, "STG Boundary Condition Options", NULL);
   PetscCall(PetscOptionsString("-stg_inflow_path", "Path to STGInflow.dat", NULL, stg_inflow_path, stg_inflow_path, sizeof(stg_inflow_path), NULL));
   PetscCall(PetscOptionsString("-stg_rand_path", "Path to STGInflow.dat", NULL, stg_rand_path, stg_rand_path, sizeof(stg_rand_path), NULL));
@@ -254,8 +248,7 @@ PetscErrorCode SetupSTG(const MPI_Comm comm, const DM dm, ProblemData *problem, 
   global_stg_ctx->theta0             = theta0;
   global_stg_ctx->P0                 = P0;
 
-  {
-    // Calculate dx assuming constant spacing
+  {  // Calculate dx assuming constant spacing
     PetscReal domain_min[3], domain_max[3], domain_size[3];
     PetscCall(DMGetBoundingBox(dm, domain_min, domain_max));
     for (PetscInt i = 0; i < 3; i++) domain_size[i] = domain_max[i] - domain_min[i];
@@ -269,7 +262,7 @@ PetscErrorCode SetupSTG(const MPI_Comm comm, const DM dm, ProblemData *problem, 
   global_stg_ctx->newtonian_ctx = *newtonian_ig_ctx;
   PetscCallCeed(ceed, CeedQFunctionContextRestoreData(problem->apply_vol_rhs.qfunction_context, &newtonian_ig_ctx));
 
-  PetscCall(GetSTGContextData(comm, dm, stg_inflow_path, stg_rand_path, &global_stg_ctx));
+  PetscCall(GetStgContextData(comm, dm, stg_inflow_path, stg_rand_path, &global_stg_ctx));
 
   PetscCallCeed(ceed, CeedQFunctionContextCreate(user->ceed, &stg_context));
   PetscCallCeed(ceed, CeedQFunctionContextSetData(stg_context, CEED_MEM_HOST, CEED_USE_POINTER, global_stg_ctx->total_bytes, global_stg_ctx));
@@ -278,8 +271,8 @@ PetscErrorCode SetupSTG(const MPI_Comm comm, const DM dm, ProblemData *problem, 
                                                          "Physical time of the solution"));
 
   PetscCallCeed(ceed, CeedQFunctionContextDestroy(&problem->ics.qfunction_context));
-  problem->ics.qfunction         = ICsSTG;
-  problem->ics.qfunction_loc     = ICsSTG_loc;
+  problem->ics.qfunction         = ICsStg;
+  problem->ics.qfunction_loc     = ICsStg_loc;
   problem->ics.qfunction_context = stg_context;
 
   if (use_stgstrong) {
@@ -287,24 +280,23 @@ PetscErrorCode SetupSTG(const MPI_Comm comm, const DM dm, ProblemData *problem, 
     problem->use_strong_bc_ceed = PETSC_TRUE;
     problem->bc_from_ics        = PETSC_FALSE;
   } else {
-    problem->apply_inflow.qfunction              = STGShur14_Inflow;
-    problem->apply_inflow.qfunction_loc          = STGShur14_Inflow_loc;
-    problem->apply_inflow_jacobian.qfunction     = STGShur14_Inflow_Jacobian;
-    problem->apply_inflow_jacobian.qfunction_loc = STGShur14_Inflow_Jacobian_loc;
+    problem->apply_inflow.qfunction              = StgShur14Inflow;
+    problem->apply_inflow.qfunction_loc          = StgShur14Inflow_loc;
+    problem->apply_inflow_jacobian.qfunction     = StgShur14Inflow_Jacobian;
+    problem->apply_inflow_jacobian.qfunction_loc = StgShur14Inflow_Jacobian_loc;
     PetscCallCeed(ceed, CeedQFunctionContextReferenceCopy(stg_context, &problem->apply_inflow.qfunction_context));
     PetscCallCeed(ceed, CeedQFunctionContextReferenceCopy(stg_context, &problem->apply_inflow_jacobian.qfunction_context));
     problem->bc_from_ics = PETSC_TRUE;
   }
-
   PetscFunctionReturn(PETSC_SUCCESS);
 }
 
 // @brief Set STG strongly enforce components using DMAddBoundary
-PetscErrorCode SetupStrongSTG(DM dm, SimpleBC bc, ProblemData *problem, Physics phys) {
-  DMLabel label;
-  PetscFunctionBeginUser;
-
+PetscErrorCode SetupStrongStg(DM dm, SimpleBC bc, ProblemData *problem, Physics phys) {
+  DMLabel  label;
   PetscInt comps[5], num_comps = 4;
+
+  PetscFunctionBeginUser;
   switch (phys->state_var) {
     case STATEVAR_CONSERVATIVE:
       // {0,1,2,3} for rho, rho*u, rho*v, rho*w
@@ -321,14 +313,13 @@ PetscErrorCode SetupStrongSTG(DM dm, SimpleBC bc, ProblemData *problem, Physics 
   if (bc->num_inflow > 0) {
     PetscCall(DMAddBoundary(dm, DM_BC_ESSENTIAL, "STG", label, bc->num_inflow, bc->inflows, 0, num_comps, comps, NULL, NULL, NULL, NULL));
   }
-
   PetscFunctionReturn(PETSC_SUCCESS);
 }
 
-PetscErrorCode SetupStrongSTG_QF(Ceed ceed, ProblemData *problem, CeedInt num_comp_x, CeedInt num_comp_q, CeedInt stg_data_size, CeedInt dXdx_size,
+PetscErrorCode SetupStrongStg_QF(Ceed ceed, ProblemData *problem, CeedInt num_comp_x, CeedInt num_comp_q, CeedInt stg_data_size, CeedInt dXdx_size,
                                  CeedQFunction *qf_strongbc) {
   PetscFunctionBeginUser;
-  PetscCallCeed(ceed, CeedQFunctionCreateInterior(ceed, 1, STGShur14_Inflow_StrongQF, STGShur14_Inflow_StrongQF_loc, qf_strongbc));
+  PetscCallCeed(ceed, CeedQFunctionCreateInterior(ceed, 1, StgShur14InflowStrongQF, StgShur14InflowStrongQF_loc, qf_strongbc));
   PetscCallCeed(ceed, CeedQFunctionAddInput(*qf_strongbc, "dXdx", dXdx_size, CEED_EVAL_NONE));
   PetscCallCeed(ceed, CeedQFunctionAddInput(*qf_strongbc, "x", num_comp_x, CEED_EVAL_NONE));
   PetscCallCeed(ceed, CeedQFunctionAddInput(*qf_strongbc, "scale", 1, CEED_EVAL_NONE));
@@ -339,10 +330,10 @@ PetscErrorCode SetupStrongSTG_QF(Ceed ceed, ProblemData *problem, CeedInt num_co
   PetscFunctionReturn(PETSC_SUCCESS);
 }
 
-PetscErrorCode SetupStrongSTG_PreProcessing(Ceed ceed, ProblemData *problem, CeedInt num_comp_x, CeedInt stg_data_size, CeedInt dXdx_size,
+PetscErrorCode SetupStrongStg_PreProcessing(Ceed ceed, ProblemData *problem, CeedInt num_comp_x, CeedInt stg_data_size, CeedInt dXdx_size,
                                             CeedQFunction *qf_strongbc) {
   PetscFunctionBeginUser;
-  PetscCallCeed(ceed, CeedQFunctionCreateInterior(ceed, 1, Preprocess_STGShur14, Preprocess_STGShur14_loc, qf_strongbc));
+  PetscCallCeed(ceed, CeedQFunctionCreateInterior(ceed, 1, StgShur14Preprocess, StgShur14Preprocess_loc, qf_strongbc));
   PetscCallCeed(ceed, CeedQFunctionAddInput(*qf_strongbc, "dXdx", dXdx_size, CEED_EVAL_NONE));
   PetscCallCeed(ceed, CeedQFunctionAddInput(*qf_strongbc, "x", num_comp_x, CEED_EVAL_NONE));
   PetscCallCeed(ceed, CeedQFunctionAddOutput(*qf_strongbc, "stg data", stg_data_size, CEED_EVAL_NONE));

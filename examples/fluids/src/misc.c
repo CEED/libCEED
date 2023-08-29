@@ -17,69 +17,64 @@
 #include "../qfunctions/mass.h"
 
 PetscErrorCode ICs_FixMultiplicity(DM dm, CeedData ceed_data, User user, Vec Q_loc, Vec Q, CeedScalar time) {
-  Ceed ceed = user->ceed;
+  Ceed         ceed = user->ceed;
+  CeedVector   mult_vec;
+  PetscMemType m_mem_type;
+  Vec          Multiplicity, Multiplicity_loc;
+
   PetscFunctionBeginUser;
-
-  // ---------------------------------------------------------------------------
-  // Update time for evaluation
-  // ---------------------------------------------------------------------------
   if (user->phys->ics_time_label) PetscCallCeed(ceed, CeedOperatorSetContextDouble(ceed_data->op_ics_ctx->op, user->phys->ics_time_label, &time));
-
-  // ---------------------------------------------------------------------------
-  // ICs
-  // ---------------------------------------------------------------------------
-  // -- CEED Restriction
-  CeedVector q0_ceed;
-  PetscCallCeed(ceed, CeedElemRestrictionCreateVector(ceed_data->elem_restr_q, &q0_ceed, NULL));
-
-  // -- Place PETSc vector in CEED vector
   PetscCall(ApplyCeedOperatorLocalToGlobal(NULL, Q, ceed_data->op_ics_ctx));
 
-  // ---------------------------------------------------------------------------
-  // Fix multiplicity for output of ICs
-  // ---------------------------------------------------------------------------
-  // -- CEED Restriction
-  CeedVector mult_vec;
   PetscCallCeed(ceed, CeedElemRestrictionCreateVector(ceed_data->elem_restr_q, &mult_vec, NULL));
 
-  // -- Place PETSc vector in CEED vector
-  PetscMemType m_mem_type;
-  Vec          multiplicity_loc;
-  PetscCall(DMGetLocalVector(dm, &multiplicity_loc));
-  PetscCall(VecP2C(multiplicity_loc, &m_mem_type, mult_vec));
-
   // -- Get multiplicity
+  PetscCall(DMGetLocalVector(dm, &Multiplicity_loc));
+  PetscCall(VecP2C(Multiplicity_loc, &m_mem_type, mult_vec));
   PetscCallCeed(ceed, CeedElemRestrictionGetMultiplicity(ceed_data->elem_restr_q, mult_vec));
+  PetscCall(VecC2P(mult_vec, m_mem_type, Multiplicity_loc));
 
-  // -- Restore vectors
-  PetscCall(VecC2P(mult_vec, m_mem_type, multiplicity_loc));
-
-  // -- Local-to-Global
-  Vec multiplicity;
-  PetscCall(DMGetGlobalVector(dm, &multiplicity));
-  PetscCall(VecZeroEntries(multiplicity));
-  PetscCall(DMLocalToGlobal(dm, multiplicity_loc, ADD_VALUES, multiplicity));
+  PetscCall(DMGetGlobalVector(dm, &Multiplicity));
+  PetscCall(VecZeroEntries(Multiplicity));
+  PetscCall(DMLocalToGlobal(dm, Multiplicity_loc, ADD_VALUES, Multiplicity));
 
   // -- Fix multiplicity
-  PetscCall(VecPointwiseDivide(Q, Q, multiplicity));
-  PetscCall(VecPointwiseDivide(Q_loc, Q_loc, multiplicity_loc));
+  PetscCall(VecPointwiseDivide(Q, Q, Multiplicity));
+  PetscCall(VecPointwiseDivide(Q_loc, Q_loc, Multiplicity_loc));
 
-  // -- Restore vectors
-  PetscCall(DMRestoreLocalVector(dm, &multiplicity_loc));
-  PetscCall(DMRestoreGlobalVector(dm, &multiplicity));
-
-  // Cleanup
+  PetscCall(DMRestoreLocalVector(dm, &Multiplicity_loc));
+  PetscCall(DMRestoreGlobalVector(dm, &Multiplicity));
   PetscCallCeed(ceed, CeedVectorDestroy(&mult_vec));
-  PetscCallCeed(ceed, CeedVectorDestroy(&q0_ceed));
-
   PetscFunctionReturn(PETSC_SUCCESS);
 }
 
-PetscErrorCode DMPlexInsertBoundaryValues_NS(DM dm, PetscBool insert_essential, Vec Q_loc, PetscReal time, Vec face_geom_FVM, Vec cell_geom_FVM,
-                                             Vec grad_FVM) {
+// Record boundary values from initial condition
+PetscErrorCode SetBCsFromICs(DM dm, Vec Q, Vec Q_loc) {
   Vec Qbc, boundary_mask;
-  PetscFunctionBegin;
 
+  PetscFunctionBeginUser;
+  PetscCall(DMGetNamedLocalVector(dm, "Qbc", &Qbc));
+  PetscCall(VecCopy(Q_loc, Qbc));
+  PetscCall(VecZeroEntries(Q_loc));
+  PetscCall(DMGlobalToLocal(dm, Q, INSERT_VALUES, Q_loc));
+  PetscCall(VecAXPY(Qbc, -1., Q_loc));
+  PetscCall(DMRestoreNamedLocalVector(dm, "Qbc", &Qbc));
+  PetscCall(PetscObjectComposeFunction((PetscObject)dm, "DMPlexInsertBoundaryValues_C", DMPlexInsertBoundaryValues_FromICs));
+
+  PetscCall(DMGetNamedLocalVector(dm, "boundary mask", &boundary_mask));
+  PetscCall(DMGetGlobalVector(dm, &Q));
+  PetscCall(VecZeroEntries(boundary_mask));
+  PetscCall(VecSet(Q, 1.0));
+  PetscCall(DMGlobalToLocal(dm, Q, INSERT_VALUES, boundary_mask));
+  PetscCall(DMRestoreNamedLocalVector(dm, "boundary mask", &boundary_mask));
+  PetscFunctionReturn(PETSC_SUCCESS);
+}
+
+PetscErrorCode DMPlexInsertBoundaryValues_FromICs(DM dm, PetscBool insert_essential, Vec Q_loc, PetscReal time, Vec face_geom_FVM, Vec cell_geom_FVM,
+                                                  Vec grad_FVM) {
+  Vec Qbc, boundary_mask;
+
+  PetscFunctionBeginUser;
   // Mask (zero) Strong BC entries
   PetscCall(DMGetNamedLocalVector(dm, "boundary mask", &boundary_mask));
   PetscCall(VecPointwiseMult(Q_loc, Q_loc, boundary_mask));
@@ -88,7 +83,6 @@ PetscErrorCode DMPlexInsertBoundaryValues_NS(DM dm, PetscBool insert_essential, 
   PetscCall(DMGetNamedLocalVector(dm, "Qbc", &Qbc));
   PetscCall(VecAXPY(Q_loc, 1., Qbc));
   PetscCall(DMRestoreNamedLocalVector(dm, "Qbc", &Qbc));
-
   PetscFunctionReturn(PETSC_SUCCESS);
 }
 
@@ -97,9 +91,8 @@ PetscErrorCode LoadFluidsBinaryVec(MPI_Comm comm, PetscViewer viewer, Vec Q, Pet
   PetscInt   file_step_number;
   PetscInt32 token;
   PetscReal  file_time;
-  PetscFunctionBeginUser;
 
-  // Attempt
+  PetscFunctionBeginUser;
   PetscCall(PetscViewerBinaryRead(viewer, &token, 1, NULL, PETSC_INT32));
   if (token == FLUIDS_FILE_TOKEN_32 || token == FLUIDS_FILE_TOKEN_64 ||
       token == FLUIDS_FILE_TOKEN) {  // New style format; we're reading a file with step number and time in the header
@@ -115,20 +108,18 @@ PetscErrorCode LoadFluidsBinaryVec(MPI_Comm comm, PetscViewer viewer, Vec Q, Pet
     PetscCall(PetscViewerBinarySetSkipHeader(viewer, PETSC_TRUE));
   } else SETERRQ(comm, PETSC_ERR_FILE_UNEXPECTED, "Not a fluids header token or a PETSc Vec in file");
 
-  // Load Q from existent solution
   PetscCall(VecLoad(Q, viewer));
-
   PetscFunctionReturn(PETSC_SUCCESS);
 }
 
 // Compare reference solution values with current test run for CI
-PetscErrorCode RegressionTests_NS(AppCtx app_ctx, Vec Q) {
+PetscErrorCode RegressionTest(AppCtx app_ctx, Vec Q) {
   Vec         Qref;
   PetscViewer viewer;
   PetscReal   error, Qrefnorm;
   MPI_Comm    comm = PetscObjectComm((PetscObject)Q);
-  PetscFunctionBegin;
 
+  PetscFunctionBeginUser;
   // Read reference file
   PetscCall(VecDuplicate(Q, &Qref));
   PetscCall(PetscViewerBinaryOpen(comm, app_ctx->test_file_path, FILE_MODE_READ, &viewer));
@@ -148,19 +139,18 @@ PetscErrorCode RegressionTests_NS(AppCtx app_ctx, Vec Q) {
   // Cleanup
   PetscCall(PetscViewerDestroy(&viewer));
   PetscCall(VecDestroy(&Qref));
-
   PetscFunctionReturn(PETSC_SUCCESS);
 }
 
 // Get error for problems with exact solutions
-PetscErrorCode GetError_NS(CeedData ceed_data, DM dm, User user, Vec Q, PetscScalar final_time) {
+PetscErrorCode PrintError(CeedData ceed_data, DM dm, User user, Vec Q, PetscScalar final_time) {
   PetscInt  loc_nodes;
   Vec       Q_exact, Q_exact_loc;
   PetscReal rel_error, norm_error, norm_exact;
-  PetscFunctionBegin;
 
+  PetscFunctionBeginUser;
   // Get exact solution at final time
-  PetscCall(DMCreateGlobalVector(dm, &Q_exact));
+  PetscCall(DMGetGlobalVector(dm, &Q_exact));
   PetscCall(DMGetLocalVector(dm, &Q_exact_loc));
   PetscCall(VecGetSize(Q_exact_loc, &loc_nodes));
   PetscCall(ICs_FixMultiplicity(dm, ceed_data, user, Q_exact_loc, Q_exact, final_time));
@@ -170,27 +160,22 @@ PetscErrorCode GetError_NS(CeedData ceed_data, DM dm, User user, Vec Q, PetscSca
   PetscCall(VecAXPY(Q, -1.0, Q_exact));
   PetscCall(VecNorm(Q, NORM_1, &norm_error));
 
-  // Compute relative error
   rel_error = norm_error / norm_exact;
-
-  // Output relative error
   PetscCall(PetscPrintf(PETSC_COMM_WORLD, "Relative Error: %g\n", (double)rel_error));
-  // Cleanup
   PetscCall(DMRestoreLocalVector(dm, &Q_exact_loc));
-  PetscCall(VecDestroy(&Q_exact));
-
+  PetscCall(DMRestoreGlobalVector(dm, &Q_exact));
   PetscFunctionReturn(PETSC_SUCCESS);
 }
 
 // Post-processing
-PetscErrorCode PostProcess_NS(TS ts, CeedData ceed_data, DM dm, ProblemData *problem, User user, Vec Q, PetscScalar final_time) {
+PetscErrorCode PostProcess(TS ts, CeedData ceed_data, DM dm, ProblemData *problem, User user, Vec Q, PetscScalar final_time) {
   PetscInt          steps;
   TSConvergedReason reason;
-  PetscFunctionBegin;
 
+  PetscFunctionBeginUser;
   // Print relative error
   if (problem->non_zero_time && user->app_ctx->test_type == TESTTYPE_NONE) {
-    PetscCall(GetError_NS(ceed_data, dm, user, Q, final_time));
+    PetscCall(PrintError(ceed_data, dm, user, Q, final_time));
   }
 
   // Print final time and number of steps
@@ -206,7 +191,7 @@ PetscErrorCode PostProcess_NS(TS ts, CeedData ceed_data, DM dm, ProblemData *pro
 
   // Compare reference solution values with current test run for CI
   if (user->app_ctx->test_type == TESTTYPE_SOLVER) {
-    PetscCall(RegressionTests_NS(user->app_ctx, Q));
+    PetscCall(RegressionTest(user->app_ctx, Q));
   }
   PetscFunctionReturn(PETSC_SUCCESS);
 }
@@ -219,35 +204,10 @@ const PetscInt32 FLUIDS_FILE_TOKEN_64 = 0xceedf64;
 PetscErrorCode SetupICsFromBinary(MPI_Comm comm, AppCtx app_ctx, Vec Q) {
   PetscViewer viewer;
 
-  PetscFunctionBegin;
-
+  PetscFunctionBeginUser;
   PetscCall(PetscViewerBinaryOpen(comm, app_ctx->cont_file, FILE_MODE_READ, &viewer));
   PetscCall(LoadFluidsBinaryVec(comm, viewer, Q, &app_ctx->cont_time, &app_ctx->cont_steps));
   PetscCall(PetscViewerDestroy(&viewer));
-
-  PetscFunctionReturn(PETSC_SUCCESS);
-}
-
-// Record boundary values from initial condition
-PetscErrorCode SetBCsFromICs_NS(DM dm, Vec Q, Vec Q_loc) {
-  Vec Qbc, boundary_mask;
-  PetscFunctionBegin;
-
-  PetscCall(DMGetNamedLocalVector(dm, "Qbc", &Qbc));
-  PetscCall(VecCopy(Q_loc, Qbc));
-  PetscCall(VecZeroEntries(Q_loc));
-  PetscCall(DMGlobalToLocal(dm, Q, INSERT_VALUES, Q_loc));
-  PetscCall(VecAXPY(Qbc, -1., Q_loc));
-  PetscCall(DMRestoreNamedLocalVector(dm, "Qbc", &Qbc));
-  PetscCall(PetscObjectComposeFunction((PetscObject)dm, "DMPlexInsertBoundaryValues_C", DMPlexInsertBoundaryValues_NS));
-
-  PetscCall(DMGetNamedLocalVector(dm, "boundary mask", &boundary_mask));
-  PetscCall(DMGetGlobalVector(dm, &Q));
-  PetscCall(VecZeroEntries(boundary_mask));
-  PetscCall(VecSet(Q, 1.0));
-  PetscCall(DMGlobalToLocal(dm, Q, INSERT_VALUES, boundary_mask));
-  PetscCall(DMRestoreNamedLocalVector(dm, "boundary mask", &boundary_mask));
-
   PetscFunctionReturn(PETSC_SUCCESS);
 }
 
@@ -260,7 +220,6 @@ int FreeContextPetsc(void *data) {
 // Return mass qfunction specification for number of components N
 PetscErrorCode CreateMassQFunction(Ceed ceed, CeedInt N, CeedInt q_data_size, CeedQFunction *qf) {
   PetscFunctionBeginUser;
-
   switch (N) {
     case 1:
       PetscCallCeed(ceed, CeedQFunctionCreateInterior(ceed, 1, Mass_1, Mass_1_loc, qf));
@@ -297,7 +256,6 @@ PetscErrorCode NodalProjectionDataDestroy(NodalProjectionData context) {
   PetscCall(OperatorApplyContextDestroy(context->l2_rhs_ctx));
 
   PetscCall(PetscFree(context));
-
   PetscFunctionReturn(PETSC_SUCCESS);
 }
 
@@ -315,7 +273,7 @@ PetscErrorCode NodalProjectionDataDestroy(NodalProjectionData context) {
  * @param[out] dims           Dimensions of the file, taken from the first line of the file
  * @param[out] fp File        pointer to the opened file
  */
-PetscErrorCode PHASTADatFileOpen(const MPI_Comm comm, const char path[PETSC_MAX_PATH_LEN], const PetscInt char_array_len, PetscInt dims[2],
+PetscErrorCode PhastaDatFileOpen(const MPI_Comm comm, const char path[PETSC_MAX_PATH_LEN], const PetscInt char_array_len, PetscInt dims[2],
                                  FILE **fp) {
   int    ndims;
   char   line[char_array_len];
@@ -329,7 +287,6 @@ PetscErrorCode PHASTADatFileOpen(const MPI_Comm comm, const char path[PETSC_MAX_
 
   for (PetscInt i = 0; i < ndims; i++) dims[i] = atoi(array[i]);
   PetscCall(PetscStrToArrayDestroy(ndims, array));
-
   PetscFunctionReturn(PETSC_SUCCESS);
 }
 
@@ -342,29 +299,28 @@ PetscErrorCode PHASTADatFileOpen(const MPI_Comm comm, const char path[PETSC_MAX_
  * @param[in]  path  Path to the file
  * @param[out] nrows Number of rows
  */
-PetscErrorCode PHASTADatFileGetNRows(const MPI_Comm comm, const char path[PETSC_MAX_PATH_LEN], PetscInt *nrows) {
+PetscErrorCode PhastaDatFileGetNRows(const MPI_Comm comm, const char path[PETSC_MAX_PATH_LEN], PetscInt *nrows) {
   const PetscInt char_array_len = 512;
   PetscInt       dims[2];
   FILE          *fp;
 
   PetscFunctionBeginUser;
-  PetscCall(PHASTADatFileOpen(comm, path, char_array_len, dims, &fp));
+  PetscCall(PhastaDatFileOpen(comm, path, char_array_len, dims, &fp));
   *nrows = dims[0];
   PetscCall(PetscFClose(comm, fp));
-
   PetscFunctionReturn(PETSC_SUCCESS);
 }
 
-PetscErrorCode PHASTADatFileReadToArrayReal(MPI_Comm comm, const char path[PETSC_MAX_PATH_LEN], PetscReal array[]) {
+PetscErrorCode PhastaDatFileReadToArrayReal(MPI_Comm comm, const char path[PETSC_MAX_PATH_LEN], PetscReal array[]) {
   PetscInt       dims[2];
   int            ndims;
   FILE          *fp;
   const PetscInt char_array_len = 512;
   char           line[char_array_len];
   char         **row_array;
-  PetscFunctionBeginUser;
 
-  PetscCall(PHASTADatFileOpen(comm, path, char_array_len, dims, &fp));
+  PetscFunctionBeginUser;
+  PetscCall(PhastaDatFileOpen(comm, path, char_array_len, dims, &fp));
 
   for (PetscInt i = 0; i < dims[0]; i++) {
     PetscCall(PetscSynchronizedFGets(comm, fp, char_array_len, line));
@@ -378,7 +334,6 @@ PetscErrorCode PHASTADatFileReadToArrayReal(MPI_Comm comm, const char path[PETSC
   }
 
   PetscCall(PetscFClose(comm, fp));
-
   PetscFunctionReturn(PETSC_SUCCESS);
 }
 
@@ -420,7 +375,6 @@ PetscErrorCode IntArrayC2P(PetscInt num_entries, CeedInt **array_ceed, PetscInt 
     free(*array_ceed);
   }
   *array_ceed = NULL;
-
   PetscFunctionReturn(PETSC_SUCCESS);
 }
 
@@ -446,7 +400,6 @@ PetscErrorCode IntArrayP2C(PetscInt num_entries, PetscInt **array_petsc, CeedInt
     PetscCall(PetscFree(*array_petsc));
   }
   *array_petsc = NULL;
-
   PetscFunctionReturn(PETSC_SUCCESS);
 }
 
@@ -507,9 +460,7 @@ PetscErrorCode PrintRunInfo(User user, Physics phys_ctx, ProblemData *problem, M
   const PetscInt num_comp_q = 5;
   PetscInt       glob_dofs, owned_dofs, local_dofs;
   const CeedInt  num_P = user->app_ctx->degree + 1, num_Q = num_P + user->app_ctx->q_extra;
-  // -- Get global size
   PetscCall(DMGetGlobalVectorInfo(user->dm, &owned_dofs, &glob_dofs, NULL));
-  // -- Get local size
   PetscCall(DMGetLocalVectorInfo(user->dm, &local_dofs, NULL, NULL));
   PetscCall(PetscPrintf(comm,
                         "  Mesh:\n"
@@ -623,6 +574,5 @@ PetscErrorCode PrintRunInfo(User user, Physics phys_ctx, ProblemData *problem, M
 
     if (!rank) PetscCall(PetscFree(gather_buffer));
   }
-
   PetscFunctionReturn(PETSC_SUCCESS);
 }

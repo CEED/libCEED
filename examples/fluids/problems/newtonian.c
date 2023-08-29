@@ -22,8 +22,9 @@ static const char *const StateVariables[] = {"CONSERVATIVE", "PRIMITIVE", "State
 // Compute relative error |a - b|/|s|
 static PetscErrorCode CheckPrimitiveWithTolerance(StatePrimitive sY, StatePrimitive aY, StatePrimitive bY, const char *name, PetscReal rtol_pressure,
                                                   PetscReal rtol_velocity, PetscReal rtol_temperature) {
-  PetscFunctionBeginUser;
   StatePrimitive eY;  // relative error
+
+  PetscFunctionBeginUser;
   eY.pressure   = (aY.pressure - bY.pressure) / sY.pressure;
   PetscScalar u = sqrt(Square(sY.velocity[0]) + Square(sY.velocity[1]) + Square(sY.velocity[2]));
   for (int j = 0; j < 3; j++) eY.velocity[j] = (aY.velocity[j] - bY.velocity[j]) / u;
@@ -39,11 +40,12 @@ static PetscErrorCode CheckPrimitiveWithTolerance(StatePrimitive sY, StatePrimit
 static PetscErrorCode UnitTests_Newtonian(User user, NewtonianIdealGasContext gas) {
   Units            units = user->units;
   const CeedScalar eps   = 1e-6;
+  const CeedScalar x[3]  = {.1, .2, .3};
   const CeedScalar kg = units->kilogram, m = units->meter, sec = units->second, Pascal = units->Pascal;
+
   PetscFunctionBeginUser;
   const CeedScalar rho = 1.2 * kg / (m * m * m), u = 40 * m / sec;
   CeedScalar       U[5] = {rho, rho * u, rho * u * 1.1, rho * u * 1.2, 250e3 * Pascal + .5 * rho * u * u};
-  const CeedScalar x[3] = {.1, .2, .3};
   State            s    = StateFromU(gas, U, x);
   for (int i = 0; i < 8; i++) {
     CeedScalar dU[5] = {0}, dx[3] = {0};

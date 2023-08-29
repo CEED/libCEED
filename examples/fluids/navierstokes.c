@@ -211,7 +211,7 @@ int main(int argc, char **argv) {
   //    communication. If we disable this, we should still get the same results due to the problem->bc function, but with potentially much slower
   //    execution.
   if (problem->bc_from_ics) {
-    PetscCall(SetBCsFromICs_NS(dm, Q, user->Q_loc));
+    PetscCall(SetBCsFromICs(dm, Q, user->Q_loc));
   }
 
   // ---------------------------------------------------------------------------
@@ -247,7 +247,7 @@ int main(int argc, char **argv) {
   // ---------------------------------------------------------------------------
   // Post-processing
   // ---------------------------------------------------------------------------
-  PetscCall(PostProcess_NS(ts, ceed_data, dm, problem, user, Q, final_time));
+  PetscCall(PostProcess(ts, ceed_data, dm, problem, user, Q, final_time));
 
   // ---------------------------------------------------------------------------
   // Destroy libCEED objects
@@ -255,7 +255,7 @@ int main(int argc, char **argv) {
 
   PetscCall(TurbulenceStatisticsDestroy(user, ceed_data));
   PetscCall(NodalProjectionDataDestroy(user->grad_velo_proj));
-  PetscCall(SGS_DD_DataDestroy(user->sgs_dd_data));
+  PetscCall(SgsDDDataDestroy(user->sgs_dd_data));
   PetscCall(DifferentialFilterDataDestroy(user->diff_filter));
 
   // -- Vectors

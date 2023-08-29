@@ -74,6 +74,5 @@ PetscErrorCode NS_GAUSSIAN_WAVE(ProblemData *problem, DM dm, void *ctx, SimpleBC
   PetscCallCeed(ceed, CeedQFunctionContextSetDataDestroy(gausswave_context, CEED_MEM_HOST, FreeContextPetsc));
   PetscCallCeed(ceed, CeedQFunctionContextDestroy(&problem->ics.qfunction_context));
   problem->ics.qfunction_context = gausswave_context;
-
   PetscFunctionReturn(PETSC_SUCCESS);
 }

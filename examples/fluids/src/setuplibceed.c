@@ -20,8 +20,8 @@ PetscErrorCode AddBCSubOperator(Ceed ceed, DM dm, CeedData ceed_data, DMLabel do
   CeedOperator        op_setup_sur, op_apply_bc, op_apply_bc_jacobian = NULL;
   CeedElemRestriction elem_restr_x_sur, elem_restr_q_sur, elem_restr_qd_i_sur, elem_restr_jd_i_sur;
   CeedInt             num_qpts_sur;
-  PetscFunctionBeginUser;
 
+  PetscFunctionBeginUser;
   // --- Get number of quadrature points for the boundaries
   PetscCallCeed(ceed, CeedBasisGetNumQuadraturePoints(ceed_data->basis_q_sur, &num_qpts_sur));
 
@@ -88,7 +88,6 @@ PetscErrorCode AddBCSubOperator(Ceed ceed, DM dm, CeedData ceed_data, DMLabel do
   PetscCallCeed(ceed, CeedOperatorDestroy(&op_setup_sur));
   PetscCallCeed(ceed, CeedOperatorDestroy(&op_apply_bc));
   PetscCallCeed(ceed, CeedOperatorDestroy(&op_apply_bc_jacobian));
-
   PetscFunctionReturn(PETSC_SUCCESS);
 }
 
@@ -97,8 +96,8 @@ PetscErrorCode CreateOperatorForDomain(Ceed ceed, DM dm, SimpleBC bc, CeedData c
                                        CeedOperator op_apply_ijacobian_vol, CeedInt height, CeedInt P_sur, CeedInt Q_sur, CeedInt q_data_size_sur,
                                        CeedInt jac_data_size_sur, CeedOperator *op_apply, CeedOperator *op_apply_ijacobian) {
   DMLabel domain_label;
-  PetscFunctionBeginUser;
 
+  PetscFunctionBeginUser;
   // Create Composite Operaters
   PetscCallCeed(ceed, CeedCompositeOperatorCreate(ceed, op_apply));
   if (op_apply_ijacobian) PetscCallCeed(ceed, CeedCompositeOperatorCreate(ceed, op_apply_ijacobian));
@@ -132,7 +131,6 @@ PetscErrorCode CreateOperatorForDomain(Ceed ceed, DM dm, SimpleBC bc, CeedData c
   // ----- Get Context Labels for Operator
   PetscCallCeed(ceed, CeedOperatorGetContextFieldLabel(*op_apply, "solution time", &phys->solution_time_label));
   PetscCallCeed(ceed, CeedOperatorGetContextFieldLabel(*op_apply, "timestep size", &phys->timestep_size_label));
-
   PetscFunctionReturn(PETSC_SUCCESS);
 }
 
@@ -140,7 +138,6 @@ PetscErrorCode SetupBCQFunctions(Ceed ceed, PetscInt dim_sur, PetscInt num_comp_
                                  PetscInt jac_data_size_sur, ProblemQFunctionSpec apply_bc, ProblemQFunctionSpec apply_bc_jacobian,
                                  CeedQFunction *qf_apply_bc, CeedQFunction *qf_apply_bc_jacobian) {
   PetscFunctionBeginUser;
-
   if (apply_bc.qfunction) {
     PetscCallCeed(ceed, CeedQFunctionCreateInterior(ceed, 1, apply_bc.qfunction, apply_bc.qfunction_loc, qf_apply_bc));
     PetscCallCeed(ceed, CeedQFunctionSetContext(*qf_apply_bc, apply_bc.qfunction_context));
@@ -166,7 +163,6 @@ PetscErrorCode SetupBCQFunctions(Ceed ceed, PetscInt dim_sur, PetscInt num_comp_
 
 PetscErrorCode SetupLibceed(Ceed ceed, CeedData ceed_data, DM dm, User user, AppCtx app_ctx, ProblemData *problem, SimpleBC bc) {
   PetscFunctionBeginUser;
-
   // *****************************************************************************
   // Set up CEED objects for the interior domain (volume)
   // *****************************************************************************
@@ -407,7 +403,7 @@ PetscErrorCode SetupLibceed(Ceed ceed, CeedData ceed_data, DM dm, User user, App
       PetscCallCeed(ceed, CeedOperatorGetContextFieldLabel(user->op_ijacobian, "ijacobian time shift", &user->phys->ijacobian_time_shift_label));
     }
     if (problem->use_strong_bc_ceed) PetscCall(SetupStrongBC_Ceed(ceed, ceed_data, dm, user, problem, bc));
-    if (app_ctx->sgs_model_type == SGS_MODEL_DATA_DRIVEN) PetscCall(SGS_DD_ModelSetup(ceed, user, ceed_data, problem));
+    if (app_ctx->sgs_model_type == SGS_MODEL_DATA_DRIVEN) PetscCall(SgsDDModelSetup(ceed, user, ceed_data, problem));
   }
 
   if (app_ctx->turb_spanstats_enable) PetscCall(TurbulenceStatisticsSetup(ceed, user, ceed_data, problem));

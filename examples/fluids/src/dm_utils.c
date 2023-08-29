@@ -28,7 +28,6 @@ PetscErrorCode CreateRestrictionFromPlex(Ceed ceed, DM dm, CeedInt height, DMLab
   PetscCallCeed(ceed, CeedElemRestrictionCreate(ceed, num_elem, elem_size, num_comp, 1, num_dof, CEED_MEM_HOST, CEED_COPY_VALUES,
                                                 elem_restr_offsets_ceed, elem_restr));
   PetscCall(PetscFree(elem_restr_offsets_ceed));
-
   PetscFunctionReturn(PETSC_SUCCESS);
 }
 
@@ -40,8 +39,8 @@ PetscErrorCode GetRestrictionForDomain(Ceed ceed, DM dm, CeedInt height, DMLabel
   CeedInt             loc_num_elem;
   PetscInt            dim;
   CeedElemRestriction elem_restr_tmp;
-  PetscFunctionBeginUser;
 
+  PetscFunctionBeginUser;
   PetscCall(DMGetDimension(dm, &dim));
   dim -= height;
   PetscCall(CreateRestrictionFromPlex(ceed, dm, height, domain_label, label_value, dm_field, &elem_restr_tmp));
@@ -92,7 +91,6 @@ PetscErrorCode DMFieldToDSField(DM dm, DMLabel domain_label, PetscInt dm_field, 
   PetscCall(ISRestoreIndices(field_is, &fields));
 
   if (*ds_field == -1) SETERRQ(PetscObjectComm((PetscObject)dm), PETSC_ERR_SUP, "Could not find dm_field %" PetscInt_FMT " in DS", dm_field);
-
   PetscFunctionReturn(PETSC_SUCCESS);
 }
 
@@ -204,7 +202,6 @@ PetscErrorCode BasisCreateFromTabulation(Ceed ceed, DM dm, DMLabel domain_label,
   PetscCall(PetscFree(q_points));
   PetscCall(PetscFree(interp));
   PetscCall(PetscFree(grad));
-
   PetscFunctionReturn(PETSC_SUCCESS);
 }
 
@@ -219,7 +216,6 @@ PetscErrorCode CreateBasisFromPlex(Ceed ceed, DM dm, DMLabel domain_label, CeedI
   PetscInt        ds_field   = -1;
 
   PetscFunctionBeginUser;
-
   // Get element information
   PetscCall(DMGetRegionDS(dm, domain_label, NULL, &ds, NULL));
   PetscCall(DMFieldToDSField(dm, domain_label, dm_field, &ds_field));
@@ -254,7 +250,6 @@ PetscErrorCode CreateBasisFromPlex(Ceed ceed, DM dm, DMLabel domain_label, CeedI
 
     PetscCallCeed(ceed, CeedBasisCreateTensorH1Lagrange(ceed, dim, num_comp, P_1d, Q_1d, CEED_GAUSS, basis));
   }
-
   PetscFunctionReturn(PETSC_SUCCESS);
 }
 
@@ -320,7 +315,6 @@ PetscErrorCode DMSetupByOrderBegin_FEM(PetscBool setup_faces, PetscBool setup_co
     PetscCall(DMProjectCoordinates(dm, fe_coord_new));
     PetscCall(PetscFEDestroy(&fe_coord_new));
   }
-
   PetscFunctionReturn(PETSC_SUCCESS);
 }
 
@@ -336,8 +330,8 @@ PetscErrorCode DMSetupByOrderBegin_FEM(PetscBool setup_faces, PetscBool setup_co
 **/
 PetscErrorCode DMSetupByOrderEnd_FEM(PetscBool setup_coords, DM dm) {
   PetscBool is_simplex;
-  PetscFunctionBeginUser;
 
+  PetscFunctionBeginUser;
   PetscCall(DMPlexIsSimplex(dm, &is_simplex));
   // Set tensor permutation if needed
   if (!is_simplex) {
@@ -349,7 +343,6 @@ PetscErrorCode DMSetupByOrderEnd_FEM(PetscBool setup_coords, DM dm) {
       PetscCall(DMPlexSetClosurePermutationTensor(dm_coord, PETSC_DETERMINE, NULL));
     }
   }
-
   PetscFunctionReturn(PETSC_SUCCESS);
 }
 
