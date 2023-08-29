@@ -792,7 +792,7 @@ static int CeedSingleOperatorMultigridLevel(CeedOperator op_fine, CeedVector p_m
   }
 
   // Clone name
-  bool   has_name = !!op_fine->name;
+  bool   has_name = op_fine->name;
   size_t name_len = op_fine->name ? strlen(op_fine->name) : 0;
   CeedCall(CeedOperatorSetName(*op_coarse, op_fine->name));
 

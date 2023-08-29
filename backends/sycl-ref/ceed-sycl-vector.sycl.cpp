@@ -147,7 +147,7 @@ static inline int CeedVectorHasValidArray_Sycl(const CeedVector vec, bool *has_v
   CeedVector_Sycl *impl;
   CeedCallBackend(CeedVectorGetData(vec, &impl));
 
-  *has_valid_array = !!impl->h_array || !!impl->d_array;
+  *has_valid_array = impl->h_array || impl->d_array;
 
   return CEED_ERROR_SUCCESS;
 }
@@ -161,10 +161,10 @@ static inline int CeedVectorHasArrayOfType_Sycl(const CeedVector vec, CeedMemTyp
 
   switch (mem_type) {
     case CEED_MEM_HOST:
-      *has_array_of_type = !!impl->h_array_borrowed || !!impl->h_array_owned;
+      *has_array_of_type = impl->h_array_borrowed || impl->h_array_owned;
       break;
     case CEED_MEM_DEVICE:
-      *has_array_of_type = !!impl->d_array_borrowed || !!impl->d_array_owned;
+      *has_array_of_type = impl->d_array_borrowed || impl->d_array_owned;
       break;
   }
 
@@ -180,10 +180,10 @@ static inline int CeedVectorHasBorrowedArrayOfType_Sycl(const CeedVector vec, Ce
 
   switch (mem_type) {
     case CEED_MEM_HOST:
-      *has_borrowed_array_of_type = !!impl->h_array_borrowed;
+      *has_borrowed_array_of_type = impl->h_array_borrowed;
       break;
     case CEED_MEM_DEVICE:
-      *has_borrowed_array_of_type = !!impl->d_array_borrowed;
+      *has_borrowed_array_of_type = impl->d_array_borrowed;
       break;
   }
 

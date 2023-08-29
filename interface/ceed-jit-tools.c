@@ -46,7 +46,7 @@ int CeedCheckFilePath(Ceed ceed, const char *source_file_path, bool *is_valid) {
   // Check for valid file path
   FILE *source_file;
   source_file = fopen(source_file_path_only, "rb");
-  *is_valid   = !!source_file;
+  *is_valid   = source_file;
 
   if (*is_valid) {
     // Debug

@@ -1089,7 +1089,7 @@ int CeedOperatorSetName(CeedOperator op, const char *name) {
   @ref User
 **/
 int CeedOperatorView(CeedOperator op, FILE *stream) {
-  bool has_name = !!op->name;
+  bool has_name = op->name;
 
   if (op->is_composite) {
     fprintf(stream, "Composite CeedOperator%s%s\n", has_name ? " - " : "", has_name ? op->name : "");

@@ -158,7 +158,7 @@ extern "C" int CeedOperatorBuildKernel_Cuda_gen(CeedOperator op) {
       if (eval_mode == CEED_EVAL_GRAD) {
         CeedCallBackend(CeedOperatorFieldGetBasis(op_input_fields[i], &basis));
         CeedCallBackend(CeedBasisGetData(basis, &basis_data));
-        use_collograd_parallelization = !!basis_data->d_collo_grad_1d && (was_grad_found ? use_collograd_parallelization : true);
+        use_collograd_parallelization = basis_data->d_collo_grad_1d && (was_grad_found ? use_collograd_parallelization : true);
         was_grad_found                = true;
       }
     }
@@ -167,7 +167,7 @@ extern "C" int CeedOperatorBuildKernel_Cuda_gen(CeedOperator op) {
       if (eval_mode == CEED_EVAL_GRAD) {
         CeedCallBackend(CeedOperatorFieldGetBasis(op_output_fields[i], &basis));
         CeedCallBackend(CeedBasisGetData(basis, &basis_data));
-        use_collograd_parallelization = !!basis_data->d_collo_grad_1d && (was_grad_found ? use_collograd_parallelization : true);
+        use_collograd_parallelization = basis_data->d_collo_grad_1d && (was_grad_found ? use_collograd_parallelization : true);
         was_grad_found                = true;
       }
     }
@@ -254,7 +254,7 @@ extern "C" int CeedOperatorBuildKernel_Cuda_gen(CeedOperator op) {
           code << "  __shared__ CeedScalar s_G_in_" << i << "[" << Q_1d * Q_1d << "];\n";
           code << "  loadMatrix<Q_1d,Q_1d>(data, G.inputs[" << i << "], s_G_in_" << i << ");\n";
         } else {
-          bool has_collo_grad = !!basis_data->d_collo_grad_1d;
+          bool has_collo_grad = basis_data->d_collo_grad_1d;
           data->G.inputs[i]   = has_collo_grad ? basis_data->d_collo_grad_1d : basis_data->d_grad_1d;
           code << "  __shared__ CeedScalar s_G_in_" << i << "[" << Q_1d * (has_collo_grad ? Q_1d : P_1d) << "];\n";
           code << "  loadMatrix<" << (has_collo_grad ? "Q_1d" : ("P_in_" + std::to_string(i))) << ",Q_1d>(data, G.inputs[" << i << "], s_G_in_" << i
@@ -310,7 +310,7 @@ extern "C" int CeedOperatorBuildKernel_Cuda_gen(CeedOperator op) {
           code << "  __shared__ CeedScalar s_G_out_" << i << "[" << Q_1d * Q_1d << "];\n";
           code << "  loadMatrix<Q_1d,Q_1d>(data, G.outputs[" << i << "], s_G_out_" << i << ");\n";
         } else {
-          bool has_collo_grad = !!basis_data->d_collo_grad_1d;
+          bool has_collo_grad = basis_data->d_collo_grad_1d;
           data->G.outputs[i]  = has_collo_grad ? basis_data->d_collo_grad_1d : basis_data->d_grad_1d;
           code << "  __shared__ CeedScalar s_G_out_" << i << "[" << Q_1d * (has_collo_grad ? Q_1d : P_1d) << "];\n";
           code << "  loadMatrix<" << (has_collo_grad ? "Q_1d" : ("P_out_" + std::to_string(i))) << ",Q_1d>(data, G.outputs[" << i << "], s_G_out_"

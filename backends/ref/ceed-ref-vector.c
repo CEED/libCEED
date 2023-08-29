@@ -19,7 +19,7 @@ static int CeedVectorHasValidArray_Ref(CeedVector vec, bool *has_valid_array) {
   CeedVector_Ref *impl;
   CeedCallBackend(CeedVectorGetData(vec, &impl));
 
-  *has_valid_array = !!impl->array;
+  *has_valid_array = impl->array;
 
   return CEED_ERROR_SUCCESS;
 }
@@ -35,7 +35,7 @@ static inline int CeedVectorHasBorrowedArrayOfType_Ref(const CeedVector vec, Cee
 
   switch (mem_type) {
     case CEED_MEM_HOST:
-      *has_borrowed_array_of_type = !!impl->array_borrowed;
+      *has_borrowed_array_of_type = impl->array_borrowed;
       break;
     default:
       // LCOV_EXCL_START

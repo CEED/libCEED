@@ -165,7 +165,7 @@ bool CeedDebugFlag(const Ceed ceed) { return ceed->is_debug; }
   @ref Backend
 **/
 // LCOV_EXCL_START
-bool CeedDebugFlagEnv(void) { return !!getenv("CEED_DEBUG") || !!getenv("DEBUG") || !!getenv("DBG"); }
+bool CeedDebugFlagEnv(void) { return getenv("CEED_DEBUG") || getenv("DEBUG") || getenv("DBG"); }
 // LCOV_EXCL_STOP
 
 /**
@@ -887,7 +887,7 @@ int CeedInit(const char *resource, Ceed *ceed) {
   CeedCall(CeedSetOperatorFallbackResource(*ceed, fallbackresource));
 
   // Record env variables CEED_DEBUG or DBG
-  (*ceed)->is_debug = !!getenv("CEED_DEBUG") || !!getenv("DEBUG") || !!getenv("DBG");
+  (*ceed)->is_debug = getenv("CEED_DEBUG") || getenv("DEBUG") || getenv("DBG");
 
   // Copy resource prefix, if backend setup successful
   CeedCall(CeedStringAllocCopy(backends[match_index].prefix, (char **)&(*ceed)->resource));
