@@ -25,7 +25,6 @@ typedef struct {
 PetscErrorCode CreateStatsDM(User user, ProblemData *problem, PetscInt degree) {
   user->spanstats.num_comp_stats = TURB_NUM_COMPONENTS;
   PetscReal     domain_min[3], domain_max[3];
-  PetscFE       fe;
   PetscSection  section;
   PetscLogStage stage_stats_setup;
   MPI_Comm      comm = PetscObjectComm((PetscObject)user->dm);
@@ -76,6 +75,11 @@ PetscErrorCode CreateStatsDM(User user, ProblemData *problem, PetscInt degree) {
       PetscCall(PetscPrintf(comm, "WARNING: Turbulent spanwise statistics: parent DM could not be distributed accross %d ranks.\n", size));
     }
   }
+  {
+    PetscBool is_simplex = PETSC_FALSE;
+    PetscCall(DMPlexIsSimplex(user->spanstats.dm, &is_simplex));
+    PetscCheck(is_simplex != PETSC_TRUE, comm, PETSC_ERR_ARG_WRONGSTATE, "Spanwise Statistics is not implemented for non-tensor product grids");
+  }
 
   PetscCall(PetscObjectSetName((PetscObject)user->spanstats.dm, "Spanwise_Stats"));
   PetscCall(DMSetOptionsPrefix(user->spanstats.dm, "turbulence_spanstats_"));
@@ -83,11 +87,8 @@ PetscErrorCode CreateStatsDM(User user, ProblemData *problem, PetscInt degree) {
   PetscCall(DMViewFromOptions(user->spanstats.dm, NULL, "-dm_view"));
 
   // Create FE space for parent DM
-  PetscCall(PetscFECreateLagrange(PETSC_COMM_SELF, problem->dim - 1, user->spanstats.num_comp_stats, PETSC_FALSE, degree, PETSC_DECIDE, &fe));
-  PetscCall(PetscObjectSetName((PetscObject)fe, "stats"));
-  PetscCall(DMAddField(user->spanstats.dm, NULL, (PetscObject)fe));
-  PetscCall(DMCreateDS(user->spanstats.dm));
-  PetscCall(DMPlexSetClosurePermutationTensor(user->spanstats.dm, PETSC_DETERMINE, NULL));
+  PetscCall(DMSetupByOrder_FEM(PETSC_TRUE, PETSC_TRUE, user->app_ctx->degree, 1, user->app_ctx->q_extra, 1, &user->spanstats.num_comp_stats,
+                               user->spanstats.dm));
 
   // Create Section for data
   PetscCall(DMGetLocalSection(user->spanstats.dm, &section));
@@ -114,9 +115,6 @@ PetscErrorCode CreateStatsDM(User user, ProblemData *problem, PetscInt degree) {
   PetscCall(PetscSectionSetComponentName(section, 0, TURB_MEAN_VELOCITY_X, "MeanVelocityX"));
   PetscCall(PetscSectionSetComponentName(section, 0, TURB_MEAN_VELOCITY_Y, "MeanVelocityY"));
   PetscCall(PetscSectionSetComponentName(section, 0, TURB_MEAN_VELOCITY_Z, "MeanVelocityZ"));
-
-  // Cleanup
-  PetscCall(PetscFEDestroy(&fe));
 
   PetscCall(PetscLogStagePop());
   PetscFunctionReturn(PETSC_SUCCESS);

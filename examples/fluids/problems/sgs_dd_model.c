@@ -33,23 +33,15 @@ PetscErrorCode SGS_DD_ModelSetupDataDestroy(SGS_DD_ModelSetupData sgs_dd_setup_d
 
 // @brief Create DM for storing subgrid stress at nodes
 PetscErrorCode SGS_DD_ModelCreateDM(DM dm_source, DM *dm_sgs, PetscInt degree, PetscInt q_extra, PetscInt *num_components) {
-  PetscFE      fe;
   PetscSection section;
-  PetscInt     dim;
 
   PetscFunctionBeginUser;
-  *num_components  = 6;
-  PetscInt q_order = degree + q_extra;
+  *num_components = 6;
 
   PetscCall(DMClone(dm_source, dm_sgs));
-  PetscCall(DMGetDimension(*dm_sgs, &dim));
   PetscCall(PetscObjectSetName((PetscObject)*dm_sgs, "Subgrid Stress Projection"));
 
-  PetscCall(PetscFECreateLagrange(PETSC_COMM_SELF, dim, *num_components, PETSC_FALSE, degree, q_order, &fe));
-  PetscCall(PetscObjectSetName((PetscObject)fe, "Subgrid Stress Projection"));
-  PetscCall(DMAddField(*dm_sgs, NULL, (PetscObject)fe));
-  PetscCall(DMCreateDS(*dm_sgs));
-  PetscCall(DMPlexSetClosurePermutationTensor(*dm_sgs, PETSC_DETERMINE, NULL));
+  PetscCall(DMSetupByOrder_FEM(PETSC_TRUE, PETSC_TRUE, degree, 1, q_extra, 1, num_components, *dm_sgs));
 
   PetscCall(DMGetLocalSection(*dm_sgs, &section));
   PetscCall(PetscSectionSetFieldName(section, 0, ""));
@@ -59,8 +51,6 @@ PetscErrorCode SGS_DD_ModelCreateDM(DM dm_source, DM *dm_sgs, PetscInt degree, P
   PetscCall(PetscSectionSetComponentName(section, 0, 3, "KMSubgridStressYZ"));
   PetscCall(PetscSectionSetComponentName(section, 0, 4, "KMSubgridStressXZ"));
   PetscCall(PetscSectionSetComponentName(section, 0, 5, "KMSubgridStressXY"));
-
-  PetscCall(PetscFEDestroy(&fe));
 
   PetscFunctionReturn(PETSC_SUCCESS);
 };

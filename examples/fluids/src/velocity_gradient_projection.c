@@ -14,23 +14,16 @@
 #include "../navierstokes.h"
 
 PetscErrorCode VelocityGradientProjectionCreateDM(NodalProjectionData grad_velo_proj, User user, PetscInt degree) {
-  PetscFE      fe;
   PetscSection section;
-  PetscInt     dim;
 
   PetscFunctionBeginUser;
   grad_velo_proj->num_comp = 9;  // 9 velocity gradient
 
   PetscCall(DMClone(user->dm, &grad_velo_proj->dm));
-  PetscCall(DMGetDimension(grad_velo_proj->dm, &dim));
   PetscCall(PetscObjectSetName((PetscObject)grad_velo_proj->dm, "Velocity Gradient Projection"));
 
-  PetscInt q_order = user->app_ctx->degree + user->app_ctx->q_extra;
-  PetscCall(PetscFECreateLagrange(PETSC_COMM_SELF, dim, grad_velo_proj->num_comp, PETSC_FALSE, degree, q_order, &fe));
-  PetscCall(PetscObjectSetName((PetscObject)fe, "Velocity Gradient Projection"));
-  PetscCall(DMAddField(grad_velo_proj->dm, NULL, (PetscObject)fe));
-  PetscCall(DMCreateDS(grad_velo_proj->dm));
-  PetscCall(DMPlexSetClosurePermutationTensor(grad_velo_proj->dm, PETSC_DETERMINE, NULL));
+  PetscCall(
+      DMSetupByOrder_FEM(PETSC_TRUE, PETSC_TRUE, user->app_ctx->degree, 1, user->app_ctx->q_extra, 1, &grad_velo_proj->num_comp, grad_velo_proj->dm));
 
   PetscCall(DMGetLocalSection(grad_velo_proj->dm, &section));
   PetscCall(PetscSectionSetFieldName(section, 0, ""));
@@ -44,7 +37,6 @@ PetscErrorCode VelocityGradientProjectionCreateDM(NodalProjectionData grad_velo_
   PetscCall(PetscSectionSetComponentName(section, 0, 7, "VelocityGradientZY"));
   PetscCall(PetscSectionSetComponentName(section, 0, 8, "VelocityGradientZZ"));
 
-  PetscCall(PetscFEDestroy(&fe));
   PetscFunctionReturn(PETSC_SUCCESS);
 };
 
