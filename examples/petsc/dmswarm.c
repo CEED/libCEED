@@ -64,9 +64,9 @@ PetscErrorCode DMSwarmCreateReferenceCoordinates(DM dm_swarm, DM dm_mesh, IS *is
   {
     Vec true_coords;
 
-    PetscCall(DMSwarmCreateLocalVectorFromField(dm_swarm, "DMSwarmPIC_coor", &true_coords));
+    PetscCall(DMSwarmCreateLocalVectorFromField(dm_swarm, DMSwarmPICField_coor, &true_coords));
     PetscCall(VecDuplicate(true_coords, ref_coords));
-    PetscCall(DMSwarmDestroyLocalVectorFromField(dm_swarm, "DMSwarmPIC_coor", &true_coords));
+    PetscCall(DMSwarmDestroyLocalVectorFromField(dm_swarm, DMSwarmPICField_coor, &true_coords));
   }
 
   // Allocate index set array
@@ -78,7 +78,7 @@ PetscErrorCode DMSwarmCreateReferenceCoordinates(DM dm_swarm, DM dm_mesh, IS *is
   // Get reference coordinates for each swarm point wrt the elements in the background mesh
   PetscCall(DMSwarmSortGetAccess(dm_swarm));
   PetscCall(DMPlexGetHeightStratum(dm_mesh, 0, &cell_start, &cell_end));
-  PetscCall(DMSwarmGetField(dm_swarm, "DMSwarmPIC_coor", NULL, NULL, (void **)&coords_points_true));
+  PetscCall(DMSwarmGetField(dm_swarm, DMSwarmPICField_coor, NULL, NULL, (void **)&coords_points_true));
   PetscCall(VecGetArray(*ref_coords, &coords_points_ref));
   for (PetscInt cell = cell_start; cell < cell_end; cell++) {
     PetscReal *coords_cell_points_true, *coords_cell_points_ref;
@@ -105,7 +105,7 @@ PetscErrorCode DMSwarmCreateReferenceCoordinates(DM dm_swarm, DM dm_mesh, IS *is
   }
 
   // Cleanup
-  PetscCall(DMSwarmRestoreField(dm_swarm, "DMSwarmPIC_coor", NULL, NULL, (void **)&coords_points_ref));
+  PetscCall(DMSwarmRestoreField(dm_swarm, DMSwarmPICField_coor, NULL, NULL, (void **)&coords_points_ref));
   PetscCall(VecRestoreArrayRead(*ref_coords, &coords_points_true));
   PetscCall(DMSwarmSortRestoreAccess(dm_swarm));
 
@@ -216,13 +216,13 @@ int main(int argc, char **argv) {
   {
     PetscScalar *point_coords;
 
-    PetscCall(DMSwarmGetField(dm_swarm, "DMSwarmPIC_coor", NULL, NULL, (void **)&point_coords));
+    PetscCall(DMSwarmGetField(dm_swarm, DMSwarmPICField_coor, NULL, NULL, (void **)&point_coords));
     for (PetscInt p = 0; p < num_points; p++) {
       point_coords[p * dim + 0] = -PetscCosReal((PetscReal)(p + 1) / (PetscReal)(num_points + 1) * PETSC_PI);
       if (dim > 1) point_coords[p * dim + 1] = -PetscSinReal((PetscReal)(p + 1) / (PetscReal)(num_points + 1) * PETSC_PI);
       if (dim > 2) point_coords[p * dim + 2] = PetscSinReal((PetscReal)(p + 1) / (PetscReal)(num_points + 1) * PETSC_PI);
     }
-    PetscCall(DMSwarmRestoreField(dm_swarm, "DMSwarmPIC_coor", NULL, NULL, (void **)&point_coords));
+    PetscCall(DMSwarmRestoreField(dm_swarm, DMSwarmPICField_coor, NULL, NULL, (void **)&point_coords));
   }
   PetscCall(DMSwarmMigrate(dm_swarm, PETSC_TRUE));
 
@@ -275,7 +275,7 @@ int main(int argc, char **argv) {
     PetscCall(PetscDSGetDiscretization(ds, 0, (PetscObject *)&fe));
     PetscCall(DMSwarmSortGetAccess(dm_swarm));
     PetscCall(DMPlexGetHeightStratum(dm_mesh, 0, &cell_start, &cell_end));
-    PetscCall(DMSwarmGetField(dm_swarm, "DMSwarmPIC_coor", NULL, NULL, (void **)&coord_points));
+    PetscCall(DMSwarmGetField(dm_swarm, DMSwarmPICField_coor, NULL, NULL, (void **)&coord_points));
     PetscCall(DMSwarmGetField(dm_swarm, "u", NULL, NULL, (void **)&u_all_points_array));
 
     // -- Interpolate values to each swarm point, one element in the background mesh at a time
@@ -322,7 +322,7 @@ int main(int argc, char **argv) {
     }
 
     // -- Cleanup
-    PetscCall(DMSwarmRestoreField(dm_swarm, "DMSwarmPIC_coor", NULL, NULL, (void **)&coord_points));
+    PetscCall(DMSwarmRestoreField(dm_swarm, DMSwarmPICField_coor, NULL, NULL, (void **)&coord_points));
     PetscCall(DMSwarmRestoreField(dm_swarm, "u", NULL, NULL, (void **)&u_all_points_array));
     PetscCall(DMSwarmSortRestoreAccess(dm_swarm));
     PetscCall(DMRestoreLocalVector(dm_mesh, &U_loc));
