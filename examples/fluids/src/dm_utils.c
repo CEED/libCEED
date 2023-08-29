@@ -93,16 +93,13 @@ PetscErrorCode DMPlexCeedElemRestrictionCreate(Ceed ceed, DM dm, DMLabel domain_
 **/
 PetscErrorCode DMPlexCeedElemRestrictionCoordinateCreate(Ceed ceed, DM dm, DMLabel domain_label, PetscInt label_value, PetscInt height,
                                                          CeedElemRestriction *restriction) {
-  DM        dm_coord;
-  PetscBool is_simplex = PETSC_FALSE;
+  DM dm_coord;
 
   PetscFunctionBeginUser;
   PetscCall(DMGetCellCoordinateDM(dm, &dm_coord));
   if (!dm_coord) {
     PetscCall(DMGetCoordinateDM(dm, &dm_coord));
   }
-  PetscCall(DMPlexIsSimplex(dm_coord, &is_simplex));
-  if (!is_simplex) PetscCall(DMPlexSetClosurePermutationTensor(dm_coord, PETSC_DETERMINE, NULL));
   PetscCall(DMPlexCeedElemRestrictionCreate(ceed, dm_coord, domain_label, label_value, height, 0, restriction));
 
   PetscFunctionReturn(PETSC_SUCCESS);
@@ -456,11 +453,12 @@ PetscErrorCode DMSetupByOrderBegin_FEM(PetscBool setup_faces, PetscBool setup_co
     PetscCall(PetscDualSpaceGetOrder(fe_coord_dual_space, &fe_coord_order));
 
     // Create FE for coordinates
-    PetscCheck(fe_coord_order == 1 || coord_order == 1, PetscObjectComm((PetscObject)dm), PETSC_ERR_USER_INPUT,
-               "Only linear mesh geometry supported. Recieved %d order", fe_coord_order);
+    PetscCheck(fe_coord_order == 1 || coord_order == 1, comm, PETSC_ERR_USER_INPUT, "Only linear mesh geometry supported. Recieved %d order",
+               fe_coord_order);
     PetscCall(PetscFECreateLagrange(comm, dim, num_comp_coord, is_simplex, fe_coord_order, q_order, &fe_coord_new));
     if (setup_faces) PetscCall(PetscFEGetHeightSubspace(fe_coord_new, 1, &fe_coord_face_new));
     PetscCall(DMProjectCoordinates(dm, fe_coord_new));
+    PetscCall(DMLocalizeCoordinates(dm));  // Update CellCoordinateDM with projected coordinates
     PetscCall(PetscFEDestroy(&fe_coord_new));
   }
   PetscFunctionReturn(PETSC_SUCCESS);
@@ -489,6 +487,8 @@ PetscErrorCode DMSetupByOrderEnd_FEM(PetscBool setup_coords, DM dm) {
 
       PetscCall(DMGetCoordinateDM(dm, &dm_coord));
       PetscCall(DMPlexSetClosurePermutationTensor(dm_coord, PETSC_DETERMINE, NULL));
+      PetscCall(DMGetCellCoordinateDM(dm, &dm_coord));
+      if (dm_coord) PetscCall(DMPlexSetClosurePermutationTensor(dm_coord, PETSC_DETERMINE, NULL));
     }
   }
   PetscFunctionReturn(PETSC_SUCCESS);
