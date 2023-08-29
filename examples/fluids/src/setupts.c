@@ -527,7 +527,7 @@ PetscErrorCode TSSolve_NS(DM dm, User user, AppCtx app_ctx, Physics phys, Vec *Q
     PetscCall(TSGetSNES(*ts, &snes));
     PetscCall(SNESGetTolerances(snes, NULL, &rtol, NULL, NULL, NULL));
     PetscCall(SNESSetTolerances(snes, PETSC_DEFAULT, .99, PETSC_DEFAULT, PETSC_DEFAULT, PETSC_DEFAULT));
-    PetscCall(TSSetSolution(*ts, *Q));
+    PetscCall(TSSetSolution(*ts, Q_preload));
     PetscCall(TSStep(*ts));
     PetscCall(SNESSetTolerances(snes, PETSC_DEFAULT, rtol, PETSC_DEFAULT, PETSC_DEFAULT, PETSC_DEFAULT));
     PetscCall(VecDestroy(&Q_preload));
