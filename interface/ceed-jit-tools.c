@@ -29,6 +29,7 @@ int CeedCheckFilePath(Ceed ceed, const char *source_file_path, bool *is_valid) {
   // Create temporary file path without name, if needed
   char *source_file_path_only;
   char *last_colon = strrchr(source_file_path, ':');
+
   if (last_colon) {
     size_t source_file_path_length = (last_colon - source_file_path + 1);
 
@@ -51,13 +52,11 @@ int CeedCheckFilePath(Ceed ceed, const char *source_file_path, bool *is_valid) {
     // Debug
     CeedDebug256(ceed, CEED_DEBUG_COLOR_SUCCESS, "Found JiT source file: ");
     CeedDebug(ceed, "%s\n", source_file_path_only);
-
     fclose(source_file);
   }
 
   // Free temp file path, if used
   if (last_colon) CeedCall(CeedFree(&source_file_path_only));
-
   return CEED_ERROR_SUCCESS;
 }
 
@@ -105,12 +104,15 @@ int CeedLoadSourceToInitializedBuffer(Ceed ceed, const char *source_file_path, c
 
   // Search for headers to include
   const char *first_hash = strchr(temp_buffer, '#');
+
   while (first_hash) {
     // -- Check for 'include' keyword
     const char *next_e     = strchr(first_hash, 'e');
     char        keyword[8] = "";
+
     if (next_e && next_e - first_hash >= 7) memcpy(keyword, &next_e[-6], 7);
     bool is_hash_include = !strcmp(keyword, "include");
+
     // ---- Spaces allowed in '#  include <header.h>'
     if (next_e) {
       for (CeedInt i = 1; first_hash - next_e + i < -6; i++) {
@@ -121,6 +123,7 @@ int CeedLoadSourceToInitializedBuffer(Ceed ceed, const char *source_file_path, c
       // -- Copy into buffer all preceding #
       long current_size = strlen(*buffer);
       long copy_size    = first_hash - &temp_buffer[file_offset];
+
       CeedCall(CeedRealloc(current_size + copy_size + 2, buffer));
       memcpy(&(*buffer)[current_size], "\n", 2);
       memcpy(&(*buffer)[current_size + 1], &temp_buffer[file_offset], copy_size);
@@ -133,12 +136,15 @@ int CeedLoadSourceToInitializedBuffer(Ceed ceed, const char *source_file_path, c
       bool  is_ceed_header    = is_hash_include && next_left_chevron && (next_new_line - next_left_chevron > 0) &&
                             (!strncmp(next_left_chevron, "<ceed/jit-source/", 17) || !strncmp(next_left_chevron, "<ceed/types.h>", 14) ||
                              !strncmp(next_left_chevron, "<ceed/ceed-f32.h>", 17) || !strncmp(next_left_chevron, "<ceed/ceed-f64.h>", 17));
+
       if (is_local_header || is_ceed_header) {
         // ---- Build source path
         char *include_source_path;
+
         if (is_local_header) {
           long root_length           = strrchr(source_file_path, '/') - source_file_path;
           long include_file_name_len = strchr(&next_quote[1], '"') - next_quote - 1;
+
           CeedCall(CeedCalloc(root_length + include_file_name_len + 2, &include_source_path));
           memcpy(include_source_path, source_file_path, root_length + 1);
           memcpy(&include_source_path[root_length + 1], &next_quote[1], include_file_name_len);
@@ -147,6 +153,7 @@ int CeedLoadSourceToInitializedBuffer(Ceed ceed, const char *source_file_path, c
           char *next_right_chevron = strchr(first_hash, '>');
           char *ceed_relative_path;
           long  ceed_relative_path_length = next_right_chevron - next_left_chevron - 1;
+
           CeedCall(CeedCalloc(ceed_relative_path_length + 1, &ceed_relative_path));
           memcpy(ceed_relative_path, &next_left_chevron[1], ceed_relative_path_length);
           CeedCall(CeedGetJitAbsolutePath(ceed, ceed_relative_path, &include_source_path));
@@ -165,6 +172,7 @@ int CeedLoadSourceToInitializedBuffer(Ceed ceed, const char *source_file_path, c
   // Copy rest of source file into buffer
   long current_size = strlen(*buffer);
   long copy_size    = strlen(&temp_buffer[file_offset]);
+
   CeedCall(CeedRealloc(current_size + copy_size + 2, buffer));
   memcpy(&(*buffer)[current_size], "\n", 2);
   memcpy(&(*buffer)[current_size + 1], &temp_buffer[file_offset], copy_size);
@@ -179,7 +187,6 @@ int CeedLoadSourceToInitializedBuffer(Ceed ceed, const char *source_file_path, c
   CeedDebug(ceed, "%s\n", source_file_path);
   CeedDebug256(ceed, CEED_DEBUG_COLOR_SUCCESS, "Final buffer:\n");
   CeedDebug(ceed, "%s\n", *buffer);
-
   return CEED_ERROR_SUCCESS;
 }
 
@@ -202,7 +209,6 @@ int CeedLoadSourceToBuffer(Ceed ceed, const char *source_file_path, char **buffe
 
   // Load to initalized buffer
   CeedCall(CeedLoadSourceToInitializedBuffer(ceed, source_file_path, buffer));
-
   return CEED_ERROR_SUCCESS;
 }
 
@@ -230,7 +236,6 @@ int CeedPathConcatenate(Ceed ceed, const char *base_file_path, const char *relat
   CeedCall(CeedCalloc(new_file_path_length, new_file_path));
   memcpy(*new_file_path, base_file_path, base_length);
   memcpy(&((*new_file_path)[base_length]), relative_file_path, relative_length);
-
   return CEED_ERROR_SUCCESS;
 }
 
@@ -284,7 +289,6 @@ int CeedGetJitAbsolutePath(Ceed ceed, const char *relative_file_path, char **abs
     if (is_valid) return CEED_ERROR_SUCCESS;
     else CeedCall(CeedFree(absolute_file_path));
   }
-
   // LCOV_EXCL_START
   return CeedError(ceed, CEED_ERROR_MAJOR, "Couldn't find matching JiT source file: %s", relative_file_path);
   // LCOV_EXCL_STOP

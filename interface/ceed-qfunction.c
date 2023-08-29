@@ -62,11 +62,12 @@ static size_t num_qfunctions;
 **/
 int CeedQFunctionRegister(const char *name, const char *source, CeedInt vec_length, CeedQFunctionUser f,
                           int (*init)(Ceed, const char *, CeedQFunction)) {
+  const char *relative_file_path;
+
   CeedCheck(num_qfunctions < sizeof(gallery_qfunctions) / sizeof(gallery_qfunctions[0]), NULL, CEED_ERROR_MAJOR, "Too many gallery QFunctions");
 
   CeedDebugEnv("Gallery Register: %s", name);
 
-  const char *relative_file_path;
   CeedCall(CeedGetJitRelativePath(source, &relative_file_path));
 
   strncpy(gallery_qfunctions[num_qfunctions].name, name, CEED_MAX_RESOURCE_LEN);
@@ -121,12 +122,13 @@ static int CeedQFunctionFieldSet(CeedQFunctionField *f, const char *field_name, 
   @ref Utility
 **/
 static int CeedQFunctionFieldView(CeedQFunctionField field, CeedInt field_number, bool in, FILE *stream) {
-  const char *inout = in ? "Input" : "Output";
-  char       *field_name;
-  CeedCall(CeedQFunctionFieldGetName(field, &field_name));
-  CeedInt size;
-  CeedCall(CeedQFunctionFieldGetSize(field, &size));
+  const char  *inout = in ? "Input" : "Output";
+  char        *field_name;
+  CeedInt      size;
   CeedEvalMode eval_mode;
+
+  CeedCall(CeedQFunctionFieldGetName(field, &field_name));
+  CeedCall(CeedQFunctionFieldGetSize(field, &size));
   CeedCall(CeedQFunctionFieldGetEvalMode(field, &eval_mode));
   fprintf(stream,
           "    %s field %" CeedInt_FMT
@@ -208,8 +210,8 @@ int CeedQFunctionGetKernelName(CeedQFunction qf, char **kernel_name) {
   if (!qf->kernel_name) {
     Ceed  ceed;
     char *kernel_name_copy;
-    CeedCall(CeedQFunctionGetCeed(qf, &ceed));
 
+    CeedCall(CeedQFunctionGetCeed(qf, &ceed));
     if (qf->user_source) {
       const char *kernel_name     = strrchr(qf->user_source, ':') + 1;
       size_t      kernel_name_len = strlen(kernel_name);
@@ -245,7 +247,6 @@ int CeedQFunctionGetSourcePath(CeedQFunction qf, char **source_path) {
     size_t      kernel_name_len = strlen(kernel_name);
 
     CeedCall(CeedQFunctionGetCeed(qf, &ceed));
-
     CeedCall(CeedCheckFilePath(ceed, qf->user_source, &is_absolute_path));
     if (is_absolute_path) {
       absolute_path = (char *)qf->user_source;
@@ -254,6 +255,7 @@ int CeedQFunctionGetSourcePath(CeedQFunction qf, char **source_path) {
     }
 
     size_t source_len = strlen(absolute_path) - kernel_name_len - 1;
+
     CeedCall(CeedCalloc(source_len + 1, &source_path_copy));
     memcpy(source_path_copy, absolute_path, source_len);
     qf->source_path = source_path_copy;
@@ -287,7 +289,6 @@ int CeedQFunctionLoadSourceToBuffer(CeedQFunction qf, char **source_buffer) {
   if (source_path) {
     CeedCall(CeedLoadSourceToBuffer(qf->ceed, source_path, source_buffer));
   }
-
   return CEED_ERROR_SUCCESS;
 }
 
@@ -395,6 +396,7 @@ such object exists.
 int CeedQFunctionGetInnerContext(CeedQFunction qf, CeedQFunctionContext *ctx) {
   if (qf->is_fortran) {
     CeedFortranContext fortran_ctx = NULL;
+
     CeedCall(CeedQFunctionContextGetData(qf->ctx, CEED_MEM_HOST, &fortran_ctx));
     *ctx = fortran_ctx->inner_ctx;
     CeedCall(CeedQFunctionContextRestoreData(qf->ctx, (void *)&fortran_ctx));
@@ -672,18 +674,18 @@ both.
   @ref User
 **/
 int CeedQFunctionCreateIdentity(Ceed ceed, CeedInt size, CeedEvalMode in_mode, CeedEvalMode out_mode, CeedQFunction *qf) {
+  CeedQFunctionContext  ctx;
+  CeedContextFieldLabel size_label;
+
   CeedCall(CeedQFunctionCreateInteriorByName(ceed, "Identity", qf));
   CeedCall(CeedQFunctionAddInput(*qf, "input", size, in_mode));
   CeedCall(CeedQFunctionAddOutput(*qf, "output", size, out_mode));
 
   (*qf)->is_identity = true;
 
-  CeedQFunctionContext  ctx;
-  CeedContextFieldLabel size_label;
   CeedCall(CeedQFunctionGetContext(*qf, &ctx));
   CeedCall(CeedQFunctionContextGetFieldLabel(ctx, "size", &size_label));
   CeedCall(CeedQFunctionContextSetInt32(ctx, size_label, &size));
-
   return CEED_ERROR_SUCCESS;
 }
 

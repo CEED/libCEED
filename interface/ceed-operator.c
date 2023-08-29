@@ -34,8 +34,8 @@
   @ref Developer
 **/
 static int CeedOperatorCheckField(Ceed ceed, CeedQFunctionField qf_field, CeedElemRestriction r, CeedBasis b) {
-  CeedEvalMode eval_mode = qf_field->eval_mode;
   CeedInt      dim = 1, num_comp = 1, q_comp = 1, restr_num_comp = 1, size = qf_field->size;
+  CeedEvalMode eval_mode = qf_field->eval_mode;
 
   // Restriction
   CeedCheck((r == CEED_ELEMRESTRICTION_NONE) == (eval_mode == CEED_EVAL_WEIGHT), ceed, CEED_ERROR_INCOMPATIBLE,
@@ -100,16 +100,11 @@ static int CeedOperatorFieldView(CeedOperatorField field, CeedQFunctionField qf_
           ":\n"
           "%s      Name: \"%s\"\n",
           pre, in_out, field_number, pre, qf_field->field_name);
-
   fprintf(stream, "%s      Size: %" CeedInt_FMT "\n", pre, qf_field->size);
-
   fprintf(stream, "%s      EvalMode: %s\n", pre, CeedEvalModes[qf_field->eval_mode]);
-
   if (field->basis == CEED_BASIS_COLLOCATED) fprintf(stream, "%s      Collocated basis\n", pre);
-
   if (field->vec == CEED_VECTOR_ACTIVE) fprintf(stream, "%s      Active vector\n", pre);
   else if (field->vec == CEED_VECTOR_NONE) fprintf(stream, "%s      No vector\n", pre);
-
   return CEED_ERROR_SUCCESS;
 }
 
@@ -126,22 +121,18 @@ static int CeedOperatorFieldView(CeedOperatorField field, CeedQFunctionField qf_
 **/
 int CeedOperatorSingleView(CeedOperator op, bool sub, FILE *stream) {
   const char *pre = sub ? "  " : "";
+  CeedInt     num_elem, num_qpts, total_fields = 0;
 
-  CeedInt num_elem, num_qpts;
   CeedCall(CeedOperatorGetNumElements(op, &num_elem));
   CeedCall(CeedOperatorGetNumQuadraturePoints(op, &num_qpts));
-
-  CeedInt total_fields = 0;
   CeedCall(CeedOperatorGetNumArgs(op, &total_fields));
+
   fprintf(stream, "%s  %" CeedInt_FMT " elements with %" CeedInt_FMT " quadrature points each\n", pre, num_elem, num_qpts);
-
   fprintf(stream, "%s  %" CeedInt_FMT " field%s\n", pre, total_fields, total_fields > 1 ? "s" : "");
-
   fprintf(stream, "%s  %" CeedInt_FMT " input field%s:\n", pre, op->qf->num_input_fields, op->qf->num_input_fields > 1 ? "s" : "");
   for (CeedInt i = 0; i < op->qf->num_input_fields; i++) {
     CeedCall(CeedOperatorFieldView(op->input_fields[i], op->qf->input_fields[i], i, sub, 1, stream));
   }
-
   fprintf(stream, "%s  %" CeedInt_FMT " output field%s:\n", pre, op->qf->num_output_fields, op->qf->num_output_fields > 1 ? "s" : "");
   for (CeedInt i = 0; i < op->qf->num_output_fields; i++) {
     CeedCall(CeedOperatorFieldView(op->output_fields[i], op->qf->output_fields[i], i, sub, 0, stream));
@@ -161,6 +152,7 @@ int CeedOperatorSingleView(CeedOperator op, bool sub, FILE *stream) {
 **/
 int CeedOperatorGetActiveBasis(CeedOperator op, CeedBasis *active_basis) {
   Ceed ceed;
+
   CeedCall(CeedOperatorGetCeed(op, &ceed));
 
   *active_basis = NULL;
@@ -188,6 +180,7 @@ int CeedOperatorGetActiveBasis(CeedOperator op, CeedBasis *active_basis) {
 **/
 int CeedOperatorGetActiveElemRestriction(CeedOperator op, CeedElemRestriction *active_rstr) {
   Ceed ceed;
+
   CeedCall(CeedOperatorGetCeed(op, &ceed));
 
   *active_rstr = NULL;
@@ -221,6 +214,8 @@ any field of a matching type.
   @ref User
 **/
 static int CeedOperatorContextSetGeneric(CeedOperator op, CeedContextFieldLabel field_label, CeedContextFieldType field_type, void *values) {
+  bool is_composite = false;
+
   CeedCheck(field_label, op->ceed, CEED_ERROR_UNSUPPORTED, "Invalid field label");
 
   // Check if field_label and op correspond
@@ -233,7 +228,6 @@ static int CeedOperatorContextSetGeneric(CeedOperator op, CeedContextFieldLabel 
     CeedCheck(index != -1, op->ceed, CEED_ERROR_UNSUPPORTED, "ContextFieldLabel does not correspond to the operator");
   }
 
-  bool is_composite = false;
   CeedCall(CeedOperatorIsComposite(op, &is_composite));
   if (is_composite) {
     CeedInt       num_sub;
@@ -254,7 +248,6 @@ static int CeedOperatorContextSetGeneric(CeedOperator op, CeedContextFieldLabel 
     CeedCheck(op->qf->ctx, op->ceed, CEED_ERROR_UNSUPPORTED, "QFunction does not have context data");
     CeedCall(CeedQFunctionContextSetGeneric(op->qf->ctx, field_label, field_type, values));
   }
-
   return CEED_ERROR_SUCCESS;
 }
 
@@ -277,6 +270,8 @@ any field of a matching type.
 **/
 static int CeedOperatorContextGetGenericRead(CeedOperator op, CeedContextFieldLabel field_label, CeedContextFieldType field_type, size_t *num_values,
                                              void *values) {
+  bool is_composite = false;
+
   CeedCheck(field_label, op->ceed, CEED_ERROR_UNSUPPORTED, "Invalid field label");
 
   *(void **)values = NULL;
@@ -292,7 +287,6 @@ static int CeedOperatorContextGetGenericRead(CeedOperator op, CeedContextFieldLa
     CeedCheck(index != -1, op->ceed, CEED_ERROR_UNSUPPORTED, "ContextFieldLabel does not correspond to the operator");
   }
 
-  bool is_composite = false;
   CeedCall(CeedOperatorIsComposite(op, &is_composite));
   if (is_composite) {
     CeedInt       num_sub;
@@ -314,7 +308,6 @@ static int CeedOperatorContextGetGenericRead(CeedOperator op, CeedContextFieldLa
     CeedCheck(op->qf->ctx, op->ceed, CEED_ERROR_UNSUPPORTED, "QFunction does not have context data");
     CeedCall(CeedQFunctionContextGetGenericRead(op->qf->ctx, field_label, field_type, num_values, values));
   }
-
   return CEED_ERROR_SUCCESS;
 }
 
@@ -335,6 +328,8 @@ any field of a matching type.
   @ref User
 **/
 static int CeedOperatorContextRestoreGenericRead(CeedOperator op, CeedContextFieldLabel field_label, CeedContextFieldType field_type, void *values) {
+  bool is_composite = false;
+
   CeedCheck(field_label, op->ceed, CEED_ERROR_UNSUPPORTED, "Invalid field label");
 
   // Check if field_label and op correspond
@@ -347,7 +342,6 @@ static int CeedOperatorContextRestoreGenericRead(CeedOperator op, CeedContextFie
     CeedCheck(index != -1, op->ceed, CEED_ERROR_UNSUPPORTED, "ContextFieldLabel does not correspond to the operator");
   }
 
-  bool is_composite = false;
   CeedCall(CeedOperatorIsComposite(op, &is_composite));
   if (is_composite) {
     CeedInt       num_sub;
@@ -369,7 +363,6 @@ static int CeedOperatorContextRestoreGenericRead(CeedOperator op, CeedContextFie
     CeedCheck(op->qf->ctx, op->ceed, CEED_ERROR_UNSUPPORTED, "QFunction does not have context data");
     CeedCall(CeedQFunctionContextRestoreGenericRead(op->qf->ctx, field_label, field_type, values));
   }
-
   return CEED_ERROR_SUCCESS;
 }
 
@@ -564,8 +557,8 @@ int CeedOperatorCreate(Ceed ceed, CeedQFunction qf, CeedQFunction dqf, CeedQFunc
 int CeedCompositeOperatorCreate(Ceed ceed, CeedOperator *op) {
   if (!ceed->CompositeOperatorCreate) {
     Ceed delegate;
-    CeedCall(CeedGetObjectDelegate(ceed, &delegate, "Operator"));
 
+    CeedCall(CeedGetObjectDelegate(ceed, &delegate, "Operator"));
     if (delegate) {
       CeedCall(CeedCompositeOperatorCreate(delegate, op));
       return CEED_ERROR_SUCCESS;
@@ -631,27 +624,27 @@ int CeedOperatorReferenceCopy(CeedOperator op, CeedOperator *op_copy) {
   @ref User
 **/
 int CeedOperatorSetField(CeedOperator op, const char *field_name, CeedElemRestriction r, CeedBasis b, CeedVector v) {
+  bool               is_input = true;
+  CeedInt            num_elem = 0, num_qpts = 0;
+  CeedQFunctionField qf_field;
+  CeedOperatorField *op_field;
+
   CeedCheck(!op->is_composite, op->ceed, CEED_ERROR_INCOMPATIBLE, "Cannot add field to composite operator.");
   CeedCheck(!op->is_immutable, op->ceed, CEED_ERROR_MAJOR, "Operator cannot be changed after set as immutable");
   CeedCheck(r, op->ceed, CEED_ERROR_INCOMPATIBLE, "ElemRestriction r for field \"%s\" must be non-NULL.", field_name);
   CeedCheck(b, op->ceed, CEED_ERROR_INCOMPATIBLE, "Basis b for field \"%s\" must be non-NULL.", field_name);
   CeedCheck(v, op->ceed, CEED_ERROR_INCOMPATIBLE, "Vector v for field \"%s\" must be non-NULL.", field_name);
 
-  CeedInt num_elem = 0;
   CeedCall(CeedElemRestrictionGetNumElements(r, &num_elem));
   CeedCheck(r == CEED_ELEMRESTRICTION_NONE || !op->has_restriction || op->num_elem == num_elem, op->ceed, CEED_ERROR_DIMENSION,
             "ElemRestriction with %" CeedInt_FMT " elements incompatible with prior %" CeedInt_FMT " elements", num_elem, op->num_elem);
 
-  CeedInt num_qpts = 0;
   if (b == CEED_BASIS_COLLOCATED) CeedCall(CeedElemRestrictionGetElementSize(r, &num_qpts));
   else CeedCall(CeedBasisGetNumQuadraturePoints(b, &num_qpts));
   CeedCheck(op->num_qpts == 0 || op->num_qpts == num_qpts, op->ceed, CEED_ERROR_DIMENSION,
             "%s must correspond to the same number of quadrature points as previously added Bases. Found %" CeedInt_FMT
             " quadrature points but expected %" CeedInt_FMT " quadrature points.",
             b == CEED_BASIS_COLLOCATED ? "ElemRestriction" : "Basis", num_qpts, op->num_qpts);
-  CeedQFunctionField qf_field;
-  CeedOperatorField *op_field;
-  bool               is_input = true;
   for (CeedInt i = 0; i < op->qf->num_input_fields; i++) {
     if (!strcmp(field_name, (*op->qf->input_fields[i]).field_name)) {
       qf_field = op->qf->input_fields[i];
@@ -676,6 +669,7 @@ found:
 
   if (v == CEED_VECTOR_ACTIVE) {
     CeedSize l_size;
+
     CeedCall(CeedElemRestrictionGetLVectorSize(r, &l_size));
     if (is_input) {
       if (op->input_size == -1) op->input_size = l_size;
@@ -743,11 +737,11 @@ int CeedOperatorGetFields(CeedOperator op, CeedInt *num_input_fields, CeedOperat
   @ref Advanced
 **/
 int CeedOperatorGetFieldByName(CeedOperator op, const char *field_name, CeedOperatorField *op_field) {
+  char              *name;
   CeedInt            num_input_fields, num_output_fields;
   CeedOperatorField *input_fields, *output_fields;
-  char              *name;
-  CeedCall(CeedOperatorGetFields(op, &num_input_fields, &input_fields, &num_output_fields, &output_fields));
 
+  CeedCall(CeedOperatorGetFields(op, &num_input_fields, &input_fields, &num_output_fields, &output_fields));
   for (CeedInt i = 0; i < num_input_fields; i++) {
     CeedCall(CeedOperatorFieldGetName(input_fields[i], &name));
     if (!strcmp(name, field_name)) {
@@ -755,7 +749,6 @@ int CeedOperatorGetFieldByName(CeedOperator op, const char *field_name, CeedOper
       return CEED_ERROR_SUCCESS;
     }
   }
-
   for (CeedInt i = 0; i < num_output_fields; i++) {
     CeedCall(CeedOperatorFieldGetName(output_fields[i], &name));
     if (!strcmp(name, field_name)) {
@@ -763,9 +756,9 @@ int CeedOperatorGetFieldByName(CeedOperator op, const char *field_name, CeedOper
       return CEED_ERROR_SUCCESS;
     }
   }
-
-  bool has_name = op->name;
   // LCOV_EXCL_START
+  bool has_name = op->name;
+
   return CeedError(op->ceed, CEED_ERROR_MINOR, "The field \"%s\" not found in CeedOperator%s%s%s.\n", field_name, has_name ? " \"" : "",
                    has_name ? op->name : "", has_name ? "\"" : "");
   // LCOV_EXCL_STOP
@@ -848,6 +841,7 @@ int CeedCompositeOperatorAddSub(CeedOperator composite_op, CeedOperator sub_op) 
 
   {
     CeedSize input_size, output_size;
+
     CeedCall(CeedOperatorGetActiveVectorLengths(sub_op, &input_size, &output_size));
     if (composite_op->input_size == -1) composite_op->input_size = input_size;
     if (composite_op->output_size == -1) composite_op->output_size = output_size;
@@ -908,6 +902,7 @@ int CeedCompositeOperatorGetSubList(CeedOperator op, CeedOperator **sub_operator
 **/
 int CeedOperatorCheckReady(CeedOperator op) {
   Ceed ceed;
+
   CeedCall(CeedOperatorGetCeed(op, &ceed));
 
   if (op->is_interface_setup) return CEED_ERROR_SUCCESS;
@@ -966,6 +961,7 @@ int CeedOperatorGetActiveVectorLengths(CeedOperator op, CeedSize *input_size, Ce
   if (is_composite && (op->input_size == -1 || op->output_size == -1)) {
     for (CeedInt i = 0; i < op->num_suboperators; i++) {
       CeedSize sub_input_size, sub_output_size;
+
       CeedCall(CeedOperatorGetActiveVectorLengths(op->sub_operators[i], &sub_input_size, &sub_output_size));
       if (op->input_size == -1) op->input_size = sub_input_size;
       if (op->output_size == -1) op->output_size = sub_output_size;
@@ -977,7 +973,6 @@ int CeedOperatorGetActiveVectorLengths(CeedOperator op, CeedSize *input_size, Ce
                 op->input_size, op->output_size, input_size, output_size);
     }
   }
-
   return CEED_ERROR_SUCCESS;
 }
 
@@ -1007,7 +1002,6 @@ int CeedOperatorSetQFunctionAssemblyReuse(CeedOperator op, bool reuse_assembly_d
   } else {
     CeedCall(CeedQFunctionAssemblyDataSetReuse(op->qf_assembled, reuse_assembly_data));
   }
-
   return CEED_ERROR_SUCCESS;
 }
 
@@ -1032,7 +1026,6 @@ int CeedOperatorSetQFunctionAssemblyDataUpdateNeeded(CeedOperator op, bool needs
   } else {
     CeedCall(CeedQFunctionAssemblyDataSetUpdateNeeded(op->qf_assembled, needs_data_update));
   }
-
   return CEED_ERROR_SUCCESS;
 }
 
@@ -1082,7 +1075,6 @@ int CeedOperatorSetName(CeedOperator op, const char *name) {
     memcpy(name_copy, name, name_len);
     op->name = name_copy;
   }
-
   return CEED_ERROR_SUCCESS;
 }
 
@@ -1097,7 +1089,7 @@ int CeedOperatorSetName(CeedOperator op, const char *name) {
   @ref User
 **/
 int CeedOperatorView(CeedOperator op, FILE *stream) {
-  bool has_name = op->name;
+  bool has_name = !!op->name;
 
   if (op->is_composite) {
     fprintf(stream, "Composite CeedOperator%s%s\n", has_name ? " - " : "", has_name ? op->name : "");
@@ -1171,12 +1163,14 @@ int CeedOperatorGetNumQuadraturePoints(CeedOperator op, CeedInt *num_qpts) {
 **/
 int CeedOperatorGetFlopsEstimate(CeedOperator op, CeedSize *flops) {
   bool is_composite;
+
   CeedCall(CeedOperatorCheckReady(op));
 
   *flops = 0;
   CeedCall(CeedOperatorIsComposite(op, &is_composite));
   if (is_composite) {
     CeedInt num_suboperators;
+
     CeedCall(CeedCompositeOperatorGetNumSub(op, &num_suboperators));
     CeedOperator *sub_operators;
     CeedCall(CeedCompositeOperatorGetSubList(op, &sub_operators));
@@ -1184,14 +1178,15 @@ int CeedOperatorGetFlopsEstimate(CeedOperator op, CeedSize *flops) {
     // FLOPs for each suboperator
     for (CeedInt i = 0; i < num_suboperators; i++) {
       CeedSize suboperator_flops;
+
       CeedCall(CeedOperatorGetFlopsEstimate(sub_operators[i], &suboperator_flops));
       *flops += suboperator_flops;
     }
   } else {
-    CeedInt            num_input_fields, num_output_fields;
+    CeedInt            num_input_fields, num_output_fields, num_elem = 0;
     CeedOperatorField *input_fields, *output_fields;
+
     CeedCall(CeedOperatorGetFields(op, &num_input_fields, &input_fields, &num_output_fields, &output_fields));
-    CeedInt num_elem = 0;
     CeedCall(CeedOperatorGetNumElements(op, &num_elem));
 
     // Input FLOPs
@@ -1206,11 +1201,15 @@ int CeedOperatorGetFlopsEstimate(CeedOperator op, CeedSize *flops) {
       }
     }
     // QF FLOPs
-    CeedInt  num_qpts;
-    CeedSize qf_flops;
-    CeedCall(CeedOperatorGetNumQuadraturePoints(op, &num_qpts));
-    CeedCall(CeedQFunctionGetFlopsEstimate(op->qf, &qf_flops));
-    *flops += num_elem * num_qpts * qf_flops;
+    {
+      CeedInt  num_qpts;
+      CeedSize qf_flops;
+
+      CeedCall(CeedOperatorGetNumQuadraturePoints(op, &num_qpts));
+      CeedCall(CeedQFunctionGetFlopsEstimate(op->qf, &qf_flops));
+      *flops += num_elem * num_qpts * qf_flops;
+    }
+
     // Output FLOPs
     for (CeedInt i = 0; i < num_output_fields; i++) {
       if (output_fields[i]->vec == CEED_VECTOR_ACTIVE) {
@@ -1223,7 +1222,6 @@ int CeedOperatorGetFlopsEstimate(CeedOperator op, CeedSize *flops) {
       }
     }
   }
-
   return CEED_ERROR_SUCCESS;
 }
 
@@ -1263,7 +1261,8 @@ int CeedOperatorGetContext(CeedOperator op, CeedQFunctionContext *ctx) {
   @ref User
 **/
 int CeedOperatorGetContextFieldLabel(CeedOperator op, const char *field_name, CeedContextFieldLabel *field_label) {
-  bool is_composite;
+  bool is_composite, field_found = false;
+
   CeedCall(CeedOperatorIsComposite(op, &is_composite));
 
   if (is_composite) {
@@ -1287,10 +1286,10 @@ int CeedOperatorGetContextFieldLabel(CeedOperator op, const char *field_name, Ce
     CeedCall(CeedCalloc(num_sub, &new_field_label->sub_labels));
     new_field_label->num_sub_labels = num_sub;
 
-    bool field_found = false;
     for (CeedInt i = 0; i < num_sub; i++) {
       if (sub_operators[i]->qf->ctx) {
         CeedContextFieldLabel new_field_label_i;
+
         CeedCall(CeedQFunctionContextGetFieldLabel(sub_operators[i]->qf->ctx, field_name, &new_field_label_i));
         if (new_field_label_i) {
           field_found                    = true;
@@ -1352,7 +1351,6 @@ int CeedOperatorGetContextFieldLabel(CeedOperator op, const char *field_name, Ce
     op->context_labels[op->num_context_labels] = *field_label;
     op->num_context_labels++;
   }
-
   return CEED_ERROR_SUCCESS;
 }
 
@@ -1482,9 +1480,10 @@ int CeedOperatorApply(CeedOperator op, CeedVector in, CeedVector out, CeedReques
     if (op->ApplyComposite) {
       CeedCall(op->ApplyComposite(op, in, out, request));
     } else {
-      CeedInt num_suboperators;
-      CeedCall(CeedCompositeOperatorGetNumSub(op, &num_suboperators));
+      CeedInt       num_suboperators;
       CeedOperator *sub_operators;
+
+      CeedCall(CeedCompositeOperatorGetNumSub(op, &num_suboperators));
       CeedCall(CeedCompositeOperatorGetSubList(op, &sub_operators));
 
       // Zero all output vectors
@@ -1492,6 +1491,7 @@ int CeedOperatorApply(CeedOperator op, CeedVector in, CeedVector out, CeedReques
       for (CeedInt i = 0; i < num_suboperators; i++) {
         for (CeedInt j = 0; j < sub_operators[i]->qf->num_output_fields; j++) {
           CeedVector vec = sub_operators[i]->output_fields[j]->vec;
+
           if (vec != CEED_VECTOR_ACTIVE && vec != CEED_VECTOR_NONE) {
             CeedCall(CeedVectorSetValue(vec, 0.0));
           }
@@ -1509,8 +1509,10 @@ int CeedOperatorApply(CeedOperator op, CeedVector in, CeedVector out, CeedReques
     } else {
       // Zero all output vectors
       CeedQFunction qf = op->qf;
+
       for (CeedInt i = 0; i < qf->num_output_fields; i++) {
         CeedVector vec = op->output_fields[i]->vec;
+
         if (vec == CEED_VECTOR_ACTIVE) vec = out;
         if (vec != CEED_VECTOR_NONE) CeedCall(CeedVectorSetValue(vec, 0.0));
       }
@@ -1544,11 +1546,11 @@ int CeedOperatorApplyAdd(CeedOperator op, CeedVector in, CeedVector out, CeedReq
     if (op->ApplyAddComposite) {
       CeedCall(op->ApplyAddComposite(op, in, out, request));
     } else {
-      CeedInt num_suboperators;
-      CeedCall(CeedCompositeOperatorGetNumSub(op, &num_suboperators));
+      CeedInt       num_suboperators;
       CeedOperator *sub_operators;
-      CeedCall(CeedCompositeOperatorGetSubList(op, &sub_operators));
 
+      CeedCall(CeedCompositeOperatorGetNumSub(op, &num_suboperators));
+      CeedCall(CeedCompositeOperatorGetSubList(op, &sub_operators));
       for (CeedInt i = 0; i < num_suboperators; i++) {
         CeedCall(CeedOperatorApplyAdd(sub_operators[i], in, out, request));
       }
