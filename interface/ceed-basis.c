@@ -802,11 +802,13 @@ int CeedSymmetricSchurDecomposition(Ceed ceed, CeedScalar *mat, CeedScalar *lamb
         if (fabs(z) > fabs(x)) {
           const CeedScalar tau = -x / z;
 
-          s = 1 / sqrt(1 + tau * tau), c = s * tau;
+          s = 1 / sqrt(1 + tau * tau);
+          c = s * tau;
         } else {
           const CeedScalar tau = -z / x;
 
-          c = 1 / sqrt(1 + tau * tau), s = c * tau;
+          c = 1 / sqrt(1 + tau * tau);
+          s = c * tau;
         }
       }
 
