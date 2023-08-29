@@ -10,6 +10,7 @@ On this page we provide a summary of the main API changes, new features and exam
 
 - Update `CeedOperatorContext*` functions to `CeedOperator*Context*` functions for consistency.
 For example, `CeedOperatorContextGetFieldLabel` was renamed to `CeedOperatorGetContextFieldLabel`.
+- Removed `CeedBasisSetNumQuadraturePoints` as redundant and bug-prone interface.
 
 ### New features
 
