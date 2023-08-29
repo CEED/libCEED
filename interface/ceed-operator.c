@@ -1050,9 +1050,14 @@ int CeedOperatorSetQFunctionAssemblyDataUpdateNeeded(CeedOperator op, bool needs
   @ref Advanced
 **/
 int CeedOperatorSetNumQuadraturePoints(CeedOperator op, CeedInt num_qpts) {
-  CeedCheck(!op->is_composite, op->ceed, CEED_ERROR_MINOR, "Not defined for composite operator");
-  CeedCheck(op->num_qpts == 0, op->ceed, CEED_ERROR_MINOR, "Number of quadrature points already defined");
+  CeedCheck(!op->is_composite, op->ceed, CEED_ERROR_MINOR, "Not defined for composite CeedOperator");
   CeedCheck(!op->is_immutable, op->ceed, CEED_ERROR_MAJOR, "Operator cannot be changed after set as immutable");
+  if (op->num_qpts > 0) {
+    CeedWarn(
+        "CeedOperatorSetNumQuadraturePoints will be removed from the libCEED interface in the next release.\n"
+        "This function is reduntant and you can safely remove any calls to this function without replacing them.");
+    CeedCheck(num_qpts == op->num_qpts, op->ceed, CEED_ERROR_DIMENSION, "Different number of quadrature points already defined for the CeedOperator");
+  }
   op->num_qpts = num_qpts;
   return CEED_ERROR_SUCCESS;
 }
