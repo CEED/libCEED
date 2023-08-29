@@ -53,12 +53,15 @@ static PetscScalar EvaldU(PetscInt dim, const PetscScalar x[], PetscInt directio
   return result;
 }
 
-PetscErrorCode DMSwarmCreateReferenceCoordinates(DM dm_swarm, DM dm_mesh, IS *is_points, Vec *ref_coords) {
+PetscErrorCode DMSwarmCreateReferenceCoordinates(DM dm_swarm, IS *is_points, Vec *ref_coords) {
+  DM                 dm_mesh;
   PetscInt           cell_start, cell_end, dim, num_points_local, *point_cell_numbers;
   PetscScalar       *coords_points_ref;
   const PetscScalar *coords_points_true;
 
   PetscFunctionBeginUser;
+
+  PetscCall(DMSwarmGetCellDM(dm_swarm, &dm_mesh));
 
   // Create vector to hold reference coordinates
   {
@@ -365,7 +368,7 @@ int main(int argc, char **argv) {
     // -- Get swarm values
     PetscCall(DMPlexGetHeightStratum(dm_mesh, 0, &cell_start, &cell_end));
     PetscCall(DMSwarmGetField(dm_swarm, "u", NULL, NULL, (void **)&u_all_points_array));
-    PetscCall(DMSwarmCreateReferenceCoordinates(dm_swarm, dm_mesh, &is_points, &ref_coords));
+    PetscCall(DMSwarmCreateReferenceCoordinates(dm_swarm, &is_points, &ref_coords));
     PetscCall(ISGetSize(is_points, &num_points_local));
     PetscCall(ISGetIndices(is_points, &all_points));
     PetscCall(VecGetArrayRead(ref_coords, &coords_points_ref));
