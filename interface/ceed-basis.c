@@ -871,15 +871,8 @@ int CeedSimultaneousDiagonalization(Ceed ceed, CeedScalar *mat_A, CeedScalar *ma
   for (CeedInt i = n - 1; i >= 0; i--) {
     for (CeedInt j = 0; j < i; j++) {
       if (fabs(vec_D[j]) > fabs(vec_D[j + 1])) {
-        CeedScalar temp = vec_D[j];
-
-        vec_D[j]     = vec_D[j + 1];
-        vec_D[j + 1] = temp;
-        for (CeedInt k = 0; k < n; k++) {
-          temp                 = mat_G[k * n + j];
-          mat_G[k * n + j]     = mat_G[k * n + j + 1];
-          mat_G[k * n + j + 1] = temp;
-        }
+        CeedScalarSwap(vec_D[j], vec_D[j + 1]);
+        for (CeedInt k = 0; k < n; k++) CeedScalarSwap(mat_G[k * n + j], mat_G[k * n + j + 1]);
       }
     }
   }
@@ -908,15 +901,8 @@ int CeedSimultaneousDiagonalization(Ceed ceed, CeedScalar *mat_A, CeedScalar *ma
   for (CeedInt i = n - 1; i >= 0; i--) {
     for (CeedInt j = 0; j < i; j++) {
       if (fabs(lambda[j]) > fabs(lambda[j + 1])) {
-        CeedScalar temp = lambda[j];
-
-        lambda[j]     = lambda[j + 1];
-        lambda[j + 1] = temp;
-        for (CeedInt k = 0; k < n; k++) {
-          temp                 = mat_C[k * n + j];
-          mat_C[k * n + j]     = mat_C[k * n + j + 1];
-          mat_C[k * n + j + 1] = temp;
-        }
+        CeedScalarSwap(lambda[j], lambda[j + 1]);
+        for (CeedInt k = 0; k < n; k++) CeedScalarSwap(mat_C[k * n + j], mat_C[k * n + j + 1]);
       }
     }
   }
