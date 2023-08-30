@@ -462,27 +462,25 @@ static int CeedOperatorApplyAdd_Sycl(CeedOperator op, CeedVector invec, CeedVect
 //------------------------------------------------------------------------------
 static inline int CeedOperatorLinearAssembleQFunctionCore_Sycl(CeedOperator op, bool build_objects, CeedVector *assembled, CeedElemRestriction *rstr,
                                                                CeedRequest *request) {
-  CeedOperator_Sycl *impl;
+  Ceed                ceed, ceedparent;
+  CeedOperator_Sycl  *impl;
+  CeedQFunction       qf;
+  CeedQFunctionField *qfinputfields, *qfoutputfields;
+  CeedOperatorField  *opinputfields, *opoutputfields;
+  CeedVector          vec, *activein;
+  CeedInt             numactivein, numactiveout, Q, numelements, numinputfields, numoutputfields, size;
+  CeedSize            q_size;
+  CeedScalar         *a, *tmp, *edata[2 * CEED_FIELD_MAX] = {NULL};
+  CeedCallBackend(CeedOperatorGetCeed(op, &ceed));
+  CeedCallBackend(CeedOperatorGetFallbackParentCeed(op, &ceedparent));
   CeedCallBackend(CeedOperatorGetData(op, &impl));
-  CeedQFunction qf;
+  activein    = impl->qfactivein;
+  numactivein = impl->qfnumactivein, numactiveout = impl->qfnumactiveout;
   CeedCallBackend(CeedOperatorGetQFunction(op, &qf));
-  CeedInt  Q, numelements, numinputfields, numoutputfields, size;
-  CeedSize q_size;
   CeedCallBackend(CeedOperatorGetNumQuadraturePoints(op, &Q));
   CeedCallBackend(CeedOperatorGetNumElements(op, &numelements));
-  CeedOperatorField *opinputfields, *opoutputfields;
-  CeedCallBackend(CeedOperatorGetFields(op, &numinputfields, &opinputfields, &numoutputfields, &opoutputfields));
-  CeedQFunctionField *qfinputfields, *qfoutputfields;
   CeedCallBackend(CeedQFunctionGetFields(qf, NULL, &qfinputfields, NULL, &qfoutputfields));
-  CeedVector  vec;
-  CeedInt     numactivein = impl->qfnumactivein, numactiveout = impl->qfnumactiveout;
-  CeedVector *activein = impl->qfactivein;
-  CeedScalar *a, *tmp;
-  Ceed        ceed, ceedparent;
-  CeedCallBackend(CeedOperatorGetCeed(op, &ceed));
-  CeedCallBackend(CeedGetOperatorFallbackParentCeed(ceed, &ceedparent));
-  ceedparent                            = ceedparent ? ceedparent : ceed;
-  CeedScalar *edata[2 * CEED_FIELD_MAX] = {NULL};
+  CeedCallBackend(CeedOperatorGetFields(op, &numinputfields, &opinputfields, &numoutputfields, &opoutputfields));
 
   // Setup
   CeedCallBackend(CeedOperatorSetup_Sycl(op));
