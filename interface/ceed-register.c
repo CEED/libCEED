@@ -28,14 +28,15 @@ static bool register_all_called;
   @ref User
 **/
 int CeedRegisterAll() {
+  int ierr = 0;
   CeedPragmaCritical(CeedRegisterAll) {
     if (!register_all_called) {
       CeedDebugEnv256(1, "\n---------- Registering Backends ----------\n");
-#define CEED_BACKEND(name, ...) CeedChk(name());
+#define CEED_BACKEND(name, ...) ierr += name();
 #include "../backends/ceed-backend-list.h"
 #undef CEED_BACKEND
       register_all_called = true;
     }
   }
-  return CEED_ERROR_SUCCESS;
+  return ierr;
 }
