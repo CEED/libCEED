@@ -1498,8 +1498,8 @@ int CeedOperatorApply(CeedOperator op, CeedVector in, CeedVector out, CeedReques
         }
       }
       // Apply
-      for (CeedInt i = 0; i < op->num_suboperators; i++) {
-        CeedCall(CeedOperatorApplyAdd(op->sub_operators[i], in, out, request));
+      for (CeedInt i = 0; i < num_suboperators; i++) {
+        CeedCall(CeedOperatorApplyAdd(sub_operators[i], in, out, request));
       }
     }
   } else {
