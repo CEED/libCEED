@@ -17,9 +17,9 @@
 //------------------------------------------------------------------------------
 static int CeedDestroy_Opt(Ceed ceed) {
   Ceed_Opt *data;
+
   CeedCallBackend(CeedGetData(ceed, &data));
   CeedCallBackend(CeedFree(&data));
-
   return CEED_ERROR_SUCCESS;
 }
 
@@ -27,18 +27,19 @@ static int CeedDestroy_Opt(Ceed ceed) {
 // Backend Init
 //------------------------------------------------------------------------------
 static int CeedInit_Opt_Serial(const char *resource, Ceed ceed) {
+  Ceed       ceed_ref;
+  const char fallbackresource[] = "/cpu/self/ref/serial";
+  Ceed_Opt  *data;
+
   CeedCheck(!strcmp(resource, "/cpu/self") || !strcmp(resource, "/cpu/self/opt/serial"), ceed, CEED_ERROR_BACKEND,
             "Opt backend cannot use resource: %s", resource);
   CeedCallBackend(CeedSetDeterministic(ceed, true));
 
   // Create reference Ceed that implementation will be dispatched through unless overridden
-
-  Ceed ceed_ref;
   CeedCallBackend(CeedInit("/cpu/self/ref/serial", &ceed_ref));
   CeedCallBackend(CeedSetDelegate(ceed, ceed_ref));
 
   // Set fallback Ceed resource for advanced operator functionality
-  const char fallbackresource[] = "/cpu/self/ref/serial";
   CeedCallBackend(CeedSetOperatorFallbackResource(ceed, fallbackresource));
 
   CeedCallBackend(CeedSetBackendFunction(ceed, "Ceed", ceed, "Destroy", CeedDestroy_Opt));
@@ -46,11 +47,9 @@ static int CeedInit_Opt_Serial(const char *resource, Ceed ceed) {
   CeedCallBackend(CeedSetBackendFunction(ceed, "Ceed", ceed, "OperatorCreate", CeedOperatorCreate_Opt));
 
   // Set block size
-  Ceed_Opt *data;
   CeedCallBackend(CeedCalloc(1, &data));
-  data->blk_size = 1;
+  data->block_size = 1;
   CeedCallBackend(CeedSetData(ceed, data));
-
   return CEED_ERROR_SUCCESS;
 }
 

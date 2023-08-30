@@ -19,7 +19,7 @@ typedef struct {
 
 typedef struct {
   bool                 is_identity_qf, is_identity_restr_op;
-  CeedElemRestriction *blk_restr;    /* Blocked versions of restrictions */
+  CeedElemRestriction *block_restr;  /* Blocked versions of restrictions */
   CeedVector          *e_vecs_full;  /* Full E-vectors, inputs followed by outputs */
   uint64_t            *input_states; /* State counter of inputs */
   CeedVector          *e_vecs_in;    /* Element block input E-vectors  */
@@ -30,7 +30,7 @@ typedef struct {
   CeedInt              num_active_in, num_active_out;
   CeedVector          *qf_active_in;
   CeedVector           qf_l_vec;
-  CeedElemRestriction  qf_blk_rstr;
+  CeedElemRestriction  qf_block_rstr;
 } CeedOperator_Blocked;
 
 CEED_INTERN int CeedOperatorCreate_Blocked(CeedOperator op);

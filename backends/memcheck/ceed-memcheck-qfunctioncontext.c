@@ -18,10 +18,9 @@
 //------------------------------------------------------------------------------
 static int CeedQFunctionContextHasValidData_Memcheck(CeedQFunctionContext ctx, bool *has_valid_data) {
   CeedQFunctionContext_Memcheck *impl;
+
   CeedCallBackend(CeedQFunctionContextGetBackendData(ctx, (void *)&impl));
-
   *has_valid_data = impl->data;
-
   return CEED_ERROR_SUCCESS;
 }
 
@@ -29,9 +28,10 @@ static int CeedQFunctionContextHasValidData_Memcheck(CeedQFunctionContext ctx, b
 // QFunctionContext has borrowed data
 //------------------------------------------------------------------------------
 static int CeedQFunctionContextHasBorrowedDataOfType_Memcheck(CeedQFunctionContext ctx, CeedMemType mem_type, bool *has_borrowed_data_of_type) {
+  Ceed                           ceed;
   CeedQFunctionContext_Memcheck *impl;
+
   CeedCallBackend(CeedQFunctionContextGetBackendData(ctx, (void *)&impl));
-  Ceed ceed;
   CeedCallBackend(CeedQFunctionContextGetCeed(ctx, &ceed));
 
   switch (mem_type) {
@@ -44,7 +44,6 @@ static int CeedQFunctionContextHasBorrowedDataOfType_Memcheck(CeedQFunctionConte
       // LCOV_EXCL_STOP
       break;
   }
-
   return CEED_ERROR_SUCCESS;
 }
 
@@ -52,11 +51,12 @@ static int CeedQFunctionContextHasBorrowedDataOfType_Memcheck(CeedQFunctionConte
 // QFunctionContext Set Data
 //------------------------------------------------------------------------------
 static int CeedQFunctionContextSetData_Memcheck(CeedQFunctionContext ctx, CeedMemType mem_type, CeedCopyMode copy_mode, void *data) {
+  Ceed                           ceed;
+  size_t                         ctx_size;
   CeedQFunctionContext_Memcheck *impl;
+
   CeedCallBackend(CeedQFunctionContextGetBackendData(ctx, (void *)&impl));
-  size_t ctx_size;
   CeedCallBackend(CeedQFunctionContextGetContextSize(ctx, &ctx_size));
-  Ceed ceed;
   CeedCallBackend(CeedQFunctionContextGetCeed(ctx, &ceed));
 
   CeedCheck(mem_type == CEED_MEM_HOST, ceed, CEED_ERROR_BACKEND, "Can only set HOST memory for this backend");
@@ -85,7 +85,6 @@ static int CeedQFunctionContextSetData_Memcheck(CeedQFunctionContext ctx, CeedMe
   impl->data = impl->data_allocated;
   VALGRIND_DISCARD(impl->mem_block_id);
   impl->mem_block_id = VALGRIND_CREATE_BLOCK(impl->data, ctx_size, "'QFunction backend context data copy'");
-
   return CEED_ERROR_SUCCESS;
 }
 
@@ -93,9 +92,10 @@ static int CeedQFunctionContextSetData_Memcheck(CeedQFunctionContext ctx, CeedMe
 // QFunctionContext Take Data
 //------------------------------------------------------------------------------
 static int CeedQFunctionContextTakeData_Memcheck(CeedQFunctionContext ctx, CeedMemType mem_type, void *data) {
+  Ceed                           ceed;
   CeedQFunctionContext_Memcheck *impl;
+
   CeedCallBackend(CeedQFunctionContextGetBackendData(ctx, (void *)&impl));
-  Ceed ceed;
   CeedCallBackend(CeedQFunctionContextGetCeed(ctx, &ceed));
 
   CeedCheck(mem_type == CEED_MEM_HOST, ceed, CEED_ERROR_BACKEND, "Can only provide HOST memory for this backend");
@@ -105,7 +105,6 @@ static int CeedQFunctionContextTakeData_Memcheck(CeedQFunctionContext ctx, CeedM
   impl->data          = NULL;
   VALGRIND_DISCARD(impl->mem_block_id);
   CeedCallBackend(CeedFree(&impl->data_allocated));
-
   return CEED_ERROR_SUCCESS;
 }
 
@@ -113,15 +112,15 @@ static int CeedQFunctionContextTakeData_Memcheck(CeedQFunctionContext ctx, CeedM
 // QFunctionContext Get Data
 //------------------------------------------------------------------------------
 static int CeedQFunctionContextGetData_Memcheck(CeedQFunctionContext ctx, CeedMemType mem_type, void *data) {
+  Ceed                           ceed;
   CeedQFunctionContext_Memcheck *impl;
+
   CeedCallBackend(CeedQFunctionContextGetBackendData(ctx, (void *)&impl));
-  Ceed ceed;
   CeedCallBackend(CeedQFunctionContextGetCeed(ctx, &ceed));
 
   CeedCheck(mem_type == CEED_MEM_HOST, ceed, CEED_ERROR_BACKEND, "Can only provide HOST memory for this backend");
 
   *(void **)data = impl->data;
-
   return CEED_ERROR_SUCCESS;
 }
 
@@ -129,19 +128,18 @@ static int CeedQFunctionContextGetData_Memcheck(CeedQFunctionContext ctx, CeedMe
 // QFunctionContext Get Data Read-Only
 //------------------------------------------------------------------------------
 static int CeedQFunctionContextGetDataRead_Memcheck(CeedQFunctionContext ctx, CeedMemType mem_type, void *data) {
+  Ceed                           ceed;
+  size_t                         ctx_size;
   CeedQFunctionContext_Memcheck *impl;
-  CeedCallBackend(CeedQFunctionContextGetBackendData(ctx, (void *)&impl));
-  size_t ctx_size;
-  CeedCallBackend(CeedQFunctionContextGetContextSize(ctx, &ctx_size));
-  Ceed ceed;
-  CeedCallBackend(CeedQFunctionContextGetCeed(ctx, &ceed));
 
+  CeedCallBackend(CeedQFunctionContextGetBackendData(ctx, (void *)&impl));
+  CeedCallBackend(CeedQFunctionContextGetContextSize(ctx, &ctx_size));
+  CeedCallBackend(CeedQFunctionContextGetCeed(ctx, &ceed));
   CeedCallBackend(CeedQFunctionContextGetData_Memcheck(ctx, mem_type, data));
 
   // Make copy to verify no write occurred
   CeedCallBackend(CeedMallocArray(1, ctx_size, &impl->data_read_only_copy));
   memcpy(impl->data_read_only_copy, *(void **)data, ctx_size);
-
   return CEED_ERROR_SUCCESS;
 }
 
@@ -149,18 +147,14 @@ static int CeedQFunctionContextGetDataRead_Memcheck(CeedQFunctionContext ctx, Ce
 // QFunctionContext Restore Data
 //------------------------------------------------------------------------------
 static int CeedQFunctionContextRestoreData_Memcheck(CeedQFunctionContext ctx) {
-  size_t ctx_size;
-  CeedCallBackend(CeedQFunctionContextGetContextSize(ctx, &ctx_size));
+  size_t                         ctx_size;
   CeedQFunctionContext_Memcheck *impl;
+
+  CeedCallBackend(CeedQFunctionContextGetContextSize(ctx, &ctx_size));
   CeedCallBackend(CeedQFunctionContextGetBackendData(ctx, (void *)&impl));
 
-  if (impl->data_borrowed) {
-    memcpy(impl->data_borrowed, impl->data, ctx_size);
-  }
-  if (impl->data_owned) {
-    memcpy(impl->data_owned, impl->data, ctx_size);
-  }
-
+  if (impl->data_borrowed) memcpy(impl->data_borrowed, impl->data, ctx_size);
+  if (impl->data_owned) memcpy(impl->data_owned, impl->data, ctx_size);
   return CEED_ERROR_SUCCESS;
 }
 
@@ -168,18 +162,18 @@ static int CeedQFunctionContextRestoreData_Memcheck(CeedQFunctionContext ctx) {
 // QFunctionContext Restore Data Read-Only
 //------------------------------------------------------------------------------
 static int CeedQFunctionContextRestoreDataRead_Memcheck(CeedQFunctionContext ctx) {
-  size_t ctx_size;
-  CeedCallBackend(CeedQFunctionContextGetContextSize(ctx, &ctx_size));
+  Ceed                           ceed;
+  size_t                         ctx_size;
   CeedQFunctionContext_Memcheck *impl;
+
+  CeedCallBackend(CeedQFunctionContextGetContextSize(ctx, &ctx_size));
   CeedCallBackend(CeedQFunctionContextGetBackendData(ctx, (void *)&impl));
-  Ceed ceed;
   CeedCallBackend(CeedQFunctionContextGetCeed(ctx, &ceed));
 
   CeedCheck(!memcmp(impl->data, impl->data_read_only_copy, ctx_size), ceed, CEED_ERROR_BACKEND,
             "Context data changed while accessed in read-only mode");
 
   CeedCallBackend(CeedFree(&impl->data_read_only_copy));
-
   return CEED_ERROR_SUCCESS;
 }
 
@@ -187,12 +181,13 @@ static int CeedQFunctionContextRestoreDataRead_Memcheck(CeedQFunctionContext ctx
 // QFunctionContext destroy user data
 //------------------------------------------------------------------------------
 static int CeedQFunctionContextDataDestroy_Memcheck(CeedQFunctionContext ctx) {
-  CeedQFunctionContext_Memcheck *impl;
-  CeedCallBackend(CeedQFunctionContextGetBackendData(ctx, &impl));
-  CeedQFunctionContextDataDestroyUser data_destroy_function;
+  Ceed                                ceed;
   CeedMemType                         data_destroy_mem_type;
+  CeedQFunctionContextDataDestroyUser data_destroy_function;
+  CeedQFunctionContext_Memcheck      *impl;
+
+  CeedCallBackend(CeedQFunctionContextGetBackendData(ctx, &impl));
   CeedCallBackend(CeedQFunctionContextGetDataDestroy(ctx, &data_destroy_mem_type, &data_destroy_function));
-  Ceed ceed;
   CeedCallBackend(CeedQFunctionContextGetCeed(ctx, &ceed));
 
   CeedCheck(data_destroy_mem_type == CEED_MEM_HOST, ceed, CEED_ERROR_BACKEND, "Can only destroy HOST memory for this backend");
@@ -201,7 +196,6 @@ static int CeedQFunctionContextDataDestroy_Memcheck(CeedQFunctionContext ctx) {
     CeedCallBackend(data_destroy_function(impl->data_borrowed ? impl->data_borrowed : impl->data_owned));
   }
   CeedCallBackend(CeedFree(&impl->data_allocated));
-
   return CEED_ERROR_SUCCESS;
 }
 
@@ -210,8 +204,8 @@ static int CeedQFunctionContextDataDestroy_Memcheck(CeedQFunctionContext ctx) {
 //------------------------------------------------------------------------------
 static int CeedQFunctionContextDestroy_Memcheck(CeedQFunctionContext ctx) {
   CeedQFunctionContext_Memcheck *impl;
-  CeedCallBackend(CeedQFunctionContextGetBackendData(ctx, &impl));
 
+  CeedCallBackend(CeedQFunctionContextGetBackendData(ctx, &impl));
   CeedCallBackend(CeedFree(&impl->data_allocated));
   CeedCallBackend(CeedFree(&impl->data_owned));
   CeedCallBackend(CeedFree(&impl));
@@ -222,10 +216,10 @@ static int CeedQFunctionContextDestroy_Memcheck(CeedQFunctionContext ctx) {
 // QFunctionContext Create
 //------------------------------------------------------------------------------
 int CeedQFunctionContextCreate_Memcheck(CeedQFunctionContext ctx) {
-  CeedQFunctionContext_Memcheck *impl;
   Ceed                           ceed;
-  CeedCallBackend(CeedQFunctionContextGetCeed(ctx, &ceed));
+  CeedQFunctionContext_Memcheck *impl;
 
+  CeedCallBackend(CeedQFunctionContextGetCeed(ctx, &ceed));
   CeedCallBackend(CeedSetBackendFunction(ceed, "QFunctionContext", ctx, "HasValidData", CeedQFunctionContextHasValidData_Memcheck));
   CeedCallBackend(CeedSetBackendFunction(ceed, "QFunctionContext", ctx, "HasBorrowedDataOfType", CeedQFunctionContextHasBorrowedDataOfType_Memcheck));
   CeedCallBackend(CeedSetBackendFunction(ceed, "QFunctionContext", ctx, "SetData", CeedQFunctionContextSetData_Memcheck));
@@ -236,10 +230,8 @@ int CeedQFunctionContextCreate_Memcheck(CeedQFunctionContext ctx) {
   CeedCallBackend(CeedSetBackendFunction(ceed, "QFunctionContext", ctx, "RestoreDataRead", CeedQFunctionContextRestoreDataRead_Memcheck));
   CeedCallBackend(CeedSetBackendFunction(ceed, "QFunctionContext", ctx, "DataDestroy", CeedQFunctionContextDataDestroy_Memcheck));
   CeedCallBackend(CeedSetBackendFunction(ceed, "QFunctionContext", ctx, "Destroy", CeedQFunctionContextDestroy_Memcheck));
-
   CeedCallBackend(CeedCalloc(1, &impl));
   CeedCallBackend(CeedQFunctionContextSetBackendData(ctx, impl));
-
   return CEED_ERROR_SUCCESS;
 }
 

@@ -17,6 +17,7 @@ static inline int CeedTensorContractApply_Core_Opt(CeedTensorContract contract, 
                                                    const CeedScalar *restrict t, CeedTransposeMode t_mode, const CeedInt add,
                                                    const CeedScalar *restrict u, CeedScalar *restrict v) {
   CeedInt t_stride_0 = B, t_stride_1 = 1;
+
   if (t_mode == CEED_TRANSPOSE) {
     t_stride_0 = 1;
     t_stride_1 = J;
@@ -30,7 +31,6 @@ static inline int CeedTensorContractApply_Core_Opt(CeedTensorContract contract, 
       }
     }
   }
-
   return CEED_ERROR_SUCCESS;
 }
 
@@ -45,7 +45,6 @@ static int CeedTensorContractApply_Opt(CeedTensorContract contract, CeedInt A, C
 
   if (C == 1) return CeedTensorContractApply_Core_Opt(contract, A, B, 1, J, t, t_mode, add, u, v);
   else return CeedTensorContractApply_Core_Opt(contract, A, B, C, J, t, t_mode, add, u, v);
-
   return CEED_ERROR_SUCCESS;
 }
 
@@ -54,10 +53,9 @@ static int CeedTensorContractApply_Opt(CeedTensorContract contract, CeedInt A, C
 //------------------------------------------------------------------------------
 int CeedTensorContractCreate_Opt(CeedBasis basis, CeedTensorContract contract) {
   Ceed ceed;
+
   CeedCallBackend(CeedTensorContractGetCeed(contract, &ceed));
-
   CeedCallBackend(CeedSetBackendFunction(ceed, "TensorContract", contract, "Apply", CeedTensorContractApply_Opt));
-
   return CEED_ERROR_SUCCESS;
 }
 

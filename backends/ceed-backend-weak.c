@@ -19,10 +19,12 @@ static int CeedInit_Weak(const char *resource, Ceed ceed) {
 // This function provides a debug target for weak symbols
 static int CeedRegister_Weak(const char *name, int num_prefixes, ...) {
   va_list prefixes;
+  int     ierr;
+
   va_start(prefixes, num_prefixes);
-  int ierr;
   for (int i = 0; i < num_prefixes; i++) {
     const char *prefix = va_arg(prefixes, const char *);
+
     CeedDebugEnv("** Weak Register: %s", prefix);
     ierr = CeedRegisterImpl(prefix, CeedInit_Weak, CEED_MAX_BACKEND_PRIORITY);
     if (ierr) va_end(prefixes);  // Prevent leak on error

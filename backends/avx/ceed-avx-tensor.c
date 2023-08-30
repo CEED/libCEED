@@ -43,6 +43,7 @@ static inline int CeedTensorContract_Avx_Blocked(CeedTensorContract contract, Ce
                                                  const CeedScalar *restrict t, CeedTransposeMode t_mode, const CeedInt add,
                                                  const CeedScalar *restrict u, CeedScalar *restrict v, const CeedInt JJ, const CeedInt CC) {
   CeedInt t_stride_0 = B, t_stride_1 = 1;
+
   if (t_mode == CEED_TRANSPOSE) {
     t_stride_0 = 1;
     t_stride_1 = J;
@@ -56,7 +57,6 @@ static inline int CeedTensorContract_Avx_Blocked(CeedTensorContract contract, Ce
         for (CeedInt jj = 0; jj < JJ; jj++) {
           for (CeedInt cc = 0; cc < CC / 4; cc++) vv[jj][cc] = loadu(&v[(a * J + j + jj) * C + c + cc * 4]);
         }
-
         for (CeedInt b = 0; b < B; b++) {
           for (CeedInt jj = 0; jj < JJ; jj++) {  // unroll
             rtype tqv = set1(t[(j + jj) * t_stride_0 + b * t_stride_1]);
@@ -71,17 +71,19 @@ static inline int CeedTensorContract_Avx_Blocked(CeedTensorContract contract, Ce
       }
     }
     // Remainder of rows
-    CeedInt j = (J / JJ) * JJ;
+    const CeedInt j = (J / JJ) * JJ;
+
     if (j < J) {
       for (CeedInt c = 0; c < (C / CC) * CC; c += CC) {
         rtype vv[JJ][CC / 4];  // Output tile to be held in registers
+
         for (CeedInt jj = 0; jj < J - j; jj++) {
           for (CeedInt cc = 0; cc < CC / 4; cc++) vv[jj][cc] = loadu(&v[(a * J + j + jj) * C + c + cc * 4]);
         }
-
         for (CeedInt b = 0; b < B; b++) {
           for (CeedInt jj = 0; jj < J - j; jj++) {  // doesn't unroll
             rtype tqv = set1(t[(j + jj) * t_stride_0 + b * t_stride_1]);
+
             for (CeedInt cc = 0; cc < CC / 4; cc++) {  // unroll
               fmadd(vv[jj][cc], tqv, loadu(&u[(a * B + b) * C + c + cc * 4]));
             }
@@ -103,22 +105,25 @@ static inline int CeedTensorContract_Avx_Remainder(CeedTensorContract contract, 
                                                    const CeedScalar *restrict t, CeedTransposeMode t_mode, const CeedInt add,
                                                    const CeedScalar *restrict u, CeedScalar *restrict v, const CeedInt JJ, const CeedInt CC) {
   CeedInt t_stride_0 = B, t_stride_1 = 1;
+
   if (t_mode == CEED_TRANSPOSE) {
     t_stride_0 = 1;
     t_stride_1 = J;
   }
 
-  CeedInt J_break = J % JJ ? (J / JJ) * JJ : (J / JJ - 1) * JJ;
+  const CeedInt J_break = J % JJ ? (J / JJ) * JJ : (J / JJ - 1) * JJ;
+
   for (CeedInt a = 0; a < A; a++) {
     // Blocks of 4 columns
     for (CeedInt c = (C / CC) * CC; c < C; c += 4) {
       // Blocks of 4 rows
       for (CeedInt j = 0; j < J_break; j += JJ) {
         rtype vv[JJ];  // Output tile to be held in registers
-        for (CeedInt jj = 0; jj < JJ; jj++) vv[jj] = loadu(&v[(a * J + j + jj) * C + c]);
 
+        for (CeedInt jj = 0; jj < JJ; jj++) vv[jj] = loadu(&v[(a * J + j + jj) * C + c]);
         for (CeedInt b = 0; b < B; b++) {
           rtype tqu;
+
           if (C - c == 1) tqu = set(0.0, 0.0, 0.0, u[(a * B + b) * C + c + 0]);
           else if (C - c == 2) tqu = set(0.0, 0.0, u[(a * B + b) * C + c + 1], u[(a * B + b) * C + c + 0]);
           else if (C - c == 3) tqu = set(0.0, u[(a * B + b) * C + c + 2], u[(a * B + b) * C + c + 1], u[(a * B + b) * C + c + 0]);
@@ -133,7 +138,8 @@ static inline int CeedTensorContract_Avx_Remainder(CeedTensorContract contract, 
     // Remainder of rows, all columns
     for (CeedInt j = J_break; j < J; j++) {
       for (CeedInt b = 0; b < B; b++) {
-        CeedScalar tq = t[j * t_stride_0 + b * t_stride_1];
+        const CeedScalar tq = t[j * t_stride_0 + b * t_stride_1];
+
         for (CeedInt c = (C / CC) * CC; c < C; c++) v[(a * J + j) * C + c] += tq * u[(a * B + b) * C + c];
       }
     }
@@ -148,6 +154,7 @@ static inline int CeedTensorContract_Avx_Single(CeedTensorContract contract, Cee
                                                 CeedTransposeMode t_mode, const CeedInt add, const CeedScalar *restrict u, CeedScalar *restrict v,
                                                 const CeedInt AA, const CeedInt JJ) {
   CeedInt t_stride_0 = B, t_stride_1 = 1;
+
   if (t_mode == CEED_TRANSPOSE) {
     t_stride_0 = 1;
     t_stride_1 = J;
@@ -157,14 +164,15 @@ static inline int CeedTensorContract_Avx_Single(CeedTensorContract contract, Cee
   for (CeedInt a = 0; a < (A / AA) * AA; a += AA) {
     for (CeedInt j = 0; j < (J / JJ) * JJ; j += JJ) {
       rtype vv[AA][JJ / 4];  // Output tile to be held in registers
+
       for (CeedInt aa = 0; aa < AA; aa++) {
         for (CeedInt jj = 0; jj < JJ / 4; jj++) vv[aa][jj] = loadu(&v[(a + aa) * J + j + jj * 4]);
       }
-
       for (CeedInt b = 0; b < B; b++) {
         for (CeedInt jj = 0; jj < JJ / 4; jj++) {  // unroll
           rtype tqv = set(t[(j + jj * 4 + 3) * t_stride_0 + b * t_stride_1], t[(j + jj * 4 + 2) * t_stride_0 + b * t_stride_1],
                           t[(j + jj * 4 + 1) * t_stride_0 + b * t_stride_1], t[(j + jj * 4 + 0) * t_stride_0 + b * t_stride_1]);
+
           for (CeedInt aa = 0; aa < AA; aa++) {  // unroll
             fmadd(vv[aa][jj], tqv, set1(u[(a + aa) * B + b]));
           }
@@ -176,17 +184,19 @@ static inline int CeedTensorContract_Avx_Single(CeedTensorContract contract, Cee
     }
   }
   // Remainder of rows
-  CeedInt a = (A / AA) * AA;
+  const CeedInt a = (A / AA) * AA;
+
   for (CeedInt j = 0; j < (J / JJ) * JJ; j += JJ) {
     rtype vv[AA][JJ / 4];  // Output tile to be held in registers
+
     for (CeedInt aa = 0; aa < A - a; aa++) {
       for (CeedInt jj = 0; jj < JJ / 4; jj++) vv[aa][jj] = loadu(&v[(a + aa) * J + j + jj * 4]);
     }
-
     for (CeedInt b = 0; b < B; b++) {
       for (CeedInt jj = 0; jj < JJ / 4; jj++) {  // unroll
         rtype tqv = set(t[(j + jj * 4 + 3) * t_stride_0 + b * t_stride_1], t[(j + jj * 4 + 2) * t_stride_0 + b * t_stride_1],
                         t[(j + jj * 4 + 1) * t_stride_0 + b * t_stride_1], t[(j + jj * 4 + 0) * t_stride_0 + b * t_stride_1]);
+
         for (CeedInt aa = 0; aa < A - a; aa++) {  // unroll
           fmadd(vv[aa][jj], tqv, set1(u[(a + aa) * B + b]));
         }
@@ -197,16 +207,18 @@ static inline int CeedTensorContract_Avx_Single(CeedTensorContract contract, Cee
     }
   }
   // Column remainder
-  CeedInt A_break = A % AA ? (A / AA) * AA : (A / AA - 1) * AA;
+  const CeedInt A_break = A % AA ? (A / AA) * AA : (A / AA - 1) * AA;
+
   // Blocks of 4 columns
   for (CeedInt j = (J / JJ) * JJ; j < J; j += 4) {
     // Blocks of 4 rows
     for (CeedInt a = 0; a < A_break; a += AA) {
       rtype vv[AA];  // Output tile to be held in registers
-      for (CeedInt aa = 0; aa < AA; aa++) vv[aa] = loadu(&v[(a + aa) * J + j]);
 
+      for (CeedInt aa = 0; aa < AA; aa++) vv[aa] = loadu(&v[(a + aa) * J + j]);
       for (CeedInt b = 0; b < B; b++) {
         rtype tqv;
+
         if (J - j == 1) {
           tqv = set(0.0, 0.0, 0.0, t[(j + 0) * t_stride_0 + b * t_stride_1]);
         } else if (J - j == 2) {
@@ -228,7 +240,8 @@ static inline int CeedTensorContract_Avx_Single(CeedTensorContract contract, Cee
   // Remainder of rows, all columns
   for (CeedInt b = 0; b < B; b++) {
     for (CeedInt j = (J / JJ) * JJ; j < J; j++) {
-      CeedScalar tq = t[j * t_stride_0 + b * t_stride_1];
+      const CeedScalar tq = t[j * t_stride_0 + b * t_stride_1];
+
       for (CeedInt a = A_break; a < A; a++) v[a * J + j] += tq * u[a * B + b];
     }
   }
@@ -271,7 +284,6 @@ static int CeedTensorContractApply_Avx(CeedTensorContract contract, CeedInt A, C
     // Remainder of columns
     if (C % blk_size) CeedTensorContract_Avx_Remainder_8_8(contract, A, B, C, J, t, t_mode, true, u, v);
   }
-
   return CEED_ERROR_SUCCESS;
 }
 
@@ -280,10 +292,9 @@ static int CeedTensorContractApply_Avx(CeedTensorContract contract, CeedInt A, C
 //------------------------------------------------------------------------------
 int CeedTensorContractCreate_Avx(CeedBasis basis, CeedTensorContract contract) {
   Ceed ceed;
+
   CeedCallBackend(CeedTensorContractGetCeed(contract, &ceed));
-
   CeedCallBackend(CeedSetBackendFunction(ceed, "TensorContract", contract, "Apply", CeedTensorContractApply_Avx));
-
   return CEED_ERROR_SUCCESS;
 }
 
