@@ -26,9 +26,7 @@ static struct {
   int (*init)(const char *resource, Ceed f);
   unsigned int priority;
 } backends[32];
-CeedPragmaThreadPrivate(backends)
 static size_t num_backends;
-CeedPragmaThreadPrivate(num_backends)
 
 #define CEED_FTABLE_ENTRY(class, method) \
   { #class #method, offsetof(struct class##_private, method) }
@@ -124,13 +122,17 @@ int CeedRequestWait(CeedRequest *req) {
   @ref Developer
 **/
 int CeedRegisterImpl(const char *prefix, int (*init)(const char *, Ceed), unsigned int priority) {
-  CeedCheck(num_backends < sizeof(backends) / sizeof(backends[0]), NULL, CEED_ERROR_MAJOR, "Too many backends");
+  CeedDebugEnv("Backend Register: %s", prefix);
 
-  strncpy(backends[num_backends].prefix, prefix, CEED_MAX_RESOURCE_LEN);
-  backends[num_backends].prefix[CEED_MAX_RESOURCE_LEN - 1] = 0;
-  backends[num_backends].init                              = init;
-  backends[num_backends].priority                          = priority;
-  num_backends++;
+  CeedPragmaCritical(CeedRegisterImpl) {
+    CeedCheck(num_backends < sizeof(backends) / sizeof(backends[0]), NULL, CEED_ERROR_MAJOR, "Too many backends");
+
+    strncpy(backends[num_backends].prefix, prefix, CEED_MAX_RESOURCE_LEN);
+    backends[num_backends].prefix[CEED_MAX_RESOURCE_LEN - 1] = 0;
+    backends[num_backends].init                              = init;
+    backends[num_backends].priority                          = priority;
+    num_backends++;
+  }
   return CEED_ERROR_SUCCESS;
 }
 
@@ -301,7 +303,6 @@ int CeedFree(void *p) {
   @ref Backend
 **/
 int CeedRegister(const char *prefix, int (*init)(const char *, Ceed), unsigned int priority) {
-  CeedDebugEnv("Backend Register: %s", prefix);
   CeedRegisterImpl(prefix, init, priority);
   return CEED_ERROR_SUCCESS;
 }

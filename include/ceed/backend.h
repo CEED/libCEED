@@ -71,8 +71,8 @@
 #ifndef CeedPragmaAtomic
 #define CeedPragmaAtomic CeedPragmaOMP(atomic update)
 #endif
-#ifndef CeedPragmaThreadPrivate
-#define CeedPragmaThreadPrivate(x) CeedPragmaOMP(threadprivate(x))
+#ifndef CeedPragmaCritical
+#define CeedPragmaCritical(x) CeedPragmaOMP(critical(x))
 #endif
 
 /**

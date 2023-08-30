@@ -10,7 +10,6 @@
 #include <stdbool.h>
 
 static bool register_all_called;
-CeedPragmaThreadPrivate(register_all_called)
 
 #define CEED_GALLERY_QFUNCTION(name) CEED_INTERN int name(void);
 #include "../gallery/ceed-gallery-list.h"
@@ -29,11 +28,14 @@ CeedPragmaThreadPrivate(register_all_called)
   @ref User
 **/
 int CeedQFunctionRegisterAll() {
-  if (register_all_called) return 0;
-  register_all_called = true;
-  CeedDebugEnv256(1, "\n---------- Registering Gallery QFunctions ----------\n");
+  CeedPragmaCritical(CeedQFunctionRegisterAll) {
+    if (!register_all_called) {
+      CeedDebugEnv256(1, "\n---------- Registering Gallery QFunctions ----------\n");
 #define CEED_GALLERY_QFUNCTION(name) CeedChk(name());
 #include "../gallery/ceed-gallery-list.h"
 #undef CEED_GALLERY_QFUNCTION
+      register_all_called = true;
+    }
+  }
   return CEED_ERROR_SUCCESS;
 }

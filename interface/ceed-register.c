@@ -10,7 +10,6 @@
 #include <stdbool.h>
 
 static bool register_all_called;
-CeedPragmaThreadPrivate(register_all_called)
 
 #define CEED_BACKEND(name, ...) CEED_INTERN int name(void);
 #include "../backends/ceed-backend-list.h"
@@ -29,11 +28,14 @@ CeedPragmaThreadPrivate(register_all_called)
   @ref User
 **/
 int CeedRegisterAll() {
-  if (register_all_called) return 0;
-  register_all_called = true;
-
+  CeedPragmaCritical(CeedRegisterAll) {
+    if (!register_all_called) {
+      CeedDebugEnv256(1, "\n---------- Registering Backends ----------\n");
 #define CEED_BACKEND(name, ...) CeedChk(name());
 #include "../backends/ceed-backend-list.h"
 #undef CEED_BACKEND
+      register_all_called = true;
+    }
+  }
   return CEED_ERROR_SUCCESS;
 }
