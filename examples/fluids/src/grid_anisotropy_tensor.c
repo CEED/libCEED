@@ -21,6 +21,8 @@ PetscErrorCode GridAnisotropyTensorProjectionSetupApply(Ceed ceed, User user, Ce
   CeedInt              q_data_size;
   MPI_Comm             comm = PetscObjectComm((PetscObject)user->dm);
   KSP                  ksp;
+  DMLabel              domain_label = NULL;
+  PetscInt             label_value = 0, height = 0, dm_field = 0;
 
   PetscFunctionBeginUser;
   PetscCall(PetscNew(&grid_aniso_proj));
@@ -49,8 +51,8 @@ PetscErrorCode GridAnisotropyTensorProjectionSetupApply(Ceed ceed, User user, Ce
   // -- Get Pre-requisite things
   PetscCallCeed(ceed, CeedElemRestrictionGetNumComponents(ceed_data->elem_restr_qd_i, &q_data_size));
 
-  PetscCall(GetRestrictionForDomain(ceed, grid_aniso_proj->dm, 0, 0, 0, 0, -1, grid_aniso_proj->num_comp, elem_restr_grid_aniso, NULL, NULL));
-  PetscCall(CreateBasisFromPlex(ceed, grid_aniso_proj->dm, 0, 0, 0, 0, &basis_grid_aniso));
+  PetscCall(DMPlexCeedElemRestrictionCreate(ceed, grid_aniso_proj->dm, domain_label, label_value, height, dm_field, elem_restr_grid_aniso));
+  PetscCall(CreateBasisFromPlex(ceed, grid_aniso_proj->dm, domain_label, label_value, height, dm_field, &basis_grid_aniso));
 
   // -- Build RHS operator
   PetscCallCeed(ceed, CeedQFunctionCreateInterior(ceed, 1, AnisotropyTensorProjection, AnisotropyTensorProjection_loc, &qf_rhs_assemble));
@@ -128,12 +130,14 @@ PetscErrorCode GridAnisotropyTensorCalculateCollocatedVector(Ceed ceed, User use
   CeedInt       q_data_size, num_nodes;
   CeedQFunction qf_colloc;
   CeedOperator  op_colloc;
+  DMLabel       domain_label = NULL;
+  PetscInt      label_value = 0, height = 0;
 
   PetscFunctionBeginUser;
   *num_comp_aniso = 7;
   PetscCallCeed(ceed, CeedBasisGetNumNodes(ceed_data->basis_q, &num_nodes));
   PetscCallCeed(ceed, CeedElemRestrictionGetNumComponents(ceed_data->elem_restr_qd_i, &q_data_size));
-  PetscCall(GetRestrictionForDomain(ceed, user->dm, 0, 0, 0, 0, num_nodes, *num_comp_aniso, NULL, NULL, elem_restr_grid_aniso));
+  PetscCall(DMPlexCeedElemRestrictionQDataCreate(ceed, user->dm, domain_label, label_value, height, *num_comp_aniso, elem_restr_grid_aniso));
 
   // -- Build collocation operator
   PetscCallCeed(ceed, CeedQFunctionCreateInterior(ceed, 1, AnisotropyTensorCollocate, AnisotropyTensorCollocate_loc, &qf_colloc));

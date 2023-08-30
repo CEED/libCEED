@@ -14,54 +14,6 @@
 
 #include "../navierstokes.h"
 
-// Utility function to create local CEED restriction
-PetscErrorCode CreateRestrictionFromPlex(Ceed ceed, DM dm, CeedInt height, DMLabel domain_label, CeedInt label_value, PetscInt dm_field,
-                                         CeedElemRestriction *elem_restr) {
-  PetscInt num_elem, elem_size, num_dof, num_comp, *elem_restr_offsets_petsc;
-  CeedInt *elem_restr_offsets_ceed;
-
-  PetscFunctionBeginUser;
-  PetscCall(
-      DMPlexGetLocalOffsets(dm, domain_label, label_value, height, dm_field, &num_elem, &elem_size, &num_comp, &num_dof, &elem_restr_offsets_petsc));
-
-  PetscCall(IntArrayP2C(num_elem * elem_size, &elem_restr_offsets_petsc, &elem_restr_offsets_ceed));
-  PetscCallCeed(ceed, CeedElemRestrictionCreate(ceed, num_elem, elem_size, num_comp, 1, num_dof, CEED_MEM_HOST, CEED_COPY_VALUES,
-                                                elem_restr_offsets_ceed, elem_restr));
-  PetscCall(PetscFree(elem_restr_offsets_ceed));
-  PetscFunctionReturn(PETSC_SUCCESS);
-}
-
-// Utility function to get Ceed Restriction for each domain
-PetscErrorCode GetRestrictionForDomain(Ceed ceed, DM dm, CeedInt height, DMLabel domain_label, PetscInt label_value, PetscInt dm_field, CeedInt Q,
-                                       CeedInt q_data_size, CeedElemRestriction *elem_restr_q, CeedElemRestriction *elem_restr_x,
-                                       CeedElemRestriction *elem_restr_qd_i) {
-  DM                  dm_coord;
-  CeedInt             loc_num_elem;
-  PetscInt            dim;
-  CeedElemRestriction elem_restr_tmp;
-
-  PetscFunctionBeginUser;
-  PetscCall(DMGetDimension(dm, &dim));
-  dim -= height;
-  PetscCall(CreateRestrictionFromPlex(ceed, dm, height, domain_label, label_value, dm_field, &elem_restr_tmp));
-  if (elem_restr_q) *elem_restr_q = elem_restr_tmp;
-  if (elem_restr_x) {
-    PetscCall(DMGetCellCoordinateDM(dm, &dm_coord));
-    if (!dm_coord) {
-      PetscCall(DMGetCoordinateDM(dm, &dm_coord));
-    }
-    PetscCall(DMPlexSetClosurePermutationTensor(dm_coord, PETSC_DETERMINE, NULL));
-    PetscCall(CreateRestrictionFromPlex(ceed, dm_coord, height, domain_label, label_value, dm_field, elem_restr_x));
-  }
-  if (elem_restr_qd_i) {
-    PetscCallCeed(ceed, CeedElemRestrictionGetNumElements(elem_restr_tmp, &loc_num_elem));
-    PetscCallCeed(ceed, CeedElemRestrictionCreateStrided(ceed, loc_num_elem, Q, q_data_size, q_data_size * loc_num_elem * Q, CEED_STRIDES_BACKEND,
-                                                         elem_restr_qd_i));
-  }
-  if (!elem_restr_q) PetscCallCeed(ceed, CeedElemRestrictionDestroy(&elem_restr_tmp));
-  PetscFunctionReturn(PETSC_SUCCESS);
-}
-
 /**
   @brief Convert `DM` field to `DS` field.
 
@@ -91,6 +43,199 @@ PetscErrorCode DMFieldToDSField(DM dm, DMLabel domain_label, PetscInt dm_field, 
   PetscCall(ISRestoreIndices(field_is, &fields));
 
   if (*ds_field == -1) SETERRQ(PetscObjectComm((PetscObject)dm), PETSC_ERR_SUP, "Could not find dm_field %" PetscInt_FMT " in DS", dm_field);
+  PetscFunctionReturn(PETSC_SUCCESS);
+}
+
+/**
+  @brief Create `CeedElemRestriction` from `DMPlex`.
+
+  Not collective across MPI processes.
+
+  @param[in]   ceed          `Ceed` context
+  @param[in]   dm            `DMPlex` holding mesh
+  @param[in]   domain_label  `DMLabel` for `DMPlex` domain
+  @param[in]   label_value   Stratum value
+  @param[in]   height        Height of `DMPlex` topology
+  @param[in]   dm_field      Index of `DMPlex` field
+  @param[out]  restriction   `CeedElemRestriction` for `DMPlex`
+
+  @return An error code: 0 - success, otherwise - failure
+**/
+PetscErrorCode DMPlexCeedElemRestrictionCreate(Ceed ceed, DM dm, DMLabel domain_label, PetscInt label_value, PetscInt height, PetscInt dm_field,
+                                               CeedElemRestriction *restriction) {
+  PetscInt num_elem, elem_size, num_dof, num_comp, *restriction_offsets_petsc;
+  CeedInt *restriction_offsets_ceed = NULL;
+
+  PetscFunctionBeginUser;
+  PetscCall(
+      DMPlexGetLocalOffsets(dm, domain_label, label_value, height, dm_field, &num_elem, &elem_size, &num_comp, &num_dof, &restriction_offsets_petsc));
+  PetscCall(IntArrayP2C(num_elem * elem_size, &restriction_offsets_petsc, &restriction_offsets_ceed));
+  PetscCallCeed(ceed, CeedElemRestrictionCreate(ceed, num_elem, elem_size, num_comp, 1, num_dof, CEED_MEM_HOST, CEED_COPY_VALUES,
+                                                restriction_offsets_ceed, restriction));
+  PetscCall(PetscFree(restriction_offsets_ceed));
+
+  PetscFunctionReturn(PETSC_SUCCESS);
+}
+
+/**
+  @brief Create `CeedElemRestriction` from `DMPlex` domain for mesh coordinates.
+
+  Not collective across MPI processes.
+
+  @param[in]   ceed          `Ceed` context
+  @param[in]   dm            `DMPlex` holding mesh
+  @param[in]   domain_label  Label for `DMPlex` domain
+  @param[in]   label_value   Stratum value
+  @param[in]   height        Height of `DMPlex` topology
+  @param[out]  restriction   `CeedElemRestriction` for mesh
+
+  @return An error code: 0 - success, otherwise - failure
+**/
+PetscErrorCode DMPlexCeedElemRestrictionCoordinateCreate(Ceed ceed, DM dm, DMLabel domain_label, PetscInt label_value, PetscInt height,
+                                                         CeedElemRestriction *restriction) {
+  DM dm_coord;
+
+  PetscFunctionBeginUser;
+  PetscCall(DMGetCellCoordinateDM(dm, &dm_coord));
+  if (!dm_coord) {
+    PetscCall(DMGetCoordinateDM(dm, &dm_coord));
+  }
+  PetscCall(DMPlexCeedElemRestrictionCreate(ceed, dm_coord, domain_label, label_value, height, 0, restriction));
+
+  PetscFunctionReturn(PETSC_SUCCESS);
+}
+
+/**
+  @brief Create `CeedElemRestriction` from `DMPlex` domain for auxilury `QFunction` data.
+
+  Not collective across MPI processes.
+
+  @param[in]   ceed           `Ceed` context
+  @param[in]   dm             `DMPlex` holding mesh
+  @param[in]   domain_label   Label for `DMPlex` domain
+  @param[in]   label_value    Stratum value
+  @param[in]   height         Height of `DMPlex` topology
+  @param[in]   q_data_size    Number of components for `QFunction` data
+  @param[in]   is_collocated  Boolean flag indicating if the data is collocated on the nodes (`PETSC_TRUE`) on on quadrature points (`PETSC_FALSE`)
+  @param[out]  restriction    Strided `CeedElemRestriction` for `QFunction` data
+
+  @return An error code: 0 - success, otherwise - failure
+**/
+static PetscErrorCode DMPlexCeedElemRestrictionStridedCreate(Ceed ceed, DM dm, DMLabel domain_label, PetscInt label_value, PetscInt height,
+                                                             PetscInt q_data_size, PetscBool is_collocated, CeedElemRestriction *restriction) {
+  PetscInt num_elem, num_qpts, dm_field = 0;
+
+  PetscFunctionBeginUser;
+  {  // Get number of elements
+    PetscInt depth;
+    DMLabel  depth_label;
+    IS       point_is, depth_is;
+
+    PetscCall(DMPlexGetDepth(dm, &depth));
+    PetscCall(DMPlexGetDepthLabel(dm, &depth_label));
+    PetscCall(DMLabelGetStratumIS(depth_label, depth - height, &depth_is));
+    if (domain_label) {
+      IS domain_is;
+
+      PetscCall(DMLabelGetStratumIS(domain_label, label_value, &domain_is));
+      if (domain_is) {
+        PetscCall(ISIntersect(depth_is, domain_is, &point_is));
+        PetscCall(ISDestroy(&domain_is));
+      } else {
+        point_is = NULL;
+      }
+      PetscCall(ISDestroy(&depth_is));
+    } else {
+      point_is = depth_is;
+    }
+    if (point_is) {
+      PetscCall(ISGetLocalSize(point_is, &num_elem));
+    } else {
+      num_elem = 0;
+    }
+    PetscCall(ISDestroy(&point_is));
+  }
+
+  {  // Get number of quadrature points
+    PetscDS  ds;
+    PetscFE  fe;
+    PetscInt ds_field = -1;
+
+    PetscCall(DMGetRegionDS(dm, domain_label, NULL, &ds, NULL));
+    PetscCall(DMFieldToDSField(dm, domain_label, dm_field, &ds_field));
+    PetscCall(PetscDSGetDiscretization(ds, ds_field, (PetscObject *)&fe));
+    PetscCall(PetscFEGetHeightSubspace(fe, height, &fe));
+    if (is_collocated) {
+      PetscDualSpace dual_space;
+      PetscInt       num_dual_basis_vectors, dim, num_comp;
+
+      PetscCall(PetscFEGetSpatialDimension(fe, &dim));
+      PetscCall(PetscFEGetNumComponents(fe, &num_comp));
+      PetscCall(PetscFEGetDualSpace(fe, &dual_space));
+      PetscCall(PetscDualSpaceGetDimension(dual_space, &num_dual_basis_vectors));
+      num_qpts = num_dual_basis_vectors / num_comp;
+    } else {
+      PetscQuadrature quadrature;
+
+      PetscCall(DMGetRegionDS(dm, domain_label, NULL, &ds, NULL));
+      PetscCall(DMFieldToDSField(dm, domain_label, dm_field, &ds_field));
+      PetscCall(PetscDSGetDiscretization(ds, ds_field, (PetscObject *)&fe));
+      PetscCall(PetscFEGetHeightSubspace(fe, height, &fe));
+      PetscCall(PetscFEGetQuadrature(fe, &quadrature));
+      PetscCall(PetscQuadratureGetData(quadrature, NULL, NULL, &num_qpts, NULL, NULL));
+    }
+  }
+
+  // Create the restriction
+  PetscCallCeed(ceed, CeedElemRestrictionCreateStrided(ceed, num_elem, num_qpts, q_data_size, num_elem * num_qpts * q_data_size, CEED_STRIDES_BACKEND,
+                                                       restriction));
+
+  PetscFunctionReturn(PETSC_SUCCESS);
+}
+
+/**
+  @brief Create `CeedElemRestriction` from `DMPlex` domain for auxilury `QFunction` data.
+
+  Not collective across MPI processes.
+
+  @param[in]   ceed           `Ceed` context
+  @param[in]   dm             `DMPlex` holding mesh
+  @param[in]   domain_label   Label for `DMPlex` domain
+  @param[in]   label_value    Stratum value
+  @param[in]   height         Height of `DMPlex` topology
+  @param[in]   q_data_size    Number of components for `QFunction` data
+  @param[out]  restriction    Strided `CeedElemRestriction` for `QFunction` data
+
+  @return An error code: 0 - success, otherwise - failure
+**/
+PetscErrorCode DMPlexCeedElemRestrictionQDataCreate(Ceed ceed, DM dm, DMLabel domain_label, PetscInt label_value, PetscInt height,
+                                                    PetscInt q_data_size, CeedElemRestriction *restriction) {
+  PetscFunctionBeginUser;
+  PetscCall(DMPlexCeedElemRestrictionStridedCreate(ceed, dm, domain_label, label_value, height, q_data_size, PETSC_FALSE, restriction));
+
+  PetscFunctionReturn(PETSC_SUCCESS);
+}
+
+/**
+  @brief Create `CeedElemRestriction` from `DMPlex` domain for nodally collocated auxilury `QFunction` data.
+
+  Not collective across MPI processes.
+
+  @param[in]   ceed           `Ceed` context
+  @param[in]   dm             `DMPlex` holding mesh
+  @param[in]   domain_label   Label for `DMPlex` domain
+  @param[in]   label_value    Stratum value
+  @param[in]   height         Height of `DMPlex` topology
+  @param[in]   q_data_size    Number of components for `QFunction` data
+  @param[out]  restriction    Strided `CeedElemRestriction` for `QFunction` data
+
+  @return An error code: 0 - success, otherwise - failure
+**/
+PetscErrorCode DMPlexCeedElemRestrictionCollocatedCreate(Ceed ceed, DM dm, DMLabel domain_label, PetscInt label_value, PetscInt height,
+                                                         PetscInt q_data_size, CeedElemRestriction *restriction) {
+  PetscFunctionBeginUser;
+  PetscCall(DMPlexCeedElemRestrictionStridedCreate(ceed, dm, domain_label, label_value, height, q_data_size, PETSC_TRUE, restriction));
+
   PetscFunctionReturn(PETSC_SUCCESS);
 }
 
@@ -308,11 +453,12 @@ PetscErrorCode DMSetupByOrderBegin_FEM(PetscBool setup_faces, PetscBool setup_co
     PetscCall(PetscDualSpaceGetOrder(fe_coord_dual_space, &fe_coord_order));
 
     // Create FE for coordinates
-    PetscCheck(fe_coord_order == 1 || coord_order == 1, PetscObjectComm((PetscObject)dm), PETSC_ERR_USER_INPUT,
-               "Only linear mesh geometry supported. Recieved %d order", fe_coord_order);
+    PetscCheck(fe_coord_order == 1 || coord_order == 1, comm, PETSC_ERR_USER_INPUT, "Only linear mesh geometry supported. Recieved %d order",
+               fe_coord_order);
     PetscCall(PetscFECreateLagrange(comm, dim, num_comp_coord, is_simplex, fe_coord_order, q_order, &fe_coord_new));
     if (setup_faces) PetscCall(PetscFEGetHeightSubspace(fe_coord_new, 1, &fe_coord_face_new));
     PetscCall(DMProjectCoordinates(dm, fe_coord_new));
+    PetscCall(DMLocalizeCoordinates(dm));  // Update CellCoordinateDM with projected coordinates
     PetscCall(PetscFEDestroy(&fe_coord_new));
   }
   PetscFunctionReturn(PETSC_SUCCESS);
@@ -341,6 +487,8 @@ PetscErrorCode DMSetupByOrderEnd_FEM(PetscBool setup_coords, DM dm) {
 
       PetscCall(DMGetCoordinateDM(dm, &dm_coord));
       PetscCall(DMPlexSetClosurePermutationTensor(dm_coord, PETSC_DETERMINE, NULL));
+      PetscCall(DMGetCellCoordinateDM(dm, &dm_coord));
+      if (dm_coord) PetscCall(DMPlexSetClosurePermutationTensor(dm_coord, PETSC_DETERMINE, NULL));
     }
   }
   PetscFunctionReturn(PETSC_SUCCESS);

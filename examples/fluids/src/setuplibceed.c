@@ -16,26 +16,23 @@
 PetscErrorCode AddBCSubOperator(Ceed ceed, DM dm, CeedData ceed_data, DMLabel domain_label, PetscInt label_value, CeedInt height, CeedInt Q_sur,
                                 CeedInt q_data_size_sur, CeedInt jac_data_size_sur, CeedQFunction qf_apply_bc, CeedQFunction qf_apply_bc_jacobian,
                                 CeedOperator *op_apply, CeedOperator *op_apply_ijacobian) {
-  CeedVector          q_data_sur, jac_data_sur;
+  CeedVector          q_data_sur, jac_data_sur = NULL;
   CeedOperator        op_setup_sur, op_apply_bc, op_apply_bc_jacobian = NULL;
-  CeedElemRestriction elem_restr_x_sur, elem_restr_q_sur, elem_restr_qd_i_sur, elem_restr_jd_i_sur;
-  CeedInt             num_qpts_sur;
+  CeedElemRestriction elem_restr_x_sur, elem_restr_q_sur, elem_restr_qd_i_sur, elem_restr_jd_i_sur = NULL;
+  CeedInt             num_qpts_sur, dm_field = 0;
 
   PetscFunctionBeginUser;
   // --- Get number of quadrature points for the boundaries
   PetscCallCeed(ceed, CeedBasisGetNumQuadraturePoints(ceed_data->basis_q_sur, &num_qpts_sur));
 
   // ---- CEED Restriction
-  PetscCall(GetRestrictionForDomain(ceed, dm, height, domain_label, label_value, 0, num_qpts_sur, q_data_size_sur, &elem_restr_q_sur,
-                                    &elem_restr_x_sur, &elem_restr_qd_i_sur));
+  PetscCall(DMPlexCeedElemRestrictionCreate(ceed, dm, domain_label, label_value, height, dm_field, &elem_restr_q_sur));
+  PetscCall(DMPlexCeedElemRestrictionCoordinateCreate(ceed, dm, domain_label, label_value, height, &elem_restr_x_sur));
+  PetscCall(DMPlexCeedElemRestrictionQDataCreate(ceed, dm, domain_label, label_value, height, q_data_size_sur, &elem_restr_qd_i_sur));
   if (jac_data_size_sur > 0) {
     // State-dependent data will be passed from residual to Jacobian. This will be collocated.
-    PetscCall(
-        GetRestrictionForDomain(ceed, dm, height, domain_label, label_value, 0, num_qpts_sur, jac_data_size_sur, NULL, NULL, &elem_restr_jd_i_sur));
+    PetscCall(DMPlexCeedElemRestrictionQDataCreate(ceed, dm, domain_label, label_value, height, jac_data_size_sur, &elem_restr_jd_i_sur));
     PetscCallCeed(ceed, CeedElemRestrictionCreateVector(elem_restr_jd_i_sur, &jac_data_sur, NULL));
-  } else {
-    elem_restr_jd_i_sur = NULL;
-    jac_data_sur        = NULL;
   }
 
   // ---- CEED Vector
@@ -171,6 +168,8 @@ PetscErrorCode SetupLibceed(Ceed ceed, CeedData ceed_data, DM dm, User user, App
   CeedElemRestriction elem_restr_jd_i;
   CeedVector          jac_data;
   CeedInt             num_qpts;
+  DMLabel             domain_label = NULL;
+  PetscInt            label_value = 0, height = 0, dm_field = 0;
 
   // -----------------------------------------------------------------------------
   // CEED Bases
@@ -178,8 +177,8 @@ PetscErrorCode SetupLibceed(Ceed ceed, CeedData ceed_data, DM dm, User user, App
   DM dm_coord;
   PetscCall(DMGetCoordinateDM(dm, &dm_coord));
 
-  PetscCall(CreateBasisFromPlex(ceed, dm, 0, 0, 0, 0, &ceed_data->basis_q));
-  PetscCall(CreateBasisFromPlex(ceed, dm_coord, 0, 0, 0, 0, &ceed_data->basis_x));
+  PetscCall(CreateBasisFromPlex(ceed, dm, domain_label, label_value, height, dm_field, &ceed_data->basis_q));
+  PetscCall(CreateBasisFromPlex(ceed, dm_coord, domain_label, label_value, height, dm_field, &ceed_data->basis_x));
   PetscCallCeed(ceed, CeedBasisCreateProjection(ceed_data->basis_x, ceed_data->basis_q, &ceed_data->basis_xc));
   PetscCallCeed(ceed, CeedBasisGetNumQuadraturePoints(ceed_data->basis_q, &num_qpts));
 
@@ -187,10 +186,10 @@ PetscErrorCode SetupLibceed(Ceed ceed, CeedData ceed_data, DM dm, User user, App
   // CEED Restrictions
   // -----------------------------------------------------------------------------
   // -- Create restriction
-  PetscCall(GetRestrictionForDomain(ceed, dm, 0, 0, 0, 0, num_qpts, q_data_size_vol, &ceed_data->elem_restr_q, &ceed_data->elem_restr_x,
-                                    &ceed_data->elem_restr_qd_i));
-
-  PetscCall(GetRestrictionForDomain(ceed, dm, 0, 0, 0, 0, num_qpts, jac_data_size_vol, NULL, NULL, &elem_restr_jd_i));
+  PetscCall(DMPlexCeedElemRestrictionCreate(ceed, dm, domain_label, label_value, height, 0, &ceed_data->elem_restr_q));
+  PetscCall(DMPlexCeedElemRestrictionCoordinateCreate(ceed, dm, domain_label, label_value, height, &ceed_data->elem_restr_x));
+  PetscCall(DMPlexCeedElemRestrictionQDataCreate(ceed, dm, domain_label, label_value, height, q_data_size_vol, &ceed_data->elem_restr_qd_i));
+  PetscCall(DMPlexCeedElemRestrictionQDataCreate(ceed, dm, domain_label, label_value, height, jac_data_size_vol, &elem_restr_jd_i));
   // -- Create E vectors
   PetscCallCeed(ceed, CeedElemRestrictionCreateVector(ceed_data->elem_restr_q, &user->q_ceed, NULL));
   PetscCallCeed(ceed, CeedElemRestrictionCreateVector(ceed_data->elem_restr_q, &user->q_dot_ceed, NULL));
@@ -350,7 +349,8 @@ PetscErrorCode SetupLibceed(Ceed ceed, CeedData ceed_data, DM dm, User user, App
   // *****************************************************************************
   // Set up CEED objects for the exterior domain (surface)
   // *****************************************************************************
-  CeedInt       height = 1, dim_sur = dim - height, P_sur = app_ctx->degree + 1, Q_sur = P_sur + app_ctx->q_extra;
+  height                = 1;
+  CeedInt       dim_sur = dim - height, P_sur = app_ctx->degree + 1, Q_sur = P_sur + app_ctx->q_extra;
   const CeedInt q_data_size_sur = problem->q_data_size_sur, jac_data_size_sur = problem->jac_data_size_sur;
 
   // -----------------------------------------------------------------------------
