@@ -79,7 +79,8 @@ static int CeedBasisApply_Ref(CeedBasis basis, CeedInt num_elem, CeedTransposeMo
         // In CEED_TRANSPOSE mode, the sizes of u and v are switched.
         CeedInt P = P_1d, Q = Q_1d;
         if (t_mode == CEED_TRANSPOSE) {
-          P = Q_1d, Q = Q_1d;
+          P = Q_1d;
+          Q = Q_1d;
         }
         CeedBasis_Ref *impl;
         CeedCallBackend(CeedBasisGetData(basis, &impl));
@@ -103,7 +104,8 @@ static int CeedBasisApply_Ref(CeedBasis basis, CeedInt num_elem, CeedTransposeMo
           //  or Interpolate to nodes (Transpose)
           P = Q_1d, Q = Q_1d;
           if (t_mode == CEED_TRANSPOSE) {
-            P = Q_1d, Q = P_1d;
+            P = Q_1d;
+            Q = P_1d;
           }
           pre = num_comp * CeedIntPow(P, dim - 1), post = num_elem;
           for (CeedInt d = 0; d < dim; d++) {
@@ -132,7 +134,8 @@ static int CeedBasisApply_Ref(CeedBasis basis, CeedInt num_elem, CeedTransposeMo
           CeedCallBackend(CeedBasisGetGrad1D(basis, &grad_1d));
 
           if (t_mode == CEED_TRANSPOSE) {
-            P = Q_1d, Q = P_1d;
+            P = Q_1d;
+            Q = P_1d;
           }
           CeedScalar tmp[2][num_elem * num_comp * Q * CeedIntPow(P > Q ? P : Q, dim - 1)];
 

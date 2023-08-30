@@ -141,7 +141,8 @@ CEED_INTERN "C"
       // dv is (Q^dim x nc x dim), column-major layout (nc = ncomp)
       // In CEED_TRANSPOSE mode, the sizes of du and dv are switched.
       if (tmode == CEED_TRANSPOSE) {
-        P = Q1d, Q = P1d;
+        P = Q1d;
+        Q = P1d;
       }
 
       // Define element sizes for dofs/quad

@@ -26,9 +26,9 @@
 //     ./ex2-surface -ceed /gpu/cuda
 //
 // Test in 1D-3D
-//TESTARGS(name="1D user QFunction") -ceed {ceed_resource} -d 1 -t
-//TESTARGS(name="2D user QFunction") -ceed {ceed_resource} -d 2 -t
-//TESTARGS(name="3D user QFunction") -ceed {ceed_resource} -d 3 -t
+//TESTARGS(name="1D User QFunction") -ceed {ceed_resource} -d 1 -t
+//TESTARGS(name="2D User QFunction") -ceed {ceed_resource} -d 2 -t
+//TESTARGS(name="3D User QFunction") -ceed {ceed_resource} -d 3 -t
 //TESTARGS(name="1D Gallery QFunction") -ceed {ceed_resource} -d 1 -t -g
 //TESTARGS(name="2D Gallery QFunction") -ceed {ceed_resource} -d 2 -t -g
 //TESTARGS(name="3D Gallery QFunction") -ceed {ceed_resource} -d 3 -t -g

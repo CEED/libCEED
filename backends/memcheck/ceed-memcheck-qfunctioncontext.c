@@ -20,7 +20,7 @@ static int CeedQFunctionContextHasValidData_Memcheck(CeedQFunctionContext ctx, b
   CeedQFunctionContext_Memcheck *impl;
   CeedCallBackend(CeedQFunctionContextGetBackendData(ctx, (void *)&impl));
 
-  *has_valid_data = !!impl->data;
+  *has_valid_data = impl->data;
 
   return CEED_ERROR_SUCCESS;
 }
@@ -36,7 +36,7 @@ static int CeedQFunctionContextHasBorrowedDataOfType_Memcheck(CeedQFunctionConte
 
   switch (mem_type) {
     case CEED_MEM_HOST:
-      *has_borrowed_data_of_type = !!impl->data_borrowed;
+      *has_borrowed_data_of_type = impl->data_borrowed;
       break;
     default:
       // LCOV_EXCL_START

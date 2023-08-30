@@ -129,6 +129,22 @@ CEED_EXTERN bool CeedDebugFlagEnv(void);
 #define CeedWarn(...) \
   { CeedDebugImpl256(CEED_DEBUG_COLOR_WARNING, ##__VA_ARGS__); }
 
+/**
+  Swap the values of two CeedScalars
+
+  @param[in,out] a  First CeedScalar
+  @param[in,out] b  Second CeedScalar
+
+  @ingroup Ceed
+  @ref     Backend
+**/
+#define CeedScalarSwap(a, b)        \
+  {                                 \
+    const CeedScalar temp_ = a;     \
+    a                      = b;     \
+    b                      = temp_; \
+  }
+
 /// Handle for object handling TensorContraction
 /// @ingroup CeedBasis
 typedef struct CeedTensorContract_private *CeedTensorContract;

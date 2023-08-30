@@ -119,7 +119,7 @@ static inline int CeedQFunctionContextHasValidData_Sycl(const CeedQFunctionConte
   CeedQFunctionContext_Sycl *impl;
   CeedCallBackend(CeedQFunctionContextGetBackendData(ctx, &impl));
 
-  *has_valid_data = impl && (!!impl->h_data || !!impl->d_data);
+  *has_valid_data = impl && (impl->h_data || impl->d_data);
 
   return CEED_ERROR_SUCCESS;
 }
@@ -134,10 +134,10 @@ static inline int CeedQFunctionContextHasBorrowedDataOfType_Sycl(const CeedQFunc
 
   switch (mem_type) {
     case CEED_MEM_HOST:
-      *has_borrowed_data_of_type = !!impl->h_data_borrowed;
+      *has_borrowed_data_of_type = impl->h_data_borrowed;
       break;
     case CEED_MEM_DEVICE:
-      *has_borrowed_data_of_type = !!impl->d_data_borrowed;
+      *has_borrowed_data_of_type = impl->d_data_borrowed;
       break;
   }
 

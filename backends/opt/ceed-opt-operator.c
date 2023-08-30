@@ -121,7 +121,7 @@ static int CeedOperatorSetupFields_Opt(CeedQFunction qf, CeedOperator op, bool i
         CeedCallBackend(CeedBasisApply(basis, blk_size, CEED_NOTRANSPOSE, CEED_EVAL_WEIGHT, CEED_VECTOR_NONE, q_vecs[i]));
         break;
     }
-    if (is_input && !!e_vecs[i]) {
+    if (is_input && e_vecs[i]) {
       CeedCallBackend(CeedVectorSetArray(e_vecs[i], CEED_MEM_HOST, CEED_COPY_VALUES, NULL));
     }
   }

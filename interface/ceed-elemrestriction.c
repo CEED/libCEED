@@ -369,6 +369,7 @@ int CeedElemRestrictionReference(CeedElemRestriction rstr) {
 int CeedElemRestrictionGetFlopsEstimate(CeedElemRestriction rstr, CeedTransposeMode t_mode, CeedSize *flops) {
   CeedInt             e_size = rstr->num_block * rstr->block_size * rstr->elem_size * rstr->num_comp, scale = 0;
   CeedRestrictionType rstr_type;
+
   CeedCall(CeedElemRestrictionGetType(rstr, &rstr_type));
   if (t_mode == CEED_TRANSPOSE) {
     switch (rstr_type) {
@@ -398,7 +399,6 @@ int CeedElemRestrictionGetFlopsEstimate(CeedElemRestriction rstr, CeedTransposeM
     }
   }
   *flops = e_size * scale;
-
   return CEED_ERROR_SUCCESS;
 }
 
@@ -665,8 +665,7 @@ int CeedElemRestrictionCreateStrided(Ceed ceed, CeedInt num_elem, CeedInt elem_s
 int CeedElemRestrictionCreateBlocked(Ceed ceed, CeedInt num_elem, CeedInt elem_size, CeedInt block_size, CeedInt num_comp, CeedInt comp_stride,
                                      CeedSize l_size, CeedMemType mem_type, CeedCopyMode copy_mode, const CeedInt *offsets,
                                      CeedElemRestriction *rstr) {
-  CeedInt *block_offsets;
-  CeedInt  num_block = (num_elem / block_size) + !!(num_elem % block_size);
+  CeedInt *block_offsets, num_block = (num_elem / block_size) + !!(num_elem % block_size);
 
   if (!ceed->ElemRestrictionCreateBlocked) {
     Ceed delegate;
@@ -699,9 +698,7 @@ int CeedElemRestrictionCreateBlocked(Ceed ceed, CeedInt num_elem, CeedInt elem_s
   (*rstr)->block_size  = block_size;
   (*rstr)->rstr_type   = CEED_RESTRICTION_STANDARD;
   CeedCall(ceed->ElemRestrictionCreateBlocked(CEED_MEM_HOST, CEED_OWN_POINTER, (const CeedInt *)block_offsets, NULL, NULL, *rstr));
-  if (copy_mode == CEED_OWN_POINTER) {
-    CeedCall(CeedFree(&offsets));
-  }
+  if (copy_mode == CEED_OWN_POINTER) CeedCall(CeedFree(&offsets));
   return CEED_ERROR_SUCCESS;
 }
 
@@ -734,9 +731,8 @@ int CeedElemRestrictionCreateBlocked(Ceed ceed, CeedInt num_elem, CeedInt elem_s
 int CeedElemRestrictionCreateBlockedOriented(Ceed ceed, CeedInt num_elem, CeedInt elem_size, CeedInt block_size, CeedInt num_comp,
                                              CeedInt comp_stride, CeedSize l_size, CeedMemType mem_type, CeedCopyMode copy_mode,
                                              const CeedInt *offsets, const bool *orients, CeedElemRestriction *rstr) {
-  CeedInt *block_offsets;
   bool    *block_orients;
-  CeedInt  num_block = (num_elem / block_size) + !!(num_elem % block_size);
+  CeedInt *block_offsets, num_block = (num_elem / block_size) + !!(num_elem % block_size);
 
   if (!ceed->ElemRestrictionCreateBlocked) {
     Ceed delegate;
@@ -771,9 +767,7 @@ int CeedElemRestrictionCreateBlockedOriented(Ceed ceed, CeedInt num_elem, CeedIn
   (*rstr)->rstr_type   = CEED_RESTRICTION_ORIENTED;
   CeedCall(
       ceed->ElemRestrictionCreateBlocked(CEED_MEM_HOST, CEED_OWN_POINTER, (const CeedInt *)block_offsets, (const bool *)block_orients, NULL, *rstr));
-  if (copy_mode == CEED_OWN_POINTER) {
-    CeedCall(CeedFree(&offsets));
-  }
+  if (copy_mode == CEED_OWN_POINTER) CeedCall(CeedFree(&offsets));
   return CEED_ERROR_SUCCESS;
 }
 
@@ -809,9 +803,8 @@ similarly to @a offsets.
 int CeedElemRestrictionCreateBlockedCurlOriented(Ceed ceed, CeedInt num_elem, CeedInt elem_size, CeedInt block_size, CeedInt num_comp,
                                                  CeedInt comp_stride, CeedSize l_size, CeedMemType mem_type, CeedCopyMode copy_mode,
                                                  const CeedInt *offsets, const CeedInt8 *curl_orients, CeedElemRestriction *rstr) {
-  CeedInt  *block_offsets;
   CeedInt8 *block_curl_orients;
-  CeedInt   num_block = (num_elem / block_size) + !!(num_elem % block_size);
+  CeedInt  *block_offsets, num_block = (num_elem / block_size) + !!(num_elem % block_size);
 
   if (!ceed->ElemRestrictionCreateBlocked) {
     Ceed delegate;
@@ -847,9 +840,7 @@ int CeedElemRestrictionCreateBlockedCurlOriented(Ceed ceed, CeedInt num_elem, Ce
   (*rstr)->rstr_type   = CEED_RESTRICTION_CURL_ORIENTED;
   CeedCall(ceed->ElemRestrictionCreateBlocked(CEED_MEM_HOST, CEED_OWN_POINTER, (const CeedInt *)block_offsets, NULL,
                                               (const CeedInt8 *)block_curl_orients, *rstr));
-  if (copy_mode == CEED_OWN_POINTER) {
-    CeedCall(CeedFree(&offsets));
-  }
+  if (copy_mode == CEED_OWN_POINTER) CeedCall(CeedFree(&offsets));
   return CEED_ERROR_SUCCESS;
 }
 
@@ -936,7 +927,6 @@ int CeedElemRestrictionCreateUnsignedCopy(CeedElemRestriction rstr, CeedElemRest
 
   // Override Apply
   (*rstr_unsigned)->Apply = rstr->ApplyUnsigned;
-
   return CEED_ERROR_SUCCESS;
 }
 
@@ -969,7 +959,6 @@ int CeedElemRestrictionCreateUnorientedCopy(CeedElemRestriction rstr, CeedElemRe
 
   // Override Apply
   (*rstr_unoriented)->Apply = rstr->ApplyUnoriented;
-
   return CEED_ERROR_SUCCESS;
 }
 
@@ -1246,6 +1235,7 @@ int CeedElemRestrictionGetMultiplicity(CeedElemRestriction rstr, CeedVector mult
 **/
 int CeedElemRestrictionView(CeedElemRestriction rstr, FILE *stream) {
   char stridesstr[500];
+
   if (rstr->strides) {
     sprintf(stridesstr, "[%" CeedInt_FMT ", %" CeedInt_FMT ", %" CeedInt_FMT "]", rstr->strides[0], rstr->strides[1], rstr->strides[2]);
   } else {

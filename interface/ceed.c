@@ -165,7 +165,7 @@ bool CeedDebugFlag(const Ceed ceed) { return ceed->is_debug; }
   @ref Backend
 **/
 // LCOV_EXCL_START
-bool CeedDebugFlagEnv(void) { return !!getenv("CEED_DEBUG") || !!getenv("DEBUG") || !!getenv("DBG"); }
+bool CeedDebugFlagEnv(void) { return getenv("CEED_DEBUG") || getenv("DEBUG") || getenv("DBG"); }
 // LCOV_EXCL_STOP
 
 /**
@@ -326,7 +326,7 @@ int CeedIsDebug(Ceed ceed, bool *is_debug) {
 
   @param[in]  ceed          Ceed context to get resource name of
   @param[in]  resource      ull user specified resource
-  @param[in]  delineator    Delinator to break resource_root and resource_spec
+  @param[in]  delineator    Delineator to break resource_root and resource_spec
   @param[out] resource_root Variable to store resource root
 
   @return An error code: 0 - success, otherwise - failure
@@ -336,9 +336,9 @@ int CeedIsDebug(Ceed ceed, bool *is_debug) {
 int CeedGetResourceRoot(Ceed ceed, const char *resource, const char *delineator, char **resource_root) {
   char  *device_spec       = strstr(resource, delineator);
   size_t resource_root_len = device_spec ? (size_t)(device_spec - resource) + 1 : strlen(resource) + 1;
+
   CeedCall(CeedCalloc(resource_root_len, resource_root));
   memcpy(*resource_root, resource, resource_root_len - 1);
-
   return CEED_ERROR_SUCCESS;
 }
 
@@ -425,10 +425,10 @@ int CeedGetObjectDelegate(Ceed ceed, Ceed *delegate, const char *obj_name) {
 
   This function allows a Ceed context to set a delegate Ceed context for a given type of Ceed object.
   All backend implementations default to the delegate Ceed context for this object.
-  For example, CeedSetObjectDelegate(ceed, refceed, "Basis") uses refceed implementations for all CeedBasis backend functions.
+  For example, CeedSetObjectDelegate(ceed, refceed, "Basis") uses delegate implementations for all CeedBasis backend functions.
 
   @param[in,out] ceed     Ceed context to set delegate of
-  @param[out]    delegate Address to set the delegate to
+  @param[in]     delegate Ceed context to use for delegation
   @param[in]     obj_name Name of the object type to set delegate for
 
   @return An error code: 0 - success, otherwise - failure
@@ -500,7 +500,6 @@ int CeedGetOperatorFallbackCeed(Ceed ceed, Ceed *fallback_ceed) {
     ceed->op_fallback_ceed            = fallback_ceed;
   }
   *fallback_ceed = ceed->op_fallback_ceed;
-
   return CEED_ERROR_SUCCESS;
 }
 
@@ -526,7 +525,6 @@ int CeedSetOperatorFallbackResource(Ceed ceed, const char *resource) {
 
   // Check validity
   ceed->has_valid_op_fallback_resource = ceed->op_fallback_resource && ceed->resource && strcmp(ceed->op_fallback_resource, ceed->resource);
-
   return CEED_ERROR_SUCCESS;
 }
 
@@ -591,7 +589,8 @@ int CeedSetBackendFunction(Ceed ceed, const char *type, void *object, const char
     if (!strcmp(ceed->f_offsets[i].func_name, lookup_name)) {
       size_t offset          = ceed->f_offsets[i].offset;
       int (**fpointer)(void) = (int (**)(void))((char *)object + offset);  // *NOPAD*
-      *fpointer              = f;
+
+      *fpointer = f;
       return CEED_ERROR_SUCCESS;
     }
   }
@@ -888,7 +887,7 @@ int CeedInit(const char *resource, Ceed *ceed) {
   CeedCall(CeedSetOperatorFallbackResource(*ceed, fallbackresource));
 
   // Record env variables CEED_DEBUG or DBG
-  (*ceed)->is_debug = !!getenv("CEED_DEBUG") || !!getenv("DEBUG") || !!getenv("DBG");
+  (*ceed)->is_debug = getenv("CEED_DEBUG") || getenv("DEBUG") || getenv("DBG");
 
   // Copy resource prefix, if backend setup successful
   CeedCall(CeedStringAllocCopy(backends[match_index].prefix, (char **)&(*ceed)->resource));
@@ -1022,11 +1021,11 @@ int CeedAddJitSourceRoot(Ceed ceed, const char *jit_source_root) {
 
   CeedInt index       = ceed_parent->num_jit_source_roots;
   size_t  path_length = strlen(jit_source_root);
+
   CeedCall(CeedRealloc(index + 1, &ceed_parent->jit_source_roots));
   CeedCall(CeedCalloc(path_length + 1, &ceed_parent->jit_source_roots[index]));
   memcpy(ceed_parent->jit_source_roots[index], jit_source_root, path_length);
   ceed_parent->num_jit_source_roots++;
-
   return CEED_ERROR_SUCCESS;
 }
 
@@ -1110,6 +1109,7 @@ const char *CeedErrorFormat(Ceed ceed, const char *format, va_list *args) {
 int CeedErrorImpl(Ceed ceed, const char *filename, int lineno, const char *func, int ecode, const char *format, ...) {
   va_list args;
   int     ret_val;
+
   va_start(args, format);
   if (ceed) {
     ret_val = ceed->Error(ceed, filename, lineno, func, ecode, format, &args);
@@ -1153,8 +1153,7 @@ int CeedErrorStore(Ceed ceed, const char *filename, int line_no, const char *fun
   if (ceed->op_fallback_parent) return CeedErrorStore(ceed->op_fallback_parent, filename, line_no, func, err_code, format, args);
 
   // Build message
-  int len;
-  len = snprintf(ceed->err_msg, CEED_MAX_RESOURCE_LEN, "%s:%d in %s(): ", filename, line_no, func);
+  int len = snprintf(ceed->err_msg, CEED_MAX_RESOURCE_LEN, "%s:%d in %s(): ", filename, line_no, func);
   // Using pointer to va_list for better FFI, but clang-tidy can't verify va_list is initalized
   vsnprintf(ceed->err_msg + len, CEED_MAX_RESOURCE_LEN - len, format, *args);  // NOLINT
   return err_code;
