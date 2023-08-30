@@ -32,7 +32,8 @@ int CeedRegisterAll() {
   CeedPragmaCritical(CeedRegisterAll) {
     if (!register_all_called) {
       CeedDebugEnv256(1, "\n---------- Registering Backends ----------\n");
-#define CEED_BACKEND(name, ...) ierr += name();
+#define CEED_BACKEND(name, ...) \
+  if (!ierr) ierr = name();
 #include "../backends/ceed-backend-list.h"
 #undef CEED_BACKEND
       register_all_called = true;

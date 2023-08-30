@@ -32,7 +32,8 @@ int CeedQFunctionRegisterAll() {
   CeedPragmaCritical(CeedQFunctionRegisterAll) {
     if (!register_all_called) {
       CeedDebugEnv256(1, "\n---------- Registering Gallery QFunctions ----------\n");
-#define CEED_GALLERY_QFUNCTION(name) ierr += name();
+#define CEED_GALLERY_QFUNCTION(name) \
+  if (!ierr) ierr = name();
 #include "../gallery/ceed-gallery-list.h"
 #undef CEED_GALLERY_QFUNCTION
       register_all_called = true;
