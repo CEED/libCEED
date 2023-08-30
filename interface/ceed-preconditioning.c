@@ -176,7 +176,7 @@ int CeedOperatorGetFallback(CeedOperator op, CeedOperator *op_fallback) {
 }
 
 /**
-  @brief Get the parent Ceed context associated with a fallback Ceed context for a CeedOperator
+  @brief Get the parent CeedOperator for a fallback CeedOperator
 
   @param[in]  op     CeedOperator context
   @param[out] parent Variable to store parent CeedOperator context
@@ -191,7 +191,7 @@ int CeedOperatorGetFallbackParent(CeedOperator op, CeedOperator *parent) {
 }
 
 /**
-  @brief Get the parent Ceed context associated with a fallback Ceed context for a CeedOperator
+  @brief Get the Ceed context of the parent CeedOperator for a fallback CeedOperator
 
   @param[in]  op     CeedOperator context
   @param[out] parent Variable to store parent Ceed context
