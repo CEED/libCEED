@@ -18,17 +18,18 @@
 // Backend Init
 //------------------------------------------------------------------------------
 static int CeedInit_Magma(const char *resource, Ceed ceed) {
-  const int nrc = 14;  // number of characters in resource
+  Ceed        ceed_ref;
+  Ceed_Magma *data;
+  const int   nrc = 14;  // number of characters in resource
+
   CeedCheck(!strncmp(resource, "/gpu/cuda/magma", nrc) || !strncmp(resource, "/gpu/hip/magma", nrc), ceed, CEED_ERROR_BACKEND,
             "Magma backend cannot use resource: %s", resource);
 
-  Ceed_Magma *data;
   CeedCallBackend(CeedCalloc(1, &data));
   CeedCallBackend(CeedSetData(ceed, data));
   CeedCallBackend(CeedInit_Magma_common(ceed, resource));
 
   // Create reference Ceed that implementation will be dispatched through unless overridden
-  Ceed ceed_ref;
 #ifdef CEED_MAGMA_USE_HIP
   CeedCallBackend(CeedInit("/gpu/hip/ref", &ceed_ref));
 #else
@@ -39,7 +40,6 @@ static int CeedInit_Magma(const char *resource, Ceed ceed) {
   CeedCallBackend(CeedSetBackendFunction(ceed, "Ceed", ceed, "BasisCreateTensorH1", CeedBasisCreateTensorH1_Magma));
   CeedCallBackend(CeedSetBackendFunction(ceed, "Ceed", ceed, "BasisCreateH1", CeedBasisCreateH1_Magma));
   CeedCallBackend(CeedSetBackendFunction(ceed, "Ceed", ceed, "Destroy", CeedDestroy_Magma));
-
   return CEED_ERROR_SUCCESS;
 }
 
