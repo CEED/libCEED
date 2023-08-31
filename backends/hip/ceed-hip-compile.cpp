@@ -34,13 +34,20 @@
 // Compile HIP kernel
 //------------------------------------------------------------------------------
 int CeedCompile_Hip(Ceed ceed, const char *source, hipModule_t *module, const CeedInt num_defines, ...) {
+  size_t                 ptx_size;
+  char                  *jit_defs_path, *jit_defs_source, *ptx;
+  const int              num_opts = 3;
+  const char            *opts[num_opts];
+  int                    runtime_version;
+  hiprtcProgram          prog;
+  struct hipDeviceProp_t prop;
+  Ceed_Hip              *ceed_data;
+
   hipFree(0);  // Make sure a Context exists for hiprtc
-  hiprtcProgram prog;
 
   std::ostringstream code;
 
   // Add hip runtime include statement for generation if runtime < 40400000 (implies ROCm < 4.5)
-  int runtime_version;
   CeedCallHip(ceed, hipRuntimeGetVersion(&runtime_version));
   if (runtime_version < 40400000) {
     code << "\n#include <hip/hip_runtime.h>\n";
@@ -58,6 +65,7 @@ int CeedCompile_Hip(Ceed ceed, const char *source, hipModule_t *module, const Ce
     va_start(args, num_defines);
     char *name;
     int   val;
+
     for (int i = 0; i < num_defines; i++) {
       name = va_arg(args, char *);
       val  = va_arg(args, int);
@@ -67,7 +75,6 @@ int CeedCompile_Hip(Ceed ceed, const char *source, hipModule_t *module, const Ce
   }
 
   // Standard libCEED definitions for HIP backends
-  char *jit_defs_path, *jit_defs_source;
   CeedCallBackend(CeedGetJitAbsolutePath(ceed, "ceed/jit-source/hip/hip-jit.h", &jit_defs_path));
   CeedCallBackend(CeedLoadSourceToBuffer(ceed, jit_defs_path, &jit_defs_source));
   code << jit_defs_source;
@@ -76,11 +83,7 @@ int CeedCompile_Hip(Ceed ceed, const char *source, hipModule_t *module, const Ce
   CeedCallBackend(CeedFree(&jit_defs_source));
 
   // Non-macro options
-  const int   num_opts = 3;
-  const char *opts[num_opts];
   opts[0] = "-default-device";
-  struct hipDeviceProp_t prop;
-  Ceed_Hip              *ceed_data;
   CeedCallBackend(CeedGetData(ceed, (void **)&ceed_data));
   CeedCallHip(ceed, hipGetDeviceProperties(&prop, ceed_data->device_id));
   std::string arch_arg = "--gpu-architecture=" + std::string(prop.gcnArchName);
@@ -95,25 +98,24 @@ int CeedCompile_Hip(Ceed ceed, const char *source, hipModule_t *module, const Ce
 
   // Compile kernel
   hiprtcResult result = hiprtcCompileProgram(prog, num_opts, opts);
+
   if (result != HIPRTC_SUCCESS) {
     size_t log_size;
+    char  *log;
+
     CeedChk_hiprtc(ceed, hiprtcGetProgramLogSize(prog, &log_size));
-    char *log;
     CeedCallBackend(CeedMalloc(log_size, &log));
     CeedCallHiprtc(ceed, hiprtcGetProgramLog(prog, log));
     return CeedError(ceed, CEED_ERROR_BACKEND, "%s\n%s", hiprtcGetErrorString(result), log);
   }
 
-  size_t ptx_size;
   CeedCallHiprtc(ceed, hiprtcGetCodeSize(prog, &ptx_size));
-  char *ptx;
   CeedCallBackend(CeedMalloc(ptx_size, &ptx));
   CeedCallHiprtc(ceed, hiprtcGetCode(prog, ptx));
   CeedCallHiprtc(ceed, hiprtcDestroyProgram(&prog));
 
   CeedCallHip(ceed, hipModuleLoadData(module, ptx));
   CeedCallBackend(CeedFree(&ptx));
-
   return CEED_ERROR_SUCCESS;
 }
 

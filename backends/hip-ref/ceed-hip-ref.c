@@ -27,8 +27,8 @@ static int CeedGetPreferredMemType_Hip(CeedMemType *type) {
 //------------------------------------------------------------------------------
 int CeedGetHipblasHandle_Hip(Ceed ceed, hipblasHandle_t *handle) {
   Ceed_Hip *data;
-  CeedCallBackend(CeedGetData(ceed, &data));
 
+  CeedCallBackend(CeedGetData(ceed, &data));
   if (!data->hipblas_handle) CeedCallHipblas(ceed, hipblasCreate(&data->hipblas_handle));
   *handle = data->hipblas_handle;
   return CEED_ERROR_SUCCESS;
@@ -38,13 +38,14 @@ int CeedGetHipblasHandle_Hip(Ceed ceed, hipblasHandle_t *handle) {
 // Backend Init
 //------------------------------------------------------------------------------
 static int CeedInit_Hip_ref(const char *resource, Ceed ceed) {
-  char *resource_root;
+  Ceed_Hip *data;
+  char     *resource_root;
+
   CeedCallBackend(CeedGetResourceRoot(ceed, resource, ":", &resource_root));
   CeedCheck(!strcmp(resource_root, "/gpu/hip/ref"), ceed, CEED_ERROR_BACKEND, "Hip backend cannot use resource: %s", resource);
   CeedCallBackend(CeedFree(&resource_root));
   CeedCallBackend(CeedSetDeterministic(ceed, true));
 
-  Ceed_Hip *data;
   CeedCallBackend(CeedCalloc(1, &data));
   CeedCallBackend(CeedSetData(ceed, data));
   CeedCallBackend(CeedInit_Hip(ceed, resource));

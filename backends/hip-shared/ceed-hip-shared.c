@@ -18,24 +18,24 @@
 // Backend init
 //------------------------------------------------------------------------------
 static int CeedInit_Hip_shared(const char *resource, Ceed ceed) {
-  char *resource_root;
+  Ceed      ceed_ref;
+  Ceed_Hip *data;
+  char     *resource_root;
+
   CeedCallBackend(CeedGetResourceRoot(ceed, resource, ":", &resource_root));
   CeedCheck(!strcmp(resource_root, "/gpu/hip/shared"), ceed, CEED_ERROR_BACKEND, "Hip backend cannot use resource: %s", resource);
   CeedCallBackend(CeedFree(&resource_root));
   CeedCallBackend(CeedSetDeterministic(ceed, true));
 
-  Ceed_Hip *data;
   CeedCallBackend(CeedCalloc(1, &data));
   CeedCallBackend(CeedSetData(ceed, data));
   CeedCallBackend(CeedInit_Hip(ceed, resource));
 
-  Ceed ceed_ref;
   CeedCallBackend(CeedInit("/gpu/hip/ref", &ceed_ref));
   CeedCallBackend(CeedSetDelegate(ceed, ceed_ref));
 
   CeedCallBackend(CeedSetBackendFunction(ceed, "Ceed", ceed, "BasisCreateTensorH1", CeedBasisCreateTensorH1_Hip_shared));
   CeedCallBackend(CeedSetBackendFunction(ceed, "Ceed", ceed, "Destroy", CeedDestroy_Hip));
-
   return CEED_ERROR_SUCCESS;
 }
 
