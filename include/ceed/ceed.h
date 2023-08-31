@@ -216,6 +216,8 @@ CEED_EXTERN const CeedVector CEED_VECTOR_NONE;
 /// @ingroup CeedBasis
 CEED_EXTERN const CeedBasis CEED_BASIS_NONE;
 
+CEED_EXTERN const CeedBasis CEED_BASIS_COLLOCATED;
+
 /// Argument for CeedOperatorSetField to use no ElemRestriction.
 /// Only use this option with CeedEvalMode CEED_EVAL_WEIGHT.
 /// @ingroup CeedElemRestriction
