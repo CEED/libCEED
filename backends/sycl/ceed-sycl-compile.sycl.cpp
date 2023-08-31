@@ -28,14 +28,15 @@ static int CeedJitAddDefinitions_Sycl(Ceed ceed, const std::string &kernel_sourc
                                       const std::map<std::string, CeedInt> &constants = {}) {
   std::ostringstream oss;
 
+  char       *jit_defs_path, *jit_defs_source;
+  const char *sycl_jith_path = "ceed/jit-source/sycl/sycl-jit.h";
+
   // Prepend defined constants
   for (const auto &[name, value] : constants) {
     oss << "#define " << name << " " << value << "\n";
   }
 
   // libCeed definitions for Sycl Backends
-  char       *jit_defs_path, *jit_defs_source;
-  const char *sycl_jith_path = "ceed/jit-source/sycl/sycl-jit.h";
   CeedCallBackend(CeedGetJitAbsolutePath(ceed, sycl_jith_path, &jit_defs_path));
   CeedCallBackend(CeedLoadSourceToBuffer(ceed, jit_defs_path, &jit_defs_source));
 
@@ -48,7 +49,6 @@ static int CeedJitAddDefinitions_Sycl(Ceed ceed, const std::string &kernel_sourc
   oss << "\n" << kernel_source;
 
   jit_source = oss.str();
-
   return CEED_ERROR_SUCCESS;
 }
 
@@ -97,9 +97,10 @@ static int CeedLoadModule_Sycl(Ceed ceed, const sycl::context &sycl_context, con
 
   if (ZE_RESULT_SUCCESS != lz_err) {
     size_t log_size = 0;
+    char  *log_message;
+
     zeModuleBuildLogGetString(lz_log, &log_size, nullptr);
 
-    char *log_message;
     CeedCall(CeedCalloc(log_size, &log_message));
     zeModuleBuildLogGetString(lz_log, &log_size, log_message);
 
@@ -109,7 +110,6 @@ static int CeedLoadModule_Sycl(Ceed ceed, const sycl::context &sycl_context, con
   // sycl make_<type> only throws errors for backend mismatch--assume we have vetted this already
   *sycl_module = new SyclModule_t(sycl::make_kernel_bundle<sycl::backend::ext_oneapi_level_zero, sycl::bundle_state::executable>(
       {lz_module, sycl::ext::oneapi::level_zero::ownership::transfer}, sycl_context));
-
   return CEED_ERROR_SUCCESS;
 }
 
@@ -117,20 +117,16 @@ static int CeedLoadModule_Sycl(Ceed ceed, const sycl::context &sycl_context, con
 // Compile kernel source to an executable `sycl::kernel_bundle`
 // ------------------------------------------------------------------------------
 int CeedBuildModule_Sycl(Ceed ceed, const std::string &kernel_source, SyclModule_t **sycl_module, const std::map<std::string, CeedInt> &constants) {
-  Ceed_Sycl *data;
-  CeedCallBackend(CeedGetData(ceed, &data));
-
-  std::string jit_source;
-  CeedCallBackend(CeedJitAddDefinitions_Sycl(ceed, kernel_source, jit_source, constants));
-
+  Ceed_Sycl               *data;
+  std::string              jit_source;
   std::vector<std::string> flags;
+  ByteVector_t             il_binary;
+
+  CeedCallBackend(CeedGetData(ceed, &data));
+  CeedCallBackend(CeedJitAddDefinitions_Sycl(ceed, kernel_source, jit_source, constants));
   CeedCallBackend(CeedJitGetFlags_Sycl(flags));
-
-  ByteVector_t il_binary;
   CeedCallBackend(CeedJitCompileSource_Sycl(ceed, data->sycl_device, jit_source, il_binary, flags));
-
   CeedCallBackend(CeedLoadModule_Sycl(ceed, data->sycl_context, data->sycl_device, il_binary, sycl_module));
-
   return CEED_ERROR_SUCCESS;
 }
 
@@ -141,6 +137,7 @@ int CeedBuildModule_Sycl(Ceed ceed, const std::string &kernel_source, SyclModule
 // ------------------------------------------------------------------------------
 int CeedGetKernel_Sycl(Ceed ceed, const SyclModule_t *sycl_module, const std::string &kernel_name, sycl::kernel **sycl_kernel) {
   Ceed_Sycl *data;
+
   CeedCallBackend(CeedGetData(ceed, &data));
 
   // sycl::get_native returns std::vector<ze_module_handle_t> for lz backend
@@ -157,7 +154,6 @@ int CeedGetKernel_Sycl(Ceed ceed, const SyclModule_t *sycl_module, const std::st
 
   *sycl_kernel = new sycl::kernel(sycl::make_kernel<sycl::backend::ext_oneapi_level_zero>(
       {*sycl_module, lz_kernel, sycl::ext::oneapi::level_zero::ownership::transfer}, data->sycl_context));
-
   return CEED_ERROR_SUCCESS;
 }
 
@@ -173,6 +169,7 @@ int CeedRunKernelDimSharedSycl(Ceed ceed, sycl::kernel *kernel, const int grid_s
   //-----------
   // Order queue
   Ceed_Sycl *ceed_Sycl;
+
   CeedCallBackend(CeedGetData(ceed, &ceed_Sycl));
   sycl::event e = ceed_Sycl->sycl_queue.ext_oneapi_submit_barrier();
 
@@ -181,6 +178,5 @@ int CeedRunKernelDimSharedSycl(Ceed ceed, sycl::kernel *kernel, const int grid_s
     cgh.set_args(*kernel_args);
     cgh.parallel_for(kernel_range, *kernel);
   });
-
   return CEED_ERROR_SUCCESS;
 }

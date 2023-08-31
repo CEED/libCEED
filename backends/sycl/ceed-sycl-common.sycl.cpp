@@ -15,6 +15,7 @@
 // Device information backend init
 //------------------------------------------------------------------------------
 int CeedInit_Sycl(Ceed ceed, const char *resource) {
+  Ceed_Sycl  *data;
   const char *device_spec = std::strstr(resource, ":device_id=");
   const int   device_id   = (device_spec) ? atoi(device_spec + 11) : 0;
 
@@ -65,13 +66,11 @@ int CeedInit_Sycl(Ceed ceed, const char *resource) {
   sycl::context sycl_context{sycl_device.get_platform().get_devices()};
   sycl::queue   sycl_queue{sycl_context, sycl_device, sycl_async_handler};
 
-  Ceed_Sycl *data;
   CeedCallBackend(CeedGetData(ceed, &data));
 
   data->sycl_device  = sycl_device;
   data->sycl_context = sycl_context;
   data->sycl_queue   = sycl_queue;
-
   return CEED_ERROR_SUCCESS;
 }
 
@@ -80,6 +79,7 @@ int CeedInit_Sycl(Ceed ceed, const char *resource) {
 //------------------------------------------------------------------------------
 int CeedDestroy_Sycl(Ceed ceed) {
   Ceed_Sycl *data;
+
   CeedCallBackend(CeedGetData(ceed, &data));
   CeedCallBackend(CeedFree(&data));
   return CEED_ERROR_SUCCESS;
@@ -89,7 +89,9 @@ int CeedDestroy_Sycl(Ceed ceed) {
 // Use an external queue
 //------------------------------------------------------------------------------
 int CeedSetStream_Sycl(Ceed ceed, void *handle) {
+  Ceed       ceed_delegate = NULL, ceed_fallback = NULL;
   Ceed_Sycl *data;
+
   CeedCallBackend(CeedGetData(ceed, &data));
 
   CeedCheck(handle, ceed, CEED_ERROR_BACKEND, "Stream handle is null");
@@ -102,10 +104,10 @@ int CeedSetStream_Sycl(Ceed ceed, void *handle) {
   data->sycl_queue   = *q;
 
   // Revisit this when we have a hierarchy of delegates
-  Ceed ceed_delegate = NULL;
   CeedCallBackend(CeedGetDelegate(ceed, &ceed_delegate));
   if (ceed_delegate) {
     Ceed_Sycl *delegate_data;
+
     CeedCallBackend(CeedGetData(ceed_delegate, &delegate_data));
     delegate_data->sycl_device  = q->get_device();
     delegate_data->sycl_context = q->get_context();
@@ -113,16 +115,15 @@ int CeedSetStream_Sycl(Ceed ceed, void *handle) {
   }
 
   // Set queue and context for Ceed Fallback object
-  Ceed ceed_fallback = NULL;
   CeedGetOperatorFallbackCeed(ceed, &ceed_fallback);
   if (ceed_fallback) {
     Ceed_Sycl *fallback_data;
+
     CeedCallBackend(CeedGetData(ceed_fallback, &fallback_data));
     fallback_data->sycl_device  = q->get_device();
     fallback_data->sycl_context = q->get_context();
     fallback_data->sycl_queue   = *q;
   }
-
   return CEED_ERROR_SUCCESS;
 }
 

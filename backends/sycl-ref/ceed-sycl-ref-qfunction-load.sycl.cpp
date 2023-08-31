@@ -27,23 +27,26 @@
 // TODO: Refactor
 //------------------------------------------------------------------------------
 extern "C" int CeedQFunctionBuildKernel_Sycl(CeedQFunction qf) {
+  Ceed                ceed;
+  Ceed_Sycl*          data;
+  char *              qfunction_name, *qfunction_source, *read_write_kernel_path, *read_write_kernel_source;
+  CeedInt             num_input_fields, num_output_fields;
+  CeedQFunctionField *input_fields, *output_fields;
   CeedQFunction_Sycl* impl;
+
   CeedCallBackend(CeedQFunctionGetData(qf, (void**)&impl));
   // QFunction is built
   if (impl->QFunction) return CEED_ERROR_SUCCESS;
 
-  Ceed ceed;
   CeedQFunctionGetCeed(qf, &ceed);
-  Ceed_Sycl* data;
   CeedCallBackend(CeedGetData(ceed, &data));
 
   // QFunction kernel generation
-  CeedInt             num_input_fields, num_output_fields;
-  CeedQFunctionField *input_fields, *output_fields;
   CeedCallBackend(CeedQFunctionGetFields(qf, &num_input_fields, &input_fields, &num_output_fields, &output_fields));
 
   std::vector<CeedInt> input_sizes(num_input_fields);
   CeedQFunctionField*  input_i = input_fields;
+
   for (auto& size_i : input_sizes) {
     CeedCallBackend(CeedQFunctionFieldGetSize(*input_i, &size_i));
     ++input_i;
@@ -51,23 +54,20 @@ extern "C" int CeedQFunctionBuildKernel_Sycl(CeedQFunction qf) {
 
   std::vector<CeedInt> output_sizes(num_output_fields);
   CeedQFunctionField*  output_i = output_fields;
+
   for (auto& size_i : output_sizes) {
     CeedCallBackend(CeedQFunctionFieldGetSize(*output_i, &size_i));
     ++output_i;
   }
 
-  char* qfunction_name;
   CeedCallBackend(CeedQFunctionGetKernelName(qf, &qfunction_name));
 
-  char* qfunction_source;
   CeedDebug256(ceed, CEED_DEBUG_COLOR_SUCCESS, "----- Loading QFunction User Source -----\n");
   CeedCallBackend(CeedQFunctionLoadSourceToBuffer(qf, &qfunction_source));
   CeedDebug256(ceed, CEED_DEBUG_COLOR_SUCCESS, "----- Loading QFunction User Source Complete! -----\n");
 
-  char* read_write_kernel_path;
   CeedCallBackend(CeedGetJitAbsolutePath(ceed, "ceed/jit-source/sycl/sycl-ref-qfunction.h", &read_write_kernel_path));
 
-  char* read_write_kernel_source;
   CeedDebug256(ceed, CEED_DEBUG_COLOR_SUCCESS, "----- Loading QFunction Read/Write Kernel Source -----\n");
   CeedCallBackend(CeedLoadSourceToBuffer(ceed, read_write_kernel_path, &read_write_kernel_source));
   CeedDebug256(ceed, CEED_DEBUG_COLOR_SUCCESS, "----- Loading QFunction Read/Write Kernel Source Complete! -----\n");
@@ -169,7 +169,6 @@ extern "C" int CeedQFunctionBuildKernel_Sycl(CeedQFunction qf) {
   CeedCallBackend(CeedFree(&qfunction_source));
   CeedCallBackend(CeedFree(&read_write_kernel_path));
   CeedCallBackend(CeedFree(&read_write_kernel_source));
-
   return CEED_ERROR_SUCCESS;
 }
 

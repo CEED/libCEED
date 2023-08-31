@@ -24,18 +24,20 @@
 // Apply QFunction
 //------------------------------------------------------------------------------
 static int CeedQFunctionApply_Sycl(CeedQFunction qf, CeedInt Q, CeedVector *U, CeedVector *V) {
+  Ceed                ceed;
+  Ceed_Sycl          *ceed_Sycl;
+  void               *context_data;
+  CeedInt             num_input_fields, num_output_fields;
   CeedQFunction_Sycl *impl;
+
   CeedCallBackend(CeedQFunctionGetData(qf, &impl));
 
   // Build and compile kernel, if not done
   if (!impl->QFunction) CeedCallBackend(CeedQFunctionBuildKernel_Sycl(qf));
 
-  Ceed ceed;
   CeedCallBackend(CeedQFunctionGetCeed(qf, &ceed));
-  Ceed_Sycl *ceed_Sycl;
   CeedCallBackend(CeedGetData(ceed, &ceed_Sycl));
 
-  CeedInt num_input_fields, num_output_fields;
   CeedCallBackend(CeedQFunctionGetNumArgs(qf, &num_input_fields, &num_output_fields));
 
   // Read vectors
@@ -54,7 +56,6 @@ static int CeedQFunctionApply_Sycl(CeedQFunction qf, CeedInt Q, CeedVector *U, C
   }
 
   // Get context data
-  void *context_data;
   CeedCallBackend(CeedQFunctionGetInnerContextData(qf, CEED_MEM_DEVICE, &context_data));
 
   // Order queue
@@ -101,7 +102,6 @@ static int CeedQFunctionApply_Sycl(CeedQFunction qf, CeedInt Q, CeedVector *U, C
 
   // Restore context
   CeedCallBackend(CeedQFunctionRestoreInnerContextData(qf, &context_data));
-
   return CEED_ERROR_SUCCESS;
 }
 
@@ -109,17 +109,14 @@ static int CeedQFunctionApply_Sycl(CeedQFunction qf, CeedInt Q, CeedVector *U, C
 // Destroy QFunction
 //------------------------------------------------------------------------------
 static int CeedQFunctionDestroy_Sycl(CeedQFunction qf) {
+  Ceed                ceed;
   CeedQFunction_Sycl *impl;
+
   CeedCallBackend(CeedQFunctionGetData(qf, &impl));
-
-  Ceed ceed;
   CeedCallBackend(CeedQFunctionGetCeed(qf, &ceed));
-
   delete impl->QFunction;
   delete impl->sycl_module;
-
   CeedCallBackend(CeedFree(&impl));
-
   return CEED_ERROR_SUCCESS;
 }
 
@@ -127,13 +124,12 @@ static int CeedQFunctionDestroy_Sycl(CeedQFunction qf) {
 // Create QFunction
 //------------------------------------------------------------------------------
 int CeedQFunctionCreate_Sycl(CeedQFunction qf) {
-  Ceed ceed;
-  CeedQFunctionGetCeed(qf, &ceed);
+  Ceed                ceed;
   CeedQFunction_Sycl *impl;
 
+  CeedQFunctionGetCeed(qf, &ceed);
   CeedCallBackend(CeedCalloc(1, &impl));
   CeedCallBackend(CeedQFunctionSetData(qf, impl));
-
   // Register backend functions
   CeedCallBackend(CeedSetBackendFunctionCpp(ceed, "QFunction", qf, "Apply", CeedQFunctionApply_Sycl));
   CeedCallBackend(CeedSetBackendFunctionCpp(ceed, "QFunction", qf, "Destroy", CeedQFunctionDestroy_Sycl));

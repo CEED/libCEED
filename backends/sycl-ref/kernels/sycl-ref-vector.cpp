@@ -13,21 +13,22 @@
 // Kernel for set value on device
 //------------------------------------------------------------------------------
 __global__ static void setValueK(CeedScalar *__restrict__ vec, CeedInt size, CeedScalar val) {
-  int idx = threadIdx.x + blockDim.x * blockIdx.x;
-  if (idx >= size) return;
-  vec[idx] = val;
+  int index = threadIdx.x + blockDim.x * blockIdx.x;
+
+  if (index >= size) return;
+  vec[index] = val;
 }
 
 //------------------------------------------------------------------------------
 // Set value on device memory
 //------------------------------------------------------------------------------
 extern "C" int CeedDeviceSetValue_Sycl(CeedScalar *d_array, CeedInt length, CeedScalar val) {
-  const int bsize    = 512;
-  const int vecsize  = length;
-  int       gridsize = vecsize / bsize;
+  const int block_size = 512;
+  const int vec_size   = length;
+  int       grid_size  = vec_size / block_size;
 
-  if (bsize * gridsize < vecsize) gridsize += 1;
-  setValueK<<<gridsize, bsize>>>(d_array, length, val);
+  if (block_size * grid_size < vec_size) grid_size += 1;
+  setValueK<<<grid_size, block_size>>>(d_array, length, val);
   return 0;
 }
 
@@ -35,21 +36,22 @@ extern "C" int CeedDeviceSetValue_Sycl(CeedScalar *d_array, CeedInt length, Ceed
 // Kernel for taking reciprocal
 //------------------------------------------------------------------------------
 __global__ static void rcpValueK(CeedScalar *__restrict__ vec, CeedInt size) {
-  int idx = threadIdx.x + blockDim.x * blockIdx.x;
-  if (idx >= size) return;
-  if (fabs(vec[idx]) > 1E-16) vec[idx] = 1. / vec[idx];
+  int index = threadIdx.x + blockDim.x * blockIdx.x;
+
+  if (index >= size) return;
+  if (fabs(vec[index]) > 1E-16) vec[index] = 1. / vec[index];
 }
 
 //------------------------------------------------------------------------------
 // Take vector reciprocal in device memory
 //------------------------------------------------------------------------------
 extern "C" int CeedDeviceReciprocal_Sycl(CeedScalar *d_array, CeedInt length) {
-  const int bsize    = 512;
-  const int vecsize  = length;
-  int       gridsize = vecsize / bsize;
+  const int block_size = 512;
+  const int vec_size   = length;
+  int       grid_size  = vec_size / block_size;
 
-  if (bsize * gridsize < vecsize) gridsize += 1;
-  rcpValueK<<<gridsize, bsize>>>(d_array, length);
+  if (block_size * grid_size < vec_size) grid_size += 1;
+  rcpValueK<<<grid_size, block_size>>>(d_array, length);
   return 0;
 }
 
@@ -57,21 +59,22 @@ extern "C" int CeedDeviceReciprocal_Sycl(CeedScalar *d_array, CeedInt length) {
 // Kernel for scale
 //------------------------------------------------------------------------------
 __global__ static void scaleValueK(CeedScalar *__restrict__ x, CeedScalar alpha, CeedInt size) {
-  int idx = threadIdx.x + blockDim.x * blockIdx.x;
-  if (idx >= size) return;
-  x[idx] *= alpha;
+  int index = threadIdx.x + blockDim.x * blockIdx.x;
+
+  if (index >= size) return;
+  x[index] *= alpha;
 }
 
 //------------------------------------------------------------------------------
 // Compute x = alpha x on device
 //------------------------------------------------------------------------------
 extern "C" int CeedDeviceScale_Sycl(CeedScalar *x_array, CeedScalar alpha, CeedInt length) {
-  const int bsize    = 512;
-  const int vecsize  = length;
-  int       gridsize = vecsize / bsize;
+  const int block_size = 512;
+  const int vec_size   = length;
+  int       grid_size  = vec_size / block_size;
 
-  if (bsize * gridsize < vecsize) gridsize += 1;
-  scaleValueK<<<gridsize, bsize>>>(x_array, alpha, length);
+  if (block_size * grid_size < vec_size) grid_size += 1;
+  scaleValueK<<<grid_size, block_size>>>(x_array, alpha, length);
   return 0;
 }
 
@@ -79,21 +82,21 @@ extern "C" int CeedDeviceScale_Sycl(CeedScalar *x_array, CeedScalar alpha, CeedI
 // Kernel for axpy
 //------------------------------------------------------------------------------
 __global__ static void axpyValueK(CeedScalar *__restrict__ y, CeedScalar alpha, CeedScalar *__restrict__ x, CeedInt size) {
-  int idx = threadIdx.x + blockDim.x * blockIdx.x;
-  if (idx >= size) return;
-  y[idx] += alpha * x[idx];
+  int index = threadIdx.x + blockDim.x * blockIdx.x;
+  if (index >= size) return;
+  y[index] += alpha * x[index];
 }
 
 //------------------------------------------------------------------------------
 // Compute y = alpha x + y on device
 //------------------------------------------------------------------------------
 extern "C" int CeedDeviceAXPY_Sycl(CeedScalar *y_array, CeedScalar alpha, CeedScalar *x_array, CeedInt length) {
-  const int bsize    = 512;
-  const int vecsize  = length;
-  int       gridsize = vecsize / bsize;
+  const int block_size = 512;
+  const int vec_size   = length;
+  int       grid_size  = vec_size / block_size;
 
-  if (bsize * gridsize < vecsize) gridsize += 1;
-  axpyValueK<<<gridsize, bsize>>>(y_array, alpha, x_array, length);
+  if (block_size * grid_size < vec_size) grid_size += 1;
+  axpyValueK<<<grid_size, block_size>>>(y_array, alpha, x_array, length);
   return 0;
 }
 
@@ -101,21 +104,22 @@ extern "C" int CeedDeviceAXPY_Sycl(CeedScalar *y_array, CeedScalar alpha, CeedSc
 // Kernel for pointwise mult
 //------------------------------------------------------------------------------
 __global__ static void pointwiseMultValueK(CeedScalar *__restrict__ w, CeedScalar *x, CeedScalar *__restrict__ y, CeedInt size) {
-  int idx = threadIdx.x + blockDim.x * blockIdx.x;
-  if (idx >= size) return;
-  w[idx] = x[idx] * y[idx];
+  int index = threadIdx.x + blockDim.x * blockIdx.x;
+
+  if (index >= size) return;
+  w[index] = x[index] * y[index];
 }
 
 //------------------------------------------------------------------------------
 // Compute the pointwise multiplication w = x .* y on device
 //------------------------------------------------------------------------------
 extern "C" int CeedDevicePointwiseMult_Sycl(CeedScalar *w_array, CeedScalar *x_array, CeedScalar *y_array, CeedInt length) {
-  const int bsize    = 512;
-  const int vecsize  = length;
-  int       gridsize = vecsize / bsize;
+  const int block_size = 512;
+  const int vec_size   = length;
+  int       grid_size  = vec_size / block_size;
 
-  if (bsize * gridsize < vecsize) gridsize += 1;
-  pointwiseMultValueK<<<gridsize, bsize>>>(w_array, x_array, y_array, length);
+  if (block_size * grid_size < vec_size) grid_size += 1;
+  pointwiseMultValueK<<<grid_size, block_size>>>(w_array, x_array, y_array, length);
   return 0;
 }
 

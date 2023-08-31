@@ -616,7 +616,7 @@ int CeedBasisCreateTensorH1_Sycl(CeedInt dim, CeedInt P_1d, CeedInt Q_1d, const 
 // Create non-tensor
 //------------------------------------------------------------------------------
 int CeedBasisCreateH1_Sycl(CeedElemTopology topo, CeedInt dim, CeedInt num_nodes, CeedInt num_qpts, const CeedScalar *interp, const CeedScalar *grad,
-                           const CeedScalar *qref, const CeedScalar *q_weight, CeedBasis basis) {
+                           const CeedScalar *q_ref, const CeedScalar *q_weight, CeedBasis basis) {
   Ceed ceed;
   CeedCallBackend(CeedBasisGetCeed(basis, &ceed));
   CeedBasisNonTensor_Sycl *impl;
