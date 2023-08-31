@@ -1,6 +1,6 @@
 /// @file
-/// Test assembly of mass matrix operator (multi-component) (see t537)
-/// \test Test assembly of mass matrix operator (multi-component)
+/// Test full assembly of mass matrix operator (multi-component) (see t537)
+/// \test Test full assembly of mass matrix operator (multi-component)
 #include <ceed.h>
 #include <math.h>
 #include <stdio.h>
@@ -125,21 +125,21 @@ int main(int argc, char **argv) {
     old_index = ind;
     CeedVectorRestoreArray(u, &u_array);
 
-    // Compute effect of DoF j
+    // Compute effect of DoF ind
     CeedOperatorApply(op_mass, u, v, CEED_REQUEST_IMMEDIATE);
 
     CeedVectorGetArrayRead(v, CEED_MEM_HOST, &v_array);
-    for (CeedInt k = 0; k < num_dofs * num_comp; k++) assembled_true[j * num_dofs * num_comp + k] = v_array[k];
+    for (CeedInt i = 0; i < num_dofs * num_comp; i++) assembled_true[i * num_dofs * num_comp + j] = v_array[i];
     CeedVectorRestoreArrayRead(v, &v_array);
   }
 
   // Check output
   for (CeedInt i = 0; i < num_comp * num_dofs; i++) {
     for (CeedInt j = 0; j < num_comp * num_dofs; j++) {
-      if (fabs(assembled_values[j * num_dofs * num_comp + i] - assembled_true[j * num_dofs * num_comp + i]) > 100. * CEED_EPSILON) {
+      if (fabs(assembled_values[i * num_dofs * num_comp + j] - assembled_true[i * num_dofs * num_comp + j]) > 100. * CEED_EPSILON) {
         // LCOV_EXCL_START
-        printf("[%" CeedInt_FMT ", %" CeedInt_FMT "] Error in assembly: %f != %f\n", i, j, assembled_values[j * num_dofs * num_comp + i],
-               assembled_true[j * num_dofs * num_comp + i]);
+        printf("[%" CeedInt_FMT ", %" CeedInt_FMT "] Error in assembly: %f != %f\n", i, j, assembled_values[i * num_dofs * num_comp + j],
+               assembled_true[i * num_dofs * num_comp + j]);
         // LCOV_EXCL_STOP
       }
     }
