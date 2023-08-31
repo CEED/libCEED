@@ -984,7 +984,7 @@ CEED_EXTERN void fCeedOperatorSetField(int *op, const char *field_name, int *r, 
   if (*b == FORTRAN_NULL) {
     b_ = NULL;
   } else if (*b == FORTRAN_BASIS_COLLOCATED) {
-    b_ = CEED_BASIS_COLLOCATED;
+    b_ = CEED_BASIS_NONE;
   } else {
     b_ = CeedBasis_dict[*b];
   }

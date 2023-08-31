@@ -81,7 +81,7 @@
       call ceedoperatorsetfield(op_setup_mass,'weight',&
      & ceed_elemrestriction_none,bx,ceed_vector_none,err)
       call ceedoperatorsetfield(op_setup_mass,'qdata',erestrictqi,&
-     & ceed_basis_collocated,ceed_vector_active,err)
+     ceed_basis_none,ceed_vector_active,err)
 
 ! Apply Setup Operators
       call ceedoperatorapply(op_setup_mass,x,qdata_mass,&
@@ -101,7 +101,7 @@
       call ceedoperatorsetfield(op_apply,'u',erestrictui,&
      & bu,ceed_vector_active,err)
       call ceedoperatorsetfield(op_apply,'mass qdata',erestrictqi,&
-     & ceed_basis_collocated,qdata_mass,err)
+     ceed_basis_none,qdata_mass,err)
       call ceedoperatorsetfield(op_apply,'v',erestrictui,&
      & bu,ceed_vector_active,err)
 

@@ -228,7 +228,7 @@ PetscErrorCode SetupLibceedFineLevel(DM dm, DM dm_energy, DM dm_diagnostic, Ceed
   CeedOperatorCreate(ceed, qf_setup_geo, CEED_QFUNCTION_NONE, CEED_QFUNCTION_NONE, &op_setup_geo);
   CeedOperatorSetField(op_setup_geo, "dx", data[fine_level]->elem_restr_x, data[fine_level]->basis_x, CEED_VECTOR_ACTIVE);
   CeedOperatorSetField(op_setup_geo, "weight", CEED_ELEMRESTRICTION_NONE, data[fine_level]->basis_x, CEED_VECTOR_NONE);
-  CeedOperatorSetField(op_setup_geo, "qdata", data[fine_level]->elem_restr_geo_data_i, CEED_BASIS_COLLOCATED, CEED_VECTOR_ACTIVE);
+  CeedOperatorSetField(op_setup_geo, "qdata", data[fine_level]->elem_restr_geo_data_i, CEED_BASIS_NONE, CEED_VECTOR_ACTIVE);
   // -- Compute the quadrature data
   CeedOperatorApply(op_setup_geo, x_coord, data[fine_level]->geo_data, CEED_REQUEST_IMMEDIATE);
   // -- Cleanup
@@ -252,10 +252,10 @@ PetscErrorCode SetupLibceedFineLevel(DM dm, DM dm_energy, DM dm_diagnostic, Ceed
   // -- Operator
   CeedOperatorCreate(ceed, qf_residual, CEED_QFUNCTION_NONE, CEED_QFUNCTION_NONE, &op_residual);
   CeedOperatorSetField(op_residual, "du", data[fine_level]->elem_restr_u, data[fine_level]->basis_u, CEED_VECTOR_ACTIVE);
-  CeedOperatorSetField(op_residual, "qdata", data[fine_level]->elem_restr_geo_data_i, CEED_BASIS_COLLOCATED, data[fine_level]->geo_data);
+  CeedOperatorSetField(op_residual, "qdata", data[fine_level]->elem_restr_geo_data_i, CEED_BASIS_NONE, data[fine_level]->geo_data);
   CeedOperatorSetField(op_residual, "dv", data[fine_level]->elem_restr_u, data[fine_level]->basis_u, CEED_VECTOR_ACTIVE);
   for (CeedInt i = 0; i < problem_data.number_fields_stored; i++) {
-    CeedOperatorSetField(op_residual, problem_data.field_names[i], data[fine_level]->elem_restr_stored_fields_i[i], CEED_BASIS_COLLOCATED,
+    CeedOperatorSetField(op_residual, problem_data.field_names[i], data[fine_level]->elem_restr_stored_fields_i[i], CEED_BASIS_NONE,
                          data[fine_level]->stored_fields[i]);
   }
   // -- Save libCEED data
@@ -279,10 +279,10 @@ PetscErrorCode SetupLibceedFineLevel(DM dm, DM dm_energy, DM dm_diagnostic, Ceed
   // -- Operator
   CeedOperatorCreate(ceed, qf_jacobian, CEED_QFUNCTION_NONE, CEED_QFUNCTION_NONE, &op_jacobian);
   CeedOperatorSetField(op_jacobian, "delta du", data[fine_level]->elem_restr_u, data[fine_level]->basis_u, CEED_VECTOR_ACTIVE);
-  CeedOperatorSetField(op_jacobian, "qdata", data[fine_level]->elem_restr_geo_data_i, CEED_BASIS_COLLOCATED, data[fine_level]->geo_data);
+  CeedOperatorSetField(op_jacobian, "qdata", data[fine_level]->elem_restr_geo_data_i, CEED_BASIS_NONE, data[fine_level]->geo_data);
   CeedOperatorSetField(op_jacobian, "delta dv", data[fine_level]->elem_restr_u, data[fine_level]->basis_u, CEED_VECTOR_ACTIVE);
   for (CeedInt i = 0; i < problem_data.number_fields_stored; i++) {
-    CeedOperatorSetField(op_jacobian, problem_data.field_names[i], data[fine_level]->elem_restr_stored_fields_i[i], CEED_BASIS_COLLOCATED,
+    CeedOperatorSetField(op_jacobian, problem_data.field_names[i], data[fine_level]->elem_restr_stored_fields_i[i], CEED_BASIS_NONE,
                          data[fine_level]->stored_fields[i]);
   }
   // -- Save libCEED data
@@ -367,7 +367,7 @@ PetscErrorCode SetupLibceedFineLevel(DM dm, DM dm_energy, DM dm_diagnostic, Ceed
     // -- Operator
     CeedOperatorCreate(ceed, qf_setup_force, CEED_QFUNCTION_NONE, CEED_QFUNCTION_NONE, &op_setup_force);
     CeedOperatorSetField(op_setup_force, "x", data[fine_level]->elem_restr_x, data[fine_level]->basis_x, CEED_VECTOR_ACTIVE);
-    CeedOperatorSetField(op_setup_force, "qdata", data[fine_level]->elem_restr_geo_data_i, CEED_BASIS_COLLOCATED, data[fine_level]->geo_data);
+    CeedOperatorSetField(op_setup_force, "qdata", data[fine_level]->elem_restr_geo_data_i, CEED_BASIS_NONE, data[fine_level]->geo_data);
     CeedOperatorSetField(op_setup_force, "force", data[fine_level]->elem_restr_u, data[fine_level]->basis_u, CEED_VECTOR_ACTIVE);
     // -- Compute forcing term
     CeedOperatorApply(op_setup_force, x_coord, force_ceed, CEED_REQUEST_IMMEDIATE);
@@ -400,7 +400,7 @@ PetscErrorCode SetupLibceedFineLevel(DM dm, DM dm_energy, DM dm_diagnostic, Ceed
     // Operator
     CeedOperatorCreate(ceed, qf_true, CEED_QFUNCTION_NONE, CEED_QFUNCTION_NONE, &op_true);
     CeedOperatorSetField(op_true, "x", data[fine_level]->elem_restr_x, basis_x_true, CEED_VECTOR_ACTIVE);
-    CeedOperatorSetField(op_true, "true solution", data[fine_level]->elem_restr_u, CEED_BASIS_COLLOCATED, CEED_VECTOR_ACTIVE);
+    CeedOperatorSetField(op_true, "true solution", data[fine_level]->elem_restr_u, CEED_BASIS_NONE, CEED_VECTOR_ACTIVE);
     // -- Compute true solution
     CeedOperatorApply(op_true, x_coord, data[fine_level]->true_soln, CEED_REQUEST_IMMEDIATE);
     // -- Multiplicity calculation
@@ -434,7 +434,7 @@ PetscErrorCode SetupLibceedFineLevel(DM dm, DM dm_energy, DM dm_diagnostic, Ceed
   // -- Operator
   CeedOperatorCreate(ceed, qf_energy, CEED_QFUNCTION_NONE, CEED_QFUNCTION_NONE, &op_energy);
   CeedOperatorSetField(op_energy, "du", data[fine_level]->elem_restr_u, data[fine_level]->basis_u, CEED_VECTOR_ACTIVE);
-  CeedOperatorSetField(op_energy, "qdata", data[fine_level]->elem_restr_geo_data_i, CEED_BASIS_COLLOCATED, data[fine_level]->geo_data);
+  CeedOperatorSetField(op_energy, "qdata", data[fine_level]->elem_restr_geo_data_i, CEED_BASIS_NONE, data[fine_level]->geo_data);
   CeedOperatorSetField(op_energy, "energy", data[fine_level]->elem_restr_energy, data[fine_level]->basis_energy, CEED_VECTOR_ACTIVE);
   // -- Save libCEED data
   data[fine_level]->qf_energy = qf_energy;
@@ -458,7 +458,7 @@ PetscErrorCode SetupLibceedFineLevel(DM dm, DM dm_energy, DM dm_diagnostic, Ceed
   CeedOperatorCreate(ceed, qf_setup_geo, CEED_QFUNCTION_NONE, CEED_QFUNCTION_NONE, &op_setup_geo);
   CeedOperatorSetField(op_setup_geo, "dx", data[fine_level]->elem_restr_x, basis_x, CEED_VECTOR_ACTIVE);
   CeedOperatorSetField(op_setup_geo, "weight", CEED_ELEMRESTRICTION_NONE, basis_x, CEED_VECTOR_NONE);
-  CeedOperatorSetField(op_setup_geo, "qdata", data[fine_level]->elem_restr_geo_data_diagnostic_i, CEED_BASIS_COLLOCATED, CEED_VECTOR_ACTIVE);
+  CeedOperatorSetField(op_setup_geo, "qdata", data[fine_level]->elem_restr_geo_data_diagnostic_i, CEED_BASIS_NONE, CEED_VECTOR_ACTIVE);
   // -- Compute the quadrature data
   CeedOperatorApply(op_setup_geo, x_coord, data[fine_level]->geo_data_diagnostic, CEED_REQUEST_IMMEDIATE);
   // -- Cleanup
@@ -478,9 +478,9 @@ PetscErrorCode SetupLibceedFineLevel(DM dm, DM dm_energy, DM dm_diagnostic, Ceed
   CeedOperatorCreate(ceed, qf_diagnostic, CEED_QFUNCTION_NONE, CEED_QFUNCTION_NONE, &op_diagnostic);
   CeedOperatorSetField(op_diagnostic, "u", data[fine_level]->elem_restr_u, data[fine_level]->basis_diagnostic, CEED_VECTOR_ACTIVE);
   CeedOperatorSetField(op_diagnostic, "du", data[fine_level]->elem_restr_u, data[fine_level]->basis_diagnostic, CEED_VECTOR_ACTIVE);
-  CeedOperatorSetField(op_diagnostic, "qdata", data[fine_level]->elem_restr_geo_data_diagnostic_i, CEED_BASIS_COLLOCATED,
+  CeedOperatorSetField(op_diagnostic, "qdata", data[fine_level]->elem_restr_geo_data_diagnostic_i, CEED_BASIS_NONE,
                        data[fine_level]->geo_data_diagnostic);
-  CeedOperatorSetField(op_diagnostic, "diagnostic values", data[fine_level]->elem_restr_diagnostic, CEED_BASIS_COLLOCATED, CEED_VECTOR_ACTIVE);
+  CeedOperatorSetField(op_diagnostic, "diagnostic values", data[fine_level]->elem_restr_diagnostic, CEED_BASIS_NONE, CEED_VECTOR_ACTIVE);
   // -- Save libCEED data
   data[fine_level]->qf_diagnostic = qf_diagnostic;
   data[fine_level]->op_diagnostic = op_diagnostic;

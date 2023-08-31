@@ -106,12 +106,12 @@
       call ceedoperatorsetfield(op_setup,'dx',erestrictx,&
      & bx,ceed_vector_active,err)
       call ceedoperatorsetfield(op_setup,'rho',erestrictui,&
-     & ceed_basis_collocated,ceed_vector_active,err)
+     ceed_basis_none,ceed_vector_active,err)
 ! -- Mass
       call ceedoperatorcreate(ceed,qf_mass,ceed_qfunction_none,&
      & ceed_qfunction_none,op_mass,err)
       call ceedoperatorsetfield(op_mass,'rho',erestrictui,&
-     & ceed_basis_collocated,qdata,err)
+     ceed_basis_none,qdata,err)
       call ceedoperatorsetfield(op_mass,'u',erestrictu,&
      & bu,ceed_vector_active,err)
       call ceedoperatorsetfield(op_mass,'v',erestrictu,&

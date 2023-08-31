@@ -100,12 +100,12 @@ def test_500(ceed_resource):
     op_setup.set_field("weights", libceed.ELEMRESTRICTION_NONE, bx,
                        libceed.VECTOR_NONE)
     op_setup.set_field("dx", rx, bx, libceed.VECTOR_ACTIVE)
-    op_setup.set_field("rho", rui, libceed.BASIS_COLLOCATED,
+    op_setup.set_field("rho", rui, libceed.BASIS_NONE,
                        libceed.VECTOR_ACTIVE)
     op_setup.check()
 
     op_mass = ceed.Operator(qf_mass)
-    op_mass.set_field("rho", rui, libceed.BASIS_COLLOCATED, qdata)
+    op_mass.set_field("rho", rui, libceed.BASIS_NONE, qdata)
     op_mass.set_field("u", ru, bu, libceed.VECTOR_ACTIVE)
     op_mass.set_field("v", ru, bu, libceed.VECTOR_ACTIVE)
     op_mass.check()
@@ -189,11 +189,11 @@ def test_501(ceed_resource):
     op_setup.set_field("weights", libceed.ELEMRESTRICTION_NONE, bx,
                        libceed.VECTOR_NONE)
     op_setup.set_field("dx", rx, bx, libceed.VECTOR_ACTIVE)
-    op_setup.set_field("rho", rui, libceed.BASIS_COLLOCATED,
+    op_setup.set_field("rho", rui, libceed.BASIS_NONE,
                        libceed.VECTOR_ACTIVE)
 
     op_mass = ceed.Operator(qf_mass)
-    op_mass.set_field("rho", rui, libceed.BASIS_COLLOCATED, qdata)
+    op_mass.set_field("rho", rui, libceed.BASIS_NONE, qdata)
     op_mass.set_field("u", ru, bu, libceed.VECTOR_ACTIVE)
     op_mass.set_field("v", ru, bu, libceed.VECTOR_ACTIVE)
 
@@ -279,11 +279,11 @@ def test_502(ceed_resource):
     op_setup.set_field("weights", libceed.ELEMRESTRICTION_NONE, bx,
                        libceed.VECTOR_NONE)
     op_setup.set_field("dx", rx, bx, libceed.VECTOR_ACTIVE)
-    op_setup.set_field("rho", rui, libceed.BASIS_COLLOCATED,
+    op_setup.set_field("rho", rui, libceed.BASIS_NONE,
                        libceed.VECTOR_ACTIVE)
 
     op_mass = ceed.Operator(qf_mass)
-    op_mass.set_field("rho", rui, libceed.BASIS_COLLOCATED, qdata)
+    op_mass.set_field("rho", rui, libceed.BASIS_NONE, qdata)
     op_mass.set_field("u", ru, bu, libceed.VECTOR_ACTIVE)
     op_mass.set_field("v", ru, bu, libceed.VECTOR_ACTIVE)
 
@@ -376,11 +376,11 @@ def test_503(ceed_resource):
     op_setup.set_field("weights", libceed.ELEMRESTRICTION_NONE, bx,
                        libceed.VECTOR_NONE)
     op_setup.set_field("dx", rx, bx, libceed.VECTOR_ACTIVE)
-    op_setup.set_field("rho", rui, libceed.BASIS_COLLOCATED,
+    op_setup.set_field("rho", rui, libceed.BASIS_NONE,
                        libceed.VECTOR_ACTIVE)
 
     op_mass = ceed.Operator(qf_mass)
-    op_mass.set_field("rho", rui, libceed.BASIS_COLLOCATED, qdata)
+    op_mass.set_field("rho", rui, libceed.BASIS_NONE, qdata)
     op_mass.set_field("u", ru, bu, u)
     op_mass.set_field("v", ru, bu, v)
 
@@ -457,11 +457,11 @@ def test_504(ceed_resource, capsys):
     op_setup.set_field("weights", libceed.ELEMRESTRICTION_NONE, bx,
                        libceed.VECTOR_NONE)
     op_setup.set_field("dx", rx, bx, libceed.VECTOR_ACTIVE)
-    op_setup.set_field("rho", rui, libceed.BASIS_COLLOCATED,
+    op_setup.set_field("rho", rui, libceed.BASIS_NONE,
                        libceed.VECTOR_ACTIVE)
 
     op_mass = ceed.Operator(qf_mass)
-    op_mass.set_field("rho", rui, libceed.BASIS_COLLOCATED, qdata)
+    op_mass.set_field("rho", rui, libceed.BASIS_NONE, qdata)
     op_mass.set_field("u", ru, bu, libceed.VECTOR_ACTIVE)
     op_mass.set_field("v", ru, bu, libceed.VECTOR_ACTIVE)
 
@@ -540,11 +540,11 @@ def test_505(ceed_resource):
     op_setup.set_field("weights", libceed.ELEMRESTRICTION_NONE, bx,
                        libceed.VECTOR_NONE)
     op_setup.set_field("dx", rx, bx, libceed.VECTOR_ACTIVE)
-    op_setup.set_field("rho", rui, libceed.BASIS_COLLOCATED,
+    op_setup.set_field("rho", rui, libceed.BASIS_NONE,
                        libceed.VECTOR_ACTIVE)
 
     op_mass = ceed.Operator(qf_mass)
-    op_mass.set_field("rho", rui, libceed.BASIS_COLLOCATED, qdata)
+    op_mass.set_field("rho", rui, libceed.BASIS_NONE, qdata)
     op_mass.set_field("u", ru, bu, libceed.VECTOR_ACTIVE)
     op_mass.set_field("v", ru, bu, libceed.VECTOR_ACTIVE)
 
@@ -661,11 +661,11 @@ def test_510(ceed_resource):
     op_setup.set_field("weights", libceed.ELEMRESTRICTION_NONE, bx,
                        libceed.VECTOR_NONE)
     op_setup.set_field("dx", rx, bx, libceed.VECTOR_ACTIVE)
-    op_setup.set_field("rho", rui, libceed.BASIS_COLLOCATED,
+    op_setup.set_field("rho", rui, libceed.BASIS_NONE,
                        libceed.VECTOR_ACTIVE)
 
     op_mass = ceed.Operator(qf_mass)
-    op_mass.set_field("rho", rui, libceed.BASIS_COLLOCATED, qdata)
+    op_mass.set_field("rho", rui, libceed.BASIS_NONE, qdata)
     op_mass.set_field("u", ru, bu, libceed.VECTOR_ACTIVE)
     op_mass.set_field("v", ru, bu, libceed.VECTOR_ACTIVE)
 
@@ -768,11 +768,11 @@ def test_511(ceed_resource):
     op_setup.set_field("weights", libceed.ELEMRESTRICTION_NONE, bx,
                        libceed.VECTOR_NONE)
     op_setup.set_field("dx", rx, bx, libceed.VECTOR_ACTIVE)
-    op_setup.set_field("rho", rui, libceed.BASIS_COLLOCATED,
+    op_setup.set_field("rho", rui, libceed.BASIS_NONE,
                        libceed.VECTOR_ACTIVE)
 
     op_mass = ceed.Operator(qf_mass)
-    op_mass.set_field("rho", rui, libceed.BASIS_COLLOCATED, qdata)
+    op_mass.set_field("rho", rui, libceed.BASIS_NONE, qdata)
     op_mass.set_field("u", ru, bu, libceed.VECTOR_ACTIVE)
     op_mass.set_field("v", ru, bu, libceed.VECTOR_ACTIVE)
 
@@ -884,11 +884,11 @@ def test_520(ceed_resource):
     op_setup_tet.set_field("weights", libceed.ELEMRESTRICTION_NONE, bx_tet,
                            libceed.VECTOR_NONE)
     op_setup_tet.set_field("dx", rx_tet, bx_tet, libceed.VECTOR_ACTIVE)
-    op_setup_tet.set_field("rho", rui_tet, libceed.BASIS_COLLOCATED,
+    op_setup_tet.set_field("rho", rui_tet, libceed.BASIS_NONE,
                            qdata_tet)
 
     op_mass_tet = ceed.Operator(qf_mass_tet)
-    op_mass_tet.set_field("rho", rui_tet, libceed.BASIS_COLLOCATED, qdata_tet)
+    op_mass_tet.set_field("rho", rui_tet, libceed.BASIS_NONE, qdata_tet)
     op_mass_tet.set_field("u", ru_tet, bu_tet, libceed.VECTOR_ACTIVE)
     op_mass_tet.set_field("v", ru_tet, bu_tet, libceed.VECTOR_ACTIVE)
 
@@ -937,11 +937,11 @@ def test_520(ceed_resource):
     op_setup_hex.set_field("weights", libceed.ELEMRESTRICTION_NONE, bx_hex,
                            libceed.VECTOR_NONE)
     op_setup_hex.set_field("dx", rx_hex, bx_hex, libceed.VECTOR_ACTIVE)
-    op_setup_hex.set_field("rho", rui_hex, libceed.BASIS_COLLOCATED,
+    op_setup_hex.set_field("rho", rui_hex, libceed.BASIS_NONE,
                            qdata_hex)
 
     op_mass_hex = ceed.Operator(qf_mass_hex)
-    op_mass_hex.set_field("rho", rui_hex, libceed.BASIS_COLLOCATED, qdata_hex)
+    op_mass_hex.set_field("rho", rui_hex, libceed.BASIS_NONE, qdata_hex)
     op_mass_hex.set_field("u", ru_hex, bu_hex, libceed.VECTOR_ACTIVE)
     op_mass_hex.set_field("v", ru_hex, bu_hex, libceed.VECTOR_ACTIVE)
 
@@ -1060,11 +1060,11 @@ def test_521(ceed_resource):
     op_setup_tet.set_field("weights", libceed.ELEMRESTRICTION_NONE, bx_tet,
                            libceed.VECTOR_NONE)
     op_setup_tet.set_field("dx", rx_tet, bx_tet, libceed.VECTOR_ACTIVE)
-    op_setup_tet.set_field("rho", rui_tet, libceed.BASIS_COLLOCATED,
+    op_setup_tet.set_field("rho", rui_tet, libceed.BASIS_NONE,
                            qdata_tet)
 
     op_mass_tet = ceed.Operator(qf_mass_tet)
-    op_mass_tet.set_field("rho", rui_tet, libceed.BASIS_COLLOCATED, qdata_tet)
+    op_mass_tet.set_field("rho", rui_tet, libceed.BASIS_NONE, qdata_tet)
     op_mass_tet.set_field("u", ru_tet, bu_tet, libceed.VECTOR_ACTIVE)
     op_mass_tet.set_field("v", ru_tet, bu_tet, libceed.VECTOR_ACTIVE)
 
@@ -1113,11 +1113,11 @@ def test_521(ceed_resource):
     op_setup_hex.set_field("weights", libceed.ELEMRESTRICTION_NONE, bx_hex,
                            libceed.VECTOR_NONE)
     op_setup_hex.set_field("dx", rx_hex, bx_hex, libceed.VECTOR_ACTIVE)
-    op_setup_hex.set_field("rho", rui_hex, libceed.BASIS_COLLOCATED,
+    op_setup_hex.set_field("rho", rui_hex, libceed.BASIS_NONE,
                            qdata_hex)
 
     op_mass_hex = ceed.Operator(qf_mass_hex)
-    op_mass_hex.set_field("rho", rui_hex, libceed.BASIS_COLLOCATED, qdata_hex)
+    op_mass_hex.set_field("rho", rui_hex, libceed.BASIS_NONE, qdata_hex)
     op_mass_hex.set_field("u", ru_hex, bu_hex, libceed.VECTOR_ACTIVE)
     op_mass_hex.set_field("v", ru_hex, bu_hex, libceed.VECTOR_ACTIVE)
 
@@ -1228,12 +1228,12 @@ def test_523(ceed_resource, capsys):
     op_setup_tet.set_field("weights", libceed.ELEMRESTRICTION_NONE, bx_tet,
                            libceed.VECTOR_NONE)
     op_setup_tet.set_field("dx", rx_tet, bx_tet, libceed.VECTOR_ACTIVE)
-    op_setup_tet.set_field("rho", rui_tet, libceed.BASIS_COLLOCATED,
+    op_setup_tet.set_field("rho", rui_tet, libceed.BASIS_NONE,
                            qdata_tet)
 
     op_mass_tet = ceed.Operator(qf_mass_tet)
     op_mass_tet.name('triangle elements')
-    op_mass_tet.set_field("rho", rui_tet, libceed.BASIS_COLLOCATED, qdata_tet)
+    op_mass_tet.set_field("rho", rui_tet, libceed.BASIS_NONE, qdata_tet)
     op_mass_tet.set_field("u", ru_tet, bu_tet, libceed.VECTOR_ACTIVE)
     op_mass_tet.set_field("v", ru_tet, bu_tet, libceed.VECTOR_ACTIVE)
 
@@ -1284,12 +1284,12 @@ def test_523(ceed_resource, capsys):
     op_setup_hex.set_field("weights", libceed.ELEMRESTRICTION_NONE, bx_hex,
                            libceed.VECTOR_NONE)
     op_setup_hex.set_field("dx", rx_hex, bx_hex, libceed.VECTOR_ACTIVE)
-    op_setup_hex.set_field("rho", rui_hex, libceed.BASIS_COLLOCATED,
+    op_setup_hex.set_field("rho", rui_hex, libceed.BASIS_NONE,
                            qdata_hex)
 
     op_mass_hex = ceed.Operator(qf_mass_hex)
     op_mass_hex.name("quadralateral elements")
-    op_mass_hex.set_field("rho", rui_hex, libceed.BASIS_COLLOCATED, qdata_hex)
+    op_mass_hex.set_field("rho", rui_hex, libceed.BASIS_NONE, qdata_hex)
     op_mass_hex.set_field("u", ru_hex, bu_hex, libceed.VECTOR_ACTIVE)
     op_mass_hex.set_field("v", ru_hex, bu_hex, libceed.VECTOR_ACTIVE)
 
@@ -1409,11 +1409,11 @@ def test_524(ceed_resource):
     op_setup_tet.set_field("weights", libceed.ELEMRESTRICTION_NONE, bx_tet,
                            libceed.VECTOR_NONE)
     op_setup_tet.set_field("dx", rx_tet, bx_tet, libceed.VECTOR_ACTIVE)
-    op_setup_tet.set_field("rho", rui_tet, libceed.BASIS_COLLOCATED,
+    op_setup_tet.set_field("rho", rui_tet, libceed.BASIS_NONE,
                            qdata_tet)
 
     op_mass_tet = ceed.Operator(qf_mass_tet)
-    op_mass_tet.set_field("rho", rui_tet, libceed.BASIS_COLLOCATED, qdata_tet)
+    op_mass_tet.set_field("rho", rui_tet, libceed.BASIS_NONE, qdata_tet)
     op_mass_tet.set_field("u", ru_tet, bu_tet, libceed.VECTOR_ACTIVE)
     op_mass_tet.set_field("v", ru_tet, bu_tet, libceed.VECTOR_ACTIVE)
 
@@ -1463,11 +1463,11 @@ def test_524(ceed_resource):
     op_setup_hex.set_field("weights", libceed.ELEMRESTRICTION_NONE, bx_hex,
                            libceed.VECTOR_NONE)
     op_setup_hex.set_field("dx", rx_hex, bx_hex, libceed.VECTOR_ACTIVE)
-    op_setup_hex.set_field("rho", rui_hex, libceed.BASIS_COLLOCATED,
+    op_setup_hex.set_field("rho", rui_hex, libceed.BASIS_NONE,
                            qdata_hex)
 
     op_mass_hex = ceed.Operator(qf_mass_hex)
-    op_mass_hex.set_field("rho", rui_hex, libceed.BASIS_COLLOCATED, qdata_hex)
+    op_mass_hex.set_field("rho", rui_hex, libceed.BASIS_NONE, qdata_hex)
     op_mass_hex.set_field("u", ru_hex, bu_hex, libceed.VECTOR_ACTIVE)
     op_mass_hex.set_field("v", ru_hex, bu_hex, libceed.VECTOR_ACTIVE)
 
@@ -1642,11 +1642,11 @@ def test_550(ceed_resource):
     op_setup.set_field("weights", libceed.ELEMRESTRICTION_NONE, bx,
                        libceed.VECTOR_NONE)
     op_setup.set_field("dx", rx, bx, libceed.VECTOR_ACTIVE)
-    op_setup.set_field("rho", rui, libceed.BASIS_COLLOCATED,
+    op_setup.set_field("rho", rui, libceed.BASIS_NONE,
                        libceed.VECTOR_ACTIVE)
 
     op_mass_fine = ceed.Operator(qf_mass)
-    op_mass_fine.set_field("rho", rui, libceed.BASIS_COLLOCATED, qdata)
+    op_mass_fine.set_field("rho", rui, libceed.BASIS_NONE, qdata)
     op_mass_fine.set_field("u", ru_fine, bu_fine, libceed.VECTOR_ACTIVE)
     op_mass_fine.set_field("v", ru_fine, bu_fine, libceed.VECTOR_ACTIVE)
 
@@ -1778,11 +1778,11 @@ def test_552(ceed_resource):
     op_setup.set_field("weights", libceed.ELEMRESTRICTION_NONE, bx,
                        libceed.VECTOR_NONE)
     op_setup.set_field("dx", rx, bx, libceed.VECTOR_ACTIVE)
-    op_setup.set_field("rho", rui, libceed.BASIS_COLLOCATED,
+    op_setup.set_field("rho", rui, libceed.BASIS_NONE,
                        libceed.VECTOR_ACTIVE)
 
     op_mass_fine = ceed.Operator(qf_mass)
-    op_mass_fine.set_field("rho", rui, libceed.BASIS_COLLOCATED, qdata)
+    op_mass_fine.set_field("rho", rui, libceed.BASIS_NONE, qdata)
     op_mass_fine.set_field("u", ru_fine, bu_fine, libceed.VECTOR_ACTIVE)
     op_mass_fine.set_field("v", ru_fine, bu_fine, libceed.VECTOR_ACTIVE)
 
@@ -1907,11 +1907,11 @@ def test_553(ceed_resource):
     op_setup.set_field("weights", libceed.ELEMRESTRICTION_NONE, bx,
                        libceed.VECTOR_NONE)
     op_setup.set_field("dx", rx, bx, libceed.VECTOR_ACTIVE)
-    op_setup.set_field("qdata", rui, libceed.BASIS_COLLOCATED,
+    op_setup.set_field("qdata", rui, libceed.BASIS_NONE,
                        libceed.VECTOR_ACTIVE)
 
     op_mass_fine = ceed.Operator(qf_mass)
-    op_mass_fine.set_field("qdata", rui, libceed.BASIS_COLLOCATED, qdata)
+    op_mass_fine.set_field("qdata", rui, libceed.BASIS_NONE, qdata)
     op_mass_fine.set_field("u", ru_fine, bu_fine, libceed.VECTOR_ACTIVE)
     op_mass_fine.set_field("v", ru_fine, bu_fine, libceed.VECTOR_ACTIVE)
 

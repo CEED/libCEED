@@ -11,7 +11,7 @@ const UINT_MAX = typemax(Cuint)
 include(joinpath(@__DIR__, "generated", "libceed_bindings.jl"))
 
 const CEED_STRIDES_BACKEND = Ref{Ptr{CeedInt}}()
-const CEED_BASIS_COLLOCATED = Ref{CeedBasis}()
+const CEED_BASIS_NONE = Ref{CeedBasis}()
 const CEED_VECTOR_ACTIVE = Ref{CeedVector}()
 const CEED_VECTOR_NONE = Ref{CeedVector}()
 const CEED_ELEMRESTRICTION_NONE = Ref{CeedElemRestriction}()
@@ -22,8 +22,7 @@ const CEED_REQUEST_ORDERED = Ref{CeedRequest}()
 function __init__()
     # some global variables
     CEED_STRIDES_BACKEND[] = cglobal((:CEED_STRIDES_BACKEND, libceed))
-    CEED_BASIS_COLLOCATED[] =
-        unsafe_load(cglobal((:CEED_BASIS_COLLOCATED, libceed), CeedBasis))
+    CEED_BASIS_NONE[] = unsafe_load(cglobal((:CEED_BASIS_COLLOCATED, libceed), CeedBasis))
     CEED_VECTOR_ACTIVE[] = unsafe_load(cglobal((:CEED_VECTOR_ACTIVE, libceed), CeedVector))
     CEED_VECTOR_NONE[] = unsafe_load(cglobal((:CEED_VECTOR_NONE, libceed), CeedVector))
     CEED_ELEMRESTRICTION_NONE[] =

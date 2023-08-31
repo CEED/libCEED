@@ -1214,7 +1214,7 @@ mod tests {
         ceed.operator(&qf_build, QFunctionOpt::None, QFunctionOpt::None)?
             .field("dx", &rx, &bx, VectorOpt::Active)?
             .field("weights", ElemRestrictionOpt::None, &bx, VectorOpt::None)?
-            .field("qdata", &rq, BasisOpt::Collocated, VectorOpt::Active)?
+            .field("qdata", &rq, BasisOpt::None, VectorOpt::Active)?
             .apply(&x, &mut qdata)?;
 
         // Mass operator
@@ -1222,7 +1222,7 @@ mod tests {
         let op_mass = ceed
             .operator(&qf_mass, QFunctionOpt::None, QFunctionOpt::None)?
             .field("u", &ru, &bu, VectorOpt::Active)?
-            .field("qdata", &rq, BasisOpt::Collocated, &qdata)?
+            .field("qdata", &rq, BasisOpt::None, &qdata)?
             .field("v", &ru, &bu, VectorOpt::Active)?
             .check()?;
 

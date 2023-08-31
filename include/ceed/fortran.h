@@ -161,8 +161,8 @@
       integer ceed_elemrestriction_none
       parameter(ceed_elemrestriction_none = -7)
 
-      integer ceed_basis_collocated
-      parameter(ceed_basis_collocated     = -8)
+      integer ceed_basis_none
+      parameter(ceed_basis_none           = -8)
 
       integer ceed_qfunction_none
       parameter(ceed_qfunction_none       = -9)

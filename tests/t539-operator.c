@@ -82,7 +82,7 @@ int main(int argc, char **argv) {
   CeedOperatorCreate(ceed, qf_setup_mass, CEED_QFUNCTION_NONE, CEED_QFUNCTION_NONE, &op_setup_mass);
   CeedOperatorSetField(op_setup_mass, "dx", elem_restriction_x, basis_x, CEED_VECTOR_ACTIVE);
   CeedOperatorSetField(op_setup_mass, "weights", CEED_ELEMRESTRICTION_NONE, basis_x, CEED_VECTOR_NONE);
-  CeedOperatorSetField(op_setup_mass, "qdata", elem_restr_qd_mass, CEED_BASIS_COLLOCATED, CEED_VECTOR_ACTIVE);
+  CeedOperatorSetField(op_setup_mass, "qdata", elem_restr_qd_mass, CEED_BASIS_NONE, CEED_VECTOR_ACTIVE);
 
   // QFunction - setup diffusion
   CeedQFunctionCreateInteriorByName(ceed, "Poisson2DBuild", &qf_setup_diff);
@@ -91,7 +91,7 @@ int main(int argc, char **argv) {
   CeedOperatorCreate(ceed, qf_setup_diff, CEED_QFUNCTION_NONE, CEED_QFUNCTION_NONE, &op_setup_diff);
   CeedOperatorSetField(op_setup_diff, "dx", elem_restriction_x, basis_x, CEED_VECTOR_ACTIVE);
   CeedOperatorSetField(op_setup_diff, "weights", CEED_ELEMRESTRICTION_NONE, basis_x, CEED_VECTOR_NONE);
-  CeedOperatorSetField(op_setup_diff, "qdata", elem_restr_qd_diff, CEED_BASIS_COLLOCATED, CEED_VECTOR_ACTIVE);
+  CeedOperatorSetField(op_setup_diff, "qdata", elem_restr_qd_diff, CEED_BASIS_NONE, CEED_VECTOR_ACTIVE);
 
   // Apply Setup Operators
   CeedOperatorApply(op_setup_mass, x, q_data_mass, CEED_REQUEST_IMMEDIATE);
@@ -111,8 +111,8 @@ int main(int argc, char **argv) {
   // Operator - apply
   CeedOperatorCreate(ceed, qf_apply, CEED_QFUNCTION_NONE, CEED_QFUNCTION_NONE, &op_apply);
   CeedOperatorSetField(op_apply, "du_0", elem_restriction_u_0, basis_u_0, CEED_VECTOR_ACTIVE);
-  CeedOperatorSetField(op_apply, "mass qdata", elem_restr_qd_mass, CEED_BASIS_COLLOCATED, q_data_mass);
-  CeedOperatorSetField(op_apply, "diff qdata", elem_restr_qd_diff, CEED_BASIS_COLLOCATED, q_data_diff);
+  CeedOperatorSetField(op_apply, "mass qdata", elem_restr_qd_mass, CEED_BASIS_NONE, q_data_mass);
+  CeedOperatorSetField(op_apply, "diff qdata", elem_restr_qd_diff, CEED_BASIS_NONE, q_data_diff);
   CeedOperatorSetField(op_apply, "u_0", elem_restriction_u_0, basis_u_0, CEED_VECTOR_ACTIVE);
   CeedOperatorSetField(op_apply, "u_1", elem_restriction_u_1, basis_u_1, CEED_VECTOR_ACTIVE);
   CeedOperatorSetField(op_apply, "v_0", elem_restriction_u_0, basis_u_0, CEED_VECTOR_ACTIVE);

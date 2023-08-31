@@ -88,10 +88,10 @@ int main(int argc, char **argv) {
     CeedOperatorCreate(ceed, qf_setup, CEED_QFUNCTION_NONE, CEED_QFUNCTION_NONE, &sub_op_setup);
     CeedOperatorSetField(sub_op_setup, "weight", CEED_ELEMRESTRICTION_NONE, basis_x, CEED_VECTOR_NONE);
     CeedOperatorSetField(sub_op_setup, "dx", elem_restriction_x, basis_x, CEED_VECTOR_ACTIVE);
-    CeedOperatorSetField(sub_op_setup, "q data", elem_restriction_q_data, CEED_BASIS_COLLOCATED, CEED_VECTOR_ACTIVE);
+    CeedOperatorSetField(sub_op_setup, "q data", elem_restriction_q_data, CEED_BASIS_NONE, CEED_VECTOR_ACTIVE);
 
     CeedOperatorCreate(ceed, qf_mass, CEED_QFUNCTION_NONE, CEED_QFUNCTION_NONE, &sub_op_mass_fine);
-    CeedOperatorSetField(sub_op_mass_fine, "q data", elem_restriction_q_data, CEED_BASIS_COLLOCATED, q_data);
+    CeedOperatorSetField(sub_op_mass_fine, "q data", elem_restriction_q_data, CEED_BASIS_NONE, q_data);
     CeedOperatorSetField(sub_op_mass_fine, "u", elem_restriction_u_fine, basis_u_fine, CEED_VECTOR_ACTIVE);
     CeedOperatorSetField(sub_op_mass_fine, "v", elem_restriction_u_fine, basis_u_fine, CEED_VECTOR_ACTIVE);
 

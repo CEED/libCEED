@@ -36,6 +36,8 @@ For example, `CeedOperatorContextGetFieldLabel` was renamed to `CeedOperatorGetC
 - Added {c:func}`CeedOperatorSetName` for more readable {c:func}`CeedOperatorView` output.
 - Added {c:func}`CeedBasisCreateProjection` to facilitate interpolation between nodes for separate `CeedBases`.
 - Rename and move {c:func}`CeedCompositeOperatorGetNumSub` and {c:func}`CeedCompositeOperatorGetSubList` to public interface.
+- Renamed `CEED_BASIS_COLLOCATED` to `CEED_BASIS_NONE` for clarity.
+Some users previously misinterpreted a `CeedOperator` field using `CEED_BASIS_COLLOCATED` as meaning that the entire `CeedOperator` used a quadrature space that is collocated with the nodal space of the active bases.
 
 ### New features
 

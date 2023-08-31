@@ -44,9 +44,9 @@ static int CeedOperatorCheckField(Ceed ceed, CeedQFunctionField qf_field, CeedEl
     CeedCall(CeedElemRestrictionGetNumComponents(r, &restr_num_comp));
   }
   // Basis
-  CeedCheck((b == CEED_BASIS_COLLOCATED) == (eval_mode == CEED_EVAL_NONE), ceed, CEED_ERROR_INCOMPATIBLE,
-            "CEED_BASIS_COLLOCATED and CEED_EVAL_NONE must be used together.");
-  if (b != CEED_BASIS_COLLOCATED) {
+  CeedCheck((b == CEED_BASIS_NONE) == (eval_mode == CEED_EVAL_NONE), ceed, CEED_ERROR_INCOMPATIBLE,
+            "CEED_BASIS_NONE and CEED_EVAL_NONE must be used together.");
+  if (b != CEED_BASIS_NONE) {
     CeedCall(CeedBasisGetDimension(b, &dim));
     CeedCall(CeedBasisGetNumComponents(b, &num_comp));
     CeedCall(CeedBasisGetNumQuadratureComponents(b, eval_mode, &q_comp));
@@ -102,7 +102,7 @@ static int CeedOperatorFieldView(CeedOperatorField field, CeedQFunctionField qf_
           pre, in_out, field_number, pre, qf_field->field_name);
   fprintf(stream, "%s      Size: %" CeedInt_FMT "\n", pre, qf_field->size);
   fprintf(stream, "%s      EvalMode: %s\n", pre, CeedEvalModes[qf_field->eval_mode]);
-  if (field->basis == CEED_BASIS_COLLOCATED) fprintf(stream, "%s      Collocated basis\n", pre);
+  if (field->basis == CEED_BASIS_NONE) fprintf(stream, "%s      No basis\n", pre);
   if (field->vec == CEED_VECTOR_ACTIVE) fprintf(stream, "%s      Active vector\n", pre);
   else if (field->vec == CEED_VECTOR_NONE) fprintf(stream, "%s      No vector\n", pre);
   return CEED_ERROR_SUCCESS;
@@ -610,12 +610,12 @@ int CeedOperatorReferenceCopy(CeedOperator op, CeedOperator *op_copy) {
   There can be at most one active input CeedVector and at most one active output CeedVector passed to CeedOperatorApply().
 
   The number of quadrature points must agree across all points.
-  When using @ref CEED_BASIS_COLLOCATED, the number of quadrature points is determined by the element size of r.
+  When using @ref CEED_BASIS_NONE, the number of quadrature points is determined by the element size of r.
 
   @param[in,out] op         CeedOperator on which to provide the field
   @param[in]     field_name Name of the field (to be matched with the name used by CeedQFunction)
   @param[in]     r          CeedElemRestriction
-  @param[in]     b          CeedBasis in which the field resides or @ref CEED_BASIS_COLLOCATED if collocated with quadrature points
+  @param[in]     b          CeedBasis in which the field resides or @ref CEED_BASIS_NONE if collocated with quadrature points
   @param[in]     v          CeedVector to be used by CeedOperator or @ref CEED_VECTOR_ACTIVE if field is active or @ref CEED_VECTOR_NONE
                               if using @ref CEED_EVAL_WEIGHT in the QFunction
 
@@ -639,12 +639,12 @@ int CeedOperatorSetField(CeedOperator op, const char *field_name, CeedElemRestri
   CeedCheck(r == CEED_ELEMRESTRICTION_NONE || !op->has_restriction || op->num_elem == num_elem, op->ceed, CEED_ERROR_DIMENSION,
             "ElemRestriction with %" CeedInt_FMT " elements incompatible with prior %" CeedInt_FMT " elements", num_elem, op->num_elem);
 
-  if (b == CEED_BASIS_COLLOCATED) CeedCall(CeedElemRestrictionGetElementSize(r, &num_qpts));
+  if (b == CEED_BASIS_NONE) CeedCall(CeedElemRestrictionGetElementSize(r, &num_qpts));
   else CeedCall(CeedBasisGetNumQuadraturePoints(b, &num_qpts));
   CeedCheck(op->num_qpts == 0 || op->num_qpts == num_qpts, op->ceed, CEED_ERROR_DIMENSION,
             "%s must correspond to the same number of quadrature points as previously added Bases. Found %" CeedInt_FMT
             " quadrature points but expected %" CeedInt_FMT " quadrature points.",
-            b == CEED_BASIS_COLLOCATED ? "ElemRestriction" : "Basis", num_qpts, op->num_qpts);
+            b == CEED_BASIS_NONE ? "ElemRestriction" : "Basis", num_qpts, op->num_qpts);
   for (CeedInt i = 0; i < op->qf->num_input_fields; i++) {
     if (!strcmp(field_name, (*op->qf->input_fields[i]).field_name)) {
       qf_field = op->qf->input_fields[i];
@@ -1584,7 +1584,7 @@ int CeedOperatorDestroy(CeedOperator *op) {
       if ((*op)->input_fields[i]->elem_rstr != CEED_ELEMRESTRICTION_NONE) {
         CeedCall(CeedElemRestrictionDestroy(&(*op)->input_fields[i]->elem_rstr));
       }
-      if ((*op)->input_fields[i]->basis != CEED_BASIS_COLLOCATED) {
+      if ((*op)->input_fields[i]->basis != CEED_BASIS_NONE) {
         CeedCall(CeedBasisDestroy(&(*op)->input_fields[i]->basis));
       }
       if ((*op)->input_fields[i]->vec != CEED_VECTOR_ACTIVE && (*op)->input_fields[i]->vec != CEED_VECTOR_NONE) {
@@ -1597,7 +1597,7 @@ int CeedOperatorDestroy(CeedOperator *op) {
   for (CeedInt i = 0; i < (*op)->num_fields; i++) {
     if ((*op)->output_fields[i]) {
       CeedCall(CeedElemRestrictionDestroy(&(*op)->output_fields[i]->elem_rstr));
-      if ((*op)->output_fields[i]->basis != CEED_BASIS_COLLOCATED) {
+      if ((*op)->output_fields[i]->basis != CEED_BASIS_NONE) {
         CeedCall(CeedBasisDestroy(&(*op)->output_fields[i]->basis));
       }
       if ((*op)->output_fields[i]->vec != CEED_VECTOR_ACTIVE && (*op)->output_fields[i]->vec != CEED_VECTOR_NONE) {

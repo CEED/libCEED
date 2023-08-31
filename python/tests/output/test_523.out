@@ -18,7 +18,7 @@ Composite CeedOperator - setup
         Name: "rho"
         Size: 1
         EvalMode: none
-        Collocated basis
+        No basis
   SubOperator 1 - quadralateral elements:
     6 elements with 16 quadrature points each
     3 fields
@@ -38,7 +38,7 @@ Composite CeedOperator - setup
         Name: "rho"
         Size: 1
         EvalMode: none
-        Collocated basis
+        No basis
 
 Composite CeedOperator - mass
   SubOperator 0 - triangle elements:
@@ -49,7 +49,7 @@ Composite CeedOperator - mass
         Name: "rho"
         Size: 1
         EvalMode: none
-        Collocated basis
+        No basis
       Input field 1:
         Name: "u"
         Size: 1
@@ -69,7 +69,7 @@ Composite CeedOperator - mass
         Name: "rho"
         Size: 1
         EvalMode: none
-        Collocated basis
+        No basis
       Input field 1:
         Name: "u"
         Size: 1

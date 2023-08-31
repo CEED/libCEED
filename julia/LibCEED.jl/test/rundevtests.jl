@@ -12,6 +12,8 @@ end
 
 @testset "LibCEED Development Tests" begin
     @testset "Basis" begin
+        @test BasisNone()[] == LibCEED.C.CEED_BASIS_NONE[]
+
         c = Ceed()
         dim = 3
         ncomp = 1

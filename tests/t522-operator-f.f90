@@ -139,12 +139,12 @@
       call ceedoperatorsetfield(op_setuptet,'dx',erestrictxtet,&
      & bxtet,ceed_vector_active,err)
       call ceedoperatorsetfield(op_setuptet,'rho',erestrictqditet,&
-     & ceed_basis_collocated,qdatatet,err)
+     ceed_basis_none,qdatatet,err)
 ! ---- diff Tet
       call ceedoperatorcreate(ceed,qf_difftet,ceed_qfunction_none,&
      & ceed_qfunction_none,op_difftet,err)
       call ceedoperatorsetfield(op_difftet,'rho',erestrictqditet,&
-     & ceed_basis_collocated,qdatatet,err)
+     ceed_basis_none,qdatatet,err)
       call ceedoperatorsetfield(op_difftet,'u',erestrictutet,&
      & butet,ceed_vector_active,err)
       call ceedoperatorsetfield(op_difftet,'v',erestrictutet,&
@@ -203,12 +203,12 @@
       call ceedoperatorsetfield(op_setuphex,'dx',erestrictxhex,&
      & bxhex,ceed_vector_active,err)
       call ceedoperatorsetfield(op_setuphex,'rho',erestrictqdihex,&
-     & ceed_basis_collocated,qdatahex,err)
+     ceed_basis_none,qdatahex,err)
 ! ---- diff Hex
       call ceedoperatorcreate(ceed,qf_diffhex,ceed_qfunction_none,&
      & ceed_qfunction_none,op_diffhex,err)
       call ceedoperatorsetfield(op_diffhex,'rho',erestrictqdihex,&
-     & ceed_basis_collocated,qdatahex,err)
+     ceed_basis_none,qdatahex,err)
       call ceedoperatorsetfield(op_diffhex,'u',erestrictuhex,&
      & buhex,ceed_vector_active,err)
       call ceedoperatorsetfield(op_diffhex,'v',erestrictuhex,&

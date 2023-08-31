@@ -130,7 +130,7 @@ class CeedMassOperator : public mfem::Operator {
     CeedOperatorCreate(ceed, build_qfunc, CEED_QFUNCTION_NONE, CEED_QFUNCTION_NONE, &build_oper);
     CeedOperatorSetField(build_oper, "dx", mesh_restr, mesh_basis, CEED_VECTOR_ACTIVE);
     CeedOperatorSetField(build_oper, "weights", CEED_ELEMRESTRICTION_NONE, mesh_basis, CEED_VECTOR_NONE);
-    CeedOperatorSetField(build_oper, "qdata", restr_i, CEED_BASIS_COLLOCATED, CEED_VECTOR_ACTIVE);
+    CeedOperatorSetField(build_oper, "qdata", restr_i, CEED_BASIS_NONE, CEED_VECTOR_ACTIVE);
 
     // Compute the quadrature data for the mass operator.
     CeedOperatorApply(build_oper, node_coords, qdata, CEED_REQUEST_IMMEDIATE);
@@ -144,7 +144,7 @@ class CeedMassOperator : public mfem::Operator {
     // Create the mass operator.
     CeedOperatorCreate(ceed, apply_qfunc, CEED_QFUNCTION_NONE, CEED_QFUNCTION_NONE, &oper);
     CeedOperatorSetField(oper, "u", restr, basis, CEED_VECTOR_ACTIVE);
-    CeedOperatorSetField(oper, "qdata", restr_i, CEED_BASIS_COLLOCATED, qdata);
+    CeedOperatorSetField(oper, "qdata", restr_i, CEED_BASIS_NONE, qdata);
     CeedOperatorSetField(oper, "v", restr, basis, CEED_VECTOR_ACTIVE);
 
     CeedVectorCreate(ceed, fes->GetNDofs(), &u);

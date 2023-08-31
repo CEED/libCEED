@@ -91,9 +91,9 @@
       call ceedoperatorsetfield(op_setup,'dx',erestrictx,bx,&
      & ceed_vector_active,err)
       call ceedoperatorsetfield(op_setup,'qdata',erestrictui,&
-     & ceed_basis_collocated,ceed_vector_active,err)
+     ceed_basis_none,ceed_vector_active,err)
       call ceedoperatorsetfield(op_massfine,'qdata',erestrictui,&
-     & ceed_basis_collocated,qdata,err)
+     ceed_basis_none,qdata,err)
       call ceedoperatorsetfield(op_massfine,'u',erestrictufine,bufine,&
      & ceed_vector_active,err)
       call ceedoperatorsetfield(op_massfine,'v',erestrictufine,bufine,&

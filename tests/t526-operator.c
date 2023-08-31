@@ -82,7 +82,7 @@ int main(int argc, char **argv) {
   // ---- Mass Tet
   CeedOperatorCreate(ceed, qf_mass, CEED_QFUNCTION_NONE, CEED_QFUNCTION_NONE, &op_mass_tet);
   CeedOperatorSetField(op_mass_tet, "u", elem_restriction_u_tet, basis_u_tet, CEED_VECTOR_ACTIVE);
-  CeedOperatorSetField(op_mass_tet, "qdata", elem_restriction_q_data_tet, CEED_BASIS_COLLOCATED, q_data_tet);
+  CeedOperatorSetField(op_mass_tet, "qdata", elem_restriction_q_data_tet, CEED_BASIS_NONE, q_data_tet);
   CeedOperatorSetField(op_mass_tet, "v", elem_restriction_u_tet, basis_u_tet, CEED_VECTOR_ACTIVE);
 
   // Set up Hex Elements
@@ -109,7 +109,7 @@ int main(int argc, char **argv) {
   // -- Operators
   CeedOperatorCreate(ceed, qf_mass, CEED_QFUNCTION_NONE, CEED_QFUNCTION_NONE, &op_mass_hex);
   CeedOperatorSetField(op_mass_hex, "u", elem_restriction_u_hex, basis_u_hex, CEED_VECTOR_ACTIVE);
-  CeedOperatorSetField(op_mass_hex, "qdata", elem_restriction_q_data_hex, CEED_BASIS_COLLOCATED, q_data_hex);
+  CeedOperatorSetField(op_mass_hex, "qdata", elem_restriction_q_data_hex, CEED_BASIS_NONE, q_data_hex);
   CeedOperatorSetField(op_mass_hex, "v", elem_restriction_u_hex, basis_u_hex, CEED_VECTOR_ACTIVE);
 
   // Set up Composite Operator

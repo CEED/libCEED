@@ -41,9 +41,9 @@ int main(int argc, char **argv) {
 
   // Operators
   CeedOperatorCreate(ceed, qf_identity, CEED_QFUNCTION_NONE, CEED_QFUNCTION_NONE, &op_identity);
-  // -- Note: number of quadrature points for field set by elem_size of restriction when CEED_BASIS_COLLOCATED used
-  CeedOperatorSetField(op_identity, "input", elem_restriction_u, CEED_BASIS_COLLOCATED, CEED_VECTOR_ACTIVE);
-  CeedOperatorSetField(op_identity, "output", elem_restriction_u_i, CEED_BASIS_COLLOCATED, CEED_VECTOR_ACTIVE);
+  // -- Note: number of quadrature points for field set by elem_size of restriction when CEED_BASIS_NONE used
+  CeedOperatorSetField(op_identity, "input", elem_restriction_u, CEED_BASIS_NONE, CEED_VECTOR_ACTIVE);
+  CeedOperatorSetField(op_identity, "output", elem_restriction_u_i, CEED_BASIS_NONE, CEED_VECTOR_ACTIVE);
 
   CeedVectorSetValue(u, 3.0);
   CeedOperatorApply(op_identity, u, v, CEED_REQUEST_IMMEDIATE);

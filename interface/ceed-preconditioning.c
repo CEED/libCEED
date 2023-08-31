@@ -852,8 +852,8 @@ static int CeedSingleOperatorMultigridLevel(CeedOperator op_fine, CeedVector p_m
     CeedCall(CeedQFunctionSetUserFlopsEstimate(qf_restrict, num_comp));
 
     CeedCall(CeedOperatorCreate(ceed, qf_restrict, CEED_QFUNCTION_NONE, CEED_QFUNCTION_NONE, op_restrict));
-    CeedCall(CeedOperatorSetField(*op_restrict, "input", rstr_fine, CEED_BASIS_COLLOCATED, CEED_VECTOR_ACTIVE));
-    CeedCall(CeedOperatorSetField(*op_restrict, "scale", rstr_p_mult_fine, CEED_BASIS_COLLOCATED, mult_vec));
+    CeedCall(CeedOperatorSetField(*op_restrict, "input", rstr_fine, CEED_BASIS_NONE, CEED_VECTOR_ACTIVE));
+    CeedCall(CeedOperatorSetField(*op_restrict, "scale", rstr_p_mult_fine, CEED_BASIS_NONE, mult_vec));
     CeedCall(CeedOperatorSetField(*op_restrict, "output", rstr_coarse, basis_c_to_f, CEED_VECTOR_ACTIVE));
 
     // Set name
@@ -891,8 +891,8 @@ static int CeedSingleOperatorMultigridLevel(CeedOperator op_fine, CeedVector p_m
 
     CeedCall(CeedOperatorCreate(ceed, qf_prolong, CEED_QFUNCTION_NONE, CEED_QFUNCTION_NONE, op_prolong));
     CeedCall(CeedOperatorSetField(*op_prolong, "input", rstr_coarse, basis_c_to_f, CEED_VECTOR_ACTIVE));
-    CeedCall(CeedOperatorSetField(*op_prolong, "scale", rstr_p_mult_fine, CEED_BASIS_COLLOCATED, mult_vec));
-    CeedCall(CeedOperatorSetField(*op_prolong, "output", rstr_fine, CEED_BASIS_COLLOCATED, CEED_VECTOR_ACTIVE));
+    CeedCall(CeedOperatorSetField(*op_prolong, "scale", rstr_p_mult_fine, CEED_BASIS_NONE, mult_vec));
+    CeedCall(CeedOperatorSetField(*op_prolong, "output", rstr_fine, CEED_BASIS_NONE, CEED_VECTOR_ACTIVE));
 
     // Set name
     char *prolongation_name;
@@ -2505,7 +2505,7 @@ int CeedOperatorCreateFDMElementInverse(CeedOperator op, CeedOperator *fdm_inv, 
   // -- Operator
   CeedCall(CeedOperatorCreate(ceed_parent, qf_fdm, NULL, NULL, fdm_inv));
   CeedCall(CeedOperatorSetField(*fdm_inv, "input", rstr, fdm_basis, CEED_VECTOR_ACTIVE));
-  CeedCall(CeedOperatorSetField(*fdm_inv, "scale", rstr_qd_i, CEED_BASIS_COLLOCATED, q_data));
+  CeedCall(CeedOperatorSetField(*fdm_inv, "scale", rstr_qd_i, CEED_BASIS_NONE, q_data));
   CeedCall(CeedOperatorSetField(*fdm_inv, "output", rstr, fdm_basis, CEED_VECTOR_ACTIVE));
 
   // Cleanup

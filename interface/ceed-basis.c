@@ -17,14 +17,17 @@
 /// Implementation of CeedBasis interfaces
 
 /// @cond DOXYGEN_SKIP
-static struct CeedBasis_private ceed_basis_collocated;
+static struct CeedBasis_private ceed_basis_none;
 /// @endcond
 
 /// @addtogroup CeedBasisUser
 /// @{
 
-/// Indicate that the quadrature points are collocated with the nodes
-const CeedBasis CEED_BASIS_COLLOCATED = &ceed_basis_collocated;
+/// Argument for CeedOperatorSetField indicating that the field does not requre a CeedBasis
+const CeedBasis CEED_BASIS_NONE = &ceed_basis_none;
+
+/// This feature will be removed. Use CEED_BASIS_NONE.
+const CeedBasis CEED_BASIS_COLLOCATED = &ceed_basis_none;
 
 /// @}
 
@@ -1323,7 +1326,7 @@ int CeedBasisCreateProjection(CeedBasis basis_from, CeedBasis basis_to, CeedBasi
   @ref User
 **/
 int CeedBasisReferenceCopy(CeedBasis basis, CeedBasis *basis_copy) {
-  if (basis != CEED_BASIS_COLLOCATED) CeedCall(CeedBasisReference(basis));
+  if (basis != CEED_BASIS_NONE) CeedCall(CeedBasisReference(basis));
   CeedCall(CeedBasisDestroy(basis_copy));
   *basis_copy = basis;
   return CEED_ERROR_SUCCESS;
@@ -1988,7 +1991,7 @@ int CeedBasisGetCurl(CeedBasis basis, const CeedScalar **curl) {
   @ref User
 **/
 int CeedBasisDestroy(CeedBasis *basis) {
-  if (!*basis || *basis == CEED_BASIS_COLLOCATED || --(*basis)->ref_count > 0) {
+  if (!*basis || *basis == CEED_BASIS_NONE || --(*basis)->ref_count > 0) {
     *basis = NULL;
     return CEED_ERROR_SUCCESS;
   }

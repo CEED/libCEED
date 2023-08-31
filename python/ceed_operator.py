@@ -304,8 +304,8 @@ class Operator(_OperatorBase):
              fieldname: name of the field (to be matched with the same name used
                           by QFunction)
              restriction: ElemRestriction
-             basis: Basis in which the field resides or CEED_BASIS_COLLOCATED
-                      if collocated with quadrature points
+             basis: Basis in which the field resides or CEED_BASIS_NONE
+                      if using CEED_EVAL_NONE
              vector: Vector to be used by Operator or CEED_VECTOR_ACTIVE
                        if field is active or CEED_VECTOR_NONE if using
                        CEED_EVAL_WEIGHT in the QFunction"""

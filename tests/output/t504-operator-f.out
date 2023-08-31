@@ -17,7 +17,7 @@ CeedOperator
       Name: "rho"
       Size: 1
       EvalMode: none
-      Collocated basis
+      No basis
       Active vector
 CeedOperator
   15 elements with 8 quadrature points each
@@ -27,7 +27,7 @@ CeedOperator
       Name: "rho"
       Size: 1
       EvalMode: none
-      Collocated basis
+      No basis
     Input field 1:
       Name: "u"
       Size: 2

@@ -228,12 +228,7 @@ fn example_2(options: opt::Opt) -> libceed::Result<()> {
             &basis_mesh,
             VectorOpt::None,
         )?
-        .field(
-            "qdata",
-            &restr_qdata,
-            BasisOpt::Collocated,
-            VectorOpt::Active,
-        )?
+        .field("qdata", &restr_qdata, BasisOpt::None, VectorOpt::Active)?
         .check()?;
 
     // Compute the quadrature data for the diff operator
@@ -308,7 +303,7 @@ fn example_2(options: opt::Opt) -> libceed::Result<()> {
         .operator(qf_diff, QFunctionOpt::None, QFunctionOpt::None)?
         .name("Poisson")?
         .field("du", &restr_solution, &basis_solution, VectorOpt::Active)?
-        .field("qdata", &restr_qdata, BasisOpt::Collocated, &qdata)?
+        .field("qdata", &restr_qdata, BasisOpt::None, &qdata)?
         .field("dv", &restr_solution, &basis_solution, VectorOpt::Active)?
         .check()?;
 

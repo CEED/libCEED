@@ -101,7 +101,7 @@
       call ceedoperatorsetfield(op_setup_mass,'weight',&
      & ceed_elemrestriction_none,bx,ceed_vector_none,err)
       call ceedoperatorsetfield(op_setup_mass,'qdata',erestrictui,&
-     & ceed_basis_collocated,ceed_vector_active,err)
+     ceed_basis_none,ceed_vector_active,err)
 
 ! QFunction - setup diff
       call ceedqfunctioncreateinterior(ceed,1,setup_diff,&
@@ -120,7 +120,7 @@
       call ceedoperatorsetfield(op_setup_diff,'weight',&
      & ceed_elemrestriction_none,bx,ceed_vector_none,err)
       call ceedoperatorsetfield(op_setup_diff,'qdata',erestrictqi,&
-     & ceed_basis_collocated,ceed_vector_active,err)
+     ceed_basis_none,ceed_vector_active,err)
 
 ! Apply Setup Operators
       call ceedoperatorapply(op_setup_mass,x,qdata_mass,&
@@ -146,9 +146,9 @@
       call ceedoperatorsetfield(op_apply,'du',erestrictu,&
      & bu,ceed_vector_active,err)
       call ceedoperatorsetfield(op_apply,'mass qdata',erestrictui,&
-     & ceed_basis_collocated,qdata_mass,err)
+     ceed_basis_none,qdata_mass,err)
       call ceedoperatorsetfield(op_apply,'diff qdata',erestrictqi,&
-     & ceed_basis_collocated,qdata_diff,err)
+     ceed_basis_none,qdata_diff,err)
       call ceedoperatorsetfield(op_apply,'u',erestrictu,&
      & bu,ceed_vector_active,err)
       call ceedoperatorsetfield(op_apply,'v',erestrictu,&
@@ -197,7 +197,7 @@
       call ceedoperatorsetfield(op_apply_lin,'du',erestrictu,&
      & bu,ceed_vector_active,err)
       call ceedoperatorsetfield(op_apply_lin,'qdata',erestrictlini,&
-     & ceed_basis_collocated,a,err)
+     ceed_basis_none,a,err)
       call ceedoperatorsetfield(op_apply_lin,'u',erestrictu,&
      & bu,ceed_vector_active,err)
       call ceedoperatorsetfield(op_apply_lin,'v',erestrictu,&

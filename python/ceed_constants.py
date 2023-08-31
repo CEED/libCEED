@@ -109,6 +109,6 @@ VECTOR_NONE = _CeedConstantObject(lib.CEED_VECTOR_NONE)
 ELEMRESTRICTION_NONE = _CeedConstantObject(lib.CEED_ELEMRESTRICTION_NONE)
 
 # Basis
-BASIS_COLLOCATED = _CeedConstantObject(lib.CEED_BASIS_COLLOCATED)
+BASIS_NONE = _CeedConstantObject(lib.CEED_BASIS_NONE)
 
 # ------------------------------------------------------------------------------

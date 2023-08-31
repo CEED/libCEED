@@ -16,12 +16,12 @@ use crate::prelude::*;
 #[derive(Debug)]
 pub enum BasisOpt<'a> {
     Some(&'a Basis<'a>),
-    Collocated,
+    None,
 }
 /// Construct a BasisOpt reference from a Basis reference
 impl<'a> From<&'a Basis<'_>> for BasisOpt<'a> {
     fn from(basis: &'a Basis) -> Self {
-        debug_assert!(basis.ptr != unsafe { bind_ceed::CEED_BASIS_COLLOCATED });
+        debug_assert!(basis.ptr != unsafe { bind_ceed::CEED_BASIS_NONE });
         Self::Some(basis)
     }
 }
@@ -30,7 +30,7 @@ impl<'a> BasisOpt<'a> {
     pub(crate) fn to_raw(self) -> bind_ceed::CeedBasis {
         match self {
             Self::Some(basis) => basis.ptr,
-            Self::Collocated => unsafe { bind_ceed::CEED_BASIS_COLLOCATED },
+            Self::None => unsafe { bind_ceed::CEED_BASIS_NONE },
         }
     }
 
@@ -44,7 +44,7 @@ impl<'a> BasisOpt<'a> {
     /// let b_opt = BasisOpt::from(&b);
     /// assert!(b_opt.is_some(), "Incorrect BasisOpt");
     ///
-    /// let b_opt = BasisOpt::Collocated;
+    /// let b_opt = BasisOpt::None;
     /// assert!(!b_opt.is_some(), "Incorrect BasisOpt");
     /// # Ok(())
     /// # }
@@ -52,11 +52,11 @@ impl<'a> BasisOpt<'a> {
     pub fn is_some(&self) -> bool {
         match self {
             Self::Some(_) => true,
-            Self::Collocated => false,
+            Self::None => false,
         }
     }
 
-    /// Check if a BasisOpt is Collocated
+    /// Check if a BasisOpt is None
     ///
     /// ```
     /// # use libceed::prelude::*;
@@ -64,17 +64,17 @@ impl<'a> BasisOpt<'a> {
     /// # let ceed = libceed::Ceed::default_init();
     /// let b = ceed.basis_tensor_H1_Lagrange(1, 2, 3, 4, QuadMode::Gauss)?;
     /// let b_opt = BasisOpt::from(&b);
-    /// assert!(!b_opt.is_collocated(), "Incorrect BasisOpt");
+    /// assert!(!b_opt.is_none(), "Incorrect BasisOpt");
     ///
-    /// let b_opt = BasisOpt::Collocated;
-    /// assert!(b_opt.is_collocated(), "Incorrect BasisOpt");
+    /// let b_opt = BasisOpt::None;
+    /// assert!(b_opt.is_none(), "Incorrect BasisOpt");
     /// # Ok(())
     /// # }
     /// ```
-    pub fn is_collocated(&self) -> bool {
+    pub fn is_none(&self) -> bool {
         match self {
             Self::Some(_) => false,
-            Self::Collocated => true,
+            Self::None => true,
         }
     }
 }
@@ -94,7 +94,7 @@ pub struct Basis<'a> {
 impl<'a> Drop for Basis<'a> {
     fn drop(&mut self) {
         unsafe {
-            if self.ptr != bind_ceed::CEED_BASIS_COLLOCATED {
+            if self.ptr != bind_ceed::CEED_BASIS_NONE {
                 bind_ceed::CeedBasisDestroy(&mut self.ptr);
             }
         }

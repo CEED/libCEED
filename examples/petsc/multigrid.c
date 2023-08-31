@@ -289,8 +289,8 @@ int main(int argc, char **argv) {
   // Create the error operator
   CeedOperatorCreate(ceed, qf_error, CEED_QFUNCTION_NONE, CEED_QFUNCTION_NONE, &op_error);
   CeedOperatorSetField(op_error, "u", ceed_data[fine_level]->elem_restr_u, ceed_data[fine_level]->basis_u, CEED_VECTOR_ACTIVE);
-  CeedOperatorSetField(op_error, "true_soln", ceed_data[fine_level]->elem_restr_u_i, CEED_BASIS_COLLOCATED, target);
-  CeedOperatorSetField(op_error, "qdata", ceed_data[fine_level]->elem_restr_qd_i, CEED_BASIS_COLLOCATED, ceed_data[fine_level]->q_data);
+  CeedOperatorSetField(op_error, "true_soln", ceed_data[fine_level]->elem_restr_u_i, CEED_BASIS_NONE, target);
+  CeedOperatorSetField(op_error, "qdata", ceed_data[fine_level]->elem_restr_qd_i, CEED_BASIS_NONE, ceed_data[fine_level]->q_data);
   CeedOperatorSetField(op_error, "error", ceed_data[fine_level]->elem_restr_u, ceed_data[fine_level]->basis_u, CEED_VECTOR_ACTIVE);
 
   // Calculate multiplicity

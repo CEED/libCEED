@@ -202,19 +202,22 @@ CEED_EXTERN CeedRequest *const CEED_REQUEST_IMMEDIATE;
 CEED_EXTERN CeedRequest *const CEED_REQUEST_ORDERED;
 CEED_EXTERN int                CeedRequestWait(CeedRequest *req);
 
-/// Argument for CeedOperatorSetField that vector is collocated with quadrature points, only used with CeedEvalMode CEED_EVAL_NONE
-/// @ingroup CeedBasis
-CEED_EXTERN const CeedBasis CEED_BASIS_COLLOCATED;
-
-/// Argument for CeedOperatorSetField to use active input or output
+/// Argument for CeedOperatorSetField to use active input or output.
 /// @ingroup CeedVector
 CEED_EXTERN const CeedVector CEED_VECTOR_ACTIVE;
 
-/// Argument for CeedOperatorSetField to use no vector, used with QFunction input with eval mode CEED_EVAL_WEIGHT
+/// Argument for CeedOperatorSetField to use no vector.
+/// Only use this option with CeedEvalMode CEED_EVAL_WEIGHT.
 /// @ingroup CeedVector
 CEED_EXTERN const CeedVector CEED_VECTOR_NONE;
 
-/// Argument for CeedOperatorSetField to use no ElemRestriction, only used with eval mode CEED_EVAL_WEIGHT.
+/// Argument for CeedOperatorSetField that no basis operation is needed to translate between the E-vector and the Q-vector.
+/// Only use this option with CeedEvalMode CEED_EVAL_NONE.
+/// @ingroup CeedBasis
+CEED_EXTERN const CeedBasis CEED_BASIS_NONE;
+
+/// Argument for CeedOperatorSetField to use no ElemRestriction.
+/// Only use this option with CeedEvalMode CEED_EVAL_WEIGHT.
 /// @ingroup CeedElemRestriction
 CEED_EXTERN const CeedElemRestriction CEED_ELEMRESTRICTION_NONE;
 
