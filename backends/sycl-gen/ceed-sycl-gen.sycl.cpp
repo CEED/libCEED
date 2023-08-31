@@ -42,8 +42,8 @@ static int CeedInit_Sycl_gen(const char *resource, Ceed ceed) {
 
   CeedCallBackend(CeedSetDelegate(ceed, ceed_shared));
 
-  const char fallbackresource[] = "/gpu/sycl/ref";
-  CeedCallBackend(CeedSetOperatorFallbackResource(ceed, fallbackresource));
+  const char fallback_resource[] = "/gpu/sycl/ref";
+  CeedCallBackend(CeedSetOperatorFallbackResource(ceed, fallback_resource));
 
   CeedCallBackend(CeedSetBackendFunctionCpp(ceed, "Ceed", ceed, "QFunctionCreate", CeedQFunctionCreate_Sycl_gen));
   CeedCallBackend(CeedSetBackendFunctionCpp(ceed, "Ceed", ceed, "OperatorCreate", CeedOperatorCreate_Sycl_gen));

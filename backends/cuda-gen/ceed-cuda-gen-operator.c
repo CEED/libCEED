@@ -20,6 +20,7 @@
 //------------------------------------------------------------------------------
 static int CeedOperatorDestroy_Cuda_gen(CeedOperator op) {
   CeedOperator_Cuda_gen *impl;
+
   CeedCallBackend(CeedOperatorGetData(op, &impl));
   CeedCallBackend(CeedFree(&impl));
   return CEED_ERROR_SUCCESS;
@@ -66,8 +67,10 @@ static int BlockGridCalculate(CeedInt num_elem, int blocks_per_sm, int max_threa
   const int threads_per_elem = block[0] * block[1];
   int       elems_per_block  = 1;
   int       waste            = Waste(threads_per_sm, warp_size, threads_per_elem, 1);
+
   for (int i = 2; i <= CeedIntMin(max_threads_per_block / threads_per_elem, num_elem); i++) {
     int i_waste = Waste(threads_per_sm, warp_size, threads_per_elem, i);
+
     // We want to minimize waste, but smaller kernels have lower latency and less __syncthreads() overhead so when a larger block size has the same
     // waste as a smaller one, go ahead and prefer the smaller block.
     if (i_waste < waste || (i_waste == waste && threads_per_elem * i <= 128)) {
@@ -89,30 +92,33 @@ static size_t dynamicSMemSize(int threads) { return threads * sizeof(CeedScalar)
 // Apply and add to output
 //------------------------------------------------------------------------------
 static int CeedOperatorApplyAdd_Cuda_gen(CeedOperator op, CeedVector input_vec, CeedVector output_vec, CeedRequest *request) {
-  Ceed ceed;
-  CeedCallBackend(CeedOperatorGetCeed(op, &ceed));
-  Ceed_Cuda *cuda_data;
-  CeedCallBackend(CeedGetData(ceed, &cuda_data));
-  CeedOperator_Cuda_gen *data;
-  CeedCallBackend(CeedOperatorGetData(op, &data));
-  CeedQFunction           qf;
+  Ceed                    ceed;
+  Ceed_Cuda              *cuda_data;
+  CeedInt                 num_elem, num_input_fields, num_output_fields;
+  CeedEvalMode            eval_mode;
+  CeedVector              output_vecs[CEED_FIELD_MAX] = {NULL};
+  CeedQFunctionField     *qf_input_fields, *qf_output_fields;
   CeedQFunction_Cuda_gen *qf_data;
+  CeedQFunction           qf;
+  CeedOperatorField      *op_input_fields, *op_output_fields;
+  CeedOperator_Cuda_gen  *data;
+
+  CeedCallBackend(CeedOperatorGetCeed(op, &ceed));
+  CeedCallBackend(CeedGetData(ceed, &cuda_data));
+  CeedCallBackend(CeedOperatorGetData(op, &data));
   CeedCallBackend(CeedOperatorGetQFunction(op, &qf));
   CeedCallBackend(CeedQFunctionGetData(qf, &qf_data));
-  CeedInt num_elem, num_input_fields, num_output_fields;
   CeedCallBackend(CeedOperatorGetNumElements(op, &num_elem));
-  CeedOperatorField *op_input_fields, *op_output_fields;
   CeedCallBackend(CeedOperatorGetFields(op, &num_input_fields, &op_input_fields, &num_output_fields, &op_output_fields));
-  CeedQFunctionField *qf_input_fields, *qf_output_fields;
   CeedCallBackend(CeedQFunctionGetFields(qf, NULL, &qf_input_fields, NULL, &qf_output_fields));
-  CeedEvalMode eval_mode;
-  CeedVector   vec, output_vecs[CEED_FIELD_MAX] = {NULL};
 
   // Creation of the operator
   CeedCallBackend(CeedOperatorBuildKernel_Cuda_gen(op));
 
   // Input vectors
   for (CeedInt i = 0; i < num_input_fields; i++) {
+    CeedVector vec;
+
     CeedCallBackend(CeedQFunctionFieldGetEvalMode(qf_input_fields[i], &eval_mode));
     if (eval_mode == CEED_EVAL_WEIGHT) {  // Skip
       data->fields.inputs[i] = NULL;
@@ -126,6 +132,8 @@ static int CeedOperatorApplyAdd_Cuda_gen(CeedOperator op, CeedVector input_vec, 
 
   // Output vectors
   for (CeedInt i = 0; i < num_output_fields; i++) {
+    CeedVector vec;
+
     CeedCallBackend(CeedQFunctionFieldGetEvalMode(qf_output_fields[i], &eval_mode));
     if (eval_mode == CEED_EVAL_WEIGHT) {  // Skip
       data->fields.outputs[i] = NULL;
@@ -136,6 +144,7 @@ static int CeedOperatorApplyAdd_Cuda_gen(CeedOperator op, CeedVector input_vec, 
       output_vecs[i] = vec;
       // Check for multiple output modes
       CeedInt index = -1;
+
       for (CeedInt j = 0; j < i; j++) {
         if (vec == output_vecs[j]) {
           index = j;
@@ -160,6 +169,7 @@ static int CeedOperatorApplyAdd_Cuda_gen(CeedOperator op, CeedVector input_vec, 
   const CeedInt P_1d      = data->max_P_1d;
   const CeedInt thread_1d = CeedIntMax(Q_1d, P_1d);
   int           max_threads_per_block, min_grid_size;
+
   CeedCallCuda(ceed, cuOccupancyMaxPotentialBlockSize(&min_grid_size, &max_threads_per_block, data->op, dynamicSMemSize, 0, 0x10000));
   int block[3] =
       {
@@ -168,13 +178,17 @@ static int CeedOperatorApplyAdd_Cuda_gen(CeedOperator op, CeedVector input_vec, 
           -1,
       },
       grid;
+
   CeedChkBackend(BlockGridCalculate(num_elem, min_grid_size / cuda_data->device_prop.multiProcessorCount, max_threads_per_block,
                                     cuda_data->device_prop.maxThreadsDim[2], cuda_data->device_prop.warpSize, block, &grid));
   CeedInt shared_mem = block[0] * block[1] * block[2] * sizeof(CeedScalar);
+
   CeedCallBackend(CeedRunKernelDimShared_Cuda(ceed, data->op, grid, block[0], block[1], block[2], shared_mem, opargs));
 
   // Restore input arrays
   for (CeedInt i = 0; i < num_input_fields; i++) {
+    CeedVector vec;
+
     CeedCallBackend(CeedQFunctionFieldGetEvalMode(qf_input_fields[i], &eval_mode));
     if (eval_mode == CEED_EVAL_WEIGHT) {  // Skip
     } else {
@@ -186,6 +200,8 @@ static int CeedOperatorApplyAdd_Cuda_gen(CeedOperator op, CeedVector input_vec, 
 
   // Restore output arrays
   for (CeedInt i = 0; i < num_output_fields; i++) {
+    CeedVector vec;
+
     CeedCallBackend(CeedQFunctionFieldGetEvalMode(qf_output_fields[i], &eval_mode));
     if (eval_mode == CEED_EVAL_WEIGHT) {  // Skip
     } else {
@@ -207,7 +223,6 @@ static int CeedOperatorApplyAdd_Cuda_gen(CeedOperator op, CeedVector input_vec, 
 
   // Restore context data
   CeedCallBackend(CeedQFunctionRestoreInnerContextData(qf, &qf_data->d_c));
-
   return CEED_ERROR_SUCCESS;
 }
 
@@ -215,13 +230,12 @@ static int CeedOperatorApplyAdd_Cuda_gen(CeedOperator op, CeedVector input_vec, 
 // Create operator
 //------------------------------------------------------------------------------
 int CeedOperatorCreate_Cuda_gen(CeedOperator op) {
-  Ceed ceed;
-  CeedCallBackend(CeedOperatorGetCeed(op, &ceed));
+  Ceed                   ceed;
   CeedOperator_Cuda_gen *impl;
 
+  CeedCallBackend(CeedOperatorGetCeed(op, &ceed));
   CeedCallBackend(CeedCalloc(1, &impl));
   CeedCallBackend(CeedOperatorSetData(op, impl));
-
   CeedCallBackend(CeedSetBackendFunction(ceed, "Operator", op, "ApplyAdd", CeedOperatorApplyAdd_Cuda_gen));
   CeedCallBackend(CeedSetBackendFunction(ceed, "Operator", op, "Destroy", CeedOperatorDestroy_Cuda_gen));
   return CEED_ERROR_SUCCESS;

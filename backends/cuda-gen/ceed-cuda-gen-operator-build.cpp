@@ -28,37 +28,42 @@
 extern "C" int CeedOperatorBuildKernel_Cuda_gen(CeedOperator op) {
   using std::ostringstream;
   using std::string;
-  bool is_setup_done;
-  CeedCallBackend(CeedOperatorIsSetupDone(op, &is_setup_done));
-  if (is_setup_done) return CEED_ERROR_SUCCESS;
-  Ceed ceed;
-  CeedCallBackend(CeedOperatorGetCeed(op, &ceed));
-  CeedOperator_Cuda_gen *data;
-  CeedCallBackend(CeedOperatorGetData(op, &data));
-  CeedQFunction           qf;
-  CeedQFunction_Cuda_gen *qf_data;
-  CeedCallBackend(CeedOperatorGetQFunction(op, &qf));
-  CeedCallBackend(CeedQFunctionGetData(qf, &qf_data));
-  CeedSize lsize;
-  CeedInt  Q, P_1d = 0, Q_1d = 0, elem_size, num_input_fields, num_output_fields, num_comp, dim = 1;
-  CeedCallBackend(CeedOperatorGetNumQuadraturePoints(op, &Q));
-  Q_1d = Q;
-  CeedOperatorField *op_input_fields, *op_output_fields;
-  CeedCallBackend(CeedOperatorGetFields(op, &num_input_fields, &op_input_fields, &num_output_fields, &op_output_fields));
-  CeedQFunctionField *qf_input_fields, *qf_output_fields;
-  CeedCallBackend(CeedQFunctionGetFields(qf, NULL, &qf_input_fields, NULL, &qf_output_fields));
+
+  bool                      is_setup_done, is_identity_qf;
+  struct cudaDeviceProp     prop;
+  Ceed                      ceed;
+  Ceed_Cuda                *ceed_data;
+  CeedSize                  l_size;
+  CeedInt                   Q, P_1d = 0, Q_1d = 0, elem_size, num_input_fields, num_output_fields, num_comp, dim = 1;
   CeedEvalMode              eval_mode;
+  CeedElemRestriction       elem_restr;
+  CeedElemRestriction_Cuda *restr_data;
   CeedBasis                 basis;
   CeedBasis_Cuda_shared    *basis_data;
-  CeedElemRestriction       Erestrict;
-  CeedElemRestriction_Cuda *restr_data;
+  CeedQFunctionField       *qf_input_fields, *qf_output_fields;
+  CeedQFunction_Cuda_gen   *qf_data;
+  CeedQFunction             qf;
+  CeedOperatorField        *op_input_fields, *op_output_fields;
+  CeedOperator_Cuda_gen    *data;
+
+  CeedCallBackend(CeedOperatorIsSetupDone(op, &is_setup_done));
+  if (is_setup_done) return CEED_ERROR_SUCCESS;
+
+  CeedCallBackend(CeedOperatorGetCeed(op, &ceed));
+  CeedCallBackend(CeedOperatorGetData(op, &data));
+  CeedCallBackend(CeedOperatorGetQFunction(op, &qf));
+  CeedCallBackend(CeedQFunctionGetData(qf, &qf_data));
+  CeedCallBackend(CeedOperatorGetNumQuadraturePoints(op, &Q));
+  Q_1d = Q;
+  CeedCallBackend(CeedOperatorGetFields(op, &num_input_fields, &op_input_fields, &num_output_fields, &op_output_fields));
+  CeedCallBackend(CeedQFunctionGetFields(qf, NULL, &qf_input_fields, NULL, &qf_output_fields));
 
   // TODO: put in a function?
   // Check for restriction only identity operator
-  bool is_identity_qf;
   CeedCallBackend(CeedQFunctionIsIdentity(qf, &is_identity_qf));
   if (is_identity_qf) {
     CeedEvalMode eval_mode_in, eval_mode_out;
+
     CeedCallBackend(CeedQFunctionFieldGetEvalMode(qf_input_fields[0], &eval_mode_in));
     CeedCallBackend(CeedQFunctionFieldGetEvalMode(qf_output_fields[0], &eval_mode_out));
     CeedCheck(eval_mode_in != CEED_EVAL_NONE || eval_mode_out != CEED_EVAL_NONE, ceed, CEED_ERROR_BACKEND,
@@ -69,12 +74,11 @@ extern "C" int CeedOperatorBuildKernel_Cuda_gen(CeedOperator op) {
 
   // TODO: put in a function?
   // Add atomicAdd function for old NVidia architectures
-  struct cudaDeviceProp prop;
-  Ceed_Cuda            *ceed_data;
   CeedCallBackend(CeedGetData(ceed, &ceed_data));
   CeedCallBackend(cudaGetDeviceProperties(&prop, ceed_data->device_id));
   if ((prop.major < 6) && (CEED_SCALAR_TYPE != CEED_SCALAR_FP32)) {
     char *atomic_add_path, *atomic_add_source;
+
     CeedCallBackend(CeedGetJitAbsolutePath(ceed, "ceed/jit-source/cuda/cuda-atomic-add-fallback.h", &atomic_add_path));
     CeedDebug256(ceed, CEED_DEBUG_COLOR_SUCCESS, "----- Loading Atomic Add Source -----\n");
     CeedCallBackend(CeedLoadSourceToBuffer(ceed, atomic_add_path, &atomic_add_source));
@@ -87,6 +91,7 @@ extern "C" int CeedOperatorBuildKernel_Cuda_gen(CeedOperator op) {
   // TODO: generalize to accept different device functions?
   {
     char *tensor_basis_kernel_path, *tensor_basis_kernel_source;
+
     CeedCallBackend(CeedGetJitAbsolutePath(ceed, "ceed/jit-source/cuda/cuda-shared-basis-tensor-templates.h", &tensor_basis_kernel_path));
     CeedDebug256(ceed, CEED_DEBUG_COLOR_SUCCESS, "----- Loading Tensor Basis Kernel Source -----\n");
     CeedCallBackend(CeedLoadSourceToBuffer(ceed, tensor_basis_kernel_path, &tensor_basis_kernel_source));
@@ -96,6 +101,7 @@ extern "C" int CeedOperatorBuildKernel_Cuda_gen(CeedOperator op) {
   }
   {
     char *cuda_gen_template_path, *cuda_gen_template_source;
+
     CeedCallBackend(CeedGetJitAbsolutePath(ceed, "ceed/jit-source/cuda/cuda-gen-templates.h", &cuda_gen_template_path));
     CeedDebug256(ceed, CEED_DEBUG_COLOR_SUCCESS, "----- Loading Cuda-Gen Template Source -----\n");
     CeedCallBackend(CeedLoadSourceToBuffer(ceed, cuda_gen_template_path, &cuda_gen_template_source));
@@ -115,33 +121,34 @@ extern "C" int CeedOperatorBuildKernel_Cuda_gen(CeedOperator op) {
   for (CeedInt i = 0; i < num_input_fields; i++) {
     CeedCallBackend(CeedOperatorFieldGetBasis(op_input_fields[i], &basis));
     if (basis != CEED_BASIS_NONE) {
+      bool is_tensor;
+
       CeedCallBackend(CeedBasisGetData(basis, &basis_data));
       CeedCallBackend(CeedQFunctionFieldGetEvalMode(qf_input_fields[i], &eval_mode));
 
       // Collect dim, P_1d, and Q_1d
       CeedCallBackend(CeedBasisGetDimension(basis, &dim));
-      bool isTensor;
-      CeedCallBackend(CeedBasisIsTensor(basis, &isTensor));
-      CeedCheck(isTensor, ceed, CEED_ERROR_BACKEND, "Backend does not implement operators with non-tensor basis");
+      CeedCallBackend(CeedBasisIsTensor(basis, &is_tensor));
+      CeedCheck(is_tensor, ceed, CEED_ERROR_BACKEND, "Backend does not implement operators with non-tensor basis");
       CeedCallBackend(CeedBasisGetNumQuadraturePoints1D(basis, &Q_1d));
       CeedCallBackend(CeedBasisGetNumNodes1D(basis, &P_1d));
-      if (P_1d > data->max_P_1d) data->max_P_1d = P_1d;
+      data->max_P_1d = CeedIntMax(data->max_P_1d, P_1d);
     }
   }
   // Check output bases for Q_1d, dim as well
   //   The only input basis might be CEED_BASIS_NONE
   for (CeedInt i = 0; i < num_output_fields; i++) {
     CeedCallBackend(CeedOperatorFieldGetBasis(op_output_fields[i], &basis));
-
     if (basis != CEED_BASIS_NONE) {
+      bool is_tensor;
+
       CeedCallBackend(CeedBasisGetData(basis, &basis_data));
       CeedCallBackend(CeedQFunctionFieldGetEvalMode(qf_output_fields[i], &eval_mode));
 
       // Collect Q_1d
       CeedCallBackend(CeedBasisGetDimension(basis, &dim));
-      bool isTensor;
-      CeedCallBackend(CeedBasisIsTensor(basis, &isTensor));
-      CeedCheck(isTensor, ceed, CEED_ERROR_BACKEND, "Backend does not implement operators with non-tensor basis");
+      CeedCallBackend(CeedBasisIsTensor(basis, &is_tensor));
+      CeedCheck(is_tensor, ceed, CEED_ERROR_BACKEND, "Backend does not implement operators with non-tensor basis");
       CeedCallBackend(CeedBasisGetNumQuadraturePoints1D(basis, &Q_1d));
     }
   }
@@ -151,8 +158,10 @@ extern "C" int CeedOperatorBuildKernel_Cuda_gen(CeedOperator op) {
   // Only use 3D collocated gradient parallelization strategy when gradient is computed
   // TODO: put in a function?
   bool use_collograd_parallelization = false;
+
   if (dim == 3) {
     bool was_grad_found = false;
+
     for (CeedInt i = 0; i < num_input_fields; i++) {
       CeedCallBackend(CeedQFunctionFieldGetEvalMode(qf_input_fields[i], &eval_mode));
       if (eval_mode == CEED_EVAL_GRAD) {
@@ -216,10 +225,10 @@ extern "C" int CeedOperatorBuildKernel_Cuda_gen(CeedOperator op) {
   for (CeedInt i = 0; i < num_input_fields; i++) {
     code << "  // ---- Input field " << i << " ----\n";
     // Get elem_size, eval_mode, num_comp
-    CeedCallBackend(CeedOperatorFieldGetElemRestriction(op_input_fields[i], &Erestrict));
-    CeedCallBackend(CeedElemRestrictionGetElementSize(Erestrict, &elem_size));
+    CeedCallBackend(CeedOperatorFieldGetElemRestriction(op_input_fields[i], &elem_restr));
+    CeedCallBackend(CeedElemRestrictionGetElementSize(elem_restr, &elem_size));
     CeedCallBackend(CeedQFunctionFieldGetEvalMode(qf_input_fields[i], &eval_mode));
-    CeedCallBackend(CeedElemRestrictionGetNumComponents(Erestrict, &num_comp));
+    CeedCallBackend(CeedElemRestrictionGetNumComponents(elem_restr, &num_comp));
 
     // Set field constants
     if (eval_mode != CEED_EVAL_WEIGHT) {
@@ -274,10 +283,10 @@ extern "C" int CeedOperatorBuildKernel_Cuda_gen(CeedOperator op) {
   for (CeedInt i = 0; i < num_output_fields; i++) {
     code << "  // ---- Output field " << i << " ----\n";
     // Get elem_size, eval_mode, num_comp
-    CeedCallBackend(CeedOperatorFieldGetElemRestriction(op_output_fields[i], &Erestrict));
-    CeedCallBackend(CeedElemRestrictionGetElementSize(Erestrict, &elem_size));
+    CeedCallBackend(CeedOperatorFieldGetElemRestriction(op_output_fields[i], &elem_restr));
+    CeedCallBackend(CeedElemRestrictionGetElementSize(elem_restr, &elem_size));
     CeedCallBackend(CeedQFunctionFieldGetEvalMode(qf_output_fields[i], &eval_mode));
-    CeedCallBackend(CeedElemRestrictionGetNumComponents(Erestrict, &num_comp));
+    CeedCallBackend(CeedElemRestrictionGetNumComponents(elem_restr, &num_comp));
 
     // Set field constants
     CeedCallBackend(CeedOperatorFieldGetBasis(op_output_fields[i], &basis));
@@ -320,6 +329,7 @@ extern "C" int CeedOperatorBuildKernel_Cuda_gen(CeedOperator op) {
       // LCOV_EXCL_START
       case CEED_EVAL_WEIGHT: {
         Ceed ceed;
+
         CeedCallBackend(CeedOperatorGetCeed(op, &ceed));
         return CeedError(ceed, CEED_ERROR_BACKEND, "CEED_EVAL_WEIGHT cannot be an output evaluation mode");
         break;  // Should not occur
@@ -340,10 +350,10 @@ extern "C" int CeedOperatorBuildKernel_Cuda_gen(CeedOperator op) {
   for (CeedInt i = 0; i < num_input_fields; i++) {
     code << "    // ---- Input field " << i << " ----\n";
     // Get elem_size, eval_mode, num_comp
-    CeedCallBackend(CeedOperatorFieldGetElemRestriction(op_input_fields[i], &Erestrict));
-    CeedCallBackend(CeedElemRestrictionGetElementSize(Erestrict, &elem_size));
+    CeedCallBackend(CeedOperatorFieldGetElemRestriction(op_input_fields[i], &elem_restr));
+    CeedCallBackend(CeedElemRestrictionGetElementSize(elem_restr, &elem_size));
     CeedCallBackend(CeedQFunctionFieldGetEvalMode(qf_input_fields[i], &eval_mode));
-    CeedCallBackend(CeedElemRestrictionGetNumComponents(Erestrict, &num_comp));
+    CeedCallBackend(CeedElemRestrictionGetNumComponents(elem_restr, &num_comp));
 
     // TODO: put in a function?
     // Restriction
@@ -351,25 +361,29 @@ extern "C" int CeedOperatorBuildKernel_Cuda_gen(CeedOperator op) {
       code << "    CeedScalar r_u_" << i << "[num_comp_in_" << i << "*P_in_" << i << "];\n";
 
       bool is_strided;
-      CeedCallBackend(CeedElemRestrictionIsStrided(Erestrict, &is_strided));
+
+      CeedCallBackend(CeedElemRestrictionIsStrided(elem_restr, &is_strided));
       if (!is_strided) {
-        CeedCallBackend(CeedElemRestrictionGetLVectorSize(Erestrict, &lsize));
-        code << "    const CeedInt lsize_in_" << i << " = " << lsize << ";\n";
         CeedInt comp_stride;
-        CeedCallBackend(CeedElemRestrictionGetCompStride(Erestrict, &comp_stride));
+
+        CeedCallBackend(CeedElemRestrictionGetLVectorSize(elem_restr, &l_size));
+        code << "    const CeedInt l_size_in_" << i << " = " << l_size << ";\n";
+        CeedCallBackend(CeedElemRestrictionGetCompStride(elem_restr, &comp_stride));
         code << "    // CompStride: " << comp_stride << "\n";
-        CeedCallBackend(CeedElemRestrictionGetData(Erestrict, &restr_data));
+        CeedCallBackend(CeedElemRestrictionGetData(elem_restr, &restr_data));
         data->indices.inputs[i] = restr_data->d_ind;
-        code << "    readDofsOffset" << dim << "d<num_comp_in_" << i << ", " << comp_stride << ", P_in_" << i << ">(data, lsize_in_" << i
+        code << "    readDofsOffset" << dim << "d<num_comp_in_" << i << ", " << comp_stride << ", P_in_" << i << ">(data, l_size_in_" << i
              << ", elem, indices.inputs[" << i << "], d_u_" << i << ", r_u_" << i << ");\n";
       } else {
-        bool has_backend_strides;
-        CeedCallBackend(CeedElemRestrictionHasBackendStrides(Erestrict, &has_backend_strides));
+        bool    has_backend_strides;
         CeedInt num_elem;
-        CeedCallBackend(CeedElemRestrictionGetNumElements(Erestrict, &num_elem));
+
+        CeedCallBackend(CeedElemRestrictionHasBackendStrides(elem_restr, &has_backend_strides));
+        CeedCallBackend(CeedElemRestrictionGetNumElements(elem_restr, &num_elem));
         CeedInt strides[3] = {1, elem_size * num_elem, elem_size};
+
         if (!has_backend_strides) {
-          CeedCallBackend(CeedElemRestrictionGetStrides(Erestrict, &strides));
+          CeedCallBackend(CeedElemRestrictionGetStrides(elem_restr, &strides));
         }
         code << "    // Strides: {" << strides[0] << ", " << strides[1] << ", " << strides[2] << "}\n";
         code << "    readDofsStrided" << dim << "d<num_comp_in_" << i << ",P_in_" << i << "," << strides[0] << "," << strides[1] << "," << strides[2]
@@ -398,6 +412,7 @@ extern "C" int CeedOperatorBuildKernel_Cuda_gen(CeedOperator op) {
                << ", s_B_in_" << i << ", r_t_" << i << ");\n";
         } else {
           CeedInt P_1d;
+
           CeedCallBackend(CeedOperatorFieldGetBasis(op_input_fields[i], &basis));
           CeedCallBackend(CeedBasisGetNumNodes1D(basis, &P_1d));
           code << "    CeedScalar r_t_" << i << "[num_comp_in_" << i << "*dim*Q_1d];\n";
@@ -456,31 +471,35 @@ extern "C" int CeedOperatorBuildKernel_Cuda_gen(CeedOperator op) {
       code << "      // EvalMode: " << CeedEvalModes[eval_mode] << "\n";
       switch (eval_mode) {
         case CEED_EVAL_NONE:
+          bool is_strided;
+
           code << "      CeedScalar r_q_" << i << "[num_comp_in_" << i << "];\n";
 
-          bool is_strided;
-          CeedCallBackend(CeedOperatorFieldGetElemRestriction(op_input_fields[i], &Erestrict));
-          CeedCallBackend(CeedElemRestrictionIsStrided(Erestrict, &is_strided));
+          CeedCallBackend(CeedOperatorFieldGetElemRestriction(op_input_fields[i], &elem_restr));
+          CeedCallBackend(CeedElemRestrictionIsStrided(elem_restr, &is_strided));
           if (!is_strided) {
-            CeedCallBackend(CeedElemRestrictionGetLVectorSize(Erestrict, &lsize));
-            code << "      const CeedInt lsize_in_" << i << " = " << lsize << ";\n";
             CeedInt comp_stride;
-            CeedCallBackend(CeedElemRestrictionGetCompStride(Erestrict, &comp_stride));
+
+            CeedCallBackend(CeedElemRestrictionGetLVectorSize(elem_restr, &l_size));
+            code << "      const CeedInt l_size_in_" << i << " = " << l_size << ";\n";
+            CeedCallBackend(CeedElemRestrictionGetCompStride(elem_restr, &comp_stride));
             code << "      // CompStride: " << comp_stride << "\n";
-            CeedCallBackend(CeedElemRestrictionGetData(Erestrict, &restr_data));
+            CeedCallBackend(CeedElemRestrictionGetData(elem_restr, &restr_data));
             data->indices.inputs[i] = restr_data->d_ind;
             code << "      readSliceQuadsOffset"
-                 << "3d<num_comp_in_" << i << ", " << comp_stride << ", Q_1d>(data, lsize_in_" << i << ", elem, q, indices.inputs[" << i << "], d_u_"
+                 << "3d<num_comp_in_" << i << ", " << comp_stride << ", Q_1d>(data, l_size_in_" << i << ", elem, q, indices.inputs[" << i << "], d_u_"
                  << i << ", r_q_" << i << ");\n";
           } else {
-            CeedCallBackend(CeedElemRestrictionGetElementSize(Erestrict, &elem_size));
-            bool has_backend_strides;
-            CeedCallBackend(CeedElemRestrictionHasBackendStrides(Erestrict, &has_backend_strides));
+            bool    has_backend_strides;
             CeedInt num_elem;
-            CeedCallBackend(CeedElemRestrictionGetNumElements(Erestrict, &num_elem));
+
+            CeedCallBackend(CeedElemRestrictionGetElementSize(elem_restr, &elem_size));
+            CeedCallBackend(CeedElemRestrictionHasBackendStrides(elem_restr, &has_backend_strides));
+            CeedCallBackend(CeedElemRestrictionGetNumElements(elem_restr, &num_elem));
             CeedInt strides[3] = {1, elem_size * num_elem, elem_size};
+
             if (!has_backend_strides) {
-              CeedCallBackend(CeedElemRestrictionGetStrides(Erestrict, &strides));
+              CeedCallBackend(CeedElemRestrictionGetStrides(elem_restr, &strides));
             }
             code << "      // Strides: {" << strides[0] << ", " << strides[1] << ", " << strides[2] << "}\n";
             code << "      readSliceQuadsStrided"
@@ -603,10 +622,10 @@ extern "C" int CeedOperatorBuildKernel_Cuda_gen(CeedOperator op) {
   for (CeedInt i = 0; i < num_output_fields; i++) {
     code << "    // ---- Output field " << i << " ----\n";
     // Get elem_size, eval_mode, num_comp
-    CeedCallBackend(CeedOperatorFieldGetElemRestriction(op_output_fields[i], &Erestrict));
-    CeedCallBackend(CeedElemRestrictionGetElementSize(Erestrict, &elem_size));
+    CeedCallBackend(CeedOperatorFieldGetElemRestriction(op_output_fields[i], &elem_restr));
+    CeedCallBackend(CeedElemRestrictionGetElementSize(elem_restr, &elem_size));
     CeedCallBackend(CeedQFunctionFieldGetEvalMode(qf_output_fields[i], &eval_mode));
-    CeedCallBackend(CeedElemRestrictionGetNumComponents(Erestrict, &num_comp));
+    CeedCallBackend(CeedElemRestrictionGetNumComponents(elem_restr, &num_comp));
     // TODO put in a function
     // Basis action
     code << "    // EvalMode: " << CeedEvalModes[eval_mode] << "\n";
@@ -648,25 +667,28 @@ extern "C" int CeedOperatorBuildKernel_Cuda_gen(CeedOperator op) {
     // TODO put in a function
     // Restriction
     bool is_strided;
-    CeedCallBackend(CeedElemRestrictionIsStrided(Erestrict, &is_strided));
+    CeedCallBackend(CeedElemRestrictionIsStrided(elem_restr, &is_strided));
     if (!is_strided) {
-      CeedCallBackend(CeedElemRestrictionGetLVectorSize(Erestrict, &lsize));
-      code << "    const CeedInt lsize_out_" << i << " = " << lsize << ";\n";
       CeedInt comp_stride;
-      CeedCallBackend(CeedElemRestrictionGetCompStride(Erestrict, &comp_stride));
+
+      CeedCallBackend(CeedElemRestrictionGetLVectorSize(elem_restr, &l_size));
+      code << "    const CeedInt l_size_out_" << i << " = " << l_size << ";\n";
+      CeedCallBackend(CeedElemRestrictionGetCompStride(elem_restr, &comp_stride));
       code << "    // CompStride: " << comp_stride << "\n";
-      CeedCallBackend(CeedElemRestrictionGetData(Erestrict, &restr_data));
+      CeedCallBackend(CeedElemRestrictionGetData(elem_restr, &restr_data));
       data->indices.outputs[i] = restr_data->d_ind;
-      code << "    writeDofsOffset" << dim << "d<num_comp_out_" << i << ", " << comp_stride << ", P_out_" << i << ">(data, lsize_out_" << i
+      code << "    writeDofsOffset" << dim << "d<num_comp_out_" << i << ", " << comp_stride << ", P_out_" << i << ">(data, l_size_out_" << i
            << ", elem, indices.outputs[" << i << "], r_v_" << i << ", d_v_" << i << ");\n";
     } else {
-      bool has_backend_strides;
-      CeedCallBackend(CeedElemRestrictionHasBackendStrides(Erestrict, &has_backend_strides));
+      bool    has_backend_strides;
       CeedInt num_elem;
-      CeedCallBackend(CeedElemRestrictionGetNumElements(Erestrict, &num_elem));
+
+      CeedCallBackend(CeedElemRestrictionHasBackendStrides(elem_restr, &has_backend_strides));
+      CeedCallBackend(CeedElemRestrictionGetNumElements(elem_restr, &num_elem));
       CeedInt strides[3] = {1, elem_size * num_elem, elem_size};
+
       if (!has_backend_strides) {
-        CeedCallBackend(CeedElemRestrictionGetStrides(Erestrict, &strides));
+        CeedCallBackend(CeedElemRestrictionGetStrides(elem_restr, &strides));
       }
       code << "    // Strides: {" << strides[0] << ", " << strides[1] << ", " << strides[2] << "}\n";
       code << "    writeDofsStrided" << dim << "d<num_comp_out_" << i << ",P_out_" << i << "," << strides[0] << "," << strides[1] << "," << strides[2]

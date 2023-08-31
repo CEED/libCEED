@@ -225,10 +225,10 @@ int CeedElemRestrictionCreate_Hip(CeedMemType mem_type, CeedCopyMode copy_mode, 
   CeedCallBackend(CeedElemRestrictionGetCeed(r, &ceed));
   CeedElemRestriction_Hip *impl;
   CeedCallBackend(CeedCalloc(1, &impl));
-  Ceed parent;
-  CeedCallBackend(CeedGetParent(ceed, &parent));
+  Ceed ceed_parent;
+  CeedCallBackend(CeedGetParent(ceed, &ceed_parent));
   bool is_deterministic;
-  CeedCallBackend(CeedIsDeterministic(parent, &is_deterministic));
+  CeedCallBackend(CeedIsDeterministic(ceed_parent, &is_deterministic));
   CeedInt num_elem, num_comp, elem_size;
   CeedCallBackend(CeedElemRestrictionGetNumElements(r, &num_elem));
   CeedCallBackend(CeedElemRestrictionGetNumComponents(r, &num_comp));

@@ -32,8 +32,8 @@ static int CeedInit_Hip_gen(const char *resource, Ceed ceed) {
   CeedCallBackend(CeedInit("/gpu/hip/shared", &ceed_shared));
   CeedCallBackend(CeedSetDelegate(ceed, ceed_shared));
 
-  const char fallbackresource[] = "/gpu/hip/ref";
-  CeedCallBackend(CeedSetOperatorFallbackResource(ceed, fallbackresource));
+  const char fallback_resource[] = "/gpu/hip/ref";
+  CeedCallBackend(CeedSetOperatorfallback_resource(ceed, fallback_resource));
 
   CeedCallBackend(CeedSetBackendFunction(ceed, "Ceed", ceed, "QFunctionCreate", CeedQFunctionCreate_Hip_gen));
   CeedCallBackend(CeedSetBackendFunction(ceed, "Ceed", ceed, "OperatorCreate", CeedOperatorCreate_Hip_gen));

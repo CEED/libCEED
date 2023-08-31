@@ -462,7 +462,7 @@ static inline int CeedOperatorLinearAssembleQFunctionCore_Opt(CeedOperator op, b
   CeedCallBackend(CeedOperatorSetup_Opt(op));
 
   // Check for identity
-  CeedCheck(!impl->is_identity_qf, ceed, CEED_ERROR_BACKEND, "Assembling identity qfunctions not supported");
+  CeedCheck(!impl->is_identity_qf, ceed, CEED_ERROR_BACKEND, "Assembling identity QFunctions not supported");
 
   // Input Evecs and Restriction
   CeedCallBackend(CeedOperatorSetupInputs_Opt(num_input_fields, qf_input_fields, op_input_fields, NULL, e_data, impl, request));
@@ -534,7 +534,7 @@ static inline int CeedOperatorLinearAssembleQFunctionCore_Opt(CeedOperator op, b
 
   // Build objects if needed
   if (build_objects) {
-    const CeedSize l_size     = (CeedSize)block_size * Q * num_active_in * num_active_out;
+    const CeedSize l_size     = (CeedSize)num_elem * Q * num_active_in * num_active_out;
     CeedInt        strides[3] = {1, Q, num_active_in * num_active_out * Q};
 
     // Create output restriction

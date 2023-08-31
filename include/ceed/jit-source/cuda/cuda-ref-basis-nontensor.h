@@ -21,8 +21,7 @@
 //------------------------------------------------------------------------------
 extern "C" __global__ void Interp(const CeedInt num_elem, const CeedInt transpose, const CeedScalar *d_B, const CeedScalar *__restrict__ d_U,
                                   CeedScalar *__restrict__ d_V) {
-  const CeedInt t_id = threadIdx.x;
-
+  const CeedInt     t_id = threadIdx.x;
   const CeedScalar *U;
   CeedScalar        V;
   // TODO load B in shared memory if blockDim.z > 1?
@@ -51,8 +50,7 @@ extern "C" __global__ void Interp(const CeedInt num_elem, const CeedInt transpos
 //------------------------------------------------------------------------------
 extern "C" __global__ void Grad(const CeedInt num_elem, const CeedInt transpose, const CeedScalar *d_G, const CeedScalar *__restrict__ d_U,
                                 CeedScalar *__restrict__ d_V) {
-  const CeedInt t_id = threadIdx.x;
-
+  const CeedInt     t_id = threadIdx.x;
   const CeedScalar *U;
   // TODO load G in shared memory if blockDim.z > 1?
 
@@ -88,6 +86,7 @@ extern "C" __global__ void Grad(const CeedInt num_elem, const CeedInt transpose,
 //------------------------------------------------------------------------------
 extern "C" __global__ void Weight(const CeedInt num_elem, const CeedScalar *__restrict__ q_weight, CeedScalar *__restrict__ d_V) {
   const CeedInt t_id = threadIdx.x;
+
   // TODO load q_weight in shared memory if blockDim.z > 1?
   for (CeedInt elem = blockIdx.x * blockDim.z + threadIdx.z; elem < num_elem; elem += gridDim.x * blockDim.z) {
     d_V[elem * BASIS_Q + t_id] = q_weight[t_id];

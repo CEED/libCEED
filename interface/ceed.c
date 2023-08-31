@@ -463,7 +463,7 @@ int CeedSetObjectDelegate(Ceed ceed, Ceed delegate, const char *obj_name) {
 
   @ref Backend
 **/
-int CeedGetOperatorFallbackResource(Ceed ceed, const char **resource) {
+int CeedGetOperatorfallback_resource(Ceed ceed, const char **resource) {
   *resource = (const char *)ceed->op_fallback_resource;
   return CEED_ERROR_SUCCESS;
 }
@@ -491,7 +491,7 @@ int CeedGetOperatorFallbackCeed(Ceed ceed, Ceed *fallback_ceed) {
     Ceed        fallback_ceed;
     const char *fallback_resource;
 
-    CeedCall(CeedGetOperatorFallbackResource(ceed, &fallback_resource));
+    CeedCall(CeedGetOperatorfallback_resource(ceed, &fallback_resource));
     CeedCall(CeedInit(fallback_resource, &fallback_ceed));
     fallback_ceed->op_fallback_parent = ceed;
     fallback_ceed->Error              = ceed->Error;
@@ -866,8 +866,8 @@ int CeedInit(const char *resource, Ceed *ceed) {
   memcpy((*ceed)->f_offsets, f_offsets, sizeof(f_offsets));
 
   // Set fallback for advanced CeedOperator functions
-  const char fallbackresource[] = "";
-  CeedCall(CeedSetOperatorFallbackResource(*ceed, fallbackresource));
+  const char fallback_resource[] = "";
+  CeedCall(CeedSetOperatorFallbackResource(*ceed, fallback_resource));
 
   // Record env variables CEED_DEBUG or DBG
   (*ceed)->is_debug = getenv("CEED_DEBUG") || getenv("DEBUG") || getenv("DBG");

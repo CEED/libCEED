@@ -27,8 +27,8 @@ static int CeedGetPreferredMemType_Cuda(CeedMemType *mem_type) {
 //------------------------------------------------------------------------------
 int CeedGetCublasHandle_Cuda(Ceed ceed, cublasHandle_t *handle) {
   Ceed_Cuda *data;
-  CeedCallBackend(CeedGetData(ceed, &data));
 
+  CeedCallBackend(CeedGetData(ceed, &data));
   if (!data->cublas_handle) CeedCallCublas(ceed, cublasCreate(&data->cublas_handle));
   *handle = data->cublas_handle;
   return CEED_ERROR_SUCCESS;
@@ -38,13 +38,14 @@ int CeedGetCublasHandle_Cuda(Ceed ceed, cublasHandle_t *handle) {
 // Backend Init
 //------------------------------------------------------------------------------
 static int CeedInit_Cuda_ref(const char *resource, Ceed ceed) {
-  char *resource_root;
+  Ceed_Cuda *data;
+  char      *resource_root;
+
   CeedCallBackend(CeedGetResourceRoot(ceed, resource, ":", &resource_root));
   CeedCheck(!strcmp(resource_root, "/gpu/cuda/ref"), ceed, CEED_ERROR_BACKEND, "Cuda backend cannot use resource: %s", resource);
   CeedCallBackend(CeedFree(&resource_root));
   CeedCallBackend(CeedSetDeterministic(ceed, true));
 
-  Ceed_Cuda *data;
   CeedCallBackend(CeedCalloc(1, &data));
   CeedCallBackend(CeedSetData(ceed, data));
   CeedCallBackend(CeedInit_Cuda(ceed, resource));

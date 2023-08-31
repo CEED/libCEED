@@ -17,6 +17,7 @@
 //------------------------------------------------------------------------------
 static int CeedQFunctionApply_Cuda_gen(CeedQFunction qf, CeedInt Q, CeedVector *U, CeedVector *V) {
   Ceed ceed;
+
   CeedCallBackend(CeedQFunctionGetCeed(qf, &ceed));
   return CeedError(ceed, CEED_ERROR_BACKEND, "Backend does not implement QFunctionApply");
 }
@@ -25,9 +26,10 @@ static int CeedQFunctionApply_Cuda_gen(CeedQFunction qf, CeedInt Q, CeedVector *
 // Destroy QFunction
 //------------------------------------------------------------------------------
 static int CeedQFunctionDestroy_Cuda_gen(CeedQFunction qf) {
+  Ceed                    ceed;
   CeedQFunction_Cuda_gen *data;
+
   CeedCallBackend(CeedQFunctionGetData(qf, &data));
-  Ceed ceed;
   CeedCallBackend(CeedQFunctionGetCeed(qf, &ceed));
   CeedCallCuda(ceed, cudaFree(data->d_c));
   CeedCallBackend(CeedFree(&data->q_function_source));
@@ -39,9 +41,10 @@ static int CeedQFunctionDestroy_Cuda_gen(CeedQFunction qf) {
 // Create QFunction
 //------------------------------------------------------------------------------
 int CeedQFunctionCreate_Cuda_gen(CeedQFunction qf) {
-  Ceed ceed;
-  CeedQFunctionGetCeed(qf, &ceed);
+  Ceed                    ceed;
   CeedQFunction_Cuda_gen *data;
+
+  CeedQFunctionGetCeed(qf, &ceed);
   CeedCallBackend(CeedCalloc(1, &data));
   CeedCallBackend(CeedQFunctionSetData(qf, data));
 

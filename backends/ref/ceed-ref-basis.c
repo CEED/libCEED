@@ -271,12 +271,12 @@ static int CeedBasisDestroyTensor_Ref(CeedBasis basis) {
 //------------------------------------------------------------------------------
 int CeedBasisCreateTensorH1_Ref(CeedInt dim, CeedInt P_1d, CeedInt Q_1d, const CeedScalar *interp_1d, const CeedScalar *grad_1d,
                                 const CeedScalar *q_ref_1d, const CeedScalar *q_weight_1d, CeedBasis basis) {
-  Ceed               ceed, parent;
+  Ceed               ceed, ceed_parent;
   CeedBasis_Ref     *impl;
   CeedTensorContract contract;
 
   CeedCallBackend(CeedBasisGetCeed(basis, &ceed));
-  CeedCallBackend(CeedGetParent(ceed, &parent));
+  CeedCallBackend(CeedGetParent(ceed, &ceed_parent));
 
   CeedCallBackend(CeedCalloc(1, &impl));
   // Check for collocated interp
@@ -298,7 +298,7 @@ int CeedBasisCreateTensorH1_Ref(CeedInt dim, CeedInt P_1d, CeedInt Q_1d, const C
   }
   CeedCallBackend(CeedBasisSetData(basis, impl));
 
-  CeedCallBackend(CeedTensorContractCreate(parent, basis, &contract));
+  CeedCallBackend(CeedTensorContractCreate(ceed_parent, basis, &contract));
   CeedCallBackend(CeedBasisSetTensorContract(basis, contract));
 
   CeedCallBackend(CeedSetBackendFunction(ceed, "Basis", basis, "Apply", CeedBasisApply_Ref));
@@ -311,13 +311,13 @@ int CeedBasisCreateTensorH1_Ref(CeedInt dim, CeedInt P_1d, CeedInt Q_1d, const C
 //------------------------------------------------------------------------------
 int CeedBasisCreateH1_Ref(CeedElemTopology topo, CeedInt dim, CeedInt num_nodes, CeedInt num_qpts, const CeedScalar *interp, const CeedScalar *grad,
                           const CeedScalar *q_ref, const CeedScalar *q_weight, CeedBasis basis) {
-  Ceed               ceed, parent;
+  Ceed               ceed, ceed_parent;
   CeedTensorContract contract;
 
   CeedCallBackend(CeedBasisGetCeed(basis, &ceed));
-  CeedCallBackend(CeedGetParent(ceed, &parent));
+  CeedCallBackend(CeedGetParent(ceed, &ceed_parent));
 
-  CeedCallBackend(CeedTensorContractCreate(parent, basis, &contract));
+  CeedCallBackend(CeedTensorContractCreate(ceed_parent, basis, &contract));
   CeedCallBackend(CeedBasisSetTensorContract(basis, contract));
 
   CeedCallBackend(CeedSetBackendFunction(ceed, "Basis", basis, "Apply", CeedBasisApply_Ref));
@@ -329,13 +329,13 @@ int CeedBasisCreateH1_Ref(CeedElemTopology topo, CeedInt dim, CeedInt num_nodes,
 //------------------------------------------------------------------------------
 int CeedBasisCreateHdiv_Ref(CeedElemTopology topo, CeedInt dim, CeedInt num_nodes, CeedInt num_qpts, const CeedScalar *interp, const CeedScalar *div,
                             const CeedScalar *q_ref, const CeedScalar *q_weight, CeedBasis basis) {
-  Ceed               ceed, parent;
+  Ceed               ceed, ceed_parent;
   CeedTensorContract contract;
 
   CeedCallBackend(CeedBasisGetCeed(basis, &ceed));
-  CeedCallBackend(CeedGetParent(ceed, &parent));
+  CeedCallBackend(CeedGetParent(ceed, &ceed_parent));
 
-  CeedCallBackend(CeedTensorContractCreate(parent, basis, &contract));
+  CeedCallBackend(CeedTensorContractCreate(ceed_parent, basis, &contract));
   CeedCallBackend(CeedBasisSetTensorContract(basis, contract));
 
   CeedCallBackend(CeedSetBackendFunction(ceed, "Basis", basis, "Apply", CeedBasisApply_Ref));
@@ -347,13 +347,13 @@ int CeedBasisCreateHdiv_Ref(CeedElemTopology topo, CeedInt dim, CeedInt num_node
 //------------------------------------------------------------------------------
 int CeedBasisCreateHcurl_Ref(CeedElemTopology topo, CeedInt dim, CeedInt num_nodes, CeedInt num_qpts, const CeedScalar *interp,
                              const CeedScalar *curl, const CeedScalar *q_ref, const CeedScalar *q_weight, CeedBasis basis) {
-  Ceed               ceed, parent;
+  Ceed               ceed, ceed_parent;
   CeedTensorContract contract;
 
   CeedCallBackend(CeedBasisGetCeed(basis, &ceed));
-  CeedCallBackend(CeedGetParent(ceed, &parent));
+  CeedCallBackend(CeedGetParent(ceed, &ceed_parent));
 
-  CeedCallBackend(CeedTensorContractCreate(parent, basis, &contract));
+  CeedCallBackend(CeedTensorContractCreate(ceed_parent, basis, &contract));
   CeedCallBackend(CeedBasisSetTensorContract(basis, contract));
 
   CeedCallBackend(CeedSetBackendFunction(ceed, "Basis", basis, "Apply", CeedBasisApply_Ref));

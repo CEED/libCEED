@@ -17,16 +17,17 @@
 // Device information backend init
 //------------------------------------------------------------------------------
 int CeedInit_Cuda(Ceed ceed, const char *resource) {
+  Ceed_Cuda  *data;
   const char *device_spec = strstr(resource, ":device_id=");
   const int   device_id   = (device_spec) ? atoi(device_spec + 11) : -1;
+  int         current_device_id;
 
-  int current_device_id;
   CeedCallCuda(ceed, cudaGetDevice(&current_device_id));
   if (device_id >= 0 && current_device_id != device_id) {
     CeedCallCuda(ceed, cudaSetDevice(device_id));
     current_device_id = device_id;
   }
-  Ceed_Cuda *data;
+
   CeedCallBackend(CeedGetData(ceed, &data));
   data->device_id = current_device_id;
   CeedCallCuda(ceed, cudaGetDeviceProperties(&data->device_prop, current_device_id));
@@ -38,6 +39,7 @@ int CeedInit_Cuda(Ceed ceed, const char *resource) {
 //------------------------------------------------------------------------------
 int CeedDestroy_Cuda(Ceed ceed) {
   Ceed_Cuda *data;
+
   CeedCallBackend(CeedGetData(ceed, &data));
   if (data->cublas_handle) CeedCallCublas(ceed, cublasDestroy(data->cublas_handle));
   CeedCallBackend(CeedFree(&data));

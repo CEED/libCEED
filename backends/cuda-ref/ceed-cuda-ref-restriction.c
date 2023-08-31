@@ -22,21 +22,22 @@
 // Apply restriction
 //------------------------------------------------------------------------------
 static int CeedElemRestrictionApply_Cuda(CeedElemRestriction r, CeedTransposeMode t_mode, CeedVector u, CeedVector v, CeedRequest *request) {
+  Ceed                      ceed;
+  Ceed_Cuda                *data;
+  CUfunction                kernel;
+  CeedInt                   num_elem, elem_size;
+  const CeedScalar         *d_u;
+  CeedScalar               *d_v;
   CeedElemRestriction_Cuda *impl;
+
   CeedCallBackend(CeedElemRestrictionGetData(r, &impl));
-  Ceed ceed;
   CeedCallBackend(CeedElemRestrictionGetCeed(r, &ceed));
-  Ceed_Cuda *data;
   CeedCallBackend(CeedGetData(ceed, &data));
-  const CeedInt num_nodes = impl->num_nodes;
-  CeedInt       num_elem, elem_size;
   CeedElemRestrictionGetNumElements(r, &num_elem);
   CeedCallBackend(CeedElemRestrictionGetElementSize(r, &elem_size));
-  CUfunction kernel;
+  const CeedInt num_nodes = impl->num_nodes;
 
   // Get vectors
-  const CeedScalar *d_u;
-  CeedScalar       *d_v;
   CeedCallBackend(CeedVectorGetArrayRead(u, CEED_MEM_DEVICE, &d_u));
   if (t_mode == CEED_TRANSPOSE) {
     // Sum into for transpose mode, e-vec to l-vec
@@ -69,6 +70,7 @@ static int CeedElemRestrictionApply_Cuda(CeedElemRestriction r, CeedTransposeMod
     if (impl->d_ind) {
       // -- Offsets provided
       CeedInt block_size = 32;
+
       if (impl->OffsetTranspose) {
         kernel       = impl->OffsetTranspose;
         void *args[] = {&num_elem, &impl->d_ind, &d_u, &d_v};
@@ -103,8 +105,8 @@ static int CeedElemRestrictionApply_Cuda(CeedElemRestriction r, CeedTransposeMod
 //------------------------------------------------------------------------------
 static int CeedElemRestrictionGetOffsets_Cuda(CeedElemRestriction rstr, CeedMemType mem_type, const CeedInt **offsets) {
   CeedElemRestriction_Cuda *impl;
-  CeedCallBackend(CeedElemRestrictionGetData(rstr, &impl));
 
+  CeedCallBackend(CeedElemRestrictionGetData(rstr, &impl));
   switch (mem_type) {
     case CEED_MEM_HOST:
       *offsets = impl->h_ind;
@@ -120,10 +122,10 @@ static int CeedElemRestrictionGetOffsets_Cuda(CeedElemRestriction rstr, CeedMemT
 // Destroy restriction
 //------------------------------------------------------------------------------
 static int CeedElemRestrictionDestroy_Cuda(CeedElemRestriction r) {
+  Ceed                      ceed;
   CeedElemRestriction_Cuda *impl;
-  CeedCallBackend(CeedElemRestrictionGetData(r, &impl));
 
-  Ceed ceed;
+  CeedCallBackend(CeedElemRestrictionGetData(r, &impl));
   CeedCallBackend(CeedElemRestrictionGetCeed(r, &ceed));
   CeedCallCuda(ceed, cuModuleUnload(impl->module));
   CeedCallBackend(CeedFree(&impl->h_ind_allocated));
@@ -132,7 +134,6 @@ static int CeedElemRestrictionDestroy_Cuda(CeedElemRestriction r) {
   CeedCallCuda(ceed, cudaFree(impl->d_t_indices));
   CeedCallCuda(ceed, cudaFree(impl->d_l_vec_indices));
   CeedCallBackend(CeedFree(&impl));
-
   return CEED_ERROR_SUCCESS;
 }
 
@@ -140,32 +141,32 @@ static int CeedElemRestrictionDestroy_Cuda(CeedElemRestriction r) {
 // Create transpose offsets and indices
 //------------------------------------------------------------------------------
 static int CeedElemRestrictionOffset_Cuda(const CeedElemRestriction r, const CeedInt *indices) {
-  Ceed ceed;
-  CeedCallBackend(CeedElemRestrictionGetCeed(r, &ceed));
+  Ceed                      ceed;
+  bool                     *is_node;
+  CeedSize                  l_size;
+  CeedInt                   num_elem, elem_size, num_comp, num_nodes = 0;
+  CeedInt                  *ind_to_offset, *l_vec_indices, *t_offsets, *t_indices;
   CeedElemRestriction_Cuda *impl;
+
+  CeedCallBackend(CeedElemRestrictionGetCeed(r, &ceed));
   CeedCallBackend(CeedElemRestrictionGetData(r, &impl));
-  CeedSize l_size;
-  CeedInt  num_elem, elem_size, num_comp;
   CeedCallBackend(CeedElemRestrictionGetNumElements(r, &num_elem));
   CeedCallBackend(CeedElemRestrictionGetElementSize(r, &elem_size));
   CeedCallBackend(CeedElemRestrictionGetLVectorSize(r, &l_size));
   CeedCallBackend(CeedElemRestrictionGetNumComponents(r, &num_comp));
+  const CeedInt size_indices = num_elem * elem_size;
 
   // Count num_nodes
-  bool *is_node;
   CeedCallBackend(CeedCalloc(l_size, &is_node));
-  const CeedInt size_indices = num_elem * elem_size;
+
   for (CeedInt i = 0; i < size_indices; i++) is_node[indices[i]] = 1;
-  CeedInt num_nodes = 0;
   for (CeedInt i = 0; i < l_size; i++) num_nodes += is_node[i];
   impl->num_nodes = num_nodes;
 
   // L-vector offsets array
-  CeedInt *ind_to_offset, *l_vec_indices;
   CeedCallBackend(CeedCalloc(l_size, &ind_to_offset));
   CeedCallBackend(CeedCalloc(num_nodes, &l_vec_indices));
-  CeedInt j = 0;
-  for (CeedInt i = 0; i < l_size; i++) {
+  for (CeedInt i = 0, j = 0; i < l_size; i++) {
     if (is_node[i]) {
       l_vec_indices[j] = i;
       ind_to_offset[i] = j++;
@@ -175,9 +176,8 @@ static int CeedElemRestrictionOffset_Cuda(const CeedElemRestriction r, const Cee
 
   // Compute transpose offsets and indices
   const CeedInt size_offsets = num_nodes + 1;
-  CeedInt      *t_offsets;
+
   CeedCallBackend(CeedCalloc(size_offsets, &t_offsets));
-  CeedInt *t_indices;
   CeedCallBackend(CeedMalloc(size_indices, &t_indices));
   // Count node multiplicity
   for (CeedInt e = 0; e < num_elem; ++e) {
@@ -188,8 +188,9 @@ static int CeedElemRestrictionOffset_Cuda(const CeedElemRestriction r, const Cee
   // List all E-vec indices associated with L-vec node
   for (CeedInt e = 0; e < num_elem; ++e) {
     for (CeedInt i = 0; i < elem_size; ++i) {
-      const CeedInt lid                          = elem_size * e + i;
-      const CeedInt gid                          = indices[lid];
+      const CeedInt lid = elem_size * e + i;
+      const CeedInt gid = indices[lid];
+
       t_indices[t_offsets[ind_to_offset[gid]]++] = lid;
     }
   }
@@ -213,7 +214,6 @@ static int CeedElemRestrictionOffset_Cuda(const CeedElemRestriction r, const Cee
   CeedCallBackend(CeedFree(&l_vec_indices));
   CeedCallBackend(CeedFree(&t_offsets));
   CeedCallBackend(CeedFree(&t_indices));
-
   return CEED_ERROR_SUCCESS;
 }
 
@@ -222,32 +222,32 @@ static int CeedElemRestrictionOffset_Cuda(const CeedElemRestriction r, const Cee
 //------------------------------------------------------------------------------
 int CeedElemRestrictionCreate_Cuda(CeedMemType mem_type, CeedCopyMode copy_mode, const CeedInt *indices, const bool *orients,
                                    const CeedInt8 *curl_orients, CeedElemRestriction r) {
-  Ceed ceed;
-  CeedCallBackend(CeedElemRestrictionGetCeed(r, &ceed));
+  Ceed                      ceed, ceed_parent;
+  bool                      is_deterministic, is_strided;
+  CeedInt                   num_elem, num_comp, elem_size, comp_stride = 1;
+  CeedRestrictionType       rstr_type;
   CeedElemRestriction_Cuda *impl;
+
+  CeedCallBackend(CeedElemRestrictionGetCeed(r, &ceed));
   CeedCallBackend(CeedCalloc(1, &impl));
-  Ceed parent;
-  CeedCallBackend(CeedGetParent(ceed, &parent));
-  bool is_deterministic;
-  CeedCallBackend(CeedIsDeterministic(parent, &is_deterministic));
-  CeedInt num_elem, num_comp, elem_size;
+  CeedCallBackend(CeedGetParent(ceed, &ceed_parent));
+  CeedCallBackend(CeedIsDeterministic(ceed_parent, &is_deterministic));
   CeedCallBackend(CeedElemRestrictionGetNumElements(r, &num_elem));
   CeedCallBackend(CeedElemRestrictionGetNumComponents(r, &num_comp));
   CeedCallBackend(CeedElemRestrictionGetElementSize(r, &elem_size));
-  CeedInt size        = num_elem * elem_size;
-  CeedInt strides[3]  = {1, size, elem_size};
-  CeedInt comp_stride = 1;
+  const CeedInt size       = num_elem * elem_size;
+  CeedInt       strides[3] = {1, size, elem_size};
+  CeedInt       layout[3]  = {1, elem_size * num_elem, elem_size};
 
-  CeedRestrictionType rstr_type;
   CeedCallBackend(CeedElemRestrictionGetType(r, &rstr_type));
   CeedCheck(rstr_type != CEED_RESTRICTION_ORIENTED && rstr_type != CEED_RESTRICTION_CURL_ORIENTED, ceed, CEED_ERROR_BACKEND,
             "Backend does not implement CeedElemRestrictionCreateOriented or CeedElemRestrictionCreateCurlOriented");
 
   // Stride data
-  bool is_strided;
   CeedCallBackend(CeedElemRestrictionIsStrided(r, &is_strided));
   if (is_strided) {
     bool has_backend_strides;
+
     CeedCallBackend(CeedElemRestrictionHasBackendStrides(r, &has_backend_strides));
     if (!has_backend_strides) {
       CeedCallBackend(CeedElemRestrictionGetStrides(r, &strides));
@@ -264,7 +264,6 @@ int CeedElemRestrictionCreate_Cuda(CeedMemType mem_type, CeedCopyMode copy_mode,
   impl->d_t_offsets     = NULL;
   impl->num_nodes       = size;
   CeedCallBackend(CeedElemRestrictionSetData(r, impl));
-  CeedInt layout[3] = {1, elem_size * num_elem, elem_size};
   CeedCallBackend(CeedElemRestrictionSetELayout(r, layout));
 
   // Set up device indices/offset arrays
@@ -327,15 +326,18 @@ int CeedElemRestrictionCreate_Cuda(CeedMemType mem_type, CeedCopyMode copy_mode,
   // Compile CUDA kernels (add atomicAdd function for old NVidia architectures)
   CeedInt num_nodes = impl->num_nodes;
   char   *restriction_kernel_path, *restriction_kernel_source = NULL;
+
   CeedCallBackend(CeedGetJitAbsolutePath(ceed, "ceed/jit-source/cuda/cuda-ref-restriction.h", &restriction_kernel_path));
   CeedDebug256(ceed, CEED_DEBUG_COLOR_SUCCESS, "----- Loading Restriction Kernel Source -----\n");
   if (!is_deterministic) {
     struct cudaDeviceProp prop;
     Ceed_Cuda            *ceed_data;
+
     CeedCallBackend(CeedGetData(ceed, &ceed_data));
     CeedCallBackend(cudaGetDeviceProperties(&prop, ceed_data->device_id));
     if ((prop.major < 6) && (CEED_SCALAR_TYPE != CEED_SCALAR_FP32)) {
       char *atomic_add_path;
+
       CeedCallBackend(CeedGetJitAbsolutePath(ceed, "ceed/jit-source/cuda/cuda-atomic-add-fallback.h", &atomic_add_path));
       CeedCallBackend(CeedLoadSourceToBuffer(ceed, atomic_add_path, &restriction_kernel_source));
       CeedCallBackend(CeedLoadSourceToInitializedBuffer(ceed, restriction_kernel_path, &restriction_kernel_source));
@@ -346,9 +348,9 @@ int CeedElemRestrictionCreate_Cuda(CeedMemType mem_type, CeedCopyMode copy_mode,
     CeedCallBackend(CeedLoadSourceToBuffer(ceed, restriction_kernel_path, &restriction_kernel_source));
   }
   CeedDebug256(ceed, CEED_DEBUG_COLOR_SUCCESS, "----- Loading Restriction Kernel Source Complete! -----\n");
-  CeedCallBackend(CeedCompile_Cuda(ceed, restriction_kernel_source, &impl->module, 8, "RESTR_ELEM_SIZE", elem_size, "RESTR_NUM_ELEM", num_elem,
-                                   "RESTR_NUM_COMP", num_comp, "RESTR_NUM_NODES", num_nodes, "RESTR_COMP_STRIDE", comp_stride, "RESTR_STRIDE_NODES",
-                                   strides[0], "RESTR_STRIDE_COMP", strides[1], "RESTR_STRIDE_ELEM", strides[2]));
+  CeedCallBackend(CeedCompile_Cuda(ceed, restriction_kernel_source, &impl->module, 8, "RSTR_ELEM_SIZE", elem_size, "RSTR_NUM_ELEM", num_elem,
+                                   "RSTR_NUM_COMP", num_comp, "RSTR_NUM_NODES", num_nodes, "RSTR_COMP_STRIDE", comp_stride, "RSTR_STRIDE_NODES",
+                                   strides[0], "RSTR_STRIDE_COMP", strides[1], "RSTR_STRIDE_ELEM", strides[2]));
   CeedCallBackend(CeedGetKernel_Cuda(ceed, impl->module, "StridedNoTranspose", &impl->StridedNoTranspose));
   CeedCallBackend(CeedGetKernel_Cuda(ceed, impl->module, "StridedTranspose", &impl->StridedTranspose));
   CeedCallBackend(CeedGetKernel_Cuda(ceed, impl->module, "OffsetNoTranspose", &impl->OffsetNoTranspose));
