@@ -28,10 +28,8 @@ static struct {
 } backends[32];
 static size_t num_backends;
 
-#define CEED_FTABLE_ENTRY(class, method)                     \
-  {                                                          \
-#class #method, offsetof(struct class##_private, method) \
-  }
+#define CEED_FTABLE_ENTRY(class, method) \
+  { #class #method, offsetof(struct class##_private, method) }
 /// @endcond
 
 /// @file

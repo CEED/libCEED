@@ -19,11 +19,11 @@ jobs:
     - name: Environment setup
       uses: actions/checkout@v3
     - name: Install clang-format
-      run: sudo apt update && sudo apt install clang-format-15
+      run: sudo apt update && sudo apt install clang-format-16
     - name: C style
       env:
         CC: ${{ matrix.compiler }}
         FC: gfortran-11
       run: |
         make info
-        make format-c -j2 CLANG_FORMAT=clang-format-15 && git diff --exit-code
+        make format-c -j2 CLANG_FORMAT=clang-format-16 && git diff --exit-code
