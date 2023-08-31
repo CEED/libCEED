@@ -125,7 +125,6 @@ int CeedRegisterImpl(const char *prefix, int (*init)(const char *, Ceed), unsign
   int ierr = 0;
 
   CeedDebugEnv("Backend Register: %s", prefix);
-
   CeedPragmaCritical(CeedRegisterImpl) {
     if (num_backends < sizeof(backends) / sizeof(backends[0])) {
       strncpy(backends[num_backends].prefix, prefix, CEED_MAX_RESOURCE_LEN);

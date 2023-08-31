@@ -63,12 +63,10 @@ static size_t num_qfunctions;
 int CeedQFunctionRegister(const char *name, const char *source, CeedInt vec_length, CeedQFunctionUser f,
                           int (*init)(Ceed, const char *, CeedQFunction)) {
   const char *relative_file_path;
-  int ierr = 0;
-
-  CeedCall(CeedGetJitRelativePath(source, &relative_file_path));
+  int         ierr = 0;
 
   CeedDebugEnv("Gallery Register: %s", name);
-
+  CeedCall(CeedGetJitRelativePath(source, &relative_file_path));
   CeedPragmaCritical(CeedQFunctionRegister) {
     if (num_qfunctions < sizeof(gallery_qfunctions) / sizeof(gallery_qfunctions[0])) {
       strncpy(gallery_qfunctions[num_qfunctions].name, name, CEED_MAX_RESOURCE_LEN);

@@ -29,6 +29,7 @@ static bool register_all_called;
 **/
 int CeedQFunctionRegisterAll() {
   int ierr = 0;
+
   CeedPragmaCritical(CeedQFunctionRegisterAll) {
     if (!register_all_called) {
       CeedDebugEnv256(1, "\n---------- Registering Gallery QFunctions ----------\n");

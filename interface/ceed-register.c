@@ -29,6 +29,7 @@ static bool register_all_called;
 **/
 int CeedRegisterAll() {
   int ierr = 0;
+
   CeedPragmaCritical(CeedRegisterAll) {
     if (!register_all_called) {
       CeedDebugEnv256(1, "\n---------- Registering Backends ----------\n");
