@@ -1250,9 +1250,6 @@ int CeedOperatorAssemblyDataCreate(Ceed ceed, CeedOperator op, CeedOperatorAssem
       }
     }
   }
-  (*data)->num_eval_modes_in    = num_eval_modes_in;
-  (*data)->eval_modes_in        = eval_modes_in;
-  (*data)->eval_mode_offsets_in = eval_mode_offsets_in;
 
   // Determine active output basis
   CeedCall(CeedQFunctionGetFields(qf, NULL, NULL, &num_output_fields, &qf_fields));
@@ -1316,6 +1313,9 @@ int CeedOperatorAssemblyDataCreate(Ceed ceed, CeedOperator op, CeedOperatorAssem
       }
     }
   }
+  (*data)->num_eval_modes_in     = num_eval_modes_in;
+  (*data)->eval_modes_in         = eval_modes_in;
+  (*data)->eval_mode_offsets_in  = eval_mode_offsets_in;
   (*data)->num_output_components = offset;
   (*data)->num_eval_modes_out    = num_eval_modes_out;
   (*data)->eval_modes_out        = eval_modes_out;
