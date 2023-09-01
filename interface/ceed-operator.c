@@ -34,14 +34,14 @@
   @ref Developer
 **/
 static int CeedOperatorCheckField(Ceed ceed, CeedQFunctionField qf_field, CeedElemRestriction r, CeedBasis b) {
-  CeedInt      dim = 1, num_comp = 1, q_comp = 1, restr_num_comp = 1, size = qf_field->size;
+  CeedInt      dim = 1, num_comp = 1, q_comp = 1, rstr_num_comp = 1, size = qf_field->size;
   CeedEvalMode eval_mode = qf_field->eval_mode;
 
   // Restriction
   CeedCheck((r == CEED_ELEMRESTRICTION_NONE) == (eval_mode == CEED_EVAL_WEIGHT), ceed, CEED_ERROR_INCOMPATIBLE,
             "CEED_ELEMRESTRICTION_NONE and CEED_EVAL_WEIGHT must be used together.");
   if (r != CEED_ELEMRESTRICTION_NONE) {
-    CeedCall(CeedElemRestrictionGetNumComponents(r, &restr_num_comp));
+    CeedCall(CeedElemRestrictionGetNumComponents(r, &rstr_num_comp));
   }
   // Basis
   CeedCheck((b == CEED_BASIS_NONE) == (eval_mode == CEED_EVAL_NONE), ceed, CEED_ERROR_INCOMPATIBLE,
@@ -50,17 +50,17 @@ static int CeedOperatorCheckField(Ceed ceed, CeedQFunctionField qf_field, CeedEl
     CeedCall(CeedBasisGetDimension(b, &dim));
     CeedCall(CeedBasisGetNumComponents(b, &num_comp));
     CeedCall(CeedBasisGetNumQuadratureComponents(b, eval_mode, &q_comp));
-    CeedCheck(r == CEED_ELEMRESTRICTION_NONE || restr_num_comp == num_comp, ceed, CEED_ERROR_DIMENSION,
+    CeedCheck(r == CEED_ELEMRESTRICTION_NONE || rstr_num_comp == num_comp, ceed, CEED_ERROR_DIMENSION,
               "Field '%s' of size %" CeedInt_FMT " and EvalMode %s: ElemRestriction has %" CeedInt_FMT " components, but Basis has %" CeedInt_FMT
               " components",
-              qf_field->field_name, qf_field->size, CeedEvalModes[qf_field->eval_mode], restr_num_comp, num_comp);
+              qf_field->field_name, qf_field->size, CeedEvalModes[qf_field->eval_mode], rstr_num_comp, num_comp);
   }
   // Field size
   switch (eval_mode) {
     case CEED_EVAL_NONE:
-      CeedCheck(size == restr_num_comp, ceed, CEED_ERROR_DIMENSION,
+      CeedCheck(size == rstr_num_comp, ceed, CEED_ERROR_DIMENSION,
                 "Field '%s' of size %" CeedInt_FMT " and EvalMode %s: ElemRestriction has %" CeedInt_FMT " components", qf_field->field_name,
-                qf_field->size, CeedEvalModes[qf_field->eval_mode], restr_num_comp);
+                qf_field->size, CeedEvalModes[qf_field->eval_mode], rstr_num_comp);
       break;
     case CEED_EVAL_INTERP:
     case CEED_EVAL_GRAD:
@@ -1192,10 +1192,10 @@ int CeedOperatorGetFlopsEstimate(CeedOperator op, CeedSize *flops) {
     // Input FLOPs
     for (CeedInt i = 0; i < num_input_fields; i++) {
       if (input_fields[i]->vec == CEED_VECTOR_ACTIVE) {
-        CeedSize restr_flops, basis_flops;
+        CeedSize rstr_flops, basis_flops;
 
-        CeedCall(CeedElemRestrictionGetFlopsEstimate(input_fields[i]->elem_rstr, CEED_NOTRANSPOSE, &restr_flops));
-        *flops += restr_flops;
+        CeedCall(CeedElemRestrictionGetFlopsEstimate(input_fields[i]->elem_rstr, CEED_NOTRANSPOSE, &rstr_flops));
+        *flops += rstr_flops;
         CeedCall(CeedBasisGetFlopsEstimate(input_fields[i]->basis, CEED_NOTRANSPOSE, op->qf->input_fields[i]->eval_mode, &basis_flops));
         *flops += basis_flops * num_elem;
       }
@@ -1213,10 +1213,10 @@ int CeedOperatorGetFlopsEstimate(CeedOperator op, CeedSize *flops) {
     // Output FLOPs
     for (CeedInt i = 0; i < num_output_fields; i++) {
       if (output_fields[i]->vec == CEED_VECTOR_ACTIVE) {
-        CeedSize restr_flops, basis_flops;
+        CeedSize rstr_flops, basis_flops;
 
-        CeedCall(CeedElemRestrictionGetFlopsEstimate(output_fields[i]->elem_rstr, CEED_TRANSPOSE, &restr_flops));
-        *flops += restr_flops;
+        CeedCall(CeedElemRestrictionGetFlopsEstimate(output_fields[i]->elem_rstr, CEED_TRANSPOSE, &rstr_flops));
+        *flops += rstr_flops;
         CeedCall(CeedBasisGetFlopsEstimate(output_fields[i]->basis, CEED_TRANSPOSE, op->qf->output_fields[i]->eval_mode, &basis_flops));
         *flops += basis_flops * num_elem;
       }

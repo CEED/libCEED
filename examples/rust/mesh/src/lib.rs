@@ -85,7 +85,7 @@ pub fn build_cartesian_restriction(
     }
 
     // Mesh/solution data restriction
-    let restr = ceed.elem_restriction(
+    let rstr = ceed.elem_restriction(
         num_elem,
         num_nodes,
         num_comp,
@@ -96,14 +96,14 @@ pub fn build_cartesian_restriction(
     )?;
 
     // Quadratue data restriction
-    let restr_qdata = ceed.strided_elem_restriction(
+    let rstr_qdata = ceed.strided_elem_restriction(
         num_elem,
         elem_qpts,
         num_comp,
         num_comp * elem_qpts * num_elem,
         CEED_STRIDES_BACKEND,
     )?;
-    Ok((restr, restr_qdata))
+    Ok((rstr, rstr_qdata))
 }
 
 // ----------------------------------------------------------------------------

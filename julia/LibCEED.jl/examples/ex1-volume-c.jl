@@ -127,7 +127,7 @@ function build_cartesian_restriction_c(
         end
     end
 
-    restr = Ref{C.CeedElemRestriction}()
+    rstr = Ref{C.CeedElemRestriction}()
     C.CeedElemRestrictionCreate(
         ceed[],
         num_elem,
@@ -138,10 +138,10 @@ function build_cartesian_restriction_c(
         C.CEED_MEM_HOST,
         C.CEED_COPY_VALUES,
         el_nodes,
-        restr,
+        rstr,
     )
     if form_strided
-        restr_i = Ref{C.CeedElemRestriction}()
+        rstr_i = Ref{C.CeedElemRestriction}()
         err = C.CeedElemRestrictionCreateStrided(
             ceed[],
             num_elem,
@@ -149,11 +149,11 @@ function build_cartesian_restriction_c(
             ncomp,
             ncomp*elem_qpts*num_elem,
             C.CEED_STRIDES_BACKEND[],
-            restr_i,
+            rstr_i,
         )
-        return size, restr, restr_i
+        return size, rstr, rstr_i
     else
-        return size, restr
+        return size, rstr
     end
 end
 
@@ -248,9 +248,9 @@ function run_ex1_c(; ceed_spec, dim, mesh_order, sol_order, num_qpts, prob_size)
 
     # Build CeedElemRestriction objects describing the mesh and solution discrete
     # representations.
-    mesh_size, mesh_restr =
+    mesh_size, mesh_rstr =
         build_cartesian_restriction_c(ceed, dim, nxyz, mesh_order, ncompx, num_qpts)
-    sol_size, sol_restr, sol_restr_i = build_cartesian_restriction_c(
+    sol_size, sol_rstr, sol_rstr_i = build_cartesian_restriction_c(
         ceed,
         dim,
         nxyz,
@@ -314,7 +314,7 @@ function run_ex1_c(; ceed_spec, dim, mesh_order, sol_order, num_qpts, prob_size)
     C.CeedOperatorSetField(
         build_oper[],
         "dx",
-        mesh_restr[],
+        mesh_rstr[],
         mesh_basis[],
         C.CEED_VECTOR_ACTIVE[],
     )
@@ -328,7 +328,7 @@ function run_ex1_c(; ceed_spec, dim, mesh_order, sol_order, num_qpts, prob_size)
     C.CeedOperatorSetField(
         build_oper[],
         "qdata",
-        sol_restr_i[],
+        sol_rstr_i[],
         C.CEED_BASIS_NONE[],
         C.CEED_VECTOR_ACTIVE[],
     )
@@ -376,9 +376,9 @@ function run_ex1_c(; ceed_spec, dim, mesh_order, sol_order, num_qpts, prob_size)
         C.CEED_QFUNCTION_NONE[],
         oper,
     )
-    C.CeedOperatorSetField(oper[], "u", sol_restr[], sol_basis[], C.CEED_VECTOR_ACTIVE[])
-    C.CeedOperatorSetField(oper[], "qdata", sol_restr_i[], C.CEED_BASIS_NONE[], qdata[])
-    C.CeedOperatorSetField(oper[], "v", sol_restr[], sol_basis[], C.CEED_VECTOR_ACTIVE[])
+    C.CeedOperatorSetField(oper[], "u", sol_rstr[], sol_basis[], C.CEED_VECTOR_ACTIVE[])
+    C.CeedOperatorSetField(oper[], "qdata", sol_rstr_i[], C.CEED_BASIS_NONE[], qdata[])
+    C.CeedOperatorSetField(oper[], "v", sol_rstr[], sol_basis[], C.CEED_VECTOR_ACTIVE[])
 
     # Compute the mesh volume using the mass operator: vol = 1^T \cdot M \cdot 1
     print("Computing the mesh volume using the formula: vol = 1^T.M.1 ...")
@@ -416,9 +416,9 @@ function run_ex1_c(; ceed_spec, dim, mesh_order, sol_order, num_qpts, prob_size)
     C.CeedQFunctionDestroy(apply_qfunc)
     C.CeedOperatorDestroy(build_oper)
     C.CeedQFunctionDestroy(build_qfunc)
-    C.CeedElemRestrictionDestroy(sol_restr)
-    C.CeedElemRestrictionDestroy(mesh_restr)
-    C.CeedElemRestrictionDestroy(sol_restr_i)
+    C.CeedElemRestrictionDestroy(sol_rstr)
+    C.CeedElemRestrictionDestroy(mesh_rstr)
+    C.CeedElemRestrictionDestroy(sol_rstr_i)
     C.CeedBasisDestroy(sol_basis)
     C.CeedBasisDestroy(mesh_basis)
     C.CeedDestroy(ceed)

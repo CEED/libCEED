@@ -97,12 +97,12 @@ fn example_1(options: opt::Opt) -> libceed::Result<()> {
 
     // Build ElemRestriction objects describing the mesh and solution discrete
     // representations
-    let (restr_mesh, _) =
+    let (rstr_mesh, _) =
         mesh::build_cartesian_restriction(&ceed, dim, num_xyz, mesh_degree, ncomp_x, num_qpts)?;
-    let (restr_solution, restr_qdata) =
+    let (rstr_solution, rstr_qdata) =
         mesh::build_cartesian_restriction(&ceed, dim, num_xyz, solution_degree, 1, num_qpts)?;
-    let mesh_size = restr_mesh.lvector_size();
-    let solution_size = restr_solution.lvector_size();
+    let mesh_size = rstr_mesh.lvector_size();
+    let solution_size = rstr_solution.lvector_size();
     if !quiet {
         println!("Number of mesh nodes        : {}", mesh_size / dim);
         println!("Number of solution nodes    : {}", solution_size);
@@ -178,14 +178,14 @@ fn example_1(options: opt::Opt) -> libceed::Result<()> {
     let op_build = ceed
         .operator(qf_build, QFunctionOpt::None, QFunctionOpt::None)?
         .name("build qdata")?
-        .field("dx", &restr_mesh, &basis_mesh, VectorOpt::Active)?
+        .field("dx", &rstr_mesh, &basis_mesh, VectorOpt::Active)?
         .field(
             "weights",
             ElemRestrictionOpt::None,
             &basis_mesh,
             VectorOpt::None,
         )?
-        .field("qdata", &restr_qdata, BasisOpt::None, VectorOpt::Active)?
+        .field("qdata", &rstr_qdata, BasisOpt::None, VectorOpt::Active)?
         .check()?;
 
     // Compute the quadrature data for the mass operator
@@ -222,9 +222,9 @@ fn example_1(options: opt::Opt) -> libceed::Result<()> {
     let op_mass = ceed
         .operator(qf_mass, QFunctionOpt::None, QFunctionOpt::None)?
         .name("mass")?
-        .field("u", &restr_solution, &basis_solution, VectorOpt::Active)?
-        .field("qdata", &restr_qdata, BasisOpt::None, &qdata)?
-        .field("v", &restr_solution, &basis_solution, VectorOpt::Active)?
+        .field("u", &rstr_solution, &basis_solution, VectorOpt::Active)?
+        .field("qdata", &rstr_qdata, BasisOpt::None, &qdata)?
+        .field("v", &rstr_solution, &basis_solution, VectorOpt::Active)?
         .check()?;
 
     // Solution vectors

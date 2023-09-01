@@ -62,7 +62,7 @@ extern "C" int CeedOperatorBuildKernel_Hip_gen(CeedOperator op) {
   CeedInt                  Q, P_1d = 0, Q_1d = 0, elem_size, num_input_fields, num_output_fields, num_comp, dim = 1;
   CeedEvalMode             eval_mode;
   CeedElemRestriction      elem_rstr;
-  CeedElemRestriction_Hip *restr_data;
+  CeedElemRestriction_Hip *rstr_data;
   CeedBasis                basis;
   CeedBasis_Hip_shared    *basis_data;
   CeedQFunctionField      *qf_input_fields, *qf_output_fields;
@@ -379,8 +379,8 @@ extern "C" int CeedOperatorBuildKernel_Hip_gen(CeedOperator op) {
         CeedInt comp_stride;
         CeedCallBackend(CeedElemRestrictionGetCompStride(elem_rstr, &comp_stride));
         code << "    // CompStride: " << comp_stride << "\n";
-        CeedCallBackend(CeedElemRestrictionGetData(elem_rstr, &restr_data));
-        data->indices.inputs[i] = restr_data->d_ind;
+        CeedCallBackend(CeedElemRestrictionGetData(elem_rstr, &rstr_data));
+        data->indices.inputs[i] = rstr_data->d_ind;
         code << "    readDofsOffset" << dim << "d<num_comp_in_" << i << ", " << comp_stride << ", P_in_" << i << ">(data, l_size_in_" << i
              << ", elem, indices.inputs[" << i << "], d_u_" << i << ", r_u_" << i << ");\n";
       } else {
@@ -492,8 +492,8 @@ extern "C" int CeedOperatorBuildKernel_Hip_gen(CeedOperator op) {
             code << "      const CeedInt l_size_in_" << i << " = " << l_size << ";\n";
             CeedCallBackend(CeedElemRestrictionGetCompStride(elem_rstr, &comp_stride));
             code << "      // CompStride: " << comp_stride << "\n";
-            CeedCallBackend(CeedElemRestrictionGetData(elem_rstr, &restr_data));
-            data->indices.inputs[i] = restr_data->d_ind;
+            CeedCallBackend(CeedElemRestrictionGetData(elem_rstr, &rstr_data));
+            data->indices.inputs[i] = rstr_data->d_ind;
             code << "      readSliceQuadsOffset"
                  << "3d<num_comp_in_" << i << ", " << comp_stride << ", Q_1d>(data, l_size_in_" << i << ", elem, q, indices.inputs[" << i << "], d_u_"
                  << i << ", r_q_" << i << ");\n";
@@ -685,8 +685,8 @@ extern "C" int CeedOperatorBuildKernel_Hip_gen(CeedOperator op) {
       code << "    const CeedInt l_size_out_" << i << " = " << l_size << ";\n";
       CeedCallBackend(CeedElemRestrictionGetCompStride(elem_rstr, &comp_stride));
       code << "    // CompStride: " << comp_stride << "\n";
-      CeedCallBackend(CeedElemRestrictionGetData(elem_rstr, &restr_data));
-      data->indices.outputs[i] = restr_data->d_ind;
+      CeedCallBackend(CeedElemRestrictionGetData(elem_rstr, &rstr_data));
+      data->indices.outputs[i] = rstr_data->d_ind;
       code << "    writeDofsOffset" << dim << "d<num_comp_out_" << i << ", " << comp_stride << ", P_out_" << i << ">(data, l_size_out_" << i
            << ", elem, indices.outputs[" << i << "], r_v_" << i << ", d_v_" << i << ");\n";
     } else {

@@ -22,8 +22,8 @@ typedef struct {
 } CeedBasis_Opt;
 
 typedef struct {
-  bool                 is_identity_qf, is_identity_restr_op;
-  CeedElemRestriction *block_restr;  /* Blocked versions of restrictions */
+  bool                 is_identity_qf, is_identity_rstr_op;
+  CeedElemRestriction *block_rstr;   /* Blocked versions of restrictions */
   CeedVector          *e_vecs_full;  /* Full E-vectors, inputs followed by outputs */
   uint64_t            *input_states; /* State counter of inputs */
   CeedVector          *e_vecs_in;    /* Element block input E-vectors  */
