@@ -5,12 +5,12 @@
 //
 // This file is part of CEED:  http://github.com/ceed
 
-#ifndef _ceed_avx_h
-#define _ceed_avx_h
+#ifndef CEED_AVX_H
+#define CEED_AVX_H
 
 #include <ceed.h>
 #include <ceed/backend.h>
 
 CEED_INTERN int CeedTensorContractCreate_Avx(CeedBasis basis, CeedTensorContract contract);
 
-#endif  // _ceed_avx_h
+#endif  // CEED_AVX_H

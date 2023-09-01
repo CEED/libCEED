@@ -7,8 +7,8 @@
 
 /// @file
 /// Internal header for HIP element restriction kernels
-#ifndef _ceed_hip_ref_restriction_h
-#define _ceed_hip_ref_restriction_h
+#ifndef CEED_HIP_REF_RESTRICTION_H
+#define CEED_HIP_REF_RESTRICTION_H
 
 #include <ceed.h>
 
@@ -101,4 +101,4 @@ extern "C" __global__ void OffsetTransposeDet(const CeedInt *__restrict__ l_vec_
 
 //------------------------------------------------------------------------------
 
-#endif
+#endif  // CEED_HIP_REF_RESTRICTION_H

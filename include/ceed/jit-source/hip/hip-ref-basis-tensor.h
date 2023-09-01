@@ -7,8 +7,8 @@
 
 /// @file
 /// Internal header for HIP tensor product basis
-#ifndef _ceed_hip_ref_basis_tensor_h
-#define _ceed_hip_ref_basis_tensor_h
+#ifndef CEED_HIP_REF_BASIS_TENSOR_H
+#define CEED_HIP_REF_BASIS_TENSOR_H
 
 #include <ceed.h>
 
@@ -196,4 +196,4 @@ extern "C" __global__ void Weight(const CeedInt num_elem, const CeedScalar *__re
 
 //------------------------------------------------------------------------------
 
-#endif
+#endif  // CEED_HIP_REF_BASIS_TENSOR_H

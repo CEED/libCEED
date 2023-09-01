@@ -7,8 +7,8 @@
 
 /// @file
 /// Internal header for SYCL shared memory tensor product basis templates
-#ifndef _ceed_sycl_shared_basis_tensor_templates_h
-#define _ceed_sycl_shared_basis_tensor_templates_h
+#ifndef CEED_SYCL_SHARED_BASIS_TENSOR_TEMPLATES_H
+#define CEED_SYCL_SHARED_BASIS_TENSOR_TEMPLATES_H
 
 #include <ceed.h>
 
@@ -601,4 +601,4 @@ inline void WeightTensor3d(const CeedInt Q_1D, const CeedScalar *restrict q_weig
 
 //------------------------------------------------------------------------------
 
-#endif
+#endif  // CEED_SYCL_SHARED_BASIS_TENSOR_TEMPLATES_H

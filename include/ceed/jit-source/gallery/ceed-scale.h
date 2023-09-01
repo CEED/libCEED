@@ -9,8 +9,8 @@
   @brief  Scaling QFunction that scales inputs
 **/
 
-#ifndef scale_h
-#define scale_h
+#ifndef CEED_SCALE_H
+#define CEED_SCALE_H
 
 #include <ceed.h>
 
@@ -30,4 +30,4 @@ CEED_QFUNCTION(Scale)(void *ctx, const CeedInt Q, const CeedScalar *const *in, C
   return 0;
 }
 
-#endif  // scale_h
+#endif  // CEED_SCALE_H

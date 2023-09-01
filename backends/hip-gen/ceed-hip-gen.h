@@ -5,8 +5,8 @@
 //
 // This file is part of CEED:  http://github.com/ceed
 
-#ifndef _ceed_hip_gen_h
-#define _ceed_hip_gen_h
+#ifndef CEED_HIP_GEN_H
+#define CEED_HIP_GEN_H
 
 #include <ceed.h>
 #include <ceed/backend.h>
@@ -36,4 +36,4 @@ CEED_INTERN int CeedQFunctionCreate_Hip_gen(CeedQFunction qf);
 
 CEED_INTERN int CeedOperatorCreate_Hip_gen(CeedOperator op);
 
-#endif  // _ceed_hip_gen_h
+#endif  // CEED_HIP_GEN_H

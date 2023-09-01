@@ -7,8 +7,8 @@
 
 /// @file
 /// Internal header for SYCL shared memory basis read/write templates
-#ifndef _ceed_sycl_shared_basis_read_write_templates_h
-#define _ceed_sycl_shared_basis_read_write_templates_h
+#ifndef CEED_SYCL_SHARED_BASIS_READ_WRITE_TEMPLATES_H
+#define CEED_SYCL_SHARED_BASIS_READ_WRITE_TEMPLATES_H
 
 #include <ceed.h>
 #include "sycl-types.h"
@@ -152,4 +152,4 @@ inline void WriteElementStrided3d(const CeedInt NUM_COMP, const CeedInt P_1D, co
 
 //------------------------------------------------------------------------------
 
-#endif
+#endif  // CEED_SYCL_SHARED_BASIS_READ_WRITE_TEMPLATES_H

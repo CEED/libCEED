@@ -7,8 +7,8 @@
 
 /// @file
 /// Internal header for CUDA operator diagonal assembly
-#ifndef _ceed_cuda_ref_operator_assemble_diagonal_h
-#define _ceed_cuda_ref_operator_assemble_diagonal_h
+#ifndef CEED_CUDA_REF_OPERATOR_ASSEMBLE_DIAGONAL_H
+#define CEED_CUDA_REF_OPERATOR_ASSEMBLE_DIAGONAL_H
 
 #include <ceed.h>
 
@@ -115,4 +115,4 @@ extern "C" __global__ void linearPointBlockDiagonal(const CeedInt nelem, const C
 
 //------------------------------------------------------------------------------
 
-#endif
+#endif  // CEED_CUDA_REF_OPERATOR_ASSEMBLE_DIAGONAL_H

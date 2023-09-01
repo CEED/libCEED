@@ -7,8 +7,8 @@
 
 /// @file
 /// Internal header for CUDA atomic add fallback definition
-#ifndef _ceed_cuda_atomic_add_fallback_h
-#define _ceed_cuda_atomic_add_fallback_h
+#ifndef CEED_CUDA_ATOMIC_ADD_FALLBACK_H
+#define CEED_CUDA_ATOMIC_ADD_FALLBACK_H
 
 #include <ceed/types.h>
 
@@ -29,4 +29,4 @@ __device__ CeedScalar atomicAdd(CeedScalar *address, CeedScalar val) {
 
 //------------------------------------------------------------------------------
 
-#endif
+#endif  // CEED_CUDA_ATOMIC_ADD_FALLBACK_H

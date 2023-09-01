@@ -5,8 +5,8 @@
 ///
 /// This file is part of CEED:  http://github.com/ceed
 
-#ifndef _ceed_jit_h
-#define _ceed_jit_h
+#ifndef CEED_JIT_H
+#define CEED_JIT_H
 
 #include <ceed.h>
 
@@ -17,4 +17,4 @@ CEED_EXTERN int CeedPathConcatenate(Ceed ceed, const char *base_file_path, const
 CEED_EXTERN int CeedGetJitRelativePath(const char *absolute_file_path, const char **relative_file_path);
 CEED_EXTERN int CeedGetJitAbsolutePath(Ceed ceed, const char *relative_file_path, char **absolute_file_path);
 
-#endif
+#endif  // CEED_JIT_H

@@ -5,8 +5,8 @@
 //
 // This file is part of CEED:  http://github.com/ceed
 
-#ifndef _ceed_hip_compile_h
-#define _ceed_hip_compile_h
+#ifndef CEED_HIP_COMPILE_H
+#define CEED_HIP_COMPILE_H
 
 #include <ceed.h>
 #include <ceed/backend.h>
@@ -26,4 +26,4 @@ CEED_INTERN int CeedRunKernelDim_Hip(Ceed ceed, hipFunction_t kernel, int grid_s
 CEED_INTERN int CeedRunKernelDimShared_Hip(Ceed ceed, hipFunction_t kernel, int grid_size, int block_size_x, int block_size_y, int block_size_z,
                                            int shared_mem_size, void **args);
 
-#endif  // _ceed_hip_compile_h
+#endif  // CEED_HIP_COMPILE_H

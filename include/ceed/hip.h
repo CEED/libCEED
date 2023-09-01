@@ -5,12 +5,12 @@
 //
 // This file is part of CEED:  http://github.com/ceed
 
-#ifndef _ceed_hip_h
-#define _ceed_hip_h
+#ifndef CEED_HIP_H
+#define CEED_HIP_H
 
 #include <ceed.h>
 #include <hip/hip_runtime.h>
 
 CEED_EXTERN int CeedQFunctionSetHIPUserFunction(CeedQFunction qf, hipFunction_t f);
 
-#endif
+#endif  // CEED_HIP_H

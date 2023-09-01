@@ -9,8 +9,8 @@
   @brief Ceed QFunction for building the geometric data for the 1D Poisson operator
 **/
 
-#ifndef poisson1dbuild_h
-#define poisson1dbuild_h
+#ifndef CEED_POISSON1DBUILD_H
+#define CEED_POISSON1DBUILD_H
 
 #include <ceed.h>
 
@@ -31,4 +31,4 @@ CEED_QFUNCTION(Poisson1DBuild)(void *ctx, const CeedInt Q, const CeedScalar *con
   return CEED_ERROR_SUCCESS;
 }
 
-#endif  // poisson1dbuild_h
+#endif  // CEED_POISSON1DBUILD_H

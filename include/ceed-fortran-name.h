@@ -5,8 +5,8 @@
 //
 // This file is part of CEED:  http://github.com/ceed
 
-#ifndef _ceed_fortran_name_h
-#define _ceed_fortran_name_h
+#ifndef CEED_FORTRAN_NAME_H
+#define CEED_FORTRAN_NAME_H
 
 /* establishes some macros to establish
    * the FORTRAN naming convention
@@ -44,4 +44,4 @@
 #define FORTRAN_UNPREFIXED(low, up) low
 #endif
 
-#endif
+#endif  // CEED_FORTRAN_NAME_H

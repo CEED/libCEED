@@ -7,8 +7,8 @@
 
 /// @file
 /// Internal header for HIP shared memory tensor product basis
-#ifndef _ceed_hip_shared_basis_tensor_h
-#define _ceed_hip_shared_basis_tensor_h
+#ifndef CEED_HIP_SHARED_BASIS_TENSOR_H
+#define CEED_HIP_SHARED_BASIS_TENSOR_H
 
 #include <ceed.h>
 
@@ -216,4 +216,4 @@ extern "C" __launch_bounds__(BASIS_WEIGHT_BLOCK_SIZE) __global__
 
 //------------------------------------------------------------------------------
 
-#endif
+#endif  // CEED_HIP_SHARED_BASIS_TENSOR_H

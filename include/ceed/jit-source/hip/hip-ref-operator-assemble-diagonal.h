@@ -7,8 +7,8 @@
 
 /// @file
 /// Internal header for HIP operator diagonal assembly
-#ifndef _ceed_hip_ref_operator_assemble_diagonal_h
-#define _ceed_hip_ref_operator_assemble_diagonal_h
+#ifndef CEED_HIP_REF_OPERATOR_ASSEMBLE_DIAGONAL_H
+#define CEED_HIP_REF_OPERATOR_ASSEMBLE_DIAGONAL_H
 
 #include <ceed.h>
 
@@ -115,4 +115,4 @@ extern "C" __global__ void linearPointBlockDiagonal(const CeedInt nelem, const C
 
 //------------------------------------------------------------------------------
 
-#endif
+#endif  // CEED_HIP_REF_OPERATOR_ASSEMBLE_DIAGONAL_H

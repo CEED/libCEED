@@ -5,8 +5,8 @@
 //
 // This file is part of CEED:  http://github.com/ceed
 
-#ifndef _ceed_common_hip_h
-#define _ceed_common_hip_h
+#ifndef CEED_COMMON_HIP_H
+#define CEED_COMMON_HIP_H
 
 #include <ceed.h>
 #include <ceed/backend.h>
@@ -80,4 +80,4 @@ CEED_INTERN int CeedInit_Hip(Ceed ceed, const char *resource);
 
 CEED_INTERN int CeedDestroy_Hip(Ceed ceed);
 
-#endif  // _ceed_hip_common_h
+#endif  // CEED_COMMON_HIP_H

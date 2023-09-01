@@ -5,8 +5,8 @@
 //
 // This file is part of CEED:  http://github.com/ceed
 
-#ifndef _ceed_blocked_h
-#define _ceed_blocked_h
+#ifndef CEED_BLOCKED_H
+#define CEED_BLOCKED_H
 
 #include <ceed.h>
 #include <ceed/backend.h>
@@ -35,4 +35,4 @@ typedef struct {
 
 CEED_INTERN int CeedOperatorCreate_Blocked(CeedOperator op);
 
-#endif  // _ceed_blocked_h
+#endif  // CEED_BLOCKED_H

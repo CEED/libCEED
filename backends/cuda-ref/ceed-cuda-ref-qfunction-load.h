@@ -5,9 +5,9 @@
 //
 // This file is part of CEED:  http://github.com/ceed
 
-#ifndef _ceed_cuda_qfunction_load_h
-#define _ceed_cuda_qfunction_load_h
+#ifndef CEED_CUDA_QFUNCTION_LOAD_H
+#define CEED_CUDA_QFUNCTION_LOAD_H
 
 CEED_INTERN int CeedQFunctionBuildKernel_Cuda_ref(CeedQFunction qf);
 
-#endif  // _ceed_cuda_qfunction_load_h
+#endif  // CEED_CUDA_QFUNCTION_LOAD_H

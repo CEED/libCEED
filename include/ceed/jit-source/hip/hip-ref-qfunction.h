@@ -7,8 +7,8 @@
 
 /// @file
 /// Internal header for HIP backend QFunction read/write kernels
-#ifndef _ceed_hip_ref_qfunction_h
-#define _ceed_hip_ref_qfunction_h
+#ifndef CEED_HIP_REF_QFUNCTION_H
+#define CEED_HIP_REF_QFUNCTION_H
 
 #include <ceed.h>
 
@@ -34,4 +34,4 @@ inline __device__ void writeQuads(const CeedInt quad, const CeedInt num_qpts, co
 
 //------------------------------------------------------------------------------
 
-#endif
+#endif  // CEED_HIP_REF_QFUNCTION_H

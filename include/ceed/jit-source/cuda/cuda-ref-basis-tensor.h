@@ -7,8 +7,8 @@
 
 /// @file
 /// Internal header for CUDA tensor product basis
-#ifndef _ceed_cuda_ref_basis_tensor_h
-#define _ceed_cuda_ref_basis_tensor_h
+#ifndef CEED_CUDA_REF_BASIS_TENSOR_H
+#define CEED_CUDA_REF_BASIS_TENSOR_H
 
 #include <ceed.h>
 
@@ -196,4 +196,4 @@ extern "C" __global__ void Weight(const CeedInt num_elem, const CeedScalar *__re
 
 //------------------------------------------------------------------------------
 
-#endif
+#endif  // CEED_CUDA_REF_BASIS_TENSOR_H

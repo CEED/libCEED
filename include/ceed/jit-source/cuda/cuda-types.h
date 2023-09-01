@@ -7,8 +7,8 @@
 
 /// @file
 /// Internal header for CUDA type definitions
-#ifndef _ceed_cuda_types_h
-#define _ceed_cuda_types_h
+#ifndef CEED_CUDA_TYPES_H
+#define CEED_CUDA_TYPES_H
 
 #include <ceed/types.h>
 
@@ -32,4 +32,4 @@ typedef struct {
   CeedScalar* slice;
 } SharedData_Cuda;
 
-#endif
+#endif  // CEED_CUDA_TYPES_H

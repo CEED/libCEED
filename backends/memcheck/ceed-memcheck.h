@@ -5,8 +5,8 @@
 //
 // This file is part of CEED:  http://github.com/ceed
 
-#ifndef _ceed_memcheck_h
-#define _ceed_memcheck_h
+#ifndef CEED_MEMCHECK_H
+#define CEED_MEMCHECK_H
 
 #include <ceed.h>
 #include <ceed/backend.h>
@@ -42,4 +42,4 @@ CEED_INTERN int CeedQFunctionCreate_Memcheck(CeedQFunction qf);
 
 CEED_INTERN int CeedQFunctionContextCreate_Memcheck(CeedQFunctionContext ctx);
 
-#endif  // _ceed_memcheck_h
+#endif  // CEED_MEMCHECK_H

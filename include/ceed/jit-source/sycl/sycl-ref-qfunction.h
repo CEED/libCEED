@@ -7,8 +7,8 @@
 
 /// @file
 /// Internal header for SYCL backend QFunction read/write kernels
-#ifndef _ceed_sycl_ref_qfunction_h
-#define _ceed_sycl_ref_qfunction_h
+#ifndef CEED_SYCL_REF_QFUNCTION_H
+#define CEED_SYCL_REF_QFUNCTION_H
 
 #include <ceed.h>
 
@@ -28,4 +28,4 @@ inline void writeQuads(CeedInt N, CeedInt stride, CeedInt offset, const CeedScal
 
 //------------------------------------------------------------------------------
 
-#endif
+#endif  // CEED_SYCL_REF_QFUNCTION_H

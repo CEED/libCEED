@@ -7,8 +7,8 @@
 
 /// @file
 /// Private header for frontend components of libCEED
-#ifndef _ceed_impl_h
-#define _ceed_impl_h
+#ifndef CEED_IMPL_H
+#define CEED_IMPL_H
 
 #include <ceed.h>
 #include <ceed/backend.h>
@@ -368,4 +368,4 @@ struct CeedOperator_private {
   CeedContextFieldLabel    *context_labels;
 };
 
-#endif
+#endif  // CEED_IMPL_H

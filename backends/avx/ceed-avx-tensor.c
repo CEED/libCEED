@@ -10,7 +10,7 @@
 #include <immintrin.h>
 #include <stdbool.h>
 
-#ifdef _ceed_f64_h
+#ifdef CEED_F64_H
 #define rtype __m256d
 #define loadu _mm256_loadu_pd
 #define storeu _mm256_storeu_pd
