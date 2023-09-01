@@ -5,10 +5,10 @@
 //
 // This file is part of CEED:  http://github.com/ceed
 
-#ifndef _ceed_sycl_gen_operator_build_h
-#define _ceed_sycl_gen_operator_build_h
+#ifndef CEED_SYCL_GEN_OPERATOR_BUILD_HPP
+#define CEED_SYCL_GEN_OPERATOR_BUILD_HPP
 
 CEED_INTERN int BlockGridCalculate_Sycl_gen(const CeedInt dim, const CeedInt P_1d, const CeedInt Q_1d, CeedInt *block_sizes);
 CEED_INTERN int CeedOperatorBuildKernel_Sycl_gen(CeedOperator op);
 
-#endif  // _ceed_sycl_gen_operator_build_h
+#endif  // CEED_SYCL_GEN_OPERATOR_BUILD_HPP

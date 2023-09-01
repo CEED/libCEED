@@ -6,8 +6,8 @@
 //
 // This file is part of CEED:  http://github.com/ceed
 
-#ifndef _ceed_sycl_hpp
-#define _ceed_sycl_hpp
+#ifndef CEED_SYCL_REF_HPP
+#define CEED_SYCL_REF_HPP
 
 #include <ceed/backend.h>
 #include <ceed/ceed.h>
@@ -129,4 +129,4 @@ CEED_INTERN int CeedQFunctionContextCreate_Sycl(CeedQFunctionContext ctx);
 
 CEED_INTERN int CeedOperatorCreate_Sycl(CeedOperator op);
 
-#endif
+#endif  // CEED_SYCL_REF_HPP

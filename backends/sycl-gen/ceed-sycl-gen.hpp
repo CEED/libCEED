@@ -5,8 +5,8 @@
 //
 // This file is part of CEED:  http://github.com/ceed
 
-#ifndef _ceed_sycl_gen_h
-#define _ceed_sycl_gen_h
+#ifndef CEED_SYCL_GEN_HPP
+#define CEED_SYCL_GEN_HPP
 
 #include <ceed/backend.h>
 #include <ceed/ceed.h>
@@ -38,4 +38,4 @@ CEED_INTERN int CeedQFunctionCreate_Sycl_gen(CeedQFunction qf);
 
 CEED_INTERN int CeedOperatorCreate_Sycl_gen(CeedOperator op);
 
-#endif  // _ceed_sycl_gen_h
+#endif  // CEED_SYCL_GEN_HPP
