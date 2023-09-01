@@ -231,9 +231,9 @@ static int CeedVectorSetArrayDevice_Hip(const CeedVector vec, const CeedCopyMode
       size_t bytes = length * sizeof(CeedScalar);
       if (!impl->d_array_owned) {
         CeedCallHip(ceed, hipMalloc((void **)&impl->d_array_owned, bytes));
-        impl->d_array = impl->d_array_owned;
       }
       impl->d_array_borrowed = NULL;
+      impl->d_array          = impl->d_array_owned;
       if (array) CeedCallHip(ceed, hipMemcpy(impl->d_array, array, bytes, hipMemcpyDeviceToDevice));
     } break;
     case CEED_OWN_POINTER:
