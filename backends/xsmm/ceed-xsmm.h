@@ -5,12 +5,12 @@
 //
 // This file is part of CEED:  http://github.com/ceed
 
-#ifndef _ceed_xsmm_h
-#define _ceed_xsmm_h
+#ifndef CEED_XSMM_H
+#define CEED_XSMM_H
 
 #include <ceed.h>
 #include <ceed/backend.h>
 
 CEED_INTERN int CeedTensorContractCreate_Xsmm(CeedBasis basis, CeedTensorContract contract);
 
-#endif  // _ceed_xsmm_h
+#endif  // CEED_XSMM_H

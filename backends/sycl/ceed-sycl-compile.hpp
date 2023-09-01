@@ -5,8 +5,8 @@
 //
 // This file is part of CEED:  http://github.com/ceed
 
-#ifndef _ceed_sycl_compile_hpp
-#define _ceed_sycl_compile_hpp
+#ifndef CEED_SYCL_COMPILE_HPP
+#define CEED_SYCL_COMPILE_HPP
 
 #include <ceed/backend.h>
 #include <ceed/ceed.h>
@@ -23,4 +23,4 @@ CEED_INTERN int CeedGetKernel_Sycl(Ceed ceed, const SyclModule_t *sycl_module, c
 CEED_INTERN int CeedRunKernelDimSharedSycl(Ceed ceed, sycl::kernel *kernel, const int grid_size, const int block_size_x, const int block_size_y,
                                            const int block_size_z, const int shared_mem_size, void **args);
 
-#endif  // _ceed_sycl_compile_h
+#endif  // CEED_SYCL_COMPILE_HPP
