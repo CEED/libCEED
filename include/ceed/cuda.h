@@ -5,12 +5,12 @@
 //
 // This file is part of CEED:  http://github.com/ceed
 
-#ifndef _ceed_cuda_h
-#define _ceed_cuda_h
+#ifndef CEED_CUDA_H
+#define CEED_CUDA_H
 
 #include <ceed.h>
 #include <cuda.h>
 
 CEED_EXTERN int CeedQFunctionSetCUDAUserFunction(CeedQFunction qf, CUfunction f);
 
-#endif
+#endif  // CEED_CUDA_H

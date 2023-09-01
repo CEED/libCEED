@@ -7,8 +7,8 @@
 
 /// @file
 /// Public header for types and macros used in user QFunction source code
-#ifndef _ceed_qfunction_defs_h
-#define _ceed_qfunction_defs_h
+#ifndef CEED_QFUNCTION_DEFS_H
+#define CEED_QFUNCTION_DEFS_H
 
 #include <stddef.h>
 #include <stdint.h>
@@ -248,4 +248,4 @@ typedef enum {
   CEED_CONTEXT_FIELD_INT32 = 2,
 } CeedContextFieldType;
 
-#endif
+#endif  // CEED_QFUNCTION_DEFS_H

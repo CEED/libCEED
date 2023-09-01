@@ -5,8 +5,8 @@
 //
 // This file is part of CEED:  http://github.com/ceed
 
-#ifndef _ceed_hip_ref_h
-#define _ceed_hip_ref_h
+#ifndef CEED_HIP_REF_H
+#define CEED_HIP_REF_H
 
 #include <ceed.h>
 #include <ceed/backend.h>
@@ -133,4 +133,4 @@ CEED_INTERN int CeedQFunctionContextCreate_Hip(CeedQFunctionContext ctx);
 
 CEED_INTERN int CeedOperatorCreate_Hip(CeedOperator op);
 
-#endif  // _ceed_hip_ref_h
+#endif  // CEED_HIP_REF_H

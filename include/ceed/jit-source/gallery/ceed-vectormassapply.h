@@ -9,8 +9,8 @@
   @brief Ceed QFunction for applying the mass matrix on a vector system with three components
 **/
 
-#ifndef vectormassapply_h
-#define vectormassapply_h
+#ifndef CEED_VECTORMASSAPPLY_H
+#define CEED_VECTORMASSAPPLY_H
 
 #include <ceed.h>
 
@@ -33,4 +33,4 @@ CEED_QFUNCTION(Vector3MassApply)(void *ctx, const CeedInt Q, const CeedScalar *c
   return CEED_ERROR_SUCCESS;
 }
 
-#endif  // vectormassapply_h
+#endif  // CEED_VECTORMASSAPPLY_H

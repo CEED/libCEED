@@ -9,8 +9,8 @@
   @brief Ceed QFunction for applying the geometric data for the 3D Poisson on a vector system with three components operator
 **/
 
-#ifndef vectorpoisson3dapply_h
-#define vectorpoisson3dapply_h
+#ifndef CEED_VECTORPOISSON3DAPPLY_H
+#define CEED_VECTORPOISSON3DAPPLY_H
 
 #include <ceed.h>
 
@@ -46,4 +46,4 @@ CEED_QFUNCTION(Vector3Poisson3DApply)(void *ctx, const CeedInt Q, const CeedScal
   return CEED_ERROR_SUCCESS;
 }
 
-#endif  // vectorpoisson3dapply_h
+#endif  // CEED_VECTORPOISSON3DAPPLY_H

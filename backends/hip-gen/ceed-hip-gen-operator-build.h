@@ -5,10 +5,10 @@
 //
 // This file is part of CEED:  http://github.com/ceed
 
-#ifndef _ceed_hip_gen_operator_build_h
-#define _ceed_hip_gen_operator_build_h
+#ifndef CEED_HIP_GEN_OPERATOR_BUILD_H
+#define CEED_HIP_GEN_OPERATOR_BUILD_H
 
 CEED_INTERN int BlockGridCalculate_Hip_gen(CeedInt dim, CeedInt num_elem, CeedInt P_1d, CeedInt Q_1d, CeedInt *block_sizes);
 CEED_INTERN int CeedOperatorBuildKernel_Hip_gen(CeedOperator op);
 
-#endif  // _ceed_hip_gen_operator_build_h
+#endif  // CEED_HIP_GEN_OPERATOR_BUILD_H

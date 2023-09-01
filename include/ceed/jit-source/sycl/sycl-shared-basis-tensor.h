@@ -7,8 +7,8 @@
 
 /// @file
 /// Internal header for SYCL shared memory tensor product basis
-#ifndef _ceed_sycl_shared_basis_tensor_h
-#define _ceed_sycl_shared_basis_tensor_h
+#ifndef CEED_SYCL_SHARED_BASIS_TENSOR_H
+#define CEED_SYCL_SHARED_BASIS_TENSOR_H
 
 #include <ceed.h>
 
@@ -185,4 +185,4 @@ kernel void Weight(const CeedInt num_elem, global const CeedScalar* restrict q_w
 
 //------------------------------------------------------------------------------
 
-#endif
+#endif  // CEED_SYCL_SHARED_BASIS_TENSOR_H

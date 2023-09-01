@@ -5,8 +5,8 @@
 //
 // This file is part of CEED:  http://github.com/ceed
 
-#ifndef _ceed_opt_h
-#define _ceed_opt_h
+#ifndef CEED_OPT_H
+#define CEED_OPT_H
 
 #include <ceed.h>
 #include <ceed/backend.h>
@@ -41,4 +41,4 @@ CEED_INTERN int CeedTensorContractCreate_Opt(CeedBasis basis, CeedTensorContract
 
 CEED_INTERN int CeedOperatorCreate_Opt(CeedOperator op);
 
-#endif  // _ceed_opt_h
+#endif  // CEED_OPT_H

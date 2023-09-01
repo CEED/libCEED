@@ -7,8 +7,8 @@
 
 /// @file
 /// Internal header for HIP operator full assembly
-#ifndef _ceed_hip_ref_operator_assemble_h
-#define _ceed_hip_ref_operator_assemble_h
+#ifndef CEED_HIP_REF_OPERATOR_ASSEMBLE_H
+#define CEED_HIP_REF_OPERATOR_ASSEMBLE_H
 
 #include <ceed.h>
 
@@ -117,4 +117,4 @@ extern "C" __launch_bounds__(BLOCK_SIZE) __global__
 
 //------------------------------------------------------------------------------
 
-#endif
+#endif  // CEED_HIP_REF_OPERATOR_ASSEMBLE_H

@@ -7,8 +7,8 @@
 
 /// @file
 /// Internal header for HIP type definitions
-#ifndef _ceed_hip_types_h
-#define _ceed_hip_types_h
+#ifndef CEED_HIP_TYPES_H
+#define CEED_HIP_TYPES_H
 
 #include <ceed/types.h>
 
@@ -32,4 +32,4 @@ typedef struct {
   CeedScalar* slice;
 } SharedData_Hip;
 
-#endif
+#endif  // CEED_HIP_TYPES_H

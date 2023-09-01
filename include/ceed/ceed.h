@@ -7,8 +7,8 @@
 
 /// @file
 /// Public header for user and utility components of libCEED
-#ifndef _ceed_h
-#define _ceed_h
+#ifndef CEED_H
+#define CEED_H
 
 /// @defgroup Ceed Ceed: core components
 /// @defgroup CeedVector CeedVector: storing and manipulating vectors
@@ -489,4 +489,4 @@ CEED_EXTERN int CeedRegisterAll(void);
 // Used to ensure initialization before CeedQFunctionCreate*()
 CEED_EXTERN int CeedQFunctionRegisterAll(void);
 
-#endif
+#endif  // CEED_H

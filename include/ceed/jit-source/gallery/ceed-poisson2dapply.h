@@ -9,8 +9,8 @@
   @brief Ceed QFunction for applying the 2D Poisson operator
 **/
 
-#ifndef poisson2dapply_h
-#define poisson2dapply_h
+#ifndef CEED_POISSON2DAPPLY_H
+#define CEED_POISSON2DAPPLY_H
 
 #include <ceed.h>
 
@@ -42,4 +42,4 @@ CEED_QFUNCTION(Poisson2DApply)(void *ctx, const CeedInt Q, const CeedScalar *con
   return CEED_ERROR_SUCCESS;
 }
 
-#endif  // poisson2dapply_h
+#endif  // CEED_POISSON2DAPPLY_H

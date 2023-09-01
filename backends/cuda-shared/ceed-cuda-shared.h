@@ -5,8 +5,8 @@
 //
 // This file is part of CEED:  http://github.com/ceed
 
-#ifndef _ceed_cuda_shared_h
-#define _ceed_cuda_shared_h
+#ifndef CEED_CUDA_SHARED_H
+#define CEED_CUDA_SHARED_H
 
 #include <ceed.h>
 #include <ceed/backend.h>
@@ -30,4 +30,4 @@ typedef struct {
 CEED_INTERN int CeedBasisCreateTensorH1_Cuda_shared(CeedInt dim, CeedInt P_1d, CeedInt Q_1d, const CeedScalar *interp_1d, const CeedScalar *grad_1d,
                                                     const CeedScalar *q_ref_1d, const CeedScalar *q_weight_1d, CeedBasis basis);
 
-#endif  // _ceed_cuda_shared_h
+#endif  // CEED_CUDA_SHARED_H

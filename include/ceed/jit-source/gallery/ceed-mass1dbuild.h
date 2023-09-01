@@ -9,8 +9,8 @@
   @brief Ceed QFunction for building the geometric data for the 1D mass matrix
 **/
 
-#ifndef mass1dbuild_h
-#define mass1dbuild_h
+#ifndef CEED_MASS1DBUILD_H
+#define CEED_MASS1DBUILD_H
 
 #include <ceed.h>
 
@@ -27,4 +27,4 @@ CEED_QFUNCTION(Mass1DBuild)(void *ctx, const CeedInt Q, const CeedScalar *const 
   return CEED_ERROR_SUCCESS;
 }
 
-#endif  // mass1dbuild_h
+#endif  // CEED_MASS1DBUILD_H

@@ -5,9 +5,9 @@
 //
 // This file is part of CEED:  http://github.com/ceed
 
-#ifndef _ceed_cuda_gen_operator_build_h
-#define _ceed_cuda_gen_operator_build_h
+#ifndef CEED_CUDA_GEN_OPERATOR_BUILD_H
+#define CEED_CUDA_GEN_OPERATOR_BUILD_H
 
 CEED_INTERN int CeedOperatorBuildKernel_Cuda_gen(CeedOperator op);
 
-#endif  // _ceed_cuda_gen_operator_build_h
+#endif  // CEED_CUDA_GEN_OPERATOR_BUILD_H

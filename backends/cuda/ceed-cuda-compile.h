@@ -5,8 +5,8 @@
 //
 // This file is part of CEED:  http://github.com/ceed
 
-#ifndef _ceed_cuda_compile_h
-#define _ceed_cuda_compile_h
+#ifndef CEED_CUDA_COMPILE_H
+#define CEED_CUDA_COMPILE_H
 
 #include <ceed.h>
 #include <ceed/backend.h>
@@ -27,4 +27,4 @@ CEED_INTERN int CeedRunKernelDim_Cuda(Ceed ceed, CUfunction kernel, int grid_siz
 CEED_INTERN int CeedRunKernelDimShared_Cuda(Ceed ceed, CUfunction kernel, int grid_size, int block_size_x, int block_size_y, int block_size_z,
                                             int shared_mem_size, void **args);
 
-#endif  // _ceed_cuda_compile_h
+#endif  // CEED_CUDA_COMPILE_H

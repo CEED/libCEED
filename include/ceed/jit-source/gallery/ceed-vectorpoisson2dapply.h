@@ -9,8 +9,8 @@
   @brief Ceed QFunction for applying the 2D Poisson operator on a vector system with three components
 **/
 
-#ifndef vectorpoisson2dapply_h
-#define vectorpoisson2dapply_h
+#ifndef CEED_VECTORPOISSON2DAPPLY_H
+#define CEED_VECTORPOISSON2DAPPLY_H
 
 #include <ceed.h>
 
@@ -43,4 +43,4 @@ CEED_QFUNCTION(Vector3Poisson2DApply)(void *ctx, const CeedInt Q, const CeedScal
   return CEED_ERROR_SUCCESS;
 }
 
-#endif  // vectorpoisson2dapply_h
+#endif  // CEED_VECTORPOISSON2DAPPLY_H

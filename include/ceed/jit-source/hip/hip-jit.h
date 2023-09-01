@@ -7,8 +7,8 @@
 
 /// @file
 /// Internal header for HIP backend macro and type definitions for JiT source
-#ifndef _ceed_hip_jit_h
-#define _ceed_hip_jit_h
+#ifndef CEED_HIP_JIT_H
+#define CEED_HIP_JIT_H
 
 #define CEED_QFUNCTION(name) inline __device__ int name
 #define CEED_QFUNCTION_HELPER inline __device__
@@ -17,4 +17,4 @@
 
 #include "hip-types.h"
 
-#endif
+#endif  // CEED_HIP_JIT_H

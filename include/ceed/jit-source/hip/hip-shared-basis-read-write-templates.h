@@ -7,8 +7,8 @@
 
 /// @file
 /// Internal header for HIP shared memory basis read/write templates
-#ifndef _ceed_hip_shared_basis_read_write_templates_h
-#define _ceed_hip_shared_basis_read_write_templates_h
+#ifndef CEED_HIP_SHARED_BASIS_READ_WRITE_TEMPLATES_H
+#define CEED_HIP_SHARED_BASIS_READ_WRITE_TEMPLATES_H
 
 #include <ceed.h>
 
@@ -129,4 +129,4 @@ inline __device__ void WriteElementStrided3d(SharedData_Hip &data, const CeedInt
 
 //------------------------------------------------------------------------------
 
-#endif
+#endif  // CEED_HIP_SHARED_BASIS_READ_WRITE_TEMPLATES_H

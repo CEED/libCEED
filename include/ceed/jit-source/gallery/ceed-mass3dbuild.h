@@ -9,8 +9,8 @@
   @brief Ceed QFunction for building the geometric data for the 3D mass matrix
 **/
 
-#ifndef mass3dbuild_h
-#define mass3dbuild_h
+#ifndef CEED_MASS3DBUILD_H
+#define CEED_MASS3DBUILD_H
 
 #include <ceed.h>
 
@@ -31,4 +31,4 @@ CEED_QFUNCTION(Mass3DBuild)(void *ctx, const CeedInt Q, const CeedScalar *const 
   return CEED_ERROR_SUCCESS;
 }
 
-#endif  // mass3dbuild_h
+#endif  // CEED_MASS3DBUILD_H

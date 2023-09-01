@@ -5,8 +5,8 @@
 //
 // This file is part of CEED:  http://github.com/ceed
 
-#ifndef _ceed_cuda_common_h
-#define _ceed_cuda_common_h
+#ifndef CEED_CUDA_COMMON_H
+#define CEED_CUDA_COMMON_H
 
 #include <ceed.h>
 #include <ceed/backend.h>
@@ -76,4 +76,4 @@ CEED_INTERN int CeedInit_Cuda(Ceed ceed, const char *resource);
 
 CEED_INTERN int CeedDestroy_Cuda(Ceed ceed);
 
-#endif  // _ceed_cuda_common_h
+#endif  // CEED_CUDA_COMMON_H

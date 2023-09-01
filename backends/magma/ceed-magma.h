@@ -6,8 +6,8 @@
 // This file is part of CEED:  http://github.com/ceed
 
 // magma functions specific to ceed
-#ifndef _ceed_magma_h
-#define _ceed_magma_h
+#ifndef CEED_MAGMA_H
+#define CEED_MAGMA_H
 
 #include <ceed.h>
 #include <ceed/backend.h>
@@ -103,4 +103,4 @@ CEED_INTERN int CeedBasisCreateH1_Magma(CeedElemTopology topo, CeedInt dim, Ceed
 // If magma and cuda/ref are using the null stream, then ceed_magma_queue_sync should do nothing
 #define ceed_magma_queue_sync(...)
 
-#endif  // _ceed_magma_h
+#endif  // CEED_MAGMA_H

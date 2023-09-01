@@ -5,8 +5,8 @@
 //
 // This file is part of CEED:  http://github.com/ceed
 
-#ifndef _ceed_cuda_gen_h
-#define _ceed_cuda_gen_h
+#ifndef CEED_CUDA_GEN_H
+#define CEED_CUDA_GEN_H
 
 #include <ceed.h>
 #include <ceed/backend.h>
@@ -36,4 +36,4 @@ CEED_INTERN int CeedQFunctionCreate_Cuda_gen(CeedQFunction qf);
 
 CEED_INTERN int CeedOperatorCreate_Cuda_gen(CeedOperator op);
 
-#endif  // _ceed_cuda_gen_h
+#endif  // CEED_CUDA_GEN_H

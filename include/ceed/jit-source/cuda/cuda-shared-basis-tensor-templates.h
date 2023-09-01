@@ -7,8 +7,8 @@
 
 /// @file
 /// Internal header for CUDA shared memory tensor product basis templates
-#ifndef _ceed_cuda_shared_basis_tensor_templates_h
-#define _ceed_cuda_shared_basis_tensor_templates_h
+#ifndef CEED_CUDA_SHARED_BASIS_TENSOR_TEMPLATES_H
+#define CEED_CUDA_SHARED_BASIS_TENSOR_TEMPLATES_H
 
 #include <ceed.h>
 
@@ -538,4 +538,4 @@ inline __device__ void WeightTensor3d(SharedData_Cuda &data, const CeedScalar *_
 
 //------------------------------------------------------------------------------
 
-#endif
+#endif  // CEED_CUDA_SHARED_BASIS_TENSOR_TEMPLATES_H

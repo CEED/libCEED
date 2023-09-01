@@ -8,8 +8,8 @@
 /// @file
 /// Public header for definitions related to using FP64 floating point (double precision) for CeedScalar.
 /// This is the default header included in ceed.h.
-#ifndef _ceed_f64_h
-#define _ceed_f64_h
+#ifndef CEED_F64_H
+#define CEED_F64_H
 
 /// Set base scalar type to FP64. (See CeedScalarType enum in ceed.h for all options.)
 #define CEED_SCALAR_TYPE CEED_SCALAR_FP64
@@ -18,4 +18,4 @@ typedef double CeedScalar;
 /// Machine epsilon
 #define CEED_EPSILON 1e-16
 
-#endif
+#endif  // CEED_F64_H
