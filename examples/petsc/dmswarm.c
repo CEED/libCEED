@@ -25,6 +25,7 @@
 const char help[] = "libCEED example using PETSc with DMSwarm\n";
 
 #include <ceed.h>
+#include <math.h>
 #include <petscdmplex.h>
 #include <petscdmswarm.h>
 #include <petscds.h>
@@ -122,7 +123,7 @@ PetscErrorCode DMSwarmCreateReferenceCoordinates(DM dm_swarm, IS *is_points, Vec
 int main(int argc, char **argv) {
   MPI_Comm            comm;
   char                ceed_resource[PETSC_MAX_PATH_LEN] = "/cpu/self";
-  PetscBool           test_mode                         = PETSC_FALSE;
+  PetscBool           test_mode = PETSC_FALSE, set_uniform_swarm = PETSC_FALSE;
   DM                  dm_mesh, dm_swarm;
   Vec                 U_mesh;
   PetscInt            dim = 3, num_comp = 1, num_points = 40, geometry_order = 1, mesh_order = 3, q_extra = 3;
@@ -138,6 +139,7 @@ int main(int argc, char **argv) {
   PetscOptionsBegin(comm, NULL, "libCEED example using PETSc with DMSwarm", NULL);
 
   PetscCall(PetscOptionsBool("-test", "Testing mode (do not print unless error is large)", NULL, test_mode, &test_mode, NULL));
+  PetscCall(PetscOptionsBool("-uniform_swarm", "Use uniform coordinates in swarm", NULL, set_uniform_swarm, &set_uniform_swarm, NULL));
   PetscCall(PetscOptionsInt("-order", "Order of mesh solution space", NULL, mesh_order, &mesh_order, NULL));
   PetscCall(PetscOptionsInt("-q_extra", "Number of extra quadrature points", NULL, q_extra, &q_extra, NULL));
   PetscCall(PetscOptionsInt("-points", "Number of swarm points", NULL, num_points, &num_points, NULL));
@@ -218,7 +220,35 @@ int main(int argc, char **argv) {
   PetscCall(DMSetFromOptions(dm_swarm));
 
   // -- Set swarm point locations
-  {
+  if (set_uniform_swarm) {
+    // ---- Set uniform point locations in each cell
+    PetscInt dim_cells   = dim;
+    PetscInt num_cells[] = {1, 1, 1};
+
+    PetscOptionsBegin(comm, NULL, "libCEED example using PETSc with DMSwarm", NULL);
+    PetscCall(PetscOptionsIntArray("-dm_plex_box_faces", "Number of cells", NULL, num_cells, &dim_cells, NULL));
+    PetscOptionsEnd();
+
+    PetscInt    total_num_cells                   = num_cells[0] * num_cells[1] * num_cells[2];
+    PetscInt    points_per_cell                   = PetscCeilInt(num_points, total_num_cells);
+    PetscInt    points_per_cell_dim               = ceil(cbrt(points_per_cell * 1.0));
+    PetscInt    num_points[]                      = {points_per_cell_dim, points_per_cell_dim, points_per_cell_dim};
+    PetscScalar point_coords[points_per_cell * 3] = {};
+
+    for (PetscInt i = 0; i < num_points[0]; i++) {
+      for (PetscInt j = 0; j < num_points[1]; j++) {
+        for (PetscInt k = 0; k < num_points[2]; k++) {
+          PetscInt p = (i * num_points[1] + j) * num_points[2] + k;
+
+          point_coords[p * dim + 0] = 2.0 * (PetscReal)(i + 1) / (PetscReal)(num_points[0] + 1) - 1;
+          point_coords[p * dim + 1] = 2.0 * (PetscReal)(j + 1) / (PetscReal)(num_points[1] + 1) - 1;
+          point_coords[p * dim + 2] = 2.0 * (PetscReal)(k + 1) / (PetscReal)(num_points[2] + 1) - 1;
+        }
+      }
+    }
+    PetscCall(DMSwarmSetPointCoordinatesCellwise(dm_swarm, num_points[0] * num_points[1] * num_points[2], point_coords));
+  } else {
+    // ---- Set points distributed per sinusoidal functions
     PetscScalar *point_coords;
 
     PetscCall(DMSwarmGetField(dm_swarm, DMSwarmPICField_coor, NULL, NULL, (void **)&point_coords));
@@ -229,22 +259,6 @@ int main(int argc, char **argv) {
     }
     PetscCall(DMSwarmRestoreField(dm_swarm, DMSwarmPICField_coor, NULL, NULL, (void **)&point_coords));
   }
-  // -- Set uniform point locations in each cell
-  // {
-  //   PetscInt    npoints[]       = {5, 5, 5};
-  //   PetscScalar points[125 * 3] = {};
-  //   for (PetscInt ix = 0; ix < npoints[0]; ix++) {
-  //     for (PetscInt iy = 0; iy < npoints[1]; iy++) {
-  //       for (PetscInt iz = 0; iz < npoints[2]; iz++) {
-  //         PetscInt p = (ix * npoints[1] + iy) * npoints[2] + iz;
-  //         points[p * dim + 0] = 2.0 * (PetscReal)(ix + 1) / (PetscReal)(npoints[0] + 1) - 1;
-  //         points[p * dim + 1] = 2.0 * (PetscReal)(iy + 1) / (PetscReal)(npoints[1] + 1) - 1;
-  //         points[p * dim + 2] = 2.0 * (PetscReal)(iz + 1) / (PetscReal)(npoints[2] + 1) - 1;
-  //       }
-  //     }
-  //   }
-  //   PetscCall(DMSwarmSetPointCoordinatesCellwise(dm_swarm, npoints[0] * npoints[1] * npoints[2], points));
-  // }
   PetscCall(DMSwarmMigrate(dm_swarm, PETSC_TRUE));
 
   // -- Final particle swarm
