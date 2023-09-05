@@ -124,7 +124,6 @@ int CeedRequestWait(CeedRequest *req) {
 int CeedRegisterImpl(const char *prefix, int (*init)(const char *, Ceed), unsigned int priority) {
   int ierr = 0;
 
-  CeedDebugEnv("Backend Register: %s", prefix);
   CeedPragmaCritical(CeedRegisterImpl) {
     if (num_backends < sizeof(backends) / sizeof(backends[0])) {
       strncpy(backends[num_backends].prefix, prefix, CEED_MAX_RESOURCE_LEN);
@@ -307,6 +306,7 @@ int CeedFree(void *p) {
   @ref Backend
 **/
 int CeedRegister(const char *prefix, int (*init)(const char *, Ceed), unsigned int priority) {
+  CeedDebugEnv("Backend Register: %s", prefix);
   CeedRegisterImpl(prefix, init, priority);
   return CEED_ERROR_SUCCESS;
 }
