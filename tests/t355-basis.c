@@ -1,5 +1,5 @@
 /// @file
-/// Test polynomial gradient to arbirtary points in 1D
+/// Test polynomial gradient to arbitrary points in 1D
 /// \test Test polynomial gradient to arbitrary points in 1D
 #include <ceed.h>
 #include <math.h>

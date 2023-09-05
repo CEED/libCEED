@@ -1,5 +1,5 @@
 /// @file
-/// Test polynomial interpolation to arbirtary points with multiple components in multiple dimensions
+/// Test polynomial interpolation to arbitrary points with multiple components in multiple dimensions
 /// \test Test polynomial interpolation to arbitrary points with multiple components in multiple dimensions
 #include <ceed.h>
 #include <math.h>
