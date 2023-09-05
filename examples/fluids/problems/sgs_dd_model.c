@@ -14,7 +14,7 @@
 typedef struct {
   CeedElemRestriction  elem_restr_grid_aniso, elem_restr_sgs;
   CeedVector           grid_aniso_ceed;
-  CeedQFunctionContext sgsdd_qfctx;
+  CeedQFunctionContext sgsdd_qfctx, ifunction_qfctx;
 } *SgsDDModelSetupData;
 
 PetscErrorCode SgsDDModelSetupDataDestroy(SgsDDModelSetupData sgs_dd_setup_data) {
@@ -25,7 +25,7 @@ PetscErrorCode SgsDDModelSetupDataDestroy(SgsDDModelSetupData sgs_dd_setup_data)
   PetscCallCeed(ceed, CeedElemRestrictionDestroy(&sgs_dd_setup_data->elem_restr_sgs));
   PetscCallCeed(ceed, CeedVectorDestroy(&sgs_dd_setup_data->grid_aniso_ceed));
   PetscCallCeed(ceed, CeedQFunctionContextDestroy(&sgs_dd_setup_data->sgsdd_qfctx));
-
+  PetscCallCeed(ceed, CeedQFunctionContextDestroy(&sgs_dd_setup_data->ifunction_qfctx));
   PetscCall(PetscFree(sgs_dd_setup_data));
   PetscFunctionReturn(PETSC_SUCCESS);
 }
@@ -192,7 +192,7 @@ static PetscErrorCode SgsModelSetupNodalIFunction(Ceed ceed, User user, CeedData
       SETERRQ(PetscObjectComm((PetscObject)user->dm), PETSC_ERR_SUP, "Nodal SGS evaluation not available for chosen state variable");
   }
 
-  PetscCallCeed(ceed, CeedQFunctionSetContext(qf_sgs_apply, sgs_dd_setup_data->sgsdd_qfctx));
+  PetscCallCeed(ceed, CeedQFunctionSetContext(qf_sgs_apply, sgs_dd_setup_data->ifunction_qfctx));
   PetscCallCeed(ceed, CeedQFunctionAddInput(qf_sgs_apply, "q", num_comp_q, CEED_EVAL_INTERP));
   PetscCallCeed(ceed, CeedQFunctionAddInput(qf_sgs_apply, "qdata", num_comp_qd, CEED_EVAL_NONE));
   PetscCallCeed(ceed, CeedQFunctionAddInput(qf_sgs_apply, "km_sgs", sgs_dd_data->num_comp_sgs, CEED_EVAL_INTERP));
@@ -341,6 +341,8 @@ PetscErrorCode SgsDDModelSetup(Ceed ceed, User user, CeedData ceed_data, Problem
   PetscCallCeed(ceed,
                 CeedQFunctionContextSetData(sgs_dd_setup_data->sgsdd_qfctx, CEED_MEM_HOST, CEED_USE_POINTER, sgsdd_ctx->total_bytes, sgsdd_ctx));
   PetscCallCeed(ceed, CeedQFunctionContextSetDataDestroy(sgs_dd_setup_data->sgsdd_qfctx, CEED_MEM_HOST, FreeContextPetsc));
+
+  PetscCallCeed(ceed, CeedQFunctionContextReferenceCopy(problem->apply_vol_ifunction.qfunction_context, &sgs_dd_setup_data->ifunction_qfctx));
 
   // -- Compute and store anisotropy tensor
   PetscCall(GridAnisotropyTensorProjectionSetupApply(ceed, user, ceed_data, &sgs_dd_setup_data->elem_restr_grid_aniso,
