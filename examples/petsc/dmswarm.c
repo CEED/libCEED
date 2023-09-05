@@ -384,10 +384,10 @@ int main(int argc, char **argv) {
       CeedVectorDestroy(&u_lvec);
     }
     {
-      CeedInt P;
+      CeedInt elem_size;
 
-      CeedBasisGetNumNodes(basis_mesh_u, &P);
-      CeedVectorCreate(ceed, P, &u_cell);
+      CeedElemRestrictionGetElementSize(restriction_mesh_u, &elem_size);
+      CeedVectorCreate(ceed, elem_size, &u_cell);
     }
 
     // -- Get swarm values
