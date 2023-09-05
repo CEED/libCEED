@@ -229,11 +229,11 @@ int main(int argc, char **argv) {
     PetscCall(PetscOptionsIntArray("-dm_plex_box_faces", "Number of cells", NULL, num_cells, &dim_cells, NULL));
     PetscOptionsEnd();
 
-    PetscInt    total_num_cells                   = num_cells[0] * num_cells[1] * num_cells[2];
-    PetscInt    points_per_cell                   = PetscCeilInt(num_points, total_num_cells);
-    PetscInt    points_per_cell_dim               = ceil(cbrt(points_per_cell * 1.0));
-    PetscInt    num_points[]                      = {points_per_cell_dim, points_per_cell_dim, points_per_cell_dim};
-    PetscScalar point_coords[points_per_cell * 3] = {};
+    PetscInt    total_num_cells     = num_cells[0] * num_cells[1] * num_cells[2];
+    PetscInt    points_per_cell     = PetscCeilInt(num_points, total_num_cells);
+    PetscInt    points_per_cell_dim = ceil(cbrt(points_per_cell * 1.0));
+    PetscInt    num_points[]        = {points_per_cell_dim, points_per_cell_dim, points_per_cell_dim};
+    PetscScalar point_coords[points_per_cell * 3];
 
     for (PetscInt i = 0; i < num_points[0]; i++) {
       for (PetscInt j = 0; j < num_points[1]; j++) {
