@@ -31,7 +31,7 @@ PetscErrorCode SgsDDModelSetupDataDestroy(SgsDDModelSetupData sgs_dd_setup_data)
 }
 
 // @brief Create DM for storing subgrid stress at nodes
-PetscErrorCode SgsDDModelCreateDM(DM dm_source, DM *dm_sgs, PetscInt degree, PetscInt q_extra, PetscInt *num_components) {
+static PetscErrorCode SgsDDModelCreateDM(DM dm_source, DM *dm_sgs, PetscInt degree, PetscInt q_extra, PetscInt *num_components) {
   PetscSection section;
 
   PetscFunctionBeginUser;
@@ -53,8 +53,21 @@ PetscErrorCode SgsDDModelCreateDM(DM dm_source, DM *dm_sgs, PetscInt degree, Pet
   PetscFunctionReturn(PETSC_SUCCESS);
 };
 
+PetscErrorCode SgsDDModelNodalStressEval_Fused(User user, Vec Q_loc, Vec VelocityGradient, Vec SGSNodal_loc) {
+  SgsDDData    sgs_dd_data = user->sgs_dd_data;
+  PetscMemType q_mem_type;
+
+  PetscFunctionBeginUser;
+  PetscCall(VecP2C(Q_loc, &q_mem_type, user->q_ceed));  // q_ceed is an implicit input
+
+  PetscCall(ApplyCeedOperatorGlobalToLocal(VelocityGradient, SGSNodal_loc, sgs_dd_data->op_nodal_evaluation_ctx));
+
+  PetscCall(VecC2P(user->q_ceed, q_mem_type, Q_loc));
+  PetscFunctionReturn(PETSC_SUCCESS);
+}
+
 // @brief Create CeedOperator to calculate data-drive SGS at nodes
-PetscErrorCode SgsDDModelSetupNodalEvaluation(Ceed ceed, User user, CeedData ceed_data, SgsDDModelSetupData sgs_dd_setup_data) {
+static PetscErrorCode SgsDDModelSetupNodalEvaluation_Fused(Ceed ceed, User user, CeedData ceed_data, SgsDDModelSetupData sgs_dd_setup_data) {
   SgsDDData           sgs_dd_data = user->sgs_dd_data;
   CeedQFunction       qf_multiplicity, qf_sgs_dd_nodal;
   CeedOperator        op_multiplicity, op_sgs_dd_nodal;
@@ -138,6 +151,7 @@ PetscErrorCode SgsDDModelSetupNodalEvaluation(Ceed ceed, User user, CeedData cee
                                        NULL, &sgs_dd_data->op_nodal_evaluation_ctx));
 
   sgs_dd_setup_data->elem_restr_sgs = elem_restr_sgs;
+  sgs_dd_data->sgs_nodal_eval = SgsDDModelNodalStressEval_Fused;
 
   PetscCallCeed(ceed, CeedVectorDestroy(&multiplicity));
   PetscCallCeed(ceed, CeedVectorDestroy(&inv_multiplicity));
@@ -151,7 +165,7 @@ PetscErrorCode SgsDDModelSetupNodalEvaluation(Ceed ceed, User user, CeedData cee
 }
 
 // @brief Create CeedOperator to compute SGS contribution to the residual
-PetscErrorCode SgsModelSetupNodalIFunction(Ceed ceed, User user, CeedData ceed_data, SgsDDModelSetupData sgs_dd_setup_data) {
+static PetscErrorCode SgsModelSetupNodalIFunction(Ceed ceed, User user, CeedData ceed_data, SgsDDModelSetupData sgs_dd_setup_data) {
   SgsDDData     sgs_dd_data = user->sgs_dd_data;
   CeedInt       num_comp_q, num_comp_qd, num_comp_x;
   PetscInt      dim;
@@ -202,7 +216,7 @@ PetscErrorCode SgsModelSetupNodalIFunction(Ceed ceed, User user, CeedData ceed_d
 PetscErrorCode SgsDDModelApplyIFunction(User user, const Vec Q_loc, Vec G_loc) {
   SgsDDData    sgs_dd_data = user->sgs_dd_data;
   Vec          VelocityGradient, SGSNodal_loc;
-  PetscMemType sgs_nodal_mem_type, q_mem_type;
+  PetscMemType sgs_nodal_mem_type;
 
   PetscFunctionBeginUser;
   PetscCall(DMGetGlobalVector(user->grad_velo_proj->dm, &VelocityGradient));
@@ -210,14 +224,10 @@ PetscErrorCode SgsDDModelApplyIFunction(User user, const Vec Q_loc, Vec G_loc) {
 
   // -- Compute Nodal SGS tensor
   PetscCall(DMGetLocalVector(sgs_dd_data->dm_sgs, &SGSNodal_loc));
-  PetscCall(VecP2C(Q_loc, &q_mem_type, user->q_ceed));  // q_ceed is an implicit input
-
-  PetscCall(ApplyCeedOperatorGlobalToLocal(VelocityGradient, SGSNodal_loc, sgs_dd_data->op_nodal_evaluation_ctx));
-
-  PetscCall(VecC2P(user->q_ceed, q_mem_type, Q_loc));
-  PetscCall(VecP2C(SGSNodal_loc, &sgs_nodal_mem_type, sgs_dd_data->sgs_nodal_ceed));  // sgs_nodal_ceed is an implicit input
+  PetscCall(sgs_dd_data->sgs_nodal_eval(user, Q_loc, VelocityGradient, SGSNodal_loc));
 
   // -- Compute contribution of the SGS stress
+  PetscCall(VecP2C(SGSNodal_loc, &sgs_nodal_mem_type, sgs_dd_data->sgs_nodal_ceed));  // sgs_nodal_ceed is an implicit input
   PetscCall(ApplyAddCeedOperatorLocalToLocal(Q_loc, G_loc, sgs_dd_data->op_sgs_apply_ctx));
 
   // -- Return local SGS vector
@@ -228,7 +238,7 @@ PetscErrorCode SgsDDModelApplyIFunction(User user, const Vec Q_loc, Vec G_loc) {
 }
 
 // @brief B = A^T, A is NxM, B is MxN
-PetscErrorCode TransposeMatrix(const PetscScalar *A, PetscScalar *B, const PetscInt N, const PetscInt M) {
+static PetscErrorCode TransposeMatrix(const PetscScalar *A, PetscScalar *B, const PetscInt N, const PetscInt M) {
   PetscFunctionBeginUser;
   for (PetscInt i = 0; i < N; i++) {
     for (PetscInt j = 0; j < M; j++) {
@@ -239,7 +249,7 @@ PetscErrorCode TransposeMatrix(const PetscScalar *A, PetscScalar *B, const Petsc
 }
 
 // @brief Read neural network coefficients from file and put into context struct
-PetscErrorCode SgsDDModelContextFill(MPI_Comm comm, char data_dir[PETSC_MAX_PATH_LEN], SgsDDModelContext *psgsdd_ctx) {
+static PetscErrorCode SgsDDModelContextFill(MPI_Comm comm, char data_dir[PETSC_MAX_PATH_LEN], SgsDDModelContext *psgsdd_ctx) {
   SgsDDModelContext sgsdd_ctx;
   PetscInt          num_inputs = (*psgsdd_ctx)->num_inputs, num_outputs = (*psgsdd_ctx)->num_outputs, num_neurons = (*psgsdd_ctx)->num_neurons;
   char              file_path[PETSC_MAX_PATH_LEN];
@@ -337,7 +347,7 @@ PetscErrorCode SgsDDModelSetup(Ceed ceed, User user, CeedData ceed_data, Problem
                                                      &sgs_dd_setup_data->grid_aniso_ceed));
 
   // -- Create Nodal Evaluation Operator
-  PetscCall(SgsDDModelSetupNodalEvaluation(ceed, user, ceed_data, sgs_dd_setup_data));
+  PetscCall(SgsDDModelSetupNodalEvaluation_Fused(ceed, user, ceed_data, sgs_dd_setup_data));
 
   // -- Create Operator to evalutate residual of SGS stress
   PetscCall(SgsModelSetupNodalIFunction(ceed, user, ceed_data, sgs_dd_setup_data));

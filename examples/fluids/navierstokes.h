@@ -195,11 +195,13 @@ typedef struct {
   KSP                  ksp;
 } *NodalProjectionData;
 
+typedef PetscErrorCode (*SgsDDNodalStressEval)(User user, Vec Q_loc, Vec VelocityGradient, Vec SGSNodal_loc);
 typedef struct {
   DM                   dm_sgs;
   PetscInt             num_comp_sgs;
   OperatorApplyContext op_nodal_evaluation_ctx, op_sgs_apply_ctx;
   CeedVector           sgs_nodal_ceed;
+  SgsDDNodalStressEval sgs_nodal_eval;
 } *SgsDDData;
 
 typedef struct {
