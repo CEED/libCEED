@@ -49,9 +49,7 @@ static PetscScalar EvalU(PetscInt dim, const PetscScalar x[]) {
 
 static PetscErrorCode EvalU_proj(PetscInt dim, PetscReal t, const PetscReal x[], PetscInt num_comp, PetscScalar *u, void *ctx) {
   PetscFunctionBeginUser;
-
   for (PetscInt c = 0; c < num_comp; c++) u[c] = EvalU(dim, x);
-
   PetscFunctionReturn(PETSC_SUCCESS);
 }
 
@@ -72,7 +70,6 @@ PetscErrorCode DMSwarmCreateReferenceCoordinates(DM dm_swarm, IS *is_points, Vec
   const PetscScalar *coords_points_true;
 
   PetscFunctionBeginUser;
-
   PetscCall(DMSwarmGetCellDM(dm_swarm, &dm_mesh));
 
   // Create vector to hold reference coordinates
@@ -119,7 +116,6 @@ PetscErrorCode DMSwarmCreateReferenceCoordinates(DM dm_swarm, IS *is_points, Vec
 
   // Create index set
   PetscCall(ISCreateGeneral(PETSC_COMM_SELF, num_points_local, point_cell_numbers, PETSC_OWN_POINTER, is_points));
-
   PetscFunctionReturn(PETSC_SUCCESS);
 }
 
@@ -510,6 +506,5 @@ int main(int argc, char **argv) {
   PetscCall(DMDestroy(&dm_swarm));
   PetscCall(DMDestroy(&dm_mesh));
   PetscCall(VecDestroy(&U_mesh));
-
   return PetscFinalize();
 }
