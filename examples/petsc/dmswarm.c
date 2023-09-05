@@ -18,7 +18,7 @@
 //
 //     ./dmswarm
 ///
-//TESTARGS -ceed {ceed_resource} -test -tolerance 1e-3 -dm_plex_dim 3 -dm_plex_box_faces 20,20,20 -dm_plex_box_lower -1.0,-1.0,-1.0 -dm_plex_simplex 0 -dm_plex_hash_location true
+//TESTARGS -ceed {ceed_resource} -test -tolerance 1e-3 -dm_plex_dim 3 -dm_plex_box_faces 3,3,3 -dm_plex_box_lower -1.0,-1.0,-1.0 -dm_plex_simplex 0 -dm_plex_hash_location true
 
 /// @file
 /// libCEED example using PETSc with DMSwarm
@@ -34,6 +34,10 @@ const char help[] = "libCEED example using PETSc with DMSwarm\n";
 
 #include "include/petscutils.h"
 
+typedef PetscErrorCode (*DMFunc)(PetscInt dim, PetscReal time, const PetscReal x[], PetscInt Nc, PetscScalar *u, void *ctx);
+
+const char DMSwarmField_u[] = "u";
+
 static PetscScalar EvalU(PetscInt dim, const PetscScalar x[]) {
   PetscScalar result = 1, center = 0.1;
   for (PetscInt d = 0; d < dim; d++) {
@@ -41,6 +45,14 @@ static PetscScalar EvalU(PetscInt dim, const PetscScalar x[]) {
     center += 0.1;
   }
   return result;
+}
+
+static PetscErrorCode EvalU_proj(PetscInt dim, PetscReal t, const PetscReal x[], PetscInt num_comp, PetscScalar *u, void *ctx) {
+  PetscFunctionBeginUser;
+
+  for (PetscInt c = 0; c < num_comp; c++) u[c] = EvalU(dim, x);
+
+  PetscFunctionReturn(PETSC_SUCCESS);
 }
 
 static PetscScalar EvaldU(PetscInt dim, const PetscScalar x[], PetscInt direction) {
@@ -117,7 +129,7 @@ int main(int argc, char **argv) {
   PetscBool           test_mode                         = PETSC_FALSE;
   DM                  dm_mesh, dm_swarm;
   Vec                 U_mesh;
-  PetscInt            dim = 3, num_comp = 1, num_points = 40, geometry_order = 1, mesh_order = 1, q_extra = 3;
+  PetscInt            dim = 3, num_comp = 1, num_points = 40, geometry_order = 1, mesh_order = 3, q_extra = 3;
   Ceed                ceed;
   CeedBasis           basis_mesh_u;
   CeedElemRestriction restriction_mesh_u;
@@ -204,7 +216,7 @@ int main(int argc, char **argv) {
   PetscCall(DMSwarmSetCellDM(dm_swarm, dm_mesh));
 
   // -- Swarm field
-  PetscCall(DMSwarmRegisterPetscDatatypeField(dm_swarm, "u", num_comp, PETSC_SCALAR));
+  PetscCall(DMSwarmRegisterPetscDatatypeField(dm_swarm, DMSwarmField_u, num_comp, PETSC_SCALAR));
   PetscCall(DMSwarmFinalizeFieldRegister(dm_swarm));
   PetscCall(DMSwarmSetLocalSizes(dm_swarm, num_points, 0));
   PetscCall(DMSetFromOptions(dm_swarm));
@@ -246,27 +258,8 @@ int main(int argc, char **argv) {
   // Set field values on background mesh
   PetscCall(DMCreateGlobalVector(dm_mesh, &U_mesh));
   {
-    Vec                X_loc, U_loc;
-    PetscInt           num_mesh_points_loc;
-    PetscScalar       *u_array;
-    const PetscScalar *x_array;
-
-    PetscCall(DMGetCoordinatesLocal(dm_mesh, &X_loc));
-    PetscCall(DMGetLocalVector(dm_mesh, &U_loc));
-    PetscCall(VecGetLocalSize(U_loc, &num_mesh_points_loc));
-    PetscCall(VecGetArray(U_loc, &u_array));
-    PetscCall(VecGetArrayRead(X_loc, &x_array));
-    for (PetscInt i = 0; i < num_mesh_points_loc; i++) {
-      PetscScalar x[dim];
-
-      for (PetscInt d = 0; d < dim; d++) x[d] = x_array[i * dim + d];
-      u_array[i] = EvalU(dim, x);
-    }
-    PetscCall(VecRestoreArray(U_loc, &u_array));
-    PetscCall(VecRestoreArrayRead(X_loc, &x_array));
-    PetscCall(VecZeroEntries(U_mesh));
-    PetscCall(DMLocalToGlobal(dm_mesh, U_loc, INSERT_VALUES, U_mesh));
-    PetscCall(DMRestoreLocalVector(dm_mesh, &U_loc));
+    DMFunc fn[1] = {EvalU_proj};
+    PetscCall(DMProjectFunction(dm_mesh, 0.0, fn, NULL, INSERT_VALUES, U_mesh));
   }
 
   // Visualize background mesh
@@ -303,7 +296,7 @@ int main(int argc, char **argv) {
     PetscCall(DMSwarmSortGetAccess(dm_swarm));
     PetscCall(DMPlexGetHeightStratum(dm_mesh, 0, &cell_start, &cell_end));
     PetscCall(DMSwarmGetField(dm_swarm, DMSwarmPICField_coor, NULL, NULL, (void **)&coords_points));
-    PetscCall(DMSwarmGetField(dm_swarm, "u", NULL, NULL, (void **)&u_all_points_array));
+    PetscCall(DMSwarmGetField(dm_swarm, DMSwarmField_u, NULL, NULL, (void **)&u_all_points_array));
 
     // -- Interpolate values to each swarm point, one element in the background mesh at a time
     for (PetscInt cell = cell_start; cell < cell_end; cell++) {
@@ -399,7 +392,7 @@ int main(int argc, char **argv) {
 
     // -- Get swarm values
     PetscCall(DMPlexGetHeightStratum(dm_mesh, 0, &cell_start, &cell_end));
-    PetscCall(DMSwarmGetField(dm_swarm, "u", NULL, NULL, (void **)&u_all_points_array));
+    PetscCall(DMSwarmGetField(dm_swarm, DMSwarmField_u, NULL, NULL, (void **)&u_all_points_array));
     PetscCall(DMSwarmCreateReferenceCoordinates(dm_swarm, &is_points, &ref_coords));
     PetscCall(ISGetSize(is_points, &num_points_local));
     PetscCall(ISGetIndices(is_points, &all_points));
@@ -496,7 +489,7 @@ int main(int argc, char **argv) {
     PetscCheck(!test_mode || success_cmp, comm, PETSC_ERR_USER, "Significant difference between libCEED and PETSc interpolation to swarm points");
 
     // -- Cleanup
-    PetscCall(DMSwarmRestoreField(dm_swarm, "u", NULL, NULL, (void **)&u_all_points_array));
+    PetscCall(DMSwarmRestoreField(dm_swarm, DMSwarmField_u, NULL, NULL, (void **)&u_all_points_array));
     PetscCall(DMRestoreLocalVector(dm_mesh, &U_loc));
     PetscCall(ISRestoreIndices(is_points, &all_points));
     PetscCall(ISDestroy(&is_points));
