@@ -314,7 +314,7 @@ int main(int argc, char **argv) {
         for (PetscInt d = 0; d < dim; d++) coords_points_true[p * dim + d] = coords_points[points[p] * dim + d];
       }
       PetscCall(DMPlexComputeCellGeometryFEM(dm_mesh, cell, NULL, v, J, invJ, &detJ));
-      for (PetscInt p = 0; p < num_points_in_cell; ++p) {
+      for (PetscInt p = 0; p < num_points_in_cell; p++) {
         CoordinatesRealToRef(dim, dim, v0ref, v, invJ, &coords_points_true[p * dim], &coords_points_ref[p * dim]);
       }
       // ---- Interpolate values from current element in background mesh to swarm points
@@ -330,8 +330,8 @@ int main(int argc, char **argv) {
         u_true = EvalU(dim, x);
         if (PetscAbs(u_all_points_array[points[p]] - u_true) > tolerance) {
           success = PETSC_FALSE;
-          printf("Incorrect interpolated value from PETSc, cell %" PetscInt_FMT " point %" PetscInt_FMT ", found %f expected %f\n", cell, p,
-                 u_all_points_array[points[p]], u_true);
+          PetscPrintf(comm, "Incorrect interpolated value from PETSc, cell %" PetscInt_FMT " point %" PetscInt_FMT ", found %f expected %f\n", cell,
+                      p, u_all_points_array[points[p]], u_true);
         }
       }
 
@@ -455,13 +455,14 @@ int main(int argc, char **argv) {
             u_true = EvalU(dim, x);
             if (PetscAbs(u_points_array[p] - u_true) > tolerance) {
               success_ceed = PETSC_FALSE;
-              printf("Incorrect interpolated value from libCEED, cell %" PetscInt_FMT " point %" PetscInt_FMT ", found %f expected %f\n", cell, i,
-                     u_points_array[p], u_true);
+              PetscPrintf(comm, "Incorrect interpolated value from libCEED, cell %" PetscInt_FMT " point %" PetscInt_FMT ", found %f expected %f\n",
+                          cell, i, u_points_array[p], u_true);
             }
             if (PetscAbs(u_points_array[p] - u_all_points_array[i]) > tolerance) {
               success_cmp = PETSC_FALSE;
-              printf("Significant difference between libCEED and PETSc, cell %" PetscInt_FMT " point %" PetscInt_FMT ", found %f expected %f\n", cell,
-                     i, u_points_array[p], u_all_points_array[i]);
+              PetscPrintf(comm,
+                          "Significant difference between libCEED and PETSc, cell %" PetscInt_FMT " point %" PetscInt_FMT ", found %f expected %f\n",
+                          cell, i, u_points_array[p], u_all_points_array[i]);
             }
             p++;
           }
