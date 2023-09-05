@@ -1,5 +1,5 @@
 /// @file
-/// Test polynomial gradient to arbirtary points in multiple dimensions
+/// Test polynomial gradient to arbitrary points in multiple dimensions
 /// \test Test polynomial graient to arbitrary points in multiple dimensions
 #include <ceed.h>
 #include <math.h>
@@ -46,7 +46,7 @@ int main(int argc, char **argv) {
       CeedScalar x_array[x_dim * dim];
 
       for (CeedInt d = 0; d < dim; d++) {
-        for (CeedInt i = 0; i < x_dim; i++) x_array[d * x_dim + i] = (i % CeedIntPow(2, dim - d)) / CeedIntPow(2, dim - d - 1) ? 1 : -1;
+        for (CeedInt i = 0; i < x_dim; i++) x_array[d * x_dim + i] = (i % CeedIntPow(2, d + 1)) / CeedIntPow(2, d) ? 1 : -1;
       }
       CeedVectorSetArray(x, CEED_MEM_HOST, CEED_COPY_VALUES, x_array);
     }

@@ -1,5 +1,5 @@
 /// @file
-/// Test polynomial interpolation to arbirtary points in 1D
+/// Test polynomial interpolation to arbitrary points in 1D
 /// \test Test polynomial interpolation to arbitrary points in 1D
 #include <ceed.h>
 #include <math.h>
