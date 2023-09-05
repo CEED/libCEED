@@ -240,47 +240,6 @@ static inline int CeedOperatorGetBasisPointer(CeedBasis basis, CeedEvalMode eval
 }
 
 /**
-  @brief Create point block restriction for active operator field
-
-  @param[in]  rstr             Original CeedElemRestriction for active field
-  @param[out] point_block_rstr Address of the variable where the newly created CeedElemRestriction will be stored
-
-  @return An error code: 0 - success, otherwise - failure
-
-  @ref Developer
-**/
-static int CeedOperatorCreateActivePointBlockRestriction(CeedElemRestriction rstr, CeedElemRestriction *point_block_rstr) {
-  Ceed           ceed;
-  CeedInt        num_elem, num_comp, shift, elem_size, comp_stride, *point_block_offsets;
-  CeedSize       l_size;
-  const CeedInt *offsets;
-
-  CeedCall(CeedElemRestrictionGetCeed(rstr, &ceed));
-  CeedCall(CeedElemRestrictionGetOffsets(rstr, CEED_MEM_HOST, &offsets));
-
-  // Expand offsets
-  CeedCall(CeedElemRestrictionGetNumElements(rstr, &num_elem));
-  CeedCall(CeedElemRestrictionGetNumComponents(rstr, &num_comp));
-  CeedCall(CeedElemRestrictionGetElementSize(rstr, &elem_size));
-  CeedCall(CeedElemRestrictionGetCompStride(rstr, &comp_stride));
-  CeedCall(CeedElemRestrictionGetLVectorSize(rstr, &l_size));
-  shift = num_comp;
-  if (comp_stride != 1) shift *= num_comp;
-  CeedCall(CeedCalloc(num_elem * elem_size, &point_block_offsets));
-  for (CeedInt i = 0; i < num_elem * elem_size; i++) {
-    point_block_offsets[i] = offsets[i] * shift;
-  }
-
-  // Create new restriction
-  CeedCall(CeedElemRestrictionCreate(ceed, num_elem, elem_size, num_comp * num_comp, 1, l_size * num_comp, CEED_MEM_HOST, CEED_OWN_POINTER,
-                                     point_block_offsets, point_block_rstr));
-
-  // Cleanup
-  CeedCall(CeedElemRestrictionRestoreOffsets(rstr, &offsets));
-  return CEED_ERROR_SUCCESS;
-}
-
-/**
   @brief Core logic for assembling operator diagonal or point block diagonal
 
   @param[in]  op             CeedOperator to assemble point block diagonal
@@ -305,9 +264,7 @@ static inline int CeedSingleOperatorAssembleAddDiagonal_Core(CeedOperator op, Ce
   const CeedScalar   *assembled_qf_array;
   CeedVector          assembled_qf        = NULL;
   CeedElemRestriction assembled_elem_rstr = NULL;
-  CeedQFunction       qf;
 
-  CeedCall(CeedOperatorGetQFunction(op, &qf));
   CeedCall(CeedOperatorLinearAssembleQFunctionBuildOrUpdate(op, &assembled_qf, &assembled_elem_rstr, request));
   CeedCall(CeedElemRestrictionGetELayout(assembled_elem_rstr, &layout_qf));
   CeedCall(CeedElemRestrictionDestroy(&assembled_elem_rstr));
@@ -334,13 +291,11 @@ static inline int CeedSingleOperatorAssembleAddDiagonal_Core(CeedOperator op, Ce
   // Loop over all active bases
   for (CeedInt b = 0; b < num_active_bases_in; b++) {
     bool                has_eval_none = false;
-    CeedInt             num_elem, num_nodes, num_qpts, num_components;
+    CeedInt             num_elem, num_nodes, num_qpts, num_comp;
     CeedScalar         *elem_diag_array, *identity = NULL;
     CeedVector          elem_diag;
     CeedElemRestriction diag_elem_rstr;
 
-    CeedCheck(active_bases_in[b] == active_bases_out[b], ceed, CEED_ERROR_UNSUPPORTED,
-              "Cannot assemble operator diagonal with different input and output active bases");
     CeedCheck(active_elem_rstrs_in[b] == active_elem_rstrs_out[b], ceed, CEED_ERROR_UNSUPPORTED,
               "Cannot assemble operator diagonal with different input and output active element restrictions");
 
@@ -359,8 +314,22 @@ static inline int CeedSingleOperatorAssembleAddDiagonal_Core(CeedOperator op, Ce
     CeedCall(CeedVectorGetArray(elem_diag, CEED_MEM_HOST, &elem_diag_array));
     CeedCall(CeedElemRestrictionGetNumElements(diag_elem_rstr, &num_elem));
     CeedCall(CeedBasisGetNumNodes(active_bases_in[b], &num_nodes));
-    CeedCall(CeedBasisGetNumComponents(active_bases_in[b], &num_components));
-    CeedCall(CeedBasisGetNumQuadraturePoints(active_bases_in[b], &num_qpts));
+    CeedCall(CeedBasisGetNumComponents(active_bases_in[b], &num_comp));
+    if (active_bases_in[b] == CEED_BASIS_NONE) num_qpts = num_nodes;
+    else CeedCall(CeedBasisGetNumQuadraturePoints(active_bases_in[b], &num_qpts));
+
+    if (active_bases_in[b] != active_bases_out[b]) {
+      CeedInt num_nodes_out, num_qpts_out, num_comp_out;
+
+      CeedCall(CeedBasisGetNumNodes(active_bases_out[b], &num_nodes_out));
+      CeedCheck(num_nodes == num_nodes_out, ceed, CEED_ERROR_UNSUPPORTED, "Active input and output bases must have the same number of nodes");
+      CeedCall(CeedBasisGetNumComponents(active_bases_out[b], &num_comp_out));
+      CeedCheck(num_comp == num_comp_out, ceed, CEED_ERROR_UNSUPPORTED, "Active input and output bases must have the same number of components");
+      if (active_bases_out[b] == CEED_BASIS_NONE) num_qpts_out = num_nodes_out;
+      else CeedCall(CeedBasisGetNumQuadraturePoints(active_bases_out[b], &num_qpts_out));
+      CeedCheck(num_qpts == num_qpts_out, ceed, CEED_ERROR_UNSUPPORTED,
+                "Active input and output bases must have the same number of quadrature points");
+    }
 
     // Construct identity matrix for basis if required
     for (CeedInt i = 0; i < num_eval_modes_in[b]; i++) {
@@ -386,8 +355,8 @@ static inline int CeedSingleOperatorAssembleAddDiagonal_Core(CeedOperator op, Ce
         const CeedScalar *B_t               = NULL;
         CeedEvalMode      eval_mode_in_prev = CEED_EVAL_NONE;
 
-        CeedOperatorGetBasisPointer(active_bases_in[b], eval_modes_out[b][e_out], identity, &B_t);
-        CeedCall(CeedBasisGetNumQuadratureComponents(active_bases_in[b], eval_modes_out[b][e_out], &q_comp_out));
+        CeedCall(CeedOperatorGetBasisPointer(active_bases_out[b], eval_modes_out[b][e_out], identity, &B_t));
+        CeedCall(CeedBasisGetNumQuadratureComponents(active_bases_out[b], eval_modes_out[b][e_out], &q_comp_out));
         if (q_comp_out > 1) {
           if (e_out == 0 || eval_modes_out[b][e_out] != eval_mode_out_prev) d_out = 0;
           else B_t = &B_t[(++d_out) * num_qpts * num_nodes];
@@ -397,7 +366,7 @@ static inline int CeedSingleOperatorAssembleAddDiagonal_Core(CeedOperator op, Ce
         for (CeedInt e_in = 0; e_in < num_eval_modes_in[b]; e_in++) {
           const CeedScalar *B = NULL;
 
-          CeedOperatorGetBasisPointer(active_bases_in[b], eval_modes_in[b][e_in], identity, &B);
+          CeedCall(CeedOperatorGetBasisPointer(active_bases_in[b], eval_modes_in[b][e_in], identity, &B));
           CeedCall(CeedBasisGetNumQuadratureComponents(active_bases_in[b], eval_modes_in[b][e_in], &q_comp_in));
           if (q_comp_in > 1) {
             if (e_in == 0 || eval_modes_in[b][e_in] != eval_mode_in_prev) d_in = 0;
@@ -406,17 +375,17 @@ static inline int CeedSingleOperatorAssembleAddDiagonal_Core(CeedOperator op, Ce
           eval_mode_in_prev = eval_modes_in[b][e_in];
 
           // Each component
-          for (CeedInt c_out = 0; c_out < num_components; c_out++) {
+          for (CeedInt c_out = 0; c_out < num_comp; c_out++) {
             // Each qpt/node pair
             for (CeedInt q = 0; q < num_qpts; q++) {
               if (is_point_block) {
                 // Point Block Diagonal
-                for (CeedInt c_in = 0; c_in < num_components; c_in++) {
+                for (CeedInt c_in = 0; c_in < num_comp; c_in++) {
                   const CeedSize c_offset = (eval_mode_offsets_in[b][e_in] + c_in) * num_output_components + eval_mode_offsets_out[b][e_out] + c_out;
                   const CeedScalar qf_value = assembled_qf_array[q * layout_qf[0] + c_offset * layout_qf[1] + e * layout_qf[2]];
 
                   for (CeedInt n = 0; n < num_nodes; n++) {
-                    elem_diag_array[((e * num_components + c_out) * num_components + c_in) * num_nodes + n] +=
+                    elem_diag_array[((e * num_comp + c_out) * num_comp + c_in) * num_nodes + n] +=
                         B_t[q * num_nodes + n] * qf_value * B[q * num_nodes + n];
                   }
                 }
@@ -426,7 +395,7 @@ static inline int CeedSingleOperatorAssembleAddDiagonal_Core(CeedOperator op, Ce
                 const CeedScalar qf_value = assembled_qf_array[q * layout_qf[0] + c_offset * layout_qf[1] + e * layout_qf[2]];
 
                 for (CeedInt n = 0; n < num_nodes; n++) {
-                  elem_diag_array[(e * num_components + c_out) * num_nodes + n] += B_t[q * num_nodes + n] * qf_value * B[q * num_nodes + n];
+                  elem_diag_array[(e * num_comp + c_out) * num_nodes + n] += B_t[q * num_nodes + n] * qf_value * B[q * num_nodes + n];
                 }
               }
             }
@@ -636,9 +605,7 @@ static int CeedSingleOperatorAssemble(CeedOperator op, CeedInt offset, CeedVecto
   const CeedScalar   *assembled_qf_array;
   CeedVector          assembled_qf        = NULL;
   CeedElemRestriction assembled_elem_rstr = NULL;
-  CeedQFunction       qf;
 
-  CeedCall(CeedOperatorGetQFunction(op, &qf));
   CeedCall(CeedOperatorLinearAssembleQFunctionBuildOrUpdate(op, &assembled_qf, &assembled_elem_rstr, CEED_REQUEST_IMMEDIATE));
   CeedCall(CeedElemRestrictionGetELayout(assembled_elem_rstr, &layout_qf));
   CeedCall(CeedElemRestrictionDestroy(&assembled_elem_rstr));
@@ -650,6 +617,7 @@ static int CeedSingleOperatorAssemble(CeedOperator op, CeedInt offset, CeedVecto
   const CeedEvalMode     **eval_modes_in, **eval_modes_out;
   CeedInt                  num_active_bases_in, *num_eval_modes_in, num_active_bases_out, *num_eval_modes_out;
   CeedBasis               *active_bases_in, *active_bases_out, basis_in, basis_out;
+  const CeedScalar       **B_mats_in, **B_mats_out, *B_mat_in, *B_mat_out;
   CeedElemRestriction      elem_rstr_in, elem_rstr_out;
   CeedRestrictionType      elem_rstr_type_in, elem_rstr_type_out;
   const bool              *elem_rstr_orients_in = NULL, *elem_rstr_orients_out = NULL;
@@ -664,15 +632,18 @@ static int CeedSingleOperatorAssemble(CeedOperator op, CeedInt offset, CeedVecto
             "Cannot assemble operator with multiple active bases");
   CeedCheck(num_eval_modes_in[0] > 0 && num_eval_modes_out[0] > 0, ceed, CEED_ERROR_UNSUPPORTED, "Cannot assemble operator without inputs/outputs");
 
-  CeedCall(CeedOperatorAssemblyDataGetBases(data, NULL, &active_bases_in, NULL, NULL, &active_bases_out, NULL));
+  CeedCall(CeedOperatorAssemblyDataGetBases(data, NULL, &active_bases_in, &B_mats_in, NULL, &active_bases_out, &B_mats_out));
   CeedCall(CeedOperatorGetActiveElemRestrictions(op, &elem_rstr_in, &elem_rstr_out));
   basis_in  = active_bases_in[0];
   basis_out = active_bases_out[0];
+  B_mat_in  = B_mats_in[0];
+  B_mat_out = B_mats_out[0];
 
   CeedCall(CeedElemRestrictionGetNumElements(elem_rstr_in, &num_elem_in));
   CeedCall(CeedElemRestrictionGetElementSize(elem_rstr_in, &elem_size_in));
   CeedCall(CeedElemRestrictionGetNumComponents(elem_rstr_in, &num_comp_in));
-  CeedCall(CeedBasisGetNumQuadraturePoints(basis_in, &num_qpts_in));
+  if (basis_in == CEED_BASIS_NONE) num_qpts_in = elem_size_in;
+  else CeedCall(CeedBasisGetNumQuadraturePoints(basis_in, &num_qpts_in));
 
   CeedCall(CeedElemRestrictionGetType(elem_rstr_in, &elem_rstr_type_in));
   if (elem_rstr_type_in == CEED_RESTRICTION_ORIENTED) {
@@ -687,7 +658,8 @@ static int CeedSingleOperatorAssemble(CeedOperator op, CeedInt offset, CeedVecto
               "Active input and output operator restrictions must have the same number of elements");
     CeedCall(CeedElemRestrictionGetElementSize(elem_rstr_out, &elem_size_out));
     CeedCall(CeedElemRestrictionGetNumComponents(elem_rstr_out, &num_comp_out));
-    CeedCall(CeedBasisGetNumQuadraturePoints(basis_out, &num_qpts_out));
+    if (basis_out == CEED_BASIS_NONE) num_qpts_out = elem_size_out;
+    else CeedCall(CeedBasisGetNumQuadraturePoints(basis_out, &num_qpts_out));
     CeedCheck(num_qpts_in == num_qpts_out, ceed, CEED_ERROR_UNSUPPORTED,
               "Active input and output bases must have the same number of quadrature points");
 
@@ -710,15 +682,10 @@ static int CeedSingleOperatorAssemble(CeedOperator op, CeedInt offset, CeedVecto
 
   // Loop over elements and put in data structure
   // We store B_mat_in, B_mat_out, BTD, elem_mat in row-major order
-  CeedSize           count = 0;
-  CeedScalar        *vals, BTD_mat[elem_size_out * num_qpts_in * num_eval_modes_in[0]], elem_mat[elem_size_out * elem_size_in], *elem_mat_b = NULL;
-  const CeedScalar **B_mats_in, **B_mats_out, *B_mat_in, *B_mat_out;
+  CeedSize    count = 0;
+  CeedScalar *vals, BTD_mat[elem_size_out * num_qpts_in * num_eval_modes_in[0]], elem_mat[elem_size_out * elem_size_in], *elem_mat_b = NULL;
 
   if (elem_rstr_curl_orients_in || elem_rstr_curl_orients_out) CeedCall(CeedCalloc(elem_size_out * elem_size_in, &elem_mat_b));
-
-  CeedCall(CeedOperatorAssemblyDataGetBases(data, NULL, NULL, &B_mats_in, NULL, NULL, &B_mats_out));
-  B_mat_in  = B_mats_in[0];
-  B_mat_out = B_mats_out[0];
 
   CeedCall(CeedVectorGetArray(values, CEED_MEM_HOST, &vals));
   for (CeedSize e = 0; e < num_elem_in; e++) {
@@ -1080,6 +1047,47 @@ CeedPragmaOptimizeOn
 /// ----------------------------------------------------------------------------
 /// @addtogroup CeedOperatorBackend
 /// @{
+
+/**
+  @brief Create point block restriction for active operator field
+
+  @param[in]  rstr             Original CeedElemRestriction for active field
+  @param[out] point_block_rstr Address of the variable where the newly created CeedElemRestriction will be stored
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Backend
+**/
+int CeedOperatorCreateActivePointBlockRestriction(CeedElemRestriction rstr, CeedElemRestriction *point_block_rstr) {
+  Ceed           ceed;
+  CeedInt        num_elem, num_comp, shift, elem_size, comp_stride, *point_block_offsets;
+  CeedSize       l_size;
+  const CeedInt *offsets;
+
+  CeedCall(CeedElemRestrictionGetCeed(rstr, &ceed));
+  CeedCall(CeedElemRestrictionGetOffsets(rstr, CEED_MEM_HOST, &offsets));
+
+  // Expand offsets
+  CeedCall(CeedElemRestrictionGetNumElements(rstr, &num_elem));
+  CeedCall(CeedElemRestrictionGetNumComponents(rstr, &num_comp));
+  CeedCall(CeedElemRestrictionGetElementSize(rstr, &elem_size));
+  CeedCall(CeedElemRestrictionGetCompStride(rstr, &comp_stride));
+  CeedCall(CeedElemRestrictionGetLVectorSize(rstr, &l_size));
+  shift = num_comp;
+  if (comp_stride != 1) shift *= num_comp;
+  CeedCall(CeedCalloc(num_elem * elem_size, &point_block_offsets));
+  for (CeedInt i = 0; i < num_elem * elem_size; i++) {
+    point_block_offsets[i] = offsets[i] * shift;
+  }
+
+  // Create new restriction
+  CeedCall(CeedElemRestrictionCreate(ceed, num_elem, elem_size, num_comp * num_comp, 1, l_size * num_comp, CEED_MEM_HOST, CEED_OWN_POINTER,
+                                     point_block_offsets, point_block_rstr));
+
+  // Cleanup
+  CeedCall(CeedElemRestrictionRestoreOffsets(rstr, &offsets));
+  return CEED_ERROR_SUCCESS;
+}
 
 /**
   @brief Create object holding CeedQFunction assembly data for CeedOperator
@@ -1489,13 +1497,14 @@ int CeedOperatorAssemblyDataGetBases(CeedOperatorAssemblyData data, CeedInt *num
   if (assembled_bases_in && !data->assembled_bases_in[0]) {
     CeedInt num_qpts;
 
-    CeedCall(CeedBasisGetNumQuadraturePoints(data->active_bases_in[0], &num_qpts));
+    if (data->active_bases_in[0] == CEED_BASIS_NONE) CeedCall(CeedElemRestrictionGetElementSize(data->active_elem_rstrs_in[0], &num_qpts));
+    else CeedCall(CeedBasisGetNumQuadraturePoints(data->active_bases_in[0], &num_qpts));
     for (CeedInt b = 0; b < data->num_active_bases_in; b++) {
       bool        has_eval_none = false;
       CeedInt     num_nodes;
       CeedScalar *B_in = NULL, *identity = NULL;
 
-      CeedCall(CeedBasisGetNumNodes(data->active_bases_in[b], &num_nodes));
+      CeedCall(CeedElemRestrictionGetElementSize(data->active_elem_rstrs_in[b], &num_nodes));
       CeedCall(CeedCalloc(num_qpts * num_nodes * data->num_eval_modes_in[b], &B_in));
 
       for (CeedInt i = 0; i < data->num_eval_modes_in[b]; i++) {
@@ -1517,7 +1526,7 @@ int CeedOperatorAssemblyDataGetBases(CeedOperatorAssemblyData data, CeedInt *num
             const CeedInt     qq = data->num_eval_modes_in[b] * q;
             const CeedScalar *B  = NULL;
 
-            CeedOperatorGetBasisPointer(data->active_bases_in[b], data->eval_modes_in[b][e_in], identity, &B);
+            CeedCall(CeedOperatorGetBasisPointer(data->active_bases_in[b], data->eval_modes_in[b][e_in], identity, &B));
             CeedCall(CeedBasisGetNumQuadratureComponents(data->active_bases_in[b], data->eval_modes_in[b][e_in], &q_comp_in));
             if (q_comp_in > 1) {
               if (e_in == 0 || data->eval_modes_in[b][e_in] != eval_mode_in_prev) d_in = 0;
@@ -1536,13 +1545,14 @@ int CeedOperatorAssemblyDataGetBases(CeedOperatorAssemblyData data, CeedInt *num
   if (assembled_bases_out && !data->assembled_bases_out[0]) {
     CeedInt num_qpts;
 
-    CeedCall(CeedBasisGetNumQuadraturePoints(data->active_bases_out[0], &num_qpts));
+    if (data->active_bases_out[0] == CEED_BASIS_NONE) CeedCall(CeedElemRestrictionGetElementSize(data->active_elem_rstrs_out[0], &num_qpts));
+    else CeedCall(CeedBasisGetNumQuadraturePoints(data->active_bases_out[0], &num_qpts));
     for (CeedInt b = 0; b < data->num_active_bases_out; b++) {
       bool        has_eval_none = false;
       CeedInt     num_nodes;
       CeedScalar *B_out = NULL, *identity = NULL;
 
-      CeedCall(CeedBasisGetNumNodes(data->active_bases_out[b], &num_nodes));
+      CeedCall(CeedElemRestrictionGetElementSize(data->active_elem_rstrs_out[b], &num_nodes));
       CeedCall(CeedCalloc(num_qpts * num_nodes * data->num_eval_modes_out[b], &B_out));
 
       for (CeedInt i = 0; i < data->num_eval_modes_out[b]; i++) {
@@ -1564,7 +1574,7 @@ int CeedOperatorAssemblyDataGetBases(CeedOperatorAssemblyData data, CeedInt *num
             const CeedInt     qq = data->num_eval_modes_out[b] * q;
             const CeedScalar *B  = NULL;
 
-            CeedOperatorGetBasisPointer(data->active_bases_out[b], data->eval_modes_out[b][e_out], identity, &B);
+            CeedCall(CeedOperatorGetBasisPointer(data->active_bases_out[b], data->eval_modes_out[b][e_out], identity, &B));
             CeedCall(CeedBasisGetNumQuadratureComponents(data->active_bases_out[b], data->eval_modes_out[b][e_out], &q_comp_out));
             if (q_comp_out > 1) {
               if (e_out == 0 || data->eval_modes_out[b][e_out] != eval_mode_out_prev) d_out = 0;
@@ -1976,9 +1986,9 @@ int CeedOperatorLinearAssemblePointBlockDiagonalSymbolic(CeedOperator op, CeedSi
   CeedCall(CeedCalloc(*num_entries, cols));
 
   for (CeedInt o = 0; o < num_sub_operators; o++) {
-    CeedElemRestriction active_elem_rstr, pb_active_elem_rstr;
+    CeedElemRestriction active_elem_rstr, point_block_active_elem_rstr;
     CeedInt             comp_stride, num_elem, elem_size;
-    const CeedInt      *offsets, *pb_offsets;
+    const CeedInt      *offsets, *point_block_offsets;
 
     CeedCall(CeedOperatorGetActiveElemRestriction(sub_operators[o], &active_elem_rstr));
     CeedCall(CeedElemRestrictionGetCompStride(active_elem_rstr, &comp_stride));
@@ -1986,21 +1996,21 @@ int CeedOperatorLinearAssemblePointBlockDiagonalSymbolic(CeedOperator op, CeedSi
     CeedCall(CeedElemRestrictionGetElementSize(active_elem_rstr, &elem_size));
     CeedCall(CeedElemRestrictionGetOffsets(active_elem_rstr, CEED_MEM_HOST, &offsets));
 
-    CeedCall(CeedOperatorCreateActivePointBlockRestriction(active_elem_rstr, &pb_active_elem_rstr));
-    CeedCall(CeedElemRestrictionGetOffsets(pb_active_elem_rstr, CEED_MEM_HOST, &pb_offsets));
+    CeedCall(CeedOperatorCreateActivePointBlockRestriction(active_elem_rstr, &point_block_active_elem_rstr));
+    CeedCall(CeedElemRestrictionGetOffsets(point_block_active_elem_rstr, CEED_MEM_HOST, &point_block_offsets));
 
     for (CeedSize i = 0; i < num_elem * elem_size; i++) {
       for (CeedInt c_out = 0; c_out < num_active_components; c_out++) {
         for (CeedInt c_in = 0; c_in < num_active_components; c_in++) {
-          (*rows)[pb_offsets[i] + c_out * num_active_components + c_in] = offsets[i] + c_out * comp_stride;
-          (*cols)[pb_offsets[i] + c_out * num_active_components + c_in] = offsets[i] + c_in * comp_stride;
+          (*rows)[point_block_offsets[i] + c_out * num_active_components + c_in] = offsets[i] + c_out * comp_stride;
+          (*cols)[point_block_offsets[i] + c_out * num_active_components + c_in] = offsets[i] + c_in * comp_stride;
         }
       }
     }
 
     CeedCall(CeedElemRestrictionRestoreOffsets(active_elem_rstr, &offsets));
-    CeedCall(CeedElemRestrictionRestoreOffsets(pb_active_elem_rstr, &pb_offsets));
-    CeedCall(CeedElemRestrictionDestroy(&pb_active_elem_rstr));
+    CeedCall(CeedElemRestrictionRestoreOffsets(point_block_active_elem_rstr, &point_block_offsets));
+    CeedCall(CeedElemRestrictionDestroy(&point_block_active_elem_rstr));
   }
   return CEED_ERROR_SUCCESS;
 }

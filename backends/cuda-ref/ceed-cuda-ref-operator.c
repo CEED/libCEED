@@ -63,7 +63,7 @@ static int CeedOperatorDestroy_Cuda(CeedOperator op) {
     CeedCallCuda(ceed, cudaFree(impl->diag->d_interp_out));
     CeedCallCuda(ceed, cudaFree(impl->diag->d_grad_in));
     CeedCallCuda(ceed, cudaFree(impl->diag->d_grad_out));
-    CeedCallBackend(CeedElemRestrictionDestroy(&impl->diag->point_block_rstr));
+    CeedCallBackend(CeedElemRestrictionDestroy(&impl->diag->point_block_diag_rstr));
     CeedCallBackend(CeedVectorDestroy(&impl->diag->elem_diag));
     CeedCallBackend(CeedVectorDestroy(&impl->diag->point_block_elem_diag));
   }
@@ -446,7 +446,6 @@ static int CeedOperatorApplyAdd_Cuda(CeedOperator op, CeedVector in_vec, CeedVec
 static inline int CeedOperatorLinearAssembleQFunctionCore_Cuda(CeedOperator op, bool build_objects, CeedVector *assembled, CeedElemRestriction *rstr,
                                                                CeedRequest *request) {
   Ceed                ceed, ceed_parent;
-  bool                is_identity_qf;
   CeedInt             num_active_in, num_active_out, Q, num_elem, num_input_fields, num_output_fields, size;
   CeedSize            q_size;
   CeedScalar         *assembled_array, *e_data[2 * CEED_FIELD_MAX] = {NULL};
@@ -469,10 +468,6 @@ static inline int CeedOperatorLinearAssembleQFunctionCore_Cuda(CeedOperator op, 
 
   // Setup
   CeedCallBackend(CeedOperatorSetup_Cuda(op));
-
-  // Check for identity
-  CeedCallBackend(CeedQFunctionIsIdentity(qf, &is_identity_qf));
-  CeedCheck(!is_identity_qf, ceed, CEED_ERROR_BACKEND, "Assembling identity QFunctions not supported");
 
   // Input e_vecs and Restriction
   CeedCallBackend(CeedOperatorSetupInputs_Cuda(num_input_fields, qf_input_fields, op_input_fields, NULL, true, e_data, impl, request));
@@ -599,44 +594,9 @@ static int CeedOperatorLinearAssembleQFunctionUpdate_Cuda(CeedOperator op, CeedV
 }
 
 //------------------------------------------------------------------------------
-// Create point block restriction
-//------------------------------------------------------------------------------
-static int CreatePointBlockRestriction(CeedElemRestriction rstr, CeedElemRestriction *point_block_rstr) {
-  Ceed           ceed;
-  CeedSize       l_size;
-  CeedInt        num_elem, num_comp, elem_size, comp_stride, *point_block_offsets;
-  const CeedInt *offsets;
-
-  CeedCallBackend(CeedElemRestrictionGetCeed(rstr, &ceed));
-  CeedCallBackend(CeedElemRestrictionGetOffsets(rstr, CEED_MEM_HOST, &offsets));
-
-  // Expand offsets
-  CeedCallBackend(CeedElemRestrictionGetNumElements(rstr, &num_elem));
-  CeedCallBackend(CeedElemRestrictionGetNumComponents(rstr, &num_comp));
-  CeedCallBackend(CeedElemRestrictionGetElementSize(rstr, &elem_size));
-  CeedCallBackend(CeedElemRestrictionGetCompStride(rstr, &comp_stride));
-  CeedCallBackend(CeedElemRestrictionGetLVectorSize(rstr, &l_size));
-  CeedInt shift = num_comp;
-
-  if (comp_stride != 1) shift *= num_comp;
-  CeedCallBackend(CeedCalloc(num_elem * elem_size, &point_block_offsets));
-  for (CeedInt i = 0; i < num_elem * elem_size; i++) {
-    point_block_offsets[i] = offsets[i] * shift;
-  }
-
-  // Create new restriction
-  CeedCallBackend(CeedElemRestrictionCreate(ceed, num_elem, elem_size, num_comp * num_comp, 1, l_size * num_comp, CEED_MEM_HOST, CEED_OWN_POINTER,
-                                            point_block_offsets, point_block_rstr));
-
-  // Cleanup
-  CeedCallBackend(CeedElemRestrictionRestoreOffsets(rstr, &offsets));
-  return CEED_ERROR_SUCCESS;
-}
-
-//------------------------------------------------------------------------------
 // Assemble diagonal setup
 //------------------------------------------------------------------------------
-static inline int CeedOperatorAssembleDiagonalSetup_Cuda(CeedOperator op, const bool is_point_block, CeedInt use_ceedsize_idx) {
+static inline int CeedOperatorAssembleDiagonalSetup_Cuda(CeedOperator op, CeedInt use_ceedsize_idx) {
   Ceed                ceed;
   char               *diagonal_kernel_path, *diagonal_kernel_source;
   CeedInt             num_input_fields, num_output_fields, num_e_mode_in = 0, num_comp = 0, dim = 1, num_e_mode_out = 0, num_nodes, num_qpts;
@@ -828,19 +788,16 @@ static inline int CeedOperatorAssembleDiagonalCore_Cuda(CeedOperator op, CeedVec
   if ((assembled_length > INT_MAX) || (assembled_qf_length > INT_MAX)) use_ceedsize_idx = 1;
 
   // Setup
-  if (!impl->diag) CeedCallBackend(CeedOperatorAssembleDiagonalSetup_Cuda(op, is_point_block, use_ceedsize_idx));
+  if (!impl->diag) CeedCallBackend(CeedOperatorAssembleDiagonalSetup_Cuda(op, use_ceedsize_idx));
   CeedOperatorDiag_Cuda *diag = impl->diag;
 
   assert(diag != NULL);
 
   // Restriction
-  if (is_point_block && !diag->point_block_rstr) {
-    CeedElemRestriction point_block_rstr;
-
-    CeedCallBackend(CreatePointBlockRestriction(diag->diag_rstr, &point_block_rstr));
-    diag->point_block_rstr = point_block_rstr;
+  if (is_point_block && !diag->point_block_diag_rstr) {
+    CeedCallBackend(CeedOperatorCreateActivePointBlockRestriction(diag->diag_rstr, &diag->point_block_diag_rstr));
   }
-  CeedElemRestriction diag_rstr = is_point_block ? diag->point_block_rstr : diag->diag_rstr;
+  CeedElemRestriction diag_rstr = is_point_block ? diag->point_block_diag_rstr : diag->diag_rstr;
 
   // Create diagonal vector
   CeedVector elem_diag = is_point_block ? diag->point_block_elem_diag : diag->elem_diag;
