@@ -49,7 +49,7 @@ int main(int argc, char **argv) {
       CeedScalar x_array[x_dim * dim];
 
       for (CeedInt d = 0; d < dim; d++) {
-        for (CeedInt i = 0; i < x_dim; i++) x_array[x_dim * d + i] = (i % CeedIntPow(2, dim - d)) / CeedIntPow(2, dim - d - 1) ? 1 : -1;
+        for (CeedInt i = 0; i < x_dim; i++) x_array[x_dim * d + i] = (i % CeedIntPow(2, d + 1)) / CeedIntPow(2, d) ? 1 : -1;
       }
       CeedVectorSetArray(x_corners, CEED_MEM_HOST, CEED_COPY_VALUES, x_array);
     }
@@ -124,7 +124,7 @@ int main(int argc, char **argv) {
         for (CeedInt d = 0; d < dim; d++) coord[d] = x_array[p_to_dim * d + i];
         for (CeedInt d = 0; d < dim; d++) {
           const CeedScalar du = EvalGrad(d, coord);
-          if (fabs(du - du_array[p_to_dim * (dim - 1 - d) + i]) > tol) {
+          if (fabs(du - du_array[p_to_dim * d + i]) > tol) {
             // LCOV_EXCL_START
             printf("[%" CeedInt_FMT ", %" CeedInt_FMT ", %" CeedInt_FMT "] %f != %f\n", dim, i, d, du_array[p_to_dim * (dim - 1 - d) + i], du);
             // LCOV_EXCL_STOP

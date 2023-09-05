@@ -54,7 +54,7 @@
 
         do d=0,dimn-1
           do i=1,xdim
-            if ((mod(i-1,2**(dimn-d))/(2**(dimn-d-1))).ne.0) then
+            if ((mod(i-1,2**(d+1))/(2**(d))).ne.0) then
               xx(d*xdim+i)=1
             else
               xx(d*xdim+i)=-1

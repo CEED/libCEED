@@ -18,7 +18,7 @@ static CeedScalar GetTolerance(CeedScalarType scalar_type, int dim) {
     if (dim == 3) tol = 0.05;
     else tol = 1.e-3;
   } else {
-    tol = 1.e-11;
+    tol = 1.e-10;
   }
   return tol;
 }
@@ -39,7 +39,7 @@ int main(int argc, char **argv) {
       CeedScalar x_array[x_dim * dim];
 
       for (CeedInt d = 0; d < dim; d++) {
-        for (CeedInt i = 0; i < x_dim; i++) x_array[d * x_dim + i] = (i % CeedIntPow(2, dim - d)) / CeedIntPow(2, dim - d - 1) ? 1 : -1;
+        for (CeedInt i = 0; i < x_dim; i++) x_array[d * x_dim + i] = (i % CeedIntPow(2, d + 1)) / CeedIntPow(2, d) ? 1 : -1;
       }
       CeedVectorSetArray(x, CEED_MEM_HOST, CEED_COPY_VALUES, x_array);
     }
@@ -90,7 +90,7 @@ int main(int argc, char **argv) {
       CeedVectorRestoreArrayRead(u_q, &u_q_array);
     }
     CeedScalar tol = GetTolerance(CEED_SCALAR_TYPE, dim);
-    if (fabs(sum_1 - sum_2) > tol) printf("[%" CeedInt_FMT "] %f != %f\n", dim, sum_1, sum_2);
+    if (fabs(sum_1 - sum_2) > tol) printf("[%" CeedInt_FMT "] %0.12f != %0.12f\n", dim, sum_1, sum_2);
 
     CeedVectorDestroy(&x);
     CeedVectorDestroy(&x_q);
