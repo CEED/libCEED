@@ -129,8 +129,7 @@ CEED_QFUNCTION_HELPER int IFunction_NodalSgs(void *ctx, CeedInt Q, const CeedSca
   const CeedScalar(*km_sgs)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[2];
   CeedScalar(*Grad_v)[5][CEED_Q_VLA]    = (CeedScalar(*)[5][CEED_Q_VLA])out[0];
 
-  SgsDDModelContext        sgsdd_ctx = (SgsDDModelContext)ctx;
-  NewtonianIdealGasContext gas       = &sgsdd_ctx->gas;
+  NewtonianIdealGasContext gas = (NewtonianIdealGasContext)ctx;
 
   CeedPragmaSIMD for (CeedInt i = 0; i < Q; i++) {
     const CeedScalar qi[5] = {q[0][i], q[1][i], q[2][i], q[3][i], q[4][i]};
