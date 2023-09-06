@@ -339,7 +339,7 @@ PetscErrorCode DMSwarmInterpolateFromCellToSwarm_Petsc(DM dm_swarm, const char *
   Vec                U_loc;
 
   PetscFunctionBeginUser;
-  // -- Get mesh DM
+  // Get mesh DM
   PetscCall(DMSwarmGetCellDM(dm_swarm, &dm_mesh));
   PetscCall(DMGetDimension(dm_mesh, &dim));
   {
@@ -350,18 +350,18 @@ PetscErrorCode DMSwarmInterpolateFromCellToSwarm_Petsc(DM dm_swarm, const char *
     PetscCall(PetscSectionResetClosurePermutation(section_u_mesh_loc));
   }
 
-  // -- Get local mesh values
+  // Get local mesh values
   PetscCall(DMGetLocalVector(dm_mesh, &U_loc));
   PetscCall(VecZeroEntries(U_loc));
   PetscCall(DMGlobalToLocal(dm_mesh, U_mesh, INSERT_VALUES, U_loc));
 
-  // -- Get local swarm data
+  // Get local swarm data
   PetscCall(DMSwarmSortGetAccess(dm_swarm));
   PetscCall(DMPlexGetHeightStratum(dm_mesh, 0, &cell_start, &cell_end));
   PetscCall(DMSwarmGetField(dm_swarm, DMSwarmPICField_coor, NULL, NULL, (void **)&coords_points));
   PetscCall(DMSwarmGetField(dm_swarm, DMSwarmPICField_u, NULL, NULL, (void **)&u_points));
 
-  // -- Interpolate values to each swarm point, one element in the background mesh at a time
+  // Interpolate values to each swarm point, one element in the background mesh at a time
   PetscCall(DMGetDS(dm_mesh, &ds));
   PetscCall(PetscDSGetDiscretization(ds, 0, (PetscObject *)&fe));
   for (PetscInt cell = cell_start; cell < cell_end; cell++) {
@@ -374,7 +374,7 @@ PetscErrorCode DMSwarmInterpolateFromCellToSwarm_Petsc(DM dm_swarm, const char *
     PetscCall(DMSwarmSortGetPointsPerCell(dm_swarm, cell, &num_points_in_cell, &points_cell));
     PetscCall(DMGetWorkArray(dm_mesh, num_points_in_cell * dim, MPIU_REAL, &coords_points_cell_true));
     PetscCall(DMGetWorkArray(dm_mesh, num_points_in_cell * dim, MPIU_REAL, &coords_points_cell_ref));
-    // ---- Reference coordinates for swarm points in background mesh element
+    // -- Reference coordinates for swarm points in background mesh element
     for (PetscInt p = 0; p < num_points_in_cell; p++) {
       for (PetscInt d = 0; d < dim; d++) coords_points_cell_true[p * dim + d] = coords_points[points_cell[p] * dim + d];
     }
@@ -382,7 +382,7 @@ PetscErrorCode DMSwarmInterpolateFromCellToSwarm_Petsc(DM dm_swarm, const char *
     for (PetscInt p = 0; p < num_points_in_cell; p++) {
       CoordinatesRealToRef(dim, dim, v0_ref, v, invJ, &coords_points_cell_true[p * dim], &coords_points_cell_ref[p * dim]);
     }
-    // ---- Interpolate values from current element in background mesh to swarm points
+    // -- Interpolate values from current element in background mesh to swarm points
     PetscCall(PetscFECreateTabulation(fe, 1, num_points_in_cell, coords_points_cell_ref, 1, &tabulation));
     PetscCall(DMPlexVecGetClosure(dm_mesh, section_u_mesh_loc, U_loc, cell, NULL, &u_cell));
     PetscCall(PetscFEGetQuadrature(fe, &quadrature));
@@ -391,7 +391,7 @@ PetscErrorCode DMSwarmInterpolateFromCellToSwarm_Petsc(DM dm_swarm, const char *
       PetscCall(PetscFEInterpolateAtPoints_Static(fe, tabulation, u_cell, &fe_geometry, p, &u_points[points_cell[p]]));
     }
 
-    // ---- Cleanup
+    // -- Cleanup
     PetscCall(PetscFEDestroyCellGeometry(fe, &fe_geometry));
     PetscCall(DMPlexVecRestoreClosure(dm_mesh, section_u_mesh_loc, U_loc, cell, NULL, &u_cell));
     PetscCall(DMRestoreWorkArray(dm_mesh, num_points_in_cell * dim, MPIU_REAL, &coords_points_cell_true));
@@ -400,7 +400,7 @@ PetscErrorCode DMSwarmInterpolateFromCellToSwarm_Petsc(DM dm_swarm, const char *
     PetscCall(PetscFree(points_cell));
   }
 
-  // -- Cleanup
+  // Cleanup
   PetscCall(DMSwarmRestoreField(dm_swarm, DMSwarmPICField_coor, NULL, NULL, (void **)&coords_points));
   PetscCall(DMSwarmRestoreField(dm_swarm, DMSwarmPICField_u, NULL, NULL, (void **)&u_points));
   PetscCall(DMSwarmSortRestoreAccess(dm_swarm));
@@ -422,12 +422,12 @@ PetscErrorCode DMSwarmInterpolateFromCellToSwarm_Ceed(DM dm_swarm, const char *f
   DMSwarmCeedContext swarm_ceed_context;
 
   PetscFunctionBeginUser;
-  // -- Get mesh DM
+  // Get mesh DM
   PetscCall(DMSwarmGetCellDM(dm_swarm, &dm_mesh));
   PetscCall(DMGetDimension(dm_mesh, &dim));
   PetscCall(DMGetApplicationContext(dm_mesh, (void *)&swarm_ceed_context));
 
-  // -- Get mesh values
+  // Get mesh values
   PetscCall(DMGetLocalVector(dm_mesh, &U_loc));
   PetscCall(VecZeroEntries(U_loc));
   PetscCall(DMGlobalToLocal(dm_mesh, U_mesh, INSERT_VALUES, U_loc));
@@ -451,7 +451,7 @@ PetscErrorCode DMSwarmInterpolateFromCellToSwarm_Ceed(DM dm_swarm, const char *f
     CeedVectorCreate(swarm_ceed_context->ceed, elem_size, &u_cell);
   }
 
-  // -- Get swarm values
+  // Get swarm values
   PetscCall(DMPlexGetHeightStratum(dm_mesh, 0, &cell_start, &cell_end));
   PetscCall(DMSwarmGetField(dm_swarm, DMSwarmPICField_u, NULL, NULL, (void **)&u_points));
   PetscCall(DMSwarmCreateReferenceCoordinates(dm_swarm, &is_points, &X_ref));
@@ -459,7 +459,7 @@ PetscErrorCode DMSwarmInterpolateFromCellToSwarm_Ceed(DM dm_swarm, const char *f
   PetscCall(ISGetIndices(is_points, &point_cells));
   PetscCall(VecGetArrayRead(X_ref, &coords_points_ref));
 
-  // -- Interpolate values to each swarm point, one element in the background mesh at a time
+  // Interpolate values to each swarm point, one element in the background mesh at a time
   for (PetscInt cell = cell_start; cell < cell_end; cell++) {
     CeedVector u_points_cell, x_points_cell;
     PetscInt   num_points_in_cell = 0;
@@ -469,7 +469,7 @@ PetscErrorCode DMSwarmInterpolateFromCellToSwarm_Ceed(DM dm_swarm, const char *f
     CeedVectorCreate(swarm_ceed_context->ceed, num_points_in_cell, &u_points_cell);
     CeedVectorCreate(swarm_ceed_context->ceed, num_points_in_cell * dim, &x_points_cell);
 
-    // ---- Reference coordinates for swarm points in background mesh element
+    // -- Reference coordinates for swarm points in background mesh element
     {
       CeedScalar *coords_points_cell_ref;
 
@@ -483,7 +483,7 @@ PetscErrorCode DMSwarmInterpolateFromCellToSwarm_Ceed(DM dm_swarm, const char *f
       CeedVectorRestoreArray(x_points_cell, &coords_points_cell_ref);
     }
 
-    // ---- Interpolate values from current element in background mesh to swarm points
+    // -- Interpolate values from current element in background mesh to swarm points
     {
       CeedInt           elem_size;
       const CeedScalar *u_e_vec_array, *u_cell_array;
@@ -507,12 +507,12 @@ PetscErrorCode DMSwarmInterpolateFromCellToSwarm_Ceed(DM dm_swarm, const char *f
       CeedVectorRestoreArrayRead(u_points_cell, &u_points_cell_array);
     }
 
-    // ---- Cleanup
+    // -- Cleanup
     CeedVectorDestroy(&u_points_cell);
     CeedVectorDestroy(&x_points_cell);
   }
 
-  // -- Cleanup
+  // Cleanup
   PetscCall(DMSwarmRestoreField(dm_swarm, DMSwarmPICField_u, NULL, NULL, (void **)&u_points));
   PetscCall(ISRestoreIndices(is_points, &point_cells));
   PetscCall(ISDestroy(&is_points));
@@ -538,13 +538,13 @@ PetscErrorCode DMSwarmCheckSwarmValues(DM dm_swarm, const char *field, PetscScal
   PetscCall(DMSwarmGetField(dm_swarm, DMSwarmPICField_coor, NULL, NULL, (void **)&coords_points));
   PetscCall(DMSwarmGetField(dm_swarm, field, NULL, NULL, (void **)&u_points));
 
-  // -- Interpolate values to each swarm point, one element in the background mesh at a time
+  // Interpolate values to each swarm point, one element in the background mesh at a time
   for (PetscInt cell = cell_start; cell < cell_end; cell++) {
     PetscInt *points;
     PetscInt  num_points_in_cell;
 
     PetscCall(DMSwarmSortGetPointsPerCell(dm_swarm, cell, &num_points_in_cell, &points));
-    // ---- Reference coordinates for swarm points in background mesh element
+    // -- Reference coordinates for swarm points in background mesh element
     for (PetscInt p = 0; p < num_points_in_cell; p++) {
       PetscScalar x[dim], u_true = 0.0;
 
@@ -558,11 +558,11 @@ PetscErrorCode DMSwarmCheckSwarmValues(DM dm_swarm, const char *field, PetscScal
       }
     }
 
-    // ---- Cleanup
+    // -- Cleanup
     PetscCall(PetscFree(points));
   }
 
-  // -- Cleanup
+  // Cleanup
   PetscCall(DMSwarmRestoreField(dm_swarm, DMSwarmPICField_coor, NULL, NULL, (void **)&coords_points));
   PetscCall(DMSwarmRestoreField(dm_swarm, field, NULL, NULL, (void **)&u_points));
   PetscCall(DMSwarmSortRestoreAccess(dm_swarm));
