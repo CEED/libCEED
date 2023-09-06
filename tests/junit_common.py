@@ -326,7 +326,7 @@ def run_tests(test: str, ceed_backends: list[str], mode: RunMode, nproc: int, su
     test_specs: list[TestSpec] = get_test_args(source_path)
 
     if mode is RunMode.TAP:
-        print('1..' + str(len(test_specs) * len(ceed_backends)))
+        print(f'1..{len(test_specs) * len(ceed_backends)}')
 
     test_cases: list[TestCase] = []
     my_env: dict = os.environ.copy()
@@ -431,41 +431,44 @@ def run_tests(test: str, ceed_backends: list[str], mode: RunMode, nproc: int, su
             test_case.args = ' '.join(str(arg) for arg in run_args)
             test_cases.append(test_case)
 
-            if mode is RunMode.TAP:
-                # print incremental output if TAP mode
-                print(f'# Test: {spec.name}')
-                if spec.only:
-                    print('# Only: {}'.format(','.join(spec.only)))
-                print(f'# $ {test_case.args}')
-                if test_case.is_skipped():
-                    print('ok {} - SKIP: {}'.format(index, (test_case.skipped[0]['message'] or 'NO MESSAGE').strip()))
-                elif test_case.is_failure() or test_case.is_error():
-                    print(f'not ok {index}')
-                    if test_case.is_error():
-                        print(f'  ERROR: {test_case.errors[0]["message"]}')
-                    if test_case.is_failure():
-                        for i, failure in enumerate(test_case.failures):
-                            print(f'  FAILURE {i}: {failure["message"]}')
-                            print(f'    Output: \n{failure["output"]}')
-                else:
-                    print(f'ok {index} - PASS')
-                sys.stdout.flush()
-            else:
-                # print error or failure information if JUNIT mode
-                if test_case.is_error() or test_case.is_failure():
-                    print(f'Test: {test} {spec.name}')
-                    print(f'  $ {test_case.args}')
-                    if test_case.is_error():
-                        print('ERROR: {}'.format((test_case.errors[0]['message'] or 'NO MESSAGE').strip()))
-                        print('Output: \n{}'.format((test_case.errors[0]['output'] or 'NO MESSAGE').strip()))
-                    if test_case.is_failure():
-                        for failure in test_case.failures:
-                            print('FAIL: {}'.format((failure['message'] or 'NO MESSAGE').strip()))
-                            print('Output: \n{}'.format((failure['output'] or 'NO MESSAGE').strip()))
-                sys.stdout.flush()
+            print_test_case(test_case, spec, mode, index)
             index += 1
-
     return TestSuite(test, test_cases)
+
+
+def print_test_case(test_case: TestCase, spec: TestSpec, mode: RunMode, index: int) -> None:
+    if mode is RunMode.TAP:
+        # print incremental output if TAP mode
+        print(f'# Test: {spec.name}')
+        if spec.only:
+            print('# Only: {}'.format(','.join(spec.only)))
+        print(f'# $ {test_case.args}')
+        if test_case.is_skipped():
+            print('ok {} - SKIP: {}'.format(index, (test_case.skipped[0]['message'] or 'NO MESSAGE').strip()))
+        elif test_case.is_failure() or test_case.is_error():
+            print(f'not ok {index}')
+            if test_case.is_error():
+                print(f'  ERROR: {test_case.errors[0]["message"]}')
+            if test_case.is_failure():
+                for i, failure in enumerate(test_case.failures):
+                    print(f'  FAILURE {i}: {failure["message"]}')
+                    print(f'    Output: \n{failure["output"]}')
+        else:
+            print(f'ok {index} - PASS')
+        sys.stdout.flush()
+    else:
+        # print error or failure information if JUNIT mode
+        if test_case.is_error() or test_case.is_failure():
+            print(f'Test: {test} {spec.name}')
+            print(f'  $ {test_case.args}')
+            if test_case.is_error():
+                print('ERROR: {}'.format((test_case.errors[0]['message'] or 'NO MESSAGE').strip()))
+                print('Output: \n{}'.format((test_case.errors[0]['output'] or 'NO MESSAGE').strip()))
+            if test_case.is_failure():
+                for failure in test_case.failures:
+                    print('FAIL: {}'.format((failure['message'] or 'NO MESSAGE').strip()))
+                    print('Output: \n{}'.format((failure['output'] or 'NO MESSAGE').strip()))
+        sys.stdout.flush()
 
 
 def write_junit_xml(test_suite: TestSuite, output_file: Optional[Path], batch: str = '') -> None:

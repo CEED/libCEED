@@ -38,8 +38,6 @@ class CeedSuiteSpec(SuiteSpec):
         elif prefix == 'nek':
             return (Path('examples') / 'nek' / 'bps' / rest).with_suffix('.usr')
         elif prefix == 'fluids':
-            if rest.startswith('py-'):
-                return (Path('examples') / 'fluids' / rest[3:]).with_suffix('.py')
             return (Path('examples') / 'fluids' / rest).with_suffix('.c')
         elif prefix == 'solids':
             return (Path('examples') / 'solids' / rest).with_suffix('.c')
@@ -167,14 +165,27 @@ class CeedSuiteSpec(SuiteSpec):
         Returns:
             bool: True if the test is allowed to print console output
         """
-        return test[:4] in ['t003'] or test.startswith('fluids-py-')
+        return test[:4] in ['t003']
 
 
 if __name__ == '__main__':
     args = create_argparser().parse_args()
 
     # run tests
-    result: TestSuite = run_tests(args.test, args.ceed_backends, args.mode, args.nproc, CeedSuiteSpec())
+    if 'smartsim' in args.test:
+        sys.path.insert(0, str(Path(__file__).parents[1] / "examples" / "fluids"))
+        from smartsim_regression_framework import setup, teardown, test_junit  # nopep8
+
+        setup(Path(__file__).parent / 'test_dir')
+        results = []
+        print(f'1..{len(args.ceed_backends)}')
+        for i, backend in enumerate(args.ceed_backends):
+            results += test_junit(args.ceed_backends)
+            print_test_case(results[i], TestSpec(), args.mode, i)
+        teardown(Path(__file__).parent / 'test_dir')
+        result: TestSuite = TestSuite('SmartSim Tests', results)
+    else:
+        result: TestSuite = run_tests(args.test, args.ceed_backends, args.mode, args.nproc, CeedSuiteSpec())
 
     # write output and check for failures
     if args.mode is RunMode.JUNIT:

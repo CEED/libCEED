@@ -109,6 +109,25 @@ def test(ceed_resource) -> Tuple[bool, Exception]:
     return output
 
 
+def test_junit(ceed_resource):
+    start: float = time.time()
+    passTest, exception = test(ceed_resource)
+
+    output = "" if isinstance(exception, NoError) else ''.join(traceback.TracebackException.from_exception(exception).format())
+
+    # test_case = TestCase(f'{test}, "{spec.name}", n{nproc}, {ceed_resource}',
+    test_case = TestCase(f'SmartSim Test {ceed_resource}',
+                         elapsed_sec=time.time() - start,
+                         timestamp=time.strftime('%Y-%m-%d %H:%M:%S %Z', time.localtime(start)),
+                         stdout=output,
+                         stderr="",
+                         allow_multiple_subelements=True)
+    if not passTest:
+        test_case.add_failure_info("exception")
+
+    return test_case
+
+
 def teardown(return_path: Path):
     os.chdir(return_path)
     exp.stop(db)
