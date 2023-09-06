@@ -359,7 +359,7 @@ PetscErrorCode DMSwarmInterpolateFromCellToSwarm_Petsc(DM dm_swarm, const char *
   PetscCall(DMSwarmSortGetAccess(dm_swarm));
   PetscCall(DMPlexGetHeightStratum(dm_mesh, 0, &cell_start, &cell_end));
   PetscCall(DMSwarmGetField(dm_swarm, DMSwarmPICField_coor, NULL, NULL, (void **)&coords_points));
-  PetscCall(DMSwarmGetField(dm_swarm, DMSwarmPICField_u, NULL, NULL, (void **)&u_points));
+  PetscCall(DMSwarmGetField(dm_swarm, field, NULL, NULL, (void **)&u_points));
 
   // Interpolate values to each swarm point, one element in the background mesh at a time
   PetscCall(DMGetDS(dm_mesh, &ds));
@@ -402,7 +402,7 @@ PetscErrorCode DMSwarmInterpolateFromCellToSwarm_Petsc(DM dm_swarm, const char *
 
   // Cleanup
   PetscCall(DMSwarmRestoreField(dm_swarm, DMSwarmPICField_coor, NULL, NULL, (void **)&coords_points));
-  PetscCall(DMSwarmRestoreField(dm_swarm, DMSwarmPICField_u, NULL, NULL, (void **)&u_points));
+  PetscCall(DMSwarmRestoreField(dm_swarm, field, NULL, NULL, (void **)&u_points));
   PetscCall(DMSwarmSortRestoreAccess(dm_swarm));
   PetscCall(DMRestoreLocalVector(dm_mesh, &U_loc));
   PetscCall(PetscSectionDestroy(&section_u_mesh_loc));
@@ -453,7 +453,7 @@ PetscErrorCode DMSwarmInterpolateFromCellToSwarm_Ceed(DM dm_swarm, const char *f
 
   // Get swarm values
   PetscCall(DMPlexGetHeightStratum(dm_mesh, 0, &cell_start, &cell_end));
-  PetscCall(DMSwarmGetField(dm_swarm, DMSwarmPICField_u, NULL, NULL, (void **)&u_points));
+  PetscCall(DMSwarmGetField(dm_swarm, field, NULL, NULL, (void **)&u_points));
   PetscCall(DMSwarmCreateReferenceCoordinates(dm_swarm, &is_points, &X_ref));
   PetscCall(ISGetSize(is_points, &num_points_local));
   PetscCall(ISGetIndices(is_points, &point_cells));
@@ -513,7 +513,7 @@ PetscErrorCode DMSwarmInterpolateFromCellToSwarm_Ceed(DM dm_swarm, const char *f
   }
 
   // Cleanup
-  PetscCall(DMSwarmRestoreField(dm_swarm, DMSwarmPICField_u, NULL, NULL, (void **)&u_points));
+  PetscCall(DMSwarmRestoreField(dm_swarm, field, NULL, NULL, (void **)&u_points));
   PetscCall(ISRestoreIndices(is_points, &point_cells));
   PetscCall(ISDestroy(&is_points));
   PetscCall(VecRestoreArrayRead(X_ref, &coords_points_ref));
