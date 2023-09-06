@@ -15,9 +15,6 @@ from typing import Optional
 sys.path.insert(0, str(Path(__file__).parent / "junit-xml"))
 from junit_xml import TestCase, TestSuite, to_xml_report_string  # nopep8
 
-sys.path.insert(0, str(Path(__file__).parents[1] / "examples/fluids/tests-output"))
-from smartsim_regression_framework import setup, teardown, test_junit
-
 
 class CaseInsensitiveEnumAction(argparse.Action):
     """Action to convert input values to lower case prior to converting to an Enum type"""
@@ -337,10 +334,6 @@ def run_tests(test: str, ceed_backends: list[str], mode: RunMode, nproc: int, su
 
     index: int = 1
     for spec in test_specs:
-        if "SmartSim" in spec.name:
-            print("SmartSimTest Running")
-            setup(Path(__file__).parent / "test_dir")
-
         for ceed_resource in ceed_backends:
             run_args: list = [suite_spec.get_run_path(test), *spec.args]
 
@@ -375,9 +368,6 @@ def run_tests(test: str, ceed_backends: list[str], mode: RunMode, nproc: int, su
                                      stdout=proc.stdout.decode('utf-8'),
                                      stderr=proc.stderr.decode('utf-8'),
                                      allow_multiple_subelements=True)
-            if "SmartSim" in spec.name:
-                test_case = test_junit(ceed_resource)
-
                 ref_csvs: list[Path] = []
                 if output_files := [arg for arg in spec.args if 'ascii:' in arg]:
                     ref_csvs = [suite_spec.get_output_path(test, file.split('ascii:')[-1]) for file in output_files]
@@ -405,7 +395,7 @@ def run_tests(test: str, ceed_backends: list[str], mode: RunMode, nproc: int, su
             if not test_case.is_skipped() and not test_case.status:
                 if test_case.stderr:
                     test_case.add_failure_info('stderr', test_case.stderr)
-                if "SmartSim" not in spec.name and proc.returncode != 0:
+                if proc.returncode != 0:
                     test_case.add_error_info(f'returncode = {proc.returncode}')
                 if ref_stdout.is_file():
                     diff = list(difflib.unified_diff(ref_stdout.read_text().splitlines(keepends=True),
@@ -474,10 +464,6 @@ def run_tests(test: str, ceed_backends: list[str], mode: RunMode, nproc: int, su
                             print('Output: \n{}'.format((failure['output'] or 'NO MESSAGE').strip()))
                 sys.stdout.flush()
             index += 1
-
-        if "SmartSim" in spec.name:
-            print("SmartSimTest Ending")
-            teardown(Path(__file__).parents[1])
 
     return TestSuite(test, test_cases)
 

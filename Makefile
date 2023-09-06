@@ -236,8 +236,10 @@ nekexamples  := $(OBJDIR)/nek-bps
 petscexamples.c := $(wildcard examples/petsc/*.c)
 petscexamples   := $(petscexamples.c:examples/petsc/%.c=$(OBJDIR)/petsc-%)
 # Fluid Dynamics Examples
-fluidsexamples.c := $(sort $(wildcard examples/fluids/*.c))
-fluidsexamples  := $(fluidsexamples.c:examples/fluids/%.c=$(OBJDIR)/fluids-%)
+fluidsexamples.c  := $(sort $(wildcard examples/fluids/*.c))
+fluidsexamples.py := examples/fluids/smartsim_regression_framework.py
+fluidsexamples    := $(fluidsexamples.c:examples/fluids/%.c=$(OBJDIR)/fluids-%)
+fluidsexamples    += $(fluidsexamples.py:examples/fluids/%.py=$(OBJDIR)/fluids-py-%) 
 # Solid Mechanics Examples
 solidsexamples.c := $(sort $(wildcard examples/solids/*.c))
 solidsexamples   := $(solidsexamples.c:examples/solids/%.c=$(OBJDIR)/solids-%)
@@ -603,6 +605,9 @@ $(OBJDIR)/fluids-% : examples/fluids/%.c examples/fluids/src/*.c examples/fluids
 	+$(call quiet,MAKE) -C examples/fluids CEED_DIR=`pwd` \
 	  PETSC_DIR="$(abspath $(PETSC_DIR))" OPT="$(OPT)" $*
 	cp examples/fluids/$* $@
+
+$(OBJDIR)/fluids-py-% : examples/fluids/%.py
+	cp $< $@
 
 $(OBJDIR)/solids-% : examples/solids/%.c examples/solids/%.h \
     examples/solids/problems/*.c examples/solids/src/*.c \

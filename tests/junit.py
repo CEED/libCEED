@@ -38,6 +38,8 @@ class CeedSuiteSpec(SuiteSpec):
         elif prefix == 'nek':
             return (Path('examples') / 'nek' / 'bps' / rest).with_suffix('.usr')
         elif prefix == 'fluids':
+            if rest.startswith('py-'):
+                return (Path('examples') / 'fluids' / rest[3:]).with_suffix('.py')
             return (Path('examples') / 'fluids' / rest).with_suffix('.c')
         elif prefix == 'solids':
             return (Path('examples') / 'solids' / rest).with_suffix('.c')
@@ -165,7 +167,7 @@ class CeedSuiteSpec(SuiteSpec):
         Returns:
             bool: True if the test is allowed to print console output
         """
-        return test[:4] in ['t003']
+        return test[:4] in ['t003'] or test.startswith('fluids-py-')
 
 
 if __name__ == '__main__':
