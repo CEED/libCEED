@@ -411,7 +411,6 @@ int main(int argc, char **argv) {
 }
 
 // Solution functions
-
 PetscScalar EvalU(PetscInt dim, const PetscScalar x[]) {
   PetscScalar result = 1, center = 0.1;
 
@@ -487,7 +486,6 @@ PetscErrorCode CheckSwarmValues(DM dm_swarm, const char *field, PetscScalar tole
 }
 
 // DMSwarm to libCEED utility
-
 PetscErrorCode DMSwarmCreateReferenceCoordinates(DM dm_swarm, IS *is_points, Vec *X_points_ref) {
   PetscInt           cell_start, cell_end, dim, num_points_local, *point_cells;
   PetscScalar       *coords_points_ref;
