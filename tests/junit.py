@@ -180,8 +180,8 @@ if __name__ == '__main__':
         results = []
         print(f'1..{len(args.ceed_backends)}')
         for i, backend in enumerate(args.ceed_backends):
-            results += test_junit(args.ceed_backends)
-            print_test_case(results[i], TestSpec(), args.mode, i)
+            results.append(test_junit(args.ceed_backends))
+            print_test_case(results[i], TestSpec("SmartSim Tests"), args.mode, i)
         teardown(Path(__file__).parent / 'test_dir')
         result: TestSuite = TestSuite('SmartSim Tests', results)
     else:

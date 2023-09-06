@@ -442,7 +442,8 @@ def print_test_case(test_case: TestCase, spec: TestSpec, mode: RunMode, index: i
         print(f'# Test: {spec.name}')
         if spec.only:
             print('# Only: {}'.format(','.join(spec.only)))
-        print(f'# $ {test_case.args}')
+        if hasattr(test_case, 'args'):
+            print(f'# $ {test_case.args}')
         if test_case.is_skipped():
             print('ok {} - SKIP: {}'.format(index, (test_case.skipped[0]['message'] or 'NO MESSAGE').strip()))
         elif test_case.is_failure() or test_case.is_error():
