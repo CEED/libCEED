@@ -37,12 +37,13 @@ const char help[] = "libCEED example using PETSc with DMSwarm\n";
 
 typedef PetscErrorCode (*DMFunc)(PetscInt dim, PetscReal time, const PetscReal x[], PetscInt Nc, PetscScalar *u, void *ctx);
 
-const char DMSwarmField_u[] = "u";
+const char DMSwarmPICField_u[] = "u";
 
 PetscScalar    EvalU(PetscInt dim, const PetscScalar x[]);
+PetscScalar    EvaldU(PetscInt dim, const PetscScalar x[], PetscInt direction);
 PetscErrorCode EvalU_proj(PetscInt dim, PetscReal t, const PetscReal x[], PetscInt num_comp, PetscScalar *u, void *ctx);
 
-PetscScalar EvaldU(PetscInt dim, const PetscScalar x[], PetscInt direction);
+PetscErrorCode CheckSwarmValues(DM dm_swarm, const char *field, PetscScalar tolerance, DMFunc TrueSolution);
 
 PetscErrorCode DMSwarmCreateReferenceCoordinates(DM dm_swarm, IS *is_points, Vec *ref_coords);
 
@@ -50,13 +51,13 @@ int main(int argc, char **argv) {
   MPI_Comm            comm;
   char                ceed_resource[PETSC_MAX_PATH_LEN] = "/cpu/self";
   PetscBool           test_mode = PETSC_FALSE, set_uniform_swarm = PETSC_FALSE;
+  PetscInt            dim = 3, num_comp = 1, num_points = 40, geometry_order = 1, mesh_order = 3, q_extra = 3;
+  PetscScalar         tolerance = 1E-3;
   DM                  dm_mesh, dm_swarm;
   Vec                 U_mesh;
-  PetscInt            dim = 3, num_comp = 1, num_points = 40, geometry_order = 1, mesh_order = 3, q_extra = 3;
   Ceed                ceed;
   CeedBasis           basis_mesh_u;
   CeedElemRestriction restriction_mesh_u;
-  PetscScalar         tolerance = 1E-3;
 
   PetscCall(PetscInitialize(&argc, &argv, NULL, help));
   comm = PETSC_COMM_WORLD;
@@ -144,7 +145,7 @@ int main(int argc, char **argv) {
     PetscCall(DMSwarmSetCellDM(dm_swarm, dm_mesh));
 
     // -- Swarm field
-    PetscCall(DMSwarmRegisterPetscDatatypeField(dm_swarm, DMSwarmField_u, num_comp, PETSC_SCALAR));
+    PetscCall(DMSwarmRegisterPetscDatatypeField(dm_swarm, DMSwarmPICField_u, num_comp, PETSC_SCALAR));
     PetscCall(DMSwarmFinalizeFieldRegister(dm_swarm));
     PetscCall(DMSwarmSetLocalSizes(dm_swarm, num_points, 0));
     PetscCall(DMSetFromOptions(dm_swarm));
@@ -217,15 +218,15 @@ int main(int argc, char **argv) {
     PetscInt           cell_start, cell_end;
     PetscScalar       *u_all_points_array;
     const PetscScalar *coords_points;
-    const PetscReal    v0ref[3] = {-1.0, -1.0, -1.0};
-    PetscBool          success  = PETSC_TRUE;
+    const PetscReal    v0_ref[3] = {-1.0, -1.0, -1.0};
+    PetscBool          success   = PETSC_TRUE;
     PetscSection       section_u_mesh_loc;
 
     {
-      PetscSection section_u_mesh_loc_clperm;
+      PetscSection section_u_mesh_loc_closure_permutation;
 
-      PetscCall(DMGetLocalSection(dm_mesh, &section_u_mesh_loc_clperm));
-      PetscCall(PetscSectionClone(section_u_mesh_loc_clperm, &section_u_mesh_loc));
+      PetscCall(DMGetLocalSection(dm_mesh, &section_u_mesh_loc_closure_permutation));
+      PetscCall(PetscSectionClone(section_u_mesh_loc_closure_permutation, &section_u_mesh_loc));
       PetscCall(PetscSectionResetClosurePermutation(section_u_mesh_loc));
     }
 
@@ -238,7 +239,7 @@ int main(int argc, char **argv) {
     PetscCall(DMSwarmSortGetAccess(dm_swarm));
     PetscCall(DMPlexGetHeightStratum(dm_mesh, 0, &cell_start, &cell_end));
     PetscCall(DMSwarmGetField(dm_swarm, DMSwarmPICField_coor, NULL, NULL, (void **)&coords_points));
-    PetscCall(DMSwarmGetField(dm_swarm, DMSwarmField_u, NULL, NULL, (void **)&u_all_points_array));
+    PetscCall(DMSwarmGetField(dm_swarm, DMSwarmPICField_u, NULL, NULL, (void **)&u_all_points_array));
 
     // -- Interpolate values to each swarm point, one element in the background mesh at a time
     for (PetscInt cell = cell_start; cell < cell_end; cell++) {
@@ -257,7 +258,7 @@ int main(int argc, char **argv) {
       }
       PetscCall(DMPlexComputeCellGeometryFEM(dm_mesh, cell, NULL, v, J, invJ, &detJ));
       for (PetscInt p = 0; p < num_points_in_cell; p++) {
-        CoordinatesRealToRef(dim, dim, v0ref, v, invJ, &coords_points_true[p * dim], &coords_points_ref[p * dim]);
+        CoordinatesRealToRef(dim, dim, v0_ref, v, invJ, &coords_points_true[p * dim], &coords_points_ref[p * dim]);
       }
       // ---- Interpolate values from current element in background mesh to swarm points
       PetscCall(PetscFECreateTabulation(fe, 1, num_points_in_cell, coords_points_ref, 1, &tabulation));
@@ -265,16 +266,7 @@ int main(int argc, char **argv) {
       PetscCall(PetscFEGetQuadrature(fe, &quadrature));
       PetscCall(PetscFECreateCellGeometry(fe, quadrature, &fe_geometry));
       for (PetscInt p = 0; p < num_points_in_cell; p++) {
-        PetscScalar x[dim], u_true = 0.0;
-
         PetscCall(PetscFEInterpolateAtPoints_Static(fe, tabulation, u_cell, &fe_geometry, p, &u_all_points_array[points[p]]));
-        for (PetscInt d = 0; d < dim; d++) x[d] = coords_points_true[p * dim + d];
-        u_true = EvalU(dim, x);
-        if (PetscAbs(u_all_points_array[points[p]] - u_true) > tolerance) {
-          success = PETSC_FALSE;
-          PetscPrintf(comm, "Incorrect interpolated value from PETSc, cell %" PetscInt_FMT " point %" PetscInt_FMT ", found %f expected %f\n", cell,
-                      p, u_all_points_array[points[p]], u_true);
-        }
       }
 
       // ---- Cleanup
@@ -288,26 +280,26 @@ int main(int argc, char **argv) {
 
     // -- Cleanup
     PetscCall(DMSwarmRestoreField(dm_swarm, DMSwarmPICField_coor, NULL, NULL, (void **)&coords_points));
-    PetscCall(DMSwarmRestoreField(dm_swarm, "u", NULL, NULL, (void **)&u_all_points_array));
+    PetscCall(DMSwarmRestoreField(dm_swarm, DMSwarmPICField_u, NULL, NULL, (void **)&u_all_points_array));
     PetscCall(DMSwarmSortRestoreAccess(dm_swarm));
     PetscCall(DMRestoreLocalVector(dm_mesh, &U_loc));
     PetscCall(PetscSectionDestroy(&section_u_mesh_loc));
     PetscCheck(!test_mode || success, comm, PETSC_ERR_USER, "Petsc interpolation to swarm points not within tolerance");
-  }
 
-  if (!test_mode) PetscCall(DMSwarmViewXDMF(dm_swarm, "swarm_petsc.xmf"));
+    // -- View result
+    if (!test_mode) PetscCall(DMSwarmViewXDMF(dm_swarm, "swarm_petsc.xmf"));
+    PetscCall(CheckSwarmValues(dm_swarm, DMSwarmPICField_u, tolerance, EvalU_proj));
+  }
 
   // Interpolate from mesh to points via libCEED
   {
-    IS                 is_points;
-    Vec                U_loc, ref_coords;
-    PetscInt           num_points_local;
+    PetscInt           num_points_local, cell_start, cell_end;
     const PetscInt    *all_points;
-    PetscInt           cell_start, cell_end;
     PetscScalar       *u_all_points_array;
     const PetscScalar *coords_points_ref;
-    CeedVector         u_evec, u_cell;
-    PetscBool          success_ceed = PETSC_TRUE, success_cmp = PETSC_TRUE;
+    IS                 is_points;
+    Vec                U_loc, ref_coords;
+    CeedVector         u_e_vec, u_cell;
 
     // -- Get mesh values
     PetscCall(DMGetLocalVector(dm_mesh, &U_loc));
@@ -315,15 +307,15 @@ int main(int argc, char **argv) {
     PetscCall(DMGlobalToLocal(dm_mesh, U_mesh, INSERT_VALUES, U_loc));
     {
       const PetscScalar *u_array;
-      CeedVector         u_lvec;
+      CeedVector         u_l_vec;
 
       PetscCall(VecGetArrayRead(U_loc, &u_array));
-      CeedElemRestrictionCreateVector(restriction_mesh_u, &u_lvec, &u_evec);
-      CeedVectorSetArray(u_lvec, CEED_MEM_HOST, CEED_USE_POINTER, (CeedScalar *)u_array);
-      CeedElemRestrictionApply(restriction_mesh_u, CEED_NOTRANSPOSE, u_lvec, u_evec, CEED_REQUEST_IMMEDIATE);
-      CeedVectorTakeArray(u_lvec, CEED_MEM_HOST, (CeedScalar **)&u_array);
+      CeedElemRestrictionCreateVector(restriction_mesh_u, &u_l_vec, &u_e_vec);
+      CeedVectorSetArray(u_l_vec, CEED_MEM_HOST, CEED_USE_POINTER, (CeedScalar *)u_array);
+      CeedElemRestrictionApply(restriction_mesh_u, CEED_NOTRANSPOSE, u_l_vec, u_e_vec, CEED_REQUEST_IMMEDIATE);
+      CeedVectorTakeArray(u_l_vec, CEED_MEM_HOST, (CeedScalar **)&u_array);
       PetscCall(VecRestoreArrayRead(U_loc, &u_array));
-      CeedVectorDestroy(&u_lvec);
+      CeedVectorDestroy(&u_l_vec);
     }
     {
       CeedInt elem_size;
@@ -334,7 +326,7 @@ int main(int argc, char **argv) {
 
     // -- Get swarm values
     PetscCall(DMPlexGetHeightStratum(dm_mesh, 0, &cell_start, &cell_end));
-    PetscCall(DMSwarmGetField(dm_swarm, DMSwarmField_u, NULL, NULL, (void **)&u_all_points_array));
+    PetscCall(DMSwarmGetField(dm_swarm, DMSwarmPICField_u, NULL, NULL, (void **)&u_all_points_array));
     PetscCall(DMSwarmCreateReferenceCoordinates(dm_swarm, &is_points, &ref_coords));
     PetscCall(ISGetSize(is_points, &num_points_local));
     PetscCall(ISGetIndices(is_points, &all_points));
@@ -345,20 +337,17 @@ int main(int argc, char **argv) {
       CeedVector u_points, x_points;
       PetscInt   num_points_in_cell = 0;
 
-      for (PetscInt i = 0; i < num_points_local; i++) {
-        if (all_points[i] == cell) num_points_in_cell++;
-      }
-      if (!num_points_in_cell) continue;
+      for (PetscInt i = 0; i < num_points_local; i++) num_points_in_cell += all_points[i] == cell;
+      if (num_points_in_cell == 0) continue;
       CeedVectorCreate(ceed, num_points_in_cell, &u_points);
       CeedVectorCreate(ceed, num_points_in_cell * dim, &x_points);
 
       // ---- Reference coordinates for swarm points in background mesh element
       {
-        PetscInt    p = 0;
         CeedScalar *x;
 
         CeedVectorGetArrayWrite(x_points, CEED_MEM_HOST, &x);
-        for (PetscInt i = 0; i < num_points_local; i++) {
+        for (PetscInt i = 0, p = 0; i < num_points_local; i++) {
           if (all_points[i] == cell) {
             for (PetscInt d = 0; d < dim; d++) x[p * dim + d] = coords_points_ref[i * dim + d];
             p++;
@@ -369,50 +358,18 @@ int main(int argc, char **argv) {
 
       // ---- Interpolate values from current element in background mesh to swarm points
       {
-        const CeedScalar *u_evec_array, *u_cell_array;
-        CeedInt           P;
+        CeedInt           elem_size;
+        const CeedScalar *u_e_vec_array, *u_cell_array;
 
-        CeedBasisGetNumNodes(basis_mesh_u, &P);
-        CeedVectorGetArrayRead(u_evec, CEED_MEM_HOST, &u_evec_array);
-        u_cell_array = &u_evec_array[cell * P];
+        CeedElemRestrictionGetElementSize(restriction_mesh_u, &elem_size);
+        CeedVectorGetArrayRead(u_e_vec, CEED_MEM_HOST, &u_e_vec_array);
+        u_cell_array = &u_e_vec_array[cell * elem_size];
         CeedVectorSetArray(u_cell, CEED_MEM_HOST, CEED_USE_POINTER, (CeedScalar *)u_cell_array);
         CeedBasisApplyAtPoints(basis_mesh_u, num_points_in_cell, CEED_NOTRANSPOSE, CEED_EVAL_INTERP, x_points, u_cell, u_points);
 
         CeedVectorTakeArray(u_cell, CEED_MEM_HOST, (CeedScalar **)&u_cell_array);
-        CeedVectorRestoreArrayRead(u_evec, &u_evec_array);
+        CeedVectorRestoreArrayRead(u_e_vec, &u_e_vec_array);
       }
-
-      // ---- Verify
-      {
-        const CeedScalar *u_points_array, *coords_points;
-        CeedInt           p = 0;
-
-        CeedVectorGetArrayRead(u_points, CEED_MEM_HOST, &u_points_array);
-        PetscCall(DMSwarmGetField(dm_swarm, DMSwarmPICField_coor, NULL, NULL, (void **)&coords_points));
-        for (PetscInt i = 0; i < num_points_local; i++) {
-          if (all_points[i] == cell) {
-            PetscScalar x[dim], u_true = 0.0;
-
-            for (PetscInt d = 0; d < dim; d++) x[d] = coords_points[i * dim + d];
-            u_true = EvalU(dim, x);
-            if (PetscAbs(u_points_array[p] - u_true) > tolerance) {
-              success_ceed = PETSC_FALSE;
-              PetscPrintf(comm, "Incorrect interpolated value from libCEED, cell %" PetscInt_FMT " point %" PetscInt_FMT ", found %f expected %f\n",
-                          cell, i, u_points_array[p], u_true);
-            }
-            if (PetscAbs(u_points_array[p] - u_all_points_array[i]) > tolerance) {
-              success_cmp = PETSC_FALSE;
-              PetscPrintf(comm,
-                          "Significant difference between libCEED and PETSc, cell %" PetscInt_FMT " point %" PetscInt_FMT ", found %f expected %f\n",
-                          cell, i, u_points_array[p], u_all_points_array[i]);
-            }
-            p++;
-          }
-        }
-        PetscCall(DMSwarmRestoreField(dm_swarm, DMSwarmPICField_coor, NULL, NULL, (void **)&coords_points));
-        CeedVectorRestoreArrayRead(u_points, &u_points_array);
-      }
-
       {
         const CeedScalar *u_points_array;
 
@@ -428,22 +385,20 @@ int main(int argc, char **argv) {
       CeedVectorDestroy(&x_points);
     }
 
-    PetscCheck(!test_mode || success_ceed, comm, PETSC_ERR_USER, "libCEED interpolation to swarm points not within tolerance");
-    PetscCheck(!test_mode || success_cmp, comm, PETSC_ERR_USER, "Significant difference between libCEED and PETSc interpolation to swarm points");
-
     // -- Cleanup
-    PetscCall(DMSwarmRestoreField(dm_swarm, DMSwarmField_u, NULL, NULL, (void **)&u_all_points_array));
+    PetscCall(DMSwarmRestoreField(dm_swarm, DMSwarmPICField_u, NULL, NULL, (void **)&u_all_points_array));
     PetscCall(DMRestoreLocalVector(dm_mesh, &U_loc));
     PetscCall(ISRestoreIndices(is_points, &all_points));
     PetscCall(ISDestroy(&is_points));
     PetscCall(VecRestoreArrayRead(ref_coords, &coords_points_ref));
     PetscCall(VecDestroy(&ref_coords));
-    CeedVectorDestroy(&u_evec);
+    CeedVectorDestroy(&u_e_vec);
     CeedVectorDestroy(&u_cell);
-  }
 
-  // View result
-  if (!test_mode) PetscCall(DMSwarmViewXDMF(dm_swarm, "swarm_ceed.xmf"));
+    // -- View result
+    if (!test_mode) PetscCall(DMSwarmViewXDMF(dm_swarm, "swarm_ceed.xmf"));
+    PetscCall(CheckSwarmValues(dm_swarm, DMSwarmPICField_u, tolerance, EvalU_proj));
+  }
 
   // Cleanup
   CeedDestroy(&ceed);
@@ -457,7 +412,7 @@ int main(int argc, char **argv) {
 
 // Solution functions
 
-static PetscScalar EvalU(PetscInt dim, const PetscScalar x[]) {
+PetscScalar EvalU(PetscInt dim, const PetscScalar x[]) {
   PetscScalar result = 1, center = 0.1;
   for (PetscInt d = 0; d < dim; d++) {
     result *= tanh(x[d] - center);
@@ -466,13 +421,7 @@ static PetscScalar EvalU(PetscInt dim, const PetscScalar x[]) {
   return result;
 }
 
-static PetscErrorCode EvalU_proj(PetscInt dim, PetscReal t, const PetscReal x[], PetscInt num_comp, PetscScalar *u, void *ctx) {
-  PetscFunctionBeginUser;
-  for (PetscInt c = 0; c < num_comp; c++) u[c] = (c + 1.0) * EvalU(dim, x);
-  PetscFunctionReturn(PETSC_SUCCESS);
-}
-
-static PetscScalar EvaldU(PetscInt dim, const PetscScalar x[], PetscInt direction) {
+PetscScalar EvaldU(PetscInt dim, const PetscScalar x[], PetscInt direction) {
   PetscScalar result = 1, center = 0.1;
   for (PetscInt d = 0; d < dim; d++) {
     if (d == direction) result *= 1.0 / cosh(x[d] - center) / cosh(x[d] - center);
@@ -480,6 +429,59 @@ static PetscScalar EvaldU(PetscInt dim, const PetscScalar x[], PetscInt directio
     center += 0.1;
   }
   return result;
+}
+
+PetscErrorCode EvalU_proj(PetscInt dim, PetscReal t, const PetscReal x[], PetscInt num_comp, PetscScalar *u, void *ctx) {
+  PetscFunctionBeginUser;
+  for (PetscInt c = 0; c < num_comp; c++) u[c] = (c + 1.0) * EvalU(dim, x);
+  PetscFunctionReturn(PETSC_SUCCESS);
+}
+
+// Error checking utility
+PetscErrorCode CheckSwarmValues(DM dm_swarm, const char *field, PetscScalar tolerance, DMFunc TrueSolution) {
+  DM                 dm_mesh;
+  PetscInt           dim, cell_start, cell_end;
+  const PetscScalar *u_points, *coords_points;
+  PetscBool          within_tolerance = PETSC_TRUE;
+
+  PetscFunctionBeginUser;
+  PetscCall(DMSwarmSortGetAccess(dm_swarm));
+  PetscCall(DMSwarmGetCellDM(dm_swarm, &dm_mesh));
+  PetscCall(DMGetDimension(dm_mesh, &dim));
+  PetscCall(DMPlexGetHeightStratum(dm_mesh, 0, &cell_start, &cell_end));
+  PetscCall(DMSwarmGetField(dm_swarm, DMSwarmPICField_coor, NULL, NULL, (void **)&coords_points));
+  PetscCall(DMSwarmGetField(dm_swarm, field, NULL, NULL, (void **)&u_points));
+
+  // -- Interpolate values to each swarm point, one element in the background mesh at a time
+  for (PetscInt cell = cell_start; cell < cell_end; cell++) {
+    PetscInt *points;
+    PetscInt  num_points_in_cell;
+
+    PetscCall(DMSwarmSortGetPointsPerCell(dm_swarm, cell, &num_points_in_cell, &points));
+    // ---- Reference coordinates for swarm points in background mesh element
+    for (PetscInt p = 0; p < num_points_in_cell; p++) {
+      PetscScalar x[dim], u_true = 0.0;
+
+      for (PetscInt d = 0; d < dim; d++) x[d] = coords_points[points[p] * dim + d];
+      PetscCall(TrueSolution(dim, 0.0, x, 1, &u_true, NULL));
+      if (PetscAbs(u_points[points[p]] - u_true) > tolerance) {
+        within_tolerance = PETSC_FALSE;
+        PetscPrintf(PetscObjectComm((PetscObject)dm_swarm),
+                    "Incorrect interpolated value, cell %" PetscInt_FMT " point %" PetscInt_FMT ", found %f expected %f\n", cell, p,
+                    u_points[points[p]], u_true);
+      }
+    }
+
+    // ---- Cleanup
+    PetscCall(PetscFree(points));
+  }
+
+  // -- Cleanup
+  PetscCall(DMSwarmRestoreField(dm_swarm, DMSwarmPICField_coor, NULL, NULL, (void **)&coords_points));
+  PetscCall(DMSwarmRestoreField(dm_swarm, field, NULL, NULL, (void **)&u_points));
+  PetscCall(DMSwarmSortRestoreAccess(dm_swarm));
+  PetscCheck(within_tolerance, PetscObjectComm((PetscObject)dm_swarm), PETSC_ERR_USER, "Petsc interpolation to swarm points not within tolerance");
+  PetscFunctionReturn(PETSC_SUCCESS);
 }
 
 // DMSwarm to libCEED utility
