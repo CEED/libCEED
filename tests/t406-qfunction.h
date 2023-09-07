@@ -9,8 +9,8 @@
 #include <ceed.h>
 #include <math.h>
 
-#include "./t406-qfunction-scales.h"
 #include "t406-qfunction-helper.h"
+#include "t406-qfunction-scales.h"
 
 CEED_QFUNCTION(setup)(void *ctx, const CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
   const CeedScalar *w      = in[0];
