@@ -18,7 +18,7 @@
 //
 //     ./dmswarm
 ///
-//TESTARGS -ceed {ceed_resource} -test -tolerance 1e-3 -dm_plex_dim 3 -dm_plex_box_faces 3,3,3 -dm_plex_box_lower -1.0,-1.0,-1.0 -dm_plex_simplex 0 -dm_plex_hash_location true -uniform_swarm
+//TESTARGS -ceed {ceed_resource} -test -tolerance 1e-3 -dm_plex_dim 3 -dm_plex_box_faces 3,3,3 -dm_plex_box_lower -1.0,-1.0,-1.0 -dm_plex_simplex 0 -dm_plex_hash_location true -uniform_swarm -num_comp 3
 
 /// @file
 /// libCEED example using PETSc with DMSwarm
@@ -76,6 +76,7 @@ int main(int argc, char **argv) {
   PetscCall(PetscOptionsInt("-order", "Order of mesh solution space", NULL, mesh_order, &mesh_order, NULL));
   PetscCall(PetscOptionsInt("-mesh_order", "Order of mesh coordinate space", NULL, geometry_order, &geometry_order, NULL));
   PetscCall(PetscOptionsInt("-q_extra", "Number of extra quadrature points", NULL, q_extra, &q_extra, NULL));
+  PetscCall(PetscOptionsInt("-num_comp", "Number of components in solution", NULL, num_comp, &num_comp, NULL));
   PetscCall(PetscOptionsInt("-points", "Number of swarm points", NULL, num_points, &num_points, NULL));
   PetscCall(PetscOptionsScalar("-tolerance", "Absolute tolerance for swarm point values", NULL, tolerance, &tolerance, NULL));
   PetscCall(PetscOptionsString("-ceed", "CEED resource specifier", NULL, ceed_resource, ceed_resource, sizeof(ceed_resource), NULL));
@@ -335,7 +336,7 @@ PetscErrorCode DMSwarmCreateReferenceCoordinates(DM dm_swarm, IS *is_points, Vec
 
 // Projection via PETSc
 PetscErrorCode DMSwarmInterpolateFromCellToSwarm_Petsc(DM dm_swarm, const char *field, Vec U_mesh) {
-  PetscInt           dim, cell_start, cell_end;
+  PetscInt           dim, num_comp, cell_start, cell_end;
   PetscScalar       *u_points;
   const PetscScalar *coords_points;
   const PetscReal    v0_ref[3] = {-1.0, -1.0, -1.0};
@@ -368,7 +369,7 @@ PetscErrorCode DMSwarmInterpolateFromCellToSwarm_Petsc(DM dm_swarm, const char *
   PetscCall(DMSwarmSortGetAccess(dm_swarm));
   PetscCall(DMPlexGetHeightStratum(dm_mesh, 0, &cell_start, &cell_end));
   PetscCall(DMSwarmGetField(dm_swarm, DMSwarmPICField_coor, NULL, NULL, (void **)&coords_points));
-  PetscCall(DMSwarmGetField(dm_swarm, field, NULL, NULL, (void **)&u_points));
+  PetscCall(DMSwarmGetField(dm_swarm, field, &num_comp, NULL, (void **)&u_points));
 
   // Interpolate values to each swarm point, one element in the background mesh at a time
   PetscCall(DMGetDS(dm_mesh, &ds));
@@ -397,7 +398,7 @@ PetscErrorCode DMSwarmInterpolateFromCellToSwarm_Petsc(DM dm_swarm, const char *
     PetscCall(PetscFEGetQuadrature(fe, &quadrature));
     PetscCall(PetscFECreateCellGeometry(fe, quadrature, &fe_geometry));
     for (PetscInt p = 0; p < num_points_in_cell; p++) {
-      PetscCall(PetscFEInterpolateAtPoints_Static(fe, tabulation, u_cell, &fe_geometry, p, &u_points[points_cell[p]]));
+      PetscCall(PetscFEInterpolateAtPoints_Static(fe, tabulation, u_cell, &fe_geometry, p, &u_points[points_cell[p] * num_comp]));
     }
 
     // -- Cleanup
@@ -420,7 +421,7 @@ PetscErrorCode DMSwarmInterpolateFromCellToSwarm_Petsc(DM dm_swarm, const char *
 
 // Projection via libCEED
 PetscErrorCode DMSwarmInterpolateFromCellToSwarm_Ceed(DM dm_swarm, const char *field, Vec U_mesh) {
-  PetscInt           dim, num_points_local, cell_start, cell_end;
+  PetscInt           dim, num_comp, num_points_local, cell_start, cell_end;
   const PetscInt    *cell_points;
   PetscScalar       *u_points;
   const PetscScalar *coords_points_ref;
@@ -457,7 +458,8 @@ PetscErrorCode DMSwarmInterpolateFromCellToSwarm_Ceed(DM dm_swarm, const char *f
     CeedInt elem_size;
 
     CeedElemRestrictionGetElementSize(swarm_ceed_context->restriction, &elem_size);
-    CeedVectorCreate(swarm_ceed_context->ceed, elem_size, &u_cell);
+    CeedElemRestrictionGetNumComponents(swarm_ceed_context->restriction, &num_comp);
+    CeedVectorCreate(swarm_ceed_context->ceed, elem_size * num_comp, &u_cell);
   }
 
   // Get swarm values
@@ -476,7 +478,7 @@ PetscErrorCode DMSwarmInterpolateFromCellToSwarm_Ceed(DM dm_swarm, const char *f
     const PetscInt num_points_in_cell      = cell_points[cell_local + 2] - cell_points[cell_local + 1];
 
     if (num_points_in_cell == 0) continue;
-    CeedVectorCreate(swarm_ceed_context->ceed, num_points_in_cell, &u_points_cell);
+    CeedVectorCreate(swarm_ceed_context->ceed, num_points_in_cell * num_comp, &u_points_cell);
     CeedVectorCreate(swarm_ceed_context->ceed, num_points_in_cell * dim, &x_points_cell);
 
     // -- Reference coordinates for swarm points in background mesh element
@@ -499,7 +501,7 @@ PetscErrorCode DMSwarmInterpolateFromCellToSwarm_Ceed(DM dm_swarm, const char *f
 
       CeedElemRestrictionGetElementSize(swarm_ceed_context->restriction, &elem_size);
       CeedVectorGetArrayRead(u_e_vec, CEED_MEM_HOST, &u_e_vec_array);
-      u_cell_array = &u_e_vec_array[cell * elem_size];
+      u_cell_array = &u_e_vec_array[cell * elem_size * num_comp];
       CeedVectorSetArray(u_cell, CEED_MEM_HOST, CEED_USE_POINTER, (CeedScalar *)u_cell_array);
       CeedBasisApplyAtPoints(swarm_ceed_context->basis, num_points_in_cell, CEED_NOTRANSPOSE, CEED_EVAL_INTERP, x_points_cell, u_cell, u_points_cell);
 
@@ -513,7 +515,7 @@ PetscErrorCode DMSwarmInterpolateFromCellToSwarm_Ceed(DM dm_swarm, const char *f
       for (PetscInt i = 0; i < num_points_in_cell; i++) {
         const PetscInt p = cell_points[cell_points_start_index + i];
 
-        u_points[p] = u_points_cell_array[i];
+        for (PetscInt j = 0; j < num_comp; j++) u_points[p * num_comp + j] = u_points_cell_array[i * num_comp + j];
       }
       CeedVectorRestoreArrayRead(u_points_cell, &u_points_cell_array);
     }
@@ -537,7 +539,7 @@ PetscErrorCode DMSwarmInterpolateFromCellToSwarm_Ceed(DM dm_swarm, const char *f
 // Error checking utility
 PetscErrorCode DMSwarmCheckSwarmValues(DM dm_swarm, const char *field, PetscScalar tolerance, DMFunc TrueSolution) {
   PetscBool          within_tolerance = PETSC_TRUE;
-  PetscInt           dim, cell_start, cell_end;
+  PetscInt           dim, num_comp, cell_start, cell_end;
   const PetscScalar *u_points, *coords_points;
   DM                 dm_mesh;
 
@@ -547,7 +549,7 @@ PetscErrorCode DMSwarmCheckSwarmValues(DM dm_swarm, const char *field, PetscScal
   PetscCall(DMGetDimension(dm_mesh, &dim));
   PetscCall(DMPlexGetHeightStratum(dm_mesh, 0, &cell_start, &cell_end));
   PetscCall(DMSwarmGetField(dm_swarm, DMSwarmPICField_coor, NULL, NULL, (void **)&coords_points));
-  PetscCall(DMSwarmGetField(dm_swarm, field, NULL, NULL, (void **)&u_points));
+  PetscCall(DMSwarmGetField(dm_swarm, field, &num_comp, NULL, (void **)&u_points));
 
   // Interpolate values to each swarm point, one element in the background mesh at a time
   for (PetscInt cell = cell_start; cell < cell_end; cell++) {
@@ -557,15 +559,18 @@ PetscErrorCode DMSwarmCheckSwarmValues(DM dm_swarm, const char *field, PetscScal
     PetscCall(DMSwarmSortGetPointsPerCell(dm_swarm, cell, &num_points_in_cell, &points));
     // -- Reference coordinates for swarm points in background mesh element
     for (PetscInt p = 0; p < num_points_in_cell; p++) {
-      PetscScalar x[dim], u_true = 0.0;
+      PetscScalar x[dim], u_true[num_comp];
 
       for (PetscInt d = 0; d < dim; d++) x[d] = coords_points[points[p] * dim + d];
-      PetscCall(TrueSolution(dim, 0.0, x, 1, &u_true, NULL));
-      if (PetscAbs(u_points[points[p]] - u_true) > tolerance) {
-        within_tolerance = PETSC_FALSE;
-        PetscPrintf(PetscObjectComm((PetscObject)dm_swarm),
-                    "Incorrect interpolated value, cell %" PetscInt_FMT " point %" PetscInt_FMT ", found %f expected %f\n", cell, p,
-                    u_points[points[p]], u_true);
+      PetscCall(TrueSolution(dim, 0.0, x, num_comp, u_true, NULL));
+      for (PetscInt i = 0; i < num_comp; i++) {
+        if (PetscAbs(u_points[points[p] * num_comp + i] - u_true[i]) > tolerance) {
+          within_tolerance = PETSC_FALSE;
+          PetscPrintf(PetscObjectComm((PetscObject)dm_swarm),
+                      "Incorrect interpolated value, cell %" PetscInt_FMT " point %" PetscInt_FMT " component %" PetscInt_FMT
+                      ", found %f expected %f\n",
+                      cell, p, i, u_points[points[p] * num_comp + i], u_true[i]);
+        }
       }
     }
 
