@@ -249,8 +249,8 @@ static int CeedVectorSetArrayDevice_Sycl(const CeedVector vec, const CeedCopyMod
       CeedCallBackend(CeedVectorGetLength(vec, &length));
       if (!impl->d_array_owned) {
         CeedCallSycl(ceed, impl->d_array_owned = sycl::malloc_device<CeedScalar>(length, data->sycl_device, data->sycl_context));
-        impl->d_array = impl->d_array_owned;
       }
+      impl->d_array = impl->d_array_owned;
       if (array) {
         sycl::event copy_event = data->sycl_queue.copy<CeedScalar>(array, impl->d_array, length, {e});
         // Wait for copy to finish and handle exceptions.

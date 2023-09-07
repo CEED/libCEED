@@ -231,9 +231,9 @@ static int CeedVectorSetArrayDevice_Cuda(const CeedVector vec, const CeedCopyMod
       size_t bytes = length * sizeof(CeedScalar);
       if (!impl->d_array_owned) {
         CeedCallCuda(ceed, cudaMalloc((void **)&impl->d_array_owned, bytes));
-        impl->d_array = impl->d_array_owned;
       }
       impl->d_array_borrowed = NULL;
+      impl->d_array          = impl->d_array_owned;
       if (array) CeedCallCuda(ceed, cudaMemcpy(impl->d_array, array, bytes, cudaMemcpyDeviceToDevice));
     } break;
     case CEED_OWN_POINTER:
