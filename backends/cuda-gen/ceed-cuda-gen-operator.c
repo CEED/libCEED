@@ -179,8 +179,8 @@ static int CeedOperatorApplyAdd_Cuda_gen(CeedOperator op, CeedVector input_vec, 
       },
       grid;
 
-  CeedChkBackend(BlockGridCalculate(num_elem, min_grid_size / cuda_data->device_prop.multiProcessorCount, max_threads_per_block,
-                                    cuda_data->device_prop.maxThreadsDim[2], cuda_data->device_prop.warpSize, block, &grid));
+  CeedCallBackend(BlockGridCalculate(num_elem, min_grid_size / cuda_data->device_prop.multiProcessorCount, max_threads_per_block,
+                                     cuda_data->device_prop.maxThreadsDim[2], cuda_data->device_prop.warpSize, block, &grid));
   CeedInt shared_mem = block[0] * block[1] * block[2] * sizeof(CeedScalar);
 
   CeedCallBackend(CeedRunKernelDimShared_Cuda(ceed, data->op, grid, block[0], block[1], block[2], shared_mem, opargs));

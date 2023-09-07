@@ -27,8 +27,10 @@ static int CeedRegister_Weak(const char *name, int num_prefixes, ...) {
 
     CeedDebugEnv("Weak Register   : %s", prefix);
     ierr = CeedRegisterImpl(prefix, CeedInit_Weak, CEED_MAX_BACKEND_PRIORITY);
-    if (ierr) va_end(prefixes);  // Prevent leak on error
-    CeedChk(ierr);
+    if (ierr) {
+      va_end(prefixes);  // Prevent leak on error
+      return ierr;
+    }
   }
   va_end(prefixes);
   return CEED_ERROR_SUCCESS;

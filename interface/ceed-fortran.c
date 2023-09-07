@@ -726,7 +726,7 @@ static int CeedQFunctionFortranStub(void *ctx, int nq, const CeedScalar *const *
   //         use this Fortran stub.
   if (inner_ctx) {
     ierr = CeedQFunctionContextGetData(inner_ctx, CEED_MEM_HOST, &ctx_);
-    CeedChk(ierr);
+    CeedCall(ierr);
   }
 
   fctx->f((void *)ctx_, &nq, u[0], u[1], u[2], u[3], u[4], u[5], u[6], u[7], u[8], u[9], u[10], u[11], u[12], u[13], u[14], u[15], v[0], v[1], v[2],
@@ -734,7 +734,7 @@ static int CeedQFunctionFortranStub(void *ctx, int nq, const CeedScalar *const *
 
   if (inner_ctx) {
     ierr = CeedQFunctionContextRestoreData(inner_ctx, (void *)&ctx_);
-    CeedChk(ierr);
+    CeedCall(ierr);
   }
 
   return ierr;
