@@ -126,7 +126,7 @@ CEED_QFUNCTION_HELPER int FluxSubgridStress(const StatePrimitive Y, const CeedSc
 
 CEED_QFUNCTION_HELPER int IFunction_NodalSgs(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out, StateVariable state_var) {
   const CeedScalar(*q)[CEED_Q_VLA]      = (const CeedScalar(*)[CEED_Q_VLA])in[0];
-  const CeedScalar(*q_data)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[1];
+  const CeedScalar(*q_data)             = in[1];
   const CeedScalar(*x)[CEED_Q_VLA]      = (const CeedScalar(*)[CEED_Q_VLA])in[2];
   const CeedScalar(*km_sgs)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[3];
   CeedScalar(*Grad_v)[5][CEED_Q_VLA]    = (CeedScalar(*)[5][CEED_Q_VLA])out[0];
@@ -139,12 +139,8 @@ CEED_QFUNCTION_HELPER int IFunction_NodalSgs(void *ctx, CeedInt Q, const CeedSca
     const CeedScalar x_i[3] = {x[0][i], x[1][i], x[2][i]};
     const State      s      = StateFromQ(gas, qi, x_i, state_var);
 
-    const CeedScalar wdetJ      = q_data[0][i];
-    const CeedScalar dXdx[3][3] = {
-        {q_data[1][i], q_data[2][i], q_data[3][i]},
-        {q_data[4][i], q_data[5][i], q_data[6][i]},
-        {q_data[7][i], q_data[8][i], q_data[9][i]}
-    };
+    CeedScalar wdetJ, dXdx[3][3];
+    QdataUnpack_3D(Q, i, q_data, &wdetJ, dXdx);
 
     CeedScalar       Flux[5][3];
     const CeedScalar km_sgs_i[6] = {km_sgs[0][i], km_sgs[1][i], km_sgs[2][i], km_sgs[3][i], km_sgs[4][i], km_sgs[5][i]};

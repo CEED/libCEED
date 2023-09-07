@@ -94,7 +94,7 @@ CEED_QFUNCTION_HELPER int DifferentialFilter_LHS_N(void *ctx, CeedInt Q, const C
   const CeedScalar(*Grad_q)[CEED_Q_VLA]     = (const CeedScalar(*)[CEED_Q_VLA])in[1];
   const CeedScalar(*A_ij_delta)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[2];
   const CeedScalar(*x)[CEED_Q_VLA]          = (const CeedScalar(*)[CEED_Q_VLA])in[3];
-  const CeedScalar(*q_data)[CEED_Q_VLA]     = (const CeedScalar(*)[CEED_Q_VLA])in[4];
+  const CeedScalar(*q_data)                 = in[4];
   CeedScalar(*v)[CEED_Q_VLA]                = (CeedScalar(*)[CEED_Q_VLA])out[0];
   CeedScalar(*Grad_v)[CEED_Q_VLA]           = (CeedScalar(*)[CEED_Q_VLA])out[1];
 
@@ -102,13 +102,9 @@ CEED_QFUNCTION_HELPER int DifferentialFilter_LHS_N(void *ctx, CeedInt Q, const C
 
   CeedPragmaSIMD for (CeedInt i = 0; i < Q; i++) {
     CeedPragmaSIMD for (CeedInt j = 0; j < N; j++) {
-      const CeedScalar x_i[3]     = {x[0][i], x[1][i], x[2][i]};
-      const CeedScalar wdetJ      = q_data[0][i];
-      const CeedScalar dXdx[3][3] = {
-          {q_data[1][i], q_data[2][i], q_data[3][i]},
-          {q_data[4][i], q_data[5][i], q_data[6][i]},
-          {q_data[7][i], q_data[8][i], q_data[9][i]}
-      };
+      const CeedScalar x_i[3] = {x[0][i], x[1][i], x[2][i]};
+      CeedScalar       wdetJ, dXdx[3][3];
+      QdataUnpack_3D(Q, i, q_data, &wdetJ, dXdx);
 
       CeedScalar Delta_ij[3][3] = {{0.}};
       if (context->grid_based_width) {

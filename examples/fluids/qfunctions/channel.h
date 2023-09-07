@@ -99,27 +99,24 @@ CEED_QFUNCTION(ICsChannel)(void *ctx, CeedInt Q, const CeedScalar *const *in, Ce
 // *****************************************************************************
 CEED_QFUNCTION(Channel_Inflow)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
   // Inputs
-  const CeedScalar(*q)[CEED_Q_VLA]          = (const CeedScalar(*)[CEED_Q_VLA])in[0];
-  const CeedScalar(*q_data_sur)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[2];
-  const CeedScalar(*X)[CEED_Q_VLA]          = (const CeedScalar(*)[CEED_Q_VLA])in[3];
+  const CeedScalar(*q)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[0];
+  const CeedScalar(*q_data_sur)    = in[2];
+  const CeedScalar(*X)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[3];
 
   // Outputs
   CeedScalar(*v)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA])out[0];
 
-  const ChannelContext     context  = (ChannelContext)ctx;
-  const bool               implicit = context->implicit;
-  NewtonianIdealGasContext gas      = &context->newtonian_ctx;
-  const CeedScalar         cv       = gas->cv;
-  const CeedScalar         gamma    = HeatCapacityRatio(&context->newtonian_ctx);
+  const ChannelContext     context     = (ChannelContext)ctx;
+  const bool               is_implicit = context->implicit;
+  NewtonianIdealGasContext gas         = &context->newtonian_ctx;
+  const CeedScalar         cv          = gas->cv;
+  const CeedScalar         gamma       = HeatCapacityRatio(&context->newtonian_ctx);
 
   // Quadrature Point Loop
   CeedPragmaSIMD for (CeedInt i = 0; i < Q; i++) {
-    // Setup
-    // -- Interp-to-Interp q_data
-    // For explicit mode, the surface integral is on the RHS of ODE q_dot = f(q).
-    // For implicit mode, it gets pulled to the LHS of implicit ODE/DAE g(q_dot, q).
-    // We can effect this by swapping the sign on this weight
-    const CeedScalar wdetJb = (implicit ? -1. : 1.) * q_data_sur[0][i];
+    CeedScalar wdetJb, norm[3];
+    QdataBoundaryUnpack_3D(Q, i, q_data_sur, &wdetJb, NULL, norm);
+    wdetJb *= is_implicit ? -1. : 1.;
 
     // There is a gravity body force but it is excluded from
     //   the potential energy due to periodicity.
@@ -145,8 +142,6 @@ CEED_QFUNCTION(Channel_Inflow)(void *ctx, CeedInt Q, const CeedScalar *const *in
     const CeedScalar E_kinetic  = .5 * rho_in * Dot3(s_exact.Y.velocity, s_exact.Y.velocity);
     const CeedScalar E          = rho_in * e_internal + E_kinetic;
 
-    // ---- Normal vect
-    const CeedScalar norm[3] = {q_data_sur[1][i], q_data_sur[2][i], q_data_sur[3][i]};
     // The Physics
     // Zero v so all future terms can safely sum into it
     for (CeedInt j = 0; j < 5; j++) v[j][i] = 0.;
@@ -172,32 +167,26 @@ CEED_QFUNCTION(Channel_Inflow)(void *ctx, CeedInt Q, const CeedScalar *const *in
 // *****************************************************************************
 CEED_QFUNCTION(Channel_Outflow)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
   // Inputs
-  const CeedScalar(*q)[CEED_Q_VLA]          = (const CeedScalar(*)[CEED_Q_VLA])in[0];
-  const CeedScalar(*q_data_sur)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[2];
+  const CeedScalar(*q)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[0];
+  const CeedScalar(*q_data_sur)    = in[2];
 
   // Outputs
   CeedScalar(*v)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA])out[0];
 
-  const ChannelContext context  = (ChannelContext)ctx;
-  const bool           implicit = context->implicit;
-  const CeedScalar     P0       = context->P0;
+  const ChannelContext context     = (ChannelContext)ctx;
+  const bool           is_implicit = context->implicit;
+  const CeedScalar     P0          = context->P0;
 
   // Quadrature Point Loop
   CeedPragmaSIMD for (CeedInt i = 0; i < Q; i++) {
-    // Setup
-    // -- Interp in
+    CeedScalar wdetJb, norm[3];
+    QdataBoundaryUnpack_3D(Q, i, q_data_sur, &wdetJb, NULL, norm);
+    wdetJb *= is_implicit ? -1. : 1.;
+
     const CeedScalar rho  = q[0][i];
     const CeedScalar u[3] = {q[1][i] / rho, q[2][i] / rho, q[3][i] / rho};
     const CeedScalar E    = q[4][i];
 
-    // -- Interp-to-Interp q_data
-    // For explicit mode, the surface integral is on the RHS of ODE q_dot = f(q).
-    // For implicit mode, it gets pulled to the LHS of implicit ODE/DAE g(q_dot, q).
-    // We can effect this by swapping the sign on this weight
-    const CeedScalar wdetJb = (implicit ? -1. : 1.) * q_data_sur[0][i];
-
-    // ---- Normal vect
-    const CeedScalar norm[3] = {q_data_sur[1][i], q_data_sur[2][i], q_data_sur[3][i]};
     // The Physics
     // Zero v so all future terms can safely sum into it
     for (CeedInt j = 0; j < 5; j++) v[j][i] = 0.;

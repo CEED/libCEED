@@ -276,9 +276,9 @@ CEED_QFUNCTION(ICsEuler)(void *ctx, CeedInt Q, const CeedScalar *const *in, Ceed
 // *****************************************************************************
 CEED_QFUNCTION(Euler)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
   // Inputs
-  const CeedScalar(*q)[CEED_Q_VLA]      = (const CeedScalar(*)[CEED_Q_VLA])in[0];
-  const CeedScalar(*dq)[5][CEED_Q_VLA]  = (const CeedScalar(*)[5][CEED_Q_VLA])in[1];
-  const CeedScalar(*q_data)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[2];
+  const CeedScalar(*q)[CEED_Q_VLA]     = (const CeedScalar(*)[CEED_Q_VLA])in[0];
+  const CeedScalar(*dq)[5][CEED_Q_VLA] = (const CeedScalar(*)[5][CEED_Q_VLA])in[1];
+  const CeedScalar(*q_data)            = in[2];
 
   // Outputs
   CeedScalar(*v)[CEED_Q_VLA]     = (CeedScalar(*)[CEED_Q_VLA])out[0];
@@ -302,15 +302,8 @@ CEED_QFUNCTION(Euler)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedSca
         {dq[0][3][i], dq[1][3][i], dq[2][3][i]}
     };
     const CeedScalar dE[3] = {dq[0][4][i], dq[1][4][i], dq[2][4][i]};
-    // -- Interp-to-Interp q_data
-    const CeedScalar wdetJ = q_data[0][i];
-    // -- Interp-to-Grad q_data
-    // ---- Inverse of change of coordinate matrix: X_i,j
-    const CeedScalar dXdx[3][3] = {
-        {q_data[1][i], q_data[2][i], q_data[3][i]},
-        {q_data[4][i], q_data[5][i], q_data[6][i]},
-        {q_data[7][i], q_data[8][i], q_data[9][i]}
-    };
+    CeedScalar       wdetJ, dXdx[3][3];
+    QdataUnpack_3D(Q, i, q_data, &wdetJ, dXdx);
     // dU/dx
     CeedScalar drhodx[3]       = {0.};
     CeedScalar dEdx[3]         = {0.};
@@ -410,10 +403,10 @@ CEED_QFUNCTION(Euler)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedSca
 // *****************************************************************************
 CEED_QFUNCTION(IFunction_Euler)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
   // Inputs
-  const CeedScalar(*q)[CEED_Q_VLA]      = (const CeedScalar(*)[CEED_Q_VLA])in[0];
-  const CeedScalar(*dq)[5][CEED_Q_VLA]  = (const CeedScalar(*)[5][CEED_Q_VLA])in[1];
-  const CeedScalar(*q_dot)[CEED_Q_VLA]  = (const CeedScalar(*)[CEED_Q_VLA])in[2];
-  const CeedScalar(*q_data)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[3];
+  const CeedScalar(*q)[CEED_Q_VLA]     = (const CeedScalar(*)[CEED_Q_VLA])in[0];
+  const CeedScalar(*dq)[5][CEED_Q_VLA] = (const CeedScalar(*)[5][CEED_Q_VLA])in[1];
+  const CeedScalar(*q_dot)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[2];
+  const CeedScalar(*q_data)            = in[3];
 
   // Outputs
   CeedScalar(*v)[CEED_Q_VLA]     = (CeedScalar(*)[CEED_Q_VLA])out[0];
@@ -437,15 +430,8 @@ CEED_QFUNCTION(IFunction_Euler)(void *ctx, CeedInt Q, const CeedScalar *const *i
         {dq[0][3][i], dq[1][3][i], dq[2][3][i]}
     };
     const CeedScalar dE[3] = {dq[0][4][i], dq[1][4][i], dq[2][4][i]};
-    // -- Interp-to-Interp q_data
-    const CeedScalar wdetJ = q_data[0][i];
-    // -- Interp-to-Grad q_data
-    // ---- Inverse of change of coordinate matrix: X_i,j
-    const CeedScalar dXdx[3][3] = {
-        {q_data[1][i], q_data[2][i], q_data[3][i]},
-        {q_data[4][i], q_data[5][i], q_data[6][i]},
-        {q_data[7][i], q_data[8][i], q_data[9][i]}
-    };
+    CeedScalar       wdetJ, dXdx[3][3];
+    QdataUnpack_3D(Q, i, q_data, &wdetJ, dXdx);
     // dU/dx
     CeedScalar drhodx[3]       = {0.};
     CeedScalar dEdx[3]         = {0.};
@@ -559,12 +545,12 @@ CEED_QFUNCTION(IFunction_Euler)(void *ctx, CeedInt Q, const CeedScalar *const *i
 // *****************************************************************************
 CEED_QFUNCTION(TravelingVortex_Inflow)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
   // Inputs
-  const CeedScalar(*q_data_sur)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[2];
+  const CeedScalar(*q_data_sur) = in[2];
   // Outputs
   CeedScalar(*v)[CEED_Q_VLA]     = (CeedScalar(*)[CEED_Q_VLA])out[0];
   EulerContext     context       = (EulerContext)ctx;
   const int        euler_test    = context->euler_test;
-  const bool       implicit      = context->implicit;
+  const bool       is_implicit   = context->implicit;
   CeedScalar      *mean_velocity = context->mean_velocity;
   const CeedScalar cv            = 2.5;
   const CeedScalar R             = 1.;
@@ -582,14 +568,9 @@ CEED_QFUNCTION(TravelingVortex_Inflow)(void *ctx, CeedInt Q, const CeedScalar *c
 
   // Quadrature Point Loop
   CeedPragmaSIMD for (CeedInt i = 0; i < Q; i++) {
-    // Setup
-    // -- Interp-to-Interp q_data
-    // For explicit mode, the surface integral is on the RHS of ODE q_dot = f(q).
-    // For implicit mode, it gets pulled to the LHS of implicit ODE/DAE g(q_dot, q).
-    // We can effect this by swapping the sign on this weight
-    const CeedScalar wdetJb = (implicit ? -1. : 1.) * q_data_sur[0][i];
-    // ---- Normal vect
-    const CeedScalar norm[3] = {q_data_sur[1][i], q_data_sur[2][i], q_data_sur[3][i]};
+    CeedScalar wdetJb, norm[3];
+    QdataBoundaryUnpack_3D(Q, i, q_data_sur, &wdetJb, NULL, norm);
+    wdetJb *= is_implicit ? -1. : 1.;
 
     // face_normal = Normal vector of the face
     const CeedScalar face_normal = norm[0] * mean_velocity[0] + norm[1] * mean_velocity[1] + norm[2] * mean_velocity[2];
@@ -628,13 +609,13 @@ CEED_QFUNCTION(TravelingVortex_Inflow)(void *ctx, CeedInt Q, const CeedScalar *c
 // *****************************************************************************
 CEED_QFUNCTION(Euler_Outflow)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
   // Inputs
-  const CeedScalar(*q)[CEED_Q_VLA]          = (const CeedScalar(*)[CEED_Q_VLA])in[0];
-  const CeedScalar(*q_data_sur)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[2];
+  const CeedScalar(*q)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[0];
+  const CeedScalar(*q_data_sur)    = in[2];
 
   // Outputs
   CeedScalar(*v)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA])out[0];
   EulerContext context       = (EulerContext)ctx;
-  const bool   implicit      = context->implicit;
+  const bool   is_implicit   = context->implicit;
   CeedScalar  *mean_velocity = context->mean_velocity;
 
   const CeedScalar gamma = 1.4;
@@ -647,13 +628,9 @@ CEED_QFUNCTION(Euler_Outflow)(void *ctx, CeedInt Q, const CeedScalar *const *in,
     const CeedScalar u[3] = {q[1][i] / rho, q[2][i] / rho, q[3][i] / rho};
     const CeedScalar E    = q[4][i];
 
-    // -- Interp-to-Interp q_data
-    // For explicit mode, the surface integral is on the RHS of ODE q_dot = f(q).
-    // For implicit mode, it gets pulled to the LHS of implicit ODE/DAE g(q_dot, q).
-    // We can effect this by swapping the sign on this weight
-    const CeedScalar wdetJb = (implicit ? -1. : 1.) * q_data_sur[0][i];
-    // ---- Normal vectors
-    const CeedScalar norm[3] = {q_data_sur[1][i], q_data_sur[2][i], q_data_sur[3][i]};
+    CeedScalar wdetJb, norm[3];
+    QdataBoundaryUnpack_3D(Q, i, q_data_sur, &wdetJb, NULL, norm);
+    wdetJb *= is_implicit ? -1. : 1.;
 
     // face_normal = Normal vector of the face
     const CeedScalar face_normal = norm[0] * mean_velocity[0] + norm[1] * mean_velocity[1] + norm[2] * mean_velocity[2];
