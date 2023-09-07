@@ -290,7 +290,8 @@ cell_n_point_m
   Level: beginner
 
 .seealso: `DMSwarm`
-@*/PetscErrorCode DMSwarmCreateReferenceCoordinates(DM dm_swarm, IS *is_points, Vec *X_points_ref) {
+@*/
+PetscErrorCode DMSwarmCreateReferenceCoordinates(DM dm_swarm, IS *is_points, Vec *X_points_ref) {
   PetscInt           cell_start, cell_end, num_cells_local, dim, num_points_local, *cell_points, points_offset;
   PetscScalar       *coords_points_ref;
   const PetscScalar *coords_points_true;
