@@ -47,7 +47,6 @@ struct DMSwarmCeedContext_ {
 const char DMSwarmPICField_u[] = "u";
 
 PetscScalar    EvalU(PetscInt dim, const PetscScalar x[]);
-PetscScalar    EvaldU(PetscInt dim, const PetscScalar x[], PetscInt direction);
 PetscErrorCode EvalU_proj(PetscInt dim, PetscReal t, const PetscReal x[], PetscInt num_comp, PetscScalar *u, void *ctx);
 
 PetscErrorCode DMSwarmCreateReferenceCoordinates(DM dm_swarm, IS *is_points, Vec *ref_coords);
@@ -249,17 +248,6 @@ PetscScalar EvalU(PetscInt dim, const PetscScalar x[]) {
 
   for (PetscInt d = 0; d < dim; d++) {
     result *= tanh(x[d] - center);
-    center += 0.1;
-  }
-  return result;
-}
-
-PetscScalar EvaldU(PetscInt dim, const PetscScalar x[], PetscInt direction) {
-  PetscScalar result = 1, center = 0.1;
-
-  for (PetscInt d = 0; d < dim; d++) {
-    if (d == direction) result *= 1.0 / cosh(x[d] - center) / cosh(x[d] - center);
-    else result *= tanh(x[d] - center);
     center += 0.1;
   }
   return result;
