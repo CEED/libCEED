@@ -25,17 +25,6 @@ CEED_QFUNCTION_HELPER int AlphaMatTransposeMatMult2x2(const CeedScalar alpha, co
   return 0;
 }
 
-// Compute matrix-vector product: alpha*A*u
-CEED_QFUNCTION_HELPER int AlphaMatVecMult2x2(const CeedScalar alpha, const CeedScalar A[2][2], const CeedScalar u[2], CeedScalar v[2]) {
-  // Compute v = alpha*A*u
-  for (CeedInt k = 0; k < 2; k++) {
-    v[k] = 0;
-    for (CeedInt m = 0; m < 2; m++) v[k] += A[k][m] * u[m] * alpha;
-  }
-
-  return 0;
-}
-
 CEED_QFUNCTION(mass)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
   // Inputs
   const CeedScalar(*w) = in[0], (*dxdX)[2][CEED_Q_VLA] = (const CeedScalar(*)[2][CEED_Q_VLA])in[1],
@@ -53,17 +42,15 @@ CEED_QFUNCTION(mass)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScal
     };
     const CeedScalar det_J = MatDet2x2(J);
 
-    CeedScalar u1[2] = {u[0][i], u[1][i]}, v1[2];
-    // *INDENT-ON*
     // Piola map: J^T*J*u*w/detJ
     // 1) Compute J^T * J
     CeedScalar JT_J[2][2];
     AlphaMatTransposeMatMult2x2(1., J, J, JT_J);
 
     // 2) Compute J^T*J*u * w /detJ
-    AlphaMatVecMult2x2(w[i] / det_J, JT_J, u1, v1);
     for (CeedInt k = 0; k < 2; k++) {
-      v[k][i] = v1[k];
+      v[k][i] = 0;
+      for (CeedInt m = 0; m < 2; m++) v[k][i] += JT_J[k][m] * u[m][i] * w[i] / det_J;
     }
   }  // End of Quadrature Point Loop
 
