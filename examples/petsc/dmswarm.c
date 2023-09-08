@@ -264,10 +264,10 @@ PetscErrorCode EvalU_proj(PetscInt dim, PetscReal t, const PetscReal x[], PetscI
 
   Collective
 
-  Input Parameters:
+  Input Parameter:
 . dm_swarm  - the `DMSwarm`
 
-  Output Parameter:
+  Output Parameters:
 + is_points    - The IS object for indexing into points per cell
 - X_points_ref - Vec holding the cell reference coordinates for local DMSwarm points
 
