@@ -35,7 +35,7 @@ bc_wall: 3
 wall_comps: 1,2,3
 bc_inflow: 6
 bc_outflow: 5,4
-g: 0,0,0
+gravity: 0,0,0
 
 stg:
   use: false

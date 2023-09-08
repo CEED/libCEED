@@ -477,10 +477,10 @@ CEED_QFUNCTION_HELPER CeedScalar Softplus_fwd(CeedScalar x, CeedScalar dx, CeedS
 // skipping this feature and just allowing recirculation.
 CEED_QFUNCTION_HELPER int RiemannOutflow(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out, StateVariable state_var) {
   // Inputs
-  const CeedScalar(*q)[CEED_Q_VLA]         = (const CeedScalar(*)[CEED_Q_VLA])in[0];
-  const CeedScalar(*Grad_q)[5][CEED_Q_VLA] = (const CeedScalar(*)[5][CEED_Q_VLA])in[1];
-  const CeedScalar(*q_data_sur)            = in[2];
-  const CeedScalar(*x)[CEED_Q_VLA]         = (const CeedScalar(*)[CEED_Q_VLA])in[3];
+  const CeedScalar(*q)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[0];
+  const CeedScalar(*Grad_q)        = in[1];
+  const CeedScalar(*q_data_sur)    = in[2];
+  const CeedScalar(*x)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[3];
 
   // Outputs
   CeedScalar(*v)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA])out[0];
@@ -509,12 +509,7 @@ CEED_QFUNCTION_HELPER int RiemannOutflow(void *ctx, CeedInt Q, const CeedScalar 
     State s_ext = StateFromPrimitive(gas, y_ext, x_i);
 
     State grad_s[3];
-    for (CeedInt k = 0; k < 3; k++) {
-      CeedScalar dx_i[3] = {0}, dqi[5];
-      for (CeedInt j = 0; j < 5; j++) dqi[j] = Grad_q[0][j][i] * dXdx[0][k] + Grad_q[1][j][i] * dXdx[1][k];
-      dx_i[k]   = 1.;
-      grad_s[k] = StateFromQ_fwd(gas, s_int, dqi, x_i, dx_i, state_var);
-    }
+    StatePhysicalGradientFromReference_Boundary(Q, i, gas, s_int, x_i, state_var, Grad_q, dXdx, false, grad_s);
 
     CeedScalar strain_rate[6], kmstress[6], stress[3][3], Fe[3];
     KMStrainRate_State(grad_s, strain_rate);
@@ -550,11 +545,11 @@ CEED_QFUNCTION(RiemannOutflow_Prim)(void *ctx, CeedInt Q, const CeedScalar *cons
 CEED_QFUNCTION_HELPER int RiemannOutflow_Jacobian(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out,
                                                   StateVariable state_var) {
   // Inputs
-  const CeedScalar(*dq)[CEED_Q_VLA]         = (const CeedScalar(*)[CEED_Q_VLA])in[0];
-  const CeedScalar(*Grad_dq)[5][CEED_Q_VLA] = (const CeedScalar(*)[5][CEED_Q_VLA])in[1];
-  const CeedScalar(*q_data_sur)             = in[2];
-  const CeedScalar(*x)[CEED_Q_VLA]          = (const CeedScalar(*)[CEED_Q_VLA])in[3];
-  const CeedScalar(*jac_data_sur)           = in[4];
+  const CeedScalar(*dq)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[0];
+  const CeedScalar(*Grad_dq)        = in[1];
+  const CeedScalar(*q_data_sur)     = in[2];
+  const CeedScalar(*x)[CEED_Q_VLA]  = (const CeedScalar(*)[CEED_Q_VLA])in[3];
+  const CeedScalar(*jac_data_sur)   = in[4];
 
   // Outputs
   CeedScalar(*v)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA])out[0];
@@ -596,12 +591,7 @@ CEED_QFUNCTION_HELPER int RiemannOutflow_Jacobian(void *ctx, CeedInt Q, const Ce
     State ds_ext = StateFromPrimitive_fwd(gas, s_ext, dy_ext, x_i, dx_i);
 
     State grad_ds[3];
-    for (CeedInt k = 0; k < 3; k++) {
-      CeedScalar dx_i[3] = {0}, dqi_j[5];
-      for (CeedInt j = 0; j < 5; j++) dqi_j[j] = Grad_dq[0][j][i] * dXdx[0][k] + Grad_dq[1][j][i] * dXdx[1][k];
-      dx_i[k]    = 1.;
-      grad_ds[k] = StateFromQ_fwd(gas, s_int, dqi_j, x_i, dx_i, state_var);
-    }
+    StatePhysicalGradientFromReference_Boundary(Q, i, gas, s_int, x_i, state_var, Grad_dq, dXdx, false, grad_ds);
 
     CeedScalar dstrain_rate[6], dkmstress[6], stress[3][3], dstress[3][3], dFe[3];
     KMStrainRate_State(grad_ds, dstrain_rate);
@@ -637,10 +627,10 @@ CEED_QFUNCTION(RiemannOutflow_Jacobian_Prim)(void *ctx, CeedInt Q, const CeedSca
 // *****************************************************************************
 CEED_QFUNCTION_HELPER int PressureOutflow(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out, StateVariable state_var) {
   // Inputs
-  const CeedScalar(*q)[CEED_Q_VLA]         = (const CeedScalar(*)[CEED_Q_VLA])in[0];
-  const CeedScalar(*Grad_q)[5][CEED_Q_VLA] = (const CeedScalar(*)[5][CEED_Q_VLA])in[1];
-  const CeedScalar(*q_data_sur)            = in[2];
-  const CeedScalar(*x)[CEED_Q_VLA]         = (const CeedScalar(*)[CEED_Q_VLA])in[3];
+  const CeedScalar(*q)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[0];
+  const CeedScalar(*Grad_q)        = in[1];
+  const CeedScalar(*q_data_sur)    = in[2];
+  const CeedScalar(*x)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[3];
 
   // Outputs
   CeedScalar(*v)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA])out[0];
@@ -664,12 +654,7 @@ CEED_QFUNCTION_HELPER int PressureOutflow(void *ctx, CeedInt Q, const CeedScalar
     wdetJb *= is_implicit ? -1. : 1.;
 
     State grad_s[3];
-    for (CeedInt k = 0; k < 3; k++) {
-      CeedScalar dx_i[3] = {0}, dqi[5];
-      for (CeedInt j = 0; j < 5; j++) dqi[j] = Grad_q[0][j][i] * dXdx[0][k] + Grad_q[1][j][i] * dXdx[1][k];
-      dx_i[k]   = 1.;
-      grad_s[k] = StateFromQ_fwd(gas, s, dqi, x_i, dx_i, state_var);
-    }
+    StatePhysicalGradientFromReference_Boundary(Q, i, gas, s, x_i, state_var, Grad_q, dXdx, false, grad_s);
 
     CeedScalar strain_rate[6], kmstress[6], stress[3][3], Fe[3];
     KMStrainRate_State(grad_s, strain_rate);
@@ -706,11 +691,11 @@ CEED_QFUNCTION(PressureOutflow_Prim)(void *ctx, CeedInt Q, const CeedScalar *con
 CEED_QFUNCTION_HELPER int PressureOutflow_Jacobian(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out,
                                                    StateVariable state_var) {
   // Inputs
-  const CeedScalar(*dq)[CEED_Q_VLA]         = (const CeedScalar(*)[CEED_Q_VLA])in[0];
-  const CeedScalar(*Grad_dq)[5][CEED_Q_VLA] = (const CeedScalar(*)[5][CEED_Q_VLA])in[1];
-  const CeedScalar(*q_data_sur)             = in[2];
-  const CeedScalar(*x)[CEED_Q_VLA]          = (const CeedScalar(*)[CEED_Q_VLA])in[3];
-  const CeedScalar(*jac_data_sur)           = in[4];
+  const CeedScalar(*dq)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[0];
+  const CeedScalar(*Grad_dq)        = in[1];
+  const CeedScalar(*q_data_sur)     = in[2];
+  const CeedScalar(*x)[CEED_Q_VLA]  = (const CeedScalar(*)[CEED_Q_VLA])in[3];
+  const CeedScalar(*jac_data_sur)   = in[4];
 
   // Outputs
   CeedScalar(*v)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA])out[0];
@@ -737,12 +722,7 @@ CEED_QFUNCTION_HELPER int PressureOutflow_Jacobian(void *ctx, CeedInt Q, const C
     ds.Y.pressure = 0.;
 
     State grad_ds[3];
-    for (CeedInt k = 0; k < 3; k++) {
-      CeedScalar dx_i[3] = {0}, dqi_j[5];
-      for (CeedInt j = 0; j < 5; j++) dqi_j[j] = Grad_dq[0][j][i] * dXdx[0][k] + Grad_dq[1][j][i] * dXdx[1][k];
-      dx_i[k]    = 1.;
-      grad_ds[k] = StateFromQ_fwd(gas, s, dqi_j, x_i, dx_i, state_var);
-    }
+    StatePhysicalGradientFromReference_Boundary(Q, i, gas, s, x_i, state_var, Grad_dq, dXdx, false, grad_ds);
 
     CeedScalar dstrain_rate[6], dkmstress[6], stress[3][3], dstress[3][3], dFe[3];
     KMStrainRate_State(grad_ds, dstrain_rate);
