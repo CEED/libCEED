@@ -340,12 +340,12 @@ CEED_QFUNCTION(ICsStg)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedSc
  * at each location, then calculate the actual velocity.
  */
 CEED_QFUNCTION(StgShur14Inflow)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
-  const CeedScalar(*q)[CEED_Q_VLA]          = (const CeedScalar(*)[CEED_Q_VLA])in[0];
-  const CeedScalar(*q_data_sur)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[2];
-  const CeedScalar(*X)[CEED_Q_VLA]          = (const CeedScalar(*)[CEED_Q_VLA])in[3];
+  const CeedScalar(*q)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[0];
+  const CeedScalar(*q_data_sur)    = in[2];
+  const CeedScalar(*X)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[3];
 
-  CeedScalar(*v)[CEED_Q_VLA]            = (CeedScalar(*)[CEED_Q_VLA])out[0];
-  CeedScalar(*jac_data_sur)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA])out[1];
+  CeedScalar(*v)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA])out[0];
+  CeedScalar(*jac_data_sur)  = out[1];
 
   const StgShur14Context stg_ctx = (StgShur14Context)ctx;
   CeedScalar             qn[STG_NMODES_MAX], u[3], ubar[3], cij[6], eps, lt;
@@ -362,12 +362,11 @@ CEED_QFUNCTION(StgShur14Inflow)(void *ctx, CeedInt Q, const CeedScalar *const *i
   const CeedScalar       gamma       = HeatCapacityRatio(&stg_ctx->newtonian_ctx);
 
   CeedPragmaSIMD for (CeedInt i = 0; i < Q; i++) {
-    const CeedScalar rho        = prescribe_T ? q[0][i] : P0 / (Rd * theta0);
-    const CeedScalar x[]        = {X[0][i], X[1][i], X[2][i]};
-    const CeedScalar dXdx[2][3] = {
-        {q_data_sur[4][i], q_data_sur[5][i], q_data_sur[6][i]},
-        {q_data_sur[7][i], q_data_sur[8][i], q_data_sur[9][i]}
-    };
+    const CeedScalar rho = prescribe_T ? q[0][i] : P0 / (Rd * theta0);
+    const CeedScalar x[] = {X[0][i], X[1][i], X[2][i]};
+    CeedScalar       wdetJb, dXdx[2][3], norm[3];
+    QdataBoundaryUnpack_3D(Q, i, q_data_sur, &wdetJb, dXdx, norm);
+    wdetJb *= is_implicit ? -1. : 1.;
 
     CeedScalar h[3];
     h[0] = dx;
@@ -393,10 +392,6 @@ CEED_QFUNCTION(StgShur14Inflow)(void *ctx, CeedInt Q, const CeedScalar *const *i
       P          = E_internal * (gamma - 1.);
     }
 
-    const CeedScalar wdetJb = (is_implicit ? -1. : 1.) * q_data_sur[0][i];
-    // ---- Normal vect
-    const CeedScalar norm[3] = {q_data_sur[1][i], q_data_sur[2][i], q_data_sur[3][i]};
-
     const CeedScalar E = E_internal + E_kinetic;
 
     // Velocity normal to the boundary
@@ -416,12 +411,9 @@ CEED_QFUNCTION(StgShur14Inflow)(void *ctx, CeedInt Q, const CeedScalar *const *i
     // -- Total Energy Density
     v[4][i] -= wdetJb * u_normal * (E + P);
 
-    jac_data_sur[0][i] = rho;
-    jac_data_sur[1][i] = u[0];
-    jac_data_sur[2][i] = u[1];
-    jac_data_sur[3][i] = u[2];
-    jac_data_sur[4][i] = E;
-    for (int j = 0; j < 6; j++) jac_data_sur[5 + j][i] = 0.;
+    const CeedScalar U[] = {rho, u[0], u[1], u[2], E}, kmstress[6] = {0.};
+    StoredValuesPack(Q, i, 0, 5, U, jac_data_sur);
+    StoredValuesPack(Q, i, 5, 6, kmstress, jac_data_sur);
   }
   return 0;
 }
@@ -456,6 +448,7 @@ CEED_QFUNCTION(StgShur14Inflow_Jacobian)(void *ctx, CeedInt Q, const CeedScalar 
     // Calculate inflow values
     CeedScalar velocity[3];
     for (CeedInt j = 0; j < 3; j++) velocity[j] = jac_data_sur[5 + j][i];
+    // TODO This is almost certainly a bug. Velocity isn't stored here, only 0s.
 
     // enabling user to choose between weak T and weak rho inflow
     CeedScalar drho, dE, dP;

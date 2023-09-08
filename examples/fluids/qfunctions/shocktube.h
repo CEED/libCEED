@@ -232,9 +232,9 @@ CEED_QFUNCTION(ICsShockTube)(void *ctx, CeedInt Q, const CeedScalar *const *in, 
 // *****************************************************************************
 CEED_QFUNCTION(EulerShockTube)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
   // Inputs
-  const CeedScalar(*q)[CEED_Q_VLA]      = (const CeedScalar(*)[CEED_Q_VLA])in[0];
-  const CeedScalar(*dq)[5][CEED_Q_VLA]  = (const CeedScalar(*)[5][CEED_Q_VLA])in[1];
-  const CeedScalar(*q_data)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[2];
+  const CeedScalar(*q)[CEED_Q_VLA]     = (const CeedScalar(*)[CEED_Q_VLA])in[0];
+  const CeedScalar(*dq)[5][CEED_Q_VLA] = (const CeedScalar(*)[5][CEED_Q_VLA])in[1];
+  const CeedScalar(*q_data)            = in[2];
 
   // Outputs
   CeedScalar(*v)[CEED_Q_VLA]     = (CeedScalar(*)[CEED_Q_VLA])out[0];
@@ -262,15 +262,8 @@ CEED_QFUNCTION(EulerShockTube)(void *ctx, CeedInt Q, const CeedScalar *const *in
         {dq[0][3][i], dq[1][3][i], dq[2][3][i]}
     };
     const CeedScalar dE[3] = {dq[0][4][i], dq[1][4][i], dq[2][4][i]};
-    // -- Interp-to-Interp q_data
-    const CeedScalar wdetJ = q_data[0][i];
-    // -- Interp-to-Grad q_data
-    // ---- Inverse of change of coordinate matrix: X_i,j
-    const CeedScalar dXdx[3][3] = {
-        {q_data[1][i], q_data[2][i], q_data[3][i]},
-        {q_data[4][i], q_data[5][i], q_data[6][i]},
-        {q_data[7][i], q_data[8][i], q_data[9][i]}
-    };
+    CeedScalar       wdetJ, dXdx[3][3];
+    QdataUnpack_3D(Q, i, q_data, &wdetJ, dXdx);
     // dU/dx
     CeedScalar du[3][3]        = {{0}};
     CeedScalar drhodx[3]       = {0};

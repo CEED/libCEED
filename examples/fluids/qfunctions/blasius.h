@@ -140,35 +140,31 @@ CEED_QFUNCTION(ICsBlasius)(void *ctx, CeedInt Q, const CeedScalar *const *in, Ce
 // *****************************************************************************
 CEED_QFUNCTION(Blasius_Inflow)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
   // Inputs
-  const CeedScalar(*q)[CEED_Q_VLA]          = (const CeedScalar(*)[CEED_Q_VLA])in[0];
-  const CeedScalar(*q_data_sur)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[2];
-  const CeedScalar(*X)[CEED_Q_VLA]          = (const CeedScalar(*)[CEED_Q_VLA])in[3];
+  const CeedScalar(*q)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[0];
+  const CeedScalar(*q_data_sur)    = in[2];
+  const CeedScalar(*X)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[3];
 
   // Outputs
   CeedScalar(*v)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA])out[0];
 
-  const BlasiusContext     context  = (BlasiusContext)ctx;
-  const bool               implicit = context->implicit;
-  NewtonianIdealGasContext gas      = &context->newtonian_ctx;
-  const CeedScalar         mu       = context->newtonian_ctx.mu;
-  const CeedScalar         Rd       = GasConstant(&context->newtonian_ctx);
-  const CeedScalar         T_inf    = context->T_inf;
-  const CeedScalar         P0       = context->P0;
-  const CeedScalar         delta0   = context->delta0;
-  const CeedScalar         U_inf    = context->U_inf;
-  const CeedScalar         x_inflow = context->x_inflow;
-  const bool               weakT    = context->weakT;
-  const CeedScalar         rho_0    = P0 / (Rd * T_inf);
-  const CeedScalar         x0       = U_inf * rho_0 / (mu * 25 / Square(delta0));
+  const BlasiusContext     context     = (BlasiusContext)ctx;
+  const bool               is_implicit = context->implicit;
+  NewtonianIdealGasContext gas         = &context->newtonian_ctx;
+  const CeedScalar         mu          = context->newtonian_ctx.mu;
+  const CeedScalar         Rd          = GasConstant(&context->newtonian_ctx);
+  const CeedScalar         T_inf       = context->T_inf;
+  const CeedScalar         P0          = context->P0;
+  const CeedScalar         delta0      = context->delta0;
+  const CeedScalar         U_inf       = context->U_inf;
+  const CeedScalar         x_inflow    = context->x_inflow;
+  const bool               weakT       = context->weakT;
+  const CeedScalar         rho_0       = P0 / (Rd * T_inf);
+  const CeedScalar         x0          = U_inf * rho_0 / (mu * 25 / Square(delta0));
 
-  // Quadrature Point Loop
   CeedPragmaSIMD for (CeedInt i = 0; i < Q; i++) {
-    // Setup
-    // -- Interp-to-Interp q_data
-    // For explicit mode, the surface integral is on the RHS of ODE q_dot = f(q).
-    // For implicit mode, it gets pulled to the LHS of implicit ODE/DAE g(q_dot, q).
-    // We can effect this by swapping the sign on this weight
-    const CeedScalar wdetJb = (implicit ? -1. : 1.) * q_data_sur[0][i];
+    CeedScalar wdetJb, norm[3];
+    QdataBoundaryUnpack_3D(Q, i, q_data_sur, &wdetJb, NULL, norm);
+    wdetJb *= is_implicit ? -1. : 1.;
 
     // Calculate inflow values
     const CeedScalar x[3] = {X[0][i], X[1][i], 0.};
@@ -187,9 +183,6 @@ CEED_QFUNCTION(Blasius_Inflow)(void *ctx, CeedInt Q, const CeedScalar *const *in
       s.Y         = StatePrimitiveFromConservative(gas, s.U, x);
     }
 
-    // ---- Normal vect
-    const CeedScalar norm[3] = {q_data_sur[1][i], q_data_sur[2][i], q_data_sur[3][i]};
-
     StateConservative Flux_inviscid[3];
     FluxInviscid(&context->newtonian_ctx, s, Flux_inviscid);
 
@@ -202,42 +195,38 @@ CEED_QFUNCTION(Blasius_Inflow)(void *ctx, CeedInt Q, const CeedScalar *const *in
     CeedScalar       Flux[5];
     FluxTotal_Boundary(Flux_inviscid, stress, Fe, norm, Flux);
     for (CeedInt j = 0; j < 5; j++) v[j][i] = -wdetJb * Flux[j];
-  }  // End Quadrature Point Loop
+  }
   return 0;
 }
 
 // *****************************************************************************
 CEED_QFUNCTION(Blasius_Inflow_Jacobian)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
   // Inputs
-  const CeedScalar(*dq)[CEED_Q_VLA]         = (const CeedScalar(*)[CEED_Q_VLA])in[0];
-  const CeedScalar(*q_data_sur)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[2];
-  const CeedScalar(*X)[CEED_Q_VLA]          = (const CeedScalar(*)[CEED_Q_VLA])in[3];
+  const CeedScalar(*dq)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[0];
+  const CeedScalar(*q_data_sur)     = in[2];
+  const CeedScalar(*X)[CEED_Q_VLA]  = (const CeedScalar(*)[CEED_Q_VLA])in[3];
 
   // Outputs
   CeedScalar(*v)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA])out[0];
 
-  const BlasiusContext context  = (BlasiusContext)ctx;
-  const bool           implicit = context->implicit;
-  const CeedScalar     mu       = context->newtonian_ctx.mu;
-  const CeedScalar     cv       = context->newtonian_ctx.cv;
-  const CeedScalar     Rd       = GasConstant(&context->newtonian_ctx);
-  const CeedScalar     gamma    = HeatCapacityRatio(&context->newtonian_ctx);
-  const CeedScalar     T_inf    = context->T_inf;
-  const CeedScalar     P0       = context->P0;
-  const CeedScalar     delta0   = context->delta0;
-  const CeedScalar     U_inf    = context->U_inf;
-  const bool           weakT    = context->weakT;
-  const CeedScalar     rho_0    = P0 / (Rd * T_inf);
-  const CeedScalar     x0       = U_inf * rho_0 / (mu * 25 / (delta0 * delta0));
+  const BlasiusContext context     = (BlasiusContext)ctx;
+  const bool           is_implicit = context->implicit;
+  const CeedScalar     mu          = context->newtonian_ctx.mu;
+  const CeedScalar     cv          = context->newtonian_ctx.cv;
+  const CeedScalar     Rd          = GasConstant(&context->newtonian_ctx);
+  const CeedScalar     gamma       = HeatCapacityRatio(&context->newtonian_ctx);
+  const CeedScalar     T_inf       = context->T_inf;
+  const CeedScalar     P0          = context->P0;
+  const CeedScalar     delta0      = context->delta0;
+  const CeedScalar     U_inf       = context->U_inf;
+  const bool           weakT       = context->weakT;
+  const CeedScalar     rho_0       = P0 / (Rd * T_inf);
+  const CeedScalar     x0          = U_inf * rho_0 / (mu * 25 / (delta0 * delta0));
 
-  // Quadrature Point Loop
   CeedPragmaSIMD for (CeedInt i = 0; i < Q; i++) {
-    // Setup
-    // -- Interp-to-Interp q_data
-    // For explicit mode, the surface integral is on the RHS of ODE q_dot = f(q).
-    // For implicit mode, it gets pulled to the LHS of implicit ODE/DAE g(q_dot, q).
-    // We can effect this by swapping the sign on this weight
-    const CeedScalar wdetJb = (implicit ? -1. : 1.) * q_data_sur[0][i];
+    CeedScalar wdetJb, norm[3];
+    QdataBoundaryUnpack_3D(Q, i, q_data_sur, &wdetJb, NULL, norm);
+    wdetJb *= is_implicit ? -1. : 1.;
 
     // Calculate inflow values
     const CeedScalar x[3] = {X[0][i], X[1][i], X[2][i]};
@@ -258,7 +247,6 @@ CEED_QFUNCTION(Blasius_Inflow_Jacobian)(void *ctx, CeedInt Q, const CeedScalar *
       dE   = dq[4][i];
       dP   = dE * (gamma - 1.);
     }
-    const CeedScalar norm[3] = {q_data_sur[1][i], q_data_sur[2][i], q_data_sur[3][i]};
 
     const CeedScalar u_normal = Dot3(norm, s.Y.velocity);
 
@@ -267,7 +255,7 @@ CEED_QFUNCTION(Blasius_Inflow_Jacobian)(void *ctx, CeedInt Q, const CeedScalar *
       v[j + 1][i] = -wdetJb * (drho * u_normal * s.Y.velocity[j] + norm[j] * dP);
     }
     v[4][i] = -wdetJb * u_normal * (dE + dP);
-  }  // End Quadrature Point Loop
+  }
   return 0;
 }
 
