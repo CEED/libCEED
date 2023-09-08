@@ -265,11 +265,11 @@ PetscErrorCode EvalU_proj(PetscInt dim, PetscReal t, const PetscReal x[], PetscI
   Collective
 
   Input Parameters:
-+ dm_swarm  - the `DMSwarm`
+. dm_swarm  - the `DMSwarm`
 
   Output Parameter:
 + is_points    - The IS object for indexing into points per cell
-+ X_points_ref - Vec holding the cell reference coordinates for local DMSwarm points
+- X_points_ref - Vec holding the cell reference coordinates for local DMSwarm points
 
 The index set contains ranges of indices for each local cell. This range contains the indices of every point in the cell.
 
