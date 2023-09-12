@@ -1180,6 +1180,10 @@ int CeedOperatorAssemblyDataCreate(Ceed ceed, CeedOperator op, CeedOperatorAssem
   CeedQFunctionField *qf_fields;
   CeedQFunction       qf;
   CeedOperatorField  *op_fields;
+  bool                is_composite;
+
+  CeedCall(CeedOperatorIsComposite(op, &is_composite));
+  CeedCheck(!is_composite, ceed, CEED_ERROR_INCOMPATIBLE, "Can only create CeedOperator assembly data for non-composite operators.");
 
   // Allocate
   CeedCall(CeedCalloc(1, data));
@@ -1774,6 +1778,114 @@ int CeedOperatorLinearAssembleAddDiagonal(CeedOperator op, CeedVector assembled,
     CeedCall(CeedCompositeOperatorLinearAssembleAddDiagonal(op, request, false, assembled));
   } else {
     CeedCall(CeedSingleOperatorAssembleAddDiagonal_Core(op, request, false, assembled));
+  }
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
+   @brief Fully assemble the point-block diagonal pattern of a linear operator.
+
+   Expected to be used in conjunction with CeedOperatorLinearAssemblePointBlockDiagonal().
+
+   The assembly routines use coordinate format, with `num_entries` tuples of the form (i, j, value) which indicate that value should be added to the
+matrix in entry (i, j).
+  Note that the (i, j) pairs are unique.
+  This function returns the number of entries and their (i, j) locations, while CeedOperatorLinearAssemblePointBlockDiagonal() provides the values in
+the same ordering.
+
+   This will generally be slow unless your operator is low-order.
+
+   Note: Calling this function asserts that setup is complete and sets the CeedOperator as immutable.
+
+   @param[in]  op          CeedOperator to assemble
+   @param[out] num_entries Number of entries in coordinate nonzero pattern
+   @param[out] rows        Row number for each entry
+   @param[out] cols        Column number for each entry
+
+   @ref User
+**/
+int CeedOperatorLinearAssemblePointBlockDiagonalSymbolic(CeedOperator op, CeedSize *num_entries, CeedInt **rows, CeedInt **cols) {
+  Ceed          ceed;
+  bool          is_composite;
+  CeedInt       num_active_components, num_sub_operators;
+  CeedOperator *sub_operators;
+
+  CeedCall(CeedOperatorGetCeed(op, &ceed));
+  CeedCall(CeedOperatorIsComposite(op, &is_composite));
+
+  CeedSize input_size = 0, output_size = 0;
+  CeedCall(CeedOperatorGetActiveVectorLengths(op, &input_size, &output_size));
+  CeedCheck(input_size == output_size, ceed, CEED_ERROR_DIMENSION, "Operator must be square");
+
+  if (is_composite) {
+    CeedCall(CeedCompositeOperatorGetNumSub(op, &num_sub_operators));
+    CeedCall(CeedCompositeOperatorGetSubList(op, &sub_operators));
+  } else {
+    sub_operators     = &op;
+    num_sub_operators = 1;
+  }
+
+  {  // Verify operator can be assembled correctly
+    CeedInt                  num_active_elem_rstrs, comp_stride;
+    CeedOperatorAssemblyData data;
+    CeedElemRestriction     *active_elem_rstrs;
+
+    // Get initial values to check against
+    CeedCall(CeedOperatorGetOperatorAssemblyData(sub_operators[0], &data));
+    CeedCall(CeedOperatorAssemblyDataGetElemRestrictions(data, &num_active_elem_rstrs, &active_elem_rstrs));
+    CeedCall(CeedElemRestrictionGetCompStride(active_elem_rstrs[0], &comp_stride));
+    CeedCall(CeedElemRestrictionGetNumComponents(active_elem_rstrs[0], &num_active_components));
+
+    for (CeedInt k = 0; k < num_sub_operators; k++) {
+      CeedCall(CeedOperatorGetOperatorAssemblyData(sub_operators[k], &data));
+
+      // Verify that all active element restrictions have same component stride and number of components
+      CeedCall(CeedOperatorAssemblyDataGetElemRestrictions(data, &num_active_elem_rstrs, &active_elem_rstrs));
+      CeedCall(CeedElemRestrictionGetCompStride(active_elem_rstrs[0], &comp_stride));
+      for (CeedInt i = 0; i < num_active_elem_rstrs; i++) {
+        CeedInt comp_stride_sub;
+        CeedCall(CeedElemRestrictionGetCompStride(active_elem_rstrs[i], &comp_stride_sub));
+        CeedCheck(comp_stride == comp_stride_sub, ceed, CEED_ERROR_DIMENSION,
+                  "Active element restrictions must have the same component stride: %d vs %d", comp_stride, comp_stride_sub);
+
+        CeedInt num_active_components_sub;
+        CeedCall(CeedElemRestrictionGetNumComponents(active_elem_rstrs[i], &num_active_components_sub));
+        CeedCheck(num_active_components == num_active_components_sub, ceed, CEED_ERROR_INCOMPATIBLE,
+                  "All suboperators must have the same number of output components");
+      }
+    }
+  }
+
+  *num_entries = input_size * num_active_components;
+  CeedCall(CeedCalloc(*num_entries, rows));
+  CeedCall(CeedCalloc(*num_entries, cols));
+
+  for (CeedInt o = 0; o < num_sub_operators; o++) {
+    CeedElemRestriction active_elem_rstr, pb_active_elem_rstr;
+    CeedInt             comp_stride, num_elem, elem_size;
+    const CeedInt      *offsets, *pb_offsets;
+
+    CeedCall(CeedOperatorGetActiveElemRestriction(sub_operators[o], &active_elem_rstr));
+    CeedCall(CeedElemRestrictionGetCompStride(active_elem_rstr, &comp_stride));
+    CeedCall(CeedElemRestrictionGetNumElements(active_elem_rstr, &num_elem));
+    CeedCall(CeedElemRestrictionGetElementSize(active_elem_rstr, &elem_size));
+    CeedCall(CeedElemRestrictionGetOffsets(active_elem_rstr, CEED_MEM_HOST, &offsets));
+
+    CeedCall(CeedOperatorCreateActivePointBlockRestriction(active_elem_rstr, &pb_active_elem_rstr));
+    CeedCall(CeedElemRestrictionGetOffsets(pb_active_elem_rstr, CEED_MEM_HOST, &pb_offsets));
+
+    for (CeedSize i = 0; i < num_elem * elem_size; i++) {
+      for (CeedInt c_out = 0; c_out < num_active_components; c_out++) {
+        for (CeedInt c_in = 0; c_in < num_active_components; c_in++) {
+          (*rows)[pb_offsets[i] + c_out * num_active_components + c_in] = offsets[i] + c_out * comp_stride;
+          (*cols)[pb_offsets[i] + c_out * num_active_components + c_in] = offsets[i] + c_in * comp_stride;
+        }
+      }
+    }
+
+    CeedCall(CeedElemRestrictionRestoreOffsets(active_elem_rstr, &offsets));
+    CeedCall(CeedElemRestrictionRestoreOffsets(pb_active_elem_rstr, &pb_offsets));
+    CeedCall(CeedElemRestrictionDestroy(&pb_active_elem_rstr));
   }
   return CEED_ERROR_SUCCESS;
 }

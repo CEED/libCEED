@@ -19,7 +19,10 @@ int main(int argc, char **argv) {
   CeedInt             n_x = 3, n_y = 2;
   CeedInt             num_dofs = (n_x * 2 + 1) * (n_y * 2 + 1), num_qpts = num_elem * q * q;
   CeedInt             ind_x[num_elem * p * p];
+  CeedInt            *rows, *cols;
+  CeedSize            num_entries;
   CeedScalar          assembled_true[num_comp * num_comp * num_dofs];
+  CeedScalar          assembled_full_true[num_comp * num_dofs][num_comp * num_dofs];
 
   CeedInit(argv[1], &ceed);
 
@@ -87,11 +90,17 @@ int main(int argc, char **argv) {
   // Assemble diagonal
   CeedVectorCreate(ceed, num_comp * num_comp * num_dofs, &assembled);
   CeedOperatorLinearAssemblePointBlockDiagonal(op_mass, assembled, CEED_REQUEST_IMMEDIATE);
+  CeedOperatorLinearAssemblePointBlockDiagonalSymbolic(op_mass, &num_entries, &rows, &cols);
 
-  // Manually assemble diagonal
+  // Manually assemble point-block diagonal
   CeedVectorCreate(ceed, num_comp * num_dofs, &u);
   CeedVectorSetValue(u, 0.0);
   CeedVectorCreate(ceed, num_comp * num_dofs, &v);
+  for (CeedInt i = 0; i < num_comp * num_dofs; i++) {
+    for (CeedInt j = 0; j < num_comp * num_dofs; j++) {
+      assembled_full_true[i][j] = 0.;
+    }
+  }
   for (int i = 0; i < num_comp * num_comp * num_dofs; i++) assembled_true[i] = 0.0;
   CeedInt ind_old = -1;
   for (int i = 0; i < num_dofs; i++) {
@@ -113,6 +122,8 @@ int main(int argc, char **argv) {
       // Retrieve entry
       CeedVectorGetArrayRead(v, CEED_MEM_HOST, &v_array);
       for (int k = 0; k < num_comp; k++) assembled_true[i * num_comp * num_comp + k * num_comp + j] += v_array[i + k * num_dofs];
+      for (CeedInt k = 0; k < num_comp * num_dofs; k++) assembled_full_true[k][i + num_dofs * j] += v_array[k];
+      for (CeedInt k = 0; k < num_comp; k++) assembled_full_true[i * num_comp + k][i * num_comp + j] = v_array[i + k * num_dofs];
       CeedVectorRestoreArrayRead(v, &v_array);
     }
   }
@@ -126,6 +137,15 @@ int main(int argc, char **argv) {
       if (fabs(assembled_array[i] - assembled_true[i]) > 100. * CEED_EPSILON) {
         // LCOV_EXCL_START
         printf("[%" CeedInt_FMT "] Error in assembly: %f != %f\n", i, assembled_array[i], assembled_true[i]);
+        // LCOV_EXCL_STOP
+      }
+    }
+
+    for (CeedInt i = 0; i < num_entries; i++) {
+      if (fabs(assembled_array[i] - assembled_full_true[rows[i]][cols[i]]) > 100. * CEED_EPSILON) {
+        // LCOV_EXCL_START
+        printf("[%" CeedInt_FMT "] Error in symbolic assembly: %f != %f for row,col indices (%" CeedInt_FMT ", %" CeedInt_FMT ")\n", i,
+               assembled_array[i], assembled_full_true[rows[i]][cols[i]], rows[i], cols[i]);
         // LCOV_EXCL_STOP
       }
     }
@@ -148,5 +168,7 @@ int main(int argc, char **argv) {
   CeedOperatorDestroy(&op_setup);
   CeedOperatorDestroy(&op_mass);
   CeedDestroy(&ceed);
+  free(rows);
+  free(cols);
   return 0;
 }
