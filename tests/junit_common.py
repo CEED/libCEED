@@ -369,10 +369,12 @@ def run_tests(test: str, ceed_backends: list[str], mode: RunMode, nproc: int, su
                                      stderr=proc.stderr.decode('utf-8'),
                                      allow_multiple_subelements=True)
                 ref_csvs: list[Path] = []
-                if output_files := [arg for arg in spec.args if 'ascii:' in arg]:
+                output_files: list[str] = [arg for arg in spec.args if 'ascii:' in arg]
+                if output_files:
                     ref_csvs = [suite_spec.get_output_path(test, file.split('ascii:')[-1]) for file in output_files]
                 ref_cgns: list[Path] = []
-                if output_files := [arg for arg in spec.args if 'cgns:' in arg]:
+                output_files = [arg for arg in spec.args if 'cgns:' in arg]
+                if output_files:
                     ref_cgns = [suite_spec.get_output_path(test, file.split('cgns:')[-1]) for file in output_files]
                 ref_stdout: Path = suite_spec.get_output_path(test, test + '.out')
                 suite_spec.post_test_hook(test, spec)
