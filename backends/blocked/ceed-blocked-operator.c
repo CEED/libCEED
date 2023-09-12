@@ -97,6 +97,9 @@ static int CeedOperatorSetupFields_Blocked(CeedQFunction qf, CeedOperator op, bo
           CeedCallBackend(CeedElemRestrictionCreateBlockedStrided(ceed_rstr, num_elem, elem_size, block_size, num_comp, l_size, strides,
                                                                   &block_rstr[i + start_e]));
         } break;
+        case CEED_RESTRICTION_POINTS:
+          // Empty case - won't occur
+          break;
       }
       CeedCallBackend(CeedElemRestrictionCreateVector(block_rstr[i + start_e], NULL, &e_vecs_full[i + start_e]));
     }

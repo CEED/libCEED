@@ -714,7 +714,7 @@ int CeedElemRestrictionCreateStrided(Ceed ceed, CeedInt num_elem, CeedInt elem_s
   @ref Backend
  **/
 int CeedElemRestrictionCreateAtPoints(Ceed ceed, CeedInt num_elem, CeedInt num_points, CeedInt num_comp, CeedSize l_size, CeedMemType mem_type,
-                                CeedCopyMode copy_mode, const CeedInt *offsets, CeedElemRestriction *rstr) {
+                                      CeedCopyMode copy_mode, const CeedInt *offsets, CeedElemRestriction *rstr) {
   if (!ceed->ElemRestrictionCreateAtPoints) {
     Ceed delegate;
 
@@ -1276,6 +1276,37 @@ int CeedElemRestrictionGetNumElements(CeedElemRestriction rstr, CeedInt *num_ele
 **/
 int CeedElemRestrictionGetElementSize(CeedElemRestriction rstr, CeedInt *elem_size) {
   *elem_size = rstr->elem_size;
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
+  @brief Get the maximum number of points in an element for a CeedElemRestriction at points
+
+  @param[in]  rstr       CeedElemRestriction
+  @param[out] max_points Variable to store size of elements
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Advanced
+**/
+int CeedElemRestrictionGetMaxPointsInElement(CeedElemRestriction rstr, CeedInt *max_points) {
+  Ceed                ceed;
+  CeedInt             num_elem;
+  CeedRestrictionType rstr_type;
+
+  CeedCall(CeedElemRestrictionGetCeed(rstr, &ceed));
+  CeedCall(CeedElemRestrictionGetType(rstr, &rstr_type));
+  CeedCheck(rstr_type == CEED_RESTRICTION_POINTS, ceed, CEED_ERROR_INCOMPATIBLE,
+            "Cannot compute max points for a CeedElemRestriction that does not use points");
+
+  CeedCall(CeedElemRestrictionGetNumElements(rstr, &num_elem));
+  *max_points = 0;
+  for (CeedInt e = 0; e < num_elem; e++) {
+    CeedInt num_points;
+
+    CeedCall(CeedElemRestrictionGetNumPointsInElement(rstr, e, &num_points));
+    *max_points = CeedIntMax(num_points, *max_points);
+  }
   return CEED_ERROR_SUCCESS;
 }
 
