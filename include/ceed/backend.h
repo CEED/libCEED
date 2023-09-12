@@ -247,10 +247,13 @@ typedef enum {
   CEED_RESTRICTION_CURL_ORIENTED = 3,
   /// Strided element restriction
   CEED_RESTRICTION_STRIDED = 4,
+  /// Point-in-cell element restriction
+  CEED_RESTRICTION_POINTS = 5,
 } CeedRestrictionType;
 
 CEED_EXTERN int CeedElemRestrictionGetType(CeedElemRestriction rstr, CeedRestrictionType *rstr_type);
 CEED_EXTERN int CeedElemRestrictionIsStrided(CeedElemRestriction rstr, bool *is_strided);
+CEED_EXTERN int CeedElemRestrictionIsPoints(CeedElemRestriction rstr, bool *is_points);
 CEED_EXTERN int CeedElemRestrictionGetStrides(CeedElemRestriction rstr, CeedInt (*strides)[3]);
 CEED_EXTERN int CeedElemRestrictionHasBackendStrides(CeedElemRestriction rstr, bool *has_backend_strides);
 CEED_EXTERN int CeedElemRestrictionGetOffsets(CeedElemRestriction rstr, CeedMemType mem_type, const CeedInt **offsets);
@@ -259,6 +262,7 @@ CEED_EXTERN int CeedElemRestrictionGetOrientations(CeedElemRestriction rstr, Cee
 CEED_EXTERN int CeedElemRestrictionRestoreOrientations(CeedElemRestriction rstr, const bool **orients);
 CEED_EXTERN int CeedElemRestrictionGetCurlOrientations(CeedElemRestriction rstr, CeedMemType mem_type, const CeedInt8 **curl_orients);
 CEED_EXTERN int CeedElemRestrictionRestoreCurlOrientations(CeedElemRestriction rstr, const CeedInt8 **curl_orients);
+CEED_EXTERN int CeedElemRestrictionGetNumPointsInElement(CeedElemRestriction rstr, CeedInt elem, CeedInt *num_points);
 CEED_EXTERN int CeedElemRestrictionGetELayout(CeedElemRestriction rstr, CeedInt (*layout)[3]);
 CEED_EXTERN int CeedElemRestrictionSetELayout(CeedElemRestriction rstr, CeedInt layout[3]);
 CEED_EXTERN int CeedElemRestrictionGetData(CeedElemRestriction rstr, void *data);

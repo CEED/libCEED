@@ -244,6 +244,8 @@ CEED_EXTERN int CeedElemRestrictionCreateCurlOriented(Ceed ceed, CeedInt num_ele
                                                       const CeedInt8 *curl_orients, CeedElemRestriction *rstr);
 CEED_EXTERN int CeedElemRestrictionCreateStrided(Ceed ceed, CeedInt num_elem, CeedInt elem_size, CeedInt num_comp, CeedSize l_size,
                                                  const CeedInt strides[3], CeedElemRestriction *rstr);
+CEED_EXTERN int CeedElemRestrictionCreateAtPoints(Ceed ceed, CeedInt num_elem, CeedInt num_points, CeedInt num_comp, CeedSize l_size,
+                                                  CeedMemType mem_type, CeedCopyMode copy_mode, const CeedInt *offsets, CeedElemRestriction *rstr);
 CEED_EXTERN int CeedElemRestrictionCreateBlocked(Ceed ceed, CeedInt num_elem, CeedInt elem_size, CeedInt block_size, CeedInt num_comp,
                                                  CeedInt comp_stride, CeedSize l_size, CeedMemType mem_type, CeedCopyMode copy_mode,
                                                  const CeedInt *offsets, CeedElemRestriction *rstr);
@@ -260,12 +262,15 @@ CEED_EXTERN int CeedElemRestrictionCreateUnorientedCopy(CeedElemRestriction rstr
 CEED_EXTERN int CeedElemRestrictionReferenceCopy(CeedElemRestriction rstr, CeedElemRestriction *rstr_copy);
 CEED_EXTERN int CeedElemRestrictionCreateVector(CeedElemRestriction rstr, CeedVector *lvec, CeedVector *evec);
 CEED_EXTERN int CeedElemRestrictionApply(CeedElemRestriction rstr, CeedTransposeMode t_mode, CeedVector u, CeedVector ru, CeedRequest *request);
+CEED_EXTERN int CeedElemRestrictionApplyAtPoints(CeedElemRestriction rstr, CeedInt elem, CeedTransposeMode t_mode, CeedVector u, CeedVector ru,
+                                                 CeedRequest *request);
 CEED_EXTERN int CeedElemRestrictionApplyBlock(CeedElemRestriction rstr, CeedInt block, CeedTransposeMode t_mode, CeedVector u, CeedVector ru,
                                               CeedRequest *request);
 CEED_EXTERN int CeedElemRestrictionGetCeed(CeedElemRestriction rstr, Ceed *ceed);
 CEED_EXTERN int CeedElemRestrictionGetCompStride(CeedElemRestriction rstr, CeedInt *comp_stride);
 CEED_EXTERN int CeedElemRestrictionGetNumElements(CeedElemRestriction rstr, CeedInt *num_elem);
 CEED_EXTERN int CeedElemRestrictionGetElementSize(CeedElemRestriction rstr, CeedInt *elem_size);
+CEED_EXTERN int CeedElemRestrictionGetMaxPointsInElement(CeedElemRestriction rstr, CeedInt *max_points);
 CEED_EXTERN int CeedElemRestrictionGetLVectorSize(CeedElemRestriction rstr, CeedSize *l_size);
 CEED_EXTERN int CeedElemRestrictionGetNumComponents(CeedElemRestriction rstr, CeedInt *num_comp);
 CEED_EXTERN int CeedElemRestrictionGetNumBlocks(CeedElemRestriction rstr, CeedInt *num_block);
