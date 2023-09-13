@@ -21,8 +21,8 @@ function get_cartesian_mesh_size(dim, order, prob_size)
 end
 
 struct FormRestrictionMode{T} end
-const RestrictionOnly = FormRestrictionMode{:restr}()
-const StridedOnly = FormRestrictionMode{:restr_i}()
+const RestrictionOnly = FormRestrictionMode{:rstr}()
+const StridedOnly = FormRestrictionMode{:rstr_i}()
 const RestrictionAndStrided = FormRestrictionMode{:both}()
 
 function build_cartesian_restriction(
@@ -44,14 +44,14 @@ function build_cartesian_restriction(
     scalar_size::CeedInt = prod(nd)
     size::CeedInt = scalar_size*ncomp
 
-    form_restr = (Mode() != StridedOnly)
+    form_rstr = (Mode() != StridedOnly)
     form_strided = (Mode() != RestrictionOnly)
 
     # elem:         0             1                 n-1
     #        |---*-...-*---|---*-...-*---|- ... -|--...--|
     # nnodes:   0   1    p-1  p  p+1       2*p             n*p
 
-    if form_restr
+    if form_rstr
         el_nodes = zeros(CeedInt, num_elem*nnodes)
         exyz = zeros(CeedInt, dim)
         @inbounds @simd for e = 0:(num_elem-1)
@@ -76,8 +76,8 @@ function build_cartesian_restriction(
         end
     end
 
-    restr =
-        form_restr ?
+    rstr =
+        form_rstr ?
         create_elem_restriction(
             c,
             num_elem,
@@ -87,7 +87,7 @@ function build_cartesian_restriction(
             ncomp*scalar_size,
             el_nodes,
         ) : nothing
-    restr_i =
+    rstr_i =
         form_strided ?
         create_elem_restriction_strided(
             c,
@@ -98,7 +98,7 @@ function build_cartesian_restriction(
             STRIDES_BACKEND,
         ) : nothing
 
-    return size, restr, restr_i
+    return size, rstr, rstr_i
 end
 
 function set_cartesian_mesh_coords!(dim, nxyz, mesh_order, mesh_coords)

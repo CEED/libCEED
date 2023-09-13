@@ -20,9 +20,9 @@ pub enum ElemRestrictionOpt<'a> {
 }
 /// Construct a ElemRestrictionOpt reference from a ElemRestriction reference
 impl<'a> From<&'a ElemRestriction<'_>> for ElemRestrictionOpt<'a> {
-    fn from(restr: &'a ElemRestriction) -> Self {
-        debug_assert!(restr.ptr != unsafe { bind_ceed::CEED_ELEMRESTRICTION_NONE });
-        Self::Some(restr)
+    fn from(rstr: &'a ElemRestriction) -> Self {
+        debug_assert!(rstr.ptr != unsafe { bind_ceed::CEED_ELEMRESTRICTION_NONE });
+        Self::Some(rstr)
     }
 }
 impl<'a> ElemRestrictionOpt<'a> {
@@ -30,7 +30,7 @@ impl<'a> ElemRestrictionOpt<'a> {
     /// CeedElemRestriction
     pub(crate) fn to_raw(self) -> bind_ceed::CeedElemRestriction {
         match self {
-            Self::Some(restr) => restr.ptr,
+            Self::Some(rstr) => rstr.ptr,
             Self::None => unsafe { bind_ceed::CEED_ELEMRESTRICTION_NONE },
         }
     }

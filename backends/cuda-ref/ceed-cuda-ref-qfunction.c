@@ -19,17 +19,18 @@
 // Apply QFunction
 //------------------------------------------------------------------------------
 static int CeedQFunctionApply_Cuda(CeedQFunction qf, CeedInt Q, CeedVector *U, CeedVector *V) {
-  Ceed ceed;
+  Ceed                ceed;
+  Ceed_Cuda          *ceed_Cuda;
+  CeedInt             num_input_fields, num_output_fields;
+  CeedQFunction_Cuda *data;
+
   CeedCallBackend(CeedQFunctionGetCeed(qf, &ceed));
 
   // Build and compile kernel, if not done
   CeedCallBackend(CeedQFunctionBuildKernel_Cuda_ref(qf));
 
-  CeedQFunction_Cuda *data;
   CeedCallBackend(CeedQFunctionGetData(qf, &data));
-  Ceed_Cuda *ceed_Cuda;
   CeedCallBackend(CeedGetData(ceed, &ceed_Cuda));
-  CeedInt num_input_fields, num_output_fields;
   CeedCallBackend(CeedQFunctionGetNumArgs(qf, &num_input_fields, &num_output_fields));
 
   // Read vectors
@@ -57,7 +58,6 @@ static int CeedQFunctionApply_Cuda(CeedQFunction qf, CeedInt Q, CeedVector *U, C
 
   // Restore context
   CeedCallBackend(CeedQFunctionRestoreInnerContextData(qf, &data->d_c));
-
   return CEED_ERROR_SUCCESS;
 }
 
@@ -65,13 +65,13 @@ static int CeedQFunctionApply_Cuda(CeedQFunction qf, CeedInt Q, CeedVector *U, C
 // Destroy QFunction
 //------------------------------------------------------------------------------
 static int CeedQFunctionDestroy_Cuda(CeedQFunction qf) {
+  Ceed                ceed;
   CeedQFunction_Cuda *data;
+
   CeedCallBackend(CeedQFunctionGetData(qf, &data));
-  Ceed ceed;
   CeedCallBackend(CeedQFunctionGetCeed(qf, &ceed));
   if (data->module) CeedCallCuda(ceed, cuModuleUnload(data->module));
   CeedCallBackend(CeedFree(&data));
-
   return CEED_ERROR_SUCCESS;
 }
 
@@ -80,6 +80,7 @@ static int CeedQFunctionDestroy_Cuda(CeedQFunction qf) {
 //------------------------------------------------------------------------------
 static int CeedQFunctionSetCUDAUserFunction_Cuda(CeedQFunction qf, CUfunction f) {
   CeedQFunction_Cuda *data;
+
   CeedCallBackend(CeedQFunctionGetData(qf, &data));
   data->QFunction = f;
   return CEED_ERROR_SUCCESS;
@@ -89,9 +90,10 @@ static int CeedQFunctionSetCUDAUserFunction_Cuda(CeedQFunction qf, CUfunction f)
 // Create QFunction
 //------------------------------------------------------------------------------
 int CeedQFunctionCreate_Cuda(CeedQFunction qf) {
-  Ceed ceed;
-  CeedQFunctionGetCeed(qf, &ceed);
+  Ceed                ceed;
   CeedQFunction_Cuda *data;
+
+  CeedQFunctionGetCeed(qf, &ceed);
   CeedCallBackend(CeedCalloc(1, &data));
   CeedCallBackend(CeedQFunctionSetData(qf, data));
 

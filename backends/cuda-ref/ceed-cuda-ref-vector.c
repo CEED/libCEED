@@ -19,10 +19,10 @@
 // Check if host/device sync is needed
 //------------------------------------------------------------------------------
 static inline int CeedVectorNeedSync_Cuda(const CeedVector vec, CeedMemType mem_type, bool *need_sync) {
+  bool             has_valid_array = false;
   CeedVector_Cuda *impl;
-  CeedCallBackend(CeedVectorGetData(vec, &impl));
 
-  bool has_valid_array = false;
+  CeedCallBackend(CeedVectorGetData(vec, &impl));
   CeedCallBackend(CeedVectorHasValidArray(vec, &has_valid_array));
   switch (mem_type) {
     case CEED_MEM_HOST:
@@ -32,7 +32,6 @@ static inline int CeedVectorNeedSync_Cuda(const CeedVector vec, CeedMemType mem_
       *need_sync = has_valid_array && !impl->d_array;
       break;
   }
-
   return CEED_ERROR_SUCCESS;
 }
 
@@ -40,14 +39,15 @@ static inline int CeedVectorNeedSync_Cuda(const CeedVector vec, CeedMemType mem_
 // Sync host to device
 //------------------------------------------------------------------------------
 static inline int CeedVectorSyncH2D_Cuda(const CeedVector vec) {
-  Ceed ceed;
-  CeedCallBackend(CeedVectorGetCeed(vec, &ceed));
+  Ceed             ceed;
+  CeedSize         length;
   CeedVector_Cuda *impl;
+
+  CeedCallBackend(CeedVectorGetCeed(vec, &ceed));
   CeedCallBackend(CeedVectorGetData(vec, &impl));
 
   CeedCheck(impl->h_array, ceed, CEED_ERROR_BACKEND, "No valid host data to sync to device");
 
-  CeedSize length;
   CeedCallBackend(CeedVectorGetLength(vec, &length));
   size_t bytes = length * sizeof(CeedScalar);
 
@@ -59,9 +59,7 @@ static inline int CeedVectorSyncH2D_Cuda(const CeedVector vec) {
     CeedCallCuda(ceed, cudaMalloc((void **)&impl->d_array_owned, bytes));
     impl->d_array = impl->d_array_owned;
   }
-
   CeedCallCuda(ceed, cudaMemcpy(impl->d_array, impl->h_array, bytes, cudaMemcpyHostToDevice));
-
   return CEED_ERROR_SUCCESS;
 }
 
@@ -69,9 +67,11 @@ static inline int CeedVectorSyncH2D_Cuda(const CeedVector vec) {
 // Sync device to host
 //------------------------------------------------------------------------------
 static inline int CeedVectorSyncD2H_Cuda(const CeedVector vec) {
-  Ceed ceed;
-  CeedCallBackend(CeedVectorGetCeed(vec, &ceed));
+  Ceed             ceed;
+  CeedSize         length;
   CeedVector_Cuda *impl;
+
+  CeedCallBackend(CeedVectorGetCeed(vec, &ceed));
   CeedCallBackend(CeedVectorGetData(vec, &impl));
 
   CeedCheck(impl->d_array, ceed, CEED_ERROR_BACKEND, "No valid device data to sync to host");
@@ -82,16 +82,16 @@ static inline int CeedVectorSyncD2H_Cuda(const CeedVector vec) {
     impl->h_array = impl->h_array_owned;
   } else {
     CeedSize length;
+
     CeedCallBackend(CeedVectorGetLength(vec, &length));
     CeedCallBackend(CeedCalloc(length, &impl->h_array_owned));
     impl->h_array = impl->h_array_owned;
   }
 
-  CeedSize length;
   CeedCallBackend(CeedVectorGetLength(vec, &length));
   size_t bytes = length * sizeof(CeedScalar);
-  CeedCallCuda(ceed, cudaMemcpy(impl->h_array, impl->d_array, bytes, cudaMemcpyDeviceToHost));
 
+  CeedCallCuda(ceed, cudaMemcpy(impl->h_array, impl->d_array, bytes, cudaMemcpyDeviceToHost));
   return CEED_ERROR_SUCCESS;
 }
 
@@ -99,8 +99,9 @@ static inline int CeedVectorSyncD2H_Cuda(const CeedVector vec) {
 // Sync arrays
 //------------------------------------------------------------------------------
 static int CeedVectorSyncArray_Cuda(const CeedVector vec, CeedMemType mem_type) {
-  // Check whether device/host sync is needed
   bool need_sync = false;
+
+  // Check whether device/host sync is needed
   CeedCallBackend(CeedVectorNeedSync_Cuda(vec, mem_type, &need_sync));
   if (!need_sync) return CEED_ERROR_SUCCESS;
 
@@ -118,11 +119,10 @@ static int CeedVectorSyncArray_Cuda(const CeedVector vec, CeedMemType mem_type) 
 //------------------------------------------------------------------------------
 static inline int CeedVectorSetAllInvalid_Cuda(const CeedVector vec) {
   CeedVector_Cuda *impl;
-  CeedCallBackend(CeedVectorGetData(vec, &impl));
 
+  CeedCallBackend(CeedVectorGetData(vec, &impl));
   impl->h_array = NULL;
   impl->d_array = NULL;
-
   return CEED_ERROR_SUCCESS;
 }
 
@@ -131,10 +131,9 @@ static inline int CeedVectorSetAllInvalid_Cuda(const CeedVector vec) {
 //------------------------------------------------------------------------------
 static inline int CeedVectorHasValidArray_Cuda(const CeedVector vec, bool *has_valid_array) {
   CeedVector_Cuda *impl;
+
   CeedCallBackend(CeedVectorGetData(vec, &impl));
-
   *has_valid_array = impl->h_array || impl->d_array;
-
   return CEED_ERROR_SUCCESS;
 }
 
@@ -143,8 +142,8 @@ static inline int CeedVectorHasValidArray_Cuda(const CeedVector vec, bool *has_v
 //------------------------------------------------------------------------------
 static inline int CeedVectorHasArrayOfType_Cuda(const CeedVector vec, CeedMemType mem_type, bool *has_array_of_type) {
   CeedVector_Cuda *impl;
-  CeedCallBackend(CeedVectorGetData(vec, &impl));
 
+  CeedCallBackend(CeedVectorGetData(vec, &impl));
   switch (mem_type) {
     case CEED_MEM_HOST:
       *has_array_of_type = impl->h_array_borrowed || impl->h_array_owned;
@@ -153,7 +152,6 @@ static inline int CeedVectorHasArrayOfType_Cuda(const CeedVector vec, CeedMemTyp
       *has_array_of_type = impl->d_array_borrowed || impl->d_array_owned;
       break;
   }
-
   return CEED_ERROR_SUCCESS;
 }
 
@@ -162,8 +160,8 @@ static inline int CeedVectorHasArrayOfType_Cuda(const CeedVector vec, CeedMemTyp
 //------------------------------------------------------------------------------
 static inline int CeedVectorHasBorrowedArrayOfType_Cuda(const CeedVector vec, CeedMemType mem_type, bool *has_borrowed_array_of_type) {
   CeedVector_Cuda *impl;
-  CeedCallBackend(CeedVectorGetData(vec, &impl));
 
+  CeedCallBackend(CeedVectorGetData(vec, &impl));
   switch (mem_type) {
     case CEED_MEM_HOST:
       *has_borrowed_array_of_type = impl->h_array_borrowed;
@@ -172,7 +170,6 @@ static inline int CeedVectorHasBorrowedArrayOfType_Cuda(const CeedVector vec, Ce
       *has_borrowed_array_of_type = impl->d_array_borrowed;
       break;
   }
-
   return CEED_ERROR_SUCCESS;
 }
 
@@ -181,12 +178,13 @@ static inline int CeedVectorHasBorrowedArrayOfType_Cuda(const CeedVector vec, Ce
 //------------------------------------------------------------------------------
 static int CeedVectorSetArrayHost_Cuda(const CeedVector vec, const CeedCopyMode copy_mode, CeedScalar *array) {
   CeedVector_Cuda *impl;
-  CeedCallBackend(CeedVectorGetData(vec, &impl));
 
+  CeedCallBackend(CeedVectorGetData(vec, &impl));
   switch (copy_mode) {
     case CEED_COPY_VALUES: {
-      CeedSize length;
       if (!impl->h_array_owned) {
+        CeedSize length;
+
         CeedCallBackend(CeedVectorGetLength(vec, &length));
         CeedCallBackend(CeedMalloc(length, &impl->h_array_owned));
       }
@@ -194,6 +192,7 @@ static int CeedVectorSetArrayHost_Cuda(const CeedVector vec, const CeedCopyMode 
       impl->h_array          = impl->h_array_owned;
       if (array) {
         CeedSize length;
+
         CeedCallBackend(CeedVectorGetLength(vec, &length));
         size_t bytes = length * sizeof(CeedScalar);
         memcpy(impl->h_array, array, bytes);
@@ -211,7 +210,6 @@ static int CeedVectorSetArrayHost_Cuda(const CeedVector vec, const CeedCopyMode 
       impl->h_array          = array;
       break;
   }
-
   return CEED_ERROR_SUCCESS;
 }
 
@@ -219,16 +217,18 @@ static int CeedVectorSetArrayHost_Cuda(const CeedVector vec, const CeedCopyMode 
 // Set array from device
 //------------------------------------------------------------------------------
 static int CeedVectorSetArrayDevice_Cuda(const CeedVector vec, const CeedCopyMode copy_mode, CeedScalar *array) {
-  Ceed ceed;
-  CeedCallBackend(CeedVectorGetCeed(vec, &ceed));
+  Ceed             ceed;
   CeedVector_Cuda *impl;
-  CeedCallBackend(CeedVectorGetData(vec, &impl));
 
+  CeedCallBackend(CeedVectorGetCeed(vec, &ceed));
+  CeedCallBackend(CeedVectorGetData(vec, &impl));
   switch (copy_mode) {
     case CEED_COPY_VALUES: {
       CeedSize length;
+
       CeedCallBackend(CeedVectorGetLength(vec, &length));
       size_t bytes = length * sizeof(CeedScalar);
+
       if (!impl->d_array_owned) {
         CeedCallCuda(ceed, cudaMalloc((void **)&impl->d_array_owned, bytes));
       }
@@ -249,7 +249,6 @@ static int CeedVectorSetArrayDevice_Cuda(const CeedVector vec, const CeedCopyMod
       impl->d_array          = array;
       break;
   }
-
   return CEED_ERROR_SUCCESS;
 }
 
@@ -258,11 +257,11 @@ static int CeedVectorSetArrayDevice_Cuda(const CeedVector vec, const CeedCopyMod
 //   freeing any previously allocated array if applicable
 //------------------------------------------------------------------------------
 static int CeedVectorSetArray_Cuda(const CeedVector vec, const CeedMemType mem_type, const CeedCopyMode copy_mode, CeedScalar *array) {
-  Ceed ceed;
-  CeedCallBackend(CeedVectorGetCeed(vec, &ceed));
+  Ceed             ceed;
   CeedVector_Cuda *impl;
-  CeedCallBackend(CeedVectorGetData(vec, &impl));
 
+  CeedCallBackend(CeedVectorGetCeed(vec, &ceed));
+  CeedCallBackend(CeedVectorGetData(vec, &impl));
   CeedCallBackend(CeedVectorSetAllInvalid_Cuda(vec));
   switch (mem_type) {
     case CEED_MEM_HOST:
@@ -270,7 +269,6 @@ static int CeedVectorSetArray_Cuda(const CeedVector vec, const CeedMemType mem_t
     case CEED_MEM_DEVICE:
       return CeedVectorSetArrayDevice_Cuda(vec, copy_mode, array);
   }
-
   return CEED_ERROR_UNSUPPORTED;
 }
 
@@ -291,13 +289,13 @@ int CeedDeviceSetValue_Cuda(CeedScalar *d_array, CeedSize length, CeedScalar val
 // Set a vector to a value
 //------------------------------------------------------------------------------
 static int CeedVectorSetValue_Cuda(CeedVector vec, CeedScalar val) {
-  Ceed ceed;
-  CeedCallBackend(CeedVectorGetCeed(vec, &ceed));
+  Ceed             ceed;
+  CeedSize         length;
   CeedVector_Cuda *impl;
-  CeedCallBackend(CeedVectorGetData(vec, &impl));
-  CeedSize length;
-  CeedCallBackend(CeedVectorGetLength(vec, &length));
 
+  CeedCallBackend(CeedVectorGetCeed(vec, &ceed));
+  CeedCallBackend(CeedVectorGetData(vec, &impl));
+  CeedCallBackend(CeedVectorGetLength(vec, &length));
   // Set value for synced device/host array
   if (!impl->d_array && !impl->h_array) {
     if (impl->d_array_borrowed) {
@@ -320,7 +318,6 @@ static int CeedVectorSetValue_Cuda(CeedVector vec, CeedScalar val) {
     CeedCallBackend(CeedHostSetValue_Cuda(impl->h_array, length, val));
     impl->d_array = NULL;
   }
-
   return CEED_ERROR_SUCCESS;
 }
 
@@ -328,14 +325,13 @@ static int CeedVectorSetValue_Cuda(CeedVector vec, CeedScalar val) {
 // Vector Take Array
 //------------------------------------------------------------------------------
 static int CeedVectorTakeArray_Cuda(CeedVector vec, CeedMemType mem_type, CeedScalar **array) {
-  Ceed ceed;
-  CeedCallBackend(CeedVectorGetCeed(vec, &ceed));
+  Ceed             ceed;
   CeedVector_Cuda *impl;
-  CeedCallBackend(CeedVectorGetData(vec, &impl));
 
+  CeedCallBackend(CeedVectorGetCeed(vec, &ceed));
+  CeedCallBackend(CeedVectorGetData(vec, &impl));
   // Sync array to requested mem_type
   CeedCallBackend(CeedVectorSyncArray(vec, mem_type));
-
   // Update pointer
   switch (mem_type) {
     case CEED_MEM_HOST:
@@ -349,7 +345,6 @@ static int CeedVectorTakeArray_Cuda(CeedVector vec, CeedMemType mem_type, CeedSc
       impl->d_array          = NULL;
       break;
   }
-
   return CEED_ERROR_SUCCESS;
 }
 
@@ -358,14 +353,13 @@ static int CeedVectorTakeArray_Cuda(CeedVector vec, CeedMemType mem_type, CeedSc
 //   If a different memory type is most up to date, this will perform a copy
 //------------------------------------------------------------------------------
 static int CeedVectorGetArrayCore_Cuda(const CeedVector vec, const CeedMemType mem_type, CeedScalar **array) {
-  Ceed ceed;
-  CeedCallBackend(CeedVectorGetCeed(vec, &ceed));
+  Ceed             ceed;
   CeedVector_Cuda *impl;
-  CeedCallBackend(CeedVectorGetData(vec, &impl));
 
+  CeedCallBackend(CeedVectorGetCeed(vec, &ceed));
+  CeedCallBackend(CeedVectorGetData(vec, &impl));
   // Sync array to requested mem_type
   CeedCallBackend(CeedVectorSyncArray(vec, mem_type));
-
   // Update pointer
   switch (mem_type) {
     case CEED_MEM_HOST:
@@ -375,7 +369,6 @@ static int CeedVectorGetArrayCore_Cuda(const CeedVector vec, const CeedMemType m
       *array = impl->d_array;
       break;
   }
-
   return CEED_ERROR_SUCCESS;
 }
 
@@ -391,10 +384,9 @@ static int CeedVectorGetArrayRead_Cuda(const CeedVector vec, const CeedMemType m
 //------------------------------------------------------------------------------
 static int CeedVectorGetArray_Cuda(const CeedVector vec, const CeedMemType mem_type, CeedScalar **array) {
   CeedVector_Cuda *impl;
+
   CeedCallBackend(CeedVectorGetData(vec, &impl));
-
   CeedCallBackend(CeedVectorGetArrayCore_Cuda(vec, mem_type, array));
-
   CeedCallBackend(CeedVectorSetAllInvalid_Cuda(vec));
   switch (mem_type) {
     case CEED_MEM_HOST:
@@ -404,7 +396,6 @@ static int CeedVectorGetArray_Cuda(const CeedVector vec, const CeedMemType mem_t
       impl->d_array = *array;
       break;
   }
-
   return CEED_ERROR_SUCCESS;
 }
 
@@ -412,10 +403,10 @@ static int CeedVectorGetArray_Cuda(const CeedVector vec, const CeedMemType mem_t
 // Get write access to a vector via the specified mem_type
 //------------------------------------------------------------------------------
 static int CeedVectorGetArrayWrite_Cuda(const CeedVector vec, const CeedMemType mem_type, CeedScalar **array) {
+  bool             has_array_of_type = true;
   CeedVector_Cuda *impl;
-  CeedCallBackend(CeedVectorGetData(vec, &impl));
 
-  bool has_array_of_type = true;
+  CeedCallBackend(CeedVectorGetData(vec, &impl));
   CeedCallBackend(CeedVectorHasArrayOfType_Cuda(vec, mem_type, &has_array_of_type));
   if (!has_array_of_type) {
     // Allocate if array is not yet allocated
@@ -432,7 +423,6 @@ static int CeedVectorGetArrayWrite_Cuda(const CeedVector vec, const CeedMemType 
         else impl->d_array = impl->d_array_owned;
     }
   }
-
   return CeedVectorGetArray_Cuda(vec, mem_type, array);
 }
 
@@ -440,13 +430,15 @@ static int CeedVectorGetArrayWrite_Cuda(const CeedVector vec, const CeedMemType 
 // Get the norm of a CeedVector
 //------------------------------------------------------------------------------
 static int CeedVectorNorm_Cuda(CeedVector vec, CeedNormType type, CeedScalar *norm) {
-  Ceed ceed;
+  Ceed              ceed;
+  cublasHandle_t    handle;
+  CeedSize          length;
+  const CeedScalar *d_array;
+  CeedVector_Cuda  *impl;
+
   CeedCallBackend(CeedVectorGetCeed(vec, &ceed));
-  CeedVector_Cuda *impl;
   CeedCallBackend(CeedVectorGetData(vec, &impl));
-  CeedSize length;
   CeedCallBackend(CeedVectorGetLength(vec, &length));
-  cublasHandle_t handle;
   CeedCallBackend(CeedGetCublasHandle_Cuda(ceed, &handle));
 
 #if CUDA_VERSION < 12000
@@ -454,11 +446,11 @@ static int CeedVectorNorm_Cuda(CeedVector vec, CeedNormType type, CeedScalar *no
   // we need to check if the vector is too long to handle with int32,
   // and if so, divide it into subsections for repeated cuBLAS calls.
   CeedSize num_calls = length / INT_MAX;
+
   if (length % INT_MAX > 0) num_calls += 1;
 #endif
 
   // Compute norm
-  const CeedScalar *d_array;
   CeedCallBackend(CeedVectorGetArrayRead(vec, CEED_MEM_DEVICE, &d_array));
   switch (type) {
     case CEED_NORM_1: {
@@ -469,10 +461,12 @@ static int CeedVectorNorm_Cuda(CeedVector vec, CeedNormType type, CeedScalar *no
 #else
         float  sub_norm = 0.0;
         float *d_array_start;
+
         for (CeedInt i = 0; i < num_calls; i++) {
           d_array_start             = (float *)d_array + (CeedSize)(i)*INT_MAX;
           CeedSize remaining_length = length - (CeedSize)(i)*INT_MAX;
           CeedInt  sub_length       = (i == num_calls - 1) ? (CeedInt)(remaining_length) : INT_MAX;
+
           CeedCallCublas(ceed, cublasSasum(handle, (CeedInt)sub_length, (float *)d_array_start, 1, &sub_norm));
           *norm += sub_norm;
         }
@@ -483,10 +477,12 @@ static int CeedVectorNorm_Cuda(CeedVector vec, CeedNormType type, CeedScalar *no
 #else
         double  sub_norm = 0.0;
         double *d_array_start;
+
         for (CeedInt i = 0; i < num_calls; i++) {
           d_array_start             = (double *)d_array + (CeedSize)(i)*INT_MAX;
           CeedSize remaining_length = length - (CeedSize)(i)*INT_MAX;
           CeedInt  sub_length       = (i == num_calls - 1) ? (CeedInt)(remaining_length) : INT_MAX;
+
           CeedCallCublas(ceed, cublasDasum(handle, (CeedInt)sub_length, (double *)d_array_start, 1, &sub_norm));
           *norm += sub_norm;
         }
@@ -501,10 +497,12 @@ static int CeedVectorNorm_Cuda(CeedVector vec, CeedNormType type, CeedScalar *no
 #else
         float  sub_norm = 0.0, norm_sum = 0.0;
         float *d_array_start;
+
         for (CeedInt i = 0; i < num_calls; i++) {
           d_array_start             = (float *)d_array + (CeedSize)(i)*INT_MAX;
           CeedSize remaining_length = length - (CeedSize)(i)*INT_MAX;
           CeedInt  sub_length       = (i == num_calls - 1) ? (CeedInt)(remaining_length) : INT_MAX;
+
           CeedCallCublas(ceed, cublasSnrm2(handle, (CeedInt)sub_length, (float *)d_array_start, 1, &sub_norm));
           norm_sum += sub_norm * sub_norm;
         }
@@ -516,10 +514,12 @@ static int CeedVectorNorm_Cuda(CeedVector vec, CeedNormType type, CeedScalar *no
 #else
         double  sub_norm = 0.0, norm_sum = 0.0;
         double *d_array_start;
+
         for (CeedInt i = 0; i < num_calls; i++) {
           d_array_start             = (double *)d_array + (CeedSize)(i)*INT_MAX;
           CeedSize remaining_length = length - (CeedSize)(i)*INT_MAX;
           CeedInt  sub_length       = (i == num_calls - 1) ? (CeedInt)(remaining_length) : INT_MAX;
+
           CeedCallCublas(ceed, cublasDnrm2(handle, (CeedInt)sub_length, (double *)d_array_start, 1, &sub_norm));
           norm_sum += sub_norm * sub_norm;
         }
@@ -531,42 +531,48 @@ static int CeedVectorNorm_Cuda(CeedVector vec, CeedNormType type, CeedScalar *no
     case CEED_NORM_MAX: {
       if (CEED_SCALAR_TYPE == CEED_SCALAR_FP32) {
 #if CUDA_VERSION >= 12000
-        int64_t indx;
-        CeedCallCublas(ceed, cublasIsamax_64(handle, (int64_t)length, (float *)d_array, 1, &indx));
-        CeedScalar normNoAbs;
-        CeedCallCuda(ceed, cudaMemcpy(&normNoAbs, impl->d_array + indx - 1, sizeof(CeedScalar), cudaMemcpyDeviceToHost));
-        *norm = fabs(normNoAbs);
+        int64_t    index;
+        CeedScalar norm_no_abs;
+
+        CeedCallCublas(ceed, cublasIsamax_64(handle, (int64_t)length, (float *)d_array, 1, &index));
+        CeedCallCuda(ceed, cudaMemcpy(&norm_no_abs, impl->d_array + index - 1, sizeof(CeedScalar), cudaMemcpyDeviceToHost));
+        *norm = fabs(norm_no_abs);
 #else
-        CeedInt indx;
+        CeedInt index;
         float   sub_max = 0.0, current_max = 0.0;
         float  *d_array_start;
+
         for (CeedInt i = 0; i < num_calls; i++) {
           d_array_start             = (float *)d_array + (CeedSize)(i)*INT_MAX;
           CeedSize remaining_length = length - (CeedSize)(i)*INT_MAX;
           CeedInt  sub_length       = (i == num_calls - 1) ? (CeedInt)(remaining_length) : INT_MAX;
-          CeedCallCublas(ceed, cublasIsamax(handle, (CeedInt)sub_length, (float *)d_array_start, 1, &indx));
-          CeedCallCuda(ceed, cudaMemcpy(&sub_max, d_array_start + indx - 1, sizeof(CeedScalar), cudaMemcpyDeviceToHost));
+
+          CeedCallCublas(ceed, cublasIsamax(handle, (CeedInt)sub_length, (float *)d_array_start, 1, &index));
+          CeedCallCuda(ceed, cudaMemcpy(&sub_max, d_array_start + index - 1, sizeof(CeedScalar), cudaMemcpyDeviceToHost));
           if (fabs(sub_max) > current_max) current_max = fabs(sub_max);
         }
         *norm = current_max;
 #endif
       } else {
 #if CUDA_VERSION >= 12000
-        int64_t indx;
-        CeedCallCublas(ceed, cublasIdamax_64(handle, (int64_t)length, (double *)d_array, 1, &indx));
-        CeedScalar normNoAbs;
-        CeedCallCuda(ceed, cudaMemcpy(&normNoAbs, impl->d_array + indx - 1, sizeof(CeedScalar), cudaMemcpyDeviceToHost));
-        *norm = fabs(normNoAbs);
+        int64_t    index;
+        CeedScalar norm_no_abs;
+
+        CeedCallCublas(ceed, cublasIdamax_64(handle, (int64_t)length, (double *)d_array, 1, &index));
+        CeedCallCuda(ceed, cudaMemcpy(&norm_no_abs, impl->d_array + index - 1, sizeof(CeedScalar), cudaMemcpyDeviceToHost));
+        *norm = fabs(norm_no_abs);
 #else
-        CeedInt indx;
+        CeedInt index;
         double  sub_max = 0.0, current_max = 0.0;
         double *d_array_start;
+
         for (CeedInt i = 0; i < num_calls; i++) {
           d_array_start             = (double *)d_array + (CeedSize)(i)*INT_MAX;
           CeedSize remaining_length = length - (CeedSize)(i)*INT_MAX;
           CeedInt  sub_length       = (i == num_calls - 1) ? (CeedInt)(remaining_length) : INT_MAX;
-          CeedCallCublas(ceed, cublasIdamax(handle, (CeedInt)sub_length, (double *)d_array_start, 1, &indx));
-          CeedCallCuda(ceed, cudaMemcpy(&sub_max, d_array_start + indx - 1, sizeof(CeedScalar), cudaMemcpyDeviceToHost));
+
+          CeedCallCublas(ceed, cublasIdamax(handle, (CeedInt)sub_length, (double *)d_array_start, 1, &index));
+          CeedCallCuda(ceed, cudaMemcpy(&sub_max, d_array_start + index - 1, sizeof(CeedScalar), cudaMemcpyDeviceToHost));
           if (fabs(sub_max) > current_max) current_max = fabs(sub_max);
         }
         *norm = current_max;
@@ -576,7 +582,6 @@ static int CeedVectorNorm_Cuda(CeedVector vec, CeedNormType type, CeedScalar *no
     }
   }
   CeedCallBackend(CeedVectorRestoreArrayRead(vec, &d_array));
-
   return CEED_ERROR_SUCCESS;
 }
 
@@ -599,17 +604,16 @@ int CeedDeviceReciprocal_Cuda(CeedScalar *d_array, CeedSize length);
 // Take reciprocal of a vector
 //------------------------------------------------------------------------------
 static int CeedVectorReciprocal_Cuda(CeedVector vec) {
-  Ceed ceed;
-  CeedCallBackend(CeedVectorGetCeed(vec, &ceed));
+  Ceed             ceed;
+  CeedSize         length;
   CeedVector_Cuda *impl;
-  CeedCallBackend(CeedVectorGetData(vec, &impl));
-  CeedSize length;
-  CeedCallBackend(CeedVectorGetLength(vec, &length));
 
+  CeedCallBackend(CeedVectorGetCeed(vec, &ceed));
+  CeedCallBackend(CeedVectorGetData(vec, &impl));
+  CeedCallBackend(CeedVectorGetLength(vec, &length));
   // Set value for synced device/host array
   if (impl->d_array) CeedCallBackend(CeedDeviceReciprocal_Cuda(impl->d_array, length));
   if (impl->h_array) CeedCallBackend(CeedHostReciprocal_Cuda(impl->h_array, length));
-
   return CEED_ERROR_SUCCESS;
 }
 
@@ -630,17 +634,16 @@ int CeedDeviceScale_Cuda(CeedScalar *x_array, CeedScalar alpha, CeedSize length)
 // Compute x = alpha x
 //------------------------------------------------------------------------------
 static int CeedVectorScale_Cuda(CeedVector x, CeedScalar alpha) {
-  Ceed ceed;
-  CeedCallBackend(CeedVectorGetCeed(x, &ceed));
+  Ceed             ceed;
+  CeedSize         length;
   CeedVector_Cuda *x_impl;
-  CeedCallBackend(CeedVectorGetData(x, &x_impl));
-  CeedSize length;
-  CeedCallBackend(CeedVectorGetLength(x, &length));
 
+  CeedCallBackend(CeedVectorGetCeed(x, &ceed));
+  CeedCallBackend(CeedVectorGetData(x, &x_impl));
+  CeedCallBackend(CeedVectorGetLength(x, &length));
   // Set value for synced device/host array
   if (x_impl->d_array) CeedCallBackend(CeedDeviceScale_Cuda(x_impl->d_array, alpha, length));
   if (x_impl->h_array) CeedCallBackend(CeedHostScale_Cuda(x_impl->h_array, alpha, length));
-
   return CEED_ERROR_SUCCESS;
 }
 
@@ -661,14 +664,14 @@ int CeedDeviceAXPY_Cuda(CeedScalar *y_array, CeedScalar alpha, CeedScalar *x_arr
 // Compute y = alpha x + y
 //------------------------------------------------------------------------------
 static int CeedVectorAXPY_Cuda(CeedVector y, CeedScalar alpha, CeedVector x) {
-  Ceed ceed;
-  CeedCallBackend(CeedVectorGetCeed(y, &ceed));
+  Ceed             ceed;
+  CeedSize         length;
   CeedVector_Cuda *y_impl, *x_impl;
+
+  CeedCallBackend(CeedVectorGetCeed(y, &ceed));
   CeedCallBackend(CeedVectorGetData(y, &y_impl));
   CeedCallBackend(CeedVectorGetData(x, &x_impl));
-  CeedSize length;
   CeedCallBackend(CeedVectorGetLength(y, &length));
-
   // Set value for synced device/host array
   if (y_impl->d_array) {
     CeedCallBackend(CeedVectorSyncArray(x, CEED_MEM_DEVICE));
@@ -678,7 +681,6 @@ static int CeedVectorAXPY_Cuda(CeedVector y, CeedScalar alpha, CeedVector x) {
     CeedCallBackend(CeedVectorSyncArray(x, CEED_MEM_HOST));
     CeedCallBackend(CeedHostAXPY_Cuda(y_impl->h_array, alpha, x_impl->h_array, length));
   }
-
   return CEED_ERROR_SUCCESS;
 }
 
@@ -699,14 +701,14 @@ int CeedDeviceAXPBY_Cuda(CeedScalar *y_array, CeedScalar alpha, CeedScalar beta,
 // Compute y = alpha x + beta y
 //------------------------------------------------------------------------------
 static int CeedVectorAXPBY_Cuda(CeedVector y, CeedScalar alpha, CeedScalar beta, CeedVector x) {
-  Ceed ceed;
-  CeedCallBackend(CeedVectorGetCeed(y, &ceed));
+  Ceed             ceed;
+  CeedSize         length;
   CeedVector_Cuda *y_impl, *x_impl;
+
+  CeedCallBackend(CeedVectorGetCeed(y, &ceed));
   CeedCallBackend(CeedVectorGetData(y, &y_impl));
   CeedCallBackend(CeedVectorGetData(x, &x_impl));
-  CeedSize length;
   CeedCallBackend(CeedVectorGetLength(y, &length));
-
   // Set value for synced device/host array
   if (y_impl->d_array) {
     CeedCallBackend(CeedVectorSyncArray(x, CEED_MEM_DEVICE));
@@ -716,7 +718,6 @@ static int CeedVectorAXPBY_Cuda(CeedVector y, CeedScalar alpha, CeedScalar beta,
     CeedCallBackend(CeedVectorSyncArray(x, CEED_MEM_HOST));
     CeedCallBackend(CeedHostAXPBY_Cuda(y_impl->h_array, alpha, beta, x_impl->h_array, length));
   }
-
   return CEED_ERROR_SUCCESS;
 }
 
@@ -737,15 +738,15 @@ int CeedDevicePointwiseMult_Cuda(CeedScalar *w_array, CeedScalar *x_array, CeedS
 // Compute the pointwise multiplication w = x .* y
 //------------------------------------------------------------------------------
 static int CeedVectorPointwiseMult_Cuda(CeedVector w, CeedVector x, CeedVector y) {
-  Ceed ceed;
-  CeedCallBackend(CeedVectorGetCeed(w, &ceed));
+  Ceed             ceed;
+  CeedSize         length;
   CeedVector_Cuda *w_impl, *x_impl, *y_impl;
+
+  CeedCallBackend(CeedVectorGetCeed(w, &ceed));
   CeedCallBackend(CeedVectorGetData(w, &w_impl));
   CeedCallBackend(CeedVectorGetData(x, &x_impl));
   CeedCallBackend(CeedVectorGetData(y, &y_impl));
-  CeedSize length;
   CeedCallBackend(CeedVectorGetLength(w, &length));
-
   // Set value for synced device/host array
   if (!w_impl->d_array && !w_impl->h_array) {
     CeedCallBackend(CeedVectorSetValue(w, 0.0));
@@ -760,7 +761,6 @@ static int CeedVectorPointwiseMult_Cuda(CeedVector w, CeedVector x, CeedVector y
     CeedCallBackend(CeedVectorSyncArray(y, CEED_MEM_HOST));
     CeedCallBackend(CeedHostPointwiseMult_Cuda(w_impl->h_array, x_impl->h_array, y_impl->h_array, length));
   }
-
   return CEED_ERROR_SUCCESS;
 }
 
@@ -768,15 +768,14 @@ static int CeedVectorPointwiseMult_Cuda(CeedVector w, CeedVector x, CeedVector y
 // Destroy the vector
 //------------------------------------------------------------------------------
 static int CeedVectorDestroy_Cuda(const CeedVector vec) {
-  Ceed ceed;
-  CeedCallBackend(CeedVectorGetCeed(vec, &ceed));
+  Ceed             ceed;
   CeedVector_Cuda *impl;
-  CeedCallBackend(CeedVectorGetData(vec, &impl));
 
+  CeedCallBackend(CeedVectorGetCeed(vec, &ceed));
+  CeedCallBackend(CeedVectorGetData(vec, &impl));
   CeedCallCuda(ceed, cudaFree(impl->d_array_owned));
   CeedCallBackend(CeedFree(&impl->h_array_owned));
   CeedCallBackend(CeedFree(&impl));
-
   return CEED_ERROR_SUCCESS;
 }
 
@@ -786,8 +785,8 @@ static int CeedVectorDestroy_Cuda(const CeedVector vec) {
 int CeedVectorCreate_Cuda(CeedSize n, CeedVector vec) {
   CeedVector_Cuda *impl;
   Ceed             ceed;
-  CeedCallBackend(CeedVectorGetCeed(vec, &ceed));
 
+  CeedCallBackend(CeedVectorGetCeed(vec, &ceed));
   CeedCallBackend(CeedSetBackendFunction(ceed, "Vector", vec, "HasValidArray", CeedVectorHasValidArray_Cuda));
   CeedCallBackend(CeedSetBackendFunction(ceed, "Vector", vec, "HasBorrowedArrayOfType", CeedVectorHasBorrowedArrayOfType_Cuda));
   CeedCallBackend(CeedSetBackendFunction(ceed, "Vector", vec, "SetArray", CeedVectorSetArray_Cuda));
@@ -804,10 +803,8 @@ int CeedVectorCreate_Cuda(CeedSize n, CeedVector vec) {
   CeedCallBackend(CeedSetBackendFunction(ceed, "Vector", vec, "AXPBY", (int (*)())CeedVectorAXPBY_Cuda));
   CeedCallBackend(CeedSetBackendFunction(ceed, "Vector", vec, "PointwiseMult", CeedVectorPointwiseMult_Cuda));
   CeedCallBackend(CeedSetBackendFunction(ceed, "Vector", vec, "Destroy", CeedVectorDestroy_Cuda));
-
   CeedCallBackend(CeedCalloc(1, &impl));
   CeedCallBackend(CeedVectorSetData(vec, impl));
-
   return CEED_ERROR_SUCCESS;
 }
 

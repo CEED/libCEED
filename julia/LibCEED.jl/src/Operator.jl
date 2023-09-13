@@ -35,9 +35,9 @@ build_oper = Operator(
     ceed,
     qf=build_qfunc,
     fields=[
-        (:J, mesh_restr, mesh_basis, CeedVectorActive()),
+        (:J, mesh_rstr, mesh_basis, CeedVectorActive()),
         (:w, ElemRestrictionNone(), mesh_basis, CeedVectorNone()),
-        (:qdata, sol_restr_i, BasisNone(), CeedVectorActive())
+        (:qdata, sol_rstr_i, BasisNone(), CeedVectorActive())
     ]
 )
 ```

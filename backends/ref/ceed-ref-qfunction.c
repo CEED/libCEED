@@ -15,16 +15,14 @@
 // QFunction Apply
 //------------------------------------------------------------------------------
 static int CeedQFunctionApply_Ref(CeedQFunction qf, CeedInt Q, CeedVector *U, CeedVector *V) {
+  void              *ctx_data = NULL;
+  CeedInt            num_in, num_out;
+  CeedQFunctionUser  f = NULL;
   CeedQFunction_Ref *impl;
+
   CeedCallBackend(CeedQFunctionGetData(qf, &impl));
-
-  void *ctx_data = NULL;
   CeedCallBackend(CeedQFunctionGetContextData(qf, CEED_MEM_HOST, &ctx_data));
-
-  CeedQFunctionUser f = NULL;
   CeedCallBackend(CeedQFunctionGetUserFunction(qf, &f));
-
-  CeedInt num_in, num_out;
   CeedCallBackend(CeedQFunctionGetNumArgs(qf, &num_in, &num_out));
 
   for (CeedInt i = 0; i < num_in; i++) {
@@ -43,7 +41,6 @@ static int CeedQFunctionApply_Ref(CeedQFunction qf, CeedInt Q, CeedVector *U, Ce
     CeedCallBackend(CeedVectorRestoreArray(V[i], &impl->outputs[i]));
   }
   CeedCallBackend(CeedQFunctionRestoreContextData(qf, &ctx_data));
-
   return CEED_ERROR_SUCCESS;
 }
 
@@ -52,12 +49,11 @@ static int CeedQFunctionApply_Ref(CeedQFunction qf, CeedInt Q, CeedVector *U, Ce
 //------------------------------------------------------------------------------
 static int CeedQFunctionDestroy_Ref(CeedQFunction qf) {
   CeedQFunction_Ref *impl;
-  CeedCallBackend(CeedQFunctionGetData(qf, &impl));
 
+  CeedCallBackend(CeedQFunctionGetData(qf, &impl));
   CeedCallBackend(CeedFree(&impl->inputs));
   CeedCallBackend(CeedFree(&impl->outputs));
   CeedCallBackend(CeedFree(&impl));
-
   return CEED_ERROR_SUCCESS;
 }
 
@@ -65,18 +61,16 @@ static int CeedQFunctionDestroy_Ref(CeedQFunction qf) {
 // QFunction Create
 //------------------------------------------------------------------------------
 int CeedQFunctionCreate_Ref(CeedQFunction qf) {
-  Ceed ceed;
-  CeedCallBackend(CeedQFunctionGetCeed(qf, &ceed));
-
+  Ceed               ceed;
   CeedQFunction_Ref *impl;
+
+  CeedCallBackend(CeedQFunctionGetCeed(qf, &ceed));
   CeedCallBackend(CeedCalloc(1, &impl));
   CeedCallBackend(CeedCalloc(CEED_FIELD_MAX, &impl->inputs));
   CeedCallBackend(CeedCalloc(CEED_FIELD_MAX, &impl->outputs));
   CeedCallBackend(CeedQFunctionSetData(qf, impl));
-
   CeedCallBackend(CeedSetBackendFunction(ceed, "QFunction", qf, "Apply", CeedQFunctionApply_Ref));
   CeedCallBackend(CeedSetBackendFunction(ceed, "QFunction", qf, "Destroy", CeedQFunctionDestroy_Ref));
-
   return CEED_ERROR_SUCCESS;
 }
 

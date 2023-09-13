@@ -29,19 +29,20 @@ int CeedInit_CudaCollocatedGrad(CeedScalar *d_B, CeedScalar *d_G, CeedInt P_1d, 
 //------------------------------------------------------------------------------
 int CeedBasisApplyTensor_Cuda_shared(CeedBasis basis, const CeedInt num_elem, CeedTransposeMode t_mode, CeedEvalMode eval_mode, CeedVector u,
                                      CeedVector v) {
-  Ceed ceed;
-  CeedCallBackend(CeedBasisGetCeed(basis, &ceed));
-  Ceed_Cuda *ceed_Cuda;
-  CeedCallBackend(CeedGetData(ceed, &ceed_Cuda));
+  Ceed                   ceed;
+  Ceed_Cuda             *ceed_Cuda;
+  CeedInt                dim, num_comp;
+  const CeedScalar      *d_u;
+  CeedScalar            *d_v;
   CeedBasis_Cuda_shared *data;
+
+  CeedCallBackend(CeedBasisGetCeed(basis, &ceed));
+  CeedCallBackend(CeedGetData(ceed, &ceed_Cuda));
   CeedCallBackend(CeedBasisGetData(basis, &data));
-  CeedInt dim, num_comp;
   CeedCallBackend(CeedBasisGetDimension(basis, &dim));
   CeedCallBackend(CeedBasisGetNumComponents(basis, &num_comp));
 
   // Read vectors
-  const CeedScalar *d_u;
-  CeedScalar       *d_v;
   if (u != CEED_VECTOR_NONE) CeedCallBackend(CeedVectorGetArrayRead(u, CEED_MEM_DEVICE, &d_u));
   else CeedCheck(eval_mode == CEED_EVAL_WEIGHT, ceed, CEED_ERROR_BACKEND, "An input vector is required for this CeedEvalMode");
   CeedCallBackend(CeedVectorGetArrayWrite(v, CEED_MEM_DEVICE, &d_v));
@@ -50,11 +51,14 @@ int CeedBasisApplyTensor_Cuda_shared(CeedBasis basis, const CeedInt num_elem, Ce
   switch (eval_mode) {
     case CEED_EVAL_INTERP: {
       CeedInt P_1d, Q_1d;
+
       CeedCallBackend(CeedBasisGetNumNodes1D(basis, &P_1d));
       CeedCallBackend(CeedBasisGetNumQuadraturePoints1D(basis, &Q_1d));
       CeedInt thread_1d = CeedIntMax(Q_1d, P_1d);
+
       CeedCallBackend(CeedInit_CudaInterp(data->d_interp_1d, P_1d, Q_1d, &data->c_B));
       void *interp_args[] = {(void *)&num_elem, &data->c_B, &d_u, &d_v};
+
       if (dim == 1) {
         CeedInt elems_per_block = CeedIntMin(ceed_Cuda->device_prop.maxThreadsDim[2], CeedIntMax(512 / thread_1d,
                                                                                                  1));  // avoid >512 total threads
@@ -94,9 +98,11 @@ int CeedBasisApplyTensor_Cuda_shared(CeedBasis basis, const CeedInt num_elem, Ce
     } break;
     case CEED_EVAL_GRAD: {
       CeedInt P_1d, Q_1d;
+
       CeedCallBackend(CeedBasisGetNumNodes1D(basis, &P_1d));
       CeedCallBackend(CeedBasisGetNumQuadraturePoints1D(basis, &Q_1d));
       CeedInt thread_1d = CeedIntMax(Q_1d, P_1d);
+
       if (data->d_collo_grad_1d) {
         CeedCallBackend(CeedInit_CudaCollocatedGrad(data->d_interp_1d, data->d_collo_grad_1d, P_1d, Q_1d, &data->c_B, &data->c_G));
       } else {
@@ -140,6 +146,7 @@ int CeedBasisApplyTensor_Cuda_shared(CeedBasis basis, const CeedInt num_elem, Ce
     } break;
     case CEED_EVAL_WEIGHT: {
       CeedInt Q_1d;
+
       CeedCallBackend(CeedBasisGetNumQuadraturePoints1D(basis, &Q_1d));
       void *weight_args[] = {(void *)&num_elem, (void *)&data->d_q_weight_1d, &d_v};
       if (dim == 1) {
@@ -186,21 +193,17 @@ int CeedBasisApplyTensor_Cuda_shared(CeedBasis basis, const CeedInt num_elem, Ce
 // Destroy basis
 //------------------------------------------------------------------------------
 static int CeedBasisDestroy_Cuda_shared(CeedBasis basis) {
-  Ceed ceed;
-  CeedCallBackend(CeedBasisGetCeed(basis, &ceed));
-
+  Ceed                   ceed;
   CeedBasis_Cuda_shared *data;
+
+  CeedCallBackend(CeedBasisGetCeed(basis, &ceed));
   CeedCallBackend(CeedBasisGetData(basis, &data));
-
   CeedCallCuda(ceed, cuModuleUnload(data->module));
-
   CeedCallCuda(ceed, cudaFree(data->d_q_weight_1d));
   CeedCallCuda(ceed, cudaFree(data->d_interp_1d));
   CeedCallCuda(ceed, cudaFree(data->d_grad_1d));
   CeedCallCuda(ceed, cudaFree(data->d_collo_grad_1d));
-
   CeedCallBackend(CeedFree(&data));
-
   return CEED_ERROR_SUCCESS;
 }
 
@@ -209,28 +212,31 @@ static int CeedBasisDestroy_Cuda_shared(CeedBasis basis) {
 //------------------------------------------------------------------------------
 int CeedBasisCreateTensorH1_Cuda_shared(CeedInt dim, CeedInt P_1d, CeedInt Q_1d, const CeedScalar *interp_1d, const CeedScalar *grad_1d,
                                         const CeedScalar *q_ref_1d, const CeedScalar *q_weight_1d, CeedBasis basis) {
-  Ceed ceed;
-  CeedCallBackend(CeedBasisGetCeed(basis, &ceed));
+  Ceed                   ceed;
+  char                  *basis_kernel_path, *basis_kernel_source;
+  CeedInt                num_comp;
+  const CeedInt          q_bytes      = Q_1d * sizeof(CeedScalar);
+  const CeedInt          interp_bytes = q_bytes * P_1d;
   CeedBasis_Cuda_shared *data;
+
+  CeedCallBackend(CeedBasisGetCeed(basis, &ceed));
   CeedCallBackend(CeedCalloc(1, &data));
 
   // Copy basis data to GPU
-  const CeedInt q_bytes = Q_1d * sizeof(CeedScalar);
   CeedCallCuda(ceed, cudaMalloc((void **)&data->d_q_weight_1d, q_bytes));
   CeedCallCuda(ceed, cudaMemcpy(data->d_q_weight_1d, q_weight_1d, q_bytes, cudaMemcpyHostToDevice));
-
-  const CeedInt interp_bytes = q_bytes * P_1d;
   CeedCallCuda(ceed, cudaMalloc((void **)&data->d_interp_1d, interp_bytes));
   CeedCallCuda(ceed, cudaMemcpy(data->d_interp_1d, interp_1d, interp_bytes, cudaMemcpyHostToDevice));
-
   CeedCallCuda(ceed, cudaMalloc((void **)&data->d_grad_1d, interp_bytes));
   CeedCallCuda(ceed, cudaMemcpy(data->d_grad_1d, grad_1d, interp_bytes, cudaMemcpyHostToDevice));
 
   // Compute collocated gradient and copy to GPU
   data->d_collo_grad_1d    = NULL;
   bool has_collocated_grad = dim == 3 && Q_1d >= P_1d;
+
   if (has_collocated_grad) {
     CeedScalar *collo_grad_1d;
+
     CeedCallBackend(CeedMalloc(Q_1d * Q_1d, &collo_grad_1d));
     CeedCallBackend(CeedBasisGetCollocatedGrad(basis, collo_grad_1d));
     CeedCallCuda(ceed, cudaMalloc((void **)&data->d_collo_grad_1d, q_bytes * Q_1d));
@@ -239,9 +245,7 @@ int CeedBasisCreateTensorH1_Cuda_shared(CeedInt dim, CeedInt P_1d, CeedInt Q_1d,
   }
 
   // Compile basis kernels
-  CeedInt num_comp;
   CeedCallBackend(CeedBasisGetNumComponents(basis, &num_comp));
-  char *basis_kernel_path, *basis_kernel_source;
   CeedCallBackend(CeedGetJitAbsolutePath(ceed, "ceed/jit-source/cuda/cuda-shared-basis-tensor.h", &basis_kernel_path));
   CeedDebug256(ceed, CEED_DEBUG_COLOR_SUCCESS, "----- Loading Basis Kernel Source -----\n");
   CeedCallBackend(CeedLoadSourceToBuffer(ceed, basis_kernel_path, &basis_kernel_source));

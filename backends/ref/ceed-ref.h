@@ -47,7 +47,7 @@ typedef struct {
 } CeedQFunctionContext_Ref;
 
 typedef struct {
-  bool        is_identity_qf, is_identity_restr_op;
+  bool        is_identity_qf, is_identity_rstr_op;
   CeedVector *e_vecs_full;  /* Full E-vectors, inputs followed by outputs */
   uint64_t   *input_states; /* State counter of inputs */
   CeedVector *e_vecs_in;    /* Single element input E-vectors  */

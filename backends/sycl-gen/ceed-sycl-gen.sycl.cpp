@@ -18,7 +18,11 @@
 // Backend init
 //------------------------------------------------------------------------------
 static int CeedInit_Sycl_gen(const char *resource, Ceed ceed) {
-  char *resource_root;
+  Ceed       ceed_shared;
+  Ceed_Sycl *data, *shared_data;
+  char      *resource_root;
+  const char fallback_resource[] = "/gpu/sycl/ref";
+
   CeedCallBackend(CeedGetResourceRoot(ceed, resource, ":device_id=", &resource_root));
   if (strcmp(resource_root, "/gpu/sycl") && strcmp(resource_root, "/gpu/sycl/gen")) {
     // LCOV_EXCL_START
@@ -27,23 +31,19 @@ static int CeedInit_Sycl_gen(const char *resource, Ceed ceed) {
   }
   CeedCallBackend(CeedFree(&resource_root));
 
-  Ceed_Sycl *data;
   CeedCallBackend(CeedCalloc(1, &data));
   CeedCallBackend(CeedSetData(ceed, data));
   CeedCallBackend(CeedInit_Sycl(ceed, resource));
 
-  Ceed ceed_shared;
   CeedCallBackend(CeedInit("/gpu/sycl/shared", &ceed_shared));
 
-  Ceed_Sycl *shared_data;
   CeedCallBackend(CeedGetData(ceed_shared, &shared_data));
   // Need to use the same queue everywhere for correct synchronization
   shared_data->sycl_queue = data->sycl_queue;
 
   CeedCallBackend(CeedSetDelegate(ceed, ceed_shared));
 
-  const char fallbackresource[] = "/gpu/sycl/ref";
-  CeedCallBackend(CeedSetOperatorFallbackResource(ceed, fallbackresource));
+  CeedCallBackend(CeedSetOperatorFallbackResource(ceed, fallback_resource));
 
   CeedCallBackend(CeedSetBackendFunctionCpp(ceed, "Ceed", ceed, "QFunctionCreate", CeedQFunctionCreate_Sycl_gen));
   CeedCallBackend(CeedSetBackendFunctionCpp(ceed, "Ceed", ceed, "OperatorCreate", CeedOperatorCreate_Sycl_gen));

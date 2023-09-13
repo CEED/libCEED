@@ -18,6 +18,7 @@
 //------------------------------------------------------------------------------
 static int CeedQFunctionApply_Sycl_gen(CeedQFunction qf, CeedInt Q, CeedVector *U, CeedVector *V) {
   Ceed ceed;
+
   CeedCallBackend(CeedQFunctionGetCeed(qf, &ceed));
   return CeedError(ceed, CEED_ERROR_BACKEND, "Backend does not implement QFunctionApply");
 }
@@ -26,11 +27,12 @@ static int CeedQFunctionApply_Sycl_gen(CeedQFunction qf, CeedInt Q, CeedVector *
 // Destroy QFunction
 //------------------------------------------------------------------------------
 static int CeedQFunctionDestroy_Sycl_gen(CeedQFunction qf) {
-  Ceed ceed;
-  CeedCallBackend(CeedQFunctionGetCeed(qf, &ceed));
+  Ceed                    ceed;
+  Ceed_Sycl              *data;
   CeedQFunction_Sycl_gen *impl;
+
+  CeedCallBackend(CeedQFunctionGetCeed(qf, &ceed));
   CeedCallBackend(CeedQFunctionGetData(qf, &impl));
-  Ceed_Sycl *data;
   CeedCallBackend(CeedGetData(ceed, &data));
 
   // Wait for all work to finish before freeing memory
@@ -46,9 +48,10 @@ static int CeedQFunctionDestroy_Sycl_gen(CeedQFunction qf) {
 // Create QFunction
 //------------------------------------------------------------------------------
 int CeedQFunctionCreate_Sycl_gen(CeedQFunction qf) {
-  Ceed ceed;
-  CeedQFunctionGetCeed(qf, &ceed);
+  Ceed                    ceed;
   CeedQFunction_Sycl_gen *impl;
+
+  CeedQFunctionGetCeed(qf, &ceed);
   CeedCallBackend(CeedCalloc(1, &impl));
   CeedCallBackend(CeedQFunctionSetData(qf, impl));
 

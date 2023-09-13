@@ -26,14 +26,15 @@ static int CeedGetPreferredMemType_Sycl(CeedMemType *mem_type) {
 // Backend Init
 //------------------------------------------------------------------------------
 static int CeedInit_Sycl_ref(const char *resource, Ceed ceed) {
-  char *resource_root;
+  Ceed_Sycl *data;
+  char      *resource_root;
+
   CeedCallBackend(CeedGetResourceRoot(ceed, resource, ":", &resource_root));
   CeedCheck(!std::strcmp(resource_root, "/gpu/sycl/ref") || !std::strcmp(resource_root, "/cpu/sycl/ref"), ceed, CEED_ERROR_BACKEND,
             "Sycl backend cannot use resource: %s", resource);
   CeedCallBackend(CeedFree(&resource_root));
   CeedCallBackend(CeedSetDeterministic(ceed, true));
 
-  Ceed_Sycl *data;
   CeedCallBackend(CeedCalloc(1, &data));
   CeedCallBackend(CeedSetData(ceed, data));
   CeedCallBackend(CeedInit_Sycl(ceed, resource));
@@ -48,7 +49,6 @@ static int CeedInit_Sycl_ref(const char *resource, Ceed ceed) {
   CeedCallBackend(CeedSetBackendFunctionCpp(ceed, "Ceed", ceed, "QFunctionContextCreate", &CeedQFunctionContextCreate_Sycl));
   CeedCallBackend(CeedSetBackendFunctionCpp(ceed, "Ceed", ceed, "OperatorCreate", &CeedOperatorCreate_Sycl));
   CeedCallBackend(CeedSetBackendFunctionCpp(ceed, "Ceed", ceed, "Destroy", &CeedDestroy_Sycl));
-
   return CEED_ERROR_SUCCESS;
 }
 

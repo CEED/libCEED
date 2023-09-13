@@ -30,7 +30,7 @@ function run_ex2(; ceed_spec, dim, mesh_order, sol_order, num_qpts, prob_size, g
 
     # Build CeedElemRestriction objects describing the mesh and solution discrete
     # representations.
-    mesh_size, mesh_restr, _ = build_cartesian_restriction(
+    mesh_size, mesh_rstr, _ = build_cartesian_restriction(
         ceed,
         dim,
         nxyz,
@@ -39,7 +39,7 @@ function run_ex2(; ceed_spec, dim, mesh_order, sol_order, num_qpts, prob_size, g
         num_qpts,
         mode=RestrictionOnly,
     )
-    sol_size, _, qdata_restr_i = build_cartesian_restriction(
+    sol_size, _, qdata_rstr_i = build_cartesian_restriction(
         ceed,
         dim,
         nxyz,
@@ -48,7 +48,7 @@ function run_ex2(; ceed_spec, dim, mesh_order, sol_order, num_qpts, prob_size, g
         num_qpts,
         mode=StridedOnly,
     )
-    sol_size, sol_restr, sol_restr_i = build_cartesian_restriction(
+    sol_size, sol_rstr, sol_rstr_i = build_cartesian_restriction(
         ceed,
         dim,
         nxyz,
@@ -91,9 +91,9 @@ function run_ex2(; ceed_spec, dim, mesh_order, sol_order, num_qpts, prob_size, g
         ceed,
         qf=build_qfunc,
         fields=[
-            (gallery ? :dx : :J, mesh_restr, mesh_basis, CeedVectorActive()),
+            (gallery ? :dx : :J, mesh_rstr, mesh_basis, CeedVectorActive()),
             (gallery ? :weights : :w, ElemRestrictionNone(), mesh_basis, CeedVectorNone()),
-            (:qdata, qdata_restr_i, BasisNone(), CeedVectorActive()),
+            (:qdata, qdata_rstr_i, BasisNone(), CeedVectorActive()),
         ],
     )
 
@@ -128,9 +128,9 @@ function run_ex2(; ceed_spec, dim, mesh_order, sol_order, num_qpts, prob_size, g
         ceed,
         qf=apply_qfunc,
         fields=[
-            (:du, sol_restr, sol_basis, CeedVectorActive()),
-            (:qdata, qdata_restr_i, BasisNone(), qdata),
-            (:dv, sol_restr, sol_basis, CeedVectorActive()),
+            (:du, sol_rstr, sol_basis, CeedVectorActive()),
+            (:qdata, qdata_rstr_i, BasisNone(), qdata),
+            (:dv, sol_rstr, sol_basis, CeedVectorActive()),
         ],
     )
 

@@ -22,9 +22,14 @@
 extern "C" int CeedQFunctionBuildKernel_Cuda_ref(CeedQFunction qf) {
   using std::ostringstream;
   using std::string;
-  Ceed ceed;
-  CeedQFunctionGetCeed(qf, &ceed);
+
+  Ceed                ceed;
+  char               *read_write_kernel_path, *read_write_kernel_source;
+  CeedInt             num_input_fields, num_output_fields, size;
+  CeedQFunctionField *input_fields, *output_fields;
   CeedQFunction_Cuda *data;
+
+  CeedQFunctionGetCeed(qf, &ceed);
   CeedCallBackend(CeedQFunctionGetData(qf, (void **)&data));
 
   // QFunction is built
@@ -33,12 +38,9 @@ extern "C" int CeedQFunctionBuildKernel_Cuda_ref(CeedQFunction qf) {
   CeedCheck(data->qfunction_source, ceed, CEED_ERROR_BACKEND, "No QFunction source or CUfunction provided.");
 
   // QFunction kernel generation
-  CeedInt             num_input_fields, num_output_fields, size;
-  CeedQFunctionField *input_fields, *output_fields;
   CeedCallBackend(CeedQFunctionGetFields(qf, &num_input_fields, &input_fields, &num_output_fields, &output_fields));
 
   // Build strings for final kernel
-  char *read_write_kernel_path, *read_write_kernel_source;
   CeedCallBackend(CeedGetJitAbsolutePath(ceed, "ceed/jit-source/cuda/cuda-ref-qfunction.h", &read_write_kernel_path));
   CeedDebug256(ceed, CEED_DEBUG_COLOR_SUCCESS, "----- Loading QFunction Read/Write Kernel Source -----\n");
   CeedCallBackend(CeedLoadSourceToBuffer(ceed, read_write_kernel_path, &read_write_kernel_source));
@@ -116,7 +118,6 @@ extern "C" int CeedQFunctionBuildKernel_Cuda_ref(CeedQFunction qf) {
   CeedCallBackend(CeedFree(&data->qfunction_source));
   CeedCallBackend(CeedFree(&read_write_kernel_path));
   CeedCallBackend(CeedFree(&read_write_kernel_source));
-
   return CEED_ERROR_SUCCESS;
 }
 

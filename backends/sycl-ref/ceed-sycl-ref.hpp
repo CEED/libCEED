@@ -83,31 +83,32 @@ typedef struct {
 } CeedQFunctionContext_Sycl;
 
 typedef struct {
-  CeedBasis           basisin, basisout;
-  CeedElemRestriction diagrstr, pbdiagrstr;
-  CeedVector          elemdiag, pbelemdiag;
-  CeedInt             numemodein, numemodeout, nnodes;
-  CeedInt             nqpts, ncomp;  // Kernel parameters
-  CeedEvalMode       *h_emodein, *h_emodeout;
-  CeedEvalMode       *d_emodein, *d_emodeout;
-  CeedScalar         *d_identity, *d_interpin, *d_interpout, *d_gradin, *d_gradout;
+  CeedBasis           basis_in, basis_out;
+  CeedElemRestriction diag_rstr, point_block_diag_rstr;
+  CeedVector          elem_diag, point_block_elem_diag;
+  CeedInt             num_e_mode_in, num_e_mode_out, num_nodes;
+  CeedInt             num_qpts, num_comp;  // Kernel parameters
+  CeedEvalMode       *h_e_mode_in, *h_e_mode_out;
+  CeedEvalMode       *d_e_mode_in, *d_e_mode_out;
+  CeedScalar         *d_identity, *d_interp_in, *d_interp_out, *d_grad_in, *d_grad_out;
 } CeedOperatorDiag_Sycl;
 
 typedef struct {
-  CeedInt     nelem, block_size_x, block_size_y, elemsPerBlock;
-  CeedInt     numemodein, numemodeout, nqpts, nnodes, block_size, ncomp;  // Kernel parameters
+  CeedInt     num_elem, block_size_x, block_size_y, elem_per_block;
+  CeedInt     num_e_mode_in, num_e_mode_out, num_qpts, num_nodes, block_size, num_comp;  // Kernel parameters
   bool        fallback;
   CeedScalar *d_B_in, *d_B_out;
 } CeedOperatorAssemble_Sycl;
 
 typedef struct {
-  CeedVector                *evecs;     // E-vectors, inputs followed by outputs
-  CeedVector                *qvecsin;   // Input Q-vectors needed to apply operator
-  CeedVector                *qvecsout;  // Output Q-vectors needed to apply operator
-  CeedInt                    numein;
-  CeedInt                    numeout;
-  CeedInt                    qfnumactivein, qfnumactiveout;
-  CeedVector                *qfactivein;
+  CeedVector                *e_vecs;      // E-vectors, inputs followed by outputs
+  CeedVector                *q_vecs_in;   // Input Q-vectors needed to apply operator
+  CeedVector                *q_vecs_out;  // Output Q-vectors needed to apply operator
+  CeedInt                    num_e_in;
+  CeedInt                    num_e_out;
+  CeedInt                    num_inputs, num_outputs;
+  CeedInt                    num_active_in, num_active_out;
+  CeedVector                *qf_active_in;
   CeedOperatorDiag_Sycl     *diag;
   CeedOperatorAssemble_Sycl *asmb;
 } CeedOperator_Sycl;
@@ -115,10 +116,10 @@ typedef struct {
 CEED_INTERN int CeedVectorCreate_Sycl(CeedSize n, CeedVector vec);
 
 CEED_INTERN int CeedBasisCreateTensorH1_Sycl(CeedInt dim, CeedInt P_1d, CeedInt Q_1d, const CeedScalar *interp_1d, const CeedScalar *grad_1d,
-                                             const CeedScalar *qref_1d, const CeedScalar *qweight_1d, CeedBasis basis);
+                                             const CeedScalar *q_ref_1d, const CeedScalar *q_weight_1d, CeedBasis basis);
 
-CEED_INTERN int CeedBasisCreateH1_Sycl(CeedElemTopology topo, CeedInt dim, CeedInt ndof, CeedInt nqpts, const CeedScalar *interp,
-                                       const CeedScalar *grad, const CeedScalar *qref, const CeedScalar *qweight, CeedBasis basis);
+CEED_INTERN int CeedBasisCreateH1_Sycl(CeedElemTopology topo, CeedInt dim, CeedInt num_dof, CeedInt num_qpts, const CeedScalar *interp,
+                                       const CeedScalar *grad, const CeedScalar *q_ref, const CeedScalar *q_weight, CeedBasis basis);
 
 CEED_INTERN int CeedElemRestrictionCreate_Sycl(CeedMemType mem_type, CeedCopyMode copy_mode, const CeedInt *indices, const bool *orients,
                                                const CeedInt8 *curl_orients, CeedElemRestriction r);

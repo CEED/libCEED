@@ -19,18 +19,20 @@
 // Basis apply - tensor
 //------------------------------------------------------------------------------
 int CeedBasisApply_Cuda(CeedBasis basis, const CeedInt num_elem, CeedTransposeMode t_mode, CeedEvalMode eval_mode, CeedVector u, CeedVector v) {
-  Ceed ceed;
-  CeedCallBackend(CeedBasisGetCeed(basis, &ceed));
-  Ceed_Cuda *ceed_Cuda;
-  CeedCallBackend(CeedGetData(ceed, &ceed_Cuda));
-  CeedBasis_Cuda *data;
-  CeedCallBackend(CeedBasisGetData(basis, &data));
-  const CeedInt transpose      = t_mode == CEED_TRANSPOSE;
-  const int     max_block_size = 32;
-
-  // Read vectors
+  Ceed              ceed;
+  Ceed_Cuda        *ceed_Cuda;
+  CeedInt           Q_1d, dim;
+  const CeedInt     transpose      = t_mode == CEED_TRANSPOSE;
+  const int         max_block_size = 32;
   const CeedScalar *d_u;
   CeedScalar       *d_v;
+  CeedBasis_Cuda   *data;
+
+  CeedCallBackend(CeedBasisGetCeed(basis, &ceed));
+  CeedCallBackend(CeedGetData(ceed, &ceed_Cuda));
+  CeedCallBackend(CeedBasisGetData(basis, &data));
+
+  // Read vectors
   if (u != CEED_VECTOR_NONE) CeedCallBackend(CeedVectorGetArrayRead(u, CEED_MEM_DEVICE, &d_u));
   else CeedCheck(eval_mode == CEED_EVAL_WEIGHT, ceed, CEED_ERROR_BACKEND, "An input vector is required for this CeedEvalMode");
   CeedCallBackend(CeedVectorGetArrayWrite(v, CEED_MEM_DEVICE, &d_v));
@@ -38,10 +40,10 @@ int CeedBasisApply_Cuda(CeedBasis basis, const CeedInt num_elem, CeedTransposeMo
   // Clear v for transpose operation
   if (t_mode == CEED_TRANSPOSE) {
     CeedSize length;
+
     CeedCallBackend(CeedVectorGetLength(v, &length));
     CeedCallCuda(ceed, cudaMemset(d_v, 0, length * sizeof(CeedScalar)));
   }
-  CeedInt Q_1d, dim;
   CeedCallBackend(CeedBasisGetNumQuadraturePoints1D(basis, &Q_1d));
   CeedCallBackend(CeedBasisGetDimension(basis, &dim));
 
@@ -92,22 +94,23 @@ int CeedBasisApply_Cuda(CeedBasis basis, const CeedInt num_elem, CeedTransposeMo
 //------------------------------------------------------------------------------
 int CeedBasisApplyNonTensor_Cuda(CeedBasis basis, const CeedInt num_elem, CeedTransposeMode t_mode, CeedEvalMode eval_mode, CeedVector u,
                                  CeedVector v) {
-  Ceed ceed;
-  CeedCallBackend(CeedBasisGetCeed(basis, &ceed));
-  Ceed_Cuda *ceed_Cuda;
-  CeedCallBackend(CeedGetData(ceed, &ceed_Cuda));
+  Ceed                     ceed;
+  Ceed_Cuda               *ceed_Cuda;
+  CeedInt                  num_nodes, num_qpts;
+  const CeedInt            transpose       = t_mode == CEED_TRANSPOSE;
+  int                      elems_per_block = 1;
+  int                      grid            = num_elem / elems_per_block + ((num_elem / elems_per_block * elems_per_block < num_elem) ? 1 : 0);
+  const CeedScalar        *d_u;
+  CeedScalar              *d_v;
   CeedBasisNonTensor_Cuda *data;
+
+  CeedCallBackend(CeedBasisGetCeed(basis, &ceed));
+  CeedCallBackend(CeedGetData(ceed, &ceed_Cuda));
   CeedCallBackend(CeedBasisGetData(basis, &data));
-  CeedInt num_nodes, num_qpts;
   CeedCallBackend(CeedBasisGetNumQuadraturePoints(basis, &num_qpts));
   CeedCallBackend(CeedBasisGetNumNodes(basis, &num_nodes));
-  const CeedInt transpose       = t_mode == CEED_TRANSPOSE;
-  int           elems_per_block = 1;
-  int           grid            = num_elem / elems_per_block + ((num_elem / elems_per_block * elems_per_block < num_elem) ? 1 : 0);
 
   // Read vectors
-  const CeedScalar *d_u;
-  CeedScalar       *d_v;
   if (eval_mode != CEED_EVAL_WEIGHT) {
     CeedCallBackend(CeedVectorGetArrayRead(u, CEED_MEM_DEVICE, &d_u));
   }
@@ -116,6 +119,7 @@ int CeedBasisApplyNonTensor_Cuda(CeedBasis basis, const CeedInt num_elem, CeedTr
   // Clear v for transpose operation
   if (t_mode == CEED_TRANSPOSE) {
     CeedSize length;
+
     CeedCallBackend(CeedVectorGetLength(v, &length));
     CeedCallCuda(ceed, cudaMemset(d_v, 0, length * sizeof(CeedScalar)));
   }
@@ -164,19 +168,16 @@ int CeedBasisApplyNonTensor_Cuda(CeedBasis basis, const CeedInt num_elem, CeedTr
 // Destroy tensor basis
 //------------------------------------------------------------------------------
 static int CeedBasisDestroy_Cuda(CeedBasis basis) {
-  Ceed ceed;
-  CeedCallBackend(CeedBasisGetCeed(basis, &ceed));
-
+  Ceed            ceed;
   CeedBasis_Cuda *data;
+
+  CeedCallBackend(CeedBasisGetCeed(basis, &ceed));
   CeedCallBackend(CeedBasisGetData(basis, &data));
-
   CeedCallCuda(ceed, cuModuleUnload(data->module));
-
   CeedCallCuda(ceed, cudaFree(data->d_q_weight_1d));
   CeedCallCuda(ceed, cudaFree(data->d_interp_1d));
   CeedCallCuda(ceed, cudaFree(data->d_grad_1d));
   CeedCallBackend(CeedFree(&data));
-
   return CEED_ERROR_SUCCESS;
 }
 
@@ -184,19 +185,16 @@ static int CeedBasisDestroy_Cuda(CeedBasis basis) {
 // Destroy non-tensor basis
 //------------------------------------------------------------------------------
 static int CeedBasisDestroyNonTensor_Cuda(CeedBasis basis) {
-  Ceed ceed;
-  CeedCallBackend(CeedBasisGetCeed(basis, &ceed));
-
+  Ceed                     ceed;
   CeedBasisNonTensor_Cuda *data;
+
+  CeedCallBackend(CeedBasisGetCeed(basis, &ceed));
   CeedCallBackend(CeedBasisGetData(basis, &data));
-
   CeedCallCuda(ceed, cuModuleUnload(data->module));
-
   CeedCallCuda(ceed, cudaFree(data->d_q_weight));
   CeedCallCuda(ceed, cudaFree(data->d_interp));
   CeedCallCuda(ceed, cudaFree(data->d_grad));
   CeedCallBackend(CeedFree(&data));
-
   return CEED_ERROR_SUCCESS;
 }
 
@@ -205,27 +203,26 @@ static int CeedBasisDestroyNonTensor_Cuda(CeedBasis basis) {
 //------------------------------------------------------------------------------
 int CeedBasisCreateTensorH1_Cuda(CeedInt dim, CeedInt P_1d, CeedInt Q_1d, const CeedScalar *interp_1d, const CeedScalar *grad_1d,
                                  const CeedScalar *q_ref_1d, const CeedScalar *q_weight_1d, CeedBasis basis) {
-  Ceed ceed;
-  CeedCallBackend(CeedBasisGetCeed(basis, &ceed));
+  Ceed            ceed;
+  char           *basis_kernel_path, *basis_kernel_source;
+  CeedInt         num_comp;
+  const CeedInt   q_bytes      = Q_1d * sizeof(CeedScalar);
+  const CeedInt   interp_bytes = q_bytes * P_1d;
   CeedBasis_Cuda *data;
+
+  CeedCallBackend(CeedBasisGetCeed(basis, &ceed));
   CeedCallBackend(CeedCalloc(1, &data));
 
   // Copy data to GPU
-  const CeedInt q_bytes = Q_1d * sizeof(CeedScalar);
   CeedCallCuda(ceed, cudaMalloc((void **)&data->d_q_weight_1d, q_bytes));
   CeedCallCuda(ceed, cudaMemcpy(data->d_q_weight_1d, q_weight_1d, q_bytes, cudaMemcpyHostToDevice));
-
-  const CeedInt interp_bytes = q_bytes * P_1d;
   CeedCallCuda(ceed, cudaMalloc((void **)&data->d_interp_1d, interp_bytes));
   CeedCallCuda(ceed, cudaMemcpy(data->d_interp_1d, interp_1d, interp_bytes, cudaMemcpyHostToDevice));
-
   CeedCallCuda(ceed, cudaMalloc((void **)&data->d_grad_1d, interp_bytes));
   CeedCallCuda(ceed, cudaMemcpy(data->d_grad_1d, grad_1d, interp_bytes, cudaMemcpyHostToDevice));
 
   // Compile basis kernels
-  CeedInt num_comp;
   CeedCallBackend(CeedBasisGetNumComponents(basis, &num_comp));
-  char *basis_kernel_path, *basis_kernel_source;
   CeedCallBackend(CeedGetJitAbsolutePath(ceed, "ceed/jit-source/cuda/cuda-ref-basis-tensor.h", &basis_kernel_path));
   CeedDebug256(ceed, CEED_DEBUG_COLOR_SUCCESS, "----- Loading Basis Kernel Source -----\n");
   CeedCallBackend(CeedLoadSourceToBuffer(ceed, basis_kernel_path, &basis_kernel_source));
@@ -251,28 +248,27 @@ int CeedBasisCreateTensorH1_Cuda(CeedInt dim, CeedInt P_1d, CeedInt Q_1d, const 
 //------------------------------------------------------------------------------
 int CeedBasisCreateH1_Cuda(CeedElemTopology topo, CeedInt dim, CeedInt num_nodes, CeedInt num_qpts, const CeedScalar *interp, const CeedScalar *grad,
                            const CeedScalar *q_ref, const CeedScalar *q_weight, CeedBasis basis) {
-  Ceed ceed;
-  CeedCallBackend(CeedBasisGetCeed(basis, &ceed));
+  Ceed                     ceed;
+  char                    *basis_kernel_path, *basis_kernel_source;
+  CeedInt                  num_comp;
+  const CeedInt            q_bytes      = num_qpts * sizeof(CeedScalar);
+  const CeedInt            interp_bytes = q_bytes * num_nodes;
+  const CeedInt            grad_bytes   = q_bytes * num_nodes * dim;
   CeedBasisNonTensor_Cuda *data;
+
+  CeedCallBackend(CeedBasisGetCeed(basis, &ceed));
   CeedCallBackend(CeedCalloc(1, &data));
 
   // Copy basis data to GPU
-  const CeedInt q_bytes = num_qpts * sizeof(CeedScalar);
   CeedCallCuda(ceed, cudaMalloc((void **)&data->d_q_weight, q_bytes));
   CeedCallCuda(ceed, cudaMemcpy(data->d_q_weight, q_weight, q_bytes, cudaMemcpyHostToDevice));
-
-  const CeedInt interp_bytes = q_bytes * num_nodes;
   CeedCallCuda(ceed, cudaMalloc((void **)&data->d_interp, interp_bytes));
   CeedCallCuda(ceed, cudaMemcpy(data->d_interp, interp, interp_bytes, cudaMemcpyHostToDevice));
-
-  const CeedInt grad_bytes = q_bytes * num_nodes * dim;
   CeedCallCuda(ceed, cudaMalloc((void **)&data->d_grad, grad_bytes));
   CeedCallCuda(ceed, cudaMemcpy(data->d_grad, grad, grad_bytes, cudaMemcpyHostToDevice));
 
   // Compile basis kernels
-  CeedInt num_comp;
   CeedCallBackend(CeedBasisGetNumComponents(basis, &num_comp));
-  char *basis_kernel_path, *basis_kernel_source;
   CeedCallBackend(CeedGetJitAbsolutePath(ceed, "ceed/jit-source/cuda/cuda-ref-basis-nontensor.h", &basis_kernel_path));
   CeedDebug256(ceed, CEED_DEBUG_COLOR_SUCCESS, "----- Loading Basis Kernel Source -----\n");
   CeedCallBackend(CeedLoadSourceToBuffer(ceed, basis_kernel_path, &basis_kernel_source));

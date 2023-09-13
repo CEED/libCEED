@@ -60,10 +60,10 @@ typedef struct {
   CeedMagmaFunction magma_grad;
   CeedMagmaFunction magma_grad_tr;
   CeedMagmaFunction magma_weight;
-  CeedScalar       *dqref1d;
-  CeedScalar       *dinterp1d;
-  CeedScalar       *dgrad1d;
-  CeedScalar       *dqweight1d;
+  CeedScalar       *d_q_ref_1d;
+  CeedScalar       *d_interp_1d;
+  CeedScalar       *d_grad_1d;
+  CeedScalar       *d_q_weight_1d;
 } CeedBasis_Magma;
 
 typedef struct {
@@ -72,30 +72,30 @@ typedef struct {
   CeedMagmaFunction magma_interp_tr_nontensor[MAGMA_NONTENSOR_KERNEL_INSTANCES];
   CeedMagmaFunction magma_grad_nontensor[MAGMA_NONTENSOR_KERNEL_INSTANCES];
   CeedMagmaFunction magma_grad_tr_nontensor[MAGMA_NONTENSOR_KERNEL_INSTANCES];
-  CeedScalar       *dqref;
-  CeedScalar       *dinterp;
-  CeedScalar       *dgrad;
-  CeedScalar       *dqweight;
+  CeedScalar       *d_q_ref;
+  CeedScalar       *d_interp;
+  CeedScalar       *d_grad;
+  CeedScalar       *d_q_weight;
 } CeedBasisNonTensor_Magma;
 
-CEED_INTERN void magma_weight_nontensor(magma_int_t grid, magma_int_t threads, magma_int_t nelem, magma_int_t Q, CeedScalar *dqweight, CeedScalar *dv,
-                                        magma_queue_t queue);
+CEED_INTERN void magma_weight_nontensor(magma_int_t grid, magma_int_t threads, magma_int_t num_elem, magma_int_t Q, CeedScalar *d_q_weight,
+                                        CeedScalar *d_v, magma_queue_t queue);
 
-CEED_INTERN int magma_gemm_nontensor(magma_trans_t transA, magma_trans_t transB, magma_int_t m, magma_int_t n, magma_int_t k, CeedScalar alpha,
-                                     const CeedScalar *dA, magma_int_t ldda, const CeedScalar *dB, magma_int_t lddb, CeedScalar beta, CeedScalar *dC,
-                                     magma_int_t lddc, magma_queue_t queue);
+CEED_INTERN int magma_gemm_nontensor(magma_trans_t trans_A, magma_trans_t trans_B, magma_int_t m, magma_int_t n, magma_int_t k, CeedScalar alpha,
+                                     const CeedScalar *d_A, magma_int_t ldda, const CeedScalar *d_B, magma_int_t lddb, CeedScalar beta,
+                                     CeedScalar *d_C, magma_int_t lddc, magma_queue_t queue);
 
-CEED_INTERN void gemm_selector(int gpu_arch, char precision, char transA, int m, int n, int k, int *nbatch, int *use_magma);
+CEED_INTERN void gemm_selector(int gpu_arch, char precision, char trans_A, int m, int n, int k, int *n_batch, int *use_magma);
 
-CEED_INTERN CeedInt nontensor_rtc_get_nb(int gpu_arch, char precision, CeedEvalMode emode, CeedTransposeMode tmode, int P_, int N, int Q_);
+CEED_INTERN CeedInt nontensor_rtc_get_nb(int gpu_arch, char precision, CeedEvalMode e_mode, CeedTransposeMode t_mode, int P_, int N, int Q_);
 
 CEED_INTERN magma_int_t magma_isdevptr(const void *A);
 
-CEED_INTERN int CeedBasisCreateTensorH1_Magma(CeedInt dim, CeedInt P1d, CeedInt Q1d, const CeedScalar *interp1d, const CeedScalar *grad1d,
-                                              const CeedScalar *qref1d, const CeedScalar *qweight1d, CeedBasis basis);
+CEED_INTERN int CeedBasisCreateTensorH1_Magma(CeedInt dim, CeedInt P_1d, CeedInt Q_1d, const CeedScalar *interp_1d, const CeedScalar *grad_1d,
+                                              const CeedScalar *q_ref_1d, const CeedScalar *q_weight_1d, CeedBasis basis);
 
-CEED_INTERN int CeedBasisCreateH1_Magma(CeedElemTopology topo, CeedInt dim, CeedInt ndof, CeedInt nqpts, const CeedScalar *interp,
-                                        const CeedScalar *grad, const CeedScalar *qref, const CeedScalar *qweight, CeedBasis basis);
+CEED_INTERN int CeedBasisCreateH1_Magma(CeedElemTopology topo, CeedInt dim, CeedInt num_dof, CeedInt num_qpts, const CeedScalar *interp,
+                                        const CeedScalar *grad, const CeedScalar *q_ref, const CeedScalar *q_weight, CeedBasis basis);
 
 // Comment the line below to use the default magma_is_devptr function
 #define magma_is_devptr magma_isdevptr

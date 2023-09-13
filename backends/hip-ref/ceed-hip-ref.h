@@ -86,30 +86,29 @@ typedef struct {
   hipModule_t         module;
   hipFunction_t       linearDiagonal;
   hipFunction_t       linearPointBlock;
-  CeedBasis           basisin, basisout;
-  CeedElemRestriction diagrstr, pbdiagrstr;
-  CeedVector          elemdiag, pbelemdiag;
-  CeedInt             numemodein, numemodeout, nnodes;
-  CeedEvalMode       *h_emodein, *h_emodeout;
-  CeedEvalMode       *d_emodein, *d_emodeout;
-  CeedScalar         *d_identity, *d_interpin, *d_interpout, *d_gradin, *d_gradout;
+  CeedBasis           basis_in, basis_out;
+  CeedElemRestriction diag_rstr, point_block_diag_rstr;
+  CeedVector          elem_diag, point_block_elem_diag;
+  CeedInt             num_e_mode_in, num_e_mode_out, num_modes;
+  CeedEvalMode       *h_e_mode_in, *h_e_mode_out;
+  CeedEvalMode       *d_e_mode_in, *d_e_mode_out;
+  CeedScalar         *d_identity, *d_interp_in, *d_interp_out, *d_grad_in, *d_grad_out;
 } CeedOperatorDiag_Hip;
 
 typedef struct {
   hipModule_t   module;
   hipFunction_t linearAssemble;
-  CeedInt       nelem, block_size_x, block_size_y, elemsPerBlock;
+  CeedInt       num_elem, block_size_x, block_size_y, elem_per_block;
   CeedScalar   *d_B_in, *d_B_out;
 } CeedOperatorAssemble_Hip;
 
 typedef struct {
-  CeedVector               *evecs;     // E-vectors, inputs followed by outputs
-  CeedVector               *qvecsin;   // Input Q-vectors needed to apply operator
-  CeedVector               *qvecsout;  // Output Q-vectors needed to apply operator
-  CeedInt                   numein;
-  CeedInt                   numeout;
-  CeedInt                   qfnumactivein, qfnumactiveout;
-  CeedVector               *qfactivein;
+  CeedVector               *e_vecs;      // E-vectors, inputs followed by outputs
+  CeedVector               *q_vecs_in;   // Input Q-vectors needed to apply operator
+  CeedVector               *q_vecs_out;  // Output Q-vectors needed to apply operator
+  CeedInt                   num_inputs, num_outputs;
+  CeedInt                   num_active_in, num_active_out;
+  CeedVector               *qf_active_in;
   CeedOperatorDiag_Hip     *diag;
   CeedOperatorAssemble_Hip *asmb;
 } CeedOperator_Hip;

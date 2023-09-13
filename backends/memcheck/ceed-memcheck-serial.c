@@ -15,18 +15,18 @@
 // Backend Init
 //------------------------------------------------------------------------------
 static int CeedInit_Memcheck(const char *resource, Ceed ceed) {
+  Ceed ceed_ref;
+
   CeedCheck(!strcmp(resource, "/cpu/self/memcheck") || !strcmp(resource, "/cpu/self/memcheck/serial"), ceed, CEED_ERROR_BACKEND,
             "Valgrind Memcheck backend cannot use resource: %s", resource);
 
   // Create reference Ceed that implementation will be dispatched through unless overridden
-  Ceed ceed_ref;
   CeedCallBackend(CeedInit("/cpu/self/ref/serial", &ceed_ref));
   CeedCallBackend(CeedSetDelegate(ceed, ceed_ref));
 
   CeedCallBackend(CeedSetBackendFunction(ceed, "Ceed", ceed, "VectorCreate", CeedVectorCreate_Memcheck));
   CeedCallBackend(CeedSetBackendFunction(ceed, "Ceed", ceed, "QFunctionCreate", CeedQFunctionCreate_Memcheck));
   CeedCallBackend(CeedSetBackendFunction(ceed, "Ceed", ceed, "QFunctionContextCreate", CeedQFunctionContextCreate_Memcheck));
-
   return CEED_ERROR_SUCCESS;
 }
 

@@ -933,8 +933,8 @@ function CeedSetObjectDelegate(ceed, delegate, obj_name)
     ccall((:CeedSetObjectDelegate, libceed), Cint, (Ceed, Ceed, Ptr{Cchar}), ceed, delegate, obj_name)
 end
 
-function CeedGetOperatorFallbackResource(ceed, resource)
-    ccall((:CeedGetOperatorFallbackResource, libceed), Cint, (Ceed, Ptr{Ptr{Cchar}}), ceed, resource)
+function CeedGetOperatorfallback_resource(ceed, resource)
+    ccall((:CeedGetOperatorfallback_resource, libceed), Cint, (Ceed, Ptr{Ptr{Cchar}}), ceed, resource)
 end
 
 function CeedGetOperatorFallbackCeed(ceed, fallback_ceed)

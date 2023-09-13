@@ -18,23 +18,23 @@
 // Backend init
 //------------------------------------------------------------------------------
 static int CeedInit_Cuda_shared(const char *resource, Ceed ceed) {
-  char *resource_root;
+  Ceed       ceed_ref;
+  Ceed_Cuda *data;
+  char      *resource_root;
+
   CeedCallBackend(CeedGetResourceRoot(ceed, resource, ":", &resource_root));
   CeedCheck(!strcmp(resource_root, "/gpu/cuda/shared"), ceed, CEED_ERROR_BACKEND, "Cuda backend cannot use resource: %s", resource);
   CeedCallBackend(CeedSetDeterministic(ceed, true));
 
-  Ceed_Cuda *data;
   CeedCallBackend(CeedCalloc(1, &data));
   CeedCallBackend(CeedSetData(ceed, data));
   CeedCallBackend(CeedInit_Cuda(ceed, resource));
 
-  Ceed ceed_ref;
   CeedCallBackend(CeedInit("/gpu/cuda/ref", &ceed_ref));
   CeedCallBackend(CeedSetDelegate(ceed, ceed_ref));
 
   CeedCallBackend(CeedSetBackendFunction(ceed, "Ceed", ceed, "BasisCreateTensorH1", CeedBasisCreateTensorH1_Cuda_shared));
   CeedCallBackend(CeedSetBackendFunction(ceed, "Ceed", ceed, "Destroy", CeedDestroy_Cuda));
-
   return CEED_ERROR_SUCCESS;
 }
 

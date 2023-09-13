@@ -219,7 +219,7 @@ CEED_EXTERN int CeedGetDelegate(Ceed ceed, Ceed *delegate);
 CEED_EXTERN int CeedSetDelegate(Ceed ceed, Ceed delegate);
 CEED_EXTERN int CeedGetObjectDelegate(Ceed ceed, Ceed *delegate, const char *obj_name);
 CEED_EXTERN int CeedSetObjectDelegate(Ceed ceed, Ceed delegate, const char *obj_name);
-CEED_EXTERN int CeedGetOperatorFallbackResource(Ceed ceed, const char **resource);
+CEED_EXTERN int CeedGetOperatorfallback_resource(Ceed ceed, const char **resource);
 CEED_EXTERN int CeedGetOperatorFallbackCeed(Ceed ceed, Ceed *fallback_ceed);
 CEED_EXTERN int CeedSetOperatorFallbackResource(Ceed ceed, const char *resource);
 CEED_EXTERN int CeedSetDeterministic(Ceed ceed, bool is_deterministic);

@@ -51,7 +51,7 @@ CEED_QFUNCTION_HELPER void OrientBasisWithVector(CeedScalar basis[3][3], const C
 }
 
 // @brief Denormalize outputs using min-max (de-)normalization
-CEED_QFUNCTION_HELPER void DenormalizeDDOutputs(CeedScalar output[6], const CeedScalar new_bounds[6][2], const CeedScalar old_bounds[6][2]) {
+CEED_QFUNCTION_HELPER void DenormalizeDDOutputs(CeedScalar output[6], const CeedScalar (*new_bounds)[2], const CeedScalar old_bounds[6][2]) {
   CeedScalar bounds_ratio;
   for (int i = 0; i < 6; i++) {
     bounds_ratio = (new_bounds[i][1] - new_bounds[i][0]) / (old_bounds[i][1] - old_bounds[i][0]);
@@ -118,7 +118,7 @@ CEED_QFUNCTION_HELPER void ComputeSGS_DDAnisotropicInputs(const CeedScalar grad_
  * @param[out]    kmsgs_stress        Physical SGS stresses in Kelvin-Mandel notation
  */
 CEED_QFUNCTION_HELPER void ComputeSGS_DDAnisotropicOutputs(CeedScalar outputs[6], const CeedScalar delta, const CeedScalar eigenvectors[3][3],
-                                                           const CeedScalar new_bounds[6][2], const CeedScalar grad_velo_magnitude,
+                                                           const CeedScalar (*new_bounds)[2], const CeedScalar grad_velo_magnitude,
                                                            CeedScalar kmsgs_stress[6]) {
   CeedScalar old_bounds[6][2] = {{0}};
   for (int j = 0; j < 6; j++) old_bounds[j][1] = 1;

@@ -18,16 +18,16 @@
 int CeedInit_Magma_common(Ceed ceed, const char *resource) {
   const char *device_spec = strstr(resource, ":device_id=");
   const int   device_id   = (device_spec) ? atoi(device_spec + 11) : -1;
+  int         current_device_id;
+  Ceed_Magma *data;
 
   CeedCallBackend(magma_init());
 
-  int current_device_id;
   magma_getdevice(&current_device_id);
   if (device_id >= 0 && current_device_id != device_id) {
     magma_setdevice(device_id);
     current_device_id = device_id;
   }
-  Ceed_Magma *data;
   CeedCallBackend(CeedGetData(ceed, &data));
   data->device_id = current_device_id;
 #ifdef CEED_MAGMA_USE_HIP
@@ -43,6 +43,7 @@ int CeedInit_Magma_common(Ceed ceed, const char *resource) {
 //------------------------------------------------------------------------------
 int CeedDestroy_Magma(Ceed ceed) {
   Ceed_Magma *data;
+
   CeedCallBackend(CeedGetData(ceed, &data));
   magma_queue_destroy(data->queue);
   CeedCallBackend(CeedFree(&data));

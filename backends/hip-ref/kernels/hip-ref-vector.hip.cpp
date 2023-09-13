@@ -12,21 +12,22 @@
 // Kernel for set value on device
 //------------------------------------------------------------------------------
 __global__ static void setValueK(CeedScalar *__restrict__ vec, CeedSize size, CeedScalar val) {
-  CeedSize idx = threadIdx.x + (CeedSize)blockDim.x * blockIdx.x;
-  if (idx >= size) return;
-  vec[idx] = val;
+  CeedSize index = threadIdx.x + (CeedSize)blockDim.x * blockIdx.x;
+
+  if (index >= size) return;
+  vec[index] = val;
 }
 
 //------------------------------------------------------------------------------
 // Set value on device memory
 //------------------------------------------------------------------------------
 extern "C" int CeedDeviceSetValue_Hip(CeedScalar *d_array, CeedSize length, CeedScalar val) {
-  const int      bsize    = 512;
-  const CeedSize vecsize  = length;
-  int            gridsize = vecsize / bsize;
+  const int      block_size = 512;
+  const CeedSize vec_size   = length;
+  int            grid_size  = vec_size / block_size;
 
-  if (bsize * gridsize < vecsize) gridsize += 1;
-  hipLaunchKernelGGL(setValueK, dim3(gridsize), dim3(bsize), 0, 0, d_array, length, val);
+  if (block_size * grid_size < vec_size) grid_size += 1;
+  hipLaunchKernelGGL(setValueK, dim3(grid_size), dim3(block_size), 0, 0, d_array, length, val);
   return 0;
 }
 
@@ -34,21 +35,22 @@ extern "C" int CeedDeviceSetValue_Hip(CeedScalar *d_array, CeedSize length, Ceed
 // Kernel for taking reciprocal
 //------------------------------------------------------------------------------
 __global__ static void rcpValueK(CeedScalar *__restrict__ vec, CeedSize size) {
-  CeedSize idx = threadIdx.x + (CeedSize)blockDim.x * blockIdx.x;
-  if (idx >= size) return;
-  if (fabs(vec[idx]) > 1E-16) vec[idx] = 1. / vec[idx];
+  CeedSize index = threadIdx.x + (CeedSize)blockDim.x * blockIdx.x;
+
+  if (index >= size) return;
+  if (fabs(vec[index]) > 1E-16) vec[index] = 1. / vec[index];
 }
 
 //------------------------------------------------------------------------------
 // Take vector reciprocal in device memory
 //------------------------------------------------------------------------------
 extern "C" int CeedDeviceReciprocal_Hip(CeedScalar *d_array, CeedSize length) {
-  const int      bsize    = 512;
-  const CeedSize vecsize  = length;
-  int            gridsize = vecsize / bsize;
+  const int      block_size = 512;
+  const CeedSize vec_size   = length;
+  int            grid_size  = vec_size / block_size;
 
-  if (bsize * gridsize < vecsize) gridsize += 1;
-  hipLaunchKernelGGL(rcpValueK, dim3(gridsize), dim3(bsize), 0, 0, d_array, length);
+  if (block_size * grid_size < vec_size) grid_size += 1;
+  hipLaunchKernelGGL(rcpValueK, dim3(grid_size), dim3(block_size), 0, 0, d_array, length);
   return 0;
 }
 
@@ -56,21 +58,22 @@ extern "C" int CeedDeviceReciprocal_Hip(CeedScalar *d_array, CeedSize length) {
 // Kernel for scale
 //------------------------------------------------------------------------------
 __global__ static void scaleValueK(CeedScalar *__restrict__ x, CeedScalar alpha, CeedSize size) {
-  CeedSize idx = threadIdx.x + (CeedSize)blockDim.x * blockIdx.x;
-  if (idx >= size) return;
-  x[idx] *= alpha;
+  CeedSize index = threadIdx.x + (CeedSize)blockDim.x * blockIdx.x;
+
+  if (index >= size) return;
+  x[index] *= alpha;
 }
 
 //------------------------------------------------------------------------------
 // Compute x = alpha x on device
 //------------------------------------------------------------------------------
 extern "C" int CeedDeviceScale_Hip(CeedScalar *x_array, CeedScalar alpha, CeedSize length) {
-  const int      bsize    = 512;
-  const CeedSize vecsize  = length;
-  int            gridsize = vecsize / bsize;
+  const int      block_size = 512;
+  const CeedSize vec_size   = length;
+  int            grid_size  = vec_size / block_size;
 
-  if (bsize * gridsize < vecsize) gridsize += 1;
-  hipLaunchKernelGGL(scaleValueK, dim3(gridsize), dim3(bsize), 0, 0, x_array, alpha, length);
+  if (block_size * grid_size < vec_size) grid_size += 1;
+  hipLaunchKernelGGL(scaleValueK, dim3(grid_size), dim3(block_size), 0, 0, x_array, alpha, length);
   return 0;
 }
 
@@ -78,21 +81,22 @@ extern "C" int CeedDeviceScale_Hip(CeedScalar *x_array, CeedScalar alpha, CeedSi
 // Kernel for axpy
 //------------------------------------------------------------------------------
 __global__ static void axpyValueK(CeedScalar *__restrict__ y, CeedScalar alpha, CeedScalar *__restrict__ x, CeedSize size) {
-  CeedSize idx = threadIdx.x + (CeedSize)blockDim.x * blockIdx.x;
-  if (idx >= size) return;
-  y[idx] += alpha * x[idx];
+  CeedSize index = threadIdx.x + (CeedSize)blockDim.x * blockIdx.x;
+
+  if (index >= size) return;
+  y[index] += alpha * x[index];
 }
 
 //------------------------------------------------------------------------------
 // Compute y = alpha x + y on device
 //------------------------------------------------------------------------------
 extern "C" int CeedDeviceAXPY_Hip(CeedScalar *y_array, CeedScalar alpha, CeedScalar *x_array, CeedSize length) {
-  const int      bsize    = 512;
-  const CeedSize vecsize  = length;
-  int            gridsize = vecsize / bsize;
+  const int      block_size = 512;
+  const CeedSize vec_size   = length;
+  int            grid_size  = vec_size / block_size;
 
-  if (bsize * gridsize < vecsize) gridsize += 1;
-  hipLaunchKernelGGL(axpyValueK, dim3(gridsize), dim3(bsize), 0, 0, y_array, alpha, x_array, length);
+  if (block_size * grid_size < vec_size) grid_size += 1;
+  hipLaunchKernelGGL(axpyValueK, dim3(grid_size), dim3(block_size), 0, 0, y_array, alpha, x_array, length);
   return 0;
 }
 
@@ -100,22 +104,23 @@ extern "C" int CeedDeviceAXPY_Hip(CeedScalar *y_array, CeedScalar alpha, CeedSca
 // Kernel for axpby
 //------------------------------------------------------------------------------
 __global__ static void axpbyValueK(CeedScalar *__restrict__ y, CeedScalar alpha, CeedScalar beta, CeedScalar *__restrict__ x, CeedSize size) {
-  CeedSize idx = threadIdx.x + (CeedSize)blockDim.x * blockIdx.x;
-  if (idx >= size) return;
-  y[idx] = beta * y[idx];
-  y[idx] += alpha * x[idx];
+  CeedSize index = threadIdx.x + (CeedSize)blockDim.x * blockIdx.x;
+
+  if (index >= size) return;
+  y[index] = beta * y[index];
+  y[index] += alpha * x[index];
 }
 
 //------------------------------------------------------------------------------
 // Compute y = alpha x + beta y on device
 //------------------------------------------------------------------------------
 extern "C" int CeedDeviceAXPBY_Hip(CeedScalar *y_array, CeedScalar alpha, CeedScalar beta, CeedScalar *x_array, CeedSize length) {
-  const int      bsize    = 512;
-  const CeedSize vecsize  = length;
-  int            gridsize = vecsize / bsize;
+  const int      block_size = 512;
+  const CeedSize vec_size   = length;
+  int            grid_size  = vec_size / block_size;
 
-  if (bsize * gridsize < vecsize) gridsize += 1;
-  hipLaunchKernelGGL(axpbyValueK, dim3(gridsize), dim3(bsize), 0, 0, y_array, alpha, beta, x_array, length);
+  if (block_size * grid_size < vec_size) grid_size += 1;
+  hipLaunchKernelGGL(axpbyValueK, dim3(grid_size), dim3(block_size), 0, 0, y_array, alpha, beta, x_array, length);
   return 0;
 }
 
@@ -123,21 +128,22 @@ extern "C" int CeedDeviceAXPBY_Hip(CeedScalar *y_array, CeedScalar alpha, CeedSc
 // Kernel for pointwise mult
 //------------------------------------------------------------------------------
 __global__ static void pointwiseMultValueK(CeedScalar *__restrict__ w, CeedScalar *x, CeedScalar *__restrict__ y, CeedSize size) {
-  CeedSize idx = threadIdx.x + (CeedSize)blockDim.x * blockIdx.x;
-  if (idx >= size) return;
-  w[idx] = x[idx] * y[idx];
+  CeedSize index = threadIdx.x + (CeedSize)blockDim.x * blockIdx.x;
+
+  if (index >= size) return;
+  w[index] = x[index] * y[index];
 }
 
 //------------------------------------------------------------------------------
 // Compute the pointwise multiplication w = x .* y on device
 //------------------------------------------------------------------------------
 extern "C" int CeedDevicePointwiseMult_Hip(CeedScalar *w_array, CeedScalar *x_array, CeedScalar *y_array, CeedSize length) {
-  const int      bsize    = 512;
-  const CeedSize vecsize  = length;
-  int            gridsize = vecsize / bsize;
+  const int      block_size = 512;
+  const CeedSize vec_size   = length;
+  int            grid_size  = vec_size / block_size;
 
-  if (bsize * gridsize < vecsize) gridsize += 1;
-  hipLaunchKernelGGL(pointwiseMultValueK, dim3(gridsize), dim3(bsize), 0, 0, w_array, x_array, y_array, length);
+  if (block_size * grid_size < vec_size) grid_size += 1;
+  hipLaunchKernelGGL(pointwiseMultValueK, dim3(grid_size), dim3(block_size), 0, 0, w_array, x_array, y_array, length);
   return 0;
 }
 

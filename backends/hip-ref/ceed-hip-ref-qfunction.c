@@ -19,17 +19,18 @@
 // Apply QFunction
 //------------------------------------------------------------------------------
 static int CeedQFunctionApply_Hip(CeedQFunction qf, CeedInt Q, CeedVector *U, CeedVector *V) {
-  Ceed ceed;
+  Ceed               ceed;
+  Ceed_Hip          *ceed_Hip;
+  CeedInt            num_input_fields, num_output_fields;
+  CeedQFunction_Hip *data;
+
   CeedCallBackend(CeedQFunctionGetCeed(qf, &ceed));
 
   // Build and compile kernel, if not done
   CeedCallBackend(CeedQFunctionBuildKernel_Hip_ref(qf));
 
-  CeedQFunction_Hip *data;
   CeedCallBackend(CeedQFunctionGetData(qf, &data));
-  Ceed_Hip *ceed_Hip;
   CeedCallBackend(CeedGetData(ceed, &ceed_Hip));
-  CeedInt num_input_fields, num_output_fields;
   CeedCallBackend(CeedQFunctionGetNumArgs(qf, &num_input_fields, &num_output_fields));
   const int block_size = ceed_Hip->opt_block_size;
 
@@ -46,6 +47,7 @@ static int CeedQFunctionApply_Hip(CeedQFunction qf, CeedInt Q, CeedVector *U, Ce
 
   // Run kernel
   void *args[] = {&data->d_c, (void *)&Q, &data->fields};
+
   CeedCallBackend(CeedRunKernel_Hip(ceed, data->QFunction, CeedDivUpInt(Q, block_size), block_size, args));
 
   // Restore vectors
@@ -58,7 +60,6 @@ static int CeedQFunctionApply_Hip(CeedQFunction qf, CeedInt Q, CeedVector *U, Ce
 
   // Restore context
   CeedCallBackend(CeedQFunctionRestoreInnerContextData(qf, &data->d_c));
-
   return CEED_ERROR_SUCCESS;
 }
 
@@ -66,13 +67,13 @@ static int CeedQFunctionApply_Hip(CeedQFunction qf, CeedInt Q, CeedVector *U, Ce
 // Destroy QFunction
 //------------------------------------------------------------------------------
 static int CeedQFunctionDestroy_Hip(CeedQFunction qf) {
+  Ceed               ceed;
   CeedQFunction_Hip *data;
+
   CeedCallBackend(CeedQFunctionGetData(qf, &data));
-  Ceed ceed;
   CeedCallBackend(CeedQFunctionGetCeed(qf, &ceed));
   if (data->module) CeedCallHip(ceed, hipModuleUnload(data->module));
   CeedCallBackend(CeedFree(&data));
-
   return CEED_ERROR_SUCCESS;
 }
 
@@ -80,12 +81,13 @@ static int CeedQFunctionDestroy_Hip(CeedQFunction qf) {
 // Create QFunction
 //------------------------------------------------------------------------------
 int CeedQFunctionCreate_Hip(CeedQFunction qf) {
-  Ceed ceed;
-  CeedQFunctionGetCeed(qf, &ceed);
+  Ceed               ceed;
+  CeedInt            num_input_fields, num_output_fields;
   CeedQFunction_Hip *data;
+
+  CeedQFunctionGetCeed(qf, &ceed);
   CeedCallBackend(CeedCalloc(1, &data));
   CeedCallBackend(CeedQFunctionSetData(qf, data));
-  CeedInt num_input_fields, num_output_fields;
   CeedCallBackend(CeedQFunctionGetNumArgs(qf, &num_input_fields, &num_output_fields));
 
   // Read QFunction source
