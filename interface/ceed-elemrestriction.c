@@ -508,6 +508,7 @@ int CeedElemRestrictionCreate(Ceed ceed, CeedInt num_elem, CeedInt elem_size, Ce
   (*rstr)->num_comp    = num_comp;
   (*rstr)->comp_stride = comp_stride;
   (*rstr)->l_size      = l_size;
+  (*rstr)->e_size      = num_elem * elem_size * num_comp;
   (*rstr)->num_block   = num_elem;
   (*rstr)->block_size  = 1;
   (*rstr)->rstr_type   = CEED_RESTRICTION_STANDARD;
@@ -564,6 +565,7 @@ int CeedElemRestrictionCreateOriented(Ceed ceed, CeedInt num_elem, CeedInt elem_
   (*rstr)->num_comp    = num_comp;
   (*rstr)->comp_stride = comp_stride;
   (*rstr)->l_size      = l_size;
+  (*rstr)->e_size      = num_elem * elem_size * num_comp;
   (*rstr)->num_block   = num_elem;
   (*rstr)->block_size  = 1;
   (*rstr)->rstr_type   = CEED_RESTRICTION_ORIENTED;
@@ -623,6 +625,7 @@ int CeedElemRestrictionCreateCurlOriented(Ceed ceed, CeedInt num_elem, CeedInt e
   (*rstr)->num_comp    = num_comp;
   (*rstr)->comp_stride = comp_stride;
   (*rstr)->l_size      = l_size;
+  (*rstr)->e_size      = num_elem * elem_size * num_comp;
   (*rstr)->num_block   = num_elem;
   (*rstr)->block_size  = 1;
   (*rstr)->rstr_type   = CEED_RESTRICTION_CURL_ORIENTED;
@@ -671,6 +674,7 @@ int CeedElemRestrictionCreateStrided(Ceed ceed, CeedInt num_elem, CeedInt elem_s
   (*rstr)->elem_size  = elem_size;
   (*rstr)->num_comp   = num_comp;
   (*rstr)->l_size     = l_size;
+  (*rstr)->e_size     = num_elem * elem_size * num_comp;
   (*rstr)->num_block  = num_elem;
   (*rstr)->block_size = 1;
   (*rstr)->rstr_type  = CEED_RESTRICTION_STRIDED;
@@ -736,6 +740,8 @@ int CeedElemRestrictionCreateAtPoints(Ceed ceed, CeedInt num_elem, CeedInt num_p
   (*rstr)->num_points = num_points;
   (*rstr)->num_comp   = num_comp;
   (*rstr)->l_size     = l_size;
+  (*rstr)->e_size     = num_points * num_comp;
+  (*rstr)->num_block  = num_elem;
   (*rstr)->block_size = 1;
   (*rstr)->rstr_type  = CEED_RESTRICTION_POINTS;
   CeedCall(ceed->ElemRestrictionCreateAtPoints(mem_type, copy_mode, offsets, NULL, NULL, *rstr));
@@ -798,6 +804,7 @@ int CeedElemRestrictionCreateBlocked(Ceed ceed, CeedInt num_elem, CeedInt elem_s
   (*rstr)->num_comp    = num_comp;
   (*rstr)->comp_stride = comp_stride;
   (*rstr)->l_size      = l_size;
+  (*rstr)->e_size      = num_block * block_size * elem_size * num_comp;
   (*rstr)->num_block   = num_block;
   (*rstr)->block_size  = block_size;
   (*rstr)->rstr_type   = CEED_RESTRICTION_STANDARD;
@@ -866,6 +873,7 @@ int CeedElemRestrictionCreateBlockedOriented(Ceed ceed, CeedInt num_elem, CeedIn
   (*rstr)->num_comp    = num_comp;
   (*rstr)->comp_stride = comp_stride;
   (*rstr)->l_size      = l_size;
+  (*rstr)->e_size      = num_block * block_size * elem_size * num_comp;
   (*rstr)->num_block   = num_block;
   (*rstr)->block_size  = block_size;
   (*rstr)->rstr_type   = CEED_RESTRICTION_ORIENTED;
@@ -939,6 +947,7 @@ int CeedElemRestrictionCreateBlockedCurlOriented(Ceed ceed, CeedInt num_elem, Ce
   (*rstr)->num_comp    = num_comp;
   (*rstr)->comp_stride = comp_stride;
   (*rstr)->l_size      = l_size;
+  (*rstr)->e_size      = num_block * block_size * elem_size * num_comp;
   (*rstr)->num_block   = num_block;
   (*rstr)->block_size  = block_size;
   (*rstr)->rstr_type   = CEED_RESTRICTION_CURL_ORIENTED;
@@ -993,6 +1002,7 @@ int CeedElemRestrictionCreateBlockedStrided(Ceed ceed, CeedInt num_elem, CeedInt
   (*rstr)->elem_size  = elem_size;
   (*rstr)->num_comp   = num_comp;
   (*rstr)->l_size     = l_size;
+  (*rstr)->e_size     = num_block * block_size * elem_size * num_comp;
   (*rstr)->num_block  = num_block;
   (*rstr)->block_size = block_size;
   (*rstr)->rstr_type  = CEED_RESTRICTION_STRIDED;
@@ -1126,15 +1136,15 @@ int CeedElemRestrictionApply(CeedElemRestriction rstr, CeedTransposeMode t_mode,
   CeedInt m, n;
 
   if (t_mode == CEED_NOTRANSPOSE) {
-    m = rstr->num_block * rstr->block_size * rstr->elem_size * rstr->num_comp;
+    m = rstr->e_size;
     n = rstr->l_size;
   } else {
     m = rstr->l_size;
-    n = rstr->num_block * rstr->block_size * rstr->elem_size * rstr->num_comp;
+    n = rstr->e_size;
   }
-  CeedCheck(n == u->length, rstr->ceed, CEED_ERROR_DIMENSION,
+  CeedCheck(n <= u->length, rstr->ceed, CEED_ERROR_DIMENSION,
             "Input vector size %" CeedInt_FMT " not compatible with element restriction (%" CeedInt_FMT ", %" CeedInt_FMT ")", u->length, m, n);
-  CeedCheck(m == ru->length, rstr->ceed, CEED_ERROR_DIMENSION,
+  CeedCheck(m <= ru->length, rstr->ceed, CEED_ERROR_DIMENSION,
             "Output vector size %" CeedInt_FMT " not compatible with element restriction (%" CeedInt_FMT ", %" CeedInt_FMT ")", ru->length, m, n);
   if (rstr->num_elem > 0) CeedCall(rstr->Apply(rstr, t_mode, u, ru, request));
   return CEED_ERROR_SUCCESS;
@@ -1154,8 +1164,8 @@ int CeedElemRestrictionApply(CeedElemRestriction rstr, CeedTransposeMode t_mode,
 
   @ref User
 **/
-int CeedElemRestrictionApplyAtPoints(CeedElemRestriction rstr, CeedInt elem, CeedTransposeMode t_mode, CeedVector u, CeedVector ru,
-                                     CeedRequest *request) {
+int CeedElemRestrictionApplyAtPointsInElement(CeedElemRestriction rstr, CeedInt elem, CeedTransposeMode t_mode, CeedVector u, CeedVector ru,
+                                              CeedRequest *request) {
   CeedInt m, n;
 
   if (t_mode == CEED_NOTRANSPOSE) {
@@ -1175,7 +1185,7 @@ int CeedElemRestrictionApplyAtPoints(CeedElemRestriction rstr, CeedInt elem, Cee
             ru->length, m, n, elem);
   CeedCheck(elem <= rstr->num_elem, rstr->ceed, CEED_ERROR_DIMENSION,
             "Cannot retrieve element %" CeedInt_FMT ", element %" CeedInt_FMT " > total elements %" CeedInt_FMT "", elem, elem, rstr->num_elem);
-  if (rstr->num_elem > 0) CeedCall(rstr->ApplyAtPoints(rstr, elem, t_mode, u, ru, request));
+  if (rstr->num_elem > 0) CeedCall(rstr->ApplyAtPointsInElement(rstr, elem, t_mode, u, ru, request));
   return CEED_ERROR_SUCCESS;
 }
 

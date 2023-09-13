@@ -337,6 +337,30 @@ static inline int CeedElemRestrictionApplyCurlOrientedUnsignedTranspose_Ref_Core
   return CEED_ERROR_SUCCESS;
 }
 
+static inline int CeedElemRestrictionApplyAtPointsInElement_Ref(CeedElemRestriction rstr, const CeedInt num_comp, CeedInt start, CeedInt stop,
+                                                                CeedTransposeMode t_mode, const CeedScalar *uu, CeedScalar *vv) {
+  CeedInt                  num_points, l_vec_offset, e_vec_offset = 0;
+  CeedElemRestriction_Ref *impl;
+
+  CeedCallBackend(CeedElemRestrictionGetData(rstr, &impl));
+
+  for (CeedInt e = start; e < stop; e++) {
+    l_vec_offset = impl->offsets[e + 1] - impl->offsets[e];
+    CeedCallBackend(CeedElemRestrictionGetNumPointsInElement(rstr, e, &num_points));
+    if (t_mode == CEED_NOTRANSPOSE) {
+      for (CeedInt i = 0; i < num_points; i++) {
+        for (CeedInt j = 0; j < num_comp; j++) vv[i * num_comp + j + e_vec_offset] = uu[impl->offsets[i + l_vec_offset] * num_comp + j];
+      }
+    } else {
+      for (CeedInt i = 0; i < num_points; i++) {
+        for (CeedInt j = 0; j < num_comp; j++) vv[impl->offsets[i + l_vec_offset] * num_comp + j] = uu[i * num_comp + j + e_vec_offset];
+      }
+    }
+    e_vec_offset += num_points * num_comp;
+  }
+  return CEED_ERROR_SUCCESS;
+}
+
 static inline int CeedElemRestrictionApply_Ref_Core(CeedElemRestriction rstr, const CeedInt num_comp, const CeedInt block_size,
                                                     const CeedInt comp_stride, CeedInt start, CeedInt stop, CeedTransposeMode t_mode, bool use_signs,
                                                     bool use_orients, CeedVector u, CeedVector v, CeedRequest *request) {
@@ -395,7 +419,7 @@ static inline int CeedElemRestrictionApply_Ref_Core(CeedElemRestriction rstr, co
         }
         break;
       case CEED_RESTRICTION_POINTS:
-        // Empty case - won't occur
+        CeedCallBackend(CeedElemRestrictionApplyAtPointsInElement_Ref(rstr, num_comp, start, stop, t_mode, uu, vv));
         break;
     }
   } else {
@@ -435,7 +459,7 @@ static inline int CeedElemRestrictionApply_Ref_Core(CeedElemRestriction rstr, co
         }
         break;
       case CEED_RESTRICTION_POINTS:
-        // Empty case - won't occur
+        CeedCallBackend(CeedElemRestrictionApplyAtPointsInElement_Ref(rstr, num_comp, start, stop, t_mode, uu, vv));
         break;
     }
   }
@@ -579,36 +603,12 @@ static int CeedElemRestrictionApplyUnoriented_Ref(CeedElemRestriction rstr, Ceed
 //------------------------------------------------------------------------------
 static int CeedElemRestrictionApplyAtPoints_Ref(CeedElemRestriction r, CeedInt elem, CeedTransposeMode t_mode, CeedVector u, CeedVector v,
                                                 CeedRequest *request) {
-  CeedInt                  num_points, num_comp, l_vec_offset;
-  CeedScalar              *vv;
-  const CeedScalar        *uu;
+  CeedInt                  num_comp;
   CeedElemRestriction_Ref *impl;
 
-  CeedCallBackend(CeedElemRestrictionGetData(r, &impl));
   CeedCallBackend(CeedElemRestrictionGetNumComponents(r, &num_comp));
-  CeedCallBackend(CeedElemRestrictionGetNumPointsInElement(r, elem, &num_points));
-
-  CeedCallBackend(CeedVectorGetArrayRead(u, CEED_MEM_HOST, &uu));
-  if (t_mode == CEED_TRANSPOSE) {
-    // Sum into for transpose mode, E-vector to L-vector
-    CeedCallBackend(CeedVectorGetArray(v, CEED_MEM_HOST, &vv));
-  } else {
-    // Overwrite for notranspose mode, L-vector to E-vector
-    CeedCallBackend(CeedVectorGetArrayWrite(v, CEED_MEM_HOST, &vv));
-  }
-
-  l_vec_offset = impl->offsets[elem + 1] - impl->offsets[elem];
-  if (t_mode == CEED_NOTRANSPOSE) {
-    for (CeedInt i = 0; i < num_points; i++) {
-      for (CeedInt j = 0; j < num_comp; j++) vv[i * num_comp + j] = uu[impl->offsets[i + l_vec_offset] * num_comp + j];
-    }
-  } else {
-    for (CeedInt i = 0; i < num_points; i++) {
-      for (CeedInt j = 0; j < num_comp; j++) vv[impl->offsets[i + l_vec_offset] * num_comp + j] = uu[i * num_comp + j];
-    }
-  }
-
-  return CEED_ERROR_SUCCESS;
+  CeedCallBackend(CeedElemRestrictionGetData(r, &impl));
+  return impl->Apply(r, num_comp, 0, 1, elem, elem + 1, t_mode, false, false, u, v, request);
 }
 
 //------------------------------------------------------------------------------

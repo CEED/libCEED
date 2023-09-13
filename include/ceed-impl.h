@@ -155,7 +155,7 @@ struct CeedElemRestriction_private {
   int (*Apply)(CeedElemRestriction, CeedTransposeMode, CeedVector, CeedVector, CeedRequest *);
   int (*ApplyUnsigned)(CeedElemRestriction, CeedTransposeMode, CeedVector, CeedVector, CeedRequest *);
   int (*ApplyUnoriented)(CeedElemRestriction, CeedTransposeMode, CeedVector, CeedVector, CeedRequest *);
-  int (*ApplyAtPoints)(CeedElemRestriction, CeedInt, CeedTransposeMode, CeedVector, CeedVector, CeedRequest *);
+  int (*ApplyAtPointsInElement)(CeedElemRestriction, CeedInt, CeedTransposeMode, CeedVector, CeedVector, CeedRequest *);
   int (*ApplyBlock)(CeedElemRestriction, CeedInt, CeedTransposeMode, CeedVector, CeedVector, CeedRequest *);
   int (*GetOffsets)(CeedElemRestriction, CeedMemType, const CeedInt **);
   int (*GetOrientations)(CeedElemRestriction, CeedMemType, const bool **);
@@ -168,6 +168,7 @@ struct CeedElemRestriction_private {
   CeedInt  num_comp;    /* number of components */
   CeedInt  comp_stride; /* Component stride for L-vector ordering */
   CeedSize l_size;      /* size of the L-vector, can be used for checking for correct vector sizes */
+  CeedSize e_size;      /* minimum size of the E-vector, can be used for checking for correct vector sizes */
   CeedInt  block_size;  /* number of elements in a batch */
   CeedInt  num_block;   /* number of blocks of elements */
   CeedInt *strides;     /* strides between [nodes, components, elements] */
