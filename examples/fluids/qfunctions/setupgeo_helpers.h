@@ -100,7 +100,7 @@ CEED_QFUNCTION_HELPER void InvertMappingJacobian_3D(CeedInt Q, CeedInt i, const 
  * @param[out] normal   Inverse of mapping Jacobian at quadrature point i
  * @param[out] detJ_ptr Determinate of the Jacobian, may be NULL is not desired
  */
-CEED_QFUNCTION_HELPER void NormalVectorFromdxdX_3D(CeedInt Q, CeedInt i, const CeedScalar dxdX_q[][3][CEED_Q_VLA], CeedScalar normal[3],
+CEED_QFUNCTION_HELPER void NormalVectorFromdxdX_3D(CeedInt Q, CeedInt i, const CeedScalar (*dxdX_q)[3][CEED_Q_VLA], CeedScalar normal[3],
                                                    CeedScalar *detJ_ptr) {
   const CeedScalar dxdX[3][2] = {
       {dxdX_q[0][0][i], dxdX_q[1][0][i]},
