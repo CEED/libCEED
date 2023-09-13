@@ -366,30 +366,32 @@ static inline int CeedElemRestrictionApply_Ref_Core(CeedElemRestriction r, const
     // Sum into for transpose mode
     switch (rstr_type) {
       case CEED_RESTRICTION_STRIDED:
-        CeedElemRestrictionApplyStridedTranspose_Ref_Core(r, num_comp, block_size, start, stop, num_elem, elem_size, v_offset, uu, vv);
+        CeedCallBackend(
+            CeedElemRestrictionApplyStridedTranspose_Ref_Core(r, num_comp, block_size, start, stop, num_elem, elem_size, v_offset, uu, vv));
         break;
       case CEED_RESTRICTION_STANDARD:
-        CeedElemRestrictionApplyStandardTranspose_Ref_Core(r, num_comp, block_size, comp_stride, start, stop, num_elem, elem_size, v_offset, uu, vv);
+        CeedCallBackend(CeedElemRestrictionApplyStandardTranspose_Ref_Core(r, num_comp, block_size, comp_stride, start, stop, num_elem, elem_size,
+                                                                           v_offset, uu, vv));
         break;
       case CEED_RESTRICTION_ORIENTED:
         if (use_signs) {
-          CeedElemRestrictionApplyOrientedTranspose_Ref_Core(r, num_comp, block_size, comp_stride, start, stop, num_elem, elem_size, v_offset, uu,
-                                                             vv);
+          CeedCallBackend(CeedElemRestrictionApplyOrientedTranspose_Ref_Core(r, num_comp, block_size, comp_stride, start, stop, num_elem, elem_size,
+                                                                             v_offset, uu, vv));
         } else {
-          CeedElemRestrictionApplyStandardTranspose_Ref_Core(r, num_comp, block_size, comp_stride, start, stop, num_elem, elem_size, v_offset, uu,
-                                                             vv);
+          CeedCallBackend(CeedElemRestrictionApplyStandardTranspose_Ref_Core(r, num_comp, block_size, comp_stride, start, stop, num_elem, elem_size,
+                                                                             v_offset, uu, vv));
         }
         break;
       case CEED_RESTRICTION_CURL_ORIENTED:
         if (use_signs && use_orients) {
-          CeedElemRestrictionApplyCurlOrientedTranspose_Ref_Core(r, num_comp, block_size, comp_stride, start, stop, num_elem, elem_size, v_offset, uu,
-                                                                 vv);
+          CeedCallBackend(CeedElemRestrictionApplyCurlOrientedTranspose_Ref_Core(r, num_comp, block_size, comp_stride, start, stop, num_elem,
+                                                                                 elem_size, v_offset, uu, vv));
         } else if (use_orients) {
-          CeedElemRestrictionApplyCurlOrientedUnsignedTranspose_Ref_Core(r, num_comp, block_size, comp_stride, start, stop, num_elem, elem_size,
-                                                                         v_offset, uu, vv);
+          CeedCallBackend(CeedElemRestrictionApplyCurlOrientedUnsignedTranspose_Ref_Core(r, num_comp, block_size, comp_stride, start, stop, num_elem,
+                                                                                         elem_size, v_offset, uu, vv));
         } else {
-          CeedElemRestrictionApplyStandardTranspose_Ref_Core(r, num_comp, block_size, comp_stride, start, stop, num_elem, elem_size, v_offset, uu,
-                                                             vv);
+          CeedCallBackend(CeedElemRestrictionApplyStandardTranspose_Ref_Core(r, num_comp, block_size, comp_stride, start, stop, num_elem, elem_size,
+                                                                             v_offset, uu, vv));
         }
         break;
     }
@@ -401,31 +403,32 @@ static inline int CeedElemRestrictionApply_Ref_Core(CeedElemRestriction r, const
     // Overwrite for notranspose mode
     switch (rstr_type) {
       case CEED_RESTRICTION_STRIDED:
-        CeedElemRestrictionApplyStridedNoTranspose_Ref_Core(r, num_comp, block_size, start, stop, num_elem, elem_size, v_offset, uu, vv);
+        CeedCallBackend(
+            CeedElemRestrictionApplyStridedNoTranspose_Ref_Core(r, num_comp, block_size, start, stop, num_elem, elem_size, v_offset, uu, vv));
         break;
       case CEED_RESTRICTION_STANDARD:
-        CeedElemRestrictionApplyStandardNoTranspose_Ref_Core(r, num_comp, block_size, comp_stride, start, stop, num_elem, elem_size, v_offset, uu,
-                                                             vv);
+        CeedCallBackend(CeedElemRestrictionApplyStandardNoTranspose_Ref_Core(r, num_comp, block_size, comp_stride, start, stop, num_elem, elem_size,
+                                                                             v_offset, uu, vv));
         break;
       case CEED_RESTRICTION_ORIENTED:
         if (use_signs) {
-          CeedElemRestrictionApplyOrientedNoTranspose_Ref_Core(r, num_comp, block_size, comp_stride, start, stop, num_elem, elem_size, v_offset, uu,
-                                                               vv);
+          CeedCallBackend(CeedElemRestrictionApplyOrientedNoTranspose_Ref_Core(r, num_comp, block_size, comp_stride, start, stop, num_elem, elem_size,
+                                                                               v_offset, uu, vv));
         } else {
-          CeedElemRestrictionApplyStandardNoTranspose_Ref_Core(r, num_comp, block_size, comp_stride, start, stop, num_elem, elem_size, v_offset, uu,
-                                                               vv);
+          CeedCallBackend(CeedElemRestrictionApplyStandardNoTranspose_Ref_Core(r, num_comp, block_size, comp_stride, start, stop, num_elem, elem_size,
+                                                                               v_offset, uu, vv));
         }
         break;
       case CEED_RESTRICTION_CURL_ORIENTED:
         if (use_signs && use_orients) {
-          CeedElemRestrictionApplyCurlOrientedNoTranspose_Ref_Core(r, num_comp, block_size, comp_stride, start, stop, num_elem, elem_size, v_offset,
-                                                                   uu, vv);
+          CeedCallBackend(CeedElemRestrictionApplyCurlOrientedNoTranspose_Ref_Core(r, num_comp, block_size, comp_stride, start, stop, num_elem,
+                                                                                   elem_size, v_offset, uu, vv));
         } else if (use_orients) {
-          CeedElemRestrictionApplyCurlOrientedUnsignedNoTranspose_Ref_Core(r, num_comp, block_size, comp_stride, start, stop, num_elem, elem_size,
-                                                                           v_offset, uu, vv);
+          CeedCallBackend(CeedElemRestrictionApplyCurlOrientedUnsignedNoTranspose_Ref_Core(r, num_comp, block_size, comp_stride, start, stop,
+                                                                                           num_elem, elem_size, v_offset, uu, vv));
         } else {
-          CeedElemRestrictionApplyStandardNoTranspose_Ref_Core(r, num_comp, block_size, comp_stride, start, stop, num_elem, elem_size, v_offset, uu,
-                                                               vv);
+          CeedCallBackend(CeedElemRestrictionApplyStandardNoTranspose_Ref_Core(r, num_comp, block_size, comp_stride, start, stop, num_elem, elem_size,
+                                                                               v_offset, uu, vv));
         }
         break;
     }
@@ -527,7 +530,8 @@ static int CeedElemRestrictionApply_Ref(CeedElemRestriction r, CeedTransposeMode
   CeedCallBackend(CeedElemRestrictionGetNumComponents(r, &num_comp));
   CeedCallBackend(CeedElemRestrictionGetCompStride(r, &comp_stride));
   CeedCallBackend(CeedElemRestrictionGetData(r, &impl));
-  return impl->Apply(r, num_comp, block_size, comp_stride, 0, num_block, t_mode, true, true, u, v, request);
+  CeedCallBackend(impl->Apply(r, num_comp, block_size, comp_stride, 0, num_block, t_mode, true, true, u, v, request));
+  return CEED_ERROR_SUCCESS;
 }
 
 //------------------------------------------------------------------------------
@@ -542,7 +546,8 @@ static int CeedElemRestrictionApplyUnsigned_Ref(CeedElemRestriction r, CeedTrans
   CeedCallBackend(CeedElemRestrictionGetNumComponents(r, &num_comp));
   CeedCallBackend(CeedElemRestrictionGetCompStride(r, &comp_stride));
   CeedCallBackend(CeedElemRestrictionGetData(r, &impl));
-  return impl->Apply(r, num_comp, block_size, comp_stride, 0, num_block, t_mode, false, true, u, v, request);
+  CeedCallBackend(impl->Apply(r, num_comp, block_size, comp_stride, 0, num_block, t_mode, false, true, u, v, request));
+  return CEED_ERROR_SUCCESS;
 }
 
 //------------------------------------------------------------------------------
@@ -557,7 +562,8 @@ static int CeedElemRestrictionApplyUnoriented_Ref(CeedElemRestriction r, CeedTra
   CeedCallBackend(CeedElemRestrictionGetNumComponents(r, &num_comp));
   CeedCallBackend(CeedElemRestrictionGetCompStride(r, &comp_stride));
   CeedCallBackend(CeedElemRestrictionGetData(r, &impl));
-  return impl->Apply(r, num_comp, block_size, comp_stride, 0, num_block, t_mode, false, false, u, v, request);
+  CeedCallBackend(impl->Apply(r, num_comp, block_size, comp_stride, 0, num_block, t_mode, false, false, u, v, request));
+  return CEED_ERROR_SUCCESS;
 }
 
 //------------------------------------------------------------------------------
@@ -572,7 +578,8 @@ static int CeedElemRestrictionApplyBlock_Ref(CeedElemRestriction r, CeedInt bloc
   CeedCallBackend(CeedElemRestrictionGetNumComponents(r, &num_comp));
   CeedCallBackend(CeedElemRestrictionGetCompStride(r, &comp_stride));
   CeedCallBackend(CeedElemRestrictionGetData(r, &impl));
-  return impl->Apply(r, num_comp, block_size, comp_stride, block, block + 1, t_mode, true, true, u, v, request);
+  CeedCallBackend(impl->Apply(r, num_comp, block_size, comp_stride, block, block + 1, t_mode, true, true, u, v, request));
+  return CEED_ERROR_SUCCESS;
 }
 
 //------------------------------------------------------------------------------
