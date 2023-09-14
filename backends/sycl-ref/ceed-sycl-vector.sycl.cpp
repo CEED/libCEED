@@ -61,7 +61,13 @@ static inline int CeedVectorSyncH2D_Sycl(const CeedVector vec) {
   // Copy from host to device
   std::vector<sycl::event> e;
   if (!data->sycl_queue.is_in_order()) e = {data->sycl_queue.ext_oneapi_submit_barrier()};
+<<<<<<< HEAD
   CeedCallSycl(ceed, data->sycl_queue.copy<CeedScalar>(impl->h_array, impl->d_array, length, e).wait_and_throw());
+=======
+  sycl::event copy_event = data->sycl_queue.copy<CeedScalar>(impl->h_array, impl->d_array, length, {e});
+  // Wait for copy to finish and handle exceptions.
+  CeedCallSycl(ceed, copy_event.wait_and_throw());
+>>>>>>> 10c7a557 (Efficiently use both in-order and out-of-order sycl queues. (#59))
   return CEED_ERROR_SUCCESS;
 }
 
@@ -93,7 +99,13 @@ static inline int CeedVectorSyncD2H_Sycl(const CeedVector vec) {
   // Copy from device to host
   std::vector<sycl::event> e;
   if (!data->sycl_queue.is_in_order()) e = {data->sycl_queue.ext_oneapi_submit_barrier()};
+<<<<<<< HEAD
   CeedCallSycl(ceed,data->sycl_queue.copy<CeedScalar>(impl->d_array, impl->h_array, length, e).wait_and_throw());
+=======
+  sycl::event copy_event = data->sycl_queue.copy<CeedScalar>(impl->d_array, impl->h_array, length, {e});
+  // Wait for copy to finish and handle exceptions.
+  CeedCallSycl(ceed, copy_event.wait_and_throw());
+>>>>>>> 10c7a557 (Efficiently use both in-order and out-of-order sycl queues. (#59))
   return CEED_ERROR_SUCCESS;
 }
 

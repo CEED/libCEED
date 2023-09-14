@@ -65,7 +65,6 @@ int CeedBasisApplyTensor_Sycl_shared(CeedBasis basis, const CeedInt num_elem, Ce
 
       std::vector<sycl::event> e;
       if (!ceed_Sycl->sycl_queue.is_in_order()) e = {ceed_Sycl->sycl_queue.ext_oneapi_submit_barrier()};
-
       ceed_Sycl->sycl_queue.submit([&](sycl::handler &cgh) {
         cgh.depends_on(e);
         cgh.set_args(num_elem, impl->d_interp_1d, d_u, d_v);
