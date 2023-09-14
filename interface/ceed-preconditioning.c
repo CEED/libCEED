@@ -758,14 +758,14 @@ static int CeedSingleOperatorAssemblyCountEntries(CeedOperator op, CeedSize *num
   @param[in]  basis_c_to_f Basis for coarse to fine interpolation, or NULL if not creating prolongation/restriction operators
   @param[out] op_coarse    Coarse grid operator
   @param[out] op_prolong   Coarse to fine operator, or NULL
-  @param[out] op_rstrict  Fine to coarse operator, or NULL
+  @param[out] op_restrict  Fine to coarse operator, or NULL
 
   @return An error code: 0 - success, otherwise - failure
 
   @ref Developer
 **/
 static int CeedSingleOperatorMultigridLevel(CeedOperator op_fine, CeedVector p_mult_fine, CeedElemRestriction rstr_coarse, CeedBasis basis_coarse,
-                                            CeedBasis basis_c_to_f, CeedOperator *op_coarse, CeedOperator *op_prolong, CeedOperator *op_rstrict) {
+                                            CeedBasis basis_c_to_f, CeedOperator *op_coarse, CeedOperator *op_prolong, CeedOperator *op_restrict) {
   bool                is_composite;
   Ceed                ceed;
   CeedInt             num_comp;
@@ -803,7 +803,7 @@ static int CeedSingleOperatorMultigridLevel(CeedOperator op_fine, CeedVector p_m
   CeedCall(CeedQFunctionAssemblyDataReferenceCopy(op_fine->qf_assembled, &(*op_coarse)->qf_assembled));
 
   // Multiplicity vector
-  if (op_rstrict || op_prolong) {
+  if (op_restrict || op_prolong) {
     CeedVector          mult_e_vec;
     CeedRestrictionType rstr_type;
 
@@ -826,49 +826,49 @@ static int CeedSingleOperatorMultigridLevel(CeedOperator op_fine, CeedVector p_m
   size_t name_len = op_fine->name ? strlen(op_fine->name) : 0;
   CeedCall(CeedOperatorSetName(*op_coarse, op_fine->name));
 
-  // Check that coarse to fine basis is provided if prolong/rstrict operators are requested
-  CeedCheck(basis_c_to_f || (!op_rstrict && !op_prolong), ceed, CEED_ERROR_INCOMPATIBLE,
+  // Check that coarse to fine basis is provided if prolong/restrict operators are requested
+  CeedCheck(basis_c_to_f || (!op_restrict && !op_prolong), ceed, CEED_ERROR_INCOMPATIBLE,
             "Prolongation or restriction operator creation requires coarse-to-fine basis");
 
   // Restriction/Prolongation Operators
   CeedCall(CeedBasisGetNumComponents(basis_coarse, &num_comp));
 
   // Restriction
-  if (op_rstrict) {
+  if (op_restrict) {
     CeedInt             *num_comp_r_data;
     CeedQFunctionContext ctx_r;
-    CeedQFunction        qf_rstrict;
+    CeedQFunction        qf_restrict;
 
-    CeedCall(CeedQFunctionCreateInteriorByName(ceed, "Scale", &qf_rstrict));
+    CeedCall(CeedQFunctionCreateInteriorByName(ceed, "Scale", &qf_restrict));
     CeedCall(CeedCalloc(1, &num_comp_r_data));
     num_comp_r_data[0] = num_comp;
     CeedCall(CeedQFunctionContextCreate(ceed, &ctx_r));
     CeedCall(CeedQFunctionContextSetData(ctx_r, CEED_MEM_HOST, CEED_OWN_POINTER, sizeof(*num_comp_r_data), num_comp_r_data));
-    CeedCall(CeedQFunctionSetContext(qf_rstrict, ctx_r));
+    CeedCall(CeedQFunctionSetContext(qf_restrict, ctx_r));
     CeedCall(CeedQFunctionContextDestroy(&ctx_r));
-    CeedCall(CeedQFunctionAddInput(qf_rstrict, "input", num_comp, CEED_EVAL_NONE));
-    CeedCall(CeedQFunctionAddInput(qf_rstrict, "scale", num_comp, CEED_EVAL_NONE));
-    CeedCall(CeedQFunctionAddOutput(qf_rstrict, "output", num_comp, CEED_EVAL_INTERP));
-    CeedCall(CeedQFunctionSetUserFlopsEstimate(qf_rstrict, num_comp));
+    CeedCall(CeedQFunctionAddInput(qf_restrict, "input", num_comp, CEED_EVAL_NONE));
+    CeedCall(CeedQFunctionAddInput(qf_restrict, "scale", num_comp, CEED_EVAL_NONE));
+    CeedCall(CeedQFunctionAddOutput(qf_restrict, "output", num_comp, CEED_EVAL_INTERP));
+    CeedCall(CeedQFunctionSetUserFlopsEstimate(qf_restrict, num_comp));
 
-    CeedCall(CeedOperatorCreate(ceed, qf_rstrict, CEED_QFUNCTION_NONE, CEED_QFUNCTION_NONE, op_rstrict));
-    CeedCall(CeedOperatorSetField(*op_rstrict, "input", rstr_fine, CEED_BASIS_NONE, CEED_VECTOR_ACTIVE));
-    CeedCall(CeedOperatorSetField(*op_rstrict, "scale", rstr_p_mult_fine, CEED_BASIS_NONE, mult_vec));
-    CeedCall(CeedOperatorSetField(*op_rstrict, "output", rstr_coarse, basis_c_to_f, CEED_VECTOR_ACTIVE));
+    CeedCall(CeedOperatorCreate(ceed, qf_restrict, CEED_QFUNCTION_NONE, CEED_QFUNCTION_NONE, op_restrict));
+    CeedCall(CeedOperatorSetField(*op_restrict, "input", rstr_fine, CEED_BASIS_NONE, CEED_VECTOR_ACTIVE));
+    CeedCall(CeedOperatorSetField(*op_restrict, "scale", rstr_p_mult_fine, CEED_BASIS_NONE, mult_vec));
+    CeedCall(CeedOperatorSetField(*op_restrict, "output", rstr_coarse, basis_c_to_f, CEED_VECTOR_ACTIVE));
 
     // Set name
     char *restriction_name;
 
     CeedCall(CeedCalloc(17 + name_len, &restriction_name));
     sprintf(restriction_name, "restriction%s%s", has_name ? " for " : "", has_name ? op_fine->name : "");
-    CeedCall(CeedOperatorSetName(*op_rstrict, restriction_name));
+    CeedCall(CeedOperatorSetName(*op_restrict, restriction_name));
     CeedCall(CeedFree(&restriction_name));
 
     // Check
-    CeedCall(CeedOperatorCheckReady(*op_rstrict));
+    CeedCall(CeedOperatorCheckReady(*op_restrict));
 
     // Cleanup
-    CeedCall(CeedQFunctionDestroy(&qf_rstrict));
+    CeedCall(CeedQFunctionDestroy(&qf_restrict));
   }
 
   // Prolongation
@@ -2242,20 +2242,20 @@ grid interpolation
   @param[in]  basis_coarse Coarse grid active vector basis
   @param[out] op_coarse    Coarse grid operator
   @param[out] op_prolong   Coarse to fine operator, or NULL
-  @param[out] op_rstrict  Fine to coarse operator, or NULL
+  @param[out] op_restrict  Fine to coarse operator, or NULL
 
   @return An error code: 0 - success, otherwise - failure
 
   @ref User
 **/
 int CeedOperatorMultigridLevelCreate(CeedOperator op_fine, CeedVector p_mult_fine, CeedElemRestriction rstr_coarse, CeedBasis basis_coarse,
-                                     CeedOperator *op_coarse, CeedOperator *op_prolong, CeedOperator *op_rstrict) {
+                                     CeedOperator *op_coarse, CeedOperator *op_prolong, CeedOperator *op_restrict) {
   CeedBasis basis_c_to_f = NULL;
 
   CeedCall(CeedOperatorCheckReady(op_fine));
 
   // Build prolongation matrix, if required
-  if (op_prolong || op_rstrict) {
+  if (op_prolong || op_restrict) {
     CeedBasis basis_fine;
 
     CeedCall(CeedOperatorGetActiveBasis(op_fine, &basis_fine));
@@ -2263,7 +2263,7 @@ int CeedOperatorMultigridLevelCreate(CeedOperator op_fine, CeedVector p_mult_fin
   }
 
   // Core code
-  CeedCall(CeedSingleOperatorMultigridLevel(op_fine, p_mult_fine, rstr_coarse, basis_coarse, basis_c_to_f, op_coarse, op_prolong, op_rstrict));
+  CeedCall(CeedSingleOperatorMultigridLevel(op_fine, p_mult_fine, rstr_coarse, basis_coarse, basis_c_to_f, op_coarse, op_prolong, op_restrict));
   return CEED_ERROR_SUCCESS;
 }
 
@@ -2279,7 +2279,7 @@ int CeedOperatorMultigridLevelCreate(CeedOperator op_fine, CeedVector p_mult_fin
   @param[in]  interp_c_to_f Matrix for coarse to fine interpolation, or NULL if not creating prolongation/restriction operators
   @param[out] op_coarse     Coarse grid operator
   @param[out] op_prolong    Coarse to fine operator, or NULL
-  @param[out] op_rstrict   Fine to coarse operator, or NULL
+  @param[out] op_restrict   Fine to coarse operator, or NULL
 
   @return An error code: 0 - success, otherwise - failure
 
@@ -2287,7 +2287,7 @@ int CeedOperatorMultigridLevelCreate(CeedOperator op_fine, CeedVector p_mult_fin
 **/
 int CeedOperatorMultigridLevelCreateTensorH1(CeedOperator op_fine, CeedVector p_mult_fine, CeedElemRestriction rstr_coarse, CeedBasis basis_coarse,
                                              const CeedScalar *interp_c_to_f, CeedOperator *op_coarse, CeedOperator *op_prolong,
-                                             CeedOperator *op_rstrict) {
+                                             CeedOperator *op_restrict) {
   Ceed      ceed;
   CeedInt   Q_f, Q_c;
   CeedBasis basis_fine, basis_c_to_f = NULL;
@@ -2302,7 +2302,7 @@ int CeedOperatorMultigridLevelCreateTensorH1(CeedOperator op_fine, CeedVector p_
   CeedCheck(Q_f == Q_c, ceed, CEED_ERROR_DIMENSION, "Bases must have compatible quadrature spaces");
 
   // Create coarse to fine basis, if required
-  if (op_prolong || op_rstrict) {
+  if (op_prolong || op_restrict) {
     CeedInt     dim, num_comp, num_nodes_c, P_1d_f, P_1d_c;
     CeedScalar *q_ref, *q_weight, *grad;
 
@@ -2324,7 +2324,7 @@ int CeedOperatorMultigridLevelCreateTensorH1(CeedOperator op_fine, CeedVector p_
   }
 
   // Core code
-  CeedCall(CeedSingleOperatorMultigridLevel(op_fine, p_mult_fine, rstr_coarse, basis_coarse, basis_c_to_f, op_coarse, op_prolong, op_rstrict));
+  CeedCall(CeedSingleOperatorMultigridLevel(op_fine, p_mult_fine, rstr_coarse, basis_coarse, basis_c_to_f, op_coarse, op_prolong, op_restrict));
   return CEED_ERROR_SUCCESS;
 }
 
@@ -2340,14 +2340,15 @@ int CeedOperatorMultigridLevelCreateTensorH1(CeedOperator op_fine, CeedVector p_
   @param[in]  interp_c_to_f Matrix for coarse to fine interpolation, or NULL if not creating prolongation/restriction operators
   @param[out] op_coarse     Coarse grid operator
   @param[out] op_prolong    Coarse to fine operator, or NULL
-  @param[out] op_rstrict   Fine to coarse operator, or NULL
+  @param[out] op_restrict   Fine to coarse operator, or NULL
 
   @return An error code: 0 - success, otherwise - failure
 
   @ref User
 **/
 int CeedOperatorMultigridLevelCreateH1(CeedOperator op_fine, CeedVector p_mult_fine, CeedElemRestriction rstr_coarse, CeedBasis basis_coarse,
-                                       const CeedScalar *interp_c_to_f, CeedOperator *op_coarse, CeedOperator *op_prolong, CeedOperator *op_rstrict) {
+                                       const CeedScalar *interp_c_to_f, CeedOperator *op_coarse, CeedOperator *op_prolong,
+                                       CeedOperator *op_restrict) {
   Ceed      ceed;
   CeedInt   Q_f, Q_c;
   CeedBasis basis_fine, basis_c_to_f = NULL;
@@ -2362,7 +2363,7 @@ int CeedOperatorMultigridLevelCreateH1(CeedOperator op_fine, CeedVector p_mult_f
   CeedCheck(Q_f == Q_c, ceed, CEED_ERROR_DIMENSION, "Bases must have compatible quadrature spaces");
 
   // Coarse to fine basis
-  if (op_prolong || op_rstrict) {
+  if (op_prolong || op_restrict) {
     CeedInt          dim, num_comp, num_nodes_c, num_nodes_f;
     CeedScalar      *q_ref, *q_weight, *grad;
     CeedElemTopology topo;
@@ -2385,7 +2386,7 @@ int CeedOperatorMultigridLevelCreateH1(CeedOperator op_fine, CeedVector p_mult_f
   }
 
   // Core code
-  CeedCall(CeedSingleOperatorMultigridLevel(op_fine, p_mult_fine, rstr_coarse, basis_coarse, basis_c_to_f, op_coarse, op_prolong, op_rstrict));
+  CeedCall(CeedSingleOperatorMultigridLevel(op_fine, p_mult_fine, rstr_coarse, basis_coarse, basis_c_to_f, op_coarse, op_prolong, op_restrict));
   return CEED_ERROR_SUCCESS;
 }
 
