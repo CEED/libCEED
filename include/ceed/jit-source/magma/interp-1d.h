@@ -11,7 +11,7 @@
 //////////////////////////////////////////////////////////////////////////////////////////
 // interp basis action (1D)
 template <typename T, int DIM_, int NCOMP_, int P_, int Q_>
-static __device__ __inline__ void magma_interp_1d_device(const T* sT, magma_trans_t transT, T* sU[NCOMP_], T* sV[NCOMP_], const int tx) {
+static __device__ __inline__ void magma_interp_1d_device(const T *sT, magma_trans_t transT, T *sU[NCOMP_], T *sV[NCOMP_], const int tx) {
   // Assumptions
   // 1. 1D threads of size max(P_,Q_)
   // 2. sU[i] is 1xP_: in shared memory
@@ -35,7 +35,7 @@ static __device__ __inline__ void magma_interp_1d_device(const T* sT, magma_tran
 
 //////////////////////////////////////////////////////////////////////////////////////////
 extern "C" __launch_bounds__(MAGMA_BASIS_BOUNDS(MAXPQ, MAGMA_MAXTHREADS_1D)) __global__
-    void magma_interpn_1d_kernel(const CeedScalar* dT, const CeedScalar* dU, const int estrdU, const int cstrdU, CeedScalar* dV, const int estrdV,
+    void magma_interpn_1d_kernel(const CeedScalar *dT, const CeedScalar *dU, const int estrdU, const int cstrdU, CeedScalar *dV, const int estrdV,
                                  const int cstrdV, const int nelem) {
   MAGMA_DEVICE_SHARED(CeedScalar, shared_data)
 
@@ -46,16 +46,16 @@ extern "C" __launch_bounds__(MAGMA_BASIS_BOUNDS(MAXPQ, MAGMA_MAXTHREADS_1D)) __g
 
   if (elem_id >= nelem) return;
 
-  CeedScalar* sU[NCOMP];
-  CeedScalar* sV[NCOMP];
+  CeedScalar *sU[NCOMP];
+  CeedScalar *sV[NCOMP];
 
   // shift global memory pointers by elem stride
   dU += elem_id * estrdU;
   dV += elem_id * estrdV;
 
   // assign shared memory pointers
-  CeedScalar* sT = (CeedScalar*)(shared_data);
-  CeedScalar* sW = sT + P * Q;
+  CeedScalar *sT = (CeedScalar *)(shared_data);
+  CeedScalar *sW = sT + P * Q;
   sU[0]          = sW + ty * NCOMP * (P + Q);
   sV[0]          = sU[0] + (NCOMP * 1 * P);
   for (int icomp = 1; icomp < NCOMP; icomp++) {
@@ -81,7 +81,7 @@ extern "C" __launch_bounds__(MAGMA_BASIS_BOUNDS(MAXPQ, MAGMA_MAXTHREADS_1D)) __g
 
 //////////////////////////////////////////////////////////////////////////////////////////
 extern "C" __launch_bounds__(MAGMA_BASIS_BOUNDS(MAXPQ, MAGMA_MAXTHREADS_1D)) __global__
-    void magma_interpt_1d_kernel(const CeedScalar* dT, const CeedScalar* dU, const int estrdU, const int cstrdU, CeedScalar* dV, const int estrdV,
+    void magma_interpt_1d_kernel(const CeedScalar *dT, const CeedScalar *dU, const int estrdU, const int cstrdU, CeedScalar *dV, const int estrdV,
                                  const int cstrdV, const int nelem) {
   MAGMA_DEVICE_SHARED(CeedScalar, shared_data)
 
@@ -92,16 +92,16 @@ extern "C" __launch_bounds__(MAGMA_BASIS_BOUNDS(MAXPQ, MAGMA_MAXTHREADS_1D)) __g
 
   if (elem_id >= nelem) return;
 
-  CeedScalar* sU[NCOMP];
-  CeedScalar* sV[NCOMP];
+  CeedScalar *sU[NCOMP];
+  CeedScalar *sV[NCOMP];
 
   // shift global memory pointers by elem stride
   dU += elem_id * estrdU;
   dV += elem_id * estrdV;
 
   // assign shared memory pointers
-  CeedScalar* sT = (CeedScalar*)(shared_data);
-  CeedScalar* sW = sT + Q * P;
+  CeedScalar *sT = (CeedScalar *)(shared_data);
+  CeedScalar *sW = sT + Q * P;
   sU[0]          = sW + ty * NCOMP * (Q + P);
   sV[0]          = sU[0] + (NCOMP * 1 * Q);
   for (int icomp = 1; icomp < NCOMP; icomp++) {

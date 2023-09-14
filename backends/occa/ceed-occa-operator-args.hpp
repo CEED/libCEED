@@ -28,11 +28,11 @@ class OperatorArgs : public QFunctionArgs {
 
   void setupArgs(CeedOperator op);
 
-  const OperatorField& getOpField(const bool isInput, const int index) const;
+  const OperatorField &getOpField(const bool isInput, const int index) const;
 
-  const OperatorField& getOpInput(const int index) const;
+  const OperatorField &getOpInput(const int index) const;
 
-  const OperatorField& getOpOutput(const int index) const;
+  const OperatorField &getOpOutput(const int index) const;
 };
 }  // namespace occa
 }  // namespace ceed

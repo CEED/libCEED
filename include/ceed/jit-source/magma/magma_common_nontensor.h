@@ -32,7 +32,7 @@
 // 1D thread config. with (Mx1) threads
 // no sync at the end of the function
 template <typename T, int P_, int NB_, int Q_>
-static __device__ __inline__ void read_C_g2r_1D_nosync(const int tx, const int n, T* dC, int lddc, const T& beta, T rC[NB_]) {
+static __device__ __inline__ void read_C_g2r_1D_nosync(const int tx, const int n, T *dC, int lddc, const T &beta, T rC[NB_]) {
   if (n != NB_) {
 #pragma unroll
     for (int j = 0; j < NB_; j++) {
@@ -52,7 +52,7 @@ static __device__ __inline__ void read_C_g2r_1D_nosync(const int tx, const int n
 // 1D thread config. with (Mx1) threads
 // no sync at the end of the function
 template <typename T, int P_, int NB_, int Q_>
-static __device__ __inline__ void write_C_r2g_1D_nosync(const int tx, const int n, T rC[NB_], T* dC, int lddc) {
+static __device__ __inline__ void write_C_r2g_1D_nosync(const int tx, const int n, T rC[NB_], T *dC, int lddc) {
   if (n != NB_) {
 #pragma unroll
     for (int j = 0; j < NB_; j++) {
@@ -74,7 +74,7 @@ static __device__ __inline__ void write_C_r2g_1D_nosync(const int tx, const int 
 // 1D thread config. with (Mx1) threads
 // no sync at the end of the function
 template <typename T, int P_, int NB_, int Q_>
-static __device__ __inline__ void read_A_notrans_g2r_1D_nosync(const int tx, const T* dA, int ldda, T* sA, int slda, T rA[Q_]) {
+static __device__ __inline__ void read_A_notrans_g2r_1D_nosync(const int tx, const T *dA, int ldda, T *sA, int slda, T rA[Q_]) {
 #pragma unroll
   for (int j = 0; j < Q_; j++) {
     rA[j] = dA(tx, j);
@@ -87,7 +87,7 @@ static __device__ __inline__ void read_A_notrans_g2r_1D_nosync(const int tx, con
 // 1D thread config. with (Mx1) threads
 // no sync at the end of the function
 template <typename T, int P_, int NB_, int Q_>
-static __device__ __inline__ void read_A_trans_g2r_1D_nosync(const int tx, const int ty, const T* dA, int ldda, T* sA, int slda, T rA[Q_]) {
+static __device__ __inline__ void read_A_trans_g2r_1D_nosync(const int tx, const int ty, const T *dA, int ldda, T *sA, int slda, T rA[Q_]) {
   int       ix  = 0;
   const int nTH = P_ * MAGMA_NONTENSOR_BASIS_NTCOL(P_);
   const int tid = ty * blockDim.x + tx;
@@ -114,7 +114,7 @@ static __device__ __inline__ void read_A_trans_g2r_1D_nosync(const int tx, const
 // 1D thread config. with (Mx1) threads
 // no sync at the end of the function
 template <typename T, int P_, int NB_, int Q_>
-static __device__ __inline__ void read_B_g2s_1D_nosync(const int tx, int n, const T* dB, int lddb, T* sB, int sldb) {
+static __device__ __inline__ void read_B_g2s_1D_nosync(const int tx, int n, const T *dB, int lddb, T *sB, int sldb) {
   if (n != NB_) {
     for (int i = 0; i < (Q_ * n) - P_; i += P_) {
       sB[i + tx] = dB[i + tx];
@@ -140,7 +140,7 @@ static __device__ __inline__ void read_B_g2s_1D_nosync(const int tx, int n, cons
 // C in registers -- one row per thread
 // no sync at the end of the function
 template <typename T, int P_, int NB_, int Q_>
-static __device__ __inline__ void mul_rAsBrC_1D_nosync(const int tx, const T& alpha, T rA[Q_], T* sB, int sldb, T rC[NB_]) {
+static __device__ __inline__ void mul_rAsBrC_1D_nosync(const int tx, const T &alpha, T rA[Q_], T *sB, int sldb, T rC[NB_]) {
   T rB[Q_] = {0};
 #pragma unroll
   for (int i = 0; i < NB_; i++) {

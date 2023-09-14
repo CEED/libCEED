@@ -16,23 +16,23 @@
 
 #ifdef __OPENCL_C_VERSION__
 typedef struct {
-  global const CeedScalar* inputs[CEED_SYCL_NUMBER_FIELDS];
-  global CeedScalar*       outputs[CEED_SYCL_NUMBER_FIELDS];
+  global const CeedScalar *inputs[CEED_SYCL_NUMBER_FIELDS];
+  global CeedScalar       *outputs[CEED_SYCL_NUMBER_FIELDS];
 } Fields_Sycl;
 
 typedef struct {
-  global const CeedInt* inputs[CEED_SYCL_NUMBER_FIELDS];
-  global CeedInt*       outputs[CEED_SYCL_NUMBER_FIELDS];
+  global const CeedInt *inputs[CEED_SYCL_NUMBER_FIELDS];
+  global CeedInt       *outputs[CEED_SYCL_NUMBER_FIELDS];
 } FieldsInt_Sycl;
 #else
 typedef struct {
-  const CeedScalar* inputs[CEED_SYCL_NUMBER_FIELDS];
-  CeedScalar*       outputs[CEED_SYCL_NUMBER_FIELDS];
+  const CeedScalar *inputs[CEED_SYCL_NUMBER_FIELDS];
+  CeedScalar       *outputs[CEED_SYCL_NUMBER_FIELDS];
 } Fields_Sycl;
 
 typedef struct {
-  const CeedInt* inputs[CEED_SYCL_NUMBER_FIELDS];
-  CeedInt*       outputs[CEED_SYCL_NUMBER_FIELDS];
+  const CeedInt *inputs[CEED_SYCL_NUMBER_FIELDS];
+  CeedInt       *outputs[CEED_SYCL_NUMBER_FIELDS];
 } FieldsInt_Sycl;
 #endif
 

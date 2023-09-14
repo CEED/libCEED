@@ -9,9 +9,9 @@
 #define CEED_MAGMA_INTERP_NONTENSOR_H
 
 ////////////////////////////////////////////////////////////////////////////////
-extern "C" __global__ __launch_bounds__(Q* MAGMA_NONTENSOR_BASIS_NTCOL(Q)) void magma_interp_nontensor_n(
-    magma_trans_t transA, magma_trans_t transB, int n, const CeedScalar alpha, CeedScalar const* dA, int ldda, CeedScalar const* dB, int lddb,
-    const CeedScalar beta, CeedScalar* dC, int lddc) {
+extern "C" __global__ __launch_bounds__(Q *MAGMA_NONTENSOR_BASIS_NTCOL(Q)) void magma_interp_nontensor_n(
+    magma_trans_t transA, magma_trans_t transB, int n, const CeedScalar alpha, CeedScalar const *dA, int ldda, CeedScalar const *dB, int lddb,
+    const CeedScalar beta, CeedScalar *dC, int lddc) {
   MAGMA_DEVICE_SHARED(CeedScalar, shared_data);
 
   const int tx      = threadIdx.x;
@@ -28,8 +28,8 @@ extern "C" __global__ __launch_bounds__(Q* MAGMA_NONTENSOR_BASIS_NTCOL(Q)) void 
 
   const int   slda = P;
   const int   sldb = P;
-  CeedScalar* sA   = (CeedScalar*)(shared_data);
-  CeedScalar* sB   = sA;
+  CeedScalar *sA   = (CeedScalar *)(shared_data);
+  CeedScalar *sB   = sA;
   sB += ty * sldb * NB_INTERP_N;
 
   // read A using all threads
@@ -53,9 +53,9 @@ extern "C" __global__ __launch_bounds__(Q* MAGMA_NONTENSOR_BASIS_NTCOL(Q)) void 
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-extern "C" __global__ __launch_bounds__(P* MAGMA_NONTENSOR_BASIS_NTCOL(P)) void magma_interp_nontensor_t(
-    magma_trans_t transA, magma_trans_t transB, int n, const CeedScalar alpha, CeedScalar const* dA, int ldda, CeedScalar const* dB, int lddb,
-    const CeedScalar beta, CeedScalar* dC, int lddc) {
+extern "C" __global__ __launch_bounds__(P *MAGMA_NONTENSOR_BASIS_NTCOL(P)) void magma_interp_nontensor_t(
+    magma_trans_t transA, magma_trans_t transB, int n, const CeedScalar alpha, CeedScalar const *dA, int ldda, CeedScalar const *dB, int lddb,
+    const CeedScalar beta, CeedScalar *dC, int lddc) {
   MAGMA_DEVICE_SHARED(CeedScalar, shared_data);
 
   const int tx      = threadIdx.x;
@@ -71,7 +71,7 @@ extern "C" __global__ __launch_bounds__(P* MAGMA_NONTENSOR_BASIS_NTCOL(P)) void 
 
   // A is P x Q
   const int   sldb = Q;
-  CeedScalar* sB   = (CeedScalar*)(shared_data);
+  CeedScalar *sB   = (CeedScalar *)(shared_data);
   sB += ty * sldb * NB_INTERP_T;
 
   // init rC

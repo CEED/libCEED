@@ -28,13 +28,13 @@
 //------------------------------------------------------------------------------
 extern "C" int CeedQFunctionBuildKernel_Sycl(CeedQFunction qf) {
   Ceed                ceed;
-  Ceed_Sycl*          data;
-  char *              qfunction_name, *qfunction_source, *read_write_kernel_path, *read_write_kernel_source;
+  Ceed_Sycl          *data;
+  char               *qfunction_name, *qfunction_source, *read_write_kernel_path, *read_write_kernel_source;
   CeedInt             num_input_fields, num_output_fields;
   CeedQFunctionField *input_fields, *output_fields;
-  CeedQFunction_Sycl* impl;
+  CeedQFunction_Sycl *impl;
 
-  CeedCallBackend(CeedQFunctionGetData(qf, (void**)&impl));
+  CeedCallBackend(CeedQFunctionGetData(qf, (void **)&impl));
   // QFunction is built
   if (impl->QFunction) return CEED_ERROR_SUCCESS;
 
@@ -45,17 +45,17 @@ extern "C" int CeedQFunctionBuildKernel_Sycl(CeedQFunction qf) {
   CeedCallBackend(CeedQFunctionGetFields(qf, &num_input_fields, &input_fields, &num_output_fields, &output_fields));
 
   std::vector<CeedInt> input_sizes(num_input_fields);
-  CeedQFunctionField*  input_i = input_fields;
+  CeedQFunctionField  *input_i = input_fields;
 
-  for (auto& size_i : input_sizes) {
+  for (auto &size_i : input_sizes) {
     CeedCallBackend(CeedQFunctionFieldGetSize(*input_i, &size_i));
     ++input_i;
   }
 
   std::vector<CeedInt> output_sizes(num_output_fields);
-  CeedQFunctionField*  output_i = output_fields;
+  CeedQFunctionField  *output_i = output_fields;
 
-  for (auto& size_i : output_sizes) {
+  for (auto &size_i : output_sizes) {
     CeedCallBackend(CeedQFunctionFieldGetSize(*output_i, &size_i));
     ++output_i;
   }

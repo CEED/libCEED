@@ -20,7 +20,7 @@ typedef atomic_double CeedAtomicScalar;
 //------------------------------------------------------------------------------
 // Load matrices for basis actions
 //------------------------------------------------------------------------------
-inline void loadMatrix(const CeedInt N, const CeedScalar* restrict d_B, CeedScalar* restrict B) {
+inline void loadMatrix(const CeedInt N, const CeedScalar *restrict d_B, CeedScalar *restrict B) {
   const CeedInt item_id    = get_local_linear_id();
   const CeedInt group_size = get_local_size(0) * get_local_size(1) * get_local_size(2);
   for (CeedInt i = item_id; i < N; i += group_size) B[i] = d_B[i];
@@ -34,7 +34,7 @@ inline void loadMatrix(const CeedInt N, const CeedScalar* restrict d_B, CeedScal
 // L-vector -> E-vector, offsets provided
 //------------------------------------------------------------------------------
 inline void readDofsOffset1d(const CeedInt num_comp, const CeedInt strides_comp, const CeedInt P_1D, const CeedInt num_elem,
-                             const global CeedInt* restrict indices, const global CeedScalar* restrict d_u, private CeedScalar* restrict r_u) {
+                             const global CeedInt *restrict indices, const global CeedScalar *restrict d_u, private CeedScalar *restrict r_u) {
   const CeedInt item_id_x = get_local_id(0);
   const CeedInt elem      = get_global_id(2);
 
@@ -51,8 +51,8 @@ inline void readDofsOffset1d(const CeedInt num_comp, const CeedInt strides_comp,
 // L-vector -> E-vector, strided
 //------------------------------------------------------------------------------
 inline void readDofsStrided1d(const CeedInt num_comp, const CeedInt P_1D, const CeedInt strides_node, const CeedInt strides_comp,
-                              const CeedInt strides_elem, const CeedInt num_elem, global const CeedScalar* restrict d_u,
-                              private CeedScalar* restrict r_u) {
+                              const CeedInt strides_elem, const CeedInt num_elem, global const CeedScalar *restrict d_u,
+                              private CeedScalar *restrict r_u) {
   const CeedInt item_id_x = get_local_id(0);
   const CeedInt elem      = get_global_id(2);
 
@@ -69,7 +69,7 @@ inline void readDofsStrided1d(const CeedInt num_comp, const CeedInt P_1D, const 
 // E-vector -> L-vector, offsets provided
 //------------------------------------------------------------------------------
 inline void writeDofsOffset1d(const CeedInt num_comp, const CeedInt strides_comp, const CeedInt P_1D, const CeedInt num_elem,
-                              const global CeedInt* restrict indices, const private CeedScalar* restrict r_v, global CeedAtomicScalar* restrict d_v) {
+                              const global CeedInt *restrict indices, const private CeedScalar *restrict r_v, global CeedAtomicScalar *restrict d_v) {
   const CeedInt item_id_x = get_local_id(0);
   const CeedInt elem      = get_global_id(2);
 
@@ -85,8 +85,8 @@ inline void writeDofsOffset1d(const CeedInt num_comp, const CeedInt strides_comp
 // E-vector -> L-vector, strided
 //------------------------------------------------------------------------------
 inline void writeDofsStrided1d(const CeedInt num_comp, const CeedInt P_1D, const CeedInt strides_node, const CeedInt strides_comp,
-                               const CeedInt strides_elem, const CeedInt num_elem, private const CeedScalar* restrict r_v,
-                               global CeedScalar* restrict d_v) {
+                               const CeedInt strides_elem, const CeedInt num_elem, private const CeedScalar *restrict r_v,
+                               global CeedScalar *restrict d_v) {
   const CeedInt item_id_x = get_local_id(0);
   const CeedInt elem      = get_global_id(2);
 
@@ -107,7 +107,7 @@ inline void writeDofsStrided1d(const CeedInt num_comp, const CeedInt P_1D, const
 // L-vector -> E-vector, offsets provided
 //------------------------------------------------------------------------------
 inline void readDofsOffset2d(const CeedInt num_comp, const CeedInt strides_comp, const CeedInt P_1D, const CeedInt num_elem,
-                             const global CeedInt* restrict indices, const global CeedScalar* restrict d_u, private CeedScalar* restrict r_u) {
+                             const global CeedInt *restrict indices, const global CeedScalar *restrict d_u, private CeedScalar *restrict r_u) {
   const CeedInt item_id_x = get_local_id(0);
   const CeedInt item_id_y = get_local_id(1);
   const CeedInt elem      = get_global_id(2);
@@ -123,8 +123,8 @@ inline void readDofsOffset2d(const CeedInt num_comp, const CeedInt strides_comp,
 // L-vector -> E-vector, strided
 //------------------------------------------------------------------------------
 inline void readDofsStrided2d(const CeedInt num_comp, const CeedInt P_1D, const CeedInt strides_node, const CeedInt strides_comp,
-                              const CeedInt strides_elem, const CeedInt num_elem, const global CeedScalar* restrict d_u,
-                              private CeedScalar* restrict r_u) {
+                              const CeedInt strides_elem, const CeedInt num_elem, const global CeedScalar *restrict d_u,
+                              private CeedScalar *restrict r_u) {
   const CeedInt item_id_x = get_local_id(0);
   const CeedInt item_id_y = get_local_id(1);
   const CeedInt elem      = get_global_id(2);
@@ -140,7 +140,7 @@ inline void readDofsStrided2d(const CeedInt num_comp, const CeedInt P_1D, const 
 // E-vector -> L-vector, offsets provided
 //------------------------------------------------------------------------------
 inline void writeDofsOffset2d(const CeedInt num_comp, const CeedInt strides_comp, const CeedInt P_1D, const CeedInt num_elem,
-                              const global CeedInt* restrict indices, const private CeedScalar* restrict r_v, global CeedAtomicScalar* restrict d_v) {
+                              const global CeedInt *restrict indices, const private CeedScalar *restrict r_v, global CeedAtomicScalar *restrict d_v) {
   const CeedInt item_id_x = get_local_id(0);
   const CeedInt item_id_y = get_local_id(1);
   const CeedInt elem      = get_global_id(2);
@@ -157,8 +157,8 @@ inline void writeDofsOffset2d(const CeedInt num_comp, const CeedInt strides_comp
 // E-vector -> L-vector, strided
 //------------------------------------------------------------------------------
 inline void writeDofsStrided2d(const CeedInt num_comp, const CeedInt P_1D, const CeedInt strides_node, const CeedInt strides_comp,
-                               const CeedInt strides_elem, const CeedInt num_elem, const private CeedScalar* restrict r_v,
-                               global CeedScalar* restrict d_v) {
+                               const CeedInt strides_elem, const CeedInt num_elem, const private CeedScalar *restrict r_v,
+                               global CeedScalar *restrict d_v) {
   const CeedInt item_id_x = get_local_id(0);
   const CeedInt item_id_y = get_local_id(1);
   const CeedInt elem      = get_global_id(2);
@@ -178,7 +178,7 @@ inline void writeDofsStrided2d(const CeedInt num_comp, const CeedInt P_1D, const
 // L-vector -> E-vector, offsets provided
 //------------------------------------------------------------------------------
 inline void readDofsOffset3d(const CeedInt num_comp, const CeedInt strides_comp, const CeedInt P_1D, const CeedInt num_elem,
-                             const global CeedInt* restrict indices, const global CeedScalar* restrict d_u, private CeedScalar* restrict r_u) {
+                             const global CeedInt *restrict indices, const global CeedScalar *restrict d_u, private CeedScalar *restrict r_u) {
   const CeedInt item_id_x = get_local_id(0);
   const CeedInt item_id_y = get_local_id(1);
   const CeedInt elem      = get_global_id(2);
@@ -196,8 +196,8 @@ inline void readDofsOffset3d(const CeedInt num_comp, const CeedInt strides_comp,
 // L-vector -> E-vector, strided
 //------------------------------------------------------------------------------
 inline void readDofsStrided3d(const CeedInt num_comp, const CeedInt P_1D, const CeedInt strides_node, const CeedInt strides_comp,
-                              const CeedInt strides_elem, const CeedInt num_elem, const global CeedScalar* restrict d_u,
-                              private CeedScalar* restrict r_u) {
+                              const CeedInt strides_elem, const CeedInt num_elem, const global CeedScalar *restrict d_u,
+                              private CeedScalar *restrict r_u) {
   const CeedInt item_id_x = get_local_id(0);
   const CeedInt item_id_y = get_local_id(1);
   const CeedInt elem      = get_global_id(2);
@@ -215,7 +215,7 @@ inline void readDofsStrided3d(const CeedInt num_comp, const CeedInt P_1D, const 
 // E-vector -> Q-vector, offests provided
 //------------------------------------------------------------------------------
 inline void readSliceQuadsOffset3d(const CeedInt num_comp, const CeedInt strides_comp, const CeedInt Q_1D, const CeedInt num_elem, const CeedInt q,
-                                   const global CeedInt* restrict indices, const global CeedScalar* restrict d_u, private CeedScalar* restrict r_u) {
+                                   const global CeedInt *restrict indices, const global CeedScalar *restrict d_u, private CeedScalar *restrict r_u) {
   const CeedInt item_id_x = get_local_id(0);
   const CeedInt item_id_y = get_local_id(1);
   const CeedInt elem      = get_global_id(2);
@@ -231,8 +231,8 @@ inline void readSliceQuadsOffset3d(const CeedInt num_comp, const CeedInt strides
 // E-vector -> Q-vector, strided
 //------------------------------------------------------------------------------
 inline void readSliceQuadsStrided3d(const CeedInt num_comp, const CeedInt Q_1D, CeedInt strides_node, CeedInt strides_comp, CeedInt strides_elem,
-                                    const CeedInt num_elem, const CeedInt q, const global CeedScalar* restrict d_u,
-                                    private CeedScalar* restrict r_u) {
+                                    const CeedInt num_elem, const CeedInt q, const global CeedScalar *restrict d_u,
+                                    private CeedScalar *restrict r_u) {
   const CeedInt item_id_x = get_local_id(0);
   const CeedInt item_id_y = get_local_id(1);
   const CeedInt elem      = get_global_id(2);
@@ -248,7 +248,7 @@ inline void readSliceQuadsStrided3d(const CeedInt num_comp, const CeedInt Q_1D, 
 // E-vector -> L-vector, offsets provided
 //------------------------------------------------------------------------------
 inline void writeDofsOffset3d(const CeedInt num_comp, const CeedInt strides_comp, const CeedInt P_1D, const CeedInt num_elem,
-                              const global CeedInt* restrict indices, const private CeedScalar* restrict r_v, global CeedAtomicScalar* restrict d_v) {
+                              const global CeedInt *restrict indices, const private CeedScalar *restrict r_v, global CeedAtomicScalar *restrict d_v) {
   const CeedInt item_id_x = get_local_id(0);
   const CeedInt item_id_y = get_local_id(1);
   const CeedInt elem      = get_global_id(2);
@@ -267,8 +267,8 @@ inline void writeDofsOffset3d(const CeedInt num_comp, const CeedInt strides_comp
 // E-vector -> L-vector, strided
 //------------------------------------------------------------------------------
 inline void writeDofsStrided3d(const CeedInt num_comp, const CeedInt P_1D, const CeedInt strides_node, const CeedInt strides_comp,
-                               const CeedInt strides_elem, const CeedInt num_elem, const private CeedScalar* restrict r_v,
-                               global CeedScalar* restrict d_v) {
+                               const CeedInt strides_elem, const CeedInt num_elem, const private CeedScalar *restrict r_v,
+                               global CeedScalar *restrict d_v) {
   const CeedInt item_id_x = get_local_id(0);
   const CeedInt item_id_y = get_local_id(1);
   const CeedInt elem      = get_global_id(2);
@@ -285,8 +285,8 @@ inline void writeDofsStrided3d(const CeedInt num_comp, const CeedInt P_1D, const
 //------------------------------------------------------------------------------
 // 3D collocated derivatives computation
 //------------------------------------------------------------------------------
-inline void gradCollo3d(const CeedInt num_comp, const CeedInt Q_1D, const CeedInt q, const private CeedScalar* restrict r_U,
-                        const local CeedScalar* s_G, private CeedScalar* restrict r_V, local CeedScalar* restrict scratch) {
+inline void gradCollo3d(const CeedInt num_comp, const CeedInt Q_1D, const CeedInt q, const private CeedScalar *restrict r_U,
+                        const local CeedScalar *s_G, private CeedScalar *restrict r_V, local CeedScalar *restrict scratch) {
   const CeedInt item_id_x = get_local_id(0);
   const CeedInt item_id_y = get_local_id(1);
 
@@ -319,8 +319,8 @@ inline void gradCollo3d(const CeedInt num_comp, const CeedInt Q_1D, const CeedIn
 //------------------------------------------------------------------------------
 // 3D collocated derivatives transpose
 //------------------------------------------------------------------------------
-inline void gradColloTranspose3d(const CeedInt num_comp, const CeedInt Q_1D, const CeedInt q, const private CeedScalar* restrict r_U,
-                                 const local CeedScalar* restrict s_G, private CeedScalar* restrict r_V, local CeedScalar* restrict scratch) {
+inline void gradColloTranspose3d(const CeedInt num_comp, const CeedInt Q_1D, const CeedInt q, const private CeedScalar *restrict r_U,
+                                 const local CeedScalar *restrict s_G, private CeedScalar *restrict r_V, local CeedScalar *restrict scratch) {
   const CeedInt item_id_x = get_local_id(0);
   const CeedInt item_id_y = get_local_id(1);
 

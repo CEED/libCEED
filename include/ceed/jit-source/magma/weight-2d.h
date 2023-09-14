@@ -8,7 +8,7 @@
 //////////////////////////////////////////////////////////////////////////////////////////
 // weight basis action -- 2D
 template <typename T, int DIM_, int NCOMP_, int Q_, int iDIM, int iCOMP>
-__device__ __inline__ void magma_weight_2d_device(const T* sTweight, T rV[DIM_][NCOMP_][Q_], const int tx) {
+__device__ __inline__ void magma_weight_2d_device(const T *sTweight, T rV[DIM_][NCOMP_][Q_], const int tx) {
   // Assumptions
   // 1. 1D thread configuration of size Q_
   // 2. rV[][][] matches the storage used in other actions (interp, grad, ... etc)
@@ -27,7 +27,7 @@ __device__ __inline__ void magma_weight_2d_device(const T* sTweight, T rV[DIM_][
 
 //////////////////////////////////////////////////////////////////////////////////////////
 extern "C" __launch_bounds__(MAGMA_BASIS_BOUNDS(Q, MAGMA_MAXTHREADS_2D)) __global__
-    void magma_weight_2d_kernel(const CeedScalar* dqweight1d, CeedScalar* dV, const int v_stride, const int nelem) {
+    void magma_weight_2d_kernel(const CeedScalar *dqweight1d, CeedScalar *dV, const int v_stride, const int nelem) {
   MAGMA_DEVICE_SHARED(CeedScalar, shared_data)
 
   const int tx      = threadIdx.x;
@@ -41,7 +41,7 @@ extern "C" __launch_bounds__(MAGMA_BASIS_BOUNDS(Q, MAGMA_MAXTHREADS_2D)) __globa
   dV += elem_id * v_stride;
 
   // shared memory pointers
-  CeedScalar* sTweight = (CeedScalar*)shared_data;
+  CeedScalar *sTweight = (CeedScalar *)shared_data;
 
   // read dqweight_1d
   if (ty == 0 && tx < Q) {

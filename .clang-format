@@ -9,6 +9,7 @@ AlignOperands:                Align
 AllowShortIfStatementsOnASingleLine: AllIfsAndElse
 ColumnLimit:                  150
 CommentPragmas:               'TESTARGS'
+DerivePointerAlignment:       false
 IncludeBlocks:                Preserve
 IncludeCategories:
   - Regex:                    '^<ceed/.*\.h>'
@@ -25,6 +26,7 @@ IncludeCategories:
     Priority:                 6
   - Regex:                    '.*'
     Priority:                 7
+PointerAlignment:             Right
 TabWidth:                     4
 UseTab:                       Never
 StatementMacros:              [CeedPragmaOptimizeOn, CeedPragmaOptimizeOff]

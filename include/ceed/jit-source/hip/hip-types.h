@@ -15,13 +15,13 @@
 #define CEED_HIP_NUMBER_FIELDS 16
 
 typedef struct {
-  const CeedScalar* inputs[CEED_HIP_NUMBER_FIELDS];
-  CeedScalar*       outputs[CEED_HIP_NUMBER_FIELDS];
+  const CeedScalar *inputs[CEED_HIP_NUMBER_FIELDS];
+  CeedScalar       *outputs[CEED_HIP_NUMBER_FIELDS];
 } Fields_Hip;
 
 typedef struct {
-  CeedInt* inputs[CEED_HIP_NUMBER_FIELDS];
-  CeedInt* outputs[CEED_HIP_NUMBER_FIELDS];
+  CeedInt *inputs[CEED_HIP_NUMBER_FIELDS];
+  CeedInt *outputs[CEED_HIP_NUMBER_FIELDS];
 } FieldsInt_Hip;
 
 typedef struct {
@@ -29,7 +29,7 @@ typedef struct {
   CeedInt     t_id_y;
   CeedInt     t_id_z;
   CeedInt     t_id;
-  CeedScalar* slice;
+  CeedScalar *slice;
 } SharedData_Hip;
 
 #endif  // CEED_HIP_TYPES_H

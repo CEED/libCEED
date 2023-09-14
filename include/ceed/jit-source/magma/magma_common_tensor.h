@@ -23,7 +23,7 @@
 // the devptr is assumed to point directly to the element
 // must sync after call
 template <typename T, int LENGTH, int NCOMP_>
-__device__ __inline__ void read_1d(const T* devptr, const int compstride, T* sBuffer[NCOMP_], const int tx) {
+__device__ __inline__ void read_1d(const T *devptr, const int compstride, T *sBuffer[NCOMP_], const int tx) {
   if (tx < LENGTH) {
     for (int icomp = 0; icomp < NCOMP_; icomp++) {
       sBuffer[icomp][tx] = devptr[icomp * compstride + tx];
@@ -35,7 +35,7 @@ __device__ __inline__ void read_1d(const T* devptr, const int compstride, T* sBu
 // write V of a 1D element into global memory from sV[][] --  for all components
 // the devptr is assumed to point directly to the element
 template <typename T, int LENGTH, int NCOMP_>
-__device__ __inline__ void write_1d(T* sBuffer[NCOMP_], T* devptr, const int compstride, const int tx) {
+__device__ __inline__ void write_1d(T *sBuffer[NCOMP_], T *devptr, const int compstride, const int tx) {
   if (tx < LENGTH) {
     for (int icomp = 0; icomp < NCOMP_; icomp++) {
       devptr[icomp * compstride + tx] = sBuffer[icomp][tx];
@@ -51,7 +51,7 @@ __device__ __inline__ void write_1d(T* sBuffer[NCOMP_], T* devptr, const int com
 // rUsize can be different from P_ (e.g. MAXP_Q)
 // sTmp is a shared memory workspace of size P_^2
 template <typename T, int P_, int DIMU, int NCOMP_, int rUsize, int iDIM>
-__device__ __inline__ void readU_2d(const T* dU, const int compstride, T rU[DIMU][NCOMP_][rUsize], T* sTmp, const int tx) {
+__device__ __inline__ void readU_2d(const T *dU, const int compstride, T rU[DIMU][NCOMP_][rUsize], T *sTmp, const int tx) {
   // read U as a batch P_ of (1xP_) vectors
   // vec 0  : [u0, u1, u2, ... u_(P_-1)] -- contiguous in memory
   // vec 1  : [u0, u1, u2, ... u_(P_-1)] -- contiguous in memory
@@ -87,7 +87,7 @@ __device__ __inline__ void readU_2d(const T* dU, const int compstride, T rU[DIMU
 // iDIM specifies which dimension is being read into in rV
 // rVsize can be different from P_ (e.g. MAXP_Q)
 template <typename T, int Q_, int DIMV, int NCOMP_, int rVsize, int iDIM>
-__device__ __inline__ void readV_2d(const T* dV, const int compstride, T rV[DIMV][NCOMP_][rVsize], const int tx) {
+__device__ __inline__ void readV_2d(const T *dV, const int compstride, T rV[DIMV][NCOMP_][rVsize], const int tx) {
   if (tx < Q_) {
     for (int icomp = 0; icomp < NCOMP_; icomp++) {
       for (int j = 0; j < Q_; j++) {
@@ -105,7 +105,7 @@ __device__ __inline__ void readV_2d(const T* dV, const int compstride, T rV[DIMV
 // idim specifies which dimension is being written to in dV
 // rVsize can be different from P_ (e.g. MAXP_Q)
 template <typename T, int Q_, int DIMV, int NCOMP_, int rVsize, int iDIM>
-__device__ __inline__ void writeV_2d(T* dV, const int compstride, T rV[DIMV][NCOMP_][rVsize], const int tx) {
+__device__ __inline__ void writeV_2d(T *dV, const int compstride, T rV[DIMV][NCOMP_][rVsize], const int tx) {
   if (tx < Q_) {
     for (int icomp = 0; icomp < NCOMP_; icomp++) {
       for (int j = 0; j < Q_; j++) {
@@ -123,7 +123,7 @@ __device__ __inline__ void writeV_2d(T* dV, const int compstride, T rV[DIMV][NCO
 // rUsize can be different from P_ (e.g. MAXP_Q)
 // sTmp is a shared memory workspace of size P_^3
 template <typename T, int P_, int DIMU, int NCOMP_, int rUsize, int iDIM>
-__device__ __inline__ void readU_3d(const T* dU, const int compstride, T rU[DIMU][NCOMP_][rUsize], T* sTmp, const int tx) {
+__device__ __inline__ void readU_3d(const T *dU, const int compstride, T rU[DIMU][NCOMP_][rUsize], T *sTmp, const int tx) {
   // read U as a batch P_^2 of (1xP_) vectors
   // vec 0    : [u0, u1, u2, ... u_(P_-1)] -- contiguous in memory
   // vec 1    : [u0, u1, u2, ... u_(P_-1)] -- contiguous in memory
@@ -159,7 +159,7 @@ __device__ __inline__ void readU_3d(const T* dU, const int compstride, T rU[DIMU
 // iDIM specifies which dimension is being read into in rV
 // rVsize can be different from P_ (e.g. MAXP_Q)
 template <typename T, int Q_, int DIMV, int NCOMP_, int rVsize, int iDIM>
-__device__ __inline__ void readV_3d(const T* dV, const int compstride, T rV[DIMV][NCOMP_][rVsize], const int tx) {
+__device__ __inline__ void readV_3d(const T *dV, const int compstride, T rV[DIMV][NCOMP_][rVsize], const int tx) {
   if (tx < Q_ * Q_) {
     for (int icomp = 0; icomp < NCOMP_; icomp++) {
       for (int j = 0; j < Q_; j++) {
@@ -177,7 +177,7 @@ __device__ __inline__ void readV_3d(const T* dV, const int compstride, T rV[DIMV
 // idim specifies which dimension is being written to in dV
 // rVsize can be different from P_ (e.g. MAXP_Q)
 template <typename T, int Q_, int DIMV, int NCOMP_, int rVsize, int iDIM>
-__device__ __inline__ void writeV_3d(T* dV, const int compstride, T rV[DIMV][NCOMP_][rVsize], const int tx) {
+__device__ __inline__ void writeV_3d(T *dV, const int compstride, T rV[DIMV][NCOMP_][rVsize], const int tx) {
   if (tx < (Q_ * Q_)) {
     for (int icomp = 0; icomp < NCOMP_; icomp++) {
       for (int j = 0; j < Q_; j++) {
@@ -191,7 +191,7 @@ __device__ __inline__ void writeV_3d(T* dV, const int compstride, T rV[DIMV][NCO
 // reads T into shared memory
 // must sync after call
 template <int B, int J>
-__device__ __inline__ void dread_T_gm2sm(const int tx, const magma_trans_t transT, const CeedScalar* dT, CeedScalar* sT) {
+__device__ __inline__ void dread_T_gm2sm(const int tx, const magma_trans_t transT, const CeedScalar *dT, CeedScalar *sT) {
   if (transT == MagmaNoTrans) {
     // T is B x J
     if (tx < B) {
@@ -214,7 +214,7 @@ __device__ __inline__ void dread_T_gm2sm(const int tx, const magma_trans_t trans
 // reads a slice of U from shared/global memory into registers
 // the correct pointer U must be precomputed
 template <int B>
-__device__ __inline__ void dread_U_gsm2reg(const int C, const int tx_, const CeedScalar* U, CeedScalar rU[B]) {
+__device__ __inline__ void dread_U_gsm2reg(const int C, const int tx_, const CeedScalar *U, CeedScalar rU[B]) {
   for (int i = 0; i < B; i++) {
     rU[i] = U[i * C + tx_];
   }
@@ -224,7 +224,7 @@ __device__ __inline__ void dread_U_gsm2reg(const int C, const int tx_, const Cee
 // reads a slice of V from shared/global memory into registers with scaling
 // the correct pointer V must be precomputed
 template <int J>
-__device__ __inline__ void dread_V_gsm2reg(const int C, const int tx_, const CeedScalar* V, CeedScalar rV[J]) {
+__device__ __inline__ void dread_V_gsm2reg(const int C, const int tx_, const CeedScalar *V, CeedScalar rV[J]) {
   for (int i = 0; i < J; i++) {
     rV[i] = V[i * C + tx_];
   }
@@ -234,7 +234,7 @@ __device__ __inline__ void dread_V_gsm2reg(const int C, const int tx_, const Cee
 // writes a slice of V from reg to shared/global memory
 // the correct pointer V must be precomputed
 template <int J>
-__device__ __inline__ void dwrite_V_reg2gsm(const int C, const int tx_, CeedScalar rV[J], CeedScalar* V) {
+__device__ __inline__ void dwrite_V_reg2gsm(const int C, const int tx_, CeedScalar rV[J], CeedScalar *V) {
   for (int i = 0; i < J; i++) {
     V[i * C + tx_] = rV[i];
   }
@@ -243,7 +243,7 @@ __device__ __inline__ void dwrite_V_reg2gsm(const int C, const int tx_, CeedScal
 //////////////////////////////////////////////////////////////////////////////////////////
 // multiply a slice of U times T to produce a slice of V
 template <int B, int J>
-__device__ __inline__ void dgemm_slice(CeedScalar alpha, CeedScalar* sT, CeedScalar rU[B], CeedScalar beta, CeedScalar rV[J]) {
+__device__ __inline__ void dgemm_slice(CeedScalar alpha, CeedScalar *sT, CeedScalar rU[B], CeedScalar beta, CeedScalar rV[J]) {
   CeedScalar rTmp;
   for (int j = 0; j < J; j++) {
     rTmp = 0.0;
@@ -257,8 +257,8 @@ __device__ __inline__ void dgemm_slice(CeedScalar alpha, CeedScalar* sT, CeedSca
 
 //////////////////////////////////////////////////////////////////////////////////////////
 template <int B, int J>
-__device__ __inline__ void dgemm_ceed_device(const int tx, const int A, const int C, magma_trans_t transT, CeedScalar* sT, const CeedScalar alpha,
-                                             const CeedScalar beta, const CeedScalar* dU, CeedScalar* dV, CeedScalar rU[B], CeedScalar rV[J]) {
+__device__ __inline__ void dgemm_ceed_device(const int tx, const int A, const int C, magma_trans_t transT, CeedScalar *sT, const CeedScalar alpha,
+                                             const CeedScalar beta, const CeedScalar *dU, CeedScalar *dV, CeedScalar rU[B], CeedScalar rV[J]) {
   const int tx_      = tx % C;
   const int slice_id = tx / C;
 
@@ -268,7 +268,7 @@ __device__ __inline__ void dgemm_ceed_device(const int tx, const int A, const in
 
   // read V if beta is non-zero
   if (beta != 0.0) {
-    dread_V_gsm2reg<J>(C, tx_, (const CeedScalar*)dV, rV);
+    dread_V_gsm2reg<J>(C, tx_, (const CeedScalar *)dV, rV);
   }
 
   // read U
