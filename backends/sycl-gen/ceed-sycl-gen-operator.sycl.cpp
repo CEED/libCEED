@@ -136,8 +136,8 @@ static int CeedOperatorApplyAdd_Sycl_gen(CeedOperator op, CeedVector input_vec, 
   sycl::nd_range<3> kernel_range(global_range, local_range);
 
   //-----------
-  // Order queue
-  sycl::event e = ceed_Sycl->sycl_queue.ext_oneapi_submit_barrier();
+  std::vector<sycl::event> e;
+  if (!ceed_Sycl->sycl_queue.is_in_order()) e = {ceed_Sycl->sycl_queue.ext_oneapi_submit_barrier()};
 
   CeedCallSycl(ceed, ceed_Sycl->sycl_queue.submit([&](sycl::handler &cgh) {
     cgh.depends_on(e);

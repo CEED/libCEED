@@ -63,9 +63,9 @@ int CeedBasisApplyTensor_Sycl_shared(CeedBasis basis, const CeedInt num_elem, Ce
       //-----------
       sycl::kernel *interp_kernel = (t_mode == CEED_TRANSPOSE) ? impl->interp_transpose_kernel : impl->interp_kernel;
 
-      // Order queue
-      sycl::event e = ceed_Sycl->sycl_queue.ext_oneapi_submit_barrier();
-
+      std::vector<sycl::event> e;
+      if (!ceed_Sycl->sycl_queue.is_in_order()) e = {ceed_Sycl->sycl_queue.ext_oneapi_submit_barrier()};
+      
       ceed_Sycl->sycl_queue.submit([&](sycl::handler &cgh) {
         cgh.depends_on(e);
         cgh.set_args(num_elem, impl->d_interp_1d, d_u, d_v);
@@ -84,8 +84,9 @@ int CeedBasisApplyTensor_Sycl_shared(CeedBasis basis, const CeedInt num_elem, Ce
       //-----------
       sycl::kernel     *grad_kernel = (t_mode == CEED_TRANSPOSE) ? impl->grad_transpose_kernel : impl->grad_kernel;
       const CeedScalar *d_grad_1d   = (impl->d_collo_grad_1d) ? impl->d_collo_grad_1d : impl->d_grad_1d;
-      // Order queue
-      sycl::event e = ceed_Sycl->sycl_queue.ext_oneapi_submit_barrier();
+     
+      std::vector<sycl::event> e;
+      if (!ceed_Sycl->sycl_queue.is_in_order()) e = {ceed_Sycl->sycl_queue.ext_oneapi_submit_barrier()};
 
       ceed_Sycl->sycl_queue.submit([&](sycl::handler &cgh) {
         cgh.depends_on(e);
@@ -102,8 +103,8 @@ int CeedBasisApplyTensor_Sycl_shared(CeedBasis basis, const CeedInt num_elem, Ce
       sycl::range<3>    global_range(group_count * lrange[2], lrange[1], lrange[0]);
       sycl::nd_range<3> kernel_range(global_range, local_range);
       //-----------
-      // Order queue
-      sycl::event e = ceed_Sycl->sycl_queue.ext_oneapi_submit_barrier();
+      std::vector<sycl::event> e;
+      if (!ceed_Sycl->sycl_queue.is_in_order()) e = {ceed_Sycl->sycl_queue.ext_oneapi_submit_barrier()};
 
       ceed_Sycl->sycl_queue.submit([&](sycl::handler &cgh) {
         cgh.depends_on(e);
@@ -190,16 +191,19 @@ int CeedBasisCreateTensorH1_Sycl_shared(CeedInt dim, CeedInt P_1d, CeedInt Q_1d,
 
   CeedCallBackend(ComputeLocalRange(ceed, dim, Q_1d, impl->weight_local_range));
 
+  std::vector<sycl::event> e;
+  if (!data->sycl_queue.is_in_order()) e = {data->sycl_queue.ext_oneapi_submit_barrier()};
+
   // Copy basis data to GPU
   CeedCallSycl(ceed, impl->d_q_weight_1d = sycl::malloc_device<CeedScalar>(Q_1d, data->sycl_device, data->sycl_context));
-  sycl::event copy_weight = data->sycl_queue.copy<CeedScalar>(q_weight_1d, impl->d_q_weight_1d, Q_1d);
+  sycl::event copy_weight = data->sycl_queue.copy<CeedScalar>(q_weight_1d, impl->d_q_weight_1d, Q_1d, e);
 
   const CeedInt interp_length = Q_1d * P_1d;
   CeedCallSycl(ceed, impl->d_interp_1d = sycl::malloc_device<CeedScalar>(interp_length, data->sycl_device, data->sycl_context));
-  sycl::event copy_interp = data->sycl_queue.copy<CeedScalar>(interp_1d, impl->d_interp_1d, interp_length);
+  sycl::event copy_interp = data->sycl_queue.copy<CeedScalar>(interp_1d, impl->d_interp_1d, interp_length, e);
 
   CeedCallSycl(ceed, impl->d_grad_1d = sycl::malloc_device<CeedScalar>(interp_length, data->sycl_device, data->sycl_context));
-  sycl::event copy_grad = data->sycl_queue.copy<CeedScalar>(grad_1d, impl->d_grad_1d, interp_length);
+  sycl::event copy_grad = data->sycl_queue.copy<CeedScalar>(grad_1d, impl->d_grad_1d, interp_length, e);
 
   CeedCallSycl(ceed, sycl::event::wait_and_throw({copy_weight, copy_interp, copy_grad}));
 
@@ -214,7 +218,7 @@ int CeedBasisCreateTensorH1_Sycl_shared(CeedInt dim, CeedInt P_1d, CeedInt Q_1d,
     CeedCallBackend(CeedMalloc(Q_1d * Q_1d, &collo_grad_1d));
     CeedCallBackend(CeedBasisGetCollocatedGrad(basis, collo_grad_1d));
     CeedCallSycl(ceed, impl->d_collo_grad_1d = sycl::malloc_device<CeedScalar>(cgrad_length, data->sycl_device, data->sycl_context));
-    CeedCallSycl(ceed, data->sycl_queue.copy<CeedScalar>(collo_grad_1d, impl->d_collo_grad_1d, cgrad_length).wait_and_throw());
+    CeedCallSycl(ceed, data->sycl_queue.copy<CeedScalar>(collo_grad_1d, impl->d_collo_grad_1d, cgrad_length, e).wait_and_throw());
     CeedCallBackend(CeedFree(&collo_grad_1d));
   }
 

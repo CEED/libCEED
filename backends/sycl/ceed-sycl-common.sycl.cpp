@@ -64,7 +64,7 @@ int CeedInit_Sycl(Ceed ceed, const char *resource) {
   };
 
   sycl::context sycl_context{sycl_device.get_platform().get_devices()};
-  sycl::queue   sycl_queue{sycl_context, sycl_device, sycl_async_handler};
+  sycl::queue   sycl_queue{sycl_context, sycl_device, sycl_async_handler,  sycl::property::queue::in_order{}};
 
   CeedCallBackend(CeedGetData(ceed, &data));
 
@@ -103,26 +103,15 @@ int CeedSetStream_Sycl(Ceed ceed, void *handle) {
   data->sycl_context = q->get_context();
   data->sycl_queue   = *q;
 
-  // Revisit this when we have a hierarchy of delegates
   CeedCallBackend(CeedGetDelegate(ceed, &ceed_delegate));
   if (ceed_delegate) {
-    Ceed_Sycl *delegate_data;
-
-    CeedCallBackend(CeedGetData(ceed_delegate, &delegate_data));
-    delegate_data->sycl_device  = q->get_device();
-    delegate_data->sycl_context = q->get_context();
-    delegate_data->sycl_queue   = *q;
+    CeedCallBackend(CeedSetStream_Sycl(ceed_delegate, handle));
   }
 
   // Set queue and context for Ceed Fallback object
   CeedGetOperatorFallbackCeed(ceed, &ceed_fallback);
   if (ceed_fallback) {
-    Ceed_Sycl *fallback_data;
-
-    CeedCallBackend(CeedGetData(ceed_fallback, &fallback_data));
-    fallback_data->sycl_device  = q->get_device();
-    fallback_data->sycl_context = q->get_context();
-    fallback_data->sycl_queue   = *q;
+    CeedCallBackend(CeedSetStream_Sycl(ceed_fallback, handle));
   }
   return CEED_ERROR_SUCCESS;
 }

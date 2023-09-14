@@ -49,10 +49,11 @@ static int CeedBasisApplyInterp_Sycl(sycl::queue &sycl_queue, const SyclModule_t
   sycl::range<1>      global_range(num_elem * work_group_size);
   sycl::nd_range<1>   kernel_range(global_range, local_range);
 
-  // Order queue
-  sycl::event e = sycl_queue.ext_oneapi_submit_barrier();
+  std::vector<sycl::event> e;
+  if (!sycl_queue.is_in_order()) e = {sycl_queue.ext_oneapi_submit_barrier()};
+
   sycl_queue.submit([&](sycl::handler &cgh) {
-    cgh.depends_on({e});
+    cgh.depends_on(e);
     cgh.use_kernel_bundle(sycl_module);
 
     sycl::local_accessor<CeedScalar> s_mem(op_len + 2 * buf_len, cgh);
@@ -150,10 +151,11 @@ static int CeedBasisApplyGrad_Sycl(sycl::queue &sycl_queue, const SyclModule_t &
   sycl::range<1>      global_range(num_elem * work_group_size);
   sycl::nd_range<1>   kernel_range(global_range, local_range);
 
-  // Order queue
-  sycl::event e = sycl_queue.ext_oneapi_submit_barrier();
+  std::vector<sycl::event> e;
+  if (!sycl_queue.is_in_order()) e = {sycl_queue.ext_oneapi_submit_barrier()};
+
   sycl_queue.submit([&](sycl::handler &cgh) {
-    cgh.depends_on({e});
+    cgh.depends_on(e);
     cgh.use_kernel_bundle(sycl_module);
 
     sycl::local_accessor<CeedScalar> s_mem(2 * (op_len + buf_len), cgh);
@@ -248,9 +250,10 @@ static int CeedBasisApplyWeight_Sycl(sycl::queue &sycl_queue, CeedInt num_elem, 
   const CeedInt  num_quad_z = (dim > 2) ? Q_1d : 1;
   sycl::range<3> kernel_range(num_elem * num_quad_z, num_quad_y, num_quad_x);
 
-  // Order queue
-  sycl::event e = sycl_queue.ext_oneapi_submit_barrier();
-  sycl_queue.parallel_for<CeedBasisSyclWeight>(kernel_range, {e}, [=](sycl::item<3> work_item) {
+  std::vector<sycl::event> e;
+  if (!sycl_queue.is_in_order()) e = {sycl_queue.ext_oneapi_submit_barrier()};
+  
+  sycl_queue.parallel_for<CeedBasisSyclWeight>(kernel_range, e, [=](sycl::item<3> work_item) {
     if (dim == 1) w[work_item.get_linear_id()] = q_weight_1d[work_item[2]];
     if (dim == 2) w[work_item.get_linear_id()] = q_weight_1d[work_item[2]] * q_weight_1d[work_item[1]];
     if (dim == 3) w[work_item.get_linear_id()] = q_weight_1d[work_item[2]] * q_weight_1d[work_item[1]] * q_weight_1d[work_item[0] % Q_1d];
@@ -283,9 +286,9 @@ static int CeedBasisApply_Sycl(CeedBasis basis, const CeedInt num_elem, CeedTran
   if (is_transpose) {
     CeedSize length;
     CeedCallBackend(CeedVectorGetLength(v, &length));
-    // Order queue
-    sycl::event e = data->sycl_queue.ext_oneapi_submit_barrier();
-    data->sycl_queue.fill<CeedScalar>(d_v, 0, length, {e});
+    std::vector<sycl::event> e;
+    if (!data->sycl_queue.is_in_order()) e = {data->sycl_queue.ext_oneapi_submit_barrier()};
+    data->sycl_queue.fill<CeedScalar>(d_v, 0, length, e);
   }
 
   // Basis action
@@ -343,9 +346,10 @@ static int CeedBasisApplyNonTensorInterp_Sycl(sycl::queue &sycl_queue, CeedInt n
 
   sycl::range<2> kernel_range(num_elem, v_size);
 
-  // Order queue
-  sycl::event e = sycl_queue.ext_oneapi_submit_barrier();
-  sycl_queue.parallel_for<CeedBasisSyclInterpNT>(kernel_range, {e}, [=](sycl::id<2> indx) {
+  std::vector<sycl::event> e;
+  if (!sycl_queue.is_in_order()) e = {sycl_queue.ext_oneapi_submit_barrier()};
+
+  sycl_queue.parallel_for<CeedBasisSyclInterpNT>(kernel_range, e, [=](sycl::id<2> indx) {
     const CeedInt i    = indx[1];
     const CeedInt elem = indx[0];
 
@@ -387,9 +391,10 @@ static int CeedBasisApplyNonTensorGrad_Sycl(sycl::queue &sycl_queue, CeedInt num
 
   sycl::range<2> kernel_range(num_elem, v_size);
 
-  // Order queue
-  sycl::event e = sycl_queue.ext_oneapi_submit_barrier();
-  sycl_queue.parallel_for<CeedBasisSyclGradNT>(kernel_range, {e}, [=](sycl::id<2> indx) {
+  std::vector<sycl::event> e;
+  if (!sycl_queue.is_in_order()) e = {sycl_queue.ext_oneapi_submit_barrier()};
+
+  sycl_queue.parallel_for<CeedBasisSyclGradNT>(kernel_range, e, [=](sycl::id<2> indx) {
     const CeedInt i    = indx[1];
     const CeedInt elem = indx[0];
 
@@ -425,9 +430,10 @@ static int CeedBasisApplyNonTensorWeight_Sycl(sycl::queue &sycl_queue, CeedInt n
 
   sycl::range<2> kernel_range(num_elem, num_qpts);
 
-  // Order queue
-  sycl::event e = sycl_queue.ext_oneapi_submit_barrier();
-  sycl_queue.parallel_for<CeedBasisSyclWeightNT>(kernel_range, {e}, [=](sycl::id<2> indx) {
+  std::vector<sycl::event> e;
+  if (!sycl_queue.is_in_order()) e = {sycl_queue.ext_oneapi_submit_barrier()};
+
+  sycl_queue.parallel_for<CeedBasisSyclWeightNT>(kernel_range, e, [=](sycl::id<2> indx) {
     const CeedInt i          = indx[1];
     const CeedInt elem       = indx[0];
     d_V[i + elem * num_qpts] = q_weight[i];
@@ -564,18 +570,18 @@ int CeedBasisCreateTensorH1_Sycl(CeedInt dim, CeedInt P_1d, CeedInt Q_1d, const 
   impl->buf_len   = num_comp * CeedIntMax(num_nodes, num_qpts);
   impl->op_len    = Q_1d * P_1d;
 
-  // Order queue
-  sycl::event e = data->sycl_queue.ext_oneapi_submit_barrier();
+  std::vector<sycl::event> e;
+  if (!data->sycl_queue.is_in_order()) e = {data->sycl_queue.ext_oneapi_submit_barrier()};
 
   CeedCallSycl(ceed, impl->d_q_weight_1d = sycl::malloc_device<CeedScalar>(Q_1d, data->sycl_device, data->sycl_context));
-  sycl::event copy_weight = data->sycl_queue.copy<CeedScalar>(q_weight_1d, impl->d_q_weight_1d, Q_1d, {e});
+  sycl::event copy_weight = data->sycl_queue.copy<CeedScalar>(q_weight_1d, impl->d_q_weight_1d, Q_1d, e);
 
   const CeedInt interp_length = Q_1d * P_1d;
   CeedCallSycl(ceed, impl->d_interp_1d = sycl::malloc_device<CeedScalar>(interp_length, data->sycl_device, data->sycl_context));
-  sycl::event copy_interp = data->sycl_queue.copy<CeedScalar>(interp_1d, impl->d_interp_1d, interp_length, {e});
+  sycl::event copy_interp = data->sycl_queue.copy<CeedScalar>(interp_1d, impl->d_interp_1d, interp_length, e);
 
   CeedCallSycl(ceed, impl->d_grad_1d = sycl::malloc_device<CeedScalar>(interp_length, data->sycl_device, data->sycl_context));
-  sycl::event copy_grad = data->sycl_queue.copy<CeedScalar>(grad_1d, impl->d_grad_1d, interp_length, {e});
+  sycl::event copy_grad = data->sycl_queue.copy<CeedScalar>(grad_1d, impl->d_grad_1d, interp_length, e);
 
   CeedCallSycl(ceed, sycl::event::wait_and_throw({copy_weight, copy_interp, copy_grad}));
 
@@ -618,19 +624,19 @@ int CeedBasisCreateH1_Sycl(CeedElemTopology topo, CeedInt dim, CeedInt num_nodes
   impl->num_nodes = num_nodes;
   impl->num_qpts  = num_qpts;
 
-  // Order queue
-  sycl::event e = data->sycl_queue.ext_oneapi_submit_barrier();
+  std::vector<sycl::event> e;
+  if (!data->sycl_queue.is_in_order()) e = {data->sycl_queue.ext_oneapi_submit_barrier()};
 
   CeedCallSycl(ceed, impl->d_q_weight = sycl::malloc_device<CeedScalar>(num_qpts, data->sycl_device, data->sycl_context));
-  sycl::event copy_weight = data->sycl_queue.copy<CeedScalar>(q_weight, impl->d_q_weight, num_qpts, {e});
+  sycl::event copy_weight = data->sycl_queue.copy<CeedScalar>(q_weight, impl->d_q_weight, num_qpts, e);
 
   const CeedInt interp_length = num_qpts * num_nodes;
   CeedCallSycl(ceed, impl->d_interp = sycl::malloc_device<CeedScalar>(interp_length, data->sycl_device, data->sycl_context));
-  sycl::event copy_interp = data->sycl_queue.copy<CeedScalar>(interp, impl->d_interp, interp_length, {e});
+  sycl::event copy_interp = data->sycl_queue.copy<CeedScalar>(interp, impl->d_interp, interp_length, e);
 
   const CeedInt grad_length = num_qpts * num_nodes * dim;
   CeedCallSycl(ceed, impl->d_grad = sycl::malloc_device<CeedScalar>(grad_length, data->sycl_device, data->sycl_context));
-  sycl::event copy_grad = data->sycl_queue.copy<CeedScalar>(grad, impl->d_grad, grad_length, {e});
+  sycl::event copy_grad = data->sycl_queue.copy<CeedScalar>(grad, impl->d_grad, grad_length, e);
 
   CeedCallSycl(ceed, sycl::event::wait_and_throw({copy_weight, copy_interp, copy_grad}));
 
