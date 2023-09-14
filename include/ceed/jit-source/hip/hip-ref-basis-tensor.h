@@ -46,31 +46,30 @@ extern "C" __global__ void Interp(const CeedInt num_elem, const CeedInt transpos
     for (CeedInt comp = 0; comp < BASIS_NUM_COMP; comp++) {
       const CeedScalar *cur_u = u + elem * u_stride + comp * u_comp_stride;
       CeedScalar       *cur_v = v + elem * v_stride + comp * v_comp_stride;
+      CeedInt           pre   = u_size;
+      CeedInt           post  = 1;
+
       for (CeedInt k = i; k < u_size; k += blockDim.x) {
         s_buffer_1[k] = cur_u[k];
       }
-      CeedInt pre  = u_size;
-      CeedInt post = 1;
       for (CeedInt d = 0; d < BASIS_DIM; d++) {
         __syncthreads();
         // Update buffers used
         pre /= P;
-        const CeedScalar *in  = d % 2 ? s_buffer_2 : s_buffer_1;
-        CeedScalar       *out = d == BASIS_DIM - 1 ? cur_v : (d % 2 ? s_buffer_1 : s_buffer_2);
+        const CeedScalar *in       = d % 2 ? s_buffer_2 : s_buffer_1;
+        CeedScalar       *out      = d == BASIS_DIM - 1 ? cur_v : (d % 2 ? s_buffer_1 : s_buffer_2);
+        const CeedInt     writeLen = pre * post * Q;
 
         // Contract along middle index
-        const CeedInt writeLen = pre * post * Q;
         for (CeedInt k = i; k < writeLen; k += blockDim.x) {
-          const CeedInt c = k % post;
-          const CeedInt j = (k / post) % Q;
-          const CeedInt a = k / (post * Q);
+          const CeedInt c  = k % post;
+          const CeedInt j  = (k / post) % Q;
+          const CeedInt a  = k / (post * Q);
+          CeedScalar    vk = 0;
 
-          CeedScalar vk = 0;
           for (CeedInt b = 0; b < P; b++) vk += s_interp_1d[j * stride_0 + b * stride_1] * in[(a * P + b) * post + c];
-
           out[k] = vk;
         }
-
         post *= Q;
       }
     }
@@ -114,27 +113,27 @@ extern "C" __global__ void Grad(const CeedInt num_elem, const CeedInt transpose,
         CeedInt           post  = 1;
         const CeedScalar *cur_u = u + elem * u_stride + dim_1 * u_dim_stride + comp * u_comp_stride;
         CeedScalar       *cur_v = v + elem * v_stride + dim_1 * v_dim_stride + comp * v_comp_stride;
+
         for (CeedInt dim_2 = 0; dim_2 < BASIS_DIM; dim_2++) {
           __syncthreads();
           // Update buffers used
           pre /= P;
-          const CeedScalar *op  = dim_1 == dim_2 ? s_grad_1d : s_interp_1d;
-          const CeedScalar *in  = dim_2 == 0 ? cur_u : (dim_2 % 2 ? s_buffer_2 : s_buffer_1);
-          CeedScalar       *out = dim_2 == BASIS_DIM - 1 ? cur_v : (dim_2 % 2 ? s_buffer_1 : s_buffer_2);
+          const CeedScalar *op       = dim_1 == dim_2 ? s_grad_1d : s_interp_1d;
+          const CeedScalar *in       = dim_2 == 0 ? cur_u : (dim_2 % 2 ? s_buffer_2 : s_buffer_1);
+          CeedScalar       *out      = dim_2 == BASIS_DIM - 1 ? cur_v : (dim_2 % 2 ? s_buffer_1 : s_buffer_2);
+          const CeedInt     writeLen = pre * post * Q;
 
           // Contract along middle index
-          const CeedInt writeLen = pre * post * Q;
           for (CeedInt k = i; k < writeLen; k += blockDim.x) {
             const CeedInt c   = k % post;
             const CeedInt j   = (k / post) % Q;
             const CeedInt a   = k / (post * Q);
             CeedScalar    v_k = 0;
-            for (CeedInt b = 0; b < P; b++) v_k += op[j * stride_0 + b * stride_1] * in[(a * P + b) * post + c];
 
+            for (CeedInt b = 0; b < P; b++) v_k += op[j * stride_0 + b * stride_1] * in[(a * P + b) * post + c];
             if (transpose && dim_2 == BASIS_DIM - 1) out[k] += v_k;
             else out[k] = v_k;
           }
-
           post *= Q;
         }
       }
@@ -147,8 +146,10 @@ extern "C" __global__ void Grad(const CeedInt num_elem, const CeedInt transpose,
 //------------------------------------------------------------------------------
 __device__ void Weight1d(const CeedInt num_elem, const CeedScalar *q_weight_1d, CeedScalar *w) {
   const CeedInt i = threadIdx.x;
+
   if (i < BASIS_Q_1D) {
     const size_t elem = blockIdx.x;
+
     if (elem < num_elem) w[elem * BASIS_Q_1D + i] = q_weight_1d[i];
   }
 }
@@ -159,11 +160,14 @@ __device__ void Weight1d(const CeedInt num_elem, const CeedScalar *q_weight_1d, 
 __device__ void Weight2d(const CeedInt num_elem, const CeedScalar *q_weight_1d, CeedScalar *w) {
   const CeedInt i = threadIdx.x;
   const CeedInt j = threadIdx.y;
+
   if (i < BASIS_Q_1D && j < BASIS_Q_1D) {
     const size_t elem = blockIdx.x;
+
     if (elem < num_elem) {
       const size_t ind = (elem * BASIS_Q_1D + j) * BASIS_Q_1D + i;
-      w[ind]           = q_weight_1d[i] * q_weight_1d[j];
+
+      w[ind] = q_weight_1d[i] * q_weight_1d[j];
     }
   }
 }
@@ -174,12 +178,15 @@ __device__ void Weight2d(const CeedInt num_elem, const CeedScalar *q_weight_1d, 
 __device__ void Weight3d(const CeedInt num_elem, const CeedScalar *q_weight_1d, CeedScalar *w) {
   const CeedInt i = threadIdx.x;
   const CeedInt j = threadIdx.y;
+
   if (i < BASIS_Q_1D && j < BASIS_Q_1D) {
     const size_t elem = blockIdx.x;
+
     if (elem < num_elem) {
       for (CeedInt k = 0; k < BASIS_Q_1D; k++) {
         const size_t ind = ((elem * BASIS_Q_1D + k) * BASIS_Q_1D + j) * BASIS_Q_1D + i;
-        w[ind]           = q_weight_1d[i] * q_weight_1d[j] * q_weight_1d[k];
+
+        w[ind] = q_weight_1d[i] * q_weight_1d[j] * q_weight_1d[k];
       }
     }
   }

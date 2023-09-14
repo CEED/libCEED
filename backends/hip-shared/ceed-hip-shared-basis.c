@@ -81,7 +81,6 @@ static int ComputeBasisThreadBlockSizes(const CeedInt dim, const CeedInt P_1d, c
       block_sizes[2] = CeedIntMax(256, ComputeBlockSizeFromRequirement(required));
     }
   }
-
   return CEED_ERROR_SUCCESS;
 }
 

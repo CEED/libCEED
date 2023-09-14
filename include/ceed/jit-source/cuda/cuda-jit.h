@@ -17,4 +17,4 @@
 
 #include "cuda-types.h"
 
-#endif  // CEED_CUDA_JIT_DEFS_H
+#endif  // CEED_CUDA_JIT_H

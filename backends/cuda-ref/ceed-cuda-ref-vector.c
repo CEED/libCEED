@@ -41,6 +41,7 @@ static inline int CeedVectorNeedSync_Cuda(const CeedVector vec, CeedMemType mem_
 static inline int CeedVectorSyncH2D_Cuda(const CeedVector vec) {
   Ceed             ceed;
   CeedSize         length;
+  size_t           bytes;
   CeedVector_Cuda *impl;
 
   CeedCallBackend(CeedVectorGetCeed(vec, &ceed));
@@ -49,8 +50,7 @@ static inline int CeedVectorSyncH2D_Cuda(const CeedVector vec) {
   CeedCheck(impl->h_array, ceed, CEED_ERROR_BACKEND, "No valid host data to sync to device");
 
   CeedCallBackend(CeedVectorGetLength(vec, &length));
-  size_t bytes = length * sizeof(CeedScalar);
-
+  bytes = length * sizeof(CeedScalar);
   if (impl->d_array_borrowed) {
     impl->d_array = impl->d_array_borrowed;
   } else if (impl->d_array_owned) {
@@ -192,9 +192,10 @@ static int CeedVectorSetArrayHost_Cuda(const CeedVector vec, const CeedCopyMode 
       impl->h_array          = impl->h_array_owned;
       if (array) {
         CeedSize length;
+        size_t   bytes;
 
         CeedCallBackend(CeedVectorGetLength(vec, &length));
-        size_t bytes = length * sizeof(CeedScalar);
+        bytes = length * sizeof(CeedScalar);
         memcpy(impl->h_array, array, bytes);
       }
     } break;
@@ -225,10 +226,10 @@ static int CeedVectorSetArrayDevice_Cuda(const CeedVector vec, const CeedCopyMod
   switch (copy_mode) {
     case CEED_COPY_VALUES: {
       CeedSize length;
+      size_t   bytes;
 
       CeedCallBackend(CeedVectorGetLength(vec, &length));
-      size_t bytes = length * sizeof(CeedScalar);
-
+      bytes = length * sizeof(CeedScalar);
       if (!impl->d_array_owned) {
         CeedCallCuda(ceed, cudaMalloc((void **)&impl->d_array_owned, bytes));
       }
@@ -430,11 +431,14 @@ static int CeedVectorGetArrayWrite_Cuda(const CeedVector vec, const CeedMemType 
 // Get the norm of a CeedVector
 //------------------------------------------------------------------------------
 static int CeedVectorNorm_Cuda(CeedVector vec, CeedNormType type, CeedScalar *norm) {
-  Ceed              ceed;
-  cublasHandle_t    handle;
-  CeedSize          length;
+  Ceed     ceed;
+  CeedSize length;
+#if CUDA_VERSION < 12000
+  CeedSize num_calls;
+#endif
   const CeedScalar *d_array;
   CeedVector_Cuda  *impl;
+  cublasHandle_t    handle;
 
   CeedCallBackend(CeedVectorGetCeed(vec, &ceed));
   CeedCallBackend(CeedVectorGetData(vec, &impl));
@@ -445,8 +449,7 @@ static int CeedVectorNorm_Cuda(CeedVector vec, CeedNormType type, CeedScalar *no
   // With CUDA 12, we can use the 64-bit integer interface. Prior to that,
   // we need to check if the vector is too long to handle with int32,
   // and if so, divide it into subsections for repeated cuBLAS calls.
-  CeedSize num_calls = length / INT_MAX;
-
+  num_calls = length / INT_MAX;
   if (length % INT_MAX > 0) num_calls += 1;
 #endif
 
