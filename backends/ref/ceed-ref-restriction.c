@@ -345,7 +345,7 @@ static inline int CeedElemRestrictionApplyAtPointsInElement_Ref(CeedElemRestrict
   CeedCallBackend(CeedElemRestrictionGetData(rstr, &impl));
 
   for (CeedInt e = start; e < stop; e++) {
-    l_vec_offset = impl->offsets[e + 1] - impl->offsets[e];
+    l_vec_offset = impl->offsets[e];
     CeedCallBackend(CeedElemRestrictionGetNumPointsInElement(rstr, e, &num_points));
     if (t_mode == CEED_NOTRANSPOSE) {
       for (CeedInt i = 0; i < num_points; i++) {
@@ -782,7 +782,7 @@ int CeedElemRestrictionCreate_Ref(CeedMemType mem_type, CeedCopyMode copy_mode, 
   CeedCallBackend(CeedElemRestrictionSetELayout(rstr, layout));
   CeedCallBackend(CeedSetBackendFunction(ceed, "ElemRestriction", rstr, "Apply", CeedElemRestrictionApply_Ref));
   if (rstr_type == CEED_RESTRICTION_POINTS) {
-    CeedCallBackend(CeedSetBackendFunction(ceed, "ElemRestriction", rstr, "ApplyAtPoints", CeedElemRestrictionApplyAtPoints_Ref));
+    CeedCallBackend(CeedSetBackendFunction(ceed, "ElemRestriction", rstr, "ApplyAtPointsInElement", CeedElemRestrictionApplyAtPoints_Ref));
   } else {
     CeedCallBackend(CeedSetBackendFunction(ceed, "ElemRestriction", rstr, "ApplyUnsigned", CeedElemRestrictionApplyUnsigned_Ref));
     CeedCallBackend(CeedSetBackendFunction(ceed, "ElemRestriction", rstr, "ApplyUnoriented", CeedElemRestrictionApplyUnoriented_Ref));

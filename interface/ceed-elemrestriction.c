@@ -310,7 +310,7 @@ int CeedElemRestrictionGetNumPointsInElement(CeedElemRestriction rstr, CeedInt e
             "Can only retrieve the number of points for a points CeedElemRestriction");
 
   CeedCall(CeedElemRestrictionGetOffsets(rstr, CEED_MEM_HOST, &offsets));
-  *num_points = offsets[elem - 1] - offsets[elem];
+  *num_points = offsets[elem + 1] - offsets[elem];
   CeedCall(CeedElemRestrictionRestoreOffsets(rstr, &offsets));
   return CEED_ERROR_SUCCESS;
 }
@@ -1183,7 +1183,7 @@ int CeedElemRestrictionApplyAtPointsInElement(CeedElemRestriction rstr, CeedInt 
             "Output vector size %" CeedInt_FMT " not compatible with element restriction (%" CeedInt_FMT ", %" CeedInt_FMT
             ") for element %" CeedInt_FMT,
             ru->length, m, n, elem);
-  CeedCheck(elem <= rstr->num_elem, rstr->ceed, CEED_ERROR_DIMENSION,
+  CeedCheck(elem < rstr->num_elem, rstr->ceed, CEED_ERROR_DIMENSION,
             "Cannot retrieve element %" CeedInt_FMT ", element %" CeedInt_FMT " > total elements %" CeedInt_FMT "", elem, elem, rstr->num_elem);
   if (rstr->num_elem > 0) CeedCall(rstr->ApplyAtPointsInElement(rstr, elem, t_mode, u, ru, request));
   return CEED_ERROR_SUCCESS;
@@ -1418,17 +1418,30 @@ int CeedElemRestrictionGetMultiplicity(CeedElemRestriction rstr, CeedVector mult
   @ref User
 **/
 int CeedElemRestrictionView(CeedElemRestriction rstr, FILE *stream) {
-  char stridesstr[500];
+  CeedRestrictionType rstr_type;
 
-  if (rstr->strides) {
-    sprintf(stridesstr, "[%" CeedInt_FMT ", %" CeedInt_FMT ", %" CeedInt_FMT "]", rstr->strides[0], rstr->strides[1], rstr->strides[2]);
+  CeedCall(CeedElemRestrictionGetType(rstr, &rstr_type));
+
+  if (rstr_type == CEED_RESTRICTION_POINTS) {
+    CeedInt max_points;
+
+    CeedCall(CeedElemRestrictionGetMaxPointsInElement(rstr, &max_points));
+    fprintf(stream,
+            "CeedElemRestriction at points from (%td, %" CeedInt_FMT ") to %" CeedInt_FMT " elements with a maximum of %" CeedInt_FMT
+            " points on an element\n",
+            rstr->l_size, rstr->num_comp, rstr->num_elem, max_points);
   } else {
-    sprintf(stridesstr, "%" CeedInt_FMT, rstr->comp_stride);
-  }
+    char stridesstr[500];
 
-  fprintf(stream, "%sCeedElemRestriction from (%td, %" CeedInt_FMT ") to %" CeedInt_FMT " elements with %" CeedInt_FMT " nodes each and %s %s\n",
-          rstr->block_size > 1 ? "Blocked " : "", rstr->l_size, rstr->num_comp, rstr->num_elem, rstr->elem_size,
-          rstr->strides ? "strides" : "component stride", stridesstr);
+    if (rstr->strides) {
+      sprintf(stridesstr, "[%" CeedInt_FMT ", %" CeedInt_FMT ", %" CeedInt_FMT "]", rstr->strides[0], rstr->strides[1], rstr->strides[2]);
+    } else {
+      sprintf(stridesstr, "%" CeedInt_FMT, rstr->comp_stride);
+    }
+    fprintf(stream, "%sCeedElemRestriction from (%td, %" CeedInt_FMT ") to %" CeedInt_FMT " elements with %" CeedInt_FMT " nodes each and %s %s\n",
+            rstr->block_size > 1 ? "Blocked " : "", rstr->l_size, rstr->num_comp, rstr->num_elem, rstr->elem_size,
+            rstr->strides ? "strides" : "component stride", stridesstr);
+  }
   return CEED_ERROR_SUCCESS;
 }
 
