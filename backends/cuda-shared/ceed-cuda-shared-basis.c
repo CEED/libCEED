@@ -146,22 +146,23 @@ int CeedBasisApplyTensor_Cuda_shared(CeedBasis basis, const CeedInt num_elem, Ce
     } break;
     case CEED_EVAL_WEIGHT: {
       CeedInt Q_1d;
+      CeedInt block_size = 32;
 
       CeedCallBackend(CeedBasisGetNumQuadraturePoints1D(basis, &Q_1d));
       void *weight_args[] = {(void *)&num_elem, (void *)&data->d_q_weight_1d, &d_v};
       if (dim == 1) {
-        const CeedInt elems_per_block = 32 / Q_1d;
+        const CeedInt elems_per_block = block_size / Q_1d;
         const CeedInt grid_size       = num_elem / elems_per_block + ((num_elem / elems_per_block * elems_per_block < num_elem) ? 1 : 0);
 
         CeedCallBackend(CeedRunKernelDim_Cuda(ceed, data->Weight, grid_size, Q_1d, elems_per_block, 1, weight_args));
       } else if (dim == 2) {
-        const CeedInt opt_elems       = 32 / (Q_1d * Q_1d);
+        const CeedInt opt_elems       = block_size / (Q_1d * Q_1d);
         const CeedInt elems_per_block = opt_elems > 0 ? opt_elems : 1;
         const CeedInt grid_size       = num_elem / elems_per_block + ((num_elem / elems_per_block * elems_per_block < num_elem) ? 1 : 0);
 
         CeedCallBackend(CeedRunKernelDim_Cuda(ceed, data->Weight, grid_size, Q_1d, Q_1d, elems_per_block, weight_args));
       } else if (dim == 3) {
-        const CeedInt opt_elems       = 32 / (Q_1d * Q_1d);
+        const CeedInt opt_elems       = block_size / (Q_1d * Q_1d);
         const CeedInt elems_per_block = opt_elems > 0 ? opt_elems : 1;
         const CeedInt grid_size       = num_elem / elems_per_block + ((num_elem / elems_per_block * elems_per_block < num_elem) ? 1 : 0);
 
