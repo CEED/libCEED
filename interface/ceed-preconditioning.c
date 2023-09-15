@@ -242,16 +242,16 @@ static inline int CeedOperatorGetBasisPointer(CeedBasis basis, CeedEvalMode eval
 /**
   @brief Create point block restriction for active operator field
 
-  @param[in]  rstr            Original CeedElemRestriction for active field
-  @param[out] pointblock_rstr Address of the variable where the newly created CeedElemRestriction will be stored
+  @param[in]  rstr             Original CeedElemRestriction for active field
+  @param[out] point_block_rstr Address of the variable where the newly created CeedElemRestriction will be stored
 
   @return An error code: 0 - success, otherwise - failure
 
   @ref Developer
 **/
-static int CeedOperatorCreateActivePointBlockRestriction(CeedElemRestriction rstr, CeedElemRestriction *pointblock_rstr) {
+static int CeedOperatorCreateActivePointBlockRestriction(CeedElemRestriction rstr, CeedElemRestriction *point_block_rstr) {
   Ceed           ceed;
-  CeedInt        num_elem, num_comp, shift, elem_size, comp_stride, *pointblock_offsets;
+  CeedInt        num_elem, num_comp, shift, elem_size, comp_stride, *point_block_offsets;
   CeedSize       l_size;
   const CeedInt *offsets;
 
@@ -266,14 +266,14 @@ static int CeedOperatorCreateActivePointBlockRestriction(CeedElemRestriction rst
   CeedCall(CeedElemRestrictionGetLVectorSize(rstr, &l_size));
   shift = num_comp;
   if (comp_stride != 1) shift *= num_comp;
-  CeedCall(CeedCalloc(num_elem * elem_size, &pointblock_offsets));
+  CeedCall(CeedCalloc(num_elem * elem_size, &point_block_offsets));
   for (CeedInt i = 0; i < num_elem * elem_size; i++) {
-    pointblock_offsets[i] = offsets[i] * shift;
+    point_block_offsets[i] = offsets[i] * shift;
   }
 
   // Create new restriction
   CeedCall(CeedElemRestrictionCreate(ceed, num_elem, elem_size, num_comp * num_comp, 1, l_size * num_comp, CEED_MEM_HOST, CEED_OWN_POINTER,
-                                     pointblock_offsets, pointblock_rstr));
+                                     point_block_offsets, point_block_rstr));
 
   // Cleanup
   CeedCall(CeedElemRestrictionRestoreOffsets(rstr, &offsets));
@@ -283,16 +283,16 @@ static int CeedOperatorCreateActivePointBlockRestriction(CeedElemRestriction rst
 /**
   @brief Core logic for assembling operator diagonal or point block diagonal
 
-  @param[in]  op            CeedOperator to assemble point block diagonal
-  @param[in]  request       Address of CeedRequest for non-blocking completion, else CEED_REQUEST_IMMEDIATE
-  @param[in]  is_pointblock Boolean flag to assemble diagonal or point block diagonal
-  @param[out] assembled     CeedVector to store assembled diagonal
+  @param[in]  op             CeedOperator to assemble point block diagonal
+  @param[in]  request        Address of CeedRequest for non-blocking completion, else CEED_REQUEST_IMMEDIATE
+  @param[in]  is_point_block Boolean flag to assemble diagonal or point block diagonal
+  @param[out] assembled      CeedVector to store assembled diagonal
 
   @return An error code: 0 - success, otherwise - failure
 
   @ref Developer
 **/
-static inline int CeedSingleOperatorAssembleAddDiagonal_Core(CeedOperator op, CeedRequest *request, const bool is_pointblock, CeedVector assembled) {
+static inline int CeedSingleOperatorAssembleAddDiagonal_Core(CeedOperator op, CeedRequest *request, const bool is_point_block, CeedVector assembled) {
   Ceed                ceed;
   CeedInt             num_input_fields, num_output_fields;
   CeedInt             layout[3];
@@ -334,7 +334,7 @@ static inline int CeedSingleOperatorAssembleAddDiagonal_Core(CeedOperator op, Ce
     CeedElemRestriction diag_elem_rstr;
 
     // Assemble point block diagonal restriction, if needed
-    if (is_pointblock) {
+    if (is_point_block) {
       CeedCall(CeedOperatorCreateActivePointBlockRestriction(active_elem_rstrs[b], &diag_elem_rstr));
     } else {
       CeedCall(CeedElemRestrictionCreateUnsignedCopy(active_elem_rstrs[b], &diag_elem_rstr));
@@ -398,7 +398,7 @@ static inline int CeedSingleOperatorAssembleAddDiagonal_Core(CeedOperator op, Ce
           for (CeedInt c_out = 0; c_out < num_components; c_out++) {
             // Each qpt/node pair
             for (CeedInt q = 0; q < num_qpts; q++) {
-              if (is_pointblock) {
+              if (is_point_block) {
                 // Point Block Diagonal
                 for (CeedInt c_in = 0; c_in < num_components; c_in++) {
                   const CeedSize c_offset = (eval_mode_offsets_in[b][e_in] + c_in) * num_output_components + eval_mode_offsets_out[b][e_out] + c_out;
@@ -441,16 +441,16 @@ static inline int CeedSingleOperatorAssembleAddDiagonal_Core(CeedOperator op, Ce
 /**
   @brief Core logic for assembling composite operator diagonal
 
-  @param[in]  op            CeedOperator to assemble point block diagonal
-  @param[in]  request       Address of CeedRequest for non-blocking completion, else CEED_REQUEST_IMMEDIATE
-  @param[in]  is_pointblock Boolean flag to assemble diagonal or point block diagonal
-  @param[out] assembled     CeedVector to store assembled diagonal
+  @param[in]  op             CeedOperator to assemble point block diagonal
+  @param[in]  request        Address of CeedRequest for non-blocking completion, else CEED_REQUEST_IMMEDIATE
+  @param[in]  is_point_block Boolean flag to assemble diagonal or point block diagonal
+  @param[out] assembled      CeedVector to store assembled diagonal
 
   @return An error code: 0 - success, otherwise - failure
 
   @ref Developer
 **/
-static inline int CeedCompositeOperatorLinearAssembleAddDiagonal(CeedOperator op, CeedRequest *request, const bool is_pointblock,
+static inline int CeedCompositeOperatorLinearAssembleAddDiagonal(CeedOperator op, CeedRequest *request, const bool is_point_block,
                                                                  CeedVector assembled) {
   CeedInt       num_sub;
   CeedOperator *suboperators;
@@ -458,7 +458,7 @@ static inline int CeedCompositeOperatorLinearAssembleAddDiagonal(CeedOperator op
   CeedCall(CeedCompositeOperatorGetNumSub(op, &num_sub));
   CeedCall(CeedCompositeOperatorGetSubList(op, &suboperators));
   for (CeedInt i = 0; i < num_sub; i++) {
-    if (is_pointblock) {
+    if (is_point_block) {
       CeedCall(CeedOperatorLinearAssembleAddPointBlockDiagonal(suboperators[i], assembled, request));
     } else {
       CeedCall(CeedOperatorLinearAssembleAddDiagonal(suboperators[i], assembled, request));
