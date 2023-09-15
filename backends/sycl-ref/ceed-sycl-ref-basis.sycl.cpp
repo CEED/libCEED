@@ -524,7 +524,6 @@ static int CeedBasisDestroy_Sycl(CeedBasis basis) {
   CeedCallSycl(ceed, sycl::free(impl->d_grad_1d, data->sycl_context));
 
   CeedCallBackend(CeedFree(&impl));
-
   return CEED_ERROR_SUCCESS;
 }
 
@@ -547,7 +546,6 @@ static int CeedBasisDestroyNonTensor_Sycl(CeedBasis basis) {
   CeedCallSycl(ceed, sycl::free(impl->d_grad, data->sycl_context));
 
   CeedCallBackend(CeedFree(&impl));
-
   return CEED_ERROR_SUCCESS;
 }
 

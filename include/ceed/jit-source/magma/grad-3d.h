@@ -20,8 +20,8 @@
 // iDIM_V -- which dim index of rV is accessed (0, 1, or 2 for notrans, always 0 for trans)
 // the scalar beta is used to specify whether to accumulate to rV, or overwrite it
 template <typename T, int DIM_U, int DIM_V, int NCOMP_, int P_, int Q_, int rUsize, int rVsize, int iDIM_, int iDIM_U, int iDIM_V>
-static __device__ __inline__ void magma_grad_3d_device(const T* sTinterp, const T* sTgrad, T rU[DIM_U][NCOMP_][rUsize], T rV[DIM_V][NCOMP_][rVsize],
-                                                       T beta, const int tx, T rTmp, T* swork) {
+static __device__ __inline__ void magma_grad_3d_device(const T *sTinterp, const T *sTgrad, T rU[DIM_U][NCOMP_][rUsize], T rV[DIM_V][NCOMP_][rVsize],
+                                                       T beta, const int tx, T rTmp, T *swork) {
   // Assumptions
   // 0. This device routine applies grad for one dim only (iDIM_), so it should be thrice for 3D
   // 1. 1D threads of size max(P_,Q_)^2
@@ -34,15 +34,15 @@ static __device__ __inline__ void magma_grad_3d_device(const T* sTinterp, const 
   // 6. Each thread computes one row of the output of each product
   // 7. Sync is recommended before and after the call
 
-  T* sW1 = swork;
-  T* sW2 = sW1 + P_ * P_ * Q_;
+  T *sW1 = swork;
+  T *sW2 = sW1 + P_ * P_ * Q_;
   for (int icomp = 0; icomp < NCOMP_; icomp++) {
     // Batch P_^2 of (1xP_) matrices [reg] times (P_xQ_) matrix [shmem] => Batch P_^2 of (1xQ_) matrices [shmem]
     if (tx < (P_ * P_)) {
       const int batchid = tx;
       const int sld     = 1;
-      const T*  sT      = (iDIM_ == 0) ? sTgrad : sTinterp;
-      T*        sTmp    = sW1 + batchid * (1 * Q_);
+      const T  *sT      = (iDIM_ == 0) ? sTgrad : sTinterp;
+      T        *sTmp    = sW1 + batchid * (1 * Q_);
       for (int j = 0; j < Q_; j++) {
         rTmp = 0.0;
         for (int i = 0; i < P_; i++) {
@@ -58,9 +58,9 @@ static __device__ __inline__ void magma_grad_3d_device(const T* sTinterp, const 
       const int batchid = tx / Q_;
       const int tx_     = tx % Q_;
       const int sld     = Q_;
-      const T*  sT      = (iDIM_ == 1) ? sTgrad : sTinterp;
-      T*        sTmp    = sW1 + batchid * (Q_ * P_);  // sTmp is input
-      T*        sTmp2   = sW2 + batchid * (Q_ * Q_);  // sTmp2 is output
+      const T  *sT      = (iDIM_ == 1) ? sTgrad : sTinterp;
+      T        *sTmp    = sW1 + batchid * (Q_ * P_);  // sTmp is input
+      T        *sTmp2   = sW2 + batchid * (Q_ * Q_);  // sTmp2 is output
       for (int j = 0; j < Q_; j++) {
         rTmp = 0.0;
         for (int i = 0; i < P_; i++) {
@@ -76,8 +76,8 @@ static __device__ __inline__ void magma_grad_3d_device(const T* sTinterp, const 
       // No need to declare batchid = (tx  / Q_^2) = always zero
       // No need to declare tx_     = (tx_ % Q_^2) = always tx
       const int sld  = Q_ * Q_;
-      const T*  sT   = (iDIM_ == 2) ? sTgrad : sTinterp;
-      T*        sTmp = sW2;  // sTmp is input
+      const T  *sT   = (iDIM_ == 2) ? sTgrad : sTinterp;
+      T        *sTmp = sW2;  // sTmp is input
       for (int j = 0; j < Q_; j++) {
         rTmp = 0.0;
         for (int i = 0; i < P_; i++) {
@@ -92,9 +92,9 @@ static __device__ __inline__ void magma_grad_3d_device(const T* sTinterp, const 
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////
-extern "C" __launch_bounds__(MAGMA_BASIS_BOUNDS(MAXPQ* MAXPQ, MAGMA_MAXTHREADS_3D)) __global__
-    void magma_gradn_3d_kernel(const CeedScalar* dinterp1d, const CeedScalar* dgrad1d, const CeedScalar* dU, const int estrdU, const int cstrdU,
-                               const int dstrdU, CeedScalar* dV, const int estrdV, const int cstrdV, const int dstrdV, const int nelem) {
+extern "C" __launch_bounds__(MAGMA_BASIS_BOUNDS(MAXPQ *MAXPQ, MAGMA_MAXTHREADS_3D)) __global__
+    void magma_gradn_3d_kernel(const CeedScalar *dinterp1d, const CeedScalar *dgrad1d, const CeedScalar *dU, const int estrdU, const int cstrdU,
+                               const int dstrdU, CeedScalar *dV, const int estrdV, const int cstrdV, const int dstrdV, const int nelem) {
   MAGMA_DEVICE_SHARED(CeedScalar, shared_data)
 
   const int     tx      = threadIdx.x;
@@ -113,9 +113,9 @@ extern "C" __launch_bounds__(MAGMA_BASIS_BOUNDS(MAXPQ* MAXPQ, MAGMA_MAXTHREADS_3
   dV += elem_id * estrdV;
 
   // assign shared memory pointers
-  CeedScalar* sTinterp = (CeedScalar*)(shared_data);
-  CeedScalar* sTgrad   = sTinterp + P * Q;
-  CeedScalar* sTmp     = sTgrad + P * Q;
+  CeedScalar *sTinterp = (CeedScalar *)(shared_data);
+  CeedScalar *sTgrad   = sTinterp + P * Q;
+  CeedScalar *sTmp     = sTgrad + P * Q;
   sTmp += ty * (max(P * P * P, (P * P * Q) + (P * Q * Q)));
 
   // read T
@@ -152,9 +152,9 @@ extern "C" __launch_bounds__(MAGMA_BASIS_BOUNDS(MAXPQ* MAXPQ, MAGMA_MAXTHREADS_3
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////
-extern "C" __launch_bounds__(MAGMA_BASIS_BOUNDS(MAXPQ* MAXPQ, MAGMA_MAXTHREADS_3D)) __global__
-    void magma_gradt_3d_kernel(const CeedScalar* dinterp1d, const CeedScalar* dgrad1d, const CeedScalar* dU, const int estrdU, const int cstrdU,
-                               const int dstrdU, CeedScalar* dV, const int estrdV, const int cstrdV, const int dstrdV, const int nelem) {
+extern "C" __launch_bounds__(MAGMA_BASIS_BOUNDS(MAXPQ *MAXPQ, MAGMA_MAXTHREADS_3D)) __global__
+    void magma_gradt_3d_kernel(const CeedScalar *dinterp1d, const CeedScalar *dgrad1d, const CeedScalar *dU, const int estrdU, const int cstrdU,
+                               const int dstrdU, CeedScalar *dV, const int estrdV, const int cstrdV, const int dstrdV, const int nelem) {
   MAGMA_DEVICE_SHARED(CeedScalar, shared_data)
 
   const int     tx      = threadIdx.x;
@@ -173,9 +173,9 @@ extern "C" __launch_bounds__(MAGMA_BASIS_BOUNDS(MAXPQ* MAXPQ, MAGMA_MAXTHREADS_3
   dV += elem_id * estrdV;
 
   // assign shared memory pointers
-  CeedScalar* sTinterp = (CeedScalar*)(shared_data);
-  CeedScalar* sTgrad   = sTinterp + Q * P;
-  CeedScalar* sTmp     = sTgrad + Q * P;
+  CeedScalar *sTinterp = (CeedScalar *)(shared_data);
+  CeedScalar *sTgrad   = sTinterp + Q * P;
+  CeedScalar *sTmp     = sTgrad + Q * P;
   sTmp += ty * (max(Q * Q * Q, (Q * Q * P) + (Q * P * P)));
 
   // read T

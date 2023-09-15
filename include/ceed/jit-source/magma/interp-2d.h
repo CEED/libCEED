@@ -12,8 +12,8 @@
 //////////////////////////////////////////////////////////////////////////////////////////
 // interp basis action (2D)
 template <typename T, int DIM_U, int DIM_V, int NCOMP_, int P_, int Q_, int rUsize, int rVsize>
-static __device__ __inline__ void magma_interp_2d_device(const T* sT, magma_trans_t transT, T rU[DIM_U][NCOMP_][rUsize], T rV[DIM_V][NCOMP_][rVsize],
-                                                         const int tx, T rTmp, T* swork) {
+static __device__ __inline__ void magma_interp_2d_device(const T *sT, magma_trans_t transT, T rU[DIM_U][NCOMP_][rUsize], T rV[DIM_V][NCOMP_][rVsize],
+                                                         const int tx, T rTmp, T *swork) {
   // Assumptions
   // 1. 1D threads of size max(P_,Q_)
   // 2. input:  rU[DIM_U x NCOMP_ x rUsize] in registers (per thread)
@@ -30,7 +30,7 @@ static __device__ __inline__ void magma_interp_2d_device(const T* sT, magma_tran
     if (tx < P_) {
       const int batchid = tx;
       const int sld     = 1;
-      T*        sTmp    = swork + batchid * (1 * Q_);
+      T        *sTmp    = swork + batchid * (1 * Q_);
       for (int j = 0; j < Q_; j++) {
         rTmp = 0.0;
         for (int i = 0; i < P_; i++) {
@@ -45,7 +45,7 @@ static __device__ __inline__ void magma_interp_2d_device(const T* sT, magma_tran
     if (tx < Q_) {
       const int batchid = 0;
       const int sld     = Q_;
-      T*        sTmp    = swork + batchid * (Q_ * P_);
+      T        *sTmp    = swork + batchid * (Q_ * P_);
       for (int j = 0; j < Q_; j++) {
         rTmp = 0.0;
         for (int i = 0; i < P_; i++) {
@@ -60,7 +60,7 @@ static __device__ __inline__ void magma_interp_2d_device(const T* sT, magma_tran
 
 //////////////////////////////////////////////////////////////////////////////////////////
 extern "C" __launch_bounds__(MAGMA_BASIS_BOUNDS(MAXPQ, MAGMA_MAXTHREADS_2D)) __global__
-    void magma_interpn_2d_kernel(const CeedScalar* dT, const CeedScalar* dU, const int estrdU, const int cstrdU, CeedScalar* dV, const int estrdV,
+    void magma_interpn_2d_kernel(const CeedScalar *dT, const CeedScalar *dU, const int estrdU, const int cstrdU, CeedScalar *dV, const int estrdV,
                                  const int cstrdV, const int nelem) {
   MAGMA_DEVICE_SHARED(CeedScalar, shared_data)
 
@@ -80,8 +80,8 @@ extern "C" __launch_bounds__(MAGMA_BASIS_BOUNDS(MAXPQ, MAGMA_MAXTHREADS_2D)) __g
   dV += elem_id * estrdV;
 
   // assign shared memory pointers
-  CeedScalar* sT   = (CeedScalar*)(shared_data);
-  CeedScalar* sTmp = sT + P * Q;
+  CeedScalar *sT   = (CeedScalar *)(shared_data);
+  CeedScalar *sTmp = sT + P * Q;
   sTmp += ty * (P * MAXPQ);
 
   // read T
@@ -102,7 +102,7 @@ extern "C" __launch_bounds__(MAGMA_BASIS_BOUNDS(MAXPQ, MAGMA_MAXTHREADS_2D)) __g
 
 //////////////////////////////////////////////////////////////////////////////////////////
 extern "C" __launch_bounds__(MAGMA_BASIS_BOUNDS(MAXPQ, MAGMA_MAXTHREADS_2D)) __global__
-    void magma_interpt_2d_kernel(const CeedScalar* dT, const CeedScalar* dU, const int estrdU, const int cstrdU, CeedScalar* dV, const int estrdV,
+    void magma_interpt_2d_kernel(const CeedScalar *dT, const CeedScalar *dU, const int estrdU, const int cstrdU, CeedScalar *dV, const int estrdV,
                                  const int cstrdV, const int nelem) {
   MAGMA_DEVICE_SHARED(CeedScalar, shared_data)
 
@@ -122,8 +122,8 @@ extern "C" __launch_bounds__(MAGMA_BASIS_BOUNDS(MAXPQ, MAGMA_MAXTHREADS_2D)) __g
   dV += elem_id * estrdV;
 
   // assign shared memory pointers
-  CeedScalar* sT   = (CeedScalar*)(shared_data);
-  CeedScalar* sTmp = sT + Q * P;
+  CeedScalar *sT   = (CeedScalar *)(shared_data);
+  CeedScalar *sTmp = sT + Q * P;
   sTmp += ty * (Q * MAXPQ);
 
   // read T

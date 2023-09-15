@@ -16,7 +16,7 @@
 // Read from quadrature points
 //------------------------------------------------------------------------------
 template <int SIZE>
-inline __device__ void readQuads(const CeedInt quad, const CeedInt num_qpts, const CeedScalar* d_u, CeedScalar* r_u) {
+inline __device__ void readQuads(const CeedInt quad, const CeedInt num_qpts, const CeedScalar *d_u, CeedScalar *r_u) {
   for (CeedInt comp = 0; comp < SIZE; comp++) {
     r_u[comp] = d_u[quad + num_qpts * comp];
   }
@@ -26,7 +26,7 @@ inline __device__ void readQuads(const CeedInt quad, const CeedInt num_qpts, con
 // Write at quadrature points
 //------------------------------------------------------------------------------
 template <int SIZE>
-inline __device__ void writeQuads(const CeedInt quad, const CeedInt num_qpts, const CeedScalar* r_v, CeedScalar* d_v) {
+inline __device__ void writeQuads(const CeedInt quad, const CeedInt num_qpts, const CeedScalar *r_v, CeedScalar *d_v) {
   for (CeedInt comp = 0; comp < SIZE; comp++) {
     d_v[quad + num_qpts * comp] = r_v[comp];
   }

@@ -81,7 +81,6 @@ static int ComputeBasisThreadBlockSizes(const CeedInt dim, const CeedInt P_1d, c
       block_sizes[2] = CeedIntMax(256, ComputeBlockSizeFromRequirement(required));
     }
   }
-
   return CEED_ERROR_SUCCESS;
 }
 
@@ -276,8 +275,8 @@ int CeedBasisCreateTensorH1_Hip_shared(CeedInt dim, CeedInt P_1d, CeedInt Q_1d, 
   Ceed                  ceed;
   char                 *basis_kernel_path, *basis_kernel_source;
   CeedInt               num_comp;
-  const CeedInt         q_bytes = Q_1d * sizeof(CeedScalar);
-  const CeedInt         i_bytes = q_bytes * P_1d;
+  const CeedInt         q_bytes      = Q_1d * sizeof(CeedScalar);
+  const CeedInt         interp_bytes = q_bytes * P_1d;
   CeedBasis_Hip_shared *data;
 
   CeedCallBackend(CeedBasisGetCeed(basis, &ceed));
@@ -286,10 +285,10 @@ int CeedBasisCreateTensorH1_Hip_shared(CeedInt dim, CeedInt P_1d, CeedInt Q_1d, 
   // Copy basis data to GPU
   CeedCallHip(ceed, hipMalloc((void **)&data->d_q_weight_1d, q_bytes));
   CeedCallHip(ceed, hipMemcpy(data->d_q_weight_1d, q_weight_1d, q_bytes, hipMemcpyHostToDevice));
-  CeedCallHip(ceed, hipMalloc((void **)&data->d_interp_1d, i_bytes));
-  CeedCallHip(ceed, hipMemcpy(data->d_interp_1d, interp_1d, i_bytes, hipMemcpyHostToDevice));
-  CeedCallHip(ceed, hipMalloc((void **)&data->d_grad_1d, i_bytes));
-  CeedCallHip(ceed, hipMemcpy(data->d_grad_1d, grad_1d, i_bytes, hipMemcpyHostToDevice));
+  CeedCallHip(ceed, hipMalloc((void **)&data->d_interp_1d, interp_bytes));
+  CeedCallHip(ceed, hipMemcpy(data->d_interp_1d, interp_1d, interp_bytes, hipMemcpyHostToDevice));
+  CeedCallHip(ceed, hipMalloc((void **)&data->d_grad_1d, interp_bytes));
+  CeedCallHip(ceed, hipMemcpy(data->d_grad_1d, grad_1d, interp_bytes, hipMemcpyHostToDevice));
 
   // Compute collocated gradient and copy to GPU
   data->d_collo_grad_1d    = NULL;

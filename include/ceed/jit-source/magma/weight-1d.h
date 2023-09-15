@@ -8,7 +8,7 @@
 //////////////////////////////////////////////////////////////////////////////////////////
 // weight basis action -- 1D
 template <typename T, int Q_>
-__device__ __inline__ void magma_weight_1d_device(const T* sTweight, T* sV, const int tx) {
+__device__ __inline__ void magma_weight_1d_device(const T *sTweight, T *sV, const int tx) {
   // Assumptions
   // 1. 1D thread configuration of size Q_
   // 2. The output sV is in shared memory -- size 1xQ_
@@ -19,7 +19,7 @@ __device__ __inline__ void magma_weight_1d_device(const T* sTweight, T* sV, cons
 
 //////////////////////////////////////////////////////////////////////////////////////////
 extern "C" __launch_bounds__(MAGMA_BASIS_BOUNDS(Q, MAGMA_MAXTHREADS_1D)) __global__
-    void magma_weight_1d_kernel(const CeedScalar* dqweight1d, CeedScalar* dV, const int v_stride, const int nelem) {
+    void magma_weight_1d_kernel(const CeedScalar *dqweight1d, CeedScalar *dV, const int v_stride, const int nelem) {
   MAGMA_DEVICE_SHARED(CeedScalar, shared_data)
 
   const int tx      = threadIdx.x;
@@ -32,8 +32,8 @@ extern "C" __launch_bounds__(MAGMA_BASIS_BOUNDS(Q, MAGMA_MAXTHREADS_1D)) __globa
   dV += elem_id * v_stride;
 
   // shared memory pointers
-  CeedScalar* sTweight = (CeedScalar*)shared_data;
-  CeedScalar* sV       = sTweight + Q;
+  CeedScalar *sTweight = (CeedScalar *)shared_data;
+  CeedScalar *sV       = sTweight + Q;
   sV += ty * Q;
 
   // read dqweight_1d

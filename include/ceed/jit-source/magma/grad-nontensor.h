@@ -10,9 +10,9 @@
 
 ////////////////////////////////////////////////////////////////////////////////
 // Different A's and C's, same B
-extern "C" __global__ __launch_bounds__(Q* MAGMA_NONTENSOR_BASIS_NTCOL(Q)) void magma_grad_nontensor_n(magma_trans_t transA, magma_trans_t transB,
-                                                                                                       int n, CeedScalar const* dA, int ldda,
-                                                                                                       CeedScalar const* dB, int lddb, CeedScalar* dC,
+extern "C" __global__ __launch_bounds__(Q *MAGMA_NONTENSOR_BASIS_NTCOL(Q)) void magma_grad_nontensor_n(magma_trans_t transA, magma_trans_t transB,
+                                                                                                       int n, CeedScalar const *dA, int ldda,
+                                                                                                       CeedScalar const *dB, int lddb, CeedScalar *dC,
                                                                                                        int lddc) {
   MAGMA_DEVICE_SHARED(CeedScalar, shared_data);
 
@@ -31,8 +31,8 @@ extern "C" __global__ __launch_bounds__(Q* MAGMA_NONTENSOR_BASIS_NTCOL(Q)) void 
   // A is P x Q
   const int   slda = P;
   const int   sldb = P;
-  CeedScalar* sA   = (CeedScalar*)(shared_data);
-  CeedScalar* sB   = sA + Q * P;
+  CeedScalar *sA   = (CeedScalar *)(shared_data);
+  CeedScalar *sB   = sA + Q * P;
   sB += ty * sldb * NB_GRAD_N;
 
   // read B once for all C's
@@ -68,9 +68,9 @@ extern "C" __global__ __launch_bounds__(Q* MAGMA_NONTENSOR_BASIS_NTCOL(Q)) void 
 
 ////////////////////////////////////////////////////////////////////////////////
 // Different A's and B's, same C
-extern "C" __global__ __launch_bounds__(P* MAGMA_NONTENSOR_BASIS_NTCOL(P)) void magma_grad_nontensor_t(magma_trans_t transA, magma_trans_t transB,
-                                                                                                       int n, CeedScalar const* dA, int ldda,
-                                                                                                       CeedScalar const* dB, int lddb, CeedScalar* dC,
+extern "C" __global__ __launch_bounds__(P *MAGMA_NONTENSOR_BASIS_NTCOL(P)) void magma_grad_nontensor_t(magma_trans_t transA, magma_trans_t transB,
+                                                                                                       int n, CeedScalar const *dA, int ldda,
+                                                                                                       CeedScalar const *dB, int lddb, CeedScalar *dC,
                                                                                                        int lddc) {
   MAGMA_DEVICE_SHARED(CeedScalar, shared_data);
 
@@ -89,7 +89,7 @@ extern "C" __global__ __launch_bounds__(P* MAGMA_NONTENSOR_BASIS_NTCOL(P)) void 
 
   // A is P x Q
   const int   sldb = Q;
-  CeedScalar* sB   = (CeedScalar*)(shared_data);
+  CeedScalar *sB   = (CeedScalar *)(shared_data);
   sB += ty * sldb * NB_GRAD_T;
 
   // init rC

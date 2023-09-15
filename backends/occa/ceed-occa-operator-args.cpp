@@ -39,10 +39,10 @@ void OperatorArgs::setupArgs(CeedOperator op) {
   }
 }
 
-const OperatorField& OperatorArgs::getOpField(const bool isInput, const int index) const { return isInput ? opInputs[index] : opOutputs[index]; }
+const OperatorField &OperatorArgs::getOpField(const bool isInput, const int index) const { return isInput ? opInputs[index] : opOutputs[index]; }
 
-const OperatorField& OperatorArgs::getOpInput(const int index) const { return opInputs[index]; }
+const OperatorField &OperatorArgs::getOpInput(const int index) const { return opInputs[index]; }
 
-const OperatorField& OperatorArgs::getOpOutput(const int index) const { return opOutputs[index]; }
+const OperatorField &OperatorArgs::getOpOutput(const int index) const { return opOutputs[index]; }
 }  // namespace occa
 }  // namespace ceed

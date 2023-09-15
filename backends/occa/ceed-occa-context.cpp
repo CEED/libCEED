@@ -15,13 +15,13 @@ Context::Context(::occa::device device_) : device(device_) {
   _usingGpuDevice        = (mode == "CUDA" || mode == "HIP" || mode == "OpenCL");
 }
 
-Context* Context::from(Ceed ceed) {
+Context *Context::from(Ceed ceed) {
   if (!ceed) {
     return NULL;
   }
 
-  Context* context;
-  CeedGetData(ceed, (void**)&context);
+  Context *context;
+  CeedGetData(ceed, (void **)&context);
   return context;
 }
 

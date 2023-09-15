@@ -22,7 +22,7 @@ class Context {
 
   Context(::occa::device device_);
 
-  static Context* from(Ceed ceed);
+  static Context *from(Ceed ceed);
 
   bool usingCpuDevice() const;
   bool usingGpuDevice() const;

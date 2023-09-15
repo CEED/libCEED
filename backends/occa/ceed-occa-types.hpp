@@ -45,7 +45,7 @@
     return CeedError(ceed, CEED_ERROR_BACKEND, error.c_str()); \
   } while (0)
 
-#define CeedOccaCastRegisterFunction(func) (ceed::occa::ceedFunction)(void*) func
+#define CeedOccaCastRegisterFunction(func) (ceed::occa::ceedFunction)(void *) func
 
 #define CeedOccaRegisterBaseFunction(name, func) CeedCallBackend(registerCeedFunction(ceed, name, CeedOccaCastRegisterFunction(func)));
 

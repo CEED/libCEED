@@ -37,11 +37,11 @@ class QFunctionArgs : public CeedObject {
   int inputCount() const;
   int outputCount() const;
 
-  const QFunctionField& getQfField(const bool isInput, const int index) const;
+  const QFunctionField &getQfField(const bool isInput, const int index) const;
 
-  const QFunctionField& getQfInput(const int index) const;
+  const QFunctionField &getQfInput(const int index) const;
 
-  const QFunctionField& getQfOutput(const int index) const;
+  const QFunctionField &getQfOutput(const int index) const;
 
   CeedEvalMode getEvalMode(const bool isInput, const int index) const;
 

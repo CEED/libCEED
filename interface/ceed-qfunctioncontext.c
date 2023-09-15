@@ -832,7 +832,6 @@ int CeedQFunctionContextDestroy(CeedQFunctionContext *ctx) {
   CeedCall(CeedFree(&(*ctx)->field_labels));
   CeedCall(CeedDestroy(&(*ctx)->ceed));
   CeedCall(CeedFree(ctx));
-
   return CEED_ERROR_SUCCESS;
 }
 

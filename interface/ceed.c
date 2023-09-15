@@ -463,7 +463,7 @@ int CeedSetObjectDelegate(Ceed ceed, Ceed delegate, const char *obj_name) {
 
   @ref Backend
 **/
-int CeedGetOperatorfallback_resource(Ceed ceed, const char **resource) {
+int CeedGetOperatorFallbackResource(Ceed ceed, const char **resource) {
   *resource = (const char *)ceed->op_fallback_resource;
   return CEED_ERROR_SUCCESS;
 }
@@ -491,7 +491,7 @@ int CeedGetOperatorFallbackCeed(Ceed ceed, Ceed *fallback_ceed) {
     Ceed        fallback_ceed;
     const char *fallback_resource;
 
-    CeedCall(CeedGetOperatorfallback_resource(ceed, &fallback_resource));
+    CeedCall(CeedGetOperatorFallbackResource(ceed, &fallback_resource));
     CeedCall(CeedInit(fallback_resource, &fallback_ceed));
     fallback_ceed->op_fallback_parent = ceed;
     fallback_ceed->Error              = ceed->Error;
@@ -881,7 +881,6 @@ int CeedInit(const char *resource, Ceed *ceed) {
 
   // Backend specific setup
   CeedCall(backends[match_index].init(&resource[match_help], *ceed));
-
   return CEED_ERROR_SUCCESS;
 }
 

@@ -43,11 +43,11 @@ int QFunctionArgs::inputCount() const { return _inputCount; }
 
 int QFunctionArgs::outputCount() const { return _outputCount; }
 
-const QFunctionField& QFunctionArgs::getQfField(const bool isInput, const int index) const { return isInput ? qfInputs[index] : qfOutputs[index]; }
+const QFunctionField &QFunctionArgs::getQfField(const bool isInput, const int index) const { return isInput ? qfInputs[index] : qfOutputs[index]; }
 
-const QFunctionField& QFunctionArgs::getQfInput(const int index) const { return qfInputs[index]; }
+const QFunctionField &QFunctionArgs::getQfInput(const int index) const { return qfInputs[index]; }
 
-const QFunctionField& QFunctionArgs::getQfOutput(const int index) const { return qfOutputs[index]; }
+const QFunctionField &QFunctionArgs::getQfOutput(const int index) const { return qfOutputs[index]; }
 
 CeedEvalMode QFunctionArgs::getEvalMode(const bool isInput, const int index) const {
   return isInput ? qfInputs[index].evalMode : qfOutputs[index].evalMode;

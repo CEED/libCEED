@@ -202,10 +202,10 @@ static int CeedVectorSetArrayHost_Sycl(const CeedVector vec, const CeedCopyMode 
       impl->h_array          = impl->h_array_owned;
       if (array) {
         CeedSize length;
+        size_t   bytes;
 
         CeedCallBackend(CeedVectorGetLength(vec, &length));
-        size_t bytes = length * sizeof(CeedScalar);
-
+        bytes = length * sizeof(CeedScalar);
         memcpy(impl->h_array, array, bytes);
       }
     } break;
@@ -221,7 +221,6 @@ static int CeedVectorSetArrayHost_Sycl(const CeedVector vec, const CeedCopyMode 
       impl->h_array          = array;
       break;
   }
-
   return CEED_ERROR_SUCCESS;
 }
 

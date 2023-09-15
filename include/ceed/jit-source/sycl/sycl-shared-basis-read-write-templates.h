@@ -16,7 +16,7 @@
 //------------------------------------------------------------------------------
 // Helper function: load matrices for basis actions
 //------------------------------------------------------------------------------
-inline void loadMatrix(const CeedInt N, const CeedScalar* restrict d_B, CeedScalar* restrict B) {
+inline void loadMatrix(const CeedInt N, const CeedScalar *restrict d_B, CeedScalar *restrict B) {
   const CeedInt item_id    = get_local_linear_id();
   const CeedInt group_size = get_local_size(0) * get_local_size(1) * get_local_size(2);
   for (CeedInt i = item_id; i < N; i += group_size) B[i] = d_B[i];
@@ -30,8 +30,8 @@ inline void loadMatrix(const CeedInt N, const CeedScalar* restrict d_B, CeedScal
 // E-vector -> single element
 //------------------------------------------------------------------------------
 inline void ReadElementStrided1d(const CeedInt NUM_COMP, const CeedInt P_1D, const CeedInt num_elem, const CeedInt strides_node,
-                                 const CeedInt strides_comp, const CeedInt strides_elem, global const CeedScalar* restrict d_u,
-                                 private CeedScalar* restrict r_u) {
+                                 const CeedInt strides_comp, const CeedInt strides_elem, global const CeedScalar *restrict d_u,
+                                 private CeedScalar *restrict r_u) {
   const CeedInt item_id_x = get_local_id(0);
   const CeedInt elem      = get_global_id(2);
 
@@ -48,8 +48,8 @@ inline void ReadElementStrided1d(const CeedInt NUM_COMP, const CeedInt P_1D, con
 // Single element -> E-vector
 //------------------------------------------------------------------------------
 inline void WriteElementStrided1d(const CeedInt NUM_COMP, const CeedInt P_1D, const CeedInt num_elem, const CeedInt strides_node,
-                                  const CeedInt strides_comp, const CeedInt strides_elem, private const CeedScalar* restrict r_v,
-                                  global CeedScalar* restrict d_v) {
+                                  const CeedInt strides_comp, const CeedInt strides_elem, private const CeedScalar *restrict r_v,
+                                  global CeedScalar *restrict d_v) {
   const CeedInt item_id_x = get_local_id(0);
   const CeedInt elem      = get_global_id(2);
 
@@ -70,8 +70,8 @@ inline void WriteElementStrided1d(const CeedInt NUM_COMP, const CeedInt P_1D, co
 // E-vector -> single element
 //------------------------------------------------------------------------------
 inline void ReadElementStrided2d(const CeedInt NUM_COMP, const CeedInt P_1D, const CeedInt num_elem, const CeedInt strides_node,
-                                 const CeedInt strides_comp, const CeedInt strides_elem, global const CeedScalar* restrict d_u,
-                                 private CeedScalar* restrict r_u) {
+                                 const CeedInt strides_comp, const CeedInt strides_elem, global const CeedScalar *restrict d_u,
+                                 private CeedScalar *restrict r_u) {
   const CeedInt item_id_x = get_local_id(0);
   const CeedInt item_id_y = get_local_id(1);
   const CeedInt elem      = get_global_id(2);
@@ -89,8 +89,8 @@ inline void ReadElementStrided2d(const CeedInt NUM_COMP, const CeedInt P_1D, con
 // Single element -> E-vector
 //------------------------------------------------------------------------------
 inline void WriteElementStrided2d(const CeedInt NUM_COMP, const CeedInt P_1D, const CeedInt num_elem, const CeedInt strides_node,
-                                  const CeedInt strides_comp, const CeedInt strides_elem, private const CeedScalar* restrict r_v,
-                                  global CeedScalar* restrict d_v) {
+                                  const CeedInt strides_comp, const CeedInt strides_elem, private const CeedScalar *restrict r_v,
+                                  global CeedScalar *restrict d_v) {
   const CeedInt item_id_x = get_local_id(0);
   const CeedInt item_id_y = get_local_id(1);
   const CeedInt elem      = get_global_id(2);
@@ -112,8 +112,8 @@ inline void WriteElementStrided2d(const CeedInt NUM_COMP, const CeedInt P_1D, co
 // E-vector -> single element
 //------------------------------------------------------------------------------
 inline void ReadElementStrided3d(const CeedInt NUM_COMP, const CeedInt P_1D, const CeedInt num_elem, const CeedInt strides_node,
-                                 const CeedInt strides_comp, const CeedInt strides_elem, global const CeedScalar* restrict d_u,
-                                 private CeedScalar* restrict r_u) {
+                                 const CeedInt strides_comp, const CeedInt strides_elem, global const CeedScalar *restrict d_u,
+                                 private CeedScalar *restrict r_u) {
   const CeedInt item_id_x = get_local_id(0);
   const CeedInt item_id_y = get_local_id(1);
   const CeedInt elem      = get_global_id(2);
@@ -133,8 +133,8 @@ inline void ReadElementStrided3d(const CeedInt NUM_COMP, const CeedInt P_1D, con
 // Single element -> E-vector
 //------------------------------------------------------------------------------
 inline void WriteElementStrided3d(const CeedInt NUM_COMP, const CeedInt P_1D, const CeedInt num_elem, const CeedInt strides_node,
-                                  const CeedInt strides_comp, const CeedInt strides_elem, private const CeedScalar* restrict r_v,
-                                  global CeedScalar* restrict d_v) {
+                                  const CeedInt strides_comp, const CeedInt strides_elem, private const CeedScalar *restrict r_v,
+                                  global CeedScalar *restrict d_v) {
   const CeedInt item_id_x = get_local_id(0);
   const CeedInt item_id_y = get_local_id(1);
   const CeedInt elem      = get_global_id(2);

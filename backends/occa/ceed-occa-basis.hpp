@@ -27,21 +27,21 @@ class Basis : public CeedObject {
 
   virtual ~Basis();
 
-  static Basis* getBasis(CeedBasis basis, const bool assertValid = true);
+  static Basis *getBasis(CeedBasis basis, const bool assertValid = true);
 
-  static Basis* from(CeedBasis basis);
-  static Basis* from(CeedOperatorField operatorField);
+  static Basis *from(CeedBasis basis);
+  static Basis *from(CeedOperatorField operatorField);
 
   int setCeedFields(CeedBasis basis);
 
   virtual bool isTensorBasis() const = 0;
 
-  virtual const char* getFunctionSource() const = 0;
+  virtual const char *getFunctionSource() const = 0;
 
-  virtual int apply(const CeedInt elementCount, CeedTransposeMode tmode, CeedEvalMode emode, Vector* u, Vector* v) = 0;
+  virtual int apply(const CeedInt elementCount, CeedTransposeMode tmode, CeedEvalMode emode, Vector *u, Vector *v) = 0;
 
   //---[ Ceed Callbacks ]-----------
-  static int registerCeedFunction(Ceed ceed, CeedBasis basis, const char* fname, ceed::occa::ceedFunction f);
+  static int registerCeedFunction(Ceed ceed, CeedBasis basis, const char *fname, ceed::occa::ceedFunction f);
 
   static int ceedApply(CeedBasis basis, const CeedInt nelem, CeedTransposeMode tmode, CeedEvalMode emode, CeedVector u, CeedVector v);
 
