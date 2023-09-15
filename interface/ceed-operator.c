@@ -151,20 +151,7 @@ int CeedOperatorSingleView(CeedOperator op, bool sub, FILE *stream) {
   @ref Developer
 **/
 int CeedOperatorGetActiveBasis(CeedOperator op, CeedBasis *active_basis) {
-  Ceed ceed;
-
-  CeedCall(CeedOperatorGetCeed(op, &ceed));
-
-  *active_basis = NULL;
-  if (op->is_composite) return CEED_ERROR_SUCCESS;
-  for (CeedInt i = 0; i < op->qf->num_input_fields; i++) {
-    if (op->input_fields[i]->vec == CEED_VECTOR_ACTIVE) {
-      CeedCheck(!*active_basis || *active_basis == op->input_fields[i]->basis, ceed, CEED_ERROR_MINOR, "Multiple active CeedBases found");
-      *active_basis = op->input_fields[i]->basis;
-    }
-  }
-
-  CeedCheck(*active_basis, ceed, CEED_ERROR_INCOMPLETE, "No active CeedBasis found");
+  CeedCall(CeedOperatorGetActiveBases(op, active_basis, NULL));
   return CEED_ERROR_SUCCESS;
 }
 
@@ -183,26 +170,32 @@ int CeedOperatorGetActiveBases(CeedOperator op, CeedBasis *active_input_basis, C
   Ceed ceed;
 
   CeedCall(CeedOperatorGetCeed(op, &ceed));
-
-  *active_input_basis = *active_output_basis = NULL;
-  if (op->is_composite) return CEED_ERROR_SUCCESS;
-  for (CeedInt i = 0; i < op->qf->num_input_fields; i++) {
-    if (op->input_fields[i]->vec == CEED_VECTOR_ACTIVE) {
-      CeedCheck(!*active_input_basis || *active_input_basis == op->input_fields[i]->basis, ceed, CEED_ERROR_MINOR,
-                "Multiple active input CeedBases found");
-      *active_input_basis = op->input_fields[i]->basis;
+  if (active_input_basis) {
+    *active_input_basis = NULL;
+    if (!op->is_composite) {
+      for (CeedInt i = 0; i < op->qf->num_input_fields; i++) {
+        if (op->input_fields[i]->vec == CEED_VECTOR_ACTIVE) {
+          CeedCheck(!*active_input_basis || *active_input_basis == op->input_fields[i]->basis, ceed, CEED_ERROR_MINOR,
+                    "Multiple active input CeedBases found");
+          *active_input_basis = op->input_fields[i]->basis;
+        }
+      }
+      CeedCheck(*active_input_basis, ceed, CEED_ERROR_INCOMPLETE, "No active input CeedBasis found");
     }
   }
-  for (CeedInt i = 0; i < op->qf->num_output_fields; i++) {
-    if (op->output_fields[i]->vec == CEED_VECTOR_ACTIVE) {
-      CeedCheck(!*active_output_basis || *active_output_basis == op->output_fields[i]->basis, ceed, CEED_ERROR_MINOR,
-                "Multiple active output CeedBases found");
-      *active_output_basis = op->output_fields[i]->basis;
+  if (active_output_basis) {
+    *active_output_basis = NULL;
+    if (!op->is_composite) {
+      for (CeedInt i = 0; i < op->qf->num_output_fields; i++) {
+        if (op->output_fields[i]->vec == CEED_VECTOR_ACTIVE) {
+          CeedCheck(!*active_output_basis || *active_output_basis == op->output_fields[i]->basis, ceed, CEED_ERROR_MINOR,
+                    "Multiple active output CeedBases found");
+          *active_output_basis = op->output_fields[i]->basis;
+        }
+      }
+      CeedCheck(*active_output_basis, ceed, CEED_ERROR_INCOMPLETE, "No active output CeedBasis found");
     }
   }
-
-  CeedCheck(*active_input_basis, ceed, CEED_ERROR_INCOMPLETE, "No active input CeedBasis found");
-  CeedCheck(*active_output_basis, ceed, CEED_ERROR_INCOMPLETE, "No active output CeedBasis found");
   return CEED_ERROR_SUCCESS;
 }
 
@@ -217,21 +210,7 @@ int CeedOperatorGetActiveBases(CeedOperator op, CeedBasis *active_input_basis, C
   @ref Utility
 **/
 int CeedOperatorGetActiveElemRestriction(CeedOperator op, CeedElemRestriction *active_rstr) {
-  Ceed ceed;
-
-  CeedCall(CeedOperatorGetCeed(op, &ceed));
-
-  *active_rstr = NULL;
-  if (op->is_composite) return CEED_ERROR_SUCCESS;
-  for (CeedInt i = 0; i < op->qf->num_input_fields; i++) {
-    if (op->input_fields[i]->vec == CEED_VECTOR_ACTIVE) {
-      CeedCheck(!*active_rstr || *active_rstr == op->input_fields[i]->elem_rstr, ceed, CEED_ERROR_MINOR,
-                "Multiple active CeedElemRestrictions found");
-      *active_rstr = op->input_fields[i]->elem_rstr;
-    }
-  }
-
-  CeedCheck(*active_rstr, ceed, CEED_ERROR_INCOMPLETE, "No active CeedElemRestriction found");
+  CeedCall(CeedOperatorGetActiveElemRestrictions(op, active_rstr, NULL));
   return CEED_ERROR_SUCCESS;
 }
 
@@ -250,26 +229,32 @@ int CeedOperatorGetActiveElemRestrictions(CeedOperator op, CeedElemRestriction *
   Ceed ceed;
 
   CeedCall(CeedOperatorGetCeed(op, &ceed));
-
-  *active_input_rstr = *active_output_rstr = NULL;
-  if (op->is_composite) return CEED_ERROR_SUCCESS;
-  for (CeedInt i = 0; i < op->qf->num_input_fields; i++) {
-    if (op->input_fields[i]->vec == CEED_VECTOR_ACTIVE) {
-      CeedCheck(!*active_input_rstr || *active_input_rstr == op->input_fields[i]->elem_rstr, ceed, CEED_ERROR_MINOR,
-                "Multiple active input CeedElemRestrictions found");
-      *active_input_rstr = op->input_fields[i]->elem_rstr;
+  if (active_input_rstr) {
+    *active_input_rstr = NULL;
+    if (!op->is_composite) {
+      for (CeedInt i = 0; i < op->qf->num_input_fields; i++) {
+        if (op->input_fields[i]->vec == CEED_VECTOR_ACTIVE) {
+          CeedCheck(!*active_input_rstr || *active_input_rstr == op->input_fields[i]->elem_rstr, ceed, CEED_ERROR_MINOR,
+                    "Multiple active input CeedElemRestrictions found");
+          *active_input_rstr = op->input_fields[i]->elem_rstr;
+        }
+      }
+      CeedCheck(*active_input_rstr, ceed, CEED_ERROR_INCOMPLETE, "No active input CeedElemRestriction found");
     }
   }
-  for (CeedInt i = 0; i < op->qf->num_output_fields; i++) {
-    if (op->output_fields[i]->vec == CEED_VECTOR_ACTIVE) {
-      CeedCheck(!*active_output_rstr || *active_output_rstr == op->output_fields[i]->elem_rstr, ceed, CEED_ERROR_MINOR,
-                "Multiple active output CeedElemRestrictions found");
-      *active_output_rstr = op->output_fields[i]->elem_rstr;
+  if (active_output_rstr) {
+    *active_output_rstr = NULL;
+    if (!op->is_composite) {
+      for (CeedInt i = 0; i < op->qf->num_output_fields; i++) {
+        if (op->output_fields[i]->vec == CEED_VECTOR_ACTIVE) {
+          CeedCheck(!*active_output_rstr || *active_output_rstr == op->output_fields[i]->elem_rstr, ceed, CEED_ERROR_MINOR,
+                    "Multiple active output CeedElemRestrictions found");
+          *active_output_rstr = op->output_fields[i]->elem_rstr;
+        }
+      }
+      CeedCheck(*active_output_rstr, ceed, CEED_ERROR_INCOMPLETE, "No active output CeedElemRestriction found");
     }
   }
-
-  CeedCheck(*active_input_rstr, ceed, CEED_ERROR_INCOMPLETE, "No active input CeedElemRestriction found");
-  CeedCheck(*active_output_rstr, ceed, CEED_ERROR_INCOMPLETE, "No active output CeedElemRestriction found");
   return CEED_ERROR_SUCCESS;
 }
 
