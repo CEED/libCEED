@@ -183,17 +183,18 @@ CEED_QFUNCTION_HELPER CeedScalar LinearRampCoefficient(CeedScalar amplitude, Cee
 /**
   @brief Pack stored values at quadrature point
 
-  @param[in]   Q         Number of quadrature points
-  @param[in]   i         Current quadrature point
-  @param[in]   start     Starting index to store components
-  @param[in]   num_comp  Number of components to store
-  @param[in]   local     Local values for quadrature point i
-  @param[out]  stored    Stored values
+  @param[in]   Q              Number of quadrature points
+  @param[in]   i              Current quadrature point
+  @param[in]   start          Starting index to store components
+  @param[in]   num_comp       Number of components to store
+  @param[in]   values_at_qpnt Local values for quadrature point i
+  @param[out]  stored         Stored values
 
   @return An error code: 0 - success, otherwise - failure
 **/
-CEED_QFUNCTION_HELPER int StoredValuesPack(CeedInt Q, CeedInt i, CeedInt start, CeedInt num_comp, const CeedScalar *local, CeedScalar *stored) {
-  for (CeedInt j = 0; j < num_comp; j++) stored[(start + j) * Q + i] = local[j];
+CEED_QFUNCTION_HELPER int StoredValuesPack(CeedInt Q, CeedInt i, CeedInt start, CeedInt num_comp, const CeedScalar *values_at_qpnt,
+                                           CeedScalar *stored) {
+  for (CeedInt j = 0; j < num_comp; j++) stored[(start + j) * Q + i] = values_at_qpnt[j];
 
   return CEED_ERROR_SUCCESS;
 }
@@ -201,17 +202,18 @@ CEED_QFUNCTION_HELPER int StoredValuesPack(CeedInt Q, CeedInt i, CeedInt start, 
 /**
   @brief Unpack stored values at quadrature point
 
-  @param[in]   Q         Number of quadrature points
-  @param[in]   i         Current quadrature point
-  @param[in]   start     Starting index to store components
-  @param[in]   num_comp  Number of components to store
-  @param[in]   stored    Stored values
-  @param[out]  local     Local values for quadrature point i
+  @param[in]   Q              Number of quadrature points
+  @param[in]   i              Current quadrature point
+  @param[in]   start          Starting index to store components
+  @param[in]   num_comp       Number of components to store
+  @param[in]   stored         Stored values
+  @param[out]  values_at_qpnt Local values for quadrature point i
 
   @return An error code: 0 - success, otherwise - failure
 **/
-CEED_QFUNCTION_HELPER int StoredValuesUnpack(CeedInt Q, CeedInt i, CeedInt start, CeedInt num_comp, const CeedScalar *stored, CeedScalar *local) {
-  for (CeedInt j = 0; j < num_comp; j++) local[j] = stored[(start + j) * Q + i];
+CEED_QFUNCTION_HELPER int StoredValuesUnpack(CeedInt Q, CeedInt i, CeedInt start, CeedInt num_comp, const CeedScalar *stored,
+                                             CeedScalar *values_at_qpnt) {
+  for (CeedInt j = 0; j < num_comp; j++) values_at_qpnt[j] = stored[(start + j) * Q + i];
 
   return CEED_ERROR_SUCCESS;
 }
