@@ -135,7 +135,9 @@ int CeedRegisterImpl(const char *prefix, int (*init)(const char *, Ceed), unsign
       ierr = 1;
     }
   }
+  // LCOV_EXCL_START
   CeedCheck(ierr == 0, NULL, CEED_ERROR_MAJOR, "Too many backends");
+  // LCOV_EXCL_STOP
   return CEED_ERROR_SUCCESS;
 }
 
