@@ -850,7 +850,6 @@ int CeedVectorViewRange(CeedVector vec, CeedSize start, CeedSize stop, CeedInt s
   for (CeedSize i = start; step > 0 ? (i < stop) : (i > stop); i += step) fprintf(stream, fmt, x[i]);
   CeedCall(CeedVectorRestoreArrayRead(vec, &x));
   if (stop != vec->length) fprintf(stream, "  ...\n");
-
   return CEED_ERROR_SUCCESS;
 }
 

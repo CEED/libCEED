@@ -881,7 +881,6 @@ int CeedInit(const char *resource, Ceed *ceed) {
 
   // Backend specific setup
   CeedCall(backends[match_index].init(&resource[match_help], *ceed));
-
   return CEED_ERROR_SUCCESS;
 }
 
