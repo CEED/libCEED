@@ -62,8 +62,9 @@ CEED_QFUNCTION_HELPER void DataDrivenInference(const CeedScalar *inputs, CeedSca
 
 CEED_QFUNCTION_HELPER void ComputeSgsDDAnisotropic(const CeedScalar grad_velo_aniso[3][3], const CeedScalar km_A_ij[6], const CeedScalar delta,
                                                    const CeedScalar viscosity, CeedScalar kmsgs_stress[6], SgsDDModelContext sgsdd_ctx) {
-  CeedScalar inputs[6], grad_velo_magnitude, eigenvectors[3][3], sgs_sframe_sym[6] = {0.};
-  const CeedScalar(*new_bounds)[2] = (const CeedScalar(*)[2]) & sgsdd_ctx->data[sgsdd_ctx->offsets.out_scaling];
+  CeedScalar inputs[6], grad_velo_magnitude, eigenvectors[3][3], sgs_sframe_sym[6] = {0.}, new_bounds[6][2];
+  // Copying new_bounds because Sycl online compiler doesn't like direct casting the pointer
+  CopyN(&sgsdd_ctx->data[sgsdd_ctx->offsets.out_scaling], (CeedScalar *)new_bounds, 12);
 
   ComputeSGS_DDAnisotropicInputs(grad_velo_aniso, km_A_ij, delta, viscosity, eigenvectors, inputs, &grad_velo_magnitude);
   DataDrivenInference(inputs, sgs_sframe_sym, sgsdd_ctx);
