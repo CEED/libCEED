@@ -99,6 +99,7 @@ struct Ceed_private {
   int (*Destroy)(Ceed);
   int (*VectorCreate)(CeedSize, CeedVector);
   int (*ElemRestrictionCreate)(CeedMemType, CeedCopyMode, const CeedInt *, const bool *, const CeedInt8 *, CeedElemRestriction);
+  int (*ElemRestrictionCreateAtPoints)(CeedMemType, CeedCopyMode, const CeedInt *, const bool *, const CeedInt8 *, CeedElemRestriction);
   int (*ElemRestrictionCreateBlocked)(CeedMemType, CeedCopyMode, const CeedInt *, const bool *, const CeedInt8 *, CeedElemRestriction);
   int (*BasisCreateTensorH1)(CeedInt, CeedInt, CeedInt, const CeedScalar *, const CeedScalar *, const CeedScalar *, const CeedScalar *, CeedBasis);
   int (*BasisCreateH1)(CeedElemTopology, CeedInt, CeedInt, CeedInt, const CeedScalar *, const CeedScalar *, const CeedScalar *, const CeedScalar *,
@@ -154,6 +155,7 @@ struct CeedElemRestriction_private {
   int (*Apply)(CeedElemRestriction, CeedTransposeMode, CeedVector, CeedVector, CeedRequest *);
   int (*ApplyUnsigned)(CeedElemRestriction, CeedTransposeMode, CeedVector, CeedVector, CeedRequest *);
   int (*ApplyUnoriented)(CeedElemRestriction, CeedTransposeMode, CeedVector, CeedVector, CeedRequest *);
+  int (*ApplyAtPointsInElement)(CeedElemRestriction, CeedInt, CeedTransposeMode, CeedVector, CeedVector, CeedRequest *);
   int (*ApplyBlock)(CeedElemRestriction, CeedInt, CeedTransposeMode, CeedVector, CeedVector, CeedRequest *);
   int (*GetOffsets)(CeedElemRestriction, CeedMemType, const CeedInt **);
   int (*GetOrientations)(CeedElemRestriction, CeedMemType, const bool **);
@@ -162,9 +164,11 @@ struct CeedElemRestriction_private {
   int      ref_count;
   CeedInt  num_elem;    /* number of elements */
   CeedInt  elem_size;   /* number of nodes per element */
+  CeedInt  num_points;  /* number of points, for points restriction */
   CeedInt  num_comp;    /* number of components */
   CeedInt  comp_stride; /* Component stride for L-vector ordering */
   CeedSize l_size;      /* size of the L-vector, can be used for checking for correct vector sizes */
+  CeedSize e_size;      /* minimum size of the E-vector, can be used for checking for correct vector sizes */
   CeedInt  block_size;  /* number of elements in a batch */
   CeedInt  num_block;   /* number of blocks of elements */
   CeedInt *strides;     /* strides between [nodes, components, elements] */

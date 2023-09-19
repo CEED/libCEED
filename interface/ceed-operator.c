@@ -638,6 +638,13 @@ int CeedOperatorSetField(CeedOperator op, const char *field_name, CeedElemRestri
   CeedCall(CeedElemRestrictionGetNumElements(r, &num_elem));
   CeedCheck(r == CEED_ELEMRESTRICTION_NONE || !op->has_restriction || op->num_elem == num_elem, op->ceed, CEED_ERROR_DIMENSION,
             "ElemRestriction with %" CeedInt_FMT " elements incompatible with prior %" CeedInt_FMT " elements", num_elem, op->num_elem);
+  {
+    CeedRestrictionType rstr_type;
+
+    CeedCall(CeedElemRestrictionGetType(r, &rstr_type));
+    CeedCheck(rstr_type != CEED_RESTRICTION_POINTS, op->ceed, CEED_ERROR_UNSUPPORTED,
+              "CeedElemRestrictionAtPoints not supported for standard operator fields");
+  }
 
   if (b == CEED_BASIS_NONE) CeedCall(CeedElemRestrictionGetElementSize(r, &num_qpts));
   else CeedCall(CeedBasisGetNumQuadraturePoints(b, &num_qpts));

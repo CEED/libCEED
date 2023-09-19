@@ -133,6 +133,17 @@ int CeedElemRestrictionIsStrided(CeedElemRestriction rstr, bool *is_strided) {
 }
 
 /**
+  @brief Get the points status of a CeedElemRestriction
+
+  @param[in]  rstr      CeedElemRestriction
+  @param[out] is_points Variable to store points status, 1 if points else 0
+**/
+int CeedElemRestrictionIsPoints(CeedElemRestriction rstr, bool *is_points) {
+  *is_points = (rstr->rstr_type == CEED_RESTRICTION_POINTS);
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
   @brief Get the strides of a strided CeedElemRestriction
 
   @param[in]  rstr    CeedElemRestriction
@@ -280,6 +291,32 @@ int CeedElemRestrictionRestoreCurlOrientations(CeedElemRestriction rstr, const C
 
 /**
 
+  @brief Get the number of points in an element of a points CeedElemRestriction
+
+  @param[in]  rstr       CeedElemRestriction
+  @param[in]  elem       Index number of element to retrieve the number of points for
+  @param[out] num_points The number of points in the element at index elem
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Backend
+**/
+int CeedElemRestrictionGetNumPointsInElement(CeedElemRestriction rstr, CeedInt elem, CeedInt *num_points) {
+  Ceed           ceed;
+  const CeedInt *offsets;
+
+  CeedCall(CeedElemRestrictionGetCeed(rstr, &ceed));
+  CeedCheck(rstr->rstr_type == CEED_RESTRICTION_POINTS, ceed, CEED_ERROR_INCOMPATIBLE,
+            "Can only retrieve the number of points for a points CeedElemRestriction");
+
+  CeedCall(CeedElemRestrictionGetOffsets(rstr, CEED_MEM_HOST, &offsets));
+  *num_points = offsets[elem + 1] - offsets[elem];
+  CeedCall(CeedElemRestrictionRestoreOffsets(rstr, &offsets));
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
+
   @brief Get the E-vector layout of a CeedElemRestriction
 
   @param[in]  rstr    CeedElemRestriction
@@ -371,8 +408,12 @@ int CeedElemRestrictionGetFlopsEstimate(CeedElemRestriction rstr, CeedTransposeM
   CeedRestrictionType rstr_type;
 
   CeedCall(CeedElemRestrictionGetType(rstr, &rstr_type));
+  if (rstr_type == CEED_RESTRICTION_POINTS) e_size = rstr->num_points * rstr->num_comp;
   if (t_mode == CEED_TRANSPOSE) {
     switch (rstr_type) {
+      case CEED_RESTRICTION_POINTS:
+        scale = 0;
+        break;
       case CEED_RESTRICTION_STRIDED:
       case CEED_RESTRICTION_STANDARD:
         scale = 1;
@@ -388,6 +429,7 @@ int CeedElemRestrictionGetFlopsEstimate(CeedElemRestriction rstr, CeedTransposeM
     switch (rstr_type) {
       case CEED_RESTRICTION_STRIDED:
       case CEED_RESTRICTION_STANDARD:
+      case CEED_RESTRICTION_POINTS:
         scale = 0;
         break;
       case CEED_RESTRICTION_ORIENTED:
@@ -466,6 +508,7 @@ int CeedElemRestrictionCreate(Ceed ceed, CeedInt num_elem, CeedInt elem_size, Ce
   (*rstr)->num_comp    = num_comp;
   (*rstr)->comp_stride = comp_stride;
   (*rstr)->l_size      = l_size;
+  (*rstr)->e_size      = num_elem * elem_size * num_comp;
   (*rstr)->num_block   = num_elem;
   (*rstr)->block_size  = 1;
   (*rstr)->rstr_type   = CEED_RESTRICTION_STANDARD;
@@ -522,6 +565,7 @@ int CeedElemRestrictionCreateOriented(Ceed ceed, CeedInt num_elem, CeedInt elem_
   (*rstr)->num_comp    = num_comp;
   (*rstr)->comp_stride = comp_stride;
   (*rstr)->l_size      = l_size;
+  (*rstr)->e_size      = num_elem * elem_size * num_comp;
   (*rstr)->num_block   = num_elem;
   (*rstr)->block_size  = 1;
   (*rstr)->rstr_type   = CEED_RESTRICTION_ORIENTED;
@@ -581,6 +625,7 @@ int CeedElemRestrictionCreateCurlOriented(Ceed ceed, CeedInt num_elem, CeedInt e
   (*rstr)->num_comp    = num_comp;
   (*rstr)->comp_stride = comp_stride;
   (*rstr)->l_size      = l_size;
+  (*rstr)->e_size      = num_elem * elem_size * num_comp;
   (*rstr)->num_block   = num_elem;
   (*rstr)->block_size  = 1;
   (*rstr)->rstr_type   = CEED_RESTRICTION_CURL_ORIENTED;
@@ -629,6 +674,7 @@ int CeedElemRestrictionCreateStrided(Ceed ceed, CeedInt num_elem, CeedInt elem_s
   (*rstr)->elem_size  = elem_size;
   (*rstr)->num_comp   = num_comp;
   (*rstr)->l_size     = l_size;
+  (*rstr)->e_size     = num_elem * elem_size * num_comp;
   (*rstr)->num_block  = num_elem;
   (*rstr)->block_size = 1;
   (*rstr)->rstr_type  = CEED_RESTRICTION_STRIDED;
@@ -639,10 +685,74 @@ int CeedElemRestrictionCreateStrided(Ceed ceed, CeedInt num_elem, CeedInt elem_s
 }
 
 /**
+  @brief Create a points CeedElemRestriction, for restricting for restricting from a all local points to the current element in which they are
+ located.
+
+  The offsets array is arranged as
+
+  element_0_start_index
+  element_1_start_index
+  ...
+  element_n_start_index
+  element_n_stop_index
+  element_0_point_0
+  element_0_point_1
+  ...
+
+  @param[in]  ceed          Ceed object where the CeedElemRestriction will be created
+  @param[in]  num_elem      Number of elements described in the @a offsets array
+  @param[in]  num_points    Number of points described in the @a offsets array
+  @param[in]  num_comp      Number of field components per interpolation node (1 for scalar fields).
+                              Components are assumed to be contiguous by point.
+  @param[in]  l_size        The size of the L-vector.
+                              This vector may be larger than the elements and fields given by this restriction.
+  @param[in]  mem_type      Memory type of the @a offsets array, see CeedMemType
+  @param[in]  copy_mode     Copy mode for the @a offsets array, see CeedCopyMode
+  @param[in]  offsets       Array of size num_elem + 1 + num_points.
+                              The first portion of the offsets array holds the ranges of indices corresponding to each element.
+                              The second portion holds the indices for each element.
+  @param[out] rstr          Address of the variable where the newly created CeedElemRestriction will be stored
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Backend
+ **/
+int CeedElemRestrictionCreateAtPoints(Ceed ceed, CeedInt num_elem, CeedInt num_points, CeedInt num_comp, CeedSize l_size, CeedMemType mem_type,
+                                      CeedCopyMode copy_mode, const CeedInt *offsets, CeedElemRestriction *rstr) {
+  if (!ceed->ElemRestrictionCreateAtPoints) {
+    Ceed delegate;
+
+    CeedCall(CeedGetObjectDelegate(ceed, &delegate, "ElemRestriction"));
+    CeedCheck(delegate, ceed, CEED_ERROR_UNSUPPORTED, "Backend does not implement ElemRestrictionCreateAtPoints");
+    CeedCall(CeedElemRestrictionCreateAtPoints(delegate, num_elem, num_points, num_comp, l_size, mem_type, copy_mode, offsets, rstr));
+    return CEED_ERROR_SUCCESS;
+  }
+
+  CeedCheck(num_elem >= 0, ceed, CEED_ERROR_DIMENSION, "Number of elements must be non-negative");
+  CeedCheck(num_points >= 0, ceed, CEED_ERROR_DIMENSION, "Number of points must be non-negative");
+  CeedCheck(num_comp > 0, ceed, CEED_ERROR_DIMENSION, "ElemRestriction must have at least 1 component");
+  CeedCheck(l_size >= num_points * num_comp, ceed, CEED_ERROR_DIMENSION, "L-vector must be at least num_points * num_comp");
+
+  CeedCall(CeedCalloc(1, rstr));
+  CeedCall(CeedReferenceCopy(ceed, &(*rstr)->ceed));
+  (*rstr)->ref_count  = 1;
+  (*rstr)->num_elem   = num_elem;
+  (*rstr)->num_points = num_points;
+  (*rstr)->num_comp   = num_comp;
+  (*rstr)->l_size     = l_size;
+  (*rstr)->e_size     = num_points * num_comp;
+  (*rstr)->num_block  = num_elem;
+  (*rstr)->block_size = 1;
+  (*rstr)->rstr_type  = CEED_RESTRICTION_POINTS;
+  CeedCall(ceed->ElemRestrictionCreateAtPoints(mem_type, copy_mode, offsets, NULL, NULL, *rstr));
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
   @brief Create a blocked CeedElemRestriction, typically only called by backends
 
-  @param[in]  ceed          Ceed object where the CeedElemRestriction will be created.
-  @param[in]  num_elem      Number of elements described in the @a offsets array.
+  @param[in]  ceed          Ceed object where the CeedElemRestriction will be created
+  @param[in]  num_elem      Number of elements described in the @a offsets array
   @param[in]  elem_size     Size (number of unknowns) per element
   @param[in]  block_size    Number of elements in a block
   @param[in]  num_comp      Number of field components per interpolation node (1 for scalar fields)
@@ -694,6 +804,7 @@ int CeedElemRestrictionCreateBlocked(Ceed ceed, CeedInt num_elem, CeedInt elem_s
   (*rstr)->num_comp    = num_comp;
   (*rstr)->comp_stride = comp_stride;
   (*rstr)->l_size      = l_size;
+  (*rstr)->e_size      = num_block * block_size * elem_size * num_comp;
   (*rstr)->num_block   = num_block;
   (*rstr)->block_size  = block_size;
   (*rstr)->rstr_type   = CEED_RESTRICTION_STANDARD;
@@ -762,6 +873,7 @@ int CeedElemRestrictionCreateBlockedOriented(Ceed ceed, CeedInt num_elem, CeedIn
   (*rstr)->num_comp    = num_comp;
   (*rstr)->comp_stride = comp_stride;
   (*rstr)->l_size      = l_size;
+  (*rstr)->e_size      = num_block * block_size * elem_size * num_comp;
   (*rstr)->num_block   = num_block;
   (*rstr)->block_size  = block_size;
   (*rstr)->rstr_type   = CEED_RESTRICTION_ORIENTED;
@@ -835,6 +947,7 @@ int CeedElemRestrictionCreateBlockedCurlOriented(Ceed ceed, CeedInt num_elem, Ce
   (*rstr)->num_comp    = num_comp;
   (*rstr)->comp_stride = comp_stride;
   (*rstr)->l_size      = l_size;
+  (*rstr)->e_size      = num_block * block_size * elem_size * num_comp;
   (*rstr)->num_block   = num_block;
   (*rstr)->block_size  = block_size;
   (*rstr)->rstr_type   = CEED_RESTRICTION_CURL_ORIENTED;
@@ -889,6 +1002,7 @@ int CeedElemRestrictionCreateBlockedStrided(Ceed ceed, CeedInt num_elem, CeedInt
   (*rstr)->elem_size  = elem_size;
   (*rstr)->num_comp   = num_comp;
   (*rstr)->l_size     = l_size;
+  (*rstr)->e_size     = num_block * block_size * elem_size * num_comp;
   (*rstr)->num_block  = num_block;
   (*rstr)->block_size = block_size;
   (*rstr)->rstr_type  = CEED_RESTRICTION_STRIDED;
@@ -1022,17 +1136,56 @@ int CeedElemRestrictionApply(CeedElemRestriction rstr, CeedTransposeMode t_mode,
   CeedInt m, n;
 
   if (t_mode == CEED_NOTRANSPOSE) {
-    m = rstr->num_block * rstr->block_size * rstr->elem_size * rstr->num_comp;
+    m = rstr->e_size;
     n = rstr->l_size;
   } else {
     m = rstr->l_size;
-    n = rstr->num_block * rstr->block_size * rstr->elem_size * rstr->num_comp;
+    n = rstr->e_size;
   }
-  CeedCheck(n == u->length, rstr->ceed, CEED_ERROR_DIMENSION,
+  CeedCheck(n <= u->length, rstr->ceed, CEED_ERROR_DIMENSION,
             "Input vector size %" CeedInt_FMT " not compatible with element restriction (%" CeedInt_FMT ", %" CeedInt_FMT ")", u->length, m, n);
-  CeedCheck(m == ru->length, rstr->ceed, CEED_ERROR_DIMENSION,
+  CeedCheck(m <= ru->length, rstr->ceed, CEED_ERROR_DIMENSION,
             "Output vector size %" CeedInt_FMT " not compatible with element restriction (%" CeedInt_FMT ", %" CeedInt_FMT ")", ru->length, m, n);
   if (rstr->num_elem > 0) CeedCall(rstr->Apply(rstr, t_mode, u, ru, request));
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
+  @brief Restrict an L-vector of points to a single element or apply its transpose
+
+  @param[in]  rstr    CeedElemRestriction
+  @param[in]  t_mode  Apply restriction or transpose
+  @param[in]  u       Input vector (of size @a l_size when t_mode=@ref CEED_NOTRANSPOSE)
+  @param[out] ru      Output vector (of shape [@a num_elem * @a elem_size] when t_mode=@ref CEED_NOTRANSPOSE).
+                        Ordering of the e-vector is decided by the backend.
+  @param[in]  request Request or @ref CEED_REQUEST_IMMEDIATE
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref User
+**/
+int CeedElemRestrictionApplyAtPointsInElement(CeedElemRestriction rstr, CeedInt elem, CeedTransposeMode t_mode, CeedVector u, CeedVector ru,
+                                              CeedRequest *request) {
+  CeedInt m, n;
+
+  if (t_mode == CEED_NOTRANSPOSE) {
+    CeedCall(CeedElemRestrictionGetNumPointsInElement(rstr, elem, &m));
+    n = rstr->l_size;
+  } else {
+    m = rstr->l_size;
+    CeedCall(CeedElemRestrictionGetNumPointsInElement(rstr, elem, &n));
+  }
+  CeedCheck(n <= u->length, rstr->ceed, CEED_ERROR_DIMENSION,
+            "Input vector size %" CeedInt_FMT " not compatible with element restriction (%" CeedInt_FMT ", %" CeedInt_FMT
+            ") for element %" CeedInt_FMT,
+            u->length, m, n, elem);
+  CeedCheck(m <= ru->length, rstr->ceed, CEED_ERROR_DIMENSION,
+            "Output vector size %" CeedInt_FMT " not compatible with element restriction (%" CeedInt_FMT ", %" CeedInt_FMT
+            ") for element %" CeedInt_FMT,
+            ru->length, m, n, elem);
+  CeedCheck(elem < rstr->num_elem, rstr->ceed, CEED_ERROR_DIMENSION,
+            "Cannot retrieve element %" CeedInt_FMT ", element %" CeedInt_FMT " > total elements %" CeedInt_FMT "", elem, elem, rstr->num_elem);
+  if (rstr->num_elem > 0) CeedCall(rstr->ApplyAtPointsInElement(rstr, elem, t_mode, u, ru, request));
   return CEED_ERROR_SUCCESS;
 }
 
@@ -1137,6 +1290,37 @@ int CeedElemRestrictionGetElementSize(CeedElemRestriction rstr, CeedInt *elem_si
 }
 
 /**
+  @brief Get the maximum number of points in an element for a CeedElemRestriction at points
+
+  @param[in]  rstr       CeedElemRestriction
+  @param[out] max_points Variable to store size of elements
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Advanced
+**/
+int CeedElemRestrictionGetMaxPointsInElement(CeedElemRestriction rstr, CeedInt *max_points) {
+  Ceed                ceed;
+  CeedInt             num_elem;
+  CeedRestrictionType rstr_type;
+
+  CeedCall(CeedElemRestrictionGetCeed(rstr, &ceed));
+  CeedCall(CeedElemRestrictionGetType(rstr, &rstr_type));
+  CeedCheck(rstr_type == CEED_RESTRICTION_POINTS, ceed, CEED_ERROR_INCOMPATIBLE,
+            "Cannot compute max points for a CeedElemRestriction that does not use points");
+
+  CeedCall(CeedElemRestrictionGetNumElements(rstr, &num_elem));
+  *max_points = 0;
+  for (CeedInt e = 0; e < num_elem; e++) {
+    CeedInt num_points;
+
+    CeedCall(CeedElemRestrictionGetNumPointsInElement(rstr, e, &num_points));
+    *max_points = CeedIntMax(num_points, *max_points);
+  }
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
   @brief Get the size of the l-vector for a CeedElemRestriction
 
   @param[in]  rstr   CeedElemRestriction
@@ -1234,17 +1418,30 @@ int CeedElemRestrictionGetMultiplicity(CeedElemRestriction rstr, CeedVector mult
   @ref User
 **/
 int CeedElemRestrictionView(CeedElemRestriction rstr, FILE *stream) {
-  char stridesstr[500];
+  CeedRestrictionType rstr_type;
 
-  if (rstr->strides) {
-    sprintf(stridesstr, "[%" CeedInt_FMT ", %" CeedInt_FMT ", %" CeedInt_FMT "]", rstr->strides[0], rstr->strides[1], rstr->strides[2]);
+  CeedCall(CeedElemRestrictionGetType(rstr, &rstr_type));
+
+  if (rstr_type == CEED_RESTRICTION_POINTS) {
+    CeedInt max_points;
+
+    CeedCall(CeedElemRestrictionGetMaxPointsInElement(rstr, &max_points));
+    fprintf(stream,
+            "CeedElemRestriction at points from (%td, %" CeedInt_FMT ") to %" CeedInt_FMT " elements with a maximum of %" CeedInt_FMT
+            " points on an element\n",
+            rstr->l_size, rstr->num_comp, rstr->num_elem, max_points);
   } else {
-    sprintf(stridesstr, "%" CeedInt_FMT, rstr->comp_stride);
-  }
+    char stridesstr[500];
 
-  fprintf(stream, "%sCeedElemRestriction from (%td, %" CeedInt_FMT ") to %" CeedInt_FMT " elements with %" CeedInt_FMT " nodes each and %s %s\n",
-          rstr->block_size > 1 ? "Blocked " : "", rstr->l_size, rstr->num_comp, rstr->num_elem, rstr->elem_size,
-          rstr->strides ? "strides" : "component stride", stridesstr);
+    if (rstr->strides) {
+      sprintf(stridesstr, "[%" CeedInt_FMT ", %" CeedInt_FMT ", %" CeedInt_FMT "]", rstr->strides[0], rstr->strides[1], rstr->strides[2]);
+    } else {
+      sprintf(stridesstr, "%" CeedInt_FMT, rstr->comp_stride);
+    }
+    fprintf(stream, "%sCeedElemRestriction from (%td, %" CeedInt_FMT ") to %" CeedInt_FMT " elements with %" CeedInt_FMT " nodes each and %s %s\n",
+            rstr->block_size > 1 ? "Blocked " : "", rstr->l_size, rstr->num_comp, rstr->num_elem, rstr->elem_size,
+            rstr->strides ? "strides" : "component stride", stridesstr);
+  }
   return CEED_ERROR_SUCCESS;
 }
 
