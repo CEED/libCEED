@@ -70,9 +70,9 @@ CEED_QFUNCTION_HELPER void DenormalizeDDOutputs(CeedScalar output[6], const Ceed
  * @param[out] inputs              Data-driven model inputs
  * @param[out] grad_velo_magnitude Frobenius norm of the velocity gradient
  */
-CEED_QFUNCTION_HELPER void ComputeSGS_DDAnisotropicInputs(const CeedScalar grad_velo_aniso[3][3], const CeedScalar km_A_ij[6], const CeedScalar delta,
-                                                          const CeedScalar viscosity, CeedScalar eigenvectors[3][3], CeedScalar inputs[6],
-                                                          CeedScalar *grad_velo_magnitude) {
+CEED_QFUNCTION_HELPER void ComputeSgsDDInputs(const CeedScalar grad_velo_aniso[3][3], const CeedScalar km_A_ij[6], const CeedScalar delta,
+                                              const CeedScalar viscosity, CeedScalar eigenvectors[3][3], CeedScalar inputs[6],
+                                              CeedScalar *grad_velo_magnitude) {
   CeedScalar strain_sframe[3] = {0.}, vorticity_sframe[3] = {0.};
   CeedScalar A_ij[3][3] = {{0.}}, grad_velo_iso[3][3] = {{0.}};
 
@@ -117,9 +117,8 @@ CEED_QFUNCTION_HELPER void ComputeSGS_DDAnisotropicInputs(const CeedScalar grad_
  * @param[in]     grad_velo_magnitude Magnitude of the velocity gradient
  * @param[out]    kmsgs_stress        Physical SGS stresses in Kelvin-Mandel notation
  */
-CEED_QFUNCTION_HELPER void ComputeSGS_DDAnisotropicOutputs(CeedScalar outputs[6], const CeedScalar delta, const CeedScalar eigenvectors[3][3],
-                                                           const CeedScalar new_bounds[6][2], const CeedScalar grad_velo_magnitude,
-                                                           CeedScalar kmsgs_stress[6]) {
+CEED_QFUNCTION_HELPER void ComputeSgsDDOutputs(CeedScalar outputs[6], const CeedScalar delta, const CeedScalar eigenvectors[3][3],
+                                               const CeedScalar new_bounds[6][2], const CeedScalar grad_velo_magnitude, CeedScalar kmsgs_stress[6]) {
   CeedScalar old_bounds[6][2] = {{0}};
   for (int j = 0; j < 6; j++) old_bounds[j][1] = 1;
   DenormalizeDDOutputs(outputs, new_bounds, old_bounds);

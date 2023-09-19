@@ -15,12 +15,14 @@ typedef struct {
   CeedElemRestriction  elem_restr_grid_aniso, elem_restr_sgs;
   CeedVector           grid_aniso_ceed;
   CeedQFunctionContext sgsdd_qfctx, ifunction_qfctx;
-} *SgsDDModelSetupData;
+} *SgsDDSetupData;
 
-PetscErrorCode SgsDDModelSetupDataDestroy(SgsDDModelSetupData sgs_dd_setup_data) {
+PetscErrorCode SgsDDSetupDataDestroy(SgsDDSetupData sgs_dd_setup_data) {
   Ceed ceed;
+
   PetscFunctionBeginUser;
   PetscCall(CeedElemRestrictionGetCeed(sgs_dd_setup_data->elem_restr_sgs, &ceed));
+
   PetscCallCeed(ceed, CeedElemRestrictionDestroy(&sgs_dd_setup_data->elem_restr_grid_aniso));
   PetscCallCeed(ceed, CeedElemRestrictionDestroy(&sgs_dd_setup_data->elem_restr_sgs));
   PetscCallCeed(ceed, CeedVectorDestroy(&sgs_dd_setup_data->grid_aniso_ceed));
@@ -31,7 +33,7 @@ PetscErrorCode SgsDDModelSetupDataDestroy(SgsDDModelSetupData sgs_dd_setup_data)
 }
 
 // @brief Create DM for storing subgrid stress at nodes
-static PetscErrorCode SgsDDModelCreateDM(DM dm_source, DM *dm_sgs, PetscInt degree, PetscInt q_extra, PetscInt *num_components) {
+static PetscErrorCode SgsDDCreateDM(DM dm_source, DM *dm_sgs, PetscInt degree, PetscInt q_extra, PetscInt *num_components) {
   PetscSection section;
 
   PetscFunctionBeginUser;
@@ -53,7 +55,8 @@ static PetscErrorCode SgsDDModelCreateDM(DM dm_source, DM *dm_sgs, PetscInt degr
   PetscFunctionReturn(PETSC_SUCCESS);
 };
 
-PetscErrorCode SgsDDModelNodalStressEval_Fused(User user, Vec Q_loc, Vec VelocityGradient, Vec SGSNodal_loc) {
+// @brief Evaluate data-driven SGS using fused method
+static PetscErrorCode SgsDDNodalStressEval_Fused(User user, Vec Q_loc, Vec VelocityGradient, Vec SGSNodal_loc) {
   SgsDDData    sgs_dd_data = user->sgs_dd_data;
   PetscMemType q_mem_type;
 
@@ -67,7 +70,7 @@ PetscErrorCode SgsDDModelNodalStressEval_Fused(User user, Vec Q_loc, Vec Velocit
 }
 
 // @brief Create CeedOperator to calculate data-drive SGS at nodes
-static PetscErrorCode SgsDDModelSetupNodalEvaluation_Fused(Ceed ceed, User user, CeedData ceed_data, SgsDDModelSetupData sgs_dd_setup_data) {
+static PetscErrorCode SgsDDSetupNodalEvaluation_Fused(Ceed ceed, User user, CeedData ceed_data, SgsDDSetupData sgs_dd_setup_data) {
   SgsDDData           sgs_dd_data = user->sgs_dd_data;
   CeedQFunction       qf_multiplicity, qf_sgs_dd_nodal;
   CeedOperator        op_multiplicity, op_sgs_dd_nodal;
@@ -114,16 +117,13 @@ static PetscErrorCode SgsDDModelSetupNodalEvaluation_Fused(Ceed ceed, User user,
   // -- Create operator for SGS DD model nodal evaluation
   switch (user->phys->state_var) {
     case STATEVAR_PRIMITIVE:
-      PetscCallCeed(ceed,
-                    CeedQFunctionCreateInterior(ceed, 1, ComputeSgsDDAnisotropicNodal_Prim, ComputeSgsDDAnisotropicNodal_Prim_loc, &qf_sgs_dd_nodal));
+      PetscCallCeed(ceed, CeedQFunctionCreateInterior(ceed, 1, ComputeSgsDDNodal_Prim, ComputeSgsDDNodal_Prim_loc, &qf_sgs_dd_nodal));
       break;
     case STATEVAR_CONSERVATIVE:
-      PetscCallCeed(ceed, CeedQFunctionCreateInterior(ceed, 1, ComputeSgsDDAnisotropicNodal_Conserv, ComputeSgsDDAnisotropicNodal_Conserv_loc,
-                                                      &qf_sgs_dd_nodal));
+      PetscCallCeed(ceed, CeedQFunctionCreateInterior(ceed, 1, ComputeSgsDDNodal_Conserv, ComputeSgsDDNodal_Conserv_loc, &qf_sgs_dd_nodal));
       break;
     default:
-      SETERRQ(PetscObjectComm((PetscObject)user->dm), PETSC_ERR_SUP,
-              "Anisotropic data-driven SGS nodal evaluation not available for chosen state variable");
+      SETERRQ(PetscObjectComm((PetscObject)user->dm), PETSC_ERR_SUP, "Data-driven SGS nodal evaluation not available for chosen state variable");
   }
 
   // Mesh/geometry order and solution basis order may differ, therefore must interpolate
@@ -151,7 +151,7 @@ static PetscErrorCode SgsDDModelSetupNodalEvaluation_Fused(Ceed ceed, User user,
                                        NULL, &sgs_dd_data->op_nodal_evaluation_ctx));
 
   sgs_dd_setup_data->elem_restr_sgs = elem_restr_sgs;
-  sgs_dd_data->sgs_nodal_eval = SgsDDModelNodalStressEval_Fused;
+  sgs_dd_data->sgs_nodal_eval       = SgsDDNodalStressEval_Fused;
 
   PetscCallCeed(ceed, CeedVectorDestroy(&multiplicity));
   PetscCallCeed(ceed, CeedVectorDestroy(&inv_multiplicity));
@@ -165,7 +165,7 @@ static PetscErrorCode SgsDDModelSetupNodalEvaluation_Fused(Ceed ceed, User user,
 }
 
 // @brief Create CeedOperator to compute SGS contribution to the residual
-static PetscErrorCode SgsModelSetupNodalIFunction(Ceed ceed, User user, CeedData ceed_data, SgsDDModelSetupData sgs_dd_setup_data) {
+static PetscErrorCode SgsSetupNodalIFunction(Ceed ceed, User user, CeedData ceed_data, SgsDDSetupData sgs_dd_setup_data) {
   SgsDDData     sgs_dd_data = user->sgs_dd_data;
   CeedInt       num_comp_q, num_comp_qd, num_comp_x;
   PetscInt      dim;
@@ -213,7 +213,7 @@ static PetscErrorCode SgsModelSetupNodalIFunction(Ceed ceed, User user, CeedData
 }
 
 // @brief Calculate and add data-driven SGS residual to the global residual
-PetscErrorCode SgsDDModelApplyIFunction(User user, const Vec Q_loc, Vec G_loc) {
+PetscErrorCode SgsDDApplyIFunction(User user, const Vec Q_loc, Vec G_loc) {
   SgsDDData    sgs_dd_data = user->sgs_dd_data;
   Vec          VelocityGradient, SGSNodal_loc;
   PetscMemType sgs_nodal_mem_type;
@@ -249,15 +249,15 @@ static PetscErrorCode TransposeMatrix(const PetscScalar *A, PetscScalar *B, cons
 }
 
 // @brief Read neural network coefficients from file and put into context struct
-static PetscErrorCode SgsDDModelContextFill(MPI_Comm comm, char data_dir[PETSC_MAX_PATH_LEN], SgsDDModelContext *psgsdd_ctx) {
-  SgsDDModelContext sgsdd_ctx;
-  PetscInt          num_inputs = (*psgsdd_ctx)->num_inputs, num_outputs = (*psgsdd_ctx)->num_outputs, num_neurons = (*psgsdd_ctx)->num_neurons;
-  char              file_path[PETSC_MAX_PATH_LEN];
-  PetscScalar      *temp;
+static PetscErrorCode SgsDDContextFill(MPI_Comm comm, char data_dir[PETSC_MAX_PATH_LEN], SgsDDContext *psgsdd_ctx) {
+  SgsDDContext sgsdd_ctx;
+  PetscInt     num_inputs = (*psgsdd_ctx)->num_inputs, num_outputs = (*psgsdd_ctx)->num_outputs, num_neurons = (*psgsdd_ctx)->num_neurons;
+  char         file_path[PETSC_MAX_PATH_LEN];
+  PetscScalar *temp;
 
   PetscFunctionBeginUser;
   {
-    SgsDDModelContext sgsdd_temp;
+    SgsDDContext sgsdd_temp;
     PetscCall(PetscNew(&sgsdd_temp));
     *sgsdd_temp                     = **psgsdd_ctx;
     sgsdd_temp->offsets.bias1       = 0;
@@ -299,12 +299,12 @@ static PetscErrorCode SgsDDModelContextFill(MPI_Comm comm, char data_dir[PETSC_M
   PetscFunctionReturn(PETSC_SUCCESS);
 }
 
-PetscErrorCode SgsDDModelSetup(Ceed ceed, User user, CeedData ceed_data, ProblemData *problem) {
+PetscErrorCode SgsDDSetup(Ceed ceed, User user, CeedData ceed_data, ProblemData *problem) {
   PetscReal                alpha = 0;
-  SgsDDModelContext        sgsdd_ctx;
+  SgsDDContext             sgsdd_ctx;
   MPI_Comm                 comm                           = user->comm;
   char                     sgs_dd_dir[PETSC_MAX_PATH_LEN] = "./dd_sgs_parameters";
-  SgsDDModelSetupData      sgs_dd_setup_data;
+  SgsDDSetupData           sgs_dd_setup_data;
   NewtonianIdealGasContext gas;
 
   PetscFunctionBeginUser;
@@ -325,12 +325,11 @@ PetscErrorCode SgsDDModelSetup(Ceed ceed, User user, CeedData ceed_data, Problem
   sgsdd_ctx->num_neurons = 20;
   sgsdd_ctx->alpha       = alpha;
 
-  PetscCall(SgsDDModelContextFill(comm, sgs_dd_dir, &sgsdd_ctx));
+  PetscCall(SgsDDContextFill(comm, sgs_dd_dir, &sgsdd_ctx));
 
   // -- Create DM for storing SGS tensor at nodes
   PetscCall(PetscNew(&user->sgs_dd_data));
-  PetscCall(
-      SgsDDModelCreateDM(user->dm, &user->sgs_dd_data->dm_sgs, user->app_ctx->degree, user->app_ctx->q_extra, &user->sgs_dd_data->num_comp_sgs));
+  PetscCall(SgsDDCreateDM(user->dm, &user->sgs_dd_data->dm_sgs, user->app_ctx->degree, user->app_ctx->q_extra, &user->sgs_dd_data->num_comp_sgs));
 
   PetscCall(PetscNew(&sgs_dd_setup_data));
 
@@ -349,12 +348,12 @@ PetscErrorCode SgsDDModelSetup(Ceed ceed, User user, CeedData ceed_data, Problem
                                                      &sgs_dd_setup_data->grid_aniso_ceed));
 
   // -- Create Nodal Evaluation Operator
-  PetscCall(SgsDDModelSetupNodalEvaluation_Fused(ceed, user, ceed_data, sgs_dd_setup_data));
+  PetscCall(SgsDDSetupNodalEvaluation_Fused(ceed, user, ceed_data, sgs_dd_setup_data));
 
   // -- Create Operator to evalutate residual of SGS stress
-  PetscCall(SgsModelSetupNodalIFunction(ceed, user, ceed_data, sgs_dd_setup_data));
+  PetscCall(SgsSetupNodalIFunction(ceed, user, ceed_data, sgs_dd_setup_data));
 
-  PetscCall(SgsDDModelSetupDataDestroy(sgs_dd_setup_data));
+  PetscCall(SgsDDSetupDataDestroy(sgs_dd_setup_data));
   PetscFunctionReturn(PETSC_SUCCESS);
 }
 
