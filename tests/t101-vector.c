@@ -1,6 +1,6 @@
 /// @file
-/// Test CeedVectorSetValue
-/// \test Test CeedVectorSetValue
+/// Test setting single value for full CeedVector
+/// \test Test setting single value for full CeedVector
 
 //TESTARGS(name="length 10") {ceed_resource} 10
 //TESTARGS(name="length 0") {ceed_resource} 0

@@ -16,7 +16,7 @@ static bool register_all_called;
 #undef CEED_GALLERY_QFUNCTION
 
 /**
-  @brief Register the gallery of preconfigured QFunctions.
+  @brief Register the gallery of pre-configured QFunctions.
 
   This is called automatically by CeedQFunctionCreateInteriorByName() and thus normally need not be called by users.
   Users can call CeedQFunctionRegister() to register additional backends.

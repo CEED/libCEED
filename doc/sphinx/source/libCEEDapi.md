@@ -46,7 +46,7 @@ If equation {eq}`residual` also presents a term of the type $\bm f_1$, then the 
 Finite element operators are typically defined through weak formulations of partial differential equations that involve integration over a computational mesh.
 The required integrals are computed by splitting them as a sum over the mesh elements, mapping each element to a simple *reference* element (e.g. the unit square) and applying a quadrature rule in reference space.
 
-This sequence of operations highlights an inherent hierarchical structure present in all finite element operators where the evaluation starts on *global (trial) degrees of freedom (dofs) or nodes on the whole mesh*, restricts to *dofs on subdomains* (groups of elements), then moves to independent *dofs on each element*, transitions to independent *quadrature points* in reference space, performs the integration, and then goes back in reverse order to global (test) degrees of freedom on the whole mesh.
+This sequence of operations highlights an inherent hierarchical structure present in all finite element operators where the evaluation starts on *global (trial) degrees of freedom (DoFs) or nodes on the whole mesh*, restricts to *DoFs on subdomains* (groups of elements), then moves to independent *DoFs on each element*, transitions to independent *quadrature points* in reference space, performs the integration, and then goes back in reverse order to global (test) degrees of freedom on the whole mesh.
 
 This is illustrated below for the simple case of symmetric linear operator on third order ($Q_3$) scalar continuous ($H^1$) elements, where we use the notions **T-vector**, **L-vector**, **E-vector** and **Q-vector** to represent the sets corresponding to the (true) degrees of freedom on the global mesh, the split local degrees of freedom on the subdomains, the split degrees of freedom on the mesh elements, and the values at quadrature points, respectively.
 
@@ -76,7 +76,7 @@ Vector representation/storage categories:
 
   > - each unknown $i$ has exactly one copy, on exactly one processor, $rank(i)$
   > - this is a non-overlapping vector decomposition
-  > - usually includes any essential (fixed) dofs.
+  > - usually includes any essential (fixed) DoFs.
   >
   > ```{image} ../../img/T-vector.svg
   > ```
@@ -85,7 +85,7 @@ Vector representation/storage categories:
 
   > - each unknown $i$ has exactly one copy on each processor that owns an element containing $i$
   > - this is an overlapping vector decomposition with overlaps only across different processors---there is no duplication of unknowns on a single processor
-  > - the shared dofs/unknowns are the overlapping dofs, i.e. the ones that have more than one copy, on different processors.
+  > - the shared DoFs/unknowns are the overlapping DoFs, i.e. the ones that have more than one copy, on different processors.
   >
   > ```{image} ../../img/L-vector.svg
   > ```
@@ -98,11 +98,11 @@ Vector representation/storage categories:
   > ```{image} ../../img/E-vector.svg
   > ```
 
-- In the case of AMR with hanging nodes (giving rise to hanging dofs):
+- In the case of AMR with hanging nodes (giving rise to hanging DoFs):
 
-  > - the **L-vector** is enhanced with the hanging/dependent dofs
-  > - the additional hanging/dependent dofs are duplicated when they are shared by multiple processors
-  > - this way, an **E-vector** can be derived from an **L-vector** without any communications and without additional computations to derive the dependent dofs
+  > - the **L-vector** is enhanced with the hanging/dependent DoFs
+  > - the additional hanging/dependent DoFs are duplicated when they are shared by multiple processors
+  > - this way, an **E-vector** can be derived from an **L-vector** without any communications and without additional computations to derive the dependent DoFs
   > - in other words, an entry in an **E-vector** is obtained by copying an entry from the corresponding **L-vector**, optionally switching the sign of the entry (for $H(\mathrm{div})$---and $H(\mathrm{curl})$-conforming spaces).
   >
   > ```{image} ../../img/L-vector-AMR.svg
@@ -110,11 +110,11 @@ Vector representation/storage categories:
 
 - In the case of variable order spaces:
 
-  > - the dependent dofs (usually on the higher-order side of a face/edge) can be treated just like the hanging/dependent dofs case.
+  > - the dependent DoFs (usually on the higher-order side of a face/edge) can be treated just like the hanging/dependent DoFs case.
 
 - Quadrature point vector, **Q-vector**:
 
-  > - this is similar to **E-vector** where instead of dofs, the vector represents values at quadrature points, grouped by element.
+  > - this is similar to **E-vector** where instead of DoFs, the vector represents values at quadrature points, grouped by element.
 
 - In many cases it is useful to distinguish two types of vectors:
 
@@ -126,7 +126,7 @@ Vector representation/storage categories:
 
 Operator representation/storage/action categories:
 
-- Full true-dof parallel assembly, **TA**, or **A**:
+- Full true-DoF parallel assembly, **TA**, or **A**:
 
   > - ParCSR or similar format
   > - the T in TA indicates that the data format represents an operator from a **T-vector** to a **T'-vector**.
@@ -299,7 +299,7 @@ Other elements with this structure can be specified in terms of the `Q×P` matri
 Elements that do not have tensor product structure, such as symmetric elements on simplices, will be created using different constructors.
 
 The $\bm{\mathcal{E}}$ operators for the mesh nodes, `elem_restr_x`, and the unknown field, `elem_restr_u`, are specified in the {c:func}`CeedElemRestrictionCreate()`.
-Both of these specify directly the dof indices for each element in the `ind_x` and `ind_u` arrays:
+Both of these specify directly the DoF indices for each element in the `ind_x` and `ind_u` arrays:
 
 ```{literalinclude} ../../../tests/t500-operator.c
 :end-before: //! [ElemRestr Create]
@@ -329,7 +329,7 @@ Otherwise the input/output will be read from/written to the specified **L-vector
 
 With partial assembly, we first perform a setup stage where $\bm{D}$ is evaluated and stored.
 This is accomplished by the operator `op_setup` and its application to `X`, the nodes of the mesh (these are needed to compute Jacobians at quadrature points).
-Note that the corresponding {c:func}`CeedOperatorApply()` has no basis evaluation on the output, as the quadrature data is not needed at the dofs:
+Note that the corresponding {c:func}`CeedOperatorApply()` has no basis evaluation on the output, as the quadrature data is not needed at the DoFs:
 
 ```{literalinclude} ../../../tests/t500-operator.c
 :end-before: //! [Setup Create]

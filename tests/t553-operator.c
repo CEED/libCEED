@@ -1,6 +1,6 @@
 /// @file
-/// Test creation, action, and destruction for mass matrix operator with multigrid level, nontensor basis
-/// \test Test creation, action, and destruction for mass matrix operator with multigrid level, nontensor basis
+/// Test creation, action, and destruction for mass matrix operator with multigrid level, non-tensor basis
+/// \test Test creation, action, and destruction for mass matrix operator with multigrid level, non-tensor basis
 #include <ceed.h>
 #include <math.h>
 #include <stdio.h>

@@ -120,11 +120,11 @@ All backends may assume that array access will conform to these guidelines:
 
 - Data validity
 
-  - Internal syncronization and user calls to {c:func}`CeedVectorSync` cannot be made on a vector in an *invalid state*.
+  - Internal synchronization and user calls to {c:func}`CeedVectorSync` cannot be made on a vector in an *invalid state*.
   - Calls to {c:func}`CeedVectorGetArray` and {c:func}`CeedVectorGetArrayRead` cannot be made on a vector in an *invalid state*.
   - Calls to {c:func}`CeedVectorSetArray` and {c:func}`CeedVectorSetValue` can be made on a vector in an *invalid state*.
   - Calls to {c:func}`CeedVectorGetArrayWrite` can be made on a vector in an *invalid* state.
-    Data syncronization is not required for the memory location returned by {c:func}`CeedVectorGetArrayWrite`.
+    Data synchronization is not required for the memory location returned by {c:func}`CeedVectorGetArrayWrite`.
     The caller should assume that all data at the memory location returned by {c:func}`CeedVectorGetArrayWrite` is *invalid*.
 
 ## Internal Layouts

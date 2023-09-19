@@ -1,6 +1,6 @@
 /// @file
 /// Test VLA macro for operator
-/// \test VLA marco for operator
+/// \test VLA macro for operator
 #include "t507-operator.h"
 
 #include <ceed.h>

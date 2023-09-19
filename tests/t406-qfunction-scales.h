@@ -1,5 +1,5 @@
-#ifndef _scales_h
-#define _scales_h
+#ifndef SCALES_H
+#define SCALES_H
 // Testing # on first line
 
 // Copyright (c) 2017-2022, Lawrence Livermore National Security, LLC and other CEED contributors.
@@ -13,4 +13,4 @@
 
 #define SCALE_THREE 3
 
-#endif
+#endif  // SCALES_H
