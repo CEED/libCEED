@@ -53,7 +53,7 @@ CEED_QFUNCTION_HELPER int ComputeSGS_DDAnisotropicTrainingDataNodal(void *ctx, C
     CeedScalar       inputs[6];
     CeedScalar       eigenvectors[3][3], grad_velo_magnitude;  // dummy variables, don't actually use them
 
-    ComputeSGS_DDAnisotropicInputs(grad_velo_aniso, km_A_ij, delta, gas->mu / s.U.density, eigenvectors, inputs, &grad_velo_magnitude);
+    ComputeSgsDDInputs(grad_velo_aniso, km_A_ij, delta, gas->mu / s.U.density, eigenvectors, inputs, &grad_velo_magnitude);
 
     for (int j = 0; j < 6; j++) v[j][i] = inv_multiplicity[i] * inputs[j];
 

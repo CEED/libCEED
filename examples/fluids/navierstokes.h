@@ -465,9 +465,9 @@ PetscErrorCode TurbulenceStatisticsDestroy(User user, CeedData ceed_data);
 // Data-Driven Subgrid Stress (DD-SGS) Modeling Functions
 // -----------------------------------------------------------------------------
 
-PetscErrorCode SgsDDModelSetup(Ceed ceed, User user, CeedData ceed_data, ProblemData *problem);
+PetscErrorCode SgsDDSetup(Ceed ceed, User user, CeedData ceed_data, ProblemData *problem);
 PetscErrorCode SgsDDDataDestroy(SgsDDData sgs_dd_data);
-PetscErrorCode SgsDDModelApplyIFunction(User user, const Vec Q_loc, Vec G_loc);
+PetscErrorCode SgsDDApplyIFunction(User user, const Vec Q_loc, Vec G_loc);
 PetscErrorCode VelocityGradientProjectionSetup(Ceed ceed, User user, CeedData ceed_data, ProblemData *problem, StateVariable state_var_input,
                                                CeedElemRestriction elem_restr_input, CeedBasis basis_input, NodalProjectionData *pgrad_velo_proj);
 PetscErrorCode VelocityGradientProjectionApply(NodalProjectionData grad_velo_proj, Vec Q_loc, Vec VelocityGradient);

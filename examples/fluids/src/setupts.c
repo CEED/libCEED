@@ -171,7 +171,7 @@ PetscErrorCode IFunction_NS(TS ts, PetscReal t, Vec Q, Vec Q_dot, Vec G, void *u
   PetscCall(VecC2P(user->g_ceed, g_mem_type, G_loc));
 
   if (user->app_ctx->sgs_model_type == SGS_MODEL_DATA_DRIVEN) {
-    PetscCall(SgsDDModelApplyIFunction(user, Q_loc, G_loc));
+    PetscCall(SgsDDApplyIFunction(user, Q_loc, G_loc));
   }
 
   // Local-to-Global
