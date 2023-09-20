@@ -1,6 +1,6 @@
 /// @file
-/// Test calculation of dof multiplicity in element restriction
-/// \test Test calculation of dof multiplicity in element restriction
+/// Test calculation of DoF multiplicity in element restriction
+/// \test Test calculation of DoF multiplicity in element restriction
 #include <ceed.h>
 #include <stdio.h>
 

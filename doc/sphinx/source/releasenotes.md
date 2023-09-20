@@ -17,7 +17,7 @@ For example, `CeedOperatorContextGetFieldLabel` was renamed to `CeedOperatorGetC
 - Update `/cpu/self/memcheck/*` backends to help verify `CeedVector` array access assumptions and `CeedQFunction` user output assumptions.
 - Update {c:func}`CeedOperatorLinearAssembleDiagonal` to provide default implementation that supports `CeedOperator` with multiple active bases.
 - Added Sycl backends `/gpu/sycl/ref` and `/gpu/sycl/shared`.
-- Added {c:func}`CeedBasisApplyAtPoints` for evalution of values and derivaties at arbitrary points inside elements.
+- Added {c:func}`CeedBasisApplyAtPoints` for evaluation of values and derivatives at arbitrary points inside elements.
 - Added support for non-tensor $H(\text{curl})$ finite element spaces with {c:func}`CeedBasisCreateHcurl`.
 - Added {c:func}`CeedElemRestrictionCreateCurlOriented`, similar to {c:func}`CeedElemRestrictionCreateOriented`, for element restrictions requiring more general element transformations such as those for high-order $H(\text{curl})$ spaces on tetrahedra (see [https://dl.acm.org/doi/pdf/10.1145/3524456](https://dl.acm.org/doi/pdf/10.1145/3524456)).
 - Added {c:func}`CeedOperatorLinearAssemblePointBlockDiagonalSymbolic` to create COO mapping for mapping out of {c:func}`CeedOperatorLinearAssemblePointBlockDiagonal`. 
@@ -115,9 +115,9 @@ This reduces time to compile the library and increases the range of parameters f
 - `ceed-backend.h`, `ceed-hash.h`, and `ceed-khash.h` removed. Users should use `ceed/backend.h`, `ceed/hash.h`, and `ceed/khash.h`.
 - Added {c:func}`CeedQFunctionGetKernelName`; refactored {c:func}`CeedQFunctionGetSourcePath` to exclude function kernel name.
 - Clarify documentation for {c:func}`CeedVectorTakeArray`; this function will error if {c:func}`CeedVectorSetArray` with `copy_mode == CEED_USE_POINTER` was not previously called for the corresponding `CeedMemType`.
-- Added {c:func}`CeedVectorGetArrayWrite` that allows access to uninitalized arrays; require initalized data for {c:func}`CeedVectorGetArray`.
+- Added {c:func}`CeedVectorGetArrayWrite` that allows access to uninitialized arrays; require initialized data for {c:func}`CeedVectorGetArray`.
 - Added {c:func}`CeedQFunctionContextRegisterDouble` and {c:func}`CeedQFunctionContextRegisterInt32` with {c:func}`CeedQFunctionContextSetDouble` and {c:func}`CeedQFunctionContextSetInt32` to facilitate easy updating of {c:struct}`CeedQFunctionContext` data by user defined field names.
-- Added {c:func}`CeedQFunctionContextGetFieldDescriptions` to retreive user defined descriptions of fields that are registered with `CeedQFunctionContextRegister*`.
+- Added {c:func}`CeedQFunctionContextGetFieldDescriptions` to retrieve user defined descriptions of fields that are registered with `CeedQFunctionContextRegister*`.
 - Renamed `CeedElemTopology` entries for clearer namespacing between libCEED enums.
 - Added type `CeedSize` equivalent to `ptrdiff_t` for array sizes in {c:func}`CeedVectorCreate`, {c:func}`CeedVectorGetLength`, `CeedElemRestrictionCreate*`, {c:func}`CeedElemRestrictionGetLVectorSize`, and {c:func}`CeedOperatorLinearAssembleSymbolic`. This is a breaking change.
 - Added {c:func}`CeedOperatorSetQFunctionUpdated` to facilitate QFunction data re-use between operators sharing the same quadrature space, such as in a multigrid hierarchy.

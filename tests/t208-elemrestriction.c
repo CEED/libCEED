@@ -29,7 +29,7 @@ int main(int argc, char **argv) {
   }
   CeedElemRestrictionCreateBlocked(ceed, num_elem, elem_size, blk_size, 1, 1, num_elem + 1, CEED_MEM_HOST, CEED_USE_POINTER, ind, &elem_restriction);
 
-  // NoTranspose
+  // No Transpose
   CeedElemRestrictionApplyBlock(elem_restriction, 1, CEED_NOTRANSPOSE, x, y, CEED_REQUEST_IMMEDIATE);
   {
     const CeedScalar *y_array;

@@ -1,6 +1,6 @@
 /// @file
-/// Test creation, use, and destruction of a multicomponent element restriction
-/// \test Test creation, use, and destruction of a multicomponent element restriction
+/// Test creation, use, and destruction of a multi-component element restriction
+/// \test Test creation, use, and destruction of a multi-component element restriction
 #include <ceed.h>
 #include <ceed/backend.h>
 #include <stdio.h>

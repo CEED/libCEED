@@ -1055,7 +1055,7 @@ int CeedOperatorSetNumQuadraturePoints(CeedOperator op, CeedInt num_qpts) {
   if (op->num_qpts > 0) {
     CeedWarn(
         "CeedOperatorSetNumQuadraturePoints will be removed from the libCEED interface in the next release.\n"
-        "This function is reduntant and you can safely remove any calls to this function without replacing them.");
+        "This function is redundant and you can safely remove any calls to this function without replacing them.");
     CeedCheck(num_qpts == op->num_qpts, op->ceed, CEED_ERROR_DIMENSION, "Different number of quadrature points already defined for the CeedOperator");
   }
   op->num_qpts = num_qpts;

@@ -44,7 +44,7 @@
       call ceedvectorcreate(ceed,blksize*elemsize,y,err);
       call ceedvectorsetvalue(y,0.d0,err)
 
-!     NoTranspose
+!     No Transpose
       call ceedelemrestrictionapplyblock(r,1,ceed_notranspose,x,y,&
      & ceed_request_immediate,err)
       call ceedvectorgetarrayread(y,ceed_mem_host,yy,yoffset,err)

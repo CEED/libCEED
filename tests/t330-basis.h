@@ -8,7 +8,7 @@
 #include <ceed.h>
 
 // H(div) basis for quadrilateral linear BDM element in 2D
-// Local numbering is as follows (each edge has 2 vector dof)
+// Local numbering is as follows (each edge has 2 vector DoF)
 //     b4     b5
 //    2---------3
 //  b7|         |b3

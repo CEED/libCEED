@@ -1,6 +1,6 @@
 /// @file
 /// Test polynomial gradient to arbitrary points in multiple dimensions
-/// \test Test polynomial graient to arbitrary points in multiple dimensions
+/// \test Test polynomial gradient to arbitrary points in multiple dimensions
 #include <ceed.h>
 #include <math.h>
 #include <stdio.h>

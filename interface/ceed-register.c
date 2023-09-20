@@ -16,7 +16,7 @@ static bool register_all_called;
 #undef CEED_BACKEND
 
 /**
-  @brief Register all preconfigured backends.
+  @brief Register all pre-configured backends.
 
   This is called automatically by CeedInit() and thus normally need not be called by users.
   Users can call CeedRegister() to register additional backends.

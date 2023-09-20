@@ -28,7 +28,7 @@
 //   (physical 3D coords relative to reference 2D coords)
 //   dxx_j/dX_i (indicial notation) [3 * 2]
 //
-// Change of coordinates x (physical 2D) relative to xx (phyisical 3D):
+// Change of coordinates x (physical 2D) relative to xx (phyiscal 3D):
 //   dx_i/dxx_j (indicial notation) [2 * 3]
 //
 // Change of coordinates x (physical 2D) relative to X (reference 2D):

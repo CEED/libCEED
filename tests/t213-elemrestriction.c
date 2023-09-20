@@ -1,6 +1,6 @@
 /// @file
-/// Test creation, use, and destruction of a blocked element restriction with multiple components in the lvector, and libCEED owns ind pointer
-/// \test Test creation, use, and destruction of a blocked element restriction with multiple components in the lvector, and libCEED owns ind pointer
+/// Test creation, use, and destruction of a blocked element restriction with multiple components in the l-vector, and libCEED owns ind pointer
+/// \test Test creation, use, and destruction of a blocked element restriction with multiple components in the -lvector, and libCEED owns ind pointer
 #include <ceed.h>
 #include <ceed/backend.h>
 #include <stdio.h>

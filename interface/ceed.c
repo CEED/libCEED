@@ -432,7 +432,7 @@ int CeedGetObjectDelegate(Ceed ceed, Ceed *delegate, const char *obj_name) {
 
   This function allows a Ceed context to set a delegate Ceed context for a given type of Ceed object.
   All backend implementations default to the delegate Ceed context for this object.
-  For example, CeedSetObjectDelegate(ceed, refceed, "Basis") uses delegate implementations for all CeedBasis backend functions.
+  For example, CeedSetObjectDelegate(ceed, delegate, "Basis") uses delegate implementations for all CeedBasis backend functions.
 
   @param[in,out] ceed     Ceed context to set delegate of
   @param[in]     delegate Ceed context to use for delegation
