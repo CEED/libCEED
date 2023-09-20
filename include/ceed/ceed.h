@@ -270,6 +270,8 @@ CEED_EXTERN int CeedElemRestrictionGetCeed(CeedElemRestriction rstr, Ceed *ceed)
 CEED_EXTERN int CeedElemRestrictionGetCompStride(CeedElemRestriction rstr, CeedInt *comp_stride);
 CEED_EXTERN int CeedElemRestrictionGetNumElements(CeedElemRestriction rstr, CeedInt *num_elem);
 CEED_EXTERN int CeedElemRestrictionGetElementSize(CeedElemRestriction rstr, CeedInt *elem_size);
+CEED_EXTERN int CeedElemRestrictionGetNumPoints(CeedElemRestriction rstr, CeedInt *num_points);
+CEED_EXTERN int CeedElemRestrictionGetNumPointsInElement(CeedElemRestriction rstr, CeedInt elem, CeedInt *num_points);
 CEED_EXTERN int CeedElemRestrictionGetMaxPointsInElement(CeedElemRestriction rstr, CeedInt *max_points);
 CEED_EXTERN int CeedElemRestrictionGetLVectorSize(CeedElemRestriction rstr, CeedSize *l_size);
 CEED_EXTERN int CeedElemRestrictionGetNumComponents(CeedElemRestriction rstr, CeedInt *num_comp);
