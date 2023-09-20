@@ -33,7 +33,7 @@ int main(int argc, char **argv) {
     }
     ind[num_elem] = offset;
   }
-  CeedElemRestrictionCreateAtPoints(ceed, num_elem, num_points, 1, num_points, CEED_MEM_HOST, CEED_USE_POINTER, ind, &elem_restriction);
+  CeedElemRestrictionCreateAtPoints(ceed, num_elem, num_points, 1, num_points, CEED_MEM_HOST, CEED_COPY_VALUES, ind, &elem_restriction);
 
   {
     CeedInt max_points;

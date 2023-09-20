@@ -291,32 +291,6 @@ int CeedElemRestrictionRestoreCurlOrientations(CeedElemRestriction rstr, const C
 
 /**
 
-  @brief Get the number of points in an element of a points CeedElemRestriction
-
-  @param[in]  rstr       CeedElemRestriction
-  @param[in]  elem       Index number of element to retrieve the number of points for
-  @param[out] num_points The number of points in the element at index elem
-
-  @return An error code: 0 - success, otherwise - failure
-
-  @ref Backend
-**/
-int CeedElemRestrictionGetNumPointsInElement(CeedElemRestriction rstr, CeedInt elem, CeedInt *num_points) {
-  Ceed           ceed;
-  const CeedInt *offsets;
-
-  CeedCall(CeedElemRestrictionGetCeed(rstr, &ceed));
-  CeedCheck(rstr->rstr_type == CEED_RESTRICTION_POINTS, ceed, CEED_ERROR_INCOMPATIBLE,
-            "Can only retrieve the number of points for a points CeedElemRestriction");
-
-  CeedCall(CeedElemRestrictionGetOffsets(rstr, CEED_MEM_HOST, &offsets));
-  *num_points = offsets[elem + 1] - offsets[elem];
-  CeedCall(CeedElemRestrictionRestoreOffsets(rstr, &offsets));
-  return CEED_ERROR_SUCCESS;
-}
-
-/**
-
   @brief Get the E-vector layout of a CeedElemRestriction
 
   @param[in]  rstr    CeedElemRestriction
@@ -1286,6 +1260,54 @@ int CeedElemRestrictionGetNumElements(CeedElemRestriction rstr, CeedInt *num_ele
 **/
 int CeedElemRestrictionGetElementSize(CeedElemRestriction rstr, CeedInt *elem_size) {
   *elem_size = rstr->elem_size;
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
+
+  @brief Get the number of points in the l-vector for a points CeedElemRestriction
+
+  @param[in]  rstr       CeedElemRestriction
+  @param[out] num_points The number of points in the l-vector
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref User
+**/
+int CeedElemRestrictionGetNumPoints(CeedElemRestriction rstr, CeedInt *num_points) {
+  Ceed ceed;
+
+  CeedCall(CeedElemRestrictionGetCeed(rstr, &ceed));
+  CeedCheck(rstr->rstr_type == CEED_RESTRICTION_POINTS, ceed, CEED_ERROR_INCOMPATIBLE,
+            "Can only retrieve the number of points for a points CeedElemRestriction");
+
+  *num_points = rstr->num_points;
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
+
+  @brief Get the number of points in an element of a points CeedElemRestriction
+
+  @param[in]  rstr       CeedElemRestriction
+  @param[in]  elem       Index number of element to retrieve the number of points for
+  @param[out] num_points The number of points in the element at index elem
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref User
+**/
+int CeedElemRestrictionGetNumPointsInElement(CeedElemRestriction rstr, CeedInt elem, CeedInt *num_points) {
+  Ceed           ceed;
+  const CeedInt *offsets;
+
+  CeedCall(CeedElemRestrictionGetCeed(rstr, &ceed));
+  CeedCheck(rstr->rstr_type == CEED_RESTRICTION_POINTS, ceed, CEED_ERROR_INCOMPATIBLE,
+            "Can only retrieve the number of points for a points CeedElemRestriction");
+
+  CeedCall(CeedElemRestrictionGetOffsets(rstr, CEED_MEM_HOST, &offsets));
+  *num_points = offsets[elem + 1] - offsets[elem];
+  CeedCall(CeedElemRestrictionRestoreOffsets(rstr, &offsets));
   return CEED_ERROR_SUCCESS;
 }
 

@@ -279,7 +279,6 @@ CEED_EXTERN int CeedElemRestrictionGetOrientations(CeedElemRestriction rstr, Cee
 CEED_EXTERN int CeedElemRestrictionRestoreOrientations(CeedElemRestriction rstr, const bool **orients);
 CEED_EXTERN int CeedElemRestrictionGetCurlOrientations(CeedElemRestriction rstr, CeedMemType mem_type, const CeedInt8 **curl_orients);
 CEED_EXTERN int CeedElemRestrictionRestoreCurlOrientations(CeedElemRestriction rstr, const CeedInt8 **curl_orients);
-CEED_EXTERN int CeedElemRestrictionGetNumPointsInElement(CeedElemRestriction rstr, CeedInt elem, CeedInt *num_points);
 CEED_EXTERN int CeedElemRestrictionGetELayout(CeedElemRestriction rstr, CeedInt (*layout)[3]);
 CEED_EXTERN int CeedElemRestrictionSetELayout(CeedElemRestriction rstr, CeedInt layout[3]);
 CEED_EXTERN int CeedElemRestrictionGetData(CeedElemRestriction rstr, void *data);
