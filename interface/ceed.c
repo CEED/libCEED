@@ -122,13 +122,22 @@ int CeedRequestWait(CeedRequest *req) {
   @ref Developer
 **/
 int CeedRegisterImpl(const char *prefix, int (*init)(const char *, Ceed), unsigned int priority) {
-  CeedCheck(num_backends < sizeof(backends) / sizeof(backends[0]), NULL, CEED_ERROR_MAJOR, "Too many backends");
+  int ierr = 0;
 
-  strncpy(backends[num_backends].prefix, prefix, CEED_MAX_RESOURCE_LEN);
-  backends[num_backends].prefix[CEED_MAX_RESOURCE_LEN - 1] = 0;
-  backends[num_backends].init                              = init;
-  backends[num_backends].priority                          = priority;
-  num_backends++;
+  CeedPragmaCritical(CeedRegisterImpl) {
+    if (num_backends < sizeof(backends) / sizeof(backends[0])) {
+      strncpy(backends[num_backends].prefix, prefix, CEED_MAX_RESOURCE_LEN);
+      backends[num_backends].prefix[CEED_MAX_RESOURCE_LEN - 1] = 0;
+      backends[num_backends].init                              = init;
+      backends[num_backends].priority                          = priority;
+      num_backends++;
+    } else {
+      ierr = 1;
+    }
+  }
+  // LCOV_EXCL_START
+  CeedCheck(ierr == 0, NULL, CEED_ERROR_MAJOR, "Too many backends");
+  // LCOV_EXCL_STOP
   return CEED_ERROR_SUCCESS;
 }
 

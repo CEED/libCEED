@@ -52,10 +52,27 @@
 #elif defined(__GNUC__)
 #define CeedPragmaOptimizeOn _Pragma("GCC pop_options")
 #elif defined(__INTEL_COMPILER) || defined(__INTEL_LLVM_COMPILER)
-#define CeedPragmaOptimizeOff _Pragma("optimize('', on)")
+#define CeedPragmaOptimizeOn _Pragma("optimize('', on)")
 #else
 #define CeedPragmaOptimizeOn
 #endif
+#endif
+
+/// This macro provides the appropriate OpenMP Pragmas for the compilation environment.
+/// @ingroup Ceed
+#ifndef CeedPragmaOMP
+#ifdef _OPENMP
+#define CeedPragmaOMPHelper(x) _Pragma(#x)
+#define CeedPragmaOMP(x) CeedPragmaOMPHelper(omp x)
+#else
+#define CeedPragmaOMP(x)
+#endif
+#endif
+#ifndef CeedPragmaAtomic
+#define CeedPragmaAtomic CeedPragmaOMP(atomic update)
+#endif
+#ifndef CeedPragmaCritical
+#define CeedPragmaCritical(x) CeedPragmaOMP(critical(x))
 #endif
 
 /**

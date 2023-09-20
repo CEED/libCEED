@@ -63,21 +63,27 @@ static size_t num_qfunctions;
 int CeedQFunctionRegister(const char *name, const char *source, CeedInt vec_length, CeedQFunctionUser f,
                           int (*init)(Ceed, const char *, CeedQFunction)) {
   const char *relative_file_path;
-
-  CeedCheck(num_qfunctions < sizeof(gallery_qfunctions) / sizeof(gallery_qfunctions[0]), NULL, CEED_ERROR_MAJOR, "Too many gallery QFunctions");
+  int         ierr = 0;
 
   CeedDebugEnv("Gallery Register: %s", name);
-
   CeedCall(CeedGetJitRelativePath(source, &relative_file_path));
-
-  strncpy(gallery_qfunctions[num_qfunctions].name, name, CEED_MAX_RESOURCE_LEN);
-  gallery_qfunctions[num_qfunctions].name[CEED_MAX_RESOURCE_LEN - 1] = 0;
-  strncpy(gallery_qfunctions[num_qfunctions].source, relative_file_path, CEED_MAX_RESOURCE_LEN);
-  gallery_qfunctions[num_qfunctions].source[CEED_MAX_RESOURCE_LEN - 1] = 0;
-  gallery_qfunctions[num_qfunctions].vec_length                        = vec_length;
-  gallery_qfunctions[num_qfunctions].f                                 = f;
-  gallery_qfunctions[num_qfunctions].init                              = init;
-  num_qfunctions++;
+  CeedPragmaCritical(CeedQFunctionRegister) {
+    if (num_qfunctions < sizeof(gallery_qfunctions) / sizeof(gallery_qfunctions[0])) {
+      strncpy(gallery_qfunctions[num_qfunctions].name, name, CEED_MAX_RESOURCE_LEN);
+      gallery_qfunctions[num_qfunctions].name[CEED_MAX_RESOURCE_LEN - 1] = 0;
+      strncpy(gallery_qfunctions[num_qfunctions].source, relative_file_path, CEED_MAX_RESOURCE_LEN);
+      gallery_qfunctions[num_qfunctions].source[CEED_MAX_RESOURCE_LEN - 1] = 0;
+      gallery_qfunctions[num_qfunctions].vec_length                        = vec_length;
+      gallery_qfunctions[num_qfunctions].f                                 = f;
+      gallery_qfunctions[num_qfunctions].init                              = init;
+      num_qfunctions++;
+    } else {
+      ierr = 1;
+    }
+  }
+  // LCOV_EXCL_START
+  CeedCheck(ierr == 0, NULL, CEED_ERROR_MAJOR, "Too many gallery QFunctions");
+  // LCOV_EXCL_STOP
   return CEED_ERROR_SUCCESS;
 }
 
