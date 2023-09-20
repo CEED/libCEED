@@ -1272,7 +1272,7 @@ int CeedElemRestrictionGetElementSize(CeedElemRestriction rstr, CeedInt *elem_si
 
   @return An error code: 0 - success, otherwise - failure
 
-  @ref Backend
+  @ref User
 **/
 int CeedElemRestrictionGetNumPoints(CeedElemRestriction rstr, CeedInt *num_points) {
   Ceed ceed;
@@ -1295,7 +1295,7 @@ int CeedElemRestrictionGetNumPoints(CeedElemRestriction rstr, CeedInt *num_point
 
   @return An error code: 0 - success, otherwise - failure
 
-  @ref Backend
+  @ref User
 **/
 int CeedElemRestrictionGetNumPointsInElement(CeedElemRestriction rstr, CeedInt elem, CeedInt *num_points) {
   Ceed           ceed;
