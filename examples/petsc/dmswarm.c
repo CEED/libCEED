@@ -40,11 +40,14 @@ typedef PetscErrorCode (*DMFunc)(PetscInt dim, PetscReal time, const PetscReal x
 typedef struct DMSwarmCeedContext_ *DMSwarmCeedContext;
 struct DMSwarmCeedContext_ {
   Ceed                ceed;
-  CeedElemRestriction restriction;
+  CeedElemRestriction restriction_u_mesh, restriction_x_points, restriction_u_points;
   CeedBasis           basis;
 };
 
 const char DMSwarmPICField_u[] = "u";
+
+PetscErrorCode DMSwarmCeedContextCreate(const char *ceed_resource, DMSwarmCeedContext *ctx);
+PetscErrorCode DMSwarmCeedContextDestroy(DMSwarmCeedContext *ctx);
 
 PetscScalar    EvalU(PetscInt dim, const PetscScalar x[]);
 PetscErrorCode EvalU_proj(PetscInt dim, PetscReal t, const PetscReal x[], PetscInt num_comp, PetscScalar *u, void *ctx);
@@ -132,13 +135,12 @@ int main(int argc, char **argv) {
   }
 
   // -- libCEED objects from background mesh
+  PetscCall(DMSwarmCeedContextCreate(ceed_resource, &swarm_ceed_context));
   {
     BPData bp_data = {.q_mode = CEED_GAUSS};
 
-    PetscCall(PetscNew(&swarm_ceed_context));
-    CeedInit(ceed_resource, &swarm_ceed_context->ceed);
     PetscCall(CreateBasisFromPlex(swarm_ceed_context->ceed, dm_mesh, NULL, 0, 0, 0, bp_data, &swarm_ceed_context->basis));
-    PetscCall(CreateRestrictionFromPlex(swarm_ceed_context->ceed, dm_mesh, 0, NULL, 0, &swarm_ceed_context->restriction));
+    PetscCall(CreateRestrictionFromPlex(swarm_ceed_context->ceed, dm_mesh, 0, NULL, 0, &swarm_ceed_context->restriction_u_mesh));
     PetscCall(DMSetApplicationContext(dm_mesh, (void *)swarm_ceed_context));
   }
 
@@ -232,14 +234,30 @@ int main(int argc, char **argv) {
   }
 
   // Cleanup
-  CeedDestroy(&swarm_ceed_context->ceed);
-  CeedElemRestrictionDestroy(&swarm_ceed_context->restriction);
-  CeedBasisDestroy(&swarm_ceed_context->basis);
-  PetscCall(PetscFree(swarm_ceed_context));
+  PetscCall(DMSwarmCeedContextDestroy(&swarm_ceed_context));
   PetscCall(DMDestroy(&dm_swarm));
   PetscCall(DMDestroy(&dm_mesh));
   PetscCall(VecDestroy(&U_mesh));
   return PetscFinalize();
+}
+
+// Context utilities
+PetscErrorCode DMSwarmCeedContextCreate(const char *ceed_resource, DMSwarmCeedContext *ctx) {
+  PetscFunctionBeginUser;
+  PetscCall(PetscNew(ctx));
+  CeedInit(ceed_resource, &(*ctx)->ceed);
+  PetscFunctionReturn(PETSC_SUCCESS);
+}
+
+PetscErrorCode DMSwarmCeedContextDestroy(DMSwarmCeedContext *ctx) {
+  PetscFunctionBeginUser;
+  CeedDestroy(&(*ctx)->ceed);
+  CeedElemRestrictionDestroy(&(*ctx)->restriction_u_mesh);
+  CeedElemRestrictionDestroy(&(*ctx)->restriction_x_points);
+  CeedElemRestrictionDestroy(&(*ctx)->restriction_u_points);
+  CeedBasisDestroy(&(*ctx)->basis);
+  PetscCall(PetscFree(*ctx));
+  PetscFunctionReturn(PETSC_SUCCESS);
 }
 
 // Solution functions
@@ -465,9 +483,9 @@ PetscErrorCode DMSwarmInterpolateFromCellToSwarm_Ceed(DM dm_swarm, const char *f
     CeedVector         u_l_vec;
 
     PetscCall(VecGetArrayRead(U_loc, &u_array));
-    CeedElemRestrictionCreateVector(swarm_ceed_context->restriction, &u_l_vec, &u_e_vec);
+    CeedElemRestrictionCreateVector(swarm_ceed_context->restriction_u_mesh, &u_l_vec, &u_e_vec);
     CeedVectorSetArray(u_l_vec, CEED_MEM_HOST, CEED_USE_POINTER, (CeedScalar *)u_array);
-    CeedElemRestrictionApply(swarm_ceed_context->restriction, CEED_NOTRANSPOSE, u_l_vec, u_e_vec, CEED_REQUEST_IMMEDIATE);
+    CeedElemRestrictionApply(swarm_ceed_context->restriction_u_mesh, CEED_NOTRANSPOSE, u_l_vec, u_e_vec, CEED_REQUEST_IMMEDIATE);
     CeedVectorTakeArray(u_l_vec, CEED_MEM_HOST, (CeedScalar **)&u_array);
     PetscCall(VecRestoreArrayRead(U_loc, &u_array));
     PetscCall(DMRestoreLocalVector(dm_mesh, &U_loc));
@@ -476,8 +494,8 @@ PetscErrorCode DMSwarmInterpolateFromCellToSwarm_Ceed(DM dm_swarm, const char *f
   {
     CeedInt elem_size;
 
-    CeedElemRestrictionGetElementSize(swarm_ceed_context->restriction, &elem_size);
-    CeedElemRestrictionGetNumComponents(swarm_ceed_context->restriction, &num_comp);
+    CeedElemRestrictionGetElementSize(swarm_ceed_context->restriction_u_mesh, &elem_size);
+    CeedElemRestrictionGetNumComponents(swarm_ceed_context->restriction_u_mesh, &num_comp);
     CeedVectorCreate(swarm_ceed_context->ceed, elem_size * num_comp, &u_cell);
   }
 
@@ -518,7 +536,7 @@ PetscErrorCode DMSwarmInterpolateFromCellToSwarm_Ceed(DM dm_swarm, const char *f
       CeedInt           elem_size;
       const CeedScalar *u_e_vec_array, *u_cell_array;
 
-      CeedElemRestrictionGetElementSize(swarm_ceed_context->restriction, &elem_size);
+      CeedElemRestrictionGetElementSize(swarm_ceed_context->restriction_u_mesh, &elem_size);
       CeedVectorGetArrayRead(u_e_vec, CEED_MEM_HOST, &u_e_vec_array);
       u_cell_array = &u_e_vec_array[cell * elem_size * num_comp];
       CeedVectorSetArray(u_cell, CEED_MEM_HOST, CEED_USE_POINTER, (CeedScalar *)u_cell_array);
