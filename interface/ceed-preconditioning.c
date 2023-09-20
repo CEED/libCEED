@@ -683,8 +683,10 @@ static int CeedSingleOperatorAssemble(CeedOperator op, CeedInt offset, CeedVecto
   // Loop over elements and put in data structure
   // We store B_mat_in, B_mat_out, BTD, elem_mat in row-major order
   CeedSize    count = 0;
-  CeedScalar *vals, BTD_mat[elem_size_out * num_qpts_in * num_eval_modes_in[0]], elem_mat[elem_size_out * elem_size_in], *elem_mat_b = NULL;
+  CeedScalar *vals, *BTD_mat = NULL, *elem_mat = NULL, *elem_mat_b = NULL;
 
+  CeedCall(CeedCalloc(elem_size_out * num_qpts_in * num_eval_modes_in[0], &BTD_mat));
+  CeedCall(CeedCalloc(elem_size_out * elem_size_in, &elem_mat));
   if (elem_rstr_curl_orients_in || elem_rstr_curl_orients_out) CeedCall(CeedCalloc(elem_size_out * elem_size_in, &elem_mat_b));
 
   CeedCall(CeedVectorGetArray(values, CEED_MEM_HOST, &vals));
@@ -773,6 +775,8 @@ static int CeedSingleOperatorAssemble(CeedOperator op, CeedInt offset, CeedVecto
   CeedCall(CeedVectorRestoreArray(values, &vals));
 
   // Cleanup
+  CeedCall(CeedFree(&BTD_mat));
+  CeedCall(CeedFree(&elem_mat));
   CeedCall(CeedFree(&elem_mat_b));
   if (elem_rstr_type_in == CEED_RESTRICTION_ORIENTED) {
     CeedCall(CeedElemRestrictionRestoreOrientations(elem_rstr_in, &elem_rstr_orients_in));
