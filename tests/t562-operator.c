@@ -137,31 +137,31 @@ int main(int argc, char **argv) {
 
   // Manually assemble operator
   CeedVectorSetValue(u, 0.0);
-  for (CeedInt i = 0; i < num_dofs; i++) {
-    // Set input
+  for (CeedInt j = 0; j < num_dofs; j++) {
     CeedScalar       *u_array;
     const CeedScalar *v_array;
 
+    // Set input
     CeedVectorGetArray(u, CEED_MEM_HOST, &u_array);
-    u_array[i] = 1.0;
-    if (i) u_array[i - 1] = 0.0;
+    u_array[j] = 1.0;
+    if (j) u_array[j - 1] = 0.0;
     CeedVectorRestoreArray(u, &u_array);
 
-    // Compute entries for column i
+    // Compute entries for column j
     CeedOperatorApply(op_apply, u, v, CEED_REQUEST_IMMEDIATE);
 
     CeedVectorGetArrayRead(v, CEED_MEM_HOST, &v_array);
-    for (CeedInt k = 0; k < num_dofs; k++) assembled_true[i * num_dofs + k] = v_array[k];
+    for (CeedInt i = 0; i < num_dofs; i++) assembled_true[i * num_dofs + j] = v_array[i];
     CeedVectorRestoreArrayRead(v, &v_array);
   }
 
   // Check output
   for (CeedInt i = 0; i < num_dofs; i++) {
     for (CeedInt j = 0; j < num_dofs; j++) {
-      if (fabs(assembled_values[j * num_dofs + i] - assembled_true[j * num_dofs + i]) > 100. * CEED_EPSILON) {
+      if (fabs(assembled_values[i * num_dofs + j] - assembled_true[i * num_dofs + j]) > 100. * CEED_EPSILON) {
         // LCOV_EXCL_START
-        printf("[%" CeedInt_FMT ", %" CeedInt_FMT "] Error in assembly: %f != %f\n", i, j, assembled_values[j * num_dofs + i],
-               assembled_true[j * num_dofs + i]);
+        printf("[%" CeedInt_FMT ", %" CeedInt_FMT "] Error in assembly: %f != %f\n", i, j, assembled_values[i * num_dofs + j],
+               assembled_true[i * num_dofs + j]);
         // LCOV_EXCL_STOP
       }
     }

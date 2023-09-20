@@ -1,147 +1,117 @@
 /// @file
-/// Test assembly of H(div) mass matrix operator diagonal
-/// \test Test assembly of H(div) mass matrix operator diagonal
-#include "t570-operator.h"
-
+/// Test full assembly of an identity operator (see t509)
+/// \test Test full assembly of an identity operator
 #include <ceed.h>
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "t330-basis.h"
-
 int main(int argc, char **argv) {
   Ceed                ceed;
-  CeedElemRestriction elem_restriction_x, elem_restriction_u;
-  CeedBasis           basis_x, basis_u;
-  CeedQFunction       qf_mass;
-  CeedOperator        op_mass;
-  CeedVector          x, assembled, u, v;
-  CeedInt             dim = 2, p = 8, q = 3, px = 2;
-  CeedInt             n_x = 1, n_y = 1;  // Currently only implemented for single element
-  CeedInt             row, column, offset;
-  CeedInt             num_elem = n_x * n_y, num_faces = (n_x + 1) * n_y + (n_y + 1) * n_x;
-  CeedInt             num_dofs_x = (n_x + 1) * (n_y + 1), num_dofs_u = num_faces * 2, num_qpts = q * q;
-  CeedInt             ind_x[num_elem * px * px], ind_u[num_elem * p];
-  bool                orient_u[num_elem * p];
-  CeedScalar          assembled_true[num_dofs_u];
-  CeedScalar          q_ref[dim * num_qpts], q_weight[num_qpts];
-  CeedScalar          interp[dim * p * num_qpts], div[p * num_qpts];
+  CeedElemRestriction elem_restriction_u, elem_restriction_u_i;
+  CeedBasis           basis_u;
+  CeedQFunction       qf_identity;
+  CeedOperator        op_identity;
+  CeedVector          u, v;
+  CeedInt             num_elem = 15, p = 5, q = 8;
+  CeedInt             num_nodes = num_elem * (p - 1) + 1;
+  CeedInt             ind_u[num_elem * p];
+  CeedScalar          assembled_values[num_nodes * q * num_elem];
+  CeedScalar          assembled_true[num_nodes * q * num_elem];
 
   CeedInit(argv[1], &ceed);
 
-  // Vectors
-  CeedVectorCreate(ceed, dim * num_dofs_x, &x);
-  {
-    CeedScalar x_array[dim * num_dofs_x];
-
-    for (CeedInt i = 0; i < n_x + 1; i++) {
-      for (CeedInt j = 0; j < n_y + 1; j++) {
-        x_array[i + j * (n_x + 1) + 0 * num_dofs_x] = i / (CeedScalar)n_x;
-        x_array[i + j * (n_x + 1) + 1 * num_dofs_x] = j / (CeedScalar)n_y;
-      }
-    }
-    CeedVectorSetArray(x, CEED_MEM_HOST, CEED_COPY_VALUES, x_array);
-  }
-  CeedVectorCreate(ceed, num_dofs_u, &u);
-  CeedVectorCreate(ceed, num_dofs_u, &v);
+  CeedVectorCreate(ceed, num_nodes, &u);
+  CeedVectorCreate(ceed, q * num_elem, &v);
 
   // Restrictions
   for (CeedInt i = 0; i < num_elem; i++) {
-    column = i % n_x;
-    row    = i / n_x;
-    offset = column * (px - 1) + row * (n_x + 1) * (px - 1);
+    for (CeedInt j = 0; j < p; j++) {
+      ind_u[p * i + j] = i * (p - 1) + j;
+    }
+  }
+  CeedElemRestrictionCreate(ceed, num_elem, p, 1, 1, num_nodes, CEED_MEM_HOST, CEED_USE_POINTER, ind_u, &elem_restriction_u);
 
-    for (CeedInt j = 0; j < px; j++) {
-      for (CeedInt k = 0; k < px; k++) {
-        ind_x[px * (px * i + k) + j] = offset + k * (n_x + 1) + j;
-      }
-    }
-  }
-  bool    orient_u_local[8] = {false, false, false, false, true, true, true, true};
-  CeedInt ind_u_local[8]    = {0, 1, 6, 7, 2, 3, 4, 5};
-  for (CeedInt j = 0; j < n_y; j++) {
-    for (CeedInt i = 0; i < n_x; i++) {
-      for (CeedInt k = 0; k < p; k++) {
-        ind_u[k]    = ind_u_local[k];
-        orient_u[k] = orient_u_local[k];
-      }
-    }
-  }
-  CeedElemRestrictionCreate(ceed, num_elem, px * px, dim, num_dofs_x, dim * num_dofs_x, CEED_MEM_HOST, CEED_USE_POINTER, ind_x, &elem_restriction_x);
-  CeedElemRestrictionCreateOriented(ceed, num_elem, p, 1, 1, num_dofs_u, CEED_MEM_HOST, CEED_COPY_VALUES, ind_u, orient_u, &elem_restriction_u);
+  CeedInt strides_u_i[3] = {1, q, q};
+  CeedElemRestrictionCreateStrided(ceed, num_elem, q, 1, q * num_elem, strides_u_i, &elem_restriction_u_i);
 
   // Bases
-  CeedBasisCreateTensorH1Lagrange(ceed, dim, dim, px, q, CEED_GAUSS, &basis_x);
+  CeedBasisCreateTensorH1Lagrange(ceed, 1, 1, p, q, CEED_GAUSS, &basis_u);
 
-  BuildHdivQuadrilateral(q, q_ref, q_weight, interp, div, CEED_GAUSS);
-  CeedBasisCreateHdiv(ceed, CEED_TOPOLOGY_QUAD, 1, p, num_qpts, interp, div, q_ref, q_weight, &basis_u);
-
-  // QFunctions
-  CeedQFunctionCreateInterior(ceed, 1, mass, mass_loc, &qf_mass);
-  CeedQFunctionAddInput(qf_mass, "weight", 1, CEED_EVAL_WEIGHT);
-  CeedQFunctionAddInput(qf_mass, "dx", dim * dim, CEED_EVAL_GRAD);
-  CeedQFunctionAddInput(qf_mass, "u", dim, CEED_EVAL_INTERP);
-  CeedQFunctionAddOutput(qf_mass, "v", dim, CEED_EVAL_INTERP);
+  // QFunction
+  CeedQFunctionCreateIdentity(ceed, 1, CEED_EVAL_INTERP, CEED_EVAL_NONE, &qf_identity);
 
   // Operators
-  CeedOperatorCreate(ceed, qf_mass, CEED_QFUNCTION_NONE, CEED_QFUNCTION_NONE, &op_mass);
-  CeedOperatorSetField(op_mass, "weight", CEED_ELEMRESTRICTION_NONE, basis_x, CEED_VECTOR_NONE);
-  CeedOperatorSetField(op_mass, "dx", elem_restriction_x, basis_x, x);
-  CeedOperatorSetField(op_mass, "u", elem_restriction_u, basis_u, CEED_VECTOR_ACTIVE);
-  CeedOperatorSetField(op_mass, "v", elem_restriction_u, basis_u, CEED_VECTOR_ACTIVE);
+  CeedOperatorCreate(ceed, qf_identity, CEED_QFUNCTION_NONE, CEED_QFUNCTION_NONE, &op_identity);
+  CeedOperatorSetField(op_identity, "input", elem_restriction_u, basis_u, CEED_VECTOR_ACTIVE);
+  CeedOperatorSetField(op_identity, "output", elem_restriction_u_i, CEED_BASIS_NONE, CEED_VECTOR_ACTIVE);
 
-  // Assemble diagonal
-  CeedVectorCreate(ceed, num_dofs_u, &assembled);
-  CeedOperatorLinearAssembleDiagonal(op_mass, assembled, CEED_REQUEST_IMMEDIATE);
+  // Fully assemble operator
+  CeedSize   num_entries;
+  CeedInt   *rows;
+  CeedInt   *cols;
+  CeedVector assembled;
 
-  // Manually assemble diagonal
+  for (CeedInt k = 0; k < num_nodes * q * num_elem; ++k) {
+    assembled_values[k] = 0.0;
+    assembled_true[k]   = 0.0;
+  }
+  CeedOperatorLinearAssembleSymbolic(op_identity, &num_entries, &rows, &cols);
+  CeedVectorCreate(ceed, num_entries, &assembled);
+  CeedOperatorLinearAssemble(op_identity, assembled);
+  {
+    const CeedScalar *assembled_array;
+
+    CeedVectorGetArrayRead(assembled, CEED_MEM_HOST, &assembled_array);
+    for (CeedInt k = 0; k < num_entries; ++k) {
+      assembled_values[rows[k] * num_nodes + cols[k]] += assembled_array[k];
+    }
+    CeedVectorRestoreArrayRead(assembled, &assembled_array);
+  }
+
+  // Manually assemble operator
   CeedVectorSetValue(u, 0.0);
-  for (int i = 0; i < num_dofs_u; i++) {
+  for (CeedInt j = 0; j < num_nodes; j++) {
     CeedScalar       *u_array;
     const CeedScalar *v_array;
 
     // Set input
     CeedVectorGetArray(u, CEED_MEM_HOST, &u_array);
-    u_array[i] = 1.0;
-    if (i) u_array[i - 1] = 0.0;
+    u_array[j] = 1.0;
+    if (j) u_array[j - 1] = 0.0;
     CeedVectorRestoreArray(u, &u_array);
 
-    // Compute diag entry for DoF i
-    CeedOperatorApply(op_mass, u, v, CEED_REQUEST_IMMEDIATE);
+    // Compute entries for column j
+    CeedOperatorApply(op_identity, u, v, CEED_REQUEST_IMMEDIATE);
 
-    // Retrieve entry
     CeedVectorGetArrayRead(v, CEED_MEM_HOST, &v_array);
-    assembled_true[i] = v_array[i];
+    for (CeedInt i = 0; i < q * num_elem; i++) assembled_true[i * num_nodes + j] = v_array[i];
     CeedVectorRestoreArrayRead(v, &v_array);
   }
 
   // Check output
-  {
-    const CeedScalar *assembled_array;
-
-    CeedVectorGetArrayRead(assembled, CEED_MEM_HOST, &assembled_array);
-    for (int i = 0; i < num_dofs_u; i++) {
-      if (fabs(assembled_array[i] - assembled_true[i]) > 100. * CEED_EPSILON) {
+  for (CeedInt i = 0; i < q * num_elem; i++) {
+    for (CeedInt j = 0; j < num_nodes; j++) {
+      if (fabs(assembled_values[i * num_nodes + j] - assembled_true[i * num_nodes + j]) > 100. * CEED_EPSILON) {
         // LCOV_EXCL_START
-        printf("[%" CeedInt_FMT "] Error in assembly: %f != %f\n", i, assembled_array[i], assembled_true[i]);
+        printf("[%" CeedInt_FMT ", %" CeedInt_FMT "] Error in assembly: %f != %f\n", i, j, assembled_values[i * num_nodes + j],
+               assembled_true[i * num_nodes + j]);
         // LCOV_EXCL_STOP
       }
     }
-    CeedVectorRestoreArrayRead(assembled, &assembled_array);
   }
 
   // Cleanup
-  CeedVectorDestroy(&x);
-  CeedVectorDestroy(&assembled);
+  free(rows);
+  free(cols);
   CeedVectorDestroy(&u);
   CeedVectorDestroy(&v);
+  CeedVectorDestroy(&assembled);
   CeedElemRestrictionDestroy(&elem_restriction_u);
-  CeedElemRestrictionDestroy(&elem_restriction_x);
+  CeedElemRestrictionDestroy(&elem_restriction_u_i);
   CeedBasisDestroy(&basis_u);
-  CeedBasisDestroy(&basis_x);
-  CeedQFunctionDestroy(&qf_mass);
-  CeedOperatorDestroy(&op_mass);
+  CeedQFunctionDestroy(&qf_identity);
+  CeedOperatorDestroy(&op_identity);
   CeedDestroy(&ceed);
   return 0;
 }

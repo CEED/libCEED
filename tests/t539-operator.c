@@ -10,7 +10,7 @@
 
 int main(int argc, char **argv) {
   Ceed                ceed;
-  CeedElemRestriction elem_restriction_x, elem_restriction_u_0, elem_restriction_u_1, elem_restr_qd_mass, elem_restr_qd_diff;
+  CeedElemRestriction elem_restriction_x, elem_restriction_u_0, elem_restriction_u_1, elem_restr_q_data_mass, elem_restr_q_data_diff;
   CeedBasis           basis_x, basis_u_0, basis_u_1;
   CeedQFunction       qf_setup_mass, qf_setup_diff, qf_apply;
   CeedOperator        op_setup_mass, op_setup_diff, op_apply;
@@ -64,11 +64,11 @@ int main(int argc, char **argv) {
                             CEED_USE_POINTER, ind_u_1, &elem_restriction_u_1);
 
   CeedInt strides_q_data_mass[3] = {1, q * q, q * q};
-  CeedElemRestrictionCreateStrided(ceed, num_elem, q * q, 1, num_qpts, strides_q_data_mass, &elem_restr_qd_mass);
+  CeedElemRestrictionCreateStrided(ceed, num_elem, q * q, 1, num_qpts, strides_q_data_mass, &elem_restr_q_data_mass);
 
   CeedInt strides_q_data_diff[3] = {1, q * q, dim * (dim + 1) / 2 * q * q};
   CeedElemRestrictionCreateStrided(ceed, num_elem, q * q, dim * (dim + 1) / 2, dim * (dim + 1) / 2 * num_qpts, strides_q_data_diff,
-                                   &elem_restr_qd_diff);
+                                   &elem_restr_q_data_diff);
 
   // Bases
   CeedBasisCreateTensorH1Lagrange(ceed, dim, dim, p_0, q, CEED_GAUSS, &basis_x);
@@ -82,7 +82,7 @@ int main(int argc, char **argv) {
   CeedOperatorCreate(ceed, qf_setup_mass, CEED_QFUNCTION_NONE, CEED_QFUNCTION_NONE, &op_setup_mass);
   CeedOperatorSetField(op_setup_mass, "dx", elem_restriction_x, basis_x, CEED_VECTOR_ACTIVE);
   CeedOperatorSetField(op_setup_mass, "weights", CEED_ELEMRESTRICTION_NONE, basis_x, CEED_VECTOR_NONE);
-  CeedOperatorSetField(op_setup_mass, "qdata", elem_restr_qd_mass, CEED_BASIS_NONE, CEED_VECTOR_ACTIVE);
+  CeedOperatorSetField(op_setup_mass, "qdata", elem_restr_q_data_mass, CEED_BASIS_NONE, CEED_VECTOR_ACTIVE);
 
   // QFunction - setup diffusion
   CeedQFunctionCreateInteriorByName(ceed, "Poisson2DBuild", &qf_setup_diff);
@@ -91,7 +91,7 @@ int main(int argc, char **argv) {
   CeedOperatorCreate(ceed, qf_setup_diff, CEED_QFUNCTION_NONE, CEED_QFUNCTION_NONE, &op_setup_diff);
   CeedOperatorSetField(op_setup_diff, "dx", elem_restriction_x, basis_x, CEED_VECTOR_ACTIVE);
   CeedOperatorSetField(op_setup_diff, "weights", CEED_ELEMRESTRICTION_NONE, basis_x, CEED_VECTOR_NONE);
-  CeedOperatorSetField(op_setup_diff, "qdata", elem_restr_qd_diff, CEED_BASIS_NONE, CEED_VECTOR_ACTIVE);
+  CeedOperatorSetField(op_setup_diff, "qdata", elem_restr_q_data_diff, CEED_BASIS_NONE, CEED_VECTOR_ACTIVE);
 
   // Apply Setup Operators
   CeedOperatorApply(op_setup_mass, x, q_data_mass, CEED_REQUEST_IMMEDIATE);
@@ -111,8 +111,8 @@ int main(int argc, char **argv) {
   // Operator - apply
   CeedOperatorCreate(ceed, qf_apply, CEED_QFUNCTION_NONE, CEED_QFUNCTION_NONE, &op_apply);
   CeedOperatorSetField(op_apply, "du_0", elem_restriction_u_0, basis_u_0, CEED_VECTOR_ACTIVE);
-  CeedOperatorSetField(op_apply, "mass qdata", elem_restr_qd_mass, CEED_BASIS_NONE, q_data_mass);
-  CeedOperatorSetField(op_apply, "diff qdata", elem_restr_qd_diff, CEED_BASIS_NONE, q_data_diff);
+  CeedOperatorSetField(op_apply, "mass qdata", elem_restr_q_data_mass, CEED_BASIS_NONE, q_data_mass);
+  CeedOperatorSetField(op_apply, "diff qdata", elem_restr_q_data_diff, CEED_BASIS_NONE, q_data_diff);
   CeedOperatorSetField(op_apply, "u_0", elem_restriction_u_0, basis_u_0, CEED_VECTOR_ACTIVE);
   CeedOperatorSetField(op_apply, "u_1", elem_restriction_u_1, basis_u_1, CEED_VECTOR_ACTIVE);
   CeedOperatorSetField(op_apply, "v_0", elem_restriction_u_0, basis_u_0, CEED_VECTOR_ACTIVE);
@@ -170,8 +170,8 @@ int main(int argc, char **argv) {
   CeedElemRestrictionDestroy(&elem_restriction_x);
   CeedElemRestrictionDestroy(&elem_restriction_u_0);
   CeedElemRestrictionDestroy(&elem_restriction_u_1);
-  CeedElemRestrictionDestroy(&elem_restr_qd_mass);
-  CeedElemRestrictionDestroy(&elem_restr_qd_diff);
+  CeedElemRestrictionDestroy(&elem_restr_q_data_mass);
+  CeedElemRestrictionDestroy(&elem_restr_q_data_diff);
   CeedBasisDestroy(&basis_x);
   CeedBasisDestroy(&basis_u_0);
   CeedBasisDestroy(&basis_u_1);

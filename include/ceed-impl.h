@@ -318,9 +318,9 @@ struct CeedQFunctionAssemblyData_private {
 
 struct CeedOperatorAssemblyData_private {
   Ceed                 ceed;
-  CeedInt              num_active_bases;
-  CeedBasis           *active_bases;
-  CeedElemRestriction *active_elem_rstrs;
+  CeedInt              num_active_bases_in, num_active_bases_out;
+  CeedBasis           *active_bases_in, *active_bases_out;
+  CeedElemRestriction *active_elem_rstrs_in, *active_elem_rstrs_out;
   CeedInt             *num_eval_modes_in, *num_eval_modes_out;
   CeedEvalMode       **eval_modes_in, **eval_modes_out;
   CeedScalar         **assembled_bases_in, **assembled_bases_out;

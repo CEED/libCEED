@@ -83,7 +83,7 @@ typedef struct {
   CUfunction          linearDiagonal;
   CUfunction          linearPointBlock;
   CeedBasis           basis_in, basis_out;
-  CeedElemRestriction diag_rstr, point_block_rstr;
+  CeedElemRestriction diag_rstr, point_block_diag_rstr;
   CeedVector          elem_diag, point_block_elem_diag;
   CeedInt             num_e_mode_in, num_e_mode_out, num_nodes;
   CeedEvalMode       *h_e_mode_in, *h_e_mode_out;

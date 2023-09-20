@@ -1,6 +1,6 @@
 /// @file
-/// Test assembly of non-symmetric Poisson operator (multi-component)
-/// \test Test assembly of non-symmetric Poisson operator (multi-component)
+/// Test full assembly of non-symmetric Poisson operator (multi-component)
+/// \test Test full assembly of non-symmetric Poisson operator (multi-component)
 #include "t567-operator.h"
 
 #include <ceed.h>
@@ -127,11 +127,11 @@ int main(int argc, char **argv) {
       old_index = ind;
       CeedVectorRestoreArray(u, &u_array);
 
-      // Compute effect of DoF j
+      // Compute effect of DoF ind
       CeedOperatorApply(op_diff, u, v, CEED_REQUEST_IMMEDIATE);
 
       CeedVectorGetArrayRead(v, CEED_MEM_HOST, &v_array);
-      for (CeedInt k = 0; k < num_dofs * num_comp; k++) assembled_true[k * num_dofs * num_comp + ind] = v_array[k];
+      for (CeedInt i = 0; i < num_dofs * num_comp; i++) assembled_true[i * num_dofs * num_comp + ind] = v_array[i];
       CeedVectorRestoreArrayRead(v, &v_array);
     }
   }

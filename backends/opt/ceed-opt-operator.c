@@ -464,8 +464,8 @@ static inline int CeedOperatorLinearAssembleQFunctionCore_Opt(CeedOperator op, b
   // Setup
   CeedCallBackend(CeedOperatorSetup_Opt(op));
 
-  // Check for identity
-  CeedCheck(!impl->is_identity_qf, ceed, CEED_ERROR_BACKEND, "Assembling identity QFunctions not supported");
+  // Check for restriction only operator
+  CeedCheck(!impl->is_identity_rstr_op, ceed, CEED_ERROR_BACKEND, "Assembling restriction only operators is not supported");
 
   // Input Evecs and Restriction
   CeedCallBackend(CeedOperatorSetupInputs_Opt(num_input_fields, qf_input_fields, op_input_fields, NULL, e_data, impl, request));
@@ -544,7 +544,6 @@ static inline int CeedOperatorLinearAssembleQFunctionCore_Opt(CeedOperator op, b
     CeedCallBackend(CeedElemRestrictionCreateStrided(ceed, num_elem, Q, num_active_in * num_active_out, num_active_in * num_active_out * num_elem * Q,
                                                      strides, rstr));
     // Create assembled vector
-
     CeedCallBackend(CeedVectorCreate(ceed, l_size, assembled));
   }
 
@@ -564,21 +563,46 @@ static inline int CeedOperatorLinearAssembleQFunctionCore_Opt(CeedOperator op, b
       if (num_active_in > 1) {
         CeedCallBackend(CeedVectorSetValue(active_in[(in + num_active_in - 1) % num_active_in], 0.0));
       }
-      // Set Outputs
+      if (!impl->is_identity_qf) {
+        // Set Outputs
+        for (CeedInt out = 0; out < num_output_fields; out++) {
+          CeedVector vec;
+
+          // Get output vector
+          CeedCallBackend(CeedOperatorFieldGetVector(op_output_fields[out], &vec));
+          // Check if active output
+          if (vec == CEED_VECTOR_ACTIVE) {
+            CeedCallBackend(CeedVectorSetArray(impl->q_vecs_out[out], CEED_MEM_HOST, CEED_USE_POINTER, l_vec_array));
+            CeedCallBackend(CeedQFunctionFieldGetSize(qf_output_fields[out], &size));
+            l_vec_array += size * Q * block_size;  // Advance the pointer by the size of the output
+          }
+        }
+        // Apply QFunction
+        CeedCallBackend(CeedQFunctionApply(qf, Q * block_size, impl->q_vecs_in, impl->q_vecs_out));
+      } else {
+        const CeedScalar *q_vec_array;
+
+        // Copy Identity Outputs
+        CeedCallBackend(CeedQFunctionFieldGetSize(qf_output_fields[0], &size));
+        CeedCallBackend(CeedVectorGetArrayRead(impl->q_vecs_out[0], CEED_MEM_HOST, &q_vec_array));
+        for (CeedInt i = 0; i < size * Q * block_size; i++) l_vec_array[i] = q_vec_array[i];
+        CeedCallBackend(CeedVectorRestoreArrayRead(impl->q_vecs_out[0], &q_vec_array));
+        l_vec_array += size * Q * block_size;
+      }
+    }
+
+    // Assemble QFunction
+    if (!impl->is_identity_qf) {
       for (CeedInt out = 0; out < num_output_fields; out++) {
         CeedVector vec;
 
         // Get output vector
         CeedCallBackend(CeedOperatorFieldGetVector(op_output_fields[out], &vec));
         // Check if active output
-        if (vec == CEED_VECTOR_ACTIVE) {
-          CeedCallBackend(CeedVectorSetArray(impl->q_vecs_out[out], CEED_MEM_HOST, CEED_USE_POINTER, l_vec_array));
-          CeedCallBackend(CeedQFunctionFieldGetSize(qf_output_fields[out], &size));
-          l_vec_array += size * Q * block_size;  // Advance the pointer by the size of the output
+        if (vec == CEED_VECTOR_ACTIVE && num_elem > 0) {
+          CeedCallBackend(CeedVectorTakeArray(impl->q_vecs_out[out], CEED_MEM_HOST, NULL));
         }
       }
-      // Apply QFunction
-      CeedCallBackend(CeedQFunctionApply(qf, Q * block_size, impl->q_vecs_in, impl->q_vecs_out));
     }
 
     // Assemble into assembled vector

@@ -27,4 +27,5 @@ The tests are organized by API object, and some tests are further organized, as 
     5.4. CeedOperator element inverse tests  
     5.5. CeedOperator multigrid level tests  
     5.6. CeedOperator full assembly tests  
-    5.7. CeedOperator H(div) and H(curl) tests
+    5.7. CeedOperator full assembly tests (extended)  
+    5.8. CeedOperator H(div) and H(curl) tests
