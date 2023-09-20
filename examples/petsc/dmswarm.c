@@ -18,7 +18,7 @@
 //
 //     ./dmswarm
 ///
-//TESTARGS -ceed {ceed_resource} -test -tolerance 1e-3 -dm_plex_dim 3 -dm_plex_box_faces 3,3,3 -dm_plex_box_lower -1.0,-1.0,-1.0 -dm_plex_simplex 0 -dm_plex_hash_location true -uniform_swarm -num_comp 3
+//TESTARGS -ceed {ceed_resource} -test -tolerance 1e-3 -dm_plex_dim 3 -dm_plex_box_faces 3,3,3 -dm_plex_box_lower -1.0,-1.0,-1.0 -dm_plex_simplex 0 -dm_plex_hash_location true -uniform_swarm -num_comp 4
 
 /// @file
 /// libCEED example using PETSc with DMSwarm
@@ -48,6 +48,11 @@ const char DMSwarmPICField_u[] = "u";
 
 PetscErrorCode DMSwarmCeedContextCreate(const char *ceed_resource, DMSwarmCeedContext *ctx);
 PetscErrorCode DMSwarmCeedContextDestroy(DMSwarmCeedContext *ctx);
+
+PetscErrorCode VecReadP2C(Vec X_petsc, PetscMemType *mem_type, CeedVector x_ceed);
+PetscErrorCode VecReadC2P(CeedVector x_ceed, PetscMemType mem_type, Vec X_petsc);
+PetscErrorCode DMSwarmPICFieldP2C(DM dm_swarm, const char *field, CeedVector x_ceed);
+PetscErrorCode DMSwarmPICFieldC2P(DM dm_swarm, const char *field, CeedVector x_ceed);
 
 PetscScalar    EvalU(PetscInt dim, const PetscScalar x[]);
 PetscErrorCode EvalU_proj(PetscInt dim, PetscReal t, const PetscReal x[], PetscInt num_comp, PetscScalar *u, void *ctx);
@@ -260,6 +265,43 @@ PetscErrorCode DMSwarmCeedContextDestroy(DMSwarmCeedContext *ctx) {
   PetscFunctionReturn(PETSC_SUCCESS);
 }
 
+// PETSc-libCEED memory space utilities
+PetscErrorCode VecReadP2C(Vec X_petsc, PetscMemType *mem_type, CeedVector x_ceed) {
+  PetscScalar *x;
+
+  PetscFunctionBeginUser;
+  PetscCall(VecGetArrayReadAndMemType(X_petsc, (const PetscScalar **)&x, mem_type));
+  CeedVectorSetArray(x_ceed, MemTypeP2C(*mem_type), CEED_USE_POINTER, x);
+  PetscFunctionReturn(PETSC_SUCCESS);
+}
+
+PetscErrorCode VecReadC2P(CeedVector x_ceed, PetscMemType mem_type, Vec X_petsc) {
+  PetscScalar *x;
+
+  PetscFunctionBeginUser;
+  CeedVectorTakeArray(x_ceed, MemTypeP2C(mem_type), &x);
+  PetscCall(VecRestoreArrayReadAndMemType(X_petsc, (const PetscScalar **)&x));
+  PetscFunctionReturn(PETSC_SUCCESS);
+}
+
+PetscErrorCode DMSwarmPICFieldP2C(DM dm_swarm, const char *field, CeedVector x_ceed) {
+  PetscScalar *x;
+
+  PetscFunctionBeginUser;
+  PetscCall(DMSwarmGetField(dm_swarm, field, NULL, NULL, (void **)&x));
+  CeedVectorSetArray(x_ceed, CEED_MEM_HOST, CEED_USE_POINTER, (CeedScalar *)x);
+  PetscFunctionReturn(PETSC_SUCCESS);
+}
+
+PetscErrorCode DMSwarmPICFieldC2P(DM dm_swarm, const char *field, CeedVector x_ceed) {
+  PetscScalar *x;
+
+  PetscFunctionBeginUser;
+  CeedVectorTakeArray(x_ceed, CEED_MEM_HOST, (CeedScalar **)&x);
+  PetscCall(DMSwarmRestoreField(dm_swarm, field, NULL, NULL, (void **)&x));
+  PetscFunctionReturn(PETSC_SUCCESS);
+}
+
 // Solution functions
 PetscScalar EvalU(PetscInt dim, const PetscScalar x[]) {
   PetscScalar result = 1, center = 0.1;
@@ -459,6 +501,7 @@ PetscErrorCode DMSwarmInterpolateFromCellToSwarm_Petsc(DM dm_swarm, const char *
 // Projection via libCEED
 PetscErrorCode DMSwarmInterpolateFromCellToSwarm_Ceed(DM dm_swarm, const char *field, Vec U_mesh) {
   PetscInt           dim, num_elem, num_comp, cell_start, cell_end;
+  PetscMemType       X_mem_type;
   DM                 dm_mesh;
   IS                 is_points;
   Vec                U_loc, X_ref;
@@ -472,21 +515,21 @@ PetscErrorCode DMSwarmInterpolateFromCellToSwarm_Ceed(DM dm_swarm, const char *f
   PetscCall(DMGetApplicationContext(dm_mesh, (void *)&swarm_ceed_context));
 
   // Get mesh values
-  PetscCall(DMGetLocalVector(dm_mesh, &U_loc));
-  PetscCall(VecZeroEntries(U_loc));
-  PetscCall(DMGlobalToLocal(dm_mesh, U_mesh, INSERT_VALUES, U_loc));
   {
-    const PetscScalar *u_array;
-    CeedVector         u_l_vec;
+    PetscMemType U_mem_type;
+    CeedVector   u_l_vec;
 
-    PetscCall(VecGetArrayRead(U_loc, &u_array));
+    PetscCall(DMGetLocalVector(dm_mesh, &U_loc));
+    PetscCall(VecZeroEntries(U_loc));
+    PetscCall(DMGlobalToLocal(dm_mesh, U_mesh, INSERT_VALUES, U_loc));
+
     CeedElemRestrictionCreateVector(swarm_ceed_context->restriction_u_mesh, &u_l_vec, &u_e_vec);
-    CeedVectorSetArray(u_l_vec, CEED_MEM_HOST, CEED_USE_POINTER, (CeedScalar *)u_array);
+    PetscCall(VecReadP2C(U_loc, &U_mem_type, u_l_vec));
     CeedElemRestrictionApply(swarm_ceed_context->restriction_u_mesh, CEED_NOTRANSPOSE, u_l_vec, u_e_vec, CEED_REQUEST_IMMEDIATE);
-    CeedVectorTakeArray(u_l_vec, CEED_MEM_HOST, (CeedScalar **)&u_array);
-    PetscCall(VecRestoreArrayRead(U_loc, &u_array));
-    PetscCall(DMRestoreLocalVector(dm_mesh, &U_loc));
+    PetscCall(VecReadC2P(u_l_vec, U_mem_type, U_loc));
+
     CeedVectorDestroy(&u_l_vec);
+    PetscCall(DMRestoreLocalVector(dm_mesh, &U_loc));
   }
   {
     CeedInt elem_size;
@@ -516,23 +559,21 @@ PetscErrorCode DMSwarmInterpolateFromCellToSwarm_Ceed(DM dm_swarm, const char *f
     CeedElemRestrictionCreateAtPoints(swarm_ceed_context->ceed, num_elem, num_points, dim, num_points * dim, CEED_MEM_HOST, CEED_COPY_VALUES, offsets,
                                       &swarm_ceed_context->restriction_x_points);
   }
+
   // Setup libCEED swarm vectors
   {
-    PetscScalar       *u_points;
-    const PetscScalar *coords_points_ref;
-    CeedInt            max_points_in_cell;
+    CeedInt max_points_in_cell;
 
     CeedElemRestrictionGetMaxPointsInElement(swarm_ceed_context->restriction_u_points, &max_points_in_cell);
+
     CeedElemRestrictionCreateVector(swarm_ceed_context->restriction_u_points, &u_l_vec_points, NULL);
     CeedVectorCreate(swarm_ceed_context->ceed, max_points_in_cell * num_comp, &u_points_cell);
-    PetscCall(DMSwarmGetField(dm_swarm, field, NULL, NULL, (void **)&u_points));
-    CeedVectorSetArray(u_l_vec_points, CEED_MEM_HOST, CEED_USE_POINTER, (CeedScalar *)u_points);
+    PetscCall(DMSwarmPICFieldP2C(dm_swarm, field, u_l_vec_points));
     CeedVectorSetValue(u_l_vec_points, 0.0);
 
     CeedElemRestrictionCreateVector(swarm_ceed_context->restriction_x_points, &x_l_vec_points, NULL);
     CeedVectorCreate(swarm_ceed_context->ceed, max_points_in_cell * dim, &x_points_cell);
-    PetscCall(VecGetArrayRead(X_ref, &coords_points_ref));
-    CeedVectorSetArray(x_l_vec_points, CEED_MEM_HOST, CEED_USE_POINTER, (CeedScalar *)coords_points_ref);
+    PetscCall(VecReadP2C(X_ref, &X_mem_type, x_l_vec_points));
   }
 
   // Interpolate values to each swarm point, one element in the background mesh at a time
@@ -569,18 +610,8 @@ PetscErrorCode DMSwarmInterpolateFromCellToSwarm_Ceed(DM dm_swarm, const char *f
 
   // Cleanup
   PetscCall(ISDestroy(&is_points));
-  {
-    PetscScalar *u_points;
-
-    CeedVectorTakeArray(u_l_vec_points, CEED_MEM_HOST, (CeedScalar **)&u_points);
-    PetscCall(DMSwarmRestoreField(dm_swarm, field, NULL, NULL, (void **)&u_points));
-  }
-  {
-    const PetscScalar *coords_points_ref;
-
-    CeedVectorTakeArray(x_l_vec_points, CEED_MEM_HOST, (CeedScalar **)&coords_points_ref);
-    PetscCall(VecRestoreArrayRead(X_ref, &coords_points_ref));
-  }
+  PetscCall(DMSwarmPICFieldC2P(dm_swarm, field, u_l_vec_points));
+  PetscCall(VecReadC2P(x_l_vec_points, X_mem_type, X_ref));
   PetscCall(VecDestroy(&X_ref));
   CeedVectorDestroy(&u_e_vec);
   CeedVectorDestroy(&u_cell);
