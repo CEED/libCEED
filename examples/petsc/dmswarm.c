@@ -873,7 +873,7 @@ PetscErrorCode MatMult_SwarmMass(Mat A, Vec U_mesh, Vec V_mesh) {
   PetscCall(VecReadP2C(U_mesh_loc, &U_mem_type, swarm_ceed_context->u_mesh_loc));
   PetscCall(DMGetLocalVector(dm_mesh, &V_mesh_loc));
   PetscCall(VecZeroEntries(V_mesh_loc));
-  PetscCall(VecReadP2C(V_mesh_loc, &V_mem_type, swarm_ceed_context->v_mesh_loc));
+  PetscCall(VecP2C(V_mesh_loc, &V_mem_type, swarm_ceed_context->v_mesh_loc));
 
   // Interpolate values to each swarm point, one element in the background mesh at a time
   CeedElemRestrictionGetNumElements(swarm_ceed_context->restriction_u_mesh, &num_elem);
