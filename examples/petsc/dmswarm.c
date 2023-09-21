@@ -69,9 +69,10 @@ PetscErrorCode DMSwarmCreateProjectionRHS(DM dm_swarm, const char *field, Vec B_
 PetscErrorCode MatMult_SwarmMass(Mat A, Vec U_mesh, Vec V_mesh);
 
 int main(int argc, char **argv) {
-  MPI_Comm           comm;
-  char               ceed_resource[PETSC_MAX_PATH_LEN] = "/cpu/self";
-  PetscBool          test_mode = PETSC_FALSE, set_uniform_swarm = PETSC_FALSE;
+  MPI_Comm  comm;
+  char      ceed_resource[PETSC_MAX_PATH_LEN] = "/cpu/self";
+  PetscBool test_mode = PETSC_FALSE, set_uniform_swarm = PETSC_FALSE, set_gauss_swarm = PETSC_FALSE, view_petsc_swarm = PETSC_FALSE,
+            view_ceed_swarm = PETSC_FALSE;
   PetscInt           dim = 3, num_comp = 1, num_points = 200, mesh_order = 1, solution_order = 3, q_extra = 3;
   PetscScalar        tolerance = 1E-3;
   DM                 dm_mesh, dm_swarm;
@@ -85,7 +86,11 @@ int main(int argc, char **argv) {
   PetscOptionsBegin(comm, NULL, "libCEED example using PETSc with DMSwarm", NULL);
 
   PetscCall(PetscOptionsBool("-test", "Testing mode (do not print unless error is large)", NULL, test_mode, &test_mode, NULL));
+  PetscCall(PetscOptionsBool("-gauss_swarm", "Use gauss points for coordinates in swarm", NULL, set_gauss_swarm, &set_gauss_swarm, NULL));
   PetscCall(PetscOptionsBool("-uniform_swarm", "Use uniform coordinates in swarm", NULL, set_uniform_swarm, &set_uniform_swarm, NULL));
+  PetscCall(
+      PetscOptionsBool("-view_petsc_swarm", "View XDMF of swarm values interpolated by PETSc", NULL, view_petsc_swarm, &view_petsc_swarm, NULL));
+  PetscCall(PetscOptionsBool("-view_ceed_swarm", "View XDMF of swarm values interpolated by libCEED", NULL, view_ceed_swarm, &view_ceed_swarm, NULL));
   PetscCall(PetscOptionsInt("-solution_order", "Order of mesh solution space", NULL, solution_order, &solution_order, NULL));
   PetscCall(PetscOptionsInt("-mesh_order", "Order of mesh coordinate space", NULL, mesh_order, &mesh_order, NULL));
   PetscCall(PetscOptionsInt("-q_extra", "Number of extra quadrature points", NULL, q_extra, &q_extra, NULL));
@@ -172,7 +177,38 @@ int main(int argc, char **argv) {
     PetscCall(DMSetFromOptions(dm_swarm));
 
     // -- Set swarm point locations
-    if (set_uniform_swarm) {
+    if (set_gauss_swarm) {
+      // ---- Set gauss quadrature point locations in each cell
+      PetscInt dim_cells   = dim;
+      PetscInt num_cells[] = {1, 1, 1};
+
+      PetscOptionsBegin(comm, NULL, "libCEED example using PETSc with DMSwarm", NULL);
+      PetscCall(PetscOptionsIntArray("-dm_plex_box_faces", "Number of cells", NULL, num_cells, &dim_cells, NULL));
+      PetscOptionsEnd();
+
+      PetscInt total_num_cells    = num_cells[0] * num_cells[1] * num_cells[2];
+      PetscInt points_per_cell    = PetscCeilInt(num_points, total_num_cells);
+      PetscInt points_per_cell_1d = ceil(cbrt(points_per_cell * 1.0));
+      points_per_cell             = 1;
+      for (PetscInt i = 0; i < dim; i++) points_per_cell *= points_per_cell_1d;
+
+      PetscScalar point_coords[points_per_cell * 3];
+      CeedScalar  q_ref[points_per_cell_1d], q_weight[points_per_cell_1d];
+
+      PetscCall(CeedGaussQuadrature(points_per_cell_1d, q_ref, q_weight));
+      for (PetscInt i = 0; i < points_per_cell_1d; i++) {
+        for (PetscInt j = 0; j < points_per_cell_1d; j++) {
+          for (PetscInt k = 0; k < points_per_cell_1d; k++) {
+            PetscInt p = (i * points_per_cell_1d + j) * points_per_cell_1d + k;
+
+            point_coords[p * dim + 0] = q_ref[i];
+            point_coords[p * dim + 1] = q_ref[j];
+            point_coords[p * dim + 2] = q_ref[k];
+          }
+        }
+      }
+      PetscCall(DMSwarmSetPointCoordinatesCellwise(dm_swarm, points_per_cell_1d * points_per_cell_1d * points_per_cell_1d, point_coords));
+    } else if (set_uniform_swarm) {
       // ---- Set uniform point locations in each cell
       PetscInt dim_cells   = dim;
       PetscInt num_cells[] = {1, 1, 1};
@@ -181,27 +217,26 @@ int main(int argc, char **argv) {
       PetscCall(PetscOptionsIntArray("-dm_plex_box_faces", "Number of cells", NULL, num_cells, &dim_cells, NULL));
       PetscOptionsEnd();
 
-      PetscInt total_num_cells     = num_cells[0] * num_cells[1] * num_cells[2];
-      PetscInt points_per_cell     = PetscCeilInt(num_points, total_num_cells);
-      PetscInt points_per_cell_dim = ceil(cbrt(points_per_cell * 1.0));
-      points_per_cell              = 1;
-      for (PetscInt i = 0; i < dim; i++) points_per_cell *= points_per_cell_dim;
+      PetscInt total_num_cells    = num_cells[0] * num_cells[1] * num_cells[2];
+      PetscInt points_per_cell    = PetscCeilInt(num_points, total_num_cells);
+      PetscInt points_per_cell_1d = ceil(cbrt(points_per_cell * 1.0));
+      points_per_cell             = 1;
+      for (PetscInt i = 0; i < dim; i++) points_per_cell *= points_per_cell_1d;
 
-      PetscInt    num_points[] = {points_per_cell_dim, points_per_cell_dim, points_per_cell_dim};
       PetscScalar point_coords[points_per_cell * 3];
 
-      for (PetscInt i = 0; i < num_points[0]; i++) {
-        for (PetscInt j = 0; j < num_points[1]; j++) {
-          for (PetscInt k = 0; k < num_points[2]; k++) {
-            PetscInt p = (i * num_points[1] + j) * num_points[2] + k;
+      for (PetscInt i = 0; i < points_per_cell_1d; i++) {
+        for (PetscInt j = 0; j < points_per_cell_1d; j++) {
+          for (PetscInt k = 0; k < points_per_cell_1d; k++) {
+            PetscInt p = (i * points_per_cell_1d + j) * points_per_cell_1d + k;
 
-            point_coords[p * dim + 0] = 2.0 * (PetscReal)(i + 1) / (PetscReal)(num_points[0] + 1) - 1;
-            point_coords[p * dim + 1] = 2.0 * (PetscReal)(j + 1) / (PetscReal)(num_points[1] + 1) - 1;
-            point_coords[p * dim + 2] = 2.0 * (PetscReal)(k + 1) / (PetscReal)(num_points[2] + 1) - 1;
+            point_coords[p * dim + 0] = 2.0 * (PetscReal)(i + 1) / (PetscReal)(points_per_cell_1d + 1) - 1;
+            point_coords[p * dim + 1] = 2.0 * (PetscReal)(j + 1) / (PetscReal)(points_per_cell_1d + 1) - 1;
+            point_coords[p * dim + 2] = 2.0 * (PetscReal)(k + 1) / (PetscReal)(points_per_cell_1d + 1) - 1;
           }
         }
       }
-      PetscCall(DMSwarmSetPointCoordinatesCellwise(dm_swarm, num_points[0] * num_points[1] * num_points[2], point_coords));
+      PetscCall(DMSwarmSetPointCoordinatesCellwise(dm_swarm, points_per_cell_1d * points_per_cell_1d * points_per_cell_1d, point_coords));
     } else {
       // ---- Set points distributed per sinusoidal functions
       PetscScalar *point_coords;
@@ -238,14 +273,14 @@ int main(int argc, char **argv) {
   // Interpolate from mesh to points via PETSc
   {
     PetscCall(DMSwarmInterpolateFromCellToSwarm_Petsc(dm_swarm, DMSwarmPICField_u, U_mesh));
-    if (!test_mode) PetscCall(DMSwarmViewXDMF(dm_swarm, "swarm_petsc.xmf"));
+    if (view_petsc_swarm) PetscCall(DMSwarmViewXDMF(dm_swarm, "swarm_petsc.xmf"));
     PetscCall(DMSwarmCheckSwarmValues(dm_swarm, DMSwarmPICField_u, tolerance, EvalU_proj));
   }
 
   // Interpolate from mesh to points via libCEED
   {
     PetscCall(DMSwarmInterpolateFromCellToSwarm_Ceed(dm_swarm, DMSwarmPICField_u, U_mesh));
-    if (!test_mode) PetscCall(DMSwarmViewXDMF(dm_swarm, "swarm_ceed.xmf"));
+    if (view_ceed_swarm) PetscCall(DMSwarmViewXDMF(dm_swarm, "swarm_ceed.xmf"));
     PetscCall(DMSwarmCheckSwarmValues(dm_swarm, DMSwarmPICField_u, tolerance, EvalU_proj));
   }
 
@@ -325,6 +360,33 @@ int main(int argc, char **argv) {
       PetscCall(VecNorm(U_projected, NORM_2, &error));
       PetscCall(VecNorm(U_mesh, NORM_2, &norm_u_mesh));
       PetscCheck(error / norm_u_mesh < tolerance, comm, PETSC_ERR_USER, "Projection error too high: %e\n", error / norm_u_mesh);
+    }
+
+    // -- Lumped "mass matrix"
+    {
+      Vec M_lumped, One;
+
+      PetscCall(VecDuplicate(U_mesh, &M_lumped));
+      PetscCall(VecDuplicate(U_mesh, &One));
+
+      PetscCall(VecSet(One, 1.0));
+      PetscCall(MatMult(M, One, M_lumped));
+      PetscCall(VecPointwiseDivide(U_projected, B_mesh, M_lumped));
+
+      // -- Cleanup
+      PetscCall(VecDestroy(&M_lumped));
+      PetscCall(VecDestroy(&One));
+    }
+
+    // -- Check error
+    PetscCall(VecAXPY(U_projected, -1.0, U_mesh));
+    PetscCall(VecViewFromOptions(U_projected, NULL, "-U_error_view"));
+    {
+      PetscScalar error, norm_u_mesh;
+
+      PetscCall(VecNorm(U_projected, NORM_2, &error));
+      PetscCall(VecNorm(U_mesh, NORM_2, &norm_u_mesh));
+      PetscCheck(error / norm_u_mesh < 500 * tolerance, comm, PETSC_ERR_USER, "Projection error too high: %e\n", error / norm_u_mesh);
     }
 
     // -- Cleanup
