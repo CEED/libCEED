@@ -193,10 +193,10 @@ int main(int argc, char **argv) {
       for (PetscInt i = 0; i < dim; i++) points_per_cell *= points_per_cell_1d;
 
       PetscScalar point_coords[points_per_cell * 3];
-      CeedScalar  points_1d[points_per_cell_1d];
+      CeedScalar  points_1d[points_per_cell_1d], weights_1d[points_per_cell_1d];
 
       if (set_gauss_swarm) {
-        PetscCall(CeedGaussQuadrature(points_per_cell_1d, points_1d, NULL));
+        PetscCall(CeedGaussQuadrature(points_per_cell_1d, points_1d, weights_1d));
       } else {
         for (PetscInt i = 0; i < points_per_cell_1d; i++) points_1d[i] = 2.0 * (PetscReal)(i + 1) / (PetscReal)(points_per_cell_1d + 1) - 1;
       }
