@@ -368,7 +368,6 @@ CEED_EXTERN int CeedQFunctionContextRestoreInt32Read(CeedQFunctionContext ctx, C
 CEED_EXTERN int CeedQFunctionContextGetDataDestroy(CeedQFunctionContext ctx, CeedMemType *f_mem_type, CeedQFunctionContextDataDestroyUser *f);
 CEED_EXTERN int CeedQFunctionContextReference(CeedQFunctionContext ctx);
 
-CEED_EXTERN int CeedOperatorCreateActivePointBlockRestriction(CeedElemRestriction rstr, CeedElemRestriction *pointblock_rstr);
 CEED_EXTERN int CeedQFunctionAssemblyDataCreate(Ceed ceed, CeedQFunctionAssemblyData *data);
 CEED_EXTERN int CeedQFunctionAssemblyDataReference(CeedQFunctionAssemblyData data);
 CEED_EXTERN int CeedQFunctionAssemblyDataSetReuse(CeedQFunctionAssemblyData data, bool reuse_assembly_data);
@@ -381,25 +380,19 @@ CEED_EXTERN int CeedQFunctionAssemblyDataGetObjects(CeedQFunctionAssemblyData da
 CEED_EXTERN int CeedQFunctionAssemblyDataDestroy(CeedQFunctionAssemblyData *data);
 
 CEED_EXTERN int CeedOperatorAssemblyDataCreate(Ceed ceed, CeedOperator op, CeedOperatorAssemblyData *data);
-CEED_EXTERN int CeedOperatorAssemblyDataGetEvalModes(CeedOperatorAssemblyData data, CeedInt *num_active_bases_in, CeedInt **num_eval_modes_in,
+CEED_EXTERN int CeedOperatorAssemblyDataGetEvalModes(CeedOperatorAssemblyData data, CeedInt *num_active_bases, CeedInt **num_eval_modes_in,
                                                      const CeedEvalMode ***eval_modes_in, CeedSize ***eval_mode_offsets_in,
-                                                     CeedInt *num_active_bases_out, CeedInt **num_eval_modes_out,
-                                                     const CeedEvalMode ***eval_modes_out, CeedSize ***eval_mode_offsets_out,
-                                                     CeedSize *num_output_components);
-CEED_EXTERN int CeedOperatorAssemblyDataGetBases(CeedOperatorAssemblyData data, CeedInt *num_active_bases_in, CeedBasis **active_bases_in,
-                                                 const CeedScalar ***assembled_bases_in, CeedInt *num_active_bases_out, CeedBasis **active_bases_out,
-                                                 const CeedScalar ***assembled_bases_out);
-CEED_EXTERN int CeedOperatorAssemblyDataGetElemRestrictions(CeedOperatorAssemblyData data, CeedInt *num_active_elem_rstrs_in,
-                                                            CeedElemRestriction **active_elem_rstrs_in, CeedInt *num_active_elem_rstrs_out,
-                                                            CeedElemRestriction **active_elem_rstrs_out);
+                                                     CeedInt **num_eval_modes_out, const CeedEvalMode ***eval_modes_out,
+                                                     CeedSize ***eval_mode_offsets_out, CeedSize *num_output_components);
+CEED_EXTERN int CeedOperatorAssemblyDataGetBases(CeedOperatorAssemblyData data, CeedInt *num_active_bases, CeedBasis **active_bases,
+                                                 const CeedScalar ***assembled_bases_in, const CeedScalar ***assembled_bases_out);
+CEED_EXTERN int CeedOperatorAssemblyDataGetElemRestrictions(CeedOperatorAssemblyData data, CeedInt *num_active_elem_rstrs,
+                                                            CeedElemRestriction **active_elem_rstrs);
 CEED_EXTERN int CeedOperatorAssemblyDataDestroy(CeedOperatorAssemblyData *data);
 
 CEED_EXTERN int CeedOperatorGetOperatorAssemblyData(CeedOperator op, CeedOperatorAssemblyData *data);
 CEED_EXTERN int CeedOperatorGetActiveBasis(CeedOperator op, CeedBasis *active_basis);
-CEED_EXTERN int CeedOperatorGetActiveBases(CeedOperator op, CeedBasis *active_input_basis, CeedBasis *active_output_basis);
 CEED_EXTERN int CeedOperatorGetActiveElemRestriction(CeedOperator op, CeedElemRestriction *active_rstr);
-CEED_EXTERN int CeedOperatorGetActiveElemRestrictions(CeedOperator op, CeedElemRestriction *active_input_rstr,
-                                                      CeedElemRestriction *active_output_rstr);
 CEED_EXTERN int CeedOperatorGetNumArgs(CeedOperator op, CeedInt *num_args);
 CEED_EXTERN int CeedOperatorIsSetupDone(CeedOperator op, bool *is_setup_done);
 CEED_EXTERN int CeedOperatorGetQFunction(CeedOperator op, CeedQFunction *qf);

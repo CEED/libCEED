@@ -492,6 +492,15 @@ static inline int CeedOperatorLinearAssembleQFunctionCore_Sycl(CeedOperator op, 
   // Setup
   CeedCallBackend(CeedOperatorSetup_Sycl(op));
 
+  // Check for identity
+  bool is_identity_qf;
+  CeedCallBackend(CeedQFunctionIsIdentity(qf, &is_identity_qf));
+  if (is_identity_qf) {
+    // LCOV_EXCL_START
+    return CeedError(ceed, CEED_ERROR_BACKEND, "Assembling identity QFunctions not supported");
+    // LCOV_EXCL_STOP
+  }
+
   // Input Evecs and Restriction
   CeedCallBackend(CeedOperatorSetupInputs_Sycl(num_input_fields, qf_input_fields, op_input_fields, NULL, true, e_data, impl, request));
 
@@ -622,9 +631,44 @@ static int CeedOperatorLinearAssembleQFunctionUpdate_Sycl(CeedOperator op, CeedV
 }
 
 //------------------------------------------------------------------------------
+// Create point block restriction
+//------------------------------------------------------------------------------
+static int CreatePBRestriction(CeedElemRestriction rstr, CeedElemRestriction *point_block_rstr) {
+  Ceed           ceed;
+  CeedSize       l_size;
+  CeedInt        num_elem, num_comp, elem_size, comp_stride, *point_block_offsets;
+  const CeedInt *offsets;
+
+  CeedCallBackend(CeedElemRestrictionGetCeed(rstr, &ceed));
+  CeedCallBackend(CeedElemRestrictionGetOffsets(rstr, CEED_MEM_HOST, &offsets));
+
+  // Expand offsets
+  CeedCallBackend(CeedElemRestrictionGetNumElements(rstr, &num_elem));
+  CeedCallBackend(CeedElemRestrictionGetNumComponents(rstr, &num_comp));
+  CeedCallBackend(CeedElemRestrictionGetElementSize(rstr, &elem_size));
+  CeedCallBackend(CeedElemRestrictionGetCompStride(rstr, &comp_stride));
+  CeedCallBackend(CeedElemRestrictionGetLVectorSize(rstr, &l_size));
+  CeedInt shift = num_comp;
+
+  if (comp_stride != 1) shift *= num_comp;
+  CeedCallBackend(CeedCalloc(num_elem * elem_size, &point_block_offsets));
+  for (CeedInt i = 0; i < num_elem * elem_size; i++) {
+    point_block_offsets[i] = offsets[i] * shift;
+  }
+
+  // Create new restriction
+  CeedCallBackend(CeedElemRestrictionCreate(ceed, num_elem, elem_size, num_comp * num_comp, 1, l_size * num_comp, CEED_MEM_HOST, CEED_OWN_POINTER,
+                                            point_block_offsets, point_block_rstr));
+
+  // Cleanup
+  CeedCallBackend(CeedElemRestrictionRestoreOffsets(rstr, &offsets));
+  return CEED_ERROR_SUCCESS;
+}
+
+//------------------------------------------------------------------------------
 // Assemble diagonal setup
 //------------------------------------------------------------------------------
-static inline int CeedOperatorAssembleDiagonalSetup_Sycl(CeedOperator op) {
+static inline int CeedOperatorAssembleDiagonalSetup_Sycl(CeedOperator op, const bool is_point_block) {
   Ceed                ceed;
   Ceed_Sycl          *sycl_data;
   CeedInt             num_input_fields, num_output_fields, num_e_mode_in = 0, num_comp = 0, dim = 1, num_e_mode_out = 0;
@@ -905,7 +949,7 @@ static inline int CeedOperatorAssembleDiagonalCore_Sycl(CeedOperator op, CeedVec
 
   // Setup
   if (!impl->diag) {
-    CeedCallBackend(CeedOperatorAssembleDiagonalSetup_Sycl(op));
+    CeedCallBackend(CeedOperatorAssembleDiagonalSetup_Sycl(op, is_point_block));
   }
   CeedOperatorDiag_Sycl *diag = impl->diag;
 
@@ -913,7 +957,9 @@ static inline int CeedOperatorAssembleDiagonalCore_Sycl(CeedOperator op, CeedVec
 
   // Restriction
   if (is_point_block && !diag->point_block_diag_rstr) {
-    CeedCallBackend(CeedOperatorCreateActivePointBlockRestriction(diag->diag_rstr, &diag->point_block_diag_rstr));
+    CeedElemRestriction point_block_diag_rstr;
+    CeedCallBackend(CreatePBRestriction(diag->diag_rstr, &point_block_diag_rstr));
+    diag->point_block_diag_rstr = point_block_diag_rstr;
   }
   CeedElemRestriction diag_rstr = is_point_block ? diag->point_block_diag_rstr : diag->diag_rstr;
 
@@ -933,7 +979,12 @@ static inline int CeedOperatorAssembleDiagonalCore_Sycl(CeedOperator op, CeedVec
   CeedCallBackend(CeedElemRestrictionGetNumElements(diag_rstr, &num_elem));
 
   // Compute the diagonal of B^T D B
+  // Umesh: This needs to be reviewed later
+  // if (is_point_block) {
+  //  CeedCallBackend(CeedOperatorLinearPointBlockDiagonal_Sycl(sycl_data->sycl_queue, num_elem, diag, assembled_qf_array, elem_diag_array));
+  //} else {
   CeedCallBackend(CeedOperatorLinearDiagonal_Sycl(sycl_data->sycl_queue, is_point_block, num_elem, diag, assembled_qf_array, elem_diag_array));
+  // }
 
   // Wait for queue to complete and handle exceptions
   sycl_data->sycl_queue.wait_and_throw();

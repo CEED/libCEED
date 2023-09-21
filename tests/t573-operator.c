@@ -160,16 +160,16 @@ int main(int argc, char **argv) {
   // Check output
   for (CeedInt i = 0; i < num_dofs; i++) {
     for (CeedInt j = 0; j < num_dofs; j++) {
-      if (fabs(assembled_values_oriented[i * num_dofs + j] - assembled_values[i * num_dofs + j]) > 100. * CEED_EPSILON) {
+      if (fabs(assembled_values_oriented[j * num_dofs + i] - assembled_values[j * num_dofs + i]) > 100. * CEED_EPSILON) {
         // LCOV_EXCL_START
-        printf("[%" CeedInt_FMT ", %" CeedInt_FMT "] Error in oriented assembly: %f != %f\n", i, j, assembled_values_oriented[i * num_dofs + j],
-               assembled_values[i * num_dofs + j]);
+        printf("[%" CeedInt_FMT ", %" CeedInt_FMT "] Error in oriented assembly: %f != %f\n", i, j, assembled_values_oriented[j * num_dofs + i],
+               assembled_values[j * num_dofs + i]);
         // LCOV_EXCL_STOP
       }
-      if (fabs(assembled_values_curl_oriented[i * num_dofs + j] - assembled_values[i * num_dofs + j]) > 100. * CEED_EPSILON) {
+      if (fabs(assembled_values_curl_oriented[j * num_dofs + i] - assembled_values[j * num_dofs + i]) > 100. * CEED_EPSILON) {
         // LCOV_EXCL_START
         printf("[%" CeedInt_FMT ", %" CeedInt_FMT "] Error in curl-oriented assembly: %f != %f\n", i, j,
-               assembled_values_curl_oriented[i * num_dofs + j], assembled_values[i * num_dofs + j]);
+               assembled_values_curl_oriented[j * num_dofs + i], assembled_values[j * num_dofs + i]);
         // LCOV_EXCL_STOP
       }
     }

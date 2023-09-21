@@ -20,7 +20,7 @@
 
 int main(int argc, char **argv) {
   Ceed                ceed;
-  CeedElemRestriction elem_restriction_x_tet, elem_restriction_u_tet, elem_restr_q_data_tet, elem_restriction_x_hex, elem_restriction_u_hex,
+  CeedElemRestriction elem_restriction_x_tet, elem_restriction_u_tet, elem_restr_qd_tet, elem_restriction_x_hex, elem_restriction_u_hex,
       elem_restriction_q_data_hex;
   CeedBasis     basis_x_tet, basis_u_tet, basis_x_hex, basis_u_hex;
   CeedQFunction qf_setup_tet, qf_mass_tet, qf_setup_hex, qf_mass_hex;
@@ -69,7 +69,7 @@ int main(int argc, char **argv) {
   CeedElemRestrictionCreate(ceed, num_elem_tet, p_tet, 1, 1, num_dofs, CEED_MEM_HOST, CEED_USE_POINTER, ind_x_tet, &elem_restriction_u_tet);
 
   CeedInt strides_q_data_tet[3] = {1, q_tet, q_tet};
-  CeedElemRestrictionCreateStrided(ceed, num_elem_tet, q_tet, 1, num_qpts_tet, strides_q_data_tet, &elem_restr_q_data_tet);
+  CeedElemRestrictionCreateStrided(ceed, num_elem_tet, q_tet, 1, num_qpts_tet, strides_q_data_tet, &elem_restr_qd_tet);
 
   // -- Bases
   Build2DSimplex(q_ref, q_weight, interp, grad);
@@ -95,11 +95,11 @@ int main(int argc, char **argv) {
   CeedOperatorSetName(op_setup_tet, "triangle elements");
   CeedOperatorSetField(op_setup_tet, "weight", CEED_ELEMRESTRICTION_NONE, basis_x_tet, CEED_VECTOR_NONE);
   CeedOperatorSetField(op_setup_tet, "dx", elem_restriction_x_tet, basis_x_tet, CEED_VECTOR_ACTIVE);
-  CeedOperatorSetField(op_setup_tet, "rho", elem_restr_q_data_tet, CEED_BASIS_NONE, q_data_tet);
+  CeedOperatorSetField(op_setup_tet, "rho", elem_restr_qd_tet, CEED_BASIS_NONE, q_data_tet);
   // ---- Mass _tet
   CeedOperatorCreate(ceed, qf_mass_tet, CEED_QFUNCTION_NONE, CEED_QFUNCTION_NONE, &op_mass_tet);
   CeedOperatorSetName(op_mass_tet, "triangle elements");
-  CeedOperatorSetField(op_mass_tet, "rho", elem_restr_q_data_tet, CEED_BASIS_NONE, q_data_tet);
+  CeedOperatorSetField(op_mass_tet, "rho", elem_restr_qd_tet, CEED_BASIS_NONE, q_data_tet);
   CeedOperatorSetField(op_mass_tet, "u", elem_restriction_u_tet, basis_u_tet, CEED_VECTOR_ACTIVE);
   CeedOperatorSetField(op_mass_tet, "v", elem_restriction_u_tet, basis_u_tet, CEED_VECTOR_ACTIVE);
 
@@ -173,7 +173,7 @@ int main(int argc, char **argv) {
   CeedVectorDestroy(&q_data_hex);
   CeedElemRestrictionDestroy(&elem_restriction_u_tet);
   CeedElemRestrictionDestroy(&elem_restriction_x_tet);
-  CeedElemRestrictionDestroy(&elem_restr_q_data_tet);
+  CeedElemRestrictionDestroy(&elem_restr_qd_tet);
   CeedElemRestrictionDestroy(&elem_restriction_u_hex);
   CeedElemRestrictionDestroy(&elem_restriction_x_hex);
   CeedElemRestrictionDestroy(&elem_restriction_q_data_hex);

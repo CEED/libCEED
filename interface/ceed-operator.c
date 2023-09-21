@@ -151,58 +151,27 @@ int CeedOperatorSingleView(CeedOperator op, bool sub, FILE *stream) {
   @ref Developer
 **/
 int CeedOperatorGetActiveBasis(CeedOperator op, CeedBasis *active_basis) {
-  CeedCall(CeedOperatorGetActiveBases(op, active_basis, NULL));
-  return CEED_ERROR_SUCCESS;
-}
-
-/**
-  @brief Find the active input and output vector bases for a non-composite CeedOperator
-
-  @param[in] op                   CeedOperator to find active bases for
-  @param[out] active_input_basis  Basis for active input vector or NULL for composite operator
-  @param[out] active_output_basis Basis for active output vector or NULL for composite operator
-
-  @return An error code: 0 - success, otherwise - failure
-
-  @ref Developer
-**/
-int CeedOperatorGetActiveBases(CeedOperator op, CeedBasis *active_input_basis, CeedBasis *active_output_basis) {
   Ceed ceed;
 
   CeedCall(CeedOperatorGetCeed(op, &ceed));
-  if (active_input_basis) {
-    *active_input_basis = NULL;
-    if (!op->is_composite) {
-      for (CeedInt i = 0; i < op->qf->num_input_fields; i++) {
-        if (op->input_fields[i]->vec == CEED_VECTOR_ACTIVE) {
-          CeedCheck(!*active_input_basis || *active_input_basis == op->input_fields[i]->basis, ceed, CEED_ERROR_MINOR,
-                    "Multiple active input CeedBases found");
-          *active_input_basis = op->input_fields[i]->basis;
-        }
-      }
-      CeedCheck(*active_input_basis, ceed, CEED_ERROR_INCOMPLETE, "No active input CeedBasis found");
+
+  *active_basis = NULL;
+  if (op->is_composite) return CEED_ERROR_SUCCESS;
+  for (CeedInt i = 0; i < op->qf->num_input_fields; i++) {
+    if (op->input_fields[i]->vec == CEED_VECTOR_ACTIVE) {
+      CeedCheck(!*active_basis || *active_basis == op->input_fields[i]->basis, ceed, CEED_ERROR_MINOR, "Multiple active CeedBases found");
+      *active_basis = op->input_fields[i]->basis;
     }
   }
-  if (active_output_basis) {
-    *active_output_basis = NULL;
-    if (!op->is_composite) {
-      for (CeedInt i = 0; i < op->qf->num_output_fields; i++) {
-        if (op->output_fields[i]->vec == CEED_VECTOR_ACTIVE) {
-          CeedCheck(!*active_output_basis || *active_output_basis == op->output_fields[i]->basis, ceed, CEED_ERROR_MINOR,
-                    "Multiple active output CeedBases found");
-          *active_output_basis = op->output_fields[i]->basis;
-        }
-      }
-      CeedCheck(*active_output_basis, ceed, CEED_ERROR_INCOMPLETE, "No active output CeedBasis found");
-    }
-  }
+
+  CeedCheck(*active_basis, ceed, CEED_ERROR_INCOMPLETE, "No active CeedBasis found");
   return CEED_ERROR_SUCCESS;
 }
 
 /**
   @brief Find the active vector ElemRestriction for a non-composite CeedOperator
 
-  @param[in] op           CeedOperator to find active ElemRestriction for
+  @param[in] op           CeedOperator to find active basis for
   @param[out] active_rstr ElemRestriction for active input vector or NULL for composite operator
 
   @return An error code: 0 - success, otherwise - failure
@@ -210,51 +179,21 @@ int CeedOperatorGetActiveBases(CeedOperator op, CeedBasis *active_input_basis, C
   @ref Utility
 **/
 int CeedOperatorGetActiveElemRestriction(CeedOperator op, CeedElemRestriction *active_rstr) {
-  CeedCall(CeedOperatorGetActiveElemRestrictions(op, active_rstr, NULL));
-  return CEED_ERROR_SUCCESS;
-}
-
-/**
-  @brief Find the active input and output vector ElemRestrictions for a non-composite CeedOperator
-
-  @param[in] op                  CeedOperator to find active ElemRestrictions for
-  @param[out] active_input_rstr  ElemRestriction for active input vector or NULL for composite operator
-  @param[out] active_output_rstr ElemRestriction for active output vector or NULL for composite operator
-
-  @return An error code: 0 - success, otherwise - failure
-
-  @ref Utility
-**/
-int CeedOperatorGetActiveElemRestrictions(CeedOperator op, CeedElemRestriction *active_input_rstr, CeedElemRestriction *active_output_rstr) {
   Ceed ceed;
 
   CeedCall(CeedOperatorGetCeed(op, &ceed));
-  if (active_input_rstr) {
-    *active_input_rstr = NULL;
-    if (!op->is_composite) {
-      for (CeedInt i = 0; i < op->qf->num_input_fields; i++) {
-        if (op->input_fields[i]->vec == CEED_VECTOR_ACTIVE) {
-          CeedCheck(!*active_input_rstr || *active_input_rstr == op->input_fields[i]->elem_rstr, ceed, CEED_ERROR_MINOR,
-                    "Multiple active input CeedElemRestrictions found");
-          *active_input_rstr = op->input_fields[i]->elem_rstr;
-        }
-      }
-      CeedCheck(*active_input_rstr, ceed, CEED_ERROR_INCOMPLETE, "No active input CeedElemRestriction found");
+
+  *active_rstr = NULL;
+  if (op->is_composite) return CEED_ERROR_SUCCESS;
+  for (CeedInt i = 0; i < op->qf->num_input_fields; i++) {
+    if (op->input_fields[i]->vec == CEED_VECTOR_ACTIVE) {
+      CeedCheck(!*active_rstr || *active_rstr == op->input_fields[i]->elem_rstr, ceed, CEED_ERROR_MINOR,
+                "Multiple active CeedElemRestrictions found");
+      *active_rstr = op->input_fields[i]->elem_rstr;
     }
   }
-  if (active_output_rstr) {
-    *active_output_rstr = NULL;
-    if (!op->is_composite) {
-      for (CeedInt i = 0; i < op->qf->num_output_fields; i++) {
-        if (op->output_fields[i]->vec == CEED_VECTOR_ACTIVE) {
-          CeedCheck(!*active_output_rstr || *active_output_rstr == op->output_fields[i]->elem_rstr, ceed, CEED_ERROR_MINOR,
-                    "Multiple active output CeedElemRestrictions found");
-          *active_output_rstr = op->output_fields[i]->elem_rstr;
-        }
-      }
-      CeedCheck(*active_output_rstr, ceed, CEED_ERROR_INCOMPLETE, "No active output CeedElemRestriction found");
-    }
-  }
+
+  CeedCheck(*active_rstr, ceed, CEED_ERROR_INCOMPLETE, "No active CeedElemRestriction found");
   return CEED_ERROR_SUCCESS;
 }
 
