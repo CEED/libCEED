@@ -57,8 +57,10 @@ PetscErrorCode VecReadC2P(CeedVector x_ceed, PetscMemType mem_type, Vec X_petsc)
 PetscErrorCode DMSwarmPICFieldP2C(DM dm_swarm, const char *field, CeedVector x_ceed);
 PetscErrorCode DMSwarmPICFieldC2P(DM dm_swarm, const char *field, CeedVector x_ceed);
 
-PetscScalar    EvalU(PetscInt dim, const PetscScalar x[]);
-PetscErrorCode EvalU_proj(PetscInt dim, PetscReal t, const PetscReal x[], PetscInt num_comp, PetscScalar *u, void *ctx);
+PetscScalar    EvalU_Poly(PetscInt dim, const PetscScalar x[]);
+PetscScalar    EvalU_Tanh(PetscInt dim, const PetscScalar x[]);
+PetscErrorCode EvalU_Poly_proj(PetscInt dim, PetscReal t, const PetscReal x[], PetscInt num_comp, PetscScalar *u, void *ctx);
+PetscErrorCode EvalU_Tanh_proj(PetscInt dim, PetscReal t, const PetscReal x[], PetscInt num_comp, PetscScalar *u, void *ctx);
 
 PetscErrorCode DMSwarmCreateReferenceCoordinates(DM dm_swarm, IS *is_points, Vec *ref_coords);
 PetscErrorCode DMSwarmInterpolateFromCellToSwarm_Petsc(DM dm_swarm, const char *field, Vec U_mesh);
@@ -72,7 +74,7 @@ int main(int argc, char **argv) {
   MPI_Comm  comm;
   char      ceed_resource[PETSC_MAX_PATH_LEN] = "/cpu/self";
   PetscBool test_mode = PETSC_FALSE, set_uniform_swarm = PETSC_FALSE, set_gauss_swarm = PETSC_FALSE, view_petsc_swarm = PETSC_FALSE,
-            view_ceed_swarm = PETSC_FALSE;
+            view_ceed_swarm = PETSC_FALSE, use_polynomial_target = PETSC_FALSE;
   PetscInt           dim = 3, num_comp = 1, num_points = 200, mesh_order = 1, solution_order = 3, q_extra = 3;
   PetscScalar        tolerance = 1E-3;
   DM                 dm_mesh, dm_swarm;
@@ -91,6 +93,8 @@ int main(int argc, char **argv) {
   PetscCall(
       PetscOptionsBool("-view_petsc_swarm", "View XDMF of swarm values interpolated by PETSc", NULL, view_petsc_swarm, &view_petsc_swarm, NULL));
   PetscCall(PetscOptionsBool("-view_ceed_swarm", "View XDMF of swarm values interpolated by libCEED", NULL, view_ceed_swarm, &view_ceed_swarm, NULL));
+  PetscCall(PetscOptionsBool("-polynomial_target", "Use polynomial target function in field instead of tanh()", NULL, use_polynomial_target,
+                             &use_polynomial_target, NULL));
   PetscCall(PetscOptionsInt("-solution_order", "Order of mesh solution space", NULL, solution_order, &solution_order, NULL));
   PetscCall(PetscOptionsInt("-mesh_order", "Order of mesh coordinate space", NULL, mesh_order, &mesh_order, NULL));
   PetscCall(PetscOptionsInt("-q_extra", "Number of extra quadrature points", NULL, q_extra, &q_extra, NULL));
@@ -234,7 +238,7 @@ int main(int argc, char **argv) {
   // Set field values on background mesh
   PetscCall(DMCreateGlobalVector(dm_mesh, &U_mesh));
   {
-    DMFunc mesh_solution[1] = {EvalU_proj};
+    DMFunc mesh_solution[1] = {use_polynomial_target ? EvalU_Poly_proj : EvalU_Tanh_proj};
 
     PetscCall(DMProjectFunction(dm_mesh, 0.0, mesh_solution, NULL, INSERT_VALUES, U_mesh));
   }
@@ -249,14 +253,14 @@ int main(int argc, char **argv) {
   {
     PetscCall(DMSwarmInterpolateFromCellToSwarm_Petsc(dm_swarm, DMSwarmPICField_u, U_mesh));
     if (view_petsc_swarm) PetscCall(DMSwarmViewXDMF(dm_swarm, "swarm_petsc.xmf"));
-    PetscCall(DMSwarmCheckSwarmValues(dm_swarm, DMSwarmPICField_u, tolerance, EvalU_proj));
+    PetscCall(DMSwarmCheckSwarmValues(dm_swarm, DMSwarmPICField_u, tolerance, use_polynomial_target ? EvalU_Poly_proj : EvalU_Tanh_proj));
   }
 
   // Interpolate from mesh to points via libCEED
   {
     PetscCall(DMSwarmInterpolateFromCellToSwarm_Ceed(dm_swarm, DMSwarmPICField_u, U_mesh));
     if (view_ceed_swarm) PetscCall(DMSwarmViewXDMF(dm_swarm, "swarm_ceed.xmf"));
-    PetscCall(DMSwarmCheckSwarmValues(dm_swarm, DMSwarmPICField_u, tolerance, EvalU_proj));
+    PetscCall(DMSwarmCheckSwarmValues(dm_swarm, DMSwarmPICField_u, tolerance, use_polynomial_target ? EvalU_Poly_proj : EvalU_Tanh_proj));
   }
 
   // Project from points to mesh via libCEED
@@ -335,6 +339,7 @@ int main(int argc, char **argv) {
       PetscCall(VecNorm(U_projected, NORM_2, &error));
       PetscCall(VecNorm(U_mesh, NORM_2, &norm_u_mesh));
       PetscCheck(error / norm_u_mesh < tolerance, comm, PETSC_ERR_USER, "Projection error too high: %e\n", error / norm_u_mesh);
+      if (!test_mode) PetscCall(PetscPrintf(comm, "  Projection error: %e\n", error / norm_u_mesh));
     }
 
     // -- Cleanup
@@ -504,8 +509,21 @@ PetscErrorCode DMSwarmPICFieldC2P(DM dm_swarm, const char *field, CeedVector x_c
 }
 
 // Solution functions
-PetscScalar EvalU(PetscInt dim, const PetscScalar x[]) {
-  PetscScalar result = 1, center = 0.1;
+PetscScalar EvalU_Poly(PetscInt dim, const PetscScalar x[]) {
+  PetscScalar       result = 0.0;
+  const PetscScalar p[5]   = {3, 1, 4, 1, 5};
+
+  for (PetscInt d = 0; d < dim; d++) {
+    PetscScalar result_1d = 1.0;
+
+    for (PetscInt i = 4; i >= 0; i--) result_1d = result_1d * x[d] + p[i];
+    result += result_1d;
+  }
+  return result * 1E-3;
+}
+
+PetscScalar EvalU_Tanh(PetscInt dim, const PetscScalar x[]) {
+  PetscScalar result = 1.0, center = 0.1;
 
   for (PetscInt d = 0; d < dim; d++) {
     result *= tanh(x[d] - center);
@@ -514,10 +532,19 @@ PetscScalar EvalU(PetscInt dim, const PetscScalar x[]) {
   return result;
 }
 
-PetscErrorCode EvalU_proj(PetscInt dim, PetscReal t, const PetscReal x[], PetscInt num_comp, PetscScalar *u, void *ctx) {
+PetscErrorCode EvalU_Poly_proj(PetscInt dim, PetscReal t, const PetscReal x[], PetscInt num_comp, PetscScalar *u, void *ctx) {
   PetscFunctionBeginUser;
 
-  const PetscScalar f_x = EvalU(dim, x);
+  const PetscScalar f_x = EvalU_Poly(dim, x);
+
+  for (PetscInt c = 0; c < num_comp; c++) u[c] = (c + 1.0) * f_x;
+  PetscFunctionReturn(PETSC_SUCCESS);
+}
+
+PetscErrorCode EvalU_Tanh_proj(PetscInt dim, PetscReal t, const PetscReal x[], PetscInt num_comp, PetscScalar *u, void *ctx) {
+  PetscFunctionBeginUser;
+
+  const PetscScalar f_x = EvalU_Tanh(dim, x);
 
   for (PetscInt c = 0; c < num_comp; c++) u[c] = (c + 1.0) * f_x;
   PetscFunctionReturn(PETSC_SUCCESS);
