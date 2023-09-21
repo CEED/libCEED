@@ -284,7 +284,7 @@ static inline int CeedSingleOperatorAssembleAddDiagonal_Core(CeedOperator op, Ce
                                                 &num_output_components));
   CeedCall(CeedOperatorAssemblyDataGetBases(data, NULL, &active_bases_in, NULL, NULL, &active_bases_out, NULL));
   CeedCall(CeedOperatorAssemblyDataGetElemRestrictions(data, NULL, &active_elem_rstrs_in, NULL, &active_elem_rstrs_out));
-  if (num_active_bases_in != num_active_bases_out) CeedOperatorView(op, stdout);
+
   CeedCheck(num_active_bases_in == num_active_bases_out, ceed, CEED_ERROR_UNSUPPORTED,
             "Cannot assemble operator diagonal with different numbers of input and output active bases");
 
