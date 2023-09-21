@@ -177,7 +177,7 @@ int main(int argc, char **argv) {
     PetscCall(DMSetFromOptions(dm_swarm));
 
     // -- Set swarm point locations
-    if (set_gauss_swarm) {
+    if (set_gauss_swarm || set_uniform_swarm) {
       // ---- Set gauss quadrature point locations in each cell
       PetscInt dim_cells   = dim;
       PetscInt num_cells[] = {1, 1, 1};
@@ -193,46 +193,21 @@ int main(int argc, char **argv) {
       for (PetscInt i = 0; i < dim; i++) points_per_cell *= points_per_cell_1d;
 
       PetscScalar point_coords[points_per_cell * 3];
-      CeedScalar  q_ref[points_per_cell_1d], q_weight[points_per_cell_1d];
+      CeedScalar  points_1d[points_per_cell_1d];
 
-      PetscCall(CeedGaussQuadrature(points_per_cell_1d, q_ref, q_weight));
-      for (PetscInt i = 0; i < points_per_cell_1d; i++) {
-        for (PetscInt j = 0; j < points_per_cell_1d; j++) {
-          for (PetscInt k = 0; k < points_per_cell_1d; k++) {
-            PetscInt p = (i * points_per_cell_1d + j) * points_per_cell_1d + k;
-
-            point_coords[p * dim + 0] = q_ref[i];
-            point_coords[p * dim + 1] = q_ref[j];
-            point_coords[p * dim + 2] = q_ref[k];
-          }
-        }
+      if (set_gauss_swarm) {
+        PetscCall(CeedGaussQuadrature(points_per_cell_1d, points_1d, NULL));
+      } else {
+        for (PetscInt i = 0; i < points_per_cell_1d; i++) points_1d[i] = 2.0 * (PetscReal)(i + 1) / (PetscReal)(points_per_cell_1d + 1) - 1;
       }
-      PetscCall(DMSwarmSetPointCoordinatesCellwise(dm_swarm, points_per_cell_1d * points_per_cell_1d * points_per_cell_1d, point_coords));
-    } else if (set_uniform_swarm) {
-      // ---- Set uniform point locations in each cell
-      PetscInt dim_cells   = dim;
-      PetscInt num_cells[] = {1, 1, 1};
-
-      PetscOptionsBegin(comm, NULL, "libCEED example using PETSc with DMSwarm", NULL);
-      PetscCall(PetscOptionsIntArray("-dm_plex_box_faces", "Number of cells", NULL, num_cells, &dim_cells, NULL));
-      PetscOptionsEnd();
-
-      PetscInt total_num_cells    = num_cells[0] * num_cells[1] * num_cells[2];
-      PetscInt points_per_cell    = PetscCeilInt(num_points, total_num_cells);
-      PetscInt points_per_cell_1d = ceil(cbrt(points_per_cell * 1.0));
-      points_per_cell             = 1;
-      for (PetscInt i = 0; i < dim; i++) points_per_cell *= points_per_cell_1d;
-
-      PetscScalar point_coords[points_per_cell * 3];
-
       for (PetscInt i = 0; i < points_per_cell_1d; i++) {
         for (PetscInt j = 0; j < points_per_cell_1d; j++) {
           for (PetscInt k = 0; k < points_per_cell_1d; k++) {
             PetscInt p = (i * points_per_cell_1d + j) * points_per_cell_1d + k;
 
-            point_coords[p * dim + 0] = 2.0 * (PetscReal)(i + 1) / (PetscReal)(points_per_cell_1d + 1) - 1;
-            point_coords[p * dim + 1] = 2.0 * (PetscReal)(j + 1) / (PetscReal)(points_per_cell_1d + 1) - 1;
-            point_coords[p * dim + 2] = 2.0 * (PetscReal)(k + 1) / (PetscReal)(points_per_cell_1d + 1) - 1;
+            point_coords[p * dim + 0] = points_1d[i];
+            point_coords[p * dim + 1] = points_1d[j];
+            point_coords[p * dim + 2] = points_1d[k];
           }
         }
       }
