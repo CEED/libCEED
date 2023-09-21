@@ -285,25 +285,43 @@ static inline int CeedSingleOperatorAssembleAddDiagonal_Core(CeedOperator op, Ce
   CeedCall(CeedOperatorAssemblyDataGetBases(data, NULL, &active_bases_in, NULL, NULL, &active_bases_out, NULL));
   CeedCall(CeedOperatorAssemblyDataGetElemRestrictions(data, NULL, &active_elem_rstrs_in, NULL, &active_elem_rstrs_out));
 
-  CeedCheck(num_active_bases_in == num_active_bases_out, ceed, CEED_ERROR_UNSUPPORTED,
-            "Cannot assemble operator diagonal with different numbers of input and output active bases");
-
-  // Loop over all active bases
-  for (CeedInt b = 0; b < num_active_bases_in; b++) {
+  // Loop over all active bases (find matching input/output pairs)
+  for (CeedInt b = 0; b < CeedIntMin(num_active_bases_in, num_active_bases_out); b++) {
+    CeedInt             b_in, b_out, num_elem, num_nodes, num_qpts, num_comp;
     bool                has_eval_none = false;
-    CeedInt             num_elem, num_nodes, num_qpts, num_comp;
     CeedScalar         *elem_diag_array, *identity = NULL;
     CeedVector          elem_diag;
     CeedElemRestriction diag_elem_rstr;
 
-    CeedCheck(active_elem_rstrs_in[b] == active_elem_rstrs_out[b], ceed, CEED_ERROR_UNSUPPORTED,
+    if (num_active_bases_in <= num_active_bases_out) {
+      b_in = b;
+      for (b_out = 0; b_out < num_active_bases_out; b_out++) {
+        if (active_bases_in[b_in] == active_bases_out[b_out]) {
+          break;
+        }
+      }
+      if (b_out == num_active_bases_out) {
+        continue;
+      }  // No matching output basis found
+    } else {
+      b_out = b;
+      for (b_in = 0; b_in < num_active_bases_in; b_in++) {
+        if (active_bases_in[b_in] == active_bases_out[b_out]) {
+          break;
+        }
+      }
+      if (b_in == num_active_bases_in) {
+        continue;
+      }  // No matching output basis found
+    }
+    CeedCheck(active_elem_rstrs_in[b_in] == active_elem_rstrs_out[b_out], ceed, CEED_ERROR_UNSUPPORTED,
               "Cannot assemble operator diagonal with different input and output active element restrictions");
 
     // Assemble point block diagonal restriction, if needed
     if (is_point_block) {
-      CeedCall(CeedOperatorCreateActivePointBlockRestriction(active_elem_rstrs_in[b], &diag_elem_rstr));
+      CeedCall(CeedOperatorCreateActivePointBlockRestriction(active_elem_rstrs_in[b_in], &diag_elem_rstr));
     } else {
-      CeedCall(CeedElemRestrictionCreateUnsignedCopy(active_elem_rstrs_in[b], &diag_elem_rstr));
+      CeedCall(CeedElemRestrictionCreateUnsignedCopy(active_elem_rstrs_in[b_in], &diag_elem_rstr));
     }
 
     // Create diagonal vector
@@ -313,30 +331,17 @@ static inline int CeedSingleOperatorAssembleAddDiagonal_Core(CeedOperator op, Ce
     CeedCall(CeedVectorSetValue(elem_diag, 0.0));
     CeedCall(CeedVectorGetArray(elem_diag, CEED_MEM_HOST, &elem_diag_array));
     CeedCall(CeedElemRestrictionGetNumElements(diag_elem_rstr, &num_elem));
-    CeedCall(CeedBasisGetNumNodes(active_bases_in[b], &num_nodes));
-    CeedCall(CeedBasisGetNumComponents(active_bases_in[b], &num_comp));
-    if (active_bases_in[b] == CEED_BASIS_NONE) num_qpts = num_nodes;
-    else CeedCall(CeedBasisGetNumQuadraturePoints(active_bases_in[b], &num_qpts));
-
-    if (active_bases_in[b] != active_bases_out[b]) {
-      CeedInt num_nodes_out, num_qpts_out, num_comp_out;
-
-      CeedCall(CeedBasisGetNumNodes(active_bases_out[b], &num_nodes_out));
-      CeedCheck(num_nodes == num_nodes_out, ceed, CEED_ERROR_UNSUPPORTED, "Active input and output bases must have the same number of nodes");
-      CeedCall(CeedBasisGetNumComponents(active_bases_out[b], &num_comp_out));
-      CeedCheck(num_comp == num_comp_out, ceed, CEED_ERROR_UNSUPPORTED, "Active input and output bases must have the same number of components");
-      if (active_bases_out[b] == CEED_BASIS_NONE) num_qpts_out = num_nodes_out;
-      else CeedCall(CeedBasisGetNumQuadraturePoints(active_bases_out[b], &num_qpts_out));
-      CeedCheck(num_qpts == num_qpts_out, ceed, CEED_ERROR_UNSUPPORTED,
-                "Active input and output bases must have the same number of quadrature points");
-    }
+    CeedCall(CeedBasisGetNumNodes(active_bases_in[b_in], &num_nodes));
+    CeedCall(CeedBasisGetNumComponents(active_bases_in[b_in], &num_comp));
+    if (active_bases_in[b_in] == CEED_BASIS_NONE) num_qpts = num_nodes;
+    else CeedCall(CeedBasisGetNumQuadraturePoints(active_bases_in[b_in], &num_qpts));
 
     // Construct identity matrix for basis if required
-    for (CeedInt i = 0; i < num_eval_modes_in[b]; i++) {
-      has_eval_none = has_eval_none || (eval_modes_in[b][i] == CEED_EVAL_NONE);
+    for (CeedInt i = 0; i < num_eval_modes_in[b_in]; i++) {
+      has_eval_none = has_eval_none || (eval_modes_in[b_in][i] == CEED_EVAL_NONE);
     }
-    for (CeedInt i = 0; i < num_eval_modes_out[b]; i++) {
-      has_eval_none = has_eval_none || (eval_modes_out[b][i] == CEED_EVAL_NONE);
+    for (CeedInt i = 0; i < num_eval_modes_out[b_out]; i++) {
+      has_eval_none = has_eval_none || (eval_modes_out[b_out][i] == CEED_EVAL_NONE);
     }
     if (has_eval_none) {
       CeedCall(CeedCalloc(num_qpts * num_nodes, &identity));
@@ -350,29 +355,29 @@ static inline int CeedSingleOperatorAssembleAddDiagonal_Core(CeedOperator op, Ce
       CeedInt      d_out              = 0, q_comp_out;
       CeedEvalMode eval_mode_out_prev = CEED_EVAL_NONE;
 
-      for (CeedInt e_out = 0; e_out < num_eval_modes_out[b]; e_out++) {
+      for (CeedInt e_out = 0; e_out < num_eval_modes_out[b_out]; e_out++) {
         CeedInt           d_in              = 0, q_comp_in;
         const CeedScalar *B_t               = NULL;
         CeedEvalMode      eval_mode_in_prev = CEED_EVAL_NONE;
 
-        CeedCall(CeedOperatorGetBasisPointer(active_bases_out[b], eval_modes_out[b][e_out], identity, &B_t));
-        CeedCall(CeedBasisGetNumQuadratureComponents(active_bases_out[b], eval_modes_out[b][e_out], &q_comp_out));
+        CeedCall(CeedOperatorGetBasisPointer(active_bases_out[b_out], eval_modes_out[b_out][e_out], identity, &B_t));
+        CeedCall(CeedBasisGetNumQuadratureComponents(active_bases_out[b_out], eval_modes_out[b_out][e_out], &q_comp_out));
         if (q_comp_out > 1) {
-          if (e_out == 0 || eval_modes_out[b][e_out] != eval_mode_out_prev) d_out = 0;
+          if (e_out == 0 || eval_modes_out[b_out][e_out] != eval_mode_out_prev) d_out = 0;
           else B_t = &B_t[(++d_out) * num_qpts * num_nodes];
         }
-        eval_mode_out_prev = eval_modes_out[b][e_out];
+        eval_mode_out_prev = eval_modes_out[b_out][e_out];
 
-        for (CeedInt e_in = 0; e_in < num_eval_modes_in[b]; e_in++) {
+        for (CeedInt e_in = 0; e_in < num_eval_modes_in[b_in]; e_in++) {
           const CeedScalar *B = NULL;
 
-          CeedCall(CeedOperatorGetBasisPointer(active_bases_in[b], eval_modes_in[b][e_in], identity, &B));
-          CeedCall(CeedBasisGetNumQuadratureComponents(active_bases_in[b], eval_modes_in[b][e_in], &q_comp_in));
+          CeedCall(CeedOperatorGetBasisPointer(active_bases_in[b_in], eval_modes_in[b_in][e_in], identity, &B));
+          CeedCall(CeedBasisGetNumQuadratureComponents(active_bases_in[b_in], eval_modes_in[b_in][e_in], &q_comp_in));
           if (q_comp_in > 1) {
-            if (e_in == 0 || eval_modes_in[b][e_in] != eval_mode_in_prev) d_in = 0;
+            if (e_in == 0 || eval_modes_in[b_in][e_in] != eval_mode_in_prev) d_in = 0;
             else B = &B[(++d_in) * num_qpts * num_nodes];
           }
-          eval_mode_in_prev = eval_modes_in[b][e_in];
+          eval_mode_in_prev = eval_modes_in[b_in][e_in];
 
           // Each component
           for (CeedInt c_out = 0; c_out < num_comp; c_out++) {
@@ -381,7 +386,8 @@ static inline int CeedSingleOperatorAssembleAddDiagonal_Core(CeedOperator op, Ce
               if (is_point_block) {
                 // Point Block Diagonal
                 for (CeedInt c_in = 0; c_in < num_comp; c_in++) {
-                  const CeedSize c_offset = (eval_mode_offsets_in[b][e_in] + c_in) * num_output_components + eval_mode_offsets_out[b][e_out] + c_out;
+                  const CeedSize c_offset =
+                      (eval_mode_offsets_in[b_in][e_in] + c_in) * num_output_components + eval_mode_offsets_out[b_out][e_out] + c_out;
                   const CeedScalar qf_value = assembled_qf_array[q * layout_qf[0] + c_offset * layout_qf[1] + e * layout_qf[2]];
 
                   for (CeedInt n = 0; n < num_nodes; n++) {
@@ -391,7 +397,8 @@ static inline int CeedSingleOperatorAssembleAddDiagonal_Core(CeedOperator op, Ce
                 }
               } else {
                 // Diagonal Only
-                const CeedInt    c_offset = (eval_mode_offsets_in[b][e_in] + c_out) * num_output_components + eval_mode_offsets_out[b][e_out] + c_out;
+                const CeedInt c_offset =
+                    (eval_mode_offsets_in[b_in][e_in] + c_out) * num_output_components + eval_mode_offsets_out[b_out][e_out] + c_out;
                 const CeedScalar qf_value = assembled_qf_array[q * layout_qf[0] + c_offset * layout_qf[1] + e * layout_qf[2]];
 
                 for (CeedInt n = 0; n < num_nodes; n++) {
