@@ -337,33 +337,6 @@ int main(int argc, char **argv) {
       PetscCheck(error / norm_u_mesh < tolerance, comm, PETSC_ERR_USER, "Projection error too high: %e\n", error / norm_u_mesh);
     }
 
-    // -- Lumped "mass matrix"
-    {
-      Vec M_lumped, One;
-
-      PetscCall(VecDuplicate(U_mesh, &M_lumped));
-      PetscCall(VecDuplicate(U_mesh, &One));
-
-      PetscCall(VecSet(One, 1.0));
-      PetscCall(MatMult(M, One, M_lumped));
-      PetscCall(VecPointwiseDivide(U_projected, B_mesh, M_lumped));
-
-      // -- Cleanup
-      PetscCall(VecDestroy(&M_lumped));
-      PetscCall(VecDestroy(&One));
-    }
-
-    // -- Check error
-    PetscCall(VecAXPY(U_projected, -1.0, U_mesh));
-    PetscCall(VecViewFromOptions(U_projected, NULL, "-U_error_view"));
-    {
-      PetscScalar error, norm_u_mesh;
-
-      PetscCall(VecNorm(U_projected, NORM_2, &error));
-      PetscCall(VecNorm(U_mesh, NORM_2, &norm_u_mesh));
-      PetscCheck(error / norm_u_mesh < 500 * tolerance, comm, PETSC_ERR_USER, "Projection error too high: %e\n", error / norm_u_mesh);
-    }
-
     // -- Cleanup
     PetscCall(VecDestroy(&B_mesh));
     PetscCall(VecDestroy(&U_projected));
