@@ -525,10 +525,10 @@ PetscErrorCode DMSwarmInitalizePointLocations(DM dm_swarm, PetscInt num_points, 
 
   if (set_gauss_swarm || set_uniform_swarm) {
     // -- Set gauss quadrature point locations in each cell
-    PetscSwarm user_set_points_per_cell = PETSC_FALSE;
-    PetscInt   dim = 3, points_per_cell = num_points;
-    PetscInt   num_cells[] = {1, 1, 1};
-    DM         dm_mesh;
+    PetscBool user_set_points_per_cell = PETSC_FALSE;
+    PetscInt  dim = 3, points_per_cell = num_points;
+    PetscInt  num_cells[] = {1, 1, 1};
+    DM        dm_mesh;
 
     PetscCall(DMSwarmGetCellDM(dm_swarm, &dm_mesh));
     PetscCall(DMGetDimension(dm_mesh, &dim));
