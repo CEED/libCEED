@@ -545,7 +545,7 @@ PetscErrorCode DMSwarmInitalizePointLocations(DM dm_swarm, PetscInt num_points, 
       points_per_cell = PetscCeilInt(num_points, total_num_cells);
     }
     points_per_cell_1d = ceil(cbrt(points_per_cell * 1.0));
-    points_per_cell = 1;
+    points_per_cell    = 1;
     for (PetscInt i = 0; i < dim; i++) points_per_cell *= points_per_cell_1d;
 
     PetscScalar point_coords[points_per_cell * 3];
