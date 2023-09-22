@@ -526,7 +526,7 @@ PetscErrorCode DMSwarmInitalizePointLocations(DM dm_swarm, PetscInt num_points, 
   if (set_gauss_swarm || set_uniform_swarm) {
     // -- Set gauss quadrature point locations in each cell
     PetscBool user_set_points_per_cell = PETSC_FALSE;
-    PetscInt  dim = 3, points_per_cell = num_points;
+    PetscInt  dim = 3, points_per_cell = num_points, points_per_cell_1d = num_points;
     PetscInt  num_cells[] = {1, 1, 1};
     DM        dm_mesh;
 
@@ -540,12 +540,13 @@ PetscErrorCode DMSwarmInitalizePointLocations(DM dm_swarm, PetscInt num_points, 
     PetscOptionsEnd();
 
     if (!user_set_points_per_cell) {
-      PetscInt total_num_cells    = num_cells[0] * num_cells[1] * num_cells[2];
-      PetscInt points_per_cell_1d = ceil(cbrt(points_per_cell * 1.0));
+      PetscInt total_num_cells = num_cells[0] * num_cells[1] * num_cells[2];
 
-      points_per_cell = 1;
-      for (PetscInt i = 0; i < dim; i++) points_per_cell *= points_per_cell_1d;
+      points_per_cell = PetscCeilInt(num_points, total_num_cells);
     }
+    points_per_cell_1d = ceil(cbrt(points_per_cell * 1.0));
+    points_per_cell = 1;
+    for (PetscInt i = 0; i < dim; i++) points_per_cell *= points_per_cell_1d;
 
     PetscScalar point_coords[points_per_cell * 3];
     CeedScalar  points_1d[points_per_cell_1d], weights_1d[points_per_cell_1d];
