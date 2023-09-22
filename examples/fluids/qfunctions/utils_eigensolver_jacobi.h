@@ -273,7 +273,7 @@ CEED_QFUNCTION_HELPER void SortRows(CeedScalar *eval, CeedScalar *evec, CeedInt 
 // @param[in]  N              size of the matrix
 // @param[out] eval           store the eigenvalues here (size N)
 // @param[out] evec           store the eigenvectors here (in rows, size NxN)
-// @param[out] max_idx_row    work vector of size N-1
+// @param[out] max_idx_row    work vector of size N
 // @param[in]  sort_criteria  sort results?
 // @param[in]  calc_evecs     calculate the eigenvectors?
 // @param[in]  max_num_sweeps maximum number of iterations = max_num_sweeps * number of off-diagonals (N*(N-1)/2)

@@ -21,7 +21,7 @@
 // @details A_ij = \Delta_{ij} / ||\Delta_ij||, \Delta_ij = (xi_{i,j})^(-1/2)
 CEED_QFUNCTION_HELPER void AnisotropyTensor(const CeedScalar km_g_ij[6], CeedScalar A_ij[3][3], CeedScalar *delta, const CeedInt n_sweeps) {
   CeedScalar evals[3], evecs[3][3], evals_evecs[3][3] = {{0.}}, g_ij[3][3];
-  CeedInt    work_vector[2];
+  CeedInt    work_vector[3];
 
   // Invert square root of metric tensor to get \Delta_ij
   KMUnpack(km_g_ij, g_ij);
