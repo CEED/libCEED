@@ -21,6 +21,9 @@ PETSc.pc := $(PETSC_DIR)/$(PETSC_ARCH)/lib/pkgconfig/PETSc.pc
 CEED_DIR ?= ../..
 ceed.pc := $(CEED_DIR)/lib/pkgconfig/ceed.pc
 
+# ASAN must be left empty if you don't want to use it
+ASAN ?=
+
 CC = $(call pkgconf, --variable=ccompiler $(PETSc.pc) $(ceed.pc))
 CFLAGS = -std=c99 \
   $(call pkgconf, --variable=cflags_extra $(PETSc.pc)) \
@@ -31,6 +34,11 @@ CPPFLAGS = $(call pkgconf, --cflags-only-I $(PETSc.pc) $(ceed.pc)) \
 LDFLAGS = $(call pkgconf, --libs-only-L --libs-only-other $(PETSc.pc) $(ceed.pc))
 LDFLAGS += $(patsubst -L%, $(call pkgconf, --variable=ldflag_rpath $(PETSc.pc))%, $(call pkgconf, --libs-only-L $(PETSc.pc) $(ceed.pc)))
 LDLIBS = $(call pkgconf, --libs-only-l $(PETSc.pc) $(ceed.pc)) -lm
+
+AFLAGS ?= -fsanitize=address #-fsanitize=undefined -fno-omit-frame-pointer
+CFLAGS += $(if $(ASAN),$(AFLAGS))
+FFLAGS += $(if $(ASAN),$(AFLAGS))
+LDFLAGS += $(if $(ASAN),$(AFLAGS))
 
 OBJDIR := build
 SRCDIR := src
