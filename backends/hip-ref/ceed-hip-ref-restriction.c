@@ -97,6 +97,11 @@ static inline int CeedElemRestrictionApply_Hip_Core(CeedElemRestriction rstr, Ce
           CeedCallBackend(CeedRunKernel_Hip(ceed, kernel, grid, block_size, args));
         }
       } break;
+      case CEED_RESTRICTION_POINTS: {
+        // LCOV_EXCL_START
+        return CeedError(ceed, CEED_ERROR_UNSUPPORTED, "Backend does not implement restriction CeedElemRestrictionAtPoints");
+        // LCOV_EXCL_STOP
+      } break;
     }
   } else {
     // E-vector -> L-vector
@@ -167,6 +172,11 @@ static inline int CeedElemRestrictionApply_Hip_Core(CeedElemRestriction rstr, Ce
             CeedCallBackend(CeedRunKernel_Hip(ceed, kernel, grid, block_size, args));
           }
         }
+      } break;
+      case CEED_RESTRICTION_POINTS: {
+        // LCOV_EXCL_START
+        return CeedError(ceed, CEED_ERROR_UNSUPPORTED, "Backend does not implement restriction CeedElemRestrictionAtPoints");
+        // LCOV_EXCL_STOP
       } break;
     }
   }
