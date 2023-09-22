@@ -106,8 +106,8 @@ CEED_EXTERN int CeedIsDeterministic(Ceed ceed, bool *is_deterministic);
 CEED_EXTERN int CeedAddJitSourceRoot(Ceed ceed, const char *jit_source_root);
 CEED_EXTERN int CeedView(Ceed ceed, FILE *stream);
 CEED_EXTERN int CeedDestroy(Ceed *ceed);
+CEED_EXTERN int CeedErrorImpl(Ceed ceed, const char *filename, int lineno, const char *func, int ecode, const char *format, ...);
 
-CEED_EXTERN int CeedErrorImpl(Ceed, const char *, int, const char *, int, const char *, ...);
 /// Raise an error on ceed object
 ///
 /// @param ceed Ceed library context or NULL
@@ -119,14 +119,14 @@ CEED_EXTERN int CeedErrorImpl(Ceed, const char *, int, const char *, int, const 
 #define CeedError(ceed, ecode, ...) (CeedErrorImpl((ceed), __FILE__, __LINE__, __func__, (ecode), __VA_ARGS__), (ecode))
 
 /// Ceed error handlers
-CEED_EXTERN int CeedErrorReturn(Ceed, const char *, int, const char *, int, const char *, va_list *);
-CEED_EXTERN int CeedErrorStore(Ceed, const char *, int, const char *, int, const char *, va_list *);
-CEED_EXTERN int CeedErrorAbort(Ceed, const char *, int, const char *, int, const char *, va_list *);
-CEED_EXTERN int CeedErrorExit(Ceed, const char *, int, const char *, int, const char *, va_list *);
 typedef int (*CeedErrorHandler)(Ceed, const char *, int, const char *, int, const char *, va_list *);
-CEED_EXTERN int CeedSetErrorHandler(Ceed ceed, CeedErrorHandler eh);
-CEED_EXTERN int CeedGetErrorMessage(Ceed, const char **err_msg);
-CEED_EXTERN int CeedResetErrorMessage(Ceed, const char **err_msg);
+CEED_EXTERN int CeedSetErrorHandler(Ceed ceed, CeedErrorHandler handler);
+CEED_EXTERN int CeedGetErrorMessage(Ceed ceed, const char **err_msg);
+CEED_EXTERN int CeedResetErrorMessage(Ceed ceed, const char **err_msg);
+CEED_EXTERN int CeedErrorReturn(Ceed ceed, const char *filename, int line_no, const char *func, int err_code, const char *format, va_list *args);
+CEED_EXTERN int CeedErrorStore(Ceed ceed, const char *filename, int line_no, const char *func, int err_code, const char *format, va_list *args);
+CEED_EXTERN int CeedErrorAbort(Ceed ceed, const char *filename, int line_no, const char *func, int err_code, const char *format, va_list *args);
+CEED_EXTERN int CeedErrorExit(Ceed ceed, const char *filename, int line_no, const char *func, int err_code, const char *format, va_list *args);
 
 /// libCEED library version numbering
 /// @ingroup Ceed
