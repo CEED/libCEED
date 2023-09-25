@@ -5,7 +5,7 @@ authors = [
     "Jeremy L Thompson <thompson.jeremy.luke@gmail.com>",
 ]
 name = "libceed"
-version = "0.11.0"
+version = "0.12.0"
 edition = "2018"
 rust-version = "1.56"
 license = "BSD-2-Clause"
@@ -18,7 +18,7 @@ keywords = ["libceed", "exascale", "high-order"]
 categories = ["science"]
 
 [dependencies]
-libceed-sys = { version = "0.11", path = "../libceed-sys" }
+libceed-sys = { version = "0.12", path = "../libceed-sys" }
 katexit = { version = "0.1.1", optional = true }
 
 [dev-dependencies]

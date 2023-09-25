@@ -6,7 +6,7 @@ authors = [
 ]
 build = "build.rs"
 name = "libceed-sys"
-version = "0.11.0"
+version = "0.12.0"
 links = "libceed-sys"
 edition = "2018"
 license = "BSD-2-Clause"

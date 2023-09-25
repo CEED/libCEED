@@ -122,7 +122,7 @@ Rust users can include libCEED via `Cargo.toml`:
 
 ```toml
 [dependencies]
-libceed = "0.11.0"
+libceed = "0.12.0"
 ```
 
 See the [Cargo documentation](https://doc.rust-lang.org/cargo/reference/specifying-dependencies.html#specifying-dependencies-from-git-repositories) for details.
