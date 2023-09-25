@@ -251,6 +251,7 @@ int CeedQFunctionContextGetFieldLabel(CeedQFunctionContext ctx, const char *fiel
   @ref Backend
 **/
 int CeedQFunctionContextSetGeneric(CeedQFunctionContext ctx, CeedContextFieldLabel field_label, CeedContextFieldType field_type, void *values) {
+  bool  is_different;
   char *data;
 
   // Check field type
@@ -258,9 +259,14 @@ int CeedQFunctionContextSetGeneric(CeedQFunctionContext ctx, CeedContextFieldLab
             "QFunctionContext field with name \"%s\" registered as %s, not registered as %s", field_label->name,
             CeedContextFieldTypes[field_label->type], CeedContextFieldTypes[field_type]);
 
-  CeedCall(CeedQFunctionContextGetData(ctx, CEED_MEM_HOST, &data));
-  memcpy(&data[field_label->offset], values, field_label->size);
-  CeedCall(CeedQFunctionContextRestoreData(ctx, &data));
+  CeedCall(CeedQFunctionContextGetDataRead(ctx, CEED_MEM_HOST, &data));
+  is_different = memcmp(&data[field_label->offset], values, field_label->size);
+  CeedCall(CeedQFunctionContextRestoreDataRead(ctx, &data));
+  if (is_different) {
+    CeedCall(CeedQFunctionContextGetData(ctx, CEED_MEM_HOST, &data));
+    memcpy(&data[field_label->offset], values, field_label->size);
+    CeedCall(CeedQFunctionContextRestoreData(ctx, &data));
+  }
   return CEED_ERROR_SUCCESS;
 }
 
