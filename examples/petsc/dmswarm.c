@@ -16,11 +16,10 @@
 //
 // Sample runs:
 //
-//     ./dmswarm -dm_plex_dim 3 -dm_plex_box_faces 3,3,3 -dm_plex_box_lower -1.0,-1.0,-1.0 -dm_plex_simplex 0 -dm_plex_hash_location true -num_comp 2
-//     -gauss_swarm
+//  ./dmswarm -dm_plex_dim 3 -dm_plex_box_faces 3,3,3 -dm_plex_box_lower -1.0,-1.0,-1.0 -dm_plex_simplex 0 -num_comp 2 -swarm gauss
 //
-//TESTARGS(name="Uniform swarm, CG projection") -ceed {ceed_resource} -test -dm_plex_dim 3 -dm_plex_box_faces 3,3,3 -dm_plex_box_lower -1.0,-1.0,-1.0 -dm_plex_simplex 0 -dm_plex_hash_location true -num_comp 2 -uniform_swarm
-//TESTARGS(name="Gauss swarm, lumped projection") -ceed {ceed_resource} -test -dm_plex_dim 3 -dm_plex_box_faces 3,3,3 -dm_plex_box_lower -1.0,-1.0,-1.0 -dm_plex_simplex 0 -dm_plex_hash_location true -num_comp 2 -gauss_swarm -ksp_type preonly -pc_type jacobi -pc_jacobi_type rowsum -tolerance 9e-2
+//TESTARGS(name="Uniform swarm, CG projection") -ceed {ceed_resource} -test -dm_plex_dim 3 -dm_plex_box_faces 3,3,3 -dm_plex_box_lower -1.0,-1.0,-1.0 -dm_plex_simplex 0 -dm_plex_hash_location true -num_comp 2 -swarm uniform -solution_order 3 -points_per_cell 125
+//TESTARGS(name="Gauss swarm, lumped projection") -ceed {ceed_resource} -test -dm_plex_dim 3 -dm_plex_box_faces 3,3,3 -dm_plex_box_lower -1.0,-1.0,-1.0 -dm_plex_simplex 0 -dm_plex_hash_location true -num_comp 2 -swarm gauss -ksp_type preonly -pc_type jacobi -pc_jacobi_type rowsum -tolerance 9e-2
 
 /// @file
 /// libCEED example using PETSc with DMSwarm
@@ -37,8 +36,9 @@ const char help[] = "libCEED example using PETSc with DMSwarm\n";
 
 #include "include/petscutils.h"
 
-typedef PetscErrorCode (*DMFunc)(PetscInt dim, PetscReal time, const PetscReal x[], PetscInt Nc, PetscScalar *u, void *ctx);
+const char DMSwarmPICField_u[] = "u";
 
+// libCEED context data
 typedef struct DMSwarmCeedContext_ *DMSwarmCeedContext;
 struct DMSwarmCeedContext_ {
   Ceed                ceed;
@@ -47,11 +47,31 @@ struct DMSwarmCeedContext_ {
   CeedBasis           basis_u;
 };
 
-const char DMSwarmPICField_u[] = "u";
-
 PetscErrorCode DMSwarmCeedContextCreate(DM dm_swarm, const char *ceed_resource, DMSwarmCeedContext *ctx);
 PetscErrorCode DMSwarmCeedContextDestroy(DMSwarmCeedContext *ctx);
 
+// Target functions
+typedef enum { TARGET_TANH = 0, TARGET_POLYNOMIAL = 1, TARGET_SPHERE } TargetType;
+static const char *const target_types[] = {"tanh", "polynomial", "sphere", "TargetType", "TARGET", 0};
+
+typedef PetscErrorCode (*TargetFunc)(PetscInt dim, const PetscScalar x[]);
+typedef PetscErrorCode (*TargetFuncProj)(PetscInt dim, PetscReal time, const PetscReal x[], PetscInt Nc, PetscScalar *u, void *ctx);
+
+PetscScalar    EvalU_Tanh(PetscInt dim, const PetscScalar x[]);
+PetscScalar    EvalU_Poly(PetscInt dim, const PetscScalar x[]);
+PetscScalar    EvalU_Sphere(PetscInt dim, const PetscScalar x[]);
+PetscErrorCode EvalU_Tanh_proj(PetscInt dim, PetscReal t, const PetscReal x[], PetscInt num_comp, PetscScalar *u, void *ctx);
+PetscErrorCode EvalU_Poly_proj(PetscInt dim, PetscReal t, const PetscReal x[], PetscInt num_comp, PetscScalar *u, void *ctx);
+PetscErrorCode EvalU_Sphere_proj(PetscInt dim, PetscReal t, const PetscReal x[], PetscInt num_comp, PetscScalar *u, void *ctx);
+
+// Swarm point distribution
+typedef enum { SWARM_GAUSS = 0, SWARM_UNIFORM = 1, SWARM_SINUSOIDAL } PointSwarmType;
+static const char *const point_swarm_types[] = {"gauss", "uniform", "sinusoidal", "PointSwarmType", "SWARM", 0};
+
+// Swarm helper function
+PetscErrorCode DMSwarmInitalizePointLocations(DM dm_swarm, PetscInt num_points, PetscInt num_points_per_cell);
+
+// Memory utilities
 PetscErrorCode VecP2C(Vec X_petsc, PetscMemType *mem_type, CeedVector x_ceed);
 PetscErrorCode VecC2P(CeedVector x_ceed, PetscMemType mem_type, Vec X_petsc);
 PetscErrorCode VecReadP2C(Vec X_petsc, PetscMemType *mem_type, CeedVector x_ceed);
@@ -59,17 +79,11 @@ PetscErrorCode VecReadC2P(CeedVector x_ceed, PetscMemType mem_type, Vec X_petsc)
 PetscErrorCode DMSwarmPICFieldP2C(DM dm_swarm, const char *field, CeedVector x_ceed);
 PetscErrorCode DMSwarmPICFieldC2P(DM dm_swarm, const char *field, CeedVector x_ceed);
 
-PetscScalar    EvalU_Poly(PetscInt dim, const PetscScalar x[]);
-PetscScalar    EvalU_Tanh(PetscInt dim, const PetscScalar x[]);
-PetscErrorCode EvalU_Poly_proj(PetscInt dim, PetscReal t, const PetscReal x[], PetscInt num_comp, PetscScalar *u, void *ctx);
-PetscErrorCode EvalU_Tanh_proj(PetscInt dim, PetscReal t, const PetscReal x[], PetscInt num_comp, PetscScalar *u, void *ctx);
-
-PetscErrorCode DMSwarmInitalizePointLocations(DM dm_swarm, PetscInt num_points, PetscBool set_gauss_swarm, PetscBool set_uniform_swarm);
-
+// Swarm to mesh and mesh to swarm
 PetscErrorCode DMSwarmCreateReferenceCoordinates(DM dm_swarm, IS *is_points, Vec *ref_coords);
 PetscErrorCode DMSwarmInterpolateFromCellToSwarm_Petsc(DM dm_swarm, const char *field, Vec U_mesh);
 PetscErrorCode DMSwarmInterpolateFromCellToSwarm_Ceed(DM dm_swarm, const char *field, Vec U_mesh);
-PetscErrorCode DMSwarmCheckSwarmValues(DM dm_swarm, const char *field, PetscScalar tolerance, DMFunc TrueSolution);
+PetscErrorCode DMSwarmCheckSwarmValues(DM dm_swarm, const char *field, PetscScalar tolerance, TargetFuncProj TrueSolution);
 
 PetscErrorCode DMSwarmCreateProjectionRHS(DM dm_swarm, const char *field, Vec B_mesh);
 PetscErrorCode MatMult_SwarmMass(Mat A, Vec U_mesh, Vec V_mesh);
@@ -78,15 +92,16 @@ PetscErrorCode MatMult_SwarmMass(Mat A, Vec U_mesh, Vec V_mesh);
 // main driver
 // ------------------------------------------------------------------------------------------------
 int main(int argc, char **argv) {
-  MPI_Comm  comm;
-  char      ceed_resource[PETSC_MAX_PATH_LEN] = "/cpu/self";
-  PetscBool test_mode = PETSC_FALSE, set_uniform_swarm = PETSC_FALSE, set_gauss_swarm = PETSC_FALSE, view_petsc_swarm = PETSC_FALSE,
-            view_ceed_swarm = PETSC_FALSE, use_polynomial_target = PETSC_FALSE;
-  PetscInt           dim = 3, num_comp = 1, num_points = 200, mesh_order = 1, solution_order = 3, q_extra = 3;
+  MPI_Comm           comm;
+  char               ceed_resource[PETSC_MAX_PATH_LEN] = "/cpu/self";
+  PetscBool          test_mode = PETSC_FALSE, view_petsc_swarm = PETSC_FALSE, view_ceed_swarm = PETSC_FALSE;
+  PetscInt           dim = 3, num_comp = 1, num_points = 1728, num_points_per_cell = 64, mesh_order = 1, solution_order = 2, q_extra = 3;
   PetscScalar        tolerance = 1E-3;
   DM                 dm_mesh, dm_swarm;
   Vec                U_mesh;
   DMSwarmCeedContext swarm_ceed_context;
+  TargetType         target_type          = TARGET_TANH;
+  TargetFuncProj     target_function_proj = EvalU_Tanh_proj;
 
   PetscCall(PetscInitialize(&argc, &argv, NULL, help));
   comm = PETSC_COMM_WORLD;
@@ -95,31 +110,35 @@ int main(int argc, char **argv) {
   PetscOptionsBegin(comm, NULL, "libCEED example using PETSc with DMSwarm", NULL);
 
   PetscCall(PetscOptionsBool("-test", "Testing mode (do not print unless error is large)", NULL, test_mode, &test_mode, NULL));
-  PetscCall(PetscOptionsBool("-gauss_swarm", "Use gauss points for coordinates in swarm", NULL, set_gauss_swarm, &set_gauss_swarm, NULL));
-  PetscCall(PetscOptionsBool("-uniform_swarm", "Use uniform coordinates in swarm", NULL, set_uniform_swarm, &set_uniform_swarm, NULL));
   PetscCall(
       PetscOptionsBool("-u_petsc_swarm_view", "View XDMF of swarm values interpolated by PETSc", NULL, view_petsc_swarm, &view_petsc_swarm, NULL));
   PetscCall(
       PetscOptionsBool("-u_ceed_swarm_view", "View XDMF of swarm values interpolated by libCEED", NULL, view_ceed_swarm, &view_ceed_swarm, NULL));
-  PetscCall(PetscOptionsBool("-polynomial_target", "Use polynomial target function in field instead of tanh()", NULL, use_polynomial_target,
-                             &use_polynomial_target, NULL));
+  PetscCall(PetscOptionsEnum("-target", "Target field function", NULL, target_types, (PetscEnum)target_type, (PetscEnum *)&target_type, NULL));
   PetscCall(PetscOptionsInt("-solution_order", "Order of mesh solution space", NULL, solution_order, &solution_order, NULL));
   PetscCall(PetscOptionsInt("-mesh_order", "Order of mesh coordinate space", NULL, mesh_order, &mesh_order, NULL));
   PetscCall(PetscOptionsInt("-q_extra", "Number of extra quadrature points", NULL, q_extra, &q_extra, NULL));
   PetscCall(PetscOptionsInt("-num_comp", "Number of components in solution", NULL, num_comp, &num_comp, NULL));
   {
-    PetscInt dim = 3, num_cells[] = {1, 1, 1};
+    PetscBool user_set_num_points_per_cell = PETSC_FALSE;
+    PetscInt  dim = 3, num_points_per_cell_1d = num_points_per_cell, num_cells_total = 1;
+    PetscInt  num_cells[] = {1, 1, 1};
 
+    PetscCall(PetscOptionsInt("-points_per_cell", "Total number of swarm points in each cell", NULL, num_points_per_cell, &num_points_per_cell,
+                              &user_set_num_points_per_cell));
     PetscCall(PetscOptionsInt("-dm_plex_dim", "Background mesh dimension", NULL, dim, &dim, NULL));
     PetscCall(PetscOptionsIntArray("-dm_plex_box_faces", "Number of cells", NULL, num_cells, &dim, NULL));
-    PetscInt total_num_cells = num_cells[0] * num_cells[1] * num_cells[2];
-    PetscInt points_per_cell = 1;
 
-    for (PetscInt i = 0; i < dim; i++) points_per_cell *= solution_order + 2;
-    num_points = 0;
-    for (PetscInt i = 0; i < total_num_cells; i++) num_points += points_per_cell;
+    num_cells_total = num_cells[0] * num_cells[1] * num_cells[2];
+    if (!user_set_num_points_per_cell) {
+      PetscCall(PetscOptionsInt("-points", "Total number of swarm points", NULL, num_points, &num_points, NULL));
+      num_points_per_cell = PetscCeilInt(num_points, num_cells_total);
+    }
+    num_points_per_cell_1d = round(cbrt(num_points_per_cell * 1.0));
+    num_points_per_cell    = 1;
+    for (PetscInt i = 0; i < dim; i++) num_points_per_cell *= num_points_per_cell_1d;
+    num_points = num_points_per_cell * num_cells_total;
   }
-  PetscCall(PetscOptionsInt("-points", "Total number of swarm points", NULL, num_points, &num_points, NULL));
   PetscCall(PetscOptionsScalar("-tolerance", "Tolerance for swarm point values and projection relative L2 error", NULL, tolerance, &tolerance, NULL));
   PetscCall(PetscOptionsString("-ceed", "CEED resource specifier", NULL, ceed_resource, ceed_resource, sizeof(ceed_resource), NULL));
 
@@ -189,7 +208,7 @@ int main(int argc, char **argv) {
     PetscCall(DMSetFromOptions(dm_swarm));
 
     // -- Set swarm point locations
-    PetscCall(DMSwarmInitalizePointLocations(dm_swarm, num_points, set_gauss_swarm, set_uniform_swarm));
+    PetscCall(DMSwarmInitalizePointLocations(dm_swarm, num_points, num_points_per_cell));
 
     // -- Final particle swarm
     PetscCall(PetscObjectSetName((PetscObject)dm_swarm, "Particle Swarm"));
@@ -198,13 +217,25 @@ int main(int argc, char **argv) {
 
   // Set field values on background mesh
   PetscCall(DMCreateGlobalVector(dm_mesh, &U_mesh));
+  switch (target_type) {
+    case TARGET_TANH:
+      target_function_proj = EvalU_Tanh_proj;
+      break;
+    case TARGET_POLYNOMIAL:
+      target_function_proj = EvalU_Poly_proj;
+      break;
+    case TARGET_SPHERE:
+      target_function_proj = EvalU_Sphere_proj;
+      break;
+  }
   {
-    DMFunc mesh_solution[1] = {use_polynomial_target ? EvalU_Poly_proj : EvalU_Tanh_proj};
+    TargetFuncProj mesh_solution[1] = {target_function_proj};
 
     PetscCall(DMProjectFunction(dm_mesh, 0.0, mesh_solution, NULL, INSERT_VALUES, U_mesh));
   }
 
   // Visualize background mesh
+  PetscCall(PetscObjectSetName((PetscObject)U_mesh, "U on Background Mesh"));
   PetscCall(VecViewFromOptions(U_mesh, NULL, "-u_mesh_view"));
 
   // libCEED objects for swarm and background mesh
@@ -214,14 +245,14 @@ int main(int argc, char **argv) {
   {
     PetscCall(DMSwarmInterpolateFromCellToSwarm_Petsc(dm_swarm, DMSwarmPICField_u, U_mesh));
     if (view_petsc_swarm) PetscCall(DMSwarmViewXDMF(dm_swarm, "swarm_petsc.xmf"));
-    PetscCall(DMSwarmCheckSwarmValues(dm_swarm, DMSwarmPICField_u, tolerance, use_polynomial_target ? EvalU_Poly_proj : EvalU_Tanh_proj));
+    PetscCall(DMSwarmCheckSwarmValues(dm_swarm, DMSwarmPICField_u, tolerance, target_function_proj));
   }
 
   // Interpolate from mesh to points via libCEED
   {
     PetscCall(DMSwarmInterpolateFromCellToSwarm_Ceed(dm_swarm, DMSwarmPICField_u, U_mesh));
     if (view_ceed_swarm) PetscCall(DMSwarmViewXDMF(dm_swarm, "swarm_ceed.xmf"));
-    PetscCall(DMSwarmCheckSwarmValues(dm_swarm, DMSwarmPICField_u, tolerance, use_polynomial_target ? EvalU_Poly_proj : EvalU_Tanh_proj));
+    PetscCall(DMSwarmCheckSwarmValues(dm_swarm, DMSwarmPICField_u, tolerance, target_function_proj));
   }
 
   // Project from points to mesh via libCEED
@@ -292,7 +323,10 @@ int main(int argc, char **argv) {
 
     // -- Check error
     PetscCall(KSPViewFromOptions(ksp, NULL, "-ksp_view"));
+    PetscCall(PetscObjectSetName((PetscObject)U_mesh, "U projected to Background Mesh"));
+    PetscCall(VecViewFromOptions(U_projected, NULL, "-u_projected_view"));
     PetscCall(VecAXPY(U_projected, -1.0, U_mesh));
+    PetscCall(PetscObjectSetName((PetscObject)U_projected, "U Projection Error"));
     PetscCall(VecViewFromOptions(U_projected, NULL, "-u_error_view"));
     {
       PetscScalar error, norm_u_mesh;
@@ -499,6 +533,12 @@ PetscScalar EvalU_Tanh(PetscInt dim, const PetscScalar x[]) {
   return result;
 }
 
+PetscScalar EvalU_Sphere(PetscInt dim, const PetscScalar x[]) {
+  PetscScalar distance = sqrt(x[0] * x[0] + x[1] * x[1] + x[2] * x[2]);
+
+  return distance < 1.0 ? 1.0 : 0.1;
+}
+
 PetscErrorCode EvalU_Poly_proj(PetscInt dim, PetscReal t, const PetscReal x[], PetscInt num_comp, PetscScalar *u, void *ctx) {
   PetscFunctionBeginUser;
 
@@ -517,73 +557,71 @@ PetscErrorCode EvalU_Tanh_proj(PetscInt dim, PetscReal t, const PetscReal x[], P
   PetscFunctionReturn(PETSC_SUCCESS);
 }
 
+PetscErrorCode EvalU_Sphere_proj(PetscInt dim, PetscReal t, const PetscReal x[], PetscInt num_comp, PetscScalar *u, void *ctx) {
+  PetscFunctionBeginUser;
+
+  const PetscScalar f_x = EvalU_Sphere(dim, x);
+
+  for (PetscInt c = 0; c < num_comp; c++) u[c] = (c + 1.0) * f_x;
+  PetscFunctionReturn(PETSC_SUCCESS);
+}
+
 // ------------------------------------------------------------------------------------------------
 // Swarm point location utility
 // ------------------------------------------------------------------------------------------------
-PetscErrorCode DMSwarmInitalizePointLocations(DM dm_swarm, PetscInt num_points, PetscBool set_gauss_swarm, PetscBool set_uniform_swarm) {
+PetscErrorCode DMSwarmInitalizePointLocations(DM dm_swarm, PetscInt num_points, PetscInt num_points_per_cell) {
+  PointSwarmType point_swarm_type = SWARM_GAUSS;
+
   PetscFunctionBeginUser;
 
-  if (set_gauss_swarm || set_uniform_swarm) {
-    // -- Set gauss quadrature point locations in each cell
-    PetscBool user_set_points_per_cell = PETSC_FALSE;
-    PetscInt  dim = 3, points_per_cell = num_points, points_per_cell_1d = num_points;
-    PetscInt  num_cells[] = {1, 1, 1};
-    DM        dm_mesh;
+  PetscOptionsBegin(PetscObjectComm((PetscObject)dm_swarm), NULL, "libCEED example using PETSc with DMSwarm", NULL);
+  PetscCall(PetscOptionsEnum("-swarm", "Swarm points distribution", NULL, point_swarm_types, (PetscEnum)point_swarm_type,
+                             (PetscEnum *)&point_swarm_type, NULL));
+  PetscOptionsEnd();
 
-    PetscCall(DMSwarmGetCellDM(dm_swarm, &dm_mesh));
-    PetscCall(DMGetDimension(dm_mesh, &dim));
+  switch (point_swarm_type) {
+    case SWARM_GAUSS:
+    case SWARM_UNIFORM: {
+      // -- Set gauss or uniform point locations in each cell
+      PetscInt    num_points_per_cell_1d = round(cbrt(num_points_per_cell * 1.0)), dim = 3;
+      PetscScalar point_coords[num_points_per_cell * 3];
+      CeedScalar  points_1d[num_points_per_cell_1d], weights_1d[num_points_per_cell_1d];
 
-    PetscOptionsBegin(PetscObjectComm((PetscObject)dm_swarm), NULL, "libCEED example using PETSc with DMSwarm", NULL);
-    PetscCall(PetscOptionsInt("-points_per_cell", "Total number of swarm points in each cell", NULL, points_per_cell, &points_per_cell,
-                              &user_set_points_per_cell));
-    PetscCall(PetscOptionsIntArray("-dm_plex_box_faces", "Number of cells", NULL, num_cells, &dim, NULL));
-    PetscOptionsEnd();
+      if (point_swarm_type == SWARM_GAUSS) {
+        PetscCall(CeedGaussQuadrature(num_points_per_cell_1d, points_1d, weights_1d));
+      } else {
+        for (PetscInt i = 0; i < num_points_per_cell_1d; i++) points_1d[i] = 2.0 * (PetscReal)(i + 1) / (PetscReal)(num_points_per_cell_1d + 1) - 1;
+      }
+      for (PetscInt i = 0; i < num_points_per_cell_1d; i++) {
+        for (PetscInt j = 0; j < num_points_per_cell_1d; j++) {
+          for (PetscInt k = 0; k < num_points_per_cell_1d; k++) {
+            PetscInt p = (i * num_points_per_cell_1d + j) * num_points_per_cell_1d + k;
 
-    if (!user_set_points_per_cell) {
-      PetscInt total_num_cells = num_cells[0] * num_cells[1] * num_cells[2];
-
-      points_per_cell = PetscCeilInt(num_points, total_num_cells);
-    }
-    points_per_cell_1d = ceil(cbrt(points_per_cell * 1.0));
-    points_per_cell    = 1;
-    for (PetscInt i = 0; i < dim; i++) points_per_cell *= points_per_cell_1d;
-
-    PetscScalar point_coords[points_per_cell * 3];
-    CeedScalar  points_1d[points_per_cell_1d], weights_1d[points_per_cell_1d];
-
-    if (set_gauss_swarm) {
-      PetscCall(CeedGaussQuadrature(points_per_cell_1d, points_1d, weights_1d));
-    } else {
-      for (PetscInt i = 0; i < points_per_cell_1d; i++) points_1d[i] = 2.0 * (PetscReal)(i + 1) / (PetscReal)(points_per_cell_1d + 1) - 1;
-    }
-    for (PetscInt i = 0; i < points_per_cell_1d; i++) {
-      for (PetscInt j = 0; j < points_per_cell_1d; j++) {
-        for (PetscInt k = 0; k < points_per_cell_1d; k++) {
-          PetscInt p = (i * points_per_cell_1d + j) * points_per_cell_1d + k;
-
-          point_coords[p * dim + 0] = points_1d[i];
-          point_coords[p * dim + 1] = points_1d[j];
-          point_coords[p * dim + 2] = points_1d[k];
+            point_coords[p * dim + 0] = points_1d[i];
+            point_coords[p * dim + 1] = points_1d[j];
+            point_coords[p * dim + 2] = points_1d[k];
+          }
         }
       }
-    }
-    PetscCall(DMSwarmSetPointCoordinatesCellwise(dm_swarm, points_per_cell_1d * points_per_cell_1d * points_per_cell_1d, point_coords));
-  } else {
-    // -- Set points distributed per sinusoidal functions
-    PetscInt     dim = 3;
-    PetscScalar *point_coords;
-    DM           dm_mesh;
+      PetscCall(DMSwarmSetPointCoordinatesCellwise(dm_swarm, num_points_per_cell_1d * num_points_per_cell_1d * num_points_per_cell_1d, point_coords));
+    } break;
+    case SWARM_SINUSOIDAL: {
+      // -- Set points distributed per sinusoidal functions
+      PetscInt     dim = 3;
+      PetscScalar *point_coords;
+      DM           dm_mesh;
 
-    PetscCall(DMSwarmGetCellDM(dm_swarm, &dm_mesh));
-    PetscCall(DMGetDimension(dm_mesh, &dim));
+      PetscCall(DMSwarmGetCellDM(dm_swarm, &dm_mesh));
+      PetscCall(DMGetDimension(dm_mesh, &dim));
 
-    PetscCall(DMSwarmGetField(dm_swarm, DMSwarmPICField_coor, NULL, NULL, (void **)&point_coords));
-    for (PetscInt p = 0; p < num_points; p++) {
-      point_coords[p * dim + 0] = -PetscCosReal((PetscReal)(p + 1) / (PetscReal)(num_points + 1) * PETSC_PI);
-      if (dim > 1) point_coords[p * dim + 1] = -PetscSinReal((PetscReal)(p + 1) / (PetscReal)(num_points + 1) * PETSC_PI);
-      if (dim > 2) point_coords[p * dim + 2] = PetscSinReal((PetscReal)(p + 1) / (PetscReal)(num_points + 1) * PETSC_PI);
-    }
-    PetscCall(DMSwarmRestoreField(dm_swarm, DMSwarmPICField_coor, NULL, NULL, (void **)&point_coords));
+      PetscCall(DMSwarmGetField(dm_swarm, DMSwarmPICField_coor, NULL, NULL, (void **)&point_coords));
+      for (PetscInt p = 0; p < num_points; p++) {
+        point_coords[p * dim + 0] = -PetscCosReal((PetscReal)(p + 1) / (PetscReal)(num_points + 1) * PETSC_PI);
+        if (dim > 1) point_coords[p * dim + 1] = -PetscSinReal((PetscReal)(p + 1) / (PetscReal)(num_points + 1) * PETSC_PI);
+        if (dim > 2) point_coords[p * dim + 2] = PetscSinReal((PetscReal)(p + 1) / (PetscReal)(num_points + 1) * PETSC_PI);
+      }
+      PetscCall(DMSwarmRestoreField(dm_swarm, DMSwarmPICField_coor, NULL, NULL, (void **)&point_coords));
+    } break;
   }
   PetscCall(DMSwarmMigrate(dm_swarm, PETSC_TRUE));
   PetscFunctionReturn(PETSC_SUCCESS);
@@ -829,7 +867,7 @@ PetscErrorCode DMSwarmInterpolateFromCellToSwarm_Ceed(DM dm_swarm, const char *f
 // ------------------------------------------------------------------------------------------------
 // Error checking utility
 // ------------------------------------------------------------------------------------------------
-PetscErrorCode DMSwarmCheckSwarmValues(DM dm_swarm, const char *field, PetscScalar tolerance, DMFunc TrueSolution) {
+PetscErrorCode DMSwarmCheckSwarmValues(DM dm_swarm, const char *field, PetscScalar tolerance, TargetFuncProj TrueSolution) {
   PetscBool          within_tolerance = PETSC_TRUE;
   PetscInt           dim, num_comp, cell_start, cell_end;
   const PetscScalar *u_points, *coords_points;
