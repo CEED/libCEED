@@ -193,18 +193,21 @@ PetscErrorCode DifferentialFilterSetup(Ceed ceed, User user, CeedData ceed_data,
     PetscCall(PetscMalloc1(diff_filter->num_filtered_fields, &diff_filter->num_field_components));
 
     if (diff_filter->do_mms_test) {
-      diff_filter->num_field_components[0] = 1;
+      PetscInt field_components;
+      diff_filter->num_field_components[0] = field_components = 1;
       PetscCall(DMSetupByOrder_FEM(PETSC_TRUE, PETSC_TRUE, user->app_ctx->degree, 1, user->app_ctx->q_extra, diff_filter->num_filtered_fields,
-                                   diff_filter->num_field_components, diff_filter->dm_filter));
+                                   &field_components, diff_filter->dm_filter));
 
       PetscCall(DMGetLocalSection(diff_filter->dm_filter, &section));
       PetscCall(PetscSectionSetFieldName(section, 0, ""));
       PetscCall(PetscSectionSetComponentName(section, 0, 0, "FilteredPhi"));
     } else {
+      PetscInt *field_components;
       diff_filter->num_field_components[0] = DIFF_FILTER_STATE_NUM;
       diff_filter->num_field_components[1] = DIFF_FILTER_VELOCITY_SQUARED_NUM;
+      IntArrayC2P(2, &diff_filter->num_field_components, &field_components);
       PetscCall(DMSetupByOrder_FEM(PETSC_TRUE, PETSC_TRUE, user->app_ctx->degree, 1, user->app_ctx->q_extra, diff_filter->num_filtered_fields,
-                                   diff_filter->num_field_components, diff_filter->dm_filter));
+                                   field_components, diff_filter->dm_filter));
 
       PetscCall(DMGetLocalSection(diff_filter->dm_filter, &section));
       PetscCall(PetscSectionSetFieldName(section, 0, "Filtered Primitive State Variables"));
