@@ -415,7 +415,7 @@ PetscErrorCode CreateBasisFromPlex(Ceed ceed, DM dm, DMLabel domain_label, CeedI
   @return An error code: 0 - success, otherwise - failure
 **/
 PetscErrorCode DMSetupByOrderBegin_FEM(PetscBool setup_faces, PetscBool setup_coords, PetscInt degree, PetscInt coord_order, PetscInt q_extra,
-                                       CeedInt num_fields, const CeedInt *field_sizes, DM dm) {
+                                       PetscInt num_fields, const PetscInt *field_sizes, DM dm) {
   PetscInt  dim, q_order = degree + q_extra;
   PetscBool is_simplex = PETSC_TRUE;
   PetscFE   fe;
@@ -453,8 +453,8 @@ PetscErrorCode DMSetupByOrderBegin_FEM(PetscBool setup_faces, PetscBool setup_co
     PetscCall(PetscDualSpaceGetOrder(fe_coord_dual_space, &fe_coord_order));
 
     // Create FE for coordinates
-    PetscCheck(fe_coord_order == 1 || coord_order == 1, comm, PETSC_ERR_USER_INPUT, "Only linear mesh geometry supported. Recieved %d order",
-               fe_coord_order);
+    PetscCheck(fe_coord_order == 1 || coord_order == 1, comm, PETSC_ERR_USER_INPUT,
+               "Only linear mesh geometry supported. Recieved %" PetscInt_FMT " order", fe_coord_order);
     PetscCall(PetscFECreateLagrange(comm, dim, num_comp_coord, is_simplex, fe_coord_order, q_order, &fe_coord_new));
     if (setup_faces) PetscCall(PetscFEGetHeightSubspace(fe_coord_new, 1, &fe_coord_face_new));
     PetscCall(DMProjectCoordinates(dm, fe_coord_new));
@@ -511,7 +511,7 @@ PetscErrorCode DMSetupByOrderEnd_FEM(PetscBool setup_coords, DM dm) {
   @return An error code: 0 - success, otherwise - failure
 **/
 PetscErrorCode DMSetupByOrder_FEM(PetscBool setup_faces, PetscBool setup_coords, PetscInt degree, PetscInt coord_order, PetscInt q_extra,
-                                  CeedInt num_fields, const CeedInt *field_sizes, DM dm) {
+                                  PetscInt num_fields, const PetscInt *field_sizes, DM dm) {
   PetscFunctionBeginUser;
   PetscCall(DMSetupByOrderBegin_FEM(setup_faces, setup_coords, degree, coord_order, q_extra, num_fields, field_sizes, dm));
   PetscCall(DMSetupByOrderEnd_FEM(setup_coords, dm));
