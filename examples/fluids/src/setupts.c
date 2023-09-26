@@ -60,45 +60,21 @@ PetscErrorCode UpdateBoundaryValues(User user, Vec Q_loc, PetscReal t) {
   PetscFunctionReturn(PETSC_SUCCESS);
 }
 
-// @brief Update the context label value to new value if necessary.
-// @note This only supports labels with scalar label values (ie. not arrays)
-PetscErrorCode UpdateContextLabel(Ceed ceed, MPI_Comm comm, PetscScalar update_value, CeedOperator op, CeedContextFieldLabel label) {
-  PetscScalar label_value;
-
-  PetscFunctionBeginUser;
-  PetscCheck(label, comm, PETSC_ERR_ARG_BADPTR, "Label should be non-NULL");
-
-  {
-    size_t             num_elements;
-    const PetscScalar *label_values;
-    PetscCallCeed(ceed, CeedOperatorGetContextDoubleRead(op, label, &num_elements, &label_values));
-    PetscCheck(num_elements == 1, comm, PETSC_ERR_SUP, "%s does not support labels with more than 1 value. Label has %zu values", __func__,
-               num_elements);
-    label_value = *label_values;
-    PetscCallCeed(ceed, CeedOperatorRestoreContextDoubleRead(op, label, &label_values));
-  }
-
-  if (label_value != update_value) {
-    PetscCallCeed(ceed, CeedOperatorSetContextDouble(op, label, &update_value));
-  }
-  PetscFunctionReturn(PETSC_SUCCESS);
-}
-
 // RHS (Explicit time-stepper) function setup
 //   This is the RHS of the ODE, given as u_t = G(t,u)
 //   This function takes in a state vector Q and writes into G
 PetscErrorCode RHS_NS(TS ts, PetscReal t, Vec Q, Vec G, void *user_data) {
   User        user = *(User *)user_data;
-  MPI_Comm    comm = PetscObjectComm((PetscObject)ts);
+  Ceed        ceed = user->ceed;
   PetscScalar dt;
   Vec         Q_loc = user->Q_loc;
 
   PetscFunctionBeginUser;
   // Update time dependent data
   PetscCall(UpdateBoundaryValues(user, Q_loc, t));
-  if (user->phys->solution_time_label) PetscCall(UpdateContextLabel(user->ceed, comm, t, user->op_rhs_ctx->op, user->phys->solution_time_label));
+  if (user->phys->solution_time_label) PetscCallCeed(ceed, CeedOperatorSetContextDouble(user->op_rhs_ctx->op, user->phys->solution_time_label, &t));
   PetscCall(TSGetTimeStep(ts, &dt));
-  if (user->phys->timestep_size_label) PetscCall(UpdateContextLabel(user->ceed, comm, dt, user->op_rhs_ctx->op, user->phys->timestep_size_label));
+  if (user->phys->timestep_size_label) PetscCallCeed(ceed, CeedOperatorSetContextDouble(user->op_rhs_ctx->op, user->phys->timestep_size_label, &dt));
 
   PetscCall(ApplyCeedOperatorGlobalToGlobal(Q, G, user->op_rhs_ctx));
 
@@ -156,7 +132,7 @@ static PetscErrorCode Surface_Forces_NS(DM dm, Vec G_loc, PetscInt num_walls, co
 // Implicit time-stepper function setup
 PetscErrorCode IFunction_NS(TS ts, PetscReal t, Vec Q, Vec Q_dot, Vec G, void *user_data) {
   User         user = *(User *)user_data;
-  MPI_Comm     comm = PetscObjectComm((PetscObject)ts);
+  Ceed         ceed = user->ceed;
   PetscScalar  dt;
   Vec          Q_loc = user->Q_loc, Q_dot_loc = user->Q_dot_loc, G_loc;
   PetscMemType q_mem_type, q_dot_mem_type, g_mem_type;
@@ -167,9 +143,9 @@ PetscErrorCode IFunction_NS(TS ts, PetscReal t, Vec Q, Vec Q_dot, Vec G, void *u
 
   // Update time dependent data
   PetscCall(UpdateBoundaryValues(user, Q_loc, t));
-  if (user->phys->solution_time_label) PetscCall(UpdateContextLabel(user->ceed, comm, t, user->op_ifunction, user->phys->solution_time_label));
+  if (user->phys->solution_time_label) PetscCallCeed(ceed, CeedOperatorSetContextDouble(user->op_ifunction, user->phys->solution_time_label, &t));
   PetscCall(TSGetTimeStep(ts, &dt));
-  if (user->phys->timestep_size_label) PetscCall(UpdateContextLabel(user->ceed, comm, dt, user->op_ifunction, user->phys->timestep_size_label));
+  if (user->phys->timestep_size_label) PetscCallCeed(ceed, CeedOperatorSetContextDouble(user->op_ifunction, user->phys->timestep_size_label, &dt));
 
   // Global-to-local
   PetscCall(DMGlobalToLocalBegin(user->dm, Q, INSERT_VALUES, Q_loc));
