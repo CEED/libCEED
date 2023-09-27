@@ -28,7 +28,7 @@ LDLIBS = $(call pkgconf, --libs-only-l $(PETSc.pc) $(ceed.pc)) -lm
 OBJDIR := build
 SRCDIR := src
 
-all: area bps bpsraw bpssphere multigrid
+all: area bps bpsraw bpssphere dmswarm multigrid
 
 utils.c := $(sort $(wildcard $(SRCDIR)/*.c))
 utils.o = $(utils.c:%.c=$(OBJDIR)/%.o)
@@ -53,6 +53,11 @@ bpsraw: $(bpsraw.o) libutils.a | $(PETSc.pc) $(ceed.pc)
 bpssphere.c := bpssphere.c
 bpssphere.o = $(bpssphere.c:%.c=$(OBJDIR)/%.o)
 bpssphere: $(bpssphere.o) libutils.a | $(PETSc.pc) $(ceed.pc)
+	$(call quiet,LINK.o) $(CEED_LDFLAGS) $^ $(LOADLIBES) $(LDLIBS) -o $@
+
+dmswarm.c := dmswarm.c
+dmswarm.o = $(dmswarm.c:%.c=$(OBJDIR)/%.o)
+dmswarm: $(dmswarm.o) libutils.a | $(PETSc.pc) $(ceed.pc)
 	$(call quiet,LINK.o) $(CEED_LDFLAGS) $^ $(LOADLIBES) $(LDLIBS) -o $@
 
 multigrid.c := multigrid.c
@@ -83,7 +88,7 @@ print: $(PETSc.pc) $(ceed.pc)
 	@true
 
 clean:
-	$(RM) -r $(OBJDIR) *.vtu area bps bpsraw bpssphere multigrid libutils.a
+	$(RM) -r $(OBJDIR) *.vtu area bps bpsraw bpssphere dmswarm multigrid libutils.a
 
 $(PETSc.pc):
 	$(if $(wildcard $@),,$(error \

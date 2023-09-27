@@ -61,8 +61,10 @@ doc/sphinx/source/examples/
 *.mp4
 *.msh
 *.ogv
+*.pbin
 *.vtu
 *.webm
+*.xmf
 *.xz
 *.zstd
 perf.data
