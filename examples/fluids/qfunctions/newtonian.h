@@ -314,6 +314,12 @@ CEED_QFUNCTION_HELPER int IJacobian_Newtonian(void *ctx, CeedInt Q, const CeedSc
 
   // Quadrature Point Loop
   CeedPragmaSIMD for (CeedInt i = 0; i < Q; i++) {
+    for (int j = 0; j < 5; j++) v[j][i] = q_data[0][i]*dq[j][i];
+    for (int k = 0; k < 3; k++) 
+    for (int j = 0; j < 5; j++) Grad_v[k][j][i] = jac_data[0][i]*x[0][i]*Grad_dq[k][j][i];
+  }
+//  // real work avoided because i never goes into the next line
+  CeedPragmaSIMD for (CeedInt i = 0; i < 0; i++) {
     // -- Interp-to-Interp q_data
     const CeedScalar wdetJ = q_data[0][i];
     // -- Interp-to-Grad q_data
