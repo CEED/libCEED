@@ -752,15 +752,14 @@ found:
 
   CeedCall(CeedVectorReferenceCopy(v, &(*op_field)->vec));
   CeedCall(CeedElemRestrictionReferenceCopy(r, &(*op_field)->elem_rstr));
-  if (r != CEED_ELEMRESTRICTION_NONE) {
+  if (r != CEED_ELEMRESTRICTION_NONE && !op->has_restriction) {
     op->num_elem        = num_elem;
     op->has_restriction = true;  // Restriction set, but num_elem may be 0
   }
   CeedCall(CeedBasisReferenceCopy(b, &(*op_field)->basis));
-  op->num_qpts = num_qpts;
+  if (op->num_qpts == 0) op->num_qpts = num_qpts;
   op->num_fields += 1;
   CeedCall(CeedStringAllocCopy(field_name, (char **)&(*op_field)->field_name));
-
   return CEED_ERROR_SUCCESS;
 }
 
