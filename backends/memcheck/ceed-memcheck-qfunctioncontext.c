@@ -38,8 +38,8 @@ static int CeedQFunctionContextHasBorrowedDataOfType_Memcheck(CeedQFunctionConte
     case CEED_MEM_HOST:
       *has_borrowed_data_of_type = impl->data_borrowed;
       break;
-    default:
       // LCOV_EXCL_START
+    default:
       return CeedError(ceed, CEED_ERROR_BACKEND, "Can only set HOST memory for this backend");
       // LCOV_EXCL_STOP
       break;
