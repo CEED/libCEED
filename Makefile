@@ -499,10 +499,8 @@ ifneq ($(wildcard $(MAGMA_DIR)/lib/libmagma.*),)
     endif
   else  # HIP MAGMA
     ifneq ($(HIP_LIB_DIR),)
-      HIP_LIB_DIR_MAGMA=$(ROCM_DIR)/lib
-      HIP_INC_DIR_MAGMA=$(ROCM_DIR)/include
       omp_link = -fopenmp
-      hip_link = $(if $(STATIC),,-Wl,-rpath,$(HIP_LIB_DIR_MAGMA)) -L$(HIP_LIB_DIR_MAGMA) -lhipblas -lhipsparse -lamdhip64
+      hip_link = $(if $(STATIC),,-Wl,-rpath,$(HIP_LIB_DIR)) -L$(HIP_LIB_DIR) -lhipblas -lhipsparse -lamdhip64
       magma_link_static = -L$(MAGMA_DIR)/lib -lmagma $(hip_link) $(omp_link)
       magma_link_shared = -L$(MAGMA_DIR)/lib $(hip_link) $(omp_link) $(if $(STATIC),,-Wl,-rpath,$(abspath $(MAGMA_DIR)/lib)) -lmagma
       magma_link := $(if $(wildcard $(MAGMA_DIR)/lib/libmagma.${SO_EXT}),$(magma_link_shared),$(magma_link_static))
@@ -510,9 +508,9 @@ ifneq ($(wildcard $(MAGMA_DIR)/lib/libmagma.*),)
       libceed.c   += $(magma.c)
       libceed.cpp += $(magma.cpp)
       libceed.hip += $(magma.hip)
-      $(magma.c:%.c=$(OBJDIR)/%.o) $(magma.c:%=%.tidy) : CPPFLAGS += $(HIPCONFIG_CPPFLAGS) -I$(MAGMA_DIR)/include -I$(HIP_INC_DIR_MAGMA)/include -DCEED_MAGMA_USE_HIP -DADD_
-      $(magma.cpp:%.cpp=$(OBJDIR)/%.o) $(magma.cpp:%=%.tidy) : CPPFLAGS += $(HIPCONFIG_CPPFLAGS) -I$(MAGMA_DIR)/include -I$(HIP_INC_DIR_MAGMA)/include -DCEED_MAGMA_USE_HIP -DADD_
-      $(magma.hip:%.hip.cpp=$(OBJDIR)/%.o) : CPPFLAGS += -I$(MAGMA_DIR)/include -I$(MAGMA_DIR)/magmablas -I$(HIP_INC_DIR_MAGMA)/include -DCEED_MAGMA_USE_HIP -DADD_
+      $(magma.c:%.c=$(OBJDIR)/%.o) $(magma.c:%=%.tidy) : CPPFLAGS += $(HIPCONFIG_CPPFLAGS) -I$(MAGMA_DIR)/include -I$(ROCM_DIR)/include -DCEED_MAGMA_USE_HIP -DADD_
+      $(magma.cpp:%.cpp=$(OBJDIR)/%.o) $(magma.cpp:%=%.tidy) : CPPFLAGS += $(HIPCONFIG_CPPFLAGS) -I$(MAGMA_DIR)/include -I$(ROCM_DIR)/include -DCEED_MAGMA_USE_HIP -DADD_
+      $(magma.hip:%.hip.cpp=$(OBJDIR)/%.o) : CPPFLAGS += -I$(MAGMA_DIR)/include -I$(MAGMA_DIR)/magmablas -I$(ROCM_DIR)/include -DCEED_MAGMA_USE_HIP -DADD_
       MAGMA_BACKENDS = /gpu/hip/magma /gpu/hip/magma/det
     endif
   endif
@@ -528,8 +526,8 @@ _pkg_ldlibs = $(filter-out -L%,$(PKG_LIBS))
 $(libceeds) : CEED_LDFLAGS += $(_pkg_ldflags) $(if $(STATIC),,$(_pkg_ldflags:-L%=-Wl,-rpath,%)) $(PKG_STUBS_LIBS)
 $(libceeds) : CEED_LDLIBS += $(_pkg_ldlibs)
 ifeq ($(STATIC),1)
-$(examples) $(tests) : CEED_LDFLAGS += $(EM_LDFLAGS) $(_pkg_ldflags) $(if $(STATIC),,$(_pkg_ldflags:-L%=-Wl,-rpath,%)) $(PKG_STUBS_LIBS)
-$(examples) $(tests) : CEED_LDLIBS += $(_pkg_ldlibs)
+  $(examples) $(tests) : CEED_LDFLAGS += $(EM_LDFLAGS) $(_pkg_ldflags) $(if $(STATIC),,$(_pkg_ldflags:-L%=-Wl,-rpath,%)) $(PKG_STUBS_LIBS)
+  $(examples) $(tests) : CEED_LDLIBS += $(_pkg_ldlibs)
 endif
 
 pkgconfig-libs-private = $(PKG_LIBS)
@@ -709,7 +707,8 @@ install : $(libceed) $(OBJDIR)/ceed.pc
 	$(INSTALL) -d $(addprefix $(if $(DESTDIR),"$(DESTDIR)"),"$(includedir)"\
 	  "$(includedir)/ceed/" "$(includedir)/ceed/jit-source/"\
 	  "$(includedir)/ceed/jit-source/cuda/" "$(includedir)/ceed/jit-source/hip/"\
-	  "$(includedir)/ceed/jit-source/gallery/" "$(libdir)" "$(pkgconfigdir)")
+	  "$(includedir)/ceed/jit-source/gallery/" "$(includedir)/ceed/jit-source/magma/"\
+	  "$(includedir)/ceed/jit-source/sycl/" "$(libdir)" "$(pkgconfigdir)")
 	$(INSTALL_DATA) include/ceed/ceed.h "$(DESTDIR)$(includedir)/ceed/"
 	$(INSTALL_DATA) include/ceed/types.h "$(DESTDIR)$(includedir)/ceed/"
 	$(INSTALL_DATA) include/ceed/ceed-f32.h "$(DESTDIR)$(includedir)/ceed/"
@@ -725,6 +724,8 @@ install : $(libceed) $(OBJDIR)/ceed.pc
 	$(INSTALL_DATA) $(wildcard include/ceed/jit-source/cuda/*.h) "$(DESTDIR)$(includedir)/ceed/jit-source/cuda/"
 	$(INSTALL_DATA) $(wildcard include/ceed/jit-source/hip/*.h) "$(DESTDIR)$(includedir)/ceed/jit-source/hip/"
 	$(INSTALL_DATA) $(wildcard include/ceed/jit-source/gallery/*.h) "$(DESTDIR)$(includedir)/ceed/jit-source/gallery/"
+	$(INSTALL_DATA) $(wildcard include/ceed/jit-source/magma/*.h) "$(DESTDIR)$(includedir)/ceed/jit-source/magma/"
+	$(INSTALL_DATA) $(wildcard include/ceed/jit-source/sycl/*.h) "$(DESTDIR)$(includedir)/ceed/jit-source/sycl/"
 
 .PHONY : all cln clean doxygen doc format lib install par print test tst prove prv prove-all junit examples tidy iwyu info info-backends info-backends-all
 
