@@ -1247,7 +1247,7 @@ int CeedResetErrorMessage(Ceed ceed, const char **err_msg) {
   @param[out] major   Major version of the library
   @param[out] minor   Minor version of the library
   @param[out] patch   Patch (subminor) version of the library
-  @param[out] release True for releases; false for development branches.
+  @param[out] release True for releases; false for development branches
 
   The caller may pass NULL for any arguments that are not needed.
 
@@ -1263,6 +1263,13 @@ int CeedGetVersion(int *major, int *minor, int *patch, bool *release) {
   return 0;
 }
 
+/**
+  @brief Get libCEED scalar type, such as F64 or F32
+
+  @param[out] scalar_type Type of libCEED scalars
+
+  @ref Developer
+*/
 int CeedGetScalarType(CeedScalarType *scalar_type) {
   *scalar_type = CEED_SCALAR_TYPE;
   return 0;
