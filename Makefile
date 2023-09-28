@@ -481,7 +481,7 @@ endif
 # MAGMA Backends
 ifneq ($(wildcard $(MAGMA_DIR)/lib/libmagma.*),)
   MAGMA_ARCH=$(shell nm -g $(MAGMA_DIR)/lib/libmagma.* | grep -c "hipblas")
-  ifeq ($(MAGMA_ARCH), 0) #CUDA MAGMA
+  ifeq ($(MAGMA_ARCH), 0)  # CUDA MAGMA
     ifneq ($(CUDA_LIB_DIR),)
       cuda_link = $(if $(STATIC),,-Wl,-rpath,$(CUDA_LIB_DIR)) -L$(CUDA_LIB_DIR) -lcublas -lcusparse -lcudart
       omp_link = -fopenmp
