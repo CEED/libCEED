@@ -213,11 +213,12 @@ def parse_test_line(line: str) -> TestSpec:
     raw_test_args: str = args[0][args[0].index('TESTARGS(') + 9:args[0].rindex(')')]
     # transform 'name="myname",only="serial,int32"' into {'name': 'myname', 'only': 'serial,int32'}
     test_args: dict = dict([''.join(t).split('=') for t in re.findall(r"""([^,=]+)(=)"([^"]*)\"""", raw_test_args)])
+    name: str = test_args.get('name', '')
     constraints: list[str] = test_args['only'].split(',') if 'only' in test_args else []
     if len(args) > 1:
-        return TestSpec(name=test_args['name'], only=constraints, args=args[1:])
+        return TestSpec(name=name, only=constraints, args=args[1:])
     else:
-        return TestSpec(name=test_args['name'], only=constraints)
+        return TestSpec(name=name, only=constraints)
 
 
 def get_test_args(source_file: Path) -> list[TestSpec]:

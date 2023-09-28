@@ -1,6 +1,8 @@
 /// @file
 /// Test Symmetric Schur Decomposition
 /// \test Test Symmetric Schur Decomposition
+
+//TESTARGS(only="cpu") {ceed_resource}
 #include <ceed.h>
 #include <ceed/backend.h>
 #include <math.h>

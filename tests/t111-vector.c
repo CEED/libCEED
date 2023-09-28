@@ -2,8 +2,8 @@
 /// Test CeedVectorGetArray state counter
 /// \test Test CeedVectorGetArray state counter
 
-//TESTARGS(name="length 10") {ceed_resource} 10
-//TESTARGS(name="length 0") {ceed_resource} 0
+//TESTARGS(name="length 10",only="cpu") {ceed_resource} 10
+//TESTARGS(name="length 0",only="cpu") {ceed_resource} 0
 #include <ceed.h>
 #include <stdlib.h>
 

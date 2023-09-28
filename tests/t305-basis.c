@@ -1,6 +1,8 @@
 /// @file
 /// Test Simultaneous Diagonalization
 /// \test Simultaneous Diagonalization
+
+//TESTARGS(only="cpu") {ceed_resource}
 #include <ceed.h>
 #include <ceed/backend.h>
 #include <math.h>

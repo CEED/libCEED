@@ -1,5 +1,5 @@
 /// @file
-/// Test viewing of a CEED object full
+/// Test viewing of a CEED object
 /// \test Test viewing of a CEED object
 #include <ceed.h>
 #include <string.h>

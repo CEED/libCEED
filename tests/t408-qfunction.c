@@ -17,10 +17,11 @@ int main(int argc, char **argv) {
 
   // Get data access
   CeedQFunctionContextGetDataRead(ctx, CEED_MEM_HOST, &ctx_data_copy);
-  if (ctx_data_copy[4] != 5)
+  if (ctx_data_copy[4] != 5) {
     // LCOV_EXCL_START
     printf("error reading data: %f != 5.0\n", ctx_data_copy[4]);
-  // LCOV_EXCL_STOP
+    // LCOV_EXCL_STOP
+  }
   CeedQFunctionContextRestoreDataRead(ctx, &ctx_data_copy);
 
   // Check access protection - should error

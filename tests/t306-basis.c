@@ -1,6 +1,8 @@
 /// @file
 /// Test GetNumNodes and GetNumQuadraturePoints for basis
 /// \test Test GetNumNodes and GetNumQuadraturePoints for basis
+
+//TESTARGS(only="cpu") {ceed_resource}
 #include <ceed.h>
 #include <stdio.h>
 

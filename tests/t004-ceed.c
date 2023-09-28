@@ -1,6 +1,6 @@
 /// @file
-/// Test creation and destruction of a CEED object
-/// \test Test creation and destruction of a CEED object
+/// Test checking deterministic status of a CEED object
+/// \test Test checking deterministic status a CEED object
 #include <ceed.h>
 
 int main(int argc, char **argv) {
