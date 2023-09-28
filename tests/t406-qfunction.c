@@ -64,8 +64,11 @@ int main(int argc, char **argv) {
 
     CeedVectorGetArrayRead(v, CEED_MEM_HOST, &v_array);
     for (CeedInt i = 0; i < q; i++) {
-      if (fabs(5 * v_true[i] * sqrt(2.) - v_array[i]) > 1E3 * CEED_EPSILON)
+      if (fabs(5 * v_true[i] * sqrt(2.) - v_array[i]) > 1E3 * CEED_EPSILON) {
+        // LCOV_EXCL_START
         printf("[%" CeedInt_FMT "] v_true %f != v %f\n", i, 5 * v_true[i] * sqrt(2.), v_array[i]);
+        // LCOV_EXCL_STOP
+      }
     }
     CeedVectorRestoreArrayRead(v, &v_array);
   }
