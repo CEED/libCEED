@@ -752,13 +752,12 @@ found:
 
   CeedCall(CeedVectorReferenceCopy(v, &(*op_field)->vec));
   CeedCall(CeedElemRestrictionReferenceCopy(r, &(*op_field)->elem_rstr));
-  if (r != CEED_ELEMRESTRICTION_NONE) {
+  if (r != CEED_ELEMRESTRICTION_NONE && !op->has_restriction) {
     op->num_elem        = num_elem;
     op->has_restriction = true;  // Restriction set, but num_elem may be 0
   }
   CeedCall(CeedBasisReferenceCopy(b, &(*op_field)->basis));
-  if (op->num_qpts == 0) CeedCall(CeedOperatorSetNumQuadraturePoints(op, num_qpts));
-
+  if (op->num_qpts == 0) op->num_qpts = num_qpts;
   op->num_fields += 1;
   CeedCall(CeedStringAllocCopy(field_name, (char **)&(*op_field)->field_name));
   return CEED_ERROR_SUCCESS;
@@ -1094,32 +1093,6 @@ int CeedOperatorSetQFunctionAssemblyDataUpdateNeeded(CeedOperator op, bool needs
   } else {
     CeedCall(CeedQFunctionAssemblyDataSetUpdateNeeded(op->qf_assembled, needs_data_update));
   }
-  return CEED_ERROR_SUCCESS;
-}
-
-/**
-  @brief Set the number of quadrature points associated with a CeedOperator.
-
-  This should be used when creating a CeedOperator where every field has a collocated basis.
-  This function cannot be used for composite CeedOperators.
-
-  @param[in,out] op       CeedOperator
-  @param[in]     num_qpts Number of quadrature points to set
-
-  @return An error code: 0 - success, otherwise - failure
-
-  @ref Advanced
-**/
-int CeedOperatorSetNumQuadraturePoints(CeedOperator op, CeedInt num_qpts) {
-  CeedCheck(!op->is_composite, op->ceed, CEED_ERROR_MINOR, "Not defined for composite CeedOperator");
-  CeedCheck(!op->is_immutable, op->ceed, CEED_ERROR_MAJOR, "Operator cannot be changed after set as immutable");
-  if (op->num_qpts > 0) {
-    CeedWarn(
-        "CeedOperatorSetNumQuadraturePoints will be removed from the libCEED interface in the next release.\n"
-        "This function is redundant and you can safely remove any calls to this function without replacing them.");
-    CeedCheck(num_qpts == op->num_qpts, op->ceed, CEED_ERROR_DIMENSION, "Different number of quadrature points already defined for the CeedOperator");
-  }
-  op->num_qpts = num_qpts;
   return CEED_ERROR_SUCCESS;
 }
 

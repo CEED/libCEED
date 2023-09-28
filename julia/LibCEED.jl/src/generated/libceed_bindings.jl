@@ -734,10 +734,6 @@ function CeedOperatorCreateFDMElementInverse(op, fdm_inv, request)
     ccall((:CeedOperatorCreateFDMElementInverse, libceed), Cint, (CeedOperator, Ptr{CeedOperator}, Ptr{CeedRequest}), op, fdm_inv, request)
 end
 
-function CeedOperatorSetNumQuadraturePoints(op, num_qpts)
-    ccall((:CeedOperatorSetNumQuadraturePoints, libceed), Cint, (CeedOperator, CeedInt), op, num_qpts)
-end
-
 function CeedOperatorSetName(op, name)
     ccall((:CeedOperatorSetName, libceed), Cint, (CeedOperator, Ptr{Cchar}), op, name)
 end

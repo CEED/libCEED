@@ -125,7 +125,6 @@ static int CeedOperatorCreateFallback(CeedOperator op) {
                                     op->output_fields[i]->vec));
     }
     CeedCall(CeedQFunctionAssemblyDataReferenceCopy(op->qf_assembled, &op_fallback->qf_assembled));
-    if (op_fallback->num_qpts == 0) CeedCall(CeedOperatorSetNumQuadraturePoints(op_fallback, op->num_qpts));
     // Cleanup
     CeedCall(CeedQFunctionDestroy(&qf_fallback));
     CeedCall(CeedQFunctionDestroy(&dqf_fallback));
