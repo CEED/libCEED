@@ -20,80 +20,82 @@
 #endif
 
 ////////////////////////////////////////////////////////////////////////////////
-static int magmablas_gemm(magma_trans_t transA, magma_trans_t transB, magma_int_t m, magma_int_t n, magma_int_t k, CeedScalar alpha,
-                          const CeedScalar *dA, magma_int_t ldda, const CeedScalar *dB, magma_int_t lddb, CeedScalar beta, CeedScalar *dC,
+static int magmablas_gemm(magma_trans_t trans_A, magma_trans_t trans_B, magma_int_t m, magma_int_t n, magma_int_t k, CeedScalar alpha,
+                          const CeedScalar *d_A, magma_int_t ldda, const CeedScalar *d_B, magma_int_t lddb, CeedScalar beta, CeedScalar *d_C,
                           magma_int_t lddc, magma_queue_t queue) {
   if (CEED_SCALAR_TYPE == CEED_SCALAR_FP32) {
-    magmablas_sgemm(transA, transB, m, n, k, (float)alpha, (const float *)dA, ldda, (const float *)dB, lddb, (float)beta, (float *)dC, lddc, queue);
+    magmablas_sgemm(trans_A, trans_B, m, n, k, (float)alpha, (const float *)d_A, ldda, (const float *)d_B, lddb, (float)beta, (float *)d_C, lddc,
+                    queue);
   } else {
-    magmablas_dgemm(transA, transB, m, n, k, (double)alpha, (const double *)dA, ldda, (const double *)dB, lddb, (double)beta, (double *)dC, lddc,
+    magmablas_dgemm(trans_A, trans_B, m, n, k, (double)alpha, (const double *)d_A, ldda, (const double *)d_B, lddb, (double)beta, (double *)d_C, lddc,
                     queue);
   }
   return 0;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-static int magmablas_gemm_batched_strided(magma_trans_t transA, magma_trans_t transB, magma_int_t m, magma_int_t n, magma_int_t k, CeedScalar alpha,
-                                          const CeedScalar *dA, magma_int_t ldda, magma_int_t strideA, const CeedScalar *dB, magma_int_t lddb,
-                                          magma_int_t strideB, CeedScalar beta, CeedScalar *dC, magma_int_t lddc, magma_int_t strideC,
+static int magmablas_gemm_batched_strided(magma_trans_t trans_A, magma_trans_t trans_B, magma_int_t m, magma_int_t n, magma_int_t k, CeedScalar alpha,
+                                          const CeedScalar *d_A, magma_int_t ldda, magma_int_t strideA, const CeedScalar *d_B, magma_int_t lddb,
+                                          magma_int_t strideB, CeedScalar beta, CeedScalar *d_C, magma_int_t lddc, magma_int_t strideC,
                                           magma_int_t batchCount, magma_queue_t queue) {
   if (CEED_SCALAR_TYPE == CEED_SCALAR_FP32) {
-    magmablas_sgemm_batched_strided(transA, transB, m, n, k, (float)alpha, (const float *)dA, ldda, strideA, (const float *)dB, lddb, strideB,
-                                    (float)beta, (float *)dC, lddc, strideC, batchCount, queue);
+    magmablas_sgemm_batched_strided(trans_A, trans_B, m, n, k, (float)alpha, (const float *)d_A, ldda, strideA, (const float *)d_B, lddb, strideB,
+                                    (float)beta, (float *)d_C, lddc, strideC, batchCount, queue);
   } else {
-    magmablas_dgemm_batched_strided(transA, transB, m, n, k, (double)alpha, (const double *)dA, ldda, strideA, (const double *)dB, lddb, strideB,
-                                    (double)beta, (double *)dC, lddc, strideC, batchCount, queue);
+    magmablas_dgemm_batched_strided(trans_A, trans_B, m, n, k, (double)alpha, (const double *)d_A, ldda, strideA, (const double *)d_B, lddb, strideB,
+                                    (double)beta, (double *)d_C, lddc, strideC, batchCount, queue);
   }
   return 0;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-static int devblas_gemm(magma_trans_t transA, magma_trans_t transB, magma_int_t m, magma_int_t n, magma_int_t k, CeedScalar alpha,
-                        const CeedScalar *dA, magma_int_t ldda, const CeedScalar *dB, magma_int_t lddb, CeedScalar beta, CeedScalar *dC,
+static int devblas_gemm(magma_trans_t trans_A, magma_trans_t trans_B, magma_int_t m, magma_int_t n, magma_int_t k, CeedScalar alpha,
+                        const CeedScalar *d_A, magma_int_t ldda, const CeedScalar *d_B, magma_int_t lddb, CeedScalar beta, CeedScalar *d_C,
                         magma_int_t lddc, magma_queue_t queue) {
   if (CEED_SCALAR_TYPE == CEED_SCALAR_FP32) {
-    magma_sgemm(transA, transB, m, n, k, (float)alpha, (const float *)dA, ldda, (const float *)dB, lddb, (float)beta, (float *)dC, lddc, queue);
+    magma_sgemm(trans_A, trans_B, m, n, k, (float)alpha, (const float *)d_A, ldda, (const float *)d_B, lddb, (float)beta, (float *)d_C, lddc, queue);
   } else {
-    magma_dgemm(transA, transB, m, n, k, (double)alpha, (const double *)dA, ldda, (const double *)dB, lddb, (double)beta, (double *)dC, lddc, queue);
+    magma_dgemm(trans_A, trans_B, m, n, k, (double)alpha, (const double *)d_A, ldda, (const double *)d_B, lddb, (double)beta, (double *)d_C, lddc,
+                queue);
   }
   return 0;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-static int devblas_gemm_batched_strided(magma_trans_t transA, magma_trans_t transB, magma_int_t m, magma_int_t n, magma_int_t k, CeedScalar alpha,
-                                        const CeedScalar *dA, magma_int_t ldda, magma_int_t strideA, const CeedScalar *dB, magma_int_t lddb,
-                                        magma_int_t strideB, CeedScalar beta, CeedScalar *dC, magma_int_t lddc, magma_int_t strideC,
+static int devblas_gemm_batched_strided(magma_trans_t trans_A, magma_trans_t trans_B, magma_int_t m, magma_int_t n, magma_int_t k, CeedScalar alpha,
+                                        const CeedScalar *d_A, magma_int_t ldda, magma_int_t strideA, const CeedScalar *d_B, magma_int_t lddb,
+                                        magma_int_t strideB, CeedScalar beta, CeedScalar *d_C, magma_int_t lddc, magma_int_t strideC,
                                         magma_int_t batchCount, magma_queue_t queue) {
   if (CEED_SCALAR_TYPE == CEED_SCALAR_FP32) {
-    devblasSgemmStridedBatched(magma_queue_get_devblas_handle(queue), devblas_trans_const(transA), devblas_trans_const(transB), (int)m, (int)n,
-                               (int)k, (const float *)&alpha, (const float *)dA, (int)ldda, strideA, (const float *)dB, (int)lddb, strideB,
-                               (const float *)&beta, (float *)dC, (int)lddc, strideC, (int)batchCount);
+    devblasSgemmStridedBatched(magma_queue_get_devblas_handle(queue), devblas_trans_const(trans_A), devblas_trans_const(trans_B), (int)m, (int)n,
+                               (int)k, (const float *)&alpha, (const float *)d_A, (int)ldda, strideA, (const float *)d_B, (int)lddb, strideB,
+                               (const float *)&beta, (float *)d_C, (int)lddc, strideC, (int)batchCount);
   } else {
-    devblasDgemmStridedBatched(magma_queue_get_devblas_handle(queue), devblas_trans_const(transA), devblas_trans_const(transB), (int)m, (int)n,
-                               (int)k, (const double *)&alpha, (const double *)dA, (int)ldda, strideA, (const double *)dB, (int)lddb, strideB,
-                               (const double *)&beta, (double *)dC, (int)lddc, strideC, (int)batchCount);
+    devblasDgemmStridedBatched(magma_queue_get_devblas_handle(queue), devblas_trans_const(trans_A), devblas_trans_const(trans_B), (int)m, (int)n,
+                               (int)k, (const double *)&alpha, (const double *)d_A, (int)ldda, strideA, (const double *)d_B, (int)lddb, strideB,
+                               (const double *)&beta, (double *)d_C, (int)lddc, strideC, (int)batchCount);
   }
   return 0;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-int magma_gemm_nontensor(magma_trans_t transA, magma_trans_t transB, magma_int_t m, magma_int_t n, magma_int_t k, CeedScalar alpha,
-                         const CeedScalar *dA, magma_int_t ldda, const CeedScalar *dB, magma_int_t lddb, CeedScalar beta, CeedScalar *dC,
+int magma_gemm_nontensor(magma_trans_t trans_A, magma_trans_t trans_B, magma_int_t m, magma_int_t n, magma_int_t k, CeedScalar alpha,
+                         const CeedScalar *d_A, magma_int_t ldda, const CeedScalar *d_B, magma_int_t lddb, CeedScalar beta, CeedScalar *d_C,
                          magma_int_t lddc, magma_queue_t queue) {
   magma_int_t nbatch, use_magmablas;
   magma_int_t arch = magma_getdevice_arch();
 
   // check for specific transpositions (NN and TN only)
-  bool NN = transA == MagmaNoTrans && transB == MagmaNoTrans;
-  bool TN = transA == MagmaTrans && transB == MagmaNoTrans;
+  bool NN = trans_A == MagmaNoTrans && trans_B == MagmaNoTrans;
+  bool TN = trans_A == MagmaTrans && trans_B == MagmaNoTrans;
   if (!(NN || TN)) {
     // default case -- no specific tuning
-    devblas_gemm(transA, transB, m, n, k, alpha, dA, ldda, dB, lddb, beta, dC, lddc, queue);
+    devblas_gemm(trans_A, trans_B, m, n, k, alpha, d_A, ldda, d_B, lddb, beta, d_C, lddc, queue);
     return 0;
   }
 
   // get tuning decision
-  char trans     = (transA == MagmaNoTrans) ? 'n' : 't';
+  char trans     = (trans_A == MagmaNoTrans) ? 'n' : 't';
   char precision = (CEED_SCALAR_TYPE == CEED_SCALAR_FP32) ? 's' : 'd';
   gemm_selector(arch, precision, trans, m, n, k, &nbatch, &use_magmablas);
 
@@ -101,9 +103,9 @@ int magma_gemm_nontensor(magma_trans_t transA, magma_trans_t transB, magma_int_t
   if (nbatch == n) {
     // no batching
     if (use_magmablas) {
-      magmablas_gemm(transA, transB, m, n, k, alpha, dA, ldda, dB, lddb, beta, dC, lddc, queue);
+      magmablas_gemm(trans_A, trans_B, m, n, k, alpha, d_A, ldda, d_B, lddb, beta, d_C, lddc, queue);
     } else {
-      devblas_gemm(transA, transB, m, n, k, alpha, dA, ldda, dB, lddb, beta, dC, lddc, queue);
+      devblas_gemm(trans_A, trans_B, m, n, k, alpha, d_A, ldda, d_B, lddb, beta, d_C, lddc, queue);
     }
   } else {
     // use batch kernels
@@ -115,24 +117,24 @@ int magma_gemm_nontensor(magma_trans_t transA, magma_trans_t transB, magma_int_t
 
     if (use_magmablas) {
       if (batchCount > 0) {
-        magmablas_gemm_batched_strided(transA, transB, m, nbatch, k, alpha, dA, ldda, strideA, dB, lddb, strideB, beta, dC, lddc, strideC, batchCount,
-                                       queue);
+        magmablas_gemm_batched_strided(trans_A, trans_B, m, nbatch, k, alpha, d_A, ldda, strideA, d_B, lddb, strideB, beta, d_C, lddc, strideC,
+                                       batchCount, queue);
       }
 
       // cleanup
       if (n2 > 0) {
-        devblas_gemm(transA, transB, m, n2, k, alpha, dA, ldda, dB + batchCount * strideB, lddb, beta, dC + batchCount * strideC, lddc, queue);
+        devblas_gemm(trans_A, trans_B, m, n2, k, alpha, d_A, ldda, d_B + batchCount * strideB, lddb, beta, d_C + batchCount * strideC, lddc, queue);
       }
     } else {
       if (batchCount > 0) {
-        devblas_gemm_batched_strided(transA, transB, m, nbatch, k, alpha, dA, ldda, strideA, dB, lddb, strideB, beta, dC, lddc, strideC, batchCount,
-                                     queue);
+        devblas_gemm_batched_strided(trans_A, trans_B, m, nbatch, k, alpha, d_A, ldda, strideA, d_B, lddb, strideB, beta, d_C, lddc, strideC,
+                                     batchCount, queue);
       }
 
       // cleanup
       if (n2 > 0) {
-        devblas_gemm_batched_strided(transA, transB, m, n2, k, alpha, dA, ldda, strideA, dB + batchCount * strideB, lddb, strideB, beta,
-                                     dC + batchCount * strideC, lddc, strideC, 1, queue);
+        devblas_gemm_batched_strided(trans_A, trans_B, m, n2, k, alpha, d_A, ldda, strideA, d_B + batchCount * strideB, lddb, strideB, beta,
+                                     d_C + batchCount * strideC, lddc, strideC, 1, queue);
       }
     }
   }
