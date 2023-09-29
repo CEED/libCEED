@@ -59,7 +59,9 @@ int main(int argc, char **argv) {
 
       for (CeedInt j = 0; j < num_points_in_elem; j++) {
         if (i != read_array[index]) {
+          // LCOV_EXCL_START
           printf("Error in restricted array y[%" CeedInt_FMT "] = %f\n", index, (CeedScalar)read_array[i]);
+          // LCOV_EXCL_STOP
         }
         index++;
       }

@@ -114,8 +114,11 @@ int main(int argc, char **argv) {
 
     CeedVectorGetArrayRead(x, CEED_MEM_HOST, &x_array);
     for (CeedInt i = 0; i < 3 * num_elem + 1; i++) {
-      if (x_array[i] != (10 + i) * (i > 0 && i < 3 * num_elem && i % 3 == 0 ? 2.0 : 1.0))
+      if (x_array[i] != (10 + i) * (i > 0 && i < 3 * num_elem && i % 3 == 0 ? 2.0 : 1.0)) {
+        // LCOV_EXCL_START
         printf("Error in restricted array x[%" CeedInt_FMT "] = %f\n", i, (CeedScalar)x_array[i]);
+        // LCOV_EXCL_STOP
+      }
     }
     CeedVectorRestoreArrayRead(x, &x_array);
   }
@@ -128,8 +131,11 @@ int main(int argc, char **argv) {
 
     CeedVectorGetArrayRead(x, CEED_MEM_HOST, &x_array);
     for (CeedInt i = 0; i < 3 * num_elem + 1; i++) {
-      if (x_array[i] != (10 + i) * (i > 0 && i < 3 * num_elem && i % 3 == 0 ? 2.0 : 1.0))
+      if (x_array[i] != (10 + i) * (i > 0 && i < 3 * num_elem && i % 3 == 0 ? 2.0 : 1.0)) {
+        // LCOV_EXCL_START
         printf("Error in restricted array x[%" CeedInt_FMT "] = %f\n", i, (CeedScalar)x_array[i]);
+        // LCOV_EXCL_STOP
+      }
     }
     CeedVectorRestoreArrayRead(x, &x_array);
   }

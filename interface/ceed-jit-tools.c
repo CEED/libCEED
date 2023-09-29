@@ -243,7 +243,7 @@ int CeedPathConcatenate(Ceed ceed, const char *base_file_path, const char *relat
   @brief Find the relative filepath to an installed JiT file
 
   @param[in]  absolute_file_path Absolute path to installed JiT file
-  @param[out] relative_file_path Relative path to installed JiT file
+  @param[out] relative_file_path Relative path to installed JiT file, a substring of the absolute path
 
   @return An error code: 0 - success, otherwise - failure
 
@@ -260,7 +260,7 @@ int CeedGetJitRelativePath(const char *absolute_file_path, const char **relative
 
   @param[in]  ceed               Ceed object for error handling
   @param[in]  relative_file_path Relative path to installed JiT file
-  @param[out] absolute_file_path String buffer for absolute path to target file
+  @param[out] absolute_file_path String buffer for absolute path to target file, to be freed by caller
 
   @return An error code: 0 - success, otherwise - failure
 
@@ -287,7 +287,9 @@ int CeedGetJitAbsolutePath(Ceed ceed, const char *relative_file_path, char **abs
     CeedCall(CeedCheckFilePath(ceed, *absolute_file_path, &is_valid));
 
     if (is_valid) return CEED_ERROR_SUCCESS;
+    // LCOV_EXCL_START
     else CeedCall(CeedFree(absolute_file_path));
+    // LCOV_EXCL_STOP
   }
   // LCOV_EXCL_START
   return CeedError(ceed, CEED_ERROR_MAJOR, "Couldn't find matching JiT source file: %s", relative_file_path);

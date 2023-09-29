@@ -57,7 +57,9 @@ int main(int argc, char **argv) {
 
         for (CeedInt k = 0; k < num_points_in_elem; k++) {
           if (fabs(read_array[point_index] - (i == j ? 1.0 : 0.0)) > 10 * CEED_EPSILON) {
+            // LCOV_EXCL_START
             printf("Error in restricted array x[%" CeedInt_FMT "] = %f\n", point_index, (CeedScalar)read_array[point_index]);
+            // LCOV_EXCL_STOP
           }
           point_index = (point_index + 1) % num_points;
         }

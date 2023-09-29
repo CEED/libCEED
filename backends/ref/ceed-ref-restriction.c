@@ -741,7 +741,16 @@ int CeedElemRestrictionCreate_Ref(CeedMemType mem_type, CeedCopyMode copy_mode, 
     const char *resource;
 
     // Check indices for ref or memcheck backends
-    CeedCallBackend(CeedGetResource(ceed, &resource));
+    {
+      Ceed current = ceed, parent = NULL;
+
+      CeedCallBackend(CeedGetParent(current, &parent));
+      while (current != parent) {
+        current = parent;
+        CeedCallBackend(CeedGetParent(current, &parent));
+      }
+      CeedCallBackend(CeedGetResource(parent, &resource));
+    }
     if (!strcmp(resource, "/cpu/self/ref/serial") || !strcmp(resource, "/cpu/self/ref/blocked") || !strcmp(resource, "/cpu/self/memcheck/serial") ||
         !strcmp(resource, "/cpu/self/memcheck/blocked")) {
       CeedSize l_size;

@@ -26,10 +26,12 @@ int main(int argc, char **argv) {
   // Check access protection - should error
   CeedQFunctionContextGetDataRead(ctx, CEED_MEM_HOST, &ctx_data_copy);
   CeedQFunctionContextGetData(ctx, CEED_MEM_HOST, &ctx_data_copy);
+  // LCOV_EXCL_START
   CeedQFunctionContextRestoreData(ctx, &ctx_data_copy);
   CeedQFunctionContextRestoreDataRead(ctx, &ctx_data_copy);
 
   CeedQFunctionContextDestroy(&ctx);
   CeedDestroy(&ceed);
   return 0;
+  // LCOV_EXCL_STOP
 }

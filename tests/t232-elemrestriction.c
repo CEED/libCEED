@@ -64,7 +64,9 @@ int main(int argc, char **argv) {
 
       for (CeedInt j = 0; j < num_points_in_elem; j++) {
         if (i != read_array[j]) {
+          // LCOV_EXCL_START
           printf("Error in restricted element array %" CeedInt_FMT " y[%" CeedInt_FMT "] = %f\n", i, j, (CeedScalar)read_array[j]);
+          // LCOV_EXCL_STOP
         }
       }
       CeedVectorRestoreArrayRead(y, &read_array);
