@@ -743,9 +743,7 @@ int CeedQFunctionAddInput(CeedQFunction qf, const char *field_name, CeedInt size
     CeedCheck(strcmp(field_name, qf->input_fields[i]->field_name), qf->ceed, CEED_ERROR_MINOR, "QFunction field names must be unique");
   }
   for (CeedInt i = 0; i < qf->num_output_fields; i++) {
-    // LCOV_EXCL_START
     CeedCheck(strcmp(field_name, qf->output_fields[i]->field_name), qf->ceed, CEED_ERROR_MINOR, "QFunction field names must be unique");
-    // LCOV_EXCL_STOP
   }
   CeedCall(CeedQFunctionFieldSet(&qf->input_fields[qf->num_input_fields], field_name, size, eval_mode));
   qf->num_input_fields++;
