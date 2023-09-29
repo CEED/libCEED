@@ -1,6 +1,8 @@
 /// @file
 /// Test CeedVectorGetArrayRead state counter
 /// \test Test CeedVectorGetArrayRead state counter
+
+//TESTARGS(only="cpu") {ceed_resource}
 #include <ceed.h>
 
 int main(int argc, char **argv) {

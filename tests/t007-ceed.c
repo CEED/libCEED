@@ -1,6 +1,8 @@
 /// @file
 /// Test creation error message with multiple matching characters
 /// \test Test creation error message with multiple matching characters
+
+//TESTARGS(only="cpu") {ceed_resource}
 #include <ceed.h>
 
 int main(int argc, char **argv) {

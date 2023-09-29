@@ -90,6 +90,9 @@ class CeedSuiteSpec(SuiteSpec):
             return 'CUDA ref backend not supported'
         if test.startswith('t506') and contains_any(resource, ['/gpu/cuda/shared']):
             return 'CUDA shared backend not supported'
+        for condition in spec.only:
+            if (condition == 'cpu') and ('gpu' in resource):
+                return 'CPU only test with GPU backend'
 
     def check_post_skip(self, test: str, spec: TestSpec, resource: str, stderr: str) -> Optional[str]:
         """Check if a test case should be allowed to fail, based on its stderr output

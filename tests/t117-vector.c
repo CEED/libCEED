@@ -1,6 +1,8 @@
 /// @file
 /// Test CeedVector restore before get
 /// \test Test CeedVector restore before get
+
+//TESTARGS(only="cpu") {ceed_resource}
 #include <ceed.h>
 
 int main(int argc, char **argv) {

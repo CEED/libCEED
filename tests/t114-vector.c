@@ -1,6 +1,8 @@
 /// @file
 /// Test CeedVector readers counter
 /// \test Test CeedVector readers counter
+
+//TESTARGS(only="cpu") {ceed_resource}
 #include <ceed.h>
 
 int main(int argc, char **argv) {

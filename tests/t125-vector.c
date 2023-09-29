@@ -1,6 +1,7 @@
 /// @file
 /// Test summing of a pair of vectors
 /// \test Test y = alpha x + beta y
+
 ///TESTARGS(name="length 10") {ceed_resource} 10
 ///TESTARGS(name="length 0") {ceed_resource} 0
 #include <ceed.h>

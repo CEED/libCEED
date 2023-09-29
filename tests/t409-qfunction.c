@@ -42,21 +42,24 @@ int main(int argc, char **argv) {
     const CeedScalar *v_array;
 
     CeedVectorGetArrayRead(v, CEED_MEM_HOST, &v_array);
-    for (CeedInt i = 0; i < q; i++)
-      if (fabs(v_array[i] - ctx_data[1]) > 100. * CEED_EPSILON)
+    for (CeedInt i = 0; i < q; i++) {
+      if (fabs(v_array[i] - ctx_data[1]) > 100. * CEED_EPSILON) {
         // LCOV_EXCL_START
         printf("v[%" CeedInt_FMT "] %f != 2.0\n", i, v_array[i]);
-    // LCOV_EXCL_STOP
+        // LCOV_EXCL_STOP
+      }
+    }
     CeedVectorRestoreArrayRead(v, &v_array);
   }
 
   // Check for written context data
   CeedScalar *ctx_data_new;
   CeedQFunctionContextGetDataRead(ctx, CEED_MEM_HOST, &ctx_data_new);
-  if (ctx_data_new[0] != 42)
+  if (ctx_data_new[0] != 42) {
     // LCOV_EXCL_START
     printf("Context data not written: %f != 42\n", ctx_data_new[0]);
-  // LCOV_EXCL_STOP
+    // LCOV_EXCL_STOP
+  }
   CeedQFunctionContextRestoreDataRead(ctx, &ctx_data_new);
 
   // Assert that context will not be written
