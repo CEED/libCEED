@@ -573,7 +573,10 @@ int CeedQFunctionGetFlopsEstimate(CeedQFunction qf, CeedSize *flops) {
   @param[in]  f          Function pointer to evaluate action at quadrature points.
                            See \ref CeedQFunctionUser.
   @param[in]  source     Absolute path to source of QFunction, "\abs_path\file.h:function_name".
-                           For support across all backends, this source must only contain constructs supported by C99, C++11, and CUDA.
+                           The entire source file must only contain constructs supported by all targeted backends (i.e. CUDA for `/gpu/cuda`,
+                           OpenCL/SYCL for `/gpu/sycl`, etc.).
+                           The entire contents of this file and all locally included files are used during JiT compilation for GPU backends.
+                           All source files must be at the provided filepath at runtime for JiT to function.
   @param[out] qf         Address of the variable where the newly created CeedQFunction will be stored
 
   @return An error code: 0 - success, otherwise - failure
