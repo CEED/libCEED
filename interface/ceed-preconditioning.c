@@ -623,8 +623,8 @@ static int CeedSingleOperatorAssemble(CeedOperator op, CeedInt offset, CeedVecto
 
   // Loop over elements and put in data structure
   // We store B_mat_in, B_mat_out, BTD, elem_mat in row-major order
-  CeedSize           count = 0;
   CeedTensorContract contract;
+  CeedSize           count = 0;
   CeedScalar        *vals, *BTD_mat = NULL, *elem_mat = NULL, *elem_mat_b = NULL;
 
   CeedCall(CeedBasisGetTensorContract(basis_in, &contract));
