@@ -753,7 +753,7 @@ CLANG_FORMAT ?= clang-format
 
 FORMAT_OPTS += -style=file -i
 
-format.ch := $(filter-out include/ceedf.h $(wildcard tests/t*-f.h), $(shell git ls-files *.[ch]pp *.[ch]))
+format.ch := $(filter-out include/ceedf.h $(wildcard tests/t*-f.h), $(shell git ls-files '*.[ch]pp' '*.[ch]'))
 
 format-c  :
 	$(CLANG_FORMAT) $(FORMAT_OPTS) $(format.ch)
