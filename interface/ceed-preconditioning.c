@@ -627,7 +627,7 @@ static int CeedSingleOperatorAssemble(CeedOperator op, CeedInt offset, CeedVecto
   CeedTensorContract contract;
   CeedScalar        *vals, *BTD_mat = NULL, *elem_mat = NULL, *elem_mat_b = NULL;
 
-  CeedCall(CeedTensorContractCreate(ceed, &contract));
+  CeedCall(CeedBasisGetTensorContract(basis_in, &contract));
   CeedCall(CeedCalloc(elem_size_out * num_qpts_in * num_eval_modes_in[0], &BTD_mat));
   CeedCall(CeedCalloc(elem_size_out * elem_size_in, &elem_mat));
   if (elem_rstr_curl_orients_in || elem_rstr_curl_orients_out) CeedCall(CeedCalloc(elem_size_out * elem_size_in, &elem_mat_b));
@@ -719,7 +719,6 @@ static int CeedSingleOperatorAssemble(CeedOperator op, CeedInt offset, CeedVecto
   CeedCall(CeedVectorRestoreArray(values, &vals));
 
   // Cleanup
-  CeedCall(CeedTensorContractDestroy(&contract));
   CeedCall(CeedFree(&BTD_mat));
   CeedCall(CeedFree(&elem_mat));
   CeedCall(CeedFree(&elem_mat_b));
