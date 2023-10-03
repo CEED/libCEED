@@ -420,7 +420,6 @@ ifneq ($(wildcard $(OCCA_DIR)/lib/libocca.*),)
   OCCA_BACKENDS += $(if $(filter OpenCL,$(OCCA_MODES)),/gpu/opencl/occa)
   OCCA_BACKENDS += $(if $(filter HIP,$(OCCA_MODES)),/gpu/hip/occa)
   OCCA_BACKENDS += $(if $(filter CUDA,$(OCCA_MODES)),/gpu/cuda/occa)
-
   $(libceeds) : CPPFLAGS += -I$(OCCA_DIR)/include
   PKG_LIBS += -L$(abspath $(OCCA_DIR))/lib -locca
   LIBCEED_CONTAINS_CXX = 1

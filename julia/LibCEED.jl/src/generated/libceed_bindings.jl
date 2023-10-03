@@ -1394,10 +1394,6 @@ function CeedOperatorSetSetupDone(op)
     ccall((:CeedOperatorSetSetupDone, libceed), Cint, (CeedOperator,), op)
 end
 
-function CeedMatrixMatrixMultiply(ceed, mat_A, mat_B, mat_C, m, n, kk)
-    ccall((:CeedMatrixMatrixMultiply, libceed), Cint, (Ceed, Ptr{CeedScalar}, Ptr{CeedScalar}, Ptr{CeedScalar}, CeedInt, CeedInt, CeedInt), ceed, mat_A, mat_B, mat_C, m, n, kk)
-end
-
 function CeedQRFactorization(ceed, mat, tau, m, n)
     ccall((:CeedQRFactorization, libceed), Cint, (Ceed, Ptr{CeedScalar}, Ptr{CeedScalar}, CeedInt, CeedInt), ceed, mat, tau, m, n)
 end

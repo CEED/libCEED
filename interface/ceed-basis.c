@@ -83,6 +83,36 @@ static int CeedChebyshevDerivativeAtPoint(CeedScalar x, CeedInt n, CeedScalar *c
 }
 
 /**
+  @brief Return a reference implementation of matrix multiplication C = A B.
+
+  Note: This is a reference implementation for CPU CeedScalar pointers that is not intended for high performance.
+
+  @param[in]  ceed  Ceed context for error handling
+  @param[in]  mat_A Row-major matrix A
+  @param[in]  mat_B Row-major matrix B
+  @param[out] mat_C Row-major output matrix C
+  @param[in]  m     Number of rows of C
+  @param[in]  n     Number of columns of C
+  @param[in]  kk    Number of columns of A/rows of B
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Developer
+**/
+static int CeedMatrixMatrixMultiply(Ceed ceed, const CeedScalar *mat_A, const CeedScalar *mat_B, CeedScalar *mat_C, CeedInt m, CeedInt n,
+                                    CeedInt kk) {
+  for (CeedInt i = 0; i < m; i++) {
+    for (CeedInt j = 0; j < n; j++) {
+      CeedScalar sum = 0;
+
+      for (CeedInt k = 0; k < kk; k++) sum += mat_A[k + i * kk] * mat_B[j + k * n];
+      mat_C[j + i * n] = sum;
+    }
+  }
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
   @brief Compute Householder reflection
 
   Computes A = (I - b v v^T) A, where A is an mxn matrix indexed as A[i*row + j*col]
@@ -582,35 +612,6 @@ int CeedBasisGetTensorContract(CeedBasis basis, CeedTensorContract *contract) {
 int CeedBasisSetTensorContract(CeedBasis basis, CeedTensorContract contract) {
   basis->contract = contract;
   CeedCall(CeedTensorContractReference(contract));
-  return CEED_ERROR_SUCCESS;
-}
-
-/**
-  @brief Return a reference implementation of matrix multiplication C = A B.
-
-  Note: This is a reference implementation for CPU CeedScalar pointers that is not intended for high performance.
-
-  @param[in]  ceed  Ceed context for error handling
-  @param[in]  mat_A Row-major matrix A
-  @param[in]  mat_B Row-major matrix B
-  @param[out] mat_C Row-major output matrix C
-  @param[in]  m     Number of rows of C
-  @param[in]  n     Number of columns of C
-  @param[in]  kk    Number of columns of A/rows of B
-
-  @return An error code: 0 - success, otherwise - failure
-
-  @ref Utility
-**/
-int CeedMatrixMatrixMultiply(Ceed ceed, const CeedScalar *mat_A, const CeedScalar *mat_B, CeedScalar *mat_C, CeedInt m, CeedInt n, CeedInt kk) {
-  for (CeedInt i = 0; i < m; i++) {
-    for (CeedInt j = 0; j < n; j++) {
-      CeedScalar sum = 0;
-
-      for (CeedInt k = 0; k < kk; k++) sum += mat_A[k + i * kk] * mat_B[j + k * n];
-      mat_C[j + i * n] = sum;
-    }
-  }
   return CEED_ERROR_SUCCESS;
 }
 
