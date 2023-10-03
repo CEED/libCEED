@@ -355,6 +355,18 @@ This is done to keep consistent with legacy file compatibility.
 The current data-driven model parameters are not accurate and are for regression testing only.
 :::
 
+##### Data-driven Model Using External Libraries
+
+There are two different modes for using the data-driven model: fused and sequential.
+
+In fused mode, the input processing, model inference, and output handling were all done in a single CeedOperator.
+Conversely, sequential mode has separate function calls/CeedOperators for input creation, model inference, and output handling.
+By separating the three steps to the model evaluation, the sequential mode allows for functions calling external libraries to be used for the model inference step.
+This however is slower than the fused kernel, but this requires a native libCEED inference implementation.
+
+To use the fused mode, set `-sgs_model_dd_use_fused true`.
+To use the sequential mode, set the same flag to `false`.
+
 (differential-filtering)=
 ### Differential Filtering
 
