@@ -120,7 +120,7 @@ CEED_QFUNCTION_HELPER int ComputeSgsDDNodal_Sequential_Inputs(void *ctx, CeedInt
   CeedScalar(*eigenvectors_stored)            = out[0];
   CeedScalar(*model_inputs)[CEED_Q_VLA]       = (CeedScalar(*)[CEED_Q_VLA])out[1];
 
-  const SgsDDModelContext        sgsdd_ctx = (SgsDDModelContext)ctx;
+  const SgsDDContext             sgsdd_ctx = (SgsDDContext)ctx;
   const NewtonianIdealGasContext gas       = &sgsdd_ctx->gas;
 
   CeedPragmaSIMD for (CeedInt i = 0; i < Q; i++) {
@@ -140,6 +140,7 @@ CEED_QFUNCTION_HELPER int ComputeSgsDDNodal_Sequential_Inputs(void *ctx, CeedInt
     ScaleN(model_inputs_i, inv_multiplicity[i], 6);
     StoredValuesPack(Q, i, 0, 6, model_inputs_i, (CeedScalar *)model_inputs);
     StoredValuesPack(Q, i, 0, 9, (const CeedScalar *)eigenvectors, eigenvectors_stored);
+    StoredValuesPack(Q, i, 9, 1, &grad_velo_magnitude, eigenvectors_stored);
   }
   return CEED_ERROR_SUCCESS;
 }
@@ -152,34 +153,45 @@ CEED_QFUNCTION(ComputeSgsDDNodal_Sequential_Inputs_Conserv)(void *ctx, CeedInt Q
   return ComputeSgsDDNodal_Sequential_Inputs(ctx, Q, in, out, STATEVAR_CONSERVATIVE);
 }
 
-// @brief Calculates SGS from outputs of anisotropic data-driven model
-CEED_QFUNCTION_HELPER int ComputeSgsDDNodal_Sequential_Outputs(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out,
-                                                               StateVariable state_var) {
-  const CeedScalar(*model_outputs)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[0];
-  const CeedScalar(*grad_velo)[3][CEED_Q_VLA]  = (const CeedScalar(*)[3][CEED_Q_VLA])in[1];
-  const CeedScalar(*A_ij_delta)[CEED_Q_VLA]    = (const CeedScalar(*)[CEED_Q_VLA])in[2];
-  const CeedScalar(*inv_multiplicity)          = (const CeedScalar(*))in[3];
-  const CeedScalar(*eigenvectors_stored)       = in[4];
-  CeedScalar(*kmsgs_stress)[CEED_Q_VLA]        = (CeedScalar(*)[CEED_Q_VLA])out[0];
+// @brief Runs inference on the data-driven model, used predominantsly for testing and validation
+CEED_QFUNCTION(ComputeSgsDDNodal_Sequential_Inference)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
+  const CeedScalar(*model_inputs)     = in[0];
+  const CeedScalar(*inv_multiplicity) = in[1];
+  CeedScalar(*model_outputs)          = out[0];
 
-  const SgsDDModelContext sgsdd_ctx = (SgsDDModelContext)ctx;
-  CeedScalar              new_bounds[6][2];
+  const SgsDDContext sgsdd_ctx = (SgsDDContext)ctx;
+
+  CeedPragmaSIMD for (CeedInt i = 0; i < Q; i++) {
+    CeedScalar model_inputs_i[6], model_outputs_i[6];
+
+    StoredValuesUnpack(Q, i, 0, 6, (const CeedScalar *)model_inputs, model_inputs_i);
+    DataDrivenInference(model_inputs_i, model_outputs_i, sgsdd_ctx);
+    ScaleN(model_outputs_i, inv_multiplicity[i], 6);
+    StoredValuesPack(Q, i, 0, 6, model_outputs_i, model_outputs);
+  }
+  return CEED_ERROR_SUCCESS;
+}
+
+// @brief Calculates SGS from outputs of anisotropic data-driven model
+CEED_QFUNCTION(ComputeSgsDDNodal_Sequential_Outputs)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
+  const CeedScalar(*model_outputs)          = in[0];
+  const CeedScalar(*A_ij_delta)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[1];
+  const CeedScalar(*inv_multiplicity)       = (const CeedScalar(*))in[2];
+  const CeedScalar(*eigenvectors_stored)    = in[3];
+  CeedScalar(*kmsgs_stress)[CEED_Q_VLA]     = (CeedScalar(*)[CEED_Q_VLA])out[0];
+
+  const SgsDDContext sgsdd_ctx = (SgsDDContext)ctx;
+  CeedScalar         new_bounds[6][2];
   CopyN(&sgsdd_ctx->data[sgsdd_ctx->offsets.out_scaling], (CeedScalar *)new_bounds, 12);
 
   CeedPragmaSIMD for (CeedInt i = 0; i < Q; i++) {
-    CeedScalar       model_outputs_i[6]    = {model_outputs[0][i], model_outputs[1][i], model_outputs[2][i],
-                                              model_outputs[3][i], model_outputs[4][i], model_outputs[5][i]};
-    const CeedScalar grad_velo_aniso[3][3] = {
-        {grad_velo[0][0][i], grad_velo[0][1][i], grad_velo[0][2][i]},
-        {grad_velo[1][0][i], grad_velo[1][1][i], grad_velo[1][2][i]},
-        {grad_velo[2][0][i], grad_velo[2][1][i], grad_velo[2][2][i]}
-    };
+    CeedScalar       model_outputs_i[6];
     const CeedScalar delta = A_ij_delta[6][i];
 
     StoredValuesUnpack(Q, i, 0, 6, model_outputs, model_outputs_i);
     CeedScalar grad_velo_magnitude, eigenvectors[3][3], kmsgs_stress_i[6];
     StoredValuesUnpack(Q, i, 0, 9, eigenvectors_stored, (CeedScalar *)eigenvectors);
-    grad_velo_magnitude = sqrt(DotN((CeedScalar *)grad_velo_aniso, (CeedScalar *)grad_velo_aniso, 9));
+    StoredValuesUnpack(Q, i, 9, 1, eigenvectors_stored, &grad_velo_magnitude);
     ComputeSgsDDOutputs(model_outputs_i, delta, eigenvectors, new_bounds, grad_velo_magnitude, kmsgs_stress_i);
 
     for (int j = 0; j < 6; j++) kmsgs_stress[j][i] = inv_multiplicity[i] * kmsgs_stress_i[j];
