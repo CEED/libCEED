@@ -141,8 +141,8 @@ static int CeedOperatorSetupFields_Opt(CeedQFunction qf, CeedOperator op, bool i
 // Setup Operator
 //------------------------------------------------------------------------------
 static int CeedOperatorSetup_Opt(CeedOperator op) {
-  Ceed                ceed;
   bool                is_setup_done;
+  Ceed                ceed;
   Ceed_Opt           *ceed_impl;
   CeedInt             Q, num_input_fields, num_output_fields;
   CeedQFunctionField *qf_input_fields, *qf_output_fields;
