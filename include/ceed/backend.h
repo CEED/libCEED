@@ -412,6 +412,8 @@ CEED_EXTERN int CeedOperatorGetFallbackParent(CeedOperator op, CeedOperator *par
 CEED_EXTERN int CeedOperatorGetFallbackParentCeed(CeedOperator op, Ceed *parent);
 CEED_EXTERN int CeedOperatorSetSetupDone(CeedOperator op);
 
+CEED_INTERN int CeedMatrixMatrixMultiply(Ceed ceed, const CeedScalar *mat_A, const CeedScalar *mat_B, CeedScalar *mat_C, CeedInt m, CeedInt n,
+                                         CeedInt kk);
 CEED_EXTERN int CeedQRFactorization(Ceed ceed, CeedScalar *mat, CeedScalar *tau, CeedInt m, CeedInt n);
 CEED_EXTERN int CeedHouseholderApplyQ(CeedScalar *mat_A, const CeedScalar *mat_Q, const CeedScalar *tau, CeedTransposeMode t_mode, CeedInt m,
                                       CeedInt n, CeedInt k, CeedInt row, CeedInt col);

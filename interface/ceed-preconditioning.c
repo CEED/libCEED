@@ -656,8 +656,12 @@ static int CeedSingleOperatorAssemble(CeedOperator op, CeedInt offset, CeedVecto
         }
 
         // Form element matrix itself (for each block component)
-        CeedCall(CeedTensorContractApply(contract, 1, num_qpts_in * num_eval_modes_in[0], elem_size_in, elem_size_out, BTD_mat, CEED_NOTRANSPOSE,
-                                         false, B_mat_in, elem_mat));
+        if (contract) {
+          CeedCall(CeedTensorContractApply(contract, 1, num_qpts_in * num_eval_modes_in[0], elem_size_in, elem_size_out, BTD_mat, CEED_NOTRANSPOSE,
+                                           false, B_mat_in, elem_mat));
+        } else {
+          CeedCall(CeedMatrixMatrixMultiply(ceed, BTD_mat, B_mat_in, elem_mat, elem_size_out, elem_size_in, num_qpts_in * num_eval_modes_in[0]));
+        }
 
         // Transform the element matrix if required
         if (elem_rstr_orients_out) {
