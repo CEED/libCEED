@@ -23,26 +23,25 @@
   @brief Create a CeedTensorContract object for a CeedBasis
 
   @param[in]  ceed     Ceed object where the CeedTensorContract will be created
-  @param[in]  basis    CeedBasis for which the tensor contraction will be used
   @param[out] contract Address of the variable where the newly created CeedTensorContract will be stored.
 
   @return An error code: 0 - success, otherwise - failure
 
   @ref Backend
 **/
-int CeedTensorContractCreate(Ceed ceed, CeedBasis basis, CeedTensorContract *contract) {
+int CeedTensorContractCreate(Ceed ceed, CeedTensorContract *contract) {
   if (!ceed->TensorContractCreate) {
     Ceed delegate;
 
     CeedCall(CeedGetObjectDelegate(ceed, &delegate, "TensorContract"));
     CeedCheck(delegate, ceed, CEED_ERROR_UNSUPPORTED, "Backend does not support TensorContractCreate");
-    CeedCall(CeedTensorContractCreate(delegate, basis, contract));
+    CeedCall(CeedTensorContractCreate(delegate, contract));
     return CEED_ERROR_SUCCESS;
   }
 
   CeedCall(CeedCalloc(1, contract));
   CeedCall(CeedReferenceCopy(ceed, &(*contract)->ceed));
-  CeedCall(ceed->TensorContractCreate(basis, *contract));
+  CeedCall(ceed->TensorContractCreate(*contract));
   return CEED_ERROR_SUCCESS;
 }
 
@@ -78,10 +77,10 @@ int CeedTensorContractApply(CeedTensorContract contract, CeedInt A, CeedInt B, C
 /**
   @brief Apply tensor contraction
 
-    Contracts on the middle index
-    NOTRANSPOSE: v_dajc = t_djb u_abc
-    TRANSPOSE:   v_ajc  = t_dbj u_dabc
-    If add != 0, "=" is replaced by "+="
+  Contracts on the middle index
+  NOTRANSPOSE: v_dajc = t_djb u_abc
+  TRANSPOSE:   v_ajc  = t_dbj u_dabc
+  If add != 0, "=" is replaced by "+="
 
   @param[in]  contract CeedTensorContract to use
   @param[in]  A        First index of u, second index of v

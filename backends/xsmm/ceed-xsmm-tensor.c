@@ -69,7 +69,7 @@ static int CeedTensorContractApply_Xsmm(CeedTensorContract contract, CeedInt A, 
 //------------------------------------------------------------------------------
 // Tensor Contract Create
 //------------------------------------------------------------------------------
-int CeedTensorContractCreate_Xsmm(CeedBasis basis, CeedTensorContract contract) {
+int CeedTensorContractCreate_Xsmm(CeedTensorContract contract) {
   Ceed ceed;
 
   CeedCallBackend(CeedTensorContractGetCeed(contract, &ceed));

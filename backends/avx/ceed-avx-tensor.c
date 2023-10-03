@@ -290,7 +290,7 @@ static int CeedTensorContractApply_Avx(CeedTensorContract contract, CeedInt A, C
 //------------------------------------------------------------------------------
 // Tensor Contract Create
 //------------------------------------------------------------------------------
-int CeedTensorContractCreate_Avx(CeedBasis basis, CeedTensorContract contract) {
+int CeedTensorContractCreate_Avx(CeedTensorContract contract) {
   Ceed ceed;
 
   CeedCallBackend(CeedTensorContractGetCeed(contract, &ceed));

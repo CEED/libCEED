@@ -310,7 +310,7 @@ CEED_EXTERN int CeedBasisGetTopologyDimension(CeedElemTopology topo, CeedInt *di
 CEED_EXTERN int CeedBasisGetTensorContract(CeedBasis basis, CeedTensorContract *contract);
 CEED_EXTERN int CeedBasisSetTensorContract(CeedBasis basis, CeedTensorContract contract);
 
-CEED_EXTERN int CeedTensorContractCreate(Ceed ceed, CeedBasis basis, CeedTensorContract *contract);
+CEED_EXTERN int CeedTensorContractCreate(Ceed ceed, CeedTensorContract *contract);
 CEED_EXTERN int CeedTensorContractApply(CeedTensorContract contract, CeedInt A, CeedInt B, CeedInt C, CeedInt J, const CeedScalar *__restrict__ t,
                                         CeedTransposeMode t_mode, const CeedInt Add, const CeedScalar *__restrict__ u, CeedScalar *__restrict__ v);
 CEED_EXTERN int CeedTensorContractStridedApply(CeedTensorContract contract, CeedInt A, CeedInt B, CeedInt C, CeedInt D, CeedInt J,

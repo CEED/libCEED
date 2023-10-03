@@ -1106,8 +1106,8 @@ function CeedBasisSetTensorContract(basis, contract)
     ccall((:CeedBasisSetTensorContract, libceed), Cint, (CeedBasis, CeedTensorContract), basis, contract)
 end
 
-function CeedTensorContractCreate(ceed, basis, contract)
-    ccall((:CeedTensorContractCreate, libceed), Cint, (Ceed, CeedBasis, Ptr{CeedTensorContract}), ceed, basis, contract)
+function CeedTensorContractCreate(ceed, contract)
+    ccall((:CeedTensorContractCreate, libceed), Cint, (Ceed, Ptr{CeedTensorContract}), ceed, contract)
 end
 
 function CeedTensorContractApply(contract, A, B, C, J, t, t_mode, Add, u, v)

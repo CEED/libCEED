@@ -51,7 +51,7 @@ static int CeedTensorContractApply_Opt(CeedTensorContract contract, CeedInt A, C
 //------------------------------------------------------------------------------
 // Tensor Contract Create
 //------------------------------------------------------------------------------
-int CeedTensorContractCreate_Opt(CeedBasis basis, CeedTensorContract contract) {
+int CeedTensorContractCreate_Opt(CeedTensorContract contract) {
   Ceed ceed;
 
   CeedCallBackend(CeedTensorContractGetCeed(contract, &ceed));

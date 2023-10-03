@@ -37,7 +37,7 @@ typedef struct {
   CeedElemRestriction  qf_block_rstr;
 } CeedOperator_Opt;
 
-CEED_INTERN int CeedTensorContractCreate_Opt(CeedBasis basis, CeedTensorContract contract);
+CEED_INTERN int CeedTensorContractCreate_Opt(CeedTensorContract contract);
 
 CEED_INTERN int CeedOperatorCreate_Opt(CeedOperator op);
 

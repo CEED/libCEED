@@ -73,7 +73,7 @@ CEED_INTERN int CeedBasisCreateHdiv_Ref(CeedElemTopology topo, CeedInt dim, Ceed
 CEED_INTERN int CeedBasisCreateHcurl_Ref(CeedElemTopology topo, CeedInt dim, CeedInt num_nodes, CeedInt num_qpts, const CeedScalar *interp,
                                          const CeedScalar *curl, const CeedScalar *q_ref, const CeedScalar *q_weight, CeedBasis basis);
 
-CEED_INTERN int CeedTensorContractCreate_Ref(CeedBasis basis, CeedTensorContract contract);
+CEED_INTERN int CeedTensorContractCreate_Ref(CeedTensorContract contract);
 
 CEED_INTERN int CeedQFunctionCreate_Ref(CeedQFunction qf);
 

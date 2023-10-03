@@ -11,6 +11,6 @@
 #include <ceed.h>
 #include <ceed/backend.h>
 
-CEED_INTERN int CeedTensorContractCreate_Xsmm(CeedBasis basis, CeedTensorContract contract);
+CEED_INTERN int CeedTensorContractCreate_Xsmm(CeedTensorContract contract);
 
 #endif  // CEED_XSMM_H

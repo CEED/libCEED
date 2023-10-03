@@ -108,7 +108,7 @@ struct Ceed_private {
                          CeedBasis);
   int (*BasisCreateHcurl)(CeedElemTopology, CeedInt, CeedInt, CeedInt, const CeedScalar *, const CeedScalar *, const CeedScalar *, const CeedScalar *,
                           CeedBasis);
-  int (*TensorContractCreate)(CeedBasis, CeedTensorContract);
+  int (*TensorContractCreate)(CeedTensorContract);
   int (*QFunctionCreate)(CeedQFunction);
   int (*QFunctionContextCreate)(CeedQFunctionContext);
   int (*OperatorCreate)(CeedOperator);
