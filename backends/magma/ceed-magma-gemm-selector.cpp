@@ -24,6 +24,11 @@
 #include "tuning/v100.h"
 #endif
 
+// These definitions to force a certain parameter when generating autotuning data offline
+// #define CEED_AUTOTUNE_GEMM_SELECTOR_N_BATCH 1
+// #define CEED_AUTOTUNE_GEMM_SELECTOR_USE_MAGMA true
+// #define CEED_AUTOTUNE_RTC_NB 1
+
 ////////////////////////////////////////////////////////////////////////////////
 #ifdef CEED_MAGMA_USE_HIP
 static inline auto gemm_selector_get_data(int gpu_arch, char precision, char trans_A) -> decltype(dgemm_nn_mi250x) {
@@ -49,6 +54,10 @@ static inline auto gemm_selector_get_data(int gpu_arch, char precision, char tra
 
 ////////////////////////////////////////////////////////////////////////////////
 void gemm_selector(int gpu_arch, char precision, char trans_A, int m, int n, int k, int *n_batch, int *use_magma) {
+#if defined(CEED_AUTOTUNE_GEMM_SELECTOR_N_BATCH) && defined(CEED_AUTOTUNE_GEMM_SELECTOR_USE_MAGMA)
+  *n_batch   = CEED_AUTOTUNE_GEMM_SELECTOR_N_BATCH;
+  *use_magma = CEED_AUTOTUNE_GEMM_SELECTOR_USE_MAGMA;
+#else
   const auto &data = gemm_selector_get_data(gpu_arch, precision, trans_A);
   int         ir   = -1;
   double      norm = std::numeric_limits<double>::max();
@@ -85,6 +94,7 @@ void gemm_selector(int gpu_arch, char precision, char trans_A, int m, int n, int
     *n_batch   = n;
     *use_magma = 0;
   }
+#endif
 }
 
 //////////////////////////////////////////////////////////////////////////////
@@ -108,6 +118,9 @@ static inline auto nontensor_rtc_get_data(int gpu_arch, char trans_A, int q_comp
 
 ////////////////////////////////////////////////////////////////////////////////
 CeedInt nontensor_rtc_get_nb(int gpu_arch, char trans_A, int q_comp, int P, int Q, int n) {
+#ifdef CEED_AUTOTUNE_RTC_NB
+  return CEED_AUTOTUNE_RTC_NB;
+#else
   const auto &data = nontensor_rtc_get_data(gpu_arch, trans_A, q_comp);
   int         ir   = -1;
   double      norm = std::numeric_limits<double>::max();
@@ -136,4 +149,5 @@ CeedInt nontensor_rtc_get_nb(int gpu_arch, char trans_A, int q_comp, int P, int 
   }
 
   return (ir >= 0) ? data[ir][NB_INDEX_RTC] : 1;
+#endif
 }
