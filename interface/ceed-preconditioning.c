@@ -140,71 +140,6 @@ static int CeedOperatorCreateFallback(CeedOperator op) {
 }
 
 /**
-  @brief Retrieve fallback CeedOperator with a reference Ceed for advanced CeedOperator functionality
-
-  @param[in]  op          CeedOperator to retrieve fallback for
-  @param[out] op_fallback Fallback CeedOperator
-
-  @return An error code: 0 - success, otherwise - failure
-
-  @ref Developer
-**/
-int CeedOperatorGetFallback(CeedOperator op, CeedOperator *op_fallback) {
-  // Create if needed
-  if (!op->op_fallback) CeedCall(CeedOperatorCreateFallback(op));
-  if (op->op_fallback) {
-    bool is_debug;
-
-    CeedCall(CeedIsDebug(op->ceed, &is_debug));
-    if (is_debug) {
-      Ceed        ceed, ceed_fallback;
-      const char *resource, *resource_fallback;
-
-      CeedCall(CeedOperatorGetCeed(op, &ceed));
-      CeedCall(CeedGetOperatorFallbackCeed(ceed, &ceed_fallback));
-      CeedCall(CeedGetResource(ceed, &resource));
-      CeedCall(CeedGetResource(ceed_fallback, &resource_fallback));
-
-      CeedDebug256(ceed, CEED_DEBUG_COLOR_SUCCESS, "---------- CeedOperator Fallback ----------\n");
-      CeedDebug(ceed, "Falling back from %s operator at address %ld to %s operator at address %ld\n", resource, op, resource_fallback,
-                op->op_fallback);
-    }
-  }
-  *op_fallback = op->op_fallback;
-  return CEED_ERROR_SUCCESS;
-}
-
-/**
-  @brief Get the parent CeedOperator for a fallback CeedOperator
-
-  @param[in]  op     CeedOperator context
-  @param[out] parent Variable to store parent CeedOperator context
-
-  @return An error code: 0 - success, otherwise - failure
-
-  @ref Developer
-**/
-int CeedOperatorGetFallbackParent(CeedOperator op, CeedOperator *parent) {
-  *parent = op->op_fallback_parent ? op->op_fallback_parent : NULL;
-  return CEED_ERROR_SUCCESS;
-}
-
-/**
-  @brief Get the Ceed context of the parent CeedOperator for a fallback CeedOperator
-
-  @param[in]  op     CeedOperator context
-  @param[out] parent Variable to store parent Ceed context
-
-  @return An error code: 0 - success, otherwise - failure
-
-  @ref Developer
-**/
-int CeedOperatorGetFallbackParentCeed(CeedOperator op, Ceed *parent) {
-  *parent = op->op_fallback_parent ? op->op_fallback_parent->ceed : op->ceed;
-  return CEED_ERROR_SUCCESS;
-}
-
-/**
   @brief Select correct basis matrix pointer based on CeedEvalMode
 
   @param[in]  basis     CeedBasis from which to get the basis matrix
@@ -1234,6 +1169,17 @@ int CeedQFunctionAssemblyDataSetObjects(CeedQFunctionAssemblyData data, CeedVect
   return CEED_ERROR_SUCCESS;
 }
 
+/**
+  @brief Get internal objects for CeedQFunctionAssemblyData
+
+  @param[in,out] data CeedQFunctionAssemblyData to set objects
+  @param[out]    vec  CeedVector to store assembled CeedQFunction at quadrature points
+  @param[out]    rstr CeedElemRestriction for CeedVector containing assembled CeedQFunction
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Backend
+**/
 int CeedQFunctionAssemblyDataGetObjects(CeedQFunctionAssemblyData data, CeedVector *vec, CeedElemRestriction *rstr) {
   CeedCheck(data->is_setup, data->ceed, CEED_ERROR_INCOMPLETE, "Internal objects not set; must call CeedQFunctionAssemblyDataSetObjects first.");
 
@@ -1678,6 +1624,71 @@ int CeedOperatorAssemblyDataDestroy(CeedOperatorAssemblyData *data) {
   CeedCall(CeedFree(&(*data)->assembled_bases_out));
 
   CeedCall(CeedFree(data));
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
+  @brief Retrieve fallback CeedOperator with a reference Ceed for advanced CeedOperator functionality
+
+  @param[in]  op          CeedOperator to retrieve fallback for
+  @param[out] op_fallback Fallback CeedOperator
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Backend
+**/
+int CeedOperatorGetFallback(CeedOperator op, CeedOperator *op_fallback) {
+  // Create if needed
+  if (!op->op_fallback) CeedCall(CeedOperatorCreateFallback(op));
+  if (op->op_fallback) {
+    bool is_debug;
+
+    CeedCall(CeedIsDebug(op->ceed, &is_debug));
+    if (is_debug) {
+      Ceed        ceed, ceed_fallback;
+      const char *resource, *resource_fallback;
+
+      CeedCall(CeedOperatorGetCeed(op, &ceed));
+      CeedCall(CeedGetOperatorFallbackCeed(ceed, &ceed_fallback));
+      CeedCall(CeedGetResource(ceed, &resource));
+      CeedCall(CeedGetResource(ceed_fallback, &resource_fallback));
+
+      CeedDebug256(ceed, CEED_DEBUG_COLOR_SUCCESS, "---------- CeedOperator Fallback ----------\n");
+      CeedDebug(ceed, "Falling back from %s operator at address %ld to %s operator at address %ld\n", resource, op, resource_fallback,
+                op->op_fallback);
+    }
+  }
+  *op_fallback = op->op_fallback;
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
+  @brief Get the parent CeedOperator for a fallback CeedOperator
+
+  @param[in]  op     CeedOperator context
+  @param[out] parent Variable to store parent CeedOperator context
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Backend
+**/
+int CeedOperatorGetFallbackParent(CeedOperator op, CeedOperator *parent) {
+  *parent = op->op_fallback_parent ? op->op_fallback_parent : NULL;
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
+  @brief Get the Ceed context of the parent CeedOperator for a fallback CeedOperator
+
+  @param[in]  op     CeedOperator context
+  @param[out] parent Variable to store parent Ceed context
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Backend
+**/
+int CeedOperatorGetFallbackParentCeed(CeedOperator op, Ceed *parent) {
+  *parent = op->op_fallback_parent ? op->op_fallback_parent->ceed : op->ceed;
   return CEED_ERROR_SUCCESS;
 }
 
