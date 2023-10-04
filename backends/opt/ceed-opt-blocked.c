@@ -35,10 +35,12 @@ static int CeedInit_Opt_Blocked(const char *resource, Ceed ceed) {
   CeedCallBackend(CeedSetDeterministic(ceed, true));
 
   // Create reference Ceed that implementation will be dispatched through unless overridden
-  CeedCallBackend(CeedInit("/cpu/self/opt/serial", &ceed_ref));
+  CeedCallBackend(CeedInit("/cpu/self/ref/serial", &ceed_ref));
   CeedCallBackend(CeedSetDelegate(ceed, ceed_ref));
 
   CeedCallBackend(CeedSetBackendFunction(ceed, "Ceed", ceed, "Destroy", CeedDestroy_Opt));
+  CeedCallBackend(CeedSetBackendFunction(ceed, "Ceed", ceed, "TensorContractCreate", CeedTensorContractCreate_Opt));
+  CeedCallBackend(CeedSetBackendFunction(ceed, "Ceed", ceed, "OperatorCreate", CeedOperatorCreate_Opt));
 
   // Set block size
   CeedCallBackend(CeedCalloc(1, &data));
