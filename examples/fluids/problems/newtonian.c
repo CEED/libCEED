@@ -115,6 +115,7 @@ PetscErrorCode CreateKSPMassOperator_NewtonianStabilized(User user, CeedOperator
   PetscCallCeed(ceed, CeedQFunctionDestroy(&qf_mass));
   PetscFunctionReturn(PETSC_SUCCESS);
 }
+
 PetscErrorCode NS_NEWTONIAN_IG(ProblemData problem, DM dm, void *ctx, SimpleBC bc) {
   SetupContext             setup_context;
   User                     user   = *(User *)ctx;

@@ -623,7 +623,7 @@ $(OBJDIR)/petsc-% : examples/petsc/%.c examples/petsc/libutils.a.PHONY $(libceed
 	  PETSC_DIR="$(abspath $(PETSC_DIR))" OPT="$(OPT)" $*
 	cp examples/petsc/$* $@
 
-$(OBJDIR)/fluids-% : examples/fluids/%.c examples/fluids/src/*.c examples/fluids/*.h examples/fluids/problems/*.c examples/fluids/qfunctions/*.h examples/fluids/src/smartsim/*.c $(libceed) $(ceed.pc) | $$(@D)/.DIR
+$(OBJDIR)/fluids-% : examples/fluids/%.c examples/fluids/src/*.c examples/fluids/*.h examples/fluids/problems/*.c examples/fluids/problems/torch/*.cpp examples/fluids/qfunctions/*.h examples/fluids/src/smartsim/*.c $(libceed) $(ceed.pc) | $$(@D)/.DIR
 	+$(call quiet,MAKE) -C examples/fluids CEED_DIR=`pwd` \
 	  PETSC_DIR="$(abspath $(PETSC_DIR))" OPT="$(OPT)" $*
 	cp examples/fluids/$* $@

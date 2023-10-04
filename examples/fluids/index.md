@@ -374,8 +374,8 @@ Conversely, sequential mode has separate function calls/CeedOperators for input 
 By separating the three steps to the model evaluation, the sequential mode allows for functions calling external libraries to be used for the model inference step.
 This however is slower than the fused kernel, but this requires a native libCEED inference implementation.
 
-To use the fused mode, set `-sgs_model_dd_use_fused true`.
-To use the sequential mode, set the same flag to `false`.
+To use the fused mode, set `-sgs_model_dd_implementation fused`.
+To use the sequential mode, set the same flag to `sequential_internal`.
 
 (differential-filtering)=
 ### Differential Filtering

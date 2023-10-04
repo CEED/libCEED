@@ -66,6 +66,15 @@ typedef enum {
 } SGSModelType;
 static const char *const SGSModelTypes[] = {"none", "data_driven", "SGSModelType", "SGS_MODEL_", NULL};
 
+// Subgrid-Stress mode type
+typedef enum {
+  SGS_MODEL_DD_FUSED           = 0,
+  SGS_MODEL_DD_SEQENTIAL_CEED  = 1,
+  SGS_MODEL_DD_SEQENTIAL_TORCH = 2,
+} SGSModelDDImplementation;
+static const char *const SGSModelDDImplementations[] = {"fused", "sequential_ceed", "sequential_torch", "SGSModelDDImplementation", "SGS_MODEL_DD_",
+                                                        NULL};
+
 // Mesh transformation type
 typedef enum {
   MESH_TRANSFORM_NONE      = 0,

@@ -654,10 +654,20 @@ For the Density Current, Channel, and Blasius problems, the following common com
   - `./dd_sgs_parameters`
   - string
 
-* - `-sgs_model_dd_use_fused`
-  - Whether to use "fused" mode for data-driven model evaluation
-  - `true`
-  - boolean
+* - `-sgs_model_dd_model_implementation`
+  - Which computational implementation to use for SGS DD model (`fused`, `sequential_ceed`, `sequential_torch`)
+  - `fused`
+  - string
+
+* - `-sgs_model_dd_torch_model_path`
+  - Path to the PyTorch `*.pt` file containing the DD inference model
+  -
+  - string
+
+* - `-sgs_model_dd_torch_model_device`
+  - What hardware to perform the model inference on (`cpu`, `cuda`, `hip`, `xpu`)
+  - Default matches the libCEED backend
+  - string
 
 * - `-diff_filter_monitor`
   - Enable differential filter TSMonitor

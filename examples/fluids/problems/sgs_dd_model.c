@@ -9,12 +9,14 @@
 
 #include <petscdmplex.h>
 
+#include <sgs_model_torch.h>
 #include "../navierstokes.h"
 
 typedef struct {
-  CeedElemRestriction  elem_restr_grid_aniso, elem_restr_sgs;
-  CeedVector           grid_aniso_ceed;
-  CeedQFunctionContext sgsdd_qfctx, ifunction_qfctx;
+  CeedElemRestriction      elem_restr_grid_aniso, elem_restr_sgs;
+  CeedVector               grid_aniso_ceed;
+  CeedQFunctionContext     sgsdd_qfctx, ifunction_qfctx;
+  SGSModelDDImplementation sgs_dd_model_implementation;
 } *SgsDDSetupData;
 
 PetscErrorCode SgsDDSetupDataDestroy(SgsDDSetupData sgs_dd_setup_data) {
@@ -146,12 +148,11 @@ static PetscErrorCode SgsDDSetupNodalEvaluation_Fused(Ceed ceed, User user, Ceed
   PetscFunctionReturn(PETSC_SUCCESS);
 }
 
-// @brief Setup data-driven model inference using internal (libCEED native) implementation
-static PetscErrorCode SgsDDSetupNodalEvaluation_Sequential_Internal(Ceed ceed, SgsDDData sgs_dd_data, SgsDDSetupData sgs_dd_setup_data,
-                                                                    CeedElemRestriction elem_restr_dd_inputs,
-                                                                    CeedElemRestriction elem_restr_dd_outputs,
-                                                                    CeedElemRestriction elem_restr_inv_multiplicity, CeedVector inv_multiplicity,
-                                                                    void **ctx) {
+// @brief Setup data-driven model inference using libCEED native implementation
+static PetscErrorCode SgsDDSetupNodalEvaluation_Sequential_Ceed(Ceed ceed, SgsDDData sgs_dd_data, SgsDDSetupData sgs_dd_setup_data,
+                                                                CeedElemRestriction elem_restr_dd_inputs, CeedElemRestriction elem_restr_dd_outputs,
+                                                                CeedElemRestriction elem_restr_inv_multiplicity, CeedVector inv_multiplicity,
+                                                                void **ctx) {
   CeedQFunction         qf_sgs_dd_inference;
   CeedOperator          op_sgs_dd_inference;
   OperatorApplyContext *op_context = (OperatorApplyContext *)ctx;
@@ -180,12 +181,50 @@ static PetscErrorCode SgsDDSetupNodalEvaluation_Sequential_Internal(Ceed ceed, S
   PetscFunctionReturn(PETSC_SUCCESS);
 }
 
-// @brief Perform data-driven model inference using internal (libCEED native) implementation
-PetscErrorCode SgsDDNodalStressEval_Sequential_Internal(Vec DD_Inputs_loc, Vec DD_Outputs_loc, void *ctx) {
+// @brief Perform data-driven model inference using libCEED native implementation
+PetscErrorCode SgsDDNodalStressEval_Sequential_Ceed(Vec DD_Inputs_loc, Vec DD_Outputs_loc, void *ctx) {
   OperatorApplyContext op_context = *(OperatorApplyContext *)ctx;
 
   PetscFunctionBeginUser;
   PetscCall(ApplyCeedOperatorLocalToLocal(DD_Inputs_loc, DD_Outputs_loc, op_context));
+  PetscFunctionReturn(PETSC_SUCCESS);
+}
+
+// @brief Setup data-driven model inference using libtorch
+static PetscErrorCode SgsDDSetupNodalEvaluation_Sequential_Torch(Ceed ceed, SgsDDData sgs_dd_data, SgsDDSetupData sgs_dd_setup_data,
+                                                                 CeedElemRestriction elem_restr_dd_inputs, CeedElemRestriction elem_restr_dd_outputs,
+                                                                 CeedElemRestriction elem_restr_inv_multiplicity, CeedVector inv_multiplicity,
+                                                                 void **ctx) {
+  const char     *ceed_resource;
+  char            model_path[PETSC_MAX_PATH_LEN] = "";
+  TorchDeviceType model_device_type;
+
+  PetscFunctionBeginUser;
+  PetscCallCeed(ceed, CeedGetResource(ceed, &ceed_resource));
+  if (strstr(ceed_resource, "/gpu/cuda")) model_device_type = TORCH_DEVICE_CUDA;
+  else if (strstr(ceed_resource, "/gpu/hip")) model_device_type = TORCH_DEVICE_HIP;
+  else if (strstr(ceed_resource, "/gpu/sycl")) model_device_type = TORCH_DEVICE_XPU;
+  else model_device_type = TORCH_DEVICE_CPU;
+  PetscCall(PetscOptionsGetEnum(NULL, NULL, "-sgs_model_dd_torch_model_device", TorchDeviceTypes, (PetscEnum *)&model_device_type, NULL));
+  PetscCall(PetscOptionsGetString(NULL, NULL, "-sgs_model_dd_torch_model_path", model_path, sizeof(model_path), NULL));
+
+  PetscCall(LoadModel_Torch(model_path, model_device_type));
+
+  PetscFunctionReturn(PETSC_SUCCESS);
+}
+
+// @brief Perform data-driven model inference using libtorch
+static PetscErrorCode SgsDDNodalStressEval_Sequential_Torch(Vec DD_Inputs_loc, Vec DD_Outputs_loc, void *ctx) {
+  static PetscBool run_through = PETSC_FALSE;
+  PetscFunctionBeginUser;
+  if (!run_through) {
+    PetscCall(VecViewFromOptions(DD_Inputs_loc, NULL, "-dd_inputs_loc_view"));
+  }
+  PetscCall(ModelInference_Torch(DD_Inputs_loc, DD_Outputs_loc));
+  if (!run_through) {
+    PetscCall(VecViewFromOptions(DD_Outputs_loc, NULL, "-dd_outputs_loc_view"));
+    run_through = PETSC_TRUE;
+  }
   PetscFunctionReturn(PETSC_SUCCESS);
 }
 
@@ -358,10 +397,17 @@ static PetscErrorCode SgsDDSetupNodalEvaluation_Sequential(Ceed ceed, User user,
     PetscCallCeed(ceed, CeedQFunctionDestroy(&qf_sgs_dd_outputs));
   }
 
-  sgs_dd_data->sgs_nodal_inference = SgsDDNodalStressEval_Sequential_Internal;
-  sgs_dd_data->sgs_nodal_eval      = SgsDDNodalStressEval_Sequential;
-  PetscCall(SgsDDSetupNodalEvaluation_Sequential_Internal(ceed, sgs_dd_data, sgs_dd_setup_data, elem_restr_dd_inputs, elem_restr_dd_outputs,
-                                                          elem_restr_inv_multiplicity, inv_multiplicity, &sgs_dd_data->sgs_nodal_inference_ctx));
+  sgs_dd_data->sgs_nodal_eval = SgsDDNodalStressEval_Sequential;
+
+  if (sgs_dd_setup_data->sgs_dd_model_implementation == SGS_MODEL_DD_SEQENTIAL_CEED) {
+    sgs_dd_data->sgs_nodal_inference = SgsDDNodalStressEval_Sequential_Ceed;
+    PetscCall(SgsDDSetupNodalEvaluation_Sequential_Ceed(ceed, sgs_dd_data, sgs_dd_setup_data, elem_restr_dd_inputs, elem_restr_dd_outputs,
+                                                        elem_restr_inv_multiplicity, inv_multiplicity, &sgs_dd_data->sgs_nodal_inference_ctx));
+  } else if (sgs_dd_setup_data->sgs_dd_model_implementation == SGS_MODEL_DD_SEQENTIAL_TORCH) {
+    sgs_dd_data->sgs_nodal_inference = SgsDDNodalStressEval_Sequential_Torch;
+    PetscCall(SgsDDSetupNodalEvaluation_Sequential_Torch(ceed, sgs_dd_data, sgs_dd_setup_data, elem_restr_dd_inputs, elem_restr_dd_outputs,
+                                                         elem_restr_inv_multiplicity, inv_multiplicity, &sgs_dd_data->sgs_nodal_inference_ctx));
+  }
 
   sgs_dd_setup_data->elem_restr_sgs = elem_restr_sgs;
 
@@ -515,7 +561,6 @@ PetscErrorCode SgsDDSetup(Ceed ceed, User user, CeedData ceed_data, ProblemData 
   MPI_Comm                 comm                           = user->comm;
   char                     sgs_dd_dir[PETSC_MAX_PATH_LEN] = "./dd_sgs_parameters";
   SgsDDSetupData           sgs_dd_setup_data;
-  PetscBool                use_fused;
   NewtonianIdealGasContext gas;
 
   PetscFunctionBeginUser;
@@ -526,13 +571,17 @@ PetscErrorCode SgsDDSetup(Ceed ceed, User user, CeedData ceed_data, ProblemData 
   user->sgs_dd_data->num_comp_inputs  = 6;
   user->sgs_dd_data->num_comp_outputs = 6;
 
-  use_fused = PETSC_TRUE;
+  PetscCall(PetscNew(&sgs_dd_setup_data));
+
   PetscOptionsBegin(comm, NULL, "SGS Data-Driven Model Options", NULL);
   PetscCall(PetscOptionsReal("-sgs_model_dd_leakyrelu_alpha", "Slope parameter for Leaky ReLU activation function", NULL, alpha, &alpha, NULL));
   PetscCall(PetscOptionsString("-sgs_model_dd_parameter_dir", "Path to directory with model parameters (weights, biases, etc.)", NULL, sgs_dd_dir,
                                sgs_dd_dir, sizeof(sgs_dd_dir), NULL));
-  PetscCall(
-      PetscOptionsBool("-sgs_model_dd_use_fused", "Use the fused SGS DD model evaluation instead of sequential", NULL, use_fused, &use_fused, NULL));
+  PetscCall(PetscOptionsDeprecated("-sgs_model_dd_use_fused", NULL, "libCEED 0.12.0", "Use -sgs_model_dd_type instead"));
+  sgs_dd_setup_data->sgs_dd_model_implementation = SGS_MODEL_DD_FUSED;
+  PetscCall(PetscOptionsEnum("-sgs_model_dd_implementation", "Data-Driven SGS model implementation", NULL, SGSModelDDImplementations,
+                             (PetscEnum)sgs_dd_setup_data->sgs_dd_model_implementation, (PetscEnum *)&sgs_dd_setup_data->sgs_dd_model_implementation,
+                             NULL));
   PetscOptionsEnd();
 
   PetscCall(PetscNew(&sgsdd_ctx));
@@ -546,8 +595,6 @@ PetscErrorCode SgsDDSetup(Ceed ceed, User user, CeedData ceed_data, ProblemData 
 
   // -- Create DM for storing SGS tensor at nodes
   PetscCall(SgsDDCreateDM(user->dm, &user->sgs_dd_data->dm_sgs, user->app_ctx->degree, user->app_ctx->q_extra, &user->sgs_dd_data->num_comp_sgs));
-
-  PetscCall(PetscNew(&sgs_dd_setup_data));
 
   PetscCallCeed(ceed, CeedQFunctionContextGetDataRead(problem->apply_vol_ifunction.qfunction_context, CEED_MEM_HOST, &gas));
   sgsdd_ctx->gas = *gas;
@@ -564,8 +611,15 @@ PetscErrorCode SgsDDSetup(Ceed ceed, User user, CeedData ceed_data, ProblemData 
                                                      &sgs_dd_setup_data->grid_aniso_ceed));
 
   // -- Create Nodal Evaluation Operator
-  if (use_fused) PetscCall(SgsDDSetupNodalEvaluation_Fused(ceed, user, ceed_data, sgs_dd_setup_data));
-  else PetscCall(SgsDDSetupNodalEvaluation_Sequential(ceed, user, ceed_data, sgs_dd_setup_data));
+  switch (sgs_dd_setup_data->sgs_dd_model_implementation) {
+    case SGS_MODEL_DD_FUSED:
+      PetscCall(SgsDDSetupNodalEvaluation_Fused(ceed, user, ceed_data, sgs_dd_setup_data));
+      break;
+    case SGS_MODEL_DD_SEQENTIAL_CEED:
+    case SGS_MODEL_DD_SEQENTIAL_TORCH:
+      PetscCall(SgsDDSetupNodalEvaluation_Sequential(ceed, user, ceed_data, sgs_dd_setup_data));
+      break;
+  }
 
   // -- Create Operator to evalutate residual of SGS stress
   PetscCall(SgsSetupNodalIFunction(ceed, user, ceed_data, sgs_dd_setup_data));

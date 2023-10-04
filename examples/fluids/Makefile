@@ -23,9 +23,6 @@ PETSc.pc := $(PETSC_DIR)/$(PETSC_ARCH)/lib/pkgconfig/PETSc.pc
 CEED_DIR ?= ../..
 ceed.pc := $(CEED_DIR)/lib/pkgconfig/ceed.pc
 
-# ASAN must be left empty if you don't want to use it
-ASAN ?=
-
 CC = $(call pkgconf, --variable=ccompiler $(PETSc.pc) $(ceed.pc))
 CFLAGS = -std=c99 \
   $(call pkgconf, --variable=cflags_extra $(PETSc.pc)) \
@@ -33,22 +30,51 @@ CFLAGS = -std=c99 \
   $(OPT) $(OPT_EXAMPLES)
 CPPFLAGS = $(call pkgconf, --cflags-only-I $(PETSc.pc) $(ceed.pc)) \
   $(call pkgconf, --variable=cflags_dep $(PETSc.pc))
+CXX = $(call pkgconf, --variable=cxxcompiler $(PETSc.pc) $(ceed.pc))
+CXXFLAGS = -std=c++17 -Wno-deprecated -Wno-tautological-compare
 LDFLAGS = $(call pkgconf, --libs-only-L --libs-only-other $(PETSc.pc) $(ceed.pc))
 LDFLAGS += $(patsubst -L%, $(call pkgconf, --variable=ldflag_rpath $(PETSc.pc))%, $(call pkgconf, --libs-only-L $(PETSc.pc) $(ceed.pc)))
-LDLIBS = $(call pkgconf, --libs-only-l $(PETSc.pc) $(ceed.pc)) -lm
+LDLIBS = $(call pkgconf, --libs-only-l $(PETSc.pc) $(ceed.pc)) -lm -lstdc++
 
-AFLAGS ?= -fsanitize=address #-fsanitize=undefined -fno-omit-frame-pointer
+# Address Sanitizer Setup
+# ASAN must be left empty if you don't want to use it
+ASAN ?=
+AFLAGS ?= -fsanitize=address
+# Also: -fsanitize=undefined -fno-omit-frame-pointer
 CFLAGS += $(if $(ASAN),$(AFLAGS))
 FFLAGS += $(if $(ASAN),$(AFLAGS))
 LDFLAGS += $(if $(ASAN),$(AFLAGS))
 CPPFLAGS += -I./include
 
+# LibTorch
+USE_TORCH ?=
+ifeq ($(USE_TORCH),1)
+  libtorch.pc := $(shell python ./pytorch_pkgconfig.py)
+  CPPFLAGS += $(call pkgconf, --cflags-only-I $(libtorch.pc))
+  CXXFLAGS += $(call pkgconf, --cflags-only-other $(libtorch.pc))
+  LDFLAGS += $(call pkgconf, --libs-only-L --libs-only-other $(libtorch.pc))
+  LDFLAGS += $(patsubst -L%, $(call pkgconf, --variable=ldflag_rpath $(PETSc.pc))%, $(call pkgconf, --libs-only-L $(libtorch.pc)))
+  LDLIBS += $(call pkgconf, --libs-only-l $(libtorch.pc))
+
+  src.cpp += $(sort $(wildcard $(PROBLEMDIR)/torch/*.cpp))
+  src.c += $(sort $(wildcard $(PROBLEMDIR)/torch/*.c))
+
+  # Intel Pytorch EXtension (IPEX)
+  IPEX_DIR ?=
+  ifdef IPEX_DIR
+      LDFLAGS += -L$(IPEX_DIR)/lib/
+      LDFLAGS += -Wl,-rpath,$(IPEX_DIR)/lib/
+      LDLIBS += -lintel-ext-pt-gpu
+  endif
+endif
+
+# Source Files
 OBJDIR := build
 SRCDIR := src
 PROBLEMDIR := problems
 
 src.c := navierstokes.c $(sort $(wildcard $(PROBLEMDIR)/*.c)) $(sort $(wildcard $(SRCDIR)/*.c))
-src.o = $(src.c:%.c=$(OBJDIR)/%.o)
+src.o = $(src.c:%.c=$(OBJDIR)/%.o) $(src.cpp:%.cpp=$(OBJDIR)/%.o)
 
 # Path to install directory for SmartRedis. Example: /software/smartredis/install
 SMARTREDIS_DIR ?=
@@ -67,7 +93,7 @@ endif
 all: navierstokes
 
 navierstokes: $(src.o) | $(PETSc.pc) $(ceed.pc)
-	$(call quiet,LINK.o) $(CEED_LDFLAGS) $^ $(LOADLIBES) $(LDLIBS) -o $@
+	$(call quiet,LINK.o) $(LDFLAGS) $^ $(LOADLIBES) $(LDLIBS) -o $@
 
 .SECONDEXPANSION: # to expand $$(@D)/.DIR
 %/.DIR :
@@ -79,6 +105,9 @@ quiet ?= $($(1))
 
 $(OBJDIR)/%.o : %.c | $$(@D)/.DIR
 	$(call quiet,CC) $(CPPFLAGS) $(CFLAGS) -c -o $@ $(abspath $<)
+
+$(OBJDIR)/%.o : %.cpp | $$(@D)/.DIR
+	$(call quiet,CXX) $(CPPFLAGS) $(CXXFLAGS) -c -o $@ $(abspath $<)
 
 print: $(PETSc.pc) $(ceed.pc)
 	$(info CC      : $(CC))
