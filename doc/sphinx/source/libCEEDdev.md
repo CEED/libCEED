@@ -163,3 +163,9 @@ These options are set in the backend initialization routine.
 3. Operator fallback - Developers may use {c:func}`CeedSetOperatorFallbackResource()` to set a {ref}`Ceed` resource that will provide the implementation of unimplemented {ref}`CeedOperator` methods.
    A fallback {ref}`Ceed` with this resource will only be instantiated if a method is called that is not implemented by the parent {ref}`Ceed`.
    In order to use the fallback mechanism, the parent {ref}`Ceed` and fallback resource must use compatible **E-vector** and **Q-vector** layouts.
+
+For example, the `/cpu/self/xsmm/serial/` backend implements the `CeedTensorContract` object but delegates all other functionality to the `/cpu/self/opt/serial` backend.
+The `/cpu/self/opt/serial` backend implements the `CeedTensorContract` and `CeedOperator` objects but delegates all other functionality to the `/cpu/self/ref/serial` backend.
+
+If the `/cpu/self/opt/serial` backend had missing {ref}`CeedOperator` functionality, then it could fallback to `/cpu/self/ref/serial` for missing methods.
+In this case, the fallback {ref}`Ceed` would clone the `/cpu/self/opt/serial` {ref}`CeedOperator` and use this clone to execute the missing functionality.
