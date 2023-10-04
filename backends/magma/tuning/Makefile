@@ -35,6 +35,6 @@ print: $(ceed.pc)
 	@true
 
 clean:
-	$(RM) -r tuning
+	$(RM) -r tuning output-nb-*.txt
 
 .PHONY: all clean

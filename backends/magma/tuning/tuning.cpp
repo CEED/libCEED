@@ -13,17 +13,18 @@
 #include <random>
 #include <vector>
 
-// XX TODO WIP: Add other quadrature orders, prism/pyramid, ...
 // clang-format off
+// Triplets of {P, Q, dim}. For now, includes some standard H1 spaces on triangles and tetrahedra, but can be
+// expanded to more quadrature rules and element types in the future.
 constexpr static std::array<std::array<int, 3>, 11> PQ_VALUES = {
     {{3, 1, 2}, {6, 3,  2}, {10, 6,  2}, {15, 12, 2}, {21, 16, 2}, {28, 25, 2}, {36, 33, 2},
      {4, 1, 3}, {10, 4, 3}, {20, 11, 3}, {35, 24, 3}}
 };
 // clang-format on
 
-constexpr static std::array<int, 7> N_VALUES = {1024, 5120, 10240, 51200, 102400, 512000, 1024000};
-
-constexpr int NUM_TRIALS = 25;
+constexpr static std::array<std::pair<int, int>, 7> N_VALUES = {
+    {{1024, 200}, {5120, 200}, {10240, 100}, {51200, 100}, {102400, 50}, {512000, 50}, {1024000, 25}}
+};
 
 using Clock    = std::chrono::steady_clock;
 using Duration = std::chrono::duration<double>;
@@ -36,7 +37,11 @@ int main(int argc, char **argv) {
   std::uniform_real_distribution<> rand_dist(0.0, 1.0);
   auto                             generate_random = [&rand_dist, &rand_engine]() { return rand_dist(rand_engine); };
 
-  CeedInit((argc < 2) ? "/gpu/cuda/magma" : argv[1], &ceed);
+  if (argc < 2) {
+    printf("Usage: ./tuning <CEED_RESOURCE>");
+    return 1;
+  }
+  CeedInit(argv[1], &ceed);
   CeedSetErrorHandler(ceed, CeedErrorStore);
 
   for (const auto [P, Q, dim] : PQ_VALUES) {
@@ -50,8 +55,9 @@ int main(int argc, char **argv) {
     CeedBasisCreateH1(ceed, (dim < 3) ? CEED_TOPOLOGY_TRIANGLE : CEED_TOPOLOGY_TET, 1, P, Q, interp.data(), grad.data(), q_ref.data(),
                       q_weight.data(), &basis);
 
-    for (const auto N : N_VALUES) {
+    for (const auto [N, NUM_TRIALS] : N_VALUES) {
       double data_interp_n = 0.0, data_interp_t = 0.0, data_grad_n = 0.0, data_grad_t = 0.0;
+      int    ierr;
 
       // Interp
       {
@@ -60,32 +66,26 @@ int main(int argc, char **argv) {
 
         // NoTranspose
         CeedVectorSetValue(u, 1.0);
-        for (int trial = 0; trial <= NUM_TRIALS; trial++) {
-          CeedVectorSetValue(v, 0.0);
-
+        CeedVectorSetValue(v, 0.0);
+        ierr = CeedBasisApply(basis, N, CEED_NOTRANSPOSE, CEED_EVAL_INTERP, u, v);
+        if (!ierr) {
           const auto start = Clock::now();
-          int        ierr  = CeedBasisApply(basis, N, CEED_NOTRANSPOSE, CEED_EVAL_INTERP, u, v);
-          if (ierr) {
-            break;
+          for (int trial = 0; trial < NUM_TRIALS; trial++) {
+            CeedBasisApply(basis, N, CEED_NOTRANSPOSE, CEED_EVAL_INTERP, u, v);
           }
-          if (trial > 0) {
-            data_interp_n += std::chrono::duration_cast<Duration>(Clock::now() - start).count();
-          }
+          data_interp_n = std::chrono::duration_cast<Duration>(Clock::now() - start).count();
         }
 
         // Transpose
-        CeedVectorSetValue(v, 1.0);
-        for (int trial = 0; trial <= NUM_TRIALS; trial++) {
-          CeedVectorSetValue(u, 0.0);
-
+        CeedVectorSetValue(u, 1.0);
+        CeedVectorSetValue(v, 0.0);
+        ierr = CeedBasisApply(basis, N, CEED_TRANSPOSE, CEED_EVAL_INTERP, v, u);
+        if (!ierr) {
           const auto start = Clock::now();
-          int        ierr  = CeedBasisApply(basis, N, CEED_TRANSPOSE, CEED_EVAL_INTERP, v, u);
-          if (ierr) {
-            break;
+          for (int trial = 0; trial < NUM_TRIALS; trial++) {
+            CeedBasisApply(basis, N, CEED_TRANSPOSE, CEED_EVAL_INTERP, v, u);
           }
-          if (trial > 0) {
-            data_interp_t += std::chrono::duration_cast<Duration>(Clock::now() - start).count();
-          }
+          data_interp_t = std::chrono::duration_cast<Duration>(Clock::now() - start).count();
         }
 
         CeedVectorDestroy(&u);
@@ -99,32 +99,26 @@ int main(int argc, char **argv) {
 
         // NoTranspose
         CeedVectorSetValue(u, 1.0);
-        for (int trial = 0; trial < NUM_TRIALS; trial++) {
-          CeedVectorSetValue(v, 0.0);
-
+        CeedVectorSetValue(v, 0.0);
+        ierr = CeedBasisApply(basis, N, CEED_NOTRANSPOSE, CEED_EVAL_GRAD, u, v);
+        if (!ierr) {
           const auto start = Clock::now();
-          int        ierr  = CeedBasisApply(basis, N, CEED_NOTRANSPOSE, CEED_EVAL_GRAD, u, v);
-          if (ierr) {
-            break;
+          for (int trial = 0; trial < NUM_TRIALS; trial++) {
+            CeedBasisApply(basis, N, CEED_NOTRANSPOSE, CEED_EVAL_GRAD, u, v);
           }
-          if (trial > 0) {
-            data_grad_n += std::chrono::duration_cast<Duration>(Clock::now() - start).count();
-          }
+          data_grad_n = std::chrono::duration_cast<Duration>(Clock::now() - start).count();
         }
 
         // Transpose
-        CeedVectorSetValue(v, 1.0);
-        for (int trial = 0; trial < NUM_TRIALS; trial++) {
-          CeedVectorSetValue(u, 0.0);
-
+        CeedVectorSetValue(u, 1.0);
+        CeedVectorSetValue(v, 0.0);
+        ierr = CeedBasisApply(basis, N, CEED_TRANSPOSE, CEED_EVAL_GRAD, v, u);
+        if (!ierr) {
           const auto start = Clock::now();
-          int        ierr  = CeedBasisApply(basis, N, CEED_TRANSPOSE, CEED_EVAL_GRAD, v, u);
-          if (ierr) {
-            break;
+          for (int trial = 0; trial < NUM_TRIALS; trial++) {
+            CeedBasisApply(basis, N, CEED_TRANSPOSE, CEED_EVAL_GRAD, v, u);
           }
-          if (trial > 0) {
-            data_grad_t += std::chrono::duration_cast<Duration>(Clock::now() - start).count();
-          }
+          data_grad_t = std::chrono::duration_cast<Duration>(Clock::now() - start).count();
         }
 
         CeedVectorDestroy(&u);
@@ -137,17 +131,17 @@ int main(int argc, char **argv) {
       constexpr int width = 12, precision = 2;
       // clang-format off
       std::printf("%-*d%-*d%-*d%-*d%-*d%*.*f\n",
-                  width, P, width, N, width, Q, width, 1, width, 0, width, precision,
-                  (data_interp_n > 0.0) ? NUM_TRIALS * interp_flops / data_interp_n * 1.0e-6 : 0.0);
+                  width, P, width, Q, width, N, width, 1, width, 0, width, precision,
+                  (data_interp_n > 0.0) ? 1e-6 * NUM_TRIALS * interp_flops / data_interp_n : 0.0);
       std::printf("%-*d%-*d%-*d%-*d%-*d%*.*f\n",
-                  width, P, width, N, width, Q, width, 1, width, 1, width, precision,
-                  (data_interp_t > 0.0) ? NUM_TRIALS * interp_flops / data_interp_t * 1.0e-6 : 0.0);
+                  width, P, width, Q, width, N, width, 1, width, 1, width, precision,
+                  (data_interp_t > 0.0) ? 1e-6 * NUM_TRIALS * interp_flops / data_interp_t : 0.0);
       std::printf("%-*d%-*d%-*d%-*d%-*d%*.*f\n",
-                  width, P, width, N, width, Q, width, dim, width, 0, width, precision,
-                  (data_grad_n > 0.0) ? NUM_TRIALS * grad_flops / data_grad_n * 1.0e-6 : 0.0);
+                  width, P, width, Q, width, N, width, dim, width, 0, width, precision,
+                  (data_grad_n > 0.0) ? 1e-6 * NUM_TRIALS * grad_flops / data_grad_n : 0.0);
       std::printf("%-*d%-*d%-*d%-*d%-*d%*.*f\n",
-                  width, P, width, N, width, Q, width, dim, width, 1, width, precision,
-                  (data_grad_n > 0.0) ? NUM_TRIALS * grad_flops / data_grad_n * 1.0e-6 : 0.0);
+                  width, P, width, Q, width, N, width, dim, width, 1, width, precision,
+                  (data_grad_t > 0.0) ? 1e-6 * NUM_TRIALS * grad_flops / data_grad_t : 0.0);
       // clang-format on
     }
 
