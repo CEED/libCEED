@@ -14,6 +14,6 @@
 CEED_INTERN void gemm_selector(int gpu_arch, char precision, char trans_A, int m, int n, int k, int *n_batch, int *use_magma);
 
 ////////////////////////////////////////////////////////////////////////////////
-CEED_INTERN CeedInt nontensor_rtc_get_nb(int gpu_arch, char trans_A, int q_comp, int P, int Q, int n);
+CEED_INTERN CeedInt nontensor_rtc_get_nb(int gpu_arch, char trans_A, int q_comp, int P, int Q, int N);
 
 #endif  // CEED_MAGMA_GEMM_SELECTOR_H

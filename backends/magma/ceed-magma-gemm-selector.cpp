@@ -14,20 +14,20 @@
 #include "tuning/indices.h"
 #ifdef CEED_MAGMA_USE_HIP
 #include "tuning/mi100.h"
+#include "tuning/mi100_rtc.h"
 #include "tuning/mi250x.h"
-#include "tuning/mi250x_grad_rtc.h"
-#include "tuning/mi250x_interp_rtc.h"
+#include "tuning/mi250x_rtc.h"
 #else
 #include "tuning/a100.h"
-#include "tuning/a100_grad_rtc.h"
-#include "tuning/a100_interp_rtc.h"
+#include "tuning/a100_rtc.h"
 #include "tuning/v100.h"
+#include "tuning/v100_rtc.h"
 #endif
 
 // These definitions to force a certain parameter when generating autotuning data offline
-// #define CEED_AUTOTUNE_GEMM_SELECTOR_N_BATCH 1
-// #define CEED_AUTOTUNE_GEMM_SELECTOR_USE_MAGMA true
-// #define CEED_AUTOTUNE_RTC_NB 1
+// #define CEED_AUTOTUNE_GEMM_SELECTOR_N_BATCH
+// #define CEED_AUTOTUNE_GEMM_SELECTOR_USE_MAGMA
+// #define CEED_AUTOTUNE_RTC_NB
 
 ////////////////////////////////////////////////////////////////////////////////
 #ifdef CEED_MAGMA_USE_HIP
@@ -99,51 +99,58 @@ void gemm_selector(int gpu_arch, char precision, char trans_A, int m, int n, int
 
 //////////////////////////////////////////////////////////////////////////////
 #ifdef CEED_MAGMA_USE_HIP
-static inline auto nontensor_rtc_get_data(int gpu_arch, char trans_A, int q_comp) -> decltype(dinterp_n_mi250x) {
-  if (q_comp == 1) {
-    return (trans_A == 'n') ? dinterp_n_mi250x : dinterp_t_mi250x;
+static inline auto nontensor_rtc_get_data(int gpu_arch, char trans_A) -> decltype(drtc_n_mi250x) {
+  if (gpu_arch >= 910) {
+    // gfx90a or newer
+    return (trans_A == 'n') ? drtc_n_mi250x : drtc_t_mi250x;
   } else {
-    return (trans_A == 'n') ? dgrad_n_mi250x : dgrad_t_mi250x;
+    // gfx908 or older
+    return (trans_A == 'n') ? drtc_n_mi100 : drtc_t_mi100;
   }
 }
 #else
-static inline auto nontensor_rtc_get_data(int gpu_arch, char trans_A, int q_comp) -> decltype(dinterp_n_a100) {
-  if (q_comp == 1) {
-    return (trans_A == 'n') ? dinterp_n_a100 : dinterp_t_a100;
+static inline auto nontensor_rtc_get_data(int gpu_arch, char trans_A) -> decltype(drtc_n_a100) {
+  if (gpu_arch >= 800) {
+    // sm80 or newer
+    return (trans_A == 'n') ? drtc_n_a100 : drtc_t_a100;
   } else {
-    return (trans_A == 'n') ? dgrad_n_a100 : dgrad_t_a100;
+    // sm70 or older
+    return (trans_A == 'n') ? drtc_n_v100 : drtc_t_v100;
   }
 }
 #endif
 
 ////////////////////////////////////////////////////////////////////////////////
-CeedInt nontensor_rtc_get_nb(int gpu_arch, char trans_A, int q_comp, int P, int Q, int n) {
+CeedInt nontensor_rtc_get_nb(int gpu_arch, char trans_A, int q_comp, int P, int Q, int N) {
 #ifdef CEED_AUTOTUNE_RTC_NB
   return CEED_AUTOTUNE_RTC_NB;
 #else
-  const auto &data = nontensor_rtc_get_data(gpu_arch, trans_A, q_comp);
+  const auto &data = nontensor_rtc_get_data(gpu_arch, trans_A);
   int         ir   = -1;
   double      norm = std::numeric_limits<double>::max();
-  CeedInt     m    = (trans_A == 'n') ? Q : P;
-  CeedInt     k    = (trans_A == 'n') ? P : Q;
 
   for (size_t i = 0; i < data.size(); i++) {
-    const int &im = data[i][M_INDEX_RTC];
-    const int &in = data[i][N_INDEX_RTC];
-    const int &ik = data[i][K_INDEX_RTC];
+    // Only seach exact matches for q_comp
+    if (q_comp != data[i][Q_COMP_INDEX_RTC]) {
+      continue;
+    }
 
-    double mdiff = (double)(im - m);
-    double ndiff = (double)(in - n);
-    double kdiff = (double)(ik - k);
-    double nrm   = mdiff * mdiff + ndiff * ndiff + kdiff * kdiff;
+    const int &iP = data[i][P_INDEX_RTC];
+    const int &iQ = data[i][Q_INDEX_RTC];
+    const int &iN = data[i][N_INDEX_RTC];
+
+    double Pdiff = (double)(iP - P);
+    double Qdiff = (double)(iQ - Q);
+    double Ndiff = (double)(iN - N);
+    double nrm   = Pdiff * Pdiff + Qdiff * Qdiff + Ndiff * Ndiff;
 
     if (nrm < norm) {
       norm = nrm;
       ir   = i;
     }
 
-    if (im == m && in == n && ik == k) {
-      // The input (m, n, k) exactly matches a record in `data`, no need to search further
+    if (iP == P && iQ == Q && iN == N) {
+      // The input (P, Q, N) exactly matches a record in `data`, no need to search further
       break;
     }
   }
