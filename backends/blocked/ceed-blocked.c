@@ -16,8 +16,7 @@
 // Backend Init
 //------------------------------------------------------------------------------
 static int CeedInit_Blocked(const char *resource, Ceed ceed) {
-  Ceed       ceed_ref;
-  const char fallback_resource[] = "/cpu/self/ref/serial";
+  Ceed ceed_ref;
 
   CeedCheck(!strcmp(resource, "/cpu/self") || !strcmp(resource, "/cpu/self/ref/blocked"), ceed, CEED_ERROR_BACKEND,
             "Blocked backend cannot use resource: %s", resource);
@@ -26,9 +25,6 @@ static int CeedInit_Blocked(const char *resource, Ceed ceed) {
   // Create reference Ceed that implementation will be dispatched through unless overridden
   CeedCallBackend(CeedInit("/cpu/self/ref/serial", &ceed_ref));
   CeedCallBackend(CeedSetDelegate(ceed, ceed_ref));
-
-  // Set fallback Ceed resource for advanced operator functionality
-  CeedCallBackend(CeedSetOperatorFallbackResource(ceed, fallback_resource));
 
   CeedCallBackend(CeedSetBackendFunction(ceed, "Ceed", ceed, "OperatorCreate", CeedOperatorCreate_Blocked));
   return CEED_ERROR_SUCCESS;
