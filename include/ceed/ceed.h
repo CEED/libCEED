@@ -382,8 +382,8 @@ CEED_EXTERN int CeedQFunctionContextRegisterDouble(CeedQFunctionContext ctx, con
 CEED_EXTERN int CeedQFunctionContextRegisterInt32(CeedQFunctionContext ctx, const char *field_name, size_t field_offset, size_t num_values,
                                                   const char *field_description);
 CEED_EXTERN int CeedQFunctionContextGetAllFieldLabels(CeedQFunctionContext ctx, const CeedContextFieldLabel **field_labels, CeedInt *num_fields);
-CEED_EXTERN int CeedContextFieldLabelGetDescription(CeedContextFieldLabel label, const char **field_name, const char **field_description,
-                                                    size_t *num_values, CeedContextFieldType *field_type);
+CEED_EXTERN int CeedContextFieldLabelGetDescription(CeedContextFieldLabel label, const char **field_name, size_t *field_offset, size_t *num_values,
+                                                    const char **field_description, CeedContextFieldType *field_type);
 CEED_EXTERN int CeedQFunctionContextGetContextSize(CeedQFunctionContext ctx, size_t *ctx_size);
 CEED_EXTERN int CeedQFunctionContextView(CeedQFunctionContext ctx, FILE *stream);
 CEED_EXTERN int CeedQFunctionContextSetDataDestroy(CeedQFunctionContext ctx, CeedMemType f_mem_type, CeedQFunctionContextDataDestroyUser f);
