@@ -27,9 +27,8 @@ static int CeedDestroy_Opt(Ceed ceed) {
 // Backend Init
 //------------------------------------------------------------------------------
 static int CeedInit_Opt_Serial(const char *resource, Ceed ceed) {
-  Ceed       ceed_ref;
-  const char fallback_resource[] = "/cpu/self/ref/serial";
-  Ceed_Opt  *data;
+  Ceed      ceed_ref;
+  Ceed_Opt *data;
 
   CeedCheck(!strcmp(resource, "/cpu/self") || !strcmp(resource, "/cpu/self/opt/serial"), ceed, CEED_ERROR_BACKEND,
             "Opt backend cannot use resource: %s", resource);
@@ -38,9 +37,6 @@ static int CeedInit_Opt_Serial(const char *resource, Ceed ceed) {
   // Create reference Ceed that implementation will be dispatched through unless overridden
   CeedCallBackend(CeedInit("/cpu/self/ref/serial", &ceed_ref));
   CeedCallBackend(CeedSetDelegate(ceed, ceed_ref));
-
-  // Set fallback Ceed resource for advanced operator functionality
-  CeedCallBackend(CeedSetOperatorFallbackResource(ceed, fallback_resource));
 
   CeedCallBackend(CeedSetBackendFunction(ceed, "Ceed", ceed, "Destroy", CeedDestroy_Opt));
   CeedCallBackend(CeedSetBackendFunction(ceed, "Ceed", ceed, "TensorContractCreate", CeedTensorContractCreate_Opt));
