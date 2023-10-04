@@ -45,9 +45,9 @@ def plot():
         data = group[1]
         data = data.sort_values('rel_error')
         p = data['degree'].values[0]
-        h = 1/data[res]
+        h = 1 / data[res]
         E = data['rel_error']
-        H =  amin(E) * (h/amin(h))**p
+        H = amin(E) * (h / amin(h))**p
         ax.loglog(h, E, 'o', color=colors[i])
         ax.loglog(h, H, '--', color=colors[i], label='O(h$^' + str(p) + '$)')
         i = i + 1

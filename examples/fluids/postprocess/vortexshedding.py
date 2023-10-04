@@ -27,8 +27,18 @@ palette = sns.color_palette()
 fig, ax_drag = plt.subplots()
 ax_lift = ax_drag.twinx()
 
-sns.lineplot(data=df, x="Time", y="Drag Coefficient", ax=ax_drag, color=palette[0])
-sns.lineplot(data=df, x="Time", y="Lift Coefficient", ax=ax_lift, color=palette[1])
+sns.lineplot(
+    data=df,
+    x="Time",
+    y="Drag Coefficient",
+    ax=ax_drag,
+    color=palette[0])
+sns.lineplot(
+    data=df,
+    x="Time",
+    y="Lift Coefficient",
+    ax=ax_lift,
+    color=palette[1])
 ax_drag.set_title(f"Shedding period {period}")
 ax_drag.set_ylim(0.41, 0.49)
 ax_drag.tick_params(axis="y", colors=palette[0])

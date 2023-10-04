@@ -739,6 +739,7 @@ distclean : clean
 
 # Documentation
 DOXYGEN ?= doxygen
+
 doxygen :
 	$(DOXYGEN) -q Doxyfile
 
@@ -749,18 +750,18 @@ doc : doc-html
 
 # Style/Format
 CLANG_FORMAT ?= clang-format
-
-FORMAT_OPTS += -style=file -i
+CLANG_FORMAT_OPTS += -style=file -i
+AUTOPEP8 ?= autopep8
+AUTOPEP8_OPTS += --in-place --aggressive
 
 format.ch := $(filter-out include/ceedf.h $(wildcard tests/t*-f.h), $(shell git ls-files '*.[ch]pp' '*.[ch]'))
+format.py := $(filter-out tests/junit-xml/junit_xml/__init__.py $(wildcard tests/*.py), $(shell git ls-files '*.py'))
 
 format-c  :
-	$(CLANG_FORMAT) $(FORMAT_OPTS) $(format.ch)
+	$(CLANG_FORMAT) $(CLANG_FORMAT_OPTS) $(format.ch)
 
-AUTOPEP8 = autopep8
-format-py  : AUTOPEP8_ARGS = --in-place --aggressive
-format-py  :
-	@$(AUTOPEP8) $(AUTOPEP8_ARGS) $(wildcard *.py python**/*.py python/tests/*.py examples**/*.py doc/sphinx/source**/*.py benchmarks/*.py)
+format-py :
+	$(AUTOPEP8) $(AUTOPEP8_OPTS) $(format.py)
 
 format    : format-c format-py
 

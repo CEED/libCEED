@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+
 # Copyright (c) 2017-2018, Lawrence Livermore National Security, LLC.
 # Produced at the Lawrence Livermore National Laboratory. LLNL-CODE-734707.
 # All Rights reserved. See files LICENSE and NOTICE for details.
@@ -15,12 +16,12 @@
 # software, applications, hardware, advanced system engineering and early
 # testbed platforms, in support of the nation's exascale computing imperative.
 
-
-# Adjustable plot parameters:
 from pylab import *
 from matplotlib import use
 from postprocess_base import read_logs
 import pandas as pd
+
+# Adjustable plot parameters
 log_y = 0               # use log scale on the y-axis?
 x_range = (1e1, 4e6)     # plot range for the x-axis; comment out for auto
 y_range = (0, 2e9)       # plot range for the y-axis; comment out for auto
@@ -31,9 +32,7 @@ legend_ncol = (2 if log_y else 1)   # number of columns in the legend
 write_figures = 1       # save the figures to files?
 show_figures = 1        # display the figures on the screen?
 
-
 # Load the data
-
 runs = read_logs()
 
 # Sample plot output
