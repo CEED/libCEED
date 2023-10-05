@@ -741,19 +741,21 @@ int CeedQFunctionContextGetAllFieldLabels(CeedQFunctionContext ctx, const CeedCo
 
   @param[in]  label             CeedContextFieldLabel
   @param[out] field_name        Name of labeled field
-  @param[out] field_description Description of field, or NULL for none
+  @param[out] field_offset      Offset of field registered
   @param[out] num_values        Number of values registered
+  @param[out] field_description Description of field, or NULL for none
   @param[out] field_type        CeedContextFieldType
 
   @return An error code: 0 - success, otherwise - failure
 
   @ref User
 **/
-int CeedContextFieldLabelGetDescription(CeedContextFieldLabel label, const char **field_name, const char **field_description, size_t *num_values,
-                                        CeedContextFieldType *field_type) {
+int CeedContextFieldLabelGetDescription(CeedContextFieldLabel label, const char **field_name, size_t *field_offset, size_t *num_values,
+                                        const char **field_description, CeedContextFieldType *field_type) {
   if (field_name) *field_name = label->name;
-  if (field_description) *field_description = label->description;
+  if (field_offset) *field_offset = label->offset;
   if (num_values) *num_values = label->num_values;
+  if (field_description) *field_description = label->description;
   if (field_type) *field_type = label->type;
   return CEED_ERROR_SUCCESS;
 }
