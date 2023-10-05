@@ -623,9 +623,11 @@ static int CeedSingleOperatorAssemble(CeedOperator op, CeedInt offset, CeedVecto
 
   // Loop over elements and put in data structure
   // We store B_mat_in, B_mat_out, BTD, elem_mat in row-major order
-  CeedSize    count = 0;
-  CeedScalar *vals, *BTD_mat = NULL, *elem_mat = NULL, *elem_mat_b = NULL;
+  CeedTensorContract contract;
+  CeedSize           count = 0;
+  CeedScalar        *vals, *BTD_mat = NULL, *elem_mat = NULL, *elem_mat_b = NULL;
 
+  CeedCall(CeedBasisGetTensorContract(basis_in, &contract));
   CeedCall(CeedCalloc(elem_size_out * num_qpts_in * num_eval_modes_in[0], &BTD_mat));
   CeedCall(CeedCalloc(elem_size_out * elem_size_in, &elem_mat));
   if (elem_rstr_curl_orients_in || elem_rstr_curl_orients_out) CeedCall(CeedCalloc(elem_size_out * elem_size_in, &elem_mat_b));
@@ -654,7 +656,12 @@ static int CeedSingleOperatorAssemble(CeedOperator op, CeedInt offset, CeedVecto
         }
 
         // Form element matrix itself (for each block component)
-        CeedCall(CeedMatrixMatrixMultiply(ceed, BTD_mat, B_mat_in, elem_mat, elem_size_out, elem_size_in, num_qpts_in * num_eval_modes_in[0]));
+        if (contract) {
+          CeedCall(CeedTensorContractApply(contract, 1, num_qpts_in * num_eval_modes_in[0], elem_size_in, elem_size_out, BTD_mat, CEED_NOTRANSPOSE,
+                                           false, B_mat_in, elem_mat));
+        } else {
+          CeedCall(CeedMatrixMatrixMultiply(ceed, BTD_mat, B_mat_in, elem_mat, elem_size_out, elem_size_in, num_qpts_in * num_eval_modes_in[0]));
+        }
 
         // Transform the element matrix if required
         if (elem_rstr_orients_out) {

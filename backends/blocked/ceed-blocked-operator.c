@@ -16,17 +16,16 @@
 //------------------------------------------------------------------------------
 // Setup Input/Output Fields
 //------------------------------------------------------------------------------
-static int CeedOperatorSetupFields_Blocked(CeedQFunction qf, CeedOperator op, bool is_input, CeedElemRestriction *block_rstr, CeedVector *e_vecs_full,
-                                           CeedVector *e_vecs, CeedVector *q_vecs, CeedInt start_e, CeedInt num_fields, CeedInt Q) {
+static int CeedOperatorSetupFields_Blocked(CeedQFunction qf, CeedOperator op, bool is_input, const CeedInt block_size,
+                                           CeedElemRestriction *block_rstr, CeedVector *e_vecs_full, CeedVector *e_vecs, CeedVector *q_vecs,
+                                           CeedInt start_e, CeedInt num_fields, CeedInt Q) {
   Ceed                ceed;
   CeedSize            e_size, q_size;
   CeedInt             num_comp, size, P;
-  const CeedInt       block_size = 8;
   CeedQFunctionField *qf_fields;
   CeedOperatorField  *op_fields;
 
   CeedCallBackend(CeedOperatorGetCeed(op, &ceed));
-
   if (is_input) {
     CeedCallBackend(CeedOperatorGetFields(op, NULL, &op_fields, NULL, NULL));
     CeedCallBackend(CeedQFunctionGetFields(qf, NULL, &qf_fields, NULL, NULL));
@@ -41,7 +40,6 @@ static int CeedOperatorSetupFields_Blocked(CeedQFunction qf, CeedOperator op, bo
     CeedBasis    basis;
 
     CeedCallBackend(CeedQFunctionFieldGetEvalMode(qf_fields[i], &eval_mode));
-
     if (eval_mode != CEED_EVAL_WEIGHT) {
       Ceed                ceed_rstr;
       CeedSize            l_size;
@@ -141,6 +139,7 @@ static int CeedOperatorSetup_Blocked(CeedOperator op) {
   bool                  is_setup_done;
   Ceed                  ceed;
   CeedInt               Q, num_input_fields, num_output_fields;
+  const CeedInt         block_size = 8;
   CeedQFunctionField   *qf_input_fields, *qf_output_fields;
   CeedQFunction         qf;
   CeedOperatorField    *op_input_fields, *op_output_fields;
@@ -172,10 +171,10 @@ static int CeedOperatorSetup_Blocked(CeedOperator op) {
 
   // Set up infield and outfield pointer arrays
   // Infields
-  CeedCallBackend(
-      CeedOperatorSetupFields_Blocked(qf, op, true, impl->block_rstr, impl->e_vecs_full, impl->e_vecs_in, impl->q_vecs_in, 0, num_input_fields, Q));
+  CeedCallBackend(CeedOperatorSetupFields_Blocked(qf, op, true, block_size, impl->block_rstr, impl->e_vecs_full, impl->e_vecs_in, impl->q_vecs_in, 0,
+                                                  num_input_fields, Q));
   // Outfields
-  CeedCallBackend(CeedOperatorSetupFields_Blocked(qf, op, false, impl->block_rstr, impl->e_vecs_full, impl->e_vecs_out, impl->q_vecs_out,
+  CeedCallBackend(CeedOperatorSetupFields_Blocked(qf, op, false, block_size, impl->block_rstr, impl->e_vecs_full, impl->e_vecs_out, impl->q_vecs_out,
                                                   num_input_fields, num_output_fields, Q));
 
   // Identity QFunctions
