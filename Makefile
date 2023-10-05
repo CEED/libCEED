@@ -752,10 +752,10 @@ doc : doc-html
 CLANG_FORMAT ?= clang-format
 CLANG_FORMAT_OPTS += -style=file -i
 AUTOPEP8 ?= autopep8
-AUTOPEP8_OPTS += --in-place --aggressive
+AUTOPEP8_OPTS += --in-place --aggressive --max-line-length 120
 
 format.ch := $(filter-out include/ceedf.h $(wildcard tests/t*-f.h), $(shell git ls-files '*.[ch]pp' '*.[ch]'))
-format.py := $(filter-out tests/junit-xml/junit_xml/__init__.py $(wildcard tests/*.py), $(shell git ls-files '*.py'))
+format.py := $(filter-out tests/junit-xml/junit_xml/__init__.py, $(shell git ls-files '*.py'))
 
 format-c  :
 	$(CLANG_FORMAT) $(CLANG_FORMAT_OPTS) $(format.ch)

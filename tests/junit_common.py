@@ -388,7 +388,8 @@ def run_tests(test: str, ceed_backends: list[str], mode: RunMode, nproc: int, su
 
             # check required failures
             if not test_case.is_skipped():
-                required_message, did_fail = suite_spec.check_required_failure(test, spec, ceed_resource, test_case.stderr)
+                required_message, did_fail = suite_spec.check_required_failure(
+                    test, spec, ceed_resource, test_case.stderr)
                 if required_message and did_fail:
                     test_case.status = f'fails with required: {required_message}'
                 elif required_message:
