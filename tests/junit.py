@@ -9,8 +9,20 @@ def create_argparser() -> argparse.ArgumentParser:
         argparse.ArgumentParser: Created `ArgumentParser`
     """
     parser = argparse.ArgumentParser('Test runner with JUnit and TAP output')
-    parser.add_argument('-c', '--ceed-backends', type=str, nargs='*', default=['/cpu/self'], help='libCEED backend to use with convergence tests')
-    parser.add_argument('-m', '--mode', type=RunMode, action=CaseInsensitiveEnumAction, help='Output mode, junit or tap', default=RunMode.JUNIT)
+    parser.add_argument(
+        '-c',
+        '--ceed-backends',
+        type=str,
+        nargs='*',
+        default=['/cpu/self'],
+        help='libCEED backend to use with convergence tests')
+    parser.add_argument(
+        '-m',
+        '--mode',
+        type=RunMode,
+        action=CaseInsensitiveEnumAction,
+        help='Output mode, junit or tap',
+        default=RunMode.JUNIT)
     parser.add_argument('-n', '--nproc', type=int, default=1, help='number of MPI processes')
     parser.add_argument('-o', '--output', type=Optional[Path], default=None, help='Output file to write test')
     parser.add_argument('-b', '--junit-batch', type=str, default='', help='Name of JUnit batch for output file')
@@ -84,7 +96,8 @@ class CeedSuiteSpec(SuiteSpec):
         Returns:
             Optional[str]: Skip reason, or `None` if test case should not be skipped
         """
-        if contains_any(resource, ['occa']) and startswith_any(test, ['t4', 't5', 'ex', 'mfem', 'nek', 'petsc', 'fluids', 'solids']):
+        if contains_any(resource, ['occa']) and startswith_any(
+                test, ['t4', 't5', 'ex', 'mfem', 'nek', 'petsc', 'fluids', 'solids']):
             return 'OCCA mode not supported'
         if test.startswith('t318') and contains_any(resource, ['/gpu/cuda/ref']):
             return 'CUDA ref backend not supported'

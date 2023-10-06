@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+
 # Copyright (c) 2017-2018, Lawrence Livermore National Security, LLC.
 # Produced at the Lawrence Livermore National Laboratory. LLNL-CODE-734707.
 # All Rights reserved. See files LICENSE and NOTICE for details.
@@ -15,11 +16,10 @@
 # software, applications, hardware, advanced system engineering and early
 # testbed platforms, in support of the nation's exascale computing imperative.
 
-
-# Load the data
 import pandas as pd
 from postprocess_base import read_logs
 
+# Load the data
 runs = read_logs()
 
 # Data output
