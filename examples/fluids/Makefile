@@ -39,7 +39,8 @@ LDLIBS = $(call pkgconf, --libs-only-l $(PETSc.pc) $(ceed.pc)) -lm -lstdc++
 # Address Sanitizer Setup
 # ASAN must be left empty if you don't want to use it
 ASAN ?=
-AFLAGS ?= -fsanitize=address #-fsanitize=undefined -fno-omit-frame-pointer
+AFLAGS ?= -fsanitize=address
+# Also: -fsanitize=undefined -fno-omit-frame-pointer
 CFLAGS += $(if $(ASAN),$(AFLAGS))
 FFLAGS += $(if $(ASAN),$(AFLAGS))
 LDFLAGS += $(if $(ASAN),$(AFLAGS))
@@ -47,11 +48,26 @@ CPPFLAGS += -I./include
 
 # LibTorch
 USE_LIBTORCH ?=
-ifeq ($(USE_LIBTORCH),True)
+
+define TorchTryStatement
+try:
+	import torch.utils.cpp_extension
+except ImportError:
+	print("False")
+	exit(0)
+print("True")
+endef
+
+ifndef ($(USE_LIBTORCH))
+  PYTHON_OUTPUT := $(shell python -c '$(TorchTryStatement)')
+  ifeq ($(PYTHON_OUTPUT),True)
+    USE_LIBTORCH := 1
+  endif
+endif
+
+ifeq ($(USE_LIBTORCH),1)
   LIBTORCH_INCPATH := $(shell python -c "import torch.utils.cpp_extension as C; print('-I' + str.join(' -I', C.include_paths()))")
   LIBTORCH_LIBPATH := $(shell python -c "import torch.utils.cpp_extension as C; print(C.library_paths()[0])")
-  # LIBTORCH_INCPATH := -I/home/jrwrigh/Downloads/libtorch-shared-with-deps-latest/libtorch/include/torch/csrc/api/include -I/home/jrwrigh/Downloads/libtorch-shared-with-deps-latest/libtorch/include -I/home/jrwrigh/Downloads/libtorch-shared-with-deps-latest/libtorch/include/TH -I/home/jrwrigh/Downloads/libtorch-shared-with-deps-latest/libtorch/include/THC
-  # LIBTORCH_LIBPATH := /home/jrwrigh/Downloads/libtorch-shared-with-deps-latest/libtorch/lib
   LIBTORCH_USE_CUDA := $(shell python -c "import torch; print(torch.cuda.is_available())")
   ltorch := -ltorch -lc10 -ltorch_cpu
 
@@ -61,8 +77,8 @@ ifeq ($(USE_LIBTORCH),True)
   LDLIBS += $(ltorch)
 
   # Intel extension for pytorch (IPEX)
-  IPEX_PATH ?=
-  ifdef IPEX_PATH
+  IPEX_DIR ?=
+  ifdef IPEX_DIR
       LDFLAGS += -L${IPEX_PATH}/lib/
       LDFLAGS += -Wl,-rpath,$(IPEX_PATH)/lib/
       lipex = -lintel-ext-pt-gpu
@@ -97,7 +113,7 @@ endif
 all: navierstokes
 
 navierstokes: $(src.o) | $(PETSc.pc) $(ceed.pc)
-	$(call quiet,LINK.o) $(CEED_LDFLAGS) $^ $(LOADLIBES) $(LDLIBS) -o $@
+	$(call quiet,LINK.o) $(LDFLAGS) $^ $(LOADLIBES) $(LDLIBS) -o $@
 
 .SECONDEXPANSION: # to expand $$(@D)/.DIR
 %/.DIR :
@@ -109,6 +125,7 @@ quiet ?= $($(1))
 
 $(OBJDIR)/%.o : %.c | $$(@D)/.DIR
 	$(call quiet,CC) $(CPPFLAGS) $(CFLAGS) -c -o $@ $(abspath $<)
+
 $(OBJDIR)/%.o : %.cpp | $$(@D)/.DIR
 	$(call quiet,CXX) $(CPPFLAGS) $(CXXFLAGS) -c -o $@ $(abspath $<)
 

@@ -148,6 +148,7 @@ PetscErrorCode RegressionTest(AppCtx app_ctx, Vec Q) {
   PetscFunctionBeginUser;
   // Read reference file
   PetscCall(VecDuplicate(Q, &Qref));
+  PetscCheck(strcmp(app_ctx->test_file_path, "") != 0, comm, PETSC_ERR_FILE_READ, "File for regression test not given");
   PetscCall(PetscViewerBinaryOpen(comm, app_ctx->test_file_path, FILE_MODE_READ, &viewer));
   PetscCall(LoadFluidsBinaryVec(comm, viewer, Qref, NULL, NULL));
 
