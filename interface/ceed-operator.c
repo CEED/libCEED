@@ -309,6 +309,7 @@ static int CeedOperatorContextSetGeneric(CeedOperator op, CeedContextFieldLabel 
     CeedCheck(op->qf->ctx, op->ceed, CEED_ERROR_UNSUPPORTED, "QFunction does not have context data");
     CeedCall(CeedQFunctionContextSetGeneric(op->qf->ctx, field_label, field_type, values));
   }
+  CeedCall(CeedOperatorSetQFunctionAssemblyDataUpdateNeeded(op, true));
   return CEED_ERROR_SUCCESS;
 }
 
