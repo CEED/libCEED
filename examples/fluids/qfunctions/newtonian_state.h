@@ -64,51 +64,45 @@ CEED_QFUNCTION_HELPER CeedScalar TotalSpecificEnthalpy_fwd(NewtonianIdealGasCont
   return de_internal + de_kinetic + ds.Y.pressure / s.U.density - s.Y.pressure / Square(s.U.density) * ds.U.density;
 }
 
-CEED_QFUNCTION_HELPER StatePrimitive StatePrimitiveFromConservative(NewtonianIdealGasContext gas, StateConservative U, const CeedScalar x[3]) {
+CEED_QFUNCTION_HELPER StatePrimitive StatePrimitiveFromConservative(NewtonianIdealGasContext gas, StateConservative U) {
   StatePrimitive Y;
   for (CeedInt i = 0; i < 3; i++) Y.velocity[i] = U.momentum[i] / U.density;
   CeedScalar e_kinetic   = .5 * Dot3(Y.velocity, Y.velocity);
-  CeedScalar e_potential = -Dot3(gas->g, x);
   CeedScalar e_total     = U.E_total / U.density;
-  CeedScalar e_internal  = e_total - e_kinetic - e_potential;
+  CeedScalar e_internal  = e_total - e_kinetic;
   Y.temperature          = e_internal / gas->cv;
   Y.pressure             = (HeatCapacityRatio(gas) - 1) * U.density * e_internal;
   return Y;
 }
 
-CEED_QFUNCTION_HELPER StatePrimitive StatePrimitiveFromConservative_fwd(NewtonianIdealGasContext gas, State s, StateConservative dU,
-                                                                        const CeedScalar x[3], const CeedScalar dx[3]) {
+CEED_QFUNCTION_HELPER StatePrimitive StatePrimitiveFromConservative_fwd(NewtonianIdealGasContext gas, State s, StateConservative dU) {
   StatePrimitive dY;
   for (CeedInt i = 0; i < 3; i++) {
     dY.velocity[i] = (dU.momentum[i] - s.Y.velocity[i] * dU.density) / s.U.density;
   }
   CeedScalar e_kinetic    = .5 * Dot3(s.Y.velocity, s.Y.velocity);
   CeedScalar de_kinetic   = Dot3(dY.velocity, s.Y.velocity);
-  CeedScalar e_potential  = -Dot3(gas->g, x);
-  CeedScalar de_potential = -Dot3(gas->g, dx);
   CeedScalar e_total      = s.U.E_total / s.U.density;
   CeedScalar de_total     = (dU.E_total - e_total * dU.density) / s.U.density;
-  CeedScalar e_internal   = e_total - e_kinetic - e_potential;
-  CeedScalar de_internal  = de_total - de_kinetic - de_potential;
+  CeedScalar e_internal   = e_total - e_kinetic;
+  CeedScalar de_internal  = de_total - de_kinetic;
   dY.temperature          = de_internal / gas->cv;
   dY.pressure             = (HeatCapacityRatio(gas) - 1) * (dU.density * e_internal + s.U.density * de_internal);
   return dY;
 }
 
-CEED_QFUNCTION_HELPER StateConservative StateConservativeFromPrimitive(NewtonianIdealGasContext gas, StatePrimitive Y, const CeedScalar x[3]) {
+CEED_QFUNCTION_HELPER StateConservative StateConservativeFromPrimitive(NewtonianIdealGasContext gas, StatePrimitive Y ) {
   StateConservative U;
   U.density = Y.pressure / (GasConstant(gas) * Y.temperature);
   for (int i = 0; i < 3; i++) U.momentum[i] = U.density * Y.velocity[i];
   CeedScalar e_internal  = gas->cv * Y.temperature;
   CeedScalar e_kinetic   = .5 * Dot3(Y.velocity, Y.velocity);
-  CeedScalar e_potential = -Dot3(gas->g, x);
-  CeedScalar e_total     = e_internal + e_kinetic + e_potential;
+  CeedScalar e_total     = e_internal + e_kinetic ;
   U.E_total              = U.density * e_total;
   return U;
 }
 
-CEED_QFUNCTION_HELPER StateConservative StateConservativeFromPrimitive_fwd(NewtonianIdealGasContext gas, State s, StatePrimitive dY,
-                                                                           const CeedScalar x[3], const CeedScalar dx[3]) {
+CEED_QFUNCTION_HELPER StateConservative StateConservativeFromPrimitive_fwd(NewtonianIdealGasContext gas, State s, StatePrimitive dY){
   StateConservative dU;
   dU.density = (dY.pressure * s.Y.temperature - s.Y.pressure * dY.temperature) / (GasConstant(gas) * s.Y.temperature * s.Y.temperature);
   for (int i = 0; i < 3; i++) {
@@ -116,27 +110,24 @@ CEED_QFUNCTION_HELPER StateConservative StateConservativeFromPrimitive_fwd(Newto
   }
   CeedScalar e_kinetic    = .5 * Dot3(s.Y.velocity, s.Y.velocity);
   CeedScalar de_kinetic   = Dot3(dY.velocity, s.Y.velocity);
-  CeedScalar e_potential  = -Dot3(gas->g, x);
-  CeedScalar de_potential = -Dot3(gas->g, dx);
   CeedScalar e_internal   = gas->cv * s.Y.temperature;
   CeedScalar de_internal  = gas->cv * dY.temperature;
-  CeedScalar e_total      = e_internal + e_kinetic + e_potential;
-  CeedScalar de_total     = de_internal + de_kinetic + de_potential;
+  CeedScalar e_total      = e_internal + e_kinetic;
+  CeedScalar de_total     = de_internal + de_kinetic;
   dU.E_total              = dU.density * e_total + s.U.density * de_total;
   return dU;
 }
 
-CEED_QFUNCTION_HELPER State StateFromPrimitive(NewtonianIdealGasContext gas, StatePrimitive Y, const CeedScalar x[3]) {
-  StateConservative U = StateConservativeFromPrimitive(gas, Y, x);
+CEED_QFUNCTION_HELPER State StateFromPrimitive(NewtonianIdealGasContext gas, StatePrimitive Y) {
+  StateConservative U = StateConservativeFromPrimitive(gas, Y);
   State             s;
   s.U = U;
   s.Y = Y;
   return s;
 }
 
-CEED_QFUNCTION_HELPER State StateFromPrimitive_fwd(NewtonianIdealGasContext gas, State s, StatePrimitive dY, const CeedScalar x[3],
-                                                   const CeedScalar dx[3]) {
-  StateConservative dU = StateConservativeFromPrimitive_fwd(gas, s, dY, x, dx);
+CEED_QFUNCTION_HELPER State StateFromPrimitive_fwd(NewtonianIdealGasContext gas, State s, StatePrimitive dY){ 
+  StateConservative dU = StateConservativeFromPrimitive_fwd(gas, s, dY);
   State             ds;
   ds.U = dU;
   ds.Y = dY;
@@ -178,74 +169,72 @@ CEED_QFUNCTION_HELPER void StateToQ(NewtonianIdealGasContext gas, const State in
   }
 }
 
-CEED_QFUNCTION_HELPER State StateFromU(NewtonianIdealGasContext gas, const CeedScalar U[5], const CeedScalar x[3]) {
+CEED_QFUNCTION_HELPER State StateFromU(NewtonianIdealGasContext gas, const CeedScalar U[5]) {
   State s;
   s.U.density     = U[0];
   s.U.momentum[0] = U[1];
   s.U.momentum[1] = U[2];
   s.U.momentum[2] = U[3];
   s.U.E_total     = U[4];
-  s.Y             = StatePrimitiveFromConservative(gas, s.U, x);
+  s.Y             = StatePrimitiveFromConservative(gas, s.U);
   return s;
 }
 
-CEED_QFUNCTION_HELPER State StateFromU_fwd(NewtonianIdealGasContext gas, State s, const CeedScalar dU[5], const CeedScalar x[3],
-                                           const CeedScalar dx[3]) {
+CEED_QFUNCTION_HELPER State StateFromU_fwd(NewtonianIdealGasContext gas, State s, const CeedScalar dU[5]) {
   State ds;
   ds.U.density     = dU[0];
   ds.U.momentum[0] = dU[1];
   ds.U.momentum[1] = dU[2];
   ds.U.momentum[2] = dU[3];
   ds.U.E_total     = dU[4];
-  ds.Y             = StatePrimitiveFromConservative_fwd(gas, s, ds.U, x, dx);
+  ds.Y             = StatePrimitiveFromConservative_fwd(gas, s, ds.U);
   return ds;
 }
 
-CEED_QFUNCTION_HELPER State StateFromY(NewtonianIdealGasContext gas, const CeedScalar Y[5], const CeedScalar x[3]) {
+CEED_QFUNCTION_HELPER State StateFromY(NewtonianIdealGasContext gas, const CeedScalar Y[5]){
   State s;
   s.Y.pressure    = Y[0];
   s.Y.velocity[0] = Y[1];
   s.Y.velocity[1] = Y[2];
   s.Y.velocity[2] = Y[3];
   s.Y.temperature = Y[4];
-  s.U             = StateConservativeFromPrimitive(gas, s.Y, x);
+  s.U             = StateConservativeFromPrimitive(gas, s.Y);
   return s;
 }
 
-CEED_QFUNCTION_HELPER State StateFromY_fwd(NewtonianIdealGasContext gas, State s, const CeedScalar dY[5], const CeedScalar x[3],
-                                           const CeedScalar dx[3]) {
+CEED_QFUNCTION_HELPER State StateFromY_fwd(NewtonianIdealGasContext gas, State s, const CeedScalar dY[5]){ 
   State ds;
   ds.Y.pressure    = dY[0];
   ds.Y.velocity[0] = dY[1];
   ds.Y.velocity[1] = dY[2];
   ds.Y.velocity[2] = dY[3];
   ds.Y.temperature = dY[4];
-  ds.U             = StateConservativeFromPrimitive_fwd(gas, s, ds.Y, x, dx);
+  ds.U             = StateConservativeFromPrimitive_fwd(gas, s, ds.Y);
   return ds;
 }
 
-CEED_QFUNCTION_HELPER State StateFromQ(NewtonianIdealGasContext gas, const CeedScalar Q[5], const CeedScalar x[3], StateVariable state_var) {
+CEED_QFUNCTION_HELPER State StateFromQ(NewtonianIdealGasContext gas, const CeedScalar Q[5], StateVariable state_var) {
   State s;
   switch (state_var) {
     case STATEVAR_CONSERVATIVE:
-      s = StateFromU(gas, Q, x);
+      s = StateFromU(gas, Q);
       break;
     case STATEVAR_PRIMITIVE:
-      s = StateFromY(gas, Q, x);
+      s = StateFromY(gas, Q);
       break;
   }
   return s;
 }
 
-CEED_QFUNCTION_HELPER State StateFromQ_fwd(NewtonianIdealGasContext gas, State s, const CeedScalar dQ[5], const CeedScalar x[3],
-                                           const CeedScalar dx[3], StateVariable state_var) {
+CEED_QFUNCTION_HELPER State StateFromQ_fwd(NewtonianIdealGasContext gas, State s, const CeedScalar dQ[5], 
+                                            StateVariable state_var) {
   State ds;
   switch (state_var) {
     case STATEVAR_CONSERVATIVE:
-      ds = StateFromU_fwd(gas, s, dQ, x, dx);
+      ds = StateFromU_fwd(gas, s, dQ);
       break;
     case STATEVAR_PRIMITIVE:
-      ds = StateFromY_fwd(gas, s, dQ, x, dx);
+      ds = StateFromY_fwd(gas, s, dQ);
       break;
   }
   return ds;
@@ -404,30 +393,28 @@ CEED_QFUNCTION_HELPER void Vorticity(const State grad_s[3], CeedScalar vorticity
   Curl3(grad_velocity, vorticity);
 }
 
-CEED_QFUNCTION_HELPER void StatePhysicalGradientFromReference(CeedInt Q, CeedInt i, NewtonianIdealGasContext gas, State s, const CeedScalar x_i[3],
+CEED_QFUNCTION_HELPER void StatePhysicalGradientFromReference(CeedInt Q, CeedInt i, NewtonianIdealGasContext gas, State s, 
                                                               StateVariable state_var, const CeedScalar *grad_q, const CeedScalar dXdx[3][3],
-                                                              bool zero_dx, State grad_s[3]) {
+                                                              State grad_s[3]) {
   for (CeedInt k = 0; k < 3; k++) {
-    CeedScalar dx_i[3] = {0}, dqi[5];
+    CeedScalar  dqi[5];
     for (CeedInt j = 0; j < 5; j++) {
       dqi[j] =
           grad_q[(Q * 5) * 0 + Q * j + i] * dXdx[0][k] + grad_q[(Q * 5) * 1 + Q * j + i] * dXdx[1][k] + grad_q[(Q * 5) * 2 + Q * j + i] * dXdx[2][k];
     }
-    dx_i[k]   = zero_dx ? 0. : 1.;
-    grad_s[k] = StateFromQ_fwd(gas, s, dqi, x_i, dx_i, state_var);
+    grad_s[k] = StateFromQ_fwd(gas, s, dqi, state_var);
   }
 }
 
 CEED_QFUNCTION_HELPER void StatePhysicalGradientFromReference_Boundary(CeedInt Q, CeedInt i, NewtonianIdealGasContext gas, State s,
-                                                                       const CeedScalar x_i[3], StateVariable state_var, const CeedScalar *grad_q,
-                                                                       const CeedScalar dXdx[2][3], bool zero_dx, State grad_s[3]) {
+                                                                       StateVariable state_var, const CeedScalar *grad_q,
+                                                                       const CeedScalar dXdx[2][3],  State grad_s[3]) {
   for (CeedInt k = 0; k < 3; k++) {
-    CeedScalar dx_i[3] = {0}, dqi[5];
+    CeedScalar dqi[5];
     for (CeedInt j = 0; j < 5; j++) {
       dqi[j] = grad_q[(Q * 5) * 0 + Q * j + i] * dXdx[0][k] + grad_q[(Q * 5) * 1 + Q * j + i] * dXdx[1][k];
     }
-    dx_i[k]   = zero_dx ? 0. : 1.;
-    grad_s[k] = StateFromQ_fwd(gas, s, dqi, x_i, dx_i, state_var);
+    grad_s[k] = StateFromQ_fwd(gas, s, dqi,  state_var);
   }
 }
 

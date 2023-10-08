@@ -40,21 +40,20 @@ static PetscErrorCode CheckPrimitiveWithTolerance(StatePrimitive sY, StatePrimit
 static PetscErrorCode UnitTests_Newtonian(User user, NewtonianIdealGasContext gas) {
   Units            units = user->units;
   const CeedScalar eps   = 1e-6;
-  const CeedScalar x[3]  = {.1, .2, .3};
   const CeedScalar kg = units->kilogram, m = units->meter, sec = units->second, Pascal = units->Pascal;
-
   PetscFunctionBeginUser;
   const CeedScalar rho = 1.2 * kg / (m * m * m), u = 40 * m / sec;
   CeedScalar       U[5] = {rho, rho * u, rho * u * 1.1, rho * u * 1.2, 250e3 * Pascal + .5 * rho * u * u};
-  State            s    = StateFromU(gas, U, x);
+  const CeedScalar x[3] = {.1, .2, .3};
+  State            s    = StateFromU(gas, U);
   for (int i = 0; i < 8; i++) {
     CeedScalar dU[5] = {0}, dx[3] = {0};
     if (i < 5) dU[i] = U[i];
     else dx[i - 5] = x[i - 5];
-    State ds = StateFromU_fwd(gas, s, dU, x, dx);
+    State ds = StateFromU_fwd(gas, s, dU);
     for (int j = 0; j < 5; j++) dU[j] = (1 + eps * (i == j)) * U[j];
     for (int j = 0; j < 3; j++) dx[j] = (1 + eps * (i == 5 + j)) * x[j];
-    State          t = StateFromU(gas, dU, dx);
+    State          t = StateFromU(gas, dU);
     StatePrimitive dY;
     dY.pressure = (t.Y.pressure - s.Y.pressure) / eps;
     for (int j = 0; j < 3; j++) dY.velocity[j] = (t.Y.velocity[j] - s.Y.velocity[j]) / eps;
@@ -87,7 +86,7 @@ PetscErrorCode NS_NEWTONIAN_IG(ProblemData *problem, DM dm, void *ctx, SimpleBC 
   //           Setup Generic Newtonian IG Problem
   // ------------------------------------------------------
   problem->dim                     = 3;
-  problem->q_data_size_vol         = 10;
+  problem->q_data_size_vol         = 11;
   problem->q_data_size_sur         = 10;
   problem->jac_data_size_sur       = 11;
   problem->setup_vol.qfunction     = Setup;

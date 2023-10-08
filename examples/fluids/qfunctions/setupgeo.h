@@ -51,6 +51,7 @@
 CEED_QFUNCTION(Setup)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
   const CeedScalar(*J)[3][CEED_Q_VLA] = (const CeedScalar(*)[3][CEED_Q_VLA])in[0];
   const CeedScalar(*w)                = in[1];
+  const CeedScalar(*x)[CEED_Q_VLA]    = (const CeedScalar(*)[CEED_Q_VLA])in[2];
   CeedScalar(*q_data)                 = out[0];
 
   CeedPragmaSIMD for (CeedInt i = 0; i < Q; i++) {
@@ -60,6 +61,13 @@ CEED_QFUNCTION(Setup)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedSca
 
     StoredValuesPack(Q, i, 0, 1, &wdetJ, q_data);
     StoredValuesPack(Q, i, 1, 9, (const CeedScalar *)dXdx, q_data);
+//    q_data[10][i]=LinearRampCoefficient(context->idl_amplitude, context->idl_length, context->idl_start    , x[0][i]);
+//  idl_decay_time: 3.6e-4
+//  coeff needs 1/3.6e-4=2777.78
+//  idl_start: -3.1
+//  idl_length: 0.2
+    CeedScalar xo=x[0][i];
+    q_data[10][i]=LinearRampCoefficient(2777.78,0.2,-3.1, xo);
   }
   return 0;
 }
