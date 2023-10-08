@@ -404,4 +404,31 @@ CEED_QFUNCTION_HELPER void Vorticity(const State grad_s[3], CeedScalar vorticity
   Curl3(grad_velocity, vorticity);
 }
 
+CEED_QFUNCTION_HELPER void StatePhysicalGradientFromReference(CeedInt Q, CeedInt i, NewtonianIdealGasContext gas, State s, const CeedScalar x_i[3],
+                                                              StateVariable state_var, const CeedScalar *grad_q, const CeedScalar dXdx[3][3],
+                                                              bool zero_dx, State grad_s[3]) {
+  for (CeedInt k = 0; k < 3; k++) {
+    CeedScalar dx_i[3] = {0}, dqi[5];
+    for (CeedInt j = 0; j < 5; j++) {
+      dqi[j] =
+          grad_q[(Q * 5) * 0 + Q * j + i] * dXdx[0][k] + grad_q[(Q * 5) * 1 + Q * j + i] * dXdx[1][k] + grad_q[(Q * 5) * 2 + Q * j + i] * dXdx[2][k];
+    }
+    dx_i[k]   = zero_dx ? 0. : 1.;
+    grad_s[k] = StateFromQ_fwd(gas, s, dqi, x_i, dx_i, state_var);
+  }
+}
+
+CEED_QFUNCTION_HELPER void StatePhysicalGradientFromReference_Boundary(CeedInt Q, CeedInt i, NewtonianIdealGasContext gas, State s,
+                                                                       const CeedScalar x_i[3], StateVariable state_var, const CeedScalar *grad_q,
+                                                                       const CeedScalar dXdx[2][3], bool zero_dx, State grad_s[3]) {
+  for (CeedInt k = 0; k < 3; k++) {
+    CeedScalar dx_i[3] = {0}, dqi[5];
+    for (CeedInt j = 0; j < 5; j++) {
+      dqi[j] = grad_q[(Q * 5) * 0 + Q * j + i] * dXdx[0][k] + grad_q[(Q * 5) * 1 + Q * j + i] * dXdx[1][k];
+    }
+    dx_i[k]   = zero_dx ? 0. : 1.;
+    grad_s[k] = StateFromQ_fwd(gas, s, dqi, x_i, dx_i, state_var);
+  }
+}
+
 #endif  // newtonian_state_h
