@@ -127,7 +127,6 @@ CEED_QFUNCTION(RHSFunction_Newtonian)(void *ctx, CeedInt Q, const CeedScalar *co
     for (int j = 0; j < 5; j++) U[j] = q[j][i];
     StoredValuesUnpack(Q, i, 0, 1, q_data, &wdetJ);
     StoredValuesUnpack(Q, i, 1, 9, q_data, (CeedScalar *)dXdx);
-    const CeedScalar x_i[3] = {x[0][i], x[1][i], x[2][i]};
     State            s      = StateFromU(context, U);
 
     State grad_s[3];
@@ -179,7 +178,7 @@ CEED_QFUNCTION_HELPER int IFunction_Newtonian(void *ctx, CeedInt Q, const CeedSc
   const CeedScalar(*q)[CEED_Q_VLA]     = (const CeedScalar(*)[CEED_Q_VLA])in[0];
   const CeedScalar(*Grad_q)            = in[1];
   const CeedScalar(*q_dot)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[2];
-  const CeedScalar(*q_data)            = in[3];
+  const CeedScalar(*q_data)[CEED_Q_VLA]    = (const CeedScalar(*)[CEED_Q_VLA])in[3];
 
   // Outputs
   CeedScalar(*v)[CEED_Q_VLA]         = (CeedScalar(*)[CEED_Q_VLA])out[0];
@@ -197,8 +196,16 @@ CEED_QFUNCTION_HELPER int IFunction_Newtonian(void *ctx, CeedInt Q, const CeedSc
     const CeedScalar qi[5]  = {q[0][i], q[1][i], q[2][i], q[3][i], q[4][i]};
     const State      s      = StateFromQ(context, qi, state_var);
 
-    CeedScalar wdetJ, dXdx[3][3];
-    QdataUnpack_3D(Q, i, q_data, &wdetJ, dXdx);
+    // -- Interp-to-Interp q_data
+    const CeedScalar wdetJ = q_data[0][i];
+    // -- Interp-to-Grad q_data
+    // ---- Inverse of change of coordinate matrix: X_i,j
+    const CeedScalar dXdx[3][3] = {
+        {q_data[1][i], q_data[2][i], q_data[3][i]},
+        {q_data[4][i], q_data[5][i], q_data[6][i]},
+        {q_data[7][i], q_data[8][i], q_data[9][i]}
+    };
+    const CeedScalar sigma=q_data[10][i];
     State grad_s[3];
     StatePhysicalGradientFromReference(Q, i, context, s, state_var, Grad_q, dXdx, grad_s);
 
@@ -269,7 +276,7 @@ CEED_QFUNCTION_HELPER int IJacobian_Newtonian(void *ctx, CeedInt Q, const CeedSc
   // Inputs
   const CeedScalar(*dq)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[0];
   const CeedScalar(*Grad_dq)        = in[1];
-  const CeedScalar(*q_data)         = in[2];
+  const CeedScalar(*q_data)[CEED_Q_VLA]     = (const CeedScalar(*)[CEED_Q_VLA])in[2];
   const CeedScalar(*jac_data)       = in[3];
 
   // Outputs
@@ -282,17 +289,23 @@ CEED_QFUNCTION_HELPER int IJacobian_Newtonian(void *ctx, CeedInt Q, const CeedSc
 
   // Quadrature Point Loop
   CeedPragmaSIMD for (CeedInt i = 0; i < Q; i++) {
-    CeedScalar wdetJ, dXdx[3][3];
-    QdataUnpack_3D(Q, i, q_data, &wdetJ, dXdx);
+    // -- Interp-to-Interp q_data
+    const CeedScalar wdetJ = q_data[0][i];
+    // -- Interp-to-Grad q_data
+    // ---- Inverse of change of coordinate matrix: X_i,j
+    const CeedScalar dXdx[3][3] = {
+        {q_data[1][i], q_data[2][i], q_data[3][i]},
+        {q_data[4][i], q_data[5][i], q_data[6][i]},
+        {q_data[7][i], q_data[8][i], q_data[9][i]}
+    };
+    const CeedScalar sigma=q_data[10][i];
 
     CeedScalar qi[5], kmstress[6], Tau_d[3];
     StoredValuesUnpack(Q, i, 0, 5, jac_data, qi);
     StoredValuesUnpack(Q, i, 5, 6, jac_data, kmstress);
     StoredValuesUnpack(Q, i, 11, 3, jac_data, Tau_d);
-    const CeedScalar x_i[3] = {x[0][i], x[1][i], x[2][i]};
-    State            s      = StateFromQ(context, qi, x_i, state_var);
+    State            s      = StateFromQ(context, qi, state_var);
 
-    const CeedScalar sigma=q_data[10][i];
     CeedScalar dqi[5];
     for (int j = 0; j < 5; j++) dqi[j] = dq[j][i];
     State ds = StateFromQ_fwd(context, s, dqi, state_var);

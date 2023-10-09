@@ -52,15 +52,21 @@ CEED_QFUNCTION(Setup)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedSca
   const CeedScalar(*J)[3][CEED_Q_VLA] = (const CeedScalar(*)[3][CEED_Q_VLA])in[0];
   const CeedScalar(*w)                = in[1];
   const CeedScalar(*x)[CEED_Q_VLA]    = (const CeedScalar(*)[CEED_Q_VLA])in[2];
-  CeedScalar(*q_data)                 = out[0];
+  CeedScalar(*q_data)[CEED_Q_VLA]     = (CeedScalar(*)[CEED_Q_VLA])out[0];
 
   CeedPragmaSIMD for (CeedInt i = 0; i < Q; i++) {
     CeedScalar detJ, dXdx[3][3];
     InvertMappingJacobian_3D(Q, i, J, dXdx, &detJ);
-    const CeedScalar wdetJ = w[i] * detJ;
-
-    StoredValuesPack(Q, i, 0, 1, &wdetJ, q_data);
-    StoredValuesPack(Q, i, 1, 9, (const CeedScalar *)dXdx, q_data);
+    q_data[0][i] = w[i] * detJ;
+    q_data[1][i] = dXdx[0][0];
+    q_data[2][i] = dXdx[0][1];
+    q_data[3][i] = dXdx[0][2];
+    q_data[4][i] = dXdx[1][0];
+    q_data[5][i] = dXdx[1][1];
+    q_data[6][i] = dXdx[1][2];
+    q_data[7][i] = dXdx[2][0];
+    q_data[8][i] = dXdx[2][1];
+    q_data[9][i] = dXdx[2][2];
 //    q_data[10][i]=LinearRampCoefficient(context->idl_amplitude, context->idl_length, context->idl_start    , x[0][i]);
 //  idl_decay_time: 3.6e-4
 //  coeff needs 1/3.6e-4=2777.78
