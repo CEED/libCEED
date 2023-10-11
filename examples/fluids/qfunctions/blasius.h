@@ -113,8 +113,8 @@ CEED_QFUNCTION(ICsBlasius)(void *ctx, CeedInt Q, const CeedScalar *const *in, Ce
   const CeedScalar               x_inflow = context->x_inflow;
   CeedScalar                     t12;
 
-  const CeedScalar Y_inf[5]  = {context->P0, context->U_inf, 0, 0, context->T_inf};
-  const State      s_inf     = StateFromY(gas, Y_inf);
+  const CeedScalar Y_inf[5] = {context->P0, context->U_inf, 0, 0, context->T_inf};
+  const State      s_inf    = StateFromY(gas, Y_inf);
 
   const CeedScalar x0 = context->U_inf * s_inf.U.density / (mu * 25 / Square(delta0));
 

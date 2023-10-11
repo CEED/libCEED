@@ -24,7 +24,7 @@ CEED_QFUNCTION_HELPER void InternalDampingLayer(const NewtonianIdealGasContext c
                                                 CeedScalar damp_residual[5]) {
   const CeedScalar sigma = LinearRampCoefficient(context->idl_amplitude, context->idl_length, context->idl_start, x_i[0]);
   ScaleN(damp_Y, sigma, 5);
-  State      damp_s  = StateFromY_fwd(context, s, damp_Y);
+  State damp_s  = StateFromY_fwd(context, s, damp_Y);
 
   CeedScalar U[5];
   UnpackState_U(damp_s.U, U);
@@ -369,8 +369,8 @@ CEED_QFUNCTION_HELPER int BoundaryIntegral(void *ctx, CeedInt Q, const CeedScala
   const bool                     is_implicit = context->is_implicit;
 
   CeedPragmaSIMD for (CeedInt i = 0; i < Q; i++) {
-    const CeedScalar qi[5]  = {q[0][i], q[1][i], q[2][i], q[3][i], q[4][i]};
-    State            s      = StateFromQ(context, qi, state_var);
+    const CeedScalar qi[5] = {q[0][i], q[1][i], q[2][i], q[3][i], q[4][i]};
+    State            s     = StateFromQ(context, qi, state_var);
 
     CeedScalar wdetJb, dXdx[2][3], norm[3];
     QdataBoundaryUnpack_3D(Q, i, q_data_sur, &wdetJb, dXdx, norm);
@@ -427,7 +427,7 @@ CEED_QFUNCTION_HELPER int BoundaryIntegral_Jacobian(void *ctx, CeedInt Q, const 
 
   // Quadrature Point Loop
   CeedPragmaSIMD for (CeedInt i = 0; i < Q; i++) {
-    CeedScalar       wdetJb, dXdx[2][3], norm[3];
+    CeedScalar wdetJb, dXdx[2][3], norm[3];
     QdataBoundaryUnpack_3D(Q, i, q_data_sur, &wdetJb, dXdx, norm);
     wdetJb *= is_implicit ? -1. : 1.;
 
@@ -437,7 +437,7 @@ CEED_QFUNCTION_HELPER int BoundaryIntegral_Jacobian(void *ctx, CeedInt Q, const 
     for (int j = 0; j < 5; j++) dqi[j] = dq[j][i];
 
     State s  = StateFromQ(context, qi, state_var);
-    State ds = StateFromQ_fwd(context, s, dqi,  state_var);
+    State ds = StateFromQ_fwd(context, s, dqi, state_var);
 
     State grad_ds[3];
     StatePhysicalGradientFromReference_Boundary(Q, i, context, s, state_var, Grad_dq, dXdx, grad_ds);

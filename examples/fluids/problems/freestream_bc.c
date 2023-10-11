@@ -84,7 +84,7 @@ PetscErrorCode FreestreamBCSetup(ProblemData *problem, DM dm, void *ctx, Newtoni
   for (int i = 0; i < 3; i++) Y_inf.velocity[i] *= meter / second;
   Y_inf.temperature *= Kelvin;
 
-  State            S_infty = StateFromPrimitive(newtonian_ig_ctx, Y_inf);
+  State S_infty = StateFromPrimitive(newtonian_ig_ctx, Y_inf);
 
   // -- Set freestream_ctx struct values
   PetscCall(PetscCalloc1(1, &freestream_ctx));
