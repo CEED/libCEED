@@ -123,14 +123,25 @@ CEED_QFUNCTION(RHSFunction_Newtonian)(void *ctx, CeedInt Q, const CeedScalar *co
 
   // Quadrature Point Loop
   CeedPragmaSIMD for (CeedInt i = 0; i < Q; i++) {
-    CeedScalar U[5], wdetJ, dXdx[3][3];
+    CeedScalar U[5];
     for (int j = 0; j < 5; j++) U[j] = q[j][i];
-    StoredValuesUnpack(Q, i, 0, 1, q_data, &wdetJ);
-    StoredValuesUnpack(Q, i, 1, 9, q_data, (CeedScalar *)dXdx);
     State            s      = StateFromU(context, U);
 
+    // -- Interp-to-Interp q_data
+    const CeedScalar wdetJ = q_data[0][i];
+    // -- Interp-to-Grad q_data
+    // ---- Inverse of change of coordinate matrix: X_i,j
+    const CeedScalar dXdx[3][3] = {
+        {q_data[1][i], q_data[2][i], q_data[3][i]},
+        {q_data[4][i], q_data[5][i], q_data[6][i]},
+        {q_data[7][i], q_data[8][i], q_data[9][i]}
+    };
     State grad_s[3];
-    StatePhysicalGradientFromReference(Q, i, context, s, STATEVAR_CONSERVATIVE, Grad_q, dXdx, grad_s);
+    for (CeedInt k = 0; k < 3; k++) {
+      CeedScalar  dU[5];
+      for (CeedInt j = 0; j < 5; j++) dU[j] = Grad_q[0][j][i] * dXdx[0][k] + Grad_q[1][j][i] * dXdx[1][k] + Grad_q[2][j][i] * dXdx[2][k];
+      grad_s[k] = StateFromU_fwd(context, s, dU);
+    }
 
     CeedScalar strain_rate[6], kmstress[6], stress[3][3], Fe[3];
     KMStrainRate_State(grad_s, strain_rate);
@@ -175,15 +186,15 @@ CEED_QFUNCTION(RHSFunction_Newtonian)(void *ctx, CeedInt Q, const CeedScalar *co
 // *****************************************************************************
 CEED_QFUNCTION_HELPER int IFunction_Newtonian(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out, StateVariable state_var) {
   // Inputs
-  const CeedScalar(*q)[CEED_Q_VLA]     = (const CeedScalar(*)[CEED_Q_VLA])in[0];
-  const CeedScalar(*Grad_q)            = in[1];
-  const CeedScalar(*q_dot)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[2];
+  const CeedScalar(*q)[CEED_Q_VLA]         = (const CeedScalar(*)[CEED_Q_VLA])in[0];
+  const CeedScalar(*Grad_q)[5][CEED_Q_VLA] = (const CeedScalar(*)[5][CEED_Q_VLA])in[1];
+  const CeedScalar(*q_dot)[CEED_Q_VLA]     = (const CeedScalar(*)[CEED_Q_VLA])in[2];
   const CeedScalar(*q_data)[CEED_Q_VLA]    = (const CeedScalar(*)[CEED_Q_VLA])in[3];
 
   // Outputs
   CeedScalar(*v)[CEED_Q_VLA]         = (CeedScalar(*)[CEED_Q_VLA])out[0];
   CeedScalar(*Grad_v)[5][CEED_Q_VLA] = (CeedScalar(*)[5][CEED_Q_VLA])out[1];
-  CeedScalar(*jac_data)              = out[2];
+  CeedScalar(*jac_data)[CEED_Q_VLA]  = (CeedScalar(*)[CEED_Q_VLA])out[2];
 
   // Context
   NewtonianIdealGasContext context = (NewtonianIdealGasContext)ctx;
@@ -207,7 +218,13 @@ CEED_QFUNCTION_HELPER int IFunction_Newtonian(void *ctx, CeedInt Q, const CeedSc
     };
     const CeedScalar sigma=q_data[10][i];
     State grad_s[3];
-    StatePhysicalGradientFromReference(Q, i, context, s, state_var, Grad_q, dXdx, grad_s);
+    for (CeedInt k = 0; k < 3; k++) {
+      CeedScalar dqi[5];
+      for (CeedInt j = 0; j < 5; j++) {
+        dqi[j] = Grad_q[0][j][i] * dXdx[0][k] + Grad_q[1][j][i] * dXdx[1][k] + Grad_q[2][j][i] * dXdx[2][k];
+      }
+      grad_s[k] = StateFromQ_fwd(context, s, dqi, state_var);
+    }
 
     CeedScalar strain_rate[6], kmstress[6], stress[3][3], Fe[3];
     KMStrainRate_State(grad_s, strain_rate);
@@ -251,9 +268,9 @@ CEED_QFUNCTION_HELPER int IFunction_Newtonian(void *ctx, CeedInt Q, const CeedSc
         Grad_v[k][j][i] += wdetJ * (stab[j][0] * dXdx[k][0] + stab[j][1] * dXdx[k][1] + stab[j][2] * dXdx[k][2]);
       }
     }
-    StoredValuesPack(Q, i, 0, 5, qi, jac_data);
-    StoredValuesPack(Q, i, 5, 6, kmstress, jac_data);
-    StoredValuesPack(Q, i, 11, 3, Tau_d, jac_data);
+    for (CeedInt j = 0; j < 5; j++) jac_data[j][i] = qi[j];
+    for (CeedInt j = 0; j < 6; j++) jac_data[5 + j][i] = kmstress[j];
+    for (CeedInt j = 0; j < 3; j++) jac_data[5 + 6 + j][i] = Tau_d[j];
 
   }  // End Quadrature Point Loop
 
@@ -439,7 +456,7 @@ CEED_QFUNCTION_HELPER int BoundaryIntegral_Jacobian(void *ctx, CeedInt Q, const 
     QdataBoundaryUnpack_3D(Q, i, q_data_sur, &wdetJb, dXdx, norm);
     wdetJb *= is_implicit ? -1. : 1.;
 
-    CeedScalar qi[5], kmstress[6], dqi[5], dx_i[3] = {0.};
+    CeedScalar qi[5], kmstress[6], dqi[5];
     StoredValuesUnpack(Q, i, 0, 5, jac_data_sur, qi);
     StoredValuesUnpack(Q, i, 5, 6, jac_data_sur, kmstress);
     for (int j = 0; j < 5; j++) dqi[j] = dq[j][i];
