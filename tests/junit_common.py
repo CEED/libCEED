@@ -312,7 +312,8 @@ def diff_cgns(test_cgns: Path, true_cgns: Path, tolerance: float = 1e-12) -> str
     return proc.stderr.decode('utf-8') + proc.stdout.decode('utf-8')
 
 
-def run_test(index: int, test: str, spec: TestSpec, backend: str, mode: RunMode, nproc: int, suite_spec: SuiteSpec) -> TestCase:
+def run_test(index: int, test: str, spec: TestSpec, backend: str,
+             mode: RunMode, nproc: int, suite_spec: SuiteSpec) -> TestCase:
     """Run a single test case and backend combination
 
     Args:
@@ -434,7 +435,8 @@ def run_test(index: int, test: str, spec: TestSpec, backend: str, mode: RunMode,
             output_str += f'# Only: {",".join(spec.only)}'
         output_str += f'# $ {test_case.args}\n'
         if test_case.is_skipped():
-            output_str += ('ok {} - SKIP: {}\n'.format(index, (test_case.skipped[0]['message'] or 'NO MESSAGE').strip())) + '\n'
+            output_str += ('ok {} - SKIP: {}\n'.format(index,
+                                                       (test_case.skipped[0]['message'] or 'NO MESSAGE').strip())) + '\n'
         elif test_case.is_failure() or test_case.is_error():
             output_str += f'not ok {index}\n'
             if test_case.is_error():
@@ -469,7 +471,8 @@ def init_process():
     my_env['CEED_ERROR_HANDLER'] = 'exit'
 
 
-def run_tests(test: str, ceed_backends: list[str], mode: RunMode, nproc: int, suite_spec: SuiteSpec, pool_size: int = 1) -> TestSuite:
+def run_tests(test: str, ceed_backends: list[str], mode: RunMode, nproc: int,
+              suite_spec: SuiteSpec, pool_size: int = 1) -> TestSuite:
     """Run all test cases for `test` with each of the provided `ceed_backends`
 
     Args:
