@@ -75,7 +75,6 @@ CEED_QFUNCTION_HELPER void ComputeSgsDDAnisotropic(const CeedScalar grad_velo_an
 CEED_QFUNCTION_HELPER int ComputeSgsDDAnisotropicNodal(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out,
                                                        StateVariable state_var) {
   const CeedScalar(*q)[CEED_Q_VLA]            = (const CeedScalar(*)[CEED_Q_VLA])in[0];
-  const CeedScalar(*x)[CEED_Q_VLA]            = (const CeedScalar(*)[CEED_Q_VLA])in[1];
   const CeedScalar(*grad_velo)[3][CEED_Q_VLA] = (const CeedScalar(*)[3][CEED_Q_VLA])in[2];
   const CeedScalar(*A_ij_delta)[CEED_Q_VLA]   = (const CeedScalar(*)[CEED_Q_VLA])in[3];
   const CeedScalar(*inv_multiplicity)         = (const CeedScalar(*))in[4];
@@ -86,7 +85,6 @@ CEED_QFUNCTION_HELPER int ComputeSgsDDAnisotropicNodal(void *ctx, CeedInt Q, con
 
   CeedPragmaSIMD for (CeedInt i = 0; i < Q; i++) {
     const CeedScalar qi[5]                 = {q[0][i], q[1][i], q[2][i], q[3][i], q[4][i]};
-    const CeedScalar x_i[3]                = {x[0][i], x[1][i], x[2][i]};
     const CeedScalar grad_velo_aniso[3][3] = {
         {grad_velo[0][0][i], grad_velo[0][1][i], grad_velo[0][2][i]},
         {grad_velo[1][0][i], grad_velo[1][1][i], grad_velo[1][2][i]},
@@ -94,7 +92,7 @@ CEED_QFUNCTION_HELPER int ComputeSgsDDAnisotropicNodal(void *ctx, CeedInt Q, con
     };
     const CeedScalar km_A_ij[6] = {A_ij_delta[0][i], A_ij_delta[1][i], A_ij_delta[2][i], A_ij_delta[3][i], A_ij_delta[4][i], A_ij_delta[5][i]};
     const CeedScalar delta      = A_ij_delta[6][i];
-    const State      s          = StateFromQ(gas, qi, x_i, state_var);
+    const State      s          = StateFromQ(gas, qi, state_var);
     CeedScalar       km_sgs[6];
 
     ComputeSgsDDAnisotropic(grad_velo_aniso, km_A_ij, delta, gas->mu / s.U.density, km_sgs, sgsdd_ctx);
@@ -128,7 +126,6 @@ CEED_QFUNCTION_HELPER int FluxSubgridStress(const StatePrimitive Y, const CeedSc
 CEED_QFUNCTION_HELPER int IFunction_NodalSgs(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out, StateVariable state_var) {
   const CeedScalar(*q)[CEED_Q_VLA]      = (const CeedScalar(*)[CEED_Q_VLA])in[0];
   const CeedScalar(*q_data)             = in[1];
-  const CeedScalar(*x)[CEED_Q_VLA]      = (const CeedScalar(*)[CEED_Q_VLA])in[2];
   const CeedScalar(*km_sgs)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[3];
   CeedScalar(*Grad_v)[5][CEED_Q_VLA]    = (CeedScalar(*)[5][CEED_Q_VLA])out[0];
 
@@ -137,8 +134,7 @@ CEED_QFUNCTION_HELPER int IFunction_NodalSgs(void *ctx, CeedInt Q, const CeedSca
 
   CeedPragmaSIMD for (CeedInt i = 0; i < Q; i++) {
     const CeedScalar qi[5]  = {q[0][i], q[1][i], q[2][i], q[3][i], q[4][i]};
-    const CeedScalar x_i[3] = {x[0][i], x[1][i], x[2][i]};
-    const State      s      = StateFromQ(gas, qi, x_i, state_var);
+    const State      s      = StateFromQ(gas, qi, state_var);
 
     CeedScalar wdetJ, dXdx[3][3];
     QdataUnpack_3D(Q, i, q_data, &wdetJ, dXdx);

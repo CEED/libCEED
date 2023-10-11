@@ -96,7 +96,7 @@ State CEED_QFUNCTION_HELPER(BlasiusSolution)(const BlasiusContext blasius, const
   Y[3] = 0.;
   Y[4] = blasius->T_inf * h[0];
   Y[0] = rho_infty / h[0] * Rd * Y[4];
-  return StateFromY(&blasius->newtonian_ctx, Y, x);
+  return StateFromY(&blasius->newtonian_ctx, Y);
 }
 
 // *****************************************************************************
@@ -114,8 +114,7 @@ CEED_QFUNCTION(ICsBlasius)(void *ctx, CeedInt Q, const CeedScalar *const *in, Ce
   CeedScalar                     t12;
 
   const CeedScalar Y_inf[5]  = {context->P0, context->U_inf, 0, 0, context->T_inf};
-  const CeedScalar x_zero[3] = {0};
-  const State      s_inf     = StateFromY(gas, Y_inf, x_zero);
+  const State      s_inf     = StateFromY(gas, Y_inf);
 
   const CeedScalar x0 = context->U_inf * s_inf.U.density / (mu * 25 / Square(delta0));
 
@@ -172,15 +171,15 @@ CEED_QFUNCTION(Blasius_Inflow)(void *ctx, CeedInt Q, const CeedScalar *const *in
     State            s = BlasiusSolution(context, x, x0, x_inflow, rho_0, &t12);
     CeedScalar       qi[5];
     for (CeedInt j = 0; j < 5; j++) qi[j] = q[j][i];
-    State s_int = StateFromU(gas, qi, x);
+    State s_int = StateFromU(gas, qi);
 
     // enabling user to choose between weak T and weak rho inflow
     if (weakT) {  // density from the current solution
       s.U.density = s_int.U.density;
-      s.Y         = StatePrimitiveFromConservative(gas, s.U, x);
+      s.Y         = StatePrimitiveFromConservative(gas, s.U);
     } else {  // Total energy from current solution
       s.U.E_total = s_int.U.E_total;
-      s.Y         = StatePrimitiveFromConservative(gas, s.U, x);
+      s.Y         = StatePrimitiveFromConservative(gas, s.U);
     }
 
     StateConservative Flux_inviscid[3];

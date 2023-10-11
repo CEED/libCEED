@@ -60,7 +60,7 @@ CEED_QFUNCTION_HELPER int DifferentialFilter_RHS(void *ctx, CeedInt Q, const Cee
     const CeedScalar qi[5]  = {q[0][i], q[1][i], q[2][i], q[3][i], q[4][i]};
     const CeedScalar x_i[3] = {x[0][i], x[1][i], x[2][i]};
     const CeedScalar wdetJ  = q_data[0][i];
-    const State      s      = StateFromQ(gas, qi, x_i, state_var);
+    const State      s      = StateFromQ(gas, qi, state_var);
 
     v0[DIFF_FILTER_PRESSURE][i]            = wdetJ * s.Y.pressure;
     v0[DIFF_FILTER_VELOCITY_X][i]          = wdetJ * s.Y.velocity[0];

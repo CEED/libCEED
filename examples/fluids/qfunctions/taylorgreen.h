@@ -30,7 +30,6 @@ CEED_QFUNCTION(ICsTaylorGreen)(void *ctx, CeedInt Q, const CeedScalar *const *in
   StatePrimitive                    reference = context->reference;
   const CeedScalar                  V0        = sqrt(Dot3(reference.velocity, reference.velocity));
   const CeedScalar                  density0  = reference.pressure / (reference.temperature * R);
-  const CeedScalar                  x0[3]     = {0.};
 
   CeedPragmaSIMD for (CeedInt i = 0; i < Q; i++) {
     CeedScalar x[]  = {X[0][i], X[1][i], X[2][i]};
@@ -43,7 +42,7 @@ CEED_QFUNCTION(ICsTaylorGreen)(void *ctx, CeedInt Q, const CeedScalar *const *in
     Y[3] = 0;
     Y[4] = reference.temperature;
 
-    State s = StateFromY(gas, Y, x0);
+    State s = StateFromY(gas, Y);
     switch (gas->state_var) {
       case STATEVAR_CONSERVATIVE:
         UnpackState_U(s.U, q);
