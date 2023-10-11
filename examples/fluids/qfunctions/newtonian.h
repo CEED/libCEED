@@ -24,7 +24,7 @@ CEED_QFUNCTION_HELPER void InternalDampingLayer(const NewtonianIdealGasContext c
                                                 CeedScalar damp_residual[5]) {
   const CeedScalar sigma = LinearRampCoefficient(context->idl_amplitude, context->idl_length, context->idl_start, x_i[0]);
   ScaleN(damp_Y, sigma, 5);
-  State damp_s  = StateFromY_fwd(context, s, damp_Y);
+  State damp_s = StateFromY_fwd(context, s, damp_Y);
 
   CeedScalar U[5];
   UnpackState_U(damp_s.U, U);
