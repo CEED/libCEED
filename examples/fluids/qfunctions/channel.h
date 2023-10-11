@@ -58,7 +58,7 @@ CEED_QFUNCTION_HELPER State Exact_Channel(CeedInt dim, CeedScalar time, const Ce
   Y[3]                   = 0.;
   Y[4]                   = theta;
 
-  return StateFromY(gas, Y, x);
+  return StateFromY(gas, Y);
 }
 
 // *****************************************************************************
@@ -133,7 +133,7 @@ CEED_QFUNCTION(Channel_Inflow)(void *ctx, CeedInt Q, const CeedScalar *const *in
     // Find pressure using state inside the domain
     CeedScalar q_inside[5] = {0};
     for (CeedInt j = 0; j < 5; j++) q_inside[j] = q[j][i];
-    State            s_inside = StateFromU(gas, q_inside, x);
+    State            s_inside = StateFromU(gas, q_inside);
     const CeedScalar P        = s_inside.Y.pressure;
 
     // Find inflow state using calculated P and prescribed velocity, theta0
