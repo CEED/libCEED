@@ -392,7 +392,7 @@ CEED_QFUNCTION_HELPER void Vorticity(const State grad_s[3], CeedScalar vorticity
   Curl3(grad_velocity, vorticity);
 }
 
-CEED_QFUNCTION_HELPER void StatePhysicalGradientFromReference(CeedInt Q, CeedInt i, NewtonianIdealGasContext gas, State s, StateVariable state_var, 
+CEED_QFUNCTION_HELPER void StatePhysicalGradientFromReference(CeedInt Q, CeedInt i, NewtonianIdealGasContext gas, State s, StateVariable state_var,
                                                               const CeedScalar *grad_q, const CeedScalar dXdx[3][3], State grad_s[3]) {
   for (CeedInt k = 0; k < 3; k++) {
     CeedScalar dqi[5];
