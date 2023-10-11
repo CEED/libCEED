@@ -23,8 +23,8 @@ CEED_QFUNCTION_HELPER int ChildStatsCollection(void *ctx, CeedInt Q, const CeedS
   CeedPragmaSIMD for (CeedInt i = 0; i < Q; i++) {
     const CeedScalar wdetJ = q_data[0][i] * delta_t;
 
-    const CeedScalar qi[5]  = {q[0][i], q[1][i], q[2][i], q[3][i], q[4][i]};
-    const State      s      = StateFromQ(gas, qi, state_var);
+    const CeedScalar qi[5] = {q[0][i], q[1][i], q[2][i], q[3][i], q[4][i]};
+    const State      s     = StateFromQ(gas, qi, state_var);
 
     v[TURB_MEAN_DENSITY][i]                    = wdetJ * s.U.density;
     v[TURB_MEAN_PRESSURE][i]                   = wdetJ * s.Y.pressure;
