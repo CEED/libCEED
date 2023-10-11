@@ -61,7 +61,7 @@ $$
  - \bm{u}  \cdot \bm{\sigma} - k \nabla T
 \end{pmatrix}}_{\bm F_{\text{diff}}},\\
 S(\bm{q}) &=
-- \begin{pmatrix}
+ \begin{pmatrix}
     0\\
     \rho \bm{b}\\
     \rho \bm{b}\cdot \bm{u}
