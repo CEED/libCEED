@@ -13,22 +13,22 @@ Moreover, the Navier-Stokes example has been developed using PETSc, so that the 
 ```
 ## The Navier-Stokes equations
 
-The mathematical formulation (from {cite}`giraldoetal2010`, cf. SE3) is given in what follows.
+The mathematical formulation (from {cite}`shakib1991femcfd`) is given in what follows.
 The compressible Navier-Stokes equations in conservative form are
 
 $$
 \begin{aligned}
 \frac{\partial \rho}{\partial t} + \nabla \cdot \bm{U} &= 0 \\
-\frac{\partial \bm{U}}{\partial t} + \nabla \cdot \left( \frac{\bm{U} \otimes \bm{U}}{\rho} + P \bm{I}_3 -\bm\sigma \right) + \rho g \bm{\hat k} &= 0 \\
-\frac{\partial E}{\partial t} + \nabla \cdot \left( \frac{(E + P)\bm{U}}{\rho} -\bm{u} \cdot \bm{\sigma} - k \nabla T \right) &= 0 \, , \\
+\frac{\partial \bm{U}}{\partial t} + \nabla \cdot \left( \frac{\bm{U} \otimes \bm{U}}{\rho} + P \bm{I}_3 -\bm\sigma \right) - \rho \bm{b}  &= 0 \\
+\frac{\partial E}{\partial t} + \nabla \cdot \left( \frac{(E + P)\bm{U}}{\rho} -\bm{u} \cdot \bm{\sigma} - k \nabla T \right) - \rho \bm{b} \cdot \bm(u) &= 0 \, , \\
 \end{aligned}
 $$ (eq-ns)
 
 where $\bm{\sigma} = \mu(\nabla \bm{u} + (\nabla \bm{u})^T + \lambda (\nabla \cdot \bm{u})\bm{I}_3)$ is the Cauchy (symmetric) stress tensor, with $\mu$ the dynamic viscosity coefficient, and $\lambda = - 2/3$ the Stokes hypothesis constant.
-In equations {eq}`eq-ns`, $\rho$ represents the volume mass density, $U$ the momentum density (defined as $\bm{U}=\rho \bm{u}$, where $\bm{u}$ is the vector velocity field), $E$ the total energy density (defined as $E = \rho e$, where $e$ is the total energy), $\bm{I}_3$ represents the $3 \times 3$ identity matrix, $g$ the gravitational acceleration constant, $\bm{\hat{k}}$ the unit vector in the $z$ direction, $k$ the thermal conductivity constant, $T$ represents the temperature, and $P$ the pressure, given by the following equation of state
+In equations {eq}`eq-ns`, $\rho$ represents the volume mass density, $U$ the momentum density (defined as $\bm{U}=\rho \bm{u}$, where $\bm{u}$ is the vector velocity field), $E$ the total energy density (defined as $E = \rho e$, where $e$ is the total energy), $\bm{I}_3$ represents the $3 \times 3$ identity matrix, $\bm{b} is a body force vector (e.g., gravity vector), $\bm{\hat{k}}$ the unit vector in the $z$ direction, $k$ the thermal conductivity constant, $T$ represents the temperature, and $P$ the pressure, given by the following equation of state
 
 $$
-P = \left( {c_p}/{c_v} -1\right) \left( E - {\bm{U}\cdot\bm{U}}/{(2 \rho)} - \rho g z \right) \, ,
+P = \left( {c_p}/{c_v} -1\right) \left( E - {\bm{U}\cdot\bm{U}}/{(2 \rho)} \right) \, ,
 $$ (eq-state)
 
 where $c_p$ is the specific heat at constant pressure and $c_v$ is the specific heat at constant volume (that define $\gamma = c_p / c_v$, the specific heat ratio).
@@ -63,8 +63,8 @@ $$
 S(\bm{q}) &=
 - \begin{pmatrix}
     0\\
-    \rho g \bm{\hat{k}}\\
-    0
+    \rho \bm{b}}\\
+    \rho \bm{b}\cdot \bm{u}
 \end{pmatrix}.
 \end{aligned}
 $$ (eq-ns-flux)
