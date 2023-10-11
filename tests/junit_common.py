@@ -8,6 +8,8 @@ import os
 from pathlib import Path
 import re
 import subprocess
+import multiprocessing as mp
+from itertools import product
 import sys
 import time
 from typing import Optional
@@ -127,7 +129,7 @@ class SuiteSpec(ABC):
             stderr (str): Standard error output from test case execution
 
         Returns:
-            Optional[str]: Skip reason, or `None` if unexpeced error
+            Optional[str]: Skip reason, or `None` if unexpected error
         """
         return None
 
@@ -310,7 +312,164 @@ def diff_cgns(test_cgns: Path, true_cgns: Path, tolerance: float = 1e-12) -> str
     return proc.stderr.decode('utf-8') + proc.stdout.decode('utf-8')
 
 
-def run_tests(test: str, ceed_backends: list[str], mode: RunMode, nproc: int, suite_spec: SuiteSpec) -> TestSuite:
+def run_test(index: int, test: str, spec: TestSpec, backend: str, mode: RunMode, nproc: int, suite_spec: SuiteSpec) -> TestCase:
+    """Run a single test case and backend combination
+
+    Args:
+        index (int): Index of test case
+        test (str): Path to test
+        spec (TestSpec): Specification of test case
+        backend (str): CEED backend
+        mode (RunMode): Output mode
+        nproc (int): Number of MPI processes to use when running test case
+        suite_spec (SuiteSpec): Specification of test suite
+
+    Returns:
+        TestCase: Test case result
+    """
+    source_path: Path = suite_spec.get_source_path(test)
+    run_args: list = [suite_spec.get_run_path(test), *spec.args]
+
+    if '{ceed_resource}' in run_args:
+        run_args[run_args.index('{ceed_resource}')] = backend
+    if '{nproc}' in run_args:
+        run_args[run_args.index('{nproc}')] = f'{nproc}'
+    elif nproc > 1 and source_path.suffix != '.py':
+        run_args = ['mpiexec', '-n', f'{nproc}', *run_args]
+
+    # run test
+    skip_reason: str = suite_spec.check_pre_skip(test, spec, backend, nproc)
+    if skip_reason:
+        test_case: TestCase = TestCase(f'{test}, "{spec.name}", n{nproc}, {backend}',
+                                       elapsed_sec=0,
+                                       timestamp=time.strftime('%Y-%m-%d %H:%M:%S %Z', time.localtime()),
+                                       stdout='',
+                                       stderr='')
+        test_case.add_skipped_info(skip_reason)
+    else:
+        start: float = time.time()
+        proc = subprocess.run(' '.join(str(arg) for arg in run_args),
+                              shell=True,
+                              stdout=subprocess.PIPE,
+                              stderr=subprocess.PIPE,
+                              env=my_env)
+
+        test_case = TestCase(f'{test}, "{spec.name}", n{nproc}, {backend}',
+                             classname=source_path.parent,
+                             elapsed_sec=time.time() - start,
+                             timestamp=time.strftime('%Y-%m-%d %H:%M:%S %Z', time.localtime(start)),
+                             stdout=proc.stdout.decode('utf-8'),
+                             stderr=proc.stderr.decode('utf-8'),
+                             allow_multiple_subelements=True)
+        ref_csvs: list[Path] = []
+        output_files: list[str] = [arg for arg in spec.args if 'ascii:' in arg]
+        if output_files:
+            ref_csvs = [suite_spec.get_output_path(test, file.split('ascii:')[-1]) for file in output_files]
+        ref_cgns: list[Path] = []
+        output_files = [arg for arg in spec.args if 'cgns:' in arg]
+        if output_files:
+            ref_cgns = [suite_spec.get_output_path(test, file.split('cgns:')[-1]) for file in output_files]
+        ref_stdout: Path = suite_spec.get_output_path(test, test + '.out')
+        suite_spec.post_test_hook(test, spec)
+
+    # check allowed failures
+    if not test_case.is_skipped() and test_case.stderr:
+        skip_reason: str = suite_spec.check_post_skip(test, spec, backend, test_case.stderr)
+        if skip_reason:
+            test_case.add_skipped_info(skip_reason)
+
+    # check required failures
+    if not test_case.is_skipped():
+        required_message, did_fail = suite_spec.check_required_failure(
+            test, spec, backend, test_case.stderr)
+        if required_message and did_fail:
+            test_case.status = f'fails with required: {required_message}'
+        elif required_message:
+            test_case.add_failure_info(f'required failure missing: {required_message}')
+
+    # classify other results
+    if not test_case.is_skipped() and not test_case.status:
+        if test_case.stderr:
+            test_case.add_failure_info('stderr', test_case.stderr)
+        if proc.returncode != 0:
+            test_case.add_error_info(f'returncode = {proc.returncode}')
+        if ref_stdout.is_file():
+            diff = list(difflib.unified_diff(ref_stdout.read_text().splitlines(keepends=True),
+                                             test_case.stdout.splitlines(keepends=True),
+                                             fromfile=str(ref_stdout),
+                                             tofile='New'))
+            if diff:
+                test_case.add_failure_info('stdout', output=''.join(diff))
+        elif test_case.stdout and not suite_spec.check_allowed_stdout(test):
+            test_case.add_failure_info('stdout', output=test_case.stdout)
+        # expected CSV output
+        for ref_csv in ref_csvs:
+            if not ref_csv.is_file():
+                test_case.add_failure_info('csv', output=f'{ref_csv} not found')
+            else:
+                diff: str = diff_csv(Path.cwd() / ref_csv.name, ref_csv)
+                if diff:
+                    test_case.add_failure_info('csv', output=diff)
+                else:
+                    (Path.cwd() / ref_csv.name).unlink()
+        # expected CGNS output
+        for ref_cgn in ref_cgns:
+            if not ref_cgn.is_file():
+                test_case.add_failure_info('cgns', output=f'{ref_cgn} not found')
+            else:
+                diff = diff_cgns(Path.cwd() / ref_cgn.name, ref_cgn)
+                if diff:
+                    test_case.add_failure_info('cgns', output=diff)
+                else:
+                    (Path.cwd() / ref_cgn.name).unlink()
+
+    # store result
+    test_case.args = ' '.join(str(arg) for arg in run_args)
+    output_str = ''
+    # print output
+    if mode is RunMode.TAP:
+        # print incremental output if TAP mode
+        output_str += f'# Test: {spec.name}\n'
+        if spec.only:
+            output_str += f'# Only: {",".join(spec.only)}'
+        output_str += f'# $ {test_case.args}\n'
+        if test_case.is_skipped():
+            output_str += ('ok {} - SKIP: {}\n'.format(index, (test_case.skipped[0]['message'] or 'NO MESSAGE').strip())) + '\n'
+        elif test_case.is_failure() or test_case.is_error():
+            output_str += f'not ok {index}\n'
+            if test_case.is_error():
+                output_str += f'  ERROR: {test_case.errors[0]["message"]}\n'
+            if test_case.is_failure():
+                for i, failure in enumerate(test_case.failures):
+                    output_str += f'  FAILURE {i}: {failure["message"]}\n'
+                    output_str += f'    Output: \n{failure["output"]}\n'
+        else:
+            output_str += f'ok {index} - PASS\n'
+    else:
+        # print error or failure information if JUNIT mode
+        if test_case.is_error() or test_case.is_failure():
+            output_str += f'Test: {test} {spec.name}\n'
+            output_str += f'  $ {test_case.args}\n'
+            if test_case.is_error():
+                output_str += 'ERROR: {}\n'.format((test_case.errors[0]['message'] or 'NO MESSAGE').strip())
+                output_str += 'Output: \n{}\n'.format((test_case.errors[0]['output'] or 'NO MESSAGE').strip())
+            if test_case.is_failure():
+                for failure in test_case.failures:
+                    output_str += 'FAIL: {}\n'.format((failure['message'] or 'NO MESSAGE').strip())
+                    output_str += 'Output: \n{}\n'.format((failure['output'] or 'NO MESSAGE').strip())
+
+    return test_case, output_str
+
+
+def init_process():
+    """Initialize multiprocessing process"""
+    # set up error handler
+    global my_env
+    my_env = os.environ.copy()
+    my_env['CEED_ERROR_HANDLER'] = 'exit'
+
+
+def run_tests(test: str, ceed_backends: list[str], mode: RunMode, nproc: int, suite_spec: SuiteSpec, pool_size: int = 1) -> TestSuite:
     """Run all test cases for `test` with each of the provided `ceed_backends`
 
     Args:
@@ -319,155 +478,27 @@ def run_tests(test: str, ceed_backends: list[str], mode: RunMode, nproc: int, su
         mode (RunMode): Output mode, either `RunMode.TAP` or `RunMode.JUNIT`
         nproc (int): Number of MPI processes to use when running each test case
         suite_spec (SuiteSpec): Object defining required methods for running tests
+        pool_size (int, optional): Number of processes to use when running tests in parallel. Defaults to 1.
 
     Returns:
         TestSuite: JUnit `TestSuite` containing results of all test cases
     """
-    source_path: Path = suite_spec.get_source_path(test)
-    test_specs: list[TestSpec] = get_test_args(source_path)
-
+    test_specs: list[TestSpec] = get_test_args(suite_spec.get_source_path(test))
     if mode is RunMode.TAP:
         print('1..' + str(len(test_specs) * len(ceed_backends)))
 
-    test_cases: list[TestCase] = []
-    my_env: dict = os.environ.copy()
-    my_env['CEED_ERROR_HANDLER'] = 'exit'
+    # list of (test, test_specs, ceed_backend, ...) tuples generated from list of backends and test specs
+    args: list[TestCase] = [(i, test, spec, backend, mode, nproc, suite_spec)
+                            for i, (spec, backend) in enumerate(product(test_specs, ceed_backends), start=1)]
 
-    index: int = 1
-    for spec in test_specs:
-        for ceed_resource in ceed_backends:
-            run_args: list = [suite_spec.get_run_path(test), *spec.args]
+    with mp.Pool(processes=pool_size, initializer=init_process) as pool:
+        async_outputs: list[mp.AsyncResult] = [pool.apply_async(run_test, argv) for argv in args]
 
-            if '{ceed_resource}' in run_args:
-                run_args[run_args.index('{ceed_resource}')] = ceed_resource
-            if '{nproc}' in run_args:
-                run_args[run_args.index('{nproc}')] = f'{nproc}'
-            elif nproc > 1 and source_path.suffix != '.py':
-                run_args = ['mpiexec', '-n', f'{nproc}', *run_args]
-
-            # run test
-            skip_reason: str = suite_spec.check_pre_skip(test, spec, ceed_resource, nproc)
-            if skip_reason:
-                test_case: TestCase = TestCase(f'{test}, "{spec.name}", n{nproc}, {ceed_resource}',
-                                               elapsed_sec=0,
-                                               timestamp=time.strftime('%Y-%m-%d %H:%M:%S %Z', time.localtime()),
-                                               stdout='',
-                                               stderr='')
-                test_case.add_skipped_info(skip_reason)
-            else:
-                start: float = time.time()
-                proc = subprocess.run(' '.join(str(arg) for arg in run_args),
-                                      shell=True,
-                                      stdout=subprocess.PIPE,
-                                      stderr=subprocess.PIPE,
-                                      env=my_env)
-
-                test_case = TestCase(f'{test}, "{spec.name}", n{nproc}, {ceed_resource}',
-                                     classname=source_path.parent,
-                                     elapsed_sec=time.time() - start,
-                                     timestamp=time.strftime('%Y-%m-%d %H:%M:%S %Z', time.localtime(start)),
-                                     stdout=proc.stdout.decode('utf-8'),
-                                     stderr=proc.stderr.decode('utf-8'),
-                                     allow_multiple_subelements=True)
-                ref_csvs: list[Path] = []
-                output_files: list[str] = [arg for arg in spec.args if 'ascii:' in arg]
-                if output_files:
-                    ref_csvs = [suite_spec.get_output_path(test, file.split('ascii:')[-1]) for file in output_files]
-                ref_cgns: list[Path] = []
-                output_files = [arg for arg in spec.args if 'cgns:' in arg]
-                if output_files:
-                    ref_cgns = [suite_spec.get_output_path(test, file.split('cgns:')[-1]) for file in output_files]
-                ref_stdout: Path = suite_spec.get_output_path(test, test + '.out')
-                suite_spec.post_test_hook(test, spec)
-
-            # check allowed failures
-            if not test_case.is_skipped() and test_case.stderr:
-                skip_reason: str = suite_spec.check_post_skip(test, spec, ceed_resource, test_case.stderr)
-                if skip_reason:
-                    test_case.add_skipped_info(skip_reason)
-
-            # check required failures
-            if not test_case.is_skipped():
-                required_message, did_fail = suite_spec.check_required_failure(
-                    test, spec, ceed_resource, test_case.stderr)
-                if required_message and did_fail:
-                    test_case.status = f'fails with required: {required_message}'
-                elif required_message:
-                    test_case.add_failure_info(f'required failure missing: {required_message}')
-
-            # classify other results
-            if not test_case.is_skipped() and not test_case.status:
-                if test_case.stderr:
-                    test_case.add_failure_info('stderr', test_case.stderr)
-                if proc.returncode != 0:
-                    test_case.add_error_info(f'returncode = {proc.returncode}')
-                if ref_stdout.is_file():
-                    diff = list(difflib.unified_diff(ref_stdout.read_text().splitlines(keepends=True),
-                                                     test_case.stdout.splitlines(keepends=True),
-                                                     fromfile=str(ref_stdout),
-                                                     tofile='New'))
-                    if diff:
-                        test_case.add_failure_info('stdout', output=''.join(diff))
-                elif test_case.stdout and not suite_spec.check_allowed_stdout(test):
-                    test_case.add_failure_info('stdout', output=test_case.stdout)
-                # expected CSV output
-                for ref_csv in ref_csvs:
-                    if not ref_csv.is_file():
-                        test_case.add_failure_info('csv', output=f'{ref_csv} not found')
-                    else:
-                        diff: str = diff_csv(Path.cwd() / ref_csv.name, ref_csv)
-                        if diff:
-                            test_case.add_failure_info('csv', output=diff)
-                        else:
-                            (Path.cwd() / ref_csv.name).unlink()
-                # expected CGNS output
-                for ref_cgn in ref_cgns:
-                    if not ref_cgn.is_file():
-                        test_case.add_failure_info('cgns', output=f'{ref_cgn} not found')
-                    else:
-                        diff = diff_cgns(Path.cwd() / ref_cgn.name, ref_cgn)
-                        if diff:
-                            test_case.add_failure_info('cgns', output=diff)
-                        else:
-                            (Path.cwd() / ref_cgn.name).unlink()
-
-            # store result
-            test_case.args = ' '.join(str(arg) for arg in run_args)
+        test_cases = []
+        for async_output in async_outputs:
+            test_case, print_output = async_output.get()
             test_cases.append(test_case)
-
-            if mode is RunMode.TAP:
-                # print incremental output if TAP mode
-                print(f'# Test: {spec.name}')
-                if spec.only:
-                    print('# Only: {}'.format(','.join(spec.only)))
-                print(f'# $ {test_case.args}')
-                if test_case.is_skipped():
-                    print('ok {} - SKIP: {}'.format(index, (test_case.skipped[0]['message'] or 'NO MESSAGE').strip()))
-                elif test_case.is_failure() or test_case.is_error():
-                    print(f'not ok {index}')
-                    if test_case.is_error():
-                        print(f'  ERROR: {test_case.errors[0]["message"]}')
-                    if test_case.is_failure():
-                        for i, failure in enumerate(test_case.failures):
-                            print(f'  FAILURE {i}: {failure["message"]}')
-                            print(f'    Output: \n{failure["output"]}')
-                else:
-                    print(f'ok {index} - PASS')
-                sys.stdout.flush()
-            else:
-                # print error or failure information if JUNIT mode
-                if test_case.is_error() or test_case.is_failure():
-                    print(f'Test: {test} {spec.name}')
-                    print(f'  $ {test_case.args}')
-                    if test_case.is_error():
-                        print('ERROR: {}'.format((test_case.errors[0]['message'] or 'NO MESSAGE').strip()))
-                        print('Output: \n{}'.format((test_case.errors[0]['output'] or 'NO MESSAGE').strip()))
-                    if test_case.is_failure():
-                        for failure in test_case.failures:
-                            print('FAIL: {}'.format((failure['message'] or 'NO MESSAGE').strip()))
-                            print('Output: \n{}'.format((failure['output'] or 'NO MESSAGE').strip()))
-                sys.stdout.flush()
-            index += 1
+            print(print_output, end='')
 
     return TestSuite(test, test_cases)
 

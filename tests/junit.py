@@ -26,6 +26,7 @@ def create_argparser() -> argparse.ArgumentParser:
     parser.add_argument('-n', '--nproc', type=int, default=1, help='number of MPI processes')
     parser.add_argument('-o', '--output', type=Optional[Path], default=None, help='Output file to write test')
     parser.add_argument('-b', '--junit-batch', type=str, default='', help='Name of JUnit batch for output file')
+    parser.add_argument('-np', '--pool-size', type=int, default=1, help='Number of test cases to run in parallel')
     parser.add_argument('test', help='Test executable', nargs='?')
 
     return parser
@@ -188,7 +189,7 @@ if __name__ == '__main__':
     args = create_argparser().parse_args()
 
     # run tests
-    result: TestSuite = run_tests(args.test, args.ceed_backends, args.mode, args.nproc, CeedSuiteSpec())
+    result: TestSuite = run_tests(args.test, args.ceed_backends, args.mode, args.nproc, CeedSuiteSpec(), args.pool_size)
 
     # write output and check for failures
     if args.mode is RunMode.JUNIT:
