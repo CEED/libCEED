@@ -52,6 +52,7 @@ PetscErrorCode AddBCSubOperator(Ceed ceed, DM dm, CeedData ceed_data, DMLabel do
   PetscCallCeed(ceed, CeedOperatorSetField(op_apply_bc, "q", elem_restr_q_sur, ceed_data->basis_q_sur, CEED_VECTOR_ACTIVE));
   PetscCallCeed(ceed, CeedOperatorSetField(op_apply_bc, "Grad_q", elem_restr_q_sur, ceed_data->basis_q_sur, CEED_VECTOR_ACTIVE));
   PetscCallCeed(ceed, CeedOperatorSetField(op_apply_bc, "surface qdata", elem_restr_qd_i_sur, CEED_BASIS_NONE, q_data_sur));
+  PetscCallCeed(ceed, CeedOperatorSetField(op_apply_bc, "x", elem_restr_x_sur, ceed_data->basis_x_sur, ceed_data->x_coord));
   PetscCallCeed(ceed, CeedOperatorSetField(op_apply_bc, "v", elem_restr_q_sur, ceed_data->basis_q_sur, CEED_VECTOR_ACTIVE));
   if (elem_restr_jd_i_sur)
     PetscCallCeed(ceed, CeedOperatorSetField(op_apply_bc, "surface jacobian data", elem_restr_jd_i_sur, CEED_BASIS_NONE, jac_data_sur));
@@ -61,6 +62,7 @@ PetscErrorCode AddBCSubOperator(Ceed ceed, DM dm, CeedData ceed_data, DMLabel do
     PetscCallCeed(ceed, CeedOperatorSetField(op_apply_bc_jacobian, "dq", elem_restr_q_sur, ceed_data->basis_q_sur, CEED_VECTOR_ACTIVE));
     PetscCallCeed(ceed, CeedOperatorSetField(op_apply_bc_jacobian, "Grad_dq", elem_restr_q_sur, ceed_data->basis_q_sur, CEED_VECTOR_ACTIVE));
     PetscCallCeed(ceed, CeedOperatorSetField(op_apply_bc_jacobian, "surface qdata", elem_restr_qd_i_sur, CEED_BASIS_NONE, q_data_sur));
+    PetscCallCeed(ceed, CeedOperatorSetField(op_apply_bc_jacobian, "x", elem_restr_x_sur, ceed_data->basis_x_sur, ceed_data->x_coord));
     PetscCallCeed(ceed, CeedOperatorSetField(op_apply_bc_jacobian, "surface jacobian data", elem_restr_jd_i_sur, CEED_BASIS_NONE, jac_data_sur));
     PetscCallCeed(ceed, CeedOperatorSetField(op_apply_bc_jacobian, "v", elem_restr_q_sur, ceed_data->basis_q_sur, CEED_VECTOR_ACTIVE));
   }
@@ -138,6 +140,7 @@ PetscErrorCode SetupBCQFunctions(Ceed ceed, PetscInt dim_sur, PetscInt num_comp_
     PetscCallCeed(ceed, CeedQFunctionAddInput(*qf_apply_bc, "q", num_comp_q, CEED_EVAL_INTERP));
     PetscCallCeed(ceed, CeedQFunctionAddInput(*qf_apply_bc, "Grad_q", num_comp_q * dim_sur, CEED_EVAL_GRAD));
     PetscCallCeed(ceed, CeedQFunctionAddInput(*qf_apply_bc, "surface qdata", q_data_size_sur, CEED_EVAL_NONE));
+    PetscCallCeed(ceed, CeedQFunctionAddInput(*qf_apply_bc, "x", num_comp_x, CEED_EVAL_INTERP));
     PetscCallCeed(ceed, CeedQFunctionAddOutput(*qf_apply_bc, "v", num_comp_q, CEED_EVAL_INTERP));
     if (jac_data_size_sur) PetscCallCeed(ceed, CeedQFunctionAddOutput(*qf_apply_bc, "surface jacobian data", jac_data_size_sur, CEED_EVAL_NONE));
   }
@@ -147,6 +150,7 @@ PetscErrorCode SetupBCQFunctions(Ceed ceed, PetscInt dim_sur, PetscInt num_comp_
     PetscCallCeed(ceed, CeedQFunctionAddInput(*qf_apply_bc_jacobian, "dq", num_comp_q, CEED_EVAL_INTERP));
     PetscCallCeed(ceed, CeedQFunctionAddInput(*qf_apply_bc_jacobian, "Grad_dq", num_comp_q * dim_sur, CEED_EVAL_GRAD));
     PetscCallCeed(ceed, CeedQFunctionAddInput(*qf_apply_bc_jacobian, "surface qdata", q_data_size_sur, CEED_EVAL_NONE));
+    PetscCallCeed(ceed, CeedQFunctionAddInput(*qf_apply_bc_jacobian, "x", num_comp_x, CEED_EVAL_INTERP));
     PetscCallCeed(ceed, CeedQFunctionAddInput(*qf_apply_bc_jacobian, "surface jacobian data", jac_data_size_sur, CEED_EVAL_NONE));
     PetscCallCeed(ceed, CeedQFunctionAddOutput(*qf_apply_bc_jacobian, "v", num_comp_q, CEED_EVAL_INTERP));
   }
