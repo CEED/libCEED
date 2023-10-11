@@ -53,7 +53,8 @@ noether-cpu:
     - export COVERAGE=0
     - cd .. && export NEK5K_VERSION=Nek5000-19.0 && { [[ -d $NEK5K_VERSION ]] || { git clone --depth 1 --branch v19.0 https://github.com/Nek5000/Nek5000.git $NEK5K_VERSION && cd $NEK5K_VERSION/tools && ./maketools genbox genmap reatore2 && cd ../..; }; } && export NEK5K_DIR=$PWD/$NEK5K_VERSION && export PATH=$NEK5K_DIR/bin:$PATH MPI=0 && cd libCEED
     - echo "-------------- Nek5000 -------------" && git -C $NEK5K_DIR describe --tags
-    - make -k -j$((NPROC_CPU / NPROC_POOL)) BACKENDS="$BACKENDS_CPU" JUNIT_BATCH="cpu" junit search=nek NEK5K_DIR=$NEK5K_DIR
+    - export NPROC_POOL=1
+    - make -k -j$NPROC_CPU BACKENDS="$BACKENDS_CPU" JUNIT_BATCH="cpu" junit search=nek NEK5K_DIR=$NEK5K_DIR
 # Clang-tidy
     - echo "-------------- clang-tidy ----------" && clang-tidy --version
     - export OCCA_DIR= && make lib -j$NPROC_CPU
@@ -123,7 +124,8 @@ noether-rocm:
     - export COVERAGE=0
     - cd .. && export NEK5K_VERSION=Nek5000-19.0 && { [[ -d $NEK5K_VERSION ]] || { git clone --depth 1 --branch v19.0 https://github.com/Nek5000/Nek5000.git $NEK5K_VERSION && cd $NEK5K_VERSION/tools && ./maketools genbox genmap reatore2 && cd ../..; }; } && export NEK5K_DIR=$PWD/$NEK5K_VERSION && export PATH=$NEK5K_DIR/bin:$PATH MPI=0 && cd libCEED
     - echo "-------------- Nek5000 -------------" && git -C $NEK5K_DIR describe --tags
-    - make -k -j$((NPROC_GPU / NPROC_POOL)) BACKENDS="$BACKENDS_GPU" JUNIT_BATCH="hip" junit search=nek NEK5K_DIR=$NEK5K_DIR
+    - export NPROC_POOL=1
+    - make -k -j$NPROC_GPU BACKENDS="$BACKENDS_GPU" JUNIT_BATCH="hip" junit search=nek NEK5K_DIR=$NEK5K_DIR
 # Clang-tidy
     - echo "-------------- clang-tidy ----------" && clang-tidy --version
     - TIDY_OPTS="-fix-errors" make -j$NPROC_CPU tidy && git diff --color=always --exit-code
