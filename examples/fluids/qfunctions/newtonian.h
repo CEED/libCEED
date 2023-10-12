@@ -152,7 +152,7 @@ CEED_QFUNCTION(RHSFunction_Newtonian)(void *ctx, CeedInt Q, const CeedScalar *co
       for (CeedInt k = 0; k < 3; k++) Grad_v[k][j][i] = wdetJ * (dXdx[k][0] * Flux[j][0] + dXdx[k][1] * Flux[j][1] + dXdx[k][2] * Flux[j][2]);
     }
 
-    const CeedScalar body_force[5] = {0, s.U.density * g[0], s.U.density * g[1], s.U.density * g[2], 0};
+    const CeedScalar body_force[5] = {0, s.U.density * g[0], s.U.density * g[1], s.U.density * g[2], Dot3(s.U.momentum, g)};
     for (int j = 0; j < 5; j++) v[j][i] = wdetJ * body_force[j];
 
     // -- Stabilization method: none (Galerkin), SU, or SUPG
@@ -225,7 +225,7 @@ CEED_QFUNCTION_HELPER int IFunction_Newtonian(void *ctx, CeedInt Q, const CeedSc
       }
     }
 
-    const CeedScalar body_force[5] = {0, s.U.density * g[0], s.U.density * g[1], s.U.density * g[2], 0};
+    const CeedScalar body_force[5] = {0, s.U.density * g[0], s.U.density * g[1], s.U.density * g[2], Dot3(s.U.momentum, g)};
 
     // -- Stabilization method: none (Galerkin), SU, or SUPG
     CeedScalar Tau_d[3], stab[5][3], U_dot[5] = {0}, qi_dot[5];
@@ -322,7 +322,7 @@ CEED_QFUNCTION_HELPER int IJacobian_Newtonian(void *ctx, CeedInt Q, const CeedSc
       for (int k = 0; k < 3; k++) Grad_v[k][j][i] = -wdetJ * (dXdx[k][0] * dFlux[j][0] + dXdx[k][1] * dFlux[j][1] + dXdx[k][2] * dFlux[j][2]);
     }
 
-    const CeedScalar dbody_force[5] = {0, ds.U.density * g[0], ds.U.density * g[1], ds.U.density * g[2], 0};
+    const CeedScalar dbody_force[5] = {0, ds.U.density * g[0], ds.U.density * g[1], ds.U.density * g[2], Dot3(ds.U.momentum, g)};
     CeedScalar       dU[5]          = {0.};
     UnpackState_U(ds.U, dU);
     for (int j = 0; j < 5; j++) v[j][i] = wdetJ * (context->ijacobian_time_shift * dU[j] - dbody_force[j]);
