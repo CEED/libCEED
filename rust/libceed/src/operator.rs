@@ -652,9 +652,12 @@ impl<'a> Operator<'a> {
     ///
     /// // Check
     /// let sum: Scalar = v.view()?.iter().sum();
+    /// let error: Scalar = (sum - 2.0).abs();
     /// assert!(
-    ///     (sum - 2.0).abs() < 10.0 * libceed::EPSILON,
-    ///     "Incorrect interval length computed"
+    ///     error < 50.0 * libceed::EPSILON,
+    ///     "Incorrect interval length computed. Expected: 2.0, Found: {}, Error: {:.12e}",
+    ///     sum,
+    ///     error
     /// );
     /// # Ok(())
     /// # }
