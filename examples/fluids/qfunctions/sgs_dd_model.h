@@ -133,8 +133,8 @@ CEED_QFUNCTION_HELPER int IFunction_NodalSgs(void *ctx, CeedInt Q, const CeedSca
   NewtonianIdealGasContext gas       = &sgsdd_ctx->gas;
 
   CeedPragmaSIMD for (CeedInt i = 0; i < Q; i++) {
-    const CeedScalar qi[5]  = {q[0][i], q[1][i], q[2][i], q[3][i], q[4][i]};
-    const State      s      = StateFromQ(gas, qi, state_var);
+    const CeedScalar qi[5] = {q[0][i], q[1][i], q[2][i], q[3][i], q[4][i]};
+    const State      s     = StateFromQ(gas, qi, state_var);
 
     CeedScalar wdetJ, dXdx[3][3];
     QdataUnpack_3D(Q, i, q_data, &wdetJ, dXdx);

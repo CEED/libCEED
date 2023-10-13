@@ -348,8 +348,8 @@ CEED_QFUNCTION_HELPER int Freestream(void *ctx, CeedInt Q, const CeedScalar *con
   const bool                     is_implicit = newt_ctx->is_implicit;
 
   CeedPragmaSIMD for (CeedInt i = 0; i < Q; i++) {
-    const CeedScalar qi[5]  = {q[0][i], q[1][i], q[2][i], q[3][i], q[4][i]};
-    State            s      = StateFromQ(newt_ctx, qi, state_var);
+    const CeedScalar qi[5] = {q[0][i], q[1][i], q[2][i], q[3][i], q[4][i]};
+    State            s     = StateFromQ(newt_ctx, qi, state_var);
 
     CeedScalar wdetJb, norm[3];
     QdataBoundaryUnpack_3D(Q, i, q_data_sur, &wdetJb, NULL, norm);
@@ -393,7 +393,7 @@ CEED_QFUNCTION_HELPER int Freestream_Jacobian(void *ctx, CeedInt Q, const CeedSc
                                               RiemannFluxType flux_type) {
   const CeedScalar(*dq)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[0];
   const CeedScalar(*q_data_sur)     = in[2];
-  const CeedScalar(*jac_data_sur)   = in[3];
+  const CeedScalar(*jac_data_sur)   = in[4];
 
   CeedScalar(*v)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA])out[0];
 
@@ -403,7 +403,7 @@ CEED_QFUNCTION_HELPER int Freestream_Jacobian(void *ctx, CeedInt Q, const CeedSc
   const State                    dS_infty    = {0};
 
   CeedPragmaSIMD for (CeedInt i = 0; i < Q; i++) {
-    CeedScalar       wdetJb, norm[3];
+    CeedScalar wdetJb, norm[3];
     QdataBoundaryUnpack_3D(Q, i, q_data_sur, &wdetJb, NULL, norm);
     wdetJb *= is_implicit ? -1. : 1.;
 
@@ -486,7 +486,7 @@ CEED_QFUNCTION_HELPER int RiemannOutflow(void *ctx, CeedInt Q, const CeedScalar 
   const bool                     is_implicit = gas->is_implicit;
 
   CeedPragmaSIMD for (CeedInt i = 0; i < Q; i++) {
-    CeedScalar       wdetJb, dXdx[2][3], norm[3];
+    CeedScalar wdetJb, dXdx[2][3], norm[3];
     QdataBoundaryUnpack_3D(Q, i, q_data_sur, &wdetJb, dXdx, norm);
     wdetJb *= is_implicit ? -1. : 1.;
     const CeedScalar qi[5] = {q[0][i], q[1][i], q[2][i], q[3][i], q[4][i]};
@@ -542,7 +542,7 @@ CEED_QFUNCTION_HELPER int RiemannOutflow_Jacobian(void *ctx, CeedInt Q, const Ce
   const CeedScalar(*dq)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[0];
   const CeedScalar(*Grad_dq)        = in[1];
   const CeedScalar(*q_data_sur)     = in[2];
-  const CeedScalar(*jac_data_sur)   = in[3];
+  const CeedScalar(*jac_data_sur)   = in[4];
 
   // Outputs
   CeedScalar(*v)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA])out[0];
@@ -553,7 +553,7 @@ CEED_QFUNCTION_HELPER int RiemannOutflow_Jacobian(void *ctx, CeedInt Q, const Ce
 
   // Quadrature Point Loop
   CeedPragmaSIMD for (CeedInt i = 0; i < Q; i++) {
-    CeedScalar       wdetJb, dXdx[2][3], norm[3];
+    CeedScalar wdetJb, dXdx[2][3], norm[3];
     QdataBoundaryUnpack_3D(Q, i, q_data_sur, &wdetJb, dXdx, norm);
     wdetJb *= is_implicit ? -1. : 1.;
 
@@ -634,9 +634,9 @@ CEED_QFUNCTION_HELPER int PressureOutflow(void *ctx, CeedInt Q, const CeedScalar
   CeedPragmaSIMD for (CeedInt i = 0; i < Q; i++) {
     // Setup
     // -- Interp in
-    const CeedScalar qi[5]  = {q[0][i], q[1][i], q[2][i], q[3][i], q[4][i]};
-    State            s      = StateFromQ(gas, qi, state_var);
-    s.Y.pressure            = outflow->pressure;
+    const CeedScalar qi[5] = {q[0][i], q[1][i], q[2][i], q[3][i], q[4][i]};
+    State            s     = StateFromQ(gas, qi, state_var);
+    s.Y.pressure           = outflow->pressure;
 
     CeedScalar wdetJb, dXdx[2][3], norm[3];
     QdataBoundaryUnpack_3D(Q, i, q_data_sur, &wdetJb, dXdx, norm);
@@ -683,7 +683,7 @@ CEED_QFUNCTION_HELPER int PressureOutflow_Jacobian(void *ctx, CeedInt Q, const C
   const CeedScalar(*dq)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[0];
   const CeedScalar(*Grad_dq)        = in[1];
   const CeedScalar(*q_data_sur)     = in[2];
-  const CeedScalar(*jac_data_sur)   = in[3];
+  const CeedScalar(*jac_data_sur)   = in[4];
 
   // Outputs
   CeedScalar(*v)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA])out[0];
@@ -694,7 +694,7 @@ CEED_QFUNCTION_HELPER int PressureOutflow_Jacobian(void *ctx, CeedInt Q, const C
 
   // Quadrature Point Loop
   CeedPragmaSIMD for (CeedInt i = 0; i < Q; i++) {
-    CeedScalar       wdetJb, dXdx[2][3], norm[3];
+    CeedScalar wdetJb, dXdx[2][3], norm[3];
     QdataBoundaryUnpack_3D(Q, i, q_data_sur, &wdetJb, dXdx, norm);
     wdetJb *= is_implicit ? -1. : 1.;
 

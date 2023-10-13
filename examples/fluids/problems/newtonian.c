@@ -46,7 +46,7 @@ static PetscErrorCode UnitTests_Newtonian(User user, NewtonianIdealGasContext ga
   CeedScalar       U[5] = {rho, rho * u, rho * u * 1.1, rho * u * 1.2, 250e3 * Pascal + .5 * rho * u * u};
   State            s    = StateFromU(gas, U);
   for (int i = 0; i < 8; i++) {
-    CeedScalar dU[5] = {0}, dx[3] = {0};
+    CeedScalar dU[5] = {0};
     if (i < 5) dU[i] = U[i];
     State ds = StateFromU_fwd(gas, s, dU);
     for (int j = 0; j < 5; j++) dU[j] = (1 + eps * (i == j)) * U[j];

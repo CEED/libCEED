@@ -23,7 +23,7 @@
 CEED_QFUNCTION_HELPER void InternalDampingLayer(const NewtonianIdealGasContext context, const State s, const CeedScalar sigma, CeedScalar damp_Y[5],
                                                 CeedScalar damp_residual[5]) {
   ScaleN(damp_Y, sigma, 5);
-  State      damp_s  = StateFromY_fwd(context, s, damp_Y);
+  State damp_s = StateFromY_fwd(context, s, damp_Y);
 
   CeedScalar U[5];
   UnpackState_U(damp_s.U, U);
@@ -35,7 +35,6 @@ CEED_QFUNCTION_HELPER void InternalDampingLayer(const NewtonianIdealGasContext c
 // *****************************************************************************
 CEED_QFUNCTION_HELPER int ICsNewtonianIG(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out, StateVariable state_var) {
   // Inputs
-  const CeedScalar(*X)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[0];
 
   // Outputs
   CeedScalar(*q0)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA])out[0];
@@ -45,7 +44,6 @@ CEED_QFUNCTION_HELPER int ICsNewtonianIG(void *ctx, CeedInt Q, const CeedScalar 
 
   // Quadrature Point Loop
   CeedPragmaSIMD for (CeedInt i = 0; i < Q; i++) {
-    CeedScalar x[3] = {X[0][i], X[1][i], X[2][i]};
     CeedScalar q[5] = {0.};
     State      s    = StateFromPrimitive(&context->gas, context->reference);
     StateToQ(&context->gas, s, q, state_var);
@@ -111,7 +109,6 @@ CEED_QFUNCTION(RHSFunction_Newtonian)(void *ctx, CeedInt Q, const CeedScalar *co
   const CeedScalar(*q)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[0];
   const CeedScalar(*Grad_q)        = in[1];
   const CeedScalar(*q_data)        = in[2];
-  const CeedScalar(*x)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[3];
 
   // Outputs
   CeedScalar(*v)[CEED_Q_VLA]         = (CeedScalar(*)[CEED_Q_VLA])out[0];
@@ -128,7 +125,6 @@ CEED_QFUNCTION(RHSFunction_Newtonian)(void *ctx, CeedInt Q, const CeedScalar *co
     for (int j = 0; j < 5; j++) U[j] = q[j][i];
     StoredValuesUnpack(Q, i, 0, 1, q_data, &wdetJ);
     StoredValuesUnpack(Q, i, 1, 9, q_data, (CeedScalar *)dXdx);
-    const CeedScalar x_i[3] = {x[0][i], x[1][i], x[2][i]};
     State            s      = StateFromU(context, U);
 
     State grad_s[3];
@@ -151,7 +147,7 @@ CEED_QFUNCTION(RHSFunction_Newtonian)(void *ctx, CeedInt Q, const CeedScalar *co
       for (CeedInt k = 0; k < 3; k++) Grad_v[k][j][i] = wdetJ * (dXdx[k][0] * Flux[j][0] + dXdx[k][1] * Flux[j][1] + dXdx[k][2] * Flux[j][2]);
     }
 
-    const CeedScalar body_force[5] = {0, s.U.density * g[0], s.U.density * g[1], s.U.density * g[2], 0};
+    const CeedScalar body_force[5] = {0, s.U.density * g[0], s.U.density * g[1], s.U.density * g[2], Dot3(s.U.momentum, g)};
     for (int j = 0; j < 5; j++) v[j][i] = wdetJ * body_force[j];
 
     // -- Stabilization method: none (Galerkin), SU, or SUPG
@@ -224,7 +220,7 @@ CEED_QFUNCTION_HELPER int IFunction_Newtonian(void *ctx, CeedInt Q, const CeedSc
       }
     }
 
-    const CeedScalar body_force[5] = {0, s.U.density * g[0], s.U.density * g[1], s.U.density * g[2], 0};
+    const CeedScalar body_force[5] = {0, s.U.density * g[0], s.U.density * g[1], s.U.density * g[2], Dot3(s.U.momentum, g)};
 
     // -- Stabilization method: none (Galerkin), SU, or SUPG
     CeedScalar Tau_d[3], stab[5][3], U_dot[5] = {0}, qi_dot[5];
@@ -321,7 +317,7 @@ CEED_QFUNCTION_HELPER int IJacobian_Newtonian(void *ctx, CeedInt Q, const CeedSc
       for (int k = 0; k < 3; k++) Grad_v[k][j][i] = -wdetJ * (dXdx[k][0] * dFlux[j][0] + dXdx[k][1] * dFlux[j][1] + dXdx[k][2] * dFlux[j][2]);
     }
 
-    const CeedScalar dbody_force[5] = {0, ds.U.density * g[0], ds.U.density * g[1], ds.U.density * g[2], 0};
+    const CeedScalar dbody_force[5] = {0, ds.U.density * g[0], ds.U.density * g[1], ds.U.density * g[2], Dot3(ds.U.momentum, g)};
     CeedScalar       dU[5]          = {0.};
     UnpackState_U(ds.U, dU);
     for (int j = 0; j < 5; j++) v[j][i] = wdetJ * (context->ijacobian_time_shift * dU[j] - dbody_force[j]);
@@ -369,8 +365,8 @@ CEED_QFUNCTION_HELPER int BoundaryIntegral(void *ctx, CeedInt Q, const CeedScala
   const bool                     is_implicit = context->is_implicit;
 
   CeedPragmaSIMD for (CeedInt i = 0; i < Q; i++) {
-    const CeedScalar qi[5]  = {q[0][i], q[1][i], q[2][i], q[3][i], q[4][i]};
-    State            s      = StateFromQ(context, qi, state_var);
+    const CeedScalar qi[5] = {q[0][i], q[1][i], q[2][i], q[3][i], q[4][i]};
+    State            s     = StateFromQ(context, qi, state_var);
 
     CeedScalar wdetJb, dXdx[2][3], norm[3];
     QdataBoundaryUnpack_3D(Q, i, q_data_sur, &wdetJb, dXdx, norm);
@@ -416,7 +412,7 @@ CEED_QFUNCTION_HELPER int BoundaryIntegral_Jacobian(void *ctx, CeedInt Q, const 
   const CeedScalar(*dq)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[0];
   const CeedScalar(*Grad_dq)        = in[1];
   const CeedScalar(*q_data_sur)     = in[2];
-  const CeedScalar(*jac_data_sur)   = in[3];
+  const CeedScalar(*jac_data_sur)   = in[4];
 
   // Outputs
   CeedScalar(*v)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA])out[0];
@@ -426,7 +422,7 @@ CEED_QFUNCTION_HELPER int BoundaryIntegral_Jacobian(void *ctx, CeedInt Q, const 
 
   // Quadrature Point Loop
   CeedPragmaSIMD for (CeedInt i = 0; i < Q; i++) {
-    CeedScalar       wdetJb, dXdx[2][3], norm[3];
+    CeedScalar wdetJb, dXdx[2][3], norm[3];
     QdataBoundaryUnpack_3D(Q, i, q_data_sur, &wdetJb, dXdx, norm);
     wdetJb *= is_implicit ? -1. : 1.;
 
@@ -436,7 +432,7 @@ CEED_QFUNCTION_HELPER int BoundaryIntegral_Jacobian(void *ctx, CeedInt Q, const 
     for (int j = 0; j < 5; j++) dqi[j] = dq[j][i];
 
     State s  = StateFromQ(context, qi, state_var);
-    State ds = StateFromQ_fwd(context, s, dqi,  state_var);
+    State ds = StateFromQ_fwd(context, s, dqi, state_var);
 
     State grad_ds[3];
     StatePhysicalGradientFromReference_Boundary(Q, i, context, s, state_var, Grad_dq, dXdx, grad_ds);

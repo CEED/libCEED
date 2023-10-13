@@ -29,8 +29,7 @@ CEED_QFUNCTION_HELPER void dYFromTau(CeedScalar Y[5], CeedScalar Tau_d[3], CeedS
 // *****************************************************************************
 // Helper functions for computing the stabilization terms
 // *****************************************************************************
-CEED_QFUNCTION_HELPER void StabilizationMatrix(NewtonianIdealGasContext gas, State s, CeedScalar Tau_d[3], CeedScalar R[5], 
-                                               CeedScalar stab[5][3]) {
+CEED_QFUNCTION_HELPER void StabilizationMatrix(NewtonianIdealGasContext gas, State s, CeedScalar Tau_d[3], CeedScalar R[5], CeedScalar stab[5][3]) {
   CeedScalar        dY[5];
   StateConservative dF[3];
   // Zero stab so all future terms can safely sum into it
