@@ -25,7 +25,7 @@ $$
 $$ (eq-ns)
 
 where $\bm{\sigma} = \mu(\nabla \bm{u} + (\nabla \bm{u})^T + \lambda (\nabla \cdot \bm{u})\bm{I}_3)$ is the Cauchy (symmetric) stress tensor, with $\mu$ the dynamic viscosity coefficient, and $\lambda = - 2/3$ the Stokes hypothesis constant.
-In equations {eq}`eq-ns`, $\rho$ represents the volume mass density, $U$ the momentum density (defined as $\bm{U}=\rho \bm{u}$, where $\bm{u}$ is the vector velocity field), $E$ the total energy density (defined as $E = \rho e$, where $e$ is the total energy including thermal and kinetic but not potential energy), $\bm{I}_3$ represents the $3 \times 3$ identity matrix, $\bm{b}$ is a body force vector (e.g., gravity vector $bm{g}$),  $k$ the thermal conductivity constant, $T$ represents the temperature, and $P$ the pressure, given by the following equation of state
+In equations {eq}`eq-ns`, $\rho$ represents the volume mass density, $U$ the momentum density (defined as $\bm{U}=\rho \bm{u}$, where $\bm{u}$ is the vector velocity field), $E$ the total energy density (defined as $E = \rho e$, where $e$ is the total energy including thermal and kinetic but not potential energy), $\bm{I}_3$ represents the $3 \times 3$ identity matrix, $\bm{b}$ is a body force vector (e.g., gravity vector $\bm{g}$),  $k$ the thermal conductivity constant, $T$ represents the temperature, and $P$ the pressure, given by the following equation of state
 
 $$
 P = \left( {c_p}/{c_v} -1\right) \left( E - {\bm{U}\cdot\bm{U}}/{(2 \rho)} \right) \, ,
