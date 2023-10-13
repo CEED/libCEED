@@ -1191,17 +1191,18 @@ mod tests {
         // Restrictions
         let mut indx: Vec<i32> = vec![0; 2 * nelem];
         for i in 0..nelem {
-            indx[2 * i + 0] = i as i32;
-            indx[2 * i + 1] = (i + 1) as i32;
+            for j in 0..2 {
+                indx[2 * i + j] = (i + j) as i32;
+            }
         }
         let rx = ceed.elem_restriction(nelem, 2, 1, 1, nelem + 1, MemType::Host, &indx)?;
         let mut indu: Vec<i32> = vec![0; p * nelem];
         for i in 0..nelem {
-            indu[p * i + 0] = i as i32;
-            indu[p * i + 1] = (i + 1) as i32;
-            indu[p * i + 2] = (i + 2) as i32;
+            for j in 0..p {
+                indu[p * i + j] = (i + j) as i32;
+            }
         }
-        let ru = ceed.elem_restriction(nelem, 3, 1, 1, ndofs, MemType::Host, &indu)?;
+        let ru = ceed.elem_restriction(nelem, p, 1, 1, ndofs, MemType::Host, &indu)?;
         let strides: [i32; 3] = [1, q as i32, q as i32];
         let rq = ceed.strided_elem_restriction(nelem, q, 1, q * nelem, strides)?;
 
@@ -1231,9 +1232,12 @@ mod tests {
 
         // Check
         let sum: Scalar = v.view()?.iter().sum();
+        let error: Scalar = (sum - 2.0).abs();
         assert!(
-            (sum - 2.0).abs() < 1e-15,
-            "Incorrect interval length computed"
+            error < 1e-15,
+            "Incorrect interval length computed. Expected: 2.0, Found: {}, Error: {:.12e}",
+            sum,
+            error
         );
         Ok(())
     }
