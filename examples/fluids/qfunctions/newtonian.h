@@ -125,7 +125,7 @@ CEED_QFUNCTION(RHSFunction_Newtonian)(void *ctx, CeedInt Q, const CeedScalar *co
     for (int j = 0; j < 5; j++) U[j] = q[j][i];
     StoredValuesUnpack(Q, i, 0, 1, q_data, &wdetJ);
     StoredValuesUnpack(Q, i, 1, 9, q_data, (CeedScalar *)dXdx);
-    State            s      = StateFromU(context, U);
+    State s = StateFromU(context, U);
 
     State grad_s[3];
     StatePhysicalGradientFromReference(Q, i, context, s, STATEVAR_CONSERVATIVE, Grad_q, dXdx, grad_s);
