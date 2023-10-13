@@ -134,7 +134,7 @@ class CeedSuiteSpec(SuiteSpec):
             return f'SYCL device type not available'
         return None
 
-    def check_required_failure(self, test: str, spec: TestSpec, resource: str, stderr: str) -> tuple[str, bool]:
+    def check_required_failure(self, test: str, spec: TestSpec, resource: str, stderr: str) -> Tuple[str, bool]:
         """Check whether a test case is expected to fail and if it failed expectedly
 
         Args:
