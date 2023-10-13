@@ -49,7 +49,6 @@ struct DifferentialFilterContext_ {
 CEED_QFUNCTION_HELPER int DifferentialFilter_RHS(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out, StateVariable state_var) {
   const CeedScalar(*q)[CEED_Q_VLA]      = (const CeedScalar(*)[CEED_Q_VLA])in[0];
   const CeedScalar(*q_data)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[1];
-  const CeedScalar(*x)[CEED_Q_VLA]      = (const CeedScalar(*)[CEED_Q_VLA])in[2];
   CeedScalar(*v0)[CEED_Q_VLA]           = (CeedScalar(*)[CEED_Q_VLA])out[0];
   CeedScalar(*v1)[CEED_Q_VLA]           = (CeedScalar(*)[CEED_Q_VLA])out[1];
 
@@ -57,10 +56,9 @@ CEED_QFUNCTION_HELPER int DifferentialFilter_RHS(void *ctx, CeedInt Q, const Cee
   NewtonianIdealGasContext  gas     = &context->gas;
 
   CeedPragmaSIMD for (CeedInt i = 0; i < Q; i++) {
-    const CeedScalar qi[5]  = {q[0][i], q[1][i], q[2][i], q[3][i], q[4][i]};
-    const CeedScalar x_i[3] = {x[0][i], x[1][i], x[2][i]};
-    const CeedScalar wdetJ  = q_data[0][i];
-    const State      s      = StateFromQ(gas, qi, x_i, state_var);
+    const CeedScalar qi[5] = {q[0][i], q[1][i], q[2][i], q[3][i], q[4][i]};
+    const CeedScalar wdetJ = q_data[0][i];
+    const State      s     = StateFromQ(gas, qi, state_var);
 
     v0[DIFF_FILTER_PRESSURE][i]            = wdetJ * s.Y.pressure;
     v0[DIFF_FILTER_VELOCITY_X][i]          = wdetJ * s.Y.velocity[0];

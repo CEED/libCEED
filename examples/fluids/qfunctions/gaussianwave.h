@@ -54,7 +54,7 @@ CEED_QFUNCTION_HELPER int IC_GaussianWave(void *ctx, CeedInt Q, const CeedScalar
     U[3] = S_infty.Y.velocity[2] * U[0];
     U[4] = S_infty.Y.pressure / (gamma - 1) * perturbation + e_kinetic;
 
-    State initCond = StateFromU(newt_ctx, U, x);
+    State initCond = StateFromU(newt_ctx, U);
     StateToQ(newt_ctx, initCond, qi, state_var);
 
     for (CeedInt j = 0; j < 5; j++) q0[j][i] = qi[j];

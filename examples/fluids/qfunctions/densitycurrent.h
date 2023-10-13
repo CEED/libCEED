@@ -127,7 +127,7 @@ CEED_QFUNCTION_HELPER State Exact_DC(CeedInt dim, CeedScalar time, const CeedSca
   Y[3]            = 0.0;
   Y[4]            = Pi * theta;
 
-  return StateFromY(gas, Y, X);
+  return StateFromY(gas, Y);
 }
 
 // *****************************************************************************
