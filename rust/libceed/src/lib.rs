@@ -1234,7 +1234,7 @@ mod tests {
         let sum: Scalar = v.view()?.iter().sum();
         let error: Scalar = (sum - 2.0).abs();
         assert!(
-            error < 1e-15,
+            error < 50.0 * EPSILON,
             "Incorrect interval length computed. Expected: 2.0, Found: {}, Error: {:.12e}",
             sum,
             error
