@@ -302,12 +302,11 @@ int CeedBasisGetCollocatedGrad(CeedBasis basis, CeedScalar *collo_grad_1d) {
   CeedInt     P_1d, Q_1d;
   CeedScalar *interp_1d_pinv;
 
-  // QR Factorization, interp_1d = Q R
   CeedCall(CeedBasisGetCeed(basis, &ceed));
   CeedCall(CeedBasisGetNumNodes1D(basis, &P_1d));
   CeedCall(CeedBasisGetNumQuadraturePoints1D(basis, &Q_1d));
 
-  // QR Factorization, interp_1d = Q R
+  // Compute interp_1d^+, pseudoinverse of interp_1d
   CeedCall(CeedCalloc(P_1d * Q_1d, &interp_1d_pinv));
 
   CeedCall(CeedMatrixPseudoinverse(ceed, basis->interp_1d, Q_1d, P_1d, interp_1d_pinv));
@@ -1534,7 +1533,7 @@ int CeedBasisApplyAtPoints(CeedBasis basis, CeedInt num_points, CeedTransposeMod
   }
   if (!basis->basis_chebyshev) {
     // Build matrix mapping from quadrature point values to Chebyshev coefficients
-    CeedScalar       *C, *chebyshev_coeffs_1d;
+    CeedScalar       *C, *chebyshev_coeffs_1d_inv;
     const CeedScalar *q_ref_1d;
 
     // Build coefficient matrix
@@ -1544,10 +1543,9 @@ int CeedBasisApplyAtPoints(CeedBasis basis, CeedInt num_points, CeedTransposeMod
     CeedCall(CeedBasisGetQRef(basis, &q_ref_1d));
     for (CeedInt i = 0; i < Q_1d; i++) CeedCall(CeedChebyshevPolynomialsAtPoint(q_ref_1d[i], Q_1d, &C[i * Q_1d]));
 
-    // Inverse of coefficient matrix
-    // -- QR Factorization, C = Q R
-    CeedCall(CeedCalloc(Q_1d * Q_1d, &chebyshev_coeffs_1d));
-    CeedCall(CeedMatrixPseudoinverse(basis->ceed, C, Q_1d, Q_1d, chebyshev_coeffs_1d));
+    // Compute C^+, pseudoinverse of coefficient matrix
+    CeedCall(CeedCalloc(Q_1d * Q_1d, &chebyshev_coeffs_1d_inv));
+    CeedCall(CeedMatrixPseudoinverse(basis->ceed, C, Q_1d, Q_1d, chebyshev_coeffs_1d_inv));
 
     // Build basis mapping from nodes to Chebyshev coefficients
     CeedScalar       *chebyshev_interp_1d, *chebyshev_grad_1d, *chebyshev_q_weight_1d;
@@ -1557,7 +1555,7 @@ int CeedBasisApplyAtPoints(CeedBasis basis, CeedInt num_points, CeedTransposeMod
     CeedCall(CeedCalloc(P_1d * Q_1d, &chebyshev_grad_1d));
     CeedCall(CeedCalloc(Q_1d, &chebyshev_q_weight_1d));
     CeedCall(CeedBasisGetInterp1D(basis, &interp_1d));
-    CeedCall(CeedMatrixMatrixMultiply(basis->ceed, chebyshev_coeffs_1d, interp_1d, chebyshev_interp_1d, Q_1d, P_1d, Q_1d));
+    CeedCall(CeedMatrixMatrixMultiply(basis->ceed, chebyshev_coeffs_1d_inv, interp_1d, chebyshev_interp_1d, Q_1d, P_1d, Q_1d));
 
     CeedCall(CeedVectorCreate(basis->ceed, num_comp * CeedIntPow(Q_1d, dim), &basis->vec_chebyshev));
     CeedCall(CeedBasisCreateTensorH1(basis->ceed, dim, num_comp, P_1d, Q_1d, chebyshev_interp_1d, chebyshev_grad_1d, q_ref_1d, chebyshev_q_weight_1d,
@@ -1565,7 +1563,7 @@ int CeedBasisApplyAtPoints(CeedBasis basis, CeedInt num_points, CeedTransposeMod
 
     // Cleanup
     CeedCall(CeedFree(&C));
-    CeedCall(CeedFree(&chebyshev_coeffs_1d));
+    CeedCall(CeedFree(&chebyshev_coeffs_1d_inv));
     CeedCall(CeedFree(&chebyshev_interp_1d));
     CeedCall(CeedFree(&chebyshev_grad_1d));
     CeedCall(CeedFree(&chebyshev_q_weight_1d));
