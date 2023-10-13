@@ -428,9 +428,6 @@ PetscErrorCode TSSolve_NS(DM dm, User user, AppCtx app_ctx, Physics phys, Vec *Q
   PetscCall(TSSetExactFinalTime(*ts, TS_EXACTFINALTIME_STEPOVER));
   if (app_ctx->test_type == TESTTYPE_NONE) PetscCall(TSSetErrorIfStepFails(*ts, PETSC_FALSE));
   PetscCall(TSSetTimeStep(*ts, 1.e-2 * user->units->second));
-  if (app_ctx->test_type != TESTTYPE_NONE) {
-    PetscCall(TSSetMaxSteps(*ts, 10));
-  }
   PetscCall(TSGetAdapt(*ts, &adapt));
   PetscCall(TSAdaptSetStepLimits(adapt, 1.e-12 * user->units->second, 1.e2 * user->units->second));
   PetscCall(TSSetFromOptions(*ts));
