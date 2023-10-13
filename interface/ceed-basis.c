@@ -301,7 +301,7 @@ int CeedBasisGetCollocatedGrad(CeedBasis basis, CeedScalar *collo_grad_1d) {
   Ceed        ceed;
   CeedInt     P_1d, Q_1d;
   CeedScalar *interp_1d_pinv;
-
+  // Note: This function is for backend use, so all errors are terminal and we do not need to clean up memory on failure.
   CeedCall(CeedBasisGetCeed(basis, &ceed));
   CeedCall(CeedBasisGetNumNodes1D(basis, &P_1d));
   CeedCall(CeedBasisGetNumQuadraturePoints1D(basis, &Q_1d));
