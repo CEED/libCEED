@@ -163,7 +163,8 @@ PetscErrorCode SetupLibceed(Ceed ceed, CeedData ceed_data, DM dm, User user, App
   // Set up CEED objects for the interior domain (volume)
   // *****************************************************************************
   const PetscInt num_comp_q = 5;
-  const CeedInt  dim = problem->dim, num_comp_x = problem->dim, q_data_size_vol = problem->q_data_size_vol, jac_data_size_vol = num_comp_q + 6 + 3 + 1; //context->idl_enable) ? 1 : 0; 
+  const CeedInt  dim = problem->dim, num_comp_x = problem->dim, q_data_size_vol = problem->q_data_size_vol, 
+                jac_data_size_vol = num_comp_q + 6 + 3 + 1; //context->idl_enable) ? 1 : 0; 
   CeedElemRestriction elem_restr_jd_i;
   CeedVector          jac_data;
   CeedInt             num_qpts;

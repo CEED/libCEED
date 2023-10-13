@@ -231,9 +231,9 @@ CEED_QFUNCTION_HELPER int IFunction_Newtonian(void *ctx, CeedInt Q, const CeedSc
     for (CeedInt j = 0; j < 5; j++) v[j][i] = wdetJ * (U_dot[j] - body_force[j]);
     if (context->idl_enable) {
       const CeedScalar sigma = LinearRampCoefficient(context->idl_amplitude, context->idl_length, context->idl_start, x_i[0]);
-      jac_data[14 * Q + i] = sigma;
+      jac_data[14 * Q + i]   = sigma;
       CeedScalar damp_state[5] = {s.Y.pressure - P0, 0, 0, 0, 0}, idl_residual[5] = {0.};
-      InternalDampingLayer(context, s,  sigma, damp_state, idl_residual);
+      InternalDampingLayer(context, s, sigma, damp_state, idl_residual);
       for (int j = 0; j < 5; j++) v[j][i] += wdetJ * idl_residual[j];
     }
 
@@ -290,7 +290,7 @@ CEED_QFUNCTION_HELPER int IJacobian_Newtonian(void *ctx, CeedInt Q, const CeedSc
     StoredValuesUnpack(Q, i, 0, 5, jac_data, qi);
     StoredValuesUnpack(Q, i, 5, 6, jac_data, kmstress);
     StoredValuesUnpack(Q, i, 11, 3, jac_data, Tau_d);
-    State            s      = StateFromQ(context, qi, state_var);
+    State s = StateFromQ(context, qi, state_var);
 
     CeedScalar dqi[5];
     for (int j = 0; j < 5; j++) dqi[j] = dq[j][i];
@@ -323,8 +323,8 @@ CEED_QFUNCTION_HELPER int IJacobian_Newtonian(void *ctx, CeedInt Q, const CeedSc
     for (int j = 0; j < 5; j++) v[j][i] = wdetJ * (context->ijacobian_time_shift * dU[j] - dbody_force[j]);
 
     if (context->idl_enable) {
-      const CeedScalar sigma=jac_data[14 * Q + i];
-      CeedScalar damp_state[5] = {ds.Y.pressure, 0, 0, 0, 0}, idl_residual[5] = {0.};
+      const CeedScalar sigma         = jac_data[14 * Q + i];
+      CeedScalar       damp_state[5] = {ds.Y.pressure, 0, 0, 0, 0}, idl_residual[5] = {0.};
       // This is a Picard-type linearization of the damping and could be replaced by an InternalDampingLayer_fwd that uses s and ds.
       InternalDampingLayer(context, s, sigma, damp_state, idl_residual);
       for (int j = 0; j < 5; j++) v[j][i] += wdetJ * idl_residual[j];
