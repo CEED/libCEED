@@ -45,8 +45,8 @@ class CaseInsensitiveEnumAction(argparse.Action):
 class TestSpec:
     """Dataclass storing information about a single test case"""
     name: str
-    only: list = field(default_factory=list)
-    args: list = field(default_factory=list)
+    only: List = field(default_factory=list)
+    args: List = field(default_factory=list)
 
 
 class RunMode(str, Enum):
@@ -179,7 +179,7 @@ def contains_any(base: str, substrings: List[str]) -> bool:
 
     Args:
         base (str): Base string to search in
-        substrings (list[str]): List of potential substrings
+        substrings (List[str]): List of potential substrings
 
     Returns:
         bool: True if any substrings are included in base string
@@ -192,7 +192,7 @@ def startswith_any(base: str, prefixes: List[str]) -> bool:
 
     Args:
         base (str): Base string to search
-        prefixes (list[str]): List of potential prefixes
+        prefixes (List[str]): List of potential prefixes
 
     Returns:
         bool: True if base string is prefixed by any of the prefixes
@@ -233,7 +233,7 @@ def get_test_args(source_file: Path) -> List[TestSpec]:
         RuntimeError: Errors if source file extension is unsupported
 
     Returns:
-        list[TestSpec]: List of parsed `TestSpec` objects, or a list containing a single, default `TestSpec` if none were found
+        List[TestSpec]: List of parsed `TestSpec` objects, or a list containing a single, default `TestSpec` if none were found
     """
     comment_str: str = ''
     if source_file.suffix in ['.c', '.cpp']:
@@ -317,7 +317,7 @@ def run_test(index: int, test: str, spec: TestSpec, backend: str,
     """Run a single test case and backend combination
 
     Args:
-        index (int): Index of test case
+        index (int): Index of backend for current spec
         test (str): Path to test
         spec (TestSpec): Specification of test case
         backend (str): CEED backend
@@ -329,10 +329,13 @@ def run_test(index: int, test: str, spec: TestSpec, backend: str,
         TestCase: Test case result
     """
     source_path: Path = suite_spec.get_source_path(test)
-    run_args: List = [suite_spec.get_run_path(test), *spec.args]
+    run_args: List = [f'{suite_spec.get_run_path(test)}', *map(str, spec.args)]
 
     if '{ceed_resource}' in run_args:
         run_args[run_args.index('{ceed_resource}')] = backend
+    for i, arg in enumerate(run_args):
+        if '{ceed_resource}' in arg:
+            run_args[i] = arg.replace('{ceed_resource}', backend.replace('/', '-'))
     if '{nproc}' in run_args:
         run_args[run_args.index('{nproc}')] = f'{nproc}'
     elif nproc > 1 and source_path.suffix != '.py':
@@ -345,7 +348,8 @@ def run_test(index: int, test: str, spec: TestSpec, backend: str,
                                        elapsed_sec=0,
                                        timestamp=time.strftime('%Y-%m-%d %H:%M:%S %Z', time.localtime()),
                                        stdout='',
-                                       stderr='')
+                                       stderr='',
+                                       category=spec.name,)
         test_case.add_skipped_info(skip_reason)
     else:
         start: float = time.time()
@@ -361,13 +365,14 @@ def run_test(index: int, test: str, spec: TestSpec, backend: str,
                              timestamp=time.strftime('%Y-%m-%d %H:%M:%S %Z', time.localtime(start)),
                              stdout=proc.stdout.decode('utf-8'),
                              stderr=proc.stderr.decode('utf-8'),
-                             allow_multiple_subelements=True)
+                             allow_multiple_subelements=True,
+                             category=spec.name,)
         ref_csvs: List[Path] = []
-        output_files: List[str] = [arg for arg in spec.args if 'ascii:' in arg]
+        output_files: List[str] = [arg for arg in run_args if 'ascii:' in arg]
         if output_files:
             ref_csvs = [suite_spec.get_output_path(test, file.split('ascii:')[-1]) for file in output_files]
         ref_cgns: List[Path] = []
-        output_files = [arg for arg in spec.args if 'cgns:' in arg]
+        output_files = [arg for arg in run_args if 'cgns:' in arg]
         if output_files:
             ref_cgns = [suite_spec.get_output_path(test, file.split('cgns:')[-1]) for file in output_files]
         ref_stdout: Path = suite_spec.get_output_path(test, test + '.out')
@@ -405,24 +410,32 @@ def run_test(index: int, test: str, spec: TestSpec, backend: str,
             test_case.add_failure_info('stdout', output=test_case.stdout)
         # expected CSV output
         for ref_csv in ref_csvs:
+            csv_name = ref_csv.name
+            if not ref_csv.is_file():
+                # remove _{ceed_backend} from path name
+                ref_csv = (ref_csv.parent / ref_csv.name.rsplit('_', 1)[0]).with_suffix('.csv')
             if not ref_csv.is_file():
                 test_case.add_failure_info('csv', output=f'{ref_csv} not found')
             else:
-                diff: str = diff_csv(Path.cwd() / ref_csv.name, ref_csv)
+                diff: str = diff_csv(Path.cwd() / csv_name, ref_csv)
                 if diff:
                     test_case.add_failure_info('csv', output=diff)
                 else:
-                    (Path.cwd() / ref_csv.name).unlink()
+                    (Path.cwd() / csv_name).unlink()
         # expected CGNS output
         for ref_cgn in ref_cgns:
+            cgn_name = ref_cgn.name
+            if not ref_cgn.is_file():
+                # remove _{ceed_backend} from path name
+                ref_cgn = (ref_cgn.parent / ref_cgn.name.rsplit('_', 1)[0]).with_suffix('.cgns')
             if not ref_cgn.is_file():
                 test_case.add_failure_info('cgns', output=f'{ref_cgn} not found')
             else:
-                diff = diff_cgns(Path.cwd() / ref_cgn.name, ref_cgn)
+                diff = diff_cgns(Path.cwd() / cgn_name, ref_cgn)
                 if diff:
                     test_case.add_failure_info('cgns', output=diff)
                 else:
-                    (Path.cwd() / ref_cgn.name).unlink()
+                    (Path.cwd() / cgn_name).unlink()
 
     # store result
     test_case.args = ' '.join(str(arg) for arg in run_args)
@@ -430,23 +443,27 @@ def run_test(index: int, test: str, spec: TestSpec, backend: str,
     # print output
     if mode is RunMode.TAP:
         # print incremental output if TAP mode
-        output_str += f'# Test: {spec.name}\n'
-        if spec.only:
-            output_str += f'# Only: {",".join(spec.only)}'
-        output_str += f'# $ {test_case.args}\n'
         if test_case.is_skipped():
-            output_str += ('ok {} - SKIP: {}\n'.format(index,
-                                                       (test_case.skipped[0]['message'] or 'NO MESSAGE').strip())) + '\n'
+            output_str += f'    ok {index} - {spec.name}, {backend} # SKIP {test_case.skipped[0]["message"]}\n'
         elif test_case.is_failure() or test_case.is_error():
-            output_str += f'not ok {index}\n'
-            if test_case.is_error():
-                output_str += f'  ERROR: {test_case.errors[0]["message"]}\n'
-            if test_case.is_failure():
-                for i, failure in enumerate(test_case.failures):
-                    output_str += f'  FAILURE {i}: {failure["message"]}\n'
-                    output_str += f'    Output: \n{failure["output"]}\n'
+            output_str += f'    not ok {index} - {spec.name}, {backend}\n'
         else:
-            output_str += f'ok {index} - PASS\n'
+            output_str += f'    ok {index} - {spec.name}, {backend}\n'
+        output_str += f'      ---\n'
+        if spec.only:
+            output_str += f'      only: {",".join(spec.only)}\n'
+        output_str += f'      args: {test_case.args}\n'
+        if test_case.is_error():
+            output_str += f'      error: {test_case.errors[0]["message"]}\n'
+        if test_case.is_failure():
+            output_str += f'      num_failures: {len(test_case.failures)}\n'
+            for i, failure in enumerate(test_case.failures):
+                output_str += f'      failure_{i}: {failure["message"]}\n'
+                output_str += f'        message: {failure["message"]}\n'
+                if failure["output"]:
+                    out = failure["output"].strip().replace('\n', '\n          ')
+                    output_str += f'        output: |\n          {out}\n'
+        output_str += f'      ...\n'
     else:
         # print error or failure information if JUNIT mode
         if test_case.is_error() or test_case.is_failure():
@@ -477,7 +494,7 @@ def run_tests(test: str, ceed_backends: List[str], mode: RunMode, nproc: int,
 
     Args:
         test (str): Name of test
-        ceed_backends (list[str]): List of libCEED backends
+        ceed_backends (List[str]): List of libCEED backends
         mode (RunMode): Output mode, either `RunMode.TAP` or `RunMode.JUNIT`
         nproc (int): Number of MPI processes to use when running each test case
         suite_spec (SuiteSpec): Object defining required methods for running tests
@@ -488,20 +505,32 @@ def run_tests(test: str, ceed_backends: List[str], mode: RunMode, nproc: int,
     """
     test_specs: List[TestSpec] = get_test_args(suite_spec.get_source_path(test))
     if mode is RunMode.TAP:
-        print('1..' + str(len(test_specs) * len(ceed_backends)))
-
-    # list of (test, test_specs, ceed_backend, ...) tuples generated from list of backends and test specs
-    args: List[TestCase] = [(i, test, spec, backend, mode, nproc, suite_spec)
-                            for i, (spec, backend) in enumerate(product(test_specs, ceed_backends), start=1)]
+        print('TAP version 13')
+        print(f'1..{len(test_specs)}')
 
     with mp.Pool(processes=pool_size, initializer=init_process) as pool:
-        async_outputs: List[mp.AsyncResult] = [pool.apply_async(run_test, argv) for argv in args]
+        async_outputs: List[List[mp.AsyncResult]] = [
+            [pool.apply_async(run_test, (i, test, spec, backend, mode, nproc, suite_spec))
+             for (i, backend) in enumerate(ceed_backends, start=1)]
+            for spec in test_specs
+        ]
 
         test_cases = []
-        for async_output in async_outputs:
-            test_case, print_output = async_output.get()
-            test_cases.append(test_case)
-            print(print_output, end='')
+        for (i, subtest) in enumerate(async_outputs, start=1):
+            is_new_subtest = True
+            subtest_ok = True
+            for async_output in subtest:
+                test_case, print_output = async_output.get()
+                test_cases.append(test_case)
+                if is_new_subtest and mode == RunMode.TAP:
+                    is_new_subtest = False
+                    print(f'# Subtest: {test_case.category}')
+                    print(f'    1..{len(ceed_backends)}')
+                print(print_output, end='')
+                if test_case.is_failure() or test_case.is_error():
+                    subtest_ok = False
+            if mode == RunMode.TAP:
+                print(f'{"" if subtest_ok else "not "}ok {i} - {test_case.category}')
 
     return TestSuite(test, test_cases)
 
