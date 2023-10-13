@@ -36,7 +36,6 @@ CEED_QFUNCTION_HELPER void InternalDampingLayer(const NewtonianIdealGasContext c
 // *****************************************************************************
 CEED_QFUNCTION_HELPER int ICsNewtonianIG(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out, StateVariable state_var) {
   // Inputs
-  const CeedScalar(*X)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[0];
 
   // Outputs
   CeedScalar(*q0)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA])out[0];
@@ -46,7 +45,6 @@ CEED_QFUNCTION_HELPER int ICsNewtonianIG(void *ctx, CeedInt Q, const CeedScalar 
 
   // Quadrature Point Loop
   CeedPragmaSIMD for (CeedInt i = 0; i < Q; i++) {
-    CeedScalar x[3] = {X[0][i], X[1][i], X[2][i]};
     CeedScalar q[5] = {0.};
     State      s    = StateFromPrimitive(&context->gas, context->reference);
     StateToQ(&context->gas, s, q, state_var);
@@ -112,7 +110,6 @@ CEED_QFUNCTION(RHSFunction_Newtonian)(void *ctx, CeedInt Q, const CeedScalar *co
   const CeedScalar(*q)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[0];
   const CeedScalar(*Grad_q)        = in[1];
   const CeedScalar(*q_data)        = in[2];
-  const CeedScalar(*x)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[3];
 
   // Outputs
   CeedScalar(*v)[CEED_Q_VLA]         = (CeedScalar(*)[CEED_Q_VLA])out[0];
@@ -129,7 +126,6 @@ CEED_QFUNCTION(RHSFunction_Newtonian)(void *ctx, CeedInt Q, const CeedScalar *co
     for (int j = 0; j < 5; j++) U[j] = q[j][i];
     StoredValuesUnpack(Q, i, 0, 1, q_data, &wdetJ);
     StoredValuesUnpack(Q, i, 1, 9, q_data, (CeedScalar *)dXdx);
-    const CeedScalar x_i[3] = {x[0][i], x[1][i], x[2][i]};
     State            s      = StateFromU(context, U);
 
     State grad_s[3];
@@ -416,7 +412,6 @@ CEED_QFUNCTION_HELPER int BoundaryIntegral_Jacobian(void *ctx, CeedInt Q, const 
   const CeedScalar(*dq)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[0];
   const CeedScalar(*Grad_dq)        = in[1];
   const CeedScalar(*q_data_sur)     = in[2];
-  const CeedScalar(*x)[CEED_Q_VLA]  = (const CeedScalar(*)[CEED_Q_VLA])in[3];
   const CeedScalar(*jac_data_sur)   = in[4];
 
   // Outputs
