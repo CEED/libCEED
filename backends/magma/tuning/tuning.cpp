@@ -14,11 +14,14 @@
 #include <vector>
 
 // clang-format off
-// Triplets of {P, Q, dim}. For now, includes some standard H1 spaces on triangles and tetrahedra, but can be
-// expanded to more quadrature rules and element types in the future.
-constexpr static std::array<std::array<int, 3>, 11> PQ_VALUES = {
-    {{3, 1, 2}, {6, 3,  2}, {10, 6,  2}, {15, 12, 2}, {21, 16, 2}, {28, 25, 2}, {36, 33, 2},
-     {4, 1, 3}, {10, 4, 3}, {20, 11, 3}, {35, 24, 3}}
+// Triplets of {P, Q, dim}. For now, includes standard H1 spaces on triangles and tetrahedra with p such that P <= 40,
+// and quadrature rules of degree 2p and 2p - 2. These can be expanded to more element types and quadrature rules in the
+// future.
+constexpr static std::array<std::array<int, 3>, 22> PQ_VALUES = {
+    {{3, 1, 2}, {6,  3,  2}, {10, 6,  2}, {15, 12, 2}, {21, 16, 2}, {28, 25, 2}, {36, 33, 2},
+     {3, 3, 2}, {6,  6,  2}, {10, 12, 2}, {15, 16, 2}, {21, 25, 2}, {28, 33, 2},
+     {4, 1, 3}, {10, 4,  3}, {20, 11, 3}, {20, 14, 3}, {35, 24, 3},
+     {4, 4, 3}, {10, 11, 3}, {10, 14, 3}, {20, 24, 3}}
 };
 // clang-format on
 
