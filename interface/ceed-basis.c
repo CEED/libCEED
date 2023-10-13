@@ -1550,7 +1550,7 @@ int CeedBasisApplyAtPoints(CeedBasis basis, CeedInt num_points, CeedTransposeMod
   }
   if (!basis->basis_chebyshev) {
     // Build matrix mapping from quadrature point values to Chebyshev coefficients
-    CeedScalar       *tau, *C, *I, *chebyshev_coeffs_1d;
+    CeedScalar       *C, *chebyshev_coeffs_1d;
     const CeedScalar *q_ref_1d;
 
     // Build coefficient matrix
@@ -1561,24 +1561,9 @@ int CeedBasisApplyAtPoints(CeedBasis basis, CeedInt num_points, CeedTransposeMod
     for (CeedInt i = 0; i < Q_1d; i++) CeedCall(CeedChebyshevPolynomialsAtPoint(q_ref_1d[i], Q_1d, &C[i * Q_1d]));
 
     // Inverse of coefficient matrix
-    CeedCall(CeedCalloc(Q_1d * Q_1d, &chebyshev_coeffs_1d));
-    CeedCall(CeedCalloc(Q_1d * Q_1d, &I));
-    CeedCall(CeedCalloc(Q_1d, &tau));
     // -- QR Factorization, C = Q R
-    CeedCall(CeedQRFactorization(basis->ceed, C, tau, Q_1d, Q_1d));
-    // -- chebyshev_coeffs_1d = R_inv Q^T
-    for (CeedInt i = 0; i < Q_1d; i++) I[i * Q_1d + i] = 1.0;
-    // ---- Apply R_inv, chebyshev_coeffs_1d = I R_inv
-    for (CeedInt i = 0; i < Q_1d; i++) {  // Row i
-      chebyshev_coeffs_1d[Q_1d * i] = I[Q_1d * i] / C[0];
-      for (CeedInt j = 1; j < Q_1d; j++) {  // Column j
-        chebyshev_coeffs_1d[j + Q_1d * i] = I[j + Q_1d * i];
-        for (CeedInt k = 0; k < j; k++) chebyshev_coeffs_1d[j + Q_1d * i] -= C[j + Q_1d * k] * chebyshev_coeffs_1d[k + Q_1d * i];
-        chebyshev_coeffs_1d[j + Q_1d * i] /= C[j + Q_1d * j];
-      }
-    }
-    // ---- Apply Q^T, chebyshev_coeffs_1d = R_inv Q^T
-    CeedCall(CeedHouseholderApplyQ(chebyshev_coeffs_1d, C, tau, CEED_NOTRANSPOSE, Q_1d, Q_1d, Q_1d, 1, Q_1d));
+    CeedCall(CeedCalloc(Q_1d * Q_1d, &chebyshev_coeffs_1d));
+    CeedCall(CeedMatrixPseudoinverse(basis->ceed, C, Q_1d, Q_1d, chebyshev_coeffs_1d));
 
     // Build basis mapping from nodes to Chebyshev coefficients
     CeedScalar       *chebyshev_interp_1d, *chebyshev_grad_1d, *chebyshev_q_weight_1d;
@@ -1597,8 +1582,6 @@ int CeedBasisApplyAtPoints(CeedBasis basis, CeedInt num_points, CeedTransposeMod
     // Cleanup
     CeedCall(CeedFree(&C));
     CeedCall(CeedFree(&chebyshev_coeffs_1d));
-    CeedCall(CeedFree(&I));
-    CeedCall(CeedFree(&tau));
     CeedCall(CeedFree(&chebyshev_interp_1d));
     CeedCall(CeedFree(&chebyshev_grad_1d));
     CeedCall(CeedFree(&chebyshev_q_weight_1d));
