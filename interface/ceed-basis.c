@@ -684,7 +684,7 @@ int CeedHouseholderApplyQ(CeedScalar *mat_A, const CeedScalar *mat_Q, const Ceed
   @brief Return pseudoinverse of a matrix
 
   @param[in]     ceed      Ceed context for error handling
-  @param[in]     mat       Row-major matrix to be factorized in place
+  @param[in]     mat       Row-major matrix to compute pseudoinverse of
   @param[in]     m         Number of rows
   @param[in]     n         Number of columns
   @param[out]    mat_pinv  Row-major pseudoinverse matrix
