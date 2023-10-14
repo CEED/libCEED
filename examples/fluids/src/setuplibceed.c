@@ -197,7 +197,7 @@ PetscErrorCode SetupLibceed(Ceed ceed, CeedData ceed_data, DM dm, User user, App
   PetscCall(DMPlexCeedElemRestrictionCreate(ceed, dm, domain_label, label_value, height, 0, &ceed_data->elem_restr_q));
   PetscCall(DMPlexCeedElemRestrictionCoordinateCreate(ceed, dm, domain_label, label_value, height, &ceed_data->elem_restr_x));
   PetscCall(DMPlexCeedElemRestrictionQDataCreate(ceed, dm, domain_label, label_value, height, q_data_size_vol, &ceed_data->elem_restr_qd_i));
-  PetscCall(DMPlexCeedElemRestrictionQDataCreate(ceed, dm, domain_label, label_value, height, jac_data_size_vol, &elem_restr_jd_i));
+  PetscCall(DMPlexCeedElemRestrictionQDataCreate(ceed, dm, domain_label, label_value, height, jac_data_size_vol, &elem_restr_jd_i));  // not used by explicit applications
   // -- Create E vectors
   PetscCallCeed(ceed, CeedElemRestrictionCreateVector(ceed_data->elem_restr_q, &user->q_ceed, NULL));
   PetscCallCeed(ceed, CeedElemRestrictionCreateVector(ceed_data->elem_restr_q, &user->q_dot_ceed, NULL));
@@ -288,7 +288,7 @@ PetscErrorCode SetupLibceed(Ceed ceed, CeedData ceed_data, DM dm, User user, App
   // -----------------------------------------------------------------------------
   // -- Create CEED vector for geometric data
   PetscCallCeed(ceed, CeedElemRestrictionCreateVector(ceed_data->elem_restr_qd_i, &ceed_data->q_data, NULL));
-  PetscCallCeed(ceed, CeedElemRestrictionCreateVector(elem_restr_jd_i, &jac_data, NULL));
+  PetscCallCeed(ceed, CeedElemRestrictionCreateVector(elem_restr_jd_i, &jac_data, NULL));  // not used by explicit applications
 
   // -----------------------------------------------------------------------------
   // CEED Operators
@@ -415,7 +415,7 @@ PetscErrorCode SetupLibceed(Ceed ceed, CeedData ceed_data, DM dm, User user, App
   if (app_ctx->turb_spanstats_enable) PetscCall(TurbulenceStatisticsSetup(ceed, user, ceed_data, problem));
   if (app_ctx->diff_filter_monitor) PetscCall(DifferentialFilterSetup(ceed, user, ceed_data, problem));
 
-  PetscCallCeed(ceed, CeedElemRestrictionDestroy(&elem_restr_jd_i));
+  PetscCallCeed(ceed, CeedElemRestrictionDestroy(&elem_restr_jd_i));  // not used by explicit applications
   PetscCallCeed(ceed, CeedOperatorDestroy(&op_ijacobian_vol));
   PetscCallCeed(ceed, CeedVectorDestroy(&jac_data));
   PetscFunctionReturn(PETSC_SUCCESS);
