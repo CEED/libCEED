@@ -170,7 +170,6 @@ PetscErrorCode SetupLibceed(Ceed ceed, CeedData ceed_data, DM dm, User user, App
                 jac_data_size_vol = num_comp_q + 6 + 3 + (gas->idl_enable ? 1 : 0);
   PetscCallCeed(ceed, CeedQFunctionContextRestoreDataRead(problem->apply_vol_ifunction.qfunction_context, &gas));
 
-
   CeedElemRestriction elem_restr_jd_i;
   CeedVector          jac_data;
   CeedInt             num_qpts;
