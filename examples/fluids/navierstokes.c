@@ -259,6 +259,7 @@ int main(int argc, char **argv) {
   PetscCall(SgsDDDataDestroy(user->sgs_dd_data));
   PetscCall(DifferentialFilterDataDestroy(user->diff_filter));
   PetscCall(SGS_DD_TrainingDataDestroy(user->sgs_dd_train));
+  PetscCall(SmartSimDataDestroy(user->smartsim));
 
   // -- Vectors
   PetscCallCeed(ceed, CeedVectorDestroy(&ceed_data->x_coord));
