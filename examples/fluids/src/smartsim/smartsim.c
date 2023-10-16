@@ -63,3 +63,12 @@ PetscErrorCode SmartSimSetup(User user) {
   PetscCall(SmartSimTrainingSetup(user));
   PetscFunctionReturn(PETSC_SUCCESS);
 }
+
+PetscErrorCode SmartSimDataDestroy(SmartSimData smartsim) {
+  PetscFunctionBeginUser;
+  if (!smartsim) PetscFunctionReturn(PETSC_SUCCESS);
+
+  SmartRedisCall(DeleteCClient(&smartsim->client));
+  PetscCall(PetscFree(smartsim));
+  PetscFunctionReturn(PETSC_SUCCESS);
+}

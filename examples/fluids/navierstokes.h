@@ -492,6 +492,7 @@ PetscErrorCode DifferentialFilterMmsICSetup(ProblemData *problem);
 // SGS Data-Driven Training via SmartSim
 // -----------------------------------------------------------------------------
 PetscErrorCode SmartSimSetup(User user);
+PetscErrorCode SmartSimDataDestroy(SmartSimData smartsim);
 PetscErrorCode SGS_DD_TrainingSetup(Ceed ceed, User user, CeedData ceed_data, ProblemData *problem);
 PetscErrorCode TSMonitor_SGS_DD_Training(TS ts, PetscInt step_num, PetscReal solution_time, Vec Q, void *ctx);
 PetscErrorCode TSPostStep_SGS_DD_Training(TS ts);
