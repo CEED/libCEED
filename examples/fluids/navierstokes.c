@@ -127,6 +127,18 @@ int main(int argc, char **argv) {
     }
   }
 
+  // -- Register some PETSc events
+  //PetscLogEvent SmartRedis_Init;
+  //PetscLogEvent SmartRedis_Meta;
+  //PetscLogEvent SmartRedis_TrainData;
+  //PetscLogEvent TrainDataCompute;
+  PetscClassId onlineTrain;
+  PetscCall(PetscClassIdRegister("onlineTrain",&onlineTrain));
+  PetscCall(PetscLogEventRegister("SmartRedis_Init", onlineTrain, &SmartRedis_Init));
+  PetscCall(PetscLogEventRegister("SmartRedis_Meta", onlineTrain, &SmartRedis_Meta));
+  PetscCall(PetscLogEventRegister("SmartRedis_Train", onlineTrain, &SmartRedis_Train));
+  PetscCall(PetscLogEventRegister("TrainDataCompute", onlineTrain, &TrainDataCompute));
+
   // ---------------------------------------------------------------------------
   // Set up global mesh
   // ---------------------------------------------------------------------------

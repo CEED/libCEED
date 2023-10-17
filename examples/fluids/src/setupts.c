@@ -15,6 +15,11 @@
 #include "../navierstokes.h"
 #include "../qfunctions/newtonian_state.h"
 
+PetscLogEvent SmartRedis_Init;
+PetscLogEvent SmartRedis_Meta;
+PetscLogEvent SmartRedis_Train;
+PetscLogEvent TrainDataCompute;
+
 // Compute mass matrix for explicit scheme
 PetscErrorCode ComputeLumpedMassMatrix(Ceed ceed, DM dm, CeedData ceed_data, Vec M) {
   CeedQFunction        qf_mass;
