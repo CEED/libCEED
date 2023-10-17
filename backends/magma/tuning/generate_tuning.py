@@ -102,7 +102,8 @@ if __name__ == "__main__":
         default="/cpu/self")
     args = parser.parse_args()
 
-    for nb in range(1, args.max_nb + 1):
+    nb = 1
+    while nb <= args.max_nb:
         # Run the benchmarks
         start = time.perf_counter()
         data_nb = benchmark(nb, args.build_cmd, args.ceed,
@@ -118,6 +119,14 @@ if __name__ == "__main__":
             idx = data_nb["MFLOPS"] > 1.05 * data["MFLOPS"]
             data.loc[idx, "NB"] = nb
             data.loc[idx, "MFLOPS"] = data_nb.loc[idx, "MFLOPS"]
+
+        # Speed up the search by considering only some values on NB
+        if nb < 2:
+            nb *= 2
+        elif nb < 8:
+            nb += 2
+        else:
+            nb += 4
 
     # Print the results
     with open(f"{script_dir}/{args.arch}_rtc.h", "w") as f:
