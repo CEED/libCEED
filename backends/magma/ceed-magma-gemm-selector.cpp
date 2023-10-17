@@ -5,11 +5,11 @@
 //
 // This file is part of CEED:  http://github.com/ceed
 
-#include "ceed-magma-gemm-selector.h"
-
 #include <array>
 #include <limits>
 #include <vector>
+
+#include "ceed-magma-gemm-selector.h"
 
 #include "tuning/indices.h"
 #ifdef CEED_MAGMA_USE_HIP

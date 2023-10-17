@@ -6,7 +6,6 @@
 // This file is part of CEED:  http://github.com/ceed
 
 #include "ceed-magma-gemm-nontensor.h"
-
 #include "ceed-magma-gemm-selector.h"
 
 #ifdef CEED_MAGMA_USE_HIP
