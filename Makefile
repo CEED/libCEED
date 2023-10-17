@@ -275,8 +275,6 @@ cuda-gen.cu    := $(sort $(wildcard backends/cuda-gen/kernels/*.cu))
 occa.cpp       := $(sort $(shell find backends/occa -type f -name *.cpp))
 magma.c        := $(sort $(wildcard backends/magma/*.c))
 magma.cpp      := $(sort $(wildcard backends/magma/*.cpp))
-magma.cu       := $(sort $(wildcard backends/magma/kernels/cuda/*.cu))
-magma.hip      := $(sort $(wildcard backends/magma/kernels/hip/*.hip.cpp))
 hip.c          := $(sort $(wildcard backends/hip/*.c))
 hip.cpp        := $(sort $(wildcard backends/hip/*.cpp))
 hip-ref.c      := $(sort $(wildcard backends/hip-ref/*.c))
@@ -491,10 +489,8 @@ ifneq ($(wildcard $(MAGMA_DIR)/lib/libmagma.*),)
       PKG_LIBS += $(magma_link)
       libceed.c   += $(magma.c)
       libceed.cpp += $(magma.cpp)
-      libceed.cu  += $(magma.cu)
       $(magma.c:%.c=$(OBJDIR)/%.o) $(magma.c:%=%.tidy) : CPPFLAGS += -DADD_ -I$(MAGMA_DIR)/include -I$(CUDA_DIR)/include
       $(magma.cpp:%.cpp=$(OBJDIR)/%.o) $(magma.cpp:%=%.tidy) : CPPFLAGS += -DADD_ -I$(MAGMA_DIR)/include -I$(CUDA_DIR)/include
-      $(magma.cu:%.cu=$(OBJDIR)/%.o) : CPPFLAGS += --compiler-options=-fPIC -DADD_ -I$(MAGMA_DIR)/include -I$(MAGMA_DIR)/magmablas -I$(CUDA_DIR)/include
       MAGMA_BACKENDS = /gpu/cuda/magma /gpu/cuda/magma/det
     endif
   else  # HIP MAGMA
@@ -507,10 +503,8 @@ ifneq ($(wildcard $(MAGMA_DIR)/lib/libmagma.*),)
       PKG_LIBS += $(magma_link)
       libceed.c   += $(magma.c)
       libceed.cpp += $(magma.cpp)
-      libceed.hip += $(magma.hip)
       $(magma.c:%.c=$(OBJDIR)/%.o) $(magma.c:%=%.tidy) : CPPFLAGS += $(HIPCONFIG_CPPFLAGS) -I$(MAGMA_DIR)/include -I$(ROCM_DIR)/include -DCEED_MAGMA_USE_HIP -DADD_
       $(magma.cpp:%.cpp=$(OBJDIR)/%.o) $(magma.cpp:%=%.tidy) : CPPFLAGS += $(HIPCONFIG_CPPFLAGS) -I$(MAGMA_DIR)/include -I$(ROCM_DIR)/include -DCEED_MAGMA_USE_HIP -DADD_
-      $(magma.hip:%.hip.cpp=$(OBJDIR)/%.o) : CPPFLAGS += -I$(MAGMA_DIR)/include -I$(MAGMA_DIR)/magmablas -I$(ROCM_DIR)/include -DCEED_MAGMA_USE_HIP -DADD_
       MAGMA_BACKENDS = /gpu/hip/magma /gpu/hip/magma/det
     endif
   endif

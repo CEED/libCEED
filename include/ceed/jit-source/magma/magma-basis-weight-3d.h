@@ -5,29 +5,36 @@
 //
 // This file is part of CEED:  http://github.com/ceed
 
+/// @file
+/// Internal header for MAGMA tensor basis weight in 3D
+#ifndef CEED_MAGMA_BASIS_WEIGHT_3D_H
+#define CEED_MAGMA_BASIS_WEIGHT_3D_H
+
+#include "magma-common-tensor.h"
+
 //////////////////////////////////////////////////////////////////////////////////////////
 // weight basis action -- 3D
-template <typename T, int DIM_, int NCOMP_, int Q_, int iDIM, int iCOMP>
-__device__ __inline__ void magma_weight_3d_device(const T *sTweight, T rV[DIM_][NCOMP_][Q_], const int tx) {
+template <typename T, int DIM, int NUM_COMP, int Q, int i_DIM, int i_COMP>
+static __device__ __inline__ void magma_weight_3d_device(const T *sTweight, T rV[DIM][NUM_COMP][Q], const int tx) {
   // Assumptions
-  // 1. 1D thread configuration of size Q_^2
+  // 1. 1D thread configuration of size Q^2
   // 2. rV[][][] matches the storage used in other actions (interp, grad, ... etc)
-  // 3. iDIM and iCOMP specify which indexes to use in rV,
-  //    since the output per thread is a register array of size Q_
+  // 3. i_DIM and i_COMP specify which indexes to use in rV,
+  //    since the output per thread is a register array of size Q
   // 4. Sync is recommended after the call (to make sure sTweight can be overwritten)
 
-  if (tx < (Q_ * Q_)) {
+  if (tx < Q * Q) {
     // x sTweight[j]    for first update
-    // x sTweight[tx%Q_] for second update
-    // x sTweight[tx/Q_] for third update
-    for (int j = 0; j < Q_; j++) {
-      rV[iDIM][iCOMP][j] = sTweight[j] * sTweight[tx % Q_] * sTweight[tx / Q_];
+    // x sTweight[tx%Q] for second update
+    // x sTweight[tx/Q] for third update
+    for (int j = 0; j < Q; j++) {
+      rV[i_DIM][i_COMP][j] = sTweight[j] * sTweight[tx % Q] * sTweight[tx / Q];
     }
   }
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////
-extern "C" __launch_bounds__(MAGMA_BASIS_BOUNDS(Q *Q, MAGMA_MAXTHREADS_3D)) __global__
+extern "C" __launch_bounds__(MAGMA_BASIS_BOUNDS(BASIS_Q *BASIS_Q, MAGMA_MAXTHREADS_3D)) __global__
     void magma_weight_3d_kernel(const CeedScalar *dqweight1d, CeedScalar *dV, const int v_stride, const int nelem) {
   MAGMA_DEVICE_SHARED(CeedScalar, shared_data)
 
@@ -37,7 +44,7 @@ extern "C" __launch_bounds__(MAGMA_BASIS_BOUNDS(Q *Q, MAGMA_MAXTHREADS_3D)) __gl
 
   if (elem_id >= nelem) return;
 
-  CeedScalar rV[1][1][Q];  // allocate with DIM=NCOMP=1, but sizes may differ for a fused operator
+  CeedScalar rV[1][1][BASIS_Q];  // allocate with BASIS_DIM=BASIS_NUM_COMP=1, but sizes may differ for a fused operator
   // global memory pointers
   dV += elem_id * v_stride;
 
@@ -45,17 +52,19 @@ extern "C" __launch_bounds__(MAGMA_BASIS_BOUNDS(Q *Q, MAGMA_MAXTHREADS_3D)) __gl
   CeedScalar *sTweight = (CeedScalar *)shared_data;
 
   // read dqweight_1d
-  if (tx < Q) {
+  if (tx < BASIS_Q) {
     sTweight[tx] = dqweight1d[tx];
   }
   __syncthreads();
 
-  magma_weight_3d_device<CeedScalar, 1, 1, Q, 0, 0>(sTweight, rV, tx);
+  magma_weight_3d_device<CeedScalar, 1, 1, BASIS_Q, 0, 0>(sTweight, rV, tx);
 
   // write V
-  if (tx < (Q * Q)) {
-    for (int j = 0; j < Q; j++) {
-      dV[j * (Q * Q) + tx] = rV[0][0][j];
+  if (tx < (BASIS_Q * BASIS_Q)) {
+    for (int j = 0; j < BASIS_Q; j++) {
+      dV[j * (BASIS_Q * BASIS_Q) + tx] = rV[0][0][j];
     }
   }
 }
+
+#endif  // CEED_MAGMA_BASIS_WEIGHT_3D_H
