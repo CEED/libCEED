@@ -159,6 +159,8 @@ CEED_QFUNCTION(ComputeSgsDDNodal_Sequential_Inference)(void *ctx, CeedInt Q, con
 
   CeedPragmaSIMD for (CeedInt i = 0; i < Q; i++) {
     CeedScalar model_inputs_i[6], model_outputs_i[6];
+    // CeedScalar model_outputs_i[6];
+    // CeedScalar model_inputs_i[6] = {1, 2, 3, 4, 5, 6};
 
     StoredValuesUnpack(Q, i, 0, 6, (const CeedScalar *)model_inputs, model_inputs_i);
     DataDrivenInference(model_inputs_i, model_outputs_i, sgsdd_ctx);

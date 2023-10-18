@@ -13,7 +13,7 @@ PetscErrorCode LoadModel_LibTorch(const char *model_path) {
 
   PetscCallCXX(model.to(torch::Device(torch::kCPU)));
 
-  std::cout << "Loaded Model\n";
+  // std::cout << "Loaded Model\n";
   
 
   PetscFunctionReturn(PETSC_SUCCESS);
@@ -37,12 +37,12 @@ PetscErrorCode ModelInference_LibTorch(Vec DD_Inputs_loc, Vec DD_Outputs_loc) {
                           .device(torch::kCPU);
   torch::Tensor gpu_tensor = torch::from_blob((void *)dd_inputs_ptr, dims, options);
 
-  PetscCallCXX(gpu_tensor = gpu_tensor.toType(torch::kFloat32));
+  // PetscCallCXX(gpu_tensor = gpu_tensor.toType(torch::kFloat32));
 
   // Run model
   torch::Tensor output;
   PetscCallCXX(output = model.forward({gpu_tensor}).toTensor());
-  std::cout << "Performed inference\n";
+  // std::cout << "Performed inference\n";
   PetscCall(VecRestoreArrayReadAndMemType(DD_Inputs_loc, &dd_inputs_ptr));
 
   {
@@ -67,7 +67,7 @@ PetscErrorCode ModelInference_LibTorch(Vec DD_Inputs_loc, Vec DD_Outputs_loc) {
 
     PetscCall(VecRestoreArrayReadAndMemType(DD_Inputs_loc, &dd_inputs_ptr));
 
-  std::cout << "did inference\n";
+  // std::cout << "did inference\n";
   PetscFunctionReturn(PETSC_SUCCESS);
 }
 

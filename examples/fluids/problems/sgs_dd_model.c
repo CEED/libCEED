@@ -186,13 +186,6 @@ PetscErrorCode SgsDDNodalStressEval_Sequential_Internal(Vec DD_Inputs_loc, Vec D
   OperatorApplyContext op_context = *(OperatorApplyContext *)ctx;
 
   PetscFunctionBeginUser;
-
-  PetscCall(ModelInference_LibTorch(DD_Inputs_loc, DD_Outputs_loc));
-
-  // PetscCall(VecZeroEntries(DD_Outputs_loc));
-  // PetscCall(CopyTest(DD_Outputs_loc));
-  // PetscCall(VecView(DD_Outputs_loc, NULL));
-
   PetscCall(ApplyCeedOperatorLocalToLocal(DD_Inputs_loc, DD_Outputs_loc, op_context));
   PetscFunctionReturn(PETSC_SUCCESS);
 }
@@ -204,7 +197,8 @@ static PetscErrorCode SgsDDSetupNodalEvaluation_Sequential_LibTorch(Ceed ceed, S
                                                                     CeedElemRestriction elem_restr_inv_multiplicity, CeedVector inv_multiplicity,
                                                                     void **ctx) {
   PetscFunctionBeginUser;
-  PetscCall(LoadModel_LibTorch("NNmodel_jit_inf.pt"));
+  // PetscCall(LoadModel_LibTorch("NNmodel_jit_inf.pt"));
+  PetscCall(LoadModel_LibTorch("./examples/fluids/createPyTorchModel/NNModel_HIT_fp64_jit.pt"));
 
   PetscFunctionReturn(PETSC_SUCCESS);
 }
