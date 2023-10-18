@@ -18,36 +18,35 @@
 // 1D thread config. with (P x 1) threads
 // no sync at the end of the function
 template <typename T, int P, int Q, int NB>
-static __device__ __inline__ void read_A_notrans_g2r_1D_nosync(const int tx, const T *dA, int ldda, T *sA, int slda, T rA[Q]) {
+static __device__ __inline__ void read_A_notrans_g2r_1D_nosync(const int tx, const T *dA, T rA[Q]) {
 #pragma unroll
-  for (int j = 0; j < Q; j++) {
-    rA[j] = dA[j * ldda + tx];
+  for (int i = 0; i < Q; i++) {
+    rA[i] = dA[i * P + tx];
   }
 }
 
 ////////////////////////////////////////////////////////////////////////////////
 // read A (trans) from global to reg.
 // A is (P x Q)
-// 1D thread config. with (P x 1) threads
+// 2D thread config. with (P x BY) threads
 // no sync at the end of the function
-template <typename T, int P, int Q, int NB>
-static __device__ __inline__ void read_A_trans_g2r_1D_nosync(const int tx, const int ty, const T *dA, int ldda, T *sA, int slda, T rA[Q]) {
-  const int nTH = MAGMA_BASIS_BOUNDS(P, MAGMA_MAXTHREADS_1D);
+template <typename T, int P, int Q, int BY>
+static __device__ __inline__ void read_A_trans_g2r_1D_nosync(const int tx, const int ty, const T *dA, T *sA, T rA[Q]) {
   const int tid = ty * blockDim.x + tx;
   int       i;
 
 #pragma unroll
-  for (i = 0; i < (Q * P) - nTH; i += nTH) {
+  for (i = 0; i < P * Q - P * BY; i += P * BY) {
     sA[i + tid] = dA[i + tid];
   }
-  if (tid < ((Q * P) - i)) {
+  if (i + tid < P * Q) {
     sA[i + tid] = dA[i + tid];
   }
   __syncthreads();
 
 #pragma unroll
   for (int j = 0; j < Q; j++) {
-    rA[j] = sA[tx * slda + j];
+    rA[j] = sA[tx * Q + j];
   }
 }
 
@@ -57,22 +56,21 @@ static __device__ __inline__ void read_A_trans_g2r_1D_nosync(const int tx, const
 // 1D thread config. with (P x 1) threads
 // no sync at the end of the function
 template <typename T, int P, int Q, int NB>
-static __device__ __inline__ void read_B_g2s_1D_nosync(const int tx, const int n, const T *dB, int lddb, T *sB, int sldb) {
+static __device__ __inline__ void read_B_g2s_1D_nosync(const int tx, const int n, const T *dB, T *sB) {
+  int i;
+
   if (n != NB) {
-    for (int i = 0; i < (Q * n) - P; i += P) {
+    for (i = 0; i < Q * n - P; i += P) {
       sB[i + tx] = dB[i + tx];
     }
   } else {
 #pragma unroll
-    for (int i = 0; i < (Q * NB) - P; i += P) {
+    for (i = 0; i < Q * NB - P; i += P) {
       sB[i + tx] = dB[i + tx];
     }
   }
-
-  // cleanup for B
-  const int stride = MAGMA_ROUNDUP(Q * n - P, P);
-  if (tx < (Q * n) - stride) {
-    sB[stride + tx] = dB[stride + tx];
+  if (i + tx < Q * n) {
+    sB[i + tx] = dB[i + tx];
   }
 }
 
@@ -82,18 +80,15 @@ static __device__ __inline__ void read_B_g2s_1D_nosync(const int tx, const int n
 // 1D thread config. with (P x 1) threads
 // no sync at the end of the function
 template <typename T, int P, int Q, int NB>
-static __device__ __inline__ void write_C_r2g_1D_nosync(const int tx, const int n, T rC[NB], T *dC, int lddc) {
+static __device__ __inline__ void write_C_r2g_1D_nosync(const int tx, const int n, T rC[NB], T *dC) {
   if (n != NB) {
-#pragma unroll
-    for (int j = 0; j < NB; j++) {
-      if (j < n) {
-        dC[j * lddc + tx] = rC[j];
-      }
+    for (int i = 0; i < n; i++) {
+      dC[i * P + tx] = rC[i];
     }
   } else {
 #pragma unroll
-    for (int j = 0; j < NB; j++) {
-      dC[j * lddc + tx] = rC[j];
+    for (int i = 0; i < NB; i++) {
+      dC[i * P + tx] = rC[i];
     }
   }
 }
@@ -105,18 +100,19 @@ static __device__ __inline__ void write_C_r2g_1D_nosync(const int tx, const int 
 // C in registers -- one row per thread
 // no sync at the end of the function
 template <typename T, int P, int Q, int NB>
-static __device__ __inline__ void mul_rAsBrC_1D_nosync(const int tx, T rA[Q], T *sB, int sldb, T rC[NB]) {
+static __device__ __inline__ void mul_rAsBrC_1D_nosync(T rA[Q], T *sB, T rC[NB]) {
   T rB[Q];
+
 #pragma unroll
   for (int i = 0; i < NB; i++) {
 #pragma unroll
-    for (int k = 0; k < Q; k++) {
-      rB[k] = sB[i * sldb + k];
+    for (int j = 0; j < Q; j++) {
+      rB[j] = sB[i * Q + j];
     }
     rC[i] = 0.0;
 #pragma unroll
-    for (int k = 0; k < Q; k++) {
-      rC[i] += rA[k] * rB[k];
+    for (int j = 0; j < Q; j++) {
+      rC[i] += rA[j] * rB[j];
     }
   }
 }
@@ -128,17 +124,18 @@ static __device__ __inline__ void mul_rAsBrC_1D_nosync(const int tx, T rA[Q], T 
 // C in registers -- one row per thread
 // no sync at the end of the function
 template <typename T, int P, int Q, int NB>
-static __device__ __inline__ void addmul_rAsBrC_1D_nosync(const int tx, T rA[Q], T *sB, int sldb, T rC[NB]) {
+static __device__ __inline__ void addmul_rAsBrC_1D_nosync(T rA[Q], T *sB, T rC[NB]) {
   T rB[Q];
+
 #pragma unroll
   for (int i = 0; i < NB; i++) {
 #pragma unroll
-    for (int k = 0; k < Q; k++) {
-      rB[k] = sB[i * sldb + k];
+    for (int j = 0; j < Q; j++) {
+      rB[j] = sB[i * Q + j];
     }
 #pragma unroll
-    for (int k = 0; k < Q; k++) {
-      rC[i] += rA[k] * rB[k];
+    for (int j = 0; j < Q; j++) {
+      rC[i] += rA[j] * rB[j];
     }
   }
 }

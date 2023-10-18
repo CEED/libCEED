@@ -18,7 +18,7 @@ template <typename T, int Q>
 static __device__ __inline__ void magma_weight_1d_device(const T *sTweight, T *sV, const int tx) {
   // Assumptions
   // 1. 1D thread configuration of size Q
-  // 2. The output sV is in shared memory -- size 1xQ
+  // 2. The output sV is in shared memory -- size Q
   if (tx < Q) {
     sV[tx] = sTweight[tx];
   }
