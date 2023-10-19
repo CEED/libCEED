@@ -15,13 +15,25 @@
 ////////////////////////////////////////////////////////////////////////////////
 // read A (no-trans) from global to reg.
 // A is (P x Q)
-// 1D thread config. with (P x 1) threads
+// 2D thread config. with (P x BY) threads
 // no sync at the end of the function
-template <typename T, int P, int Q, int NB>
-static __device__ __inline__ void read_A_notrans_g2r_1D_nosync(const int tx, const T *dA, T rA[Q]) {
+template <typename T, int P, int Q, int BY>
+static __device__ __inline__ void read_A_notrans_g2r_1D_nosync(const int tx, const int ty, const T *dA, T *sA, T rA[Q]) {
+  const int tid = ty * P + tx;
+  int       i;
+
 #pragma unroll
-  for (int i = 0; i < Q; i++) {
-    rA[i] = dA[i * P + tx];
+  for (i = 0; i < P * Q - P * BY; i += P * BY) {
+    sA[i + tid] = dA[i + tid];
+  }
+  if (i + tid < P * Q) {
+    sA[i + tid] = dA[i + tid];
+  }
+  __syncthreads();
+
+#pragma unroll
+  for (int j = 0; j < Q; j++) {
+    rA[i] = sA[j * P + tx];
   }
 }
 
@@ -32,7 +44,7 @@ static __device__ __inline__ void read_A_notrans_g2r_1D_nosync(const int tx, con
 // no sync at the end of the function
 template <typename T, int P, int Q, int BY>
 static __device__ __inline__ void read_A_trans_g2r_1D_nosync(const int tx, const int ty, const T *dA, T *sA, T rA[Q]) {
-  const int tid = ty * blockDim.x + tx;
+  const int tid = ty * P + tx;
   int       i;
 
 #pragma unroll
