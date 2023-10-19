@@ -407,9 +407,9 @@ static int CeedBasisApplyNonTensor_Magma(CeedBasis basis, CeedInt num_elem, Ceed
       }
       CeedInt num_t_col    = MAGMA_BASIS_NTCOL(M, MAGMA_MAXTHREADS_1D);
       CeedInt grid         = CeedDivUpInt(N, num_t_col * NB);
-      CeedInt shared_mem_A = (t_mode == CEED_TRANSPOSE) ? 0 : P * Q * sizeof(CeedScalar);
+      CeedInt shared_mem_A = P * Q * sizeof(CeedScalar);
       CeedInt shared_mem_B = num_t_col * K * NB * sizeof(CeedScalar);
-      CeedInt shared_mem   = (t_mode == CEED_TRANSPOSE || q_comp > 1) ? (shared_mem_A + shared_mem_B) : CeedIntMax(shared_mem_A, shared_mem_B);
+      CeedInt shared_mem   = (t_mode != CEED_TRANSPOSE && q_comp > 1) ? (shared_mem_A + shared_mem_B) : CeedIntMax(shared_mem_A, shared_mem_B);
       void   *args[]       = {&N, &d_b, &d_u, &d_v};
 
       CeedCallBackend(CeedRunKernelDimSharedMagma(ceed, Kernel, grid, M, num_t_col, 1, shared_mem, args));

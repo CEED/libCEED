@@ -42,10 +42,10 @@ static __device__ __inline__ void magma_basis_nontensor_device_n(const int n, Ce
     // read A using all threads
     read_A_trans_g2r_1D_nosync<CeedScalar, Q, P, MAGMA_BASIS_NTCOL(Q, MAGMA_MAXTHREADS_1D)>(tx, ty, dA, sA, rA);
 
-    if (id < nblocks) {
-      mul_rAsBrC_1D_nosync<CeedScalar, Q, P, NB>(rA, sB, rC);
+    mul_rAsBrC_1D_nosync<CeedScalar, Q, P, NB>(rA, sB, rC);
 
-      // write C
+    // write C
+    if (id < nblocks) {
       write_C_r2g_1D_nosync<CeedScalar, Q, P, NB>(tx, myn, rC, dC);
     }
 
@@ -83,7 +83,7 @@ static __device__ __inline__ void magma_basis_nontensor_device_n1(const int n, C
   // terminate threads with no work
   if (id >= nblocks) return;
 
-  // read B once for all C's
+  // read B
   read_B_g2s_1D_nosync<CeedScalar, Q, P, NB>(tx, myn, dB, sB);
   __syncthreads();
 
@@ -103,13 +103,11 @@ static __device__ __inline__ void magma_basis_nontensor_device_t(const int n, Ce
   const int nblocks = (n + NB - 1) / NB;
   const int myn     = min(NB, n - id * NB);
 
-  // terminate threads with no work
-  if (id >= nblocks) return;
-
   dB += id * Q * NB;
   dC += id * P * NB;
 
   // A is P x Q
+  CeedScalar *sA = shared_data;
   CeedScalar *sB = shared_data + ty * Q * NB;
 
   // init rC
@@ -120,11 +118,14 @@ static __device__ __inline__ void magma_basis_nontensor_device_t(const int n, Ce
     // init rA
     CeedScalar rA[Q];
 
-    // read A
-    read_A_notrans_g2r_1D_nosync<CeedScalar, P, Q, NB>(tx, dA, rA);
+    // read A using all threads
+    read_A_notrans_g2r_1D_nosync<CeedScalar, P, Q, MAGMA_BASIS_NTCOL(P, MAGMA_MAXTHREADS_1D)>(tx, ty, dA, sA, rA);
+    __syncthreads();
 
     // read B
-    read_B_g2s_1D_nosync<CeedScalar, P, Q, NB>(tx, myn, dB, sB);
+    if (id < nblocks) {
+      read_B_g2s_1D_nosync<CeedScalar, P, Q, NB>(tx, myn, dB, sB);
+    }
     __syncthreads();
 
     addmul_rAsBrC_1D_nosync<CeedScalar, P, Q, NB>(rA, sB, rC);
@@ -136,7 +137,9 @@ static __device__ __inline__ void magma_basis_nontensor_device_t(const int n, Ce
   }
 
   // write C
-  write_C_r2g_1D_nosync<CeedScalar, P, Q, NB>(tx, myn, rC, dC);
+  if (id < nblocks) {
+    write_C_r2g_1D_nosync<CeedScalar, P, Q, NB>(tx, myn, rC, dC);
+  }
 }
 
 ////////////////////////////////////////////////////////////////////////////////
