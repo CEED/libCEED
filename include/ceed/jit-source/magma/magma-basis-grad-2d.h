@@ -17,6 +17,21 @@
 #define sTmp(i, j, ldw) sTmp[(j) * (ldw) + (i)]
 
 ////////////////////////////////////////////////////////////////////////////////
+// Helper function to add or set into V
+template <typename T, bool Add>
+struct magma_grad_2d_device_accumulate;
+
+template <typename T>
+struct magma_grad_2d_device_accumulate<T, true> {
+  static __device__ __inline__ void op(T &rV, const T &rTmp) { rV += rTmp; }
+};
+
+template <typename T>
+struct magma_grad_2d_device_accumulate<T, false> {
+  static __device__ __inline__ void op(T &rV, const T &rTmp) { rV = rTmp; }
+};
+
+////////////////////////////////////////////////////////////////////////////////
 // grad basis action (2D)
 // This function is called two times at a higher level for 2D
 // DIM_U   -- for the size of rU[DIM_U * NUM_COMP * MAX_P_Q]
@@ -24,10 +39,9 @@
 // i_DIM   -- the index of the outermost loop over dimensions in grad
 // i_DIM_U -- which dim index of rU is accessed (always 0 for notrans, 0 or 1 for trans)
 // i_DIM_V -- which dim index of rV is accessed (0 or 1 for notrans, always 0 for trans)
-// the scalar beta is used to specify whether to accumulate to rV, or overwrite it
-template <typename T, int DIM_U, int DIM_V, int NUM_COMP, int P, int Q, int rU_SIZE, int rV_SIZE, int i_DIM, int i_DIM_U, int i_DIM_V>
+template <typename T, int DIM_U, int DIM_V, int NUM_COMP, int P, int Q, int rU_SIZE, int rV_SIZE, int i_DIM, int i_DIM_U, int i_DIM_V, bool ADD>
 static __device__ __inline__ void magma_grad_2d_device(const T *sTinterp, const T *sTgrad, T rU[DIM_U][NUM_COMP][rU_SIZE],
-                                                       T rV[DIM_V][NUM_COMP][rV_SIZE], T beta, const int tx, T rTmp, T *swork) {
+                                                       T rV[DIM_V][NUM_COMP][rV_SIZE], const int tx, T rTmp, T *swork) {
   // Assumptions
   // 0. This device routine applies grad for one dim only (i_DIM), so it should be called twice for 2D
   // 1. 1D threads of size max(P,Q)
@@ -68,8 +82,7 @@ static __device__ __inline__ void magma_grad_2d_device(const T *sTinterp, const 
         for (int i = 0; i < P; i++) {
           rTmp += sTmp(tx, i, sld) * sT(i, j);
         }
-        rV[i_DIM_V][comp][j] *= beta;
-        rV[i_DIM_V][comp][j] += rTmp;
+        magma_grad_2d_device_accumulate<T, ADD>::op(rV[i_DIM_V][comp][j], rTmp);
       }
     }
     __syncthreads();
@@ -82,10 +95,9 @@ extern "C" __launch_bounds__(MAGMA_BASIS_BOUNDS(BASIS_MAX_P_Q, MAGMA_MAXTHREADS_
                                const int dstrdU, CeedScalar *dV, const int estrdV, const int cstrdV, const int dstrdV, const int nelem) {
   MAGMA_DEVICE_SHARED(CeedScalar, shared_data)
 
-  const int     tx      = threadIdx.x;
-  const int     ty      = threadIdx.y;
-  const int     elem_id = (blockIdx.x * blockDim.y) + ty;
-  magma_trans_t transT  = MagmaNoTrans;
+  const int tx      = threadIdx.x;
+  const int ty      = threadIdx.y;
+  const int elem_id = (blockIdx.x * blockDim.y) + ty;
 
   if (elem_id >= nelem) return;
 
@@ -109,22 +121,21 @@ extern "C" __launch_bounds__(MAGMA_BASIS_BOUNDS(BASIS_MAX_P_Q, MAGMA_MAXTHREADS_
     read_T_notrans_gm2sm<BASIS_P, BASIS_Q>(tx, dgrad1d, sTgrad);
   }
 
-  // No need to read V ( required only in transposed grad )
-  const CeedScalar beta = 0.0;
-
   /* read U (idim = 0 for dU, i_DIM = 0 for rU) --
      there is a sync at the end of this function */
   read_U_2d<CeedScalar, BASIS_P, 1, BASIS_NUM_COMP, BASIS_P, 0>(dU + (0 * dstrdU), cstrdU, rU, sTmp, tx);
 
   /* first call (i_DIM = 0, i_DIM_U = 0, i_DIM_V = 0) --
      output from rV[0][][] into dV (idim = 0) */
-  magma_grad_2d_device<CeedScalar, 1, 1, BASIS_NUM_COMP, BASIS_P, BASIS_Q, BASIS_P, BASIS_Q, 0, 0, 0>(sTinterp, sTgrad, rU, rV, beta, tx, rTmp, sTmp);
+  magma_grad_2d_device<CeedScalar, 1, 1, BASIS_NUM_COMP, BASIS_P, BASIS_Q, BASIS_P, BASIS_Q, 0, 0, 0, false>(sTinterp, sTgrad, rU, rV, tx, rTmp,
+                                                                                                             sTmp);
   /* there is a sync at the end of magma_grad_2d_device */
   write_V_2d<CeedScalar, BASIS_Q, 1, BASIS_NUM_COMP, BASIS_Q, 0>(dV + (0 * dstrdV), cstrdV, rV, tx);
 
   /* second call (i_DIM = 1, i_DIM_U = 0, i_DIM_V = 0) --
   output from rV[0][][] into dV (idim = 1) */
-  magma_grad_2d_device<CeedScalar, 1, 1, BASIS_NUM_COMP, BASIS_P, BASIS_Q, BASIS_P, BASIS_Q, 1, 0, 0>(sTinterp, sTgrad, rU, rV, beta, tx, rTmp, sTmp);
+  magma_grad_2d_device<CeedScalar, 1, 1, BASIS_NUM_COMP, BASIS_P, BASIS_Q, BASIS_P, BASIS_Q, 1, 0, 0, false>(sTinterp, sTgrad, rU, rV, tx, rTmp,
+                                                                                                             sTmp);
   /* there is a sync at the end of magma_grad_2d_device */
   write_V_2d<CeedScalar, BASIS_Q, 1, BASIS_NUM_COMP, BASIS_Q, 0>(dV + (1 * dstrdV), cstrdV, rV, tx);
 }
@@ -135,10 +146,9 @@ extern "C" __launch_bounds__(MAGMA_BASIS_BOUNDS(BASIS_MAX_P_Q, MAGMA_MAXTHREADS_
                                const int dstrdU, CeedScalar *dV, const int estrdV, const int cstrdV, const int dstrdV, const int nelem) {
   MAGMA_DEVICE_SHARED(CeedScalar, shared_data)
 
-  const int     tx      = threadIdx.x;
-  const int     ty      = threadIdx.y;
-  const int     elem_id = (blockIdx.x * blockDim.y) + ty;
-  magma_trans_t transT  = MagmaTrans;
+  const int tx      = threadIdx.x;
+  const int ty      = threadIdx.y;
+  const int elem_id = (blockIdx.x * blockDim.y) + ty;
 
   if (elem_id >= nelem) return;
 
@@ -163,23 +173,18 @@ extern "C" __launch_bounds__(MAGMA_BASIS_BOUNDS(BASIS_MAX_P_Q, MAGMA_MAXTHREADS_
   }
   __syncthreads();
 
-  /* read V (since this is transposed mode --
-     idim = 0 for dV, i_DIM = 0 for rV) */
-  const CeedScalar beta = 1.0;
-  read_V_2d<CeedScalar, BASIS_P, 1, BASIS_NUM_COMP, BASIS_P, 0>(dV + (0 * dstrdV), cstrdV, rV, tx);
-
   /* read U (idim = 0 for dU, i_DIM = 0 for rU) --
      there is a sync at the end of this function */
   read_U_2d<CeedScalar, BASIS_Q, 1, BASIS_NUM_COMP, BASIS_Q, 0>(dU + (0 * dstrdU), cstrdU, rU, sTmp, tx);
   /* first call (i_DIM = 0, i_DIM_U = 0, i_DIM_V = 0) */
-  magma_grad_2d_device<CeedScalar, 1, 1, BASIS_NUM_COMP, BASIS_Q, BASIS_P, BASIS_Q, BASIS_P, 0, 0, 0>(sTinterp, sTgrad, rU, rV, beta, tx, rTmp, sTmp);
+  magma_grad_2d_device<CeedScalar, 1, 1, BASIS_NUM_COMP, BASIS_Q, BASIS_P, BASIS_Q, BASIS_P, 0, 0, 0, true>(sTinterp, sTgrad, rU, rV, tx, rTmp, sTmp);
   /* there is a sync at the end of magma_grad_2d_device */
 
   /* read U (idim = 1 for dU, i_DIM = 0 for rU) --
      there is a sync at the end of this function */
   read_U_2d<CeedScalar, BASIS_Q, 1, BASIS_NUM_COMP, BASIS_Q, 0>(dU + (1 * dstrdU), cstrdU, rU, sTmp, tx);
   /* second call (i_DIM = 1, i_DIM_U = 0, i_DIM_V = 0) */
-  magma_grad_2d_device<CeedScalar, 1, 1, BASIS_NUM_COMP, BASIS_Q, BASIS_P, BASIS_Q, BASIS_P, 1, 0, 0>(sTinterp, sTgrad, rU, rV, beta, tx, rTmp, sTmp);
+  magma_grad_2d_device<CeedScalar, 1, 1, BASIS_NUM_COMP, BASIS_Q, BASIS_P, BASIS_Q, BASIS_P, 1, 0, 0, true>(sTinterp, sTgrad, rU, rV, tx, rTmp, sTmp);
   /* there is a sync at the end of magma_grad_2d_device */
 
   // write V

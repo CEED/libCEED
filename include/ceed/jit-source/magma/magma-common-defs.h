@@ -22,6 +22,4 @@
 // Define macro for computing the total threads in a block for use with __launch_bounds__()
 #define MAGMA_BASIS_BOUNDS(x, maxt) (x * MAGMA_BASIS_NTCOL(x, maxt))
 
-typedef enum { MagmaNoTrans = 111, MagmaTrans = 112, MagmaConjTrans = 113, Magma_ConjTrans = MagmaConjTrans } magma_trans_t;
-
 #endif  // CEED_MAGMA_COMMON_DEFS_H
