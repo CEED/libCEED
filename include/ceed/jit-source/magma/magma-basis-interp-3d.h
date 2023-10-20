@@ -16,7 +16,7 @@
 #define sT(i, j) sT[(j)*P + (i)]
 #define sTmp(i, j, ldw) sTmp[(j) * (ldw) + (i)]
 
-//////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
 // interp basis action (3D)
 template <typename T, int DIM_U, int DIM_V, int NUM_COMP, int P, int Q, int rU_SIZE, int rV_SIZE>
 static __device__ __inline__ void magma_interp_3d_device(const T *sT, magma_trans_t transT, T rU[DIM_U][NUM_COMP][rU_SIZE],
@@ -93,7 +93,7 @@ static __device__ __inline__ void magma_interp_3d_device(const T *sT, magma_tran
   }
 }
 
-//////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
 extern "C" __launch_bounds__(MAGMA_BASIS_BOUNDS(BASIS_MAX_P_Q *BASIS_MAX_P_Q, MAGMA_MAXTHREADS_3D)) __global__
     void magma_interpn_3d_kernel(const CeedScalar *dT, const CeedScalar *dU, const int estrdU, const int cstrdU, CeedScalar *dV, const int estrdV,
                                  const int cstrdV, const int nelem) {
@@ -121,21 +121,21 @@ extern "C" __launch_bounds__(MAGMA_BASIS_BOUNDS(BASIS_MAX_P_Q *BASIS_MAX_P_Q, MA
 
   // read T
   if (ty == 0) {
-    dread_T_gm2sm<BASIS_P, BASIS_Q>(tx, transT, dT, sT);
+    read_T_notrans_gm2sm<BASIS_P, BASIS_Q>(tx, dT, sT);
   }
 
   // read U (idim = 0 for dU, i_DIM = 0 for rU, u_dimstride is always 0)
-  readU_3d<CeedScalar, BASIS_P, 1, BASIS_NUM_COMP, BASIS_P, 0>(dU, cstrdU, rU, sTmp, tx);
+  read_U_3d<CeedScalar, BASIS_P, 1, BASIS_NUM_COMP, BASIS_P, 0>(dU, cstrdU, rU, sTmp, tx);
   // there is a sync at the end of this function
 
   magma_interp_3d_device<CeedScalar, 1, 1, BASIS_NUM_COMP, BASIS_P, BASIS_Q, BASIS_P, BASIS_Q>(sT, transT, rU, rV, tx, rTmp, sTmp);
   __syncthreads();
 
   // write V
-  writeV_3d<CeedScalar, BASIS_Q, 1, BASIS_NUM_COMP, BASIS_Q, 0>(dV, cstrdV, rV, tx);
+  write_V_3d<CeedScalar, BASIS_Q, 1, BASIS_NUM_COMP, BASIS_Q, 0>(dV, cstrdV, rV, tx);
 }
 
-//////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
 extern "C" __launch_bounds__(MAGMA_BASIS_BOUNDS(BASIS_MAX_P_Q *BASIS_MAX_P_Q, MAGMA_MAXTHREADS_3D)) __global__
     void magma_interpt_3d_kernel(const CeedScalar *dT, const CeedScalar *dU, const int estrdU, const int cstrdU, CeedScalar *dV, const int estrdV,
                                  const int cstrdV, const int nelem) {
@@ -163,21 +163,21 @@ extern "C" __launch_bounds__(MAGMA_BASIS_BOUNDS(BASIS_MAX_P_Q *BASIS_MAX_P_Q, MA
 
   // read T
   if (ty == 0) {
-    dread_T_gm2sm<BASIS_Q, BASIS_P>(tx, transT, dT, sT);
+    read_T_trans_gm2sm<BASIS_Q, BASIS_P>(tx, dT, sT);
   }
 
   // read V
-  readV_3d<CeedScalar, BASIS_P, 1, BASIS_NUM_COMP, BASIS_P, 0>(dV, cstrdV, rV, tx);
+  read_V_3d<CeedScalar, BASIS_P, 1, BASIS_NUM_COMP, BASIS_P, 0>(dV, cstrdV, rV, tx);
 
   // read U (idim = 0 for dU, i_DIM = 0 for rU, u_dimstride is always 0)
-  readU_3d<CeedScalar, BASIS_Q, 1, BASIS_NUM_COMP, BASIS_Q, 0>(dU, cstrdU, rU, sTmp, tx);
+  read_U_3d<CeedScalar, BASIS_Q, 1, BASIS_NUM_COMP, BASIS_Q, 0>(dU, cstrdU, rU, sTmp, tx);
   // there is a sync at the end of this function
 
   magma_interp_3d_device<CeedScalar, 1, 1, BASIS_NUM_COMP, BASIS_Q, BASIS_P, BASIS_Q, BASIS_P>(sT, transT, rU, rV, tx, rTmp, sTmp);
   __syncthreads();
 
   // write V
-  writeV_3d<CeedScalar, BASIS_P, 1, BASIS_NUM_COMP, BASIS_P, 0>(dV, cstrdV, rV, tx);
+  write_V_3d<CeedScalar, BASIS_P, 1, BASIS_NUM_COMP, BASIS_P, 0>(dV, cstrdV, rV, tx);
 }
 
 #endif  // CEED_MAGMA_BASIS_INTERP_3D_H
