@@ -748,10 +748,10 @@ doc-html doc-latexpdf doc-epub doc-livehtml : doc-% : doxygen
 doc : doc-html
 
 # Style/Format
-CLANG_FORMAT ?= clang-format
+CLANG_FORMAT      ?= clang-format
 CLANG_FORMAT_OPTS += -style=file -i
-AUTOPEP8 ?= autopep8
-AUTOPEP8_OPTS += --in-place --aggressive --max-line-length 120
+AUTOPEP8          ?= autopep8
+AUTOPEP8_OPTS     += --in-place --aggressive --max-line-length 120
 
 format.ch := $(filter-out include/ceedf.h $(wildcard tests/t*-f.h), $(shell git ls-files '*.[ch]pp' '*.[ch]'))
 format.py := $(filter-out tests/junit-xml/junit_xml/__init__.py, $(shell git ls-files '*.py'))
@@ -763,6 +763,13 @@ format-py :
 	$(AUTOPEP8) $(AUTOPEP8_OPTS) $(format.py)
 
 format    : format-c format-py
+
+# Vermin - python version requirements
+VERMIN            ?= vermin
+VERMIN_OPTS       += -t=3.7- --violations
+
+vermin    :
+	$(VERMIN) $(VERMIN_OPTS) $(format.py)
 
 # Tidy
 CLANG_TIDY ?= clang-tidy
