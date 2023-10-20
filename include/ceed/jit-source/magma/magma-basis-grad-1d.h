@@ -15,7 +15,7 @@
 // macros to abstract access of shared memory and reg. file
 #define sT(i, j) sT[(j)*P + (i)]
 
-//////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
 // grad basis action (1D)
 template <typename T, int DIM, int NUM_COMP, int P, int Q>
 static __device__ __inline__ void magma_grad_1d_device(const T *sT, magma_trans_t transT, T *sU[NUM_COMP], T *sV[NUM_COMP], const int tx) {
@@ -40,7 +40,7 @@ static __device__ __inline__ void magma_grad_1d_device(const T *sT, magma_trans_
   }
 }
 
-//////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
 extern "C" __launch_bounds__(MAGMA_BASIS_BOUNDS(BASIS_MAX_P_Q, MAGMA_MAXTHREADS_1D)) __global__
     void magma_gradn_1d_kernel(const CeedScalar *dTinterp, const CeedScalar *dTgrad, const CeedScalar *dU, const int estrdU, const int cstrdU,
                                const int dstrdU, CeedScalar *dV, const int estrdV, const int cstrdV, const int dstrdV, const int nelem) {
@@ -72,7 +72,7 @@ extern "C" __launch_bounds__(MAGMA_BASIS_BOUNDS(BASIS_MAX_P_Q, MAGMA_MAXTHREADS_
 
   // read T
   if (ty == 0) {
-    dread_T_gm2sm<BASIS_P, BASIS_Q>(tx, transT, dTgrad, sT);
+    read_T_notrans_gm2sm<BASIS_P, BASIS_Q>(tx, dTgrad, sT);
   }
 
   // read U
@@ -86,7 +86,7 @@ extern "C" __launch_bounds__(MAGMA_BASIS_BOUNDS(BASIS_MAX_P_Q, MAGMA_MAXTHREADS_
   write_1d<CeedScalar, BASIS_Q, BASIS_NUM_COMP>(sV, dV, cstrdV, tx);
 }
 
-//////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
 extern "C" __launch_bounds__(MAGMA_BASIS_BOUNDS(BASIS_MAX_P_Q, MAGMA_MAXTHREADS_1D)) __global__
     void magma_gradt_1d_kernel(const CeedScalar *dTinterp, const CeedScalar *dTgrad, const CeedScalar *dU, const int estrdU, const int cstrdU,
                                const int dstrdU, CeedScalar *dV, const int estrdV, const int cstrdV, const int dstrdV, const int nelem) {
@@ -118,7 +118,7 @@ extern "C" __launch_bounds__(MAGMA_BASIS_BOUNDS(BASIS_MAX_P_Q, MAGMA_MAXTHREADS_
 
   // read T
   if (ty == 0) {
-    dread_T_gm2sm<BASIS_Q, BASIS_P>(tx, transT, dTgrad, sT);
+    read_T_trans_gm2sm<BASIS_Q, BASIS_P>(tx, dTgrad, sT);
   }
 
   // read U
