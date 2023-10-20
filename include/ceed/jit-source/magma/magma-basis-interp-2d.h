@@ -19,8 +19,8 @@
 ////////////////////////////////////////////////////////////////////////////////
 // interp basis action (2D)
 template <typename T, int DIM_U, int DIM_V, int NUM_COMP, int P, int Q, int rU_SIZE, int rV_SIZE>
-static __device__ __inline__ void magma_interp_2d_device(const T *sT, magma_trans_t transT, T rU[DIM_U][NUM_COMP][rU_SIZE],
-                                                         T rV[DIM_V][NUM_COMP][rV_SIZE], const int tx, T rTmp, T *swork) {
+static __device__ __inline__ void magma_interp_2d_device(const T *sT, T rU[DIM_U][NUM_COMP][rU_SIZE], T rV[DIM_V][NUM_COMP][rV_SIZE], const int tx,
+                                                         T rTmp, T *swork) {
   // Assumptions
   // 1. 1D threads of size max(P,Q)
   // 2. input:  rU[DIM_U x NUM_COMP x rU_SIZE] in registers (per thread)
@@ -71,10 +71,9 @@ extern "C" __launch_bounds__(MAGMA_BASIS_BOUNDS(BASIS_MAX_P_Q, MAGMA_MAXTHREADS_
                                  const int cstrdV, const int nelem) {
   MAGMA_DEVICE_SHARED(CeedScalar, shared_data)
 
-  const int     tx      = threadIdx.x;
-  const int     ty      = threadIdx.y;
-  const int     elem_id = (blockIdx.x * blockDim.y) + ty;
-  magma_trans_t transT  = MagmaNoTrans;
+  const int tx      = threadIdx.x;
+  const int ty      = threadIdx.y;
+  const int elem_id = (blockIdx.x * blockDim.y) + ty;
 
   if (elem_id >= nelem) return;
 
@@ -100,7 +99,7 @@ extern "C" __launch_bounds__(MAGMA_BASIS_BOUNDS(BASIS_MAX_P_Q, MAGMA_MAXTHREADS_
   read_U_2d<CeedScalar, BASIS_P, 1, BASIS_NUM_COMP, BASIS_P, 0>(dU, cstrdU, rU, sTmp, tx);
 
   // no sync needed here -- read_U_2d already syncs at the end
-  magma_interp_2d_device<CeedScalar, 1, 1, BASIS_NUM_COMP, BASIS_P, BASIS_Q, BASIS_P, BASIS_Q>(sT, transT, rU, rV, tx, rTmp, sTmp);
+  magma_interp_2d_device<CeedScalar, 1, 1, BASIS_NUM_COMP, BASIS_P, BASIS_Q, BASIS_P, BASIS_Q>(sT, rU, rV, tx, rTmp, sTmp);
   __syncthreads();
 
   // write V
@@ -113,10 +112,9 @@ extern "C" __launch_bounds__(MAGMA_BASIS_BOUNDS(BASIS_MAX_P_Q, MAGMA_MAXTHREADS_
                                  const int cstrdV, const int nelem) {
   MAGMA_DEVICE_SHARED(CeedScalar, shared_data)
 
-  const int     tx      = threadIdx.x;
-  const int     ty      = threadIdx.y;
-  const int     elem_id = (blockIdx.x * blockDim.y) + ty;
-  magma_trans_t transT  = MagmaTrans;
+  const int tx      = threadIdx.x;
+  const int ty      = threadIdx.y;
+  const int elem_id = (blockIdx.x * blockDim.y) + ty;
 
   if (elem_id >= nelem) return;
 
@@ -138,14 +136,11 @@ extern "C" __launch_bounds__(MAGMA_BASIS_BOUNDS(BASIS_MAX_P_Q, MAGMA_MAXTHREADS_
     read_T_trans_gm2sm<BASIS_Q, BASIS_P>(tx, dT, sT);
   }
 
-  // read V
-  read_V_2d<CeedScalar, BASIS_P, 1, BASIS_NUM_COMP, BASIS_P, 0>(dV, cstrdV, rV, tx);
-
   // read U -- there is a sync at the end of this function
   read_U_2d<CeedScalar, BASIS_Q, 1, BASIS_NUM_COMP, BASIS_Q, 0>(dU, cstrdU, rU, sTmp, tx);
 
   // no sync needed here -- read_U_2d already syncs at the end
-  magma_interp_2d_device<CeedScalar, 1, 1, BASIS_NUM_COMP, BASIS_Q, BASIS_P, BASIS_Q, BASIS_P>(sT, transT, rU, rV, tx, rTmp, sTmp);
+  magma_interp_2d_device<CeedScalar, 1, 1, BASIS_NUM_COMP, BASIS_Q, BASIS_P, BASIS_Q, BASIS_P>(sT, rU, rV, tx, rTmp, sTmp);
   __syncthreads();
 
   // write V
