@@ -326,7 +326,7 @@ PetscErrorCode TSMonitor_SGS_DD_Training(TS ts, PetscInt step_num, PetscReal sol
       PetscCall(PetscLogEventEnd(SmartRedis_Train, 0, 0, 0, 0));
       PetscCall(VecRestoreArrayRead(TrainingData, &training_data));
     }
-    PetscCall(SmartRedisVerifyPutTensor(smartsim->client, array_key, array_key_len));
+    //PetscCall(SmartRedisVerifyPutTensor(smartsim->client, array_key, array_key_len));
 
     if (rank % smartsim->collocated_database_num_ranks == 0) {
       size_t   dim_2[1]      = {2};
