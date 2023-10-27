@@ -54,19 +54,6 @@ static int CeedBasisApply_Magma(CeedBasis basis, CeedInt num_elem, CeedTranspose
   else CeedCheck(e_mode == CEED_EVAL_WEIGHT, ceed, CEED_ERROR_BACKEND, "An input vector is required for this CeedEvalMode");
   CeedCallBackend(CeedVectorGetArrayWrite(v, CEED_MEM_DEVICE, &d_v));
 
-  // Clear v for transpose operation
-  if (t_mode == CEED_TRANSPOSE) {
-    CeedSize length;
-
-    CeedCallBackend(CeedVectorGetLength(v, &length));
-    if (CEED_SCALAR_TYPE == CEED_SCALAR_FP32) {
-      magmablas_slaset(MagmaFull, length, 1, 0.0, 0.0, (float *)d_v, length, data->queue);
-    } else {
-      magmablas_dlaset(MagmaFull, length, 1, 0.0, 0.0, (double *)d_v, length, data->queue);
-    }
-    ceed_magma_queue_sync(data->queue);
-  }
-
   // Apply basis operation
   switch (e_mode) {
     case CEED_EVAL_INTERP: {
@@ -288,19 +275,6 @@ static int CeedBasisApplyNonTensor_Magma(CeedBasis basis, CeedInt num_elem, Ceed
   if (u != CEED_VECTOR_NONE) CeedCallBackend(CeedVectorGetArrayRead(u, CEED_MEM_DEVICE, &d_u));
   else CeedCheck(e_mode == CEED_EVAL_WEIGHT, ceed, CEED_ERROR_BACKEND, "An input vector is required for this CeedEvalMode");
   CeedCallBackend(CeedVectorGetArrayWrite(v, CEED_MEM_DEVICE, &d_v));
-
-  // Clear v for transpose operation
-  if (t_mode == CEED_TRANSPOSE) {
-    CeedSize length;
-
-    CeedCallBackend(CeedVectorGetLength(v, &length));
-    if (CEED_SCALAR_TYPE == CEED_SCALAR_FP32) {
-      magmablas_slaset(MagmaFull, length, 1, 0.0, 0.0, (float *)d_v, length, data->queue);
-    } else {
-      magmablas_dlaset(MagmaFull, length, 1, 0.0, 0.0, (double *)d_v, length, data->queue);
-    }
-    ceed_magma_queue_sync(data->queue);
-  }
 
   // Apply basis operation
   if (e_mode != CEED_EVAL_WEIGHT) {
