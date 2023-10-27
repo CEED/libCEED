@@ -256,7 +256,7 @@ static int CeedBasisApplyNonTensor_Magma(CeedBasis basis, CeedInt num_elem, Ceed
   Ceed                      ceed;
   Ceed_Magma               *data;
   CeedInt                   num_comp, q_comp, num_nodes, num_qpts, P, Q, N;
-  const CeedScalar         *d_u;
+  const CeedScalar         *d_u, *d_b = NULL;
   CeedScalar               *d_v;
   CeedBasisNonTensor_Magma *impl;
 
@@ -278,7 +278,6 @@ static int CeedBasisApplyNonTensor_Magma(CeedBasis basis, CeedInt num_elem, Ceed
 
   // Apply basis operation
   if (e_mode != CEED_EVAL_WEIGHT) {
-    const CeedScalar *d_b = NULL;
     switch (e_mode) {
       case CEED_EVAL_INTERP:
         d_b = impl->d_interp;
@@ -302,9 +301,11 @@ static int CeedBasisApplyNonTensor_Magma(CeedBasis basis, CeedInt num_elem, Ceed
 
     // Apply basis operation
     if (P <= MAGMA_NONTENSOR_CUSTOM_KERNEL_MAX_P && Q <= MAGMA_NONTENSOR_CUSTOM_KERNEL_MAX_Q) {
-      CeedInt n_array[MAGMA_NONTENSOR_KERNEL_INSTANCES] = {MAGMA_NONTENSOR_KERNEL_N_VALUES};
-      CeedInt iN = 0, diff = abs(n_array[iN] - N), idiff;
-      CeedInt M = (t_mode == CEED_TRANSPOSE) ? P : Q, K = (t_mode == CEED_TRANSPOSE) ? Q : P;
+      CeedInt           n_array[MAGMA_NONTENSOR_KERNEL_INSTANCES] = {MAGMA_NONTENSOR_KERNEL_N_VALUES};
+      CeedInt           iN = 0, diff = abs(n_array[iN] - N), idiff;
+      CeedInt           M = (t_mode == CEED_TRANSPOSE) ? P : Q, K = (t_mode == CEED_TRANSPOSE) ? Q : P;
+      CeedMagmaFunction Kernel;
+      CeedInt           NB;
 
       for (CeedInt in = iN + 1; in < MAGMA_NONTENSOR_KERNEL_INSTANCES; in++) {
         idiff = abs(n_array[in] - N);
@@ -360,8 +361,6 @@ static int CeedBasisApplyNonTensor_Magma(CeedBasis basis, CeedInt num_elem, Ceed
         CeedCallBackend(CeedFree(&basis_kernel_path));
         CeedCallBackend(CeedFree(&basis_kernel_source));
       }
-      CeedMagmaFunction Kernel;
-      CeedInt           NB;
       if (e_mode == CEED_EVAL_INTERP) {
         if (t_mode == CEED_TRANSPOSE) {
           Kernel = impl->InterpTranspose[iN];
