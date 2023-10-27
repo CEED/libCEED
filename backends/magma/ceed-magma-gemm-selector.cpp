@@ -20,6 +20,7 @@
 #else
 #include "tuning/a100.h"
 #include "tuning/a100_rtc.h"
+#include "tuning/h100_rtc.h"
 #include "tuning/v100.h"
 #include "tuning/v100_rtc.h"
 #endif
@@ -31,7 +32,7 @@
 
 ////////////////////////////////////////////////////////////////////////////////
 #ifdef CEED_MAGMA_USE_HIP
-static inline auto gemm_selector_get_data(int gpu_arch, char precision, char trans_A) -> decltype(dgemm_nn_mi250x) {
+static inline auto gemm_selector_get_data(int gpu_arch, char precision, char trans_A) -> decltype(dgemm_nn_mi100) {
   if (gpu_arch >= 910) {
     // gfx90a or newer
     return (precision == 's') ? ((trans_A == 'n') ? sgemm_nn_mi250x : sgemm_tn_mi250x) : ((trans_A == 'n') ? dgemm_nn_mi250x : dgemm_tn_mi250x);
@@ -41,7 +42,7 @@ static inline auto gemm_selector_get_data(int gpu_arch, char precision, char tra
   }
 }
 #else
-static inline auto gemm_selector_get_data(int gpu_arch, char precision, char trans_A) -> decltype(dgemm_nn_a100) {
+static inline auto gemm_selector_get_data(int gpu_arch, char precision, char trans_A) -> decltype(dgemm_nn_v100) {
   if (gpu_arch >= 800) {
     // sm80 or newer
     return (precision == 's') ? ((trans_A == 'n') ? sgemm_nn_a100 : sgemm_tn_a100) : ((trans_A == 'n') ? dgemm_nn_a100 : dgemm_tn_a100);
@@ -99,7 +100,7 @@ void gemm_selector(int gpu_arch, char precision, char trans_A, int m, int n, int
 
 //////////////////////////////////////////////////////////////////////////////
 #ifdef CEED_MAGMA_USE_HIP
-static inline auto nontensor_rtc_get_data(int gpu_arch, char trans_A) -> decltype(drtc_n_mi250x) {
+static inline auto nontensor_rtc_get_data(int gpu_arch, char trans_A) -> decltype(drtc_n_mi100) {
   if (gpu_arch >= 910) {
     // gfx90a or newer
     return (trans_A == 'n') ? drtc_n_mi250x : drtc_t_mi250x;
@@ -109,8 +110,11 @@ static inline auto nontensor_rtc_get_data(int gpu_arch, char trans_A) -> decltyp
   }
 }
 #else
-static inline auto nontensor_rtc_get_data(int gpu_arch, char trans_A) -> decltype(drtc_n_a100) {
-  if (gpu_arch >= 800) {
+static inline auto nontensor_rtc_get_data(int gpu_arch, char trans_A) -> decltype(drtc_n_v100) {
+  if (gpu_arch >= 900) {
+    // sm90 or newer
+    return (trans_A == 'n') ? drtc_n_h100 : drtc_t_h100;
+  } else if (gpu_arch >= 800) {
     // sm80 or newer
     return (trans_A == 'n') ? drtc_n_a100 : drtc_t_a100;
   } else {
