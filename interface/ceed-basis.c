@@ -1704,6 +1704,7 @@ int CeedBasisApplyAtPoints(CeedBasis basis, CeedInt num_points, CeedTransposeMod
           break;
         }
         default:
+          // Nothing to do, excluded above
           break;
       }
       CeedCall(CeedVectorRestoreArray(basis->vec_chebyshev, &chebyshev_coeffs));
