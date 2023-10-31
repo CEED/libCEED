@@ -12,10 +12,6 @@ static CeedScalar Eval(CeedInt dim, const CeedScalar x[]) {
   return result;
 }
 
-static void GetPoints1D(CeedInt num_pts_1d, CeedScalar points_1d[]) {
-  for (CeedInt i = 0; i < num_pts_1d; i++) points_1d[i] = 2.0 * (CeedScalar)(i + 1) / (CeedScalar)(num_pts_1d + 1) - 1;
-}
-
 static CeedScalar GetTolerance(CeedScalarType scalar_type, int dim) {
   CeedScalar tol;
   if (scalar_type == CEED_SCALAR_FP32) {
@@ -35,9 +31,8 @@ int main(int argc, char **argv) {
   for (CeedInt dim = 1; dim <= 3; dim++) {
     CeedVector    x, x_nodes, x_points, u, u_points, v, ones;
     CeedBasis     basis_x, basis_u;
-    const CeedInt p = 4, q = 4, num_points_1d = 3, num_points = CeedIntPow(num_points_1d, dim), x_dim = CeedIntPow(2, dim),
-                  p_dim = CeedIntPow(p, dim);
-    CeedScalar sum_1 = 0, sum_2 = 0;
+    const CeedInt p = 9, q = 9, num_points = 4, x_dim = CeedIntPow(2, dim), p_dim = CeedIntPow(p, dim);
+    CeedScalar    sum_1 = 0, sum_2 = 0;
 
     CeedVectorCreate(ceed, x_dim * dim, &x);
     CeedVectorCreate(ceed, p_dim * dim, &x_nodes);
@@ -81,31 +76,7 @@ int main(int argc, char **argv) {
     // Interpolate to arbitrary points
     CeedBasisCreateTensorH1Lagrange(ceed, dim, 1, p, q, CEED_GAUSS, &basis_u);
     {
-      CeedScalar x_points_1d[num_points_1d];
-      CeedScalar x_array[num_points * dim];
-      GetPoints1D(num_points_1d, x_points_1d);
-      for (CeedInt i = 0; i < num_points_1d; i++) {
-        if (dim == 1) {
-          x_array[i] = x_points_1d[i];
-        } else if (dim == 2) {
-          for (CeedInt j = 0; j < num_points_1d; j++) {
-            CeedInt p = i * num_points_1d + j;
-
-            x_array[p * dim + 0] = x_points_1d[i];
-            x_array[p * dim + 1] = x_points_1d[j];
-          }
-        } else if (dim == 3) {
-          for (CeedInt j = 0; j < num_points_1d; j++) {
-            for (CeedInt k = 0; k < num_points_1d; k++) {
-              CeedInt p = (i * num_points_1d + j) * num_points_1d + k;
-
-              x_array[p * dim + 0] = x_points_1d[i];
-              x_array[p * dim + 1] = x_points_1d[j];
-              x_array[p * dim + 2] = x_points_1d[k];
-            }
-          }
-        }
-      }
+      CeedScalar x_array[12] = {-0.33, -0.65, 0.16, 0.99, -0.65, 0.16, 0.99, -0.33, 0.16, 0.99, -0.33, -0.65};
 
       CeedVectorSetArray(x_points, CEED_MEM_HOST, CEED_COPY_VALUES, x_array);
     }
