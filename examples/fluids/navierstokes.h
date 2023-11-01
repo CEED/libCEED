@@ -16,8 +16,8 @@
 #include "qfunctions/newtonian_types.h"
 #include "qfunctions/stabilization_types.h"
 
-#if PETSC_VERSION_LT(3, 19, 0)
-#error "PETSc v3.19 or later is required"
+#if PETSC_VERSION_LT(3, 20, 0)
+#error "PETSc v3.20 or later is required"
 #endif
 
 #define PetscCeedChk(ceed, ierr)                                    \

@@ -41,7 +41,7 @@ fn main() {
     };
     pkg_config::Config::new()
         .statik(statik)
-        .atleast_version("0.11")
+        .atleast_version("0.12.0")
         .probe(&ceed_pc)
         .unwrap();
 

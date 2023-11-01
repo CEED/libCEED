@@ -8,6 +8,16 @@ On this page we provide a summary of the main API changes, new features and exam
 
 ### Interface changes
 
+### New features
+
+### Examples
+
+(v0-12)=
+
+## v0.12 (Oct 31, 2023)
+
+### Interface changes
+
 - Update `CeedOperatorContext*` functions to `CeedOperator*Context*` functions for consistency.
 For example, `CeedOperatorContextGetFieldLabel` was renamed to `CeedOperatorGetContextFieldLabel`.
 - Removed `CeedBasisSetNumQuadraturePoints` as redundant and bug-prone interface.
@@ -17,7 +27,7 @@ For example, `CeedOperatorContextGetFieldLabel` was renamed to `CeedOperatorGetC
 - Added {c:func}`CeedOperatorGetFieldByName` to access a specific `CeedOperatorField` by its name.
 - Update `/cpu/self/memcheck/*` backends to help verify `CeedVector` array access assumptions and `CeedQFunction` user output assumptions.
 - Update {c:func}`CeedOperatorLinearAssembleDiagonal` to provide default implementation that supports `CeedOperator` with multiple active bases.
-- Added Sycl backends `/gpu/sycl/ref` and `/gpu/sycl/shared`.
+- Added Sycl backends `/gpu/sycl/ref`, `/gpu/sycl/shared`, and `/gpu/sycl/gen`.
 - Added {c:func}`CeedBasisApplyAtPoints` for evaluation of values and derivatives at arbitrary points inside elements.
 - Added support for non-tensor $H(\text{curl})$ finite element spaces with {c:func}`CeedBasisCreateHcurl`.
 - Added {c:func}`CeedElemRestrictionCreateCurlOriented`, similar to {c:func}`CeedElemRestrictionCreateOriented`, for element restrictions requiring more general element transformations such as those for high-order $H(\text{curl})$ spaces on tetrahedra (see [https://dl.acm.org/doi/pdf/10.1145/3524456](https://dl.acm.org/doi/pdf/10.1145/3524456)).
@@ -26,9 +36,23 @@ For example, `CeedOperatorContextGetFieldLabel` was renamed to `CeedOperatorGetC
 
 ### Examples
 
+- Add `DMSwarm` example demonstrating interpolation from background mesh to swarm points and projection from swarm points to background mesh.
+
 #### {ref}`example-petsc-bps`
 
 - Requires PETSc version 3.19 or later.
+
+#### {ref}`example-petsc-navier-stokes`
+
+- Updated restart and checkpointing interface.
+- Add data-driven subgrid-stress model.
+- Add differential filtering of solution.
+- Add turbulence statistics collection over spanwise-symmetric geometries.
+- Add Taylor-Green vortex initial condition.
+- Add Riemann-based outflow boundary conditions.
+- Added vortex shedding and flow past cylinder example, including calculations for lift, drag, and heat transfer.
+- Add Internal Damping Layer (IDL) for helping turbulent simulation stability.
+- Derive `CeedBasis` from `PetscFE`, and various other internal maintainability updates.
 
 (v0-11)=
 

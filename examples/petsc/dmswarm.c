@@ -35,6 +35,7 @@ const char help[] = "libCEED example using PETSc with DMSwarm\n";
 #include <petsc/private/petscfeimpl.h> /* For interpolation */
 
 #include "include/petscutils.h"
+#include "include/petscversion.h"
 
 const char DMSwarmPICField_u[] = "u";
 
