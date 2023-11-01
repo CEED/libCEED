@@ -1128,6 +1128,7 @@ int CeedElemRestrictionApply(CeedElemRestriction rstr, CeedTransposeMode t_mode,
   @brief Restrict an L-vector of points to a single element or apply its transpose
 
   @param[in]  rstr    CeedElemRestriction
+  @param[in]  elem    Element number in range 0..@a num_elem
   @param[in]  t_mode  Apply restriction or transpose
   @param[in]  u       Input vector (of size @a l_size when t_mode=@ref CEED_NOTRANSPOSE)
   @param[out] ru      Output vector (of shape [@a num_elem * @a elem_size] when t_mode=@ref CEED_NOTRANSPOSE).

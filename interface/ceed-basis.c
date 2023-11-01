@@ -58,9 +58,9 @@ static int CeedChebyshevPolynomialsAtPoint(CeedScalar x, CeedInt n, CeedScalar *
 /**
   @brief Compute values of the derivative of Chebyshev polynomials at a point
 
-  @param[in]  x           Coordinate to evaluate derivative of Chebyshev polynomials at
-  @param[in]  n           Number of Chebyshev polynomials to evaluate, n >= 2
-  @param[out] chebyshev_x Array of Chebyshev polynomial derivative values
+  @param[in]  x            Coordinate to evaluate derivative of Chebyshev polynomials at
+  @param[in]  n            Number of Chebyshev polynomials to evaluate, n >= 2
+  @param[out] chebyshev_dx Array of Chebyshev polynomial derivative values
 
   @return An error code: 0 - success, otherwise - failure
 
