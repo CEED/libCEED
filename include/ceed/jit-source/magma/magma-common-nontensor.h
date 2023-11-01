@@ -33,7 +33,7 @@ static __device__ __inline__ void read_A_notrans_g2r_1D_nosync(const int tx, con
 
 #pragma unroll
   for (int j = 0; j < Q; j++) {
-    rA[i] = sA[j * P + tx];
+    rA[j] = sA[j * P + tx];
   }
 }
 
