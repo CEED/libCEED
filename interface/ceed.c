@@ -807,6 +807,7 @@ int CeedInit(const char *resource, Ceed *ceed) {
       CEED_FTABLE_ENTRY(Ceed, QFunctionCreate),
       CEED_FTABLE_ENTRY(Ceed, QFunctionContextCreate),
       CEED_FTABLE_ENTRY(Ceed, OperatorCreate),
+      CEED_FTABLE_ENTRY(Ceed, OperatorCreateAtPoints),
       CEED_FTABLE_ENTRY(Ceed, CompositeOperatorCreate),
       CEED_FTABLE_ENTRY(CeedVector, HasValidArray),
       CEED_FTABLE_ENTRY(CeedVector, HasBorrowedArrayOfType),

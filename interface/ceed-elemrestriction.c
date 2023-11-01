@@ -144,6 +144,41 @@ int CeedElemRestrictionIsPoints(CeedElemRestriction rstr, bool *is_points) {
 }
 
 /**
+  @brief Check if two CeedElemRestrictionAtPoints use the same points per element
+
+  @param[in]  rstr_a         First CeedElemRestriction
+  @param[in]  rstr_b         Second CeedElemRestriction
+  @param[out] are_compatible Variable to store compatibility status
+**/
+int CeedElemRestrictionAtPointsAreCompatible(CeedElemRestriction rstr_a, CeedElemRestriction rstr_b, bool *are_compatible) {
+  CeedInt num_elem_a, num_elem_b, num_points_a, num_points_b;
+
+  // Cannot compare non-points restrictions
+  CeedCheck(rstr_a->rstr_type == CEED_RESTRICTION_POINTS, rstr_a->ceed, CEED_ERROR_UNSUPPORTED, "First ElemRestriction must be AtPoints");
+  CeedCheck(rstr_b->rstr_type == CEED_RESTRICTION_POINTS, rstr_b->ceed, CEED_ERROR_UNSUPPORTED, "Second ElemRestriction must be AtPoints");
+
+  CeedCall(CeedElemRestrictionGetNumElements(rstr_a, &num_elem_a));
+  CeedCall(CeedElemRestrictionGetNumElements(rstr_b, &num_elem_b));
+  CeedCall(CeedElemRestrictionGetNumPoints(rstr_a, &num_points_a));
+  CeedCall(CeedElemRestrictionGetNumPoints(rstr_b, &num_points_b));
+
+  // Check size and contents of offsets arrays
+  *are_compatible = true;
+  if (num_elem_a != num_elem_b) *are_compatible = false;
+  if (num_points_a != num_points_b) *are_compatible = false;
+  if (*are_compatible) {
+    const CeedInt *offsets_a, *offsets_b;
+
+    CeedCall(CeedElemRestrictionGetOffsets(rstr_a, CEED_MEM_HOST, &offsets_a));
+    CeedCall(CeedElemRestrictionGetOffsets(rstr_b, CEED_MEM_HOST, &offsets_b));
+    for (CeedInt i = 0; i < num_elem_a + 1 + num_points_a; i++) *are_compatible &= offsets_a[i] == offsets_b[i];
+    CeedCall(CeedElemRestrictionRestoreOffsets(rstr_a, &offsets_a));
+    CeedCall(CeedElemRestrictionRestoreOffsets(rstr_b, &offsets_b));
+  }
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
   @brief Get the strides of a strided CeedElemRestriction
 
   @param[in]  rstr    CeedElemRestriction
@@ -1085,8 +1120,13 @@ int CeedElemRestrictionReferenceCopy(CeedElemRestriction rstr, CeedElemRestricti
 **/
 int CeedElemRestrictionCreateVector(CeedElemRestriction rstr, CeedVector *l_vec, CeedVector *e_vec) {
   CeedSize e_size, l_size;
+
   l_size = rstr->l_size;
-  e_size = rstr->num_block * rstr->block_size * rstr->elem_size * rstr->num_comp;
+  if (rstr->rstr_type == CEED_RESTRICTION_POINTS) {
+    e_size = rstr->num_points * rstr->num_comp;
+  } else {
+    e_size = rstr->num_block * rstr->block_size * rstr->elem_size * rstr->num_comp;
+  }
   if (l_vec) CeedCall(CeedVectorCreate(rstr->ceed, l_size, l_vec));
   if (e_vec) CeedCall(CeedVectorCreate(rstr->ceed, e_size, e_vec));
   return CEED_ERROR_SUCCESS;
