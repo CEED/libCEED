@@ -94,7 +94,7 @@ After the PR is merged into Yggdrasil, the new version of libCEED_jll will autom
 
 After the binary wrapper package libCEED_jll has been updated, we are ready to update the main Julia interface LibCEED.jl.
 This requires updating the file `julia/LibCEED.jl/Project.toml` in the libCEED repository.
-The version number should be incremented, and the dependency on the updated version of libCEED_jll should be listed:
+The version number should be incremented, and the dependency on the updated version of `libCEED_jll` should be listed:
 ```diff
 diff --git a/julia/LibCEED.jl/Project.toml b/julia/LibCEED.jl/Project.toml
 --- a/julia/LibCEED.jl/Project.toml
@@ -113,6 +113,12 @@ diff --git a/julia/LibCEED.jl/Project.toml b/julia/LibCEED.jl/Project.toml
  UnsafeArrays = "1"
 -libCEED_jll = "0.7"
 +libCEED_jll = "0.8"
+```
+
+Make sure that the generated Julia bindings have been updated
+```console
+$ cd julia/LibCEED.jl/gen
+$ julia --project=../../.. -e 'include("generator.jl"); generate_ceed_bindings("../../..")'
 ```
 Once this change is merged into libCEED's `main` branch, the updated package version can be registered using the GitHub registrator bot by commenting on the commit:
 

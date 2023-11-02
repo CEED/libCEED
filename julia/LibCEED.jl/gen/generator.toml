@@ -8,4 +8,5 @@ output_ignorelist = [
    "CEED_SCALAR_TYPE",
    "CEED_EPSILON",
    "CeedScalar",
+   "CeedPragmaAtomic",
 ]
