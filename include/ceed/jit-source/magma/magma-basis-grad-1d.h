@@ -15,10 +15,10 @@
 // macros to abstract access of shared memory and reg. file
 #define sT(i, j) sT[(j)*P + (i)]
 
-//////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
 // grad basis action (1D)
 template <typename T, int DIM, int NUM_COMP, int P, int Q>
-static __device__ __inline__ void magma_grad_1d_device(const T *sT, magma_trans_t transT, T *sU[NUM_COMP], T *sV[NUM_COMP], const int tx) {
+static __device__ __inline__ void magma_grad_1d_device(const T *sT, T *sU[NUM_COMP], T *sV[NUM_COMP], const int tx) {
   // Assumptions
   // 1. 1D threads of size max(P,Q)
   // 2. sU[i] is 1xP: in shared memory
@@ -28,10 +28,9 @@ static __device__ __inline__ void magma_grad_1d_device(const T *sT, magma_trans_
   // 6. Must sync before and after call
   // 7. Note that the layout for U and V is different from 2D/3D problem
 
-  T rv;
   if (tx < Q) {
     for (int comp = 0; comp < NUM_COMP; comp++) {
-      rv = (transT == MagmaTrans) ? sV[comp][tx] : 0.0;
+      T rv = 0.0;
       for (int i = 0; i < P; i++) {
         rv += sU[comp][i] * sT(i, tx);
       }
@@ -40,16 +39,15 @@ static __device__ __inline__ void magma_grad_1d_device(const T *sT, magma_trans_
   }
 }
 
-//////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
 extern "C" __launch_bounds__(MAGMA_BASIS_BOUNDS(BASIS_MAX_P_Q, MAGMA_MAXTHREADS_1D)) __global__
     void magma_gradn_1d_kernel(const CeedScalar *dTinterp, const CeedScalar *dTgrad, const CeedScalar *dU, const int estrdU, const int cstrdU,
                                const int dstrdU, CeedScalar *dV, const int estrdV, const int cstrdV, const int dstrdV, const int nelem) {
   MAGMA_DEVICE_SHARED(CeedScalar, shared_data)
 
-  const int     tx      = threadIdx.x;
-  const int     ty      = threadIdx.y;
-  const int     elem_id = (blockIdx.x * blockDim.y) + ty;
-  magma_trans_t transT  = MagmaNoTrans;
+  const int tx      = threadIdx.x;
+  const int ty      = threadIdx.y;
+  const int elem_id = (blockIdx.x * blockDim.y) + ty;
 
   if (elem_id >= nelem) return;
 
@@ -72,30 +70,29 @@ extern "C" __launch_bounds__(MAGMA_BASIS_BOUNDS(BASIS_MAX_P_Q, MAGMA_MAXTHREADS_
 
   // read T
   if (ty == 0) {
-    dread_T_gm2sm<BASIS_P, BASIS_Q>(tx, transT, dTgrad, sT);
+    read_T_notrans_gm2sm<BASIS_P, BASIS_Q>(tx, dTgrad, sT);
   }
 
   // read U
   read_1d<CeedScalar, BASIS_P, BASIS_NUM_COMP>(dU, cstrdU, sU, tx);
 
   __syncthreads();
-  magma_grad_1d_device<CeedScalar, BASIS_DIM, BASIS_NUM_COMP, BASIS_P, BASIS_Q>(sT, transT, sU, sV, tx);
+  magma_grad_1d_device<CeedScalar, BASIS_DIM, BASIS_NUM_COMP, BASIS_P, BASIS_Q>(sT, sU, sV, tx);
   __syncthreads();
 
   // write V
   write_1d<CeedScalar, BASIS_Q, BASIS_NUM_COMP>(sV, dV, cstrdV, tx);
 }
 
-//////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
 extern "C" __launch_bounds__(MAGMA_BASIS_BOUNDS(BASIS_MAX_P_Q, MAGMA_MAXTHREADS_1D)) __global__
     void magma_gradt_1d_kernel(const CeedScalar *dTinterp, const CeedScalar *dTgrad, const CeedScalar *dU, const int estrdU, const int cstrdU,
                                const int dstrdU, CeedScalar *dV, const int estrdV, const int cstrdV, const int dstrdV, const int nelem) {
   MAGMA_DEVICE_SHARED(CeedScalar, shared_data)
 
-  const int     tx      = threadIdx.x;
-  const int     ty      = threadIdx.y;
-  const int     elem_id = (blockIdx.x * blockDim.y) + ty;
-  magma_trans_t transT  = MagmaTrans;
+  const int tx      = threadIdx.x;
+  const int ty      = threadIdx.y;
+  const int elem_id = (blockIdx.x * blockDim.y) + ty;
 
   if (elem_id >= nelem) return;
 
@@ -118,17 +115,14 @@ extern "C" __launch_bounds__(MAGMA_BASIS_BOUNDS(BASIS_MAX_P_Q, MAGMA_MAXTHREADS_
 
   // read T
   if (ty == 0) {
-    dread_T_gm2sm<BASIS_Q, BASIS_P>(tx, transT, dTgrad, sT);
+    read_T_trans_gm2sm<BASIS_Q, BASIS_P>(tx, dTgrad, sT);
   }
 
   // read U
   read_1d<CeedScalar, BASIS_Q, BASIS_NUM_COMP>(dU, cstrdU, sU, tx);
 
-  // read V
-  read_1d<CeedScalar, BASIS_P, BASIS_NUM_COMP>(dV, cstrdV, sV, tx);
-
   __syncthreads();
-  magma_grad_1d_device<CeedScalar, BASIS_DIM, BASIS_NUM_COMP, BASIS_Q, BASIS_P>(sT, transT, sU, sV, tx);
+  magma_grad_1d_device<CeedScalar, BASIS_DIM, BASIS_NUM_COMP, BASIS_Q, BASIS_P>(sT, sU, sV, tx);
   __syncthreads();
 
   // write V

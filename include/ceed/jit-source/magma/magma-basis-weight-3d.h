@@ -12,7 +12,7 @@
 
 #include "magma-common-tensor.h"
 
-//////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
 // weight basis action -- 3D
 template <typename T, int DIM, int NUM_COMP, int Q, int i_DIM, int i_COMP>
 static __device__ __inline__ void magma_weight_3d_device(const T *sTweight, T rV[DIM][NUM_COMP][Q], const int tx) {
@@ -33,7 +33,7 @@ static __device__ __inline__ void magma_weight_3d_device(const T *sTweight, T rV
   }
 }
 
-//////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
 extern "C" __launch_bounds__(MAGMA_BASIS_BOUNDS(BASIS_Q *BASIS_Q, MAGMA_MAXTHREADS_3D)) __global__
     void magma_weight_3d_kernel(const CeedScalar *dqweight1d, CeedScalar *dV, const int v_stride, const int nelem) {
   MAGMA_DEVICE_SHARED(CeedScalar, shared_data)
