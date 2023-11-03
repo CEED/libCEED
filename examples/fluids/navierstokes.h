@@ -20,11 +20,11 @@
 #error "PETSc v3.20 or later is required"
 #endif
 
-#if ((PETSC_VERSION_MAJOR < 4) && (PETSC_VERSION_MINOR < 20))
+#if PETSC_VERSION_LT(3, 21, 0)
 #define DMSetCoordinateDisc(a, b, c) DMProjectCoordinates(a, b)
 #endif
 
-#define PetscCallCeed(ceed, ...)                                    \
+#define PetscCeedChk(ceed, ierr)                                    \
   do {                                                              \
     int ierr = __VA_ARGS__;                                         \
     if (ierr != CEED_ERROR_SUCCESS) {                               \
