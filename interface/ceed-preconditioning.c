@@ -527,7 +527,8 @@ static int CeedSingleOperatorAssembleSymbolic(CeedOperator op, CeedInt offset, C
       }
     }
   }
-  CeedCheck(count == local_num_entries, ceed, CEED_ERROR_MAJOR, "Error computing assembled entries");
+  CeedCheck(count == local_num_entries, ceed, CEED_ERROR_MAJOR,
+            "Error computing assembled entries: expected %" CeedSize_FMT " local_num_entries, but calculated %" CeedSize_FMT " entries (count)");
   CeedCall(CeedVectorRestoreArrayRead(elem_dof_in, &elem_dof_a_in));
   CeedCall(CeedVectorDestroy(&elem_dof_in));
   if (elem_rstr_in != elem_rstr_out) {

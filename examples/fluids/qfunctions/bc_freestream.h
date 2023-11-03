@@ -44,7 +44,7 @@ CEED_QFUNCTION_HELPER int Freestream(void *ctx, CeedInt Q, const CeedScalar *con
         flux = RiemannFlux_HLL(newt_ctx, s, context->S_infty, normal);
         break;
       case RIEMANN_HLLC:
-        flux = RiemannFlux_HLLC(newt_ctx, s, context->S_infty, normal);
+        flux = RiemannFlux_HLLC(newt_ctx, s, context->S_infty, norm);
         break;
     }
     CeedScalar Flux[5];
@@ -114,7 +114,7 @@ CEED_QFUNCTION_HELPER int Freestream_Jacobian(void *ctx, CeedInt Q, const CeedSc
         dflux = RiemannFlux_HLL_fwd(newt_ctx, s, ds, context->S_infty, dS_infty, normal);
         break;
       case RIEMANN_HLLC:
-        dflux = RiemannFlux_HLLC_fwd(newt_ctx, s, ds, context->S_infty, dS_infty, normal);
+        dflux = RiemannFlux_HLLC_fwd(newt_ctx, s, ds, context->S_infty, dS_infty, norm);
         break;
     }
     CeedScalar dFlux[5];

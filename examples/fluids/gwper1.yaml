@@ -1,0 +1,83 @@
+problem: gaussian_wave
+mu: 0 # Effectively solving Euler momentum equations
+
+dm_plex_box_faces: 1,1,1
+dm_plex_box_upper: 1,1,0.025
+dm_plex_box_lower: 0,0,0
+dm_plex_dim: 3
+dm_plex_shape: zbox
+dm_plex_box_bd: none,none,periodic
+
+bc_freestream: 4,6,3,5
+#bc_symmetry_z: 1,2
+
+reference:
+  temperature: 0.25
+  pressure: 71.75
+freestream:
+  # riemann: hll # causes thermal bubble to reflect acoustic waves from boundary
+  velocity: 2,2,0
+
+epicenter: 0.33,0.75,0
+amplitude: 2
+width: 0.05
+
+ts:
+  adapt_type: none
+  max_steps: 5
+  dt: 2e-3
+  type: beuler
+  #monitor_solution: cgns:nwave.cgns
+  #monitor_solution_interval: 10
+
+implicit: true
+stab: supg
+state_var: primitive
+
+snes_rtol: 1e-4
+ksp_rtol: 1e-2
+snes_lag_jacobian: 20
+snes_lag_jacobian_persists:
+
+## Demonstrate acoustic wave dissipation using an internal damping layer
+# idl:
+#   decay_time: 2e-3
+#   start: 0
+#   length: .25
+ksp_converged_reason:
+snes_converged_reason:
+ts_monitor:
+snes_monitor:
+log_view:
+log_view_gpu_time:
+
+#ceed: /gpu/cuda
+#ceed: /gpu/sycl/shared
+use_gpu_aware_mpi: 0
+
+# Block diagonal settings:
+amat_type: shell
+pmat_pbdiagonal: true
+pc_type: vpbjacobi
+snes_lag_jacobian: 9
+#snes_lag_jacobian_persists:
+
+#original snes_rtol: 5e-4
+#original ksp_rtol: 5e-2
+
+ts_monitor_solution: cgns:flowCoarseBy3-%d.cgns # %d activates batch mode, default 20 output frames per batch
+ts_monitor_solution_interval: 50  # one file per 50 time steps
+viewer_cgns_batch_size: 10 # (optional) change number of frames per batch
+
+output_dir: ./output_files
+output_add_stepnum2bin: true
+#continue: 600
+#continue_filename: ./output_files/ns-solution-600.bin
+#continue_time_filename: ./output_files/ns-time-600.bin
+
+preload: true
+#ksp_type: bcgsl
+ksp_type: lgmres
+
+#dm_mat_type: aijkokkos
+#dm_vec_type: kokkos

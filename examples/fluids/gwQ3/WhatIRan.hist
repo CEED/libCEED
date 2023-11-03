@@ -1,0 +1,9 @@
+ mkdir gwQ3
+ cd gwQ3
+ cp ../gwQ2/*.yaml .
+ mpirun -np 1    ../navierstokes -options_file gwNoper1.yaml -degree 3  -ts_max_steps 5 -sectionAfterInterpolate  -dm_view ascii::ascii_info_detail   2>&1 |tee -a Q3IC_Noper.log
+ cp gwperCGNS.yaml gwNoperCGNS.yaml
+ gwNoperCGNS.yaml 
+ mpirun -np 1   ../navierstokes -options_file gwNoperCGNS.yaml  -dm_plex_box_label -degree 2 -dm_plex_filename flowCoarseBy3-0.cgns -ts_max_steps 10 -sectionAfterInterpolate -dm_view ascii::ascii_info_detail  -named_local_vector_migrate InitialCondition  2>&1 |tee -a Q3restartFromQ3_Noper.log 
+ cp flowIn-10.cgns Step10WrittenByNoperCGNSRestartFrom5.cgns
+ mpirun -np 1   ../navierstokes -options_file gwperCGNS.yaml -DtoPvec 0,0,-0.025  -dm_plex_box_label -degree 3 -dm_plex_filename flowCoarseBy3-0.cgns -ts_max_steps 10  -sectionAfterInterpolate -dm_view ascii::ascii_info_detail  -named_local_vector_migrate InitialCondition -dm_setupFace TRUE -dm_setupCoord TRUE 2>&1 | tee -a Wper_Q3restartFromNoper_Q3Step5.log 

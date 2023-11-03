@@ -296,14 +296,22 @@ PetscErrorCode SetupLibceed(Ceed ceed, CeedData ceed_data, DM dm, User user, App
     PetscCallCeed(ceed, CeedQFunctionContextRestoreDataRead(problem->apply_vol_ifunction.qfunction_context, &gas));
   }
 
-  {  // Create bases and element restrictions
-    DMLabel  domain_label = NULL;
-    PetscInt label_value = 0, height = 0, dm_field = 0;
-    DM       dm_coord;
+  CeedElemRestriction elem_restr_jd_i;
+  CeedVector          jac_data;
+  CeedInt             num_qpts;
+  DMLabel             domain_label = NULL;
+  PetscInt            label_value = 0, height = 0, dm_field = 0;
 
-    PetscCall(DMGetCoordinateDM(dm, &dm_coord));
-    PetscCall(CreateBasisFromPlex(ceed, dm, domain_label, label_value, height, dm_field, &ceed_data->basis_q));
-    PetscCall(CreateBasisFromPlex(ceed, dm_coord, domain_label, label_value, height, dm_field, &ceed_data->basis_x));
+  // -----------------------------------------------------------------------------
+  // CEED Bases
+  // -----------------------------------------------------------------------------
+  DM dm_coord;
+
+  PetscCall(CreateBasisFromPlex(ceed, dm, domain_label, label_value, height, dm_field, &ceed_data->basis_q));
+  PetscCall(DMGetCoordinateDM(dm, &dm_coord));
+  PetscCall(CreateBasisFromPlex(ceed, dm_coord, domain_label, label_value, height, dm_field, &ceed_data->basis_x));
+  PetscCallCeed(ceed, CeedBasisCreateProjection(ceed_data->basis_x, ceed_data->basis_q, &ceed_data->basis_xc));
+  PetscCallCeed(ceed, CeedBasisGetNumQuadraturePoints(ceed_data->basis_q, &num_qpts));
 
     PetscCall(DMPlexCeedElemRestrictionCreate(ceed, dm, domain_label, label_value, height, 0, &ceed_data->elem_restr_q));
     PetscCall(DMPlexCeedElemRestrictionCoordinateCreate(ceed, dm, domain_label, label_value, height, &ceed_data->elem_restr_x));

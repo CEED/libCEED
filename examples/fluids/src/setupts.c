@@ -397,6 +397,7 @@ PetscErrorCode TSSolve_NS(DM dm, User user, AppCtx app_ctx, Physics phys, Proble
     // LCOV_EXCL_STOP
   } else {
     PetscCall(PetscBarrier((PetscObject)*ts));
+    PetscCall(TSViewFromOptions(*ts, NULL, "-ts_view_presolve"));
     PetscCall(TSSolve(*ts, *Q));
   }
   PetscPreLoadEnd();

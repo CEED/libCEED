@@ -41,6 +41,7 @@ PetscErrorCode CreateStatsDM(User user, ProblemData problem, PetscInt degree) {
   // Get spanwise length
   PetscCall(DMGetBoundingBox(user->dm, domain_min, domain_max));
   user->spanstats.span_width = domain_max[2] - domain_min[2];
+  user->spanstats.span_width = domain_max[2] - domain_min[2];
 
   {  // Get DM from surface
     DM             parent_distributed_dm;
@@ -314,8 +315,17 @@ PetscErrorCode SetupL2ProjectionStats(Ceed ceed, User user, CeedData ceed_data, 
 
   PetscCall(OperatorApplyContextCreate(NULL, user->spanstats.dm, ceed, op_proj_rhs, NULL, NULL, NULL, NULL, &user->spanstats.op_proj_rhs_ctx));
   PetscCall(CeedOperatorCreateLocalVecs(op_proj_rhs, DMReturnVecType(user->spanstats.dm), PETSC_COMM_SELF, &user->spanstats.Parent_Stats_loc, NULL));
-  PetscCall(QDataGet(ceed, user->spanstats.dm, domain_label, label_value, stats_data->elem_restr_parent_x, stats_data->basis_x, stats_data->x_coord,
-                     &elem_restr_qd, &q_data, &q_data_size));
+
+  // -- Setup LHS of L^2 projection
+  // Get q_data for mass matrix operator
+  PetscCallCeed(ceed, CeedOperatorCreate(ceed, ceed_data->qf_setup_sur, NULL, NULL, &op_setup_sur));
+  PetscCallCeed(ceed, CeedOperatorSetField(op_setup_sur, "dx", stats_data->elem_restr_parent_x, stats_data->basis_x, CEED_VECTOR_ACTIVE));
+  PetscCallCeed(ceed, CeedOperatorSetField(op_setup_sur, "weight", CEED_ELEMRESTRICTION_NONE, stats_data->basis_x, CEED_VECTOR_NONE));
+  PetscCallCeed(ceed, CeedOperatorSetField(op_setup_sur, "surface qdata", stats_data->elem_restr_parent_qd, CEED_BASIS_NONE, CEED_VECTOR_ACTIVE));
+  PetscCallCeed(ceed, CeedOperatorApply(op_setup_sur, stats_data->x_coord, stats_data->q_data, CEED_REQUEST_IMMEDIATE));
+
+  // CEED Restriction
+  PetscCallCeed(ceed, CeedElemRestrictionGetNumComponents(stats_data->elem_restr_parent_qd, &q_data_size));
 
   // Create Mass CeedOperator
   PetscCall(CreateMassQFunction(ceed, num_comp_stats, q_data_size, &qf_mass));
@@ -423,8 +433,8 @@ PetscErrorCode CreateStatisticCollectionOperator(Ceed ceed, User user, CeedData 
   PetscCall(OperatorApplyContextCreate(user->dm, user->spanstats.dm, user->ceed, op_stats_collect, user->q_ceed, NULL, NULL, NULL,
                                        &user->spanstats.op_stats_collect_ctx));
 
-  PetscCall(
-      CeedOperatorCreateLocalVecs(op_stats_collect, DMReturnVecType(user->spanstats.dm), PETSC_COMM_SELF, NULL, &user->spanstats.Child_Stats_loc));
+  PetscCall(CeedOperatorCreateLocalVecs(op_stats_collect, DMReturnVecType(user->spanstats.dm), PETSC_COMM_SELF, NULL,
+                                        &user->spanstats.Child_Stats_loc));
   PetscCall(VecZeroEntries(user->spanstats.Child_Stats_loc));
 
   PetscCallCeed(ceed, CeedQFunctionDestroy(&qf_stats_collect));
