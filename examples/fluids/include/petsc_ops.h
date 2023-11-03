@@ -11,6 +11,10 @@
 #include <ceed.h>
 #include <petscdm.h>
 
+#if PETSC_VERSION_GE(3, 21, 0)
+#define DMProjectCoordinates(a, b) DMSetCoordinateDisc(a, b, PETSC_TRUE)
+#endif
+
 typedef struct OperatorApplyContext_ *OperatorApplyContext;
 struct OperatorApplyContext_ {
   DM           dm_x, dm_y;
