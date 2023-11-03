@@ -167,7 +167,7 @@ int main(int argc, char **argv) {
   }
 
   // -- Set up DM
-  PetscCall(SetUpDM(dm, problem, app_ctx->degree, app_ctx->q_extra, bc, phys_ctx));
+  PetscCall(SetUpDM(&dm, problem, app_ctx->degree, app_ctx->q_extra, bc, phys_ctx));
 
   // -- Refine DM for high-order viz
   if (app_ctx->viz_refine) PetscCall(VizRefineDM(dm, user, problem, bc, phys_ctx));
@@ -230,6 +230,33 @@ int main(int argc, char **argv) {
   // Gather initial Q values in case of continuation of simulation
   // ---------------------------------------------------------------------------
   // -- Set up initial values from binary file
+  {
+    //  Restore a NL vector if requested (same flag used in Distribute)
+    char vecName[PETSC_MAX_PATH_LEN] = "";
+    PetscOptionsBegin(PetscObjectComm((PetscObject)dm), NULL, "Option Named Vector", NULL);
+    PetscCall(
+        PetscOptionsString("-named_local_vector_migrate", "Name of NamedLocalVector to migrate", NULL, vecName, vecName, sizeof(vecName), NULL));
+    PetscOptionsEnd();
+
+    PetscBool has_NL_vector, has_NL_vectord;
+    Vec       IC_loc;
+    PetscCall(DMHasNamedLocalVector(dm, vecName, &has_NL_vector));
+    if (has_NL_vector) {
+      PetscCall(PetscPrintf(PETSC_COMM_WORLD, "Named local vector IC reached load to Q vector navierstokes.c : %s\n", vecName));
+
+      char vecNamed[PETSC_MAX_PATH_LEN] = "";
+      PetscStrcpy(vecNamed, vecName);
+      PetscStrlcat(vecNamed, "d", PETSC_MAX_PATH_LEN);
+      PetscCall(DMHasNamedLocalVector(dm, vecNamed, &has_NL_vectord));
+      if (has_NL_vectord) PetscCall(DMGetNamedLocalVector(dm, vecNamed, &IC_loc));
+      else PetscCall(DMGetNamedLocalVector(dm, vecName, &IC_loc));
+      PetscCall(VecCopy(IC_loc, user->Q_loc));
+      PetscCall(DMLocalToGlobal(dm, user->Q_loc, INSERT_VALUES, Q));
+      if (has_NL_vectord) PetscCall(DMRestoreNamedLocalVector(dm, vecNamed, &IC_loc));
+      else PetscCall(DMRestoreNamedLocalVector(dm, vecName, &IC_loc));
+      PetscCall(VecViewFromOptions(Q, NULL, "-testICview"));
+    }
+  }
   if (app_ctx->cont_steps) {
     PetscCall(SetupICsFromBinary(comm, app_ctx, Q));
   }

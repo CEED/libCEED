@@ -1,0 +1,126 @@
+problem: 'blasius'
+idl_decay_time: 3.6e-4
+idl_start: -3.1
+idl_length: 0.2
+reference:
+  temperature: 0.25
+  pressure: 71.75
+
+ts_error_if_step_fails: 0
+
+implicit: true
+ts:
+  adapt_type: 'none'
+  type: 'beuler'
+#  type: 'alpha'
+  alpha_radius: 0.5
+  dt: 3.6e-4
+  #max_steps: 10
+  max_steps: 1
+#output_freq: 200
+checkpoint_interval: 500
+
+snes_max_it: 3
+snes_convergence_test: skip
+snes_rtol: 5e-5 #meaningless with previous line 'skip'
+ksp_rtol: 5e-2
+
+## Linear Settings:
+degree: 2
+
+stab: 'supg'
+Ctau_t: 1
+#Ctau_v: 36,60,128 is what PHASTA has for p=1,2, 3
+## linear Settings:
+Ctau_v: 60
+Ctau_C: 0.5
+Ctau_M: 0.5
+Ctau_E: 0.5
+
+q_extra: 0
+
+
+# Faces labeled 1=z- 2=z+ 3=y- 4=y+ 5=x+ 6=x-
+mesh_transform: platemesh
+dm_plex_box_faces: 3,63,56
+dm_plex:
+   dim: 3
+   box:
+     lower: -3.1,0,0
+     upper: -3.0225, 2.4, .54
+     #1/5 of domain     upper: -2.48, 2.4, .452
+#     sfc: # space-filling curve; needed for periodicity
+     bd: none,none,periodic
+dm_plex_shape: zbox
+
+bc_wall: 3
+wall_comps: 1,2,3
+bc_inflow: 6
+#bc_outflow: 5,4
+bc_outflow: 5
+#bc_freestream: 4,5
+bc_freestream: 4
+#bc_slip_z: 1,2
+
+state_var: primitive
+
+g: 0,0,0
+mu: 1.2502e-5
+
+freestream:
+#   riemann: hllc
+   velocity: 0.9991, 0.00301866, 0.0
+   temperature: .25
+   pressure: 71.75
+
+P0: 71.75
+temperature_infinity: .25
+
+stg:
+  use: true
+  strong: true
+  inflow_path: "./STGInflow_12-30_SPD.dat"
+  rand_path: "./STGRand_12-30.dat"
+  u0: 1
+  mean_only: false
+  fluctuating_IC: false
+platemesh_y_node_locs_path: "./everyThird_yspacing.dat"
+# platemesh_top_angle: 0
+
+ksp_converged_reason:
+snes_converged_reason:
+ts_monitor:
+snes_monitor:
+log_view:
+log_view_gpu_time:
+
+#ceed: /gpu/cuda
+#ceed: /gpu/sycl/shared
+use_gpu_aware_mpi: 0
+
+# Block diagonal settings:
+amat_type: shell
+pmat_pbdiagonal: true
+pc_type: vpbjacobi
+snes_lag_jacobian: 9
+#snes_lag_jacobian_persists:
+
+#original snes_rtol: 5e-4
+#original ksp_rtol: 5e-2
+
+ts_monitor_solution: cgns:flowCGNSIn-%d.cgns # %d activates batch mode, default 20 output frames per batch
+ts_monitor_solution_interval: 2  # one file per 50 time steps
+viewer_cgns_batch_size: 2 # (optional) change number of frames per batch
+
+output_dir: ./output_files
+output_add_stepnum2bin: true
+#continue: 600
+#continue_filename: ./output_files/ns-solution-600.bin
+#continue_time_filename: ./output_files/ns-time-600.bin
+
+#preload: true
+#ksp_type: bcgsl
+ksp_type: lgmres
+
+#dm_mat_type: aijkokkos
+#dm_vec_type: kokkos
