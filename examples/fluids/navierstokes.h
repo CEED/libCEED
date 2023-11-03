@@ -20,7 +20,8 @@
 #error "PETSc v3.20 or later is required"
 #endif
 
-#if PETSC_VERSION_LT(3, 21, 0)
+//#if PETSC_VERSION_GE(3, 21, 0)
+#if ((PETSC_VERSION_MAJOR <4) && (PETSC_VERSION_MINOR < 21))
 #define DMSetCoordinateDisc(a, b, c) DMProjectCoordinates(a, b)
 #endif
 
