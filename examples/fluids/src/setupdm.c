@@ -41,47 +41,87 @@ PetscErrorCode CreateDM(MPI_Comm comm, ProblemData *problem, MatType mat_type, V
 }
 
 // Setup DM
-PetscErrorCode SetUpDM(DM dm, ProblemData *problem, PetscInt degree, PetscInt q_extra, SimpleBC bc, Physics phys) {
+PetscErrorCode SetUpDM(DM *dm, ProblemData *problem, PetscInt degree, PetscInt q_extra, SimpleBC bc, Physics phys) {
   PetscInt num_comp_q = 5;
-  PetscFunctionBeginUser;
+  DM       old_dm     = NULL;
 
-  PetscCall(DMSetupByOrderBegin_FEM(PETSC_TRUE, PETSC_TRUE, degree, PETSC_DECIDE, q_extra, 1, &num_comp_q, dm));
+  PetscFunctionBeginUser;
+  //  Restore a NL vector if requested (same flag used in Distribute)
+  char vecName[PETSC_MAX_PATH_LEN] = "";
+  PetscOptionsBegin(PetscObjectComm((PetscObject)dm), NULL, "Option Named Vector", NULL);
+  PetscCall(PetscOptionsString("-named_local_vector_migrate", "Name of NamedLocalVector to migrate", NULL, vecName, vecName, sizeof(vecName), NULL));
+  PetscOptionsEnd();
+
+  PetscBool has_NL_vector;
+  PetscCall(DMHasNamedLocalVector(*dm, vecName, &has_NL_vector));
+  if (has_NL_vector) {
+    DM new_dm = NULL;
+    PetscCall(DMClone(*dm, &new_dm));
+    old_dm = *dm;
+    *dm    = new_dm;
+  }
+
+  PetscCall(DMSetupByOrderBegin_FEM(PETSC_TRUE, PETSC_TRUE, degree, PETSC_DECIDE, q_extra, 1, &num_comp_q, *dm));
 
   {  // Add strong boundary conditions to DM
     DMLabel label;
-    PetscCall(DMGetLabel(dm, "Face Sets", &label));
-    PetscCall(DMPlexLabelComplete(dm, label));
+    PetscCall(DMGetLabel(*dm, "Face Sets", &label));
+    PetscCall(DMPlexLabelComplete(*dm, label));
     // Set wall BCs
     if (bc->num_wall > 0) {
-      PetscCall(DMAddBoundary(dm, DM_BC_ESSENTIAL, "wall", label, bc->num_wall, bc->walls, 0, bc->num_comps, bc->wall_comps, NULL, NULL, NULL, NULL));
+      PetscCall(
+          DMAddBoundary(*dm, DM_BC_ESSENTIAL, "wall", label, bc->num_wall, bc->walls, 0, bc->num_comps, bc->wall_comps, NULL, NULL, NULL, NULL));
     }
     // Set symmetry BCs in the x direction
     if (bc->num_symmetry[0] > 0) {
       PetscInt comps[1] = {1};
-      PetscCall(DMAddBoundary(dm, DM_BC_ESSENTIAL, "symmetry_x", label, bc->num_symmetry[0], bc->symmetries[0], 0, 1, comps, NULL, NULL, NULL, NULL));
+      PetscCall(DMAddBoundary(*dm, DM_BC_ESSENTIAL, "slipx", label, bc->num_slip[0], bc->slips[0], 0, 1, comps, NULL, NULL, NULL, NULL));
     }
     // Set symmetry BCs in the y direction
     if (bc->num_symmetry[1] > 0) {
       PetscInt comps[1] = {2};
-      PetscCall(DMAddBoundary(dm, DM_BC_ESSENTIAL, "symmetry_y", label, bc->num_symmetry[1], bc->symmetries[1], 0, 1, comps, NULL, NULL, NULL, NULL));
+      PetscCall(DMAddBoundary(*dm, DM_BC_ESSENTIAL, "slipy", label, bc->num_slip[1], bc->slips[1], 0, 1, comps, NULL, NULL, NULL, NULL));
     }
     // Set symmetry BCs in the z direction
     if (bc->num_symmetry[2] > 0) {
       PetscInt comps[1] = {3};
-      PetscCall(DMAddBoundary(dm, DM_BC_ESSENTIAL, "symmetry_z", label, bc->num_symmetry[2], bc->symmetries[2], 0, 1, comps, NULL, NULL, NULL, NULL));
+      PetscCall(DMAddBoundary(*dm, DM_BC_ESSENTIAL, "slipz", label, bc->num_slip[2], bc->slips[2], 0, 1, comps, NULL, NULL, NULL, NULL));
     }
     {
       PetscBool use_strongstg = PETSC_FALSE;
       PetscCall(PetscOptionsGetBool(NULL, NULL, "-stg_strong", &use_strongstg, NULL));
-      if (use_strongstg) PetscCall(SetupStrongStg(dm, bc, problem, phys));
+      if (use_strongstg) PetscCall(SetupStrongStg(*dm, bc, problem, phys));
     }
   }
 
-  PetscCall(DMSetupByOrderEnd_FEM(PETSC_TRUE, dm));
+  PetscCall(DMSetupByOrderEnd_FEM(PETSC_TRUE, *dm));
+
+  if (has_NL_vector) {
+    Mat mat_interp;
+    Vec old_InitialCondition_loc, new_InitialCondition_loc, old_InitialCondition, new_InitialCondition;
+
+    PetscCall(DMGetNamedLocalVector(old_dm, vecName, &old_InitialCondition_loc));
+    PetscCall(DMGetNamedLocalVector(*dm, vecName, &new_InitialCondition_loc));
+    PetscCall(DMGetGlobalVector(old_dm, &old_InitialCondition));
+    PetscCall(DMGetGlobalVector(*dm, &new_InitialCondition));
+    PetscCall(DMLocalToGlobal(old_dm, old_InitialCondition_loc, INSERT_VALUES, old_InitialCondition));
+
+    PetscCall(DMCreateInterpolation(old_dm, *dm, &mat_interp, NULL));
+    PetscCall(MatInterpolate(mat_interp, old_InitialCondition, new_InitialCondition));
+
+    PetscCall(DMGlobalToLocal(*dm, new_InitialCondition, INSERT_VALUES, new_InitialCondition_loc));
+
+    PetscCall(DMRestoreGlobalVector(old_dm, &old_InitialCondition));
+    PetscCall(DMRestoreGlobalVector(*dm, &new_InitialCondition));
+    PetscCall(DMRestoreNamedLocalVector(old_dm, vecName, &old_InitialCondition_loc));
+    PetscCall(DMRestoreNamedLocalVector(*dm, vecName, &new_InitialCondition_loc));
+    PetscCall(MatDestroy(&mat_interp));
+    PetscCall(DMDestroy(&old_dm));
+  }
 
   // Empty name for conserved field (because there is only one field)
   PetscSection section;
-  PetscCall(DMGetLocalSection(dm, &section));
+  PetscCall(DMGetLocalSection(*dm, &section));
   PetscCall(PetscSectionSetFieldName(section, 0, ""));
   switch (phys->state_var) {
     case STATEVAR_CONSERVATIVE:
@@ -123,7 +163,7 @@ PetscErrorCode VizRefineDM(DM dm, User user, ProblemData *problem, SimpleBC bc, 
     if (i + 1 == user->app_ctx->viz_refine) d = 1;
     PetscCall(DMGetVecType(dm, &vec_type));
     PetscCall(DMSetVecType(dm_hierarchy[i + 1], vec_type));
-    PetscCall(SetUpDM(dm_hierarchy[i + 1], problem, d, q_order, bc, phys));
+    PetscCall(SetUpDM(&dm_hierarchy[i + 1], problem, d, q_order, bc, phys));
     PetscCall(DMCreateInterpolation(dm_hierarchy[i], dm_hierarchy[i + 1], &interp_next, NULL));
     if (!i) user->interp_viz = interp_next;
     else {

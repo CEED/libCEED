@@ -187,9 +187,10 @@ PetscErrorCode SetupLibceed(Ceed ceed, CeedData ceed_data, DM dm, User user, App
   // CEED Bases
   // -----------------------------------------------------------------------------
   DM dm_coord;
-  PetscCall(DMGetCoordinateDM(dm, &dm_coord));
+  //  PetscCall(DMGetCoordinateDM(dm, &dm_coord));
 
   PetscCall(CreateBasisFromPlex(ceed, dm, domain_label, label_value, height, dm_field, &ceed_data->basis_q));
+  PetscCall(DMGetCoordinateDM(dm, &dm_coord));
   PetscCall(CreateBasisFromPlex(ceed, dm_coord, domain_label, label_value, height, dm_field, &ceed_data->basis_x));
   PetscCallCeed(ceed, CeedBasisCreateProjection(ceed_data->basis_x, ceed_data->basis_q, &ceed_data->basis_xc));
   PetscCallCeed(ceed, CeedBasisGetNumQuadraturePoints(ceed_data->basis_q, &num_qpts));

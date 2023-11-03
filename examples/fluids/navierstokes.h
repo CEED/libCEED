@@ -20,7 +20,7 @@
 #error "PETSc v3.20 or later is required"
 #endif
 
-#if PETSC_VERSION_LT(3, 21, 0)
+#if ((PETSC_VERSION_MAJOR < 4) && (PETSC_VERSION_MINOR < 20))
 #define DMSetCoordinateDisc(a, b, c) DMProjectCoordinates(a, b)
 #define DMPlexFilter(a, b, c, d, e, f, g) DMPlexFilter(a, b, c, g)
 #endif
@@ -386,7 +386,7 @@ PetscErrorCode UpdateBoundaryValues(User user, Vec Q_loc, PetscReal t);
 PetscErrorCode CreateDM(MPI_Comm comm, ProblemData *problem, MatType, VecType, DM *dm);
 
 // Set up DM
-PetscErrorCode SetUpDM(DM dm, ProblemData *problem, PetscInt degree, PetscInt q_extra, SimpleBC bc, Physics phys);
+PetscErrorCode SetUpDM(DM *dm, ProblemData *problem, PetscInt degree, PetscInt q_extra, SimpleBC bc, Physics phys);
 PetscErrorCode DMSetupByOrderBegin_FEM(PetscBool setup_faces, PetscBool setup_coords, PetscInt degree, PetscInt coord_order, PetscInt q_extra,
                                        PetscInt num_fields, const PetscInt *field_sizes, DM dm);
 PetscErrorCode DMSetupByOrderEnd_FEM(PetscBool setup_coords, DM dm);
