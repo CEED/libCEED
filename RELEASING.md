@@ -94,7 +94,7 @@ After the PR is merged into Yggdrasil, the new version of libCEED_jll will autom
 
 After the binary wrapper package libCEED_jll has been updated, we are ready to update the main Julia interface LibCEED.jl.
 This requires updating the file `julia/LibCEED.jl/Project.toml` in the libCEED repository.
-The version number should be incremented, and the dependency on the updated version of libCEED_jll should be listed:
+The version number should be incremented, and the dependency on the updated version of `libCEED_jll` should be listed:
 ```diff
 diff --git a/julia/LibCEED.jl/Project.toml b/julia/LibCEED.jl/Project.toml
 --- a/julia/LibCEED.jl/Project.toml
@@ -113,6 +113,12 @@ diff --git a/julia/LibCEED.jl/Project.toml b/julia/LibCEED.jl/Project.toml
  UnsafeArrays = "1"
 -libCEED_jll = "0.7"
 +libCEED_jll = "0.8"
+```
+
+Make sure that the generated Julia bindings have been updated
+```console
+$ cd julia/LibCEED.jl/gen
+$ julia --project=../../.. -e 'include("generator.jl"); generate_ceed_bindings("../../..")'
 ```
 Once this change is merged into libCEED's `main` branch, the updated package version can be registered using the GitHub registrator bot by commenting on the commit:
 
@@ -161,16 +167,10 @@ The Rust crates for libCEED are split into
 2. [`libceed`](https://crates.io/crates/libceed) containing the safe and idiomatic Rust bindings.
 
 We currently apply the same version number across both of these crates.
-There are some tests for version strings matching, but in short, one needs to update the following locations.
+Version numbers are automatically updated using the following, which creates a new commit with the version updates. You can squash that commit into the commit with version updates for the rest of the package.
 
 ```console
-$ git grep '0\.8' -- rust/
-rust/libceed-sys/Cargo.toml:version = "0.8.0"
-rust/libceed-sys/README.md:libceed-sys = "0.8.0"
-rust/libceed-sys/build.rs:        .atleast_version("0.8")
-rust/libceed/Cargo.toml:version = "0.8.0"
-rust/libceed/Cargo.toml:libceed-sys = { version = "0.8", path = "../libceed-sys" }
-rust/libceed/README.md:libceed = "0.8.0"
+$ cargo release --no-tag --no-push --no-publish 0.12.0 --execute
 ```
 
 After doing this,

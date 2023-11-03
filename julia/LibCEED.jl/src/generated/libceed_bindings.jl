@@ -296,20 +296,24 @@ function CeedElemRestrictionCreateStrided(ceed, num_elem, elem_size, num_comp, l
     ccall((:CeedElemRestrictionCreateStrided, libceed), Cint, (Ceed, CeedInt, CeedInt, CeedInt, CeedSize, Ptr{CeedInt}, Ptr{CeedElemRestriction}), ceed, num_elem, elem_size, num_comp, l_size, strides, rstr)
 end
 
-function CeedElemRestrictionCreateBlocked(ceed, num_elem, elem_size, blk_size, num_comp, comp_stride, l_size, mem_type, copy_mode, offsets, rstr)
-    ccall((:CeedElemRestrictionCreateBlocked, libceed), Cint, (Ceed, CeedInt, CeedInt, CeedInt, CeedInt, CeedInt, CeedSize, CeedMemType, CeedCopyMode, Ptr{CeedInt}, Ptr{CeedElemRestriction}), ceed, num_elem, elem_size, blk_size, num_comp, comp_stride, l_size, mem_type, copy_mode, offsets, rstr)
+function CeedElemRestrictionCreateAtPoints(ceed, num_elem, num_points, num_comp, l_size, mem_type, copy_mode, offsets, rstr)
+    ccall((:CeedElemRestrictionCreateAtPoints, libceed), Cint, (Ceed, CeedInt, CeedInt, CeedInt, CeedSize, CeedMemType, CeedCopyMode, Ptr{CeedInt}, Ptr{CeedElemRestriction}), ceed, num_elem, num_points, num_comp, l_size, mem_type, copy_mode, offsets, rstr)
 end
 
-function CeedElemRestrictionCreateBlockedOriented(ceed, num_elem, elem_size, blk_size, num_comp, comp_stride, l_size, mem_type, copy_mode, offsets, orients, rstr)
-    ccall((:CeedElemRestrictionCreateBlockedOriented, libceed), Cint, (Ceed, CeedInt, CeedInt, CeedInt, CeedInt, CeedInt, CeedSize, CeedMemType, CeedCopyMode, Ptr{CeedInt}, Ptr{Bool}, Ptr{CeedElemRestriction}), ceed, num_elem, elem_size, blk_size, num_comp, comp_stride, l_size, mem_type, copy_mode, offsets, orients, rstr)
+function CeedElemRestrictionCreateBlocked(ceed, num_elem, elem_size, block_size, num_comp, comp_stride, l_size, mem_type, copy_mode, offsets, rstr)
+    ccall((:CeedElemRestrictionCreateBlocked, libceed), Cint, (Ceed, CeedInt, CeedInt, CeedInt, CeedInt, CeedInt, CeedSize, CeedMemType, CeedCopyMode, Ptr{CeedInt}, Ptr{CeedElemRestriction}), ceed, num_elem, elem_size, block_size, num_comp, comp_stride, l_size, mem_type, copy_mode, offsets, rstr)
 end
 
-function CeedElemRestrictionCreateBlockedCurlOriented(ceed, num_elem, elem_size, blk_size, num_comp, comp_stride, l_size, mem_type, copy_mode, offsets, curl_orients, rstr)
-    ccall((:CeedElemRestrictionCreateBlockedCurlOriented, libceed), Cint, (Ceed, CeedInt, CeedInt, CeedInt, CeedInt, CeedInt, CeedSize, CeedMemType, CeedCopyMode, Ptr{CeedInt}, Ptr{CeedInt8}, Ptr{CeedElemRestriction}), ceed, num_elem, elem_size, blk_size, num_comp, comp_stride, l_size, mem_type, copy_mode, offsets, curl_orients, rstr)
+function CeedElemRestrictionCreateBlockedOriented(ceed, num_elem, elem_size, block_size, num_comp, comp_stride, l_size, mem_type, copy_mode, offsets, orients, rstr)
+    ccall((:CeedElemRestrictionCreateBlockedOriented, libceed), Cint, (Ceed, CeedInt, CeedInt, CeedInt, CeedInt, CeedInt, CeedSize, CeedMemType, CeedCopyMode, Ptr{CeedInt}, Ptr{Bool}, Ptr{CeedElemRestriction}), ceed, num_elem, elem_size, block_size, num_comp, comp_stride, l_size, mem_type, copy_mode, offsets, orients, rstr)
 end
 
-function CeedElemRestrictionCreateBlockedStrided(ceed, num_elem, elem_size, blk_size, num_comp, l_size, strides, rstr)
-    ccall((:CeedElemRestrictionCreateBlockedStrided, libceed), Cint, (Ceed, CeedInt, CeedInt, CeedInt, CeedInt, CeedSize, Ptr{CeedInt}, Ptr{CeedElemRestriction}), ceed, num_elem, elem_size, blk_size, num_comp, l_size, strides, rstr)
+function CeedElemRestrictionCreateBlockedCurlOriented(ceed, num_elem, elem_size, block_size, num_comp, comp_stride, l_size, mem_type, copy_mode, offsets, curl_orients, rstr)
+    ccall((:CeedElemRestrictionCreateBlockedCurlOriented, libceed), Cint, (Ceed, CeedInt, CeedInt, CeedInt, CeedInt, CeedInt, CeedSize, CeedMemType, CeedCopyMode, Ptr{CeedInt}, Ptr{CeedInt8}, Ptr{CeedElemRestriction}), ceed, num_elem, elem_size, block_size, num_comp, comp_stride, l_size, mem_type, copy_mode, offsets, curl_orients, rstr)
+end
+
+function CeedElemRestrictionCreateBlockedStrided(ceed, num_elem, elem_size, block_size, num_comp, l_size, strides, rstr)
+    ccall((:CeedElemRestrictionCreateBlockedStrided, libceed), Cint, (Ceed, CeedInt, CeedInt, CeedInt, CeedInt, CeedSize, Ptr{CeedInt}, Ptr{CeedElemRestriction}), ceed, num_elem, elem_size, block_size, num_comp, l_size, strides, rstr)
 end
 
 function CeedElemRestrictionCreateUnsignedCopy(rstr, rstr_unsigned)
@@ -332,6 +336,10 @@ function CeedElemRestrictionApply(rstr, t_mode, u, ru, request)
     ccall((:CeedElemRestrictionApply, libceed), Cint, (CeedElemRestriction, CeedTransposeMode, CeedVector, CeedVector, Ptr{CeedRequest}), rstr, t_mode, u, ru, request)
 end
 
+function CeedElemRestrictionApplyAtPointsInElement(rstr, elem, t_mode, u, ru, request)
+    ccall((:CeedElemRestrictionApplyAtPointsInElement, libceed), Cint, (CeedElemRestriction, CeedInt, CeedTransposeMode, CeedVector, CeedVector, Ptr{CeedRequest}), rstr, elem, t_mode, u, ru, request)
+end
+
 function CeedElemRestrictionApplyBlock(rstr, block, t_mode, u, ru, request)
     ccall((:CeedElemRestrictionApplyBlock, libceed), Cint, (CeedElemRestriction, CeedInt, CeedTransposeMode, CeedVector, CeedVector, Ptr{CeedRequest}), rstr, block, t_mode, u, ru, request)
 end
@@ -352,6 +360,18 @@ function CeedElemRestrictionGetElementSize(rstr, elem_size)
     ccall((:CeedElemRestrictionGetElementSize, libceed), Cint, (CeedElemRestriction, Ptr{CeedInt}), rstr, elem_size)
 end
 
+function CeedElemRestrictionGetNumPoints(rstr, num_points)
+    ccall((:CeedElemRestrictionGetNumPoints, libceed), Cint, (CeedElemRestriction, Ptr{CeedInt}), rstr, num_points)
+end
+
+function CeedElemRestrictionGetNumPointsInElement(rstr, elem, num_points)
+    ccall((:CeedElemRestrictionGetNumPointsInElement, libceed), Cint, (CeedElemRestriction, CeedInt, Ptr{CeedInt}), rstr, elem, num_points)
+end
+
+function CeedElemRestrictionGetMaxPointsInElement(rstr, max_points)
+    ccall((:CeedElemRestrictionGetMaxPointsInElement, libceed), Cint, (CeedElemRestriction, Ptr{CeedInt}), rstr, max_points)
+end
+
 function CeedElemRestrictionGetLVectorSize(rstr, l_size)
     ccall((:CeedElemRestrictionGetLVectorSize, libceed), Cint, (CeedElemRestriction, Ptr{CeedSize}), rstr, l_size)
 end
@@ -360,12 +380,12 @@ function CeedElemRestrictionGetNumComponents(rstr, num_comp)
     ccall((:CeedElemRestrictionGetNumComponents, libceed), Cint, (CeedElemRestriction, Ptr{CeedInt}), rstr, num_comp)
 end
 
-function CeedElemRestrictionGetNumBlocks(rstr, num_blk)
-    ccall((:CeedElemRestrictionGetNumBlocks, libceed), Cint, (CeedElemRestriction, Ptr{CeedInt}), rstr, num_blk)
+function CeedElemRestrictionGetNumBlocks(rstr, num_block)
+    ccall((:CeedElemRestrictionGetNumBlocks, libceed), Cint, (CeedElemRestriction, Ptr{CeedInt}), rstr, num_block)
 end
 
-function CeedElemRestrictionGetBlockSize(rstr, blk_size)
-    ccall((:CeedElemRestrictionGetBlockSize, libceed), Cint, (CeedElemRestriction, Ptr{CeedInt}), rstr, blk_size)
+function CeedElemRestrictionGetBlockSize(rstr, block_size)
+    ccall((:CeedElemRestrictionGetBlockSize, libceed), Cint, (CeedElemRestriction, Ptr{CeedInt}), rstr, block_size)
 end
 
 function CeedElemRestrictionGetMultiplicity(rstr, mult)
@@ -614,8 +634,8 @@ function CeedQFunctionContextGetAllFieldLabels(ctx, field_labels, num_fields)
     ccall((:CeedQFunctionContextGetAllFieldLabels, libceed), Cint, (CeedQFunctionContext, Ptr{Ptr{CeedContextFieldLabel}}, Ptr{CeedInt}), ctx, field_labels, num_fields)
 end
 
-function CeedContextFieldLabelGetDescription(label, field_name, field_description, num_values, field_type)
-    ccall((:CeedContextFieldLabelGetDescription, libceed), Cint, (CeedContextFieldLabel, Ptr{Ptr{Cchar}}, Ptr{Ptr{Cchar}}, Ptr{Csize_t}, Ptr{CeedContextFieldType}), label, field_name, field_description, num_values, field_type)
+function CeedContextFieldLabelGetDescription(label, field_name, field_offset, num_values, field_description, field_type)
+    ccall((:CeedContextFieldLabelGetDescription, libceed), Cint, (CeedContextFieldLabel, Ptr{Ptr{Cchar}}, Ptr{Csize_t}, Ptr{Csize_t}, Ptr{Ptr{Cchar}}, Ptr{CeedContextFieldType}), label, field_name, field_offset, num_values, field_description, field_type)
 end
 
 function CeedQFunctionContextGetContextSize(ctx, ctx_size)
@@ -704,6 +724,10 @@ end
 
 function CeedOperatorLinearAssembleAddPointBlockDiagonal(op, assembled, request)
     ccall((:CeedOperatorLinearAssembleAddPointBlockDiagonal, libceed), Cint, (CeedOperator, CeedVector, Ptr{CeedRequest}), op, assembled, request)
+end
+
+function CeedOperatorLinearAssemblePointBlockDiagonalSymbolic(op, num_entries, rows, cols)
+    ccall((:CeedOperatorLinearAssemblePointBlockDiagonalSymbolic, libceed), Cint, (CeedOperator, Ptr{CeedSize}, Ptr{Ptr{CeedInt}}, Ptr{Ptr{CeedInt}}), op, num_entries, rows, cols)
 end
 
 function CeedOperatorLinearAssembleSymbolic(op, num_entries, rows, cols)
@@ -929,8 +953,8 @@ function CeedSetObjectDelegate(ceed, delegate, obj_name)
     ccall((:CeedSetObjectDelegate, libceed), Cint, (Ceed, Ceed, Ptr{Cchar}), ceed, delegate, obj_name)
 end
 
-function CeedGetOperatorfallback_resource(ceed, resource)
-    ccall((:CeedGetOperatorfallback_resource, libceed), Cint, (Ceed, Ptr{Ptr{Cchar}}), ceed, resource)
+function CeedGetOperatorFallbackResource(ceed, resource)
+    ccall((:CeedGetOperatorFallbackResource, libceed), Cint, (Ceed, Ptr{Ptr{Cchar}}), ceed, resource)
 end
 
 function CeedGetOperatorFallbackCeed(ceed, fallback_ceed)
@@ -990,6 +1014,7 @@ end
     CEED_RESTRICTION_ORIENTED = 2
     CEED_RESTRICTION_CURL_ORIENTED = 3
     CEED_RESTRICTION_STRIDED = 4
+    CEED_RESTRICTION_POINTS = 5
 end
 
 function CeedElemRestrictionGetType(rstr, rstr_type)
@@ -998,6 +1023,10 @@ end
 
 function CeedElemRestrictionIsStrided(rstr, is_strided)
     ccall((:CeedElemRestrictionIsStrided, libceed), Cint, (CeedElemRestriction, Ptr{Bool}), rstr, is_strided)
+end
+
+function CeedElemRestrictionIsPoints(rstr, is_points)
+    ccall((:CeedElemRestrictionIsPoints, libceed), Cint, (CeedElemRestriction, Ptr{Bool}), rstr, is_points)
 end
 
 function CeedElemRestrictionGetStrides(rstr, strides)
@@ -1132,6 +1161,10 @@ end
 
 function CeedTensorContractReference(contract)
     ccall((:CeedTensorContractReference, libceed), Cint, (CeedTensorContract,), contract)
+end
+
+function CeedTensorContractReferenceCopy(tensor, tensor_copy)
+    ccall((:CeedTensorContractReferenceCopy, libceed), Cint, (CeedTensorContract, Ptr{CeedTensorContract}), tensor, tensor_copy)
 end
 
 function CeedTensorContractDestroy(contract)
@@ -1290,6 +1323,10 @@ function CeedQFunctionContextReference(ctx)
     ccall((:CeedQFunctionContextReference, libceed), Cint, (CeedQFunctionContext,), ctx)
 end
 
+function CeedOperatorCreateActivePointBlockRestriction(rstr, pointblock_rstr)
+    ccall((:CeedOperatorCreateActivePointBlockRestriction, libceed), Cint, (CeedElemRestriction, Ptr{CeedElemRestriction}), rstr, pointblock_rstr)
+end
+
 function CeedQFunctionAssemblyDataCreate(ceed, data)
     ccall((:CeedQFunctionAssemblyDataCreate, libceed), Cint, (Ceed, Ptr{CeedQFunctionAssemblyData}), ceed, data)
 end
@@ -1334,16 +1371,16 @@ function CeedOperatorAssemblyDataCreate(ceed, op, data)
     ccall((:CeedOperatorAssemblyDataCreate, libceed), Cint, (Ceed, CeedOperator, Ptr{CeedOperatorAssemblyData}), ceed, op, data)
 end
 
-function CeedOperatorAssemblyDataGetEvalModes(data, num_active_bases, num_eval_modes_in, eval_modes_in, eval_mode_offsets_in, num_eval_modes_out, eval_modes_out, eval_mode_offsets_out, num_output_components)
-    ccall((:CeedOperatorAssemblyDataGetEvalModes, libceed), Cint, (CeedOperatorAssemblyData, Ptr{CeedInt}, Ptr{Ptr{CeedInt}}, Ptr{Ptr{Ptr{CeedEvalMode}}}, Ptr{Ptr{Ptr{CeedSize}}}, Ptr{Ptr{CeedInt}}, Ptr{Ptr{Ptr{CeedEvalMode}}}, Ptr{Ptr{Ptr{CeedSize}}}, Ptr{CeedSize}), data, num_active_bases, num_eval_modes_in, eval_modes_in, eval_mode_offsets_in, num_eval_modes_out, eval_modes_out, eval_mode_offsets_out, num_output_components)
+function CeedOperatorAssemblyDataGetEvalModes(data, num_active_bases_in, num_eval_modes_in, eval_modes_in, eval_mode_offsets_in, num_active_bases_out, num_eval_modes_out, eval_modes_out, eval_mode_offsets_out, num_output_components)
+    ccall((:CeedOperatorAssemblyDataGetEvalModes, libceed), Cint, (CeedOperatorAssemblyData, Ptr{CeedInt}, Ptr{Ptr{CeedInt}}, Ptr{Ptr{Ptr{CeedEvalMode}}}, Ptr{Ptr{Ptr{CeedSize}}}, Ptr{CeedInt}, Ptr{Ptr{CeedInt}}, Ptr{Ptr{Ptr{CeedEvalMode}}}, Ptr{Ptr{Ptr{CeedSize}}}, Ptr{CeedSize}), data, num_active_bases_in, num_eval_modes_in, eval_modes_in, eval_mode_offsets_in, num_active_bases_out, num_eval_modes_out, eval_modes_out, eval_mode_offsets_out, num_output_components)
 end
 
-function CeedOperatorAssemblyDataGetBases(data, num_active_bases, active_bases, assembled_bases_in, assembled_bases_out)
-    ccall((:CeedOperatorAssemblyDataGetBases, libceed), Cint, (CeedOperatorAssemblyData, Ptr{CeedInt}, Ptr{Ptr{CeedBasis}}, Ptr{Ptr{Ptr{CeedScalar}}}, Ptr{Ptr{Ptr{CeedScalar}}}), data, num_active_bases, active_bases, assembled_bases_in, assembled_bases_out)
+function CeedOperatorAssemblyDataGetBases(data, num_active_bases_in, active_bases_in, assembled_bases_in, num_active_bases_out, active_bases_out, assembled_bases_out)
+    ccall((:CeedOperatorAssemblyDataGetBases, libceed), Cint, (CeedOperatorAssemblyData, Ptr{CeedInt}, Ptr{Ptr{CeedBasis}}, Ptr{Ptr{Ptr{CeedScalar}}}, Ptr{CeedInt}, Ptr{Ptr{CeedBasis}}, Ptr{Ptr{Ptr{CeedScalar}}}), data, num_active_bases_in, active_bases_in, assembled_bases_in, num_active_bases_out, active_bases_out, assembled_bases_out)
 end
 
-function CeedOperatorAssemblyDataGetElemRestrictions(data, num_active_elem_rstrs, active_elem_rstrs)
-    ccall((:CeedOperatorAssemblyDataGetElemRestrictions, libceed), Cint, (CeedOperatorAssemblyData, Ptr{CeedInt}, Ptr{Ptr{CeedElemRestriction}}), data, num_active_elem_rstrs, active_elem_rstrs)
+function CeedOperatorAssemblyDataGetElemRestrictions(data, num_active_elem_rstrs_in, active_elem_rstrs_in, num_active_elem_rstrs_out, active_elem_rstrs_out)
+    ccall((:CeedOperatorAssemblyDataGetElemRestrictions, libceed), Cint, (CeedOperatorAssemblyData, Ptr{CeedInt}, Ptr{Ptr{CeedElemRestriction}}, Ptr{CeedInt}, Ptr{Ptr{CeedElemRestriction}}), data, num_active_elem_rstrs_in, active_elem_rstrs_in, num_active_elem_rstrs_out, active_elem_rstrs_out)
 end
 
 function CeedOperatorAssemblyDataDestroy(data)
@@ -1358,8 +1395,16 @@ function CeedOperatorGetActiveBasis(op, active_basis)
     ccall((:CeedOperatorGetActiveBasis, libceed), Cint, (CeedOperator, Ptr{CeedBasis}), op, active_basis)
 end
 
+function CeedOperatorGetActiveBases(op, active_input_basis, active_output_basis)
+    ccall((:CeedOperatorGetActiveBases, libceed), Cint, (CeedOperator, Ptr{CeedBasis}, Ptr{CeedBasis}), op, active_input_basis, active_output_basis)
+end
+
 function CeedOperatorGetActiveElemRestriction(op, active_rstr)
     ccall((:CeedOperatorGetActiveElemRestriction, libceed), Cint, (CeedOperator, Ptr{CeedElemRestriction}), op, active_rstr)
+end
+
+function CeedOperatorGetActiveElemRestrictions(op, active_input_rstr, active_output_rstr)
+    ccall((:CeedOperatorGetActiveElemRestrictions, libceed), Cint, (CeedOperator, Ptr{CeedElemRestriction}, Ptr{CeedElemRestriction}), op, active_input_rstr, active_output_rstr)
 end
 
 function CeedOperatorGetNumArgs(op, num_args)
@@ -1388,6 +1433,18 @@ end
 
 function CeedOperatorReference(op)
     ccall((:CeedOperatorReference, libceed), Cint, (CeedOperator,), op)
+end
+
+function CeedOperatorGetFallback(op, op_fallback)
+    ccall((:CeedOperatorGetFallback, libceed), Cint, (CeedOperator, Ptr{CeedOperator}), op, op_fallback)
+end
+
+function CeedOperatorGetFallbackParent(op, parent)
+    ccall((:CeedOperatorGetFallbackParent, libceed), Cint, (CeedOperator, Ptr{CeedOperator}), op, parent)
+end
+
+function CeedOperatorGetFallbackParentCeed(op, parent)
+    ccall((:CeedOperatorGetFallbackParentCeed, libceed), Cint, (CeedOperator, Ptr{Ceed}), op, parent)
 end
 
 function CeedOperatorSetSetupDone(op)
@@ -1428,11 +1485,11 @@ const CeedInt8_FMT = "d"
 
 const CEED_VERSION_MAJOR = 0
 
-const CEED_VERSION_MINOR = 11
+const CEED_VERSION_MINOR = 12
 
 const CEED_VERSION_PATCH = 0
 
-const CEED_VERSION_RELEASE = false
+const CEED_VERSION_RELEASE = true
 
 # Skipping MacroDefinition: CEED_INTERN extern CEED_VISIBILITY ( hidden )
 
