@@ -5,6 +5,9 @@
 #include <petsc.h>
 
 #include "structs.h"
+#if ((PETSC_VERSION_MAJOR < 4) && (PETSC_VERSION_MINOR < 20))
+#define DMSetCoordinateDisc(a, b, c) DMProjectCoordinates(a, b)
+#endif
 
 CeedMemType      MemTypeP2C(PetscMemType mtype);
 PetscErrorCode   Kershaw(DM dm_orig, PetscScalar eps);
