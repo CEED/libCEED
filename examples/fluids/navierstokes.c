@@ -64,6 +64,7 @@ int main(int argc, char **argv) {
   // Initialize PETSc
   // ---------------------------------------------------------------------------
   PetscCall(PetscInitialize(&argc, &argv, NULL, help));
+ PetscCall(PetscPrintf(PETSC_COMM_WORLD, "After Initialize navierstokes.c : \n" ));
 
   // ---------------------------------------------------------------------------
   // Create structs
@@ -106,6 +107,7 @@ int main(int argc, char **argv) {
   MPI_Comm comm = PETSC_COMM_WORLD;
   user->comm    = comm;
   PetscCall(ProcessCommandLineOptions(comm, app_ctx, bc));
+  PetscCall(PetscPrintf(PETSC_COMM_WORLD, "After Command Line Options navierstokes.c : \n" ));
 
   // ---------------------------------------------------------------------------
   // Initialize libCEED
@@ -140,6 +142,7 @@ int main(int argc, char **argv) {
   DM      dm;
   VecType vec_type = NULL;
   MatType mat_type = NULL;
+  PetscCall(PetscPrintf(PETSC_COMM_WORLD, "Before CeedGetResource navierstokes.c : \n"));
   switch (mem_type_backend) {
     case CEED_MEM_HOST:
       vec_type = VECSTANDARD;
@@ -153,11 +156,13 @@ int main(int argc, char **argv) {
       else vec_type = VECSTANDARD;
     }
   }
+  PetscCall(PetscPrintf(PETSC_COMM_WORLD, "After CeedGetResource navierstokes.c : \n"));
   if (strstr(vec_type, VECCUDA)) mat_type = MATAIJCUSPARSE;
   else if (strstr(vec_type, VECKOKKOS)) mat_type = MATAIJKOKKOS;
   else mat_type = MATAIJ;
   PetscCall(CreateDM(comm, problem, mat_type, vec_type, &dm));
   user->dm = dm;
+  PetscCall(PetscPrintf(PETSC_COMM_WORLD, "After CreateDMnavierstokes.c : \n"));
   PetscCall(DMSetApplicationContext(dm, user));
 
   // ---------------------------------------------------------------------------
@@ -171,7 +176,10 @@ int main(int argc, char **argv) {
   }
 
   // -- Set up DM
-  PetscCall(SetUpDM(dm, problem, app_ctx->degree, app_ctx->q_extra, bc, phys_ctx));
+  PetscCall(PetscPrintf(PETSC_COMM_WORLD, "Before setupDM navierstokes.c : \n"));
+  PetscCall(SetUpDM(&dm, problem, app_ctx->degree, app_ctx->q_extra, bc, phys_ctx));
+  PetscCall(PetscPrintf(PETSC_COMM_WORLD, "After setupDM navierstokes.c : \n"));
+  user->dm = dm;
 
   // -- Refine DM for high-order viz
   if (app_ctx->viz_refine) PetscCall(VizRefineDM(dm, user, problem, bc, phys_ctx));
@@ -193,6 +201,7 @@ int main(int argc, char **argv) {
   // Set up libCEED
   // ---------------------------------------------------------------------------
   // -- Set up libCEED objects
+  PetscCall(PetscPrintf(PETSC_COMM_WORLD, "Before setuplibCEED navierstokes.c : \n"));
   PetscCall(SetupLibceed(ceed, ceed_data, dm, user, app_ctx, problem, bc));
 
   // ---------------------------------------------------------------------------
@@ -225,6 +234,44 @@ int main(int argc, char **argv) {
   // Gather initial Q values in case of continuation of simulation
   // ---------------------------------------------------------------------------
   // -- Set up initial values from binary file
+  {
+    //  Restore a NL vector if requested (same flag used in Distribute)
+    char vecName[PETSC_MAX_PATH_LEN] = "";
+    PetscOptionsBegin(PetscObjectComm((PetscObject)dm), NULL, "Option Named Vector", NULL);
+    PetscCall(
+        PetscOptionsString("-named_local_vector_migrate", "Name of NamedLocalVector to migrate", NULL, vecName, vecName, sizeof(vecName), NULL));
+    PetscOptionsEnd();
+
+    PetscBool has_NL_vector, has_NL_vectord;
+    Vec       IC_loc;
+
+    char vecNamed[PETSC_MAX_PATH_LEN] = "";
+    PetscStrcpy(vecNamed, vecName);
+    PetscStrlcat(vecNamed, "d", PETSC_MAX_PATH_LEN);
+    PetscCall(DMHasNamedLocalVector(dm, vecNamed, &has_NL_vectord));
+    if (has_NL_vectord) PetscStrcpy(vecName, vecNamed);  // distributed correction is the vector we should use
+
+
+    PetscCall(PetscPrintf(PETSC_COMM_WORLD, "Named local vector IC reached conditional for Q vector navierstokes.c : %s\n", vecName));
+    PetscCall(DMHasNamedLocalVector(dm, vecName, &has_NL_vector));
+    if (has_NL_vector) {
+      PetscCall(PetscPrintf(PETSC_COMM_WORLD, "Named local vector IC reached load to Q vector navierstokes.c : %s\n", vecName));
+
+      char vecNamed[PETSC_MAX_PATH_LEN] = "";
+      PetscStrcpy(vecNamed, vecName);
+      PetscStrlcat(vecNamed, "d", PETSC_MAX_PATH_LEN);
+      PetscCall(DMHasNamedLocalVector(dm, vecNamed, &has_NL_vectord));
+      if (has_NL_vectord) PetscStrcpy(vecName, vecNamed); // distributed correction is the vector we should use
+      PetscCall(DMGetNamedLocalVector(dm, vecName, &IC_loc));
+      PetscCall(VecCopy(IC_loc, user->Q_loc));
+//      PetscCall(VecViewFromOptions(user->Q_loc, NULL, "-Q_locICview"));
+      PetscCall(DMLocalToGlobal(dm, user->Q_loc, INSERT_VALUES, Q));
+      PetscCall(DMRestoreNamedLocalVector(dm, vecName, &IC_loc));
+      PetscCall(VecViewFromOptions(Q, NULL, "-testICview"));
+    } else {
+      PetscCall(PetscPrintf(PETSC_COMM_WORLD, "No Named local vector found navierstokes.c : %s\n", vecName));
+    }
+  }
   if (app_ctx->cont_steps) {
     PetscCall(SetupICsFromBinary(comm, app_ctx, Q));
   }
@@ -240,6 +287,14 @@ int main(int argc, char **argv) {
   // ---------------------------------------------------------------------------
   TS          ts;
   PetscScalar final_time;
+  PetscScalar timeCGNSread;
+  PetscInt stepNumCGNSread;
+  PetscCall(DMGetOutputSequenceNumber(dm, &stepNumCGNSread, &timeCGNSread));
+  if(stepNumCGNSread >= 0) {
+    app_ctx->cont_time = timeCGNSread;
+    app_ctx->cont_steps = stepNumCGNSread;
+  }
+  PetscCall(PetscPrintf(PETSC_COMM_WORLD, "Before TSSolve navierstokes.c : \n"));
   PetscCall(TSSolve_NS(dm, user, app_ctx, phys_ctx, &Q, &final_time, &ts));
 
   // ---------------------------------------------------------------------------
