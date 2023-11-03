@@ -31,5 +31,4 @@
 #define DMSetCoordinateDisc(a, b, c) DMProjectCoordinates(a, b)
 #endif
 
-
 #endif  // libceed_solids_examples_setup_h
