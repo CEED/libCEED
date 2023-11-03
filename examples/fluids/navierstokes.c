@@ -228,6 +228,17 @@ int main(int argc, char **argv) {
   // Gather initial Q values in case of continuation of simulation
   // ---------------------------------------------------------------------------
   // -- Set up initial values from binary file
+  {
+    PetscBool has_IC_vector;
+    Vec IC_loc;
+    PetscCall(DMHasNamedLocalVector(dm, "CGNS_IC_pVelT", &has_IC_vector));
+    if (has_IC_vector) {
+      PetscCall(DMGetNamedLocalVector(dm, "CGNS_IC_pVelT", &IC_loc));
+      PetscCall(VecCopy(IC_loc, user->Q_loc));
+      PetscCall(DMLocalToGlobal(dm, user->Q_loc, INSERT_VALUES, Q));
+      PetscCall(DMRestoreNamedLocalVector(dm, "CGNS_IC_pVelT", &IC_loc));
+    }
+  }
   if (app_ctx->cont_steps) {
     PetscCall(SetupICsFromBinary(comm, app_ctx, Q));
   }
