@@ -41,8 +41,6 @@ PetscErrorCode CreateDM(MPI_Comm comm, ProblemData *problem, MatType mat_type, V
 // Setup DM
 PetscErrorCode SetUpDM(DM dm, ProblemData *problem, PetscInt degree, PetscInt q_extra, SimpleBC bc, Physics phys) {
   PetscInt num_comp_q = 5;
-  Vec       IC_loc;
-  PetscBool has_IC_vector;
   PetscFunctionBeginUser;
 
   PetscBool has_IC_vector;
@@ -54,7 +52,6 @@ PetscErrorCode SetUpDM(DM dm, ProblemData *problem, PetscInt degree, PetscInt q_
     PetscCall(DMGlobalToLocal(dm, IC_pVelTg, INSERT_VALUES, IC_pVelT));
     PetscCall(DMRestoreNamedGlobalVector(dm, "CGNS_IC_pVelTg", &IC_pVelTg));
     PetscCall(DMRestoreNamedLocalVector(dm, "CGNS_IC_pVelT", &IC_pVelT));
-
     PetscCall(DMClearFields(dm));
     PetscCall(DMSetLocalSection(dm, NULL));
     PetscCall(DMSetSectionSF(dm, NULL));
@@ -117,7 +114,6 @@ PetscErrorCode SetUpDM(DM dm, ProblemData *problem, PetscInt degree, PetscInt q_
       PetscCall(PetscSectionSetComponentName(section, 0, 4, "Temperature"));
       break;
   }
-
   PetscFunctionReturn(PETSC_SUCCESS);
 }
 
