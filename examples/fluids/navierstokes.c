@@ -237,6 +237,7 @@ int main(int argc, char **argv) {
       PetscCall(VecCopy(IC_loc, user->Q_loc));
       PetscCall(DMLocalToGlobal(dm, user->Q_loc, INSERT_VALUES, Q));
       PetscCall(DMRestoreNamedLocalVector(dm, "CGNS_IC_pVelT", &IC_loc));
+      PetscCall(VecViewFromOptions(Q, NULL, "-testICview"));
     }
   }
   if (app_ctx->cont_steps) {
