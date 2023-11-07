@@ -59,6 +59,18 @@ PetscErrorCode SetUpDM(DM dm, ProblemData *problem, PetscInt degree, PetscInt q_
 
   PetscCall(DMSetupByOrderBegin_FEM(PETSC_TRUE, PETSC_TRUE, degree, 1, q_extra, 1, &num_comp_q, dm));
 
+  PetscBool has_IC_vector;
+  PetscCall(DMHasNamedGlobalVector(dm, "CGNS_IC_pVelTg", &has_IC_vector));
+  if(has_IC_vector) {
+    Vec          IC_pVelTg, IC_pVelT;
+    PetscCall(DMGetNamedGlobalVector(dm, "CGNS_IC_pVelTg", &IC_pVelTg));
+    PetscCall(DMGetNamedLocalVector(dm, "CGNS_IC_pVelT", &IC_pVelT));
+    PetscCall(DMGlobalToLocal(dm, IC_pVelTg, INSERT_VALUES, IC_pVelT));
+//    PetscCall(DMSetGlobalSection(dm, NULL));
+    PetscCall(DMSetLocalSection(dm, NULL));
+    PetscCall(DMRestoreNamedLocalVector(dm, "CGNS_IC_pVelT", &IC_pVelT));
+  } 
+
   {  // Add strong boundary conditions to DM
     DMLabel label;
     PetscCall(DMGetLabel(dm, "Face Sets", &label));
@@ -88,6 +100,8 @@ PetscErrorCode SetUpDM(DM dm, ProblemData *problem, PetscInt degree, PetscInt q_
       if (use_strongstg) PetscCall(SetupStrongStg(dm, bc, problem, phys));
     }
   }
+
+
 
   PetscCall(DMSetupByOrderEnd_FEM(PETSC_TRUE, dm));
 
