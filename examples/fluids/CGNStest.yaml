@@ -1,0 +1,57 @@
+problem: 'blasius'
+
+implicit: true
+ts:
+  adapt_type: 'none'
+  type: 'beuler'
+  dt: 2e-6
+  max_time: 1.0e-3
+  #monitor_solution: cgns:blasius-%d.cgns
+  #monitor_solution_interval: 10
+checkpoint_interval: 10
+
+## Linear Settings:
+degree: 1
+
+stab: 'supg'
+Ctau_t: 1
+#Ctau_v: 36,60,128 is what PHASTA has for p=1,2, 3
+## linear Settings:
+Ctau_v: 36
+Ctau_C: 1
+Ctau_M: 1
+Ctau_E: 1
+
+q_extra: 0
+
+
+#mesh_transform: platemesh
+# Faces labeled 1=z- 2=z+ 3=y- 4=y+ 5=x+ 6=x-
+# 1/5 of domain dm_plex_box_faces: 78,190,141
+#dm_plex_box_faces: 2,2,2
+#dm_plex:
+#   dim: 3
+#   box:
+#     lower: -3.1,0,0
+#     upper: -3.01234, 2.4, .442
+#     #1/5 of domain     upper: -2.48, 2.4, .452
+#     sfc: # space-filling curve; needed for periodicity
+#     bd: none,none,periodic
+#dm_plex_shape: zbox
+
+bc_wall: 3
+wall_comps: 1,2,3
+bc_inflow: 6
+bc_outflow: 5,4
+gravity: 0,0,0
+
+stg:
+  use: true
+  inflow_path: "./STGInflow_blasius.dat"
+  mean_only: true
+
+# ts_monitor_turbulence_spanstats:
+#   collect_interval: 1
+#   viewer_interval: 5
+#   viewer: cgns:stats-%d.cgns
+#   viewer_cgns_batch_size: 1
