@@ -41,8 +41,6 @@ PetscErrorCode CreateDM(MPI_Comm comm, ProblemData *problem, MatType mat_type, V
 // Setup DM
 PetscErrorCode SetUpDM(DM dm, ProblemData *problem, PetscInt degree, PetscInt q_extra, SimpleBC bc, Physics phys) {
   PetscInt num_comp_q = 5;
-  Vec       IC_loc;
-  PetscBool has_IC_vector;
   PetscFunctionBeginUser;
 
 if(0==1) {
@@ -128,6 +126,7 @@ if(1==1) {
       PetscCall(PetscSectionSetComponentName(section, 0, 4, "Temperature"));
       break;
   }
+<<<<<<< HEAD
 
 if(0==1)
   {  // Put IC back into DM
@@ -137,6 +136,8 @@ if(0==1)
     PetscCall(DMRestoreNamedGlobalVector(dm, "CGNS_IC_pVelTg", &IC));
     PetscCall(VecDestroy(&IC_loc));
   }
+=======
+>>>>>>> cleanup from  merge
   PetscFunctionReturn(PETSC_SUCCESS);
 }
 
