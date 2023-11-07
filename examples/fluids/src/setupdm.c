@@ -45,40 +45,22 @@ PetscErrorCode SetUpDM(DM dm, ProblemData *problem, PetscInt degree, PetscInt q_
   PetscBool has_IC_vector;
   PetscFunctionBeginUser;
 
-if(0==1) {
-  // Get CGNS_IC_pVelTg into a local vector that is independent of dm
-  PetscCall(DMHasNamedGlobalVector(dm, "CGNS_IC_pVelTg", &has_IC_vector));
-  if (has_IC_vector) {
-    Vec IC_temp;
-    PetscCall(DMGetNamedGlobalVector(dm, "CGNS_IC_pVelTg", &IC_temp));
-    PetscCall(DMCreateLocalVector(dm, &IC_loc));
-    PetscCall(DMGlobalToLocal(dm, IC_temp, INSERT_VALUES, IC_loc));
-    PetscCall(DMRestoreNamedGlobalVector(dm, "CGNS_IC_pVelTg", &IC_temp));
-  }
-  // Clear out the sections and named vector so that the next steps (hopefully) occur similar to normal
-  PetscCall(DMClearNamedGlobalVectors(dm));
-  PetscCall(DMSetLocalSection(dm, NULL));
-  PetscCall(DMSetGlobalSection(dm, NULL));
-}
-
-  PetscCall(DMClearFields(dm));
-  PetscCall(DMSetupByOrderBegin_FEM(PETSC_TRUE, PETSC_TRUE, degree, 1, q_extra, 1, &num_comp_q, dm));
-
-
-if(1==1) {
   PetscBool has_IC_vector;
   PetscCall(DMHasNamedGlobalVector(dm, "CGNS_IC_pVelTg", &has_IC_vector));
-  if(has_IC_vector) {
-    Vec          IC_pVelTg, IC_pVelT;
+  if (has_IC_vector) {
+    Vec IC_pVelTg, IC_pVelT;
     PetscCall(DMGetNamedGlobalVector(dm, "CGNS_IC_pVelTg", &IC_pVelTg));
     PetscCall(DMGetNamedLocalVector(dm, "CGNS_IC_pVelT", &IC_pVelT));
     PetscCall(DMGlobalToLocal(dm, IC_pVelTg, INSERT_VALUES, IC_pVelT));
-//    PetscCall(DMSetGlobalSection(dm, NULL));
-    PetscCall(DMSetLocalSection(dm, NULL));
+    PetscCall(DMRestoreNamedGlobalVector(dm, "CGNS_IC_pVelTg", &IC_pVelTg));
     PetscCall(DMRestoreNamedLocalVector(dm, "CGNS_IC_pVelT", &IC_pVelT));
-  } 
-}
 
+    PetscCall(DMClearFields(dm));
+    PetscCall(DMSetLocalSection(dm, NULL));
+    PetscCall(DMSetSectionSF(dm, NULL));
+  }
+
+  PetscCall(DMSetupByOrderBegin_FEM(PETSC_TRUE, PETSC_TRUE, degree, 1, q_extra, 1, &num_comp_q, dm));
 
   {  // Add strong boundary conditions to DM
     DMLabel label;
@@ -136,14 +118,6 @@ if(1==1) {
       break;
   }
 
-if(0==1)
-  {  // Put IC back into DM
-    Vec IC;
-    PetscCall(DMGetNamedGlobalVector(dm, "CGNS_IC_pVelTg", &IC));
-    PetscCall(DMLocalToGlobal(dm, IC_loc, INSERT_VALUES, IC));
-    PetscCall(DMRestoreNamedGlobalVector(dm, "CGNS_IC_pVelTg", &IC));
-    PetscCall(VecDestroy(&IC_loc));
-  }
   PetscFunctionReturn(PETSC_SUCCESS);
 }
 
