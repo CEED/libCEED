@@ -41,8 +41,6 @@ PetscErrorCode CreateDM(MPI_Comm comm, ProblemData *problem, MatType mat_type, V
 // Setup DM
 PetscErrorCode SetUpDM(DM dm, ProblemData *problem, PetscInt degree, PetscInt q_extra, SimpleBC bc, Physics phys) {
   PetscInt num_comp_q = 5;
-  Vec       IC_loc;
-  PetscBool has_IC_vector;
   PetscFunctionBeginUser;
 
   //  Restore a NL vector if requested (same flag used in Distribute)
@@ -115,15 +113,6 @@ PetscErrorCode SetUpDM(DM dm, ProblemData *problem, PetscInt degree, PetscInt q_
       PetscCall(PetscSectionSetComponentName(section, 0, 3, "VelocityZ"));
       PetscCall(PetscSectionSetComponentName(section, 0, 4, "Temperature"));
       break;
-  }
-
-if(0==1)
-  {  // Put IC back into DM
-    Vec IC;
-    PetscCall(DMGetNamedGlobalVector(dm, "CGNS_IC_pVelTg", &IC));
-    PetscCall(DMLocalToGlobal(dm, IC_loc, INSERT_VALUES, IC));
-    PetscCall(DMRestoreNamedGlobalVector(dm, "CGNS_IC_pVelTg", &IC));
-    PetscCall(VecDestroy(&IC_loc));
   }
   PetscFunctionReturn(PETSC_SUCCESS);
 }
