@@ -63,7 +63,7 @@ log_view:
 log_view_gpu_time:
 
 #state_var: primitive
-ts_monitor_solution: cgns:flow-%d.cgns # %d activates batch mode, default 20 output frames per batch
+ts_monitor_solution: cgns:flowCGNSIn-%d.cgns # %d activates batch mode, default 20 output frames per batch
 ts_monitor_solution_interval: 50  # one file per 50 time steps
 viewer_cgns_batch_size: 10 # (optional) change number of frames per batch
 # ts_monitor_turbulence_spanstats:
