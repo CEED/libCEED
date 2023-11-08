@@ -186,6 +186,33 @@ extern "C" __global__ void OrientedTranspose(const CeedInt num_elem, const CeedI
   }
 }
 
+extern "C" __global__ void OrientedTransposeDet(const CeedInt *__restrict__ l_vec_indices, const CeedInt *__restrict__ t_indices,
+                                                const CeedInt *__restrict__ t_offsets, const bool *__restrict__ orients,
+                                                const CeedScalar *__restrict__ u, CeedScalar *__restrict__ v) {
+  CeedScalar value[RSTR_NUM_COMP];
+
+  for (CeedInt i = blockIdx.x * blockDim.x + threadIdx.x; i < RSTR_NUM_NODES; i += blockDim.x * gridDim.x) {
+    const CeedInt ind     = l_vec_indices[i];
+    const CeedInt range_1 = t_offsets[i];
+    const CeedInt range_N = t_offsets[i + 1];
+
+    for (CeedInt comp = 0; comp < RSTR_NUM_COMP; comp++) value[comp] = 0.0;
+
+    for (CeedInt j = range_1; j < range_N; j++) {
+      const CeedInt t_ind    = t_indices[j];
+      const bool    orient   = orients[t_ind];
+      const CeedInt loc_node = t_ind % RSTR_ELEM_SIZE;
+      const CeedInt elem     = t_ind / RSTR_ELEM_SIZE;
+
+      for (CeedInt comp = 0; comp < RSTR_NUM_COMP; comp++) {
+        value[comp] += u[loc_node + comp * RSTR_ELEM_SIZE * RSTR_NUM_ELEM + elem * RSTR_ELEM_SIZE] * (orient ? -1.0 : 1.0);
+      }
+    }
+
+    for (CeedInt comp = 0; comp < RSTR_NUM_COMP; comp++) v[ind + comp * RSTR_COMP_STRIDE] += value[comp];
+  }
+}
+
 //------------------------------------------------------------------------------
 // E-vector -> L-vector, curl-oriented
 //------------------------------------------------------------------------------
@@ -193,9 +220,9 @@ extern "C" __global__ void CurlOrientedTranspose(const CeedInt num_elem, const C
                                                  const CeedInt8 *__restrict__ curl_orients, const CeedScalar *__restrict__ u,
                                                  CeedScalar *__restrict__ v) {
   for (CeedInt node = blockIdx.x * blockDim.x + threadIdx.x; node < num_elem * RSTR_ELEM_SIZE; node += blockDim.x * gridDim.x) {
+    const CeedInt  ind            = indices[node];
     const CeedInt  loc_node       = node % RSTR_ELEM_SIZE;
     const CeedInt  elem           = node / RSTR_ELEM_SIZE;
-    const CeedInt  ind            = indices[node];
     const CeedInt8 curl_orient_du = loc_node > 0 ? curl_orients[3 * node - 1] : 0.0;
     const CeedInt8 curl_orient_d  = curl_orients[3 * node + 1];
     const CeedInt8 curl_orient_dl = loc_node < (RSTR_ELEM_SIZE - 1) ? curl_orients[3 * node + 3] : 0.0;
@@ -208,6 +235,38 @@ extern "C" __global__ void CurlOrientedTranspose(const CeedInt num_elem, const C
           loc_node < (RSTR_ELEM_SIZE - 1) ? u[loc_node + 1 + comp * RSTR_ELEM_SIZE * RSTR_NUM_ELEM + elem * RSTR_ELEM_SIZE] * curl_orient_dl : 0.0;
       atomicAdd(v + ind + comp * RSTR_COMP_STRIDE, value);
     }
+  }
+}
+
+extern "C" __global__ void CurlOrientedTransposeDet(const CeedInt *__restrict__ l_vec_indices, const CeedInt *__restrict__ t_indices,
+                                                    const CeedInt *__restrict__ t_offsets, const CeedInt8 *__restrict__ curl_orients,
+                                                    const CeedScalar *__restrict__ u, CeedScalar *__restrict__ v) {
+  CeedScalar value[RSTR_NUM_COMP];
+
+  for (CeedInt i = blockIdx.x * blockDim.x + threadIdx.x; i < RSTR_NUM_NODES; i += blockDim.x * gridDim.x) {
+    const CeedInt ind     = l_vec_indices[i];
+    const CeedInt range_1 = t_offsets[i];
+    const CeedInt range_N = t_offsets[i + 1];
+
+    for (CeedInt comp = 0; comp < RSTR_NUM_COMP; comp++) value[comp] = 0.0;
+
+    for (CeedInt j = range_1; j < range_N; j++) {
+      const CeedInt  t_ind          = t_indices[j];
+      const CeedInt  loc_node       = t_ind % RSTR_ELEM_SIZE;
+      const CeedInt  elem           = t_ind / RSTR_ELEM_SIZE;
+      const CeedInt8 curl_orient_du = loc_node > 0 ? curl_orients[3 * t_ind - 1] : 0.0;
+      const CeedInt8 curl_orient_d  = curl_orients[3 * t_ind + 1];
+      const CeedInt8 curl_orient_dl = loc_node < (RSTR_ELEM_SIZE - 1) ? curl_orients[3 * t_ind + 3] : 0.0;
+
+      for (CeedInt comp = 0; comp < RSTR_NUM_COMP; comp++) {
+        value[comp] += loc_node > 0 ? u[loc_node - 1 + comp * RSTR_ELEM_SIZE * RSTR_NUM_ELEM + elem * RSTR_ELEM_SIZE] * curl_orient_du : 0.0;
+        value[comp] += u[loc_node + comp * RSTR_ELEM_SIZE * RSTR_NUM_ELEM + elem * RSTR_ELEM_SIZE] * curl_orient_d;
+        value[comp] +=
+            loc_node < (RSTR_ELEM_SIZE - 1) ? u[loc_node + 1 + comp * RSTR_ELEM_SIZE * RSTR_NUM_ELEM + elem * RSTR_ELEM_SIZE] * curl_orient_dl : 0.0;
+      }
+    }
+
+    for (CeedInt comp = 0; comp < RSTR_NUM_COMP; comp++) v[ind + comp * RSTR_COMP_STRIDE] += value[comp];
   }
 }
 
@@ -233,6 +292,38 @@ extern "C" __global__ void CurlOrientedUnsignedTranspose(const CeedInt num_elem,
           loc_node < (RSTR_ELEM_SIZE - 1) ? u[loc_node + 1 + comp * RSTR_ELEM_SIZE * RSTR_NUM_ELEM + elem * RSTR_ELEM_SIZE] * curl_orient_dl : 0.0;
       atomicAdd(v + ind + comp * RSTR_COMP_STRIDE, value);
     }
+  }
+}
+
+extern "C" __global__ void CurlOrientedUnsignedTransposeDet(const CeedInt *__restrict__ l_vec_indices, const CeedInt *__restrict__ t_indices,
+                                                            const CeedInt *__restrict__ t_offsets, const CeedInt8 *__restrict__ curl_orients,
+                                                            const CeedScalar *__restrict__ u, CeedScalar *__restrict__ v) {
+  CeedScalar value[RSTR_NUM_COMP];
+
+  for (CeedInt i = blockIdx.x * blockDim.x + threadIdx.x; i < RSTR_NUM_NODES; i += blockDim.x * gridDim.x) {
+    const CeedInt ind     = l_vec_indices[i];
+    const CeedInt range_1 = t_offsets[i];
+    const CeedInt range_N = t_offsets[i + 1];
+
+    for (CeedInt comp = 0; comp < RSTR_NUM_COMP; comp++) value[comp] = 0.0;
+
+    for (CeedInt j = range_1; j < range_N; j++) {
+      const CeedInt  t_ind          = t_indices[j];
+      const CeedInt  loc_node       = t_ind % RSTR_ELEM_SIZE;
+      const CeedInt  elem           = t_ind / RSTR_ELEM_SIZE;
+      const CeedInt8 curl_orient_du = loc_node > 0 ? abs(curl_orients[3 * t_ind - 1]) : 0.0;
+      const CeedInt8 curl_orient_d  = abs(curl_orients[3 * t_ind + 1]);
+      const CeedInt8 curl_orient_dl = loc_node < (RSTR_ELEM_SIZE - 1) ? abs(curl_orients[3 * t_ind + 3]) : 0.0;
+
+      for (CeedInt comp = 0; comp < RSTR_NUM_COMP; comp++) {
+        value[comp] += loc_node > 0 ? u[loc_node - 1 + comp * RSTR_ELEM_SIZE * RSTR_NUM_ELEM + elem * RSTR_ELEM_SIZE] * curl_orient_du : 0.0;
+        value[comp] += u[loc_node + comp * RSTR_ELEM_SIZE * RSTR_NUM_ELEM + elem * RSTR_ELEM_SIZE] * curl_orient_d;
+        value[comp] +=
+            loc_node < (RSTR_ELEM_SIZE - 1) ? u[loc_node + 1 + comp * RSTR_ELEM_SIZE * RSTR_NUM_ELEM + elem * RSTR_ELEM_SIZE] * curl_orient_dl : 0.0;
+      }
+    }
+
+    for (CeedInt comp = 0; comp < RSTR_NUM_COMP; comp++) v[ind + comp * RSTR_COMP_STRIDE] += value[comp];
   }
 }
 

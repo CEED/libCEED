@@ -32,10 +32,13 @@ typedef struct {
   CUfunction OffsetTransposeDet;
   CUfunction OrientedNoTranspose;
   CUfunction OrientedTranspose;
+  CUfunction OrientedTransposeDet;
   CUfunction CurlOrientedNoTranspose;
   CUfunction CurlOrientedTranspose;
+  CUfunction CurlOrientedTransposeDet;
   CUfunction CurlOrientedUnsignedNoTranspose;
   CUfunction CurlOrientedUnsignedTranspose;
+  CUfunction CurlOrientedUnsignedTransposeDet;
   CeedInt    num_nodes;
   CeedInt   *h_ind;
   CeedInt   *h_ind_allocated;

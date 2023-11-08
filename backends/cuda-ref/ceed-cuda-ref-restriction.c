@@ -131,10 +131,17 @@ static inline int CeedElemRestrictionApply_Cuda_Core(CeedElemRestriction rstr, C
       } break;
       case CEED_RESTRICTION_ORIENTED: {
         if (use_signs) {
-          kernel       = impl->OrientedTranspose;
-          void *args[] = {&num_elem, &impl->d_ind, &impl->d_orients, &d_u, &d_v};
+          if (impl->OrientedTranspose) {
+            kernel       = impl->OrientedTranspose;
+            void *args[] = {&num_elem, &impl->d_ind, &impl->d_orients, &d_u, &d_v};
 
-          CeedCallBackend(CeedRunKernel_Cuda(ceed, kernel, grid, block_size, args));
+            CeedCallBackend(CeedRunKernel_Cuda(ceed, kernel, grid, block_size, args));
+          } else {
+            kernel       = impl->OrientedTransposeDet;
+            void *args[] = {&impl->d_l_vec_indices, &impl->d_t_indices, &impl->d_t_offsets, &impl->d_orients, &d_u, &d_v};
+
+            CeedCallBackend(CeedRunKernel_Cuda(ceed, kernel, grid, block_size, args));
+          }
         } else {
           if (impl->OffsetTranspose) {
             kernel       = impl->OffsetTranspose;
@@ -151,15 +158,29 @@ static inline int CeedElemRestrictionApply_Cuda_Core(CeedElemRestriction rstr, C
       } break;
       case CEED_RESTRICTION_CURL_ORIENTED: {
         if (use_signs && use_orients) {
-          kernel       = impl->CurlOrientedTranspose;
-          void *args[] = {&num_elem, &impl->d_ind, &impl->d_curl_orients, &d_u, &d_v};
+          if (impl->CurlOrientedTranspose) {
+            kernel       = impl->CurlOrientedTranspose;
+            void *args[] = {&num_elem, &impl->d_ind, &impl->d_curl_orients, &d_u, &d_v};
 
-          CeedCallBackend(CeedRunKernel_Cuda(ceed, kernel, grid, block_size, args));
+            CeedCallBackend(CeedRunKernel_Cuda(ceed, kernel, grid, block_size, args));
+          } else {
+            kernel       = impl->CurlOrientedTransposeDet;
+            void *args[] = {&impl->d_l_vec_indices, &impl->d_t_indices, &impl->d_t_offsets, &impl->d_curl_orients, &d_u, &d_v};
+
+            CeedCallBackend(CeedRunKernel_Cuda(ceed, kernel, grid, block_size, args));
+          }
         } else if (use_orients) {
-          kernel       = impl->CurlOrientedUnsignedTranspose;
-          void *args[] = {&num_elem, &impl->d_ind, &impl->d_curl_orients, &d_u, &d_v};
+          if (impl->CurlOrientedUnsignedTranspose) {
+            kernel       = impl->CurlOrientedUnsignedTranspose;
+            void *args[] = {&num_elem, &impl->d_ind, &impl->d_curl_orients, &d_u, &d_v};
 
-          CeedCallBackend(CeedRunKernel_Cuda(ceed, kernel, grid, block_size, args));
+            CeedCallBackend(CeedRunKernel_Cuda(ceed, kernel, grid, block_size, args));
+          } else {
+            kernel       = impl->CurlOrientedUnsignedTransposeDet;
+            void *args[] = {&impl->d_l_vec_indices, &impl->d_t_indices, &impl->d_t_offsets, &impl->d_curl_orients, &d_u, &d_v};
+
+            CeedCallBackend(CeedRunKernel_Cuda(ceed, kernel, grid, block_size, args));
+          }
         } else {
           if (impl->OffsetTranspose) {
             kernel       = impl->OffsetTranspose;
@@ -566,17 +587,20 @@ int CeedElemRestrictionCreate_Cuda(CeedMemType mem_type, CeedCopyMode copy_mode,
   CeedCallBackend(CeedGetKernel_Cuda(ceed, impl->module, "StridedNoTranspose", &impl->StridedNoTranspose));
   CeedCallBackend(CeedGetKernel_Cuda(ceed, impl->module, "StridedTranspose", &impl->StridedTranspose));
   CeedCallBackend(CeedGetKernel_Cuda(ceed, impl->module, "OffsetNoTranspose", &impl->OffsetNoTranspose));
-  if (!is_deterministic) {
-    CeedCallBackend(CeedGetKernel_Cuda(ceed, impl->module, "OffsetTranspose", &impl->OffsetTranspose));
-  } else {
-    CeedCallBackend(CeedGetKernel_Cuda(ceed, impl->module, "OffsetTransposeDet", &impl->OffsetTransposeDet));
-  }
   CeedCallBackend(CeedGetKernel_Cuda(ceed, impl->module, "OrientedNoTranspose", &impl->OrientedNoTranspose));
-  CeedCallBackend(CeedGetKernel_Cuda(ceed, impl->module, "OrientedTranspose", &impl->OrientedTranspose));
   CeedCallBackend(CeedGetKernel_Cuda(ceed, impl->module, "CurlOrientedNoTranspose", &impl->CurlOrientedNoTranspose));
   CeedCallBackend(CeedGetKernel_Cuda(ceed, impl->module, "CurlOrientedUnsignedNoTranspose", &impl->CurlOrientedUnsignedNoTranspose));
-  CeedCallBackend(CeedGetKernel_Cuda(ceed, impl->module, "CurlOrientedTranspose", &impl->CurlOrientedTranspose));
-  CeedCallBackend(CeedGetKernel_Cuda(ceed, impl->module, "CurlOrientedUnsignedTranspose", &impl->CurlOrientedUnsignedTranspose));
+  if (!is_deterministic) {
+    CeedCallBackend(CeedGetKernel_Cuda(ceed, impl->module, "OffsetTranspose", &impl->OffsetTranspose));
+    CeedCallBackend(CeedGetKernel_Cuda(ceed, impl->module, "OrientedTranspose", &impl->OrientedTranspose));
+    CeedCallBackend(CeedGetKernel_Cuda(ceed, impl->module, "CurlOrientedTranspose", &impl->CurlOrientedTranspose));
+    CeedCallBackend(CeedGetKernel_Cuda(ceed, impl->module, "CurlOrientedUnsignedTranspose", &impl->CurlOrientedUnsignedTranspose));
+  } else {
+    CeedCallBackend(CeedGetKernel_Cuda(ceed, impl->module, "OffsetTransposeDet", &impl->OffsetTransposeDet));
+    CeedCallBackend(CeedGetKernel_Cuda(ceed, impl->module, "OrientedTransposeDet", &impl->OrientedTransposeDet));
+    CeedCallBackend(CeedGetKernel_Cuda(ceed, impl->module, "CurlOrientedTransposeDet", &impl->CurlOrientedTransposeDet));
+    CeedCallBackend(CeedGetKernel_Cuda(ceed, impl->module, "CurlOrientedUnsignedTransposeDet", &impl->CurlOrientedUnsignedTransposeDet));
+  }
   CeedCallBackend(CeedFree(&restriction_kernel_path));
   CeedCallBackend(CeedFree(&restriction_kernel_source));
 
