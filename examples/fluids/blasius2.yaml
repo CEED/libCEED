@@ -5,7 +5,7 @@ ts:
   adapt_type: 'none'
   type: 'beuler'
   dt: 2e-6
-  max_time: 0.0e-5
+  max_time: 1.0e-5
 checkpoint_interval: 10
 
 snes_max_it: 3
