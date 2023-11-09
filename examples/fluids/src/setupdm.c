@@ -50,13 +50,13 @@ PetscErrorCode SetUpDM(DM dm, ProblemData *problem, PetscInt degree, PetscInt q_
   PetscCall(DMHasNamedGlobalVector(dm, "CGNS_IC_pVelTgd", &has_IC_vectord));
   if (has_IC_vector || has_IC_vectord) {
     Vec IC_pVelTg, IC_pVelT;
-    PetscCall(DMGetNamedGlobalVector(dm, "CGNS_IC_pVelTg", &IC_pVelTg));
+    PetscCall(DMGetNamedGlobalVector(dm, "CGNS_IC_pVelTgd", &IC_pVelTg));
     PetscCall(DMGetNamedLocalVector(dm, "CGNS_IC_pVelTl", &IC_pVelT));
 //    PetscCall(VecViewFromOptions(IC_pVelTg, NULL, "-testICviewbBCg"));
 
     PetscCall(DMGlobalToLocal(dm, IC_pVelTg, INSERT_VALUES, IC_pVelT));
 //    PetscCall(VecViewFromOptions(IC_pVelT, NULL, "-testICviewbBC"));
-    PetscCall(DMRestoreNamedGlobalVector(dm, "CGNS_IC_pVelTg", &IC_pVelTg));
+    PetscCall(DMRestoreNamedGlobalVector(dm, "CGNS_IC_pVelTgd", &IC_pVelTg));
     PetscCall(DMRestoreNamedLocalVector(dm, "CGNS_IC_pVelTl", &IC_pVelT));
     PetscCall(DMClearFields(dm));
     PetscCall(DMSetLocalSection(dm, NULL));
