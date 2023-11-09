@@ -45,12 +45,17 @@ PetscErrorCode SetUpDM(DM dm, ProblemData *problem, PetscInt degree, PetscInt q_
 
 
   PetscBool has_IC_vector;
+  PetscBool has_IC_vectord;
   PetscCall(DMHasNamedGlobalVector(dm, "CGNS_IC_pVelTg", &has_IC_vector));
-  if (has_IC_vector) {
+  PetscCall(DMHasNamedGlobalVector(dm, "CGNS_IC_pVelTgd", &has_IC_vectord));
+  if (has_IC_vector || has_IC_vectord) {
     Vec IC_pVelTg, IC_pVelT;
     PetscCall(DMGetNamedGlobalVector(dm, "CGNS_IC_pVelTg", &IC_pVelTg));
     PetscCall(DMGetNamedLocalVector(dm, "CGNS_IC_pVelTl", &IC_pVelT));
+//    PetscCall(VecViewFromOptions(IC_pVelTg, NULL, "-testICviewbBCg"));
+
     PetscCall(DMGlobalToLocal(dm, IC_pVelTg, INSERT_VALUES, IC_pVelT));
+//    PetscCall(VecViewFromOptions(IC_pVelT, NULL, "-testICviewbBC"));
     PetscCall(DMRestoreNamedGlobalVector(dm, "CGNS_IC_pVelTg", &IC_pVelTg));
     PetscCall(DMRestoreNamedLocalVector(dm, "CGNS_IC_pVelTl", &IC_pVelT));
     PetscCall(DMClearFields(dm));
