@@ -258,17 +258,6 @@ int main(int argc, char **argv) {
         PetscCall(DMRestoreNamedLocalVector(dm, vecName, &IC_loc));
       PetscCall(VecViewFromOptions(Q, NULL, "-testICview"));
     }
-}
-  
-if(0==1) { // runs but scrambled IC
-    PetscCall(DMHasNamedGlobalVector(dm, "CGNS_IC_pVelTg2", &has_IC_vector));
-    if (has_IC_vector) {
-      PetscCall(DMGetNamedGlobalVector(dm, "CGNS_IC_pVelTg2", &IC_loc));
-      PetscCall(VecCopy(IC_loc, Q));
-      PetscCall(DMRestoreNamedGlobalVector(dm, "CGNS_IC_pVelTg2", &IC_loc));
-      PetscCall(VecViewFromOptions(Q, NULL, "-testICview"));
-    }
-  }
   }
   if (app_ctx->cont_steps) {
     PetscCall(SetupICsFromBinary(comm, app_ctx, Q));
