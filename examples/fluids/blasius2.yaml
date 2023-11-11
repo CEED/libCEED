@@ -5,7 +5,7 @@ ts:
   adapt_type: 'none'
   type: 'beuler'
   dt: 2e-6
-  max_time: 1.0e-5
+  max_time: 10.0e-6
 checkpoint_interval: 10
 
 snes_max_it: 3
@@ -15,9 +15,9 @@ ksp_rtol: 5e-2
 
 ## Linear Settings:
 degree: 1
-dm_plex_box_faces: 40,60,2
-mesh_transform: platemesh
-platemesh_nDelta: 45
+dm_plex_box_faces: 2,2,2
+#mesh_transform: platemesh
+#platemesh_nDelta: 45
 
 # # Quadratic Settings:
 # degree: 2
