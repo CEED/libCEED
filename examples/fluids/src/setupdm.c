@@ -44,10 +44,6 @@ PetscErrorCode SetUpDM(DM dm, ProblemData *problem, PetscInt degree, PetscInt q_
   PetscFunctionBeginUser;
 
 
-  PetscCall(DMClearFields(dm));
-  PetscCall(DMSetupByOrderBegin_FEM(PETSC_TRUE, PETSC_TRUE, degree, 1, q_extra, 1, &num_comp_q, dm));
-
-
 if(1==1) {
     PetscCall(DMClearFields(dm));
     PetscCall(DMSetLocalSection(dm, NULL));
