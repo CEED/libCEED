@@ -89,20 +89,6 @@ PetscErrorCode SetUpDM(DM dm, ProblemData *problem, PetscInt degree, PetscInt q_
     }
   }
 
-if(0==1) {
-Vec IC_locTest,IC_pVelTg2;
-PetscCall(DMHasNamedLocalVector(dm, "CGNS_IC_pVelT", &has_IC_vector));
-if (has_IC_vector) {
-  PetscCall(DMGetNamedLocalVector(dm, "CGNS_IC_pVelT", &IC_locTest));
-  PetscCall(DMGetNamedGlobalVector(dm, "CGNS_IC_pVelTg2",&IC_pVelTg2));
-  PetscCall(DMLocalToGlobal(dm, IC_locTest, INSERT_VALUES, IC_pVelTg2));
-  PetscCall(DMRestoreNamedLocalVector(dm, "CGNS_IC_pVelT", &IC_locTest));
-  PetscCall(VecViewFromOptions(IC_pVelTg2, NULL, "-testICparview"));
-  PetscCall(DMRestoreNamedGlobalVector(dm, "CGNS_IC_pVelTg2", &IC_pVelTg2));
-}
-}
-
-
   PetscCall(DMSetupByOrderEnd_FEM(PETSC_TRUE, dm));
 
   // Empty name for conserved field (because there is only one field)
