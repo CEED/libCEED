@@ -231,12 +231,12 @@ int main(int argc, char **argv) {
   {
     PetscBool has_IC_vector;
     Vec IC_loc;
-    PetscCall(DMHasNamedLocalVector(dm, "CGNS_IC_pVelTl", &has_IC_vector));
+    PetscCall(DMHasNamedLocalVector(dm, "CGNS_IC_pVelTld", &has_IC_vector));
     if (has_IC_vector) {
-      PetscCall(DMGetNamedLocalVector(dm, "CGNS_IC_pVelTl", &IC_loc));
+      PetscCall(DMGetNamedLocalVector(dm, "CGNS_IC_pVelTld", &IC_loc));
       PetscCall(VecCopy(IC_loc, user->Q_loc));
       PetscCall(DMLocalToGlobal(dm, user->Q_loc, INSERT_VALUES, Q));
-      PetscCall(DMRestoreNamedLocalVector(dm, "CGNS_IC_pVelTl", &IC_loc));
+      PetscCall(DMRestoreNamedLocalVector(dm, "CGNS_IC_pVelTld", &IC_loc));
       PetscCall(VecViewFromOptions(Q, NULL, "-testICview"));
     }
   }

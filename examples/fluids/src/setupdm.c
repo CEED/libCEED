@@ -43,21 +43,6 @@ PetscErrorCode SetUpDM(DM dm, ProblemData *problem, PetscInt degree, PetscInt q_
   PetscInt num_comp_q = 5;
   PetscFunctionBeginUser;
 
-if(0==1) {
-  // Get CGNS_IC_pVelTg into a local vector that is independent of dm
-  PetscCall(DMHasNamedGlobalVector(dm, "CGNS_IC_pVelTg", &has_IC_vector));
-  if (has_IC_vector) {
-    Vec IC_temp;
-    PetscCall(DMGetNamedGlobalVector(dm, "CGNS_IC_pVelTg", &IC_temp));
-    PetscCall(DMCreateLocalVector(dm, &IC_loc));
-    PetscCall(DMGlobalToLocal(dm, IC_temp, INSERT_VALUES, IC_loc));
-    PetscCall(DMRestoreNamedGlobalVector(dm, "CGNS_IC_pVelTg", &IC_temp));
-  }
-  // Clear out the sections and named vector so that the next steps (hopefully) occur similar to normal
-  PetscCall(DMClearNamedGlobalVectors(dm));
-  PetscCall(DMSetLocalSection(dm, NULL));
-  PetscCall(DMSetGlobalSection(dm, NULL));
-}
 
   PetscCall(DMClearFields(dm));
   PetscCall(DMSetupByOrderBegin_FEM(PETSC_TRUE, PETSC_TRUE, degree, 1, q_extra, 1, &num_comp_q, dm));
@@ -100,20 +85,6 @@ if(1==1) {
       if (use_strongstg) PetscCall(SetupStrongStg(dm, bc, problem, phys));
     }
   }
-
-if(0==1) {
-Vec IC_locTest,IC_pVelTg2;
-PetscCall(DMHasNamedLocalVector(dm, "CGNS_IC_pVelT", &has_IC_vector));
-if (has_IC_vector) {
-  PetscCall(DMGetNamedLocalVector(dm, "CGNS_IC_pVelT", &IC_locTest));
-  PetscCall(DMGetNamedGlobalVector(dm, "CGNS_IC_pVelTg2",&IC_pVelTg2));
-  PetscCall(DMLocalToGlobal(dm, IC_locTest, INSERT_VALUES, IC_pVelTg2));
-  PetscCall(DMRestoreNamedLocalVector(dm, "CGNS_IC_pVelT", &IC_locTest));
-  PetscCall(VecViewFromOptions(IC_pVelTg2, NULL, "-testICparview"));
-  PetscCall(DMRestoreNamedGlobalVector(dm, "CGNS_IC_pVelTg2", &IC_pVelTg2));
-}
-}
-
 
   PetscCall(DMSetupByOrderEnd_FEM(PETSC_TRUE, dm));
 
