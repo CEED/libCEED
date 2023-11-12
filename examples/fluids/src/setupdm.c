@@ -43,9 +43,15 @@ PetscErrorCode SetUpDM(DM dm, ProblemData *problem, PetscInt degree, PetscInt q_
   PetscInt num_comp_q = 5;
   PetscFunctionBeginUser;
 
-  PetscBool has_IC_vector;
-  PetscCall(DMHasNamedLocalVector(dm, "CGNS_IC_pVelT", &has_IC_vector));
-  if (has_IC_vector) {
+  //  Restore a NL vector if requested (same flag used in Distribute)
+  char vecName[PETSC_MAX_PATH_LEN] = "";
+  PetscOptionsBegin(PetscObjectComm((PetscObject)dm), NULL, "Option Named Vector", NULL);
+  PetscCall(PetscOptionsString("-named_local_vector_migrate", "Name of NamedLocalVector to migrate", NULL, vecName, vecName, sizeof(vecName), NULL));
+  PetscOptionsEnd();
+ 
+  PetscBool has_NL_vector;
+  PetscCall(DMHasNamedLocalVector(dm, vecName, &has_NL_vector));
+  if(has_NL_vector) {
     PetscCall(DMClearFields(dm));
     PetscCall(DMSetLocalSection(dm, NULL));
     PetscCall(DMSetSectionSF(dm, NULL));

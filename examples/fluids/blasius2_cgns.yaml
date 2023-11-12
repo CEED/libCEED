@@ -43,7 +43,7 @@ Ctau_E: 1
 #dm_plex_shape: zbox
 
 # Faces labeled 1=z- 2=z+ 3=y- 4=y+ 5=x+ 6=x-
-bc_slip_z: 1,2
+#bc_slip_z: 1,2
 bc_wall: 3
 wall_comps: 1,2,3
 bc_inflow: 6
