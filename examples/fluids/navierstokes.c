@@ -52,7 +52,6 @@ const char help[] = "Solve Navier-Stokes using PETSc and libCEED\n";
 #include <ceed.h>
 #include <petscdmplex.h>
 #include <petscts.h>
-#include <string.h>
 
 int main(int argc, char **argv) {
   // ---------------------------------------------------------------------------
@@ -242,8 +241,8 @@ int main(int argc, char **argv) {
     if(has_NL_vector) {
       char ch = 'd'; 
       char vecNamed[PETSC_MAX_PATH_LEN] = "";
-      strcpy(vecNamed, vecName);
-      strncat(vecNamed, &ch, 1);
+      PetscStrcpy(vecNamed, vecName);
+      PetscStrlcat(vecNamed, &ch, PETSC_MAX_PATH_LEN);
       PetscCall(DMHasNamedLocalVector(dm, vecNamed, &has_NL_vectord));
       if (has_NL_vectord) 
         PetscCall(DMGetNamedLocalVector(dm, vecNamed, &IC_loc));
