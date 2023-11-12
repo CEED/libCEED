@@ -43,20 +43,9 @@ PetscErrorCode SetUpDM(DM dm, ProblemData *problem, PetscInt degree, PetscInt q_
   PetscInt num_comp_q = 5;
   PetscFunctionBeginUser;
 
-  PetscBool has_IC_vector, has_IC_vectord;
-  PetscCall(DMHasNamedLocalVector(dm, "CGNS_IC_pVelTld", &has_IC_vectord));
-  PetscCall(DMHasNamedGlobalVector(dm, "CGNS_IC_pVelTg", &has_IC_vector));
-  if (has_IC_vector && !has_IC_vectord) {  // serial case did not convert/distribute_local
-    Vec IC_pVelTg, IC_pVelT;
-    PetscCall(DMGetNamedGlobalVector(dm, "CGNS_IC_pVelTg", &IC_pVelTg));
-    PetscCall(DMGetNamedLocalVector(dm, "CGNS_IC_pVelTld", &IC_pVelT));
-//    PetscCall(VecViewFromOptions(IC_pVelTg, NULL, "-testICviewbBCg"));
-    PetscCall(DMGlobalToLocal(dm, IC_pVelTg, INSERT_VALUES, IC_pVelT));
-//    PetscCall(VecViewFromOptions(IC_pVelT, NULL, "-testICviewbBC"));
-    PetscCall(DMRestoreNamedGlobalVector(dm, "CGNS_IC_pVelTg", &IC_pVelTg));
-    PetscCall(DMRestoreNamedLocalVector(dm, "CGNS_IC_pVelTld", &IC_pVelT));
-  }
-  if (has_IC_vector || has_IC_vectord) {
+  PetscBool has_IC_vector;
+  PetscCall(DMHasNamedLocalVector(dm, "CGNS_IC_pVelT", &has_IC_vector));
+  if (has_IC_vector) {
     PetscCall(DMClearFields(dm));
     PetscCall(DMSetLocalSection(dm, NULL));
     PetscCall(DMSetSectionSF(dm, NULL));
