@@ -229,14 +229,21 @@ int main(int argc, char **argv) {
   // ---------------------------------------------------------------------------
   // -- Set up initial values from binary file
   {
-    PetscBool has_IC_vector;
+    PetscBool has_IC_vector, has_IC_vectord;
     Vec IC_loc;
-    PetscCall(DMHasNamedLocalVector(dm, "CGNS_IC_pVelTld", &has_IC_vector));
+    PetscCall(DMHasNamedLocalVector(dm, "CGNS_IC_pVelT", &has_IC_vector));
     if (has_IC_vector) {
-      PetscCall(DMGetNamedLocalVector(dm, "CGNS_IC_pVelTld", &IC_loc));
+      PetscCall(DMHasNamedLocalVector(dm, "CGNS_IC_pVelTd", &has_IC_vectord));
+      if (has_IC_vectord) 
+        PetscCall(DMGetNamedLocalVector(dm, "CGNS_IC_pVelTd", &IC_loc));
+      else
+        PetscCall(DMGetNamedLocalVector(dm, "CGNS_IC_pVelT", &IC_loc));
       PetscCall(VecCopy(IC_loc, user->Q_loc));
       PetscCall(DMLocalToGlobal(dm, user->Q_loc, INSERT_VALUES, Q));
-      PetscCall(DMRestoreNamedLocalVector(dm, "CGNS_IC_pVelTld", &IC_loc));
+      if (has_IC_vectord) 
+        PetscCall(DMRestoreNamedLocalVector(dm, "CGNS_IC_pVelTd", &IC_loc));
+      else
+        PetscCall(DMRestoreNamedLocalVector(dm, "CGNS_IC_pVelT", &IC_loc));
       PetscCall(VecViewFromOptions(Q, NULL, "-testICview"));
     }
   }
