@@ -5,7 +5,7 @@
 #include <petsc.h>
 
 #include "structs.h"
-#if ((PETSC_VERSION_MAJOR < 4) && (PETSC_VERSION_MINOR < 20))
+#if PETSC_VERSION_LT(3, 21, 0)
 #define DMSetCoordinateDisc(a, b, c) DMProjectCoordinates(a, b)
 #endif
 
