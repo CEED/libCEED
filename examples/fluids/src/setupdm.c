@@ -43,8 +43,9 @@ PetscErrorCode SetUpDM(DM dm, ProblemData *problem, PetscInt degree, PetscInt q_
   PetscInt num_comp_q = 5;
   PetscFunctionBeginUser;
 
-
-if(1==1) {
+  PetscBool has_IC_vector;
+  PetscCall(DMHasNamedLocalVector(dm, "CGNS_IC_pVelT", &has_IC_vector));
+  if (has_IC_vector) {
     PetscCall(DMClearFields(dm));
     PetscCall(DMSetLocalSection(dm, NULL));
     PetscCall(DMSetSectionSF(dm, NULL));
@@ -105,18 +106,6 @@ if(1==1) {
       PetscCall(PetscSectionSetComponentName(section, 0, 4, "Temperature"));
       break;
   }
-<<<<<<< HEAD
-
-if(0==1)
-  {  // Put IC back into DM
-    Vec IC;
-    PetscCall(DMGetNamedGlobalVector(dm, "CGNS_IC_pVelTg", &IC));
-    PetscCall(DMLocalToGlobal(dm, IC_loc, INSERT_VALUES, IC));
-    PetscCall(DMRestoreNamedGlobalVector(dm, "CGNS_IC_pVelTg", &IC));
-    PetscCall(VecDestroy(&IC_loc));
-  }
-=======
->>>>>>> cleanup from  merge
   PetscFunctionReturn(PETSC_SUCCESS);
 }
 
