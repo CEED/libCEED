@@ -1497,6 +1497,56 @@ int CeedOperatorRestoreContextInt32Read(CeedOperator op, CeedContextFieldLabel f
 }
 
 /**
+  @brief Set QFunctionContext field holding boolean values.
+
+  For composite operators, the values are set in all sub-operator QFunctionContexts that have a matching `field_name`.
+
+  @param[in,out] op          CeedOperator
+  @param[in]     field_label Label of field to set
+  @param[in]     values      Values to set
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref User
+**/
+int CeedOperatorSetContextBoolean(CeedOperator op, CeedContextFieldLabel field_label, bool *values) {
+  return CeedOperatorContextSetGeneric(op, field_label, CEED_CONTEXT_FIELD_BOOL, values);
+}
+
+/**
+  @brief Get QFunctionContext field holding boolean values, read-only.
+
+  For composite operators, the values correspond to the first sub-operator QFunctionContexts that has a matching `field_name`.
+
+  @param[in]  op          CeedOperator
+  @param[in]  field_label Label of field to get
+  @param[out] num_values  Number of int32 values in `values`
+  @param[out] values      Pointer to context values
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref User
+**/
+int CeedOperatorGetContextBooleanRead(CeedOperator op, CeedContextFieldLabel field_label, size_t *num_values, const bool **values) {
+  return CeedOperatorContextGetGenericRead(op, field_label, CEED_CONTEXT_FIELD_BOOL, num_values, values);
+}
+
+/**
+  @brief Restore QFunctionContext field holding boolean values, read-only.
+
+  @param[in]  op          CeedOperator
+  @param[in]  field_label Label of field to get
+  @param[out] values      Pointer to context values
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref User
+**/
+int CeedOperatorRestoreContextBooleanRead(CeedOperator op, CeedContextFieldLabel field_label, const bool **values) {
+  return CeedOperatorContextRestoreGenericRead(op, field_label, CEED_CONTEXT_FIELD_BOOL, values);
+}
+
+/**
   @brief Apply CeedOperator to a vector
 
   This computes the action of the operator on the specified (active) input, yielding its (active) output.

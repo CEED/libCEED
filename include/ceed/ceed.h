@@ -381,6 +381,8 @@ CEED_EXTERN int CeedQFunctionContextRegisterDouble(CeedQFunctionContext ctx, con
                                                    const char *field_description);
 CEED_EXTERN int CeedQFunctionContextRegisterInt32(CeedQFunctionContext ctx, const char *field_name, size_t field_offset, size_t num_values,
                                                   const char *field_description);
+CEED_EXTERN int CeedQFunctionContextRegisterBoolean(CeedQFunctionContext ctx, const char *field_name, size_t field_offset, size_t num_values,
+                                                    const char *field_description);
 CEED_EXTERN int CeedQFunctionContextGetAllFieldLabels(CeedQFunctionContext ctx, const CeedContextFieldLabel **field_labels, CeedInt *num_fields);
 CEED_EXTERN int CeedContextFieldLabelGetDescription(CeedContextFieldLabel label, const char **field_name, size_t *field_offset, size_t *num_values,
                                                     const char **field_description, CeedContextFieldType *field_type);
@@ -437,6 +439,9 @@ CEED_EXTERN int CeedOperatorRestoreContextDoubleRead(CeedOperator op, CeedContex
 CEED_EXTERN int CeedOperatorSetContextInt32(CeedOperator op, CeedContextFieldLabel field_label, int *values);
 CEED_EXTERN int CeedOperatorGetContextInt32Read(CeedOperator op, CeedContextFieldLabel field_label, size_t *num_values, const int **values);
 CEED_EXTERN int CeedOperatorRestoreContextInt32Read(CeedOperator op, CeedContextFieldLabel field_label, const int **values);
+CEED_EXTERN int CeedOperatorSetContextBoolean(CeedOperator op, CeedContextFieldLabel field_label, bool *values);
+CEED_EXTERN int CeedOperatorGetContextBooleanRead(CeedOperator op, CeedContextFieldLabel field_label, size_t *num_values, const bool **values);
+CEED_EXTERN int CeedOperatorRestoreContextBooleanRead(CeedOperator op, CeedContextFieldLabel field_label, const bool **values);
 CEED_EXTERN int CeedOperatorApply(CeedOperator op, CeedVector in, CeedVector out, CeedRequest *request);
 CEED_EXTERN int CeedOperatorApplyAdd(CeedOperator op, CeedVector in, CeedVector out, CeedRequest *request);
 CEED_EXTERN int CeedOperatorDestroy(CeedOperator *op);
