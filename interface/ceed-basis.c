@@ -1472,17 +1472,22 @@ int CeedBasisApplyAtPoints(CeedBasis basis, CeedInt num_points, CeedTransposeMod
   CeedCall(CeedBasisGetNumComponents(basis, &num_comp));
   CeedCall(CeedBasisGetNumQuadratureComponents(basis, eval_mode, &num_q_comp));
   CeedCall(CeedBasisGetNumNodes(basis, &num_nodes));
-  CeedCall(CeedVectorGetLength(x_ref, &x_length));
   CeedCall(CeedVectorGetLength(v, &v_length));
-  CeedCall(CeedVectorGetLength(u, &u_length));
+  if (x_ref != CEED_VECTOR_NONE) CeedCall(CeedVectorGetLength(x_ref, &x_length));
+  if (u != CEED_VECTOR_NONE) CeedCall(CeedVectorGetLength(u, &u_length));
 
   // Check compatibility of topological and geometrical dimensions
-  CeedCheck((t_mode == CEED_TRANSPOSE && v_length % num_nodes == 0) || (t_mode == CEED_NOTRANSPOSE && u_length % num_nodes == 0), basis->ceed,
-            CEED_ERROR_DIMENSION, "Length of input/output vectors incompatible with basis dimensions and number of points");
+  CeedCheck((t_mode == CEED_TRANSPOSE && v_length % num_nodes == 0) || (t_mode == CEED_NOTRANSPOSE && u_length % num_nodes == 0) ||
+                (eval_mode == CEED_EVAL_WEIGHT),
+            basis->ceed, CEED_ERROR_DIMENSION, "Length of input/output vectors incompatible with basis dimensions and number of points");
 
   // Check compatibility coordinates vector
-  CeedCheck(x_length >= num_points * dim, basis->ceed, CEED_ERROR_DIMENSION,
+  CeedCheck((x_length >= num_points * dim) || (eval_mode == CEED_EVAL_WEIGHT), basis->ceed, CEED_ERROR_DIMENSION,
             "Length of reference coordinate vector incompatible with basis dimension and number of points");
+
+  // Check CEED_EVAL_WEIGHT only on CEED_NOTRANSPOSE
+  CeedCheck(eval_mode != CEED_EVAL_WEIGHT || t_mode == CEED_NOTRANSPOSE, basis->ceed, CEED_ERROR_UNSUPPORTED,
+            "CEED_EVAL_WEIGHT only supported with CEED_NOTRANSPOSE");
 
   // Check vector lengths to prevent out of bounds issues
   bool good_dims = false;
@@ -1495,8 +1500,10 @@ int CeedBasisApplyAtPoints(CeedBasis basis, CeedInt num_points, CeedTransposeMod
       good_dims = ((t_mode == CEED_TRANSPOSE && (u_length >= num_points * num_q_comp * dim || v_length >= num_nodes * num_comp)) ||
                    (t_mode == CEED_NOTRANSPOSE && (v_length >= num_points * num_q_comp * dim || u_length >= num_nodes * num_comp)));
       break;
-    case CEED_EVAL_NONE:
     case CEED_EVAL_WEIGHT:
+      good_dims = t_mode == CEED_NOTRANSPOSE && (v_length >= num_points);
+      break;
+    case CEED_EVAL_NONE:
     case CEED_EVAL_DIV:
     case CEED_EVAL_CURL:
       // LCOV_EXCL_START
@@ -1513,6 +1520,10 @@ int CeedBasisApplyAtPoints(CeedBasis basis, CeedInt num_points, CeedTransposeMod
 
   // Default implementation
   CeedCheck(basis->is_tensor_basis, basis->ceed, CEED_ERROR_UNSUPPORTED, "Evaluation at arbitrary points only supported for tensor product bases");
+  if (eval_mode == CEED_EVAL_WEIGHT) {
+    CeedCall(CeedVectorSetValue(v, 1.0));
+    return CEED_ERROR_SUCCESS;
+  }
   if (!basis->basis_chebyshev) {
     // Build matrix mapping from quadrature point values to Chebyshev coefficients
     CeedScalar       *tau, *C, *I, *chebyshev_coeffs_1d;
@@ -1642,7 +1653,7 @@ int CeedBasisApplyAtPoints(CeedBasis basis, CeedInt num_points, CeedTransposeMod
           break;
         }
         default:
-          // Nothing to do, this won't occur
+          // Nothing to do, excluded above
           break;
       }
       CeedCall(CeedVectorRestoreArrayRead(basis->vec_chebyshev, &chebyshev_coeffs));
