@@ -239,6 +239,9 @@ int main(int argc, char **argv) {
     Vec IC_loc;
     PetscCall(DMHasNamedLocalVector(dm, vecName, &has_NL_vector));
     if(has_NL_vector) {
+
+      PetscCall(PetscPrintf(PETSC_COMM_WORLD, "Named local vector IC reached load to Q vector navierstokes.c : %s\n", vecName));
+
       char ch = 'd'; 
       char vecNamed[PETSC_MAX_PATH_LEN] = "";
       PetscStrcpy(vecNamed, vecName);
