@@ -27,4 +27,8 @@
 #error "PETSc v3.20 or later is required"
 #endif
 
+#if PETSC_VERSION_LT(3, 21, 0)
+#define DMSetCoordinateDisc(a, b, c) DMProjectCoordinates(a, b)
+#endif
+
 #endif  // libceed_solids_examples_setup_h

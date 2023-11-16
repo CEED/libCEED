@@ -1,4 +1,4 @@
-name: ICC and IFort
+name: ICX and IFX
 
 on:
   push:
@@ -20,17 +20,19 @@ jobs:
 
     steps:
       - uses: actions/checkout@v3
-      - name: Clone Intel install scripts
-        run: |
-          git clone https://github.com/oneapi-src/oneapi-ci.git
       - name: Install Intel compilers
-        run: |
-          oneapi-ci/scripts/setup_apt_repo_linux.sh
-          oneapi-ci/scripts/apt_depends.sh $LINUX_CPP_COMPONENTS
-          oneapi-ci/scripts/install_linux_apt.sh $LINUX_CPP_COMPONENTS
-          oneapi-ci/scripts/apt_depends.sh $LINUX_FORTRAN_COMPONENTS
-          oneapi-ci/scripts/install_linux_apt.sh $LINUX_FORTRAN_COMPONENTS
+        uses: rscohn2/setup-oneapi@v0
+        with:
+          components: |
+            icx
+            ifx
       - name: Build and test libCEED
         run: |
-          ./.github/workflows/c-fortran-test-icc.sh
+          source /opt/intel/oneapi/setvars.sh
+          export CC=icx CXX=icx FC=ifx
+          export OPENMP=1
+          make -v
+          make info
+          make -j2
+          PROVE_OPTS=-v make prove -j2
 

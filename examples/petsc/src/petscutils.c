@@ -111,7 +111,7 @@ PetscErrorCode SetupDMByDegree(DM dm, PetscInt p_degree, PetscInt q_extra, Petsc
     PetscInt num_comp_coord;
     PetscCall(DMGetCoordinateDim(dm, &num_comp_coord));
     PetscCall(PetscFECreateLagrange(comm, dim, num_comp_coord, is_simplex, 1, q_degree, &fe_coords));
-    PetscCall(DMProjectCoordinates(dm, fe_coords));
+    PetscCall(DMSetCoordinateDisc(dm, fe_coords, PETSC_TRUE));
     PetscCall(PetscFEDestroy(&fe_coords));
   }
 

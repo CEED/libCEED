@@ -96,7 +96,7 @@ int main(int argc, char **argv) {
     // Create the mesh as a 0-refined sphere. This will create a cubic surface, not a box
     PetscCall(DMPlexCreateSphereMesh(PETSC_COMM_WORLD, topo_dim, simplex, 1., &dm));
     if (problem_choice == CUBE) {
-      PetscCall(DMPlexCreateCoordinateSpace(dm, 1, NULL));
+      PetscCall(DMPlexCreateCoordinateSpace(dm, 1, PETSC_TRUE, NULL));
     }
     // Set the object name
     PetscCall(PetscObjectSetName((PetscObject)dm, problem_types[problem_choice]));
