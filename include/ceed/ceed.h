@@ -436,9 +436,9 @@ CEED_EXTERN int CeedOperatorGetContextFieldLabel(CeedOperator op, const char *fi
 CEED_EXTERN int CeedOperatorSetContextDouble(CeedOperator op, CeedContextFieldLabel field_label, double *values);
 CEED_EXTERN int CeedOperatorGetContextDoubleRead(CeedOperator op, CeedContextFieldLabel field_label, size_t *num_values, const double **values);
 CEED_EXTERN int CeedOperatorRestoreContextDoubleRead(CeedOperator op, CeedContextFieldLabel field_label, const double **values);
-CEED_EXTERN int CeedOperatorSetContextInt32(CeedOperator op, CeedContextFieldLabel field_label, int *values);
-CEED_EXTERN int CeedOperatorGetContextInt32Read(CeedOperator op, CeedContextFieldLabel field_label, size_t *num_values, const int **values);
-CEED_EXTERN int CeedOperatorRestoreContextInt32Read(CeedOperator op, CeedContextFieldLabel field_label, const int **values);
+CEED_EXTERN int CeedOperatorSetContextInt32(CeedOperator op, CeedContextFieldLabel field_label, int32_t *values);
+CEED_EXTERN int CeedOperatorGetContextInt32Read(CeedOperator op, CeedContextFieldLabel field_label, size_t *num_values, const int32_t **values);
+CEED_EXTERN int CeedOperatorRestoreContextInt32Read(CeedOperator op, CeedContextFieldLabel field_label, const int32_t **values);
 CEED_EXTERN int CeedOperatorSetContextBoolean(CeedOperator op, CeedContextFieldLabel field_label, bool *values);
 CEED_EXTERN int CeedOperatorGetContextBooleanRead(CeedOperator op, CeedContextFieldLabel field_label, size_t *num_values, const bool **values);
 CEED_EXTERN int CeedOperatorRestoreContextBooleanRead(CeedOperator op, CeedContextFieldLabel field_label, const bool **values);

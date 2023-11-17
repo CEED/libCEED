@@ -48,7 +48,7 @@ int CeedQFunctionContextGetFieldIndex(CeedQFunctionContext ctx, const char *fiel
   @param[in]     field_name        Name of field to register
   @param[in]     field_offset      Offset of field to register
   @param[in]     field_description Description of field, or NULL for none
-  @param[in]     field_type        Field data type, such as double or int32
+  @param[in]     field_type        Field data type, such as double, int32, or bool
   @param[in]     num_values        Number of values to register, must be contiguous in memory
 
   @return An error code: 0 - success, otherwise - failure
@@ -407,7 +407,7 @@ int CeedQFunctionContextRestoreDoubleRead(CeedQFunctionContext ctx, CeedContextF
 
   @ref Backend
 **/
-int CeedQFunctionContextSetInt32(CeedQFunctionContext ctx, CeedContextFieldLabel field_label, int *values) {
+int CeedQFunctionContextSetInt32(CeedQFunctionContext ctx, CeedContextFieldLabel field_label, int32_t *values) {
   CeedCheck(field_label, ctx->ceed, CEED_ERROR_UNSUPPORTED, "Invalid field label");
   CeedCall(CeedQFunctionContextSetGeneric(ctx, field_label, CEED_CONTEXT_FIELD_INT32, values));
   return CEED_ERROR_SUCCESS;
@@ -425,7 +425,7 @@ int CeedQFunctionContextSetInt32(CeedQFunctionContext ctx, CeedContextFieldLabel
 
   @ref Backend
 **/
-int CeedQFunctionContextGetInt32Read(CeedQFunctionContext ctx, CeedContextFieldLabel field_label, size_t *num_values, const int **values) {
+int CeedQFunctionContextGetInt32Read(CeedQFunctionContext ctx, CeedContextFieldLabel field_label, size_t *num_values, const int32_t **values) {
   CeedCheck(field_label, ctx->ceed, CEED_ERROR_UNSUPPORTED, "Invalid field label");
   CeedCall(CeedQFunctionContextGetGenericRead(ctx, field_label, CEED_CONTEXT_FIELD_INT32, num_values, values));
   return CEED_ERROR_SUCCESS;
@@ -442,7 +442,7 @@ int CeedQFunctionContextGetInt32Read(CeedQFunctionContext ctx, CeedContextFieldL
 
   @ref Backend
 **/
-int CeedQFunctionContextRestoreInt32Read(CeedQFunctionContext ctx, CeedContextFieldLabel field_label, const int **values) {
+int CeedQFunctionContextRestoreInt32Read(CeedQFunctionContext ctx, CeedContextFieldLabel field_label, const int32_t **values) {
   CeedCheck(field_label, ctx->ceed, CEED_ERROR_UNSUPPORTED, "Invalid field label");
   CeedCall(CeedQFunctionContextRestoreGenericRead(ctx, field_label, CEED_CONTEXT_FIELD_INT32, values));
   return CEED_ERROR_SUCCESS;

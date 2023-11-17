@@ -1459,7 +1459,7 @@ int CeedOperatorRestoreContextDoubleRead(CeedOperator op, CeedContextFieldLabel 
 
   @ref User
 **/
-int CeedOperatorSetContextInt32(CeedOperator op, CeedContextFieldLabel field_label, int *values) {
+int CeedOperatorSetContextInt32(CeedOperator op, CeedContextFieldLabel field_label, int32_t *values) {
   return CeedOperatorContextSetGeneric(op, field_label, CEED_CONTEXT_FIELD_INT32, values);
 }
 
@@ -1477,7 +1477,7 @@ int CeedOperatorSetContextInt32(CeedOperator op, CeedContextFieldLabel field_lab
 
   @ref User
 **/
-int CeedOperatorGetContextInt32Read(CeedOperator op, CeedContextFieldLabel field_label, size_t *num_values, const int **values) {
+int CeedOperatorGetContextInt32Read(CeedOperator op, CeedContextFieldLabel field_label, size_t *num_values, const int32_t **values) {
   return CeedOperatorContextGetGenericRead(op, field_label, CEED_CONTEXT_FIELD_INT32, num_values, values);
 }
 
@@ -1492,7 +1492,7 @@ int CeedOperatorGetContextInt32Read(CeedOperator op, CeedContextFieldLabel field
 
   @ref User
 **/
-int CeedOperatorRestoreContextInt32Read(CeedOperator op, CeedContextFieldLabel field_label, const int **values) {
+int CeedOperatorRestoreContextInt32Read(CeedOperator op, CeedContextFieldLabel field_label, const int32_t **values) {
   return CeedOperatorContextRestoreGenericRead(op, field_label, CEED_CONTEXT_FIELD_INT32, values);
 }
 
