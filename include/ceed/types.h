@@ -246,6 +246,8 @@ typedef enum {
   CEED_CONTEXT_FIELD_DOUBLE = 1,
   /// 32 bit integer value
   CEED_CONTEXT_FIELD_INT32 = 2,
+  /// Boolean value
+  CEED_CONTEXT_FIELD_BOOL = 3,
 } CeedContextFieldType;
 
 #endif  // CEED_QFUNCTION_DEFS_H

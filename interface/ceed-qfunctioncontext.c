@@ -48,8 +48,7 @@ int CeedQFunctionContextGetFieldIndex(CeedQFunctionContext ctx, const char *fiel
   @param[in]     field_name        Name of field to register
   @param[in]     field_offset      Offset of field to register
   @param[in]     field_description Description of field, or NULL for none
-  @param[in]     field_type        Field data type, such as double or int32
-  @param[in]     field_size        Size of field, in bytes
+  @param[in]     field_type        Field data type, such as double, int32, or bool
   @param[in]     num_values        Number of values to register, must be contiguous in memory
 
   @return An error code: 0 - success, otherwise - failure
@@ -57,7 +56,8 @@ int CeedQFunctionContextGetFieldIndex(CeedQFunctionContext ctx, const char *fiel
   @ref Developer
 **/
 int CeedQFunctionContextRegisterGeneric(CeedQFunctionContext ctx, const char *field_name, size_t field_offset, const char *field_description,
-                                        CeedContextFieldType field_type, size_t field_size, size_t num_values) {
+                                        CeedContextFieldType field_type, size_t num_values) {
+  size_t  field_size  = 0;
   CeedInt field_index = -1;
 
   // Check for duplicate
@@ -73,6 +73,19 @@ int CeedQFunctionContextRegisterGeneric(CeedQFunctionContext ctx, const char *fi
     ctx->max_fields *= 2;
   }
   CeedCall(CeedCalloc(1, &ctx->field_labels[ctx->num_fields]));
+
+  // Compute field size
+  switch (field_type) {
+    case CEED_CONTEXT_FIELD_DOUBLE:
+      field_size = sizeof(double);
+      break;
+    case CEED_CONTEXT_FIELD_INT32:
+      field_size = sizeof(int);
+      break;
+    case CEED_CONTEXT_FIELD_BOOL:
+      field_size = sizeof(bool);
+      break;
+  }
 
   // Copy field data
   CeedCall(CeedStringAllocCopy(field_name, (char **)&ctx->field_labels[ctx->num_fields]->name));
@@ -301,6 +314,9 @@ int CeedQFunctionContextGetGenericRead(CeedQFunctionContext ctx, CeedContextFiel
     case CEED_CONTEXT_FIELD_DOUBLE:
       *num_values = field_label->size / sizeof(double);
       break;
+    case CEED_CONTEXT_FIELD_BOOL:
+      *num_values = field_label->size / sizeof(bool);
+      break;
   }
   return CEED_ERROR_SUCCESS;
 }
@@ -329,7 +345,7 @@ int CeedQFunctionContextRestoreGenericRead(CeedQFunctionContext ctx, CeedContext
 }
 
 /**
-  @brief Set QFunctionContext field holding a double precision value
+  @brief Set QFunctionContext field holding double precision values
 
   @param[in,out] ctx         CeedQFunctionContext
   @param[in]     field_label Label for field to set
@@ -346,7 +362,7 @@ int CeedQFunctionContextSetDouble(CeedQFunctionContext ctx, CeedContextFieldLabe
 }
 
 /**
-  @brief Get QFunctionContext field holding a double precision value, read-only
+  @brief Get QFunctionContext field holding double precision values, read-only
 
   @param[in]  ctx         CeedQFunctionContext
   @param[in]  field_label Label for field to get
@@ -364,7 +380,7 @@ int CeedQFunctionContextGetDoubleRead(CeedQFunctionContext ctx, CeedContextField
 }
 
 /**
-  @brief Restore QFunctionContext field holding a double precision value, read-only
+  @brief Restore QFunctionContext field holding double precision values, read-only
 
   @param[in]  ctx         CeedQFunctionContext
   @param[in]  field_label Label for field to restore
@@ -381,7 +397,7 @@ int CeedQFunctionContextRestoreDoubleRead(CeedQFunctionContext ctx, CeedContextF
 }
 
 /**
-  @brief Set QFunctionContext field holding an int32 value
+  @brief Set QFunctionContext field holding int32 values
 
   @param[in,out] ctx         CeedQFunctionContext
   @param[in]     field_label Label for field to set
@@ -391,14 +407,14 @@ int CeedQFunctionContextRestoreDoubleRead(CeedQFunctionContext ctx, CeedContextF
 
   @ref Backend
 **/
-int CeedQFunctionContextSetInt32(CeedQFunctionContext ctx, CeedContextFieldLabel field_label, int *values) {
+int CeedQFunctionContextSetInt32(CeedQFunctionContext ctx, CeedContextFieldLabel field_label, int32_t *values) {
   CeedCheck(field_label, ctx->ceed, CEED_ERROR_UNSUPPORTED, "Invalid field label");
   CeedCall(CeedQFunctionContextSetGeneric(ctx, field_label, CEED_CONTEXT_FIELD_INT32, values));
   return CEED_ERROR_SUCCESS;
 }
 
 /**
-  @brief Get QFunctionContext field holding a int32 value, read-only
+  @brief Get QFunctionContext field holding int32 values, read-only
 
   @param[in]  ctx         CeedQFunctionContext
   @param[in]  field_label Label for field to get
@@ -409,14 +425,14 @@ int CeedQFunctionContextSetInt32(CeedQFunctionContext ctx, CeedContextFieldLabel
 
   @ref Backend
 **/
-int CeedQFunctionContextGetInt32Read(CeedQFunctionContext ctx, CeedContextFieldLabel field_label, size_t *num_values, const int **values) {
+int CeedQFunctionContextGetInt32Read(CeedQFunctionContext ctx, CeedContextFieldLabel field_label, size_t *num_values, const int32_t **values) {
   CeedCheck(field_label, ctx->ceed, CEED_ERROR_UNSUPPORTED, "Invalid field label");
   CeedCall(CeedQFunctionContextGetGenericRead(ctx, field_label, CEED_CONTEXT_FIELD_INT32, num_values, values));
   return CEED_ERROR_SUCCESS;
 }
 
 /**
-  @brief Restore QFunctionContext field holding a int32 value, read-only
+  @brief Restore QFunctionContext field holding int32 values, read-only
 
   @param[in]  ctx         CeedQFunctionContext
   @param[in]  field_label Label for field to restore
@@ -426,9 +442,61 @@ int CeedQFunctionContextGetInt32Read(CeedQFunctionContext ctx, CeedContextFieldL
 
   @ref Backend
 **/
-int CeedQFunctionContextRestoreInt32Read(CeedQFunctionContext ctx, CeedContextFieldLabel field_label, const int **values) {
+int CeedQFunctionContextRestoreInt32Read(CeedQFunctionContext ctx, CeedContextFieldLabel field_label, const int32_t **values) {
   CeedCheck(field_label, ctx->ceed, CEED_ERROR_UNSUPPORTED, "Invalid field label");
   CeedCall(CeedQFunctionContextRestoreGenericRead(ctx, field_label, CEED_CONTEXT_FIELD_INT32, values));
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
+  @brief Set QFunctionContext field holding boolean values
+
+  @param[in,out] ctx         CeedQFunctionContext
+  @param[in]     field_label Label for field to set
+  @param[in]     values      Values to set
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Backend
+**/
+int CeedQFunctionContextSetBoolean(CeedQFunctionContext ctx, CeedContextFieldLabel field_label, bool *values) {
+  CeedCheck(field_label, ctx->ceed, CEED_ERROR_UNSUPPORTED, "Invalid field label");
+  CeedCall(CeedQFunctionContextSetGeneric(ctx, field_label, CEED_CONTEXT_FIELD_BOOL, values));
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
+  @brief Get QFunctionContext field holding boolean values, read-only
+
+  @param[in]  ctx         CeedQFunctionContext
+  @param[in]  field_label Label for field to get
+  @param[out] num_values  Number of values in the field label
+  @param[out] values      Pointer to context values
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Backend
+**/
+int CeedQFunctionContextGetBooleanRead(CeedQFunctionContext ctx, CeedContextFieldLabel field_label, size_t *num_values, const bool **values) {
+  CeedCheck(field_label, ctx->ceed, CEED_ERROR_UNSUPPORTED, "Invalid field label");
+  CeedCall(CeedQFunctionContextGetGenericRead(ctx, field_label, CEED_CONTEXT_FIELD_BOOL, num_values, values));
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
+  @brief Restore QFunctionContext field holding boolean values, read-only
+
+  @param[in]  ctx         CeedQFunctionContext
+  @param[in]  field_label Label for field to restore
+  @param[out] values      Pointer to context values
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Backend
+**/
+int CeedQFunctionContextRestoreBooleanRead(CeedQFunctionContext ctx, CeedContextFieldLabel field_label, const bool **values) {
+  CeedCheck(field_label, ctx->ceed, CEED_ERROR_UNSUPPORTED, "Invalid field label");
+  CeedCall(CeedQFunctionContextRestoreGenericRead(ctx, field_label, CEED_CONTEXT_FIELD_BOOL, values));
   return CEED_ERROR_SUCCESS;
 }
 
@@ -684,7 +752,7 @@ int CeedQFunctionContextRestoreDataRead(CeedQFunctionContext ctx, void *data) {
 }
 
 /**
-  @brief Register QFunctionContext a field holding a double precision value
+  @brief Register QFunctionContext a field holding double precision values
 
   @param[in,out] ctx               CeedQFunctionContext
   @param[in]     field_name        Name of field to register
@@ -698,11 +766,11 @@ int CeedQFunctionContextRestoreDataRead(CeedQFunctionContext ctx, void *data) {
 **/
 int CeedQFunctionContextRegisterDouble(CeedQFunctionContext ctx, const char *field_name, size_t field_offset, size_t num_values,
                                        const char *field_description) {
-  return CeedQFunctionContextRegisterGeneric(ctx, field_name, field_offset, field_description, CEED_CONTEXT_FIELD_DOUBLE, sizeof(double), num_values);
+  return CeedQFunctionContextRegisterGeneric(ctx, field_name, field_offset, field_description, CEED_CONTEXT_FIELD_DOUBLE, num_values);
 }
 
 /**
-  @brief Register QFunctionContext a field holding a int32 value
+  @brief Register QFunctionContext a field holding int32 values
 
   @param[in,out] ctx               CeedQFunctionContext
   @param[in]     field_name        Name of field to register
@@ -716,7 +784,25 @@ int CeedQFunctionContextRegisterDouble(CeedQFunctionContext ctx, const char *fie
 **/
 int CeedQFunctionContextRegisterInt32(CeedQFunctionContext ctx, const char *field_name, size_t field_offset, size_t num_values,
                                       const char *field_description) {
-  return CeedQFunctionContextRegisterGeneric(ctx, field_name, field_offset, field_description, CEED_CONTEXT_FIELD_INT32, sizeof(int), num_values);
+  return CeedQFunctionContextRegisterGeneric(ctx, field_name, field_offset, field_description, CEED_CONTEXT_FIELD_INT32, num_values);
+}
+
+/**
+  @brief Register QFunctionContext a field holding boolean values
+
+  @param[in,out] ctx               CeedQFunctionContext
+  @param[in]     field_name        Name of field to register
+  @param[in]     field_offset      Offset of field to register
+  @param[in]     num_values        Number of values to register, must be contiguous in memory
+  @param[in]     field_description Description of field, or NULL for none
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref User
+**/
+int CeedQFunctionContextRegisterBoolean(CeedQFunctionContext ctx, const char *field_name, size_t field_offset, size_t num_values,
+                                        const char *field_description) {
+  return CeedQFunctionContextRegisterGeneric(ctx, field_name, field_offset, field_description, CEED_CONTEXT_FIELD_BOOL, num_values);
 }
 
 /**

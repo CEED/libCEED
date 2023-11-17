@@ -1459,7 +1459,7 @@ int CeedOperatorRestoreContextDoubleRead(CeedOperator op, CeedContextFieldLabel 
 
   @ref User
 **/
-int CeedOperatorSetContextInt32(CeedOperator op, CeedContextFieldLabel field_label, int *values) {
+int CeedOperatorSetContextInt32(CeedOperator op, CeedContextFieldLabel field_label, int32_t *values) {
   return CeedOperatorContextSetGeneric(op, field_label, CEED_CONTEXT_FIELD_INT32, values);
 }
 
@@ -1477,7 +1477,7 @@ int CeedOperatorSetContextInt32(CeedOperator op, CeedContextFieldLabel field_lab
 
   @ref User
 **/
-int CeedOperatorGetContextInt32Read(CeedOperator op, CeedContextFieldLabel field_label, size_t *num_values, const int **values) {
+int CeedOperatorGetContextInt32Read(CeedOperator op, CeedContextFieldLabel field_label, size_t *num_values, const int32_t **values) {
   return CeedOperatorContextGetGenericRead(op, field_label, CEED_CONTEXT_FIELD_INT32, num_values, values);
 }
 
@@ -1492,8 +1492,58 @@ int CeedOperatorGetContextInt32Read(CeedOperator op, CeedContextFieldLabel field
 
   @ref User
 **/
-int CeedOperatorRestoreContextInt32Read(CeedOperator op, CeedContextFieldLabel field_label, const int **values) {
+int CeedOperatorRestoreContextInt32Read(CeedOperator op, CeedContextFieldLabel field_label, const int32_t **values) {
   return CeedOperatorContextRestoreGenericRead(op, field_label, CEED_CONTEXT_FIELD_INT32, values);
+}
+
+/**
+  @brief Set QFunctionContext field holding boolean values.
+
+  For composite operators, the values are set in all sub-operator QFunctionContexts that have a matching `field_name`.
+
+  @param[in,out] op          CeedOperator
+  @param[in]     field_label Label of field to set
+  @param[in]     values      Values to set
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref User
+**/
+int CeedOperatorSetContextBoolean(CeedOperator op, CeedContextFieldLabel field_label, bool *values) {
+  return CeedOperatorContextSetGeneric(op, field_label, CEED_CONTEXT_FIELD_BOOL, values);
+}
+
+/**
+  @brief Get QFunctionContext field holding boolean values, read-only.
+
+  For composite operators, the values correspond to the first sub-operator QFunctionContexts that has a matching `field_name`.
+
+  @param[in]  op          CeedOperator
+  @param[in]  field_label Label of field to get
+  @param[out] num_values  Number of int32 values in `values`
+  @param[out] values      Pointer to context values
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref User
+**/
+int CeedOperatorGetContextBooleanRead(CeedOperator op, CeedContextFieldLabel field_label, size_t *num_values, const bool **values) {
+  return CeedOperatorContextGetGenericRead(op, field_label, CEED_CONTEXT_FIELD_BOOL, num_values, values);
+}
+
+/**
+  @brief Restore QFunctionContext field holding boolean values, read-only.
+
+  @param[in]  op          CeedOperator
+  @param[in]  field_label Label of field to get
+  @param[out] values      Pointer to context values
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref User
+**/
+int CeedOperatorRestoreContextBooleanRead(CeedOperator op, CeedContextFieldLabel field_label, const bool **values) {
+  return CeedOperatorContextRestoreGenericRead(op, field_label, CEED_CONTEXT_FIELD_BOOL, values);
 }
 
 /**
