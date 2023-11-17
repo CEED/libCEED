@@ -56,7 +56,7 @@ static const char *const EulerTestTypes[] = {"isentropic_vortex", "test_1",     
 static const char *const WindTypes[] = {"rotation", "translation", "WindType", "WIND_", NULL};
 
 // Advection - Bubble Types
-static const char *const BubbleTypes[] = {"sphere", "cylinder", "BubbleType", "BUBBLE_", NULL};
+static const char *const BubbleTypes[] = {"sphere", "cylinder", "cosine", "skew", "BubbleType", "BUBBLE_", NULL};
 
 // Advection - Bubble Continuity Types
 static const char *const BubbleContinuityTypes[] = {"smooth", "back_sharp", "thick", "BubbleContinuityType", "BUBBLE_CONTINUITY_", NULL};
