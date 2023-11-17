@@ -45,28 +45,6 @@
 // Translate PetscMemType to CeedMemType
 static inline CeedMemType MemTypeP2C(PetscMemType mem_type) { return PetscMemTypeDevice(mem_type) ? CEED_MEM_DEVICE : CEED_MEM_HOST; }
 
-// Advection - Wind Options
-typedef enum {
-  WIND_ROTATION    = 0,
-  WIND_TRANSLATION = 1,
-} WindType;
-static const char *const WindTypes[] = {"rotation", "translation", "WindType", "WIND_", NULL};
-
-// Advection - Bubble Types
-typedef enum {
-  BUBBLE_SPHERE   = 0,  // dim=3
-  BUBBLE_CYLINDER = 1,  // dim=2
-} BubbleType;
-static const char *const BubbleTypes[] = {"sphere", "cylinder", "BubbleType", "BUBBLE_", NULL};
-
-// Advection - Bubble Continuity Types
-typedef enum {
-  BUBBLE_CONTINUITY_SMOOTH     = 0,  // Original continuous, smooth shape
-  BUBBLE_CONTINUITY_BACK_SHARP = 1,  // Discontinuous, sharp back half shape
-  BUBBLE_CONTINUITY_THICK      = 2,  // Define a finite thickness
-} BubbleContinuityType;
-static const char *const BubbleContinuityTypes[] = {"smooth", "back_sharp", "thick", "BubbleContinuityType", "BUBBLE_CONTINUITY_", NULL};
-
 // Euler - test cases
 typedef enum {
   EULER_TEST_ISENTROPIC_VORTEX = 0,
@@ -78,6 +56,15 @@ typedef enum {
 } EulerTestType;
 static const char *const EulerTestTypes[] = {"isentropic_vortex", "test_1",      "test_2", "test_3", "test_4", "test_5",
                                              "EulerTestType",     "EULER_TEST_", NULL};
+
+// Advection - Wind types
+static const char *const WindTypes[] = {"rotation", "translation", "WindType", "WIND_", NULL};
+
+// Advection - Bubble Types
+static const char *const BubbleTypes[] = {"sphere", "cylinder", "BubbleType", "BUBBLE_", NULL};
+
+// Advection - Bubble Continuity Types
+static const char *const BubbleContinuityTypes[] = {"smooth", "back_sharp", "thick", "BubbleContinuityType", "BUBBLE_CONTINUITY_", NULL};
 
 // Stabilization methods
 static const char *const StabilizationTypes[] = {"none", "SU", "SUPG", "StabilizationType", "STAB_", NULL};
