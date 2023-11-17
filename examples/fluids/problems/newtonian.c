@@ -71,7 +71,7 @@ PetscErrorCode NS_NEWTONIAN_IG(ProblemData *problem, DM dm, void *ctx, SimpleBC 
   MPI_Comm                 comm = user->comm;
   Ceed                     ceed = user->ceed;
   PetscBool                implicit;
-  PetscBool                has_curr_time = PETSC_FALSE, unit_tests;
+  PetscBool                unit_tests;
   NewtonianIdealGasContext newtonian_ig_ctx;
   CeedQFunctionContext     newtonian_ig_context;
 
@@ -253,10 +253,8 @@ PetscErrorCode NS_NEWTONIAN_IG(ProblemData *problem, DM dm, void *ctx, SimpleBC 
   problem->dm_scale = meter;
 
   // -- Solver Settings
-  user->phys->stab          = stab;
-  user->phys->implicit      = implicit;
-  user->phys->state_var     = state_var;
-  user->phys->has_curr_time = has_curr_time;
+  user->phys->implicit  = implicit;
+  user->phys->state_var = state_var;
 
   // -- QFunction Context
   newtonian_ig_ctx->lambda        = lambda;

@@ -272,15 +272,8 @@ struct SimpleBC_private {
 
 // Struct that contains all enums and structs used for the physics of all problems
 struct Physics_private {
-  WindType              wind_type;
-  BubbleType            bubble_type;
-  BubbleContinuityType  bubble_continuity_type;
-  EulerTestType         euler_test;
-  StabilizationType     stab;
   PetscBool             implicit;
   StateVariable         state_var;
-  PetscBool             has_curr_time;
-  PetscBool             has_neumann;
   CeedContextFieldLabel solution_time_label;
   CeedContextFieldLabel stg_solution_time_label;
   CeedContextFieldLabel timestep_size_label;

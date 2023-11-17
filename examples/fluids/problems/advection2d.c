@@ -24,7 +24,6 @@ PetscErrorCode NS_ADVECTION2D(ProblemData *problem, DM dm, void *ctx, SimpleBC b
   MPI_Comm             comm = user->comm;
   Ceed                 ceed = user->ceed;
   PetscBool            implicit;
-  PetscBool            has_curr_time = PETSC_FALSE;
   AdvectionContext     advection_ctx;
   CeedQFunctionContext advection_context;
 
@@ -82,7 +81,6 @@ PetscErrorCode NS_ADVECTION2D(ProblemData *problem, DM dm, void *ctx, SimpleBC b
   PetscBool translation;
   PetscCall(PetscOptionsEnum("-wind_type", "Wind type in Advection", NULL, WindTypes, (PetscEnum)(wind_type = WIND_ROTATION), (PetscEnum *)&wind_type,
                              &translation));
-  if (translation) user->phys->has_neumann = PETSC_TRUE;
   PetscInt  n = problem->dim;
   PetscBool user_wind;
   PetscCall(PetscOptionsRealArray("-wind_translation", "Constant wind vector", NULL, wind, &n, &user_wind));
@@ -147,10 +145,7 @@ PetscErrorCode NS_ADVECTION2D(ProblemData *problem, DM dm, void *ctx, SimpleBC b
   setup_context->time      = 0;
 
   // -- QFunction Context
-  user->phys->stab             = stab;
-  user->phys->wind_type        = wind_type;
   user->phys->implicit         = implicit;
-  user->phys->has_curr_time    = has_curr_time;
   advection_ctx->CtauS         = CtauS;
   advection_ctx->E_wind        = E_wind;
   advection_ctx->implicit      = implicit;
