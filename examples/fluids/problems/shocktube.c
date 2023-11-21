@@ -24,7 +24,6 @@ PetscErrorCode NS_SHOCKTUBE(ProblemData *problem, DM dm, void *ctx, SimpleBC bc)
   PetscBool            implicit;
   PetscBool            yzb;
   PetscInt             stab;
-  PetscBool            has_curr_time = PETSC_FALSE;
   ShockTubeContext     shocktube_ctx;
   CeedQFunctionContext shocktube_context;
 
@@ -130,7 +129,6 @@ PetscErrorCode NS_SHOCKTUBE(ProblemData *problem, DM dm, void *ctx, SimpleBC bc)
 
   // -- QFunction Context
   user->phys->implicit         = implicit;
-  user->phys->has_curr_time    = has_curr_time;
   shocktube_ctx->implicit      = implicit;
   shocktube_ctx->stabilization = stab;
   shocktube_ctx->yzb           = yzb;

@@ -103,25 +103,22 @@ PetscErrorCode CreateOperatorForDomain(Ceed ceed, DM dm, SimpleBC bc, CeedData c
   if (op_apply_ijacobian) PetscCallCeed(ceed, CeedCompositeOperatorAddSub(*op_apply_ijacobian, op_apply_ijacobian_vol));
 
   // -- Create Sub-Operator for in/outflow BCs
-  if (phys->has_neumann || 1) {
-    // --- Setup
-    PetscCall(DMGetLabel(dm, "Face Sets", &domain_label));
+  PetscCall(DMGetLabel(dm, "Face Sets", &domain_label));
 
-    // --- Create Sub-Operator for inflow boundaries
-    for (CeedInt i = 0; i < bc->num_inflow; i++) {
-      PetscCall(AddBCSubOperator(ceed, dm, ceed_data, domain_label, bc->inflows[i], height, Q_sur, q_data_size_sur, jac_data_size_sur,
-                                 ceed_data->qf_apply_inflow, ceed_data->qf_apply_inflow_jacobian, op_apply, op_apply_ijacobian));
-    }
-    // --- Create Sub-Operator for outflow boundaries
-    for (CeedInt i = 0; i < bc->num_outflow; i++) {
-      PetscCall(AddBCSubOperator(ceed, dm, ceed_data, domain_label, bc->outflows[i], height, Q_sur, q_data_size_sur, jac_data_size_sur,
-                                 ceed_data->qf_apply_outflow, ceed_data->qf_apply_outflow_jacobian, op_apply, op_apply_ijacobian));
-    }
-    // --- Create Sub-Operator for freestream boundaries
-    for (CeedInt i = 0; i < bc->num_freestream; i++) {
-      PetscCall(AddBCSubOperator(ceed, dm, ceed_data, domain_label, bc->freestreams[i], height, Q_sur, q_data_size_sur, jac_data_size_sur,
-                                 ceed_data->qf_apply_freestream, ceed_data->qf_apply_freestream_jacobian, op_apply, op_apply_ijacobian));
-    }
+  // --- Create Sub-Operator for inflow boundaries
+  for (CeedInt i = 0; i < bc->num_inflow; i++) {
+    PetscCall(AddBCSubOperator(ceed, dm, ceed_data, domain_label, bc->inflows[i], height, Q_sur, q_data_size_sur, jac_data_size_sur,
+                               ceed_data->qf_apply_inflow, ceed_data->qf_apply_inflow_jacobian, op_apply, op_apply_ijacobian));
+  }
+  // --- Create Sub-Operator for outflow boundaries
+  for (CeedInt i = 0; i < bc->num_outflow; i++) {
+    PetscCall(AddBCSubOperator(ceed, dm, ceed_data, domain_label, bc->outflows[i], height, Q_sur, q_data_size_sur, jac_data_size_sur,
+                               ceed_data->qf_apply_outflow, ceed_data->qf_apply_outflow_jacobian, op_apply, op_apply_ijacobian));
+  }
+  // --- Create Sub-Operator for freestream boundaries
+  for (CeedInt i = 0; i < bc->num_freestream; i++) {
+    PetscCall(AddBCSubOperator(ceed, dm, ceed_data, domain_label, bc->freestreams[i], height, Q_sur, q_data_size_sur, jac_data_size_sur,
+                               ceed_data->qf_apply_freestream, ceed_data->qf_apply_freestream_jacobian, op_apply, op_apply_ijacobian));
   }
 
   // ----- Get Context Labels for Operator

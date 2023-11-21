@@ -23,8 +23,6 @@ PetscErrorCode NS_EULER_VORTEX(ProblemData *problem, DM dm, void *ctx, SimpleBC 
   MPI_Comm             comm = user->comm;
   Ceed                 ceed = user->ceed;
   PetscBool            implicit;
-  PetscBool            has_curr_time = PETSC_TRUE;
-  PetscBool            has_neumann   = PETSC_TRUE;
   EulerContext         euler_ctx;
   CeedQFunctionContext euler_context;
 
@@ -123,11 +121,7 @@ PetscErrorCode NS_EULER_VORTEX(ProblemData *problem, DM dm, void *ctx, SimpleBC 
   problem->dm_scale = meter;
 
   // -- QFunction Context
-  user->phys->stab            = stab;
-  user->phys->euler_test      = euler_test;
   user->phys->implicit        = implicit;
-  user->phys->has_curr_time   = has_curr_time;
-  user->phys->has_neumann     = has_neumann;
   euler_ctx->curr_time        = 0.;
   euler_ctx->implicit         = implicit;
   euler_ctx->euler_test       = euler_test;

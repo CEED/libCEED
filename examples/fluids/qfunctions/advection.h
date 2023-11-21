@@ -14,28 +14,21 @@
 #include <ceed.h>
 #include <math.h>
 
+#include "../qfunctions/advection_types.h"
+#include "../qfunctions/stabilization_types.h"
 #include "utils.h"
 
 typedef struct SetupContextAdv_ *SetupContextAdv;
 struct SetupContextAdv_ {
-  CeedScalar rc;
-  CeedScalar lx;
-  CeedScalar ly;
-  CeedScalar lz;
-  CeedScalar wind[3];
-  CeedScalar time;
-  int        wind_type;               // See WindType: 0=ROTATION, 1=TRANSLATION
-  int        bubble_type;             // See BubbleType: 0=SPHERE, 1=CYLINDER
-  int        bubble_continuity_type;  // See BubbleContinuityType: 0=SMOOTH, 1=BACK_SHARP 2=THICK
-};
-
-typedef struct AdvectionContext_ *AdvectionContext;
-struct AdvectionContext_ {
-  CeedScalar CtauS;
-  CeedScalar strong_form;
-  CeedScalar E_wind;
-  bool       implicit;
-  int        stabilization;  // See StabilizationType: 0=none, 1=SU, 2=SUPG
+  CeedScalar           rc;
+  CeedScalar           lx;
+  CeedScalar           ly;
+  CeedScalar           lz;
+  CeedScalar           wind[3];
+  CeedScalar           time;
+  WindType             wind_type;
+  BubbleType           bubble_type;
+  BubbleContinuityType bubble_continuity_type;
 };
 
 // *****************************************************************************
@@ -108,25 +101,23 @@ CEED_QFUNCTION_HELPER CeedInt Exact_Advection(CeedInt dim, CeedScalar time, cons
   // -- Energy
   CeedScalar r = 0.;
   switch (context->bubble_type) {
-    //  original sphere
-    case 0: {  // (dim=3)
+    case BUBBLE_SPHERE: {  // (dim=3)
       r = sqrt(Square(x - x0[0]) + Square(y - x0[1]) + Square(z - x0[2]));
     } break;
-    // cylinder (needs periodicity to work properly)
-    case 1: {  // (dim=2)
+    case BUBBLE_CYLINDER: {  // (dim=2)
       r = sqrt(Square(x - x0[0]) + Square(y - x0[1]));
     } break;
   }
 
   // Initial Conditions
   switch (context->wind_type) {
-    case 0:  // Rotation
+    case WIND_ROTATION:
       q[0] = 1.;
       q[1] = -(y - center[1]);
       q[2] = (x - center[0]);
       q[3] = 0;
       break;
-    case 1:  // Translation
+    case WIND_TRANSLATION:
       q[0] = 1.;
       q[1] = wind[0];
       q[2] = wind[1];
@@ -136,15 +127,15 @@ CEED_QFUNCTION_HELPER CeedInt Exact_Advection(CeedInt dim, CeedScalar time, cons
 
   switch (context->bubble_continuity_type) {
     // original continuous, smooth shape
-    case 0: {
+    case BUBBLE_CONTINUITY_SMOOTH: {
       q[4] = r <= rc ? (1. - r / rc) : 0.;
     } break;
     // discontinuous, sharp back half shape
-    case 1: {
+    case BUBBLE_CONTINUITY_BACK_SHARP: {
       q[4] = ((r <= rc) && (y < center[1])) ? (1. - r / rc) : 0.;
     } break;
     // attempt to define a finite thickness that will get resolved under grid refinement
-    case 2: {
+    case BUBBLE_CONTINUITY_THICK: {
       q[4] = ((r <= rc) && (y < center[1])) ? (1. - r / rc) * fmin(1.0, (center[1] - y) / 1.25) : 0.;
     } break;
   }
@@ -341,13 +332,13 @@ CEED_QFUNCTION(IFunction_Advection)(void *ctx, CeedInt Q, const CeedScalar *cons
     const CeedScalar TauS = CtauS / sqrt(uX[0] * uX[0] + uX[1] * uX[1] + uX[2] * uX[2]);
 
     for (CeedInt j = 0; j < 3; j++) switch (context->stabilization) {
-        case 0:
+        case STAB_NONE:
           break;
-        case 1:
-          dv[j][4][i] += wdetJ * TauS * strong_conv * uX[j];  // SU
+        case STAB_SU:
+          dv[j][4][i] += wdetJ * TauS * strong_conv * uX[j];
           break;
-        case 2:
-          dv[j][4][i] += wdetJ * TauS * strong_res * uX[j];  // SUPG
+        case STAB_SUPG:
+          dv[j][4][i] += wdetJ * TauS * strong_res * uX[j];
           break;
       }
   }  // End Quadrature Point Loop
