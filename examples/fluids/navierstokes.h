@@ -24,19 +24,14 @@
 #define DMSetCoordinateDisc(a, b, c) DMProjectCoordinates(a, b)
 #endif
 
-#define PetscCeedChk(ceed, ierr)                                    \
+#define PetscCallCeed(ceed, ...)                                    \
   do {                                                              \
+    int ierr = __VA_ARGS__;                                         \
     if (ierr != CEED_ERROR_SUCCESS) {                               \
       const char *error_message;                                    \
       CeedGetErrorMessage(ceed, &error_message);                    \
       SETERRQ(PETSC_COMM_SELF, PETSC_ERR_LIB, "%s", error_message); \
     }                                                               \
-  } while (0)
-
-#define PetscCallCeed(ceed, ...) \
-  do {                           \
-    int ierr_q_ = __VA_ARGS__;   \
-    PetscCeedChk(ceed, ierr_q_); \
   } while (0)
 
 // -----------------------------------------------------------------------------
