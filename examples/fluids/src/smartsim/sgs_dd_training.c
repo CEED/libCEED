@@ -233,13 +233,13 @@ PetscErrorCode SGS_DD_TrainingSetup(Ceed ceed, User user, CeedData ceed_data, Pr
       array_info[4] = smartsim->collocated_database_num_ranks;
       array_info[5] = rank;
 
-      SmartRedisCall(put_tensor(smartsim->client, "sizeInfo", 8, array_info, &array_info_dim, 1, SRTensorTypeInt32, SRMemLayoutContiguous));
+      PetscSmartRedisCall(put_tensor(smartsim->client, "sizeInfo", 8, array_info, &array_info_dim, 1, SRTensorTypeInt32, SRMemLayoutContiguous));
       PetscCall(SmartRedisVerifyPutTensor(smartsim->client, "sizeInfo", 8));
 
       // -- Send array that communicates if tensors are overwritten in database
       PetscInt tensor_overwrite[2] = {sgs_dd_train->overwrite_training_data};
       size_t   dim_2[1]            = {2};
-      SmartRedisCall(put_tensor(smartsim->client, "tensor-ow", 9, tensor_overwrite, dim_2, 1, SRTensorTypeInt32, SRMemLayoutContiguous));
+      PetscSmartRedisCall(put_tensor(smartsim->client, "tensor-ow", 9, tensor_overwrite, dim_2, 1, SRTensorTypeInt32, SRMemLayoutContiguous));
       PetscCall(SmartRedisVerifyPutTensor(smartsim->client, "tensor-ow", 9));
     }
   }
@@ -313,8 +313,8 @@ PetscErrorCode TSMonitor_SGS_DD_Training(TS ts, PetscInt step_num, PetscReal sol
     {
       const PetscScalar *training_data;
       PetscCall(VecGetArrayRead(TrainingData, &training_data));
-      SmartRedisCall(put_tensor(smartsim->client, array_key, array_key_len, (void *)training_data, sgs_dd_train->training_data_array_dims, 2,
-                                SRTensorTypeDouble, SRMemLayoutContiguous));
+      PetscSmartRedisCall(put_tensor(smartsim->client, array_key, array_key_len, (void *)training_data, sgs_dd_train->training_data_array_dims, 2,
+                                     SRTensorTypeDouble, SRMemLayoutContiguous));
       PetscCall(VecRestoreArrayRead(TrainingData, &training_data));
     }
     PetscCall(SmartRedisVerifyPutTensor(smartsim->client, array_key, array_key_len));
@@ -322,7 +322,7 @@ PetscErrorCode TSMonitor_SGS_DD_Training(TS ts, PetscInt step_num, PetscReal sol
     if (rank % smartsim->collocated_database_num_ranks == 0) {
       size_t   dim_2[1]      = {2};
       PetscInt step_array[2] = {step_num, step_num};
-      SmartRedisCall(put_tensor(smartsim->client, "step", 4, step_array, dim_2, 1, SRTensorTypeInt32, SRMemLayoutContiguous));
+      PetscSmartRedisCall(put_tensor(smartsim->client, "step", 4, step_array, dim_2, 1, SRTensorTypeInt32, SRMemLayoutContiguous));
     }
   }
 
@@ -342,7 +342,7 @@ PetscErrorCode TSPostStep_SGS_DD_Training(TS ts) {
   PetscCall(TSGetApplicationContext(ts, &user));
   SmartSimData smartsim = user->smartsim;
 
-  SmartRedisCall(
+  PetscSmartRedisCall(
       unpack_tensor(smartsim->client, check_run_key, check_run_key_size, check_run, check_run_dims, 1, SRTensorTypeDouble, SRMemLayoutContiguous));
   if (check_run[0] == 0) {
     PetscCall(PetscPrintf(user->comm, "-- Simulation stopped by 'check-run' tensor in Redis database\n"));

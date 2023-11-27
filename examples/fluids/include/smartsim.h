@@ -10,9 +10,9 @@
 #include <sr_enums.h>
 
 #if defined(__clang_analyzer__)
-void SmartRedisCall(SRError);
+void PetscSmartRedisCall(SRError);
 #else
-#define SmartRedisCall(...)                                                                                                           \
+#define PetscSmartRedisCall(...)                                                                                                      \
   do {                                                                                                                                \
     SRError   ierr_smartredis_call_q_;                                                                                                \
     PetscBool disable_calls = PETSC_FALSE;                                                                                            \
