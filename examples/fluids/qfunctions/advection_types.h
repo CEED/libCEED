@@ -20,7 +20,6 @@ typedef enum {
 typedef enum {
   BUBBLE_SPHERE   = 0,  // dim=3
   BUBBLE_CYLINDER = 1,  // dim=2
-  BUBBLE_COSINE   = 2,
 } BubbleType;
 
 // Advection - Bubble Continuity Types
