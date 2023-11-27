@@ -249,8 +249,10 @@ nekexamples  := $(OBJDIR)/nek-bps
 petscexamples.c := $(wildcard examples/petsc/*.c)
 petscexamples   := $(petscexamples.c:examples/petsc/%.c=$(OBJDIR)/petsc-%)
 # Fluid Dynamics Examples
-fluidsexamples.c := $(sort $(wildcard examples/fluids/*.c))
-fluidsexamples  := $(fluidsexamples.c:examples/fluids/%.c=$(OBJDIR)/fluids-%)
+fluidsexamples.c  := $(sort $(wildcard examples/fluids/*.c))
+fluidsexamples.py := examples/fluids/smartsim_regression_framework.py
+fluidsexamples    := $(fluidsexamples.c:examples/fluids/%.c=$(OBJDIR)/fluids-%)
+fluidsexamples    += $(fluidsexamples.py:examples/fluids/%.py=$(OBJDIR)/fluids-py-%) 
 # Solid Mechanics Examples
 solidsexamples.c := $(sort $(wildcard examples/solids/*.c))
 solidsexamples   := $(solidsexamples.c:examples/solids/%.c=$(OBJDIR)/solids-%)
@@ -608,6 +610,9 @@ $(OBJDIR)/fluids-% : examples/fluids/%.c examples/fluids/src/*.c examples/fluids
 	  PETSC_DIR="$(abspath $(PETSC_DIR))" OPT="$(OPT)" $*
 	cp examples/fluids/$* $@
 
+$(OBJDIR)/fluids-py-% : examples/fluids/%.py $(OBJDIR)/fluids-navierstokes
+	cp $< $@
+
 $(OBJDIR)/solids-% : examples/solids/%.c examples/solids/%.h \
     examples/solids/problems/*.c examples/solids/src/*.c \
     examples/solids/include/*.h examples/solids/problems/*.h examples/solids/qfunctions/*.h \
@@ -824,7 +829,7 @@ print-% :
 CONFIG_VARS = CC CXX FC NVCC NVCC_CXX HIPCC \
   OPT CFLAGS CPPFLAGS CXXFLAGS FFLAGS NVCCFLAGS HIPCCFLAGS SYCLFLAGS \
   AR ARFLAGS LDFLAGS LDLIBS LIBCXX SED \
-  MAGMA_DIR OCCA_DIR XSMM_DIR CUDA_DIR CUDA_ARCH MFEM_DIR PETSC_DIR NEK5K_DIR ROCM_DIR HIP_ARCH SYCL_DIR
+  MAGMA_DIR OCCA_DIR XSMM_DIR CUDA_DIR CUDA_ARCH MFEM_DIR PETSC_DIR NEK5K_DIR ROCM_DIR HIP_ARCH SYCL_DIR SMARTREDIS_DIR
 
 # $(call needs_save,CFLAGS) returns true (a nonempty string) if CFLAGS
 # was set on the command line or in config.mk (where it will appear as
