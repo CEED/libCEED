@@ -78,7 +78,7 @@ int main(int argc, char **argv) {
         for (CeedInt d = 0; d < dim; d++) coord[d] = x_array[d + i * dim];
         for (CeedInt c = 0; c < num_comp; c++) {
           CeedScalar fx = Eval(dim, c, coord);
-          if (fabs(v_array[c + i * num_comp] - fx) > 1E-4) {
+          if (fabs(v_array[c * num_points + i] - fx) > 1E-4) {
             // LCOV_EXCL_START
             printf("[%" CeedInt_FMT ", %" CeedInt_FMT "] %f != %f = f(%f", dim, c, v_array[c + i * num_comp], fx, coord[0]);
             for (CeedInt d = 1; d < dim; d++) printf(", %f", coord[d]);
