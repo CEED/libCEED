@@ -618,8 +618,12 @@ static int CeedOperatorSetupFieldsAtPoints_Ref(CeedQFunction qf, CeedOperator op
         q_size = (CeedSize)max_num_points * size;
         CeedCallBackend(CeedVectorCreate(ceed, q_size, &q_vecs[i]));
         break;
-      case CEED_EVAL_WEIGHT:
-        // Not used at this time
+      case CEED_EVAL_WEIGHT:  // Only on input fields
+        CeedCallBackend(CeedOperatorFieldGetBasis(op_fields[i], &basis));
+        q_size = (CeedSize)max_num_points;
+        CeedCallBackend(CeedVectorCreate(ceed, q_size, &q_vecs[i]));
+        CeedCallBackend(
+            CeedBasisApplyAtPoints(basis, max_num_points, CEED_NOTRANSPOSE, CEED_EVAL_WEIGHT, CEED_VECTOR_NONE, CEED_VECTOR_NONE, q_vecs[i]));
         break;
     }
     if (is_input && e_vecs[i]) {

@@ -131,10 +131,12 @@ int main(int argc, char **argv) {
   // Setup geometric scaling
   CeedQFunctionCreateInterior(ceed, 1, setup, setup_loc, &qf_setup);
   CeedQFunctionAddInput(qf_setup, "x", dim * dim, CEED_EVAL_GRAD);
+  CeedQFunctionAddInput(qf_setup, "weight", 1, CEED_EVAL_WEIGHT);
   CeedQFunctionAddOutput(qf_setup, "rho", 1, CEED_EVAL_NONE);
 
   CeedOperatorCreateAtPoints(ceed, qf_setup, CEED_QFUNCTION_NONE, CEED_QFUNCTION_NONE, &op_setup);
   CeedOperatorSetField(op_setup, "x", elem_restriction_x, basis_x, CEED_VECTOR_ACTIVE);
+  CeedOperatorSetField(op_setup, "weight", CEED_ELEMRESTRICTION_NONE, basis_x, CEED_VECTOR_NONE);
   CeedOperatorSetField(op_setup, "rho", elem_restriction_q_data, CEED_BASIS_NONE, CEED_VECTOR_ACTIVE);
   CeedOperatorAtPointsSetPoints(op_setup, elem_restriction_x_points, x_points);
 

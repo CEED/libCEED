@@ -744,8 +744,6 @@ int CeedOperatorSetField(CeedOperator op, const char *field_name, CeedElemRestri
   CeedCall(CeedElemRestrictionGetNumElements(r, &num_elem));
   CeedCheck(r == CEED_ELEMRESTRICTION_NONE || !op->has_restriction || op->num_elem == num_elem, op->ceed, CEED_ERROR_DIMENSION,
             "ElemRestriction with %" CeedInt_FMT " elements incompatible with prior %" CeedInt_FMT " elements", num_elem, op->num_elem);
-  CeedCheck(r != CEED_ELEMRESTRICTION_NONE || !op->is_at_points, op->ceed, CEED_ERROR_UNSUPPORTED,
-            "CeedOperatorAtPoints does not support CEED_ELEMRESTRICTION_NONE");
   {
     CeedRestrictionType rstr_type;
 
