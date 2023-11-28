@@ -59,6 +59,9 @@ def load_n_trace_model(model_name):
     # Prepare model for inference
     dummy_input = torch.randn(512, 6, dtype=torch.float64, device='cpu')
     with torch.no_grad():
+        model_script = torch.jit.script(model)
+        torch.jit.save(model_script, f"{model_name}_fp64_jit.ptc")
+
         model = torch.jit.trace(model, dummy_input)
         torch.jit.save(model, f"{model_name}_fp64_jit.pt")
 
