@@ -8,11 +8,11 @@
 #include <ceed.h>
 
 CEED_QFUNCTION(setup)(void *ctx, const CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
-  const CeedScalar(*J)[2][2] = (const CeedScalar(*)[2][2])in[0];
-  CeedScalar *q_data         = out[0];
+  const CeedScalar(*J)[2][CEED_Q_VLA] = (const CeedScalar(*)[2][CEED_Q_VLA])in[0];
+  CeedScalar *q_data                  = out[0];
 
   // Quadrature point loop
-  CeedPragmaSIMD for (CeedInt i = 0; i < Q; i++) { q_data[i] = J[i][0][0] * J[i][1][0] - J[i][0][1] * J[i][1][1]; }
+  CeedPragmaSIMD for (CeedInt i = 0; i < Q; i++) { q_data[i] = J[0][0][i] * J[1][1][i] - J[0][1][i] * J[1][0][i]; }
   return 0;
 }
 
