@@ -5,13 +5,15 @@
 #include <petsc.h>
 
 torch::jit::script::Module model;
+torch::DeviceType device = torch::kCPU;
 
 PetscErrorCode LoadModel_LibTorch(const char *model_path) {
   PetscFunctionBeginUser;
 
   PetscCallCXX(model = torch::jit::load(model_path));
 
-  PetscCallCXX(model.to(torch::Device(torch::kCPU)));
+  // PetscCallCXX(model.to(torch::Device(torch::kCPU)));
+  PetscCallCXX(model.to(torch::Device(device)));
 
   // std::cout << "Loaded Model\n";
   
@@ -31,43 +33,38 @@ PetscErrorCode ModelInference_LibTorch(Vec DD_Inputs_loc, Vec DD_Outputs_loc) {
   num_nodes = input_size / 6;
   PetscCall(VecGetArrayReadAndMemType(DD_Inputs_loc, &dd_inputs_ptr, &input_mem_type));
 
-  auto dims = torch::IntArrayRef{num_nodes, 6};
-  auto options = torch::TensorOptions()
-                          .dtype(torch::kFloat64)
-                          .device(torch::kCPU);
-  torch::Tensor gpu_tensor = torch::from_blob((void *)dd_inputs_ptr, dims, options);
+  torch::TensorOptions options;
 
-  // PetscCallCXX(gpu_tensor = gpu_tensor.toType(torch::kFloat32));
+  PetscCallCXX(options = torch::TensorOptions()
+                          .dtype(torch::kFloat64)
+                          .device(device));
+  torch::Tensor gpu_tensor = torch::from_blob((void *)dd_inputs_ptr, {num_nodes, 6}, options);
 
   // Run model
   torch::Tensor output;
   PetscCallCXX(output = model.forward({gpu_tensor}).toTensor());
-  // std::cout << "Performed inference\n";
   PetscCall(VecRestoreArrayReadAndMemType(DD_Inputs_loc, &dd_inputs_ptr));
 
   {
     PetscMemType output_mem_type;
-    PetscInt output_size, num_nodes;
-    PetscScalar *dd_outputs_ptr;
+    PetscInt     output_size, num_nodes;
+    PetscScalar  *dd_outputs_ptr;
 
     PetscCall(VecGetLocalSize(DD_Outputs_loc, &output_size));
     num_nodes = input_size / 6;
     PetscCall(VecGetArrayAndMemType(DD_Outputs_loc, &dd_outputs_ptr, &output_mem_type));
 
-    auto dims = torch::IntArrayRef{num_nodes, 6};
+    // auto dims = torch::IntArrayRef{num_nodes, 6};
     auto options = torch::TensorOptions()
       .dtype(torch::kFloat64)
-      .device(torch::kCPU);
-    torch::Tensor DD_Outputs_tensor = torch::from_blob((void *)dd_outputs_ptr, dims, options);
+      .device(device);
+    torch::Tensor DD_Outputs_tensor = torch::from_blob((void *)dd_outputs_ptr, {num_nodes, 6}, options);
 
     PetscCallCXX(DD_Outputs_tensor.copy_(output));
 
     PetscCall(VecRestoreArrayAndMemType(DD_Outputs_loc, &dd_outputs_ptr));
   }
 
-    PetscCall(VecRestoreArrayReadAndMemType(DD_Inputs_loc, &dd_inputs_ptr));
-
-  // std::cout << "did inference\n";
   PetscFunctionReturn(PETSC_SUCCESS);
 }
 
