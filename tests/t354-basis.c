@@ -79,7 +79,7 @@ int main(int argc, char **argv) {
       CeedVectorGetArrayRead(x_points, CEED_MEM_HOST, &x_array);
       CeedVectorGetArrayRead(u, CEED_MEM_HOST, &u_array);
       CeedVectorGetArrayRead(v, CEED_MEM_HOST, &v_array);
-      for (CeedInt d = 0; d < dim; d++) coord[d] = x_array[d + i * dim];
+      for (CeedInt d = 0; d < dim; d++) coord[d] = x_array[d * num_points + i];
       CeedVectorSetArray(x_point, CEED_MEM_HOST, CEED_COPY_VALUES, coord);
       CeedBasisApplyAtPoints(basis_u, 1, CEED_TRANSPOSE, CEED_EVAL_INTERP, x_point, v_point, u_point);
       CeedVectorGetArrayRead(u_point, CEED_MEM_HOST, &u_point_array);
@@ -88,7 +88,7 @@ int main(int argc, char **argv) {
         // LCOV_EXCL_START
         printf("[%" CeedInt_FMT "] %f != %f = f(%f", dim, v_array[i], fx, coord[0]);
         for (CeedInt d = 1; d < dim; d++) printf(", %f", coord[d]);
-        puts(")");
+        printf(")\n");
         // LCOV_EXCL_STOP
       }
       CeedVectorRestoreArrayRead(u_point, &u_point_array);
