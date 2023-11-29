@@ -85,14 +85,15 @@ int main(int argc, char **argv) {
       for (CeedInt i = 0; i < num_points; i++) {
         CeedScalar coord[dim];
 
-        for (CeedInt d = 0; d < dim; d++) coord[d] = x_array[d + i * dim];
+        for (CeedInt d = 0; d < dim; d++) coord[d] = x_array[d * num_points + i];
         for (CeedInt d = 0; d < dim; d++) {
           const CeedScalar dfx = EvalGrad(dim, coord, d);
-          if (fabs(v_array[i * dim + d] - dfx) > 1E-3) {
+
+          if (fabs(v_array[d * num_points + i] - dfx) > 1E-3) {
             // LCOV_EXCL_START
-            printf("[%" CeedInt_FMT "] %f != %f = df(%f", dim, v_array[i * dim + d], dfx, coord[0]);
+            printf("[%" CeedInt_FMT "] %f != %f = df(%f", dim, v_array[d * num_points + i], dfx, coord[0]);
             for (CeedInt d = 1; d < dim; d++) printf(", %f", coord[d]);
-            puts(")");
+            printf(")\n");
             // LCOV_EXCL_STOP
           }
         }

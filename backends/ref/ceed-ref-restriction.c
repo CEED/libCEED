@@ -373,11 +373,11 @@ static inline int CeedElemRestrictionApplyAtPointsInElement_Ref_Core(CeedElemRes
     CeedCallBackend(CeedElemRestrictionGetNumPointsInElement(rstr, e, &num_points));
     if (t_mode == CEED_NOTRANSPOSE) {
       for (CeedInt i = 0; i < num_points; i++) {
-        for (CeedInt j = 0; j < num_comp; j++) vv[i * num_comp + j + e_vec_offset] = uu[impl->offsets[i + l_vec_offset] * num_comp + j];
+        for (CeedInt j = 0; j < num_comp; j++) vv[j * num_points + i + e_vec_offset] = uu[impl->offsets[i + l_vec_offset] * num_comp + j];
       }
     } else {
       for (CeedInt i = 0; i < num_points; i++) {
-        for (CeedInt j = 0; j < num_comp; j++) vv[impl->offsets[i + l_vec_offset] * num_comp + j] = uu[i * num_comp + j + e_vec_offset];
+        for (CeedInt j = 0; j < num_comp; j++) vv[impl->offsets[i + l_vec_offset] * num_comp + j] = uu[j * num_points + i + e_vec_offset];
       }
     }
     e_vec_offset += num_points * num_comp;

@@ -1131,7 +1131,7 @@ int CeedElemRestrictionApply(CeedElemRestriction rstr, CeedTransposeMode t_mode,
   @param[in]  elem    Element number in range 0..@a num_elem
   @param[in]  t_mode  Apply restriction or transpose
   @param[in]  u       Input vector (of size @a l_size when t_mode=@ref CEED_NOTRANSPOSE)
-  @param[out] ru      Output vector (of shape [@a num_elem * @a elem_size] when t_mode=@ref CEED_NOTRANSPOSE).
+  @param[out] ru      Output vector (of shape [@a num_points * @a num_comp] when t_mode=@ref CEED_NOTRANSPOSE).
                         Ordering of the e-vector is decided by the backend.
   @param[in]  request Request or @ref CEED_REQUEST_IMMEDIATE
 

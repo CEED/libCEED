@@ -75,13 +75,13 @@ int main(int argc, char **argv) {
       for (CeedInt i = 0; i < num_points; i++) {
         CeedScalar coord[dim];
 
-        for (CeedInt d = 0; d < dim; d++) coord[d] = x_array[d + i * dim];
+        for (CeedInt d = 0; d < dim; d++) coord[d] = x_array[d * num_points + i];
         const CeedScalar fx = Eval(dim, coord);
         if (fabs(v_array[i] - fx) > 1E-4) {
           // LCOV_EXCL_START
           printf("[%" CeedInt_FMT "] %f != %f = f(%f", dim, v_array[i], fx, coord[0]);
           for (CeedInt d = 1; d < dim; d++) printf(", %f", coord[d]);
-          puts(")");
+          printf(")\n");
           // LCOV_EXCL_STOP
         }
       }
