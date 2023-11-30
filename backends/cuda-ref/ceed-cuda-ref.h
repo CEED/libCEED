@@ -53,10 +53,14 @@ typedef struct {
 typedef struct {
   CUmodule    module;
   CUfunction  Interp;
-  CUfunction  Grad;
+  CUfunction  InterpTranspose;
+  CUfunction  Deriv;
+  CUfunction  DerivTranspose;
   CUfunction  Weight;
   CeedScalar *d_interp;
   CeedScalar *d_grad;
+  CeedScalar *d_div;
+  CeedScalar *d_curl;
   CeedScalar *d_q_weight;
 } CeedBasisNonTensor_Cuda;
 
@@ -118,9 +122,12 @@ CEED_INTERN int CeedElemRestrictionCreate_Cuda(CeedMemType mem_type, CeedCopyMod
 
 CEED_INTERN int CeedBasisCreateTensorH1_Cuda(CeedInt dim, CeedInt P_1d, CeedInt Q_1d, const CeedScalar *interp_1d, const CeedScalar *grad_1d,
                                              const CeedScalar *q_ref_1d, const CeedScalar *q_weight_1d, CeedBasis basis);
-
 CEED_INTERN int CeedBasisCreateH1_Cuda(CeedElemTopology topo, CeedInt dim, CeedInt num_nodes, CeedInt num_qpts, const CeedScalar *interp,
                                        const CeedScalar *grad, const CeedScalar *q_ref, const CeedScalar *q_weight, CeedBasis basis);
+CEED_INTERN int CeedBasisCreateHdiv_Cuda(CeedElemTopology topo, CeedInt dim, CeedInt num_nodes, CeedInt num_qpts, const CeedScalar *interp,
+                                         const CeedScalar *div, const CeedScalar *q_ref, const CeedScalar *q_weight, CeedBasis basis);
+CEED_INTERN int CeedBasisCreateHcurl_Cuda(CeedElemTopology topo, CeedInt dim, CeedInt num_nodes, CeedInt num_qpts, const CeedScalar *interp,
+                                          const CeedScalar *curl, const CeedScalar *q_ref, const CeedScalar *q_weight, CeedBasis basis);
 
 CEED_INTERN int CeedQFunctionCreate_Cuda(CeedQFunction qf);
 

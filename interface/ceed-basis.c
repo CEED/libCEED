@@ -1208,7 +1208,7 @@ int CeedBasisCreateHcurl(Ceed ceed, CeedElemTopology topo, CeedInt num_comp, Cee
                          const CeedScalar *curl, const CeedScalar *q_ref, const CeedScalar *q_weight, CeedBasis *basis) {
   CeedInt Q = num_qpts, P = num_nodes, dim = 0, curl_comp = 0;
 
-  if (!ceed->BasisCreateHdiv) {
+  if (!ceed->BasisCreateHcurl) {
     Ceed delegate;
 
     CeedCall(CeedGetObjectDelegate(ceed, &delegate, "Basis"));
