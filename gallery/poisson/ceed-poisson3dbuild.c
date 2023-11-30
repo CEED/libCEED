@@ -11,7 +11,7 @@
 #include <string.h>
 
 /**
-  @brief Set fields for Ceed QFunction building the geometric data for the 3D Poisson operator
+  @brief Set fields for @ref CeedQFunction building the geometric data for the 3D Poisson operator
 **/
 static int CeedQFunctionInit_Poisson3DBuild(Ceed ceed, const char *requested, CeedQFunction qf) {
   // Check QFunction name
@@ -30,7 +30,7 @@ static int CeedQFunctionInit_Poisson3DBuild(Ceed ceed, const char *requested, Ce
 }
 
 /**
-  @brief Register Ceed QFunction for building the geometric data for the 3D Poisson operator
+  @brief Register @ref CeedQFunction for building the geometric data for the 3D Poisson operator
 **/
 CEED_INTERN int CeedQFunctionRegister_Poisson3DBuild(void) {
   return CeedQFunctionRegister("Poisson3DBuild", Poisson3DBuild_loc, 1, Poisson3DBuild, CeedQFunctionInit_Poisson3DBuild);
