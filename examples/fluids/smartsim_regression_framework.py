@@ -13,6 +13,7 @@ from typing import Tuple
 import os
 import shutil
 import logging
+import socket
 
 # autopep8 off
 sys.path.insert(0, (Path(__file__).parents[3] / "tests/junit-xml").as_posix())
@@ -21,6 +22,14 @@ sys.path.insert(0, (Path(__file__).parents[3] / "tests/junit-xml").as_posix())
 logging.disable(logging.WARNING)
 
 fluids_example_dir = Path(__file__).parent.absolute()
+
+
+def getOpenSocket():
+    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    s.bind(('', 0))
+    addr = s.getsockname()
+    s.close()
+    return addr[1]
 
 
 class NoError(Exception):
@@ -44,7 +53,7 @@ class SmartSimTest(object):
         self.directory_path.mkdir()
         os.chdir(self.directory_path)
 
-        PORT = 6780
+        PORT = getOpenSocket()
         self.exp = Experiment("test", launcher="local")
         self.database = self.exp.create_database(port=PORT, batch=False, interface="lo")
         self.exp.generate(self.database)
