@@ -12,6 +12,8 @@ On this page we provide a summary of the main API changes, new features and exam
 
 ### New features
 
+- Add `CeedOperatorCreateAtPoints` which evaluates the `CeedQFunction` at arbitrary locations in each element, for use in Particle in Cell, Material Point Method, and similar methods.
+
 ### Examples
 
 (v0-12)=
