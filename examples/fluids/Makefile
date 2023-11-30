@@ -71,7 +71,7 @@ ifeq ($(USE_LIBTORCH),1)
   LIBTORCH_USE_CUDA := $(shell python -c "import torch; print(torch.cuda.is_available())")
   ltorch := -ltorch -lc10 -ltorch_cpu
 
-  CPPFLAGS += $(LIBTORCH_INCPATH)
+  CPPFLAGS += $(LIBTORCH_INCPATH) -D_GLIBCXX_USE_CXX11_ABI=1
   LDFLAGS += -L$(LIBTORCH_LIBPATH)
   LDFLAGS += -Wl,-rpath,$(LIBTORCH_LIBPATH)
   LDLIBS += $(ltorch)
@@ -79,8 +79,8 @@ ifeq ($(USE_LIBTORCH),1)
   # Intel extension for pytorch (IPEX)
   IPEX_DIR ?=
   ifdef IPEX_DIR
-      LDFLAGS += -L${IPEX_PATH}/lib/
-      LDFLAGS += -Wl,-rpath,$(IPEX_PATH)/lib/
+      LDFLAGS += -L$(IPEX_DIR)/lib/
+      LDFLAGS += -Wl,-rpath,$(IPEX_DIR)/lib/
       lipex = -lintel-ext-pt-gpu
 
       LDLIBS += $(lipex)

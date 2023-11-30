@@ -5,18 +5,14 @@
 #include <petsc.h>
 
 torch::jit::script::Module model;
-torch::DeviceType device = torch::kCPU;
+torch::DeviceType device = torch::kXPU;
 
 PetscErrorCode LoadModel_LibTorch(const char *model_path) {
   PetscFunctionBeginUser;
 
   PetscCallCXX(model = torch::jit::load(model_path));
 
-  // PetscCallCXX(model.to(torch::Device(torch::kCPU)));
   PetscCallCXX(model.to(torch::Device(device)));
-
-  // std::cout << "Loaded Model\n";
-  
 
   PetscFunctionReturn(PETSC_SUCCESS);
 }
@@ -34,11 +30,14 @@ PetscErrorCode ModelInference_LibTorch(Vec DD_Inputs_loc, Vec DD_Outputs_loc) {
   PetscCall(VecGetArrayReadAndMemType(DD_Inputs_loc, &dd_inputs_ptr, &input_mem_type));
 
   torch::TensorOptions options;
+  torch::Tensor gpu_tensor;
 
   PetscCallCXX(options = torch::TensorOptions()
                           .dtype(torch::kFloat64)
                           .device(device));
-  torch::Tensor gpu_tensor = torch::from_blob((void *)dd_inputs_ptr, {num_nodes, 6}, options);
+  PetscCallCXX(gpu_tensor = torch::from_blob((void *)dd_inputs_ptr, {num_nodes, 6}, options));
+
+  // PetscCallCXX(gpu_tensor = torch::rand({512,6}, options));
 
   // Run model
   torch::Tensor output;
@@ -46,19 +45,16 @@ PetscErrorCode ModelInference_LibTorch(Vec DD_Inputs_loc, Vec DD_Outputs_loc) {
   PetscCall(VecRestoreArrayReadAndMemType(DD_Inputs_loc, &dd_inputs_ptr));
 
   {
-    PetscMemType output_mem_type;
-    PetscInt     output_size, num_nodes;
+    PetscMemType  output_mem_type;
+    PetscInt      output_size, num_nodes;
     PetscScalar  *dd_outputs_ptr;
+    torch::Tensor DD_Outputs_tensor;
 
     PetscCall(VecGetLocalSize(DD_Outputs_loc, &output_size));
     num_nodes = input_size / 6;
     PetscCall(VecGetArrayAndMemType(DD_Outputs_loc, &dd_outputs_ptr, &output_mem_type));
 
-    // auto dims = torch::IntArrayRef{num_nodes, 6};
-    auto options = torch::TensorOptions()
-      .dtype(torch::kFloat64)
-      .device(device);
-    torch::Tensor DD_Outputs_tensor = torch::from_blob((void *)dd_outputs_ptr, {num_nodes, 6}, options);
+    PetscCallCXX(DD_Outputs_tensor = torch::from_blob((void *)dd_outputs_ptr, {num_nodes, 6}, options));
 
     PetscCallCXX(DD_Outputs_tensor.copy_(output));
 
@@ -80,8 +76,7 @@ PetscErrorCode CopyTest(Vec DD_Outputs_loc) {
   auto dims = torch::IntArrayRef{output_size};
   auto options = torch::TensorOptions()
                           .dtype(torch::kFloat64)
-                          .device(torch::kCPU);
-                          // .device(torch::kXPU);
+                          .device(device);
   torch::Tensor gpu_tensor = torch::from_blob((void *)dd_outputs_ptr, dims, options);
 
   torch::Tensor ones = torch::ones_like(gpu_tensor);
