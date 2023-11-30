@@ -112,6 +112,7 @@ struct Ceed_private {
   int (*QFunctionCreate)(CeedQFunction);
   int (*QFunctionContextCreate)(CeedQFunctionContext);
   int (*OperatorCreate)(CeedOperator);
+  int (*OperatorCreateAtPoints)(CeedOperator);
   int (*CompositeOperatorCreate)(CeedOperator);
   int      ref_count;
   void    *data;
@@ -361,6 +362,7 @@ struct CeedOperator_private {
   bool                      is_interface_setup;
   bool                      is_backend_setup;
   bool                      is_composite;
+  bool                      is_at_points;
   bool                      has_restriction;
   CeedQFunctionAssemblyData qf_assembled;
   CeedOperatorAssemblyData  op_assembled;
@@ -370,6 +372,8 @@ struct CeedOperator_private {
   CeedInt                   num_context_labels;
   CeedInt                   max_context_labels;
   CeedContextFieldLabel    *context_labels;
+  CeedElemRestriction       rstr_points, first_points_rstr;
+  CeedVector                point_coords;
 };
 
 #endif  // CEED_IMPL_H

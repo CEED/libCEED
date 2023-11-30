@@ -607,6 +607,50 @@ int CeedOperatorCreate(Ceed ceed, CeedQFunction qf, CeedQFunction dqf, CeedQFunc
 }
 
 /**
+  @brief Create a CeedOperator for evaluation at evaluation at arbitrary points in each element.
+
+  A CeedBasis and CeedElemRestriction can be associated with CeedQFunction fields with \ref CeedOperatorSetField.
+  The locations of each point are set with \ref CeedOperatorAtPointsSetPoints.
+
+  @param[in]  ceed Ceed object where the CeedOperator will be created
+  @param[in]  qf   QFunction defining the action of the operator at quadrature points
+  @param[in]  dqf  QFunction defining the action of the Jacobian of @a qf (or @ref CEED_QFUNCTION_NONE)
+  @param[in]  dqfT QFunction defining the action of the transpose of the Jacobian of @a qf (or @ref CEED_QFUNCTION_NONE)
+  @param[out] op   Address of the variable where the newly created CeedOperator will be stored
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref User
+ */
+int CeedOperatorCreateAtPoints(Ceed ceed, CeedQFunction qf, CeedQFunction dqf, CeedQFunction dqfT, CeedOperator *op) {
+  if (!ceed->OperatorCreateAtPoints) {
+    Ceed delegate;
+
+    CeedCall(CeedGetObjectDelegate(ceed, &delegate, "Operator"));
+    CeedCheck(delegate, ceed, CEED_ERROR_UNSUPPORTED, "Backend does not support OperatorCreateAtPoints");
+    CeedCall(CeedOperatorCreateAtPoints(delegate, qf, dqf, dqfT, op));
+    return CEED_ERROR_SUCCESS;
+  }
+
+  CeedCheck(qf && qf != CEED_QFUNCTION_NONE, ceed, CEED_ERROR_MINOR, "Operator must have a valid QFunction.");
+
+  CeedCall(CeedCalloc(1, op));
+  CeedCall(CeedReferenceCopy(ceed, &(*op)->ceed));
+  (*op)->ref_count    = 1;
+  (*op)->is_at_points = true;
+  (*op)->input_size   = -1;
+  (*op)->output_size  = -1;
+  CeedCall(CeedQFunctionReferenceCopy(qf, &(*op)->qf));
+  if (dqf && dqf != CEED_QFUNCTION_NONE) CeedCall(CeedQFunctionReferenceCopy(dqf, &(*op)->dqf));
+  if (dqfT && dqfT != CEED_QFUNCTION_NONE) CeedCall(CeedQFunctionReferenceCopy(dqfT, &(*op)->dqfT));
+  CeedCall(CeedQFunctionAssemblyDataCreate(ceed, &(*op)->qf_assembled));
+  CeedCall(CeedCalloc(CEED_FIELD_MAX, &(*op)->input_fields));
+  CeedCall(CeedCalloc(CEED_FIELD_MAX, &(*op)->output_fields));
+  CeedCall(ceed->OperatorCreateAtPoints(*op));
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
   @brief Create an operator that composes the action of several operators
 
   @param[in]  ceed Ceed object where the CeedOperator will be created
@@ -704,8 +748,19 @@ int CeedOperatorSetField(CeedOperator op, const char *field_name, CeedElemRestri
     CeedRestrictionType rstr_type;
 
     CeedCall(CeedElemRestrictionGetType(r, &rstr_type));
-    CeedCheck(rstr_type != CEED_RESTRICTION_POINTS, op->ceed, CEED_ERROR_UNSUPPORTED,
-              "CeedElemRestrictionAtPoints not supported for standard operator fields");
+    if (rstr_type == CEED_RESTRICTION_POINTS) {
+      CeedCheck(op->is_at_points, op->ceed, CEED_ERROR_UNSUPPORTED, "ElemRestrictionAtPoints not supported for standard operator fields");
+      CeedCheck(b == CEED_BASIS_NONE, op->ceed, CEED_ERROR_UNSUPPORTED, "ElemRestrictionAtPoints must be used with CEED_BASIS_NONE");
+      if (!op->first_points_rstr) {
+        CeedCall(CeedElemRestrictionReferenceCopy(r, &op->first_points_rstr));
+      } else {
+        bool are_compatible;
+
+        CeedCall(CeedElemRestrictionAtPointsAreCompatible(op->first_points_rstr, r, &are_compatible));
+        CeedCheck(are_compatible, op->ceed, CEED_ERROR_INCOMPATIBLE,
+                  "ElemRestriction must have compatible offsets with previously set ElemRestriction");
+      }
+    }
   }
 
   if (b == CEED_BASIS_NONE) CeedCall(CeedElemRestrictionGetElementSize(r, &num_qpts));
@@ -758,14 +813,14 @@ found:
     op->has_restriction = true;  // Restriction set, but num_elem may be 0
   }
   CeedCall(CeedBasisReferenceCopy(b, &(*op_field)->basis));
-  if (op->num_qpts == 0) op->num_qpts = num_qpts;
+  if (op->num_qpts == 0 && !op->is_at_points) op->num_qpts = num_qpts;  // no consistent number of qpts for OperatorAtPoints
   op->num_fields += 1;
   CeedCall(CeedStringAllocCopy(field_name, (char **)&(*op_field)->field_name));
   return CEED_ERROR_SUCCESS;
 }
 
 /**
-  @brief Get the CeedOperatorFields of a CeedOperator
+  @brief Get the CeedOperatorFields of a CeedOperator.
 
   Note: Calling this function asserts that setup is complete and sets the CeedOperator as immutable.
 
@@ -788,6 +843,60 @@ int CeedOperatorGetFields(CeedOperator op, CeedInt *num_input_fields, CeedOperat
   if (input_fields) *input_fields = op->input_fields;
   if (num_output_fields) *num_output_fields = op->qf->num_output_fields;
   if (output_fields) *output_fields = op->output_fields;
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
+  @brief Set the arbitrary points in each element for a CeedOperatorAtPoints.
+
+  Note: Calling this function asserts that setup is complete and sets the CeedOperator as immutable.
+
+  @param[in,out] op           CeedOperatorAtPoints
+  @param[in]     rstr_points  CeedElemRestriction for the coordinates of each point by element
+  @param[in]     point_coords CeedVector holding coordinates of each point
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Advanced
+**/
+int CeedOperatorAtPointsSetPoints(CeedOperator op, CeedElemRestriction rstr_points, CeedVector point_coords) {
+  CeedCheck(op->is_at_points, op->ceed, CEED_ERROR_MINOR, "Only defined for operator at points");
+  CeedCheck(!op->is_immutable, op->ceed, CEED_ERROR_MAJOR, "Operator cannot be changed after set as immutable");
+
+  if (!op->first_points_rstr) {
+    CeedCall(CeedElemRestrictionReferenceCopy(rstr_points, &op->first_points_rstr));
+  } else {
+    bool are_compatible;
+
+    CeedCall(CeedElemRestrictionAtPointsAreCompatible(op->first_points_rstr, rstr_points, &are_compatible));
+    CeedCheck(are_compatible, op->ceed, CEED_ERROR_INCOMPATIBLE,
+              "ElemRestriction must have compatible offsets with previously set field ElemRestrictions");
+  }
+
+  CeedCall(CeedElemRestrictionReferenceCopy(rstr_points, &op->rstr_points));
+  CeedCall(CeedVectorReferenceCopy(point_coords, &op->point_coords));
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
+  @brief Get the arbitrary points in each element for a CeedOperatorAtPoints.
+
+  Note: Calling this function asserts that setup is complete and sets the CeedOperator as immutable.
+
+  @param[in]  op           CeedOperatorAtPoints
+  @param[out] rstr_points  Variable to hold CeedElemRestriction for the coordinates of each point by element
+  @param[out] point_coords Variable to hold CeedVector holding coordinates of each point
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Advanced
+**/
+int CeedOperatorAtPointsGetPoints(CeedOperator op, CeedElemRestriction *rstr_points, CeedVector *point_coords) {
+  CeedCheck(op->is_at_points, op->ceed, CEED_ERROR_MINOR, "Only defined for operator at points");
+  CeedCall(CeedOperatorCheckReady(op));
+
+  if (rstr_points) CeedCall(CeedElemRestrictionReferenceCopy(op->rstr_points, rstr_points));
+  if (point_coords) CeedCall(CeedVectorReferenceCopy(op->point_coords, point_coords));
   return CEED_ERROR_SUCCESS;
 }
 
@@ -994,7 +1103,7 @@ int CeedOperatorCheckReady(CeedOperator op) {
     CeedCheck(op->num_fields > 0, ceed, CEED_ERROR_INCOMPLETE, "No operator fields set");
     CeedCheck(op->num_fields == qf->num_input_fields + qf->num_output_fields, ceed, CEED_ERROR_INCOMPLETE, "Not all operator fields set");
     CeedCheck(op->has_restriction, ceed, CEED_ERROR_INCOMPLETE, "At least one restriction required");
-    CeedCheck(op->num_qpts > 0, ceed, CEED_ERROR_INCOMPLETE,
+    CeedCheck(op->num_qpts > 0 || op->is_at_points, ceed, CEED_ERROR_INCOMPLETE,
               "At least one non-collocated basis is required or the number of quadrature points must be set");
   }
 
@@ -1699,6 +1808,10 @@ int CeedOperatorDestroy(CeedOperator *op) {
       CeedCall(CeedFree(&(*op)->output_fields[i]));
     }
   }
+  // AtPoints data
+  CeedCall(CeedVectorDestroy(&(*op)->point_coords));
+  CeedCall(CeedElemRestrictionDestroy(&(*op)->rstr_points));
+  CeedCall(CeedElemRestrictionDestroy(&(*op)->first_points_rstr));
   // Destroy sub_operators
   for (CeedInt i = 0; i < (*op)->num_suboperators; i++) {
     if ((*op)->sub_operators[i]) {
