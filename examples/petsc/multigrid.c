@@ -51,7 +51,6 @@ int main(int argc, char **argv) {
   double   my_rt_start, my_rt, rt_min, rt_max;
   PetscInt degree = 3, q_extra, *l_size, *xl_size, *g_size, dim = 3, fine_level, mesh_elem[3] = {3, 3, 3}, num_comp_u = 1, num_levels = degree,
            *level_degrees;
-  PetscScalar          *r;
   PetscScalar           eps = 1.0;
   PetscBool             test_mode, benchmark_mode, read_mesh, write_solution, simplex;
   PetscLogStage         solve_stage;
@@ -251,9 +250,8 @@ int main(int argc, char **argv) {
   // Create RHS vector
   PetscCall(VecDuplicate(X_loc[fine_level], &rhs_loc));
   PetscCall(VecZeroEntries(rhs_loc));
-  PetscCall(VecGetArrayAndMemType(rhs_loc, &r, &mem_type));
   CeedVectorCreate(ceed, xl_size[fine_level], &rhs_ceed);
-  CeedVectorSetArray(rhs_ceed, MemTypeP2C(mem_type), CEED_USE_POINTER, r);
+  PetscCall(VecP2C(rhs_loc, &mem_type, rhs_ceed));
 
   // Set up libCEED operators on each level
   PetscCall(PetscMalloc1(num_levels, &ceed_data));
@@ -273,8 +271,7 @@ int main(int argc, char **argv) {
   }
 
   // Gather RHS
-  CeedVectorTakeArray(rhs_ceed, MemTypeP2C(mem_type), NULL);
-  PetscCall(VecRestoreArrayAndMemType(rhs_loc, &r));
+  PetscCall(VecC2P(rhs_ceed, mem_type, rhs_loc));
   PetscCall(VecZeroEntries(rhs));
   PetscCall(DMLocalToGlobal(dm[fine_level], rhs_loc, ADD_VALUES, rhs));
   CeedVectorDestroy(&rhs_ceed);
@@ -295,19 +292,18 @@ int main(int argc, char **argv) {
 
   // Calculate multiplicity
   for (int i = 0; i < num_levels; i++) {
-    PetscScalar *x;
+    PetscMemType mem_type;
 
     // CEED vector
     PetscCall(VecZeroEntries(X_loc[i]));
-    PetscCall(VecGetArray(X_loc[i], &x));
-    CeedVectorSetArray(ceed_data[i]->x_ceed, CEED_MEM_HOST, CEED_USE_POINTER, x);
+    PetscCall(VecP2C(X_loc[i], &mem_type, ceed_data[i]->x_ceed));
 
     // Multiplicity
     CeedElemRestrictionGetMultiplicity(ceed_data[i]->elem_restr_u, ceed_data[i]->x_ceed);
     CeedVectorSyncArray(ceed_data[i]->x_ceed, CEED_MEM_HOST);
 
     // Restore vector
-    PetscCall(VecRestoreArray(X_loc[i], &x));
+    PetscCall(VecC2P(ceed_data[i]->x_ceed, mem_type, X_loc[i]));
 
     // Creat mult vector
     PetscCall(VecDuplicate(X_loc[i], &mult[i]));

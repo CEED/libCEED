@@ -557,8 +557,8 @@ int main(int argc, char **argv) {
   CeedBasisCreateTensorH1Lagrange(ceed, dim, num_comp_x, 2, Q, bp_options[bp_choice].q_mode, &basis_x);
 
   // CEED restrictions
-  CreateRestriction(ceed, mesh_elem, P, num_comp_u, &elem_restr_u);
-  CreateRestriction(ceed, mesh_elem, 2, dim, &elem_restr_x);
+  PetscCall(CreateRestriction(ceed, mesh_elem, P, num_comp_u, &elem_restr_u));
+  PetscCall(CreateRestriction(ceed, mesh_elem, 2, dim, &elem_restr_x));
   CeedInt num_elem = mesh_elem[0] * mesh_elem[1] * mesh_elem[2];
   CeedElemRestrictionCreateStrided(ceed, num_elem, Q * Q * Q, num_comp_u, num_comp_u * num_elem * Q * Q * Q, CEED_STRIDES_BACKEND, &elem_restr_u_i);
   CeedElemRestrictionCreateStrided(ceed, num_elem, Q * Q * Q, bp_options[bp_choice].q_data_size,
