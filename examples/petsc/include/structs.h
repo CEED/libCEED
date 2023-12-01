@@ -1,3 +1,13 @@
+// Copyright (c) 2017-2022, Lawrence Livermore National Security, LLC and other CEED contributors.
+// All Rights Reserved. See the top-level LICENSE and NOTICE files for details.
+//
+// SPDX-License-Identifier: BSD-2-Clause
+//
+// This file is part of CEED:  http://github.com/ceed
+
+/// @file
+/// Data structures for PETSc examples
+
 #ifndef libceed_petsc_examples_structs_h
 #define libceed_petsc_examples_structs_h
 

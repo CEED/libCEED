@@ -1,3 +1,10 @@
+// Copyright (c) 2017-2022, Lawrence Livermore National Security, LLC and other CEED contributors.
+// All Rights Reserved. See the top-level LICENSE and NOTICE files for details.
+//
+// SPDX-License-Identifier: BSD-2-Clause
+//
+// This file is part of CEED:  http://github.com/ceed
+
 #include "../include/swarmutils.h"
 #include "../qfunctions/swarm/swarmmass.h"
 
@@ -205,7 +212,6 @@ PetscErrorCode DMSwarmCeedContextCreate(DM dm_swarm, const char *ceed_resource, 
   CeedBasisDestroy(&basis_x);
   CeedVectorDestroy(&x_ref_points);
   CeedVectorDestroy(&q_data_points);
-
   PetscFunctionReturn(PETSC_SUCCESS);
 }
 
@@ -248,7 +254,6 @@ PetscErrorCode DMSwarmPICFieldC2P(DM dm_swarm, const char *field, CeedVector x_c
 // ------------------------------------------------------------------------------------------------
 PetscErrorCode DMSwarmInitalizePointLocations(DM dm_swarm, PointSwarmType point_swarm_type, PetscInt num_points, PetscInt num_points_per_cell) {
   PetscFunctionBeginUser;
-
   switch (point_swarm_type) {
     case SWARM_GAUSS:
     case SWARM_UNIFORM: {
@@ -513,7 +518,6 @@ PetscErrorCode DMSwarmProjectFromSwarmToCells(DM dm_swarm, const char *field, Ve
   MPI_Comm           comm;
 
   PetscFunctionBeginUser;
-
   PetscOptionsBegin(PETSC_COMM_WORLD, NULL, "Swarm-to-Mesh Projection Options", NULL);
   PetscCall(PetscOptionsBool("-test", "Testing mode (do not print unless error is large)", NULL, test_mode, &test_mode, NULL));
   PetscOptionsEnd();
@@ -587,6 +591,5 @@ PetscErrorCode DMSwarmProjectFromSwarmToCells(DM dm_swarm, const char *field, Ve
   PetscCall(VecDestroy(&B_mesh));
   PetscCall(MatDestroy(&M));
   PetscCall(KSPDestroy(&ksp));
-
   PetscFunctionReturn(PETSC_SUCCESS);
 }

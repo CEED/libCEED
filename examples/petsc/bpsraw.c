@@ -103,7 +103,6 @@ static PetscErrorCode CreateRestriction(Ceed ceed, const CeedInt mesh_elem[3], C
   // Setup CEED restriction
   CeedElemRestrictionCreate(ceed, num_elem, P * P * P, num_comp, 1, m_nodes[0] * m_nodes[1] * m_nodes[2] * num_comp, CEED_MEM_HOST, CEED_OWN_POINTER,
                             idx, elem_restr);
-
   PetscFunctionReturn(PETSC_SUCCESS);
 }
 
@@ -228,7 +227,6 @@ static PetscErrorCode MatMult_Mass(Mat A, Vec X, Vec Y) {
   PetscMemType         x_mem_type, y_mem_type;
 
   PetscFunctionBeginUser;
-
   PetscCall(MatShellGetContext(A, &op_apply_ctx));
 
   // Global-to-local
@@ -266,7 +264,6 @@ static PetscErrorCode MatMult_Diff(Mat A, Vec X, Vec Y) {
   PetscMemType         x_mem_type, y_mem_type;
 
   PetscFunctionBeginUser;
-
   PetscCall(MatShellGetContext(A, &op_apply_ctx));
 
   // Global-to-local
@@ -294,7 +291,6 @@ static PetscErrorCode MatMult_Diff(Mat A, Vec X, Vec Y) {
   PetscCall(VecScatterEnd(op_apply_ctx->g_to_g_D, X, Y, INSERT_VALUES, SCATTER_FORWARD));
   PetscCall(VecScatterBegin(op_apply_ctx->l_to_g_0, op_apply_ctx->Y_loc, Y, ADD_VALUES, SCATTER_FORWARD));
   PetscCall(VecScatterEnd(op_apply_ctx->l_to_g_0, op_apply_ctx->Y_loc, Y, ADD_VALUES, SCATTER_FORWARD));
-
   PetscFunctionReturn(PETSC_SUCCESS);
 }
 
@@ -306,7 +302,6 @@ static PetscErrorCode ComputeErrorMax(OperatorApplyContext op_apply_ctx, CeedOpe
   CeedSize     length;
 
   PetscFunctionBeginUser;
-
   CeedVectorGetLength(target, &length);
   CeedVectorCreate(op_apply_ctx->ceed, length, &collocated_error);
 
@@ -337,7 +332,6 @@ static PetscErrorCode ComputeErrorMax(OperatorApplyContext op_apply_ctx, CeedOpe
 
   // Cleanup
   CeedVectorDestroy(&collocated_error);
-
   PetscFunctionReturn(PETSC_SUCCESS);
 }
 
