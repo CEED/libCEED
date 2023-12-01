@@ -121,9 +121,9 @@ PetscErrorCode SetupDMByDegree(DM dm, PetscInt p_degree, PetscInt q_extra, Petsc
   // So we pass bcFunc = NULL in DMAddBoundary function
   if (enforce_bc) {
     PetscBool has_label;
-    DMHasLabel(dm, "marker", &has_label);
+    PetscCall(DMHasLabel(dm, "marker", &has_label));
     if (!has_label) {
-      CreateBCLabel(dm, "marker");
+      PetscCall(CreateBCLabel(dm, "marker"));
     }
     DMLabel label;
     PetscCall(DMGetLabel(dm, "marker", &label));

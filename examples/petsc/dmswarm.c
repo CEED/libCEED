@@ -43,9 +43,10 @@ const char DMSwarmPICField_u[] = "u";
 typedef struct DMSwarmCeedContext_ *DMSwarmCeedContext;
 struct DMSwarmCeedContext_ {
   Ceed                ceed;
-  CeedVector          u_mesh_loc, v_mesh_loc, u_mesh_elem, u_points_loc, u_points_elem, x_ref_points_loc, x_ref_points_elem;
-  CeedElemRestriction restriction_u_mesh, restriction_x_points, restriction_u_points;
-  CeedBasis           basis_u;
+  CeedVector          u_mesh_loc, v_mesh_loc, u_points_loc, x_ref_points_loc;
+  CeedElemRestriction elem_restr_u_mesh, elem_restr_x_mesh, elem_restr_x_points, elem_restr_u_points;
+  CeedBasis           basis_u, basis_x;
+  CeedOperator        op_mass;
 };
 
 PetscErrorCode DMSwarmCeedContextCreate(DM dm_swarm, const char *ceed_resource, DMSwarmCeedContext *ctx);
@@ -88,6 +89,9 @@ PetscErrorCode DMSwarmCheckSwarmValues(DM dm_swarm, const char *field, PetscScal
 
 PetscErrorCode DMSwarmCreateProjectionRHS(DM dm_swarm, const char *field, Vec B_mesh);
 PetscErrorCode MatMult_SwarmMass(Mat A, Vec U_mesh, Vec V_mesh);
+
+// Operator setup
+PetscErrorCode CreateMassOperator(DM dm_mesh, CeedOperator *op_mass);
 
 // ------------------------------------------------------------------------------------------------
 // main driver
@@ -365,27 +369,26 @@ int main(int argc, char **argv) {
 // Context utilities
 // ------------------------------------------------------------------------------------------------
 PetscErrorCode DMSwarmCeedContextCreate(DM dm_swarm, const char *ceed_resource, DMSwarmCeedContext *ctx) {
-  DM dm_mesh;
+  DM dm_mesh, dm_coord;
 
   PetscFunctionBeginUser;
   PetscCall(PetscNew(ctx));
   PetscCall(DMSwarmGetCellDM(dm_swarm, &dm_mesh));
+  PetscCall(DMGetCoordinateDM(dm_mesh, &dm_coord));
 
   CeedInit(ceed_resource, &(*ctx)->ceed);
   // Background mesh objects
   {
-    CeedInt elem_size, num_comp;
-    BPData  bp_data = {.q_mode = CEED_GAUSS};
+    BPData bp_data = {.q_mode = CEED_GAUSS};
 
     PetscCall(CreateBasisFromPlex((*ctx)->ceed, dm_mesh, NULL, 0, 0, 0, bp_data, &(*ctx)->basis_u));
-    PetscCall(CreateRestrictionFromPlex((*ctx)->ceed, dm_mesh, 0, NULL, 0, &(*ctx)->restriction_u_mesh));
+    PetscCall(CreateBasisFromPlex((*ctx)->ceed, dm_coord, NULL, 0, 0, 0, bp_data, &(*ctx)->basis_x));
+    PetscCall(CreateRestrictionFromPlex((*ctx)->ceed, dm_mesh, 0, NULL, 0, &(*ctx)->elem_restr_u_mesh));
+    PetscCall(CreateRestrictionFromPlex((*ctx)->ceed, dm_coord, 0, NULL, 0, &(*ctx)->elem_restr_x_mesh));
 
     // -- U vector
-    CeedElemRestrictionCreateVector((*ctx)->restriction_u_mesh, &(*ctx)->u_mesh_loc, NULL);
-    CeedElemRestrictionCreateVector((*ctx)->restriction_u_mesh, &(*ctx)->v_mesh_loc, NULL);
-    CeedElemRestrictionGetElementSize((*ctx)->restriction_u_mesh, &elem_size);
-    CeedElemRestrictionGetNumComponents((*ctx)->restriction_u_mesh, &num_comp);
-    CeedVectorCreate((*ctx)->ceed, elem_size * num_comp, &(*ctx)->u_mesh_elem);
+    CeedElemRestrictionCreateVector((*ctx)->elem_restr_u_mesh, &(*ctx)->u_mesh_loc, NULL);
+    CeedElemRestrictionCreateVector((*ctx)->elem_restr_u_mesh, &(*ctx)->v_mesh_loc, NULL);
   }
   // Swarm objects
   {
@@ -393,12 +396,12 @@ PetscErrorCode DMSwarmCeedContextCreate(DM dm_swarm, const char *ceed_resource, 
     const PetscInt *cell_points;
     IS              is_points;
     Vec             X_ref;
-    CeedInt         num_elem, num_comp, max_points_in_cell;
+    CeedInt         num_elem, num_comp;
 
     PetscCall(DMSwarmCreateReferenceCoordinates(dm_swarm, &is_points, &X_ref));
     PetscCall(DMGetDimension(dm_mesh, &dim));
-    CeedElemRestrictionGetNumElements((*ctx)->restriction_u_mesh, &num_elem);
-    CeedElemRestrictionGetNumComponents((*ctx)->restriction_u_mesh, &num_comp);
+    CeedElemRestrictionGetNumElements((*ctx)->elem_restr_u_mesh, &num_elem);
+    CeedElemRestrictionGetNumComponents((*ctx)->elem_restr_u_mesh, &num_comp);
 
     PetscCall(ISGetIndices(is_points, &cell_points));
     PetscInt num_points = cell_points[num_elem + 1] - num_elem - 2;
@@ -410,14 +413,12 @@ PetscErrorCode DMSwarmCeedContextCreate(DM dm_swarm, const char *ceed_resource, 
 
     // -- Points restrictions
     CeedElemRestrictionCreateAtPoints((*ctx)->ceed, num_elem, num_points, num_comp, num_points * num_comp, CEED_MEM_HOST, CEED_COPY_VALUES, offsets,
-                                      &(*ctx)->restriction_u_points);
+                                      &(*ctx)->elem_restr_u_points);
     CeedElemRestrictionCreateAtPoints((*ctx)->ceed, num_elem, num_points, dim, num_points * dim, CEED_MEM_HOST, CEED_COPY_VALUES, offsets,
-                                      &(*ctx)->restriction_x_points);
+                                      &(*ctx)->elem_restr_x_points);
 
     // -- U vector
-    CeedElemRestrictionGetMaxPointsInElement((*ctx)->restriction_u_points, &max_points_in_cell);
-    CeedElemRestrictionCreateVector((*ctx)->restriction_u_points, &(*ctx)->u_points_loc, NULL);
-    CeedVectorCreate((*ctx)->ceed, max_points_in_cell * num_comp, &(*ctx)->u_points_elem);
+    CeedElemRestrictionCreateVector((*ctx)->elem_restr_u_points, &(*ctx)->u_points_loc, NULL);
 
     // -- Ref coordinates
     {
@@ -425,7 +426,6 @@ PetscErrorCode DMSwarmCeedContextCreate(DM dm_swarm, const char *ceed_resource, 
       const PetscScalar *x;
 
       CeedVectorCreate((*ctx)->ceed, num_points * dim, &(*ctx)->x_ref_points_loc);
-      CeedVectorCreate((*ctx)->ceed, max_points_in_cell * dim, &(*ctx)->x_ref_points_elem);
 
       PetscCall(VecGetArrayReadAndMemType(X_ref, (const PetscScalar **)&x, &X_mem_type));
       CeedVectorSetArray((*ctx)->x_ref_points_loc, MemTypeP2C(X_mem_type), CEED_COPY_VALUES, (CeedScalar *)x);
@@ -438,6 +438,10 @@ PetscErrorCode DMSwarmCeedContextCreate(DM dm_swarm, const char *ceed_resource, 
   }
 
   PetscCall(DMSetApplicationContext(dm_mesh, (void *)(*ctx)));
+
+  // Create operators
+  PetscCall(CreateMassOperator(dm_swarm, &(*ctx)->op_mass));
+
   PetscFunctionReturn(PETSC_SUCCESS);
 }
 
@@ -446,15 +450,14 @@ PetscErrorCode DMSwarmCeedContextDestroy(DMSwarmCeedContext *ctx) {
   CeedDestroy(&(*ctx)->ceed);
   CeedVectorDestroy(&(*ctx)->u_mesh_loc);
   CeedVectorDestroy(&(*ctx)->v_mesh_loc);
-  CeedVectorDestroy(&(*ctx)->u_mesh_elem);
   CeedVectorDestroy(&(*ctx)->u_points_loc);
-  CeedVectorDestroy(&(*ctx)->u_points_elem);
   CeedVectorDestroy(&(*ctx)->x_ref_points_loc);
-  CeedVectorDestroy(&(*ctx)->x_ref_points_elem);
-  CeedElemRestrictionDestroy(&(*ctx)->restriction_u_mesh);
-  CeedElemRestrictionDestroy(&(*ctx)->restriction_x_points);
-  CeedElemRestrictionDestroy(&(*ctx)->restriction_u_points);
+  CeedElemRestrictionDestroy(&(*ctx)->elem_restr_u_mesh);
+  CeedElemRestrictionDestroy(&(*ctx)->elem_restr_x_mesh);
+  CeedElemRestrictionDestroy(&(*ctx)->elem_restr_x_points);
+  CeedElemRestrictionDestroy(&(*ctx)->elem_restr_u_points);
   CeedBasisDestroy(&(*ctx)->basis_u);
+  CeedBasisDestroy(&(*ctx)->basis_x);
   PetscCall(PetscFree(*ctx));
   PetscFunctionReturn(PETSC_SUCCESS);
 }
@@ -847,7 +850,6 @@ PetscErrorCode DMSwarmInterpolateFromCellToSwarm_Petsc(DM dm_swarm, const char *
 // Projection via libCEED
 // ------------------------------------------------------------------------------------------------
 PetscErrorCode DMSwarmInterpolateFromCellToSwarm_Ceed(DM dm_swarm, const char *field, Vec U_mesh) {
-  PetscInt           num_elem;
   PetscMemType       U_mem_type;
   DM                 dm_mesh;
   Vec                U_mesh_loc;
@@ -868,27 +870,26 @@ PetscErrorCode DMSwarmInterpolateFromCellToSwarm_Ceed(DM dm_swarm, const char *f
   PetscCall(DMSwarmSortGetAccess(dm_swarm));
   PetscCall(DMSwarmPICFieldP2C(dm_swarm, field, swarm_ceed_context->u_points_loc));
 
-  // Interpolate values to each swarm point, one element in the background mesh at a time
-  CeedElemRestrictionGetNumElements(swarm_ceed_context->restriction_u_mesh, &num_elem);
-  for (PetscInt e = 0; e < num_elem; e++) {
-    PetscInt num_points_in_elem;
+  // Interpolate field from mesh to swarm points
+  {
+    CeedQFunction qf_mesh_to_points;
+    CeedOperator  op_mesh_to_points;
+    CeedInt       num_comp;
 
-    CeedElemRestrictionGetNumPointsInElement(swarm_ceed_context->restriction_u_points, e, &num_points_in_elem);
+    CeedElemRestrictionGetNumComponents(swarm_ceed_context->elem_restr_u_points, &num_comp);
 
-    // -- Reference coordinates for swarm points in background mesh element
-    CeedElemRestrictionApplyAtPointsInElement(swarm_ceed_context->restriction_x_points, e, CEED_NOTRANSPOSE, swarm_ceed_context->x_ref_points_loc,
-                                              swarm_ceed_context->x_ref_points_elem, CEED_REQUEST_IMMEDIATE);
+    CeedQFunctionCreateIdentity(swarm_ceed_context->ceed, num_comp, CEED_EVAL_INTERP, CEED_EVAL_NONE, &qf_mesh_to_points);
 
-    // -- Interpolate values from current element in background mesh to swarm points
-    // Note: This will only work for CPU backends at this time, as only CPU backends support ApplyBlock and ApplyAtPoints
-    CeedElemRestrictionApplyBlock(swarm_ceed_context->restriction_u_mesh, e, CEED_NOTRANSPOSE, swarm_ceed_context->u_mesh_loc,
-                                  swarm_ceed_context->u_mesh_elem, CEED_REQUEST_IMMEDIATE);
-    CeedBasisApplyAtPoints(swarm_ceed_context->basis_u, num_points_in_elem, CEED_NOTRANSPOSE, CEED_EVAL_INTERP, swarm_ceed_context->x_ref_points_elem,
-                           swarm_ceed_context->u_mesh_elem, swarm_ceed_context->u_points_elem);
+    CeedOperatorCreateAtPoints(swarm_ceed_context->ceed, qf_mesh_to_points, NULL, NULL, &op_mesh_to_points);
+    CeedOperatorSetField(op_mesh_to_points, "input", swarm_ceed_context->elem_restr_u_mesh, swarm_ceed_context->basis_u, CEED_VECTOR_ACTIVE);
+    CeedOperatorSetField(op_mesh_to_points, "output", swarm_ceed_context->elem_restr_u_points, CEED_BASIS_NONE, swarm_ceed_context->u_points_loc);
+    CeedOperatorAtPointsSetPoints(op_mesh_to_points, swarm_ceed_context->elem_restr_x_points, swarm_ceed_context->x_ref_points_loc);
 
-    // -- Insert result back into local vector
-    CeedElemRestrictionApplyAtPointsInElement(swarm_ceed_context->restriction_u_points, e, CEED_TRANSPOSE, swarm_ceed_context->u_points_elem,
-                                              swarm_ceed_context->u_points_loc, CEED_REQUEST_IMMEDIATE);
+    CeedOperatorApply(op_mesh_to_points, swarm_ceed_context->u_mesh_loc, NULL, CEED_REQUEST_IMMEDIATE);
+
+    // Cleanup
+    CeedOperatorDestroy(&op_mesh_to_points);
+    CeedQFunctionDestroy(&qf_mesh_to_points);
   }
 
   // Cleanup
@@ -955,7 +956,6 @@ PetscErrorCode DMSwarmCheckSwarmValues(DM dm_swarm, const char *field, PetscScal
 // RHS for Swarm to Mesh projection
 // ------------------------------------------------------------------------------------------------
 PetscErrorCode DMSwarmCreateProjectionRHS(DM dm_swarm, const char *field, Vec B_mesh) {
-  PetscInt           num_elem;
   PetscMemType       B_mem_type;
   DM                 dm_mesh;
   Vec                B_mesh_loc;
@@ -975,27 +975,27 @@ PetscErrorCode DMSwarmCreateProjectionRHS(DM dm_swarm, const char *field, Vec B_
   PetscCall(DMSwarmSortGetAccess(dm_swarm));
   PetscCall(DMSwarmPICFieldP2C(dm_swarm, field, swarm_ceed_context->u_points_loc));
 
-  // Interpolate values to each swarm point, one element in the background mesh at a time
-  CeedElemRestrictionGetNumElements(swarm_ceed_context->restriction_u_mesh, &num_elem);
-  for (PetscInt e = 0; e < num_elem; e++) {
-    PetscInt num_points_in_elem;
+  // Interpolate field from swarm points to mesh
+  {
+    CeedQFunction qf_pts_to_mesh;
+    CeedOperator  op_pts_to_mesh;
+    CeedInt       num_comp;
 
-    CeedElemRestrictionGetNumPointsInElement(swarm_ceed_context->restriction_u_points, e, &num_points_in_elem);
+    CeedElemRestrictionGetNumComponents(swarm_ceed_context->elem_restr_u_points, &num_comp);
 
-    // -- Reference coordinates for swarm points in background mesh element
-    CeedElemRestrictionApplyAtPointsInElement(swarm_ceed_context->restriction_x_points, e, CEED_NOTRANSPOSE, swarm_ceed_context->x_ref_points_loc,
-                                              swarm_ceed_context->x_ref_points_elem, CEED_REQUEST_IMMEDIATE);
+    CeedQFunctionCreateIdentity(swarm_ceed_context->ceed, num_comp, CEED_EVAL_NONE, CEED_EVAL_INTERP, &qf_pts_to_mesh);
 
-    // -- Interpolate values from current element in background mesh to swarm points
-    // Note: This will only work for CPU backends at this time, as only CPU backends support ApplyBlock and ApplyAtPoints
-    CeedElemRestrictionApplyAtPointsInElement(swarm_ceed_context->restriction_u_points, e, CEED_NOTRANSPOSE, swarm_ceed_context->u_points_loc,
-                                              swarm_ceed_context->u_points_elem, CEED_REQUEST_IMMEDIATE);
-    CeedBasisApplyAtPoints(swarm_ceed_context->basis_u, num_points_in_elem, CEED_TRANSPOSE, CEED_EVAL_INTERP, swarm_ceed_context->x_ref_points_elem,
-                           swarm_ceed_context->u_points_elem, swarm_ceed_context->u_mesh_elem);
+    CeedOperatorCreateAtPoints(swarm_ceed_context->ceed, qf_pts_to_mesh, NULL, NULL, &op_pts_to_mesh);
+    CeedOperatorSetField(op_pts_to_mesh, "input", swarm_ceed_context->elem_restr_u_points, CEED_BASIS_NONE, swarm_ceed_context->u_points_loc);
+    CeedOperatorSetField(op_pts_to_mesh, "output", swarm_ceed_context->elem_restr_u_mesh, swarm_ceed_context->basis_u,
+                         swarm_ceed_context->v_mesh_loc);
+    CeedOperatorAtPointsSetPoints(op_pts_to_mesh, swarm_ceed_context->elem_restr_x_points, swarm_ceed_context->x_ref_points_loc);
 
-    // -- Insert result back into local vector
-    CeedElemRestrictionApplyBlock(swarm_ceed_context->restriction_u_mesh, e, CEED_TRANSPOSE, swarm_ceed_context->u_mesh_elem,
-                                  swarm_ceed_context->v_mesh_loc, CEED_REQUEST_IMMEDIATE);
+    CeedOperatorApply(op_pts_to_mesh, NULL, swarm_ceed_context->v_mesh_loc, CEED_REQUEST_IMMEDIATE);
+
+    // Cleanup
+    CeedOperatorDestroy(&op_pts_to_mesh);
+    CeedQFunctionDestroy(&qf_pts_to_mesh);
   }
 
   // Restore PETSc Vecs and Local to Global
@@ -1014,7 +1014,6 @@ PetscErrorCode DMSwarmCreateProjectionRHS(DM dm_swarm, const char *field, Vec B_
 // Swarm "mass matrix"
 // ------------------------------------------------------------------------------------------------
 PetscErrorCode MatMult_SwarmMass(Mat A, Vec U_mesh, Vec V_mesh) {
-  PetscInt           num_elem;
   PetscMemType       U_mem_type, V_mem_type;
   DM                 dm_mesh;
   Vec                U_mesh_loc, V_mesh_loc;
@@ -1034,30 +1033,7 @@ PetscErrorCode MatMult_SwarmMass(Mat A, Vec U_mesh, Vec V_mesh) {
   PetscCall(VecZeroEntries(V_mesh_loc));
   PetscCall(VecP2C(V_mesh_loc, &V_mem_type, swarm_ceed_context->v_mesh_loc));
 
-  // Interpolate values to each swarm point, one element in the background mesh at a time
-  CeedElemRestrictionGetNumElements(swarm_ceed_context->restriction_u_mesh, &num_elem);
-  for (PetscInt e = 0; e < num_elem; e++) {
-    PetscInt num_points_in_elem;
-
-    CeedElemRestrictionGetNumPointsInElement(swarm_ceed_context->restriction_u_points, e, &num_points_in_elem);
-
-    // -- Reference coordinates for swarm points in background mesh element
-    CeedElemRestrictionApplyAtPointsInElement(swarm_ceed_context->restriction_x_points, e, CEED_NOTRANSPOSE, swarm_ceed_context->x_ref_points_loc,
-                                              swarm_ceed_context->x_ref_points_elem, CEED_REQUEST_IMMEDIATE);
-
-    // -- Interpolate values from current element in background mesh to swarm points
-    // Note: This will only work for CPU backends at this time, as only CPU backends support ApplyBlock and ApplyAtPoints
-    CeedElemRestrictionApplyBlock(swarm_ceed_context->restriction_u_mesh, e, CEED_NOTRANSPOSE, swarm_ceed_context->u_mesh_loc,
-                                  swarm_ceed_context->u_mesh_elem, CEED_REQUEST_IMMEDIATE);
-    CeedBasisApplyAtPoints(swarm_ceed_context->basis_u, num_points_in_elem, CEED_NOTRANSPOSE, CEED_EVAL_INTERP, swarm_ceed_context->x_ref_points_elem,
-                           swarm_ceed_context->u_mesh_elem, swarm_ceed_context->u_points_elem);
-
-    // -- Interpolate transpose back from swarm points to mesh
-    CeedBasisApplyAtPoints(swarm_ceed_context->basis_u, num_points_in_elem, CEED_TRANSPOSE, CEED_EVAL_INTERP, swarm_ceed_context->x_ref_points_elem,
-                           swarm_ceed_context->u_points_elem, swarm_ceed_context->u_mesh_elem);
-    CeedElemRestrictionApplyBlock(swarm_ceed_context->restriction_u_mesh, e, CEED_TRANSPOSE, swarm_ceed_context->u_mesh_elem,
-                                  swarm_ceed_context->v_mesh_loc, CEED_REQUEST_IMMEDIATE);
-  }
+  CeedOperatorApply(swarm_ceed_context->op_mass, swarm_ceed_context->u_mesh_loc, swarm_ceed_context->v_mesh_loc, CEED_REQUEST_IMMEDIATE);
 
   // Restore PETSc Vecs and Local to Global
   PetscCall(VecReadC2P(swarm_ceed_context->u_mesh_loc, U_mem_type, U_mesh_loc));
@@ -1068,5 +1044,31 @@ PetscErrorCode MatMult_SwarmMass(Mat A, Vec U_mesh, Vec V_mesh) {
   // Cleanup
   PetscCall(DMRestoreLocalVector(dm_mesh, &U_mesh_loc));
   PetscCall(DMRestoreLocalVector(dm_mesh, &V_mesh_loc));
+  PetscFunctionReturn(PETSC_SUCCESS);
+}
+
+PetscErrorCode CreateMassOperator(DM dm_swarm, CeedOperator *op_mass) {
+  PetscInt           num_comp;
+  CeedQFunction      qf_mass;
+  DM                 dm_mesh;
+  DMSwarmCeedContext swarm_ceed_context;
+
+  PetscFunctionBeginUser;
+  PetscCall(DMSwarmGetCellDM(dm_swarm, &dm_mesh));
+  PetscCall(DMGetApplicationContext(dm_mesh, (void *)&swarm_ceed_context));
+
+  CeedElemRestrictionGetNumComponents(swarm_ceed_context->elem_restr_u_mesh, &num_comp);
+
+  // Mass QFunction
+  CeedQFunctionCreateIdentity(swarm_ceed_context->ceed, num_comp, CEED_EVAL_INTERP, CEED_EVAL_INTERP, &qf_mass);
+
+  // Mass Operator
+  CeedOperatorCreateAtPoints(swarm_ceed_context->ceed, qf_mass, CEED_QFUNCTION_NONE, CEED_QFUNCTION_NONE, op_mass);
+  CeedOperatorSetField(*op_mass, "input", swarm_ceed_context->elem_restr_u_mesh, swarm_ceed_context->basis_u, CEED_VECTOR_ACTIVE);
+  CeedOperatorSetField(*op_mass, "output", swarm_ceed_context->elem_restr_u_mesh, swarm_ceed_context->basis_u, CEED_VECTOR_ACTIVE);
+  CeedOperatorAtPointsSetPoints(*op_mass, swarm_ceed_context->elem_restr_x_points, swarm_ceed_context->x_ref_points_loc);
+
+  // Cleanup
+  CeedQFunctionDestroy(&qf_mass);
   PetscFunctionReturn(PETSC_SUCCESS);
 }
