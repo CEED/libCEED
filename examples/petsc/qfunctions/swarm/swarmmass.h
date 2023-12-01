@@ -4,6 +4,8 @@
 // SPDX-License-Identifier: BSD-2-Clause
 //
 // This file is part of CEED:  http://github.com/ceed
+#ifndef SWARM_MASS_H
+#define SWARM_MASS_H
 
 #include <ceed.h>
 
@@ -35,3 +37,5 @@ CEED_QFUNCTION(Mass)(void *ctx, const CeedInt Q, const CeedScalar *const *in, Ce
   }
   return 0;
 }
+
+#endif  // SWARM_MASS_H
