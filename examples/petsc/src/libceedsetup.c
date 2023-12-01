@@ -189,17 +189,14 @@ PetscErrorCode CeedLevelTransferSetup(DM dm, Ceed ceed, CeedInt level, CeedInt n
   //   restriction between the p-multigrid levels and the coarse grid eval.
   // ---------------------------------------------------------------------------
   // Place in libCEED array
-  const PetscScalar *m;
-  PetscMemType       m_mem_type;
-  PetscCall(VecGetArrayReadAndMemType(fine_mult, &m, &m_mem_type));
-  CeedVectorSetArray(data[level]->x_ceed, MemTypeP2C(m_mem_type), CEED_USE_POINTER, (CeedScalar *)m);
+  PetscMemType m_mem_type;
+  PetscCall(VecReadP2C(fine_mult, &m_mem_type, data[level]->x_ceed));
 
   CeedOperatorMultigridLevelCreate(data[level]->op_apply, data[level]->x_ceed, data[level - 1]->elem_restr_u, basis_u, &op_apply, &op_prolong,
                                    &op_restrict);
 
   // Restore PETSc vector
-  CeedVectorTakeArray(data[level]->x_ceed, MemTypeP2C(m_mem_type), (CeedScalar **)&m);
-  PetscCall(VecRestoreArrayReadAndMemType(fine_mult, &m));
+  PetscCall(VecReadC2P(data[level]->x_ceed, m_mem_type, fine_mult));
   PetscCall(VecZeroEntries(fine_mult));
   // -- Save libCEED data
   data[level - 1]->op_apply = op_apply;

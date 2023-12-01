@@ -51,7 +51,6 @@ int main(int argc, char **argv) {
   char                 ceed_resource[PETSC_MAX_PATH_LEN] = "/cpu/self", filename[PETSC_MAX_PATH_LEN];
   double               my_rt_start, my_rt, rt_min, rt_max;
   PetscInt             degree = 3, q_extra, l_size, g_size, topo_dim = 2, num_comp_x = 3, num_comp_u = 1, xl_size;
-  PetscScalar         *r;
   PetscBool            test_mode, benchmark_mode, read_mesh, write_solution, simplex;
   PetscLogStage        solve_stage;
   Vec                  X, X_loc, rhs, rhs_loc;
@@ -170,9 +169,8 @@ int main(int argc, char **argv) {
   // Create RHS vector
   PetscCall(VecDuplicate(X_loc, &rhs_loc));
   PetscCall(VecZeroEntries(rhs_loc));
-  PetscCall(VecGetArrayAndMemType(rhs_loc, &r, &mem_type));
   CeedVectorCreate(ceed, xl_size, &rhs_ceed);
-  CeedVectorSetArray(rhs_ceed, MemTypeP2C(mem_type), CEED_USE_POINTER, r);
+  PetscCall(VecP2C(rhs_loc, &mem_type, rhs_ceed));
 
   // Setup libCEED's objects
   PetscCall(PetscMalloc1(1, &ceed_data));
@@ -180,8 +178,7 @@ int main(int argc, char **argv) {
                                  rhs_ceed, &target));
 
   // Gather RHS
-  CeedVectorTakeArray(rhs_ceed, MemTypeP2C(mem_type), NULL);
-  PetscCall(VecRestoreArrayAndMemType(rhs_loc, &r));
+  PetscCall(VecC2P(rhs_ceed, mem_type, rhs_loc));
   PetscCall(VecZeroEntries(rhs));
   PetscCall(DMLocalToGlobal(dm, rhs_loc, ADD_VALUES, rhs));
   CeedVectorDestroy(&rhs_ceed);
