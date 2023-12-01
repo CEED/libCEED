@@ -440,7 +440,7 @@ CEED_QFUNCTION_HELPER int Freestream_Jacobian(void *ctx, CeedInt Q, const CeedSc
         CeedScalar dq_normal = Dot3(dqb, norm);
         for (CeedInt j = 0; j < 3; j++) dqb[j] -=  2. * norm[j] * dq_normal; 
         CeedScalar dqr[5]     = {dqi[0], dqb[0], dqb[1], dqb[2], dqi[4]};
-        State      ds_reflect = StateFromQ(newt_ctx, dqr, state_var);
+        State      ds_reflect = StateFromQ_fwd(newt_ctx, s_reflect, dqr, state_var);
         dflux                 = RiemannFlux_HLLC_fwd(newt_ctx, s, ds, s_reflect, ds_reflect, norm);
 	}
         break;

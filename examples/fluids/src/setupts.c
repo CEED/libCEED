@@ -446,6 +446,7 @@ PetscErrorCode TSSolve_NS(DM dm, User user, AppCtx app_ctx, Physics phys, Vec *Q
     PetscCall(TSSetTime(*ts, app_ctx->cont_time * user->units->second));
     PetscCall(TSSetStepNumber(*ts, app_ctx->cont_steps));
   }
+
   if (app_ctx->test_type == TESTTYPE_NONE) {
     PetscCall(TSMonitorSet(*ts, TSMonitor_NS, user, NULL));
   }
@@ -470,6 +471,13 @@ PetscErrorCode TSSolve_NS(DM dm, User user, AppCtx app_ctx, Physics phys, Vec *Q
   PetscPreLoadBegin(PETSC_FALSE, "Fluids Solve");
   PetscCall(TSSetTime(*ts, start_time));
   PetscCall(TSSetStepNumber(*ts, start_step));
+  {
+    PetscInt run_steps=0, current_step=0;
+    PetscCall(PetscOptionsGetInt(NULL, NULL, "-ts_run_steps", run_steps, &run_steps));
+    PetscCall(TSGetStepNumber(*ts, &current_step);
+    PetscCall(TSSetMaxSteps(*ts, run_steps + current_step));
+  }
+
   if (PetscPreLoadingOn) {
     // LCOV_EXCL_START
     SNES      snes;
