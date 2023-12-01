@@ -5,6 +5,45 @@
 // -----------------------------------------------------------------------------
 CeedMemType MemTypeP2C(PetscMemType mem_type) { return PetscMemTypeDevice(mem_type) ? CEED_MEM_DEVICE : CEED_MEM_HOST; }
 
+// ------------------------------------------------------------------------------------------------
+// PETSc-libCEED memory space utilities
+// ------------------------------------------------------------------------------------------------
+PetscErrorCode VecP2C(Vec X_petsc, PetscMemType *mem_type, CeedVector x_ceed) {
+  PetscScalar *x;
+
+  PetscFunctionBeginUser;
+  PetscCall(VecGetArrayAndMemType(X_petsc, &x, mem_type));
+  CeedVectorSetArray(x_ceed, MemTypeP2C(*mem_type), CEED_USE_POINTER, x);
+  PetscFunctionReturn(PETSC_SUCCESS);
+}
+
+PetscErrorCode VecC2P(CeedVector x_ceed, PetscMemType mem_type, Vec X_petsc) {
+  PetscScalar *x;
+
+  PetscFunctionBeginUser;
+  CeedVectorTakeArray(x_ceed, MemTypeP2C(mem_type), &x);
+  PetscCall(VecRestoreArrayAndMemType(X_petsc, &x));
+  PetscFunctionReturn(PETSC_SUCCESS);
+}
+
+PetscErrorCode VecReadP2C(Vec X_petsc, PetscMemType *mem_type, CeedVector x_ceed) {
+  PetscScalar *x;
+
+  PetscFunctionBeginUser;
+  PetscCall(VecGetArrayReadAndMemType(X_petsc, (const PetscScalar **)&x, mem_type));
+  CeedVectorSetArray(x_ceed, MemTypeP2C(*mem_type), CEED_USE_POINTER, x);
+  PetscFunctionReturn(PETSC_SUCCESS);
+}
+
+PetscErrorCode VecReadC2P(CeedVector x_ceed, PetscMemType mem_type, Vec X_petsc) {
+  PetscScalar *x;
+
+  PetscFunctionBeginUser;
+  CeedVectorTakeArray(x_ceed, MemTypeP2C(mem_type), &x);
+  PetscCall(VecRestoreArrayReadAndMemType(X_petsc, (const PetscScalar **)&x));
+  PetscFunctionReturn(PETSC_SUCCESS);
+}
+
 // -----------------------------------------------------------------------------
 // Apply 3D Kershaw mesh transformation
 // -----------------------------------------------------------------------------
@@ -121,9 +160,9 @@ PetscErrorCode SetupDMByDegree(DM dm, PetscInt p_degree, PetscInt q_extra, Petsc
   // So we pass bcFunc = NULL in DMAddBoundary function
   if (enforce_bc) {
     PetscBool has_label;
-    DMHasLabel(dm, "marker", &has_label);
+    PetscCall(DMHasLabel(dm, "marker", &has_label));
     if (!has_label) {
-      CreateBCLabel(dm, "marker");
+      PetscCall(CreateBCLabel(dm, "marker"));
     }
     DMLabel label;
     PetscCall(DMGetLabel(dm, "marker", &label));

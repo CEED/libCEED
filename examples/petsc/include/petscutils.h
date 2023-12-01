@@ -10,6 +10,10 @@
 #endif
 
 CeedMemType      MemTypeP2C(PetscMemType mtype);
+PetscErrorCode   VecP2C(Vec X_petsc, PetscMemType *mem_type, CeedVector x_ceed);
+PetscErrorCode   VecC2P(CeedVector x_ceed, PetscMemType mem_type, Vec X_petsc);
+PetscErrorCode   VecReadP2C(Vec X_petsc, PetscMemType *mem_type, CeedVector x_ceed);
+PetscErrorCode   VecReadC2P(CeedVector x_ceed, PetscMemType mem_type, Vec X_petsc);
 PetscErrorCode   Kershaw(DM dm_orig, PetscScalar eps);
 PetscErrorCode   SetupDMByDegree(DM dm, PetscInt p_degree, PetscInt q_extra, PetscInt num_comp_u, PetscInt topo_dim, bool enforce_bc);
 PetscErrorCode   CreateRestrictionFromPlex(Ceed ceed, DM dm, CeedInt height, DMLabel domain_label, CeedInt value, CeedElemRestriction *elem_restr);
