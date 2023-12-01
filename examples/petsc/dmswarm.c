@@ -235,25 +235,29 @@ int main(int argc, char **argv) {
   }
 
   // Project from points to mesh via libCEED
-  Vec U_projected;
-
-  PetscCall(VecDuplicate(U_mesh, &U_projected));
-  PetscCall(DMSwarmProjectFromSwarmToCells(dm_swarm, DMSwarmPICField_u, U_projected));
-
-  PetscCall(PetscObjectSetName((PetscObject)U_projected, "U projected to Background Mesh"));
-  PetscCall(VecViewFromOptions(U_projected, NULL, "-u_projected_view"));
-  PetscCall(VecAXPY(U_projected, -1.0, U_mesh));
-  PetscCall(PetscObjectSetName((PetscObject)U_projected, "U Projection Error"));
-  PetscCall(VecViewFromOptions(U_projected, NULL, "-u_error_view"));
-
-  // -- Check error
   {
-    PetscScalar error, norm_u_mesh;
+    Vec U_projected;
 
-    PetscCall(VecNorm(U_projected, NORM_2, &error));
-    PetscCall(VecNorm(U_mesh, NORM_2, &norm_u_mesh));
-    PetscCheck(error / norm_u_mesh < tolerance, comm, PETSC_ERR_USER, "Projection error too high: %e\n", error / norm_u_mesh);
-    if (!test_mode) PetscCall(PetscPrintf(comm, "  Projection error: %e\n", error / norm_u_mesh));
+    PetscCall(VecDuplicate(U_mesh, &U_projected));
+    PetscCall(DMSwarmProjectFromSwarmToCells(dm_swarm, DMSwarmPICField_u, U_projected));
+
+    PetscCall(PetscObjectSetName((PetscObject)U_projected, "U projected to Background Mesh"));
+    PetscCall(VecViewFromOptions(U_projected, NULL, "-u_projected_view"));
+    PetscCall(VecAXPY(U_projected, -1.0, U_mesh));
+    PetscCall(PetscObjectSetName((PetscObject)U_projected, "U Projection Error"));
+    PetscCall(VecViewFromOptions(U_projected, NULL, "-u_error_view"));
+
+    // -- Check error
+    {
+      PetscScalar error, norm_u_mesh;
+
+      PetscCall(VecNorm(U_projected, NORM_2, &error));
+      PetscCall(VecNorm(U_mesh, NORM_2, &norm_u_mesh));
+      PetscCheck(error / norm_u_mesh < tolerance, comm, PETSC_ERR_USER, "Projection error too high: %e\n", error / norm_u_mesh);
+      if (!test_mode) PetscCall(PetscPrintf(comm, "  Projection error: %e\n", error / norm_u_mesh));
+    }
+
+    PetscCall(VecDestroy(&U_projected));
   }
   // Cleanup
   PetscCall(DMSwarmCeedContextDestroy(&swarm_ceed_context));
