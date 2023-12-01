@@ -24,11 +24,11 @@
 /// @{
 
 /**
-  @brief Duplicate a @ref CeedQFunction with a reference @ref Ceed to fallback for advanced @ref CeedOperator functionality
+  @brief Duplicate a `CeedQFunction` with a reference `Ceed` to fallback for advanced `CeedOperator` functionality
 
-  @param[in]  fallback_ceed @ref Ceed on which to create fallback @ref CeedQFunction
-  @param[in]  qf            @ref CeedQFunction to create fallback for
-  @param[out] qf_fallback   Fallback @ref CeedQFunction
+  @param[in]  fallback_ceed `Ceed` on which to create fallback `CeedQFunction`
+  @param[in]  qf            `CeedQFunction` to create fallback for
+  @param[out] qf_fallback   Fallback `CeedQFunction`
 
   @return An error code: 0 - success, otherwise - failure
 
@@ -71,9 +71,9 @@ static int CeedQFunctionCreateFallback(Ceed fallback_ceed, CeedQFunction qf, Cee
 }
 
 /**
-  @brief Duplicate a @ref CeedOperator with a reference @ref Ceed to fallback for advanced @ref CeedOperator functionality
+  @brief Duplicate a `CeedOperator` with a reference `Ceed` to fallback for advanced `CeedOperator` functionality
 
-  @param[in,out] op @ref CeedOperator to create fallback for
+  @param[in,out] op `CeedOperator` to create fallback for
 
   @return An error code: 0 - success, otherwise - failure
 
@@ -142,10 +142,10 @@ static int CeedOperatorCreateFallback(CeedOperator op) {
 /**
   @brief Select correct basis matrix pointer based on @ref CeedEvalMode
 
-  @param[in]  basis     @ref CeedBasis from which to get the basis matrix
+  @param[in]  basis     `CeedBasis` from which to get the basis matrix
   @param[in]  eval_mode Current basis evaluation mode
   @param[in]  identity  Pointer to identity matrix
-  @param[out] basis_ptr @ref CeedBasis pointer to set
+  @param[out] basis_ptr `CeedBasis` pointer to set
 
   @ref Developer
 **/
@@ -176,10 +176,10 @@ static inline int CeedOperatorGetBasisPointer(CeedBasis basis, CeedEvalMode eval
 /**
   @brief Core logic for assembling operator diagonal or point block diagonal
 
-  @param[in]  op             @ref CeedOperator to assemble point block diagonal
+  @param[in]  op             `CeedOperator` to assemble point block diagonal
   @param[in]  request        Address of @ref CeedRequest for non-blocking completion, else @ref CEED_REQUEST_IMMEDIATE
   @param[in]  is_point_block Boolean flag to assemble diagonal or point block diagonal
-  @param[out] assembled      @ref CeedVector to store assembled diagonal
+  @param[out] assembled      `CeedVector` to store assembled diagonal
 
   @return An error code: 0 - success, otherwise - failure
 
@@ -362,10 +362,10 @@ static inline int CeedSingleOperatorAssembleAddDiagonal_Core(CeedOperator op, Ce
 /**
   @brief Core logic for assembling composite operator diagonal
 
-  @param[in]  op             @ref CeedOperator to assemble point block diagonal
+  @param[in]  op             `CeedOperator` to assemble point block diagonal
   @param[in]  request        Address of @ref CeedRequest for non-blocking completion, else @ref CEED_REQUEST_IMMEDIATE
   @param[in]  is_point_block Boolean flag to assemble diagonal or point block diagonal
-  @param[out] assembled      @ref CeedVector to store assembled diagonal
+  @param[out] assembled      `CeedVector` to store assembled diagonal
 
   @return An error code: 0 - success, otherwise - failure
 
@@ -389,11 +389,11 @@ static inline int CeedCompositeOperatorLinearAssembleAddDiagonal(CeedOperator op
 }
 
 /**
-  @brief Build nonzero pattern for non-composite @ref CeedOperator.
+  @brief Build nonzero pattern for non-composite CeedOperator`.
 
   Users should generally use @ref CeedOperatorLinearAssembleSymbolic().
 
-  @param[in]  op     @ref CeedOperator to assemble nonzero pattern
+  @param[in]  op     `CeedOperator` to assemble nonzero pattern
   @param[in]  offset Offset for number of entries
   @param[out] rows   Row number for each entry
   @param[out] cols   Column number for each entry
@@ -498,11 +498,11 @@ static int CeedSingleOperatorAssembleSymbolic(CeedOperator op, CeedInt offset, C
 }
 
 /**
-  @brief Assemble nonzero entries for non-composite @ref CeedOperator.
+  @brief Assemble nonzero entries for non-composite `CeedOperator`.
 
   Users should generally use @ref CeedOperatorLinearAssemble().
 
-  @param[in]  op     @ref CeedOperator to assemble
+  @param[in]  op     `CeedOperator` to assemble
   @param[in]  offset Offset for number of entries
   @param[out] values Values to assemble into matrix
 
@@ -744,9 +744,9 @@ static int CeedSingleOperatorAssemble(CeedOperator op, CeedInt offset, CeedVecto
 }
 
 /**
-  @brief Count number of entries for assembled @ref CeedOperator
+  @brief Count number of entries for assembled `CeedOperator`
 
-  @param[in]  op          @ref CeedOperator to assemble
+  @param[in]  op          `CeedOperator` to assemble
   @param[out] num_entries Number of entries in assembled representation
 
   @return An error code: 0 - success, otherwise - failure
@@ -781,16 +781,16 @@ static int CeedSingleOperatorAssemblyCountEntries(CeedOperator op, CeedSize *num
 }
 
 /**
-  @brief Common code for creating a multigrid coarse operator and level transfer operators for a @ref CeedOperator
+  @brief Common code for creating a multigrid coarse `CeedOperator` and level transfer `CeedOperator` for a `CeedOperator`
 
-  @param[in]  op_fine      Fine grid @ref CeedOperator
-  @param[in]  p_mult_fine  L-vector multiplicity in parallel gather/scatter, or `NULL` if not creating prolongation/restriction @ref CeedOperator
-  @param[in]  rstr_coarse  Coarse grid @ref CeedElemRestriction
-  @param[in]  basis_coarse Coarse grid active vector @ref CeedBasis
-  @param[in]  basis_c_to_f @ref CeedBasis for coarse to fine interpolation, or `NULL` if not creating prolongation/restriction operators
-  @param[out] op_coarse    Coarse grid @ref CeedOperator
-  @param[out] op_prolong   Coarse to fine @ref CeedOperator, or `NULL`
-  @param[out] op_restrict  Fine to coarse @ref CeedOperator, or `NULL`
+  @param[in]  op_fine      Fine grid `CeedOperator`
+  @param[in]  p_mult_fine  L-vector multiplicity in parallel gather/scatter, or `NULL` if not creating prolongation/restriction `CeedOperator`
+  @param[in]  rstr_coarse  Coarse grid `CeedElemRestriction`
+  @param[in]  basis_coarse Coarse grid active vector `CeedBasis`
+  @param[in]  basis_c_to_f `CeedBasis` for coarse to fine interpolation, or `NULL` if not creating prolongation/restriction operators
+  @param[out] op_coarse    Coarse grid `CeedOperator`
+  @param[out] op_prolong   Coarse to fine `CeedOperator`, or `NULL`
+  @param[out] op_restrict  Fine to coarse `CeedOperator`, or `NULL`
 
   @return An error code: 0 - success, otherwise - failure
 
@@ -1001,10 +1001,10 @@ CeedPragmaOptimizeOn
 /// @{
 
 /**
-  @brief Create point block restriction for active @ref CeedOperatorField
+  @brief Create point block restriction for active `CeedOperatorField`
 
-  @param[in]  rstr             Original @ref CeedElemRestriction for active field
-  @param[out] point_block_rstr Address of the variable where the newly created @ref CeedElemRestriction will be stored
+  @param[in]  rstr             Original `CeedElemRestriction` for active field
+  @param[out] point_block_rstr Address of the variable where the newly created `CeedElemRestriction` will be stored
 
   @return An error code: 0 - success, otherwise - failure
 
@@ -1042,10 +1042,10 @@ int CeedOperatorCreateActivePointBlockRestriction(CeedElemRestriction rstr, Ceed
 }
 
 /**
-  @brief Create object holding @ref CeedQFunction assembly data for @ref CeedOperator
+  @brief Create object holding `CeedQFunction` assembly data for `CeedOperator`
 
-  @param[in]  ceed @ref Ceed object used to create the @ref CeedQFunctionAssemblyData
-  @param[out] data Address of the variable where the newly created @ref CeedQFunctionAssemblyData will be stored
+  @param[in]  ceed `Ceed` object used to create the `CeedQFunctionAssemblyData`
+  @param[out] data Address of the variable where the newly created `CeedQFunctionAssemblyData` will be stored
 
   @return An error code: 0 - success, otherwise - failure
 
@@ -1060,9 +1060,9 @@ int CeedQFunctionAssemblyDataCreate(Ceed ceed, CeedQFunctionAssemblyData *data) 
 }
 
 /**
-  @brief Increment the reference counter for a @ref CeedQFunctionAssemblyData
+  @brief Increment the reference counter for a `CeedQFunctionAssemblyData`
 
-  @param[in,out] data @ref CeedQFunctionAssemblyData to increment the reference counter
+  @param[in,out] data `CeedQFunctionAssemblyData` to increment the reference counter
 
   @return An error code: 0 - success, otherwise - failure
 
@@ -1074,9 +1074,9 @@ int CeedQFunctionAssemblyDataReference(CeedQFunctionAssemblyData data) {
 }
 
 /**
-  @brief Set re-use of @ref CeedQFunctionAssemblyData
+  @brief Set re-use of `CeedQFunctionAssemblyData`
 
-  @param[in,out] data       @ref CeedQFunctionAssemblyData to mark for reuse
+  @param[in,out] data       `CeedQFunctionAssemblyData` to mark for reuse
   @param[in]     reuse_data Boolean flag indicating data re-use
 
   @return An error code: 0 - success, otherwise - failure
@@ -1090,9 +1090,9 @@ int CeedQFunctionAssemblyDataSetReuse(CeedQFunctionAssemblyData data, bool reuse
 }
 
 /**
-  @brief Mark @ref CeedQFunctionAssemblyData as stale
+  @brief Mark `CeedQFunctionAssemblyData` as stale
 
-  @param[in,out] data              @ref CeedQFunctionAssemblyData to mark as stale
+  @param[in,out] data              `CeedQFunctionAssemblyData` to mark as stale
   @param[in]     needs_data_update Boolean flag indicating if update is needed or completed
 
   @return An error code: 0 - success, otherwise - failure
@@ -1105,9 +1105,9 @@ int CeedQFunctionAssemblyDataSetUpdateNeeded(CeedQFunctionAssemblyData data, boo
 }
 
 /**
-  @brief Determine if @ref CeedQFunctionAssemblyData needs update
+  @brief Determine if `CeedQFunctionAssemblyData` needs update
 
-  @param[in]  data             @ref CeedQFunctionAssemblyData to mark as stale
+  @param[in]  data             `CeedQFunctionAssemblyData` to mark as stale
   @param[out] is_update_needed Boolean flag indicating if re-assembly is required
 
   @return An error code: 0 - success, otherwise - failure
@@ -1120,14 +1120,14 @@ int CeedQFunctionAssemblyDataIsUpdateNeeded(CeedQFunctionAssemblyData data, bool
 }
 
 /**
-  @brief Copy the pointer to a @ref CeedQFunctionAssemblyData.
+  @brief Copy the pointer to a `CeedQFunctionAssemblyData`.
 
   Both pointers should be destroyed with @ref CeedQFunctionAssemblyDataDestroy().
 
-  Note: If the value of `*data_copy` passed to this function is non-`NULL`, then it is assumed that `*data_copy` is a pointer to a @ref CeedQFunctionAssemblyData.
-        This @ref CeedQFunctionAssemblyData will be destroyed if `*data_copy` is the only reference to this @ref CeedQFunctionAssemblyData.
+  Note: If the value of ` *data_copy` passed to this function is non-`NULL` , then it is assumed that ` *data_copy` is a pointer to a `CeedQFunctionAssemblyData`.
+        This `CeedQFunctionAssemblyData` will be destroyed if ` *data_copy` is the only reference to this `CeedQFunctionAssemblyData`.
 
-  @param[in]     data      @ref CeedQFunctionAssemblyData to copy reference to
+  @param[in]     data      `CeedQFunctionAssemblyData` to copy reference to
   @param[in,out] data_copy Variable to store copied reference
 
   @return An error code: 0 - success, otherwise - failure
@@ -1142,9 +1142,9 @@ int CeedQFunctionAssemblyDataReferenceCopy(CeedQFunctionAssemblyData data, CeedQ
 }
 
 /**
-  @brief Get setup status for internal objects for @ref CeedQFunctionAssemblyData
+  @brief Get setup status for internal objects for `CeedQFunctionAssemblyData`
 
-  @param[in]  data     @ref CeedQFunctionAssemblyData to retrieve status
+  @param[in]  data     `CeedQFunctionAssemblyData` to retrieve status
   @param[out] is_setup Boolean flag for setup status
 
   @return An error code: 0 - success, otherwise - failure
@@ -1157,11 +1157,11 @@ int CeedQFunctionAssemblyDataIsSetup(CeedQFunctionAssemblyData data, bool *is_se
 }
 
 /**
-  @brief Set internal objects for @ref CeedQFunctionAssemblyData
+  @brief Set internal objects for `CeedQFunctionAssemblyData`
 
-  @param[in,out] data @ref CeedQFunctionAssemblyData to set objects
-  @param[in]     vec  @ref CeedVector to store assembled @ref CeedQFunction at quadrature points
-  @param[in]     rstr @ref CeedElemRestriction for @ref CeedVector containing assembled @ref CeedQFunction
+  @param[in,out] data `CeedQFunctionAssemblyData` to set objects
+  @param[in]     vec  `CeedVector` to store assembled `CeedQFunction` at quadrature points
+  @param[in]     rstr `CeedElemRestriction` for `CeedVector` containing assembled `CeedQFunction`
 
   @return An error code: 0 - success, otherwise - failure
 
@@ -1176,11 +1176,11 @@ int CeedQFunctionAssemblyDataSetObjects(CeedQFunctionAssemblyData data, CeedVect
 }
 
 /**
-  @brief Get internal objects for @ref CeedQFunctionAssemblyData
+  @brief Get internal objects for `CeedQFunctionAssemblyData`
 
-  @param[in,out] data @ref CeedQFunctionAssemblyData to set objects
-  @param[out]    vec  @ref CeedVector to store assembled @ref CeedQFunction at quadrature points
-  @param[out]    rstr @ref CeedElemRestriction for @ref CeedVector containing assembled @ref CeedQFunction
+  @param[in,out] data `CeedQFunctionAssemblyData` to set objects
+  @param[out]    vec  `CeedVector` to store assembled `CeedQFunction` at quadrature points
+  @param[out]    rstr `CeedElemRestriction` for `CeedVector` containing assembled `CeedQFunction`
 
   @return An error code: 0 - success, otherwise - failure
 
@@ -1195,9 +1195,9 @@ int CeedQFunctionAssemblyDataGetObjects(CeedQFunctionAssemblyData data, CeedVect
 }
 
 /**
-  @brief Destroy @ref CeedQFunctionAssemblyData
+  @brief Destroy `CeedQFunctionAssemblyData`
 
-  @param[in,out] data  @ref CeedQFunctionAssemblyData to destroy
+  @param[in,out] data  `CeedQFunctionAssemblyData` to destroy
 
   @return An error code: 0 - success, otherwise - failure
 
@@ -1217,10 +1217,10 @@ int CeedQFunctionAssemblyDataDestroy(CeedQFunctionAssemblyData *data) {
 }
 
 /**
-  @brief Get @ref CeedOperatorAssemblyData
+  @brief Get `CeedOperatorAssemblyData`
 
-  @param[in]  op   @ref CeedOperator to assemble
-  @param[out] data @ref CeedQFunctionAssemblyData
+  @param[in]  op   `CeedOperator` to assemble
+  @param[out] data `CeedQFunctionAssemblyData`
 
   @return An error code: 0 - success, otherwise - failure
 
@@ -1238,18 +1238,18 @@ int CeedOperatorGetOperatorAssemblyData(CeedOperator op, CeedOperatorAssemblyDat
 }
 
 /**
-  @brief Create object holding @ref CeedOperator assembly data.
+  @brief Create object holding `CeedOperator` assembly data.
 
-  The @ref CeedOperatorAssemblyData holds an array with references to every active @ref CeedBasis used in the @ref CeedOperator.
-  An array with references to the corresponding active @ref CeedElemRestriction is also stored.
-  For each active @ref CeedBasis, the @ref CeedOperatorAssemblyData holds an array of all input and output @ref CeedEvalMode for this @ref CeedBasis.
-  The @ref CeedOperatorAssemblyData holds an array of offsets for indexing into the assembled @ref CeedQFunction arrays to the row representing each @ref CeedEvalMode.
-  The number of input columns across all active bases for the assembled @ref CeedQFunction is also stored.
-  Lastly, the CeedOperatorAssembly data holds assembled matrices representing the full action of the @ref CeedBasis for all @ref CeedEvalMode.
+  The `CeedOperatorAssemblyData` holds an array with references to every active `CeedBasis` used in the `CeedOperator`.
+  An array with references to the corresponding active `CeedElemRestriction` is also stored.
+  For each active `CeedBasis, the `CeedOperatorAssemblyData` holds an array of all input and output @ref CeedEvalMode for this `CeedBasis`.
+  The `CeedOperatorAssemblyData` holds an array of offsets for indexing into the assembled `CeedQFunction` arrays to the row representing each @ref CeedEvalMode.
+  The number of input columns across all active bases for the assembled `CeedQFunction` is also stored.
+  Lastly, the `CeedOperatorAssembly` data holds assembled matrices representing the full action of the `CeedBasis` for all @ref CeedEvalMode.
 
-  @param[in]  ceed @ref Ceed object used to create the @ref CeedOperatorAssemblyData 
-  @param[in]  op   @ref CeedOperator to be assembled
-  @param[out] data Address of the variable where the newly created @ref CeedOperatorAssemblyData will be stored
+  @param[in]  ceed `Ceed` object used to create the `CeedOperatorAssemblyData`
+  @param[in]  op   `CeedOperator` to be assembled
+  @param[out] data Address of the variable where the newly created `CeedOperatorAssemblyData` will be stored
 
   @return An error code: 0 - success, otherwise - failure
 
@@ -1397,21 +1397,21 @@ int CeedOperatorAssemblyDataCreate(Ceed ceed, CeedOperator op, CeedOperatorAssem
 }
 
 /**
-  @brief Get @ref CeedOperator @ref CeedEvalMode for assembly.
+  @brief Get `CeedOperator` @ref CeedEvalMode for assembly.
 
   Note: See @ref CeedOperatorAssemblyDataCreate() for a full description of the data stored in this object.
 
-  @param[in]  data                  @ref CeedOperatorAssemblyData
+  @param[in]  data                  `CeedOperatorAssemblyData`
   @param[out] num_active_bases_in   Total number of active bases for input
   @param[out] num_eval_modes_in     Pointer to hold array of numbers of input @ref CeedEvalMode, or `NULL`.
-                                      `eval_modes_in[0]` holds an array of eval modes for the first active @ref CeedBasis.
+                                      `eval_modes_in[0]` holds an array of eval modes for the first active `CeedBasis`.
   @param[out] eval_modes_in         Pointer to hold arrays of input @ref CeedEvalMode, or `NULL`
   @param[out] eval_mode_offsets_in  Pointer to hold arrays of input offsets at each quadrature point
   @param[out] num_active_bases_out  Total number of active bases for output
-  @param[out] num_eval_modes_out    Pointer to hold array of numbers of output @ref CeedEvalModes, or `NULL`
+  @param[out] num_eval_modes_out    Pointer to hold array of numbers of output @ref CeedEvalMode, or `NULL`
   @param[out] eval_modes_out        Pointer to hold arrays of output @ref CeedEvalMode, or `NULL`
   @param[out] eval_mode_offsets_out Pointer to hold arrays of output offsets at each quadrature point
-  @param[out] num_output_components The number of columns in the assembled @ref CeedQFunction matrix for each quadrature point, including contributions of all active bases
+  @param[out] num_output_components The number of columns in the assembled `CeedQFunction` matrix for each quadrature point, including contributions of all active bases
 
   @return An error code: 0 - success, otherwise - failure
 
@@ -1434,17 +1434,17 @@ int CeedOperatorAssemblyDataGetEvalModes(CeedOperatorAssemblyData data, CeedInt 
 }
 
 /**
-  @brief Get @ref CeedOperator @ref CeedBasis data for assembly.
+  @brief Get `CeedOperator` `CeedBasis` data for assembly.
 
   Note: See @ref CeedOperatorAssemblyDataCreate() for a full description of the data stored in this object.
 
-  @param[in]  data                 @ref CeedOperatorAssemblyData
+  @param[in]  data                 `CeedOperatorAssemblyData`
   @param[out] num_active_bases_in  Number of active input bases, or `NULL`
-  @param[out] active_bases_in      Pointer to hold active input @ref CeedBasis, or `NULL`
-  @param[out] assembled_bases_in   Pointer to hold assembled active input `B`, or `NULL`
+  @param[out] active_bases_in      Pointer to hold active input `CeedBasis`, or `NULL`
+  @param[out] assembled_bases_in   Pointer to hold assembled active input `B` , or `NULL`
   @param[out] num_active_bases_out Number of active output bases, or `NULL`
-  @param[out] active_bases_out     Pointer to hold active output @ref CeedBasis, or `NULL`
-  @param[out] assembled_bases_out  Pointer to hold assembled active output `B`, or `NULL`
+  @param[out] active_bases_out     Pointer to hold active output `CeedBasis`, or `NULL`
+  @param[out] assembled_bases_out  Pointer to hold assembled active output `B` , or `NULL`
 
   @return An error code: 0 - success, otherwise - failure
 
@@ -1561,15 +1561,15 @@ int CeedOperatorAssemblyDataGetBases(CeedOperatorAssemblyData data, CeedInt *num
 }
 
 /**
-  @brief Get @ref CeedOperator @ref CeedBasis data for assembly.
+  @brief Get `CeedOperator` `CeedBasis` data for assembly.
 
   Note: See @ref CeedOperatorAssemblyDataCreate() for a full description of the data stored in this object.
 
-  @param[in]  data                      @ref CeedOperatorAssemblyData
+  @param[in]  data                      `CeedOperatorAssemblyData`
   @param[out] num_active_elem_rstrs_in  Number of active input element restrictions, or `NULL`
-  @param[out] active_elem_rstrs_in      Pointer to hold active input @ref CeedElemRestriction, or `NULL`
+  @param[out] active_elem_rstrs_in      Pointer to hold active input `CeedElemRestriction`, or `NULL`
   @param[out] num_active_elem_rstrs_out Number of active output element restrictions, or `NULL`
-  @param[out] active_elem_rstrs_out     Pointer to hold active output @ref CeedElemRestriction, or `NULL`
+  @param[out] active_elem_rstrs_out     Pointer to hold active output `CeedElemRestriction`, or `NULL`
 
   @return An error code: 0 - success, otherwise - failure
 
@@ -1586,9 +1586,9 @@ int CeedOperatorAssemblyDataGetElemRestrictions(CeedOperatorAssemblyData data, C
 }
 
 /**
-  @brief Destroy @ref CeedOperatorAssemblyData
+  @brief Destroy `CeedOperatorAssemblyData`
 
-  @param[in,out] data @ref CeedOperatorAssemblyData to destroy
+  @param[in,out] data `CeedOperatorAssemblyData` to destroy
 
   @return An error code: 0 - success, otherwise - failure
 
@@ -1632,10 +1632,10 @@ int CeedOperatorAssemblyDataDestroy(CeedOperatorAssemblyData *data) {
 }
 
 /**
-  @brief Retrieve fallback @ref CeedOperator with a reference @ref Ceed for advanced @ref CeedOperator functionality
+  @brief Retrieve fallback `CeedOperator` with a reference `Ceed` for advanced `CeedOperator` functionality
 
-  @param[in]  op          @ref CeedOperator to retrieve fallback for
-  @param[out] op_fallback Fallback @ref CeedOperator
+  @param[in]  op          `CeedOperator` to retrieve fallback for
+  @param[out] op_fallback Fallback `CeedOperator`
 
   @return An error code: 0 - success, otherwise - failure
 
@@ -1667,10 +1667,10 @@ int CeedOperatorGetFallback(CeedOperator op, CeedOperator *op_fallback) {
 }
 
 /**
-  @brief Get the parent @ref CeedOperator for a fallback @ref CeedOperator
+  @brief Get the parent `CeedOperator` for a fallback `CeedOperator`
 
-  @param[in]  op     @ref CeedOperator context
-  @param[out] parent Variable to store parent @ref CeedOperator context
+  @param[in]  op     `CeedOperator` context
+  @param[out] parent Variable to store parent `CeedOperator` context
 
   @return An error code: 0 - success, otherwise - failure
 
@@ -1682,10 +1682,10 @@ int CeedOperatorGetFallbackParent(CeedOperator op, CeedOperator *parent) {
 }
 
 /**
-  @brief Get the @ref Ceed context of the parent @ref CeedOperator for a fallback @ref CeedOperator
+  @brief Get the `Ceed` context of the parent `CeedOperator` for a fallback `CeedOperator`
 
-  @param[in]  op     @ref CeedOperator context
-  @param[out] parent Variable to store parent @ref Ceed context
+  @param[in]  op     `CeedOperator` context
+  @param[out] parent Variable to store parent `Ceed` context
 
   @return An error code: 0 - success, otherwise - failure
 
@@ -1705,19 +1705,19 @@ int CeedOperatorGetFallbackParentCeed(CeedOperator op, Ceed *parent) {
 /// @{
 
 /**
-  @brief Assemble a linear @ref CeedQFunction associated with a @ref CeedOperator.
+  @brief Assemble a linear `CeedQFunction` associated with a `CeedOperator`.
 
-  This returns a @ref CeedVector containing a matrix at each quadrature point providing the action of the @ref CeedQFunction associated with the @ref CeedOperator.
-  The vector `assembled` is of shape `[num_elements, num_input_fields, num_output_fields, num_quad_points]` and contains column-major matrices representing the action of the @ref CeedQFunction for a corresponding quadrature point on an element.
+  This returns a `CeedVector` containing a matrix at each quadrature point providing the action of the `CeedQFunction` associated with the `CeedOperator`.
+  The vector `assembled` is of shape `[num_elements, num_input_fields, num_output_fields, num_quad_points]` and contains column-major matrices representing the action of the `CeedQFunction` for a corresponding quadrature point on an element.
 
-  Inputs and outputs are in the order provided by the user when adding @ref CeedOperator fields.
-  For example, a @ref CeedQFunction with inputs `u` and `gradu` and outputs `gradv` and `v`, provided in that order, would result in an assembled @ref CeedQFunction that consists of `(1 + dim) x (dim + 1)` matrices at each quadrature point acting on the input `[u, du_0, du_1]` and producing the output `[dv_0, dv_1, v]`.
+  Inputs and outputs are in the order provided by the user when adding `CeedOperator` fields.
+  For example, a `CeedQFunction` with inputs `u` and `gradu` and outputs `gradv` and `v` , provided in that order, would result in an assembled `CeedQFunction` that consists of `(1 + dim) x (dim + 1)` matrices at each quadrature point acting on the input ` [u, du_0, du_1]` and producing the output `[dv_0, dv_1, v]`.
 
-  Note: Calling this function asserts that setup is complete and sets the @ref CeedOperator as immutable.
+  Note: Calling this function asserts that setup is complete and sets the `CeedOperator` as immutable.
 
-  @param[in]  op        @ref CeedOperator to assemble @ref CeedQFunction
-  @param[out] assembled @ref CeedVector to store assembled @ref CeedQFunction at quadrature points
-  @param[out] rstr      @ref CeedElemRestriction for @ref CeedVector containing assembled @ref CeedQFunction
+  @param[in]  op        `CeedOperator` to assemble `CeedQFunction`
+  @param[out] assembled `CeedVector` to store assembled `CeedQFunction` at quadrature points
+  @param[out] rstr      `CeedElemRestriction` for `CeedVector` containing assembled `CeedQFunction`
   @param[in]  request   Address of @ref CeedRequest for non-blocking completion, else @ref CEED_REQUEST_IMMEDIATE
 
   @return An error code: 0 - success, otherwise - failure
@@ -1742,18 +1742,18 @@ int CeedOperatorLinearAssembleQFunction(CeedOperator op, CeedVector *assembled, 
 }
 
 /**
-  @brief Assemble @ref CeedQFunction and store result internally.
+  @brief Assemble `CeedQFunction` and store result internally.
 
   Return copied references of stored data to the caller.
   Caller is responsible for ownership and destruction of the copied references.
   See also @ref CeedOperatorLinearAssembleQFunction().
 
-  Note: If the value of `assembled` or `rstr` passed to this function are non-`NULL`, then it is assumed that they hold valid pointers.
+  Note: If the value of `assembled` or `rstr` passed to this function are non-`NULL` , then it is assumed that they hold valid pointers.
         These objects will be destroyed if `*assembled` or `*rstr` is the only reference to the object.
 
-  @param[in]  op        @ref CeedOperator to assemble @ref CeedQFunction
-  @param[out] assembled @ref CeedVector to store assembled @ref CeedQFunction at quadrature points
-  @param[out] rstr      @ref CeedElemRestriction for @ref CeedVector containing assembled @ref CeedQFunction
+  @param[in]  op        `CeedOperator` to assemble `CeedQFunction`
+  @param[out] assembled `CeedVector` to store assembled `CeedQFunction` at quadrature points
+  @param[out] rstr      `CeedElemRestriction` for `CeedVector` containing assembled `CeedQFunction`
   @param[in]  request   Address of @ref CeedRequest for non-blocking completion, else @ref CEED_REQUEST_IMMEDIATE
 
   @return An error code: 0 - success, otherwise - failure
@@ -1816,16 +1816,16 @@ int CeedOperatorLinearAssembleQFunctionBuildOrUpdate(CeedOperator op, CeedVector
 }
 
 /**
-  @brief Assemble the diagonal of a square linear @ref CeedOperator
+  @brief Assemble the diagonal of a square linear `CeedOperator`
 
-  This overwrites a @ref CeedVector with the diagonal of a linear @ref CeedOperator.
+  This overwrites a `CeedVector` with the diagonal of a linear `CeedOperator`.
 
-  Note: Currently only non-composite @ref CeedOperator with a single field and composite @ref CeedOperator with single field sub-operators are supported.
+  Note: Currently only non-composite `CeedOperator` with a single field and composite `CeedOperator` with single field sub-operators are supported.
 
-  Note: Calling this function asserts that setup is complete and sets the @ref CeedOperator as immutable.
+  Note: Calling this function asserts that setup is complete and sets the `CeedOperator` as immutable.
 
-  @param[in]  op        @ref CeedOperator to assemble @ref CeedQFunction
-  @param[out] assembled @ref CeedVector to store assembled @ref CeedOperator diagonal
+  @param[in]  op        `CeedOperator` to assemble `CeedQFunction`
+  @param[out] assembled `CeedVector` to store assembled `CeedOperator` diagonal
   @param[in]  request   Address of @ref CeedRequest for non-blocking completion, else @ref CEED_REQUEST_IMMEDIATE
 
   @return An error code: 0 - success, otherwise - failure
@@ -1876,16 +1876,16 @@ int CeedOperatorLinearAssembleDiagonal(CeedOperator op, CeedVector assembled, Ce
 }
 
 /**
-  @brief Assemble the diagonal of a square linear @ref CeedOperator
+  @brief Assemble the diagonal of a square linear `CeedOperator`.
 
-  This sums into a @ref CeedVector the diagonal of a linear @ref CeedOperator.
+  This sums into a `CeedVector` the diagonal of a linear `CeedOperator`.
 
-  Note: Currently only non-composite @ref CeedOperator with a single field and composite @ref CeedOperator with single field sub-operators are supported.
+  Note: Currently only non-composite `CeedOperator` with a single field and composite `CeedOperator` with single field sub-operators are supported.
 
   Note: Calling this function asserts that setup is complete and sets the CeedOperator as immutable.
 
-  @param[in]  op        @ref CeedOperator to assemble @ref CeedQFunction
-  @param[out] assembled @ref CeedVector to store assembled @ref CeedOperator diagonal
+  @param[in]  op        `CeedOperator` to assemble `CeedQFunction`
+  @param[out] assembled `CeedVector` to store assembled `CeedOperator` diagonal
   @param[in]  request   Address of @ref CeedRequest for non-blocking completion, else @ref CEED_REQUEST_IMMEDIATE
 
   @return An error code: 0 - success, otherwise - failure
@@ -1934,7 +1934,7 @@ int CeedOperatorLinearAssembleAddDiagonal(CeedOperator op, CeedVector assembled,
 }
 
 /**
-   @brief Fully assemble the point-block diagonal pattern of a linear @ref CeedOperator.
+   @brief Fully assemble the point-block diagonal pattern of a linear `CeedOperator`.
 
    Expected to be used in conjunction with @ref CeedOperatorLinearAssemblePointBlockDiagonal().
 
@@ -1944,9 +1944,9 @@ int CeedOperatorLinearAssembleAddDiagonal(CeedOperator op, CeedVector assembled,
 
    This will generally be slow unless your operator is low-order.
 
-   Note: Calling this function asserts that setup is complete and sets the @ref CeedOperator as immutable.
+   Note: Calling this function asserts that setup is complete and sets the `CeedOperator` as immutable.
 
-   @param[in]  op          @ref CeedOperator to assemble
+   @param[in]  op          `CeedOperator` to assemble
    @param[out] num_entries Number of entries in coordinate nonzero pattern
    @param[out] rows        Row number for each entry
    @param[out] cols        Column number for each entry
@@ -2037,17 +2037,17 @@ int CeedOperatorLinearAssemblePointBlockDiagonalSymbolic(CeedOperator op, CeedSi
 }
 
 /**
-  @brief Assemble the point block diagonal of a square linear @ref CeedOperator
+  @brief Assemble the point block diagonal of a square linear `CeedOperator`.
 
-  This overwrites a @ref CeedVector with the point block diagonal of a linear @ref CeedOperator.
+  This overwrites a `CeedVector` with the point block diagonal of a linear `CeedOperator`.
 
-  Note: Currently only non-composite @ref CeedOperator with a single field and composite @ref CeedOperator with single field sub-operators are supported.
+  Note: Currently only non-composite `CeedOperator` with a single field and composite `CeedOperator` with single field sub-operators are supported.
 
-  Note: Calling this function asserts that setup is complete and sets the @ref CeedOperator as immutable.
+  Note: Calling this function asserts that setup is complete and sets the `CeedOperator` as immutable.
 
-  @param[in]  op        @ref CeedOperator to assemble @ref CeedQFunction
-  @param[out] assembled @ref CeedVector to store assembled @ref CeedOperator point block diagonal, provided in row-major form with an `num_comp * num_comp` block at each node.
-                          The dimensions of this vector are derived from the active vector for the @ref CeedOperator.
+  @param[in]  op        `CeedOperator` to assemble `CeedQFunction`
+  @param[out] assembled `CeedVector` to store assembled `CeedOperator` point block diagonal, provided in row-major form with an `num_comp * num_comp` block at each node.
+                          The dimensions of this vector are derived from the active vector for the `CeedOperator`.
                           The array has shape `[nodes, component out, component in]`.
   @param[in]  request   Address of @ref CeedRequest for non-blocking completion, else @ref CEED_REQUEST_IMMEDIATE
 
@@ -2099,17 +2099,17 @@ int CeedOperatorLinearAssemblePointBlockDiagonal(CeedOperator op, CeedVector ass
 }
 
 /**
-  @brief Assemble the point block diagonal of a square linear @ref CeedOperator
+  @brief Assemble the point block diagonal of a square linear `CeedOperator`.
 
-  This sums into a @ref CeedVector with the point block diagonal of a linear @ref CeedOperator.
+  This sums into a `CeedVector` with the point block diagonal of a linear `CeedOperator`.
 
-  Note: Currently only non-composite @ref CeedOperator with a single field and composite @ref CeedOperator with single field sub-operators are supported.
+  Note: Currently only non-composite `CeedOperator` with a single field and composite `CeedOperator` with single field sub-operators are supported.
 
-  Note: Calling this function asserts that setup is complete and sets the @ref CeedOperator as immutable.
+  Note: Calling this function asserts that setup is complete and sets the `CeedOperator` as immutable.
 
-  @param[in]  op        @ref CeedOperator to assemble @ref CeedQFunction
-  @param[out] assembled @ref CeedVector to store assembled CeedOperator point block diagonal, provided in row-major form with an `num_comp * num_comp` block at each node.
-                          The dimensions of this vector are derived from the active vector for the @ref CeedOperator.
+  @param[in]  op        `CeedOperator` to assemble `CeedQFunction`
+  @param[out] assembled `CeedVector` to store assembled CeedOperator point block diagonal, provided in row-major form with an `num_comp * num_comp` block at each node.
+                          The dimensions of this vector are derived from the active vector for the `CeedOperator`.
                           The array has shape `[nodes, component out, component in]`.
   @param[in]  request   Address of @ref CeedRequest for non-blocking completion, else @ref CEED_REQUEST_IMMEDIATE
 
@@ -2159,7 +2159,7 @@ int CeedOperatorLinearAssembleAddPointBlockDiagonal(CeedOperator op, CeedVector 
 }
 
 /**
-   @brief Fully assemble the nonzero pattern of a linear @ref CeedOperator.
+   @brief Fully assemble the nonzero pattern of a linear `CeedOperator`.
 
    Expected to be used in conjunction with @ref CeedOperatorLinearAssemble().
 
@@ -2169,9 +2169,9 @@ int CeedOperatorLinearAssembleAddPointBlockDiagonal(CeedOperator op, CeedVector 
 
    This will generally be slow unless your operator is low-order.
 
-   Note: Calling this function asserts that setup is complete and sets the @ref CeedOperator as immutable.
+   Note: Calling this function asserts that setup is complete and sets the `CeedOperator` as immutable.
 
-   @param[in]  op          @ref CeedOperator to assemble
+   @param[in]  op          `CeedOperator` to assemble
    @param[out] num_entries Number of entries in coordinate nonzero pattern
    @param[out] rows        Row number for each entry
    @param[out] cols        Column number for each entry
@@ -2246,9 +2246,9 @@ int CeedOperatorLinearAssembleSymbolic(CeedOperator op, CeedSize *num_entries, C
 
    This will generally be slow unless your operator is low-order.
 
-   Note: Calling this function asserts that setup is complete and sets the @ref CeedOperator as immutable.
+   Note: Calling this function asserts that setup is complete and sets the `CeedOperator` as immutable.
 
-   @param[in]  op     @ref CeedOperator to assemble
+   @param[in]  op     `CeedOperator` to assemble
    @param[out] values Values to assemble into matrix
 
    @ref User
@@ -2302,14 +2302,14 @@ int CeedOperatorLinearAssemble(CeedOperator op, CeedVector values) {
 }
 
 /**
-  @brief Get the multiplicity of nodes across sub-operators in a composite @ref CeedOperator
+  @brief Get the multiplicity of nodes across sub-operators in a composite `CeedOperator`.
 
-  Note: Calling this function asserts that setup is complete and sets the @ref CeedOperator as immutable.
+  Note: Calling this function asserts that setup is complete and sets the `CeedOperator` as immutable.
 
-  @param[in]  op               Composite @ref CeedOperator
+  @param[in]  op               Composite `CeedOperator`
   @param[in]  num_skip_indices Number of sub-operators to skip
   @param[in]  skip_indices     Array of indices of sub-operators to skip
-  @param[out] mult             Vector to store multiplicity (of size `l_size`)
+  @param[out] mult             Vector to store multiplicity (of size `l_size` )
 
   @return An error code: 0 - success, otherwise - failure
 
@@ -2375,17 +2375,17 @@ int CeedCompositeOperatorGetMultiplicity(CeedOperator op, CeedInt num_skip_indic
 }
 
 /**
-  @brief Create a multigrid coarse @ref CeedOperator and level transfer @ref CeedOperator for a @ref CeedOperator, creating the prolongation basis from the fine and coarse grid interpolation.
+  @brief Create a multigrid coarse `CeedOperator` and level transfer `CeedOperator` for a `CeedOperator`, creating the prolongation basis from the fine and coarse grid interpolation.
 
-  Note: Calling this function asserts that setup is complete and sets all four @ref CeedOperator as immutable.
+  Note: Calling this function asserts that setup is complete and sets all four `CeedOperator` as immutable.
 
-  @param[in]  op_fine      Fine grid @ref CeedOperator
-  @param[in]  p_mult_fine  L-vector multiplicity in parallel gather/scatter, or `NULL` if not creating prolongation/restriction @ref CeedOperator
-  @param[in]  rstr_coarse  Coarse grid @ref CeedElemRestriction
-  @param[in]  basis_coarse Coarse grid active vector @ref CeedBasis
-  @param[out] op_coarse    Coarse grid @ref CeedOperator
-  @param[out] op_prolong   Coarse to fine @ref CeedOperator, or `NULL`
-  @param[out] op_restrict  Fine to coarse @ref CeedOperator, or `NULL`
+  @param[in]  op_fine      Fine grid `CeedOperator`
+  @param[in]  p_mult_fine  L-vector multiplicity in parallel gather/scatter, or `NULL` if not creating prolongation/restriction `CeedOperator`
+  @param[in]  rstr_coarse  Coarse grid `CeedElemRestriction`
+  @param[in]  basis_coarse Coarse grid active vector `CeedBasis`
+  @param[out] op_coarse    Coarse grid `CeedOperator`
+  @param[out] op_prolong   Coarse to fine `CeedOperator`, or `NULL`
+  @param[out] op_restrict  Fine to coarse `CeedOperator`, or `NULL`
 
   @return An error code: 0 - success, otherwise - failure
 
@@ -2411,18 +2411,18 @@ int CeedOperatorMultigridLevelCreate(CeedOperator op_fine, CeedVector p_mult_fin
 }
 
 /**
-  @brief Create a multigrid coarse @ref CeedOperator and level transfer @ref CeedOperator for a @ref CeedOperator with a tensor basis for the active basis.
+  @brief Create a multigrid coarse `CeedOperator` and level transfer `CeedOperator` for a `CeedOperator` with a tensor basis for the active basis.
 
-  Note: Calling this function asserts that setup is complete and sets all four @ref CeedOperator as immutable.
+  Note: Calling this function asserts that setup is complete and sets all four `CeedOperator` as immutable.
 
-  @param[in]  op_fine       Fine grid @ref CeedOperator
-  @param[in]  p_mult_fine   L-vector multiplicity in parallel gather/scatter, or `NULL` if not creating prolongation/restriction @ref CeedOperator
-  @param[in]  rstr_coarse   Coarse grid @ref CeedElemRestriction
-  @param[in]  basis_coarse  Coarse grid active vector @ref CeedBasis
-  @param[in]  interp_c_to_f Matrix for coarse to fine interpolation, or `NULL` if not creating prolongation/restriction @ref CeedOperator
-  @param[out] op_coarse     Coarse grid @ref CeedOperator
-  @param[out] op_prolong    Coarse to fine @ref CeedOperator, or `NULL`
-  @param[out] op_restrict   Fine to coarse @ref CeedOperator, or `NULL`
+  @param[in]  op_fine       Fine grid `CeedOperator`
+  @param[in]  p_mult_fine   L-vector multiplicity in parallel gather/scatter, or `NULL` if not creating prolongation/restriction `CeedOperator`
+  @param[in]  rstr_coarse   Coarse grid `CeedElemRestriction`
+  @param[in]  basis_coarse  Coarse grid active vector `CeedBasis`
+  @param[in]  interp_c_to_f Matrix for coarse to fine interpolation, or `NULL` if not creating prolongation/restriction `CeedOperator`
+  @param[out] op_coarse     Coarse grid `CeedOperator`
+  @param[out] op_prolong    Coarse to fine `CeedOperator`, or `NULL`
+  @param[out] op_restrict   Fine to coarse `CeedOperator`, or `NULL`
 
   @return An error code: 0 - success, otherwise - failure
 
@@ -2472,18 +2472,18 @@ int CeedOperatorMultigridLevelCreateTensorH1(CeedOperator op_fine, CeedVector p_
 }
 
 /**
-  @brief Create a multigrid coarse @ref CeedOperator and level transfer @ref CeedOperator for a @ref CeedOperator with a non-tensor basis for the active vector
+  @brief Create a multigrid coarse `CeedOperator` and level transfer `CeedOperator` for a `CeedOperator` with a non-tensor basis for the active vector
 
-  Note: Calling this function asserts that setup is complete and sets all four @ref CeedOperator as immutable.
+  Note: Calling this function asserts that setup is complete and sets all four `CeedOperator` as immutable.
 
-  @param[in]  op_fine       Fine grid @ref CeedOperator
-  @param[in]  p_mult_fine   L-vector multiplicity in parallel gather/scatter, or `NULL` if not creating prolongation/restriction @ref CeedOperator
-  @param[in]  rstr_coarse   Coarse grid @ref CeedElemRestriction
-  @param[in]  basis_coarse  Coarse grid active vector @ref CeedBasis
-  @param[in]  interp_c_to_f Matrix for coarse to fine interpolation, or `NULL` if not creating prolongation/restriction @ref CeedOperator
-  @param[out] op_coarse     Coarse grid @ref CeedOperator
-  @param[out] op_prolong    Coarse to fine @ref CeedOperator, or `NULL`
-  @param[out] op_restrict   Fine to coarse @ref CeedOperator, or `NULL`
+  @param[in]  op_fine       Fine grid `CeedOperator`
+  @param[in]  p_mult_fine   L-vector multiplicity in parallel gather/scatter, or `NULL` if not creating prolongation/restriction `CeedOperator`
+  @param[in]  rstr_coarse   Coarse grid `CeedElemRestriction`
+  @param[in]  basis_coarse  Coarse grid active vector `CeedBasis`
+  @param[in]  interp_c_to_f Matrix for coarse to fine interpolation, or `NULL` if not creating prolongation/restriction `CeedOperator`
+  @param[out] op_coarse     Coarse grid `CeedOperator`
+  @param[out] op_prolong    Coarse to fine `CeedOperator`, or `NULL`
+  @param[out] op_restrict   Fine to coarse `CeedOperator`, or `NULL`
 
   @return An error code: 0 - success, otherwise - failure
 
@@ -2534,18 +2534,18 @@ int CeedOperatorMultigridLevelCreateH1(CeedOperator op_fine, CeedVector p_mult_f
 }
 
 /**
-  @brief Build a FDM based approximate inverse for each element for a @ref CeedOperator
+  @brief Build a FDM based approximate inverse for each element for a `CeedOperator`.
 
-  This returns a @ref CeedOperator and @ref CeedVector to apply a Fast Diagonalization Method based approximate inverse.
+  This returns a `CeedOperator` and `CeedVector` to apply a Fast Diagonalization Method based approximate inverse.
   This function obtains the simultaneous diagonalization for the 1D mass and Laplacian operators, \f$M = V^T V, K = V^T S V\f$.
-  The assembled @ref CeedQFunction is used to modify the eigenvalues from simultaneous diagonalization and obtain an approximate inverse of the form \f$V^T \hat S V\f$.
-  The @ref CeedOperator must be linear and non-composite.
-  The associated @ref CeedQFunction must therefore also be linear.
+  The assembled `CeedQFunction` is used to modify the eigenvalues from simultaneous diagonalization and obtain an approximate inverse of the form \f$V^T \hat S V\f$.
+  The `CeedOperator` must be linear and non-composite.
+  The associated `CeedQFunction` must therefore also be linear.
 
-  Note: Calling this function asserts that setup is complete and sets the @ref CeedOperator as immutable.
+  Note: Calling this function asserts that setup is complete and sets the `CeedOperator` as immutable.
 
-  @param[in]  op      @ref CeedOperator to create element inverses
-  @param[out] fdm_inv @ref CeedOperator to apply the action of a FDM based inverse for each element
+  @param[in]  op      `CeedOperator` to create element inverses
+  @param[out] fdm_inv `CeedOperator` to apply the action of a FDM based inverse for each element
   @param[in]  request Address of @ref CeedRequest for non-blocking completion, else @ref CEED_REQUEST_IMMEDIATE
 
   @return An error code: 0 - success, otherwise - failure

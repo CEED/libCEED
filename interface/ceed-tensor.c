@@ -20,10 +20,10 @@
 /// @{
 
 /**
-  @brief Create a @ref CeedTensorContract object for a @ref CeedBasis
+  @brief Create a `CeedTensorContract` object for a `CeedBasis`
 
-  @param[in]  ceed     @ref Ceed object used to create the @ref CeedTensorContract
-  @param[out] contract Address of the variable where the newly created @ref CeedTensorContract will be stored.
+  @param[in]  ceed     `Ceed` object used to create the `CeedTensorContract`
+  @param[out] contract Address of the variable where the newly created `CeedTensorContract` will be stored.
 
   @return An error code: 0 - success, otherwise - failure
 
@@ -53,7 +53,7 @@ int CeedTensorContractCreate(Ceed ceed, CeedTensorContract *contract) {
   TRANSPOSE:   `v_ajc = t_bj u_abc`
   If `add != 0`, `=` is replaced by `+=`
 
-  @param[in]  contract @ref CeedTensorContract to use
+  @param[in]  contract `CeedTensorContract` to use
   @param[in]  A        First index of `u`, `v`
   @param[in]  B        Middle index of `u`, one index of `t`
   @param[in]  C        Last index of `u`, `v`
@@ -82,7 +82,7 @@ int CeedTensorContractApply(CeedTensorContract contract, CeedInt A, CeedInt B, C
   TRANSPOSE:   `v_ajc  = t_dbj u_dabc`
   If `add != 0`, `=` is replaced by `+=`
 
-  @param[in]  contract @ref CeedTensorContract to use
+  @param[in]  contract `CeedTensorContract` to use
   @param[in]  A        First index of `u`, second index of `v`
   @param[in]  B        Middle index of `u`, one of last two indices of `t`
   @param[in]  C        Last index of `u`, `v`
@@ -113,10 +113,10 @@ int CeedTensorContractStridedApply(CeedTensorContract contract, CeedInt A, CeedI
 }
 
 /**
-  @brief Get @ref Ceed associated with a @ref CeedTensorContract
+  @brief Get `Ceed` associated with a `CeedTensorContract`
 
-  @param[in]  contract @ref CeedTensorContract
-  @param[out] ceed     Variable to store @ref Ceed
+  @param[in]  contract `CeedTensorContract`
+  @param[out] ceed     Variable to store `Ceed`
 
   @return An error code: 0 - success, otherwise - failure
 
@@ -128,9 +128,9 @@ int CeedTensorContractGetCeed(CeedTensorContract contract, Ceed *ceed) {
 }
 
 /**
-  @brief Get backend data of a @ref CeedTensorContract
+  @brief Get backend data of a `CeedTensorContract`
 
-  @param[in]  contract @ref CeedTensorContract
+  @param[in]  contract `CeedTensorContract`
   @param[out] data     Variable to store data
 
   @return An error code: 0 - success, otherwise - failure
@@ -143,9 +143,9 @@ int CeedTensorContractGetData(CeedTensorContract contract, void *data) {
 }
 
 /**
-  @brief Set backend data of a @ref CeedTensorContract
+  @brief Set backend data of a `CeedTensorContract`
 
-  @param[in,out] contract @ref CeedTensorContract
+  @param[in,out] contract `CeedTensorContract`
   @param[in]     data     Data to set
 
   @return An error code: 0 - success, otherwise - failure
@@ -158,9 +158,9 @@ int CeedTensorContractSetData(CeedTensorContract contract, void *data) {
 }
 
 /**
-  @brief Increment the reference counter for a @ref CeedTensorContract
+  @brief Increment the reference counter for a `CeedTensorContract`
 
-  @param[in,out] contract @ref CeedTensorContract to increment the reference counter
+  @param[in,out] contract `CeedTensorContract` to increment the reference counter
 
   @return An error code: 0 - success, otherwise - failure
 
@@ -172,14 +172,14 @@ int CeedTensorContractReference(CeedTensorContract contract) {
 }
 
 /**
-  @brief Copy the pointer to a @ref CeedTensorContract.
+  @brief Copy the pointer to a `CeedTensorContract`.
 
   Both pointers should be destroyed with @ref CeedTensorContractDestroy().
 
-  Note: If the value of `*tensor_copy` passed to this function is non-`NULL`, then it is assumed that `*tensor_copy` is a pointer to a @ref CeedTensorContract.
-        This @ref CeedTensorContract will be destroyed if `*tensor_copy` is the only reference to this @ref CeedTensorContract.
+  Note: If the value of `*tensor_copy` passed to this function is non-`NULL`, then it is assumed that `*tensor_copy` is a pointer to a `CeedTensorContract`.
+        This `CeedTensorContract` will be destroyed if `*tensor_copy` is the only reference to this `CeedTensorContract`.
 
-  @param[in]     tensor      @ref CeedTensorContract to copy reference to
+  @param[in]     tensor      `CeedTensorContract` to copy reference to
   @param[in,out] tensor_copy Variable to store copied reference
 
   @return An error code: 0 - success, otherwise - failure
@@ -194,9 +194,9 @@ int CeedTensorContractReferenceCopy(CeedTensorContract tensor, CeedTensorContrac
 }
 
 /**
-  @brief Destroy a @ref CeedTensorContract
+  @brief Destroy a `CeedTensorContract`
 
-  @param[in,out] contract @ref CeedTensorContract to destroy
+  @param[in,out] contract `CeedTensorContract` to destroy
 
   @return An error code: 0 - success, otherwise - failure
 

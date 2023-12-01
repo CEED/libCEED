@@ -37,11 +37,11 @@
 #define CEED_VISIBILITY(mode)
 #endif
 
-/**
+/*
   CEED_EXTERN is used in this header to denote all publicly visible symbols.
 
   No other file should declare publicly visible symbols, thus it should never be used outside `"ceed.h"`.
- */
+*/
 #if defined(__clang_analyzer__)
 #define CEED_EXTERN extern
 #elif defined(__cplusplus)
@@ -54,9 +54,14 @@
 #include <stdbool.h>
 #include <stdio.h>
 
-/// Typedefs and macros used in public interfaces and user @ref CeedQFunction source
+/*
+  Typedefs and macros used in public interfaces and user `CeedQFunction` source
+*/
 #include "types.h"  // IWYU pragma: export
-/// This line prevents IWYU from suggesting "ceed.h"
+
+/*
+  This line prevents IWYU from suggesting "ceed.h"
+*/
 // IWYU pragma: private, include <ceed.h>
 
 /// Library context created by CeedInit()
@@ -92,7 +97,7 @@ typedef struct CeedQFunctionContext_private *CeedQFunctionContext;
 typedef struct CeedContextFieldLabel_private *CeedContextFieldLabel;
 /// Handle for object describing FE-type operators acting on vectors
 ///
-/// Given an element restriction \f$E\f$, basis evaluator \f$B\f$, and quadrature function\f$f\f$, a @ref CeedOperator expresses operations of the form \f$E^T B^T f(B E u)\f$ acting on the vector \f$u\f$.
+/// Given an element restriction \f$E\f$, basis evaluator \f$B\f$, and quadrature function\f$f\f$, a `CeedOperator` expresses operations of the form \f$E^T B^T f(B E u)\f$ acting on the vector \f$u\f$.
 /// @ingroup CeedOperatorUser
 typedef struct CeedOperator_private *CeedOperator;
 
@@ -107,9 +112,9 @@ CEED_EXTERN int CeedView(Ceed ceed, FILE *stream);
 CEED_EXTERN int CeedDestroy(Ceed *ceed);
 CEED_EXTERN int CeedErrorImpl(Ceed ceed, const char *filename, int lineno, const char *func, int ecode, const char *format, ...);
 
-/// Raise an error on @ref Ceed object
+/// Raise an error on `Ceed` object
 ///
-/// @param ceed Ceed library context or NULL
+/// @param ceed `Ceed` library context or `NULL`
 /// @param ecode Error code (int)
 /// @param ... printf-style format string followed by arguments as needed
 ///
@@ -205,7 +210,7 @@ CEED_EXTERN int                CeedRequestWait(CeedRequest *req);
 /// @ingroup CeedVector
 CEED_EXTERN const CeedVector CEED_VECTOR_ACTIVE;
 
-/// Argument for @ref CeedOperatorSetField() to use no vector.
+/// Argument for @ref CeedOperatorSetField() to use no `CeedVector`.
 /// Only use this option with @ref CeedEvalMode @ref CEED_EVAL_WEIGHT.
 /// @ingroup CeedVector
 CEED_EXTERN const CeedVector CEED_VECTOR_NONE;
@@ -217,18 +222,18 @@ CEED_EXTERN const CeedBasis CEED_BASIS_NONE;
 
 CEED_EXTERN const CeedBasis CEED_BASIS_COLLOCATED;
 
-/// Argument for @ref CeedOperatorSetField() to use no @ref CeedElemRestriction.
+/// Argument for @ref CeedOperatorSetField() to use no `CeedElemRestriction`.
 /// Only use this option with @ref CeedEvalMode @ref CEED_EVAL_WEIGHT.
 /// @ingroup CeedElemRestriction
 CEED_EXTERN const CeedElemRestriction CEED_ELEMRESTRICTION_NONE;
 
-/// Argument for @ref CeedOperatorCreate() that @ref CeedQFunction is not created by user.
-/// Only used for @ref CeedQFunction `dqf` and `dqfT`.
-/// If implemented, a backend may attempt to provide the action of these @ref CeedQFunction.
+/// Argument for @ref CeedOperatorCreate() that `CeedQFunction` is not created by user.
+/// Only used for `CeedQFunction` `dqf` and `dqfT`.
+/// If implemented, a backend may attempt to provide the action of these `CeedQFunction`.
 /// @ingroup CeedQFunction
 CEED_EXTERN const CeedQFunction CEED_QFUNCTION_NONE;
 
-/// Argument for @ref CeedElemRestrictionCreateStrided that L-vector is in the Ceed backend's preferred layout.
+/// Argument for @ref CeedElemRestrictionCreateStrided() that L-vector is in the Ceed backend's preferred layout.
 /// This argument should only be used with vectors created by a Ceed backend.
 /// @ingroup CeedElemRestriction
 CEED_EXTERN const CeedInt CEED_STRIDES_BACKEND[3];
@@ -321,7 +326,7 @@ CEED_EXTERN int CeedBasisDestroy(CeedBasis *basis);
 CEED_EXTERN int CeedGaussQuadrature(CeedInt Q, CeedScalar *q_ref_1d, CeedScalar *q_weight_1d);
 CEED_EXTERN int CeedLobattoQuadrature(CeedInt Q, CeedScalar *q_ref_1d, CeedScalar *q_weight_1d);
 
-/** Handle for the user provided @ref CeedQFunction callback function
+/** Handle for the user provided `CeedQFunction` callback function
 
  @param[in,out] ctx User-defined context set using @ref CeedQFunctionSetContext() or `NULL`
  @param[in] Q       Number of quadrature points at which to evaluate
@@ -359,7 +364,7 @@ CEED_EXTERN int CeedQFunctionFieldGetEvalMode(CeedQFunctionField qf_field, CeedE
 
 /** Handle for the user provided @ref CeedQFunctionContextDestroy() callback function
 
- @param[in,out] data  User @ref CeedQFunctionContext data
+ @param[in,out] data  User `CeedQFunctionContext` data
 
  @return An error code: 0 - success, otherwise - failure
 

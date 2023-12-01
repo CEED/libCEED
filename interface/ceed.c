@@ -85,7 +85,7 @@ CeedRequest *const CEED_REQUEST_ORDERED = &ceed_request_ordered;
 /**
   @brief Wait for a @ref CeedRequest to complete.
 
-  Calling `CeedRequestWait()` on a `NULL` request is a no-op.
+  Calling @ref CeedRequestWait() on a `NULL` request is a no-op.
 
   @param[in,out] req Address of @ref CeedRequest to wait for; zeroed on completion.
 
@@ -152,7 +152,7 @@ int CeedRegisterImpl(const char *prefix, int (*init)(const char *, Ceed), unsign
 /**
   @brief Return value of `CEED_DEBUG` environment variable
 
-  @param[in] ceed @ref Ceed context
+  @param[in] ceed `Ceed` context
 
   @return Boolean value: true  - debugging mode enabled
                          false - debugging mode disabled
@@ -298,7 +298,7 @@ int CeedFree(void *p) {
 }
 
 /**
-  @brief Register a Ceed backend
+  @brief Register a `Ceed` backend
 
   @param[in] prefix   Prefix of resources for this backend to respond to.
                         For example, the reference backend responds to "/cpu/self".
@@ -319,7 +319,7 @@ int CeedRegister(const char *prefix, int (*init)(const char *, Ceed), unsigned i
 /**
   @brief Return debugging status flag
 
-  @param[in]  ceed     @ref Ceed context to get debugging flag
+  @param[in]  ceed     `Ceed` context to get debugging flag
   @param[out] is_debug Variable to store debugging flag
 
   @return An error code: 0 - success, otherwise - failure
@@ -334,7 +334,7 @@ int CeedIsDebug(Ceed ceed, bool *is_debug) {
 /**
   @brief Get the root of the requested resource
 
-  @param[in]  ceed          @ref Ceed context to get resource name of
+  @param[in]  ceed          `Ceed` context to get resource name of
   @param[in]  resource      Full user specified resource
   @param[in]  delineator    Delineator to break `resource_root` and `resource_spec`
   @param[out] resource_root Variable to store resource root
@@ -353,9 +353,9 @@ int CeedGetResourceRoot(Ceed ceed, const char *resource, const char *delineator,
 }
 
 /**
-  @brief Retrieve a parent @ref Ceed context
+  @brief Retrieve a parent `Ceed` context
 
-  @param[in]  ceed   @ref Ceed context to retrieve parent of
+  @param[in]  ceed   `Ceed` context to retrieve parent of
   @param[out] parent Address to save the parent to
 
   @return An error code: 0 - success, otherwise - failure
@@ -372,9 +372,9 @@ int CeedGetParent(Ceed ceed, Ceed *parent) {
 }
 
 /**
-  @brief Retrieve a delegate @ref Ceed context
+  @brief Retrieve a delegate `Ceed` context
 
-  @param[in]  ceed     @ref Ceed context to retrieve delegate of
+  @param[in]  ceed     `Ceed` context to retrieve delegate of
   @param[out] delegate Address to save the delegate to
 
   @return An error code: 0 - success, otherwise - failure
@@ -387,12 +387,12 @@ int CeedGetDelegate(Ceed ceed, Ceed *delegate) {
 }
 
 /**
-  @brief Set a delegate @ref Ceed context
+  @brief Set a delegate `Ceed` context
 
-  This function allows a @ref Ceed context to set a delegate @ref Ceed context.
-  All backend implementations default to the delegate @ref Ceed context, unless overridden.
+  This function allows a `Ceed` context to set a delegate `Ceed` context.
+  All backend implementations default to the delegate `Ceed` context, unless overridden.
 
-  @param[in]  ceed     @ref Ceed context to set delegate of
+  @param[in]  ceed     `Ceed` context to set delegate of
   @param[out] delegate Address to set the delegate to
 
   @return An error code: 0 - success, otherwise - failure
@@ -406,9 +406,9 @@ int CeedSetDelegate(Ceed ceed, Ceed delegate) {
 }
 
 /**
-  @brief Retrieve a delegate @ref Ceed context for a specific object type
+  @brief Retrieve a delegate `Ceed` context for a specific object type
 
-  @param[in]  ceed     @ref Ceed context to retrieve delegate of
+  @param[in]  ceed     `Ceed` context to retrieve delegate of
   @param[out] delegate Address to save the delegate to
   @param[in]  obj_name Name of the object type to retrieve delegate for
 
@@ -431,14 +431,14 @@ int CeedGetObjectDelegate(Ceed ceed, Ceed *delegate, const char *obj_name) {
 }
 
 /**
-  @brief Set a delegate @ref Ceed context for a specific object type
+  @brief Set a delegate `Ceed` context for a specific object type
 
-  This function allows a @ref Ceed context to set a delegate @ref Ceed context for a given type of @ref Ceed object.
-  All backend implementations default to the delegate @ref Ceed context for this object.
-  For example, `CeedSetObjectDelegate(ceed, delegate, "Basis")` uses delegate implementations for all @ref CeedBasis backend functions.
+  This function allows a `Ceed` context to set a delegate `Ceed` context for a given type of `Ceed` object.
+  All backend implementations default to the delegate `Ceed` context for this object.
+  For example, `CeedSetObjectDelegate(ceed, delegate, "Basis")` uses delegate implementations for all `CeedBasis` backend functions.
 
-  @param[in,out] ceed     @ref Ceed context to set delegate of
-  @param[in]     delegate @ref Ceed context to use for delegation
+  @param[in,out] ceed     `Ceed` context to set delegate of
+  @param[in]     delegate `Ceed` context to use for delegation
   @param[in]     obj_name Name of the object type to set delegate for
 
   @return An error code: 0 - success, otherwise - failure
@@ -466,9 +466,9 @@ int CeedSetObjectDelegate(Ceed ceed, Ceed delegate, const char *obj_name) {
 }
 
 /**
-  @brief Get the fallback resource for @ref CeedOperator
+  @brief Get the fallback resource for `CeedOperator`
 
-  @param[in]  ceed     @ref Ceed context
+  @param[in]  ceed     `Ceed` context
   @param[out] resource Variable to store fallback resource
 
   @return An error code: 0 - success, otherwise - failure
@@ -481,10 +481,10 @@ int CeedGetOperatorFallbackResource(Ceed ceed, const char **resource) {
 }
 
 /**
-  @brief Get the fallback @ref Ceed for @ref CeedOperator
+  @brief Get the fallback `Ceed` for `CeedOperator`
 
-  @param[in]  ceed          @ref Ceed context
-  @param[out] fallback_ceed Variable to store fallback @ref Ceed
+  @param[in]  ceed          `Ceed` context
+  @param[out] fallback_ceed Variable to store fallback `Ceed`
 
   @return An error code: 0 - success, otherwise - failure
 
@@ -514,12 +514,12 @@ int CeedGetOperatorFallbackCeed(Ceed ceed, Ceed *fallback_ceed) {
 }
 
 /**
-  @brief Set the fallback resource for @ref CeedOperator.
+  @brief Set the fallback resource for `CeedOperator`.
 
   The current resource, if any, is freed by calling this function.
-  This string is freed upon the destruction of the @ref Ceed context.
+  This string is freed upon the destruction of the `Ceed` context.
 
-  @param[in,out] ceed     @ref Ceed context
+  @param[in,out] ceed     `Ceed` context
   @param[in]     resource Fallback resource to set
 
   @return An error code: 0 - success, otherwise - failure
@@ -539,9 +539,9 @@ int CeedSetOperatorFallbackResource(Ceed ceed, const char *resource) {
 }
 
 /**
-  @brief Flag @ref Ceed context as deterministic
+  @brief Flag `Ceed` context as deterministic
 
-  @param[in]  ceed             @ref Ceed to flag as deterministic
+  @param[in]  ceed             `Ceed` to flag as deterministic
   @param[out] is_deterministic Deterministic status to set
 
   @return An error code: 0 - success, otherwise - failure
@@ -560,7 +560,7 @@ int CeedSetDeterministic(Ceed ceed, bool is_deterministic) {
   For example, `CeedSetBackendFunction(ceed, "Ceed", ceed, "VectorCreate", BackendVectorCreate)` sets the backend implementation of @ref CeedVectorCreate() and `CeedSetBackendFunction(ceed, "Basis", basis, "Apply", BackendBasisApply)` sets the backend implementation of @ref CeedBasisApply().
   Note, the prefix 'Ceed' is not required for the object type ("Basis" vs "CeedBasis").
 
-  @param[in]  ceed      @ref Ceed context for error handling
+  @param[in]  ceed      `Ceed` context for error handling
   @param[in]  type      Type of Ceed object to set function for
   @param[out] object    Ceed object to set function for
   @param[in]  func_name Name of function to set
@@ -595,9 +595,9 @@ int CeedSetBackendFunction(Ceed ceed, const char *type, void *object, const char
 }
 
 /**
-  @brief Retrieve backend data for a @ref Ceed context
+  @brief Retrieve backend data for a `Ceed` context
 
-  @param[in]  ceed @ref Ceed context to retrieve data of
+  @param[in]  ceed `Ceed` context to retrieve data of
   @param[out] data Address to save data to
 
   @return An error code: 0 - success, otherwise - failure
@@ -610,9 +610,9 @@ int CeedGetData(Ceed ceed, void *data) {
 }
 
 /**
-  @brief Set backend data for a @ref Ceed context
+  @brief Set backend data for a `Ceed` context
 
-  @param[in,out] ceed @ref Ceed context to set data of
+  @param[in,out] ceed `Ceed` context to set data of
   @param[in]     data Address of data to set
 
   @return An error code: 0 - success, otherwise - failure
@@ -625,9 +625,9 @@ int CeedSetData(Ceed ceed, void *data) {
 }
 
 /**
-  @brief Increment the reference counter for a @ref Ceed context
+  @brief Increment the reference counter for a `Ceed` context
 
-  @param[in,out] ceed @ref Ceed context to increment the reference counter
+  @param[in,out] ceed `Ceed` context to increment the reference counter
 
   @return An error code: 0 - success, otherwise - failure
 
@@ -647,7 +647,7 @@ int CeedReference(Ceed ceed) {
 /// @{
 
 /**
-  @brief Get the list of available resource names for @ref Ceed contexts
+  @brief Get the list of available resource names for `Ceed` contexts
 
   Note: The caller is responsible for `free()`ing the resources and priorities arrays, but should not `free()` the contents of the resources array.
 
@@ -688,7 +688,7 @@ int CeedRegistryGetList(size_t *n, char ***const resources, CeedInt **priorities
 // LCOV_EXCL_STOP
 
 /**
-  @brief Initialize a @ref Ceed context to use the specified resource.
+  @brief Initialize a `Ceed` context to use the specified resource.
 
   Note: Prefixing the resource with "help:" (e.g. "help:/cpu/self") will result in @ref CeedInt() printing the current libCEED version number and a list of current available backend resources to `stderr`.
 
@@ -898,9 +898,9 @@ int CeedInit(const char *resource, Ceed *ceed) {
 }
 
 /**
-  @brief Set the GPU stream for a @ref Ceed context
+  @brief Set the GPU stream for a `Ceed` context
 
-  @param[in,out] ceed   @ref Ceed context to set the stream
+  @param[in,out] ceed   `Ceed` context to set the stream
   @param[in]     handle Handle to GPU stream
 
   @return An error code: 0 - success, otherwise - failure
@@ -922,14 +922,14 @@ int CeedSetStream(Ceed ceed, void *handle) {
 }
 
 /**
-  @brief Copy the pointer to a @ref Ceed context.
+  @brief Copy the pointer to a `Ceed` context.
 
   Both pointers should be destroyed with @ref CeedDestroy().
 
-  Note: If the value of `*ceed_copy` passed to this function is non-`NULL`, then it is assumed that `*ceed_copy` is a pointer to a @ref Ceed context.
-        This @ref Ceed context will be destroyed if `*ceed_copy` is the only reference to this @ref Ceed context.
+  Note: If the value of `*ceed_copy` passed to this function is non-`NULL`, then it is assumed that `*ceed_copy` is a pointer to a `Ceed` context.
+        This `Ceed` context will be destroyed if `*ceed_copy` is the only reference to this `Ceed` context.
 
-  @param[in]     ceed      @ref Ceed context to copy reference to
+  @param[in]     ceed      `Ceed` context to copy reference to
   @param[in,out] ceed_copy Variable to store copied reference
 
   @return An error code: 0 - success, otherwise - failure
@@ -944,9 +944,9 @@ int CeedReferenceCopy(Ceed ceed, Ceed *ceed_copy) {
 }
 
 /**
-  @brief Get the full resource name for a @ref Ceed context
+  @brief Get the full resource name for a `Ceed` context
 
-  @param[in]  ceed     @ref Ceed context to get resource name of
+  @param[in]  ceed     `Ceed` context to get resource name of
   @param[out] resource Variable to store resource name
 
   @return An error code: 0 - success, otherwise - failure
@@ -959,9 +959,9 @@ int CeedGetResource(Ceed ceed, const char **resource) {
 }
 
 /**
-  @brief Return @ref Ceed context preferred memory type
+  @brief Return `Ceed` context preferred memory type
 
-  @param[in]  ceed     @ref Ceed context to get preferred memory type of
+  @param[in]  ceed     `Ceed` context to get preferred memory type of
   @param[out] mem_type Address to save preferred memory type to
 
   @return An error code: 0 - success, otherwise - failure
@@ -985,9 +985,9 @@ int CeedGetPreferredMemType(Ceed ceed, CeedMemType *mem_type) {
 }
 
 /**
-  @brief Get deterministic status of @ref Ceed context
+  @brief Get deterministic status of `Ceed` context
 
-  @param[in]  ceed             @ref Ceed context
+  @param[in]  ceed             `Ceed` context
   @param[out] is_deterministic Variable to store deterministic status
 
   @return An error code: 0 - success, otherwise - failure
@@ -1000,9 +1000,9 @@ int CeedIsDeterministic(Ceed ceed, bool *is_deterministic) {
 }
 
 /**
-  @brief Set additional JiT source root for @ref Ceed context
+  @brief Set additional JiT source root for `Ceed` context
 
-  @param[in,out] ceed            @ref Ceed context
+  @param[in,out] ceed            `Ceed` context
   @param[in]     jit_source_root Absolute path to additional JiT source directory
 
   @return An error code: 0 - success, otherwise - failure
@@ -1025,9 +1025,9 @@ int CeedAddJitSourceRoot(Ceed ceed, const char *jit_source_root) {
 }
 
 /**
-  @brief View a @ref Ceed
+  @brief View a `Ceed`
 
-  @param[in] ceed   @ref Ceed to view
+  @param[in] ceed   `Ceed` to view
   @param[in] stream Filestream to write to
 
   @return An error code: 0 - success, otherwise - failure
@@ -1048,9 +1048,9 @@ int CeedView(Ceed ceed, FILE *stream) {
 }
 
 /**
-  @brief Destroy a @ref Ceed
+  @brief Destroy a `Ceed`
 
-  @param[in,out] ceed Address of @ref Ceed context to destroy
+  @param[in,out] ceed Address of `Ceed` context to destroy
 
   @return An error code: 0 - success, otherwise - failure
 
@@ -1222,7 +1222,7 @@ int CeedSetErrorHandler(Ceed ceed, CeedErrorHandler handler) {
 
   The error message is only stored when using the error handler @ref CeedErrorStore()
 
-  @param[in]  ceed    @ref Ceed context to retrieve error message
+  @param[in]  ceed    `Ceed` context to retrieve error message
   @param[out] err_msg Char pointer to hold error message
 
   @return An error code: 0 - success, otherwise - failure
@@ -1241,7 +1241,7 @@ int CeedGetErrorMessage(Ceed ceed, const char **err_msg) {
 
   The error message is only stored when using the error handler @ref CeedErrorStore().
 
-  @param[in]  ceed    @ref Ceed context to restore error message
+  @param[in]  ceed    `Ceed` context to restore error message
   @param[out] err_msg Char pointer that holds error message
 
   @return An error code: 0 - success, otherwise - failure

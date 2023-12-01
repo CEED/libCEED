@@ -22,12 +22,12 @@
 /// @{
 
 /**
-  @brief Check if a @ref CeedOperatorField matches the @ref CeedQFunctionField
+  @brief Check if a `CeedOperator` Field matches the `CeedQFunction` Field
 
-  @param[in] ceed     @ref Ceed object for error handling
-  @param[in] qf_field @ref CeedQFunctionField matching @ref CeedOperatorField
-  @param[in] r        @ref CeedOperatorField @ref CeedElemRestriction
-  @param[in] b        @ref CeedOperatorField @ref CeedBasis
+  @param[in] ceed     `Ceed` object for error handling
+  @param[in] qf_field `CeedQFunction` Field matching `CeedOperator` Field
+  @param[in] r        `CeedOperator` Field `CeedElemRestriction` 
+  @param[in] b        `CeedOperator` Field `CeedBasis` 
 
   @return An error code: 0 - success, otherwise - failure
 
@@ -78,10 +78,10 @@ static int CeedOperatorCheckField(Ceed ceed, CeedQFunctionField qf_field, CeedEl
 }
 
 /**
-  @brief View a field of a @ref CeedOperator
+  @brief View a field of a `CeedOperator` 
 
-  @param[in] field        @ref CeedOperatorField to view
-  @param[in] qf_field     @ref CeedQFunctionField (carries field name)
+  @param[in] field        `CeedOperator` Field to view
+  @param[in] qf_field     `CeedQFunction` Field (carries field name)
   @param[in] field_number Number of field being viewed
   @param[in] sub          true indicates sub-operator, which increases indentation; false for top-level operator
   @param[in] input        true for an input field; false for output field
@@ -109,9 +109,9 @@ static int CeedOperatorFieldView(CeedOperatorField field, CeedQFunctionField qf_
 }
 
 /**
-  @brief View a single @ref CeedOperator
+  @brief View a single `CeedOperator` 
 
-  @param[in] op     @ref CeedOperator to view
+  @param[in] op     `CeedOperator` to view
   @param[in] sub    Boolean flag for sub-operator
   @param[in] stream Stream to write; typically `stdout` or a file
 
@@ -141,10 +141,10 @@ int CeedOperatorSingleView(CeedOperator op, bool sub, FILE *stream) {
 }
 
 /**
-  @brief Find the active input vector @ref CeedBasis for a non-composite @ref CeedOperator
+  @brief Find the active input vector `CeedBasis` for a non-composite `CeedOperator` 
 
-  @param[in]  op           @ref CeedOperator to find active @ref CeedBasis for
-  @param[out] active_basis @ref CeedBasis for active input vector or `NULL` for composite operator
+  @param[in]  op           `CeedOperator` to find active `CeedBasis` for
+  @param[out] active_basis `CeedBasis` for active input vector or `NULL` for composite operator
 
   @return An error code: 0 - success, otherwise - failure
 
@@ -156,11 +156,11 @@ int CeedOperatorGetActiveBasis(CeedOperator op, CeedBasis *active_basis) {
 }
 
 /**
-  @brief Find the active input and output vector @ref CeedBasis for a non-composite @ref CeedOperator
+  @brief Find the active input and output vector `CeedBasis` for a non-composite `CeedOperator` 
 
-  @param[in]  op                  @ref CeedOperator to find active @ref CeedBasis for
-  @param[out] active_input_basis  @ref CeedBasis for active input vector or `NULL` for composite operator
-  @param[out] active_output_basis @ref CeedBasis for active output vector or `NULL` for composite operator
+  @param[in]  op                  `CeedOperator` to find active `CeedBasis` for
+  @param[out] active_input_basis  `CeedBasis` for active input vector or `NULL` for composite operator
+  @param[out] active_output_basis `CeedBasis` for active output vector or `NULL` for composite operator
 
   @return An error code: 0 - success, otherwise - failure
 
@@ -200,10 +200,10 @@ int CeedOperatorGetActiveBases(CeedOperator op, CeedBasis *active_input_basis, C
 }
 
 /**
-  @brief Find the active vector @ref CeedElemRestriction for a non-composite @ref CeedOperator
+  @brief Find the active vector `CeedElemRestriction` for a non-composite `CeedOperator` 
 
-  @param[in]  op          @ref CeedOperator to find active @ref CeedElemRestriction for
-  @param[out] active_rstr @ref CeedElemRestriction for active input vector or NULL for composite operator
+  @param[in]  op          `CeedOperator` to find active `CeedElemRestriction` for
+  @param[out] active_rstr `CeedElemRestriction` for active input vector or NULL for composite operator
 
   @return An error code: 0 - success, otherwise - failure
 
@@ -215,11 +215,11 @@ int CeedOperatorGetActiveElemRestriction(CeedOperator op, CeedElemRestriction *a
 }
 
 /**
-  @brief Find the active input and output vector @ref CeedElemRestriction for a non-composite @ref CeedOperator
+  @brief Find the active input and output vector `CeedElemRestriction` for a non-composite `CeedOperator` 
 
-  @param[in]  op                 @ref CeedOperator to find active @ref CeedElemRestriction for
-  @param[out] active_input_rstr  @ref CeedElemRestriction for active input vector or NULL for composite operator
-  @param[out] active_output_rstr @ref CeedElemRestriction for active output vector or NULL for composite operator
+  @param[in]  op                 `CeedOperator` to find active `CeedElemRestriction` for
+  @param[out] active_input_rstr  `CeedElemRestriction` for active input vector or NULL for composite operator
+  @param[out] active_output_rstr `CeedElemRestriction` for active output vector or NULL for composite operator
 
   @return An error code: 0 - success, otherwise - failure
 
@@ -259,12 +259,12 @@ int CeedOperatorGetActiveElemRestrictions(CeedOperator op, CeedElemRestriction *
 }
 
 /**
-  @brief Set @ref CeedQFunctionContext field values of the specified type.
+  @brief Set `CeedQFunctionContext` field values of the specified type.
 
-  For composite operators, the value is set in all sub-operator @ref CeedQFunctionContext that have a matching `field_name`.
+  For composite operators, the value is set in all sub-operator `CeedQFunctionContext` that have a matching `field_name`.
   A non-zero error code is returned for single operators that do not have a matching field of the same type or composite operators that do not have any field of a matching type.
 
-  @param[in,out] op          @ref CeedOperator
+  @param[in,out] op          `CeedOperator` 
   @param[in]     field_label Label of field to set
   @param[in]     field_type  Type of field to set
   @param[in]     values      Values to set
@@ -313,12 +313,12 @@ static int CeedOperatorContextSetGeneric(CeedOperator op, CeedContextFieldLabel 
 }
 
 /**
-  @brief Get @ref CeedQFunctionContext field values of the specified type, read-only.
+  @brief Get `CeedQFunctionContext` field values of the specified type, read-only.
 
-  For composite operators, the values retrieved are for the first sub-operator @ref CeedQFunctionContext that have a matching `field_name`.
+  For composite operators, the values retrieved are for the first sub-operator `CeedQFunctionContext` that have a matching `field_name`.
   A non-zero error code is returned for single operators that do not have a matching field of the same type or composite operators that do not have any field of a matching type.
 
-  @param[in,out] op          @ref CeedOperator
+  @param[in,out] op          `CeedOperator` 
   @param[in]     field_label Label of field to set
   @param[in]     field_type  Type of field to set
   @param[out]    num_values  Number of values of type `field_type` in array `values`
@@ -372,12 +372,12 @@ static int CeedOperatorContextGetGenericRead(CeedOperator op, CeedContextFieldLa
 }
 
 /**
-  @brief Restore @ref CeedQFunctionContext field values of the specified type, read-only.
+  @brief Restore `CeedQFunctionContext` field values of the specified type, read-only.
 
-  For composite operators, the values restored are for the first sub-operator @ref CeedQFunctionContext that have a matching `field_name`.
+  For composite operators, the values restored are for the first sub-operator `CeedQFunctionContext` that have a matching `field_name`.
   A non-zero error code is returned for single operators that do not have a matching field of the same type or composite operators that do not have any field of a matching type.
 
-  @param[in,out] op          @ref CeedOperator
+  @param[in,out] op          `CeedOperator` 
   @param[in]     field_label Label of field to set
   @param[in]     field_type  Type of field to set
   @param[in]     values      Values array to restore
@@ -434,9 +434,9 @@ static int CeedOperatorContextRestoreGenericRead(CeedOperator op, CeedContextFie
 /// @{
 
 /**
-  @brief Get the number of arguments associated with a @ref CeedOperator
+  @brief Get the number of arguments associated with a `CeedOperator` 
 
-  @param[in]  op        @ref CeedOperator
+  @param[in]  op        `CeedOperator` 
   @param[out] num_args  Variable to store vector number of arguments
 
   @return An error code: 0 - success, otherwise - failure
@@ -450,9 +450,9 @@ int CeedOperatorGetNumArgs(CeedOperator op, CeedInt *num_args) {
 }
 
 /**
-  @brief Get the setup status of a @ref CeedOperator
+  @brief Get the setup status of a `CeedOperator` 
 
-  @param[in]  op            @ref CeedOperator
+  @param[in]  op            `CeedOperator` 
   @param[out] is_setup_done Variable to store setup status
 
   @return An error code: 0 - success, otherwise - failure
@@ -465,10 +465,10 @@ int CeedOperatorIsSetupDone(CeedOperator op, bool *is_setup_done) {
 }
 
 /**
-  @brief Get the @ref CeedQFunction associated with a @ref CeedOperator
+  @brief Get the `CeedQFunction` associated with a `CeedOperator` 
 
-  @param[in]  op @ref CeedOperator
-  @param[out] qf Variable to store @ref CeedQFunction
+  @param[in]  op `CeedOperator` 
+  @param[out] qf Variable to store `CeedQFunction` 
 
   @return An error code: 0 - success, otherwise - failure
 
@@ -481,9 +481,9 @@ int CeedOperatorGetQFunction(CeedOperator op, CeedQFunction *qf) {
 }
 
 /**
-  @brief Get a boolean value indicating if the @ref CeedOperator is composite
+  @brief Get a boolean value indicating if the `CeedOperator` is composite
 
-  @param[in]  op           @ref CeedOperator
+  @param[in]  op           `CeedOperator` 
   @param[out] is_composite Variable to store composite status
 
   @return An error code: 0 - success, otherwise - failure
@@ -496,9 +496,9 @@ int CeedOperatorIsComposite(CeedOperator op, bool *is_composite) {
 }
 
 /**
-  @brief Get the backend data of a @ref CeedOperator
+  @brief Get the backend data of a `CeedOperator` 
 
-  @param[in]  op   @ref CeedOperator
+  @param[in]  op   `CeedOperator` 
   @param[out] data Variable to store data
 
   @return An error code: 0 - success, otherwise - failure
@@ -511,9 +511,9 @@ int CeedOperatorGetData(CeedOperator op, void *data) {
 }
 
 /**
-  @brief Set the backend data of a @ref CeedOperator
+  @brief Set the backend data of a `CeedOperator` 
 
-  @param[in,out] op   @ref CeedOperator
+  @param[in,out] op   `CeedOperator` 
   @param[in]     data Data to set
 
   @return An error code: 0 - success, otherwise - failure
@@ -526,9 +526,9 @@ int CeedOperatorSetData(CeedOperator op, void *data) {
 }
 
 /**
-  @brief Increment the reference counter for a @ref CeedOperator
+  @brief Increment the reference counter for a `CeedOperator` 
 
-  @param[in,out] op @ref CeedOperator to increment the reference counter
+  @param[in,out] op `CeedOperator` to increment the reference counter
 
   @return An error code: 0 - success, otherwise - failure
 
@@ -540,9 +540,9 @@ int CeedOperatorReference(CeedOperator op) {
 }
 
 /**
-  @brief Set the setup flag of a @ref CeedOperator to `true`
+  @brief Set the setup flag of a `CeedOperator` to `true`
 
-  @param[in,out] op @ref CeedOperator
+  @param[in,out] op `CeedOperator` 
 
   @return An error code: 0 - success, otherwise - failure
 
@@ -562,15 +562,15 @@ int CeedOperatorSetSetupDone(CeedOperator op) {
 /// @{
 
 /**
-  @brief Create a @ref CeedOperator and associate a @ref CeedQFunction.
+  @brief Create a `CeedOperator` and associate a `CeedQFunction`.
 
-  A @ref CeedBasis and @ref CeedElemRestriction can be associated with @ref CeedQFunction fields with @ref CeedOperatorSetField().
+  A `CeedBasis` and `CeedElemRestriction` can be associated with `CeedQFunction` fields with @ref CeedOperatorSetField().
 
-  @param[in]  ceed @ref Ceed object used to create the @ref CeedOperator
-  @param[in]  qf   @ref CeedQFunction defining the action of the operator at quadrature points
-  @param[in]  dqf  @ref CeedQFunction defining the action of the Jacobian of `qf` (or @ref CEED_QFUNCTION_NONE)
-  @param[in]  dqfT @ref CeedQFunction defining the action of the transpose of the Jacobian of `qf` (or @ref CEED_QFUNCTION_NONE)
-  @param[out] op   Address of the variable where the newly created @ref CeedOperator will be stored
+  @param[in]  ceed `Ceed` object used to create the `CeedOperator` 
+  @param[in]  qf   `CeedQFunction` defining the action of the operator at quadrature points
+  @param[in]  dqf  `CeedQFunction` defining the action of the Jacobian of `qf` (or @ref CEED_QFUNCTION_NONE)
+  @param[in]  dqfT `CeedQFunction` defining the action of the transpose of the Jacobian of `qf` (or @ref CEED_QFUNCTION_NONE)
+  @param[out] op   Address of the variable where the newly created `CeedOperator` will be stored
 
   @return An error code: 0 - success, otherwise - failure
 
@@ -604,15 +604,15 @@ int CeedOperatorCreate(Ceed ceed, CeedQFunction qf, CeedQFunction dqf, CeedQFunc
 }
 
 /**
-  @brief Create a @ref CeedOperator for evaluation at evaluation at arbitrary points in each element.
+  @brief Create a `CeedOperator` for evaluation at evaluation at arbitrary points in each element.
 
-  A @ref CeedBasis and @ref CeedElemRestriction can be associated with @ref CeedQFunction fields with @ref CeedOperatorSetField.
+  A `CeedBasis` and `CeedElemRestriction` can be associated with `CeedQFunction` fields with `CeedOperator` SetField.
   The locations of each point are set with @ref CeedOperatorAtPointsSetPoints().
 
-  @param[in]  ceed @ref Ceed object used to create the @ref CeedOperator
-  @param[in]  qf   @ref CeedQFunction defining the action of the operator at quadrature points
-  @param[in]  dqf  @ref CeedQFunction defining the action of the Jacobian of @a qf (or @ref CEED_QFUNCTION_NONE)
-  @param[in]  dqfT @ref CeedQFunction defining the action of the transpose of the Jacobian of @a qf (or @ref CEED_QFUNCTION_NONE)
+  @param[in]  ceed `Ceed` object used to create the `CeedOperator` 
+  @param[in]  qf   `CeedQFunction` defining the action of the operator at quadrature points
+  @param[in]  dqf  `CeedQFunction` defining the action of the Jacobian of @a qf (or @ref CEED_QFUNCTION_NONE)
+  @param[in]  dqfT `CeedQFunction` defining the action of the transpose of the Jacobian of @a qf (or @ref CEED_QFUNCTION_NONE)
   @param[out] op   Address of the variable where the newly created CeedOperator will be stored
 
   @return An error code: 0 - success, otherwise - failure
@@ -648,10 +648,10 @@ int CeedOperatorCreateAtPoints(Ceed ceed, CeedQFunction qf, CeedQFunction dqf, C
 }
 
 /**
-  @brief Create a composite @ref CeedOperator that composes the action of several @ref CeedOperator
+  @brief Create a composite `CeedOperator` that composes the action of several `CeedOperator` 
 
-  @param[in]  ceed @ref Ceed object used to create the @ref CeedOperator
-  @param[out] op   Address of the variable where the newly created composite @ref CeedOperator will be stored
+  @param[in]  ceed `Ceed` object used to create the `CeedOperator` 
+  @param[out] op   Address of the variable where the newly created composite `CeedOperator` will be stored
 
   @return An error code: 0 - success, otherwise - failure
 
@@ -681,14 +681,14 @@ int CeedCompositeOperatorCreate(Ceed ceed, CeedOperator *op) {
 }
 
 /**
-  @brief Copy the pointer to a @ref CeedOperator.
+  @brief Copy the pointer to a `CeedOperator`.
 
   Both pointers should be destroyed with @ref CeedOperatorDestroy().
 
-  Note: If the value of `*op_copy` passed to this function is non-`NULL`, then it is assumed that `*op_copy` is a pointer to a @ref CeedOperator.
-        This @ref CeedOperator will be destroyed if `*op_copy` is the only reference to this @ref CeedOperator.
+  Note: If the value of `*op_copy` passed to this function is non-`NULL`, then it is assumed that `*op_copy` is a pointer to a `CeedOperator`.
+        This `CeedOperator` will be destroyed if `*op_copy` is the only reference to this `CeedOperator`.
 
-  @param[in]     op      @ref CeedOperator to copy reference to
+  @param[in]     op      `CeedOperator` to copy reference to
   @param[in,out] op_copy Variable to store copied reference
 
   @return An error code: 0 - success, otherwise - failure
@@ -703,23 +703,23 @@ int CeedOperatorReferenceCopy(CeedOperator op, CeedOperator *op_copy) {
 }
 
 /**
-  @brief Provide a field to a @ref CeedOperator for use by its @ref CeedQFunction.
+  @brief Provide a field to a `CeedOperator` for use by its `CeedQFunction`.
 
-  This function is used to specify both active and passive fields to a @ref CeedOperator.
-  For passive fields, a @ref CeedVector `v` must be provided.
+  This function is used to specify both active and passive fields to a `CeedOperator`.
+  For passive fields, a `CeedVector` `v` must be provided.
   Passive fields can inputs or outputs (updated in-place when operator is applied).
 
-  Active fields must be specified using this function, but their data (in a @ref CeedVector) is passed in @ref CeedOperatorApply().
-  There can be at most one active input @ref CeedVector and at most one active output@ref  CeedVector passed to @ref CeedOperatorApply().
+  Active fields must be specified using this function, but their data (in a `CeedVector`) is passed in @ref CeedOperatorApply().
+  There can be at most one active input `CeedVector` and at most one active output@ref  CeedVector passed to @ref CeedOperatorApply().
 
   The number of quadrature points must agree across all points.
   When using @ref CEED_BASIS_NONE, the number of quadrature points is determined by the element size of `r`.
 
-  @param[in,out] op         @ref CeedOperator on which to provide the field
-  @param[in]     field_name Name of the field (to be matched with the name used by @ref CeedQFunction)
-  @param[in]     r          @ref CeedElemRestriction
-  @param[in]     b          @ref CeedBasis in which the field resides or @ref CEED_BASIS_NONE if collocated with quadrature points
-  @param[in]     v          @ref CeedVector to be used by CeedOperator or @ref CEED_VECTOR_ACTIVE if field is active or @ref CEED_VECTOR_NONE if using @ref CEED_EVAL_WEIGHT in the @ref CeedQFunction
+  @param[in,out] op         `CeedOperator` on which to provide the field
+  @param[in]     field_name Name of the field (to be matched with the name used by `CeedQFunction`)
+  @param[in]     r          `CeedElemRestriction` 
+  @param[in]     b          `CeedBasis` in which the field resides or @ref CEED_BASIS_NONE if collocated with quadrature points
+  @param[in]     v          `CeedVector` to be used by CeedOperator or @ref CEED_VECTOR_ACTIVE if field is active or @ref CEED_VECTOR_NONE if using @ref CEED_EVAL_WEIGHT in the `CeedQFunction` 
 
   @return An error code: 0 - success, otherwise - failure
 
@@ -816,11 +816,11 @@ found:
 }
 
 /**
-  @brief Get the @ref CeedOperatorField of a @ref CeedOperator.
+  @brief Get the `CeedOperator` Field of a `CeedOperator`.
 
-  Note: Calling this function asserts that setup is complete and sets the @ref CeedOperator as immutable.
+  Note: Calling this function asserts that setup is complete and sets the `CeedOperator` as immutable.
 
-  @param[in]  op                @ref CeedOperator
+  @param[in]  op                `CeedOperator` 
   @param[out] num_input_fields  Variable to store number of input fields
   @param[out] input_fields      Variable to store input fields
   @param[out] num_output_fields Variable to store number of output fields
@@ -843,13 +843,13 @@ int CeedOperatorGetFields(CeedOperator op, CeedInt *num_input_fields, CeedOperat
 }
 
 /**
-  @brief Set the arbitrary points in each element for a @ref CeedOperator at points.
+  @brief Set the arbitrary points in each element for a `CeedOperator` at points.
 
-  Note: Calling this function asserts that setup is complete and sets the @ref CeedOperator as immutable.
+  Note: Calling this function asserts that setup is complete and sets the `CeedOperator` as immutable.
 
-  @param[in,out] op           @ref CeedOperator at points
-  @param[in]     rstr_points  @ref CeedElemRestriction for the coordinates of each point by element
-  @param[in]     point_coords @ref CeedVector holding coordinates of each point
+  @param[in,out] op           `CeedOperator` at points
+  @param[in]     rstr_points  `CeedElemRestriction` for the coordinates of each point by element
+  @param[in]     point_coords `CeedVector` holding coordinates of each point
 
   @return An error code: 0 - success, otherwise - failure
 
@@ -875,13 +875,13 @@ int CeedOperatorAtPointsSetPoints(CeedOperator op, CeedElemRestriction rstr_poin
 }
 
 /**
-  @brief Get the arbitrary points in each element for a @ref CeedOperator at points.
+  @brief Get the arbitrary points in each element for a `CeedOperator` at points.
 
-  Note: Calling this function asserts that setup is complete and sets the @ref CeedOperator as immutable.
+  Note: Calling this function asserts that setup is complete and sets the `CeedOperator` as immutable.
 
-  @param[in]  op           @ref CeedOperator at points
-  @param[out] rstr_points  Variable to hold @ref CeedElemRestriction for the coordinates of each point by element
-  @param[out] point_coords Variable to hold @ref CeedVector holding coordinates of each point
+  @param[in]  op           `CeedOperator` at points
+  @param[out] rstr_points  Variable to hold `CeedElemRestriction` for the coordinates of each point by element
+  @param[out] point_coords Variable to hold `CeedVector` holding coordinates of each point
 
   @return An error code: 0 - success, otherwise - failure
 
@@ -897,13 +897,13 @@ int CeedOperatorAtPointsGetPoints(CeedOperator op, CeedElemRestriction *rstr_poi
 }
 
 /**
-  @brief Get a @ref CeedOperatorField of a @ref CeedOperator from its name
+  @brief Get a `CeedOperator` Field of a `CeedOperator` from its name
 
-  Note: Calling this function asserts that setup is complete and sets the @ref CeedOperator as immutable.
+  Note: Calling this function asserts that setup is complete and sets the `CeedOperator` as immutable.
 
-  @param[in]  op         @ref CeedOperator
-  @param[in]  field_name Name of desired @ref CeedOperatorField
-  @param[out] op_field   @ref CeedOperatorField corresponding to the name
+  @param[in]  op         `CeedOperator` 
+  @param[in]  field_name Name of desired `CeedOperator` Field
+  @param[out] op_field   `CeedOperator` Field corresponding to the name
 
   @return An error code: 0 - success, otherwise - failure
 
@@ -938,9 +938,9 @@ int CeedOperatorGetFieldByName(CeedOperator op, const char *field_name, CeedOper
 }
 
 /**
-  @brief Get the name of a @ref CeedOperatorField
+  @brief Get the name of a `CeedOperator` Field
 
-  @param[in]  op_field    @ref CeedOperatorField
+  @param[in]  op_field    `CeedOperator` Field
   @param[out] field_name  Variable to store the field name
 
   @return An error code: 0 - success, otherwise - failure
@@ -953,10 +953,10 @@ int CeedOperatorFieldGetName(CeedOperatorField op_field, char **field_name) {
 }
 
 /**
-  @brief Get the @ref CeedElemRestriction of a @ref CeedOperatorField
+  @brief Get the `CeedElemRestriction` of a `CeedOperator` Field
 
-  @param[in]  op_field @ref CeedOperatorField
-  @param[out] rstr     Variable to store @ref CeedElemRestriction
+  @param[in]  op_field `CeedOperator` Field
+  @param[out] rstr     Variable to store `CeedElemRestriction` 
 
   @return An error code: 0 - success, otherwise - failure
 
@@ -968,10 +968,10 @@ int CeedOperatorFieldGetElemRestriction(CeedOperatorField op_field, CeedElemRest
 }
 
 /**
-  @brief Get the @ref CeedBasis of a @ref CeedOperatorField
+  @brief Get the `CeedBasis` of a `CeedOperator` Field
 
-  @param[in]  op_field @ref CeedOperatorField
-  @param[out] basis    Variable to store @ref CeedBasis
+  @param[in]  op_field `CeedOperator` Field
+  @param[out] basis    Variable to store `CeedBasis` 
 
   @return An error code: 0 - success, otherwise - failure
 
@@ -983,10 +983,10 @@ int CeedOperatorFieldGetBasis(CeedOperatorField op_field, CeedBasis *basis) {
 }
 
 /**
-  @brief Get the @ref CeedVector of a @ref CeedOperatorField
+  @brief Get the `CeedVector` of a `CeedOperator` Field
 
-  @param[in]  op_field @ref CeedOperatorField
-  @param[out] vec      Variable to store @ref CeedVector
+  @param[in]  op_field `CeedOperator` Field
+  @param[out] vec      Variable to store `CeedVector` 
 
   @return An error code: 0 - success, otherwise - failure
 
@@ -998,10 +998,10 @@ int CeedOperatorFieldGetVector(CeedOperatorField op_field, CeedVector *vec) {
 }
 
 /**
-  @brief Add a sub-operator to a composite @ref CeedOperator
+  @brief Add a sub-operator to a composite `CeedOperator` 
 
-  @param[in,out] composite_op Composite @ref CeedOperator
-  @param[in]     sub_op       Sub-operator @ref CeedOperator
+  @param[in,out] composite_op Composite `CeedOperator` 
+  @param[in]     sub_op       Sub-operator `CeedOperator` 
 
   @return An error code: 0 - success, otherwise - failure
 
@@ -1033,9 +1033,9 @@ int CeedCompositeOperatorAddSub(CeedOperator composite_op, CeedOperator sub_op) 
 }
 
 /**
-  @brief Get the number of sub-operators associated with a @ref CeedOperator
+  @brief Get the number of sub-operators associated with a `CeedOperator` 
 
-  @param[in]  op               @ref CeedOperator
+  @param[in]  op               `CeedOperator` 
   @param[out] num_suboperators Variable to store number of sub-operators
 
   @return An error code: 0 - success, otherwise - failure
@@ -1049,9 +1049,9 @@ int CeedCompositeOperatorGetNumSub(CeedOperator op, CeedInt *num_suboperators) {
 }
 
 /**
-  @brief Get the list of sub-operators associated with a @ref CeedOperator
+  @brief Get the list of sub-operators associated with a `CeedOperator` 
 
-  @param[in]  op             @ref CeedOperator
+  @param[in]  op             `CeedOperator` 
   @param[out] sub_operators  Variable to store list of sub-operators
 
   @return An error code: 0 - success, otherwise - failure
@@ -1065,9 +1065,9 @@ int CeedCompositeOperatorGetSubList(CeedOperator op, CeedOperator **sub_operator
 }
 
 /**
-  @brief Check if a @ref CeedOperator is ready to be used.
+  @brief Check if a `CeedOperator` is ready to be used.
 
-  @param[in] op @ref CeedOperator to check
+  @param[in] op `CeedOperator` to check
 
   @return An error code: 0 - success, otherwise - failure
 
@@ -1112,11 +1112,11 @@ int CeedOperatorCheckReady(CeedOperator op) {
 }
 
 /**
-  @brief Get vector lengths for the active input and/or output @ref CeedVector of a @ref CeedOperator.
+  @brief Get vector lengths for the active input and/or output `CeedVector` of a `CeedOperator`.
 
   Note: Lengths of `-1` indicate that the CeedOperator does not have an active input and/or output.
 
-  @param[in]  op          @ref CeedOperator
+  @param[in]  op          `CeedOperator` 
   @param[out] input_size  Variable to store active input vector length, or `NULL`
   @param[out] output_size Variable to store active output vector length, or `NULL`
 
@@ -1150,12 +1150,12 @@ int CeedOperatorGetActiveVectorLengths(CeedOperator op, CeedSize *input_size, Ce
 }
 
 /**
-  @brief Set reuse of @ref CeedQFunction data in `CeedOperatorLinearAssemble*()` functions.
+  @brief Set reuse of `CeedQFunction` data in `CeedOperatorLinearAssemble*()` functions.
 
-  When `reuse_assembly_data = false` (default), the @ref CeedQFunction associated with this @ref CeedOperator is re-assembled every time a `CeedOperatorLinearAssemble*()` function is called.
-  When `reuse_assembly_data = true`, the @ref CeedQFunction associated with this @ref CeedOperator is reused between calls to @ref CeedOperatorSetQFunctionAssemblyDataUpdateNeeded().
+  When `reuse_assembly_data = false` (default), the `CeedQFunction` associated with this `CeedOperator` is re-assembled every time a `CeedOperatorLinearAssemble*()` function is called.
+  When `reuse_assembly_data = true`, the `CeedQFunction` associated with this `CeedOperator` is reused between calls to @ref CeedOperatorSetQFunctionAssemblyDataUpdateNeeded().
 
-  @param[in] op                  @ref CeedOperator
+  @param[in] op                  `CeedOperator` 
   @param[in] reuse_assembly_data Boolean flag setting assembly data reuse
 
   @return An error code: 0 - success, otherwise - failure
@@ -1177,9 +1177,9 @@ int CeedOperatorSetQFunctionAssemblyReuse(CeedOperator op, bool reuse_assembly_d
 }
 
 /**
-  @brief Mark @ref CeedQFunction data as updated and the @ref CeedQFunction as requiring re-assembly.
+  @brief Mark `CeedQFunction` data as updated and the `CeedQFunction` as requiring re-assembly.
 
-  @param[in] op                @ref CeedOperator
+  @param[in] op                `CeedOperator` 
   @param[in] needs_data_update Boolean flag setting assembly data reuse
 
   @return An error code: 0 - success, otherwise - failure
@@ -1201,9 +1201,9 @@ int CeedOperatorSetQFunctionAssemblyDataUpdateNeeded(CeedOperator op, bool needs
 }
 
 /**
-  @brief Set name of @ref CeedOperator for @ref CeedOperatorView() output
+  @brief Set name of `CeedOperator` for @ref CeedOperatorView() output
 
-  @param[in,out] op   @ref CeedOperator
+  @param[in,out] op   `CeedOperator` 
   @param[in]     name Name to set, or NULL to remove previously set name
 
   @return An error code: 0 - success, otherwise - failure
@@ -1224,9 +1224,9 @@ int CeedOperatorSetName(CeedOperator op, const char *name) {
 }
 
 /**
-  @brief View a @ref CeedOperator
+  @brief View a `CeedOperator` 
 
-  @param[in] op     @ref CeedOperator to view
+  @param[in] op     `CeedOperator` to view
   @param[in] stream Stream to write; typically `stdout` or a file
 
   @return Error code: 0 - success, otherwise - failure
@@ -1252,10 +1252,10 @@ int CeedOperatorView(CeedOperator op, FILE *stream) {
 }
 
 /**
-  @brief Get the @ref Ceed associated with a @ref CeedOperator
+  @brief Get the `Ceed` associated with a `CeedOperator` 
 
-  @param[in]  op   @ref CeedOperator
-  @param[out] ceed Variable to store @ref Ceed
+  @param[in]  op   `CeedOperator` 
+  @param[out] ceed Variable to store `Ceed`
 
   @return An error code: 0 - success, otherwise - failure
 
@@ -1267,9 +1267,9 @@ int CeedOperatorGetCeed(CeedOperator op, Ceed *ceed) {
 }
 
 /**
-  @brief Get the number of elements associated with a @ref CeedOperator
+  @brief Get the number of elements associated with a `CeedOperator` 
 
-  @param[in]  op       @ref CeedOperator
+  @param[in]  op       `CeedOperator` 
   @param[out] num_elem Variable to store number of elements
 
   @return An error code: 0 - success, otherwise - failure
@@ -1283,9 +1283,9 @@ int CeedOperatorGetNumElements(CeedOperator op, CeedInt *num_elem) {
 }
 
 /**
-  @brief Get the number of quadrature points associated with a @ref CeedOperator
+  @brief Get the number of quadrature points associated with a `CeedOperator` 
 
-  @param[in]  op       @ref CeedOperator
+  @param[in]  op       `CeedOperator` 
   @param[out] num_qpts Variable to store vector number of quadrature points
 
   @return An error code: 0 - success, otherwise - failure
@@ -1299,9 +1299,9 @@ int CeedOperatorGetNumQuadraturePoints(CeedOperator op, CeedInt *num_qpts) {
 }
 
 /**
-  @brief Estimate number of FLOPs required to apply @ref CeedOperator on the active @ref CeedVector
+  @brief Estimate number of FLOPs required to apply `CeedOperator` on the active `CeedVector` 
 
-  @param[in]  op    @ref CeedOperator to estimate FLOPs for
+  @param[in]  op    `CeedOperator` to estimate FLOPs for
   @param[out] flops Address of variable to hold FLOPs estimate
 
   @ref Backend
@@ -1371,15 +1371,15 @@ int CeedOperatorGetFlopsEstimate(CeedOperator op, CeedSize *flops) {
 }
 
 /**
-  @brief Get @ref CeedQFunction global context for a @ref CeedOperator.
+  @brief Get `CeedQFunction` global context for a `CeedOperator`.
 
   The caller is responsible for destroying `ctx` returned from this function via @ref CeedQFunctionContextDestroy().
 
-  Note: If the value of `ctx` passed into this function is non-`NULL`, then it is assumed that `ctx` is a pointer to a @ref CeedQFunctionContext.
-        This @ref CeedQFunctionContext will be destroyed if `ctx` is the only reference to this @ref CeedQFunctionContext.
+  Note: If the value of `ctx` passed into this function is non-`NULL`, then it is assumed that `ctx` is a pointer to a `CeedQFunctionContext`.
+        This `CeedQFunctionContext` will be destroyed if `ctx` is the only reference to this `CeedQFunctionContext`.
 
-  @param[in]  op  @ref CeedOperator
-  @param[out] ctx Variable to store @ref CeedQFunctionContext
+  @param[in]  op  `CeedOperator` 
+  @param[out] ctx Variable to store `CeedQFunctionContext` 
 
   @return An error code: 0 - success, otherwise - failure
 
@@ -1393,11 +1393,11 @@ int CeedOperatorGetContext(CeedOperator op, CeedQFunctionContext *ctx) {
 }
 
 /**
-  @brief Get label for a registered @ref CeedQFunctionContext field, or `NULL` if no field has been registered with this `field_name`.
+  @brief Get label for a registered `CeedQFunctionContext` field, or `NULL` if no field has been registered with this `field_name`.
 
   Fields are registered via `CeedQFunctionContextRegister*()` functions (eg. @ref CeedQFunctionContextRegisterDouble()).
 
-  @param[in]  op          @ref CeedOperator
+  @param[in]  op          `CeedOperator` 
   @param[in]  field_name  Name of field to retrieve label
   @param[out] field_label Variable to field label
 
@@ -1500,11 +1500,11 @@ int CeedOperatorGetContextFieldLabel(CeedOperator op, const char *field_name, Ce
 }
 
 /**
-  @brief Set @ref CeedQFunctionContext field holding double precision values.
+  @brief Set `CeedQFunctionContext` field holding double precision values.
 
-  For composite operators, the values are set in all sub-operator @ref CeedQFunctionContext that have a matching `field_name`.
+  For composite operators, the values are set in all sub-operator `CeedQFunctionContext` that have a matching `field_name`.
 
-  @param[in,out] op          @ref CeedOperator
+  @param[in,out] op          `CeedOperator` 
   @param[in]     field_label Label of field to set
   @param[in]     values      Values to set
 
@@ -1517,11 +1517,11 @@ int CeedOperatorSetContextDouble(CeedOperator op, CeedContextFieldLabel field_la
 }
 
 /**
-  @brief Get @ref CeedQFunctionContext field holding double precision values, read-only.
+  @brief Get `CeedQFunctionContext` field holding double precision values, read-only.
 
-  For composite operators, the values correspond to the first sub-operator @ref CeedQFunctionContext that has a matching `field_name`.
+  For composite operators, the values correspond to the first sub-operator `CeedQFunctionContext` that has a matching `field_name`.
 
-  @param[in]  op          @ref CeedOperator
+  @param[in]  op          `CeedOperator` 
   @param[in]  field_label Label of field to get
   @param[out] num_values  Number of values in the field label
   @param[out] values      Pointer to context values
@@ -1535,9 +1535,9 @@ int CeedOperatorGetContextDoubleRead(CeedOperator op, CeedContextFieldLabel fiel
 }
 
 /**
-  @brief Restore @ref CeedQFunctionContext field holding double precision values, read-only.
+  @brief Restore `CeedQFunctionContext` field holding double precision values, read-only.
 
-  @param[in]  op          @ref CeedOperator
+  @param[in]  op          `CeedOperator` 
   @param[in]  field_label Label of field to restore
   @param[out] values      Pointer to context values
 
@@ -1550,11 +1550,11 @@ int CeedOperatorRestoreContextDoubleRead(CeedOperator op, CeedContextFieldLabel 
 }
 
 /**
-  @brief Set @ref CeedQFunctionContext field holding `int32` values.
+  @brief Set `CeedQFunctionContext` field holding `int32` values.
 
-  For composite operators, the values are set in all sub-operator @ref CeedQFunctionContext that have a matching `field_name`.
+  For composite operators, the values are set in all sub-operator `CeedQFunctionContext` that have a matching `field_name`.
 
-  @param[in,out] op          @ref CeedOperator
+  @param[in,out] op          `CeedOperator` 
   @param[in]     field_label Label of field to set
   @param[in]     values      Values to set
 
@@ -1567,11 +1567,11 @@ int CeedOperatorSetContextInt32(CeedOperator op, CeedContextFieldLabel field_lab
 }
 
 /**
-  @brief Get @ref CeedQFunctionContext field holding `int32` values, read-only.
+  @brief Get `CeedQFunctionContext` field holding `int32` values, read-only.
 
-  For composite operators, the values correspond to the first sub-operator @ref CeedQFunctionContext that has a matching `field_name`.
+  For composite operators, the values correspond to the first sub-operator `CeedQFunctionContext` that has a matching `field_name`.
 
-  @param[in]  op          @ref CeedOperator
+  @param[in]  op          `CeedOperator` 
   @param[in]  field_label Label of field to get
   @param[out] num_values  Number of `int32` values in `values`
   @param[out] values      Pointer to context values
@@ -1585,9 +1585,9 @@ int CeedOperatorGetContextInt32Read(CeedOperator op, CeedContextFieldLabel field
 }
 
 /**
-  @brief Restore @ref CeedQFunctionContext field holding `int32` values, read-only.
+  @brief Restore `CeedQFunctionContext` field holding `int32` values, read-only.
 
-  @param[in]  op          @ref CeedOperator
+  @param[in]  op          `CeedOperator` 
   @param[in]  field_label Label of field to get
   @param[out] values      Pointer to context values
 
@@ -1600,11 +1600,11 @@ int CeedOperatorRestoreContextInt32Read(CeedOperator op, CeedContextFieldLabel f
 }
 
 /**
-  @brief Set @ref CeedQFunctionContext field holding boolean values.
+  @brief Set `CeedQFunctionContext` field holding boolean values.
 
-  For composite operators, the values are set in all sub-operator @ref CeedQFunctionContext that have a matching `field_name`.
+  For composite operators, the values are set in all sub-operator `CeedQFunctionContext` that have a matching `field_name`.
 
-  @param[in,out] op          @ref CeedOperator
+  @param[in,out] op          `CeedOperator` 
   @param[in]     field_label Label of field to set
   @param[in]     values      Values to set
 
@@ -1617,11 +1617,11 @@ int CeedOperatorSetContextBoolean(CeedOperator op, CeedContextFieldLabel field_l
 }
 
 /**
-  @brief Get @ref CeedQFunctionContext field holding boolean values, read-only.
+  @brief Get `CeedQFunctionContext` field holding boolean values, read-only.
 
-  For composite operators, the values correspond to the first sub-operator @ref CeedQFunctionContext that has a matching `field_name`.
+  For composite operators, the values correspond to the first sub-operator `CeedQFunctionContext` that has a matching `field_name`.
 
-  @param[in]  op          @ref CeedOperator
+  @param[in]  op          `CeedOperator` 
   @param[in]  field_label Label of field to get
   @param[out] num_values  Number of boolean values in `values`
   @param[out] values      Pointer to context values
@@ -1635,9 +1635,9 @@ int CeedOperatorGetContextBooleanRead(CeedOperator op, CeedContextFieldLabel fie
 }
 
 /**
-  @brief Restore @ref CeedQFunctionContext field holding boolean values, read-only.
+  @brief Restore `CeedQFunctionContext` field holding boolean values, read-only.
 
-  @param[in]  op          @ref CeedOperator
+  @param[in]  op          `CeedOperator` 
   @param[in]  field_label Label of field to get
   @param[out] values      Pointer to context values
 
@@ -1650,16 +1650,16 @@ int CeedOperatorRestoreContextBooleanRead(CeedOperator op, CeedContextFieldLabel
 }
 
 /**
-  @brief Apply @ref CeedOperator to a @ref CeedVector.
+  @brief Apply `CeedOperator` to a `CeedVector`.
 
   This computes the action of the operator on the specified (active) input, yielding its (active) output.
   All inputs and outputs must be specified using @ref CeedOperatorSetField().
 
-  Note: Calling this function asserts that setup is complete and sets the @ref CeedOperator as immutable.
+  Note: Calling this function asserts that setup is complete and sets the `CeedOperator` as immutable.
 
-  @param[in]  op      @ref CeedOperator to apply
-  @param[in]  in      @ref CeedVector containing input state or @ref CEED_VECTOR_NONE if there are no active inputs
-  @param[out] out     @ref CeedVector to store result of applying operator (must be distinct from `in`) or @ref CEED_VECTOR_NONE if there are no active outputs
+  @param[in]  op      `CeedOperator` to apply
+  @param[in]  in      `CeedVector` containing input state or @ref CEED_VECTOR_NONE if there are no active inputs
+  @param[out] out     `CeedVector` to store result of applying operator (must be distinct from `in`) or @ref CEED_VECTOR_NONE if there are no active outputs
   @param[in]  request Address of @ref CeedRequest for non-blocking completion, else @ref CEED_REQUEST_IMMEDIATE
 
   @return An error code: 0 - success, otherwise - failure
@@ -1718,14 +1718,14 @@ int CeedOperatorApply(CeedOperator op, CeedVector in, CeedVector out, CeedReques
 }
 
 /**
-  @brief Apply @ref CeedOperator to a @ref CeedVector and add result to output @ref CeedVector.
+  @brief Apply `CeedOperator` to a `CeedVector` and add result to output `CeedVector`.
 
   This computes the action of the operator on the specified (active) input, yielding its (active) output.
   All inputs and outputs must be specified using @ref CeedOperatorSetField().
 
-  @param[in]  op      @ref CeedOperator to apply
-  @param[in]  in      @ref CeedVector containing input state or @ref CEED_VECTOR_NONE if there are no active inputs
-  @param[out] out     @ref CeedVector to sum in result of applying operator (must be distinct from `in`) or @ref CEED_VECTOR_NONE if there are no active outputs
+  @param[in]  op      `CeedOperator` to apply
+  @param[in]  in      `CeedVector` containing input state or @ref CEED_VECTOR_NONE if there are no active inputs
+  @param[out] out     `CeedVector` to sum in result of applying operator (must be distinct from `in`) or @ref CEED_VECTOR_NONE if there are no active outputs
   @param[in]  request Address of @ref CeedRequest for non-blocking completion, else @ref CEED_REQUEST_IMMEDIATE
 
   @return An error code: 0 - success, otherwise - failure
@@ -1757,9 +1757,9 @@ int CeedOperatorApplyAdd(CeedOperator op, CeedVector in, CeedVector out, CeedReq
 }
 
 /**
-  @brief Destroy a @ref CeedOperator
+  @brief Destroy a `CeedOperator` 
 
-  @param[in,out] op @ref CeedOperator to destroy
+  @param[in,out] op `CeedOperator` to destroy
 
   @return An error code: 0 - success, otherwise - failure
 

@@ -16,7 +16,7 @@
 /**
   @brief Check if valid file exists at path given
 
-  @param[in]  ceed             @ref Ceed object for error handling
+  @param[in]  ceed             `Ceed` object for error handling
   @param[in]  source_file_path Absolute path to source file
   @param[out] is_valid         Boolean flag indicating if file can be opened
 
@@ -63,7 +63,7 @@ int CeedCheckFilePath(Ceed ceed, const char *source_file_path, bool *is_valid) {
 /**
   @brief Load source file into initialized string buffer, including full text of local files in place of `#include "local.h"`
 
-  @param[in]  ceed             @ref Ceed object for error handling
+  @param[in]  ceed             `Ceed` object for error handling
   @param[in]  source_file_path Absolute path to source file
   @param[out] buffer           String buffer for source file contents
 
@@ -195,7 +195,7 @@ int CeedLoadSourceToInitializedBuffer(Ceed ceed, const char *source_file_path, c
 
   Note: Caller is responsible for freeing the string buffer with @ref CeedFree().
 
-  @param[in]  ceed             @ref Ceed object for error handling
+  @param[in]  ceed             `Ceed` object for error handling
   @param[in]  source_file_path Absolute path to source file
   @param[out] buffer           String buffer for source file contents
 
@@ -219,7 +219,7 @@ int CeedLoadSourceToBuffer(Ceed ceed, const char *source_file_path, char **buffe
 
   Note: Caller is responsible for freeing the string buffer with @ref CeedFree().
 
-  @param[in]  ceed               @ref Ceed object for error handling
+  @param[in]  ceed               `Ceed` object for error handling
   @param[in]  base_file_path     Absolute path to current file
   @param[in]  relative_file_path Relative path to target file
   @param[out] new_file_path      String buffer for absolute path to target file
@@ -258,7 +258,7 @@ int CeedGetJitRelativePath(const char *absolute_file_path, const char **relative
 /**
   @brief Build an absolute filepath to a JiT file
 
-  @param[in]  ceed               @ref Ceed object for error handling
+  @param[in]  ceed               `Ceed` object for error handling
   @param[in]  relative_file_path Relative path to installed JiT file
   @param[out] absolute_file_path String buffer for absolute path to target file, to be freed by caller
 

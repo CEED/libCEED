@@ -23,7 +23,7 @@ static struct CeedBasis_private ceed_basis_none;
 /// @addtogroup CeedBasisUser
 /// @{
 
-/// Argument for @ref CeedOperatorSetField() indicating that the field does not require a @ref CeedBasis
+/// Argument for @ref CeedOperatorSetField() indicating that the field does not require a `CeedBasis`
 const CeedBasis CEED_BASIS_NONE = &ceed_basis_none;
 
 /// This feature will be removed. Use @ref CEED_BASIS_NONE.
@@ -149,7 +149,7 @@ static int CeedGivensRotation(CeedScalar *A, CeedScalar c, CeedScalar s, CeedTra
 }
 
 /**
-  @brief View an array stored in a @ref CeedBasis
+  @brief View an array stored in a `CeedBasis`
 
   @param[in] name   Name of array
   @param[in] fp_fmt Printing format
@@ -187,8 +187,8 @@ static int CeedScalarView(const char *name, const char *fp_fmt, CeedInt m, CeedI
 
   Note: `basis_from` and `basis_to` must have compatible quadrature spaces.
 
-  @param[in]  basis_from     @ref CeedBasis to project from
-  @param[in]  basis_to       @ref CeedBasis to project to
+  @param[in]  basis_from     `CeedBasis` to project from
+  @param[in]  basis_to       `CeedBasis` to project to
   @param[out] interp_project Address of the variable where the newly created interpolation matrix will be stored
   @param[out] grad_project   Address of the variable where the newly created gradient matrix will be stored
 
@@ -309,7 +309,7 @@ static int CeedBasisCreateProjectionMatrices(CeedBasis basis_from, CeedBasis bas
 /**
   @brief Return collocated gradient matrix
 
-  @param[in]  basis         @ref CeedBasis
+  @param[in]  basis         `CeedBasis`
   @param[out] collo_grad_1d Row-major (`Q_1d * Q_1d`) matrix expressing derivatives of basis functions at quadrature points
 
   @return An error code: 0 - success, otherwise - failure
@@ -353,9 +353,9 @@ int CeedBasisGetCollocatedGrad(CeedBasis basis, CeedScalar *collo_grad_1d) {
 }
 
 /**
-  @brief Get tensor status for given @ref CeedBasis
+  @brief Get tensor status for given `CeedBasis`
 
-  @param[in]  basis     @ref CeedBasis
+  @param[in]  basis     `CeedBasis`
   @param[out] is_tensor Variable to store tensor status
 
   @return An error code: 0 - success, otherwise - failure
@@ -368,9 +368,9 @@ int CeedBasisIsTensor(CeedBasis basis, bool *is_tensor) {
 }
 
 /**
-  @brief Get backend data of a @ref CeedBasis
+  @brief Get backend data of a `CeedBasis`
 
-  @param[in]  basis @ref CeedBasis
+  @param[in]  basis `CeedBasis`
   @param[out] data  Variable to store data
 
   @return An error code: 0 - success, otherwise - failure
@@ -383,9 +383,9 @@ int CeedBasisGetData(CeedBasis basis, void *data) {
 }
 
 /**
-  @brief Set backend data of a @ref CeedBasis
+  @brief Set backend data of a `CeedBasis`
 
-  @param[in,out] basis  @ref CeedBasis
+  @param[in,out] basis  `CeedBasis`
   @param[in]     data   Data to set
 
   @return An error code: 0 - success, otherwise - failure
@@ -398,9 +398,9 @@ int CeedBasisSetData(CeedBasis basis, void *data) {
 }
 
 /**
-  @brief Increment the reference counter for a @ref CeedBasis
+  @brief Increment the reference counter for a `CeedBasis`
 
-  @param[in,out] basis @ref CeedBasis to increment the reference counter
+  @param[in,out] basis `CeedBasis` to increment the reference counter
 
   @return An error code: 0 - success, otherwise - failure
 
@@ -412,9 +412,9 @@ int CeedBasisReference(CeedBasis basis) {
 }
 
 /**
-  @brief Get number of Q-vector components for given @ref CeedBasis
+  @brief Get number of Q-vector components for given `CeedBasis`
 
-  @param[in]  basis     @ref CeedBasis
+  @param[in]  basis     `CeedBasis`
   @param[in]  eval_mode @ref CEED_EVAL_INTERP to use interpolated values,
                           @ref CEED_EVAL_GRAD to use gradients,
                           @ref CEED_EVAL_DIV to use divergence,
@@ -448,9 +448,9 @@ int CeedBasisGetNumQuadratureComponents(CeedBasis basis, CeedEvalMode eval_mode,
 }
 
 /**
-  @brief Estimate number of FLOPs required to apply @ref CeedBasis in `t_mode` and `eval_mode`
+  @brief Estimate number of FLOPs required to apply `CeedBasis` in `t_mode` and `eval_mode`
 
-  @param[in]  basis     @ref CeedBasis to estimate FLOPs for
+  @param[in]  basis     `CeedBasis` to estimate FLOPs for
   @param[in]  t_mode    Apply basis or transpose
   @param[in]  eval_mode @ref CeedEvalMode
   @param[out] flops     Address of variable to hold FLOPs estimate
@@ -525,10 +525,10 @@ int CeedBasisGetFlopsEstimate(CeedBasis basis, CeedTransposeMode t_mode, CeedEva
 }
 
 /**
-  @brief Get @ref CeedFESpace for a @ref CeedBasis
+  @brief Get `CeedFESpace` for a `CeedBasis`
 
-  @param[in]  basis    @ref CeedBasis
-  @param[out] fe_space Variable to store @ref CeedFESpace
+  @param[in]  basis    `CeedBasis`
+  @param[out] fe_space Variable to store `CeedFESpace`
 
   @return An error code: 0 - success, otherwise - failure
 
@@ -540,9 +540,9 @@ int CeedBasisGetFESpace(CeedBasis basis, CeedFESpace *fe_space) {
 }
 
 /**
-  @brief Get dimension for given @ref CeedElemTopology
+  @brief Get dimension for given `CeedElemTopology`
 
-  @param[in]  topo @ref CeedElemTopology
+  @param[in]  topo `CeedElemTopology`
   @param[out] dim  Variable to store dimension of topology
 
   @return An error code: 0 - success, otherwise - failure
@@ -555,10 +555,10 @@ int CeedBasisGetTopologyDimension(CeedElemTopology topo, CeedInt *dim) {
 }
 
 /**
-  @brief Get @ref CeedTensorContract of a @ref CeedBasis
+  @brief Get `CeedTensorContract` of a `CeedBasis`
 
-  @param[in]  basis     @ref CeedBasis
-  @param[out] contract  Variable to store @ref CeedTensorContract
+  @param[in]  basis     `CeedBasis`
+  @param[out] contract  Variable to store `CeedTensorContract`
 
   @return An error code: 0 - success, otherwise - failure
 
@@ -570,10 +570,10 @@ int CeedBasisGetTensorContract(CeedBasis basis, CeedTensorContract *contract) {
 }
 
 /**
-  @brief Set @ref CeedTensorContract of a @ref CeedBasis
+  @brief Set `CeedTensorContract` of a `CeedBasis`
 
-  @param[in,out] basis    @ref CeedBasis
-  @param[in]     contract @ref CeedTensorContract to set
+  @param[in,out] basis    `CeedBasis`
+  @param[in]     contract `CeedTensorContract` to set
 
   @return An error code: 0 - success, otherwise - failure
 
@@ -588,9 +588,9 @@ int CeedBasisSetTensorContract(CeedBasis basis, CeedTensorContract contract) {
 /**
   @brief Return a reference implementation of matrix multiplication \f$C = A B\f$.
 
-  Note: This is a reference implementation for CPU @ref CeedScalar pointers that is not intended for high performance.
+  Note: This is a reference implementation for CPU `CeedScalar` pointers that is not intended for high performance.
 
-  @param[in]  ceed  @ref Ceed context for error handling
+  @param[in]  ceed  `Ceed` context for error handling
   @param[in]  mat_A Row-major matrix `A`
   @param[in]  mat_B Row-major matrix `B`
   @param[out] mat_C Row-major output matrix `C`
@@ -617,7 +617,7 @@ int CeedMatrixMatrixMultiply(Ceed ceed, const CeedScalar *mat_A, const CeedScala
 /**
   @brief Return QR Factorization of a matrix
 
-  @param[in]     ceed @ref Ceed context for error handling
+  @param[in]     ceed `Ceed` context for error handling
   @param[in,out] mat  Row-major matrix to be factorized in place
   @param[in,out] tau  Vector of length `m` of scaling factors
   @param[in]     m    Number of rows
@@ -702,7 +702,7 @@ int CeedHouseholderApplyQ(CeedScalar *mat_A, const CeedScalar *mat_Q, const Ceed
 /**
   @brief Return symmetric Schur decomposition of the symmetric matrix mat via symmetric QR factorization
 
-  @param[in]     ceed   @ref Ceed context for error handling
+  @param[in]     ceed   `Ceed` context for error handling
   @param[in,out] mat    Row-major matrix to be factorized in place
   @param[out]    lambda Vector of length n of eigenvalues
   @param[in]     n      Number of rows/columns
@@ -847,7 +847,7 @@ CeedPragmaOptimizeOn
   We generate the matrix `X` and vector `Lambda` such that `X^T A X = Lambda` and `X^T B X = I`.
   This is equivalent to the LAPACK routine 'sygv' with `TYPE = 1`.
 
-  @param[in]  ceed   @ref Ceed context for error handling
+  @param[in]  ceed   `Ceed` context for error handling
   @param[in]  mat_A  Row-major matrix to be factorized with eigenvalues
   @param[in]  mat_B  Row-major matrix to be factorized to identity
   @param[out] mat_X  Row-major orthogonal matrix
@@ -933,7 +933,7 @@ CeedPragmaOptimizeOn
 /**
   @brief Create a tensor-product basis for \f$H^1\f$ discretizations
 
-  @param[in]  ceed        @ref Ceed object used to create the @ref CeedBasis
+  @param[in]  ceed        `Ceed` object used to create the `CeedBasis`
   @param[in]  dim         Topological dimension
   @param[in]  num_comp    Number of field components (1 for scalar fields)
   @param[in]  P_1d        Number of nodes in one dimension
@@ -942,7 +942,7 @@ CeedPragmaOptimizeOn
   @param[in]  grad_1d     Row-major (`Q_1d * P_1d`) matrix expressing derivatives of nodal basis functions at quadrature points
   @param[in]  q_ref_1d    Array of length `Q_1d` holding the locations of quadrature points on the 1D reference element `[-1, 1]`
   @param[in]  q_weight_1d Array of length `Q_1d` holding the quadrature weights on the reference element
-  @param[out] basis       Address of the variable where the newly created @ref CeedBasis will be stored
+  @param[out] basis       Address of the variable where the newly created `CeedBasis` will be stored
 
   @return An error code: 0 - success, otherwise - failure
 
@@ -993,14 +993,14 @@ int CeedBasisCreateTensorH1(Ceed ceed, CeedInt dim, CeedInt num_comp, CeedInt P_
 /**
   @brief Create a tensor-product \f$H^1\f$ Lagrange basis
 
-  @param[in]  ceed      @ref Ceed object used to create the @ref CeedBasis
+  @param[in]  ceed      `Ceed` object used to create the `CeedBasis`
   @param[in]  dim       Topological dimension of element
   @param[in]  num_comp  Number of field components (1 for scalar fields)
   @param[in]  P         Number of Gauss-Lobatto nodes in one dimension.
                           The polynomial degree of the resulting `Q_k` element is `k = P - 1`.
   @param[in]  Q         Number of quadrature points in one dimension.
   @param[in]  quad_mode Distribution of the `Q` quadrature points (affects order of accuracy for the quadrature)
-  @param[out] basis     Address of the variable where the newly created @ref CeedBasis will be stored
+  @param[out] basis     Address of the variable where the newly created `CeedBasis` will be stored
 
   @return An error code: 0 - success, otherwise - failure
 
@@ -1070,7 +1070,7 @@ cleanup:
 /**
   @brief Create a non tensor-product basis for \f$H^1\f$ discretizations
 
-  @param[in]  ceed      @ref Ceed object used to create the @ref CeedBasis
+  @param[in]  ceed      `Ceed` object used to create the `CeedBasis`
   @param[in]  topo      Topology of element, e.g. hypercube, simplex, ect
   @param[in]  num_comp  Number of field components (1 for scalar fields)
   @param[in]  num_nodes Total number of nodes
@@ -1079,7 +1079,7 @@ cleanup:
   @param[in]  grad      Row-major (`dim * num_qpts * num_nodes`) matrix expressing derivatives of nodal basis functions at quadrature points
   @param[in]  q_ref     Array of length `num_qpts` * dim holding the locations of quadrature points on the reference element
   @param[in]  q_weight  Array of length `num_qpts` holding the quadrature weights on the reference element
-  @param[out] basis     Address of the variable where the newly created @ref CeedBasis will be stored
+  @param[out] basis     Address of the variable where the newly created `CeedBasis` will be stored
 
   @return An error code: 0 - success, otherwise - failure
 
@@ -1129,7 +1129,7 @@ int CeedBasisCreateH1(Ceed ceed, CeedElemTopology topo, CeedInt num_comp, CeedIn
 /**
   @brief Create a non tensor-product basis for \f$H(\mathrm{div})\f$ discretizations
 
-  @param[in]  ceed      @ref Ceed object used to create the @ref CeedBasis
+  @param[in]  ceed      `Ceed` object used to create the `CeedBasis`
   @param[in]  topo      Topology of element (`CEED_TOPOLOGY_QUAD`, `CEED_TOPOLOGY_PRISM`, etc.), dimension of which is used in some array sizes below
   @param[in]  num_comp  Number of components (usually 1 for vectors in H(div) bases)
   @param[in]  num_nodes Total number of nodes (DoFs per element)
@@ -1138,7 +1138,7 @@ int CeedBasisCreateH1(Ceed ceed, CeedElemTopology topo, CeedInt num_comp, CeedIn
   @param[in]  div       Row-major (`num_qpts * num_nodes`) matrix expressing divergence of basis functions at quadrature points
   @param[in]  q_ref     Array of length `num_qpts` * dim holding the locations of quadrature points on the reference element
   @param[in]  q_weight  Array of length `num_qpts` holding the quadrature weights on the reference element
-  @param[out] basis     Address of the variable where the newly created @ref CeedBasis will be stored
+  @param[out] basis     Address of the variable where the newly created `CeedBasis` will be stored
 
   @return An error code: 0 - success, otherwise - failure
 
@@ -1188,7 +1188,7 @@ int CeedBasisCreateHdiv(Ceed ceed, CeedElemTopology topo, CeedInt num_comp, Ceed
 /**
   @brief Create a non tensor-product basis for \f$H(\mathrm{curl})\f$ discretizations
 
-  @param[in]  ceed      @ref Ceed object used to create the @ref CeedBasis
+  @param[in]  ceed      `Ceed` object used to create the `CeedBasis`
   @param[in]  topo      Topology of element (`CEED_TOPOLOGY_QUAD`, `CEED_TOPOLOGY_PRISM`, etc.), dimension of which is used in some array sizes below
   @param[in]  num_comp  Number of components (usually 1 for vectors in \f$H(\mathrm{curl})\f$ bases)
   @param[in]  num_nodes Total number of nodes (DoFs per element)
@@ -1197,7 +1197,7 @@ int CeedBasisCreateHdiv(Ceed ceed, CeedElemTopology topo, CeedInt num_comp, Ceed
   @param[in]  curl      Row-major (`curl_comp * num_qpts * num_nodes`, `curl_comp = 1` if `dim < 3` otherwise `curl_comp = dim`) matrix expressing curl of basis functions at quadrature points
   @param[in]  q_ref     Array of length `num_qpts * dim` holding the locations of quadrature points on the reference element
   @param[in]  q_weight  Array of length `num_qpts` holding the quadrature weights on the reference element
-  @param[out] basis     Address of the variable where the newly created @ref CeedBasis will be stored
+  @param[out] basis     Address of the variable where the newly created `CeedBasis` will be stored
 
   @return An error code: 0 - success, otherwise - failure
 
@@ -1246,7 +1246,7 @@ int CeedBasisCreateHcurl(Ceed ceed, CeedElemTopology topo, CeedInt num_comp, Cee
 }
 
 /**
-  @brief Create a @ref CeedBasis for projection from the nodes of `basis_from` to the nodes of `basis_to`.
+  @brief Create a `CeedBasis` for projection from the nodes of `basis_from` to the nodes of `basis_to`.
 
   Only @ref CEED_EVAL_INTERP will be valid for the new basis, `basis_project`.
   For \f$H^1\f$ spaces, @ref CEED_EVAL_GRAD will also be valid.
@@ -1258,9 +1258,9 @@ int CeedBasisCreateHcurl(Ceed ceed, CeedElemTopology topo, CeedInt num_comp, Cee
   Note: `basis_project` will have the same number of components as `basis_from`, regardless of the number of components that `basis_to` has.
         If `basis_from` has 3 components and `basis_to` has 5 components, then `basis_project` will have 3 components.
 
-  @param[in]  basis_from    @ref CeedBasis to prolong from
-  @param[in]  basis_to      @ref CeedBasis to prolong to
-  @param[out] basis_project Address of the variable where the newly created @ref CeedBasis will be stored
+  @param[in]  basis_from    `CeedBasis` to prolong from
+  @param[in]  basis_to      `CeedBasis` to prolong to
+  @param[out] basis_project Address of the variable where the newly created `CeedBasis` will be stored
 
   @return An error code: 0 - success, otherwise - failure
 
@@ -1311,12 +1311,12 @@ int CeedBasisCreateProjection(CeedBasis basis_from, CeedBasis basis_to, CeedBasi
 }
 
 /**
-  @brief Copy the pointer to a @ref CeedBasis.
+  @brief Copy the pointer to a `CeedBasis`.
 
-  Note: If the value of `*basis_copy` passed into this function is non-`NULL`, then it is assumed that `*basis_copy` is a pointer to a @ref CeedBasis.
-        This @ref CeedBasis will be destroyed if `*basis_copy` is the only reference to this @ref CeedBasis.
+  Note: If the value of `*basis_copy` passed into this function is non-`NULL`, then it is assumed that `*basis_copy` is a pointer to a `CeedBasis`.
+        This `CeedBasis` will be destroyed if `*basis_copy` is the only reference to this `CeedBasis`.
 
-  @param[in]     basis      @ref CeedBasis to copy reference to
+  @param[in]     basis      `CeedBasis` to copy reference to
   @param[in,out] basis_copy Variable to store copied reference
 
   @return An error code: 0 - success, otherwise - failure
@@ -1331,9 +1331,9 @@ int CeedBasisReferenceCopy(CeedBasis basis, CeedBasis *basis_copy) {
 }
 
 /**
-  @brief View a @ref CeedBasis
+  @brief View a `CeedBasis`
 
-  @param[in] basis  @ref CeedBasis to view
+  @param[in] basis  `CeedBasis` to view
   @param[in] stream Stream to view to, e.g., `stdout`
 
   @return An error code: 0 - success, otherwise - failure
@@ -1383,7 +1383,7 @@ int CeedBasisView(CeedBasis basis, FILE *stream) {
 /**
   @brief Apply basis evaluation from nodes to quadrature points or vice versa
 
-  @param[in]  basis     @ref CeedBasis to evaluate
+  @param[in]  basis     `CeedBasis` to evaluate
   @param[in]  num_elem  The number of elements to apply the basis evaluation to;
                           the backend will specify the ordering in @ref CeedElemRestrictionCreate()
   @param[in]  t_mode    @ref CEED_NOTRANSPOSE to evaluate from nodes to quadrature points;
@@ -1394,8 +1394,8 @@ int CeedBasisView(CeedBasis basis, FILE *stream) {
                           @ref CEED_EVAL_DIV to use divergence,
                           @ref CEED_EVAL_CURL to use curl,
                           @ref CEED_EVAL_WEIGHT to use quadrature weights
-  @param[in]  u         Input @ref CeedVector
-  @param[out] v         Output @ref CeedVector
+  @param[in]  u         Input `CeedVector`
+  @param[out] v         Output `CeedVector`
 
   @return An error code: 0 - success, otherwise - failure
 
@@ -1445,16 +1445,16 @@ int CeedBasisApply(CeedBasis basis, CeedInt num_elem, CeedTransposeMode t_mode, 
 /**
   @brief Apply basis evaluation from nodes to arbitrary points
 
-  @param[in]  basis      @ref CeedBasis to evaluate
+  @param[in]  basis      `CeedBasis` to evaluate
   @param[in]  num_points The number of points to apply the basis evaluation to
   @param[in]  t_mode     @ref CEED_NOTRANSPOSE to evaluate from nodes to points;
                            @ref CEED_TRANSPOSE to apply the transpose, mapping from points to nodes
   @param[in]  eval_mode  @ref CEED_EVAL_INTERP to use interpolated values,
                            @ref CEED_EVAL_GRAD to use gradients,
                            @ref CEED_EVAL_WEIGHT to use quadrature weights
-  @param[in]  x_ref      @ref CeedVector holding reference coordinates of each point
-  @param[in]  u          Input @ref CeedVector, of length `num_nodes * num_comp` for @ref CEED_NOTRANSPOSE
-  @param[out] v          Output @ref CeedVector, of length `num_points * num_q_comp` for @ref CEED_NOTRANSPOSE with @ref CEED_EVAL_INTERP
+  @param[in]  x_ref      `CeedVector` holding reference coordinates of each point
+  @param[in]  u          Input `CeedVector`, of length `num_nodes * num_comp` for @ref CEED_NOTRANSPOSE
+  @param[out] v          Output `CeedVector`, of length `num_points * num_q_comp` for @ref CEED_NOTRANSPOSE with @ref CEED_EVAL_INTERP
 
   @return An error code: 0 - success, otherwise - failure
 
@@ -1733,10 +1733,10 @@ int CeedBasisApplyAtPoints(CeedBasis basis, CeedInt num_points, CeedTransposeMod
 }
 
 /**
-  @brief Get @ref Ceed associated with a @ref CeedBasis
+  @brief Get `Ceed` associated with a `CeedBasis`
 
-  @param[in]  basis @ref CeedBasis
-  @param[out] ceed  Variable to store @ref Ceed
+  @param[in]  basis `CeedBasis`
+  @param[out] ceed  Variable to store `Ceed`
 
   @return An error code: 0 - success, otherwise - failure
 
@@ -1748,9 +1748,9 @@ int CeedBasisGetCeed(CeedBasis basis, Ceed *ceed) {
 }
 
 /**
-  @brief Get dimension for given @ref CeedBasis
+  @brief Get dimension for given `CeedBasis`
 
-  @param[in]  basis @ref CeedBasis
+  @param[in]  basis `CeedBasis`
   @param[out] dim   Variable to store dimension of basis
 
   @return An error code: 0 - success, otherwise - failure
@@ -1763,9 +1763,9 @@ int CeedBasisGetDimension(CeedBasis basis, CeedInt *dim) {
 }
 
 /**
-  @brief Get topology for given @ref CeedBasis
+  @brief Get topology for given `CeedBasis`
 
-  @param[in]  basis @ref CeedBasis
+  @param[in]  basis `CeedBasis`
   @param[out] topo  Variable to store topology of basis
 
   @return An error code: 0 - success, otherwise - failure
@@ -1778,9 +1778,9 @@ int CeedBasisGetTopology(CeedBasis basis, CeedElemTopology *topo) {
 }
 
 /**
-  @brief Get number of components for given @ref CeedBasis
+  @brief Get number of components for given `CeedBasis`
 
-  @param[in]  basis    @ref CeedBasis
+  @param[in]  basis    `CeedBasis`
   @param[out] num_comp Variable to store number of components
 
   @return An error code: 0 - success, otherwise - failure
@@ -1793,9 +1793,9 @@ int CeedBasisGetNumComponents(CeedBasis basis, CeedInt *num_comp) {
 }
 
 /**
-  @brief Get total number of nodes (in `dim` dimensions) of a @ref CeedBasis
+  @brief Get total number of nodes (in `dim` dimensions) of a `CeedBasis`
 
-  @param[in]  basis @ref CeedBasis
+  @param[in]  basis `CeedBasis`
   @param[out] P     Variable to store number of nodes
 
   @return An error code: 0 - success, otherwise - failure
@@ -1808,9 +1808,9 @@ int CeedBasisGetNumNodes(CeedBasis basis, CeedInt *P) {
 }
 
 /**
-  @brief Get total number of nodes (in 1 dimension) of a @ref CeedBasis
+  @brief Get total number of nodes (in 1 dimension) of a `CeedBasis`
 
-  @param[in]  basis @ref CeedBasis
+  @param[in]  basis `CeedBasis`
   @param[out] P_1d  Variable to store number of nodes
 
   @return An error code: 0 - success, otherwise - failure
@@ -1824,9 +1824,9 @@ int CeedBasisGetNumNodes1D(CeedBasis basis, CeedInt *P_1d) {
 }
 
 /**
-  @brief Get total number of quadrature points (in `dim` dimensions) of a @ref CeedBasis
+  @brief Get total number of quadrature points (in `dim` dimensions) of a `CeedBasis`
 
-  @param[in]  basis @ref CeedBasis
+  @param[in]  basis `CeedBasis`
   @param[out] Q     Variable to store number of quadrature points
 
   @return An error code: 0 - success, otherwise - failure
@@ -1839,9 +1839,9 @@ int CeedBasisGetNumQuadraturePoints(CeedBasis basis, CeedInt *Q) {
 }
 
 /**
-  @brief Get total number of quadrature points (in 1 dimension) of a @ref CeedBasis
+  @brief Get total number of quadrature points (in 1 dimension) of a `CeedBasis`
 
-  @param[in]  basis @ref CeedBasis
+  @param[in]  basis `CeedBasis`
   @param[out] Q_1d  Variable to store number of quadrature points
 
   @return An error code: 0 - success, otherwise - failure
@@ -1855,9 +1855,9 @@ int CeedBasisGetNumQuadraturePoints1D(CeedBasis basis, CeedInt *Q_1d) {
 }
 
 /**
-  @brief Get reference coordinates of quadrature points (in `dim` dimensions) of a @ref CeedBasis
+  @brief Get reference coordinates of quadrature points (in `dim` dimensions) of a `CeedBasis`
 
-  @param[in]  basis @ref CeedBasis
+  @param[in]  basis `CeedBasis`
   @param[out] q_ref Variable to store reference coordinates of quadrature points
 
   @return An error code: 0 - success, otherwise - failure
@@ -1870,9 +1870,9 @@ int CeedBasisGetQRef(CeedBasis basis, const CeedScalar **q_ref) {
 }
 
 /**
-  @brief Get quadrature weights of quadrature points (in `dim` dimensions) of a @ref CeedBasis
+  @brief Get quadrature weights of quadrature points (in `dim` dimensions) of a `CeedBasis`
 
-  @param[in]  basis    @ref CeedBasis
+  @param[in]  basis    `CeedBasis`
   @param[out] q_weight Variable to store quadrature weights
 
   @return An error code: 0 - success, otherwise - failure
@@ -1885,9 +1885,9 @@ int CeedBasisGetQWeights(CeedBasis basis, const CeedScalar **q_weight) {
 }
 
 /**
-  @brief Get interpolation matrix of a @ref CeedBasis
+  @brief Get interpolation matrix of a `CeedBasis`
 
-  @param[in]  basis  @ref CeedBasis
+  @param[in]  basis  `CeedBasis`
   @param[out] interp Variable to store interpolation matrix
 
   @return An error code: 0 - success, otherwise - failure
@@ -1919,9 +1919,9 @@ int CeedBasisGetInterp(CeedBasis basis, const CeedScalar **interp) {
 }
 
 /**
-  @brief Get 1D interpolation matrix of a tensor product @ref CeedBasis
+  @brief Get 1D interpolation matrix of a tensor product `CeedBasis`
 
-  @param[in]  basis     @ref CeedBasis
+  @param[in]  basis     `CeedBasis`
   @param[out] interp_1d Variable to store interpolation matrix
 
   @return An error code: 0 - success, otherwise - failure
@@ -1935,9 +1935,9 @@ int CeedBasisGetInterp1D(CeedBasis basis, const CeedScalar **interp_1d) {
 }
 
 /**
-  @brief Get gradient matrix of a @ref CeedBasis
+  @brief Get gradient matrix of a `CeedBasis`
 
-  @param[in]  basis @ref CeedBasis
+  @param[in]  basis `CeedBasis`
   @param[out] grad  Variable to store gradient matrix
 
   @return An error code: 0 - success, otherwise - failure
@@ -1972,9 +1972,9 @@ int CeedBasisGetGrad(CeedBasis basis, const CeedScalar **grad) {
 }
 
 /**
-  @brief Get 1D gradient matrix of a tensor product @ref CeedBasis
+  @brief Get 1D gradient matrix of a tensor product `CeedBasis`
 
-  @param[in]  basis   @ref CeedBasis
+  @param[in]  basis   `CeedBasis`
   @param[out] grad_1d Variable to store gradient matrix
 
   @return An error code: 0 - success, otherwise - failure
@@ -1988,9 +1988,9 @@ int CeedBasisGetGrad1D(CeedBasis basis, const CeedScalar **grad_1d) {
 }
 
 /**
-  @brief Get divergence matrix of a @ref CeedBasis
+  @brief Get divergence matrix of a `CeedBasis`
 
-  @param[in]  basis @ref CeedBasis
+  @param[in]  basis `CeedBasis`
   @param[out] div   Variable to store divergence matrix
 
   @return An error code: 0 - success, otherwise - failure
@@ -2004,9 +2004,9 @@ int CeedBasisGetDiv(CeedBasis basis, const CeedScalar **div) {
 }
 
 /**
-  @brief Get curl matrix of a @ref CeedBasis
+  @brief Get curl matrix of a `CeedBasis`
 
-  @param[in]  basis @ref CeedBasis
+  @param[in]  basis `CeedBasis`
   @param[out] curl  Variable to store curl matrix
 
   @return An error code: 0 - success, otherwise - failure
@@ -2022,7 +2022,7 @@ int CeedBasisGetCurl(CeedBasis basis, const CeedScalar **curl) {
 /**
   @brief Destroy a @ref  CeedBasis
 
-  @param[in,out] basis @ref CeedBasis to destroy
+  @param[in,out] basis `CeedBasis` to destroy
 
   @return An error code: 0 - success, otherwise - failure
 
