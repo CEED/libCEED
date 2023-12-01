@@ -151,9 +151,9 @@ CEED_QFUNCTION(RHSFunction_Newtonian)(void *ctx, CeedInt Q, const CeedScalar *co
     for (int j = 0; j < 5; j++) v[j][i] = wdetJ * body_force[j];
 
     // -- Stabilization method: none (Galerkin), SU, or SUPG
-    CeedScalar Tau_d[3], stab[5][3], U_dot[5] = {0};
+    CeedScalar Tau_d[3], stab[5][3], U_dot[5] = {0}, zeroFlux[5] = {0.};
     Tau_diagPrim(context, s, dXdx, dt, Tau_d);
-    Stabilization(context, s, Tau_d, grad_s, U_dot, body_force, stab);
+    Stabilization(context, s, Tau_d, grad_s, U_dot, body_force, zeroFlux, stab);
 
     for (CeedInt j = 0; j < 5; j++) {
       for (CeedInt k = 0; k < 3; k++) Grad_v[k][j][i] -= wdetJ * (stab[j][0] * dXdx[k][0] + stab[j][1] * dXdx[k][1] + stab[j][2] * dXdx[k][2]);
@@ -173,11 +173,13 @@ CEED_QFUNCTION(RHSFunction_Newtonian)(void *ctx, CeedInt Q, const CeedScalar *co
 // *****************************************************************************
 CEED_QFUNCTION_HELPER int IFunction_Newtonian(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out, StateVariable state_var) {
   // Inputs
-  const CeedScalar(*q)[CEED_Q_VLA]     = (const CeedScalar(*)[CEED_Q_VLA])in[0];
-  const CeedScalar(*Grad_q)            = in[1];
-  const CeedScalar(*q_dot)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[2];
-  const CeedScalar(*q_data)            = in[3];
-  const CeedScalar(*x)[CEED_Q_VLA]     = (const CeedScalar(*)[CEED_Q_VLA])in[4];
+  const CeedScalar(*q)[CEED_Q_VLA]        = (const CeedScalar(*)[CEED_Q_VLA])in[0];
+  const CeedScalar(*Grad_q)               = in[1];
+  const CeedScalar(*q_dot)[CEED_Q_VLA]    = (const CeedScalar(*)[CEED_Q_VLA])in[2];
+  const CeedScalar(*q_data)               = in[3];
+  const CeedScalar(*x)[CEED_Q_VLA]        = (const CeedScalar(*)[CEED_Q_VLA])in[4];
+  // const CeedScalar(*divFdiff)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[5];
+  CeedScalar(*divFdiff)[CEED_Q_VLA] = NULL;
 
   // Outputs
   CeedScalar(*v)[CEED_Q_VLA]         = (CeedScalar(*)[CEED_Q_VLA])out[0];
@@ -190,11 +192,12 @@ CEED_QFUNCTION_HELPER int IFunction_Newtonian(void *ctx, CeedInt Q, const CeedSc
   const CeedScalar         dt      = context->dt;
   const CeedScalar         P0      = context->P0;
 
+  if (context->use_divFdiff) divFdiff = (CeedScalar(*)[CEED_Q_VLA])in[5];
   // Quadrature Point Loop
   CeedPragmaSIMD for (CeedInt i = 0; i < Q; i++) {
-    const CeedScalar qi[5]  = {q[0][i], q[1][i], q[2][i], q[3][i], q[4][i]};
-    const CeedScalar x_i[3] = {x[0][i], x[1][i], x[2][i]};
-    const State      s      = StateFromQ(context, qi, state_var);
+    const CeedScalar qi[5]         = {q[0][i], q[1][i], q[2][i], q[3][i], q[4][i]};
+    const CeedScalar x_i[3]        = {x[0][i], x[1][i], x[2][i]};
+    const State      s             = StateFromQ(context, qi, state_var);
 
     CeedScalar wdetJ, dXdx[3][3];
     QdataUnpack_3D(Q, i, q_data, &wdetJ, dXdx);
@@ -237,8 +240,12 @@ CEED_QFUNCTION_HELPER int IFunction_Newtonian(void *ctx, CeedInt Q, const CeedSc
       for (int j = 0; j < 5; j++) v[j][i] += wdetJ * idl_residual[j];
     }
 
+    CeedScalar divFdiff_i[5] = {0.};
+    if(context->use_divFdiff) {
+      for (int j = 1; j < 5; j++) divFdiff_i[j] = divFdiff[j][i];
+    }
     Tau_diagPrim(context, s, dXdx, dt, Tau_d);
-    Stabilization(context, s, Tau_d, grad_s, U_dot, body_force, stab);
+    Stabilization(context, s, Tau_d, grad_s, U_dot, body_force, divFdiff_i, stab);
 
     for (CeedInt j = 0; j < 5; j++) {
       for (CeedInt k = 0; k < 3; k++) {
@@ -333,7 +340,8 @@ CEED_QFUNCTION_HELPER int IJacobian_Newtonian(void *ctx, CeedInt Q, const CeedSc
     // -- Stabilization method: none (Galerkin), SU, or SUPG
     CeedScalar dstab[5][3], U_dot[5] = {0};
     for (CeedInt j = 0; j < 5; j++) U_dot[j] = context->ijacobian_time_shift * dU[j];
-    Stabilization(context, s, Tau_d, grad_ds, U_dot, dbody_force, dstab);
+    const CeedScalar zeroFlux[5] = {0.};
+    Stabilization(context, s, Tau_d, grad_ds, U_dot, dbody_force, zeroFlux, dstab);
 
     for (int j = 0; j < 5; j++) {
       for (int k = 0; k < 3; k++) Grad_v[k][j][i] += wdetJ * (dstab[j][0] * dXdx[k][0] + dstab[j][1] * dXdx[k][1] + dstab[j][2] * dXdx[k][2]);
