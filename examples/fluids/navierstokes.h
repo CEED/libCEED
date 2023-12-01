@@ -143,6 +143,7 @@ struct AppCtx_private {
   // Differential Filtering
   PetscBool         diff_filter_monitor;
   MeshTransformType mesh_transform_type;
+  PetscBool         use_divFdiffproj;
 };
 
 // libCEED data struct
@@ -225,7 +226,7 @@ struct User_private {
   Vec                  Q_loc, Q_dot_loc;
   Physics              phys;
   AppCtx               app_ctx;
-  CeedVector           q_ceed, q_dot_ceed, g_ceed, x_ceed;
+  CeedVector           q_ceed, q_dot_ceed, g_ceed, x_ceed, divFdiff_ceed;
   CeedOperator         op_ifunction;
   Mat                  mat_ijacobian;
   KSP                  mass_ksp;
@@ -237,6 +238,7 @@ struct User_private {
   DiffFilterData       diff_filter;
   SmartSimData         smartsim;
   SGS_DD_TrainingData  sgs_dd_train;
+  NodalProjectionData  diff_flux_proj;
 };
 
 // Units
@@ -488,3 +490,10 @@ PetscErrorCode SGS_DD_TrainingSetup(Ceed ceed, User user, CeedData ceed_data, Pr
 PetscErrorCode TSMonitor_SGS_DD_Training(TS ts, PetscInt step_num, PetscReal solution_time, Vec Q, void *ctx);
 PetscErrorCode TSPostStep_SGS_DD_Training(TS ts);
 PetscErrorCode SGS_DD_TrainingDataDestroy(SGS_DD_TrainingData sgs_dd_train);
+
+// -----------------------------------------------------------------------------
+// Divergence of Diffusive Flux Projection
+// -----------------------------------------------------------------------------
+PetscErrorCode DivDiffFluxProjectionSetup(Ceed ceed, User user, CeedData ceed_data, ProblemData problem);
+PetscErrorCode DiffFluxProjectionApply(NodalProjectionData diff_flux_proj, Vec Q_loc, Vec DivDiffFlux);
+PetscErrorCode DiffFluxProjectionInitialize(User user, CeedElemRestriction *elem_restr_diff_flux, CeedBasis *basis_diff_flux);

@@ -34,6 +34,8 @@ CEED_QFUNCTION_HELPER int Mass_N(void *ctx, CeedInt Q, const CeedScalar *const *
 
 CEED_QFUNCTION(Mass_1)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) { return Mass_N(ctx, Q, in, out, 1); }
 
+CEED_QFUNCTION(Mass_4)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) { return Mass_N(ctx, Q, in, out, 4); }
+
 CEED_QFUNCTION(Mass_5)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) { return Mass_N(ctx, Q, in, out, 5); }
 
 CEED_QFUNCTION(Mass_7)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) { return Mass_N(ctx, Q, in, out, 7); }

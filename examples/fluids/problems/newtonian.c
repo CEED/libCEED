@@ -428,6 +428,7 @@ PetscErrorCode NS_NEWTONIAN_IG(ProblemData problem, DM dm, void *ctx, SimpleBC b
   newtonian_ig_ctx->idl_start     = idl_start * meter;
   newtonian_ig_ctx->idl_length    = idl_length * meter;
   newtonian_ig_ctx->idl_pressure  = idl_pressure;
+  newtonian_ig_ctx->use_divFdiff  = user->app_ctx->use_divFdiffproj;
   PetscCall(PetscArraycpy(newtonian_ig_ctx->g, g, 3));
 
   // -- Setup Context

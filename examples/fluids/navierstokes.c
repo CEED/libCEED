@@ -253,6 +253,7 @@ int main(int argc, char **argv) {
 
   PetscCall(TurbulenceStatisticsDestroy(user, ceed_data));
   PetscCall(NodalProjectionDataDestroy(user->grad_velo_proj));
+  PetscCall(NodalProjectionDataDestroy(user->diff_flux_proj));
   PetscCall(SgsDDDataDestroy(user->sgs_dd_data));
   PetscCall(DifferentialFilterDataDestroy(user->diff_filter));
   PetscCall(SGS_DD_TrainingDataDestroy(user->sgs_dd_train));
@@ -264,6 +265,7 @@ int main(int argc, char **argv) {
   PetscCallCeed(ceed, CeedVectorDestroy(&user->q_ceed));
   PetscCallCeed(ceed, CeedVectorDestroy(&user->q_dot_ceed));
   PetscCallCeed(ceed, CeedVectorDestroy(&user->g_ceed));
+  PetscCallCeed(ceed, CeedVectorDestroy(&user->divFdiff_ceed));
 
   // -- Bases
   PetscCallCeed(ceed, CeedBasisDestroy(&ceed_data->basis_q));

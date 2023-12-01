@@ -41,6 +41,7 @@ struct NewtonianIdealGasContext_ {
   CeedScalar        idl_amplitude;
   CeedScalar        idl_start;
   CeedScalar        idl_length;
+  bool              use_divFdiff;
 };
 
 typedef struct {

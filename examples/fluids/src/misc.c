@@ -251,6 +251,9 @@ PetscErrorCode CreateMassQFunction(Ceed ceed, CeedInt N, CeedInt q_data_size, Ce
     case 1:
       PetscCallCeed(ceed, CeedQFunctionCreateInterior(ceed, 1, Mass_1, Mass_1_loc, qf));
       break;
+    case 4:
+      PetscCallCeed(ceed, CeedQFunctionCreateInterior(ceed, 4, Mass_4, Mass_4_loc, qf));
+      break;
     case 5:
       PetscCallCeed(ceed, CeedQFunctionCreateInterior(ceed, 1, Mass_5, Mass_5_loc, qf));
       break;

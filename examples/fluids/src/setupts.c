@@ -104,8 +104,8 @@ PetscErrorCode IFunction_NS(TS ts, PetscReal t, Vec Q, Vec Q_dot, Vec G, void *u
   User         user = *(User *)user_data;
   Ceed         ceed = user->ceed;
   PetscScalar  dt;
-  Vec          Q_loc = user->Q_loc, Q_dot_loc = user->Q_dot_loc, G_loc;
-  PetscMemType q_mem_type, q_dot_mem_type, g_mem_type;
+  Vec          Q_loc = user->Q_loc, Q_dot_loc = user->Q_dot_loc, G_loc, DivFDiff_loc = NULL;
+  PetscMemType q_mem_type, q_dot_mem_type, g_mem_type, divFdiff_mem_type;
 
   PetscFunctionBeginUser;
   // Get local vectors
@@ -123,10 +123,22 @@ PetscErrorCode IFunction_NS(TS ts, PetscReal t, Vec Q, Vec Q_dot, Vec G, void *u
   PetscCall(DMGlobalToLocalEnd(user->dm, Q, INSERT_VALUES, Q_loc));
   PetscCall(DMGlobalToLocalEnd(user->dm, Q_dot, INSERT_VALUES, Q_dot_loc));
 
+  if (user->app_ctx->use_divFdiffproj) {
+    Vec DivFDiff;
+    PetscCall(DMGetLocalVector(user->diff_flux_proj->dm, &DivFDiff_loc));
+    PetscCall(DMGetGlobalVector(user->diff_flux_proj->dm, &DivFDiff));
+
+    PetscCall(DiffFluxProjectionApply(user->diff_flux_proj, Q_loc, DivFDiff));
+    PetscCall(DMGlobalToLocal(user->diff_flux_proj->dm, DivFDiff, INSERT_VALUES, DivFDiff_loc));
+
+    PetscCall(DMRestoreGlobalVector(user->diff_flux_proj->dm, &DivFDiff));
+  }
+
   // Place PETSc vectors in CEED vectors
   PetscCall(VecReadPetscToCeed(Q_loc, &q_mem_type, user->q_ceed));
   PetscCall(VecReadPetscToCeed(Q_dot_loc, &q_dot_mem_type, user->q_dot_ceed));
   PetscCall(VecPetscToCeed(G_loc, &g_mem_type, user->g_ceed));
+  if (user->app_ctx->use_divFdiffproj) PetscCall(VecReadPetscToCeed(DivFDiff_loc, &divFdiff_mem_type, user->divFdiff_ceed));
 
   // Apply CEED operator
   PetscCall(PetscLogEventBegin(FLUIDS_CeedOperatorApply, Q, G, 0, 0));
@@ -139,6 +151,10 @@ PetscErrorCode IFunction_NS(TS ts, PetscReal t, Vec Q, Vec Q_dot, Vec G, void *u
   PetscCall(VecReadCeedToPetsc(user->q_ceed, q_mem_type, Q_loc));
   PetscCall(VecReadCeedToPetsc(user->q_dot_ceed, q_dot_mem_type, Q_dot_loc));
   PetscCall(VecCeedToPetsc(user->g_ceed, g_mem_type, G_loc));
+  if (user->app_ctx->use_divFdiffproj) {
+    PetscCall(VecReadCeedToPetsc(user->divFdiff_ceed, divFdiff_mem_type, DivFDiff_loc));
+    PetscCall(DMRestoreLocalVector(user->diff_flux_proj->dm, &DivFDiff_loc));
+  }
 
   if (user->app_ctx->sgs_model_type == SGS_MODEL_DATA_DRIVEN) {
     PetscCall(SgsDDApplyIFunction(user, Q_loc, G_loc));
