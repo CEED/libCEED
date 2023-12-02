@@ -301,7 +301,6 @@ PetscScalar EvalU_Sphere(PetscInt dim, const PetscScalar x[]) {
 
 PetscErrorCode EvalU_Poly_proj(PetscInt dim, PetscReal t, const PetscReal x[], PetscInt num_comp, PetscScalar *u, void *ctx) {
   PetscFunctionBeginUser;
-
   const PetscScalar f_x = EvalU_Poly(dim, x);
 
   for (PetscInt c = 0; c < num_comp; c++) u[c] = (c + 1.0) * f_x;
@@ -310,7 +309,6 @@ PetscErrorCode EvalU_Poly_proj(PetscInt dim, PetscReal t, const PetscReal x[], P
 
 PetscErrorCode EvalU_Tanh_proj(PetscInt dim, PetscReal t, const PetscReal x[], PetscInt num_comp, PetscScalar *u, void *ctx) {
   PetscFunctionBeginUser;
-
   const PetscScalar f_x = EvalU_Tanh(dim, x);
 
   for (PetscInt c = 0; c < num_comp; c++) u[c] = (c + 1.0) * f_x;
@@ -319,7 +317,6 @@ PetscErrorCode EvalU_Tanh_proj(PetscInt dim, PetscReal t, const PetscReal x[], P
 
 PetscErrorCode EvalU_Sphere_proj(PetscInt dim, PetscReal t, const PetscReal x[], PetscInt num_comp, PetscScalar *u, void *ctx) {
   PetscFunctionBeginUser;
-
   const PetscScalar f_x = EvalU_Sphere(dim, x);
 
   for (PetscInt c = 0; c < num_comp; c++) u[c] = (c + 1.0) * f_x;

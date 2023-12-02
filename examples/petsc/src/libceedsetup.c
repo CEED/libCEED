@@ -1,3 +1,10 @@
+// Copyright (c) 2017-2022, Lawrence Livermore National Security, LLC and other CEED contributors.
+// All Rights Reserved. See the top-level LICENSE and NOTICE files for details.
+//
+// SPDX-License-Identifier: BSD-2-Clause
+//
+// This file is part of CEED:  http://github.com/ceed
+
 #include "../include/libceedsetup.h"
 
 #include <stdio.h>
@@ -9,7 +16,6 @@
 // -----------------------------------------------------------------------------
 PetscErrorCode CeedDataDestroy(CeedInt i, CeedData data) {
   PetscFunctionBeginUser;
-
   CeedVectorDestroy(&data->q_data);
   CeedVectorDestroy(&data->x_ceed);
   CeedVectorDestroy(&data->y_ceed);
@@ -26,7 +32,6 @@ PetscErrorCode CeedDataDestroy(CeedInt i, CeedData data) {
     CeedOperatorDestroy(&data->op_restrict);
   }
   PetscCall(PetscFree(data));
-
   PetscFunctionReturn(PETSC_SUCCESS);
 };
 
@@ -163,7 +168,6 @@ PetscErrorCode SetupLibceedByDegree(DM dm, Ceed ceed, CeedInt degree, CeedInt to
   data->x_ceed          = x_ceed;
   data->y_ceed          = y_ceed;
   data->q_data_size     = q_data_size;
-
   PetscFunctionReturn(PETSC_SUCCESS);
 };
 

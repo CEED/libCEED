@@ -1,3 +1,10 @@
+// Copyright (c) 2017-2022, Lawrence Livermore National Security, LLC and other CEED contributors.
+// All Rights Reserved. See the top-level LICENSE and NOTICE files for details.
+//
+// SPDX-License-Identifier: BSD-2-Clause
+//
+// This file is part of CEED:  http://github.com/ceed
+
 #include "../include/petscutils.h"
 
 // -----------------------------------------------------------------------------
@@ -70,7 +77,6 @@ PetscErrorCode Kershaw(DM dm_orig, PetscScalar eps) {
   PetscScalar *c;
 
   PetscFunctionBeginUser;
-
   PetscCall(DMGetCoordinatesLocal(dm_orig, &coord));
   PetscCall(VecGetLocalSize(coord, &ncoord));
   PetscCall(VecGetArray(coord, &c));
@@ -115,12 +121,10 @@ static PetscErrorCode CreateBCLabel(DM dm, const char name[]) {
   DMLabel label;
 
   PetscFunctionBeginUser;
-
   PetscCall(DMCreateLabel(dm, name));
   PetscCall(DMGetLabel(dm, name, &label));
   PetscCall(DMPlexMarkBoundaryFaces(dm, PETSC_DETERMINE, label));
   PetscCall(DMPlexLabelComplete(dm, label));
-
   PetscFunctionReturn(PETSC_SUCCESS);
 }
 
@@ -135,7 +139,6 @@ PetscErrorCode SetupDMByDegree(DM dm, PetscInt p_degree, PetscInt q_extra, Petsc
   PetscBool is_simplex = PETSC_TRUE;
 
   PetscFunctionBeginUser;
-
   // Check if simplex or tensor-product mesh
   PetscCall(DMPlexIsSimplex(dm, &is_simplex));
   // Setup FE
@@ -178,7 +181,6 @@ PetscErrorCode SetupDMByDegree(DM dm, PetscInt p_degree, PetscInt q_extra, Petsc
     PetscCall(DMPlexSetClosurePermutationTensor(dm_coord, PETSC_DETERMINE, NULL));
   }
   PetscCall(PetscFEDestroy(&fe));
-
   PetscFunctionReturn(PETSC_SUCCESS);
 }
 
@@ -189,12 +191,10 @@ PetscErrorCode CreateRestrictionFromPlex(Ceed ceed, DM dm, CeedInt height, DMLab
   PetscInt num_elem, elem_size, num_dof, num_comp, *elem_restr_offsets;
 
   PetscFunctionBeginUser;
-
   PetscCall(DMPlexGetLocalOffsets(dm, domain_label, value, height, 0, &num_elem, &elem_size, &num_comp, &num_dof, &elem_restr_offsets));
 
   CeedElemRestrictionCreate(ceed, num_elem, elem_size, num_comp, 1, num_dof, CEED_MEM_HOST, CEED_COPY_VALUES, elem_restr_offsets, elem_restr);
   PetscCall(PetscFree(elem_restr_offsets));
-
   PetscFunctionReturn(PETSC_SUCCESS);
 }
 
@@ -226,7 +226,6 @@ PetscErrorCode DMFieldToDSField(DM dm, DMLabel domain_label, PetscInt dm_field, 
   PetscInt        num_fields;
 
   PetscFunctionBeginUser;
-
   // Translate dm_field to ds_field
   PetscCall(DMGetRegionDS(dm, domain_label, &field_is, &ds, NULL));
   PetscCall(ISGetIndices(field_is, &fields));
@@ -240,7 +239,6 @@ PetscErrorCode DMFieldToDSField(DM dm, DMLabel domain_label, PetscInt dm_field, 
   PetscCall(ISRestoreIndices(field_is, &fields));
 
   if (*ds_field == -1) SETERRQ(PetscObjectComm((PetscObject)dm), PETSC_ERR_SUP, "Could not find dm_field %" PetscInt_FMT " in DS", dm_field);
-
   PetscFunctionReturn(PETSC_SUCCESS);
 }
 
@@ -261,7 +259,6 @@ PetscErrorCode BasisCreateFromTabulation(Ceed ceed, DM dm, DMLabel domain_label,
   PetscInt           dim, num_comp, P, Q;
 
   PetscFunctionBeginUser;
-
   // General basis information
   PetscCall(PetscFEGetSpatialDimension(fe, &dim));
   PetscCall(PetscFEGetNumComponents(fe, &num_comp));
@@ -337,7 +334,6 @@ PetscErrorCode BasisCreateFromTabulation(Ceed ceed, DM dm, DMLabel domain_label,
   PetscCall(PetscFree(q_points));
   PetscCall(PetscFree(interp));
   PetscCall(PetscFree(grad));
-
   PetscFunctionReturn(PETSC_SUCCESS);
 }
 
@@ -353,7 +349,6 @@ PetscErrorCode CreateBasisFromPlex(Ceed ceed, DM dm, DMLabel domain_label, CeedI
   PetscInt        ds_field   = -1;
 
   PetscFunctionBeginUser;
-
   // Get element information
   PetscCall(DMGetRegionDS(dm, domain_label, NULL, &ds, NULL));
   PetscCall(DMFieldToDSField(dm, domain_label, dm_field, &ds_field));
@@ -388,7 +383,6 @@ PetscErrorCode CreateBasisFromPlex(Ceed ceed, DM dm, DMLabel domain_label, CeedI
 
     CeedBasisCreateTensorH1Lagrange(ceed, dim, num_comp, P_1d, Q_1d, bp_data.q_mode, basis);
   }
-
   PetscFunctionReturn(PETSC_SUCCESS);
 }
 
@@ -434,7 +428,6 @@ PetscErrorCode CreateDistributedDM(RunParams rp, DM *dm) {
 
   PetscCall(DMSetFromOptions(*dm));
   PetscCall(DMViewFromOptions(*dm, NULL, "-dm_view"));
-
   PetscFunctionReturn(PETSC_SUCCESS);
 }
 
