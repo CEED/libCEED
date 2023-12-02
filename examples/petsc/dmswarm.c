@@ -239,7 +239,7 @@ int main(int argc, char **argv) {
     Vec U_projected;
 
     PetscCall(VecDuplicate(U_mesh, &U_projected));
-    PetscCall(DMSwarmProjectFromSwarmToCells(dm_swarm, DMSwarmPICField_u, U_projected));
+    PetscCall(DMSwarmProjectFromSwarmToCells(dm_swarm, DMSwarmPICField_u, NULL, U_projected));
 
     PetscCall(PetscObjectSetName((PetscObject)U_projected, "U projected to Background Mesh"));
     PetscCall(VecViewFromOptions(U_projected, NULL, "-u_projected_view"));

@@ -178,9 +178,11 @@ PetscErrorCode ComputeL2Error(Vec X, PetscScalar *l2_error, OperatorApplyContext
   PetscFunctionBeginUser;
   PetscCall(VecDuplicate(X, &E));
   PetscCall(ApplyLocal_Ceed(X, E, op_error_ctx));
+  PetscCall(VecViewFromOptions(E, NULL, "-error_view"));
   PetscScalar error_sq = 1.0;
   PetscCall(VecSum(E, &error_sq));
   *l2_error = sqrt(error_sq);
+  PetscCall(VecDestroy(&E));
   PetscFunctionReturn(PETSC_SUCCESS);
 }
 

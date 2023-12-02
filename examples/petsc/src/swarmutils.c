@@ -6,6 +6,7 @@
 // This file is part of CEED:  http://github.com/ceed
 
 #include "../include/swarmutils.h"
+#include "../include/matops.h"
 #include "../qfunctions/swarm/swarmmass.h"
 
 // ------------------------------------------------------------------------------------------------
@@ -432,10 +433,11 @@ PetscErrorCode DMSwarmCreateReferenceCoordinates(DM dm_swarm, IS *is_points, Vec
 // ------------------------------------------------------------------------------------------------
 // RHS for Swarm to Mesh projection
 // ------------------------------------------------------------------------------------------------
-PetscErrorCode DMSwarmCreateProjectionRHS(DM dm_swarm, const char *field, Vec B_mesh) {
-  PetscMemType       B_mem_type;
+PetscErrorCode DMSwarmCreateProjectionRHS(DM dm_swarm, const char *field, Vec U_points, Vec B_mesh) {
+  PetscMemType       B_mem_type, U_mem_type;
   DM                 dm_mesh;
   Vec                B_mesh_loc;
+  PetscBool          has_u_points;
   DMSwarmCeedContext swarm_ceed_context;
 
   PetscFunctionBeginUser;
@@ -443,26 +445,35 @@ PetscErrorCode DMSwarmCreateProjectionRHS(DM dm_swarm, const char *field, Vec B_
   PetscCall(DMSwarmGetCellDM(dm_swarm, &dm_mesh));
   PetscCall(DMGetApplicationContext(dm_mesh, (void *)&swarm_ceed_context));
 
+  // Get swarm access
+  has_u_points = !!U_points;
+  if (!has_u_points) {
+    PetscCall(DMSwarmSortGetAccess(dm_swarm));
+    PetscCall(DMSwarmCreateLocalVectorFromField(dm_swarm, field, &U_points));
+  }
+
   // Get mesh values
+  PetscCall(VecReadP2C(U_points, &U_mem_type, swarm_ceed_context->u_points));
   PetscCall(DMGetLocalVector(dm_mesh, &B_mesh_loc));
   PetscCall(VecZeroEntries(B_mesh_loc));
   PetscCall(VecP2C(B_mesh_loc, &B_mem_type, swarm_ceed_context->v_mesh));
-
-  // Get swarm access
-  PetscCall(DMSwarmSortGetAccess(dm_swarm));
-  PetscCall(DMSwarmPICFieldP2C(dm_swarm, field, swarm_ceed_context->u_points));
 
   // Interpolate field from swarm points to mesh
   CeedOperatorApply(swarm_ceed_context->op_points_to_mesh, swarm_ceed_context->u_points, swarm_ceed_context->v_mesh, CEED_REQUEST_IMMEDIATE);
 
   // Restore PETSc Vecs and Local to Global
+  PetscCall(VecReadC2P(swarm_ceed_context->u_points, U_mem_type, U_points));
   PetscCall(VecC2P(swarm_ceed_context->v_mesh, B_mem_type, B_mesh_loc));
   PetscCall(VecZeroEntries(B_mesh));
   PetscCall(DMLocalToGlobal(dm_mesh, B_mesh_loc, ADD_VALUES, B_mesh));
 
+  // Restore swarm access
+  if (!has_u_points) {
+    PetscCall(DMSwarmDestroyLocalVectorFromField(dm_swarm, field, &U_points));
+    PetscCall(DMSwarmSortRestoreAccess(dm_swarm));
+  }
+
   // Cleanup
-  PetscCall(DMSwarmPICFieldC2P(dm_swarm, field, swarm_ceed_context->u_points));
-  PetscCall(DMSwarmSortRestoreAccess(dm_swarm));
   PetscCall(DMRestoreLocalVector(dm_mesh, &B_mesh_loc));
   PetscFunctionReturn(PETSC_SUCCESS);
 }
@@ -508,7 +519,7 @@ PetscErrorCode MatMult_SwarmMass(Mat A, Vec U_mesh, Vec V_mesh) {
 // ------------------------------------------------------------------------------------------------
 // Swarm to mesh projection
 // ------------------------------------------------------------------------------------------------
-PetscErrorCode DMSwarmProjectFromSwarmToCells(DM dm_swarm, const char *field, Vec U_mesh) {
+PetscErrorCode DMSwarmProjectFromSwarmToCells(DM dm_swarm, const char *field, Vec U_points, Vec U_mesh) {
   PetscBool          test_mode;
   Vec                B_mesh;
   Mat                M;
@@ -556,7 +567,7 @@ PetscErrorCode DMSwarmProjectFromSwarmToCells(DM dm_swarm, const char *field, Ve
   }
 
   // Setup RHS
-  PetscCall(DMSwarmCreateProjectionRHS(dm_swarm, field, B_mesh));
+  PetscCall(DMSwarmCreateProjectionRHS(dm_swarm, field, U_points, B_mesh));
 
   // Solve
   PetscCall(VecZeroEntries(U_mesh));
@@ -591,5 +602,210 @@ PetscErrorCode DMSwarmProjectFromSwarmToCells(DM dm_swarm, const char *field, Ve
   PetscCall(VecDestroy(&B_mesh));
   PetscCall(MatDestroy(&M));
   PetscCall(KSPDestroy(&ksp));
+  PetscFunctionReturn(PETSC_SUCCESS);
+}
+
+// ------------------------------------------------------------------------------------------------
+// BP setup
+// ------------------------------------------------------------------------------------------------
+PetscErrorCode SetupProblemSwarm(DM dm_swarm, Ceed ceed, BPData bp_data, CeedData data, PetscBool setup_rhs, Vec rhs, Vec target) {
+  DM                  dm_mesh, dm_coord;
+  CeedElemRestriction elem_restr_u_mesh, elem_restr_x_mesh, elem_restr_x_points, elem_restr_u_points, elem_restr_q_data_points;
+  CeedBasis           basis_u, basis_x;
+  CeedVector          x_coord, x_ref_points, q_data_points;
+  CeedInt             num_comp, q_data_size = bp_data.q_data_size, dim, X_loc_len;
+  CeedScalar          R = 1;                         // radius of the sphere
+  CeedScalar          l = 1.0 / PetscSqrtReal(3.0);  // half edge of the inscribed cube
+  Vec                 X_loc;
+  PetscMemType        X_mem_type;
+
+  PetscFunctionBeginUser;
+  PetscCall(DMSwarmGetCellDM(dm_swarm, &dm_mesh));
+  PetscCall(DMGetCoordinateDM(dm_mesh, &dm_coord));
+
+  // Get coordinates
+  PetscCall(DMGetCoordinatesLocal(dm_mesh, &X_loc));
+  PetscCall(VecGetLocalSize(X_loc, &X_loc_len));
+  CeedVectorCreate(ceed, X_loc_len, &x_coord);
+  PetscCall(VecReadP2C(X_loc, &X_mem_type, x_coord));
+
+  // Background mesh objects
+  PetscCall(CreateBasisFromPlex(ceed, dm_mesh, NULL, 0, 0, 0, bp_data, &basis_u));
+  PetscCall(CreateBasisFromPlex(ceed, dm_coord, NULL, 0, 0, 0, bp_data, &basis_x));
+  PetscCall(CreateRestrictionFromPlex(ceed, dm_mesh, 0, NULL, 0, &elem_restr_u_mesh));
+  PetscCall(CreateRestrictionFromPlex(ceed, dm_coord, 0, NULL, 0, &elem_restr_x_mesh));
+
+  CeedElemRestrictionCreateVector(elem_restr_u_mesh, &data->x_ceed, NULL);
+  CeedElemRestrictionCreateVector(elem_restr_u_mesh, &data->y_ceed, NULL);
+
+  // Swarm objects
+  {
+    const PetscInt *cell_points;
+    IS              is_points;
+    Vec             X_ref;
+    CeedInt         num_elem;
+
+    PetscCall(DMSwarmCreateReferenceCoordinates(dm_swarm, &is_points, &X_ref));
+    PetscCall(DMGetDimension(dm_mesh, &dim));
+    CeedElemRestrictionGetNumElements(elem_restr_u_mesh, &num_elem);
+    CeedElemRestrictionGetNumComponents(elem_restr_u_mesh, &num_comp);
+
+    PetscCall(ISGetIndices(is_points, &cell_points));
+    PetscInt num_points = cell_points[num_elem + 1] - num_elem - 2;
+    CeedInt  offsets[num_elem + 1 + num_points];
+
+    for (PetscInt i = 0; i < num_elem + 1; i++) offsets[i] = cell_points[i + 1] - 1;
+    for (PetscInt i = num_elem + 1; i < num_points + num_elem + 1; i++) offsets[i] = cell_points[i + 1];
+    PetscCall(ISRestoreIndices(is_points, &cell_points));
+
+    // -- Points restrictions
+    CeedElemRestrictionCreateAtPoints(ceed, num_elem, num_points, num_comp, num_points * num_comp, CEED_MEM_HOST, CEED_COPY_VALUES, offsets,
+                                      &elem_restr_u_points);
+    CeedElemRestrictionCreateAtPoints(ceed, num_elem, num_points, dim, num_points * dim, CEED_MEM_HOST, CEED_COPY_VALUES, offsets,
+                                      &elem_restr_x_points);
+    CeedElemRestrictionCreateAtPoints(ceed, num_elem, num_points, q_data_size, num_points * q_data_size, CEED_MEM_HOST, CEED_COPY_VALUES, offsets,
+                                      &elem_restr_q_data_points);
+
+    // -- Points vectors
+    CeedElemRestrictionCreateVector(elem_restr_q_data_points, &q_data_points, NULL);
+
+    // -- Ref coordinates
+    {
+      PetscMemType       X_mem_type;
+      const PetscScalar *x;
+
+      CeedVectorCreate(ceed, num_points * dim, &x_ref_points);
+
+      PetscCall(VecGetArrayReadAndMemType(X_ref, (const PetscScalar **)&x, &X_mem_type));
+      CeedVectorSetArray(x_ref_points, MemTypeP2C(X_mem_type), CEED_COPY_VALUES, (CeedScalar *)x);
+      PetscCall(VecRestoreArrayReadAndMemType(X_ref, (const PetscScalar **)&x));
+    }
+
+    // Create Q data
+    {
+      CeedQFunction qf_setup;
+      CeedOperator  op_setup;
+
+      // Setup geometric scaling
+      CeedQFunctionCreateInterior(ceed, 1, bp_data.setup_geo, bp_data.setup_geo_loc, &qf_setup);
+      CeedQFunctionAddInput(qf_setup, "x", dim, CEED_EVAL_INTERP);
+      CeedQFunctionAddInput(qf_setup, "dx", dim * dim, CEED_EVAL_GRAD);
+      CeedQFunctionAddInput(qf_setup, "weight", 1, CEED_EVAL_WEIGHT);
+      CeedQFunctionAddOutput(qf_setup, "qdata", q_data_size, CEED_EVAL_NONE);
+
+      CeedOperatorCreateAtPoints(ceed, qf_setup, CEED_QFUNCTION_NONE, CEED_QFUNCTION_NONE, &op_setup);
+      CeedOperatorSetField(op_setup, "x", elem_restr_x_mesh, basis_x, CEED_VECTOR_ACTIVE);
+      CeedOperatorSetField(op_setup, "dx", elem_restr_x_mesh, basis_x, CEED_VECTOR_ACTIVE);
+      CeedOperatorSetField(op_setup, "weight", CEED_ELEMRESTRICTION_NONE, basis_x, CEED_VECTOR_NONE);
+      CeedOperatorSetField(op_setup, "qdata", elem_restr_q_data_points, CEED_BASIS_NONE, CEED_VECTOR_ACTIVE);
+      CeedOperatorAtPointsSetPoints(op_setup, elem_restr_x_points, x_ref_points);
+
+      CeedOperatorApply(op_setup, x_coord, q_data_points, CEED_REQUEST_IMMEDIATE);
+
+      // Cleanup
+      CeedQFunctionDestroy(&qf_setup);
+      CeedOperatorDestroy(&op_setup);
+    }
+
+    // Cleanup
+    PetscCall(ISDestroy(&is_points));
+    PetscCall(VecDestroy(&X_ref));
+  }
+
+  // Set up PDE operator
+
+  CeedQFunction qf_apply;
+  CeedOperator  op_apply;
+  CeedInt       in_scale  = bp_data.in_mode == CEED_EVAL_GRAD ? dim : 1;
+  CeedInt       out_scale = bp_data.out_mode == CEED_EVAL_GRAD ? dim : 1;
+
+  CeedQFunctionCreateInterior(ceed, 1, bp_data.apply, bp_data.apply_loc, &qf_apply);
+  CeedQFunctionAddInput(qf_apply, "u", num_comp * in_scale, bp_data.in_mode);
+  CeedQFunctionAddInput(qf_apply, "qdata", q_data_size, CEED_EVAL_NONE);
+  CeedQFunctionAddOutput(qf_apply, "v", num_comp * out_scale, bp_data.out_mode);
+
+  // Create the mass or diff operator
+  CeedOperatorCreateAtPoints(ceed, qf_apply, NULL, NULL, &op_apply);
+  CeedOperatorSetField(op_apply, "u", elem_restr_u_mesh, basis_u, CEED_VECTOR_ACTIVE);
+  CeedOperatorSetField(op_apply, "qdata", elem_restr_q_data_points, CEED_BASIS_NONE, q_data_points);
+  CeedOperatorSetField(op_apply, "v", elem_restr_u_mesh, basis_u, CEED_VECTOR_ACTIVE);
+  CeedOperatorAtPointsSetPoints(op_apply, elem_restr_x_points, x_ref_points);
+
+  // Set up RHS if needed
+  if (setup_rhs) {
+    CeedQFunction qf_setup_rhs;
+    CeedOperator  op_setup_rhs;
+    Vec           rhs_loc;
+    CeedVector    rhs_ceed, target_ceed;
+    PetscMemType  rhs_mem_type, target_mem_type;
+
+    // Create RHS vector
+    PetscCall(DMCreateLocalVector(dm_mesh, &rhs_loc));
+
+    CeedElemRestrictionCreateVector(elem_restr_u_points, &target_ceed, NULL);
+    CeedElemRestrictionCreateVector(elem_restr_u_mesh, &rhs_ceed, NULL);
+
+    // Create the q-function that sets up the RHS and true solution
+    CeedQFunctionCreateInterior(ceed, 1, bp_data.setup_rhs, bp_data.setup_rhs_loc, &qf_setup_rhs);
+    CeedQFunctionAddInput(qf_setup_rhs, "x", dim, CEED_EVAL_INTERP);
+    CeedQFunctionAddInput(qf_setup_rhs, "qdata", q_data_size, CEED_EVAL_NONE);
+    CeedQFunctionAddOutput(qf_setup_rhs, "true solution", num_comp, CEED_EVAL_NONE);
+    CeedQFunctionAddOutput(qf_setup_rhs, "rhs", num_comp, CEED_EVAL_INTERP);
+
+    // Create the operator that builds the RHS and true solution
+    CeedOperatorCreateAtPoints(ceed, qf_setup_rhs, NULL, NULL, &op_setup_rhs);
+    CeedOperatorSetField(op_setup_rhs, "x", elem_restr_x_mesh, basis_x, CEED_VECTOR_ACTIVE);
+    CeedOperatorSetField(op_setup_rhs, "qdata", elem_restr_q_data_points, CEED_BASIS_NONE, q_data_points);
+    CeedOperatorSetField(op_setup_rhs, "true solution", elem_restr_u_points, CEED_BASIS_NONE, target_ceed);
+    CeedOperatorSetField(op_setup_rhs, "rhs", elem_restr_u_mesh, basis_u, CEED_VECTOR_ACTIVE);
+    CeedOperatorAtPointsSetPoints(op_setup_rhs, elem_restr_x_points, x_ref_points);
+
+    // Set up the libCEED context
+    CeedQFunctionContext ctx_rhs_setup;
+    CeedQFunctionContextCreate(ceed, &ctx_rhs_setup);
+    CeedScalar rhs_setup_data[2] = {R, l};
+    CeedQFunctionContextSetData(ctx_rhs_setup, CEED_MEM_HOST, CEED_COPY_VALUES, sizeof rhs_setup_data, &rhs_setup_data);
+    CeedQFunctionSetContext(qf_setup_rhs, ctx_rhs_setup);
+    CeedQFunctionContextDestroy(&ctx_rhs_setup);
+
+    // Setup RHS and target
+    PetscCall(VecP2C(rhs_loc, &rhs_mem_type, rhs_ceed));
+    PetscCall(VecP2C(target, &target_mem_type, target_ceed));
+    CeedOperatorApply(op_setup_rhs, x_coord, rhs_ceed, CEED_REQUEST_IMMEDIATE);
+    PetscCall(VecC2P(rhs_ceed, rhs_mem_type, rhs_loc));
+    PetscCall(VecC2P(target_ceed, target_mem_type, target));
+
+    // Local-to-global
+    PetscCall(VecZeroEntries(rhs));
+    PetscCall(DMLocalToGlobal(dm_mesh, rhs_loc, ADD_VALUES, rhs));
+
+    PetscCall(VecViewFromOptions(rhs, NULL, "-rhs_view"));
+
+    // Cleanup
+    PetscCall(DMRestoreLocalVector(dm_mesh, &rhs_loc));
+    CeedVectorDestroy(&rhs_ceed);
+    CeedVectorDestroy(&target_ceed);
+    CeedQFunctionDestroy(&qf_setup_rhs);
+    CeedOperatorDestroy(&op_setup_rhs);
+  }
+
+  // Save libCEED data
+  data->basis_x         = basis_x;
+  data->basis_u         = basis_u;
+  data->elem_restr_x    = elem_restr_x_mesh;
+  data->elem_restr_u    = elem_restr_u_mesh;
+  data->elem_restr_u_i  = elem_restr_u_points;
+  data->elem_restr_qd_i = elem_restr_q_data_points;
+  data->qf_apply        = qf_apply;
+  data->op_apply        = op_apply;
+  data->q_data          = q_data_points;
+  data->q_data_size     = q_data_size;
+
+  // Cleanup
+  PetscCall(VecReadC2P(x_coord, X_mem_type, X_loc));
+  CeedVectorDestroy(&x_coord);
+  CeedVectorDestroy(&x_ref_points);
+  CeedElemRestrictionDestroy(&elem_restr_x_points);
+
   PetscFunctionReturn(PETSC_SUCCESS);
 }
