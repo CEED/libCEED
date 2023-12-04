@@ -259,8 +259,8 @@ CEED_QFUNCTION(StgShur14Preprocess)(void *ctx, CeedInt Q, const CeedScalar *cons
     };
 
     CeedScalar h[3];
-    h[0] = dx;
     for (CeedInt j = 1; j < 3; j++) h[j] = 2 / sqrt(dXdx[0][j] * dXdx[0][j] + dXdx[1][j] * dXdx[1][j]);
+    h[0] = dx > 0 ? dx : -1 * dx * h[2];  // negative dx means to use the ratio
 
     InterpolateProfile(wall_dist, ubar, cij, &eps, &lt, stg_ctx);
     SpectrumConstants(wall_dist, eps, lt, h, nu, &hmax, &ke, &keta, &kcut);
