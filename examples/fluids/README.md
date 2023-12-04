@@ -1099,6 +1099,15 @@ Using the STG Inflow for the blasius problem adds the following command-line opt
   - `false`
   -
 
+* - `-stg_dx`
+  - Length of the element in the streamwise direction.
+  - N/A
+  - `m`
+
+* - `-stg_dx_ratio`
+  - Ratio of streamwise element size to spanwise element size. Used only if neither `-stg_dx` nor `-dm_plex_box_faces` is given.
+  - `2.5`
+  -
 :::
 
 This problem can be run with the `blasius.yaml` file via:
