@@ -22,7 +22,9 @@
 //     bpssphere -problem bp2 -degree 3
 //     bpssphere -problem bp3 -degree 3
 //
-//TESTARGS -ceed {ceed_resource} -test -problem bp3 -dm_plex_dim 3 -dm_plex_box_faces 10,10,10 -dm_plex_simplex 0 -swarm uniform -points_per_cell 500
+//TESTARGS(name="BP2") -ceed {ceed_resource} -test -problem bp2 -dm_plex_dim 3 -dm_plex_box_faces 3,3,3 -dm_plex_simplex 0 -swarm uniform -points_per_cell 64
+//TESTARGS(name="BP3") -ceed {ceed_resource} -test -problem bp3 -dm_plex_dim 3 -dm_plex_box_faces 4,4,4 -dm_plex_simplex 0 -swarm uniform -points_per_cell 64 -tolerance 3e-2
+//TESTARGS(name="BP5") -ceed {ceed_resource} -test -problem bp5 -dm_plex_dim 3 -dm_plex_box_faces 3,3,3 -dm_plex_simplex 0 -swarm uniform -points_per_cell 64
 
 /// @file
 /// CEED BPs example using PETSc with DMPlex
@@ -49,7 +51,8 @@ int main(int argc, char **argv) {
   MPI_Comm             comm;
   char                 ceed_resource[PETSC_MAX_PATH_LEN] = "/cpu/self", filename[PETSC_MAX_PATH_LEN];
   double               my_rt_start, my_rt, rt_min, rt_max;
-  PetscInt             comm_size, degree = 3, q_extra, l_size, g_size, dim = 3, num_comp_u = 1, xl_size, num_points = 1728, num_points_per_cell = 64;
+  PetscScalar          tolerance;
+  PetscInt             comm_size, degree, q_extra, l_size, g_size, dim = 3, num_comp_u = 1, xl_size, num_points = 1728, num_points_per_cell = 64;
   PetscBool            test_mode, benchmark_mode, read_mesh, write_solution, write_true_solution_swarm;
   PetscLogStage        solve_stage;
   Vec                  X, X_loc, rhs;
@@ -94,7 +97,7 @@ int main(int argc, char **argv) {
   write_true_solution_swarm = PETSC_FALSE;
   PetscCall(PetscOptionsBool("-write_true_solution_swarm", "Write true solution at swarm points for visualization", NULL, write_true_solution_swarm,
                              &write_true_solution_swarm, NULL));
-  degree = test_mode ? 3 : 2;
+  degree = 2;
   PetscCall(PetscOptionsInt("-degree", "Polynomial degree of tensor product basis", NULL, degree, &degree, NULL));
   q_extra = bp_options[bp_choice].q_extra;
   PetscCall(PetscOptionsInt("-q_extra", "Number of extra quadrature points", NULL, q_extra, &q_extra, NULL));
@@ -103,6 +106,8 @@ int main(int argc, char **argv) {
   PetscCall(PetscOptionsString("-hostname", "Hostname for output", NULL, hostname, hostname, sizeof(hostname), NULL));
   read_mesh = PETSC_FALSE;
   PetscCall(PetscOptionsString("-mesh", "Read mesh from file", NULL, filename, filename, sizeof(filename), &read_mesh));
+  tolerance = 1e-2;
+  PetscCall(PetscOptionsScalar("-tolerance", "Tolerance for L2 error", NULL, tolerance, &tolerance, NULL));
   PetscCall(PetscOptionsEnum("-swarm", "Swarm points distribution", NULL, point_swarm_types, (PetscEnum)point_swarm_type,
                              (PetscEnum *)&point_swarm_type, NULL));
   {
@@ -173,7 +178,12 @@ int main(int argc, char **argv) {
   // -- Swarm field
   PetscCall(DMSwarmRegisterPetscDatatypeField(dm_swarm, DMSwarmPICField_u, num_comp_u, PETSC_SCALAR));
   PetscCall(DMSwarmFinalizeFieldRegister(dm_swarm));
-  PetscCall(DMSwarmSetLocalSizes(dm_swarm, num_points, 0));
+  {
+    PetscInt c_start, c_end, num_cells_local;
+    PetscCall(DMPlexGetHeightStratum(dm_mesh, 0, &c_start, &c_end));
+    num_cells_local = c_end - c_start;
+    PetscCall(DMSwarmSetLocalSizes(dm_swarm, num_cells_local * num_points_per_cell, 0));
+  }
   PetscCall(DMSetFromOptions(dm_swarm));
 
   // -- Set swarm point locations
@@ -240,8 +250,9 @@ int main(int argc, char **argv) {
     PetscMPIInt comm_size;
     PetscCall(MPI_Comm_size(comm, &comm_size));
 
-    PetscInt num_points_local;
+    PetscInt num_points_local, num_points_global;
     PetscCall(DMSwarmGetLocalSize(dm_swarm, &num_points_local));
+    PetscCall(DMSwarmGetSize(dm_swarm, &num_points_global));
 
     PetscCall(PetscPrintf(comm,
                           "\n-- CEED Benchmark Problem %" CeedInt_FMT " -- libCEED + PETSc --\n"
@@ -268,7 +279,7 @@ int main(int argc, char **argv) {
                           "    Avg points per cell                     : %" PetscInt_FMT "\n"
                           "    Point distribution                      : %s\n",
                           bp_choice + 1, hostname, comm_size, ranks_per_node, vec_type, used_resource, CeedMemTypes[mem_type_backend], P, Q, q_extra,
-                          g_size / num_comp_u, num_cells_local, l_size / num_comp_u, num_comp_u, num_points, num_points_local,
+                          g_size / num_comp_u, num_cells_local, l_size / num_comp_u, num_comp_u, num_points_global, num_points_local,
                           num_cells_local > 0 ? num_points_local / num_cells_local : 0, point_swarm_types[point_swarm_type]));
   }
 
@@ -391,8 +402,7 @@ int main(int argc, char **argv) {
       PetscScalar l2_error;
       PetscCall(ComputeL2Error(X, &l2_error, op_error_ctx));
 
-      PetscReal tol = 5e-4;
-      if (!test_mode || l2_error > tol) {
+      if (!test_mode || l2_error > tolerance) {
         PetscCall(MPI_Allreduce(&my_rt, &rt_min, 1, MPI_DOUBLE, MPI_MIN, comm));
         PetscCall(MPI_Allreduce(&my_rt, &rt_max, 1, MPI_DOUBLE, MPI_MAX, comm));
         PetscCall(PetscPrintf(comm,
