@@ -18,8 +18,8 @@ static bool register_all_called;
 /**
   @brief Register all pre-configured backends.
 
-  This is called automatically by CeedInit() and thus normally need not be called by users.
-  Users can call CeedRegister() to register additional backends.
+  This is called automatically by @ref CeedInit() and thus normally need not be called by users.
+  Users can call @ref CeedRegister() to register additional backends.
 
   @return An error code: 0 - success, otherwise - failure
 

@@ -11,7 +11,7 @@
 #include <string.h>
 
 /**
-  @brief  Set fields for vector scaling QFunction that scales inputs
+  @brief  Set fields for vector scaling `CeedQFunction` that scales inputs
 **/
 static int CeedQFunctionInit_Scale(Ceed ceed, const char *requested, CeedQFunction qf) {
   // Check QFunction name
@@ -24,6 +24,6 @@ static int CeedQFunctionInit_Scale(Ceed ceed, const char *requested, CeedQFuncti
 }
 
 /**
-  @brief Register scaling QFunction
+  @brief Register scaling `CeedQFunction`
 **/
 CEED_INTERN int CeedQFunctionRegister_Scale(void) { return CeedQFunctionRegister("Scale", Scale_loc, 1, Scale, CeedQFunctionInit_Scale); }

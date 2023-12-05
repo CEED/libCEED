@@ -23,11 +23,11 @@
 /// @{
 
 /**
-  @brief Get index for QFunctionContext field
+  @brief Get index for `CeedQFunctionContext` field
 
-  @param[in]  ctx         CeedQFunctionContext
+  @param[in]  ctx         `CeedQFunctionContext`
   @param[in]  field_name  Name of field
-  @param[out] field_index Index of field, or -1 if field is not registered
+  @param[out] field_index Index of field, or `-1` if field is not registered
 
   @return An error code: 0 - success, otherwise - failure
 
@@ -42,13 +42,13 @@ int CeedQFunctionContextGetFieldIndex(CeedQFunctionContext ctx, const char *fiel
 }
 
 /**
-  @brief Common function for registering QFunctionContext fields
+  @brief Common function for registering `CeedQFunctionContext` fields
 
-  @param[in,out] ctx               CeedQFunctionContext
+  @param[in,out] ctx               `CeedQFunctionContext`
   @param[in]     field_name        Name of field to register
   @param[in]     field_offset      Offset of field to register
-  @param[in]     field_description Description of field, or NULL for none
-  @param[in]     field_type        Field data type, such as double, int32, or bool
+  @param[in]     field_description Description of field, or `NULL` for none
+  @param[in]     field_type        @ref CeedContextFieldType
   @param[in]     num_values        Number of values to register, must be contiguous in memory
 
   @return An error code: 0 - success, otherwise - failure
@@ -99,9 +99,9 @@ int CeedQFunctionContextRegisterGeneric(CeedQFunctionContext ctx, const char *fi
 }
 
 /**
-  @brief Destroy user data held by CeedQFunctionContext, using function set by CeedQFunctionContextSetDataDestroy, if applicable
+  @brief Destroy user data held by `CeedQFunctionContext`, using function set by @ref CeedQFunctionContextSetDataDestroy(), if applicable
 
-  @param[in,out] ctx CeedQFunctionContext to destroy user data
+  @param[in,out] ctx `CeedQFunctionContext` to destroy user data
 
   @return An error code: 0 - success, otherwise - failure
 
@@ -135,10 +135,10 @@ static int CeedQFunctionContextDestroyData(CeedQFunctionContext ctx) {
 /// @{
 
 /**
-  @brief Get the Ceed associated with a CeedQFunctionContext
+  @brief Get the `Ceed` associated with a `CeedQFunctionContext`
 
-  @param[in]  ctx  CeedQFunctionContext
-  @param[out] ceed Variable to store Ceed
+  @param[in]  ctx  `CeedQFunctionContext`
+  @param[out] ceed Variable to store `Ceed`
 
   @return An error code: 0 - success, otherwise - failure
 
@@ -150,9 +150,9 @@ int CeedQFunctionContextGetCeed(CeedQFunctionContext ctx, Ceed *ceed) {
 }
 
 /**
-  @brief Check for valid data in a CeedQFunctionContext
+  @brief Check for valid data in a `CeedQFunctionContext`
 
-  @param[in]  ctx            CeedQFunctionContext to check validity
+  @param[in]  ctx            `CeedQFunctionContext` to check validity
   @param[out] has_valid_data Variable to store validity
 
   @return An error code: 0 - success, otherwise - failure
@@ -160,15 +160,15 @@ int CeedQFunctionContextGetCeed(CeedQFunctionContext ctx, Ceed *ceed) {
   @ref Backend
 **/
 int CeedQFunctionContextHasValidData(CeedQFunctionContext ctx, bool *has_valid_data) {
-  CeedCheck(ctx->HasValidData, ctx->ceed, CEED_ERROR_UNSUPPORTED, "Backend does not support HasValidData");
+  CeedCheck(ctx->HasValidData, ctx->ceed, CEED_ERROR_UNSUPPORTED, "Backend does not support CeedQFunctionContextHasValidData");
   CeedCall(ctx->HasValidData(ctx, has_valid_data));
   return CEED_ERROR_SUCCESS;
 }
 
 /**
-  @brief Check for borrowed data of a specific CeedMemType in a CeedQFunctionContext
+  @brief Check for borrowed data of a specific @ref CeedMemType in a `CeedQFunctionContext`
 
-  @param[in]  ctx                       CeedQFunctionContext to check
+  @param[in]  ctx                       `CeedQFunctionContext` to check
   @param[in]  mem_type                  Memory type to check
   @param[out] has_borrowed_data_of_type Variable to store result
 
@@ -177,15 +177,15 @@ int CeedQFunctionContextHasValidData(CeedQFunctionContext ctx, bool *has_valid_d
   @ref Backend
 **/
 int CeedQFunctionContextHasBorrowedDataOfType(CeedQFunctionContext ctx, CeedMemType mem_type, bool *has_borrowed_data_of_type) {
-  CeedCheck(ctx->HasBorrowedDataOfType, ctx->ceed, CEED_ERROR_UNSUPPORTED, "Backend does not support HasBorrowedDataOfType");
+  CeedCheck(ctx->HasBorrowedDataOfType, ctx->ceed, CEED_ERROR_UNSUPPORTED, "Backend does not support CeedQFunctionContextHasBorrowedDataOfType");
   CeedCall(ctx->HasBorrowedDataOfType(ctx, mem_type, has_borrowed_data_of_type));
   return CEED_ERROR_SUCCESS;
 }
 
 /**
-  @brief Get the state of a CeedQFunctionContext
+  @brief Get the state of a `CeedQFunctionContext`
 
-  @param[in]  ctx   CeedQFunctionContext to retrieve state
+  @param[in]  ctx   `CeedQFunctionContext` to retrieve state
   @param[out] state Variable to store state
 
   @return An error code: 0 - success, otherwise - failure
@@ -198,9 +198,9 @@ int CeedQFunctionContextGetState(CeedQFunctionContext ctx, uint64_t *state) {
 }
 
 /**
-  @brief Get backend data of a CeedQFunctionContext
+  @brief Get backend data of a `CeedQFunctionContext`
 
-  @param[in]  ctx  CeedQFunctionContext
+  @param[in]  ctx  `CeedQFunctionContext`
   @param[out] data Variable to store data
 
   @return An error code: 0 - success, otherwise - failure
@@ -213,9 +213,9 @@ int CeedQFunctionContextGetBackendData(CeedQFunctionContext ctx, void *data) {
 }
 
 /**
-  @brief Set backend data of a CeedQFunctionContext
+  @brief Set backend data of a `CeedQFunctionContext`
 
-  @param[in,out] ctx  CeedQFunctionContext
+  @param[in,out] ctx  `CeedQFunctionContext`
   @param[in]     data Data to set
 
   @return An error code: 0 - success, otherwise - failure
@@ -228,9 +228,9 @@ int CeedQFunctionContextSetBackendData(CeedQFunctionContext ctx, void *data) {
 }
 
 /**
-  @brief Get label for a registered QFunctionContext field, or `NULL` if no field has been registered with this `field_name`
+  @brief Get label for a registered `CeedQFunctionContext` field, or `NULL` if no field has been registered with this `field_name`
 
-  @param[in]  ctx         CeedQFunctionContext
+  @param[in]  ctx         `CeedQFunctionContext`
   @param[in]  field_name  Name of field to retrieve label
   @param[out] field_label Variable to field label
 
@@ -252,9 +252,9 @@ int CeedQFunctionContextGetFieldLabel(CeedQFunctionContext ctx, const char *fiel
 }
 
 /**
-  @brief Set QFunctionContext field
+  @brief Set `CeedQFunctionContext` field
 
-  @param[in,out] ctx         CeedQFunctionContext
+  @param[in,out] ctx         `CeedQFunctionContext`
   @param[in]     field_label Label of field to set
   @param[in]     field_type  Type of field to set
   @param[in]     values      Value to set
@@ -284,9 +284,9 @@ int CeedQFunctionContextSetGeneric(CeedQFunctionContext ctx, CeedContextFieldLab
 }
 
 /**
-  @brief Get QFunctionContext field data, read-only
+  @brief Get `CeedQFunctionContext` field data, read-only
 
-  @param[in]  ctx         CeedQFunctionContext
+  @param[in]  ctx         `CeedQFunctionContext`
   @param[in]  field_label Label of field to read
   @param[in]  field_type  Type of field to read
   @param[out] num_values  Number of values in the field label
@@ -322,9 +322,9 @@ int CeedQFunctionContextGetGenericRead(CeedQFunctionContext ctx, CeedContextFiel
 }
 
 /**
-  @brief Restore QFunctionContext field data, read-only
+  @brief Restore `CeedQFunctionContext` field data, read-only
 
-  @param[in]  ctx         CeedQFunctionContext
+  @param[in]  ctx         `CeedQFunctionContext`
   @param[in]  field_label Label of field to restore
   @param[in]  field_type  Type of field to restore
   @param[out] values      Pointer to context values
@@ -345,9 +345,9 @@ int CeedQFunctionContextRestoreGenericRead(CeedQFunctionContext ctx, CeedContext
 }
 
 /**
-  @brief Set QFunctionContext field holding double precision values
+  @brief Set `CeedQFunctionContext` field holding double precision values
 
-  @param[in,out] ctx         CeedQFunctionContext
+  @param[in,out] ctx         `CeedQFunctionContext`
   @param[in]     field_label Label for field to set
   @param[in]     values      Values to set
 
@@ -362,9 +362,9 @@ int CeedQFunctionContextSetDouble(CeedQFunctionContext ctx, CeedContextFieldLabe
 }
 
 /**
-  @brief Get QFunctionContext field holding double precision values, read-only
+  @brief Get `CeedQFunctionContext` field holding double precision values, read-only
 
-  @param[in]  ctx         CeedQFunctionContext
+  @param[in]  ctx         `CeedQFunctionContext`
   @param[in]  field_label Label for field to get
   @param[out] num_values  Number of values in the field label
   @param[out] values      Pointer to context values
@@ -380,9 +380,9 @@ int CeedQFunctionContextGetDoubleRead(CeedQFunctionContext ctx, CeedContextField
 }
 
 /**
-  @brief Restore QFunctionContext field holding double precision values, read-only
+  @brief Restore `CeedQFunctionContext` field holding double precision values, read-only
 
-  @param[in]  ctx         CeedQFunctionContext
+  @param[in]  ctx         `CeedQFunctionContext`
   @param[in]  field_label Label for field to restore
   @param[out] values      Pointer to context values
 
@@ -397,7 +397,7 @@ int CeedQFunctionContextRestoreDoubleRead(CeedQFunctionContext ctx, CeedContextF
 }
 
 /**
-  @brief Set QFunctionContext field holding int32 values
+  @brief Set CeedQFunctionContext field holding `int32` values
 
   @param[in,out] ctx         CeedQFunctionContext
   @param[in]     field_label Label for field to set
@@ -414,9 +414,9 @@ int CeedQFunctionContextSetInt32(CeedQFunctionContext ctx, CeedContextFieldLabel
 }
 
 /**
-  @brief Get QFunctionContext field holding int32 values, read-only
+  @brief Get `CeedQFunctionContext` field holding `int32` values, read-only
 
-  @param[in]  ctx         CeedQFunctionContext
+  @param[in]  ctx         `CeedQFunctionContext`
   @param[in]  field_label Label for field to get
   @param[out] num_values  Number of values in the field label
   @param[out] values      Pointer to context values
@@ -432,9 +432,9 @@ int CeedQFunctionContextGetInt32Read(CeedQFunctionContext ctx, CeedContextFieldL
 }
 
 /**
-  @brief Restore QFunctionContext field holding int32 values, read-only
+  @brief Restore `CeedQFunctionContext` field holding `int32` values, read-only
 
-  @param[in]  ctx         CeedQFunctionContext
+  @param[in]  ctx         `CeedQFunctionContext`
   @param[in]  field_label Label for field to restore
   @param[out] values      Pointer to context values
 
@@ -449,9 +449,9 @@ int CeedQFunctionContextRestoreInt32Read(CeedQFunctionContext ctx, CeedContextFi
 }
 
 /**
-  @brief Set QFunctionContext field holding boolean values
+  @brief Set `CeedQFunctionContext` field holding boolean values
 
-  @param[in,out] ctx         CeedQFunctionContext
+  @param[in,out] ctx         `CeedQFunctionContext`
   @param[in]     field_label Label for field to set
   @param[in]     values      Values to set
 
@@ -466,9 +466,9 @@ int CeedQFunctionContextSetBoolean(CeedQFunctionContext ctx, CeedContextFieldLab
 }
 
 /**
-  @brief Get QFunctionContext field holding boolean values, read-only
+  @brief Get `CeedQFunctionContext` field holding boolean values, read-only
 
-  @param[in]  ctx         CeedQFunctionContext
+  @param[in]  ctx         `CeedQFunctionContext`
   @param[in]  field_label Label for field to get
   @param[out] num_values  Number of values in the field label
   @param[out] values      Pointer to context values
@@ -484,9 +484,9 @@ int CeedQFunctionContextGetBooleanRead(CeedQFunctionContext ctx, CeedContextFiel
 }
 
 /**
-  @brief Restore QFunctionContext field holding boolean values, read-only
+  @brief Restore `CeedQFunctionContext` field holding boolean values, read-only
 
-  @param[in]  ctx         CeedQFunctionContext
+  @param[in]  ctx         `CeedQFunctionContext`
   @param[in]  field_label Label for field to restore
   @param[out] values      Pointer to context values
 
@@ -501,9 +501,9 @@ int CeedQFunctionContextRestoreBooleanRead(CeedQFunctionContext ctx, CeedContext
 }
 
 /**
-  @brief Get additional destroy routine for CeedQFunctionContext user data
+  @brief Get additional destroy routine for `CeedQFunctionContext` user data
 
-  @param[in] ctx         CeedQFunctionContext to get user destroy function
+  @param[in] ctx         `CeedQFunctionContext` to get user destroy function
   @param[out] f_mem_type Memory type to use when passing data into `f`
   @param[out] f          Additional routine to use to destroy user data
 
@@ -518,9 +518,9 @@ int CeedQFunctionContextGetDataDestroy(CeedQFunctionContext ctx, CeedMemType *f_
 }
 
 /**
-  @brief Increment the reference counter for a CeedQFunctionContext
+  @brief Increment the reference counter for a `CeedQFunctionContext`
 
-  @param[in,out] ctx CeedQFunctionContext to increment the reference counter
+  @param[in,out] ctx `CeedQFunctionContext` to increment the reference counter
 
   @return An error code: 0 - success, otherwise - failure
 
@@ -540,10 +540,10 @@ int CeedQFunctionContextReference(CeedQFunctionContext ctx) {
 /// @{
 
 /**
-  @brief Create a CeedQFunctionContext for storing CeedQFunction user context data
+  @brief Create a `CeedQFunctionContext` for storing `CeedQFunctionContext` user context data
 
-  @param[in]  ceed Ceed object where the CeedQFunctionContext will be created
-  @param[out] ctx  Address of the variable where the newly created CeedQFunctionContext will be stored
+  @param[in]  ceed `Ceed` object used to create the `CeedQFunctionContext`
+  @param[out] ctx  Address of the variable where the newly created `CeedQFunctionContext` will be stored
 
   @return An error code: 0 - success, otherwise - failure
 
@@ -554,7 +554,7 @@ int CeedQFunctionContextCreate(Ceed ceed, CeedQFunctionContext *ctx) {
     Ceed delegate;
 
     CeedCall(CeedGetObjectDelegate(ceed, &delegate, "Context"));
-    CeedCheck(delegate, ceed, CEED_ERROR_UNSUPPORTED, "Backend does not support ContextCreate");
+    CeedCheck(delegate, ceed, CEED_ERROR_UNSUPPORTED, "Backend does not support CeedQFunctionContextCreate");
     CeedCall(CeedQFunctionContextCreate(delegate, ctx));
     return CEED_ERROR_SUCCESS;
   }
@@ -567,12 +567,12 @@ int CeedQFunctionContextCreate(Ceed ceed, CeedQFunctionContext *ctx) {
 }
 
 /**
-  @brief Copy the pointer to a CeedQFunctionContext.
+  @brief Copy the pointer to a `CeedQFunctionContext`.
 
-  Both pointers should be destroyed with `CeedQFunctionContextDestroy()`.
+  Both pointers should be destroyed with @ref CeedQFunctionContextDestroy().
 
-  Note: If the value of `ctx_copy` passed to this function is non-NULL, then it is assumed that `ctx_copy` is a pointer to a
-        CeedQFunctionContext. This CeedQFunctionContext will be destroyed if `ctx_copy` is the only reference to this CeedQFunctionContext.
+  Note: If the value of `*ctx_copy` passed to this function is non-`NULL`, then it is assumed that `*ctx_copy` is a pointer to a `CeedQFunctionContext`.
+        This `CeedQFunctionContext` will be destroyed if `*ctx_copy` is the only reference to this `CeedQFunctionContext`.
 
   @param[in]     ctx      CeedQFunctionContext to copy reference to
   @param[in,out] ctx_copy Variable to store copied reference
@@ -589,12 +589,12 @@ int CeedQFunctionContextReferenceCopy(CeedQFunctionContext ctx, CeedQFunctionCon
 }
 
 /**
-  @brief Set the data used by a CeedQFunctionContext, freeing any previously allocated data if applicable.
+  @brief Set the data used by a `CeedQFunctionContext`, freeing any previously allocated data if applicable.
 
-  The backend may copy values to a different memtype, such as during @ref CeedQFunctionApply().
+  The backend may copy values to a different @ref CeedMemType, such as during @ref CeedQFunctionApply().
   See also @ref CeedQFunctionContextTakeData().
 
-  @param[in,out] ctx       CeedQFunctionContext
+  @param[in,out] ctx       `CeedQFunctionContext`
   @param[in]     mem_type  Memory type of the data being passed
   @param[in]     copy_mode Copy mode for the data
   @param[in]     size      Size of data, in bytes
@@ -605,7 +605,7 @@ int CeedQFunctionContextReferenceCopy(CeedQFunctionContext ctx, CeedQFunctionCon
   @ref User
 **/
 int CeedQFunctionContextSetData(CeedQFunctionContext ctx, CeedMemType mem_type, CeedCopyMode copy_mode, size_t size, void *data) {
-  CeedCheck(ctx->SetData, ctx->ceed, CEED_ERROR_UNSUPPORTED, "Backend does not support ContextSetData");
+  CeedCheck(ctx->SetData, ctx->ceed, CEED_ERROR_UNSUPPORTED, "Backend does not support CeedQFunctionContextSetData");
   CeedCheck(ctx->state % 2 == 0, ctx->ceed, 1, "Cannot grant CeedQFunctionContext data access, the access lock is already in use");
 
   CeedCall(CeedQFunctionContextDestroyData(ctx));
@@ -616,11 +616,11 @@ int CeedQFunctionContextSetData(CeedQFunctionContext ctx, CeedMemType mem_type, 
 }
 
 /**
-  @brief Take ownership of the data in a CeedQFunctionContext via the specified memory type.
+  @brief Take ownership of the data in a `CeedQFunctionContext` via the specified memory type.
 
   The caller is responsible for managing and freeing the memory.
 
-  @param[in]  ctx      CeedQFunctionContext to access
+  @param[in]  ctx      `CeedQFunctionContext` to access
   @param[in]  mem_type Memory type on which to access the data.
                          If the backend uses a different memory type, this will perform a copy.
   @param[out] data     Data on memory type mem_type
@@ -636,7 +636,7 @@ int CeedQFunctionContextTakeData(CeedQFunctionContext ctx, CeedMemType mem_type,
   CeedCall(CeedQFunctionContextHasValidData(ctx, &has_valid_data));
   CeedCheck(has_valid_data, ctx->ceed, CEED_ERROR_BACKEND, "CeedQFunctionContext has no valid data to take, must set data");
 
-  CeedCheck(ctx->TakeData, ctx->ceed, CEED_ERROR_UNSUPPORTED, "Backend does not support TakeData");
+  CeedCheck(ctx->TakeData, ctx->ceed, CEED_ERROR_UNSUPPORTED, "Backend does not support CeedQFunctionContextTakeData");
   CeedCheck(ctx->state % 2 == 0, ctx->ceed, 1, "Cannot grant CeedQFunctionContext data access, the access lock is already in use");
 
   CeedCall(CeedQFunctionContextHasBorrowedDataOfType(ctx, mem_type, &has_borrowed_data_of_type));
@@ -649,18 +649,17 @@ int CeedQFunctionContextTakeData(CeedQFunctionContext ctx, CeedMemType mem_type,
 }
 
 /**
-  @brief Get read/write access to a CeedQFunctionContext via the specified memory type.
+  @brief Get read/write access to a `CeedQFunctionContext` via the specified memory type.
 
   Restore access with @ref CeedQFunctionContextRestoreData().
 
-  @param[in]  ctx      CeedQFunctionContext to access
+  @param[in]  ctx      `CeedQFunctionContext` to access
   @param[in]  mem_type Memory type on which to access the data.
                          If the backend uses a different memory type, this will perform a copy.
   @param[out] data     Data on memory type mem_type
 
-  @note The CeedQFunctionContextGetData() and @ref CeedQFunctionContextRestoreData() functions provide access to array pointers in the desired memory
-space.
-        Pairing get/restore allows the Context to track access.
+  @note The @ref CeedQFunctionContextGetData() and @ref CeedQFunctionContextRestoreData() functions provide access to array pointers in the desired memory space.
+        Pairing get/restore allows the `CeedQFunctionContext` to track access.
 
   @return An error code: 0 - success, otherwise - failure
 
@@ -669,7 +668,7 @@ space.
 int CeedQFunctionContextGetData(CeedQFunctionContext ctx, CeedMemType mem_type, void *data) {
   bool has_valid_data = true;
 
-  CeedCheck(ctx->GetData, ctx->ceed, CEED_ERROR_UNSUPPORTED, "Backend does not support GetData");
+  CeedCheck(ctx->GetData, ctx->ceed, CEED_ERROR_UNSUPPORTED, "Backend does not support CeedQFunctionContextGetData");
   CeedCheck(ctx->state % 2 == 0, ctx->ceed, 1, "Cannot grant CeedQFunctionContext data access, the access lock is already in use");
   CeedCheck(ctx->num_readers == 0, ctx->ceed, 1, "Cannot grant CeedQFunctionContext data access, a process has read access");
 
@@ -682,18 +681,17 @@ int CeedQFunctionContextGetData(CeedQFunctionContext ctx, CeedMemType mem_type, 
 }
 
 /**
-  @brief Get read only access to a CeedQFunctionContext via the specified memory type.
+  @brief Get read only access to a `CeedQFunctionContext` via the specified memory type.
 
   Restore access with @ref CeedQFunctionContextRestoreData().
 
-  @param[in]  ctx      CeedQFunctionContext to access
+  @param[in]  ctx      `CeedQFunctionContext` to access
   @param[in]  mem_type Memory type on which to access the data.
                          If the backend uses a different memory type, this will perform a copy.
   @param[out] data     Data on memory type mem_type
 
-  @note The CeedQFunctionContextGetDataRead() and @ref CeedQFunctionContextRestoreDataRead() functions provide access to array pointers in the desired
-memory space.
-        Pairing get/restore allows the Context to track access.
+  @note The @ref CeedQFunctionContextGetDataRead() and @ref CeedQFunctionContextRestoreDataRead() functions provide access to array pointers in the desired memory space.
+        Pairing get/restore allows the `CeedQFunctionContext` to track access.
 
   @return An error code: 0 - success, otherwise - failure
 
@@ -702,7 +700,7 @@ memory space.
 int CeedQFunctionContextGetDataRead(CeedQFunctionContext ctx, CeedMemType mem_type, void *data) {
   bool has_valid_data = true;
 
-  CeedCheck(ctx->GetDataRead, ctx->ceed, CEED_ERROR_UNSUPPORTED, "Backend does not support GetDataRead");
+  CeedCheck(ctx->GetDataRead, ctx->ceed, CEED_ERROR_UNSUPPORTED, "Backend does not support CeedQFunctionContextGetDataRead");
   CeedCheck(ctx->state % 2 == 0, ctx->ceed, 1, "Cannot grant CeedQFunctionContext data access, the access lock is already in use");
 
   CeedCall(CeedQFunctionContextHasValidData(ctx, &has_valid_data));
@@ -716,7 +714,7 @@ int CeedQFunctionContextGetDataRead(CeedQFunctionContext ctx, CeedMemType mem_ty
 /**
   @brief Restore data obtained using @ref CeedQFunctionContextGetData()
 
-  @param[in]     ctx  CeedQFunctionContext to restore
+  @param[in]     ctx  `CeedQFunctionContext` to restore
   @param[in,out] data Data to restore
 
   @return An error code: 0 - success, otherwise - failure
@@ -735,7 +733,7 @@ int CeedQFunctionContextRestoreData(CeedQFunctionContext ctx, void *data) {
 /**
   @brief Restore data obtained using @ref CeedQFunctionContextGetDataRead()
 
-  @param[in]     ctx  CeedQFunctionContext to restore
+  @param[in]     ctx  `CeedQFunctionContext` to restore
   @param[in,out] data Data to restore
 
   @return An error code: 0 - success, otherwise - failure
@@ -752,13 +750,13 @@ int CeedQFunctionContextRestoreDataRead(CeedQFunctionContext ctx, void *data) {
 }
 
 /**
-  @brief Register QFunctionContext a field holding double precision values
+  @brief Register a `CeedQFunctionContext` field holding double precision values
 
-  @param[in,out] ctx               CeedQFunctionContext
+  @param[in,out] ctx               `CeedQFunctionContext`
   @param[in]     field_name        Name of field to register
   @param[in]     field_offset      Offset of field to register
   @param[in]     num_values        Number of values to register, must be contiguous in memory
-  @param[in]     field_description Description of field, or NULL for none
+  @param[in]     field_description Description of field, or `NULL` for none
 
   @return An error code: 0 - success, otherwise - failure
 
@@ -770,13 +768,13 @@ int CeedQFunctionContextRegisterDouble(CeedQFunctionContext ctx, const char *fie
 }
 
 /**
-  @brief Register QFunctionContext a field holding int32 values
+  @brief Register a `CeedQFunctionContext` field holding `int32` values
 
   @param[in,out] ctx               CeedQFunctionContext
   @param[in]     field_name        Name of field to register
   @param[in]     field_offset      Offset of field to register
   @param[in]     num_values        Number of values to register, must be contiguous in memory
-  @param[in]     field_description Description of field, or NULL for none
+  @param[in]     field_description Description of field, or `NULL` for none
 
   @return An error code: 0 - success, otherwise - failure
 
@@ -788,13 +786,13 @@ int CeedQFunctionContextRegisterInt32(CeedQFunctionContext ctx, const char *fiel
 }
 
 /**
-  @brief Register QFunctionContext a field holding boolean values
+  @brief Register a `CeedQFunctionContext` field holding boolean values
 
-  @param[in,out] ctx               CeedQFunctionContext
+  @param[in,out] ctx               `CeedQFunctionContext`
   @param[in]     field_name        Name of field to register
   @param[in]     field_offset      Offset of field to register
   @param[in]     num_values        Number of values to register, must be contiguous in memory
-  @param[in]     field_description Description of field, or NULL for none
+  @param[in]     field_description Description of field, or `NULL` for none
 
   @return An error code: 0 - success, otherwise - failure
 
@@ -806,9 +804,9 @@ int CeedQFunctionContextRegisterBoolean(CeedQFunctionContext ctx, const char *fi
 }
 
 /**
-  @brief Get labels for all registered QFunctionContext fields
+  @brief Get labels for all registered `CeedQFunctionContext` fields
 
-  @param[in]  ctx          CeedQFunctionContext
+  @param[in]  ctx          `CeedQFunctionContext`
   @param[out] field_labels Variable to hold array of field labels
   @param[out] num_fields   Length of field descriptions array
 
@@ -823,14 +821,14 @@ int CeedQFunctionContextGetAllFieldLabels(CeedQFunctionContext ctx, const CeedCo
 }
 
 /**
-  @brief Get the descriptive information about a CeedContextFieldLabel
+  @brief Get the descriptive information about a `CeedContextFieldLabel`
 
-  @param[in]  label             CeedContextFieldLabel
+  @param[in]  label             @ref CeedContextFieldLabel
   @param[out] field_name        Name of labeled field
   @param[out] field_offset      Offset of field registered
   @param[out] num_values        Number of values registered
   @param[out] field_description Description of field, or NULL for none
-  @param[out] field_type        CeedContextFieldType
+  @param[out] field_type        @ref CeedContextFieldType
 
   @return An error code: 0 - success, otherwise - failure
 
@@ -849,7 +847,7 @@ int CeedContextFieldLabelGetDescription(CeedContextFieldLabel label, const char 
 /**
   @brief Get data size for a Context
 
-  @param[in]  ctx      CeedQFunctionContext
+  @param[in]  ctx      `CeedQFunctionContext`
   @param[out] ctx_size Variable to store size of context data values
 
   @return An error code: 0 - success, otherwise - failure
@@ -862,9 +860,9 @@ int CeedQFunctionContextGetContextSize(CeedQFunctionContext ctx, size_t *ctx_siz
 }
 
 /**
-  @brief View a CeedQFunctionContext
+  @brief View a `CeedQFunctionContext`
 
-  @param[in] ctx    CeedQFunctionContext to view
+  @param[in] ctx    `CeedQFunctionContext` to view
   @param[in] stream Filestream to write to
 
   @return An error code: 0 - success, otherwise - failure
@@ -883,9 +881,9 @@ int CeedQFunctionContextView(CeedQFunctionContext ctx, FILE *stream) {
 }
 
 /**
-  @brief Set additional destroy routine for CeedQFunctionContext user data
+  @brief Set additional destroy routine for `CeedQFunctionContext` user data
 
-  @param[in,out] ctx        CeedQFunctionContext to set user destroy function
+  @param[in,out] ctx        `CeedQFunctionContext` to set user destroy function
   @param[in]     f_mem_type Memory type to use when passing data into `f`
   @param[in]     f          Additional routine to use to destroy user data
 
@@ -901,9 +899,9 @@ int CeedQFunctionContextSetDataDestroy(CeedQFunctionContext ctx, CeedMemType f_m
 }
 
 /**
-  @brief Destroy a CeedQFunctionContext
+  @brief Destroy a `CeedQFunctionContext`
 
-  @param[in,out] ctx CeedQFunctionContext to destroy
+  @param[in,out] ctx `CeedQFunctionContext` to destroy
 
   @return An error code: 0 - success, otherwise - failure
 

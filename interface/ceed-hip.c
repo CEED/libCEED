@@ -14,7 +14,7 @@
 /**
   @brief Set HIP function pointer to evaluate action at quadrature points
 
-  @param[in,out] qf CeedQFunction to set device pointer
+  @param[in,out] qf `CeedQFunction` to set device pointer
   @param[in]     f  Device function pointer to evaluate action at quadrature points
 
   @return An error code: 0 - success, otherwise - failure

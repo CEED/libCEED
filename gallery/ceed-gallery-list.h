@@ -8,11 +8,9 @@
 // This header does not have guards because it is included multiple times.
 
 // List each gallery registration function once here.
-// This will be expanded inside CeedQFunctionRegisterAll() to call each registration function in the order listed, and also to define weak symbol
-// aliases for QFunctions that are not configured.
+// This will be expanded inside @ref CeedQFunctionRegisterAll() to call each registration function in the order listed, and also to define weak symbol aliases for @ref CeedQFunction that are not configured.
 //
-// At the time of this writing, all the gallery functions are defined, but we're adopting the same strategy here as for the backends because future
-// gallery QFunctions might depend on external libraries.
+// At the time of this writing, all the gallery functions are defined, but we're adopting the same strategy here as for the backends because future gallery @ref CeedQFunction might depend on external libraries.
 
 CEED_GALLERY_QFUNCTION(CeedQFunctionRegister_Identity)
 CEED_GALLERY_QFUNCTION(CeedQFunctionRegister_Mass1DBuild)

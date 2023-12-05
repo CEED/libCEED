@@ -206,9 +206,9 @@ struct CeedBasis_private {
   CeedScalar *div; /* row-major matrix of shape [Q, P] expressing the divergence of basis functions at quadrature points for H(div) discretizations */
   CeedScalar *curl; /* row-major matrix of shape [curl_dim * Q, P], curl_dim = 1 if dim < 3 else dim, expressing the curl of basis functions at
                        quadrature points for H(curl) discretizations */
-  CeedVector vec_chebyshev;
-  CeedBasis  basis_chebyshev; /* basis interpolating from nodes to Chebyshev polynomial coefficients */
-  void      *data;            /* place for the backend to store any data */
+  CeedVector  vec_chebyshev;
+  CeedBasis   basis_chebyshev; /* basis interpolating from nodes to Chebyshev polynomial coefficients */
+  void       *data;            /* place for the backend to store any data */
 };
 
 struct CeedTensorContract_private {

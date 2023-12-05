@@ -41,8 +41,8 @@ static size_t num_backends;
 /**
   @brief Request immediate completion
 
-  This predefined constant is passed as the \ref CeedRequest argument to interfaces when the caller wishes for the operation to be performed
-immediately. The code
+  This predefined constant is passed as the @ref CeedRequest argument to interfaces when the caller wishes for the operation to be performed immediately.
+  The code
 
   @code
     CeedOperatorApply(op, ..., CEED_REQUEST_IMMEDIATE);
@@ -63,8 +63,8 @@ CeedRequest *const CEED_REQUEST_IMMEDIATE = &ceed_request_immediate;
 /**
   @brief Request ordered completion
 
-  This predefined constant is passed as the \ref CeedRequest argument to interfaces when the caller wishes for the operation to be completed in the
-  order that it is submitted to the device. It is typically used in a construct such as:
+  This predefined constant is passed as the @ref CeedRequest argument to interfaces when the caller wishes for the operation to be completed in the order that it is submitted to the device.
+  It is typically used in a construct such as:
 
   @code
     CeedRequest request;
@@ -83,11 +83,11 @@ CeedRequest *const CEED_REQUEST_IMMEDIATE = &ceed_request_immediate;
 CeedRequest *const CEED_REQUEST_ORDERED = &ceed_request_ordered;
 
 /**
-  @brief Wait for a CeedRequest to complete.
+  @brief Wait for a @ref CeedRequest to complete.
 
-  Calling CeedRequestWait on a NULL request is a no-op.
+  Calling @ref CeedRequestWait() on a `NULL` request is a no-op.
 
-  @param req Address of CeedRequest to wait for; zeroed on completion.
+  @param[in,out] req Address of @ref CeedRequest to wait for; zeroed on completion.
 
   @return An error code: 0 - success, otherwise - failure
 
@@ -109,13 +109,13 @@ int CeedRequestWait(CeedRequest *req) {
 /**
   @brief Register a Ceed backend internally.
 
-  Note: Backends should call `CeedRegister` instead.
+  Note: Backends should call @ref CeedRegister() instead.
 
-  @param[in] prefix    Prefix of resources for this backend to respond to.
-                         For example, the reference backend responds to "/cpu/self".
-  @param[in] init      Initialization function called by CeedInit() when the backend is selected to drive the requested resource.
-  @param[in] priority  Integer priority.
-                         Lower values are preferred in case the resource requested by CeedInit() has non-unique best prefix match.
+  @param[in] prefix   Prefix of resources for this backend to respond to.
+                        For example, the reference backend responds to "/cpu/self".
+  @param[in] init     Initialization function called by @ref CeedInit() when the backend is selected to drive the requested resource
+  @param[in] priority Integer priority.
+                        Lower values are preferred in case the resource requested by @ref CeedInit() has non-unique best prefix match.
 
   @return An error code: 0 - success, otherwise - failure
 
@@ -150,11 +150,11 @@ int CeedRegisterImpl(const char *prefix, int (*init)(const char *, Ceed), unsign
 /// @{
 
 /**
-  @brief Return value of CEED_DEBUG environment variable
+  @brief Return value of `CEED_DEBUG` environment variable
 
-  @param[in] ceed Ceed context
+  @param[in] ceed `Ceed` context
 
-  @return boolean value: true  - debugging mode enabled
+  @return Boolean value: true  - debugging mode enabled
                          false - debugging mode disabled
 
   @ref Backend
@@ -164,9 +164,9 @@ bool CeedDebugFlag(const Ceed ceed) { return ceed->is_debug; }
 // LCOV_EXCL_STOP
 
 /**
-  @brief Return value of CEED_DEBUG environment variable
+  @brief Return value of `CEED_DEBUG` environment variable
 
-  @return boolean value: true  - debugging mode enabled
+  @return Boolean value: true  - debugging mode enabled
                          false - debugging mode disabled
 
   @ref Backend
@@ -178,8 +178,8 @@ bool CeedDebugFlagEnv(void) { return getenv("CEED_DEBUG") || getenv("DEBUG") || 
 /**
   @brief Print debugging information in color
 
-  @param color   Color to print
-  @param format  Printing format
+  @param[in] color  Color to print
+  @param[in] format Printing format
 
   @ref Backend
 **/
@@ -198,20 +198,20 @@ void CeedDebugImpl256(const unsigned char color, const char *format, ...) {
 // LCOV_EXCL_STOP
 
 /**
-  @brief Allocate an array on the host; use CeedMalloc()
+  @brief Allocate an array on the host; use @ref CeedMalloc().
 
   Memory usage can be tracked by the library.
   This ensures sufficient alignment for vectorization and should be used for large allocations.
 
   @param[in]  n    Number of units to allocate
   @param[in]  unit Size of each unit
-  @param[out] p    Address of pointer to hold the result.
+  @param[out] p    Address of pointer to hold the result
 
   @return An error code: 0 - success, otherwise - failure
 
-  @sa CeedFree()
-
   @ref Backend
+
+  @sa CeedFree()
 **/
 int CeedMallocArray(size_t n, size_t unit, void *p) {
   int ierr = posix_memalign((void **)p, CEED_ALIGN, n * unit);
@@ -220,19 +220,19 @@ int CeedMallocArray(size_t n, size_t unit, void *p) {
 }
 
 /**
-  @brief Allocate a cleared (zeroed) array on the host; use CeedCalloc()
+  @brief Allocate a cleared (zeroed) array on the host; use @ref CeedCalloc().
 
   Memory usage can be tracked by the library.
 
   @param[in]  n    Number of units to allocate
   @param[in]  unit Size of each unit
-  @param[out] p    Address of pointer to hold the result.
+  @param[out] p    Address of pointer to hold the result
 
   @return An error code: 0 - success, otherwise - failure
 
-  @sa CeedFree()
-
   @ref Backend
+
+  @sa CeedFree()
 **/
 int CeedCallocArray(size_t n, size_t unit, void *p) {
   *(void **)p = calloc(n, unit);
@@ -241,19 +241,19 @@ int CeedCallocArray(size_t n, size_t unit, void *p) {
 }
 
 /**
-  @brief Reallocate an array on the host; use CeedRealloc()
+  @brief Reallocate an array on the host; use @ref CeedRealloc().
 
   Memory usage can be tracked by the library.
 
   @param[in]  n    Number of units to allocate
   @param[in]  unit Size of each unit
-  @param[out] p    Address of pointer to hold the result.
+  @param[out] p    Address of pointer to hold the result
 
   @return An error code: 0 - success, otherwise - failure
 
-  @sa CeedFree()
-
   @ref Backend
+
+  @sa CeedFree()
 **/
 int CeedReallocArray(size_t n, size_t unit, void *p) {
   *(void **)p = realloc(*(void **)p, n * unit);
@@ -262,7 +262,7 @@ int CeedReallocArray(size_t n, size_t unit, void *p) {
 }
 
 /**
-  @brief Allocate a cleared string buffer on the host
+  @brief Allocate a cleared string buffer on the host.
 
   Memory usage can be tracked by the library.
 
@@ -271,9 +271,9 @@ int CeedReallocArray(size_t n, size_t unit, void *p) {
 
   @return An error code: 0 - success, otherwise - failure
 
-  @sa CeedFree()
-
   @ref Backend
+
+  @sa CeedFree()
 **/
 int CeedStringAllocCopy(const char *source, char **copy) {
   size_t len = strlen(source);
@@ -282,11 +282,14 @@ int CeedStringAllocCopy(const char *source, char **copy) {
   return CEED_ERROR_SUCCESS;
 }
 
-/** Free memory allocated using CeedMalloc() or CeedCalloc()
+/** Free memory allocated using @ref CeedMalloc() or @ref CeedCalloc()
 
-  @param[in,out] p  address of pointer to memory.
-                      This argument is of type void* to avoid needing a cast, but is the address of the pointer (which is zeroed) rather than the
-pointer.
+  @param[in,out] p Address of pointer to memory.
+                     This argument is of type `void*` to avoid needing a cast, but is the address of the pointer (which is zeroed) rather than the pointer.
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Backend
 **/
 int CeedFree(void *p) {
   free(*(void **)p);
@@ -295,13 +298,13 @@ int CeedFree(void *p) {
 }
 
 /**
-  @brief Register a Ceed backend
+  @brief Register a `Ceed` backend
 
   @param[in] prefix   Prefix of resources for this backend to respond to.
                         For example, the reference backend responds to "/cpu/self".
-  @param[in] init     Initialization function called by CeedInit() when the backend is selected to drive the requested resource.
+  @param[in] init     Initialization function called by @ref CeedInit() when the backend is selected to drive the requested resource
   @param[in] priority Integer priority.
-                        Lower values are preferred in case the resource requested by CeedInit() has non-unique best prefix match.
+                        Lower values are preferred in case the resource requested by @ref CeedInit() has non-unique best prefix match.
 
   @return An error code: 0 - success, otherwise - failure
 
@@ -316,7 +319,7 @@ int CeedRegister(const char *prefix, int (*init)(const char *, Ceed), unsigned i
 /**
   @brief Return debugging status flag
 
-  @param[in]  ceed     Ceed context to get debugging flag
+  @param[in]  ceed     `Ceed` context to get debugging flag
   @param[out] is_debug Variable to store debugging flag
 
   @return An error code: 0 - success, otherwise - failure
@@ -331,9 +334,9 @@ int CeedIsDebug(Ceed ceed, bool *is_debug) {
 /**
   @brief Get the root of the requested resource
 
-  @param[in]  ceed          Ceed context to get resource name of
-  @param[in]  resource      ull user specified resource
-  @param[in]  delineator    Delineator to break resource_root and resource_spec
+  @param[in]  ceed          `Ceed` context to get resource name of
+  @param[in]  resource      Full user specified resource
+  @param[in]  delineator    Delineator to break `resource_root` and `resource_spec`
   @param[out] resource_root Variable to store resource root
 
   @return An error code: 0 - success, otherwise - failure
@@ -350,9 +353,9 @@ int CeedGetResourceRoot(Ceed ceed, const char *resource, const char *delineator,
 }
 
 /**
-  @brief Retrieve a parent Ceed context
+  @brief Retrieve a parent `Ceed` context
 
-  @param[in]  ceed   Ceed context to retrieve parent of
+  @param[in]  ceed   `Ceed` context to retrieve parent of
   @param[out] parent Address to save the parent to
 
   @return An error code: 0 - success, otherwise - failure
@@ -369,9 +372,9 @@ int CeedGetParent(Ceed ceed, Ceed *parent) {
 }
 
 /**
-  @brief Retrieve a delegate Ceed context
+  @brief Retrieve a delegate `Ceed` context
 
-  @param[in]  ceed     Ceed context to retrieve delegate of
+  @param[in]  ceed     `Ceed` context to retrieve delegate of
   @param[out] delegate Address to save the delegate to
 
   @return An error code: 0 - success, otherwise - failure
@@ -384,12 +387,12 @@ int CeedGetDelegate(Ceed ceed, Ceed *delegate) {
 }
 
 /**
-  @brief Set a delegate Ceed context
+  @brief Set a delegate `Ceed` context
 
-  This function allows a Ceed context to set a delegate Ceed context.
-  All backend implementations default to the delegate Ceed context, unless overridden.
+  This function allows a `Ceed` context to set a delegate `Ceed` context.
+  All backend implementations default to the delegate `Ceed` context, unless overridden.
 
-  @param[in]  ceed     Ceed context to set delegate of
+  @param[in]  ceed     `Ceed` context to set delegate of
   @param[out] delegate Address to set the delegate to
 
   @return An error code: 0 - success, otherwise - failure
@@ -403,9 +406,9 @@ int CeedSetDelegate(Ceed ceed, Ceed delegate) {
 }
 
 /**
-  @brief Retrieve a delegate Ceed context for a specific object type
+  @brief Retrieve a delegate `Ceed` context for a specific object type
 
-  @param[in]  ceed     Ceed context to retrieve delegate of
+  @param[in]  ceed     `Ceed` context to retrieve delegate of
   @param[out] delegate Address to save the delegate to
   @param[in]  obj_name Name of the object type to retrieve delegate for
 
@@ -428,14 +431,14 @@ int CeedGetObjectDelegate(Ceed ceed, Ceed *delegate, const char *obj_name) {
 }
 
 /**
-  @brief Set a delegate Ceed context for a specific object type
+  @brief Set a delegate `Ceed` context for a specific object type
 
-  This function allows a Ceed context to set a delegate Ceed context for a given type of Ceed object.
-  All backend implementations default to the delegate Ceed context for this object.
-  For example, CeedSetObjectDelegate(ceed, delegate, "Basis") uses delegate implementations for all CeedBasis backend functions.
+  This function allows a `Ceed` context to set a delegate `Ceed` context for a given type of `Ceed` object.
+  All backend implementations default to the delegate `Ceed` context for this object.
+  For example, `CeedSetObjectDelegate(ceed, delegate, "Basis")` uses delegate implementations for all `CeedBasis` backend functions.
 
-  @param[in,out] ceed     Ceed context to set delegate of
-  @param[in]     delegate Ceed context to use for delegation
+  @param[in,out] ceed     `Ceed` context to set delegate of
+  @param[in]     delegate `Ceed` context to use for delegation
   @param[in]     obj_name Name of the object type to set delegate for
 
   @return An error code: 0 - success, otherwise - failure
@@ -463,9 +466,9 @@ int CeedSetObjectDelegate(Ceed ceed, Ceed delegate, const char *obj_name) {
 }
 
 /**
-  @brief Get the fallback resource for CeedOperators
+  @brief Get the fallback resource for `CeedOperator`
 
-  @param[in]  ceed     Ceed context
+  @param[in]  ceed     `Ceed` context
   @param[out] resource Variable to store fallback resource
 
   @return An error code: 0 - success, otherwise - failure
@@ -478,10 +481,10 @@ int CeedGetOperatorFallbackResource(Ceed ceed, const char **resource) {
 }
 
 /**
-  @brief Get the fallback Ceed for CeedOperators
+  @brief Get the fallback `Ceed` for `CeedOperator`
 
-  @param[in]  ceed          Ceed context
-  @param[out] fallback_ceed Variable to store fallback Ceed
+  @param[in]  ceed          `Ceed` context
+  @param[out] fallback_ceed Variable to store fallback `Ceed`
 
   @return An error code: 0 - success, otherwise - failure
 
@@ -511,12 +514,12 @@ int CeedGetOperatorFallbackCeed(Ceed ceed, Ceed *fallback_ceed) {
 }
 
 /**
-  @brief Set the fallback resource for CeedOperators.
+  @brief Set the fallback resource for `CeedOperator`.
 
   The current resource, if any, is freed by calling this function.
-  This string is freed upon the destruction of the Ceed context.
+  This string is freed upon the destruction of the `Ceed` context.
 
-  @param[in,out] ceed     Ceed context
+  @param[in,out] ceed     `Ceed` context
   @param[in]     resource Fallback resource to set
 
   @return An error code: 0 - success, otherwise - failure
@@ -536,9 +539,9 @@ int CeedSetOperatorFallbackResource(Ceed ceed, const char *resource) {
 }
 
 /**
-  @brief Flag Ceed context as deterministic
+  @brief Flag `Ceed` context as deterministic
 
-  @param[in]  ceed             Ceed to flag as deterministic
+  @param[in]  ceed             `Ceed` to flag as deterministic
   @param[out] is_deterministic Deterministic status to set
 
   @return An error code: 0 - success, otherwise - failure
@@ -551,14 +554,13 @@ int CeedSetDeterministic(Ceed ceed, bool is_deterministic) {
 }
 
 /**
-  @brief Set a backend function
+  @brief Set a backend function.
 
   This function is used for a backend to set the function associated with the Ceed objects.
-  For example, CeedSetBackendFunction(ceed, "Ceed", ceed, "VectorCreate", BackendVectorCreate) sets the backend implementation of 'CeedVectorCreate'
-and CeedSetBackendFunction(ceed, "Basis", basis, "Apply", BackendBasisApply) sets the backend implementation of 'CeedBasisApply'.
+  For example, `CeedSetBackendFunction(ceed, "Ceed", ceed, "VectorCreate", BackendVectorCreate)` sets the backend implementation of @ref CeedVectorCreate() and `CeedSetBackendFunction(ceed, "Basis", basis, "Apply", BackendBasisApply)` sets the backend implementation of @ref CeedBasisApply().
   Note, the prefix 'Ceed' is not required for the object type ("Basis" vs "CeedBasis").
 
-  @param[in]  ceed      Ceed context for error handling
+  @param[in]  ceed      `Ceed` context for error handling
   @param[in]  type      Type of Ceed object to set function for
   @param[out] object    Ceed object to set function for
   @param[in]  func_name Name of function to set
@@ -593,9 +595,9 @@ int CeedSetBackendFunction(Ceed ceed, const char *type, void *object, const char
 }
 
 /**
-  @brief Retrieve backend data for a Ceed context
+  @brief Retrieve backend data for a `Ceed` context
 
-  @param[in]  ceed Ceed context to retrieve data of
+  @param[in]  ceed `Ceed` context to retrieve data of
   @param[out] data Address to save data to
 
   @return An error code: 0 - success, otherwise - failure
@@ -608,9 +610,9 @@ int CeedGetData(Ceed ceed, void *data) {
 }
 
 /**
-  @brief Set backend data for a Ceed context
+  @brief Set backend data for a `Ceed` context
 
-  @param[in,out] ceed Ceed context to set data of
+  @param[in,out] ceed `Ceed` context to set data of
   @param[in]     data Address of data to set
 
   @return An error code: 0 - success, otherwise - failure
@@ -623,9 +625,9 @@ int CeedSetData(Ceed ceed, void *data) {
 }
 
 /**
-  @brief Increment the reference counter for a Ceed context
+  @brief Increment the reference counter for a `Ceed` context
 
-  @param[in,out] ceed Ceed context to increment the reference counter
+  @param[in,out] ceed `Ceed` context to increment the reference counter
 
   @return An error code: 0 - success, otherwise - failure
 
@@ -645,10 +647,9 @@ int CeedReference(Ceed ceed) {
 /// @{
 
 /**
-  @brief Get the list of available resource names for Ceed contexts
+  @brief Get the list of available resource names for `Ceed` contexts
 
-  Note: The caller is responsible for `free()`ing the resources and priorities arrays, but should not `free()` the contents of the resources
-array.
+  Note: The caller is responsible for `free()`ing the resources and priorities arrays, but should not `free()` the contents of the resources array.
 
   @param[out] n          Number of available resources
   @param[out] resources  List of available resource names
@@ -687,18 +688,18 @@ int CeedRegistryGetList(size_t *n, char ***const resources, CeedInt **priorities
 // LCOV_EXCL_STOP
 
 /**
-  @brief Initialize a \ref Ceed context to use the specified resource.
+  @brief Initialize a `Ceed` context to use the specified resource.
 
-  Note: Prefixing the resource with "help:" (e.g. "help:/cpu/self") will result in CeedInt printing the current libCEED version number and a
-list of current available backend resources to stderr.
+  Note: Prefixing the resource with "help:" (e.g. "help:/cpu/self") will result in @ref CeedInt() printing the current libCEED version number and a list of current available backend resources to `stderr`.
 
   @param[in]  resource Resource to use, e.g., "/cpu/self"
   @param[out] ceed     The library context
-  @sa CeedRegister() CeedDestroy()
 
   @return An error code: 0 - success, otherwise - failure
 
   @ref User
+
+  @sa CeedRegister() CeedDestroy()
 **/
 int CeedInit(const char *resource, Ceed *ceed) {
   size_t match_len = 0, match_index = UINT_MAX, match_priority = CEED_MAX_BACKEND_PRIORITY, priority;
@@ -897,9 +898,9 @@ int CeedInit(const char *resource, Ceed *ceed) {
 }
 
 /**
-  @brief Set the GPU stream for a Ceed context
+  @brief Set the GPU stream for a `Ceed` context
 
-  @param[in,out] ceed   Ceed context to set the stream
+  @param[in,out] ceed   `Ceed` context to set the stream
   @param[in]     handle Handle to GPU stream
 
   @return An error code: 0 - success, otherwise - failure
@@ -907,7 +908,7 @@ int CeedInit(const char *resource, Ceed *ceed) {
   @ref User
 **/
 int CeedSetStream(Ceed ceed, void *handle) {
-  CeedCheck(handle, ceed, CEED_ERROR_INCOMPATIBLE, "Stream handle must be non-null");
+  CeedCheck(handle, ceed, CEED_ERROR_INCOMPATIBLE, "Stream handle must be non-NULL");
   if (ceed->SetStream) {
     CeedCall(ceed->SetStream(ceed, handle));
   } else {
@@ -921,14 +922,14 @@ int CeedSetStream(Ceed ceed, void *handle) {
 }
 
 /**
-  @brief Copy the pointer to a Ceed context.
+  @brief Copy the pointer to a `Ceed` context.
 
-  Both pointers should be destroyed with `CeedDestroy()`.
+  Both pointers should be destroyed with @ref CeedDestroy().
 
-  Note: If the value of `ceed_copy` passed to this function is non-NULL, then it is assumed that `ceed_copy` is a pointer to a Ceed context.
-        This Ceed context will be destroyed if `ceed_copy` is the only reference to this Ceed context.
+  Note: If the value of `*ceed_copy` passed to this function is non-`NULL`, then it is assumed that `*ceed_copy` is a pointer to a `Ceed` context.
+        This `Ceed` context will be destroyed if `*ceed_copy` is the only reference to this `Ceed` context.
 
-  @param[in]     ceed      Ceed context to copy reference to
+  @param[in]     ceed      `Ceed` context to copy reference to
   @param[in,out] ceed_copy Variable to store copied reference
 
   @return An error code: 0 - success, otherwise - failure
@@ -943,9 +944,9 @@ int CeedReferenceCopy(Ceed ceed, Ceed *ceed_copy) {
 }
 
 /**
-  @brief Get the full resource name for a Ceed context
+  @brief Get the full resource name for a `Ceed` context
 
-  @param[in]  ceed     Ceed context to get resource name of
+  @param[in]  ceed     `Ceed` context to get resource name of
   @param[out] resource Variable to store resource name
 
   @return An error code: 0 - success, otherwise - failure
@@ -958,9 +959,9 @@ int CeedGetResource(Ceed ceed, const char **resource) {
 }
 
 /**
-  @brief Return Ceed context preferred memory type
+  @brief Return `Ceed` context preferred memory type
 
-  @param[in]  ceed     Ceed context to get preferred memory type of
+  @param[in]  ceed     `Ceed` context to get preferred memory type of
   @param[out] mem_type Address to save preferred memory type to
 
   @return An error code: 0 - success, otherwise - failure
@@ -984,9 +985,9 @@ int CeedGetPreferredMemType(Ceed ceed, CeedMemType *mem_type) {
 }
 
 /**
-  @brief Get deterministic status of Ceed
+  @brief Get deterministic status of `Ceed` context
 
-  @param[in]  ceed             Ceed
+  @param[in]  ceed             `Ceed` context
   @param[out] is_deterministic Variable to store deterministic status
 
   @return An error code: 0 - success, otherwise - failure
@@ -999,9 +1000,9 @@ int CeedIsDeterministic(Ceed ceed, bool *is_deterministic) {
 }
 
 /**
-  @brief Set additional JiT source root for Ceed
+  @brief Set additional JiT source root for `Ceed` context
 
-  @param[in,out] ceed            Ceed
+  @param[in,out] ceed            `Ceed` context
   @param[in]     jit_source_root Absolute path to additional JiT source directory
 
   @return An error code: 0 - success, otherwise - failure
@@ -1024,9 +1025,9 @@ int CeedAddJitSourceRoot(Ceed ceed, const char *jit_source_root) {
 }
 
 /**
-  @brief View a Ceed
+  @brief View a `Ceed`
 
-  @param[in] ceed   Ceed to view
+  @param[in] ceed   `Ceed` to view
   @param[in] stream Filestream to write to
 
   @return An error code: 0 - success, otherwise - failure
@@ -1047,9 +1048,9 @@ int CeedView(Ceed ceed, FILE *stream) {
 }
 
 /**
-  @brief Destroy a Ceed context
+  @brief Destroy a `Ceed`
 
-  @param[in,out] ceed Address of Ceed context to destroy
+  @param[in,out] ceed Address of `Ceed` context to destroy
 
   @return An error code: 0 - success, otherwise - failure
 
@@ -1096,7 +1097,9 @@ const char *CeedErrorFormat(Ceed ceed, const char *format, va_list *args) {
 // LCOV_EXCL_STOP
 
 /**
-  @brief Error handling implementation; use \ref CeedError instead.
+  @brief Error handling implementation; use @ref CeedError() instead.
+
+  @return An error code: 0 - success, otherwise - failure
 
   @ref Developer
 **/
@@ -1124,7 +1127,9 @@ int CeedErrorImpl(Ceed ceed, const char *filename, int lineno, const char *func,
 /**
   @brief Error handler that returns without printing anything.
 
-  Pass this to CeedSetErrorHandler() to obtain this error handling behavior.
+  Pass this to @ref CeedSetErrorHandler() to obtain this error handling behavior.
+
+  @return An error code: 0 - success, otherwise - failure
 
   @ref Developer
 **/
@@ -1137,7 +1142,9 @@ int CeedErrorReturn(Ceed ceed, const char *filename, int line_no, const char *fu
 /**
   @brief Error handler that stores the error message for future use and returns the error.
 
-  Pass this to CeedSetErrorHandler() to obtain this error handling behavior.
+  Pass this to @ref CeedSetErrorHandler() to obtain this error handling behavior.
+
+  @return An error code: 0 - success, otherwise - failure
 
   @ref Developer
 **/
@@ -1155,9 +1162,11 @@ int CeedErrorStore(Ceed ceed, const char *filename, int line_no, const char *fun
 // LCOV_EXCL_STOP
 
 /**
-  @brief Error handler that prints to stderr and aborts
+  @brief Error handler that prints to `stderr` and aborts
 
-  Pass this to CeedSetErrorHandler() to obtain this error handling behavior.
+  Pass this to @ref CeedSetErrorHandler() to obtain this error handling behavior.
+
+  @return An error code: 0 - success, otherwise - failure
 
   @ref Developer
 **/
@@ -1172,11 +1181,13 @@ int CeedErrorAbort(Ceed ceed, const char *filename, int line_no, const char *fun
 // LCOV_EXCL_STOP
 
 /**
-  @brief Error handler that prints to stderr and exits
+  @brief Error handler that prints to `stderr` and exits.
 
-  Pass this to CeedSetErrorHandler() to obtain this error handling behavior.
+  Pass this to @ref CeedSetErrorHandler() to obtain this error handling behavior.
 
-  In contrast to CeedErrorAbort(), this exits without a signal, so atexit() handlers (e.g., as used by gcov) are run.
+  In contrast to @ref CeedErrorAbort(), this exits without a signal, so `atexit()` handlers (e.g., as used by gcov) are run.
+
+  @return An error code: 0 - success, otherwise - failure
 
   @ref Developer
 **/
@@ -1192,8 +1203,10 @@ int CeedErrorExit(Ceed ceed, const char *filename, int line_no, const char *func
 /**
   @brief Set error handler
 
-  A default error handler is set in CeedInit().
-  Use this function to change the error handler to CeedErrorReturn(), CeedErrorAbort(), or a user-defined error handler.
+  A default error handler is set in @ref CeedInit().
+  Use this function to change the error handler to @ref CeedErrorReturn(), @ref CeedErrorAbort(), or a user-defined error handler.
+
+  @return An error code: 0 - success, otherwise - failure
 
   @ref Developer
 **/
@@ -1207,10 +1220,12 @@ int CeedSetErrorHandler(Ceed ceed, CeedErrorHandler handler) {
 /**
   @brief Get error message
 
-  The error message is only stored when using the error handler CeedErrorStore()
+  The error message is only stored when using the error handler @ref CeedErrorStore()
 
-  @param[in]  ceed    Ceed context to retrieve error message
+  @param[in]  ceed    `Ceed` context to retrieve error message
   @param[out] err_msg Char pointer to hold error message
+
+  @return An error code: 0 - success, otherwise - failure
 
   @ref Developer
 **/
@@ -1222,12 +1237,14 @@ int CeedGetErrorMessage(Ceed ceed, const char **err_msg) {
 }
 
 /**
-  @brief Restore error message
+  @brief Restore error message.
 
-  The error message is only stored when using the error handler CeedErrorStore()
+  The error message is only stored when using the error handler @ref CeedErrorStore().
 
-  @param[in]  ceed    Ceed context to restore error message
+  @param[in]  ceed    `Ceed` context to restore error message
   @param[out] err_msg Char pointer that holds error message
+
+  @return An error code: 0 - success, otherwise - failure
 
   @ref Developer
 **/
@@ -1240,7 +1257,7 @@ int CeedResetErrorMessage(Ceed ceed, const char **err_msg) {
 }
 
 /**
-  @brief Get libCEED library version info
+  @brief Get libCEED library version information.
 
   libCEED version numbers have the form major.minor.patch.
   Non-release versions may contain unstable interfaces.
@@ -1250,18 +1267,20 @@ int CeedResetErrorMessage(Ceed ceed, const char **err_msg) {
   @param[out] patch   Patch (subminor) version of the library
   @param[out] release True for releases; false for development branches
 
-  The caller may pass NULL for any arguments that are not needed.
+  The caller may pass `NULL` for any arguments that are not needed.
 
-  @sa CEED_VERSION_GE()
+  @return An error code: 0 - success, otherwise - failure
 
   @ref Developer
+
+  @sa CEED_VERSION_GE()
 */
 int CeedGetVersion(int *major, int *minor, int *patch, bool *release) {
   if (major) *major = CEED_VERSION_MAJOR;
   if (minor) *minor = CEED_VERSION_MINOR;
   if (patch) *patch = CEED_VERSION_PATCH;
   if (release) *release = CEED_VERSION_RELEASE;
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
 
 /**
@@ -1269,11 +1288,13 @@ int CeedGetVersion(int *major, int *minor, int *patch, bool *release) {
 
   @param[out] scalar_type Type of libCEED scalars
 
+  @return An error code: 0 - success, otherwise - failure
+
   @ref Developer
 */
 int CeedGetScalarType(CeedScalarType *scalar_type) {
   *scalar_type = CEED_SCALAR_TYPE;
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
 
 /// @}
