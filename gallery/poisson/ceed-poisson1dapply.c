@@ -11,7 +11,7 @@
 #include <string.h>
 
 /**
-  @brief Set fields for @ref CeedQFunction applying the 1D Poisson operator
+  @brief Set fields for `CeedQFunction` applying the 1D Poisson operator
 **/
 static int CeedQFunctionInit_Poisson1DApply(Ceed ceed, const char *requested, CeedQFunction qf) {
   // Check QFunction name
@@ -30,7 +30,7 @@ static int CeedQFunctionInit_Poisson1DApply(Ceed ceed, const char *requested, Ce
 }
 
 /**
-  @brief Register @ref CeedQFunction for applying the 1D Poisson operator
+  @brief Register `CeedQFunction` for applying the 1D Poisson operator
 **/
 CEED_INTERN int CeedQFunctionRegister_Poisson1DApply(void) {
   return CeedQFunctionRegister("Poisson1DApply", Poisson1DApply_loc, 1, Poisson1DApply, CeedQFunctionInit_Poisson1DApply);

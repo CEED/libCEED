@@ -12,7 +12,7 @@
 #include <string.h>
 
 /**
-  @brief Set fields identity @ref CeedQFunction that copies inputs directly into outputs
+  @brief Set fields identity `CeedQFunction` that copies inputs directly into outputs
 **/
 static int CeedQFunctionInit_Identity(Ceed ceed, const char *requested, CeedQFunction qf) {
   // Check QFunction name
@@ -36,7 +36,7 @@ static int CeedQFunctionInit_Identity(Ceed ceed, const char *requested, CeedQFun
 }
 
 /**
-  @brief Register identity @ref CeedQFunction that copies inputs directly into outputs
+  @brief Register identity `CeedQFunction` that copies inputs directly into outputs
 **/
 CEED_INTERN int CeedQFunctionRegister_Identity(void) {
   return CeedQFunctionRegister("Identity", Identity_loc, 1, Identity, CeedQFunctionInit_Identity);

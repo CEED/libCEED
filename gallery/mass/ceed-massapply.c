@@ -11,7 +11,7 @@
 #include <string.h>
 
 /**
-  @brief Set fields for @ref CeedQFunction for applying the mass matrix
+  @brief Set fields for `CeedQFunction` for applying the mass matrix
 **/
 static int CeedQFunctionInit_MassApply(Ceed ceed, const char *requested, CeedQFunction qf) {
   // Check QFunction name
@@ -29,7 +29,7 @@ static int CeedQFunctionInit_MassApply(Ceed ceed, const char *requested, CeedQFu
 }
 
 /**
-  @brief Register @ref CeedQFunction for applying the mass matrix
+  @brief Register `CeedQFunction` for applying the mass matrix
 **/
 CEED_INTERN int CeedQFunctionRegister_MassApply(void) {
   return CeedQFunctionRegister("MassApply", MassApply_loc, 1, MassApply, CeedQFunctionInit_MassApply);
