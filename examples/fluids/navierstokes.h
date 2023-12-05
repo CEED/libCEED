@@ -24,7 +24,7 @@
 #define DMSetCoordinateDisc(a, b, c) DMProjectCoordinates(a, b)
 #endif
 
-#define PetscCeedChk(ceed, ierr)                                    \
+#define PetscCallCeed(ceed, ...)                                    \
   do {                                                              \
     int ierr = __VA_ARGS__;                                         \
     if (ierr != CEED_ERROR_SUCCESS) {                               \
