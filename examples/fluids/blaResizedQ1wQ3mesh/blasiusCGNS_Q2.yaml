@@ -16,7 +16,7 @@ ts:
   alpha_radius: 0.5
   dt: 3.6e-4
   #max_steps: 10
-  max_steps: 0
+  max_steps: 1
 #output_freq: 200
 checkpoint_interval: 500
 
