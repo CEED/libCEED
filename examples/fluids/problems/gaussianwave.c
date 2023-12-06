@@ -14,7 +14,7 @@
 #include <petscdm.h>
 
 #include "../navierstokes.h"
-#include "../qfunctions/freestream_bc_type.h"
+#include "../qfunctions/bc_freestream_type.h"
 
 PetscErrorCode NS_GAUSSIAN_WAVE(ProblemData *problem, DM dm, void *ctx, SimpleBC bc) {
   User                     user = *(User *)ctx;

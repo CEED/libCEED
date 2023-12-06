@@ -124,6 +124,10 @@ The following options are common among all problem types:
   - An array of constrained component numbers for wall BCs
   -
 
+* - `-bc_slip`
+  - Use weak slip boundary condition on this list of faces
+  -
+
 * - `-bc_symmetry_x`
   - Use symmetry boundary conditions, for the x component, on this list of faces
   -
