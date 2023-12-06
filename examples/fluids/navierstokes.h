@@ -279,10 +279,9 @@ struct SimpleBC_private {
   PetscInt num_wall,  // Number of faces with wall BCs
       wall_comps[5],  // An array of constrained component numbers
       num_comps,
-      num_slip[3],  // Number of faces with slip BCs
+      num_symmetry[3],  // Number of faces with symmetry BCs
       num_inflow, num_outflow, num_freestream;
-  PetscInt  walls[16], slips[3][16], inflows[16], outflows[16], freestreams[16];
-  PetscBool user_bc;
+  PetscInt walls[16], symmetries[3][16], inflows[16], outflows[16], freestreams[16];
 };
 
 // Struct that contains all enums and structs used for the physics of all problems
