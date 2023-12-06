@@ -6,9 +6,9 @@
 // This file is part of CEED:  http://github.com/ceed
 
 /// @file
-/// QFunctions for the `bc_slip` and `bc_outflow` boundary conditions
+/// QFunctions for the `bc_slip` boundary conditions
 
-#include "freestream_bc_type.h"
+#include "bc_freestream_type.h"
 #include "newtonian_state.h"
 #include "newtonian_types.h"
 #include "riemann_solver.h"
@@ -20,9 +20,7 @@ CEED_QFUNCTION_HELPER int Slip(void *ctx, CeedInt Q, const CeedScalar *const *in
   CeedScalar(*v)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA])out[0];
   CeedScalar(*jac_data_sur)  = out[1];
 
-  const FreestreamContext        context     = (FreestreamContext)ctx;
-  const NewtonianIdealGasContext newt_ctx    = &context->newtonian_ctx;
-  const bool                     is_implicit = newt_ctx->is_implicit;
+  const NewtonianIdealGasContext newt_ctx = (const NewtonianIdealGasContext)ctx;
 
   CeedPragmaSIMD for (CeedInt i = 0; i < Q; i++) {
     const CeedScalar qi[5] = {q[0][i], q[1][i], q[2][i], q[3][i], q[4][i]};
@@ -30,7 +28,7 @@ CEED_QFUNCTION_HELPER int Slip(void *ctx, CeedInt Q, const CeedScalar *const *in
 
     CeedScalar wdetJb, norm[3];
     QdataBoundaryUnpack_3D(Q, i, q_data_sur, &wdetJb, NULL, norm);
-    wdetJb *= is_implicit ? -1. : 1.;
+    wdetJb *= newt_ctx->is_implicit ? -1. : 1.;
 
     CeedScalar       vel_reflect[3];
     const CeedScalar vel_normal = Dot3(s.Y.velocity, norm);
@@ -70,14 +68,12 @@ CEED_QFUNCTION_HELPER int Slip_Jacobian(void *ctx, CeedInt Q, const CeedScalar *
 
   CeedScalar(*v)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA])out[0];
 
-  const FreestreamContext        context     = (FreestreamContext)ctx;
-  const NewtonianIdealGasContext newt_ctx    = &context->newtonian_ctx;
-  const bool                     is_implicit = newt_ctx->is_implicit;
+  const NewtonianIdealGasContext newt_ctx = (const NewtonianIdealGasContext)ctx;
 
   CeedPragmaSIMD for (CeedInt i = 0; i < Q; i++) {
     CeedScalar wdetJb, norm[3];
     QdataBoundaryUnpack_3D(Q, i, q_data_sur, &wdetJb, NULL, norm);
-    wdetJb *= is_implicit ? -1. : 1.;
+    wdetJb *= newt_ctx->is_implicit ? -1. : 1.;
 
     CeedScalar qi[5], dqi[5];
     StoredValuesUnpack(Q, i, 0, 5, jac_data_sur, qi);

@@ -173,6 +173,9 @@ PetscErrorCode ProcessCommandLineOptions(MPI_Comm comm, AppCtx app_ctx, SimpleBC
   bc->num_freestream = 16;
   PetscCall(PetscOptionsIntArray("-bc_freestream", "Face IDs to apply freestream BC", NULL, bc->freestreams, &bc->num_freestream, NULL));
 
+  bc->num_slip = 16;
+  PetscCall(PetscOptionsIntArray("-bc_slip", "Face IDs to apply slip BC", NULL, bc->slips, &bc->num_slip, NULL));
+
   // Statistics Options
   app_ctx->turb_spanstats_collect_interval = 1;
   PetscCall(PetscOptionsInt("-ts_monitor_turbulence_spanstats_collect_interval", "Number of timesteps between statistics collection", NULL,

@@ -120,6 +120,11 @@ PetscErrorCode CreateOperatorForDomain(Ceed ceed, DM dm, SimpleBC bc, CeedData c
     PetscCall(AddBCSubOperator(ceed, dm, ceed_data, domain_label, bc->freestreams[i], height, Q_sur, q_data_size_sur, jac_data_size_sur,
                                ceed_data->qf_apply_freestream, ceed_data->qf_apply_freestream_jacobian, op_apply, op_apply_ijacobian));
   }
+  // --- Create Sub-Operator for slip boundaries
+  for (CeedInt i = 0; i < bc->num_slip; i++) {
+    PetscCall(AddBCSubOperator(ceed, dm, ceed_data, domain_label, bc->slips[i], height, Q_sur, q_data_size_sur, jac_data_size_sur,
+                               ceed_data->qf_apply_slip, ceed_data->qf_apply_slip_jacobian, op_apply, op_apply_ijacobian));
+  }
 
   // ----- Get Context Labels for Operator
   PetscCallCeed(ceed, CeedOperatorGetContextFieldLabel(*op_apply, "solution time", &phys->solution_time_label));
@@ -385,6 +390,8 @@ PetscErrorCode SetupLibceed(Ceed ceed, CeedData ceed_data, DM dm, User user, App
                               problem->apply_outflow_jacobian, &ceed_data->qf_apply_outflow, &ceed_data->qf_apply_outflow_jacobian));
   PetscCall(SetupBCQFunctions(ceed, dim_sur, num_comp_x, num_comp_q, q_data_size_sur, jac_data_size_sur, problem->apply_freestream,
                               problem->apply_freestream_jacobian, &ceed_data->qf_apply_freestream, &ceed_data->qf_apply_freestream_jacobian));
+  PetscCall(SetupBCQFunctions(ceed, dim_sur, num_comp_x, num_comp_q, q_data_size_sur, jac_data_size_sur, problem->apply_slip,
+                              problem->apply_slip_jacobian, &ceed_data->qf_apply_slip, &ceed_data->qf_apply_slip_jacobian));
 
   // *****************************************************************************
   // CEED Operator Apply
