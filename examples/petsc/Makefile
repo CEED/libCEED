@@ -55,6 +55,12 @@ bpssphere.o = $(bpssphere.c:%.c=$(OBJDIR)/%.o)
 bpssphere: $(bpssphere.o) libutils.a | $(PETSc.pc) $(ceed.pc)
 	$(call quiet,LINK.o) $(CEED_LDFLAGS) $^ $(LOADLIBES) $(LDLIBS) -o $@
 
+bpsswarm.c := bpsswarm.c
+bpsswarm.o = $(bpsswarm.c:%.c=$(OBJDIR)/%.o)
+bpsswarm: $(bpsswarm.o) libutils.a | $(PETSc.pc) $(ceed.pc)
+	$(call quiet,LINK.o) $(CEED_LDFLAGS) $^ $(LOADLIBES) $(LDLIBS) -o $@
+
+
 dmswarm.c := dmswarm.c
 dmswarm.o = $(dmswarm.c:%.c=$(OBJDIR)/%.o)
 dmswarm: $(dmswarm.o) libutils.a | $(PETSc.pc) $(ceed.pc)

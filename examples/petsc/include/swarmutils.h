@@ -42,6 +42,8 @@ PetscErrorCode DMSwarmInitalizePointLocations(DM dm_swarm, PointSwarmType point_
 PetscErrorCode DMSwarmCreateReferenceCoordinates(DM dm_swarm, IS *is_points, Vec *ref_coords);
 
 // Swarm to mesh projection
-PetscErrorCode DMSwarmCreateProjectionRHS(DM dm_swarm, const char *field, Vec B_mesh);
+PetscErrorCode DMSwarmCreateProjectionRHS(DM dm_swarm, const char *field, Vec U_points, Vec B_mesh);
 PetscErrorCode MatMult_SwarmMass(Mat A, Vec U_mesh, Vec V_mesh);
-PetscErrorCode DMSwarmProjectFromSwarmToCells(DM dm_swarm, const char *field, Vec U_mesh);
+PetscErrorCode DMSwarmProjectFromSwarmToCells(DM dm_swarm, const char *field, Vec U_points, Vec U_mesh);
+
+PetscErrorCode SetupProblemSwarm(DM dm_swarm, Ceed ceed, BPData bp_data, CeedData data, PetscBool setup_rhs, Vec rhs, Vec target);

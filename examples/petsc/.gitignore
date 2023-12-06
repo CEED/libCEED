@@ -5,11 +5,13 @@
 /bps
 /bpsraw
 /bpssphere
+/bpsswarm
 /dmswarm
 /multigrid
 /petsc-area
 /petsc-bps
 /petsc-bpsraw
 /petsc-bpssphere
+/petsc-bpsswarm
 /petsc-dmswarm
 /petsc-multigrid
