@@ -30,7 +30,7 @@ dm_plex_box_lower: 0,0,0
 dm_plex_box_upper: 4.2e-3,4.2e-3,5.e-5
 dm_plex_dim: 3
 # Faces labeled 1=z- 2=z+ 3=y- 4=y+ 5=x+ 6=x-
-bc_slip_z: 1,2
+bc_symmetry_z: 1,2
 bc_wall: 3
 wall_comps: 1,2,3
 bc_inflow: 6

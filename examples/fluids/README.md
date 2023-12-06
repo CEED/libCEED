@@ -124,16 +124,16 @@ The following options are common among all problem types:
   - An array of constrained component numbers for wall BCs
   -
 
-* - `-bc_slip_x`
-  - Use slip boundary conditions, for the x component, on this list of faces
+* - `-bc_symmetry_x`
+  - Use symmetry boundary conditions, for the x component, on this list of faces
   -
 
-* - `-bc_slip_y`
-  - Use slip boundary conditions, for the y component, on this list of faces
+* - `-bc_symmetry_y`
+  - Use symmetry boundary conditions, for the y component, on this list of faces
   -
 
-* - `-bc_slip_z`
-  - Use slip boundary conditions, for the z component, on this list of faces
+* - `-bc_symmetry_z`
+  - Use symmetry boundary conditions, for the z component, on this list of faces
   -
 
 * - `-bc_inflow`
@@ -185,7 +185,7 @@ The following options are common among all problem types:
   -
 :::
 
-For the case of a square/cubic mesh, the list of face indices to be used with `-bc_wall`, `bc_inflow`, `bc_outflow`, `bc_freestream`  and/or `-bc_slip_x`, `-bc_slip_y`, and `-bc_slip_z` are:
+For the case of a square/cubic mesh, the list of face indices to be used with `-bc_wall`, `bc_inflow`, `bc_outflow`, `bc_freestream`  and/or `-bc_symmetry_x`, `-bc_symmetry_y`, and `-bc_symmetry_z` are:
 
 :::{list-table} 2D Face ID Labels
 :header-rows: 1
@@ -512,7 +512,7 @@ For the Isentropic Vortex problem, the following additional command-line options
 This problem can be run with:
 
 ```
-./navierstokes -problem euler_vortex -dm_plex_box_faces 20,20,1 -dm_plex_box_lower 0,0,0 -dm_plex_box_upper 1000,1000,50 -dm_plex_dim 3 -bc_inflow 4,6 -bc_outflow 3,5 -bc_slip_z 1,2 -mean_velocity .5,-.8,0.
+./navierstokes -problem euler_vortex -dm_plex_box_faces 20,20,1 -dm_plex_box_lower 0,0,0 -dm_plex_box_upper 1000,1000,50 -dm_plex_dim 3 -bc_inflow 4,6 -bc_outflow 3,5 -bc_symmetry_z 1,2 -mean_velocity .5,-.8,0.
 ```
 
 #### Sod shock tube
@@ -551,7 +551,7 @@ For the Shock Tube problem, the following additional command-line options are av
 This problem can be run with:
 
 ```
-./navierstokes -problem shocktube -yzb -stab su -bc_slip_z 3,4 -bc_slip_y 1,2 -bc_wall 5,6 -dm_plex_dim 3 -dm_plex_box_lower 0,0,0 -dm_plex_box_upper 1000,100,100 -dm_plex_box_faces 200,1,1 -units_second 0.1
+./navierstokes -problem shocktube -yzb -stab su -bc_symmetry_z 3,4 -bc_symmetry_y 1,2 -bc_wall 5,6 -dm_plex_dim 3 -dm_plex_box_lower 0,0,0 -dm_plex_box_upper 1000,100,100 -dm_plex_box_faces 200,1,1 -units_second 0.1
 ```
 
 ### Newtonian viscosity, Ideal Gas
@@ -911,7 +911,7 @@ The Density Current problem has the following command-line options in addition t
 This problem can be run with:
 
 ```
-./navierstokes -problem density_current -dm_plex_box_faces 16,1,8 -degree 1 -dm_plex_box_lower 0,0,0 -dm_plex_box_upper 2000,125,1000 -dm_plex_dim 3 -rc 400. -bc_wall 1,2,5,6 -wall_comps 1,2,3 -bc_slip_y 3,4 -mu 75
+./navierstokes -problem density_current -dm_plex_box_faces 16,1,8 -degree 1 -dm_plex_box_lower 0,0,0 -dm_plex_box_upper 2000,125,1000 -dm_plex_dim 3 -rc 400. -bc_wall 1,2,5,6 -wall_comps 1,2,3 -bc_symmetry_y 3,4 -mu 75
 ```
 
 #### Channel flow
