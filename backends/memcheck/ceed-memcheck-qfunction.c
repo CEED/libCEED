@@ -21,6 +21,7 @@ static int CeedQFunctionApply_Memcheck(CeedQFunction qf, CeedInt Q, CeedVector *
   void                   *ctx_data = NULL;
   CeedInt                 num_in, num_out;
   CeedQFunctionUser       f = NULL;
+  CeedQFunctionField     *output_fields;
   CeedQFunction_Memcheck *impl;
 
   CeedCallBackend(CeedQFunctionGetCeed(qf, &ceed));
@@ -28,12 +29,12 @@ static int CeedQFunctionApply_Memcheck(CeedQFunction qf, CeedInt Q, CeedVector *
   CeedCallBackend(CeedQFunctionGetContextData(qf, CEED_MEM_HOST, &ctx_data));
   CeedCallBackend(CeedQFunctionGetUserFunction(qf, &f));
   CeedCallBackend(CeedQFunctionGetNumArgs(qf, &num_in, &num_out));
+  int mem_block_ids[num_out];
 
+  // Get input/output arrays
   for (CeedInt i = 0; i < num_in; i++) {
     CeedCallBackend(CeedVectorGetArrayRead(U[i], CEED_MEM_HOST, &impl->inputs[i]));
   }
-  int mem_block_ids[num_out];
-
   for (CeedInt i = 0; i < num_out; i++) {
     CeedSize len;
     char     name[32] = "";
@@ -47,16 +48,21 @@ static int CeedQFunctionApply_Memcheck(CeedQFunction qf, CeedInt Q, CeedVector *
     mem_block_ids[i] = VALGRIND_CREATE_BLOCK(impl->outputs[i], len, name);
   }
 
+  // Call user function
   CeedCallBackend(f(ctx_data, Q, impl->inputs, impl->outputs));
 
+  // Restore input arrays
   for (CeedInt i = 0; i < num_in; i++) {
     CeedCallBackend(CeedVectorRestoreArrayRead(U[i], &impl->inputs[i]));
   }
+  // Check for unset output values
+  CeedCallBackend(CeedQFunctionGetFields(qf, NULL, NULL, NULL, &output_fields));
   for (CeedInt i = 0; i < num_out; i++) {
-    CeedSize length;
+    CeedInt field_size;
 
-    CeedCallBackend(CeedVectorGetLength(V[i], &length));
-    for (CeedSize j = 0; j < length; j++) {
+    // Note: need field size because vector may be longer than needed for output
+    CeedCallBackend(CeedQFunctionFieldGetSize(output_fields[i], &field_size));
+    for (CeedSize j = 0; j < Q * field_size; j++) {
       CeedCheck(!isnan(impl->outputs[i][j]), ceed, CEED_ERROR_BACKEND, "QFunction output %d entry %ld is NaN after restoring write-only access", i,
                 j);
     }
