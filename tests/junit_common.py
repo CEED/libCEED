@@ -314,15 +314,16 @@ def diff_cgns(test_cgns: Path, true_cgns: Path, tolerance: float = 1e-12) -> str
 
 def test_case_output_string(test_case: TestCase, spec: TestSpec, mode: RunMode,
                             backend: str, test: str, index: int) -> str:
-    output_str = ''
+    output_str: str = ''
     if mode is RunMode.TAP:
         # print incremental output if TAP mode
+        test_name_str: str = f'{spec.name}, ' if spec.name else ''
         if test_case.is_skipped():
-            output_str += f'    ok {index} - {spec.name}, {backend} # SKIP {test_case.skipped[0]["message"]}\n'
+            output_str += f'    ok {index} - {test_name_str}{backend} # SKIP {test_case.skipped[0]["message"]}\n'
         elif test_case.is_failure() or test_case.is_error():
-            output_str += f'    not ok {index} - {spec.name}, {backend}\n'
+            output_str += f'    not ok {index} - {test_name_str}{backend}\n'
         else:
-            output_str += f'    ok {index} - {spec.name}, {backend}\n'
+            output_str += f'    ok {index} - {test_name_str}{backend}\n'
         output_str += f'      ---\n'
         if spec.only:
             output_str += f'      only: {",".join(spec.only)}\n'
@@ -384,8 +385,9 @@ def run_test(index: int, test: str, spec: TestSpec, backend: str,
 
     # run test
     skip_reason: str = suite_spec.check_pre_skip(test, spec, backend, nproc)
+    test_name_str: str = f'"{spec.name}", ' if spec.name else ''
     if skip_reason:
-        test_case: TestCase = TestCase(f'{test}, "{spec.name}", n{nproc}, {backend}',
+        test_case: TestCase = TestCase(f'{test}, {test_name_str}n{nproc}, {backend}',
                                        elapsed_sec=0,
                                        timestamp=time.strftime('%Y-%m-%d %H:%M:%S %Z', time.localtime()),
                                        stdout='',
@@ -400,7 +402,7 @@ def run_test(index: int, test: str, spec: TestSpec, backend: str,
                               stderr=subprocess.PIPE,
                               env=my_env)
 
-        test_case = TestCase(f'{test}, "{spec.name}", n{nproc}, {backend}',
+        test_case = TestCase(f'{test}, {test_name_str}n{nproc}, {backend}',
                              classname=source_path.parent,
                              elapsed_sec=time.time() - start,
                              timestamp=time.strftime('%Y-%m-%d %H:%M:%S %Z', time.localtime(start)),
