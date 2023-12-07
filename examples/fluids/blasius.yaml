@@ -6,13 +6,13 @@ ts:
   type: 'beuler'
   dt: 2e-6
   max_time: 1.0e-3
-  #monitor_solution: cgns:blasius-%d.cgns
-  #monitor_solution_interval: 10
+  monitor_solution: cgns:blasius-%d.cgns
+  monitor_solution_interval: 10
 checkpoint_interval: 10
 
 ## Linear Settings:
 degree: 1
-dm_plex_box_faces: 40,60,1
+dm_plex_box_faces: 40,60,2
 mesh_transform: platemesh
 platemesh_nDelta: 45
 
@@ -30,17 +30,29 @@ dm_plex_box_lower: 0,0,0
 dm_plex_box_upper: 4.2e-3,4.2e-3,5.e-5
 dm_plex_dim: 3
 # Faces labeled 1=z- 2=z+ 3=y- 4=y+ 5=x+ 6=x-
+# bc_symmetry_z: 1,2
+# bc_wall: 3
+# wall_comps: 1,2,3
+# bc_inflow: 6
+# bc_outflow: 5,4
+gravity: 0,0,0
+
 bc_symmetry_z: 1,2
 bc_wall: 3
 wall_comps: 1,2,3
 bc_inflow: 6
-bc_outflow: 5,4
-gravity: 0,0,0
+bc_outflow: 5
+bc_slip: 4
 
 stg:
   use: false
   inflow_path: "./STGInflow_blasius.dat"
   mean_only: true
+
+snes:
+  lag_jacobian: 10
+  lag_jacobian_persists: true
+  rtol: 1e-4
 
 # ts_monitor_turbulence_spanstats:
 #   collect_interval: 1
