@@ -41,8 +41,9 @@ q_extra: 0
 
 
 # Faces labeled 1=z- 2=z+ 3=y- 4=y+ 5=x+ 6=x-
-mesh_transform: platemesh
-dm_plex_box_faces: 3,63,56
+#mesh_transform: platemesh
+#dm_plex_box_faces: 3,63,56
+dm_plex_box_faces: 2,2,2
 dm_plex:
    dim: 3
    box:
