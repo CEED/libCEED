@@ -25,7 +25,13 @@ static int CeedOperatorSetupFields_Opt(CeedQFunction qf, CeedOperator op, bool i
   CeedQFunctionField *qf_fields;
   CeedOperatorField  *op_fields;
 
-  CeedCallBackend(CeedOperatorGetCeed(op, &ceed));
+  {
+    Ceed ceed_parent;
+
+    CeedCallBackend(CeedOperatorGetCeed(op, &ceed));
+    CeedCallBackend(CeedGetParent(ceed, &ceed_parent));
+    if (ceed_parent) ceed = ceed_parent;
+  }
   if (is_input) {
     CeedCallBackend(CeedOperatorGetFields(op, NULL, &op_fields, NULL, NULL));
     CeedCallBackend(CeedQFunctionGetFields(qf, NULL, &qf_fields, NULL, NULL));
