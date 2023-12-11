@@ -267,10 +267,12 @@ CEED_QFUNCTION(IFunction_Advection)(void *ctx, CeedInt Q, const CeedScalar *cons
   // Outputs
   CeedScalar(*v)[CEED_Q_VLA]     = (CeedScalar(*)[CEED_Q_VLA])out[0];
   CeedScalar(*dv)[5][CEED_Q_VLA] = (CeedScalar(*)[5][CEED_Q_VLA])out[1];
+  CeedScalar *jac_data           = out[2];
 
   AdvectionContext context     = (AdvectionContext)ctx;
   const CeedScalar CtauS       = context->CtauS;
   const CeedScalar strong_form = context->strong_form;
+  const CeedScalar zeros[14]   = {0.};
 
   // Quadrature Point Loop
   CeedPragmaSIMD for (CeedInt i = 0; i < Q; i++) {
@@ -341,6 +343,7 @@ CEED_QFUNCTION(IFunction_Advection)(void *ctx, CeedInt Q, const CeedScalar *cons
           dv[j][4][i] += wdetJ * TauS * strong_res * uX[j];
           break;
       }
+    StoredValuesPack(Q, i, 0, 14, zeros, jac_data);
   }  // End Quadrature Point Loop
 
   return 0;
