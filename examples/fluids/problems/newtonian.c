@@ -92,6 +92,7 @@ PetscErrorCode NS_NEWTONIAN_IG(ProblemData *problem, DM dm, void *ctx, SimpleBC 
   problem->setup_sur.qfunction_loc = SetupBoundary_loc;
   problem->non_zero_time           = PETSC_FALSE;
   problem->print_info              = PRINT_NEWTONIAN;
+  problem->uses_newtonian          = PETSC_TRUE;
 
   // ------------------------------------------------------
   //             Create the libCEED context
