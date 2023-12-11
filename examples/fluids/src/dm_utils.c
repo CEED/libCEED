@@ -406,8 +406,8 @@ PetscErrorCode CreateBasisFromPlex(Ceed ceed, DM dm, DMLabel domain_label, CeedI
   @param[in]   setup_faces     Flag to setup face geometry
   @param[in]   setup_coords    Flag to setup coordinate spaces
   @param[in]   degree          Polynomial orders of field
-  @param[in]   coord_order     Polynomial order of coordinate basis, or `RATEL_DECIDE` for default
-  @param[in]   q_extra         Additional quadrature order, or `RATEL_DECIDE` for default
+  @param[in]   coord_order     Polynomial order of coordinate basis, or `PETSC_DECIDE` for default
+  @param[in]   q_extra         Additional quadrature order
   @param[in]   num_fields      Number of fields in solution vector
   @param[in]   field_sizes     Array of number of components for each field
   @param[out]  dm              `DM` to setup
@@ -453,8 +453,7 @@ PetscErrorCode DMSetupByOrderBegin_FEM(PetscBool setup_faces, PetscBool setup_co
     PetscCall(PetscDualSpaceGetOrder(fe_coord_dual_space, &fe_coord_order));
 
     // Create FE for coordinates
-    PetscCheck(fe_coord_order == 1 || coord_order == 1, comm, PETSC_ERR_USER_INPUT,
-               "Only linear mesh geometry supported. Recieved %" PetscInt_FMT " order", fe_coord_order);
+    if (coord_order != PETSC_DECIDE) fe_coord_order = coord_order;
     PetscCall(PetscFECreateLagrange(comm, dim, num_comp_coord, is_simplex, fe_coord_order, q_order, &fe_coord_new));
     if (setup_faces) PetscCall(PetscFEGetHeightSubspace(fe_coord_new, 1, &fe_coord_face_new));
     PetscCall(DMSetCoordinateDisc(dm, fe_coord_new, PETSC_TRUE));
@@ -502,8 +501,8 @@ PetscErrorCode DMSetupByOrderEnd_FEM(PetscBool setup_coords, DM dm) {
   @param[in]   setup_faces     Flag to setup face geometry
   @param[in]   setup_coords    Flag to setup coordinate spaces
   @param[in]   degree          Polynomial orders of field
-  @param[in]   coord_order     Polynomial order of coordinate basis, or `RATEL_DECIDE` for default
-  @param[in]   q_extra         Additional quadrature order, or `RATEL_DECIDE` for default
+  @param[in]   coord_order     Polynomial order of coordinate basis, or `PETSC_DECIDE` for default
+  @param[in]   q_extra         Additional quadrature order
   @param[in]   num_fields      Number of fields in solution vector
   @param[in]   field_sizes     Array of number of components for each field
   @param[out]  dm              `DM` to setup
