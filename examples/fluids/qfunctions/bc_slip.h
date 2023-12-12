@@ -81,29 +81,29 @@ CEED_QFUNCTION_HELPER int Slip_Jacobian(void *ctx, CeedInt Q, const CeedScalar *
     State s  = StateFromQ(newt_ctx, qi, state_var);
     State ds = StateFromQ_fwd(newt_ctx, s, dqi, state_var);
 
-    // CeedScalar       vel_reflect[3];
-    // const CeedScalar vel_normal = Dot3(s.Y.velocity, norm);
-    // for (CeedInt j = 0; j < 3; j++) vel_reflect[j] = s.Y.velocity[j] - 2. * norm[j] * vel_normal;
-    // const CeedScalar Y_reflect[5] = {s.Y.pressure, vel_reflect[0], vel_reflect[1], vel_reflect[2], s.Y.temperature};
-    // State            s_reflect    = StateFromY(newt_ctx, Y_reflect);
-    //
-    // CeedScalar       dvel_reflect[3];
-    // const CeedScalar dvel_normal = Dot3(ds.Y.velocity, norm);
-    // for (CeedInt j = 0; j < 3; j++) dvel_reflect[j] = ds.Y.velocity[j] - 2. * norm[j] * dvel_normal;
-    // const CeedScalar dY_reflect[5] = {ds.Y.pressure, dvel_reflect[0], dvel_reflect[1], dvel_reflect[2], ds.Y.temperature};
-    // State            ds_reflect    = StateFromY(newt_ctx, dY_reflect);
+    CeedScalar       vel_reflect[3];
+    const CeedScalar vel_normal = Dot3(s.Y.velocity, norm);
+    for (CeedInt j = 0; j < 3; j++) vel_reflect[j] = s.Y.velocity[j] - 2. * norm[j] * vel_normal;
+    const CeedScalar Y_reflect[5] = {s.Y.pressure, vel_reflect[0], vel_reflect[1], vel_reflect[2], s.Y.temperature};
+    State            s_reflect    = StateFromY(newt_ctx, Y_reflect);
 
-    CeedScalar qb[3]    = {qi[1], qi[2], qi[3]};
-    CeedScalar q_normal = Dot3(qb, norm);
-    for (CeedInt j = 0; j < 3; j++) qb[j] -= 2. * norm[j] * q_normal;
-    CeedScalar qr[5]     = {qi[0], qb[0], qb[1], qb[2], qi[4]};
-    State      s_reflect = StateFromQ(newt_ctx, qr, state_var);
-    // repeat for ds
-    CeedScalar dqb[3]    = {dqi[1], dqi[2], dqi[3]};
-    CeedScalar dq_normal = Dot3(dqb, norm);
-    for (CeedInt j = 0; j < 3; j++) dqb[j] -= 2. * norm[j] * dq_normal;
-    CeedScalar dqr[5]     = {dqi[0], dqb[0], dqb[1], dqb[2], dqi[4]};
-    State      ds_reflect = StateFromQ_fwd(newt_ctx, s_reflect, dqr, state_var);
+    CeedScalar       dvel_reflect[3];
+    const CeedScalar dvel_normal = Dot3(ds.Y.velocity, norm);
+    for (CeedInt j = 0; j < 3; j++) dvel_reflect[j] = ds.Y.velocity[j] - 2. * norm[j] * dvel_normal;
+    const CeedScalar dY_reflect[5] = {ds.Y.pressure, dvel_reflect[0], dvel_reflect[1], dvel_reflect[2], ds.Y.temperature};
+    State            ds_reflect    = StateFromY(newt_ctx, dY_reflect);
+
+    // CeedScalar qb[3]    = {qi[1], qi[2], qi[3]};
+    // CeedScalar q_normal = Dot3(qb, norm);
+    // for (CeedInt j = 0; j < 3; j++) qb[j] -= 2. * norm[j] * q_normal;
+    // CeedScalar qr[5]     = {qi[0], qb[0], qb[1], qb[2], qi[4]};
+    // State      s_reflect = StateFromQ(newt_ctx, qr, state_var);
+    // // repeat for ds
+    // CeedScalar dqb[3]    = {dqi[1], dqi[2], dqi[3]};
+    // CeedScalar dq_normal = Dot3(dqb, norm);
+    // for (CeedInt j = 0; j < 3; j++) dqb[j] -= 2. * norm[j] * dq_normal;
+    // CeedScalar dqr[5]     = {dqi[0], dqb[0], dqb[1], dqb[2], dqi[4]};
+    // State      ds_reflect = StateFromQ_fwd(newt_ctx, s_reflect, dqr, state_var);
     StateConservative dflux = RiemannFlux_HLLC_fwd(newt_ctx, s, ds, s_reflect, ds_reflect, norm);
 
     CeedScalar dFlux[5];
