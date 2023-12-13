@@ -1257,7 +1257,7 @@ int CeedElemRestrictionApplyBlock(CeedElemRestriction rstr, CeedInt block, CeedT
   @brief Get the `Ceed` associated with a `CeedElemRestriction`
 
   @param[in]  rstr `CeedElemRestriction`
-  @param[out] ceed Variable to store `Ceed` 
+  @param[out] ceed Variable to store `Ceed`
 
   @return An error code: 0 - success, otherwise - failure
 
