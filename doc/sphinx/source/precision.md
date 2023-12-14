@@ -19,7 +19,7 @@ Tests can be run using `make test FC=` because the Fortran tests do not support 
 
  - **Fortran**: There is no definition of {code}`CeedScalar` available in the Fortran header.  The user is responsible for ensuring that data used in Fortran code is of the correct type ({code}`real*8` or {code}`real*4`) for libCEED's current configuration.
 
- - **Julia**: After compiling the single precision version of libCEED, instruct LibCEED.jl to use this library with the {code}`set_libceed_path!` function and restart the Julia session. LibCEED.jl will configure itself to use the appropriate type for {code}`CeedScalar`. 
+ - **Julia**: After compiling the single precision version of libCEED, instruct LibCEED.jl to use this library with the {code}`set_libceed_path!` function and restart the Julia session. LibCEED.jl will configure itself to use the appropriate type for {code}`CeedScalar`.
 
  - **Python**: Make sure to replace the {code}`ceed-f64.h` inclusion rather than commenting it out, to guarantee that the Python bindings will pick the correct precision.
            The {c:func}`scalar_type()` function has been added to the {code}`Ceed` class for convenience.

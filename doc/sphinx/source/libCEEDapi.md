@@ -193,7 +193,7 @@ This is visualized in the schematic below; "active" and "passive" inputs/outputs
 
 (fig-operator-schematic)=
 
-:::{figure} ../../img/libceed_schematic.svg 
+:::{figure} ../../img/libceed_schematic.svg
 Flow of data through vector types inside libCEED Operators, through backend implementations of $\bm{\bm{\mathcal{E}}}$, $\bm{B}$, and $\bm{D}$
 :::
 

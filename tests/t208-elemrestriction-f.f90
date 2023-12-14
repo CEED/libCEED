@@ -40,7 +40,7 @@
       enddo
       call ceedelemrestrictioncreateblocked(ceed,ne,elemsize,blksize,1,1,ne+1,&
      & ceed_mem_host,ceed_use_pointer,ind,r,err)
-  
+
       call ceedvectorcreate(ceed,blksize*elemsize,y,err);
       call ceedvectorsetvalue(y,0.d0,err)
 

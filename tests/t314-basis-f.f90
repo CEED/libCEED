@@ -8,7 +8,7 @@
       if (dimn>1) then
         rslt=rslt+atan(x(2)+0.2)
       endif
-      if (dimn>2) then 
+      if (dimn>2) then
         rslt=rslt+exp(-(x(3)+0.3)*(x(3)+0.3))
       endif
 
