@@ -1,7 +1,7 @@
 !-----------------------------------------------------------------------
 !
 ! Header with QFunctions
-! 
+!
       include 't401-qfunction-f.h'
 !-----------------------------------------------------------------------
       program test
@@ -14,7 +14,7 @@
       integer ctxsize
       parameter(ctxsize=5)
       real*8 ctxdata(5)
-      
+
       character arg*32
       integer*8 coffset
 

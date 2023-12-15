@@ -35,7 +35,7 @@ For example, `CeedOperatorContextGetFieldLabel` was renamed to `CeedOperatorGetC
 - Added {c:func}`CeedBasisApplyAtPoints` for evaluation of values and derivatives at arbitrary points inside elements.
 - Added support for non-tensor $H(\text{curl})$ finite element spaces with {c:func}`CeedBasisCreateHcurl`.
 - Added {c:func}`CeedElemRestrictionCreateCurlOriented`, similar to {c:func}`CeedElemRestrictionCreateOriented`, for element restrictions requiring more general element transformations such as those for high-order $H(\text{curl})$ spaces on tetrahedra (see [https://dl.acm.org/doi/pdf/10.1145/3524456](https://dl.acm.org/doi/pdf/10.1145/3524456)).
-- Added {c:func}`CeedOperatorLinearAssemblePointBlockDiagonalSymbolic` to create COO mapping for mapping out of {c:func}`CeedOperatorLinearAssemblePointBlockDiagonal`. 
+- Added {c:func}`CeedOperatorLinearAssemblePointBlockDiagonalSymbolic` to create COO mapping for mapping out of {c:func}`CeedOperatorLinearAssemblePointBlockDiagonal`.
 - Added support for application codes which manage multiple {ref}`Ceed` objects, parallelized across OpenMP threads.
 
 ### Examples

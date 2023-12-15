@@ -1,11 +1,11 @@
 !-----------------------------------------------------------------------
-! 
+!
 ! Header with common subroutine
-! 
+!
       include 't320-basis-f.h'
 !
 ! Header with QFunctions
-! 
+!
       include 't535-operator-f.h'
 !-----------------------------------------------------------------------
       program test

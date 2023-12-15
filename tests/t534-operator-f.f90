@@ -1,7 +1,7 @@
 !-----------------------------------------------------------------------
 !
 ! Header with QFunctions
-! 
+!
       include 't534-operator-f.h'
 !-----------------------------------------------------------------------
       program test
@@ -84,7 +84,7 @@
       call ceedbasiscreatetensorh1lagrange(ceed,d,1,p,q,ceed_gauss,&
      & bu,err)
 
-! QFunction - setup 
+! QFunction - setup
       call ceedqfunctioncreateinterior(ceed,1,setup,&
      &SOURCE_DIR&
      &//'t531-operator.h:setup'//char(0),qf_setup,err)
@@ -92,7 +92,7 @@
       call ceedqfunctionaddinput(qf_setup,'weight',1,ceed_eval_weight,err)
       call ceedqfunctionaddoutput(qf_setup,'qdata',d*(d+1)/2,ceed_eval_none,err)
 
-! Operator - setup 
+! Operator - setup
       call ceedoperatorcreate(ceed,qf_setup,ceed_qfunction_none,&
      & ceed_qfunction_none,op_setup,err)
       call ceedoperatorsetfield(op_setup,'dx',erestrictx,&

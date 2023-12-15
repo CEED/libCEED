@@ -252,7 +252,7 @@ petscexamples   := $(petscexamples.c:examples/petsc/%.c=$(OBJDIR)/petsc-%)
 fluidsexamples.c  := $(sort $(wildcard examples/fluids/*.c))
 fluidsexamples.py := examples/fluids/smartsim_regression_framework.py
 fluidsexamples    := $(fluidsexamples.c:examples/fluids/%.c=$(OBJDIR)/fluids-%)
-fluidsexamples    += $(fluidsexamples.py:examples/fluids/%.py=$(OBJDIR)/fluids-py-%) 
+fluidsexamples    += $(fluidsexamples.py:examples/fluids/%.py=$(OBJDIR)/fluids-py-%)
 # Solid Mechanics Examples
 solidsexamples.c := $(sort $(wildcard examples/solids/*.c))
 solidsexamples   := $(solidsexamples.c:examples/solids/%.c=$(OBJDIR)/solids-%)
@@ -760,6 +760,7 @@ AUTOPEP8_OPTS     += --in-place --aggressive --max-line-length 120
 
 format.ch := $(filter-out include/ceedf.h $(wildcard tests/t*-f.h), $(shell git ls-files '*.[ch]pp' '*.[ch]'))
 format.py := $(filter-out tests/junit-xml/junit_xml/__init__.py, $(shell git ls-files '*.py'))
+format.ot := $(filter-out doc/sphinx/source/CODE_OF_CONDUCT.md doc/sphinx/source/CONTRIBUTING.md, $(shell git ls-files '*.md' '*.f90'))
 
 format-c  :
 	$(CLANG_FORMAT) $(CLANG_FORMAT_OPTS) $(format.ch)
@@ -767,7 +768,10 @@ format-c  :
 format-py :
 	$(AUTOPEP8) $(AUTOPEP8_OPTS) $(format.py)
 
-format    : format-c format-py
+format-ot:
+	@$(SED) -r 's/\s+$$//' -i $(format.ot)
+
+format    : format-c format-py format-ot
 
 # Vermin - python version requirements
 VERMIN            ?= vermin

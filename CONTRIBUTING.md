@@ -50,7 +50,7 @@ libCEED contains components authored by many individuals.
 It is important that contributors receive appropriate recognition through informal and academically-recognized credit systems such as publications.
 Status as a named author on the users manual and libCEED software publications will be granted for those who
 
-1. make significant contributions to libCEED (in implementation, documentation, conceptualization, review, etc.) and 
+1. make significant contributions to libCEED (in implementation, documentation, conceptualization, review, etc.) and
 2. maintain and support those contributions.
 
 Maintainers will do their best to notice when contributions reach this level and add your name to `AUTHORS`, but please email or create an issue if you believe your contributions have met these criteria and haven't yet been acknowledged.
