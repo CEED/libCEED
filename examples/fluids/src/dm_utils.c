@@ -406,8 +406,8 @@ PetscErrorCode CreateBasisFromPlex(Ceed ceed, DM dm, DMLabel domain_label, CeedI
   @param[in]   setup_faces     Flag to setup face geometry
   @param[in]   setup_coords    Flag to setup coordinate spaces
   @param[in]   degree          Polynomial orders of field
-  @param[in]   coord_order     Polynomial order of coordinate basis, or `RATEL_DECIDE` for default
-  @param[in]   q_extra         Additional quadrature order, or `RATEL_DECIDE` for default
+  @param[in]   coord_order     Polynomial order of coordinate basis, or `PETSC_DECIDE` for default
+  @param[in]   q_extra         Additional quadrature order
   @param[in]   num_fields      Number of fields in solution vector
   @param[in]   field_sizes     Array of number of components for each field
   @param[out]  dm              `DM` to setup

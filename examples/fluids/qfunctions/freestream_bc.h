@@ -346,7 +346,7 @@ CEED_QFUNCTION_HELPER int Freestream(void *ctx, CeedInt Q, const CeedScalar *con
   const FreestreamContext        context     = (FreestreamContext)ctx;
   const NewtonianIdealGasContext newt_ctx    = &context->newtonian_ctx;
   const bool                     is_implicit = newt_ctx->is_implicit;
-
+  const CeedScalar               zeros[6]    = {0.};
 
   CeedPragmaSIMD for (CeedInt i = 0; i < Q; i++) {
     const CeedScalar qi[5] = {q[0][i], q[1][i], q[2][i], q[3][i], q[4][i]};
@@ -362,14 +362,14 @@ CEED_QFUNCTION_HELPER int Freestream(void *ctx, CeedInt Q, const CeedScalar *con
         flux = RiemannFlux_HLL(newt_ctx, s, context->S_infty, norm);
         break;
       case RIEMANN_HLLC:
-//        flux = RiemannFlux_HLLC(newt_ctx, s, context->S_infty, norm);
-	{
-	CeedScalar       qb[3]    = {q[1][i], q[2][i], q[3][i]};
-        const CeedScalar q_normal = Dot3(qb, norm);
-        for (CeedInt j = 0; j < 3; j++) qb[j] -=  2. * norm[j] * q_normal; 
-        const CeedScalar qr[5]     = {q[0][i], qb[0], qb[1], qb[2], q[4][i]};
-        State            s_reflect = StateFromQ(newt_ctx, qr, state_var);
-        flux                       = RiemannFlux_HLLC(newt_ctx, s, s_reflect, norm);
+        //        flux = RiemannFlux_HLLC(newt_ctx, s, context->S_infty, norm);
+        {
+          CeedScalar       qb[3]    = {q[1][i], q[2][i], q[3][i]};
+          const CeedScalar q_normal = Dot3(qb, norm);
+          for (CeedInt j = 0; j < 3; j++) qb[j] -= 2. * norm[j] * q_normal;
+          const CeedScalar qr[5]     = {q[0][i], qb[0], qb[1], qb[2], q[4][i]};
+          State            s_reflect = StateFromQ(newt_ctx, qr, state_var);
+          flux                       = RiemannFlux_HLLC(newt_ctx, s, s_reflect, norm);
         }
         break;
     }
