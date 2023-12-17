@@ -171,6 +171,7 @@ int main(int argc, char **argv) {
 
   // -- Set up DM
   PetscCall(SetUpDM(&dm, problem, app_ctx->degree, app_ctx->q_extra, bc, phys_ctx));
+  user->dm = dm;
 
   // -- Refine DM for high-order viz
   if (app_ctx->viz_refine) PetscCall(VizRefineDM(dm, user, problem, bc, phys_ctx));
