@@ -27,6 +27,8 @@ ksp_rtol: 5e-2
 
 ## Linear Settings:
 degree: 2
+named_local_vector_migrate: InitialCondition
+
 
 stab: 'supg'
 Ctau_t: 1
