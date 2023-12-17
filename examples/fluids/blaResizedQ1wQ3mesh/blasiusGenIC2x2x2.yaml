@@ -42,8 +42,8 @@ q_extra: 0
 
 
 # Faces labeled 1=z- 2=z+ 3=y- 4=y+ 5=x+ 6=x-
-mesh_transform: platemesh
-dm_plex_box_faces: 3,63,56
+#mesh_transform: platemesh
+dm_plex_box_faces: 2,2,2
 dm_plex:
    dim: 3
    box:
@@ -84,7 +84,7 @@ stg:
   u0: 1
   mean_only: false
   fluctuating_IC: false
-platemesh_y_node_locs_path: "./everyThird_yspacing.dat"
+#platemesh_y_node_locs_path: "./everyThird_yspacing.dat"
 # platemesh_top_angle: 0
 
 ksp_converged_reason:
@@ -94,7 +94,6 @@ snes_monitor:
 log_view:
 log_view_gpu_time:
 
-#ceed: /gpu/cuda
 #ceed: /gpu/sycl/shared
 use_gpu_aware_mpi: 0
 
@@ -108,7 +107,7 @@ snes_lag_jacobian: 9
 #original snes_rtol: 5e-4
 #original ksp_rtol: 5e-2
 
-ts_monitor_solution: cgns:flowCoarseBy3-%d.cgns # %d activates batch mode, default 20 output frames per batch
+ts_monitor_solution: cgns:2x2x2-%d.cgns # %d activates batch mode, default 20 output frames per batch
 ts_monitor_solution_interval: 50  # one file per 50 time steps
 viewer_cgns_batch_size: 10 # (optional) change number of frames per batch
 
