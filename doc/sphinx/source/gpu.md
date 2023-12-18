@@ -8,6 +8,7 @@ Code that produces correct results with CPU backends will produce correct result
 The filepath to the user source code is passed in {c:func}`CeedQFunctionCreateInterior` as the `source` argument.
 This filepath should typically be an absolute path to ensure the JiT compilation can locate the source file.
 The filepath may also be relative to a root directory set with {c:func}`CeedAddJitSourceRoot`.
+The {c:macro}`CEED_QFUNCTION` macro automatically creates a string with the absolute path stored in the variable `user_loc` for a {c:type}`CeedQFunctionUser` called `user`.
 
 The entire contents of this file and all locally included files (`#include "foo.h"`) are used during JiT compilation for GPU backends.
 Installed headers (`#include <bar.h>`) are omitted in the source code passed to JiT, but the compilation environment may supply common headers such as `<math.h>`.
