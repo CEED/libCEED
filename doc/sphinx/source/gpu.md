@@ -19,5 +19,12 @@ All source files must be at the provided filepath at runtime for JiT to function
 ## Memory Access
 
 GPU backends require stricter adherence to memory access assumptions, but CPU backends may occasionally report correct results despite violations of memory access assumptions.
+Both `CeedVector` and `CeedQFunctionContext` have read-only and read-write accessors, and `CeedVector` allow write-only access.
+Read-only access of `CeedVector` and `CeedQFunctionContext` memory spaces must be respected for proper GPU behavior.
+Write-only access of `CeedVector` memory spaces asserts that all data in the `CeedVector` is invalid until overwritten.
+
+`CeedQFunction` assume that all input arrays are read-only and all output arrays are write-only and the {c:type}`CeedQFunctionUser` must adhere to these assumptions, only reading data in the input arrays and fully overwriting the output arrays.
+Additionally, {c:type}`CeedQFunctionUser` have read-write access for `CeedQFunctionContext` data, unless {c:func}`CeedQFunctionSetContextWritable` was used to indicate that read-only access is sufficient.
+
 The `/cpu/self/memcheck` backends explicitly verify read-only and write-only memory access assumptions.
 
