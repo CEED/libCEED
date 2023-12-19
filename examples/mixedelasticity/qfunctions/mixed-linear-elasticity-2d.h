@@ -62,9 +62,9 @@ CEED_QFUNCTION(MixedLinearRhs2D)(void *ctx, CeedInt Q, const CeedScalar *const *
   const CeedScalar kappa   = E / (3. * (1 - 2 * nu));
   // Quadrature Point Loop
   CeedPragmaSIMD for (CeedInt i = 0; i < Q; i++) {
-    CeedScalar x = coords[i + 0 * Q], y = coords[i + 1 * Q];
-    CeedScalar u1 = sin(PI_DOUBLE * x) * sin(PI_DOUBLE * y), u2 = 2 * u1 + 0.;
-    CeedScalar u1_1 = PI_DOUBLE * cos(PI_DOUBLE * x) * sin(PI_DOUBLE * y), u1_2 = PI_DOUBLE * sin(PI_DOUBLE * x) * cos(PI_DOUBLE * y);
+    CeedScalar A0 = 1.0e-3, x = coords[i + 0 * Q], y = coords[i + 1 * Q];
+    CeedScalar u1 = A0 * sin(PI_DOUBLE * x) * sin(PI_DOUBLE * y), u2 = 2 * u1 + 0.;
+    CeedScalar u1_1 = A0 * PI_DOUBLE * cos(PI_DOUBLE * x) * sin(PI_DOUBLE * y), u1_2 = A0 * PI_DOUBLE * sin(PI_DOUBLE * x) * cos(PI_DOUBLE * y);
     CeedScalar u2_2 = 2 * u1_2;
     // Component 1 of u
     true_soln[0][i] = u1;
@@ -75,7 +75,7 @@ CEED_QFUNCTION(MixedLinearRhs2D)(void *ctx, CeedInt Q, const CeedScalar *const *
 
     // mu*(u1_11 + u1_22) + (1/3 * mu + kappa)*(u1_11 + u2_21) + f1 = 0
     CeedScalar u1_11 = -PI_DOUBLE * PI_DOUBLE * u1, u1_22 = -PI_DOUBLE * PI_DOUBLE * u1;
-    CeedScalar u1_12 = PI_DOUBLE * PI_DOUBLE * cos(PI_DOUBLE * x) * cos(PI_DOUBLE * y);
+    CeedScalar u1_12 = A0 * PI_DOUBLE * PI_DOUBLE * cos(PI_DOUBLE * x) * cos(PI_DOUBLE * y);
     CeedScalar u2_21 = 2 * u1_12;
     CeedScalar f1    = -mu * (u1_11 + u1_22) - ((1. / 3.) * mu + kappa) * (u1_11 + u2_21);
     // Component 1
