@@ -248,6 +248,7 @@ int main(int argc, char **argv) {
       if (has_NL_vectord) PetscCall(DMGetNamedLocalVector(dm, vecNamed, &IC_loc));
       else PetscCall(DMGetNamedLocalVector(dm, vecName, &IC_loc));
       PetscCall(VecCopy(IC_loc, user->Q_loc));
+//      PetscCall(VecViewFromOptions(user->Q_loc, NULL, "-Q_locICview"));
       PetscCall(DMLocalToGlobal(dm, user->Q_loc, INSERT_VALUES, Q));
       if (has_NL_vectord) PetscCall(DMRestoreNamedLocalVector(dm, vecNamed, &IC_loc));
       else PetscCall(DMRestoreNamedLocalVector(dm, vecName, &IC_loc));
