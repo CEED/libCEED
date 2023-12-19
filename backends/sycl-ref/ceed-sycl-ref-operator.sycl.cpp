@@ -1081,7 +1081,7 @@ static int CeedSingleOperatorAssembleSetup_Sycl(CeedOperator op) {
     if (eval_mode == CEED_EVAL_INTERP) {
       std::vector<sycl::event> e;
       if (!sycl_data->sycl_queue.is_in_order()) e = {sycl_data->sycl_queue.ext_oneapi_submit_barrier()};
-      sycl_data->sycl_queue.copy<CeedScalar>(interp_in, &asmb->d_B_in[mat_start], elem_size * num_qpts, {e});
+      sycl_data->sycl_queue.copy<CeedScalar>(interp_in, &asmb->d_B_in[mat_start], elem_size * num_qpts, e);
       mat_start += elem_size * num_qpts;
     } else if (eval_mode == CEED_EVAL_GRAD) {
       std::vector<sycl::event> e;
@@ -1111,12 +1111,12 @@ static int CeedSingleOperatorAssembleSetup_Sycl(CeedOperator op) {
     if (eval_mode == CEED_EVAL_INTERP) {
       std::vector<sycl::event> e;
       if (!sycl_data->sycl_queue.is_in_order()) e = {sycl_data->sycl_queue.ext_oneapi_submit_barrier()};
-      sycl_data->sycl_queue.copy<CeedScalar>(interp_out, &asmb->d_B_out[mat_start], elem_size * num_qpts, {e});
+      sycl_data->sycl_queue.copy<CeedScalar>(interp_out, &asmb->d_B_out[mat_start], elem_size * num_qpts, e);
       mat_start += elem_size * num_qpts;
     } else if (eval_mode == CEED_EVAL_GRAD) {
       std::vector<sycl::event> e;
       if (!sycl_data->sycl_queue.is_in_order()) e = {sycl_data->sycl_queue.ext_oneapi_submit_barrier()};
-      sycl_data->sycl_queue.copy<CeedScalar>(grad_out, &asmb->d_B_out[mat_start], dim * elem_size * num_qpts, {e});
+      sycl_data->sycl_queue.copy<CeedScalar>(grad_out, &asmb->d_B_out[mat_start], dim * elem_size * num_qpts, e);
       mat_start += dim * elem_size * num_qpts;
     }
   }
@@ -1160,7 +1160,7 @@ static int CeedOperatorLinearAssemble_Sycl(sycl::queue &sycl_queue, const CeedOp
 
   std::vector<sycl::event> e;
   if (!sycl_queue.is_in_order()) e = {sycl_queue.ext_oneapi_submit_barrier()};
-  sycl_queue.parallel_for<CeedOperatorSyclLinearAssemble>(kernel_range, {e}, [=](sycl::id<3> idx) {
+  sycl_queue.parallel_for<CeedOperatorSyclLinearAssemble>(kernel_range, e, [=](sycl::id<3> idx) {
     const int e = idx.get(0);  // Element index
     const int l = idx.get(1);  // The output column index of each B^TDB operation
     const int i = idx.get(2);  // The output row index of each B^TDB operation
