@@ -335,10 +335,14 @@ extern "C" int CeedOperatorBuildKernel_Cuda_gen(CeedOperator op) {
         break;  // Should not occur
       }
       case CEED_EVAL_DIV:
-        break;  // TODO: Not implemented
-      case CEED_EVAL_CURL:
-        break;  // TODO: Not implemented
-                // LCOV_EXCL_STOP
+      case CEED_EVAL_CURL: {
+        Ceed ceed;
+
+        CeedCallBackend(CeedOperatorGetCeed(op, &ceed));
+        return CeedError(ceed, CEED_ERROR_BACKEND, "%s not supported", CeedEvalModes[eval_mode]);
+        break;  // Should not occur
+      }
+        // LCOV_EXCL_STOP
     }
   }
   code << "\n  // -- Element loop --\n";
@@ -654,15 +658,20 @@ extern "C" int CeedOperatorBuildKernel_Cuda_gen(CeedOperator op) {
       // LCOV_EXCL_START
       case CEED_EVAL_WEIGHT: {
         Ceed ceed;
+
         CeedCallBackend(CeedOperatorGetCeed(op, &ceed));
         return CeedError(ceed, CEED_ERROR_BACKEND, "CEED_EVAL_WEIGHT cannot be an output evaluation mode");
         break;  // Should not occur
       }
       case CEED_EVAL_DIV:
-        break;  // TODO: Not implemented
-      case CEED_EVAL_CURL:
-        break;  // TODO: Not implemented
-                // LCOV_EXCL_STOP
+      case CEED_EVAL_CURL: {
+        Ceed ceed;
+
+        CeedCallBackend(CeedOperatorGetCeed(op, &ceed));
+        return CeedError(ceed, CEED_ERROR_BACKEND, "%s not supported", CeedEvalModes[eval_mode]);
+        break;  // Should not occur
+      }
+        // LCOV_EXCL_STOP
     }
     // TODO put in a function
     // Restriction

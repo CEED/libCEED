@@ -33,17 +33,8 @@ static inline int CeedVectorHasBorrowedArrayOfType_Ref(const CeedVector vec, Cee
 
   CeedCallBackend(CeedVectorGetData(vec, &impl));
   CeedCallBackend(CeedVectorGetCeed(vec, &ceed));
-
-  switch (mem_type) {
-    case CEED_MEM_HOST:
-      *has_borrowed_array_of_type = impl->array_borrowed;
-      break;
-      // LCOV_EXCL_START
-    default:
-      return CeedError(ceed, CEED_ERROR_BACKEND, "Can only set HOST memory for this backend");
-      // LCOV_EXCL_STOP
-      break;
-  }
+  CeedCheck(mem_type == CEED_MEM_HOST, ceed, CEED_ERROR_BACKEND, "Can only set HOST memory for this backend");
+  *has_borrowed_array_of_type = impl->array_borrowed;
   return CEED_ERROR_SUCCESS;
 }
 

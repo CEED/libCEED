@@ -135,9 +135,7 @@ int CeedRegisterImpl(const char *prefix, int (*init)(const char *, Ceed), unsign
       ierr = 1;
     }
   }
-  // LCOV_EXCL_START
   CeedCheck(ierr == 0, NULL, CEED_ERROR_MAJOR, "Too many backends");
-  // LCOV_EXCL_STOP
   return CEED_ERROR_SUCCESS;
 }
 
@@ -1114,10 +1112,12 @@ int CeedErrorImpl(Ceed ceed, const char *filename, int lineno, const char *func,
     // LCOV_EXCL_START
     const char *ceed_error_handler = getenv("CEED_ERROR_HANDLER");
     if (!ceed_error_handler) ceed_error_handler = "abort";
-    if (!strcmp(ceed_error_handler, "return")) ret_val = CeedErrorReturn(ceed, filename, lineno, func, ecode, format, &args);
-    else
+    if (!strcmp(ceed_error_handler, "return")) {
+      ret_val = CeedErrorReturn(ceed, filename, lineno, func, ecode, format, &args);
+    } else {
       // This function will not return
       ret_val = CeedErrorAbort(ceed, filename, lineno, func, ecode, format, &args);
+    }
   }
   va_end(args);
   return ret_val;

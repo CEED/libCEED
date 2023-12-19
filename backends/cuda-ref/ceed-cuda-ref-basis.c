@@ -67,13 +67,9 @@ int CeedBasisApply_Cuda(CeedBasis basis, const CeedInt num_elem, CeedTransposeMo
       CeedCallBackend(CeedRunKernelDim_Cuda(ceed, data->Weight, num_elem, block_size_x, block_size_y, 1, weight_args));
     } break;
     // LCOV_EXCL_START
-    // Evaluate the divergence to/from the quadrature points
     case CEED_EVAL_DIV:
-      return CeedError(ceed, CEED_ERROR_BACKEND, "CEED_EVAL_DIV not supported");
-    // Evaluate the curl to/from the quadrature points
     case CEED_EVAL_CURL:
-      return CeedError(ceed, CEED_ERROR_BACKEND, "CEED_EVAL_CURL not supported");
-    // Take no action, BasisApply should not have been called
+      return CeedError(ceed, CEED_ERROR_BACKEND, "%s not supported", CeedEvalModes[eval_mode]);
     case CEED_EVAL_NONE:
       return CeedError(ceed, CEED_ERROR_BACKEND, "CEED_EVAL_NONE does not make sense in this context");
       // LCOV_EXCL_STOP
@@ -168,7 +164,6 @@ int CeedBasisApplyNonTensor_Cuda(CeedBasis basis, const CeedInt num_elem, CeedTr
       CeedCallBackend(CeedRunKernelDim_Cuda(ceed, data->Weight, grid, num_qpts, 1, elems_per_block, weight_args));
     } break;
     // LCOV_EXCL_START
-    // Take no action, BasisApply should not have been called
     case CEED_EVAL_NONE:
       return CeedError(ceed, CEED_ERROR_BACKEND, "CEED_EVAL_NONE does not make sense in this context");
       // LCOV_EXCL_STOP

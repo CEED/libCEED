@@ -229,13 +229,9 @@ int CeedBasisApplyTensor_Hip_shared(CeedBasis basis, const CeedInt num_elem, Cee
       }
     } break;
     // LCOV_EXCL_START
-    // Evaluate the divergence to/from the quadrature points
     case CEED_EVAL_DIV:
-      return CeedError(ceed, CEED_ERROR_BACKEND, "CEED_EVAL_DIV not supported");
-    // Evaluate the curl to/from the quadrature points
     case CEED_EVAL_CURL:
-      return CeedError(ceed, CEED_ERROR_BACKEND, "CEED_EVAL_CURL not supported");
-    // Take no action, BasisApply should not have been called
+      return CeedError(ceed, CEED_ERROR_BACKEND, "%s not supported", CeedEvalModes[eval_mode]);
     case CEED_EVAL_NONE:
       return CeedError(ceed, CEED_ERROR_BACKEND, "CEED_EVAL_NONE does not make sense in this context");
       // LCOV_EXCL_STOP
