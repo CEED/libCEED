@@ -757,39 +757,39 @@ static inline int CeedOperatorAssembleDiagonalSetup_Sycl(CeedOperator op) {
     CeedCallBackend(CeedCalloc(num_qpts * num_nodes, &identity));
     for (CeedSize i = 0; i < (num_nodes < num_qpts ? num_nodes : num_qpts); i++) identity[i * num_nodes + i] = 1.0;
     CeedCallSycl(ceed, diag->d_identity = sycl::malloc_device<CeedScalar>(i_len, sycl_data->sycl_device, sycl_data->sycl_context));
-    sycl::event identity_copy = sycl_data->sycl_queue.copy<CeedScalar>(identity, diag->d_identity, i_len, {e});
+    sycl::event identity_copy = sycl_data->sycl_queue.copy<CeedScalar>(identity, diag->d_identity, i_len, e);
     copy_events.push_back(identity_copy);
   }
 
   // CEED_EVAL_INTERP
   CeedCallBackend(CeedBasisGetInterp(basis_in, &interp_in));
   CeedCallSycl(ceed, diag->d_interp_in = sycl::malloc_device<CeedScalar>(i_len, sycl_data->sycl_device, sycl_data->sycl_context));
-  sycl::event interp_in_copy = sycl_data->sycl_queue.copy<CeedScalar>(interp_in, diag->d_interp_in, i_len, {e});
+  sycl::event interp_in_copy = sycl_data->sycl_queue.copy<CeedScalar>(interp_in, diag->d_interp_in, i_len, e);
   copy_events.push_back(interp_in_copy);
 
   CeedCallBackend(CeedBasisGetInterp(basis_out, &interp_out));
   CeedCallSycl(ceed, diag->d_interp_out = sycl::malloc_device<CeedScalar>(i_len, sycl_data->sycl_device, sycl_data->sycl_context));
-  sycl::event interp_out_copy = sycl_data->sycl_queue.copy<CeedScalar>(interp_out, diag->d_interp_out, i_len, {e});
+  sycl::event interp_out_copy = sycl_data->sycl_queue.copy<CeedScalar>(interp_out, diag->d_interp_out, i_len, e);
   copy_events.push_back(interp_out_copy);
 
   // CEED_EVAL_GRAD
   CeedCallBackend(CeedBasisGetGrad(basis_in, &grad_in));
   CeedCallSycl(ceed, diag->d_grad_in = sycl::malloc_device<CeedScalar>(g_len, sycl_data->sycl_device, sycl_data->sycl_context));
-  sycl::event grad_in_copy = sycl_data->sycl_queue.copy<CeedScalar>(grad_in, diag->d_grad_in, g_len, {e});
+  sycl::event grad_in_copy = sycl_data->sycl_queue.copy<CeedScalar>(grad_in, diag->d_grad_in, g_len, e);
   copy_events.push_back(grad_in_copy);
 
   CeedCallBackend(CeedBasisGetGrad(basis_out, &grad_out));
   CeedCallSycl(ceed, diag->d_grad_out = sycl::malloc_device<CeedScalar>(g_len, sycl_data->sycl_device, sycl_data->sycl_context));
-  sycl::event grad_out_copy = sycl_data->sycl_queue.copy<CeedScalar>(grad_out, diag->d_grad_out, g_len, {e});
+  sycl::event grad_out_copy = sycl_data->sycl_queue.copy<CeedScalar>(grad_out, diag->d_grad_out, g_len, e);
   copy_events.push_back(grad_out_copy);
 
   // Arrays of  e_modes
   CeedCallSycl(ceed, diag->d_e_mode_in = sycl::malloc_device<CeedEvalMode>(num_e_mode_in, sycl_data->sycl_device, sycl_data->sycl_context));
-  sycl::event e_mode_in_copy = sycl_data->sycl_queue.copy<CeedEvalMode>(e_mode_in, diag->d_e_mode_in, num_e_mode_in, {e});
+  sycl::event e_mode_in_copy = sycl_data->sycl_queue.copy<CeedEvalMode>(e_mode_in, diag->d_e_mode_in, num_e_mode_in, e);
   copy_events.push_back(e_mode_in_copy);
 
   CeedCallSycl(ceed, diag->d_e_mode_out = sycl::malloc_device<CeedEvalMode>(num_e_mode_out, sycl_data->sycl_device, sycl_data->sycl_context));
-  sycl::event e_mode_out_copy = sycl_data->sycl_queue.copy<CeedEvalMode>(e_mode_out, diag->d_e_mode_out, num_e_mode_out, {e});
+  sycl::event e_mode_out_copy = sycl_data->sycl_queue.copy<CeedEvalMode>(e_mode_out, diag->d_e_mode_out, num_e_mode_out, e);
   copy_events.push_back(e_mode_out_copy);
 
   // Restriction
@@ -1081,11 +1081,12 @@ static int CeedSingleOperatorAssembleSetup_Sycl(CeedOperator op) {
     if (eval_mode == CEED_EVAL_INTERP) {
       std::vector<sycl::event> e;
       if (!sycl_data->sycl_queue.is_in_order()) e = {sycl_data->sycl_queue.ext_oneapi_submit_barrier()};
-      sycl_data->sycl_queue.copy<CeedScalar>(interp_in, &asmb->d_B_in[mat_start], elem_size * num_qpts, {e});
+      sycl_data->sycl_queue.copy<CeedScalar>(interp_in, &asmb->d_B_in[mat_start], elem_size * num_qpts, e);
       mat_start += elem_size * num_qpts;
     } else if (eval_mode == CEED_EVAL_GRAD) {
-      td::vector<sycl::event> e;
+      std::vector<sycl::event> e;
       if (!sycl_data->sycl_queue.is_in_order()) e = {sycl_data->sycl_queue.ext_oneapi_submit_barrier()};
+      sycl_data->sycl_queue.copy<CeedScalar>(grad_in, &asmb->d_B_in[mat_start], dim * elem_size * num_qpts, e);
       mat_start += dim * elem_size * num_qpts;      
     }
   }
@@ -1110,12 +1111,12 @@ static int CeedSingleOperatorAssembleSetup_Sycl(CeedOperator op) {
     if (eval_mode == CEED_EVAL_INTERP) {
       std::vector<sycl::event> e;
       if (!sycl_data->sycl_queue.is_in_order()) e = {sycl_data->sycl_queue.ext_oneapi_submit_barrier()};
-      sycl_data->sycl_queue.copy<CeedScalar>(interp_out, &asmb->d_B_out[mat_start], elem_size * num_qpts, {e});
+      sycl_data->sycl_queue.copy<CeedScalar>(interp_out, &asmb->d_B_out[mat_start], elem_size * num_qpts, e);
       mat_start += elem_size * num_qpts;
     } else if (eval_mode == CEED_EVAL_GRAD) {
       std::vector<sycl::event> e;
       if (!sycl_data->sycl_queue.is_in_order()) e = {sycl_data->sycl_queue.ext_oneapi_submit_barrier()};
-      sycl_data->sycl_queue.copy<CeedScalar>(grad_out, &asmb->d_B_out[mat_start], dim * elem_size * num_qpts, {e});
+      sycl_data->sycl_queue.copy<CeedScalar>(grad_out, &asmb->d_B_out[mat_start], dim * elem_size * num_qpts, e);
       mat_start += dim * elem_size * num_qpts;
     }
   }
@@ -1159,7 +1160,7 @@ static int CeedOperatorLinearAssemble_Sycl(sycl::queue &sycl_queue, const CeedOp
 
   std::vector<sycl::event> e;
   if (!sycl_queue.is_in_order()) e = {sycl_queue.ext_oneapi_submit_barrier()};
-  sycl_queue.parallel_for<CeedOperatorSyclLinearAssemble>(kernel_range, {e}, [=](sycl::id<3> idx) {
+  sycl_queue.parallel_for<CeedOperatorSyclLinearAssemble>(kernel_range, e, [=](sycl::id<3> idx) {
     const int e = idx.get(0);  // Element index
     const int l = idx.get(1);  // The output column index of each B^TDB operation
     const int i = idx.get(2);  // The output row index of each B^TDB operation
