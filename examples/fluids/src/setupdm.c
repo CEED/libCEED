@@ -40,12 +40,12 @@ PetscErrorCode CreateDM(MPI_Comm comm, ProblemData *problem, MatType mat_type, V
   PetscFunctionReturn(PETSC_SUCCESS);
 }
 
-
-static void evaluate_solution(PetscInt dim, PetscInt Nf, PetscInt NfAux, const PetscInt uOff[], const PetscInt uOff_x[], const PetscScalar u[], const PetscScalar u_t[], const PetscScalar u_x[], const PetscInt aOff[], const PetscInt aOff_x[], const PetscScalar a[], const PetscScalar a_t[], const PetscScalar a_x[], PetscReal t, const PetscReal X[], PetscInt numConstants, const PetscScalar constants[], PetscScalar new_u[])
-{
+static void evaluate_solution(PetscInt dim, PetscInt Nf, PetscInt NfAux, const PetscInt uOff[], const PetscInt uOff_x[], const PetscScalar u[],
+                              const PetscScalar u_t[], const PetscScalar u_x[], const PetscInt aOff[], const PetscInt aOff_x[], const PetscScalar a[],
+                              const PetscScalar a_t[], const PetscScalar a_x[], PetscReal t, const PetscReal X[], PetscInt numConstants,
+                              const PetscScalar constants[], PetscScalar new_u[]) {
   for (PetscInt i = 0; i < 5; i++) new_u[i] = u[i];
 }
-
 
 // Setup DM
 PetscErrorCode SetUpDM(DM *dm, ProblemData *problem, PetscInt degree, PetscInt q_extra, SimpleBC bc, Physics phys) {
@@ -110,15 +110,18 @@ PetscErrorCode SetUpDM(DM *dm, ProblemData *problem, PetscInt degree, PetscInt q
     PetscCall(DMGetGlobalVector(old_dm, &old_InitialCondition));
     PetscCall(DMGetGlobalVector(*dm, &new_InitialCondition));
     PetscCall(DMLocalToGlobal(old_dm, old_InitialCondition_loc, INSERT_VALUES, old_InitialCondition));
-    if(0) {
+    if (0) {
       Mat mat_interp;
       PetscCall(DMCreateInterpolation(old_dm, *dm, &mat_interp, NULL));
       PetscCall(MatInterpolate(mat_interp, old_InitialCondition, new_InitialCondition));
       PetscCall(MatDestroy(&mat_interp));
     } else {
-      void (*funcs[])(PetscInt, PetscInt, PetscInt, const PetscInt[], const PetscInt[], const PetscScalar[], const PetscScalar[], const PetscScalar[], const PetscInt[], const PetscInt[], const PetscScalar[], const PetscScalar[], const PetscScalar[], PetscReal, const PetscReal[], PetscInt, const PetscScalar[], PetscScalar[]) = {evaluate_solution};
+      void (*funcs[])(PetscInt, PetscInt, PetscInt, const PetscInt[], const PetscInt[], const PetscScalar[], const PetscScalar[], const PetscScalar[],
+                      const PetscInt[], const PetscInt[], const PetscScalar[], const PetscScalar[], const PetscScalar[], PetscReal, const PetscReal[],
+                      PetscInt, const PetscScalar[], PetscScalar[]) = {evaluate_solution};
 
-      PetscCall(DMProjectField(old_dm, 0.0, old_InitialCondition, funcs, INSERT_VALUES, new_InitialCondition));
+      PetscCall(DMProjectFieldLocal(*dm, 0.0, old_InitialCondition_loc, funcs, INSERT_VALUES, new_InitialCondition_loc));
+      PetscCall(DMLocalToGlobal(*dm, new_InitialCondition_loc, INSERT_VALUES, new_InitialCondition));
     }
     PetscCall(VecViewFromOptions(old_InitialCondition, NULL, "-oldICview"));
     PetscCall(VecViewFromOptions(new_InitialCondition, NULL, "-newICview"));
