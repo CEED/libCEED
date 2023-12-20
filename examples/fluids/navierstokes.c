@@ -247,13 +247,12 @@ int main(int argc, char **argv) {
       PetscStrcpy(vecNamed, vecName);
       PetscStrlcat(vecNamed, "d", PETSC_MAX_PATH_LEN);
       PetscCall(DMHasNamedLocalVector(dm, vecNamed, &has_NL_vectord));
-      if (has_NL_vectord) PetscCall(DMGetNamedLocalVector(dm, vecNamed, &IC_loc));
-      else PetscCall(DMGetNamedLocalVector(dm, vecName, &IC_loc));
+      if (has_NL_vectord) PetscStrcpy(vecName, vecNamed); // distributed correction is the vector we should use
+      PetscCall(DMGetNamedLocalVector(dm, vecName, &IC_loc));
       PetscCall(VecCopy(IC_loc, user->Q_loc));
 //      PetscCall(VecViewFromOptions(user->Q_loc, NULL, "-Q_locICview"));
       PetscCall(DMLocalToGlobal(dm, user->Q_loc, INSERT_VALUES, Q));
-      if (has_NL_vectord) PetscCall(DMRestoreNamedLocalVector(dm, vecNamed, &IC_loc));
-      else PetscCall(DMRestoreNamedLocalVector(dm, vecName, &IC_loc));
+      PetscCall(DMRestoreNamedLocalVector(dm, vecName, &IC_loc));
       PetscCall(VecViewFromOptions(Q, NULL, "-testICview"));
     }
   }
