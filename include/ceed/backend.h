@@ -222,7 +222,7 @@ CEED_INTERN int CeedFree(void *p);
 #define CeedCalloc(n, p) CeedCallocArray((n), sizeof(**(p)), p)
 #define CeedRealloc(n, p) CeedReallocArray((n), sizeof(**(p)), p)
 
-/* Allow users to call CeedSetBackendFunctionImpl using incompatible pointer types */
+/* Allows calling CeedSetBackendFunctionImpl using incompatible pointer types */
 #define CeedSetBackendFunction(ceed, type, object, func_name, f) CeedSetBackendFunctionImpl(ceed, type, object, func_name, (void (*)(void))f)
 
 CEED_EXTERN int CeedRegister(const char *prefix, int (*init)(const char *, Ceed), unsigned int priority);
