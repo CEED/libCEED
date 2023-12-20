@@ -570,7 +570,7 @@ int CeedSetDeterministic(Ceed ceed, bool is_deterministic) {
 
   @ref Backend
 **/
-int CeedSetBackendFunction(Ceed ceed, const char *type, void *object, const char *func_name, int (*f)()) {
+int CeedSetBackendFunctionImpl(Ceed ceed, const char *type, void *object, const char *func_name, int (*f)(void)) {
   char lookup_name[CEED_MAX_RESOURCE_LEN + 1] = "";
 
   // Build lookup name

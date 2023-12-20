@@ -27,7 +27,7 @@ static bool register_all_called;
 
   @ref User
 **/
-int CeedRegisterAll() {
+int CeedRegisterAll(void) {
   int ierr = 0;
 
   CeedPragmaCritical(CeedRegisterAll) {
