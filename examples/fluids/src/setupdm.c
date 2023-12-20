@@ -57,9 +57,15 @@ PetscErrorCode SetUpDM(DM *dm, ProblemData *problem, PetscInt degree, PetscInt q
   PetscCall(PetscOptionsString("-named_local_vector_migrate", "Name of NamedLocalVector to migrate", NULL, vecName, vecName, sizeof(vecName), NULL));
   PetscOptionsEnd();
 
-  PetscBool has_NL_vector;
+  PetscBool has_NL_vector, has_NL_vectord;
+
   PetscCall(DMHasNamedLocalVector(*dm, vecName, &has_NL_vector));
   if (has_NL_vector) {
+    char vecNamed[PETSC_MAX_PATH_LEN] = ""; 
+    PetscStrcpy(vecNamed, vecName);
+    PetscStrlcat(vecNamed, "d", PETSC_MAX_PATH_LEN);
+    PetscCall(DMHasNamedLocalVector(*dm, vecNamed, &has_NL_vectord));
+    if (has_NL_vectord) PetscStrcpy(vecName, vecNamed); // distributed correction is the vector we should use
     DM new_dm = NULL;
     PetscCall(DMClone(*dm, &new_dm));
     old_dm = *dm;
@@ -102,6 +108,7 @@ PetscErrorCode SetUpDM(DM *dm, ProblemData *problem, PetscInt degree, PetscInt q
   PetscCall(DMSetupByOrderEnd_FEM(PETSC_TRUE, *dm));
 
   if (has_NL_vector) {
+
     Vec old_InitialCondition_loc, new_InitialCondition_loc, old_InitialCondition, new_InitialCondition;
     PetscCall(DMGetNamedLocalVector(old_dm, vecName, &old_InitialCondition_loc));
     PetscCall(DMGetNamedLocalVector(*dm, vecName, &new_InitialCondition_loc));
@@ -118,10 +125,12 @@ PetscErrorCode SetUpDM(DM *dm, ProblemData *problem, PetscInt degree, PetscInt q
                       const PetscInt[], const PetscInt[], const PetscScalar[], const PetscScalar[], const PetscScalar[], PetscReal, const PetscReal[],
                       PetscInt, const PetscScalar[], PetscScalar[]) = {evaluate_solution};
 
+      PetscCall(VecViewFromOptions(old_InitialCondition_loc, NULL, "-oldICview"));
       PetscCall(DMProjectFieldLocal(*dm, 0.0, old_InitialCondition_loc, funcs, INSERT_VALUES, new_InitialCondition_loc));
+ 
       PetscCall(DMLocalToGlobal(*dm, new_InitialCondition_loc, INSERT_VALUES, new_InitialCondition));
     }
-    PetscCall(VecViewFromOptions(old_InitialCondition, NULL, "-oldICview"));
+//    PetscCall(VecViewFromOptions(old_InitialCondition, NULL, "-oldICview"));
     PetscCall(VecViewFromOptions(new_InitialCondition, NULL, "-newICview"));
     PetscCall(DMGlobalToLocal(*dm, new_InitialCondition, INSERT_VALUES, new_InitialCondition_loc));
     PetscCall(DMRestoreGlobalVector(old_dm, &old_InitialCondition));
