@@ -11,12 +11,13 @@ ts_error_if_step_fails: 0
 implicit: true
 ts:
   adapt_type: 'none'
-  type: 'beuler'
-#  type: 'alpha'
+#  type: 'beuler'
+  type: 'alpha'
   alpha_radius: 0.5
   dt: 3.6e-4
   #max_steps: 10
-  max_steps: 1
+  max_steps: 100
+  max_time: 0.0
 #output_freq: 200
 checkpoint_interval: 500
 
@@ -59,10 +60,9 @@ q_extra: 0
 bc_wall: 3
 wall_comps: 1,2,3
 bc_inflow: 6
-#bc_outflow: 5,4
-bc_outflow: 5
+bc_outflow: 5,4
+# bc_outflow: 5
 #bc_freestream: 4,5
-bc_freestream: 4
 #bc_slip_z: 1,2
 
 state_var: primitive
