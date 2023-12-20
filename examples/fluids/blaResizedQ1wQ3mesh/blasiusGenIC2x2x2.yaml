@@ -11,13 +11,12 @@ ts_error_if_step_fails: 0
 implicit: true
 ts:
   adapt_type: 'none'
-#  type: 'beuler'
-  type: 'alpha'
+  type: 'beuler'
+#  type: 'alpha'
   alpha_radius: 0.5
   dt: 3.6e-4
   #max_steps: 10
-  max_steps: 100
-  max_time: 0.0
+  max_steps: 1
 #output_freq: 200
 checkpoint_interval: 500
 
@@ -57,9 +56,10 @@ dm_plex_shape: zbox
 bc_wall: 3
 wall_comps: 1,2,3
 bc_inflow: 6
-bc_outflow: 5,4
-# bc_outflow: 5
+#bc_outflow: 5,4
+bc_outflow: 5
 #bc_freestream: 4,5
+bc_freestream: 4
 #bc_slip_z: 1,2
 
 state_var: primitive
@@ -70,8 +70,8 @@ mu: 1.2502e-5
 freestream:
 #   riemann: hllc
    velocity: 0.9991, 0.00301866, 0.0
-#   temperature: .25
-#   pressure: 71.75
+   temperature: .25
+   pressure: 71.75
 
 P0: 71.75
 temperature_infinity: .25
@@ -117,7 +117,7 @@ output_add_stepnum2bin: true
 #continue_filename: ./output_files/ns-solution-600.bin
 #continue_time_filename: ./output_files/ns-time-600.bin
 
-preload: true
+#preload: true
 #ksp_type: bcgsl
 ksp_type: lgmres
 
