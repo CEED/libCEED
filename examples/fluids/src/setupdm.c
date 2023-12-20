@@ -139,6 +139,17 @@ PetscErrorCode SetUpDM(DM *dm, ProblemData *problem, PetscInt degree, PetscInt q
   PetscCall(PetscPrintf(PETSC_COMM_WORLD, "Before DMProjectFieldLocal in src/setupdm.c : \n"));
 
     PetscCall(DMProjectFieldLocal(*dm, 0.0, old_InitialCondition_loc, funcs, INSERT_ALL_VALUES, new_InitialCondition_loc));
+      PetscCall(VecViewFromOptions(old_InitialCondition_loc, NULL, "-oldICview"));
+      PetscCall(DMProjectFieldLocal(*dm, 0.0, old_InitialCondition_loc, funcs, INSERT_VALUES, new_InitialCondition_loc));
+ 
+      PetscCall(DMLocalToGlobal(*dm, new_InitialCondition_loc, INSERT_VALUES, new_InitialCondition));
+    }
+//    PetscCall(VecViewFromOptions(old_InitialCondition, NULL, "-oldICview"));
+    PetscCall(VecViewFromOptions(new_InitialCondition, NULL, "-newICview"));
+    PetscCall(DMGlobalToLocal(*dm, new_InitialCondition, INSERT_VALUES, new_InitialCondition_loc));
+    PetscCall(DMRestoreGlobalVector(old_dm, &old_InitialCondition));
+    PetscCall(DMRestoreGlobalVector(*dm, &new_InitialCondition));
+>>>>>>> fixed parallel bug of projection
     PetscCall(DMRestoreNamedLocalVector(old_dm, vecName, &old_InitialCondition_loc));
     PetscCall(DMRestoreNamedLocalVector(*dm, vecName, &new_InitialCondition_loc));
     PetscCall(DMDestroy(&old_dm));
