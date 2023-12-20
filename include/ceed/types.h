@@ -87,7 +87,7 @@ values for CPU backends.
 /// Miscompilation with pragma ivdep observed with icc (ICC) 19.0.5.281 20190815 at -O2 and above.
 #elif defined(__GNUC__) && __GNUC__ >= 5
 #define CeedPragmaSIMD _Pragma("GCC ivdep")
-#elif defined(_OPENMP) && _OPENMP >= 201307  // OpenMP-4.0 (July, 2013)
+#elif defined(__clang__) || (defined(_OPENMP) && _OPENMP >= 201307)  // OpenMP-4.0 (July, 2013)
 #define CeedPragmaSIMD _Pragma("omp simd")
 #else
 #define CeedPragmaSIMD
