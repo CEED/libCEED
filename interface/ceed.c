@@ -570,7 +570,7 @@ int CeedSetDeterministic(Ceed ceed, bool is_deterministic) {
 
   @ref Backend
 **/
-int CeedSetBackendFunctionImpl(Ceed ceed, const char *type, void *object, const char *func_name, int (*f)(void)) {
+int CeedSetBackendFunctionImpl(Ceed ceed, const char *type, void *object, const char *func_name, void (*f)(void)) {
   char lookup_name[CEED_MAX_RESOURCE_LEN + 1] = "";
 
   // Build lookup name
@@ -584,7 +584,7 @@ int CeedSetBackendFunctionImpl(Ceed ceed, const char *type, void *object, const 
       size_t offset          = ceed->f_offsets[i].offset;
       int (**fpointer)(void) = (int (**)(void))((char *)object + offset);  // *NOPAD*
 
-      *fpointer = f;
+      *fpointer = (int (*)(void))f;
       return CEED_ERROR_SUCCESS;
     }
   }

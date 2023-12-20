@@ -223,7 +223,7 @@ CEED_INTERN int CeedFree(void *p);
 #define CeedRealloc(n, p) CeedReallocArray((n), sizeof(**(p)), p)
 
 /* Allow users to call CeedSetBackendFunctionImpl using incompatible pointer types */
-#define CeedSetBackendFunction(ceed, type, object, func_name, f) CeedSetBackendFunctionImpl(ceed, type, object, func_name, (int (*)(void))f)
+#define CeedSetBackendFunction(ceed, type, object, func_name, f) CeedSetBackendFunctionImpl(ceed, type, object, func_name, (void (*)(void))f)
 
 CEED_EXTERN int CeedRegister(const char *prefix, int (*init)(const char *, Ceed), unsigned int priority);
 CEED_EXTERN int CeedRegisterImpl(const char *prefix, int (*init)(const char *, Ceed), unsigned int priority);
@@ -239,7 +239,7 @@ CEED_EXTERN int CeedGetOperatorFallbackResource(Ceed ceed, const char **resource
 CEED_EXTERN int CeedGetOperatorFallbackCeed(Ceed ceed, Ceed *fallback_ceed);
 CEED_EXTERN int CeedSetOperatorFallbackResource(Ceed ceed, const char *resource);
 CEED_EXTERN int CeedSetDeterministic(Ceed ceed, bool is_deterministic);
-CEED_EXTERN int CeedSetBackendFunctionImpl(Ceed ceed, const char *type, void *object, const char *func_name, int (*f)(void));
+CEED_EXTERN int CeedSetBackendFunctionImpl(Ceed ceed, const char *type, void *object, const char *func_name, void (*f)(void));
 CEED_EXTERN int CeedGetData(Ceed ceed, void *data);
 CEED_EXTERN int CeedSetData(Ceed ceed, void *data);
 CEED_EXTERN int CeedReference(Ceed ceed);
