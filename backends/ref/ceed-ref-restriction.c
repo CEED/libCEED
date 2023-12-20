@@ -201,7 +201,8 @@ static inline int CeedElemRestrictionApplyStridedTranspose_Ref_Core(CeedElemRest
       CeedPragmaSIMD for (CeedInt k = 0; k < num_comp; k++) {
         CeedPragmaSIMD for (CeedInt n = 0; n < elem_size; n++) {
           CeedPragmaSIMD for (CeedInt j = 0; j < CeedIntMin(block_size, num_elem - e); j++) {
-            vv[n * strides[0] + k * strides[1] + (e + j) * strides[2]] += uu[e * elem_size * num_comp + (k * elem_size + n) * block_size + j - v_offset];
+            vv[n * strides[0] + k * strides[1] + (e + j) * strides[2]] +=
+                uu[e * elem_size * num_comp + (k * elem_size + n) * block_size + j - v_offset];
           }
         }
       }
