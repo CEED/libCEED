@@ -152,7 +152,6 @@ PetscErrorCode SetUpDM(DM *dm, ProblemData *problem, PetscInt degree, PetscInt q
     PetscCall(DMGlobalToLocal(*dm, new_InitialCondition, INSERT_VALUES, new_InitialCondition_loc));
     PetscCall(DMRestoreGlobalVector(old_dm, &old_InitialCondition));
     PetscCall(DMRestoreGlobalVector(*dm, &new_InitialCondition));
->>>>>>> fixed parallel bug of projection
     PetscCall(DMRestoreNamedLocalVector(old_dm, vecName, &old_InitialCondition_loc));
     PetscCall(DMRestoreNamedLocalVector(*dm, vecName, &new_InitialCondition_loc));
     PetscCall(DMDestroy(&old_dm));
