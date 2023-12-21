@@ -119,33 +119,14 @@ PetscErrorCode SetUpDM(DM *dm, ProblemData *problem, PetscInt degree, PetscInt q
   PetscCall(DMSetupByOrderEnd_FEM(PETSC_TRUE, *dm));
 
   if (has_NL_vector && !SkipProjection) {
-
-    Vec old_InitialCondition_loc, new_InitialCondition_loc, old_InitialCondition, new_InitialCondition;
+    Vec old_InitialCondition_loc, new_InitialCondition_loc;
     PetscCall(DMGetNamedLocalVector(old_dm, vecName, &old_InitialCondition_loc));
     PetscCall(DMGetNamedLocalVector(*dm, vecName, &new_InitialCondition_loc));
-    PetscCall(DMGetGlobalVector(old_dm, &old_InitialCondition));
-    PetscCall(DMGetGlobalVector(*dm, &new_InitialCondition));
-    PetscCall(DMLocalToGlobal(old_dm, old_InitialCondition_loc, INSERT_VALUES, old_InitialCondition));
-    if (0) {
-      Mat mat_interp;
-      PetscCall(DMCreateInterpolation(old_dm, *dm, &mat_interp, NULL));
-      PetscCall(MatInterpolate(mat_interp, old_InitialCondition, new_InitialCondition));
-      PetscCall(MatDestroy(&mat_interp));
-    } else {
-      void (*funcs[])(PetscInt, PetscInt, PetscInt, const PetscInt[], const PetscInt[], const PetscScalar[], const PetscScalar[], const PetscScalar[],
-                      const PetscInt[], const PetscInt[], const PetscScalar[], const PetscScalar[], const PetscScalar[], PetscReal, const PetscReal[],
-                      PetscInt, const PetscScalar[], PetscScalar[]) = {evaluate_solution};
+    void (*funcs[])(PetscInt, PetscInt, PetscInt, const PetscInt[], const PetscInt[], const PetscScalar[], const PetscScalar[], const PetscScalar[],
+                    const PetscInt[], const PetscInt[], const PetscScalar[], const PetscScalar[], const PetscScalar[], PetscReal, const PetscReal[],
+                    PetscInt, const PetscScalar[], PetscScalar[]) = {evaluate_solution};
 
-      PetscCall(VecViewFromOptions(old_InitialCondition_loc, NULL, "-oldICview"));
-      PetscCall(DMProjectFieldLocal(*dm, 0.0, old_InitialCondition_loc, funcs, INSERT_VALUES, new_InitialCondition_loc));
- 
-      PetscCall(DMLocalToGlobal(*dm, new_InitialCondition_loc, INSERT_VALUES, new_InitialCondition));
-    }
-//    PetscCall(VecViewFromOptions(old_InitialCondition, NULL, "-oldICview"));
-    PetscCall(VecViewFromOptions(new_InitialCondition, NULL, "-newICview"));
-    PetscCall(DMGlobalToLocal(*dm, new_InitialCondition, INSERT_VALUES, new_InitialCondition_loc));
-    PetscCall(DMRestoreGlobalVector(old_dm, &old_InitialCondition));
-    PetscCall(DMRestoreGlobalVector(*dm, &new_InitialCondition));
+    PetscCall(DMProjectFieldLocal(*dm, 0.0, old_InitialCondition_loc, funcs, INSERT_ALL_VALUES, new_InitialCondition_loc));
     PetscCall(DMRestoreNamedLocalVector(old_dm, vecName, &old_InitialCondition_loc));
     PetscCall(DMRestoreNamedLocalVector(*dm, vecName, &new_InitialCondition_loc));
     PetscCall(DMDestroy(&old_dm));
