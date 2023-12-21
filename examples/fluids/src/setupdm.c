@@ -49,20 +49,27 @@ static void evaluate_solution(PetscInt dim, PetscInt Nf, PetscInt NfAux, const P
 
 // Setup DM
 PetscErrorCode SetUpDM(DM *dm, ProblemData *problem, PetscInt degree, PetscInt q_extra, SimpleBC bc, Physics phys) {
-  PetscInt num_comp_q = 5;
-  DM       old_dm     = NULL;
+  PetscInt  num_comp_q     = 5;
+  DM        old_dm         = NULL;
+  PetscBool SkipProjection = PETSC_FALSE;
 
   PetscFunctionBeginUser;
   //  Restore a NL vector if requested (same flag used in Distribute)
   char vecName[PETSC_MAX_PATH_LEN] = "";
   PetscOptionsBegin(PetscObjectComm((PetscObject)dm), NULL, "Option Named Vector", NULL);
   PetscCall(PetscOptionsString("-named_local_vector_migrate", "Name of NamedLocalVector to migrate", NULL, vecName, vecName, sizeof(vecName), NULL));
+  PetscCall(PetscStrncmp(vecName, "SkipProjection", 14, &SkipProjection));
   PetscOptionsEnd();
 
   PetscBool has_NL_vector, has_NL_vectord;
 
   PetscCall(DMHasNamedLocalVector(*dm, vecName, &has_NL_vector));
   if (has_NL_vector) {
+   if( SkipProjection) {
+     PetscCall(DMClearFields(*dm));
+     PetscCall(DMSetLocalSection(*dm, NULL));
+     PetscCall(DMSetSectionSF(*dm, NULL));
+   } else {
     char vecNamed[PETSC_MAX_PATH_LEN] = ""; 
     PetscStrcpy(vecNamed, vecName);
     PetscStrlcat(vecNamed, "d", PETSC_MAX_PATH_LEN);
@@ -72,6 +79,7 @@ PetscErrorCode SetUpDM(DM *dm, ProblemData *problem, PetscInt degree, PetscInt q
     PetscCall(DMClone(*dm, &new_dm));
     old_dm = *dm;
     *dm    = new_dm;
+   }
   }
 
   PetscCall(DMSetupByOrderBegin_FEM(PETSC_TRUE, PETSC_TRUE, degree, PETSC_DECIDE, q_extra, 1, &num_comp_q, *dm));
@@ -109,7 +117,7 @@ PetscErrorCode SetUpDM(DM *dm, ProblemData *problem, PetscInt degree, PetscInt q
 
   PetscCall(DMSetupByOrderEnd_FEM(PETSC_TRUE, *dm));
 
-  if (has_NL_vector) {
+  if (has_NL_vector && !SkipProjection) {
 
     Vec old_InitialCondition_loc, new_InitialCondition_loc, old_InitialCondition, new_InitialCondition;
     PetscCall(DMGetNamedLocalVector(old_dm, vecName, &old_InitialCondition_loc));
