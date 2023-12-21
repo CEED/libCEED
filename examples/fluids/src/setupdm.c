@@ -63,21 +63,24 @@ PetscErrorCode SetUpDM(DM *dm, ProblemData *problem, PetscInt degree, PetscInt q
 
   PetscCall(DMHasNamedLocalVector(*dm, vecName, &has_NL_vector));
   if (has_NL_vector) {
-   if( SkipProjection) {
-     PetscCall(DMClearFields(*dm));
-     PetscCall(DMSetLocalSection(*dm, NULL));
-     PetscCall(DMSetSectionSF(*dm, NULL));
-   } else {
-    char vecNamed[PETSC_MAX_PATH_LEN] = ""; 
-    PetscStrcpy(vecNamed, vecName);
-    PetscStrlcat(vecNamed, "d", PETSC_MAX_PATH_LEN);
-    PetscCall(DMHasNamedLocalVector(*dm, vecNamed, &has_NL_vectord));
-    if (has_NL_vectord) PetscStrcpy(vecName, vecNamed); // distributed correction is the vector we should use
-    DM new_dm = NULL;
-    PetscCall(DMClone(*dm, &new_dm));
-    old_dm = *dm;
-    *dm    = new_dm;
-   }
+    if (SkipProjection) {
+      PetscCall(DMClearFields(*dm));
+      PetscCall(DMSetLocalSection(*dm, NULL));
+      PetscCall(DMSetSectionSF(*dm, NULL));
+    } else {
+      char vecNamed[PETSC_MAX_PATH_LEN] = "";
+      PetscStrcpy(vecNamed, vecName);
+      PetscStrlcat(vecNamed, "d", PETSC_MAX_PATH_LEN);
+      PetscCall(DMHasNamedLocalVector(*dm, vecNamed, &has_NL_vectord));
+      if (has_NL_vectord) PetscStrcpy(vecName, vecNamed);  // distributed correction is the vector we should use
+      DM new_dm = NULL;
+      PetscCall(DMClone(*dm, &new_dm));
+      PetscSF face_sf;
+      PetscCall(DMPlexGetIsoperiodicFaceSF(*dm, &face_sf));
+      PetscCall(DMPlexSetIsoperiodicFaceSF(new_dm, face_sf));
+      old_dm = *dm;
+      *dm    = new_dm;
+    }
   }
 
   PetscCall(DMSetupByOrderBegin_FEM(PETSC_TRUE, PETSC_TRUE, degree, PETSC_DECIDE, q_extra, 1, &num_comp_q, *dm));
