@@ -56,6 +56,11 @@ noether-cpu:
     - echo "-------------- Nek5000 -------------" && git -C $NEK5K_DIR describe --tags
     - export NPROC_POOL=1
     - make -k -j$NPROC_CPU BACKENDS="$BACKENDS_CPU" JUNIT_BATCH="cpu" junit search=nek NEK5K_DIR=$NEK5K_DIR
+# -- deal.II 8bd5c262f13e15793aa206b6eed8774a9b25ce11
+    - OCCA_DIR= BACKENDS_CPU=$(make info-backends-all | grep -o '/cpu[^ ]*' | tr '\n' ' ')
+    - export DEAL_II_ROOT_DIR=/projects/dealii DEAL_II_DIR=/projects/dealii/install
+    - echo "-------------- deal.II -------------" && git -C $DEAL_II_ROOT_DIR -c safe.directory=$DEAL_II_ROOT_DIR describe --always
+    - make -k -j$NPROC_CPU BACKENDS="$BACKENDS_CPU" JUNIT_BATCH="cpu" junit search=dealii DEAL_II_DIR=$DEAL_II_DIR
 # Clang-tidy
     - echo "-------------- clang-tidy ----------" && clang-tidy --version
     - export OCCA_DIR= && make lib -j$NPROC_CPU
@@ -128,6 +133,10 @@ noether-rocm:
     - echo "-------------- Nek5000 -------------" && git -C $NEK5K_DIR describe --tags
     - export NPROC_POOL=1
     - make -k -j$NPROC_GPU BACKENDS="$BACKENDS_GPU" JUNIT_BATCH="hip" junit search=nek NEK5K_DIR=$NEK5K_DIR
+# -- deal.II 8bd5c262f13e15793aa206b6eed8774a9b25ce11
+    - export DEAL_II_ROOT_DIR=/projects/dealii DEAL_II_DIR=/projects/dealii/install
+    - echo "-------------- deal.II -------------" && git -C $DEAL_II_ROOT_DIR -c safe.directory=$DEAL_II_ROOT_DIR describe --always
+    - make -k -j$((NPROC_GPU / NPROC_POOL)) BACKENDS="$BACKENDS_GPU" JUNIT_BATCH="hip" junit search=dealii DEAL_II_DIR=$DEAL_II_DIR
 # Clang-tidy
     - echo "-------------- clang-tidy ----------" && clang-tidy --version
     - TIDY_OPTS="-fix-errors" make -j$NPROC_CPU tidy && git diff --color=always --exit-code
