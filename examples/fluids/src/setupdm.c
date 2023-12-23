@@ -83,8 +83,10 @@ PetscErrorCode SetUpDM(DM *dm, ProblemData *problem, PetscInt degree, PetscInt q
     }
   }
 
-  PetscCall(DMSetupByOrderBegin_FEM(PETSC_TRUE, PETSC_TRUE, degree, PETSC_DECIDE, q_extra, 1, &num_comp_q, *dm));
+  PetscCall(PetscPrintf(PETSC_COMM_WORLD, "Before DMSetupByOrderBegin in src/setupdm.c : \n"));
 
+  PetscCall(DMSetupByOrderBegin_FEM(PETSC_TRUE, PETSC_TRUE, degree, PETSC_DECIDE, q_extra, 1, &num_comp_q, *dm));
+  PetscCall(PetscPrintf(PETSC_COMM_WORLD, "Before bcwork in src/setupdm.c : \n"));
   {  // Add strong boundary conditions to DM
     DMLabel label;
     PetscCall(DMGetLabel(*dm, "Face Sets", &label));
@@ -126,11 +128,14 @@ PetscErrorCode SetUpDM(DM *dm, ProblemData *problem, PetscInt degree, PetscInt q
                     const PetscInt[], const PetscInt[], const PetscScalar[], const PetscScalar[], const PetscScalar[], PetscReal, const PetscReal[],
                     PetscInt, const PetscScalar[], PetscScalar[]) = {evaluate_solution};
 
+  PetscCall(PetscPrintf(PETSC_COMM_WORLD, "Before DMProjectFieldLocal in src/setupdm.c : \n"));
+
     PetscCall(DMProjectFieldLocal(*dm, 0.0, old_InitialCondition_loc, funcs, INSERT_ALL_VALUES, new_InitialCondition_loc));
     PetscCall(DMRestoreNamedLocalVector(old_dm, vecName, &old_InitialCondition_loc));
     PetscCall(DMRestoreNamedLocalVector(*dm, vecName, &new_InitialCondition_loc));
     PetscCall(DMDestroy(&old_dm));
   }
+  PetscCall(PetscPrintf(PETSC_COMM_WORLD, "After DMProjectFieldLocal in src/setupdm.c : \n"));
 
   // Empty name for conserved field (because there is only one field)
   PetscSection section;
