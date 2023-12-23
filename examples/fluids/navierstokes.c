@@ -60,6 +60,7 @@ int main(int argc, char **argv) {
   // Initialize PETSc
   // ---------------------------------------------------------------------------
   PetscCall(PetscInitialize(&argc, &argv, NULL, help));
+ PetscCall(PetscPrintf(PETSC_COMM_WORLD, "After Initialize navierstokes.c : \n" ));
 
   // ---------------------------------------------------------------------------
   // Create structs
@@ -102,6 +103,7 @@ int main(int argc, char **argv) {
   MPI_Comm comm = PETSC_COMM_WORLD;
   user->comm    = comm;
   PetscCall(ProcessCommandLineOptions(comm, app_ctx, bc));
+  PetscCall(PetscPrintf(PETSC_COMM_WORLD, "After Command Line Options navierstokes.c : \n" ));
 
   // ---------------------------------------------------------------------------
   // Initialize libCEED
@@ -136,6 +138,7 @@ int main(int argc, char **argv) {
   DM      dm;
   VecType vec_type = NULL;
   MatType mat_type = NULL;
+  PetscCall(PetscPrintf(PETSC_COMM_WORLD, "Before CeedGetResource navierstokes.c : \n"));
   switch (mem_type_backend) {
     case CEED_MEM_HOST:
       vec_type = VECSTANDARD;
@@ -149,11 +152,13 @@ int main(int argc, char **argv) {
       else vec_type = VECSTANDARD;
     }
   }
+  PetscCall(PetscPrintf(PETSC_COMM_WORLD, "After CeedGetResource navierstokes.c : \n"));
   if (strstr(vec_type, VECCUDA)) mat_type = MATAIJCUSPARSE;
   else if (strstr(vec_type, VECKOKKOS)) mat_type = MATAIJKOKKOS;
   else mat_type = MATAIJ;
   PetscCall(CreateDM(comm, problem, mat_type, vec_type, &dm));
   user->dm = dm;
+  PetscCall(PetscPrintf(PETSC_COMM_WORLD, "After CreateDMnavierstokes.c : \n"));
   PetscCall(DMSetApplicationContext(dm, user));
 
   // ---------------------------------------------------------------------------
@@ -167,7 +172,9 @@ int main(int argc, char **argv) {
   }
 
   // -- Set up DM
+  PetscCall(PetscPrintf(PETSC_COMM_WORLD, "Before setupDM navierstokes.c : \n"));
   PetscCall(SetUpDM(&dm, problem, app_ctx->degree, app_ctx->q_extra, bc, phys_ctx));
+  PetscCall(PetscPrintf(PETSC_COMM_WORLD, "After setupDM navierstokes.c : \n"));
   user->dm = dm;
 
   // -- Refine DM for high-order viz
@@ -190,6 +197,7 @@ int main(int argc, char **argv) {
   // Set up libCEED
   // ---------------------------------------------------------------------------
   // -- Set up libCEED objects
+  PetscCall(PetscPrintf(PETSC_COMM_WORLD, "Before setuplibCEED navierstokes.c : \n"));
   PetscCall(SetupLibceed(ceed, ceed_data, dm, user, app_ctx, problem, bc));
 
   // ---------------------------------------------------------------------------
@@ -273,6 +281,7 @@ int main(int argc, char **argv) {
   // ---------------------------------------------------------------------------
   TS          ts;
   PetscScalar final_time;
+  PetscCall(PetscPrintf(PETSC_COMM_WORLD, "Before TSSolve navierstokes.c : \n"));
   PetscCall(TSSolve_NS(dm, user, app_ctx, phys_ctx, &Q, &final_time, &ts));
 
   // ---------------------------------------------------------------------------
