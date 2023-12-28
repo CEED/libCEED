@@ -247,6 +247,15 @@ int main(int argc, char **argv) {
 
     PetscBool has_NL_vector, has_NL_vectord;
     Vec       IC_loc;
+
+    char vecNamed[PETSC_MAX_PATH_LEN] = "";
+    PetscStrcpy(vecNamed, vecName);
+    PetscStrlcat(vecNamed, "d", PETSC_MAX_PATH_LEN);
+    PetscCall(DMHasNamedLocalVector(dm, vecNamed, &has_NL_vectord));
+    if (has_NL_vectord) PetscStrcpy(vecName, vecNamed);  // distributed correction is the vector we should use
+
+
+    PetscCall(PetscPrintf(PETSC_COMM_WORLD, "Named local vector IC reached conditional for Q vector navierstokes.c : %s\n", vecName));
     PetscCall(DMHasNamedLocalVector(dm, vecName, &has_NL_vector));
     if (has_NL_vector) {
       PetscCall(PetscPrintf(PETSC_COMM_WORLD, "Named local vector IC reached load to Q vector navierstokes.c : %s\n", vecName));
@@ -262,6 +271,8 @@ int main(int argc, char **argv) {
       PetscCall(DMLocalToGlobal(dm, user->Q_loc, INSERT_VALUES, Q));
       PetscCall(DMRestoreNamedLocalVector(dm, vecName, &IC_loc));
       PetscCall(VecViewFromOptions(Q, NULL, "-testICview"));
+    } else {
+      PetscCall(PetscPrintf(PETSC_COMM_WORLD, "No Named local vector found navierstokes.c : %s\n", vecName));
     }
   }
   if (app_ctx->cont_steps) {
