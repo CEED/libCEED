@@ -65,10 +65,12 @@ PetscErrorCode SetUpDM(DM *dm, ProblemData *problem, PetscInt degree, PetscInt q
 
   PetscCall(DMHasNamedLocalVector(*dm, vecName, &has_NL_vector));
   if (has_NL_vector) {
+    PetscCall(PetscPrintf(PETSC_COMM_WORLD, "inside has_NL_vector condtional src/setupdm.c : \n"));
     if (SkipProjection) {
       PetscCall(DMClearFields(*dm));
       PetscCall(DMSetLocalSection(*dm, NULL));
       PetscCall(DMSetSectionSF(*dm, NULL));
+      PetscCall(PetscPrintf(PETSC_COMM_WORLD, "inside SkipProjection condtional src/setupdm.c : \n"));
     } else {
       char vecNamed[PETSC_MAX_PATH_LEN] = "";
       PetscStrcpy(vecNamed, vecName);
