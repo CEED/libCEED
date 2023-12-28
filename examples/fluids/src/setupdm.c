@@ -74,7 +74,14 @@ PetscErrorCode SetUpDM(DM *dm, ProblemData *problem, PetscInt degree, PetscInt q
       PetscCall(DMHasNamedLocalVector(*dm, vecNamed, &has_NL_vectord));
       if (has_NL_vectord) PetscStrcpy(vecName, vecNamed);  // distributed correction is the vector we should use
       DM new_dm = NULL;
+
+      PetscScalar valc;
+      PetscInt stepNumC;
+      PetscCall(DMGetOutputSequenceNumber(*dm, &stepNumC, &valc));
+
       PetscCall(DMClone(*dm, &new_dm));
+      if(stepNumC >= 0) PetscCall(DMSetOutputSequenceNumber(new_dm, stepNumC, valc));
+
       PetscSF face_sf;
       PetscCall(DMPlexGetIsoperiodicFaceSF(*dm, &face_sf));
       PetscCall(DMPlexSetIsoperiodicFaceSF(new_dm, face_sf));
