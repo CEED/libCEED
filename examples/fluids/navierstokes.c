@@ -290,6 +290,13 @@ int main(int argc, char **argv) {
   // ---------------------------------------------------------------------------
   TS          ts;
   PetscScalar final_time;
+  PetscScalar timeCGNSread;
+  PetscInt stepNumCGNSread;
+  PetscCall(DMGetOutputSequenceNumber(dm, &stepNumCGNSread, &timeCGNSread));
+  if(stepNumCGNSread >= 0) {
+    app_ctx->cont_time = timeCGNSread;
+    app_ctx->cont_steps = stepNumCGNSread;
+  }
   PetscCall(PetscPrintf(PETSC_COMM_WORLD, "Before TSSolve navierstokes.c : \n"));
   PetscCall(TSSolve_NS(dm, user, app_ctx, phys_ctx, &Q, &final_time, &ts));
 
