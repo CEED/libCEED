@@ -40,7 +40,7 @@ PetscErrorCode CreateStatsDM(User user, ProblemData *problem, PetscInt degree) {
 
   // Get spanwise length
   PetscCall(DMGetBoundingBox(user->dm, domain_min, domain_max));
-  user->spanstats.span_width = domain_max[2] - domain_min[1];
+  user->spanstats.span_width = domain_max[2] - domain_min[2];
 
   {  // Get DM from surface
     DM          parent_distributed_dm;
