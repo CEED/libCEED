@@ -166,7 +166,7 @@ PetscErrorCode GetQuadratureCoords(Ceed ceed, DM dm, CeedElemRestriction elem_re
   PetscCallCeed(ceed, CeedOperatorSetField(op_quad_coords, "input", elem_restr_x, basis_x, x_coords));
   PetscCallCeed(ceed, CeedOperatorSetField(op_quad_coords, "output", elem_restr_qx, CEED_BASIS_NONE, CEED_VECTOR_ACTIVE));
 
-  PetscCall(CeedOperatorCreateLocalVecs(op_quad_coords, DMReturnVecType(dm), PetscObjectComm((PetscObject)dm), NULL, Qx_coords));
+  PetscCall(CeedOperatorCreateLocalVecs(op_quad_coords, DMReturnVecType(dm), PETSC_COMM_SELF, NULL, Qx_coords));
   PetscCall(OperatorApplyContextCreate(NULL, NULL, ceed, op_quad_coords, CEED_VECTOR_NONE, NULL, NULL, NULL, &op_quad_coords_ctx));
 
   PetscCall(ApplyCeedOperatorLocalToLocal(NULL, *Qx_coords, op_quad_coords_ctx));
@@ -311,7 +311,7 @@ PetscErrorCode SetupL2ProjectionStats(Ceed ceed, User user, CeedData ceed_data, 
   PetscCallCeed(ceed, CeedOperatorSetField(op_proj_rhs, "output", stats_data->elem_restr_parent_stats, stats_data->basis_stats, CEED_VECTOR_ACTIVE));
 
   PetscCall(OperatorApplyContextCreate(NULL, user->spanstats.dm, ceed, op_proj_rhs, NULL, NULL, NULL, NULL, &user->spanstats.op_proj_rhs_ctx));
-  PetscCall(CeedOperatorCreateLocalVecs(op_proj_rhs, DMReturnVecType(user->spanstats.dm), comm, &user->spanstats.Parent_Stats_loc, NULL));
+  PetscCall(CeedOperatorCreateLocalVecs(op_proj_rhs, DMReturnVecType(user->spanstats.dm), PETSC_COMM_SELF, &user->spanstats.Parent_Stats_loc, NULL));
 
   // -- Setup LHS of L^2 projection
   // Get q_data for mass matrix operator
@@ -430,7 +430,7 @@ PetscErrorCode CreateStatisticCollectionOperator(Ceed ceed, User user, CeedData 
   PetscCall(OperatorApplyContextCreate(user->dm, user->spanstats.dm, user->ceed, op_stats_collect, user->q_ceed, NULL, NULL, NULL,
                                        &user->spanstats.op_stats_collect_ctx));
 
-  PetscCall(CeedOperatorCreateLocalVecs(op_stats_collect, DMReturnVecType(user->spanstats.dm), PetscObjectComm((PetscObject)user->spanstats.dm), NULL,
+  PetscCall(CeedOperatorCreateLocalVecs(op_stats_collect, DMReturnVecType(user->spanstats.dm), PETSC_COMM_SELF, NULL,
                                         &user->spanstats.Child_Stats_loc));
   PetscCall(VecZeroEntries(user->spanstats.Child_Stats_loc));
 
