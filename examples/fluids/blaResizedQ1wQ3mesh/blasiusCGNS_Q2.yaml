@@ -116,6 +116,8 @@ ts_monitor_solution: cgns:flowCGNSIn-%d.cgns # %d activates batch mode, default 
 ts_monitor_solution_interval: 2  # one file per 50 time steps
 viewer_cgns_batch_size: 2 # (optional) change number of frames per batch
 
+ts_monitor_turbulence_spanstats_viewer: cgns:stats-%d.cgns
+
 output_dir: ./output_files
 output_add_stepnum2bin: true
 #continue: 600
