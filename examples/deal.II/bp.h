@@ -118,7 +118,7 @@ public:
   reinit() = 0;
 
   /**
-   * Perform matrix-vecor product
+   * Perform matrix-vector product
    */
   virtual void
   vmult(VectorType &dst, const VectorType &src) const = 0;
@@ -179,7 +179,7 @@ public:
   }
 
   /**
-   * Initialized internal data structures, particularly, CEED.
+   * Initialized internal data structures, particularly, libCEED.
    */
   void
   reinit() override
@@ -318,7 +318,7 @@ public:
 
     if (dof_handler.get_fe().n_components() == 1)
       {
-        // create CEED view on deal.II vectors
+        // create libCEED view on deal.II vectors
         VectorTypeCeed src_ceed(ceed, src);
         VectorTypeCeed dst_ceed(ceed, dst);
 
@@ -331,7 +331,7 @@ public:
         src_tmp.reinit(this->extended_local_size(), true);
         dst_tmp.reinit(this->extended_local_size(), true);
 
-        // create CEED view on deal.II vectors
+        // create libCEED view on deal.II vectors
         VectorTypeCeed src_ceed(ceed, src_tmp);
         VectorTypeCeed dst_ceed(ceed, dst_tmp);
 
@@ -391,7 +391,7 @@ public:
 
 private:
   /**
-   * Wrapper around a deal.II vector to create a CEED vector view.
+   * Wrapper around a deal.II vector to create a libCEED vector view.
    */
   class VectorTypeCeed
   {
@@ -409,7 +409,7 @@ private:
     }
 
     /**
-     * Return CEED vector view.
+     * Return libCEED vector view.
      */
     CeedVector &
     operator()()
@@ -418,7 +418,7 @@ private:
     }
 
     /**
-     * Destructor: destroy vecot view.
+     * Destructor: destroy vector view.
      */
     ~VectorTypeCeed()
     {
@@ -427,7 +427,7 @@ private:
 
   private:
     /**
-     * CEED vector view.
+     * libCEED vector view.
      */
     CeedVector vec_ceed;
   };
@@ -730,7 +730,7 @@ public:
   ~OperatorDealii() = default;
 
   /**
-   * Initialized internal data structurs, particularly, MatrixFree.
+   * Initialized internal data structures, particularly, MatrixFree.
    */
   void
   reinit() override
@@ -745,7 +745,7 @@ public:
   }
 
   /**
-   * Matrix-vecor product.
+   * Matrix-vector product.
    */
   void
   vmult(VectorType &dst, const VectorType &src) const override
@@ -763,7 +763,7 @@ public:
   }
 
   /**
-   * Initialize vecor.
+   * Initialize vector.
    */
   void
   initialize_dof_vector(VectorType &vec) const override
