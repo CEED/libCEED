@@ -689,7 +689,7 @@ int CeedVectorAXPBY(CeedVector y, CeedScalar alpha, CeedScalar beta, CeedVector 
   assert(x_array);
   assert(y_array);
 
-  for (CeedSize i = 0; i < n_y; i++) y_array[i] += alpha * x_array[i] + beta * y_array[i];
+  for (CeedSize i = 0; i < n_y; i++) y_array[i] = alpha * x_array[i] + beta * y_array[i];
 
   CeedCall(CeedVectorRestoreArray(y, &y_array));
   CeedCall(CeedVectorRestoreArrayRead(x, &x_array));
