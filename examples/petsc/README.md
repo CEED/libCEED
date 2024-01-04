@@ -37,7 +37,7 @@ For example
         -ceed /cpu/self/opt/serial,/cpu/self/xsmm/serial,/cpu/self/xsmm/blocked \
         -local_nodes 600,20000 | tee bps.log
 
-which will sample from the `4*4*3=48` specified combinations, each of which will run a problem-size sweep of 600, 1200, 2400, 4800, 9600, 192000 FEM nodes per MPI rank. 
+which will sample from the `4*4*3=48` specified combinations, each of which will run a problem-size sweep of 600, 1200, 2400, 4800, 9600, 192000 FEM nodes per MPI rank.
 The resulting log file can be read by the Python plotting scripts in `benchmarks/`.
 
 ### CEED bakeoff problems with DMPlex and PCMG - multigrid

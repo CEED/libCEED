@@ -56,7 +56,7 @@ typedef struct {
   CeedVector *q_vecs_out;   /* Single element output Q-vectors */
   CeedInt     num_inputs, num_outputs;
   CeedInt     num_active_in, num_active_out;
-  CeedVector *qf_active_in;
+  CeedVector *qf_active_in, point_coords_elem;
 } CeedOperator_Ref;
 
 CEED_INTERN int CeedVectorCreate_Ref(CeedSize n, CeedVector vec);
@@ -80,5 +80,6 @@ CEED_INTERN int CeedQFunctionCreate_Ref(CeedQFunction qf);
 CEED_INTERN int CeedQFunctionContextCreate_Ref(CeedQFunctionContext ctx);
 
 CEED_INTERN int CeedOperatorCreate_Ref(CeedOperator op);
+CEED_INTERN int CeedOperatorCreateAtPoints_Ref(CeedOperator op);
 
 #endif  // CEED_REF_H

@@ -87,6 +87,8 @@ values for CPU backends.
 /// Miscompilation with pragma ivdep observed with icc (ICC) 19.0.5.281 20190815 at -O2 and above.
 #elif defined(__GNUC__) && __GNUC__ >= 5
 #define CeedPragmaSIMD _Pragma("GCC ivdep")
+#elif defined(__clang__)
+#define CeedPragmaSIMD _Pragma("clang loop vectorize(enable)")
 #elif defined(_OPENMP) && _OPENMP >= 201307  // OpenMP-4.0 (July, 2013)
 #define CeedPragmaSIMD _Pragma("omp simd")
 #else
@@ -246,6 +248,8 @@ typedef enum {
   CEED_CONTEXT_FIELD_DOUBLE = 1,
   /// 32 bit integer value
   CEED_CONTEXT_FIELD_INT32 = 2,
+  /// Boolean value
+  CEED_CONTEXT_FIELD_BOOL = 3,
 } CeedContextFieldType;
 
 #endif  // CEED_QFUNCTION_DEFS_H

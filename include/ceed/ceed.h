@@ -21,15 +21,15 @@
 /// requires.
 /// @section Utility Utility Functions
 ///    These functions are intended general utilities that may be useful to libCEED developers and users.
-///    These functions can generally be found in "ceed.h".
+///    These functions can generally be found in `"ceed.h"`.
 /// @section User User Functions
-///    These functions are intended to be used by general users of libCEED and can generally be found in "ceed.h".
+///    These functions are intended to be used by general users of libCEED and can generally be found in `"ceed.h"`.
 /// @section Advanced Advanced Functions
-///    These functions are intended to be used by advanced users of libCEED and can generally be found in "ceed.h".
+///    These functions are intended to be used by advanced users of libCEED and can generally be found in `"ceed.h"`.
 /// @section Backend Backend Developer Functions
-///    These functions are intended to be used by backend developers of libCEED and can generally be found in "ceed-backend.h".
+///    These functions are intended to be used by backend developers of libCEED and can generally be found in `"ceed-backend.h"`.
 /// @section Developer Library Developer Functions
-///    These functions are intended to be used by library developers of libCEED and can generally be found in "ceed-impl.h".
+///    These functions are intended to be used by library developers of libCEED and can generally be found in `"ceed-impl.h"`.
 
 #if !defined(CEED_SKIP_VISIBILITY)
 #define CEED_VISIBILITY(mode) __attribute__((visibility(#mode)))
@@ -37,11 +37,11 @@
 #define CEED_VISIBILITY(mode)
 #endif
 
-/**
+/*
   CEED_EXTERN is used in this header to denote all publicly visible symbols.
 
-  No other file should declare publicly visible symbols, thus it should never be used outside ceed.h.
- */
+  No other file should declare publicly visible symbols, thus it should never be used outside `"ceed.h"`.
+*/
 #if defined(__clang_analyzer__)
 #define CEED_EXTERN extern
 #elif defined(__cplusplus)
@@ -54,19 +54,24 @@
 #include <stdbool.h>
 #include <stdio.h>
 
-/// Typedefs and macros used in public interfaces and user QFunction source
+/*
+  Typedefs and macros used in public interfaces and user `CeedQFunction` source
+*/
 #include "types.h"  // IWYU pragma: export
-/// This line prevents IWYU from suggesting "ceed.h"
+
+/*
+  This line prevents IWYU from suggesting "ceed.h"
+*/
 // IWYU pragma: private, include <ceed.h>
 
 /// Library context created by CeedInit()
 /// @ingroup CeedUser
 typedef struct Ceed_private *Ceed;
 /// Non-blocking Ceed interfaces return a CeedRequest.
-/// To perform an operation immediately, pass \ref CEED_REQUEST_IMMEDIATE instead.
+/// To perform an operation immediately, pass @ref CEED_REQUEST_IMMEDIATE instead.
 /// @ingroup CeedUser
 typedef struct CeedRequest_private *CeedRequest;
-/// Handle for vectors over the field \ref CeedScalar
+/// Handle for vectors over the field @ref CeedScalar
 /// @ingroup CeedVectorUser
 typedef struct CeedVector_private *CeedVector;
 /// Handle for object describing restriction to elements
@@ -92,8 +97,7 @@ typedef struct CeedQFunctionContext_private *CeedQFunctionContext;
 typedef struct CeedContextFieldLabel_private *CeedContextFieldLabel;
 /// Handle for object describing FE-type operators acting on vectors
 ///
-/// Given an element restriction \f$E\f$, basis evaluator \f$B\f$, and quadrature function\f$f\f$, a CeedOperator expresses operations of the form
-/// \f$E^T B^T f(B E u)\f$ acting on the vector \f$u\f$.
+/// Given an element restriction \f$E\f$, basis evaluator \f$B\f$, and quadrature function\f$f\f$, a `CeedOperator` expresses operations of the form \f$E^T B^T f(B E u)\f$ acting on the vector \f$u\f$.
 /// @ingroup CeedOperatorUser
 typedef struct CeedOperator_private *CeedOperator;
 
@@ -106,11 +110,11 @@ CEED_EXTERN int CeedIsDeterministic(Ceed ceed, bool *is_deterministic);
 CEED_EXTERN int CeedAddJitSourceRoot(Ceed ceed, const char *jit_source_root);
 CEED_EXTERN int CeedView(Ceed ceed, FILE *stream);
 CEED_EXTERN int CeedDestroy(Ceed *ceed);
+CEED_EXTERN int CeedErrorImpl(Ceed ceed, const char *filename, int lineno, const char *func, int ecode, const char *format, ...);
 
-CEED_EXTERN int CeedErrorImpl(Ceed, const char *, int, const char *, int, const char *, ...);
-/// Raise an error on ceed object
+/// Raise an error on `Ceed` object
 ///
-/// @param ceed Ceed library context or NULL
+/// @param ceed `Ceed` library context or `NULL`
 /// @param ecode Error code (int)
 /// @param ... printf-style format string followed by arguments as needed
 ///
@@ -119,19 +123,19 @@ CEED_EXTERN int CeedErrorImpl(Ceed, const char *, int, const char *, int, const 
 #define CeedError(ceed, ecode, ...) (CeedErrorImpl((ceed), __FILE__, __LINE__, __func__, (ecode), __VA_ARGS__), (ecode))
 
 /// Ceed error handlers
-CEED_EXTERN int CeedErrorReturn(Ceed, const char *, int, const char *, int, const char *, va_list *);
-CEED_EXTERN int CeedErrorStore(Ceed, const char *, int, const char *, int, const char *, va_list *);
-CEED_EXTERN int CeedErrorAbort(Ceed, const char *, int, const char *, int, const char *, va_list *);
-CEED_EXTERN int CeedErrorExit(Ceed, const char *, int, const char *, int, const char *, va_list *);
 typedef int (*CeedErrorHandler)(Ceed, const char *, int, const char *, int, const char *, va_list *);
-CEED_EXTERN int CeedSetErrorHandler(Ceed ceed, CeedErrorHandler eh);
-CEED_EXTERN int CeedGetErrorMessage(Ceed, const char **err_msg);
-CEED_EXTERN int CeedResetErrorMessage(Ceed, const char **err_msg);
+CEED_EXTERN int CeedSetErrorHandler(Ceed ceed, CeedErrorHandler handler);
+CEED_EXTERN int CeedGetErrorMessage(Ceed ceed, const char **err_msg);
+CEED_EXTERN int CeedResetErrorMessage(Ceed ceed, const char **err_msg);
+CEED_EXTERN int CeedErrorReturn(Ceed ceed, const char *filename, int line_no, const char *func, int err_code, const char *format, va_list *args);
+CEED_EXTERN int CeedErrorStore(Ceed ceed, const char *filename, int line_no, const char *func, int err_code, const char *format, va_list *args);
+CEED_EXTERN int CeedErrorAbort(Ceed ceed, const char *filename, int line_no, const char *func, int err_code, const char *format, va_list *args);
+CEED_EXTERN int CeedErrorExit(Ceed ceed, const char *filename, int line_no, const char *func, int err_code, const char *format, va_list *args);
 
 /// libCEED library version numbering
 /// @ingroup Ceed
 #define CEED_VERSION_MAJOR 0
-#define CEED_VERSION_MINOR 11
+#define CEED_VERSION_MINOR 12
 #define CEED_VERSION_PATCH 0
 #define CEED_VERSION_RELEASE false
 
@@ -202,34 +206,34 @@ CEED_EXTERN CeedRequest *const CEED_REQUEST_IMMEDIATE;
 CEED_EXTERN CeedRequest *const CEED_REQUEST_ORDERED;
 CEED_EXTERN int                CeedRequestWait(CeedRequest *req);
 
-/// Argument for CeedOperatorSetField to use active input or output.
+/// Argument for @ref CeedOperatorSetField() to use active input or output.
 /// @ingroup CeedVector
 CEED_EXTERN const CeedVector CEED_VECTOR_ACTIVE;
 
-/// Argument for CeedOperatorSetField to use no vector.
-/// Only use this option with CeedEvalMode CEED_EVAL_WEIGHT.
+/// Argument for @ref CeedOperatorSetField() to use no `CeedVector`.
+/// Only use this option with @ref CeedEvalMode @ref CEED_EVAL_WEIGHT.
 /// @ingroup CeedVector
 CEED_EXTERN const CeedVector CEED_VECTOR_NONE;
 
-/// Argument for CeedOperatorSetField that no basis operation is needed to translate between the E-vector and the Q-vector.
-/// Only use this option with CeedEvalMode CEED_EVAL_NONE.
+/// Argument for @ref CeedOperatorSetField() that no basis operation is needed to translate between the E-vector and the Q-vector.
+/// Only use this option with @ref CeedEvalMode @ref CEED_EVAL_NONE.
 /// @ingroup CeedBasis
 CEED_EXTERN const CeedBasis CEED_BASIS_NONE;
 
 CEED_EXTERN const CeedBasis CEED_BASIS_COLLOCATED;
 
-/// Argument for CeedOperatorSetField to use no ElemRestriction.
-/// Only use this option with CeedEvalMode CEED_EVAL_WEIGHT.
+/// Argument for @ref CeedOperatorSetField() to use no `CeedElemRestriction`.
+/// Only use this option with @ref CeedEvalMode @ref CEED_EVAL_WEIGHT.
 /// @ingroup CeedElemRestriction
 CEED_EXTERN const CeedElemRestriction CEED_ELEMRESTRICTION_NONE;
 
-/// Argument for CeedOperatorCreate that QFunction is not created by user.
-/// Only used for QFunctions dqf and dqfT.
-/// If implemented, a backend may attempt to provide the action of these QFunctions.
+/// Argument for @ref CeedOperatorCreate() that `CeedQFunction` is not created by user.
+/// Only used for `CeedQFunction` `dqf` and `dqfT`.
+/// If implemented, a backend may attempt to provide the action of these `CeedQFunction`.
 /// @ingroup CeedQFunction
 CEED_EXTERN const CeedQFunction CEED_QFUNCTION_NONE;
 
-/// Argument for CeedElemRestrictionCreateStrided that L-vector is in the Ceed backend's preferred layout.
+/// Argument for @ref CeedElemRestrictionCreateStrided() that L-vector is in the Ceed backend's preferred layout.
 /// This argument should only be used with vectors created by a Ceed backend.
 /// @ingroup CeedElemRestriction
 CEED_EXTERN const CeedInt CEED_STRIDES_BACKEND[3];
@@ -322,16 +326,15 @@ CEED_EXTERN int CeedBasisDestroy(CeedBasis *basis);
 CEED_EXTERN int CeedGaussQuadrature(CeedInt Q, CeedScalar *q_ref_1d, CeedScalar *q_weight_1d);
 CEED_EXTERN int CeedLobattoQuadrature(CeedInt Q, CeedScalar *q_ref_1d, CeedScalar *q_weight_1d);
 
-/** Handle for the user provided CeedQFunction callback function
+/** Handle for the user provided `CeedQFunction` callback function
 
- @param[in,out] ctx  User-defined context set using CeedQFunctionSetContext() or NULL
- @param[in] Q        Number of quadrature points at which to evaluate
- @param[in] in       Array of pointers to each input argument in the order provided by the user in CeedQFunctionAddInput().
-                       Each array has shape `[dim, num_comp, Q]` where `dim` is the geometric dimension for \ref CEED_EVAL_GRAD (`dim=1` for \ref
-CEED_EVAL_INTERP) and `num_comp` is the number of field components (`num_comp=1` for scalar fields). This results in indexing the `i`th input at
-quadrature point `j` as `in[i][(d*num_comp + c)*Q + j]`.
- @param[out]   out   Array of pointers to each output array in the order provided using CeedQFunctionAddOutput().
-                       The shapes are as above for \a in.
+ @param[in,out] ctx User-defined context set using @ref CeedQFunctionSetContext() or `NULL`
+ @param[in] Q       Number of quadrature points at which to evaluate
+ @param[in] in      Array of pointers to each input argument in the order provided by the user in @ref CeedQFunctionAddInput().
+                      Each array has shape `[dim, num_comp, Q]` where `dim` is the geometric dimension for @ref CEED_EVAL_GRAD (`dim=1` for @ref CEED_EVAL_INTERP) and `num_comp` is the number of field components (`num_comp=1` for scalar fields).
+                      This results in indexing the `i`th input at quadrature point `j` as `in[i][(d*num_comp + c)*Q + j]`.
+ @param[out]   out  Array of pointers to each output array in the order provided using @ref CeedQFunctionAddOutput().
+                      The shapes are as above for `in`.
 
  @return An error code: 0 - success, otherwise - failure
 
@@ -359,9 +362,9 @@ CEED_EXTERN int CeedQFunctionFieldGetName(CeedQFunctionField qf_field, char **fi
 CEED_EXTERN int CeedQFunctionFieldGetSize(CeedQFunctionField qf_field, CeedInt *size);
 CEED_EXTERN int CeedQFunctionFieldGetEvalMode(CeedQFunctionField qf_field, CeedEvalMode *eval_mode);
 
-/** Handle for the user provided CeedQFunctionContextDataDestroy callback function
+/** Handle for the user provided @ref CeedQFunctionContextDestroy() callback function
 
- @param[in,out] data  User-CeedQFunctionContext data
+ @param[in,out] data  User `CeedQFunctionContext` data
 
  @return An error code: 0 - success, otherwise - failure
 
@@ -381,6 +384,8 @@ CEED_EXTERN int CeedQFunctionContextRegisterDouble(CeedQFunctionContext ctx, con
                                                    const char *field_description);
 CEED_EXTERN int CeedQFunctionContextRegisterInt32(CeedQFunctionContext ctx, const char *field_name, size_t field_offset, size_t num_values,
                                                   const char *field_description);
+CEED_EXTERN int CeedQFunctionContextRegisterBoolean(CeedQFunctionContext ctx, const char *field_name, size_t field_offset, size_t num_values,
+                                                    const char *field_description);
 CEED_EXTERN int CeedQFunctionContextGetAllFieldLabels(CeedQFunctionContext ctx, const CeedContextFieldLabel **field_labels, CeedInt *num_fields);
 CEED_EXTERN int CeedContextFieldLabelGetDescription(CeedContextFieldLabel label, const char **field_name, size_t *field_offset, size_t *num_values,
                                                     const char **field_description, CeedContextFieldType *field_type);
@@ -390,11 +395,15 @@ CEED_EXTERN int CeedQFunctionContextSetDataDestroy(CeedQFunctionContext ctx, Cee
 CEED_EXTERN int CeedQFunctionContextDestroy(CeedQFunctionContext *ctx);
 
 CEED_EXTERN int CeedOperatorCreate(Ceed ceed, CeedQFunction qf, CeedQFunction dqf, CeedQFunction dqfT, CeedOperator *op);
+CEED_EXTERN int CeedOperatorCreateAtPoints(Ceed ceed, CeedQFunction qf, CeedQFunction dqf, CeedQFunction dqfT, CeedOperator *op);
 CEED_EXTERN int CeedCompositeOperatorCreate(Ceed ceed, CeedOperator *op);
 CEED_EXTERN int CeedOperatorReferenceCopy(CeedOperator op, CeedOperator *op_copy);
-CEED_EXTERN int CeedOperatorSetField(CeedOperator op, const char *field_name, CeedElemRestriction r, CeedBasis b, CeedVector v);
+CEED_EXTERN int CeedOperatorSetField(CeedOperator op, const char *field_name, CeedElemRestriction rstr, CeedBasis basis, CeedVector vec);
 CEED_EXTERN int CeedOperatorGetFields(CeedOperator op, CeedInt *num_input_fields, CeedOperatorField **input_fields, CeedInt *num_output_fields,
                                       CeedOperatorField **output_fields);
+
+CEED_EXTERN int CeedOperatorAtPointsSetPoints(CeedOperator op, CeedElemRestriction rstr_points, CeedVector point_coords);
+CEED_EXTERN int CeedOperatorAtPointsGetPoints(CeedOperator op, CeedElemRestriction *rstr_points, CeedVector *point_coords);
 CEED_EXTERN int CeedCompositeOperatorAddSub(CeedOperator composite_op, CeedOperator sub_op);
 CEED_EXTERN int CeedCompositeOperatorGetNumSub(CeedOperator op, CeedInt *num_suboperators);
 CEED_EXTERN int CeedCompositeOperatorGetSubList(CeedOperator op, CeedOperator **sub_operators);
@@ -434,9 +443,12 @@ CEED_EXTERN int CeedOperatorGetContextFieldLabel(CeedOperator op, const char *fi
 CEED_EXTERN int CeedOperatorSetContextDouble(CeedOperator op, CeedContextFieldLabel field_label, double *values);
 CEED_EXTERN int CeedOperatorGetContextDoubleRead(CeedOperator op, CeedContextFieldLabel field_label, size_t *num_values, const double **values);
 CEED_EXTERN int CeedOperatorRestoreContextDoubleRead(CeedOperator op, CeedContextFieldLabel field_label, const double **values);
-CEED_EXTERN int CeedOperatorSetContextInt32(CeedOperator op, CeedContextFieldLabel field_label, int *values);
-CEED_EXTERN int CeedOperatorGetContextInt32Read(CeedOperator op, CeedContextFieldLabel field_label, size_t *num_values, const int **values);
-CEED_EXTERN int CeedOperatorRestoreContextInt32Read(CeedOperator op, CeedContextFieldLabel field_label, const int **values);
+CEED_EXTERN int CeedOperatorSetContextInt32(CeedOperator op, CeedContextFieldLabel field_label, int32_t *values);
+CEED_EXTERN int CeedOperatorGetContextInt32Read(CeedOperator op, CeedContextFieldLabel field_label, size_t *num_values, const int32_t **values);
+CEED_EXTERN int CeedOperatorRestoreContextInt32Read(CeedOperator op, CeedContextFieldLabel field_label, const int32_t **values);
+CEED_EXTERN int CeedOperatorSetContextBoolean(CeedOperator op, CeedContextFieldLabel field_label, bool *values);
+CEED_EXTERN int CeedOperatorGetContextBooleanRead(CeedOperator op, CeedContextFieldLabel field_label, size_t *num_values, const bool **values);
+CEED_EXTERN int CeedOperatorRestoreContextBooleanRead(CeedOperator op, CeedContextFieldLabel field_label, const bool **values);
 CEED_EXTERN int CeedOperatorApply(CeedOperator op, CeedVector in, CeedVector out, CeedRequest *request);
 CEED_EXTERN int CeedOperatorApplyAdd(CeedOperator op, CeedVector in, CeedVector out, CeedRequest *request);
 CEED_EXTERN int CeedOperatorDestroy(CeedOperator *op);

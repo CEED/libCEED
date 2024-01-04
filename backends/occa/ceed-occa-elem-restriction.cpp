@@ -320,7 +320,7 @@ int ElemRestriction::ceedCreate(CeedMemType memType, CeedCopyMode copyMode, cons
   elemRestriction->setup(memType, copyMode, indicesInput);
 
   CeedInt defaultLayout[3] = {1, elemRestriction->ceedElementSize, elemRestriction->ceedElementSize * elemRestriction->ceedComponentCount};
-  CeedChkBackend(CeedElemRestrictionSetELayout(r, defaultLayout));
+  CeedCallBackend(CeedElemRestrictionSetELayout(r, defaultLayout));
 
   CeedOccaRegisterFunction(r, "Apply", ElemRestriction::ceedApply);
   CeedOccaRegisterFunction(r, "ApplyUnsigned", ElemRestriction::ceedApply);

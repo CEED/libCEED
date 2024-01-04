@@ -14,7 +14,7 @@ PetscErrorCode SmartRedisVerifyPutTensor(void *c_client, const char *name, const
   bool does_exist = true;
 
   PetscFunctionBeginUser;
-  SmartRedisCall(tensor_exists(c_client, name, name_length, &does_exist));
+  PetscSmartRedisCall(tensor_exists(c_client, name, name_length, &does_exist));
   PetscCheck(does_exist, PETSC_COMM_SELF, -1, "Tensor of name '%s' was not written to the database successfully", name);
   PetscFunctionReturn(PETSC_SUCCESS);
 }
@@ -33,7 +33,7 @@ PetscErrorCode SmartSimTrainingSetup(User user) {
   if (rank % smartsim->collocated_database_num_ranks == 0) {
     // -- Send array that communicates when ML is done training
     PetscCall(PetscLogEventBegin(SmartRedis_Meta, 0, 0, 0, 0));
-    SmartRedisCall(put_tensor(smartsim->client, "check-run", 9, checkrun, dim_2, 1, SRTensorTypeDouble, SRMemLayoutContiguous));
+    PetscSmartRedisCall(put_tensor(smartsim->client, "check-run", 9, checkrun, dim_2, 1, SRTensorTypeDouble, SRMemLayoutContiguous));
     PetscCall(SmartRedisVerifyPutTensor(smartsim->client, "check-run", 9));
     PetscCall(PetscLogEventEnd(SmartRedis_Meta, 0, 0, 0, 0));
   }
@@ -61,7 +61,7 @@ PetscErrorCode SmartSimSetup(User user) {
   PetscCall(PetscSNPrintf(smartsim->rank_id_name, sizeof smartsim->rank_id_name, "y.%d", rank));
 
   PetscCall(PetscLogEventBegin(SmartRedis_Init, 0, 0, 0, 0));
-  SmartRedisCall(SmartRedisCClient(num_orchestrator_nodes != 1, smartsim->rank_id_name, rank_id_name_len, &smartsim->client));
+  PetscSmartRedisCall(SmartRedisCClient(num_orchestrator_nodes != 1, smartsim->rank_id_name, rank_id_name_len, &smartsim->client));
   PetscCall(PetscLogEventEnd(SmartRedis_Init, 0, 0, 0, 0));
 
   PetscCall(SmartSimTrainingSetup(user));
@@ -72,7 +72,7 @@ PetscErrorCode SmartSimDataDestroy(SmartSimData smartsim) {
   PetscFunctionBeginUser;
   if (!smartsim) PetscFunctionReturn(PETSC_SUCCESS);
 
-  SmartRedisCall(DeleteCClient(&smartsim->client));
+  PetscSmartRedisCall(DeleteCClient(&smartsim->client));
   PetscCall(PetscFree(smartsim));
   PetscFunctionReturn(PETSC_SUCCESS);
 }

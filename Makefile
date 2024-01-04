@@ -252,7 +252,7 @@ petscexamples   := $(petscexamples.c:examples/petsc/%.c=$(OBJDIR)/petsc-%)
 fluidsexamples.c  := $(sort $(wildcard examples/fluids/*.c))
 fluidsexamples.py := examples/fluids/smartsim_regression_framework.py
 fluidsexamples    := $(fluidsexamples.c:examples/fluids/%.c=$(OBJDIR)/fluids-%)
-fluidsexamples    += $(fluidsexamples.py:examples/fluids/%.py=$(OBJDIR)/fluids-py-%) 
+fluidsexamples    += $(fluidsexamples.py:examples/fluids/%.py=$(OBJDIR)/fluids-py-%)
 # Solid Mechanics Examples
 solidsexamples.c := $(sort $(wildcard examples/solids/*.c))
 solidsexamples   := $(solidsexamples.c:examples/solids/%.c=$(OBJDIR)/solids-%)
@@ -277,8 +277,6 @@ cuda-gen.cu    := $(sort $(wildcard backends/cuda-gen/kernels/*.cu))
 occa.cpp       := $(sort $(shell find backends/occa -type f -name *.cpp))
 magma.c        := $(sort $(wildcard backends/magma/*.c))
 magma.cpp      := $(sort $(wildcard backends/magma/*.cpp))
-magma.cu       := $(sort $(wildcard backends/magma/kernels/cuda/*.cu))
-magma.hip      := $(sort $(wildcard backends/magma/kernels/hip/*.hip.cpp))
 hip.c          := $(sort $(wildcard backends/hip/*.c))
 hip.cpp        := $(sort $(wildcard backends/hip/*.cpp))
 hip-ref.c      := $(sort $(wildcard backends/hip-ref/*.c))
@@ -493,10 +491,8 @@ ifneq ($(wildcard $(MAGMA_DIR)/lib/libmagma.*),)
       PKG_LIBS += $(magma_link)
       libceed.c   += $(magma.c)
       libceed.cpp += $(magma.cpp)
-      libceed.cu  += $(magma.cu)
       $(magma.c:%.c=$(OBJDIR)/%.o) $(magma.c:%=%.tidy) : CPPFLAGS += -DADD_ -I$(MAGMA_DIR)/include -I$(CUDA_DIR)/include
       $(magma.cpp:%.cpp=$(OBJDIR)/%.o) $(magma.cpp:%=%.tidy) : CPPFLAGS += -DADD_ -I$(MAGMA_DIR)/include -I$(CUDA_DIR)/include
-      $(magma.cu:%.cu=$(OBJDIR)/%.o) : CPPFLAGS += --compiler-options=-fPIC -DADD_ -I$(MAGMA_DIR)/include -I$(MAGMA_DIR)/magmablas -I$(CUDA_DIR)/include
       MAGMA_BACKENDS = /gpu/cuda/magma /gpu/cuda/magma/det
     endif
   else  # HIP MAGMA
@@ -509,10 +505,8 @@ ifneq ($(wildcard $(MAGMA_DIR)/lib/libmagma.*),)
       PKG_LIBS += $(magma_link)
       libceed.c   += $(magma.c)
       libceed.cpp += $(magma.cpp)
-      libceed.hip += $(magma.hip)
       $(magma.c:%.c=$(OBJDIR)/%.o) $(magma.c:%=%.tidy) : CPPFLAGS += $(HIPCONFIG_CPPFLAGS) -I$(MAGMA_DIR)/include -I$(ROCM_DIR)/include -DCEED_MAGMA_USE_HIP -DADD_
       $(magma.cpp:%.cpp=$(OBJDIR)/%.o) $(magma.cpp:%=%.tidy) : CPPFLAGS += $(HIPCONFIG_CPPFLAGS) -I$(MAGMA_DIR)/include -I$(ROCM_DIR)/include -DCEED_MAGMA_USE_HIP -DADD_
-      $(magma.hip:%.hip.cpp=$(OBJDIR)/%.o) : CPPFLAGS += -I$(MAGMA_DIR)/include -I$(MAGMA_DIR)/magmablas -I$(ROCM_DIR)/include -DCEED_MAGMA_USE_HIP -DADD_
       MAGMA_BACKENDS = /gpu/hip/magma /gpu/hip/magma/det
     endif
   endif
@@ -759,13 +753,14 @@ doc-html doc-latexpdf doc-epub doc-livehtml : doc-% : doxygen
 doc : doc-html
 
 # Style/Format
-CLANG_FORMAT ?= clang-format
+CLANG_FORMAT      ?= clang-format
 CLANG_FORMAT_OPTS += -style=file -i
-AUTOPEP8 ?= autopep8
-AUTOPEP8_OPTS += --in-place --aggressive --max-line-length 120
+AUTOPEP8          ?= autopep8
+AUTOPEP8_OPTS     += --in-place --aggressive --max-line-length 120
 
 format.ch := $(filter-out include/ceedf.h $(wildcard tests/t*-f.h), $(shell git ls-files '*.[ch]pp' '*.[ch]'))
 format.py := $(filter-out tests/junit-xml/junit_xml/__init__.py, $(shell git ls-files '*.py'))
+format.ot := $(filter-out doc/sphinx/source/CODE_OF_CONDUCT.md doc/sphinx/source/CONTRIBUTING.md, $(shell git ls-files '*.md' '*.f90'))
 
 format-c  :
 	$(CLANG_FORMAT) $(CLANG_FORMAT_OPTS) $(format.ch)
@@ -773,7 +768,17 @@ format-c  :
 format-py :
 	$(AUTOPEP8) $(AUTOPEP8_OPTS) $(format.py)
 
-format    : format-c format-py
+format-ot:
+	@$(SED) -r 's/\s+$$//' -i $(format.ot)
+
+format    : format-c format-py format-ot
+
+# Vermin - python version requirements
+VERMIN            ?= vermin
+VERMIN_OPTS       += -t=3.7- --violations
+
+vermin    :
+	$(VERMIN) $(VERMIN_OPTS) $(format.py)
 
 # Tidy
 CLANG_TIDY ?= clang-tidy

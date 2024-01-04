@@ -6,7 +6,7 @@ authors = [
 ]
 build = "build.rs"
 name = "libceed-sys"
-version = "0.11.0"
+version = "0.12.0"
 links = "libceed-sys"
 edition = "2018"
 license = "BSD-2-Clause"
@@ -35,3 +35,9 @@ pkg-config = "0.3.19"
 
 [dev-dependencies]
 version-sync = "0.9.2"
+
+[package.metadata.release]
+pre-release-replacements = [
+  { file = "README.md", search = "libceed-sys = \"[0-9.]*\"", replace = "libceed-sys = \"{{version}}\"" },
+  { file = "build.rs", search = "atleast_version\\(\"[0-9.]*\"\\)", replace = "atleast_version(\"{{version}}\")" },
+]

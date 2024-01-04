@@ -216,15 +216,14 @@ CEED_INTERN int CeedFree(void *p);
     if (!(cond)) return CeedError(ceed, ecode, __VA_ARGS__); \
   } while (0)
 
-/* Note - these are legacy macros that should be removed eventually */
-#define CeedChk(...) CeedCall(__VA_ARGS__)
-#define CeedChkBackend(...) CeedCallBackend(__VA_ARGS__)
-
 /* Note that CeedMalloc and CeedCalloc will, generally, return pointers with different memory alignments:
    CeedMalloc returns pointers aligned at CEED_ALIGN bytes, while CeedCalloc uses the alignment of calloc. */
 #define CeedMalloc(n, p) CeedMallocArray((n), sizeof(**(p)), p)
 #define CeedCalloc(n, p) CeedCallocArray((n), sizeof(**(p)), p)
 #define CeedRealloc(n, p) CeedReallocArray((n), sizeof(**(p)), p)
+
+/* Allows calling CeedSetBackendFunctionImpl using incompatible pointer types */
+#define CeedSetBackendFunction(ceed, type, object, func_name, f) CeedSetBackendFunctionImpl(ceed, type, object, func_name, (void (*)(void))f)
 
 CEED_EXTERN int CeedRegister(const char *prefix, int (*init)(const char *, Ceed), unsigned int priority);
 CEED_EXTERN int CeedRegisterImpl(const char *prefix, int (*init)(const char *, Ceed), unsigned int priority);
@@ -240,7 +239,7 @@ CEED_EXTERN int CeedGetOperatorFallbackResource(Ceed ceed, const char **resource
 CEED_EXTERN int CeedGetOperatorFallbackCeed(Ceed ceed, Ceed *fallback_ceed);
 CEED_EXTERN int CeedSetOperatorFallbackResource(Ceed ceed, const char *resource);
 CEED_EXTERN int CeedSetDeterministic(Ceed ceed, bool is_deterministic);
-CEED_EXTERN int CeedSetBackendFunction(Ceed ceed, const char *type, void *object, const char *func_name, int (*f)());
+CEED_EXTERN int CeedSetBackendFunctionImpl(Ceed ceed, const char *type, void *object, const char *func_name, void (*f)(void));
 CEED_EXTERN int CeedGetData(Ceed ceed, void *data);
 CEED_EXTERN int CeedSetData(Ceed ceed, void *data);
 CEED_EXTERN int CeedReference(Ceed ceed);
@@ -271,6 +270,7 @@ typedef enum {
 CEED_EXTERN int CeedElemRestrictionGetType(CeedElemRestriction rstr, CeedRestrictionType *rstr_type);
 CEED_EXTERN int CeedElemRestrictionIsStrided(CeedElemRestriction rstr, bool *is_strided);
 CEED_EXTERN int CeedElemRestrictionIsPoints(CeedElemRestriction rstr, bool *is_points);
+CEED_EXTERN int CeedElemRestrictionAtPointsAreCompatible(CeedElemRestriction rstr_a, CeedElemRestriction rstr_b, bool *are_compatible);
 CEED_EXTERN int CeedElemRestrictionGetStrides(CeedElemRestriction rstr, CeedInt (*strides)[3]);
 CEED_EXTERN int CeedElemRestrictionHasBackendStrides(CeedElemRestriction rstr, bool *has_backend_strides);
 CEED_EXTERN int CeedElemRestrictionGetOffsets(CeedElemRestriction rstr, CeedMemType mem_type, const CeedInt **offsets);
@@ -362,9 +362,14 @@ CEED_EXTERN int CeedQFunctionContextSetDouble(CeedQFunctionContext ctx, CeedCont
 CEED_EXTERN int CeedQFunctionContextGetDoubleRead(CeedQFunctionContext ctx, CeedContextFieldLabel field_label, size_t *num_values,
                                                   const double **values);
 CEED_EXTERN int CeedQFunctionContextRestoreDoubleRead(CeedQFunctionContext ctx, CeedContextFieldLabel field_label, const double **values);
-CEED_EXTERN int CeedQFunctionContextSetInt32(CeedQFunctionContext ctx, CeedContextFieldLabel field_label, int *values);
-CEED_EXTERN int CeedQFunctionContextGetInt32Read(CeedQFunctionContext ctx, CeedContextFieldLabel field_label, size_t *num_values, const int **values);
-CEED_EXTERN int CeedQFunctionContextRestoreInt32Read(CeedQFunctionContext ctx, CeedContextFieldLabel field_label, const int **values);
+CEED_EXTERN int CeedQFunctionContextSetInt32(CeedQFunctionContext ctx, CeedContextFieldLabel field_label, int32_t *values);
+CEED_EXTERN int CeedQFunctionContextGetInt32Read(CeedQFunctionContext ctx, CeedContextFieldLabel field_label, size_t *num_values,
+                                                 const int32_t **values);
+CEED_EXTERN int CeedQFunctionContextRestoreInt32Read(CeedQFunctionContext ctx, CeedContextFieldLabel field_label, const int32_t **values);
+CEED_EXTERN int CeedQFunctionContextSetBoolean(CeedQFunctionContext ctx, CeedContextFieldLabel field_label, bool *values);
+CEED_EXTERN int CeedQFunctionContextGetBooleanRead(CeedQFunctionContext ctx, CeedContextFieldLabel field_label, size_t *num_values,
+                                                   const bool **values);
+CEED_EXTERN int CeedQFunctionContextRestoreBooleanRead(CeedQFunctionContext ctx, CeedContextFieldLabel field_label, const bool **values);
 CEED_EXTERN int CeedQFunctionContextGetDataDestroy(CeedQFunctionContext ctx, CeedMemType *f_mem_type, CeedQFunctionContextDataDestroyUser *f);
 CEED_EXTERN int CeedQFunctionContextReference(CeedQFunctionContext ctx);
 

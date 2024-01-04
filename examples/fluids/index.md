@@ -876,13 +876,13 @@ string, then the algorithmic approach will be performed.
 This problem is really just an initial condition, the [Taylor-Green Vortex](https://en.wikipedia.org/wiki/Taylor%E2%80%93Green_vortex):
 
 $$
-\begin{align*}
+\begin{aligned}
 u &= V_0 \sin(\hat x) \cos(\hat y) \sin(\hat z) \\
 v &= -V_0 \cos(\hat x) \sin(\hat y) \sin(\hat z) \\
 w &= 0 \\
 p &= p_0 + \frac{\rho_0 V_0^2}{16} \left ( \cos(2 \hat x) + \cos(2 \hat y)\right) \left( \cos(2 \hat z) + 2 \right) \\
 \rho &= \frac{p}{R T_0} \\
-\end{align*}
+\end{aligned}
 $$
 
 where $\hat x = 2 \pi x / L$ for $L$ the length of the domain in that specific direction.

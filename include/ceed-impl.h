@@ -112,6 +112,7 @@ struct Ceed_private {
   int (*QFunctionCreate)(CeedQFunction);
   int (*QFunctionContextCreate)(CeedQFunctionContext);
   int (*OperatorCreate)(CeedOperator);
+  int (*OperatorCreateAtPoints)(CeedOperator);
   int (*CompositeOperatorCreate)(CeedOperator);
   int      ref_count;
   void    *data;
@@ -205,9 +206,9 @@ struct CeedBasis_private {
   CeedScalar *div; /* row-major matrix of shape [Q, P] expressing the divergence of basis functions at quadrature points for H(div) discretizations */
   CeedScalar *curl; /* row-major matrix of shape [curl_dim * Q, P], curl_dim = 1 if dim < 3 else dim, expressing the curl of basis functions at
                        quadrature points for H(curl) discretizations */
-  CeedVector vec_chebyshev;
-  CeedBasis  basis_chebyshev; /* basis interpolating from nodes to Chebyshev polynomial coefficients */
-  void      *data;            /* place for the backend to store any data */
+  CeedVector  vec_chebyshev;
+  CeedBasis   basis_chebyshev; /* basis interpolating from nodes to Chebyshev polynomial coefficients */
+  void       *data;            /* place for the backend to store any data */
 };
 
 struct CeedTensorContract_private {
@@ -361,6 +362,7 @@ struct CeedOperator_private {
   bool                      is_interface_setup;
   bool                      is_backend_setup;
   bool                      is_composite;
+  bool                      is_at_points;
   bool                      has_restriction;
   CeedQFunctionAssemblyData qf_assembled;
   CeedOperatorAssemblyData  op_assembled;
@@ -370,6 +372,8 @@ struct CeedOperator_private {
   CeedInt                   num_context_labels;
   CeedInt                   max_context_labels;
   CeedContextFieldLabel    *context_labels;
+  CeedElemRestriction       rstr_points, first_points_rstr;
+  CeedVector                point_coords;
 };
 
 #endif  // CEED_IMPL_H

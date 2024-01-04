@@ -96,7 +96,7 @@ int main(int argc, char **argv) {
     // Create the mesh as a 0-refined sphere. This will create a cubic surface, not a box
     PetscCall(DMPlexCreateSphereMesh(PETSC_COMM_WORLD, topo_dim, simplex, 1., &dm));
     if (problem_choice == CUBE) {
-      PetscCall(DMPlexCreateCoordinateSpace(dm, 1, NULL));
+      PetscCall(DMPlexCreateCoordinateSpace(dm, 1, PETSC_TRUE, NULL));
     }
     // Set the object name
     PetscCall(PetscObjectSetName((PetscObject)dm, problem_types[problem_choice]));
@@ -171,10 +171,8 @@ int main(int argc, char **argv) {
                                  ceed_data, false, (CeedVector)NULL, (CeedVector *)NULL));
 
   // Setup output vector
-  PetscScalar *v;
   PetscCall(VecZeroEntries(V_loc));
-  PetscCall(VecGetArrayAndMemType(V_loc, &v, &mem_type));
-  CeedVectorSetArray(ceed_data->y_ceed, MemTypeP2C(mem_type), CEED_USE_POINTER, v);
+  PetscCall(VecP2C(V_loc, &mem_type, ceed_data->y_ceed));
 
   // Compute the mesh volume using the mass operator: area = 1^T \cdot M \cdot 1
   if (!test_mode) {
@@ -188,8 +186,7 @@ int main(int argc, char **argv) {
   CeedOperatorApply(ceed_data->op_apply, ceed_data->x_ceed, ceed_data->y_ceed, CEED_REQUEST_IMMEDIATE);
 
   // Gather output vector
-  CeedVectorTakeArray(ceed_data->y_ceed, CEED_MEM_HOST, NULL);
-  PetscCall(VecRestoreArrayAndMemType(V_loc, &v));
+  PetscCall(VecC2P(ceed_data->y_ceed, mem_type, V_loc));
   PetscCall(VecZeroEntries(V));
   PetscCall(DMLocalToGlobalBegin(dm, V_loc, ADD_VALUES, V));
   PetscCall(DMLocalToGlobalEnd(dm, V_loc, ADD_VALUES, V));

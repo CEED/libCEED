@@ -187,10 +187,7 @@ static inline int CeedElemRestrictionApplyStridedTranspose_Ref_Core(CeedElemRest
       CeedPragmaSIMD for (CeedInt k = 0; k < num_comp; k++) {
         CeedPragmaSIMD for (CeedInt n = 0; n < elem_size; n++) {
           CeedPragmaSIMD for (CeedInt j = 0; j < CeedIntMin(block_size, num_elem - e); j++) {
-            CeedScalar uu_val;
-
-            uu_val = uu[e * elem_size * num_comp + (k * elem_size + n) * block_size + j - v_offset];
-            CeedPragmaAtomic vv[n + k * elem_size + (e + j) * elem_size * num_comp] += uu_val;
+            vv[n + k * elem_size + (e + j) * elem_size * num_comp] += uu[e * elem_size * num_comp + (k * elem_size + n) * block_size + j - v_offset];
           }
         }
       }
@@ -204,10 +201,8 @@ static inline int CeedElemRestrictionApplyStridedTranspose_Ref_Core(CeedElemRest
       CeedPragmaSIMD for (CeedInt k = 0; k < num_comp; k++) {
         CeedPragmaSIMD for (CeedInt n = 0; n < elem_size; n++) {
           CeedPragmaSIMD for (CeedInt j = 0; j < CeedIntMin(block_size, num_elem - e); j++) {
-            CeedScalar uu_val;
-
-            uu_val = uu[e * elem_size * num_comp + (k * elem_size + n) * block_size + j - v_offset];
-            CeedPragmaAtomic vv[n * strides[0] + k * strides[1] + (e + j) * strides[2]] += uu_val;
+            vv[n * strides[0] + k * strides[1] + (e + j) * strides[2]] +=
+                uu[e * elem_size * num_comp + (k * elem_size + n) * block_size + j - v_offset];
           }
         }
       }
@@ -373,11 +368,11 @@ static inline int CeedElemRestrictionApplyAtPointsInElement_Ref_Core(CeedElemRes
     CeedCallBackend(CeedElemRestrictionGetNumPointsInElement(rstr, e, &num_points));
     if (t_mode == CEED_NOTRANSPOSE) {
       for (CeedInt i = 0; i < num_points; i++) {
-        for (CeedInt j = 0; j < num_comp; j++) vv[i * num_comp + j + e_vec_offset] = uu[impl->offsets[i + l_vec_offset] * num_comp + j];
+        for (CeedInt j = 0; j < num_comp; j++) vv[j * num_points + i + e_vec_offset] = uu[impl->offsets[i + l_vec_offset] * num_comp + j];
       }
     } else {
       for (CeedInt i = 0; i < num_points; i++) {
-        for (CeedInt j = 0; j < num_comp; j++) vv[impl->offsets[i + l_vec_offset] * num_comp + j] = uu[i * num_comp + j + e_vec_offset];
+        for (CeedInt j = 0; j < num_comp; j++) vv[impl->offsets[i + l_vec_offset] * num_comp + j] = uu[j * num_points + i + e_vec_offset];
       }
     }
     e_vec_offset += num_points * num_comp;

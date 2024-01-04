@@ -53,7 +53,6 @@ const char help[] = "Solve CEED BPs using PETSc with DMPlex\n";
 static PetscErrorCode RunWithDM(RunParams rp, DM dm, const char *ceed_resource) {
   double               my_rt_start, my_rt, rt_min, rt_max;
   PetscInt             xl_size, l_size, g_size;
-  PetscScalar         *r;
   Vec                  X, X_loc, rhs, rhs_loc;
   Mat                  mat_O;
   KSP                  ksp;
@@ -151,17 +150,15 @@ static PetscErrorCode RunWithDM(RunParams rp, DM dm, const char *ceed_resource) 
   // Create RHS vector
   PetscCall(VecDuplicate(X_loc, &rhs_loc));
   PetscCall(VecZeroEntries(rhs_loc));
-  PetscCall(VecGetArrayAndMemType(rhs_loc, &r, &mem_type));
   CeedVectorCreate(ceed, xl_size, &rhs_ceed);
-  CeedVectorSetArray(rhs_ceed, MemTypeP2C(mem_type), CEED_USE_POINTER, r);
+  PetscCall(VecP2C(rhs_loc, &mem_type, rhs_ceed));
 
   PetscCall(PetscMalloc1(1, &ceed_data));
   PetscCall(SetupLibceedByDegree(dm, ceed, rp->degree, rp->dim, rp->q_extra, rp->dim, rp->num_comp_u, g_size, xl_size, bp_options[rp->bp_choice],
                                  ceed_data, true, rhs_ceed, &target));
 
   // Gather RHS
-  CeedVectorTakeArray(rhs_ceed, MemTypeP2C(mem_type), NULL);
-  PetscCall(VecRestoreArrayAndMemType(rhs_loc, &r));
+  PetscCall(VecC2P(rhs_ceed, mem_type, rhs_loc));
   PetscCall(VecZeroEntries(rhs));
   PetscCall(DMLocalToGlobal(dm, rhs_loc, ADD_VALUES, rhs));
   CeedVectorDestroy(&rhs_ceed);

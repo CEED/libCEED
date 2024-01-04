@@ -16,12 +16,17 @@
 #include "qfunctions/newtonian_types.h"
 #include "qfunctions/stabilization_types.h"
 
-#if PETSC_VERSION_LT(3, 19, 0)
-#error "PETSc v3.19 or later is required"
+#if PETSC_VERSION_LT(3, 20, 0)
+#error "PETSc v3.20 or later is required"
 #endif
 
-#define PetscCeedChk(ceed, ierr)                                    \
+#if PETSC_VERSION_LT(3, 21, 0)
+#define DMSetCoordinateDisc(a, b, c) DMProjectCoordinates(a, b)
+#endif
+
+#define PetscCallCeed(ceed, ...)                                    \
   do {                                                              \
+    int ierr = __VA_ARGS__;                                         \
     if (ierr != CEED_ERROR_SUCCESS) {                               \
       const char *error_message;                                    \
       CeedGetErrorMessage(ceed, &error_message);                    \
@@ -29,39 +34,11 @@
     }                                                               \
   } while (0)
 
-#define PetscCallCeed(ceed, ...) \
-  do {                           \
-    int ierr_q_ = __VA_ARGS__;   \
-    PetscCeedChk(ceed, ierr_q_); \
-  } while (0)
-
 // -----------------------------------------------------------------------------
 // Enums
 // -----------------------------------------------------------------------------
 // Translate PetscMemType to CeedMemType
 static inline CeedMemType MemTypeP2C(PetscMemType mem_type) { return PetscMemTypeDevice(mem_type) ? CEED_MEM_DEVICE : CEED_MEM_HOST; }
-
-// Advection - Wind Options
-typedef enum {
-  WIND_ROTATION    = 0,
-  WIND_TRANSLATION = 1,
-} WindType;
-static const char *const WindTypes[] = {"rotation", "translation", "WindType", "WIND_", NULL};
-
-// Advection - Bubble Types
-typedef enum {
-  BUBBLE_SPHERE   = 0,  // dim=3
-  BUBBLE_CYLINDER = 1,  // dim=2
-} BubbleType;
-static const char *const BubbleTypes[] = {"sphere", "cylinder", "BubbleType", "BUBBLE_", NULL};
-
-// Advection - Bubble Continuity Types
-typedef enum {
-  BUBBLE_CONTINUITY_SMOOTH     = 0,  // Original continuous, smooth shape
-  BUBBLE_CONTINUITY_BACK_SHARP = 1,  // Discontinuous, sharp back half shape
-  BUBBLE_CONTINUITY_THICK      = 2,  // Define a finite thickness
-} BubbleContinuityType;
-static const char *const BubbleContinuityTypes[] = {"smooth", "back_sharp", "thick", "BubbleContinuityType", "BUBBLE_CONTINUITY_", NULL};
 
 // Euler - test cases
 typedef enum {
@@ -74,6 +51,15 @@ typedef enum {
 } EulerTestType;
 static const char *const EulerTestTypes[] = {"isentropic_vortex", "test_1",      "test_2", "test_3", "test_4", "test_5",
                                              "EulerTestType",     "EULER_TEST_", NULL};
+
+// Advection - Wind types
+static const char *const WindTypes[] = {"rotation", "translation", "WindType", "WIND_", NULL};
+
+// Advection - Bubble Types
+static const char *const BubbleTypes[] = {"sphere", "cylinder", "BubbleType", "BUBBLE_", NULL};
+
+// Advection - Bubble Continuity Types
+static const char *const BubbleContinuityTypes[] = {"smooth", "back_sharp", "thick", "BubbleContinuityType", "BUBBLE_CONTINUITY_", NULL};
 
 // Stabilization methods
 static const char *const StabilizationTypes[] = {"none", "SU", "SUPG", "StabilizationType", "STAB_", NULL};
@@ -292,15 +278,8 @@ struct SimpleBC_private {
 
 // Struct that contains all enums and structs used for the physics of all problems
 struct Physics_private {
-  WindType              wind_type;
-  BubbleType            bubble_type;
-  BubbleContinuityType  bubble_continuity_type;
-  EulerTestType         euler_test;
-  StabilizationType     stab;
   PetscBool             implicit;
   StateVariable         state_var;
-  PetscBool             has_curr_time;
-  PetscBool             has_neumann;
   CeedContextFieldLabel solution_time_label;
   CeedContextFieldLabel stg_solution_time_label;
   CeedContextFieldLabel timestep_size_label;
@@ -322,7 +301,7 @@ struct ProblemData_private {
   ProblemQFunctionSpec setup_vol, setup_sur, ics, apply_vol_rhs, apply_vol_ifunction, apply_vol_ijacobian, apply_inflow, apply_outflow,
       apply_freestream, apply_inflow_jacobian, apply_outflow_jacobian, apply_freestream_jacobian;
   bool      non_zero_time;
-  PetscBool bc_from_ics, use_strong_bc_ceed;
+  PetscBool bc_from_ics, use_strong_bc_ceed, uses_newtonian;
   PetscErrorCode (*print_info)(User, ProblemData *, AppCtx);
 };
 

@@ -145,6 +145,7 @@ CEED_QFUNCTION(Blasius_Inflow)(void *ctx, CeedInt Q, const CeedScalar *const *in
 
   // Outputs
   CeedScalar(*v)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA])out[0];
+  CeedScalar(*jac_data_sur)  = out[1];
 
   const BlasiusContext     context     = (BlasiusContext)ctx;
   const bool               is_implicit = context->implicit;
@@ -159,6 +160,7 @@ CEED_QFUNCTION(Blasius_Inflow)(void *ctx, CeedInt Q, const CeedScalar *const *in
   const bool               weakT       = context->weakT;
   const CeedScalar         rho_0       = P0 / (Rd * T_inf);
   const CeedScalar         x0          = U_inf * rho_0 / (mu * 25 / Square(delta0));
+  const CeedScalar         zeros[11]   = {0.};
 
   CeedPragmaSIMD for (CeedInt i = 0; i < Q; i++) {
     CeedScalar wdetJb, norm[3];
@@ -194,6 +196,7 @@ CEED_QFUNCTION(Blasius_Inflow)(void *ctx, CeedInt Q, const CeedScalar *const *in
     CeedScalar       Flux[5];
     FluxTotal_Boundary(Flux_inviscid, stress, Fe, norm, Flux);
     for (CeedInt j = 0; j < 5; j++) v[j][i] = -wdetJb * Flux[j];
+    StoredValuesPack(Q, i, 0, 11, zeros, jac_data_sur);
   }
   return 0;
 }

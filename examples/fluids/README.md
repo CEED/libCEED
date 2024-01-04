@@ -741,7 +741,7 @@ For the Density Current, Channel, and Blasius problems, the following common com
   - `true`
   - boolean
 
-* - `-smartsim_collocated_database_num_ranks`
+* - `-smartsim_collocated_num_ranks`
   - Number of MPI ranks associated with each collocated database (i.e. ranks per node)
   - `1`
   -

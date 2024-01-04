@@ -1,7 +1,7 @@
 !-----------------------------------------------------------------------
 !
 ! Header with QFunctions
-! 
+!
       include 't510-operator-f.h'
 !-----------------------------------------------------------------------
       program test
@@ -81,7 +81,7 @@
      & bu,err)
 
 ! QFunctions
-! -- Setup 
+! -- Setup
       call ceedqfunctioncreateinterior(ceed,1,setup,&
      &SOURCE_DIR&
      &//'t510-operator.h:setup'//char(0),qf_setup,err)
@@ -97,7 +97,7 @@
       call ceedqfunctionaddoutput(qf_mass,'v',1,ceed_eval_interp,err)
 
 ! Operators
-! -- Setup 
+! -- Setup
       call ceedoperatorcreate(ceed,qf_setup,ceed_qfunction_none,&
      & ceed_qfunction_none,op_setup,err)
       call ceedoperatorsetfield(op_setup,'weight',ceed_elemrestriction_none,&

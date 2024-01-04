@@ -14,6 +14,8 @@
 #include <ceed.h>
 #include <math.h>
 
+#include "../qfunctions/advection_types.h"
+#include "../qfunctions/stabilization_types.h"
 #include "utils.h"
 
 typedef struct SetupContextAdv2D_ *SetupContextAdv2D;
@@ -23,16 +25,7 @@ struct SetupContextAdv2D_ {
   CeedScalar ly;
   CeedScalar wind[3];
   CeedScalar time;
-  int        wind_type;  // See WindType: 0=ROTATION, 1=TRANSLATION
-};
-
-typedef struct AdvectionContext_ *AdvectionContext;
-struct AdvectionContext_ {
-  CeedScalar CtauS;
-  CeedScalar strong_form;
-  CeedScalar E_wind;
-  bool       implicit;
-  int        stabilization;  // See StabilizationType: 0=none, 1=SU, 2=SUPG
+  WindType   wind_type;
 };
 
 // *****************************************************************************
@@ -103,14 +96,14 @@ CEED_QFUNCTION_HELPER CeedInt Exact_Advection2d(CeedInt dim, CeedScalar time, co
 
   // Initial/Boundary Conditions
   switch (context->wind_type) {
-    case 0:  // Rotation
+    case WIND_ROTATION:
       q[0] = 1.;
       q[1] = -(y - center[1]);
       q[2] = (x - center[0]);
       q[3] = 0;
       q[4] = 0;
       break;
-    case 1:  // Translation
+    case WIND_TRANSLATION:
       q[0] = 1.;
       q[1] = wind[0];
       q[2] = wind[1];
@@ -269,10 +262,12 @@ CEED_QFUNCTION(IFunction_Advection2d)(void *ctx, CeedInt Q, const CeedScalar *co
   // Outputs
   CeedScalar(*v)[CEED_Q_VLA]     = (CeedScalar(*)[CEED_Q_VLA])out[0];
   CeedScalar(*dv)[5][CEED_Q_VLA] = (CeedScalar(*)[5][CEED_Q_VLA])out[1];
+  CeedScalar *jac_data           = out[2];
 
   AdvectionContext context     = (AdvectionContext)ctx;
   const CeedScalar CtauS       = context->CtauS;
   const CeedScalar strong_form = context->strong_form;
+  const CeedScalar zeros[14]   = {0.};
 
   // Quadrature Point Loop
   CeedPragmaSIMD for (CeedInt i = 0; i < Q; i++) {
@@ -340,15 +335,16 @@ CEED_QFUNCTION(IFunction_Advection2d)(void *ctx, CeedInt Q, const CeedScalar *co
     const CeedScalar TauS = CtauS / sqrt(uX[0] * uX[0] + uX[1] * uX[1]);
 
     for (CeedInt j = 0; j < 2; j++) switch (context->stabilization) {
-        case 0:
+        case STAB_NONE:
           break;
-        case 1:
+        case STAB_SU:
           dv[j][4][i] += wdetJ * TauS * strong_conv * uX[j];
           break;
-        case 2:
+        case STAB_SUPG:
           dv[j][4][i] += wdetJ * TauS * strong_res * uX[j];
           break;
       }
+    StoredValuesPack(Q, i, 0, 14, zeros, jac_data);
   }  // End Quadrature Point Loop
 
   return 0;

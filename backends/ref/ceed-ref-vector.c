@@ -135,7 +135,7 @@ static int CeedVectorGetArray_Ref(CeedVector vec, CeedMemType mem_type, CeedScal
 //------------------------------------------------------------------------------
 // Vector Get Array Write
 //------------------------------------------------------------------------------
-static int CeedVectorGetArrayWrite_Ref(CeedVector vec, CeedMemType mem_type, const CeedScalar **array) {
+static int CeedVectorGetArrayWrite_Ref(CeedVector vec, CeedMemType mem_type, CeedScalar **array) {
   CeedVector_Ref *impl;
 
   CeedCallBackend(CeedVectorGetData(vec, &impl));

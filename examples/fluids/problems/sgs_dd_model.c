@@ -181,14 +181,12 @@ PetscErrorCode SgsModelSetupNodalIFunction(Ceed ceed, User user, CeedData ceed_d
   PetscCallCeed(ceed, CeedQFunctionSetContext(qf_sgs_apply, sgs_dd_setup_data->sgsdd_qfctx));
   PetscCallCeed(ceed, CeedQFunctionAddInput(qf_sgs_apply, "q", num_comp_q, CEED_EVAL_INTERP));
   PetscCallCeed(ceed, CeedQFunctionAddInput(qf_sgs_apply, "qdata", num_comp_qd, CEED_EVAL_NONE));
-  PetscCallCeed(ceed, CeedQFunctionAddInput(qf_sgs_apply, "x", num_comp_x, CEED_EVAL_INTERP));
   PetscCallCeed(ceed, CeedQFunctionAddInput(qf_sgs_apply, "km_sgs", sgs_dd_data->num_comp_sgs, CEED_EVAL_INTERP));
   PetscCallCeed(ceed, CeedQFunctionAddOutput(qf_sgs_apply, "Grad_v", num_comp_q * dim, CEED_EVAL_GRAD));
 
   PetscCallCeed(ceed, CeedOperatorCreate(ceed, qf_sgs_apply, NULL, NULL, &op_sgs_apply));
   PetscCallCeed(ceed, CeedOperatorSetField(op_sgs_apply, "q", ceed_data->elem_restr_q, ceed_data->basis_q, CEED_VECTOR_ACTIVE));
   PetscCallCeed(ceed, CeedOperatorSetField(op_sgs_apply, "qdata", ceed_data->elem_restr_qd_i, CEED_BASIS_NONE, ceed_data->q_data));
-  PetscCallCeed(ceed, CeedOperatorSetField(op_sgs_apply, "x", ceed_data->elem_restr_x, ceed_data->basis_x, ceed_data->x_coord));
   PetscCallCeed(ceed, CeedOperatorSetField(op_sgs_apply, "km_sgs", sgs_dd_setup_data->elem_restr_sgs, basis_sgs, sgs_dd_data->sgs_nodal_ceed));
   PetscCallCeed(ceed, CeedOperatorSetField(op_sgs_apply, "Grad_v", ceed_data->elem_restr_q, ceed_data->basis_q, CEED_VECTOR_ACTIVE));
 

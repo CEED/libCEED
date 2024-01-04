@@ -43,7 +43,7 @@ PetscErrorCode SetUpDM(DM dm, ProblemData *problem, PetscInt degree, PetscInt q_
   PetscInt num_comp_q = 5;
   PetscFunctionBeginUser;
 
-  PetscCall(DMSetupByOrderBegin_FEM(PETSC_TRUE, PETSC_TRUE, degree, 1, q_extra, 1, &num_comp_q, dm));
+  PetscCall(DMSetupByOrderBegin_FEM(PETSC_TRUE, PETSC_TRUE, degree, PETSC_DECIDE, q_extra, 1, &num_comp_q, dm));
 
   {  // Add strong boundary conditions to DM
     DMLabel label;

@@ -11,7 +11,7 @@
 #include <string.h>
 
 /**
-  @brief Set fields for Ceed QFunction applying the 1D Poisson operator on a vector system with three components
+  @brief Set fields for `CeedQFunction` applying the 1D Poisson operator on a vector system with three components
 **/
 static int CeedQFunctionInit_Vector3Poisson1DApply(Ceed ceed, const char *requested, CeedQFunction qf) {
   // Check QFunction name
@@ -30,7 +30,7 @@ static int CeedQFunctionInit_Vector3Poisson1DApply(Ceed ceed, const char *reques
 }
 
 /**
-  @brief Register Ceed QFunction for applying the 1D Poisson operator on a vector system with three components
+  @brief Register `CeedQFunction` for applying the 1D Poisson operator on a vector system with three components
 **/
 CEED_INTERN int CeedQFunctionRegister_Vector3Poisson1DApply(void) {
   return CeedQFunctionRegister("Vector3Poisson1DApply", Vector3Poisson1DApply_loc, 1, Vector3Poisson1DApply, CeedQFunctionInit_Vector3Poisson1DApply);

@@ -45,3 +45,9 @@ jobs:
         FC: gfortran-11
       run: |
         make format-py && git diff --exit-code
+    - name: Python version
+      env:
+        CC: ${{ matrix.compiler }}
+        FC: gfortran-11
+      run: |
+        make vermin
