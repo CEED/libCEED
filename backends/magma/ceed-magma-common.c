@@ -47,6 +47,7 @@ int CeedDestroy_Magma(Ceed ceed) {
 
   CeedCallBackend(CeedGetData(ceed, &data));
   magma_queue_destroy(data->queue);
+  CeedCallBackend(magma_finalize());
   CeedCallBackend(CeedFree(&data));
   return CEED_ERROR_SUCCESS;
 }
