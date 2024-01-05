@@ -1073,28 +1073,14 @@ static int CeedSingleOperatorAssembleSetup_Sycl(CeedOperator op) {
   // Kernel setup
   int elems_per_block   = 1;
   asmb->elems_per_block = elems_per_block;
-  CeedInt block_size    = elem_size * elem_size * elems_per_block;
-
-  /* CeedInt maxThreadsPerBlock = sycl_data->sycl_device.get_info<sycl::info::device::max_work_group_size>();
-  bool    fallback           = block_size > maxThreadsPerBlock;
-  asmb->fallback             = fallback;
-  if (fallback) {
-    // Use fallback kernel with 1D threadblock
-    block_size         = elem_size * elems_per_block;
-    asmb->block_size_x = elem_size;
-    asmb->block_size_y = 1;
-  } else {  // Use kernel with 2D threadblock
-    asmb->block_size_x = elem_size;
-    asmb->block_size_y = elem_size;
-  }*/
-  asmb->block_size_x   = elem_size;
-  asmb->block_size_y   = elem_size;
-  asmb->num_e_mode_in  = num_e_mode_in;
-  asmb->num_e_mode_out = num_e_mode_out;
-  asmb->num_qpts       = num_qpts;
-  asmb->num_nodes      = elem_size;
-  asmb->block_size     = block_size;
-  asmb->num_comp       = num_comp;
+  asmb->block_size_x    = elem_size;
+  asmb->block_size_y    = elem_size;
+  asmb->num_e_mode_in   = num_e_mode_in;
+  asmb->num_e_mode_out  = num_e_mode_out;
+  asmb->num_qpts        = num_qpts;
+  asmb->num_nodes       = elem_size;
+  asmb->block_size      = elem_size * elem_size * elems_per_block;
+  asmb->num_comp        = num_comp;
 
   // Build 'full' B matrices (not 1D arrays used for tensor-product matrices
   CeedCallBackend(CeedBasisGetInterp(basis_in, &interp_in));
