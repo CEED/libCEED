@@ -26,9 +26,6 @@ static struct CeedBasis_private ceed_basis_none;
 /// Argument for @ref CeedOperatorSetField() indicating that the field does not require a `CeedBasis`
 const CeedBasis CEED_BASIS_NONE = &ceed_basis_none;
 
-/// This feature will be removed. Use @ref CEED_BASIS_NONE.
-const CeedBasis CEED_BASIS_COLLOCATED = &ceed_basis_none;
-
 /// @}
 
 /// ----------------------------------------------------------------------------

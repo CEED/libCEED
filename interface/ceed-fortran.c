@@ -22,7 +22,7 @@
 #define FORTRAN_VECTOR_ACTIVE -5
 #define FORTRAN_VECTOR_NONE -6
 #define FORTRAN_ELEMRESTRICTION_NONE -7
-#define FORTRAN_BASIS_COLLOCATED -8
+#define FORTRAN_BASIS_NONE -8
 #define FORTRAN_QFUNCTION_NONE -9
 
 static Ceed *Ceed_dict      = NULL;
@@ -983,7 +983,7 @@ CEED_EXTERN void fCeedOperatorSetField(int *op, const char *field_name, int *r, 
 
   if (*b == FORTRAN_NULL) {
     b_ = NULL;
-  } else if (*b == FORTRAN_BASIS_COLLOCATED) {
+  } else if (*b == FORTRAN_BASIS_NONE) {
     b_ = CEED_BASIS_NONE;
   } else {
     b_ = CeedBasis_dict[*b];

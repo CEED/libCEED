@@ -33,6 +33,6 @@ __all__ = ["Ceed",
            "GAUSS", "GAUSS_LOBATTO", "quad_modes",
            "LINE", "TRIANGLE", "QUAD", "TET", "PYRAMID", "PRISM", "HEX", "elem_topologies",
            "REQUEST_IMMEDIATE", "REQUEST_ORDERED",
-           "VECTOR_ACTIVE", "VECTOR_NONE", "ELEMRESTRICTION_NONE", "BASIS_COLLOCATED"]
+           "VECTOR_ACTIVE", "VECTOR_NONE", "ELEMRESTRICTION_NONE", "BASIS_NONE"]
 
 # ------------------------------------------------------------------------------
