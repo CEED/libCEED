@@ -140,40 +140,6 @@ static int CeedOperatorCreateFallback(CeedOperator op) {
 }
 
 /**
-  @brief Select correct basis matrix pointer based on @ref CeedEvalMode
-
-  @param[in]  basis     `CeedBasis` from which to get the basis matrix
-  @param[in]  eval_mode Current basis evaluation mode
-  @param[in]  identity  Pointer to identity matrix
-  @param[out] basis_ptr `CeedBasis` pointer to set
-
-  @ref Developer
-**/
-static inline int CeedOperatorGetBasisPointer(CeedBasis basis, CeedEvalMode eval_mode, const CeedScalar *identity, const CeedScalar **basis_ptr) {
-  switch (eval_mode) {
-    case CEED_EVAL_NONE:
-      *basis_ptr = identity;
-      break;
-    case CEED_EVAL_INTERP:
-      CeedCall(CeedBasisGetInterp(basis, basis_ptr));
-      break;
-    case CEED_EVAL_GRAD:
-      CeedCall(CeedBasisGetGrad(basis, basis_ptr));
-      break;
-    case CEED_EVAL_DIV:
-      CeedCall(CeedBasisGetDiv(basis, basis_ptr));
-      break;
-    case CEED_EVAL_CURL:
-      CeedCall(CeedBasisGetCurl(basis, basis_ptr));
-      break;
-    case CEED_EVAL_WEIGHT:
-      break;  // Caught by QF Assembly
-  }
-  assert(*basis_ptr != NULL);
-  return CEED_ERROR_SUCCESS;
-}
-
-/**
   @brief Core logic for assembling operator diagonal or point block diagonal
 
   @param[in]  op             `CeedOperator` to assemble point block diagonal
@@ -1001,6 +967,40 @@ CeedPragmaOptimizeOn
 /// @{
 
 /**
+  @brief Select correct basis matrix pointer based on @ref CeedEvalMode
+
+  @param[in]  basis     `CeedBasis` from which to get the basis matrix
+  @param[in]  eval_mode Current basis evaluation mode
+  @param[in]  identity  Pointer to identity matrix
+  @param[out] basis_ptr `CeedBasis` pointer to set
+
+  @ref Backend
+**/
+int CeedOperatorGetBasisPointer(CeedBasis basis, CeedEvalMode eval_mode, const CeedScalar *identity, const CeedScalar **basis_ptr) {
+  switch (eval_mode) {
+    case CEED_EVAL_NONE:
+      *basis_ptr = identity;
+      break;
+    case CEED_EVAL_INTERP:
+      CeedCall(CeedBasisGetInterp(basis, basis_ptr));
+      break;
+    case CEED_EVAL_GRAD:
+      CeedCall(CeedBasisGetGrad(basis, basis_ptr));
+      break;
+    case CEED_EVAL_DIV:
+      CeedCall(CeedBasisGetDiv(basis, basis_ptr));
+      break;
+    case CEED_EVAL_CURL:
+      CeedCall(CeedBasisGetCurl(basis, basis_ptr));
+      break;
+    case CEED_EVAL_WEIGHT:
+      break;  // Caught by QF Assembly
+  }
+  assert(*basis_ptr != NULL);
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
   @brief Create point block restriction for active `CeedOperatorField`
 
   @param[in]  rstr             Original `CeedElemRestriction` for active field
@@ -1275,10 +1275,10 @@ int CeedOperatorAssemblyDataCreate(Ceed ceed, CeedOperator op, CeedOperatorAssem
 
   // Build OperatorAssembly data
   CeedCall(CeedOperatorGetQFunction(op, &qf));
-  CeedCall(CeedQFunctionGetFields(qf, &num_input_fields, &qf_fields, NULL, NULL));
-  CeedCall(CeedOperatorGetFields(op, NULL, &op_fields, NULL, NULL));
 
   // Determine active input basis
+  CeedCall(CeedQFunctionGetFields(qf, &num_input_fields, &qf_fields, NULL, NULL));
+  CeedCall(CeedOperatorGetFields(op, NULL, &op_fields, NULL, NULL));
   for (CeedInt i = 0; i < num_input_fields; i++) {
     CeedVector vec;
 

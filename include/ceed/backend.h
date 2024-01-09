@@ -373,6 +373,7 @@ CEED_EXTERN int CeedQFunctionContextRestoreBooleanRead(CeedQFunctionContext ctx,
 CEED_EXTERN int CeedQFunctionContextGetDataDestroy(CeedQFunctionContext ctx, CeedMemType *f_mem_type, CeedQFunctionContextDataDestroyUser *f);
 CEED_EXTERN int CeedQFunctionContextReference(CeedQFunctionContext ctx);
 
+CEED_EXTERN int CeedOperatorGetBasisPointer(CeedBasis basis, CeedEvalMode eval_mode, const CeedScalar *identity, const CeedScalar **basis_ptr);
 CEED_EXTERN int CeedOperatorCreateActivePointBlockRestriction(CeedElemRestriction rstr, CeedElemRestriction *pointblock_rstr);
 CEED_EXTERN int CeedQFunctionAssemblyDataCreate(Ceed ceed, CeedQFunctionAssemblyData *data);
 CEED_EXTERN int CeedQFunctionAssemblyDataReference(CeedQFunctionAssemblyData data);

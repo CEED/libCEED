@@ -18,22 +18,23 @@
 #include "ceed-hip-ref.h"
 
 //------------------------------------------------------------------------------
-// Apply restriction
+// Core apply restriction code
 //------------------------------------------------------------------------------
-static int CeedElemRestrictionApply_Hip(CeedElemRestriction r, CeedTransposeMode t_mode, CeedVector u, CeedVector v, CeedRequest *request) {
+static inline int CeedElemRestrictionApply_Hip_Core(CeedElemRestriction rstr, CeedTransposeMode t_mode, bool use_signs, bool use_orients,
+                                                    CeedVector u, CeedVector v, CeedRequest *request) {
   Ceed                     ceed;
-  Ceed_Hip                *data;
   CeedInt                  num_elem, elem_size;
+  CeedRestrictionType      rstr_type;
   const CeedScalar        *d_u;
   CeedScalar              *d_v;
   CeedElemRestriction_Hip *impl;
   hipFunction_t            kernel;
 
-  CeedCallBackend(CeedElemRestrictionGetData(r, &impl));
-  CeedCallBackend(CeedElemRestrictionGetCeed(r, &ceed));
-  CeedCallBackend(CeedGetData(ceed, &data));
-  CeedElemRestrictionGetNumElements(r, &num_elem);
-  CeedCallBackend(CeedElemRestrictionGetElementSize(r, &elem_size));
+  CeedCallBackend(CeedElemRestrictionGetData(rstr, &impl));
+  CeedCallBackend(CeedElemRestrictionGetCeed(rstr, &ceed));
+  CeedCallBackend(CeedElemRestrictionGetNumElements(rstr, &num_elem));
+  CeedCallBackend(CeedElemRestrictionGetElementSize(rstr, &elem_size));
+  CeedCallBackend(CeedElemRestrictionGetType(rstr, &rstr_type));
   const CeedInt num_nodes = impl->num_nodes;
 
   // Get vectors
@@ -49,45 +50,155 @@ static int CeedElemRestrictionApply_Hip(CeedElemRestriction r, CeedTransposeMode
   // Restrict
   if (t_mode == CEED_NOTRANSPOSE) {
     // L-vector -> E-vector
-    if (impl->d_ind) {
-      // -- Offsets provided
-      kernel             = impl->OffsetNoTranspose;
-      void   *args[]     = {&num_elem, &impl->d_ind, &d_u, &d_v};
-      CeedInt block_size = elem_size < 256 ? (elem_size > 64 ? elem_size : 64) : 256;
+    const CeedInt block_size = elem_size < 256 ? (elem_size > 64 ? elem_size : 64) : 256;
+    const CeedInt grid       = CeedDivUpInt(num_nodes, block_size);
 
-      CeedCallBackend(CeedRunKernel_Hip(ceed, kernel, CeedDivUpInt(num_nodes, block_size), block_size, args));
-    } else {
-      // -- Strided restriction
-      kernel             = impl->StridedNoTranspose;
-      void   *args[]     = {&num_elem, &d_u, &d_v};
-      CeedInt block_size = elem_size < 256 ? (elem_size > 64 ? elem_size : 64) : 256;
+    switch (rstr_type) {
+      case CEED_RESTRICTION_STRIDED: {
+        kernel       = impl->StridedNoTranspose;
+        void *args[] = {&num_elem, &d_u, &d_v};
 
-      CeedCallBackend(CeedRunKernel_Hip(ceed, kernel, CeedDivUpInt(num_nodes, block_size), block_size, args));
+        CeedCallBackend(CeedRunKernel_Hip(ceed, kernel, grid, block_size, args));
+      } break;
+      case CEED_RESTRICTION_STANDARD: {
+        kernel       = impl->OffsetNoTranspose;
+        void *args[] = {&num_elem, &impl->d_ind, &d_u, &d_v};
+
+        CeedCallBackend(CeedRunKernel_Hip(ceed, kernel, grid, block_size, args));
+      } break;
+      case CEED_RESTRICTION_ORIENTED: {
+        if (use_signs) {
+          kernel       = impl->OrientedNoTranspose;
+          void *args[] = {&num_elem, &impl->d_ind, &impl->d_orients, &d_u, &d_v};
+
+          CeedCallBackend(CeedRunKernel_Hip(ceed, kernel, grid, block_size, args));
+        } else {
+          kernel       = impl->OffsetNoTranspose;
+          void *args[] = {&num_elem, &impl->d_ind, &d_u, &d_v};
+
+          CeedCallBackend(CeedRunKernel_Hip(ceed, kernel, grid, block_size, args));
+        }
+      } break;
+      case CEED_RESTRICTION_CURL_ORIENTED: {
+        if (use_signs && use_orients) {
+          kernel       = impl->CurlOrientedNoTranspose;
+          void *args[] = {&num_elem, &impl->d_ind, &impl->d_curl_orients, &d_u, &d_v};
+
+          CeedCallBackend(CeedRunKernel_Hip(ceed, kernel, grid, block_size, args));
+        } else if (use_orients) {
+          kernel       = impl->CurlOrientedUnsignedNoTranspose;
+          void *args[] = {&num_elem, &impl->d_ind, &impl->d_curl_orients, &d_u, &d_v};
+
+          CeedCallBackend(CeedRunKernel_Hip(ceed, kernel, grid, block_size, args));
+        } else {
+          kernel       = impl->OffsetNoTranspose;
+          void *args[] = {&num_elem, &impl->d_ind, &d_u, &d_v};
+
+          CeedCallBackend(CeedRunKernel_Hip(ceed, kernel, grid, block_size, args));
+        }
+      } break;
+      case CEED_RESTRICTION_POINTS: {
+        // LCOV_EXCL_START
+        return CeedError(ceed, CEED_ERROR_UNSUPPORTED, "Backend does not implement restriction CeedElemRestrictionAtPoints");
+        // LCOV_EXCL_STOP
+      } break;
     }
   } else {
     // E-vector -> L-vector
-    if (impl->d_ind) {
-      // -- Offsets provided
-      CeedInt block_size = 64;
+    const CeedInt block_size = 64;
+    const CeedInt grid       = CeedDivUpInt(num_nodes, block_size);
 
-      if (impl->OffsetTranspose) {
-        kernel       = impl->OffsetTranspose;
-        void *args[] = {&num_elem, &impl->d_ind, &d_u, &d_v};
+    switch (rstr_type) {
+      case CEED_RESTRICTION_STRIDED: {
+        kernel       = impl->StridedTranspose;
+        void *args[] = {&num_elem, &d_u, &d_v};
 
-        CeedCallBackend(CeedRunKernel_Hip(ceed, kernel, CeedDivUpInt(num_nodes, block_size), block_size, args));
-      } else {
-        kernel       = impl->OffsetTransposeDet;
-        void *args[] = {&impl->d_l_vec_indices, &impl->d_t_indices, &impl->d_t_offsets, &d_u, &d_v};
+        CeedCallBackend(CeedRunKernel_Hip(ceed, kernel, grid, block_size, args));
+      } break;
+      case CEED_RESTRICTION_STANDARD: {
+        if (impl->OffsetTranspose) {
+          kernel       = impl->OffsetTranspose;
+          void *args[] = {&num_elem, &impl->d_ind, &d_u, &d_v};
 
-        CeedCallBackend(CeedRunKernel_Hip(ceed, kernel, CeedDivUpInt(num_nodes, block_size), block_size, args));
-      }
-    } else {
-      // -- Strided restriction
-      kernel             = impl->StridedTranspose;
-      void   *args[]     = {&num_elem, &d_u, &d_v};
-      CeedInt block_size = 64;
+          CeedCallBackend(CeedRunKernel_Hip(ceed, kernel, grid, block_size, args));
+        } else {
+          kernel       = impl->OffsetTransposeDet;
+          void *args[] = {&impl->d_l_vec_indices, &impl->d_t_indices, &impl->d_t_offsets, &d_u, &d_v};
 
-      CeedCallBackend(CeedRunKernel_Hip(ceed, kernel, CeedDivUpInt(num_nodes, block_size), block_size, args));
+          CeedCallBackend(CeedRunKernel_Hip(ceed, kernel, grid, block_size, args));
+        }
+      } break;
+      case CEED_RESTRICTION_ORIENTED: {
+        if (use_signs) {
+          if (impl->OrientedTranspose) {
+            kernel       = impl->OrientedTranspose;
+            void *args[] = {&num_elem, &impl->d_ind, &impl->d_orients, &d_u, &d_v};
+
+            CeedCallBackend(CeedRunKernel_Hip(ceed, kernel, grid, block_size, args));
+          } else {
+            kernel       = impl->OrientedTransposeDet;
+            void *args[] = {&impl->d_l_vec_indices, &impl->d_t_indices, &impl->d_t_offsets, &impl->d_orients, &d_u, &d_v};
+
+            CeedCallBackend(CeedRunKernel_Hip(ceed, kernel, grid, block_size, args));
+          }
+        } else {
+          if (impl->OffsetTranspose) {
+            kernel       = impl->OffsetTranspose;
+            void *args[] = {&num_elem, &impl->d_ind, &d_u, &d_v};
+
+            CeedCallBackend(CeedRunKernel_Hip(ceed, kernel, grid, block_size, args));
+          } else {
+            kernel       = impl->OffsetTransposeDet;
+            void *args[] = {&impl->d_l_vec_indices, &impl->d_t_indices, &impl->d_t_offsets, &d_u, &d_v};
+
+            CeedCallBackend(CeedRunKernel_Hip(ceed, kernel, grid, block_size, args));
+          }
+        }
+      } break;
+      case CEED_RESTRICTION_CURL_ORIENTED: {
+        if (use_signs && use_orients) {
+          if (impl->CurlOrientedTranspose) {
+            kernel       = impl->CurlOrientedTranspose;
+            void *args[] = {&num_elem, &impl->d_ind, &impl->d_curl_orients, &d_u, &d_v};
+
+            CeedCallBackend(CeedRunKernel_Hip(ceed, kernel, grid, block_size, args));
+          } else {
+            kernel       = impl->CurlOrientedTransposeDet;
+            void *args[] = {&impl->d_l_vec_indices, &impl->d_t_indices, &impl->d_t_offsets, &impl->d_curl_orients, &d_u, &d_v};
+
+            CeedCallBackend(CeedRunKernel_Hip(ceed, kernel, grid, block_size, args));
+          }
+        } else if (use_orients) {
+          if (impl->CurlOrientedUnsignedTranspose) {
+            kernel       = impl->CurlOrientedUnsignedTranspose;
+            void *args[] = {&num_elem, &impl->d_ind, &impl->d_curl_orients, &d_u, &d_v};
+
+            CeedCallBackend(CeedRunKernel_Hip(ceed, kernel, grid, block_size, args));
+          } else {
+            kernel       = impl->CurlOrientedUnsignedTransposeDet;
+            void *args[] = {&impl->d_l_vec_indices, &impl->d_t_indices, &impl->d_t_offsets, &impl->d_curl_orients, &d_u, &d_v};
+
+            CeedCallBackend(CeedRunKernel_Hip(ceed, kernel, grid, block_size, args));
+          }
+        } else {
+          if (impl->OffsetTranspose) {
+            kernel       = impl->OffsetTranspose;
+            void *args[] = {&num_elem, &impl->d_ind, &d_u, &d_v};
+
+            CeedCallBackend(CeedRunKernel_Hip(ceed, kernel, grid, block_size, args));
+          } else {
+            kernel       = impl->OffsetTransposeDet;
+            void *args[] = {&impl->d_l_vec_indices, &impl->d_t_indices, &impl->d_t_offsets, &d_u, &d_v};
+
+            CeedCallBackend(CeedRunKernel_Hip(ceed, kernel, grid, block_size, args));
+          }
+        }
+      } break;
+      case CEED_RESTRICTION_POINTS: {
+        // LCOV_EXCL_START
+        return CeedError(ceed, CEED_ERROR_UNSUPPORTED, "Backend does not implement restriction CeedElemRestrictionAtPoints");
+        // LCOV_EXCL_STOP
+      } break;
     }
   }
 
@@ -97,6 +208,29 @@ static int CeedElemRestrictionApply_Hip(CeedElemRestriction r, CeedTransposeMode
   CeedCallBackend(CeedVectorRestoreArrayRead(u, &d_u));
   CeedCallBackend(CeedVectorRestoreArray(v, &d_v));
   return CEED_ERROR_SUCCESS;
+}
+
+//------------------------------------------------------------------------------
+// Apply restriction
+//------------------------------------------------------------------------------
+static int CeedElemRestrictionApply_Hip(CeedElemRestriction rstr, CeedTransposeMode t_mode, CeedVector u, CeedVector v, CeedRequest *request) {
+  return CeedElemRestrictionApply_Hip_Core(rstr, t_mode, true, true, u, v, request);
+}
+
+//------------------------------------------------------------------------------
+// Apply unsigned restriction
+//------------------------------------------------------------------------------
+static int CeedElemRestrictionApplyUnsigned_Hip(CeedElemRestriction rstr, CeedTransposeMode t_mode, CeedVector u, CeedVector v,
+                                                CeedRequest *request) {
+  return CeedElemRestrictionApply_Hip_Core(rstr, t_mode, false, true, u, v, request);
+}
+
+//------------------------------------------------------------------------------
+// Apply unoriented restriction
+//------------------------------------------------------------------------------
+static int CeedElemRestrictionApplyUnoriented_Hip(CeedElemRestriction rstr, CeedTransposeMode t_mode, CeedVector u, CeedVector v,
+                                                  CeedRequest *request) {
+  return CeedElemRestrictionApply_Hip_Core(rstr, t_mode, false, false, u, v, request);
 }
 
 //------------------------------------------------------------------------------
@@ -118,20 +252,60 @@ static int CeedElemRestrictionGetOffsets_Hip(CeedElemRestriction rstr, CeedMemTy
 }
 
 //------------------------------------------------------------------------------
+// Get orientations
+//------------------------------------------------------------------------------
+static int CeedElemRestrictionGetOrientations_Hip(CeedElemRestriction rstr, CeedMemType mem_type, const bool **orients) {
+  CeedElemRestriction_Hip *impl;
+  CeedCallBackend(CeedElemRestrictionGetData(rstr, &impl));
+
+  switch (mem_type) {
+    case CEED_MEM_HOST:
+      *orients = impl->h_orients;
+      break;
+    case CEED_MEM_DEVICE:
+      *orients = impl->d_orients;
+      break;
+  }
+  return CEED_ERROR_SUCCESS;
+}
+
+//------------------------------------------------------------------------------
+// Get curl-conforming orientations
+//------------------------------------------------------------------------------
+static int CeedElemRestrictionGetCurlOrientations_Hip(CeedElemRestriction rstr, CeedMemType mem_type, const CeedInt8 **curl_orients) {
+  CeedElemRestriction_Hip *impl;
+  CeedCallBackend(CeedElemRestrictionGetData(rstr, &impl));
+
+  switch (mem_type) {
+    case CEED_MEM_HOST:
+      *curl_orients = impl->h_curl_orients;
+      break;
+    case CEED_MEM_DEVICE:
+      *curl_orients = impl->d_curl_orients;
+      break;
+  }
+  return CEED_ERROR_SUCCESS;
+}
+
+//------------------------------------------------------------------------------
 // Destroy restriction
 //------------------------------------------------------------------------------
-static int CeedElemRestrictionDestroy_Hip(CeedElemRestriction r) {
+static int CeedElemRestrictionDestroy_Hip(CeedElemRestriction rstr) {
   Ceed                     ceed;
   CeedElemRestriction_Hip *impl;
 
-  CeedCallBackend(CeedElemRestrictionGetData(r, &impl));
-  CeedCallBackend(CeedElemRestrictionGetCeed(r, &ceed));
+  CeedCallBackend(CeedElemRestrictionGetData(rstr, &impl));
+  CeedCallBackend(CeedElemRestrictionGetCeed(rstr, &ceed));
   CeedCallHip(ceed, hipModuleUnload(impl->module));
   CeedCallBackend(CeedFree(&impl->h_ind_allocated));
   CeedCallHip(ceed, hipFree(impl->d_ind_allocated));
   CeedCallHip(ceed, hipFree(impl->d_t_offsets));
   CeedCallHip(ceed, hipFree(impl->d_t_indices));
   CeedCallHip(ceed, hipFree(impl->d_l_vec_indices));
+  CeedCallBackend(CeedFree(&impl->h_orients_allocated));
+  CeedCallHip(ceed, hipFree(impl->d_orients_allocated));
+  CeedCallBackend(CeedFree(&impl->h_curl_orients_allocated));
+  CeedCallHip(ceed, hipFree(impl->d_curl_orients_allocated));
   CeedCallBackend(CeedFree(&impl));
   return CEED_ERROR_SUCCESS;
 }
@@ -139,23 +313,25 @@ static int CeedElemRestrictionDestroy_Hip(CeedElemRestriction r) {
 //------------------------------------------------------------------------------
 // Create transpose offsets and indices
 //------------------------------------------------------------------------------
-static int CeedElemRestrictionOffset_Hip(const CeedElemRestriction r, const CeedInt *indices) {
+static int CeedElemRestrictionOffset_Hip(const CeedElemRestriction rstr, const CeedInt *indices) {
   Ceed                     ceed;
   bool                    *is_node;
   CeedSize                 l_size;
-  CeedInt                  num_elem, elem_size, num_comp, num_nodes = 0, *ind_to_offset, *l_vec_indices, *t_offsets, *t_indices;
+  CeedInt                  num_elem, elem_size, num_comp, num_nodes = 0;
+  CeedInt                 *ind_to_offset, *l_vec_indices, *t_offsets, *t_indices;
   CeedElemRestriction_Hip *impl;
 
-  CeedCallBackend(CeedElemRestrictionGetCeed(r, &ceed));
-  CeedCallBackend(CeedElemRestrictionGetData(r, &impl));
-  CeedCallBackend(CeedElemRestrictionGetNumElements(r, &num_elem));
-  CeedCallBackend(CeedElemRestrictionGetElementSize(r, &elem_size));
-  CeedCallBackend(CeedElemRestrictionGetLVectorSize(r, &l_size));
-  CeedCallBackend(CeedElemRestrictionGetNumComponents(r, &num_comp));
+  CeedCallBackend(CeedElemRestrictionGetCeed(rstr, &ceed));
+  CeedCallBackend(CeedElemRestrictionGetData(rstr, &impl));
+  CeedCallBackend(CeedElemRestrictionGetNumElements(rstr, &num_elem));
+  CeedCallBackend(CeedElemRestrictionGetElementSize(rstr, &elem_size));
+  CeedCallBackend(CeedElemRestrictionGetLVectorSize(rstr, &l_size));
+  CeedCallBackend(CeedElemRestrictionGetNumComponents(rstr, &num_comp));
   const CeedInt size_indices = num_elem * elem_size;
 
   // Count num_nodes
   CeedCallBackend(CeedCalloc(l_size, &is_node));
+
   for (CeedInt i = 0; i < size_indices; i++) is_node[indices[i]] = 1;
   for (CeedInt i = 0; i < l_size; i++) num_nodes += is_node[i];
   impl->num_nodes = num_nodes;
@@ -218,136 +394,223 @@ static int CeedElemRestrictionOffset_Hip(const CeedElemRestriction r, const Ceed
 // Create restriction
 //------------------------------------------------------------------------------
 int CeedElemRestrictionCreate_Hip(CeedMemType mem_type, CeedCopyMode copy_mode, const CeedInt *indices, const bool *orients,
-                                  const CeedInt8 *curl_orients, CeedElemRestriction r) {
+                                  const CeedInt8 *curl_orients, CeedElemRestriction rstr) {
   Ceed                     ceed, ceed_parent;
-  bool                     is_deterministic, is_strided;
-  char                    *restriction_kernel_path, *restriction_kernel_source;
+  bool                     is_deterministic;
   CeedInt                  num_elem, num_comp, elem_size, comp_stride = 1;
   CeedRestrictionType      rstr_type;
+  char                    *restriction_kernel_path, *restriction_kernel_source;
   CeedElemRestriction_Hip *impl;
 
-  CeedCallBackend(CeedElemRestrictionGetCeed(r, &ceed));
-  CeedCallBackend(CeedCalloc(1, &impl));
+  CeedCallBackend(CeedElemRestrictionGetCeed(rstr, &ceed));
   CeedCallBackend(CeedGetParent(ceed, &ceed_parent));
   CeedCallBackend(CeedIsDeterministic(ceed_parent, &is_deterministic));
-  CeedCallBackend(CeedElemRestrictionGetNumElements(r, &num_elem));
-  CeedCallBackend(CeedElemRestrictionGetNumComponents(r, &num_comp));
-  CeedCallBackend(CeedElemRestrictionGetElementSize(r, &elem_size));
-  CeedInt size       = num_elem * elem_size;
-  CeedInt strides[3] = {1, size, elem_size};
-  CeedInt layout[3]  = {1, elem_size * num_elem, elem_size};
-
-  CeedCallBackend(CeedElemRestrictionGetType(r, &rstr_type));
-  CeedCheck(rstr_type != CEED_RESTRICTION_ORIENTED && rstr_type != CEED_RESTRICTION_CURL_ORIENTED, ceed, CEED_ERROR_BACKEND,
-            "Backend does not implement CeedElemRestrictionCreateOriented or CeedElemRestrictionCreateCurlOriented");
+  CeedCallBackend(CeedElemRestrictionGetNumElements(rstr, &num_elem));
+  CeedCallBackend(CeedElemRestrictionGetNumComponents(rstr, &num_comp));
+  CeedCallBackend(CeedElemRestrictionGetElementSize(rstr, &elem_size));
+  const CeedInt size       = num_elem * elem_size;
+  CeedInt       strides[3] = {1, size, elem_size};
+  CeedInt       layout[3]  = {1, elem_size * num_elem, elem_size};
 
   // Stride data
-  CeedCallBackend(CeedElemRestrictionIsStrided(r, &is_strided));
-  if (is_strided) {
+  CeedCallBackend(CeedElemRestrictionGetType(rstr, &rstr_type));
+  if (rstr_type == CEED_RESTRICTION_STRIDED) {
     bool has_backend_strides;
 
-    CeedCallBackend(CeedElemRestrictionHasBackendStrides(r, &has_backend_strides));
+    CeedCallBackend(CeedElemRestrictionHasBackendStrides(rstr, &has_backend_strides));
     if (!has_backend_strides) {
-      CeedCallBackend(CeedElemRestrictionGetStrides(r, &strides));
+      CeedCallBackend(CeedElemRestrictionGetStrides(rstr, &strides));
     }
   } else {
-    CeedCallBackend(CeedElemRestrictionGetCompStride(r, &comp_stride));
+    CeedCallBackend(CeedElemRestrictionGetCompStride(rstr, &comp_stride));
   }
 
-  impl->h_ind           = NULL;
-  impl->h_ind_allocated = NULL;
-  impl->d_ind           = NULL;
-  impl->d_ind_allocated = NULL;
-  impl->d_t_indices     = NULL;
-  impl->d_t_offsets     = NULL;
-  impl->num_nodes       = size;
-  CeedCallBackend(CeedElemRestrictionSetData(r, impl));
-  CeedCallBackend(CeedElemRestrictionSetELayout(r, layout));
+  CeedCallBackend(CeedCalloc(1, &impl));
+  impl->num_nodes                = size;
+  impl->h_ind                    = NULL;
+  impl->h_ind_allocated          = NULL;
+  impl->d_ind                    = NULL;
+  impl->d_ind_allocated          = NULL;
+  impl->d_t_indices              = NULL;
+  impl->d_t_offsets              = NULL;
+  impl->h_orients                = NULL;
+  impl->h_orients_allocated      = NULL;
+  impl->d_orients                = NULL;
+  impl->d_orients_allocated      = NULL;
+  impl->h_curl_orients           = NULL;
+  impl->h_curl_orients_allocated = NULL;
+  impl->d_curl_orients           = NULL;
+  impl->d_curl_orients_allocated = NULL;
+  CeedCallBackend(CeedElemRestrictionSetData(rstr, impl));
+  CeedCallBackend(CeedElemRestrictionSetELayout(rstr, layout));
 
-  // Set up device indices/offset arrays
-  switch (mem_type) {
-    case CEED_MEM_HOST: {
-      switch (copy_mode) {
-        case CEED_OWN_POINTER:
-          impl->h_ind_allocated = (CeedInt *)indices;
-          impl->h_ind           = (CeedInt *)indices;
-          break;
-        case CEED_USE_POINTER:
-          impl->h_ind = (CeedInt *)indices;
-          break;
-        case CEED_COPY_VALUES:
-          if (indices != NULL) {
-            CeedCallBackend(CeedMalloc(elem_size * num_elem, &impl->h_ind_allocated));
-            memcpy(impl->h_ind_allocated, indices, elem_size * num_elem * sizeof(CeedInt));
+  // Set up device offset/orientation arrays
+  if (rstr_type != CEED_RESTRICTION_STRIDED) {
+    switch (mem_type) {
+      case CEED_MEM_HOST: {
+        switch (copy_mode) {
+          case CEED_OWN_POINTER:
+            impl->h_ind_allocated = (CeedInt *)indices;
+            impl->h_ind           = (CeedInt *)indices;
+            break;
+          case CEED_USE_POINTER:
+            impl->h_ind = (CeedInt *)indices;
+            break;
+          case CEED_COPY_VALUES:
+            CeedCallBackend(CeedMalloc(size, &impl->h_ind_allocated));
+            memcpy(impl->h_ind_allocated, indices, size * sizeof(CeedInt));
             impl->h_ind = impl->h_ind_allocated;
-          }
-          break;
-      }
-      if (indices != NULL) {
+            break;
+        }
         CeedCallHip(ceed, hipMalloc((void **)&impl->d_ind, size * sizeof(CeedInt)));
         impl->d_ind_allocated = impl->d_ind;  // We own the device memory
         CeedCallHip(ceed, hipMemcpy(impl->d_ind, indices, size * sizeof(CeedInt), hipMemcpyHostToDevice));
-        if (is_deterministic) CeedCallBackend(CeedElemRestrictionOffset_Hip(r, indices));
-      }
-      break;
-    }
-    case CEED_MEM_DEVICE: {
-      switch (copy_mode) {
-        case CEED_COPY_VALUES:
-          if (indices != NULL) {
+        if (is_deterministic) CeedCallBackend(CeedElemRestrictionOffset_Hip(rstr, indices));
+      } break;
+      case CEED_MEM_DEVICE: {
+        switch (copy_mode) {
+          case CEED_COPY_VALUES:
             CeedCallHip(ceed, hipMalloc((void **)&impl->d_ind, size * sizeof(CeedInt)));
             impl->d_ind_allocated = impl->d_ind;  // We own the device memory
             CeedCallHip(ceed, hipMemcpy(impl->d_ind, indices, size * sizeof(CeedInt), hipMemcpyDeviceToDevice));
-          }
-          break;
-        case CEED_OWN_POINTER:
-          impl->d_ind           = (CeedInt *)indices;
-          impl->d_ind_allocated = impl->d_ind;
-          break;
-        case CEED_USE_POINTER:
-          impl->d_ind = (CeedInt *)indices;
-      }
-      if (indices != NULL) {
-        CeedCallBackend(CeedMalloc(elem_size * num_elem, &impl->h_ind_allocated));
-        CeedCallHip(ceed, hipMemcpy(impl->h_ind_allocated, impl->d_ind, elem_size * num_elem * sizeof(CeedInt), hipMemcpyDeviceToHost));
+            break;
+          case CEED_OWN_POINTER:
+            impl->d_ind           = (CeedInt *)indices;
+            impl->d_ind_allocated = impl->d_ind;
+            break;
+          case CEED_USE_POINTER:
+            impl->d_ind = (CeedInt *)indices;
+            break;
+        }
+        CeedCallBackend(CeedMalloc(size, &impl->h_ind_allocated));
+        CeedCallHip(ceed, hipMemcpy(impl->h_ind_allocated, impl->d_ind, size * sizeof(CeedInt), hipMemcpyDeviceToHost));
         impl->h_ind = impl->h_ind_allocated;
-        if (is_deterministic) CeedCallBackend(CeedElemRestrictionOffset_Hip(r, indices));
-      }
-      break;
+        if (is_deterministic) CeedCallBackend(CeedElemRestrictionOffset_Hip(rstr, indices));
+      } break;
     }
-    // LCOV_EXCL_START
-    default:
-      return CeedError(ceed, CEED_ERROR_BACKEND, "Only MemType = HOST or DEVICE supported");
-      // LCOV_EXCL_STOP
+
+    // Orientation data
+    if (rstr_type == CEED_RESTRICTION_ORIENTED) {
+      switch (mem_type) {
+        case CEED_MEM_HOST: {
+          switch (copy_mode) {
+            case CEED_OWN_POINTER:
+              impl->h_orients_allocated = (bool *)orients;
+              impl->h_orients           = (bool *)orients;
+              break;
+            case CEED_USE_POINTER:
+              impl->h_orients = (bool *)orients;
+              break;
+            case CEED_COPY_VALUES:
+              CeedCallBackend(CeedMalloc(size, &impl->h_orients_allocated));
+              memcpy(impl->h_orients_allocated, orients, size * sizeof(bool));
+              impl->h_orients = impl->h_orients_allocated;
+              break;
+          }
+          CeedCallHip(ceed, hipMalloc((void **)&impl->d_orients, size * sizeof(bool)));
+          impl->d_orients_allocated = impl->d_orients;  // We own the device memory
+          CeedCallHip(ceed, hipMemcpy(impl->d_orients, orients, size * sizeof(bool), hipMemcpyHostToDevice));
+        } break;
+        case CEED_MEM_DEVICE: {
+          switch (copy_mode) {
+            case CEED_COPY_VALUES:
+              CeedCallHip(ceed, hipMalloc((void **)&impl->d_orients, size * sizeof(bool)));
+              impl->d_orients_allocated = impl->d_orients;  // We own the device memory
+              CeedCallHip(ceed, hipMemcpy(impl->d_orients, orients, size * sizeof(bool), hipMemcpyDeviceToDevice));
+              break;
+            case CEED_OWN_POINTER:
+              impl->d_orients           = (bool *)orients;
+              impl->d_orients_allocated = impl->d_orients;
+              break;
+            case CEED_USE_POINTER:
+              impl->d_orients = (bool *)orients;
+              break;
+          }
+          CeedCallBackend(CeedMalloc(size, &impl->h_orients_allocated));
+          CeedCallHip(ceed, hipMemcpy(impl->h_orients_allocated, impl->d_orients, size * sizeof(bool), hipMemcpyDeviceToHost));
+          impl->h_orients = impl->h_orients_allocated;
+        } break;
+      }
+    } else if (rstr_type == CEED_RESTRICTION_CURL_ORIENTED) {
+      switch (mem_type) {
+        case CEED_MEM_HOST: {
+          switch (copy_mode) {
+            case CEED_OWN_POINTER:
+              impl->h_curl_orients_allocated = (CeedInt8 *)curl_orients;
+              impl->h_curl_orients           = (CeedInt8 *)curl_orients;
+              break;
+            case CEED_USE_POINTER:
+              impl->h_curl_orients = (CeedInt8 *)curl_orients;
+              break;
+            case CEED_COPY_VALUES:
+              CeedCallBackend(CeedMalloc(3 * size, &impl->h_curl_orients_allocated));
+              memcpy(impl->h_curl_orients_allocated, curl_orients, 3 * size * sizeof(CeedInt8));
+              impl->h_curl_orients = impl->h_curl_orients_allocated;
+              break;
+          }
+          CeedCallHip(ceed, hipMalloc((void **)&impl->d_curl_orients, 3 * size * sizeof(CeedInt8)));
+          impl->d_curl_orients_allocated = impl->d_curl_orients;  // We own the device memory
+          CeedCallHip(ceed, hipMemcpy(impl->d_curl_orients, curl_orients, 3 * size * sizeof(CeedInt8), hipMemcpyHostToDevice));
+        } break;
+        case CEED_MEM_DEVICE: {
+          switch (copy_mode) {
+            case CEED_COPY_VALUES:
+              CeedCallHip(ceed, hipMalloc((void **)&impl->d_curl_orients, 3 * size * sizeof(CeedInt8)));
+              impl->d_curl_orients_allocated = impl->d_curl_orients;  // We own the device memory
+              CeedCallHip(ceed, hipMemcpy(impl->d_curl_orients, curl_orients, 3 * size * sizeof(CeedInt8), hipMemcpyDeviceToDevice));
+              break;
+            case CEED_OWN_POINTER:
+              impl->d_curl_orients           = (CeedInt8 *)curl_orients;
+              impl->d_curl_orients_allocated = impl->d_curl_orients;
+              break;
+            case CEED_USE_POINTER:
+              impl->d_curl_orients = (CeedInt8 *)curl_orients;
+              break;
+          }
+          CeedCallBackend(CeedMalloc(3 * size, &impl->h_curl_orients_allocated));
+          CeedCallHip(ceed, hipMemcpy(impl->h_curl_orients_allocated, impl->d_curl_orients, 3 * size * sizeof(CeedInt8), hipMemcpyDeviceToHost));
+          impl->h_curl_orients = impl->h_curl_orients_allocated;
+        } break;
+      }
+    }
   }
 
   // Compile HIP kernels
-  CeedInt num_nodes = impl->num_nodes;
-
   CeedCallBackend(CeedGetJitAbsolutePath(ceed, "ceed/jit-source/hip/hip-ref-restriction.h", &restriction_kernel_path));
   CeedDebug256(ceed, CEED_DEBUG_COLOR_SUCCESS, "----- Loading Restriction Kernel Source -----\n");
   CeedCallBackend(CeedLoadSourceToBuffer(ceed, restriction_kernel_path, &restriction_kernel_source));
   CeedDebug256(ceed, CEED_DEBUG_COLOR_SUCCESS, "----- Loading Restriction Kernel Source Complete! -----\n");
-  CeedCallBackend(CeedCompile_Hip(ceed, restriction_kernel_source, &impl->module, 8, "RESTR_ELEM_SIZE", elem_size, "RESTR_NUM_ELEM", num_elem,
-                                  "RESTR_NUM_COMP", num_comp, "RESTR_NUM_NODES", num_nodes, "RESTR_COMP_STRIDE", comp_stride, "RESTR_STRIDE_NODES",
-                                  strides[0], "RESTR_STRIDE_COMP", strides[1], "RESTR_STRIDE_ELEM", strides[2]));
+  CeedCallBackend(CeedCompile_Hip(ceed, restriction_kernel_source, &impl->module, 8, "RSTR_ELEM_SIZE", elem_size, "RSTR_NUM_ELEM", num_elem,
+                                  "RSTR_NUM_COMP", num_comp, "RSTR_NUM_NODES", impl->num_nodes, "RSTR_COMP_STRIDE", comp_stride, "RSTR_STRIDE_NODES",
+                                  strides[0], "RSTR_STRIDE_COMP", strides[1], "RSTR_STRIDE_ELEM", strides[2]));
   CeedCallBackend(CeedGetKernel_Hip(ceed, impl->module, "StridedNoTranspose", &impl->StridedNoTranspose));
   CeedCallBackend(CeedGetKernel_Hip(ceed, impl->module, "StridedTranspose", &impl->StridedTranspose));
   CeedCallBackend(CeedGetKernel_Hip(ceed, impl->module, "OffsetNoTranspose", &impl->OffsetNoTranspose));
+  CeedCallBackend(CeedGetKernel_Hip(ceed, impl->module, "OrientedNoTranspose", &impl->OrientedNoTranspose));
+  CeedCallBackend(CeedGetKernel_Hip(ceed, impl->module, "CurlOrientedNoTranspose", &impl->CurlOrientedNoTranspose));
+  CeedCallBackend(CeedGetKernel_Hip(ceed, impl->module, "CurlOrientedUnsignedNoTranspose", &impl->CurlOrientedUnsignedNoTranspose));
   if (!is_deterministic) {
     CeedCallBackend(CeedGetKernel_Hip(ceed, impl->module, "OffsetTranspose", &impl->OffsetTranspose));
+    CeedCallBackend(CeedGetKernel_Hip(ceed, impl->module, "OrientedTranspose", &impl->OrientedTranspose));
+    CeedCallBackend(CeedGetKernel_Hip(ceed, impl->module, "CurlOrientedTranspose", &impl->CurlOrientedTranspose));
+    CeedCallBackend(CeedGetKernel_Hip(ceed, impl->module, "CurlOrientedUnsignedTranspose", &impl->CurlOrientedUnsignedTranspose));
   } else {
     CeedCallBackend(CeedGetKernel_Hip(ceed, impl->module, "OffsetTransposeDet", &impl->OffsetTransposeDet));
+    CeedCallBackend(CeedGetKernel_Hip(ceed, impl->module, "OrientedTransposeDet", &impl->OrientedTransposeDet));
+    CeedCallBackend(CeedGetKernel_Hip(ceed, impl->module, "CurlOrientedTransposeDet", &impl->CurlOrientedTransposeDet));
+    CeedCallBackend(CeedGetKernel_Hip(ceed, impl->module, "CurlOrientedUnsignedTransposeDet", &impl->CurlOrientedUnsignedTransposeDet));
   }
   CeedCallBackend(CeedFree(&restriction_kernel_path));
   CeedCallBackend(CeedFree(&restriction_kernel_source));
 
   // Register backend functions
-  CeedCallBackend(CeedSetBackendFunction(ceed, "ElemRestriction", r, "Apply", CeedElemRestrictionApply_Hip));
-  CeedCallBackend(CeedSetBackendFunction(ceed, "ElemRestriction", r, "ApplyUnsigned", CeedElemRestrictionApply_Hip));
-  CeedCallBackend(CeedSetBackendFunction(ceed, "ElemRestriction", r, "ApplyUnoriented", CeedElemRestrictionApply_Hip));
-  CeedCallBackend(CeedSetBackendFunction(ceed, "ElemRestriction", r, "GetOffsets", CeedElemRestrictionGetOffsets_Hip));
-  CeedCallBackend(CeedSetBackendFunction(ceed, "ElemRestriction", r, "Destroy", CeedElemRestrictionDestroy_Hip));
+  CeedCallBackend(CeedSetBackendFunction(ceed, "ElemRestriction", rstr, "Apply", CeedElemRestrictionApply_Hip));
+  CeedCallBackend(CeedSetBackendFunction(ceed, "ElemRestriction", rstr, "ApplyUnsigned", CeedElemRestrictionApplyUnsigned_Hip));
+  CeedCallBackend(CeedSetBackendFunction(ceed, "ElemRestriction", rstr, "ApplyUnoriented", CeedElemRestrictionApplyUnoriented_Hip));
+  CeedCallBackend(CeedSetBackendFunction(ceed, "ElemRestriction", rstr, "GetOffsets", CeedElemRestrictionGetOffsets_Hip));
+  CeedCallBackend(CeedSetBackendFunction(ceed, "ElemRestriction", rstr, "GetOrientations", CeedElemRestrictionGetOrientations_Hip));
+  CeedCallBackend(CeedSetBackendFunction(ceed, "ElemRestriction", rstr, "GetCurlOrientations", CeedElemRestrictionGetCurlOrientations_Hip));
+  CeedCallBackend(CeedSetBackendFunction(ceed, "ElemRestriction", rstr, "Destroy", CeedElemRestrictionDestroy_Hip));
   return CEED_ERROR_SUCCESS;
 }
 

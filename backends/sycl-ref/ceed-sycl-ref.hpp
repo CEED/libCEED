@@ -94,7 +94,7 @@ typedef struct {
 } CeedOperatorDiag_Sycl;
 
 typedef struct {
-  CeedInt     num_elem, block_size_x, block_size_y, elem_per_block;
+  CeedInt     num_elem, block_size_x, block_size_y, elems_per_block;
   CeedInt     num_e_mode_in, num_e_mode_out, num_qpts, num_nodes, block_size, num_comp;  // Kernel parameters
   bool        fallback;
   CeedScalar *d_B_in, *d_B_out;
