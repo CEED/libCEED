@@ -18,6 +18,7 @@
 //     ./navierstokes -ceed /cpu/self -problem density_current -degree 1
 //     ./navierstokes -ceed /gpu/cuda -problem advection -degree 1
 //
+//TESTARGS(name="Advection, skew") -ceed {ceed_resource} -test_type solver -options_file examples/fluids/advection.yaml -ts_max_steps 0 -wind_type translation -wind_translation -0.5547002,0.83205029,0 -advection_ic_type skew  -dm_plex_box_faces 2,1,1 -compare_final_state_atol 1e-10 -compare_final_state_filename examples/fluids/tests-output/fluids-navierstokes-adv-skew.bin
 //TESTARGS(name="Advection, rotation, cosine") -ceed {ceed_resource} -test_type solver -options_file examples/fluids/advection.yaml -ts_max_steps 0 -advection_ic_type cosine_hill -dm_plex_box_faces 2,1,1 -compare_final_state_atol 1e-10 -compare_final_state_filename examples/fluids/tests-output/fluids-navierstokes-adv-rotation-cosine.bin
 //TESTARGS(name="Gaussian Wave, using MatShell") -ceed {ceed_resource} -test_type solver -options_file examples/fluids/gaussianwave.yaml -compare_final_state_atol 1e-8 -compare_final_state_filename examples/fluids/tests-output/fluids-navierstokes-gaussianwave-shell.bin -dm_plex_box_faces 2,2,1 -ts_max_steps 5 -degree 3 -amat_type shell -pmat_pbdiagonal -pc_type vpbjacobi
 //TESTARGS(name="Taylor-Green Vortex IC") -ceed {ceed_resource} -problem taylor_green -test_type solver -dm_plex_dim 3 -dm_plex_box_faces 6,6,6 -ts_max_steps 0 -compare_final_state_atol 1e-12 -compare_final_state_filename examples/fluids/tests-output/fluids-navierstokes-taylor-green-IC.bin
