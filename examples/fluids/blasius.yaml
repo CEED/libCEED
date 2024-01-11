@@ -37,10 +37,10 @@ bc_inflow: 6
 bc_outflow: 5,4
 gravity: 0,0,0
 
-stg:
-  use: false
-  inflow_path: "./STGInflow_blasius.dat"
-  mean_only: true
+# stg:
+#   use: false
+#   inflow_path: "./STGInflow_blasius.dat"
+#   mean_only: true
 
 # ts_monitor_turbulence_spanstats:
 #   collect_interval: 1
