@@ -56,18 +56,24 @@ static int CeedQFunctionApply_Memcheck(CeedQFunction qf, CeedInt Q, CeedVector *
     CeedCallBackend(CeedVectorRestoreArrayRead(U[i], &impl->inputs[i]));
   }
   // Check for unset output values
-  CeedCallBackend(CeedQFunctionGetFields(qf, NULL, NULL, NULL, &output_fields));
-  for (CeedInt i = 0; i < num_out; i++) {
-    CeedInt field_size;
+  {
+    char *kernel_path, *kernel_name;
 
-    // Note: need field size because vector may be longer than needed for output
-    CeedCallBackend(CeedQFunctionFieldGetSize(output_fields[i], &field_size));
-    for (CeedSize j = 0; j < Q * field_size; j++) {
-      CeedCheck(!isnan(impl->outputs[i][j]), ceed, CEED_ERROR_BACKEND, "QFunction output %d entry %ld is NaN after restoring write-only access", i,
-                j);
+    CeedCallBackend(CeedQFunctionGetSourcePath(qf, &kernel_path));
+    CeedCallBackend(CeedQFunctionGetKernelName(qf, &kernel_name));
+    CeedCallBackend(CeedQFunctionGetFields(qf, NULL, NULL, NULL, &output_fields));
+    for (CeedInt i = 0; i < num_out; i++) {
+      CeedInt field_size;
+
+      // Note: need field size because vector may be longer than needed for output
+      CeedCallBackend(CeedQFunctionFieldGetSize(output_fields[i], &field_size));
+      for (CeedSize j = 0; j < Q * field_size; j++) {
+        CeedCheck(!isnan(impl->outputs[i][j]), ceed, CEED_ERROR_BACKEND,
+                  "QFunction output %d entry %ld is NaN after restoring write-only access: %s:%s ", i, j, kernel_path, kernel_name);
+      }
+      CeedCallBackend(CeedVectorRestoreArray(V[i], &impl->outputs[i]));
+      VALGRIND_DISCARD(mem_block_ids[i]);
     }
-    CeedCallBackend(CeedVectorRestoreArray(V[i], &impl->outputs[i]));
-    VALGRIND_DISCARD(mem_block_ids[i]);
   }
   CeedCallBackend(CeedQFunctionRestoreContextData(qf, &ctx_data));
   return CEED_ERROR_SUCCESS;
