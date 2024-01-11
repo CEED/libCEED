@@ -11,8 +11,8 @@ ts_error_if_step_fails: 0
 implicit: true
 ts:
   adapt_type: 'none'
-  type: 'beuler'
-#  type: 'alpha'
+#  type: 'beuler'
+  type: 'alpha'
   alpha_radius: 0.5
   dt: 3.6e-4
   #max_steps: 10
@@ -113,8 +113,8 @@ snes_lag_jacobian: 9
 #original ksp_rtol: 5e-2
 
 ts_monitor_solution: cgns:flowCGNSIn-%d.cgns # %d activates batch mode, default 20 output frames per batch
-ts_monitor_solution_interval: 2  # one file per 50 time steps
-viewer_cgns_batch_size: 2 # (optional) change number of frames per batch
+ts_monitor_solution_interval: 1  # one file per 50 time steps
+viewer_cgns_batch_size: 1 # (optional) change number of frames per batch
 
 ts_monitor_turbulence_spanstats_viewer: cgns:stats-%d.cgns
 
