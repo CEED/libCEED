@@ -27,7 +27,7 @@ struct SetupContextAdv_ {
   CeedScalar           wind[3];
   CeedScalar           time;
   WindType             wind_type;
-  BubbleType           bubble_type;
+  AdvectionICType      initial_condition_type;
   BubbleContinuityType bubble_continuity_type;
 };
 
@@ -100,17 +100,17 @@ CEED_QFUNCTION_HELPER CeedInt Exact_Advection(CeedInt dim, CeedScalar time, cons
 
   // -- Energy
   CeedScalar r = 0.;
-  switch (context->bubble_type) {
-    case BUBBLE_SPHERE:  // (dim=3)
+  switch (context->initial_condition_type) {
+    case ADVECTIONIC_BUBBLE_SPHERE:  // (dim=3)
       r = sqrt(Square(x - x0[0]) + Square(y - x0[1]) + Square(z - x0[2]));
       break;
-    case BUBBLE_CYLINDER:  // (dim=2)
+    case ADVECTIONIC_BUBBLE_CYLINDER:  // (dim=2)
       r = sqrt(Square(x - x0[0]) + Square(y - x0[1]));
       break;
-    case BUBBLE_COSINE:
+    case ADVECTIONIC_COSINE_HILL:
       r = sqrt(Square(x - center[0]) + Square(y - center[1]));
       break;
-    case BUBBLE_SKEW:
+    case ADVECTIONIC_SKEW:
       break;
   }
 
@@ -131,9 +131,9 @@ CEED_QFUNCTION_HELPER CeedInt Exact_Advection(CeedInt dim, CeedScalar time, cons
       break;
   }
 
-  switch (context->bubble_type) {
-    case BUBBLE_SPHERE:
-    case BUBBLE_CYLINDER:
+  switch (context->initial_condition_type) {
+    case ADVECTIONIC_BUBBLE_SPHERE:
+    case ADVECTIONIC_BUBBLE_CYLINDER:
       switch (context->bubble_continuity_type) {
         // original continuous, smooth shape
         case BUBBLE_CONTINUITY_SMOOTH:
@@ -149,11 +149,11 @@ CEED_QFUNCTION_HELPER CeedInt Exact_Advection(CeedInt dim, CeedScalar time, cons
           break;
       }
       break;
-    case BUBBLE_COSINE: {
+    case ADVECTIONIC_COSINE_HILL: {
       CeedScalar half_width = context->lx / 2;
       q[4]                  = r > half_width ? 0. : cos(2 * M_PI * r / half_width + M_PI) + 1.;
     } break;
-    case BUBBLE_SKEW: {
+    case ADVECTIONIC_SKEW: {
       CeedScalar skewed_barrier[3]  = {wind[0], wind[1], 0};
       CeedScalar inflow_to_point[3] = {x - context->lx / 2, y, 0};
       CeedScalar cross_product[3]   = {0};

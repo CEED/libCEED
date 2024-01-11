@@ -18,7 +18,7 @@
 
 PetscErrorCode NS_ADVECTION(ProblemData *problem, DM dm, void *ctx, SimpleBC bc) {
   WindType             wind_type;
-  BubbleType           bubble_type;
+  AdvectionICType      advectionic_type;
   BubbleContinuityType bubble_continuity_type;
   StabilizationType    stab;
   SetupContextAdv      setup_context;
@@ -90,8 +90,8 @@ PetscErrorCode NS_ADVECTION(ProblemData *problem, DM dm, void *ctx, SimpleBC bc)
   PetscCall(
       PetscOptionsScalar("-strong_form", "Strong (1) or weak/integrated by parts (0) advection residual", NULL, strong_form, &strong_form, NULL));
   PetscCall(PetscOptionsScalar("-E_wind", "Total energy of inflow wind", NULL, E_wind, &E_wind, NULL));
-  PetscCall(PetscOptionsEnum("-bubble_type", "Sphere (3D) or cylinder (2D)", NULL, BubbleTypes, (PetscEnum)(bubble_type = BUBBLE_SPHERE),
-                             (PetscEnum *)&bubble_type, NULL));
+  PetscCall(PetscOptionsEnum("-advection_ic_type", "Initial condition for Advection problem", NULL, AdvectionICTypes,
+                             (PetscEnum)(advectionic_type = ADVECTIONIC_BUBBLE_SPHERE), (PetscEnum *)&advectionic_type, NULL));
   PetscCall(PetscOptionsEnum("-bubble_continuity", "Smooth, back_sharp, or thick", NULL, BubbleContinuityTypes,
                              (PetscEnum)(bubble_continuity_type = BUBBLE_CONTINUITY_SMOOTH), (PetscEnum *)&bubble_continuity_type, NULL));
   PetscCall(PetscOptionsEnum("-stab", "Stabilization method", NULL, StabilizationTypes, (PetscEnum)(stab = STAB_NONE), (PetscEnum *)&stab, NULL));
@@ -109,9 +109,10 @@ PetscErrorCode NS_ADVECTION(ProblemData *problem, DM dm, void *ctx, SimpleBC bc)
   if (wind_type == WIND_ROTATION && user_wind) {
     PetscCall(PetscPrintf(comm, "Warning! Use -wind_translation only with -wind_type translation\n"));
   }
-  if (wind_type == WIND_TRANSLATION && bubble_type == BUBBLE_CYLINDER && wind[2] != 0.) {
+  if (wind_type == WIND_TRANSLATION && advectionic_type == ADVECTIONIC_BUBBLE_CYLINDER && wind[2] != 0.) {
     wind[2] = 0;
-    PetscCall(PetscPrintf(comm, "Warning! Background wind in the z direction should be zero (-wind_translation x,x,0) with -bubble_type cylinder\n"));
+    PetscCall(
+        PetscPrintf(comm, "Warning! Background wind in the z direction should be zero (-wind_translation x,x,0) with -advection_ic_type cylinder\n"));
   }
   if (stab == STAB_NONE && CtauS != 0) {
     PetscCall(PetscPrintf(comm, "Warning! Use -CtauS only with -stab su or -stab supg\n"));
@@ -154,7 +155,7 @@ PetscErrorCode NS_ADVECTION(ProblemData *problem, DM dm, void *ctx, SimpleBC bc)
   setup_context->wind[1]                = wind[1];
   setup_context->wind[2]                = wind[2];
   setup_context->wind_type              = wind_type;
-  setup_context->bubble_type            = bubble_type;
+  setup_context->initial_condition_type = advectionic_type;
   setup_context->bubble_continuity_type = bubble_continuity_type;
   setup_context->time                   = 0;
 
@@ -194,12 +195,11 @@ PetscErrorCode PRINT_ADVECTION(User user, ProblemData *problem, AppCtx app_ctx) 
                         "  Problem:\n"
                         "    Problem Name                       : %s\n"
                         "    Stabilization                      : %s\n"
-                        "    Bubble Type                        : %s (%" CeedInt_FMT "D)\n"
+                        "    Initial Condition Type             : %s\n"
                         "    Bubble Continuity                  : %s\n"
                         "    Wind Type                          : %s\n",
-                        app_ctx->problem_name, StabilizationTypes[advection_ctx->stabilization], BubbleTypes[setup_ctx->bubble_type],
-                        setup_ctx->bubble_type == BUBBLE_SPHERE ? 3 : 2, BubbleContinuityTypes[setup_ctx->bubble_continuity_type],
-                        WindTypes[setup_ctx->wind_type]));
+                        app_ctx->problem_name, StabilizationTypes[advection_ctx->stabilization], AdvectionICTypes[setup_ctx->initial_condition_type],
+                        BubbleContinuityTypes[setup_ctx->bubble_continuity_type], WindTypes[setup_ctx->wind_type]));
 
   if (setup_ctx->wind_type == WIND_TRANSLATION) {
     PetscCall(PetscPrintf(comm, "    Background Wind                    : %f,%f,%f\n", setup_ctx->wind[0], setup_ctx->wind[1], setup_ctx->wind[2]));

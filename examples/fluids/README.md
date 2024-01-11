@@ -441,8 +441,8 @@ For the 3D advection problem, the following additional command-line options are 
   - `1E6`
   - `J`
 
-* - `-bubble_type`
-  - `sphere` (3D) or `cylinder` (2D)
+* - `-advection_ic_type`
+  - Initial condition type, from `sphere`, `cylinder`, `cosine_hill`, and `skew`
   - `sphere`
   -
 
