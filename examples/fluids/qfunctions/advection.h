@@ -278,7 +278,7 @@ CEED_QFUNCTION(Advection)(void *ctx, CeedInt Q, const CeedScalar *const *in, Cee
     //   field u.
     CeedScalar uX[3];
     for (CeedInt j = 0; j < 3; j++) uX[j] = dXdx[j][0] * u[0] + dXdx[j][1] * u[1] + dXdx[j][2] * u[2];
-    const CeedScalar TauS = CtauS / sqrt(uX[0] * uX[0] + uX[1] * uX[1] + uX[2] * uX[2]);
+    const CeedScalar TauS = CtauS / sqrt(Dot3(uX, uX));
     for (CeedInt j = 0; j < 3; j++) dv[j][4][i] -= wdetJ * TauS * strong_conv * uX[j];
   }  // End Quadrature Point Loop
 
