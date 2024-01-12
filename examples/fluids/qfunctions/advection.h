@@ -14,8 +14,8 @@
 #include <ceed.h>
 #include <math.h>
 
-#include "../qfunctions/advection_types.h"
-#include "../qfunctions/stabilization_types.h"
+#include "advection_types.h"
+#include "stabilization_types.h"
 #include "utils.h"
 
 typedef struct SetupContextAdv_ *SetupContextAdv;
@@ -27,7 +27,7 @@ struct SetupContextAdv_ {
   CeedScalar           wind[3];
   CeedScalar           time;
   WindType             wind_type;
-  BubbleType           bubble_type;
+  AdvectionICType      initial_condition_type;
   BubbleContinuityType bubble_continuity_type;
 };
 
@@ -100,21 +100,27 @@ CEED_QFUNCTION_HELPER CeedInt Exact_Advection(CeedInt dim, CeedScalar time, cons
 
   // -- Energy
   CeedScalar r = 0.;
-  switch (context->bubble_type) {
-    case BUBBLE_SPHERE: {  // (dim=3)
+  switch (context->initial_condition_type) {
+    case ADVECTIONIC_BUBBLE_SPHERE:  // (dim=3)
       r = sqrt(Square(x - x0[0]) + Square(y - x0[1]) + Square(z - x0[2]));
-    } break;
-    case BUBBLE_CYLINDER: {  // (dim=2)
+      break;
+    case ADVECTIONIC_BUBBLE_CYLINDER:  // (dim=2)
       r = sqrt(Square(x - x0[0]) + Square(y - x0[1]));
-    } break;
+      break;
+    case ADVECTIONIC_COSINE_HILL:
+      r = sqrt(Square(x - center[0]) + Square(y - center[1]));
+      break;
+    case ADVECTIONIC_SKEW:
+      break;
   }
 
   // Initial Conditions
+  CeedScalar wind_scaling = 1.;
   switch (context->wind_type) {
     case WIND_ROTATION:
       q[0] = 1.;
-      q[1] = -(y - center[1]);
-      q[2] = (x - center[0]);
+      q[1] = -wind_scaling * (y - center[1]);
+      q[2] = wind_scaling * (x - center[0]);
       q[3] = 0;
       break;
     case WIND_TRANSLATION:
@@ -125,20 +131,45 @@ CEED_QFUNCTION_HELPER CeedInt Exact_Advection(CeedInt dim, CeedScalar time, cons
       break;
   }
 
-  switch (context->bubble_continuity_type) {
-    // original continuous, smooth shape
-    case BUBBLE_CONTINUITY_SMOOTH: {
-      q[4] = r <= rc ? (1. - r / rc) : 0.;
+  switch (context->initial_condition_type) {
+    case ADVECTIONIC_BUBBLE_SPHERE:
+    case ADVECTIONIC_BUBBLE_CYLINDER:
+      switch (context->bubble_continuity_type) {
+        // original continuous, smooth shape
+        case BUBBLE_CONTINUITY_SMOOTH:
+          q[4] = r <= rc ? (1. - r / rc) : 0.;
+          break;
+        // discontinuous, sharp back half shape
+        case BUBBLE_CONTINUITY_BACK_SHARP:
+          q[4] = ((r <= rc) && (y < center[1])) ? (1. - r / rc) : 0.;
+          break;
+        // attempt to define a finite thickness that will get resolved under grid refinement
+        case BUBBLE_CONTINUITY_THICK:
+          q[4] = ((r <= rc) && (y < center[1])) ? (1. - r / rc) * fmin(1.0, (center[1] - y) / 1.25) : 0.;
+          break;
+      }
+      break;
+    case ADVECTIONIC_COSINE_HILL: {
+      CeedScalar half_width = context->lx / 2;
+      q[4]                  = r > half_width ? 0. : cos(2 * M_PI * r / half_width + M_PI) + 1.;
     } break;
-    // discontinuous, sharp back half shape
-    case BUBBLE_CONTINUITY_BACK_SHARP: {
-      q[4] = ((r <= rc) && (y < center[1])) ? (1. - r / rc) : 0.;
-    } break;
-    // attempt to define a finite thickness that will get resolved under grid refinement
-    case BUBBLE_CONTINUITY_THICK: {
-      q[4] = ((r <= rc) && (y < center[1])) ? (1. - r / rc) * fmin(1.0, (center[1] - y) / 1.25) : 0.;
+    case ADVECTIONIC_SKEW: {
+      CeedScalar skewed_barrier[3]  = {wind[0], wind[1], 0};
+      CeedScalar inflow_to_point[3] = {x - context->lx / 2, y, 0};
+      CeedScalar cross_product[3]   = {0};
+      Cross3(skewed_barrier, inflow_to_point, cross_product);
+
+      q[4] = cross_product[2] > 0 ? 0 : 1;
+      if ((x < 5 * CEED_EPSILON && wind[0] < 5 * CEED_EPSILON) ||                // outflow at -x boundary
+          (y < 5 * CEED_EPSILON && wind[1] < 5 * CEED_EPSILON) ||                // outflow at -y boundary
+          (x > context->lx - 5 * CEED_EPSILON && wind[0] > 5 * CEED_EPSILON) ||  // outflow at +x boundary
+          (y > context->ly - 5 * CEED_EPSILON && wind[1] > 5 * CEED_EPSILON)     // outflow at +y boundary
+      ) {
+        q[4] = 0;
+      }
     } break;
   }
+
   return 0;
 }
 

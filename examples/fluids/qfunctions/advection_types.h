@@ -16,11 +16,13 @@ typedef enum {
   WIND_TRANSLATION = 1,
 } WindType;
 
-// Advection - Bubble Types
+// Advection - Initial Condition Types
 typedef enum {
-  BUBBLE_SPHERE   = 0,  // dim=3
-  BUBBLE_CYLINDER = 1,  // dim=2
-} BubbleType;
+  ADVECTIONIC_BUBBLE_SPHERE   = 0,  // dim=3
+  ADVECTIONIC_BUBBLE_CYLINDER = 1,  // dim=2
+  ADVECTIONIC_COSINE_HILL     = 2,  // dim=2
+  ADVECTIONIC_SKEW            = 3,
+} AdvectionICType;
 
 // Advection - Bubble Continuity Types
 typedef enum {

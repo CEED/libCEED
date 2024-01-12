@@ -1,0 +1,35 @@
+ceed: /cpu/self/memcheck/blocked
+problem: advection
+CtauS: .3
+stab: su
+degree: 2
+dm_plex:
+  dim: 3
+  box_faces: 5,5,1
+  box_lower: 0,0,0
+  box_upper: 125,125,250
+
+bc_inflow: 1,2,3,4,5,6
+
+units_kilogram: 1e-9
+rc: 100.
+ksp:
+  atol: 1e-4
+  rtol: 1e-3
+  type: bcgs
+
+snes:
+  atol: 1e-3
+  lag_jacobian: 100
+  lag_jacobian_persists:
+  mf_operator:
+
+implicit:
+ts:
+  dt: 1e-3
+  type: alpha
+  max_steps: 10
+
+dm_mat_preallocate_skip: 0
+
+wind_type: rotation
