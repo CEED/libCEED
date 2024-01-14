@@ -363,7 +363,7 @@ CEED_QFUNCTION_HELPER int Freestream(void *ctx, CeedInt Q, const CeedScalar *con
         break;
       case RIEMANN_HLLC:
                 flux = RiemannFlux_HLLC(newt_ctx, s, context->S_infty, norm);
-        if(0)jj{
+        if(0){
           CeedScalar       qb[3]    = {q[1][i], q[2][i], q[3][i]};
           const CeedScalar q_normal = Dot3(qb, norm);
           for (CeedInt j = 0; j < 3; j++) qb[j] -= 2. * norm[j] * q_normal;
