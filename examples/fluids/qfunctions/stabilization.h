@@ -81,38 +81,28 @@ CEED_QFUNCTION_HELPER void Tau_diagPrim(NewtonianIdealGasContext gas, State s, c
   const CeedScalar Ctau_E = gas->Ctau_E;
   const CeedScalar cv     = gas->cv;
   const CeedScalar mu     = gas->mu;
-  const CeedScalar u[3]   = {s.Y.velocity[0], s.Y.velocity[1], s.Y.velocity[2]};
   const CeedScalar rho    = s.U.density;
 
-  CeedScalar gijd[6];
   CeedScalar tau;
   CeedScalar dts;
   CeedScalar fact;
 
-  gijd[0] = dXdx[0][0] * dXdx[0][0] + dXdx[1][0] * dXdx[1][0] + dXdx[2][0] * dXdx[2][0];
-
-  gijd[1] = dXdx[0][0] * dXdx[0][1] + dXdx[1][0] * dXdx[1][1] + dXdx[2][0] * dXdx[2][1];
-
-  gijd[2] = dXdx[0][1] * dXdx[0][1] + dXdx[1][1] * dXdx[1][1] + dXdx[2][1] * dXdx[2][1];
-
-  gijd[3] = dXdx[0][0] * dXdx[0][2] + dXdx[1][0] * dXdx[1][2] + dXdx[2][0] * dXdx[2][2];
-
-  gijd[4] = dXdx[0][1] * dXdx[0][2] + dXdx[1][1] * dXdx[1][2] + dXdx[2][1] * dXdx[2][2];
-
-  gijd[5] = dXdx[0][2] * dXdx[0][2] + dXdx[1][2] * dXdx[1][2] + dXdx[2][2] * dXdx[2][2];
+  CeedScalar gijd_mat[3][3] = {{0.}}, velocity_term;
+  MatMat3(dXdx, dXdx, CEED_TRANSPOSE, CEED_NOTRANSPOSE, gijd_mat);
 
   dts = Ctau_t / dt;
 
-  tau = Square(rho) *
-            (4. * Square(dts) + u[0] * (u[0] * gijd[0] + 2. * (u[1] * gijd[1] + u[2] * gijd[3])) + u[1] * (u[1] * gijd[2] + 2. * u[2] * gijd[4]) +
-             u[2] * u[2] * gijd[5]) +
-        Ctau_v * Square(mu) *
-            (Square(gijd[0]) + Square(gijd[2]) + Square(gijd[5]) + +2. * (Square(gijd[1]) + Square(gijd[3]) + Square(gijd[4])));
+  {  // u_i g_ij u_j
+    CeedScalar gij_uj[3] = {0.};
+    MatVec3(gijd_mat, s.Y.velocity, CEED_NOTRANSPOSE, gij_uj);
+    velocity_term = Dot3(s.Y.velocity, gij_uj);
+  }
+
+  tau = Square(rho) * (4. * Square(dts) + velocity_term) + Ctau_v * Square(mu) * DotN((CeedScalar *)gijd_mat, (CeedScalar *)gijd_mat, 9);
 
   fact = sqrt(tau);
 
-  Tau_d[0] = Ctau_C * fact / (rho * (gijd[0] + gijd[2] + gijd[5])) * 0.125;
-
+  Tau_d[0] = Ctau_C * fact / (rho * (gijd_mat[0][0] + gijd_mat[1][1] + gijd_mat[2][2])) * 0.125;
   Tau_d[1] = Ctau_M / fact;
   Tau_d[2] = Ctau_E / (fact * cv);
 
