@@ -154,16 +154,17 @@ CEED_QFUNCTION_HELPER CeedInt Exact_Advection(CeedInt dim, CeedScalar time, cons
       q[4]                  = r > half_width ? 0. : cos(2 * M_PI * r / half_width + M_PI) + 1.;
     } break;
     case ADVECTIONIC_SKEW: {
-      CeedScalar skewed_barrier[3]  = {wind[0], wind[1], 0};
-      CeedScalar inflow_to_point[3] = {x - context->lx / 2, y, 0};
-      CeedScalar cross_product[3]   = {0};
+      CeedScalar       skewed_barrier[3]  = {wind[0], wind[1], 0};
+      CeedScalar       inflow_to_point[3] = {x - context->lx / 2, y, 0};
+      CeedScalar       cross_product[3]   = {0};
+      const CeedScalar boundary_threshold = 20 * CEED_EPSILON;
       Cross3(skewed_barrier, inflow_to_point, cross_product);
 
-      q[4] = cross_product[2] > 0 ? 0 : 1;
-      if ((x < 5 * CEED_EPSILON && wind[0] < 5 * CEED_EPSILON) ||                // outflow at -x boundary
-          (y < 5 * CEED_EPSILON && wind[1] < 5 * CEED_EPSILON) ||                // outflow at -y boundary
-          (x > context->lx - 5 * CEED_EPSILON && wind[0] > 5 * CEED_EPSILON) ||  // outflow at +x boundary
-          (y > context->ly - 5 * CEED_EPSILON && wind[1] > 5 * CEED_EPSILON)     // outflow at +y boundary
+      q[4] = cross_product[2] > boundary_threshold ? 0 : 1;
+      if ((x < boundary_threshold && wind[0] < boundary_threshold) ||                // outflow at -x boundary
+          (y < boundary_threshold && wind[1] < boundary_threshold) ||                // outflow at -y boundary
+          (x > context->lx - boundary_threshold && wind[0] > boundary_threshold) ||  // outflow at +x boundary
+          (y > context->ly - boundary_threshold && wind[1] > boundary_threshold)     // outflow at +y boundary
       ) {
         q[4] = 0;
       }
