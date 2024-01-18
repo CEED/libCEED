@@ -29,14 +29,15 @@ CEED_QFUNCTION_HELPER void dYFromTau(CeedScalar Y[5], CeedScalar Tau_d[3], CeedS
 // *****************************************************************************
 // Helper functions for computing the stabilization terms
 // *****************************************************************************
-CEED_QFUNCTION_HELPER void StabilizationMatrix(NewtonianIdealGasContext gas, State s, CeedScalar Tau_d[3], CeedScalar R[5], CeedScalar stab[5][3]) {
+CEED_QFUNCTION_HELPER void StabilizationMatrix(NewtonianIdealGasContext gas, State s, CeedScalar Tau_d[3], CeedScalar strong_residual[5],
+                                               CeedScalar stab[5][3]) {
   CeedScalar        dY[5];
   StateConservative dF[3];
   // Zero stab so all future terms can safely sum into it
   for (CeedInt i = 0; i < 5; i++) {
     for (CeedInt j = 0; j < 3; j++) stab[i][j] = 0;
   }
-  dYFromTau(R, Tau_d, dY);
+  dYFromTau(strong_residual, Tau_d, dY);
   State ds = StateFromY_fwd(gas, s, dY);
   FluxInviscid_fwd(gas, s, ds, dF);
   for (CeedInt i = 0; i < 3; i++) {
@@ -49,19 +50,19 @@ CEED_QFUNCTION_HELPER void StabilizationMatrix(NewtonianIdealGasContext gas, Sta
 CEED_QFUNCTION_HELPER void Stabilization(NewtonianIdealGasContext gas, State s, CeedScalar Tau_d[3], State ds[3], CeedScalar U_dot[5],
                                          const CeedScalar body_force[5], CeedScalar stab[5][3]) {
   // -- Stabilization method: none (Galerkin), SU, or SUPG
-  CeedScalar R[5] = {0};
+  CeedScalar strong_residual[5] = {0};
   switch (gas->stabilization) {
     case STAB_NONE:
       break;
     case STAB_SU:
-      FluxInviscidStrong(gas, s, ds, R);
+      FluxInviscidStrong(gas, s, ds, strong_residual);
       break;
     case STAB_SUPG:
-      FluxInviscidStrong(gas, s, ds, R);
-      for (CeedInt j = 0; j < 5; j++) R[j] += U_dot[j] - body_force[j];
+      FluxInviscidStrong(gas, s, ds, strong_residual);
+      for (CeedInt j = 0; j < 5; j++) strong_residual[j] += U_dot[j] - body_force[j];
       break;
   }
-  StabilizationMatrix(gas, s, Tau_d, R, stab);
+  StabilizationMatrix(gas, s, Tau_d, strong_residual, stab);
 }
 
 // *****************************************************************************
