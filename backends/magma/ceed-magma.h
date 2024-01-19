@@ -57,7 +57,7 @@ typedef struct {
 } CeedBasis_Magma;
 
 typedef struct {
-  CeedMagmaModule   module_weight, module_interp[MAGMA_NONTENSOR_KERNEL_INSTANCES];
+  CeedMagmaModule   module[MAGMA_NONTENSOR_KERNEL_INSTANCES];
   CeedMagmaFunction Interp[MAGMA_NONTENSOR_KERNEL_INSTANCES];
   CeedMagmaFunction InterpTranspose[MAGMA_NONTENSOR_KERNEL_INSTANCES];
   CeedMagmaFunction Deriv[MAGMA_NONTENSOR_KERNEL_INSTANCES];
