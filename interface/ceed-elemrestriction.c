@@ -75,7 +75,7 @@ int CeedPermutePadOrients(const bool *orients, bool *block_orients, CeedInt num_
 /**
   @brief Permute and pad curl-conforming orientations for a blocked `CeedElemRestriction`
 
-  @param[in]  curl_orients       Array of shape `[num_elem, 3 * elem_size]`
+  @param[in]  curl_orients       Array of shape `[num_elem, elem_size]`
   @param[out] block_curl_orients Array of permuted and padded array values of shape `[num_block, elem_size, block_size]`
   @param[in]  num_block          Number of blocks
   @param[in]  num_elem           Number of elements
