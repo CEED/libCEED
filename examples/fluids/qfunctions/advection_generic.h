@@ -262,4 +262,68 @@ CEED_QFUNCTION_HELPER void IFunction_AdvectionGeneric(void *ctx, CeedInt Q, cons
   }
 }
 
+// *****************************************************************************
+// This QFunction implements Advection for explicit time stepping method
+// *****************************************************************************
+CEED_QFUNCTION_HELPER void RHSFunction_AdvectionGeneric(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out, CeedInt dim) {
+  const CeedScalar(*q)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[0];
+  const CeedScalar(*grad_q)        = in[1];
+  const CeedScalar(*q_data)        = in[2];
+
+  CeedScalar(*v)[CEED_Q_VLA]         = (CeedScalar(*)[CEED_Q_VLA])out[0];
+  CeedScalar(*grad_v)[5][CEED_Q_VLA] = (CeedScalar(*)[5][CEED_Q_VLA])out[1];
+
+  AdvectionContext                 context = (AdvectionContext)ctx;
+  const CeedScalar                 CtauS   = context->CtauS;
+  NewtonianIdealGasContext         gas;
+  struct NewtonianIdealGasContext_ gas_struct = {0};
+  gas                                         = &gas_struct;
+
+  CeedPragmaSIMD for (CeedInt i = 0; i < Q; i++) {
+    const CeedScalar qi[5] = {q[0][i], q[1][i], q[2][i], q[3][i], q[4][i]};
+    const State      s     = StateFromU(gas, qi);
+
+    CeedScalar wdetJ, dXdx[9];
+    QdataUnpack_ND(dim, Q, i, q_data, &wdetJ, dXdx);
+    State grad_s[3];
+    StatePhysicalGradientFromReference_ND(dim, Q, i, gas, s, STATEVAR_CONSERVATIVE, grad_q, dXdx, grad_s);
+
+    const CeedScalar Grad_E[3] = {grad_s[0].U.E_total, grad_s[1].U.E_total, grad_s[2].U.E_total};
+
+    for (CeedInt f = 0; f < 4; f++) {
+      for (CeedInt j = 0; j < dim; j++) grad_v[j][f][i] = 0;  // No Change in density or momentum
+      v[f][i] = 0.;
+    }
+
+    CeedScalar div_u = 0;
+    for (CeedInt j = 0; j < dim; j++) {
+      for (CeedInt k = 0; k < dim; k++) {
+        div_u += grad_s[k].Y.velocity[j];
+      }
+    }
+    CeedScalar strong_conv = s.U.E_total * div_u + DotN(s.Y.velocity, Grad_E, dim);
+
+    CeedScalar uX[3] = {0.};
+    MatVecNM(dXdx, s.Y.velocity, dim, dim, CEED_NOTRANSPOSE, uX);
+
+    if (context->strong_form) {  // Strong Galerkin convection term: v div(E u)
+      v[4][i] = -wdetJ * strong_conv;
+      for (CeedInt j = 0; j < dim; j++) grad_v[j][4][i] = 0;
+    } else {  // Weak Galerkin convection term: -dv \cdot (E u)
+      for (CeedInt j = 0; j < dim; j++) grad_v[j][4][i] = wdetJ * s.U.E_total * uX[j];
+      v[4][i] = 0.;
+    }
+
+    const CeedScalar TauS = CtauS / sqrt(Dot3(uX, uX));
+    for (CeedInt j = 0; j < dim; j++) switch (context->stabilization) {
+        case STAB_NONE:
+          break;
+        case STAB_SU:
+        case STAB_SUPG:
+          grad_v[j][4][i] += wdetJ * TauS * strong_conv * uX[j];
+          break;
+      }
+  }
+}
+
 #endif  // advection_generic_h
