@@ -88,28 +88,18 @@ CEED_QFUNCTION(Setup2d)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedS
 //                [-J1 ]
 // *****************************************************************************
 CEED_QFUNCTION(SetupBoundary2d)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
-  // Inputs
   const CeedScalar(*J)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[0];
   const CeedScalar(*w)             = in[1];
+  CeedScalar(*q_data_sur)          = out[0];
 
-  // Outputs
-  CeedScalar(*q_data_sur)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA])out[0];
+  CeedPragmaSIMD for (CeedInt i = 0; i < Q; i++) {
+    CeedScalar normal[2], detJb;
+    NormalVectorFromdxdX_2D(Q, i, J, normal, &detJb);
+    const CeedScalar wdetJ = w[i] * detJb;
 
-  CeedPragmaSIMD
-      // Quadrature Point Loop
-      for (CeedInt i = 0; i < Q; i++) {
-    // Setup
-    const CeedScalar J1 = J[0][i];
-    const CeedScalar J2 = J[1][i];
-
-    const CeedScalar detJb = sqrt(J1 * J1 + J2 * J2);
-
-    q_data_sur[0][i] = w[i] * detJb;
-    q_data_sur[1][i] = J2 / detJb;
-    q_data_sur[2][i] = -J1 / detJb;
-  }  // End of Quadrature Point Loop
-
-  // Return
+    StoredValuesPack(Q, i, 0, 1, &wdetJ, q_data_sur);
+    StoredValuesPack(Q, i, 1, 2, normal, q_data_sur);
+  }
   return 0;
 }
 

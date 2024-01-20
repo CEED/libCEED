@@ -96,14 +96,10 @@ CEED_QFUNCTION(Advection2d_InOutFlow)(void *ctx, CeedInt Q, const CeedScalar *co
     const CeedScalar u[3] = {q[1][i] / rho, q[2][i] / rho, q[3][i] / rho};
     const CeedScalar E    = q[4][i];
 
-    // -- Interp-to-Interp q_data
-    // For explicit mode, the surface integral is on the RHS of ODE q_dot = f(q).
-    // For implicit mode, it gets pulled to the LHS of implicit ODE/DAE g(q_dot, q).
-    // We can effect this by swapping the sign on this weight
-    const CeedScalar wdetJb = (implicit ? -1. : 1.) * q_data_sur[0][i];
+    CeedScalar wdetJb, norm[2];
+    QdataBoundaryUnpack_2D(Q, i, (CeedScalar *)q_data_sur, &wdetJb, norm);
+    wdetJb *= implicit ? -1. : 1.;
 
-    // ---- Normal vectors
-    const CeedScalar norm[2] = {q_data_sur[1][i], q_data_sur[2][i]};
     // Normal velocity
     const CeedScalar u_normal = norm[0] * u[0] + norm[1] * u[1];
 

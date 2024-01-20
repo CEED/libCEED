@@ -125,12 +125,6 @@ CEED_QFUNCTION_HELPER void InvertMappingJacobian_2D(CeedInt Q, CeedInt i, const 
  *
  * Normal vector = (J1,J2,J3) / detJb
  *
- * Stored: (J1,J2,J3) / detJb
- *   in q_data_sur[1:3] as
- *   (detJb^-1) * [ J1 ]
- *                [ J2 ]
- *                [ J3 ]
- *
  * @param[in]  Q        Number of quadrature points
  * @param[in]  i        Current quadrature point
  * @param[in]  dxdX_q   Mapping Jacobian (gradient of the coordinate space)
@@ -155,6 +149,38 @@ CEED_QFUNCTION_HELPER void NormalVectorFromdxdX_3D(CeedInt Q, CeedInt i, const C
   normal[1] = J2 / detJ;
   normal[2] = J3 / detJ;
   if (detJ_ptr) *detJ_ptr = detJ;
+}
+
+/**
+ * This QFunction sets up the geometric factor required for integration when reference coordinates are in 1D and the physical coordinates are in 2D
+ *
+ * Reference (parent) 1D coordinates: X
+ * Physical (current) 2D coordinates: x
+ * Change of coordinate vector:
+ *           J1 = dx_1/dX
+ *           J2 = dx_2/dX
+ *
+ * detJb is the magnitude of (J1,J2)
+ *
+ * We require the determinant of the Jacobian to properly compute integrals of the form: int( u v )
+ *
+ * Normal vector is given by the cross product of (J1,J2)/detJ and ẑ
+ *
+ * @param[in]  Q        Number of quadrature points
+ * @param[in]  i        Current quadrature point
+ * @param[in]  dxdX_q   Mapping Jacobian (gradient of the coordinate space)
+ * @param[out] normal   Inverse of mapping Jacobian at quadrature point i
+ * @param[out] detJ_ptr Determinate of the Jacobian, may be NULL is not desired
+ */
+CEED_QFUNCTION_HELPER void NormalVectorFromdxdX_2D(CeedInt Q, CeedInt i, const CeedScalar (*dxdX_q)[CEED_Q_VLA], CeedScalar normal[2],
+                                                   CeedScalar *detJ_ptr) {
+  const CeedScalar J1 = dxdX_q[0][i];
+  const CeedScalar J2 = dxdX_q[1][i];
+
+  CeedScalar detJb = sqrt(J1 * J1 + J2 * J2);
+  normal[0]        = J2 / detJb;
+  normal[1]        = -J1 / detJb;
+  if (detJ_ptr) *detJ_ptr = detJb;
 }
 
 /**
