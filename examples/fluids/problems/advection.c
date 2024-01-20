@@ -58,9 +58,9 @@ PetscErrorCode NS_ADVECTION(ProblemData *problem, DM dm, void *ctx, SimpleBC bc)
   // ------------------------------------------------------
   //             Create the libCEED context
   // ------------------------------------------------------
-  CeedScalar rc          = 1000.;       // m (Radius of bubble)
-  CeedScalar CtauS       = 0.;          // dimensionless
-  CeedScalar strong_form = 0.;          // [0,1]
+  CeedScalar rc          = 1000.;  // m (Radius of bubble)
+  CeedScalar CtauS       = 0.;     // dimensionless
+  PetscBool  strong_form = PETSC_FALSE;
   CeedScalar E_wind      = 1.e6;        // J
   PetscReal  wind[3]     = {1., 0, 0};  // m/s
   PetscReal  domain_min[3], domain_max[3], domain_size[3];
@@ -88,8 +88,8 @@ PetscErrorCode NS_ADVECTION(ProblemData *problem, DM dm, void *ctx, SimpleBC bc)
   PetscBool user_wind;
   PetscCall(PetscOptionsRealArray("-wind_translation", "Constant wind vector", NULL, wind, &n, &user_wind));
   PetscCall(PetscOptionsScalar("-CtauS", "Scale coefficient for tau (nondimensional)", NULL, CtauS, &CtauS, NULL));
-  PetscCall(
-      PetscOptionsScalar("-strong_form", "Strong (1) or weak/integrated by parts (0) advection residual", NULL, strong_form, &strong_form, NULL));
+  PetscCall(PetscOptionsBool("-strong_form", "Strong (true) or weak/integrated by parts (false) advection residual", NULL, strong_form, &strong_form,
+                             NULL));
   PetscCall(PetscOptionsScalar("-E_wind", "Total energy of inflow wind", NULL, E_wind, &E_wind, NULL));
   PetscCall(PetscOptionsEnum("-advection_ic_type", "Initial condition for Advection problem", NULL, AdvectionICTypes,
                              (PetscEnum)(advectionic_type = ADVECTIONIC_BUBBLE_SPHERE), (PetscEnum *)&advectionic_type, NULL));

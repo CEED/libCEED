@@ -204,10 +204,9 @@ CEED_QFUNCTION_HELPER void IFunction_AdvectionGeneric(void *ctx, CeedInt Q, cons
   CeedScalar(*grad_v)[5][CEED_Q_VLA] = (CeedScalar(*)[5][CEED_Q_VLA])out[1];
   CeedScalar *jac_data               = out[2];
 
-  AdvectionContext                 context     = (AdvectionContext)ctx;
-  const CeedScalar                 CtauS       = context->CtauS;
-  const CeedScalar                 strong_form = context->strong_form;
-  const CeedScalar                 zeros[14]   = {0.};
+  AdvectionContext                 context   = (AdvectionContext)ctx;
+  const CeedScalar                 CtauS     = context->CtauS;
+  const CeedScalar                 zeros[14] = {0.};
   NewtonianIdealGasContext         gas;
   struct NewtonianIdealGasContext_ gas_struct = {0};
   gas                                         = &gas_struct;
@@ -242,7 +241,7 @@ CEED_QFUNCTION_HELPER void IFunction_AdvectionGeneric(void *ctx, CeedInt Q, cons
     CeedScalar uX[3] = {0.};
     MatVecNM(dXdx, s.Y.velocity, dim, dim, CEED_NOTRANSPOSE, uX);
 
-    if (strong_form) {  // Strong Galerkin convection term: v div(E u)
+    if (context->strong_form) {  // Strong Galerkin convection term: v div(E u)
       v[4][i] += wdetJ * strong_conv;
     } else {  // Weak Galerkin convection term: -dv \cdot (E u)
       for (CeedInt j = 0; j < dim; j++) grad_v[j][4][i] = -wdetJ * s.U.E_total * uX[j];
