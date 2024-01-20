@@ -104,21 +104,24 @@ CEED_QFUNCTION_HELPER void MatDiagNM(const CeedScalar *A, const CeedScalar *D, c
 CEED_QFUNCTION_HELPER void MatDiag3(const CeedScalar A[3][3], const CeedScalar D[3], const CeedTransposeMode transpose_A, CeedScalar B[3][3]) {
   MatDiagNM((const CeedScalar *)A, (const CeedScalar *)D, 3, 3, transpose_A, (CeedScalar *)B);
 }
-
-// @brief 3x3 Matrix-Matrix product, C = AB + C
-CEED_QFUNCTION_HELPER void MatMat3(const CeedScalar A[3][3], const CeedScalar B[3][3], const CeedTransposeMode transpose_A,
-                                   const CeedTransposeMode transpose_B, CeedScalar C[3][3]) {
+// @brief NxN Matrix-Matrix product, C = AB + C
+CEED_QFUNCTION_HELPER void MatMatN(const CeedScalar *A, const CeedScalar *B, const CeedInt N, const CeedTransposeMode transpose_A,
+                                   const CeedTransposeMode transpose_B, CeedScalar *C) {
   switch (transpose_A) {
     case CEED_NOTRANSPOSE:
       switch (transpose_B) {
         case CEED_NOTRANSPOSE:
-          CeedPragmaSIMD for (CeedInt i = 0; i < 3; i++) {
-            CeedPragmaSIMD for (CeedInt j = 0; j < 3; j++) { CeedPragmaSIMD for (CeedInt k = 0; k < 3; k++) C[i][j] += A[i][k] * B[k][j]; }
+          CeedPragmaSIMD for (CeedInt i = 0; i < N; i++) {
+            CeedPragmaSIMD for (CeedInt j = 0; j < N; j++) {
+              CeedPragmaSIMD for (CeedInt k = 0; k < N; k++) C[i * N + j] += A[i * N + k] * B[k * N + j];
+            }
           }
           break;
         case CEED_TRANSPOSE:
-          CeedPragmaSIMD for (CeedInt i = 0; i < 3; i++) {
-            CeedPragmaSIMD for (CeedInt j = 0; j < 3; j++) { CeedPragmaSIMD for (CeedInt k = 0; k < 3; k++) C[i][j] += A[i][k] * B[j][k]; }
+          CeedPragmaSIMD for (CeedInt i = 0; i < N; i++) {
+            CeedPragmaSIMD for (CeedInt j = 0; j < N; j++) {
+              CeedPragmaSIMD for (CeedInt k = 0; k < N; k++) C[i * N + j] += A[i * N + k] * B[j * N + k];
+            }
           }
           break;
       }
@@ -126,18 +129,28 @@ CEED_QFUNCTION_HELPER void MatMat3(const CeedScalar A[3][3], const CeedScalar B[
     case CEED_TRANSPOSE:
       switch (transpose_B) {
         case CEED_NOTRANSPOSE:
-          CeedPragmaSIMD for (CeedInt i = 0; i < 3; i++) {
-            CeedPragmaSIMD for (CeedInt j = 0; j < 3; j++) { CeedPragmaSIMD for (CeedInt k = 0; k < 3; k++) C[i][j] += A[k][i] * B[k][j]; }
+          CeedPragmaSIMD for (CeedInt i = 0; i < N; i++) {
+            CeedPragmaSIMD for (CeedInt j = 0; j < N; j++) {
+              CeedPragmaSIMD for (CeedInt k = 0; k < N; k++) C[i * N + j] += A[k * N + i] * B[k * N + j];
+            }
           }
           break;
         case CEED_TRANSPOSE:
-          CeedPragmaSIMD for (CeedInt i = 0; i < 3; i++) {
-            CeedPragmaSIMD for (CeedInt j = 0; j < 3; j++) { CeedPragmaSIMD for (CeedInt k = 0; k < 3; k++) C[i][j] += A[k][i] * B[j][k]; }
+          CeedPragmaSIMD for (CeedInt i = 0; i < N; i++) {
+            CeedPragmaSIMD for (CeedInt j = 0; j < N; j++) {
+              CeedPragmaSIMD for (CeedInt k = 0; k < N; k++) C[i * N + j] += A[k * N + i] * B[j * N + k];
+            }
           }
           break;
       }
       break;
   }
+}
+
+// @brief 3x3 Matrix-Matrix product, C = AB + C
+CEED_QFUNCTION_HELPER void MatMat3(const CeedScalar A[3][3], const CeedScalar B[3][3], const CeedTransposeMode transpose_A,
+                                   const CeedTransposeMode transpose_B, CeedScalar C[3][3]) {
+  MatMatN((const CeedScalar *)A, (const CeedScalar *)B, 3, transpose_A, transpose_B, (CeedScalar *)C);
 }
 
 // @brief Unpack Kelvin-Mandel notation symmetric tensor into full tensor
