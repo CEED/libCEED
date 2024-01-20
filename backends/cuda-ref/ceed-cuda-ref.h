@@ -100,7 +100,7 @@ typedef struct {
 } CeedQFunctionContext_Cuda;
 
 typedef struct {
-  CUmodule            module;
+  CUmodule            module, module_point_block;
   CUfunction          LinearDiagonal;
   CUfunction          LinearPointBlock;
   CeedElemRestriction diag_rstr, point_block_diag_rstr;

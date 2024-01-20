@@ -104,7 +104,7 @@ typedef struct {
 } CeedQFunctionContext_Hip;
 
 typedef struct {
-  hipModule_t         module;
+  hipModule_t         module, module_point_block;
   hipFunction_t       LinearDiagonal;
   hipFunction_t       LinearPointBlock;
   CeedElemRestriction diag_rstr, point_block_diag_rstr;

@@ -47,12 +47,11 @@ static __device__ __inline__ void GetBasisPointer(const CeedScalar **basis_ptr, 
 //------------------------------------------------------------------------------
 // Core code for diagonal assembly
 //------------------------------------------------------------------------------
-static __device__ __inline__ void DiagonalCore(const CeedInt num_elem, const bool is_point_block, const CeedScalar *identity,
-                                               const CeedScalar *interp_in, const CeedScalar *grad_in, const CeedScalar *div_in,
-                                               const CeedScalar *curl_in, const CeedScalar *interp_out, const CeedScalar *grad_out,
-                                               const CeedScalar *div_out, const CeedScalar *curl_out, const CeedEvalMode *eval_modes_in,
-                                               const CeedEvalMode *eval_modes_out, const CeedScalar *__restrict__ assembled_qf_array,
-                                               CeedScalar *__restrict__ elem_diag_array) {
+extern "C" __launch_bounds__(BLOCK_SIZE) __global__
+    void LinearDiagonal(const CeedInt num_elem, const CeedScalar *identity, const CeedScalar *interp_in, const CeedScalar *grad_in,
+                        const CeedScalar *div_in, const CeedScalar *curl_in, const CeedScalar *interp_out, const CeedScalar *grad_out,
+                        const CeedScalar *div_out, const CeedScalar *curl_out, const CeedEvalMode *eval_modes_in, const CeedEvalMode *eval_modes_out,
+                        const CeedScalar *__restrict__ assembled_qf_array, CeedScalar *__restrict__ elem_diag_array) {
   const int tid = threadIdx.x;  // Running with P threads
 
   if (tid >= NUM_NODES) return;
@@ -84,63 +83,39 @@ static __device__ __inline__ void DiagonalCore(const CeedInt num_elem, const boo
 
         // Each component
         for (IndexType comp_out = 0; comp_out < NUM_COMP; comp_out++) {
-          // Each qpoint/node pair
-          if (is_point_block) {
-            // Point block diagonal
-            for (IndexType comp_in = 0; comp_in < NUM_COMP; comp_in++) {
-              CeedScalar e_value = 0.;
-
-              for (IndexType q = 0; q < NUM_QPTS; q++) {
-                const CeedScalar qf_value =
-                    assembled_qf_array[((((e_in * NUM_COMP + comp_in) * NUM_EVAL_MODES_OUT + e_out) * NUM_COMP + comp_out) * num_elem + e) *
-                                           NUM_QPTS +
-                                       q];
-
-                e_value += b_t[q * NUM_NODES + tid] * qf_value * b[q * NUM_NODES + tid];
-              }
-              elem_diag_array[((comp_out * NUM_COMP + comp_in) * num_elem + e) * NUM_NODES + tid] += e_value;
-            }
-          } else {
-            // Diagonal only
+#if USE_POINT_BLOCK
+          // Point block diagonal
+          for (IndexType comp_in = 0; comp_in < NUM_COMP; comp_in++) {
             CeedScalar e_value = 0.;
 
+            // Each qpoint/node pair
             for (IndexType q = 0; q < NUM_QPTS; q++) {
               const CeedScalar qf_value =
-                  assembled_qf_array[((((e_in * NUM_COMP + comp_out) * NUM_EVAL_MODES_OUT + e_out) * NUM_COMP + comp_out) * num_elem + e) * NUM_QPTS +
+                  assembled_qf_array[((((e_in * NUM_COMP + comp_in) * NUM_EVAL_MODES_OUT + e_out) * NUM_COMP + comp_out) * num_elem + e) * NUM_QPTS +
                                      q];
 
               e_value += b_t[q * NUM_NODES + tid] * qf_value * b[q * NUM_NODES + tid];
             }
-            elem_diag_array[(comp_out * num_elem + e) * NUM_NODES + tid] += e_value;
+            elem_diag_array[((comp_out * NUM_COMP + comp_in) * num_elem + e) * NUM_NODES + tid] += e_value;
           }
+#else
+          // Diagonal only
+          CeedScalar e_value = 0.;
+
+          // Each qpoint/node pair
+          for (IndexType q = 0; q < NUM_QPTS; q++) {
+            const CeedScalar qf_value =
+                assembled_qf_array[((((e_in * NUM_COMP + comp_out) * NUM_EVAL_MODES_OUT + e_out) * NUM_COMP + comp_out) * num_elem + e) * NUM_QPTS +
+                                   q];
+
+            e_value += b_t[q * NUM_NODES + tid] * qf_value * b[q * NUM_NODES + tid];
+          }
+          elem_diag_array[(comp_out * num_elem + e) * NUM_NODES + tid] += e_value;
+#endif
         }
       }
     }
   }
-}
-
-//------------------------------------------------------------------------------
-// Linear diagonal
-//------------------------------------------------------------------------------
-extern "C" __global__ void LinearDiagonal(const CeedInt num_elem, const CeedScalar *identity, const CeedScalar *interp_in, const CeedScalar *grad_in,
-                                          const CeedScalar *div_in, const CeedScalar *curl_in, const CeedScalar *interp_out,
-                                          const CeedScalar *grad_out, const CeedScalar *div_out, const CeedScalar *curl_out,
-                                          const CeedEvalMode *eval_modes_in, const CeedEvalMode *eval_modes_out,
-                                          const CeedScalar *__restrict__ assembled_qf_array, CeedScalar *__restrict__ elem_diag_array) {
-  DiagonalCore(num_elem, false, identity, interp_in, grad_in, div_in, curl_in, interp_out, grad_out, div_out, curl_out, eval_modes_in, eval_modes_out,
-               assembled_qf_array, elem_diag_array);
-}
-
-//------------------------------------------------------------------------------
-// Linear point block diagonal
-//------------------------------------------------------------------------------
-extern "C" __global__ void LinearPointBlockDiagonal(const CeedInt num_elem, const CeedScalar *identity, const CeedScalar *interp_in,
-                                                    const CeedScalar *grad_in, const CeedScalar *div_in, const CeedScalar *curl_in,
-                                                    const CeedScalar *interp_out, const CeedScalar *grad_out, const CeedScalar *div_out,
-                                                    const CeedScalar *curl_out, const CeedEvalMode *eval_modes_in, const CeedEvalMode *eval_modes_out,
-                                                    const CeedScalar *__restrict__ assembled_qf_array, CeedScalar *__restrict__ elem_diag_array) {
-  DiagonalCore(num_elem, true, identity, interp_in, grad_in, div_in, curl_in, interp_out, grad_out, div_out, curl_out, eval_modes_in, eval_modes_out,
-               assembled_qf_array, elem_diag_array);
 }
 
 //------------------------------------------------------------------------------
