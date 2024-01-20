@@ -136,101 +136,11 @@ CEED_QFUNCTION(Advection2d)(void *ctx, CeedInt Q, const CeedScalar *const *in, C
   return 0;
 }
 
-// *****************************************************************************
-// This QFunction implements 2D advection (mentioned above) with implicit time stepping method
-// *****************************************************************************
 CEED_QFUNCTION(IFunction_Advection2d)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
-  // Inputs
-  const CeedScalar(*q)[CEED_Q_VLA]     = (const CeedScalar(*)[CEED_Q_VLA])in[0];
-  const CeedScalar(*dq)[5][CEED_Q_VLA] = (const CeedScalar(*)[5][CEED_Q_VLA])in[1];
-  const CeedScalar(*q_dot)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[2];
-  const CeedScalar(*q_data)            = in[3];
-
-  // Outputs
-  CeedScalar(*v)[CEED_Q_VLA]     = (CeedScalar(*)[CEED_Q_VLA])out[0];
-  CeedScalar(*dv)[5][CEED_Q_VLA] = (CeedScalar(*)[5][CEED_Q_VLA])out[1];
-  CeedScalar *jac_data           = out[2];
-
-  AdvectionContext context     = (AdvectionContext)ctx;
-  const CeedScalar CtauS       = context->CtauS;
-  const CeedScalar strong_form = context->strong_form;
-  const CeedScalar zeros[14]   = {0.};
-
-  // Quadrature Point Loop
-  CeedPragmaSIMD for (CeedInt i = 0; i < Q; i++) {
-    // Setup
-    // -- Interp in
-    const CeedScalar rho  = q[0][i];
-    const CeedScalar u[3] = {q[1][i] / rho, q[2][i] / rho, q[3][i] / rho};
-    const CeedScalar E    = q[4][i];
-    // -- Grad in
-    const CeedScalar drho[2] = {
-        dq[0][0][i],
-        dq[1][0][i],
-    };
-    const CeedScalar du[3][2] = {
-        {(dq[0][1][i] - drho[0] * u[0]) / rho, (dq[1][1][i] - drho[1] * u[0]) / rho},
-        {(dq[0][2][i] - drho[0] * u[1]) / rho, (dq[1][2][i] - drho[1] * u[1]) / rho},
-        {(dq[0][3][i] - drho[0] * u[2]) / rho, (dq[1][3][i] - drho[1] * u[2]) / rho},
-    };
-    const CeedScalar dE[3] = {
-        dq[0][4][i],
-        dq[1][4][i],
-    };
-    CeedScalar wdetJ, dXdx[2][2];
-    QdataUnpack_2D(Q, i, (CeedScalar *)q_data, &wdetJ, dXdx);
-
-    // The Physics
-    // No Change in density or momentum
-    for (CeedInt f = 0; f < 4; f++) {
-      for (CeedInt j = 0; j < 2; j++) dv[j][f][i] = 0;
-      v[f][i] = wdetJ * q_dot[f][i];
-    }
-
-    // -- Total Energy
-    // Evaluate the strong form using div(E u) = u . grad(E) + E div(u)
-    // or in index notation: (u_j E)_{,j} = u_j E_j + E u_{j,j}
-    CeedScalar div_u = 0, u_dot_grad_E = 0;
-    for (CeedInt j = 0; j < 2; j++) {
-      CeedScalar dEdx_j = 0;
-      for (CeedInt k = 0; k < 2; k++) {
-        div_u += du[j][k] * dXdx[k][j];  // u_{j,j} = u_{j,K} X_{K,j}
-        dEdx_j += dE[k] * dXdx[k][j];
-      }
-      u_dot_grad_E += u[j] * dEdx_j;
-    }
-    CeedScalar strong_conv = E * div_u + u_dot_grad_E;
-    CeedScalar strong_res  = q_dot[4][i] + strong_conv;
-
-    v[4][i] = wdetJ * q_dot[4][i];  // transient part
-
-    // Weak Galerkin convection term: -dv \cdot (E u)
-    for (CeedInt j = 0; j < 2; j++) dv[j][4][i] = -wdetJ * (1 - strong_form) * E * (u[0] * dXdx[j][0] + u[1] * dXdx[j][1]);
-
-    // Strong Galerkin convection term: v div(E u)
-    v[4][i] += wdetJ * strong_form * strong_conv;
-
-    // Stabilization requires a measure of element transit time in the velocity
-    // field u.
-    CeedScalar uX[2];
-    for (CeedInt j = 0; j < 2; j++) uX[j] = dXdx[j][0] * u[0] + dXdx[j][1] * u[1];
-    const CeedScalar TauS = CtauS / sqrt(uX[0] * uX[0] + uX[1] * uX[1]);
-
-    for (CeedInt j = 0; j < 2; j++) switch (context->stabilization) {
-        case STAB_NONE:
-          break;
-        case STAB_SU:
-          dv[j][4][i] += wdetJ * TauS * strong_conv * uX[j];
-          break;
-        case STAB_SUPG:
-          dv[j][4][i] += wdetJ * TauS * strong_res * uX[j];
-          break;
-      }
-    StoredValuesPack(Q, i, 0, 14, zeros, jac_data);
-  }  // End Quadrature Point Loop
-
+  IFunction_AdvectionGeneric(ctx, Q, in, out, 2);
   return 0;
 }
+
 // *****************************************************************************
 // This QFunction implements consistent outflow and inflow BCs
 //      for 2D advection
