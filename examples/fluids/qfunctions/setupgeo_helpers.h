@@ -73,6 +73,43 @@ CEED_QFUNCTION_HELPER void InvertMappingJacobian_3D(CeedInt Q, CeedInt i, const 
 }
 
 /**
+ * @brief Calculate dXdx from dxdX for 3D elements
+ *
+ * Reference (parent) coordinates: X
+ * Physical (current) coordinates: x
+ * Change of coordinate matrix: dxdX_{i,j} = x_{i,j} (indicial notation)
+ * Inverse of change of coordinate matrix: dXdx_{i,j} = (detJ^-1) * X_{i,j}
+ *
+ * Determinant of Jacobian:
+ *   detJ = J11*A11 + J21*A12 + J31*A13
+ *     Jij = Jacobian entry ij
+ *     Aij = Adjugate ij
+ *
+ * Inverse of Jacobian:
+ *   dXdx_i,j = Aij / detJ
+ *
+ * @param[in]  Q        Number of quadrature points
+ * @param[in]  i        Current quadrature point
+ * @param[in]  dxdX_q   Mapping Jacobian (gradient of the coordinate space)
+ * @param[out] dXdx     Inverse of mapping Jacobian at quadrature point i
+ * @param[out] detJ_ptr Determinate of the Jacobian, may be NULL is not desired
+ */
+CEED_QFUNCTION_HELPER void InvertMappingJacobian_2D(CeedInt Q, CeedInt i, const CeedScalar (*dxdX_q)[2][CEED_Q_VLA], CeedScalar dXdx[2][2],
+                                                    CeedScalar *detJ_ptr) {
+  const CeedScalar dxdX_11 = dxdX_q[0][0][i];
+  const CeedScalar dxdX_21 = dxdX_q[0][1][i];
+  const CeedScalar dxdX_12 = dxdX_q[1][0][i];
+  const CeedScalar dxdX_22 = dxdX_q[1][1][i];
+  const CeedScalar detJ    = dxdX_11 * dxdX_22 - dxdX_21 * dxdX_12;
+
+  dXdx[0][0] = dxdX_22 / detJ;
+  dXdx[0][1] = -dxdX_12 / detJ;
+  dXdx[1][0] = -dxdX_21 / detJ;
+  dXdx[1][1] = dxdX_11 / detJ;
+  if (detJ_ptr) *detJ_ptr = detJ;
+}
+
+/**
  * @brief Calculate face element's normal vector from dxdX
  *
  * Reference (parent) 2D coordinates: X

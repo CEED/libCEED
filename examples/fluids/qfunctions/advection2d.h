@@ -141,10 +141,10 @@ CEED_QFUNCTION(Advection2d)(void *ctx, CeedInt Q, const CeedScalar *const *in, C
 // *****************************************************************************
 CEED_QFUNCTION(IFunction_Advection2d)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
   // Inputs
-  const CeedScalar(*q)[CEED_Q_VLA]      = (const CeedScalar(*)[CEED_Q_VLA])in[0];
-  const CeedScalar(*dq)[5][CEED_Q_VLA]  = (const CeedScalar(*)[5][CEED_Q_VLA])in[1];
-  const CeedScalar(*q_dot)[CEED_Q_VLA]  = (const CeedScalar(*)[CEED_Q_VLA])in[2];
-  const CeedScalar(*q_data)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[3];
+  const CeedScalar(*q)[CEED_Q_VLA]     = (const CeedScalar(*)[CEED_Q_VLA])in[0];
+  const CeedScalar(*dq)[5][CEED_Q_VLA] = (const CeedScalar(*)[5][CEED_Q_VLA])in[1];
+  const CeedScalar(*q_dot)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[2];
+  const CeedScalar(*q_data)            = in[3];
 
   // Outputs
   CeedScalar(*v)[CEED_Q_VLA]     = (CeedScalar(*)[CEED_Q_VLA])out[0];
@@ -177,14 +177,9 @@ CEED_QFUNCTION(IFunction_Advection2d)(void *ctx, CeedInt Q, const CeedScalar *co
         dq[0][4][i],
         dq[1][4][i],
     };
-    // -- Interp-to-Interp q_data
-    const CeedScalar wdetJ = q_data[0][i];
-    // -- Interp-to-Grad q_data
-    // ---- Inverse of change of coordinate matrix: X_i,j
-    const CeedScalar dXdx[2][2] = {
-        {q_data[1][i], q_data[2][i]},
-        {q_data[3][i], q_data[4][i]},
-    };
+    CeedScalar wdetJ, dXdx[2][2];
+    QdataUnpack_2D(Q, i, (CeedScalar *)q_data, &wdetJ, dXdx);
+
     // The Physics
     // No Change in density or momentum
     for (CeedInt f = 0; f < 4; f++) {
