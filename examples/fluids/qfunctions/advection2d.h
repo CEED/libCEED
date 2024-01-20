@@ -14,141 +14,28 @@
 #include <ceed.h>
 #include <math.h>
 
-#include "../qfunctions/advection_types.h"
-#include "../qfunctions/stabilization_types.h"
+#include "advection_generic.h"
+#include "advection_types.h"
+#include "newtonian_state.h"
+#include "newtonian_types.h"
+#include "stabilization_types.h"
 #include "utils.h"
-
-typedef struct SetupContextAdv2D_ *SetupContextAdv2D;
-struct SetupContextAdv2D_ {
-  CeedScalar rc;
-  CeedScalar lx;
-  CeedScalar ly;
-  CeedScalar wind[3];
-  CeedScalar time;
-  WindType   wind_type;
-};
-
-// *****************************************************************************
-// This QFunction sets the initial conditions and the boundary conditions
-//   for two test cases: ROTATION and TRANSLATION
-//
-// -- ROTATION (default)
-//      Initial Conditions:
-//        Mass Density:
-//          Constant mass density of 1.0
-//        Momentum Density:
-//          Rotational field in x,y
-//        Energy Density:
-//          Maximum of 1. x0 decreasing linearly to 0. as radial distance
-//            increases to (1.-r/rc), then 0. everywhere else
-//
-//      Boundary Conditions:
-//        Mass Density:
-//          0.0 flux
-//        Momentum Density:
-//          0.0
-//        Energy Density:
-//          0.0 flux
-//
-// -- TRANSLATION
-//      Initial Conditions:
-//        Mass Density:
-//          Constant mass density of 1.0
-//        Momentum Density:
-//           Constant rectilinear field in x,y
-//        Energy Density:
-//          Maximum of 1. x0 decreasing linearly to 0. as radial distance
-//            increases to (1.-r/rc), then 0. everywhere else
-//
-//      Boundary Conditions:
-//        Mass Density:
-//          0.0 flux
-//        Momentum Density:
-//          0.0
-//        Energy Density:
-//          Inflow BCs:
-//            E = E_wind
-//          Outflow BCs:
-//            E = E(boundary)
-//          Both In/Outflow BCs for E are applied weakly in the
-//            QFunction "Advection2d_Sur"
-//
-// *****************************************************************************
-
-// *****************************************************************************
-// This helper function provides the exact, time-dependent solution and IC formulation for 2D advection
-// *****************************************************************************
-CEED_QFUNCTION_HELPER CeedInt Exact_Advection2d(CeedInt dim, CeedScalar time, const CeedScalar X[], CeedInt Nf, CeedScalar q[], void *ctx) {
-  const SetupContextAdv2D context = (SetupContextAdv2D)ctx;
-  const CeedScalar        rc      = context->rc;
-  const CeedScalar        lx      = context->lx;
-  const CeedScalar        ly      = context->ly;
-  const CeedScalar       *wind    = context->wind;
-
-  // Setup
-  const CeedScalar center[2] = {0.5 * lx, 0.5 * ly};
-  const CeedScalar theta[]   = {M_PI, -M_PI / 3, M_PI / 3};
-  const CeedScalar x0[2]     = {center[0] + .25 * lx * cos(theta[0] + time), center[1] + .25 * ly * sin(theta[0] + time)};
-  const CeedScalar x1[2]     = {center[0] + .25 * lx * cos(theta[1] + time), center[1] + .25 * ly * sin(theta[1] + time)};
-  const CeedScalar x2[2]     = {center[0] + .25 * lx * cos(theta[2] + time), center[1] + .25 * ly * sin(theta[2] + time)};
-
-  const CeedScalar x = X[0], y = X[1];
-
-  // Initial/Boundary Conditions
-  switch (context->wind_type) {
-    case WIND_ROTATION:
-      q[0] = 1.;
-      q[1] = -(y - center[1]);
-      q[2] = (x - center[0]);
-      q[3] = 0;
-      q[4] = 0;
-      break;
-    case WIND_TRANSLATION:
-      q[0] = 1.;
-      q[1] = wind[0];
-      q[2] = wind[1];
-      q[3] = 0;
-      q[4] = 0;
-      break;
-    default:
-      return 1;
-  }
-
-  CeedScalar r = sqrt(Square(x - x0[0]) + Square(y - x0[1]));
-  CeedScalar E = 1 - r / rc;
-
-  if (0) {  // non-smooth initial conditions
-    if (q[4] < E) q[4] = E;
-    r = sqrt(Square(x - x1[0]) + Square(y - x1[1]));
-    if (r <= rc) q[4] = 1;
-  }
-  r = sqrt(Square(x - x2[0]) + Square(y - x2[1]));
-  E = (r <= rc) ? .5 + .5 * cos(r * M_PI / rc) : 0;
-  if (q[4] < E) q[4] = E;
-
-  return 0;
-}
 
 // *****************************************************************************
 // This QFunction sets the initial conditions for 2D advection
 // *****************************************************************************
 CEED_QFUNCTION(ICsAdvection2d)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
-  // Inputs
   const CeedScalar(*X)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[0];
-  // Outputs
-  CeedScalar(*q0)[CEED_Q_VLA]     = (CeedScalar(*)[CEED_Q_VLA])out[0];
-  const SetupContextAdv2D context = (SetupContextAdv2D)ctx;
+  CeedScalar(*q0)[CEED_Q_VLA]      = (CeedScalar(*)[CEED_Q_VLA])out[0];
+  const SetupContextAdv context    = (SetupContextAdv)ctx;
 
-  // Quadrature Point Loop
   CeedPragmaSIMD for (CeedInt i = 0; i < Q; i++) {
     const CeedScalar x[]  = {X[0][i], X[1][i]};
     CeedScalar       q[5] = {0.};
 
-    Exact_Advection2d(2, context->time, x, 5, q, ctx);
+    Exact_AdvectionGeneric(2, context->time, x, 5, q, ctx);
     for (CeedInt j = 0; j < 5; j++) q0[j][i] = q[j];
-  }  // End of Quadrature Point Loop
-
-  // Return
+  }
   return 0;
 }
 

@@ -14,6 +14,7 @@
 #include <petscdm.h>
 
 #include "../navierstokes.h"
+#include "../qfunctions/advection_generic.h"
 #include "../qfunctions/setupgeo.h"
 
 PetscErrorCode NS_ADVECTION(ProblemData *problem, DM dm, void *ctx, SimpleBC bc) {

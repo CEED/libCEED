@@ -14,187 +14,27 @@
 #include <ceed.h>
 #include <math.h>
 
+#include "advection_generic.h"
 #include "advection_types.h"
 #include "newtonian_state.h"
 #include "newtonian_types.h"
 #include "stabilization_types.h"
 #include "utils.h"
 
-typedef struct SetupContextAdv_ *SetupContextAdv;
-struct SetupContextAdv_ {
-  CeedScalar           rc;
-  CeedScalar           lx;
-  CeedScalar           ly;
-  CeedScalar           lz;
-  CeedScalar           wind[3];
-  CeedScalar           time;
-  WindType             wind_type;
-  AdvectionICType      initial_condition_type;
-  BubbleContinuityType bubble_continuity_type;
-};
-
-// *****************************************************************************
-// This QFunction sets the initial conditions and the boundary conditions
-//   for two test cases: ROTATION and TRANSLATION
-//
-// -- ROTATION (default)
-//      Initial Conditions:
-//        Mass Density:
-//          Constant mass density of 1.0
-//        Momentum Density:
-//          Rotational field in x,y
-//        Energy Density:
-//          Maximum of 1. x0 decreasing linearly to 0. as radial distance
-//            increases to (1.-r/rc), then 0. everywhere else
-//
-//      Boundary Conditions:
-//        Mass Density:
-//          0.0 flux
-//        Momentum Density:
-//          0.0
-//        Energy Density:
-//          0.0 flux
-//
-// -- TRANSLATION
-//      Initial Conditions:
-//        Mass Density:
-//          Constant mass density of 1.0
-//        Momentum Density:
-//           Constant rectilinear field in x,y
-//        Energy Density:
-//          Maximum of 1. x0 decreasing linearly to 0. as radial distance
-//            increases to (1.-r/rc), then 0. everywhere else
-//
-//      Boundary Conditions:
-//        Mass Density:
-//          0.0 flux
-//        Momentum Density:
-//          0.0
-//        Energy Density:
-//          Inflow BCs:
-//            E = E_wind
-//          Outflow BCs:
-//            E = E(boundary)
-//          Both In/Outflow BCs for E are applied weakly in the
-//            QFunction "Advection_Sur"
-//
-// *****************************************************************************
-
-// *****************************************************************************
-// This helper function provides support for the exact, time-dependent solution (currently not implemented) and IC formulation for 3D advection
-// *****************************************************************************
-CEED_QFUNCTION_HELPER CeedInt Exact_Advection(CeedInt dim, CeedScalar time, const CeedScalar X[], CeedInt Nf, CeedScalar q[], void *ctx) {
-  const SetupContextAdv context = (SetupContextAdv)ctx;
-  const CeedScalar      rc      = context->rc;
-  const CeedScalar      lx      = context->lx;
-  const CeedScalar      ly      = context->ly;
-  const CeedScalar      lz      = context->lz;
-  const CeedScalar     *wind    = context->wind;
-
-  // Setup
-  const CeedScalar x0[3]     = {0.25 * lx, 0.5 * ly, 0.5 * lz};
-  const CeedScalar center[3] = {0.5 * lx, 0.5 * ly, 0.5 * lz};
-
-  // -- Coordinates
-  const CeedScalar x = X[0];
-  const CeedScalar y = X[1];
-  const CeedScalar z = X[2];
-
-  // -- Energy
-  CeedScalar r = 0.;
-  switch (context->initial_condition_type) {
-    case ADVECTIONIC_BUBBLE_SPHERE:  // (dim=3)
-      r = sqrt(Square(x - x0[0]) + Square(y - x0[1]) + Square(z - x0[2]));
-      break;
-    case ADVECTIONIC_BUBBLE_CYLINDER:  // (dim=2)
-      r = sqrt(Square(x - x0[0]) + Square(y - x0[1]));
-      break;
-    case ADVECTIONIC_COSINE_HILL:
-      r = sqrt(Square(x - center[0]) + Square(y - center[1]));
-      break;
-    case ADVECTIONIC_SKEW:
-      break;
-  }
-
-  // Initial Conditions
-  CeedScalar wind_scaling = 1.;
-  switch (context->wind_type) {
-    case WIND_ROTATION:
-      q[0] = 1.;
-      q[1] = -wind_scaling * (y - center[1]);
-      q[2] = wind_scaling * (x - center[0]);
-      q[3] = 0;
-      break;
-    case WIND_TRANSLATION:
-      q[0] = 1.;
-      q[1] = wind[0];
-      q[2] = wind[1];
-      q[3] = wind[2];
-      break;
-  }
-
-  switch (context->initial_condition_type) {
-    case ADVECTIONIC_BUBBLE_SPHERE:
-    case ADVECTIONIC_BUBBLE_CYLINDER:
-      switch (context->bubble_continuity_type) {
-        // original continuous, smooth shape
-        case BUBBLE_CONTINUITY_SMOOTH:
-          q[4] = r <= rc ? (1. - r / rc) : 0.;
-          break;
-        // discontinuous, sharp back half shape
-        case BUBBLE_CONTINUITY_BACK_SHARP:
-          q[4] = ((r <= rc) && (y < center[1])) ? (1. - r / rc) : 0.;
-          break;
-        // attempt to define a finite thickness that will get resolved under grid refinement
-        case BUBBLE_CONTINUITY_THICK:
-          q[4] = ((r <= rc) && (y < center[1])) ? (1. - r / rc) * fmin(1.0, (center[1] - y) / 1.25) : 0.;
-          break;
-      }
-      break;
-    case ADVECTIONIC_COSINE_HILL: {
-      CeedScalar half_width = context->lx / 2;
-      q[4]                  = r > half_width ? 0. : cos(2 * M_PI * r / half_width + M_PI) + 1.;
-    } break;
-    case ADVECTIONIC_SKEW: {
-      CeedScalar       skewed_barrier[3]  = {wind[0], wind[1], 0};
-      CeedScalar       inflow_to_point[3] = {x - context->lx / 2, y, 0};
-      CeedScalar       cross_product[3]   = {0};
-      const CeedScalar boundary_threshold = 20 * CEED_EPSILON;
-      Cross3(skewed_barrier, inflow_to_point, cross_product);
-
-      q[4] = cross_product[2] > boundary_threshold ? 0 : 1;
-      if ((x < boundary_threshold && wind[0] < boundary_threshold) ||                // outflow at -x boundary
-          (y < boundary_threshold && wind[1] < boundary_threshold) ||                // outflow at -y boundary
-          (x > context->lx - boundary_threshold && wind[0] > boundary_threshold) ||  // outflow at +x boundary
-          (y > context->ly - boundary_threshold && wind[1] > boundary_threshold)     // outflow at +y boundary
-      ) {
-        q[4] = 0;
-      }
-    } break;
-  }
-
-  return 0;
-}
-
 // *****************************************************************************
 // This QFunction sets the initial conditions for 3D advection
 // *****************************************************************************
 CEED_QFUNCTION(ICsAdvection)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
-  // Inputs
   const CeedScalar(*X)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[0];
-  // Outputs
-  CeedScalar(*q0)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA])out[0];
+  CeedScalar(*q0)[CEED_Q_VLA]      = (CeedScalar(*)[CEED_Q_VLA])out[0];
 
-  // Quadrature Point Loop
   CeedPragmaSIMD for (CeedInt i = 0; i < Q; i++) {
     const CeedScalar x[]  = {X[0][i], X[1][i], X[2][i]};
     CeedScalar       q[5] = {0.};
 
-    Exact_Advection(3, 0., x, 5, q, ctx);
+    Exact_AdvectionGeneric(3, 0., x, 5, q, ctx);
     for (CeedInt j = 0; j < 5; j++) q0[j][i] = q[j];
-  }  // End of Quadrature Point Loop
-
-  // Return
+  }
   return 0;
 }
 
