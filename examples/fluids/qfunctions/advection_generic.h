@@ -170,6 +170,19 @@ CEED_QFUNCTION_HELPER void QdataUnpack_ND(CeedInt N, CeedInt Q, CeedInt i, const
   }
 }
 
+CEED_QFUNCTION_HELPER int QdataBoundaryUnpack_ND(CeedInt N, CeedInt Q, CeedInt i, const CeedScalar *q_data, CeedScalar *wdetJ, CeedScalar *dXdx,
+                                                 CeedScalar *normal) {
+  switch (N) {
+    case 2:
+      QdataBoundaryUnpack_2D(Q, i, q_data, wdetJ, normal);
+      break;
+    case 3:
+      QdataBoundaryUnpack_3D(Q, i, q_data, wdetJ, (CeedScalar(*)[3])dXdx, normal);
+      break;
+  }
+  return CEED_ERROR_SUCCESS;
+}
+
 CEED_QFUNCTION_HELPER void StatePhysicalGradientFromReference_ND(CeedInt N, CeedInt Q, CeedInt i, NewtonianIdealGasContext gas, State s,
                                                                  StateVariable state_var, const CeedScalar *grad_q, const CeedScalar *dXdx,
                                                                  State *grad_s) {
@@ -324,6 +337,55 @@ CEED_QFUNCTION_HELPER void RHSFunction_AdvectionGeneric(void *ctx, CeedInt Q, co
           break;
       }
   }
+}
+
+// *****************************************************************************
+// This QFunction implements consistent outflow and inflow BCs
+//      for advection
+//
+//  Inflow and outflow faces are determined based on sign(dot(wind, normal)):
+//    sign(dot(wind, normal)) > 0 : outflow BCs
+//    sign(dot(wind, normal)) < 0 : inflow BCs
+//
+//  Outflow BCs:
+//    The validity of the weak form of the governing equations is extended to the outflow and the current values of E are applied.
+//
+//  Inflow BCs:
+//    A prescribed Total Energy (E_wind) is applied weakly.
+// *****************************************************************************
+CEED_QFUNCTION(Advection_InOutFlowGeneric)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out, CeedInt dim) {
+  const CeedScalar(*q)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[0];
+  const CeedScalar(*q_data_sur)    = in[2];
+
+  CeedScalar(*v)[CEED_Q_VLA]   = (CeedScalar(*)[CEED_Q_VLA])out[0];
+  AdvectionContext context     = (AdvectionContext)ctx;
+  const CeedScalar E_wind      = context->E_wind;
+  const CeedScalar strong_form = context->strong_form;
+  const bool       is_implicit = context->implicit;
+
+  CeedPragmaSIMD for (CeedInt i = 0; i < Q; i++) {
+    const CeedScalar rho  = q[0][i];
+    const CeedScalar u[3] = {q[1][i] / rho, q[2][i] / rho, q[3][i] / rho};
+    const CeedScalar E    = q[4][i];
+
+    CeedScalar wdetJb, norm[3];
+    QdataBoundaryUnpack_ND(dim, Q, i, q_data_sur, &wdetJb, NULL, norm);
+    wdetJb *= is_implicit ? -1. : 1.;
+
+    const CeedScalar u_normal = DotN(norm, u, dim);
+
+    // No Change in density or momentum
+    for (CeedInt j = 0; j < 4; j++) {
+      v[j][i] = 0;
+    }
+    // Implementing in/outflow BCs
+    if (u_normal > 0) {  // outflow
+      v[4][i] = -(1 - strong_form) * wdetJb * E * u_normal;
+    } else {  // inflow
+      v[4][i] = -(1 - strong_form) * wdetJb * E_wind * u_normal;
+    }
+  }
+  return 0;
 }
 
 #endif  // advection_generic_h

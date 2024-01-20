@@ -61,60 +61,9 @@ CEED_QFUNCTION(IFunction_Advection)(void *ctx, CeedInt Q, const CeedScalar *cons
   return 0;
 }
 
-// *****************************************************************************
-// This QFunction implements consistent outflow and inflow BCs
-//      for 3D advection
-//
-//  Inflow and outflow faces are determined based on sign(dot(wind, normal)):
-//    sign(dot(wind, normal)) > 0 : outflow BCs
-//    sign(dot(wind, normal)) < 0 : inflow BCs
-//
-//  Outflow BCs:
-//    The validity of the weak form of the governing equations is extended to the outflow and the current values of E are applied.
-//
-//  Inflow BCs:
-//    A prescribed Total Energy (E_wind) is applied weakly.
-// *****************************************************************************
 CEED_QFUNCTION(Advection_InOutFlow)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
-  // Inputs
-  const CeedScalar(*q)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[0];
-  const CeedScalar(*q_data_sur)    = in[2];
-
-  // Outputs
-  CeedScalar(*v)[CEED_Q_VLA]   = (CeedScalar(*)[CEED_Q_VLA])out[0];
-  AdvectionContext context     = (AdvectionContext)ctx;
-  const CeedScalar E_wind      = context->E_wind;
-  const CeedScalar strong_form = context->strong_form;
-  const bool       is_implicit = context->implicit;
-
-  // Quadrature Point Loop
-  CeedPragmaSIMD for (CeedInt i = 0; i < Q; i++) {
-    // Setup
-    // -- Interp in
-    const CeedScalar rho  = q[0][i];
-    const CeedScalar u[3] = {q[1][i] / rho, q[2][i] / rho, q[3][i] / rho};
-    const CeedScalar E    = q[4][i];
-
-    CeedScalar wdetJb, norm[3];
-    QdataBoundaryUnpack_3D(Q, i, q_data_sur, &wdetJb, NULL, norm);
-    wdetJb *= is_implicit ? -1. : 1.;
-
-    // Normal velocity
-    const CeedScalar u_normal = norm[0] * u[0] + norm[1] * u[1] + norm[2] * u[2];
-
-    // No Change in density or momentum
-    for (CeedInt j = 0; j < 4; j++) {
-      v[j][i] = 0;
-    }
-    // Implementing in/outflow BCs
-    if (u_normal > 0) {  // outflow
-      v[4][i] = -(1 - strong_form) * wdetJb * E * u_normal;
-    } else {  // inflow
-      v[4][i] = -(1 - strong_form) * wdetJb * E_wind * u_normal;
-    }
-  }  // End Quadrature Point Loop
+  Advection_InOutFlowGeneric(ctx, Q, in, out, 3);
   return 0;
 }
-// *****************************************************************************
 
 #endif  // advection_h
