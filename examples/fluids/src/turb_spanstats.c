@@ -588,6 +588,7 @@ PetscErrorCode ProcessStatistics(User user, Vec stats) {
 }
 
 // TSMonitor for the statistics collection and processing
+#include <unistd.h>
 PetscErrorCode TSMonitor_TurbulenceStatistics(TS ts, PetscInt steps, PetscReal solution_time, Vec Q, void *ctx) {
   User              user = (User)ctx;
   Vec               stats;
@@ -608,6 +609,7 @@ PetscErrorCode TSMonitor_TurbulenceStatistics(TS ts, PetscInt steps, PetscReal s
       PetscCall(DMSetOutputSequenceNumber(user->spanstats.dm, steps, solution_time));
       PetscCall(DMGetGlobalVector(user->spanstats.dm, &stats));
       PetscCall(ProcessStatistics(user, stats));
+      sleep(10);
       if (user->app_ctx->test_type == TESTTYPE_NONE) {
         PetscCall(PetscViewerPushFormat(user->app_ctx->turb_spanstats_viewer, user->app_ctx->turb_spanstats_viewer_format));
         PetscCall(VecView(stats, user->app_ctx->turb_spanstats_viewer));
