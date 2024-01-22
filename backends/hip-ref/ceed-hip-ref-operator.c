@@ -864,7 +864,7 @@ static inline int CeedOperatorAssembleDiagonalCore_Hip(CeedOperator op, CeedVect
   CeedCallBackend(CeedVectorGetArrayRead(assembled_qf, CEED_MEM_DEVICE, &assembled_qf_array));
 
   // Setup
-  if (!impl->diag) CeedCallBackend(CeedOperatorAssembleDiagonalSetup_Hip(op, use_ceedsize_idx, is_point_block));
+  if (!impl->diag) CeedCallBackend(CeedOperatorAssembleDiagonalSetup_Hip(op));
   CeedOperatorDiag_Hip *diag = impl->diag;
 
   assert(diag != NULL);

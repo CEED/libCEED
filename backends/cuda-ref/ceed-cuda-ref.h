@@ -25,20 +25,9 @@ typedef struct {
 
 typedef struct {
   CUmodule   module;
-  CUfunction StridedNoTranspose;
-  CUfunction StridedTranspose;
-  CUfunction OffsetNoTranspose;
-  CUfunction OffsetTranspose;
-  CUfunction OffsetTransposeDet;
-  CUfunction OrientedNoTranspose;
-  CUfunction OrientedTranspose;
-  CUfunction OrientedTransposeDet;
-  CUfunction CurlOrientedNoTranspose;
-  CUfunction CurlOrientedTranspose;
-  CUfunction CurlOrientedTransposeDet;
-  CUfunction CurlOrientedUnsignedNoTranspose;
-  CUfunction CurlOrientedUnsignedTranspose;
-  CUfunction CurlOrientedUnsignedTransposeDet;
+  CUfunction ApplyNoTranspose, ApplyTranspose;
+  CUfunction ApplyUnsignedNoTranspose, ApplyUnsignedTranspose;
+  CUfunction ApplyUnorientedNoTranspose, ApplyUnorientedTranspose;
   CeedInt    num_nodes;
   CeedInt   *h_ind;
   CeedInt   *h_ind_allocated;
