@@ -258,7 +258,7 @@ PetscErrorCode SetupStg(const MPI_Comm comm, const DM dm, ProblemData *problem, 
     PetscInt nmax = 3, faces[3];
     PetscCall(PetscOptionsGetIntArray(NULL, NULL, "-dm_plex_box_faces", faces, &nmax, NULL));
     global_stg_ctx->dx = given_stg_dx ? stg_dx : domain_size[0] / faces[0];
-    global_stg_ctx->dyScale given_stg_dyScale ? stg_dyScale : 1;
+    global_stg_ctx->dyScale = given_stg_dyScale ? stg_dyScale : 1;
     global_stg_ctx->dz = given_stg_dz ? stg_dz : domain_size[2] / faces[2];
   }
 
