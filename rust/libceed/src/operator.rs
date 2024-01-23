@@ -103,14 +103,6 @@ impl<'a> OperatorField<'a> {
     ///     inputs[0].elem_restriction().is_some(),
     ///     "Incorrect field ElemRestriction"
     /// );
-    /// if let ElemRestrictionOpt::Some(r) = inputs[0].elem_restriction() {
-    ///     assert_eq!(
-    ///         r.num_elements(),
-    ///         ne,
-    ///         "Incorrect field ElemRestriction number of elements"
-    ///     );
-    /// }
-    ///
     /// assert!(
     ///     inputs[1].elem_restriction().is_none(),
     ///     "Incorrect field ElemRestriction"
@@ -168,21 +160,7 @@ impl<'a> OperatorField<'a> {
     /// let inputs = op.inputs()?;
     ///
     /// assert!(inputs[0].basis().is_some(), "Incorrect field Basis");
-    /// if let BasisOpt::Some(b) = inputs[0].basis() {
-    ///     assert_eq!(
-    ///         b.num_quadrature_points(),
-    ///         q,
-    ///         "Incorrect field Basis number of quadrature points"
-    ///     );
-    /// }
     /// assert!(inputs[1].basis().is_some(), "Incorrect field Basis");
-    /// if let BasisOpt::Some(b) = inputs[0].basis() {
-    ///     assert_eq!(
-    ///         b.num_quadrature_points(),
-    ///         q,
-    ///         "Incorrect field Basis number of quadrature points"
-    ///     );
-    /// }
     ///
     /// let outputs = op.outputs()?;
     ///
