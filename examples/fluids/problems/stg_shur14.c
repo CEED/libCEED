@@ -220,8 +220,8 @@ PetscErrorCode SetupStg(const MPI_Comm comm, const DM dm, ProblemData *problem, 
   Ceed                     ceed                                = user->ceed;
   char                     stg_inflow_path[PETSC_MAX_PATH_LEN] = "./STGInflow.dat";
   char                     stg_rand_path[PETSC_MAX_PATH_LEN]   = "./STGRand.dat";
-  PetscBool                mean_only = PETSC_FALSE, use_stgstrong = PETSC_FALSE, use_fluctuating_IC = PETSC_FALSE, given_stg_dx = PETSC_FALSE;
-  CeedScalar               u0 = 0.0, alpha = 1.01, stg_dx = 1.0e-3;
+  PetscBool                mean_only = PETSC_FALSE, use_stgstrong = PETSC_FALSE, use_fluctuating_IC = PETSC_FALSE, given_stg_dx = PETSC_FALSE, given_stg_dyScale = PETSC_FALSE, given_stg_dz = PETSC_FALSE;
+  CeedScalar               u0 = 0.0, alpha = 1.01, stg_dx = 1.0e-3, stg_dyScale = 1.0e-3, stg_dz = 1.0e-3;
   CeedQFunctionContext     stg_context;
   NewtonianIdealGasContext newtonian_ig_ctx;
 
@@ -235,7 +235,9 @@ PetscErrorCode SetupStg(const MPI_Comm comm, const DM dm, ProblemData *problem, 
   PetscCall(PetscOptionsBool("-stg_strong", "Enforce STG inflow strongly", NULL, use_stgstrong, &use_stgstrong, NULL));
   PetscCall(PetscOptionsBool("-stg_fluctuating_IC", "\"Extrude\" the fluctuations through the domain as an initial condition", NULL,
                              use_fluctuating_IC, &use_fluctuating_IC, NULL));
-  PetscCall(PetscOptionsReal("-stg_dx", "Element size in streamwise direction at inflow", NULL, stg_dx, &stg_dx, &given_stg_dx));
+  PetscCall(PetscOptionsReal("-stg_dx", "Nodal separation size in x direction at inflow", NULL, stg_dx, &stg_dx, &given_stg_dx));
+  PetscCall(PetscOptionsReal("-stg_dyScale", "Scale normal nodal separation direction at inflow", NULL, stg_dyScale, &stg_dyScale, &given_stg_dyScale));
+  PetscCall(PetscOptionsReal("-stg_dz", "Nodal separation size in z direction at inflow", NULL, stg_dz, &stg_dz, &given_stg_dz));
   PetscOptionsEnd();
 
   PetscCall(PetscCalloc1(1, &global_stg_ctx));
@@ -256,6 +258,8 @@ PetscErrorCode SetupStg(const MPI_Comm comm, const DM dm, ProblemData *problem, 
     PetscInt nmax = 3, faces[3];
     PetscCall(PetscOptionsGetIntArray(NULL, NULL, "-dm_plex_box_faces", faces, &nmax, NULL));
     global_stg_ctx->dx = given_stg_dx ? stg_dx : domain_size[0] / faces[0];
+    global_stg_ctx->dyScale = given_stg_dyScale ? stg_dyScale : 1;
+    global_stg_ctx->dz = given_stg_dz ? stg_dz : domain_size[2] / faces[2];
   }
 
   PetscCallCeed(ceed, CeedQFunctionContextGetData(problem->apply_vol_rhs.qfunction_context, CEED_MEM_HOST, &newtonian_ig_ctx));
