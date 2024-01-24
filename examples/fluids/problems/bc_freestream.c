@@ -8,7 +8,7 @@
 /// @file
 /// Utility functions for setting up Freestream boundary condition
 
-#include "../qfunctions/freestream_bc.h"
+#include "../qfunctions/bc_freestream.h"
 
 #include <ceed.h>
 #include <petscdm.h>
