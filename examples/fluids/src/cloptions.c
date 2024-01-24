@@ -128,22 +128,33 @@ PetscErrorCode ProcessCommandLineOptions(MPI_Comm comm, AppCtx app_ctx, SimpleBC
   PetscCall(PetscOptionsIntArray("-bc_wall", "Face IDs to apply wall BC", NULL, bc->walls, &bc->num_wall, NULL));
   bc->num_comps = 5;
   PetscCall(PetscOptionsIntArray("-wall_comps", "An array of constrained component numbers", NULL, bc->wall_comps, &bc->num_comps, &flg));
-  // Slip Boundary Conditions
-  for (PetscInt j = 0; j < 3; j++) {
-    bc->num_slip[j] = 16;
-    PetscBool   flg;
-    const char *flags[3] = {"-bc_slip_x", "-bc_slip_y", "-bc_slip_z"};
-    PetscCall(PetscOptionsIntArray(flags[j], "Face IDs to apply slip BC", NULL, bc->slips[j], &bc->num_slip[j], &flg));
-    if (flg) bc->user_bc = PETSC_TRUE;
-  }
 
-  // Error if wall and slip BCs are set on the same face
-  if (bc->user_bc) {
-    for (PetscInt c = 0; c < 3; c++) {
-      for (PetscInt s = 0; s < bc->num_slip[c]; s++) {
-        for (PetscInt w = 0; w < bc->num_wall; w++) {
-          PetscCheck(bc->slips[c][s] != bc->walls[w], PETSC_COMM_SELF, PETSC_ERR_ARG_WRONG,
-                     "Boundary condition already set on face %" PetscInt_FMT "!\n", bc->walls[w]);
+  {  // Symmetry Boundary Conditions
+    const char *deprecated[3] = {"-bc_slip_x", "-bc_slip_y", "-bc_slip_z"};
+    const char *flags[3]      = {"-bc_symmetry_x", "-bc_symmetry_y", "-bc_symmetry_z"};
+    PetscBool   flg, has_symmetry = PETSC_FALSE;
+
+    for (PetscInt j = 0; j < 3; j++) {
+      bc->num_symmetry[j] = 16;
+      PetscCall(PetscOptionsDeprecated(deprecated[j], flags[j], "libCEED 0.12.0",
+                                       "Use -bc_symmetry_[x,y,z] for direct equivalency, or -bc_slip for weak, Riemann-based, direction-invariant "
+                                       "slip/no-penatration boundary conditions"));
+      PetscCall(PetscOptionsIntArray(flags[j], "Face IDs to apply symmetry BC", NULL, bc->symmetries[j], &bc->num_symmetry[j], &flg));
+      if (!flg) {
+        bc->num_symmetry[j] = 16;
+        PetscCall(PetscOptionsIntArray(deprecated[j], "Face IDs to apply slip BC", NULL, bc->symmetries[j], &bc->num_symmetry[j], &flg));
+      }
+      if (bc->num_symmetry[j] > 0) has_symmetry = PETSC_TRUE;
+    }
+
+    // Error if wall and symmetry BCs are set on the same face
+    if (has_symmetry) {
+      for (PetscInt c = 0; c < 3; c++) {
+        for (PetscInt s = 0; s < bc->num_symmetry[c]; s++) {
+          for (PetscInt w = 0; w < bc->num_wall; w++) {
+            PetscCheck(bc->symmetries[c][s] != bc->walls[w], PETSC_COMM_SELF, PETSC_ERR_ARG_WRONG,
+                       "Boundary condition already set on face %" PetscInt_FMT "!\n", bc->walls[w]);
+          }
         }
       }
     }
@@ -161,6 +172,9 @@ PetscErrorCode ProcessCommandLineOptions(MPI_Comm comm, AppCtx app_ctx, SimpleBC
   // Freestream BCs
   bc->num_freestream = 16;
   PetscCall(PetscOptionsIntArray("-bc_freestream", "Face IDs to apply freestream BC", NULL, bc->freestreams, &bc->num_freestream, NULL));
+
+  bc->num_slip = 16;
+  PetscCall(PetscOptionsIntArray("-bc_slip", "Face IDs to apply slip BC", NULL, bc->slips, &bc->num_slip, NULL));
 
   // Statistics Options
   app_ctx->turb_spanstats_collect_interval = 1;
