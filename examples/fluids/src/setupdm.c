@@ -38,9 +38,19 @@ PetscErrorCode CreateDM(MPI_Comm comm, ProblemData *problem, MatType mat_type, V
   PetscFunctionReturn(PETSC_SUCCESS);
 }
 
+static void evaluate_solution(PetscInt dim, PetscInt Nf, PetscInt NfAux, const PetscInt uOff[], const PetscInt uOff_x[], const PetscScalar u[],
+                              const PetscScalar u_t[], const PetscScalar u_x[], const PetscInt aOff[], const PetscInt aOff_x[], const PetscScalar a[],
+                              const PetscScalar a_t[], const PetscScalar a_x[], PetscReal t, const PetscReal X[], PetscInt numConstants,
+                              const PetscScalar constants[], PetscScalar new_u[]) {
+  for (PetscInt i = 0; i < 5; i++) new_u[i] = u[i];
+}
+
 // Setup DM
-PetscErrorCode SetUpDM(DM dm, ProblemData *problem, PetscInt degree, PetscInt q_extra, SimpleBC bc, Physics phys) {
-  PetscInt num_comp_q = 5;
+PetscErrorCode SetUpDM(DM *dm, ProblemData *problem, PetscInt degree, PetscInt q_extra, SimpleBC bc, Physics phys) {
+  PetscInt  num_comp_q     = 5;
+  DM        old_dm         = NULL;
+  PetscBool SkipProjection = PETSC_FALSE;
+
   PetscFunctionBeginUser;
   //  Restore a NL vector if requested (same flag used in Distribute)
   char vecName[PETSC_MAX_PATH_LEN] = "";
