@@ -10,7 +10,7 @@
 #ifndef CEED_CUDA_ATOMIC_ADD_FALLBACK_H
 #define CEED_CUDA_ATOMIC_ADD_FALLBACK_H
 
-#include <ceed/types.h>
+#include <ceed.h>
 
 //------------------------------------------------------------------------------
 // Atomic add, for older CUDA

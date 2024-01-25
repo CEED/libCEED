@@ -25,20 +25,9 @@ typedef struct {
 
 typedef struct {
   CUmodule   module;
-  CUfunction StridedNoTranspose;
-  CUfunction StridedTranspose;
-  CUfunction OffsetNoTranspose;
-  CUfunction OffsetTranspose;
-  CUfunction OffsetTransposeDet;
-  CUfunction OrientedNoTranspose;
-  CUfunction OrientedTranspose;
-  CUfunction OrientedTransposeDet;
-  CUfunction CurlOrientedNoTranspose;
-  CUfunction CurlOrientedTranspose;
-  CUfunction CurlOrientedTransposeDet;
-  CUfunction CurlOrientedUnsignedNoTranspose;
-  CUfunction CurlOrientedUnsignedTranspose;
-  CUfunction CurlOrientedUnsignedTransposeDet;
+  CUfunction ApplyNoTranspose, ApplyTranspose;
+  CUfunction ApplyUnsignedNoTranspose, ApplyUnsignedTranspose;
+  CUfunction ApplyUnorientedNoTranspose, ApplyUnorientedTranspose;
   CeedInt    num_nodes;
   CeedInt   *h_ind;
   CeedInt   *h_ind_allocated;
@@ -100,7 +89,7 @@ typedef struct {
 } CeedQFunctionContext_Cuda;
 
 typedef struct {
-  CUmodule            module;
+  CUmodule            module, module_point_block;
   CUfunction          LinearDiagonal;
   CUfunction          LinearPointBlock;
   CeedElemRestriction diag_rstr, point_block_diag_rstr;

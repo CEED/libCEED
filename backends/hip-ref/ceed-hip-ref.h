@@ -29,20 +29,9 @@ typedef struct {
 
 typedef struct {
   hipModule_t   module;
-  hipFunction_t StridedNoTranspose;
-  hipFunction_t StridedTranspose;
-  hipFunction_t OffsetNoTranspose;
-  hipFunction_t OffsetTranspose;
-  hipFunction_t OffsetTransposeDet;
-  hipFunction_t OrientedNoTranspose;
-  hipFunction_t OrientedTranspose;
-  hipFunction_t OrientedTransposeDet;
-  hipFunction_t CurlOrientedNoTranspose;
-  hipFunction_t CurlOrientedTranspose;
-  hipFunction_t CurlOrientedTransposeDet;
-  hipFunction_t CurlOrientedUnsignedNoTranspose;
-  hipFunction_t CurlOrientedUnsignedTranspose;
-  hipFunction_t CurlOrientedUnsignedTransposeDet;
+  hipFunction_t ApplyNoTranspose, ApplyTranspose;
+  hipFunction_t ApplyUnsignedNoTranspose, ApplyUnsignedTranspose;
+  hipFunction_t ApplyUnorientedNoTranspose, ApplyUnorientedTranspose;
   CeedInt       num_nodes;
   CeedInt      *h_ind;
   CeedInt      *h_ind_allocated;
@@ -104,7 +93,7 @@ typedef struct {
 } CeedQFunctionContext_Hip;
 
 typedef struct {
-  hipModule_t         module;
+  hipModule_t         module, module_point_block;
   hipFunction_t       LinearDiagonal;
   hipFunction_t       LinearPointBlock;
   CeedElemRestriction diag_rstr, point_block_diag_rstr;
