@@ -247,7 +247,9 @@ public:
 
     this->weights = compute_metric_data(ceed, mapping, tria, quadrature, bp);
 
-    strides = {1, quadrature.size(), quadrature.size() * n_components_metric};
+    strides = {{1,
+                static_cast<int>(quadrature.size()),
+                static_cast<int>(quadrature.size() * n_components_metric)}};
     CeedVectorCreate(ceed, weights.size(), &q_data);
     CeedVectorSetArray(q_data, CEED_MEM_HOST, CEED_USE_POINTER, weights.data());
     CeedElemRestrictionCreateStrided(ceed,
@@ -570,7 +572,9 @@ private:
 
     weights.resize(n_local_active_cells * quadrature.size() * n_components);
 
-    CeedInt strides[3] = {1, quadrature.size(), quadrature.size() * n_components};
+    CeedInt strides[3] = {1,
+                          static_cast<int>(quadrature.size()),
+                          static_cast<int>(quadrature.size() * n_components)};
 
     CeedVectorCreate(ceed, weights.size(), &q_data);
     CeedVectorSetArray(q_data, CEED_MEM_HOST, CEED_USE_POINTER, weights.data());
