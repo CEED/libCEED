@@ -30,7 +30,7 @@
 #include <ceed/ceed.h>
 
 // QFunction source
-#include "bp-qfunctions.h"
+#include "bps-qfunctions.h"
 
 using namespace dealii;
 
