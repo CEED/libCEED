@@ -201,6 +201,8 @@ main(int argc, char *argv[])
 
     std::chrono::time_point<std::chrono::system_clock> now;
 
+    bool not_converged = false;
+
     try
       {
         // solve problem
@@ -210,7 +212,8 @@ main(int argc, char *argv[])
       }
     catch (const SolverControl::NoConvergence &)
       {
-        // nothing to do
+        pout << "Error: solver failed to converge with" << std::endl;
+        not_converged = true;
       }
 
 
@@ -220,8 +223,11 @@ main(int argc, char *argv[])
       1e9;
 
 
-    pout << label << ": " << reduction_control.last_step() << " " << v.l2_norm() << " "
-         << (params.print_timings ? time : 0.0) << std::endl;
+    if (params.print_timings || not_converged)
+      {
+        pout << label << ": " << reduction_control.last_step() << " " << v.l2_norm() << " "
+             << (params.print_timings ? time : 0.0) << std::endl;
+      }
   };
 
   // create and test the libCEED operator
