@@ -21,6 +21,7 @@
 #include <deal.II/base/parameter_handler.h>
 #include <deal.II/base/quadrature_lib.h>
 
+#include <deal.II/distributed/shared_tria.h>
 #include <deal.II/distributed/tria.h>
 
 #include <deal.II/dofs/dof_handler.h>
@@ -160,7 +161,12 @@ main(int argc, char *argv[])
   QGauss<dim>    quadrature(n_q_points);
   FESystem<dim>  fe(FE_Q<dim>(fe_degree), n_components);
 
+#ifdef DEAL_II_WITH_P4EST
   parallel::distributed::Triangulation<dim> tria(MPI_COMM_WORLD);
+#else
+  parallel::shared::Triangulation<dim> tria(MPI_COMM_WORLD, ::Triangulation<dim>::none, true);
+#endif
+
   GridGenerator::hyper_cube(tria);
   tria.refine_global(n_refinements);
 
