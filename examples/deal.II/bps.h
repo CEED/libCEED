@@ -637,6 +637,8 @@ private:
     CeedElemRestrictionDestroy(&geo_restriction);
     CeedVectorDestroy(&node_coords);
     CeedElemRestrictionDestroy(&q_data_restriction);
+    CeedScalar *ptr;
+    CeedVectorTakeArray(q_data, CEED_MEM_HOST, &ptr);
     CeedVectorDestroy(&q_data);
     CeedBasisDestroy(&geo_basis);
 
