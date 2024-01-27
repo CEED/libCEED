@@ -236,7 +236,7 @@ def get_test_args(source_file: Path) -> List[TestSpec]:
         List[TestSpec]: List of parsed `TestSpec` objects, or a list containing a single, default `TestSpec` if none were found
     """
     comment_str: str = ''
-    if source_file.suffix in ['.c', '.cpp']:
+    if source_file.suffix in ['.c', '.cc', '.cpp']:
         comment_str = '//'
     elif source_file.suffix in ['.py']:
         comment_str = '#'

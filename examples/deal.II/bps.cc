@@ -48,6 +48,9 @@
 // include operators
 #include "bps.h"
 
+// Test cases
+// TESTARGS(name="BP1") --resource {ceed_resource} --bp BP1 --fe_degree 2 --print_timings 0
+// TESTARGS(name="BP4") --resource {ceed_resource} --bp BP4 --fe_degree 3 --print_timings 0
 
 /**
  * Relevant parameters.

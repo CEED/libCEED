@@ -325,11 +325,11 @@ public:
         src_tmp.reinit(this->extended_local_size(), true);
         dst_tmp.reinit(this->extended_local_size(), true);
 
+        copy_to_block_vector(src_tmp, src); // copy to block vector
+
         // create libCEED view on deal.II vectors
         VectorTypeCeed src_ceed(ceed, src_tmp);
         VectorTypeCeed dst_ceed(ceed, dst_tmp);
-
-        copy_to_block_vector(src_tmp, src); // copy to block vector
 
         // apply operator
         CeedOperatorApply(op_apply, src_ceed(), dst_ceed(), CEED_REQUEST_IMMEDIATE);
@@ -416,6 +416,8 @@ private:
      */
     ~VectorTypeCeed()
     {
+      CeedScalar *ptr;
+      CeedVectorTakeArray(vec_ceed, CEED_MEM_HOST, &ptr);
       CeedVectorDestroy(&vec_ceed);
     }
 

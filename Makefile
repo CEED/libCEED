@@ -66,6 +66,12 @@ endif
 export NEK5K_DIR
 MPI ?= 1
 
+# DEAL_II_DIR env variable should point to sibling directory
+ifneq ($(wildcard ../dealii/install/lib/libdeal_II.*),)
+  DEAL_II_DIR ?= ../dealii/install
+endif
+export DEAL_II_DIR
+
 # CEED_DIR env for NEK5K testing
 export CEED_DIR = $(abspath .)
 
@@ -248,6 +254,8 @@ nekexamples  := $(OBJDIR)/nek-bps
 # PETSc Examples
 petscexamples.c := $(wildcard examples/petsc/*.c)
 petscexamples   := $(petscexamples.c:examples/petsc/%.c=$(OBJDIR)/petsc-%)
+# deal.II Examples
+dealiiexamples  := $(OBJDIR)/dealii-bps
 # Fluid Dynamics Examples
 fluidsexamples.c  := $(sort $(wildcard examples/fluids/*.c))
 fluidsexamples.py := examples/fluids/smartsim_regression_framework.py
@@ -344,6 +352,7 @@ info:
 	$(info MFEM_DIR      = $(MFEM_DIR))
 	$(info NEK5K_DIR     = $(NEK5K_DIR))
 	$(info PETSC_DIR     = $(PETSC_DIR))
+	$(info DEAL_II_DIR   = $(DEAL_II_DIR))
 	$(info ------------------------------------)
 	$(info prefix        = $(prefix))
 	$(info includedir    = $(value includedir))
@@ -605,6 +614,13 @@ $(OBJDIR)/petsc-% : examples/petsc/%.c examples/petsc/libutils.a.PHONY $(libceed
 	  PETSC_DIR="$(abspath $(PETSC_DIR))" OPT="$(OPT)" $*
 	cp examples/petsc/$* $@
 
+# Note: Invoking deal.II's CMAKE build system here
+$(OBJDIR)/dealii-bps : $(libceed) | $$(@D)/.DIR
+       mkdir -p examples/deal.II/build
+       cmake -B examples/deal.II/build -S examples/deal.II -DDEAL_II_DIR=$DEAL_II_DIR -DCEED_DIR=$(PWD)
+       make -C examples/deal.II/build
+       cp examples/deal.II/build/bps $(OBJDIR)/dealii-bps
+
 $(OBJDIR)/fluids-% : examples/fluids/%.c examples/fluids/src/*.c examples/fluids/*.h examples/fluids/problems/*.c examples/fluids/qfunctions/*.h $(libceed) $(ceed.pc) | $$(@D)/.DIR
 	+$(call quiet,MAKE) -C examples/fluids CEED_DIR=`pwd` \
 	  PETSC_DIR="$(abspath $(PETSC_DIR))" OPT="$(OPT)" $*
@@ -640,6 +656,7 @@ external_examples := \
 	$(if $(MFEM_DIR),$(mfemexamples)) \
 	$(if $(PETSC_DIR),$(petscexamples)) \
 	$(if $(NEK5K_DIR),$(nekexamples)) \
+        $(if $(DEAL_II_DIR),$(dealiiexamples)) \
 	$(if $(PETSC_DIR),$(fluidsexamples)) \
 	$(if $(PETSC_DIR),$(solidsexamples))
 
