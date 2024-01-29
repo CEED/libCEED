@@ -144,13 +144,13 @@ public:
                const AffineConstraints<Number> &constraints,
                const Quadrature<dim>           &quadrature,
                const BPType                    &bp,
-               const std::string               &resouce)
+               const std::string               &resource)
     : mapping(mapping)
     , dof_handler(dof_handler)
     , constraints(constraints)
     , quadrature(quadrature)
     , bp(bp)
-    , resouce(resouce)
+    , resource(resource)
   {
     reinit();
   }
@@ -191,7 +191,7 @@ public:
       }
 
     // 1) create CEED instance -> "MatrixFree"
-    const char *ceed_spec = resouce.c_str();
+    const char *ceed_spec = resource.c_str();
     CeedInit(ceed_spec, &ceed);
 
     // 2) create shape functions -> "ShapeInfo"
@@ -682,7 +682,7 @@ private:
   /**
    * Resource name.
    */
-  const std::string resouce;
+  const std::string resource;
 
   /**
    * Partitioner for distributed vectors.
@@ -690,7 +690,7 @@ private:
   std::shared_ptr<Utilities::MPI::Partitioner> partitioner;
 
   /**
-   * libCEED data structues.
+   * libCEED data structures.
    */
   Ceed                   ceed;
   CeedBasis              sol_basis;

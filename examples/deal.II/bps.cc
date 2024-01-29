@@ -61,7 +61,7 @@ struct Parameters
   unsigned int n_global_refinements = 1;
   unsigned int fe_degree            = 2;
   bool         print_timings        = true;
-  std::string  libCEED_resouce      = "/cpu/self/avx/blocked";
+  std::string  libCEED_resource      = "/cpu/self/avx/blocked";
 
   bool
   parse(int argc, char *argv[])
@@ -118,7 +118,7 @@ struct Parameters
           }
         else if ("--resource" == label)
           {
-            libCEED_resouce = std::string(argv[1]);
+            libCEED_resource = std::string(argv[1]);
           }
         else
           {
@@ -241,7 +241,7 @@ main(int argc, char *argv[])
 
   // create and test the libCEED operator
   OperatorCeed<dim, Number> op_ceed(
-    mapping, dof_handler, constraints, quadrature, bp, params.libCEED_resouce);
+    mapping, dof_handler, constraints, quadrature, bp, params.libCEED_resource);
   test("ceed", op_ceed);
 
   // create and test a native deal.II operator
