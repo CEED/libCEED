@@ -327,12 +327,15 @@ public:
 
         copy_to_block_vector(src_tmp, src); // copy to block vector
 
-        // create libCEED view on deal.II vectors
-        VectorTypeCeed src_ceed(ceed, src_tmp);
-        VectorTypeCeed dst_ceed(ceed, dst_tmp);
+        // Note: need to trigger VectorTypeCeed destructor to sync host to device
+        {
+          // create libCEED view on deal.II vectors
+          VectorTypeCeed src_ceed(ceed, src_tmp);
+          VectorTypeCeed dst_ceed(ceed, dst_tmp);
 
-        // apply operator
-        CeedOperatorApply(op_apply, src_ceed(), dst_ceed(), CEED_REQUEST_IMMEDIATE);
+          // apply operator
+          CeedOperatorApply(op_apply, src_ceed(), dst_ceed(), CEED_REQUEST_IMMEDIATE);
+        }
 
         copy_from_block_vector(dst, dst_tmp); // copy from block vector
       }
