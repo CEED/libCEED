@@ -603,7 +603,7 @@ $(OBJDIR)/nek-bps : examples/nek/bps/bps.usr examples/nek/nek-examples.sh $(libc
 # Note: Invoking deal.II's CMAKE build system here
 $(OBJDIR)/dealii-bps : examples/deal.II/*.cc examples/deal.II/*.h $(libceed) | $$(@D)/.DIR
 	mkdir -p examples/deal.II/build
-	cmake -B examples/deal.II/build -S examples/deal.II -DDEAL_II_DIR=$DEAL_II_DIR -DCEED_DIR=$(PWD)
+	cmake -B examples/deal.II/build -S examples/deal.II -DDEAL_II_DIR=$(DEAL_II_DIR) -DCEED_DIR=$(PWD)
 	+$(call quiet,MAKE) -C examples/deal.II/build
 	cp examples/deal.II/build/bps $(OBJDIR)/dealii-bps
 
