@@ -616,10 +616,10 @@ $(OBJDIR)/petsc-% : examples/petsc/%.c examples/petsc/libutils.a.PHONY $(libceed
 
 # Note: Invoking deal.II's CMAKE build system here
 $(OBJDIR)/dealii-bps : $(libceed) | $$(@D)/.DIR
-       mkdir -p examples/deal.II/build
-       cmake -B examples/deal.II/build -S examples/deal.II -DDEAL_II_DIR=$DEAL_II_DIR -DCEED_DIR=$(PWD)
-       make -C examples/deal.II/build
-       cp examples/deal.II/build/bps $(OBJDIR)/dealii-bps
+	mkdir -p examples/deal.II/build
+	cmake -B examples/deal.II/build -S examples/deal.II -DDEAL_II_DIR=$DEAL_II_DIR -DCEED_DIR=$(PWD)
+	make -C examples/deal.II/build
+	cp examples/deal.II/build/bps $(OBJDIR)/dealii-bps
 
 $(OBJDIR)/fluids-% : examples/fluids/%.c examples/fluids/src/*.c examples/fluids/*.h examples/fluids/problems/*.c examples/fluids/qfunctions/*.h $(libceed) $(ceed.pc) | $$(@D)/.DIR
 	+$(call quiet,MAKE) -C examples/fluids CEED_DIR=`pwd` \
@@ -656,7 +656,7 @@ external_examples := \
 	$(if $(MFEM_DIR),$(mfemexamples)) \
 	$(if $(PETSC_DIR),$(petscexamples)) \
 	$(if $(NEK5K_DIR),$(nekexamples)) \
-        $(if $(DEAL_II_DIR),$(dealiiexamples)) \
+	$(if $(DEAL_II_DIR),$(dealiiexamples)) \
 	$(if $(PETSC_DIR),$(fluidsexamples)) \
 	$(if $(PETSC_DIR),$(solidsexamples))
 
