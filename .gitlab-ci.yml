@@ -51,6 +51,7 @@ noether-cpu:
     - echo "-------------- MFEM ----------------" && make -C $MFEM_DIR info
     - make -k -j$((NPROC_CPU / NPROC_POOL)) BACKENDS="$BACKENDS_CPU" JUNIT_BATCH="cpu" junit search=mfem
 # -- deal.II main, 26 Jan 2024
+    - export COVERAGE=0
     - export DEAL_II_ROOT_DIR=/projects/dealii DEAL_II_DIR=/projects/dealii/install
     - echo "-------------- deal.II -------------" && git -C $DEAL_II_ROOT_DIR -c safe.directory=$DEAL_II_ROOT_DIR describe --always
     - make -k -j$NPROC_CPU BACKENDS="$BACKENDS_CPU" JUNIT_BATCH="cpu" junit search=dealii DEAL_II_DIR=$DEAL_II_DIR
@@ -127,6 +128,7 @@ noether-rocm:
     - echo "-------------- MFEM ----------------" && make -C $MFEM_DIR info
     - make -k -j$((NPROC_GPU / NPROC_POOL)) BACKENDS="$BACKENDS_GPU" JUNIT_BATCH="hip" junit search=mfem
 # -- deal.II main, 26 Jan 2024
+    - export COVERAGE=0
     - export DEAL_II_ROOT_DIR=/projects/dealii DEAL_II_DIR=/projects/dealii/install
     - echo "-------------- deal.II -------------" && git -C $DEAL_II_ROOT_DIR -c safe.directory=$DEAL_II_ROOT_DIR describe --always
     - make -k -j$((NPROC_GPU / NPROC_POOL)) BACKENDS="$BACKENDS_GPU" JUNIT_BATCH="hip" junit search=dealii DEAL_II_DIR=$DEAL_II_DIR
