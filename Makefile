@@ -244,13 +244,13 @@ tests     += $(tests.f:tests/%.f90=$(OBJDIR)/%$(EXE_SUFFIX))
 # Examples
 examples.c := $(sort $(wildcard examples/ceed/*.c))
 examples.f := $(if $(FC),$(sort $(wildcard examples/ceed/*.f)))
-examples  := $(examples.c:examples/ceed/%.c=$(OBJDIR)/%$(EXE_SUFFIX))
-examples  += $(examples.f:examples/ceed/%.f=$(OBJDIR)/%$(EXE_SUFFIX))
+examples   := $(examples.c:examples/ceed/%.c=$(OBJDIR)/%$(EXE_SUFFIX))
+examples   += $(examples.f:examples/ceed/%.f=$(OBJDIR)/%$(EXE_SUFFIX))
 # MFEM Examples
 mfemexamples.cpp := $(sort $(wildcard examples/mfem/*.cpp))
 mfemexamples  := $(mfemexamples.cpp:examples/mfem/%.cpp=$(OBJDIR)/mfem-%)
 # Nek5K Examples
-nekexamples  := $(OBJDIR)/nek-bps
+nekexamples   := $(OBJDIR)/nek-bps
 # PETSc Examples
 petscexamples.c := $(wildcard examples/petsc/*.c)
 petscexamples   := $(petscexamples.c:examples/petsc/%.c=$(OBJDIR)/petsc-%)
@@ -262,8 +262,8 @@ fluidsexamples.py := examples/fluids/smartsim_regression_framework.py
 fluidsexamples    := $(fluidsexamples.c:examples/fluids/%.c=$(OBJDIR)/fluids-%)
 fluidsexamples    += $(fluidsexamples.py:examples/fluids/%.py=$(OBJDIR)/fluids-py-%)
 # Solid Mechanics Examples
-solidsexamples.c := $(sort $(wildcard examples/solids/*.c))
-solidsexamples   := $(solidsexamples.c:examples/solids/%.c=$(OBJDIR)/solids-%)
+solidsexamples.c  := $(sort $(wildcard examples/solids/*.c))
+solidsexamples    := $(solidsexamples.c:examples/solids/%.c=$(OBJDIR)/solids-%)
 
 # Backends/[ref, blocked, memcheck, opt, avx, occa, magma]
 ref.c          := $(sort $(wildcard backends/ref/*.c))
@@ -600,6 +600,13 @@ $(OBJDIR)/nek-bps : examples/nek/bps/bps.usr examples/nek/nek-examples.sh $(libc
 	mv examples/nek/build/bps $(OBJDIR)/bps
 	cp examples/nek/nek-examples.sh $(OBJDIR)/nek-bps
 
+# Note: Invoking deal.II's CMAKE build system here
+$(OBJDIR)/dealii-bps : examples/deal.II/*.cc examples/deal.II/*.h $(libceed) | $$(@D)/.DIR
+	mkdir -p examples/deal.II/build
+	cmake -B examples/deal.II/build -S examples/deal.II -DDEAL_II_DIR=$DEAL_II_DIR -DCEED_DIR=$(PWD)
+	+$(call quiet,MAKE) -C examples/deal.II/build
+	cp examples/deal.II/build/bps $(OBJDIR)/dealii-bps
+
 # Several executables have common utilities, but we can't build the utilities
 # from separate submake invocations because they'll compete with each
 # other/corrupt output. So we put it in this utility library, but we don't want
@@ -613,13 +620,6 @@ $(OBJDIR)/petsc-% : examples/petsc/%.c examples/petsc/libutils.a.PHONY $(libceed
 	+$(call quiet,MAKE) -C examples/petsc CEED_DIR=`pwd` \
 	  PETSC_DIR="$(abspath $(PETSC_DIR))" OPT="$(OPT)" $*
 	cp examples/petsc/$* $@
-
-# Note: Invoking deal.II's CMAKE build system here
-$(OBJDIR)/dealii-bps : $(libceed) | $$(@D)/.DIR
-	mkdir -p examples/deal.II/build
-	cmake -B examples/deal.II/build -S examples/deal.II -DDEAL_II_DIR=$DEAL_II_DIR -DCEED_DIR=$(PWD)
-	make -C examples/deal.II/build
-	cp examples/deal.II/build/bps $(OBJDIR)/dealii-bps
 
 $(OBJDIR)/fluids-% : examples/fluids/%.c examples/fluids/src/*.c examples/fluids/*.h examples/fluids/problems/*.c examples/fluids/qfunctions/*.h $(libceed) $(ceed.pc) | $$(@D)/.DIR
 	+$(call quiet,MAKE) -C examples/fluids CEED_DIR=`pwd` \
