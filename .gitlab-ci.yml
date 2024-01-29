@@ -50,17 +50,17 @@ noether-cpu:
     - cd .. && export MFEM_VERSION=mfem-4.2 && { [[ -d $MFEM_VERSION ]] || { git clone --depth 1 --branch v4.2 https://github.com/mfem/mfem.git $MFEM_VERSION && make -C $MFEM_VERSION -j$(nproc) serial CXXFLAGS="-O -std=c++11"; }; } && export MFEM_DIR=$PWD/$MFEM_VERSION && cd libCEED
     - echo "-------------- MFEM ----------------" && make -C $MFEM_DIR info
     - make -k -j$((NPROC_CPU / NPROC_POOL)) BACKENDS="$BACKENDS_CPU" JUNIT_BATCH="cpu" junit search=mfem
-# -- deal.II main, 26 Jan 2024
-    - export COVERAGE=0
-    - export DEAL_II_ROOT_DIR=/projects/dealii DEAL_II_DIR=/projects/dealii/install
-    - echo "-------------- deal.II -------------" && git -C $DEAL_II_ROOT_DIR -c safe.directory=$DEAL_II_ROOT_DIR describe --always
-    - make -k -j$NPROC_CPU BACKENDS="$BACKENDS_CPU" JUNIT_BATCH="cpu" junit search=dealii DEAL_II_DIR=$DEAL_II_DIR
 # -- Nek5000 v19.0
     - export COVERAGE=0
     - cd .. && export NEK5K_VERSION=Nek5000-19.0 && { [[ -d $NEK5K_VERSION ]] || { git clone --depth 1 --branch v19.0 https://github.com/Nek5000/Nek5000.git $NEK5K_VERSION && cd $NEK5K_VERSION/tools && ./maketools genbox genmap reatore2 && cd ../..; }; } && export NEK5K_DIR=$PWD/$NEK5K_VERSION && export PATH=$NEK5K_DIR/bin:$PATH MPI=0 && cd libCEED
     - echo "-------------- Nek5000 -------------" && git -C $NEK5K_DIR describe --tags
     - export NPROC_POOL=1
     - make -k -j$NPROC_CPU BACKENDS="$BACKENDS_CPU" JUNIT_BATCH="cpu" junit search=nek NEK5K_DIR=$NEK5K_DIR
+# -- deal.II 8bd5c262f13e15793aa206b6eed8774a9b25ce11
+    - OCCA_DIR= BACKENDS_CPU=$(make info-backends-all | grep -o '/cpu[^ ]*' | tr '\n' ' ')
+    - export DEAL_II_ROOT_DIR=/projects/dealii DEAL_II_DIR=/projects/dealii/install
+    - echo "-------------- deal.II -------------" && git -C $DEAL_II_ROOT_DIR -c safe.directory=$DEAL_II_ROOT_DIR describe --always
+    - make -k -j$NPROC_CPU BACKENDS="$BACKENDS_CPU" JUNIT_BATCH="cpu" junit search=dealii DEAL_II_DIR=$DEAL_II_DIR
 # Clang-tidy
     - echo "-------------- clang-tidy ----------" && clang-tidy --version
     - export OCCA_DIR= && make lib -j$NPROC_CPU
@@ -127,7 +127,7 @@ noether-rocm:
     - cd .. && export MFEM_VERSION=mfem-4.2 && { [[ -d $MFEM_VERSION ]] || { git clone --depth 1 --branch v4.2 https://github.com/mfem/mfem.git $MFEM_VERSION && make -C $MFEM_VERSION -j$(nproc) serial CXXFLAGS="-O -std=c++11"; }; } && export MFEM_DIR=$PWD/$MFEM_VERSION && cd libCEED
     - echo "-------------- MFEM ----------------" && make -C $MFEM_DIR info
     - make -k -j$((NPROC_GPU / NPROC_POOL)) BACKENDS="$BACKENDS_GPU" JUNIT_BATCH="hip" junit search=mfem
-# -- deal.II main, 26 Jan 2024
+# -- deal.II 8bd5c262f13e15793aa206b6eed8774a9b25ce11
     - export COVERAGE=0
     - export DEAL_II_ROOT_DIR=/projects/dealii DEAL_II_DIR=/projects/dealii/install
     - echo "-------------- deal.II -------------" && git -C $DEAL_II_ROOT_DIR -c safe.directory=$DEAL_II_ROOT_DIR describe --always
