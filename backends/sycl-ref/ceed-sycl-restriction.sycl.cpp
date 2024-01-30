@@ -395,74 +395,75 @@ int CeedElemRestrictionCreate_Sycl(CeedMemType mem_type, CeedCopyMode copy_mode,
   }
 
   // Set up device indices/offset arrays
-  switch (mem_type)
-  case CEED_MEM_HOST: {
-    switch (copy_mode) {
-      case CEED_OWN_POINTER:
-        impl->h_ind_allocated = (CeedInt *)indices;
-        impl->h_ind           = (CeedInt *)indices;
-        break;
-      case CEED_USE_POINTER:
-        impl->h_ind = (CeedInt *)indices;
-        break;
-      case CEED_COPY_VALUES:
-        if (indices != NULL) {
-          CeedCallBackend(CeedMalloc(elem_size * num_elem, &impl->h_ind_allocated));
-          memcpy(impl->h_ind_allocated, indices, elem_size * num_elem * sizeof(CeedInt));
-          impl->h_ind = impl->h_ind_allocated;
-        }
-        break;
-    }
-    if (indices != NULL) {
-      CeedCallSycl(ceed, impl->d_ind = sycl::malloc_device<CeedInt>(size, data->sycl_device, data->sycl_context));
-      impl->d_ind_allocated = impl->d_ind;  // We own the device memory
-      // Order queue
-      sycl::event e = data->sycl_queue.ext_oneapi_submit_barrier();
-      // Copy from host to device
-      sycl::event copy_event = data->sycl_queue.copy<CeedInt>(indices, impl->d_ind, size, {e});
-      // Wait for copy to finish and handle exceptions
-      CeedCallSycl(ceed, copy_event.wait_and_throw());
-      CeedCallBackend(CeedElemRestrictionOffset_Sycl(rstr, indices));
-    }
-  } break;
-case CEED_MEM_DEVICE): {
-  switch (copy_mode) {
-    case CEED_COPY_VALUES:
+  switch (mem_type) {
+    case CEED_MEM_HOST: {
+      switch (copy_mode) {
+        case CEED_OWN_POINTER:
+          impl->h_ind_allocated = (CeedInt *)indices;
+          impl->h_ind           = (CeedInt *)indices;
+          break;
+        case CEED_USE_POINTER:
+          impl->h_ind = (CeedInt *)indices;
+          break;
+        case CEED_COPY_VALUES:
+          if (indices != NULL) {
+            CeedCallBackend(CeedMalloc(elem_size * num_elem, &impl->h_ind_allocated));
+            memcpy(impl->h_ind_allocated, indices, elem_size * num_elem * sizeof(CeedInt));
+            impl->h_ind = impl->h_ind_allocated;
+          }
+          break;
+      }
       if (indices != NULL) {
         CeedCallSycl(ceed, impl->d_ind = sycl::malloc_device<CeedInt>(size, data->sycl_device, data->sycl_context));
         impl->d_ind_allocated = impl->d_ind;  // We own the device memory
-                                              // Copy from device to device
         // Order queue
-        sycl::event e          = data->sycl_queue.ext_oneapi_submit_barrier();
+        sycl::event e = data->sycl_queue.ext_oneapi_submit_barrier();
+        // Copy from host to device
         sycl::event copy_event = data->sycl_queue.copy<CeedInt>(indices, impl->d_ind, size, {e});
         // Wait for copy to finish and handle exceptions
         CeedCallSycl(ceed, copy_event.wait_and_throw());
+        CeedCallBackend(CeedElemRestrictionOffset_Sycl(rstr, indices));
       }
-      break;
-    case CEED_OWN_POINTER:
-      impl->d_ind           = (CeedInt *)indices;
-      impl->d_ind_allocated = impl->d_ind;
-      break;
-    case CEED_USE_POINTER:
-      impl->d_ind = (CeedInt *)indices;
+    } break;
+    case CEED_MEM_DEVICE: {
+      switch (copy_mode) {
+        case CEED_COPY_VALUES:
+          if (indices != NULL) {
+            CeedCallSycl(ceed, impl->d_ind = sycl::malloc_device<CeedInt>(size, data->sycl_device, data->sycl_context));
+            impl->d_ind_allocated = impl->d_ind;  // We own the device memory
+                                                  // Copy from device to device
+            // Order queue
+            sycl::event e          = data->sycl_queue.ext_oneapi_submit_barrier();
+            sycl::event copy_event = data->sycl_queue.copy<CeedInt>(indices, impl->d_ind, size, {e});
+            // Wait for copy to finish and handle exceptions
+            CeedCallSycl(ceed, copy_event.wait_and_throw());
+          }
+          break;
+        case CEED_OWN_POINTER:
+          impl->d_ind           = (CeedInt *)indices;
+          impl->d_ind_allocated = impl->d_ind;
+          break;
+        case CEED_USE_POINTER:
+          impl->d_ind = (CeedInt *)indices;
+      }
+      if (indices != NULL) {
+        CeedCallBackend(CeedMalloc(elem_size * num_elem, &impl->h_ind_allocated));
+        // Order queue
+        sycl::event e = data->sycl_queue.ext_oneapi_submit_barrier();
+        // Copy from device to host
+        sycl::event copy_event = data->sycl_queue.copy<CeedInt>(impl->d_ind, impl->h_ind_allocated, elem_size * num_elem, {e});
+        CeedCallSycl(ceed, copy_event.wait_and_throw());
+        impl->h_ind = impl->h_ind_allocated;
+        CeedCallBackend(CeedElemRestrictionOffset_Sycl(rstr, indices));
+      }
+    }
   }
-  if (indices != NULL) {
-    CeedCallBackend(CeedMalloc(elem_size * num_elem, &impl->h_ind_allocated));
-    // Order queue
-    sycl::event e = data->sycl_queue.ext_oneapi_submit_barrier();
-    // Copy from device to host
-    sycl::event copy_event = data->sycl_queue.copy<CeedInt>(impl->d_ind, impl->h_ind_allocated, elem_size * num_elem, {e});
-    CeedCallSycl(ceed, copy_event.wait_and_throw());
-    impl->h_ind = impl->h_ind_allocated;
-    CeedCallBackend(CeedElemRestrictionOffset_Sycl(rstr, indices));
-  }
-}
 
   // Register backend functions
   CeedCallBackend(CeedSetBackendFunctionCpp(ceed, "ElemRestriction", rstr, "Apply", CeedElemRestrictionApply_Sycl));
-CeedCallBackend(CeedSetBackendFunctionCpp(ceed, "ElemRestriction", rstr, "ApplyUnsigned", CeedElemRestrictionApply_Sycl));
-CeedCallBackend(CeedSetBackendFunctionCpp(ceed, "ElemRestriction", rstr, "ApplyUnoriented", CeedElemRestrictionApply_Sycl));
-CeedCallBackend(CeedSetBackendFunctionCpp(ceed, "ElemRestriction", rstr, "GetOffsets", CeedElemRestrictionGetOffsets_Sycl));
-CeedCallBackend(CeedSetBackendFunctionCpp(ceed, "ElemRestriction", rstr, "Destroy", CeedElemRestrictionDestroy_Sycl));
-return CEED_ERROR_SUCCESS;
+  CeedCallBackend(CeedSetBackendFunctionCpp(ceed, "ElemRestriction", rstr, "ApplyUnsigned", CeedElemRestrictionApply_Sycl));
+  CeedCallBackend(CeedSetBackendFunctionCpp(ceed, "ElemRestriction", rstr, "ApplyUnoriented", CeedElemRestrictionApply_Sycl));
+  CeedCallBackend(CeedSetBackendFunctionCpp(ceed, "ElemRestriction", rstr, "GetOffsets", CeedElemRestrictionGetOffsets_Sycl));
+  CeedCallBackend(CeedSetBackendFunctionCpp(ceed, "ElemRestriction", rstr, "Destroy", CeedElemRestrictionDestroy_Sycl));
+  return CEED_ERROR_SUCCESS;
 }

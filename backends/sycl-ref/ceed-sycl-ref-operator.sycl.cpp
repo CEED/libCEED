@@ -366,7 +366,7 @@ static inline int CeedOperatorRestoreInputs_Sycl(CeedInt num_input_fields, CeedQ
 //------------------------------------------------------------------------------
 static int CeedOperatorApplyAdd_Sycl(CeedOperator op, CeedVector in_vec, CeedVector out_vec, CeedRequest *request) {
   CeedInt             Q, num_elem, elem_size, num_input_fields, num_output_fields, size;
-  CeedEvalMode        e_mode;
+  CeedEvalMode        eval_mode;
   CeedScalar         *e_data[2 * CEED_FIELD_MAX] = {0};
   CeedQFunctionField *qf_input_fields, *qf_output_fields;
   CeedQFunction       qf;
@@ -391,8 +391,8 @@ static int CeedOperatorApplyAdd_Sycl(CeedOperator op, CeedVector in_vec, CeedVec
 
   // Output pointers, as necessary
   for (CeedInt i = 0; i < num_output_fields; i++) {
-    CeedCallBackend(CeedQFunctionFieldGetEvalMode(qf_output_fields[i], &e_mode));
-    if (e_mode == CEED_EVAL_NONE) {
+    CeedCallBackend(CeedQFunctionFieldGetEvalMode(qf_output_fields[i], &eval_mode));
+    if (eval_mode == CEED_EVAL_NONE) {
       // Set the output Q-Vector to use the E-Vector data directly
       CeedCallBackend(CeedVectorGetArrayWrite(impl->e_vecs[i + impl->num_e_in], CEED_MEM_DEVICE, &e_data[i + num_input_fields]));
       CeedCallBackend(CeedVectorSetArray(impl->q_vecs_out[i], CEED_MEM_DEVICE, CEED_USE_POINTER, e_data[i + num_input_fields]));
@@ -407,13 +407,13 @@ static int CeedOperatorApplyAdd_Sycl(CeedOperator op, CeedVector in_vec, CeedVec
     CeedElemRestriction rstr;
     CeedBasis           basis;
 
-    // Get elem_size,  e_mode, size
+    // Get elem_size,  eval_mode, size
     CeedCallBackend(CeedOperatorFieldGetElemRestriction(op_output_fields[i], &rstr));
     CeedCallBackend(CeedElemRestrictionGetElementSize(rstr, &elem_size));
-    CeedCallBackend(CeedQFunctionFieldGetEvalMode(qf_output_fields[i], &e_mode));
+    CeedCallBackend(CeedQFunctionFieldGetEvalMode(qf_output_fields[i], &eval_mode));
     CeedCallBackend(CeedQFunctionFieldGetSize(qf_output_fields[i], &size));
     // Basis action
-    switch (e_mode) {
+    switch (eval_mode) {
       case CEED_EVAL_NONE:
         break;
       case CEED_EVAL_INTERP:
@@ -449,8 +449,8 @@ static int CeedOperatorApplyAdd_Sycl(CeedOperator op, CeedVector in_vec, CeedVec
     CeedElemRestriction rstr;
 
     // Restore evec
-    CeedCallBackend(CeedQFunctionFieldGetEvalMode(qf_output_fields[i], &e_mode));
-    if (e_mode == CEED_EVAL_NONE) {
+    CeedCallBackend(CeedQFunctionFieldGetEvalMode(qf_output_fields[i], &eval_mode));
+    if (eval_mode == CEED_EVAL_NONE) {
       CeedCallBackend(CeedVectorRestoreArray(impl->e_vecs[i + impl->num_e_in], &e_data[i + num_input_fields]));
     }
     // Get output vector

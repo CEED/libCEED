@@ -482,7 +482,7 @@ static int CeedBasisApplyNonTensor_Sycl(CeedBasis basis, const CeedInt num_elem,
     // LCOV_EXCL_START
     case CEED_EVAL_DIV:
     case CEED_EVAL_CURL:
-      return CeedError(ceed, CEED_ERROR_BACKEND, "%s not supported", CeeDEvalMode[eval_mode]);
+      return CeedError(ceed, CEED_ERROR_BACKEND, "%s not supported", CeedEvalModes[eval_mode]);
     case CEED_EVAL_NONE:
       return CeedError(ceed, CEED_ERROR_BACKEND, "CEED_EVAL_NONE does not make sense in this context");
       // LCOV_EXCL_STOP
