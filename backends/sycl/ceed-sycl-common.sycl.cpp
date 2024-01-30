@@ -64,7 +64,7 @@ int CeedInit_Sycl(Ceed ceed, const char *resource) {
   };
 
   sycl::context sycl_context{sycl_device.get_platform().get_devices()};
-  sycl::queue   sycl_queue{sycl_context, sycl_device, sycl_async_handler,  sycl::property::queue::in_order{}};
+  sycl::queue   sycl_queue{sycl_context, sycl_device, sycl_async_handler, sycl::property::queue::in_order{}};
 
   CeedCallBackend(CeedGetData(ceed, &data));
 

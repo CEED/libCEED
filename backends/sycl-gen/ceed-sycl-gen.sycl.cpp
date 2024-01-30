@@ -34,13 +34,13 @@ static int CeedInit_Sycl_gen(const char *resource, Ceed ceed) {
 
   CeedCallBackend(CeedInit("/gpu/sycl/shared", &ceed_shared));
   CeedCallBackend(CeedSetDelegate(ceed, ceed_shared));
-  CeedCallBackend(CeedSetStream_Sycl(ceed_shared,&(data->sycl_queue)));
+  CeedCallBackend(CeedSetStream_Sycl(ceed_shared, &(data->sycl_queue)));
 
   CeedCallBackend(CeedSetOperatorFallbackResource(ceed, fallback_resource));
 
   Ceed ceed_fallback = NULL;
   CeedCallBackend(CeedGetOperatorFallbackCeed(ceed, &ceed_fallback));
-  CeedCallBackend(CeedSetStream_Sycl(ceed_fallback,&(data->sycl_queue)));
+  CeedCallBackend(CeedSetStream_Sycl(ceed_fallback, &(data->sycl_queue)));
 
   CeedCallBackend(CeedSetBackendFunctionCpp(ceed, "Ceed", ceed, "QFunctionCreate", CeedQFunctionCreate_Sycl_gen));
   CeedCallBackend(CeedSetBackendFunctionCpp(ceed, "Ceed", ceed, "OperatorCreate", CeedOperatorCreate_Sycl_gen));

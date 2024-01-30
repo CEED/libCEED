@@ -742,6 +742,7 @@ extern "C" int CeedOperatorBuildKernel_Sycl_gen(CeedOperator op) {
 
   // Copy the struct (containing device addresses) from the host to the device
   std::vector<sycl::event> e;
+
   if (!sycl_data->sycl_queue.is_in_order()) e = {sycl_data->sycl_queue.ext_oneapi_submit_barrier()};
 
   sycl::event copy_B       = sycl_data->sycl_queue.copy<Fields_Sycl>(&h_B, impl->B, 1, e);
