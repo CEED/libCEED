@@ -98,7 +98,7 @@ static inline int CeedVectorSyncD2H_Sycl(const CeedVector vec) {
   // Copy from device to host
   std::vector<sycl::event> e;
   if (!data->sycl_queue.is_in_order()) e = {data->sycl_queue.ext_oneapi_submit_barrier()};
-  CeedCallSycl(ceed,data->sycl_queue.copy<CeedScalar>(impl->d_array, impl->h_array, length, e).wait_and_throw());
+  CeedCallSycl(ceed, data->sycl_queue.copy<CeedScalar>(impl->d_array, impl->h_array, length, e).wait_and_throw());
   return CEED_ERROR_SUCCESS;
 }
 
@@ -366,8 +366,7 @@ static int CeedVectorTakeArray_Sycl(CeedVector vec, CeedMemType mem_type, CeedSc
   CeedCallBackend(CeedGetData(ceed, &data));
 
   // Order queue if needed
-  if (!data->sycl_queue.is_in_order()) 
-    data->sycl_queue.ext_oneapi_submit_barrier();
+  if (!data->sycl_queue.is_in_order()) data->sycl_queue.ext_oneapi_submit_barrier();
 
   // Sync array to requested mem_type
   CeedCallBackend(CeedVectorSyncArray(vec, mem_type));
@@ -492,17 +491,17 @@ static int CeedVectorNorm_Sycl(CeedVector vec, CeedNormType type, CeedScalar *no
   switch (type) {
     case CEED_NORM_1: {
       // Order queue
-      auto        sumReduction = sycl::reduction(impl->reduction_norm, sycl::plus<>(), {sycl::property::reduction::initialize_to_identity{}});
+      auto sumReduction = sycl::reduction(impl->reduction_norm, sycl::plus<>(), {sycl::property::reduction::initialize_to_identity{}});
       data->sycl_queue.parallel_for(length, e, sumReduction, [=](sycl::id<1> i, auto &sum) { sum += abs(d_array[i]); }).wait_and_throw();
     } break;
     case CEED_NORM_2: {
       // Order queue
-      auto        sumReduction = sycl::reduction(impl->reduction_norm, sycl::plus<>(), {sycl::property::reduction::initialize_to_identity{}});
+      auto sumReduction = sycl::reduction(impl->reduction_norm, sycl::plus<>(), {sycl::property::reduction::initialize_to_identity{}});
       data->sycl_queue.parallel_for(length, e, sumReduction, [=](sycl::id<1> i, auto &sum) { sum += (d_array[i] * d_array[i]); }).wait_and_throw();
     } break;
     case CEED_NORM_MAX: {
       // Order queue
-      auto        maxReduction = sycl::reduction(impl->reduction_norm, sycl::maximum<>(), {sycl::property::reduction::initialize_to_identity{}});
+      auto maxReduction = sycl::reduction(impl->reduction_norm, sycl::maximum<>(), {sycl::property::reduction::initialize_to_identity{}});
       data->sycl_queue.parallel_for(length, e, maxReduction, [=](sycl::id<1> i, auto &max) { max.combine(abs(d_array[i])); }).wait_and_throw();
     } break;
   }

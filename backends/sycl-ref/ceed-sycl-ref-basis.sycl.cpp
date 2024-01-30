@@ -252,7 +252,7 @@ static int CeedBasisApplyWeight_Sycl(sycl::queue &sycl_queue, CeedInt num_elem, 
 
   std::vector<sycl::event> e;
   if (!sycl_queue.is_in_order()) e = {sycl_queue.ext_oneapi_submit_barrier()};
-  
+
   sycl_queue.parallel_for<CeedBasisSyclWeight>(kernel_range, e, [=](sycl::item<3> work_item) {
     if (dim == 1) w[work_item.get_linear_id()] = q_weight_1d[work_item[2]];
     if (dim == 2) w[work_item.get_linear_id()] = q_weight_1d[work_item[2]] * q_weight_1d[work_item[1]];
