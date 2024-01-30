@@ -35,6 +35,7 @@ static int CeedElemRestrictionStridedNoTranspose_Sycl(sycl::queue &sycl_queue, c
   sycl::range<1> kernel_range(num_elem * elem_size);
 
   std::vector<sycl::event> e;
+
   if (!sycl_queue.is_in_order()) e = {sycl_queue.ext_oneapi_submit_barrier()};
   sycl_queue.parallel_for<CeedElemRestrSyclStridedNT>(kernel_range, e, [=](sycl::id<1> node) {
     const CeedInt loc_node = node % elem_size;
@@ -61,6 +62,7 @@ static int CeedElemRestrictionOffsetNoTranspose_Sycl(sycl::queue &sycl_queue, co
   sycl::range<1> kernel_range(num_elem * elem_size);
 
   std::vector<sycl::event> e;
+
   if (!sycl_queue.is_in_order()) e = {sycl_queue.ext_oneapi_submit_barrier()};
   sycl_queue.parallel_for<CeedElemRestrSyclOffsetNT>(kernel_range, e, [=](sycl::id<1> node) {
     const CeedInt ind      = indices[node];
@@ -89,6 +91,7 @@ static int CeedElemRestrictionStridedTranspose_Sycl(sycl::queue &sycl_queue, con
   sycl::range<1> kernel_range(num_elem * elem_size);
 
   std::vector<sycl::event> e;
+
   if (!sycl_queue.is_in_order()) e = {sycl_queue.ext_oneapi_submit_barrier()};
   sycl_queue.parallel_for<CeedElemRestrSyclStridedT>(kernel_range, e, [=](sycl::id<1> node) {
     const CeedInt loc_node = node % elem_size;
@@ -118,6 +121,7 @@ static int CeedElemRestrictionOffsetTranspose_Sycl(sycl::queue &sycl_queue, cons
   sycl::range<1> kernel_range(num_nodes * num_comp);
 
   std::vector<sycl::event> e;
+
   if (!sycl_queue.is_in_order()) e = {sycl_queue.ext_oneapi_submit_barrier()};
   sycl_queue.parallel_for<CeedElemRestrSyclOffsetT>(kernel_range, e, [=](sycl::id<1> id) {
     const CeedInt node    = id % num_nodes;
@@ -303,6 +307,7 @@ static int CeedElemRestrictionOffset_Sycl(const CeedElemRestriction rstr, const 
   CeedCallBackend(CeedGetData(ceed, &data));
 
   std::vector<sycl::event> e;
+
   if (!data->sycl_queue.is_in_order()) e = {data->sycl_queue.ext_oneapi_submit_barrier()};
 
   // -- L-vector indices

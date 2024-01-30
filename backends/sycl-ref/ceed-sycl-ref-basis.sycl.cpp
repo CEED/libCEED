@@ -50,6 +50,7 @@ static int CeedBasisApplyInterp_Sycl(sycl::queue &sycl_queue, const SyclModule_t
   sycl::nd_range<1>   kernel_range(global_range, local_range);
 
   std::vector<sycl::event> e;
+
   if (!sycl_queue.is_in_order()) e = {sycl_queue.ext_oneapi_submit_barrier()};
 
   sycl_queue.submit([&](sycl::handler &cgh) {
@@ -152,6 +153,7 @@ static int CeedBasisApplyGrad_Sycl(sycl::queue &sycl_queue, const SyclModule_t &
   sycl::nd_range<1>   kernel_range(global_range, local_range);
 
   std::vector<sycl::event> e;
+
   if (!sycl_queue.is_in_order()) e = {sycl_queue.ext_oneapi_submit_barrier()};
 
   sycl_queue.submit([&](sycl::handler &cgh) {
@@ -251,6 +253,7 @@ static int CeedBasisApplyWeight_Sycl(sycl::queue &sycl_queue, CeedInt num_elem, 
   sycl::range<3> kernel_range(num_elem * num_quad_z, num_quad_y, num_quad_x);
 
   std::vector<sycl::event> e;
+
   if (!sycl_queue.is_in_order()) e = {sycl_queue.ext_oneapi_submit_barrier()};
 
   sycl_queue.parallel_for<CeedBasisSyclWeight>(kernel_range, e, [=](sycl::item<3> work_item) {
@@ -287,6 +290,7 @@ static int CeedBasisApply_Sycl(CeedBasis basis, const CeedInt num_elem, CeedTran
     CeedSize length;
     CeedCallBackend(CeedVectorGetLength(v, &length));
     std::vector<sycl::event> e;
+
     if (!data->sycl_queue.is_in_order()) e = {data->sycl_queue.ext_oneapi_submit_barrier()};
     data->sycl_queue.fill<CeedScalar>(d_v, 0, length, e);
   }
@@ -347,6 +351,7 @@ static int CeedBasisApplyNonTensorInterp_Sycl(sycl::queue &sycl_queue, CeedInt n
   sycl::range<2> kernel_range(num_elem, v_size);
 
   std::vector<sycl::event> e;
+
   if (!sycl_queue.is_in_order()) e = {sycl_queue.ext_oneapi_submit_barrier()};
 
   sycl_queue.parallel_for<CeedBasisSyclInterpNT>(kernel_range, e, [=](sycl::id<2> indx) {
@@ -392,6 +397,7 @@ static int CeedBasisApplyNonTensorGrad_Sycl(sycl::queue &sycl_queue, CeedInt num
   sycl::range<2> kernel_range(num_elem, v_size);
 
   std::vector<sycl::event> e;
+
   if (!sycl_queue.is_in_order()) e = {sycl_queue.ext_oneapi_submit_barrier()};
 
   sycl_queue.parallel_for<CeedBasisSyclGradNT>(kernel_range, e, [=](sycl::id<2> indx) {
@@ -431,6 +437,7 @@ static int CeedBasisApplyNonTensorWeight_Sycl(sycl::queue &sycl_queue, CeedInt n
   sycl::range<2> kernel_range(num_elem, num_qpts);
 
   std::vector<sycl::event> e;
+
   if (!sycl_queue.is_in_order()) e = {sycl_queue.ext_oneapi_submit_barrier()};
 
   sycl_queue.parallel_for<CeedBasisSyclWeightNT>(kernel_range, e, [=](sycl::id<2> indx) {
@@ -571,6 +578,7 @@ int CeedBasisCreateTensorH1_Sycl(CeedInt dim, CeedInt P_1d, CeedInt Q_1d, const 
   impl->op_len    = Q_1d * P_1d;
 
   std::vector<sycl::event> e;
+
   if (!data->sycl_queue.is_in_order()) e = {data->sycl_queue.ext_oneapi_submit_barrier()};
 
   CeedCallSycl(ceed, impl->d_q_weight_1d = sycl::malloc_device<CeedScalar>(Q_1d, data->sycl_device, data->sycl_context));
@@ -625,6 +633,7 @@ int CeedBasisCreateH1_Sycl(CeedElemTopology topo, CeedInt dim, CeedInt num_nodes
   impl->num_qpts  = num_qpts;
 
   std::vector<sycl::event> e;
+
   if (!data->sycl_queue.is_in_order()) e = {data->sycl_queue.ext_oneapi_submit_barrier()};
 
   CeedCallSycl(ceed, impl->d_q_weight = sycl::malloc_device<CeedScalar>(num_qpts, data->sycl_device, data->sycl_context));

@@ -38,6 +38,7 @@ static inline int CeedQFunctionContextSyncH2D_Sycl(const CeedQFunctionContext ct
     impl->d_data = impl->d_data_owned;
   }
   std::vector<sycl::event> e;
+
   if (!sycl_data->sycl_queue.is_in_order()) e = {sycl_data->sycl_queue.ext_oneapi_submit_barrier()};
   sycl::event copy_event = sycl_data->sycl_queue.memcpy(impl->d_data, impl->h_data, ctx_size, e);
   CeedCallSycl(ceed, copy_event.wait_and_throw());
@@ -70,6 +71,7 @@ static inline int CeedQFunctionContextSyncD2H_Sycl(const CeedQFunctionContext ct
   }
 
   std::vector<sycl::event> e;
+
   if (!sycl_data->sycl_queue.is_in_order()) e = {sycl_data->sycl_queue.ext_oneapi_submit_barrier()};
   sycl::event copy_event = sycl_data->sycl_queue.memcpy(impl->h_data, impl->d_data, ctx_size, e);
   CeedCallSycl(ceed, copy_event.wait_and_throw());
@@ -195,6 +197,7 @@ static int CeedQFunctionContextSetDataDevice_Sycl(const CeedQFunctionContext ctx
   CeedCallBackend(CeedGetData(ceed, &sycl_data));
 
   std::vector<sycl::event> e;
+
   if (!sycl_data->sycl_queue.is_in_order()) e = {sycl_data->sycl_queue.ext_oneapi_submit_barrier()};
 
   // Wait for all work to finish before freeing memory

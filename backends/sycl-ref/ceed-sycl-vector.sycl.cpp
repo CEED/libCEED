@@ -60,6 +60,7 @@ static inline int CeedVectorSyncH2D_Sycl(const CeedVector vec) {
 
   // Copy from host to device
   std::vector<sycl::event> e;
+
   if (!data->sycl_queue.is_in_order()) e = {data->sycl_queue.ext_oneapi_submit_barrier()};
   CeedCallSycl(ceed, data->sycl_queue.copy<CeedScalar>(impl->h_array, impl->d_array, length, {e}).wait_and_throw());
   return CEED_ERROR_SUCCESS;
@@ -92,6 +93,7 @@ static inline int CeedVectorSyncD2H_Sycl(const CeedVector vec) {
 
   // Copy from device to host
   std::vector<sycl::event> e;
+
   if (!data->sycl_queue.is_in_order()) e = {data->sycl_queue.ext_oneapi_submit_barrier()};
   CeedCallSycl(ceed,data->sycl_queue.copy<CeedScalar>(impl->d_array, impl->h_array, length, {e}).wait_and_throw());
   return CEED_ERROR_SUCCESS;
@@ -206,6 +208,7 @@ static int CeedVectorSetArrayDevice_Sycl(const CeedVector vec, const CeedCopyMod
 
   // Order queue if needed.
   std::vector<sycl::event> e;
+
   if (!data->sycl_queue.is_in_order()) e = {data->sycl_queue.ext_oneapi_submit_barrier()};
 
   switch (copy_mode) {
@@ -276,6 +279,7 @@ static int CeedHostSetValue_Sycl(CeedScalar *h_array, CeedSize length, CeedScala
 //------------------------------------------------------------------------------
 static int CeedDeviceSetValue_Sycl(sycl::queue &sycl_queue, CeedScalar *d_array, CeedSize length, CeedScalar val) {
   std::vector<sycl::event> e;
+
   if (!sycl_queue.is_in_order()) e = {sycl_queue.ext_oneapi_submit_barrier()};
   sycl_queue.fill(d_array, val, length, e);
   return CEED_ERROR_SUCCESS;
@@ -451,6 +455,7 @@ static int CeedVectorNorm_Sycl(CeedVector vec, CeedNormType type, CeedScalar *no
   CeedCallBackend(CeedVectorGetArrayRead(vec, CEED_MEM_DEVICE, &d_array));
 
   std::vector<sycl::event> e;
+
   if (!data->sycl_queue.is_in_order()) e = {data->sycl_queue.ext_oneapi_submit_barrier()};
 
   switch (type) {
@@ -492,6 +497,7 @@ static int CeedHostReciprocal_Sycl(CeedScalar *h_array, CeedSize length) {
 //------------------------------------------------------------------------------
 static int CeedDeviceReciprocal_Sycl(sycl::queue &sycl_queue, CeedScalar *d_array, CeedSize length) {
   std::vector<sycl::event> e;
+
   if (!sycl_queue.is_in_order()) e = {sycl_queue.ext_oneapi_submit_barrier()};
   sycl_queue.parallel_for(length, e, [=](sycl::id<1> i) {
     if (std::fabs(d_array[i]) > CEED_EPSILON) d_array[i] = 1. / d_array[i];
@@ -532,6 +538,7 @@ static int CeedHostScale_Sycl(CeedScalar *x_array, CeedScalar alpha, CeedSize le
 //------------------------------------------------------------------------------
 static int CeedDeviceScale_Sycl(sycl::queue &sycl_queue, CeedScalar *x_array, CeedScalar alpha, CeedSize length) {
   std::vector<sycl::event> e;
+
   if (!sycl_queue.is_in_order()) e = {sycl_queue.ext_oneapi_submit_barrier()};
   sycl_queue.parallel_for(length, e, [=](sycl::id<1> i) { x_array[i] *= alpha; });
   return CEED_ERROR_SUCCESS;
@@ -570,6 +577,7 @@ static int CeedHostAXPY_Sycl(CeedScalar *y_array, CeedScalar alpha, CeedScalar *
 //------------------------------------------------------------------------------
 static int CeedDeviceAXPY_Sycl(sycl::queue &sycl_queue, CeedScalar *y_array, CeedScalar alpha, CeedScalar *x_array, CeedSize length) {
   std::vector<sycl::event> e;
+
   if (!sycl_queue.is_in_order()) e = {sycl_queue.ext_oneapi_submit_barrier()};
   sycl_queue.parallel_for(length, e, [=](sycl::id<1> i) { y_array[i] += alpha * x_array[i]; });
   return CEED_ERROR_SUCCESS;
@@ -615,6 +623,7 @@ static int CeedHostPointwiseMult_Sycl(CeedScalar *w_array, CeedScalar *x_array, 
 //------------------------------------------------------------------------------
 static int CeedDevicePointwiseMult_Sycl(sycl::queue &sycl_queue, CeedScalar *w_array, CeedScalar *x_array, CeedScalar *y_array, CeedSize length) {
   std::vector<sycl::event> e;
+
   if (!sycl_queue.is_in_order()) e = {sycl_queue.ext_oneapi_submit_barrier()};
   sycl_queue.parallel_for(length, e, [=](sycl::id<1> i) { w_array[i] = x_array[i] * y_array[i]; });
   return CEED_ERROR_SUCCESS;

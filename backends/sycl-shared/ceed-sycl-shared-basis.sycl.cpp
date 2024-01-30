@@ -64,6 +64,7 @@ int CeedBasisApplyTensor_Sycl_shared(CeedBasis basis, const CeedInt num_elem, Ce
       sycl::kernel *interp_kernel = (t_mode == CEED_TRANSPOSE) ? impl->interp_transpose_kernel : impl->interp_kernel;
 
       std::vector<sycl::event> e;
+
       if (!ceed_Sycl->sycl_queue.is_in_order()) e = {ceed_Sycl->sycl_queue.ext_oneapi_submit_barrier()};
       ceed_Sycl->sycl_queue.submit([&](sycl::handler &cgh) {
         cgh.depends_on(e);
@@ -85,6 +86,7 @@ int CeedBasisApplyTensor_Sycl_shared(CeedBasis basis, const CeedInt num_elem, Ce
       const CeedScalar *d_grad_1d   = (impl->d_collo_grad_1d) ? impl->d_collo_grad_1d : impl->d_grad_1d;
 
       std::vector<sycl::event> e;
+
       if (!ceed_Sycl->sycl_queue.is_in_order()) e = {ceed_Sycl->sycl_queue.ext_oneapi_submit_barrier()};
 
       ceed_Sycl->sycl_queue.submit([&](sycl::handler &cgh) {
@@ -103,6 +105,7 @@ int CeedBasisApplyTensor_Sycl_shared(CeedBasis basis, const CeedInt num_elem, Ce
       sycl::nd_range<3> kernel_range(global_range, local_range);
       //-----------
       std::vector<sycl::event> e;
+
       if (!ceed_Sycl->sycl_queue.is_in_order()) e = {ceed_Sycl->sycl_queue.ext_oneapi_submit_barrier()};
 
       ceed_Sycl->sycl_queue.submit([&](sycl::handler &cgh) {
@@ -191,6 +194,7 @@ int CeedBasisCreateTensorH1_Sycl_shared(CeedInt dim, CeedInt P_1d, CeedInt Q_1d,
   CeedCallBackend(ComputeLocalRange(ceed, dim, Q_1d, impl->weight_local_range));
 
   std::vector<sycl::event> e;
+
   if (!data->sycl_queue.is_in_order()) e = {data->sycl_queue.ext_oneapi_submit_barrier()};
 
   // Copy basis data to GPU
