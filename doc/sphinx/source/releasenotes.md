@@ -17,6 +17,8 @@ On this page we provide a summary of the main API changes, new features and exam
 
 ### Examples
 
+- Add deal.II example with CEED BP suite.
+
 (v0-12)=
 
 ## v0.12 (Oct 31, 2023)
@@ -254,7 +256,7 @@ This reduces time to compile the library and increases the range of parameters f
 ### Performance improvements
 
 - OCCA backend rebuilt to facilitate future performance enhancements.
-- Petsc BPs suite improved to reduce noise due to multiple calls to {code}`mpiexec`.
+- PETSc BPs suite improved to reduce noise due to multiple calls to {code}`mpiexec`.
 
 ### Examples
 
