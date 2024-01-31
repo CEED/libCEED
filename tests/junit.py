@@ -50,6 +50,8 @@ class CeedSuiteSpec(SuiteSpec):
             return (Path('examples') / 'mfem' / rest).with_suffix('.cpp')
         elif prefix == 'nek':
             return (Path('examples') / 'nek' / 'bps' / rest).with_suffix('.usr')
+        elif prefix == 'dealii':
+            return (Path('examples') / 'deal.II' / rest).with_suffix('.cc')
         elif prefix == 'fluids':
             return (Path('examples') / 'fluids' / rest).with_suffix('.c')
         elif prefix == 'solids':
