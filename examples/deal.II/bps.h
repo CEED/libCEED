@@ -297,7 +297,7 @@ public:
     CeedOperatorCreate(ceed, qf_apply, CEED_QFUNCTION_NONE, CEED_QFUNCTION_NONE, &op_apply);
 
     CeedOperatorSetField(op_apply, "u", sol_restriction, sol_basis, CEED_VECTOR_ACTIVE);
-    CeedOperatorSetField(op_apply, "qdata", q_data_restriction, CEED_BASIS_COLLOCATED, q_data);
+    CeedOperatorSetField(op_apply, "qdata", q_data_restriction, CEED_BASIS_NONE, q_data);
     CeedOperatorSetField(op_apply, "v", sol_restriction, sol_basis, CEED_VECTOR_ACTIVE);
   }
 
@@ -637,7 +637,7 @@ private:
     CeedOperatorSetField(
       op_build, "weights", CEED_ELEMRESTRICTION_NONE, geo_basis, CEED_VECTOR_NONE);
     CeedOperatorSetField(
-      op_build, "qdata", q_data_restriction, CEED_BASIS_COLLOCATED, CEED_VECTOR_ACTIVE);
+      op_build, "qdata", q_data_restriction, CEED_BASIS_NONE, CEED_VECTOR_ACTIVE);
 
     CeedOperatorApply(op_build, node_coords, q_data, CEED_REQUEST_IMMEDIATE);
 
