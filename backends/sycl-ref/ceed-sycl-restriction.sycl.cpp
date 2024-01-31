@@ -454,10 +454,6 @@ int CeedElemRestrictionCreate_Sycl(CeedMemType mem_type, CeedCopyMode copy_mode,
       impl->h_ind = impl->h_ind_allocated;
       CeedCallBackend(CeedElemRestrictionOffset_Sycl(rstr, indices));
     }
-  } else {
-    // LCOV_EXCL_START
-    return CeedError(ceed, CEED_ERROR_BACKEND, "Only MemType = HOST or DEVICE supported");
-    // LCOV_EXCL_STOP
   }
 
   // Register backend functions
