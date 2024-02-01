@@ -1,6 +1,6 @@
 /// @file
-/// Test viewing of QFunction
-/// \test Test viewing of QFunction
+/// Test viewing of QFunction and QFunctionContext
+/// \test Test viewing of QFunction and QFunctionContext
 #include <ceed.h>
 #include <stdio.h>
 
@@ -26,14 +26,11 @@ int main(int argc, char **argv) {
   CeedQFunctionView(qf_mass, stdout);
 
   CeedQFunctionContextCreate(ceed, &ctx);
-  if (CEED_SCALAR_TYPE == CEED_SCALAR_FP64) {
-    CeedScalar ctxData[5] = {1, 2, 3, 4, 5};
+  {
+    double ctxData[5] = {1, 2, 3, 4, 5};
 
     CeedQFunctionContextSetData(ctx, CEED_MEM_HOST, CEED_COPY_VALUES, sizeof(ctxData), &ctxData);
-  } else {  // Make context twice as long so the size is the same in output
-    CeedScalar ctxData[10] = {1, 2, 3, 4, 5, 1, 2, 3, 4, 5};
-
-    CeedQFunctionContextSetData(ctx, CEED_MEM_HOST, CEED_COPY_VALUES, sizeof(ctxData), &ctxData);
+    CeedQFunctionContextRegisterDouble(ctx, "scale", 0, 5, "scaling values");
   }
   CeedQFunctionContextView(ctx, stdout);
 

@@ -82,9 +82,7 @@ int CeedQFunctionRegister(const char *name, const char *source, CeedInt vec_leng
       ierr = 1;
     }
   }
-  // LCOV_EXCL_START
   CeedCheck(ierr == 0, NULL, CEED_ERROR_MAJOR, "Too many gallery CeedQFunctions");
-  // LCOV_EXCL_STOP
   return CEED_ERROR_SUCCESS;
 }
 

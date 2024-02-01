@@ -229,9 +229,8 @@ static int CeedBasisApply_Magma(CeedBasis basis, CeedInt num_elem, CeedTranspose
     } break;
     // LCOV_EXCL_START
     case CEED_EVAL_DIV:
-      return CeedError(ceed, CEED_ERROR_BACKEND, "CEED_EVAL_DIV not supported");
     case CEED_EVAL_CURL:
-      return CeedError(ceed, CEED_ERROR_BACKEND, "CEED_EVAL_CURL not supported");
+      return CeedError(ceed, CEED_ERROR_BACKEND, "%s not supported", CeedEvalModes[e_mode]);
     case CEED_EVAL_NONE:
       return CeedError(ceed, CEED_ERROR_BACKEND, "CEED_EVAL_NONE does not make sense in this context");
       // LCOV_EXCL_STOP
@@ -365,9 +364,8 @@ static int CeedBasisApplyNonTensor_Magma(CeedBasis basis, CeedInt num_elem, Ceed
         break;
       // LCOV_EXCL_START
       case CEED_EVAL_WEIGHT:
-        return CeedError(ceed, CEED_ERROR_BACKEND, "CEED_EVAL_WEIGHT does not make sense in this context");
       case CEED_EVAL_NONE:
-        return CeedError(ceed, CEED_ERROR_BACKEND, "CEED_EVAL_NONE does not make sense in this context");
+        return CeedError(ceed, CEED_ERROR_BACKEND, "%s does not make sense in this context", CeedEvalModes[e_mode]);
         // LCOV_EXCL_STOP
     }
     CeedCallBackend(CeedBasisGetNumQuadratureComponents(basis, e_mode, &q_comp));

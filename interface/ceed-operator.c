@@ -932,7 +932,7 @@ int CeedOperatorGetFieldByName(CeedOperator op, const char *field_name, CeedOper
   // LCOV_EXCL_START
   bool has_name = op->name;
 
-  return CeedError(op->ceed, CEED_ERROR_MINOR, "The field \"%s\" not found in CeedOperator%s%s%s.\n", field_name, has_name ? " \"" : "",
+  return CeedError(op->ceed, CEED_ERROR_MINOR, "Field \"%s\" not found in CeedOperator%s%s%s", field_name, has_name ? " \"" : "",
                    has_name ? op->name : "", has_name ? "\"" : "");
   // LCOV_EXCL_STOP
 }

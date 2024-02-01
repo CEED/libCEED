@@ -33,17 +33,8 @@ static int CeedQFunctionContextHasBorrowedDataOfType_Memcheck(CeedQFunctionConte
 
   CeedCallBackend(CeedQFunctionContextGetBackendData(ctx, (void *)&impl));
   CeedCallBackend(CeedQFunctionContextGetCeed(ctx, &ceed));
-
-  switch (mem_type) {
-    case CEED_MEM_HOST:
-      *has_borrowed_data_of_type = impl->data_borrowed;
-      break;
-      // LCOV_EXCL_START
-    default:
-      return CeedError(ceed, CEED_ERROR_BACKEND, "Can only set HOST memory for this backend");
-      // LCOV_EXCL_STOP
-      break;
-  }
+  CeedCheck(mem_type == CEED_MEM_HOST, ceed, CEED_ERROR_BACKEND, "Can only set HOST memory for this backend");
+  *has_borrowed_data_of_type = impl->data_borrowed;
   return CEED_ERROR_SUCCESS;
 }
 

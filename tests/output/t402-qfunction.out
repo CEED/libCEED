@@ -26,3 +26,4 @@ User CeedQFunction - mass
       EvalMode: "interpolation"
 CeedQFunctionContext
   Context Data Size: 40
+  Labeled double field: scale
