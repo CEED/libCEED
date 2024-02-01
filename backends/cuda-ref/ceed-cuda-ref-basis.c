@@ -21,7 +21,7 @@
 int CeedBasisApply_Cuda(CeedBasis basis, const CeedInt num_elem, CeedTransposeMode t_mode, CeedEvalMode eval_mode, CeedVector u, CeedVector v) {
   Ceed              ceed;
   CeedInt           Q_1d, dim;
-  const CeedInt     transpose      = t_mode == CEED_TRANSPOSE;
+  const CeedInt     is_transpose   = t_mode == CEED_TRANSPOSE;
   const int         max_block_size = 32;
   const CeedScalar *d_u;
   CeedScalar       *d_v;
@@ -36,7 +36,7 @@ int CeedBasisApply_Cuda(CeedBasis basis, const CeedInt num_elem, CeedTransposeMo
   CeedCallBackend(CeedVectorGetArrayWrite(v, CEED_MEM_DEVICE, &d_v));
 
   // Clear v for transpose operation
-  if (transpose) {
+  if (is_transpose) {
     CeedSize length;
 
     CeedCallBackend(CeedVectorGetLength(v, &length));
@@ -48,13 +48,13 @@ int CeedBasisApply_Cuda(CeedBasis basis, const CeedInt num_elem, CeedTransposeMo
   // Basis action
   switch (eval_mode) {
     case CEED_EVAL_INTERP: {
-      void         *interp_args[] = {(void *)&num_elem, (void *)&transpose, &data->d_interp_1d, &d_u, &d_v};
+      void         *interp_args[] = {(void *)&num_elem, (void *)&is_transpose, &data->d_interp_1d, &d_u, &d_v};
       const CeedInt block_size    = CeedIntMin(CeedIntPow(Q_1d, dim), max_block_size);
 
       CeedCallBackend(CeedRunKernel_Cuda(ceed, data->Interp, num_elem, block_size, interp_args));
     } break;
     case CEED_EVAL_GRAD: {
-      void         *grad_args[] = {(void *)&num_elem, (void *)&transpose, &data->d_interp_1d, &data->d_grad_1d, &d_u, &d_v};
+      void         *grad_args[] = {(void *)&num_elem, (void *)&is_transpose, &data->d_interp_1d, &data->d_grad_1d, &d_u, &d_v};
       const CeedInt block_size  = max_block_size;
 
       CeedCallBackend(CeedRunKernel_Cuda(ceed, data->Grad, num_elem, block_size, grad_args));
@@ -89,7 +89,7 @@ int CeedBasisApplyNonTensor_Cuda(CeedBasis basis, const CeedInt num_elem, CeedTr
                                  CeedVector v) {
   Ceed                     ceed;
   CeedInt                  num_nodes, num_qpts;
-  const CeedInt            transpose       = t_mode == CEED_TRANSPOSE;
+  const CeedInt            is_transpose    = t_mode == CEED_TRANSPOSE;
   const int                elems_per_block = 1;
   const int                grid            = CeedDivUpInt(num_elem, elems_per_block);
   const CeedScalar        *d_u;
@@ -107,7 +107,7 @@ int CeedBasisApplyNonTensor_Cuda(CeedBasis basis, const CeedInt num_elem, CeedTr
   CeedCallBackend(CeedVectorGetArrayWrite(v, CEED_MEM_DEVICE, &d_v));
 
   // Clear v for transpose operation
-  if (transpose) {
+  if (is_transpose) {
     CeedSize length;
 
     CeedCallBackend(CeedVectorGetLength(v, &length));
@@ -118,9 +118,9 @@ int CeedBasisApplyNonTensor_Cuda(CeedBasis basis, const CeedInt num_elem, CeedTr
   switch (eval_mode) {
     case CEED_EVAL_INTERP: {
       void     *interp_args[] = {(void *)&num_elem, &data->d_interp, &d_u, &d_v};
-      const int block_size_x  = transpose ? num_nodes : num_qpts;
+      const int block_size_x  = is_transpose ? num_nodes : num_qpts;
 
-      if (transpose) {
+      if (is_transpose) {
         CeedCallBackend(CeedRunKernelDim_Cuda(ceed, data->InterpTranspose, grid, block_size_x, 1, elems_per_block, interp_args));
       } else {
         CeedCallBackend(CeedRunKernelDim_Cuda(ceed, data->Interp, grid, block_size_x, 1, elems_per_block, interp_args));
@@ -128,9 +128,9 @@ int CeedBasisApplyNonTensor_Cuda(CeedBasis basis, const CeedInt num_elem, CeedTr
     } break;
     case CEED_EVAL_GRAD: {
       void     *grad_args[]  = {(void *)&num_elem, &data->d_grad, &d_u, &d_v};
-      const int block_size_x = transpose ? num_nodes : num_qpts;
+      const int block_size_x = is_transpose ? num_nodes : num_qpts;
 
-      if (transpose) {
+      if (is_transpose) {
         CeedCallBackend(CeedRunKernelDim_Cuda(ceed, data->DerivTranspose, grid, block_size_x, 1, elems_per_block, grad_args));
       } else {
         CeedCallBackend(CeedRunKernelDim_Cuda(ceed, data->Deriv, grid, block_size_x, 1, elems_per_block, grad_args));
@@ -138,9 +138,9 @@ int CeedBasisApplyNonTensor_Cuda(CeedBasis basis, const CeedInt num_elem, CeedTr
     } break;
     case CEED_EVAL_DIV: {
       void     *div_args[]   = {(void *)&num_elem, &data->d_div, &d_u, &d_v};
-      const int block_size_x = transpose ? num_nodes : num_qpts;
+      const int block_size_x = is_transpose ? num_nodes : num_qpts;
 
-      if (transpose) {
+      if (is_transpose) {
         CeedCallBackend(CeedRunKernelDim_Cuda(ceed, data->DerivTranspose, grid, block_size_x, 1, elems_per_block, div_args));
       } else {
         CeedCallBackend(CeedRunKernelDim_Cuda(ceed, data->Deriv, grid, block_size_x, 1, elems_per_block, div_args));
@@ -148,9 +148,9 @@ int CeedBasisApplyNonTensor_Cuda(CeedBasis basis, const CeedInt num_elem, CeedTr
     } break;
     case CEED_EVAL_CURL: {
       void     *curl_args[]  = {(void *)&num_elem, &data->d_curl, &d_u, &d_v};
-      const int block_size_x = transpose ? num_nodes : num_qpts;
+      const int block_size_x = is_transpose ? num_nodes : num_qpts;
 
-      if (transpose) {
+      if (is_transpose) {
         CeedCallBackend(CeedRunKernelDim_Cuda(ceed, data->DerivTranspose, grid, block_size_x, 1, elems_per_block, curl_args));
       } else {
         CeedCallBackend(CeedRunKernelDim_Cuda(ceed, data->Deriv, grid, block_size_x, 1, elems_per_block, curl_args));
