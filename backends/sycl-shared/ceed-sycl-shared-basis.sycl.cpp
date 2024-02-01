@@ -45,10 +45,9 @@ int CeedBasisApplyTensor_Sycl_shared(CeedBasis basis, const CeedInt num_elem, Ce
   CeedCallBackend(CeedGetData(ceed, &ceed_Sycl));
   CeedCallBackend(CeedBasisGetData(basis, &impl));
 
-  // Read vectors
-  if (eval_mode != CEED_EVAL_WEIGHT) {
-    CeedCallBackend(CeedVectorGetArrayRead(u, CEED_MEM_DEVICE, &d_u));
-  }
+  // Get read/write access to u, v
+  if (u != CEED_VECTOR_NONE) CeedCallBackend(CeedVectorGetArrayRead(u, CEED_MEM_DEVICE, &d_u));
+  else CeedCheck(eval_mode == CEED_EVAL_WEIGHT, ceed, CEED_ERROR_BACKEND, "An input vector is required for this CeedEvalMode");
   CeedCallBackend(CeedVectorGetArrayWrite(v, CEED_MEM_DEVICE, &d_v));
 
   // Apply basis operation
@@ -112,20 +111,20 @@ int CeedBasisApplyTensor_Sycl_shared(CeedBasis basis, const CeedInt num_elem, Ce
         cgh.parallel_for(kernel_range, *(impl->weight_kernel));
       });
     } break;
+    case CEED_EVAL_NONE: /* handled separately below */
+      break;
     // LCOV_EXCL_START
     case CEED_EVAL_DIV:
     case CEED_EVAL_CURL:
       return CeedError(ceed, CEED_ERROR_BACKEND, "%s not supported", CeedEvalModes[eval_mode]);
-    case CEED_EVAL_NONE:
-      return CeedError(ceed, CEED_ERROR_BACKEND, "CEED_EVAL_NONE does not make sense in this context");
       // LCOV_EXCL_STOP
   }
 
-  // Restore vectors
-  if (eval_mode != CEED_EVAL_WEIGHT) {
-    CeedCallBackend(CeedVectorRestoreArrayRead(u, &d_u));
-  }
+  // Restore vectors, cover CEED_EVAL_NONE
   CeedCallBackend(CeedVectorRestoreArray(v, &d_v));
+  if (eval_mode == CEED_EVAL_NONE) CeedCallBackend(CeedVectorSetArray(v, CEED_MEM_DEVICE, CEED_COPY_VALUES, (CeedScalar *)d_u));
+  if (eval_mode != CEED_EVAL_WEIGHT) CeedCallBackend(CeedVectorRestoreArrayRead(u, &d_u));
+
   return CEED_ERROR_SUCCESS;
 }
 
