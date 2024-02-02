@@ -14,7 +14,7 @@ make
 To run the executable, write:
 
 ```
-./bps
+./bps_01
 ```
 
 Optional command-line arguments are shown by adding the command-line argument "--help".
