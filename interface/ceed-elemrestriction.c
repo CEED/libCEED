@@ -664,6 +664,8 @@ int CeedElemRestrictionCreateCurlOriented(Ceed ceed, CeedInt num_elem, CeedInt e
   @param[in]  strides   Array for strides between `[nodes, components, elements]`.
                           Data for node `i`, component `j`, element `k` can be found in the L-vector at index `i*strides[0] + j*strides[1] + k*strides[2]`.
                           @ref CEED_STRIDES_BACKEND may be used for `CeedVector` ordered by the same `Ceed` backend.
+                          `CEED_STRIDES_BACKEND` should only be used pass data between `CeedOperator` created with the same `Ceed` backend.
+                          The L-vector layout will, in general, be different between `Ceed` backends.
   @param[out] rstr      Address of the variable where the newly created `CeedElemRestriction` will be stored
 
   @return An error code: 0 - success, otherwise - failure
