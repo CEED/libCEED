@@ -229,6 +229,9 @@ int CeedVectorCreate_Memcheck(CeedSize n, CeedVector vec) {
   Ceed                 ceed;
   CeedVector_Memcheck *impl;
 
+  CeedCallBackend(CeedCalloc(1, &impl));
+  CeedCallBackend(CeedVectorSetData(vec, impl));
+
   CeedCallBackend(CeedVectorGetCeed(vec, &ceed));
   CeedCallBackend(CeedSetBackendFunction(ceed, "Vector", vec, "HasValidArray", CeedVectorHasValidArray_Memcheck));
   CeedCallBackend(CeedSetBackendFunction(ceed, "Vector", vec, "HasBorrowedArrayOfType", CeedVectorHasBorrowedArrayOfType_Memcheck));
@@ -240,8 +243,6 @@ int CeedVectorCreate_Memcheck(CeedSize n, CeedVector vec) {
   CeedCallBackend(CeedSetBackendFunction(ceed, "Vector", vec, "RestoreArray", CeedVectorRestoreArray_Memcheck));
   CeedCallBackend(CeedSetBackendFunction(ceed, "Vector", vec, "RestoreArrayRead", CeedVectorRestoreArrayRead_Memcheck));
   CeedCallBackend(CeedSetBackendFunction(ceed, "Vector", vec, "Destroy", CeedVectorDestroy_Memcheck));
-  CeedCallBackend(CeedCalloc(1, &impl));
-  CeedCallBackend(CeedVectorSetData(vec, impl));
   return CEED_ERROR_SUCCESS;
 }
 
