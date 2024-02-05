@@ -345,7 +345,6 @@ int CeedElemRestrictionCreate_Sycl(CeedMemType mem_type, CeedCopyMode copy_mode,
   CeedCallBackend(CeedElemRestrictionGetElementSize(rstr, &elem_size));
   const CeedInt size       = num_elem * elem_size;
   CeedInt       strides[3] = {1, size, elem_size};
-  CeedInt       layout[3]  = {1, elem_size * num_elem, elem_size};
 
   CeedCallBackend(CeedElemRestrictionGetType(rstr, &rstr_type));
   CeedCheck(rstr_type != CEED_RESTRICTION_ORIENTED && rstr_type != CEED_RESTRICTION_CURL_ORIENTED, ceed, CEED_ERROR_BACKEND,
@@ -380,7 +379,20 @@ int CeedElemRestrictionCreate_Sycl(CeedMemType mem_type, CeedCopyMode copy_mode,
   impl->strides[1]      = strides[1];
   impl->strides[2]      = strides[2];
   CeedCallBackend(CeedElemRestrictionSetData(rstr, impl));
-  CeedCallBackend(CeedElemRestrictionSetELayout(rstr, layout));
+
+  // Set layouts
+  {
+    bool    has_backend_strides;
+    CeedInt layout[3] = {1, size, elem_size};
+
+    CeedCallBackend(CeedElemRestrictionSetELayout(rstr, layout));
+    if (rstr_type == CEED_RESTRICTION_STRIDED) {
+      CeedCallBackend(CeedElemRestrictionHasBackendStrides(rstr, &has_backend_strides));
+      if (has_backend_strides) {
+        CeedCallBackend(CeedElemRestrictionSetLLayout(rstr, layout));
+      }
+    }
+  }
 
   // Set up device indices/offset arrays
   if (mem_type == CEED_MEM_HOST) {

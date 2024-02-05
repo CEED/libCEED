@@ -173,7 +173,8 @@ struct CeedElemRestriction_private {
   CeedInt  block_size;  /* number of elements in a batch */
   CeedInt  num_block;   /* number of blocks of elements */
   CeedInt *strides;     /* strides between [nodes, components, elements] */
-  CeedInt  layout[3];   /* E-vector layout [nodes, components, elements] */
+  CeedInt  l_layout[3]; /* L-vector layout [nodes, components, elements] */
+  CeedInt  e_layout[3]; /* E-vector layout [nodes, components, elements] */
   CeedRestrictionType
            rstr_type;   /* initialized in element restriction constructor for default, oriented, curl-oriented, or strided element restriction */
   uint64_t num_readers; /* number of instances of offset read only access */

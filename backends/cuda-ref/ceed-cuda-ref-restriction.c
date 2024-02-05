@@ -494,8 +494,8 @@ int CeedElemRestrictionCreate_Cuda(CeedMemType mem_type, CeedCopyMode copy_mode,
   CeedCallBackend(CeedIsDeterministic(ceed_parent, &is_deterministic));
   CeedCallBackend(CeedElemRestrictionGetNumElements(rstr, &num_elem));
   CeedCallBackend(CeedElemRestrictionGetElementSize(rstr, &elem_size));
-  const CeedInt size      = num_elem * elem_size;
-  CeedInt       layout[3] = {1, size, elem_size};
+  CeedCallBackend(CeedElemRestrictionGetType(rstr, &rstr_type));
+  const CeedInt size = num_elem * elem_size;
 
   CeedCallBackend(CeedCalloc(1, &impl));
   impl->num_nodes                = size;
@@ -514,10 +514,22 @@ int CeedElemRestrictionCreate_Cuda(CeedMemType mem_type, CeedCopyMode copy_mode,
   impl->d_curl_orients           = NULL;
   impl->d_curl_orients_allocated = NULL;
   CeedCallBackend(CeedElemRestrictionSetData(rstr, impl));
-  CeedCallBackend(CeedElemRestrictionSetELayout(rstr, layout));
+
+  // Set layouts
+  {
+    bool    has_backend_strides;
+    CeedInt layout[3] = {1, size, elem_size};
+
+    CeedCallBackend(CeedElemRestrictionSetELayout(rstr, layout));
+    if (rstr_type == CEED_RESTRICTION_STRIDED) {
+      CeedCallBackend(CeedElemRestrictionHasBackendStrides(rstr, &has_backend_strides));
+      if (has_backend_strides) {
+        CeedCallBackend(CeedElemRestrictionSetLLayout(rstr, layout));
+      }
+    }
+  }
 
   // Set up device offset/orientation arrays
-  CeedCallBackend(CeedElemRestrictionGetType(rstr, &rstr_type));
   if (rstr_type != CEED_RESTRICTION_STRIDED) {
     switch (mem_type) {
       case CEED_MEM_HOST: {

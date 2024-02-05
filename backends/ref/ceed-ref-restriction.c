@@ -736,16 +736,28 @@ int CeedElemRestrictionCreate_Ref(CeedMemType mem_type, CeedCopyMode copy_mode, 
   CeedCallBackend(CeedElemRestrictionGetBlockSize(rstr, &block_size));
   CeedCallBackend(CeedElemRestrictionGetNumComponents(rstr, &num_comp));
   CeedCallBackend(CeedElemRestrictionGetCompStride(rstr, &comp_stride));
-  CeedInt layout[3] = {1, elem_size, elem_size * num_comp};
+  CeedCallBackend(CeedElemRestrictionGetType(rstr, &rstr_type));
 
   CeedCheck(mem_type == CEED_MEM_HOST, ceed, CEED_ERROR_BACKEND, "Only MemType = HOST supported");
 
   CeedCallBackend(CeedCalloc(1, &impl));
   CeedCallBackend(CeedElemRestrictionSetData(rstr, impl));
-  CeedCallBackend(CeedElemRestrictionSetELayout(rstr, layout));
+
+  // Set layouts
+  {
+    bool    has_backend_strides;
+    CeedInt layout[3] = {1, elem_size, elem_size * num_comp};
+
+    CeedCallBackend(CeedElemRestrictionSetELayout(rstr, layout));
+    if (rstr_type == CEED_RESTRICTION_STRIDED) {
+      CeedCallBackend(CeedElemRestrictionHasBackendStrides(rstr, &has_backend_strides));
+      if (has_backend_strides) {
+        CeedCallBackend(CeedElemRestrictionSetLLayout(rstr, layout));
+      }
+    }
+  }
 
   // Offsets data
-  CeedCallBackend(CeedElemRestrictionGetType(rstr, &rstr_type));
   if (rstr_type != CEED_RESTRICTION_STRIDED) {
     const char *resource;
 
