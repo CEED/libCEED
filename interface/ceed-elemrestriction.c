@@ -200,9 +200,9 @@ int CeedElemRestrictionAtPointsAreCompatible(CeedElemRestriction rstr_a, CeedEle
 
   @ref Backend
 **/
-int CeedElemRestrictionGetStrides(CeedElemRestriction rstr, CeedInt (*strides)[3]) {
+int CeedElemRestrictionGetStrides(CeedElemRestriction rstr, CeedInt strides[3]) {
   CeedCheck(rstr->strides, rstr->ceed, CEED_ERROR_MINOR, "CeedElemRestriction has no stride data");
-  for (CeedInt i = 0; i < 3; i++) (*strides)[i] = rstr->strides[i];
+  for (CeedInt i = 0; i < 3; i++) strides[i] = rstr->strides[i];
   return CEED_ERROR_SUCCESS;
 }
 
@@ -348,7 +348,7 @@ int CeedElemRestrictionRestoreCurlOrientations(CeedElemRestriction rstr, const C
 
   @ref Backend
 **/
-int CeedElemRestrictionGetLLayout(CeedElemRestriction rstr, CeedInt (*layout)[3]) {
+int CeedElemRestrictionGetLLayout(CeedElemRestriction rstr, CeedInt layout[3]) {
   bool                has_backend_strides;
   CeedRestrictionType rstr_type;
 
@@ -357,7 +357,7 @@ int CeedElemRestrictionGetLLayout(CeedElemRestriction rstr, CeedInt (*layout)[3]
   CeedCall(CeedElemRestrictionHasBackendStrides(rstr, &has_backend_strides));
   if (has_backend_strides) {
     CeedCheck(rstr->l_layout[0], rstr->ceed, CEED_ERROR_MINOR, "CeedElemRestriction has no L-vector layout data");
-    for (CeedInt i = 0; i < 3; i++) (*layout)[i] = rstr->l_layout[i];
+    for (CeedInt i = 0; i < 3; i++) layout[i] = rstr->l_layout[i];
   } else {
     CeedCall(CeedElemRestrictionGetStrides(rstr, layout));
   }
@@ -397,9 +397,9 @@ int CeedElemRestrictionSetLLayout(CeedElemRestriction rstr, CeedInt layout[3]) {
 
   @ref Backend
 **/
-int CeedElemRestrictionGetELayout(CeedElemRestriction rstr, CeedInt (*layout)[3]) {
+int CeedElemRestrictionGetELayout(CeedElemRestriction rstr, CeedInt layout[3]) {
   CeedCheck(rstr->e_layout[0], rstr->ceed, CEED_ERROR_MINOR, "CeedElemRestriction has no E-vector layout data");
-  for (CeedInt i = 0; i < 3; i++) (*layout)[i] = rstr->e_layout[i];
+  for (CeedInt i = 0; i < 3; i++) layout[i] = rstr->e_layout[i];
   return CEED_ERROR_SUCCESS;
 }
 

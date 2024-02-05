@@ -426,7 +426,7 @@ extern "C" int CeedOperatorBuildKernel_Sycl_gen(CeedOperator op) {
         CeedInt strides[3] = {1, elem_size * num_elem, elem_size};
 
         if (!has_backend_strides) {
-          CeedCallBackend(CeedElemRestrictionGetStrides(elem_rstr, &strides));
+          CeedCallBackend(CeedElemRestrictionGetStrides(elem_rstr, strides));
         }
         code << "    // Strides: {" << strides[0] << ", " << strides[1] << ", " << strides[2] << "}\n";
         code << "    readDofsStrided" << dim << "d(num_comp_in_" << i << ",P_in_" << i << "," << strides[0] << "," << strides[1] << "," << strides[2]
@@ -539,7 +539,7 @@ extern "C" int CeedOperatorBuildKernel_Sycl_gen(CeedOperator op) {
             CeedInt strides[3] = {1, elem_size * num_elem, elem_size};
 
             if (!has_backend_strides) {
-              CeedCallBackend(CeedElemRestrictionGetStrides(elem_rstr, &strides));
+              CeedCallBackend(CeedElemRestrictionGetStrides(elem_rstr, strides));
             }
             code << "      // Strides: {" << strides[0] << ", " << strides[1] << ", " << strides[2] << "}\n";
             code << "      readSliceQuadsStrided"
@@ -731,7 +731,7 @@ extern "C" int CeedOperatorBuildKernel_Sycl_gen(CeedOperator op) {
       CeedInt strides[3] = {1, elem_size * num_elem, elem_size};
 
       if (!has_backend_strides) {
-        CeedCallBackend(CeedElemRestrictionGetStrides(elem_rstr, &strides));
+        CeedCallBackend(CeedElemRestrictionGetStrides(elem_rstr, strides));
       }
       code << "    // Strides: {" << strides[0] << ", " << strides[1] << ", " << strides[2] << "}\n";
       code << "    writeDofsStrided" << dim << "d(num_comp_out_" << i << ",P_out_" << i << "," << strides[0] << "," << strides[1] << "," << strides[2]

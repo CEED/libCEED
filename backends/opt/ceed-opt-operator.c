@@ -97,7 +97,7 @@ static int CeedOperatorSetupFields_Opt(CeedQFunction qf, CeedOperator op, bool i
         case CEED_RESTRICTION_STRIDED: {
           CeedInt strides[3];
 
-          CeedCallBackend(CeedElemRestrictionGetStrides(rstr, &strides));
+          CeedCallBackend(CeedElemRestrictionGetStrides(rstr, strides));
           CeedCallBackend(CeedElemRestrictionCreateBlockedStrided(ceed_rstr, num_elem, elem_size, block_size, num_comp, l_size, strides,
                                                                   &block_rstr[i + start_e]));
         } break;

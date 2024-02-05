@@ -41,7 +41,7 @@ static inline int CeedElemRestrictionApplyStridedNoTranspose_Ref_Core(CeedElemRe
     // User provided strides
     CeedInt strides[3];
 
-    CeedCallBackend(CeedElemRestrictionGetStrides(rstr, &strides));
+    CeedCallBackend(CeedElemRestrictionGetStrides(rstr, strides));
     for (CeedInt e = start * block_size; e < stop * block_size; e += block_size) {
       CeedPragmaSIMD for (CeedInt k = 0; k < num_comp; k++) {
         CeedPragmaSIMD for (CeedInt n = 0; n < elem_size; n++) {
@@ -202,7 +202,7 @@ static inline int CeedElemRestrictionApplyStridedTranspose_Ref_Core(CeedElemRest
     // User provided strides
     CeedInt strides[3];
 
-    CeedCallBackend(CeedElemRestrictionGetStrides(rstr, &strides));
+    CeedCallBackend(CeedElemRestrictionGetStrides(rstr, strides));
     for (CeedInt e = start * block_size; e < stop * block_size; e += block_size) {
       CeedPragmaSIMD for (CeedInt k = 0; k < num_comp; k++) {
         CeedPragmaSIMD for (CeedInt n = 0; n < elem_size; n++) {

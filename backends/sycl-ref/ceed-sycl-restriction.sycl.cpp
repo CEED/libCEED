@@ -357,7 +357,7 @@ int CeedElemRestrictionCreate_Sycl(CeedMemType mem_type, CeedCopyMode copy_mode,
 
     CeedCallBackend(CeedElemRestrictionHasBackendStrides(rstr, &has_backend_strides));
     if (!has_backend_strides) {
-      CeedCallBackend(CeedElemRestrictionGetStrides(rstr, &strides));
+      CeedCallBackend(CeedElemRestrictionGetStrides(rstr, strides));
     }
   } else {
     CeedCallBackend(CeedElemRestrictionGetCompStride(rstr, &comp_stride));

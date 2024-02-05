@@ -62,7 +62,8 @@ lines = [line for line in lines if not line.startswith("#include")]
 header = '\n'.join(lines)
 header = header.split("static inline CeedInt CeedIntPow", 1)[0]
 header += '\nextern int CeedVectorGetState(CeedVector, uint64_t*);'
-header += '\nextern int CeedElemRestrictionGetELayout(CeedElemRestriction, CeedInt (*layout)[3]);'
+header += '\nextern int CeedElemRestrictionGetLLayout(CeedElemRestriction, CeedInt layout[3]);'
+header += '\nextern int CeedElemRestrictionGetELayout(CeedElemRestriction, CeedInt layout[3]);'
 
 # Note: cffi cannot handle vargs
 header = re.sub("va_list", "const char *", header)

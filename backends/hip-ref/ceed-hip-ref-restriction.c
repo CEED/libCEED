@@ -45,7 +45,7 @@ static inline int CeedElemRestrictionSetupCompile_Hip(CeedElemRestriction rstr) 
 
       CeedCallBackend(CeedElemRestrictionHasBackendStrides(rstr, &has_backend_strides));
       if (!has_backend_strides) {
-        CeedCallBackend(CeedElemRestrictionGetStrides(rstr, &strides));
+        CeedCallBackend(CeedElemRestrictionGetStrides(rstr, strides));
       }
 
       CeedCallBackend(CeedGetJitAbsolutePath(ceed, "ceed/jit-source/hip/hip-ref-restriction-strided.h", &restriction_kernel_path));

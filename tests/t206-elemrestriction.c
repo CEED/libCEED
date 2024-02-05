@@ -28,7 +28,7 @@ int main(int argc, char **argv) {
   CeedElemRestrictionCreate(ceed, num_elem, 2, 2, num_elem + 1, 2 * (num_elem + 1), CEED_MEM_HOST, CEED_USE_POINTER, ind, &elem_restriction);
 
   // Set x data in backend E-layout
-  CeedElemRestrictionGetELayout(elem_restriction, &layout);
+  CeedElemRestrictionGetELayout(elem_restriction, layout);
   {
     CeedScalar x_array[2 * (num_elem * 2)];
 

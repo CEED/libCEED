@@ -445,7 +445,7 @@ CEED_EXTERN void fCeedElemRestrictionGetMultiplicity(int *elemr, int *mult, int 
 #define fCeedElemRestrictionGetELayout FORTRAN_NAME(ceedelemrestrictiongetelayout, CEEDELEMRESTRICTIONGETELAYOUT)
 CEED_EXTERN void fCeedElemRestrictionGetELayout(int *elemr, int *layout, int *err) {
   CeedInt layout_c[3];
-  *err = CeedElemRestrictionGetELayout(CeedElemRestriction_dict[*elemr], &layout_c);
+  *err = CeedElemRestrictionGetELayout(CeedElemRestriction_dict[*elemr], layout_c);
   for (int i = 0; i < 3; i++) layout[i] = layout_c[i];
 }
 
