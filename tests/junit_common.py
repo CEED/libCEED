@@ -1,5 +1,6 @@
 from abc import ABC, abstractmethod
 import argparse
+import csv
 from dataclasses import dataclass, field
 import difflib
 from enum import Enum
@@ -266,26 +267,40 @@ def diff_csv(test_csv: Path, true_csv: Path, zero_tol: float = 3e-10, rel_tol: f
     """
     test_lines: List[str] = test_csv.read_text().splitlines()
     true_lines: List[str] = true_csv.read_text().splitlines()
+    # Files should not be empty
+    if len(test_lines) == 0:
+        return f'No lines found in test output {test_csv}'
+    if len(true_lines) == 0:
+        return f'No lines found in test source {true_csv}'
 
-    if test_lines[0] != true_lines[0]:
+    test_reader: csv.DictReader = csv.DictReader(test_lines)
+    true_reader: csv.DictReader = csv.DictReader(true_lines)
+    if test_reader.fieldnames != true_reader.fieldnames:
         return ''.join(difflib.unified_diff([f'{test_lines[0]}\n'], [f'{true_lines[0]}\n'],
                        tofile='found CSV columns', fromfile='expected CSV columns'))
 
+    if len(test_lines) != len(true_lines):
+        return f'Number of lines in {test_csv} and {true_csv} do not match'
     diff_lines: List[str] = list()
-    column_names: List[str] = true_lines[0].strip().split(',')
-    for test_line, true_line in zip(test_lines[1:], true_lines[1:]):
-        test_vals: List[float] = [float(val.strip()) for val in test_line.strip().split(',')]
-        true_vals: List[float] = [float(val.strip()) for val in true_line.strip().split(',')]
-        for test_val, true_val, column_name in zip(test_vals, true_vals, column_names):
-            true_zero: bool = abs(true_val) < zero_tol
-            test_zero: bool = abs(test_val) < zero_tol
-            fail: bool = False
-            if true_zero:
-                fail = not test_zero
-            else:
-                fail = not isclose(test_val, true_val, rel_tol=rel_tol)
-            if fail:
-                diff_lines.append(f'step: {true_line[0]}, column: {column_name}, expected: {true_val}, got: {test_val}')
+    for test_line, true_line in zip(test_reader, true_reader):
+        for key in test_reader.fieldnames:
+            # Check if the value is numeric
+            try:
+                true_val: float = float(true_line[key])
+                test_val: float = float(test_line[key])
+                true_zero: bool = abs(true_val) < zero_tol
+                test_zero: bool = abs(test_val) < zero_tol
+                fail: bool = False
+                if true_zero:
+                    fail = not test_zero
+                else:
+                    fail = not isclose(test_val, true_val, rel_tol=rel_tol)
+                if fail:
+                    diff_lines.append(f'column: {key}, expected: {true_val}, got: {test_val}')
+            except ValueError:
+                if test_line[key] != true_line[key]:
+                    diff_lines.append(f'column: {key}, expected: {true_line[key]}, got: {test_line[key]}')
+
     return '\n'.join(diff_lines)
 
 
