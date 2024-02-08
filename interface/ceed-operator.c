@@ -897,7 +897,9 @@ int CeedOperatorAtPointsGetPoints(CeedOperator op, CeedElemRestriction *rstr_poi
 }
 
 /**
-  @brief Get a `CeedOperator` Field of a `CeedOperator` from its name
+  @brief Get a `CeedOperator` Field of a `CeedOperator` from its name.
+
+  `op_field` is set to `NULL` if the field is not found.
 
   Note: Calling this function asserts that setup is complete and sets the `CeedOperator` as immutable.
 
@@ -914,6 +916,7 @@ int CeedOperatorGetFieldByName(CeedOperator op, const char *field_name, CeedOper
   CeedInt            num_input_fields, num_output_fields;
   CeedOperatorField *input_fields, *output_fields;
 
+  *op_field = NULL;
   CeedCall(CeedOperatorGetFields(op, &num_input_fields, &input_fields, &num_output_fields, &output_fields));
   for (CeedInt i = 0; i < num_input_fields; i++) {
     CeedCall(CeedOperatorFieldGetName(input_fields[i], &name));
@@ -929,12 +932,7 @@ int CeedOperatorGetFieldByName(CeedOperator op, const char *field_name, CeedOper
       return CEED_ERROR_SUCCESS;
     }
   }
-  // LCOV_EXCL_START
-  bool has_name = op->name;
-
-  return CeedError(op->ceed, CEED_ERROR_MINOR, "Field \"%s\" not found in CeedOperator%s%s%s", field_name, has_name ? " \"" : "",
-                   has_name ? op->name : "", has_name ? "\"" : "");
-  // LCOV_EXCL_STOP
+  return CEED_ERROR_SUCCESS;
 }
 
 /**
