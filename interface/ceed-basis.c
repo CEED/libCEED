@@ -271,6 +271,10 @@ static int CeedBasisCreateProjectionMatrices(CeedBasis basis_from, CeedBasis bas
     // output_project = interp_to^+ * interp_from
     memcpy(interp_from, input_from[m], Q * P_from * q_comp * sizeof(input_from[m][0]));
     CeedCall(CeedMatrixMatrixMultiply(ceed, interp_to_inv, input_from[m], output_project[m], P_to, P_from, Q * q_comp));
+    // Round zero to machine precision
+    for (CeedInt i = 0; i < P_to * P_from; i++) {
+      if (fabs(output_project[m][i]) < 10 * CEED_EPSILON) output_project[m][i] = 0.0;
+    }
   }
 
   // Cleanup
