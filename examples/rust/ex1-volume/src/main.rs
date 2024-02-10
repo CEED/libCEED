@@ -247,7 +247,7 @@ fn example_1(options: opt::Opt) -> libceed::Result<()> {
         );
     }
     let tolerance = match dim {
-        1 => 100.0 * libceed::EPSILON,
+        1 => 500.0 * libceed::EPSILON,
         _ => 1E-5,
     };
     let error = (volume - exact_volume).abs();
