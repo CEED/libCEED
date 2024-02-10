@@ -58,12 +58,13 @@ static int CeedQFunctionApply_Sycl(CeedQFunction qf, CeedInt Q, CeedVector *U, C
   // Get context data
   CeedCallBackend(CeedQFunctionGetInnerContextData(qf, CEED_MEM_DEVICE, &context_data));
 
-  // Order queue
-  sycl::event e = ceed_Sycl->sycl_queue.ext_oneapi_submit_barrier();
+  std::vector<sycl::event> e;
+
+  if (!ceed_Sycl->sycl_queue.is_in_order()) e = {ceed_Sycl->sycl_queue.ext_oneapi_submit_barrier()};
 
   // Launch as a basic parallel_for over Q quadrature points
   ceed_Sycl->sycl_queue.submit([&](sycl::handler &cgh) {
-    cgh.depends_on({e});
+    cgh.depends_on(e);
 
     int iarg{};
     cgh.set_arg(iarg, context_data);
