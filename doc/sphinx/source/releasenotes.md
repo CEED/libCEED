@@ -10,10 +10,12 @@ On this page we provide a summary of the main API changes, new features and exam
 
 - Add `bool` field type for `CeedQFunctionContext` and related interfaces to use `bool` fields.
 - `CEED_BASIS_COLLOCATED` removed; users should only use `CEED_BASIS_NONE`.
+- Remove unneeded pointer for `CeedElemRestrictionGetELayout`.
 
 ### New features
 
 - Add `CeedOperatorCreateAtPoints` which evaluates the `CeedQFunction` at arbitrary locations in each element, for use in Particle in Cell, Material Point Method, and similar methods.
+- Add `CeedElemRestrictionGetLLayout` to provide L-vector layout for strided `CeedElemRestriction` created with `CEED_BACKEND_STRIDES`.
 
 ### Examples
 

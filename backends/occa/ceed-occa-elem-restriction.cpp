@@ -244,7 +244,7 @@ ElemRestriction *ElemRestriction::setupFrom(CeedElemRestriction r) {
   if (ceedStrideType == USER_STRIDES) {
     CeedInt strides[3];
 
-    CeedCallOcca(CeedElemRestrictionGetStrides(r, &strides));
+    CeedCallOcca(CeedElemRestrictionGetStrides(r, strides));
 
     ceedNodeStride      = strides[0];
     ceedComponentStride = strides[1];

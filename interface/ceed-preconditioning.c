@@ -166,7 +166,7 @@ static inline int CeedSingleOperatorAssembleAddDiagonal_Core(CeedOperator op, Ce
   CeedElemRestriction assembled_elem_rstr = NULL;
 
   CeedCall(CeedOperatorLinearAssembleQFunctionBuildOrUpdate(op, &assembled_qf, &assembled_elem_rstr, request));
-  CeedCall(CeedElemRestrictionGetELayout(assembled_elem_rstr, &layout_qf));
+  CeedCall(CeedElemRestrictionGetELayout(assembled_elem_rstr, layout_qf));
   CeedCall(CeedElemRestrictionDestroy(&assembled_elem_rstr));
   CeedCall(CeedVectorGetArrayRead(assembled_qf, CEED_MEM_HOST, &assembled_qf_array));
 
@@ -388,7 +388,7 @@ static int CeedSingleOperatorAssembleSymbolic(CeedOperator op, CeedInt offset, C
   CeedCall(CeedElemRestrictionGetNumElements(elem_rstr_in, &num_elem_in));
   CeedCall(CeedElemRestrictionGetElementSize(elem_rstr_in, &elem_size_in));
   CeedCall(CeedElemRestrictionGetNumComponents(elem_rstr_in, &num_comp_in));
-  CeedCall(CeedElemRestrictionGetELayout(elem_rstr_in, &layout_er_in));
+  CeedCall(CeedElemRestrictionGetELayout(elem_rstr_in, layout_er_in));
 
   // Determine elem_dof relation for input
   CeedCall(CeedVectorCreate(ceed, num_nodes_in, &index_vec_in));
@@ -409,7 +409,7 @@ static int CeedSingleOperatorAssembleSymbolic(CeedOperator op, CeedInt offset, C
               "Active input and output operator restrictions must have the same number of elements");
     CeedCall(CeedElemRestrictionGetElementSize(elem_rstr_out, &elem_size_out));
     CeedCall(CeedElemRestrictionGetNumComponents(elem_rstr_out, &num_comp_out));
-    CeedCall(CeedElemRestrictionGetELayout(elem_rstr_out, &layout_er_out));
+    CeedCall(CeedElemRestrictionGetELayout(elem_rstr_out, layout_er_out));
 
     // Determine elem_dof relation for output
     CeedCall(CeedVectorCreate(ceed, num_nodes_out, &index_vec_out));
@@ -514,7 +514,7 @@ static int CeedSingleOperatorAssemble(CeedOperator op, CeedInt offset, CeedVecto
   CeedElemRestriction assembled_elem_rstr = NULL;
 
   CeedCall(CeedOperatorLinearAssembleQFunctionBuildOrUpdate(op, &assembled_qf, &assembled_elem_rstr, CEED_REQUEST_IMMEDIATE));
-  CeedCall(CeedElemRestrictionGetELayout(assembled_elem_rstr, &layout_qf));
+  CeedCall(CeedElemRestrictionGetELayout(assembled_elem_rstr, layout_qf));
   CeedCall(CeedElemRestrictionDestroy(&assembled_elem_rstr));
   CeedCall(CeedVectorGetArrayRead(assembled_qf, CEED_MEM_HOST, &assembled_qf_array));
 
@@ -2648,7 +2648,7 @@ int CeedOperatorCreateFDMElementInverse(CeedOperator op, CeedOperator *fdm_inv, 
 
     // Assemble QFunction
     CeedCall(CeedOperatorLinearAssembleQFunctionBuildOrUpdate(op, &assembled, &rstr_qf, request));
-    CeedCall(CeedElemRestrictionGetELayout(rstr_qf, &layout));
+    CeedCall(CeedElemRestrictionGetELayout(rstr_qf, layout));
     CeedCall(CeedElemRestrictionDestroy(&rstr_qf));
     CeedCall(CeedVectorNorm(assembled, CEED_NORM_MAX, &max_norm));
 

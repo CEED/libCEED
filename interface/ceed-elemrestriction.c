@@ -200,9 +200,9 @@ int CeedElemRestrictionAtPointsAreCompatible(CeedElemRestriction rstr_a, CeedEle
 
   @ref Backend
 **/
-int CeedElemRestrictionGetStrides(CeedElemRestriction rstr, CeedInt (*strides)[3]) {
+int CeedElemRestrictionGetStrides(CeedElemRestriction rstr, CeedInt strides[3]) {
   CeedCheck(rstr->strides, rstr->ceed, CEED_ERROR_MINOR, "CeedElemRestriction has no stride data");
-  for (CeedInt i = 0; i < 3; i++) (*strides)[i] = rstr->strides[i];
+  for (CeedInt i = 0; i < 3; i++) strides[i] = rstr->strides[i];
   return CEED_ERROR_SUCCESS;
 }
 
@@ -338,6 +338,55 @@ int CeedElemRestrictionRestoreCurlOrientations(CeedElemRestriction rstr, const C
 
 /**
 
+  @brief Get the L-vector layout of a strided `CeedElemRestriction`
+
+  @param[in]  rstr    `CeedElemRestriction`
+  @param[out] layout  Variable to store layout array, stored as `[nodes, components, elements]`.
+                        The data for node `i`, component `j`, element `k` in the E-vector is given by `i*layout[0] + j*layout[1] + k*layout[2]`.
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Backend
+**/
+int CeedElemRestrictionGetLLayout(CeedElemRestriction rstr, CeedInt layout[3]) {
+  bool                has_backend_strides;
+  CeedRestrictionType rstr_type;
+
+  CeedCall(CeedElemRestrictionGetType(rstr, &rstr_type));
+  CeedCheck(rstr_type == CEED_RESTRICTION_STRIDED, rstr->ceed, CEED_ERROR_MINOR, "Only strided CeedElemRestriction have strided L-vector layout");
+  CeedCall(CeedElemRestrictionHasBackendStrides(rstr, &has_backend_strides));
+  if (has_backend_strides) {
+    CeedCheck(rstr->l_layout[0], rstr->ceed, CEED_ERROR_MINOR, "CeedElemRestriction has no L-vector layout data");
+    for (CeedInt i = 0; i < 3; i++) layout[i] = rstr->l_layout[i];
+  } else {
+    CeedCall(CeedElemRestrictionGetStrides(rstr, layout));
+  }
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
+
+  @brief Set the L-vector layout of a strided `CeedElemRestriction`
+
+  @param[in] rstr   `CeedElemRestriction`
+  @param[in] layout Variable to containing layout array, stored as `[nodes, components, elements]`.
+                      The data for node `i`, component `j`, element `k` in the E-vector is given by `i*layout[0] + j*layout[1] + k*layout[2]`.
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Backend
+**/
+int CeedElemRestrictionSetLLayout(CeedElemRestriction rstr, CeedInt layout[3]) {
+  CeedRestrictionType rstr_type;
+
+  CeedCall(CeedElemRestrictionGetType(rstr, &rstr_type));
+  CeedCheck(rstr_type == CEED_RESTRICTION_STRIDED, rstr->ceed, CEED_ERROR_MINOR, "Only strided CeedElemRestriction have strided L-vector layout");
+  for (CeedInt i = 0; i < 3; i++) rstr->l_layout[i] = layout[i];
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
+
   @brief Get the E-vector layout of a `CeedElemRestriction`
 
   @param[in]  rstr    `CeedElemRestriction`
@@ -348,9 +397,9 @@ int CeedElemRestrictionRestoreCurlOrientations(CeedElemRestriction rstr, const C
 
   @ref Backend
 **/
-int CeedElemRestrictionGetELayout(CeedElemRestriction rstr, CeedInt (*layout)[3]) {
-  CeedCheck(rstr->layout[0], rstr->ceed, CEED_ERROR_MINOR, "CeedElemRestriction has no layout data");
-  for (CeedInt i = 0; i < 3; i++) (*layout)[i] = rstr->layout[i];
+int CeedElemRestrictionGetELayout(CeedElemRestriction rstr, CeedInt layout[3]) {
+  CeedCheck(rstr->e_layout[0], rstr->ceed, CEED_ERROR_MINOR, "CeedElemRestriction has no E-vector layout data");
+  for (CeedInt i = 0; i < 3; i++) layout[i] = rstr->e_layout[i];
   return CEED_ERROR_SUCCESS;
 }
 
@@ -367,7 +416,7 @@ int CeedElemRestrictionGetELayout(CeedElemRestriction rstr, CeedInt (*layout)[3]
   @ref Backend
 **/
 int CeedElemRestrictionSetELayout(CeedElemRestriction rstr, CeedInt layout[3]) {
-  for (CeedInt i = 0; i < 3; i++) rstr->layout[i] = layout[i];
+  for (CeedInt i = 0; i < 3; i++) rstr->e_layout[i] = layout[i];
   return CEED_ERROR_SUCCESS;
 }
 
@@ -664,6 +713,8 @@ int CeedElemRestrictionCreateCurlOriented(Ceed ceed, CeedInt num_elem, CeedInt e
   @param[in]  strides   Array for strides between `[nodes, components, elements]`.
                           Data for node `i`, component `j`, element `k` can be found in the L-vector at index `i*strides[0] + j*strides[1] + k*strides[2]`.
                           @ref CEED_STRIDES_BACKEND may be used for `CeedVector` ordered by the same `Ceed` backend.
+                          `CEED_STRIDES_BACKEND` should only be used pass data between `CeedOperator` created with the same `Ceed` backend.
+                          The L-vector layout will, in general, be different between `Ceed` backends.
   @param[out] rstr      Address of the variable where the newly created `CeedElemRestriction` will be stored
 
   @return An error code: 0 - success, otherwise - failure

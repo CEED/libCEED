@@ -122,8 +122,30 @@ class _ElemRestrictionBase(ABC):
         # Return
         return mult
 
-    # Get ElemRestrition Layout
-    def get_layout(self):
+    # Get ElemRestrition L-vector Layout
+    def get_l_layout(self):
+        """Get the local vector layout of an ElemRestriction.
+
+           Returns:
+             layout: Vector containing layout array, stored as [nodes, components, elements].
+                     The data for node i, component j, element k in the element
+                     vector is given by i*layout[0] + j*layout[1] + k*layout[2]."""
+
+        # Create output array
+        layout = np.zeros(3, dtype="int32")
+        layout_pointer = ffi.cast("const CeedInt *",
+                                  layout.__array_interface__['data'][0])
+
+        # libCEED call
+        err_code = lib.CeedElemRestrictionGetLLayout(
+            self._pointer[0], layout_pointer)
+        self._ceed._check_error(err_code)
+
+        # Return
+        return layout
+
+    # Get ElemRestrition E-vector Layout
+    def get_e_layout(self):
         """Get the element vector layout of an ElemRestriction.
 
            Returns:
@@ -133,13 +155,12 @@ class _ElemRestrictionBase(ABC):
 
         # Create output array
         layout = np.zeros(3, dtype="int32")
-        array_pointer = ffi.cast(
-            "CeedInt (*)[3]",
-            layout.__array_interface__['data'][0])
+        layout_pointer = ffi.cast("const CeedInt *",
+                                  layout.__array_interface__['data'][0])
 
         # libCEED call
         err_code = lib.CeedElemRestrictionGetELayout(
-            self._pointer[0], array_pointer)
+            self._pointer[0], layout_pointer)
         self._ceed._check_error(err_code)
 
         # Return
