@@ -43,7 +43,6 @@ CEED_QFUNCTION_HELPER int Freestream(void *ctx, CeedInt Q, const CeedScalar *con
         flux = RiemannFlux_HLL(newt_ctx, s, context->S_infty, norm);
         break;
       case RIEMANN_HLLC:
-        //        flux = RiemannFlux_HLLC(newt_ctx, s, context->S_infty, norm);
         {
           CeedScalar       qb[3]    = {q[1][i], q[2][i], q[3][i]};
           const CeedScalar q_normal = Dot3(qb, norm);
@@ -110,7 +109,6 @@ CEED_QFUNCTION_HELPER int Freestream_Jacobian(void *ctx, CeedInt Q, const CeedSc
         dflux = RiemannFlux_HLL_fwd(newt_ctx, s, ds, context->S_infty, dS_infty, norm);
         break;
       case RIEMANN_HLLC:
-        //        dflux = RiemannFlux_HLLC_fwd(newt_ctx, s, ds, context->S_infty, dS_infty, norm);
         {
           CeedScalar qb[3]    = {qi[1], qi[2], qi[3]};
           CeedScalar q_normal = Dot3(qb, norm);
@@ -171,9 +169,7 @@ CEED_QFUNCTION_HELPER CeedScalar Softplus_fwd(CeedScalar x, CeedScalar dx, CeedS
 // Viscous Outflow boundary condition, setting a constant exterior pressure and
 // temperature as input for a Riemann solve. This condition is stable even in
 // recirculating flow so long as the exterior temperature is sensible.
-//
-// The velocity in the exterior state has optional softplus regularization to
-// keep it outflow. These parameters have been finnicky in practice and provide
+// // The velocity in the exterior state has optional softplus regularization to // keep it outflow. These parameters have been finnicky in practice and provide
 // little or no benefit in the tests we've run thus far, thus we recommend
 // skipping this feature and just allowing recirculation.
 CEED_QFUNCTION_HELPER int RiemannOutflow(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out, StateVariable state_var) {
