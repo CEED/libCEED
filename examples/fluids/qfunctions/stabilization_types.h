@@ -14,4 +14,9 @@ typedef enum {
   STAB_SUPG = 2,  // Streamline Upwind Petrov-Galerkin
 } StabilizationType;
 
+typedef enum {
+  STAB_TAU_CTAU           = 0,
+  STAB_TAU_ADVDIFF_SHAKIB = 1,  // Approximation from Shakib's Thesis
+} StabilizationTauType;
+
 #endif  // stabilization_types_h
