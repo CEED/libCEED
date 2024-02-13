@@ -134,6 +134,8 @@ class CeedSuiteSpec(SuiteSpec):
             return f'Test not implemented in single precision'
         elif 'No SYCL devices of the requested type are available' in stderr:
             return f'SYCL device type not available'
+        elif 'You may need to add --download-ctetgen or --download-tetgen' in stderr:
+            return f'Tet mesh generator not installed for {test}, {spec.name}'
         return None
 
     def check_required_failure(self, test: str, spec: TestSpec, resource: str, stderr: str) -> Tuple[str, bool]:
