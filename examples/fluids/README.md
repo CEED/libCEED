@@ -57,7 +57,7 @@ The following options are common among all problem types:
   -
 
 * - `-problem`
-  - Problem to solve (`advection`, `advection2d`, `density_current`, `euler_vortex`, `shocktube`, `blasius`, `channel`, `gaussian_wave`, and `taylor_green`)
+  - Problem to solve (`advection`, `density_current`, `euler_vortex`, `shocktube`, `blasius`, `channel`, `gaussian_wave`, and `taylor_green`)
   - `density_current`
 
 * - `-implicit`
@@ -301,7 +301,7 @@ The `zbox` method uses [Z-ordering](https://en.wikipedia.org/wiki/Z-order_curve)
 ### Advection
 
 For testing purposes, there is a reduced mode for pure advection, which holds density $\rho$ and momentum density $\rho \bm u$ constant while advecting "total energy density" $E$.
-These are available in 2D and 3D, using `-problem advection2d` or `-problem advection`, respectively.
+The advection problems can be run in both 2D and 3D, based on the DM defined for the problem.
 The following additional command-line options are available:
 
 :::{list-table} Advection Runtime Options
@@ -368,7 +368,7 @@ The following additional command-line options are available:
   -
 
 * - `-bubble_continuity`
-  - Different shapes for `sphere` and `cylinder` initial conditions, from `smooth`, `back_sharp`, or `thick`
+  - Different shapes for `sphere` and `cylinder` initial conditions, from `smooth`, `back_sharp`, `thick`, or `cosine`
   - `smooth`
   -
 :::
@@ -388,13 +388,13 @@ and the `translation` mode with:
 For 2D advection, an example of the `rotation` mode can be run with:
 
 ```
-./navierstokes -problem advection2d -dm_plex_box_faces 20,20 -dm_plex_box_lower 0,0 -dm_plex_box_upper 1000,1000 -bc_wall 1,2,3,4 -wall_comps 4 -wind_type rotation -implicit -stab supg
+./navierstokes -problem advection -dm_plex_box_faces 20,20 -dm_plex_box_lower 0,0 -dm_plex_box_upper 1000,1000 -bc_wall 1,2,3,4 -wall_comps 4 -wind_type rotation -implicit -stab supg
 ```
 
 and the `translation` mode with:
 
 ```
-./navierstokes -problem advection2d -dm_plex_box_faces 20,20 -dm_plex_box_lower 0,0 -dm_plex_box_upper 1000,1000 -units_meter 1e-4 -wind_type translation -wind_translation 1,-.5 -bc_inflow 1,2,3,4
+./navierstokes -problem advection -dm_plex_box_faces 20,20 -dm_plex_box_lower 0,0 -dm_plex_box_upper 1000,1000 -units_meter 1e-4 -wind_type translation -wind_translation 1,-.5 -bc_inflow 1,2,3,4
 ```
 Note the lengths in `-dm_plex_box_upper` are given in meters, and will be nondimensionalized according to `-units_meter`.
 
