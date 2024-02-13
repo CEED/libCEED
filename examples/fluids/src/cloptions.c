@@ -22,7 +22,6 @@ PetscErrorCode RegisterProblems_NS(AppCtx app_ctx) {
   PetscCall(PetscFunctionListAdd(&app_ctx->problems, "euler_vortex", NS_EULER_VORTEX));
   PetscCall(PetscFunctionListAdd(&app_ctx->problems, "shocktube", NS_SHOCKTUBE));
   PetscCall(PetscFunctionListAdd(&app_ctx->problems, "advection", NS_ADVECTION));
-  PetscCall(PetscFunctionListAdd(&app_ctx->problems, "advection2d", NS_ADVECTION2D));
   PetscCall(PetscFunctionListAdd(&app_ctx->problems, "blasius", NS_BLASIUS));
   PetscCall(PetscFunctionListAdd(&app_ctx->problems, "channel", NS_CHANNEL));
   PetscCall(PetscFunctionListAdd(&app_ctx->problems, "gaussian_wave", NS_GAUSSIAN_WAVE));
