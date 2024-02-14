@@ -346,6 +346,21 @@ The following additional command-line options are available:
   - `none`
   -
 
+* - `-stab_tau`
+  - Formulation for $\tau$ in stabilization (`ctau`, `advdiff_shakib`)
+  - `ctau`
+  -
+
+* - `-Ctau_t`
+  - Scaling factor on the temporal portion of the $\tau$ formulation
+  - 0.
+  -
+
+* - `-Ctau_a`
+  - Scaling factor on the advection portion of the $\tau$ formulation
+  - $P^2$
+  -
+
 * - `-CtauS`
   - Scale coefficient for stabilization tau (nondimensional)
   - `0`
