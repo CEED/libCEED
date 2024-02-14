@@ -15,6 +15,7 @@
 
 #include "../navierstokes.h"
 #include "../qfunctions/setupgeo.h"
+#include "../qfunctions/setupgeo2d.h"
 
 PetscErrorCode NS_ADVECTION(ProblemData *problem, DM dm, void *ctx, SimpleBC bc) {
   WindType             wind_type;
@@ -28,43 +29,68 @@ PetscErrorCode NS_ADVECTION(ProblemData *problem, DM dm, void *ctx, SimpleBC bc)
   PetscBool            implicit;
   AdvectionContext     advection_ctx;
   CeedQFunctionContext advection_context;
+  PetscInt             dim;
 
   PetscFunctionBeginUser;
   PetscCall(PetscCalloc1(1, &setup_context));
   PetscCall(PetscCalloc1(1, &advection_ctx));
+  PetscCall(DMGetDimension(dm, &dim));
 
   // ------------------------------------------------------
   //               SET UP ADVECTION
   // ------------------------------------------------------
-  problem->dim                               = 3;
-  problem->q_data_size_vol                   = 10;
-  problem->q_data_size_sur                   = 10;
-  problem->setup_vol.qfunction               = Setup;
-  problem->setup_vol.qfunction_loc           = Setup_loc;
-  problem->setup_sur.qfunction               = SetupBoundary;
-  problem->setup_sur.qfunction_loc           = SetupBoundary_loc;
-  problem->ics.qfunction                     = ICsAdvection;
-  problem->ics.qfunction_loc                 = ICsAdvection_loc;
-  problem->apply_vol_rhs.qfunction           = Advection;
-  problem->apply_vol_rhs.qfunction_loc       = Advection_loc;
-  problem->apply_vol_ifunction.qfunction     = IFunction_Advection;
-  problem->apply_vol_ifunction.qfunction_loc = IFunction_Advection_loc;
-  problem->apply_inflow.qfunction            = Advection_InOutFlow;
-  problem->apply_inflow.qfunction_loc        = Advection_InOutFlow_loc;
-  problem->non_zero_time                     = PETSC_FALSE;
-  problem->print_info                        = PRINT_ADVECTION;
+  switch (dim) {
+    case 2:
+      problem->dim                               = 2;
+      problem->q_data_size_vol                   = 5;
+      problem->q_data_size_sur                   = 3;
+      problem->setup_vol.qfunction               = Setup2d;
+      problem->setup_vol.qfunction_loc           = Setup2d_loc;
+      problem->setup_sur.qfunction               = SetupBoundary2d;
+      problem->setup_sur.qfunction_loc           = SetupBoundary2d_loc;
+      problem->ics.qfunction                     = ICsAdvection2d;
+      problem->ics.qfunction_loc                 = ICsAdvection2d_loc;
+      problem->apply_vol_rhs.qfunction           = RHS_Advection2d;
+      problem->apply_vol_rhs.qfunction_loc       = RHS_Advection2d_loc;
+      problem->apply_vol_ifunction.qfunction     = IFunction_Advection2d;
+      problem->apply_vol_ifunction.qfunction_loc = IFunction_Advection2d_loc;
+      problem->apply_inflow.qfunction            = Advection2d_InOutFlow;
+      problem->apply_inflow.qfunction_loc        = Advection2d_InOutFlow_loc;
+      problem->non_zero_time                     = PETSC_TRUE;
+      problem->print_info                        = PRINT_ADVECTION;
+      break;
+    case 3:
+      problem->dim                               = 3;
+      problem->q_data_size_vol                   = 10;
+      problem->q_data_size_sur                   = 10;
+      problem->setup_vol.qfunction               = Setup;
+      problem->setup_vol.qfunction_loc           = Setup_loc;
+      problem->setup_sur.qfunction               = SetupBoundary;
+      problem->setup_sur.qfunction_loc           = SetupBoundary_loc;
+      problem->ics.qfunction                     = ICsAdvection;
+      problem->ics.qfunction_loc                 = ICsAdvection_loc;
+      problem->apply_vol_rhs.qfunction           = RHS_Advection;
+      problem->apply_vol_rhs.qfunction_loc       = RHS_Advection_loc;
+      problem->apply_vol_ifunction.qfunction     = IFunction_Advection;
+      problem->apply_vol_ifunction.qfunction_loc = IFunction_Advection_loc;
+      problem->apply_inflow.qfunction            = Advection_InOutFlow;
+      problem->apply_inflow.qfunction_loc        = Advection_InOutFlow_loc;
+      problem->non_zero_time                     = PETSC_FALSE;
+      problem->print_info                        = PRINT_ADVECTION;
+      break;
+  }
 
   // ------------------------------------------------------
   //             Create the libCEED context
   // ------------------------------------------------------
-  CeedScalar rc          = 1000.;       // m (Radius of bubble)
-  CeedScalar CtauS       = 0.;          // dimensionless
-  CeedScalar strong_form = 0.;          // [0,1]
+  CeedScalar rc          = 1000.;  // m (Radius of bubble)
+  CeedScalar CtauS       = 0.;     // dimensionless
+  PetscBool  strong_form = PETSC_FALSE;
   CeedScalar E_wind      = 1.e6;        // J
   PetscReal  wind[3]     = {1., 0, 0};  // m/s
   PetscReal  domain_min[3], domain_max[3], domain_size[3];
   PetscCall(DMGetBoundingBox(dm, domain_min, domain_max));
-  for (PetscInt i = 0; i < 3; i++) domain_size[i] = domain_max[i] - domain_min[i];
+  for (PetscInt i = 0; i < problem->dim; i++) domain_size[i] = domain_max[i] - domain_min[i];
 
   // ------------------------------------------------------
   //             Create the PETSc context
@@ -87,13 +113,14 @@ PetscErrorCode NS_ADVECTION(ProblemData *problem, DM dm, void *ctx, SimpleBC bc)
   PetscBool user_wind;
   PetscCall(PetscOptionsRealArray("-wind_translation", "Constant wind vector", NULL, wind, &n, &user_wind));
   PetscCall(PetscOptionsScalar("-CtauS", "Scale coefficient for tau (nondimensional)", NULL, CtauS, &CtauS, NULL));
-  PetscCall(
-      PetscOptionsScalar("-strong_form", "Strong (1) or weak/integrated by parts (0) advection residual", NULL, strong_form, &strong_form, NULL));
+  PetscCall(PetscOptionsBool("-strong_form", "Strong (true) or weak/integrated by parts (false) advection residual", NULL, strong_form, &strong_form,
+                             NULL));
   PetscCall(PetscOptionsScalar("-E_wind", "Total energy of inflow wind", NULL, E_wind, &E_wind, NULL));
   PetscCall(PetscOptionsEnum("-advection_ic_type", "Initial condition for Advection problem", NULL, AdvectionICTypes,
                              (PetscEnum)(advectionic_type = ADVECTIONIC_BUBBLE_SPHERE), (PetscEnum *)&advectionic_type, NULL));
-  PetscCall(PetscOptionsEnum("-bubble_continuity", "Smooth, back_sharp, or thick", NULL, BubbleContinuityTypes,
-                             (PetscEnum)(bubble_continuity_type = BUBBLE_CONTINUITY_SMOOTH), (PetscEnum *)&bubble_continuity_type, NULL));
+  bubble_continuity_type = problem->dim == 3 ? BUBBLE_CONTINUITY_SMOOTH : BUBBLE_CONTINUITY_COSINE;
+  PetscCall(PetscOptionsEnum("-bubble_continuity", "Smooth, back_sharp, or thick", NULL, BubbleContinuityTypes, (PetscEnum)bubble_continuity_type,
+                             (PetscEnum *)&bubble_continuity_type, NULL));
   PetscCall(PetscOptionsEnum("-stab", "Stabilization method", NULL, StabilizationTypes, (PetscEnum)(stab = STAB_NONE), (PetscEnum *)&stab, NULL));
   PetscCall(PetscOptionsBool("-implicit", "Use implicit (IFunction) formulation", NULL, implicit = PETSC_FALSE, &implicit, NULL));
 
@@ -140,7 +167,7 @@ PetscErrorCode NS_ADVECTION(ProblemData *problem, DM dm, void *ctx, SimpleBC bc)
   // -- Scale variables to desired units
   E_wind *= Joule;
   rc = fabs(rc) * meter;
-  for (PetscInt i = 0; i < 3; i++) {
+  for (PetscInt i = 0; i < problem->dim; i++) {
     wind[i] *= (meter / second);
     domain_size[i] *= meter;
   }
@@ -150,17 +177,16 @@ PetscErrorCode NS_ADVECTION(ProblemData *problem, DM dm, void *ctx, SimpleBC bc)
   setup_context->rc                     = rc;
   setup_context->lx                     = domain_size[0];
   setup_context->ly                     = domain_size[1];
-  setup_context->lz                     = domain_size[2];
+  setup_context->lz                     = problem->dim == 3 ? domain_size[2] : 0.;
   setup_context->wind[0]                = wind[0];
   setup_context->wind[1]                = wind[1];
-  setup_context->wind[2]                = wind[2];
+  setup_context->wind[2]                = problem->dim == 3 ? wind[2] : 0.;
   setup_context->wind_type              = wind_type;
   setup_context->initial_condition_type = advectionic_type;
   setup_context->bubble_continuity_type = bubble_continuity_type;
   setup_context->time                   = 0;
 
   // -- QFunction Context
-  //  if passed correctly
   user->phys->implicit         = implicit;
   advection_ctx->CtauS         = CtauS;
   advection_ctx->E_wind        = E_wind;
@@ -202,7 +228,15 @@ PetscErrorCode PRINT_ADVECTION(User user, ProblemData *problem, AppCtx app_ctx) 
                         BubbleContinuityTypes[setup_ctx->bubble_continuity_type], WindTypes[setup_ctx->wind_type]));
 
   if (setup_ctx->wind_type == WIND_TRANSLATION) {
-    PetscCall(PetscPrintf(comm, "    Background Wind                    : %f,%f,%f\n", setup_ctx->wind[0], setup_ctx->wind[1], setup_ctx->wind[2]));
+    switch (problem->dim) {
+      case 2:
+        PetscCall(PetscPrintf(comm, "    Background Wind                    : %f,%f\n", setup_ctx->wind[0], setup_ctx->wind[1]));
+        break;
+      case 3:
+        PetscCall(
+            PetscPrintf(comm, "    Background Wind                    : %f,%f,%f\n", setup_ctx->wind[0], setup_ctx->wind[1], setup_ctx->wind[2]));
+        break;
+    }
   }
   PetscCallCeed(ceed, CeedQFunctionContextRestoreData(problem->ics.qfunction_context, &setup_ctx));
   PetscCallCeed(ceed, CeedQFunctionContextRestoreData(problem->apply_vol_rhs.qfunction_context, &advection_ctx));

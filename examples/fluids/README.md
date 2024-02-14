@@ -57,7 +57,7 @@ The following options are common among all problem types:
   -
 
 * - `-problem`
-  - Problem to solve (`advection`, `advection2d`, `density_current`, `euler_vortex`, `shocktube`, `blasius`, `channel`, `gaussian_wave`, and `taylor_green`)
+  - Problem to solve (`advection`, `density_current`, `euler_vortex`, `shocktube`, `blasius`, `channel`, `gaussian_wave`, and `taylor_green`)
   - `density_current`
 
 * - `-implicit`
@@ -301,89 +301,10 @@ The `zbox` method uses [Z-ordering](https://en.wikipedia.org/wiki/Z-order_curve)
 ### Advection
 
 For testing purposes, there is a reduced mode for pure advection, which holds density $\rho$ and momentum density $\rho \bm u$ constant while advecting "total energy density" $E$.
-These are available in 2D and 3D.
+The advection problems can be run in both 2D and 3D, based on the DM defined for the problem.
+The following additional command-line options are available:
 
-#### 2D advection
-
-For the 2D advection problem, the following additional command-line options are available:
-
-:::{list-table} Advection2D Runtime Options
-:header-rows: 1
-
-* - Option
-  - Description
-  - Default value
-  - Unit
-
-* - `-rc`
-  - Characteristic radius of thermal bubble
-  - `1000`
-  - `m`
-
-* - `-units_meter`
-  - 1 meter in scaled length units
-  - `1E-2`
-  -
-
-* - `-units_second`
-  - 1 second in scaled time units
-  - `1E-2`
-  -
-
-* - `-units_kilogram`
-  - 1 kilogram in scaled mass units
-  - `1E-6`
-  -
-
-* - `-strong_form`
-  - Strong (1) or weak/integrated by parts (0) residual
-  - `0`
-  -
-
-* - `-stab`
-  - Stabilization method (`none`, `su`, or `supg`)
-  - `none`
-  -
-
-* - `-CtauS`
-  - Scale coefficient for stabilization tau (nondimensional)
-  - `0`
-  -
-
-* - `-wind_type`
-  - Wind type in Advection (`rotation` or `translation`)
-  - `rotation`
-  -
-
-* - `-wind_translation`
-  - Constant wind vector when `-wind_type translation`
-  - `1,0,0`
-  -
-
-* - `-E_wind`
-  - Total energy of inflow wind when `-wind_type translation`
-  - `1E6`
-  - `J`
-:::
-
-An example of the `rotation` mode can be run with:
-
-```
-./navierstokes -problem advection2d -dm_plex_box_faces 20,20 -dm_plex_box_lower 0,0 -dm_plex_box_upper 1000,1000 -bc_wall 1,2,3,4 -wall_comps 4 -wind_type rotation -implicit -stab supg
-```
-
-and the `translation` mode with:
-
-```
-./navierstokes -problem advection2d -dm_plex_box_faces 20,20 -dm_plex_box_lower 0,0 -dm_plex_box_upper 1000,1000 -units_meter 1e-4 -wind_type translation -wind_translation 1,-.5 -bc_inflow 1,2,3,4
-```
-Note the lengths in `-dm_plex_box_upper` are given in meters, and will be nondimensionalized according to `-units_meter`.
-
-#### 3D advection
-
-For the 3D advection problem, the following additional command-line options are available:
-
-:::{list-table} Advection3D Runtime Options
+:::{list-table} Advection Runtime Options
 :header-rows: 1
 
 * - Option
@@ -447,12 +368,12 @@ For the 3D advection problem, the following additional command-line options are 
   -
 
 * - `-bubble_continuity`
-  - `smooth`, `back_sharp`, or `thick`
+  - Different shapes for `sphere` and `cylinder` initial conditions, from `smooth`, `back_sharp`, `thick`, or `cosine`
   - `smooth`
   -
 :::
 
-An example of the `rotation` mode can be run with:
+For 3D advection, an example of the `rotation` mode can be run with:
 
 ```
 ./navierstokes -problem advection -dm_plex_box_faces 10,10,10 -dm_plex_dim 3 -dm_plex_box_lower 0,0,0 -dm_plex_box_upper 8000,8000,8000 -bc_wall 1,2,3,4,5,6 -wall_comps 4 -wind_type rotation -implicit -stab su
@@ -463,6 +384,19 @@ and the `translation` mode with:
 ```
 ./navierstokes -problem advection -dm_plex_box_faces 10,10,10 -dm_plex_dim 3 -dm_plex_box_lower 0,0,0 -dm_plex_box_upper 8000,8000,8000 -wind_type translation -wind_translation .5,-1,0 -bc_inflow 1,2,3,4,5,6
 ```
+
+For 2D advection, an example of the `rotation` mode can be run with:
+
+```
+./navierstokes -problem advection -dm_plex_box_faces 20,20 -dm_plex_box_lower 0,0 -dm_plex_box_upper 1000,1000 -bc_wall 1,2,3,4 -wall_comps 4 -wind_type rotation -implicit -stab supg
+```
+
+and the `translation` mode with:
+
+```
+./navierstokes -problem advection -dm_plex_box_faces 20,20 -dm_plex_box_lower 0,0 -dm_plex_box_upper 1000,1000 -units_meter 1e-4 -wind_type translation -wind_translation 1,-.5 -bc_inflow 1,2,3,4
+```
+Note the lengths in `-dm_plex_box_upper` are given in meters, and will be nondimensionalized according to `-units_meter`.
 
 ### Inviscid Ideal Gas
 
