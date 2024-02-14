@@ -97,6 +97,15 @@ class SuiteSpec(ABC):
         """
         raise NotImplementedError
 
+    @property
+    def cgns_tol(self):
+        """Absolute tolerance for CGNS diff"""
+        return getattr(self, '_cgns_tol', 1.0e-12)
+
+    @cgns_tol.setter
+    def cgns_tol(self, val):
+        self._cgns_tol = val
+
     def post_test_hook(self, test: str, spec: TestSpec) -> None:
         """Function callback ran after each test case
 
@@ -304,20 +313,20 @@ def diff_csv(test_csv: Path, true_csv: Path, zero_tol: float = 3e-10, rel_tol: f
     return '\n'.join(diff_lines)
 
 
-def diff_cgns(test_cgns: Path, true_cgns: Path, tolerance: float = 1e-12) -> str:
+def diff_cgns(test_cgns: Path, true_cgns: Path, cgns_tol: float = 1e-12) -> str:
     """Compare CGNS results against an expected CGSN file with tolerance
 
     Args:
         test_cgns (Path): Path to output CGNS file
         true_cgns (Path): Path to expected CGNS file
-        tolerance (float, optional): Tolerance for comparing floating-point values
+        cgns_tol (float, optional): Tolerance for comparing floating-point values
 
     Returns:
         str: Diff output between result and expected CGNS files
     """
     my_env: dict = os.environ.copy()
 
-    run_args: List[str] = ['cgnsdiff', '-d', '-t', f'{tolerance}', str(test_cgns), str(true_cgns)]
+    run_args: List[str] = ['cgnsdiff', '-d', '-t', f'{cgns_tol}', str(test_cgns), str(true_cgns)]
     proc = subprocess.run(' '.join(run_args),
                           shell=True,
                           stdout=subprocess.PIPE,
@@ -487,7 +496,7 @@ def run_test(index: int, test: str, spec: TestSpec, backend: str,
             if not ref_cgn.is_file():
                 test_case.add_failure_info('cgns', output=f'{ref_cgn} not found')
             else:
-                diff = diff_cgns(Path.cwd() / cgn_name, ref_cgn)
+                diff = diff_cgns(Path.cwd() / cgn_name, ref_cgn, cgns_tol=suite_spec.cgns_tol)
                 if diff:
                     test_case.add_failure_info('cgns', output=diff)
                 else:
