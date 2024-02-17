@@ -1208,20 +1208,26 @@ int CeedElemRestrictionCreateVector(CeedElemRestriction rstr, CeedVector *l_vec,
   @ref User
 **/
 int CeedElemRestrictionApply(CeedElemRestriction rstr, CeedTransposeMode t_mode, CeedVector u, CeedVector ru, CeedRequest *request) {
-  CeedInt m, n;
+  CeedSize min_u_len, min_ru_len, len;
+  CeedInt  num_elem;
 
   if (t_mode == CEED_NOTRANSPOSE) {
-    m = rstr->e_size;
-    n = rstr->l_size;
+    CeedCall(CeedElemRestrictionGetEVectorSize(rstr, &min_ru_len));
+    CeedCall(CeedElemRestrictionGetLVectorSize(rstr, &min_u_len));
   } else {
-    m = rstr->l_size;
-    n = rstr->e_size;
+    CeedCall(CeedElemRestrictionGetEVectorSize(rstr, &min_u_len));
+    CeedCall(CeedElemRestrictionGetLVectorSize(rstr, &min_ru_len));
   }
-  CeedCheck(n <= u->length, rstr->ceed, CEED_ERROR_DIMENSION,
-            "Input vector size %" CeedInt_FMT " not compatible with element restriction (%" CeedInt_FMT ", %" CeedInt_FMT ")", u->length, m, n);
-  CeedCheck(m <= ru->length, rstr->ceed, CEED_ERROR_DIMENSION,
-            "Output vector size %" CeedInt_FMT " not compatible with element restriction (%" CeedInt_FMT ", %" CeedInt_FMT ")", ru->length, m, n);
-  if (rstr->num_elem > 0) CeedCall(rstr->Apply(rstr, t_mode, u, ru, request));
+  CeedCall(CeedVectorGetLength(u, &len));
+  CeedCheck(min_u_len <= len, rstr->ceed, CEED_ERROR_DIMENSION,
+            "Input vector size %" CeedInt_FMT " not compatible with element restriction (%" CeedInt_FMT ", %" CeedInt_FMT ")", len, min_ru_len,
+            min_u_len);
+  CeedCall(CeedVectorGetLength(ru, &len));
+  CeedCheck(min_ru_len <= len, rstr->ceed, CEED_ERROR_DIMENSION,
+            "Output vector size %" CeedInt_FMT " not compatible with element restriction (%" CeedInt_FMT ", %" CeedInt_FMT ")", len, min_u_len,
+            min_ru_len);
+  CeedCall(CeedElemRestrictionGetNumElements(rstr, &num_elem));
+  if (num_elem > 0) CeedCall(rstr->Apply(rstr, t_mode, u, ru, request));
   return CEED_ERROR_SUCCESS;
 }
 
@@ -1242,26 +1248,38 @@ int CeedElemRestrictionApply(CeedElemRestriction rstr, CeedTransposeMode t_mode,
 **/
 int CeedElemRestrictionApplyAtPointsInElement(CeedElemRestriction rstr, CeedInt elem, CeedTransposeMode t_mode, CeedVector u, CeedVector ru,
                                               CeedRequest *request) {
-  CeedInt m, n;
+  CeedSize min_u_len, min_ru_len, len;
+  CeedInt  num_elem;
 
   if (t_mode == CEED_NOTRANSPOSE) {
-    CeedCall(CeedElemRestrictionGetNumPointsInElement(rstr, elem, &m));
-    n = rstr->l_size;
+    CeedInt num_points, num_comp;
+
+    CeedCall(CeedElemRestrictionGetLVectorSize(rstr, &min_u_len));
+    CeedCall(CeedElemRestrictionGetNumPointsInElement(rstr, elem, &num_points));
+    CeedCall(CeedElemRestrictionGetNumComponents(rstr, &num_comp));
+    min_ru_len = (CeedSize)num_points * (CeedSize)num_comp;
   } else {
-    m = rstr->l_size;
-    CeedCall(CeedElemRestrictionGetNumPointsInElement(rstr, elem, &n));
+    CeedInt num_points, num_comp;
+
+    CeedCall(CeedElemRestrictionGetNumPointsInElement(rstr, elem, &num_points));
+    CeedCall(CeedElemRestrictionGetNumComponents(rstr, &num_comp));
+    min_u_len = (CeedSize)num_points * (CeedSize)num_comp;
+    CeedCall(CeedElemRestrictionGetLVectorSize(rstr, &min_ru_len));
   }
-  CeedCheck(n <= u->length, rstr->ceed, CEED_ERROR_DIMENSION,
+  CeedCall(CeedVectorGetLength(u, &len));
+  CeedCheck(min_u_len <= len, rstr->ceed, CEED_ERROR_DIMENSION,
             "Input vector size %" CeedInt_FMT " not compatible with element restriction (%" CeedInt_FMT ", %" CeedInt_FMT
             ") for element %" CeedInt_FMT,
-            u->length, m, n, elem);
-  CeedCheck(m <= ru->length, rstr->ceed, CEED_ERROR_DIMENSION,
+            len, min_ru_len, min_u_len, elem);
+  CeedCall(CeedVectorGetLength(ru, &len));
+  CeedCheck(min_ru_len <= len, rstr->ceed, CEED_ERROR_DIMENSION,
             "Output vector size %" CeedInt_FMT " not compatible with element restriction (%" CeedInt_FMT ", %" CeedInt_FMT
             ") for element %" CeedInt_FMT,
-            ru->length, m, n, elem);
-  CeedCheck(elem < rstr->num_elem, rstr->ceed, CEED_ERROR_DIMENSION,
-            "Cannot retrieve element %" CeedInt_FMT ", element %" CeedInt_FMT " > total elements %" CeedInt_FMT "", elem, elem, rstr->num_elem);
-  if (rstr->num_elem > 0) CeedCall(rstr->ApplyAtPointsInElement(rstr, elem, t_mode, u, ru, request));
+            len, min_ru_len, min_u_len, elem);
+  CeedCall(CeedElemRestrictionGetNumElements(rstr, &num_elem));
+  CeedCheck(elem < num_elem, rstr->ceed, CEED_ERROR_DIMENSION,
+            "Cannot retrieve element %" CeedInt_FMT ", element %" CeedInt_FMT " > total elements %" CeedInt_FMT "", elem, elem, num_elem);
+  if (num_elem > 0) CeedCall(rstr->ApplyAtPointsInElement(rstr, elem, t_mode, u, ru, request));
   return CEED_ERROR_SUCCESS;
 }
 
@@ -1282,24 +1300,39 @@ int CeedElemRestrictionApplyAtPointsInElement(CeedElemRestriction rstr, CeedInt 
 **/
 int CeedElemRestrictionApplyBlock(CeedElemRestriction rstr, CeedInt block, CeedTransposeMode t_mode, CeedVector u, CeedVector ru,
                                   CeedRequest *request) {
-  CeedInt m, n;
+  CeedSize min_u_len, min_ru_len, len;
+  CeedInt  block_size, num_elem;
 
   CeedCheck(rstr->ApplyBlock, rstr->ceed, CEED_ERROR_UNSUPPORTED, "Backend does not implement CeedElemRestrictionApplyBlock");
 
+  CeedCall(CeedElemRestrictionGetBlockSize(rstr, &block_size));
   if (t_mode == CEED_NOTRANSPOSE) {
-    m = rstr->block_size * rstr->elem_size * rstr->num_comp;
-    n = rstr->l_size;
+    CeedInt elem_size, num_comp;
+
+    CeedCall(CeedElemRestrictionGetElementSize(rstr, &elem_size));
+    CeedCall(CeedElemRestrictionGetNumComponents(rstr, &num_comp));
+    CeedCall(CeedElemRestrictionGetLVectorSize(rstr, &min_u_len));
+    min_ru_len = (CeedSize)block_size * (CeedSize)elem_size * (CeedSize)num_comp;
   } else {
-    m = rstr->l_size;
-    n = rstr->block_size * rstr->elem_size * rstr->num_comp;
+    CeedInt elem_size, num_comp;
+
+    CeedCall(CeedElemRestrictionGetElementSize(rstr, &elem_size));
+    CeedCall(CeedElemRestrictionGetNumComponents(rstr, &num_comp));
+    CeedCall(CeedElemRestrictionGetLVectorSize(rstr, &min_ru_len));
+    min_u_len = (CeedSize)block_size * (CeedSize)elem_size * (CeedSize)num_comp;
   }
-  CeedCheck(n == u->length, rstr->ceed, CEED_ERROR_DIMENSION,
-            "Input vector size %" CeedInt_FMT " not compatible with element restriction (%" CeedInt_FMT ", %" CeedInt_FMT ")", u->length, m, n);
-  CeedCheck(m == ru->length, rstr->ceed, CEED_ERROR_DIMENSION,
-            "Output vector size %" CeedInt_FMT " not compatible with element restriction (%" CeedInt_FMT ", %" CeedInt_FMT ")", ru->length, m, n);
-  CeedCheck(rstr->block_size * block <= rstr->num_elem, rstr->ceed, CEED_ERROR_DIMENSION,
-            "Cannot retrieve block %" CeedInt_FMT ", element %" CeedInt_FMT " > total elements %" CeedInt_FMT "", block, rstr->block_size * block,
-            rstr->num_elem);
+  CeedCall(CeedVectorGetLength(u, &len));
+  CeedCheck(min_u_len == len, rstr->ceed, CEED_ERROR_DIMENSION,
+            "Input vector size %" CeedInt_FMT " not compatible with element restriction (%" CeedInt_FMT ", %" CeedInt_FMT ")", len, min_u_len,
+            min_ru_len);
+  CeedCall(CeedVectorGetLength(ru, &len));
+  CeedCheck(min_ru_len == len, rstr->ceed, CEED_ERROR_DIMENSION,
+            "Output vector size %" CeedInt_FMT " not compatible with element restriction (%" CeedInt_FMT ", %" CeedInt_FMT ")", len, min_ru_len,
+            min_u_len);
+  CeedCall(CeedElemRestrictionGetNumElements(rstr, &num_elem));
+  CeedCheck(block_size * block <= num_elem, rstr->ceed, CEED_ERROR_DIMENSION,
+            "Cannot retrieve block %" CeedInt_FMT ", element %" CeedInt_FMT " > total elements %" CeedInt_FMT "", block, block_size * block,
+            num_elem);
   CeedCall(rstr->ApplyBlock(rstr, block, t_mode, u, ru, request));
   return CEED_ERROR_SUCCESS;
 }
@@ -1447,7 +1480,7 @@ int CeedElemRestrictionGetMaxPointsInElement(CeedElemRestriction rstr, CeedInt *
   @brief Get the size of the l-vector for a `CeedElemRestriction`
 
   @param[in]  rstr   `CeedElemRestriction`
-  @param[out] l_size Variable to store number of nodes
+  @param[out] l_size Variable to store l-vector size
 
   @return An error code: 0 - success, otherwise - failure
 
@@ -1455,6 +1488,21 @@ int CeedElemRestrictionGetMaxPointsInElement(CeedElemRestriction rstr, CeedInt *
 **/
 int CeedElemRestrictionGetLVectorSize(CeedElemRestriction rstr, CeedSize *l_size) {
   *l_size = rstr->l_size;
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
+  @brief Get the size of the e-vector for a `CeedElemRestriction`
+
+  @param[in]  rstr   `CeedElemRestriction`
+  @param[out] e_size Variable to store e-vector size
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Advanced
+**/
+int CeedElemRestrictionGetEVectorSize(CeedElemRestriction rstr, CeedSize *e_size) {
+  *e_size = rstr->e_size;
   return CEED_ERROR_SUCCESS;
 }
 
