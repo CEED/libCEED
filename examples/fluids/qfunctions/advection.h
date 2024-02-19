@@ -90,6 +90,7 @@ CEED_QFUNCTION_HELPER CeedInt Exact_AdvectionGeneric(CeedInt dim, CeedScalar tim
       r = sqrt(Square(x - center[0]) + Square(y - center[1]));
       break;
     case ADVECTIONIC_SKEW:
+    case ADVECTIONIC_SINE_WAVE:
       break;
   }
 
@@ -151,6 +152,14 @@ CEED_QFUNCTION_HELPER CeedInt Exact_AdvectionGeneric(CeedInt dim, CeedScalar tim
         q[4] = 0;
       }
     } break;
+    case ADVECTIONIC_SINE_WAVE: {
+      CeedScalar L = sqrt(Square(lx) + -wind[0]*lx/wind[1]);
+      q[4] = sin(12*M_PI/sqrt(2)*DotN(X, wind, dim));
+      // q[4] = sin(4*M_PI*0.90*DotN(X, wind, dim));
+      // q[4] = sin(12*M_PI*0.90*DotN(X, wind, dim));
+      // q[4] = sin(4*M_PI*DotN(X, wind, dim)/L);
+      // q[4] = DotN(X, wind, dim);
+    }
   }
   return 0;
 }

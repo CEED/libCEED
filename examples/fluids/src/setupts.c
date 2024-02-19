@@ -312,6 +312,8 @@ PetscErrorCode TSSolve_NS(DM dm, User user, AppCtx app_ctx, Physics phys, Vec *Q
   PetscCall(TSCreate(comm, ts));
   PetscCall(TSSetDM(*ts, dm));
   PetscCall(TSSetApplicationContext(*ts, user));
+  if (phys->implicit) PetscCall(PetscPrintf(comm, "implicit true\n"));
+  else PetscCall(PetscPrintf(comm, "implicit false\n"));
   if (phys->implicit) {
     PetscCall(TSSetType(*ts, TSBDF));
     if (user->op_ifunction) {

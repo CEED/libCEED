@@ -20,6 +20,7 @@ typedef enum {
   ADVECTIONIC_BUBBLE_CYLINDER = 1,  // dim=2
   ADVECTIONIC_COSINE_HILL     = 2,  // dim=2
   ADVECTIONIC_SKEW            = 3,
+  ADVECTIONIC_SINE_WAVE       = 4,
 } AdvectionICType;
 
 // Advection - Bubble Continuity Types
