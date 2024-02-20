@@ -44,18 +44,19 @@ PetscErrorCode CreateStatsDM(User user, ProblemData *problem, PetscInt degree) {
 
   {  // Get DM from surface
     DM          parent_distributed_dm;
-    PetscSF     isoperiodicface;
+    PetscSF    *isoperiodicface;
+    PetscInt    num_isoperiodicface;
     DMLabel     label;
     PetscMPIInt size;
 
-    PetscCall(DMPlexGetIsoperiodicFaceSF(user->dm, &isoperiodicface));
+    PetscCall(DMPlexGetIsoperiodicFaceSF(user->dm, &num_isoperiodicface, &isoperiodicface));
 
     if (isoperiodicface) {
       PetscSF         inv_isoperiodicface;
       PetscInt        nleaves;
       const PetscInt *ilocal;
 
-      PetscCall(PetscSFCreateInverseSF(isoperiodicface, &inv_isoperiodicface));
+      PetscCall(PetscSFCreateInverseSF(isoperiodicface[num_isoperiodicface - 1], &inv_isoperiodicface));
       PetscCall(PetscSFGetGraph(inv_isoperiodicface, NULL, &nleaves, &ilocal, NULL));
       PetscCall(DMCreateLabel(user->dm, "Periodic Face"));
       PetscCall(DMGetLabel(user->dm, "Periodic Face", &label));
