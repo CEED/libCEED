@@ -18,7 +18,7 @@
 //------------------------------------------------------------------------------
 static int CeedInit_Hip_gen(const char *resource, Ceed ceed) {
   char      *resource_root;
-  const char fallback_resource[] = "/gpu/hip/ref";
+  const char fallback_resource[] = "/gpu/hip/shared";
   Ceed       ceed_shared;
   Ceed_Hip  *data;
 

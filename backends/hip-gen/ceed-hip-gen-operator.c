@@ -48,6 +48,21 @@ static int CeedOperatorApplyAdd_Hip_gen(CeedOperator op, CeedVector input_vec, C
   CeedCallBackend(CeedOperatorGetFields(op, &num_input_fields, &op_input_fields, &num_output_fields, &op_output_fields));
   CeedCallBackend(CeedQFunctionGetFields(qf, NULL, &qf_input_fields, NULL, &qf_output_fields));
 
+  // Check for tensor-product bases
+  {
+    bool has_tensor_bases;
+
+    CeedCallBackend(CeedOperatorHasTensorBases(op, &has_tensor_bases));
+    // -- Fallback to shared if not all bases are tensor-product
+    if (!has_tensor_bases) {
+      CeedOperator op_fallback;
+
+      CeedCallBackend(CeedOperatorGetFallback(op, &op_fallback));
+      CeedCallBackend(CeedOperatorApplyAdd(op_fallback, input_vec, output_vec, request));
+      return CEED_ERROR_SUCCESS;
+    }
+  }
+
   // Creation of the operator
   CeedCallBackend(CeedOperatorBuildKernel_Hip_gen(op));
 

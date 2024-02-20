@@ -18,7 +18,7 @@
 //------------------------------------------------------------------------------
 static int CeedInit_Cuda_gen(const char *resource, Ceed ceed) {
   char      *resource_root;
-  const char fallback_resource[] = "/gpu/cuda/ref";
+  const char fallback_resource[] = "/gpu/cuda/shared";
   Ceed       ceed_shared;
   Ceed_Cuda *data;
 
