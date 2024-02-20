@@ -124,7 +124,7 @@ int main(int argc, char **argv) {
   CeedOperatorGetFlopsEstimate(op_mass, &flop_estimate);
 
   // Check output
-  if (flop_estimate != 3042) printf("Incorrect FLOP estimate computed, %ld != 3042\n", flop_estimate);
+  if (flop_estimate != 3042) printf("Incorrect FLOP estimate computed, %" CeedSize_FMT " != 3042\n", flop_estimate);
 
   // Cleanup
   CeedVectorDestroy(&q_data_tet);

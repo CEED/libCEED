@@ -871,7 +871,7 @@ int CeedQFunctionContextGetContextSize(CeedQFunctionContext ctx, size_t *ctx_siz
 **/
 int CeedQFunctionContextView(CeedQFunctionContext ctx, FILE *stream) {
   fprintf(stream, "CeedQFunctionContext\n");
-  fprintf(stream, "  Context Data Size: %ld\n", ctx->ctx_size);
+  fprintf(stream, "  Context Data Size: %zu\n", ctx->ctx_size);
   for (CeedInt i = 0; i < ctx->num_fields; i++) {
     fprintf(stream, "  Labeled %s field: %s\n", CeedContextFieldTypes[ctx->field_labels[i]->type], ctx->field_labels[i]->name);
   }

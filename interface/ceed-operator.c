@@ -793,12 +793,12 @@ found:
     CeedCall(CeedElemRestrictionGetLVectorSize(rstr, &l_size));
     if (is_input) {
       if (op->input_size == -1) op->input_size = l_size;
-      CeedCheck(l_size == op->input_size, op->ceed, CEED_ERROR_INCOMPATIBLE, "LVector size %td does not match previous size %td", l_size,
-                op->input_size);
+      CeedCheck(l_size == op->input_size, op->ceed, CEED_ERROR_INCOMPATIBLE,
+                "LVector size %" CeedSize_FMT " does not match previous size %" CeedSize_FMT "", l_size, op->input_size);
     } else {
       if (op->output_size == -1) op->output_size = l_size;
-      CeedCheck(l_size == op->output_size, op->ceed, CEED_ERROR_INCOMPATIBLE, "LVector size %td does not match previous size %td", l_size,
-                op->output_size);
+      CeedCheck(l_size == op->output_size, op->ceed, CEED_ERROR_INCOMPATIBLE,
+                "LVector size %" CeedSize_FMT " does not match previous size %" CeedSize_FMT "", l_size, op->output_size);
     }
   }
 
@@ -1019,8 +1019,9 @@ int CeedCompositeOperatorAddSub(CeedOperator composite_op, CeedOperator sub_op) 
     // Note, a size of -1 means no active vector restriction set, so no incompatibility
     CeedCheck((input_size == -1 || input_size == composite_op->input_size) && (output_size == -1 || output_size == composite_op->output_size),
               composite_op->ceed, CEED_ERROR_MAJOR,
-              "Sub-operators must have compatible dimensions; composite operator of shape (%td, %td) not compatible with sub-operator of "
-              "shape (%td, %td)",
+              "Sub-operators must have compatible dimensions; composite operator of shape (%" CeedSize_FMT ", %" CeedSize_FMT
+              ") not compatible with sub-operator of "
+              "shape (%" CeedSize_FMT ", %" CeedSize_FMT ")",
               composite_op->input_size, composite_op->output_size, input_size, output_size);
   }
 
@@ -1139,8 +1140,9 @@ int CeedOperatorGetActiveVectorLengths(CeedOperator op, CeedSize *input_size, Ce
       // Note, a size of -1 means no active vector restriction set, so no incompatibility
       CeedCheck((sub_input_size == -1 || sub_input_size == op->input_size) && (sub_output_size == -1 || sub_output_size == op->output_size), op->ceed,
                 CEED_ERROR_MAJOR,
-                "Sub-operators must have compatible dimensions; composite operator of shape (%td, %td) not compatible with sub-operator of "
-                "shape (%td, %td)",
+                "Sub-operators must have compatible dimensions; composite operator of shape (%" CeedSize_FMT ", %" CeedSize_FMT
+                ") not compatible with sub-operator of "
+                "shape (%" CeedSize_FMT ", %" CeedSize_FMT ")",
                 op->input_size, op->output_size, input_size, output_size);
     }
   }
@@ -1451,7 +1453,7 @@ int CeedOperatorGetContextFieldLabel(CeedOperator op, const char *field_name, Ce
           if (new_field_label->num_values != 0 && new_field_label->num_values != new_field_label_i->num_values) {
             // LCOV_EXCL_START
             CeedCall(CeedFree(&new_field_label));
-            return CeedError(op->ceed, CEED_ERROR_INCOMPATIBLE, "Incompatible field number of values on sub-operator contexts. %ld != %ld",
+            return CeedError(op->ceed, CEED_ERROR_INCOMPATIBLE, "Incompatible field number of values on sub-operator contexts. %zu != %zu",
                              new_field_label->num_values, new_field_label_i->num_values);
             // LCOV_EXCL_STOP
           } else {

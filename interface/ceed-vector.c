@@ -837,9 +837,9 @@ int CeedVectorViewRange(CeedVector vec, CeedSize start, CeedSize stop, CeedInt s
 
   CeedCheck(step != 0, vec->ceed, CEED_ERROR_MINOR, "View range 'step' must be nonzero");
 
-  fprintf(stream, "CeedVector length %ld\n", (long)vec->length);
+  fprintf(stream, "CeedVector length %" CeedSize_FMT "\n", (long)vec->length);
   if (start != 0 || stop != vec->length || step != 1) {
-    fprintf(stream, "  start: %ld\n  stop:  %ld\n  step:  %" CeedInt_FMT "\n", (long)start, (long)stop, step);
+    fprintf(stream, "  start: %" CeedSize_FMT "\n  stop:  %" CeedSize_FMT "\n  step:  %" CeedInt_FMT "\n", (long)start, (long)stop, step);
   }
   if (start > vec->length) start = vec->length;
   if (stop > vec->length) stop = vec->length;
