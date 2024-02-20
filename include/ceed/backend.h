@@ -409,6 +409,7 @@ CEED_EXTERN int CeedOperatorGetActiveElemRestriction(CeedOperator op, CeedElemRe
 CEED_EXTERN int CeedOperatorGetActiveElemRestrictions(CeedOperator op, CeedElemRestriction *active_input_rstr,
                                                       CeedElemRestriction *active_output_rstr);
 CEED_EXTERN int CeedOperatorGetNumArgs(CeedOperator op, CeedInt *num_args);
+CEED_EXTERN int CeedOperatorHasTensorBases(CeedOperator op, bool *has_tensor_bases);
 CEED_EXTERN int CeedOperatorIsSetupDone(CeedOperator op, bool *is_setup_done);
 CEED_EXTERN int CeedOperatorGetQFunction(CeedOperator op, CeedQFunction *qf);
 CEED_EXTERN int CeedOperatorIsComposite(CeedOperator op, bool *is_composite);
