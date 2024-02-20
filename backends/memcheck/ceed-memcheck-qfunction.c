@@ -67,9 +67,10 @@ static int CeedQFunctionApply_Memcheck(CeedQFunction qf, CeedInt Q, CeedVector *
 
       // Note: need field size because vector may be longer than needed for output
       CeedCallBackend(CeedQFunctionFieldGetSize(output_fields[i], &field_size));
-      for (CeedSize j = 0; j < Q * field_size; j++) {
+      for (CeedSize j = 0; j < field_size * (CeedSize)Q; j++) {
         CeedCheck(!isnan(impl->outputs[i][j]), ceed, CEED_ERROR_BACKEND,
-                  "QFunction output %d entry %ld is NaN after restoring write-only access: %s:%s ", i, j, kernel_path, kernel_name);
+                  "QFunction output %" CeedInt_FMT " entry %" CeedSize_FMT " is NaN after restoring write-only access: %s:%s ", i, j, kernel_path,
+                  kernel_name);
       }
       CeedCallBackend(CeedVectorRestoreArray(V[i], &impl->outputs[i]));
       VALGRIND_DISCARD(mem_block_ids[i]);
