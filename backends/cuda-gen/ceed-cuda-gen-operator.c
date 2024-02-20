@@ -112,6 +112,22 @@ static int CeedOperatorApplyAdd_Cuda_gen(CeedOperator op, CeedVector input_vec, 
   CeedCallBackend(CeedOperatorGetFields(op, &num_input_fields, &op_input_fields, &num_output_fields, &op_output_fields));
   CeedCallBackend(CeedQFunctionGetFields(qf, NULL, &qf_input_fields, NULL, &qf_output_fields));
 
+  // Check for tensor-product bases
+  {
+    bool has_tensor_bases;
+
+    CeedCallBackend(CeedOperatorHasTensorBases(op, &has_tensor_bases));
+    // -- Fallback to ref if not all bases are tensor-product
+    if (!has_tensor_bases) {
+      CeedOperator op_fallback;
+
+      CeedDebug256(ceed, CEED_DEBUG_COLOR_SUCCESS, "Falling back to /gpu/cuda/ref CeedOperator due to non-tensor bases");
+      CeedCallBackend(CeedOperatorGetFallback(op, &op_fallback));
+      CeedCallBackend(CeedOperatorApplyAdd(op_fallback, input_vec, output_vec, request));
+      return CEED_ERROR_SUCCESS;
+    }
+  }
+
   // Creation of the operator
   CeedCallBackend(CeedOperatorBuildKernel_Cuda_gen(op));
 

@@ -450,6 +450,47 @@ int CeedOperatorGetNumArgs(CeedOperator op, CeedInt *num_args) {
 }
 
 /**
+  @brief Get the tensor product status of all bases for a `CeedOperator`.
+
+  `has_tensor_bases` is only set to `true` if every field uses a tensor-product basis.
+
+  @param[in]  op               `CeedOperator`
+  @param[out] has_tensor_bases Variable to store tensor bases status
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Backend
+**/
+int CeedOperatorHasTensorBases(CeedOperator op, bool *has_tensor_bases) {
+  CeedInt            num_inputs, num_outputs;
+  CeedOperatorField *input_fields, *output_fields;
+
+  CeedCall(CeedOperatorGetFields(op, &num_inputs, &input_fields, &num_outputs, &output_fields));
+  *has_tensor_bases = true;
+  for (CeedInt i = 0; i < num_inputs; i++) {
+    bool      is_tensor;
+    CeedBasis basis;
+
+    CeedCall(CeedOperatorFieldGetBasis(input_fields[i], &basis));
+    if (basis != CEED_BASIS_NONE) {
+      CeedCall(CeedBasisIsTensor(basis, &is_tensor));
+      *has_tensor_bases &= is_tensor;
+    }
+  }
+  for (CeedInt i = 0; i < num_outputs; i++) {
+    bool      is_tensor;
+    CeedBasis basis;
+
+    CeedCall(CeedOperatorFieldGetBasis(output_fields[i], &basis));
+    if (basis != CEED_BASIS_NONE) {
+      CeedCall(CeedBasisIsTensor(basis, &is_tensor));
+      *has_tensor_bases &= is_tensor;
+    }
+  }
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
   @brief Get the setup status of a `CeedOperator`
 
   @param[in]  op            `CeedOperator`
