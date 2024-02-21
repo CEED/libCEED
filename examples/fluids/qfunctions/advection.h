@@ -326,7 +326,8 @@ CEED_QFUNCTION(IFunction_Advection2d)(void *ctx, CeedInt Q, const CeedScalar *co
 CEED_QFUNCTION_HELPER void RHSFunction_AdvectionGeneric(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out, CeedInt dim) {
   const CeedScalar(*q)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[0];
   const CeedScalar(*grad_q)        = in[1];
-  const CeedScalar(*q_data)        = in[2];
+  const CeedScalar(*q_dot)         = in[2];
+  const CeedScalar(*q_data)        = in[3];
 
   CeedScalar(*v)[CEED_Q_VLA]         = (CeedScalar(*)[CEED_Q_VLA])out[0];
   CeedScalar(*grad_v)[5][CEED_Q_VLA] = (CeedScalar(*)[5][CEED_Q_VLA])out[1];

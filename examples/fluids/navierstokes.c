@@ -176,14 +176,17 @@ int main(int argc, char **argv) {
   // Create solution vectors
   // ---------------------------------------------------------------------------
   // -- Set up global state vector Q
-  Vec Q;
+  Vec Q, Q_dot;
   PetscCall(DMCreateGlobalVector(dm, &Q));
   PetscCall(VecZeroEntries(Q));
 
   // -- Set up local state vectors Q_loc, Q_dot_loc
   PetscCall(DMCreateLocalVector(dm, &user->Q_loc));
   PetscCall(DMCreateLocalVector(dm, &user->Q_dot_loc));
+  PetscCall(DMGetNamedGlobalVector(user->dm, "SolutionTimeDerivative", &Q_dot));
   PetscCall(VecZeroEntries(user->Q_dot_loc));
+  PetscCall(VecZeroEntries(Q_dot));
+  PetscCall(DMRestoreNamedGlobalVector(user->dm, "SolutionTimeDerivative", &Q_dot));
 
   // ---------------------------------------------------------------------------
   // Set up libCEED

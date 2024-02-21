@@ -67,7 +67,7 @@ PetscErrorCode RHS_NS(TS ts, PetscReal t, Vec Q, Vec G, void *user_data) {
   User        user = *(User *)user_data;
   Ceed        ceed = user->ceed;
   PetscScalar dt;
-  Vec         Q_loc = user->Q_loc;
+  Vec         Q_loc = user->Q_loc, Q_dot_loc = user->Q_dot_loc, Q_dot;
 
   PetscFunctionBeginUser;
   // Update time dependent data
