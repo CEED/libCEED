@@ -437,17 +437,19 @@ PetscErrorCode PrintRunInfo(User user, Physics phys_ctx, ProblemData *problem, M
   char box_faces_str[PETSC_MAX_PATH_LEN] = "3,3,3";
   if (problem->dim == 2) box_faces_str[3] = '\0';
   PetscCall(PetscOptionsGetString(NULL, NULL, "-dm_plex_box_faces", box_faces_str, sizeof(box_faces_str), NULL));
-  MatType mat_type;
+  MatType amat_type = user->app_ctx->amat_type, pmat_type;
   VecType vec_type;
-  PetscCall(DMGetMatType(user->dm, &mat_type));
+  PetscCall(DMGetMatType(user->dm, &pmat_type));
+  if (!amat_type) amat_type = pmat_type;
   PetscCall(DMGetVecType(user->dm, &vec_type));
   PetscCall(PetscPrintf(comm,
                         "  PETSc:\n"
                         "    Box Faces                          : %s\n"
-                        "    DM MatType                         : %s\n"
+                        "    A MatType                          : %s\n"
+                        "    P MatType                          : %s\n"
                         "    DM VecType                         : %s\n"
                         "    Time Stepping Scheme               : %s\n",
-                        box_faces_str, mat_type, vec_type, phys_ctx->implicit ? "implicit" : "explicit"));
+                        box_faces_str, amat_type, pmat_type, vec_type, phys_ctx->implicit ? "implicit" : "explicit"));
   if (user->app_ctx->cont_steps) {
     PetscCall(PetscPrintf(comm,
                           "  Continue:\n"
