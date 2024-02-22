@@ -20,7 +20,7 @@
 int CeedBasisApply_Hip(CeedBasis basis, const CeedInt num_elem, CeedTransposeMode t_mode, CeedEvalMode eval_mode, CeedVector u, CeedVector v) {
   Ceed              ceed;
   CeedInt           Q_1d, dim;
-  const CeedInt     transpose      = t_mode == CEED_TRANSPOSE;
+  const CeedInt     is_transpose   = t_mode == CEED_TRANSPOSE;
   const int         max_block_size = 64;
   const CeedScalar *d_u;
   CeedScalar       *d_v;
@@ -29,13 +29,13 @@ int CeedBasisApply_Hip(CeedBasis basis, const CeedInt num_elem, CeedTransposeMod
   CeedCallBackend(CeedBasisGetCeed(basis, &ceed));
   CeedCallBackend(CeedBasisGetData(basis, &data));
 
-  // Read vectors
+  // Get read/write access to u, v
   if (u != CEED_VECTOR_NONE) CeedCallBackend(CeedVectorGetArrayRead(u, CEED_MEM_DEVICE, &d_u));
   else CeedCheck(eval_mode == CEED_EVAL_WEIGHT, ceed, CEED_ERROR_BACKEND, "An input vector is required for this CeedEvalMode");
   CeedCallBackend(CeedVectorGetArrayWrite(v, CEED_MEM_DEVICE, &d_v));
 
   // Clear v for transpose operation
-  if (transpose) {
+  if (is_transpose) {
     CeedSize length;
 
     CeedCallBackend(CeedVectorGetLength(v, &length));
@@ -47,13 +47,13 @@ int CeedBasisApply_Hip(CeedBasis basis, const CeedInt num_elem, CeedTransposeMod
   // Basis action
   switch (eval_mode) {
     case CEED_EVAL_INTERP: {
-      void         *interp_args[] = {(void *)&num_elem, (void *)&transpose, &data->d_interp_1d, &d_u, &d_v};
+      void         *interp_args[] = {(void *)&num_elem, (void *)&is_transpose, &data->d_interp_1d, &d_u, &d_v};
       const CeedInt block_size    = CeedIntMin(CeedIntPow(Q_1d, dim), max_block_size);
 
       CeedCallBackend(CeedRunKernel_Hip(ceed, data->Interp, num_elem, block_size, interp_args));
     } break;
     case CEED_EVAL_GRAD: {
-      void         *grad_args[] = {(void *)&num_elem, (void *)&transpose, &data->d_interp_1d, &data->d_grad_1d, &d_u, &d_v};
+      void         *grad_args[] = {(void *)&num_elem, (void *)&is_transpose, &data->d_interp_1d, &data->d_grad_1d, &d_u, &d_v};
       const CeedInt block_size  = max_block_size;
 
       CeedCallBackend(CeedRunKernel_Hip(ceed, data->Grad, num_elem, block_size, grad_args));
@@ -65,24 +65,19 @@ int CeedBasisApply_Hip(CeedBasis basis, const CeedInt num_elem, CeedTransposeMod
 
       CeedCallBackend(CeedRunKernelDim_Hip(ceed, data->Weight, num_elem, block_size_x, block_size_y, 1, weight_args));
     } break;
+    case CEED_EVAL_NONE: /* handled separately below */
+      break;
     // LCOV_EXCL_START
-    // Evaluate the divergence to/from the quadrature points
     case CEED_EVAL_DIV:
-      return CeedError(ceed, CEED_ERROR_BACKEND, "CEED_EVAL_DIV not supported");
-    // Evaluate the curl to/from the quadrature points
     case CEED_EVAL_CURL:
-      return CeedError(ceed, CEED_ERROR_BACKEND, "CEED_EVAL_CURL not supported");
-    // Take no action, BasisApply should not have been called
-    case CEED_EVAL_NONE:
-      return CeedError(ceed, CEED_ERROR_BACKEND, "CEED_EVAL_NONE does not make sense in this context");
+      return CeedError(ceed, CEED_ERROR_BACKEND, "%s not supported", CeedEvalModes[eval_mode]);
       // LCOV_EXCL_STOP
   }
 
-  // Restore vectors
-  if (eval_mode != CEED_EVAL_WEIGHT) {
-    CeedCallBackend(CeedVectorRestoreArrayRead(u, &d_u));
-  }
+  // Restore vectors, cover CEED_EVAL_NONE
   CeedCallBackend(CeedVectorRestoreArray(v, &d_v));
+  if (eval_mode == CEED_EVAL_NONE) CeedCallBackend(CeedVectorSetArray(v, CEED_MEM_DEVICE, CEED_COPY_VALUES, (CeedScalar *)d_u));
+  if (eval_mode != CEED_EVAL_WEIGHT) CeedCallBackend(CeedVectorRestoreArrayRead(u, &d_u));
   return CEED_ERROR_SUCCESS;
 }
 
@@ -93,7 +88,7 @@ int CeedBasisApplyNonTensor_Hip(CeedBasis basis, const CeedInt num_elem, CeedTra
                                 CeedVector v) {
   Ceed                    ceed;
   CeedInt                 num_nodes, num_qpts;
-  const CeedInt           transpose       = t_mode == CEED_TRANSPOSE;
+  const CeedInt           is_transpose    = t_mode == CEED_TRANSPOSE;
   const int               elems_per_block = 1;
   const int               grid            = CeedDivUpInt(num_elem, elems_per_block);
   const CeedScalar       *d_u;
@@ -105,14 +100,13 @@ int CeedBasisApplyNonTensor_Hip(CeedBasis basis, const CeedInt num_elem, CeedTra
   CeedCallBackend(CeedBasisGetNumQuadraturePoints(basis, &num_qpts));
   CeedCallBackend(CeedBasisGetNumNodes(basis, &num_nodes));
 
-  // Read vectors
-  if (eval_mode != CEED_EVAL_WEIGHT) {
-    CeedCallBackend(CeedVectorGetArrayRead(u, CEED_MEM_DEVICE, &d_u));
-  }
+  // Get read/write access to u, v
+  if (u != CEED_VECTOR_NONE) CeedCallBackend(CeedVectorGetArrayRead(u, CEED_MEM_DEVICE, &d_u));
+  else CeedCheck(eval_mode == CEED_EVAL_WEIGHT, ceed, CEED_ERROR_BACKEND, "An input vector is required for this CeedEvalMode");
   CeedCallBackend(CeedVectorGetArrayWrite(v, CEED_MEM_DEVICE, &d_v));
 
   // Clear v for transpose operation
-  if (transpose) {
+  if (is_transpose) {
     CeedSize length;
 
     CeedCallBackend(CeedVectorGetLength(v, &length));
@@ -123,9 +117,9 @@ int CeedBasisApplyNonTensor_Hip(CeedBasis basis, const CeedInt num_elem, CeedTra
   switch (eval_mode) {
     case CEED_EVAL_INTERP: {
       void     *interp_args[] = {(void *)&num_elem, &data->d_interp, &d_u, &d_v};
-      const int block_size_x  = transpose ? num_nodes : num_qpts;
+      const int block_size_x  = is_transpose ? num_nodes : num_qpts;
 
-      if (transpose) {
+      if (is_transpose) {
         CeedCallBackend(CeedRunKernelDim_Hip(ceed, data->InterpTranspose, grid, block_size_x, 1, elems_per_block, interp_args));
       } else {
         CeedCallBackend(CeedRunKernelDim_Hip(ceed, data->Interp, grid, block_size_x, 1, elems_per_block, interp_args));
@@ -133,9 +127,9 @@ int CeedBasisApplyNonTensor_Hip(CeedBasis basis, const CeedInt num_elem, CeedTra
     } break;
     case CEED_EVAL_GRAD: {
       void     *grad_args[]  = {(void *)&num_elem, &data->d_grad, &d_u, &d_v};
-      const int block_size_x = transpose ? num_nodes : num_qpts;
+      const int block_size_x = is_transpose ? num_nodes : num_qpts;
 
-      if (transpose) {
+      if (is_transpose) {
         CeedCallBackend(CeedRunKernelDim_Hip(ceed, data->DerivTranspose, grid, block_size_x, 1, elems_per_block, grad_args));
       } else {
         CeedCallBackend(CeedRunKernelDim_Hip(ceed, data->Deriv, grid, block_size_x, 1, elems_per_block, grad_args));
@@ -143,9 +137,9 @@ int CeedBasisApplyNonTensor_Hip(CeedBasis basis, const CeedInt num_elem, CeedTra
     } break;
     case CEED_EVAL_DIV: {
       void     *div_args[]   = {(void *)&num_elem, &data->d_div, &d_u, &d_v};
-      const int block_size_x = transpose ? num_nodes : num_qpts;
+      const int block_size_x = is_transpose ? num_nodes : num_qpts;
 
-      if (transpose) {
+      if (is_transpose) {
         CeedCallBackend(CeedRunKernelDim_Hip(ceed, data->DerivTranspose, grid, block_size_x, 1, elems_per_block, div_args));
       } else {
         CeedCallBackend(CeedRunKernelDim_Hip(ceed, data->Deriv, grid, block_size_x, 1, elems_per_block, div_args));
@@ -153,9 +147,9 @@ int CeedBasisApplyNonTensor_Hip(CeedBasis basis, const CeedInt num_elem, CeedTra
     } break;
     case CEED_EVAL_CURL: {
       void     *curl_args[]  = {(void *)&num_elem, &data->d_curl, &d_u, &d_v};
-      const int block_size_x = transpose ? num_nodes : num_qpts;
+      const int block_size_x = is_transpose ? num_nodes : num_qpts;
 
-      if (transpose) {
+      if (is_transpose) {
         CeedCallBackend(CeedRunKernelDim_Hip(ceed, data->DerivTranspose, grid, block_size_x, 1, elems_per_block, curl_args));
       } else {
         CeedCallBackend(CeedRunKernelDim_Hip(ceed, data->Deriv, grid, block_size_x, 1, elems_per_block, curl_args));
@@ -166,18 +160,14 @@ int CeedBasisApplyNonTensor_Hip(CeedBasis basis, const CeedInt num_elem, CeedTra
 
       CeedCallBackend(CeedRunKernelDim_Hip(ceed, data->Weight, grid, num_qpts, 1, elems_per_block, weight_args));
     } break;
-    // LCOV_EXCL_START
-    // Take no action, BasisApply should not have been called
-    case CEED_EVAL_NONE:
-      return CeedError(ceed, CEED_ERROR_BACKEND, "CEED_EVAL_NONE does not make sense in this context");
-      // LCOV_EXCL_STOP
+    case CEED_EVAL_NONE: /* handled separately below */
+      break;
   }
 
-  // Restore vectors
-  if (eval_mode != CEED_EVAL_WEIGHT) {
-    CeedCallBackend(CeedVectorRestoreArrayRead(u, &d_u));
-  }
+  // Restore vectors, cover CEED_EVAL_NONE
   CeedCallBackend(CeedVectorRestoreArray(v, &d_v));
+  if (eval_mode == CEED_EVAL_NONE) CeedCallBackend(CeedVectorSetArray(v, CEED_MEM_DEVICE, CEED_COPY_VALUES, (CeedScalar *)d_u));
+  if (eval_mode != CEED_EVAL_WEIGHT) CeedCallBackend(CeedVectorRestoreArrayRead(u, &d_u));
   return CEED_ERROR_SUCCESS;
 }
 

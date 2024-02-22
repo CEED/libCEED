@@ -39,7 +39,7 @@ int main(int argc, char **argv) {
     const CeedScalar *y_array;
 
     CeedVectorGetArrayRead(y, CEED_MEM_HOST, &y_array);
-    CeedElemRestrictionGetELayout(elem_restriction, &layout);
+    CeedElemRestrictionGetELayout(elem_restriction, layout);
     for (CeedInt i = 0; i < 2; i++) {             // Node
       for (CeedInt j = 0; j < 2; j++) {           // Component
         for (CeedInt k = 0; k < num_elem; k++) {  // Element

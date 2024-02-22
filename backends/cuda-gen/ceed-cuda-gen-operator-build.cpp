@@ -335,10 +335,14 @@ extern "C" int CeedOperatorBuildKernel_Cuda_gen(CeedOperator op) {
         break;  // Should not occur
       }
       case CEED_EVAL_DIV:
-        break;  // TODO: Not implemented
-      case CEED_EVAL_CURL:
-        break;  // TODO: Not implemented
-                // LCOV_EXCL_STOP
+      case CEED_EVAL_CURL: {
+        Ceed ceed;
+
+        CeedCallBackend(CeedOperatorGetCeed(op, &ceed));
+        return CeedError(ceed, CEED_ERROR_BACKEND, "%s not supported", CeedEvalModes[eval_mode]);
+        break;  // Should not occur
+      }
+        // LCOV_EXCL_STOP
     }
   }
   code << "\n  // -- Element loop --\n";
@@ -383,7 +387,7 @@ extern "C" int CeedOperatorBuildKernel_Cuda_gen(CeedOperator op) {
         CeedInt strides[3] = {1, elem_size * num_elem, elem_size};
 
         if (!has_backend_strides) {
-          CeedCallBackend(CeedElemRestrictionGetStrides(elem_rstr, &strides));
+          CeedCallBackend(CeedElemRestrictionGetStrides(elem_rstr, strides));
         }
         code << "    // Strides: {" << strides[0] << ", " << strides[1] << ", " << strides[2] << "}\n";
         code << "    readDofsStrided" << dim << "d<num_comp_in_" << i << ",P_in_" << i << "," << strides[0] << "," << strides[1] << "," << strides[2]
@@ -499,7 +503,7 @@ extern "C" int CeedOperatorBuildKernel_Cuda_gen(CeedOperator op) {
             CeedInt strides[3] = {1, elem_size * num_elem, elem_size};
 
             if (!has_backend_strides) {
-              CeedCallBackend(CeedElemRestrictionGetStrides(elem_rstr, &strides));
+              CeedCallBackend(CeedElemRestrictionGetStrides(elem_rstr, strides));
             }
             code << "      // Strides: {" << strides[0] << ", " << strides[1] << ", " << strides[2] << "}\n";
             code << "      readSliceQuadsStrided"
@@ -654,15 +658,20 @@ extern "C" int CeedOperatorBuildKernel_Cuda_gen(CeedOperator op) {
       // LCOV_EXCL_START
       case CEED_EVAL_WEIGHT: {
         Ceed ceed;
+
         CeedCallBackend(CeedOperatorGetCeed(op, &ceed));
         return CeedError(ceed, CEED_ERROR_BACKEND, "CEED_EVAL_WEIGHT cannot be an output evaluation mode");
         break;  // Should not occur
       }
       case CEED_EVAL_DIV:
-        break;  // TODO: Not implemented
-      case CEED_EVAL_CURL:
-        break;  // TODO: Not implemented
-                // LCOV_EXCL_STOP
+      case CEED_EVAL_CURL: {
+        Ceed ceed;
+
+        CeedCallBackend(CeedOperatorGetCeed(op, &ceed));
+        return CeedError(ceed, CEED_ERROR_BACKEND, "%s not supported", CeedEvalModes[eval_mode]);
+        break;  // Should not occur
+      }
+        // LCOV_EXCL_STOP
     }
     // TODO put in a function
     // Restriction
@@ -688,7 +697,7 @@ extern "C" int CeedOperatorBuildKernel_Cuda_gen(CeedOperator op) {
       CeedInt strides[3] = {1, elem_size * num_elem, elem_size};
 
       if (!has_backend_strides) {
-        CeedCallBackend(CeedElemRestrictionGetStrides(elem_rstr, &strides));
+        CeedCallBackend(CeedElemRestrictionGetStrides(elem_rstr, strides));
       }
       code << "    // Strides: {" << strides[0] << ", " << strides[1] << ", " << strides[2] << "}\n";
       code << "    writeDofsStrided" << dim << "d<num_comp_out_" << i << ",P_out_" << i << "," << strides[0] << "," << strides[1] << "," << strides[2]

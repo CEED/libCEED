@@ -56,7 +56,7 @@ int main(int argc, char **argv) {
     size_t     num_values;
 
     CeedOperatorGetContextInt32Read(op_sub_1, count_label, &num_values, &values);
-    if (num_values != 1) printf("Incorrect number of count values, found %ld but expected 1", num_values);
+    if (num_values != 1) printf("Incorrect number of count values, found %zu but expected 1", num_values);
     if (values[0] != ctx_data_1.count) printf("Incorrect value found, found %d but expected %d", values[0], ctx_data_1.count);
     CeedOperatorRestoreContextInt32Read(op_sub_1, count_label, &values);
   }
@@ -87,7 +87,7 @@ int main(int argc, char **argv) {
     size_t        num_values;
 
     CeedOperatorGetContextDoubleRead(op_composite, time_label, &num_values, &values);
-    if (num_values != 1) printf("Incorrect number of time values, found %ld but expected 1", num_values);
+    if (num_values != 1) printf("Incorrect number of time values, found %zu but expected 1", num_values);
     if (values[0] != ctx_data_2.time) printf("Incorrect value found, found %f but expected %f", values[0], ctx_data_2.time);
     CeedOperatorRestoreContextDoubleRead(op_composite, time_label, &values);
   }
@@ -97,6 +97,7 @@ int main(int argc, char **argv) {
   // No issue requesting same label twice
   CeedOperatorGetContextFieldLabel(op_composite, "other", &other_label);
   double value_other = 9000.;
+
   CeedOperatorSetContextDouble(op_composite, other_label, &value_other);
   if (ctx_data_1.other != 9000.0) printf("Incorrect context data for other: %f != 2.0\n", ctx_data_1.other);
   if (ctx_data_2.other != 9000.0) printf("Incorrect context data for other: %f != 2.0\n", ctx_data_2.other);

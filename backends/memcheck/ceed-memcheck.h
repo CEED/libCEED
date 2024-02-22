@@ -22,6 +22,17 @@ typedef struct {
 } CeedVector_Memcheck;
 
 typedef struct {
+  const CeedInt  *offsets;
+  CeedInt        *offsets_allocated;
+  const bool     *orients; /* Orientation, if it exists, is true when the dof must be flipped */
+  bool           *orients_allocated;
+  const CeedInt8 *curl_orients; /* Tridiagonal matrix (row-major) for a general transformation during restriction */
+  CeedInt8       *curl_orients_allocated;
+  int (*Apply)(CeedElemRestriction, CeedInt, CeedInt, CeedInt, CeedInt, CeedInt, CeedTransposeMode, bool, bool, CeedVector, CeedVector,
+               CeedRequest *);
+} CeedElemRestriction_Memcheck;
+
+typedef struct {
   const CeedScalar **inputs;
   CeedScalar       **outputs;
   bool               setup_done;
@@ -37,6 +48,9 @@ typedef struct {
 } CeedQFunctionContext_Memcheck;
 
 CEED_INTERN int CeedVectorCreate_Memcheck(CeedSize n, CeedVector vec);
+
+CEED_INTERN int CeedElemRestrictionCreate_Memcheck(CeedMemType mem_type, CeedCopyMode copy_mode, const CeedInt *offsets, const bool *orients,
+                                                   const CeedInt8 *curl_orients, CeedElemRestriction r);
 
 CEED_INTERN int CeedQFunctionCreate_Memcheck(CeedQFunction qf);
 

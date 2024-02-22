@@ -140,40 +140,6 @@ static int CeedOperatorCreateFallback(CeedOperator op) {
 }
 
 /**
-  @brief Select correct basis matrix pointer based on @ref CeedEvalMode
-
-  @param[in]  basis     `CeedBasis` from which to get the basis matrix
-  @param[in]  eval_mode Current basis evaluation mode
-  @param[in]  identity  Pointer to identity matrix
-  @param[out] basis_ptr `CeedBasis` pointer to set
-
-  @ref Developer
-**/
-static inline int CeedOperatorGetBasisPointer(CeedBasis basis, CeedEvalMode eval_mode, const CeedScalar *identity, const CeedScalar **basis_ptr) {
-  switch (eval_mode) {
-    case CEED_EVAL_NONE:
-      *basis_ptr = identity;
-      break;
-    case CEED_EVAL_INTERP:
-      CeedCall(CeedBasisGetInterp(basis, basis_ptr));
-      break;
-    case CEED_EVAL_GRAD:
-      CeedCall(CeedBasisGetGrad(basis, basis_ptr));
-      break;
-    case CEED_EVAL_DIV:
-      CeedCall(CeedBasisGetDiv(basis, basis_ptr));
-      break;
-    case CEED_EVAL_CURL:
-      CeedCall(CeedBasisGetCurl(basis, basis_ptr));
-      break;
-    case CEED_EVAL_WEIGHT:
-      break;  // Caught by QF Assembly
-  }
-  assert(*basis_ptr != NULL);
-  return CEED_ERROR_SUCCESS;
-}
-
-/**
   @brief Core logic for assembling operator diagonal or point block diagonal
 
   @param[in]  op             `CeedOperator` to assemble point block diagonal
@@ -200,7 +166,7 @@ static inline int CeedSingleOperatorAssembleAddDiagonal_Core(CeedOperator op, Ce
   CeedElemRestriction assembled_elem_rstr = NULL;
 
   CeedCall(CeedOperatorLinearAssembleQFunctionBuildOrUpdate(op, &assembled_qf, &assembled_elem_rstr, request));
-  CeedCall(CeedElemRestrictionGetELayout(assembled_elem_rstr, &layout_qf));
+  CeedCall(CeedElemRestrictionGetELayout(assembled_elem_rstr, layout_qf));
   CeedCall(CeedElemRestrictionDestroy(&assembled_elem_rstr));
   CeedCall(CeedVectorGetArrayRead(assembled_qf, CEED_MEM_HOST, &assembled_qf_array));
 
@@ -422,7 +388,7 @@ static int CeedSingleOperatorAssembleSymbolic(CeedOperator op, CeedInt offset, C
   CeedCall(CeedElemRestrictionGetNumElements(elem_rstr_in, &num_elem_in));
   CeedCall(CeedElemRestrictionGetElementSize(elem_rstr_in, &elem_size_in));
   CeedCall(CeedElemRestrictionGetNumComponents(elem_rstr_in, &num_comp_in));
-  CeedCall(CeedElemRestrictionGetELayout(elem_rstr_in, &layout_er_in));
+  CeedCall(CeedElemRestrictionGetELayout(elem_rstr_in, layout_er_in));
 
   // Determine elem_dof relation for input
   CeedCall(CeedVectorCreate(ceed, num_nodes_in, &index_vec_in));
@@ -443,7 +409,7 @@ static int CeedSingleOperatorAssembleSymbolic(CeedOperator op, CeedInt offset, C
               "Active input and output operator restrictions must have the same number of elements");
     CeedCall(CeedElemRestrictionGetElementSize(elem_rstr_out, &elem_size_out));
     CeedCall(CeedElemRestrictionGetNumComponents(elem_rstr_out, &num_comp_out));
-    CeedCall(CeedElemRestrictionGetELayout(elem_rstr_out, &layout_er_out));
+    CeedCall(CeedElemRestrictionGetELayout(elem_rstr_out, layout_er_out));
 
     // Determine elem_dof relation for output
     CeedCall(CeedVectorCreate(ceed, num_nodes_out, &index_vec_out));
@@ -548,7 +514,7 @@ static int CeedSingleOperatorAssemble(CeedOperator op, CeedInt offset, CeedVecto
   CeedElemRestriction assembled_elem_rstr = NULL;
 
   CeedCall(CeedOperatorLinearAssembleQFunctionBuildOrUpdate(op, &assembled_qf, &assembled_elem_rstr, CEED_REQUEST_IMMEDIATE));
-  CeedCall(CeedElemRestrictionGetELayout(assembled_elem_rstr, &layout_qf));
+  CeedCall(CeedElemRestrictionGetELayout(assembled_elem_rstr, layout_qf));
   CeedCall(CeedElemRestrictionDestroy(&assembled_elem_rstr));
   CeedCall(CeedVectorGetArrayRead(assembled_qf, CEED_MEM_HOST, &assembled_qf_array));
 
@@ -1001,6 +967,40 @@ CeedPragmaOptimizeOn
 /// @{
 
 /**
+  @brief Select correct basis matrix pointer based on @ref CeedEvalMode
+
+  @param[in]  basis     `CeedBasis` from which to get the basis matrix
+  @param[in]  eval_mode Current basis evaluation mode
+  @param[in]  identity  Pointer to identity matrix
+  @param[out] basis_ptr `CeedBasis` pointer to set
+
+  @ref Backend
+**/
+int CeedOperatorGetBasisPointer(CeedBasis basis, CeedEvalMode eval_mode, const CeedScalar *identity, const CeedScalar **basis_ptr) {
+  switch (eval_mode) {
+    case CEED_EVAL_NONE:
+      *basis_ptr = identity;
+      break;
+    case CEED_EVAL_INTERP:
+      CeedCall(CeedBasisGetInterp(basis, basis_ptr));
+      break;
+    case CEED_EVAL_GRAD:
+      CeedCall(CeedBasisGetGrad(basis, basis_ptr));
+      break;
+    case CEED_EVAL_DIV:
+      CeedCall(CeedBasisGetDiv(basis, basis_ptr));
+      break;
+    case CEED_EVAL_CURL:
+      CeedCall(CeedBasisGetCurl(basis, basis_ptr));
+      break;
+    case CEED_EVAL_WEIGHT:
+      break;  // Caught by QF Assembly
+  }
+  assert(*basis_ptr != NULL);
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
   @brief Create point block restriction for active `CeedOperatorField`
 
   @param[in]  rstr             Original `CeedElemRestriction` for active field
@@ -1275,10 +1275,10 @@ int CeedOperatorAssemblyDataCreate(Ceed ceed, CeedOperator op, CeedOperatorAssem
 
   // Build OperatorAssembly data
   CeedCall(CeedOperatorGetQFunction(op, &qf));
-  CeedCall(CeedQFunctionGetFields(qf, &num_input_fields, &qf_fields, NULL, NULL));
-  CeedCall(CeedOperatorGetFields(op, NULL, &op_fields, NULL, NULL));
 
   // Determine active input basis
+  CeedCall(CeedQFunctionGetFields(qf, &num_input_fields, &qf_fields, NULL, NULL));
+  CeedCall(CeedOperatorGetFields(op, NULL, &op_fields, NULL, NULL));
   for (CeedInt i = 0; i < num_input_fields; i++) {
     CeedVector vec;
 
@@ -1658,8 +1658,7 @@ int CeedOperatorGetFallback(CeedOperator op, CeedOperator *op_fallback) {
       CeedCall(CeedGetResource(ceed_fallback, &resource_fallback));
 
       CeedDebug256(ceed, CEED_DEBUG_COLOR_SUCCESS, "---------- CeedOperator Fallback ----------\n");
-      CeedDebug(ceed, "Falling back from %s operator at address %ld to %s operator at address %ld\n", resource, op, resource_fallback,
-                op->op_fallback);
+      CeedDebug(ceed, "Falling back from %s operator at address %p to %s operator at address %p\n", resource, op, resource_fallback, op->op_fallback);
     }
   }
   *op_fallback = op->op_fallback;
@@ -2648,7 +2647,7 @@ int CeedOperatorCreateFDMElementInverse(CeedOperator op, CeedOperator *fdm_inv, 
 
     // Assemble QFunction
     CeedCall(CeedOperatorLinearAssembleQFunctionBuildOrUpdate(op, &assembled, &rstr_qf, request));
-    CeedCall(CeedElemRestrictionGetELayout(rstr_qf, &layout));
+    CeedCall(CeedElemRestrictionGetELayout(rstr_qf, layout));
     CeedCall(CeedElemRestrictionDestroy(&rstr_qf));
     CeedCall(CeedVectorNorm(assembled, CEED_NORM_MAX, &max_norm));
 

@@ -679,7 +679,7 @@ impl<'a> Vector<'a> {
     ///
     /// y = y.axpby(-0.5, 1.0, &x)?;
     /// for (i, y) in y.view()?.iter().enumerate() {
-    ///     assert_eq!(*y, (i as Scalar) * 1.5, "Value not set correctly");
+    ///     assert_eq!(*y, (i as Scalar) * 0.5, "Value not set correctly");
     /// }
     /// # Ok(())
     /// # }

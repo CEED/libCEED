@@ -229,9 +229,8 @@ static int CeedBasisApply_Magma(CeedBasis basis, CeedInt num_elem, CeedTranspose
     } break;
     // LCOV_EXCL_START
     case CEED_EVAL_DIV:
-      return CeedError(ceed, CEED_ERROR_BACKEND, "CEED_EVAL_DIV not supported");
     case CEED_EVAL_CURL:
-      return CeedError(ceed, CEED_ERROR_BACKEND, "CEED_EVAL_CURL not supported");
+      return CeedError(ceed, CEED_ERROR_BACKEND, "%s not supported", CeedEvalModes[e_mode]);
     case CEED_EVAL_NONE:
       return CeedError(ceed, CEED_ERROR_BACKEND, "CEED_EVAL_NONE does not make sense in this context");
       // LCOV_EXCL_STOP
@@ -255,8 +254,8 @@ static int CeedBasisApplyNonTensor_Magma(CeedBasis basis, CeedInt num_elem, Ceed
                                          CeedVector v) {
   Ceed                      ceed;
   Ceed_Magma               *data;
-  CeedInt                   num_comp, q_comp, num_nodes, num_qpts, P, Q, N;
-  const CeedScalar         *d_u, *d_b = NULL;
+  CeedInt                   num_comp, num_nodes, num_qpts, P, Q, N;
+  const CeedScalar         *d_u;
   CeedScalar               *d_v;
   CeedBasisNonTensor_Magma *impl;
 
@@ -264,7 +263,6 @@ static int CeedBasisApplyNonTensor_Magma(CeedBasis basis, CeedInt num_elem, Ceed
   CeedCallBackend(CeedGetData(ceed, &data));
   CeedCallBackend(CeedBasisGetData(basis, &impl));
   CeedCallBackend(CeedBasisGetNumComponents(basis, &num_comp));
-  CeedCallBackend(CeedBasisGetNumQuadratureComponents(basis, e_mode, &q_comp));
   CeedCallBackend(CeedBasisGetNumNodes(basis, &num_nodes));
   CeedCallBackend(CeedBasisGetNumQuadraturePoints(basis, &num_qpts));
   P = num_nodes;
@@ -276,8 +274,81 @@ static int CeedBasisApplyNonTensor_Magma(CeedBasis basis, CeedInt num_elem, Ceed
   else CeedCheck(e_mode == CEED_EVAL_WEIGHT, ceed, CEED_ERROR_BACKEND, "An input vector is required for this CeedEvalMode");
   CeedCallBackend(CeedVectorGetArrayWrite(v, CEED_MEM_DEVICE, &d_v));
 
+  // Compile kernels for N as needed
+  CeedInt iN = 0;
+  if (P <= MAGMA_NONTENSOR_CUSTOM_KERNEL_MAX_P && Q <= MAGMA_NONTENSOR_CUSTOM_KERNEL_MAX_Q && (e_mode != CEED_EVAL_WEIGHT || !impl->Weight)) {
+    CeedInt n_array[MAGMA_NONTENSOR_KERNEL_INSTANCES] = {MAGMA_NONTENSOR_KERNEL_N_VALUES};
+    CeedInt diff                                      = abs(n_array[iN] - N), idiff;
+
+    for (CeedInt in = iN + 1; in < MAGMA_NONTENSOR_KERNEL_INSTANCES; in++) {
+      idiff = abs(n_array[in] - N);
+      if (idiff < diff) {
+        iN   = in;
+        diff = idiff;
+      }
+    }
+
+    if (!impl->NB_interp[iN]) {
+      CeedFESpace fe_space;
+      CeedInt     q_comp_interp, q_comp_deriv;
+      Ceed        ceed_delegate;
+      char       *basis_kernel_path, *weight_kernel_path, *basis_kernel_source;
+      magma_int_t arch = magma_getdevice_arch();
+
+      // Tuning parameters for NB
+      CeedCallBackend(CeedBasisGetFESpace(basis, &fe_space));
+      CeedCallBackend(CeedBasisGetNumQuadratureComponents(basis, CEED_EVAL_INTERP, &q_comp_interp));
+      switch (fe_space) {
+        case CEED_FE_SPACE_H1:
+          CeedCallBackend(CeedBasisGetNumQuadratureComponents(basis, CEED_EVAL_GRAD, &q_comp_deriv));
+          break;
+        case CEED_FE_SPACE_HDIV:
+          CeedCallBackend(CeedBasisGetNumQuadratureComponents(basis, CEED_EVAL_DIV, &q_comp_deriv));
+          break;
+        case CEED_FE_SPACE_HCURL:
+          CeedCallBackend(CeedBasisGetNumQuadratureComponents(basis, CEED_EVAL_CURL, &q_comp_deriv));
+          break;
+      }
+      impl->NB_interp[iN]   = nontensor_rtc_get_nb(arch, 'n', q_comp_interp, P, Q, n_array[iN]);
+      impl->NB_interp_t[iN] = nontensor_rtc_get_nb(arch, 't', q_comp_interp, P, Q, n_array[iN]);
+      impl->NB_deriv[iN]    = nontensor_rtc_get_nb(arch, 'n', q_comp_deriv, P, Q, n_array[iN]);
+      impl->NB_deriv_t[iN]  = nontensor_rtc_get_nb(arch, 't', q_comp_deriv, P, Q, n_array[iN]);
+
+      // The RTC compilation code expects a Ceed with the common Ceed_Cuda or Ceed_Hip data
+      CeedCallBackend(CeedGetDelegate(ceed, &ceed_delegate));
+
+      // Compile kernels
+      CeedCallBackend(CeedGetJitAbsolutePath(ceed, "ceed/jit-source/magma/magma-basis-interp-deriv-nontensor.h", &basis_kernel_path));
+      CeedDebug256(ceed, CEED_DEBUG_COLOR_SUCCESS, "----- Loading Basis Kernel Source -----\n");
+      CeedCallBackend(CeedLoadSourceToBuffer(ceed, basis_kernel_path, &basis_kernel_source));
+      if (!impl->Weight) {
+        CeedCallBackend(CeedGetJitAbsolutePath(ceed, "ceed/jit-source/magma/magma-basis-weight-nontensor.h", &weight_kernel_path));
+        CeedCallBackend(CeedLoadSourceToInitializedBuffer(ceed, weight_kernel_path, &basis_kernel_source));
+      }
+      CeedDebug256(ceed, CEED_DEBUG_COLOR_SUCCESS, "----- Loading Basis Kernel Source Complete! -----\n");
+      CeedCallBackend(CeedCompileMagma(ceed_delegate, basis_kernel_source, &impl->module[iN], 8, "BASIS_Q_COMP_INTERP", q_comp_interp,
+                                       "BASIS_Q_COMP_DERIV", q_comp_deriv, "BASIS_P", P, "BASIS_Q", Q, "BASIS_NB_INTERP_N", impl->NB_interp[iN],
+                                       "BASIS_NB_INTERP_T", impl->NB_interp_t[iN], "BASIS_NB_DERIV_N", impl->NB_deriv[iN], "BASIS_NB_DERIV_T",
+                                       impl->NB_deriv_t[iN]));
+      CeedCallBackend(CeedGetKernelMagma(ceed, impl->module[iN], "magma_interp_nontensor_n", &impl->Interp[iN]));
+      CeedCallBackend(CeedGetKernelMagma(ceed, impl->module[iN], "magma_interp_nontensor_t", &impl->InterpTranspose[iN]));
+      CeedCallBackend(CeedGetKernelMagma(ceed, impl->module[iN], "magma_deriv_nontensor_n", &impl->Deriv[iN]));
+      CeedCallBackend(CeedGetKernelMagma(ceed, impl->module[iN], "magma_deriv_nontensor_t", &impl->DerivTranspose[iN]));
+      if (!impl->Weight) {
+        CeedCallBackend(CeedGetKernelMagma(ceed, impl->module[iN], "magma_weight_nontensor", &impl->Weight));
+        CeedCallBackend(CeedFree(&weight_kernel_path));
+      }
+      CeedCallBackend(CeedFree(&basis_kernel_path));
+      CeedCallBackend(CeedFree(&basis_kernel_source));
+    }
+  }
+
   // Apply basis operation
   if (e_mode != CEED_EVAL_WEIGHT) {
+    const CeedScalar *d_b = NULL;
+    CeedInt           q_comp, NB, M, K;
+    CeedMagmaFunction Kernel;
+
     switch (e_mode) {
       case CEED_EVAL_INTERP:
         d_b = impl->d_interp;
@@ -293,74 +364,14 @@ static int CeedBasisApplyNonTensor_Magma(CeedBasis basis, CeedInt num_elem, Ceed
         break;
       // LCOV_EXCL_START
       case CEED_EVAL_WEIGHT:
-        return CeedError(ceed, CEED_ERROR_BACKEND, "CEED_EVAL_WEIGHT does not make sense in this context");
       case CEED_EVAL_NONE:
-        return CeedError(ceed, CEED_ERROR_BACKEND, "CEED_EVAL_NONE does not make sense in this context");
+        return CeedError(ceed, CEED_ERROR_BACKEND, "%s does not make sense in this context", CeedEvalModes[e_mode]);
         // LCOV_EXCL_STOP
     }
+    CeedCallBackend(CeedBasisGetNumQuadratureComponents(basis, e_mode, &q_comp));
+    M = (t_mode == CEED_TRANSPOSE) ? P : Q, K = (t_mode == CEED_TRANSPOSE) ? Q : P;
 
-    // Apply basis operation
     if (P <= MAGMA_NONTENSOR_CUSTOM_KERNEL_MAX_P && Q <= MAGMA_NONTENSOR_CUSTOM_KERNEL_MAX_Q) {
-      CeedInt           n_array[MAGMA_NONTENSOR_KERNEL_INSTANCES] = {MAGMA_NONTENSOR_KERNEL_N_VALUES};
-      CeedInt           iN = 0, diff = abs(n_array[iN] - N), idiff;
-      CeedInt           M = (t_mode == CEED_TRANSPOSE) ? P : Q, K = (t_mode == CEED_TRANSPOSE) ? Q : P;
-      CeedMagmaFunction Kernel;
-      CeedInt           NB;
-
-      for (CeedInt in = iN + 1; in < MAGMA_NONTENSOR_KERNEL_INSTANCES; in++) {
-        idiff = abs(n_array[in] - N);
-        if (idiff < diff) {
-          iN   = in;
-          diff = idiff;
-        }
-      }
-
-      // Compile kernels for N as needed
-      if (!impl->NB_interp[iN]) {
-        CeedFESpace fe_space;
-        CeedInt     q_comp_interp, q_comp_deriv;
-        Ceed        ceed_delegate;
-        char       *basis_kernel_path, *basis_kernel_source;
-        magma_int_t arch = magma_getdevice_arch();
-
-        // Tuning parameters for NB
-        CeedCallBackend(CeedBasisGetFESpace(basis, &fe_space));
-        CeedCallBackend(CeedBasisGetNumQuadratureComponents(basis, CEED_EVAL_INTERP, &q_comp_interp));
-        switch (fe_space) {
-          case CEED_FE_SPACE_H1:
-            CeedCallBackend(CeedBasisGetNumQuadratureComponents(basis, CEED_EVAL_GRAD, &q_comp_deriv));
-            break;
-          case CEED_FE_SPACE_HDIV:
-            CeedCallBackend(CeedBasisGetNumQuadratureComponents(basis, CEED_EVAL_DIV, &q_comp_deriv));
-            break;
-          case CEED_FE_SPACE_HCURL:
-            CeedCallBackend(CeedBasisGetNumQuadratureComponents(basis, CEED_EVAL_CURL, &q_comp_deriv));
-            break;
-        }
-        impl->NB_interp[iN]   = nontensor_rtc_get_nb(arch, 'n', q_comp_interp, P, Q, n_array[iN]);
-        impl->NB_interp_t[iN] = nontensor_rtc_get_nb(arch, 't', q_comp_interp, P, Q, n_array[iN]);
-        impl->NB_deriv[iN]    = nontensor_rtc_get_nb(arch, 'n', q_comp_deriv, P, Q, n_array[iN]);
-        impl->NB_deriv_t[iN]  = nontensor_rtc_get_nb(arch, 't', q_comp_deriv, P, Q, n_array[iN]);
-
-        // The RTC compilation code expects a Ceed with the common Ceed_Cuda or Ceed_Hip data
-        CeedCallBackend(CeedGetDelegate(ceed, &ceed_delegate));
-
-        // Compile kernels
-        CeedCallBackend(CeedGetJitAbsolutePath(ceed, "ceed/jit-source/magma/magma-basis-interp-deriv-nontensor.h", &basis_kernel_path));
-        CeedDebug256(ceed, CEED_DEBUG_COLOR_SUCCESS, "----- Loading Basis Kernel Source -----\n");
-        CeedCallBackend(CeedLoadSourceToBuffer(ceed, basis_kernel_path, &basis_kernel_source));
-        CeedDebug256(ceed, CEED_DEBUG_COLOR_SUCCESS, "----- Loading Basis Kernel Source Complete! -----\n");
-        CeedCallBackend(CeedCompileMagma(ceed_delegate, basis_kernel_source, &impl->module_interp[iN], 8, "BASIS_Q_COMP_INTERP", q_comp_interp,
-                                         "BASIS_Q_COMP_DERIV", q_comp_deriv, "BASIS_P", P, "BASIS_Q", Q, "BASIS_NB_INTERP_N", impl->NB_interp[iN],
-                                         "BASIS_NB_INTERP_T", impl->NB_interp_t[iN], "BASIS_NB_DERIV_N", impl->NB_deriv[iN], "BASIS_NB_DERIV_T",
-                                         impl->NB_deriv_t[iN]));
-        CeedCallBackend(CeedGetKernelMagma(ceed, impl->module_interp[iN], "magma_interp_nontensor_n", &impl->Interp[iN]));
-        CeedCallBackend(CeedGetKernelMagma(ceed, impl->module_interp[iN], "magma_interp_nontensor_t", &impl->InterpTranspose[iN]));
-        CeedCallBackend(CeedGetKernelMagma(ceed, impl->module_interp[iN], "magma_deriv_nontensor_n", &impl->Deriv[iN]));
-        CeedCallBackend(CeedGetKernelMagma(ceed, impl->module_interp[iN], "magma_deriv_nontensor_t", &impl->DerivTranspose[iN]));
-        CeedCallBackend(CeedFree(&basis_kernel_path));
-        CeedCallBackend(CeedFree(&basis_kernel_source));
-      }
       if (e_mode == CEED_EVAL_INTERP) {
         if (t_mode == CEED_TRANSPOSE) {
           Kernel = impl->InterpTranspose[iN];
@@ -447,17 +458,12 @@ static int CeedBasisDestroyNonTensor_Magma(CeedBasis basis) {
 
   CeedCallBackend(CeedBasisGetCeed(basis, &ceed));
   CeedCallBackend(CeedBasisGetData(basis, &impl));
-#ifdef CEED_MAGMA_USE_HIP
-  CeedCallHip(ceed, hipModuleUnload(impl->module_weight));
-#else
-  CeedCallCuda(ceed, cuModuleUnload(impl->module_weight));
-#endif
   for (CeedInt in = 0; in < MAGMA_NONTENSOR_KERNEL_INSTANCES; in++) {
-    if (impl->module_interp[in]) {
+    if (impl->module[in]) {
 #ifdef CEED_MAGMA_USE_HIP
-      CeedCallHip(ceed, hipModuleUnload(impl->module_interp[in]));
+      CeedCallHip(ceed, hipModuleUnload(impl->module[in]));
 #else
-      CeedCallCuda(ceed, cuModuleUnload(impl->module_interp[in]));
+      CeedCallCuda(ceed, cuModuleUnload(impl->module[in]));
 #endif
     }
   }
@@ -569,9 +575,8 @@ int CeedBasisCreateTensorH1_Magma(CeedInt dim, CeedInt P_1d, CeedInt Q_1d, const
 //------------------------------------------------------------------------------
 int CeedBasisCreateH1_Magma(CeedElemTopology topo, CeedInt dim, CeedInt num_nodes, CeedInt num_qpts, const CeedScalar *interp, const CeedScalar *grad,
                             const CeedScalar *q_ref, const CeedScalar *q_weight, CeedBasis basis) {
-  Ceed                      ceed, ceed_delegate;
+  Ceed                      ceed;
   Ceed_Magma               *data;
-  char                     *weight_kernel_path, *basis_kernel_source;
   CeedBasisNonTensor_Magma *impl;
 
   CeedCallBackend(CeedBasisGetCeed(basis, &ceed));
@@ -596,18 +601,24 @@ int CeedBasisCreateH1_Magma(CeedElemTopology topo, CeedInt dim, CeedInt num_node
     magma_setvector(num_qpts * num_nodes * q_comp_grad, sizeof(grad[0]), grad, 1, impl->d_grad, 1, data->queue);
   }
 
-  // The RTC compilation code expects a Ceed with the common Ceed_Cuda or Ceed_Hip data
-  CeedCallBackend(CeedGetDelegate(ceed, &ceed_delegate));
+  // Compile the weight kernel if it won't be compiled later on
+  if (num_nodes > MAGMA_NONTENSOR_CUSTOM_KERNEL_MAX_P || num_qpts > MAGMA_NONTENSOR_CUSTOM_KERNEL_MAX_Q) {
+    Ceed  ceed_delegate;
+    char *weight_kernel_path, *basis_kernel_source;
 
-  // Compile weight kernel (the remainder of kernel compilation happens at first call to CeedBasisApply)
-  CeedCallBackend(CeedGetJitAbsolutePath(ceed, "ceed/jit-source/magma/magma-basis-weight-nontensor.h", &weight_kernel_path));
-  CeedDebug256(ceed, CEED_DEBUG_COLOR_SUCCESS, "----- Loading Basis Kernel Source -----\n");
-  CeedCallBackend(CeedLoadSourceToBuffer(ceed, weight_kernel_path, &basis_kernel_source));
-  CeedDebug256(ceed, CEED_DEBUG_COLOR_SUCCESS, "----- Loading Basis Kernel Source Complete! -----\n");
-  CeedCallBackend(CeedCompileMagma(ceed_delegate, basis_kernel_source, &impl->module_weight, 1, "BASIS_Q", num_qpts));
-  CeedCallBackend(CeedGetKernelMagma(ceed, impl->module_weight, "magma_weight_nontensor", &impl->Weight));
-  CeedCallBackend(CeedFree(&weight_kernel_path));
-  CeedCallBackend(CeedFree(&basis_kernel_source));
+    // The RTC compilation code expects a Ceed with the common Ceed_Cuda or Ceed_Hip data
+    CeedCallBackend(CeedGetDelegate(ceed, &ceed_delegate));
+
+    // Compile weight kernel (the remainder of kernel compilation happens at first call to CeedBasisApply)
+    CeedCallBackend(CeedGetJitAbsolutePath(ceed, "ceed/jit-source/magma/magma-basis-weight-nontensor.h", &weight_kernel_path));
+    CeedDebug256(ceed, CEED_DEBUG_COLOR_SUCCESS, "----- Loading Basis Kernel Source -----\n");
+    CeedCallBackend(CeedLoadSourceToBuffer(ceed, weight_kernel_path, &basis_kernel_source));
+    CeedDebug256(ceed, CEED_DEBUG_COLOR_SUCCESS, "----- Loading Basis Kernel Source Complete! -----\n");
+    CeedCallBackend(CeedCompileMagma(ceed_delegate, basis_kernel_source, &impl->module[0], 1, "BASIS_Q", num_qpts));
+    CeedCallBackend(CeedGetKernelMagma(ceed, impl->module[0], "magma_weight_nontensor", &impl->Weight));
+    CeedCallBackend(CeedFree(&weight_kernel_path));
+    CeedCallBackend(CeedFree(&basis_kernel_source));
+  }
 
   CeedCallBackend(CeedBasisSetData(basis, impl));
 
@@ -622,9 +633,8 @@ int CeedBasisCreateH1_Magma(CeedElemTopology topo, CeedInt dim, CeedInt num_node
 //------------------------------------------------------------------------------
 int CeedBasisCreateHdiv_Magma(CeedElemTopology topo, CeedInt dim, CeedInt num_nodes, CeedInt num_qpts, const CeedScalar *interp,
                               const CeedScalar *div, const CeedScalar *q_ref, const CeedScalar *q_weight, CeedBasis basis) {
-  Ceed                      ceed, ceed_delegate;
+  Ceed                      ceed;
   Ceed_Magma               *data;
-  char                     *weight_kernel_path, *basis_kernel_source;
   CeedBasisNonTensor_Magma *impl;
 
   CeedCallBackend(CeedBasisGetCeed(basis, &ceed));
@@ -649,18 +659,24 @@ int CeedBasisCreateHdiv_Magma(CeedElemTopology topo, CeedInt dim, CeedInt num_no
     magma_setvector(num_qpts * num_nodes * q_comp_div, sizeof(div[0]), div, 1, impl->d_div, 1, data->queue);
   }
 
-  // The RTC compilation code expects a Ceed with the common Ceed_Cuda or Ceed_Hip data
-  CeedCallBackend(CeedGetDelegate(ceed, &ceed_delegate));
+  // Compile the weight kernel if it won't be compiled later on
+  if (num_nodes > MAGMA_NONTENSOR_CUSTOM_KERNEL_MAX_P || num_qpts > MAGMA_NONTENSOR_CUSTOM_KERNEL_MAX_Q) {
+    Ceed  ceed_delegate;
+    char *weight_kernel_path, *basis_kernel_source;
 
-  // Compile weight kernel (the remainder of kernel compilation happens at first call to CeedBasisApply)
-  CeedCallBackend(CeedGetJitAbsolutePath(ceed, "ceed/jit-source/magma/magma-basis-weight-nontensor.h", &weight_kernel_path));
-  CeedDebug256(ceed, CEED_DEBUG_COLOR_SUCCESS, "----- Loading Basis Kernel Source -----\n");
-  CeedCallBackend(CeedLoadSourceToBuffer(ceed, weight_kernel_path, &basis_kernel_source));
-  CeedDebug256(ceed, CEED_DEBUG_COLOR_SUCCESS, "----- Loading Basis Kernel Source Complete! -----\n");
-  CeedCallBackend(CeedCompileMagma(ceed_delegate, basis_kernel_source, &impl->module_weight, 1, "BASIS_Q", num_qpts));
-  CeedCallBackend(CeedGetKernelMagma(ceed, impl->module_weight, "magma_weight_nontensor", &impl->Weight));
-  CeedCallBackend(CeedFree(&weight_kernel_path));
-  CeedCallBackend(CeedFree(&basis_kernel_source));
+    // The RTC compilation code expects a Ceed with the common Ceed_Cuda or Ceed_Hip data
+    CeedCallBackend(CeedGetDelegate(ceed, &ceed_delegate));
+
+    // Compile weight kernel (the remainder of kernel compilation happens at first call to CeedBasisApply)
+    CeedCallBackend(CeedGetJitAbsolutePath(ceed, "ceed/jit-source/magma/magma-basis-weight-nontensor.h", &weight_kernel_path));
+    CeedDebug256(ceed, CEED_DEBUG_COLOR_SUCCESS, "----- Loading Basis Kernel Source -----\n");
+    CeedCallBackend(CeedLoadSourceToBuffer(ceed, weight_kernel_path, &basis_kernel_source));
+    CeedDebug256(ceed, CEED_DEBUG_COLOR_SUCCESS, "----- Loading Basis Kernel Source Complete! -----\n");
+    CeedCallBackend(CeedCompileMagma(ceed_delegate, basis_kernel_source, &impl->module[0], 1, "BASIS_Q", num_qpts));
+    CeedCallBackend(CeedGetKernelMagma(ceed, impl->module[0], "magma_weight_nontensor", &impl->Weight));
+    CeedCallBackend(CeedFree(&weight_kernel_path));
+    CeedCallBackend(CeedFree(&basis_kernel_source));
+  }
 
   CeedCallBackend(CeedBasisSetData(basis, impl));
 
@@ -675,9 +691,8 @@ int CeedBasisCreateHdiv_Magma(CeedElemTopology topo, CeedInt dim, CeedInt num_no
 //------------------------------------------------------------------------------
 int CeedBasisCreateHcurl_Magma(CeedElemTopology topo, CeedInt dim, CeedInt num_nodes, CeedInt num_qpts, const CeedScalar *interp,
                                const CeedScalar *curl, const CeedScalar *q_ref, const CeedScalar *q_weight, CeedBasis basis) {
-  Ceed                      ceed, ceed_delegate;
+  Ceed                      ceed;
   Ceed_Magma               *data;
-  char                     *weight_kernel_path, *basis_kernel_source;
   CeedBasisNonTensor_Magma *impl;
 
   CeedCallBackend(CeedBasisGetCeed(basis, &ceed));
@@ -702,18 +717,24 @@ int CeedBasisCreateHcurl_Magma(CeedElemTopology topo, CeedInt dim, CeedInt num_n
     magma_setvector(num_qpts * num_nodes * q_comp_curl, sizeof(curl[0]), curl, 1, impl->d_curl, 1, data->queue);
   }
 
-  // The RTC compilation code expects a Ceed with the common Ceed_Cuda or Ceed_Hip data
-  CeedCallBackend(CeedGetDelegate(ceed, &ceed_delegate));
+  // Compile the weight kernel if it won't be compiled later on
+  if (num_nodes > MAGMA_NONTENSOR_CUSTOM_KERNEL_MAX_P || num_qpts > MAGMA_NONTENSOR_CUSTOM_KERNEL_MAX_Q) {
+    Ceed  ceed_delegate;
+    char *weight_kernel_path, *basis_kernel_source;
 
-  // Compile weight kernel (the remainder of kernel compilation happens at first call to CeedBasisApply)
-  CeedCallBackend(CeedGetJitAbsolutePath(ceed, "ceed/jit-source/magma/magma-basis-weight-nontensor.h", &weight_kernel_path));
-  CeedDebug256(ceed, CEED_DEBUG_COLOR_SUCCESS, "----- Loading Basis Kernel Source -----\n");
-  CeedCallBackend(CeedLoadSourceToBuffer(ceed, weight_kernel_path, &basis_kernel_source));
-  CeedDebug256(ceed, CEED_DEBUG_COLOR_SUCCESS, "----- Loading Basis Kernel Source Complete! -----\n");
-  CeedCallBackend(CeedCompileMagma(ceed_delegate, basis_kernel_source, &impl->module_weight, 1, "BASIS_Q", num_qpts));
-  CeedCallBackend(CeedGetKernelMagma(ceed, impl->module_weight, "magma_weight_nontensor", &impl->Weight));
-  CeedCallBackend(CeedFree(&weight_kernel_path));
-  CeedCallBackend(CeedFree(&basis_kernel_source));
+    // The RTC compilation code expects a Ceed with the common Ceed_Cuda or Ceed_Hip data
+    CeedCallBackend(CeedGetDelegate(ceed, &ceed_delegate));
+
+    // Compile weight kernel (the remainder of kernel compilation happens at first call to CeedBasisApply)
+    CeedCallBackend(CeedGetJitAbsolutePath(ceed, "ceed/jit-source/magma/magma-basis-weight-nontensor.h", &weight_kernel_path));
+    CeedDebug256(ceed, CEED_DEBUG_COLOR_SUCCESS, "----- Loading Basis Kernel Source -----\n");
+    CeedCallBackend(CeedLoadSourceToBuffer(ceed, weight_kernel_path, &basis_kernel_source));
+    CeedDebug256(ceed, CEED_DEBUG_COLOR_SUCCESS, "----- Loading Basis Kernel Source Complete! -----\n");
+    CeedCallBackend(CeedCompileMagma(ceed_delegate, basis_kernel_source, &impl->module[0], 1, "BASIS_Q", num_qpts));
+    CeedCallBackend(CeedGetKernelMagma(ceed, impl->module[0], "magma_weight_nontensor", &impl->Weight));
+    CeedCallBackend(CeedFree(&weight_kernel_path));
+    CeedCallBackend(CeedFree(&basis_kernel_source));
+  }
 
   CeedCallBackend(CeedBasisSetData(basis, impl));
 

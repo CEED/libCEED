@@ -450,6 +450,47 @@ int CeedOperatorGetNumArgs(CeedOperator op, CeedInt *num_args) {
 }
 
 /**
+  @brief Get the tensor product status of all bases for a `CeedOperator`.
+
+  `has_tensor_bases` is only set to `true` if every field uses a tensor-product basis.
+
+  @param[in]  op               `CeedOperator`
+  @param[out] has_tensor_bases Variable to store tensor bases status
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Backend
+**/
+int CeedOperatorHasTensorBases(CeedOperator op, bool *has_tensor_bases) {
+  CeedInt            num_inputs, num_outputs;
+  CeedOperatorField *input_fields, *output_fields;
+
+  CeedCall(CeedOperatorGetFields(op, &num_inputs, &input_fields, &num_outputs, &output_fields));
+  *has_tensor_bases = true;
+  for (CeedInt i = 0; i < num_inputs; i++) {
+    bool      is_tensor;
+    CeedBasis basis;
+
+    CeedCall(CeedOperatorFieldGetBasis(input_fields[i], &basis));
+    if (basis != CEED_BASIS_NONE) {
+      CeedCall(CeedBasisIsTensor(basis, &is_tensor));
+      *has_tensor_bases &= is_tensor;
+    }
+  }
+  for (CeedInt i = 0; i < num_outputs; i++) {
+    bool      is_tensor;
+    CeedBasis basis;
+
+    CeedCall(CeedOperatorFieldGetBasis(output_fields[i], &basis));
+    if (basis != CEED_BASIS_NONE) {
+      CeedCall(CeedBasisIsTensor(basis, &is_tensor));
+      *has_tensor_bases &= is_tensor;
+    }
+  }
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
   @brief Get the setup status of a `CeedOperator`
 
   @param[in]  op            `CeedOperator`
@@ -793,12 +834,12 @@ found:
     CeedCall(CeedElemRestrictionGetLVectorSize(rstr, &l_size));
     if (is_input) {
       if (op->input_size == -1) op->input_size = l_size;
-      CeedCheck(l_size == op->input_size, op->ceed, CEED_ERROR_INCOMPATIBLE, "LVector size %td does not match previous size %td", l_size,
-                op->input_size);
+      CeedCheck(l_size == op->input_size, op->ceed, CEED_ERROR_INCOMPATIBLE,
+                "LVector size %" CeedSize_FMT " does not match previous size %" CeedSize_FMT "", l_size, op->input_size);
     } else {
       if (op->output_size == -1) op->output_size = l_size;
-      CeedCheck(l_size == op->output_size, op->ceed, CEED_ERROR_INCOMPATIBLE, "LVector size %td does not match previous size %td", l_size,
-                op->output_size);
+      CeedCheck(l_size == op->output_size, op->ceed, CEED_ERROR_INCOMPATIBLE,
+                "LVector size %" CeedSize_FMT " does not match previous size %" CeedSize_FMT "", l_size, op->output_size);
     }
   }
 
@@ -897,7 +938,9 @@ int CeedOperatorAtPointsGetPoints(CeedOperator op, CeedElemRestriction *rstr_poi
 }
 
 /**
-  @brief Get a `CeedOperator` Field of a `CeedOperator` from its name
+  @brief Get a `CeedOperator` Field of a `CeedOperator` from its name.
+
+  `op_field` is set to `NULL` if the field is not found.
 
   Note: Calling this function asserts that setup is complete and sets the `CeedOperator` as immutable.
 
@@ -914,6 +957,7 @@ int CeedOperatorGetFieldByName(CeedOperator op, const char *field_name, CeedOper
   CeedInt            num_input_fields, num_output_fields;
   CeedOperatorField *input_fields, *output_fields;
 
+  *op_field = NULL;
   CeedCall(CeedOperatorGetFields(op, &num_input_fields, &input_fields, &num_output_fields, &output_fields));
   for (CeedInt i = 0; i < num_input_fields; i++) {
     CeedCall(CeedOperatorFieldGetName(input_fields[i], &name));
@@ -929,12 +973,7 @@ int CeedOperatorGetFieldByName(CeedOperator op, const char *field_name, CeedOper
       return CEED_ERROR_SUCCESS;
     }
   }
-  // LCOV_EXCL_START
-  bool has_name = op->name;
-
-  return CeedError(op->ceed, CEED_ERROR_MINOR, "The field \"%s\" not found in CeedOperator%s%s%s.\n", field_name, has_name ? " \"" : "",
-                   has_name ? op->name : "", has_name ? "\"" : "");
-  // LCOV_EXCL_STOP
+  return CEED_ERROR_SUCCESS;
 }
 
 /**
@@ -1021,8 +1060,9 @@ int CeedCompositeOperatorAddSub(CeedOperator composite_op, CeedOperator sub_op) 
     // Note, a size of -1 means no active vector restriction set, so no incompatibility
     CeedCheck((input_size == -1 || input_size == composite_op->input_size) && (output_size == -1 || output_size == composite_op->output_size),
               composite_op->ceed, CEED_ERROR_MAJOR,
-              "Sub-operators must have compatible dimensions; composite operator of shape (%td, %td) not compatible with sub-operator of "
-              "shape (%td, %td)",
+              "Sub-operators must have compatible dimensions; composite operator of shape (%" CeedSize_FMT ", %" CeedSize_FMT
+              ") not compatible with sub-operator of "
+              "shape (%" CeedSize_FMT ", %" CeedSize_FMT ")",
               composite_op->input_size, composite_op->output_size, input_size, output_size);
   }
 
@@ -1141,8 +1181,9 @@ int CeedOperatorGetActiveVectorLengths(CeedOperator op, CeedSize *input_size, Ce
       // Note, a size of -1 means no active vector restriction set, so no incompatibility
       CeedCheck((sub_input_size == -1 || sub_input_size == op->input_size) && (sub_output_size == -1 || sub_output_size == op->output_size), op->ceed,
                 CEED_ERROR_MAJOR,
-                "Sub-operators must have compatible dimensions; composite operator of shape (%td, %td) not compatible with sub-operator of "
-                "shape (%td, %td)",
+                "Sub-operators must have compatible dimensions; composite operator of shape (%" CeedSize_FMT ", %" CeedSize_FMT
+                ") not compatible with sub-operator of "
+                "shape (%" CeedSize_FMT ", %" CeedSize_FMT ")",
                 op->input_size, op->output_size, input_size, output_size);
     }
   }
@@ -1453,7 +1494,7 @@ int CeedOperatorGetContextFieldLabel(CeedOperator op, const char *field_name, Ce
           if (new_field_label->num_values != 0 && new_field_label->num_values != new_field_label_i->num_values) {
             // LCOV_EXCL_START
             CeedCall(CeedFree(&new_field_label));
-            return CeedError(op->ceed, CEED_ERROR_INCOMPATIBLE, "Incompatible field number of values on sub-operator contexts. %ld != %ld",
+            return CeedError(op->ceed, CEED_ERROR_INCOMPATIBLE, "Incompatible field number of values on sub-operator contexts. %zu != %zu",
                              new_field_label->num_values, new_field_label_i->num_values);
             // LCOV_EXCL_STOP
           } else {

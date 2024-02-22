@@ -98,7 +98,7 @@ def test_202(ceed_resource, capsys):
 
     # NoTranspose
     r.apply(x, y)
-    layout = r.get_layout()
+    layout = r.get_e_layout()
     with y.array_read() as y_array:
         for i in range(elem_size):
             for j in range(1):
@@ -146,7 +146,7 @@ def test_208(ceed_resource):
 
     # NoTranspose
     r.apply_block(1, x, y)
-    layout = r.get_layout()
+    layout = r.get_e_layout()
     with y.array_read() as y_array:
         for i in range(elem_size):
             for j in range(1):

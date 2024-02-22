@@ -82,7 +82,7 @@ static int CeedBasisApplyInterp_Sycl(sycl::queue &sycl_queue, const SyclModule_t
       const CeedInt group_size = work_group.get_local_linear_range();
       const CeedInt elem       = work_group.get_group_linear_id();
 
-      CeedScalar *s_interp_1d = s_mem.get_pointer();
+      CeedScalar *s_interp_1d = s_mem.get_multi_ptr<sycl::access::decorated::yes>().get();
       CeedScalar *s_buffer_1  = s_interp_1d + Q * P;
       CeedScalar *s_buffer_2  = s_buffer_1 + buf_len;
 
@@ -183,7 +183,7 @@ static int CeedBasisApplyGrad_Sycl(sycl::queue &sycl_queue, const SyclModule_t &
       const CeedInt group_size    = work_group.get_local_linear_range();
       const CeedInt elem          = work_group.get_group_linear_id();
 
-      CeedScalar *s_interp_1d = s_mem.get_pointer();
+      CeedScalar *s_interp_1d = s_mem.get_multi_ptr<sycl::access::decorated::yes>().get();
       CeedScalar *s_grad_1d   = s_interp_1d + P * Q;
       CeedScalar *s_buffer_1  = s_grad_1d + P * Q;
       CeedScalar *s_buffer_2  = s_buffer_1 + buf_len;

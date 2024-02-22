@@ -142,15 +142,15 @@ static int CeedElemRestrictionOffsetTranspose_Sycl(sycl::queue &sycl_queue, cons
 //------------------------------------------------------------------------------
 // Apply restriction
 //------------------------------------------------------------------------------
-static int CeedElemRestrictionApply_Sycl(CeedElemRestriction r, CeedTransposeMode t_mode, CeedVector u, CeedVector v, CeedRequest *request) {
+static int CeedElemRestrictionApply_Sycl(CeedElemRestriction rstr, CeedTransposeMode t_mode, CeedVector u, CeedVector v, CeedRequest *request) {
   Ceed                      ceed;
   Ceed_Sycl                *data;
   const CeedScalar         *d_u;
   CeedScalar               *d_v;
   CeedElemRestriction_Sycl *impl;
 
-  CeedCallBackend(CeedElemRestrictionGetCeed(r, &ceed));
-  CeedCallBackend(CeedElemRestrictionGetData(r, &impl));
+  CeedCallBackend(CeedElemRestrictionGetCeed(rstr, &ceed));
+  CeedCallBackend(CeedElemRestrictionGetData(rstr, &impl));
   CeedCallBackend(CeedGetData(ceed, &data));
 
   // Get vectors
@@ -197,12 +197,12 @@ static int CeedElemRestrictionApply_Sycl(CeedElemRestriction r, CeedTransposeMod
 //------------------------------------------------------------------------------
 // Get offsets
 //------------------------------------------------------------------------------
-static int CeedElemRestrictionGetOffsets_Sycl(CeedElemRestriction r, CeedMemType m_type, const CeedInt **offsets) {
+static int CeedElemRestrictionGetOffsets_Sycl(CeedElemRestriction rstr, CeedMemType m_type, const CeedInt **offsets) {
   Ceed                      ceed;
   CeedElemRestriction_Sycl *impl;
 
-  CeedCallBackend(CeedElemRestrictionGetCeed(r, &ceed));
-  CeedCallBackend(CeedElemRestrictionGetData(r, &impl));
+  CeedCallBackend(CeedElemRestrictionGetCeed(rstr, &ceed));
+  CeedCallBackend(CeedElemRestrictionGetData(rstr, &impl));
 
   switch (m_type) {
     case CEED_MEM_HOST:
@@ -218,13 +218,13 @@ static int CeedElemRestrictionGetOffsets_Sycl(CeedElemRestriction r, CeedMemType
 //------------------------------------------------------------------------------
 // Destroy restriction
 //------------------------------------------------------------------------------
-static int CeedElemRestrictionDestroy_Sycl(CeedElemRestriction r) {
+static int CeedElemRestrictionDestroy_Sycl(CeedElemRestriction rstr) {
   Ceed                      ceed;
   Ceed_Sycl                *data;
   CeedElemRestriction_Sycl *impl;
 
-  CeedCallBackend(CeedElemRestrictionGetCeed(r, &ceed));
-  CeedCallBackend(CeedElemRestrictionGetData(r, &impl));
+  CeedCallBackend(CeedElemRestrictionGetCeed(rstr, &ceed));
+  CeedCallBackend(CeedElemRestrictionGetData(rstr, &impl));
   CeedCallBackend(CeedGetData(ceed, &data));
 
   // Wait for all work to finish before freeing memory
@@ -242,7 +242,7 @@ static int CeedElemRestrictionDestroy_Sycl(CeedElemRestriction r) {
 //------------------------------------------------------------------------------
 // Create transpose offsets and indices
 //------------------------------------------------------------------------------
-static int CeedElemRestrictionOffset_Sycl(const CeedElemRestriction r, const CeedInt *indices) {
+static int CeedElemRestrictionOffset_Sycl(const CeedElemRestriction rstr, const CeedInt *indices) {
   Ceed                      ceed;
   Ceed_Sycl                *data;
   bool                     *is_node;
@@ -250,12 +250,12 @@ static int CeedElemRestrictionOffset_Sycl(const CeedElemRestriction r, const Cee
   CeedInt                   num_elem, elem_size, num_comp, num_nodes = 0, *ind_to_offset, *l_vec_indices, *t_offsets, *t_indices;
   CeedElemRestriction_Sycl *impl;
 
-  CeedCallBackend(CeedElemRestrictionGetCeed(r, &ceed));
-  CeedCallBackend(CeedElemRestrictionGetData(r, &impl));
-  CeedCallBackend(CeedElemRestrictionGetNumElements(r, &num_elem));
-  CeedCallBackend(CeedElemRestrictionGetElementSize(r, &elem_size));
-  CeedCallBackend(CeedElemRestrictionGetLVectorSize(r, &l_size));
-  CeedCallBackend(CeedElemRestrictionGetNumComponents(r, &num_comp));
+  CeedCallBackend(CeedElemRestrictionGetCeed(rstr, &ceed));
+  CeedCallBackend(CeedElemRestrictionGetData(rstr, &impl));
+  CeedCallBackend(CeedElemRestrictionGetNumElements(rstr, &num_elem));
+  CeedCallBackend(CeedElemRestrictionGetElementSize(rstr, &elem_size));
+  CeedCallBackend(CeedElemRestrictionGetLVectorSize(rstr, &l_size));
+  CeedCallBackend(CeedElemRestrictionGetNumComponents(rstr, &num_comp));
 
   // Count num_nodes
   CeedCallBackend(CeedCalloc(l_size, &is_node));
@@ -330,7 +330,7 @@ static int CeedElemRestrictionOffset_Sycl(const CeedElemRestriction r, const Cee
 // Create restriction
 //------------------------------------------------------------------------------
 int CeedElemRestrictionCreate_Sycl(CeedMemType mem_type, CeedCopyMode copy_mode, const CeedInt *indices, const bool *orients,
-                                   const CeedInt8 *curl_orients, CeedElemRestriction r) {
+                                   const CeedInt8 *curl_orients, CeedElemRestriction rstr) {
   Ceed                      ceed;
   Ceed_Sycl                *data;
   bool                      is_strided;
@@ -338,32 +338,32 @@ int CeedElemRestrictionCreate_Sycl(CeedMemType mem_type, CeedCopyMode copy_mode,
   CeedRestrictionType       rstr_type;
   CeedElemRestriction_Sycl *impl;
 
-  CeedCallBackend(CeedElemRestrictionGetCeed(r, &ceed));
+  CeedCallBackend(CeedElemRestrictionGetCeed(rstr, &ceed));
   CeedCallBackend(CeedGetData(ceed, &data));
-  CeedCallBackend(CeedCalloc(1, &impl));
-  CeedCallBackend(CeedElemRestrictionGetNumElements(r, &num_elem));
-  CeedCallBackend(CeedElemRestrictionGetNumComponents(r, &num_comp));
-  CeedCallBackend(CeedElemRestrictionGetElementSize(r, &elem_size));
-  CeedInt size       = num_elem * elem_size;
-  CeedInt strides[3] = {1, size, elem_size};
+  CeedCallBackend(CeedElemRestrictionGetNumElements(rstr, &num_elem));
+  CeedCallBackend(CeedElemRestrictionGetNumComponents(rstr, &num_comp));
+  CeedCallBackend(CeedElemRestrictionGetElementSize(rstr, &elem_size));
+  const CeedInt size       = num_elem * elem_size;
+  CeedInt       strides[3] = {1, size, elem_size};
 
-  CeedCallBackend(CeedElemRestrictionGetType(r, &rstr_type));
+  CeedCallBackend(CeedElemRestrictionGetType(rstr, &rstr_type));
   CeedCheck(rstr_type != CEED_RESTRICTION_ORIENTED && rstr_type != CEED_RESTRICTION_CURL_ORIENTED, ceed, CEED_ERROR_BACKEND,
             "Backend does not implement CeedElemRestrictionCreateOriented or CeedElemRestrictionCreateCurlOriented");
 
   // Stride data
-  CeedCallBackend(CeedElemRestrictionIsStrided(r, &is_strided));
+  CeedCallBackend(CeedElemRestrictionIsStrided(rstr, &is_strided));
   if (is_strided) {
     bool has_backend_strides;
 
-    CeedCallBackend(CeedElemRestrictionHasBackendStrides(r, &has_backend_strides));
+    CeedCallBackend(CeedElemRestrictionHasBackendStrides(rstr, &has_backend_strides));
     if (!has_backend_strides) {
-      CeedCallBackend(CeedElemRestrictionGetStrides(r, &strides));
+      CeedCallBackend(CeedElemRestrictionGetStrides(rstr, strides));
     }
   } else {
-    CeedCallBackend(CeedElemRestrictionGetCompStride(r, &comp_stride));
+    CeedCallBackend(CeedElemRestrictionGetCompStride(rstr, &comp_stride));
   }
 
+  CeedCallBackend(CeedCalloc(1, &impl));
   impl->h_ind           = NULL;
   impl->h_ind_allocated = NULL;
   impl->d_ind           = NULL;
@@ -378,9 +378,21 @@ int CeedElemRestrictionCreate_Sycl(CeedMemType mem_type, CeedCopyMode copy_mode,
   impl->strides[0]      = strides[0];
   impl->strides[1]      = strides[1];
   impl->strides[2]      = strides[2];
-  CeedCallBackend(CeedElemRestrictionSetData(r, impl));
-  CeedInt layout[3] = {1, elem_size * num_elem, elem_size};
-  CeedCallBackend(CeedElemRestrictionSetELayout(r, layout));
+  CeedCallBackend(CeedElemRestrictionSetData(rstr, impl));
+
+  // Set layouts
+  {
+    bool    has_backend_strides;
+    CeedInt layout[3] = {1, size, elem_size};
+
+    CeedCallBackend(CeedElemRestrictionSetELayout(rstr, layout));
+    if (rstr_type == CEED_RESTRICTION_STRIDED) {
+      CeedCallBackend(CeedElemRestrictionHasBackendStrides(rstr, &has_backend_strides));
+      if (has_backend_strides) {
+        CeedCallBackend(CeedElemRestrictionSetLLayout(rstr, layout));
+      }
+    }
+  }
 
   // Set up device indices/offset arrays
   if (mem_type == CEED_MEM_HOST) {
@@ -409,7 +421,7 @@ int CeedElemRestrictionCreate_Sycl(CeedMemType mem_type, CeedCopyMode copy_mode,
       sycl::event copy_event = data->sycl_queue.copy<CeedInt>(indices, impl->d_ind, size, {e});
       // Wait for copy to finish and handle exceptions
       CeedCallSycl(ceed, copy_event.wait_and_throw());
-      CeedCallBackend(CeedElemRestrictionOffset_Sycl(r, indices));
+      CeedCallBackend(CeedElemRestrictionOffset_Sycl(rstr, indices));
     }
   } else if (mem_type == CEED_MEM_DEVICE) {
     switch (copy_mode) {
@@ -440,7 +452,7 @@ int CeedElemRestrictionCreate_Sycl(CeedMemType mem_type, CeedCopyMode copy_mode,
       sycl::event copy_event = data->sycl_queue.copy<CeedInt>(impl->d_ind, impl->h_ind_allocated, elem_size * num_elem, {e});
       CeedCallSycl(ceed, copy_event.wait_and_throw());
       impl->h_ind = impl->h_ind_allocated;
-      CeedCallBackend(CeedElemRestrictionOffset_Sycl(r, indices));
+      CeedCallBackend(CeedElemRestrictionOffset_Sycl(rstr, indices));
     }
   } else {
     // LCOV_EXCL_START
@@ -449,10 +461,10 @@ int CeedElemRestrictionCreate_Sycl(CeedMemType mem_type, CeedCopyMode copy_mode,
   }
 
   // Register backend functions
-  CeedCallBackend(CeedSetBackendFunctionCpp(ceed, "ElemRestriction", r, "Apply", CeedElemRestrictionApply_Sycl));
-  CeedCallBackend(CeedSetBackendFunctionCpp(ceed, "ElemRestriction", r, "ApplyUnsigned", CeedElemRestrictionApply_Sycl));
-  CeedCallBackend(CeedSetBackendFunctionCpp(ceed, "ElemRestriction", r, "ApplyUnoriented", CeedElemRestrictionApply_Sycl));
-  CeedCallBackend(CeedSetBackendFunctionCpp(ceed, "ElemRestriction", r, "GetOffsets", CeedElemRestrictionGetOffsets_Sycl));
-  CeedCallBackend(CeedSetBackendFunctionCpp(ceed, "ElemRestriction", r, "Destroy", CeedElemRestrictionDestroy_Sycl));
+  CeedCallBackend(CeedSetBackendFunctionCpp(ceed, "ElemRestriction", rstr, "Apply", CeedElemRestrictionApply_Sycl));
+  CeedCallBackend(CeedSetBackendFunctionCpp(ceed, "ElemRestriction", rstr, "ApplyUnsigned", CeedElemRestrictionApply_Sycl));
+  CeedCallBackend(CeedSetBackendFunctionCpp(ceed, "ElemRestriction", rstr, "ApplyUnoriented", CeedElemRestrictionApply_Sycl));
+  CeedCallBackend(CeedSetBackendFunctionCpp(ceed, "ElemRestriction", rstr, "GetOffsets", CeedElemRestrictionGetOffsets_Sycl));
+  CeedCallBackend(CeedSetBackendFunctionCpp(ceed, "ElemRestriction", rstr, "Destroy", CeedElemRestrictionDestroy_Sycl));
   return CEED_ERROR_SUCCESS;
 }

@@ -68,6 +68,7 @@ doc/sphinx/source/examples/
 *.xz
 *.zstd
 perf.data
+*.log
 
 # Editor Misc
 .cache/
@@ -82,3 +83,9 @@ libCEED.creator.*
 libCEED.cxxflags
 libCEED.files
 libCEED.includes
+
+# latex output files
+.auctex-auto/
+*.aux
+*.fdb_latexmk
+*.fls

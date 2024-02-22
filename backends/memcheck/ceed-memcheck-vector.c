@@ -34,17 +34,8 @@ static inline int CeedVectorHasBorrowedArrayOfType_Memcheck(const CeedVector vec
 
   CeedCallBackend(CeedVectorGetData(vec, &impl));
   CeedCallBackend(CeedVectorGetCeed(vec, &ceed));
-
-  switch (mem_type) {
-    case CEED_MEM_HOST:
-      *has_borrowed_array_of_type = impl->array_borrowed;
-      break;
-      // LCOV_EXCL_START
-    default:
-      return CeedError(ceed, CEED_ERROR_BACKEND, "Can only set HOST memory for this backend");
-      // LCOV_EXCL_STOP
-      break;
-  }
+  CeedCheck(mem_type == CEED_MEM_HOST, ceed, CEED_ERROR_BACKEND, "Can only set HOST memory for this backend");
+  *has_borrowed_array_of_type = impl->array_borrowed;
   return CEED_ERROR_SUCCESS;
 }
 
@@ -185,7 +176,8 @@ static int CeedVectorRestoreArray_Memcheck(CeedVector vec) {
 
   if (impl->is_write_only_access) {
     for (CeedSize i = 0; i < length; i++) {
-      if (isnan(impl->array[i])) CeedDebug256(ceed, CEED_DEBUG_COLOR_WARNING, "WARNING: Vec entry %ld is NaN after restoring write-only access", i);
+      if (isnan(impl->array[i]))
+        CeedDebug256(ceed, CEED_DEBUG_COLOR_WARNING, "WARNING: Vec entry %" CeedSize_FMT " is NaN after restoring write-only access", i);
     }
     impl->is_write_only_access = false;
   }
@@ -238,6 +230,9 @@ int CeedVectorCreate_Memcheck(CeedSize n, CeedVector vec) {
   Ceed                 ceed;
   CeedVector_Memcheck *impl;
 
+  CeedCallBackend(CeedCalloc(1, &impl));
+  CeedCallBackend(CeedVectorSetData(vec, impl));
+
   CeedCallBackend(CeedVectorGetCeed(vec, &ceed));
   CeedCallBackend(CeedSetBackendFunction(ceed, "Vector", vec, "HasValidArray", CeedVectorHasValidArray_Memcheck));
   CeedCallBackend(CeedSetBackendFunction(ceed, "Vector", vec, "HasBorrowedArrayOfType", CeedVectorHasBorrowedArrayOfType_Memcheck));
@@ -249,8 +244,6 @@ int CeedVectorCreate_Memcheck(CeedSize n, CeedVector vec) {
   CeedCallBackend(CeedSetBackendFunction(ceed, "Vector", vec, "RestoreArray", CeedVectorRestoreArray_Memcheck));
   CeedCallBackend(CeedSetBackendFunction(ceed, "Vector", vec, "RestoreArrayRead", CeedVectorRestoreArrayRead_Memcheck));
   CeedCallBackend(CeedSetBackendFunction(ceed, "Vector", vec, "Destroy", CeedVectorDestroy_Memcheck));
-  CeedCallBackend(CeedCalloc(1, &impl));
-  CeedCallBackend(CeedVectorSetData(vec, impl));
   return CEED_ERROR_SUCCESS;
 }
 

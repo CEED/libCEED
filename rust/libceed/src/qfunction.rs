@@ -541,6 +541,7 @@ unsafe extern "C" fn trampoline(
     let mut inputs_array: [&[crate::Scalar]; MAX_QFUNCTION_FIELDS] = [&[0.0]; MAX_QFUNCTION_FIELDS];
     inputs_slice
         .iter()
+        .take(trampoline_data.number_inputs)
         .enumerate()
         .map(|(i, &x)| {
             std::slice::from_raw_parts(x, trampoline_data.input_sizes[i] * q as usize)
@@ -556,6 +557,7 @@ unsafe extern "C" fn trampoline(
         mut_max_fields!(&mut [0.0]);
     outputs_slice
         .iter()
+        .take(trampoline_data.number_outputs)
         .enumerate()
         .map(|(i, &x)| {
             std::slice::from_raw_parts_mut(x, trampoline_data.output_sizes[i] * q as usize)

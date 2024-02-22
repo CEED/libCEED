@@ -10,7 +10,7 @@
 #ifndef CEED_SYCL_GEN_TEMPLATES_H
 #define CEED_SYCL_GEN_TEMPLATES_H
 
-#include <ceed/types.h>
+#include <ceed.h>
 
 #pragma OPENCL EXTENSION cl_khr_int64_base_atomics : enable
 #pragma OPENCL EXTENSION cl_khr_int64_extended_atomics : enable

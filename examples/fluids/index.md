@@ -271,11 +271,11 @@ $$
 
 $$
 \mathcal{F} = \sqrt{ \rho^2 \left [ \left(\frac{2C_t}{\Delta t}\right)^2
-+ \bm u \cdot (\bm u \cdot  \bm g)
-+ C_v \mu^2 \Vert \bm g \Vert_F ^2\right]}
++ \bm u \cdot (\bm u \cdot  \bm g)\right]
++ C_v \mu^2 \Vert \bm g \Vert_F ^2}
 $$
 
-where $\bm g = \nabla_{\bm x} \bm{X} \cdot \nabla_{\bm x} \bm{X}$ is the metric tensor and $\Vert \cdot \Vert_F$ is the Frobenius norm.
+where $\bm g = \nabla_{\bm x} \bm{X}^T \cdot \nabla_{\bm x} \bm{X}$ is the metric tensor and $\Vert \cdot \Vert_F$ is the Frobenius norm.
 This formulation is currently not available in the Euler code.
 
 In the Euler code, we follow {cite}`hughesetal2010` in defining a $3\times 3$ diagonal stabilization according to spatial criterion 2 (equation 27) as follows.

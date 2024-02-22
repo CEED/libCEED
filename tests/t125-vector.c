@@ -39,9 +39,9 @@ int main(int argc, char **argv) {
 
     CeedVectorGetArrayRead(y, CEED_MEM_HOST, &read_array);
     for (CeedInt i = 0; i < len; i++) {
-      if (fabs(read_array[i] - (10.0 + i) * 1.5) > 1e-14) {
+      if (fabs(read_array[i] - (10.0 + i) * 0.5) > 1e-14) {
         // LCOV_EXCL_START
-        printf("Error in alpha x + y at index %" CeedInt_FMT ", computed: %f actual: %f\n", i, read_array[i], (10.0 + i) * 1.5);
+        printf("Error in alpha x + y at index %" CeedInt_FMT ", computed: %f actual: %f\n", i, read_array[i], (10.0 + i) * 0.5);
         // LCOV_EXCL_STOP
       }
     }

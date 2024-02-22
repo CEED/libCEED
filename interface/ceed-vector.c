@@ -689,7 +689,7 @@ int CeedVectorAXPBY(CeedVector y, CeedScalar alpha, CeedScalar beta, CeedVector 
   assert(x_array);
   assert(y_array);
 
-  for (CeedSize i = 0; i < n_y; i++) y_array[i] += alpha * x_array[i] + beta * y_array[i];
+  for (CeedSize i = 0; i < n_y; i++) y_array[i] = alpha * x_array[i] + beta * y_array[i];
 
   CeedCall(CeedVectorRestoreArray(y, &y_array));
   CeedCall(CeedVectorRestoreArrayRead(x, &x_array));
@@ -837,9 +837,9 @@ int CeedVectorViewRange(CeedVector vec, CeedSize start, CeedSize stop, CeedInt s
 
   CeedCheck(step != 0, vec->ceed, CEED_ERROR_MINOR, "View range 'step' must be nonzero");
 
-  fprintf(stream, "CeedVector length %ld\n", (long)vec->length);
+  fprintf(stream, "CeedVector length %" CeedSize_FMT "\n", (long)vec->length);
   if (start != 0 || stop != vec->length || step != 1) {
-    fprintf(stream, "  start: %ld\n  stop:  %ld\n  step:  %" CeedInt_FMT "\n", (long)start, (long)stop, step);
+    fprintf(stream, "  start: %" CeedSize_FMT "\n  stop:  %" CeedSize_FMT "\n  step:  %" CeedInt_FMT "\n", (long)start, (long)stop, step);
   }
   if (start > vec->length) start = vec->length;
   if (stop > vec->length) stop = vec->length;

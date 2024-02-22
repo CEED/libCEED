@@ -30,13 +30,7 @@ CEED_QFUNCTION_HELPER int VelocityGradientProjectionRHS(void *ctx, CeedInt Q, co
 
     const State s = StateFromQ(context, qi, state_var);
     State       grad_s[3];
-    for (CeedInt k = 0; k < 3; k++) {
-      CeedScalar dqi[5];
-      for (CeedInt j = 0; j < 5; j++) {
-        dqi[j] = Grad_q[0][j][i] * dXdx[0][k] + Grad_q[1][j][i] * dXdx[1][k] + Grad_q[2][j][i] * dXdx[2][k];
-      }
-      grad_s[k] = StateFromQ_fwd(context, s, dqi, state_var);
-    }
+    StatePhysicalGradientFromReference(Q, i, context, s, state_var, (CeedScalar *)Grad_q, dXdx, grad_s);
 
     CeedScalar grad_velocity[3][3];
     VelocityGradient(grad_s, grad_velocity);

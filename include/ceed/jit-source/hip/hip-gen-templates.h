@@ -10,7 +10,7 @@
 #ifndef CEED_HIP_GEN_TEMPLATES_H
 #define CEED_HIP_GEN_TEMPLATES_H
 
-#include <ceed/types.h>
+#include <ceed.h>
 
 //------------------------------------------------------------------------------
 // Load matrices for basis actions

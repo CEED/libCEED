@@ -439,6 +439,7 @@ To cite the user manual:
                   Dobrev, Veselin and
                   Dudouit, Yohann and
                   Ghaffari, Leila and
+                  Grimberg, Sebastian and
                   Kolev, Tzanio and
                   Medina, David and
                   Pazner, Will and
@@ -448,11 +449,11 @@ To cite the user manual:
                   Tomov, Stanimire and
                   Wright III, James},
   title        = {{libCEED} User Manual},
-  month        = dec,
-  year         = 2022,
+  month        = nov,
+  year         = 2023,
   publisher    = {Zenodo},
-  version      = {0.11.0},
-  doi          = {10.5281/zenodo.7480454}
+  version      = {0.12.0},
+  doi          = {10.5281/zenodo.10062388}
 }
 ```
 

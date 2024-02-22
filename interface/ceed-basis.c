@@ -26,9 +26,6 @@ static struct CeedBasis_private ceed_basis_none;
 /// Argument for @ref CeedOperatorSetField() indicating that the field does not require a `CeedBasis`
 const CeedBasis CEED_BASIS_NONE = &ceed_basis_none;
 
-/// This feature will be removed. Use @ref CEED_BASIS_NONE.
-const CeedBasis CEED_BASIS_COLLOCATED = &ceed_basis_none;
-
 /// @}
 
 /// ----------------------------------------------------------------------------
@@ -230,7 +227,7 @@ static int CeedBasisCreateProjectionMatrices(CeedBasis basis_from, CeedBasis bas
 
   // Get source matrices
   CeedInt           dim, q_comp = 1;
-  CeedScalar       *interp_to, *interp_from, *tau;
+  CeedScalar       *interp_to_inv, *interp_from;
   const CeedScalar *interp_to_source = NULL, *interp_from_source = NULL, *grad_from_source = NULL;
 
   CeedCall(CeedBasisGetDimension(basis_to, &dim));
@@ -243,9 +240,7 @@ static int CeedBasisCreateProjectionMatrices(CeedBasis basis_from, CeedBasis bas
     CeedCall(CeedBasisGetInterp(basis_from, &interp_from_source));
   }
   CeedCall(CeedMalloc(Q * P_from * q_comp, &interp_from));
-  CeedCall(CeedMalloc(Q * P_to * q_comp, &interp_to));
   CeedCall(CeedCalloc(P_to * P_from, interp_project));
-  CeedCall(CeedMalloc(Q * q_comp, &tau));
 
   // `grad_project = interp_to^+ * grad_from` is computed for the H^1 space case so the
   // projection basis will have a gradient operation (allocated even if not H^1 for the
@@ -259,10 +254,9 @@ static int CeedBasisCreateProjectionMatrices(CeedBasis basis_from, CeedBasis bas
   }
   CeedCall(CeedCalloc(P_to * P_from * (is_tensor_to ? 1 : dim), grad_project));
 
-  // QR Factorization, interp_to = Q R
-  memcpy(interp_to, interp_to_source, Q * P_to * q_comp * sizeof(interp_to_source[0]));
-  CeedCall(CeedQRFactorization(ceed, interp_to, tau, Q * q_comp, P_to));
-
+  // Compute interp_to^+, pseudoinverse of interp_to
+  CeedCall(CeedCalloc(Q * q_comp * P_to, &interp_to_inv));
+  CeedCall(CeedMatrixPseudoinverse(ceed, (CeedScalar *)interp_to_source, Q * q_comp, P_to, interp_to_inv));
   // Build matrices
   CeedInt     num_matrices = 1 + (fe_space_to == CEED_FE_SPACE_H1) * (is_tensor_to ? 1 : dim);
   CeedScalar *input_from[num_matrices], *output_project[num_matrices];
@@ -274,26 +268,17 @@ static int CeedBasisCreateProjectionMatrices(CeedBasis basis_from, CeedBasis bas
     output_project[m] = &((*grad_project)[(m - 1) * P_to * P_from]);
   }
   for (CeedInt m = 0; m < num_matrices; m++) {
-    // Apply Q^T, interp_from = Q^T interp_from
+    // output_project = interp_to^+ * interp_from
     memcpy(interp_from, input_from[m], Q * P_from * q_comp * sizeof(input_from[m][0]));
-    CeedCall(CeedHouseholderApplyQ(interp_from, interp_to, tau, CEED_TRANSPOSE, Q * q_comp, P_from, P_to, P_from, 1));
-
-    // Apply Rinv, output_project = Rinv interp_from
-    for (CeedInt j = 0; j < P_from; j++) {  // Column j
-      output_project[m][j + P_from * (P_to - 1)] = interp_from[j + P_from * (P_to - 1)] / interp_to[P_to * P_to - 1];
-      for (CeedInt i = P_to - 2; i >= 0; i--) {  // Row i
-        output_project[m][j + P_from * i] = interp_from[j + P_from * i];
-        for (CeedInt k = i + 1; k < P_to; k++) {
-          output_project[m][j + P_from * i] -= interp_to[k + P_to * i] * output_project[m][j + P_from * k];
-        }
-        output_project[m][j + P_from * i] /= interp_to[i + P_to * i];
-      }
+    CeedCall(CeedMatrixMatrixMultiply(ceed, interp_to_inv, input_from[m], output_project[m], P_to, P_from, Q * q_comp));
+    // Round zero to machine precision
+    for (CeedInt i = 0; i < P_to * P_from; i++) {
+      if (fabs(output_project[m][i]) < 10 * CEED_EPSILON) output_project[m][i] = 0.0;
     }
   }
 
   // Cleanup
-  CeedCall(CeedFree(&tau));
-  CeedCall(CeedFree(&interp_to));
+  CeedCall(CeedFree(&interp_to_inv));
   CeedCall(CeedFree(&interp_from));
   return CEED_ERROR_SUCCESS;
 }
@@ -318,37 +303,20 @@ static int CeedBasisCreateProjectionMatrices(CeedBasis basis_from, CeedBasis bas
 **/
 int CeedBasisGetCollocatedGrad(CeedBasis basis, CeedScalar *collo_grad_1d) {
   Ceed        ceed;
-  CeedInt     P_1d = (basis)->P_1d, Q_1d = (basis)->Q_1d;
-  CeedScalar *interp_1d, *grad_1d, *tau;
-
-  CeedCall(CeedMalloc(Q_1d * P_1d, &interp_1d));
-  CeedCall(CeedMalloc(Q_1d * P_1d, &grad_1d));
-  CeedCall(CeedMalloc(Q_1d, &tau));
-  memcpy(interp_1d, (basis)->interp_1d, Q_1d * P_1d * sizeof(basis)->interp_1d[0]);
-  memcpy(grad_1d, (basis)->grad_1d, Q_1d * P_1d * sizeof(basis)->interp_1d[0]);
-
-  // QR Factorization, interp_1d = Q R
-  CeedCall(CeedBasisGetCeed(basis, &ceed));
-  CeedCall(CeedQRFactorization(ceed, interp_1d, tau, Q_1d, P_1d));
+  CeedInt     P_1d, Q_1d;
+  CeedScalar *interp_1d_pinv;
   // Note: This function is for backend use, so all errors are terminal and we do not need to clean up memory on failure.
+  CeedCall(CeedBasisGetCeed(basis, &ceed));
+  CeedCall(CeedBasisGetNumNodes1D(basis, &P_1d));
+  CeedCall(CeedBasisGetNumQuadraturePoints1D(basis, &Q_1d));
 
-  // Apply R_inv, collo_grad_1d = grad_1d R_inv
-  for (CeedInt i = 0; i < Q_1d; i++) {  // Row i
-    collo_grad_1d[Q_1d * i] = grad_1d[P_1d * i] / interp_1d[0];
-    for (CeedInt j = 1; j < P_1d; j++) {  // Column j
-      collo_grad_1d[j + Q_1d * i] = grad_1d[j + P_1d * i];
-      for (CeedInt k = 0; k < j; k++) collo_grad_1d[j + Q_1d * i] -= interp_1d[j + P_1d * k] * collo_grad_1d[k + Q_1d * i];
-      collo_grad_1d[j + Q_1d * i] /= interp_1d[j + P_1d * j];
-    }
-    for (CeedInt j = P_1d; j < Q_1d; j++) collo_grad_1d[j + Q_1d * i] = 0;
-  }
+  // Compute interp_1d^+, pseudoinverse of interp_1d
+  CeedCall(CeedCalloc(P_1d * Q_1d, &interp_1d_pinv));
 
-  // Apply Q^T, collo_grad_1d = collo_grad_1d Q^T
-  CeedCall(CeedHouseholderApplyQ(collo_grad_1d, interp_1d, tau, CEED_NOTRANSPOSE, Q_1d, Q_1d, P_1d, 1, Q_1d));
+  CeedCall(CeedMatrixPseudoinverse(ceed, basis->interp_1d, Q_1d, P_1d, interp_1d_pinv));
+  CeedCall(CeedMatrixMatrixMultiply(ceed, basis->grad_1d, (const CeedScalar *)interp_1d_pinv, collo_grad_1d, Q_1d, Q_1d, P_1d));
 
-  CeedCall(CeedFree(&interp_1d));
-  CeedCall(CeedFree(&grad_1d));
-  CeedCall(CeedFree(&tau));
+  CeedCall(CeedFree(&interp_1d_pinv));
   return CEED_ERROR_SUCCESS;
 }
 
@@ -696,6 +664,50 @@ int CeedHouseholderApplyQ(CeedScalar *mat_A, const CeedScalar *mat_Q, const Ceed
     CeedCall(CeedHouseholderReflect(&mat_A[i * row], &v[i], tau[i], m - i, n, row, col));
   }
   CeedCall(CeedFree(&v));
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
+  @brief Return pseudoinverse of a matrix
+
+  @param[in]     ceed      Ceed context for error handling
+  @param[in]     mat       Row-major matrix to compute pseudoinverse of
+  @param[in]     m         Number of rows
+  @param[in]     n         Number of columns
+  @param[out]    mat_pinv  Row-major pseudoinverse matrix
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Utility
+**/
+int CeedMatrixPseudoinverse(Ceed ceed, CeedScalar *mat, CeedInt m, CeedInt n, CeedScalar *mat_pinv) {
+  CeedScalar *tau, *I, *mat_copy;
+
+  CeedCall(CeedCalloc(m, &tau));
+  CeedCall(CeedCalloc(m * m, &I));
+  CeedCall(CeedCalloc(m * n, &mat_copy));
+  memcpy(mat_copy, mat, m * n * sizeof mat[0]);
+
+  // QR Factorization, mat = Q R
+  CeedCall(CeedQRFactorization(ceed, mat_copy, tau, m, n));
+
+  // -- Apply Q^T, I = Q^T * I
+  for (CeedInt i = 0; i < m; i++) I[i * m + i] = 1.0;
+  CeedCall(CeedHouseholderApplyQ(I, mat_copy, tau, CEED_TRANSPOSE, m, m, n, m, 1));
+  // -- Apply R_inv, mat_pinv = R_inv * Q^T
+  for (CeedInt j = 0; j < m; j++) {  // Column j
+    mat_pinv[j + m * (n - 1)] = I[j + m * (n - 1)] / mat_copy[n * n - 1];
+    for (CeedInt i = n - 2; i >= 0; i--) {  // Row i
+      mat_pinv[j + m * i] = I[j + m * i];
+      for (CeedInt k = i + 1; k < n; k++) mat_pinv[j + m * i] -= mat_copy[k + n * i] * mat_pinv[j + m * k];
+      mat_pinv[j + m * i] /= mat_copy[i + n * i];
+    }
+  }
+
+  // Cleanup
+  CeedCall(CeedFree(&I));
+  CeedCall(CeedFree(&tau));
+  CeedCall(CeedFree(&mat_copy));
   return CEED_ERROR_SUCCESS;
 }
 
@@ -1525,7 +1537,7 @@ int CeedBasisApplyAtPoints(CeedBasis basis, CeedInt num_points, CeedTransposeMod
   }
   if (!basis->basis_chebyshev) {
     // Build matrix mapping from quadrature point values to Chebyshev coefficients
-    CeedScalar       *tau, *C, *I, *chebyshev_coeffs_1d;
+    CeedScalar       *C, *chebyshev_coeffs_1d_inv;
     const CeedScalar *q_ref_1d;
 
     // Build coefficient matrix
@@ -1535,25 +1547,9 @@ int CeedBasisApplyAtPoints(CeedBasis basis, CeedInt num_points, CeedTransposeMod
     CeedCall(CeedBasisGetQRef(basis, &q_ref_1d));
     for (CeedInt i = 0; i < Q_1d; i++) CeedCall(CeedChebyshevPolynomialsAtPoint(q_ref_1d[i], Q_1d, &C[i * Q_1d]));
 
-    // Inverse of coefficient matrix
-    CeedCall(CeedCalloc(Q_1d * Q_1d, &chebyshev_coeffs_1d));
-    CeedCall(CeedCalloc(Q_1d * Q_1d, &I));
-    CeedCall(CeedCalloc(Q_1d, &tau));
-    // -- QR Factorization, C = Q R
-    CeedCall(CeedQRFactorization(basis->ceed, C, tau, Q_1d, Q_1d));
-    // -- chebyshev_coeffs_1d = R_inv Q^T
-    for (CeedInt i = 0; i < Q_1d; i++) I[i * Q_1d + i] = 1.0;
-    // ---- Apply R_inv, chebyshev_coeffs_1d = I R_inv
-    for (CeedInt i = 0; i < Q_1d; i++) {  // Row i
-      chebyshev_coeffs_1d[Q_1d * i] = I[Q_1d * i] / C[0];
-      for (CeedInt j = 1; j < Q_1d; j++) {  // Column j
-        chebyshev_coeffs_1d[j + Q_1d * i] = I[j + Q_1d * i];
-        for (CeedInt k = 0; k < j; k++) chebyshev_coeffs_1d[j + Q_1d * i] -= C[j + Q_1d * k] * chebyshev_coeffs_1d[k + Q_1d * i];
-        chebyshev_coeffs_1d[j + Q_1d * i] /= C[j + Q_1d * j];
-      }
-    }
-    // ---- Apply Q^T, chebyshev_coeffs_1d = R_inv Q^T
-    CeedCall(CeedHouseholderApplyQ(chebyshev_coeffs_1d, C, tau, CEED_NOTRANSPOSE, Q_1d, Q_1d, Q_1d, 1, Q_1d));
+    // Compute C^+, pseudoinverse of coefficient matrix
+    CeedCall(CeedCalloc(Q_1d * Q_1d, &chebyshev_coeffs_1d_inv));
+    CeedCall(CeedMatrixPseudoinverse(basis->ceed, C, Q_1d, Q_1d, chebyshev_coeffs_1d_inv));
 
     // Build basis mapping from nodes to Chebyshev coefficients
     CeedScalar       *chebyshev_interp_1d, *chebyshev_grad_1d, *chebyshev_q_weight_1d;
@@ -1563,7 +1559,7 @@ int CeedBasisApplyAtPoints(CeedBasis basis, CeedInt num_points, CeedTransposeMod
     CeedCall(CeedCalloc(P_1d * Q_1d, &chebyshev_grad_1d));
     CeedCall(CeedCalloc(Q_1d, &chebyshev_q_weight_1d));
     CeedCall(CeedBasisGetInterp1D(basis, &interp_1d));
-    CeedCall(CeedMatrixMatrixMultiply(basis->ceed, chebyshev_coeffs_1d, interp_1d, chebyshev_interp_1d, Q_1d, P_1d, Q_1d));
+    CeedCall(CeedMatrixMatrixMultiply(basis->ceed, chebyshev_coeffs_1d_inv, interp_1d, chebyshev_interp_1d, Q_1d, P_1d, Q_1d));
 
     CeedCall(CeedVectorCreate(basis->ceed, num_comp * CeedIntPow(Q_1d, dim), &basis->vec_chebyshev));
     CeedCall(CeedBasisCreateTensorH1(basis->ceed, dim, num_comp, P_1d, Q_1d, chebyshev_interp_1d, chebyshev_grad_1d, q_ref_1d, chebyshev_q_weight_1d,
@@ -1571,9 +1567,7 @@ int CeedBasisApplyAtPoints(CeedBasis basis, CeedInt num_points, CeedTransposeMod
 
     // Cleanup
     CeedCall(CeedFree(&C));
-    CeedCall(CeedFree(&chebyshev_coeffs_1d));
-    CeedCall(CeedFree(&I));
-    CeedCall(CeedFree(&tau));
+    CeedCall(CeedFree(&chebyshev_coeffs_1d_inv));
     CeedCall(CeedFree(&chebyshev_interp_1d));
     CeedCall(CeedFree(&chebyshev_grad_1d));
     CeedCall(CeedFree(&chebyshev_q_weight_1d));

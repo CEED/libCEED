@@ -96,9 +96,9 @@ static PetscErrorCode SetupTrainingDataCalculation(Ceed ceed, User user, CeedDat
 
     PetscCallCeed(ceed, CeedOperatorCreate(ceed, qf_multiplicity, NULL, NULL, &op_multiplicity));
     PetscCallCeed(ceed, CeedOperatorSetName(op_multiplicity, "SGS DD Training Inputs - Create Multiplicity Scaling"));
-    PetscCallCeed(ceed, CeedOperatorSetField(op_multiplicity, "multiplicity", ceed_data->elem_restr_q, CEED_BASIS_COLLOCATED, CEED_VECTOR_ACTIVE));
-    PetscCallCeed(
-        ceed, CeedOperatorSetField(op_multiplicity, "inverse multiplicity", elem_restr_inv_multiplicity, CEED_BASIS_COLLOCATED, CEED_VECTOR_ACTIVE));
+    PetscCallCeed(ceed, CeedOperatorSetField(op_multiplicity, "multiplicity", ceed_data->elem_restr_q, CEED_BASIS_NONE, CEED_VECTOR_ACTIVE));
+    PetscCallCeed(ceed,
+                  CeedOperatorSetField(op_multiplicity, "inverse multiplicity", elem_restr_inv_multiplicity, CEED_BASIS_NONE, CEED_VECTOR_ACTIVE));
 
     PetscCallCeed(ceed, CeedOperatorApply(op_multiplicity, multiplicity, inv_multiplicity, CEED_REQUEST_IMMEDIATE));
 
@@ -148,15 +148,13 @@ static PetscErrorCode SetupTrainingDataCalculation(Ceed ceed, User user, CeedDat
 
   PetscCallCeed(ceed, CeedElemRestrictionCreateVector(elem_restr_filtered_state, &filtered_fields, NULL));
   PetscCallCeed(ceed, CeedOperatorCreate(ceed, qf_sgs_dd_train, NULL, NULL, &op_sgs_dd_train));
-  PetscCallCeed(ceed, CeedOperatorSetField(op_sgs_dd_train, "q", elem_restr_filtered_state, CEED_BASIS_COLLOCATED, filtered_fields));
-  PetscCallCeed(ceed,
-                CeedOperatorSetField(op_sgs_dd_train, "velocity product", elem_restr_filtered_velo_prod, CEED_BASIS_COLLOCATED, filtered_fields));
-  PetscCallCeed(ceed, CeedOperatorSetField(op_sgs_dd_train, "gradient velocity", elem_restr_grad_velo, CEED_BASIS_COLLOCATED, CEED_VECTOR_ACTIVE));
-  PetscCallCeed(ceed, CeedOperatorSetField(op_sgs_dd_train, "anisotropy tensor", sgs_dd_train_setup_data->elem_restr_grid_aniso,
-                                           CEED_BASIS_COLLOCATED, sgs_dd_train_setup_data->grid_aniso_ceed));
-  PetscCallCeed(ceed,
-                CeedOperatorSetField(op_sgs_dd_train, "inverse multiplicity", elem_restr_inv_multiplicity, CEED_BASIS_COLLOCATED, inv_multiplicity));
-  PetscCallCeed(ceed, CeedOperatorSetField(op_sgs_dd_train, "training data", elem_restr_sgs_train, CEED_BASIS_COLLOCATED, CEED_VECTOR_ACTIVE));
+  PetscCallCeed(ceed, CeedOperatorSetField(op_sgs_dd_train, "q", elem_restr_filtered_state, CEED_BASIS_NONE, filtered_fields));
+  PetscCallCeed(ceed, CeedOperatorSetField(op_sgs_dd_train, "velocity product", elem_restr_filtered_velo_prod, CEED_BASIS_NONE, filtered_fields));
+  PetscCallCeed(ceed, CeedOperatorSetField(op_sgs_dd_train, "gradient velocity", elem_restr_grad_velo, CEED_BASIS_NONE, CEED_VECTOR_ACTIVE));
+  PetscCallCeed(ceed, CeedOperatorSetField(op_sgs_dd_train, "anisotropy tensor", sgs_dd_train_setup_data->elem_restr_grid_aniso, CEED_BASIS_NONE,
+                                           sgs_dd_train_setup_data->grid_aniso_ceed));
+  PetscCallCeed(ceed, CeedOperatorSetField(op_sgs_dd_train, "inverse multiplicity", elem_restr_inv_multiplicity, CEED_BASIS_NONE, inv_multiplicity));
+  PetscCallCeed(ceed, CeedOperatorSetField(op_sgs_dd_train, "training data", elem_restr_sgs_train, CEED_BASIS_NONE, CEED_VECTOR_ACTIVE));
 
   PetscCall(OperatorApplyContextCreate(sgs_dd_train->filtered_grad_velo_proj->dm, sgs_dd_train->dm_dd_training, ceed, op_sgs_dd_train, NULL, NULL,
                                        NULL, NULL, &sgs_dd_train->op_training_data_calc_ctx));

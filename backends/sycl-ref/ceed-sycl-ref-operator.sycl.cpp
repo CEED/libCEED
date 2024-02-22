@@ -1071,30 +1071,16 @@ static int CeedSingleOperatorAssembleSetup_Sycl(CeedOperator op) {
   CeedCallBackend(CeedGetData(ceed, &sycl_data));
 
   // Kernel setup
-  int elem_per_block   = 1;
-  asmb->elem_per_block = elem_per_block;
-  CeedInt block_size   = elem_size * elem_size * elem_per_block;
-
-  /* CeedInt maxThreadsPerBlock = sycl_data->sycl_device.get_info<sycl::info::device::max_work_group_size>();
-  bool    fallback           = block_size > maxThreadsPerBlock;
-  asmb->fallback             = fallback;
-  if (fallback) {
-    // Use fallback kernel with 1D threadblock
-    block_size         = elem_size * elem_per_block;
-    asmb->block_size_x = elem_size;
-    asmb->block_size_y = 1;
-  } else {  // Use kernel with 2D threadblock
-    asmb->block_size_x = elem_size;
-    asmb->block_size_y = elem_size;
-  }*/
-  asmb->block_size_x   = elem_size;
-  asmb->block_size_y   = elem_size;
-  asmb->num_e_mode_in  = num_e_mode_in;
-  asmb->num_e_mode_out = num_e_mode_out;
-  asmb->num_qpts       = num_qpts;
-  asmb->num_nodes      = elem_size;
-  asmb->block_size     = block_size;
-  asmb->num_comp       = num_comp;
+  int elems_per_block   = 1;
+  asmb->elems_per_block = elems_per_block;
+  asmb->block_size_x    = elem_size;
+  asmb->block_size_y    = elem_size;
+  asmb->num_e_mode_in   = num_e_mode_in;
+  asmb->num_e_mode_out  = num_e_mode_out;
+  asmb->num_qpts        = num_qpts;
+  asmb->num_nodes       = elem_size;
+  asmb->block_size      = elem_size * elem_size * elems_per_block;
+  asmb->num_comp        = num_comp;
 
   // Build 'full' B matrices (not 1D arrays used for tensor-product matrices
   CeedCallBackend(CeedBasisGetInterp(basis_in, &interp_in));
@@ -1250,13 +1236,13 @@ static int CeedOperatorLinearAssembleFallback_Sycl(sycl::queue &sycl_queue, cons
   CeedScalar *B_in, *B_out;
   B_in                        = asmb->d_B_in;
   B_out                       = asmb->d_B_out;
-  const CeedInt elem_per_block = asmb->elem_per_block;
+  const CeedInt elems_per_block = asmb->elems_per_block;
   const CeedInt block_size_x  = asmb->block_size_x;
   const CeedInt block_size_y  = asmb->block_size_y;  // This will be 1 for the fallback kernel
 
-  const CeedInt     grid = num_elem / elem_per_block + ((num_elem / elem_per_block * elem_per_block < num_elem) ? 1 : 0);
-  sycl::range<3>    local_range(block_size_x, block_size_y, elem_per_block);
-  sycl::range<3>    global_range(grid * block_size_x, block_size_y, elem_per_block);
+  const CeedInt     grid = num_elem / elems_per_block + ((num_elem / elems_per_block * elems_per_block < num_elem) ? 1 : 0);
+  sycl::range<3>    local_range(block_size_x, block_size_y, elems_per_block);
+  sycl::range<3>    global_range(grid * block_size_x, block_size_y, elems_per_block);
   sycl::nd_range<3> kernel_range(global_range, local_range);
 
   sycl_queue.parallel_for<CeedOperatorSyclLinearAssembleFallback>(kernel_range, [=](sycl::nd_item<3> work_item) {

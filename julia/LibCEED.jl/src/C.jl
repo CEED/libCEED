@@ -22,7 +22,7 @@ const CEED_REQUEST_ORDERED = Ref{CeedRequest}()
 function __init__()
     # some global variables
     CEED_STRIDES_BACKEND[] = cglobal((:CEED_STRIDES_BACKEND, libceed))
-    CEED_BASIS_NONE[] = unsafe_load(cglobal((:CEED_BASIS_COLLOCATED, libceed), CeedBasis))
+    CEED_BASIS_NONE[] = unsafe_load(cglobal((:CEED_BASIS_NONE, libceed), CeedBasis))
     CEED_VECTOR_ACTIVE[] = unsafe_load(cglobal((:CEED_VECTOR_ACTIVE, libceed), CeedVector))
     CEED_VECTOR_NONE[] = unsafe_load(cglobal((:CEED_VECTOR_NONE, libceed), CeedVector))
     CEED_ELEMRESTRICTION_NONE[] =

@@ -28,7 +28,7 @@ libCEED provides a unified interface, so that users only need to write a single 
 
 (fig-libceed-backends)=
 
-:::{figure} ../../img/libCEEDBackends.png
+:::{figure} ../../img/libCEEDBackends.svg
 The role of libCEED as a lightweight, portable library which provides a low-level API for efficient, specialized implementations.
 libCEED allows different applications to share highly optimized discretization kernels.
 :::
