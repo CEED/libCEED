@@ -35,13 +35,17 @@
   @ref Developer
 **/
 static int CeedQFunctionCreateFallback(Ceed fallback_ceed, CeedQFunction qf, CeedQFunction *qf_fallback) {
-  char *source_path_with_name = NULL;
+  char               *source_path_with_name = NULL;
+  CeedInt             num_input_fields, num_output_fields;
+  Ceed                ceed;
+  CeedQFunctionField *input_fields, *output_fields;
 
   // Check if NULL qf passed in
   if (!qf) return CEED_ERROR_SUCCESS;
 
-  CeedDebug256(qf->ceed, 1, "---------- CeedOperator Fallback ----------\n");
-  CeedDebug(qf->ceed, "Creating fallback CeedQFunction\n");
+  CeedCall(CeedQFunctionGetCeed(qf, &ceed));
+  CeedDebug256(ceed, 1, "---------- CeedOperator Fallback ----------\n");
+  CeedDebug(ceed, "Creating fallback CeedQFunction\n");
 
   if (qf->source_path) {
     size_t path_len = strlen(qf->source_path), name_len = strlen(qf->kernel_name);
@@ -53,18 +57,36 @@ static int CeedQFunctionCreateFallback(Ceed fallback_ceed, CeedQFunction qf, Cee
     CeedCall(CeedCalloc(1, &source_path_with_name));
   }
 
-  CeedCall(CeedQFunctionCreateInterior(fallback_ceed, qf->vec_length, qf->function, source_path_with_name, qf_fallback));
+  {
+    CeedInt           vec_length;
+    CeedQFunctionUser f;
+
+    CeedCall(CeedQFunctionGetVectorLength(qf, &vec_length));
+    CeedCall(CeedQFunctionGetUserFunction(qf, &f));
+    CeedCall(CeedQFunctionCreateInterior(fallback_ceed, vec_length, f, source_path_with_name, qf_fallback));
+  }
   {
     CeedQFunctionContext ctx;
 
     CeedCall(CeedQFunctionGetContext(qf, &ctx));
     CeedCall(CeedQFunctionSetContext(*qf_fallback, ctx));
   }
-  for (CeedInt i = 0; i < qf->num_input_fields; i++) {
-    CeedCall(CeedQFunctionAddInput(*qf_fallback, qf->input_fields[i]->field_name, qf->input_fields[i]->size, qf->input_fields[i]->eval_mode));
+  CeedCall(CeedQFunctionGetFields(qf, &num_input_fields, &input_fields, &num_output_fields, &output_fields));
+  for (CeedInt i = 0; i < num_input_fields; i++) {
+    char        *field_name;
+    CeedInt      size;
+    CeedEvalMode eval_mode;
+
+    CeedCall(CeedQFunctionFieldGetData(input_fields[i], &field_name, &size, &eval_mode));
+    CeedCall(CeedQFunctionAddInput(*qf_fallback, field_name, size, eval_mode));
   }
-  for (CeedInt i = 0; i < qf->num_output_fields; i++) {
-    CeedCall(CeedQFunctionAddOutput(*qf_fallback, qf->output_fields[i]->field_name, qf->output_fields[i]->size, qf->output_fields[i]->eval_mode));
+  for (CeedInt i = 0; i < num_output_fields; i++) {
+    char        *field_name;
+    CeedInt      size;
+    CeedEvalMode eval_mode;
+
+    CeedCall(CeedQFunctionFieldGetData(output_fields[i], &field_name, &size, &eval_mode));
+    CeedCall(CeedQFunctionAddOutput(*qf_fallback, field_name, size, eval_mode));
   }
   CeedCall(CeedFree(&source_path_with_name));
   return CEED_ERROR_SUCCESS;
@@ -80,19 +102,20 @@ static int CeedQFunctionCreateFallback(Ceed fallback_ceed, CeedQFunction qf, Cee
   @ref Developer
 **/
 static int CeedOperatorCreateFallback(CeedOperator op) {
-  Ceed         ceed_fallback;
   bool         is_composite;
+  Ceed         ceed, ceed_fallback;
   CeedOperator op_fallback;
 
   // Check not already created
   if (op->op_fallback) return CEED_ERROR_SUCCESS;
 
   // Fallback Ceed
-  CeedCall(CeedGetOperatorFallbackCeed(op->ceed, &ceed_fallback));
+  CeedCall(CeedOperatorGetCeed(op, &ceed));
+  CeedCall(CeedGetOperatorFallbackCeed(ceed, &ceed_fallback));
   if (!ceed_fallback) return CEED_ERROR_SUCCESS;
 
-  CeedDebug256(op->ceed, 1, "---------- CeedOperator Fallback ----------\n");
-  CeedDebug(op->ceed, "Creating fallback CeedOperator\n");
+  CeedDebug256(ceed, 1, "---------- CeedOperator Fallback ----------\n");
+  CeedDebug(ceed, "Creating fallback CeedOperator\n");
 
   // Clone Op
   CeedCall(CeedOperatorIsComposite(op, &is_composite));
@@ -110,19 +133,32 @@ static int CeedOperatorCreateFallback(CeedOperator op) {
       CeedCall(CeedCompositeOperatorAddSub(op_fallback, op_sub_fallback));
     }
   } else {
-    CeedQFunction qf_fallback = NULL, dqf_fallback = NULL, dqfT_fallback = NULL;
+    CeedInt            num_input_fields, num_output_fields;
+    CeedQFunction      qf_fallback = NULL, dqf_fallback = NULL, dqfT_fallback = NULL;
+    CeedOperatorField *input_fields, *output_fields;
 
     CeedCall(CeedQFunctionCreateFallback(ceed_fallback, op->qf, &qf_fallback));
     CeedCall(CeedQFunctionCreateFallback(ceed_fallback, op->dqf, &dqf_fallback));
     CeedCall(CeedQFunctionCreateFallback(ceed_fallback, op->dqfT, &dqfT_fallback));
     CeedCall(CeedOperatorCreate(ceed_fallback, qf_fallback, dqf_fallback, dqfT_fallback, &op_fallback));
-    for (CeedInt i = 0; i < op->qf->num_input_fields; i++) {
-      CeedCall(CeedOperatorSetField(op_fallback, op->input_fields[i]->field_name, op->input_fields[i]->elem_rstr, op->input_fields[i]->basis,
-                                    op->input_fields[i]->vec));
+    CeedCall(CeedOperatorGetFields(op, &num_input_fields, &input_fields, &num_output_fields, &output_fields));
+    for (CeedInt i = 0; i < num_input_fields; i++) {
+      char               *field_name;
+      CeedVector          vec;
+      CeedElemRestriction rstr;
+      CeedBasis           basis;
+
+      CeedCall(CeedOperatorFieldGetData(input_fields[i], &field_name, &rstr, &basis, &vec));
+      CeedCall(CeedOperatorSetField(op_fallback, field_name, rstr, basis, vec));
     }
-    for (CeedInt i = 0; i < op->qf->num_output_fields; i++) {
-      CeedCall(CeedOperatorSetField(op_fallback, op->output_fields[i]->field_name, op->output_fields[i]->elem_rstr, op->output_fields[i]->basis,
-                                    op->output_fields[i]->vec));
+    for (CeedInt i = 0; i < num_output_fields; i++) {
+      char               *field_name;
+      CeedVector          vec;
+      CeedElemRestriction rstr;
+      CeedBasis           basis;
+
+      CeedCall(CeedOperatorFieldGetData(output_fields[i], &field_name, &rstr, &basis, &vec));
+      CeedCall(CeedOperatorSetField(op_fallback, field_name, rstr, basis, vec));
     }
     CeedCall(CeedQFunctionAssemblyDataReferenceCopy(op->qf_assembled, &op_fallback->qf_assembled));
     // Cleanup
@@ -722,10 +758,12 @@ static int CeedSingleOperatorAssemble(CeedOperator op, CeedInt offset, CeedVecto
 static int CeedSingleOperatorAssemblyCountEntries(CeedOperator op, CeedSize *num_entries) {
   bool                is_composite;
   CeedInt             num_elem_in, elem_size_in, num_comp_in, num_elem_out, elem_size_out, num_comp_out;
+  Ceed                ceed;
   CeedElemRestriction rstr_in, rstr_out;
 
+  CeedCall(CeedOperatorGetCeed(op, &ceed));
   CeedCall(CeedOperatorIsComposite(op, &is_composite));
-  CeedCheck(!is_composite, op->ceed, CEED_ERROR_UNSUPPORTED, "Composite operator not supported");
+  CeedCheck(!is_composite, ceed, CEED_ERROR_UNSUPPORTED, "Composite operator not supported");
 
   CeedCall(CeedOperatorGetActiveElemRestrictions(op, &rstr_in, &rstr_out));
   CeedCall(CeedElemRestrictionGetNumElements(rstr_in, &num_elem_in));
@@ -733,7 +771,7 @@ static int CeedSingleOperatorAssemblyCountEntries(CeedOperator op, CeedSize *num
   CeedCall(CeedElemRestrictionGetNumComponents(rstr_in, &num_comp_in));
   if (rstr_in != rstr_out) {
     CeedCall(CeedElemRestrictionGetNumElements(rstr_out, &num_elem_out));
-    CeedCheck(num_elem_in == num_elem_out, op->ceed, CEED_ERROR_UNSUPPORTED,
+    CeedCheck(num_elem_in == num_elem_out, ceed, CEED_ERROR_UNSUPPORTED,
               "Active input and output operator restrictions must have the same number of elements");
     CeedCall(CeedElemRestrictionGetElementSize(rstr_out, &elem_size_out));
     CeedCall(CeedElemRestrictionGetNumComponents(rstr_out, &num_comp_out));
@@ -766,9 +804,10 @@ static int CeedSingleOperatorMultigridLevel(CeedOperator op_fine, CeedVector p_m
                                             CeedBasis basis_c_to_f, CeedOperator *op_coarse, CeedOperator *op_prolong, CeedOperator *op_restrict) {
   bool                is_composite;
   Ceed                ceed;
-  CeedInt             num_comp;
+  CeedInt             num_comp, num_input_fields, num_output_fields;
   CeedVector          mult_vec         = NULL;
   CeedElemRestriction rstr_p_mult_fine = NULL, rstr_fine = NULL;
+  CeedOperatorField  *input_fields, *output_fields;
 
   CeedCall(CeedOperatorGetCeed(op_fine, &ceed));
 
@@ -778,24 +817,44 @@ static int CeedSingleOperatorMultigridLevel(CeedOperator op_fine, CeedVector p_m
 
   // Coarse Grid
   CeedCall(CeedOperatorCreate(ceed, op_fine->qf, op_fine->dqf, op_fine->dqfT, op_coarse));
+  CeedCall(CeedOperatorGetFields(op_fine, &num_input_fields, &input_fields, &num_output_fields, &output_fields));
   // -- Clone input fields
-  for (CeedInt i = 0; i < op_fine->qf->num_input_fields; i++) {
-    if (op_fine->input_fields[i]->vec == CEED_VECTOR_ACTIVE) {
-      rstr_fine = op_fine->input_fields[i]->elem_rstr;
-      CeedCall(CeedOperatorSetField(*op_coarse, op_fine->input_fields[i]->field_name, rstr_coarse, basis_coarse, CEED_VECTOR_ACTIVE));
+  for (CeedInt i = 0; i < num_input_fields; i++) {
+    char               *field_name;
+    CeedVector          vec;
+    CeedElemRestriction rstr;
+    CeedBasis           basis;
+
+    CeedCall(CeedOperatorFieldGetName(input_fields[i], &field_name));
+    CeedCall(CeedOperatorFieldGetVector(input_fields[i], &vec));
+    if (vec == CEED_VECTOR_ACTIVE) {
+      rstr  = rstr_coarse;
+      basis = basis_coarse;
+      CeedCall(CeedOperatorFieldGetElemRestriction(input_fields[i], &rstr_fine));
     } else {
-      CeedCall(CeedOperatorSetField(*op_coarse, op_fine->input_fields[i]->field_name, op_fine->input_fields[i]->elem_rstr,
-                                    op_fine->input_fields[i]->basis, op_fine->input_fields[i]->vec));
+      CeedCall(CeedOperatorFieldGetElemRestriction(input_fields[i], &rstr));
+      CeedCall(CeedOperatorFieldGetBasis(input_fields[i], &basis));
     }
+    CeedCall(CeedOperatorSetField(*op_coarse, field_name, rstr, basis, vec));
   }
   // -- Clone output fields
-  for (CeedInt i = 0; i < op_fine->qf->num_output_fields; i++) {
-    if (op_fine->output_fields[i]->vec == CEED_VECTOR_ACTIVE) {
-      CeedCall(CeedOperatorSetField(*op_coarse, op_fine->output_fields[i]->field_name, rstr_coarse, basis_coarse, CEED_VECTOR_ACTIVE));
+  for (CeedInt i = 0; i < num_output_fields; i++) {
+    char               *field_name;
+    CeedVector          vec;
+    CeedElemRestriction rstr;
+    CeedBasis           basis;
+
+    CeedCall(CeedOperatorFieldGetName(output_fields[i], &field_name));
+    CeedCall(CeedOperatorFieldGetVector(output_fields[i], &vec));
+    if (vec == CEED_VECTOR_ACTIVE) {
+      rstr  = rstr_coarse;
+      basis = basis_coarse;
+      CeedCall(CeedOperatorFieldGetElemRestriction(output_fields[i], &rstr_fine));
     } else {
-      CeedCall(CeedOperatorSetField(*op_coarse, op_fine->output_fields[i]->field_name, op_fine->output_fields[i]->elem_rstr,
-                                    op_fine->output_fields[i]->basis, op_fine->output_fields[i]->vec));
+      CeedCall(CeedOperatorFieldGetElemRestriction(output_fields[i], &rstr));
+      CeedCall(CeedOperatorFieldGetBasis(output_fields[i], &basis));
     }
+    CeedCall(CeedOperatorSetField(*op_coarse, field_name, rstr, basis, vec));
   }
   // -- Clone QFunctionAssemblyData
   CeedCall(CeedQFunctionAssemblyDataReferenceCopy(op_fine->qf_assembled, &(*op_coarse)->qf_assembled));
@@ -1646,13 +1705,14 @@ int CeedOperatorGetFallback(CeedOperator op, CeedOperator *op_fallback) {
   if (!op->op_fallback) CeedCall(CeedOperatorCreateFallback(op));
   if (op->op_fallback) {
     bool is_debug;
+    Ceed ceed;
 
-    CeedCall(CeedIsDebug(op->ceed, &is_debug));
+    CeedCall(CeedOperatorGetCeed(op, &ceed));
+    CeedCall(CeedIsDebug(ceed, &is_debug));
     if (is_debug) {
-      Ceed        ceed, ceed_fallback;
+      Ceed        ceed_fallback;
       const char *resource, *resource_fallback;
 
-      CeedCall(CeedOperatorGetCeed(op, &ceed));
       CeedCall(CeedGetOperatorFallbackCeed(ceed, &ceed_fallback));
       CeedCall(CeedGetResource(ceed, &resource));
       CeedCall(CeedGetResource(ceed_fallback, &resource_fallback));
@@ -1731,11 +1791,13 @@ int CeedOperatorLinearAssembleQFunction(CeedOperator op, CeedVector *assembled, 
     CeedCall(op->LinearAssembleQFunction(op, assembled, rstr, request));
   } else {
     // Operator fallback
+    Ceed         ceed;
     CeedOperator op_fallback;
 
+    CeedCall(CeedOperatorGetCeed(op, &ceed));
     CeedCall(CeedOperatorGetFallback(op, &op_fallback));
     if (op_fallback) CeedCall(CeedOperatorLinearAssembleQFunction(op_fallback, assembled, rstr, request));
-    else return CeedError(op->ceed, CEED_ERROR_UNSUPPORTED, "Backend does not support CeedOperatorLinearAssembleQFunction");
+    else return CeedError(ceed, CEED_ERROR_UNSUPPORTED, "Backend does not support CeedOperatorLinearAssembleQFunction");
   }
   return CEED_ERROR_SUCCESS;
 }
@@ -1805,11 +1867,13 @@ int CeedOperatorLinearAssembleQFunctionBuildOrUpdate(CeedOperator op, CeedVector
     CeedCall(CeedElemRestrictionDestroy(&assembled_rstr));
   } else {
     // Operator fallback
+    Ceed         ceed;
     CeedOperator op_fallback;
 
+    CeedCall(CeedOperatorGetCeed(op, &ceed));
     CeedCall(CeedOperatorGetFallback(op, &op_fallback));
     if (op_fallback) CeedCall(CeedOperatorLinearAssembleQFunctionBuildOrUpdate(op_fallback, assembled, rstr, request));
-    else return CeedError(op->ceed, CEED_ERROR_UNSUPPORTED, "Backend does not support CeedOperatorLinearAssembleQFunctionUpdate");
+    else return CeedError(ceed, CEED_ERROR_UNSUPPORTED, "Backend does not support CeedOperatorLinearAssembleQFunctionUpdate");
   }
   return CEED_ERROR_SUCCESS;
 }
@@ -1834,12 +1898,14 @@ int CeedOperatorLinearAssembleQFunctionBuildOrUpdate(CeedOperator op, CeedVector
 int CeedOperatorLinearAssembleDiagonal(CeedOperator op, CeedVector assembled, CeedRequest *request) {
   bool     is_composite;
   CeedSize input_size = 0, output_size = 0;
+  Ceed     ceed;
 
+  CeedCall(CeedOperatorGetCeed(op, &ceed));
   CeedCall(CeedOperatorCheckReady(op));
   CeedCall(CeedOperatorIsComposite(op, &is_composite));
 
   CeedCall(CeedOperatorGetActiveVectorLengths(op, &input_size, &output_size));
-  CeedCheck(input_size == output_size, op->ceed, CEED_ERROR_DIMENSION, "Operator must be square");
+  CeedCheck(input_size == output_size, ceed, CEED_ERROR_DIMENSION, "Operator must be square");
 
   // Early exit for empty operator
   if (!is_composite) {
@@ -1894,12 +1960,14 @@ int CeedOperatorLinearAssembleDiagonal(CeedOperator op, CeedVector assembled, Ce
 int CeedOperatorLinearAssembleAddDiagonal(CeedOperator op, CeedVector assembled, CeedRequest *request) {
   bool     is_composite;
   CeedSize input_size = 0, output_size = 0;
+  Ceed     ceed;
 
+  CeedCall(CeedOperatorGetCeed(op, &ceed));
   CeedCall(CeedOperatorCheckReady(op));
   CeedCall(CeedOperatorIsComposite(op, &is_composite));
 
   CeedCall(CeedOperatorGetActiveVectorLengths(op, &input_size, &output_size));
-  CeedCheck(input_size == output_size, op->ceed, CEED_ERROR_DIMENSION, "Operator must be square");
+  CeedCheck(input_size == output_size, ceed, CEED_ERROR_DIMENSION, "Operator must be square");
 
   // Early exit for empty operator
   if (!is_composite) {
@@ -2057,12 +2125,14 @@ int CeedOperatorLinearAssemblePointBlockDiagonalSymbolic(CeedOperator op, CeedSi
 int CeedOperatorLinearAssemblePointBlockDiagonal(CeedOperator op, CeedVector assembled, CeedRequest *request) {
   bool     is_composite;
   CeedSize input_size = 0, output_size = 0;
+  Ceed     ceed;
 
+  CeedCall(CeedOperatorGetCeed(op, &ceed));
   CeedCall(CeedOperatorCheckReady(op));
   CeedCall(CeedOperatorIsComposite(op, &is_composite));
 
   CeedCall(CeedOperatorGetActiveVectorLengths(op, &input_size, &output_size));
-  CeedCheck(input_size == output_size, op->ceed, CEED_ERROR_DIMENSION, "Operator must be square");
+  CeedCheck(input_size == output_size, ceed, CEED_ERROR_DIMENSION, "Operator must be square");
 
   // Early exit for empty operator
   if (!is_composite) {
@@ -2119,12 +2189,14 @@ int CeedOperatorLinearAssemblePointBlockDiagonal(CeedOperator op, CeedVector ass
 int CeedOperatorLinearAssembleAddPointBlockDiagonal(CeedOperator op, CeedVector assembled, CeedRequest *request) {
   bool     is_composite;
   CeedSize input_size = 0, output_size = 0;
+  Ceed     ceed;
 
+  CeedCall(CeedOperatorGetCeed(op, &ceed));
   CeedCall(CeedOperatorCheckReady(op));
   CeedCall(CeedOperatorIsComposite(op, &is_composite));
 
   CeedCall(CeedOperatorGetActiveVectorLengths(op, &input_size, &output_size));
-  CeedCheck(input_size == output_size, op->ceed, CEED_ERROR_DIMENSION, "Operator must be square");
+  CeedCheck(input_size == output_size, ceed, CEED_ERROR_DIMENSION, "Operator must be square");
 
   // Early exit for empty operator
   if (!is_composite) {

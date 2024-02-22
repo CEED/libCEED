@@ -50,8 +50,11 @@ const CeedVector CEED_VECTOR_NONE = &ceed_vector_none;
   @ref Backend
 **/
 int CeedVectorHasValidArray(CeedVector vec, bool *has_valid_array) {
+  CeedSize length;
+
   CeedCheck(vec->HasValidArray, vec->ceed, CEED_ERROR_UNSUPPORTED, "Backend does not support CeedVectorHasValidArray");
-  if (vec->length == 0) {
+  CeedCall(CeedVectorGetLength(vec, &length));
+  if (length == 0) {
     *has_valid_array = true;
     return CEED_ERROR_SUCCESS;
   }
@@ -71,7 +74,10 @@ int CeedVectorHasValidArray(CeedVector vec, bool *has_valid_array) {
   @ref Backend
 **/
 int CeedVectorHasBorrowedArrayOfType(CeedVector vec, CeedMemType mem_type, bool *has_borrowed_array_of_type) {
-  CeedCheck(vec->HasBorrowedArrayOfType, vec->ceed, CEED_ERROR_UNSUPPORTED, "Backend does not support CeedVectorHasBorrowedArrayOfType");
+  Ceed ceed;
+
+  CeedCall(CeedVectorGetCeed(vec, &ceed));
+  CeedCheck(vec->HasBorrowedArrayOfType, ceed, CEED_ERROR_UNSUPPORTED, "Backend does not support CeedVectorHasBorrowedArrayOfType");
   CeedCall(vec->HasBorrowedArrayOfType(vec, mem_type, has_borrowed_array_of_type));
   return CEED_ERROR_SUCCESS;
 }
@@ -250,11 +256,17 @@ int CeedVectorCopy(CeedVector vec, CeedVector vec_copy) {
   @ref User
 **/
 int CeedVectorSetArray(CeedVector vec, CeedMemType mem_type, CeedCopyMode copy_mode, CeedScalar *array) {
-  CeedCheck(vec->SetArray, vec->ceed, CEED_ERROR_UNSUPPORTED, "Backend does not support VectorSetArray");
-  CeedCheck(vec->state % 2 == 0, vec->ceed, CEED_ERROR_ACCESS, "Cannot grant CeedVector array access, the access lock is already in use");
-  CeedCheck(vec->num_readers == 0, vec->ceed, CEED_ERROR_ACCESS, "Cannot grant CeedVector array access, a process has read access");
+  CeedSize length;
+  Ceed     ceed;
 
-  if (vec->length > 0) CeedCall(vec->SetArray(vec, mem_type, copy_mode, array));
+  CeedCall(CeedVectorGetCeed(vec, &ceed));
+
+  CeedCheck(vec->SetArray, ceed, CEED_ERROR_UNSUPPORTED, "Backend does not support VectorSetArray");
+  CeedCheck(vec->state % 2 == 0, ceed, CEED_ERROR_ACCESS, "Cannot grant CeedVector array access, the access lock is already in use");
+  CeedCheck(vec->num_readers == 0, ceed, CEED_ERROR_ACCESS, "Cannot grant CeedVector array access, a process has read access");
+
+  CeedCall(CeedVectorGetLength(vec, &length));
+  if (length > 0) CeedCall(vec->SetArray(vec, mem_type, copy_mode, array));
   vec->state += 2;
   return CEED_ERROR_SUCCESS;
 }
@@ -270,15 +282,21 @@ int CeedVectorSetArray(CeedVector vec, CeedMemType mem_type, CeedCopyMode copy_m
   @ref User
 **/
 int CeedVectorSetValue(CeedVector vec, CeedScalar value) {
-  CeedCheck(vec->state % 2 == 0, vec->ceed, CEED_ERROR_ACCESS, "Cannot grant CeedVector array access, the access lock is already in use");
-  CeedCheck(vec->num_readers == 0, vec->ceed, CEED_ERROR_ACCESS, "Cannot grant CeedVector array access, a process has read access");
+  Ceed ceed;
+
+  CeedCall(CeedVectorGetCeed(vec, &ceed));
+  CeedCheck(vec->state % 2 == 0, ceed, CEED_ERROR_ACCESS, "Cannot grant CeedVector array access, the access lock is already in use");
+  CeedCheck(vec->num_readers == 0, ceed, CEED_ERROR_ACCESS, "Cannot grant CeedVector array access, a process has read access");
 
   if (vec->SetValue) {
     CeedCall(vec->SetValue(vec, value));
   } else {
+    CeedSize    length;
     CeedScalar *array;
+
     CeedCall(CeedVectorGetArrayWrite(vec, CEED_MEM_HOST, &array));
-    for (CeedSize i = 0; i < vec->length; i++) array[i] = value;
+    CeedCall(CeedVectorGetLength(vec, &length));
+    for (CeedSize i = 0; i < length; i++) array[i] = value;
     CeedCall(CeedVectorRestoreArray(vec, &array));
   }
   vec->state += 2;
@@ -299,15 +317,19 @@ int CeedVectorSetValue(CeedVector vec, CeedScalar value) {
   @ref User
 **/
 int CeedVectorSyncArray(CeedVector vec, CeedMemType mem_type) {
+  CeedSize length;
+
   CeedCheck(vec->state % 2 == 0, vec->ceed, CEED_ERROR_ACCESS, "Cannot sync CeedVector, the access lock is already in use");
 
   // Don't sync empty array
-  if (vec->length == 0) return CEED_ERROR_SUCCESS;
+  CeedCall(CeedVectorGetLength(vec, &length));
+  if (length == 0) return CEED_ERROR_SUCCESS;
 
   if (vec->SyncArray) {
     CeedCall(vec->SyncArray(vec, mem_type));
   } else {
     const CeedScalar *array;
+
     CeedCall(CeedVectorGetArrayRead(vec, mem_type, &array));
     CeedCall(CeedVectorRestoreArrayRead(vec, &array));
   }
@@ -330,20 +352,24 @@ int CeedVectorSyncArray(CeedVector vec, CeedMemType mem_type) {
   @ref User
 **/
 int CeedVectorTakeArray(CeedVector vec, CeedMemType mem_type, CeedScalar **array) {
+  CeedSize    length;
   CeedScalar *temp_array = NULL;
+  Ceed        ceed;
 
-  CeedCheck(vec->state % 2 == 0, vec->ceed, CEED_ERROR_ACCESS, "Cannot take CeedVector array, the access lock is already in use");
-  CeedCheck(vec->num_readers == 0, vec->ceed, CEED_ERROR_ACCESS, "Cannot take CeedVector array, a process has read access");
+  CeedCall(CeedVectorGetCeed(vec, &ceed));
+  CeedCheck(vec->state % 2 == 0, ceed, CEED_ERROR_ACCESS, "Cannot take CeedVector array, the access lock is already in use");
+  CeedCheck(vec->num_readers == 0, ceed, CEED_ERROR_ACCESS, "Cannot take CeedVector array, a process has read access");
 
-  if (vec->length > 0) {
-    bool has_borrowed_array_of_type = true;
+  CeedCall(CeedVectorGetLength(vec, &length));
+  if (length > 0) {
+    bool has_borrowed_array_of_type = true, has_valid_array = true;
+
     CeedCall(CeedVectorHasBorrowedArrayOfType(vec, mem_type, &has_borrowed_array_of_type));
-    CeedCheck(has_borrowed_array_of_type, vec->ceed, CEED_ERROR_BACKEND,
-              "CeedVector has no borrowed %s array, must set array with CeedVectorSetArray", CeedMemTypes[mem_type]);
+    CeedCheck(has_borrowed_array_of_type, ceed, CEED_ERROR_BACKEND, "CeedVector has no borrowed %s array, must set array with CeedVectorSetArray",
+              CeedMemTypes[mem_type]);
 
-    bool has_valid_array = true;
     CeedCall(CeedVectorHasValidArray(vec, &has_valid_array));
-    CeedCheck(has_valid_array, vec->ceed, CEED_ERROR_BACKEND,
+    CeedCheck(has_valid_array, ceed, CEED_ERROR_BACKEND,
               "CeedVector has no valid data to take, must set data with CeedVectorSetValue or CeedVectorSetArray");
 
     CeedCall(vec->TakeArray(vec, mem_type, &temp_array));
@@ -370,15 +396,20 @@ int CeedVectorTakeArray(CeedVector vec, CeedMemType mem_type, CeedScalar **array
   @ref User
 **/
 int CeedVectorGetArray(CeedVector vec, CeedMemType mem_type, CeedScalar **array) {
-  CeedCheck(vec->GetArray, vec->ceed, CEED_ERROR_UNSUPPORTED, "Backend does not support GetArray");
-  CeedCheck(vec->state % 2 == 0, vec->ceed, CEED_ERROR_ACCESS, "Cannot grant CeedVector array access, the access lock is already in use");
-  CeedCheck(vec->num_readers == 0, vec->ceed, CEED_ERROR_ACCESS, "Cannot grant CeedVector array access, a process has read access");
+  CeedSize length;
+  Ceed     ceed;
 
-  if (vec->length > 0) {
+  CeedCall(CeedVectorGetCeed(vec, &ceed));
+  CeedCheck(vec->GetArray, ceed, CEED_ERROR_UNSUPPORTED, "Backend does not support GetArray");
+  CeedCheck(vec->state % 2 == 0, ceed, CEED_ERROR_ACCESS, "Cannot grant CeedVector array access, the access lock is already in use");
+  CeedCheck(vec->num_readers == 0, ceed, CEED_ERROR_ACCESS, "Cannot grant CeedVector array access, a process has read access");
+
+  CeedCall(CeedVectorGetLength(vec, &length));
+  if (length > 0) {
     bool has_valid_array = true;
 
     CeedCall(CeedVectorHasValidArray(vec, &has_valid_array));
-    CeedCheck(has_valid_array, vec->ceed, CEED_ERROR_BACKEND,
+    CeedCheck(has_valid_array, ceed, CEED_ERROR_BACKEND,
               "CeedVector has no valid data to read, must set data with CeedVectorSetValue or CeedVectorSetArray");
 
     CeedCall(vec->GetArray(vec, mem_type, array));
@@ -404,14 +435,19 @@ int CeedVectorGetArray(CeedVector vec, CeedMemType mem_type, CeedScalar **array)
   @ref User
 **/
 int CeedVectorGetArrayRead(CeedVector vec, CeedMemType mem_type, const CeedScalar **array) {
-  CeedCheck(vec->GetArrayRead, vec->ceed, CEED_ERROR_UNSUPPORTED, "Backend does not support GetArrayRead");
-  CeedCheck(vec->state % 2 == 0, vec->ceed, CEED_ERROR_ACCESS, "Cannot grant CeedVector read-only array access, the access lock is already in use");
+  CeedSize length;
+  Ceed     ceed;
 
-  if (vec->length > 0) {
+  CeedCall(CeedVectorGetCeed(vec, &ceed));
+  CeedCheck(vec->GetArrayRead, ceed, CEED_ERROR_UNSUPPORTED, "Backend does not support GetArrayRead");
+  CeedCheck(vec->state % 2 == 0, ceed, CEED_ERROR_ACCESS, "Cannot grant CeedVector read-only array access, the access lock is already in use");
+
+  CeedCall(CeedVectorGetLength(vec, &length));
+  if (length > 0) {
     bool has_valid_array = true;
 
     CeedCall(CeedVectorHasValidArray(vec, &has_valid_array));
-    CeedCheck(has_valid_array, vec->ceed, CEED_ERROR_BACKEND,
+    CeedCheck(has_valid_array, ceed, CEED_ERROR_BACKEND,
               "CeedVector has no valid data to read, must set data with CeedVectorSetValue or CeedVectorSetArray");
 
     CeedCall(vec->GetArrayRead(vec, mem_type, array));
@@ -437,11 +473,16 @@ int CeedVectorGetArrayRead(CeedVector vec, CeedMemType mem_type, const CeedScala
   @ref User
 **/
 int CeedVectorGetArrayWrite(CeedVector vec, CeedMemType mem_type, CeedScalar **array) {
-  CeedCheck(vec->GetArrayWrite, vec->ceed, CEED_ERROR_UNSUPPORTED, "Backend does not support CeedVectorGetArrayWrite");
-  CeedCheck(vec->state % 2 == 0, vec->ceed, CEED_ERROR_ACCESS, "Cannot grant CeedVector array access, the access lock is already in use");
-  CeedCheck(vec->num_readers == 0, vec->ceed, CEED_ERROR_ACCESS, "Cannot grant CeedVector array access, a process has read access");
+  CeedSize length;
+  Ceed     ceed;
 
-  if (vec->length > 0) {
+  CeedCall(CeedVectorGetCeed(vec, &ceed));
+  CeedCheck(vec->GetArrayWrite, ceed, CEED_ERROR_UNSUPPORTED, "Backend does not support CeedVectorGetArrayWrite");
+  CeedCheck(vec->state % 2 == 0, ceed, CEED_ERROR_ACCESS, "Cannot grant CeedVector array access, the access lock is already in use");
+  CeedCheck(vec->num_readers == 0, ceed, CEED_ERROR_ACCESS, "Cannot grant CeedVector array access, a process has read access");
+
+  CeedCall(CeedVectorGetLength(vec, &length));
+  if (length > 0) {
     CeedCall(vec->GetArrayWrite(vec, mem_type, array));
   } else {
     *array = NULL;
@@ -461,8 +502,13 @@ int CeedVectorGetArrayWrite(CeedVector vec, CeedMemType mem_type, CeedScalar **a
   @ref User
 **/
 int CeedVectorRestoreArray(CeedVector vec, CeedScalar **array) {
-  CeedCheck(vec->state % 2 == 1, vec->ceed, CEED_ERROR_ACCESS, "Cannot restore CeedVector array access, access was not granted");
-  if (vec->length > 0 && vec->RestoreArray) CeedCall(vec->RestoreArray(vec));
+  CeedSize length;
+  Ceed     ceed;
+
+  CeedCall(CeedVectorGetCeed(vec, &ceed));
+  CeedCheck(vec->state % 2 == 1, ceed, CEED_ERROR_ACCESS, "Cannot restore CeedVector array access, access was not granted");
+  CeedCall(CeedVectorGetLength(vec, &length));
+  if (length > 0 && vec->RestoreArray) CeedCall(vec->RestoreArray(vec));
   *array = NULL;
   vec->state++;
   return CEED_ERROR_SUCCESS;
@@ -479,10 +525,15 @@ int CeedVectorRestoreArray(CeedVector vec, CeedScalar **array) {
   @ref User
 **/
 int CeedVectorRestoreArrayRead(CeedVector vec, const CeedScalar **array) {
-  CeedCheck(vec->num_readers > 0, vec->ceed, CEED_ERROR_ACCESS, "Cannot restore CeedVector array read access, access was not granted");
+  CeedSize length;
+  Ceed     ceed;
+
+  CeedCall(CeedVectorGetCeed(vec, &ceed));
+  CeedCheck(vec->num_readers > 0, ceed, CEED_ERROR_ACCESS, "Cannot restore CeedVector array read access, access was not granted");
 
   vec->num_readers--;
-  if (vec->length > 0 && vec->num_readers == 0 && vec->RestoreArrayRead) CeedCall(vec->RestoreArrayRead(vec));
+  CeedCall(CeedVectorGetLength(vec, &length));
+  if (length > 0 && vec->num_readers == 0 && vec->RestoreArrayRead) CeedCall(vec->RestoreArrayRead(vec));
   *array = NULL;
   return CEED_ERROR_SUCCESS;
 }
@@ -502,12 +553,17 @@ int CeedVectorRestoreArrayRead(CeedVector vec, const CeedScalar **array) {
   @ref User
 **/
 int CeedVectorNorm(CeedVector vec, CeedNormType norm_type, CeedScalar *norm) {
-  bool has_valid_array = true;
+  bool     has_valid_array = true;
+  CeedSize length;
+  Ceed     ceed;
+
+  CeedCall(CeedVectorGetCeed(vec, &ceed));
   CeedCall(CeedVectorHasValidArray(vec, &has_valid_array));
-  CeedCheck(has_valid_array, vec->ceed, CEED_ERROR_BACKEND,
+  CeedCheck(has_valid_array, ceed, CEED_ERROR_BACKEND,
             "CeedVector has no valid data to compute norm, must set data with CeedVectorSetValue or CeedVectorSetArray");
 
-  if (vec->length == 0) {
+  CeedCall(CeedVectorGetLength(vec, &length));
+  if (length == 0) {
     *norm = 0;
     return CEED_ERROR_SUCCESS;
   }
@@ -525,17 +581,17 @@ int CeedVectorNorm(CeedVector vec, CeedNormType norm_type, CeedScalar *norm) {
   *norm = 0.;
   switch (norm_type) {
     case CEED_NORM_1:
-      for (CeedSize i = 0; i < vec->length; i++) {
+      for (CeedSize i = 0; i < length; i++) {
         *norm += fabs(array[i]);
       }
       break;
     case CEED_NORM_2:
-      for (CeedSize i = 0; i < vec->length; i++) {
+      for (CeedSize i = 0; i < length; i++) {
         *norm += fabs(array[i]) * fabs(array[i]);
       }
       break;
     case CEED_NORM_MAX:
-      for (CeedSize i = 0; i < vec->length; i++) {
+      for (CeedSize i = 0; i < length; i++) {
         const CeedScalar abs_v_i = fabs(array[i]);
         *norm                    = *norm > abs_v_i ? *norm : abs_v_i;
       }
@@ -557,18 +613,19 @@ int CeedVectorNorm(CeedVector vec, CeedNormType norm_type, CeedScalar *norm) {
   @ref User
 **/
 int CeedVectorScale(CeedVector x, CeedScalar alpha) {
-  CeedScalar *x_array = NULL;
-  CeedSize    n_x;
   bool        has_valid_array = true;
+  CeedSize    length;
+  CeedScalar *x_array = NULL;
+  Ceed        ceed;
 
+  CeedCall(CeedVectorGetCeed(x, &ceed));
   CeedCall(CeedVectorHasValidArray(x, &has_valid_array));
-  CeedCheck(has_valid_array, x->ceed, CEED_ERROR_BACKEND,
+  CeedCheck(has_valid_array, ceed, CEED_ERROR_BACKEND,
             "CeedVector has no valid data to scale, must set data with CeedVectorSetValue or CeedVectorSetArray");
 
-  CeedCall(CeedVectorGetLength(x, &n_x));
-
   // Return early for empty vector
-  if (n_x == 0) return CEED_ERROR_SUCCESS;
+  CeedCall(CeedVectorGetLength(x, &length));
+  if (length == 0) return CEED_ERROR_SUCCESS;
 
   // Backend implementation
   if (x->Scale) return x->Scale(x, alpha);
@@ -576,7 +633,7 @@ int CeedVectorScale(CeedVector x, CeedScalar alpha) {
   // Default implementation
   CeedCall(CeedVectorGetArray(x, CEED_MEM_HOST, &x_array));
   assert(x_array);
-  for (CeedSize i = 0; i < n_x; i++) x_array[i] *= alpha;
+  for (CeedSize i = 0; i < length; i++) x_array[i] *= alpha;
   CeedCall(CeedVectorRestoreArray(x, &x_array));
   return CEED_ERROR_SUCCESS;
 }
@@ -593,30 +650,31 @@ int CeedVectorScale(CeedVector x, CeedScalar alpha) {
   @ref User
 **/
 int CeedVectorAXPY(CeedVector y, CeedScalar alpha, CeedVector x) {
-  Ceed              ceed_parent_x, ceed_parent_y;
+  bool              has_valid_array_x = true, has_valid_array_y = true;
+  CeedSize          length_x, length_y;
   CeedScalar       *y_array = NULL;
   CeedScalar const *x_array = NULL;
-  CeedSize          n_x, n_y;
-  bool              has_valid_array_x = true, has_valid_array_y = true;
+  Ceed              ceed, ceed_parent_x, ceed_parent_y;
 
-  CeedCall(CeedVectorGetLength(y, &n_y));
-  CeedCall(CeedVectorGetLength(x, &n_x));
-  CeedCheck(n_x == n_y, y->ceed, CEED_ERROR_UNSUPPORTED, "Cannot add vector of different lengths");
-  CeedCheck(x != y, y->ceed, CEED_ERROR_UNSUPPORTED, "Cannot use same vector for x and y in CeedVectorAXPY");
+  CeedCall(CeedVectorGetCeed(y, &ceed));
+  CeedCall(CeedVectorGetLength(y, &length_y));
+  CeedCall(CeedVectorGetLength(x, &length_x));
+  CeedCheck(length_x == length_y, ceed, CEED_ERROR_UNSUPPORTED, "Cannot add vector of different lengths");
+  CeedCheck(x != y, ceed, CEED_ERROR_UNSUPPORTED, "Cannot use same vector for x and y in CeedVectorAXPY");
 
   CeedCall(CeedVectorHasValidArray(x, &has_valid_array_x));
-  CeedCheck(has_valid_array_x, x->ceed, CEED_ERROR_BACKEND,
+  CeedCheck(has_valid_array_x, ceed, CEED_ERROR_BACKEND,
             "CeedVector x has no valid data, must set data with CeedVectorSetValue or CeedVectorSetArray");
   CeedCall(CeedVectorHasValidArray(y, &has_valid_array_y));
-  CeedCheck(has_valid_array_y, y->ceed, CEED_ERROR_BACKEND,
+  CeedCheck(has_valid_array_y, ceed, CEED_ERROR_BACKEND,
             "CeedVector y has no valid data, must set data with CeedVectorSetValue or CeedVectorSetArray");
 
   CeedCall(CeedGetParent(x->ceed, &ceed_parent_x));
   CeedCall(CeedGetParent(y->ceed, &ceed_parent_y));
-  CeedCheck(ceed_parent_x == ceed_parent_y, y->ceed, CEED_ERROR_INCOMPATIBLE, "Vectors x and y must be created by the same Ceed context");
+  CeedCheck(ceed_parent_x == ceed_parent_y, ceed, CEED_ERROR_INCOMPATIBLE, "Vectors x and y must be created by the same Ceed context");
 
   // Return early for empty vectors
-  if (n_y == 0) return CEED_ERROR_SUCCESS;
+  if (length_y == 0) return CEED_ERROR_SUCCESS;
 
   // Backend implementation
   if (y->AXPY) {
@@ -631,7 +689,7 @@ int CeedVectorAXPY(CeedVector y, CeedScalar alpha, CeedVector x) {
   assert(x_array);
   assert(y_array);
 
-  for (CeedSize i = 0; i < n_y; i++) y_array[i] += alpha * x_array[i];
+  for (CeedSize i = 0; i < length_y; i++) y_array[i] += alpha * x_array[i];
 
   CeedCall(CeedVectorRestoreArray(y, &y_array));
   CeedCall(CeedVectorRestoreArrayRead(x, &x_array));
@@ -651,30 +709,32 @@ int CeedVectorAXPY(CeedVector y, CeedScalar alpha, CeedVector x) {
   @ref User
 **/
 int CeedVectorAXPBY(CeedVector y, CeedScalar alpha, CeedScalar beta, CeedVector x) {
-  Ceed              ceed_parent_x, ceed_parent_y;
+  bool              has_valid_array_x = true, has_valid_array_y = true;
+  CeedSize          length_x, length_y;
   CeedScalar       *y_array = NULL;
   CeedScalar const *x_array = NULL;
-  CeedSize          n_x, n_y;
-  bool              has_valid_array_x = true, has_valid_array_y = true;
+  Ceed              ceed, ceed_parent_x, ceed_parent_y;
 
-  CeedCall(CeedVectorGetLength(y, &n_y));
-  CeedCall(CeedVectorGetLength(x, &n_x));
-  CeedCheck(n_x == n_y, y->ceed, CEED_ERROR_UNSUPPORTED, "Cannot add vector of different lengths");
-  CeedCheck(x != y, y->ceed, CEED_ERROR_UNSUPPORTED, "Cannot use same vector for x and y in CeedVectorAXPBY");
+  CeedCall(CeedVectorGetCeed(y, &ceed));
+
+  CeedCall(CeedVectorGetLength(y, &length_y));
+  CeedCall(CeedVectorGetLength(x, &length_x));
+  CeedCheck(length_x == length_y, ceed, CEED_ERROR_UNSUPPORTED, "Cannot add vector of different lengths");
+  CeedCheck(x != y, ceed, CEED_ERROR_UNSUPPORTED, "Cannot use same vector for x and y in CeedVectorAXPBY");
 
   CeedCall(CeedVectorHasValidArray(x, &has_valid_array_x));
-  CeedCheck(has_valid_array_x, x->ceed, CEED_ERROR_BACKEND,
+  CeedCheck(has_valid_array_x, ceed, CEED_ERROR_BACKEND,
             "CeedVector x has no valid data, must set data with CeedVectorSetValue or CeedVectorSetArray");
   CeedCall(CeedVectorHasValidArray(y, &has_valid_array_y));
-  CeedCheck(has_valid_array_y, y->ceed, CEED_ERROR_BACKEND,
+  CeedCheck(has_valid_array_y, ceed, CEED_ERROR_BACKEND,
             "CeedVector y has no valid data, must set data with CeedVectorSetValue or CeedVectorSetArray");
 
   CeedCall(CeedGetParent(x->ceed, &ceed_parent_x));
   CeedCall(CeedGetParent(y->ceed, &ceed_parent_y));
-  CeedCheck(ceed_parent_x == ceed_parent_y, y->ceed, CEED_ERROR_INCOMPATIBLE, "Vectors x and y must be created by the same Ceed context");
+  CeedCheck(ceed_parent_x == ceed_parent_y, ceed, CEED_ERROR_INCOMPATIBLE, "Vectors x and y must be created by the same Ceed context");
 
   // Return early for empty vectors
-  if (n_y == 0) return CEED_ERROR_SUCCESS;
+  if (length_y == 0) return CEED_ERROR_SUCCESS;
 
   // Backend implementation
   if (y->AXPBY) {
@@ -689,7 +749,7 @@ int CeedVectorAXPBY(CeedVector y, CeedScalar alpha, CeedScalar beta, CeedVector 
   assert(x_array);
   assert(y_array);
 
-  for (CeedSize i = 0; i < n_y; i++) y_array[i] = alpha * x_array[i] + beta * y_array[i];
+  for (CeedSize i = 0; i < length_y; i++) y_array[i] = alpha * x_array[i] + beta * y_array[i];
 
   CeedCall(CeedVectorRestoreArray(y, &y_array));
   CeedCall(CeedVectorRestoreArrayRead(x, &x_array));
@@ -710,32 +770,33 @@ int CeedVectorAXPBY(CeedVector y, CeedScalar alpha, CeedScalar beta, CeedVector 
   @ref User
 **/
 int CeedVectorPointwiseMult(CeedVector w, CeedVector x, CeedVector y) {
-  Ceed              ceed_parent_w, ceed_parent_x, ceed_parent_y;
+  bool              has_valid_array_x = true, has_valid_array_y = true;
   CeedScalar       *w_array = NULL;
   CeedScalar const *x_array = NULL, *y_array = NULL;
-  CeedSize          n_w, n_x, n_y;
-  bool              has_valid_array_x = true, has_valid_array_y = true;
+  CeedSize          length_w, length_x, length_y;
+  Ceed              ceed, ceed_parent_w, ceed_parent_x, ceed_parent_y;
 
-  CeedCall(CeedVectorGetLength(w, &n_w));
-  CeedCall(CeedVectorGetLength(x, &n_x));
-  CeedCall(CeedVectorGetLength(y, &n_y));
-  CeedCheck(n_w == n_x && n_w == n_y, w->ceed, CEED_ERROR_UNSUPPORTED, "Cannot multiply vectors of different lengths");
+  CeedCall(CeedVectorGetCeed(w, &ceed));
+  CeedCall(CeedVectorGetLength(w, &length_w));
+  CeedCall(CeedVectorGetLength(x, &length_x));
+  CeedCall(CeedVectorGetLength(y, &length_y));
+  CeedCheck(length_w == length_x && length_w == length_y, ceed, CEED_ERROR_UNSUPPORTED, "Cannot multiply vectors of different lengths");
 
   CeedCall(CeedGetParent(w->ceed, &ceed_parent_w));
   CeedCall(CeedGetParent(x->ceed, &ceed_parent_x));
   CeedCall(CeedGetParent(y->ceed, &ceed_parent_y));
-  CeedCheck(ceed_parent_w == ceed_parent_x && ceed_parent_w == ceed_parent_y, w->ceed, CEED_ERROR_INCOMPATIBLE,
+  CeedCheck(ceed_parent_w == ceed_parent_x && ceed_parent_w == ceed_parent_y, ceed, CEED_ERROR_INCOMPATIBLE,
             "Vectors w, x, and y must be created by the same Ceed context");
 
   CeedCall(CeedVectorHasValidArray(x, &has_valid_array_x));
-  CeedCheck(has_valid_array_x, x->ceed, CEED_ERROR_BACKEND,
+  CeedCheck(has_valid_array_x, ceed, CEED_ERROR_BACKEND,
             "CeedVector x has no valid data, must set data with CeedVectorSetValue or CeedVectorSetArray");
   CeedCall(CeedVectorHasValidArray(y, &has_valid_array_y));
-  CeedCheck(has_valid_array_y, y->ceed, CEED_ERROR_BACKEND,
+  CeedCheck(has_valid_array_y, ceed, CEED_ERROR_BACKEND,
             "CeedVector y has no valid data, must set data with CeedVectorSetValue or CeedVectorSetArray");
 
   // Return early for empty vectors
-  if (n_w == 0) return CEED_ERROR_SUCCESS;
+  if (length_w == 0) return CEED_ERROR_SUCCESS;
 
   // Backend implementation
   if (w->PointwiseMult) {
@@ -766,7 +827,7 @@ int CeedVectorPointwiseMult(CeedVector w, CeedVector x, CeedVector y) {
   assert(x_array);
   assert(y_array);
 
-  for (CeedSize i = 0; i < n_w; i++) w_array[i] = x_array[i] * y_array[i];
+  for (CeedSize i = 0; i < length_w; i++) w_array[i] = x_array[i] * y_array[i];
 
   if (y != w && y != x) CeedCall(CeedVectorRestoreArrayRead(y, &y_array));
   if (x != w) CeedCall(CeedVectorRestoreArrayRead(x, &x_array));
@@ -784,19 +845,22 @@ int CeedVectorPointwiseMult(CeedVector w, CeedVector x, CeedVector y) {
   @ref User
 **/
 int CeedVectorReciprocal(CeedVector vec) {
-  CeedSize    len;
-  CeedScalar *array;
   bool        has_valid_array = true;
+  CeedSize    length;
+  CeedScalar *array;
+  Ceed        ceed;
 
+  CeedCall(CeedVectorGetCeed(vec, &ceed));
   CeedCall(CeedVectorHasValidArray(vec, &has_valid_array));
-  CeedCheck(has_valid_array, vec->ceed, CEED_ERROR_BACKEND,
+  CeedCheck(has_valid_array, ceed, CEED_ERROR_BACKEND,
             "CeedVector has no valid data to compute reciprocal, must set data with CeedVectorSetValue or CeedVectorSetArray");
 
   // Check if vector data set
-  CeedCheck(vec->state > 0, vec->ceed, CEED_ERROR_INCOMPLETE, "CeedVector must have data set to take reciprocal");
+  CeedCheck(vec->state > 0, ceed, CEED_ERROR_INCOMPLETE, "CeedVector must have data set to take reciprocal");
 
   // Return early for empty vector
-  if (vec->length == 0) return CEED_ERROR_SUCCESS;
+  CeedCall(CeedVectorGetLength(vec, &length));
+  if (length == 0) return CEED_ERROR_SUCCESS;
 
   // Backend impl for GPU, if added
   if (vec->Reciprocal) {
@@ -804,9 +868,8 @@ int CeedVectorReciprocal(CeedVector vec) {
     return CEED_ERROR_SUCCESS;
   }
 
-  CeedCall(CeedVectorGetLength(vec, &len));
   CeedCall(CeedVectorGetArray(vec, CEED_MEM_HOST, &array));
-  for (CeedSize i = 0; i < len; i++) {
+  for (CeedSize i = 0; i < length; i++) {
     if (fabs(array[i]) > CEED_EPSILON) array[i] = 1. / array[i];
   }
 
@@ -832,23 +895,27 @@ int CeedVectorReciprocal(CeedVector vec) {
   @ref User
 **/
 int CeedVectorViewRange(CeedVector vec, CeedSize start, CeedSize stop, CeedInt step, const char *fp_fmt, FILE *stream) {
-  const CeedScalar *x;
   char              fmt[1024];
+  CeedSize          length;
+  const CeedScalar *x;
+  Ceed              ceed;
 
-  CeedCheck(step != 0, vec->ceed, CEED_ERROR_MINOR, "View range 'step' must be nonzero");
+  CeedCall(CeedVectorGetCeed(vec, &ceed));
+  CeedCheck(step != 0, ceed, CEED_ERROR_MINOR, "View range 'step' must be nonzero");
 
-  fprintf(stream, "CeedVector length %" CeedSize_FMT "\n", (long)vec->length);
-  if (start != 0 || stop != vec->length || step != 1) {
-    fprintf(stream, "  start: %" CeedSize_FMT "\n  stop:  %" CeedSize_FMT "\n  step:  %" CeedInt_FMT "\n", (long)start, (long)stop, step);
+  CeedCall(CeedVectorGetLength(vec, &length));
+  fprintf(stream, "CeedVector length %" CeedSize_FMT "\n", length);
+  if (start != 0 || stop != length || step != 1) {
+    fprintf(stream, "  start: %" CeedSize_FMT "\n  stop:  %" CeedSize_FMT "\n  step:  %" CeedInt_FMT "\n", start, stop, step);
   }
-  if (start > vec->length) start = vec->length;
-  if (stop > vec->length) stop = vec->length;
+  if (start > length) start = length;
+  if (stop > length) stop = length;
 
   snprintf(fmt, sizeof fmt, "  %s\n", fp_fmt ? fp_fmt : "%g");
   CeedCall(CeedVectorGetArrayRead(vec, CEED_MEM_HOST, &x));
   for (CeedSize i = start; step > 0 ? (i < stop) : (i > stop); i += step) fprintf(stream, fmt, x[i]);
   CeedCall(CeedVectorRestoreArrayRead(vec, &x));
-  if (stop != vec->length) fprintf(stream, "  ...\n");
+  if (stop != length) fprintf(stream, "  ...\n");
   return CEED_ERROR_SUCCESS;
 }
 
@@ -864,7 +931,10 @@ int CeedVectorViewRange(CeedVector vec, CeedSize start, CeedSize stop, CeedInt s
   @ref User
 **/
 int CeedVectorView(CeedVector vec, const char *fp_fmt, FILE *stream) {
-  CeedCall(CeedVectorViewRange(vec, 0, vec->length, 1, fp_fmt, stream));
+  CeedSize length;
+
+  CeedCall(CeedVectorGetLength(vec, &length));
+  CeedCall(CeedVectorViewRange(vec, 0, length, 1, fp_fmt, stream));
   return CEED_ERROR_SUCCESS;
 }
 

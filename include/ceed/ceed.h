@@ -360,6 +360,7 @@ CEED_EXTERN int CeedQFunctionDestroy(CeedQFunction *qf);
 CEED_EXTERN int CeedQFunctionFieldGetName(CeedQFunctionField qf_field, char **field_name);
 CEED_EXTERN int CeedQFunctionFieldGetSize(CeedQFunctionField qf_field, CeedInt *size);
 CEED_EXTERN int CeedQFunctionFieldGetEvalMode(CeedQFunctionField qf_field, CeedEvalMode *eval_mode);
+CEED_EXTERN int CeedQFunctionFieldGetData(CeedQFunctionField qf_field, char **field_name, CeedInt *size, CeedEvalMode *eval_mode);
 
 /** Handle for the user provided @ref CeedQFunctionContextDestroy() callback function
 
@@ -458,6 +459,7 @@ CEED_EXTERN int CeedOperatorFieldGetName(CeedOperatorField op_field, char **fiel
 CEED_EXTERN int CeedOperatorFieldGetElemRestriction(CeedOperatorField op_field, CeedElemRestriction *rstr);
 CEED_EXTERN int CeedOperatorFieldGetBasis(CeedOperatorField op_field, CeedBasis *basis);
 CEED_EXTERN int CeedOperatorFieldGetVector(CeedOperatorField op_field, CeedVector *vec);
+CEED_EXTERN int CeedOperatorFieldGetData(CeedOperatorField op_field, char **field_name, CeedElemRestriction *rstr, CeedBasis *basis, CeedVector *vec);
 
 /**
   @brief Return integer power
