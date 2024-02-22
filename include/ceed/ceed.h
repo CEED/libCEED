@@ -403,6 +403,7 @@ CEED_EXTERN int CeedOperatorGetFields(CeedOperator op, CeedInt *num_input_fields
 
 CEED_EXTERN int CeedOperatorAtPointsSetPoints(CeedOperator op, CeedElemRestriction rstr_points, CeedVector point_coords);
 CEED_EXTERN int CeedOperatorAtPointsGetPoints(CeedOperator op, CeedElemRestriction *rstr_points, CeedVector *point_coords);
+CEED_EXTERN int CeedOperatorIsAtPoints(CeedOperator op, bool *is_at_points);
 CEED_EXTERN int CeedCompositeOperatorAddSub(CeedOperator composite_op, CeedOperator sub_op);
 CEED_EXTERN int CeedCompositeOperatorGetNumSub(CeedOperator op, CeedInt *num_suboperators);
 CEED_EXTERN int CeedCompositeOperatorGetSubList(CeedOperator op, CeedOperator **sub_operators);

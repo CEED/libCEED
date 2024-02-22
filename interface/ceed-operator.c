@@ -916,6 +916,21 @@ int CeedOperatorAtPointsSetPoints(CeedOperator op, CeedElemRestriction rstr_poin
 }
 
 /**
+  @brief Get a boolean value indicating if the `CeedOperator` was created with `CeedOperatorCreateAtPoints`
+    
+  @param[in]  op           `CeedOperator`
+  @param[out] is_at_points Variable to store at points status
+  
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref User
+**/
+int CeedOperatorIsAtPoints(CeedOperator op, bool *is_at_points) {
+  *is_at_points = op->is_at_points;
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
   @brief Get the arbitrary points in each element for a `CeedOperator` at points.
 
   Note: Calling this function asserts that setup is complete and sets the `CeedOperator` as immutable.
