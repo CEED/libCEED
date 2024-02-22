@@ -234,7 +234,7 @@ PetscErrorCode SGS_DD_TrainingSetup(Ceed ceed, User user, CeedData ceed_data, Pr
       array_info[5] = rank;
 
       PetscCall(PetscLogEventBegin(SmartRedis_Meta, 0, 0, 0, 0));
-      SmartRedisCall(put_tensor(smartsim->client, "sizeInfo", 8, array_info, &array_info_dim, 1, SRTensorTypeInt64, SRMemLayoutContiguous));
+      PetscSmartRedisCall(put_tensor(smartsim->client, "sizeInfo", 8, array_info, &array_info_dim, 1, SRTensorTypeInt64, SRMemLayoutContiguous));
       PetscCall(SmartRedisVerifyPutTensor(smartsim->client, "sizeInfo", 8));
       PetscCall(PetscLogEventEnd(SmartRedis_Meta, 0, 0, 0, 0));
 
@@ -242,7 +242,7 @@ PetscErrorCode SGS_DD_TrainingSetup(Ceed ceed, User user, CeedData ceed_data, Pr
       PetscInt tensor_overwrite[2] = {sgs_dd_train->overwrite_training_data};
       size_t   dim_2[1]            = {2};
       PetscCall(PetscLogEventBegin(SmartRedis_Meta, 0, 0, 0, 0));
-      SmartRedisCall(put_tensor(smartsim->client, "tensor-ow", 9, tensor_overwrite, dim_2, 1, SRTensorTypeInt64, SRMemLayoutContiguous));
+      PetscSmartRedisCall(put_tensor(smartsim->client, "tensor-ow", 9, tensor_overwrite, dim_2, 1, SRTensorTypeInt64, SRMemLayoutContiguous));
       PetscCall(SmartRedisVerifyPutTensor(smartsim->client, "tensor-ow", 9));
       PetscCall(PetscLogEventEnd(SmartRedis_Meta, 0, 0, 0, 0));
     }
@@ -321,7 +321,7 @@ PetscErrorCode TSMonitor_SGS_DD_Training(TS ts, PetscInt step_num, PetscReal sol
       const PetscScalar *training_data;
       PetscCall(VecGetArrayRead(TrainingData, &training_data));
       PetscCall(PetscLogEventBegin(SmartRedis_Train, 0, 0, 0, 0));
-      SmartRedisCall(put_tensor(smartsim->client, array_key, array_key_len, (void *)training_data, sgs_dd_train->training_data_array_dims, 2,
+      PetscSmartRedisCall(put_tensor(smartsim->client, array_key, array_key_len, (void *)training_data, sgs_dd_train->training_data_array_dims, 2,
                                 SRTensorTypeDouble, SRMemLayoutContiguous));
       PetscCall(PetscLogEventEnd(SmartRedis_Train, 0, 0, 0, 0));
       PetscCall(VecRestoreArrayRead(TrainingData, &training_data));
@@ -332,7 +332,7 @@ PetscErrorCode TSMonitor_SGS_DD_Training(TS ts, PetscInt step_num, PetscReal sol
       size_t   dim_2[1]      = {2};
       PetscInt step_array[2] = {step_num, step_num};
       PetscCall(PetscLogEventBegin(SmartRedis_Meta, 0, 0, 0, 0));
-      SmartRedisCall(put_tensor(smartsim->client, "step", 4, step_array, dim_2, 1, SRTensorTypeInt64, SRMemLayoutContiguous));
+      PetscSmartRedisCall(put_tensor(smartsim->client, "step", 4, step_array, dim_2, 1, SRTensorTypeInt64, SRMemLayoutContiguous));
       PetscCall(PetscLogEventEnd(SmartRedis_Meta, 0, 0, 0, 0));
     }
   }
@@ -354,7 +354,7 @@ PetscErrorCode TSPostStep_SGS_DD_Training(TS ts) {
   SmartSimData smartsim = user->smartsim;
 
   PetscCall(PetscLogEventBegin(SmartRedis_Meta, 0, 0, 0, 0));
-  SmartRedisCall(
+  PetscSmartRedisCall(
       unpack_tensor(smartsim->client, check_run_key, check_run_key_size, check_run, check_run_dims, 1, SRTensorTypeDouble, SRMemLayoutContiguous));
   PetscCall(PetscLogEventEnd(SmartRedis_Meta, 0, 0, 0, 0));
   if (check_run[0] == 0) {
