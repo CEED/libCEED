@@ -39,9 +39,7 @@ static int CeedOperatorCheckField(Ceed ceed, CeedQFunctionField qf_field, CeedEl
   CeedEvalMode eval_mode;
 
   // Field data
-  CeedCall(CeedQFunctionFieldGetName(qf_field, &field_name));
-  CeedCall(CeedQFunctionFieldGetSize(qf_field, &size));
-  CeedCall(CeedQFunctionFieldGetEvalMode(qf_field, &eval_mode));
+  CeedCall(CeedQFunctionFieldGetData(qf_field, &field_name, &size, &eval_mode));
 
   // Restriction
   CeedCheck((rstr == CEED_ELEMRESTRICTION_NONE) == (eval_mode == CEED_EVAL_WEIGHT), ceed, CEED_ERROR_INCOMPATIBLE,
@@ -107,11 +105,8 @@ static int CeedOperatorFieldView(CeedOperatorField op_field, CeedQFunctionField 
   CeedBasis    basis;
 
   // Field data
-  CeedCall(CeedQFunctionFieldGetName(qf_field, &field_name));
-  CeedCall(CeedQFunctionFieldGetSize(qf_field, &size));
-  CeedCall(CeedQFunctionFieldGetEvalMode(qf_field, &eval_mode));
-  CeedCall(CeedOperatorFieldGetVector(op_field, &vec));
-  CeedCall(CeedOperatorFieldGetBasis(op_field, &basis));
+  CeedCall(CeedQFunctionFieldGetData(qf_field, &field_name, &size, &eval_mode));
+  CeedCall(CeedOperatorFieldGetData(op_field, NULL, NULL, &basis, &vec));
 
   fprintf(stream,
           "%s    %s field %" CeedInt_FMT
@@ -1141,8 +1136,8 @@ int CeedOperatorGetFieldByName(CeedOperator op, const char *field_name, CeedOper
 /**
   @brief Get the name of a `CeedOperator` Field
 
-  @param[in]  op_field    `CeedOperator` Field
-  @param[out] field_name  Variable to store the field name
+  @param[in]  op_field   `CeedOperator` Field
+  @param[out] field_name Variable to store the field name
 
   @return An error code: 0 - success, otherwise - failure
 
@@ -1195,6 +1190,29 @@ int CeedOperatorFieldGetBasis(CeedOperatorField op_field, CeedBasis *basis) {
 **/
 int CeedOperatorFieldGetVector(CeedOperatorField op_field, CeedVector *vec) {
   *vec = op_field->vec;
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
+  @brief Get the data of a `CeedOperator` Field.
+
+  Any arguments set as `NULL` are ignored.
+
+  @param[in]  op_field   `CeedOperator` Field
+  @param[out] field_name Variable to store the field name
+  @param[out] rstr       Variable to store `CeedElemRestriction`
+  @param[out] basis      Variable to store `CeedBasis`
+  @param[out] vec        Variable to store `CeedVector`
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Advanced
+**/
+int CeedOperatorFieldGetData(CeedOperatorField op_field, char **field_name, CeedElemRestriction *rstr, CeedBasis *basis, CeedVector *vec) {
+  if (field_name) CeedCall(CeedOperatorFieldGetName(op_field, field_name));
+  if (rstr) CeedCall(CeedOperatorFieldGetElemRestriction(op_field, rstr));
+  if (basis) CeedCall(CeedOperatorFieldGetBasis(op_field, basis));
+  if (vec) CeedCall(CeedOperatorFieldGetVector(op_field, vec));
   return CEED_ERROR_SUCCESS;
 }
 

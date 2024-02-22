@@ -77,9 +77,7 @@ static int CeedQFunctionCreateFallback(Ceed fallback_ceed, CeedQFunction qf, Cee
     CeedInt      size;
     CeedEvalMode eval_mode;
 
-    CeedCall(CeedQFunctionFieldGetName(input_fields[i], &field_name));
-    CeedCall(CeedQFunctionFieldGetSize(input_fields[i], &size));
-    CeedCall(CeedQFunctionFieldGetEvalMode(input_fields[i], &eval_mode));
+    CeedCall(CeedQFunctionFieldGetData(input_fields[i], &field_name, &size, &eval_mode));
     CeedCall(CeedQFunctionAddInput(*qf_fallback, field_name, size, eval_mode));
   }
   for (CeedInt i = 0; i < num_output_fields; i++) {
@@ -87,9 +85,7 @@ static int CeedQFunctionCreateFallback(Ceed fallback_ceed, CeedQFunction qf, Cee
     CeedInt      size;
     CeedEvalMode eval_mode;
 
-    CeedCall(CeedQFunctionFieldGetName(output_fields[i], &field_name));
-    CeedCall(CeedQFunctionFieldGetSize(output_fields[i], &size));
-    CeedCall(CeedQFunctionFieldGetEvalMode(output_fields[i], &eval_mode));
+    CeedCall(CeedQFunctionFieldGetData(output_fields[i], &field_name, &size, &eval_mode));
     CeedCall(CeedQFunctionAddOutput(*qf_fallback, field_name, size, eval_mode));
   }
   CeedCall(CeedFree(&source_path_with_name));
@@ -152,10 +148,7 @@ static int CeedOperatorCreateFallback(CeedOperator op) {
       CeedElemRestriction rstr;
       CeedBasis           basis;
 
-      CeedCall(CeedOperatorFieldGetName(input_fields[i], &field_name));
-      CeedCall(CeedOperatorFieldGetVector(input_fields[i], &vec));
-      CeedCall(CeedOperatorFieldGetElemRestriction(input_fields[i], &rstr));
-      CeedCall(CeedOperatorFieldGetBasis(input_fields[i], &basis));
+      CeedCall(CeedOperatorFieldGetData(input_fields[i], &field_name, &rstr, &basis, &vec));
       CeedCall(CeedOperatorSetField(op_fallback, field_name, rstr, basis, vec));
     }
     for (CeedInt i = 0; i < num_output_fields; i++) {
@@ -164,10 +157,7 @@ static int CeedOperatorCreateFallback(CeedOperator op) {
       CeedElemRestriction rstr;
       CeedBasis           basis;
 
-      CeedCall(CeedOperatorFieldGetName(output_fields[i], &field_name));
-      CeedCall(CeedOperatorFieldGetVector(output_fields[i], &vec));
-      CeedCall(CeedOperatorFieldGetElemRestriction(output_fields[i], &rstr));
-      CeedCall(CeedOperatorFieldGetBasis(output_fields[i], &basis));
+      CeedCall(CeedOperatorFieldGetData(output_fields[i], &field_name, &rstr, &basis, &vec));
       CeedCall(CeedOperatorSetField(op_fallback, field_name, rstr, basis, vec));
     }
     CeedCall(CeedQFunctionAssemblyDataReferenceCopy(op->qf_assembled, &op_fallback->qf_assembled));

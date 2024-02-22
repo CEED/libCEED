@@ -129,9 +129,7 @@ static int CeedQFunctionFieldView(CeedQFunctionField field, CeedInt field_number
   CeedInt      size;
   CeedEvalMode eval_mode;
 
-  CeedCall(CeedQFunctionFieldGetName(field, &field_name));
-  CeedCall(CeedQFunctionFieldGetSize(field, &size));
-  CeedCall(CeedQFunctionFieldGetEvalMode(field, &eval_mode));
+  CeedCall(CeedQFunctionFieldGetData(field, &field_name, &size, &eval_mode));
   fprintf(stream,
           "    %s field %" CeedInt_FMT
           ":\n"
@@ -884,6 +882,27 @@ int CeedQFunctionFieldGetSize(CeedQFunctionField qf_field, CeedInt *size) {
 **/
 int CeedQFunctionFieldGetEvalMode(CeedQFunctionField qf_field, CeedEvalMode *eval_mode) {
   *eval_mode = qf_field->eval_mode;
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
+  @brief Get the data of a `CeedQFunctionField`.
+
+  Any arguments set as `NULL` are ignored.
+
+  @param[in]  qf_field   `CeedQFunctionField`
+  @param[out] field_name Variable to store the field name
+  @param[out] size       Variable to store the size of the field
+  @param[out] eval_mode  Variable to store the field evaluation mode
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Advanced
+**/
+int CeedQFunctionFieldGetData(CeedQFunctionField qf_field, char **field_name, CeedInt *size, CeedEvalMode *eval_mode) {
+  if (field_name) CeedCall(CeedQFunctionFieldGetName(qf_field, field_name));
+  if (size) CeedCall(CeedQFunctionFieldGetSize(qf_field, size));
+  if (eval_mode) CeedCall(CeedQFunctionFieldGetEvalMode(qf_field, eval_mode));
   return CEED_ERROR_SUCCESS;
 }
 
