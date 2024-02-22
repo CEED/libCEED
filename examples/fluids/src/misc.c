@@ -23,28 +23,38 @@ PetscErrorCode ICs_FixMultiplicity(DM dm, CeedData ceed_data, User user, Vec Q_l
   Vec          Multiplicity, Multiplicity_loc;
 
   PetscFunctionBeginUser;
-  if (user->phys->ics_time_label) PetscCallCeed(ceed, CeedOperatorSetContextDouble(ceed_data->op_ics_ctx->op, user->phys->ics_time_label, &time));
-  PetscCall(ApplyCeedOperatorLocalToGlobal(NULL, Q, ceed_data->op_ics_ctx));
+  if (1 && ceed_data->ics_l2_projection) {
+    Vec RHS;
+    NodalProjectionData ics_l2 = ceed_data->ics_l2_projection;
+    PetscCall(VecDuplicate(Q, &RHS));
+    if (user->phys->ics_time_label) PetscCallCeed(ceed, CeedOperatorSetContextDouble(ics_l2->l2_rhs_ctx->op, user->phys->ics_time_label, &time));
+    PetscCall(ApplyCeedOperatorLocalToGlobal(NULL, Q, ics_l2->l2_rhs_ctx));
+    PetscCall(KSPSolve(ics_l2->ksp, Q, Q));
+    PetscCall(DMGlobalToLocal(dm, Q, INSERT_VALUES, Q_loc));
+  } else {
+    if (user->phys->ics_time_label) PetscCallCeed(ceed, CeedOperatorSetContextDouble(ceed_data->op_ics_ctx->op, user->phys->ics_time_label, &time));
+    PetscCall(ApplyCeedOperatorLocalToGlobal(NULL, Q, ceed_data->op_ics_ctx));
 
-  PetscCallCeed(ceed, CeedElemRestrictionCreateVector(ceed_data->elem_restr_q, &mult_vec, NULL));
+    PetscCallCeed(ceed, CeedElemRestrictionCreateVector(ceed_data->elem_restr_q, &mult_vec, NULL));
 
-  // -- Get multiplicity
-  PetscCall(DMGetLocalVector(dm, &Multiplicity_loc));
-  PetscCall(VecPetscToCeed(Multiplicity_loc, &m_mem_type, mult_vec));
-  PetscCallCeed(ceed, CeedElemRestrictionGetMultiplicity(ceed_data->elem_restr_q, mult_vec));
-  PetscCall(VecCeedToPetsc(mult_vec, m_mem_type, Multiplicity_loc));
+    // -- Get multiplicity
+    PetscCall(DMGetLocalVector(dm, &Multiplicity_loc));
+    PetscCall(VecPetscToCeed(Multiplicity_loc, &m_mem_type, mult_vec));
+    PetscCallCeed(ceed, CeedElemRestrictionGetMultiplicity(ceed_data->elem_restr_q, mult_vec));
+    PetscCall(VecCeedToPetsc(mult_vec, m_mem_type, Multiplicity_loc));
 
-  PetscCall(DMGetGlobalVector(dm, &Multiplicity));
-  PetscCall(VecZeroEntries(Multiplicity));
-  PetscCall(DMLocalToGlobal(dm, Multiplicity_loc, ADD_VALUES, Multiplicity));
+    PetscCall(DMGetGlobalVector(dm, &Multiplicity));
+    PetscCall(VecZeroEntries(Multiplicity));
+    PetscCall(DMLocalToGlobal(dm, Multiplicity_loc, ADD_VALUES, Multiplicity));
 
-  // -- Fix multiplicity
-  PetscCall(VecPointwiseDivide(Q, Q, Multiplicity));
-  PetscCall(VecPointwiseDivide(Q_loc, Q_loc, Multiplicity_loc));
+    // -- Fix multiplicity
+    PetscCall(VecPointwiseDivide(Q, Q, Multiplicity));
+    PetscCall(VecPointwiseDivide(Q_loc, Q_loc, Multiplicity_loc));
 
-  PetscCall(DMRestoreLocalVector(dm, &Multiplicity_loc));
-  PetscCall(DMRestoreGlobalVector(dm, &Multiplicity));
-  PetscCallCeed(ceed, CeedVectorDestroy(&mult_vec));
+    PetscCall(DMRestoreLocalVector(dm, &Multiplicity_loc));
+    PetscCall(DMRestoreGlobalVector(dm, &Multiplicity));
+    PetscCallCeed(ceed, CeedVectorDestroy(&mult_vec));
+  }
   PetscFunctionReturn(PETSC_SUCCESS);
 }
 
