@@ -1393,6 +1393,7 @@ int CeedOperatorGetFlopsEstimate(CeedOperator op, CeedSize *flops) {
 
       CeedCall(CeedOperatorGetNumQuadraturePoints(op, &num_qpts));
       CeedCall(CeedQFunctionGetFlopsEstimate(op->qf, &qf_flops));
+      CeedCheck(qf_flops > -1, op->ceed, CEED_ERROR_INCOMPLETE, "Must set CeedQFunction FLOPs estimate with CeedQFunctionSetUserFlopsEstimate");
       *flops += num_elem * num_qpts * qf_flops;
     }
 
