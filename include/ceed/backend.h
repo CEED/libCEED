@@ -344,6 +344,8 @@ CEED_EXTERN int CeedQFunctionIsIdentity(CeedQFunction qf, bool *is_identity);
 CEED_EXTERN int CeedQFunctionIsContextWritable(CeedQFunction qf, bool *is_writable);
 CEED_EXTERN int CeedQFunctionGetData(CeedQFunction qf, void *data);
 CEED_EXTERN int CeedQFunctionSetData(CeedQFunction qf, void *data);
+CEED_EXTERN int CeedQFunctionIsImmutable(CeedQFunction qf, bool *is_immutable);
+CEED_EXTERN int CeedQFunctionSetImmutable(CeedQFunction qf);
 CEED_EXTERN int CeedQFunctionReference(CeedQFunction qf);
 CEED_EXTERN int CeedQFunctionGetFlopsEstimate(CeedQFunction qf, CeedSize *flops);
 
@@ -410,6 +412,7 @@ CEED_EXTERN int CeedOperatorGetActiveElemRestrictions(CeedOperator op, CeedElemR
                                                       CeedElemRestriction *active_output_rstr);
 CEED_EXTERN int CeedOperatorGetNumArgs(CeedOperator op, CeedInt *num_args);
 CEED_EXTERN int CeedOperatorHasTensorBases(CeedOperator op, bool *has_tensor_bases);
+CEED_EXTERN int CeedOperatorIsImmutable(CeedOperator op, bool *is_immutable);
 CEED_EXTERN int CeedOperatorIsSetupDone(CeedOperator op, bool *is_setup_done);
 CEED_EXTERN int CeedOperatorGetQFunction(CeedOperator op, CeedQFunction *qf);
 CEED_EXTERN int CeedOperatorIsComposite(CeedOperator op, bool *is_composite);
@@ -426,7 +429,7 @@ CEED_INTERN int CeedMatrixMatrixMultiply(Ceed ceed, const CeedScalar *mat_A, con
 CEED_EXTERN int CeedQRFactorization(Ceed ceed, CeedScalar *mat, CeedScalar *tau, CeedInt m, CeedInt n);
 CEED_EXTERN int CeedHouseholderApplyQ(CeedScalar *mat_A, const CeedScalar *mat_Q, const CeedScalar *tau, CeedTransposeMode t_mode, CeedInt m,
                                       CeedInt n, CeedInt k, CeedInt row, CeedInt col);
-CEED_EXTERN int CeedMatrixPseudoinverse(Ceed ceed, CeedScalar *mat, CeedInt m, CeedInt n, CeedScalar *mat_pinv);
+CEED_EXTERN int CeedMatrixPseudoinverse(Ceed ceed, const CeedScalar *mat, CeedInt m, CeedInt n, CeedScalar *mat_pinv);
 CEED_EXTERN int CeedSymmetricSchurDecomposition(Ceed ceed, CeedScalar *mat, CeedScalar *lambda, CeedInt n);
 CEED_EXTERN int CeedSimultaneousDiagonalization(Ceed ceed, CeedScalar *mat_A, CeedScalar *mat_B, CeedScalar *x, CeedScalar *lambda, CeedInt n);
 

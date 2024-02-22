@@ -289,7 +289,10 @@ int CeedQFunctionLoadSourceToBuffer(CeedQFunction qf, char **source_buffer) {
   CeedCall(CeedQFunctionGetSourcePath(qf, &source_path));
   *source_buffer = NULL;
   if (source_path) {
-    CeedCall(CeedLoadSourceToBuffer(qf->ceed, source_path, source_buffer));
+    Ceed ceed;
+
+    CeedCall(CeedQFunctionGetCeed(qf, &ceed));
+    CeedCall(CeedLoadSourceToBuffer(ceed, source_path, source_buffer));
   }
   return CEED_ERROR_SUCCESS;
 }
@@ -395,14 +398,17 @@ int CeedQFunctionRestoreContextData(CeedQFunction qf, void *data) {
   @ref Backend
 **/
 int CeedQFunctionGetInnerContext(CeedQFunction qf, CeedQFunctionContext *ctx) {
+  CeedQFunctionContext qf_ctx;
+
+  CeedCall(CeedQFunctionGetContext(qf, &qf_ctx));
   if (qf->is_fortran) {
     CeedFortranContext fortran_ctx = NULL;
 
-    CeedCall(CeedQFunctionContextGetData(qf->ctx, CEED_MEM_HOST, &fortran_ctx));
+    CeedCall(CeedQFunctionContextGetData(qf_ctx, CEED_MEM_HOST, &fortran_ctx));
     *ctx = fortran_ctx->inner_ctx;
-    CeedCall(CeedQFunctionContextRestoreData(qf->ctx, (void *)&fortran_ctx));
+    CeedCall(CeedQFunctionContextRestoreData(qf_ctx, (void *)&fortran_ctx));
   } else {
-    *ctx = qf->ctx;
+    *ctx = qf_ctx;
   }
   return CEED_ERROR_SUCCESS;
 }
@@ -521,6 +527,35 @@ int CeedQFunctionGetData(CeedQFunction qf, void *data) {
 **/
 int CeedQFunctionSetData(CeedQFunction qf, void *data) {
   qf->data = data;
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
+  @brief Get a boolean value indicating if the `CeedQFunction` is immutable
+
+  @param[in]  qf           `CeedOperator`
+  @param[out] is_immutable Variable to store immutability status
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Backend
+**/
+int CeedQFunctionIsImmutable(CeedQFunction qf, bool *is_immutable) {
+  *is_immutable = qf->is_immutable;
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
+  @brief Set the immutable flag of a `CeedQFunction` to `true`
+
+  @param[in,out] qf `CeedQFunction`
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Backend
+**/
+int CeedQFunctionSetImmutable(CeedQFunction qf) {
+  qf->is_immutable = true;
   return CEED_ERROR_SUCCESS;
 }
 
@@ -729,13 +764,18 @@ int CeedQFunctionReferenceCopy(CeedQFunction qf, CeedQFunction *qf_copy) {
   @ref User
 **/
 int CeedQFunctionAddInput(CeedQFunction qf, const char *field_name, CeedInt size, CeedEvalMode eval_mode) {
-  CeedCheck(!qf->is_immutable, qf->ceed, CEED_ERROR_MAJOR, "QFunction cannot be changed after set as immutable");
-  CeedCheck(eval_mode != CEED_EVAL_WEIGHT || size == 1, qf->ceed, CEED_ERROR_DIMENSION, "CEED_EVAL_WEIGHT should have size 1");
+  bool is_immutable;
+  Ceed ceed;
+
+  CeedCall(CeedQFunctionGetCeed(qf, &ceed));
+  CeedCall(CeedQFunctionIsImmutable(qf, &is_immutable));
+  CeedCheck(!is_immutable, ceed, CEED_ERROR_MAJOR, "QFunction cannot be changed after set as immutable");
+  CeedCheck(eval_mode != CEED_EVAL_WEIGHT || size == 1, ceed, CEED_ERROR_DIMENSION, "CEED_EVAL_WEIGHT should have size 1");
   for (CeedInt i = 0; i < qf->num_input_fields; i++) {
-    CeedCheck(strcmp(field_name, qf->input_fields[i]->field_name), qf->ceed, CEED_ERROR_MINOR, "QFunction field names must be unique");
+    CeedCheck(strcmp(field_name, qf->input_fields[i]->field_name), ceed, CEED_ERROR_MINOR, "CeedQFunction field names must be unique");
   }
   for (CeedInt i = 0; i < qf->num_output_fields; i++) {
-    CeedCheck(strcmp(field_name, qf->output_fields[i]->field_name), qf->ceed, CEED_ERROR_MINOR, "QFunction field names must be unique");
+    CeedCheck(strcmp(field_name, qf->output_fields[i]->field_name), ceed, CEED_ERROR_MINOR, "CeedQFunction field names must be unique");
   }
   CeedCall(CeedQFunctionFieldSet(&qf->input_fields[qf->num_input_fields], field_name, size, eval_mode));
   qf->num_input_fields++;
@@ -759,13 +799,18 @@ int CeedQFunctionAddInput(CeedQFunction qf, const char *field_name, CeedInt size
   @ref User
 **/
 int CeedQFunctionAddOutput(CeedQFunction qf, const char *field_name, CeedInt size, CeedEvalMode eval_mode) {
-  CeedCheck(!qf->is_immutable, qf->ceed, CEED_ERROR_MAJOR, "CeedQFunction cannot be changed after set as immutable");
-  CeedCheck(eval_mode != CEED_EVAL_WEIGHT, qf->ceed, CEED_ERROR_DIMENSION, "Cannot create CeedQFunction output with CEED_EVAL_WEIGHT");
+  bool is_immutable;
+  Ceed ceed;
+
+  CeedCall(CeedQFunctionGetCeed(qf, &ceed));
+  CeedCall(CeedQFunctionIsImmutable(qf, &is_immutable));
+  CeedCheck(!is_immutable, ceed, CEED_ERROR_MAJOR, "CeedQFunction cannot be changed after set as immutable");
+  CeedCheck(eval_mode != CEED_EVAL_WEIGHT, ceed, CEED_ERROR_DIMENSION, "Cannot create CeedQFunction output with CEED_EVAL_WEIGHT");
   for (CeedInt i = 0; i < qf->num_input_fields; i++) {
-    CeedCheck(strcmp(field_name, qf->input_fields[i]->field_name), qf->ceed, CEED_ERROR_MINOR, "CeedQFunction field names must be unique");
+    CeedCheck(strcmp(field_name, qf->input_fields[i]->field_name), ceed, CEED_ERROR_MINOR, "CeedQFunction field names must be unique");
   }
   for (CeedInt i = 0; i < qf->num_output_fields; i++) {
-    CeedCheck(strcmp(field_name, qf->output_fields[i]->field_name), qf->ceed, CEED_ERROR_MINOR, "CeedQFunction field names must be unique");
+    CeedCheck(strcmp(field_name, qf->output_fields[i]->field_name), ceed, CEED_ERROR_MINOR, "CeedQFunction field names must be unique");
   }
   CeedCall(CeedQFunctionFieldSet(&qf->output_fields[qf->num_output_fields], field_name, size, eval_mode));
   qf->num_output_fields++;
@@ -789,7 +834,7 @@ int CeedQFunctionAddOutput(CeedQFunction qf, const char *field_name, CeedInt siz
 **/
 int CeedQFunctionGetFields(CeedQFunction qf, CeedInt *num_input_fields, CeedQFunctionField **input_fields, CeedInt *num_output_fields,
                            CeedQFunctionField **output_fields) {
-  qf->is_immutable = true;
+  CeedCall(CeedQFunctionSetImmutable(qf));
   if (num_input_fields) *num_input_fields = qf->num_input_fields;
   if (input_fields) *input_fields = qf->input_fields;
   if (num_output_fields) *num_output_fields = qf->num_output_fields;
@@ -892,7 +937,10 @@ int CeedQFunctionSetContextWritable(CeedQFunction qf, bool is_writable) {
   @ref Backend
 **/
 int CeedQFunctionSetUserFlopsEstimate(CeedQFunction qf, CeedSize flops) {
-  CeedCheck(flops >= 0, qf->ceed, CEED_ERROR_INCOMPATIBLE, "Must set non-negative FLOPs estimate");
+  Ceed ceed;
+
+  CeedCall(CeedQFunctionGetCeed(qf, &ceed));
+  CeedCheck(flops >= 0, ceed, CEED_ERROR_INCOMPATIBLE, "Must set non-negative FLOPs estimate");
   qf->user_flop_estimate = flops;
   return CEED_ERROR_SUCCESS;
 }
@@ -955,10 +1003,15 @@ int CeedQFunctionGetCeed(CeedQFunction qf, Ceed *ceed) {
   @ref User
 **/
 int CeedQFunctionApply(CeedQFunction qf, CeedInt Q, CeedVector *u, CeedVector *v) {
-  CeedCheck(qf->Apply, qf->ceed, CEED_ERROR_UNSUPPORTED, "Backend does not support CeedQFunctionApply");
-  CeedCheck(Q % qf->vec_length == 0, qf->ceed, CEED_ERROR_DIMENSION,
-            "Number of quadrature points %" CeedInt_FMT " must be a multiple of %" CeedInt_FMT, Q, qf->vec_length);
-  qf->is_immutable = true;
+  CeedInt vec_length;
+  Ceed    ceed;
+
+  CeedCall(CeedQFunctionGetCeed(qf, &ceed));
+  CeedCheck(qf->Apply, ceed, CEED_ERROR_UNSUPPORTED, "Backend does not support CeedQFunctionApply");
+  CeedCall(CeedQFunctionGetVectorLength(qf, &vec_length));
+  CeedCheck(Q % vec_length == 0, ceed, CEED_ERROR_DIMENSION, "Number of quadrature points %" CeedInt_FMT " must be a multiple of %" CeedInt_FMT, Q,
+            qf->vec_length);
+  CeedCall(CeedQFunctionSetImmutable(qf));
   CeedCall(qf->Apply(qf, Q, u, v));
   return CEED_ERROR_SUCCESS;
 }
