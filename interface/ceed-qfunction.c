@@ -547,7 +547,6 @@ int CeedQFunctionReference(CeedQFunction qf) {
   @ref Backend
 **/
 int CeedQFunctionGetFlopsEstimate(CeedQFunction qf, CeedSize *flops) {
-  CeedCheck(qf->user_flop_estimate > -1, qf->ceed, CEED_ERROR_INCOMPLETE, "Must set FLOPs estimate with CeedQFunctionSetUserFlopsEstimate");
   *flops = qf->user_flop_estimate;
   return CEED_ERROR_SUCCESS;
 }
