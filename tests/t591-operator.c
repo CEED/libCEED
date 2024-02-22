@@ -17,6 +17,7 @@ int main(int argc, char **argv) {
   CeedBasis           basis_x, basis_u;
   CeedQFunction       qf_setup, qf_mass;
   CeedOperator        op_setup, op_mass;
+  bool                is_at_points;
 
   CeedInit(argv[1], &ceed);
 
@@ -153,6 +154,9 @@ int main(int argc, char **argv) {
   CeedOperatorSetField(op_mass, "rho", elem_restriction_q_data, CEED_BASIS_NONE, q_data);
   CeedOperatorSetField(op_mass, "v", elem_restriction_u, basis_u, CEED_VECTOR_ACTIVE);
   CeedOperatorAtPointsSetPoints(op_mass, elem_restriction_x_points, x_points);
+
+  CeedOperatorIsAtPoints(op_mass, &is_at_points);
+  if (!is_at_points) printf("Error: Operator should be at points\n");
 
   CeedVectorCreate(ceed, num_nodes, &u);
   CeedVectorSetValue(u, 1.0);

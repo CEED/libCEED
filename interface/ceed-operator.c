@@ -767,7 +767,7 @@ int CeedOperatorReferenceCopy(CeedOperator op, CeedOperator *op_copy) {
   @ref User
 **/
 int CeedOperatorSetField(CeedOperator op, const char *field_name, CeedElemRestriction rstr, CeedBasis basis, CeedVector vec) {
-  bool               is_input = true;
+  bool               is_input = true, is_at_points;
   CeedInt            num_elem = 0, num_qpts = 0;
   CeedQFunctionField qf_field;
   CeedOperatorField *op_field;
@@ -779,6 +779,7 @@ int CeedOperatorSetField(CeedOperator op, const char *field_name, CeedElemRestri
   CeedCheck(vec, op->ceed, CEED_ERROR_INCOMPATIBLE, "CeedVector vec for field \"%s\" must be non-NULL.", field_name);
 
   CeedCall(CeedElemRestrictionGetNumElements(rstr, &num_elem));
+  CeedCall(CeedOperatorIsAtPoints(op, &is_at_points));
   CeedCheck(rstr == CEED_ELEMRESTRICTION_NONE || !op->has_restriction || op->num_elem == num_elem, op->ceed, CEED_ERROR_DIMENSION,
             "CeedElemRestriction with %" CeedInt_FMT " elements incompatible with prior %" CeedInt_FMT " elements", num_elem, op->num_elem);
   {
@@ -786,7 +787,7 @@ int CeedOperatorSetField(CeedOperator op, const char *field_name, CeedElemRestri
 
     CeedCall(CeedElemRestrictionGetType(rstr, &rstr_type));
     if (rstr_type == CEED_RESTRICTION_POINTS) {
-      CeedCheck(op->is_at_points, op->ceed, CEED_ERROR_UNSUPPORTED, "CeedElemRestriction AtPoints not supported for standard operator fields");
+      CeedCheck(is_at_points, op->ceed, CEED_ERROR_UNSUPPORTED, "CeedElemRestriction AtPoints not supported for standard operator fields");
       CeedCheck(basis == CEED_BASIS_NONE, op->ceed, CEED_ERROR_UNSUPPORTED, "CeedElemRestriction AtPoints must be used with CEED_BASIS_NONE");
       if (!op->first_points_rstr) {
         CeedCall(CeedElemRestrictionReferenceCopy(rstr, &op->first_points_rstr));
@@ -850,7 +851,7 @@ found:
     op->has_restriction = true;  // Restriction set, but num_elem may be 0
   }
   CeedCall(CeedBasisReferenceCopy(basis, &(*op_field)->basis));
-  if (op->num_qpts == 0 && !op->is_at_points) op->num_qpts = num_qpts;  // no consistent number of qpts for OperatorAtPoints
+  if (op->num_qpts == 0 && !is_at_points) op->num_qpts = num_qpts;  // no consistent number of qpts for OperatorAtPoints
   op->num_fields += 1;
   CeedCall(CeedStringAllocCopy(field_name, (char **)&(*op_field)->field_name));
   return CEED_ERROR_SUCCESS;
@@ -897,7 +898,11 @@ int CeedOperatorGetFields(CeedOperator op, CeedInt *num_input_fields, CeedOperat
   @ref Advanced
 **/
 int CeedOperatorAtPointsSetPoints(CeedOperator op, CeedElemRestriction rstr_points, CeedVector point_coords) {
-  CeedCheck(op->is_at_points, op->ceed, CEED_ERROR_MINOR, "Only defined for operator at points");
+  bool is_at_points;
+
+  CeedCall(CeedOperatorIsAtPoints(op, &is_at_points));
+
+  CeedCheck(is_at_points, op->ceed, CEED_ERROR_MINOR, "Only defined for operator at points");
   CeedCheck(!op->is_immutable, op->ceed, CEED_ERROR_MAJOR, "Operator cannot be changed after set as immutable");
 
   if (!op->first_points_rstr) {
@@ -916,6 +921,21 @@ int CeedOperatorAtPointsSetPoints(CeedOperator op, CeedElemRestriction rstr_poin
 }
 
 /**
+  @brief Get a boolean value indicating if the `CeedOperator` was created with `CeedOperatorCreateAtPoints`
+    
+  @param[in]  op           `CeedOperator`
+  @param[out] is_at_points Variable to store at points status
+  
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref User
+**/
+int CeedOperatorIsAtPoints(CeedOperator op, bool *is_at_points) {
+  *is_at_points = op->is_at_points;
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
   @brief Get the arbitrary points in each element for a `CeedOperator` at points.
 
   Note: Calling this function asserts that setup is complete and sets the `CeedOperator` as immutable.
@@ -929,7 +949,10 @@ int CeedOperatorAtPointsSetPoints(CeedOperator op, CeedElemRestriction rstr_poin
   @ref Advanced
 **/
 int CeedOperatorAtPointsGetPoints(CeedOperator op, CeedElemRestriction *rstr_points, CeedVector *point_coords) {
-  CeedCheck(op->is_at_points, op->ceed, CEED_ERROR_MINOR, "Only defined for operator at points");
+  bool is_at_points;
+
+  CeedCall(CeedOperatorIsAtPoints(op, &is_at_points));
+  CeedCheck(is_at_points, op->ceed, CEED_ERROR_MINOR, "Only defined for operator at points");
   CeedCall(CeedOperatorCheckReady(op));
 
   if (rstr_points) CeedCall(CeedElemRestrictionReferenceCopy(op->rstr_points, rstr_points));
@@ -1115,8 +1138,10 @@ int CeedCompositeOperatorGetSubList(CeedOperator op, CeedOperator **sub_operator
 **/
 int CeedOperatorCheckReady(CeedOperator op) {
   Ceed ceed;
+  bool is_at_points;
 
   CeedCall(CeedOperatorGetCeed(op, &ceed));
+  CeedCall(CeedOperatorIsAtPoints(op, &is_at_points));
 
   if (op->is_interface_setup) return CEED_ERROR_SUCCESS;
 
@@ -1139,7 +1164,7 @@ int CeedOperatorCheckReady(CeedOperator op) {
     CeedCheck(op->num_fields > 0, ceed, CEED_ERROR_INCOMPLETE, "No operator fields set");
     CeedCheck(op->num_fields == qf->num_input_fields + qf->num_output_fields, ceed, CEED_ERROR_INCOMPLETE, "Not all operator fields set");
     CeedCheck(op->has_restriction, ceed, CEED_ERROR_INCOMPLETE, "At least one restriction required");
-    CeedCheck(op->num_qpts > 0 || op->is_at_points, ceed, CEED_ERROR_INCOMPLETE,
+    CeedCheck(op->num_qpts > 0 || is_at_points, ceed, CEED_ERROR_INCOMPLETE,
               "At least one non-collocated CeedBasis is required or the number of quadrature points must be set");
   }
 
