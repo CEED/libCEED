@@ -114,6 +114,8 @@ PetscErrorCode NS_ADVECTION(ProblemData *problem, DM dm, void *ctx, SimpleBC bc)
       problem->setup_sur.qfunction_loc           = SetupBoundary2d_loc;
       problem->ics.qfunction                     = ICsAdvection2d;
       problem->ics.qfunction_loc                 = ICsAdvection2d_loc;
+      problem->ics_l2rhs.qfunction               = ICsAdvection2d_L2Rhs;
+      problem->ics_l2rhs.qfunction_loc           = ICsAdvection2d_L2Rhs_loc;
       problem->apply_vol_rhs.qfunction           = RHS_Advection2d;
       problem->apply_vol_rhs.qfunction_loc       = RHS_Advection2d_loc;
       problem->apply_vol_ifunction.qfunction     = IFunction_Advection2d;
@@ -133,6 +135,8 @@ PetscErrorCode NS_ADVECTION(ProblemData *problem, DM dm, void *ctx, SimpleBC bc)
       problem->setup_sur.qfunction_loc           = SetupBoundary_loc;
       problem->ics.qfunction                     = ICsAdvection;
       problem->ics.qfunction_loc                 = ICsAdvection_loc;
+      problem->ics_l2rhs.qfunction               = ICsAdvection_L2Rhs;
+      problem->ics_l2rhs.qfunction_loc           = ICsAdvection_L2Rhs_loc;
       problem->apply_vol_rhs.qfunction           = RHS_Advection;
       problem->apply_vol_rhs.qfunction_loc       = RHS_Advection_loc;
       problem->apply_vol_ifunction.qfunction     = IFunction_Advection;
@@ -195,6 +199,16 @@ PetscErrorCode NS_ADVECTION(ProblemData *problem, DM dm, void *ctx, SimpleBC bc)
   PetscCall(PetscOptionsScalar("-Ctau_t", "Stabilization time constant", NULL, Ctau_t, &Ctau_t, NULL));
   PetscCall(PetscOptionsScalar("-Ctau_a", "Coefficient for the stabilization ", NULL, Ctau_a, &Ctau_a, NULL));
   PetscCall(PetscOptionsBool("-implicit", "Use implicit (IFunction) formulation", NULL, implicit = PETSC_FALSE, &implicit, NULL));
+
+  
+  {
+    PetscBool use_l2_project;
+    PetscCall(PetscOptionsBool("-use_l2_project", "Use L^2 projection for initial condition", NULL, use_l2_project = PETSC_FALSE, &use_l2_project, NULL));
+    if (!use_l2_project) {
+      problem->ics_l2rhs.qfunction     = NULL;
+      problem->ics_l2rhs.qfunction_loc = NULL;
+    }
+  }
 
   // -- Units
   PetscCall(PetscOptionsScalar("-units_meter", "1 meter in scaled length units", NULL, meter, &meter, NULL));
@@ -272,6 +286,7 @@ PetscErrorCode NS_ADVECTION(ProblemData *problem, DM dm, void *ctx, SimpleBC bc)
   PetscCallCeed(ceed,
                 CeedQFunctionContextSetData(problem->ics.qfunction_context, CEED_MEM_HOST, CEED_USE_POINTER, sizeof(*setup_context), setup_context));
   PetscCallCeed(ceed, CeedQFunctionContextSetDataDestroy(problem->ics.qfunction_context, CEED_MEM_HOST, FreeContextPetsc));
+  if (problem->ics_l2rhs.qfunction) PetscCallCeed(ceed, CeedQFunctionContextReferenceCopy(problem->ics.qfunction_context, &problem->ics_l2rhs.qfunction_context));
 
   PetscCallCeed(ceed, CeedQFunctionContextCreate(user->ceed, &advection_context));
   PetscCallCeed(ceed, CeedQFunctionContextSetData(advection_context, CEED_MEM_HOST, CEED_USE_POINTER, sizeof(*advection_ctx), advection_ctx));

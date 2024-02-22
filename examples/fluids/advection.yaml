@@ -24,7 +24,7 @@ snes:
   lag_jacobian_persists:
   mf_operator:
 
-# implicit:
+implicit:
 ts:
   dt: 1e-3
   type: alpha

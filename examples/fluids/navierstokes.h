@@ -150,6 +150,13 @@ struct AppCtx_private {
   MeshTransformType mesh_transform_type;
 };
 
+typedef struct {
+  DM                   dm;
+  PetscInt             num_comp;
+  OperatorApplyContext l2_rhs_ctx;
+  KSP                  ksp;
+} *NodalProjectionData;
+
 // libCEED data struct
 struct CeedData_private {
   CeedVector           x_coord, q_data;
@@ -157,7 +164,8 @@ struct CeedData_private {
   CeedElemRestriction  elem_restr_x, elem_restr_q, elem_restr_qd_i;
   CeedOperator         op_setup_vol;
   OperatorApplyContext op_ics_ctx;
-  CeedQFunction        qf_setup_vol, qf_ics, qf_rhs_vol, qf_ifunction_vol, qf_setup_sur, qf_apply_inflow, qf_apply_inflow_jacobian, qf_apply_outflow,
+  NodalProjectionData  ics_l2_projection;
+  CeedQFunction        qf_setup_vol, qf_ics, qf_ics_l2rhs, qf_rhs_vol, qf_ifunction_vol, qf_setup_sur, qf_apply_inflow, qf_apply_inflow_jacobian, qf_apply_outflow,
       qf_apply_outflow_jacobian, qf_apply_freestream, qf_apply_freestream_jacobian, qf_apply_slip, qf_apply_slip_jacobian;
 };
 
@@ -173,13 +181,6 @@ typedef struct {
   OperatorApplyContext  mms_error_ctx;
   CeedContextFieldLabel solution_time_label, previous_time_label;
 } SpanStatsData;
-
-typedef struct {
-  DM                   dm;
-  PetscInt             num_comp;
-  OperatorApplyContext l2_rhs_ctx;
-  KSP                  ksp;
-} *NodalProjectionData;
 
 typedef PetscErrorCode (*SgsDDNodalStressEval)(User user, Vec Q_loc, Vec VelocityGradient, Vec SGSNodal_loc);
 typedef PetscErrorCode (*SgsDDNodalStressInference)(Vec DD_Inputs_loc, Vec DD_Outputs_loc, void *ctx);
@@ -292,7 +293,7 @@ struct ProblemData_private {
   CeedInt              dim, q_data_size_vol, q_data_size_sur, jac_data_size_sur;
   CeedScalar           dm_scale;
   ProblemQFunctionSpec setup_vol, setup_sur, ics, apply_vol_rhs, apply_vol_ifunction, apply_vol_ijacobian, apply_inflow, apply_outflow,
-      apply_freestream, apply_slip, apply_inflow_jacobian, apply_outflow_jacobian, apply_freestream_jacobian, apply_slip_jacobian;
+      apply_freestream, apply_slip, apply_inflow_jacobian, apply_outflow_jacobian, apply_freestream_jacobian, apply_slip_jacobian, ics_l2rhs;
   bool      non_zero_time;
   PetscBool bc_from_ics, use_strong_bc_ceed, uses_newtonian;
   PetscErrorCode (*print_info)(User, ProblemData *, AppCtx);

@@ -153,8 +153,9 @@ CEED_QFUNCTION_HELPER CeedInt Exact_AdvectionGeneric(CeedInt dim, CeedScalar tim
       }
     } break;
     case ADVECTIONIC_SINE_WAVE: {
-      CeedScalar L = sqrt(Square(lx) + -wind[0]*lx/wind[1]);
-      q[4] = sin(12*M_PI/sqrt(2)*DotN(X, wind, dim));
+      CeedScalar L = sqrt(Square(lx) + -wind[0] * lx / wind[1]);
+      // q[4]         = sin(12 * M_PI / sqrt(2) * DotN(X, wind, dim));
+      q[4]         = sin(12 * M_PI * DotN(X, wind, dim));
       // q[4] = sin(4*M_PI*0.90*DotN(X, wind, dim));
       // q[4] = sin(12*M_PI*0.90*DotN(X, wind, dim));
       // q[4] = sin(4*M_PI*DotN(X, wind, dim)/L);
@@ -195,6 +196,45 @@ CEED_QFUNCTION(ICsAdvection2d)(void *ctx, CeedInt Q, const CeedScalar *const *in
 
     Exact_AdvectionGeneric(2, context->time, x, 5, q, ctx);
     for (CeedInt j = 0; j < 5; j++) q0[j][i] = q[j];
+  }
+  return 0;
+}
+
+// *****************************************************************************
+// This QFunction creates the RHS for the L^2 projection of initial conditions for 3D advection
+// *****************************************************************************
+CEED_QFUNCTION(ICsAdvection_L2Rhs)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
+  const CeedScalar(*X)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[0];
+  const CeedScalar(*q_data)        = in[1];
+  CeedScalar(*v)[CEED_Q_VLA]       = (CeedScalar(*)[CEED_Q_VLA])out[0];
+
+  CeedPragmaSIMD for (CeedInt i = 0; i < Q; i++) {
+    const CeedScalar x[]  = {X[0][i], X[1][i], X[2][i]};
+    CeedScalar       q[5] = {0.}, wdetJ, dXdx[3][3];
+    QdataUnpack_3D(Q, i, q_data, &wdetJ, dXdx);
+
+    Exact_AdvectionGeneric(3, 0., x, 5, q, ctx);
+    for (CeedInt j = 0; j < 5; j++) v[j][i] = wdetJ * q[j];
+  }
+  return 0;
+}
+
+// *****************************************************************************
+// This QFunction creates the RHS for the L^2 projection of initial conditions for 3D advection
+// *****************************************************************************
+CEED_QFUNCTION(ICsAdvection2d_L2Rhs)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
+  const CeedScalar(*X)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[0];
+  const CeedScalar(*q_data)        = in[1];
+  CeedScalar(*v)[CEED_Q_VLA]       = (CeedScalar(*)[CEED_Q_VLA])out[0];
+  const SetupContextAdv context    = (SetupContextAdv)ctx;
+
+  CeedPragmaSIMD for (CeedInt i = 0; i < Q; i++) {
+    const CeedScalar x[]  = {X[0][i], X[1][i]};
+    CeedScalar       q[5] = {0.}, wdetJ, dXdx[2][2];
+    QdataUnpack_2D(Q, i, q_data, &wdetJ, dXdx);
+
+    Exact_AdvectionGeneric(2, context->time, x, 5, q, ctx);
+    for (CeedInt j = 0; j < 5; j++) v[j][i] = wdetJ * q[j];
   }
   return 0;
 }

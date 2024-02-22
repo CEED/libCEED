@@ -305,6 +305,16 @@ PetscErrorCode SetupLibceed(Ceed ceed, CeedData ceed_data, DM dm, User user, App
   PetscCallCeed(ceed, CeedQFunctionAddInput(ceed_data->qf_ics, "dx", num_comp_x * dim, CEED_EVAL_GRAD));
   PetscCallCeed(ceed, CeedQFunctionAddOutput(ceed_data->qf_ics, "q0", num_comp_q, CEED_EVAL_NONE));
 
+  // -- Create QFunction for ICs
+  if (problem->ics_l2rhs.qfunction) {
+    PetscCallCeed(ceed,
+                  CeedQFunctionCreateInterior(ceed, 1, problem->ics_l2rhs.qfunction, problem->ics_l2rhs.qfunction_loc, &ceed_data->qf_ics_l2rhs));
+    PetscCallCeed(ceed, CeedQFunctionSetContext(ceed_data->qf_ics_l2rhs, problem->ics_l2rhs.qfunction_context));
+    PetscCallCeed(ceed, CeedQFunctionAddInput(ceed_data->qf_ics_l2rhs, "x", num_comp_x, CEED_EVAL_INTERP));
+    PetscCallCeed(ceed, CeedQFunctionAddInput(ceed_data->qf_ics_l2rhs, "qdata", q_data_size_vol, CEED_EVAL_NONE));
+    PetscCallCeed(ceed, CeedQFunctionAddOutput(ceed_data->qf_ics_l2rhs, "v", num_comp_q, CEED_EVAL_INTERP));
+  }
+
   // -- Create QFunction for RHS
   if (problem->apply_vol_rhs.qfunction) {
     PetscCallCeed(
@@ -394,6 +404,19 @@ PetscErrorCode SetupLibceed(Ceed ceed, CeedData ceed_data, DM dm, User user, App
   PetscCallCeed(ceed, CeedOperatorGetContextFieldLabel(op_ics, "evaluation time", &user->phys->ics_time_label));
   PetscCall(OperatorApplyContextCreate(NULL, dm, user->ceed, op_ics, ceed_data->x_coord, NULL, NULL, user->Q_loc, &ceed_data->op_ics_ctx));
   PetscCallCeed(ceed, CeedOperatorDestroy(&op_ics));
+
+  if (ceed_data->qf_ics_l2rhs) {
+    CeedOperator op;
+    PetscCallCeed(ceed, CeedOperatorCreate(ceed, ceed_data->qf_ics_l2rhs, NULL, NULL, &op));
+    PetscCallCeed(ceed, CeedOperatorSetField(op, "x", ceed_data->elem_restr_x, ceed_data->basis_x, CEED_VECTOR_ACTIVE));
+    PetscCallCeed(ceed, CeedOperatorSetField(op, "qdata", ceed_data->elem_restr_qd_i, CEED_BASIS_NONE, ceed_data->q_data));
+    PetscCallCeed(ceed, CeedOperatorSetField(op, "v", ceed_data->elem_restr_q, ceed_data->basis_q, CEED_VECTOR_ACTIVE));
+    PetscCallCeed(ceed, CeedOperatorGetContextFieldLabel(op, "evaluation time", &user->phys->ics_time_label));
+    PetscCall(PetscNew(&ceed_data->ics_l2_projection));
+    PetscCall(
+        OperatorApplyContextCreate(NULL, dm, user->ceed, op, ceed_data->x_coord, NULL, NULL, user->Q_loc, &ceed_data->ics_l2_projection->l2_rhs_ctx));
+    PetscCallCeed(ceed, CeedOperatorDestroy(&op));
+  }
 
   // Create CEED operator for RHS
   if (ceed_data->qf_rhs_vol) {
@@ -511,6 +534,41 @@ PetscErrorCode SetupLibceed(Ceed ceed, CeedData ceed_data, DM dm, User user, App
   if (app_ctx->turb_spanstats_enable) PetscCall(TurbulenceStatisticsSetup(ceed, user, ceed_data, problem));
   if (app_ctx->diff_filter_monitor && !user->diff_filter) PetscCall(DifferentialFilterSetup(ceed, user, ceed_data, problem));
   if (app_ctx->sgs_train_enable) PetscCall(SGS_DD_TrainingSetup(ceed, user, ceed_data, problem));
+
+  if (ceed_data->ics_l2_projection) {
+    CeedInt       q_data_size;
+    CeedQFunction qf_mass;
+    CeedOperator  op_mass;
+    PetscCallCeed(ceed, CeedElemRestrictionGetNumComponents(ceed_data->elem_restr_qd_i, &q_data_size));
+
+    // -- Build Mass operator
+    PetscCall(CreateMassQFunction(ceed, 5, q_data_size, &qf_mass));
+    PetscCallCeed(ceed, CeedOperatorCreate(ceed, qf_mass, NULL, NULL, &op_mass));
+    PetscCallCeed(ceed, CeedOperatorSetField(op_mass, "u", ceed_data->elem_restr_q, ceed_data->basis_q, CEED_VECTOR_ACTIVE));
+    PetscCallCeed(ceed, CeedOperatorSetField(op_mass, "qdata", ceed_data->elem_restr_qd_i, CEED_BASIS_NONE, ceed_data->q_data));
+    PetscCallCeed(ceed, CeedOperatorSetField(op_mass, "v", ceed_data->elem_restr_q, ceed_data->basis_q, CEED_VECTOR_ACTIVE));
+
+    {  // -- Setup KSP for L^2 projection with lumped mass operator
+      Mat mat_mass;
+
+      PetscCall(MatCeedCreate(dm, dm, op_mass, NULL, &mat_mass));
+
+      PetscCall(KSPCreate(PetscObjectComm((PetscObject)dm), &ceed_data->ics_l2_projection->ksp));
+      PetscCall(KSPSetOptionsPrefix(ceed_data->ics_l2_projection->ksp, "ics_projection_"));
+      {
+        PC pc;
+        PetscCall(KSPGetPC(ceed_data->ics_l2_projection->ksp, &pc));
+        PetscCall(PCSetType(pc, PCJACOBI));
+        PetscCall(PCJacobiSetType(pc, PC_JACOBI_ROWSUM));
+      }
+      PetscCall(KSPSetType(ceed_data->ics_l2_projection->ksp, KSPCG));
+      PetscCall(KSPSetFromOptions_WithMatCeed(ceed_data->ics_l2_projection->ksp, mat_mass));
+      PetscCall(MatDestroy(&mat_mass));
+    }
+
+    PetscCall(CeedQFunctionDestroy(&qf_mass));
+    PetscCall(CeedOperatorDestroy(&op_mass));
+  }
 
   PetscCallCeed(ceed, CeedElemRestrictionDestroy(&elem_restr_jd_i));
   PetscCallCeed(ceed, CeedOperatorDestroy(&op_ijacobian_vol));
