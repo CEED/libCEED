@@ -29,9 +29,9 @@ typedef struct {
 } CeedOperator_Sycl_gen;
 
 typedef struct {
-  char *q_function_name;
-  char *q_function_source;
-  void *d_c;
+  const char *qfunction_name;
+  const char *qfunction_source;
+  void       *d_c;
 } CeedQFunction_Sycl_gen;
 
 CEED_INTERN int CeedQFunctionCreate_Sycl_gen(CeedQFunction qf);

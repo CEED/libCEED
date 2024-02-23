@@ -27,8 +27,8 @@ typedef struct {
 } CeedOperator_Cuda_gen;
 
 typedef struct {
-  const char *q_function_name;
-  char       *q_function_source;
+  const char *qfunction_name;
+  const char *qfunction_source;
   void       *d_c;
 } CeedQFunction_Cuda_gen;
 

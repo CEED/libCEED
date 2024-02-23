@@ -769,7 +769,8 @@ static inline int CeedOperatorAssembleDiagonalSetup_Cuda(CeedOperator op) {
 //------------------------------------------------------------------------------
 static inline int CeedOperatorAssembleDiagonalSetupCompile_Cuda(CeedOperator op, CeedInt use_ceedsize_idx, const bool is_point_block) {
   Ceed                ceed;
-  char               *diagonal_kernel_path, *diagonal_kernel_source;
+  char               *diagonal_kernel_source;
+  const char         *diagonal_kernel_path;
   CeedInt             num_input_fields, num_output_fields, num_eval_modes_in = 0, num_eval_modes_out = 0;
   CeedInt             num_comp, q_comp, num_nodes, num_qpts;
   CeedBasis           basis_in = NULL, basis_out = NULL;
@@ -951,7 +952,8 @@ static int CeedOperatorLinearAssembleAddPointBlockDiagonal_Cuda(CeedOperator op,
 static int CeedSingleOperatorAssembleSetup_Cuda(CeedOperator op, CeedInt use_ceedsize_idx) {
   Ceed                ceed;
   Ceed_Cuda          *cuda_data;
-  char               *assembly_kernel_path, *assembly_kernel_source;
+  char               *assembly_kernel_source;
+  const char         *assembly_kernel_path;
   CeedInt             num_input_fields, num_output_fields, num_eval_modes_in = 0, num_eval_modes_out = 0;
   CeedInt             elem_size_in, num_qpts_in, num_comp_in, elem_size_out, num_qpts_out, num_comp_out, q_comp;
   CeedEvalMode       *eval_modes_in = NULL, *eval_modes_out = NULL;

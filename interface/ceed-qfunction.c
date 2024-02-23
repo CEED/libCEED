@@ -238,11 +238,12 @@ int CeedQFunctionGetKernelName(CeedQFunction qf, const char **kernel_name) {
 
   @ref Backend
 **/
-int CeedQFunctionGetSourcePath(CeedQFunction qf, char **source_path) {
+int CeedQFunctionGetSourcePath(CeedQFunction qf, const char **source_path) {
   if (!qf->source_path && qf->user_source) {
     Ceed        ceed;
     bool        is_absolute_path;
-    char       *absolute_path, *source_path_copy;
+    char       *source_path_copy;
+    const char *absolute_path;
     const char *kernel_name     = strrchr(qf->user_source, ':') + 1;
     size_t      kernel_name_len = strlen(kernel_name);
 
@@ -272,6 +273,10 @@ int CeedQFunctionGetSourcePath(CeedQFunction qf, char **source_path) {
 
   The `buffer` is set to `NULL` if there is no `CeedQFunction` source file.
 
+  Note: This function may as well return a mutable buffer, but all current uses
+  do not modify it. (This is just a downside of `const` semantics with output
+  arguments instead of returns.)
+
   Note: Caller is responsible for freeing the string buffer with @ref CeedFree().
 
   @param[in]  qf            `CeedQFunction`
@@ -281,16 +286,18 @@ int CeedQFunctionGetSourcePath(CeedQFunction qf, char **source_path) {
 
   @ref Backend
 **/
-int CeedQFunctionLoadSourceToBuffer(CeedQFunction qf, char **source_buffer) {
-  char *source_path;
+int CeedQFunctionLoadSourceToBuffer(CeedQFunction qf, const char **source_buffer) {
+  const char *source_path;
 
   CeedCall(CeedQFunctionGetSourcePath(qf, &source_path));
   *source_buffer = NULL;
   if (source_path) {
-    Ceed ceed;
+    Ceed  ceed;
+    char *buffer = NULL;
 
     CeedCall(CeedQFunctionGetCeed(qf, &ceed));
-    CeedCall(CeedLoadSourceToBuffer(ceed, source_path, source_buffer));
+    CeedCall(CeedLoadSourceToBuffer(ceed, source_path, &buffer));
+    *source_buffer = buffer;
   }
   return CEED_ERROR_SUCCESS;
 }

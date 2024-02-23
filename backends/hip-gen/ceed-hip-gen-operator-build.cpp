@@ -100,7 +100,8 @@ extern "C" int CeedOperatorBuildKernel_Hip_gen(CeedOperator op) {
   // Load basis source files
   // TODO: generalize to accept different device functions?
   {
-    char *tensor_basis_kernel_path, *tensor_basis_kernel_source;
+    char       *tensor_basis_kernel_source;
+    const char *tensor_basis_kernel_path;
 
     CeedCallBackend(CeedGetJitAbsolutePath(ceed, "ceed/jit-source/hip/hip-shared-basis-tensor-templates.h", &tensor_basis_kernel_path));
     CeedDebug256(ceed, CEED_DEBUG_COLOR_SUCCESS, "----- Loading Tensor Basis Kernel Source -----\n");
@@ -110,7 +111,8 @@ extern "C" int CeedOperatorBuildKernel_Hip_gen(CeedOperator op) {
     CeedCallBackend(CeedFree(&tensor_basis_kernel_source));
   }
   {
-    char *hip_gen_template_path, *hip_gen_template_source;
+    char       *hip_gen_template_source;
+    const char *hip_gen_template_path;
 
     CeedCallBackend(CeedGetJitAbsolutePath(ceed, "ceed/jit-source/hip/hip-gen-templates.h", &hip_gen_template_path));
     CeedDebug256(ceed, CEED_DEBUG_COLOR_SUCCESS, "----- Loading Hip-Gen Template Source -----\n");
@@ -121,10 +123,10 @@ extern "C" int CeedOperatorBuildKernel_Hip_gen(CeedOperator op) {
   }
 
   // Get QFunction source and name
-  string q_function_source(qf_data->q_function_source);
-  string q_function_name(qf_data->q_function_name);
+  string qfunction_source(qf_data->qfunction_source);
+  string qfunction_name(qf_data->qfunction_name);
   string operator_name;
-  operator_name = "CeedKernelHipGenOperator_" + q_function_name;
+  operator_name = "CeedKernelHipGenOperator_" + qfunction_name;
 
   // Find dim, P_1d, Q_1d
   data->max_P_1d = 0;
@@ -201,7 +203,7 @@ extern "C" int CeedOperatorBuildKernel_Hip_gen(CeedOperator op) {
     code << "#define CEED_Q_VLA " << Q_1d << "\n\n";
   }
 
-  code << q_function_source;
+  code << qfunction_source;
 
   // Setup
   code << "\n// -----------------------------------------------------------------------------\n";
@@ -590,7 +592,7 @@ extern "C" int CeedOperatorBuildKernel_Hip_gen(CeedOperator op) {
     code << "      out[" << i << "] = r_qq_" << i << ";\n";
   }
   code << "\n      // -- Apply QFunction --\n";
-  code << "      " << q_function_name << "(ctx, ";
+  code << "      " << qfunction_name << "(ctx, ";
   if (dim != 3 || use_collograd_parallelization) {
     code << "1";
   } else {

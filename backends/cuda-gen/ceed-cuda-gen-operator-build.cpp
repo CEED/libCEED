@@ -77,7 +77,8 @@ extern "C" int CeedOperatorBuildKernel_Cuda_gen(CeedOperator op) {
   CeedCallBackend(CeedGetData(ceed, &ceed_data));
   CeedCallBackend(cudaGetDeviceProperties(&prop, ceed_data->device_id));
   if ((prop.major < 6) && (CEED_SCALAR_TYPE != CEED_SCALAR_FP32)) {
-    char *atomic_add_path, *atomic_add_source;
+    char       *atomic_add_source;
+    const char *atomic_add_path;
 
     CeedCallBackend(CeedGetJitAbsolutePath(ceed, "ceed/jit-source/cuda/cuda-atomic-add-fallback.h", &atomic_add_path));
     CeedDebug256(ceed, CEED_DEBUG_COLOR_SUCCESS, "----- Loading Atomic Add Source -----\n");
@@ -90,7 +91,8 @@ extern "C" int CeedOperatorBuildKernel_Cuda_gen(CeedOperator op) {
   // Load basis source files
   // TODO: generalize to accept different device functions?
   {
-    char *tensor_basis_kernel_path, *tensor_basis_kernel_source;
+    char       *tensor_basis_kernel_source;
+    const char *tensor_basis_kernel_path;
 
     CeedCallBackend(CeedGetJitAbsolutePath(ceed, "ceed/jit-source/cuda/cuda-shared-basis-tensor-templates.h", &tensor_basis_kernel_path));
     CeedDebug256(ceed, CEED_DEBUG_COLOR_SUCCESS, "----- Loading Tensor Basis Kernel Source -----\n");
@@ -100,7 +102,8 @@ extern "C" int CeedOperatorBuildKernel_Cuda_gen(CeedOperator op) {
     CeedCallBackend(CeedFree(&tensor_basis_kernel_source));
   }
   {
-    char *cuda_gen_template_path, *cuda_gen_template_source;
+    char       *cuda_gen_template_source;
+    const char *cuda_gen_template_path;
 
     CeedCallBackend(CeedGetJitAbsolutePath(ceed, "ceed/jit-source/cuda/cuda-gen-templates.h", &cuda_gen_template_path));
     CeedDebug256(ceed, CEED_DEBUG_COLOR_SUCCESS, "----- Loading Cuda-Gen Template Source -----\n");
@@ -111,10 +114,10 @@ extern "C" int CeedOperatorBuildKernel_Cuda_gen(CeedOperator op) {
   }
 
   // Get QFunction source and name
-  string q_function_source(qf_data->q_function_source);
-  string q_function_name(qf_data->q_function_name);
+  string qfunction_source(qf_data->qfunction_source);
+  string qfunction_name(qf_data->qfunction_name);
   string operator_name;
-  operator_name = "CeedKernelCudaGenOperator_" + q_function_name;
+  operator_name = "CeedKernelCudaGenOperator_" + qfunction_name;
 
   // Find dim, P_1d, Q_1d
   data->max_P_1d = 0;
@@ -190,7 +193,7 @@ extern "C" int CeedOperatorBuildKernel_Cuda_gen(CeedOperator op) {
     code << "#define CEED_Q_VLA " << Q_1d << "\n\n";
   }
 
-  code << q_function_source;
+  code << qfunction_source;
 
   // Setup
   code << "\n// -----------------------------------------------------------------------------\n";
@@ -581,7 +584,7 @@ extern "C" int CeedOperatorBuildKernel_Cuda_gen(CeedOperator op) {
     code << "      out[" << i << "] = r_qq_" << i << ";\n";
   }
   code << "\n      // -- Apply QFunction --\n";
-  code << "      " << q_function_name << "(ctx, ";
+  code << "      " << qfunction_name << "(ctx, ";
   if (dim != 3 || use_collograd_parallelization) {
     code << "1";
   } else {

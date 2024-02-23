@@ -35,7 +35,8 @@
 //------------------------------------------------------------------------------
 int CeedCompile_Hip(Ceed ceed, const char *source, hipModule_t *module, const CeedInt num_defines, ...) {
   size_t                 ptx_size;
-  char                  *jit_defs_path, *jit_defs_source, *ptx;
+  char                  *jit_defs_source, *ptx;
+  const char            *jit_defs_path;
   const int              num_opts = 3;
   const char            *opts[num_opts];
   int                    runtime_version;

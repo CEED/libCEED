@@ -213,7 +213,8 @@ static int CeedBasisDestroyNonTensor_Hip(CeedBasis basis) {
 int CeedBasisCreateTensorH1_Hip(CeedInt dim, CeedInt P_1d, CeedInt Q_1d, const CeedScalar *interp_1d, const CeedScalar *grad_1d,
                                 const CeedScalar *q_ref_1d, const CeedScalar *q_weight_1d, CeedBasis basis) {
   Ceed           ceed;
-  char          *basis_kernel_path, *basis_kernel_source;
+  char          *basis_kernel_source;
+  const char    *basis_kernel_path;
   CeedInt        num_comp;
   const CeedInt  q_bytes      = Q_1d * sizeof(CeedScalar);
   const CeedInt  interp_bytes = q_bytes * P_1d;
@@ -259,7 +260,8 @@ int CeedBasisCreateTensorH1_Hip(CeedInt dim, CeedInt P_1d, CeedInt Q_1d, const C
 int CeedBasisCreateH1_Hip(CeedElemTopology topo, CeedInt dim, CeedInt num_nodes, CeedInt num_qpts, const CeedScalar *interp, const CeedScalar *grad,
                           const CeedScalar *q_ref, const CeedScalar *q_weight, CeedBasis basis) {
   Ceed                    ceed;
-  char                   *basis_kernel_path, *basis_kernel_source;
+  char                   *basis_kernel_source;
+  const char             *basis_kernel_path;
   CeedInt                 num_comp, q_comp_interp, q_comp_grad;
   const CeedInt           q_bytes = num_qpts * sizeof(CeedScalar);
   CeedBasisNonTensor_Hip *data;
@@ -315,7 +317,8 @@ int CeedBasisCreateH1_Hip(CeedElemTopology topo, CeedInt dim, CeedInt num_nodes,
 int CeedBasisCreateHdiv_Hip(CeedElemTopology topo, CeedInt dim, CeedInt num_nodes, CeedInt num_qpts, const CeedScalar *interp, const CeedScalar *div,
                             const CeedScalar *q_ref, const CeedScalar *q_weight, CeedBasis basis) {
   Ceed                    ceed;
-  char                   *basis_kernel_path, *basis_kernel_source;
+  char                   *basis_kernel_source;
+  const char             *basis_kernel_path;
   CeedInt                 num_comp, q_comp_interp, q_comp_div;
   const CeedInt           q_bytes = num_qpts * sizeof(CeedScalar);
   CeedBasisNonTensor_Hip *data;
@@ -371,7 +374,8 @@ int CeedBasisCreateHdiv_Hip(CeedElemTopology topo, CeedInt dim, CeedInt num_node
 int CeedBasisCreateHcurl_Hip(CeedElemTopology topo, CeedInt dim, CeedInt num_nodes, CeedInt num_qpts, const CeedScalar *interp,
                              const CeedScalar *curl, const CeedScalar *q_ref, const CeedScalar *q_weight, CeedBasis basis) {
   Ceed                    ceed;
-  char                   *basis_kernel_path, *basis_kernel_source;
+  char                   *basis_kernel_source;
+  const char             *basis_kernel_path;
   CeedInt                 num_comp, q_comp_interp, q_comp_curl;
   const CeedInt           q_bytes = num_qpts * sizeof(CeedScalar);
   CeedBasisNonTensor_Hip *data;

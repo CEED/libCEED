@@ -73,7 +73,7 @@ typedef struct {
 typedef struct {
   CUmodule    module;
   const char *qfunction_name;
-  char       *qfunction_source;
+  const char *qfunction_source;
   CUfunction  QFunction;
   Fields_Cuda fields;
   void       *d_c;

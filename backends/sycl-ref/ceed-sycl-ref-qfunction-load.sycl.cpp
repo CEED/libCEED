@@ -29,7 +29,7 @@
 extern "C" int CeedQFunctionBuildKernel_Sycl(CeedQFunction qf) {
   Ceed                ceed;
   Ceed_Sycl          *data;
-  char               *read_write_kernel_path, *read_write_kernel_source;
+  const char         *read_write_kernel_path, *read_write_kernel_source;
   const char         *qfunction_name, *qfunction_source;
   CeedInt             num_input_fields, num_output_fields;
   CeedQFunctionField *input_fields, *output_fields;
@@ -70,7 +70,12 @@ extern "C" int CeedQFunctionBuildKernel_Sycl(CeedQFunction qf) {
   CeedCallBackend(CeedGetJitAbsolutePath(ceed, "ceed/jit-source/sycl/sycl-ref-qfunction.h", &read_write_kernel_path));
 
   CeedDebug256(ceed, CEED_DEBUG_COLOR_SUCCESS, "----- Loading QFunction Read/Write Kernel Source -----\n");
-  CeedCallBackend(CeedLoadSourceToBuffer(ceed, read_write_kernel_path, &read_write_kernel_source));
+  {
+    char *source;
+
+    CeedCallBackend(CeedLoadSourceToBuffer(ceed, read_write_kernel_path, &source));
+    read_write_kernel_source = source;
+  }
   CeedDebug256(ceed, CEED_DEBUG_COLOR_SUCCESS, "----- Loading QFunction Read/Write Kernel Source Complete! -----\n");
 
   std::string_view  qf_name_view(qfunction_name);
