@@ -125,7 +125,7 @@ static int CeedQFunctionFieldSet(CeedQFunctionField *f, const char *field_name, 
 **/
 static int CeedQFunctionFieldView(CeedQFunctionField field, CeedInt field_number, bool in, FILE *stream) {
   const char  *inout = in ? "Input" : "Output";
-  char        *field_name;
+  const char  *field_name;
   CeedInt      size;
   CeedEvalMode eval_mode;
 
@@ -850,8 +850,8 @@ int CeedQFunctionGetFields(CeedQFunction qf, CeedInt *num_input_fields, CeedQFun
 
   @ref Advanced
 **/
-int CeedQFunctionFieldGetName(CeedQFunctionField qf_field, char **field_name) {
-  *field_name = (char *)qf_field->field_name;
+int CeedQFunctionFieldGetName(CeedQFunctionField qf_field, const char **field_name) {
+  *field_name = qf_field->field_name;
   return CEED_ERROR_SUCCESS;
 }
 
@@ -899,7 +899,7 @@ int CeedQFunctionFieldGetEvalMode(CeedQFunctionField qf_field, CeedEvalMode *eva
 
   @ref Advanced
 **/
-int CeedQFunctionFieldGetData(CeedQFunctionField qf_field, char **field_name, CeedInt *size, CeedEvalMode *eval_mode) {
+int CeedQFunctionFieldGetData(CeedQFunctionField qf_field, const char **field_name, CeedInt *size, CeedEvalMode *eval_mode) {
   if (field_name) CeedCall(CeedQFunctionFieldGetName(qf_field, field_name));
   if (size) CeedCall(CeedQFunctionFieldGetSize(qf_field, size));
   if (eval_mode) CeedCall(CeedQFunctionFieldGetEvalMode(qf_field, eval_mode));
