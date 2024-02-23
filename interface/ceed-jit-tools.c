@@ -266,7 +266,7 @@ int CeedGetJitRelativePath(const char *absolute_file_path, const char **relative
 
   @ref Backend
 **/
-int CeedGetJitAbsolutePath(Ceed ceed, const char *relative_file_path, char **absolute_file_path) {
+int CeedGetJitAbsolutePath(Ceed ceed, const char *relative_file_path, const char **absolute_file_path) {
   Ceed ceed_parent;
 
   // Debug

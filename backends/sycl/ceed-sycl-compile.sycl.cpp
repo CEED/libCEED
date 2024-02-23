@@ -28,7 +28,7 @@ static int CeedJitAddDefinitions_Sycl(Ceed ceed, const std::string &kernel_sourc
                                       const std::map<std::string, CeedInt> &constants = {}) {
   std::ostringstream oss;
 
-  char       *jit_defs_path, *jit_defs_source;
+  const char *jit_defs_path, *jit_defs_source;
   const char *sycl_jith_path = "ceed/jit-source/sycl/sycl-jit.h";
 
   // Prepend defined constants
@@ -38,7 +38,11 @@ static int CeedJitAddDefinitions_Sycl(Ceed ceed, const std::string &kernel_sourc
 
   // libCeed definitions for Sycl Backends
   CeedCallBackend(CeedGetJitAbsolutePath(ceed, sycl_jith_path, &jit_defs_path));
-  CeedCallBackend(CeedLoadSourceToBuffer(ceed, jit_defs_path, &jit_defs_source));
+  {
+    char *source;
+    CeedCallBackend(CeedLoadSourceToBuffer(ceed, jit_defs_path, &source));
+    jit_defs_source = source;
+  }
 
   oss << jit_defs_source << "\n";
 
