@@ -57,8 +57,7 @@ static int CeedQFunctionApply_Memcheck(CeedQFunction qf, CeedInt Q, CeedVector *
   }
   // Check for unset output values
   {
-    const char *kernel_name;
-    char       *kernel_path;
+    const char *kernel_name, *kernel_path;
 
     CeedCallBackend(CeedQFunctionGetSourcePath(qf, &kernel_path));
     CeedCallBackend(CeedQFunctionGetKernelName(qf, &kernel_name));

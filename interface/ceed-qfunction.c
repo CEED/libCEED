@@ -238,7 +238,7 @@ int CeedQFunctionGetKernelName(CeedQFunction qf, const char **kernel_name) {
 
   @ref Backend
 **/
-int CeedQFunctionGetSourcePath(CeedQFunction qf, char **source_path) {
+int CeedQFunctionGetSourcePath(CeedQFunction qf, const char **source_path) {
   if (!qf->source_path && qf->user_source) {
     Ceed        ceed;
     bool        is_absolute_path;
@@ -282,7 +282,7 @@ int CeedQFunctionGetSourcePath(CeedQFunction qf, char **source_path) {
   @ref Backend
 **/
 int CeedQFunctionLoadSourceToBuffer(CeedQFunction qf, char **source_buffer) {
-  char *source_path;
+  const char *source_path;
 
   CeedCall(CeedQFunctionGetSourcePath(qf, &source_path));
   *source_buffer = NULL;
