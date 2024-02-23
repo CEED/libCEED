@@ -272,6 +272,10 @@ int CeedQFunctionGetSourcePath(CeedQFunction qf, const char **source_path) {
 
   The `buffer` is set to `NULL` if there is no `CeedQFunction` source file.
 
+  Note: This function may as well return a mutable buffer, but all current uses
+  do not modify it. (This is just a downside of `const` semantics with output
+  arguments instead of returns.)
+
   Note: Caller is responsible for freeing the string buffer with @ref CeedFree().
 
   @param[in]  qf            `CeedQFunction`
@@ -281,16 +285,18 @@ int CeedQFunctionGetSourcePath(CeedQFunction qf, const char **source_path) {
 
   @ref Backend
 **/
-int CeedQFunctionLoadSourceToBuffer(CeedQFunction qf, char **source_buffer) {
+int CeedQFunctionLoadSourceToBuffer(CeedQFunction qf, const char **source_buffer) {
   const char *source_path;
 
   CeedCall(CeedQFunctionGetSourcePath(qf, &source_path));
   *source_buffer = NULL;
   if (source_path) {
-    Ceed ceed;
+    Ceed  ceed;
+    char *buffer = NULL;
 
     CeedCall(CeedQFunctionGetCeed(qf, &ceed));
-    CeedCall(CeedLoadSourceToBuffer(ceed, source_path, source_buffer));
+    CeedCall(CeedLoadSourceToBuffer(ceed, source_path, &buffer));
+    *source_buffer = buffer;
   }
   return CEED_ERROR_SUCCESS;
 }

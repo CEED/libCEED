@@ -28,7 +28,7 @@ typedef struct {
 
 typedef struct {
   const char *q_function_name;
-  char       *q_function_source;
+  const char *q_function_source;
   void       *d_c;
 } CeedQFunction_Cuda_gen;
 
