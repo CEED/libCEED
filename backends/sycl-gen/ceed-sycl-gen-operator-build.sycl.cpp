@@ -129,9 +129,9 @@ extern "C" int CeedOperatorBuildKernel_Sycl_gen(CeedOperator op) {
     CeedCallBackend(CeedFree(&sycl_gen_template_source));
   }
 
-  std::string_view  q_function_source(qf_impl->q_function_source);
-  std::string_view  q_function_name(qf_impl->q_function_name);
-  const std::string operator_name = "CeedKernelSyclGenOperator_" + std::string(q_function_name);
+  std::string_view  qfunction_source(qf_impl->qfunction_source);
+  std::string_view  qfunction_name(qf_impl->qfunction_name);
+  const std::string operator_name = "CeedKernelSyclGenOperator_" + std::string(qfunction_name);
 
   // Find dim, P_1d, Q_1d
   impl->max_P_1d = 0;
@@ -231,7 +231,7 @@ extern "C" int CeedOperatorBuildKernel_Sycl_gen(CeedOperator op) {
     }
   }
 
-  code << q_function_source;
+  code << qfunction_source;
 
   // Kernel function
   code << "\n// -----------------------------------------------------------------------------\n";
@@ -617,7 +617,7 @@ extern "C" int CeedOperatorBuildKernel_Sycl_gen(CeedOperator op) {
   }
 
   code << "\n      // -- Apply QFunction --\n";
-  code << "      " << q_function_name << "(ctx, ";
+  code << "      " << qfunction_name << "(ctx, ";
   if (dim != 3 || use_collograd_parallelization) {
     code << "1";
   } else {
