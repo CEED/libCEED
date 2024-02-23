@@ -20,7 +20,6 @@
 
 use clap::Parser;
 use libceed::{prelude::*, Ceed};
-use mesh;
 mod opt;
 mod transform;
 
