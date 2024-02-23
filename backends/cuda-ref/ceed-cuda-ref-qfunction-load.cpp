@@ -24,7 +24,7 @@ extern "C" int CeedQFunctionBuildKernel_Cuda_ref(CeedQFunction qf) {
   using std::string;
 
   Ceed                ceed;
-  char               *read_write_kernel_path, *read_write_kernel_source;
+  const char         *read_write_kernel_path, *read_write_kernel_source;
   CeedInt             num_input_fields, num_output_fields, size;
   CeedQFunctionField *input_fields, *output_fields;
   CeedQFunction_Cuda *data;
@@ -43,7 +43,12 @@ extern "C" int CeedQFunctionBuildKernel_Cuda_ref(CeedQFunction qf) {
   // Build strings for final kernel
   CeedCallBackend(CeedGetJitAbsolutePath(ceed, "ceed/jit-source/cuda/cuda-ref-qfunction.h", &read_write_kernel_path));
   CeedDebug256(ceed, CEED_DEBUG_COLOR_SUCCESS, "----- Loading QFunction Read/Write Kernel Source -----\n");
-  CeedCallBackend(CeedLoadSourceToBuffer(ceed, read_write_kernel_path, &read_write_kernel_source));
+  {
+    char *source;
+
+    CeedCallBackend(CeedLoadSourceToBuffer(ceed, read_write_kernel_path, &source));
+    read_write_kernel_source = source;
+  }
   CeedDebug256(ceed, CEED_DEBUG_COLOR_SUCCESS, "----- Loading QFunction Read/Write Kernel Source Complete! -----\n");
   string        qfunction_source(data->qfunction_source);
   string        qfunction_name(data->qfunction_name);

@@ -169,7 +169,8 @@ int CeedBasisCreateTensorH1_Sycl_shared(CeedInt dim, CeedInt P_1d, CeedInt Q_1d,
                                         const CeedScalar *q_ref_1d, const CeedScalar *q_weight_1d, CeedBasis basis) {
   Ceed                   ceed;
   Ceed_Sycl             *data;
-  char                  *basis_kernel_path, *basis_kernel_source;
+  char                  *basis_kernel_source;
+  const char            *basis_kernel_path;
   CeedInt                num_comp;
   CeedBasis_Sycl_shared *impl;
 
@@ -239,7 +240,12 @@ int CeedBasisCreateTensorH1_Sycl_shared(CeedInt dim, CeedInt P_1d, CeedInt Q_1d,
   // Load kernel source
   CeedCallBackend(CeedGetJitAbsolutePath(ceed, "ceed/jit-source/sycl/sycl-shared-basis-tensor.h", &basis_kernel_path));
   CeedDebug256(ceed, CEED_DEBUG_COLOR_SUCCESS, "----- Loading Basis Kernel Source -----\n");
-  CeedCallBackend(CeedLoadSourceToBuffer(ceed, basis_kernel_path, &basis_kernel_source));
+  {
+    char *source;
+
+    CeedCallBackend(CeedLoadSourceToBuffer(ceed, basis_kernel_path, &source));
+    basis_kernel_source = source;
+  }
   CeedDebug256(ceed, CEED_DEBUG_COLOR_SUCCESS, "----- Loading Basis Kernel Source Complete -----\n");
 
   // Compile kernels into a kernel bundle

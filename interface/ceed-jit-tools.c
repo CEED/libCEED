@@ -156,7 +156,7 @@ int CeedLoadSourceToInitializedBuffer(Ceed ceed, const char *source_file_path, c
 
           CeedCall(CeedCalloc(ceed_relative_path_length + 1, &ceed_relative_path));
           memcpy(ceed_relative_path, &next_left_chevron[1], ceed_relative_path_length);
-          CeedCall(CeedGetJitAbsolutePath(ceed, ceed_relative_path, &include_source_path));
+          CeedCall(CeedGetJitAbsolutePath(ceed, ceed_relative_path, (const char **)&include_source_path));
           CeedCall(CeedFree(&ceed_relative_path));
         }
         // ---- Recursive call to load source to buffer
@@ -283,7 +283,7 @@ int CeedGetJitAbsolutePath(Ceed ceed, const char *relative_file_path, const char
     CeedDebug(ceed, "%s\n", ceed_parent->jit_source_roots[i]);
 
     // Build and check absolute path with current root
-    CeedCall(CeedPathConcatenate(ceed, ceed_parent->jit_source_roots[i], relative_file_path, absolute_file_path));
+    CeedCall(CeedPathConcatenate(ceed, ceed_parent->jit_source_roots[i], relative_file_path, (char **)absolute_file_path));
     CeedCall(CeedCheckFilePath(ceed, *absolute_file_path, &is_valid));
 
     if (is_valid) return CEED_ERROR_SUCCESS;

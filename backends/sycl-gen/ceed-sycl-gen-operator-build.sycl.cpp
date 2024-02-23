@@ -109,7 +109,8 @@ extern "C" int CeedOperatorBuildKernel_Sycl_gen(CeedOperator op) {
   std::ostringstream code;
   // TODO: generalize to accept different device functions?
   {
-    char *tensor_basis_kernel_path, *tensor_basis_code;
+    char       *tensor_basis_code;
+    const char *tensor_basis_kernel_path;
 
     CeedCallBackend(CeedGetJitAbsolutePath(ceed, "ceed/jit-source/sycl/sycl-shared-basis-tensor-templates.h", &tensor_basis_kernel_path));
     CeedDebug256(ceed, 2, "----- Loading Tensor Basis Kernel Source -----\n");
@@ -119,7 +120,8 @@ extern "C" int CeedOperatorBuildKernel_Sycl_gen(CeedOperator op) {
     CeedCallBackend(CeedFree(&tensor_basis_code));
   }
   {
-    char *sycl_gen_template_path, *sycl_gen_template_source;
+    char       *sycl_gen_template_source;
+    const char *sycl_gen_template_path;
 
     CeedCallBackend(CeedGetJitAbsolutePath(ceed, "ceed/jit-source/sycl/sycl-gen-templates.h", &sycl_gen_template_path));
     CeedDebug256(ceed, 2, "----- Loading Sycl-Gen Template Source -----\n");

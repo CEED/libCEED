@@ -242,7 +242,8 @@ int CeedQFunctionGetSourcePath(CeedQFunction qf, const char **source_path) {
   if (!qf->source_path && qf->user_source) {
     Ceed        ceed;
     bool        is_absolute_path;
-    char       *absolute_path, *source_path_copy;
+    char       *source_path_copy;
+    const char *absolute_path;
     const char *kernel_name     = strrchr(qf->user_source, ':') + 1;
     size_t      kernel_name_len = strlen(kernel_name);
 

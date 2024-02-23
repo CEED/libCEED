@@ -209,7 +209,8 @@ static int CeedBasisDestroy_Cuda_shared(CeedBasis basis) {
 int CeedBasisCreateTensorH1_Cuda_shared(CeedInt dim, CeedInt P_1d, CeedInt Q_1d, const CeedScalar *interp_1d, const CeedScalar *grad_1d,
                                         const CeedScalar *q_ref_1d, const CeedScalar *q_weight_1d, CeedBasis basis) {
   Ceed                   ceed;
-  char                  *basis_kernel_path, *basis_kernel_source;
+  char                  *basis_kernel_source;
+  const char            *basis_kernel_path;
   CeedInt                num_comp;
   const CeedInt          q_bytes      = Q_1d * sizeof(CeedScalar);
   const CeedInt          interp_bytes = q_bytes * P_1d;

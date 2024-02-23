@@ -71,9 +71,10 @@ extern "C" int CeedQFunctionBuildKernel_Sycl(CeedQFunction qf) {
 
   CeedDebug256(ceed, CEED_DEBUG_COLOR_SUCCESS, "----- Loading QFunction Read/Write Kernel Source -----\n");
   {
-    char *tmp;
-    CeedCallBackend(CeedLoadSourceToBuffer(ceed, read_write_kernel_path, &tmp));
-    read_write_kernel_source = tmp;
+    char *source;
+
+    CeedCallBackend(CeedLoadSourceToBuffer(ceed, read_write_kernel_path, &source));
+    read_write_kernel_source = source;
   }
   CeedDebug256(ceed, CEED_DEBUG_COLOR_SUCCESS, "----- Loading QFunction Read/Write Kernel Source Complete! -----\n");
 

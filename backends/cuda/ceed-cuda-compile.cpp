@@ -36,7 +36,8 @@
 //------------------------------------------------------------------------------
 int CeedCompile_Cuda(Ceed ceed, const char *source, CUmodule *module, const CeedInt num_defines, ...) {
   size_t                ptx_size;
-  char                 *jit_defs_path, *jit_defs_source, *ptx;
+  char                 *ptx;
+  const char           *jit_defs_path, *jit_defs_source;
   const int             num_opts = 3;
   const char           *opts[num_opts];
   nvrtcProgram          prog;
@@ -64,7 +65,12 @@ int CeedCompile_Cuda(Ceed ceed, const char *source, CUmodule *module, const Ceed
 
   // Standard libCEED definitions for CUDA backends
   CeedCallBackend(CeedGetJitAbsolutePath(ceed, "ceed/jit-source/cuda/cuda-jit.h", &jit_defs_path));
-  CeedCallBackend(CeedLoadSourceToBuffer(ceed, jit_defs_path, &jit_defs_source));
+  {
+    char *source;
+
+    CeedCallBackend(CeedLoadSourceToBuffer(ceed, jit_defs_path, &source));
+    jit_defs_source = source;
+  }
   code << jit_defs_source;
   code << "\n\n";
   CeedCallBackend(CeedFree(&jit_defs_path));

@@ -292,7 +292,8 @@ static int CeedBasisApplyNonTensor_Magma(CeedBasis basis, CeedInt num_elem, Ceed
       CeedFESpace fe_space;
       CeedInt     q_comp_interp, q_comp_deriv;
       Ceed        ceed_delegate;
-      char       *basis_kernel_path, *weight_kernel_path, *basis_kernel_source;
+      char       *basis_kernel_source;
+      const char *basis_kernel_path, *weight_kernel_path;
       magma_int_t arch = magma_getdevice_arch();
 
       // Tuning parameters for NB
@@ -483,7 +484,8 @@ int CeedBasisCreateTensorH1_Magma(CeedInt dim, CeedInt P_1d, CeedInt Q_1d, const
                                   const CeedScalar *q_ref_1d, const CeedScalar *q_weight_1d, CeedBasis basis) {
   Ceed             ceed, ceed_delegate;
   Ceed_Magma      *data;
-  char            *interp_kernel_path, *grad_kernel_path, *weight_kernel_path, *basis_kernel_source;
+  char            *basis_kernel_source;
+  const char      *interp_kernel_path, *grad_kernel_path, *weight_kernel_path;
   CeedInt          num_comp;
   CeedBasis_Magma *impl;
 
@@ -603,8 +605,9 @@ int CeedBasisCreateH1_Magma(CeedElemTopology topo, CeedInt dim, CeedInt num_node
 
   // Compile the weight kernel if it won't be compiled later on
   if (num_nodes > MAGMA_NONTENSOR_CUSTOM_KERNEL_MAX_P || num_qpts > MAGMA_NONTENSOR_CUSTOM_KERNEL_MAX_Q) {
-    Ceed  ceed_delegate;
-    char *weight_kernel_path, *basis_kernel_source;
+    Ceed        ceed_delegate;
+    char       *basis_kernel_source;
+    const char *weight_kernel_path;
 
     // The RTC compilation code expects a Ceed with the common Ceed_Cuda or Ceed_Hip data
     CeedCallBackend(CeedGetDelegate(ceed, &ceed_delegate));
@@ -661,8 +664,9 @@ int CeedBasisCreateHdiv_Magma(CeedElemTopology topo, CeedInt dim, CeedInt num_no
 
   // Compile the weight kernel if it won't be compiled later on
   if (num_nodes > MAGMA_NONTENSOR_CUSTOM_KERNEL_MAX_P || num_qpts > MAGMA_NONTENSOR_CUSTOM_KERNEL_MAX_Q) {
-    Ceed  ceed_delegate;
-    char *weight_kernel_path, *basis_kernel_source;
+    Ceed        ceed_delegate;
+    char       *basis_kernel_source;
+    const char *weight_kernel_path;
 
     // The RTC compilation code expects a Ceed with the common Ceed_Cuda or Ceed_Hip data
     CeedCallBackend(CeedGetDelegate(ceed, &ceed_delegate));
@@ -719,8 +723,9 @@ int CeedBasisCreateHcurl_Magma(CeedElemTopology topo, CeedInt dim, CeedInt num_n
 
   // Compile the weight kernel if it won't be compiled later on
   if (num_nodes > MAGMA_NONTENSOR_CUSTOM_KERNEL_MAX_P || num_qpts > MAGMA_NONTENSOR_CUSTOM_KERNEL_MAX_Q) {
-    Ceed  ceed_delegate;
-    char *weight_kernel_path, *basis_kernel_source;
+    Ceed        ceed_delegate;
+    char       *basis_kernel_source;
+    const char *weight_kernel_path;
 
     // The RTC compilation code expects a Ceed with the common Ceed_Cuda or Ceed_Hip data
     CeedCallBackend(CeedGetDelegate(ceed, &ceed_delegate));

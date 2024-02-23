@@ -25,7 +25,8 @@ extern "C" int CeedQFunctionBuildKernel_Hip_ref(CeedQFunction qf) {
   using std::string;
 
   Ceed                ceed;
-  char               *read_write_kernel_path, *read_write_kernel_source;
+  char               *read_write_kernel_source;
+  const char         *read_write_kernel_path;
   Ceed_Hip           *ceed_Hip;
   CeedInt             num_input_fields, num_output_fields, size;
   CeedQFunctionField *input_fields, *output_fields;

@@ -40,6 +40,7 @@ static int CeedJitAddDefinitions_Sycl(Ceed ceed, const std::string &kernel_sourc
   CeedCallBackend(CeedGetJitAbsolutePath(ceed, sycl_jith_path, &jit_defs_path));
   {
     char *source;
+
     CeedCallBackend(CeedLoadSourceToBuffer(ceed, jit_defs_path, &source));
     jit_defs_source = source;
   }
