@@ -19,7 +19,7 @@ jobs:
 
     steps:
     - name: Environment setup
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
     - name: Hardware setup and test libCEED
       uses: uraimo/run-on-arch-action@v2
       env:
