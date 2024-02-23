@@ -27,9 +27,9 @@ typedef struct {
 } CeedOperator_Hip_gen;
 
 typedef struct {
-  char *q_function_name;
-  char *q_function_source;
-  void *d_c;
+  const char *q_function_name;
+  char       *q_function_source;
+  void       *d_c;
 } CeedQFunction_Hip_gen;
 
 CEED_INTERN int CeedQFunctionCreate_Hip_gen(CeedQFunction qf);

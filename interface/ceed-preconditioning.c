@@ -73,7 +73,7 @@ static int CeedQFunctionCreateFallback(Ceed fallback_ceed, CeedQFunction qf, Cee
   }
   CeedCall(CeedQFunctionGetFields(qf, &num_input_fields, &input_fields, &num_output_fields, &output_fields));
   for (CeedInt i = 0; i < num_input_fields; i++) {
-    char        *field_name;
+    const char  *field_name;
     CeedInt      size;
     CeedEvalMode eval_mode;
 
@@ -81,7 +81,7 @@ static int CeedQFunctionCreateFallback(Ceed fallback_ceed, CeedQFunction qf, Cee
     CeedCall(CeedQFunctionAddInput(*qf_fallback, field_name, size, eval_mode));
   }
   for (CeedInt i = 0; i < num_output_fields; i++) {
-    char        *field_name;
+    const char  *field_name;
     CeedInt      size;
     CeedEvalMode eval_mode;
 
@@ -143,7 +143,7 @@ static int CeedOperatorCreateFallback(CeedOperator op) {
     CeedCall(CeedOperatorCreate(ceed_fallback, qf_fallback, dqf_fallback, dqfT_fallback, &op_fallback));
     CeedCall(CeedOperatorGetFields(op, &num_input_fields, &input_fields, &num_output_fields, &output_fields));
     for (CeedInt i = 0; i < num_input_fields; i++) {
-      char               *field_name;
+      const char         *field_name;
       CeedVector          vec;
       CeedElemRestriction rstr;
       CeedBasis           basis;
@@ -152,7 +152,7 @@ static int CeedOperatorCreateFallback(CeedOperator op) {
       CeedCall(CeedOperatorSetField(op_fallback, field_name, rstr, basis, vec));
     }
     for (CeedInt i = 0; i < num_output_fields; i++) {
-      char               *field_name;
+      const char         *field_name;
       CeedVector          vec;
       CeedElemRestriction rstr;
       CeedBasis           basis;
@@ -820,7 +820,7 @@ static int CeedSingleOperatorMultigridLevel(CeedOperator op_fine, CeedVector p_m
   CeedCall(CeedOperatorGetFields(op_fine, &num_input_fields, &input_fields, &num_output_fields, &output_fields));
   // -- Clone input fields
   for (CeedInt i = 0; i < num_input_fields; i++) {
-    char               *field_name;
+    const char         *field_name;
     CeedVector          vec;
     CeedElemRestriction rstr;
     CeedBasis           basis;
@@ -839,7 +839,7 @@ static int CeedSingleOperatorMultigridLevel(CeedOperator op_fine, CeedVector p_m
   }
   // -- Clone output fields
   for (CeedInt i = 0; i < num_output_fields; i++) {
-    char               *field_name;
+    const char         *field_name;
     CeedVector          vec;
     CeedElemRestriction rstr;
     CeedBasis           basis;

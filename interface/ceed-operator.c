@@ -34,7 +34,7 @@
   @ref Developer
 **/
 static int CeedOperatorCheckField(Ceed ceed, CeedQFunctionField qf_field, CeedElemRestriction rstr, CeedBasis basis) {
-  char        *field_name;
+  const char  *field_name;
   CeedInt      dim = 1, num_comp = 1, q_comp = 1, rstr_num_comp = 1, size;
   CeedEvalMode eval_mode;
 
@@ -98,7 +98,7 @@ static int CeedOperatorCheckField(Ceed ceed, CeedQFunctionField qf_field, CeedEl
 static int CeedOperatorFieldView(CeedOperatorField op_field, CeedQFunctionField qf_field, CeedInt field_number, bool sub, bool input, FILE *stream) {
   const char  *pre    = sub ? "  " : "";
   const char  *in_out = input ? "Input" : "Output";
-  char        *field_name;
+  const char  *field_name;
   CeedInt      size;
   CeedEvalMode eval_mode;
   CeedVector   vec;
@@ -926,7 +926,7 @@ int CeedOperatorSetField(CeedOperator op, const char *field_name, CeedElemRestri
   CeedCall(CeedOperatorGetQFunction(op, &qf));
   CeedCall(CeedQFunctionGetFields(qf, &num_input_fields, &qf_input_fields, &num_output_fields, &qf_output_fields));
   for (CeedInt i = 0; i < num_input_fields; i++) {
-    char *qf_field_name;
+    const char *qf_field_name;
 
     CeedCall(CeedQFunctionFieldGetName(qf_input_fields[i], &qf_field_name));
     if (!strcmp(field_name, qf_field_name)) {
@@ -937,7 +937,7 @@ int CeedOperatorSetField(CeedOperator op, const char *field_name, CeedElemRestri
   }
   is_input = false;
   for (CeedInt i = 0; i < num_output_fields; i++) {
-    char *qf_field_name;
+    const char *qf_field_name;
 
     CeedCall(CeedQFunctionFieldGetName(qf_output_fields[i], &qf_field_name));
     if (!strcmp(field_name, qf_field_name)) {
@@ -1110,7 +1110,7 @@ int CeedOperatorAtPointsGetPoints(CeedOperator op, CeedElemRestriction *rstr_poi
   @ref Advanced
 **/
 int CeedOperatorGetFieldByName(CeedOperator op, const char *field_name, CeedOperatorField *op_field) {
-  char              *name;
+  const char        *name;
   CeedInt            num_input_fields, num_output_fields;
   CeedOperatorField *input_fields, *output_fields;
 
@@ -1143,8 +1143,8 @@ int CeedOperatorGetFieldByName(CeedOperator op, const char *field_name, CeedOper
 
   @ref Advanced
 **/
-int CeedOperatorFieldGetName(CeedOperatorField op_field, char **field_name) {
-  *field_name = (char *)op_field->field_name;
+int CeedOperatorFieldGetName(CeedOperatorField op_field, const char **field_name) {
+  *field_name = op_field->field_name;
   return CEED_ERROR_SUCCESS;
 }
 
@@ -1208,7 +1208,7 @@ int CeedOperatorFieldGetVector(CeedOperatorField op_field, CeedVector *vec) {
 
   @ref Advanced
 **/
-int CeedOperatorFieldGetData(CeedOperatorField op_field, char **field_name, CeedElemRestriction *rstr, CeedBasis *basis, CeedVector *vec) {
+int CeedOperatorFieldGetData(CeedOperatorField op_field, const char **field_name, CeedElemRestriction *rstr, CeedBasis *basis, CeedVector *vec) {
   if (field_name) CeedCall(CeedOperatorFieldGetName(op_field, field_name));
   if (rstr) CeedCall(CeedOperatorFieldGetElemRestriction(op_field, rstr));
   if (basis) CeedCall(CeedOperatorFieldGetBasis(op_field, basis));

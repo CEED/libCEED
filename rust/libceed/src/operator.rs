@@ -63,7 +63,10 @@ impl<'a> OperatorField<'a> {
     pub fn name(&self) -> &str {
         let mut name_ptr: *mut std::os::raw::c_char = std::ptr::null_mut();
         unsafe {
-            bind_ceed::CeedOperatorFieldGetName(self.ptr, &mut name_ptr);
+            bind_ceed::CeedOperatorFieldGetName(
+                self.ptr,
+                &mut name_ptr as *const _ as *mut *const _,
+            );
         }
         unsafe { CStr::from_ptr(name_ptr) }.to_str().unwrap()
     }

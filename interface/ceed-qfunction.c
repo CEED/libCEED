@@ -125,7 +125,7 @@ static int CeedQFunctionFieldSet(CeedQFunctionField *f, const char *field_name, 
 **/
 static int CeedQFunctionFieldView(CeedQFunctionField field, CeedInt field_number, bool in, FILE *stream) {
   const char  *inout = in ? "Input" : "Output";
-  char        *field_name;
+  const char  *field_name;
   CeedInt      size;
   CeedEvalMode eval_mode;
 
@@ -206,7 +206,7 @@ int CeedQFunctionGetNumArgs(CeedQFunction qf, CeedInt *num_input, CeedInt *num_o
 
   @ref Backend
 **/
-int CeedQFunctionGetKernelName(CeedQFunction qf, char **kernel_name) {
+int CeedQFunctionGetKernelName(CeedQFunction qf, const char **kernel_name) {
   if (!qf->kernel_name) {
     Ceed  ceed;
     char *kernel_name_copy;
@@ -224,7 +224,7 @@ int CeedQFunctionGetKernelName(CeedQFunction qf, char **kernel_name) {
     qf->kernel_name = kernel_name_copy;
   }
 
-  *kernel_name = (char *)qf->kernel_name;
+  *kernel_name = qf->kernel_name;
   return CEED_ERROR_SUCCESS;
 }
 
@@ -850,8 +850,8 @@ int CeedQFunctionGetFields(CeedQFunction qf, CeedInt *num_input_fields, CeedQFun
 
   @ref Advanced
 **/
-int CeedQFunctionFieldGetName(CeedQFunctionField qf_field, char **field_name) {
-  *field_name = (char *)qf_field->field_name;
+int CeedQFunctionFieldGetName(CeedQFunctionField qf_field, const char **field_name) {
+  *field_name = qf_field->field_name;
   return CEED_ERROR_SUCCESS;
 }
 
@@ -899,7 +899,7 @@ int CeedQFunctionFieldGetEvalMode(CeedQFunctionField qf_field, CeedEvalMode *eva
 
   @ref Advanced
 **/
-int CeedQFunctionFieldGetData(CeedQFunctionField qf_field, char **field_name, CeedInt *size, CeedEvalMode *eval_mode) {
+int CeedQFunctionFieldGetData(CeedQFunctionField qf_field, const char **field_name, CeedInt *size, CeedEvalMode *eval_mode) {
   if (field_name) CeedCall(CeedQFunctionFieldGetName(qf_field, field_name));
   if (size) CeedCall(CeedQFunctionFieldGetSize(qf_field, size));
   if (eval_mode) CeedCall(CeedQFunctionFieldGetEvalMode(qf_field, eval_mode));
@@ -975,7 +975,7 @@ int CeedQFunctionSetUserFlopsEstimate(CeedQFunction qf, CeedSize flops) {
   @ref User
 **/
 int CeedQFunctionView(CeedQFunction qf, FILE *stream) {
-  char *kernel_name;
+  const char *kernel_name;
 
   CeedCall(CeedQFunctionGetKernelName(qf, &kernel_name));
   fprintf(stream, "%sCeedQFunction - %s\n", qf->is_gallery ? "Gallery " : "User ", qf->is_gallery ? qf->gallery_name : kernel_name);
