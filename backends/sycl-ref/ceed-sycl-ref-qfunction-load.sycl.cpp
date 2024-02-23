@@ -29,7 +29,8 @@
 extern "C" int CeedQFunctionBuildKernel_Sycl(CeedQFunction qf) {
   Ceed                ceed;
   Ceed_Sycl          *data;
-  char               *qfunction_name, *qfunction_source, *read_write_kernel_path, *read_write_kernel_source;
+  char               *read_write_kernel_path, *read_write_kernel_source;
+  const char         *qfunction_name, *qfunction_source;
   CeedInt             num_input_fields, num_output_fields;
   CeedQFunctionField *input_fields, *output_fields;
   CeedQFunction_Sycl *impl;

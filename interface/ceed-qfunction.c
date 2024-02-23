@@ -206,7 +206,7 @@ int CeedQFunctionGetNumArgs(CeedQFunction qf, CeedInt *num_input, CeedInt *num_o
 
   @ref Backend
 **/
-int CeedQFunctionGetKernelName(CeedQFunction qf, char **kernel_name) {
+int CeedQFunctionGetKernelName(CeedQFunction qf, const char **kernel_name) {
   if (!qf->kernel_name) {
     Ceed  ceed;
     char *kernel_name_copy;
@@ -224,7 +224,7 @@ int CeedQFunctionGetKernelName(CeedQFunction qf, char **kernel_name) {
     qf->kernel_name = kernel_name_copy;
   }
 
-  *kernel_name = (char *)qf->kernel_name;
+  *kernel_name = qf->kernel_name;
   return CEED_ERROR_SUCCESS;
 }
 
@@ -975,7 +975,7 @@ int CeedQFunctionSetUserFlopsEstimate(CeedQFunction qf, CeedSize flops) {
   @ref User
 **/
 int CeedQFunctionView(CeedQFunction qf, FILE *stream) {
-  char *kernel_name;
+  const char *kernel_name;
 
   CeedCall(CeedQFunctionGetKernelName(qf, &kernel_name));
   fprintf(stream, "%sCeedQFunction - %s\n", qf->is_gallery ? "Gallery " : "User ", qf->is_gallery ? qf->gallery_name : kernel_name);

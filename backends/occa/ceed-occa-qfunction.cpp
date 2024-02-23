@@ -213,7 +213,7 @@ int QFunction::ceedCreate(CeedQFunction qf) {
   CeedCallBackend(CeedGetData(ceed, &context));
   char *source;
   CeedCallBackend(CeedQFunctionGetSourcePath(qf, &source));
-  char *function_name;
+  const char *function_name;
   CeedCallBackend(CeedQFunctionGetKernelName(qf, &function_name));
 
   QFunction *qFunction = new QFunction(source, function_name);
