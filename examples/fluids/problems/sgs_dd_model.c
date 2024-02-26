@@ -353,6 +353,7 @@ PetscErrorCode SgsDDDataDestroy(SgsDDData sgs_dd_data) {
 
   PetscCallCeed(ceed, CeedVectorDestroy(&sgs_dd_data->sgs_nodal_ceed));
   PetscCall(OperatorApplyContextDestroy(sgs_dd_data->op_nodal_evaluation_ctx));
+  PetscCall(OperatorApplyContextDestroy(sgs_dd_data->op_sgs_apply_ctx));
   PetscCall(DMDestroy(&sgs_dd_data->dm_sgs));
   PetscCall(PetscFree(sgs_dd_data));
   PetscFunctionReturn(PETSC_SUCCESS);
