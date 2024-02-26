@@ -53,6 +53,7 @@ struct SetupContextAdv_ {
   CeedScalar           lz;
   CeedScalar           wind[3];
   CeedScalar           time;
+  CeedScalar           sine_frequency, sine_length;
   WindType             wind_type;
   AdvectionICType      initial_condition_type;
   BubbleContinuityType bubble_continuity_type;

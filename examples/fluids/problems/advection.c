@@ -159,6 +159,8 @@ PetscErrorCode NS_ADVECTION(ProblemData *problem, DM dm, void *ctx, SimpleBC bc)
   CeedScalar Ctau_t          = 0.;
   PetscReal  wind[3]         = {1., 0, 0};  // m/s
   CeedScalar diffusion_coeff = 0.;
+  CeedScalar sine_frequency  = 2;
+  CeedScalar sine_length     = 1;
   PetscReal  domain_min[3], domain_max[3], domain_size[3];
   PetscCall(DMGetBoundingBox(dm, domain_min, domain_max));
   for (PetscInt i = 0; i < problem->dim; i++) domain_size[i] = domain_max[i] - domain_min[i];
@@ -200,10 +202,13 @@ PetscErrorCode NS_ADVECTION(ProblemData *problem, DM dm, void *ctx, SimpleBC bc)
   PetscCall(PetscOptionsScalar("-Ctau_a", "Coefficient for the stabilization ", NULL, Ctau_a, &Ctau_a, NULL));
   PetscCall(PetscOptionsBool("-implicit", "Use implicit (IFunction) formulation", NULL, implicit = PETSC_FALSE, &implicit, NULL));
 
-  
+  PetscCall(PetscOptionsScalar("-sine_frequency", "Frequency of sine wave", NULL, sine_frequency, &sine_frequency, NULL));
+  PetscCall(PetscOptionsScalar("-sine_length", "Length correction", NULL, sine_length, &sine_length, NULL));
+
   {
     PetscBool use_l2_project;
-    PetscCall(PetscOptionsBool("-use_l2_project", "Use L^2 projection for initial condition", NULL, use_l2_project = PETSC_FALSE, &use_l2_project, NULL));
+    PetscCall(
+        PetscOptionsBool("-use_l2_project", "Use L^2 projection for initial condition", NULL, use_l2_project = PETSC_FALSE, &use_l2_project, NULL));
     if (!use_l2_project) {
       problem->ics_l2rhs.qfunction     = NULL;
       problem->ics_l2rhs.qfunction_loc = NULL;
@@ -269,6 +274,8 @@ PetscErrorCode NS_ADVECTION(ProblemData *problem, DM dm, void *ctx, SimpleBC bc)
   setup_context->initial_condition_type = advectionic_type;
   setup_context->bubble_continuity_type = bubble_continuity_type;
   setup_context->time                   = 0;
+  setup_context->sine_frequency         = sine_frequency;
+  setup_context->sine_length            = sine_length;
 
   // -- QFunction Context
   user->phys->implicit             = implicit;
@@ -286,7 +293,8 @@ PetscErrorCode NS_ADVECTION(ProblemData *problem, DM dm, void *ctx, SimpleBC bc)
   PetscCallCeed(ceed,
                 CeedQFunctionContextSetData(problem->ics.qfunction_context, CEED_MEM_HOST, CEED_USE_POINTER, sizeof(*setup_context), setup_context));
   PetscCallCeed(ceed, CeedQFunctionContextSetDataDestroy(problem->ics.qfunction_context, CEED_MEM_HOST, FreeContextPetsc));
-  if (problem->ics_l2rhs.qfunction) PetscCallCeed(ceed, CeedQFunctionContextReferenceCopy(problem->ics.qfunction_context, &problem->ics_l2rhs.qfunction_context));
+  if (problem->ics_l2rhs.qfunction)
+    PetscCallCeed(ceed, CeedQFunctionContextReferenceCopy(problem->ics.qfunction_context, &problem->ics_l2rhs.qfunction_context));
 
   PetscCallCeed(ceed, CeedQFunctionContextCreate(user->ceed, &advection_context));
   PetscCallCeed(ceed, CeedQFunctionContextSetData(advection_context, CEED_MEM_HOST, CEED_USE_POINTER, sizeof(*advection_ctx), advection_ctx));
