@@ -266,7 +266,6 @@ PetscErrorCode TSMonitor_SGS_DD_Training(TS ts, PetscInt step_num, PetscReal sol
 
   PetscFunctionBeginUser;
   if (step_num % sgs_dd_train->write_data_interval != 0) PetscFunctionReturn(PETSC_SUCCESS);
-
   PetscCall(DMGetGlobalVector(sgs_dd_train->dm_dd_training, &TrainingData));
 
   PetscCall(PetscLogEventBegin(TrainDataCompute, 0, 0, 0, 0));
