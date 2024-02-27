@@ -307,7 +307,7 @@ PetscErrorCode DifferentialFilterDataDestroy(DiffFilterData diff_filter) {
   PetscFunctionBeginUser;
   if (!diff_filter) PetscFunctionReturn(PETSC_SUCCESS);
 
-  OperatorApplyContextDestroy(diff_filter->op_rhs_ctx);
+  PetscCall(OperatorApplyContextDestroy(diff_filter->op_rhs_ctx));
   PetscCall(DMDestroy(&diff_filter->dm_filter));
   PetscCall(KSPDestroy(&diff_filter->ksp));
 

@@ -42,7 +42,7 @@ PetscErrorCode DMFieldToDSField(DM dm, DMLabel domain_label, PetscInt dm_field, 
   }
   PetscCall(ISRestoreIndices(field_is, &fields));
 
-  if (*ds_field == -1) SETERRQ(PetscObjectComm((PetscObject)dm), PETSC_ERR_SUP, "Could not find dm_field %" PetscInt_FMT " in DS", dm_field);
+  PetscCheck(*ds_field != -1, PetscObjectComm((PetscObject)dm), PETSC_ERR_SUP, "Could not find dm_field %" PetscInt_FMT " in DS", dm_field);
   PetscFunctionReturn(PETSC_SUCCESS);
 }
 
@@ -293,7 +293,7 @@ PetscErrorCode BasisCreateFromTabulation(Ceed ceed, DM dm, DMLabel domain_label,
   PetscCall(DMGetFirstLabeledPoint(dm, dm, domain_label ? domain_label : depth_label, 1, ids, height, &first_point, NULL));
   PetscCall(DMPlexGetCellType(dm, first_point, &cell_type));
   elem_topo = ElemTopologyP2C(cell_type);
-  if (!elem_topo) SETERRQ(PetscObjectComm((PetscObject)dm), PETSC_ERR_SUP, "DMPlex topology not supported");
+  PetscCheck(elem_topo, PetscObjectComm((PetscObject)dm), PETSC_ERR_SUP, "DMPlex topology not supported");
   {
     size_t             q_points_size;
     const PetscScalar *q_points_petsc;
