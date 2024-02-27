@@ -341,7 +341,11 @@ PetscLogEvent       FLUIDS_CeedOperatorApply;
 PetscLogEvent       FLUIDS_CeedOperatorAssemble;
 PetscLogEvent       FLUIDS_CeedOperatorAssembleDiagonal;
 PetscLogEvent       FLUIDS_CeedOperatorAssemblePointBlockDiagonal;
-static PetscClassId libCEED_classid;
+PetscLogEvent       FLUIDS_SmartRedis_Init;
+PetscLogEvent       FLUIDS_SmartRedis_Meta;
+PetscLogEvent       FLUIDS_SmartRedis_Train;
+PetscLogEvent       FLUIDS_TrainDataCompute;
+static PetscClassId libCEED_classid, onlineTrain;
 
 PetscErrorCode RegisterLogEvents() {
   PetscFunctionBeginUser;
@@ -350,6 +354,12 @@ PetscErrorCode RegisterLogEvents() {
   PetscCall(PetscLogEventRegister("CeedOpAsm", libCEED_classid, &FLUIDS_CeedOperatorAssemble));
   PetscCall(PetscLogEventRegister("CeedOpAsmD", libCEED_classid, &FLUIDS_CeedOperatorAssembleDiagonal));
   PetscCall(PetscLogEventRegister("CeedOpAsmPBD", libCEED_classid, &FLUIDS_CeedOperatorAssemblePointBlockDiagonal));
+
+  PetscCall(PetscClassIdRegister("onlineTrain", &onlineTrain));
+  PetscCall(PetscLogEventRegister("SmartRedis_Init", onlineTrain, &FLUIDS_SmartRedis_Init));
+  PetscCall(PetscLogEventRegister("SmartRedis_Meta", onlineTrain, &FLUIDS_SmartRedis_Meta));
+  PetscCall(PetscLogEventRegister("SmartRedis_Train", onlineTrain, &FLUIDS_SmartRedis_Train));
+  PetscCall(PetscLogEventRegister("TrainDataCompute", onlineTrain, &FLUIDS_TrainDataCompute));
   PetscFunctionReturn(PETSC_SUCCESS);
 }
 

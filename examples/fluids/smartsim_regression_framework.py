@@ -13,6 +13,7 @@ from typing import Tuple
 import os
 import shutil
 import logging
+import socket
 
 # autopep8 off
 sys.path.insert(0, (Path(__file__).parents[3] / "tests/junit-xml").as_posix())

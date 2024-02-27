@@ -97,11 +97,10 @@ extern PetscLogEvent FLUIDS_CeedOperatorApply;
 extern PetscLogEvent FLUIDS_CeedOperatorAssemble;
 extern PetscLogEvent FLUIDS_CeedOperatorAssembleDiagonal;
 extern PetscLogEvent FLUIDS_CeedOperatorAssemblePointBlockDiagonal;
-extern PetscLogEvent FilterData;
-extern PetscLogEvent SmartRedis_Init;
-extern PetscLogEvent SmartRedis_Meta;
-extern PetscLogEvent SmartRedis_Train;
-extern PetscLogEvent TrainDataCompute;
+extern PetscLogEvent FLUIDS_SmartRedis_Init;
+extern PetscLogEvent FLUIDS_SmartRedis_Meta;
+extern PetscLogEvent FLUIDS_SmartRedis_Train;
+extern PetscLogEvent FLUIDS_TrainDataCompute;
 PetscErrorCode       RegisterLogEvents();
 
 // -----------------------------------------------------------------------------
