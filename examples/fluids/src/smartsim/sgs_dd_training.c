@@ -319,7 +319,7 @@ PetscErrorCode TSMonitor_SGS_DD_Training(TS ts, PetscInt step_num, PetscReal sol
       PetscCall(VecGetArrayRead(TrainingData, &training_data));
       PetscCall(PetscLogEventBegin(SmartRedis_Train, 0, 0, 0, 0));
       PetscSmartRedisCall(put_tensor(smartsim->client, array_key, array_key_len, (void *)training_data, sgs_dd_train->training_data_array_dims, 2,
-                                SRTensorTypeDouble, SRMemLayoutContiguous));
+                                     SRTensorTypeDouble, SRMemLayoutContiguous));
       PetscCall(PetscLogEventEnd(SmartRedis_Train, 0, 0, 0, 0));
       PetscCall(VecRestoreArrayRead(TrainingData, &training_data));
     }
