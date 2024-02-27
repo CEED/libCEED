@@ -23,8 +23,6 @@ logging.disable(logging.WARNING)
 fluids_example_dir = Path(__file__).parent.absolute()
 
 
-<<<<<<< HEAD
-=======
 def getOpenSocket():
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     s.bind(('', 0))
@@ -33,7 +31,6 @@ def getOpenSocket():
     return addr[1]
 
 
->>>>>>> main
 class NoError(Exception):
     pass
 
@@ -55,11 +52,7 @@ class SmartSimTest(object):
         self.directory_path.mkdir()
         os.chdir(self.directory_path)
 
-<<<<<<< HEAD
-        PORT = 6780
-=======
         PORT = getOpenSocket()
->>>>>>> main
         self.exp = Experiment("test", launcher="local")
         self.database = self.exp.create_database(port=PORT, batch=False, interface="lo")
         self.exp.generate(self.database)
