@@ -345,7 +345,7 @@ PetscLogEvent       FLUIDS_SmartRedis_Init;
 PetscLogEvent       FLUIDS_SmartRedis_Meta;
 PetscLogEvent       FLUIDS_SmartRedis_Train;
 PetscLogEvent       FLUIDS_TrainDataCompute;
-static PetscClassId libCEED_classid, onlineTrain;
+static PetscClassId libCEED_classid, onlineTrain_classid;
 
 PetscErrorCode RegisterLogEvents() {
   PetscFunctionBeginUser;
