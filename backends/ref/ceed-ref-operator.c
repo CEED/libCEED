@@ -706,39 +706,6 @@ static int CeedOperatorSetupAtPoints_Ref(CeedOperator op) {
 }
 
 //------------------------------------------------------------------------------
-// Setup Input Fields
-//------------------------------------------------------------------------------
-static inline int CeedOperatorSetupInputsAtPoints_Ref(CeedInt num_input_fields, CeedQFunctionField *qf_input_fields,
-                                                      CeedOperatorField *op_input_fields, CeedVector in_vec, CeedScalar *e_data[2 * CEED_FIELD_MAX],
-                                                      CeedOperator_Ref *impl, CeedRequest *request) {
-  for (CeedInt i = 0; i < num_input_fields; i++) {
-    uint64_t            state;
-    CeedEvalMode        eval_mode;
-    CeedVector          vec;
-    CeedElemRestriction elem_rstr;
-
-    CeedCallBackend(CeedQFunctionFieldGetEvalMode(qf_input_fields[i], &eval_mode));
-    if (eval_mode == CEED_EVAL_WEIGHT) {  // Skip
-    } else {
-      // Get input vector
-      CeedCallBackend(CeedOperatorFieldGetVector(op_input_fields[i], &vec));
-      CeedCallBackend(CeedOperatorFieldGetElemRestriction(op_input_fields[i], &elem_rstr));
-      if (vec != CEED_VECTOR_ACTIVE) {
-        // Restrict
-        CeedCallBackend(CeedVectorGetState(vec, &state));
-        if (state != impl->input_states[i]) {
-          CeedCallBackend(CeedElemRestrictionApply(elem_rstr, CEED_NOTRANSPOSE, vec, impl->e_vecs_full[i], request));
-          impl->input_states[i] = state;
-        }
-        // Get evec
-        CeedCallBackend(CeedVectorGetArrayRead(impl->e_vecs_full[i], CEED_MEM_HOST, (const CeedScalar **)&e_data[i]));
-      }
-    }
-  }
-  return CEED_ERROR_SUCCESS;
-}
-
-//------------------------------------------------------------------------------
 // Input Basis Action
 //------------------------------------------------------------------------------
 static inline int CeedOperatorInputBasisAtPoints_Ref(CeedInt e, CeedInt num_points_offset, CeedInt num_points, CeedQFunctionField *qf_input_fields,
@@ -854,25 +821,6 @@ static inline int CeedOperatorOutputBasisAtPoints_Ref(CeedInt e, CeedInt num_poi
 }
 
 //------------------------------------------------------------------------------
-// Restore Input Vectors
-//------------------------------------------------------------------------------
-static inline int CeedOperatorRestoreInputsAtPoints_Ref(CeedInt num_input_fields, CeedQFunctionField *qf_input_fields,
-                                                        CeedOperatorField *op_input_fields, CeedScalar *e_data[2 * CEED_FIELD_MAX],
-                                                        CeedOperator_Ref *impl) {
-  for (CeedInt i = 0; i < num_input_fields; i++) {
-    CeedEvalMode eval_mode;
-    CeedVector   vec;
-
-    CeedCallBackend(CeedQFunctionFieldGetEvalMode(qf_input_fields[i], &eval_mode));
-    CeedCallBackend(CeedOperatorFieldGetVector(op_input_fields[i], &vec));
-    if (eval_mode != CEED_EVAL_WEIGHT && vec != CEED_VECTOR_ACTIVE) {
-      CeedCallBackend(CeedVectorRestoreArrayRead(impl->e_vecs_full[i], (const CeedScalar **)&e_data[i]));
-    }
-  }
-  return CEED_ERROR_SUCCESS;
-}
-
-//------------------------------------------------------------------------------
 // Operator Apply
 //------------------------------------------------------------------------------
 static int CeedOperatorApplyAddAtPoints_Ref(CeedOperator op, CeedVector in_vec, CeedVector out_vec, CeedRequest *request) {
@@ -900,7 +848,7 @@ static int CeedOperatorApplyAddAtPoints_Ref(CeedOperator op, CeedVector in_vec, 
   CeedCallBackend(CeedOperatorAtPointsGetPoints(op, &rstr_points, &point_coords));
 
   // Input Evecs and Restriction
-  CeedCallBackend(CeedOperatorSetupInputsAtPoints_Ref(num_input_fields, qf_input_fields, op_input_fields, in_vec, e_data, impl, request));
+  CeedCallBackend(CeedOperatorSetupInputs_Ref(num_input_fields, qf_input_fields, op_input_fields, NULL, true, e_data, impl, request));
 
   // Loop through elements
   for (CeedInt e = 0; e < num_elem; e++) {
@@ -927,7 +875,7 @@ static int CeedOperatorApplyAddAtPoints_Ref(CeedOperator op, CeedVector in_vec, 
   }
 
   // Restore input arrays
-  CeedCallBackend(CeedOperatorRestoreInputsAtPoints_Ref(num_input_fields, qf_input_fields, op_input_fields, e_data, impl));
+  CeedCallBackend(CeedOperatorRestoreInputs_Ref(num_input_fields, qf_input_fields, op_input_fields, true, e_data, impl));
 
   // Cleanup point coordinates
   CeedCallBackend(CeedVectorDestroy(&point_coords));
