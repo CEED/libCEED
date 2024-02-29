@@ -277,11 +277,13 @@ PetscErrorCode DifferentialFilterApply(User user, const PetscReal solution_time,
   DiffFilterData diff_filter = user->diff_filter;
 
   PetscFunctionBeginUser;
+  PetscCall(PetscLogEventBegin(FLUIDS_DifferentialFilter, Q, Filtered_Solution, 0, 0));
   PetscCall(UpdateBoundaryValues(user, diff_filter->op_rhs_ctx->X_loc, solution_time));
   ApplyCeedOperatorGlobalToGlobal(Q, Filtered_Solution, diff_filter->op_rhs_ctx);
   PetscCall(VecViewFromOptions(Filtered_Solution, NULL, "-diff_filter_rhs_view"));
 
   PetscCall(KSPSolve(diff_filter->ksp, Filtered_Solution, Filtered_Solution));
+  PetscCall(PetscLogEventEnd(FLUIDS_DifferentialFilter, Q, Filtered_Solution, 0, 0));
   PetscFunctionReturn(PETSC_SUCCESS);
 }
 
