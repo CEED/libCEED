@@ -25,12 +25,7 @@ static inline int CeedQFunctionContextSyncH2D_Sycl(const CeedQFunctionContext ct
   CeedCallBackend(CeedQFunctionContextGetBackendData(ctx, &impl));
   CeedCallBackend(CeedQFunctionContextGetCeed(ctx, &ceed));
   CeedCallBackend(CeedGetData(ceed, &sycl_data));
-
-  if (!impl->h_data) {
-    // LCOV_EXCL_START
-    return CeedError(ceed, CEED_ERROR_BACKEND, "No valid host data to sync to device");
-    // LCOV_EXCL_STOP
-  }
+  CeedCheck(impl->h_data, ceed, CEED_ERROR_BACKEND, "No valid host data to sync to device");
 
   CeedCallBackend(CeedQFunctionContextGetContextSize(ctx, &ctx_size));
 
@@ -61,12 +56,7 @@ static inline int CeedQFunctionContextSyncD2H_Sycl(const CeedQFunctionContext ct
   CeedCallBackend(CeedQFunctionContextGetBackendData(ctx, &impl));
   CeedCallBackend(CeedQFunctionContextGetCeed(ctx, &ceed));
   CeedCallBackend(CeedGetData(ceed, &sycl_data));
-
-  if (!impl->d_data) {
-    // LCOV_EXCL_START
-    return CeedError(ceed, CEED_ERROR_BACKEND, "No valid device data to sync to host");
-    // LCOV_EXCL_STOP
-  }
+  CeedCheck(impl->d_data, ceed, CEED_ERROR_BACKEND, "No valid device data to sync to host");
 
   CeedCallBackend(CeedQFunctionContextGetContextSize(ctx, &ctx_size));
 

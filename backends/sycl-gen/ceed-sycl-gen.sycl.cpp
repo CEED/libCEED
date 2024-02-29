@@ -24,11 +24,8 @@ static int CeedInit_Sycl_gen(const char *resource, Ceed ceed) {
   const char fallback_resource[] = "/gpu/sycl/ref";
 
   CeedCallBackend(CeedGetResourceRoot(ceed, resource, ":device_id=", &resource_root));
-  if (strcmp(resource_root, "/gpu/sycl") && strcmp(resource_root, "/gpu/sycl/gen")) {
-    // LCOV_EXCL_START
-    return CeedError(ceed, CEED_ERROR_BACKEND, "Sycl backend cannot use resource: %s", resource);
-    // LCOV_EXCL_STOP
-  }
+  CeedCheck(!strcmp(resource_root, "/gpu/sycl") || !strcmp(resource_root, "/gpu/sycl/gen"), ceed, CEED_ERROR_BACKEND,
+            "Sycl backend cannot use resource: %s", resource);
   CeedCallBackend(CeedFree(&resource_root));
 
   CeedCallBackend(CeedCalloc(1, &data));

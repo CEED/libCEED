@@ -99,11 +99,8 @@ extern "C" int CeedOperatorBuildKernel_Sycl_gen(CeedOperator op) {
 
     CeedCallBackend(CeedQFunctionFieldGetEvalMode(qf_input_fields[0], &eval_mode_in));
     CeedCallBackend(CeedQFunctionFieldGetEvalMode(qf_output_fields[0], &eval_mode_out));
-    if (eval_mode_in == CEED_EVAL_NONE && eval_mode_out == CEED_EVAL_NONE) {
-      // LCOV_EXCL_START
-      return CeedError(ceed, CEED_ERROR_BACKEND, "Backend does not implement restriction only identity operators");
-      // LCOV_EXCL_STOP
-    }
+    CeedCheck(eval_mode_in != CEED_EVAL_NONE || eval_mode_out != CEED_EVAL_NONE, ceed, CEED_ERROR_BACKEND,
+              "Backend does not implement restriction only identity operators");
   }
 
   std::ostringstream code;
@@ -376,15 +373,20 @@ extern "C" int CeedOperatorBuildKernel_Sycl_gen(CeedOperator op) {
       // LCOV_EXCL_START
       case CEED_EVAL_WEIGHT: {
         Ceed ceed;
+
         CeedCallBackend(CeedOperatorGetCeed(op, &ceed));
         return CeedError(ceed, CEED_ERROR_BACKEND, "CEED_EVAL_WEIGHT cannot be an output evaluation mode");
         break;  // Should not occur
       }
       case CEED_EVAL_DIV:
-        break;  // TODO: Not implemented
-      case CEED_EVAL_CURL:
-        break;  // TODO: Not implemented
-                // LCOV_EXCL_STOP
+      case CEED_EVAL_CURL: {
+        Ceed ceed;
+
+        CeedCallBackend(CeedOperatorGetCeed(op, &ceed));
+        return CeedError(ceed, CEED_ERROR_BACKEND, "%s not supported", CeedEvalModes[eval_mode]);
+        break;  // Should not occur
+      }
+        // LCOV_EXCL_STOP
     }
   }
   code << "\n  // -- Element loop --\n";
@@ -699,15 +701,20 @@ extern "C" int CeedOperatorBuildKernel_Sycl_gen(CeedOperator op) {
       // LCOV_EXCL_START
       case CEED_EVAL_WEIGHT: {
         Ceed ceed;
+
         CeedCallBackend(CeedOperatorGetCeed(op, &ceed));
         return CeedError(ceed, CEED_ERROR_BACKEND, "CEED_EVAL_WEIGHT cannot be an output evaluation mode");
         break;  // Should not occur
       }
       case CEED_EVAL_DIV:
-        break;  // TODO: Not implemented
-      case CEED_EVAL_CURL:
-        break;  // TODO: Not implemented
-                // LCOV_EXCL_STOP
+      case CEED_EVAL_CURL: {
+        Ceed ceed;
+
+        CeedCallBackend(CeedOperatorGetCeed(op, &ceed));
+        return CeedError(ceed, CEED_ERROR_BACKEND, "%s not supported", CeedEvalModes[eval_mode]);
+        break;  // Should not occur
+      }
+        // LCOV_EXCL_STOP
     }
     // Restriction
     bool is_strided;

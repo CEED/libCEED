@@ -35,7 +35,7 @@ static constexpr SpecID BASIS_Q_1D_ID;
 //------------------------------------------------------------------------------
 // Interpolation kernel - tensor
 //------------------------------------------------------------------------------
-template <int transpose>
+template <int is_transpose>
 static int CeedBasisApplyInterp_Sycl(sycl::queue &sycl_queue, const SyclModule_t &sycl_module, CeedInt num_elem, const CeedBasis_Sycl *impl,
                                      const CeedScalar *u, CeedScalar *v) {
   const CeedInt     buf_len   = impl->buf_len;
@@ -57,7 +57,7 @@ static int CeedBasisApplyInterp_Sycl(sycl::queue &sycl_queue, const SyclModule_t
 
     sycl::local_accessor<CeedScalar> s_mem(op_len + 2 * buf_len, cgh);
 
-    cgh.parallel_for<CeedBasisSyclInterp<transpose>>(kernel_range, [=](sycl::nd_item<1> work_item, sycl::kernel_handler kh) {
+    cgh.parallel_for<CeedBasisSyclInterp<is_transpose>>(kernel_range, [=](sycl::nd_item<1> work_item, sycl::kernel_handler kh) {
       //-------------------------------------------------------------->
       // Retrieve spec constant values
       const CeedInt dim      = kh.get_specialization_constant<BASIS_DIM_ID>();
@@ -67,12 +67,12 @@ static int CeedBasisApplyInterp_Sycl(sycl::queue &sycl_queue, const SyclModule_t
       //-------------------------------------------------------------->
       const CeedInt num_nodes     = CeedIntPow(P_1d, dim);
       const CeedInt num_qpts      = CeedIntPow(Q_1d, dim);
-      const CeedInt P             = transpose ? Q_1d : P_1d;
-      const CeedInt Q             = transpose ? P_1d : Q_1d;
-      const CeedInt stride_0      = transpose ? 1 : P_1d;
-      const CeedInt stride_1      = transpose ? P_1d : 1;
-      const CeedInt u_stride      = transpose ? num_qpts : num_nodes;
-      const CeedInt v_stride      = transpose ? num_nodes : num_qpts;
+      const CeedInt P             = is_transpose ? Q_1d : P_1d;
+      const CeedInt Q             = is_transpose ? P_1d : Q_1d;
+      const CeedInt stride_0      = is_transpose ? 1 : P_1d;
+      const CeedInt stride_1      = is_transpose ? P_1d : 1;
+      const CeedInt u_stride      = is_transpose ? num_qpts : num_nodes;
+      const CeedInt v_stride      = is_transpose ? num_nodes : num_qpts;
       const CeedInt u_comp_stride = num_elem * u_stride;
       const CeedInt v_comp_stride = num_elem * v_stride;
       const CeedInt u_size        = u_stride;
@@ -136,7 +136,7 @@ static int CeedBasisApplyInterp_Sycl(sycl::queue &sycl_queue, const SyclModule_t
 //------------------------------------------------------------------------------
 // Gradient kernel - tensor
 //------------------------------------------------------------------------------
-template <int transpose>
+template <int is_transpose>
 static int CeedBasisApplyGrad_Sycl(sycl::queue &sycl_queue, const SyclModule_t &sycl_module, CeedInt num_elem, const CeedBasis_Sycl *impl,
                                    const CeedScalar *u, CeedScalar *v) {
   const CeedInt     buf_len   = impl->buf_len;
@@ -158,7 +158,7 @@ static int CeedBasisApplyGrad_Sycl(sycl::queue &sycl_queue, const SyclModule_t &
 
     sycl::local_accessor<CeedScalar> s_mem(2 * (op_len + buf_len), cgh);
 
-    cgh.parallel_for<CeedBasisSyclGrad<transpose>>(kernel_range, [=](sycl::nd_item<1> work_item, sycl::kernel_handler kh) {
+    cgh.parallel_for<CeedBasisSyclGrad<is_transpose>>(kernel_range, [=](sycl::nd_item<1> work_item, sycl::kernel_handler kh) {
       //-------------------------------------------------------------->
       // Retrieve spec constant values
       const CeedInt dim      = kh.get_specialization_constant<BASIS_DIM_ID>();
@@ -168,16 +168,16 @@ static int CeedBasisApplyGrad_Sycl(sycl::queue &sycl_queue, const SyclModule_t &
       //-------------------------------------------------------------->
       const CeedInt num_nodes     = CeedIntPow(P_1d, dim);
       const CeedInt num_qpts      = CeedIntPow(Q_1d, dim);
-      const CeedInt P             = transpose ? Q_1d : P_1d;
-      const CeedInt Q             = transpose ? P_1d : Q_1d;
-      const CeedInt stride_0      = transpose ? 1 : P_1d;
-      const CeedInt stride_1      = transpose ? P_1d : 1;
-      const CeedInt u_stride      = transpose ? num_qpts : num_nodes;
-      const CeedInt v_stride      = transpose ? num_nodes : num_qpts;
+      const CeedInt P             = is_transpose ? Q_1d : P_1d;
+      const CeedInt Q             = is_transpose ? P_1d : Q_1d;
+      const CeedInt stride_0      = is_transpose ? 1 : P_1d;
+      const CeedInt stride_1      = is_transpose ? P_1d : 1;
+      const CeedInt u_stride      = is_transpose ? num_qpts : num_nodes;
+      const CeedInt v_stride      = is_transpose ? num_nodes : num_qpts;
       const CeedInt u_comp_stride = num_elem * u_stride;
       const CeedInt v_comp_stride = num_elem * v_stride;
-      const CeedInt u_dim_stride  = transpose ? num_elem * num_qpts * num_comp : 0;
-      const CeedInt v_dim_stride  = transpose ? 0 : num_elem * num_qpts * num_comp;
+      const CeedInt u_dim_stride  = is_transpose ? num_elem * num_qpts * num_comp : 0;
+      const CeedInt v_dim_stride  = is_transpose ? 0 : num_elem * num_qpts * num_comp;
       sycl::group   work_group    = work_item.get_group();
       const CeedInt i             = work_item.get_local_linear_id();
       const CeedInt group_size    = work_group.get_local_linear_range();
@@ -196,7 +196,7 @@ static int CeedBasisApplyGrad_Sycl(sycl::queue &sycl_queue, const SyclModule_t &
       // Apply basis element by element
       for (CeedInt comp = 0; comp < num_comp; comp++) {
         for (CeedInt dim_1 = 0; dim_1 < dim; dim_1++) {
-          CeedInt           pre   = transpose ? num_qpts : num_nodes;
+          CeedInt           pre   = is_transpose ? num_qpts : num_nodes;
           CeedInt           post  = 1;
           const CeedScalar *cur_u = u + elem * u_stride + dim_1 * u_dim_stride + comp * u_comp_stride;
           CeedScalar       *cur_v = v + elem * v_stride + dim_1 * v_dim_stride + comp * v_comp_stride;
@@ -222,7 +222,7 @@ static int CeedBasisApplyGrad_Sycl(sycl::queue &sycl_queue, const SyclModule_t &
               CeedScalar v_k = 0;
               for (CeedInt b = 0; b < P; b++) v_k += op[j * stride_0 + b * stride_1] * in[(a * P + b) * post + c];
 
-              if (transpose && dim_2 == dim - 1) out[k] += v_k;
+              if (is_transpose && dim_2 == dim - 1) out[k] += v_k;
               else out[k] = v_k;
             }
 
@@ -263,25 +263,24 @@ static int CeedBasisApplyWeight_Sycl(sycl::queue &sycl_queue, CeedInt num_elem, 
 //------------------------------------------------------------------------------
 static int CeedBasisApply_Sycl(CeedBasis basis, const CeedInt num_elem, CeedTransposeMode t_mode, CeedEvalMode eval_mode, CeedVector u,
                                CeedVector v) {
-  Ceed ceed;
-  CeedCallBackend(CeedBasisGetCeed(basis, &ceed));
-  Ceed_Sycl *data;
-  CeedCallBackend(CeedGetData(ceed, &data));
-  CeedBasis_Sycl *impl;
-  CeedCallBackend(CeedBasisGetData(basis, &impl));
-
-  const CeedInt transpose = t_mode == CEED_TRANSPOSE;
-
-  // Read vectors
+  Ceed              ceed;
+  const CeedInt     is_transpose = t_mode == CEED_TRANSPOSE;
   const CeedScalar *d_u;
   CeedScalar       *d_v;
-  if (eval_mode != CEED_EVAL_WEIGHT) {
-    CeedCallBackend(CeedVectorGetArrayRead(u, CEED_MEM_DEVICE, &d_u));
-  }
+  Ceed_Sycl        *data;
+  CeedBasis_Sycl   *impl;
+
+  CeedCallBackend(CeedBasisGetCeed(basis, &ceed));
+  CeedCallBackend(CeedGetData(ceed, &data));
+  CeedCallBackend(CeedBasisGetData(basis, &impl));
+
+  // Get read/write access to u, v
+  if (u != CEED_VECTOR_NONE) CeedCallBackend(CeedVectorGetArrayRead(u, CEED_MEM_DEVICE, &d_u));
+  else CeedCheck(eval_mode == CEED_EVAL_WEIGHT, ceed, CEED_ERROR_BACKEND, "An input vector is required for this CeedEvalMode");
   CeedCallBackend(CeedVectorGetArrayWrite(v, CEED_MEM_DEVICE, &d_v));
 
   // Clear v for transpose operation
-  if (t_mode == CEED_TRANSPOSE) {
+  if (is_transpose) {
     CeedSize length;
     CeedCallBackend(CeedVectorGetLength(v, &length));
     // Order queue
@@ -292,14 +291,14 @@ static int CeedBasisApply_Sycl(CeedBasis basis, const CeedInt num_elem, CeedTran
   // Basis action
   switch (eval_mode) {
     case CEED_EVAL_INTERP: {
-      if (transpose) {
+      if (is_transpose) {
         CeedCallBackend(CeedBasisApplyInterp_Sycl<CEED_TRANSPOSE>(data->sycl_queue, *impl->sycl_module, num_elem, impl, d_u, d_v));
       } else {
         CeedCallBackend(CeedBasisApplyInterp_Sycl<CEED_NOTRANSPOSE>(data->sycl_queue, *impl->sycl_module, num_elem, impl, d_u, d_v));
       }
     } break;
     case CEED_EVAL_GRAD: {
-      if (transpose) {
+      if (is_transpose) {
         CeedCallBackend(CeedBasisApplyGrad_Sycl<1>(data->sycl_queue, *impl->sycl_module, num_elem, impl, d_u, d_v));
       } else {
         CeedCallBackend(CeedBasisApplyGrad_Sycl<0>(data->sycl_queue, *impl->sycl_module, num_elem, impl, d_u, d_v));
@@ -308,37 +307,32 @@ static int CeedBasisApply_Sycl(CeedBasis basis, const CeedInt num_elem, CeedTran
     case CEED_EVAL_WEIGHT: {
       CeedCallBackend(CeedBasisApplyWeight_Sycl(data->sycl_queue, num_elem, impl, d_v));
     } break;
+    case CEED_EVAL_NONE: /* handled separately below */
+      break;
     // LCOV_EXCL_START
-    // Evaluate the divergence to/from the quadrature points
     case CEED_EVAL_DIV:
-      return CeedError(ceed, CEED_ERROR_BACKEND, "CEED_EVAL_DIV not supported");
-    // Evaluate the curl to/from the quadrature points
     case CEED_EVAL_CURL:
-      return CeedError(ceed, CEED_ERROR_BACKEND, "CEED_EVAL_CURL not supported");
-    // Take no action, BasisApply should not have been called
-    case CEED_EVAL_NONE:
-      return CeedError(ceed, CEED_ERROR_BACKEND, "CEED_EVAL_NONE does not make sense in this context");
+      return CeedError(ceed, CEED_ERROR_BACKEND, "%s not supported", CeedEvalModes[eval_mode]);
       // LCOV_EXCL_STOP
   }
 
-  // Restore vectors
-  if (eval_mode != CEED_EVAL_WEIGHT) {
-    CeedCallBackend(CeedVectorRestoreArrayRead(u, &d_u));
-  }
+  // Restore vectors, cover CEED_EVAL_NONE
   CeedCallBackend(CeedVectorRestoreArray(v, &d_v));
+  if (eval_mode == CEED_EVAL_NONE) CeedCallBackend(CeedVectorSetArray(v, CEED_MEM_DEVICE, CEED_COPY_VALUES, (CeedScalar *)d_u));
+  if (eval_mode != CEED_EVAL_WEIGHT) CeedCallBackend(CeedVectorRestoreArrayRead(u, &d_u));
   return CEED_ERROR_SUCCESS;
 }
 
 //------------------------------------------------------------------------------
 // Interpolation kernel - non-tensor
 //------------------------------------------------------------------------------
-static int CeedBasisApplyNonTensorInterp_Sycl(sycl::queue &sycl_queue, CeedInt num_elem, CeedInt transpose, const CeedBasisNonTensor_Sycl *impl,
+static int CeedBasisApplyNonTensorInterp_Sycl(sycl::queue &sycl_queue, CeedInt num_elem, CeedInt is_transpose, const CeedBasisNonTensor_Sycl *impl,
                                               const CeedScalar *d_U, CeedScalar *d_V) {
   const CeedInt     num_comp      = impl->num_comp;
-  const CeedInt     P             = transpose ? impl->num_qpts : impl->num_nodes;
-  const CeedInt     Q             = transpose ? impl->num_nodes : impl->num_qpts;
-  const CeedInt     stride_0      = transpose ? 1 : impl->num_nodes;
-  const CeedInt     stride_1      = transpose ? impl->num_nodes : 1;
+  const CeedInt     P             = is_transpose ? impl->num_qpts : impl->num_nodes;
+  const CeedInt     Q             = is_transpose ? impl->num_nodes : impl->num_qpts;
+  const CeedInt     stride_0      = is_transpose ? 1 : impl->num_nodes;
+  const CeedInt     stride_1      = is_transpose ? impl->num_nodes : 1;
   const CeedInt     u_stride      = P;
   const CeedInt     v_stride      = Q;
   const CeedInt     u_comp_stride = u_stride * num_elem;
@@ -371,13 +365,13 @@ static int CeedBasisApplyNonTensorInterp_Sycl(sycl::queue &sycl_queue, CeedInt n
 //------------------------------------------------------------------------------
 // Gradient kernel - non-tensor
 //------------------------------------------------------------------------------
-static int CeedBasisApplyNonTensorGrad_Sycl(sycl::queue &sycl_queue, CeedInt num_elem, CeedInt transpose, const CeedBasisNonTensor_Sycl *impl,
+static int CeedBasisApplyNonTensorGrad_Sycl(sycl::queue &sycl_queue, CeedInt num_elem, CeedInt is_transpose, const CeedBasisNonTensor_Sycl *impl,
                                             const CeedScalar *d_U, CeedScalar *d_V) {
   const CeedInt     num_comp      = impl->num_comp;
-  const CeedInt     P             = transpose ? impl->num_qpts : impl->num_nodes;
-  const CeedInt     Q             = transpose ? impl->num_nodes : impl->num_qpts;
-  const CeedInt     stride_0      = transpose ? 1 : impl->num_nodes;
-  const CeedInt     stride_1      = transpose ? impl->num_nodes : 1;
+  const CeedInt     P             = is_transpose ? impl->num_qpts : impl->num_nodes;
+  const CeedInt     Q             = is_transpose ? impl->num_nodes : impl->num_qpts;
+  const CeedInt     stride_0      = is_transpose ? 1 : impl->num_nodes;
+  const CeedInt     stride_1      = is_transpose ? impl->num_nodes : 1;
   const CeedInt     g_dim_stride  = P * Q;
   const CeedInt     u_stride      = P;
   const CeedInt     v_stride      = Q;
@@ -387,8 +381,8 @@ static int CeedBasisApplyNonTensorGrad_Sycl(sycl::queue &sycl_queue, CeedInt num
   const CeedInt     v_dim_stride  = v_comp_stride * num_comp;
   const CeedInt     u_size        = P;
   const CeedInt     v_size        = Q;
-  const CeedInt     in_dim        = transpose ? impl->dim : 1;
-  const CeedInt     out_dim       = transpose ? 1 : impl->dim;
+  const CeedInt     in_dim        = is_transpose ? impl->dim : 1;
+  const CeedInt     out_dim       = is_transpose ? 1 : impl->dim;
   const CeedScalar *d_G           = impl->d_grad;
 
   sycl::range<2> kernel_range(num_elem, v_size);
@@ -446,25 +440,24 @@ static int CeedBasisApplyNonTensorWeight_Sycl(sycl::queue &sycl_queue, CeedInt n
 //------------------------------------------------------------------------------
 static int CeedBasisApplyNonTensor_Sycl(CeedBasis basis, const CeedInt num_elem, CeedTransposeMode t_mode, CeedEvalMode eval_mode, CeedVector u,
                                         CeedVector v) {
-  Ceed ceed;
-  CeedCallBackend(CeedBasisGetCeed(basis, &ceed));
+  Ceed                     ceed;
+  const CeedInt            is_transpose = t_mode == CEED_TRANSPOSE;
+  const CeedScalar        *d_u;
+  CeedScalar              *d_v;
   CeedBasisNonTensor_Sycl *impl;
+  Ceed_Sycl               *data;
+
+  CeedCallBackend(CeedBasisGetCeed(basis, &ceed));
   CeedCallBackend(CeedBasisGetData(basis, &impl));
-  Ceed_Sycl *data;
   CeedCallBackend(CeedGetData(ceed, &data));
 
-  const CeedInt transpose = t_mode == CEED_TRANSPOSE;
-
-  // Read vectors
-  const CeedScalar *d_u;
-  CeedScalar       *d_v;
-  if (eval_mode != CEED_EVAL_WEIGHT) {
-    CeedCallBackend(CeedVectorGetArrayRead(u, CEED_MEM_DEVICE, &d_u));
-  }
+  // Get read/write access to u, v
+  if (u != CEED_VECTOR_NONE) CeedCallBackend(CeedVectorGetArrayRead(u, CEED_MEM_DEVICE, &d_u));
+  else CeedCheck(eval_mode == CEED_EVAL_WEIGHT, ceed, CEED_ERROR_BACKEND, "An input vector is required for this CeedEvalMode");
   CeedCallBackend(CeedVectorGetArrayWrite(v, CEED_MEM_DEVICE, &d_v));
 
   // Clear v for transpose operation
-  if (transpose) {
+  if (is_transpose) {
     CeedSize length;
     CeedCallBackend(CeedVectorGetLength(v, &length));
     // Order queue
@@ -475,33 +468,28 @@ static int CeedBasisApplyNonTensor_Sycl(CeedBasis basis, const CeedInt num_elem,
   // Apply basis operation
   switch (eval_mode) {
     case CEED_EVAL_INTERP: {
-      CeedCallBackend(CeedBasisApplyNonTensorInterp_Sycl(data->sycl_queue, num_elem, transpose, impl, d_u, d_v));
+      CeedCallBackend(CeedBasisApplyNonTensorInterp_Sycl(data->sycl_queue, num_elem, is_transpose, impl, d_u, d_v));
     } break;
     case CEED_EVAL_GRAD: {
-      CeedCallBackend(CeedBasisApplyNonTensorGrad_Sycl(data->sycl_queue, num_elem, transpose, impl, d_u, d_v));
+      CeedCallBackend(CeedBasisApplyNonTensorGrad_Sycl(data->sycl_queue, num_elem, is_transpose, impl, d_u, d_v));
     } break;
     case CEED_EVAL_WEIGHT: {
       CeedCallBackend(CeedBasisApplyNonTensorWeight_Sycl(data->sycl_queue, num_elem, impl, d_v));
     } break;
+    case CEED_EVAL_NONE: /* handled separately below */
+      break;
     // LCOV_EXCL_START
-    // Evaluate the divergence to/from the quadrature points
     case CEED_EVAL_DIV:
-      return CeedError(ceed, CEED_ERROR_BACKEND, "CEED_EVAL_DIV not supported");
-    // Evaluate the curl to/from the quadrature points
     case CEED_EVAL_CURL:
-      return CeedError(ceed, CEED_ERROR_BACKEND, "CEED_EVAL_CURL not supported");
-    // Take no action, BasisApply should not have been called
-    case CEED_EVAL_NONE:
-      return CeedError(ceed, CEED_ERROR_BACKEND, "CEED_EVAL_NONE does not make sense in this context");
+      return CeedError(ceed, CEED_ERROR_BACKEND, "%s not supported", CeedEvalModes[eval_mode]);
       // LCOV_EXCL_STOP
   }
 
-  // Restore vectors
-  if (eval_mode != CEED_EVAL_WEIGHT) {
-    CeedCallBackend(CeedVectorRestoreArrayRead(u, &d_u));
-  }
-
+  // Restore vectors, cover CEED_EVAL_NONE
   CeedCallBackend(CeedVectorRestoreArray(v, &d_v));
+  if (eval_mode == CEED_EVAL_NONE) CeedCallBackend(CeedVectorSetArray(v, CEED_MEM_DEVICE, CEED_COPY_VALUES, (CeedScalar *)d_u));
+  if (eval_mode != CEED_EVAL_WEIGHT) CeedCallBackend(CeedVectorRestoreArrayRead(u, &d_u));
+
   return CEED_ERROR_SUCCESS;
 }
 
