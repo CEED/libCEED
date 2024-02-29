@@ -139,8 +139,10 @@ PetscErrorCode VelocityGradientProjectionApply(NodalProjectionData grad_velo_pro
   OperatorApplyContext l2_rhs_ctx = grad_velo_proj->l2_rhs_ctx;
 
   PetscFunctionBeginUser;
+  PetscCall(PetscLogEventBegin(FLUIDS_VelocityGradientProjection, Q_loc, VelocityGradient, 0, 0));
   PetscCall(ApplyCeedOperatorLocalToGlobal(Q_loc, VelocityGradient, l2_rhs_ctx));
 
   PetscCall(KSPSolve(grad_velo_proj->ksp, VelocityGradient, VelocityGradient));
+  PetscCall(PetscLogEventEnd(FLUIDS_VelocityGradientProjection, Q_loc, VelocityGradient, 0, 0));
   PetscFunctionReturn(PETSC_SUCCESS);
 }

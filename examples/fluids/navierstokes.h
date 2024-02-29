@@ -101,6 +101,8 @@ extern PetscLogEvent FLUIDS_SmartRedis_Init;
 extern PetscLogEvent FLUIDS_SmartRedis_Meta;
 extern PetscLogEvent FLUIDS_SmartRedis_Train;
 extern PetscLogEvent FLUIDS_TrainDataCompute;
+extern PetscLogEvent FLUIDS_DifferentialFilter;
+extern PetscLogEvent FLUIDS_VelocityGradientProjection;
 PetscErrorCode       RegisterLogEvents();
 
 // -----------------------------------------------------------------------------

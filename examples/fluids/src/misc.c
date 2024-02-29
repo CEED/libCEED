@@ -345,7 +345,9 @@ PetscLogEvent       FLUIDS_SmartRedis_Init;
 PetscLogEvent       FLUIDS_SmartRedis_Meta;
 PetscLogEvent       FLUIDS_SmartRedis_Train;
 PetscLogEvent       FLUIDS_TrainDataCompute;
-static PetscClassId libCEED_classid, onlineTrain_classid;
+PetscLogEvent       FLUIDS_DifferentialFilter;
+PetscLogEvent       FLUIDS_VelocityGradientProjection;
+static PetscClassId libCEED_classid, onlineTrain_classid, misc_classid;
 
 PetscErrorCode RegisterLogEvents() {
   PetscFunctionBeginUser;
@@ -360,6 +362,10 @@ PetscErrorCode RegisterLogEvents() {
   PetscCall(PetscLogEventRegister("SmartRedis_Meta", onlineTrain_classid, &FLUIDS_SmartRedis_Meta));
   PetscCall(PetscLogEventRegister("SmartRedis_Train", onlineTrain_classid, &FLUIDS_SmartRedis_Train));
   PetscCall(PetscLogEventRegister("TrainDataCompute", onlineTrain_classid, &FLUIDS_TrainDataCompute));
+
+  PetscCall(PetscClassIdRegister("Miscellaneous", &misc_classid));
+  PetscCall(PetscLogEventRegister("DiffFilter", misc_classid, &FLUIDS_DifferentialFilter));
+  PetscCall(PetscLogEventRegister("VeloGradProj", misc_classid, &FLUIDS_VelocityGradientProjection));
   PetscFunctionReturn(PETSC_SUCCESS);
 }
 
