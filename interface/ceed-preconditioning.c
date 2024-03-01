@@ -187,7 +187,8 @@ static int CeedOperatorCreateFallback(CeedOperator op) {
 
   @ref Developer
 **/
-static inline int CeedSingleOperatorAssembleAddDiagonal_Core(CeedOperator op, CeedRequest *request, const bool is_point_block, CeedVector assembled) {
+static inline int CeedSingleOperatorLinearAssembleAddDiagonal(CeedOperator op, CeedRequest *request, const bool is_point_block,
+                                                              CeedVector assembled) {
   Ceed ceed;
   bool is_composite;
 
@@ -1995,7 +1996,7 @@ int CeedOperatorLinearAssembleAddDiagonal(CeedOperator op, CeedVector assembled,
   if (is_composite) {
     CeedCall(CeedCompositeOperatorLinearAssembleAddDiagonal(op, request, false, assembled));
   } else {
-    CeedCall(CeedSingleOperatorAssembleAddDiagonal_Core(op, request, false, assembled));
+    CeedCall(CeedSingleOperatorLinearAssembleAddDiagonal(op, request, false, assembled));
   }
   return CEED_ERROR_SUCCESS;
 }
@@ -2224,7 +2225,7 @@ int CeedOperatorLinearAssembleAddPointBlockDiagonal(CeedOperator op, CeedVector 
   if (is_composite) {
     CeedCall(CeedCompositeOperatorLinearAssembleAddDiagonal(op, request, true, assembled));
   } else {
-    CeedCall(CeedSingleOperatorAssembleAddDiagonal_Core(op, request, true, assembled));
+    CeedCall(CeedSingleOperatorLinearAssembleAddDiagonal(op, request, true, assembled));
   }
   return CEED_ERROR_SUCCESS;
 }
