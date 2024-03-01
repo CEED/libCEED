@@ -178,7 +178,7 @@ static int CeedOperatorCreateFallback(CeedOperator op) {
 /**
   @brief Core logic for assembling operator diagonal or point block diagonal
 
-  @param[in]  op             `CeedOperator` to assemble point block diagonal
+  @param[in]  op             `CeedOperator` to assemble diagonal or point block diagonal
   @param[in]  request        Address of @ref CeedRequest for non-blocking completion, else @ref CEED_REQUEST_IMMEDIATE
   @param[in]  is_point_block Boolean flag to assemble diagonal or point block diagonal
   @param[out] assembled      `CeedVector` to store assembled diagonal
@@ -187,8 +187,8 @@ static int CeedOperatorCreateFallback(CeedOperator op) {
 
   @ref Developer
 **/
-static inline int CeedSingleOperatorLinearAssembleAddDiagonal(CeedOperator op, CeedRequest *request, const bool is_point_block,
-                                                              CeedVector assembled) {
+static inline int CeedSingleOperatorLinearAssembleAddDiagonal_Mesh(CeedOperator op, CeedRequest *request, const bool is_point_block,
+                                                                   CeedVector assembled) {
   Ceed ceed;
   bool is_composite;
 
@@ -359,6 +359,30 @@ static inline int CeedSingleOperatorLinearAssembleAddDiagonal(CeedOperator op, C
   }
   CeedCall(CeedVectorRestoreArrayRead(assembled_qf, &assembled_qf_array));
   CeedCall(CeedVectorDestroy(&assembled_qf));
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
+  @brief Core logic for assembling operator diagonal or point block diagonal
+
+  @param[in]  op             `CeedOperator` to assemble diagonal or point block diagonal
+  @param[in]  request        Address of @ref CeedRequest for non-blocking completion, else @ref CEED_REQUEST_IMMEDIATE
+  @param[in]  is_point_block Boolean flag to assemble diagonal or point block diagonal
+  @param[out] assembled      `CeedVector` to store assembled diagonal
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Developer
+**/
+static inline int CeedSingleOperatorLinearAssembleAddDiagonal(CeedOperator op, CeedRequest *request, const bool is_point_block,
+                                                              CeedVector assembled) {
+  Ceed ceed;
+  bool is_at_points;
+
+  CeedCall(CeedOperatorGetCeed(op, &ceed));
+  CeedCall(CeedOperatorIsAtPoints(op, &is_at_points));
+  CeedCheck(!is_at_points, ceed, CEED_ERROR_UNSUPPORTED, "Composite operator not supported");
+  CeedCall(CeedSingleOperatorLinearAssembleAddDiagonal_Mesh(op, request, is_point_block, assembled));
   return CEED_ERROR_SUCCESS;
 }
 
