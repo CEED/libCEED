@@ -41,15 +41,14 @@ PetscErrorCode VelocityGradientProjectionCreateDM(NodalProjectionData grad_velo_
 
 PetscErrorCode VelocityGradientProjectionSetup(Ceed ceed, User user, CeedData ceed_data, ProblemData *problem, StateVariable state_var_input,
                                                CeedElemRestriction elem_restr_input, CeedBasis basis_input, NodalProjectionData *pgrad_velo_proj) {
-  NodalProjectionData  grad_velo_proj;
-  OperatorApplyContext mass_matop_ctx;
-  CeedOperator         op_rhs_assemble, op_mass;
-  CeedQFunction        qf_rhs_assemble, qf_mass;
-  CeedBasis            basis_grad_velo;
-  CeedElemRestriction  elem_restr_grad_velo;
-  PetscInt             dim, label_value = 0, height = 0, dm_field = 0;
-  CeedInt              num_comp_x, num_comp_input, q_data_size;
-  DMLabel              domain_label = NULL;
+  NodalProjectionData grad_velo_proj;
+  CeedOperator        op_rhs_assemble, op_mass;
+  CeedQFunction       qf_rhs_assemble, qf_mass;
+  CeedBasis           basis_grad_velo;
+  CeedElemRestriction elem_restr_grad_velo;
+  PetscInt            dim, label_value = 0, height = 0, dm_field = 0;
+  CeedInt             num_comp_x, num_comp_input, q_data_size;
+  DMLabel             domain_label = NULL;
 
   PetscFunctionBeginUser;
   PetscCall(PetscNew(&grad_velo_proj));
@@ -103,8 +102,9 @@ PetscErrorCode VelocityGradientProjectionSetup(Ceed ceed, User user, CeedData ce
   PetscCallCeed(ceed, CeedOperatorSetField(op_mass, "v", elem_restr_grad_velo, basis_grad_velo, CEED_VECTOR_ACTIVE));
 
   {  // -- Setup KSP for L^2 projection with lumped mass operator
-    Mat      mat_mass;
-    MPI_Comm comm = PetscObjectComm((PetscObject)grad_velo_proj->dm);
+    Mat                  mat_mass;
+    OperatorApplyContext mass_matop_ctx;
+    MPI_Comm             comm = PetscObjectComm((PetscObject)grad_velo_proj->dm);
 
     PetscCall(OperatorApplyContextCreate(grad_velo_proj->dm, grad_velo_proj->dm, ceed, op_mass, NULL, NULL, NULL, NULL, &mass_matop_ctx));
     PetscCall(CreateMatShell_Ceed(mass_matop_ctx, &mat_mass));
@@ -122,6 +122,7 @@ PetscErrorCode VelocityGradientProjectionSetup(Ceed ceed, User user, CeedData ce
     }
     PetscCall(KSPSetOperators(grad_velo_proj->ksp, mat_mass, mat_mass));
     PetscCall(KSPSetFromOptions(grad_velo_proj->ksp));
+    PetscCall(MatDestroy(&mat_mass));
   }
 
   *pgrad_velo_proj = grad_velo_proj;

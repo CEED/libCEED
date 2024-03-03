@@ -166,6 +166,7 @@ PetscErrorCode DifferentialFilterCreateOperators(Ceed ceed, User user, CeedData 
     PetscCall(KSPSetOperators(diff_filter->ksp, mat_lhs, mat_lhs));
     PetscCall(KSPSetFromOptions(diff_filter->ksp));
 
+    PetscCall(MatDestroy(&mat_lhs));
     PetscCallCeed(ceed, CeedOperatorDestroy(&op_lhs));
   }
   PetscFunctionReturn(PETSC_SUCCESS);
