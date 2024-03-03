@@ -235,11 +235,12 @@ struct User_private {
   Mat                  interp_viz;
   Ceed                 ceed;
   Units                units;
-  Vec                  M_inv, Q_loc, Q_dot_loc;
+  Vec                  Q_loc, Q_dot_loc;
   Physics              phys;
   AppCtx               app_ctx;
   CeedVector           q_ceed, q_dot_ceed, g_ceed, coo_values_amat, coo_values_pmat, x_ceed;
   CeedOperator         op_rhs_vol, op_ifunction_vol, op_ifunction, op_ijacobian;
+  KSP                  mass_ksp;
   OperatorApplyContext op_rhs_ctx, op_strong_bc_ctx;
   bool                 matrices_set_up;
   CeedScalar           time_bc_set;
@@ -364,8 +365,8 @@ PetscErrorCode SetupLibceed(Ceed ceed, CeedData ceed_data, DM dm, User user, App
 // -----------------------------------------------------------------------------
 // Time-stepping functions
 // -----------------------------------------------------------------------------
-// Compute mass matrix for explicit scheme
-PetscErrorCode ComputeLumpedMassMatrix(Ceed ceed, DM dm, CeedData ceed_data, Vec M);
+// Create KSP to solve the inverse mass operator for explicit time stepping schemes
+PetscErrorCode CreateKspMassOperator(User user, CeedData ceed_data);
 
 // RHS (Explicit time-stepper) function setup
 PetscErrorCode RHS_NS(TS ts, PetscReal t, Vec Q, Vec G, void *user_data);

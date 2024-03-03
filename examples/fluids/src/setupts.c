@@ -15,12 +15,13 @@
 #include "../navierstokes.h"
 #include "../qfunctions/newtonian_state.h"
 
-// Compute mass matrix for explicit scheme
-PetscErrorCode ComputeLumpedMassMatrix(Ceed ceed, DM dm, CeedData ceed_data, Vec M) {
+// @brief Create KSP to solve the inverse mass operator for explicit time stepping schemes
+PetscErrorCode CreateKspMassOperator(User user, CeedData ceed_data) {
+  Ceed                 ceed = user->ceed;
+  DM                   dm   = user->dm;
   CeedQFunction        qf_mass;
   CeedOperator         op_mass;
-  OperatorApplyContext op_mass_ctx;
-  Vec                  Ones_loc;
+  OperatorApplyContext mass_matop_ctx;
   CeedInt              num_comp_q, q_data_size;
 
   PetscFunctionBeginUser;
@@ -33,18 +34,31 @@ PetscErrorCode ComputeLumpedMassMatrix(Ceed ceed, DM dm, CeedData ceed_data, Vec
   PetscCallCeed(ceed, CeedOperatorSetField(op_mass, "qdata", ceed_data->elem_restr_qd_i, CEED_BASIS_NONE, ceed_data->q_data));
   PetscCallCeed(ceed, CeedOperatorSetField(op_mass, "v", ceed_data->elem_restr_q, ceed_data->basis_q, CEED_VECTOR_ACTIVE));
 
-  PetscCall(OperatorApplyContextCreate(NULL, dm, ceed, op_mass, NULL, NULL, NULL, NULL, &op_mass_ctx));
+  {  // -- Setup KSP for mass operator
+    Mat      mat_mass;
+    Vec      Ones_loc;
+    MPI_Comm comm = PetscObjectComm((PetscObject)dm);
 
-  PetscCall(DMGetLocalVector(dm, &Ones_loc));
-  PetscCall(VecSet(Ones_loc, 1));
-  PetscCall(ApplyCeedOperatorLocalToGlobal(Ones_loc, M, op_mass_ctx));
+    PetscCall(DMCreateLocalVector(dm, &Ones_loc));
+    PetscCall(VecSet(Ones_loc, 1));
+    PetscCall(OperatorApplyContextCreate(dm, dm, ceed, op_mass, NULL, NULL, Ones_loc, NULL, &mass_matop_ctx));
+    PetscCall(CreateMatShell_Ceed(mass_matop_ctx, &mat_mass));
 
-  // Invert diagonally lumped mass vector for RHS function
-  PetscCall(VecReciprocal(M));
+    PetscCall(KSPCreate(comm, &user->mass_ksp));
+    PetscCall(KSPSetOptionsPrefix(user->mass_ksp, "mass_"));
+    {  // lumped by default
+      PC pc;
+      PetscCall(KSPGetPC(user->mass_ksp, &pc));
+      PetscCall(PCSetType(pc, PCJACOBI));
+      PetscCall(PCJacobiSetType(pc, PC_JACOBI_ROWSUM));
+      PetscCall(KSPSetType(user->mass_ksp, KSPPREONLY));
+    }
+    PetscCall(KSPSetOperators(user->mass_ksp, mat_mass, mat_mass));
+    PetscCall(KSPSetFromOptions(user->mass_ksp));
+    PetscCall(VecDestroy(&Ones_loc));
+  }
 
   // Cleanup
-  PetscCall(OperatorApplyContextDestroy(op_mass_ctx));
-  PetscCall(DMRestoreLocalVector(dm, &Ones_loc));
   PetscCallCeed(ceed, CeedQFunctionDestroy(&qf_mass));
   PetscCallCeed(ceed, CeedOperatorDestroy(&op_mass));
   PetscFunctionReturn(PETSC_SUCCESS);
@@ -79,7 +93,7 @@ PetscErrorCode RHS_NS(TS ts, PetscReal t, Vec Q, Vec G, void *user_data) {
   PetscCall(ApplyCeedOperatorGlobalToGlobal(Q, G, user->op_rhs_ctx));
 
   // Inverse of the lumped mass matrix
-  PetscCall(VecPointwiseMult(G, G, user->M_inv));
+  PetscCall(KSPSolve(user->mass_ksp, G, G));
   PetscFunctionReturn(PETSC_SUCCESS);
 }
 

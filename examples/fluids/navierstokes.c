@@ -197,14 +197,7 @@ int main(int argc, char **argv) {
   // -- Fix multiplicity for ICs
   PetscCall(ICs_FixMultiplicity(dm, ceed_data, user, user->Q_loc, Q, 0.0));
 
-  // ---------------------------------------------------------------------------
-  // Set up lumped mass matrix
-  // ---------------------------------------------------------------------------
-  // -- Set up global mass vector
-  PetscCall(VecDuplicate(Q, &user->M_inv));
-
-  // -- Compute lumped mass matrix
-  PetscCall(ComputeLumpedMassMatrix(ceed, dm, ceed_data, user->M_inv));
+  PetscCall(CreateKspMassOperator(user, ceed_data));
 
   // ---------------------------------------------------------------------------
   // Record boundary values from initial condition
@@ -337,9 +330,10 @@ int main(int argc, char **argv) {
   // ---------------------------------------------------------------------------
   // -- Vectors
   PetscCall(VecDestroy(&Q));
-  PetscCall(VecDestroy(&user->M_inv));
   PetscCall(VecDestroy(&user->Q_loc));
   PetscCall(VecDestroy(&user->Q_dot_loc));
+
+  PetscCall(KSPDestroy(&user->mass_ksp));
 
   // -- Matrices
   PetscCall(MatDestroy(&user->interp_viz));
