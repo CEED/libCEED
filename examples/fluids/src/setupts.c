@@ -36,12 +36,12 @@ PetscErrorCode CreateKspMassOperator(User user, CeedData ceed_data) {
 
   {  // -- Setup KSP for mass operator
     Mat      mat_mass;
-    Vec      Ones_loc;
+    Vec      Zeros_loc;
     MPI_Comm comm = PetscObjectComm((PetscObject)dm);
 
-    PetscCall(DMCreateLocalVector(dm, &Ones_loc));
-    PetscCall(VecSet(Ones_loc, 1));
-    PetscCall(OperatorApplyContextCreate(dm, dm, ceed, op_mass, NULL, NULL, Ones_loc, NULL, &mass_matop_ctx));
+    PetscCall(DMCreateLocalVector(dm, &Zeros_loc));
+    PetscCall(VecZeroEntries(Zeros_loc));
+    PetscCall(OperatorApplyContextCreate(dm, dm, ceed, op_mass, NULL, NULL, Zeros_loc, NULL, &mass_matop_ctx));
     PetscCall(CreateMatShell_Ceed(mass_matop_ctx, &mat_mass));
 
     PetscCall(KSPCreate(comm, &user->mass_ksp));
@@ -55,7 +55,8 @@ PetscErrorCode CreateKspMassOperator(User user, CeedData ceed_data) {
     }
     PetscCall(KSPSetOperators(user->mass_ksp, mat_mass, mat_mass));
     PetscCall(KSPSetFromOptions(user->mass_ksp));
-    PetscCall(VecDestroy(&Ones_loc));
+    PetscCall(VecDestroy(&Zeros_loc));
+    PetscCall(MatDestroy(&mat_mass));
   }
 
   // Cleanup
