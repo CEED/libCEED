@@ -366,7 +366,7 @@ PetscErrorCode SetupLibceed(Ceed ceed, CeedData ceed_data, DM dm, User user, App
 // Time-stepping functions
 // -----------------------------------------------------------------------------
 // Create KSP to solve the inverse mass operator for explicit time stepping schemes
-PetscErrorCode CreateKspMassOperator(User user, CeedData ceed_data);
+PetscErrorCode CreateKSPMassOperator(User user, CeedData ceed_data);
 
 // RHS (Explicit time-stepper) function setup
 PetscErrorCode RHS_NS(TS ts, PetscReal t, Vec Q, Vec G, void *user_data);

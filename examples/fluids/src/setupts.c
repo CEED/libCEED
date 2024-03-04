@@ -16,7 +16,7 @@
 #include "../qfunctions/newtonian_state.h"
 
 // @brief Create KSP to solve the inverse mass operator for explicit time stepping schemes
-PetscErrorCode CreateKspMassOperator(User user, CeedData ceed_data) {
+PetscErrorCode CreateKSPMassOperator(User user, CeedData ceed_data) {
   Ceed                 ceed = user->ceed;
   DM                   dm   = user->dm;
   CeedQFunction        qf_mass;
