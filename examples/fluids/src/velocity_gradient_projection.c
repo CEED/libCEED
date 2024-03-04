@@ -117,8 +117,6 @@ PetscErrorCode VelocityGradientProjectionSetup(Ceed ceed, User user, CeedData ce
       PetscCall(PCSetType(pc, PCJACOBI));
       PetscCall(PCJacobiSetType(pc, PC_JACOBI_ROWSUM));
       PetscCall(KSPSetType(grad_velo_proj->ksp, KSPPREONLY));
-      // TODO Not sure if the option below are necessary
-      PetscCall(KSPSetConvergenceTest(grad_velo_proj->ksp, KSPConvergedSkip, NULL, NULL));
     }
     PetscCall(KSPSetOperators(grad_velo_proj->ksp, mat_mass, mat_mass));
     PetscCall(KSPSetFromOptions(grad_velo_proj->ksp));
