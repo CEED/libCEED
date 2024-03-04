@@ -353,6 +353,7 @@ PetscErrorCode SetupL2ProjectionStats(Ceed ceed, User user, CeedData ceed_data, 
     PetscCall(KSPSetOperators(ksp, mat_mass, mat_mass));
     PetscCall(KSPSetFromOptions(ksp));
     user->spanstats.ksp = ksp;
+    PetscCall(MatDestroy(&mat_mass));
   }
 
   // Cleanup

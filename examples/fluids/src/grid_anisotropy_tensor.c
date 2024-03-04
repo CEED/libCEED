@@ -14,7 +14,7 @@
 PetscErrorCode GridAnisotropyTensorProjectionSetupApply(Ceed ceed, User user, CeedData ceed_data, CeedElemRestriction *elem_restr_grid_aniso,
                                                         CeedVector *grid_aniso_vector) {
   NodalProjectionData  grid_aniso_proj;
-  OperatorApplyContext mass_matop_ctx, l2_rhs_ctx;
+  OperatorApplyContext l2_rhs_ctx;
   CeedOperator         op_rhs_assemble, op_mass;
   CeedQFunction        qf_rhs_assemble, qf_mass;
   CeedBasis            basis_grid_aniso;
@@ -73,7 +73,9 @@ PetscErrorCode GridAnisotropyTensorProjectionSetupApply(Ceed ceed, User user, Ce
   PetscCallCeed(ceed, CeedOperatorSetField(op_mass, "v", *elem_restr_grid_aniso, basis_grid_aniso, CEED_VECTOR_ACTIVE));
 
   {  // -- Setup KSP for L^2 projection
-    Mat mat_mass;
+    Mat                  mat_mass;
+    OperatorApplyContext mass_matop_ctx;
+
     PetscCall(OperatorApplyContextCreate(grid_aniso_proj->dm, grid_aniso_proj->dm, ceed, op_mass, NULL, NULL, NULL, NULL, &mass_matop_ctx));
     PetscCall(CreateMatShell_Ceed(mass_matop_ctx, &mat_mass));
 
@@ -90,6 +92,7 @@ PetscErrorCode GridAnisotropyTensorProjectionSetupApply(Ceed ceed, User user, Ce
     }
     PetscCall(KSPSetOperators(ksp, mat_mass, mat_mass));
     PetscCall(KSPSetFromOptions(ksp));
+    PetscCall(MatDestroy(&mat_mass));
   }
 
   {  // -- Project anisotropy data and store in CeedVector
@@ -115,7 +118,6 @@ PetscErrorCode GridAnisotropyTensorProjectionSetupApply(Ceed ceed, User user, Ce
   // -- Cleanup
   PetscCall(NodalProjectionDataDestroy(grid_aniso_proj));
   PetscCall(OperatorApplyContextDestroy(l2_rhs_ctx));
-  PetscCall(OperatorApplyContextDestroy(mass_matop_ctx));
   PetscCallCeed(ceed, CeedQFunctionDestroy(&qf_rhs_assemble));
   PetscCallCeed(ceed, CeedQFunctionDestroy(&qf_mass));
   PetscCallCeed(ceed, CeedBasisDestroy(&basis_grid_aniso));
