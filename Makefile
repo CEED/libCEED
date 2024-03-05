@@ -98,7 +98,6 @@ ifneq ($(wildcard ../petsc/lib/libpetsc.*),)
 endif
 
 # Warning: SANTIZ options still don't run with /gpu/occa
-# export LSAN_OPTIONS=suppressions=.asanignore
 AFLAGS ?= -fsanitize=address #-fsanitize=undefined -fno-omit-frame-pointer
 
 # Note: Intel oneAPI C/C++ compiler is now icx/icpx
