@@ -13,6 +13,83 @@
 
 #include "../navierstokes.h"
 
+// @brief Create CeedOperator for unstabilized mass KSP for explicit timestepping
+static PetscErrorCode CreateKSPMassOperator_Unstabilized(User user, CeedOperator *op_mass) {
+  Ceed                ceed = user->ceed;
+  CeedInt             num_comp_q, q_data_size;
+  CeedQFunction       qf_mass;
+  CeedElemRestriction elem_restr_q, elem_restr_qd_i;
+  CeedBasis           basis_q;
+  CeedVector          q_data;
+
+  PetscFunctionBeginUser;
+  {  // Get restriction and basis from the RHS function
+    CeedOperator     *sub_ops;
+    CeedOperatorField field;
+    PetscInt          sub_op_index = 0;  // will be 0 for the volume op
+
+    PetscCallCeed(ceed, CeedCompositeOperatorGetSubList(user->op_rhs_ctx->op, &sub_ops));
+    PetscCallCeed(ceed, CeedOperatorGetFieldByName(sub_ops[sub_op_index], "q", &field));
+    PetscCallCeed(ceed, CeedOperatorFieldGetElemRestriction(field, &elem_restr_q));
+    PetscCallCeed(ceed, CeedOperatorFieldGetBasis(field, &basis_q));
+
+    PetscCallCeed(ceed, CeedOperatorGetFieldByName(sub_ops[sub_op_index], "qdata", &field));
+    PetscCallCeed(ceed, CeedOperatorFieldGetElemRestriction(field, &elem_restr_qd_i));
+    PetscCallCeed(ceed, CeedOperatorFieldGetVector(field, &q_data));
+  }
+
+  PetscCallCeed(ceed, CeedElemRestrictionGetNumComponents(elem_restr_q, &num_comp_q));
+  PetscCallCeed(ceed, CeedElemRestrictionGetNumComponents(elem_restr_qd_i, &q_data_size));
+
+  PetscCall(CreateMassQFunction(ceed, num_comp_q, q_data_size, &qf_mass));
+  PetscCallCeed(ceed, CeedOperatorCreate(ceed, qf_mass, NULL, NULL, op_mass));
+  PetscCallCeed(ceed, CeedOperatorSetField(*op_mass, "u", elem_restr_q, basis_q, CEED_VECTOR_ACTIVE));
+  PetscCallCeed(ceed, CeedOperatorSetField(*op_mass, "qdata", elem_restr_qd_i, CEED_BASIS_NONE, q_data));
+  PetscCallCeed(ceed, CeedOperatorSetField(*op_mass, "v", elem_restr_q, basis_q, CEED_VECTOR_ACTIVE));
+
+  PetscCallCeed(ceed, CeedQFunctionDestroy(&qf_mass));
+  PetscFunctionReturn(PETSC_SUCCESS);
+}
+
+// @brief Create KSP to solve the inverse mass operator for explicit time stepping schemes
+static PetscErrorCode CreateKSPMass(User user, ProblemData *problem) {
+  Ceed         ceed = user->ceed;
+  DM           dm   = user->dm;
+  CeedOperator op_mass;
+
+  PetscFunctionBeginUser;
+  if (problem->create_mass_operator) PetscCall(problem->create_mass_operator(user, &op_mass));
+  else PetscCall(CreateKSPMassOperator_Unstabilized(user, &op_mass));
+
+  {  // -- Setup KSP for mass operator
+    Mat      mat_mass;
+    Vec      Zeros_loc;
+    MPI_Comm comm = PetscObjectComm((PetscObject)dm);
+
+    PetscCall(DMCreateLocalVector(dm, &Zeros_loc));
+    PetscCall(VecZeroEntries(Zeros_loc));
+    PetscCall(MatCeedCreate(dm, dm, op_mass, NULL, &mat_mass));
+    PetscCall(MatCeedSetLocalVectors(mat_mass, Zeros_loc, NULL));
+
+    PetscCall(KSPCreate(comm, &user->mass_ksp));
+    PetscCall(KSPSetOptionsPrefix(user->mass_ksp, "mass_"));
+    {  // lumped by default
+      PC pc;
+      PetscCall(KSPGetPC(user->mass_ksp, &pc));
+      PetscCall(PCSetType(pc, PCJACOBI));
+      PetscCall(PCJacobiSetType(pc, PC_JACOBI_ROWSUM));
+      PetscCall(KSPSetType(user->mass_ksp, KSPPREONLY));
+    }
+    PetscCall(KSPSetFromOptions_WithMatCeed(user->mass_ksp, mat_mass));
+    PetscCall(KSPSetFromOptions(user->mass_ksp));
+    PetscCall(VecDestroy(&Zeros_loc));
+    PetscCall(MatDestroy(&mat_mass));
+  }
+
+  PetscCallCeed(ceed, CeedOperatorDestroy(&op_mass));
+  PetscFunctionReturn(PETSC_SUCCESS);
+}
+
 PetscErrorCode AddBCSubOperator(Ceed ceed, DM dm, CeedData ceed_data, DMLabel domain_label, PetscInt label_value, CeedInt height, CeedInt Q_sur,
                                 CeedInt q_data_size_sur, CeedInt jac_data_size_sur, CeedQFunction qf_apply_bc, CeedQFunction qf_apply_bc_jacobian,
                                 CeedOperator *op_apply, CeedOperator *op_apply_ijacobian) {
@@ -414,6 +491,7 @@ PetscErrorCode SetupLibceed(Ceed ceed, CeedData ceed_data, DM dm, User user, App
                                       NULL));
     PetscCall(OperatorApplyContextCreate(dm, dm, ceed, op_rhs, user->q_ceed, user->g_ceed, user->Q_loc, NULL, &user->op_rhs_ctx));
     PetscCallCeed(ceed, CeedOperatorDestroy(&op_rhs));
+    PetscCall(CreateKSPMass(user, problem));
     PetscCheck(app_ctx->sgs_model_type == SGS_MODEL_NONE, user->comm, PETSC_ERR_SUP, "SGS modeling not implemented for explicit timestepping");
   } else {  // IFunction
     CeedOperator op_ijacobian = NULL;

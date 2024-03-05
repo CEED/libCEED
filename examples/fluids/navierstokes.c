@@ -201,8 +201,6 @@ int main(int argc, char **argv) {
   // -- Fix multiplicity for ICs
   PetscCall(ICs_FixMultiplicity(dm, ceed_data, user, user->Q_loc, Q, 0.0));
 
-  PetscCall(CreateKSPMassOperator(user, ceed_data));
-
   // ---------------------------------------------------------------------------
   // Record boundary values from initial condition
   // ---------------------------------------------------------------------------
