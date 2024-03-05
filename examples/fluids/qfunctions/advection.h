@@ -333,6 +333,58 @@ CEED_QFUNCTION(IFunction_Advection2d)(void *ctx, CeedInt Q, const CeedScalar *co
   return 0;
 }
 
+CEED_QFUNCTION_HELPER void MassFunction_AdvectionGeneric(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out, CeedInt dim) {
+  const CeedScalar(*q_dot)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[0];
+  const CeedScalar(*q)[CEED_Q_VLA]     = (const CeedScalar(*)[CEED_Q_VLA])in[1];
+  const CeedScalar(*q_data)            = in[2];
+
+  CeedScalar(*v)[CEED_Q_VLA]         = (CeedScalar(*)[CEED_Q_VLA])out[0];
+  CeedScalar(*grad_v)[5][CEED_Q_VLA] = (CeedScalar(*)[5][CEED_Q_VLA])out[1];
+
+  AdvectionContext                 context    = (AdvectionContext)ctx;
+  const CeedScalar                 CtauS      = context->CtauS;
+  struct NewtonianIdealGasContext_ gas_struct = {0};
+  NewtonianIdealGasContext         gas        = &gas_struct;
+
+  CeedPragmaSIMD for (CeedInt i = 0; i < Q; i++) {
+    const CeedScalar qi[5] = {q[0][i], q[1][i], q[2][i], q[3][i], q[4][i]};
+    const State      s     = StateFromU(gas, qi);
+    CeedScalar       wdetJ, dXdx[9];
+    QdataUnpack_ND(dim, Q, i, q_data, &wdetJ, dXdx);
+
+    for (CeedInt f = 0; f < 4; f++) {
+      for (CeedInt j = 0; j < dim; j++) grad_v[j][f][i] = 0;  // No Change in density or momentum
+      v[f][i] = wdetJ * q_dot[f][i];                          // K Mass/transient term
+    }
+
+    // Unstabilized mass term (ie. the normal mass term)
+    v[4][i] = wdetJ * q_dot[4][i];
+
+    // Stabilized mass term
+    CeedScalar uX[3] = {0.};
+    MatVecNM(dXdx, s.Y.velocity, dim, dim, CEED_NOTRANSPOSE, uX);
+    const CeedScalar TauS = CtauS / sqrt(Dot3(uX, uX));
+    for (CeedInt j = 0; j < dim; j++) switch (context->stabilization) {
+        case STAB_NONE:
+        case STAB_SU:
+          break;  // These should be run with the unstabilized mass matrix
+        case STAB_SUPG:
+          grad_v[j][4][i] += wdetJ * TauS * q_dot[4][i] * uX[j];
+          break;
+      }
+  }
+}
+
+CEED_QFUNCTION(MassFunction_Advection)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
+  MassFunction_AdvectionGeneric(ctx, Q, in, out, 3);
+  return 0;
+}
+
+CEED_QFUNCTION(MassFunction_Advection2D)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
+  MassFunction_AdvectionGeneric(ctx, Q, in, out, 2);
+  return 0;
+}
+
 // *****************************************************************************
 // This QFunction implements Advection for explicit time stepping method
 // *****************************************************************************
@@ -344,11 +396,10 @@ CEED_QFUNCTION_HELPER void RHSFunction_AdvectionGeneric(void *ctx, CeedInt Q, co
   CeedScalar(*v)[CEED_Q_VLA]         = (CeedScalar(*)[CEED_Q_VLA])out[0];
   CeedScalar(*grad_v)[5][CEED_Q_VLA] = (CeedScalar(*)[5][CEED_Q_VLA])out[1];
 
-  AdvectionContext                 context = (AdvectionContext)ctx;
-  const CeedScalar                 CtauS   = context->CtauS;
-  NewtonianIdealGasContext         gas;
+  AdvectionContext                 context    = (AdvectionContext)ctx;
+  const CeedScalar                 CtauS      = context->CtauS;
   struct NewtonianIdealGasContext_ gas_struct = {0};
-  gas                                         = &gas_struct;
+  NewtonianIdealGasContext         gas        = &gas_struct;
 
   CeedPragmaSIMD for (CeedInt i = 0; i < Q; i++) {
     const CeedScalar qi[5] = {q[0][i], q[1][i], q[2][i], q[3][i], q[4][i]};

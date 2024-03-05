@@ -15,53 +15,6 @@
 #include "../navierstokes.h"
 #include "../qfunctions/newtonian_state.h"
 
-// @brief Create KSP to solve the inverse mass operator for explicit time stepping schemes
-PetscErrorCode CreateKSPMassOperator(User user, CeedData ceed_data) {
-  Ceed          ceed = user->ceed;
-  DM            dm   = user->dm;
-  CeedQFunction qf_mass;
-  CeedOperator  op_mass;
-  CeedInt       num_comp_q, q_data_size;
-
-  PetscFunctionBeginUser;
-  PetscCallCeed(ceed, CeedElemRestrictionGetNumComponents(ceed_data->elem_restr_q, &num_comp_q));
-  PetscCallCeed(ceed, CeedElemRestrictionGetNumComponents(ceed_data->elem_restr_qd_i, &q_data_size));
-
-  PetscCall(CreateMassQFunction(ceed, num_comp_q, q_data_size, &qf_mass));
-  PetscCallCeed(ceed, CeedOperatorCreate(ceed, qf_mass, NULL, NULL, &op_mass));
-  PetscCallCeed(ceed, CeedOperatorSetField(op_mass, "u", ceed_data->elem_restr_q, ceed_data->basis_q, CEED_VECTOR_ACTIVE));
-  PetscCallCeed(ceed, CeedOperatorSetField(op_mass, "qdata", ceed_data->elem_restr_qd_i, CEED_BASIS_NONE, ceed_data->q_data));
-  PetscCallCeed(ceed, CeedOperatorSetField(op_mass, "v", ceed_data->elem_restr_q, ceed_data->basis_q, CEED_VECTOR_ACTIVE));
-
-  {  // -- Setup KSP for mass operator
-    Mat      mat_mass;
-    Vec      Zeros_loc;
-    MPI_Comm comm = PetscObjectComm((PetscObject)dm);
-
-    PetscCall(DMCreateLocalVector(dm, &Zeros_loc));
-    PetscCall(VecZeroEntries(Zeros_loc));
-    PetscCall(MatCeedCreate(dm, dm, op_mass, NULL, &mat_mass));
-    PetscCall(MatCeedSetLocalVectors(mat_mass, Zeros_loc, NULL));
-
-    PetscCall(KSPCreate(comm, &user->mass_ksp));
-    PetscCall(KSPSetOptionsPrefix(user->mass_ksp, "mass_"));
-    {  // lumped by default
-      PC pc;
-      PetscCall(KSPGetPC(user->mass_ksp, &pc));
-      PetscCall(PCSetType(pc, PCJACOBI));
-      PetscCall(PCJacobiSetType(pc, PC_JACOBI_ROWSUM));
-      PetscCall(KSPSetType(user->mass_ksp, KSPPREONLY));
-    }
-    PetscCall(KSPSetFromOptions_WithMatCeed(user->mass_ksp, mat_mass));
-    PetscCall(VecDestroy(&Zeros_loc));
-    PetscCall(MatDestroy(&mat_mass));
-  }
-
-  PetscCallCeed(ceed, CeedQFunctionDestroy(&qf_mass));
-  PetscCallCeed(ceed, CeedOperatorDestroy(&op_mass));
-  PetscFunctionReturn(PETSC_SUCCESS);
-}
-
 // Insert Boundary values if it's a new time
 PetscErrorCode UpdateBoundaryValues(User user, Vec Q_loc, PetscReal t) {
   PetscFunctionBeginUser;
@@ -76,10 +29,11 @@ PetscErrorCode UpdateBoundaryValues(User user, Vec Q_loc, PetscReal t) {
 //   This is the RHS of the ODE, given as u_t = G(t,u)
 //   This function takes in a state vector Q and writes into G
 PetscErrorCode RHS_NS(TS ts, PetscReal t, Vec Q, Vec G, void *user_data) {
-  User        user = *(User *)user_data;
-  Ceed        ceed = user->ceed;
-  PetscScalar dt;
-  Vec         Q_loc = user->Q_loc;
+  User         user = *(User *)user_data;
+  Ceed         ceed = user->ceed;
+  PetscScalar  dt;
+  Vec          Q_loc = user->Q_loc;
+  PetscMemType q_mem_type;
 
   PetscFunctionBeginUser;
   // Update time dependent data
@@ -90,8 +44,12 @@ PetscErrorCode RHS_NS(TS ts, PetscReal t, Vec Q, Vec G, void *user_data) {
 
   PetscCall(ApplyCeedOperatorGlobalToGlobal(Q, G, user->op_rhs_ctx));
 
-  // Inverse of the lumped mass matrix
+  PetscCall(VecReadPetscToCeed(Q_loc, &q_mem_type, user->q_ceed));
+
+  // Inverse of the mass matrix
   PetscCall(KSPSolve(user->mass_ksp, G, G));
+
+  PetscCall(VecReadCeedToPetsc(user->q_ceed, q_mem_type, Q_loc));
   PetscFunctionReturn(PETSC_SUCCESS);
 }
 
