@@ -411,7 +411,7 @@ int CeedQFunctionGetInnerContext(CeedQFunction qf, CeedQFunctionContext *ctx) {
 
     CeedCall(CeedQFunctionContextGetData(qf_ctx, CEED_MEM_HOST, &fortran_ctx));
     *ctx = fortran_ctx->inner_ctx;
-    CeedCall(CeedQFunctionContextRestoreData(qf_ctx, (void *)&fortran_ctx));
+    CeedCall(CeedQFunctionContextRestoreData(qf_ctx, &fortran_ctx));
   } else {
     *ctx = qf_ctx;
   }

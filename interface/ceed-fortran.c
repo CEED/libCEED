@@ -733,7 +733,7 @@ static int CeedQFunctionFortranStub(void *ctx, int nq, const CeedScalar *const *
           v[3], v[4], v[5], v[6], v[7], v[8], v[9], v[10], v[11], v[12], v[13], v[14], v[15], &ierr);
 
   if (inner_ctx) {
-    ierr = CeedQFunctionContextRestoreData(inner_ctx, (void *)&ctx_);
+    ierr = CeedQFunctionContextRestoreData(inner_ctx, &ctx_);
     CeedCall(ierr);
   }
 

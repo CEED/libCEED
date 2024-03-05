@@ -27,7 +27,7 @@ static int CeedQFunctionInit_Identity(Ceed ceed, const char *requested, CeedQFun
   CeedQFunctionContext ctx;
   IdentityCtx          ctx_data = {.size = 1};
   CeedCall(CeedQFunctionContextCreate(ceed, &ctx));
-  CeedCall(CeedQFunctionContextSetData(ctx, CEED_MEM_HOST, CEED_COPY_VALUES, sizeof(ctx_data), (void *)&ctx_data));
+  CeedCall(CeedQFunctionContextSetData(ctx, CEED_MEM_HOST, CEED_COPY_VALUES, sizeof(ctx_data), &ctx_data));
   CeedCall(CeedQFunctionContextRegisterInt32(ctx, "size", offsetof(IdentityCtx, size), 1, "field size of identity QFunction"));
   CeedCall(CeedQFunctionSetContext(qf, ctx));
   CeedCall(CeedQFunctionContextDestroy(&ctx));

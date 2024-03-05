@@ -86,7 +86,7 @@ static int CeedQFunctionApply_Memcheck(CeedQFunction qf, CeedInt Q, CeedVector *
 static int CeedQFunctionDestroy_Memcheck(CeedQFunction qf) {
   CeedQFunction_Memcheck *impl;
 
-  CeedCallBackend(CeedQFunctionGetData(qf, (void *)&impl));
+  CeedCallBackend(CeedQFunctionGetData(qf, &impl));
   CeedCallBackend(CeedFree(&impl->inputs));
   CeedCallBackend(CeedFree(&impl->outputs));
   CeedCallBackend(CeedFree(&impl));
