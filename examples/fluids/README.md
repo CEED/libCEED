@@ -625,6 +625,11 @@ For the Density Current, Channel, and Blasius problems, the following common com
   - `./dd_sgs_parameters`
   - string
 
+* - `-sgs_model_dd_use_fused`
+  - Whether to use "fused" mode for data-driven model evaluation
+  - `true`
+  - boolean
+
 * - `-diff_filter_monitor`
   - Enable differential filter TSMonitor
   - `false`

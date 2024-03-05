@@ -195,11 +195,18 @@ typedef struct {
   KSP                  ksp;
 } *NodalProjectionData;
 
+typedef PetscErrorCode (*SgsDDNodalStressEval)(User user, Vec Q_loc, Vec VelocityGradient, Vec SGSNodal_loc);
+typedef PetscErrorCode (*SgsDDNodalStressInference)(Vec DD_Inputs_loc, Vec DD_Outputs_loc, void *ctx);
 typedef struct {
-  DM                   dm_sgs;
-  PetscInt             num_comp_sgs;
-  OperatorApplyContext op_nodal_evaluation_ctx, op_sgs_apply_ctx;
-  CeedVector           sgs_nodal_ceed;
+  DM                        dm_sgs, dm_dd_inputs, dm_dd_outputs;
+  PetscInt                  num_comp_sgs;
+  CeedInt                   num_comp_inputs, num_comp_outputs;
+  OperatorApplyContext      op_nodal_evaluation_ctx, op_nodal_dd_inputs_ctx, op_nodal_dd_outputs_ctx, op_sgs_apply_ctx;
+  CeedVector                sgs_nodal_ceed, grad_velo_ceed;
+  SgsDDNodalStressEval      sgs_nodal_eval;
+  SgsDDNodalStressInference sgs_nodal_inference;
+  void                     *sgs_nodal_inference_ctx;
+  PetscErrorCode (*sgs_nodal_inference_ctx_destroy)(void *ctx);
 } *SgsDDData;
 
 typedef struct {
@@ -464,9 +471,9 @@ PetscErrorCode TurbulenceStatisticsDestroy(User user, CeedData ceed_data);
 // Data-Driven Subgrid Stress (DD-SGS) Modeling Functions
 // -----------------------------------------------------------------------------
 
-PetscErrorCode SgsDDModelSetup(Ceed ceed, User user, CeedData ceed_data, ProblemData *problem);
+PetscErrorCode SgsDDSetup(Ceed ceed, User user, CeedData ceed_data, ProblemData *problem);
 PetscErrorCode SgsDDDataDestroy(SgsDDData sgs_dd_data);
-PetscErrorCode SgsDDModelApplyIFunction(User user, const Vec Q_loc, Vec G_loc);
+PetscErrorCode SgsDDApplyIFunction(User user, const Vec Q_loc, Vec G_loc);
 PetscErrorCode VelocityGradientProjectionSetup(Ceed ceed, User user, CeedData ceed_data, ProblemData *problem, StateVariable state_var_input,
                                                CeedElemRestriction elem_restr_input, CeedBasis basis_input, NodalProjectionData *pgrad_velo_proj);
 PetscErrorCode VelocityGradientProjectionApply(NodalProjectionData grad_velo_proj, Vec Q_loc, Vec VelocityGradient);
