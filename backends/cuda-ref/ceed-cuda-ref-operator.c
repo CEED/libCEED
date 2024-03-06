@@ -955,7 +955,7 @@ static int CeedSingleOperatorAssembleSetup_Cuda(CeedOperator op, CeedInt use_cee
   char               *assembly_kernel_source;
   const char         *assembly_kernel_path;
   CeedInt             num_input_fields, num_output_fields, num_eval_modes_in = 0, num_eval_modes_out = 0;
-  CeedInt             elem_size_in, num_qpts_in, num_comp_in, elem_size_out, num_qpts_out, num_comp_out, q_comp;
+  CeedInt             elem_size_in, num_qpts_in = 0, num_comp_in, elem_size_out, num_qpts_out, num_comp_out, q_comp;
   CeedEvalMode       *eval_modes_in = NULL, *eval_modes_out = NULL;
   CeedElemRestriction rstr_in = NULL, rstr_out = NULL;
   CeedBasis           basis_in = NULL, basis_out = NULL;
