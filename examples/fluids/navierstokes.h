@@ -172,7 +172,7 @@ struct CeedData_private {
   CeedOperator         op_setup_vol;
   OperatorApplyContext op_ics_ctx;
   CeedQFunction        qf_setup_vol, qf_ics, qf_rhs_vol, qf_ifunction_vol, qf_setup_sur, qf_apply_inflow, qf_apply_inflow_jacobian, qf_apply_outflow,
-      qf_apply_outflow_jacobian, qf_apply_freestream, qf_apply_freestream_jacobian;
+      qf_apply_outflow_jacobian, qf_apply_freestream, qf_apply_freestream_jacobian, qf_apply_slip, qf_apply_slip_jacobian;
 };
 
 typedef struct {
@@ -279,10 +279,9 @@ struct SimpleBC_private {
   PetscInt num_wall,  // Number of faces with wall BCs
       wall_comps[5],  // An array of constrained component numbers
       num_comps,
-      num_slip[3],  // Number of faces with slip BCs
-      num_inflow, num_outflow, num_freestream;
-  PetscInt  walls[16], slips[3][16], inflows[16], outflows[16], freestreams[16];
-  PetscBool user_bc;
+      num_symmetry[3],  // Number of faces with symmetry BCs
+      num_inflow, num_outflow, num_freestream, num_slip;
+  PetscInt walls[16], symmetries[3][16], inflows[16], outflows[16], freestreams[16], slips[16];
 };
 
 // Struct that contains all enums and structs used for the physics of all problems
@@ -308,7 +307,7 @@ struct ProblemData_private {
   CeedInt              dim, q_data_size_vol, q_data_size_sur, jac_data_size_sur;
   CeedScalar           dm_scale;
   ProblemQFunctionSpec setup_vol, setup_sur, ics, apply_vol_rhs, apply_vol_ifunction, apply_vol_ijacobian, apply_inflow, apply_outflow,
-      apply_freestream, apply_inflow_jacobian, apply_outflow_jacobian, apply_freestream_jacobian;
+      apply_freestream, apply_slip, apply_inflow_jacobian, apply_outflow_jacobian, apply_freestream_jacobian, apply_slip_jacobian;
   bool      non_zero_time;
   PetscBool bc_from_ics, use_strong_bc_ceed, uses_newtonian;
   PetscErrorCode (*print_info)(User, ProblemData *, AppCtx);
@@ -491,6 +490,7 @@ PetscErrorCode SetupStrongBC_Ceed(Ceed ceed, CeedData ceed_data, DM dm, User use
 
 PetscErrorCode FreestreamBCSetup(ProblemData *problem, DM dm, void *ctx, NewtonianIdealGasContext newtonian_ig_ctx, const StatePrimitive *reference);
 PetscErrorCode OutflowBCSetup(ProblemData *problem, DM dm, void *ctx, NewtonianIdealGasContext newtonian_ig_ctx, const StatePrimitive *reference);
+PetscErrorCode SlipBCSetup(ProblemData *problem, DM dm, void *ctx, CeedQFunctionContext newtonian_ig_qfctx);
 
 // -----------------------------------------------------------------------------
 // Differential Filtering Functions
