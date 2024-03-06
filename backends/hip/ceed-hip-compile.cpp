@@ -104,6 +104,9 @@ int CeedCompile_Hip(Ceed ceed, const char *source, hipModule_t *module, const Ce
     size_t log_size;
     char  *log;
 
+    CeedDebug256(ceed, CEED_DEBUG_COLOR_ERROR, "---------- CEED JIT SOURCE FAILED TO COMPILE ----------\n");
+    CeedDebug(ceed, "Source:\n%s\n", code.str().c_str());
+    CeedDebug256(ceed, CEED_DEBUG_COLOR_ERROR, "---------- CEED JIT SOURCE FAILED TO COMPILE ----------\n");
     CeedChk_hiprtc(ceed, hiprtcGetProgramLogSize(prog, &log_size));
     CeedCallBackend(CeedMalloc(log_size, &log));
     CeedCallHiprtc(ceed, hiprtcGetProgramLog(prog, log));

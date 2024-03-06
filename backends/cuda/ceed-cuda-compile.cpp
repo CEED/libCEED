@@ -97,6 +97,9 @@ int CeedCompile_Cuda(Ceed ceed, const char *source, CUmodule *module, const Ceed
     char  *log;
     size_t log_size;
 
+    CeedDebug256(ceed, CEED_DEBUG_COLOR_ERROR, "---------- CEED JIT SOURCE FAILED TO COMPILE ----------\n");
+    CeedDebug(ceed, "Source:\n%s\n", code.str().c_str());
+    CeedDebug256(ceed, CEED_DEBUG_COLOR_ERROR, "---------- CEED JIT SOURCE FAILED TO COMPILE ----------\n");
     CeedCallNvrtc(ceed, nvrtcGetProgramLogSize(prog, &log_size));
     CeedCallBackend(CeedMalloc(log_size, &log));
     CeedCallNvrtc(ceed, nvrtcGetProgramLog(prog, log));
