@@ -73,6 +73,8 @@ int CeedCompile_Cuda(Ceed ceed, const char *source, CUmodule *module, const Ceed
   }
   code << jit_defs_source;
   code << "\n\n";
+  CeedCallBackend(CeedFree(&jit_defs_path));
+  CeedCallBackend(CeedFree(&jit_defs_source));
 
   // Non-macro options
   opts[0] = "-default-device";
@@ -96,18 +98,13 @@ int CeedCompile_Cuda(Ceed ceed, const char *source, CUmodule *module, const Ceed
     size_t log_size;
 
     CeedDebug256(ceed, CEED_DEBUG_COLOR_ERROR, "---------- CEED JIT SOURCE FAILED TO COMPILE ----------\n");
-    CeedDebug(ceed, "File: %s\n", jit_defs_path);
-    CeedDebug(ceed, "Source:\n%s\n", jit_defs_source);
+    CeedDebug(ceed, "Source:\n%s\n", code);
     CeedDebug256(ceed, CEED_DEBUG_COLOR_ERROR, "---------- CEED JIT SOURCE FAILED TO COMPILE ----------\n");
-    CeedCallBackend(CeedFree(&jit_defs_path));
-    CeedCallBackend(CeedFree(&jit_defs_source));
     CeedCallNvrtc(ceed, nvrtcGetProgramLogSize(prog, &log_size));
     CeedCallBackend(CeedMalloc(log_size, &log));
     CeedCallNvrtc(ceed, nvrtcGetProgramLog(prog, log));
     return CeedError(ceed, CEED_ERROR_BACKEND, "%s\n%s", nvrtcGetErrorString(result), log);
   }
-  CeedCallBackend(CeedFree(&jit_defs_path));
-  CeedCallBackend(CeedFree(&jit_defs_source));
 
   CeedCallNvrtc(ceed, nvrtcGetPTXSize(prog, &ptx_size));
   CeedCallBackend(CeedMalloc(ptx_size, &ptx));

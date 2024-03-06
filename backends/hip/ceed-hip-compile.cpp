@@ -80,6 +80,8 @@ int CeedCompile_Hip(Ceed ceed, const char *source, hipModule_t *module, const Ce
   CeedCallBackend(CeedLoadSourceToBuffer(ceed, jit_defs_path, &jit_defs_source));
   code << jit_defs_source;
   code << "\n\n";
+  CeedCallBackend(CeedFree(&jit_defs_path));
+  CeedCallBackend(CeedFree(&jit_defs_source));
 
   // Non-macro options
   opts[0] = "-default-device";
@@ -103,18 +105,13 @@ int CeedCompile_Hip(Ceed ceed, const char *source, hipModule_t *module, const Ce
     char  *log;
 
     CeedDebug256(ceed, CEED_DEBUG_COLOR_ERROR, "---------- CEED JIT SOURCE FAILED TO COMPILE ----------\n");
-    CeedDebug(ceed, "File: %s\n", jit_defs_path);
-    CeedDebug(ceed, "Source:\n%s\n", jit_defs_source);
+    CeedDebug(ceed, "Source:\n%s\n", code);
     CeedDebug256(ceed, CEED_DEBUG_COLOR_ERROR, "---------- CEED JIT SOURCE FAILED TO COMPILE ----------\n");
-    CeedCallBackend(CeedFree(&jit_defs_path));
-    CeedCallBackend(CeedFree(&jit_defs_source));
     CeedChk_hiprtc(ceed, hiprtcGetProgramLogSize(prog, &log_size));
     CeedCallBackend(CeedMalloc(log_size, &log));
     CeedCallHiprtc(ceed, hiprtcGetProgramLog(prog, log));
     return CeedError(ceed, CEED_ERROR_BACKEND, "%s\n%s", hiprtcGetErrorString(result), log);
   }
-  CeedCallBackend(CeedFree(&jit_defs_path));
-  CeedCallBackend(CeedFree(&jit_defs_source));
 
   CeedCallHiprtc(ceed, hiprtcGetCodeSize(prog, &ptx_size));
   CeedCallBackend(CeedMalloc(ptx_size, &ptx));
