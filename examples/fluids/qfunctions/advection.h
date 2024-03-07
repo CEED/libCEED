@@ -363,7 +363,20 @@ CEED_QFUNCTION_HELPER void MassFunction_AdvectionGeneric(void *ctx, CeedInt Q, c
     // Stabilized mass term
     CeedScalar uX[3] = {0.};
     MatVecNM(dXdx, s.Y.velocity, dim, dim, CEED_NOTRANSPOSE, uX);
-    const CeedScalar TauS = CtauS / sqrt(DotN(uX, uX, dim));
+    CeedScalar TauS = 0;
+    switch (context->stabilization_tau) {
+      case STAB_TAU_CTAU:
+        TauS = CtauS / sqrt(DotN(uX, uX, dim));
+        break;
+      case STAB_TAU_ADVDIFF_SHAKIB: {
+        CeedScalar gijd_mat[9] = {0.}, gij_uj[3] = {0.};
+        MatMatN(dXdx, dXdx, dim, CEED_TRANSPOSE, CEED_NOTRANSPOSE, gijd_mat);
+
+        MatVecNM(gijd_mat, s.Y.velocity, dim, dim, CEED_NOTRANSPOSE, gij_uj);
+        TauS = 1 / sqrt(Square(2 * context->Ctau_t / context->dt) + DotN(s.Y.velocity, gij_uj, dim) * context->Ctau_a);
+      } break;
+    }
+
     for (CeedInt j = 0; j < dim; j++) switch (context->stabilization) {
         case STAB_NONE:
         case STAB_SU:
