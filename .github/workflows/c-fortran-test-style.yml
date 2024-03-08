@@ -21,12 +21,12 @@ jobs:
     - name: Install clang-format
       run: |
           wget -O- https://apt.llvm.org/llvm-snapshot.gpg.key | sudo apt-key add -
-          sudo add-apt-repository 'deb http://apt.llvm.org/bullseye/ llvm-toolchain-bullseye-16 main'
-          sudo apt update && sudo apt install clang-format-16
+          sudo add-apt-repository 'deb http://apt.llvm.org/bullseye/ llvm-toolchain-bullseye-17 main'
+          sudo apt update && sudo apt install clang-format-17
     - name: C style
       env:
         CC: ${{ matrix.compiler }}
         FC: gfortran-11
       run: |
         make info
-        make format-c -j2 CLANG_FORMAT=clang-format-16 && git diff --exit-code
+        make format-c -j2 CLANG_FORMAT=clang-format-17 && git diff --exit-code
