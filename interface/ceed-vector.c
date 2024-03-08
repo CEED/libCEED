@@ -220,12 +220,12 @@ int CeedVectorCopy(CeedVector vec, CeedVector vec_copy) {
   CeedScalar *array;
 
   // Get the preferred memory type
-  CeedVectorGetCeed(vec, &ceed);
-  CeedGetPreferredMemType(ceed, &mem_type);
+  CeedCall(CeedVectorGetCeed(vec, &ceed));
+  CeedCall(CeedGetPreferredMemType(ceed, &mem_type));
 
   // Get the preferred memory type
-  CeedVectorGetCeed(vec_copy, &ceed);
-  CeedGetPreferredMemType(ceed, &mem_type_copy);
+  CeedCall(CeedVectorGetCeed(vec_copy, &ceed));
+  CeedCall(CeedGetPreferredMemType(ceed, &mem_type_copy));
 
   // Check that both have same memory type
   if (mem_type != mem_type_copy) mem_type = CEED_MEM_HOST;

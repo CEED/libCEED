@@ -39,7 +39,7 @@ int CeedQFunctionCreate_Cuda_gen(CeedQFunction qf) {
   Ceed                    ceed;
   CeedQFunction_Cuda_gen *data;
 
-  CeedQFunctionGetCeed(qf, &ceed);
+  CeedCallBackend(CeedQFunctionGetCeed(qf, &ceed));
   CeedCallBackend(CeedCalloc(1, &data));
   CeedCallBackend(CeedQFunctionSetData(qf, data));
 
