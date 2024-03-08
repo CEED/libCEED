@@ -67,12 +67,10 @@ static int CeedQFunctionApply_Hip(CeedQFunction qf, CeedInt Q, CeedVector *U, Ce
 // Destroy QFunction
 //------------------------------------------------------------------------------
 static int CeedQFunctionDestroy_Hip(CeedQFunction qf) {
-  Ceed               ceed;
   CeedQFunction_Hip *data;
 
   CeedCallBackend(CeedQFunctionGetData(qf, &data));
-  CeedCallBackend(CeedQFunctionGetCeed(qf, &ceed));
-  if (data->module) CeedCallHip(ceed, hipModuleUnload(data->module));
+  if (data->module) CeedCallHip(CeedQFunctionReturnCeed(qf), hipModuleUnload(data->module));
   CeedCallBackend(CeedFree(&data));
   return CEED_ERROR_SUCCESS;
 }
@@ -85,7 +83,7 @@ int CeedQFunctionCreate_Hip(CeedQFunction qf) {
   CeedInt            num_input_fields, num_output_fields;
   CeedQFunction_Hip *data;
 
-  CeedQFunctionGetCeed(qf, &ceed);
+  CeedCallBackend(CeedQFunctionGetCeed(qf, &ceed));
   CeedCallBackend(CeedCalloc(1, &data));
   CeedCallBackend(CeedQFunctionSetData(qf, data));
   CeedCallBackend(CeedQFunctionGetNumArgs(qf, &num_input_fields, &num_output_fields));

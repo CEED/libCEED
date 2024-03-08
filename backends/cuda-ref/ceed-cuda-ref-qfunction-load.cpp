@@ -29,7 +29,7 @@ extern "C" int CeedQFunctionBuildKernel_Cuda_ref(CeedQFunction qf) {
   CeedQFunctionField *input_fields, *output_fields;
   CeedQFunction_Cuda *data;
 
-  CeedQFunctionGetCeed(qf, &ceed);
+  CeedCallBackend(CeedQFunctionGetCeed(qf, &ceed));
   CeedCallBackend(CeedQFunctionGetData(qf, (void **)&data));
 
   // QFunction is built

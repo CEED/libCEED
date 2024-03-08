@@ -178,29 +178,30 @@ CEED_EXTERN const char *const  CeedContextFieldTypes[];
 
 CEED_EXTERN int CeedGetPreferredMemType(Ceed ceed, CeedMemType *type);
 
-CEED_EXTERN int CeedVectorCreate(Ceed ceed, CeedSize len, CeedVector *vec);
-CEED_EXTERN int CeedVectorReferenceCopy(CeedVector vec, CeedVector *vec_copy);
-CEED_EXTERN int CeedVectorCopy(CeedVector vec, CeedVector vec_copy);
-CEED_EXTERN int CeedVectorSetArray(CeedVector vec, CeedMemType mem_type, CeedCopyMode copy_mode, CeedScalar *array);
-CEED_EXTERN int CeedVectorSetValue(CeedVector vec, CeedScalar value);
-CEED_EXTERN int CeedVectorSyncArray(CeedVector vec, CeedMemType mem_type);
-CEED_EXTERN int CeedVectorTakeArray(CeedVector vec, CeedMemType mem_type, CeedScalar **array);
-CEED_EXTERN int CeedVectorGetArray(CeedVector vec, CeedMemType mem_type, CeedScalar **array);
-CEED_EXTERN int CeedVectorGetArrayRead(CeedVector vec, CeedMemType mem_type, const CeedScalar **array);
-CEED_EXTERN int CeedVectorGetArrayWrite(CeedVector vec, CeedMemType mem_type, CeedScalar **array);
-CEED_EXTERN int CeedVectorRestoreArray(CeedVector vec, CeedScalar **array);
-CEED_EXTERN int CeedVectorRestoreArrayRead(CeedVector vec, const CeedScalar **array);
-CEED_EXTERN int CeedVectorNorm(CeedVector vec, CeedNormType type, CeedScalar *norm);
-CEED_EXTERN int CeedVectorScale(CeedVector x, CeedScalar alpha);
-CEED_EXTERN int CeedVectorAXPY(CeedVector y, CeedScalar alpha, CeedVector x);
-CEED_EXTERN int CeedVectorAXPBY(CeedVector y, CeedScalar alpha, CeedScalar beta, CeedVector x);
-CEED_EXTERN int CeedVectorPointwiseMult(CeedVector w, CeedVector x, CeedVector y);
-CEED_EXTERN int CeedVectorReciprocal(CeedVector vec);
-CEED_EXTERN int CeedVectorViewRange(CeedVector vec, CeedSize start, CeedSize stop, CeedInt step, const char *fp_fmt, FILE *stream);
-CEED_EXTERN int CeedVectorView(CeedVector vec, const char *fp_fmt, FILE *stream);
-CEED_EXTERN int CeedVectorGetCeed(CeedVector vec, Ceed *ceed);
-CEED_EXTERN int CeedVectorGetLength(CeedVector vec, CeedSize *length);
-CEED_EXTERN int CeedVectorDestroy(CeedVector *vec);
+CEED_EXTERN int  CeedVectorCreate(Ceed ceed, CeedSize len, CeedVector *vec);
+CEED_EXTERN int  CeedVectorReferenceCopy(CeedVector vec, CeedVector *vec_copy);
+CEED_EXTERN int  CeedVectorCopy(CeedVector vec, CeedVector vec_copy);
+CEED_EXTERN int  CeedVectorSetArray(CeedVector vec, CeedMemType mem_type, CeedCopyMode copy_mode, CeedScalar *array);
+CEED_EXTERN int  CeedVectorSetValue(CeedVector vec, CeedScalar value);
+CEED_EXTERN int  CeedVectorSyncArray(CeedVector vec, CeedMemType mem_type);
+CEED_EXTERN int  CeedVectorTakeArray(CeedVector vec, CeedMemType mem_type, CeedScalar **array);
+CEED_EXTERN int  CeedVectorGetArray(CeedVector vec, CeedMemType mem_type, CeedScalar **array);
+CEED_EXTERN int  CeedVectorGetArrayRead(CeedVector vec, CeedMemType mem_type, const CeedScalar **array);
+CEED_EXTERN int  CeedVectorGetArrayWrite(CeedVector vec, CeedMemType mem_type, CeedScalar **array);
+CEED_EXTERN int  CeedVectorRestoreArray(CeedVector vec, CeedScalar **array);
+CEED_EXTERN int  CeedVectorRestoreArrayRead(CeedVector vec, const CeedScalar **array);
+CEED_EXTERN int  CeedVectorNorm(CeedVector vec, CeedNormType type, CeedScalar *norm);
+CEED_EXTERN int  CeedVectorScale(CeedVector x, CeedScalar alpha);
+CEED_EXTERN int  CeedVectorAXPY(CeedVector y, CeedScalar alpha, CeedVector x);
+CEED_EXTERN int  CeedVectorAXPBY(CeedVector y, CeedScalar alpha, CeedScalar beta, CeedVector x);
+CEED_EXTERN int  CeedVectorPointwiseMult(CeedVector w, CeedVector x, CeedVector y);
+CEED_EXTERN int  CeedVectorReciprocal(CeedVector vec);
+CEED_EXTERN int  CeedVectorViewRange(CeedVector vec, CeedSize start, CeedSize stop, CeedInt step, const char *fp_fmt, FILE *stream);
+CEED_EXTERN int  CeedVectorView(CeedVector vec, const char *fp_fmt, FILE *stream);
+CEED_EXTERN int  CeedVectorGetCeed(CeedVector vec, Ceed *ceed);
+CEED_EXTERN Ceed CeedVectorReturnCeed(CeedVector vec);
+CEED_EXTERN int  CeedVectorGetLength(CeedVector vec, CeedSize *length);
+CEED_EXTERN int  CeedVectorDestroy(CeedVector *vec);
 
 CEED_EXTERN CeedRequest *const CEED_REQUEST_IMMEDIATE;
 CEED_EXTERN CeedRequest *const CEED_REQUEST_ORDERED;
@@ -236,91 +237,93 @@ CEED_EXTERN const CeedQFunction CEED_QFUNCTION_NONE;
 /// @ingroup CeedElemRestriction
 CEED_EXTERN const CeedInt CEED_STRIDES_BACKEND[3];
 
-CEED_EXTERN int CeedElemRestrictionCreate(Ceed ceed, CeedInt num_elem, CeedInt elem_size, CeedInt num_comp, CeedInt comp_stride, CeedSize l_size,
-                                          CeedMemType mem_type, CeedCopyMode copy_mode, const CeedInt *offsets, CeedElemRestriction *rstr);
-CEED_EXTERN int CeedElemRestrictionCreateOriented(Ceed ceed, CeedInt num_elem, CeedInt elem_size, CeedInt num_comp, CeedInt comp_stride,
-                                                  CeedSize l_size, CeedMemType mem_type, CeedCopyMode copy_mode, const CeedInt *offsets,
-                                                  const bool *orients, CeedElemRestriction *rstr);
-CEED_EXTERN int CeedElemRestrictionCreateCurlOriented(Ceed ceed, CeedInt num_elem, CeedInt elem_size, CeedInt num_comp, CeedInt comp_stride,
-                                                      CeedSize l_size, CeedMemType mem_type, CeedCopyMode copy_mode, const CeedInt *offsets,
-                                                      const CeedInt8 *curl_orients, CeedElemRestriction *rstr);
-CEED_EXTERN int CeedElemRestrictionCreateStrided(Ceed ceed, CeedInt num_elem, CeedInt elem_size, CeedInt num_comp, CeedSize l_size,
-                                                 const CeedInt strides[3], CeedElemRestriction *rstr);
-CEED_EXTERN int CeedElemRestrictionCreateAtPoints(Ceed ceed, CeedInt num_elem, CeedInt num_points, CeedInt num_comp, CeedSize l_size,
-                                                  CeedMemType mem_type, CeedCopyMode copy_mode, const CeedInt *offsets, CeedElemRestriction *rstr);
-CEED_EXTERN int CeedElemRestrictionCreateBlocked(Ceed ceed, CeedInt num_elem, CeedInt elem_size, CeedInt block_size, CeedInt num_comp,
-                                                 CeedInt comp_stride, CeedSize l_size, CeedMemType mem_type, CeedCopyMode copy_mode,
-                                                 const CeedInt *offsets, CeedElemRestriction *rstr);
-CEED_EXTERN int CeedElemRestrictionCreateBlockedOriented(Ceed ceed, CeedInt num_elem, CeedInt elem_size, CeedInt block_size, CeedInt num_comp,
-                                                         CeedInt comp_stride, CeedSize l_size, CeedMemType mem_type, CeedCopyMode copy_mode,
-                                                         const CeedInt *offsets, const bool *orients, CeedElemRestriction *rstr);
-CEED_EXTERN int CeedElemRestrictionCreateBlockedCurlOriented(Ceed ceed, CeedInt num_elem, CeedInt elem_size, CeedInt block_size, CeedInt num_comp,
-                                                             CeedInt comp_stride, CeedSize l_size, CeedMemType mem_type, CeedCopyMode copy_mode,
-                                                             const CeedInt *offsets, const CeedInt8 *curl_orients, CeedElemRestriction *rstr);
-CEED_EXTERN int CeedElemRestrictionCreateBlockedStrided(Ceed ceed, CeedInt num_elem, CeedInt elem_size, CeedInt block_size, CeedInt num_comp,
-                                                        CeedSize l_size, const CeedInt strides[3], CeedElemRestriction *rstr);
-CEED_EXTERN int CeedElemRestrictionCreateUnsignedCopy(CeedElemRestriction rstr, CeedElemRestriction *rstr_unsigned);
-CEED_EXTERN int CeedElemRestrictionCreateUnorientedCopy(CeedElemRestriction rstr, CeedElemRestriction *rstr_unoriented);
-CEED_EXTERN int CeedElemRestrictionReferenceCopy(CeedElemRestriction rstr, CeedElemRestriction *rstr_copy);
-CEED_EXTERN int CeedElemRestrictionCreateVector(CeedElemRestriction rstr, CeedVector *lvec, CeedVector *evec);
-CEED_EXTERN int CeedElemRestrictionApply(CeedElemRestriction rstr, CeedTransposeMode t_mode, CeedVector u, CeedVector ru, CeedRequest *request);
-CEED_EXTERN int CeedElemRestrictionApplyAtPointsInElement(CeedElemRestriction rstr, CeedInt elem, CeedTransposeMode t_mode, CeedVector u,
-                                                          CeedVector ru, CeedRequest *request);
-CEED_EXTERN int CeedElemRestrictionApplyBlock(CeedElemRestriction rstr, CeedInt block, CeedTransposeMode t_mode, CeedVector u, CeedVector ru,
-                                              CeedRequest *request);
-CEED_EXTERN int CeedElemRestrictionGetCeed(CeedElemRestriction rstr, Ceed *ceed);
-CEED_EXTERN int CeedElemRestrictionGetCompStride(CeedElemRestriction rstr, CeedInt *comp_stride);
-CEED_EXTERN int CeedElemRestrictionGetNumElements(CeedElemRestriction rstr, CeedInt *num_elem);
-CEED_EXTERN int CeedElemRestrictionGetElementSize(CeedElemRestriction rstr, CeedInt *elem_size);
-CEED_EXTERN int CeedElemRestrictionGetNumPoints(CeedElemRestriction rstr, CeedInt *num_points);
-CEED_EXTERN int CeedElemRestrictionGetNumPointsInElement(CeedElemRestriction rstr, CeedInt elem, CeedInt *num_points);
-CEED_EXTERN int CeedElemRestrictionGetMaxPointsInElement(CeedElemRestriction rstr, CeedInt *max_points);
-CEED_EXTERN int CeedElemRestrictionGetLVectorSize(CeedElemRestriction rstr, CeedSize *l_size);
-CEED_EXTERN int CeedElemRestrictionGetEVectorSize(CeedElemRestriction rstr, CeedSize *e_size);
-CEED_EXTERN int CeedElemRestrictionGetNumComponents(CeedElemRestriction rstr, CeedInt *num_comp);
-CEED_EXTERN int CeedElemRestrictionGetNumBlocks(CeedElemRestriction rstr, CeedInt *num_block);
-CEED_EXTERN int CeedElemRestrictionGetBlockSize(CeedElemRestriction rstr, CeedInt *block_size);
-CEED_EXTERN int CeedElemRestrictionGetMultiplicity(CeedElemRestriction rstr, CeedVector mult);
-CEED_EXTERN int CeedElemRestrictionView(CeedElemRestriction rstr, FILE *stream);
-CEED_EXTERN int CeedElemRestrictionDestroy(CeedElemRestriction *rstr);
+CEED_EXTERN int  CeedElemRestrictionCreate(Ceed ceed, CeedInt num_elem, CeedInt elem_size, CeedInt num_comp, CeedInt comp_stride, CeedSize l_size,
+                                           CeedMemType mem_type, CeedCopyMode copy_mode, const CeedInt *offsets, CeedElemRestriction *rstr);
+CEED_EXTERN int  CeedElemRestrictionCreateOriented(Ceed ceed, CeedInt num_elem, CeedInt elem_size, CeedInt num_comp, CeedInt comp_stride,
+                                                   CeedSize l_size, CeedMemType mem_type, CeedCopyMode copy_mode, const CeedInt *offsets,
+                                                   const bool *orients, CeedElemRestriction *rstr);
+CEED_EXTERN int  CeedElemRestrictionCreateCurlOriented(Ceed ceed, CeedInt num_elem, CeedInt elem_size, CeedInt num_comp, CeedInt comp_stride,
+                                                       CeedSize l_size, CeedMemType mem_type, CeedCopyMode copy_mode, const CeedInt *offsets,
+                                                       const CeedInt8 *curl_orients, CeedElemRestriction *rstr);
+CEED_EXTERN int  CeedElemRestrictionCreateStrided(Ceed ceed, CeedInt num_elem, CeedInt elem_size, CeedInt num_comp, CeedSize l_size,
+                                                  const CeedInt strides[3], CeedElemRestriction *rstr);
+CEED_EXTERN int  CeedElemRestrictionCreateAtPoints(Ceed ceed, CeedInt num_elem, CeedInt num_points, CeedInt num_comp, CeedSize l_size,
+                                                   CeedMemType mem_type, CeedCopyMode copy_mode, const CeedInt *offsets, CeedElemRestriction *rstr);
+CEED_EXTERN int  CeedElemRestrictionCreateBlocked(Ceed ceed, CeedInt num_elem, CeedInt elem_size, CeedInt block_size, CeedInt num_comp,
+                                                  CeedInt comp_stride, CeedSize l_size, CeedMemType mem_type, CeedCopyMode copy_mode,
+                                                  const CeedInt *offsets, CeedElemRestriction *rstr);
+CEED_EXTERN int  CeedElemRestrictionCreateBlockedOriented(Ceed ceed, CeedInt num_elem, CeedInt elem_size, CeedInt block_size, CeedInt num_comp,
+                                                          CeedInt comp_stride, CeedSize l_size, CeedMemType mem_type, CeedCopyMode copy_mode,
+                                                          const CeedInt *offsets, const bool *orients, CeedElemRestriction *rstr);
+CEED_EXTERN int  CeedElemRestrictionCreateBlockedCurlOriented(Ceed ceed, CeedInt num_elem, CeedInt elem_size, CeedInt block_size, CeedInt num_comp,
+                                                              CeedInt comp_stride, CeedSize l_size, CeedMemType mem_type, CeedCopyMode copy_mode,
+                                                              const CeedInt *offsets, const CeedInt8 *curl_orients, CeedElemRestriction *rstr);
+CEED_EXTERN int  CeedElemRestrictionCreateBlockedStrided(Ceed ceed, CeedInt num_elem, CeedInt elem_size, CeedInt block_size, CeedInt num_comp,
+                                                         CeedSize l_size, const CeedInt strides[3], CeedElemRestriction *rstr);
+CEED_EXTERN int  CeedElemRestrictionCreateUnsignedCopy(CeedElemRestriction rstr, CeedElemRestriction *rstr_unsigned);
+CEED_EXTERN int  CeedElemRestrictionCreateUnorientedCopy(CeedElemRestriction rstr, CeedElemRestriction *rstr_unoriented);
+CEED_EXTERN int  CeedElemRestrictionReferenceCopy(CeedElemRestriction rstr, CeedElemRestriction *rstr_copy);
+CEED_EXTERN int  CeedElemRestrictionCreateVector(CeedElemRestriction rstr, CeedVector *lvec, CeedVector *evec);
+CEED_EXTERN int  CeedElemRestrictionApply(CeedElemRestriction rstr, CeedTransposeMode t_mode, CeedVector u, CeedVector ru, CeedRequest *request);
+CEED_EXTERN int  CeedElemRestrictionApplyAtPointsInElement(CeedElemRestriction rstr, CeedInt elem, CeedTransposeMode t_mode, CeedVector u,
+                                                           CeedVector ru, CeedRequest *request);
+CEED_EXTERN int  CeedElemRestrictionApplyBlock(CeedElemRestriction rstr, CeedInt block, CeedTransposeMode t_mode, CeedVector u, CeedVector ru,
+                                               CeedRequest *request);
+CEED_EXTERN int  CeedElemRestrictionGetCeed(CeedElemRestriction rstr, Ceed *ceed);
+CEED_EXTERN Ceed CeedElemRestrictionReturnCeed(CeedElemRestriction rstr);
+CEED_EXTERN int  CeedElemRestrictionGetCompStride(CeedElemRestriction rstr, CeedInt *comp_stride);
+CEED_EXTERN int  CeedElemRestrictionGetNumElements(CeedElemRestriction rstr, CeedInt *num_elem);
+CEED_EXTERN int  CeedElemRestrictionGetElementSize(CeedElemRestriction rstr, CeedInt *elem_size);
+CEED_EXTERN int  CeedElemRestrictionGetNumPoints(CeedElemRestriction rstr, CeedInt *num_points);
+CEED_EXTERN int  CeedElemRestrictionGetNumPointsInElement(CeedElemRestriction rstr, CeedInt elem, CeedInt *num_points);
+CEED_EXTERN int  CeedElemRestrictionGetMaxPointsInElement(CeedElemRestriction rstr, CeedInt *max_points);
+CEED_EXTERN int  CeedElemRestrictionGetLVectorSize(CeedElemRestriction rstr, CeedSize *l_size);
+CEED_EXTERN int  CeedElemRestrictionGetEVectorSize(CeedElemRestriction rstr, CeedSize *e_size);
+CEED_EXTERN int  CeedElemRestrictionGetNumComponents(CeedElemRestriction rstr, CeedInt *num_comp);
+CEED_EXTERN int  CeedElemRestrictionGetNumBlocks(CeedElemRestriction rstr, CeedInt *num_block);
+CEED_EXTERN int  CeedElemRestrictionGetBlockSize(CeedElemRestriction rstr, CeedInt *block_size);
+CEED_EXTERN int  CeedElemRestrictionGetMultiplicity(CeedElemRestriction rstr, CeedVector mult);
+CEED_EXTERN int  CeedElemRestrictionView(CeedElemRestriction rstr, FILE *stream);
+CEED_EXTERN int  CeedElemRestrictionDestroy(CeedElemRestriction *rstr);
 
 // The formalism here is that we have the structure
 //  \int_\Omega v^T f_0(u, \nabla u, qdata) + (\nabla v)^T f_1(u, \nabla u, qdata)
 // where gradients are with respect to the reference element.
 
-CEED_EXTERN int CeedBasisCreateTensorH1Lagrange(Ceed ceed, CeedInt dim, CeedInt num_comp, CeedInt P, CeedInt Q, CeedQuadMode quad_mode,
-                                                CeedBasis *basis);
-CEED_EXTERN int CeedBasisCreateTensorH1(Ceed ceed, CeedInt dim, CeedInt num_comp, CeedInt P_1d, CeedInt Q_1d, const CeedScalar *interp_1d,
-                                        const CeedScalar *grad_1d, const CeedScalar *q_ref_1d, const CeedScalar *q_weight_1d, CeedBasis *basis);
-CEED_EXTERN int CeedBasisCreateH1(Ceed ceed, CeedElemTopology topo, CeedInt num_comp, CeedInt num_nodes, CeedInt nqpts, const CeedScalar *interp,
-                                  const CeedScalar *grad, const CeedScalar *q_ref, const CeedScalar *q_weights, CeedBasis *basis);
-CEED_EXTERN int CeedBasisCreateHdiv(Ceed ceed, CeedElemTopology topo, CeedInt num_comp, CeedInt num_nodes, CeedInt nqpts, const CeedScalar *interp,
-                                    const CeedScalar *div, const CeedScalar *q_ref, const CeedScalar *q_weights, CeedBasis *basis);
-CEED_EXTERN int CeedBasisCreateHcurl(Ceed ceed, CeedElemTopology topo, CeedInt num_comp, CeedInt num_nodes, CeedInt nqpts, const CeedScalar *interp,
-                                     const CeedScalar *curl, const CeedScalar *q_ref, const CeedScalar *q_weights, CeedBasis *basis);
-CEED_EXTERN int CeedBasisCreateProjection(CeedBasis basis_from, CeedBasis basis_to, CeedBasis *basis_project);
-CEED_EXTERN int CeedBasisReferenceCopy(CeedBasis basis, CeedBasis *basis_copy);
-CEED_EXTERN int CeedBasisView(CeedBasis basis, FILE *stream);
-CEED_EXTERN int CeedBasisApply(CeedBasis basis, CeedInt num_elem, CeedTransposeMode t_mode, CeedEvalMode eval_mode, CeedVector u, CeedVector v);
-CEED_EXTERN int CeedBasisApplyAtPoints(CeedBasis basis, CeedInt num_points, CeedTransposeMode t_mode, CeedEvalMode eval_mode, CeedVector x_ref,
-                                       CeedVector u, CeedVector v);
-CEED_EXTERN int CeedBasisGetCeed(CeedBasis basis, Ceed *ceed);
-CEED_EXTERN int CeedBasisGetDimension(CeedBasis basis, CeedInt *dim);
-CEED_EXTERN int CeedBasisGetTopology(CeedBasis basis, CeedElemTopology *topo);
-CEED_EXTERN int CeedBasisGetNumComponents(CeedBasis basis, CeedInt *num_comp);
-CEED_EXTERN int CeedBasisGetNumNodes(CeedBasis basis, CeedInt *P);
-CEED_EXTERN int CeedBasisGetNumNodes1D(CeedBasis basis, CeedInt *P_1d);
-CEED_EXTERN int CeedBasisGetNumQuadraturePoints(CeedBasis basis, CeedInt *Q);
-CEED_EXTERN int CeedBasisGetNumQuadraturePoints1D(CeedBasis basis, CeedInt *Q_1d);
-CEED_EXTERN int CeedBasisGetQRef(CeedBasis basis, const CeedScalar **q_ref);
-CEED_EXTERN int CeedBasisGetQWeights(CeedBasis basis, const CeedScalar **q_weights);
-CEED_EXTERN int CeedBasisGetInterp(CeedBasis basis, const CeedScalar **interp);
-CEED_EXTERN int CeedBasisGetInterp1D(CeedBasis basis, const CeedScalar **interp_1d);
-CEED_EXTERN int CeedBasisGetGrad(CeedBasis basis, const CeedScalar **grad);
-CEED_EXTERN int CeedBasisGetGrad1D(CeedBasis basis, const CeedScalar **grad_1d);
-CEED_EXTERN int CeedBasisGetDiv(CeedBasis basis, const CeedScalar **div);
-CEED_EXTERN int CeedBasisGetCurl(CeedBasis basis, const CeedScalar **curl);
-CEED_EXTERN int CeedBasisDestroy(CeedBasis *basis);
+CEED_EXTERN int  CeedBasisCreateTensorH1Lagrange(Ceed ceed, CeedInt dim, CeedInt num_comp, CeedInt P, CeedInt Q, CeedQuadMode quad_mode,
+                                                 CeedBasis *basis);
+CEED_EXTERN int  CeedBasisCreateTensorH1(Ceed ceed, CeedInt dim, CeedInt num_comp, CeedInt P_1d, CeedInt Q_1d, const CeedScalar *interp_1d,
+                                         const CeedScalar *grad_1d, const CeedScalar *q_ref_1d, const CeedScalar *q_weight_1d, CeedBasis *basis);
+CEED_EXTERN int  CeedBasisCreateH1(Ceed ceed, CeedElemTopology topo, CeedInt num_comp, CeedInt num_nodes, CeedInt nqpts, const CeedScalar *interp,
+                                   const CeedScalar *grad, const CeedScalar *q_ref, const CeedScalar *q_weights, CeedBasis *basis);
+CEED_EXTERN int  CeedBasisCreateHdiv(Ceed ceed, CeedElemTopology topo, CeedInt num_comp, CeedInt num_nodes, CeedInt nqpts, const CeedScalar *interp,
+                                     const CeedScalar *div, const CeedScalar *q_ref, const CeedScalar *q_weights, CeedBasis *basis);
+CEED_EXTERN int  CeedBasisCreateHcurl(Ceed ceed, CeedElemTopology topo, CeedInt num_comp, CeedInt num_nodes, CeedInt nqpts, const CeedScalar *interp,
+                                      const CeedScalar *curl, const CeedScalar *q_ref, const CeedScalar *q_weights, CeedBasis *basis);
+CEED_EXTERN int  CeedBasisCreateProjection(CeedBasis basis_from, CeedBasis basis_to, CeedBasis *basis_project);
+CEED_EXTERN int  CeedBasisReferenceCopy(CeedBasis basis, CeedBasis *basis_copy);
+CEED_EXTERN int  CeedBasisView(CeedBasis basis, FILE *stream);
+CEED_EXTERN int  CeedBasisApply(CeedBasis basis, CeedInt num_elem, CeedTransposeMode t_mode, CeedEvalMode eval_mode, CeedVector u, CeedVector v);
+CEED_EXTERN int  CeedBasisApplyAtPoints(CeedBasis basis, CeedInt num_points, CeedTransposeMode t_mode, CeedEvalMode eval_mode, CeedVector x_ref,
+                                        CeedVector u, CeedVector v);
+CEED_EXTERN int  CeedBasisGetCeed(CeedBasis basis, Ceed *ceed);
+CEED_EXTERN Ceed CeedBasisReturnCeed(CeedBasis basis);
+CEED_EXTERN int  CeedBasisGetDimension(CeedBasis basis, CeedInt *dim);
+CEED_EXTERN int  CeedBasisGetTopology(CeedBasis basis, CeedElemTopology *topo);
+CEED_EXTERN int  CeedBasisGetNumComponents(CeedBasis basis, CeedInt *num_comp);
+CEED_EXTERN int  CeedBasisGetNumNodes(CeedBasis basis, CeedInt *P);
+CEED_EXTERN int  CeedBasisGetNumNodes1D(CeedBasis basis, CeedInt *P_1d);
+CEED_EXTERN int  CeedBasisGetNumQuadraturePoints(CeedBasis basis, CeedInt *Q);
+CEED_EXTERN int  CeedBasisGetNumQuadraturePoints1D(CeedBasis basis, CeedInt *Q_1d);
+CEED_EXTERN int  CeedBasisGetQRef(CeedBasis basis, const CeedScalar **q_ref);
+CEED_EXTERN int  CeedBasisGetQWeights(CeedBasis basis, const CeedScalar **q_weights);
+CEED_EXTERN int  CeedBasisGetInterp(CeedBasis basis, const CeedScalar **interp);
+CEED_EXTERN int  CeedBasisGetInterp1D(CeedBasis basis, const CeedScalar **interp_1d);
+CEED_EXTERN int  CeedBasisGetGrad(CeedBasis basis, const CeedScalar **grad);
+CEED_EXTERN int  CeedBasisGetGrad1D(CeedBasis basis, const CeedScalar **grad_1d);
+CEED_EXTERN int  CeedBasisGetDiv(CeedBasis basis, const CeedScalar **div);
+CEED_EXTERN int  CeedBasisGetCurl(CeedBasis basis, const CeedScalar **curl);
+CEED_EXTERN int  CeedBasisDestroy(CeedBasis *basis);
 
 CEED_EXTERN int CeedGaussQuadrature(CeedInt Q, CeedScalar *q_ref_1d, CeedScalar *q_weight_1d);
 CEED_EXTERN int CeedLobattoQuadrature(CeedInt Q, CeedScalar *q_ref_1d, CeedScalar *q_weight_1d);
@@ -341,21 +344,22 @@ CEED_EXTERN int CeedLobattoQuadrature(CeedInt Q, CeedScalar *q_ref_1d, CeedScala
 **/
 typedef int (*CeedQFunctionUser)(void *ctx, const CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out);
 
-CEED_EXTERN int CeedQFunctionCreateInterior(Ceed ceed, CeedInt vec_length, CeedQFunctionUser f, const char *source, CeedQFunction *qf);
-CEED_EXTERN int CeedQFunctionCreateInteriorByName(Ceed ceed, const char *name, CeedQFunction *qf);
-CEED_EXTERN int CeedQFunctionCreateIdentity(Ceed ceed, CeedInt size, CeedEvalMode in_mode, CeedEvalMode out_mode, CeedQFunction *qf);
-CEED_EXTERN int CeedQFunctionReferenceCopy(CeedQFunction qf, CeedQFunction *qf_copy);
-CEED_EXTERN int CeedQFunctionAddInput(CeedQFunction qf, const char *field_name, CeedInt size, CeedEvalMode eval_mode);
-CEED_EXTERN int CeedQFunctionAddOutput(CeedQFunction qf, const char *field_name, CeedInt size, CeedEvalMode eval_mode);
-CEED_EXTERN int CeedQFunctionGetFields(CeedQFunction qf, CeedInt *num_input_fields, CeedQFunctionField **input_fields, CeedInt *num_output_fields,
-                                       CeedQFunctionField **output_fields);
-CEED_EXTERN int CeedQFunctionSetContext(CeedQFunction qf, CeedQFunctionContext ctx);
-CEED_EXTERN int CeedQFunctionSetContextWritable(CeedQFunction qf, bool is_writable);
-CEED_EXTERN int CeedQFunctionSetUserFlopsEstimate(CeedQFunction qf, CeedSize flops);
-CEED_EXTERN int CeedQFunctionView(CeedQFunction qf, FILE *stream);
-CEED_EXTERN int CeedQFunctionGetCeed(CeedQFunction qf, Ceed *ceed);
-CEED_EXTERN int CeedQFunctionApply(CeedQFunction qf, CeedInt Q, CeedVector *u, CeedVector *v);
-CEED_EXTERN int CeedQFunctionDestroy(CeedQFunction *qf);
+CEED_EXTERN int  CeedQFunctionCreateInterior(Ceed ceed, CeedInt vec_length, CeedQFunctionUser f, const char *source, CeedQFunction *qf);
+CEED_EXTERN int  CeedQFunctionCreateInteriorByName(Ceed ceed, const char *name, CeedQFunction *qf);
+CEED_EXTERN int  CeedQFunctionCreateIdentity(Ceed ceed, CeedInt size, CeedEvalMode in_mode, CeedEvalMode out_mode, CeedQFunction *qf);
+CEED_EXTERN int  CeedQFunctionReferenceCopy(CeedQFunction qf, CeedQFunction *qf_copy);
+CEED_EXTERN int  CeedQFunctionAddInput(CeedQFunction qf, const char *field_name, CeedInt size, CeedEvalMode eval_mode);
+CEED_EXTERN int  CeedQFunctionAddOutput(CeedQFunction qf, const char *field_name, CeedInt size, CeedEvalMode eval_mode);
+CEED_EXTERN int  CeedQFunctionGetFields(CeedQFunction qf, CeedInt *num_input_fields, CeedQFunctionField **input_fields, CeedInt *num_output_fields,
+                                        CeedQFunctionField **output_fields);
+CEED_EXTERN int  CeedQFunctionSetContext(CeedQFunction qf, CeedQFunctionContext ctx);
+CEED_EXTERN int  CeedQFunctionSetContextWritable(CeedQFunction qf, bool is_writable);
+CEED_EXTERN int  CeedQFunctionSetUserFlopsEstimate(CeedQFunction qf, CeedSize flops);
+CEED_EXTERN int  CeedQFunctionView(CeedQFunction qf, FILE *stream);
+CEED_EXTERN int  CeedQFunctionGetCeed(CeedQFunction qf, Ceed *ceed);
+CEED_EXTERN Ceed CeedQFunctionReturnCeed(CeedQFunction qf);
+CEED_EXTERN int  CeedQFunctionApply(CeedQFunction qf, CeedInt Q, CeedVector *u, CeedVector *v);
+CEED_EXTERN int  CeedQFunctionDestroy(CeedQFunction *qf);
 
 CEED_EXTERN int CeedQFunctionFieldGetName(CeedQFunctionField qf_field, const char **field_name);
 CEED_EXTERN int CeedQFunctionFieldGetSize(CeedQFunctionField qf_field, CeedInt *size);
@@ -402,57 +406,58 @@ CEED_EXTERN int CeedOperatorSetField(CeedOperator op, const char *field_name, Ce
 CEED_EXTERN int CeedOperatorGetFields(CeedOperator op, CeedInt *num_input_fields, CeedOperatorField **input_fields, CeedInt *num_output_fields,
                                       CeedOperatorField **output_fields);
 
-CEED_EXTERN int CeedOperatorAtPointsSetPoints(CeedOperator op, CeedElemRestriction rstr_points, CeedVector point_coords);
-CEED_EXTERN int CeedOperatorAtPointsGetPoints(CeedOperator op, CeedElemRestriction *rstr_points, CeedVector *point_coords);
-CEED_EXTERN int CeedOperatorIsAtPoints(CeedOperator op, bool *is_at_points);
-CEED_EXTERN int CeedCompositeOperatorAddSub(CeedOperator composite_op, CeedOperator sub_op);
-CEED_EXTERN int CeedCompositeOperatorGetNumSub(CeedOperator op, CeedInt *num_suboperators);
-CEED_EXTERN int CeedCompositeOperatorGetSubList(CeedOperator op, CeedOperator **sub_operators);
-CEED_EXTERN int CeedOperatorCheckReady(CeedOperator op);
-CEED_EXTERN int CeedOperatorGetActiveVectorLengths(CeedOperator op, CeedSize *input_size, CeedSize *output_size);
-CEED_EXTERN int CeedOperatorSetQFunctionAssemblyReuse(CeedOperator op, bool reuse_assembly_data);
-CEED_EXTERN int CeedOperatorSetQFunctionAssemblyDataUpdateNeeded(CeedOperator op, bool needs_data_update);
-CEED_EXTERN int CeedOperatorLinearAssembleQFunction(CeedOperator op, CeedVector *assembled, CeedElemRestriction *rstr, CeedRequest *request);
-CEED_EXTERN int CeedOperatorLinearAssembleQFunctionBuildOrUpdate(CeedOperator op, CeedVector *assembled, CeedElemRestriction *rstr,
-                                                                 CeedRequest *request);
-CEED_EXTERN int CeedOperatorLinearAssembleDiagonal(CeedOperator op, CeedVector assembled, CeedRequest *request);
-CEED_EXTERN int CeedOperatorLinearAssembleAddDiagonal(CeedOperator op, CeedVector assembled, CeedRequest *request);
-CEED_EXTERN int CeedOperatorLinearAssemblePointBlockDiagonal(CeedOperator op, CeedVector assembled, CeedRequest *request);
-CEED_EXTERN int CeedOperatorLinearAssembleAddPointBlockDiagonal(CeedOperator op, CeedVector assembled, CeedRequest *request);
-CEED_EXTERN int CeedOperatorLinearAssemblePointBlockDiagonalSymbolic(CeedOperator op, CeedSize *num_entries, CeedInt **rows, CeedInt **cols);
-CEED_EXTERN int CeedOperatorLinearAssembleSymbolic(CeedOperator op, CeedSize *num_entries, CeedInt **rows, CeedInt **cols);
-CEED_EXTERN int CeedOperatorLinearAssemble(CeedOperator op, CeedVector values);
-CEED_EXTERN int CeedCompositeOperatorGetMultiplicity(CeedOperator op, CeedInt num_skip_indices, CeedInt *skip_indices, CeedVector mult);
-CEED_EXTERN int CeedOperatorMultigridLevelCreate(CeedOperator op_fine, CeedVector p_mult_fine, CeedElemRestriction rstr_coarse,
-                                                 CeedBasis basis_coarse, CeedOperator *op_coarse, CeedOperator *op_prolong,
-                                                 CeedOperator *op_restrict);
-CEED_EXTERN int CeedOperatorMultigridLevelCreateTensorH1(CeedOperator op_fine, CeedVector p_mult_fine, CeedElemRestriction rstr_coarse,
-                                                         CeedBasis basis_coarse, const CeedScalar *interp_c_to_f, CeedOperator *op_coarse,
-                                                         CeedOperator *op_prolong, CeedOperator *op_restrict);
-CEED_EXTERN int CeedOperatorMultigridLevelCreateH1(CeedOperator op_fine, CeedVector p_mult_fine, CeedElemRestriction rstr_coarse,
-                                                   CeedBasis basis_coarse, const CeedScalar *interp_c_to_f, CeedOperator *op_coarse,
-                                                   CeedOperator *op_prolong, CeedOperator *op_restrict);
-CEED_EXTERN int CeedOperatorCreateFDMElementInverse(CeedOperator op, CeedOperator *fdm_inv, CeedRequest *request);
-CEED_EXTERN int CeedOperatorSetName(CeedOperator op, const char *name);
-CEED_EXTERN int CeedOperatorView(CeedOperator op, FILE *stream);
-CEED_EXTERN int CeedOperatorGetCeed(CeedOperator op, Ceed *ceed);
-CEED_EXTERN int CeedOperatorGetNumElements(CeedOperator op, CeedInt *num_elem);
-CEED_EXTERN int CeedOperatorGetNumQuadraturePoints(CeedOperator op, CeedInt *num_qpts);
-CEED_EXTERN int CeedOperatorGetFlopsEstimate(CeedOperator op, CeedSize *flops);
-CEED_EXTERN int CeedOperatorGetContext(CeedOperator op, CeedQFunctionContext *ctx);
-CEED_EXTERN int CeedOperatorGetContextFieldLabel(CeedOperator op, const char *field_name, CeedContextFieldLabel *field_label);
-CEED_EXTERN int CeedOperatorSetContextDouble(CeedOperator op, CeedContextFieldLabel field_label, double *values);
-CEED_EXTERN int CeedOperatorGetContextDoubleRead(CeedOperator op, CeedContextFieldLabel field_label, size_t *num_values, const double **values);
-CEED_EXTERN int CeedOperatorRestoreContextDoubleRead(CeedOperator op, CeedContextFieldLabel field_label, const double **values);
-CEED_EXTERN int CeedOperatorSetContextInt32(CeedOperator op, CeedContextFieldLabel field_label, int32_t *values);
-CEED_EXTERN int CeedOperatorGetContextInt32Read(CeedOperator op, CeedContextFieldLabel field_label, size_t *num_values, const int32_t **values);
-CEED_EXTERN int CeedOperatorRestoreContextInt32Read(CeedOperator op, CeedContextFieldLabel field_label, const int32_t **values);
-CEED_EXTERN int CeedOperatorSetContextBoolean(CeedOperator op, CeedContextFieldLabel field_label, bool *values);
-CEED_EXTERN int CeedOperatorGetContextBooleanRead(CeedOperator op, CeedContextFieldLabel field_label, size_t *num_values, const bool **values);
-CEED_EXTERN int CeedOperatorRestoreContextBooleanRead(CeedOperator op, CeedContextFieldLabel field_label, const bool **values);
-CEED_EXTERN int CeedOperatorApply(CeedOperator op, CeedVector in, CeedVector out, CeedRequest *request);
-CEED_EXTERN int CeedOperatorApplyAdd(CeedOperator op, CeedVector in, CeedVector out, CeedRequest *request);
-CEED_EXTERN int CeedOperatorDestroy(CeedOperator *op);
+CEED_EXTERN int  CeedOperatorAtPointsSetPoints(CeedOperator op, CeedElemRestriction rstr_points, CeedVector point_coords);
+CEED_EXTERN int  CeedOperatorAtPointsGetPoints(CeedOperator op, CeedElemRestriction *rstr_points, CeedVector *point_coords);
+CEED_EXTERN int  CeedOperatorIsAtPoints(CeedOperator op, bool *is_at_points);
+CEED_EXTERN int  CeedCompositeOperatorAddSub(CeedOperator composite_op, CeedOperator sub_op);
+CEED_EXTERN int  CeedCompositeOperatorGetNumSub(CeedOperator op, CeedInt *num_suboperators);
+CEED_EXTERN int  CeedCompositeOperatorGetSubList(CeedOperator op, CeedOperator **sub_operators);
+CEED_EXTERN int  CeedOperatorCheckReady(CeedOperator op);
+CEED_EXTERN int  CeedOperatorGetActiveVectorLengths(CeedOperator op, CeedSize *input_size, CeedSize *output_size);
+CEED_EXTERN int  CeedOperatorSetQFunctionAssemblyReuse(CeedOperator op, bool reuse_assembly_data);
+CEED_EXTERN int  CeedOperatorSetQFunctionAssemblyDataUpdateNeeded(CeedOperator op, bool needs_data_update);
+CEED_EXTERN int  CeedOperatorLinearAssembleQFunction(CeedOperator op, CeedVector *assembled, CeedElemRestriction *rstr, CeedRequest *request);
+CEED_EXTERN int  CeedOperatorLinearAssembleQFunctionBuildOrUpdate(CeedOperator op, CeedVector *assembled, CeedElemRestriction *rstr,
+                                                                  CeedRequest *request);
+CEED_EXTERN int  CeedOperatorLinearAssembleDiagonal(CeedOperator op, CeedVector assembled, CeedRequest *request);
+CEED_EXTERN int  CeedOperatorLinearAssembleAddDiagonal(CeedOperator op, CeedVector assembled, CeedRequest *request);
+CEED_EXTERN int  CeedOperatorLinearAssemblePointBlockDiagonal(CeedOperator op, CeedVector assembled, CeedRequest *request);
+CEED_EXTERN int  CeedOperatorLinearAssembleAddPointBlockDiagonal(CeedOperator op, CeedVector assembled, CeedRequest *request);
+CEED_EXTERN int  CeedOperatorLinearAssemblePointBlockDiagonalSymbolic(CeedOperator op, CeedSize *num_entries, CeedInt **rows, CeedInt **cols);
+CEED_EXTERN int  CeedOperatorLinearAssembleSymbolic(CeedOperator op, CeedSize *num_entries, CeedInt **rows, CeedInt **cols);
+CEED_EXTERN int  CeedOperatorLinearAssemble(CeedOperator op, CeedVector values);
+CEED_EXTERN int  CeedCompositeOperatorGetMultiplicity(CeedOperator op, CeedInt num_skip_indices, CeedInt *skip_indices, CeedVector mult);
+CEED_EXTERN int  CeedOperatorMultigridLevelCreate(CeedOperator op_fine, CeedVector p_mult_fine, CeedElemRestriction rstr_coarse,
+                                                  CeedBasis basis_coarse, CeedOperator *op_coarse, CeedOperator *op_prolong,
+                                                  CeedOperator *op_restrict);
+CEED_EXTERN int  CeedOperatorMultigridLevelCreateTensorH1(CeedOperator op_fine, CeedVector p_mult_fine, CeedElemRestriction rstr_coarse,
+                                                          CeedBasis basis_coarse, const CeedScalar *interp_c_to_f, CeedOperator *op_coarse,
+                                                          CeedOperator *op_prolong, CeedOperator *op_restrict);
+CEED_EXTERN int  CeedOperatorMultigridLevelCreateH1(CeedOperator op_fine, CeedVector p_mult_fine, CeedElemRestriction rstr_coarse,
+                                                    CeedBasis basis_coarse, const CeedScalar *interp_c_to_f, CeedOperator *op_coarse,
+                                                    CeedOperator *op_prolong, CeedOperator *op_restrict);
+CEED_EXTERN int  CeedOperatorCreateFDMElementInverse(CeedOperator op, CeedOperator *fdm_inv, CeedRequest *request);
+CEED_EXTERN int  CeedOperatorSetName(CeedOperator op, const char *name);
+CEED_EXTERN int  CeedOperatorView(CeedOperator op, FILE *stream);
+CEED_EXTERN int  CeedOperatorGetCeed(CeedOperator op, Ceed *ceed);
+CEED_EXTERN Ceed CeedOperatorReturnCeed(CeedOperator op);
+CEED_EXTERN int  CeedOperatorGetNumElements(CeedOperator op, CeedInt *num_elem);
+CEED_EXTERN int  CeedOperatorGetNumQuadraturePoints(CeedOperator op, CeedInt *num_qpts);
+CEED_EXTERN int  CeedOperatorGetFlopsEstimate(CeedOperator op, CeedSize *flops);
+CEED_EXTERN int  CeedOperatorGetContext(CeedOperator op, CeedQFunctionContext *ctx);
+CEED_EXTERN int  CeedOperatorGetContextFieldLabel(CeedOperator op, const char *field_name, CeedContextFieldLabel *field_label);
+CEED_EXTERN int  CeedOperatorSetContextDouble(CeedOperator op, CeedContextFieldLabel field_label, double *values);
+CEED_EXTERN int  CeedOperatorGetContextDoubleRead(CeedOperator op, CeedContextFieldLabel field_label, size_t *num_values, const double **values);
+CEED_EXTERN int  CeedOperatorRestoreContextDoubleRead(CeedOperator op, CeedContextFieldLabel field_label, const double **values);
+CEED_EXTERN int  CeedOperatorSetContextInt32(CeedOperator op, CeedContextFieldLabel field_label, int32_t *values);
+CEED_EXTERN int  CeedOperatorGetContextInt32Read(CeedOperator op, CeedContextFieldLabel field_label, size_t *num_values, const int32_t **values);
+CEED_EXTERN int  CeedOperatorRestoreContextInt32Read(CeedOperator op, CeedContextFieldLabel field_label, const int32_t **values);
+CEED_EXTERN int  CeedOperatorSetContextBoolean(CeedOperator op, CeedContextFieldLabel field_label, bool *values);
+CEED_EXTERN int  CeedOperatorGetContextBooleanRead(CeedOperator op, CeedContextFieldLabel field_label, size_t *num_values, const bool **values);
+CEED_EXTERN int  CeedOperatorRestoreContextBooleanRead(CeedOperator op, CeedContextFieldLabel field_label, const bool **values);
+CEED_EXTERN int  CeedOperatorApply(CeedOperator op, CeedVector in, CeedVector out, CeedRequest *request);
+CEED_EXTERN int  CeedOperatorApplyAdd(CeedOperator op, CeedVector in, CeedVector out, CeedRequest *request);
+CEED_EXTERN int  CeedOperatorDestroy(CeedOperator *op);
 
 CEED_EXTERN int CeedOperatorGetFieldByName(CeedOperator op, const char *field_name, CeedOperatorField *op_field);
 CEED_EXTERN int CeedOperatorFieldGetName(CeedOperatorField op_field, const char **field_name);

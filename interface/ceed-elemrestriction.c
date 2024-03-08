@@ -204,10 +204,7 @@ int CeedElemRestrictionAtPointsAreCompatible(CeedElemRestriction rstr_a, CeedEle
   @ref Backend
 **/
 int CeedElemRestrictionGetStrides(CeedElemRestriction rstr, CeedInt strides[3]) {
-  Ceed ceed;
-
-  CeedCall(CeedElemRestrictionGetCeed(rstr, &ceed));
-  CeedCheck(rstr->strides, ceed, CEED_ERROR_MINOR, "CeedElemRestriction has no stride data");
+  CeedCheck(rstr->strides, CeedElemRestrictionReturnCeed(rstr), CEED_ERROR_MINOR, "CeedElemRestriction has no stride data");
   for (CeedInt i = 0; i < 3; i++) strides[i] = rstr->strides[i];
   return CEED_ERROR_SUCCESS;
 }
@@ -223,10 +220,7 @@ int CeedElemRestrictionGetStrides(CeedElemRestriction rstr, CeedInt strides[3]) 
   @ref Backend
 **/
 int CeedElemRestrictionHasBackendStrides(CeedElemRestriction rstr, bool *has_backend_strides) {
-  Ceed ceed;
-
-  CeedCall(CeedElemRestrictionGetCeed(rstr, &ceed));
-  CeedCheck(rstr->strides, ceed, CEED_ERROR_MINOR, "CeedElemRestriction has no stride data");
+  CeedCheck(rstr->strides, CeedElemRestrictionReturnCeed(rstr), CEED_ERROR_MINOR, "CeedElemRestriction has no stride data");
   *has_backend_strides = ((rstr->strides[0] == CEED_STRIDES_BACKEND[0]) && (rstr->strides[1] == CEED_STRIDES_BACKEND[1]) &&
                           (rstr->strides[2] == CEED_STRIDES_BACKEND[2]));
   return CEED_ERROR_SUCCESS;
@@ -248,10 +242,8 @@ int CeedElemRestrictionGetOffsets(CeedElemRestriction rstr, CeedMemType mem_type
   if (rstr->rstr_base) {
     CeedCall(CeedElemRestrictionGetOffsets(rstr->rstr_base, mem_type, offsets));
   } else {
-    Ceed ceed;
-
-    CeedCall(CeedElemRestrictionGetCeed(rstr, &ceed));
-    CeedCheck(rstr->GetOffsets, ceed, CEED_ERROR_UNSUPPORTED, "Backend does not support CeedElemRestrictionGetOffsets");
+    CeedCheck(rstr->GetOffsets, CeedElemRestrictionReturnCeed(rstr), CEED_ERROR_UNSUPPORTED,
+              "Backend does not support CeedElemRestrictionGetOffsets");
     CeedCall(rstr->GetOffsets(rstr, mem_type, offsets));
     rstr->num_readers++;
   }
@@ -291,10 +283,8 @@ int CeedElemRestrictionRestoreOffsets(CeedElemRestriction rstr, const CeedInt **
   @ref User
 **/
 int CeedElemRestrictionGetOrientations(CeedElemRestriction rstr, CeedMemType mem_type, const bool **orients) {
-  Ceed ceed;
-
-  CeedCall(CeedElemRestrictionGetCeed(rstr, &ceed));
-  CeedCheck(rstr->GetOrientations, ceed, CEED_ERROR_UNSUPPORTED, "Backend does not support CeedElemRestrictionGetOrientations");
+  CeedCheck(rstr->GetOrientations, CeedElemRestrictionReturnCeed(rstr), CEED_ERROR_UNSUPPORTED,
+            "Backend does not support CeedElemRestrictionGetOrientations");
   CeedCall(rstr->GetOrientations(rstr, mem_type, orients));
   rstr->num_readers++;
   return CEED_ERROR_SUCCESS;
@@ -329,10 +319,8 @@ int CeedElemRestrictionRestoreOrientations(CeedElemRestriction rstr, const bool 
   @ref User
 **/
 int CeedElemRestrictionGetCurlOrientations(CeedElemRestriction rstr, CeedMemType mem_type, const CeedInt8 **curl_orients) {
-  Ceed ceed;
-
-  CeedCall(CeedElemRestrictionGetCeed(rstr, &ceed));
-  CeedCheck(rstr->GetCurlOrientations, ceed, CEED_ERROR_UNSUPPORTED, "Backend does not support CeedElemRestrictionGetCurlOrientations");
+  CeedCheck(rstr->GetCurlOrientations, CeedElemRestrictionReturnCeed(rstr), CEED_ERROR_UNSUPPORTED,
+            "Backend does not support CeedElemRestrictionGetCurlOrientations");
   CeedCall(rstr->GetCurlOrientations(rstr, mem_type, curl_orients));
   rstr->num_readers++;
   return CEED_ERROR_SUCCESS;
@@ -398,11 +386,10 @@ int CeedElemRestrictionGetLLayout(CeedElemRestriction rstr, CeedInt layout[3]) {
 **/
 int CeedElemRestrictionSetLLayout(CeedElemRestriction rstr, CeedInt layout[3]) {
   CeedRestrictionType rstr_type;
-  Ceed                ceed;
 
-  CeedCall(CeedElemRestrictionGetCeed(rstr, &ceed));
   CeedCall(CeedElemRestrictionGetType(rstr, &rstr_type));
-  CeedCheck(rstr_type == CEED_RESTRICTION_STRIDED, ceed, CEED_ERROR_MINOR, "Only strided CeedElemRestriction have strided L-vector layout");
+  CeedCheck(rstr_type == CEED_RESTRICTION_STRIDED, CeedElemRestrictionReturnCeed(rstr), CEED_ERROR_MINOR,
+            "Only strided CeedElemRestriction have strided L-vector layout");
   for (CeedInt i = 0; i < 3; i++) rstr->l_layout[i] = layout[i];
   return CEED_ERROR_SUCCESS;
 }
@@ -420,10 +407,7 @@ int CeedElemRestrictionSetLLayout(CeedElemRestriction rstr, CeedInt layout[3]) {
   @ref Backend
 **/
 int CeedElemRestrictionGetELayout(CeedElemRestriction rstr, CeedInt layout[3]) {
-  Ceed ceed;
-
-  CeedCall(CeedElemRestrictionGetCeed(rstr, &ceed));
-  CeedCheck(rstr->e_layout[0], ceed, CEED_ERROR_MINOR, "CeedElemRestriction has no E-vector layout data");
+  CeedCheck(rstr->e_layout[0], CeedElemRestrictionReturnCeed(rstr), CEED_ERROR_MINOR, "CeedElemRestriction has no E-vector layout data");
   for (CeedInt i = 0; i < 3; i++) layout[i] = rstr->e_layout[i];
   return CEED_ERROR_SUCCESS;
 }
@@ -1377,9 +1361,20 @@ int CeedElemRestrictionApplyBlock(CeedElemRestriction rstr, CeedInt block, CeedT
   @ref Advanced
 **/
 int CeedElemRestrictionGetCeed(CeedElemRestriction rstr, Ceed *ceed) {
-  *ceed = rstr->ceed;
+  *ceed = CeedElemRestrictionReturnCeed(rstr);
   return CEED_ERROR_SUCCESS;
 }
+
+/**
+  @brief Return the `Ceed` associated with a `CeedElemRestriction`
+
+  @param[in]  rstr `CeedElemRestriction`
+
+  @return `Ceed` associated with the `rstr`
+
+  @ref Advanced
+**/
+Ceed CeedElemRestrictionReturnCeed(CeedElemRestriction rstr) { return rstr->ceed; }
 
 /**
   @brief Get the L-vector component stride
@@ -1439,11 +1434,9 @@ int CeedElemRestrictionGetElementSize(CeedElemRestriction rstr, CeedInt *elem_si
 **/
 int CeedElemRestrictionGetNumPoints(CeedElemRestriction rstr, CeedInt *num_points) {
   CeedRestrictionType rstr_type;
-  Ceed                ceed;
 
-  CeedCall(CeedElemRestrictionGetCeed(rstr, &ceed));
   CeedCall(CeedElemRestrictionGetType(rstr, &rstr_type));
-  CeedCheck(rstr_type == CEED_RESTRICTION_POINTS, ceed, CEED_ERROR_INCOMPATIBLE,
+  CeedCheck(rstr_type == CEED_RESTRICTION_POINTS, CeedElemRestrictionReturnCeed(rstr), CEED_ERROR_INCOMPATIBLE,
             "Can only retrieve the number of points for a points CeedElemRestriction");
 
   *num_points = rstr->num_points;
@@ -1465,11 +1458,9 @@ int CeedElemRestrictionGetNumPoints(CeedElemRestriction rstr, CeedInt *num_point
 int CeedElemRestrictionGetNumPointsInElement(CeedElemRestriction rstr, CeedInt elem, CeedInt *num_points) {
   CeedRestrictionType rstr_type;
   const CeedInt      *offsets;
-  Ceed                ceed;
 
-  CeedCall(CeedElemRestrictionGetCeed(rstr, &ceed));
   CeedCall(CeedElemRestrictionGetType(rstr, &rstr_type));
-  CeedCheck(rstr_type == CEED_RESTRICTION_POINTS, ceed, CEED_ERROR_INCOMPATIBLE,
+  CeedCheck(rstr_type == CEED_RESTRICTION_POINTS, CeedElemRestrictionReturnCeed(rstr), CEED_ERROR_INCOMPATIBLE,
             "Can only retrieve the number of points for a points CeedElemRestriction");
 
   CeedCall(CeedElemRestrictionGetOffsets(rstr, CEED_MEM_HOST, &offsets));
@@ -1491,11 +1482,9 @@ int CeedElemRestrictionGetNumPointsInElement(CeedElemRestriction rstr, CeedInt e
 int CeedElemRestrictionGetMaxPointsInElement(CeedElemRestriction rstr, CeedInt *max_points) {
   CeedInt             num_elem;
   CeedRestrictionType rstr_type;
-  Ceed                ceed;
 
-  CeedCall(CeedElemRestrictionGetCeed(rstr, &ceed));
   CeedCall(CeedElemRestrictionGetType(rstr, &rstr_type));
-  CeedCheck(rstr_type == CEED_RESTRICTION_POINTS, ceed, CEED_ERROR_INCOMPATIBLE,
+  CeedCheck(rstr_type == CEED_RESTRICTION_POINTS, CeedElemRestrictionReturnCeed(rstr), CEED_ERROR_INCOMPATIBLE,
             "Cannot compute max points for a CeedElemRestriction that does not use points");
 
   CeedCall(CeedElemRestrictionGetNumElements(rstr, &num_elem));

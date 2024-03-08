@@ -27,12 +27,10 @@ static int CeedQFunctionContextHasValidData_Ref(CeedQFunctionContext ctx, bool *
 // QFunctionContext has borrowed data
 //------------------------------------------------------------------------------
 static int CeedQFunctionContextHasBorrowedDataOfType_Ref(CeedQFunctionContext ctx, CeedMemType mem_type, bool *has_borrowed_data_of_type) {
-  Ceed                      ceed;
   CeedQFunctionContext_Ref *impl;
 
   CeedCallBackend(CeedQFunctionContextGetBackendData(ctx, &impl));
-  CeedCallBackend(CeedQFunctionContextGetCeed(ctx, &ceed));
-  CeedCheck(mem_type == CEED_MEM_HOST, ceed, CEED_ERROR_BACKEND, "Can only set HOST memory for this backend");
+  CeedCheck(mem_type == CEED_MEM_HOST, CeedQFunctionContextReturnCeed(ctx), CEED_ERROR_BACKEND, "Can only set HOST memory for this backend");
   *has_borrowed_data_of_type = impl->data_borrowed;
   return CEED_ERROR_SUCCESS;
 }
@@ -41,15 +39,13 @@ static int CeedQFunctionContextHasBorrowedDataOfType_Ref(CeedQFunctionContext ct
 // QFunctionContext Set Data
 //------------------------------------------------------------------------------
 static int CeedQFunctionContextSetData_Ref(CeedQFunctionContext ctx, CeedMemType mem_type, CeedCopyMode copy_mode, void *data) {
-  Ceed                      ceed;
   size_t                    ctx_size;
   CeedQFunctionContext_Ref *impl;
 
   CeedCallBackend(CeedQFunctionContextGetBackendData(ctx, &impl));
   CeedCallBackend(CeedQFunctionContextGetContextSize(ctx, &ctx_size));
-  CeedCallBackend(CeedQFunctionContextGetCeed(ctx, &ceed));
 
-  CeedCheck(mem_type == CEED_MEM_HOST, ceed, CEED_ERROR_BACKEND, "Can only set HOST memory for this backend");
+  CeedCheck(mem_type == CEED_MEM_HOST, CeedQFunctionContextReturnCeed(ctx), CEED_ERROR_BACKEND, "Can only set HOST memory for this backend");
 
   CeedCallBackend(CeedFree(&impl->data_owned));
   switch (copy_mode) {
@@ -75,13 +71,11 @@ static int CeedQFunctionContextSetData_Ref(CeedQFunctionContext ctx, CeedMemType
 // QFunctionContext Take Data
 //------------------------------------------------------------------------------
 static int CeedQFunctionContextTakeData_Ref(CeedQFunctionContext ctx, CeedMemType mem_type, void *data) {
-  Ceed                      ceed;
   CeedQFunctionContext_Ref *impl;
 
   CeedCallBackend(CeedQFunctionContextGetBackendData(ctx, &impl));
-  CeedCallBackend(CeedQFunctionContextGetCeed(ctx, &ceed));
 
-  CeedCheck(mem_type == CEED_MEM_HOST, ceed, CEED_ERROR_BACKEND, "Can only provide HOST memory for this backend");
+  CeedCheck(mem_type == CEED_MEM_HOST, CeedQFunctionContextReturnCeed(ctx), CEED_ERROR_BACKEND, "Can only provide HOST memory for this backend");
 
   *(void **)data      = impl->data;
   impl->data_borrowed = NULL;
@@ -93,13 +87,11 @@ static int CeedQFunctionContextTakeData_Ref(CeedQFunctionContext ctx, CeedMemTyp
 // QFunctionContext Get Data
 //------------------------------------------------------------------------------
 static int CeedQFunctionContextGetData_Ref(CeedQFunctionContext ctx, CeedMemType mem_type, void *data) {
-  Ceed                      ceed;
   CeedQFunctionContext_Ref *impl;
 
   CeedCallBackend(CeedQFunctionContextGetBackendData(ctx, &impl));
-  CeedCallBackend(CeedQFunctionContextGetCeed(ctx, &ceed));
 
-  CeedCheck(mem_type == CEED_MEM_HOST, ceed, CEED_ERROR_BACKEND, "Can only provide HOST memory for this backend");
+  CeedCheck(mem_type == CEED_MEM_HOST, CeedQFunctionContextReturnCeed(ctx), CEED_ERROR_BACKEND, "Can only provide HOST memory for this backend");
 
   *(void **)data = impl->data;
   return CEED_ERROR_SUCCESS;

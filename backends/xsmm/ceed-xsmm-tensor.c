@@ -70,10 +70,7 @@ static int CeedTensorContractApply_Xsmm(CeedTensorContract contract, CeedInt A, 
 // Tensor Contract Create
 //------------------------------------------------------------------------------
 int CeedTensorContractCreate_Xsmm(CeedTensorContract contract) {
-  Ceed ceed;
-
-  CeedCallBackend(CeedTensorContractGetCeed(contract, &ceed));
-  CeedCallBackend(CeedSetBackendFunction(ceed, "TensorContract", contract, "Apply", CeedTensorContractApply_Xsmm));
+  CeedCallBackend(CeedSetBackendFunction(CeedTensorContractReturnCeed(contract), "TensorContract", contract, "Apply", CeedTensorContractApply_Xsmm));
   return CEED_ERROR_SUCCESS;
 }
 

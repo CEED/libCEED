@@ -17,10 +17,7 @@
 // Apply QFunction
 //------------------------------------------------------------------------------
 static int CeedQFunctionApply_Sycl_gen(CeedQFunction qf, CeedInt Q, CeedVector *U, CeedVector *V) {
-  Ceed ceed;
-
-  CeedCallBackend(CeedQFunctionGetCeed(qf, &ceed));
-  return CeedError(ceed, CEED_ERROR_BACKEND, "Backend does not implement QFunctionApply");
+  return CeedError(CeedQFunctionReturnCeed(qf), CEED_ERROR_BACKEND, "Backend does not implement QFunctionApply");
 }
 
 //------------------------------------------------------------------------------
@@ -51,7 +48,7 @@ int CeedQFunctionCreate_Sycl_gen(CeedQFunction qf) {
   Ceed                    ceed;
   CeedQFunction_Sycl_gen *impl;
 
-  CeedQFunctionGetCeed(qf, &ceed);
+  CeedCallBackend(CeedQFunctionGetCeed(qf, &ceed));
   CeedCallBackend(CeedCalloc(1, &impl));
   CeedCallBackend(CeedQFunctionSetData(qf, impl));
 

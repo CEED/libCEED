@@ -13,7 +13,7 @@
 #include "magma-common-tensor.h"
 
 // macros to abstract access of shared memory and reg. file
-#define sT(i, j) sT[(j)*P + (i)]
+#define sT(i, j) sT[(j) * P + (i)]
 #define sTmp(i, j, ldw) sTmp[(j) * (ldw) + (i)]
 
 ////////////////////////////////////////////////////////////////////////////////

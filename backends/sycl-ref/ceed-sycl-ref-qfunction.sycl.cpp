@@ -127,7 +127,7 @@ int CeedQFunctionCreate_Sycl(CeedQFunction qf) {
   Ceed                ceed;
   CeedQFunction_Sycl *impl;
 
-  CeedQFunctionGetCeed(qf, &ceed);
+  CeedCallBackend(CeedQFunctionGetCeed(qf, &ceed));
   CeedCallBackend(CeedCalloc(1, &impl));
   CeedCallBackend(CeedQFunctionSetData(qf, impl));
   // Register backend functions

@@ -212,9 +212,6 @@ static int CeedQFunctionContextSetDataDevice_Hip(const CeedQFunctionContext ctx,
 //    freeing any previously allocated data if applicable
 //------------------------------------------------------------------------------
 static int CeedQFunctionContextSetData_Hip(const CeedQFunctionContext ctx, const CeedMemType mem_type, const CeedCopyMode copy_mode, void *data) {
-  Ceed ceed;
-
-  CeedCallBackend(CeedQFunctionContextGetCeed(ctx, &ceed));
   CeedCallBackend(CeedQFunctionContextSetAllInvalid_Hip(ctx));
   switch (mem_type) {
     case CEED_MEM_HOST:
@@ -230,10 +227,8 @@ static int CeedQFunctionContextSetData_Hip(const CeedQFunctionContext ctx, const
 //------------------------------------------------------------------------------
 static int CeedQFunctionContextTakeData_Hip(const CeedQFunctionContext ctx, const CeedMemType mem_type, void *data) {
   bool                      need_sync = false;
-  Ceed                      ceed;
   CeedQFunctionContext_Hip *impl;
 
-  CeedCallBackend(CeedQFunctionContextGetCeed(ctx, &ceed));
   CeedCallBackend(CeedQFunctionContextGetBackendData(ctx, &impl));
 
   // Sync data to requested mem_type
@@ -262,10 +257,8 @@ static int CeedQFunctionContextTakeData_Hip(const CeedQFunctionContext ctx, cons
 //------------------------------------------------------------------------------
 static int CeedQFunctionContextGetDataCore_Hip(const CeedQFunctionContext ctx, const CeedMemType mem_type, void *data) {
   bool                      need_sync = false;
-  Ceed                      ceed;
   CeedQFunctionContext_Hip *impl;
 
-  CeedCallBackend(CeedQFunctionContextGetCeed(ctx, &ceed));
   CeedCallBackend(CeedQFunctionContextGetBackendData(ctx, &impl));
 
   // Sync data to requested mem_type
@@ -317,12 +310,10 @@ static int CeedQFunctionContextGetData_Hip(const CeedQFunctionContext ctx, const
 // Destroy the user context
 //------------------------------------------------------------------------------
 static int CeedQFunctionContextDestroy_Hip(const CeedQFunctionContext ctx) {
-  Ceed                      ceed;
   CeedQFunctionContext_Hip *impl;
 
-  CeedCallBackend(CeedQFunctionContextGetCeed(ctx, &ceed));
   CeedCallBackend(CeedQFunctionContextGetBackendData(ctx, &impl));
-  CeedCallHip(ceed, hipFree(impl->d_data_owned));
+  CeedCallHip(CeedQFunctionContextReturnCeed(ctx), hipFree(impl->d_data_owned));
   CeedCallBackend(CeedFree(&impl->h_data_owned));
   CeedCallBackend(CeedFree(&impl));
   return CEED_ERROR_SUCCESS;

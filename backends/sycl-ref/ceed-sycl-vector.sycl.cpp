@@ -278,10 +278,8 @@ static int CeedVectorSetArrayDevice_Sycl(const CeedVector vec, const CeedCopyMod
 //   freeing any previously allocated array if applicable
 //------------------------------------------------------------------------------
 static int CeedVectorSetArray_Sycl(const CeedVector vec, const CeedMemType mem_type, const CeedCopyMode copy_mode, CeedScalar *array) {
-  Ceed             ceed;
   CeedVector_Sycl *impl;
 
-  CeedCallBackend(CeedVectorGetCeed(vec, &ceed));
   CeedCallBackend(CeedVectorGetData(vec, &impl));
 
   CeedCallBackend(CeedVectorSetAllInvalid_Sycl(vec));
@@ -390,10 +388,8 @@ static int CeedVectorTakeArray_Sycl(CeedVector vec, CeedMemType mem_type, CeedSc
 //   If a different memory type is most up to date, this will perform a copy
 //------------------------------------------------------------------------------
 static int CeedVectorGetArrayCore_Sycl(const CeedVector vec, const CeedMemType mem_type, CeedScalar **array) {
-  Ceed             ceed;
   CeedVector_Sycl *impl;
 
-  CeedCallBackend(CeedVectorGetCeed(vec, &ceed));
   CeedCallBackend(CeedVectorGetData(vec, &impl));
 
   // Sync array to requested mem_type

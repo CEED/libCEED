@@ -16,22 +16,17 @@
 // Apply QFunction
 //------------------------------------------------------------------------------
 static int CeedQFunctionApply_Hip_gen(CeedQFunction qf, CeedInt Q, CeedVector *U, CeedVector *V) {
-  Ceed ceed;
-
-  CeedCallBackend(CeedQFunctionGetCeed(qf, &ceed));
-  return CeedError(ceed, CEED_ERROR_BACKEND, "Backend does not implement QFunctionApply");
+  return CeedError(CeedQFunctionReturnCeed(qf), CEED_ERROR_BACKEND, "Backend does not implement QFunctionApply");
 }
 
 //------------------------------------------------------------------------------
 // Destroy QFunction
 //------------------------------------------------------------------------------
 static int CeedQFunctionDestroy_Hip_gen(CeedQFunction qf) {
-  Ceed                   ceed;
   CeedQFunction_Hip_gen *data;
 
   CeedCallBackend(CeedQFunctionGetData(qf, &data));
-  CeedCallBackend(CeedQFunctionGetCeed(qf, &ceed));
-  CeedCallHip(ceed, hipFree(data->d_c));
+  CeedCallHip(CeedQFunctionReturnCeed(qf), hipFree(data->d_c));
   CeedCallBackend(CeedFree(&data->qfunction_source));
   CeedCallBackend(CeedFree(&data));
   return CEED_ERROR_SUCCESS;
@@ -44,7 +39,7 @@ int CeedQFunctionCreate_Hip_gen(CeedQFunction qf) {
   Ceed                   ceed;
   CeedQFunction_Hip_gen *data;
 
-  CeedQFunctionGetCeed(qf, &ceed);
+  CeedCallBackend(CeedQFunctionGetCeed(qf, &ceed));
   CeedCallBackend(CeedCalloc(1, &data));
   CeedCallBackend(CeedQFunctionSetData(qf, data));
 

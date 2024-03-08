@@ -65,12 +65,10 @@ static int CeedQFunctionApply_Cuda(CeedQFunction qf, CeedInt Q, CeedVector *U, C
 // Destroy QFunction
 //------------------------------------------------------------------------------
 static int CeedQFunctionDestroy_Cuda(CeedQFunction qf) {
-  Ceed                ceed;
   CeedQFunction_Cuda *data;
 
   CeedCallBackend(CeedQFunctionGetData(qf, &data));
-  CeedCallBackend(CeedQFunctionGetCeed(qf, &ceed));
-  if (data->module) CeedCallCuda(ceed, cuModuleUnload(data->module));
+  if (data->module) CeedCallCuda(CeedQFunctionReturnCeed(qf), cuModuleUnload(data->module));
   CeedCallBackend(CeedFree(&data));
   return CEED_ERROR_SUCCESS;
 }
@@ -93,7 +91,7 @@ int CeedQFunctionCreate_Cuda(CeedQFunction qf) {
   Ceed                ceed;
   CeedQFunction_Cuda *data;
 
-  CeedQFunctionGetCeed(qf, &ceed);
+  CeedCallBackend(CeedQFunctionGetCeed(qf, &ceed));
   CeedCallBackend(CeedCalloc(1, &data));
   CeedCallBackend(CeedQFunctionSetData(qf, data));
 

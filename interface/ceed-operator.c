@@ -408,7 +408,7 @@ static int CeedOperatorContextGetGenericRead(CeedOperator op, CeedContextFieldLa
     for (CeedInt i = 0; i < op->num_context_labels; i++) {
       if (op->context_labels[i] == field_label) index = i;
     }
-    CeedCheck(index != -1, op->ceed, CEED_ERROR_UNSUPPORTED, "ContextFieldLabel does not correspond to the operator");
+    CeedCheck(index != -1, ceed, CEED_ERROR_UNSUPPORTED, "ContextFieldLabel does not correspond to the operator");
   }
 
   CeedCall(CeedOperatorIsComposite(op, &is_composite));
@@ -473,7 +473,7 @@ static int CeedOperatorContextRestoreGenericRead(CeedOperator op, CeedContextFie
     for (CeedInt i = 0; i < op->num_context_labels; i++) {
       if (op->context_labels[i] == field_label) index = i;
     }
-    CeedCheck(index != -1, op->ceed, CEED_ERROR_UNSUPPORTED, "ContextFieldLabel does not correspond to the operator");
+    CeedCheck(index != -1, ceed, CEED_ERROR_UNSUPPORTED, "ContextFieldLabel does not correspond to the operator");
   }
 
   CeedCall(CeedOperatorIsComposite(op, &is_composite));
@@ -483,8 +483,7 @@ static int CeedOperatorContextRestoreGenericRead(CeedOperator op, CeedContextFie
 
     CeedCall(CeedCompositeOperatorGetNumSub(op, &num_sub));
     CeedCall(CeedCompositeOperatorGetSubList(op, &sub_operators));
-    CeedCheck(num_sub == field_label->num_sub_labels, op->ceed, CEED_ERROR_UNSUPPORTED,
-              "Composite operator modified after ContextFieldLabel created");
+    CeedCheck(num_sub == field_label->num_sub_labels, ceed, CEED_ERROR_UNSUPPORTED, "Composite operator modified after ContextFieldLabel created");
 
     for (CeedInt i = 0; i < num_sub; i++) {
       CeedQFunction        qf;
@@ -530,11 +529,9 @@ static int CeedOperatorContextRestoreGenericRead(CeedOperator op, CeedContextFie
 **/
 int CeedOperatorGetNumArgs(CeedOperator op, CeedInt *num_args) {
   bool is_composite;
-  Ceed ceed;
 
-  CeedCall(CeedOperatorGetCeed(op, &ceed));
   CeedCall(CeedOperatorIsComposite(op, &is_composite));
-  CeedCheck(!is_composite, ceed, CEED_ERROR_MINOR, "Not defined for composite operators");
+  CeedCheck(!is_composite, CeedOperatorReturnCeed(op), CEED_ERROR_MINOR, "Not defined for composite operators");
   *num_args = op->num_fields;
   return CEED_ERROR_SUCCESS;
 }
@@ -622,11 +619,9 @@ int CeedOperatorIsSetupDone(CeedOperator op, bool *is_setup_done) {
 **/
 int CeedOperatorGetQFunction(CeedOperator op, CeedQFunction *qf) {
   bool is_composite;
-  Ceed ceed;
 
-  CeedCall(CeedOperatorGetCeed(op, &ceed));
   CeedCall(CeedOperatorIsComposite(op, &is_composite));
-  CeedCheck(!is_composite, ceed, CEED_ERROR_MINOR, "Not defined for composite operator");
+  CeedCheck(!is_composite, CeedOperatorReturnCeed(op), CEED_ERROR_MINOR, "Not defined for composite operator");
   *qf = op->qf;
   return CEED_ERROR_SUCCESS;
 }
@@ -999,12 +994,10 @@ found:
 int CeedOperatorGetFields(CeedOperator op, CeedInt *num_input_fields, CeedOperatorField **input_fields, CeedInt *num_output_fields,
                           CeedOperatorField **output_fields) {
   bool          is_composite;
-  Ceed          ceed;
   CeedQFunction qf;
 
-  CeedCall(CeedOperatorGetCeed(op, &ceed));
   CeedCall(CeedOperatorIsComposite(op, &is_composite));
-  CeedCheck(!is_composite, ceed, CEED_ERROR_MINOR, "Not defined for composite operator");
+  CeedCheck(!is_composite, CeedOperatorReturnCeed(op), CEED_ERROR_MINOR, "Not defined for composite operator");
   CeedCall(CeedOperatorCheckReady(op));
 
   CeedCall(CeedOperatorGetQFunction(op, &qf));
@@ -1082,11 +1075,9 @@ int CeedOperatorIsAtPoints(CeedOperator op, bool *is_at_points) {
 **/
 int CeedOperatorAtPointsGetPoints(CeedOperator op, CeedElemRestriction *rstr_points, CeedVector *point_coords) {
   bool is_at_points;
-  Ceed ceed;
 
-  CeedCall(CeedOperatorGetCeed(op, &ceed));
   CeedCall(CeedOperatorIsAtPoints(op, &is_at_points));
-  CeedCheck(is_at_points, ceed, CEED_ERROR_MINOR, "Only defined for operator at points");
+  CeedCheck(is_at_points, CeedOperatorReturnCeed(op), CEED_ERROR_MINOR, "Only defined for operator at points");
   CeedCall(CeedOperatorCheckReady(op));
 
   if (rstr_points) CeedCall(CeedElemRestrictionReferenceCopy(op->rstr_points, rstr_points));
@@ -1269,11 +1260,9 @@ int CeedCompositeOperatorAddSub(CeedOperator composite_op, CeedOperator sub_op) 
 **/
 int CeedCompositeOperatorGetNumSub(CeedOperator op, CeedInt *num_suboperators) {
   bool is_composite;
-  Ceed ceed;
 
-  CeedCall(CeedOperatorGetCeed(op, &ceed));
   CeedCall(CeedOperatorIsComposite(op, &is_composite));
-  CeedCheck(is_composite, ceed, CEED_ERROR_MINOR, "Only defined for a composite operator");
+  CeedCheck(is_composite, CeedOperatorReturnCeed(op), CEED_ERROR_MINOR, "Only defined for a composite operator");
   *num_suboperators = op->num_suboperators;
   return CEED_ERROR_SUCCESS;
 }
@@ -1290,11 +1279,9 @@ int CeedCompositeOperatorGetNumSub(CeedOperator op, CeedInt *num_suboperators) {
 **/
 int CeedCompositeOperatorGetSubList(CeedOperator op, CeedOperator **sub_operators) {
   bool is_composite;
-  Ceed ceed;
 
-  CeedCall(CeedOperatorGetCeed(op, &ceed));
   CeedCall(CeedOperatorIsComposite(op, &is_composite));
-  CeedCheck(is_composite, ceed, CEED_ERROR_MINOR, "Only defined for a composite operator");
+  CeedCheck(is_composite, CeedOperatorReturnCeed(op), CEED_ERROR_MINOR, "Only defined for a composite operator");
   *sub_operators = op->sub_operators;
   return CEED_ERROR_SUCCESS;
 }
@@ -1391,8 +1378,8 @@ int CeedOperatorGetActiveVectorLengths(CeedOperator op, CeedSize *input_size, Ce
       if (op->input_size == -1) op->input_size = sub_input_size;
       if (op->output_size == -1) op->output_size = sub_output_size;
       // Note, a size of -1 means no active vector restriction set, so no incompatibility
-      CeedCheck((sub_input_size == -1 || sub_input_size == op->input_size) && (sub_output_size == -1 || sub_output_size == op->output_size), op->ceed,
-                CEED_ERROR_MAJOR,
+      CeedCheck((sub_input_size == -1 || sub_input_size == op->input_size) && (sub_output_size == -1 || sub_output_size == op->output_size),
+                CeedOperatorReturnCeed(op), CEED_ERROR_MAJOR,
                 "Sub-operators must have compatible dimensions; composite operator of shape (%" CeedSize_FMT ", %" CeedSize_FMT
                 ") not compatible with sub-operator of "
                 "shape (%" CeedSize_FMT ", %" CeedSize_FMT ")",
@@ -1526,9 +1513,20 @@ int CeedOperatorView(CeedOperator op, FILE *stream) {
   @ref Advanced
 **/
 int CeedOperatorGetCeed(CeedOperator op, Ceed *ceed) {
-  *ceed = op->ceed;
+  *ceed = CeedOperatorReturnCeed(op);
   return CEED_ERROR_SUCCESS;
 }
+
+/**
+  @brief Return the `Ceed` associated with a `CeedOperator`
+
+  @param[in]  op `CeedOperator`
+
+  @return `Ceed` associated with the `op`
+
+  @ref Advanced
+**/
+Ceed CeedOperatorReturnCeed(CeedOperator op) { return op->ceed; }
 
 /**
   @brief Get the number of elements associated with a `CeedOperator`
@@ -1542,11 +1540,9 @@ int CeedOperatorGetCeed(CeedOperator op, Ceed *ceed) {
 **/
 int CeedOperatorGetNumElements(CeedOperator op, CeedInt *num_elem) {
   bool is_composite;
-  Ceed ceed;
 
-  CeedCall(CeedOperatorGetCeed(op, &ceed));
   CeedCall(CeedOperatorIsComposite(op, &is_composite));
-  CeedCheck(!is_composite, ceed, CEED_ERROR_MINOR, "Not defined for composite operator");
+  CeedCheck(!is_composite, CeedOperatorReturnCeed(op), CEED_ERROR_MINOR, "Not defined for composite operator");
   *num_elem = op->num_elem;
   return CEED_ERROR_SUCCESS;
 }
@@ -1563,11 +1559,9 @@ int CeedOperatorGetNumElements(CeedOperator op, CeedInt *num_elem) {
 **/
 int CeedOperatorGetNumQuadraturePoints(CeedOperator op, CeedInt *num_qpts) {
   bool is_composite;
-  Ceed ceed;
 
-  CeedCall(CeedOperatorGetCeed(op, &ceed));
   CeedCall(CeedOperatorIsComposite(op, &is_composite));
-  CeedCheck(!is_composite, ceed, CEED_ERROR_MINOR, "Not defined for composite operator");
+  CeedCheck(!is_composite, CeedOperatorReturnCeed(op), CEED_ERROR_MINOR, "Not defined for composite operator");
   *num_qpts = op->num_qpts;
   return CEED_ERROR_SUCCESS;
 }
@@ -1636,14 +1630,13 @@ int CeedOperatorGetFlopsEstimate(CeedOperator op, CeedSize *flops) {
     {
       CeedInt       num_qpts;
       CeedSize      qf_flops;
-      Ceed          ceed;
       CeedQFunction qf;
 
       CeedCall(CeedOperatorGetNumQuadraturePoints(op, &num_qpts));
       CeedCall(CeedOperatorGetQFunction(op, &qf));
       CeedCall(CeedQFunctionGetFlopsEstimate(qf, &qf_flops));
-      CeedCall(CeedOperatorGetCeed(op, &ceed));
-      CeedCheck(qf_flops > -1, ceed, CEED_ERROR_INCOMPLETE, "Must set CeedQFunction FLOPs estimate with CeedQFunctionSetUserFlopsEstimate");
+      CeedCheck(qf_flops > -1, CeedOperatorReturnCeed(op), CEED_ERROR_INCOMPLETE,
+                "Must set CeedQFunction FLOPs estimate with CeedQFunctionSetUserFlopsEstimate");
       *flops += num_elem * num_qpts * qf_flops;
     }
 
@@ -1688,13 +1681,11 @@ int CeedOperatorGetFlopsEstimate(CeedOperator op, CeedSize *flops) {
 **/
 int CeedOperatorGetContext(CeedOperator op, CeedQFunctionContext *ctx) {
   bool                 is_composite;
-  Ceed                 ceed;
   CeedQFunction        qf;
   CeedQFunctionContext qf_ctx;
 
-  CeedCall(CeedOperatorGetCeed(op, &ceed));
   CeedCall(CeedOperatorIsComposite(op, &is_composite));
-  CeedCheck(!is_composite, ceed, CEED_ERROR_INCOMPATIBLE, "Cannot retrieve CeedQFunctionContext for composite operator");
+  CeedCheck(!is_composite, CeedOperatorReturnCeed(op), CEED_ERROR_INCOMPATIBLE, "Cannot retrieve CeedQFunctionContext for composite operator");
   CeedCall(CeedOperatorGetQFunction(op, &qf));
   CeedCall(CeedQFunctionGetInnerContext(qf, &qf_ctx));
   if (qf_ctx) CeedCall(CeedQFunctionContextReferenceCopy(qf_ctx, ctx));
@@ -1753,7 +1744,7 @@ int CeedOperatorGetContextFieldLabel(CeedOperator op, const char *field_name, Ce
           if (new_field_label->type && new_field_label->type != new_field_label_i->type) {
             // LCOV_EXCL_START
             CeedCall(CeedFree(&new_field_label));
-            return CeedError(op->ceed, CEED_ERROR_INCOMPATIBLE, "Incompatible field types on sub-operator contexts. %s != %s",
+            return CeedError(CeedOperatorReturnCeed(op), CEED_ERROR_INCOMPATIBLE, "Incompatible field types on sub-operator contexts. %s != %s",
                              CeedContextFieldTypes[new_field_label->type], CeedContextFieldTypes[new_field_label_i->type]);
             // LCOV_EXCL_STOP
           } else {
@@ -1761,12 +1752,10 @@ int CeedOperatorGetContextFieldLabel(CeedOperator op, const char *field_name, Ce
           }
           if (new_field_label->num_values != 0 && new_field_label->num_values != new_field_label_i->num_values) {
             // LCOV_EXCL_START
-            Ceed ceed;
-
             CeedCall(CeedFree(&new_field_label));
-            CeedCall(CeedOperatorGetCeed(op, &ceed));
-            return CeedError(ceed, CEED_ERROR_INCOMPATIBLE, "Incompatible field number of values on sub-operator contexts. %zu != %zu",
-                             new_field_label->num_values, new_field_label_i->num_values);
+            return CeedError(CeedOperatorReturnCeed(op), CEED_ERROR_INCOMPATIBLE,
+                             "Incompatible field number of values on sub-operator contexts. %zu != %zu", new_field_label->num_values,
+                             new_field_label_i->num_values);
             // LCOV_EXCL_STOP
           } else {
             new_field_label->num_values = new_field_label_i->num_values;

@@ -113,7 +113,7 @@ int CeedTensorContractStridedApply(CeedTensorContract contract, CeedInt A, CeedI
 }
 
 /**
-  @brief Get `Ceed` associated with a `CeedTensorContract`
+  @brief Get the `Ceed` associated with a `CeedTensorContract`
 
   @param[in]  contract `CeedTensorContract`
   @param[out] ceed     Variable to store `Ceed`
@@ -123,9 +123,20 @@ int CeedTensorContractStridedApply(CeedTensorContract contract, CeedInt A, CeedI
   @ref Backend
 **/
 int CeedTensorContractGetCeed(CeedTensorContract contract, Ceed *ceed) {
-  *ceed = contract->ceed;
+  *ceed = CeedTensorContractReturnCeed(contract);
   return CEED_ERROR_SUCCESS;
 }
+
+/**
+  @brief Return the `Ceed` associated with a `CeedTensorContract`
+
+  @param[in]  contract `CeedTensorContract`
+
+  @return `Ceed` associated with `contract`
+
+  @ref Backend
+**/
+Ceed CeedTensorContractReturnCeed(CeedTensorContract contract) { return contract->ceed; }
 
 /**
   @brief Get backend data of a `CeedTensorContract`
