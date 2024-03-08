@@ -208,10 +208,8 @@ int CeedQFunctionGetNumArgs(CeedQFunction qf, CeedInt *num_input, CeedInt *num_o
 **/
 int CeedQFunctionGetKernelName(CeedQFunction qf, const char **kernel_name) {
   if (!qf->kernel_name) {
-    Ceed  ceed;
     char *kernel_name_copy;
 
-    CeedCall(CeedQFunctionGetCeed(qf, &ceed));
     if (qf->user_source) {
       const char *kernel_name     = strrchr(qf->user_source, ':') + 1;
       size_t      kernel_name_len = strlen(kernel_name);
@@ -963,10 +961,7 @@ int CeedQFunctionSetContextWritable(CeedQFunction qf, bool is_writable) {
   @ref Backend
 **/
 int CeedQFunctionSetUserFlopsEstimate(CeedQFunction qf, CeedSize flops) {
-  Ceed ceed;
-
-  CeedCall(CeedQFunctionGetCeed(qf, &ceed));
-  CeedCheck(flops >= 0, ceed, CEED_ERROR_INCOMPATIBLE, "Must set non-negative FLOPs estimate");
+  CeedCheck(flops >= 0, CeedQFunctionReturnCeed(qf), CEED_ERROR_INCOMPATIBLE, "Must set non-negative FLOPs estimate");
   qf->user_flop_estimate = flops;
   return CEED_ERROR_SUCCESS;
 }
@@ -1010,9 +1005,20 @@ int CeedQFunctionView(CeedQFunction qf, FILE *stream) {
   @ref Advanced
 **/
 int CeedQFunctionGetCeed(CeedQFunction qf, Ceed *ceed) {
-  *ceed = qf->ceed;
+  *ceed = CeedQFunctionReturnCeed(qf);
   return CEED_ERROR_SUCCESS;
 }
+
+/**
+  @brief Return the `Ceed` associated with a `CeedQFunction`
+
+  @param[in]  qf   `CeedQFunction`
+
+  @return `Ceed` associated with the `qf`
+
+  @ref Advanced
+**/
+Ceed CeedQFunctionReturnCeed(CeedQFunction qf) { return qf->ceed; }
 
 /**
   @brief Apply the action of a `CeedQFunction`

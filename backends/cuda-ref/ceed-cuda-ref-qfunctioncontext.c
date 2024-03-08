@@ -213,9 +213,6 @@ static int CeedQFunctionContextSetDataDevice_Cuda(const CeedQFunctionContext ctx
 //   freeing any previously allocated data if applicable
 //------------------------------------------------------------------------------
 static int CeedQFunctionContextSetData_Cuda(const CeedQFunctionContext ctx, const CeedMemType mem_type, const CeedCopyMode copy_mode, void *data) {
-  Ceed ceed;
-
-  CeedCallBackend(CeedQFunctionContextGetCeed(ctx, &ceed));
   CeedCallBackend(CeedQFunctionContextSetAllInvalid_Cuda(ctx));
   switch (mem_type) {
     case CEED_MEM_HOST:
@@ -230,10 +227,8 @@ static int CeedQFunctionContextSetData_Cuda(const CeedQFunctionContext ctx, cons
 // Take data
 //------------------------------------------------------------------------------
 static int CeedQFunctionContextTakeData_Cuda(const CeedQFunctionContext ctx, const CeedMemType mem_type, void *data) {
-  Ceed                       ceed;
   CeedQFunctionContext_Cuda *impl;
 
-  CeedCallBackend(CeedQFunctionContextGetCeed(ctx, &ceed));
   CeedCallBackend(CeedQFunctionContextGetBackendData(ctx, &impl));
 
   // Sync data to requested mem_type
@@ -262,11 +257,9 @@ static int CeedQFunctionContextTakeData_Cuda(const CeedQFunctionContext ctx, con
 //   If a different memory type is most up to date, this will perform a copy
 //------------------------------------------------------------------------------
 static int CeedQFunctionContextGetDataCore_Cuda(const CeedQFunctionContext ctx, const CeedMemType mem_type, void *data) {
-  Ceed                       ceed;
   bool                       need_sync = false;
   CeedQFunctionContext_Cuda *impl;
 
-  CeedCallBackend(CeedQFunctionContextGetCeed(ctx, &ceed));
   CeedCallBackend(CeedQFunctionContextGetBackendData(ctx, &impl));
 
   // Sync data to requested mem_type
@@ -318,12 +311,10 @@ static int CeedQFunctionContextGetData_Cuda(const CeedQFunctionContext ctx, cons
 // Destroy the user context
 //------------------------------------------------------------------------------
 static int CeedQFunctionContextDestroy_Cuda(const CeedQFunctionContext ctx) {
-  Ceed                       ceed;
   CeedQFunctionContext_Cuda *impl;
 
-  CeedCallBackend(CeedQFunctionContextGetCeed(ctx, &ceed));
   CeedCallBackend(CeedQFunctionContextGetBackendData(ctx, &impl));
-  CeedCallCuda(ceed, cudaFree(impl->d_data_owned));
+  CeedCallCuda(CeedQFunctionContextReturnCeed(ctx), cudaFree(impl->d_data_owned));
   CeedCallBackend(CeedFree(&impl->h_data_owned));
   CeedCallBackend(CeedFree(&impl));
   return CEED_ERROR_SUCCESS;

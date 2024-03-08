@@ -86,7 +86,6 @@ static int CeedOperatorSetupFields_Ref(CeedQFunction qf, CeedOperator op, bool i
 //------------------------------------------------------------------------------/*
 static int CeedOperatorSetup_Ref(CeedOperator op) {
   bool                is_setup_done;
-  Ceed                ceed;
   CeedInt             Q, num_input_fields, num_output_fields;
   CeedQFunctionField *qf_input_fields, *qf_output_fields;
   CeedQFunction       qf;
@@ -96,7 +95,6 @@ static int CeedOperatorSetup_Ref(CeedOperator op) {
   CeedCallBackend(CeedOperatorIsSetupDone(op, &is_setup_done));
   if (is_setup_done) return CEED_ERROR_SUCCESS;
 
-  CeedCallBackend(CeedOperatorGetCeed(op, &ceed));
   CeedCallBackend(CeedOperatorGetData(op, &impl));
   CeedCallBackend(CeedOperatorGetQFunction(op, &qf));
   CeedCallBackend(CeedOperatorGetNumQuadraturePoints(op, &Q));
@@ -258,10 +256,7 @@ static inline int CeedOperatorOutputBasis_Ref(CeedInt e, CeedInt Q, CeedQFunctio
         break;
       // LCOV_EXCL_START
       case CEED_EVAL_WEIGHT: {
-        Ceed ceed;
-
-        CeedCallBackend(CeedOperatorGetCeed(op, &ceed));
-        return CeedError(ceed, CEED_ERROR_BACKEND, "CEED_EVAL_WEIGHT cannot be an output evaluation mode");
+        return CeedError(CeedOperatorReturnCeed(op), CEED_ERROR_BACKEND, "CEED_EVAL_WEIGHT cannot be an output evaluation mode");
         // LCOV_EXCL_STOP
       }
     }
@@ -658,7 +653,6 @@ static int CeedOperatorSetupFieldsAtPoints_Ref(CeedQFunction qf, CeedOperator op
 //------------------------------------------------------------------------------
 static int CeedOperatorSetupAtPoints_Ref(CeedOperator op) {
   bool                is_setup_done;
-  Ceed                ceed;
   CeedInt             Q, num_input_fields, num_output_fields;
   CeedQFunctionField *qf_input_fields, *qf_output_fields;
   CeedQFunction       qf;
@@ -668,7 +662,6 @@ static int CeedOperatorSetupAtPoints_Ref(CeedOperator op) {
   CeedCallBackend(CeedOperatorIsSetupDone(op, &is_setup_done));
   if (is_setup_done) return CEED_ERROR_SUCCESS;
 
-  CeedCallBackend(CeedOperatorGetCeed(op, &ceed));
   CeedCallBackend(CeedOperatorGetData(op, &impl));
   CeedCallBackend(CeedOperatorGetQFunction(op, &qf));
   CeedCallBackend(CeedOperatorGetNumQuadraturePoints(op, &Q));
@@ -798,10 +791,7 @@ static inline int CeedOperatorOutputBasisAtPoints_Ref(CeedInt e, CeedInt num_poi
         break;
       // LCOV_EXCL_START
       case CEED_EVAL_WEIGHT: {
-        Ceed ceed;
-
-        CeedCallBackend(CeedOperatorGetCeed(op, &ceed));
-        return CeedError(ceed, CEED_ERROR_BACKEND, "CEED_EVAL_WEIGHT cannot be an output evaluation mode");
+        return CeedError(CeedOperatorReturnCeed(op), CEED_ERROR_BACKEND, "CEED_EVAL_WEIGHT cannot be an output evaluation mode");
         // LCOV_EXCL_STOP
       }
     }
@@ -824,7 +814,6 @@ static inline int CeedOperatorOutputBasisAtPoints_Ref(CeedInt e, CeedInt num_poi
 // Operator Apply
 //------------------------------------------------------------------------------
 static int CeedOperatorApplyAddAtPoints_Ref(CeedOperator op, CeedVector in_vec, CeedVector out_vec, CeedRequest *request) {
-  Ceed                ceed;
   CeedInt             num_points_offset          = 0, num_input_fields, num_output_fields, num_elem;
   CeedScalar         *e_data[2 * CEED_FIELD_MAX] = {0};
   CeedVector          point_coords               = NULL;
@@ -834,7 +823,6 @@ static int CeedOperatorApplyAddAtPoints_Ref(CeedOperator op, CeedVector in_vec, 
   CeedOperatorField  *op_input_fields, *op_output_fields;
   CeedOperator_Ref   *impl;
 
-  CeedCallBackend(CeedOperatorGetCeed(op, &ceed));
   CeedCallBackend(CeedOperatorGetData(op, &impl));
   CeedCallBackend(CeedOperatorGetNumElements(op, &num_elem));
   CeedCallBackend(CeedOperatorGetQFunction(op, &qf));

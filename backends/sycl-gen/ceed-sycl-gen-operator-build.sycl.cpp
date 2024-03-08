@@ -372,18 +372,12 @@ extern "C" int CeedOperatorBuildKernel_Sycl_gen(CeedOperator op) {
         break;
       // LCOV_EXCL_START
       case CEED_EVAL_WEIGHT: {
-        Ceed ceed;
-
-        CeedCallBackend(CeedOperatorGetCeed(op, &ceed));
-        return CeedError(ceed, CEED_ERROR_BACKEND, "CEED_EVAL_WEIGHT cannot be an output evaluation mode");
+        return CeedError(CeedOperatorReturnCeed(op), CEED_ERROR_BACKEND, "CEED_EVAL_WEIGHT cannot be an output evaluation mode");
         break;  // Should not occur
       }
       case CEED_EVAL_DIV:
       case CEED_EVAL_CURL: {
-        Ceed ceed;
-
-        CeedCallBackend(CeedOperatorGetCeed(op, &ceed));
-        return CeedError(ceed, CEED_ERROR_BACKEND, "%s not supported", CeedEvalModes[eval_mode]);
+        return CeedError(CeedOperatorReturnCeed(op), CEED_ERROR_BACKEND, "%s not supported", CeedEvalModes[eval_mode]);
         break;  // Should not occur
       }
         // LCOV_EXCL_STOP
@@ -700,18 +694,12 @@ extern "C" int CeedOperatorBuildKernel_Sycl_gen(CeedOperator op) {
         break;
       // LCOV_EXCL_START
       case CEED_EVAL_WEIGHT: {
-        Ceed ceed;
-
-        CeedCallBackend(CeedOperatorGetCeed(op, &ceed));
-        return CeedError(ceed, CEED_ERROR_BACKEND, "CEED_EVAL_WEIGHT cannot be an output evaluation mode");
+        return CeedError(CeedOperatorReturnCeed(op), CEED_ERROR_BACKEND, "CEED_EVAL_WEIGHT cannot be an output evaluation mode");
         break;  // Should not occur
       }
       case CEED_EVAL_DIV:
       case CEED_EVAL_CURL: {
-        Ceed ceed;
-
-        CeedCallBackend(CeedOperatorGetCeed(op, &ceed));
-        return CeedError(ceed, CEED_ERROR_BACKEND, "%s not supported", CeedEvalModes[eval_mode]);
+        return CeedError(CeedOperatorReturnCeed(op), CEED_ERROR_BACKEND, "%s not supported", CeedEvalModes[eval_mode]);
         break;  // Should not occur
       }
         // LCOV_EXCL_STOP

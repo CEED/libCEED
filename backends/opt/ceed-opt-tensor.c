@@ -52,10 +52,7 @@ static int CeedTensorContractApply_Opt(CeedTensorContract contract, CeedInt A, C
 // Tensor Contract Create
 //------------------------------------------------------------------------------
 int CeedTensorContractCreate_Opt(CeedTensorContract contract) {
-  Ceed ceed;
-
-  CeedCallBackend(CeedTensorContractGetCeed(contract, &ceed));
-  CeedCallBackend(CeedSetBackendFunction(ceed, "TensorContract", contract, "Apply", CeedTensorContractApply_Opt));
+  CeedCallBackend(CeedSetBackendFunction(CeedTensorContractReturnCeed(contract), "TensorContract", contract, "Apply", CeedTensorContractApply_Opt));
   return CEED_ERROR_SUCCESS;
 }
 

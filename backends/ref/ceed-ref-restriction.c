@@ -661,13 +661,11 @@ static int CeedElemRestrictionApplyBlock_Ref(CeedElemRestriction rstr, CeedInt b
 // ElemRestriction Get Offsets
 //------------------------------------------------------------------------------
 static int CeedElemRestrictionGetOffsets_Ref(CeedElemRestriction rstr, CeedMemType mem_type, const CeedInt **offsets) {
-  Ceed                     ceed;
   CeedElemRestriction_Ref *impl;
 
   CeedCallBackend(CeedElemRestrictionGetData(rstr, &impl));
-  CeedCallBackend(CeedElemRestrictionGetCeed(rstr, &ceed));
 
-  CeedCheck(mem_type == CEED_MEM_HOST, ceed, CEED_ERROR_BACKEND, "Can only provide to HOST memory");
+  CeedCheck(mem_type == CEED_MEM_HOST, CeedElemRestrictionReturnCeed(rstr), CEED_ERROR_BACKEND, "Can only provide to HOST memory");
 
   *offsets = impl->offsets;
   return CEED_ERROR_SUCCESS;
@@ -677,13 +675,11 @@ static int CeedElemRestrictionGetOffsets_Ref(CeedElemRestriction rstr, CeedMemTy
 // ElemRestriction Get Orientations
 //------------------------------------------------------------------------------
 static int CeedElemRestrictionGetOrientations_Ref(CeedElemRestriction rstr, CeedMemType mem_type, const bool **orients) {
-  Ceed                     ceed;
   CeedElemRestriction_Ref *impl;
 
   CeedCallBackend(CeedElemRestrictionGetData(rstr, &impl));
-  CeedCallBackend(CeedElemRestrictionGetCeed(rstr, &ceed));
 
-  CeedCheck(mem_type == CEED_MEM_HOST, ceed, CEED_ERROR_BACKEND, "Can only provide to HOST memory");
+  CeedCheck(mem_type == CEED_MEM_HOST, CeedElemRestrictionReturnCeed(rstr), CEED_ERROR_BACKEND, "Can only provide to HOST memory");
 
   *orients = impl->orients;
   return CEED_ERROR_SUCCESS;
@@ -693,13 +689,11 @@ static int CeedElemRestrictionGetOrientations_Ref(CeedElemRestriction rstr, Ceed
 // ElemRestriction Get Curl-Conforming Orientations
 //------------------------------------------------------------------------------
 static int CeedElemRestrictionGetCurlOrientations_Ref(CeedElemRestriction rstr, CeedMemType mem_type, const CeedInt8 **curl_orients) {
-  Ceed                     ceed;
   CeedElemRestriction_Ref *impl;
 
   CeedCallBackend(CeedElemRestrictionGetData(rstr, &impl));
-  CeedCallBackend(CeedElemRestrictionGetCeed(rstr, &ceed));
 
-  CeedCheck(mem_type == CEED_MEM_HOST, ceed, CEED_ERROR_BACKEND, "Can only provide to HOST memory");
+  CeedCheck(mem_type == CEED_MEM_HOST, CeedElemRestrictionReturnCeed(rstr), CEED_ERROR_BACKEND, "Can only provide to HOST memory");
 
   *curl_orients = impl->curl_orients;
   return CEED_ERROR_SUCCESS;

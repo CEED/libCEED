@@ -312,18 +312,19 @@ CEED_EXTERN int CeedBasisGetTopologyDimension(CeedElemTopology topo, CeedInt *di
 CEED_EXTERN int CeedBasisGetTensorContract(CeedBasis basis, CeedTensorContract *contract);
 CEED_EXTERN int CeedBasisSetTensorContract(CeedBasis basis, CeedTensorContract contract);
 
-CEED_EXTERN int CeedTensorContractCreate(Ceed ceed, CeedTensorContract *contract);
-CEED_EXTERN int CeedTensorContractApply(CeedTensorContract contract, CeedInt A, CeedInt B, CeedInt C, CeedInt J, const CeedScalar *__restrict__ t,
-                                        CeedTransposeMode t_mode, const CeedInt Add, const CeedScalar *__restrict__ u, CeedScalar *__restrict__ v);
-CEED_EXTERN int CeedTensorContractStridedApply(CeedTensorContract contract, CeedInt A, CeedInt B, CeedInt C, CeedInt D, CeedInt J,
-                                               const CeedScalar *__restrict__ t, CeedTransposeMode t_mode, const CeedInt add,
-                                               const CeedScalar *__restrict__ u, CeedScalar *__restrict__ v);
-CEED_EXTERN int CeedTensorContractGetCeed(CeedTensorContract contract, Ceed *ceed);
-CEED_EXTERN int CeedTensorContractGetData(CeedTensorContract contract, void *data);
-CEED_EXTERN int CeedTensorContractSetData(CeedTensorContract contract, void *data);
-CEED_EXTERN int CeedTensorContractReference(CeedTensorContract contract);
-CEED_EXTERN int CeedTensorContractReferenceCopy(CeedTensorContract tensor, CeedTensorContract *tensor_copy);
-CEED_EXTERN int CeedTensorContractDestroy(CeedTensorContract *contract);
+CEED_EXTERN int  CeedTensorContractCreate(Ceed ceed, CeedTensorContract *contract);
+CEED_EXTERN int  CeedTensorContractApply(CeedTensorContract contract, CeedInt A, CeedInt B, CeedInt C, CeedInt J, const CeedScalar *__restrict__ t,
+                                         CeedTransposeMode t_mode, const CeedInt Add, const CeedScalar *__restrict__ u, CeedScalar *__restrict__ v);
+CEED_EXTERN int  CeedTensorContractStridedApply(CeedTensorContract contract, CeedInt A, CeedInt B, CeedInt C, CeedInt D, CeedInt J,
+                                                const CeedScalar *__restrict__ t, CeedTransposeMode t_mode, const CeedInt add,
+                                                const CeedScalar *__restrict__ u, CeedScalar *__restrict__ v);
+CEED_EXTERN int  CeedTensorContractGetCeed(CeedTensorContract contract, Ceed *ceed);
+CEED_EXTERN Ceed CeedTensorContractReturnCeed(CeedTensorContract contract);
+CEED_EXTERN int  CeedTensorContractGetData(CeedTensorContract contract, void *data);
+CEED_EXTERN int  CeedTensorContractSetData(CeedTensorContract contract, void *data);
+CEED_EXTERN int  CeedTensorContractReference(CeedTensorContract contract);
+CEED_EXTERN int  CeedTensorContractReferenceCopy(CeedTensorContract tensor, CeedTensorContract *tensor_copy);
+CEED_EXTERN int  CeedTensorContractDestroy(CeedTensorContract *contract);
 
 CEED_EXTERN int CeedQFunctionRegister(const char *name, const char *source, CeedInt vec_length, CeedQFunctionUser f,
                                       int (*init)(Ceed, const char *, CeedQFunction));
@@ -349,33 +350,34 @@ CEED_EXTERN int CeedQFunctionSetImmutable(CeedQFunction qf);
 CEED_EXTERN int CeedQFunctionReference(CeedQFunction qf);
 CEED_EXTERN int CeedQFunctionGetFlopsEstimate(CeedQFunction qf, CeedSize *flops);
 
-CEED_EXTERN int CeedQFunctionContextGetCeed(CeedQFunctionContext ctx, Ceed *ceed);
-CEED_EXTERN int CeedQFunctionContextHasValidData(CeedQFunctionContext ctx, bool *has_valid_data);
-CEED_EXTERN int CeedQFunctionContextHasBorrowedDataOfType(CeedQFunctionContext ctx, CeedMemType mem_type, bool *has_borrowed_data_of_type);
-CEED_EXTERN int CeedQFunctionContextGetState(CeedQFunctionContext ctx, uint64_t *state);
-CEED_EXTERN int CeedQFunctionContextGetBackendData(CeedQFunctionContext ctx, void *data);
-CEED_EXTERN int CeedQFunctionContextSetBackendData(CeedQFunctionContext ctx, void *data);
-CEED_EXTERN int CeedQFunctionContextGetFieldLabel(CeedQFunctionContext ctx, const char *field_name, CeedContextFieldLabel *field_label);
-CEED_EXTERN int CeedQFunctionContextSetGeneric(CeedQFunctionContext ctx, CeedContextFieldLabel field_label, CeedContextFieldType field_type,
-                                               void *value);
-CEED_EXTERN int CeedQFunctionContextGetGenericRead(CeedQFunctionContext ctx, CeedContextFieldLabel field_label, CeedContextFieldType field_type,
-                                                   size_t *num_values, void *value);
-CEED_EXTERN int CeedQFunctionContextRestoreGenericRead(CeedQFunctionContext ctx, CeedContextFieldLabel field_label, CeedContextFieldType field_type,
-                                                       void *value);
-CEED_EXTERN int CeedQFunctionContextSetDouble(CeedQFunctionContext ctx, CeedContextFieldLabel field_label, double *values);
-CEED_EXTERN int CeedQFunctionContextGetDoubleRead(CeedQFunctionContext ctx, CeedContextFieldLabel field_label, size_t *num_values,
-                                                  const double **values);
-CEED_EXTERN int CeedQFunctionContextRestoreDoubleRead(CeedQFunctionContext ctx, CeedContextFieldLabel field_label, const double **values);
-CEED_EXTERN int CeedQFunctionContextSetInt32(CeedQFunctionContext ctx, CeedContextFieldLabel field_label, int32_t *values);
-CEED_EXTERN int CeedQFunctionContextGetInt32Read(CeedQFunctionContext ctx, CeedContextFieldLabel field_label, size_t *num_values,
-                                                 const int32_t **values);
-CEED_EXTERN int CeedQFunctionContextRestoreInt32Read(CeedQFunctionContext ctx, CeedContextFieldLabel field_label, const int32_t **values);
-CEED_EXTERN int CeedQFunctionContextSetBoolean(CeedQFunctionContext ctx, CeedContextFieldLabel field_label, bool *values);
-CEED_EXTERN int CeedQFunctionContextGetBooleanRead(CeedQFunctionContext ctx, CeedContextFieldLabel field_label, size_t *num_values,
-                                                   const bool **values);
-CEED_EXTERN int CeedQFunctionContextRestoreBooleanRead(CeedQFunctionContext ctx, CeedContextFieldLabel field_label, const bool **values);
-CEED_EXTERN int CeedQFunctionContextGetDataDestroy(CeedQFunctionContext ctx, CeedMemType *f_mem_type, CeedQFunctionContextDataDestroyUser *f);
-CEED_EXTERN int CeedQFunctionContextReference(CeedQFunctionContext ctx);
+CEED_EXTERN int  CeedQFunctionContextGetCeed(CeedQFunctionContext ctx, Ceed *ceed);
+CEED_EXTERN Ceed CeedQFunctionContextReturnCeed(CeedQFunctionContext ctx);
+CEED_EXTERN int  CeedQFunctionContextHasValidData(CeedQFunctionContext ctx, bool *has_valid_data);
+CEED_EXTERN int  CeedQFunctionContextHasBorrowedDataOfType(CeedQFunctionContext ctx, CeedMemType mem_type, bool *has_borrowed_data_of_type);
+CEED_EXTERN int  CeedQFunctionContextGetState(CeedQFunctionContext ctx, uint64_t *state);
+CEED_EXTERN int  CeedQFunctionContextGetBackendData(CeedQFunctionContext ctx, void *data);
+CEED_EXTERN int  CeedQFunctionContextSetBackendData(CeedQFunctionContext ctx, void *data);
+CEED_EXTERN int  CeedQFunctionContextGetFieldLabel(CeedQFunctionContext ctx, const char *field_name, CeedContextFieldLabel *field_label);
+CEED_EXTERN int  CeedQFunctionContextSetGeneric(CeedQFunctionContext ctx, CeedContextFieldLabel field_label, CeedContextFieldType field_type,
+                                                void *value);
+CEED_EXTERN int  CeedQFunctionContextGetGenericRead(CeedQFunctionContext ctx, CeedContextFieldLabel field_label, CeedContextFieldType field_type,
+                                                    size_t *num_values, void *value);
+CEED_EXTERN int  CeedQFunctionContextRestoreGenericRead(CeedQFunctionContext ctx, CeedContextFieldLabel field_label, CeedContextFieldType field_type,
+                                                        void *value);
+CEED_EXTERN int  CeedQFunctionContextSetDouble(CeedQFunctionContext ctx, CeedContextFieldLabel field_label, double *values);
+CEED_EXTERN int  CeedQFunctionContextGetDoubleRead(CeedQFunctionContext ctx, CeedContextFieldLabel field_label, size_t *num_values,
+                                                   const double **values);
+CEED_EXTERN int  CeedQFunctionContextRestoreDoubleRead(CeedQFunctionContext ctx, CeedContextFieldLabel field_label, const double **values);
+CEED_EXTERN int  CeedQFunctionContextSetInt32(CeedQFunctionContext ctx, CeedContextFieldLabel field_label, int32_t *values);
+CEED_EXTERN int  CeedQFunctionContextGetInt32Read(CeedQFunctionContext ctx, CeedContextFieldLabel field_label, size_t *num_values,
+                                                  const int32_t **values);
+CEED_EXTERN int  CeedQFunctionContextRestoreInt32Read(CeedQFunctionContext ctx, CeedContextFieldLabel field_label, const int32_t **values);
+CEED_EXTERN int  CeedQFunctionContextSetBoolean(CeedQFunctionContext ctx, CeedContextFieldLabel field_label, bool *values);
+CEED_EXTERN int  CeedQFunctionContextGetBooleanRead(CeedQFunctionContext ctx, CeedContextFieldLabel field_label, size_t *num_values,
+                                                    const bool **values);
+CEED_EXTERN int  CeedQFunctionContextRestoreBooleanRead(CeedQFunctionContext ctx, CeedContextFieldLabel field_label, const bool **values);
+CEED_EXTERN int  CeedQFunctionContextGetDataDestroy(CeedQFunctionContext ctx, CeedMemType *f_mem_type, CeedQFunctionContextDataDestroyUser *f);
+CEED_EXTERN int  CeedQFunctionContextReference(CeedQFunctionContext ctx);
 
 CEED_EXTERN int CeedOperatorGetBasisPointer(CeedBasis basis, CeedEvalMode eval_mode, const CeedScalar *identity, const CeedScalar **basis_ptr);
 CEED_EXTERN int CeedOperatorCreateActivePointBlockRestriction(CeedElemRestriction rstr, CeedElemRestriction *pointblock_rstr);

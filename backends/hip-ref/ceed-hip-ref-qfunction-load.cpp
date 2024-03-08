@@ -32,7 +32,7 @@ extern "C" int CeedQFunctionBuildKernel_Hip_ref(CeedQFunction qf) {
   CeedQFunctionField *input_fields, *output_fields;
   CeedQFunction_Hip  *data;
 
-  CeedQFunctionGetCeed(qf, &ceed);
+  CeedCallBackend(CeedQFunctionGetCeed(qf, &ceed));
   CeedCallBackend(CeedGetData(ceed, &ceed_Hip));
   CeedCallBackend(CeedQFunctionGetData(qf, (void **)&data));
 

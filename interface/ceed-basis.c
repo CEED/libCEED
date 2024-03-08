@@ -468,10 +468,8 @@ int CeedBasisGetFlopsEstimate(CeedBasis basis, CeedTransposeMode t_mode, CeedEva
       case CEED_EVAL_DIV:
       case CEED_EVAL_CURL: {
         // LCOV_EXCL_START
-        Ceed ceed;
-
-        CeedCall(CeedBasisGetCeed(basis, &ceed));
-        return CeedError(ceed, CEED_ERROR_INCOMPATIBLE, "Tensor basis evaluation for %s not supported", CeedEvalModes[eval_mode]);
+        return CeedError(CeedBasisReturnCeed(basis), CEED_ERROR_INCOMPATIBLE, "Tensor basis evaluation for %s not supported",
+                         CeedEvalModes[eval_mode]);
         break;
         // LCOV_EXCL_STOP
       }
@@ -1773,7 +1771,7 @@ int CeedBasisApplyAtPoints(CeedBasis basis, CeedInt num_points, CeedTransposeMod
 }
 
 /**
-  @brief Get `Ceed` associated with a `CeedBasis`
+  @brief Get the `Ceed` associated with a `CeedBasis`
 
   @param[in]  basis `CeedBasis`
   @param[out] ceed  Variable to store `Ceed`
@@ -1783,9 +1781,20 @@ int CeedBasisApplyAtPoints(CeedBasis basis, CeedInt num_points, CeedTransposeMod
   @ref Advanced
 **/
 int CeedBasisGetCeed(CeedBasis basis, Ceed *ceed) {
-  *ceed = basis->ceed;
+  *ceed = CeedBasisReturnCeed(basis);
   return CEED_ERROR_SUCCESS;
 }
+
+/**
+  @brief Return the `Ceed` associated with a `CeedBasis`
+
+  @param[in]  basis `CeedBasis`
+
+  @return `Ceed` associated with the `basis`
+
+  @ref Advanced
+**/
+Ceed CeedBasisReturnCeed(CeedBasis basis) { return basis->ceed; }
 
 /**
   @brief Get dimension for given `CeedBasis`
@@ -1858,10 +1867,7 @@ int CeedBasisGetNumNodes(CeedBasis basis, CeedInt *P) {
   @ref Advanced
 **/
 int CeedBasisGetNumNodes1D(CeedBasis basis, CeedInt *P_1d) {
-  Ceed ceed;
-
-  CeedCall(CeedBasisGetCeed(basis, &ceed));
-  CeedCheck(basis->is_tensor_basis, ceed, CEED_ERROR_MINOR, "Cannot supply P_1d for non-tensor CeedBasis");
+  CeedCheck(basis->is_tensor_basis, CeedBasisReturnCeed(basis), CEED_ERROR_MINOR, "Cannot supply P_1d for non-tensor CeedBasis");
   *P_1d = basis->P_1d;
   return CEED_ERROR_SUCCESS;
 }
@@ -1892,10 +1898,7 @@ int CeedBasisGetNumQuadraturePoints(CeedBasis basis, CeedInt *Q) {
   @ref Advanced
 **/
 int CeedBasisGetNumQuadraturePoints1D(CeedBasis basis, CeedInt *Q_1d) {
-  Ceed ceed;
-
-  CeedCall(CeedBasisGetCeed(basis, &ceed));
-  CeedCheck(basis->is_tensor_basis, ceed, CEED_ERROR_MINOR, "Cannot supply Q_1d for non-tensor CeedBasis");
+  CeedCheck(basis->is_tensor_basis, CeedBasisReturnCeed(basis), CEED_ERROR_MINOR, "Cannot supply Q_1d for non-tensor CeedBasis");
   *Q_1d = basis->Q_1d;
   return CEED_ERROR_SUCCESS;
 }
@@ -1976,11 +1979,9 @@ int CeedBasisGetInterp(CeedBasis basis, const CeedScalar **interp) {
 **/
 int CeedBasisGetInterp1D(CeedBasis basis, const CeedScalar **interp_1d) {
   bool is_tensor_basis;
-  Ceed ceed;
 
-  CeedCall(CeedBasisGetCeed(basis, &ceed));
   CeedCall(CeedBasisIsTensor(basis, &is_tensor_basis));
-  CeedCheck(is_tensor_basis, ceed, CEED_ERROR_MINOR, "CeedBasis is not a tensor product CeedBasis");
+  CeedCheck(is_tensor_basis, CeedBasisReturnCeed(basis), CEED_ERROR_MINOR, "CeedBasis is not a tensor product CeedBasis");
   *interp_1d = basis->interp_1d;
   return CEED_ERROR_SUCCESS;
 }
@@ -2034,11 +2035,9 @@ int CeedBasisGetGrad(CeedBasis basis, const CeedScalar **grad) {
 **/
 int CeedBasisGetGrad1D(CeedBasis basis, const CeedScalar **grad_1d) {
   bool is_tensor_basis;
-  Ceed ceed;
 
-  CeedCall(CeedBasisGetCeed(basis, &ceed));
   CeedCall(CeedBasisIsTensor(basis, &is_tensor_basis));
-  CeedCheck(is_tensor_basis, ceed, CEED_ERROR_MINOR, "CeedBasis is not a tensor product CeedBasis");
+  CeedCheck(is_tensor_basis, CeedBasisReturnCeed(basis), CEED_ERROR_MINOR, "CeedBasis is not a tensor product CeedBasis");
   *grad_1d = basis->grad_1d;
   return CEED_ERROR_SUCCESS;
 }

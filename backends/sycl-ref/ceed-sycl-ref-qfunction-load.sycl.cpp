@@ -39,7 +39,7 @@ extern "C" int CeedQFunctionBuildKernel_Sycl(CeedQFunction qf) {
   // QFunction is built
   if (impl->QFunction) return CEED_ERROR_SUCCESS;
 
-  CeedQFunctionGetCeed(qf, &ceed);
+  CeedCallBackend(CeedQFunctionGetCeed(qf, &ceed));
   CeedCallBackend(CeedGetData(ceed, &data));
 
   // QFunction kernel generation
