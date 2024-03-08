@@ -74,7 +74,7 @@ static inline int CeedVectorSyncD2H_Cuda(const CeedVector vec) {
   CeedCallBackend(CeedVectorGetCeed(vec, &ceed));
   CeedCallBackend(CeedVectorGetData(vec, &impl));
 
-  CeedCheck(impl->d_array, CeedVectorReturnCeed(vec), CEED_ERROR_BACKEND, "No valid device data to sync to host");
+  CeedCheck(impl->d_array, ceed, CEED_ERROR_BACKEND, "No valid device data to sync to host");
 
   if (impl->h_array_borrowed) {
     impl->h_array = impl->h_array_borrowed;
