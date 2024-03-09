@@ -221,7 +221,7 @@ PetscErrorCode SetupStg(const MPI_Comm comm, const DM dm, ProblemData *problem, 
   char                     stg_inflow_path[PETSC_MAX_PATH_LEN] = "./STGInflow.dat";
   char                     stg_rand_path[PETSC_MAX_PATH_LEN]   = "./STGRand.dat";
   PetscBool                mean_only = PETSC_FALSE, use_stgstrong = PETSC_FALSE, use_fluctuating_IC = PETSC_FALSE, given_stg_dx = PETSC_FALSE;
-  CeedScalar               u0 = 0.0, alpha = 1.01, stg_dx = 1.0e-3;
+  CeedScalar               u0 = 0.0, alpha = 1.01, stg_dx = 1.0e-3, stg_dx_ratio = 2.5;
   CeedQFunctionContext     stg_context;
   NewtonianIdealGasContext newtonian_ig_ctx;
 
@@ -236,6 +236,8 @@ PetscErrorCode SetupStg(const MPI_Comm comm, const DM dm, ProblemData *problem, 
   PetscCall(PetscOptionsBool("-stg_fluctuating_IC", "\"Extrude\" the fluctuations through the domain as an initial condition", NULL,
                              use_fluctuating_IC, &use_fluctuating_IC, NULL));
   PetscCall(PetscOptionsReal("-stg_dx", "Element size in streamwise direction at inflow", NULL, stg_dx, &stg_dx, &given_stg_dx));
+  PetscCall(PetscOptionsReal("-stg_dx_ratio", "Ratio of streamwise element size to spanwise element size, ignored if -stg_dx given", NULL,
+                             stg_dx_ratio, &stg_dx_ratio, NULL));
   PetscOptionsEnd();
 
   PetscCall(PetscCalloc1(1, &global_stg_ctx));
@@ -250,12 +252,17 @@ PetscErrorCode SetupStg(const MPI_Comm comm, const DM dm, ProblemData *problem, 
 
   {  // Calculate dx assuming constant spacing
     PetscReal domain_min[3], domain_max[3], domain_size[3];
-    PetscCall(DMGetBoundingBox(dm, domain_min, domain_max));
-    for (PetscInt i = 0; i < 3; i++) domain_size[i] = domain_max[i] - domain_min[i];
+    PetscInt  nmax          = 3, faces[3];
+    PetscBool has_box_faces = PETSC_FALSE;
 
-    PetscInt nmax = 3, faces[3];
-    PetscCall(PetscOptionsGetIntArray(NULL, NULL, "-dm_plex_box_faces", faces, &nmax, NULL));
-    global_stg_ctx->dx = given_stg_dx ? stg_dx : domain_size[0] / faces[0];
+    PetscCall(PetscOptionsGetIntArray(NULL, NULL, "-dm_plex_box_faces", faces, &nmax, &has_box_faces));
+    if (has_box_faces) {
+      PetscCall(DMGetBoundingBox(dm, domain_min, domain_max));
+      for (PetscInt i = 0; i < 3; i++) domain_size[i] = domain_max[i] - domain_min[i];
+      global_stg_ctx->dx = given_stg_dx ? stg_dx : domain_size[0] / faces[0];
+    } else {
+      global_stg_ctx->dx = given_stg_dx ? stg_dx : -stg_dx_ratio;
+    }
   }
 
   PetscCallCeed(ceed, CeedQFunctionContextGetData(problem->apply_vol_rhs.qfunction_context, CEED_MEM_HOST, &newtonian_ig_ctx));
