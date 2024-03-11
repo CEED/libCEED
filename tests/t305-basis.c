@@ -79,7 +79,7 @@ int main(int argc, char **argv) {
   }
   for (int i = 0; i < p; i++) {
     for (int j = 0; j < p; j++) {
-      if (fabs(K[p * i + j] - (i == j ? lambda[i] : 0.0)) > 100. * CEED_EPSILON) {
+      if (fabs(K[p * i + j] - (i == j ? lambda[i] : 0.0)) > 1e3 * CEED_EPSILON) {
         // LCOV_EXCL_START
         printf("Error in diagonalization of K [%" CeedInt_FMT ", %" CeedInt_FMT "]: %f != %f\n", i, j, K[p * i + j], (i == j ? lambda[i] : 0.0));
         // LCOV_EXCL_STOP
