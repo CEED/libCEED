@@ -19,6 +19,7 @@
 static int CeedOperatorSetupFields_Ref(CeedQFunction qf, CeedOperator op, bool is_input, CeedVector *e_vecs_full, CeedVector *e_vecs,
                                        CeedVector *q_vecs, CeedInt start_e, CeedInt num_fields, CeedInt Q) {
   Ceed                ceed;
+  bool                is_at_points;
   CeedSize            e_size, q_size;
   CeedInt             num_comp, size, P;
   CeedQFunctionField *qf_fields;
@@ -31,6 +32,7 @@ static int CeedOperatorSetupFields_Ref(CeedQFunction qf, CeedOperator op, bool i
     CeedCallBackend(CeedGetParent(ceed, &ceed_parent));
     if (ceed_parent) ceed = ceed_parent;
   }
+  CeedCallBackend(CeedOperatorIsAtPoints(op, &is_at_points));
   if (is_input) {
     CeedCallBackend(CeedOperatorGetFields(op, NULL, &op_fields, NULL, NULL));
     CeedCallBackend(CeedQFunctionGetFields(qf, NULL, &qf_fields, NULL, NULL));
@@ -555,7 +557,7 @@ static int CeedOperatorSetupFieldsAtPoints_Ref(CeedQFunction qf, CeedOperator op
                                                CeedVector *q_vecs, CeedInt start_e, CeedInt num_fields, CeedInt Q) {
   Ceed                ceed;
   CeedSize            e_size, q_size;
-  CeedInt             max_num_points, num_comp, size, P;
+  CeedInt             e_size_padding = 0, max_num_points, num_comp, size, P;
   CeedQFunctionField *qf_fields;
   CeedOperatorField  *op_fields;
 
@@ -585,7 +587,10 @@ static int CeedOperatorSetupFieldsAtPoints_Ref(CeedQFunction qf, CeedOperator op
     CeedCallBackend(CeedElemRestrictionGetNumComponents(rstr_points, &dim));
     CeedCallBackend(CeedElemRestrictionDestroy(&rstr_points));
     CeedCallBackend(CeedOperatorGetData(op, &impl));
-    if (is_input) CeedCallBackend(CeedVectorCreate(ceed, dim * max_num_points, &impl->point_coords_elem));
+    if (is_input) {
+      CeedCallBackend(CeedVectorCreate(ceed, dim * max_num_points, &impl->point_coords_elem));
+      CeedCallBackend(CeedVectorSetValue(impl->point_coords_elem, 0.0));
+    }
   }
 
   // Loop over fields
@@ -595,13 +600,27 @@ static int CeedOperatorSetupFieldsAtPoints_Ref(CeedQFunction qf, CeedOperator op
 
     CeedCallBackend(CeedQFunctionFieldGetEvalMode(qf_fields[i], &eval_mode));
     if (eval_mode != CEED_EVAL_WEIGHT) {
-      CeedRestrictionType rstr_type;
       CeedElemRestriction elem_rstr;
+      CeedSize            e_size;
+      bool                is_at_points;
 
       CeedCallBackend(CeedOperatorFieldGetElemRestriction(op_fields[i], &elem_rstr));
       CeedCallBackend(CeedElemRestrictionGetNumComponents(elem_rstr, &num_comp));
-      CeedCallBackend(CeedElemRestrictionGetType(elem_rstr, &rstr_type));
-      CeedCallBackend(CeedElemRestrictionCreateVector(elem_rstr, NULL, &e_vecs_full[i + start_e]));
+      CeedCallBackend(CeedElemRestrictionIsPoints(elem_rstr, &is_at_points));
+      if (is_at_points) {
+        CeedCallBackend(CeedElemRestrictionGetEVectorSize(elem_rstr, &e_size));
+        if (e_size_padding == 0) {
+          CeedInt num_points, num_elem;
+
+          CeedCallBackend(CeedElemRestrictionGetNumElements(elem_rstr, &num_elem));
+          CeedCallBackend(CeedElemRestrictionGetNumPointsInElement(elem_rstr, num_elem - 1, &num_points));
+          e_size_padding = (max_num_points - num_points) * num_comp;
+        }
+        CeedCallBackend(CeedVectorCreate(ceed, e_size + e_size_padding, &e_vecs_full[i + start_e]));
+        CeedCallBackend(CeedVectorSetValue(e_vecs_full[i + start_e], 0.0));
+      } else {
+        CeedCallBackend(CeedElemRestrictionCreateVector(elem_rstr, NULL, &e_vecs_full[i + start_e]));
+      }
     }
 
     switch (eval_mode) {
@@ -614,6 +633,7 @@ static int CeedOperatorSetupFieldsAtPoints_Ref(CeedQFunction qf, CeedOperator op
         CeedCallBackend(CeedOperatorFieldGetVector(op_fields[i], &vec));
         if (vec == CEED_VECTOR_ACTIVE || !is_input) {
           CeedCallBackend(CeedVectorReferenceCopy(e_vecs[i], &q_vecs[i]));
+          CeedCallBackend(CeedVectorSetValue(q_vecs[i], 0.0));
         } else {
           q_size = (CeedSize)max_num_points * size;
           CeedCallBackend(CeedVectorCreate(ceed, q_size, &q_vecs[i]));
@@ -632,6 +652,7 @@ static int CeedOperatorSetupFieldsAtPoints_Ref(CeedQFunction qf, CeedOperator op
         CeedCallBackend(CeedVectorCreate(ceed, e_size, &e_vecs[i]));
         q_size = (CeedSize)max_num_points * size;
         CeedCallBackend(CeedVectorCreate(ceed, q_size, &q_vecs[i]));
+        CeedCallBackend(CeedVectorSetValue(q_vecs[i], 0.0));
         break;
       case CEED_EVAL_WEIGHT:  // Only on input fields
         CeedCallBackend(CeedOperatorFieldGetBasis(op_fields[i], &basis));
