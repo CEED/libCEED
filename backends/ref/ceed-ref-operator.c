@@ -19,7 +19,8 @@
 static int CeedOperatorSetupFields_Ref(CeedQFunction qf, CeedOperator op, bool is_input, CeedVector *e_vecs_full, CeedVector *e_vecs,
                                        CeedVector *q_vecs, CeedInt start_e, CeedInt num_fields, CeedInt Q) {
   Ceed                ceed;
-  CeedSize            e_size, q_size;
+  bool                is_at_points;
+  CeedSize            e_size, q_size, at_points_e_size_padding = 0;
   CeedInt             num_comp, size, P;
   CeedQFunctionField *qf_fields;
   CeedOperatorField  *op_fields;
@@ -31,6 +32,7 @@ static int CeedOperatorSetupFields_Ref(CeedQFunction qf, CeedOperator op, bool i
     CeedCallBackend(CeedGetParent(ceed, &ceed_parent));
     if (ceed_parent) ceed = ceed_parent;
   }
+  CeedCallBackend(CeedOperatorIsAtPoints(op, &is_at_points));
   if (is_input) {
     CeedCallBackend(CeedOperatorGetFields(op, NULL, &op_fields, NULL, NULL));
     CeedCallBackend(CeedQFunctionGetFields(qf, NULL, &qf_fields, NULL, NULL));
@@ -48,7 +50,24 @@ static int CeedOperatorSetupFields_Ref(CeedQFunction qf, CeedOperator op, bool i
     CeedCallBackend(CeedQFunctionFieldGetEvalMode(qf_fields[i], &eval_mode));
     if (eval_mode != CEED_EVAL_WEIGHT) {
       CeedCallBackend(CeedOperatorFieldGetElemRestriction(op_fields[i], &elem_rstr));
-      CeedCallBackend(CeedElemRestrictionCreateVector(elem_rstr, NULL, &e_vecs_full[i + start_e]));
+      if (is_at_points) {
+        CeedSize e_size;
+
+        CeedCallBackend(CeedElemRestrictionGetEVectorSize(elem_rstr, &e_size));
+        if (at_points_e_size_padding == 0) {
+          CeedInt num_elem, num_points, max_points, num_comp;
+
+          CeedCallBackend(CeedElemRestrictionGetNumElements(elem_rstr, &num_elem));
+          CeedCallBackend(CeedElemRestrictionGetNumPointsInElement(elem_rstr, num_elem - 1, &num_points));
+          CeedCallBackend(CeedElemRestrictionGetMaxPointsInElement(elem_rstr, &max_points));
+          CeedCallBackend(CeedElemRestrictionGetNumComponents(elem_rstr, &num_comp));
+          at_points_e_size_padding = (max_points - num_points) * num_comp;
+        }
+        CeedCallBackend(CeedVectorCreate(ceed, e_size + at_points_e_size_padding, &e_vecs_full[i + start_e]));
+        CeedCallBackend(CeedVectorSetValue(e_vecs_full[i + start_e], 0.0));
+      } else {
+        CeedCallBackend(CeedElemRestrictionCreateVector(elem_rstr, NULL, &e_vecs_full[i + start_e]));
+      }
     }
 
     switch (eval_mode) {
