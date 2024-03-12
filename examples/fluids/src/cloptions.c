@@ -102,8 +102,6 @@ PetscErrorCode ProcessCommandLineOptions(MPI_Comm comm, AppCtx app_ctx, SimpleBC
                                 sizeof(amat_type), &option_set));
     if (option_set) PetscCall(PetscStrallocpy(amat_type, (char **)&app_ctx->amat_type));
   }
-  PetscCall(PetscOptionsBool("-pmat_pbdiagonal", "Assemble only point-block diagonal for Pmat", NULL, app_ctx->pmat_pbdiagonal,
-                             &app_ctx->pmat_pbdiagonal, NULL));
 
   // Provide default ceed resource if not specified
   if (!ceed_flag) {

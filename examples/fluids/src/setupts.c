@@ -198,88 +198,33 @@ PetscErrorCode IFunction_NS(TS ts, PetscReal t, Vec Q, Vec Q_dot, Vec G, void *u
   PetscFunctionReturn(PETSC_SUCCESS);
 }
 
-static PetscErrorCode FormPreallocation(User user, PetscBool pbdiagonal, Mat J, CeedVector *coo_values) {
-  PetscCount ncoo;
-  PetscInt  *rows_petsc, *cols_petsc;
-  CeedInt   *rows_ceed, *cols_ceed;
-
-  PetscFunctionBeginUser;
-  if (pbdiagonal) {
-    PetscCallCeed(user->ceed, CeedOperatorLinearAssemblePointBlockDiagonalSymbolic(user->op_ijacobian, &ncoo, &rows_ceed, &cols_ceed));
-  } else {
-    PetscCallCeed(user->ceed, CeedOperatorLinearAssembleSymbolic(user->op_ijacobian, &ncoo, &rows_ceed, &cols_ceed));
-  }
-  PetscCall(IntArrayC2P(ncoo, &rows_ceed, &rows_petsc));
-  PetscCall(IntArrayC2P(ncoo, &cols_ceed, &cols_petsc));
-  PetscCall(MatSetPreallocationCOOLocal(J, ncoo, rows_petsc, cols_petsc));
-  free(rows_petsc);
-  free(cols_petsc);
-  PetscCallCeed(user->ceed, CeedVectorCreate(user->ceed, ncoo, coo_values));
-  PetscFunctionReturn(PETSC_SUCCESS);
-}
-
-static PetscErrorCode FormSetValues(User user, PetscBool pbdiagonal, Mat J, CeedVector coo_values) {
-  CeedMemType        mem_type = CEED_MEM_HOST;
-  const PetscScalar *values;
-  MatType            mat_type;
-
-  PetscFunctionBeginUser;
-  PetscCall(MatGetType(J, &mat_type));
-  if (strstr(mat_type, "kokkos") || strstr(mat_type, "cusparse")) mem_type = CEED_MEM_DEVICE;
-  if (pbdiagonal) {
-    PetscCall(PetscLogEventBegin(FLUIDS_CeedOperatorAssemblePointBlockDiagonal, J, 0, 0, 0));
-    PetscCall(PetscLogGpuTimeBegin());
-    PetscCallCeed(user->ceed, CeedOperatorLinearAssemblePointBlockDiagonal(user->op_ijacobian, coo_values, CEED_REQUEST_IMMEDIATE));
-    PetscCall(PetscLogGpuTimeEnd());
-    PetscCall(PetscLogEventEnd(FLUIDS_CeedOperatorAssemblePointBlockDiagonal, J, 0, 0, 0));
-  } else {
-    PetscCall(PetscLogEventBegin(FLUIDS_CeedOperatorAssemble, J, 0, 0, 0));
-    PetscCall(PetscLogGpuTimeBegin());
-    PetscCallCeed(user->ceed, CeedOperatorLinearAssemble(user->op_ijacobian, coo_values));
-    PetscCall(PetscLogGpuTimeEnd());
-    PetscCall(PetscLogEventEnd(FLUIDS_CeedOperatorAssemble, J, 0, 0, 0));
-  }
-  PetscCallCeed(user->ceed, CeedVectorGetArrayRead(coo_values, mem_type, &values));
-  PetscCall(MatSetValuesCOO(J, values, INSERT_VALUES));
-  PetscCallCeed(user->ceed, CeedVectorRestoreArrayRead(coo_values, &values));
-  PetscFunctionReturn(PETSC_SUCCESS);
-}
-
 PetscErrorCode FormIJacobian_NS(TS ts, PetscReal t, Vec Q, Vec Q_dot, PetscReal shift, Mat J, Mat J_pre, void *user_data) {
   User      user = *(User *)user_data;
   Ceed      ceed = user->ceed;
-  PetscBool J_is_shell, J_is_mffd, J_pre_is_shell;
+  PetscBool J_is_matceed, J_is_mffd, J_pre_is_matceed, J_pre_is_mffd;
 
   PetscFunctionBeginUser;
-  if (user->phys->ijacobian_time_shift_label)
-    PetscCallCeed(ceed, CeedOperatorSetContextDouble(user->op_ijacobian, user->phys->ijacobian_time_shift_label, &shift));
   PetscCall(PetscObjectTypeCompare((PetscObject)J, MATMFFD, &J_is_mffd));
-  PetscCall(PetscObjectTypeCompare((PetscObject)J, MATSHELL, &J_is_shell));
-  PetscCall(PetscObjectTypeCompare((PetscObject)J_pre, MATSHELL, &J_pre_is_shell));
-  if (!user->matrices_set_up) {
-    if (J_is_shell) {
-      OperatorApplyContext op_ijacobian_ctx;
-      OperatorApplyContextCreate(user->dm, user->dm, user->ceed, user->op_ijacobian, user->q_ceed, user->g_ceed, user->Q_dot_loc, NULL,
-                                 &op_ijacobian_ctx);
-      PetscCall(CreateMatShell_Ceed(op_ijacobian_ctx, &J));
-      PetscCall(MatSetUp(J));
-    }
-    if (!J_pre_is_shell) {
-      PetscCall(FormPreallocation(user, user->app_ctx->pmat_pbdiagonal, J_pre, &user->coo_values_pmat));
-    }
-    if (J != J_pre && !J_is_shell && !J_is_mffd) {
-      PetscCall(FormPreallocation(user, PETSC_FALSE, J, &user->coo_values_amat));
-    }
-    user->matrices_set_up = true;
+  PetscCall(PetscObjectTypeCompare((PetscObject)J, MATCEED, &J_is_matceed));
+  PetscCall(PetscObjectTypeCompare((PetscObject)J_pre, MATMFFD, &J_pre_is_mffd));
+  PetscCall(PetscObjectTypeCompare((PetscObject)J_pre, MATCEED, &J_pre_is_matceed));
+  if (user->phys->ijacobian_time_shift_label) {
+    CeedOperator op_ijacobian;
+
+    PetscCall(MatCeedGetCeedOperators(user->mat_ijacobian, &op_ijacobian, NULL));
+    PetscCallCeed(ceed, CeedOperatorSetContextDouble(op_ijacobian, user->phys->ijacobian_time_shift_label, &shift));
   }
-  if (!J_pre_is_shell) {
-    PetscCall(FormSetValues(user, user->app_ctx->pmat_pbdiagonal, J_pre, user->coo_values_pmat));
-  }
-  if (user->coo_values_amat) {
-    PetscCall(FormSetValues(user, PETSC_FALSE, J, user->coo_values_amat));
-  } else if (J_is_mffd) {
+
+  if (J_is_matceed || J_is_mffd) {
     PetscCall(MatAssemblyBegin(J, MAT_FINAL_ASSEMBLY));
     PetscCall(MatAssemblyEnd(J, MAT_FINAL_ASSEMBLY));
+  } else PetscCall(MatCeedAssembleCOO(user->mat_ijacobian, J));
+
+  if (J_pre_is_matceed && J != J_pre) {
+    PetscCall(MatAssemblyBegin(J_pre, MAT_FINAL_ASSEMBLY));
+    PetscCall(MatAssemblyEnd(J_pre, MAT_FINAL_ASSEMBLY));
+  } else if (!J_pre_is_matceed && !J_pre_is_mffd && J != J_pre) {
+    PetscCall(MatCeedAssembleCOO(user->mat_ijacobian, J_pre));
   }
   PetscFunctionReturn(PETSC_SUCCESS);
 }
@@ -419,17 +364,8 @@ PetscErrorCode TSSolve_NS(DM dm, User user, AppCtx app_ctx, Physics phys, Vec *Q
     } else {  // Implicit integrators can fall back to using an RHSFunction
       PetscCall(TSSetRHSFunction(*ts, NULL, RHS_NS, &user));
     }
-    if (user->op_ijacobian) {
+    if (user->mat_ijacobian) {
       PetscCall(DMTSSetIJacobian(dm, FormIJacobian_NS, &user));
-      if (app_ctx->amat_type) {
-        Mat Pmat, Amat;
-        PetscCall(DMCreateMatrix(dm, &Pmat));
-        PetscCall(DMSetMatType(dm, app_ctx->amat_type));
-        PetscCall(DMCreateMatrix(dm, &Amat));
-        PetscCall(TSSetIJacobian(*ts, Amat, Pmat, NULL, NULL));
-        PetscCall(MatDestroy(&Amat));
-        PetscCall(MatDestroy(&Pmat));
-      }
     }
   } else {
     PetscCheck(user->op_rhs_ctx, comm, PETSC_ERR_ARG_NULL, "Problem does not provide RHSFunction");
@@ -444,6 +380,24 @@ PetscErrorCode TSSolve_NS(DM dm, User user, AppCtx app_ctx, Physics phys, Vec *Q
   PetscCall(TSGetAdapt(*ts, &adapt));
   PetscCall(TSAdaptSetStepLimits(adapt, 1.e-12 * user->units->second, 1.e2 * user->units->second));
   PetscCall(TSSetFromOptions(*ts));
+  if (user->mat_ijacobian) {
+    if (app_ctx->amat_type && !strcmp(app_ctx->amat_type, MATSHELL)) {
+      PetscBool use_matceed_pmat;
+      SNES      snes;
+      KSP       ksp;
+      PC        pc;
+      PCType    pc_type;
+      Mat       Pmat;
+
+      PetscCall(TSGetSNES(*ts, &snes));
+      PetscCall(SNESGetKSP(snes, &ksp));
+      PetscCall(KSPGetPC(ksp, &pc));
+      PetscCall(PCGetType(pc, &pc_type));
+      PetscCall(PetscStrcmpAny(pc_type, &use_matceed_pmat, PCJACOBI, PCVPBJACOBI, PCPBJACOBI, ""));
+      Pmat = use_matceed_pmat ? user->mat_ijacobian : NULL;
+      PetscCall(TSSetIJacobian(*ts, user->mat_ijacobian, Pmat, NULL, NULL));
+    }
+  }
   user->time_bc_set = -1.0;   // require all BCs be updated
   if (app_ctx->cont_steps) {  // continue from previous timestep data
     PetscInt    count;
