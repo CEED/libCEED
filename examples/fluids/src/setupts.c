@@ -35,7 +35,7 @@ PetscErrorCode CreateKSPMassOperator(User user, CeedData ceed_data) {
   PetscCallCeed(ceed, CeedOperatorSetField(op_mass, "v", ceed_data->elem_restr_q, ceed_data->basis_q, CEED_VECTOR_ACTIVE));
 
   {  // -- Setup KSP for mass operator
-    Mat      mat_mass;
+    Mat      mat_mass = NULL;
     Vec      Zeros_loc;
     MPI_Comm comm = PetscObjectComm((PetscObject)dm);
 
@@ -261,10 +261,7 @@ PetscErrorCode FormIJacobian_NS(TS ts, PetscReal t, Vec Q, Vec Q_dot, PetscReal 
       OperatorApplyContext op_ijacobian_ctx;
       OperatorApplyContextCreate(user->dm, user->dm, user->ceed, user->op_ijacobian, user->q_ceed, user->g_ceed, user->Q_dot_loc, NULL,
                                  &op_ijacobian_ctx);
-      PetscCall(MatShellSetContext(J, op_ijacobian_ctx));
-      PetscCall(MatShellSetContextDestroy(J, (PetscErrorCode(*)(void *))OperatorApplyContextDestroy));
-      PetscCall(MatShellSetOperation(J, MATOP_MULT, (void (*)(void))MatMult_Ceed));
-      PetscCall(MatShellSetOperation(J, MATOP_GET_DIAGONAL, (void (*)(void))MatGetDiag_Ceed));
+      PetscCall(CreateMatShell_Ceed(op_ijacobian_ctx, &J));
       PetscCall(MatSetUp(J));
     }
     if (!J_pre_is_shell) {

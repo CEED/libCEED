@@ -80,7 +80,7 @@ PetscErrorCode DifferentialFilterCreateOperators(Ceed ceed, User user, CeedData 
   {  // Setup LHS Operator and KSP for the differential filtering solve
     CeedOperator         op_lhs;
     OperatorApplyContext mat_ctx;
-    Mat                  mat_lhs;
+    Mat                  mat_lhs = NULL;
     CeedInt              num_comp_qd;
     PetscInt             dim, num_comp_grid_aniso;
     CeedElemRestriction  elem_restr_grid_aniso;

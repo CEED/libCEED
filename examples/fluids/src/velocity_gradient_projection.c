@@ -102,7 +102,7 @@ PetscErrorCode VelocityGradientProjectionSetup(Ceed ceed, User user, CeedData ce
   PetscCallCeed(ceed, CeedOperatorSetField(op_mass, "v", elem_restr_grad_velo, basis_grad_velo, CEED_VECTOR_ACTIVE));
 
   {  // -- Setup KSP for L^2 projection with lumped mass operator
-    Mat                  mat_mass;
+    Mat                  mat_mass = NULL;
     OperatorApplyContext mass_matop_ctx;
     MPI_Comm             comm = PetscObjectComm((PetscObject)grad_velo_proj->dm);
 

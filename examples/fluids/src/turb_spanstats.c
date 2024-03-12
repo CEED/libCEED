@@ -333,7 +333,7 @@ PetscErrorCode SetupL2ProjectionStats(Ceed ceed, User user, CeedData ceed_data, 
 
   {  // Setup KSP for L^2 projection
     OperatorApplyContext M_ctx;
-    Mat                  mat_mass;
+    Mat                  mat_mass = NULL;
     KSP                  ksp;
 
     PetscCall(OperatorApplyContextCreate(user->spanstats.dm, user->spanstats.dm, user->ceed, op_mass, NULL, NULL, NULL, NULL, &M_ctx));

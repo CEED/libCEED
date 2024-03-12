@@ -23,8 +23,6 @@ struct OperatorApplyContext_ {
 PetscErrorCode OperatorApplyContextCreate(DM dm_x, DM dm_y, Ceed ceed, CeedOperator op_apply, CeedVector x_ceed, CeedVector y_ceed, Vec X_loc,
                                           Vec Y_loc, OperatorApplyContext *op_apply_ctx);
 PetscErrorCode OperatorApplyContextDestroy(OperatorApplyContext op_apply_ctx);
-PetscErrorCode MatGetDiag_Ceed(Mat A, Vec D);
-PetscErrorCode MatMult_Ceed(Mat A, Vec X, Vec Y);
 PetscErrorCode CreateMatShell_Ceed(OperatorApplyContext ctx, Mat *mat);
 
 PetscErrorCode DMGetGlobalVectorInfo(DM dm, PetscInt *local_size, PetscInt *global_size, VecType *vec_type);

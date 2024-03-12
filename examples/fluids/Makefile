@@ -41,6 +41,7 @@ AFLAGS ?= -fsanitize=address #-fsanitize=undefined -fno-omit-frame-pointer
 CFLAGS += $(if $(ASAN),$(AFLAGS))
 FFLAGS += $(if $(ASAN),$(AFLAGS))
 LDFLAGS += $(if $(ASAN),$(AFLAGS))
+CPPFLAGS += -I./include
 
 OBJDIR := build
 SRCDIR := src

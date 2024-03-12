@@ -428,7 +428,7 @@ PetscErrorCode ApplyAddCeedOperatorLocalToLocal(Vec X_loc, Vec Y_loc, OperatorAp
 // -----------------------------------------------------------------------------
 // Wraps the libCEED operator for a MatShell
 // -----------------------------------------------------------------------------
-PetscErrorCode MatMult_Ceed(Mat A, Vec X, Vec Y) {
+static PetscErrorCode MatMult_Ceed(Mat A, Vec X, Vec Y) {
   OperatorApplyContext ctx;
 
   PetscFunctionBeginUser;
@@ -440,7 +440,7 @@ PetscErrorCode MatMult_Ceed(Mat A, Vec X, Vec Y) {
 // -----------------------------------------------------------------------------
 // Returns the computed diagonal of the operator
 // -----------------------------------------------------------------------------
-PetscErrorCode MatGetDiag_Ceed(Mat A, Vec D) {
+static PetscErrorCode MatGetDiag_Ceed(Mat A, Vec D) {
   OperatorApplyContext ctx;
   Vec                  Y_loc;
   PetscMemType         mem_type;
@@ -474,7 +474,7 @@ PetscErrorCode MatGetDiag_Ceed(Mat A, Vec D) {
  * @brief Create PETSc MatShell object for the corresponding OperatorApplyContext
  *
  * @param[in]  ctx Context that does the action of the operator
- * @param[out] mat MatShell for the operator
+ * @param[out] mat MatShell for the operator, must be NULL if mat should be created
  */
 PetscErrorCode CreateMatShell_Ceed(OperatorApplyContext ctx, Mat *mat) {
   MPI_Comm comm_x = PetscObjectComm((PetscObject)(ctx->dm_x));
@@ -488,7 +488,15 @@ PetscErrorCode CreateMatShell_Ceed(OperatorApplyContext ctx, Mat *mat) {
   PetscCall(DMGetGlobalVectorInfo(ctx->dm_x, &X_loc_size, &X_size, &X_vec_type));
   PetscCall(DMGetGlobalVectorInfo(ctx->dm_y, &Y_loc_size, &Y_size, &Y_vec_type));
 
-  PetscCall(MatCreateShell(comm_x, Y_loc_size, X_loc_size, Y_size, X_size, ctx, mat));
+  if (*mat) {
+    PetscBool   mat_is_shell;
+    const char *type;
+
+    PetscCall(PetscObjectTypeCompare((PetscObject)*mat, MATSHELL, &mat_is_shell));
+    PetscObjectGetType((PetscObject)*mat, &type);
+    PetscCheck(mat_is_shell, comm_x, PETSC_ERR_ARG_WRONGSTATE, "Mat must be of type SHELL, instead got: %s", type);
+    PetscCall(MatShellSetContext(*mat, ctx));
+  } else PetscCall(MatCreateShell(comm_x, Y_loc_size, X_loc_size, Y_size, X_size, ctx, mat));
   PetscCall(MatShellSetContextDestroy(*mat, (PetscErrorCode(*)(void *))OperatorApplyContextDestroy));
   PetscCall(MatShellSetOperation(*mat, MATOP_MULT, (void (*)(void))MatMult_Ceed));
   PetscCall(MatShellSetOperation(*mat, MATOP_GET_DIAGONAL, (void (*)(void))MatGetDiag_Ceed));
