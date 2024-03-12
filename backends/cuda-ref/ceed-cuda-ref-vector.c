@@ -509,7 +509,7 @@ static int CeedVectorNorm_Cuda(CeedVector vec, CeedNormType type, CeedScalar *no
           CeedCallCublas(ceed, cublasSnrm2(handle, (CeedInt)sub_length, (float *)d_array_start, 1, &sub_norm));
           norm_sum += sub_norm * sub_norm;
         }
-        *norm            = sqrt(norm_sum);
+        *norm = sqrt(norm_sum);
 #endif
       } else {
 #if CUDA_VERSION >= 12000
