@@ -10,6 +10,7 @@
 
 #include <ceed.h>
 #include <petscdm.h>
+#include <petscksp.h>
 
 typedef struct OperatorApplyContext_ *OperatorApplyContext;
 struct OperatorApplyContext_ {
@@ -44,4 +45,7 @@ PetscErrorCode ApplyAddCeedOperatorLocalToLocal(Vec X_loc, Vec Y_loc, OperatorAp
 
 PetscErrorCode DMGetLocalVectorInfo(DM dm, PetscInt *local_size, PetscInt *global_size, VecType *vec_type);
 PetscErrorCode DMGetGlobalVectorInfo(DM dm, PetscInt *local_size, PetscInt *global_size, VecType *vec_type);
+
+PetscErrorCode CreateSolveOperatorsFromMatCeed(KSP ksp, Mat mat_ceed, PetscBool assemble, Mat *Amat, Mat *Pmat);
+PetscErrorCode KSPSetFromOptions_WithMatCeed(KSP ksp, Mat mat_ceed);
 #endif  // petsc_ops_h

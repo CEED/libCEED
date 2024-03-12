@@ -102,12 +102,10 @@ PetscErrorCode VelocityGradientProjectionSetup(Ceed ceed, User user, CeedData ce
   PetscCallCeed(ceed, CeedOperatorSetField(op_mass, "v", elem_restr_grad_velo, basis_grad_velo, CEED_VECTOR_ACTIVE));
 
   {  // -- Setup KSP for L^2 projection with lumped mass operator
-    Mat                  mat_mass = NULL;
-    OperatorApplyContext mass_matop_ctx;
-    MPI_Comm             comm = PetscObjectComm((PetscObject)grad_velo_proj->dm);
+    Mat      mat_mass;
+    MPI_Comm comm = PetscObjectComm((PetscObject)grad_velo_proj->dm);
 
-    PetscCall(OperatorApplyContextCreate(grad_velo_proj->dm, grad_velo_proj->dm, ceed, op_mass, NULL, NULL, NULL, NULL, &mass_matop_ctx));
-    PetscCall(CreateMatShell_Ceed(mass_matop_ctx, &mat_mass));
+    PetscCall(MatCeedCreate(grad_velo_proj->dm, grad_velo_proj->dm, op_mass, NULL, &mat_mass));
 
     PetscCall(KSPCreate(comm, &grad_velo_proj->ksp));
     PetscCall(KSPSetOptionsPrefix(grad_velo_proj->ksp, "velocity_gradient_projection_"));
@@ -118,8 +116,7 @@ PetscErrorCode VelocityGradientProjectionSetup(Ceed ceed, User user, CeedData ce
       PetscCall(PCJacobiSetType(pc, PC_JACOBI_ROWSUM));
       PetscCall(KSPSetType(grad_velo_proj->ksp, KSPPREONLY));
     }
-    PetscCall(KSPSetOperators(grad_velo_proj->ksp, mat_mass, mat_mass));
-    PetscCall(KSPSetFromOptions(grad_velo_proj->ksp));
+    PetscCall(KSPSetFromOptions_WithMatCeed(grad_velo_proj->ksp, mat_mass));
     PetscCall(MatDestroy(&mat_mass));
   }
 

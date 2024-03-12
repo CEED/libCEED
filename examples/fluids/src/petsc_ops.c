@@ -507,4 +507,83 @@ PetscErrorCode CreateMatShell_Ceed(OperatorApplyContext ctx, Mat *mat) {
   PetscFunctionReturn(PETSC_SUCCESS);
 }
 
+/**
+ * @brief Return Mats for KSP solve
+ *
+ * Uses command-line flag with `ksp`'s prefix to determine if mat_ceed should be used directly or whether it should be assembled.
+ * If `Amat` is to be assembled, then `Pmat` is equal to `Amat`.
+ *
+ * If `Amat` uses `mat_ceed`, then `Pmat` is either assembled or uses `mat_ceed` based on the preconditioner choice in `ksp`.
+ *
+ * @param[in]  ksp      `KSP` object for used for solving
+ * @param[in]  mat_ceed `MATCEED` for the linear operator
+ * @param[in]  assemble Whether to assemble `Amat` and `Pmat` if they are not `mat_ceed`
+ * @param[out] Amat     `Mat` to be used for the solver `Amat`
+ * @param[out] Pmat     `Mat` to be used for the solver `Pmat`
+ */
+PetscErrorCode CreateSolveOperatorsFromMatCeed(KSP ksp, Mat mat_ceed, PetscBool assemble, Mat *Amat, Mat *Pmat) {
+  PetscBool use_matceed_pmat, assemble_amat = PETSC_FALSE;
+  MatType   mat_ceed_inner_type;
+
+  PetscFunctionBeginUser;
+  PetscCall(MatCeedGetInnerMatType(mat_ceed, &mat_ceed_inner_type));
+  {  // Determine if Amat should be MATCEED or assembled
+    const char *ksp_prefix = NULL;
+
+    PetscCall(KSPGetOptionsPrefix(ksp, &ksp_prefix));
+    PetscOptionsBegin(PetscObjectComm((PetscObject)mat_ceed), ksp_prefix, "", NULL);
+    PetscCall(PetscOptionsBool("-matceed_assemble_amat", "Assemble the A matrix for KSP solve", NULL, assemble_amat, &assemble_amat, NULL));
+    PetscOptionsEnd();
+  }
+
+  if (assemble_amat) {
+    PetscCall(MatConvert(mat_ceed, mat_ceed_inner_type, MAT_INITIAL_MATRIX, Amat));
+    if (assemble) PetscCall(MatCeedAssembleCOO(mat_ceed, *Amat));
+
+    PetscCall(PetscObjectReference((PetscObject)*Amat));
+    *Pmat = *Amat;
+    PetscFunctionReturn(PETSC_SUCCESS);
+  } else {
+    PetscCall(PetscObjectReference((PetscObject)mat_ceed));
+    *Amat = mat_ceed;
+  }
+
+  {  // Determine if Pmat should be MATCEED or assembled
+    PC     pc;
+    PCType pc_type;
+
+    PetscCall(KSPGetPC(ksp, &pc));
+    PetscCall(PCGetType(pc, &pc_type));
+    PetscCall(PetscStrcmpAny(pc_type, &use_matceed_pmat, PCJACOBI, PCVPBJACOBI, PCPBJACOBI, ""));
+  }
+
+  if (use_matceed_pmat) {
+    PetscCall(PetscObjectReference((PetscObject)mat_ceed));
+    *Pmat = mat_ceed;
+  } else {
+    PetscCall(MatConvert(mat_ceed, mat_ceed_inner_type, MAT_INITIAL_MATRIX, Pmat));
+    if (assemble) PetscCall(MatCeedAssembleCOO(mat_ceed, *Pmat));
+  }
+  PetscFunctionReturn(PETSC_SUCCESS);
+}
+
+/**
+ * @brief Runs KSPSetFromOptions and sets Operators based on mat_ceed
+ *
+ * See CreateSolveOperatorsFromMatCeed for details on how the KSPSolve operators are set.
+ *
+ * @param[in] ksp      `KSP` of the solve
+ * @param[in] mat_ceed `MatCeed` linear operator to solve for
+ */
+PetscErrorCode KSPSetFromOptions_WithMatCeed(KSP ksp, Mat mat_ceed) {
+  Mat Amat, Pmat;
+
+  PetscFunctionBeginUser;
+  PetscCall(KSPSetFromOptions(ksp));
+  PetscCall(CreateSolveOperatorsFromMatCeed(ksp, mat_ceed, PETSC_TRUE, &Amat, &Pmat));
+  PetscCall(KSPSetOperators(ksp, Amat, Pmat));
+  PetscCall(MatDestroy(&Amat));
+  PetscCall(MatDestroy(&Pmat));
+  PetscFunctionReturn(PETSC_SUCCESS);
+}
 // -----------------------------------------------------------------------------

@@ -73,11 +73,9 @@ PetscErrorCode GridAnisotropyTensorProjectionSetupApply(Ceed ceed, User user, Ce
   PetscCallCeed(ceed, CeedOperatorSetField(op_mass, "v", *elem_restr_grid_aniso, basis_grid_aniso, CEED_VECTOR_ACTIVE));
 
   {  // -- Setup KSP for L^2 projection
-    Mat                  mat_mass = NULL;
-    OperatorApplyContext mass_matop_ctx;
+    Mat mat_mass;
 
-    PetscCall(OperatorApplyContextCreate(grid_aniso_proj->dm, grid_aniso_proj->dm, ceed, op_mass, NULL, NULL, NULL, NULL, &mass_matop_ctx));
-    PetscCall(CreateMatShell_Ceed(mass_matop_ctx, &mat_mass));
+    PetscCall(MatCeedCreate(grid_aniso_proj->dm, grid_aniso_proj->dm, op_mass, NULL, &mat_mass));
 
     PetscCall(KSPCreate(comm, &ksp));
     PetscCall(KSPSetOptionsPrefix(ksp, "grid_anisotropy_tensor_projection_"));
@@ -90,8 +88,7 @@ PetscErrorCode GridAnisotropyTensorProjectionSetupApply(Ceed ceed, User user, Ce
       PetscCall(KSPSetNormType(ksp, KSP_NORM_NATURAL));
       PetscCall(KSPSetTolerances(ksp, 1e-10, PETSC_DEFAULT, PETSC_DEFAULT, PETSC_DEFAULT));
     }
-    PetscCall(KSPSetOperators(ksp, mat_mass, mat_mass));
-    PetscCall(KSPSetFromOptions(ksp));
+    PetscCall(KSPSetFromOptions_WithMatCeed(ksp, mat_mass));
     PetscCall(MatDestroy(&mat_mass));
   }
 

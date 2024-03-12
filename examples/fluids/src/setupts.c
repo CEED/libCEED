@@ -17,12 +17,11 @@
 
 // @brief Create KSP to solve the inverse mass operator for explicit time stepping schemes
 PetscErrorCode CreateKSPMassOperator(User user, CeedData ceed_data) {
-  Ceed                 ceed = user->ceed;
-  DM                   dm   = user->dm;
-  CeedQFunction        qf_mass;
-  CeedOperator         op_mass;
-  OperatorApplyContext mass_matop_ctx;
-  CeedInt              num_comp_q, q_data_size;
+  Ceed          ceed = user->ceed;
+  DM            dm   = user->dm;
+  CeedQFunction qf_mass;
+  CeedOperator  op_mass;
+  CeedInt       num_comp_q, q_data_size;
 
   PetscFunctionBeginUser;
   PetscCallCeed(ceed, CeedElemRestrictionGetNumComponents(ceed_data->elem_restr_q, &num_comp_q));
@@ -35,14 +34,14 @@ PetscErrorCode CreateKSPMassOperator(User user, CeedData ceed_data) {
   PetscCallCeed(ceed, CeedOperatorSetField(op_mass, "v", ceed_data->elem_restr_q, ceed_data->basis_q, CEED_VECTOR_ACTIVE));
 
   {  // -- Setup KSP for mass operator
-    Mat      mat_mass = NULL;
+    Mat      mat_mass;
     Vec      Zeros_loc;
     MPI_Comm comm = PetscObjectComm((PetscObject)dm);
 
     PetscCall(DMCreateLocalVector(dm, &Zeros_loc));
     PetscCall(VecZeroEntries(Zeros_loc));
-    PetscCall(OperatorApplyContextCreate(dm, dm, ceed, op_mass, NULL, NULL, Zeros_loc, NULL, &mass_matop_ctx));
-    PetscCall(CreateMatShell_Ceed(mass_matop_ctx, &mat_mass));
+    PetscCall(MatCeedCreate(dm, dm, op_mass, NULL, &mat_mass));
+    PetscCall(MatCeedSetLocalVectors(mat_mass, Zeros_loc, NULL));
 
     PetscCall(KSPCreate(comm, &user->mass_ksp));
     PetscCall(KSPSetOptionsPrefix(user->mass_ksp, "mass_"));
@@ -53,13 +52,11 @@ PetscErrorCode CreateKSPMassOperator(User user, CeedData ceed_data) {
       PetscCall(PCJacobiSetType(pc, PC_JACOBI_ROWSUM));
       PetscCall(KSPSetType(user->mass_ksp, KSPPREONLY));
     }
-    PetscCall(KSPSetOperators(user->mass_ksp, mat_mass, mat_mass));
-    PetscCall(KSPSetFromOptions(user->mass_ksp));
+    PetscCall(KSPSetFromOptions_WithMatCeed(user->mass_ksp, mat_mass));
     PetscCall(VecDestroy(&Zeros_loc));
     PetscCall(MatDestroy(&mat_mass));
   }
 
-  // Cleanup
   PetscCallCeed(ceed, CeedQFunctionDestroy(&qf_mass));
   PetscCallCeed(ceed, CeedOperatorDestroy(&op_mass));
   PetscFunctionReturn(PETSC_SUCCESS);
@@ -382,20 +379,16 @@ PetscErrorCode TSSolve_NS(DM dm, User user, AppCtx app_ctx, Physics phys, Vec *Q
   PetscCall(TSSetFromOptions(*ts));
   if (user->mat_ijacobian) {
     if (app_ctx->amat_type && !strcmp(app_ctx->amat_type, MATSHELL)) {
-      PetscBool use_matceed_pmat;
-      SNES      snes;
-      KSP       ksp;
-      PC        pc;
-      PCType    pc_type;
-      Mat       Pmat;
+      SNES snes;
+      KSP  ksp;
+      Mat  Pmat, Amat;
 
       PetscCall(TSGetSNES(*ts, &snes));
       PetscCall(SNESGetKSP(snes, &ksp));
-      PetscCall(KSPGetPC(ksp, &pc));
-      PetscCall(PCGetType(pc, &pc_type));
-      PetscCall(PetscStrcmpAny(pc_type, &use_matceed_pmat, PCJACOBI, PCVPBJACOBI, PCPBJACOBI, ""));
-      Pmat = use_matceed_pmat ? user->mat_ijacobian : NULL;
+      PetscCall(CreateSolveOperatorsFromMatCeed(ksp, user->mat_ijacobian, PETSC_FALSE, &Amat, &Pmat));
       PetscCall(TSSetIJacobian(*ts, user->mat_ijacobian, Pmat, NULL, NULL));
+      PetscCall(MatDestroy(&Amat));
+      PetscCall(MatDestroy(&Pmat));
     }
   }
   user->time_bc_set = -1.0;   // require all BCs be updated

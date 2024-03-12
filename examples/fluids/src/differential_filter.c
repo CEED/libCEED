@@ -78,13 +78,12 @@ PetscErrorCode DifferentialFilterCreateOperators(Ceed ceed, User user, CeedData 
   }
 
   {  // Setup LHS Operator and KSP for the differential filtering solve
-    CeedOperator         op_lhs;
-    OperatorApplyContext mat_ctx;
-    Mat                  mat_lhs = NULL;
-    CeedInt              num_comp_qd;
-    PetscInt             dim, num_comp_grid_aniso;
-    CeedElemRestriction  elem_restr_grid_aniso;
-    CeedVector           grid_aniso_ceed;
+    CeedOperator        op_lhs;
+    Mat                 mat_lhs;
+    CeedInt             num_comp_qd;
+    PetscInt            dim, num_comp_grid_aniso;
+    CeedElemRestriction elem_restr_grid_aniso;
+    CeedVector          grid_aniso_ceed;
 
     PetscCall(DMGetDimension(user->dm, &dim));
     PetscCallCeed(ceed, CeedElemRestrictionGetNumComponents(ceed_data->elem_restr_qd_i, &num_comp_qd));
@@ -119,6 +118,7 @@ PetscErrorCode DifferentialFilterCreateOperators(Ceed ceed, User user, CeedData 
       }
 
       PetscCallCeed(ceed, CeedQFunctionSetContext(qf_lhs, diff_filter_qfctx));
+      PetscCallCeed(ceed, CeedQFunctionSetUserFlopsEstimate(qf_lhs, 0));
       PetscCallCeed(ceed, CeedQFunctionAddInput(qf_lhs, "q", num_comp_filter, CEED_EVAL_INTERP));
       PetscCallCeed(ceed, CeedQFunctionAddInput(qf_lhs, "Grad_q", num_comp_filter * dim, CEED_EVAL_GRAD));
       PetscCallCeed(ceed, CeedQFunctionAddInput(qf_lhs, "anisotropy tensor", num_comp_grid_aniso, CEED_EVAL_NONE));
@@ -149,8 +149,7 @@ PetscErrorCode DifferentialFilterCreateOperators(Ceed ceed, User user, CeedData 
       PetscCallCeed(ceed, CeedQFunctionDestroy(&qf_lhs));
       PetscCallCeed(ceed, CeedOperatorDestroy(&op_lhs_sub));
     }
-    PetscCall(OperatorApplyContextCreate(dm_filter, dm_filter, ceed, op_lhs, NULL, NULL, NULL, NULL, &mat_ctx));
-    PetscCall(CreateMatShell_Ceed(mat_ctx, &mat_lhs));
+    PetscCall(MatCeedCreate(dm_filter, dm_filter, op_lhs, NULL, &mat_lhs));
 
     PetscCall(KSPCreate(PetscObjectComm((PetscObject)dm_filter), &diff_filter->ksp));
     PetscCall(KSPSetOptionsPrefix(diff_filter->ksp, "diff_filter_"));
@@ -163,8 +162,7 @@ PetscErrorCode DifferentialFilterCreateOperators(Ceed ceed, User user, CeedData 
       PetscCall(KSPSetNormType(diff_filter->ksp, KSP_NORM_NATURAL));
       PetscCall(KSPSetTolerances(diff_filter->ksp, 1e-10, PETSC_DEFAULT, PETSC_DEFAULT, PETSC_DEFAULT));
     }
-    PetscCall(KSPSetOperators(diff_filter->ksp, mat_lhs, mat_lhs));
-    PetscCall(KSPSetFromOptions(diff_filter->ksp));
+    PetscCall(KSPSetFromOptions_WithMatCeed(diff_filter->ksp, mat_lhs));
 
     PetscCall(MatDestroy(&mat_lhs));
     PetscCallCeed(ceed, CeedOperatorDestroy(&op_lhs));
