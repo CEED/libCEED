@@ -1,8 +1,61 @@
+# ----------------------------------------------------------------------------------------
+# libCEED GitLab CI
+# ----------------------------------------------------------------------------------------
 stages:
   - test:cpu-and-tidy
   - test:gpu-and-float
 
 
+# ----------------------------------------------------------------------------------------
+# Memcheck backends + ASAN
+# ----------------------------------------------------------------------------------------
+noether-asan:
+  stage: test:cpu-and-tidy
+  tags:
+    - cpu
+  interruptible: true
+  before_script:
+# Environment
+    - export COVERAGE=0 CC=gcc CXX=g++ FC=gfortran
+    - export NPROC_POOL=8
+    - echo "-------------- nproc ---------------" && NPROC_CPU=$(nproc) && NPROC_GPU=$(($(nproc)<8?$(nproc):8)) && echo "NPROC_CPU" $NPROC_CPU && echo "NPROC_GPU" $NPROC_GPU
+    - echo "-------------- CC ------------------" && $CC --version
+    - echo "-------------- CXX -----------------" && $CXX --version
+    - echo "-------------- FC ------------------" && $FC --version
+    # ASAN
+    - echo "-------------- ASAN ----------------"
+    - export ASAN=1 AFLAGS="-fsanitize=address -fsanitize=leak"
+    - echo $AFLAGS
+  script:
+    - rm -f .SUCCESS
+# libCEED
+    - make configure OPT='-O -march=native -ffp-contract=fast'
+    - BACKENDS_CPU=$(make info-backends-all | grep -o '/cpu[^ ]*' | tr '\n' ' ')
+    - echo "-------------- libCEED -------------" && make info
+    - echo "-------------- BACKENDS_CPU --------" && echo $BACKENDS_CPU
+    - make -j$NPROC_CPU
+# -- libCEED only tests
+    - echo "-------------- core tests ----------"
+    - echo '[{"subject":"/","metrics":[{"name":"Transfer Size (KB)","value":"19.5","desiredSize":"smaller"},{"name":"Speed Index","value":0,"desiredSize":"smaller"},{"name":"Total Score","value":92,"desiredSize":"larger"},{"name":"Requests","value":4,"desiredSize":"smaller"}]}]' > performance.json
+#    Note: PETSC_DIR is set by default in GitLab runner env, unsetting to isolate core tests
+    - export PETSC_DIR= PETSC_ARCH=
+    - make -k -j$((NPROC_CPU / NPROC_POOL)) BACKENDS="$BACKENDS_CPU" JUNIT_BATCH="memcheck" junit realsearch=%
+# Clang-tidy
+    - echo "-------------- clang-tidy ----------" && clang-tidy --version
+    - make -j$NPROC_CPU tidy
+# Report status
+    - touch .SUCCESS
+  artifacts:
+    paths:
+      - build/*.junit
+    reports:
+      junit: build/*.junit
+      performance: performance.json
+
+
+# ----------------------------------------------------------------------------------------
+# CPU backends only + make tidy
+# ----------------------------------------------------------------------------------------
 noether-cpu:
   stage: test:cpu-and-tidy
   tags:
@@ -86,6 +139,9 @@ noether-cpu:
       performance: performance.json
 
 
+# ----------------------------------------------------------------------------------------
+# Check SYCL backends build
+# ----------------------------------------------------------------------------------------
 noether-sycl:
   stage: test:gpu-and-float
   tags:
@@ -111,6 +167,65 @@ noether-sycl:
     - touch .SUCCESS
 
 
+# ----------------------------------------------------------------------------------------
+# CUDA backends
+# ----------------------------------------------------------------------------------------
+noether-cuda:
+  stage: test:gpu-and-float
+  tags:
+    - cuda
+  interruptible: true
+  before_script:
+# Environment
+    - export COVERAGE=1 CC=gcc CXX=g++ FC=gfortran NVCC=nvcc
+    - export NPROC_POOL=4
+    - echo "-------------- nproc ---------------" && NPROC_CPU=$(nproc) && NPROC_GPU=$(($(nproc)<8?$(nproc):8)) && echo "NPROC_CPU" $NPROC_CPU && echo "NPROC_GPU" $NPROC_GPU
+    - echo "-------------- CC ------------------" && $CC --version
+    - echo "-------------- CXX -----------------" && $CXX --version
+    - echo "-------------- FC ------------------" && $FC --version
+    - echo "-------------- NVCC ----------------" && $NVCC --version
+    - echo "-------------- GCOV ----------------" && gcov --version
+  script:
+    - rm -f .SUCCESS
+# libCEED
+    - make configure OPT='-O -march=native -ffp-contract=fast' CUDA_DIR=/usr
+    - echo "-------------- libCEED -------------" && make info
+    - BACKENDS_GPU=$(make info-backends | grep -o '/gpu[^ ]*' | tr '\n' ' ')
+    - echo "-------------- BACKENDS_GPU --------" && echo $BACKENDS_GPU
+    - PEDANTIC=1 make -k -j$NPROC_CPU -l$NPROC_CPU
+# -- libCEED only tests
+    - echo "-------------- core tests ----------"
+#    Note: PETSC_DIR is set by default in GitLab runner env, unsetting to isolate core tests
+    - export PETSC_DIR= PETSC_ARCH=
+    - make -k -j$((NPROC_GPU / NPROC_POOL)) BACKENDS="$BACKENDS_GPU" JUNIT_BATCH="cuda" junit realsearch=%
+# Libraries for examples
+# -- PETSc with CUDA (minimal)
+    - export PETSC_DIR=/projects/petsc PETSC_ARCH=mpich-cuda-O PETSC_OPTIONS='-use_gpu_aware_mpi 0' && git -C $PETSC_DIR -c safe.directory=$PETSC_DIR describe
+    - source /home/jawr8143/SmartSimTestingSoftware/bin/activate && export SMARTREDIS_DIR=/home/jawr8143/SmartSimTestingSoftware/smartredis/install
+    - echo "-------------- PETSc ---------------" && make -C $PETSC_DIR info
+    - make -k -j$((NPROC_GPU / NPROC_POOL)) JUNIT_BATCH="cuda" junit BACKENDS="$BACKENDS_GPU" search="petsc fluids solids"
+# Report status
+    - touch .SUCCESS
+  after_script:
+    - |
+      if [ -f .SUCCESS ]; then
+        lcov --directory . --capture --output-file coverage.info;
+        bash <(curl -s https://codecov.io/bash) -f coverage.info -t ${CODECOV_ACCESS_TOKEN} -F interface;
+        bash <(curl -s https://codecov.io/bash) -f coverage.info -t ${CODECOV_ACCESS_TOKEN} -F gallery;
+        bash <(curl -s https://codecov.io/bash) -f coverage.info -t ${CODECOV_ACCESS_TOKEN} -F backends;
+        bash <(curl -s https://codecov.io/bash) -f coverage.info -t ${CODECOV_ACCESS_TOKEN} -F tests;
+        bash <(curl -s https://codecov.io/bash) -f coverage.info -t ${CODECOV_ACCESS_TOKEN} -F examples;
+      fi
+  artifacts:
+    paths:
+      - build/*.junit
+    reports:
+      junit: build/*.junit
+
+
+# ----------------------------------------------------------------------------------------
+# ROCm backends
+# ----------------------------------------------------------------------------------------
 noether-rocm:
   stage: test:gpu-and-float
   tags:
@@ -187,6 +302,9 @@ noether-rocm:
       performance: performance.json
 
 
+# ----------------------------------------------------------------------------------------
+# CPU + ROCm backends with CeedInt == float
+# ----------------------------------------------------------------------------------------
 noether-float:
   stage: test:gpu-and-float
   tags:
@@ -248,56 +366,3 @@ noether-float:
     reports:
       junit: build/*.junit
       performance: performance.json
-
-
-noether-cuda:
-  stage: test:gpu-and-float
-  tags:
-    - cuda
-  interruptible: true
-  before_script:
-# Environment
-    - export COVERAGE=1 CC=gcc CXX=g++ FC=gfortran NVCC=nvcc
-    - export NPROC_POOL=4
-    - echo "-------------- nproc ---------------" && NPROC_CPU=$(nproc) && NPROC_GPU=$(($(nproc)<8?$(nproc):8)) && echo "NPROC_CPU" $NPROC_CPU && echo "NPROC_GPU" $NPROC_GPU
-    - echo "-------------- CC ------------------" && $CC --version
-    - echo "-------------- CXX -----------------" && $CXX --version
-    - echo "-------------- FC ------------------" && $FC --version
-    - echo "-------------- NVCC ----------------" && $NVCC --version
-    - echo "-------------- GCOV ----------------" && gcov --version
-  script:
-    - rm -f .SUCCESS
-# libCEED
-    - make configure OPT='-O -march=native -ffp-contract=fast' CUDA_DIR=/usr
-    - echo "-------------- libCEED -------------" && make info
-    - BACKENDS_GPU=$(make info-backends | grep -o '/gpu[^ ]*' | tr '\n' ' ')
-    - echo "-------------- BACKENDS_GPU --------" && echo $BACKENDS_GPU
-    - PEDANTIC=1 make -k -j$NPROC_CPU -l$NPROC_CPU
-# -- libCEED only tests
-    - echo "-------------- core tests ----------"
-#    Note: PETSC_DIR is set by default in GitLab runner env, unsetting to isolate core tests
-    - export PETSC_DIR= PETSC_ARCH=
-    - make -k -j$((NPROC_GPU / NPROC_POOL)) BACKENDS="$BACKENDS_GPU" JUNIT_BATCH="cuda" junit realsearch=%
-# Libraries for examples
-# -- PETSc with CUDA (minimal)
-    - export PETSC_DIR=/projects/petsc PETSC_ARCH=mpich-cuda-O PETSC_OPTIONS='-use_gpu_aware_mpi 0' && git -C $PETSC_DIR -c safe.directory=$PETSC_DIR describe
-    - source /home/jawr8143/SmartSimTestingSoftware/bin/activate && export SMARTREDIS_DIR=/home/jawr8143/SmartSimTestingSoftware/smartredis/install
-    - echo "-------------- PETSc ---------------" && make -C $PETSC_DIR info
-    - make -k -j$((NPROC_GPU / NPROC_POOL)) JUNIT_BATCH="cuda" junit BACKENDS="$BACKENDS_GPU" search="petsc fluids solids"
-# Report status
-    - touch .SUCCESS
-  after_script:
-    - |
-      if [ -f .SUCCESS ]; then
-        lcov --directory . --capture --output-file coverage.info;
-        bash <(curl -s https://codecov.io/bash) -f coverage.info -t ${CODECOV_ACCESS_TOKEN} -F interface;
-        bash <(curl -s https://codecov.io/bash) -f coverage.info -t ${CODECOV_ACCESS_TOKEN} -F gallery;
-        bash <(curl -s https://codecov.io/bash) -f coverage.info -t ${CODECOV_ACCESS_TOKEN} -F backends;
-        bash <(curl -s https://codecov.io/bash) -f coverage.info -t ${CODECOV_ACCESS_TOKEN} -F tests;
-        bash <(curl -s https://codecov.io/bash) -f coverage.info -t ${CODECOV_ACCESS_TOKEN} -F examples;
-      fi
-  artifacts:
-    paths:
-      - build/*.junit
-    reports:
-      junit: build/*.junit
