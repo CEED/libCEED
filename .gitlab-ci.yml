@@ -30,16 +30,16 @@ noether-asan:
     - rm -f .SUCCESS
 # libCEED
     - make configure OPT='-O -march=native -ffp-contract=fast'
-    - BACKENDS_MEMCHECK="/cpu/self/memcheck/serial /cpu/self/memcheck/blocked"
+    - BACKENDS_CPU=$(make info-backends-all | grep -o '/cpu[^ ]*' | tr '\n' ' ')
     - echo "-------------- libCEED -------------" && make info
-    - echo "-------------- BACKENDS_MEMCHECK----" && echo $BACKENDS_MEMCHECK
+    - echo "-------------- BACKENDS_CPU --------" && echo $BACKENDS_CPU
     - make -j$NPROC_CPU
 # -- libCEED only tests
     - echo "-------------- core tests ----------"
     - echo '[{"subject":"/","metrics":[{"name":"Transfer Size (KB)","value":"19.5","desiredSize":"smaller"},{"name":"Speed Index","value":0,"desiredSize":"smaller"},{"name":"Total Score","value":92,"desiredSize":"larger"},{"name":"Requests","value":4,"desiredSize":"smaller"}]}]' > performance.json
 #    Note: PETSC_DIR is set by default in GitLab runner env, unsetting to isolate core tests
     - export PETSC_DIR= PETSC_ARCH=
-    - make -k -j$((NPROC_CPU / NPROC_POOL)) BACKENDS="$BACKENDS_MEMCHECK" JUNIT_BATCH="memcheck" junit realsearch=%
+    - make -k -j$((NPROC_CPU / NPROC_POOL)) BACKENDS="$BACKENDS_CPU" JUNIT_BATCH="memcheck" junit realsearch=%
 # Clang-tidy
     - echo "-------------- clang-tidy ----------" && clang-tidy --version
     - make -j$NPROC_CPU tidy
