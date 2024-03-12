@@ -64,6 +64,9 @@ static const char *const BubbleContinuityTypes[] = {"smooth", "back_sharp", "thi
 // Stabilization methods
 static const char *const StabilizationTypes[] = {"none", "SU", "SUPG", "StabilizationType", "STAB_", NULL};
 
+// Stabilization tau constants
+static const char *const StabilizationTauTypes[] = {"Ctau", "AdvDiff_Shakib", "AdvDiff_Shakib_P", "StabilizationTauType", "STAB_TAU_", NULL};
+
 // Test mode type
 typedef enum {
   TESTTYPE_NONE           = 0,

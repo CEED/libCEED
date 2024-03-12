@@ -34,11 +34,15 @@ typedef enum {
 
 typedef struct AdvectionContext_ *AdvectionContext;
 struct AdvectionContext_ {
-  CeedScalar        CtauS;
-  bool              strong_form;
-  CeedScalar        E_wind;
-  bool              implicit;
-  StabilizationType stabilization;
+  CeedScalar           CtauS;
+  bool                 strong_form;
+  CeedScalar           E_wind;
+  bool                 implicit;
+  StabilizationType    stabilization;
+  StabilizationTauType stabilization_tau;
+  CeedScalar           Ctau_a;
+  CeedScalar           Ctau_t;
+  CeedScalar           dt;
 };
 
 typedef struct SetupContextAdv_ *SetupContextAdv;

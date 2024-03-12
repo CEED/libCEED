@@ -22,6 +22,7 @@ PetscErrorCode NS_ADVECTION(ProblemData *problem, DM dm, void *ctx, SimpleBC bc)
   AdvectionICType      advectionic_type;
   BubbleContinuityType bubble_continuity_type;
   StabilizationType    stab;
+  StabilizationTauType stab_tau;
   SetupContextAdv      setup_context;
   User                 user = *(User *)ctx;
   MPI_Comm             comm = user->comm;
@@ -86,7 +87,9 @@ PetscErrorCode NS_ADVECTION(ProblemData *problem, DM dm, void *ctx, SimpleBC bc)
   CeedScalar rc          = 1000.;  // m (Radius of bubble)
   CeedScalar CtauS       = 0.;     // dimensionless
   PetscBool  strong_form = PETSC_FALSE;
-  CeedScalar E_wind      = 1.e6;        // J
+  CeedScalar E_wind      = 1.e6;  // J
+  CeedScalar Ctau_a      = PetscPowScalarInt(user->app_ctx->degree, 2);
+  CeedScalar Ctau_t      = 0.;
   PetscReal  wind[3]     = {1., 0, 0};  // m/s
   PetscReal  domain_min[3], domain_max[3], domain_size[3];
   PetscCall(DMGetBoundingBox(dm, domain_min, domain_max));
@@ -122,6 +125,10 @@ PetscErrorCode NS_ADVECTION(ProblemData *problem, DM dm, void *ctx, SimpleBC bc)
   PetscCall(PetscOptionsEnum("-bubble_continuity", "Smooth, back_sharp, or thick", NULL, BubbleContinuityTypes, (PetscEnum)bubble_continuity_type,
                              (PetscEnum *)&bubble_continuity_type, NULL));
   PetscCall(PetscOptionsEnum("-stab", "Stabilization method", NULL, StabilizationTypes, (PetscEnum)(stab = STAB_NONE), (PetscEnum *)&stab, NULL));
+  PetscCall(PetscOptionsEnum("-stab_tau", "Stabilization constant, tau", NULL, StabilizationTauTypes, (PetscEnum)(stab_tau = STAB_TAU_CTAU),
+                             (PetscEnum *)&stab_tau, NULL));
+  PetscCall(PetscOptionsScalar("-Ctau_t", "Stabilization time constant", NULL, Ctau_t, &Ctau_t, NULL));
+  PetscCall(PetscOptionsScalar("-Ctau_a", "Coefficient for the stabilization ", NULL, Ctau_a, &Ctau_a, NULL));
   PetscCall(PetscOptionsBool("-implicit", "Use implicit (IFunction) formulation", NULL, implicit = PETSC_FALSE, &implicit, NULL));
 
   // -- Units
@@ -187,12 +194,15 @@ PetscErrorCode NS_ADVECTION(ProblemData *problem, DM dm, void *ctx, SimpleBC bc)
   setup_context->time                   = 0;
 
   // -- QFunction Context
-  user->phys->implicit         = implicit;
-  advection_ctx->CtauS         = CtauS;
-  advection_ctx->E_wind        = E_wind;
-  advection_ctx->implicit      = implicit;
-  advection_ctx->strong_form   = strong_form;
-  advection_ctx->stabilization = stab;
+  user->phys->implicit             = implicit;
+  advection_ctx->CtauS             = CtauS;
+  advection_ctx->E_wind            = E_wind;
+  advection_ctx->implicit          = implicit;
+  advection_ctx->strong_form       = strong_form;
+  advection_ctx->stabilization     = stab;
+  advection_ctx->stabilization_tau = stab_tau;
+  advection_ctx->Ctau_a            = Ctau_a;
+  advection_ctx->Ctau_t            = Ctau_t;
 
   PetscCallCeed(ceed, CeedQFunctionContextCreate(user->ceed, &problem->ics.qfunction_context));
   PetscCallCeed(ceed,
@@ -202,6 +212,8 @@ PetscErrorCode NS_ADVECTION(ProblemData *problem, DM dm, void *ctx, SimpleBC bc)
   PetscCallCeed(ceed, CeedQFunctionContextCreate(user->ceed, &advection_context));
   PetscCallCeed(ceed, CeedQFunctionContextSetData(advection_context, CEED_MEM_HOST, CEED_USE_POINTER, sizeof(*advection_ctx), advection_ctx));
   PetscCallCeed(ceed, CeedQFunctionContextSetDataDestroy(advection_context, CEED_MEM_HOST, FreeContextPetsc));
+  PetscCallCeed(ceed, CeedQFunctionContextRegisterDouble(advection_context, "timestep size", offsetof(struct AdvectionContext_, dt), 1,
+                                                         "Size of timestep, delta t"));
   problem->apply_vol_rhs.qfunction_context = advection_context;
   PetscCallCeed(ceed, CeedQFunctionContextReferenceCopy(advection_context, &problem->apply_vol_ifunction.qfunction_context));
   PetscCallCeed(ceed, CeedQFunctionContextReferenceCopy(advection_context, &problem->apply_inflow.qfunction_context));
