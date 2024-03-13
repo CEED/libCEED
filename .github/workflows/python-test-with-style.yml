@@ -11,7 +11,7 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-22.04]
-        compiler: [gcc-11]
+        compiler: [gcc-13]
         python-version: ['3.x']
 
     runs-on: ${{ matrix.os }}
@@ -30,7 +30,7 @@ jobs:
     - name: Python test
       env:
         CC: ${{ matrix.compiler }}
-        FC: gfortran-11
+        FC: gfortran-13
       run: |
         make info
         make -j2
@@ -42,12 +42,12 @@ jobs:
     - name: Python style
       env:
         CC: ${{ matrix.compiler }}
-        FC: gfortran-11
+        FC: gfortran-13
       run: |
         make format-py && git diff --exit-code
     - name: Python version
       env:
         CC: ${{ matrix.compiler }}
-        FC: gfortran-11
+        FC: gfortran-13
       run: |
         make vermin

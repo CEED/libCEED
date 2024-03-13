@@ -10,8 +10,8 @@ jobs:
   test:
     strategy:
       matrix:
-        os: [ubuntu-22.04, macos-12]
-        compiler: [gcc-11, clang]
+        os: [ubuntu-22.04, macos-13]
+        compiler: [gcc-13, clang]
         include:
         - os: ubuntu-22.04
           asan: 1
@@ -24,7 +24,7 @@ jobs:
     - name: Build and test libCEED
       env:
         CC: ${{ matrix.compiler }}
-        FC: gfortran-11
+        FC: gfortran-13
         AFLAGS: -fsanitize=address -fsanitize=leak
         ASAN: ${{ matrix.asan }}
       run: |

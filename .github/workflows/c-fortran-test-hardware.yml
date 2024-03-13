@@ -11,7 +11,7 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-22.04]
-        compiler: [gcc-11]
+        compiler: [gcc-13]
         arch: [aarch64, ppc64le]
         distro: [ubuntu22.04]
 
@@ -24,7 +24,7 @@ jobs:
       uses: uraimo/run-on-arch-action@v2
       env:
         CC: ${{ matrix.compiler }}
-        FC: gfortran-11
+        FC: gfortran-13
       id: runcmd
       with:
         arch: ${{ matrix.arch }}
