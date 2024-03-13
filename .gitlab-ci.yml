@@ -16,13 +16,14 @@ noether-asan:
   interruptible: true
   before_script:
 # Environment
+#    Note: COVERAGE=0 is needed when using ASAN
     - export COVERAGE=0 CC=gcc CXX=g++ FC=gfortran
     - export NPROC_POOL=8
     - echo "-------------- nproc ---------------" && NPROC_CPU=$(nproc) && NPROC_GPU=$(($(nproc)<8?$(nproc):8)) && echo "NPROC_CPU" $NPROC_CPU && echo "NPROC_GPU" $NPROC_GPU
     - echo "-------------- CC ------------------" && $CC --version
     - echo "-------------- CXX -----------------" && $CXX --version
     - echo "-------------- FC ------------------" && $FC --version
-    # ASAN
+# ASAN
     - echo "-------------- ASAN ----------------"
     - export ASAN=1 AFLAGS="-fsanitize=address -fsanitize=leak"
     - echo $AFLAGS
@@ -42,7 +43,7 @@ noether-asan:
     - make -k -j$((NPROC_CPU / NPROC_POOL)) BACKENDS="$BACKENDS_CPU" JUNIT_BATCH="memcheck" junit realsearch=%
 # Clang-tidy
     - echo "-------------- clang-tidy ----------" && clang-tidy --version
-    - make -j$NPROC_CPU tidy
+    - TIDY_OPTS="-fix-errors" make -j$NPROC_CPU tidy && git diff --color=always --exit-code
 # Report status
     - touch .SUCCESS
   artifacts:
@@ -60,17 +61,15 @@ noether-cpu:
   stage: test:cpu-and-tidy
   tags:
     - cpu
-    - rocm
   interruptible: true
   before_script:
 # Environment
-    - export COVERAGE=1 CC=gcc CXX=g++ FC=gfortran HIPCC=hipcc
+    - export COVERAGE=1 CC=gcc CXX=g++ FC=gfortran
     - export NPROC_POOL=8
     - echo "-------------- nproc ---------------" && NPROC_CPU=$(nproc) && NPROC_GPU=$(($(nproc)<8?$(nproc):8)) && echo "NPROC_CPU" $NPROC_CPU && echo "NPROC_GPU" $NPROC_GPU
     - echo "-------------- CC ------------------" && $CC --version
     - echo "-------------- CXX -----------------" && $CXX --version
     - echo "-------------- FC ------------------" && $FC --version
-    - echo "-------------- HIPCC ---------------" && $HIPCC --version
     - echo "-------------- GCOV ----------------" && gcov --version
 # Libraries for backends
 # -- LIBXSMM 2c145a109b5a8ad4e15f60ea42a86b9056bdc8b8
@@ -115,10 +114,6 @@ noether-cpu:
     - export DEAL_II_ROOT_DIR=/projects/dealii DEAL_II_DIR=/projects/dealii/install
     - echo "-------------- deal.II -------------" && git -C $DEAL_II_ROOT_DIR -c safe.directory=$DEAL_II_ROOT_DIR describe --always
     - make -k -j$NPROC_CPU BACKENDS="$BACKENDS_CPU" JUNIT_BATCH="cpu" junit search=dealii DEAL_II_DIR=$DEAL_II_DIR
-# Clang-tidy
-    - echo "-------------- clang-tidy ----------" && clang-tidy --version
-    - export OCCA_DIR= && make lib -j$NPROC_CPU
-    - make -j$NPROC_CPU tidy
 # Report status
     - touch .SUCCESS
   after_script:
@@ -204,6 +199,9 @@ noether-cuda:
     - source /home/jawr8143/SmartSimTestingSoftware/bin/activate && export SMARTREDIS_DIR=/home/jawr8143/SmartSimTestingSoftware/smartredis/install
     - echo "-------------- PETSc ---------------" && make -C $PETSC_DIR info
     - make -k -j$((NPROC_GPU / NPROC_POOL)) JUNIT_BATCH="cuda" junit BACKENDS="$BACKENDS_GPU" search="petsc fluids solids"
+# Clang-tidy
+    - echo "-------------- clang-tidy ----------" && clang-tidy --version
+    - TIDY_OPTS="-fix-errors" make -j$NPROC_CPU tidy && git diff --color=always --exit-code
 # Report status
     - touch .SUCCESS
   after_script:
@@ -303,7 +301,7 @@ noether-rocm:
 
 
 # ----------------------------------------------------------------------------------------
-# CPU + ROCm backends with CeedInt == float
+# CPU + ROCm backends with CeedScalar == float (32 bit)
 # ----------------------------------------------------------------------------------------
 noether-float:
   stage: test:gpu-and-float
