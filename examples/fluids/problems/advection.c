@@ -27,7 +27,7 @@ PetscErrorCode CreateKSPMassOperator_AdvectionStabilized(User user, CeedOperator
   CeedElemRestriction  elem_restr_q, elem_restr_qd_i;
   CeedBasis            basis_q;
   CeedVector           q_data;
-  CeedQFunctionContext qf_ctx;
+  CeedQFunctionContext qf_ctx = NULL;
   PetscInt             dim;
 
   PetscFunctionBeginUser;
@@ -62,11 +62,12 @@ PetscErrorCode CreateKSPMassOperator_AdvectionStabilized(User user, CeedOperator
   }
 
   PetscCallCeed(ceed, CeedQFunctionSetContext(qf_mass, qf_ctx));
+  PetscCallCeed(ceed, CeedQFunctionSetUserFlopsEstimate(qf_mass, 0));
   PetscCallCeed(ceed, CeedQFunctionAddInput(qf_mass, "q_dot", 5, CEED_EVAL_INTERP));
   PetscCallCeed(ceed, CeedQFunctionAddInput(qf_mass, "q", 5, CEED_EVAL_INTERP));
   PetscCallCeed(ceed, CeedQFunctionAddInput(qf_mass, "qdata", q_data_size, CEED_EVAL_NONE));
   PetscCallCeed(ceed, CeedQFunctionAddOutput(qf_mass, "v", 5, CEED_EVAL_INTERP));
-  PetscCallCeed(ceed, CeedQFunctionAddOutput(qf_mass, "Grad_v", 5, CEED_EVAL_INTERP));
+  PetscCallCeed(ceed, CeedQFunctionAddOutput(qf_mass, "Grad_v", 5 * dim, CEED_EVAL_GRAD));
 
   PetscCallCeed(ceed, CeedOperatorCreate(ceed, qf_mass, NULL, NULL, op_mass));
   PetscCallCeed(ceed, CeedOperatorSetField(*op_mass, "q_dot", elem_restr_q, basis_q, CEED_VECTOR_ACTIVE));
@@ -215,7 +216,7 @@ PetscErrorCode NS_ADVECTION(ProblemData *problem, DM dm, void *ctx, SimpleBC bc)
   }
   PetscOptionsEnd();
 
-  if (stab == STAB_SUPG && dim == 3) problem->create_mass_operator = CreateKSPMassOperator_AdvectionStabilized;
+  if (stab == STAB_SUPG) problem->create_mass_operator = CreateKSPMassOperator_AdvectionStabilized;
 
   // ------------------------------------------------------
   //           Set up the PETSc context
