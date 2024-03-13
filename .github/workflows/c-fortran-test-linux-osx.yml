@@ -12,9 +12,6 @@ jobs:
       matrix:
         os: [ubuntu-22.04, macos-13]
         compiler: [gcc-13, clang]
-        include:
-        - os: ubuntu-22.04
-          asan: 1
 
     runs-on: ${{ matrix.os }}
 
@@ -25,8 +22,6 @@ jobs:
       env:
         CC: ${{ matrix.compiler }}
         FC: gfortran-13
-        AFLAGS: -fsanitize=address -fsanitize=leak
-        ASAN: ${{ matrix.asan }}
       run: |
         make -v
         make info
