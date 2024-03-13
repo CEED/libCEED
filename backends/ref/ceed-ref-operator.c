@@ -631,7 +631,6 @@ static int CeedOperatorSetupFieldsAtPoints_Ref(CeedQFunction qf, CeedOperator op
         CeedCallBackend(CeedOperatorFieldGetVector(op_fields[i], &vec));
         if (vec == CEED_VECTOR_ACTIVE || !is_input) {
           CeedCallBackend(CeedVectorReferenceCopy(e_vecs[i], &q_vecs[i]));
-          CeedCallBackend(CeedVectorSetValue(q_vecs[i], 0.0));
         } else {
           q_size = (CeedSize)max_num_points * size;
           CeedCallBackend(CeedVectorCreate(ceed, q_size, &q_vecs[i]));
@@ -650,7 +649,6 @@ static int CeedOperatorSetupFieldsAtPoints_Ref(CeedQFunction qf, CeedOperator op
         CeedCallBackend(CeedVectorCreate(ceed, e_size, &e_vecs[i]));
         q_size = (CeedSize)max_num_points * size;
         CeedCallBackend(CeedVectorCreate(ceed, q_size, &q_vecs[i]));
-        CeedCallBackend(CeedVectorSetValue(q_vecs[i], 0.0));
         break;
       case CEED_EVAL_WEIGHT:  // Only on input fields
         CeedCallBackend(CeedOperatorFieldGetBasis(op_fields[i], &basis));
@@ -660,9 +658,8 @@ static int CeedOperatorSetupFieldsAtPoints_Ref(CeedQFunction qf, CeedOperator op
             CeedBasisApplyAtPoints(basis, max_num_points, CEED_NOTRANSPOSE, CEED_EVAL_WEIGHT, CEED_VECTOR_NONE, CEED_VECTOR_NONE, q_vecs[i]));
         break;
     }
-    if (is_input && e_vecs[i]) {
-      CeedCallBackend(CeedVectorSetArray(e_vecs[i], CEED_MEM_HOST, CEED_COPY_VALUES, NULL));
-    }
+    if (e_vecs[i]) CeedCallBackend(CeedVectorSetValue(e_vecs[i], 0.0));
+    if (eval_mode != CEED_EVAL_WEIGHT) CeedCallBackend(CeedVectorSetValue(q_vecs[i], 0.0));
   }
   return CEED_ERROR_SUCCESS;
 }
