@@ -86,7 +86,7 @@ static inline PetscErrorCode VecP2C(Ceed ceed, Vec X_petsc, PetscMemType *mem_ty
 
   PetscFunctionBeginUser;
   PetscCall(VecGetArrayAndMemType(X_petsc, &x, mem_type));
-  PetscCeedCall(ceed, CeedVectorSetArray(x_ceed, MemTypeP2C(*mem_type), CEED_USE_POINTER, x));
+  PetscCallCeed(ceed, CeedVectorSetArray(x_ceed, MemTypeP2C(*mem_type), CEED_USE_POINTER, x));
   PetscFunctionReturn(PETSC_SUCCESS);
 }
 
@@ -106,7 +106,7 @@ static inline PetscErrorCode VecC2P(Ceed ceed, CeedVector x_ceed, PetscMemType m
   PetscScalar *x;
 
   PetscFunctionBeginUser;
-  PetscCeedCall(ceed, CeedVectorTakeArray(x_ceed, MemTypeP2C(mem_type), &x));
+  PetscCallCeed(ceed, CeedVectorTakeArray(x_ceed, MemTypeP2C(mem_type), &x));
   PetscCall(VecRestoreArrayAndMemType(X_petsc, &x));
   PetscFunctionReturn(PETSC_SUCCESS);
 }
@@ -128,7 +128,7 @@ static inline PetscErrorCode VecReadP2C(Ceed ceed, Vec X_petsc, PetscMemType *me
 
   PetscFunctionBeginUser;
   PetscCall(VecGetArrayReadAndMemType(X_petsc, (const PetscScalar **)&x, mem_type));
-  PetscCeedCall(ceed, CeedVectorSetArray(x_ceed, MemTypeP2C(*mem_type), CEED_USE_POINTER, x));
+  PetscCallCeed(ceed, CeedVectorSetArray(x_ceed, MemTypeP2C(*mem_type), CEED_USE_POINTER, x));
   PetscFunctionReturn(PETSC_SUCCESS);
 }
 
@@ -148,7 +148,7 @@ static inline PetscErrorCode VecReadC2P(Ceed ceed, CeedVector x_ceed, PetscMemTy
   PetscScalar *x;
 
   PetscFunctionBeginUser;
-  PetscCeedCall(ceed, CeedVectorTakeArray(x_ceed, MemTypeP2C(mem_type), &x));
+  PetscCallCeed(ceed, CeedVectorTakeArray(x_ceed, MemTypeP2C(mem_type), &x));
   PetscCall(VecRestoreArrayReadAndMemType(X_petsc, (const PetscScalar **)&x));
   PetscFunctionReturn(PETSC_SUCCESS);
 }
@@ -243,13 +243,13 @@ static PetscErrorCode MatCeedAssemblePointBlockDiagonalCOO(Mat mat_ceed, Mat mat
         PetscCall(PetscLogStageRegister("MATCEED Assembly Setup", &stage_amg_setup));
       }
       PetscCall(PetscLogStagePush(stage_amg_setup));
-      PetscCeedCall(ctx->ceed, CeedOperatorLinearAssemblePointBlockDiagonalSymbolic(ctx->op_mult, &num_entries, &rows_ceed, &cols_ceed));
+      PetscCallCeed(ctx->ceed, CeedOperatorLinearAssemblePointBlockDiagonalSymbolic(ctx->op_mult, &num_entries, &rows_ceed, &cols_ceed));
       PetscCall(IntArrayC2P(num_entries, &rows_ceed, &rows_petsc));
       PetscCall(IntArrayC2P(num_entries, &cols_ceed, &cols_petsc));
       PetscCall(MatSetPreallocationCOOLocal(mat_coo, num_entries, rows_petsc, cols_petsc));
       free(rows_petsc);
       free(cols_petsc);
-      if (!ctx->coo_values_pbd) PetscCeedCall(ctx->ceed, CeedVectorCreate(ctx->ceed, num_entries, &ctx->coo_values_pbd));
+      if (!ctx->coo_values_pbd) PetscCallCeed(ctx->ceed, CeedVectorCreate(ctx->ceed, num_entries, &ctx->coo_values_pbd));
       PetscCall(PetscRealloc(++ctx->num_mats_assembled_pbd * sizeof(Mat), &ctx->mats_assembled_pbd));
       ctx->mats_assembled_pbd[ctx->num_mats_assembled_pbd - 1] = mat_coo;
       PetscCall(PetscLogStagePop());
@@ -269,12 +269,12 @@ static PetscErrorCode MatCeedAssemblePointBlockDiagonalCOO(Mat mat_ceed, Mat mat
     else if (strstr(mat_type, "kokkos")) mem_type = CEED_MEM_DEVICE;
     else mem_type = CEED_MEM_HOST;
 
-    PetscCeedCall(ctx->ceed, CeedOperatorLinearAssemblePointBlockDiagonal(ctx->op_mult, ctx->coo_values_pbd, CEED_REQUEST_IMMEDIATE));
-    PetscCeedCall(ctx->ceed, CeedVectorGetArrayRead(ctx->coo_values_pbd, mem_type, &values));
+    PetscCallCeed(ctx->ceed, CeedOperatorLinearAssemblePointBlockDiagonal(ctx->op_mult, ctx->coo_values_pbd, CEED_REQUEST_IMMEDIATE));
+    PetscCallCeed(ctx->ceed, CeedVectorGetArrayRead(ctx->coo_values_pbd, mem_type, &values));
     PetscCall(MatSetValuesCOO(mat_coo, values, INSERT_VALUES));
     PetscCall(MatIsSPDKnown(mat_ceed, &is_spd_known, &is_spd));
     if (is_spd_known) PetscCall(MatSetOption(mat_coo, MAT_SPD, is_spd));
-    PetscCeedCall(ctx->ceed, CeedVectorRestoreArrayRead(ctx->coo_values_pbd, &values));
+    PetscCallCeed(ctx->ceed, CeedVectorRestoreArrayRead(ctx->coo_values_pbd, &values));
   }
   PetscCall(MatAssemblyEnd(mat_coo, MAT_FINAL_ASSEMBLY));
   PetscFunctionReturn(PETSC_SUCCESS);
@@ -493,21 +493,21 @@ PetscErrorCode MatCeedCreate(DM dm_x, DM dm_y, CeedOperator op_mult, CeedOperato
 
         ctx->is_ceed_pbd_valid  = PETSC_TRUE;
         ctx->is_ceed_vpbd_valid = PETSC_TRUE;
-        PetscCeedCall(ctx->ceed, CeedOperatorIsComposite(op_mult, &is_composite));
+        PetscCallCeed(ctx->ceed, CeedOperatorIsComposite(op_mult, &is_composite));
         if (is_composite) {
           CeedInt       num_sub_operators;
           CeedOperator *sub_operators;
 
-          PetscCeedCall(ctx->ceed, CeedCompositeOperatorGetNumSub(op_mult, &num_sub_operators));
-          PetscCeedCall(ctx->ceed, CeedCompositeOperatorGetSubList(op_mult, &sub_operators));
+          PetscCallCeed(ctx->ceed, CeedCompositeOperatorGetNumSub(op_mult, &num_sub_operators));
+          PetscCallCeed(ctx->ceed, CeedCompositeOperatorGetSubList(op_mult, &sub_operators));
           for (CeedInt i = 0; i < num_sub_operators; i++) {
             CeedInt                  num_bases, num_comp;
             CeedBasis               *active_bases;
             CeedOperatorAssemblyData assembly_data;
 
-            PetscCeedCall(ctx->ceed, CeedOperatorGetOperatorAssemblyData(sub_operators[i], &assembly_data));
-            PetscCeedCall(ctx->ceed, CeedOperatorAssemblyDataGetBases(assembly_data, &num_bases, &active_bases, NULL, NULL, NULL, NULL));
-            PetscCeedCall(ctx->ceed, CeedBasisGetNumComponents(active_bases[0], &num_comp));
+            PetscCallCeed(ctx->ceed, CeedOperatorGetOperatorAssemblyData(sub_operators[i], &assembly_data));
+            PetscCallCeed(ctx->ceed, CeedOperatorAssemblyDataGetBases(assembly_data, &num_bases, &active_bases, NULL, NULL, NULL, NULL));
+            PetscCallCeed(ctx->ceed, CeedBasisGetNumComponents(active_bases[0], &num_comp));
             if (num_bases > 1) {
               ctx->is_ceed_pbd_valid  = PETSC_FALSE;
               ctx->is_ceed_vpbd_valid = PETSC_FALSE;
@@ -521,9 +521,9 @@ PetscErrorCode MatCeedCreate(DM dm_x, DM dm_y, CeedOperator op_mult, CeedOperato
           CeedBasis               *active_bases;
           CeedOperatorAssemblyData assembly_data;
 
-          PetscCeedCall(ctx->ceed, CeedOperatorGetOperatorAssemblyData(op_mult, &assembly_data));
-          PetscCeedCall(ctx->ceed, CeedOperatorAssemblyDataGetBases(assembly_data, &num_bases, &active_bases, NULL, NULL, NULL, NULL));
-          PetscCeedCall(ctx->ceed, CeedBasisGetNumComponents(active_bases[0], &num_comp));
+          PetscCallCeed(ctx->ceed, CeedOperatorGetOperatorAssemblyData(op_mult, &assembly_data));
+          PetscCallCeed(ctx->ceed, CeedOperatorAssemblyDataGetBases(assembly_data, &num_bases, &active_bases, NULL, NULL, NULL, NULL));
+          PetscCallCeed(ctx->ceed, CeedBasisGetNumComponents(active_bases[0], &num_comp));
           if (num_bases > 1) {
             ctx->is_ceed_pbd_valid  = PETSC_FALSE;
             ctx->is_ceed_vpbd_valid = PETSC_FALSE;
@@ -683,13 +683,13 @@ PetscErrorCode MatCeedAssembleCOO(Mat mat_ceed, Mat mat_coo) {
         PetscCall(PetscLogStageRegister("MATCEED Assembly Setup", &stage_amg_setup));
       }
       PetscCall(PetscLogStagePush(stage_amg_setup));
-      PetscCeedCall(ctx->ceed, CeedOperatorLinearAssembleSymbolic(ctx->op_mult, &num_entries, &rows_ceed, &cols_ceed));
+      PetscCallCeed(ctx->ceed, CeedOperatorLinearAssembleSymbolic(ctx->op_mult, &num_entries, &rows_ceed, &cols_ceed));
       PetscCall(IntArrayC2P(num_entries, &rows_ceed, &rows_petsc));
       PetscCall(IntArrayC2P(num_entries, &cols_ceed, &cols_petsc));
       PetscCall(MatSetPreallocationCOOLocal(mat_coo, num_entries, rows_petsc, cols_petsc));
       free(rows_petsc);
       free(cols_petsc);
-      if (!ctx->coo_values_full) PetscCeedCall(ctx->ceed, CeedVectorCreate(ctx->ceed, num_entries, &ctx->coo_values_full));
+      if (!ctx->coo_values_full) PetscCallCeed(ctx->ceed, CeedVectorCreate(ctx->ceed, num_entries, &ctx->coo_values_full));
       PetscCall(PetscRealloc(++ctx->num_mats_assembled_full * sizeof(Mat), &ctx->mats_assembled_full));
       ctx->mats_assembled_full[ctx->num_mats_assembled_full - 1] = mat_coo;
       PetscCall(PetscLogStagePop());
@@ -709,12 +709,12 @@ PetscErrorCode MatCeedAssembleCOO(Mat mat_ceed, Mat mat_coo) {
     else if (strstr(mat_type, "kokkos")) mem_type = CEED_MEM_DEVICE;
     else mem_type = CEED_MEM_HOST;
 
-    PetscCeedCall(ctx->ceed, CeedOperatorLinearAssemble(ctx->op_mult, ctx->coo_values_full));
-    PetscCeedCall(ctx->ceed, CeedVectorGetArrayRead(ctx->coo_values_full, mem_type, &values));
+    PetscCallCeed(ctx->ceed, CeedOperatorLinearAssemble(ctx->op_mult, ctx->coo_values_full));
+    PetscCallCeed(ctx->ceed, CeedVectorGetArrayRead(ctx->coo_values_full, mem_type, &values));
     PetscCall(MatSetValuesCOO(mat_coo, values, INSERT_VALUES));
     PetscCall(MatIsSPDKnown(mat_ceed, &is_spd_known, &is_spd));
     if (is_spd_known) PetscCall(MatSetOption(mat_coo, MAT_SPD, is_spd));
-    PetscCeedCall(ctx->ceed, CeedVectorRestoreArrayRead(ctx->coo_values_full, &values));
+    PetscCallCeed(ctx->ceed, CeedVectorRestoreArrayRead(ctx->coo_values_full, &values));
   }
   PetscCall(MatAssemblyEnd(mat_coo, MAT_FINAL_ASSEMBLY));
   PetscFunctionReturn(PETSC_SUCCESS);
@@ -965,11 +965,11 @@ PetscErrorCode MatCeedGetCeedOperators(Mat mat, CeedOperator *op_mult, CeedOpera
   PetscCall(MatShellGetContext(mat, &ctx));
   if (op_mult) {
     *op_mult = NULL;
-    PetscCeedCall(ctx->ceed, CeedOperatorReferenceCopy(ctx->op_mult, op_mult));
+    PetscCallCeed(ctx->ceed, CeedOperatorReferenceCopy(ctx->op_mult, op_mult));
   }
   if (op_mult_transpose) {
     *op_mult_transpose = NULL;
-    PetscCeedCall(ctx->ceed, CeedOperatorReferenceCopy(ctx->op_mult_transpose, op_mult_transpose));
+    PetscCallCeed(ctx->ceed, CeedOperatorReferenceCopy(ctx->op_mult_transpose, op_mult_transpose));
   }
   PetscFunctionReturn(PETSC_SUCCESS);
 }
@@ -990,8 +990,8 @@ PetscErrorCode MatCeedRestoreCeedOperators(Mat mat, CeedOperator *op_mult, CeedO
 
   PetscFunctionBeginUser;
   PetscCall(MatShellGetContext(mat, &ctx));
-  if (op_mult) PetscCeedCall(ctx->ceed, CeedOperatorDestroy(op_mult));
-  if (op_mult_transpose) PetscCeedCall(ctx->ceed, CeedOperatorDestroy(op_mult_transpose));
+  if (op_mult) PetscCallCeed(ctx->ceed, CeedOperatorDestroy(op_mult));
+  if (op_mult_transpose) PetscCallCeed(ctx->ceed, CeedOperatorDestroy(op_mult_transpose));
   PetscFunctionReturn(PETSC_SUCCESS);
 }
 
@@ -1096,21 +1096,21 @@ PetscErrorCode MatCeedContextCreate(DM dm_x, DM dm_y, Vec X_loc, Vec Y_loc_trans
   // libCEED objects
   PetscCheck(CeedOperatorGetCeed(op_mult, &(*ctx)->ceed) == CEED_ERROR_SUCCESS, PETSC_COMM_SELF, PETSC_ERR_LIB,
              "retrieving Ceed context object failed");
-  PetscCeedCall((*ctx)->ceed, CeedReference((*ctx)->ceed));
-  PetscCeedCall((*ctx)->ceed, CeedOperatorGetActiveVectorLengths(op_mult, &x_loc_len, &y_loc_len));
-  PetscCeedCall((*ctx)->ceed, CeedOperatorReferenceCopy(op_mult, &(*ctx)->op_mult));
-  if (op_mult_transpose) PetscCeedCall((*ctx)->ceed, CeedOperatorReferenceCopy(op_mult_transpose, &(*ctx)->op_mult_transpose));
-  PetscCeedCall((*ctx)->ceed, CeedVectorCreate((*ctx)->ceed, x_loc_len, &(*ctx)->x_loc));
-  PetscCeedCall((*ctx)->ceed, CeedVectorCreate((*ctx)->ceed, y_loc_len, &(*ctx)->y_loc));
+  PetscCallCeed((*ctx)->ceed, CeedReference((*ctx)->ceed));
+  PetscCallCeed((*ctx)->ceed, CeedOperatorGetActiveVectorLengths(op_mult, &x_loc_len, &y_loc_len));
+  PetscCallCeed((*ctx)->ceed, CeedOperatorReferenceCopy(op_mult, &(*ctx)->op_mult));
+  if (op_mult_transpose) PetscCallCeed((*ctx)->ceed, CeedOperatorReferenceCopy(op_mult_transpose, &(*ctx)->op_mult_transpose));
+  PetscCallCeed((*ctx)->ceed, CeedVectorCreate((*ctx)->ceed, x_loc_len, &(*ctx)->x_loc));
+  PetscCallCeed((*ctx)->ceed, CeedVectorCreate((*ctx)->ceed, y_loc_len, &(*ctx)->y_loc));
 
   // Flop counting
   {
     CeedSize ceed_flops_estimate = 0;
 
-    PetscCeedCall((*ctx)->ceed, CeedOperatorGetFlopsEstimate(op_mult, &ceed_flops_estimate));
+    PetscCallCeed((*ctx)->ceed, CeedOperatorGetFlopsEstimate(op_mult, &ceed_flops_estimate));
     (*ctx)->flops_mult = ceed_flops_estimate;
     if (op_mult_transpose) {
-      PetscCeedCall((*ctx)->ceed, CeedOperatorGetFlopsEstimate(op_mult_transpose, &ceed_flops_estimate));
+      PetscCallCeed((*ctx)->ceed, CeedOperatorGetFlopsEstimate(op_mult_transpose, &ceed_flops_estimate));
       (*ctx)->flops_mult_transpose = ceed_flops_estimate;
     }
   }
@@ -1126,7 +1126,7 @@ PetscErrorCode MatCeedContextCreate(DM dm_x, DM dm_y, Vec X_loc, Vec Y_loc_trans
     PetscCall(VecGetLocalSize(dm_X_loc, &dm_x_loc_len));
     PetscCall(DMRestoreLocalVector(dm_x, &dm_X_loc));
     if (X_loc) PetscCall(VecGetLocalSize(X_loc, &X_loc_len));
-    PetscCeedCall((*ctx)->ceed, CeedVectorGetLength((*ctx)->x_loc, &ctx_x_loc_len));
+    PetscCallCeed((*ctx)->ceed, CeedVectorGetLength((*ctx)->x_loc, &ctx_x_loc_len));
     if (X_loc) PetscCheck(X_loc_len == dm_x_loc_len, PETSC_COMM_SELF, PETSC_ERR_LIB, "X_loc must match dm_x dimensions");
     PetscCheck(x_loc_len == dm_x_loc_len, PETSC_COMM_SELF, PETSC_ERR_LIB, "op must match dm_x dimensions");
     PetscCheck(x_loc_len == ctx_x_loc_len, PETSC_COMM_SELF, PETSC_ERR_LIB, "x_loc must match op dimensions");
@@ -1135,7 +1135,7 @@ PetscErrorCode MatCeedContextCreate(DM dm_x, DM dm_y, Vec X_loc, Vec Y_loc_trans
     PetscCall(DMGetLocalVector(dm_y, &dm_Y_loc));
     PetscCall(VecGetLocalSize(dm_Y_loc, &dm_y_loc_len));
     PetscCall(DMRestoreLocalVector(dm_y, &dm_Y_loc));
-    PetscCeedCall((*ctx)->ceed, CeedVectorGetLength((*ctx)->y_loc, &ctx_y_loc_len));
+    PetscCallCeed((*ctx)->ceed, CeedVectorGetLength((*ctx)->y_loc, &ctx_y_loc_len));
     PetscCheck(ctx_y_loc_len == dm_y_loc_len, PETSC_COMM_SELF, PETSC_ERR_LIB, "op must match dm_y dimensions");
 
     // -- Transpose
@@ -1206,12 +1206,12 @@ PetscErrorCode MatCeedContextDestroy(MatCeedContext ctx) {
   PetscCall(PetscFree(ctx->mats_assembled_pbd));
 
   // libCEED objects
-  PetscCeedCall(ctx->ceed, CeedVectorDestroy(&ctx->x_loc));
-  PetscCeedCall(ctx->ceed, CeedVectorDestroy(&ctx->y_loc));
-  PetscCeedCall(ctx->ceed, CeedVectorDestroy(&ctx->coo_values_full));
-  PetscCeedCall(ctx->ceed, CeedVectorDestroy(&ctx->coo_values_pbd));
-  PetscCeedCall(ctx->ceed, CeedOperatorDestroy(&ctx->op_mult));
-  PetscCeedCall(ctx->ceed, CeedOperatorDestroy(&ctx->op_mult_transpose));
+  PetscCallCeed(ctx->ceed, CeedVectorDestroy(&ctx->x_loc));
+  PetscCallCeed(ctx->ceed, CeedVectorDestroy(&ctx->y_loc));
+  PetscCallCeed(ctx->ceed, CeedVectorDestroy(&ctx->coo_values_full));
+  PetscCallCeed(ctx->ceed, CeedVectorDestroy(&ctx->coo_values_pbd));
+  PetscCallCeed(ctx->ceed, CeedOperatorDestroy(&ctx->op_mult));
+  PetscCallCeed(ctx->ceed, CeedOperatorDestroy(&ctx->op_mult_transpose));
   PetscCheck(CeedDestroy(&ctx->ceed) == CEED_ERROR_SUCCESS, PETSC_COMM_SELF, PETSC_ERR_LIB, "destroying libCEED context object failed");
 
   // Deallocate
@@ -1243,7 +1243,7 @@ PetscErrorCode MatGetDiagonal_Ceed(Mat A, Vec D) {
   PetscCall(VecP2C(ctx->ceed, D_loc, &mem_type, ctx->x_loc));
 
   // Compute Diagonal
-  PetscCeedCall(ctx->ceed, CeedOperatorLinearAssembleDiagonal(ctx->op_mult, ctx->x_loc, CEED_REQUEST_IMMEDIATE));
+  PetscCallCeed(ctx->ceed, CeedOperatorLinearAssembleDiagonal(ctx->op_mult, ctx->x_loc, CEED_REQUEST_IMMEDIATE));
 
   // Restore PETSc vector
   PetscCall(VecC2P(ctx->ceed, ctx->x_loc, mem_type, D_loc));
@@ -1291,7 +1291,7 @@ PetscErrorCode MatMult_Ceed(Mat A, Vec X, Vec Y) {
 
     // Apply libCEED operator
     PetscCall(PetscLogGpuTimeBegin());
-    PetscCeedCall(ctx->ceed, CeedOperatorApplyAdd(ctx->op_mult, ctx->x_loc, ctx->y_loc, CEED_REQUEST_IMMEDIATE));
+    PetscCallCeed(ctx->ceed, CeedOperatorApplyAdd(ctx->op_mult, ctx->x_loc, ctx->y_loc, CEED_REQUEST_IMMEDIATE));
     PetscCall(PetscLogGpuTimeEnd());
 
     // Restore PETSc vectors
@@ -1351,7 +1351,7 @@ PetscErrorCode MatMultTranspose_Ceed(Mat A, Vec Y, Vec X) {
 
     // Apply libCEED operator
     PetscCall(PetscLogGpuTimeBegin());
-    PetscCeedCall(ctx->ceed, CeedOperatorApplyAdd(ctx->op_mult_transpose, ctx->y_loc, ctx->x_loc, CEED_REQUEST_IMMEDIATE));
+    PetscCallCeed(ctx->ceed, CeedOperatorApplyAdd(ctx->op_mult_transpose, ctx->y_loc, ctx->x_loc, CEED_REQUEST_IMMEDIATE));
     PetscCall(PetscLogGpuTimeEnd());
 
     // Restore PETSc vectors

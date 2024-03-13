@@ -23,7 +23,7 @@
   @brief Calls a libCEED function and then checks the resulting error code.
   If the error code is non-zero, then a PETSc error is set with the libCEED error message.
 **/
-#define PetscCeedCall(ceed_, ...)                                   \
+#define PetscCallCeed(ceed_, ...)                                   \
   do {                                                              \
     int ierr_q_ = __VA_ARGS__;                                      \
     if (ierr_q_ != CEED_ERROR_SUCCESS) {                            \
