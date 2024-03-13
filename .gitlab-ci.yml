@@ -158,7 +158,7 @@ noether-sycl:
   script:
     - rm -f .SUCCESS
 # libCEED
-    - make configure SYCL_DIR=/opt/intel/oneapi/compiler/2023.2.0/linux OPT='-O -march=native -ffp-contract=fast'
+    - make configure SYCL_DIR=/opt/intel/oneapi/compiler/latest OPT='-O -march=native -ffp-contract=fast'
     - BACKENDS_SYCL=$(make info-backends-all | grep -o '/sycl[^ ]*' | tr '\n' ' ')
     - echo "-------------- libCEED -------------" && make info
     - echo "-------------- BACKENDS_SYCL -------" && echo $BACKENDS_SYCL
