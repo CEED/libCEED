@@ -102,6 +102,11 @@ PetscErrorCode ProcessCommandLineOptions(MPI_Comm comm, AppCtx app_ctx, SimpleBC
                                 sizeof(amat_type), &option_set));
     if (option_set) PetscCall(PetscStrallocpy(amat_type, (char **)&app_ctx->amat_type));
   }
+  {
+    PetscBool option_set;
+    PetscCall(PetscOptionsHasName(NULL, NULL, "-pmat_pbdiagonal", &option_set));
+    if (option_set) PetscCall(PetscPrintf(comm, "Warning! -pmat_pbdiagonal no longer used. Pmat assembly determined from -pc_type setting\n"));
+  }
 
   // Provide default ceed resource if not specified
   if (!ceed_flag) {
