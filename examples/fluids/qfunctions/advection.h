@@ -391,7 +391,7 @@ CEED_QFUNCTION_HELPER void RHSFunction_AdvectionGeneric(void *ctx, CeedInt Q, co
           break;
         case STAB_SU:
         case STAB_SUPG:
-          grad_v[j][4][i] += wdetJ * TauS * strong_conv * uX[j];
+          grad_v[j][4][i] -= wdetJ * TauS * strong_conv * uX[j];
           break;
       }
   }
