@@ -243,6 +243,7 @@ PetscErrorCode CreateMassQFunction(Ceed ceed, CeedInt N, CeedInt q_data_size, Ce
   PetscCallCeed(ceed, CeedQFunctionAddInput(*qf, "u", N, CEED_EVAL_INTERP));
   PetscCallCeed(ceed, CeedQFunctionAddInput(*qf, "qdata", q_data_size, CEED_EVAL_NONE));
   PetscCallCeed(ceed, CeedQFunctionAddOutput(*qf, "v", N, CEED_EVAL_INTERP));
+  PetscCallCeed(ceed, CeedQFunctionSetUserFlopsEstimate(*qf, N));
   PetscFunctionReturn(PETSC_SUCCESS);
 }
 

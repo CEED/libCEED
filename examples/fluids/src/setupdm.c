@@ -32,6 +32,8 @@ PetscErrorCode CreateDM(MPI_Comm comm, ProblemData *problem, MatType mat_type, V
   // Set Tensor elements
   PetscCall(PetscOptionsSetValue(NULL, "-dm_plex_simplex", "0"));
   PetscCall(PetscOptionsSetValue(NULL, "-dm_sparse_localize", "0"));
+  PetscCall(PetscOptionsSetValue(NULL, "-dm_blocking_type", "field_node"));
+
   // Set CL options
   PetscCall(DMSetFromOptions(*dm));
   PetscCall(DMViewFromOptions(*dm, NULL, "-dm_view"));

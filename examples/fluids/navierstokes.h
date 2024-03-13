@@ -9,6 +9,7 @@
 #define libceed_fluids_examples_navier_stokes_h
 
 #include <ceed.h>
+#include <mat-ceed.h>
 #include <petscts.h>
 #include <stdbool.h>
 
@@ -126,8 +127,7 @@ struct AppCtx_private {
   PetscInt degree;
   PetscInt q_extra;
   // Solver arguments
-  MatType   amat_type;
-  PetscBool pmat_pbdiagonal;
+  MatType amat_type;
   // Post-processing arguments
   PetscInt  checkpoint_interval;
   PetscInt  viz_refine;
@@ -248,11 +248,11 @@ struct User_private {
   Vec                  Q_loc, Q_dot_loc;
   Physics              phys;
   AppCtx               app_ctx;
-  CeedVector           q_ceed, q_dot_ceed, g_ceed, coo_values_amat, coo_values_pmat, x_ceed;
-  CeedOperator         op_rhs_vol, op_ifunction_vol, op_ifunction, op_ijacobian;
+  CeedVector           q_ceed, q_dot_ceed, g_ceed, x_ceed;
+  CeedOperator         op_rhs_vol, op_ifunction_vol, op_ifunction;
+  Mat                  mat_ijacobian;
   KSP                  mass_ksp;
   OperatorApplyContext op_rhs_ctx, op_strong_bc_ctx;
-  bool                 matrices_set_up;
   CeedScalar           time_bc_set;
   SpanStatsData        spanstats;
   NodalProjectionData  grad_velo_proj;

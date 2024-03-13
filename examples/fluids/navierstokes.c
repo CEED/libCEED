@@ -23,7 +23,7 @@
 //TESTARGS(name="Blasius, bc_slip") -ceed {ceed_resource} -test_type solver -options_file examples/fluids/blasius.yaml -ts_max_steps 5 -dm_plex_box_faces 3,20,1 -platemesh_nDelta 10 -platemesh_growth 1.2 -bc_outflow 5 -bc_slip 4 -compare_final_state_atol 2E-11 -compare_final_state_filename examples/fluids/tests-output/fluids-navierstokes-blasius-bc_slip.bin
 //TESTARGS(name="Blasius, SGS DataDriven Sequential") -ceed {ceed_resource} -options_file examples/fluids/tests-output/blasius_stgtest.yaml -sgs_model_type data_driven -sgs_model_dd_leakyrelu_alpha 0.3 -sgs_model_dd_parameter_dir examples/fluids/dd_sgs_data -ts_dt 2e-9 -state_var primitive -ksp_rtol 1e-12 -snes_rtol 1e-12 -stg_mean_only -stg_fluctuating_IC -test_type solver -compare_final_state_atol 1e-10 -compare_final_state_filename examples/fluids/tests-output/fluids-navierstokes-blasius-sgs-data-driven.bin -sgs_model_dd_use_fused false
 //TESTARGS(name="Advection, rotation, cosine") -ceed {ceed_resource} -test_type solver -options_file examples/fluids/advection.yaml -ts_max_steps 0 -advection_ic_type cosine_hill -dm_plex_box_faces 2,1,1 -compare_final_state_atol 1e-10 -compare_final_state_filename examples/fluids/tests-output/fluids-navierstokes-adv-rotation-cosine.bin
-//TESTARGS(name="Gaussian Wave, using MatShell") -ceed {ceed_resource} -test_type solver -options_file examples/fluids/gaussianwave.yaml -compare_final_state_atol 1e-8 -compare_final_state_filename examples/fluids/tests-output/fluids-navierstokes-gaussianwave-shell.bin -dm_plex_box_faces 2,2,1 -ts_max_steps 5 -degree 3 -amat_type shell -pmat_pbdiagonal -pc_type vpbjacobi
+//TESTARGS(name="Gaussian Wave, using MatShell") -ceed {ceed_resource} -test_type solver -options_file examples/fluids/gaussianwave.yaml -compare_final_state_atol 1e-8 -compare_final_state_filename examples/fluids/tests-output/fluids-navierstokes-gaussianwave-shell.bin -dm_plex_box_faces 2,2,1 -ts_max_steps 5 -degree 3 -amat_type shell -pc_type vpbjacobi
 //TESTARGS(name="Taylor-Green Vortex IC") -ceed {ceed_resource} -problem taylor_green -test_type solver -dm_plex_dim 3 -dm_plex_box_faces 6,6,6 -ts_max_steps 0 -compare_final_state_atol 1e-12 -compare_final_state_filename examples/fluids/tests-output/fluids-navierstokes-taylor-green-IC.bin
 //TESTARGS(name="Blasius, SGS DataDriven Fused") -ceed {ceed_resource} -options_file examples/fluids/tests-output/blasius_stgtest.yaml -sgs_model_type data_driven -sgs_model_dd_leakyrelu_alpha 0.3 -sgs_model_dd_parameter_dir examples/fluids/dd_sgs_data -ts_dt 2e-9 -state_var primitive -ksp_rtol 1e-12 -snes_rtol 1e-12 -stg_mean_only -stg_fluctuating_IC -test_type solver -compare_final_state_atol 1e-10 -compare_final_state_filename examples/fluids/tests-output/fluids-navierstokes-blasius-sgs-data-driven.bin
 //TESTARGS(name="Blasius, Anisotropic Differential Filter") -ceed {ceed_resource} -test_type diff_filter -options_file examples/fluids/tests-output/blasius_test.yaml -compare_final_state_atol 5e-10 -compare_final_state_filename examples/fluids/tests-output/fluids-navierstokes-blasius_diff_filter_aniso_vandriest.bin -diff_filter_monitor -ts_max_steps 0 -state_var primitive -diff_filter_friction_length 1e-5 -diff_filter_wall_damping_function van_driest -diff_filter_ksp_rtol 1e-8 -diff_filter_grid_based_width -diff_filter_width_scaling 1,0.7,1
@@ -265,8 +265,6 @@ int main(int argc, char **argv) {
   PetscCallCeed(ceed, CeedVectorDestroy(&user->q_ceed));
   PetscCallCeed(ceed, CeedVectorDestroy(&user->q_dot_ceed));
   PetscCallCeed(ceed, CeedVectorDestroy(&user->g_ceed));
-  PetscCallCeed(ceed, CeedVectorDestroy(&user->coo_values_amat));
-  PetscCallCeed(ceed, CeedVectorDestroy(&user->coo_values_pmat));
 
   // -- Bases
   PetscCallCeed(ceed, CeedBasisDestroy(&ceed_data->basis_q));
@@ -316,7 +314,6 @@ int main(int argc, char **argv) {
   PetscCall(OperatorApplyContextDestroy(user->op_rhs_ctx));
   PetscCall(OperatorApplyContextDestroy(user->op_strong_bc_ctx));
   PetscCallCeed(ceed, CeedOperatorDestroy(&user->op_ifunction));
-  PetscCallCeed(ceed, CeedOperatorDestroy(&user->op_ijacobian));
 
   // -- Ceed
   PetscCheck(CeedDestroy(&ceed) == CEED_ERROR_SUCCESS, comm, PETSC_ERR_LIB, "Destroying Ceed object failed");
@@ -340,6 +337,7 @@ int main(int argc, char **argv) {
 
   // -- Matrices
   PetscCall(MatDestroy(&user->interp_viz));
+  PetscCall(MatDestroy(&user->mat_ijacobian));
 
   // -- DM
   PetscCall(DMDestroy(&dm));

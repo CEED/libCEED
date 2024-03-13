@@ -332,12 +332,10 @@ PetscErrorCode SetupL2ProjectionStats(Ceed ceed, User user, CeedData ceed_data, 
   PetscCallCeed(ceed, CeedOperatorSetField(op_mass, "v", stats_data->elem_restr_parent_stats, stats_data->basis_stats, CEED_VECTOR_ACTIVE));
 
   {  // Setup KSP for L^2 projection
-    OperatorApplyContext M_ctx;
-    Mat                  mat_mass;
-    KSP                  ksp;
+    Mat mat_mass;
+    KSP ksp;
 
-    PetscCall(OperatorApplyContextCreate(user->spanstats.dm, user->spanstats.dm, user->ceed, op_mass, NULL, NULL, NULL, NULL, &M_ctx));
-    PetscCall(CreateMatShell_Ceed(M_ctx, &mat_mass));
+    PetscCall(MatCeedCreate(user->spanstats.dm, user->spanstats.dm, op_mass, NULL, &mat_mass));
 
     PetscCall(KSPCreate(comm, &ksp));
     PetscCall(KSPSetOptionsPrefix(ksp, "turbulence_spanstats_"));
@@ -350,8 +348,7 @@ PetscErrorCode SetupL2ProjectionStats(Ceed ceed, User user, CeedData ceed_data, 
       PetscCall(KSPSetNormType(ksp, KSP_NORM_NATURAL));
       PetscCall(KSPSetTolerances(ksp, 1e-10, PETSC_DEFAULT, PETSC_DEFAULT, PETSC_DEFAULT));
     }
-    PetscCall(KSPSetOperators(ksp, mat_mass, mat_mass));
-    PetscCall(KSPSetFromOptions(ksp));
+    PetscCall(KSPSetFromOptions_WithMatCeed(ksp, mat_mass));
     user->spanstats.ksp = ksp;
     PetscCall(MatDestroy(&mat_mass));
   }

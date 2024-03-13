@@ -10,6 +10,7 @@
 
 #include <ceed.h>
 #include <petscdm.h>
+#include <petscksp.h>
 
 typedef struct OperatorApplyContext_ *OperatorApplyContext;
 struct OperatorApplyContext_ {
@@ -23,9 +24,6 @@ struct OperatorApplyContext_ {
 PetscErrorCode OperatorApplyContextCreate(DM dm_x, DM dm_y, Ceed ceed, CeedOperator op_apply, CeedVector x_ceed, CeedVector y_ceed, Vec X_loc,
                                           Vec Y_loc, OperatorApplyContext *op_apply_ctx);
 PetscErrorCode OperatorApplyContextDestroy(OperatorApplyContext op_apply_ctx);
-PetscErrorCode MatGetDiag_Ceed(Mat A, Vec D);
-PetscErrorCode MatMult_Ceed(Mat A, Vec X, Vec Y);
-PetscErrorCode CreateMatShell_Ceed(OperatorApplyContext ctx, Mat *mat);
 
 PetscErrorCode DMGetGlobalVectorInfo(DM dm, PetscInt *local_size, PetscInt *global_size, VecType *vec_type);
 PetscErrorCode DMGetLocalVectorInfo(DM dm, PetscInt *local_size, PetscInt *global_size, VecType *vec_type);
@@ -46,4 +44,7 @@ PetscErrorCode ApplyAddCeedOperatorLocalToLocal(Vec X_loc, Vec Y_loc, OperatorAp
 
 PetscErrorCode DMGetLocalVectorInfo(DM dm, PetscInt *local_size, PetscInt *global_size, VecType *vec_type);
 PetscErrorCode DMGetGlobalVectorInfo(DM dm, PetscInt *local_size, PetscInt *global_size, VecType *vec_type);
+
+PetscErrorCode CreateSolveOperatorsFromMatCeed(KSP ksp, Mat mat_ceed, PetscBool assemble, Mat *Amat, Mat *Pmat);
+PetscErrorCode KSPSetFromOptions_WithMatCeed(KSP ksp, Mat mat_ceed);
 #endif  // petsc_ops_h

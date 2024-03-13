@@ -425,78 +425,83 @@ PetscErrorCode ApplyAddCeedOperatorLocalToLocal(Vec X_loc, Vec Y_loc, OperatorAp
   PetscFunctionReturn(PETSC_SUCCESS);
 }
 
-// -----------------------------------------------------------------------------
-// Wraps the libCEED operator for a MatShell
-// -----------------------------------------------------------------------------
-PetscErrorCode MatMult_Ceed(Mat A, Vec X, Vec Y) {
-  OperatorApplyContext ctx;
-
-  PetscFunctionBeginUser;
-  PetscCall(MatShellGetContext(A, &ctx));
-  PetscCall(ApplyCeedOperatorGlobalToGlobal(X, Y, ctx));
-  PetscFunctionReturn(PETSC_SUCCESS);
-};
-
-// -----------------------------------------------------------------------------
-// Returns the computed diagonal of the operator
-// -----------------------------------------------------------------------------
-PetscErrorCode MatGetDiag_Ceed(Mat A, Vec D) {
-  OperatorApplyContext ctx;
-  Vec                  Y_loc;
-  PetscMemType         mem_type;
-
-  PetscFunctionBeginUser;
-  PetscCall(MatShellGetContext(A, &ctx));
-  Ceed ceed = ctx->ceed;
-  if (ctx->Y_loc) Y_loc = ctx->Y_loc;
-  else PetscCall(DMGetLocalVector(ctx->dm_y, &Y_loc));
-
-  // -- Place PETSc vector in libCEED vector
-  PetscCall(VecP2C(Y_loc, &mem_type, ctx->y_ceed));
-
-  // -- Compute Diagonal
-  PetscCall(PetscLogEventBegin(FLUIDS_CeedOperatorAssembleDiagonal, A, D, 0, 0));
-  PetscCall(PetscLogGpuTimeBegin());
-  PetscCallCeed(ceed, CeedOperatorLinearAssembleDiagonal(ctx->op, ctx->y_ceed, CEED_REQUEST_IMMEDIATE));
-  PetscCall(PetscLogGpuTimeEnd());
-  PetscCall(PetscLogEventEnd(FLUIDS_CeedOperatorAssembleDiagonal, A, D, 0, 0));
-
-  // -- Local-to-Global
-  PetscCall(VecC2P(ctx->y_ceed, mem_type, Y_loc));
-  PetscCall(VecZeroEntries(D));
-  PetscCall(DMLocalToGlobal(ctx->dm_y, Y_loc, ADD_VALUES, D));
-
-  if (!ctx->Y_loc) PetscCall(DMRestoreLocalVector(ctx->dm_y, &Y_loc));
-  PetscFunctionReturn(PETSC_SUCCESS);
-};
-
 /**
- * @brief Create PETSc MatShell object for the corresponding OperatorApplyContext
+ * @brief Return Mats for KSP solve
  *
- * @param[in]  ctx Context that does the action of the operator
- * @param[out] mat MatShell for the operator
+ * Uses command-line flag with `ksp`'s prefix to determine if mat_ceed should be used directly or whether it should be assembled.
+ * If `Amat` is to be assembled, then `Pmat` is equal to `Amat`.
+ *
+ * If `Amat` uses `mat_ceed`, then `Pmat` is either assembled or uses `mat_ceed` based on the preconditioner choice in `ksp`.
+ *
+ * @param[in]  ksp      `KSP` object for used for solving
+ * @param[in]  mat_ceed `MATCEED` for the linear operator
+ * @param[in]  assemble Whether to assemble `Amat` and `Pmat` if they are not `mat_ceed`
+ * @param[out] Amat     `Mat` to be used for the solver `Amat`
+ * @param[out] Pmat     `Mat` to be used for the solver `Pmat`
  */
-PetscErrorCode CreateMatShell_Ceed(OperatorApplyContext ctx, Mat *mat) {
-  MPI_Comm comm_x = PetscObjectComm((PetscObject)(ctx->dm_x));
-  MPI_Comm comm_y = PetscObjectComm((PetscObject)(ctx->dm_y));
-  PetscInt X_loc_size, X_size, Y_size, Y_loc_size;
-  VecType  X_vec_type, Y_vec_type;
+PetscErrorCode CreateSolveOperatorsFromMatCeed(KSP ksp, Mat mat_ceed, PetscBool assemble, Mat *Amat, Mat *Pmat) {
+  PetscBool use_matceed_pmat, assemble_amat = PETSC_FALSE;
+  MatType   mat_ceed_inner_type;
 
   PetscFunctionBeginUser;
-  PetscCheck(comm_x == comm_y, PETSC_COMM_WORLD, PETSC_ERR_ARG_NOTSAMECOMM, "Input and output DM must have the same comm");
+  PetscCall(MatCeedGetInnerMatType(mat_ceed, &mat_ceed_inner_type));
+  {  // Determine if Amat should be MATCEED or assembled
+    const char *ksp_prefix = NULL;
 
-  PetscCall(DMGetGlobalVectorInfo(ctx->dm_x, &X_loc_size, &X_size, &X_vec_type));
-  PetscCall(DMGetGlobalVectorInfo(ctx->dm_y, &Y_loc_size, &Y_size, &Y_vec_type));
+    PetscCall(KSPGetOptionsPrefix(ksp, &ksp_prefix));
+    PetscOptionsBegin(PetscObjectComm((PetscObject)mat_ceed), ksp_prefix, "", NULL);
+    PetscCall(PetscOptionsBool("-matceed_assemble_amat", "Assemble the A matrix for KSP solve", NULL, assemble_amat, &assemble_amat, NULL));
+    PetscOptionsEnd();
+  }
 
-  PetscCall(MatCreateShell(comm_x, Y_loc_size, X_loc_size, Y_size, X_size, ctx, mat));
-  PetscCall(MatShellSetContextDestroy(*mat, (PetscErrorCode(*)(void *))OperatorApplyContextDestroy));
-  PetscCall(MatShellSetOperation(*mat, MATOP_MULT, (void (*)(void))MatMult_Ceed));
-  PetscCall(MatShellSetOperation(*mat, MATOP_GET_DIAGONAL, (void (*)(void))MatGetDiag_Ceed));
+  if (assemble_amat) {
+    PetscCall(MatConvert(mat_ceed, mat_ceed_inner_type, MAT_INITIAL_MATRIX, Amat));
+    if (assemble) PetscCall(MatCeedAssembleCOO(mat_ceed, *Amat));
 
-  PetscCheck(X_vec_type == Y_vec_type, PETSC_COMM_WORLD, PETSC_ERR_ARG_NOTSAMETYPE, "Vec_type of ctx->dm_x (%s) and ctx->dm_y (%s) must be the same",
-             X_vec_type, Y_vec_type);
-  PetscCall(MatShellSetVecType(*mat, X_vec_type));
+    PetscCall(PetscObjectReference((PetscObject)*Amat));
+    *Pmat = *Amat;
+    PetscFunctionReturn(PETSC_SUCCESS);
+  } else {
+    PetscCall(PetscObjectReference((PetscObject)mat_ceed));
+    *Amat = mat_ceed;
+  }
+
+  {  // Determine if Pmat should be MATCEED or assembled
+    PC     pc;
+    PCType pc_type;
+
+    PetscCall(KSPGetPC(ksp, &pc));
+    PetscCall(PCGetType(pc, &pc_type));
+    PetscCall(PetscStrcmpAny(pc_type, &use_matceed_pmat, PCJACOBI, PCVPBJACOBI, PCPBJACOBI, ""));
+  }
+
+  if (use_matceed_pmat) {
+    PetscCall(PetscObjectReference((PetscObject)mat_ceed));
+    *Pmat = mat_ceed;
+  } else {
+    PetscCall(MatConvert(mat_ceed, mat_ceed_inner_type, MAT_INITIAL_MATRIX, Pmat));
+    if (assemble) PetscCall(MatCeedAssembleCOO(mat_ceed, *Pmat));
+  }
   PetscFunctionReturn(PETSC_SUCCESS);
 }
 
+/**
+ * @brief Runs KSPSetFromOptions and sets Operators based on mat_ceed
+ *
+ * See CreateSolveOperatorsFromMatCeed for details on how the KSPSolve operators are set.
+ *
+ * @param[in] ksp      `KSP` of the solve
+ * @param[in] mat_ceed `MatCeed` linear operator to solve for
+ */
+PetscErrorCode KSPSetFromOptions_WithMatCeed(KSP ksp, Mat mat_ceed) {
+  Mat Amat, Pmat;
+
+  PetscFunctionBeginUser;
+  PetscCall(KSPSetFromOptions(ksp));
+  PetscCall(CreateSolveOperatorsFromMatCeed(ksp, mat_ceed, PETSC_TRUE, &Amat, &Pmat));
+  PetscCall(KSPSetOperators(ksp, Amat, Pmat));
+  PetscCall(MatDestroy(&Amat));
+  PetscCall(MatDestroy(&Pmat));
+  PetscFunctionReturn(PETSC_SUCCESS);
+}
 // -----------------------------------------------------------------------------
