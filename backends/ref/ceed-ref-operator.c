@@ -19,7 +19,6 @@
 static int CeedOperatorSetupFields_Ref(CeedQFunction qf, CeedOperator op, bool is_input, CeedVector *e_vecs_full, CeedVector *e_vecs,
                                        CeedVector *q_vecs, CeedInt start_e, CeedInt num_fields, CeedInt Q) {
   Ceed                ceed;
-  bool                is_at_points;
   CeedSize            e_size, q_size;
   CeedInt             num_comp, size, P;
   CeedQFunctionField *qf_fields;
@@ -32,7 +31,6 @@ static int CeedOperatorSetupFields_Ref(CeedQFunction qf, CeedOperator op, bool i
     CeedCallBackend(CeedGetParent(ceed, &ceed_parent));
     if (ceed_parent) ceed = ceed_parent;
   }
-  CeedCallBackend(CeedOperatorIsAtPoints(op, &is_at_points));
   if (is_input) {
     CeedCallBackend(CeedOperatorGetFields(op, NULL, &op_fields, NULL, NULL));
     CeedCallBackend(CeedQFunctionGetFields(qf, NULL, &qf_fields, NULL, NULL));
