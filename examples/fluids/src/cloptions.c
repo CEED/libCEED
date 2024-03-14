@@ -37,6 +37,16 @@ PetscErrorCode ProcessCommandLineOptions(MPI_Comm comm, AppCtx app_ctx, SimpleBC
   PetscBool option_set   = PETSC_FALSE;
 
   PetscFunctionBeginUser;
+  {
+    PetscInt num_options;
+
+    PetscCall(PetscOptionsLeftGet(NULL, &num_options, NULL, NULL));
+    PetscCheck(num_options > 0, comm, PETSC_ERR_USER_INPUT,
+               "Command line options required."
+               " Please consult the documentation to see which options are required.");
+    PetscCall(PetscOptionsLeftRestore(NULL, &num_options, NULL, NULL));
+  }
+
   PetscOptionsBegin(comm, NULL, "Navier-Stokes in PETSc with libCEED", NULL);
 
   PetscCall(PetscOptionsString("-ceed", "CEED resource specifier", NULL, app_ctx->ceed_resource, app_ctx->ceed_resource,
