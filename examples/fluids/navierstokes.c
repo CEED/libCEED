@@ -15,7 +15,7 @@
 //
 // Sample runs:
 //
-//     ./navierstokes -ceed /cpu/self -problem density_current -degree 1
+//     ./navierstokes -ceed /cpu/self -options_file gaussianwave.yml
 //     ./navierstokes -ceed /gpu/cuda -problem advection -degree 1
 //
 //TESTARGS(name="Advection 2D, rotation, explicit, su, consistent mass") -ceed {ceed_resource} -test_type solver -problem advection -degree 3 -dm_plex_box_faces 2,2 -dm_plex_box_lower 0,0 -dm_plex_box_upper 125,125 -bc_wall 1,2,3,4 -wall_comps 4 -units_kilogram 1e-9 -rc 100. -ts_dt 1e-3 -ts_max_steps 10 -stab su -Ctaus 0.5 -mass_ksp_type cg -mass_pc_jacobi_type diagonal -compare_final_state_atol 1e-10 -compare_final_state_filename examples/fluids/tests-output/fluids-navierstokes-adv2d-rotation-explicit-stab-su-consistent-mass.bin
