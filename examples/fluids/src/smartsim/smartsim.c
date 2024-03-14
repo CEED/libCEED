@@ -24,11 +24,9 @@ PetscErrorCode SmartSimTrainingSetup(User user) {
   PetscMPIInt  rank;
   PetscReal    checkrun[2] = {1};
   size_t       dim_2[1]    = {2};
-  PetscInt     num_ranks;
 
   PetscFunctionBeginUser;
   PetscCallMPI(MPI_Comm_rank(user->comm, &rank));
-  PetscCallMPI(MPI_Comm_size(user->comm, &num_ranks));
 
   if (rank % smartsim->collocated_database_num_ranks == 0) {
     // -- Send array that communicates when ML is done training
