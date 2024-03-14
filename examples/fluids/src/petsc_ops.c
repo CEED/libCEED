@@ -152,142 +152,6 @@ PetscErrorCode OperatorApplyContextDestroy(OperatorApplyContext ctx) {
   PetscFunctionReturn(PETSC_SUCCESS);
 }
 
-/**
-  @brief Transfer array from PETSc Vec to CeedVector
-
-  @param[in]   X_petsc   PETSc Vec
-  @param[out]  mem_type  PETSc MemType
-  @param[out]  x_ceed    CeedVector
-
-  @return An error code: 0 - success, otherwise - failure
-**/
-PetscErrorCode VecP2C(Vec X_petsc, PetscMemType *mem_type, CeedVector x_ceed) {
-  PetscScalar *x;
-  PetscInt     X_size;
-  CeedSize     x_size;
-  Ceed         ceed;
-
-  PetscFunctionBeginUser;
-  PetscCall(CeedVectorGetCeed(x_ceed, &ceed));
-  PetscCall(VecGetLocalSize(X_petsc, &X_size));
-  PetscCallCeed(ceed, CeedVectorGetLength(x_ceed, &x_size));
-  PetscCheck(X_size == x_size, PETSC_COMM_WORLD, PETSC_ERR_ARG_SIZ, "X_petsc (%" PetscInt_FMT ") and x_ceed (%" CeedSize_FMT ") must be same size",
-             X_size, x_size);
-
-  PetscCall(VecGetArrayAndMemType(X_petsc, &x, mem_type));
-  PetscCallCeed(ceed, CeedVectorSetArray(x_ceed, MemTypeP2C(*mem_type), CEED_USE_POINTER, x));
-  PetscFunctionReturn(PETSC_SUCCESS);
-}
-
-/**
-  @brief Transfer array from CeedVector to PETSc Vec
-
-  @param[in]   x_ceed    CeedVector
-  @param[in]   mem_type  PETSc MemType
-  @param[out]  X_petsc   PETSc Vec
-
-  @return An error code: 0 - success, otherwise - failure
-**/
-PetscErrorCode VecC2P(CeedVector x_ceed, PetscMemType mem_type, Vec X_petsc) {
-  PetscScalar *x;
-  PetscInt     X_size;
-  CeedSize     x_size;
-  Ceed         ceed;
-
-  PetscFunctionBeginUser;
-  PetscCall(CeedVectorGetCeed(x_ceed, &ceed));
-  PetscCall(VecGetLocalSize(X_petsc, &X_size));
-  PetscCallCeed(ceed, CeedVectorGetLength(x_ceed, &x_size));
-  PetscCheck(X_size == x_size, PETSC_COMM_WORLD, PETSC_ERR_ARG_SIZ, "X_petsc (%" PetscInt_FMT ") and x_ceed (%" CeedSize_FMT ") must be same size",
-             X_size, x_size);
-
-  PetscCallCeed(ceed, CeedVectorTakeArray(x_ceed, MemTypeP2C(mem_type), &x));
-  PetscCall(VecRestoreArrayAndMemType(X_petsc, &x));
-  PetscFunctionReturn(PETSC_SUCCESS);
-}
-
-/**
-  @brief Transfer read-only array from PETSc Vec to CeedVector
-
-  @param[in]   X_petsc   PETSc Vec
-  @param[out]  mem_type  PETSc MemType
-  @param[out]  x_ceed    CeedVector
-
-  @return An error code: 0 - success, otherwise - failure
-**/
-PetscErrorCode VecReadP2C(Vec X_petsc, PetscMemType *mem_type, CeedVector x_ceed) {
-  PetscScalar *x;
-  PetscInt     X_size;
-  CeedSize     x_size;
-  Ceed         ceed;
-
-  PetscFunctionBeginUser;
-  PetscCall(CeedVectorGetCeed(x_ceed, &ceed));
-  PetscCall(VecGetLocalSize(X_petsc, &X_size));
-  PetscCallCeed(ceed, CeedVectorGetLength(x_ceed, &x_size));
-  PetscCheck(X_size == x_size, PETSC_COMM_WORLD, PETSC_ERR_ARG_SIZ, "X_petsc (%" PetscInt_FMT ") and x_ceed (%" CeedSize_FMT ") must be same size",
-             X_size, x_size);
-
-  PetscCall(VecGetArrayReadAndMemType(X_petsc, (const PetscScalar **)&x, mem_type));
-  PetscCallCeed(ceed, CeedVectorSetArray(x_ceed, MemTypeP2C(*mem_type), CEED_USE_POINTER, x));
-  PetscFunctionReturn(PETSC_SUCCESS);
-}
-
-/**
-  @brief Transfer read-only array from CeedVector to PETSc Vec
-
-  @param[in]   x_ceed    CeedVector
-  @param[in]   mem_type  PETSc MemType
-  @param[out]  X_petsc   PETSc Vec
-
-  @return An error code: 0 - success, otherwise - failure
-**/
-PetscErrorCode VecReadC2P(CeedVector x_ceed, PetscMemType mem_type, Vec X_petsc) {
-  PetscScalar *x;
-  PetscInt     X_size;
-  CeedSize     x_size;
-  Ceed         ceed;
-
-  PetscFunctionBeginUser;
-  PetscCall(CeedVectorGetCeed(x_ceed, &ceed));
-  PetscCall(VecGetLocalSize(X_petsc, &X_size));
-  PetscCallCeed(ceed, CeedVectorGetLength(x_ceed, &x_size));
-  PetscCheck(X_size == x_size, PETSC_COMM_WORLD, PETSC_ERR_ARG_SIZ, "X_petsc (%" PetscInt_FMT ") and x_ceed (%" CeedSize_FMT ") must be same size",
-             X_size, x_size);
-
-  PetscCallCeed(ceed, CeedVectorTakeArray(x_ceed, MemTypeP2C(mem_type), &x));
-  PetscCall(VecRestoreArrayReadAndMemType(X_petsc, (const PetscScalar **)&x));
-  PetscFunctionReturn(PETSC_SUCCESS);
-}
-
-/**
-  @brief Copy PETSc Vec data into CeedVector
-
-  @param[in]   X_petsc PETSc Vec
-  @param[out]  x_ceed  CeedVector
-
-  @return An error code: 0 - success, otherwise - failure
-**/
-PetscErrorCode VecCopyP2C(Vec X_petsc, CeedVector x_ceed) {
-  PetscScalar *x;
-  PetscMemType mem_type;
-  PetscInt     X_size;
-  CeedSize     x_size;
-  Ceed         ceed;
-
-  PetscFunctionBeginUser;
-  PetscCall(CeedVectorGetCeed(x_ceed, &ceed));
-  PetscCall(VecGetLocalSize(X_petsc, &X_size));
-  PetscCallCeed(ceed, CeedVectorGetLength(x_ceed, &x_size));
-  PetscCheck(X_size == x_size, PETSC_COMM_WORLD, PETSC_ERR_ARG_SIZ, "X_petsc (%" PetscInt_FMT ") and x_ceed (%" CeedSize_FMT ") must be same size",
-             X_size, x_size);
-
-  PetscCall(VecGetArrayReadAndMemType(X_petsc, (const PetscScalar **)&x, &mem_type));
-  PetscCallCeed(ceed, CeedVectorSetArray(x_ceed, MemTypeP2C(mem_type), CEED_COPY_VALUES, x));
-  PetscCall(VecRestoreArrayReadAndMemType(X_petsc, (const PetscScalar **)&x));
-  PetscFunctionReturn(PETSC_SUCCESS);
-}
-
 //@brief Return VecType for the given DM
 VecType DMReturnVecType(DM dm) {
   VecType vec_type;
@@ -347,9 +211,9 @@ PetscErrorCode ApplyCeedOperator_Core(Vec X, Vec X_loc, CeedVector x_ceed, CeedV
 
   PetscFunctionBeginUser;
   if (X) PetscCall(DMGlobalToLocal(ctx->dm_x, X, INSERT_VALUES, X_loc));
-  if (X_loc) PetscCall(VecReadP2C(X_loc, &x_mem_type, x_ceed));
+  if (X_loc) PetscCall(VecReadPetscToCeed(X_loc, &x_mem_type, x_ceed));
 
-  if (Y_loc) PetscCall(VecP2C(Y_loc, &y_mem_type, y_ceed));
+  if (Y_loc) PetscCall(VecPetscToCeed(Y_loc, &y_mem_type, y_ceed));
 
   PetscCall(PetscLogEventBegin(FLUIDS_CeedOperatorApply, X, Y, 0, 0));
   PetscCall(PetscLogGpuTimeBegin());
@@ -358,9 +222,9 @@ PetscErrorCode ApplyCeedOperator_Core(Vec X, Vec X_loc, CeedVector x_ceed, CeedV
   PetscCall(PetscLogGpuTimeEnd());
   PetscCall(PetscLogEventEnd(FLUIDS_CeedOperatorApply, X, Y, 0, 0));
 
-  if (X_loc) PetscCall(VecReadC2P(ctx->x_ceed, x_mem_type, X_loc));
+  if (X_loc) PetscCall(VecReadCeedToPetsc(ctx->x_ceed, x_mem_type, X_loc));
 
-  if (Y_loc) PetscCall(VecC2P(ctx->y_ceed, y_mem_type, Y_loc));
+  if (Y_loc) PetscCall(VecCeedToPetsc(ctx->y_ceed, y_mem_type, Y_loc));
   if (Y) PetscCall(DMLocalToGlobal(ctx->dm_y, Y_loc, ADD_VALUES, Y));
   PetscFunctionReturn(PETSC_SUCCESS);
 };

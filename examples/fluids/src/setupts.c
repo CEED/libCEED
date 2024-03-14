@@ -166,9 +166,9 @@ PetscErrorCode IFunction_NS(TS ts, PetscReal t, Vec Q, Vec Q_dot, Vec G, void *u
   PetscCall(DMGlobalToLocalEnd(user->dm, Q_dot, INSERT_VALUES, Q_dot_loc));
 
   // Place PETSc vectors in CEED vectors
-  PetscCall(VecReadP2C(Q_loc, &q_mem_type, user->q_ceed));
-  PetscCall(VecReadP2C(Q_dot_loc, &q_dot_mem_type, user->q_dot_ceed));
-  PetscCall(VecP2C(G_loc, &g_mem_type, user->g_ceed));
+  PetscCall(VecReadPetscToCeed(Q_loc, &q_mem_type, user->q_ceed));
+  PetscCall(VecReadPetscToCeed(Q_dot_loc, &q_dot_mem_type, user->q_dot_ceed));
+  PetscCall(VecPetscToCeed(G_loc, &g_mem_type, user->g_ceed));
 
   // Apply CEED operator
   PetscCall(PetscLogEventBegin(FLUIDS_CeedOperatorApply, Q, G, 0, 0));
@@ -178,9 +178,9 @@ PetscErrorCode IFunction_NS(TS ts, PetscReal t, Vec Q, Vec Q_dot, Vec G, void *u
   PetscCall(PetscLogEventEnd(FLUIDS_CeedOperatorApply, Q, G, 0, 0));
 
   // Restore vectors
-  PetscCall(VecReadC2P(user->q_ceed, q_mem_type, Q_loc));
-  PetscCall(VecReadC2P(user->q_dot_ceed, q_dot_mem_type, Q_dot_loc));
-  PetscCall(VecC2P(user->g_ceed, g_mem_type, G_loc));
+  PetscCall(VecReadCeedToPetsc(user->q_ceed, q_mem_type, Q_loc));
+  PetscCall(VecReadCeedToPetsc(user->q_dot_ceed, q_dot_mem_type, Q_dot_loc));
+  PetscCall(VecCeedToPetsc(user->g_ceed, g_mem_type, G_loc));
 
   if (user->app_ctx->sgs_model_type == SGS_MODEL_DATA_DRIVEN) {
     PetscCall(SgsDDApplyIFunction(user, Q_loc, G_loc));

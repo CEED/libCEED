@@ -107,7 +107,7 @@ PetscErrorCode GridAnisotropyTensorProjectionSetupApply(Ceed ceed, User user, Ce
     PetscCall(DMGetLocalVector(grid_aniso_proj->dm, &grid_anisotropy_loc));
     PetscCallCeed(ceed, CeedElemRestrictionCreateVector(*elem_restr_grid_aniso, grid_aniso_vector, NULL));
     PetscCall(DMGlobalToLocal(grid_aniso_proj->dm, Grid_Anisotropy, INSERT_VALUES, grid_anisotropy_loc));
-    PetscCall(VecCopyP2C(grid_anisotropy_loc, *grid_aniso_vector));
+    PetscCall(VecCopyPetscToCeed(grid_anisotropy_loc, *grid_aniso_vector));
     PetscCall(DMRestoreLocalVector(grid_aniso_proj->dm, &grid_anisotropy_loc));
     PetscCall(DMRestoreGlobalVector(grid_aniso_proj->dm, &Grid_Anisotropy));
   }

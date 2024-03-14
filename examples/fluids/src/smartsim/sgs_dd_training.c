@@ -288,11 +288,11 @@ PetscErrorCode TSMonitor_SGS_DD_Training(TS ts, PetscInt step_num, PetscReal sol
       PetscCallCeed(ceed, CeedOperatorGetFieldByName(sgs_dd_train->op_training_data_calc_ctx->op, "q", &op_field));
       PetscCallCeed(ceed, CeedOperatorFieldGetVector(op_field, &filtered_fields));
     }
-    PetscCall(VecP2C(FilteredFields_loc, &filtered_fields_mem_type, filtered_fields));  // filtered_fields is an implicit input
+    PetscCall(VecPetscToCeed(FilteredFields_loc, &filtered_fields_mem_type, filtered_fields));  // filtered_fields is an implicit input
 
     PetscCall(ApplyCeedOperatorGlobalToGlobal(FilteredVelocityGradient, TrainingData, sgs_dd_train->op_training_data_calc_ctx));
 
-    PetscCall(VecC2P(filtered_fields, filtered_fields_mem_type, FilteredFields_loc));
+    PetscCall(VecCeedToPetsc(filtered_fields, filtered_fields_mem_type, FilteredFields_loc));
 
     PetscCall(DMRestoreGlobalVector(sgs_dd_train->filtered_grad_velo_proj->dm, &FilteredVelocityGradient));
     PetscCall(DMRestoreGlobalVector(user->diff_filter->dm_filter, &FilteredFields));

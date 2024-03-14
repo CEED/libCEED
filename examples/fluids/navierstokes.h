@@ -8,6 +8,7 @@
 #ifndef libceed_fluids_examples_navier_stokes_h
 #define libceed_fluids_examples_navier_stokes_h
 
+#include <ceed-utils.h>
 #include <ceed.h>
 #include <mat-ceed.h>
 #include <petscts.h>
@@ -25,21 +26,9 @@
 #define DMSetCoordinateDisc(a, b, c) DMProjectCoordinates(a, b)
 #endif
 
-#define PetscCallCeed(ceed, ...)                                    \
-  do {                                                              \
-    int ierr = __VA_ARGS__;                                         \
-    if (ierr != CEED_ERROR_SUCCESS) {                               \
-      const char *error_message;                                    \
-      CeedGetErrorMessage(ceed, &error_message);                    \
-      SETERRQ(PETSC_COMM_SELF, PETSC_ERR_LIB, "%s", error_message); \
-    }                                                               \
-  } while (0)
-
 // -----------------------------------------------------------------------------
 // Enums
 // -----------------------------------------------------------------------------
-// Translate PetscMemType to CeedMemType
-static inline CeedMemType MemTypeP2C(PetscMemType mem_type) { return PetscMemTypeDevice(mem_type) ? CEED_MEM_DEVICE : CEED_MEM_HOST; }
 
 // Euler - test cases
 typedef enum {
@@ -457,9 +446,6 @@ PetscErrorCode PhastaDatFileOpen(const MPI_Comm comm, const char path[PETSC_MAX_
 PetscErrorCode PhastaDatFileGetNRows(const MPI_Comm comm, const char path[PETSC_MAX_PATH_LEN], PetscInt *nrows);
 
 PetscErrorCode PhastaDatFileReadToArrayReal(const MPI_Comm comm, const char path[PETSC_MAX_PATH_LEN], PetscReal array[]);
-
-PetscErrorCode IntArrayC2P(PetscInt num_entries, CeedInt **array_ceed, PetscInt **array_petsc);
-PetscErrorCode IntArrayP2C(PetscInt num_entries, PetscInt **array_petsc, CeedInt **array_ceed);
 
 // -----------------------------------------------------------------------------
 // Turbulence Statistics Collection Functions

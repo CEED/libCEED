@@ -220,7 +220,7 @@ PetscErrorCode SpanStatsSetupDataCreate(Ceed ceed, User user, CeedData ceed_data
     }
   }
   PetscCall(VecScale(X_loc, problem->dm_scale));
-  PetscCall(VecCopyP2C(X_loc, (*stats_data)->x_coord));
+  PetscCall(VecCopyPetscToCeed(X_loc, (*stats_data)->x_coord));
   PetscFunctionReturn(PETSC_SUCCESS);
 }
 

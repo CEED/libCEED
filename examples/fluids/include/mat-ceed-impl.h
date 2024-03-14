@@ -23,6 +23,7 @@
   @brief Calls a libCEED function and then checks the resulting error code.
   If the error code is non-zero, then a PETSc error is set with the libCEED error message.
 **/
+#ifndef PetscCallCeed
 #define PetscCallCeed(ceed_, ...)                                   \
   do {                                                              \
     int ierr_q_ = __VA_ARGS__;                                      \
@@ -32,6 +33,7 @@
       SETERRQ(PETSC_COMM_SELF, PETSC_ERR_LIB, "%s", error_message); \
     }                                                               \
   } while (0)
+#endif
 
 // MatCeed context for applying composite CeedOperator on a DM
 typedef struct MatCeedContext_private *MatCeedContext;
