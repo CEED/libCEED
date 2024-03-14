@@ -167,10 +167,11 @@ VecType DMReturnVecType(DM dm) {
  * For example, if statitics are being store at quadrature points, a `DM`-created `Vec` will not have the
  * correct size.
  *
- * @param[in]  dm     DM overwhich the Vecs would be used
- * @param[in]  op     Operator to make the Vecs for
- * @param[out] input  Vec for CeedOperator active input
- * @param[out] output Vec for CeedOperator active output
+ * @param[in]  op       Operator to make the Vecs for
+ * @param[in]  vec_type `VecType` for the new Vecs
+ * @param[in]  comm     `MPI_Comm` for the new Vecs
+ * @param[out] input    Vec for CeedOperator active input
+ * @param[out] output   Vec for CeedOperator active output
  */
 PetscErrorCode CeedOperatorCreateLocalVecs(CeedOperator op, VecType vec_type, MPI_Comm comm, Vec *input, Vec *output) {
   CeedSize input_size, output_size;
