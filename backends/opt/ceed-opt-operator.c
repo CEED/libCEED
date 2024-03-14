@@ -136,9 +136,8 @@ static int CeedOperatorSetupFields_Opt(CeedQFunction qf, CeedOperator op, bool i
         CeedCallBackend(CeedBasisApply(basis, block_size, CEED_NOTRANSPOSE, CEED_EVAL_WEIGHT, CEED_VECTOR_NONE, q_vecs[i]));
         break;
     }
-    if (is_input && e_vecs[i]) {
-      CeedCallBackend(CeedVectorSetArray(e_vecs[i], CEED_MEM_HOST, CEED_COPY_VALUES, NULL));
-    }
+    // Initialize E-vec arrays
+    if (e_vecs[i]) CeedCallBackend(CeedVectorSetValue(e_vecs[i], 0.0));
   }
   return CEED_ERROR_SUCCESS;
 }
@@ -620,10 +619,8 @@ static inline int CeedOperatorLinearAssembleQFunctionCore_Opt(CeedOperator op, b
 
     // Get output vector
     CeedCallBackend(CeedOperatorFieldGetVector(op_output_fields[out], &vec));
-    // Check if active output
-    if (vec == CEED_VECTOR_ACTIVE) {
-      CeedCallBackend(CeedVectorSetArray(impl->q_vecs_out[out], CEED_MEM_HOST, CEED_COPY_VALUES, NULL));
-    }
+    // Initialize array if active output
+    if (vec == CEED_VECTOR_ACTIVE) CeedCallBackend(CeedVectorSetValue(impl->q_vecs_out[out], 0.0));
   }
 
   // Restore input arrays

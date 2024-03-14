@@ -10,11 +10,8 @@ jobs:
   test:
     strategy:
       matrix:
-        os: [ubuntu-22.04, macos-12]
-        compiler: [gcc-11, clang]
-        include:
-        - os: ubuntu-22.04
-          asan: 1
+        os: [ubuntu-22.04, macos-13]
+        compiler: [gcc-13, clang]
 
     runs-on: ${{ matrix.os }}
 
@@ -24,11 +21,8 @@ jobs:
     - name: Build and test libCEED
       env:
         CC: ${{ matrix.compiler }}
-        FC: gfortran-11
-        AFLAGS: -fsanitize=address -fsanitize=leak
-        ASAN: ${{ matrix.asan }}
+        FC: gfortran-13
       run: |
-        make -v
         make info
         make -j2
         PROVE_OPTS=-v make prove -j2

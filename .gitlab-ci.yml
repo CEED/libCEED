@@ -16,13 +16,14 @@ noether-asan:
   interruptible: true
   before_script:
 # Environment
+#    Note: COVERAGE=0 is needed when using ASAN
     - export COVERAGE=0 CC=gcc CXX=g++ FC=gfortran
     - export NPROC_POOL=8
     - echo "-------------- nproc ---------------" && NPROC_CPU=$(nproc) && NPROC_GPU=$(($(nproc)<8?$(nproc):8)) && echo "NPROC_CPU" $NPROC_CPU && echo "NPROC_GPU" $NPROC_GPU
     - echo "-------------- CC ------------------" && $CC --version
     - echo "-------------- CXX -----------------" && $CXX --version
     - echo "-------------- FC ------------------" && $FC --version
-    # ASAN
+# ASAN
     - echo "-------------- ASAN ----------------"
     - export ASAN=1 AFLAGS="-fsanitize=address -fsanitize=leak"
     - echo $AFLAGS
@@ -42,7 +43,7 @@ noether-asan:
     - make -k -j$((NPROC_CPU / NPROC_POOL)) BACKENDS="$BACKENDS_CPU" JUNIT_BATCH="memcheck" junit realsearch=%
 # Clang-tidy
     - echo "-------------- clang-tidy ----------" && clang-tidy --version
-    - make -j$NPROC_CPU tidy
+    - TIDY_OPTS="-fix-errors" make -j$NPROC_CPU tidy && git diff --color=always --exit-code
 # Report status
     - touch .SUCCESS
   artifacts:
@@ -60,24 +61,22 @@ noether-cpu:
   stage: test:cpu-and-tidy
   tags:
     - cpu
-    - rocm
   interruptible: true
   before_script:
 # Environment
-    - export COVERAGE=1 CC=gcc CXX=g++ FC=gfortran HIPCC=hipcc
+    - export COVERAGE=1 CC=gcc CXX=g++ FC=gfortran
     - export NPROC_POOL=8
     - echo "-------------- nproc ---------------" && NPROC_CPU=$(nproc) && NPROC_GPU=$(($(nproc)<8?$(nproc):8)) && echo "NPROC_CPU" $NPROC_CPU && echo "NPROC_GPU" $NPROC_GPU
     - echo "-------------- CC ------------------" && $CC --version
     - echo "-------------- CXX -----------------" && $CXX --version
     - echo "-------------- FC ------------------" && $FC --version
-    - echo "-------------- HIPCC ---------------" && $HIPCC --version
     - echo "-------------- GCOV ----------------" && gcov --version
 # Libraries for backends
 # -- LIBXSMM 2c145a109b5a8ad4e15f60ea42a86b9056bdc8b8
     - cd .. && export XSMM_HASH=2c145a109b5a8ad4e15f60ea42a86b9056bdc8b8 && { [[ -d libxsmm-$XSMM_HASH ]] || { curl -L https://github.com/libxsmm/libxsmm/archive/$XSMM_HASH.tar.gz -o xsmm.tar.gz && tar zvxf xsmm.tar.gz && rm xsmm.tar.gz && make -C libxsmm-$XSMM_HASH -j$(nproc); }; } && export XSMM_DIR=$PWD/libxsmm-$XSMM_HASH && cd libCEED
     - echo "-------------- LIBXSMM -------------" && basename $XSMM_DIR
-# -- OCCA v1.1.0
-    - cd .. && export OCCA_VERSION=occa-1.4.0 && { [[ -d $OCCA_VERSION ]] || { git clone --depth 1 --branch v1.4.0 https://github.com/libocca/occa.git $OCCA_VERSION && cd $OCCA_VERSION && export ENABLE_OPENCL="OFF" ENABLE_DPCPP="OFF" ENABLE_HIP="OFF" ENABLE_CUDA="OFF" && ./configure-cmake.sh && cmake --build build --parallel $NPROC_CPU && cmake --install build && cd ..; }; } && export OCCA_DIR=$PWD/$OCCA_VERSION/install && cd libCEED
+# -- OCCA v1.6.0
+    - cd .. && export OCCA_VERSION=occa-1.6.0 && { [[ -d $OCCA_VERSION ]] || { git clone --depth 1 --branch v1.6.0 https://github.com/libocca/occa.git $OCCA_VERSION && cd $OCCA_VERSION && export ENABLE_OPENCL="OFF" ENABLE_DPCPP="OFF" ENABLE_HIP="OFF" ENABLE_CUDA="OFF" && ./configure-cmake.sh && cmake --build build --parallel $NPROC_CPU && cmake --install build && cd ..; }; } && export OCCA_DIR=$PWD/$OCCA_VERSION/install && cd libCEED
     - echo "-------------- OCCA ----------------" && git -C $OCCA_DIR describe --tags && LD_LIBRARY_PATH=$OCCA_DIR/lib $OCCA_DIR/bin/occa info
   script:
     - rm -f .SUCCESS
@@ -100,8 +99,8 @@ noether-cpu:
     - source /home/jawr8143/SmartSimTestingSoftware/bin/activate && export SMARTREDIS_DIR=/home/jawr8143/SmartSimTestingSoftware/smartredis/install
     - echo "-------------- PETSc ---------------" && make -C $PETSC_DIR info
     - make -k -j$((NPROC_CPU / NPROC_POOL)) BACKENDS="$BACKENDS_CPU" JUNIT_BATCH="cpu" junit search="petsc fluids solids"
-# -- MFEM v4.2
-    - cd .. && export MFEM_VERSION=mfem-4.2 && { [[ -d $MFEM_VERSION ]] || { git clone --depth 1 --branch v4.2 https://github.com/mfem/mfem.git $MFEM_VERSION && make -C $MFEM_VERSION -j$(nproc) serial CXXFLAGS="-O -std=c++11"; }; } && export MFEM_DIR=$PWD/$MFEM_VERSION && cd libCEED
+# -- MFEM v4.6
+    - cd .. && export MFEM_VERSION=mfem-4.6 && { [[ -d $MFEM_VERSION ]] || { git clone --depth 1 --branch v4.6 https://github.com/mfem/mfem.git $MFEM_VERSION && make -C $MFEM_VERSION -j$(nproc) serial CXXFLAGS="-O -std=c++11"; }; } && export MFEM_DIR=$PWD/$MFEM_VERSION && cd libCEED
     - echo "-------------- MFEM ----------------" && make -C $MFEM_DIR info
     - make -k -j$((NPROC_CPU / NPROC_POOL)) BACKENDS="$BACKENDS_CPU" JUNIT_BATCH="cpu" junit search=mfem
 # -- Nek5000 v19.0
@@ -115,10 +114,6 @@ noether-cpu:
     - export DEAL_II_ROOT_DIR=/projects/dealii DEAL_II_DIR=/projects/dealii/install
     - echo "-------------- deal.II -------------" && git -C $DEAL_II_ROOT_DIR -c safe.directory=$DEAL_II_ROOT_DIR describe --always
     - make -k -j$NPROC_CPU BACKENDS="$BACKENDS_CPU" JUNIT_BATCH="cpu" junit search=dealii DEAL_II_DIR=$DEAL_II_DIR
-# Clang-tidy
-    - echo "-------------- clang-tidy ----------" && clang-tidy --version
-    - export OCCA_DIR= && make lib -j$NPROC_CPU
-    - make -j$NPROC_CPU tidy
 # Report status
     - touch .SUCCESS
   after_script:
@@ -158,7 +153,7 @@ noether-sycl:
   script:
     - rm -f .SUCCESS
 # libCEED
-    - make configure SYCL_DIR=/opt/intel/oneapi/compiler/2023.2.0/linux OPT='-O -march=native -ffp-contract=fast'
+    - make configure SYCL_DIR=/opt/intel/oneapi/compiler/latest OPT='-O -march=native -ffp-contract=fast'
     - BACKENDS_SYCL=$(make info-backends-all | grep -o '/sycl[^ ]*' | tr '\n' ' ')
     - echo "-------------- libCEED -------------" && make info
     - echo "-------------- BACKENDS_SYCL -------" && echo $BACKENDS_SYCL
@@ -204,6 +199,9 @@ noether-cuda:
     - source /home/jawr8143/SmartSimTestingSoftware/bin/activate && export SMARTREDIS_DIR=/home/jawr8143/SmartSimTestingSoftware/smartredis/install
     - echo "-------------- PETSc ---------------" && make -C $PETSC_DIR info
     - make -k -j$((NPROC_GPU / NPROC_POOL)) JUNIT_BATCH="cuda" junit BACKENDS="$BACKENDS_GPU" search="petsc fluids solids"
+# Clang-tidy
+    - echo "-------------- clang-tidy ----------" && clang-tidy --version
+    - TIDY_OPTS="-fix-errors" make -j$NPROC_CPU tidy && git diff --color=always --exit-code
 # Report status
     - touch .SUCCESS
   after_script:
@@ -265,8 +263,8 @@ noether-rocm:
     - source /home/jawr8143/SmartSimTestingSoftware/bin/activate && export SMARTREDIS_DIR=/home/jawr8143/SmartSimTestingSoftware/smartredis/install
     - echo "-------------- PETSc ---------------" && make -C $PETSC_DIR info
     - make -k -j$((NPROC_GPU / NPROC_POOL)) BACKENDS="$BACKENDS_GPU" JUNIT_BATCH="hip" junit search="petsc fluids solids"
-# -- MFEM v4.2
-    - cd .. && export MFEM_VERSION=mfem-4.2 && { [[ -d $MFEM_VERSION ]] || { git clone --depth 1 --branch v4.2 https://github.com/mfem/mfem.git $MFEM_VERSION && make -C $MFEM_VERSION -j$(nproc) serial CXXFLAGS="-O -std=c++11"; }; } && export MFEM_DIR=$PWD/$MFEM_VERSION && cd libCEED
+# -- MFEM v4.6
+    - cd .. && export MFEM_VERSION=mfem-4.6 && { [[ -d $MFEM_VERSION ]] || { git clone --depth 1 --branch v4.6 https://github.com/mfem/mfem.git $MFEM_VERSION && make -C $MFEM_VERSION -j$(nproc) serial CXXFLAGS="-O -std=c++11"; }; } && export MFEM_DIR=$PWD/$MFEM_VERSION && cd libCEED
     - echo "-------------- MFEM ----------------" && make -C $MFEM_DIR info
     - make -k -j$((NPROC_GPU / NPROC_POOL)) BACKENDS="$BACKENDS_GPU" JUNIT_BATCH="hip" junit search=mfem
 # -- Nek5000 v19.0
@@ -303,7 +301,7 @@ noether-rocm:
 
 
 # ----------------------------------------------------------------------------------------
-# CPU + ROCm backends with CeedInt == float
+# CPU + ROCm backends with CeedScalar == float (32 bit)
 # ----------------------------------------------------------------------------------------
 noether-float:
   stage: test:gpu-and-float
