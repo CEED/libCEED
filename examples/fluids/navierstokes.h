@@ -23,6 +23,7 @@
 
 #if PETSC_VERSION_LT(3, 21, 0)
 #define DMSetCoordinateDisc(a, b, c) DMProjectCoordinates(a, b)
+#define DMPlexFilter(a, b, c, d, e, f, g) DMPlexFilter(a, b, c, g)
 #endif
 
 #define PetscCallCeed(ceed, ...)                                    \
