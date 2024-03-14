@@ -30,9 +30,9 @@ PetscErrorCode ICs_FixMultiplicity(DM dm, CeedData ceed_data, User user, Vec Q_l
 
   // -- Get multiplicity
   PetscCall(DMGetLocalVector(dm, &Multiplicity_loc));
-  PetscCall(VecP2C(Multiplicity_loc, &m_mem_type, mult_vec));
+  PetscCall(VecPetscToCeed(Multiplicity_loc, &m_mem_type, mult_vec));
   PetscCallCeed(ceed, CeedElemRestrictionGetMultiplicity(ceed_data->elem_restr_q, mult_vec));
-  PetscCall(VecC2P(mult_vec, m_mem_type, Multiplicity_loc));
+  PetscCall(VecCeedToPetsc(mult_vec, m_mem_type, Multiplicity_loc));
 
   PetscCall(DMGetGlobalVector(dm, &Multiplicity));
   PetscCall(VecZeroEntries(Multiplicity));
@@ -367,56 +367,6 @@ PetscErrorCode RegisterLogEvents() {
   PetscCall(PetscClassIdRegister("Miscellaneous", &misc_classid));
   PetscCall(PetscLogEventRegister("DiffFilter", misc_classid, &FLUIDS_DifferentialFilter));
   PetscCall(PetscLogEventRegister("VeloGradProj", misc_classid, &FLUIDS_VelocityGradientProjection));
-  PetscFunctionReturn(PETSC_SUCCESS);
-}
-
-/**
-  @brief Translate array of CeedInt to PetscInt.
-    If the types differ, `array_ceed` is freed with `free()` and `array_petsc` is allocated with `malloc()`.
-    Caller is responsible for freeing `array_petsc` with `free()`.
-
-  @param[in]      num_entries  Number of array entries
-  @param[in,out]  array_ceed   Array of CeedInts
-  @param[out]     array_petsc  Array of PetscInts
-**/
-PetscErrorCode IntArrayC2P(PetscInt num_entries, CeedInt **array_ceed, PetscInt **array_petsc) {
-  CeedInt  int_c = 0;
-  PetscInt int_p = 0;
-
-  PetscFunctionBeginUser;
-  if (sizeof(int_c) == sizeof(int_p)) {
-    *array_petsc = (PetscInt *)*array_ceed;
-  } else {
-    *array_petsc = malloc(num_entries * sizeof(PetscInt));
-    for (PetscInt i = 0; i < num_entries; i++) (*array_petsc)[i] = (*array_ceed)[i];
-    free(*array_ceed);
-  }
-  *array_ceed = NULL;
-  PetscFunctionReturn(PETSC_SUCCESS);
-}
-
-/**
-  @brief Translate array of PetscInt to CeedInt.
-    If the types differ, `array_petsc` is freed with `PetscFree()` and `array_ceed` is allocated with `PetscMalloc1()`.
-    Caller is responsible for freeing `array_ceed` with `PetscFree()`.
-
-  @param[in]      num_entries  Number of array entries
-  @param[in,out]  array_petsc  Array of PetscInts
-  @param[out]     array_ceed   Array of CeedInts
-**/
-PetscErrorCode IntArrayP2C(PetscInt num_entries, PetscInt **array_petsc, CeedInt **array_ceed) {
-  CeedInt  int_c = 0;
-  PetscInt int_p = 0;
-
-  PetscFunctionBeginUser;
-  if (sizeof(int_c) == sizeof(int_p)) {
-    *array_ceed = (CeedInt *)*array_petsc;
-  } else {
-    PetscCall(PetscMalloc1(num_entries, array_ceed));
-    for (PetscInt i = 0; i < num_entries; i++) (*array_ceed)[i] = (*array_petsc)[i];
-    PetscCall(PetscFree(*array_petsc));
-  }
-  *array_petsc = NULL;
   PetscFunctionReturn(PETSC_SUCCESS);
 }
 

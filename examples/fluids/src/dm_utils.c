@@ -69,7 +69,7 @@ PetscErrorCode DMPlexCeedElemRestrictionCreate(Ceed ceed, DM dm, DMLabel domain_
   PetscFunctionBeginUser;
   PetscCall(
       DMPlexGetLocalOffsets(dm, domain_label, label_value, height, dm_field, &num_elem, &elem_size, &num_comp, &num_dof, &restriction_offsets_petsc));
-  PetscCall(IntArrayP2C(num_elem * elem_size, &restriction_offsets_petsc, &restriction_offsets_ceed));
+  PetscCall(IntArrayPetscToCeed(num_elem * elem_size, &restriction_offsets_petsc, &restriction_offsets_ceed));
   PetscCallCeed(ceed, CeedElemRestrictionCreate(ceed, num_elem, elem_size, num_comp, 1, num_dof, CEED_MEM_HOST, CEED_COPY_VALUES,
                                                 restriction_offsets_ceed, restriction));
   PetscCall(PetscFree(restriction_offsets_ceed));

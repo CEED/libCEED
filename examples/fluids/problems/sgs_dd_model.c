@@ -61,11 +61,11 @@ static PetscErrorCode SgsDDNodalStressEval_Fused(User user, Vec Q_loc, Vec Veloc
   PetscMemType q_mem_type;
 
   PetscFunctionBeginUser;
-  PetscCall(VecP2C(Q_loc, &q_mem_type, user->q_ceed));  // q_ceed is an implicit input
+  PetscCall(VecPetscToCeed(Q_loc, &q_mem_type, user->q_ceed));  // q_ceed is an implicit input
 
   PetscCall(ApplyCeedOperatorGlobalToLocal(VelocityGradient, SGSNodal_loc, sgs_dd_data->op_nodal_evaluation_ctx));
 
-  PetscCall(VecC2P(user->q_ceed, q_mem_type, Q_loc));
+  PetscCall(VecCeedToPetsc(user->q_ceed, q_mem_type, Q_loc));
   PetscFunctionReturn(PETSC_SUCCESS);
 }
 
@@ -216,13 +216,13 @@ PetscErrorCode SgsDDNodalStressEval_Sequential(User user, Vec Q_loc, Vec Velocit
   PetscFunctionBeginUser;
   PetscCall(DMGetLocalVector(sgs_dd_data->dm_dd_inputs, &DD_Inputs_loc));
   PetscCall(DMGetLocalVector(sgs_dd_data->dm_dd_outputs, &DD_Outputs_loc));
-  PetscCall(VecP2C(Q_loc, &q_mem_type, user->q_ceed));  // q_ceed is an implicit input
+  PetscCall(VecPetscToCeed(Q_loc, &q_mem_type, user->q_ceed));  // q_ceed is an implicit input
 
   PetscCall(ApplyCeedOperatorGlobalToLocal(VelocityGradient, DD_Inputs_loc, sgs_dd_data->op_nodal_dd_inputs_ctx));
   PetscCall(sgs_dd_data->sgs_nodal_inference(DD_Inputs_loc, DD_Outputs_loc, &sgs_dd_data->sgs_nodal_inference_ctx));
   PetscCall(ApplyCeedOperatorLocalToLocal(DD_Outputs_loc, SGSNodal_loc, sgs_dd_data->op_nodal_dd_outputs_ctx));
 
-  PetscCall(VecC2P(user->q_ceed, q_mem_type, Q_loc));
+  PetscCall(VecCeedToPetsc(user->q_ceed, q_mem_type, Q_loc));
   PetscCall(DMRestoreLocalVector(sgs_dd_data->dm_dd_inputs, &DD_Inputs_loc));
   PetscCall(DMRestoreLocalVector(sgs_dd_data->dm_dd_outputs, &DD_Outputs_loc));
   PetscFunctionReturn(PETSC_SUCCESS);
@@ -480,11 +480,11 @@ PetscErrorCode SgsDDApplyIFunction(User user, const Vec Q_loc, Vec G_loc) {
   PetscCall(sgs_dd_data->sgs_nodal_eval(user, Q_loc, VelocityGradient, SGSNodal_loc));
 
   // -- Compute contribution of the SGS stress
-  PetscCall(VecP2C(SGSNodal_loc, &sgs_nodal_mem_type, sgs_dd_data->sgs_nodal_ceed));  // sgs_nodal_ceed is an implicit input
+  PetscCall(VecPetscToCeed(SGSNodal_loc, &sgs_nodal_mem_type, sgs_dd_data->sgs_nodal_ceed));  // sgs_nodal_ceed is an implicit input
   PetscCall(ApplyAddCeedOperatorLocalToLocal(Q_loc, G_loc, sgs_dd_data->op_sgs_apply_ctx));
 
   // -- Return local SGS vector
-  PetscCall(VecC2P(sgs_dd_data->sgs_nodal_ceed, sgs_nodal_mem_type, SGSNodal_loc));
+  PetscCall(VecCeedToPetsc(sgs_dd_data->sgs_nodal_ceed, sgs_nodal_mem_type, SGSNodal_loc));
   PetscCall(DMRestoreLocalVector(sgs_dd_data->dm_sgs, &SGSNodal_loc));
   PetscCall(DMRestoreGlobalVector(user->grad_velo_proj->dm, &VelocityGradient));
   PetscFunctionReturn(PETSC_SUCCESS);

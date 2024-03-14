@@ -1,6 +1,7 @@
 /// @file
 /// MatCeed and it's related operators
 
+#include <ceed-utils.h>
 #include <ceed.h>
 #include <ceed/backend.h>
 #include <mat-ceed-impl.h>
@@ -28,128 +29,6 @@ static PetscErrorCode MatCeedRegisterLogEvents() {
   PetscCall(PetscLogEventRegister("MATCEED Mult", MATCEED_CLASSID, &MATCEED_MULT));
   PetscCall(PetscLogEventRegister("MATCEED Mult Transpose", MATCEED_CLASSID, &MATCEED_MULT_TRANSPOSE));
   registered = true;
-  PetscFunctionReturn(PETSC_SUCCESS);
-}
-
-/**
-  @brief Translate PetscMemType to CeedMemType
-
-  @param[in]  mem_type  PetscMemType
-
-  @return Equivalent CeedMemType
-**/
-static inline CeedMemType MemTypeP2C(PetscMemType mem_type) { return PetscMemTypeDevice(mem_type) ? CEED_MEM_DEVICE : CEED_MEM_HOST; }
-
-/**
-  @brief Translate array of `CeedInt` to `PetscInt`.
-    If the types differ, `array_ceed` is freed with `free()` and `array_petsc` is allocated with `malloc()`.
-    Caller is responsible for freeing `array_petsc` with `free()`.
-
-  Not collective across MPI processes.
-
-  @param[in]      num_entries  Number of array entries
-  @param[in,out]  array_ceed   Array of `CeedInt`
-  @param[out]     array_petsc  Array of `PetscInt`
-
-  @return An error code: 0 - success, otherwise - failure
-**/
-static inline PetscErrorCode IntArrayC2P(PetscInt num_entries, CeedInt **array_ceed, PetscInt **array_petsc) {
-  const CeedInt  int_c = 0;
-  const PetscInt int_p = 0;
-
-  PetscFunctionBeginUser;
-  if (sizeof(int_c) == sizeof(int_p)) {
-    *array_petsc = (PetscInt *)*array_ceed;
-  } else {
-    *array_petsc = malloc(num_entries * sizeof(PetscInt));
-    for (PetscInt i = 0; i < num_entries; i++) (*array_petsc)[i] = (*array_ceed)[i];
-    free(*array_ceed);
-  }
-  *array_ceed = NULL;
-  PetscFunctionReturn(PETSC_SUCCESS);
-}
-
-/**
-  @brief Transfer array from PETSc `Vec` to `CeedVector`.
-
-  Collective across MPI processes.
-
-  @param[in]   ceed      libCEED context
-  @param[in]   X_petsc   PETSc `Vec`
-  @param[out]  mem_type  PETSc `MemType`
-  @param[out]  x_ceed    `CeedVector`
-
-  @return An error code: 0 - success, otherwise - failure
-**/
-static inline PetscErrorCode VecP2C(Ceed ceed, Vec X_petsc, PetscMemType *mem_type, CeedVector x_ceed) {
-  PetscScalar *x;
-
-  PetscFunctionBeginUser;
-  PetscCall(VecGetArrayAndMemType(X_petsc, &x, mem_type));
-  PetscCallCeed(ceed, CeedVectorSetArray(x_ceed, MemTypeP2C(*mem_type), CEED_USE_POINTER, x));
-  PetscFunctionReturn(PETSC_SUCCESS);
-}
-
-/**
-  @brief Transfer array from `CeedVector` to PETSc `Vec`.
-
-  Collective across MPI processes.
-
-  @param[in]   ceed      libCEED context
-  @param[in]   x_ceed    `CeedVector`
-  @param[in]   mem_type  PETSc `MemType`
-  @param[out]  X_petsc   PETSc `Vec`
-
-  @return An error code: 0 - success, otherwise - failure
-**/
-static inline PetscErrorCode VecC2P(Ceed ceed, CeedVector x_ceed, PetscMemType mem_type, Vec X_petsc) {
-  PetscScalar *x;
-
-  PetscFunctionBeginUser;
-  PetscCallCeed(ceed, CeedVectorTakeArray(x_ceed, MemTypeP2C(mem_type), &x));
-  PetscCall(VecRestoreArrayAndMemType(X_petsc, &x));
-  PetscFunctionReturn(PETSC_SUCCESS);
-}
-
-/**
-  @brief Transfer read only array from PETSc `Vec` to `CeedVector`.
-
-  Collective across MPI processes.
-
-  @param[in]   ceed      libCEED context
-  @param[in]   X_petsc   PETSc `Vec`
-  @param[out]  mem_type  PETSc `MemType`
-  @param[out]  x_ceed    `CeedVector`
-
-  @return An error code: 0 - success, otherwise - failure
-**/
-static inline PetscErrorCode VecReadP2C(Ceed ceed, Vec X_petsc, PetscMemType *mem_type, CeedVector x_ceed) {
-  PetscScalar *x;
-
-  PetscFunctionBeginUser;
-  PetscCall(VecGetArrayReadAndMemType(X_petsc, (const PetscScalar **)&x, mem_type));
-  PetscCallCeed(ceed, CeedVectorSetArray(x_ceed, MemTypeP2C(*mem_type), CEED_USE_POINTER, x));
-  PetscFunctionReturn(PETSC_SUCCESS);
-}
-
-/**
-  @brief Transfer read only array from `CeedVector` to PETSc `Vec`.
-
-  Collective across MPI processes.
-
-  @param[in]   ceed      libCEED context
-  @param[in]   x_ceed    `CeedVector`
-  @param[in]   mem_type  PETSc `MemType`
-  @param[out]  X_petsc   PETSc `Vec`
-
-  @return An error code: 0 - success, otherwise - failure
-**/
-static inline PetscErrorCode VecReadC2P(Ceed ceed, CeedVector x_ceed, PetscMemType mem_type, Vec X_petsc) {
-  PetscScalar *x;
-
-  PetscFunctionBeginUser;
-  PetscCallCeed(ceed, CeedVectorTakeArray(x_ceed, MemTypeP2C(mem_type), &x));
-  PetscCall(VecRestoreArrayReadAndMemType(X_petsc, (const PetscScalar **)&x));
   PetscFunctionReturn(PETSC_SUCCESS);
 }
 
@@ -244,8 +123,8 @@ static PetscErrorCode MatCeedAssemblePointBlockDiagonalCOO(Mat mat_ceed, Mat mat
       }
       PetscCall(PetscLogStagePush(stage_amg_setup));
       PetscCallCeed(ctx->ceed, CeedOperatorLinearAssemblePointBlockDiagonalSymbolic(ctx->op_mult, &num_entries, &rows_ceed, &cols_ceed));
-      PetscCall(IntArrayC2P(num_entries, &rows_ceed, &rows_petsc));
-      PetscCall(IntArrayC2P(num_entries, &cols_ceed, &cols_petsc));
+      PetscCall(IntArrayCeedToPetsc(num_entries, &rows_ceed, &rows_petsc));
+      PetscCall(IntArrayCeedToPetsc(num_entries, &cols_ceed, &cols_petsc));
       PetscCall(MatSetPreallocationCOOLocal(mat_coo, num_entries, rows_petsc, cols_petsc));
       free(rows_petsc);
       free(cols_petsc);
@@ -684,8 +563,8 @@ PetscErrorCode MatCeedAssembleCOO(Mat mat_ceed, Mat mat_coo) {
       }
       PetscCall(PetscLogStagePush(stage_amg_setup));
       PetscCallCeed(ctx->ceed, CeedOperatorLinearAssembleSymbolic(ctx->op_mult, &num_entries, &rows_ceed, &cols_ceed));
-      PetscCall(IntArrayC2P(num_entries, &rows_ceed, &rows_petsc));
-      PetscCall(IntArrayC2P(num_entries, &cols_ceed, &cols_petsc));
+      PetscCall(IntArrayCeedToPetsc(num_entries, &rows_ceed, &rows_petsc));
+      PetscCall(IntArrayCeedToPetsc(num_entries, &cols_ceed, &cols_petsc));
       PetscCall(MatSetPreallocationCOOLocal(mat_coo, num_entries, rows_petsc, cols_petsc));
       free(rows_petsc);
       free(cols_petsc);
@@ -1240,13 +1119,13 @@ PetscErrorCode MatGetDiagonal_Ceed(Mat A, Vec D) {
 
   // Place PETSc vector in libCEED vector
   PetscCall(DMGetLocalVector(ctx->dm_x, &D_loc));
-  PetscCall(VecP2C(ctx->ceed, D_loc, &mem_type, ctx->x_loc));
+  PetscCall(VecPetscToCeed(D_loc, &mem_type, ctx->x_loc));
 
   // Compute Diagonal
   PetscCallCeed(ctx->ceed, CeedOperatorLinearAssembleDiagonal(ctx->op_mult, ctx->x_loc, CEED_REQUEST_IMMEDIATE));
 
   // Restore PETSc vector
-  PetscCall(VecC2P(ctx->ceed, ctx->x_loc, mem_type, D_loc));
+  PetscCall(VecCeedToPetsc(ctx->x_loc, mem_type, D_loc));
 
   // Local-to-Global
   PetscCall(VecZeroEntries(D));
@@ -1285,9 +1164,9 @@ PetscErrorCode MatMult_Ceed(Mat A, Vec X, Vec Y) {
     PetscCall(DMGlobalToLocal(ctx->dm_x, X, INSERT_VALUES, X_loc));
 
     // Setup libCEED vectors
-    PetscCall(VecReadP2C(ctx->ceed, X_loc, &x_mem_type, ctx->x_loc));
+    PetscCall(VecReadPetscToCeed(X_loc, &x_mem_type, ctx->x_loc));
     PetscCall(VecZeroEntries(Y_loc));
-    PetscCall(VecP2C(ctx->ceed, Y_loc, &y_mem_type, ctx->y_loc));
+    PetscCall(VecPetscToCeed(Y_loc, &y_mem_type, ctx->y_loc));
 
     // Apply libCEED operator
     PetscCall(PetscLogGpuTimeBegin());
@@ -1295,8 +1174,8 @@ PetscErrorCode MatMult_Ceed(Mat A, Vec X, Vec Y) {
     PetscCall(PetscLogGpuTimeEnd());
 
     // Restore PETSc vectors
-    PetscCall(VecReadC2P(ctx->ceed, ctx->x_loc, x_mem_type, X_loc));
-    PetscCall(VecC2P(ctx->ceed, ctx->y_loc, y_mem_type, Y_loc));
+    PetscCall(VecReadCeedToPetsc(ctx->x_loc, x_mem_type, X_loc));
+    PetscCall(VecCeedToPetsc(ctx->y_loc, y_mem_type, Y_loc));
 
     // Local-to-global
     PetscCall(VecZeroEntries(Y));
@@ -1345,9 +1224,9 @@ PetscErrorCode MatMultTranspose_Ceed(Mat A, Vec Y, Vec X) {
     PetscCall(DMGlobalToLocal(ctx->dm_y, Y, INSERT_VALUES, Y_loc));
 
     // Setup libCEED vectors
-    PetscCall(VecReadP2C(ctx->ceed, Y_loc, &y_mem_type, ctx->y_loc));
+    PetscCall(VecReadPetscToCeed(Y_loc, &y_mem_type, ctx->y_loc));
     PetscCall(VecZeroEntries(X_loc));
-    PetscCall(VecP2C(ctx->ceed, X_loc, &x_mem_type, ctx->x_loc));
+    PetscCall(VecPetscToCeed(X_loc, &x_mem_type, ctx->x_loc));
 
     // Apply libCEED operator
     PetscCall(PetscLogGpuTimeBegin());
@@ -1355,8 +1234,8 @@ PetscErrorCode MatMultTranspose_Ceed(Mat A, Vec Y, Vec X) {
     PetscCall(PetscLogGpuTimeEnd());
 
     // Restore PETSc vectors
-    PetscCall(VecReadC2P(ctx->ceed, ctx->y_loc, y_mem_type, Y_loc));
-    PetscCall(VecC2P(ctx->ceed, ctx->x_loc, x_mem_type, X_loc));
+    PetscCall(VecReadCeedToPetsc(ctx->y_loc, y_mem_type, Y_loc));
+    PetscCall(VecCeedToPetsc(ctx->x_loc, x_mem_type, X_loc));
 
     // Local-to-global
     PetscCall(VecZeroEntries(X));

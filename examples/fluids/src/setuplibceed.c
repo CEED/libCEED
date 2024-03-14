@@ -290,7 +290,7 @@ PetscErrorCode SetupLibceed(Ceed ceed, CeedData ceed_data, DM dm, User user, App
     }
   }
   PetscCall(VecScale(X_loc, problem->dm_scale));
-  PetscCall(VecCopyP2C(X_loc, ceed_data->x_coord));
+  PetscCall(VecCopyPetscToCeed(X_loc, ceed_data->x_coord));
 
   // -----------------------------------------------------------------------------
   // CEED vectors
