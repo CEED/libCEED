@@ -202,8 +202,7 @@ typedef PetscErrorCode (*SgsDDNodalStressEval)(User user, Vec Q_loc, Vec Velocit
 typedef PetscErrorCode (*SgsDDNodalStressInference)(Vec DD_Inputs_loc, Vec DD_Outputs_loc, void *ctx);
 typedef struct {
   DM                        dm_sgs, dm_dd_inputs, dm_dd_outputs;
-  PetscInt                  num_comp_sgs;
-  CeedInt                   num_comp_inputs, num_comp_outputs;
+  PetscInt                  num_comp_sgs, num_comp_inputs, num_comp_outputs;
   OperatorApplyContext      op_nodal_evaluation_ctx, op_nodal_dd_inputs_ctx, op_nodal_dd_outputs_ctx, op_sgs_apply_ctx;
   CeedVector                sgs_nodal_ceed, grad_velo_ceed;
   SgsDDNodalStressEval      sgs_nodal_eval;
