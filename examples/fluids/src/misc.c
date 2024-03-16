@@ -86,23 +86,42 @@ PetscErrorCode DMPlexInsertBoundaryValues_FromICs(DM dm, PetscBool insert_essent
   PetscFunctionReturn(PETSC_SUCCESS);
 }
 
+static PetscErrorCode BinaryReadIntoInt(PetscViewer viewer, PetscInt *out, PetscDataType file_type) {
+  PetscFunctionBeginUser;
+  if (file_type == PETSC_INT32) {
+    PetscInt32 val;
+    PetscCall(PetscViewerBinaryRead(viewer, &val, 1, NULL, PETSC_INT32));
+    *out = val;
+  } else if (file_type == FLUIDS_FILE_TOKEN_64) {
+    PetscInt64 val;
+    PetscCall(PetscViewerBinaryRead(viewer, &val, 1, NULL, PETSC_INT64));
+    *out = val;
+  } else {
+    PetscCall(PetscViewerBinaryRead(viewer, &out, 1, NULL, PETSC_INT));
+  }
+  PetscFunctionReturn(PETSC_SUCCESS);
+}
+
 // @brief Load vector from binary file, possibly with embedded solution time and step number
 PetscErrorCode LoadFluidsBinaryVec(MPI_Comm comm, PetscViewer viewer, Vec Q, PetscReal *time, PetscInt *step_number) {
-  PetscInt   file_step_number;
-  PetscInt32 token;
-  PetscReal  file_time;
+  PetscInt      file_step_number;
+  PetscInt32    token;
+  PetscReal     file_time;
+  PetscDataType file_type = PETSC_INT;
 
   PetscFunctionBeginUser;
   PetscCall(PetscViewerBinaryRead(viewer, &token, 1, NULL, PETSC_INT32));
   if (token == FLUIDS_FILE_TOKEN_32 || token == FLUIDS_FILE_TOKEN_64 ||
       token == FLUIDS_FILE_TOKEN) {  // New style format; we're reading a file with step number and time in the header
-    PetscCall(PetscViewerBinaryRead(viewer, &file_step_number, 1, NULL, PETSC_INT));
+    if (token == FLUIDS_FILE_TOKEN_32) file_type = PETSC_INT32;
+    else if (token == FLUIDS_FILE_TOKEN_64) file_type = PETSC_INT64;
+    PetscCall(BinaryReadIntoInt(viewer, &file_step_number, file_type));
     PetscCall(PetscViewerBinaryRead(viewer, &file_time, 1, NULL, PETSC_REAL));
     if (time) *time = file_time;
     if (step_number) *step_number = file_step_number;
   } else if (token == VEC_FILE_CLASSID) {  // Legacy format of just the vector, encoded as [VEC_FILE_CLASSID, length, ]
     PetscInt length, N;
-    PetscCall(PetscViewerBinaryRead(viewer, &length, 1, NULL, PETSC_INT));
+    PetscCall(BinaryReadIntoInt(viewer, &length, file_type));
     PetscCall(VecGetSize(Q, &N));
     PetscCheck(length == N, comm, PETSC_ERR_ARG_INCOMP, "File Vec has length %" PetscInt_FMT " but DM has global Vec size %" PetscInt_FMT, length, N);
     PetscCall(PetscViewerBinarySetSkipHeader(viewer, PETSC_TRUE));
