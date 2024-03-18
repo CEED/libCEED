@@ -92,12 +92,12 @@ static PetscErrorCode BinaryReadIntoInt(PetscViewer viewer, PetscInt *out, Petsc
     PetscInt32 val;
     PetscCall(PetscViewerBinaryRead(viewer, &val, 1, NULL, PETSC_INT32));
     *out = val;
-  } else if (file_type == FLUIDS_FILE_TOKEN_64) {
+  } else if (file_type == PETSC_INT64) {
     PetscInt64 val;
     PetscCall(PetscViewerBinaryRead(viewer, &val, 1, NULL, PETSC_INT64));
     *out = val;
   } else {
-    PetscCall(PetscViewerBinaryRead(viewer, &out, 1, NULL, PETSC_INT));
+    PetscCall(PetscViewerBinaryRead(viewer, out, 1, NULL, PETSC_INT));
   }
   PetscFunctionReturn(PETSC_SUCCESS);
 }
@@ -107,7 +107,7 @@ PetscErrorCode LoadFluidsBinaryVec(MPI_Comm comm, PetscViewer viewer, Vec Q, Pet
   PetscInt      file_step_number;
   PetscInt32    token;
   PetscReal     file_time;
-  PetscDataType file_type = PETSC_INT;
+  PetscDataType file_type = PETSC_INT32;
 
   PetscFunctionBeginUser;
   PetscCall(PetscViewerBinaryRead(viewer, &token, 1, NULL, PETSC_INT32));
