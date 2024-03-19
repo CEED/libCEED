@@ -123,16 +123,7 @@ static int CeedVectorGetArrayWrite_Ref(CeedVector vec, CeedMemType mem_type, Cee
 
   CeedCallBackend(CeedVectorGetData(vec, &impl));
 
-  if (!impl->array) {
-    if (!impl->array_owned && !impl->array_borrowed) {
-      // Allocate if array is not yet allocated
-      CeedCallBackend(CeedVectorSetArray(vec, CEED_MEM_HOST, CEED_COPY_VALUES, NULL));
-    } else {
-      // Select dirty array for GetArrayWrite
-      if (impl->array_borrowed) impl->array = impl->array_borrowed;
-      else impl->array = impl->array_owned;
-    }
-  }
+  if (!impl->array) CeedCallBackend(CeedVectorSetArray(vec, CEED_MEM_HOST, CEED_COPY_VALUES, NULL));
   return CeedVectorGetArrayCore_Ref(vec, mem_type, (CeedScalar **)array);
 }
 
