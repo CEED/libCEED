@@ -59,13 +59,13 @@ static inline int CeedSetDeviceGenericArray_Cuda(Ceed ceed, const void *source_a
       *(void **)target_array          = *(void **)target_array_owned;
       break;
     case CEED_OWN_POINTER:
-      CeedCallCuda(ceed, cudaFree(*(void **)target_array_borrowed));
+      CeedCallCuda(ceed, cudaFree(*(void **)target_array_owned));
       *(void **)target_array_owned    = (void *)source_array;
       *(void **)target_array_borrowed = NULL;
       *(void **)target_array          = *(void **)target_array_owned;
       break;
     case CEED_USE_POINTER:
-      CeedCallCuda(ceed, cudaFree(*(void **)target_array_borrowed));
+      CeedCallCuda(ceed, cudaFree(*(void **)target_array_owned));
       *(void **)target_array_owned    = NULL;
       *(void **)target_array_borrowed = (void *)source_array;
       *(void **)target_array          = *(void **)target_array_borrowed;

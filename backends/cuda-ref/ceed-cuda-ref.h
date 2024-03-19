@@ -32,12 +32,12 @@ typedef struct {
   const CeedInt  *h_offsets;
   const CeedInt  *h_offsets_borrowed;
   const CeedInt  *h_offsets_owned;
-  CeedInt        *d_offsets;
+  const CeedInt  *d_offsets;
   const CeedInt  *d_offsets_borrowed;
   const CeedInt  *d_offsets_owned;
-  CeedInt        *d_t_offsets;
-  CeedInt        *d_t_indices;
-  CeedInt        *d_l_vec_indices;
+  const CeedInt  *d_t_offsets;
+  const CeedInt  *d_t_indices;
+  const CeedInt  *d_l_vec_indices;
   const bool     *h_orients;
   const bool     *h_orients_borrowed;
   const bool     *h_orients_owned;

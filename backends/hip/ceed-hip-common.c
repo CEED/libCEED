@@ -59,13 +59,13 @@ static inline int CeedSetDeviceGenericArray_Hip(Ceed ceed, const void *source_ar
       *(void **)target_array          = *(void **)target_array_owned;
       break;
     case CEED_OWN_POINTER:
-      CeedCallHip(ceed, hipFree(*(void **)target_array_borrowed));
+      CeedCallHip(ceed, hipFree(*(void **)target_array_owned));
       *(void **)target_array_owned    = (void *)source_array;
       *(void **)target_array_borrowed = NULL;
       *(void **)target_array          = *(void **)target_array_owned;
       break;
     case CEED_USE_POINTER:
-      CeedCallHip(ceed, hipFree(*(void **)target_array_borrowed));
+      CeedCallHip(ceed, hipFree(*(void **)target_array_owned));
       *(void **)target_array_owned    = NULL;
       *(void **)target_array_borrowed = (void *)source_array;
       *(void **)target_array          = *(void **)target_array_borrowed;

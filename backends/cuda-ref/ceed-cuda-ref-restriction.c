@@ -388,9 +388,9 @@ static int CeedElemRestrictionDestroy_Cuda(CeedElemRestriction rstr) {
   }
   CeedCallBackend(CeedFree(&impl->h_offsets_owned));
   CeedCallCuda(ceed, cudaFree((CeedInt *)impl->d_offsets_owned));
-  CeedCallCuda(ceed, cudaFree(impl->d_t_offsets));
-  CeedCallCuda(ceed, cudaFree(impl->d_t_indices));
-  CeedCallCuda(ceed, cudaFree(impl->d_l_vec_indices));
+  CeedCallCuda(ceed, cudaFree((CeedInt *)impl->d_t_offsets));
+  CeedCallCuda(ceed, cudaFree((CeedInt *)impl->d_t_indices));
+  CeedCallCuda(ceed, cudaFree((CeedInt *)impl->d_l_vec_indices));
   CeedCallBackend(CeedFree(&impl->h_orients_owned));
   CeedCallCuda(ceed, cudaFree((bool *)impl->d_orients_owned));
   CeedCallBackend(CeedFree(&impl->h_curl_orients_owned));
@@ -463,13 +463,13 @@ static int CeedElemRestrictionOffset_Cuda(const CeedElemRestriction rstr, const 
   // Copy data to device
   // -- L-vector indices
   CeedCallCuda(ceed, cudaMalloc((void **)&impl->d_l_vec_indices, num_nodes * sizeof(CeedInt)));
-  CeedCallCuda(ceed, cudaMemcpy(impl->d_l_vec_indices, l_vec_indices, num_nodes * sizeof(CeedInt), cudaMemcpyHostToDevice));
+  CeedCallCuda(ceed, cudaMemcpy((CeedInt *)impl->d_l_vec_indices, l_vec_indices, num_nodes * sizeof(CeedInt), cudaMemcpyHostToDevice));
   // -- Transpose offsets
   CeedCallCuda(ceed, cudaMalloc((void **)&impl->d_t_offsets, size_offsets * sizeof(CeedInt)));
-  CeedCallCuda(ceed, cudaMemcpy(impl->d_t_offsets, t_offsets, size_offsets * sizeof(CeedInt), cudaMemcpyHostToDevice));
+  CeedCallCuda(ceed, cudaMemcpy((CeedInt *)impl->d_t_offsets, t_offsets, size_offsets * sizeof(CeedInt), cudaMemcpyHostToDevice));
   // -- Transpose indices
   CeedCallCuda(ceed, cudaMalloc((void **)&impl->d_t_indices, size_indices * sizeof(CeedInt)));
-  CeedCallCuda(ceed, cudaMemcpy(impl->d_t_indices, t_indices, size_indices * sizeof(CeedInt), cudaMemcpyHostToDevice));
+  CeedCallCuda(ceed, cudaMemcpy((CeedInt *)impl->d_t_indices, t_indices, size_indices * sizeof(CeedInt), cudaMemcpyHostToDevice));
 
   // Cleanup
   CeedCallBackend(CeedFree(&ind_to_offset));

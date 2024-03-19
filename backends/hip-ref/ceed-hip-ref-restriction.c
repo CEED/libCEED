@@ -387,9 +387,9 @@ static int CeedElemRestrictionDestroy_Hip(CeedElemRestriction rstr) {
   }
   CeedCallBackend(CeedFree(&impl->h_offsets_owned));
   CeedCallHip(ceed, hipFree((CeedInt *)impl->d_offsets_owned));
-  CeedCallHip(ceed, hipFree(impl->d_t_offsets));
-  CeedCallHip(ceed, hipFree(impl->d_t_indices));
-  CeedCallHip(ceed, hipFree(impl->d_l_vec_indices));
+  CeedCallHip(ceed, hipFree((CeedInt *)impl->d_t_offsets));
+  CeedCallHip(ceed, hipFree((CeedInt *)impl->d_t_indices));
+  CeedCallHip(ceed, hipFree((CeedInt *)impl->d_l_vec_indices));
   CeedCallBackend(CeedFree(&impl->h_orients_owned));
   CeedCallHip(ceed, hipFree((bool *)impl->d_orients_owned));
   CeedCallBackend(CeedFree(&impl->h_curl_orients_owned));
@@ -462,13 +462,13 @@ static int CeedElemRestrictionOffset_Hip(const CeedElemRestriction rstr, const C
   // Copy data to device
   // -- L-vector indices
   CeedCallHip(ceed, hipMalloc((void **)&impl->d_l_vec_indices, num_nodes * sizeof(CeedInt)));
-  CeedCallHip(ceed, hipMemcpy(impl->d_l_vec_indices, l_vec_indices, num_nodes * sizeof(CeedInt), hipMemcpyHostToDevice));
+  CeedCallHip(ceed, hipMemcpy((CeedInt *)impl->d_l_vec_indices, l_vec_indices, num_nodes * sizeof(CeedInt), hipMemcpyHostToDevice));
   // -- Transpose offsets
   CeedCallHip(ceed, hipMalloc((void **)&impl->d_t_offsets, size_offsets * sizeof(CeedInt)));
-  CeedCallHip(ceed, hipMemcpy(impl->d_t_offsets, t_offsets, size_offsets * sizeof(CeedInt), hipMemcpyHostToDevice));
+  CeedCallHip(ceed, hipMemcpy((CeedInt *)impl->d_t_offsets, t_offsets, size_offsets * sizeof(CeedInt), hipMemcpyHostToDevice));
   // -- Transpose indices
   CeedCallHip(ceed, hipMalloc((void **)&impl->d_t_indices, size_indices * sizeof(CeedInt)));
-  CeedCallHip(ceed, hipMemcpy(impl->d_t_indices, t_indices, size_indices * sizeof(CeedInt), hipMemcpyHostToDevice));
+  CeedCallHip(ceed, hipMemcpy((CeedInt *)impl->d_t_indices, t_indices, size_indices * sizeof(CeedInt), hipMemcpyHostToDevice));
 
   // Cleanup
   CeedCallBackend(CeedFree(&ind_to_offset));
