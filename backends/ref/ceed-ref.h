@@ -26,11 +26,14 @@ typedef struct {
 
 typedef struct {
   const CeedInt  *offsets;
-  CeedInt        *offsets_allocated;
+  const CeedInt  *offsets_borrowed;
+  CeedInt        *offsets_owned;
   const bool     *orients; /* Orientation, if it exists, is true when the dof must be flipped */
-  bool           *orients_allocated;
+  const bool     *orients_borrowed;
+  bool           *orients_owned;
   const CeedInt8 *curl_orients; /* Tridiagonal matrix (row-major) for a general transformation during restriction */
-  CeedInt8       *curl_orients_allocated;
+  const CeedInt8 *curl_orients_borrowed;
+  CeedInt8       *curl_orients_owned;
   int (*Apply)(CeedElemRestriction, CeedInt, CeedInt, CeedInt, CeedInt, CeedInt, CeedTransposeMode, bool, bool, CeedVector, CeedVector,
                CeedRequest *);
 } CeedElemRestriction_Ref;

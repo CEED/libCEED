@@ -29,21 +29,27 @@ typedef struct {
   CUfunction ApplyUnsignedNoTranspose, ApplyUnsignedTranspose;
   CUfunction ApplyUnorientedNoTranspose, ApplyUnorientedTranspose;
   CeedInt    num_nodes;
-  CeedInt   *h_ind;
-  CeedInt   *h_ind_allocated;
-  CeedInt   *d_ind;
-  CeedInt   *d_ind_allocated;
+  CeedInt   *h_offsets;
+  CeedInt   *h_offsets_borrowed;
+  CeedInt   *h_offsets_owned;
+  CeedInt   *d_offsets;
+  CeedInt   *d_offsets_borrowed;
+  CeedInt   *d_offsets_owned;
   CeedInt   *d_t_offsets;
   CeedInt   *d_t_indices;
   CeedInt   *d_l_vec_indices;
   bool      *h_orients;
-  bool      *h_orients_allocated;
+  bool      *h_orients_borrowed;
+  bool      *h_orients_owned;
   bool      *d_orients;
-  bool      *d_orients_allocated;
+  bool      *d_orients_borrowed;
+  bool      *d_orients_owned;
   CeedInt8  *h_curl_orients;
-  CeedInt8  *h_curl_orients_allocated;
+  CeedInt8  *h_curl_orients_borrowed;
+  CeedInt8  *h_curl_orients_owned;
   CeedInt8  *d_curl_orients;
-  CeedInt8  *d_curl_orients_allocated;
+  CeedInt8  *d_curl_orients_borrowed;
+  CeedInt8  *d_curl_orients_owned;
 } CeedElemRestriction_Cuda;
 
 typedef struct {

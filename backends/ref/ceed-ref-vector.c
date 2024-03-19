@@ -50,12 +50,10 @@ static int CeedVectorSetArray_Ref(CeedVector vec, CeedMemType mem_type, CeedCopy
 
   switch (copy_mode) {
     case CEED_COPY_VALUES:
-      if (!impl->array_owned) {
-        CeedCallBackend(CeedCalloc(length, &impl->array_owned));
-      }
+      if (!impl->array_owned) CeedCallBackend(CeedCalloc(length, &impl->array_owned));
+      if (array) memcpy(impl->array_owned, array, length * sizeof(array[0]));
       impl->array_borrowed = NULL;
       impl->array          = impl->array_owned;
-      if (array) memcpy(impl->array, array, length * sizeof(array[0]));
       break;
     case CEED_OWN_POINTER:
       CeedCallBackend(CeedFree(&impl->array_owned));

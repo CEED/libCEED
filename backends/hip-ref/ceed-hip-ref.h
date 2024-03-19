@@ -33,21 +33,27 @@ typedef struct {
   hipFunction_t ApplyUnsignedNoTranspose, ApplyUnsignedTranspose;
   hipFunction_t ApplyUnorientedNoTranspose, ApplyUnorientedTranspose;
   CeedInt       num_nodes;
-  CeedInt      *h_ind;
-  CeedInt      *h_ind_allocated;
-  CeedInt      *d_ind;
-  CeedInt      *d_ind_allocated;
+  CeedInt      *h_offsets;
+  CeedInt      *h_offsets_borrowed;
+  CeedInt      *h_offsets_owned;
+  CeedInt      *d_offsets;
+  CeedInt      *d_offsets_borrowed;
+  CeedInt      *d_offsets_owned;
   CeedInt      *d_t_offsets;
   CeedInt      *d_t_indices;
   CeedInt      *d_l_vec_indices;
   bool         *h_orients;
-  bool         *h_orients_allocated;
+  bool         *h_orients_borrowed;
+  bool         *h_orients_owned;
   bool         *d_orients;
-  bool         *d_orients_allocated;
+  bool         *d_orients_borrowed;
+  bool         *d_orients_owned;
   CeedInt8     *h_curl_orients;
-  CeedInt8     *h_curl_orients_allocated;
+  CeedInt8     *h_curl_orients_borrowed;
+  CeedInt8     *h_curl_orients_owned;
   CeedInt8     *d_curl_orients;
-  CeedInt8     *d_curl_orients_allocated;
+  CeedInt8     *d_curl_orients_borrowed;
+  CeedInt8     *d_curl_orients_owned;
 } CeedElemRestriction_Hip;
 
 typedef struct {
@@ -125,8 +131,8 @@ CEED_INTERN int CeedGetHipblasHandle_Hip(Ceed ceed, hipblasHandle_t *handle);
 
 CEED_INTERN int CeedVectorCreate_Hip(CeedSize n, CeedVector vec);
 
-CEED_INTERN int CeedElemRestrictionCreate_Hip(CeedMemType mem_type, CeedCopyMode copy_mode, const CeedInt *indices, const bool *orients,
-                                              const CeedInt8 *curl_orients, CeedElemRestriction r);
+CEED_INTERN int CeedElemRestrictionCreate_Hip(CeedMemType mem_type, CeedCopyMode copy_mode, const CeedInt *offsets, const bool *orients,
+                                              const CeedInt8 *curl_orients, CeedElemRestriction rstr);
 
 CEED_INTERN int CeedBasisCreateTensorH1_Hip(CeedInt dim, CeedInt P_1d, CeedInt Q_1d, const CeedScalar *interp_1d, const CeedScalar *grad_1d,
                                             const CeedScalar *q_ref_1d, const CeedScalar *q_weight_1d, CeedBasis basis);
