@@ -56,7 +56,7 @@ static int CeedElemRestrictionOffsetNoTranspose_Sycl(sycl::queue &sycl_queue, co
   const CeedInt  num_elem    = impl->num_elem;
   const CeedInt  num_comp    = impl->num_comp;
   const CeedInt  comp_stride = impl->comp_stride;
-  const CeedInt *indices     = impl->d_ind;
+  const CeedInt *indices     = impl->d_offsets;
 
   sycl::range<1> kernel_range(num_elem * elem_size);
 
@@ -166,7 +166,7 @@ static int CeedElemRestrictionApply_Sycl(CeedElemRestriction rstr, CeedTranspose
   // Restrict
   if (t_mode == CEED_NOTRANSPOSE) {
     // L-vector -> E-vector
-    if (impl->d_ind) {
+    if (impl->d_offsets) {
       // -- Offsets provided
       CeedCallBackend(CeedElemRestrictionOffsetNoTranspose_Sycl(data->sycl_queue, impl, d_u, d_v));
     } else {
@@ -175,7 +175,7 @@ static int CeedElemRestrictionApply_Sycl(CeedElemRestriction rstr, CeedTranspose
     }
   } else {
     // E-vector -> L-vector
-    if (impl->d_ind) {
+    if (impl->d_offsets) {
       // -- Offsets provided
       CeedCallBackend(CeedElemRestrictionOffsetTranspose_Sycl(data->sycl_queue, impl, d_u, d_v));
     } else {
@@ -206,10 +206,10 @@ static int CeedElemRestrictionGetOffsets_Sycl(CeedElemRestriction rstr, CeedMemT
 
   switch (m_type) {
     case CEED_MEM_HOST:
-      *offsets = impl->h_ind;
+      *offsets = impl->h_offsets;
       break;
     case CEED_MEM_DEVICE:
-      *offsets = impl->d_ind;
+      *offsets = impl->d_offsets;
       break;
   }
   return CEED_ERROR_SUCCESS;
@@ -230,8 +230,8 @@ static int CeedElemRestrictionDestroy_Sycl(CeedElemRestriction rstr) {
   // Wait for all work to finish before freeing memory
   CeedCallSycl(ceed, data->sycl_queue.wait_and_throw());
 
-  CeedCallBackend(CeedFree(&impl->h_ind_allocated));
-  CeedCallSycl(ceed, sycl::free(impl->d_ind_allocated, data->sycl_context));
+  CeedCallBackend(CeedFree(&impl->h_offsets_owned));
+  CeedCallSycl(ceed, sycl::free(impl->d_offsets_owned, data->sycl_context));
   CeedCallSycl(ceed, sycl::free(impl->d_t_offsets, data->sycl_context));
   CeedCallSycl(ceed, sycl::free(impl->d_t_indices, data->sycl_context));
   CeedCallSycl(ceed, sycl::free(impl->d_l_vec_indices, data->sycl_context));
@@ -329,7 +329,7 @@ static int CeedElemRestrictionOffset_Sycl(const CeedElemRestriction rstr, const 
 //------------------------------------------------------------------------------
 // Create restriction
 //------------------------------------------------------------------------------
-int CeedElemRestrictionCreate_Sycl(CeedMemType mem_type, CeedCopyMode copy_mode, const CeedInt *indices, const bool *orients,
+int CeedElemRestrictionCreate_Sycl(CeedMemType mem_type, CeedCopyMode copy_mode, const CeedInt *offsets, const bool *orients,
                                    const CeedInt8 *curl_orients, CeedElemRestriction rstr) {
   Ceed                      ceed;
   Ceed_Sycl                *data;
@@ -364,20 +364,14 @@ int CeedElemRestrictionCreate_Sycl(CeedMemType mem_type, CeedCopyMode copy_mode,
   }
 
   CeedCallBackend(CeedCalloc(1, &impl));
-  impl->h_ind           = NULL;
-  impl->h_ind_allocated = NULL;
-  impl->d_ind           = NULL;
-  impl->d_ind_allocated = NULL;
-  impl->d_t_indices     = NULL;
-  impl->d_t_offsets     = NULL;
-  impl->num_nodes       = size;
-  impl->num_elem        = num_elem;
-  impl->num_comp        = num_comp;
-  impl->elem_size       = elem_size;
-  impl->comp_stride     = comp_stride;
-  impl->strides[0]      = strides[0];
-  impl->strides[1]      = strides[1];
-  impl->strides[2]      = strides[2];
+  impl->num_nodes   = size;
+  impl->num_elem    = num_elem;
+  impl->num_comp    = num_comp;
+  impl->elem_size   = elem_size;
+  impl->comp_stride = comp_stride;
+  impl->strides[0]  = strides[0];
+  impl->strides[1]  = strides[1];
+  impl->strides[2]  = strides[2];
   CeedCallBackend(CeedElemRestrictionSetData(rstr, impl));
 
   // Set layouts
@@ -398,63 +392,71 @@ int CeedElemRestrictionCreate_Sycl(CeedMemType mem_type, CeedCopyMode copy_mode,
   switch (mem_type) {
     case CEED_MEM_HOST: {
       switch (copy_mode) {
-        case CEED_OWN_POINTER:
-          impl->h_ind_allocated = (CeedInt *)indices;
-          impl->h_ind           = (CeedInt *)indices;
-          break;
-        case CEED_USE_POINTER:
-          impl->h_ind = (CeedInt *)indices;
-          break;
         case CEED_COPY_VALUES:
-          if (indices != NULL) {
-            CeedCallBackend(CeedMalloc(elem_size * num_elem, &impl->h_ind_allocated));
-            memcpy(impl->h_ind_allocated, indices, elem_size * num_elem * sizeof(CeedInt));
-            impl->h_ind = impl->h_ind_allocated;
+          if (offsets != NULL) {
+            CeedCallBackend(CeedMalloc(elem_size * num_elem, &impl->h_offsets_owned));
+            memcpy(impl->h_offsets_owned, offsets, elem_size * num_elem * sizeof(CeedInt));
+            impl->h_offsets_borrowed = NULL;
+            impl->h_offsets          = impl->h_offsets_owned;
           }
           break;
+        case CEED_OWN_POINTER:
+          impl->h_offsets_owned    = (CeedInt *)offsets;
+          impl->h_offsets_borrowed = NULL;
+          impl->h_offsets          = impl->h_offsets_owned;
+          break;
+        case CEED_USE_POINTER:
+          impl->h_offsets_owned    = NULL;
+          impl->h_offsets_borrowed = (CeedInt *)offsets;
+          impl->h_offsets          = impl->h_offsets_borrowed;
+          break;
       }
-      if (indices != NULL) {
-        CeedCallSycl(ceed, impl->d_ind = sycl::malloc_device<CeedInt>(size, data->sycl_device, data->sycl_context));
-        impl->d_ind_allocated = impl->d_ind;  // We own the device memory
-        // Order queue
-        sycl::event e = data->sycl_queue.ext_oneapi_submit_barrier();
+      if (offsets != NULL) {
+        CeedCallSycl(ceed, impl->d_offsets_owned = sycl::malloc_device<CeedInt>(size, data->sycl_device, data->sycl_context));
         // Copy from host to device
-        sycl::event copy_event = data->sycl_queue.copy<CeedInt>(indices, impl->d_ind, size, {e});
-        // Wait for copy to finish and handle exceptions
+        // -- Order queue
+        sycl::event e          = data->sycl_queue.ext_oneapi_submit_barrier();
+        sycl::event copy_event = data->sycl_queue.copy<CeedInt>(impl->h_offsets, impl->d_offsets_owned, size, {e});
+        // -- Wait for copy to finish and handle exceptions
         CeedCallSycl(ceed, copy_event.wait_and_throw());
-        CeedCallBackend(CeedElemRestrictionOffset_Sycl(rstr, indices));
+        impl->d_offsets = impl->d_offsets_owned;
+        CeedCallBackend(CeedElemRestrictionOffset_Sycl(rstr, offsets));
       }
     } break;
     case CEED_MEM_DEVICE: {
       switch (copy_mode) {
         case CEED_COPY_VALUES:
-          if (indices != NULL) {
-            CeedCallSycl(ceed, impl->d_ind = sycl::malloc_device<CeedInt>(size, data->sycl_device, data->sycl_context));
-            impl->d_ind_allocated = impl->d_ind;  // We own the device memory
-                                                  // Copy from device to device
-            // Order queue
+          if (offsets != NULL) {
+            CeedCallSycl(ceed, impl->d_offsets_owned = sycl::malloc_device<CeedInt>(size, data->sycl_device, data->sycl_context));
+            // Copy from device to device
+            // -- Order queue
             sycl::event e          = data->sycl_queue.ext_oneapi_submit_barrier();
-            sycl::event copy_event = data->sycl_queue.copy<CeedInt>(indices, impl->d_ind, size, {e});
-            // Wait for copy to finish and handle exceptions
+            sycl::event copy_event = data->sycl_queue.copy<CeedInt>(offsets, impl->d_offsets_owned, size, {e});
+            // -- Wait for copy to finish and handle exceptions
             CeedCallSycl(ceed, copy_event.wait_and_throw());
+            impl->d_offsets = impl->d_offsets_owned;
           }
           break;
         case CEED_OWN_POINTER:
-          impl->d_ind           = (CeedInt *)indices;
-          impl->d_ind_allocated = impl->d_ind;
+          impl->d_offsets_owned    = (CeedInt *)offsets;
+          impl->d_offsets_borrowed = NULL;
+          impl->d_offsets          = impl->d_offsets_owned;
           break;
         case CEED_USE_POINTER:
-          impl->d_ind = (CeedInt *)indices;
+          impl->d_offsets_owned    = NULL;
+          impl->d_offsets_borrowed = (CeedInt *)offsets;
+          impl->d_offsets          = impl->d_offsets_borrowed;
       }
-      if (indices != NULL) {
-        CeedCallBackend(CeedMalloc(elem_size * num_elem, &impl->h_ind_allocated));
-        // Order queue
-        sycl::event e = data->sycl_queue.ext_oneapi_submit_barrier();
+      if (offsets != NULL) {
+        CeedCallBackend(CeedMalloc(elem_size * num_elem, &impl->h_offsets_owned));
         // Copy from device to host
-        sycl::event copy_event = data->sycl_queue.copy<CeedInt>(impl->d_ind, impl->h_ind_allocated, elem_size * num_elem, {e});
+        // -- Order queue
+        sycl::event e          = data->sycl_queue.ext_oneapi_submit_barrier();
+        sycl::event copy_event = data->sycl_queue.copy<CeedInt>(impl->d_offsets, impl->h_offsets_owned, elem_size * num_elem, {e});
+        // -- Wait for copy to finish and handle exceptions
         CeedCallSycl(ceed, copy_event.wait_and_throw());
-        impl->h_ind = impl->h_ind_allocated;
-        CeedCallBackend(CeedElemRestrictionOffset_Sycl(rstr, indices));
+        impl->h_offsets = impl->h_offsets_owned;
+        CeedCallBackend(CeedElemRestrictionOffset_Sycl(rstr, offsets));
       }
     }
   }

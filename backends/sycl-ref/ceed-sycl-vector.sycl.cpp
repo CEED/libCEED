@@ -182,38 +182,30 @@ static inline int CeedVectorHasBorrowedArrayOfType_Sycl(const CeedVector vec, Ce
 // Set array from host
 //------------------------------------------------------------------------------
 static int CeedVectorSetArrayHost_Sycl(const CeedVector vec, const CeedCopyMode copy_mode, CeedScalar *array) {
+  CeedSize         length;
   CeedVector_Sycl *impl;
 
   CeedCallBackend(CeedVectorGetData(vec, &impl));
+  CeedCallBackend(CeedVectorGetLength(vec, &length));
+
   switch (copy_mode) {
     case CEED_COPY_VALUES: {
-      if (!impl->h_array_owned) {
-        CeedSize length;
-
-        CeedCallBackend(CeedVectorGetLength(vec, &length));
-        CeedCallBackend(CeedMalloc(length, &impl->h_array_owned));
-      }
+      if (!impl->h_array_owned) CeedCallBackend(CeedMalloc(length, &impl->h_array_owned));
+      if (array) memcpy(impl->h_array_owned, array, length * sizeof(array[0]));
       impl->h_array_borrowed = NULL;
       impl->h_array          = impl->h_array_owned;
-      if (array) {
-        CeedSize length;
-        size_t   bytes;
-
-        CeedCallBackend(CeedVectorGetLength(vec, &length));
-        bytes = length * sizeof(CeedScalar);
-        memcpy(impl->h_array, array, bytes);
-      }
     } break;
     case CEED_OWN_POINTER:
       CeedCallBackend(CeedFree(&impl->h_array_owned));
       impl->h_array_owned    = array;
       impl->h_array_borrowed = NULL;
-      impl->h_array          = array;
+      impl->h_array          = impl->h_array_owned;
       break;
     case CEED_USE_POINTER:
       CeedCallBackend(CeedFree(&impl->h_array_owned));
+      impl->h_array_owned    = NULL;
       impl->h_array_borrowed = array;
-      impl->h_array          = array;
+      impl->h_array          = impl->h_array_borrowed;
       break;
   }
   return CEED_ERROR_SUCCESS;
@@ -223,6 +215,7 @@ static int CeedVectorSetArrayHost_Sycl(const CeedVector vec, const CeedCopyMode 
 // Set array from device
 //------------------------------------------------------------------------------
 static int CeedVectorSetArrayDevice_Sycl(const CeedVector vec, const CeedCopyMode copy_mode, CeedScalar *array) {
+  CeedSize         length;
   Ceed             ceed;
   Ceed_Sycl       *data;
   CeedVector_Sycl *impl;
@@ -230,24 +223,22 @@ static int CeedVectorSetArrayDevice_Sycl(const CeedVector vec, const CeedCopyMod
   CeedCallBackend(CeedVectorGetCeed(vec, &ceed));
   CeedCallBackend(CeedVectorGetData(vec, &impl));
   CeedCallBackend(CeedGetData(ceed, &data));
+  CeedCallBackend(CeedVectorGetLength(vec, &length));
 
   // Order queue
   sycl::event e = data->sycl_queue.ext_oneapi_submit_barrier();
 
   switch (copy_mode) {
     case CEED_COPY_VALUES: {
-      CeedSize length;
-
-      CeedCallBackend(CeedVectorGetLength(vec, &length));
-      if (!impl->d_array_owned) {
+      if (!impl->d_array_owned)
         CeedCallSycl(ceed, impl->d_array_owned = sycl::malloc_device<CeedScalar>(length, data->sycl_device, data->sycl_context));
-      }
-      impl->d_array = impl->d_array_owned;
       if (array) {
         sycl::event copy_event = data->sycl_queue.copy<CeedScalar>(array, impl->d_array, length, {e});
         // Wait for copy to finish and handle exceptions.
         CeedCallSycl(ceed, copy_event.wait_and_throw());
       }
+      impl->d_array_borrowed = NULL;
+      impl->d_array          = impl->d_array_owned;
     } break;
     case CEED_OWN_POINTER:
       if (impl->d_array_owned) {
@@ -257,7 +248,7 @@ static int CeedVectorSetArrayDevice_Sycl(const CeedVector vec, const CeedCopyMod
       }
       impl->d_array_owned    = array;
       impl->d_array_borrowed = NULL;
-      impl->d_array          = array;
+      impl->d_array          = impl->d_array_owned;
       break;
     case CEED_USE_POINTER:
       if (impl->d_array_owned) {
@@ -267,7 +258,7 @@ static int CeedVectorSetArrayDevice_Sycl(const CeedVector vec, const CeedCopyMod
       }
       impl->d_array_owned    = NULL;
       impl->d_array_borrowed = array;
-      impl->d_array          = array;
+      impl->d_array          = impl->d_array_borrowed;
       break;
   }
   return CEED_ERROR_SUCCESS;
