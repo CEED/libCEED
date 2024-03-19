@@ -48,24 +48,8 @@ static int CeedVectorSetArray_Ref(CeedVector vec, CeedMemType mem_type, CeedCopy
 
   CeedCheck(mem_type == CEED_MEM_HOST, CeedVectorReturnCeed(vec), CEED_ERROR_BACKEND, "Can only set HOST memory for this backend");
 
-  switch (copy_mode) {
-    case CEED_COPY_VALUES:
-      if (!impl->array_owned) CeedCallBackend(CeedCalloc(length, &impl->array_owned));
-      if (array) memcpy(impl->array_owned, array, length * sizeof(array[0]));
-      impl->array_borrowed = NULL;
-      impl->array          = impl->array_owned;
-      break;
-    case CEED_OWN_POINTER:
-      CeedCallBackend(CeedFree(&impl->array_owned));
-      impl->array_owned    = array;
-      impl->array_borrowed = NULL;
-      impl->array          = array;
-      break;
-    case CEED_USE_POINTER:
-      CeedCallBackend(CeedFree(&impl->array_owned));
-      impl->array_borrowed = array;
-      impl->array          = array;
-  }
+  CeedCallBackend(CeedSetHostCeedScalarArray(array, copy_mode, length, (const CeedScalar **)&impl->array_owned,
+                                             (const CeedScalar **)&impl->array_borrowed, (const CeedScalar **)&impl->array));
   return CEED_ERROR_SUCCESS;
 }
 

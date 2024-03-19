@@ -781,63 +781,16 @@ int CeedElemRestrictionCreate_Ref(CeedMemType mem_type, CeedCopyMode copy_mode, 
     // Copy data
     if (rstr_type == CEED_RESTRICTION_POINTS) CeedCallBackend(CeedElemRestrictionGetNumPoints(rstr, &num_points));
     num_offsets = rstr_type == CEED_RESTRICTION_POINTS ? (num_elem + 1 + num_points) : (num_elem * elem_size);
-    switch (copy_mode) {
-      case CEED_COPY_VALUES:
-        CeedCallBackend(CeedMalloc(num_offsets, &impl->offsets_owned));
-        memcpy(impl->offsets_owned, offsets, num_offsets * sizeof(offsets[0]));
-        impl->offsets_borrowed = NULL;
-        impl->offsets          = impl->offsets_owned;
-        break;
-      case CEED_OWN_POINTER:
-        impl->offsets_owned    = (CeedInt *)offsets;
-        impl->offsets_borrowed = NULL;
-        impl->offsets          = impl->offsets_owned;
-        break;
-      case CEED_USE_POINTER:
-        impl->offsets_owned    = NULL;
-        impl->offsets_borrowed = offsets;
-        impl->offsets          = impl->offsets_borrowed;
-    }
+    CeedCallBackend(CeedSetHostCeedIntArray(offsets, copy_mode, num_offsets, &impl->offsets_owned, &impl->offsets_borrowed, &impl->offsets));
 
     // Orientation data
     if (rstr_type == CEED_RESTRICTION_ORIENTED) {
       CeedCheck(orients != NULL, ceed, CEED_ERROR_BACKEND, "No orients array provided for oriented restriction");
-      switch (copy_mode) {
-        case CEED_COPY_VALUES:
-          CeedCallBackend(CeedMalloc(num_offsets, &impl->orients_owned));
-          memcpy(impl->orients_owned, orients, num_offsets * sizeof(orients[0]));
-          impl->orients_borrowed = NULL;
-          impl->orients          = impl->orients_owned;
-          break;
-        case CEED_OWN_POINTER:
-          impl->orients_owned    = (bool *)orients;
-          impl->orients_borrowed = NULL;
-          impl->orients          = impl->orients_owned;
-          break;
-        case CEED_USE_POINTER:
-          impl->orients_owned    = NULL;
-          impl->orients_borrowed = orients;
-          impl->orients          = impl->orients_borrowed;
-      }
+      CeedCallBackend(CeedSetHostBoolArray(orients, copy_mode, num_offsets, &impl->orients_owned, &impl->orients_borrowed, &impl->orients));
     } else if (rstr_type == CEED_RESTRICTION_CURL_ORIENTED) {
       CeedCheck(curl_orients != NULL, ceed, CEED_ERROR_BACKEND, "No curl_orients array provided for oriented restriction");
-      switch (copy_mode) {
-        case CEED_COPY_VALUES:
-          CeedCallBackend(CeedMalloc(3 * num_offsets, &impl->curl_orients_owned));
-          memcpy(impl->curl_orients_owned, curl_orients, 3 * num_offsets * sizeof(curl_orients[0]));
-          impl->curl_orients_borrowed = NULL;
-          impl->curl_orients          = impl->curl_orients_owned;
-          break;
-        case CEED_OWN_POINTER:
-          impl->curl_orients_owned    = (CeedInt8 *)curl_orients;
-          impl->curl_orients_borrowed = NULL;
-          impl->curl_orients          = impl->curl_orients_owned;
-          break;
-        case CEED_USE_POINTER:
-          impl->curl_orients_owned    = NULL;
-          impl->curl_orients_borrowed = (CeedInt8 *)curl_orients;
-          impl->curl_orients          = impl->curl_orients_borrowed;
-      }
+      CeedCallBackend(CeedSetHostCeedInt8Array(curl_orients, copy_mode, 3 * num_offsets, &impl->curl_orients_owned, &impl->curl_orients_borrowed,
+                                               &impl->curl_orients));
     }
   }
 

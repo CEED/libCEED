@@ -188,26 +188,8 @@ static int CeedVectorSetArrayHost_Sycl(const CeedVector vec, const CeedCopyMode 
   CeedCallBackend(CeedVectorGetData(vec, &impl));
   CeedCallBackend(CeedVectorGetLength(vec, &length));
 
-  switch (copy_mode) {
-    case CEED_COPY_VALUES: {
-      if (!impl->h_array_owned) CeedCallBackend(CeedMalloc(length, &impl->h_array_owned));
-      if (array) memcpy(impl->h_array_owned, array, length * sizeof(array[0]));
-      impl->h_array_borrowed = NULL;
-      impl->h_array          = impl->h_array_owned;
-    } break;
-    case CEED_OWN_POINTER:
-      CeedCallBackend(CeedFree(&impl->h_array_owned));
-      impl->h_array_owned    = array;
-      impl->h_array_borrowed = NULL;
-      impl->h_array          = impl->h_array_owned;
-      break;
-    case CEED_USE_POINTER:
-      CeedCallBackend(CeedFree(&impl->h_array_owned));
-      impl->h_array_owned    = NULL;
-      impl->h_array_borrowed = array;
-      impl->h_array          = impl->h_array_borrowed;
-      break;
-  }
+  CeedCallBackend(CeedSetHostCeedScalarArray(array, copy_mode, length, (const CeedScalar **)&impl->h_array_owned,
+                                             (const CeedScalar **)&impl->h_array_borrowed, (const CeedScalar **)&impl->h_array));
   return CEED_ERROR_SUCCESS;
 }
 

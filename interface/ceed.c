@@ -295,6 +295,119 @@ int CeedFree(void *p) {
   return CEED_ERROR_SUCCESS;
 }
 
+/** Internal helper to manage handoff of user `source_array` to backend with proper @ref CeedCopyMode behavior.
+
+  @param[in]     source_array          Source data provided by user
+  @param[in]     copy_mode             Copy mode for the data
+  @param[in]     num_values            Number of values to handle
+  @param[in,out] target_array_owned    Pointer to location to allocated or hold owned data, may be freed if already allocated
+  @param[out]    target_array_borrowed Pointer to location to hold borrowed data
+  @param[out]    target_array          Pointer to location for data
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Backend
+**/
+static inline int CeedSetHostGenericArray(const void *source_array, CeedCopyMode copy_mode, size_t size_unit, CeedSize num_values,
+                                          void *target_array_owned, void *target_array_borrowed, void *target_array) {
+  switch (copy_mode) {
+    case CEED_COPY_VALUES:
+      if (!*(void **)target_array_owned) CeedCall(CeedCallocArray(num_values, size_unit, target_array_owned));
+      if (source_array) memcpy(*(void **)target_array_owned, source_array, size_unit * num_values);
+      *(void **)target_array_borrowed = NULL;
+      *(void **)target_array          = *(void **)target_array_owned;
+      break;
+    case CEED_OWN_POINTER:
+      CeedCall(CeedFree(target_array_owned));
+      *(void **)target_array_owned    = (void *)source_array;
+      *(void **)target_array_borrowed = NULL;
+      *(void **)target_array          = *(void **)target_array_owned;
+      break;
+    case CEED_USE_POINTER:
+      CeedCall(CeedFree(target_array_owned));
+      *(void **)target_array_owned    = NULL;
+      *(void **)target_array_borrowed = (void *)source_array;
+      *(void **)target_array          = *(void **)target_array_borrowed;
+  }
+  return CEED_ERROR_SUCCESS;
+}
+
+/** Manage handoff of user `bool` `source_array` to backend with proper @ref CeedCopyMode behavior.
+
+  @param[in]     source_array          Source data provided by user
+  @param[in]     copy_mode             Copy mode for the data
+  @param[in]     num_values            Number of values to handle
+  @param[in,out] target_array_owned    Pointer to location to allocated or hold owned data, may be freed if already allocated
+  @param[out]    target_array_borrowed Pointer to location to hold borrowed data
+  @param[out]    target_array          Pointer to location for data
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Backend
+**/
+int CeedSetHostBoolArray(const bool *source_array, CeedCopyMode copy_mode, CeedSize num_values, const bool **target_array_owned,
+                         const bool **target_array_borrowed, const bool **target_array) {
+  CeedCall(CeedSetHostGenericArray(source_array, copy_mode, sizeof(bool), num_values, target_array_owned, target_array_borrowed, target_array));
+  return CEED_ERROR_SUCCESS;
+}
+
+/** Manage handoff of user `CeedInt8` `source_array` to backend with proper @ref CeedCopyMode behavior.
+
+  @param[in]     source_array          Source data provided by user
+  @param[in]     copy_mode             Copy mode for the data
+  @param[in]     num_values            Number of values to handle
+  @param[in,out] target_array_owned    Pointer to location to allocated or hold owned data, may be freed if already allocated
+  @param[out]    target_array_borrowed Pointer to location to hold borrowed data
+  @param[out]    target_array          Pointer to location for data
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Backend
+**/
+int CeedSetHostCeedInt8Array(const CeedInt8 *source_array, CeedCopyMode copy_mode, CeedSize num_values, const CeedInt8 **target_array_owned,
+                             const CeedInt8 **target_array_borrowed, const CeedInt8 **target_array) {
+  CeedCall(CeedSetHostGenericArray(source_array, copy_mode, sizeof(CeedInt8), num_values, target_array_owned, target_array_borrowed, target_array));
+  return CEED_ERROR_SUCCESS;
+}
+
+/** Manage handoff of user `CeedInt` `source_array` to backend with proper @ref CeedCopyMode behavior.
+
+  @param[in]     source_array          Source data provided by user
+  @param[in]     copy_mode             Copy mode for the data
+  @param[in]     num_values            Number of values to handle
+  @param[in,out] target_array_owned    Pointer to location to allocated or hold owned data, may be freed if already allocated
+  @param[out]    target_array_borrowed Pointer to location to hold borrowed data
+  @param[out]    target_array          Pointer to location for data
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Backend
+**/
+int CeedSetHostCeedIntArray(const CeedInt *source_array, CeedCopyMode copy_mode, CeedSize num_values, const CeedInt **target_array_owned,
+                            const CeedInt **target_array_borrowed, const CeedInt **target_array) {
+  CeedCall(CeedSetHostGenericArray(source_array, copy_mode, sizeof(CeedInt), num_values, target_array_owned, target_array_borrowed, target_array));
+  return CEED_ERROR_SUCCESS;
+}
+
+/** Manage handoff of user `CeedScalar` `source_array` to backend with proper @ref CeedCopyMode behavior.
+
+  @param[in]     source_array          Source data provided by user
+  @param[in]     copy_mode             Copy mode for the data
+  @param[in]     num_values            Number of values to handle
+  @param[in,out] target_array_owned    Pointer to location to allocated or hold owned data, may be freed if already allocated
+  @param[out]    target_array_borrowed Pointer to location to hold borrowed data
+  @param[out]    target_array          Pointer to location for data
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Backend
+**/
+int CeedSetHostCeedScalarArray(const CeedScalar *source_array, CeedCopyMode copy_mode, CeedSize num_values, const CeedScalar **target_array_owned,
+                               const CeedScalar **target_array_borrowed, const CeedScalar **target_array) {
+  CeedCall(CeedSetHostGenericArray(source_array, copy_mode, sizeof(CeedScalar), num_values, target_array_owned, target_array_borrowed, target_array));
+  return CEED_ERROR_SUCCESS;
+}
+
 /**
   @brief Register a `Ceed` backend
 

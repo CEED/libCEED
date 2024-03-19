@@ -80,4 +80,16 @@ CEED_INTERN int CeedInit_Hip(Ceed ceed, const char *resource);
 
 CEED_INTERN int CeedDestroy_Hip(Ceed ceed);
 
+CEED_INTERN int CeedSetDeviceBoolArray_Hip(Ceed ceed, const bool *source_array, CeedCopyMode copy_mode, CeedSize num_values,
+                                           const bool **target_array_owned, const bool **target_array_borrowed, const bool **target_array);
+CEED_INTERN int CeedSetDeviceCeedInt8Array_Hip(Ceed ceed, const CeedInt8 *source_array, CeedCopyMode copy_mode, CeedSize num_values,
+                                               const CeedInt8 **target_array_owned, const CeedInt8 **target_array_borrowed,
+                                               const CeedInt8 **target_array);
+CEED_INTERN int CeedSetDeviceCeedIntArray_Hip(Ceed ceed, const CeedInt *source_array, CeedCopyMode copy_mode, CeedSize num_values,
+                                              const CeedInt **target_array_owned, const CeedInt **target_array_borrowed,
+                                              const CeedInt **target_array);
+CEED_INTERN int CeedSetDeviceCeedScalarArray_Hip(Ceed ceed, const CeedScalar *source_array, CeedCopyMode copy_mode, CeedSize num_values,
+                                                 const CeedScalar **target_array_owned, const CeedScalar **target_array_borrowed,
+                                                 const CeedScalar **target_array);
+
 #endif  // CEED_COMMON_HIP_H

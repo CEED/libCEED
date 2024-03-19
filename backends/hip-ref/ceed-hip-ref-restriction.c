@@ -386,14 +386,14 @@ static int CeedElemRestrictionDestroy_Hip(CeedElemRestriction rstr) {
     CeedCallHip(ceed, hipModuleUnload(impl->module));
   }
   CeedCallBackend(CeedFree(&impl->h_offsets_owned));
-  CeedCallHip(ceed, hipFree(impl->d_offsets_owned));
+  CeedCallHip(ceed, hipFree((CeedInt *)impl->d_offsets_owned));
   CeedCallHip(ceed, hipFree(impl->d_t_offsets));
   CeedCallHip(ceed, hipFree(impl->d_t_indices));
   CeedCallHip(ceed, hipFree(impl->d_l_vec_indices));
   CeedCallBackend(CeedFree(&impl->h_orients_owned));
-  CeedCallHip(ceed, hipFree(impl->d_orients_owned));
+  CeedCallHip(ceed, hipFree((bool *)impl->d_orients_owned));
   CeedCallBackend(CeedFree(&impl->h_curl_orients_owned));
-  CeedCallHip(ceed, hipFree(impl->d_curl_orients_owned));
+  CeedCallHip(ceed, hipFree((CeedInt8 *)impl->d_curl_orients_owned));
   CeedCallBackend(CeedFree(&impl));
   return CEED_ERROR_SUCCESS;
 }
@@ -519,50 +519,17 @@ int CeedElemRestrictionCreate_Hip(CeedMemType mem_type, CeedCopyMode copy_mode, 
   if (rstr_type != CEED_RESTRICTION_STRIDED) {
     switch (mem_type) {
       case CEED_MEM_HOST: {
-        switch (copy_mode) {
-          case CEED_COPY_VALUES:
-            CeedCallBackend(CeedMalloc(size, &impl->h_offsets_owned));
-            memcpy(impl->h_offsets_owned, offsets, size * sizeof(CeedInt));
-            impl->h_offsets_borrowed = NULL;
-            impl->h_offsets          = impl->h_offsets_owned;
-            break;
-          case CEED_OWN_POINTER:
-            impl->h_offsets_owned    = (CeedInt *)offsets;
-            impl->h_offsets_borrowed = NULL;
-            impl->h_offsets          = impl->h_offsets_owned;
-            break;
-          case CEED_USE_POINTER:
-            impl->h_offsets_owned    = NULL;
-            impl->h_offsets_borrowed = (CeedInt *)offsets;
-            impl->h_offsets          = impl->h_offsets_borrowed;
-            break;
-        }
+        CeedCallBackend(CeedSetHostCeedIntArray(offsets, copy_mode, size, &impl->h_offsets_owned, &impl->h_offsets_borrowed, &impl->h_offsets));
         CeedCallHip(ceed, hipMalloc((void **)&impl->d_offsets_owned, size * sizeof(CeedInt)));
-        CeedCallHip(ceed, hipMemcpy(impl->d_offsets_owned, impl->h_offsets, size * sizeof(CeedInt), hipMemcpyHostToDevice));
-        impl->d_offsets = impl->d_offsets_owned;
+        CeedCallHip(ceed, hipMemcpy((CeedInt **)impl->d_offsets_owned, impl->h_offsets, size * sizeof(CeedInt), hipMemcpyHostToDevice));
+        impl->d_offsets = (CeedInt *)impl->d_offsets_owned;
         if (is_deterministic) CeedCallBackend(CeedElemRestrictionOffset_Hip(rstr, offsets));
       } break;
       case CEED_MEM_DEVICE: {
-        switch (copy_mode) {
-          case CEED_COPY_VALUES:
-            CeedCallHip(ceed, hipMalloc((void **)&impl->d_offsets_owned, size * sizeof(CeedInt)));
-            CeedCallHip(ceed, hipMemcpy(impl->d_offsets_owned, offsets, size * sizeof(CeedInt), hipMemcpyDeviceToDevice));
-            impl->d_offsets_borrowed = NULL;
-            impl->d_offsets          = impl->d_offsets_owned;
-            break;
-          case CEED_OWN_POINTER:
-            impl->d_offsets_owned    = (CeedInt *)offsets;
-            impl->d_offsets_borrowed = NULL;
-            impl->d_offsets          = impl->d_offsets_owned;
-            break;
-          case CEED_USE_POINTER:
-            impl->d_offsets_owned    = NULL;
-            impl->d_offsets_borrowed = (CeedInt *)offsets;
-            impl->d_offsets          = impl->d_offsets_borrowed;
-            break;
-        }
+        CeedCallBackend(CeedSetDeviceCeedIntArray_Hip(ceed, offsets, copy_mode, size, &impl->d_offsets_owned, &impl->d_offsets_borrowed,
+                                                      (const CeedInt **)&impl->d_offsets));
         CeedCallBackend(CeedMalloc(size, &impl->h_offsets_owned));
-        CeedCallHip(ceed, hipMemcpy(impl->h_offsets_owned, impl->d_offsets, size * sizeof(CeedInt), hipMemcpyDeviceToHost));
+        CeedCallHip(ceed, hipMemcpy((CeedInt **)impl->h_offsets_owned, impl->d_offsets, size * sizeof(CeedInt), hipMemcpyDeviceToHost));
         impl->h_offsets = impl->h_offsets_owned;
         if (is_deterministic) CeedCallBackend(CeedElemRestrictionOffset_Hip(rstr, offsets));
       } break;
@@ -572,98 +539,35 @@ int CeedElemRestrictionCreate_Hip(CeedMemType mem_type, CeedCopyMode copy_mode, 
     if (rstr_type == CEED_RESTRICTION_ORIENTED) {
       switch (mem_type) {
         case CEED_MEM_HOST: {
-          switch (copy_mode) {
-            case CEED_COPY_VALUES:
-              CeedCallBackend(CeedMalloc(size, &impl->h_orients_owned));
-              memcpy(impl->h_orients_owned, orients, size * sizeof(bool));
-              impl->h_orients_borrowed = NULL;
-              impl->h_orients          = impl->h_orients_owned;
-              break;
-            case CEED_OWN_POINTER:
-              impl->h_orients_owned    = (bool *)orients;
-              impl->h_orients_borrowed = NULL;
-              impl->h_orients          = impl->h_orients_owned;
-              break;
-            case CEED_USE_POINTER:
-              impl->h_orients_owned    = NULL;
-              impl->h_orients_borrowed = (bool *)orients;
-              impl->h_orients          = impl->h_orients_borrowed;
-              break;
-          }
+          CeedCallBackend(CeedSetHostBoolArray(orients, copy_mode, size, &impl->h_orients_owned, &impl->h_orients_borrowed, &impl->h_orients));
           CeedCallHip(ceed, hipMalloc((void **)&impl->d_orients_owned, size * sizeof(bool)));
-          CeedCallHip(ceed, hipMemcpy(impl->d_orients_owned, impl->h_orients, size * sizeof(bool), hipMemcpyHostToDevice));
+          CeedCallHip(ceed, hipMemcpy((bool *)impl->d_orients_owned, impl->h_orients, size * sizeof(bool), hipMemcpyHostToDevice));
           impl->d_orients = impl->d_orients_owned;
         } break;
         case CEED_MEM_DEVICE: {
-          switch (copy_mode) {
-            case CEED_COPY_VALUES:
-              CeedCallHip(ceed, hipMalloc((void **)&impl->d_orients_owned, size * sizeof(bool)));
-              CeedCallHip(ceed, hipMemcpy(impl->d_orients_owned, orients, size * sizeof(bool), hipMemcpyDeviceToDevice));
-              impl->d_orients_borrowed = NULL;
-              impl->d_orients          = impl->d_orients_owned;
-              break;
-            case CEED_OWN_POINTER:
-              impl->d_orients_owned    = (bool *)orients;
-              impl->d_orients_borrowed = NULL;
-              impl->d_orients          = impl->d_orients_owned;
-              break;
-            case CEED_USE_POINTER:
-              impl->d_orients_owned    = NULL;
-              impl->d_orients_borrowed = (bool *)orients;
-              impl->d_orients          = impl->d_orients_borrowed;
-              break;
-          }
+          CeedCallBackend(CeedSetDeviceBoolArray_Hip(ceed, orients, copy_mode, size, &impl->d_orients_owned, &impl->d_orients_borrowed,
+                                                     (const bool **)&impl->d_orients));
           CeedCallBackend(CeedMalloc(size, &impl->h_orients_owned));
-          CeedCallHip(ceed, hipMemcpy(impl->h_orients_owned, impl->d_orients, size * sizeof(bool), hipMemcpyDeviceToHost));
+          CeedCallHip(ceed, hipMemcpy((bool *)impl->h_orients_owned, impl->d_orients, size * sizeof(bool), hipMemcpyDeviceToHost));
           impl->h_orients = impl->h_orients_owned;
         } break;
       }
     } else if (rstr_type == CEED_RESTRICTION_CURL_ORIENTED) {
       switch (mem_type) {
         case CEED_MEM_HOST: {
-          switch (copy_mode) {
-            case CEED_COPY_VALUES:
-              CeedCallBackend(CeedMalloc(3 * size, &impl->h_curl_orients_owned));
-              memcpy(impl->h_curl_orients_owned, curl_orients, 3 * size * sizeof(CeedInt8));
-              impl->h_curl_orients_borrowed = NULL;
-              impl->h_curl_orients          = impl->h_curl_orients_owned;
-              break;
-            case CEED_OWN_POINTER:
-              impl->h_curl_orients_owned    = (CeedInt8 *)curl_orients;
-              impl->h_curl_orients_borrowed = NULL;
-              impl->h_curl_orients          = impl->h_curl_orients_owned;
-              break;
-            case CEED_USE_POINTER:
-              impl->h_curl_orients_owned    = NULL;
-              impl->h_curl_orients_borrowed = (CeedInt8 *)curl_orients;
-              impl->h_curl_orients          = impl->h_curl_orients_borrowed;
-              break;
-          }
+          CeedCallBackend(CeedSetHostCeedInt8Array(curl_orients, copy_mode, 3 * size, &impl->h_curl_orients_owned, &impl->h_curl_orients_borrowed,
+                                                   &impl->h_curl_orients));
           CeedCallHip(ceed, hipMalloc((void **)&impl->d_curl_orients_owned, 3 * size * sizeof(CeedInt8)));
-          CeedCallHip(ceed, hipMemcpy(impl->d_curl_orients_owned, impl->h_curl_orients, 3 * size * sizeof(CeedInt8), hipMemcpyHostToDevice));
+          CeedCallHip(ceed,
+                      hipMemcpy((CeedInt8 *)impl->d_curl_orients_owned, impl->h_curl_orients, 3 * size * sizeof(CeedInt8), hipMemcpyHostToDevice));
           impl->d_curl_orients = impl->d_curl_orients_owned;
         } break;
         case CEED_MEM_DEVICE: {
-          switch (copy_mode) {
-            case CEED_COPY_VALUES:
-              CeedCallHip(ceed, hipMalloc((void **)&impl->d_curl_orients_owned, 3 * size * sizeof(CeedInt8)));
-              CeedCallHip(ceed, hipMemcpy(impl->d_curl_orients_owned, curl_orients, 3 * size * sizeof(CeedInt8), hipMemcpyDeviceToDevice));
-              impl->d_curl_orients_borrowed = NULL;
-              impl->d_curl_orients          = impl->d_curl_orients_owned;
-              break;
-            case CEED_OWN_POINTER:
-              impl->d_curl_orients_owned    = (CeedInt8 *)curl_orients;
-              impl->d_curl_orients_borrowed = NULL;
-              impl->d_curl_orients          = impl->d_curl_orients_owned;
-              break;
-            case CEED_USE_POINTER:
-              impl->d_curl_orients_owned    = NULL;
-              impl->d_curl_orients_borrowed = (CeedInt8 *)curl_orients;
-              impl->d_curl_orients          = impl->d_curl_orients_borrowed;
-              break;
-          }
+          CeedCallBackend(CeedSetDeviceCeedInt8Array_Hip(ceed, curl_orients, copy_mode, 3 * size, &impl->d_curl_orients_owned,
+                                                         &impl->d_curl_orients_borrowed, (const CeedInt8 **)&impl->d_curl_orients));
           CeedCallBackend(CeedMalloc(3 * size, &impl->h_curl_orients_owned));
-          CeedCallHip(ceed, hipMemcpy(impl->h_curl_orients_owned, impl->d_curl_orients, 3 * size * sizeof(CeedInt8), hipMemcpyDeviceToHost));
+          CeedCallHip(ceed,
+                      hipMemcpy((CeedInt8 *)impl->h_curl_orients_owned, impl->d_curl_orients, 3 * size * sizeof(CeedInt8), hipMemcpyDeviceToHost));
           impl->h_curl_orients = impl->h_curl_orients_owned;
         } break;
       }
