@@ -13,7 +13,7 @@ int main(int argc, char **argv) {
   CeedInt             ind[elem_size * num_elem];
   CeedInt8            curl_orients[3 * elem_size * num_elem];
   CeedScalar          x_array[num_elem + 1];
-  CeedInt             layout[3];
+  CeedInt             e_layout[3];
   CeedElemRestriction elem_restriction;
 
   CeedInit(argv[1], &ceed);
@@ -51,13 +51,13 @@ int main(int argc, char **argv) {
     const CeedScalar *y_array;
 
     CeedVectorGetArrayRead(y, CEED_MEM_HOST, &y_array);
-    CeedElemRestrictionGetELayout(elem_restriction, layout);
+    CeedElemRestrictionGetELayout(elem_restriction, e_layout);
     for (CeedInt i = 0; i < elem_size; i++) {     // Node
       for (CeedInt j = 0; j < 1; j++) {           // Component
         for (CeedInt k = 0; k < num_elem; k++) {  // Element
           CeedInt block = k / blk_size;
           CeedInt elem  = k % blk_size;
-          CeedInt index = (i * blk_size + elem) * layout[0] + j * layout[1] * blk_size + block * layout[2] * blk_size;
+          CeedInt index = (i * blk_size + elem) * e_layout[0] + j * e_layout[1] * blk_size + block * e_layout[2] * blk_size;
           if (k % 2 > 0) {
             if (i == 0 && 10 + k + 1 != -y_array[index]) {
               // LCOV_EXCL_START
