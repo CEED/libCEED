@@ -27,12 +27,12 @@ static inline int CeedElemRestrictionApplyStridedNoTranspose_Ref_Core(CeedElemRe
   if (has_backend_strides) {
     // CPU backend strides are {1, elem_size, elem_size*num_comp}
     // This if branch is left separate to allow better inlining
-    for (CeedInt e = start * block_size; e < stop * block_size; e += block_size) {
-      CeedPragmaSIMD for (CeedInt k = 0; k < num_comp; k++) {
-        CeedPragmaSIMD for (CeedInt n = 0; n < elem_size; n++) {
-          CeedPragmaSIMD for (CeedInt j = 0; j < block_size; j++) {
-            vv[e * elem_size * (CeedSize)num_comp + (k * (CeedSize)elem_size + n) * block_size + j - v_offset] =
-                uu[n + k * (CeedSize)elem_size + CeedIntMin(e + j, num_elem - 1) * elem_size * (CeedSize)num_comp];
+    for (CeedSize e = start * block_size; e < stop * block_size; e += block_size) {
+      CeedPragmaSIMD for (CeedSize k = 0; k < num_comp; k++) {
+        CeedPragmaSIMD for (CeedSize n = 0; n < elem_size; n++) {
+          CeedPragmaSIMD for (CeedSize j = 0; j < block_size; j++) {
+            vv[e * elem_size * num_comp + (k * elem_size + n) * block_size + j - v_offset] =
+                uu[n + k * elem_size + CeedIntMin(e + j, num_elem - 1) * elem_size * (CeedSize)num_comp];
           }
         }
       }
@@ -42,12 +42,12 @@ static inline int CeedElemRestrictionApplyStridedNoTranspose_Ref_Core(CeedElemRe
     CeedInt strides[3];
 
     CeedCallBackend(CeedElemRestrictionGetStrides(rstr, strides));
-    for (CeedInt e = start * block_size; e < stop * block_size; e += block_size) {
-      CeedPragmaSIMD for (CeedInt k = 0; k < num_comp; k++) {
-        CeedPragmaSIMD for (CeedInt n = 0; n < elem_size; n++) {
-          CeedPragmaSIMD for (CeedInt j = 0; j < block_size; j++) {
-            vv[e * elem_size * (CeedSize)num_comp + (k * (CeedSize)elem_size + n) * block_size + j - v_offset] =
-                uu[n * (CeedSize)strides[0] + k * (CeedSize)strides[1] + CeedIntMin(e + j, num_elem - 1) * (CeedSize)strides[2]];
+    for (CeedSize e = start * block_size; e < stop * block_size; e += block_size) {
+      CeedPragmaSIMD for (CeedSize k = 0; k < num_comp; k++) {
+        CeedPragmaSIMD for (CeedSize n = 0; n < elem_size; n++) {
+          CeedPragmaSIMD for (CeedSize j = 0; j < block_size; j++) {
+            vv[e * elem_size * num_comp + (k * elem_size + n) * block_size + j - v_offset] =
+                uu[n * strides[0] + k * strides[1] + CeedIntMin(e + j, num_elem - 1) * (CeedSize)strides[2]];
           }
         }
       }
@@ -64,10 +64,10 @@ static inline int CeedElemRestrictionApplyOffsetNoTranspose_Ref_Core(CeedElemRes
   CeedElemRestriction_Ref *impl;
 
   CeedCallBackend(CeedElemRestrictionGetData(rstr, &impl));
-  for (CeedInt e = start * block_size; e < stop * block_size; e += block_size) {
-    CeedPragmaSIMD for (CeedInt k = 0; k < num_comp; k++) {
-      CeedPragmaSIMD for (CeedInt i = 0; i < elem_size * block_size; i++) {
-        vv[elem_size * (k * (CeedSize)block_size + e * (CeedSize)num_comp) + i - v_offset] = uu[impl->offsets[i + e * elem_size] + k * comp_stride];
+  for (CeedSize e = start * block_size; e < stop * block_size; e += block_size) {
+    CeedPragmaSIMD for (CeedSize k = 0; k < num_comp; k++) {
+      CeedPragmaSIMD for (CeedSize i = 0; i < elem_size * block_size; i++) {
+        vv[elem_size * (k * block_size + e * num_comp) + i - v_offset] = uu[impl->offsets[i + e * elem_size] + k * comp_stride];
       }
     }
   }
@@ -82,10 +82,10 @@ static inline int CeedElemRestrictionApplyOrientedNoTranspose_Ref_Core(CeedElemR
   CeedElemRestriction_Ref *impl;
 
   CeedCallBackend(CeedElemRestrictionGetData(rstr, &impl));
-  for (CeedInt e = start * block_size; e < stop * block_size; e += block_size) {
-    CeedPragmaSIMD for (CeedInt k = 0; k < num_comp; k++) {
-      CeedPragmaSIMD for (CeedInt i = 0; i < elem_size * block_size; i++) {
-        vv[elem_size * (k * (CeedSize)block_size + e * (CeedSize)num_comp) + i - v_offset] =
+  for (CeedSize e = start * block_size; e < stop * block_size; e += block_size) {
+    CeedPragmaSIMD for (CeedSize k = 0; k < num_comp; k++) {
+      CeedPragmaSIMD for (CeedSize i = 0; i < elem_size * block_size; i++) {
+        vv[elem_size * (k * block_size + e * num_comp) + i - v_offset] =
             uu[impl->offsets[i + e * elem_size] + k * comp_stride] * (impl->orients[i + e * elem_size] ? -1.0 : 1.0);
       }
     }
@@ -101,20 +101,20 @@ static inline int CeedElemRestrictionApplyCurlOrientedNoTranspose_Ref_Core(CeedE
   CeedElemRestriction_Ref *impl;
 
   CeedCallBackend(CeedElemRestrictionGetData(rstr, &impl));
-  for (CeedInt e = start * block_size; e < stop * block_size; e += block_size) {
-    CeedPragmaSIMD for (CeedInt k = 0; k < num_comp; k++) {
-      CeedInt n = 0;
+  for (CeedSize e = start * block_size; e < stop * block_size; e += block_size) {
+    CeedPragmaSIMD for (CeedSize k = 0; k < num_comp; k++) {
+      CeedSize n = 0;
 
-      CeedPragmaSIMD for (CeedInt j = 0; j < block_size; j++) {
-        vv[e * elem_size * (CeedSize)num_comp + (k * (CeedSize)elem_size + n) * block_size + j - v_offset] =
+      CeedPragmaSIMD for (CeedSize j = 0; j < block_size; j++) {
+        vv[e * elem_size * num_comp + (k * elem_size + n) * block_size + j - v_offset] =
             uu[impl->offsets[j + n * block_size + e * elem_size] + k * comp_stride] *
                 impl->curl_orients[j + (3 * n + 1) * block_size + e * 3 * elem_size] +
             uu[impl->offsets[j + (n + 1) * block_size + e * elem_size] + k * comp_stride] *
                 impl->curl_orients[j + (3 * n + 2) * block_size + e * 3 * elem_size];
       }
       CeedPragmaSIMD for (n = 1; n < elem_size - 1; n++) {
-        CeedPragmaSIMD for (CeedInt j = 0; j < block_size; j++) {
-          vv[e * elem_size * (CeedSize)num_comp + (k * (CeedSize)elem_size + n) * block_size + j - v_offset] =
+        CeedPragmaSIMD for (CeedSize j = 0; j < block_size; j++) {
+          vv[e * elem_size * num_comp + (k * elem_size + n) * block_size + j - v_offset] =
               uu[impl->offsets[j + (n - 1) * block_size + e * elem_size] + k * comp_stride] *
                   impl->curl_orients[j + (3 * n + 0) * block_size + e * 3 * elem_size] +
               uu[impl->offsets[j + n * block_size + e * elem_size] + k * comp_stride] *
@@ -123,8 +123,8 @@ static inline int CeedElemRestrictionApplyCurlOrientedNoTranspose_Ref_Core(CeedE
                   impl->curl_orients[j + (3 * n + 2) * block_size + e * 3 * elem_size];
         }
       }
-      CeedPragmaSIMD for (CeedInt j = 0; j < block_size; j++) {
-        vv[e * elem_size * (CeedSize)num_comp + (k * (CeedSize)elem_size + n) * block_size + j - v_offset] =
+      CeedPragmaSIMD for (CeedSize j = 0; j < block_size; j++) {
+        vv[e * elem_size * num_comp + (k * elem_size + n) * block_size + j - v_offset] =
             uu[impl->offsets[j + (n - 1) * block_size + e * elem_size] + k * comp_stride] *
                 impl->curl_orients[j + (3 * n + 0) * block_size + e * 3 * elem_size] +
             uu[impl->offsets[j + n * block_size + e * elem_size] + k * comp_stride] *
@@ -144,20 +144,20 @@ static inline int CeedElemRestrictionApplyCurlOrientedUnsignedNoTranspose_Ref_Co
   CeedElemRestriction_Ref *impl;
 
   CeedCallBackend(CeedElemRestrictionGetData(rstr, &impl));
-  for (CeedInt e = start * block_size; e < stop * block_size; e += block_size) {
-    CeedPragmaSIMD for (CeedInt k = 0; k < num_comp; k++) {
-      CeedInt n = 0;
+  for (CeedSize e = start * block_size; e < stop * block_size; e += block_size) {
+    CeedPragmaSIMD for (CeedSize k = 0; k < num_comp; k++) {
+      CeedSize n = 0;
 
-      CeedPragmaSIMD for (CeedInt j = 0; j < block_size; j++) {
-        vv[e * elem_size * (CeedSize)num_comp + (k * (CeedSize)elem_size + n) * block_size + j - v_offset] =
+      CeedPragmaSIMD for (CeedSize j = 0; j < block_size; j++) {
+        vv[e * elem_size * num_comp + (k * elem_size + n) * block_size + j - v_offset] =
             uu[impl->offsets[j + n * block_size + e * elem_size] + k * comp_stride] *
                 abs(impl->curl_orients[j + (3 * n + 1) * block_size + e * 3 * elem_size]) +
             uu[impl->offsets[j + (n + 1) * block_size + e * elem_size] + k * comp_stride] *
                 abs(impl->curl_orients[j + (3 * n + 2) * block_size + e * 3 * elem_size]);
       }
       CeedPragmaSIMD for (n = 1; n < elem_size - 1; n++) {
-        CeedPragmaSIMD for (CeedInt j = 0; j < block_size; j++) {
-          vv[e * elem_size * (CeedSize)num_comp + (k * (CeedSize)elem_size + n) * block_size + j - v_offset] =
+        CeedPragmaSIMD for (CeedSize j = 0; j < block_size; j++) {
+          vv[e * elem_size * num_comp + (k * elem_size + n) * block_size + j - v_offset] =
               uu[impl->offsets[j + (n - 1) * block_size + e * elem_size] + k * comp_stride] *
                   abs(impl->curl_orients[j + (3 * n + 0) * block_size + e * 3 * elem_size]) +
               uu[impl->offsets[j + n * block_size + e * elem_size] + k * comp_stride] *
@@ -166,8 +166,8 @@ static inline int CeedElemRestrictionApplyCurlOrientedUnsignedNoTranspose_Ref_Co
                   abs(impl->curl_orients[j + (3 * n + 2) * block_size + e * 3 * elem_size]);
         }
       }
-      CeedPragmaSIMD for (CeedInt j = 0; j < block_size; j++) {
-        vv[e * elem_size * (CeedSize)num_comp + (k * (CeedSize)elem_size + n) * block_size + j - v_offset] =
+      CeedPragmaSIMD for (CeedSize j = 0; j < block_size; j++) {
+        vv[e * elem_size * num_comp + (k * elem_size + n) * block_size + j - v_offset] =
             uu[impl->offsets[j + (n - 1) * block_size + e * elem_size] + k * comp_stride] *
                 abs(impl->curl_orients[j + (3 * n + 0) * block_size + e * 3 * elem_size]) +
             uu[impl->offsets[j + n * block_size + e * elem_size] + k * comp_stride] *
@@ -189,12 +189,11 @@ static inline int CeedElemRestrictionApplyStridedTranspose_Ref_Core(CeedElemRest
   if (has_backend_strides) {
     // CPU backend strides are {1, elem_size, elem_size*num_comp}
     // This if brach is left separate to allow better inlining
-    for (CeedInt e = start * block_size; e < stop * block_size; e += block_size) {
-      CeedPragmaSIMD for (CeedInt k = 0; k < num_comp; k++) {
-        CeedPragmaSIMD for (CeedInt n = 0; n < elem_size; n++) {
-          CeedPragmaSIMD for (CeedInt j = 0; j < CeedIntMin(block_size, num_elem - e); j++) {
-            vv[n + k * (CeedSize)elem_size + (e + j) * elem_size * (CeedSize)num_comp] +=
-                uu[e * elem_size * (CeedSize)num_comp + (k * (CeedSize)elem_size + n) * block_size + j - v_offset];
+    for (CeedSize e = start * block_size; e < stop * block_size; e += block_size) {
+      CeedPragmaSIMD for (CeedSize k = 0; k < num_comp; k++) {
+        CeedPragmaSIMD for (CeedSize n = 0; n < elem_size; n++) {
+          CeedPragmaSIMD for (CeedSize j = 0; j < CeedIntMin(block_size, num_elem - e); j++) {
+            vv[n + k * elem_size + (e + j) * elem_size * num_comp] += uu[e * elem_size * num_comp + (k * elem_size + n) * block_size + j - v_offset];
           }
         }
       }
@@ -205,11 +204,11 @@ static inline int CeedElemRestrictionApplyStridedTranspose_Ref_Core(CeedElemRest
 
     CeedCallBackend(CeedElemRestrictionGetStrides(rstr, strides));
     for (CeedInt e = start * block_size; e < stop * block_size; e += block_size) {
-      CeedPragmaSIMD for (CeedInt k = 0; k < num_comp; k++) {
-        CeedPragmaSIMD for (CeedInt n = 0; n < elem_size; n++) {
-          CeedPragmaSIMD for (CeedInt j = 0; j < CeedIntMin(block_size, num_elem - e); j++) {
-            vv[n * (CeedSize)strides[0] + k * (CeedSize)strides[1] + (e + j) * (CeedSize)strides[2]] +=
-                uu[e * elem_size * (CeedSize)num_comp + (k * (CeedSize)elem_size + n) * block_size + j - v_offset];
+      CeedPragmaSIMD for (CeedSize k = 0; k < num_comp; k++) {
+        CeedPragmaSIMD for (CeedSize n = 0; n < elem_size; n++) {
+          CeedPragmaSIMD for (CeedSize j = 0; j < CeedIntMin(block_size, num_elem - e); j++) {
+            vv[n * strides[0] + k * strides[1] + (e + j) * strides[2]] +=
+                uu[e * elem_size * num_comp + (k * elem_size + n) * block_size + j - v_offset];
           }
         }
       }
@@ -226,14 +225,14 @@ static inline int CeedElemRestrictionApplyOffsetTranspose_Ref_Core(CeedElemRestr
   CeedElemRestriction_Ref *impl;
 
   CeedCallBackend(CeedElemRestrictionGetData(rstr, &impl));
-  for (CeedInt e = start * block_size; e < stop * block_size; e += block_size) {
-    for (CeedInt k = 0; k < num_comp; k++) {
-      for (CeedInt i = 0; i < elem_size * block_size; i += block_size) {
+  for (CeedSize e = start * block_size; e < stop * block_size; e += block_size) {
+    for (CeedSize k = 0; k < num_comp; k++) {
+      for (CeedSize i = 0; i < elem_size * block_size; i += block_size) {
         // Iteration bound set to discard padding elements
-        for (CeedInt j = i; j < i + CeedIntMin(block_size, num_elem - e); j++) {
+        for (CeedSize j = i; j < i + CeedIntMin(block_size, num_elem - e); j++) {
           CeedScalar vv_loc;
 
-          vv_loc = uu[elem_size * (k * (CeedSize)block_size + e * (CeedSize)num_comp) + j - v_offset];
+          vv_loc = uu[elem_size * (k * block_size + e * num_comp) + j - v_offset];
           CeedPragmaAtomic vv[impl->offsets[j + e * elem_size] + k * comp_stride] += vv_loc;
         }
       }
@@ -250,15 +249,14 @@ static inline int CeedElemRestrictionApplyOrientedTranspose_Ref_Core(CeedElemRes
   CeedElemRestriction_Ref *impl;
 
   CeedCallBackend(CeedElemRestrictionGetData(rstr, &impl));
-  for (CeedInt e = start * block_size; e < stop * block_size; e += block_size) {
-    for (CeedInt k = 0; k < num_comp; k++) {
-      for (CeedInt i = 0; i < elem_size * block_size; i += block_size) {
+  for (CeedSize e = start * block_size; e < stop * block_size; e += block_size) {
+    for (CeedSize k = 0; k < num_comp; k++) {
+      for (CeedSize i = 0; i < elem_size * block_size; i += block_size) {
         // Iteration bound set to discard padding elements
-        for (CeedInt j = i; j < i + CeedIntMin(block_size, num_elem - e); j++) {
+        for (CeedSize j = i; j < i + CeedIntMin(block_size, num_elem - e); j++) {
           CeedScalar vv_loc;
 
-          vv_loc =
-              uu[elem_size * (k * (CeedSize)block_size + e * (CeedSize)num_comp) + j - v_offset] * (impl->orients[j + e * elem_size] ? -1.0 : 1.0);
+          vv_loc = uu[elem_size * (k * block_size + e * num_comp) + j - v_offset] * (impl->orients[j + e * elem_size] ? -1.0 : 1.0);
           CeedPragmaAtomic vv[impl->offsets[j + e * elem_size] + k * comp_stride] += vv_loc;
         }
       }
@@ -276,41 +274,41 @@ static inline int CeedElemRestrictionApplyCurlOrientedTranspose_Ref_Core(CeedEle
   CeedScalar               vv_loc[block_size];
 
   CeedCallBackend(CeedElemRestrictionGetData(rstr, &impl));
-  for (CeedInt e = start * block_size; e < stop * block_size; e += block_size) {
-    for (CeedInt k = 0; k < num_comp; k++) {
+  for (CeedSize e = start * block_size; e < stop * block_size; e += block_size) {
+    for (CeedSize k = 0; k < num_comp; k++) {
       // Iteration bound set to discard padding elements
-      const CeedInt block_end = CeedIntMin(block_size, num_elem - e);
-      CeedInt       n         = 0;
+      const CeedSize block_end = CeedIntMin(block_size, num_elem - e);
+      CeedSize       n         = 0;
 
-      CeedPragmaSIMD for (CeedInt j = 0; j < block_end; j++) {
-        vv_loc[j] = uu[e * elem_size * (CeedSize)num_comp + (k * (CeedSize)elem_size + n) * block_size + j - v_offset] *
+      CeedPragmaSIMD for (CeedSize j = 0; j < block_end; j++) {
+        vv_loc[j] = uu[e * elem_size * num_comp + (k * elem_size + n) * block_size + j - v_offset] *
                         impl->curl_orients[j + (3 * n + 1) * block_size + e * 3 * elem_size] +
-                    uu[e * elem_size * (CeedSize)num_comp + (k * (CeedSize)elem_size + n + 1) * block_size + j - v_offset] *
+                    uu[e * elem_size * num_comp + (k * elem_size + n + 1) * block_size + j - v_offset] *
                         impl->curl_orients[j + (3 * n + 3) * block_size + e * 3 * elem_size];
       }
-      for (CeedInt j = 0; j < block_end; j++) {
+      for (CeedSize j = 0; j < block_end; j++) {
         CeedPragmaAtomic vv[impl->offsets[j + n * block_size + e * elem_size] + k * comp_stride] += vv_loc[j];
       }
       for (n = 1; n < elem_size - 1; n++) {
         CeedPragmaSIMD for (CeedInt j = 0; j < block_end; j++) {
-          vv_loc[j] = uu[e * elem_size * (CeedSize)num_comp + (k * (CeedSize)elem_size + n - 1) * block_size + j - v_offset] *
+          vv_loc[j] = uu[e * elem_size * num_comp + (k * elem_size + n - 1) * block_size + j - v_offset] *
                           impl->curl_orients[j + (3 * n - 1) * block_size + e * 3 * elem_size] +
-                      uu[e * elem_size * (CeedSize)num_comp + (k * (CeedSize)elem_size + n) * block_size + j - v_offset] *
+                      uu[e * elem_size * num_comp + (k * elem_size + n) * block_size + j - v_offset] *
                           impl->curl_orients[j + (3 * n + 1) * block_size + e * 3 * elem_size] +
-                      uu[e * elem_size * (CeedSize)num_comp + (k * (CeedSize)elem_size + n + 1) * block_size + j - v_offset] *
+                      uu[e * elem_size * num_comp + (k * elem_size + n + 1) * block_size + j - v_offset] *
                           impl->curl_orients[j + (3 * n + 3) * block_size + e * 3 * elem_size];
         }
-        for (CeedInt j = 0; j < block_end; j++) {
+        for (CeedSize j = 0; j < block_end; j++) {
           CeedPragmaAtomic vv[impl->offsets[j + n * block_size + e * elem_size] + k * comp_stride] += vv_loc[j];
         }
       }
-      CeedPragmaSIMD for (CeedInt j = 0; j < block_end; j++) {
-        vv_loc[j] = uu[e * elem_size * (CeedSize)num_comp + (k * (CeedSize)elem_size + n - 1) * block_size + j - v_offset] *
+      CeedPragmaSIMD for (CeedSize j = 0; j < block_end; j++) {
+        vv_loc[j] = uu[e * elem_size * num_comp + (k * elem_size + n - 1) * block_size + j - v_offset] *
                         impl->curl_orients[j + (3 * n - 1) * block_size + e * 3 * elem_size] +
-                    uu[e * elem_size * (CeedSize)num_comp + (k * (CeedSize)elem_size + n) * block_size + j - v_offset] *
+                    uu[e * elem_size * num_comp + (k * elem_size + n) * block_size + j - v_offset] *
                         impl->curl_orients[j + (3 * n + 1) * block_size + e * 3 * elem_size];
       }
-      for (CeedInt j = 0; j < block_end; j++) {
+      for (CeedSize j = 0; j < block_end; j++) {
         CeedPragmaAtomic vv[impl->offsets[j + n * block_size + e * elem_size] + k * comp_stride] += vv_loc[j];
       }
     }
@@ -327,41 +325,41 @@ static inline int CeedElemRestrictionApplyCurlOrientedUnsignedTranspose_Ref_Core
   CeedScalar               vv_loc[block_size];
 
   CeedCallBackend(CeedElemRestrictionGetData(rstr, &impl));
-  for (CeedInt e = start * block_size; e < stop * block_size; e += block_size) {
-    for (CeedInt k = 0; k < num_comp; k++) {
+  for (CeedSize e = start * block_size; e < stop * block_size; e += block_size) {
+    for (CeedSize k = 0; k < num_comp; k++) {
       // Iteration bound set to discard padding elements
-      const CeedInt block_end = CeedIntMin(block_size, num_elem - e);
-      CeedInt       n         = 0;
+      const CeedSize block_end = CeedIntMin(block_size, num_elem - e);
+      CeedSize       n         = 0;
 
-      CeedPragmaSIMD for (CeedInt j = 0; j < block_end; j++) {
-        vv_loc[j] = uu[e * elem_size * (CeedSize)num_comp + (k * (CeedSize)elem_size + n) * block_size + j - v_offset] *
+      CeedPragmaSIMD for (CeedSize j = 0; j < block_end; j++) {
+        vv_loc[j] = uu[e * elem_size * num_comp + (k * elem_size + n) * block_size + j - v_offset] *
                         abs(impl->curl_orients[j + (3 * n + 1) * block_size + e * 3 * elem_size]) +
-                    uu[e * elem_size * (CeedSize)num_comp + (k * (CeedSize)elem_size + n + 1) * block_size + j - v_offset] *
+                    uu[e * elem_size * num_comp + (k * elem_size + n + 1) * block_size + j - v_offset] *
                         abs(impl->curl_orients[j + (3 * n + 3) * block_size + e * 3 * elem_size]);
       }
-      for (CeedInt j = 0; j < block_end; j++) {
+      for (CeedSize j = 0; j < block_end; j++) {
         CeedPragmaAtomic vv[impl->offsets[j + n * block_size + e * elem_size] + k * comp_stride] += vv_loc[j];
       }
       for (n = 1; n < elem_size - 1; n++) {
-        CeedPragmaSIMD for (CeedInt j = 0; j < block_end; j++) {
-          vv_loc[j] = uu[e * elem_size * (CeedSize)num_comp + (k * (CeedSize)elem_size + n - 1) * block_size + j - v_offset] *
+        CeedPragmaSIMD for (CeedSize j = 0; j < block_end; j++) {
+          vv_loc[j] = uu[e * elem_size * num_comp + (k * elem_size + n - 1) * block_size + j - v_offset] *
                           abs(impl->curl_orients[j + (3 * n - 1) * block_size + e * 3 * elem_size]) +
-                      uu[e * elem_size * (CeedSize)num_comp + (k * (CeedSize)elem_size + n) * block_size + j - v_offset] *
+                      uu[e * elem_size * num_comp + (k * elem_size + n) * block_size + j - v_offset] *
                           abs(impl->curl_orients[j + (3 * n + 1) * block_size + e * 3 * elem_size]) +
-                      uu[e * elem_size * (CeedSize)num_comp + (k * (CeedSize)elem_size + n + 1) * block_size + j - v_offset] *
+                      uu[e * elem_size * num_comp + (k * elem_size + n + 1) * block_size + j - v_offset] *
                           abs(impl->curl_orients[j + (3 * n + 3) * block_size + e * 3 * elem_size]);
         }
-        for (CeedInt j = 0; j < block_end; j++) {
+        for (CeedSize j = 0; j < block_end; j++) {
           CeedPragmaAtomic vv[impl->offsets[j + n * block_size + e * elem_size] + k * comp_stride] += vv_loc[j];
         }
       }
-      CeedPragmaSIMD for (CeedInt j = 0; j < block_end; j++) {
-        vv_loc[j] = uu[e * elem_size * (CeedSize)num_comp + (k * (CeedSize)elem_size + n - 1) * block_size + j - v_offset] *
+      CeedPragmaSIMD for (CeedSize j = 0; j < block_end; j++) {
+        vv_loc[j] = uu[e * elem_size * num_comp + (k * elem_size + n - 1) * block_size + j - v_offset] *
                         abs(impl->curl_orients[j + (3 * n - 1) * block_size + e * 3 * elem_size]) +
-                    uu[e * elem_size * (CeedSize)num_comp + (k * (CeedSize)elem_size + n) * block_size + j - v_offset] *
+                    uu[e * elem_size * num_comp + (k * elem_size + n) * block_size + j - v_offset] *
                         abs(impl->curl_orients[j + (3 * n + 1) * block_size + e * 3 * elem_size]);
       }
-      for (CeedInt j = 0; j < block_end; j++) {
+      for (CeedSize j = 0; j < block_end; j++) {
         CeedPragmaAtomic vv[impl->offsets[j + n * block_size + e * elem_size] + k * comp_stride] += vv_loc[j];
       }
     }
@@ -381,12 +379,12 @@ static inline int CeedElemRestrictionApplyAtPointsInElement_Ref_Core(CeedElemRes
     l_vec_offset = impl->offsets[e];
     CeedCallBackend(CeedElemRestrictionGetNumPointsInElement(rstr, e, &num_points));
     if (t_mode == CEED_NOTRANSPOSE) {
-      for (CeedInt i = 0; i < num_points; i++) {
-        for (CeedInt j = 0; j < num_comp; j++) vv[j * (CeedSize)num_points + i + e_vec_offset] = uu[impl->offsets[i + l_vec_offset] * num_comp + j];
+      for (CeedSize i = 0; i < num_points; i++) {
+        for (CeedSize j = 0; j < num_comp; j++) vv[j * num_points + i + e_vec_offset] = uu[impl->offsets[i + l_vec_offset] * num_comp + j];
       }
     } else {
-      for (CeedInt i = 0; i < num_points; i++) {
-        for (CeedInt j = 0; j < num_comp; j++) vv[impl->offsets[i + l_vec_offset] * num_comp + j] = uu[j * (CeedSize)num_points + i + e_vec_offset];
+      for (CeedSize i = 0; i < num_points; i++) {
+        for (CeedSize j = 0; j < num_comp; j++) vv[impl->offsets[i + l_vec_offset] * num_comp + j] = uu[j * num_points + i + e_vec_offset];
       }
     }
     e_vec_offset += num_points * (CeedSize)num_comp;
