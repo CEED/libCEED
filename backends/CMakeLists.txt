@@ -1,14 +1,17 @@
+target_sources(CEED PUBLIC ${PROJECT_SOURCE_DIR}/backends/ceed-backend-weak.c)
+
 file(GLOB_RECURSE ref_backend_sources ${PROJECT_SOURCE_DIR}/backends/ref/*)
 target_sources(CEED PUBLIC ${ref_backend_sources})
+
+file(GLOB_RECURSE opt_backend_sources ${PROJECT_SOURCE_DIR}/backends/opt/*)
+target_sources(CEED PUBLIC ${opt_backend_sources})
+
+file(GLOB_RECURSE blocked_backend_sources ${PROJECT_SOURCE_DIR}/backends/blocked/*)
+target_sources(CEED PUBLIC ${blocked_backend_sources})
 
 if (CEED_ENABLE_AVX)
   file(GLOB_RECURSE avx_backend_sources ${PROJECT_SOURCE_DIR}/backends/avx/*)
   target_sources(CEED PUBLIC ${avx_backend_sources})
-endif()
-
-if (CEED_ENABLE_BLOCKED)
-  file(GLOB_RECURSE blocked_backend_sources ${PROJECT_SOURCE_DIR}/backends/blocked/*)
-  target_sources(CEED PUBLIC ${blocked_backend_sources})
 endif()
 
 if (CEED_ENABLE_HIP)
