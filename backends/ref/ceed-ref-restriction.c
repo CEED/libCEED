@@ -768,8 +768,7 @@ int CeedElemRestrictionCreate_Ref(CeedMemType mem_type, CeedCopyMode copy_mode, 
       }
       CeedCallBackend(CeedGetResource(parent, &resource));
     }
-    if (!strcmp(resource, "/cpu/self/ref/serial") || !strcmp(resource, "/cpu/self/ref/blocked") || !strcmp(resource, "/cpu/self/memcheck/serial") ||
-        !strcmp(resource, "/cpu/self/memcheck/blocked")) {
+    if (!strcmp(resource, "/cpu/self/ref/serial") || !strcmp(resource, "/cpu/self/ref/blocked")) {
       CeedSize l_size;
 
       CeedCallBackend(CeedElemRestrictionGetLVectorSize(rstr, &l_size));

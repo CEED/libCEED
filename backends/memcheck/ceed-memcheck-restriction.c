@@ -675,21 +675,8 @@ int CeedElemRestrictionCreate_Memcheck(CeedMemType mem_type, CeedCopyMode copy_m
 
   // Offsets data
   if (rstr_type != CEED_RESTRICTION_STRIDED) {
-    const char *resource;
-
-    // Check indices for ref or memcheck backends
+    // Check indices
     {
-      Ceed current = ceed, parent = NULL;
-
-      CeedCallBackend(CeedGetParent(current, &parent));
-      while (current != parent) {
-        current = parent;
-        CeedCallBackend(CeedGetParent(current, &parent));
-      }
-      CeedCallBackend(CeedGetResource(parent, &resource));
-    }
-    if (!strcmp(resource, "/cpu/self/ref/serial") || !strcmp(resource, "/cpu/self/ref/blocked") || !strcmp(resource, "/cpu/self/memcheck/serial") ||
-        !strcmp(resource, "/cpu/self/memcheck/blocked")) {
       CeedSize l_size;
 
       CeedCallBackend(CeedElemRestrictionGetLVectorSize(rstr, &l_size));
