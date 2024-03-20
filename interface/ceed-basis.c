@@ -1474,22 +1474,22 @@ int CeedBasisApply(CeedBasis basis, CeedInt num_elem, CeedTransposeMode t_mode, 
             ceed, CEED_ERROR_DIMENSION, "Length of input/output vectors incompatible with basis dimensions");
 
   // Check vector lengths to prevent out of bounds issues
-  bool good_dims = true;
+  bool has_good_dims = true;
   switch (eval_mode) {
     case CEED_EVAL_NONE:
     case CEED_EVAL_INTERP:
     case CEED_EVAL_GRAD:
     case CEED_EVAL_DIV:
     case CEED_EVAL_CURL:
-      good_dims =
+      has_good_dims =
           ((t_mode == CEED_TRANSPOSE && u_length >= num_elem * num_comp * num_qpts * q_comp && v_length >= num_elem * num_comp * num_nodes) ||
            (t_mode == CEED_NOTRANSPOSE && v_length >= num_elem * num_qpts * num_comp * q_comp && u_length >= num_elem * num_comp * num_nodes));
       break;
     case CEED_EVAL_WEIGHT:
-      good_dims = v_length >= num_elem * num_qpts;
+      has_good_dims = v_length >= num_elem * num_qpts;
       break;
   }
-  CeedCheck(good_dims, ceed, CEED_ERROR_DIMENSION, "Input/output vectors too short for basis and evaluation mode");
+  CeedCheck(has_good_dims, ceed, CEED_ERROR_DIMENSION, "Input/output vectors too short for basis and evaluation mode");
 
   CeedCall(basis->Apply(basis, num_elem, t_mode, eval_mode, u, v));
   return CEED_ERROR_SUCCESS;
@@ -1545,27 +1545,27 @@ int CeedBasisApplyAtPoints(CeedBasis basis, CeedInt num_points, CeedTransposeMod
             "CEED_EVAL_WEIGHT only supported with CEED_NOTRANSPOSE");
 
   // Check vector lengths to prevent out of bounds issues
-  bool good_dims = false;
+  bool has_good_dims = true;
   switch (eval_mode) {
     case CEED_EVAL_INTERP:
-      good_dims = ((t_mode == CEED_TRANSPOSE && (u_length >= num_points * num_q_comp || v_length >= num_nodes * num_comp)) ||
-                   (t_mode == CEED_NOTRANSPOSE && (v_length >= num_points * num_q_comp || u_length >= num_nodes * num_comp)));
+      has_good_dims = ((t_mode == CEED_TRANSPOSE && (u_length >= num_points * num_q_comp || v_length >= num_nodes * num_comp)) ||
+                       (t_mode == CEED_NOTRANSPOSE && (v_length >= num_points * num_q_comp || u_length >= num_nodes * num_comp)));
       break;
     case CEED_EVAL_GRAD:
-      good_dims = ((t_mode == CEED_TRANSPOSE && (u_length >= num_points * num_q_comp * dim || v_length >= num_nodes * num_comp)) ||
-                   (t_mode == CEED_NOTRANSPOSE && (v_length >= num_points * num_q_comp * dim || u_length >= num_nodes * num_comp)));
+      has_good_dims = ((t_mode == CEED_TRANSPOSE && (u_length >= num_points * num_q_comp * dim || v_length >= num_nodes * num_comp)) ||
+                       (t_mode == CEED_NOTRANSPOSE && (v_length >= num_points * num_q_comp * dim || u_length >= num_nodes * num_comp)));
       break;
     case CEED_EVAL_WEIGHT:
-      good_dims = t_mode == CEED_NOTRANSPOSE && (v_length >= num_points);
+      has_good_dims = t_mode == CEED_NOTRANSPOSE && (v_length >= num_points);
       break;
+      // LCOV_EXCL_START
     case CEED_EVAL_NONE:
     case CEED_EVAL_DIV:
     case CEED_EVAL_CURL:
-      // LCOV_EXCL_START
       return CeedError(ceed, CEED_ERROR_UNSUPPORTED, "Evaluation at arbitrary points not supported for %s", CeedEvalModes[eval_mode]);
       // LCOV_EXCL_STOP
   }
-  CeedCheck(good_dims, ceed, CEED_ERROR_DIMENSION, "Input/output vectors too short for basis and evaluation mode");
+  CeedCheck(has_good_dims, ceed, CEED_ERROR_DIMENSION, "Input/output vectors too short for basis and evaluation mode");
 
   // Backend method
   if (basis->ApplyAtPoints) {

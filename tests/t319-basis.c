@@ -43,7 +43,14 @@ int main(int argc, char **argv) {
     CeedVector x_corners, x_from, x_to, u_from, u_to, du_to;
     CeedBasis  basis_x, basis_from, basis_to, basis_project;
     CeedInt    p_from = 5, p_to = 6, q = 7, x_dim = CeedIntPow(2, dim), p_from_dim = CeedIntPow(p_from, dim), p_to_dim = CeedIntPow(p_to, dim);
+    CeedScalar tol;
 
+    {
+      CeedScalarType scalar_type;
+
+      CeedGetScalarType(&scalar_type);
+      tol = GetTolerance(scalar_type, dim);
+    }
     CeedVectorCreate(ceed, x_dim * dim, &x_corners);
     {
       CeedScalar x_array[x_dim * dim];
@@ -94,7 +101,6 @@ int main(int argc, char **argv) {
     CeedBasisApply(basis_project, 1, CEED_NOTRANSPOSE, CEED_EVAL_INTERP, u_from, u_to);
 
     // Check solution
-    CeedScalar tol = GetTolerance(CEED_SCALAR_TYPE, dim);
     {
       const CeedScalar *x_array, *u_array;
 
@@ -121,9 +127,11 @@ int main(int argc, char **argv) {
       CeedVectorGetArrayRead(du_to, CEED_MEM_HOST, &du_array);
       for (CeedInt i = 0; i < p_to_dim; i++) {
         CeedScalar coord[dim];
+
         for (CeedInt d = 0; d < dim; d++) coord[d] = x_array[p_to_dim * d + i];
         for (CeedInt d = 0; d < dim; d++) {
           const CeedScalar du = EvalGrad(d, coord);
+
           if (fabs(du - du_array[p_to_dim * d + i]) > tol) {
             // LCOV_EXCL_START
             printf("[%" CeedInt_FMT ", %" CeedInt_FMT ", %" CeedInt_FMT "] %f != %f\n", dim, i, d, du_array[p_to_dim * (dim - 1 - d) + i], du);

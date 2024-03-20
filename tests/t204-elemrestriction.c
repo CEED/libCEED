@@ -10,7 +10,7 @@ int main(int argc, char **argv) {
   CeedVector          x, y;
   CeedInt             num_elem = 3;
   CeedInt             ind[2 * num_elem];
-  CeedInt             layout[3];
+  CeedInt             e_layout[3];
   CeedScalar          x_array[2 * (num_elem + 1)];
   CeedElemRestriction elem_restriction;
 
@@ -39,14 +39,14 @@ int main(int argc, char **argv) {
     const CeedScalar *y_array;
 
     CeedVectorGetArrayRead(y, CEED_MEM_HOST, &y_array);
-    CeedElemRestrictionGetELayout(elem_restriction, layout);
+    CeedElemRestrictionGetELayout(elem_restriction, e_layout);
     for (CeedInt i = 0; i < 2; i++) {             // Node
       for (CeedInt j = 0; j < 2; j++) {           // Component
         for (CeedInt k = 0; k < num_elem; k++) {  // Element
-          if (y_array[i * layout[0] + j * layout[1] + k * layout[2]] != x_array[ind[i + k * 2] + j * (num_elem + 1)]) {
+          if (y_array[i * e_layout[0] + j * e_layout[1] + k * e_layout[2]] != x_array[ind[i + k * 2] + j * (num_elem + 1)]) {
             // LCOV_EXCL_START
             printf("Error in restricted array y[%" CeedInt_FMT "][%" CeedInt_FMT "][%" CeedInt_FMT "] = %f != %f\n", i, j, k,
-                   (CeedScalar)y_array[i * layout[0] + j * layout[1] + k * layout[2]], x_array[ind[i + k * 2] + j * (num_elem + 1)]);
+                   (CeedScalar)y_array[i * e_layout[0] + j * e_layout[1] + k * e_layout[2]], x_array[ind[i + k * 2] + j * (num_elem + 1)]);
             // LCOV_EXCL_STOP
           }
         }

@@ -10,7 +10,7 @@ int main(int argc, char **argv) {
   CeedVector          x, y;
   CeedInt             num_elem = 5;
   CeedInt             ind[2 * num_elem];
-  CeedInt             layout[3];
+  CeedInt             e_layout[3];
   CeedScalar          mult;
   CeedElemRestriction elem_restriction;
 
@@ -28,14 +28,14 @@ int main(int argc, char **argv) {
   CeedElemRestrictionCreate(ceed, num_elem, 2, 2, 1, 2 * (num_elem + 1), CEED_MEM_HOST, CEED_USE_POINTER, ind, &elem_restriction);
 
   // Set x data in backend E-layout
-  CeedElemRestrictionGetELayout(elem_restriction, layout);
+  CeedElemRestrictionGetELayout(elem_restriction, e_layout);
   {
     CeedScalar x_array[2 * (num_elem * 2)];
 
     for (CeedInt i = 0; i < 2; i++) {             // Node
       for (CeedInt j = 0; j < 2; j++) {           // Component
         for (CeedInt k = 0; k < num_elem; k++) {  // Element
-          x_array[i * layout[0] + j * layout[1] + k * layout[2]] = 10 * j + (2 * k + i + 1) / 2;
+          x_array[i * e_layout[0] + j * e_layout[1] + k * e_layout[2]] = 10 * j + (2 * k + i + 1) / 2;
         }
       }
     }

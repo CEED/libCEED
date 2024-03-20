@@ -96,8 +96,15 @@ int main(int argc, char **argv) {
       CeedVectorRestoreArrayRead(v, &v_array);
       CeedVectorRestoreArrayRead(u_points, &u_points_array);
     }
-    CeedScalar tol = GetTolerance(CEED_SCALAR_TYPE, dim);
-    if (fabs(sum_1 - sum_2) > tol) printf("[%" CeedInt_FMT "] %f != %f\n", dim, sum_1, sum_2);
+    {
+      CeedScalarType scalar_type;
+
+      CeedGetScalarType(&scalar_type);
+
+      CeedScalar tol = GetTolerance(scalar_type, dim);
+
+      if (fabs(sum_1 - sum_2) > tol) printf("[%" CeedInt_FMT "] %f != %f\n", dim, sum_1, sum_2);
+    }
 
     CeedVectorDestroy(&x);
     CeedVectorDestroy(&x_nodes);

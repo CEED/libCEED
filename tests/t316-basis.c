@@ -64,6 +64,7 @@ int main(int argc, char **argv) {
       CeedVectorGetArrayRead(x_q, CEED_MEM_HOST, &x_q_array);
       for (CeedInt i = 0; i < p_dim; i++) {
         CeedScalar coord[dim];
+
         for (CeedInt d = 0; d < dim; d++) coord[d] = x_q_array[d * p_dim + i];
         u_array[i] = Eval(dim, coord);
       }
@@ -89,8 +90,15 @@ int main(int argc, char **argv) {
       CeedVectorRestoreArrayRead(v, &v_array);
       CeedVectorRestoreArrayRead(u_q, &u_q_array);
     }
-    CeedScalar tol = GetTolerance(CEED_SCALAR_TYPE, dim);
-    if (fabs(sum_1 - sum_2) > tol) printf("[%" CeedInt_FMT "] %f != %f\n", dim, sum_1, sum_2);
+    {
+      CeedScalarType scalar_type;
+
+      CeedGetScalarType(&scalar_type);
+
+      CeedScalar tol = GetTolerance(scalar_type, dim);
+
+      if (fabs(sum_1 - sum_2) > tol) printf("[%" CeedInt_FMT "] %f != %f\n", dim, sum_1, sum_2);
+    }
 
     CeedVectorDestroy(&x);
     CeedVectorDestroy(&x_q);
