@@ -76,56 +76,8 @@ static PetscErrorCode SetupTrainingDataCalculation(Ceed ceed, User user, CeedDat
   PetscCallCeed(ceed, CeedElemRestrictionGetNumComponents(sgs_dd_train_setup_data->elem_restr_grid_aniso, &num_comp_grid_aniso));
 
   PetscCall(DMPlexCeedElemRestrictionCreate(ceed, sgs_dd_train->dm_dd_training, domain_label, label_value, height, dm_field, &elem_restr_sgs_train));
-
-  {  // -- Create inverse multiplicity for correcting nodal assembly
-    Vec           Multiplicity, Multiplicity_loc;
-    PetscMemType  m_mem_type;
-    CeedVector    multiplicity;
-    CeedQFunction qf_multiplicity;
-    CeedOperator  op_multiplicity;
-    CeedInt       num_comp_sgs_train;
-
-    PetscCallCeed(ceed, CeedElemRestrictionGetNumComponents(elem_restr_sgs_train, &num_comp_sgs_train));
-
-    PetscCallCeed(ceed, CeedElemRestrictionCreateVector(elem_restr_sgs_train, &multiplicity, NULL));
-    PetscCall(DMGetLocalVector(sgs_dd_train->dm_dd_training, &Multiplicity_loc));
-    PetscCall(DMGetGlobalVector(sgs_dd_train->dm_dd_training, &Multiplicity));
-
-    PetscCall(VecPetscToCeed(Multiplicity_loc, &m_mem_type, multiplicity));
-    PetscCallCeed(ceed, CeedElemRestrictionGetMultiplicity(elem_restr_sgs_train, multiplicity));
-    PetscCallCeed(ceed, CeedVectorView(multiplicity, "%f", stdout));
-    PetscCall(VecCeedToPetsc(multiplicity, m_mem_type, Multiplicity_loc));
-    PetscCall(VecView(Multiplicity_loc, NULL));
-
-    PetscCall(VecZeroEntries(Multiplicity));
-    PetscCall(DMLocalToGlobal(sgs_dd_train->dm_dd_training, Multiplicity_loc, ADD_VALUES, Multiplicity));
-    PetscCall(DMGlobalToLocal(sgs_dd_train->dm_dd_training, Multiplicity, INSERT_VALUES, Multiplicity_loc));
-    PetscCall(VecView(Multiplicity_loc, NULL));
-
-    PetscCall(DMPlexCeedElemRestrictionCollocatedCreate(ceed, sgs_dd_train->dm_dd_training, domain_label, label_value, height, 1,
-                                                        &elem_restr_inv_multiplicity));
-    PetscCallCeed(ceed, CeedElemRestrictionCreateVector(elem_restr_inv_multiplicity, &inv_multiplicity, NULL));
-
-    PetscCallCeed(ceed, CeedQFunctionCreateInterior(ceed, 1, InverseMultiplicity, InverseMultiplicity_loc, &qf_multiplicity));
-    PetscCallCeed(ceed, CeedQFunctionAddInput(qf_multiplicity, "multiplicity", num_comp_sgs_train, CEED_EVAL_NONE));
-    PetscCallCeed(ceed, CeedQFunctionAddOutput(qf_multiplicity, "inverse multiplicity", 1, CEED_EVAL_NONE));
-
-    PetscCallCeed(ceed, CeedOperatorCreate(ceed, qf_multiplicity, NULL, NULL, &op_multiplicity));
-    PetscCallCeed(ceed, CeedOperatorSetName(op_multiplicity, "SGS DD Training Inputs - Create Multiplicity Scaling"));
-    PetscCallCeed(ceed, CeedOperatorSetField(op_multiplicity, "multiplicity", elem_restr_sgs_train, CEED_BASIS_NONE, CEED_VECTOR_ACTIVE));
-    PetscCallCeed(ceed,
-                  CeedOperatorSetField(op_multiplicity, "inverse multiplicity", elem_restr_inv_multiplicity, CEED_BASIS_NONE, CEED_VECTOR_ACTIVE));
-
-    PetscCall(VecPetscToCeed(Multiplicity_loc, &m_mem_type, multiplicity));
-    PetscCallCeed(ceed, CeedOperatorApply(op_multiplicity, multiplicity, inv_multiplicity, CEED_REQUEST_IMMEDIATE));
-    PetscCall(VecCeedToPetsc(multiplicity, m_mem_type, Multiplicity_loc));
-
-    PetscCall(DMRestoreLocalVector(sgs_dd_train->dm_dd_training, &Multiplicity_loc));
-    PetscCall(DMRestoreGlobalVector(sgs_dd_train->dm_dd_training, &Multiplicity));
-    PetscCallCeed(ceed, CeedVectorDestroy(&multiplicity));
-    PetscCallCeed(ceed, CeedQFunctionDestroy(&qf_multiplicity));
-    PetscCallCeed(ceed, CeedOperatorDestroy(&op_multiplicity));
-  }
+  PetscCall(GetInverseMultiplicity(ceed, sgs_dd_train->dm_dd_training, domain_label, label_value, height, dm_field, PETSC_TRUE,
+                                   &elem_restr_inv_multiplicity, &inv_multiplicity));
 
   CeedElemRestriction elem_restr_filtered_state;
   CeedInt             num_comp_filtered_state;

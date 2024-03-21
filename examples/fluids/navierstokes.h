@@ -410,6 +410,9 @@ PetscErrorCode ProcessCommandLineOptions(MPI_Comm comm, AppCtx app_ctx, SimpleBC
 // -----------------------------------------------------------------------------
 // Miscellaneous utility functions
 // -----------------------------------------------------------------------------
+PetscErrorCode GetInverseMultiplicity(Ceed ceed, DM dm, DMLabel domain_label, PetscInt label_value, PetscInt height, PetscInt dm_field,
+                                      PetscBool get_global_multiplicity, CeedElemRestriction *elem_restr_inv_multiplicity,
+                                      CeedVector *inv_multiplicity);
 PetscErrorCode ICs_FixMultiplicity(DM dm, CeedData ceed_data, User user, Vec Q_loc, Vec Q, CeedScalar time);
 
 PetscErrorCode DMPlexInsertBoundaryValues_FromICs(DM dm, PetscBool insert_essential, Vec Q_loc, PetscReal time, Vec face_geom_FVM, Vec cell_geom_FVM,

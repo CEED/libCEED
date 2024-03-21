@@ -72,11 +72,11 @@ static PetscErrorCode SgsDDNodalStressEval_Fused(User user, Vec Q_loc, Vec Veloc
 // @brief Create CeedOperator to calculate data-drive SGS at nodes using fused operator
 static PetscErrorCode SgsDDSetupNodalEvaluation_Fused(Ceed ceed, User user, CeedData ceed_data, SgsDDSetupData sgs_dd_setup_data) {
   SgsDDData           sgs_dd_data = user->sgs_dd_data;
-  CeedQFunction       qf_multiplicity, qf_sgs_dd_nodal;
-  CeedOperator        op_multiplicity, op_sgs_dd_nodal;
+  CeedQFunction       qf_sgs_dd_nodal;
+  CeedOperator        op_sgs_dd_nodal;
   CeedInt             num_comp_q, num_comp_grad_velo, num_comp_x, num_comp_grid_aniso;
   PetscInt            dim;
-  CeedVector          multiplicity, inv_multiplicity;
+  CeedVector          inv_multiplicity;
   CeedElemRestriction elem_restr_inv_multiplicity, elem_restr_grad_velo, elem_restr_sgs;
   DMLabel             domain_label = NULL;
   PetscInt            label_value = 0, height = 0, dm_field = 0;
@@ -96,23 +96,8 @@ static PetscErrorCode SgsDDSetupNodalEvaluation_Fused(Ceed ceed, User user, Ceed
   PetscCall(DMPlexCeedElemRestrictionCreate(ceed, sgs_dd_data->dm_sgs, domain_label, label_value, height, dm_field, &elem_restr_sgs));
   PetscCallCeed(ceed, CeedElemRestrictionCreateVector(elem_restr_sgs, &sgs_dd_data->sgs_nodal_ceed, NULL));
 
-  // -- Create inverse multiplicity for correcting nodal assembly
-  PetscCallCeed(ceed, CeedElemRestrictionCreateVector(ceed_data->elem_restr_q, &multiplicity, NULL));
-  PetscCallCeed(ceed, CeedElemRestrictionGetMultiplicity(ceed_data->elem_restr_q, multiplicity));
-  PetscCall(DMPlexCeedElemRestrictionCollocatedCreate(ceed, sgs_dd_data->dm_sgs, domain_label, label_value, height, 1, &elem_restr_inv_multiplicity));
-  PetscCallCeed(ceed, CeedElemRestrictionCreateVector(elem_restr_inv_multiplicity, &inv_multiplicity, NULL));
-
-  PetscCallCeed(ceed, CeedQFunctionCreateInterior(ceed, 1, InverseMultiplicity, InverseMultiplicity_loc, &qf_multiplicity));
-  PetscCallCeed(ceed, CeedQFunctionAddInput(qf_multiplicity, "multiplicity", num_comp_q, CEED_EVAL_NONE));
-  PetscCallCeed(ceed, CeedQFunctionAddOutput(qf_multiplicity, "inverse multiplicity", 1, CEED_EVAL_NONE));
-
-  PetscCallCeed(ceed, CeedOperatorCreate(ceed, qf_multiplicity, NULL, NULL, &op_multiplicity));
-  PetscCallCeed(ceed, CeedOperatorSetName(op_multiplicity, "SGS DD Model - Create Multiplicity Scaling"));
-  PetscCallCeed(ceed, CeedOperatorSetField(op_multiplicity, "multiplicity", ceed_data->elem_restr_q, CEED_BASIS_NONE, CEED_VECTOR_ACTIVE));
-  PetscCallCeed(ceed,
-                CeedOperatorSetField(op_multiplicity, "inverse multiplicity", elem_restr_inv_multiplicity, CEED_BASIS_NONE, CEED_VECTOR_ACTIVE));
-
-  PetscCallCeed(ceed, CeedOperatorApply(op_multiplicity, multiplicity, inv_multiplicity, CEED_REQUEST_IMMEDIATE));
+  PetscCall(GetInverseMultiplicity(ceed, sgs_dd_data->dm_sgs, domain_label, label_value, height, dm_field, PETSC_FALSE, &elem_restr_inv_multiplicity,
+                                   &inv_multiplicity));
 
   // -- Create operator for SGS DD model nodal evaluation
   switch (user->phys->state_var) {
@@ -153,13 +138,10 @@ static PetscErrorCode SgsDDSetupNodalEvaluation_Fused(Ceed ceed, User user, Ceed
   sgs_dd_setup_data->elem_restr_sgs = elem_restr_sgs;
   sgs_dd_data->sgs_nodal_eval       = SgsDDNodalStressEval_Fused;
 
-  PetscCallCeed(ceed, CeedVectorDestroy(&multiplicity));
   PetscCallCeed(ceed, CeedVectorDestroy(&inv_multiplicity));
   PetscCallCeed(ceed, CeedBasisDestroy(&basis_x_to_q));
   PetscCallCeed(ceed, CeedElemRestrictionDestroy(&elem_restr_inv_multiplicity));
-  PetscCallCeed(ceed, CeedQFunctionDestroy(&qf_multiplicity));
   PetscCallCeed(ceed, CeedQFunctionDestroy(&qf_sgs_dd_nodal));
-  PetscCallCeed(ceed, CeedOperatorDestroy(&op_multiplicity));
   PetscCallCeed(ceed, CeedOperatorDestroy(&op_sgs_dd_nodal));
   PetscFunctionReturn(PETSC_SUCCESS);
 }
@@ -303,33 +285,8 @@ static PetscErrorCode SgsDDSetupNodalEvaluation_Sequential(Ceed ceed, User user,
   PetscCall(DMPlexCeedElemRestrictionCreate(ceed, sgs_dd_data->dm_dd_inputs, domain_label, label_value, height, dm_field, &elem_restr_dd_inputs));
   PetscCall(DMPlexCeedElemRestrictionCreate(ceed, sgs_dd_data->dm_dd_outputs, domain_label, label_value, height, dm_field, &elem_restr_dd_outputs));
 
-  {  // Create inverse multiplicity for correcting nodal assembly
-    CeedQFunction qf_multiplicity;
-    CeedOperator  op_multiplicity;
-    CeedVector    multiplicity;
-
-    PetscCallCeed(ceed, CeedElemRestrictionCreateVector(ceed_data->elem_restr_q, &multiplicity, NULL));
-    PetscCallCeed(ceed, CeedElemRestrictionGetMultiplicity(ceed_data->elem_restr_q, multiplicity));
-    PetscCall(
-        DMPlexCeedElemRestrictionCollocatedCreate(ceed, sgs_dd_data->dm_sgs, domain_label, label_value, height, 1, &elem_restr_inv_multiplicity));
-    PetscCallCeed(ceed, CeedElemRestrictionCreateVector(elem_restr_inv_multiplicity, &inv_multiplicity, NULL));
-
-    PetscCallCeed(ceed, CeedQFunctionCreateInterior(ceed, 1, InverseMultiplicity, InverseMultiplicity_loc, &qf_multiplicity));
-    PetscCallCeed(ceed, CeedQFunctionAddInput(qf_multiplicity, "multiplicity", num_comp_q, CEED_EVAL_NONE));
-    PetscCallCeed(ceed, CeedQFunctionAddOutput(qf_multiplicity, "inverse multiplicity", 1, CEED_EVAL_NONE));
-
-    PetscCallCeed(ceed, CeedOperatorCreate(ceed, qf_multiplicity, NULL, NULL, &op_multiplicity));
-    PetscCallCeed(ceed, CeedOperatorSetName(op_multiplicity, "SGS DD Model - Create Multiplicity Scaling"));
-    PetscCallCeed(ceed, CeedOperatorSetField(op_multiplicity, "multiplicity", ceed_data->elem_restr_q, CEED_BASIS_NONE, CEED_VECTOR_ACTIVE));
-    PetscCallCeed(ceed,
-                  CeedOperatorSetField(op_multiplicity, "inverse multiplicity", elem_restr_inv_multiplicity, CEED_BASIS_NONE, CEED_VECTOR_ACTIVE));
-
-    PetscCallCeed(ceed, CeedOperatorApply(op_multiplicity, multiplicity, inv_multiplicity, CEED_REQUEST_IMMEDIATE));
-
-    PetscCallCeed(ceed, CeedVectorDestroy(&multiplicity));
-    PetscCallCeed(ceed, CeedQFunctionDestroy(&qf_multiplicity));
-    PetscCallCeed(ceed, CeedOperatorDestroy(&op_multiplicity));
-  }
+  PetscCall(GetInverseMultiplicity(ceed, sgs_dd_data->dm_sgs, domain_label, label_value, height, dm_field, PETSC_FALSE, &elem_restr_inv_multiplicity,
+                                   &inv_multiplicity));
 
   {  // Create operator for data-driven input evaluation
     CeedQFunction qf_sgs_dd_inputs;

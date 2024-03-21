@@ -20,15 +20,6 @@
 #include "utils.h"
 #include "utils_eigensolver_jacobi.h"
 
-// @brief Calculate the inverse of the multiplicity, reducing to a single component
-CEED_QFUNCTION(InverseMultiplicity)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
-  const CeedScalar(*multiplicity)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[0];
-  CeedScalar(*inv_multiplicity)               = (CeedScalar(*))out[0];
-
-  CeedPragmaSIMD for (CeedInt i = 0; i < Q; i++) inv_multiplicity[i] = 1.0 / multiplicity[0][i];
-  return 0;
-}
-
 // @brief Calculate Frobenius norm of velocity gradient from eigenframe quantities
 CEED_QFUNCTION_HELPER CeedScalar VelocityGradientMagnitude(const CeedScalar strain_sframe[3], const CeedScalar vorticity_sframe[3]) {
   return sqrt(Dot3(strain_sframe, strain_sframe) + 0.5 * Dot3(vorticity_sframe, vorticity_sframe));
