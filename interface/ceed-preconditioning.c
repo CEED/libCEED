@@ -407,9 +407,9 @@ static inline int CeedCompositeOperatorLinearAssembleAddDiagonal(CeedOperator op
 static int CeedSingleOperatorAssembleSymbolic(CeedOperator op, CeedInt offset, CeedInt *rows, CeedInt *cols) {
   Ceed                ceed;
   bool                is_composite;
-  CeedSize            num_nodes_in, num_nodes_out, count = 0;
+  CeedSize            num_nodes_in, num_nodes_out, local_num_entries, count = 0;
   CeedInt             num_elem_in, elem_size_in, num_comp_in, layout_er_in[3];
-  CeedInt             num_elem_out, elem_size_out, num_comp_out, layout_er_out[3], local_num_entries;
+  CeedInt             num_elem_out, elem_size_out, num_comp_out, layout_er_out[3];
   CeedScalar         *array;
   const CeedScalar   *elem_dof_a_in, *elem_dof_a_out;
   CeedVector          index_vec_in, index_vec_out, elem_dof_in, elem_dof_out;
@@ -556,7 +556,8 @@ static int CeedSingleOperatorAssemble(CeedOperator op, CeedInt offset, CeedVecto
 
   // Get assembly data
   CeedInt                  num_elem_in, elem_size_in, num_comp_in, num_qpts_in;
-  CeedInt                  num_elem_out, elem_size_out, num_comp_out, num_qpts_out, local_num_entries;
+  CeedInt                  num_elem_out, elem_size_out, num_comp_out, num_qpts_out;
+  CeedSize                 local_num_entries, count = 0;
   const CeedEvalMode     **eval_modes_in, **eval_modes_out;
   CeedInt                  num_active_bases_in, *num_eval_modes_in, num_active_bases_out, *num_eval_modes_out;
   CeedBasis               *active_bases_in, *active_bases_out, basis_in, basis_out;
@@ -626,7 +627,6 @@ static int CeedSingleOperatorAssemble(CeedOperator op, CeedInt offset, CeedVecto
   // Loop over elements and put in data structure
   // We store B_mat_in, B_mat_out, BTD, elem_mat in row-major order
   CeedTensorContract contract;
-  CeedSize           count = 0;
   CeedScalar        *vals, *BTD_mat = NULL, *elem_mat = NULL, *elem_mat_b = NULL;
 
   CeedCall(CeedBasisGetTensorContract(basis_in, &contract));
