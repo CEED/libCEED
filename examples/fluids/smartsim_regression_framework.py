@@ -79,6 +79,11 @@ class SmartSimTest(object):
                 '-degree', '1',
                 '-sgs_train_enable',
                 '-sgs_train_put_tensor_interval', '2',
+                '-bc_symmetry_z',
+                '-dm_plex_shape', 'zbox',
+                '-dm_plex_box_bd', 'none,none,periodic',
+                '-dm_plex_box_faces', '4,6,1',
+                '-mesh_transform',
             ]
 
             run_settings = RunSettings(exe_path, exe_args=arguments)
@@ -91,7 +96,7 @@ class SmartSimTest(object):
             client = Client(cluster=False)
 
             assert client.poll_tensor("sizeInfo", 250, 5)
-            assert np.all(client.get_tensor("sizeInfo") == np.array([5002, 12, 6, 1, 1, 0]))
+            assert np.all(client.get_tensor("sizeInfo") == np.array([35, 12, 6, 1, 1, 0]))
 
             assert client.poll_tensor("check-run", 250, 5)
             assert client.get_tensor("check-run")[0] == 1
