@@ -1004,23 +1004,30 @@ PetscErrorCode MatCeedContextCreate(DM dm_x, DM dm_y, Vec X_loc, Vec Y_loc_trans
     PetscCall(DMGetLocalVector(dm_x, &dm_X_loc));
     PetscCall(VecGetLocalSize(dm_X_loc, &dm_x_loc_len));
     PetscCall(DMRestoreLocalVector(dm_x, &dm_X_loc));
-    if (X_loc) PetscCall(VecGetLocalSize(X_loc, &X_loc_len));
     PetscCallCeed((*ctx)->ceed, CeedVectorGetLength((*ctx)->x_loc, &ctx_x_loc_len));
-    if (X_loc) PetscCheck(X_loc_len == dm_x_loc_len, PETSC_COMM_SELF, PETSC_ERR_LIB, "X_loc must match dm_x dimensions");
-    PetscCheck(x_loc_len == dm_x_loc_len, PETSC_COMM_SELF, PETSC_ERR_LIB, "op must match dm_x dimensions");
-    PetscCheck(x_loc_len == ctx_x_loc_len, PETSC_COMM_SELF, PETSC_ERR_LIB, "x_loc must match op dimensions");
+    if (X_loc) {
+      PetscCall(VecGetLocalSize(X_loc, &X_loc_len));
+      PetscCheck(X_loc_len == dm_x_loc_len, PETSC_COMM_SELF, PETSC_ERR_LIB,
+                 "X_loc (%" PetscInt_FMT ") must match dm_x (%" PetscInt_FMT ") dimensions", X_loc_len, dm_x_loc_len);
+    }
+    PetscCheck(x_loc_len == dm_x_loc_len, PETSC_COMM_SELF, PETSC_ERR_LIB, "op (%" CeedSize_FMT ") must match dm_x (%" PetscInt_FMT ") dimensions",
+               x_loc_len, dm_x_loc_len);
+    PetscCheck(x_loc_len == ctx_x_loc_len, PETSC_COMM_SELF, PETSC_ERR_LIB, "x_loc (%" CeedSize_FMT ") must match op dimensions (%" CeedSize_FMT ")",
+               x_loc_len, ctx_x_loc_len);
 
     // -- Output
     PetscCall(DMGetLocalVector(dm_y, &dm_Y_loc));
     PetscCall(VecGetLocalSize(dm_Y_loc, &dm_y_loc_len));
     PetscCall(DMRestoreLocalVector(dm_y, &dm_Y_loc));
     PetscCallCeed((*ctx)->ceed, CeedVectorGetLength((*ctx)->y_loc, &ctx_y_loc_len));
-    PetscCheck(ctx_y_loc_len == dm_y_loc_len, PETSC_COMM_SELF, PETSC_ERR_LIB, "op must match dm_y dimensions");
+    PetscCheck(ctx_y_loc_len == dm_y_loc_len, PETSC_COMM_SELF, PETSC_ERR_LIB, "op (%" CeedSize_FMT ") must match dm_y (%" PetscInt_FMT ") dimensions",
+               ctx_y_loc_len, dm_y_loc_len);
 
     // -- Transpose
     if (Y_loc_transpose) {
       PetscCall(VecGetLocalSize(Y_loc_transpose, &Y_loc_len));
-      PetscCheck(Y_loc_len == dm_y_loc_len, PETSC_COMM_SELF, PETSC_ERR_LIB, "Y_loc_transpose must match dm_y dimensions");
+      PetscCheck(Y_loc_len == dm_y_loc_len, PETSC_COMM_SELF, PETSC_ERR_LIB,
+                 "Y_loc_transpose (%" PetscInt_FMT ") must match dm_y (%" PetscInt_FMT ") dimensions", Y_loc_len, dm_y_loc_len);
     }
   }
   PetscFunctionReturn(PETSC_SUCCESS);
