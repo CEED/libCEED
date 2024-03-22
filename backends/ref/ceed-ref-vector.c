@@ -48,26 +48,8 @@ static int CeedVectorSetArray_Ref(CeedVector vec, CeedMemType mem_type, CeedCopy
 
   CeedCheck(mem_type == CEED_MEM_HOST, CeedVectorReturnCeed(vec), CEED_ERROR_BACKEND, "Can only set HOST memory for this backend");
 
-  switch (copy_mode) {
-    case CEED_COPY_VALUES:
-      if (!impl->array_owned) {
-        CeedCallBackend(CeedCalloc(length, &impl->array_owned));
-      }
-      impl->array_borrowed = NULL;
-      impl->array          = impl->array_owned;
-      if (array) memcpy(impl->array, array, length * sizeof(array[0]));
-      break;
-    case CEED_OWN_POINTER:
-      CeedCallBackend(CeedFree(&impl->array_owned));
-      impl->array_owned    = array;
-      impl->array_borrowed = NULL;
-      impl->array          = array;
-      break;
-    case CEED_USE_POINTER:
-      CeedCallBackend(CeedFree(&impl->array_owned));
-      impl->array_borrowed = array;
-      impl->array          = array;
-  }
+  CeedCallBackend(CeedSetHostCeedScalarArray(array, copy_mode, length, (const CeedScalar **)&impl->array_owned,
+                                             (const CeedScalar **)&impl->array_borrowed, (const CeedScalar **)&impl->array));
   return CEED_ERROR_SUCCESS;
 }
 
@@ -123,16 +105,7 @@ static int CeedVectorGetArrayWrite_Ref(CeedVector vec, CeedMemType mem_type, Cee
 
   CeedCallBackend(CeedVectorGetData(vec, &impl));
 
-  if (!impl->array) {
-    if (!impl->array_owned && !impl->array_borrowed) {
-      // Allocate if array is not yet allocated
-      CeedCallBackend(CeedVectorSetArray(vec, CEED_MEM_HOST, CEED_COPY_VALUES, NULL));
-    } else {
-      // Select dirty array for GetArrayWrite
-      if (impl->array_borrowed) impl->array = impl->array_borrowed;
-      else impl->array = impl->array_owned;
-    }
-  }
+  if (!impl->array) CeedCallBackend(CeedVectorSetArray(vec, CEED_MEM_HOST, CEED_COPY_VALUES, NULL));
   return CeedVectorGetArrayCore_Ref(vec, mem_type, (CeedScalar **)array);
 }
 

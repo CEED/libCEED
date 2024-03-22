@@ -28,26 +28,32 @@ typedef struct {
 } CeedVector_Hip;
 
 typedef struct {
-  hipModule_t   module;
-  hipFunction_t ApplyNoTranspose, ApplyTranspose;
-  hipFunction_t ApplyUnsignedNoTranspose, ApplyUnsignedTranspose;
-  hipFunction_t ApplyUnorientedNoTranspose, ApplyUnorientedTranspose;
-  CeedInt       num_nodes;
-  CeedInt      *h_ind;
-  CeedInt      *h_ind_allocated;
-  CeedInt      *d_ind;
-  CeedInt      *d_ind_allocated;
-  CeedInt      *d_t_offsets;
-  CeedInt      *d_t_indices;
-  CeedInt      *d_l_vec_indices;
-  bool         *h_orients;
-  bool         *h_orients_allocated;
-  bool         *d_orients;
-  bool         *d_orients_allocated;
-  CeedInt8     *h_curl_orients;
-  CeedInt8     *h_curl_orients_allocated;
-  CeedInt8     *d_curl_orients;
-  CeedInt8     *d_curl_orients_allocated;
+  hipModule_t     module;
+  hipFunction_t   ApplyNoTranspose, ApplyTranspose;
+  hipFunction_t   ApplyUnsignedNoTranspose, ApplyUnsignedTranspose;
+  hipFunction_t   ApplyUnorientedNoTranspose, ApplyUnorientedTranspose;
+  CeedInt         num_nodes;
+  const CeedInt  *h_offsets;
+  const CeedInt  *h_offsets_borrowed;
+  const CeedInt  *h_offsets_owned;
+  const CeedInt  *d_offsets;
+  const CeedInt  *d_offsets_borrowed;
+  const CeedInt  *d_offsets_owned;
+  const CeedInt  *d_t_offsets;
+  const CeedInt  *d_t_indices;
+  const CeedInt  *d_l_vec_indices;
+  const bool     *h_orients;
+  const bool     *h_orients_borrowed;
+  const bool     *h_orients_owned;
+  const bool     *d_orients;
+  const bool     *d_orients_borrowed;
+  const bool     *d_orients_owned;
+  const CeedInt8 *h_curl_orients;
+  const CeedInt8 *h_curl_orients_borrowed;
+  const CeedInt8 *h_curl_orients_owned;
+  const CeedInt8 *d_curl_orients;
+  const CeedInt8 *d_curl_orients_borrowed;
+  const CeedInt8 *d_curl_orients_owned;
 } CeedElemRestriction_Hip;
 
 typedef struct {
@@ -125,8 +131,8 @@ CEED_INTERN int CeedGetHipblasHandle_Hip(Ceed ceed, hipblasHandle_t *handle);
 
 CEED_INTERN int CeedVectorCreate_Hip(CeedSize n, CeedVector vec);
 
-CEED_INTERN int CeedElemRestrictionCreate_Hip(CeedMemType mem_type, CeedCopyMode copy_mode, const CeedInt *indices, const bool *orients,
-                                              const CeedInt8 *curl_orients, CeedElemRestriction r);
+CEED_INTERN int CeedElemRestrictionCreate_Hip(CeedMemType mem_type, CeedCopyMode copy_mode, const CeedInt *offsets, const bool *orients,
+                                              const CeedInt8 *curl_orients, CeedElemRestriction rstr);
 
 CEED_INTERN int CeedBasisCreateTensorH1_Hip(CeedInt dim, CeedInt P_1d, CeedInt Q_1d, const CeedScalar *interp_1d, const CeedScalar *grad_1d,
                                             const CeedScalar *q_ref_1d, const CeedScalar *q_weight_1d, CeedBasis basis);

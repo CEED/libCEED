@@ -177,40 +177,14 @@ static inline int CeedVectorHasBorrowedArrayOfType_Cuda(const CeedVector vec, Ce
 // Set array from host
 //------------------------------------------------------------------------------
 static int CeedVectorSetArrayHost_Cuda(const CeedVector vec, const CeedCopyMode copy_mode, CeedScalar *array) {
+  CeedSize         length;
   CeedVector_Cuda *impl;
 
   CeedCallBackend(CeedVectorGetData(vec, &impl));
-  switch (copy_mode) {
-    case CEED_COPY_VALUES: {
-      if (!impl->h_array_owned) {
-        CeedSize length;
+  CeedCallBackend(CeedVectorGetLength(vec, &length));
 
-        CeedCallBackend(CeedVectorGetLength(vec, &length));
-        CeedCallBackend(CeedMalloc(length, &impl->h_array_owned));
-      }
-      impl->h_array_borrowed = NULL;
-      impl->h_array          = impl->h_array_owned;
-      if (array) {
-        CeedSize length;
-        size_t   bytes;
-
-        CeedCallBackend(CeedVectorGetLength(vec, &length));
-        bytes = length * sizeof(CeedScalar);
-        memcpy(impl->h_array, array, bytes);
-      }
-    } break;
-    case CEED_OWN_POINTER:
-      CeedCallBackend(CeedFree(&impl->h_array_owned));
-      impl->h_array_owned    = array;
-      impl->h_array_borrowed = NULL;
-      impl->h_array          = array;
-      break;
-    case CEED_USE_POINTER:
-      CeedCallBackend(CeedFree(&impl->h_array_owned));
-      impl->h_array_borrowed = array;
-      impl->h_array          = array;
-      break;
-  }
+  CeedCallBackend(CeedSetHostCeedScalarArray(array, copy_mode, length, (const CeedScalar **)&impl->h_array_owned,
+                                             (const CeedScalar **)&impl->h_array_borrowed, (const CeedScalar **)&impl->h_array));
   return CEED_ERROR_SUCCESS;
 }
 
@@ -218,38 +192,16 @@ static int CeedVectorSetArrayHost_Cuda(const CeedVector vec, const CeedCopyMode 
 // Set array from device
 //------------------------------------------------------------------------------
 static int CeedVectorSetArrayDevice_Cuda(const CeedVector vec, const CeedCopyMode copy_mode, CeedScalar *array) {
+  CeedSize         length;
   Ceed             ceed;
   CeedVector_Cuda *impl;
 
   CeedCallBackend(CeedVectorGetCeed(vec, &ceed));
   CeedCallBackend(CeedVectorGetData(vec, &impl));
-  switch (copy_mode) {
-    case CEED_COPY_VALUES: {
-      CeedSize length;
-      size_t   bytes;
+  CeedCallBackend(CeedVectorGetLength(vec, &length));
 
-      CeedCallBackend(CeedVectorGetLength(vec, &length));
-      bytes = length * sizeof(CeedScalar);
-      if (!impl->d_array_owned) {
-        CeedCallCuda(ceed, cudaMalloc((void **)&impl->d_array_owned, bytes));
-      }
-      impl->d_array_borrowed = NULL;
-      impl->d_array          = impl->d_array_owned;
-      if (array) CeedCallCuda(ceed, cudaMemcpy(impl->d_array, array, bytes, cudaMemcpyDeviceToDevice));
-    } break;
-    case CEED_OWN_POINTER:
-      CeedCallCuda(ceed, cudaFree(impl->d_array_owned));
-      impl->d_array_owned    = array;
-      impl->d_array_borrowed = NULL;
-      impl->d_array          = array;
-      break;
-    case CEED_USE_POINTER:
-      CeedCallCuda(ceed, cudaFree(impl->d_array_owned));
-      impl->d_array_owned    = NULL;
-      impl->d_array_borrowed = array;
-      impl->d_array          = array;
-      break;
-  }
+  CeedCallBackend(CeedSetDeviceCeedScalarArray_Cuda(ceed, array, copy_mode, length, (const CeedScalar **)&impl->d_array_owned,
+                                                    (const CeedScalar **)&impl->d_array_borrowed, (const CeedScalar **)&impl->d_array));
   return CEED_ERROR_SUCCESS;
 }
 

@@ -181,6 +181,16 @@ CEED_INTERN int CeedReallocArray(size_t n, size_t unit, void *p);
 CEED_INTERN int CeedStringAllocCopy(const char *source, char **copy);
 CEED_INTERN int CeedFree(void *p);
 
+CEED_INTERN int CeedSetHostBoolArray(const bool *source_array, CeedCopyMode copy_mode, CeedSize num_values, const bool **target_array_owned,
+                                     const bool **target_array_borrowed, const bool **target_array);
+CEED_INTERN int CeedSetHostCeedInt8Array(const CeedInt8 *source_array, CeedCopyMode copy_mode, CeedSize num_values,
+                                         const CeedInt8 **target_array_owned, const CeedInt8 **target_array_borrowed, const CeedInt8 **target_array);
+CEED_INTERN int CeedSetHostCeedIntArray(const CeedInt *source_array, CeedCopyMode copy_mode, CeedSize num_values, const CeedInt **target_array_owned,
+                                        const CeedInt **target_array_borrowed, const CeedInt **target_array);
+CEED_INTERN int CeedSetHostCeedScalarArray(const CeedScalar *source_array, CeedCopyMode copy_mode, CeedSize num_values,
+                                           const CeedScalar **target_array_owned, const CeedScalar **target_array_borrowed,
+                                           const CeedScalar **target_array);
+
 /**
   @brief Calls a libCEED function and then checks the resulting error code.
   If the error code is non-zero, then the error handler is called and the call from the current function with the error code.

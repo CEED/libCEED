@@ -76,4 +76,16 @@ CEED_INTERN int CeedInit_Cuda(Ceed ceed, const char *resource);
 
 CEED_INTERN int CeedDestroy_Cuda(Ceed ceed);
 
+CEED_INTERN int CeedSetDeviceBoolArray_Cuda(Ceed ceed, const bool *source_array, CeedCopyMode copy_mode, CeedSize num_values,
+                                            const bool **target_array_owned, const bool **target_array_borrowed, const bool **target_array);
+CEED_INTERN int CeedSetDeviceCeedInt8Array_Cuda(Ceed ceed, const CeedInt8 *source_array, CeedCopyMode copy_mode, CeedSize num_values,
+                                                const CeedInt8 **target_array_owned, const CeedInt8 **target_array_borrowed,
+                                                const CeedInt8 **target_array);
+CEED_INTERN int CeedSetDeviceCeedIntArray_Cuda(Ceed ceed, const CeedInt *source_array, CeedCopyMode copy_mode, CeedSize num_values,
+                                               const CeedInt **target_array_owned, const CeedInt **target_array_borrowed,
+                                               const CeedInt **target_array);
+CEED_INTERN int CeedSetDeviceCeedScalarArray_Cuda(Ceed ceed, const CeedScalar *source_array, CeedCopyMode copy_mode, CeedSize num_values,
+                                                  const CeedScalar **target_array_owned, const CeedScalar **target_array_borrowed,
+                                                  const CeedScalar **target_array);
+
 #endif  // CEED_CUDA_COMMON_H

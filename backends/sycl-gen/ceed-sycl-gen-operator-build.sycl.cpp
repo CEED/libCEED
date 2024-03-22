@@ -412,7 +412,7 @@ extern "C" int CeedOperatorBuildKernel_Sycl_gen(CeedOperator op) {
         CeedCallBackend(CeedElemRestrictionGetCompStride(elem_rstr, &comp_stride));
         code << "    // CompStride: " << comp_stride << "\n";
         CeedCallBackend(CeedElemRestrictionGetData(elem_rstr, &rstr_impl));
-        h_indices.inputs[i] = rstr_impl->d_ind;
+        h_indices.inputs[i] = rstr_impl->d_offsets;
         code << "    readDofsOffset" << dim << "d(num_comp_in_" << i << ", " << comp_stride << ", P_in_" << i << ", num_elem, indices->inputs[" << i
              << "], d_u_" << i << ", r_u_" << i << ");\n";
       } else {
@@ -523,7 +523,7 @@ extern "C" int CeedOperatorBuildKernel_Sycl_gen(CeedOperator op) {
             CeedCallBackend(CeedElemRestrictionGetCompStride(elem_rstr, &comp_stride));
             code << "      // CompStride: " << comp_stride << "\n";
             CeedCallBackend(CeedElemRestrictionGetData(elem_rstr, &rstr_impl));
-            h_indices.inputs[i] = rstr_impl->d_ind;
+            h_indices.inputs[i] = rstr_impl->d_offsets;
             code << "      readSliceQuadsOffset"
                  << "3d(num_comp_in_" << i << ", " << comp_stride << ", Q_1D, l_size_in_" << i << ", num_elem, q, indices->inputs[" << i << "], d_u_"
                  << i << ", r_q_" << i << ");\n";
@@ -716,7 +716,7 @@ extern "C" int CeedOperatorBuildKernel_Sycl_gen(CeedOperator op) {
       CeedCallBackend(CeedElemRestrictionGetCompStride(elem_rstr, &comp_stride));
       code << "    // CompStride: " << comp_stride << "\n";
       CeedCallBackend(CeedElemRestrictionGetData(elem_rstr, &rstr_impl));
-      h_indices.outputs[i] = rstr_impl->d_ind;
+      h_indices.outputs[i] = rstr_impl->d_offsets;
       code << "    writeDofsOffset" << dim << "d(num_comp_out_" << i << ", " << comp_stride << ", P_out_" << i << ", num_elem, indices->outputs[" << i
            << "], r_v_" << i << ", d_v_" << i << ");\n";
     } else {

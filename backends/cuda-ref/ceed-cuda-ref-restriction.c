@@ -166,32 +166,32 @@ static inline int CeedElemRestrictionApply_Cuda_Core(CeedElemRestriction rstr, C
         CeedCallBackend(CeedRunKernel_Cuda(ceed, impl->ApplyNoTranspose, grid, block_size, args));
       } break;
       case CEED_RESTRICTION_STANDARD: {
-        void *args[] = {&impl->d_ind, &d_u, &d_v};
+        void *args[] = {&impl->d_offsets, &d_u, &d_v};
 
         CeedCallBackend(CeedRunKernel_Cuda(ceed, impl->ApplyNoTranspose, grid, block_size, args));
       } break;
       case CEED_RESTRICTION_ORIENTED: {
         if (use_signs) {
-          void *args[] = {&impl->d_ind, &impl->d_orients, &d_u, &d_v};
+          void *args[] = {&impl->d_offsets, &impl->d_orients, &d_u, &d_v};
 
           CeedCallBackend(CeedRunKernel_Cuda(ceed, impl->ApplyNoTranspose, grid, block_size, args));
         } else {
-          void *args[] = {&impl->d_ind, &d_u, &d_v};
+          void *args[] = {&impl->d_offsets, &d_u, &d_v};
 
           CeedCallBackend(CeedRunKernel_Cuda(ceed, impl->ApplyUnsignedNoTranspose, grid, block_size, args));
         }
       } break;
       case CEED_RESTRICTION_CURL_ORIENTED: {
         if (use_signs && use_orients) {
-          void *args[] = {&impl->d_ind, &impl->d_curl_orients, &d_u, &d_v};
+          void *args[] = {&impl->d_offsets, &impl->d_curl_orients, &d_u, &d_v};
 
           CeedCallBackend(CeedRunKernel_Cuda(ceed, impl->ApplyNoTranspose, grid, block_size, args));
         } else if (use_orients) {
-          void *args[] = {&impl->d_ind, &impl->d_curl_orients, &d_u, &d_v};
+          void *args[] = {&impl->d_offsets, &impl->d_curl_orients, &d_u, &d_v};
 
           CeedCallBackend(CeedRunKernel_Cuda(ceed, impl->ApplyUnsignedNoTranspose, grid, block_size, args));
         } else {
-          void *args[] = {&impl->d_ind, &d_u, &d_v};
+          void *args[] = {&impl->d_offsets, &d_u, &d_v};
 
           CeedCallBackend(CeedRunKernel_Cuda(ceed, impl->ApplyUnorientedNoTranspose, grid, block_size, args));
         }
@@ -216,7 +216,7 @@ static inline int CeedElemRestrictionApply_Cuda_Core(CeedElemRestriction rstr, C
       } break;
       case CEED_RESTRICTION_STANDARD: {
         if (!is_deterministic) {
-          void *args[] = {&impl->d_ind, &d_u, &d_v};
+          void *args[] = {&impl->d_offsets, &d_u, &d_v};
 
           CeedCallBackend(CeedRunKernel_Cuda(ceed, impl->ApplyTranspose, grid, block_size, args));
         } else {
@@ -228,7 +228,7 @@ static inline int CeedElemRestrictionApply_Cuda_Core(CeedElemRestriction rstr, C
       case CEED_RESTRICTION_ORIENTED: {
         if (use_signs) {
           if (!is_deterministic) {
-            void *args[] = {&impl->d_ind, &impl->d_orients, &d_u, &d_v};
+            void *args[] = {&impl->d_offsets, &impl->d_orients, &d_u, &d_v};
 
             CeedCallBackend(CeedRunKernel_Cuda(ceed, impl->ApplyTranspose, grid, block_size, args));
           } else {
@@ -238,7 +238,7 @@ static inline int CeedElemRestrictionApply_Cuda_Core(CeedElemRestriction rstr, C
           }
         } else {
           if (!is_deterministic) {
-            void *args[] = {&impl->d_ind, &d_u, &d_v};
+            void *args[] = {&impl->d_offsets, &d_u, &d_v};
 
             CeedCallBackend(CeedRunKernel_Cuda(ceed, impl->ApplyUnsignedTranspose, grid, block_size, args));
           } else {
@@ -251,7 +251,7 @@ static inline int CeedElemRestrictionApply_Cuda_Core(CeedElemRestriction rstr, C
       case CEED_RESTRICTION_CURL_ORIENTED: {
         if (use_signs && use_orients) {
           if (!is_deterministic) {
-            void *args[] = {&impl->d_ind, &impl->d_curl_orients, &d_u, &d_v};
+            void *args[] = {&impl->d_offsets, &impl->d_curl_orients, &d_u, &d_v};
 
             CeedCallBackend(CeedRunKernel_Cuda(ceed, impl->ApplyTranspose, grid, block_size, args));
           } else {
@@ -261,7 +261,7 @@ static inline int CeedElemRestrictionApply_Cuda_Core(CeedElemRestriction rstr, C
           }
         } else if (use_orients) {
           if (!is_deterministic) {
-            void *args[] = {&impl->d_ind, &impl->d_curl_orients, &d_u, &d_v};
+            void *args[] = {&impl->d_offsets, &impl->d_curl_orients, &d_u, &d_v};
 
             CeedCallBackend(CeedRunKernel_Cuda(ceed, impl->ApplyUnsignedTranspose, grid, block_size, args));
           } else {
@@ -271,7 +271,7 @@ static inline int CeedElemRestrictionApply_Cuda_Core(CeedElemRestriction rstr, C
           }
         } else {
           if (!is_deterministic) {
-            void *args[] = {&impl->d_ind, &d_u, &d_v};
+            void *args[] = {&impl->d_offsets, &d_u, &d_v};
 
             CeedCallBackend(CeedRunKernel_Cuda(ceed, impl->ApplyUnorientedTranspose, grid, block_size, args));
           } else {
@@ -329,10 +329,10 @@ static int CeedElemRestrictionGetOffsets_Cuda(CeedElemRestriction rstr, CeedMemT
   CeedCallBackend(CeedElemRestrictionGetData(rstr, &impl));
   switch (mem_type) {
     case CEED_MEM_HOST:
-      *offsets = impl->h_ind;
+      *offsets = impl->h_offsets;
       break;
     case CEED_MEM_DEVICE:
-      *offsets = impl->d_ind;
+      *offsets = impl->d_offsets;
       break;
   }
   return CEED_ERROR_SUCCESS;
@@ -386,15 +386,15 @@ static int CeedElemRestrictionDestroy_Cuda(CeedElemRestriction rstr) {
   if (impl->module) {
     CeedCallCuda(ceed, cuModuleUnload(impl->module));
   }
-  CeedCallBackend(CeedFree(&impl->h_ind_allocated));
-  CeedCallCuda(ceed, cudaFree(impl->d_ind_allocated));
-  CeedCallCuda(ceed, cudaFree(impl->d_t_offsets));
-  CeedCallCuda(ceed, cudaFree(impl->d_t_indices));
-  CeedCallCuda(ceed, cudaFree(impl->d_l_vec_indices));
-  CeedCallBackend(CeedFree(&impl->h_orients_allocated));
-  CeedCallCuda(ceed, cudaFree(impl->d_orients_allocated));
-  CeedCallBackend(CeedFree(&impl->h_curl_orients_allocated));
-  CeedCallCuda(ceed, cudaFree(impl->d_curl_orients_allocated));
+  CeedCallBackend(CeedFree(&impl->h_offsets_owned));
+  CeedCallCuda(ceed, cudaFree((CeedInt *)impl->d_offsets_owned));
+  CeedCallCuda(ceed, cudaFree((CeedInt *)impl->d_t_offsets));
+  CeedCallCuda(ceed, cudaFree((CeedInt *)impl->d_t_indices));
+  CeedCallCuda(ceed, cudaFree((CeedInt *)impl->d_l_vec_indices));
+  CeedCallBackend(CeedFree(&impl->h_orients_owned));
+  CeedCallCuda(ceed, cudaFree((bool *)impl->d_orients_owned));
+  CeedCallBackend(CeedFree(&impl->h_curl_orients_owned));
+  CeedCallCuda(ceed, cudaFree((CeedInt8 *)impl->d_curl_orients_owned));
   CeedCallBackend(CeedFree(&impl));
   return CEED_ERROR_SUCCESS;
 }
@@ -463,13 +463,13 @@ static int CeedElemRestrictionOffset_Cuda(const CeedElemRestriction rstr, const 
   // Copy data to device
   // -- L-vector indices
   CeedCallCuda(ceed, cudaMalloc((void **)&impl->d_l_vec_indices, num_nodes * sizeof(CeedInt)));
-  CeedCallCuda(ceed, cudaMemcpy(impl->d_l_vec_indices, l_vec_indices, num_nodes * sizeof(CeedInt), cudaMemcpyHostToDevice));
+  CeedCallCuda(ceed, cudaMemcpy((CeedInt *)impl->d_l_vec_indices, l_vec_indices, num_nodes * sizeof(CeedInt), cudaMemcpyHostToDevice));
   // -- Transpose offsets
   CeedCallCuda(ceed, cudaMalloc((void **)&impl->d_t_offsets, size_offsets * sizeof(CeedInt)));
-  CeedCallCuda(ceed, cudaMemcpy(impl->d_t_offsets, t_offsets, size_offsets * sizeof(CeedInt), cudaMemcpyHostToDevice));
+  CeedCallCuda(ceed, cudaMemcpy((CeedInt *)impl->d_t_offsets, t_offsets, size_offsets * sizeof(CeedInt), cudaMemcpyHostToDevice));
   // -- Transpose indices
   CeedCallCuda(ceed, cudaMalloc((void **)&impl->d_t_indices, size_indices * sizeof(CeedInt)));
-  CeedCallCuda(ceed, cudaMemcpy(impl->d_t_indices, t_indices, size_indices * sizeof(CeedInt), cudaMemcpyHostToDevice));
+  CeedCallCuda(ceed, cudaMemcpy((CeedInt *)impl->d_t_indices, t_indices, size_indices * sizeof(CeedInt), cudaMemcpyHostToDevice));
 
   // Cleanup
   CeedCallBackend(CeedFree(&ind_to_offset));
@@ -482,7 +482,7 @@ static int CeedElemRestrictionOffset_Cuda(const CeedElemRestriction rstr, const 
 //------------------------------------------------------------------------------
 // Create restriction
 //------------------------------------------------------------------------------
-int CeedElemRestrictionCreate_Cuda(CeedMemType mem_type, CeedCopyMode copy_mode, const CeedInt *indices, const bool *orients,
+int CeedElemRestrictionCreate_Cuda(CeedMemType mem_type, CeedCopyMode copy_mode, const CeedInt *offsets, const bool *orients,
                                    const CeedInt8 *curl_orients, CeedElemRestriction rstr) {
   Ceed                      ceed, ceed_parent;
   bool                      is_deterministic;
@@ -499,21 +499,7 @@ int CeedElemRestrictionCreate_Cuda(CeedMemType mem_type, CeedCopyMode copy_mode,
   const CeedInt size = num_elem * elem_size;
 
   CeedCallBackend(CeedCalloc(1, &impl));
-  impl->num_nodes                = size;
-  impl->h_ind                    = NULL;
-  impl->h_ind_allocated          = NULL;
-  impl->d_ind                    = NULL;
-  impl->d_ind_allocated          = NULL;
-  impl->d_t_indices              = NULL;
-  impl->d_t_offsets              = NULL;
-  impl->h_orients                = NULL;
-  impl->h_orients_allocated      = NULL;
-  impl->d_orients                = NULL;
-  impl->d_orients_allocated      = NULL;
-  impl->h_curl_orients           = NULL;
-  impl->h_curl_orients_allocated = NULL;
-  impl->d_curl_orients           = NULL;
-  impl->d_curl_orients_allocated = NULL;
+  impl->num_nodes = size;
   CeedCallBackend(CeedElemRestrictionSetData(rstr, impl));
 
   // Set layouts
@@ -534,44 +520,19 @@ int CeedElemRestrictionCreate_Cuda(CeedMemType mem_type, CeedCopyMode copy_mode,
   if (rstr_type != CEED_RESTRICTION_STRIDED) {
     switch (mem_type) {
       case CEED_MEM_HOST: {
-        switch (copy_mode) {
-          case CEED_OWN_POINTER:
-            impl->h_ind_allocated = (CeedInt *)indices;
-            impl->h_ind           = (CeedInt *)indices;
-            break;
-          case CEED_USE_POINTER:
-            impl->h_ind = (CeedInt *)indices;
-            break;
-          case CEED_COPY_VALUES:
-            CeedCallBackend(CeedMalloc(size, &impl->h_ind_allocated));
-            memcpy(impl->h_ind_allocated, indices, size * sizeof(CeedInt));
-            impl->h_ind = impl->h_ind_allocated;
-            break;
-        }
-        CeedCallCuda(ceed, cudaMalloc((void **)&impl->d_ind, size * sizeof(CeedInt)));
-        impl->d_ind_allocated = impl->d_ind;  // We own the device memory
-        CeedCallCuda(ceed, cudaMemcpy(impl->d_ind, indices, size * sizeof(CeedInt), cudaMemcpyHostToDevice));
-        if (is_deterministic) CeedCallBackend(CeedElemRestrictionOffset_Cuda(rstr, indices));
+        CeedCallBackend(CeedSetHostCeedIntArray(offsets, copy_mode, size, &impl->h_offsets_owned, &impl->h_offsets_borrowed, &impl->h_offsets));
+        CeedCallCuda(ceed, cudaMalloc((void **)&impl->d_offsets_owned, size * sizeof(CeedInt)));
+        CeedCallCuda(ceed, cudaMemcpy((CeedInt *)impl->d_offsets_owned, impl->h_offsets, size * sizeof(CeedInt), cudaMemcpyHostToDevice));
+        impl->d_offsets = (CeedInt *)impl->d_offsets_owned;
+        if (is_deterministic) CeedCallBackend(CeedElemRestrictionOffset_Cuda(rstr, offsets));
       } break;
       case CEED_MEM_DEVICE: {
-        switch (copy_mode) {
-          case CEED_COPY_VALUES:
-            CeedCallCuda(ceed, cudaMalloc((void **)&impl->d_ind, size * sizeof(CeedInt)));
-            impl->d_ind_allocated = impl->d_ind;  // We own the device memory
-            CeedCallCuda(ceed, cudaMemcpy(impl->d_ind, indices, size * sizeof(CeedInt), cudaMemcpyDeviceToDevice));
-            break;
-          case CEED_OWN_POINTER:
-            impl->d_ind           = (CeedInt *)indices;
-            impl->d_ind_allocated = impl->d_ind;
-            break;
-          case CEED_USE_POINTER:
-            impl->d_ind = (CeedInt *)indices;
-            break;
-        }
-        CeedCallBackend(CeedMalloc(size, &impl->h_ind_allocated));
-        CeedCallCuda(ceed, cudaMemcpy(impl->h_ind_allocated, impl->d_ind, size * sizeof(CeedInt), cudaMemcpyDeviceToHost));
-        impl->h_ind = impl->h_ind_allocated;
-        if (is_deterministic) CeedCallBackend(CeedElemRestrictionOffset_Cuda(rstr, indices));
+        CeedCallBackend(CeedSetDeviceCeedIntArray_Cuda(ceed, offsets, copy_mode, size, &impl->d_offsets_owned, &impl->d_offsets_borrowed,
+                                                       (const CeedInt **)&impl->d_offsets));
+        CeedCallBackend(CeedMalloc(size, &impl->h_offsets_owned));
+        CeedCallCuda(ceed, cudaMemcpy((CeedInt *)impl->h_offsets_owned, impl->d_offsets, size * sizeof(CeedInt), cudaMemcpyDeviceToHost));
+        impl->h_offsets = impl->h_offsets_owned;
+        if (is_deterministic) CeedCallBackend(CeedElemRestrictionOffset_Cuda(rstr, offsets));
       } break;
     }
 
@@ -579,83 +540,36 @@ int CeedElemRestrictionCreate_Cuda(CeedMemType mem_type, CeedCopyMode copy_mode,
     if (rstr_type == CEED_RESTRICTION_ORIENTED) {
       switch (mem_type) {
         case CEED_MEM_HOST: {
-          switch (copy_mode) {
-            case CEED_OWN_POINTER:
-              impl->h_orients_allocated = (bool *)orients;
-              impl->h_orients           = (bool *)orients;
-              break;
-            case CEED_USE_POINTER:
-              impl->h_orients = (bool *)orients;
-              break;
-            case CEED_COPY_VALUES:
-              CeedCallBackend(CeedMalloc(size, &impl->h_orients_allocated));
-              memcpy(impl->h_orients_allocated, orients, size * sizeof(bool));
-              impl->h_orients = impl->h_orients_allocated;
-              break;
-          }
-          CeedCallCuda(ceed, cudaMalloc((void **)&impl->d_orients, size * sizeof(bool)));
-          impl->d_orients_allocated = impl->d_orients;  // We own the device memory
-          CeedCallCuda(ceed, cudaMemcpy(impl->d_orients, orients, size * sizeof(bool), cudaMemcpyHostToDevice));
+          CeedCallBackend(CeedSetHostBoolArray(orients, copy_mode, size, &impl->h_orients_owned, &impl->h_orients_borrowed, &impl->h_orients));
+          CeedCallCuda(ceed, cudaMalloc((void **)&impl->d_orients_owned, size * sizeof(bool)));
+          CeedCallCuda(ceed, cudaMemcpy((bool *)impl->d_orients_owned, impl->h_orients, size * sizeof(bool), cudaMemcpyHostToDevice));
+          impl->d_orients = impl->d_orients_owned;
         } break;
         case CEED_MEM_DEVICE: {
-          switch (copy_mode) {
-            case CEED_COPY_VALUES:
-              CeedCallCuda(ceed, cudaMalloc((void **)&impl->d_orients, size * sizeof(bool)));
-              impl->d_orients_allocated = impl->d_orients;  // We own the device memory
-              CeedCallCuda(ceed, cudaMemcpy(impl->d_orients, orients, size * sizeof(bool), cudaMemcpyDeviceToDevice));
-              break;
-            case CEED_OWN_POINTER:
-              impl->d_orients           = (bool *)orients;
-              impl->d_orients_allocated = impl->d_orients;
-              break;
-            case CEED_USE_POINTER:
-              impl->d_orients = (bool *)orients;
-              break;
-          }
-          CeedCallBackend(CeedMalloc(size, &impl->h_orients_allocated));
-          CeedCallCuda(ceed, cudaMemcpy(impl->h_orients_allocated, impl->d_orients, size * sizeof(bool), cudaMemcpyDeviceToHost));
-          impl->h_orients = impl->h_orients_allocated;
+          CeedCallBackend(CeedSetDeviceBoolArray_Cuda(ceed, orients, copy_mode, size, &impl->d_orients_owned, &impl->d_orients_borrowed,
+                                                      (const bool **)&impl->d_orients));
+          CeedCallBackend(CeedMalloc(size, &impl->h_orients_owned));
+          CeedCallCuda(ceed, cudaMemcpy((bool *)impl->h_orients_owned, impl->d_orients, size * sizeof(bool), cudaMemcpyDeviceToHost));
+          impl->h_orients = impl->h_orients_owned;
         } break;
       }
     } else if (rstr_type == CEED_RESTRICTION_CURL_ORIENTED) {
       switch (mem_type) {
         case CEED_MEM_HOST: {
-          switch (copy_mode) {
-            case CEED_OWN_POINTER:
-              impl->h_curl_orients_allocated = (CeedInt8 *)curl_orients;
-              impl->h_curl_orients           = (CeedInt8 *)curl_orients;
-              break;
-            case CEED_USE_POINTER:
-              impl->h_curl_orients = (CeedInt8 *)curl_orients;
-              break;
-            case CEED_COPY_VALUES:
-              CeedCallBackend(CeedMalloc(3 * size, &impl->h_curl_orients_allocated));
-              memcpy(impl->h_curl_orients_allocated, curl_orients, 3 * size * sizeof(CeedInt8));
-              impl->h_curl_orients = impl->h_curl_orients_allocated;
-              break;
-          }
-          CeedCallCuda(ceed, cudaMalloc((void **)&impl->d_curl_orients, 3 * size * sizeof(CeedInt8)));
-          impl->d_curl_orients_allocated = impl->d_curl_orients;  // We own the device memory
-          CeedCallCuda(ceed, cudaMemcpy(impl->d_curl_orients, curl_orients, 3 * size * sizeof(CeedInt8), cudaMemcpyHostToDevice));
+          CeedCallBackend(CeedSetHostCeedInt8Array(curl_orients, copy_mode, 3 * size, &impl->h_curl_orients_owned, &impl->h_curl_orients_borrowed,
+                                                   &impl->h_curl_orients));
+          CeedCallCuda(ceed, cudaMalloc((void **)&impl->d_curl_orients_owned, 3 * size * sizeof(CeedInt8)));
+          CeedCallCuda(ceed,
+                       cudaMemcpy((CeedInt8 *)impl->d_curl_orients_owned, impl->h_curl_orients, 3 * size * sizeof(CeedInt8), cudaMemcpyHostToDevice));
+          impl->d_curl_orients = impl->d_curl_orients_owned;
         } break;
         case CEED_MEM_DEVICE: {
-          switch (copy_mode) {
-            case CEED_COPY_VALUES:
-              CeedCallCuda(ceed, cudaMalloc((void **)&impl->d_curl_orients, 3 * size * sizeof(CeedInt8)));
-              impl->d_curl_orients_allocated = impl->d_curl_orients;  // We own the device memory
-              CeedCallCuda(ceed, cudaMemcpy(impl->d_curl_orients, curl_orients, 3 * size * sizeof(CeedInt8), cudaMemcpyDeviceToDevice));
-              break;
-            case CEED_OWN_POINTER:
-              impl->d_curl_orients           = (CeedInt8 *)curl_orients;
-              impl->d_curl_orients_allocated = impl->d_curl_orients;
-              break;
-            case CEED_USE_POINTER:
-              impl->d_curl_orients = (CeedInt8 *)curl_orients;
-              break;
-          }
-          CeedCallBackend(CeedMalloc(3 * size, &impl->h_curl_orients_allocated));
-          CeedCallCuda(ceed, cudaMemcpy(impl->h_curl_orients_allocated, impl->d_curl_orients, 3 * size * sizeof(CeedInt8), cudaMemcpyDeviceToHost));
-          impl->h_curl_orients = impl->h_curl_orients_allocated;
+          CeedCallBackend(CeedSetDeviceCeedInt8Array_Cuda(ceed, curl_orients, copy_mode, 3 * size, &impl->d_curl_orients_owned,
+                                                          &impl->d_curl_orients_borrowed, (const CeedInt8 **)&impl->d_curl_orients));
+          CeedCallBackend(CeedMalloc(3 * size, &impl->h_curl_orients_owned));
+          CeedCallCuda(ceed,
+                       cudaMemcpy((CeedInt8 *)impl->h_curl_orients_owned, impl->d_curl_orients, 3 * size * sizeof(CeedInt8), cudaMemcpyDeviceToHost));
+          impl->h_curl_orients = impl->h_curl_orients_owned;
         } break;
       }
     }

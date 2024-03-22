@@ -34,10 +34,12 @@ typedef struct {
   CeedInt  elem_size;
   CeedInt  comp_stride;
   CeedInt  strides[3];
-  CeedInt *h_ind;
-  CeedInt *h_ind_allocated;
-  CeedInt *d_ind;
-  CeedInt *d_ind_allocated;
+  CeedInt *h_offsets;
+  CeedInt *h_offsets_borrowed;
+  CeedInt *h_offsets_owned;
+  CeedInt *d_offsets;
+  CeedInt *d_offsets_borrowed;
+  CeedInt *d_offsets_owned;
   CeedInt *d_t_offsets;
   CeedInt *d_t_indices;
   CeedInt *d_l_vec_indices;
@@ -121,7 +123,7 @@ CEED_INTERN int CeedBasisCreateTensorH1_Sycl(CeedInt dim, CeedInt P_1d, CeedInt 
 CEED_INTERN int CeedBasisCreateH1_Sycl(CeedElemTopology topo, CeedInt dim, CeedInt num_dof, CeedInt num_qpts, const CeedScalar *interp,
                                        const CeedScalar *grad, const CeedScalar *q_ref, const CeedScalar *q_weight, CeedBasis basis);
 
-CEED_INTERN int CeedElemRestrictionCreate_Sycl(CeedMemType mem_type, CeedCopyMode copy_mode, const CeedInt *indices, const bool *orients,
+CEED_INTERN int CeedElemRestrictionCreate_Sycl(CeedMemType mem_type, CeedCopyMode copy_mode, const CeedInt *offsets, const bool *orients,
                                                const CeedInt8 *curl_orients, CeedElemRestriction r);
 
 CEED_INTERN int CeedQFunctionCreate_Sycl(CeedQFunction qf);
