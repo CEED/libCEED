@@ -116,7 +116,7 @@ PetscErrorCode DMPlexCeedElemRestrictionCoordinateCreate(Ceed ceed, DM dm, DMLab
   @param[in]   label_value    Stratum value
   @param[in]   height         Height of `DMPlex` topology
   @param[in]   q_data_size    Number of components for `QFunction` data
-  @param[in]   is_collocated  Boolean flag indicating if the data is collocated on the nodes (`PETSC_TRUE`) on on quadrature points (`PETSC_FALSE`)
+  @param[in]   is_collocated  Boolean flag indicating if the data is collocated on the nodes (`PETSC_TRUE`) or on quadrature points (`PETSC_FALSE`)
   @param[out]  restriction    Strided `CeedElemRestriction` for `QFunction` data
 
   @return An error code: 0 - success, otherwise - failure
