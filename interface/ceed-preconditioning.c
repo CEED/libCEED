@@ -381,7 +381,7 @@ static inline int CeedSingleOperatorLinearAssembleAddDiagonal(CeedOperator op, C
 
   CeedCall(CeedOperatorGetCeed(op, &ceed));
   CeedCall(CeedOperatorIsAtPoints(op, &is_at_points));
-  CeedCheck(!is_at_points, ceed, CEED_ERROR_UNSUPPORTED, "Composite operator not supported");
+  CeedCheck(!is_at_points, ceed, CEED_ERROR_UNSUPPORTED, "AtPoints operator not supported");
   CeedCall(CeedSingleOperatorLinearAssembleAddDiagonal_Mesh(op, request, is_point_block, assembled));
   return CEED_ERROR_SUCCESS;
 }
