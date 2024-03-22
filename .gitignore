@@ -27,6 +27,7 @@ config.mk
 # Debugging
 vgcore*
 *.json
+tests/test_dir
 
 # Python
 dist
