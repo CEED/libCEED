@@ -184,11 +184,15 @@ PetscErrorCode SGS_DD_TrainingSetup(Ceed ceed, User user, CeedData ceed_data, Pr
 
     {
       PetscSection global_section;
-      PetscInt     num_dofs, num_comps;
+      PetscInt     num_dofs, num_comps, local_min_max[2] = {0.}, global_min_max[2] = {0.};
+
       PetscCall(DMGetGlobalSection(sgs_dd_train->dm_dd_training, &global_section));
       PetscCall(DMGetGlobalVectorInfo(sgs_dd_train->dm_dd_training, &num_dofs, NULL, NULL));
       PetscCall(PetscSectionGetFieldComponents(global_section, 0, &num_comps));
-      sgs_dd_train->training_data_array_dims[0] = num_dofs / num_comps;
+      local_min_max[0] = num_dofs;
+      PetscCall(PetscGlobalMinMaxInt(user->comm, local_min_max, global_min_max));
+
+      sgs_dd_train->training_data_array_dims[0] = global_min_max[0] / num_comps;
       sgs_dd_train->training_data_array_dims[1] = num_comps;
     }
 
