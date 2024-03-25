@@ -93,7 +93,7 @@ class SmartSimTest(object):
             # Start the client model
             self.exp.start(client_exp, summary=False, block=True)
 
-            client = Client(cluster=False)
+            client = Client(cluster=False, address=self.database.get_address()[0])
 
             assert client.poll_tensor("sizeInfo", 250, 5)
             assert np.all(client.get_tensor("sizeInfo") == np.array([35, 12, 6, 1, 1, 0]))
