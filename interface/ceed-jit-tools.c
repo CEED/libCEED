@@ -63,15 +63,19 @@ int CeedCheckFilePath(Ceed ceed, const char *source_file_path, bool *is_valid) {
 /**
   @brief Load source file into initialized string buffer, including full text of local files in place of `#include "local.h"`
 
-  @param[in]  ceed             `Ceed` object for error handling
-  @param[in]  source_file_path Absolute path to source file
-  @param[out] buffer           String buffer for source file contents
+  @param[in]     ceed             `Ceed` object for error handling
+  @param[in]     source_file_path Absolute path to source file
+  @param[in]     depth            Depth of recursion
+  @param[in,out] num_files        Number of files already included
+  @param[in,out] filepaths        Paths of files already included
+  @param[out]    buffer           String buffer for source file contents
 
   @return An error code: 0 - success, otherwise - failure
 
   @ref Backend
 **/
-int CeedLoadSourceToInitializedBuffer(Ceed ceed, const char *source_file_path, char **buffer) {
+static int CeedLoadSourceToInitializedBuffer_Private(Ceed ceed, const char *source_file_path, CeedInt depth, CeedInt *num_files, char ***filepaths,
+                                                     char **buffer) {
   FILE *source_file;
   long  file_size, file_offset = 0;
   char *temp_buffer;
@@ -139,6 +143,7 @@ int CeedLoadSourceToInitializedBuffer(Ceed ceed, const char *source_file_path, c
 
       if (is_local_header || is_ceed_header) {
         // ---- Build source path
+        bool  is_included = false;
         char *include_source_path;
 
         if (is_local_header) {
@@ -160,8 +165,14 @@ int CeedLoadSourceToInitializedBuffer(Ceed ceed, const char *source_file_path, c
           CeedCall(CeedFree(&ceed_relative_path));
         }
         // ---- Recursive call to load source to buffer
-        CeedDebug256(ceed, CEED_DEBUG_COLOR_SUCCESS, "JiT Including: %s\n", include_source_path);
-        CeedCall(CeedLoadSourceToInitializedBuffer(ceed, include_source_path, buffer));
+        for (CeedInt i = 0; i < *num_files; i++) is_included |= !strcmp(include_source_path, (*filepaths)[i]);
+        if (!is_included) {
+          CeedDebug256(ceed, CEED_DEBUG_COLOR_SUCCESS, "JiT Including: %s\n", include_source_path);
+          CeedCall(CeedLoadSourceToInitializedBuffer_Private(ceed, include_source_path, depth + 1, num_files, filepaths, buffer));
+          CeedCall(CeedRealloc(*num_files + 1, filepaths));
+          CeedCall(CeedStringAllocCopy(include_source_path, &(*filepaths)[*num_files]));
+          (*num_files)++;
+        }
         CeedCall(CeedFree(&include_source_path));
       }
       file_offset = strchr(first_hash, '\n') - temp_buffer + 1;
@@ -180,6 +191,10 @@ int CeedLoadSourceToInitializedBuffer(Ceed ceed, const char *source_file_path, c
 
   // Cleanup
   CeedCall(CeedFree(&temp_buffer));
+  if (depth == 0) {
+    for (CeedInt i = 0; i < *num_files; i++) CeedCall(CeedFree(&(*filepaths)[i]));
+    CeedCall(CeedFree(filepaths));
+  }
 
   // Debug
   CeedDebug256(ceed, CEED_DEBUG_COLOR_SUCCESS, "---------- Ceed JiT ----------\n");
@@ -187,6 +202,25 @@ int CeedLoadSourceToInitializedBuffer(Ceed ceed, const char *source_file_path, c
   CeedDebug(ceed, "%s\n", source_file_path);
   CeedDebug256(ceed, CEED_DEBUG_COLOR_SUCCESS, "Final buffer:\n");
   CeedDebug(ceed, "%s\n", *buffer);
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
+  @brief Load source file into initialized string buffer, including full text of local files in place of `#include "local.h"`
+
+  @param[in]  ceed             `Ceed` object for error handling
+  @param[in]  source_file_path Absolute path to source file
+  @param[out] buffer           String buffer for source file contents
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Backend
+**/
+int CeedLoadSourceToInitializedBuffer(Ceed ceed, const char *source_file_path, char **buffer) {
+  char  **filepaths = NULL;
+  CeedInt num_files = 0;
+
+  CeedCall(CeedLoadSourceToInitializedBuffer_Private(ceed, source_file_path, 0, &num_files, &filepaths, buffer));
   return CEED_ERROR_SUCCESS;
 }
 
