@@ -134,16 +134,13 @@ CEED_QFUNCTION(ICsBlasius)(void *ctx, CeedInt Q, const CeedScalar *const *in, Ce
 
 // *****************************************************************************
 CEED_QFUNCTION(Blasius_Inflow)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
-  // Inputs
+  const BlasiusContext context     = (BlasiusContext)ctx;
   const CeedScalar(*q)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[0];
   const CeedScalar(*q_data_sur)    = in[2];
   const CeedScalar(*X)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[3];
+  CeedScalar(*v)[CEED_Q_VLA]       = (CeedScalar(*)[CEED_Q_VLA])out[0];
+  CeedScalar(*jac_data_sur)        = context->newtonian_ctx.is_implicit ? out[1] : NULL;
 
-  // Outputs
-  CeedScalar(*v)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA])out[0];
-  CeedScalar(*jac_data_sur)  = out[1];
-
-  const BlasiusContext     context     = (BlasiusContext)ctx;
   const bool               is_implicit = context->implicit;
   NewtonianIdealGasContext gas         = &context->newtonian_ctx;
   const CeedScalar         mu          = context->newtonian_ctx.mu;
@@ -192,7 +189,7 @@ CEED_QFUNCTION(Blasius_Inflow)(void *ctx, CeedInt Q, const CeedScalar *const *in
     CeedScalar       Flux[5];
     FluxTotal_Boundary(Flux_inviscid, stress, Fe, norm, Flux);
     for (CeedInt j = 0; j < 5; j++) v[j][i] = -wdetJb * Flux[j];
-    StoredValuesPack(Q, i, 0, 11, zeros, jac_data_sur);
+    if (is_implicit) StoredValuesPack(Q, i, 0, 11, zeros, jac_data_sur);
   }
   return 0;
 }

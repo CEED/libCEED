@@ -13,14 +13,11 @@
 #include "riemann_solver.h"
 
 CEED_QFUNCTION_HELPER int Slip(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out, StateVariable state_var) {
-  const CeedScalar(*q)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[0];
-  const CeedScalar(*q_data_sur)    = in[2];
-
-  CeedScalar(*v)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA])out[0];
-  CeedScalar(*jac_data_sur)  = out[1];
-
   const NewtonianIdealGasContext newt_ctx = (const NewtonianIdealGasContext)ctx;
-  const CeedScalar               zeros[6] = {0.};
+  const CeedScalar(*q)[CEED_Q_VLA]        = (const CeedScalar(*)[CEED_Q_VLA])in[0];
+  const CeedScalar(*q_data_sur)           = in[2];
+  CeedScalar(*v)[CEED_Q_VLA]              = (CeedScalar(*)[CEED_Q_VLA])out[0];
+  CeedScalar(*jac_data_sur)               = newt_ctx->is_implicit ? out[1] : NULL;
 
   CeedPragmaSIMD for (CeedInt i = 0; i < Q; i++) {
     const CeedScalar qi[5] = {q[0][i], q[1][i], q[2][i], q[3][i], q[4][i]};
@@ -42,8 +39,11 @@ CEED_QFUNCTION_HELPER int Slip(void *ctx, CeedInt Q, const CeedScalar *const *in
     UnpackState_U(flux, Flux);
     for (CeedInt j = 0; j < 5; j++) v[j][i] = -wdetJb * Flux[j];
 
-    StoredValuesPack(Q, i, 0, 5, qi, jac_data_sur);
-    StoredValuesPack(Q, i, 5, 6, zeros, jac_data_sur);  // Every output value must be set
+    if (newt_ctx->is_implicit) {
+      CeedScalar zeros[6] = {0.};
+      StoredValuesPack(Q, i, 0, 5, qi, jac_data_sur);
+      StoredValuesPack(Q, i, 5, 6, zeros, jac_data_sur);  // Every output value must be set
+    }
   }
   return 0;
 }
