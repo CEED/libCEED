@@ -94,6 +94,11 @@ CEED_QFUNCTION(MassFunction_Newtonian_Conserv)(void *ctx, CeedInt Q, const CeedS
   return 0;
 }
 
+CEED_QFUNCTION(MassFunction_Newtonian_Prim)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
+  MassFunction_Newtonian(ctx, Q, in, out, STATEVAR_PRIMITIVE);
+  return 0;
+}
+
 // *****************************************************************************
 // This QFunction implements the following formulation of Navier-Stokes with explicit time stepping method
 //
@@ -139,7 +144,7 @@ CEED_QFUNCTION(MassFunction_Newtonian_Conserv)(void *ctx, CeedInt Q, const CeedS
 // We require the product of the inverse of the Jacobian (dXdx_j,k) and its transpose (dXdx_k,j) to properly compute integrals of the form: int( gradv
 // gradu )
 // *****************************************************************************
-CEED_QFUNCTION(RHSFunction_Newtonian)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
+CEED_QFUNCTION_HELPER int RHSFunction_Newtonian(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out, StateVariable state_var) {
   const CeedScalar(*q)[CEED_Q_VLA]   = (const CeedScalar(*)[CEED_Q_VLA])in[0];
   const CeedScalar(*Grad_q)          = in[1];
   const CeedScalar(*q_data)          = in[2];
@@ -151,13 +156,13 @@ CEED_QFUNCTION(RHSFunction_Newtonian)(void *ctx, CeedInt Q, const CeedScalar *co
   const CeedScalar         dt      = context->dt;
 
   CeedPragmaSIMD for (CeedInt i = 0; i < Q; i++) {
-    CeedScalar U[5], wdetJ, dXdx[3][3];
-    for (int j = 0; j < 5; j++) U[j] = q[j][i];
-    QdataUnpack_3D(Q, i, q_data, &wdetJ, dXdx);
-    State s = StateFromU(context, U);
+    const CeedScalar qi[5]  = {q[0][i], q[1][i], q[2][i], q[3][i], q[4][i]};
+    const State      s      = StateFromQ(context, qi, state_var);
 
+    CeedScalar wdetJ, dXdx[3][3];
+    QdataUnpack_3D(Q, i, q_data, &wdetJ, dXdx);
     State grad_s[3];
-    StatePhysicalGradientFromReference(Q, i, context, s, STATEVAR_CONSERVATIVE, Grad_q, dXdx, grad_s);
+    StatePhysicalGradientFromReference(Q, i, context, s, state_var, Grad_q, dXdx, grad_s);
 
     CeedScalar strain_rate[6], kmstress[6], stress[3][3], Fe[3];
     KMStrainRate_State(grad_s, strain_rate);
@@ -190,6 +195,14 @@ CEED_QFUNCTION(RHSFunction_Newtonian)(void *ctx, CeedInt Q, const CeedScalar *co
   }
   return 0;
 }
+
+CEED_QFUNCTION(RHSFunction_Newtonian_Conserv)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
+    return RHSFunction_Newtonian(ctx, Q, in, out, STATEVAR_CONSERVATIVE);
+  }
+
+CEED_QFUNCTION(RHSFunction_Newtonian_Prim)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
+    return RHSFunction_Newtonian(ctx, Q, in, out, STATEVAR_PRIMITIVE);
+  }
 
 // *****************************************************************************
 // This QFunction implements the Navier-Stokes equations (mentioned above) with implicit time stepping method

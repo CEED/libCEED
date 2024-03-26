@@ -96,7 +96,14 @@ PetscErrorCode CreateKSPMassOperator_NewtonianStabilized(User user, CeedOperator
   PetscCallCeed(ceed, CeedElemRestrictionGetNumComponents(elem_restr_q, &num_comp_q));
   PetscCallCeed(ceed, CeedElemRestrictionGetNumComponents(elem_restr_qd_i, &q_data_size));
 
-  PetscCallCeed(ceed, CeedQFunctionCreateInterior(ceed, 1, MassFunction_Newtonian_Conserv, MassFunction_Newtonian_Conserv_loc, &qf_mass));
+  switch (user->phys->state_var) {
+    case STATEVAR_CONSERVATIVE:
+      PetscCallCeed(ceed, CeedQFunctionCreateInterior(ceed, 1, MassFunction_Newtonian_Conserv, MassFunction_Newtonian_Conserv_loc, &qf_mass));
+      break;
+    case STATEVAR_PRIMITIVE:
+      PetscCallCeed(ceed, CeedQFunctionCreateInterior(ceed, 1, MassFunction_Newtonian_Prim, MassFunction_Newtonian_Prim_loc, &qf_mass));
+      break;
+  }
 
   PetscCallCeed(ceed, CeedQFunctionSetContext(qf_mass, qf_ctx));
   PetscCallCeed(ceed, CeedQFunctionSetUserFlopsEstimate(qf_mass, 0));
@@ -194,8 +201,8 @@ PetscErrorCode NS_NEWTONIAN_IG(ProblemData *problem, DM dm, void *ctx, SimpleBC 
     case STATEVAR_CONSERVATIVE:
       problem->ics.qfunction                       = ICsNewtonianIG_Conserv;
       problem->ics.qfunction_loc                   = ICsNewtonianIG_Conserv_loc;
-      problem->apply_vol_rhs.qfunction             = RHSFunction_Newtonian;
-      problem->apply_vol_rhs.qfunction_loc         = RHSFunction_Newtonian_loc;
+      problem->apply_vol_rhs.qfunction             = RHSFunction_Newtonian_Conserv;
+      problem->apply_vol_rhs.qfunction_loc         = RHSFunction_Newtonian_Conserv_loc;
       problem->apply_vol_ifunction.qfunction       = IFunction_Newtonian_Conserv;
       problem->apply_vol_ifunction.qfunction_loc   = IFunction_Newtonian_Conserv_loc;
       problem->apply_vol_ijacobian.qfunction       = IJacobian_Newtonian_Conserv;
@@ -209,6 +216,8 @@ PetscErrorCode NS_NEWTONIAN_IG(ProblemData *problem, DM dm, void *ctx, SimpleBC 
     case STATEVAR_PRIMITIVE:
       problem->ics.qfunction                       = ICsNewtonianIG_Prim;
       problem->ics.qfunction_loc                   = ICsNewtonianIG_Prim_loc;
+      problem->apply_vol_rhs.qfunction             = RHSFunction_Newtonian_Prim;
+      problem->apply_vol_rhs.qfunction_loc         = RHSFunction_Newtonian_Prim_loc;
       problem->apply_vol_ifunction.qfunction       = IFunction_Newtonian_Prim;
       problem->apply_vol_ifunction.qfunction_loc   = IFunction_Newtonian_Prim_loc;
       problem->apply_vol_ijacobian.qfunction       = IJacobian_Newtonian_Prim;
@@ -258,10 +267,6 @@ PetscErrorCode NS_NEWTONIAN_IG(ProblemData *problem, DM dm, void *ctx, SimpleBC 
   second = fabs(second);
   PetscCall(PetscOptionsScalar("-units_Kelvin", "1 Kelvin in scaled temperature units", NULL, Kelvin, &Kelvin, NULL));
   Kelvin = fabs(Kelvin);
-
-  // -- Warnings
-  PetscCheck(!(state_var == STATEVAR_PRIMITIVE && !implicit), comm, PETSC_ERR_SUP,
-             "RHSFunction is not provided for primitive variables (use -state_var primitive only with -implicit)\n");
 
   PetscCall(PetscOptionsScalar("-idl_decay_time", "Characteristic timescale of the pressure deviance decay. The timestep is good starting point",
                                NULL, idl_decay_time, &idl_decay_time, &idl_enable));
