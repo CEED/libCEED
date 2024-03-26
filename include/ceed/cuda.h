@@ -5,12 +5,11 @@
 //
 // This file is part of CEED:  http://github.com/ceed
 
-#ifndef CEED_CUDA_H
-#define CEED_CUDA_H
+/// @file
+/// Public header for CUDA utility components of libCEED
+#pragma once
 
 #include <ceed.h>
 #include <cuda.h>
 
 CEED_EXTERN int CeedQFunctionSetCUDAUserFunction(CeedQFunction qf, CUfunction f);
-
-#endif  // CEED_CUDA_H

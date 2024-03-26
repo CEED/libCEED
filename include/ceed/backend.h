@@ -7,8 +7,7 @@
 
 /// @file
 /// Public header for backend components of libCEED
-#ifndef CEED_BACKEND_H
-#define CEED_BACKEND_H
+#pragma once
 
 #include <ceed.h>
 #include <limits.h>
@@ -444,5 +443,3 @@ CEED_EXTERN int CeedHouseholderApplyQ(CeedScalar *mat_A, const CeedScalar *mat_Q
 CEED_EXTERN int CeedMatrixPseudoinverse(Ceed ceed, const CeedScalar *mat, CeedInt m, CeedInt n, CeedScalar *mat_pinv);
 CEED_EXTERN int CeedSymmetricSchurDecomposition(Ceed ceed, CeedScalar *mat, CeedScalar *lambda, CeedInt n);
 CEED_EXTERN int CeedSimultaneousDiagonalization(Ceed ceed, CeedScalar *mat_A, CeedScalar *mat_B, CeedScalar *x, CeedScalar *lambda, CeedInt n);
-
-#endif  // CEED_BACKEND_H

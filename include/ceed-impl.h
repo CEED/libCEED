@@ -7,8 +7,7 @@
 
 /// @file
 /// Private header for frontend components of libCEED
-#ifndef CEED_IMPL_H
-#define CEED_IMPL_H
+#pragma once
 
 #include <ceed.h>
 #include <ceed/backend.h>
@@ -376,5 +375,3 @@ struct CeedOperator_private {
   CeedElemRestriction       rstr_points, first_points_rstr;
   CeedVector                point_coords;
 };
-
-#endif  // CEED_IMPL_H
