@@ -188,13 +188,15 @@ PetscErrorCode SetupDMByDegree(DM dm, PetscInt p_degree, PetscInt q_extra, Petsc
 // Get CEED restriction data from DMPlex
 // -----------------------------------------------------------------------------
 PetscErrorCode CreateRestrictionFromPlex(Ceed ceed, DM dm, CeedInt height, DMLabel domain_label, CeedInt value, CeedElemRestriction *elem_restr) {
-  PetscInt num_elem, elem_size, num_dof, num_comp, *elem_restr_offsets;
+  PetscInt num_elem, elem_size, num_dof, num_comp, *elem_restr_offsets_petsc;
+  CeedInt *elem_restr_offsets_ceed;
 
   PetscFunctionBeginUser;
-  PetscCall(DMPlexGetLocalOffsets(dm, domain_label, value, height, 0, &num_elem, &elem_size, &num_comp, &num_dof, &elem_restr_offsets));
+  PetscCall(DMPlexGetLocalOffsets(dm, domain_label, value, height, 0, &num_elem, &elem_size, &num_comp, &num_dof, &elem_restr_offsets_petsc));
 
-  CeedElemRestrictionCreate(ceed, num_elem, elem_size, num_comp, 1, num_dof, CEED_MEM_HOST, CEED_COPY_VALUES, elem_restr_offsets, elem_restr);
-  PetscCall(PetscFree(elem_restr_offsets));
+  PetscCall(IntArrayPetscToCeed(num_elem * elem_size, &elem_restr_offsets_petsc, &elem_restr_offsets_ceed));
+  CeedElemRestrictionCreate(ceed, num_elem, elem_size, num_comp, 1, num_dof, CEED_MEM_HOST, CEED_COPY_VALUES, elem_restr_offsets_ceed, elem_restr);
+  PetscCall(PetscFree(elem_restr_offsets_ceed));
   PetscFunctionReturn(PETSC_SUCCESS);
 }
 

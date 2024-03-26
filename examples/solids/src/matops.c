@@ -219,7 +219,7 @@ PetscErrorCode GetDiag_Ceed(Mat A, Vec D) {
 PetscErrorCode ComputeStrainEnergy(DM dmEnergy, UserMult user, CeedOperator op_energy, Vec X, PetscReal *energy) {
   PetscScalar *x;
   PetscMemType x_mem_type;
-  CeedInt      length;
+  PetscInt     length;
 
   PetscFunctionBeginUser;
 
@@ -235,6 +235,7 @@ PetscErrorCode ComputeStrainEnergy(DM dmEnergy, UserMult user, CeedOperator op_e
   // Setup libCEED output vector
   Vec        E_loc;
   CeedVector e_loc;
+
   PetscCall(DMCreateLocalVector(dmEnergy, &E_loc));
   PetscCall(VecGetSize(E_loc, &length));
   PetscCall(VecDestroy(&E_loc));

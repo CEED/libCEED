@@ -234,15 +234,15 @@ int main(int argc, char **argv) {
                           "    libCEED Backend                         : %s\n"
                           "    libCEED Backend MemType                 : %s\n"
                           "  Mesh:\n"
-                          "    Solution Order (P)                      : %" CeedInt_FMT "\n"
-                          "    Quadrature  Order (Q)                   : %" CeedInt_FMT "\n"
-                          "    Additional quadrature points (q_extra)  : %" CeedInt_FMT "\n"
+                          "    Solution Order (P)                      : %" PetscInt_FMT "\n"
+                          "    Quadrature  Order (Q)                   : %" PetscInt_FMT "\n"
+                          "    Additional quadrature points (q_extra)  : %" PetscInt_FMT "\n"
                           "    Global Nodes                            : %" PetscInt_FMT "\n"
                           "    Owned Nodes                             : %" PetscInt_FMT "\n"
                           "    DoF per node                            : %" PetscInt_FMT "\n"
                           "    Element topology                        : %s\n"
                           "  Multigrid:\n"
-                          "    Number of Levels                        : %" CeedInt_FMT "\n",
+                          "    Number of Levels                        : %" PetscInt_FMT "\n",
                           bp_choice + 1, vec_type, used_resource, CeedMemTypes[mem_type_backend], P, Q, q_extra, g_size[fine_level] / num_comp_u,
                           l_size[fine_level] / num_comp_u, num_comp_u, CeedElemTopologies[elem_topo], num_levels));
   }
@@ -260,7 +260,7 @@ int main(int argc, char **argv) {
     if (!test_mode && (i == 0 || i == fine_level)) {
       PetscCall(PetscPrintf(comm,
                             "    Level %" PetscInt_FMT " (%s):\n"
-                            "      Solution Order (P)                    : %" CeedInt_FMT "\n"
+                            "      Solution Order (P)                    : %" PetscInt_FMT "\n"
                             "      Global Nodes                          : %" PetscInt_FMT "\n"
                             "      Owned Nodes                           : %" PetscInt_FMT "\n",
                             i, (i ? "fine" : "coarse"), level_degrees[i] + 1, g_size[i] / num_comp_u, l_size[i] / num_comp_u));
@@ -349,17 +349,21 @@ int main(int argc, char **argv) {
   PetscCall(PetscLogEventRegister("AssembleMatrix", MAT_CLASSID, &assemble_event));
   {
     // Assemble matrix analytically
-    PetscCount num_entries;
-    CeedInt   *rows, *cols;
-    CeedVector coo_values;
-    CeedOperatorLinearAssembleSymbolic(op_apply_ctx[0]->op, &num_entries, &rows, &cols);
+    PetscCount             num_entries;
+    CeedInt               *rows_ceed, *cols_ceed;
+    PetscInt              *rows_petsc, *cols_petsc;
     ISLocalToGlobalMapping ltog_row, ltog_col;
+    CeedVector             coo_values;
+
+    CeedOperatorLinearAssembleSymbolic(op_apply_ctx[0]->op, &num_entries, &rows_ceed, &cols_ceed);
+    PetscCall(IntArrayCeedToPetsc(num_entries, &rows_ceed, &rows_petsc));
+    PetscCall(IntArrayCeedToPetsc(num_entries, &cols_ceed, &cols_petsc));
     PetscCall(MatGetLocalToGlobalMapping(mat_coarse, &ltog_row, &ltog_col));
-    PetscCall(ISLocalToGlobalMappingApply(ltog_row, num_entries, rows, rows));
-    PetscCall(ISLocalToGlobalMappingApply(ltog_col, num_entries, cols, cols));
-    PetscCall(MatSetPreallocationCOO(mat_coarse, num_entries, rows, cols));
-    free(rows);
-    free(cols);
+    PetscCall(ISLocalToGlobalMappingApply(ltog_row, num_entries, rows_petsc, rows_petsc));
+    PetscCall(ISLocalToGlobalMappingApply(ltog_col, num_entries, cols_petsc, cols_petsc));
+    PetscCall(MatSetPreallocationCOO(mat_coarse, num_entries, rows_petsc, cols_petsc));
+    free(rows_petsc);
+    free(cols_petsc);
     CeedVectorCreate(ceed, num_entries, &coo_values);
     PetscCall(PetscLogEventBegin(assemble_event, mat_coarse, 0, 0, 0));
     CeedOperatorLinearAssemble(op_apply_ctx[0]->op, coo_values);

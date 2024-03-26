@@ -95,7 +95,7 @@ noether-cpu:
     - make -k -j$((NPROC_CPU / NPROC_POOL)) BACKENDS="$BACKENDS_CPU" JUNIT_BATCH="cpu" junit realsearch=%
 # Libraries for examples
 # -- PETSc with HIP (minimal)
-    - export PETSC_DIR=/projects/petsc PETSC_ARCH=mpich-hip && git -C $PETSC_DIR -c safe.directory=$PETSC_DIR describe
+    - export PETSC_DIR=/projects/petsc PETSC_ARCH=mpich-hip-int64 && git -C $PETSC_DIR -c safe.directory=$PETSC_DIR describe
     - source /home/jawr8143/SmartSimTestingSoftware/bin/activate && export SMARTREDIS_DIR=/home/jawr8143/SmartSimTestingSoftware/smartredis/install
     - echo "-------------- PETSc ---------------" && make -C $PETSC_DIR info
     - make -k -j$((NPROC_CPU / NPROC_POOL)) BACKENDS="$BACKENDS_CPU" JUNIT_BATCH="cpu" junit search="petsc fluids solids"

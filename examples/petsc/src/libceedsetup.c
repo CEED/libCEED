@@ -50,7 +50,8 @@ PetscErrorCode SetupLibceedByDegree(DM dm, Ceed ceed, CeedInt degree, CeedInt to
   CeedQFunction       qf_setup_geo, qf_apply;
   CeedOperator        op_setup_geo, op_apply;
   CeedVector          x_coord, q_data, x_ceed, y_ceed;
-  CeedInt             num_qpts, c_start, c_end, num_elem, q_data_size = bp_data.q_data_size;
+  PetscInt            c_start, c_end, num_elem;
+  CeedInt             num_qpts, q_data_size = bp_data.q_data_size;
   CeedScalar          R = 1;                         // radius of the sphere
   CeedScalar          l = 1.0 / PetscSqrtReal(3.0);  // half edge of the inscribed cube
 
@@ -222,7 +223,8 @@ PetscErrorCode SetupErrorOperator(DM dm, Ceed ceed, BPData bp_data, CeedInt topo
   CeedQFunction       qf_setup_geo, qf_setup_rhs, qf_error;
   CeedOperator        op_setup_geo, op_setup_rhs;
   CeedVector          x_coord, q_data, target, rhs;
-  CeedInt             num_qpts, c_start, c_end, num_elem, q_data_size = bp_data.q_data_size;
+  PetscInt            c_start, c_end, num_elem;
+  CeedInt             num_qpts, q_data_size = bp_data.q_data_size;
   CeedScalar          R = 1;                         // radius of the sphere
   CeedScalar          l = 1.0 / PetscSqrtReal(3.0);  // half edge of the inscribed cube
 

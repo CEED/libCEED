@@ -52,7 +52,8 @@ int main(int argc, char **argv) {
   char                 ceed_resource[PETSC_MAX_PATH_LEN] = "/cpu/self", filename[PETSC_MAX_PATH_LEN];
   double               my_rt_start, my_rt, rt_min, rt_max;
   PetscScalar          tolerance;
-  PetscInt             comm_size, degree, q_extra, l_size, g_size, dim = 3, num_comp_u = 1, xl_size, num_points = 1728, num_points_per_cell = 64;
+  PetscMPIInt          comm_size;
+  PetscInt             degree, q_extra, l_size, g_size, dim = 3, num_comp_u = 1, xl_size, num_points = 1728, num_points_per_cell = 64;
   PetscBool            test_mode, benchmark_mode, read_mesh, write_solution, write_true_solution_swarm;
   PetscLogStage        solve_stage;
   Vec                  X, X_loc, rhs;
@@ -266,9 +267,9 @@ int main(int argc, char **argv) {
                           "    libCEED Backend                         : %s\n"
                           "    libCEED Backend MemType                 : %s\n"
                           "  Mesh:\n"
-                          "    Solution Order (P)                      : %" CeedInt_FMT "\n"
-                          "    Quadrature  Order (Q)                   : %" CeedInt_FMT "\n"
-                          "    Additional quadrature points (q_extra)  : %" CeedInt_FMT "\n"
+                          "    Solution Order (P)                      : %" PetscInt_FMT "\n"
+                          "    Quadrature  Order (Q)                   : %" PetscInt_FMT "\n"
+                          "    Additional quadrature points (q_extra)  : %" PetscInt_FMT "\n"
                           "    Global nodes                            : %" PetscInt_FMT "\n"
                           "    Local Elements                          : %" PetscInt_FMT "\n"
                           "    Owned nodes                             : %" PetscInt_FMT "\n"
