@@ -7,7 +7,6 @@
 
 /// @file
 /// Utility functions for particle-based methods with DMSwarm
-
 #pragma once
 
 #include <ceed.h>

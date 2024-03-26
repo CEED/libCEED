@@ -7,9 +7,7 @@
 
 /// @file
 /// Problem data for BPs
-
-#ifndef libceed_petsc_examples_bps_problem_data_h
-#define libceed_petsc_examples_bps_problem_data_h
+#pragma once
 
 #include <ceed.h>
 #include <petsc.h>
@@ -129,5 +127,3 @@ BPData bp_options[6] = {
                   .q_mode        = CEED_GAUSS_LOBATTO,
                   .enforce_bc    = PETSC_TRUE }
 };
-
-#endif  // libceed_petsc_examples_bps_problem_data_h

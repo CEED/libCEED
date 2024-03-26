@@ -1,5 +1,10 @@
-#ifndef MAT_CEED_H
-#define MAT_CEED_H
+// Copyright (c) 2017-2023, Lawrence Livermore National Security, LLC and other CEED contributors.
+// All Rights Reserved. See the top-level LICENSE and NOTICE files for details.
+//
+// SPDX-License-Identifier: BSD-2-Clause
+//
+// This file is part of CEED:  http://github.com/ceed
+#pragma once
 
 #include <ceed.h>
 #include <petscdm.h>
@@ -37,5 +42,3 @@ MATCEED_INTERN PetscErrorCode MatCeedGetCeedOperators(Mat mat, CeedOperator *op_
 MATCEED_INTERN PetscErrorCode MatCeedRestoreCeedOperators(Mat mat, CeedOperator *op_mult, CeedOperator *op_mult_transpose);
 MATCEED_INTERN PetscErrorCode MatCeedSetLogEvents(Mat mat, PetscLogEvent log_event_mult, PetscLogEvent log_event_mult_transpose);
 MATCEED_INTERN PetscErrorCode MatCeedGetLogEvents(Mat mat, PetscLogEvent *log_event_mult, PetscLogEvent *log_event_mult_transpose);
-
-#endif  // MAT_CEED_H

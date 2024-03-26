@@ -4,9 +4,7 @@
 // SPDX-License-Identifier: BSD-2-Clause
 //
 // This file is part of CEED:  http://github.com/ceed
-
-#ifndef libceed_solids_examples_setup_h
-#define libceed_solids_examples_setup_h
+#pragma once
 
 #include <ceed.h>
 #include <petscdmplex.h>
@@ -30,5 +28,3 @@
 #if PETSC_VERSION_LT(3, 21, 0)
 #define DMSetCoordinateDisc(a, b, c) DMProjectCoordinates(a, b)
 #endif
-
-#endif  // libceed_solids_examples_setup_h

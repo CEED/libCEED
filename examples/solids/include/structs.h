@@ -4,9 +4,7 @@
 // SPDX-License-Identifier: BSD-2-Clause
 //
 // This file is part of CEED:  http://github.com/ceed
-
-#ifndef libceed_solids_examples_structs_h
-#define libceed_solids_examples_structs_h
+#pragma once
 
 #include <ceed.h>
 #include <petscdm.h>
@@ -137,5 +135,3 @@ typedef struct {
   CeedInt           *field_sizes;
   const char *const *field_names;
 } ProblemData;
-
-#endif  // libceed_solids_examples_structs_h

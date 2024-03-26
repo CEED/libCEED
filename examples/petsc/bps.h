@@ -4,9 +4,7 @@
 // SPDX-License-Identifier: BSD-2-Clause
 //
 // This file is part of CEED:  http://github.com/ceed
-
-#ifndef libceed_petsc_examples_bps_h
-#define libceed_petsc_examples_bps_h
+#pragma once
 
 // -----------------------------------------------------------------------------
 // Command Line Options
@@ -20,5 +18,3 @@ typedef enum { COARSEN_UNIFORM = 0, COARSEN_LOGARITHMIC = 1 } CoarsenType;
 static const char *const coarsen_types[] = {"uniform", "logarithmic", "CoarsenType", "COARSEN", 0};
 
 static const char *const bp_types[] = {"bp1", "bp2", "bp3", "bp4", "bp5", "bp6", "BPType", "CEED_BP", 0};
-
-#endif  // libceed_petsc_examples_bps_h

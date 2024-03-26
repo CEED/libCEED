@@ -7,9 +7,7 @@
 
 /// @file
 /// Data structures for PETSc examples
-
-#ifndef libceed_petsc_examples_structs_h
-#define libceed_petsc_examples_structs_h
+#pragma once
 
 #include <ceed.h>
 #include <petsc.h>
@@ -83,5 +81,3 @@ struct RunParams_ {
   BPType        bp_choice;
   PetscLogStage solve_stage;
 };
-
-#endif  // libceed_petsc_examples_structs_h

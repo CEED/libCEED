@@ -4,9 +4,7 @@
 // SPDX-License-Identifier: BSD-2-Clause
 //
 // This file is part of CEED:  http://github.com/ceed
-
-#ifndef libceed_solids_examples_setup_dm_h
-#define libceed_solids_examples_setup_dm_h
+#pragma once
 
 #include <ceed.h>
 #include <petscdm.h>
@@ -23,5 +21,3 @@ PetscErrorCode CreateDistributedDM(MPI_Comm comm, AppCtx app_ctx, DM *dm);
 
 // Setup DM with FE space of appropriate degree
 PetscErrorCode SetupDMByDegree(DM dm, AppCtx app_ctx, PetscInt order, PetscBool boundary, PetscInt num_comp_u);
-
-#endif  // libceed_solids_examples_setup_dm_h

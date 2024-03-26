@@ -7,9 +7,7 @@
 
 /// @file
 /// Problem data for BPS sphere examples
-
-#ifndef libceed_petsc_examples_sphere_problem_data_h
-#define libceed_petsc_examples_sphere_problem_data_h
+#pragma once
 
 #include <ceed.h>
 #include <petsc.h>
@@ -123,5 +121,3 @@ static BPData bp_options[6] = {
                   .out_mode      = CEED_EVAL_GRAD,
                   .q_mode        = CEED_GAUSS_LOBATTO}
 };
-
-#endif  // libceed_petsc_examples_sphere_problem_data_h

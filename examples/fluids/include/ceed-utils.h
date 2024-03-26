@@ -1,5 +1,10 @@
-#ifndef CEED_UTILS_H
-#define CEED_UTILS_H
+// Copyright (c) 2017-2023, Lawrence Livermore National Security, LLC and other CEED contributors.
+// All Rights Reserved. See the top-level LICENSE and NOTICE files for details.
+//
+// SPDX-License-Identifier: BSD-2-Clause
+//
+// This file is part of CEED:  http://github.com/ceed
+#pragma once
 
 #include <ceed.h>
 #include <petscdm.h>
@@ -233,5 +238,3 @@ static inline CeedElemTopology PolytopeTypePetscToCeed(DMPolytopeType cell_type)
       return 0;
   }
 }
-
-#endif  // CEED_UTILS_H

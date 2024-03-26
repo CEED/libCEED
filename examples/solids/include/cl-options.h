@@ -4,9 +4,7 @@
 // SPDX-License-Identifier: BSD-2-Clause
 //
 // This file is part of CEED:  http://github.com/ceed
-
-#ifndef libceed_solids_examples_cl_options_h
-#define libceed_solids_examples_cl_options_h
+#pragma once
 
 #include <petscsys.h>
 
@@ -14,5 +12,3 @@
 
 // Process general command line options
 PetscErrorCode ProcessCommandLineOptions(MPI_Comm comm, AppCtx app_ctx);
-
-#endif  // libceed_solids_examples_cl_options_h

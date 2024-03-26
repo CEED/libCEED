@@ -4,6 +4,7 @@
 // SPDX-License-Identifier: BSD-2-Clause
 //
 // This file is part of CEED:  http://github.com/ceed
+#pragma once
 
 #include <c_client.h>
 #include <petscsys.h>

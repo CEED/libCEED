@@ -4,9 +4,7 @@
 // SPDX-License-Identifier: BSD-2-Clause
 //
 // This file is part of CEED:  http://github.com/ceed
-
-#ifndef libceed_fluids_examples_navier_stokes_h
-#define libceed_fluids_examples_navier_stokes_h
+#pragma once
 
 #include <ceed-utils.h>
 #include <ceed.h>
@@ -503,5 +501,3 @@ PetscErrorCode SGS_DD_TrainingSetup(Ceed ceed, User user, CeedData ceed_data, Pr
 PetscErrorCode TSMonitor_SGS_DD_Training(TS ts, PetscInt step_num, PetscReal solution_time, Vec Q, void *ctx);
 PetscErrorCode TSPostStep_SGS_DD_Training(TS ts);
 PetscErrorCode SGS_DD_TrainingDataDestroy(SGS_DD_TrainingData sgs_dd_train);
-
-#endif  // libceed_fluids_examples_navier_stokes_h

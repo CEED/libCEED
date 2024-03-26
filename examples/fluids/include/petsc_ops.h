@@ -4,9 +4,7 @@
 // SPDX-License-Identifier: BSD-2-Clause
 //
 // This file is part of CEED:  http://github.com/ceed
-
-#ifndef petsc_ops_h
-#define petsc_ops_h
+#pragma once
 
 #include <ceed.h>
 #include <petscdm.h>
@@ -42,4 +40,3 @@ PetscErrorCode DMGetGlobalVectorInfo(DM dm, PetscInt *local_size, PetscInt *glob
 
 PetscErrorCode CreateSolveOperatorsFromMatCeed(KSP ksp, Mat mat_ceed, PetscBool assemble, Mat *Amat, Mat *Pmat);
 PetscErrorCode KSPSetFromOptions_WithMatCeed(KSP ksp, Mat mat_ceed);
-#endif  // petsc_ops_h

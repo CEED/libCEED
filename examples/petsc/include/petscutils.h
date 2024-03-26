@@ -7,9 +7,7 @@
 
 /// @file
 /// Utility functions for using PETSc with libCEED
-
-#ifndef libceed_petsc_examples_utils_h
-#define libceed_petsc_examples_utils_h
+#pragma once
 
 #include <ceed.h>
 #include <petsc.h>
@@ -34,5 +32,3 @@ PetscErrorCode   BasisCreateFromTabulation(Ceed ceed, DM dm, DMLabel domain_labe
 PetscErrorCode   CreateBasisFromPlex(Ceed ceed, DM dm, DMLabel domain_label, CeedInt label_value, CeedInt height, CeedInt dm_field, BPData bp_data,
                                      CeedBasis *basis);
 PetscErrorCode   CreateDistributedDM(RunParams rp, DM *dm);
-
-#endif  // libceed_petsc_examples_utils_h

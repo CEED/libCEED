@@ -4,9 +4,7 @@
 // SPDX-License-Identifier: BSD-2-Clause
 //
 // This file is part of CEED:  http://github.com/ceed
-
-#ifndef libceed_petsc_examples_area_h
-#define libceed_petsc_examples_area_h
+#pragma once
 
 #include <stddef.h>
 
@@ -15,5 +13,3 @@
 // -----------------------------------------------------------------------------
 
 static const char *const problem_types[] = {"cube", "sphere", "ProblemType", "AREA", NULL};
-
-#endif  // libceed_petsc_examples_area_h
