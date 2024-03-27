@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2022, Lawrence Livermore National Security, LLC and other CEED contributors.
+// Copyright (c) 2017-2024, Lawrence Livermore National Security, LLC and other CEED contributors.
 // All Rights Reserved. See the top-level LICENSE and NOTICE files for details.
 //
 // SPDX-License-Identifier: BSD-2-Clause
@@ -7,9 +7,7 @@
 
 /// @file
 /// Operations for PETSc MatShell
-
-#ifndef libceed_petsc_examples_matops_h
-#define libceed_petsc_examples_matops_h
+#pragma once
 
 #include <ceed.h>
 #include <petsc.h>
@@ -26,5 +24,3 @@ PetscErrorCode FormResidual_Ceed(SNES snes, Vec X, Vec Y, void *ctx);
 PetscErrorCode MatMult_Prolong(Mat A, Vec X, Vec Y);
 PetscErrorCode MatMult_Restrict(Mat A, Vec X, Vec Y);
 PetscErrorCode ComputeL2Error(Vec X, PetscScalar *l2_error, OperatorApplyContext op_error_ctx);
-
-#endif  // libceed_petsc_examples_matops_h

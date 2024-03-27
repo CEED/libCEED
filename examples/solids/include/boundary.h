@@ -1,12 +1,10 @@
-// Copyright (c) 2017-2022, Lawrence Livermore National Security, LLC and other CEED contributors.
+// Copyright (c) 2017-2024, Lawrence Livermore National Security, LLC and other CEED contributors.
 // All Rights Reserved. See the top-level LICENSE and NOTICE files for details.
 //
 // SPDX-License-Identifier: BSD-2-Clause
 //
 // This file is part of CEED:  http://github.com/ceed
-
-#ifndef libceed_solids_examples_boundary_h
-#define libceed_solids_examples_boundary_h
+#pragma once
 
 #include <petscsys.h>
 
@@ -27,5 +25,3 @@ PetscErrorCode BCMMS(PetscInt dim, PetscReal load_increment, const PetscReal coo
 // BCClamp - fix boundary values with affine transformation at fraction of load
 //   increment
 PetscErrorCode BCClamp(PetscInt dim, PetscReal load_increment, const PetscReal coords[], PetscInt num_comp_u, PetscScalar *u, void *ctx);
-
-#endif  // libceed_solids_examples_boundary_h

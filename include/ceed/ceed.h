@@ -1,4 +1,4 @@
-/// Copyright (c) 2017-2022, Lawrence Livermore National Security, LLC and other CEED contributors.
+/// Copyright (c) 2017-2024, Lawrence Livermore National Security, LLC and other CEED contributors.
 /// All Rights Reserved. See the top-level LICENSE and NOTICE files for details.
 ///
 /// SPDX-License-Identifier: BSD-2-Clause
@@ -7,8 +7,7 @@
 
 /// @file
 /// Public header for user and utility components of libCEED
-#ifndef CEED_H
-#define CEED_H
+#pragma once
 
 /// @defgroup Ceed Ceed: core components
 /// @defgroup CeedVector CeedVector: storing and manipulating vectors
@@ -515,5 +514,3 @@ static inline CeedInt CeedIntMax(CeedInt a, CeedInt b) { return a > b ? a : b; }
 CEED_EXTERN int CeedRegisterAll(void);
 // Used to ensure initialization before CeedQFunctionCreate*()
 CEED_EXTERN int CeedQFunctionRegisterAll(void);
-
-#endif  // CEED_H

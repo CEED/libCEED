@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2022, Lawrence Livermore National Security, LLC and other CEED contributors.
+// Copyright (c) 2017-2024, Lawrence Livermore National Security, LLC and other CEED contributors.
 // All Rights Reserved. See the top-level LICENSE and NOTICE files for details.
 //
 // SPDX-License-Identifier: BSD-2-Clause
@@ -7,9 +7,7 @@
 
 /// @file
 /// Problem data for area examples
-
-#ifndef libceed_petsc_examples_area_problem_data_h
-#define libceed_petsc_examples_area_problem_data_h
+#pragma once
 
 #include <ceed.h>
 #include <petsc.h>
@@ -58,5 +56,3 @@ static BPData problem_options[6] = {
                 .enforce_bc    = PETSC_FALSE,
                 }
 };
-
-#endif  // libceed_petsc_examples_area_problem_data_h

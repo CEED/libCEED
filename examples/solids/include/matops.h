@@ -1,12 +1,10 @@
-// Copyright (c) 2017-2022, Lawrence Livermore National Security, LLC and other CEED contributors.
+// Copyright (c) 2017-2024, Lawrence Livermore National Security, LLC and other CEED contributors.
 // All Rights Reserved. See the top-level LICENSE and NOTICE files for details.
 //
 // SPDX-License-Identifier: BSD-2-Clause
 //
 // This file is part of CEED:  http://github.com/ceed
-
-#ifndef libceed_solids_examples_matops_h
-#define libceed_solids_examples_matops_h
+#pragma once
 
 #include <ceed.h>
 #include <petscdm.h>
@@ -40,5 +38,3 @@ PetscErrorCode ComputeStrainEnergy(DM dm_energy, UserMult user, CeedOperator op_
 
 // this function checks to see if the computed energy is close enough to reference file energy.
 PetscErrorCode RegressionTests_solids(AppCtx app_ctx, PetscReal energy);
-
-#endif  // libceed_solids_examples_matopts_h
