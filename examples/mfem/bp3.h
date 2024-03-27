@@ -5,9 +5,6 @@
 //
 // This file is part of CEED:  http://github.com/ceed
 
-#ifndef bp3_h
-#define bp3_h
-
 #include <ceed.h>
 
 /// A structure used to pass additional data to f_build_diff and f_apply_diff
@@ -117,5 +114,3 @@ CEED_QFUNCTION(f_apply_diff)(void *ctx, const CeedInt Q, const CeedScalar *const
   }
   return 0;
 }
-
-#endif  // bp3_h

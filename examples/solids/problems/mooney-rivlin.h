@@ -4,9 +4,7 @@
 // SPDX-License-Identifier: BSD-2-Clause
 //
 // This file is part of CEED:  http://github.com/ceed
-
-#ifndef mooney_rivlin_h
-#define mooney_rivlin_h
+#pragma once
 
 #include <ceed.h>
 #include <petsc.h>
@@ -30,5 +28,3 @@ PetscErrorCode PhysicsSmootherContext_MR(MPI_Comm comm, Ceed ceed, CeedQFunction
 
 // Process physics options - Mooney-Rivlin
 PetscErrorCode ProcessPhysics_MR(MPI_Comm comm, Physics_MR phys, Units units);
-
-#endif  // mooney_rivlin_h

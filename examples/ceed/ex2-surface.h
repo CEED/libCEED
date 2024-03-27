@@ -5,9 +5,6 @@
 //
 // This file is part of CEED:  http://github.com/ceed
 
-#ifndef ex2_surface_h
-#define ex2_surface_h
-
 #include <ceed.h>
 
 /// A structure used to pass additional data to f_build_diff
@@ -125,5 +122,3 @@ CEED_QFUNCTION(apply_diff)(void *ctx, const CeedInt Q, const CeedScalar *const *
   }
   return 0;
 }
-
-#endif  // ex2_surface_h

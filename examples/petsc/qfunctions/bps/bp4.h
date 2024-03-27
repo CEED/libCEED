@@ -8,9 +8,6 @@
 /// @file
 /// libCEED QFunctions for diffusion operator example using PETSc
 
-#ifndef bp4_h
-#define bp4_h
-
 #include <ceed.h>
 #include <math.h>
 
@@ -87,5 +84,3 @@ CEED_QFUNCTION(Diff3)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedSca
   return 0;
 }
 // -----------------------------------------------------------------------------
-
-#endif  // bp4_h

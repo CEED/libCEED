@@ -5,9 +5,6 @@
 //
 // This file is part of CEED:  http://github.com/ceed
 
-#ifndef bp1_h
-#define bp1_h
-
 #include <ceed.h>
 
 /// A structure used to pass additional data to f_build_mass
@@ -61,5 +58,3 @@ CEED_QFUNCTION(f_apply_mass)(void *ctx, const CeedInt Q, const CeedScalar *const
   CeedPragmaSIMD for (CeedInt i = 0; i < Q; i++) { v[i] = qdata[i] * u[i]; }
   return 0;
 }
-
-#endif  // bp1_h

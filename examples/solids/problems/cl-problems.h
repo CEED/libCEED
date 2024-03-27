@@ -4,9 +4,7 @@
 // SPDX-License-Identifier: BSD-2-Clause
 //
 // This file is part of CEED:  http://github.com/ceed
-
-#ifndef cl_problems_h
-#define cl_problems_h
+#pragma once
 
 // Problem options
 typedef enum {
@@ -28,5 +26,3 @@ static const char *const problemTypesForDisp[] = {
     "Hyperelasticity finite strain Current configuration Neo-Hookean w/ dXref_dxinit, Grad(u) storage",
     "Hyperelasticity finite strain Current configuration Neo-Hookean w/ dXref_dxcurr, tau, constant storage",
     "Hyperelasticity finite strain Initial configuration Moony-Rivlin w/ dXref_dxinit, Grad(u) storage"};
-
-#endif  // cl_problems_h

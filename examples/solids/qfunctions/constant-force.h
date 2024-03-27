@@ -8,9 +8,6 @@
 /// @file
 /// Constant forcing term for solid mechanics example using PETSc
 
-#ifndef CONSTANT_H
-#define CONSTANT_H
-
 #include <ceed.h>
 #include <math.h>
 
@@ -55,5 +52,3 @@ CEED_QFUNCTION(SetupConstantForce)(void *ctx, const CeedInt Q, const CeedScalar 
   return 0;
 }
 // -----------------------------------------------------------------------------
-
-#endif  // End of CONSTANT_H

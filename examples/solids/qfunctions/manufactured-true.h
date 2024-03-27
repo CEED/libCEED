@@ -8,9 +8,6 @@
 /// @file
 /// Linear elasticity manufactured solution true solution for solid mechanics example using PETSc
 
-#ifndef MANUFACTURED_TRUE_H
-#define MANUFACTURED_TRUE_H
-
 #include <ceed.h>
 #include <math.h>
 
@@ -44,5 +41,3 @@ CEED_QFUNCTION(MMSTrueSoln)(void *ctx, const CeedInt Q, const CeedScalar *const 
   return 0;
 }
 // -----------------------------------------------------------------------------
-
-#endif  // End MANUFACTURED_TRUE_H

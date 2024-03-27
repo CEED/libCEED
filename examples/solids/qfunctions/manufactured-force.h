@@ -8,9 +8,6 @@
 /// @file
 /// Linear elasticity manufactured solution forcing term for solid mechanics example using PETSc
 
-#ifndef MANUFACTURED_H
-#define MANUFACTURED_H
-
 #include <ceed.h>
 #include <math.h>
 
@@ -80,5 +77,3 @@ CEED_QFUNCTION(SetupMMSForce)(void *ctx, const CeedInt Q, const CeedScalar *cons
   return 0;
 }
 // -----------------------------------------------------------------------------
-
-#endif  // End MANUFACTURED_H
