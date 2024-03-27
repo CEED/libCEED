@@ -9,9 +9,6 @@
   @brief Ceed QFunction for building the geometric data for the 2D mass matrix
 **/
 
-#ifndef CEED_MASS2DBUILD_H
-#define CEED_MASS2DBUILD_H
-
 #include <ceed.h>
 
 CEED_QFUNCTION(Mass2DBuild)(void *ctx, const CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
@@ -28,5 +25,3 @@ CEED_QFUNCTION(Mass2DBuild)(void *ctx, const CeedInt Q, const CeedScalar *const 
 
   return CEED_ERROR_SUCCESS;
 }
-
-#endif  // CEED_MASS2DBUILD_H

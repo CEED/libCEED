@@ -9,9 +9,6 @@
   @brief  Scaling QFunction that scales inputs
 **/
 
-#ifndef CEED_SCALE_H
-#define CEED_SCALE_H
-
 #include <ceed.h>
 
 CEED_QFUNCTION(Scale)(void *ctx, const CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
@@ -29,5 +26,3 @@ CEED_QFUNCTION(Scale)(void *ctx, const CeedInt Q, const CeedScalar *const *in, C
   CeedPragmaSIMD for (CeedInt i = 0; i < Q * size; i++) { output[i] = input[i] * scale[i]; }  // End of Quadrature Point Loop
   return 0;
 }
-
-#endif  // CEED_SCALE_H

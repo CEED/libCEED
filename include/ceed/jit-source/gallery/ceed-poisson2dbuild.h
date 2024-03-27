@@ -9,9 +9,6 @@
   @brief Ceed QFunction for building the geometric data for the 2D Poisson operator
 **/
 
-#ifndef CEED_POISSON2DBUILD_H
-#define CEED_POISSON2DBUILD_H
-
 #include <ceed.h>
 
 CEED_QFUNCTION(Poisson2DBuild)(void *ctx, const CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
@@ -40,5 +37,3 @@ CEED_QFUNCTION(Poisson2DBuild)(void *ctx, const CeedInt Q, const CeedScalar *con
 
   return CEED_ERROR_SUCCESS;
 }
-
-#endif  // CEED_POISSON2DBUILD_H
