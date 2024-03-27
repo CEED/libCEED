@@ -520,6 +520,8 @@ CEED_QFUNCTION_HELPER int RiemannOutflow(void *ctx, CeedInt Q, const CeedScalar 
     y_ext.pressure            = outflow->pressure;
     y_ext.temperature         = outflow->temperature;
     const CeedScalar u_normal = Dot3(y_ext.velocity, norm);
+//    if(u_normal< 0.0) y_ext.pressure= Min(y_ext.pressure,s_int.Y.pressure);
+
     const CeedScalar proj     = (1 - outflow->recirc) * Softplus(-u_normal, outflow->softplus_velocity);
     for (CeedInt j = 0; j < 3; j++) {
       y_ext.velocity[j] += norm[j] * proj;  // (I - n n^T) projects into the plane tangent to the normal
@@ -532,6 +534,9 @@ CEED_QFUNCTION_HELPER int RiemannOutflow(void *ctx, CeedInt Q, const CeedScalar 
     CeedScalar strain_rate[6], kmstress[6], stress[3][3], Fe[3];
     KMStrainRate_State(grad_s, strain_rate);
     NewtonianStress(gas, strain_rate, kmstress);
+//fail    for (CeedInt j = 0; j < 6; j++) {
+//fail      kmstress[j] *= exp (-100.0 * Min(u_normal,0.0));  //  raise stress in back flow as if viscosity bumped up
+//fail    }
     KMUnpack(kmstress, stress);
     ViscousEnergyFlux(gas, s_int.Y, grad_s, stress, Fe);
 
@@ -611,6 +616,9 @@ CEED_QFUNCTION_HELPER int RiemannOutflow_Jacobian(void *ctx, CeedInt Q, const Ce
     CeedScalar dstrain_rate[6], dkmstress[6], stress[3][3], dstress[3][3], dFe[3];
     KMStrainRate_State(grad_ds, dstrain_rate);
     NewtonianStress(gas, dstrain_rate, dkmstress);
+//fail    for (CeedInt j = 0; j < 6; j++) {
+//fail      dkmstress[j] *= exp (-100.0 * Min(u_normal,0.0));  //  raise stress in back flow as if viscosity bumped up
+//fail    }
     KMUnpack(dkmstress, dstress);
     KMUnpack(kmstress, stress);
     ViscousEnergyFlux_fwd(gas, s_int.Y, ds_int.Y, grad_ds, stress, dstress, dFe);
