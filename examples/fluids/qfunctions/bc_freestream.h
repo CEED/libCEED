@@ -60,6 +60,7 @@ CEED_QFUNCTION_HELPER int Freestream(void *ctx, CeedInt Q, const CeedScalar *con
       StoredValuesPack(Q, i, 0, 5, qi, jac_data_sur);
       StoredValuesPack(Q, i, 5, 6, zeros, jac_data_sur);  // Every output value must be set
     }
+  }
   return 0;
 }
 
@@ -185,6 +186,7 @@ CEED_QFUNCTION_HELPER int RiemannOutflow(void *ctx, CeedInt Q, const CeedScalar 
 
   const NewtonianIdealGasContext gas         = &outflow->gas;
   const bool                     is_implicit = gas->is_implicit;
+  CeedScalar(*jac_data_sur)                  = is_implicit ? out[1] : NULL;
 
   CeedPragmaSIMD for (CeedInt i = 0; i < Q; i++) {
     CeedScalar wdetJb, dXdx[2][3], norm[3];
@@ -326,6 +328,7 @@ CEED_QFUNCTION_HELPER int PressureOutflow(void *ctx, CeedInt Q, const CeedScalar
 
   const NewtonianIdealGasContext gas         = &outflow->gas;
   const bool                     is_implicit = gas->is_implicit;
+  CeedScalar(*jac_data_sur)                  = is_implicit ? out[1] : NULL;
 
   CeedPragmaSIMD for (CeedInt i = 0; i < Q; i++) {
 
