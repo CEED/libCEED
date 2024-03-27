@@ -110,17 +110,17 @@ PetscErrorCode SetUpDM(DM *dm, ProblemData *problem, PetscInt degree, PetscInt q
     // Set symmetry BCs in the x direction
     if (bc->num_symmetry[0] > 0) {
       PetscInt comps[1] = {1};
-      PetscCall(DMAddBoundary(*dm, DM_BC_ESSENTIAL, "slipx", label, bc->num_slip[0], bc->slips[0], 0, 1, comps, NULL, NULL, NULL, NULL));
+      PetscCall(DMAddBoundary(*dm, DM_BC_ESSENTIAL, "symmetry_x", label, bc->num_symmetry[0], bc->symmetries[0], 0, 1, comps, NULL, NULL, NULL, NULL));
     }
     // Set symmetry BCs in the y direction
     if (bc->num_symmetry[1] > 0) {
       PetscInt comps[1] = {2};
-      PetscCall(DMAddBoundary(*dm, DM_BC_ESSENTIAL, "slipy", label, bc->num_slip[1], bc->slips[1], 0, 1, comps, NULL, NULL, NULL, NULL));
+      PetscCall(DMAddBoundary(*dm, DM_BC_ESSENTIAL, "symmetry_y", label, bc->num_symmetry[1], bc->symmetries[1], 0, 1, comps, NULL, NULL, NULL, NULL));
     }
     // Set symmetry BCs in the z direction
     if (bc->num_symmetry[2] > 0) {
       PetscInt comps[1] = {3};
-      PetscCall(DMAddBoundary(*dm, DM_BC_ESSENTIAL, "slipz", label, bc->num_slip[2], bc->slips[2], 0, 1, comps, NULL, NULL, NULL, NULL));
+      PetscCall(DMAddBoundary(*dm, DM_BC_ESSENTIAL, "symmetry_z", label, bc->num_symmetry[2], bc->symmetries[2], 0, 1, comps, NULL, NULL, NULL, NULL));
     }
     {
       PetscBool use_strongstg = PETSC_FALSE;
