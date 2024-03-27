@@ -179,6 +179,13 @@ CEED_QFUNCTION(RHSFunction_Newtonian)(void *ctx, CeedInt Q, const CeedScalar *co
     const CeedScalar body_force[5] = {0, s.U.density * g[0], s.U.density * g[1], s.U.density * g[2], Dot3(s.U.momentum, g)};
     for (int j = 0; j < 5; j++) v[j][i] = wdetJ * body_force[j];
 
+    if (context->idl_enable) {
+      const CeedScalar sigma = LinearRampCoefficient(context->idl_amplitude, context->idl_length, context->idl_start, x_i[0]);
+      CeedScalar damp_state[5] = {s.Y.pressure - P0, 0, 0, 0, 0}, idl_residual[5] = {0.};
+      InternalDampingLayer(context, s, sigma, damp_state, idl_residual);
+      for (int j = 0; j < 5; j++) v[j][i] -= wdetJ * idl_residual[j];
+    }
+
     // -- Stabilization method: none (Galerkin), SU, or SUPG
     CeedScalar Tau_d[3], stab[5][3], U_dot[5] = {0};
     Tau_diagPrim(context, s, dXdx, dt, Tau_d);
@@ -241,8 +248,16 @@ CEED_QFUNCTION_HELPER int IFunction_Newtonian(void *ctx, CeedInt Q, const CeedSc
         Grad_v[k][j][i] = -wdetJ * (dXdx[k][0] * Flux[j][0] + dXdx[k][1] * Flux[j][1] + dXdx[k][2] * Flux[j][2]);
       }
     }
+// worked for exponential    const CeedScalar Amag=100.0;
+// worked for cubic    const CeedScalar Amag=200000.0;
+    const CeedScalar Amag=16000.0;
+//    const CeedScalar amsig = -1.0*(Amag - LinearRampCoefficient(Amag, 0.1, -0.1, x_i[0]))*Max(0.0,exp(-100.0*Min(0,qi[1]))-1.0);
+    const CeedScalar ux=qi[1];
+//cubic    const CeedScalar amsig = (Amag - LinearRampCoefficient(Amag, 0.1, -0.1, x_i[0]))*Min(0.0,ux*ux*ux);
+    const CeedScalar amsig = (Amag - LinearRampCoefficient(Amag, 0.1, -0.1, x_i[0]))*Min(0.0,ux);
+//    const CeedScalar amsig = 0.0;
 
-    const CeedScalar body_force[5] = {0, s.U.density * g[0], s.U.density * g[1], s.U.density * g[2], Dot3(s.U.momentum, g)};
+    const CeedScalar body_force[5] = {0, s.U.density * (g[0]-amsig), s.U.density * g[1], s.U.density * g[2], Dot3(s.U.momentum, g)};
 
     // -- Stabilization method: none (Galerkin), SU, or SUPG
     CeedScalar Tau_d[3], stab[5][3], U_dot[5] = {0}, qi_dot[5];
