@@ -5,9 +5,7 @@
 // SPDX-License-Identifier: BSD-2-Clause
 //
 // This file is part of CEED:  http://github.com/ceed
-
-#ifndef CEED_SYCL_REF_HPP
-#define CEED_SYCL_REF_HPP
+#pragma once
 
 #include <ceed/backend.h>
 #include <ceed/ceed.h>
@@ -131,5 +129,3 @@ CEED_INTERN int CeedQFunctionCreate_Sycl(CeedQFunction qf);
 CEED_INTERN int CeedQFunctionContextCreate_Sycl(CeedQFunctionContext ctx);
 
 CEED_INTERN int CeedOperatorCreate_Sycl(CeedOperator op);
-
-#endif  // CEED_SYCL_REF_HPP

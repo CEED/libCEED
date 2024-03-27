@@ -6,8 +6,7 @@
 // This file is part of CEED:  http://github.com/ceed
 
 // magma functions specific to ceed
-#ifndef CEED_MAGMA_H
-#define CEED_MAGMA_H
+#pragma once
 
 #include <ceed.h>
 #include <ceed/backend.h>
@@ -88,5 +87,3 @@ CEED_INTERN magma_int_t magma_isdevptr(const void *);
 
 // If magma and cuda/ref are using the null stream, then ceed_magma_queue_sync should do nothing
 #define ceed_magma_queue_sync(...)
-
-#endif  // CEED_MAGMA_H

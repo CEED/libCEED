@@ -4,10 +4,6 @@
 // SPDX-License-Identifier: BSD-2-Clause
 //
 // This file is part of CEED:  http://github.com/ceed
-
-#ifndef CEED_HIP_QFUNCTION_LOAD_H
-#define CEED_HIP_QFUNCTION_LOAD_H
+#pragma once
 
 CEED_INTERN int CeedQFunctionBuildKernel_Hip_ref(CeedQFunction qf);
-
-#endif  // CEED_HIP_QFUNCTION_LOAD_H

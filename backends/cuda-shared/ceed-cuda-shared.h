@@ -4,9 +4,7 @@
 // SPDX-License-Identifier: BSD-2-Clause
 //
 // This file is part of CEED:  http://github.com/ceed
-
-#ifndef CEED_CUDA_SHARED_H
-#define CEED_CUDA_SHARED_H
+#pragma once
 
 #include <ceed.h>
 #include <ceed/backend.h>
@@ -29,5 +27,3 @@ typedef struct {
 
 CEED_INTERN int CeedBasisCreateTensorH1_Cuda_shared(CeedInt dim, CeedInt P_1d, CeedInt Q_1d, const CeedScalar *interp_1d, const CeedScalar *grad_1d,
                                                     const CeedScalar *q_ref_1d, const CeedScalar *q_weight_1d, CeedBasis basis);
-
-#endif  // CEED_CUDA_SHARED_H

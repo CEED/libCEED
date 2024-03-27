@@ -4,10 +4,6 @@
 // SPDX-License-Identifier: BSD-2-Clause
 //
 // This file is part of CEED:  http://github.com/ceed
-
-#ifndef CEED_CUDA_GEN_OPERATOR_BUILD_H
-#define CEED_CUDA_GEN_OPERATOR_BUILD_H
+#pragma once
 
 CEED_INTERN int CeedOperatorBuildKernel_Cuda_gen(CeedOperator op);
-
-#endif  // CEED_CUDA_GEN_OPERATOR_BUILD_H

@@ -4,9 +4,7 @@
 // SPDX-License-Identifier: BSD-2-Clause
 //
 // This file is part of CEED:  http://github.com/ceed
-
-#ifndef CEED_CUDA_COMPILE_H
-#define CEED_CUDA_COMPILE_H
+#pragma once
 
 #include <ceed.h>
 #include <ceed/backend.h>
@@ -26,5 +24,3 @@ CEED_INTERN int CeedRunKernelDim_Cuda(Ceed ceed, CUfunction kernel, int grid_siz
 
 CEED_INTERN int CeedRunKernelDimShared_Cuda(Ceed ceed, CUfunction kernel, int grid_size, int block_size_x, int block_size_y, int block_size_z,
                                             int shared_mem_size, void **args);
-
-#endif  // CEED_CUDA_COMPILE_H

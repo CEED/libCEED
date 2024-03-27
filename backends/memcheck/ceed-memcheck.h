@@ -4,9 +4,7 @@
 // SPDX-License-Identifier: BSD-2-Clause
 //
 // This file is part of CEED:  http://github.com/ceed
-
-#ifndef CEED_MEMCHECK_H
-#define CEED_MEMCHECK_H
+#pragma once
 
 #include <ceed.h>
 #include <ceed/backend.h>
@@ -55,5 +53,3 @@ CEED_INTERN int CeedElemRestrictionCreate_Memcheck(CeedMemType mem_type, CeedCop
 CEED_INTERN int CeedQFunctionCreate_Memcheck(CeedQFunction qf);
 
 CEED_INTERN int CeedQFunctionContextCreate_Memcheck(CeedQFunctionContext ctx);
-
-#endif  // CEED_MEMCHECK_H

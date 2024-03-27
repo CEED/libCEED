@@ -4,9 +4,7 @@
 // SPDX-License-Identifier: BSD-2-Clause
 //
 // This file is part of CEED:  http://github.com/ceed
-
-#ifndef CEED_OPT_H
-#define CEED_OPT_H
+#pragma once
 
 #include <ceed.h>
 #include <ceed/backend.h>
@@ -40,5 +38,3 @@ typedef struct {
 CEED_INTERN int CeedTensorContractCreate_Opt(CeedTensorContract contract);
 
 CEED_INTERN int CeedOperatorCreate_Opt(CeedOperator op);
-
-#endif  // CEED_OPT_H

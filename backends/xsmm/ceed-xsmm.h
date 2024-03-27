@@ -4,13 +4,9 @@
 // SPDX-License-Identifier: BSD-2-Clause
 //
 // This file is part of CEED:  http://github.com/ceed
-
-#ifndef CEED_XSMM_H
-#define CEED_XSMM_H
+#pragma once
 
 #include <ceed.h>
 #include <ceed/backend.h>
 
 CEED_INTERN int CeedTensorContractCreate_Xsmm(CeedTensorContract contract);
-
-#endif  // CEED_XSMM_H

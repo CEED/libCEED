@@ -4,9 +4,7 @@
 // SPDX-License-Identifier: BSD-2-Clause
 //
 // This file is part of CEED:  http://github.com/ceed
-
-#ifndef CEED_CUDA_REF_H
-#define CEED_CUDA_REF_H
+#pragma once
 
 #include <ceed.h>
 #include <ceed/backend.h>
@@ -144,5 +142,3 @@ CEED_INTERN int CeedQFunctionCreate_Cuda(CeedQFunction qf);
 CEED_INTERN int CeedQFunctionContextCreate_Cuda(CeedQFunctionContext ctx);
 
 CEED_INTERN int CeedOperatorCreate_Cuda(CeedOperator op);
-
-#endif  // CEED_CUDA_REF_H
