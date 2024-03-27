@@ -6,11 +6,13 @@
 // This file is part of CEED:  http://github.com/ceed
 
 // Note: intentionally testing strange spacing in '#include's
+// clang-format off
 #include <ceed.h>
-#include <math.h>
+#  include  <math.h>
 
 #include "t406-qfunction-helper.h"
-#include "t406-qfunction-scales.h"
+#  include "t406-qfunction-scales.h"
+// clang-format on
 
 CEED_QFUNCTION(setup)(void *ctx, const CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
   const CeedScalar *w      = in[0];

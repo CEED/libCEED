@@ -110,9 +110,39 @@ static int CeedLoadSourceToInitializedBuffer_Private(Ceed ceed, const char *sour
   const char *first_hash = strchr(temp_buffer, '#');
 
   while (first_hash) {
-    // -- Check for 'include' keyword
-    const char *next_e     = strchr(first_hash, 'e');
+    // -- Check for 'pragma' keyword
+    const char *next_m     = strchr(first_hash, 'm');
     char        keyword[8] = "";
+
+    if (next_m && next_m - first_hash >= 5) memcpy(keyword, &next_m[-4], 6);
+    bool is_hash_pragma = !strcmp(keyword, "pragma");
+
+    // ---- Spaces allowed in '#  pragma'
+    if (next_m) {
+      for (CeedInt i = 1; first_hash - next_m + i < -5; i++) {
+        is_hash_pragma &= first_hash[i] == ' ';
+      }
+    }
+    if (is_hash_pragma) {
+      // -- Check if '#pragma once'
+      char *next_o         = strchr(first_hash, 'o');
+      char *next_new_line  = strchr(first_hash, '\n');
+      bool  is_pragma_once = next_o && (next_new_line - next_o > 0) && !strncmp(next_o, "once", 4);
+
+      // -- Copy into buffer, omitting last line if #pragma once
+      long current_size = strlen(*buffer);
+      long copy_size    = first_hash - &temp_buffer[file_offset] + (is_pragma_once ? 0 : (next_new_line - first_hash + 1));
+
+      CeedCall(CeedRealloc(current_size + copy_size + 2, buffer));
+      memcpy(&(*buffer)[current_size], "\n", 2);
+      memcpy(&(*buffer)[current_size + 1], &temp_buffer[file_offset], copy_size);
+      memcpy(&(*buffer)[current_size + copy_size], "", 1);
+
+      file_offset = strchr(first_hash, '\n') - temp_buffer + 1;
+    }
+
+    // -- Check for 'include' keyword
+    const char *next_e = strchr(first_hash, 'e');
 
     if (next_e && next_e - first_hash >= 7) memcpy(keyword, &next_e[-6], 7);
     bool is_hash_include = !strcmp(keyword, "include");
@@ -137,7 +167,7 @@ static int CeedLoadSourceToInitializedBuffer_Private(Ceed ceed, const char *sour
       char *next_new_line     = strchr(first_hash, '\n');
       bool  is_local_header   = is_hash_include && next_quote && (next_new_line - next_quote > 0);
       char *next_left_chevron = strchr(first_hash, '<');
-      bool  is_ceed_header    = is_hash_include && next_left_chevron && (next_new_line - next_left_chevron > 0) &&
+      bool  is_ceed_header    = next_left_chevron && (next_new_line - next_left_chevron > 0) &&
                             (!strncmp(next_left_chevron, "<ceed/jit-source/", 17) || !strncmp(next_left_chevron, "<ceed/types.h>", 14) ||
                              !strncmp(next_left_chevron, "<ceed/ceed-f32.h>", 17) || !strncmp(next_left_chevron, "<ceed/ceed-f64.h>", 17));
 
