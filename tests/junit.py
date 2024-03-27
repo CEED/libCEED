@@ -200,7 +200,8 @@ if __name__ == '__main__':
         test_framework = SmartSimTest(Path(__file__).parent / 'test_dir')
         test_framework.setup()
         test_cases = []
-        print(f'1..1')
+        if args.mode == RunMode.TAP:
+            print(f'1..1')
         is_new_subtest = True
         subtest_ok = True
         for i, backend in enumerate(args.ceed_backends):

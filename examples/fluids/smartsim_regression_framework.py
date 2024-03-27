@@ -36,6 +36,22 @@ class NoError(Exception):
     pass
 
 
+def assert_np_all(test, truth):
+    """Assert with better error reporting"""
+    try:
+        assert np.all(test == truth)
+    except Exception as e:
+        raise Exception(f"Expected {truth}, but got {test}") from e
+
+
+def assert_equal(test, truth):
+    """Assert with better error reporting"""
+    try:
+        assert test == truth
+    except Exception as e:
+        raise Exception(f"Expected {truth}, but got {test}") from e
+
+
 class SmartSimTest(object):
 
     def __init__(self, directory_path: Path):
@@ -66,8 +82,8 @@ class SmartSimTest(object):
     def test(self, ceed_resource) -> Tuple[bool, Exception, str]:
         client = None
         arguments = []
+        exe_path = "../../build/fluids-navierstokes"
         try:
-            exe_path = "../../build/fluids-navierstokes"
             arguments = [
                 '-ceed', ceed_resource,
                 '-options_file', (fluids_example_dir / 'blasius.yaml').as_posix(),
@@ -96,16 +112,16 @@ class SmartSimTest(object):
             client = Client(cluster=False, address=self.database.get_address()[0])
 
             assert client.poll_tensor("sizeInfo", 250, 5)
-            assert np.all(client.get_tensor("sizeInfo") == np.array([35, 12, 6, 1, 1, 0]))
+            assert_np_all(client.get_tensor("sizeInfo"), np.array([35, 12, 6, 1, 1, 0]))
 
             assert client.poll_tensor("check-run", 250, 5)
-            assert client.get_tensor("check-run")[0] == 1
+            assert_equal(client.get_tensor("check-run")[0], 1)
 
             assert client.poll_tensor("tensor-ow", 250, 5)
-            assert client.get_tensor("tensor-ow")[0] == 1
+            assert_equal(client.get_tensor("tensor-ow")[0], 1)
 
             assert client.poll_tensor("step", 250, 5)
-            assert client.get_tensor("step")[0] == 2
+            assert_equal(client.get_tensor("step")[0], 2)
 
             assert client.poll_tensor("y.0", 250, 5)
             test_data_path = fluids_example_dir / "tests-output/y0_output.npy"
