@@ -84,13 +84,15 @@ PetscErrorCode CeedDataDestroy(CeedInt level, CeedData data) {
 
 // Utility function to create local CEED restriction from DMPlex
 PetscErrorCode CreateRestrictionFromPlex(Ceed ceed, DM dm, CeedInt height, DMLabel domain_label, CeedInt value, CeedElemRestriction *elem_restr) {
-  PetscInt num_elem, elem_size, num_dof, num_comp, *elem_restr_offsets;
+  PetscInt num_elem, elem_size, num_dof, num_comp, *elem_restr_offsets_petsc;
+  CeedInt *elem_restr_offsets_ceed;
 
   PetscFunctionBeginUser;
-  PetscCall(DMPlexGetLocalOffsets(dm, domain_label, value, height, 0, &num_elem, &elem_size, &num_comp, &num_dof, &elem_restr_offsets));
+  PetscCall(DMPlexGetLocalOffsets(dm, domain_label, value, height, 0, &num_elem, &elem_size, &num_comp, &num_dof, &elem_restr_offsets_petsc));
 
-  CeedElemRestrictionCreate(ceed, num_elem, elem_size, num_comp, 1, num_dof, CEED_MEM_HOST, CEED_COPY_VALUES, elem_restr_offsets, elem_restr);
-  PetscCall(PetscFree(elem_restr_offsets));
+  PetscCall(IntArrayPetscToCeed(num_elem * elem_size, &elem_restr_offsets_petsc, &elem_restr_offsets_ceed));
+  CeedElemRestrictionCreate(ceed, num_elem, elem_size, num_comp, 1, num_dof, CEED_MEM_HOST, CEED_COPY_VALUES, elem_restr_offsets_ceed, elem_restr);
+  PetscCall(PetscFree(elem_restr_offsets_ceed));
 
   PetscFunctionReturn(PETSC_SUCCESS);
 };
@@ -98,9 +100,9 @@ PetscErrorCode CreateRestrictionFromPlex(Ceed ceed, DM dm, CeedInt height, DMLab
 // Utility function to get Ceed Restriction for each domain
 PetscErrorCode GetRestrictionForDomain(Ceed ceed, DM dm, CeedInt height, DMLabel domain_label, PetscInt value, CeedInt Q, CeedInt q_data_size,
                                        CeedElemRestriction *elem_restr_q, CeedElemRestriction *elem_restr_x, CeedElemRestriction *elem_restr_qd_i) {
-  DM      dm_coord;
-  CeedInt dim, num_local_elem;
-  CeedInt Q_dim;
+  DM       dm_coord;
+  CeedInt  num_local_elem, Q_dim;
+  PetscInt dim;
 
   PetscFunctionBeginUser;
 
@@ -130,13 +132,13 @@ PetscErrorCode SetupLibceedFineLevel(DM dm, DM dm_energy, DM dm_diagnostic, Ceed
                                      CeedVector force_ceed, CeedVector neumann_ceed, CeedData *data) {
   CeedInt            P = app_ctx->level_degrees[fine_level] + 1;
   CeedInt            Q = app_ctx->level_degrees[fine_level] + 1 + app_ctx->q_extra;
-  CeedInt            dim, num_comp_x, num_comp_e = 1, num_comp_d = 5;
+  CeedInt            num_comp_x, num_comp_e = 1, num_comp_d = 5;
   CeedInt            num_qpts;
   CeedInt            q_data_size    = problem_data.q_data_size;
   forcingType        forcing_choice = app_ctx->forcing_choice;
   DM                 dm_coord;
   Vec                coords;
-  PetscInt           c_start, c_end, num_elem;
+  PetscInt           c_start, c_end, num_elem, dim;
   const PetscScalar *coordArray;
   CeedVector         x_coord;
   CeedQFunction      qf_setup_geo, qf_residual, qf_jacobian, qf_energy, qf_diagnostic;
@@ -500,7 +502,7 @@ PetscErrorCode SetupLibceedLevel(DM dm, Ceed ceed, AppCtx app_ctx, ProblemData p
   CeedInt      fine_level = app_ctx->num_levels - 1;
   CeedInt      P          = app_ctx->level_degrees[level] + 1;
   CeedInt      Q          = app_ctx->level_degrees[fine_level] + 1 + app_ctx->q_extra;
-  CeedInt      dim;
+  PetscInt     dim;
   CeedOperator op_jacobian, op_prolong, op_restrict;
 
   PetscFunctionBeginUser;

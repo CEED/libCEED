@@ -91,7 +91,7 @@ PetscErrorCode DMSwarmCeedContextCreate(DM dm_swarm, const char *ceed_resource, 
 
       {
         Vec                X_loc;
-        CeedInt            len;
+        PetscInt           len;
         const PetscScalar *x;
 
         PetscCall(DMGetCoordinatesLocal(dm_mesh, &X_loc));
@@ -588,7 +588,8 @@ PetscErrorCode SetupProblemSwarm(DM dm_swarm, Ceed ceed, BPData bp_data, CeedDat
   CeedElemRestriction elem_restr_u_mesh, elem_restr_x_mesh, elem_restr_x_points, elem_restr_u_points, elem_restr_q_data_points;
   CeedBasis           basis_u, basis_x;
   CeedVector          x_coord, x_ref_points, q_data_points;
-  CeedInt             num_comp, q_data_size = bp_data.q_data_size, dim, X_loc_len;
+  PetscInt            X_loc_len, dim;
+  CeedInt             num_comp, q_data_size = bp_data.q_data_size;
   CeedScalar          R = 1;                         // radius of the sphere
   CeedScalar          l = 1.0 / PetscSqrtReal(3.0);  // half edge of the inscribed cube
   Vec                 X_loc;

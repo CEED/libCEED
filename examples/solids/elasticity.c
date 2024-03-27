@@ -307,11 +307,12 @@ int main(int argc, char **argv) {
   // Print problem summary
   // ---------------------------------------------------------------------------
   if (!app_ctx->test_mode) {
-    const char *usedresource;
-    CeedGetResource(ceed, &usedresource);
-    char hostname[PETSC_MAX_PATH_LEN];
+    char        hostname[PETSC_MAX_PATH_LEN];
+    const char *used_resource;
+    PetscMPIInt comm_size;
+
+    CeedGetResource(ceed, &used_resource);
     PetscCall(PetscGetHostName(hostname, sizeof hostname));
-    PetscInt comm_size;
     PetscCall(MPI_Comm_size(comm, &comm_size));
 
     PetscCall(PetscPrintf(comm,
@@ -322,7 +323,7 @@ int main(int argc, char **argv) {
                           "  libCEED:\n"
                           "    libCEED Backend                    : %s\n"
                           "    libCEED Backend MemType            : %s\n",
-                          hostname, comm_size, usedresource, CeedMemTypes[mem_type_backend]));
+                          hostname, comm_size, used_resource, CeedMemTypes[mem_type_backend]));
 
     VecType vecType;
     PetscCall(VecGetType(U, &vecType));
@@ -337,14 +338,14 @@ int main(int argc, char **argv) {
                           "    Forcing Function                   : %s\n"
                           "  Mesh:\n"
                           "    File                               : %s\n"
-                          "    Number of 1D Basis Nodes (p)       : %" CeedInt_FMT "\n"
-                          "    Number of 1D Quadrature Points (q) : %" CeedInt_FMT "\n"
+                          "    Number of 1D Basis Nodes (p)       : %" PetscInt_FMT "\n"
+                          "    Number of 1D Quadrature Points (q) : %" PetscInt_FMT "\n"
                           "    Global nodes                       : %" PetscInt_FMT "\n"
                           "    Owned nodes                        : %" PetscInt_FMT "\n"
                           "    DoF per node                       : %" PetscInt_FMT "\n"
                           "  Multigrid:\n"
                           "    Type                               : %s\n"
-                          "    Number of Levels                   : %" CeedInt_FMT "\n",
+                          "    Number of Levels                   : %" PetscInt_FMT "\n",
                           app_ctx->name_for_disp, forcing_types_for_disp[app_ctx->forcing_choice],
                           app_ctx->mesh_file[0] ? app_ctx->mesh_file : "Box Mesh", app_ctx->degree + 1, app_ctx->degree + 1,
                           U_g_size[fine_level] / num_comp_u, U_l_size[fine_level] / num_comp_u, num_comp_u,
@@ -354,10 +355,11 @@ int main(int argc, char **argv) {
 
     if (app_ctx->multigrid_choice != MULTIGRID_NONE) {
       for (PetscInt i = 0; i < 2; i++) {
-        CeedInt level = i ? fine_level : 0;
+        PetscInt level = i ? fine_level : 0;
+
         PetscCall(PetscPrintf(comm,
                               "    Level %" PetscInt_FMT " (%s):\n"
-                              "      Number of 1D Basis Nodes (p)     : %" CeedInt_FMT "\n"
+                              "      Number of 1D Basis Nodes (p)     : %" PetscInt_FMT "\n"
                               "      Global Nodes                     : %" PetscInt_FMT "\n"
                               "      Owned Nodes                      : %" PetscInt_FMT "\n",
                               level, i ? "fine" : "coarse", app_ctx->level_degrees[level] + 1, U_g_size[level] / num_comp_u,
@@ -434,17 +436,21 @@ int main(int argc, char **argv) {
 
     if (app_ctx->degree > 1) {
       // -- Assemble sparsity pattern
-      PetscCount num_entries;
-      CeedInt   *rows, *cols;
-      CeedVector coo_values;
-      CeedOperatorLinearAssembleSymbolic(ceed_data[0]->op_jacobian, &num_entries, &rows, &cols);
+      PetscCount             num_entries;
+      PetscInt              *rows_petsc, *cols_petsc;
+      CeedInt               *rows_ceed, *cols_ceed;
+      CeedVector             coo_values;
       ISLocalToGlobalMapping ltog_row, ltog_col;
+
+      CeedOperatorLinearAssembleSymbolic(ceed_data[0]->op_jacobian, &num_entries, &rows_ceed, &cols_ceed);
+      PetscCall(IntArrayCeedToPetsc(num_entries, &rows_ceed, &rows_petsc));
+      PetscCall(IntArrayCeedToPetsc(num_entries, &cols_ceed, &cols_petsc));
       PetscCall(MatGetLocalToGlobalMapping(jacob_mat_coarse, &ltog_row, &ltog_col));
-      PetscCall(ISLocalToGlobalMappingApply(ltog_row, num_entries, rows, rows));
-      PetscCall(ISLocalToGlobalMappingApply(ltog_col, num_entries, cols, cols));
-      PetscCall(MatSetPreallocationCOO(jacob_mat_coarse, num_entries, rows, cols));
-      free(rows);
-      free(cols);
+      PetscCall(ISLocalToGlobalMappingApply(ltog_row, num_entries, rows_petsc, rows_petsc));
+      PetscCall(ISLocalToGlobalMappingApply(ltog_col, num_entries, cols_petsc, cols_petsc));
+      PetscCall(MatSetPreallocationCOO(jacob_mat_coarse, num_entries, rows_petsc, cols_petsc));
+      free(rows_petsc);
+      free(cols_petsc);
       CeedVectorCreate(ceed, num_entries, &coo_values);
 
       // -- Update form_jacob_ctx

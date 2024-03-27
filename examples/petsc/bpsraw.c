@@ -74,9 +74,9 @@ static PetscInt GlobalStart(const PetscInt p[3], const PetscInt i_rank[3], Petsc
   }
   return -1;
 }
-static PetscErrorCode CreateRestriction(Ceed ceed, const CeedInt mesh_elem[3], CeedInt P, CeedInt num_comp, CeedElemRestriction *elem_restr) {
+static PetscErrorCode CreateRestriction(Ceed ceed, const PetscInt mesh_elem[3], CeedInt P, CeedInt num_comp, CeedElemRestriction *elem_restr) {
   const PetscInt num_elem = mesh_elem[0] * mesh_elem[1] * mesh_elem[2];
-  PetscInt       m_nodes[3], *idx, *idx_p;
+  CeedInt        m_nodes[3], *idx, *idx_p;
 
   PetscFunctionBeginUser;
   // Get indicies
@@ -442,7 +442,8 @@ int main(int argc, char **argv) {
   CeedInit(ceed_resource, &ceed);
 
   // Print summary
-  CeedInt gsize;
+  PetscInt gsize;
+
   PetscCall(VecGetSize(X, &gsize));
   if (!test_mode) {
     const char *used_resource;
@@ -554,12 +555,14 @@ int main(int argc, char **argv) {
   PetscCall(CreateRestriction(ceed, mesh_elem, P, num_comp_u, &elem_restr_u));
   PetscCall(CreateRestriction(ceed, mesh_elem, 2, dim, &elem_restr_x));
   CeedInt num_elem = mesh_elem[0] * mesh_elem[1] * mesh_elem[2];
+
   CeedElemRestrictionCreateStrided(ceed, num_elem, Q * Q * Q, num_comp_u, num_comp_u * num_elem * Q * Q * Q, CEED_STRIDES_BACKEND, &elem_restr_u_i);
   CeedElemRestrictionCreateStrided(ceed, num_elem, Q * Q * Q, bp_options[bp_choice].q_data_size,
                                    bp_options[bp_choice].q_data_size * num_elem * Q * Q * Q, CEED_STRIDES_BACKEND, &elem_restr_qd_i);
   {
     CeedScalar *x_loc;
     CeedInt     shape[3] = {mesh_elem[0] + 1, mesh_elem[1] + 1, mesh_elem[2] + 1}, len = shape[0] * shape[1] * shape[2];
+
     x_loc = malloc(len * num_comp_x * sizeof x_loc[0]);
     for (CeedInt i = 0; i < shape[0]; i++) {
       for (CeedInt j = 0; j < shape[1]; j++) {

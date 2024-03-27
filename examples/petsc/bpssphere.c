@@ -159,9 +159,9 @@ int main(int argc, char **argv) {
                           "    libCEED Backend                         : %s\n"
                           "    libCEED Backend MemType                 : %s\n"
                           "  Mesh:\n"
-                          "    Solution Order (P)                      : %" CeedInt_FMT "\n"
-                          "    Quadrature  Order (Q)                   : %" CeedInt_FMT "\n"
-                          "    Additional quadrature points (q_extra)  : %" CeedInt_FMT "\n"
+                          "    Solution Order (P)                      : %" PetscInt_FMT "\n"
+                          "    Quadrature  Order (Q)                   : %" PetscInt_FMT "\n"
+                          "    Additional quadrature points (q_extra)  : %" PetscInt_FMT "\n"
                           "    Global nodes                            : %" PetscInt_FMT "\n",
                           bp_choice + 1, ceed_resource, CeedMemTypes[mem_type_backend], P, Q, q_extra, g_size / num_comp_u));
   }

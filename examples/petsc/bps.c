@@ -134,9 +134,9 @@ static PetscErrorCode RunWithDM(RunParams rp, DM dm, const char *ceed_resource) 
                           "    libCEED Backend                         : %s\n"
                           "    libCEED Backend MemType                 : %s\n"
                           "  Mesh:\n"
-                          "    Solution Order (P)                      : %" CeedInt_FMT "\n"
-                          "    Quadrature  Order (Q)                   : %" CeedInt_FMT "\n"
-                          "    Additional quadrature points (q_extra)  : %" CeedInt_FMT "\n"
+                          "    Solution Order (P)                      : %" PetscInt_FMT "\n"
+                          "    Quadrature  Order (Q)                   : %" PetscInt_FMT "\n"
+                          "    Additional quadrature points (q_extra)  : %" PetscInt_FMT "\n"
                           "    Global nodes                            : %" PetscInt_FMT "\n"
                           "    Local Elements                          : %" PetscInt_FMT "\n"
                           "    Element topology                        : %s\n"
@@ -334,13 +334,13 @@ static PetscErrorCode Run(RunParams rp, PetscInt num_resources, char *const *cee
 }
 
 int main(int argc, char **argv) {
-  PetscInt  comm_size;
-  RunParams rp;
-  MPI_Comm  comm;
-  char      filename[PETSC_MAX_PATH_LEN];
-  char     *ceed_resources[30];
-  PetscInt  num_ceed_resources = 30;
-  char      hostname[PETSC_MAX_PATH_LEN];
+  PetscMPIInt comm_size;
+  RunParams   rp;
+  MPI_Comm    comm;
+  char        filename[PETSC_MAX_PATH_LEN];
+  char       *ceed_resources[30];
+  PetscInt    num_ceed_resources = 30;
+  char        hostname[PETSC_MAX_PATH_LEN];
 
   PetscInt    dim = 3, mesh_elem[3] = {3, 3, 3};
   PetscInt    num_degrees = 30, degree[30] = {0}, num_local_nodes = 2, local_nodes[2] = {0};
@@ -356,6 +356,7 @@ int main(int argc, char **argv) {
 #if defined(PETSC_HAVE_MPI_PROCESS_SHARED_MEMORY)
   {
     MPI_Comm splitcomm;
+
     PetscCall(MPI_Comm_split_type(comm, MPI_COMM_TYPE_SHARED, 0, MPI_INFO_NULL, &splitcomm));
     PetscCall(MPI_Comm_size(splitcomm, &ranks_per_node));
     PetscCall(MPI_Comm_free(&splitcomm));
