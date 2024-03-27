@@ -24,7 +24,6 @@ ts:
   max_steps: 100
   dt: 2e-3
   type: alpha
-  alpha_radius: 0.5
   #monitor_solution: cgns:nwave.cgns
   #monitor_solution_interval: 10
 
