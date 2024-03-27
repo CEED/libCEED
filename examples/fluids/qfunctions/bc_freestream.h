@@ -43,14 +43,7 @@ CEED_QFUNCTION_HELPER int Freestream(void *ctx, CeedInt Q, const CeedScalar *con
         flux = RiemannFlux_HLL(newt_ctx, s, context->S_infty, norm);
         break;
       case RIEMANN_HLLC:
-        {
-          CeedScalar       qb[3]    = {q[1][i], q[2][i], q[3][i]};
-          const CeedScalar q_normal = Dot3(qb, norm);
-          for (CeedInt j = 0; j < 3; j++) qb[j] -= 2. * norm[j] * q_normal;
-          const CeedScalar qr[5]     = {q[0][i], qb[0], qb[1], qb[2], q[4][i]};
-          State            s_reflect = StateFromQ(newt_ctx, qr, state_var);
-          flux                       = RiemannFlux_HLLC(newt_ctx, s, s_reflect, norm);
-        }
+        flux = RiemannFlux_HLLC(newt_ctx, s, context->S_infty, norm);
         break;
     }
     CeedScalar Flux[5];
@@ -109,20 +102,7 @@ CEED_QFUNCTION_HELPER int Freestream_Jacobian(void *ctx, CeedInt Q, const CeedSc
         dflux = RiemannFlux_HLL_fwd(newt_ctx, s, ds, context->S_infty, dS_infty, norm);
         break;
       case RIEMANN_HLLC:
-        {
-          CeedScalar qb[3]    = {qi[1], qi[2], qi[3]};
-          CeedScalar q_normal = Dot3(qb, norm);
-          for (CeedInt j = 0; j < 3; j++) qb[j] -= 2. * norm[j] * q_normal;
-          CeedScalar qr[5]     = {qi[0], qb[0], qb[1], qb[2], qi[4]};
-          State      s_reflect = StateFromQ(newt_ctx, qr, state_var);
-          // repeat for ds
-          CeedScalar dqb[3]    = {dqi[1], dqi[2], dqi[3]};
-          CeedScalar dq_normal = Dot3(dqb, norm);
-          for (CeedInt j = 0; j < 3; j++) dqb[j] -= 2. * norm[j] * dq_normal;
-          CeedScalar dqr[5]     = {dqi[0], dqb[0], dqb[1], dqb[2], dqi[4]};
-          State      ds_reflect = StateFromQ_fwd(newt_ctx, s_reflect, dqr, state_var);
-          dflux                 = RiemannFlux_HLLC_fwd(newt_ctx, s, ds, s_reflect, ds_reflect, norm);
-        }
+        dflux = RiemannFlux_HLLC_fwd(newt_ctx, s, ds, context->S_infty, dS_infty, norm);
         break;
     }
     CeedScalar dFlux[5];
@@ -169,7 +149,9 @@ CEED_QFUNCTION_HELPER CeedScalar Softplus_fwd(CeedScalar x, CeedScalar dx, CeedS
 // Viscous Outflow boundary condition, setting a constant exterior pressure and
 // temperature as input for a Riemann solve. This condition is stable even in
 // recirculating flow so long as the exterior temperature is sensible.
-// // The velocity in the exterior state has optional softplus regularization to // keep it outflow. These parameters have been finnicky in practice and provide
+//
+// The velocity in the exterior state has optional softplus regularization to
+// keep it outflow. These parameters have been finnicky in practice and provide
 // little or no benefit in the tests we've run thus far, thus we recommend
 // skipping this feature and just allowing recirculation.
 CEED_QFUNCTION_HELPER int RiemannOutflow(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out, StateVariable state_var) {
