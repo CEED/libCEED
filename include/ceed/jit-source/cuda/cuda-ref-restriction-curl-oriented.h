@@ -7,8 +7,6 @@
 
 /// @file
 /// Internal header for CUDA curl-oriented element restriction kernels
-#ifndef CEED_CUDA_REF_RESTRICTION_CURL_ORIENTED_H
-#define CEED_CUDA_REF_RESTRICTION_CURL_ORIENTED_H
 
 #include <ceed.h>
 
@@ -177,7 +175,3 @@ extern "C" __global__ void CurlOrientedUnsignedTranspose(const CeedInt *__restri
   }
 }
 #endif
-
-//------------------------------------------------------------------------------
-
-#endif  // CEED_CUDA_REF_RESTRICTION_CURL_ORIENTED_H

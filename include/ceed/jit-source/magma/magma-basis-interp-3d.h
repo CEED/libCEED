@@ -7,8 +7,6 @@
 
 /// @file
 /// Internal header for MAGMA tensor basis interpolation in 3D
-#ifndef CEED_MAGMA_BASIS_INTERP_3D_H
-#define CEED_MAGMA_BASIS_INTERP_3D_H
 
 #include "magma-common-tensor.h"
 
@@ -174,5 +172,3 @@ extern "C" __launch_bounds__(MAGMA_BASIS_BOUNDS(BASIS_MAX_P_Q *BASIS_MAX_P_Q, MA
   // write V
   write_V_3d<CeedScalar, BASIS_P, 1, BASIS_NUM_COMP, BASIS_P, 0>(dV, cstrdV, rV, tx);
 }
-
-#endif  // CEED_MAGMA_BASIS_INTERP_3D_H

@@ -7,8 +7,6 @@
 
 /// @file
 /// Internal header for CUDA operator full assembly
-#ifndef CEED_CUDA_REF_OPERATOR_ASSEMBLE_H
-#define CEED_CUDA_REF_OPERATOR_ASSEMBLE_H
 
 #include <ceed.h>
 
@@ -106,7 +104,3 @@ extern "C" __launch_bounds__(BLOCK_SIZE) __global__
     }    // end of in component
   }      // end of element loop
 }
-
-//------------------------------------------------------------------------------
-
-#endif  // CEED_CUDA_REF_OPERATOR_ASSEMBLE_H

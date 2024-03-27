@@ -7,9 +7,6 @@
 
 /// @file
 /// Internal header for CUDA operator diagonal assembly
-#ifndef CEED_CUDA_REF_OPERATOR_ASSEMBLE_DIAGONAL_H
-#define CEED_CUDA_REF_OPERATOR_ASSEMBLE_DIAGONAL_H
-
 #include <ceed.h>
 
 #if USE_CEEDSIZE
@@ -117,7 +114,3 @@ extern "C" __launch_bounds__(BLOCK_SIZE) __global__
     }
   }
 }
-
-//------------------------------------------------------------------------------
-
-#endif  // CEED_CUDA_REF_OPERATOR_ASSEMBLE_DIAGONAL_H

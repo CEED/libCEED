@@ -7,8 +7,6 @@
 
 /// @file
 /// Internal header for MAGMA non-tensor basis weight
-#ifndef CEED_MAGMA_BASIS_WEIGHT_NONTENSOR_H
-#define CEED_MAGMA_BASIS_WEIGHT_NONTENSOR_H
 
 #include "magma-common-nontensor.h"
 
@@ -44,5 +42,3 @@ extern "C" __launch_bounds__(MAGMA_BASIS_BOUNDS(BASIS_Q, MAGMA_MAXTHREADS_1D)) _
   // write V
   dV[tx] = sV[tx];
 }
-
-#endif  // CEED_MAGMA_BASIS_WEIGHT_NONTENSOR_H

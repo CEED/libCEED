@@ -7,8 +7,6 @@
 
 /// @file
 /// Internal header for MAGMA tensor basis weight in 2D
-#ifndef CEED_MAGMA_BASIS_WEIGHT_2D_H
-#define CEED_MAGMA_BASIS_WEIGHT_2D_H
 
 #include "magma-common-tensor.h"
 
@@ -65,5 +63,3 @@ extern "C" __launch_bounds__(MAGMA_BASIS_BOUNDS(BASIS_Q, MAGMA_MAXTHREADS_2D)) _
     }
   }
 }
-
-#endif  // CEED_MAGMA_BASIS_WEIGHT_2D_H

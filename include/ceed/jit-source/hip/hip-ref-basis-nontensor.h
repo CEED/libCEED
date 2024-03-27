@@ -7,8 +7,6 @@
 
 /// @file
 /// Internal header for HIP non-tensor product basis
-#ifndef CEED_HIP_REF_BASIS_NONTENSOR_H
-#define CEED_HIP_REF_BASIS_NONTENSOR_H
 
 #include <ceed.h>
 
@@ -67,7 +65,3 @@ extern "C" __global__ void Weight(const CeedInt num_elem, const CeedScalar *__re
     d_V[elem * BASIS_Q + t_id] = q_weight[t_id];
   }
 }
-
-//------------------------------------------------------------------------------
-
-#endif  // CEED_HIP_REF_BASIS_NONTENSOR_H

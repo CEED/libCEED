@@ -7,8 +7,6 @@
 
 /// @file
 /// Internal header for HIP operator diagonal assembly
-#ifndef CEED_HIP_REF_OPERATOR_ASSEMBLE_DIAGONAL_H
-#define CEED_HIP_REF_OPERATOR_ASSEMBLE_DIAGONAL_H
 
 #include <ceed.h>
 
@@ -117,7 +115,3 @@ extern "C" __launch_bounds__(BLOCK_SIZE) __global__
     }
   }
 }
-
-//------------------------------------------------------------------------------
-
-#endif  // CEED_HIP_REF_OPERATOR_ASSEMBLE_DIAGONAL_H

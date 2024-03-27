@@ -7,8 +7,6 @@
 
 /// @file
 /// Internal header for CUDA oriented element restriction kernels
-#ifndef CEED_CUDA_REF_RESTRICTION_ORIENTED_H
-#define CEED_CUDA_REF_RESTRICTION_ORIENTED_H
 
 #include <ceed.h>
 
@@ -75,7 +73,3 @@ extern "C" __global__ void OrientedTranspose(const CeedInt *__restrict__ l_vec_i
   }
 }
 #endif
-
-//------------------------------------------------------------------------------
-
-#endif  // CEED_CUDA_REF_RESTRICTION_ORIENTED_H

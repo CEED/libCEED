@@ -7,8 +7,6 @@
 
 /// @file
 /// Internal header for HIP tensor product basis
-#ifndef CEED_HIP_REF_BASIS_TENSOR_H
-#define CEED_HIP_REF_BASIS_TENSOR_H
 
 #include <ceed.h>
 
@@ -200,7 +198,3 @@ extern "C" __global__ void Weight(const CeedInt num_elem, const CeedScalar *__re
   else if (BASIS_DIM == 2) Weight2d(num_elem, q_weight_1d, v);
   else if (BASIS_DIM == 3) Weight3d(num_elem, q_weight_1d, v);
 }
-
-//------------------------------------------------------------------------------
-
-#endif  // CEED_HIP_REF_BASIS_TENSOR_H

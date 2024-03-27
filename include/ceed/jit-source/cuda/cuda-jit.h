@@ -7,8 +7,6 @@
 
 /// @file
 /// Internal header for CUDA backend macro and type definitions for JiT source
-#ifndef CEED_CUDA_JIT_H
-#define CEED_CUDA_JIT_H
 
 #define CEED_QFUNCTION(name) inline __device__ int name
 #define CEED_QFUNCTION_HELPER inline __device__
@@ -16,5 +14,3 @@
 #define CEED_Q_VLA 1
 
 #include "cuda-types.h"
-
-#endif  // CEED_CUDA_JIT_H
