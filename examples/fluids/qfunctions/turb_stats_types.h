@@ -6,7 +6,7 @@
 // This file is part of CEED:  http://github.com/ceed
 #pragma once
 
-#include "./newtonian_types.h"
+#include "newtonian_types.h"
 
 enum TurbComponent {
   TURB_MEAN_DENSITY,
