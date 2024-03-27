@@ -125,7 +125,7 @@ CEED_QFUNCTION(Channel_Inflow)(void *ctx, CeedInt Q, const CeedScalar *const *in
     //     e_potential = dot(g, x) = 0
     const CeedScalar x[3] = {0, X[1][i], X[2][i]};
 
-    // Calcualte prescribed inflow values
+    // Calculate prescribed inflow values
     State      s_exact    = Exact_Channel(3, 0., x, 5, ctx);
     CeedScalar q_exact[5] = {0.};
     UnpackState_U(s_exact.U, q_exact);
