@@ -7,7 +7,6 @@
 
 /// @file
 /// Operator for Navier-Stokes example using PETSc
-
 #include <ceed.h>
 #include <math.h>
 

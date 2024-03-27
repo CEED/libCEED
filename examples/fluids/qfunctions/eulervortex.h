@@ -11,7 +11,6 @@
 
 // Model from:
 //   On the Order of Accuracy and Numerical Performance of Two Classes of Finite Volume WENO Schemes, Zhang, Zhang, and Shu (2011).
-
 #include <ceed.h>
 #include <math.h>
 

@@ -7,7 +7,6 @@
 
 /// @file
 /// Advection initial condition and operator for Navier-Stokes example using PETSc
-
 #include <ceed.h>
 #include <math.h>
 

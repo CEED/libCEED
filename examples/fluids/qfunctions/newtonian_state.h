@@ -7,9 +7,7 @@
 
 /// @file
 /// Structs and helper functions regarding the state of a newtonian simulation
-
-#ifndef newtonian_state_h
-#define newtonian_state_h
+#pragma once
 
 #include <ceed.h>
 #include <math.h>
@@ -416,5 +414,3 @@ CEED_QFUNCTION_HELPER void StatePhysicalGradientFromReference_Boundary(CeedInt Q
     grad_s[k] = StateFromQ_fwd(gas, s, dqi, state_var);
   }
 }
-
-#endif  // newtonian_state_h

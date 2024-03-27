@@ -7,7 +7,6 @@
 
 /// @file
 /// Mass operator for Navier-Stokes example using PETSc
-
 #include <ceed.h>
 #include <math.h>
 

@@ -11,7 +11,6 @@
 // Model from:
 //   Semi-Implicit Formulations of the Navier-Stokes Equations: Application to
 //   Nonhydrostatic Atmospheric Modeling, Giraldo, Restelli, and Lauter (2010).
-
 #include <ceed.h>
 #include <math.h>
 

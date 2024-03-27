@@ -4,9 +4,7 @@
 // SPDX-License-Identifier: BSD-2-Clause
 //
 // This file is part of CEED:  http://github.com/ceed
-
-#ifndef turb_stats_types_h
-#define turb_stats_types_h
+#pragma once
 
 #include "./newtonian_types.h"
 
@@ -42,5 +40,3 @@ struct Turbulence_SpanStatsContext_ {
   CeedScalar                       previous_time;
   struct NewtonianIdealGasContext_ gas;
 };
-
-#endif  // turb_stats_types_h

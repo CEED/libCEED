@@ -7,7 +7,6 @@
 
 /// @file
 /// QFunctions for the `bc_slip` boundary conditions
-
 #include "bc_freestream_type.h"
 #include "newtonian_state.h"
 #include "newtonian_types.h"

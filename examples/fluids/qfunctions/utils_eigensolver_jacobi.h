@@ -7,9 +7,7 @@
 
 /// @file
 /// Eigen system solver for symmetric NxN matrices. Modified from the CC0 code provided at https://github.com/jewettaij/jacobi_pd
-
-#ifndef utils_eigensolver_jacobi_h
-#define utils_eigensolver_jacobi_h
+#pragma once
 
 #include <ceed.h>
 #include <math.h>
@@ -323,5 +321,3 @@ CEED_QFUNCTION_HELPER CeedInt Diagonalize3(CeedScalar A[3][3], CeedScalar eval[3
                                            SortCriteria sort_criteria, bool calc_evec, const CeedInt max_num_sweeps) {
   return Diagonalize((CeedScalar *)A, 3, (CeedScalar *)eval, (CeedScalar *)evec, (CeedInt *)max_idx_row, sort_criteria, calc_evec, max_num_sweeps);
 }
-
-#endif  // utils_eigensolver_jacobi_h

@@ -9,9 +9,7 @@
 /// Structs and helper functions for data-driven subgrid-stress modeling
 /// See 'Invariant data-driven subgrid stress modeling in the strain-rate eigenframe for large eddy simulation' 2022 and 'S-frame discrepancy
 /// correction models for data-informed Reynolds stress closure' 2022
-
-#ifndef sgs_dd_utils_h
-#define sgs_dd_utils_h
+#pragma once
 
 #include <ceed.h>
 
@@ -131,5 +129,3 @@ CEED_QFUNCTION_HELPER void ComputeSgsDDOutputs(CeedScalar outputs[6], const Ceed
 
   KMPack(sgs_stress, kmsgs_stress);
 }
-
-#endif  // sgs_dd_utils_h

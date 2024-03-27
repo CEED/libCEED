@@ -4,9 +4,6 @@
 // SPDX-License-Identifier: BSD-2-Clause
 //
 // This file is part of CEED:  http://github.com/ceed
-
-/// @file
-
 #include <ceed.h>
 
 // @brief Calculate the inverse of the multiplicity, reducing to a single component

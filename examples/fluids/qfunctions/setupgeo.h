@@ -7,7 +7,6 @@
 
 /// @file
 /// Geometric factors (3D) for Navier-Stokes example using PETSc
-
 #include <ceed.h>
 #include <math.h>
 

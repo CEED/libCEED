@@ -9,7 +9,6 @@
 /// Structs and helper functions to evaluate data-driven subgrid-stress modeling
 /// See 'Invariant data-driven subgrid stress modeling in the strain-rate eigenframe for large eddy simulation' 2022 and 'S-frame discrepancy
 /// correction models for data-informed Reynolds stress closure' 2022
-
 #include <ceed.h>
 
 #include "newtonian_state.h"
