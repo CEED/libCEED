@@ -109,6 +109,7 @@ CEED_QFUNCTION(RHSFunction_Newtonian)(void *ctx, CeedInt Q, const CeedScalar *co
   const CeedScalar(*q)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[0];
   const CeedScalar(*Grad_q)        = in[1];
   const CeedScalar(*q_data)        = in[2];
+  const CeedScalar(*x)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[4];
 
   // Outputs
   CeedScalar(*v)[CEED_Q_VLA]         = (CeedScalar(*)[CEED_Q_VLA])out[0];
@@ -118,10 +119,12 @@ CEED_QFUNCTION(RHSFunction_Newtonian)(void *ctx, CeedInt Q, const CeedScalar *co
   NewtonianIdealGasContext context = (NewtonianIdealGasContext)ctx;
   const CeedScalar        *g       = context->g;
   const CeedScalar         dt      = context->dt;
+  const CeedScalar         P0      = context->P0;
 
   // Quadrature Point Loop
   CeedPragmaSIMD for (CeedInt i = 0; i < Q; i++) {
     CeedScalar U[5], wdetJ, dXdx[3][3];
+    const CeedScalar x_i[3] = {x[0][i], x[1][i], x[2][i]};
     for (int j = 0; j < 5; j++) U[j] = q[j][i];
     StoredValuesUnpack(Q, i, 0, 1, q_data, &wdetJ);
     StoredValuesUnpack(Q, i, 1, 9, q_data, (CeedScalar *)dXdx);
@@ -372,12 +375,11 @@ CEED_QFUNCTION_HELPER int BoundaryIntegral(void *ctx, CeedInt Q, const CeedScala
   const CeedScalar(*q)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[0];
   const CeedScalar(*Grad_q)        = in[1];
   const CeedScalar(*q_data_sur)    = in[2];
-
-  CeedScalar(*v)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA])out[0];
-  CeedScalar(*jac_data_sur)  = out[1];
+  CeedScalar(*v)[CEED_Q_VLA]       = (CeedScalar(*)[CEED_Q_VLA])out[0];
 
   const NewtonianIdealGasContext context     = (NewtonianIdealGasContext)ctx;
   const bool                     is_implicit = context->is_implicit;
+  CeedScalar(*jac_data_sur)                  = is_implicit ? out[1] : NULL;
 
   CeedPragmaSIMD for (CeedInt i = 0; i < Q; i++) {
     const CeedScalar qi[5] = {q[0][i], q[1][i], q[2][i], q[3][i], q[4][i]};
@@ -404,8 +406,10 @@ CEED_QFUNCTION_HELPER int BoundaryIntegral(void *ctx, CeedInt Q, const CeedScala
 
     for (CeedInt j = 0; j < 5; j++) v[j][i] = -wdetJb * Flux[j];
 
-    StoredValuesPack(Q, i, 0, 5, qi, jac_data_sur);
-    StoredValuesPack(Q, i, 5, 6, kmstress, jac_data_sur);
+    if (is_implicit) {
+      StoredValuesPack(Q, i, 0, 5, qi, jac_data_sur);
+      StoredValuesPack(Q, i, 5, 6, kmstress, jac_data_sur);
+    }
   }
   return 0;
 }

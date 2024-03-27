@@ -57,7 +57,7 @@ PetscErrorCode AddBCSubOperator(Ceed ceed, DM dm, CeedData ceed_data, DMLabel do
   if (elem_restr_jd_i_sur)
     PetscCallCeed(ceed, CeedOperatorSetField(op_apply_bc, "surface jacobian data", elem_restr_jd_i_sur, CEED_BASIS_NONE, jac_data_sur));
 
-  if (qf_apply_bc_jacobian) {
+  if (qf_apply_bc_jacobian && elem_restr_jd_i_sur) {
     PetscCallCeed(ceed, CeedOperatorCreate(ceed, qf_apply_bc_jacobian, NULL, NULL, &op_apply_bc_jacobian));
     PetscCallCeed(ceed, CeedOperatorSetField(op_apply_bc_jacobian, "dq", elem_restr_q_sur, ceed_data->basis_q_sur, CEED_VECTOR_ACTIVE));
     PetscCallCeed(ceed, CeedOperatorSetField(op_apply_bc_jacobian, "Grad_dq", elem_restr_q_sur, ceed_data->basis_q_sur, CEED_VECTOR_ACTIVE));
@@ -359,7 +359,7 @@ PetscErrorCode SetupLibceed(Ceed ceed, CeedData ceed_data, DM dm, User user, App
   // *****************************************************************************
   height                = 1;
   CeedInt       dim_sur = dim - height, P_sur = app_ctx->degree + 1, Q_sur = P_sur + app_ctx->q_extra;
-  const CeedInt q_data_size_sur = problem->q_data_size_sur, jac_data_size_sur = problem->jac_data_size_sur;
+  const CeedInt q_data_size_sur = problem->q_data_size_sur, jac_data_size_sur = user->phys->implicit ? problem->jac_data_size_sur : 0;
 
   // -----------------------------------------------------------------------------
   // CEED Bases
