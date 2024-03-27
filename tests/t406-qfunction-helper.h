@@ -6,7 +6,8 @@
 // This file is part of CEED:  http://github.com/ceed
 
 // Note: testing 'pragma once'
-#pragma once
+// clang-format off
+# pragma  once
 // clang-format on
 
 #include <ceed.h>

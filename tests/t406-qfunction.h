@@ -11,6 +11,8 @@
 #  include  <math.h>
 
 #include "t406-qfunction-helper.h"
+// test duplicate includes of guarded files
+#include "t406-qfunction-helper.h"
 #  include "t406-qfunction-scales.h"
 // clang-format on
 
