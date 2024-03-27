@@ -12,9 +12,6 @@
 // Model from:
 //   On the Order of Accuracy and Numerical Performance of Two Classes of Finite Volume WENO Schemes, Zhang, Zhang, and Shu (2011).
 
-#ifndef eulervortex_h
-#define eulervortex_h
-
 #include <ceed.h>
 #include <math.h>
 
@@ -659,7 +656,3 @@ CEED_QFUNCTION(Euler_Outflow)(void *ctx, CeedInt Q, const CeedScalar *const *in,
   }  // End Quadrature Point Loop
   return 0;
 }
-
-// *****************************************************************************
-
-#endif  // eulervortex_h

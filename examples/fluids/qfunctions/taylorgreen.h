@@ -5,12 +5,6 @@
 //
 // This file is part of CEED:  http://github.com/ceed
 
-/// @file
-///
-
-#ifndef taylorgreen_h
-#define taylorgreen_h
-
 #include <ceed.h>
 #include <math.h>
 
@@ -56,5 +50,3 @@ CEED_QFUNCTION(ICsTaylorGreen)(void *ctx, CeedInt Q, const CeedScalar *const *in
   }
   return 0;
 }
-
-#endif  // taylorgreen_h

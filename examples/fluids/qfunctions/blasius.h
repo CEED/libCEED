@@ -8,9 +8,6 @@
 /// @file
 /// Operator for Navier-Stokes example using PETSc
 
-#ifndef blasius_h
-#define blasius_h
-
 #include <ceed.h>
 
 #include "newtonian_state.h"
@@ -260,5 +257,3 @@ CEED_QFUNCTION(Blasius_Inflow_Jacobian)(void *ctx, CeedInt Q, const CeedScalar *
   }
   return 0;
 }
-
-#endif  // blasius_h

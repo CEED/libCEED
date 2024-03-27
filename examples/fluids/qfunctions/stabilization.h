@@ -8,9 +8,6 @@
 /// @file
 /// Helper functions for computing stabilization terms of a newtonian simulation
 
-#ifndef stabilization_h
-#define stabilization_h
-
 #include <ceed.h>
 
 #include "newtonian_state.h"
@@ -113,7 +110,3 @@ CEED_QFUNCTION_HELPER void Tau_diagPrim(NewtonianIdealGasContext gas, State s, c
   // OR we could absorb cv into Ctau_E but this puts more burden on user to know how to change constants with a change of fluid or units.  Same for
   // Ctau_v * mu * mu IF AND ONLY IF we don't add viscosity law =f(T)
 }
-
-// *****************************************************************************
-
-#endif  // stabilization_h

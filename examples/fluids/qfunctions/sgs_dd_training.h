@@ -10,9 +10,6 @@
 /// See 'Invariant data-driven subgrid stress modeling in the strain-rate eigenframe for large eddy simulation' 2022 and 'S-frame discrepancy
 /// correction models for data-informed Reynolds stress closure' 2022
 
-#ifndef sgs_dd_training_h
-#define sgs_dd_training_h
-
 #include <ceed.h>
 
 #include "differential_filter_enums.h"
@@ -72,5 +69,3 @@ CEED_QFUNCTION_HELPER int ComputeSGS_DDAnisotropicTrainingDataNodal(void *ctx, C
 CEED_QFUNCTION(ComputeSGS_DDAnisotropicTrainingDataNodal_Prim)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
   return ComputeSGS_DDAnisotropicTrainingDataNodal(ctx, Q, in, out, STATEVAR_PRIMITIVE);
 }
-
-#endif  // sgs_dd_training_h

@@ -10,9 +10,6 @@
 /// See 'Invariant data-driven subgrid stress modeling in the strain-rate eigenframe for large eddy simulation' 2022 and 'S-frame discrepancy
 /// correction models for data-informed Reynolds stress closure' 2022
 
-#ifndef sgs_dd_model_h
-#define sgs_dd_model_h
-
 #include <ceed.h>
 
 #include "newtonian_state.h"
@@ -247,5 +244,3 @@ CEED_QFUNCTION(IFunction_NodalSgs_Conserv)(void *ctx, CeedInt Q, const CeedScala
 CEED_QFUNCTION(IFunction_NodalSgs_Prim)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
   return IFunction_NodalSgs(ctx, Q, in, out, STATEVAR_PRIMITIVE);
 }
-
-#endif  // sgs_dd_model_h

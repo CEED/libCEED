@@ -20,9 +20,6 @@
 // The right state is exterior to the domain and the left state is the interior to the domain.
 // Much of the work references Eleuterio F. Toro's "Riemann Solvers and Numerical Methods for Fluid Dynamics", 2009
 
-#ifndef riemann_solver_h
-#define riemann_solver_h
-
 #include "newtonian_state.h"
 #include "newtonian_types.h"
 
@@ -346,5 +343,3 @@ CEED_QFUNCTION_HELPER StateConservative RiemannFlux_HLLC_fwd(NewtonianIdealGasCo
     return dflux_right;
   }
 }
-
-#endif  // riemann_solver_h

@@ -8,9 +8,6 @@
 /// @file
 /// Operator for Navier-Stokes example using PETSc
 
-#ifndef newtonian_h
-#define newtonian_h
-
 #include <ceed.h>
 #include <math.h>
 #include <stdlib.h>
@@ -462,5 +459,3 @@ CEED_QFUNCTION(BoundaryIntegral_Jacobian_Conserv)(void *ctx, CeedInt Q, const Ce
 CEED_QFUNCTION(BoundaryIntegral_Jacobian_Prim)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
   return BoundaryIntegral_Jacobian(ctx, Q, in, out, STATEVAR_PRIMITIVE);
 }
-
-#endif  // newtonian_h

@@ -13,9 +13,6 @@
 /// Then STGShur14_CalcQF is run over quadrature points.
 /// Before the program exits, TearDownSTG is run to free the memory of the allocated arrays.
 
-#ifndef stg_shur14_h
-#define stg_shur14_h
-
 #include <ceed.h>
 #include <math.h>
 #include <stdlib.h>
@@ -543,5 +540,3 @@ CEED_QFUNCTION(StgShur14InflowStrongQF)(void *ctx, CeedInt Q, const CeedScalar *
   }
   return 0;
 }
-
-#endif  // stg_shur14_h

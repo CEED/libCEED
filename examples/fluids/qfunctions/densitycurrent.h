@@ -12,9 +12,6 @@
 //   Semi-Implicit Formulations of the Navier-Stokes Equations: Application to
 //   Nonhydrostatic Atmospheric Modeling, Giraldo, Restelli, and Lauter (2010).
 
-#ifndef densitycurrent_h
-#define densitycurrent_h
-
 #include <ceed.h>
 #include <math.h>
 
@@ -163,7 +160,3 @@ CEED_QFUNCTION(ICsDC)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedSca
 
   return 0;
 }
-
-// *****************************************************************************
-
-#endif  // densitycurrent_h
