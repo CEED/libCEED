@@ -260,7 +260,6 @@ noether-rocm:
 # Libraries for examples
 # -- PETSc with HIP (minimal)
     - export PETSC_DIR=/projects/petsc PETSC_ARCH=mpich-hip && git -C $PETSC_DIR -c safe.directory=$PETSC_DIR describe
-    - source /home/jawr8143/SmartSimTestingSoftware/bin/activate && export SMARTREDIS_DIR=/home/jawr8143/SmartSimTestingSoftware/smartredis/install
     - echo "-------------- PETSc ---------------" && make -C $PETSC_DIR info
     - make -k -j$((NPROC_GPU / NPROC_POOL)) BACKENDS="$BACKENDS_GPU" JUNIT_BATCH="hip" junit search="petsc fluids solids"
 # -- MFEM v4.6
