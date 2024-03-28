@@ -14,6 +14,8 @@
 // Test duplicate includes of guarded files
 // Also test include path with "/../"
 #include "../tests/t406-qfunction-helper.h"
+// Also test include path with "/../../"
+#include "../../libCEED/tests/t406-qfunction-helper.h"
 #  include "t406-qfunction-scales.h"
 // clang-format on
 

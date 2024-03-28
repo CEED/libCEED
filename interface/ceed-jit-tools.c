@@ -77,7 +77,8 @@ static int CeedTrimPath(Ceed ceed, const char *source_file_path, char **trimmed_
   char *first_dot = strchr(*trimmed_source_file_path, '.');
 
   while (first_dot) {
-    char keyword[5] = "";
+    char *search_from = first_dot + 1;
+    char  keyword[5]  = "";
 
     // -- Check for /./ and covert to /
     if (first_dot != *trimmed_source_file_path && strlen(first_dot) > 2) memcpy(keyword, &first_dot[-1], 3);
@@ -85,6 +86,7 @@ static int CeedTrimPath(Ceed ceed, const char *source_file_path, char **trimmed_
 
     if (is_here) {
       for (CeedInt i = 0; first_dot[i - 1]; i++) first_dot[i] = first_dot[i + 2];
+      search_from = first_dot;
     } else {
       // -- Check for /foo/../ and convert to /
       if (first_dot != *trimmed_source_file_path && strlen(first_dot) > 3) memcpy(keyword, &first_dot[-1], 4);
@@ -96,9 +98,10 @@ static int CeedTrimPath(Ceed ceed, const char *source_file_path, char **trimmed_
         while (last_slash[0] != '/' && last_slash != *trimmed_source_file_path) last_slash--;
         CeedCheck(last_slash != *trimmed_source_file_path, ceed, CEED_ERROR_MAJOR, "Malformed source path %s", source_file_path);
         for (CeedInt i = 0; first_dot[i - 1]; i++) last_slash[i] = first_dot[i + 2];
+        search_from = last_slash;
       }
     }
-    first_dot = strchr(&first_dot[1], '.');
+    first_dot = strchr(search_from, '.');
   }
   return CEED_ERROR_SUCCESS;
 }
