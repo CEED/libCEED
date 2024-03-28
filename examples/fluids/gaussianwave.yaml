@@ -19,6 +19,15 @@ epicenter: 0.33,0.75,0
 amplitude: 2
 width: 0.05
 
+Ctau_t: 1
+#Ctau_v: 36,60,128 is what PHASTA has for p=1,2, 3
+## linear Settings:
+Ctau_v: 36
+Ctau_C: 1
+Ctau_M: 1
+Ctau_E: 1
+
+
 ts:
   adapt_type: none
   max_steps: 100
