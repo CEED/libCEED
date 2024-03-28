@@ -4,9 +4,7 @@
 // SPDX-License-Identifier: BSD-2-Clause
 //
 // This file is part of CEED:  http://github.com/ceed
-
-#ifndef stg_shur14_type_h
-#define stg_shur14_type_h
+#pragma once
 
 #include <ceed.h>
 
@@ -43,5 +41,3 @@ struct STGShur14Context_ {
   size_t     total_bytes;  // !< Total size of struct plus array
   CeedScalar data[1];      // !< Holds concatenated scalar array data
 };
-
-#endif

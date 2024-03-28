@@ -7,8 +7,6 @@
 
 /// @file
 /// Internal header for CUDA backend macro and type definitions for JiT source
-#ifndef CEED_CUDA_GEN_TEMPLATES_H
-#define CEED_CUDA_GEN_TEMPLATES_H
 
 #include <ceed.h>
 
@@ -291,5 +289,3 @@ inline __device__ void gradColloTranspose3d(SharedData_Cuda &data, const CeedInt
     }
   }
 }
-
-#endif  // CEED_CUDA_GEN_TEMPLATES_H

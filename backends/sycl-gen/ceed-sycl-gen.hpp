@@ -4,9 +4,7 @@
 // SPDX-License-Identifier: BSD-2-Clause
 //
 // This file is part of CEED:  http://github.com/ceed
-
-#ifndef CEED_SYCL_GEN_HPP
-#define CEED_SYCL_GEN_HPP
+#pragma once
 
 #include <ceed/backend.h>
 #include <ceed/ceed.h>
@@ -37,5 +35,3 @@ typedef struct {
 CEED_INTERN int CeedQFunctionCreate_Sycl_gen(CeedQFunction qf);
 
 CEED_INTERN int CeedOperatorCreate_Sycl_gen(CeedOperator op);
-
-#endif  // CEED_SYCL_GEN_HPP

@@ -8,9 +8,6 @@
 /// @file
 /// Geometric factors for solid mechanics example using PETSc
 
-#ifndef COMMON_H
-#define COMMON_H
-
 #include <ceed.h>
 
 // -----------------------------------------------------------------------------
@@ -86,5 +83,3 @@ CEED_QFUNCTION(SetupGeo)(void *ctx, CeedInt Q, const CeedScalar *const *in, Ceed
   return 0;
 }
 // -----------------------------------------------------------------------------
-
-#endif  // End of COMMON_H

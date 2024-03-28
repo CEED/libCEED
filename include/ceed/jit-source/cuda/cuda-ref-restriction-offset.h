@@ -7,8 +7,6 @@
 
 /// @file
 /// Internal header for CUDA offset element restriction kernels
-#ifndef CEED_CUDA_REF_RESTRICTION_OFFSET_H
-#define CEED_CUDA_REF_RESTRICTION_OFFSET_H
 
 #include <ceed.h>
 
@@ -68,7 +66,3 @@ extern "C" __global__ void OffsetTranspose(const CeedInt *__restrict__ l_vec_ind
   }
 }
 #endif
-
-//------------------------------------------------------------------------------
-
-#endif  // CEED_CUDA_REF_RESTRICTION_OFFSET_H

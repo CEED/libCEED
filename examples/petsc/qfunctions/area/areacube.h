@@ -8,9 +8,6 @@
 /// @file
 /// libCEED QFunctions for mass operator example for a scalar field on the sphere using PETSc
 
-#ifndef areacube_h
-#define areacube_h
-
 #include <ceed.h>
 #include <math.h>
 
@@ -105,5 +102,3 @@ CEED_QFUNCTION(Mass)(void *ctx, const CeedInt Q, const CeedScalar *const *in, Ce
   return 0;
 }
 // -----------------------------------------------------------------------------
-
-#endif  // areacube_h

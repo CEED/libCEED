@@ -4,9 +4,7 @@
 // SPDX-License-Identifier: BSD-2-Clause
 //
 // This file is part of CEED:  http://github.com/ceed
-
-#ifndef CEED_SYCL_SHARED_HPP
-#define CEED_SYCL_SHARED_HPP
+#pragma once
 
 #include <ceed/backend.h>
 #include <ceed/ceed.h>
@@ -34,5 +32,3 @@ typedef struct {
 
 CEED_INTERN int CeedBasisCreateTensorH1_Sycl_shared(CeedInt dim, CeedInt P_1d, CeedInt Q_1d, const CeedScalar *interp_1d, const CeedScalar *grad_1d,
                                                     const CeedScalar *q_ref_1d, const CeedScalar *q_weight_1d, CeedBasis basis);
-
-#endif  // CEED_SYCL_SHARED_HPP

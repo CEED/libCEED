@@ -4,9 +4,7 @@
 // SPDX-License-Identifier: BSD-2-Clause
 //
 // This file is part of CEED:  http://github.com/ceed
-
-#ifndef CEED_MAGMA_COMMON_H
-#define CEED_MAGMA_COMMON_H
+#pragma once
 
 #include <ceed.h>
 #include <ceed/backend.h>
@@ -20,5 +18,3 @@ typedef struct {
 CEED_INTERN int CeedInit_Magma_common(Ceed ceed, const char *resource);
 
 CEED_INTERN int CeedDestroy_Magma(Ceed ceed);
-
-#endif  // CEED_MAGMA_COMMON_H

@@ -4,9 +4,7 @@
 // SPDX-License-Identifier: BSD-2-Clause
 //
 // This file is part of CEED:  http://github.com/ceed
-
-#ifndef freestream_bc_type_h
-#define freestream_bc_type_h
+#pragma once
 
 #include "newtonian_state.h"
 #include "newtonian_types.h"
@@ -25,5 +23,3 @@ struct OutflowContext_ {
   CeedScalar                       pressure;
   CeedScalar                       temperature;
 };
-
-#endif

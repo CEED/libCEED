@@ -4,9 +4,7 @@
 // SPDX-License-Identifier: BSD-2-Clause
 //
 // This file is part of CEED:  http://github.com/ceed
-
-#ifndef problems_h
-#define problems_h
+#pragma once
 
 #include <ceed.h>
 #include <petsc.h>
@@ -43,5 +41,3 @@ SOLIDS_PROBLEM(ElasFSCurrentNH2);
 SOLIDS_PROBLEM(ElasFSInitialNH1);
 SOLIDS_PROBLEM(ElasFSInitialNH2);
 SOLIDS_PROBLEM(ElasFSInitialMR1);
-
-#endif  // problems_h

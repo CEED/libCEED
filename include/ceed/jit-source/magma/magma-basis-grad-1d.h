@@ -7,8 +7,6 @@
 
 /// @file
 /// Internal header for MAGMA tensor basis gradient in 1D
-#ifndef CEED_MAGMA_BASIS_GRAD_1D_H
-#define CEED_MAGMA_BASIS_GRAD_1D_H
 
 #include "magma-common-tensor.h"
 
@@ -128,5 +126,3 @@ extern "C" __launch_bounds__(MAGMA_BASIS_BOUNDS(BASIS_MAX_P_Q, MAGMA_MAXTHREADS_
   // write V
   write_1d<CeedScalar, BASIS_P, BASIS_NUM_COMP>(sV, dV, cstrdV, tx);
 }
-
-#endif  // CEED_MAGMA_BASIS_GRAD_1D_H

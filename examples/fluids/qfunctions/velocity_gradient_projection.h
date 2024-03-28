@@ -4,10 +4,6 @@
 // SPDX-License-Identifier: BSD-2-Clause
 //
 // This file is part of CEED:  http://github.com/ceed
-
-#ifndef velocity_gradient_projection_h
-#define velocity_gradient_projection_h
-
 #include <ceed.h>
 
 #include "newtonian_state.h"
@@ -51,4 +47,3 @@ CEED_QFUNCTION(VelocityGradientProjectionRHS_Conserv)(void *ctx, CeedInt Q, cons
 CEED_QFUNCTION(VelocityGradientProjectionRHS_Prim)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
   return VelocityGradientProjectionRHS(ctx, Q, in, out, STATEVAR_PRIMITIVE);
 }
-#endif  // velocity_gradient_projection_h

@@ -9,9 +9,6 @@
   @brief  Identity QFunction that copies inputs directly into outputs
 **/
 
-#ifndef CEED_IDENTITY_H
-#define CEED_IDENTITY_H
-
 #include <ceed.h>
 
 typedef struct {
@@ -33,5 +30,3 @@ CEED_QFUNCTION(Identity)(void *ctx, const CeedInt Q, const CeedScalar *const *in
 
   return CEED_ERROR_SUCCESS;
 }
-
-#endif  // CEED_IDENTITY_H

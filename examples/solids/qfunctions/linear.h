@@ -8,9 +8,6 @@
 /// @file
 /// Linear elasticity for solid mechanics example using PETSc
 
-#ifndef ELAS_LINEAR_H
-#define ELAS_LINEAR_H
-
 #include <ceed.h>
 #include <math.h>
 
@@ -363,5 +360,3 @@ CEED_QFUNCTION(ElasLinearDiagnostic)(void *ctx, CeedInt Q, const CeedScalar *con
   return 0;
 }
 // -----------------------------------------------------------------------------
-
-#endif  // End of ELAS_LINEAR_H

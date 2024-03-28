@@ -7,8 +7,7 @@
 
 /// @file
 /// Internal header for MAGMA backend common non-tensor basis definitions
-#ifndef CEED_MAGMA_COMMON_NONTENSOR_H
-#define CEED_MAGMA_COMMON_NONTENSOR_H
+#pragma once
 
 #include "magma-common-defs.h"
 
@@ -151,5 +150,3 @@ static __device__ __inline__ void addmul_rAsBrC_1D_nosync(T rA[Q], T *sB, T rC[N
     }
   }
 }
-
-#endif  // CEED_MAGMA_COMMON_NONTENSOR_H

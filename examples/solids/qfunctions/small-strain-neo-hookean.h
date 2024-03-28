@@ -8,9 +8,6 @@
 /// @file
 /// Hyperelasticity, small strain for solid mechanics example using PETSc
 
-#ifndef ELAS_SS_NH_H
-#define ELAS_SS_NH_H
-
 #include <ceed.h>
 #include <math.h>
 
@@ -411,5 +408,3 @@ CEED_QFUNCTION(ElasSSNHDiagnostic)(void *ctx, CeedInt Q, const CeedScalar *const
   return 0;
 }
 // -----------------------------------------------------------------------------
-
-#endif  // End of ELAS_SS_NH_H

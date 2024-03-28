@@ -7,8 +7,6 @@
 
 /// @file
 /// Internal header for HIP shared memory tensor product basis templates
-#ifndef CEED_HIP_SHARED_BASIS_TENSOR_TEMPLATES_H
-#define CEED_HIP_SHARED_BASIS_TENSOR_TEMPLATES_H
 
 #include <ceed.h>
 
@@ -533,7 +531,3 @@ inline __device__ void WeightTensor3d(SharedData_Hip &data, const CeedScalar *__
     w[q] = quad ? pw * q_weight_1d[q] : 0.0;
   }
 }
-
-//------------------------------------------------------------------------------
-
-#endif  // CEED_HIP_SHARED_BASIS_TENSOR_TEMPLATES_H

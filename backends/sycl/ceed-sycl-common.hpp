@@ -4,9 +4,7 @@
 // SPDX-License-Identifier: BSD-2-Clause
 //
 // This file is part of CEED:  http://github.com/ceed
-
-#ifndef CEED_SYCL_COMMON_HPP
-#define CEED_SYCL_COMMON_HPP
+#pragma once
 
 #include <ceed/backend.h>
 #include <ceed/jit-source/sycl/sycl-types.h>
@@ -44,5 +42,3 @@ CEED_INTERN int CeedInit_Sycl(Ceed ceed, const char *resource);
 CEED_INTERN int CeedDestroy_Sycl(Ceed ceed);
 
 CEED_INTERN int CeedSetStream_Sycl(Ceed ceed, void *handle);
-
-#endif  // CEED_SYCL_COMMON_HPP

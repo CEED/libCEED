@@ -7,10 +7,6 @@
 
 /// @file
 /// Geometric factors (2D) for Navier-Stokes example using PETSc
-
-#ifndef setup_geo_2d_h
-#define setup_geo_2d_h
-
 #include <ceed.h>
 #include <math.h>
 #include "setupgeo_helpers.h"
@@ -102,7 +98,3 @@ CEED_QFUNCTION(SetupBoundary2d)(void *ctx, CeedInt Q, const CeedScalar *const *i
   }
   return 0;
 }
-
-// *****************************************************************************
-
-#endif  // setup_geo_2d_h

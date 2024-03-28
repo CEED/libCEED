@@ -4,10 +4,6 @@
 // SPDX-License-Identifier: BSD-2-Clause
 //
 // This file is part of CEED:  http://github.com/ceed
-
-#ifndef strong_boundary_conditions_h
-#define strong_boundary_conditions_h
-
 #include <ceed.h>
 
 #include "setupgeo_helpers.h"
@@ -37,5 +33,3 @@ CEED_QFUNCTION(SetupStrongBC)(void *ctx, CeedInt Q, const CeedScalar *const *in,
   }
   return 0;
 }
-
-#endif  // strong_boundary_conditions_h

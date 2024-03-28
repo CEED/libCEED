@@ -9,9 +9,6 @@
   @brief Ceed QFunction for applying the mass matrix
 **/
 
-#ifndef CEED_MASSAPPLY_H
-#define CEED_MASSAPPLY_H
-
 #include <ceed.h>
 
 CEED_QFUNCTION(MassApply)(void *ctx, const CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
@@ -26,5 +23,3 @@ CEED_QFUNCTION(MassApply)(void *ctx, const CeedInt Q, const CeedScalar *const *i
 
   return CEED_ERROR_SUCCESS;
 }
-
-#endif  // CEED_MASSAPPLY_H

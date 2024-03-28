@@ -7,9 +7,6 @@
 
 /// @file
 /// Internal header for SYCL backend macro and type definitions for JiT source
-#ifndef CEED_SYCL_GEN_TEMPLATES_H
-#define CEED_SYCL_GEN_TEMPLATES_H
-
 #include <ceed.h>
 
 #pragma OPENCL EXTENSION cl_khr_int64_base_atomics : enable
@@ -356,7 +353,3 @@ inline void gradColloTranspose3d(const CeedInt num_comp, const CeedInt Q_1D, con
     }
   }
 }
-
-//------------------------------------------------------------------------------
-
-#endif  // CEED_SYCL_GEN_TEMPLATES_H

@@ -4,9 +4,7 @@
 // SPDX-License-Identifier: BSD-2-Clause
 //
 // This file is part of CEED:  http://github.com/ceed
-
-#ifndef CEED_COMMON_HIP_H
-#define CEED_COMMON_HIP_H
+#pragma once
 
 #include <ceed.h>
 #include <ceed/backend.h>
@@ -91,5 +89,3 @@ CEED_INTERN int CeedSetDeviceCeedIntArray_Hip(Ceed ceed, const CeedInt *source_a
 CEED_INTERN int CeedSetDeviceCeedScalarArray_Hip(Ceed ceed, const CeedScalar *source_array, CeedCopyMode copy_mode, CeedSize num_values,
                                                  const CeedScalar **target_array_owned, const CeedScalar **target_array_borrowed,
                                                  const CeedScalar **target_array);
-
-#endif  // CEED_COMMON_HIP_H

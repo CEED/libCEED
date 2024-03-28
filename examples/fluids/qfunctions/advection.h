@@ -7,10 +7,6 @@
 
 /// @file
 /// Advection initial condition and operator for Navier-Stokes example using PETSc
-
-#ifndef advection_h
-#define advection_h
-
 #include <ceed.h>
 #include <math.h>
 
@@ -465,5 +461,3 @@ CEED_QFUNCTION(Advection2d_InOutFlow)(void *ctx, CeedInt Q, const CeedScalar *co
   Advection_InOutFlowGeneric(ctx, Q, in, out, 2);
   return 0;
 }
-
-#endif  // advection_h

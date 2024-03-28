@@ -1,6 +1,7 @@
 #ifndef SCALES_H
 #define SCALES_H
 // Testing # on first line
+// Note: #ifndef and #pragma once header guards both work
 
 // Copyright (c) 2017-2024, Lawrence Livermore National Security, LLC and other CEED contributors.
 // All Rights Reserved. See the top-level LICENSE and NOTICE files for details.

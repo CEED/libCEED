@@ -7,8 +7,6 @@
 
 /// @file
 /// Internal header for CUDA backend QFunction read/write kernels
-#ifndef CEED_CUDA_REF_QFUNCTION_H
-#define CEED_CUDA_REF_QFUNCTION_H
 
 #include <ceed.h>
 
@@ -31,7 +29,3 @@ inline __device__ void writeQuads(const CeedInt quad, const CeedInt num_qpts, co
     d_v[quad + num_qpts * comp] = r_v[comp];
   }
 }
-
-//------------------------------------------------------------------------------
-
-#endif  // CEED_CUDA_REF_QFUNCTION_H

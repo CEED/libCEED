@@ -7,8 +7,6 @@
 
 /// @file
 /// Internal header for HIP oriented element restriction kernels
-#ifndef CEED_HIP_REF_RESTRICTION_ORIENTED_H
-#define CEED_HIP_REF_RESTRICTION_ORIENTED_H
 
 #include <ceed.h>
 
@@ -75,7 +73,3 @@ extern "C" __global__ void OrientedTranspose(const CeedInt *__restrict__ l_vec_i
   }
 }
 #endif
-
-//------------------------------------------------------------------------------
-
-#endif  // CEED_HIP_REF_RESTRICTION_ORIENTED_H

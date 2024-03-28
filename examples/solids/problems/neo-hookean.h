@@ -4,9 +4,7 @@
 // SPDX-License-Identifier: BSD-2-Clause
 //
 // This file is part of CEED:  http://github.com/ceed
-
-#ifndef neo_hookean_h
-#define neo_hookean_h
+#pragma once
 
 #include <ceed.h>
 #include <petsc.h>
@@ -28,5 +26,3 @@ PetscErrorCode PhysicsSmootherContext_NH(MPI_Comm comm, Ceed ceed, CeedQFunction
 
 // Process physics options
 PetscErrorCode ProcessPhysics_NH(MPI_Comm comm, Physics_NH phys, Units units);
-
-#endif  // neo_hookean_h

@@ -7,7 +7,6 @@
 //
 /// @file
 /// Implementation of differential filtering
-
 #include <ceed.h>
 
 #include "differential_filter_enums.h"

@@ -5,8 +5,10 @@
 //
 // This file is part of CEED:  http://github.com/ceed
 
-#ifndef _helper_h
-#define _helper_h
+// Note: testing 'pragma once'
+// clang-format off
+# pragma  once
+// clang-format on
 
 #include <ceed.h>
 
@@ -15,5 +17,3 @@
 CEED_QFUNCTION_HELPER CeedScalar times_two(CeedScalar x) { return SCALE_TWO * x; }
 
 CEED_QFUNCTION_HELPER CeedScalar times_three(CeedScalar x) { return SCALE_THREE * x; }
-
-#endif

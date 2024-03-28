@@ -4,12 +4,6 @@
 // SPDX-License-Identifier: BSD-2-Clause
 //
 // This file is part of CEED:  http://github.com/ceed
-
-/// @file
-
-#ifndef inverse_multiplicity_h
-#define inverse_multiplicity_h
-
 #include <ceed.h>
 
 // @brief Calculate the inverse of the multiplicity, reducing to a single component
@@ -20,5 +14,3 @@ CEED_QFUNCTION(InverseMultiplicity)(void *ctx, CeedInt Q, const CeedScalar *cons
   CeedPragmaSIMD for (CeedInt i = 0; i < Q; i++) inv_multiplicity[i] = 1.0 / multiplicity[0][i];
   return 0;
 }
-
-#endif  // sgs_dd_utils_h

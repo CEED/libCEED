@@ -8,9 +8,6 @@
 /// @file
 /// Hyperelasticity, finite strain for solid mechanics example using PETSc
 
-#ifndef ELAS_FSInitialNH2_H
-#define ELAS_FSInitialNH2_H
-
 #include <ceed.h>
 #include <math.h>
 
@@ -560,5 +557,3 @@ CEED_QFUNCTION(ElasFSInitialNH2Diagnostic)(void *ctx, CeedInt Q, const CeedScala
   return 0;
 }
 // -----------------------------------------------------------------------------
-
-#endif  // End of ELAS_FSInitialNH2_H

@@ -5,9 +5,6 @@
 //
 // This file is part of CEED:  http://github.com/ceed
 
-#ifndef ex1_volume_h
-#define ex1_volume_h
-
 #include <ceed.h>
 
 /// A structure used to pass additional data to f_build_mass
@@ -61,5 +58,3 @@ CEED_QFUNCTION(apply_mass)(void *ctx, const CeedInt Q, const CeedScalar *const *
   CeedPragmaSIMD for (CeedInt i = 0; i < Q; i++) { v[i] = q_data[i] * u[i]; }  // End of Quadrature Point Loop
   return 0;
 }
-
-#endif  // ex1_volume_h

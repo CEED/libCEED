@@ -7,8 +7,6 @@
 
 /// @file
 /// Internal header for MAGMA non-tensor basis interpolation
-#ifndef CEED_MAGMA_BASIS_INTERP_DERIV_NONTENSOR_H
-#define CEED_MAGMA_BASIS_INTERP_DERIV_NONTENSOR_H
 
 #include "magma-common-nontensor.h"
 
@@ -220,5 +218,3 @@ extern "C" __launch_bounds__(MAGMA_BASIS_BOUNDS(BASIS_P, MAGMA_MAXTHREADS_1D)) _
   magma_basis_nontensor_device_t<CeedScalar, BASIS_Q_COMP_DERIV, BASIS_P, BASIS_Q, BASIS_NB_DERIV_T>(n, dA, dB, dC, (CeedScalar *)shared_data);
 #endif
 }
-
-#endif  // CEED_MAGMA_BASIS_INTERP_DERIV_NONTENSOR_H

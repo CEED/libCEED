@@ -7,8 +7,7 @@
 
 /// @file
 /// Internal header for MAGMA backend common tensor basis definitions
-#ifndef CEED_MAGMA_COMMON_TENSOR_H
-#define CEED_MAGMA_COMMON_TENSOR_H
+#pragma once
 
 #include "magma-common-defs.h"
 
@@ -206,5 +205,3 @@ static __device__ __inline__ void read_T_trans_gm2sm(const int tx, const CeedSca
   }
   // must sync after call
 }
-
-#endif  // CEED_MAGMA_COMMON_TENSOR_H

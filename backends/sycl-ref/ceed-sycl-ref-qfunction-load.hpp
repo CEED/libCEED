@@ -4,10 +4,6 @@
 // SPDX-License-Identifier: BSD-2-Clause
 //
 // This file is part of CEED:  http://github.com/ceed
-
-#ifndef CEED_SYCL_QFUNCTION_LOAD_HPP
-#define CEED_SYCL_QFUNCTION_LOAD_HPP
+#pragma once
 
 CEED_INTERN int CeedQFunctionBuildKernel_Sycl(CeedQFunction qf);
-
-#endif  // CEED_SYCL_QFUNCTION_LOAD_HPP

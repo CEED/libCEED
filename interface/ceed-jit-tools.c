@@ -61,21 +61,21 @@ int CeedCheckFilePath(Ceed ceed, const char *source_file_path, bool *is_valid) {
 }
 
 /**
-  @brief Load source file into initialized string buffer, including full text of local files in place of `#include "local.h"`
+  @brief Load source file into initialized string buffer, including full text of local files in place of `#include "local.h"`.
+    This also updates the `num_file_paths` and `source_file_paths`.
+    Callers are responsible freeing all filepath strings and the string buffer with @ref CeedFree().
 
   @param[in]     ceed             `Ceed` object for error handling
   @param[in]     source_file_path Absolute path to source file
-  @param[in]     depth            Depth of recursion
-  @param[in,out] num_files        Number of files already included
-  @param[in,out] filepaths        Paths of files already included
+  @param[in,out] num_file_paths   Number of files already included
+  @param[in,out] file_paths       Paths of files already included
   @param[out]    buffer           String buffer for source file contents
 
   @return An error code: 0 - success, otherwise - failure
 
   @ref Backend
 **/
-static int CeedLoadSourceToInitializedBuffer_Private(Ceed ceed, const char *source_file_path, CeedInt depth, CeedInt *num_files, char ***filepaths,
-                                                     char **buffer) {
+int CeedLoadSourceToInitializedBuffer(Ceed ceed, const char *source_file_path, CeedInt *num_files, char ***file_paths, char **buffer) {
   FILE *source_file;
   long  file_size, file_offset = 0;
   char *temp_buffer;
@@ -110,9 +110,39 @@ static int CeedLoadSourceToInitializedBuffer_Private(Ceed ceed, const char *sour
   const char *first_hash = strchr(temp_buffer, '#');
 
   while (first_hash) {
-    // -- Check for 'include' keyword
-    const char *next_e     = strchr(first_hash, 'e');
+    // -- Check for 'pragma' keyword
+    const char *next_m     = strchr(first_hash, 'm');
     char        keyword[8] = "";
+
+    if (next_m && next_m - first_hash >= 5) memcpy(keyword, &next_m[-4], 6);
+    bool is_hash_pragma = !strcmp(keyword, "pragma");
+
+    // ---- Spaces allowed in '#  pragma'
+    if (next_m) {
+      for (CeedInt i = 1; first_hash - next_m + i < -5; i++) {
+        is_hash_pragma &= first_hash[i] == ' ';
+      }
+    }
+    if (is_hash_pragma) {
+      // -- Check if '#pragma once'
+      char *next_o         = strchr(first_hash, 'o');
+      char *next_new_line  = strchr(first_hash, '\n');
+      bool  is_pragma_once = next_o && (next_new_line - next_o > 0) && !strncmp(next_o, "once", 4);
+
+      // -- Copy into buffer, omitting last line if #pragma once
+      long current_size = strlen(*buffer);
+      long copy_size    = first_hash - &temp_buffer[file_offset] + (is_pragma_once ? 0 : (next_new_line - first_hash + 1));
+
+      CeedCall(CeedRealloc(current_size + copy_size + 2, buffer));
+      memcpy(&(*buffer)[current_size], "\n", 2);
+      memcpy(&(*buffer)[current_size + 1], &temp_buffer[file_offset], copy_size);
+      memcpy(&(*buffer)[current_size + copy_size], "", 1);
+
+      file_offset = strchr(first_hash, '\n') - temp_buffer + 1;
+    }
+
+    // -- Check for 'include' keyword
+    const char *next_e = strchr(first_hash, 'e');
 
     if (next_e && next_e - first_hash >= 7) memcpy(keyword, &next_e[-6], 7);
     bool is_hash_include = !strcmp(keyword, "include");
@@ -137,7 +167,7 @@ static int CeedLoadSourceToInitializedBuffer_Private(Ceed ceed, const char *sour
       char *next_new_line     = strchr(first_hash, '\n');
       bool  is_local_header   = is_hash_include && next_quote && (next_new_line - next_quote > 0);
       char *next_left_chevron = strchr(first_hash, '<');
-      bool  is_ceed_header    = is_hash_include && next_left_chevron && (next_new_line - next_left_chevron > 0) &&
+      bool  is_ceed_header    = next_left_chevron && (next_new_line - next_left_chevron > 0) &&
                             (!strncmp(next_left_chevron, "<ceed/jit-source/", 17) || !strncmp(next_left_chevron, "<ceed/types.h>", 14) ||
                              !strncmp(next_left_chevron, "<ceed/ceed-f32.h>", 17) || !strncmp(next_left_chevron, "<ceed/ceed-f64.h>", 17));
 
@@ -165,12 +195,12 @@ static int CeedLoadSourceToInitializedBuffer_Private(Ceed ceed, const char *sour
           CeedCall(CeedFree(&ceed_relative_path));
         }
         // ---- Recursive call to load source to buffer
-        for (CeedInt i = 0; i < *num_files; i++) is_included |= !strcmp(include_source_path, (*filepaths)[i]);
+        for (CeedInt i = 0; i < *num_files; i++) is_included |= !strcmp(include_source_path, (*file_paths)[i]);
         if (!is_included) {
           CeedDebug256(ceed, CEED_DEBUG_COLOR_SUCCESS, "JiT Including: %s\n", include_source_path);
-          CeedCall(CeedLoadSourceToInitializedBuffer_Private(ceed, include_source_path, depth + 1, num_files, filepaths, buffer));
-          CeedCall(CeedRealloc(*num_files + 1, filepaths));
-          CeedCall(CeedStringAllocCopy(include_source_path, &(*filepaths)[*num_files]));
+          CeedCall(CeedLoadSourceToInitializedBuffer(ceed, include_source_path, num_files, file_paths, buffer));
+          CeedCall(CeedRealloc(*num_files + 1, file_paths));
+          CeedCall(CeedStringAllocCopy(include_source_path, &(*file_paths)[*num_files]));
           (*num_files)++;
         }
         CeedCall(CeedFree(&include_source_path));
@@ -191,10 +221,6 @@ static int CeedLoadSourceToInitializedBuffer_Private(Ceed ceed, const char *sour
 
   // Cleanup
   CeedCall(CeedFree(&temp_buffer));
-  if (depth == 0) {
-    for (CeedInt i = 0; i < *num_files; i++) CeedCall(CeedFree(&(*filepaths)[i]));
-    CeedCall(CeedFree(filepaths));
-  }
 
   // Debug
   CeedDebug256(ceed, CEED_DEBUG_COLOR_SUCCESS, "---------- Ceed JiT ----------\n");
@@ -206,28 +232,37 @@ static int CeedLoadSourceToInitializedBuffer_Private(Ceed ceed, const char *sour
 }
 
 /**
-  @brief Load source file into initialized string buffer, including full text of local files in place of `#include "local.h"`
+  @brief Load source file into initialized string buffer, including full text of local files in place of `#include "local.h"`.
+    This also initializes and populates the `num_file_paths` and `source_file_paths`.
+    Callers are responsible freeing all filepath strings and the string buffer with @ref CeedFree().
 
-  @param[in]  ceed             `Ceed` object for error handling
-  @param[in]  source_file_path Absolute path to source file
-  @param[out] buffer           String buffer for source file contents
+  @param[in]     ceed             `Ceed` object for error handling
+  @param[in]     source_file_path Absolute path to source file
+  @param[in,out] num_file_paths   Number of files already included
+  @param[in,out] file_paths       Paths of files already included
+  @param[out]    buffer           String buffer for source file contents
 
   @return An error code: 0 - success, otherwise - failure
 
   @ref Backend
 **/
-int CeedLoadSourceToInitializedBuffer(Ceed ceed, const char *source_file_path, char **buffer) {
-  char  **filepaths = NULL;
-  CeedInt num_files = 0;
+int CeedLoadSourceAndInitializeBuffer(Ceed ceed, const char *source_file_path, CeedInt *num_file_paths, char ***file_paths, char **buffer) {
+  // Ensure defaults were set
+  *num_file_paths = 0;
+  *file_paths     = NULL;
 
-  CeedCall(CeedLoadSourceToInitializedBuffer_Private(ceed, source_file_path, 0, &num_files, &filepaths, buffer));
+  // Initialize
+  CeedCall(CeedCalloc(1, buffer));
+
+  // And load source
+  CeedCall(CeedLoadSourceToInitializedBuffer(ceed, source_file_path, num_file_paths, file_paths, buffer));
   return CEED_ERROR_SUCCESS;
 }
 
 /**
   @brief Initialize and load source file into string buffer, including full text of local files in place of `#include "local.h"`.
-
-  Note: Caller is responsible for freeing the string buffer with @ref CeedFree().
+    User @ref CeedLoadSourceAndInitializeBuffer() and @ref CeedLoadSourceToInitializedBuffer() if loading multiple source files into the same buffer. 
+    Caller is responsible for freeing the string buffer with @ref CeedFree().
 
   @param[in]  ceed             `Ceed` object for error handling
   @param[in]  source_file_path Absolute path to source file
@@ -238,11 +273,15 @@ int CeedLoadSourceToInitializedBuffer(Ceed ceed, const char *source_file_path, c
   @ref Backend
 **/
 int CeedLoadSourceToBuffer(Ceed ceed, const char *source_file_path, char **buffer) {
-  // Initialize buffer
-  CeedCall(CeedCalloc(1, buffer));
+  char  **file_paths     = NULL;
+  CeedInt num_file_paths = 0;
 
-  // Load to initalized buffer
-  CeedCall(CeedLoadSourceToInitializedBuffer(ceed, source_file_path, buffer));
+  // Load
+  CeedCall(CeedLoadSourceAndInitializeBuffer(ceed, source_file_path, &num_file_paths, &file_paths, buffer));
+
+  // Cleanup
+  for (CeedInt i = 0; i < num_file_paths; i++) CeedCall(CeedFree(&file_paths[i]));
+  CeedCall(CeedFree(&file_paths));
   return CEED_ERROR_SUCCESS;
 }
 

@@ -4,9 +4,7 @@
 // SPDX-License-Identifier: BSD-2-Clause
 //
 // This file is part of CEED:  http://github.com/ceed
-
-#ifndef utils_h
-#define utils_h
+#pragma once
 
 #include <ceed.h>
 #include <math.h>
@@ -301,5 +299,3 @@ CEED_QFUNCTION_HELPER int QdataBoundaryUnpack_2D(CeedInt Q, CeedInt i, const Cee
   if (normal) StoredValuesUnpack(Q, i, 1, 2, q_data, normal);
   return CEED_ERROR_SUCCESS;
 }
-
-#endif  // utils_h

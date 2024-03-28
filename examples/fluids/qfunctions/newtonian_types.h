@@ -4,9 +4,7 @@
 // SPDX-License-Identifier: BSD-2-Clause
 //
 // This file is part of CEED:  http://github.com/ceed
-
-#ifndef newtonian_types_h
-#define newtonian_types_h
+#pragma once
 
 #include <ceed.h>
 
@@ -59,5 +57,3 @@ struct SetupContext_ {
   CeedScalar                       lz;
   CeedScalar                       time;
 };
-
-#endif  // newtonian_types_h

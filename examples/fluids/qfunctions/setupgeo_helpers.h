@@ -7,9 +7,7 @@
 
 /// @file
 /// Geometric factors (3D) for Navier-Stokes example using PETSc
-
-#ifndef setupgeo_helpers_h
-#define setupgeo_helpers_h
+#pragma once
 
 #include <ceed.h>
 #include <math.h>
@@ -235,5 +233,3 @@ CEED_QFUNCTION_HELPER void InvertBoundaryMappingJacobian_3D(CeedInt Q, CeedInt i
     }
   }
 }
-
-#endif  // setupgeo_helpers_h

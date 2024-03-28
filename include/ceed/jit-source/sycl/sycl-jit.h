@@ -7,8 +7,6 @@
 
 /// @file
 /// Internal header for SYCL backend macro and type definitions for JiT source
-#ifndef CEED_SYCL_JIT_H
-#define CEED_SYCL_JIT_H
 
 #define CEED_QFUNCTION(name) inline static int name
 #define CEED_QFUNCTION_HELPER inline static
@@ -17,5 +15,3 @@
 
 // Need quotes for recursive header inclusion
 #include "sycl-types.h"
-
-#endif  // CEED_SYCL_JIT_H

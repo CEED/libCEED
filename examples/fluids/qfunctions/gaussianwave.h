@@ -7,7 +7,6 @@
 
 /// @file
 /// Thermodynamic wave propogation for testing freestream/non-reflecting boundary conditions. Proposed in Mengaldo et. al. 2014
-
 #include <ceed.h>
 #include <math.h>
 

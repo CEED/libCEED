@@ -4,9 +4,7 @@
 // SPDX-License-Identifier: BSD-2-Clause
 //
 // This file is part of CEED:  http://github.com/ceed
-
-#ifndef stabilization_types_h
-#define stabilization_types_h
+#pragma once
 
 typedef enum {
   STAB_NONE = 0,
@@ -18,5 +16,3 @@ typedef enum {
   STAB_TAU_CTAU           = 0,
   STAB_TAU_ADVDIFF_SHAKIB = 1,  // Approximation from Shakib's Thesis
 } StabilizationTauType;
-
-#endif  // stabilization_types_h

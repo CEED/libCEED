@@ -7,8 +7,6 @@
 
 /// @file
 /// Internal header for CUDA shared memory tensor product basis
-#ifndef CEED_CUDA_SHARED_BASIS_TENSOR_H
-#define CEED_CUDA_SHARED_BASIS_TENSOR_H
 
 #include <ceed.h>
 
@@ -185,7 +183,3 @@ extern "C" __global__ void Weight(const CeedInt num_elem, const CeedScalar *__re
     }
   }
 }
-
-//------------------------------------------------------------------------------
-
-#endif  // CEED_CUDA_SHARED_BASIS_TENSOR_H

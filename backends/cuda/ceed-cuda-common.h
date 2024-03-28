@@ -4,9 +4,7 @@
 // SPDX-License-Identifier: BSD-2-Clause
 //
 // This file is part of CEED:  http://github.com/ceed
-
-#ifndef CEED_CUDA_COMMON_H
-#define CEED_CUDA_COMMON_H
+#pragma once
 
 #include <ceed.h>
 #include <ceed/backend.h>
@@ -87,5 +85,3 @@ CEED_INTERN int CeedSetDeviceCeedIntArray_Cuda(Ceed ceed, const CeedInt *source_
 CEED_INTERN int CeedSetDeviceCeedScalarArray_Cuda(Ceed ceed, const CeedScalar *source_array, CeedCopyMode copy_mode, CeedSize num_values,
                                                   const CeedScalar **target_array_owned, const CeedScalar **target_array_borrowed,
                                                   const CeedScalar **target_array);
-
-#endif  // CEED_CUDA_COMMON_H

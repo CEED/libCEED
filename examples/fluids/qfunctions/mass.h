@@ -7,10 +7,6 @@
 
 /// @file
 /// Mass operator for Navier-Stokes example using PETSc
-
-#ifndef mass_h
-#define mass_h
-
 #include <ceed.h>
 #include <math.h>
 
@@ -48,6 +44,3 @@ CEED_QFUNCTION(Mass_7)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedSc
 CEED_QFUNCTION(Mass_9)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) { return Mass_N(ctx, Q, in, out, 9); }
 
 CEED_QFUNCTION(Mass_22)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) { return Mass_N(ctx, Q, in, out, 22); }
-// *****************************************************************************
-
-#endif  // mass_h

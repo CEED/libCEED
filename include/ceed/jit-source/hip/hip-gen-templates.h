@@ -7,8 +7,6 @@
 
 /// @file
 /// Internal header for HIP backend macro and type definitions for JiT source
-#ifndef CEED_HIP_GEN_TEMPLATES_H
-#define CEED_HIP_GEN_TEMPLATES_H
 
 #include <ceed.h>
 
@@ -288,5 +286,3 @@ inline __device__ void gradColloTranspose3d(SharedData_Hip &data, const CeedInt 
     }
   }
 }
-
-#endif  // CEED_HIP_GEN_TEMPLATES_H

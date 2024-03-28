@@ -7,8 +7,6 @@
 
 /// @file
 /// Internal header for HIP non-tensor product basis templates
-#ifndef CEED_HIP_REF_BASIS_NONTENSOR_TEMPLATES_H
-#define CEED_HIP_REF_BASIS_NONTENSOR_TEMPLATES_H
 
 #include <ceed.h>
 
@@ -61,7 +59,3 @@ inline __device__ void ContractTranspose(const CeedInt elem, const CeedInt strid
     d_V[elem * strides_elem_V + comp * strides_comp_V + t_id] = r_V;
   }
 }
-
-//------------------------------------------------------------------------------
-
-#endif  // CEED_HIP_REF_BASIS_NONTENSOR_TEMPLATES_H

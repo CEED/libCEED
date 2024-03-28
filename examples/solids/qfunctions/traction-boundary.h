@@ -8,9 +8,6 @@
 /// @file
 /// Geometric factors for solid mechanics example using PETSc
 
-#ifndef TRACTION_BOUNDARY_H
-#define TRACTION_BOUNDARY_H
-
 #include <ceed.h>
 
 // -----------------------------------------------------------------------------
@@ -64,5 +61,3 @@ CEED_QFUNCTION(SetupTractionBCs)(void *ctx, CeedInt Q, const CeedScalar *const *
   return 0;
 }
 // -----------------------------------------------------------------------------
-
-#endif  // End of TRACTION_BOUNDARY_H

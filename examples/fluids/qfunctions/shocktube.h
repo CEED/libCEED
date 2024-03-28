@@ -10,10 +10,6 @@
 
 // Model from:
 //   On the Order of Accuracy and Numerical Performance of Two Classes of Finite Volume WENO Schemes, Zhang, Zhang, and Shu (2011).
-
-#ifndef shocktube_h
-#define shocktube_h
-
 #include <ceed.h>
 #include <math.h>
 
@@ -387,5 +383,3 @@ CEED_QFUNCTION(EulerShockTube)(void *ctx, CeedInt Q, const CeedScalar *const *in
   // Return
   return 0;
 }
-
-#endif  // shocktube_h

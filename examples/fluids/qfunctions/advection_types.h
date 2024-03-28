@@ -4,9 +4,7 @@
 // SPDX-License-Identifier: BSD-2-Clause
 //
 // This file is part of CEED:  http://github.com/ceed
-
-#ifndef advection_types_h
-#define advection_types_h
+#pragma once
 
 #include <ceed.h>
 #include "stabilization_types.h"
@@ -57,5 +55,3 @@ struct SetupContextAdv_ {
   AdvectionICType      initial_condition_type;
   BubbleContinuityType bubble_continuity_type;
 };
-
-#endif /* ifndef advection_types_h */

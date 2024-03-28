@@ -7,10 +7,6 @@
 
 /// @file
 /// Operator for Navier-Stokes example using PETSc
-
-#ifndef channel_h
-#define channel_h
-
 #include <ceed.h>
 #include <math.h>
 
@@ -207,6 +203,3 @@ CEED_QFUNCTION(Channel_Outflow)(void *ctx, CeedInt Q, const CeedScalar *const *i
   }  // End Quadrature Point Loop
   return 0;
 }
-
-// *****************************************************************************
-#endif  // channel_h

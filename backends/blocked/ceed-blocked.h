@@ -4,9 +4,7 @@
 // SPDX-License-Identifier: BSD-2-Clause
 //
 // This file is part of CEED:  http://github.com/ceed
-
-#ifndef CEED_BLOCKED_H
-#define CEED_BLOCKED_H
+#pragma once
 
 #include <ceed.h>
 #include <ceed/backend.h>
@@ -34,5 +32,3 @@ typedef struct {
 } CeedOperator_Blocked;
 
 CEED_INTERN int CeedOperatorCreate_Blocked(CeedOperator op);
-
-#endif  // CEED_BLOCKED_H

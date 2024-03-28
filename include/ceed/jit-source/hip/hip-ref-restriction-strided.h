@@ -7,8 +7,6 @@
 
 /// @file
 /// Internal header for HIP strided element restriction kernels
-#ifndef CEED_HIP_REF_RESTRICTION_STRIDED_H
-#define CEED_HIP_REF_RESTRICTION_STRIDED_H
 
 #include <ceed.h>
 
@@ -41,7 +39,3 @@ extern "C" __global__ void StridedTranspose(const CeedScalar *__restrict__ u, Ce
     }
   }
 }
-
-//------------------------------------------------------------------------------
-
-#endif  // CEED_HIP_REF_RESTRICTION_STRIDED_H
