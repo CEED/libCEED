@@ -17,6 +17,7 @@ On this page we provide a summary of the main API changes, new features and exam
 - Add `CeedOperatorCreateAtPoints` which evaluates the `CeedQFunction` at arbitrary locations in each element, for use in Particle in Cell, Material Point Method, and similar methods.
 - Add `CeedElemRestrictionGetLLayout` to provide L-vector layout for strided `CeedElemRestriction` created with `CEED_BACKEND_STRIDES`.
 - Add `CeedVectorReturnCeed` and similar when parent `Ceed` context for a libCEED object is only needed once in a calling scope.
+- Enable `#pragma once` for JiT source; remove duplicate includes in JiT source string before compilation.
 
 ### Examples
 
