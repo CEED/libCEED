@@ -12,7 +12,8 @@
 
 #include <ceed.h>
 
-#include "t406-qfunction-scales.h"
+// Test include path with "/./"
+#include "./t406-qfunction-scales.h"
 
 CEED_QFUNCTION_HELPER CeedScalar times_two(CeedScalar x) { return SCALE_TWO * x; }
 
