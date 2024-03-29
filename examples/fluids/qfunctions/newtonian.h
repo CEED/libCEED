@@ -143,7 +143,8 @@ CEED_QFUNCTION(RHSFunction_Newtonian)(void *ctx, CeedInt Q, const CeedScalar *co
   const CeedScalar(*q)[CEED_Q_VLA]   = (const CeedScalar(*)[CEED_Q_VLA])in[0];
   const CeedScalar(*Grad_q)          = in[1];
   const CeedScalar(*q_data)          = in[2];
-  const CeedScalar(*x)[CEED_Q_VLA]   = (const CeedScalar(*)[CEED_Q_VLA])in[4];
+  const CeedScalar(*x)[CEED_Q_VLA]   = (const CeedScalar(*)[CEED_Q_VLA])in[3];
+
   CeedScalar(*v)[CEED_Q_VLA]         = (CeedScalar(*)[CEED_Q_VLA])out[0];
   CeedScalar(*Grad_v)[5][CEED_Q_VLA] = (CeedScalar(*)[5][CEED_Q_VLA])out[1];
 
