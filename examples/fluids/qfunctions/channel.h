@@ -94,21 +94,16 @@ CEED_QFUNCTION(ICsChannel)(void *ctx, CeedInt Q, const CeedScalar *const *in, Ce
 // This QFunction set the inflow boundary condition for conservative variables
 // *****************************************************************************
 CEED_QFUNCTION(Channel_Inflow)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
-  // Inputs
   const CeedScalar(*q)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[0];
   const CeedScalar(*q_data_sur)    = in[2];
   const CeedScalar(*X)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[3];
-
-  // Outputs
-  CeedScalar(*v)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA])out[0];
+  CeedScalar(*v)[CEED_Q_VLA]       = (CeedScalar(*)[CEED_Q_VLA])out[0];
 
   const ChannelContext     context     = (ChannelContext)ctx;
   const bool               is_implicit = context->implicit;
   NewtonianIdealGasContext gas         = &context->newtonian_ctx;
-  const CeedScalar         cv          = gas->cv;
   const CeedScalar         gamma       = HeatCapacityRatio(&context->newtonian_ctx);
 
-  // Quadrature Point Loop
   CeedPragmaSIMD for (CeedInt i = 0; i < Q; i++) {
     CeedScalar wdetJb, norm[3];
     QdataBoundaryUnpack_3D(Q, i, q_data_sur, &wdetJb, NULL, norm);
@@ -133,7 +128,7 @@ CEED_QFUNCTION(Channel_Inflow)(void *ctx, CeedInt Q, const CeedScalar *const *in
     const CeedScalar P        = s_inside.Y.pressure;
 
     // Find inflow state using calculated P and prescribed velocity, theta0
-    const CeedScalar e_internal = cv * s_exact.Y.temperature;
+    const CeedScalar e_internal = gas->cv * s_exact.Y.temperature;
     const CeedScalar rho_in     = P / ((gamma - 1) * e_internal);
     const CeedScalar E_kinetic  = .5 * rho_in * Dot3(s_exact.Y.velocity, s_exact.Y.velocity);
     const CeedScalar E          = rho_in * e_internal + E_kinetic;
@@ -153,8 +148,7 @@ CEED_QFUNCTION(Channel_Inflow)(void *ctx, CeedInt Q, const CeedScalar *const *in
 
     // -- Total Energy Density
     v[4][i] -= wdetJb * u_normal * (E + P);
-
-  }  // End Quadrature Point Loop
+  }
   return 0;
 }
 
@@ -162,18 +156,13 @@ CEED_QFUNCTION(Channel_Inflow)(void *ctx, CeedInt Q, const CeedScalar *const *in
 // This QFunction set the outflow boundary condition for conservative variables
 // *****************************************************************************
 CEED_QFUNCTION(Channel_Outflow)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
-  // Inputs
   const CeedScalar(*q)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[0];
   const CeedScalar(*q_data_sur)    = in[2];
-
-  // Outputs
-  CeedScalar(*v)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA])out[0];
+  CeedScalar(*v)[CEED_Q_VLA]       = (CeedScalar(*)[CEED_Q_VLA])out[0];
 
   const ChannelContext context     = (ChannelContext)ctx;
   const bool           is_implicit = context->implicit;
-  const CeedScalar     P0          = context->P0;
 
-  // Quadrature Point Loop
   CeedPragmaSIMD for (CeedInt i = 0; i < Q; i++) {
     CeedScalar wdetJb, norm[3];
     QdataBoundaryUnpack_3D(Q, i, q_data_sur, &wdetJb, NULL, norm);
@@ -188,7 +177,7 @@ CEED_QFUNCTION(Channel_Outflow)(void *ctx, CeedInt Q, const CeedScalar *const *i
     for (CeedInt j = 0; j < 5; j++) v[j][i] = 0.;
 
     // Implementing outflow condition
-    const CeedScalar P        = P0;             // pressure
+    const CeedScalar P        = context->P0;    // pressure
     const CeedScalar u_normal = Dot3(norm, u);  // Normal velocity
     // The Physics
     // -- Density
@@ -199,7 +188,6 @@ CEED_QFUNCTION(Channel_Outflow)(void *ctx, CeedInt Q, const CeedScalar *const *i
 
     // -- Total Energy Density
     v[4][i] -= wdetJb * u_normal * (E + P);
-
-  }  // End Quadrature Point Loop
+  }
   return 0;
 }

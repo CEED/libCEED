@@ -141,19 +141,11 @@ CEED_QFUNCTION(Blasius_Inflow)(void *ctx, CeedInt Q, const CeedScalar *const *in
   CeedScalar(*v)[CEED_Q_VLA]       = (CeedScalar(*)[CEED_Q_VLA])out[0];
   CeedScalar(*jac_data_sur)        = context->newtonian_ctx.is_implicit ? out[1] : NULL;
 
-  const bool               is_implicit = context->implicit;
-  NewtonianIdealGasContext gas         = &context->newtonian_ctx;
-  const CeedScalar         mu          = context->newtonian_ctx.mu;
-  const CeedScalar         Rd          = GasConstant(&context->newtonian_ctx);
-  const CeedScalar         T_inf       = context->T_inf;
-  const CeedScalar         P0          = context->P0;
-  const CeedScalar         delta0      = context->delta0;
-  const CeedScalar         U_inf       = context->U_inf;
-  const CeedScalar         x_inflow    = context->x_inflow;
-  const bool               weakT       = context->weakT;
-  const CeedScalar         rho_0       = P0 / (Rd * T_inf);
-  const CeedScalar         x0          = U_inf * rho_0 / (mu * 25 / Square(delta0));
-  const CeedScalar         zeros[11]   = {0.};
+  const bool                     is_implicit = context->implicit;
+  const NewtonianIdealGasContext gas         = &context->newtonian_ctx;
+  const CeedScalar               rho_0       = context->P0 / (GasConstant(gas) * context->T_inf);
+  const CeedScalar               x0          = context->U_inf * rho_0 / (gas->mu * 25 / Square(context->delta0));
+  const CeedScalar               zeros[11]   = {0.};
 
   CeedPragmaSIMD for (CeedInt i = 0; i < Q; i++) {
     CeedScalar wdetJb, norm[3];
@@ -163,13 +155,13 @@ CEED_QFUNCTION(Blasius_Inflow)(void *ctx, CeedInt Q, const CeedScalar *const *in
     // Calculate inflow values
     const CeedScalar x[3] = {X[0][i], X[1][i], 0.};
     CeedScalar       t12;
-    State            s = BlasiusSolution(context, x, x0, x_inflow, rho_0, &t12);
+    State            s = BlasiusSolution(context, x, x0, context->x_inflow, rho_0, &t12);
     CeedScalar       qi[5];
     for (CeedInt j = 0; j < 5; j++) qi[j] = q[j][i];
     State s_int = StateFromU(gas, qi);
 
     // enabling user to choose between weak T and weak rho inflow
-    if (weakT) {  // density from the current solution
+    if (context->weakT) {  // density from the current solution
       s.U.density = s_int.U.density;
       s.Y         = StatePrimitiveFromConservative(gas, s.U);
     } else {  // Total energy from current solution
@@ -196,27 +188,18 @@ CEED_QFUNCTION(Blasius_Inflow)(void *ctx, CeedInt Q, const CeedScalar *const *in
 
 // *****************************************************************************
 CEED_QFUNCTION(Blasius_Inflow_Jacobian)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
-  // Inputs
   const CeedScalar(*dq)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[0];
   const CeedScalar(*q_data_sur)     = in[2];
   const CeedScalar(*X)[CEED_Q_VLA]  = (const CeedScalar(*)[CEED_Q_VLA])in[3];
+  CeedScalar(*v)[CEED_Q_VLA]        = (CeedScalar(*)[CEED_Q_VLA])out[0];
 
-  // Outputs
-  CeedScalar(*v)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA])out[0];
-
-  const BlasiusContext context     = (BlasiusContext)ctx;
-  const bool           is_implicit = context->implicit;
-  const CeedScalar     mu          = context->newtonian_ctx.mu;
-  const CeedScalar     cv          = context->newtonian_ctx.cv;
-  const CeedScalar     Rd          = GasConstant(&context->newtonian_ctx);
-  const CeedScalar     gamma       = HeatCapacityRatio(&context->newtonian_ctx);
-  const CeedScalar     T_inf       = context->T_inf;
-  const CeedScalar     P0          = context->P0;
-  const CeedScalar     delta0      = context->delta0;
-  const CeedScalar     U_inf       = context->U_inf;
-  const bool           weakT       = context->weakT;
-  const CeedScalar     rho_0       = P0 / (Rd * T_inf);
-  const CeedScalar     x0          = U_inf * rho_0 / (mu * 25 / (delta0 * delta0));
+  const BlasiusContext           context     = (BlasiusContext)ctx;
+  const NewtonianIdealGasContext gas         = &context->newtonian_ctx;
+  const bool                     is_implicit = context->implicit;
+  const CeedScalar               Rd          = GasConstant(gas);
+  const CeedScalar               gamma       = HeatCapacityRatio(gas);
+  const CeedScalar               rho_0       = context->P0 / (Rd * context->T_inf);
+  const CeedScalar               x0          = context->U_inf * rho_0 / (gas->mu * 25 / (Square(context->delta0)));
 
   CeedPragmaSIMD for (CeedInt i = 0; i < Q; i++) {
     CeedScalar wdetJb, norm[3];
@@ -230,14 +213,14 @@ CEED_QFUNCTION(Blasius_Inflow_Jacobian)(void *ctx, CeedInt Q, const CeedScalar *
 
     // enabling user to choose between weak T and weak rho inflow
     CeedScalar drho, dE, dP;
-    if (weakT) {
+    if (context->weakT) {
       // rho should be from the current solution
       drho                   = dq[0][i];
-      CeedScalar dE_internal = drho * cv * T_inf;
+      CeedScalar dE_internal = drho * gas->cv * context->T_inf;
       CeedScalar dE_kinetic  = .5 * drho * Dot3(s.Y.velocity, s.Y.velocity);
       dE                     = dE_internal + dE_kinetic;
-      dP                     = drho * Rd * T_inf;  // interior rho with exterior T
-    } else {                                       // rho specified, E_internal from solution
+      dP                     = drho * Rd * context->T_inf;  // interior rho with exterior T
+    } else {                                                // rho specified, E_internal from solution
       drho = 0;
       dE   = dq[4][i];
       dP   = dE * (gamma - 1.);
