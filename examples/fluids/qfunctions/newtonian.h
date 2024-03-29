@@ -231,7 +231,7 @@ CEED_QFUNCTION_HELPER int IFunction_Newtonian(void *ctx, CeedInt Q, const CeedSc
     }
 // worked for exponential    const CeedScalar Amag=100.0;
 // worked for cubic    const CeedScalar Amag=200000.0;
-    const CeedScalar Amag=16000.0;
+    const CeedScalar Amag=0*16000.0;
 //    const CeedScalar amsig = -1.0*(Amag - LinearRampCoefficient(Amag, 0.1, -0.1, x_i[0]))*Max(0.0,exp(-100.0*Min(0,qi[1]))-1.0);
     const CeedScalar ux=qi[1];
 //cubic    const CeedScalar amsig = (Amag - LinearRampCoefficient(Amag, 0.1, -0.1, x_i[0]))*Min(0.0,ux*ux*ux);
