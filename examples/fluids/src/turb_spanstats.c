@@ -43,19 +43,22 @@ PetscErrorCode CreateStatsDM(User user, ProblemData *problem, PetscInt degree) {
   user->spanstats.span_width = domain_max[2] - domain_min[2];
 
   {  // Get DM from surface
-    DM          parent_distributed_dm;
-    PetscSF     isoperiodicface;
-    DMLabel     label;
-    PetscMPIInt size;
+    DM             parent_distributed_dm;
+    const PetscSF *isoperiodicface;
+    PetscInt       num_isoperiodicface;
+    DMLabel        label;
+    PetscMPIInt    size;
 
-    PetscCall(DMPlexGetIsoperiodicFaceSF(user->dm, &isoperiodicface));
+    PetscCall(DMPlexGetIsoperiodicFaceSF(user->dm, &num_isoperiodicface, &isoperiodicface));
 
     if (isoperiodicface) {
       PetscSF         inv_isoperiodicface;
-      PetscInt        nleaves;
+      PetscInt        nleaves, isoperiodicface_index = -1;
       const PetscInt *ilocal;
 
-      PetscCall(PetscSFCreateInverseSF(isoperiodicface, &inv_isoperiodicface));
+      PetscCall(PetscOptionsGetInt(NULL, NULL, "-ts_monitor_turbulence_spanstats_isoperiodic_facesf", &isoperiodicface_index, NULL));
+      isoperiodicface_index = isoperiodicface_index == -1 ? num_isoperiodicface - 1 : isoperiodicface_index;
+      PetscCall(PetscSFCreateInverseSF(isoperiodicface[isoperiodicface_index], &inv_isoperiodicface));
       PetscCall(PetscSFGetGraph(inv_isoperiodicface, NULL, &nleaves, &ilocal, NULL));
       PetscCall(DMCreateLabel(user->dm, "Periodic Face"));
       PetscCall(DMGetLabel(user->dm, "Periodic Face", &label));
