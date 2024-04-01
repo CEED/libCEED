@@ -191,7 +191,7 @@ static int CeedOperatorSetupFields_Sycl(CeedQFunction qf, CeedOperator op, bool 
         CeedCallBackend(CeedOperatorFieldGetBasis(op_fields[i], &basis));
         q_size = (CeedSize)num_elem * Q;
         CeedCallBackend(CeedVectorCreate(ceed, q_size, &q_vecs[i]));
-        CeedCallBackend(CeedBasisApply(basis, num_elem, CEED_NOTRANSPOSE, CEED_EVAL_WEIGHT, NULL, q_vecs[i]));
+        CeedCallBackend(CeedBasisApply(basis, num_elem, CEED_NOTRANSPOSE, CEED_EVAL_WEIGHT, CEED_VECTOR_NONE, q_vecs[i]));
         break;
       case CEED_EVAL_DIV:
         break;  // TODO: Not implemented
