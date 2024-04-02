@@ -191,24 +191,31 @@ CEED_QFUNCTION(ICsAdvection2d)(void *ctx, CeedInt Q, const CeedScalar *const *in
 }
 
 CEED_QFUNCTION_HELPER void QdataUnpack_ND(CeedInt N, CeedInt Q, CeedInt i, const CeedScalar *q_data, CeedScalar *wdetJ, CeedScalar *dXdx) {
+  // Cannot directly use QdataUnpack* helper functions due to SYCL online compiler incompatabilities
   switch (N) {
     case 2:
-      QdataUnpack_2D(Q, i, q_data, wdetJ, (CeedScalar(*)[2])dXdx);
+      StoredValuesUnpack(Q, i, 0, 1, q_data, wdetJ);
+      StoredValuesUnpack(Q, i, 1, 4, q_data, dXdx);
       break;
     case 3:
-      QdataUnpack_3D(Q, i, q_data, wdetJ, (CeedScalar(*)[3])dXdx);
+      StoredValuesUnpack(Q, i, 0, 1, q_data, wdetJ);
+      StoredValuesUnpack(Q, i, 1, 9, q_data, dXdx);
       break;
   }
 }
 
 CEED_QFUNCTION_HELPER int QdataBoundaryUnpack_ND(CeedInt N, CeedInt Q, CeedInt i, const CeedScalar *q_data, CeedScalar *wdetJ, CeedScalar *dXdx,
                                                  CeedScalar *normal) {
+  // Cannot directly use QdataBoundaryUnpack* helper functions due to SYCL online compiler incompatabilities
   switch (N) {
     case 2:
-      QdataBoundaryUnpack_2D(Q, i, q_data, wdetJ, normal);
+      if (wdetJ) StoredValuesUnpack(Q, i, 0, 1, q_data, wdetJ);
+      if (normal) StoredValuesUnpack(Q, i, 1, 2, q_data, normal);
       break;
     case 3:
-      QdataBoundaryUnpack_3D(Q, i, q_data, wdetJ, (CeedScalar(*)[3])dXdx, normal);
+      if (wdetJ) StoredValuesUnpack(Q, i, 0, 1, q_data, wdetJ);
+      if (normal) StoredValuesUnpack(Q, i, 1, 3, q_data, normal);
+      if (dXdx) StoredValuesUnpack(Q, i, 4, 6, q_data, (CeedScalar *)dXdx);
       break;
   }
   return CEED_ERROR_SUCCESS;
@@ -230,7 +237,15 @@ CEED_QFUNCTION_HELPER void StatePhysicalGradientFromReference_ND(CeedInt N, Ceed
       grad_s[2]       = StateFromU(gas, U);
     } break;
     case 3:
-      StatePhysicalGradientFromReference(Q, i, gas, s, state_var, grad_q, (CeedScalar(*)[3])dXdx, grad_s);
+      // Cannot directly use StatePhysicalGradientFromReference helper functions due to SYCL online compiler incompatabilities
+      for (CeedInt k = 0; k < 3; k++) {
+        CeedScalar dqi[5];
+        for (CeedInt j = 0; j < 5; j++) {
+          dqi[j] = grad_q[(Q * 5) * 0 + Q * j + i] * dXdx[0 * N + k] + grad_q[(Q * 5) * 1 + Q * j + i] * dXdx[1 * N + k] +
+                   grad_q[(Q * 5) * 2 + Q * j + i] * dXdx[2 * N + k];
+        }
+        grad_s[k] = StateFromQ_fwd(gas, s, dqi, state_var);
+      }
       break;
   }
 }
