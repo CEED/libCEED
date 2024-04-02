@@ -13,9 +13,6 @@
 #include <petsc.h>
 
 #include "structs.h"
-#if PETSC_VERSION_LT(3, 21, 0)
-#define DMSetCoordinateDisc(a, b, c) DMProjectCoordinates(a, b)
-#endif
 
 CeedMemType      MemTypeP2C(PetscMemType mtype);
 PetscErrorCode   VecP2C(Vec X_petsc, PetscMemType *mem_type, CeedVector x_ceed);

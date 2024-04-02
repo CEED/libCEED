@@ -21,10 +21,6 @@
 #include "include/utils.h"
 #include "problems/problems.h"
 
-#if PETSC_VERSION_LT(3, 20, 0)
-#error "PETSc v3.20 or later is required"
-#endif
-
 #if PETSC_VERSION_LT(3, 21, 0)
-#define DMSetCoordinateDisc(a, b, c) DMProjectCoordinates(a, b)
+#error "PETSc v3.21 or later is required"
 #endif
