@@ -15,7 +15,7 @@ int main(int argc, char **argv) {
   CeedQFunction       qf_setup, qf_mass;
   CeedOperator        op_setup_small, op_mass_small, op_setup_large, op_mass_large;
   CeedVector          q_data_small, q_data_large, x, u, v;
-  CeedInt             num_elem = 15, p = 5, q = 8, scale = 3;
+  CeedInt             num_elem = 15, p = 5, q = 8, scale = 3, num_comp = 2;
   CeedInt             num_nodes_x = num_elem + 1, num_nodes_u = num_elem * (p - 1) + 1;
   CeedInt             ind_x[num_elem * 2], ind_u[num_elem * p];
 
@@ -28,8 +28,8 @@ int main(int argc, char **argv) {
     for (CeedInt i = 0; i < num_nodes_x; i++) x_array[i] = (CeedScalar)i / (num_nodes_x - 1);
     CeedVectorSetArray(x, CEED_MEM_HOST, CEED_COPY_VALUES, x_array);
   }
-  CeedVectorCreate(ceed, 2 * num_nodes_u, &u);
-  CeedVectorCreate(ceed, 2 * num_nodes_u, &v);
+  CeedVectorCreate(ceed, num_comp * num_nodes_u, &u);
+  CeedVectorCreate(ceed, num_comp * num_nodes_u, &v);
   CeedVectorCreate(ceed, num_elem * q, &q_data_small);
   CeedVectorCreate(ceed, num_elem * q * scale, &q_data_large);
 
@@ -38,14 +38,14 @@ int main(int argc, char **argv) {
     ind_x[2 * i + 0] = i;
     ind_x[2 * i + 1] = i + 1;
   }
-  CeedElemRestrictionCreate(ceed, num_elem, 2, 1, 1, num_nodes_x, CEED_MEM_HOST, CEED_USE_POINTER, ind_x, &elem_restriction_x);
+  CeedElemRestrictionCreate(ceed, num_elem, num_comp, 1, 1, num_nodes_x, CEED_MEM_HOST, CEED_USE_POINTER, ind_x, &elem_restriction_x);
 
   for (CeedInt i = 0; i < num_elem; i++) {
     for (CeedInt j = 0; j < p; j++) {
-      ind_u[p * i + j] = 2 * (i * (p - 1) + j);
+      ind_u[p * i + j] = num_comp * (i * (p - 1) + j);
     }
   }
-  CeedElemRestrictionCreate(ceed, num_elem, p, 2, 1, 2 * num_nodes_u, CEED_MEM_HOST, CEED_USE_POINTER, ind_u, &elem_restriction_u);
+  CeedElemRestrictionCreate(ceed, num_elem, p, num_comp, 1, num_comp * num_nodes_u, CEED_MEM_HOST, CEED_USE_POINTER, ind_u, &elem_restriction_u);
 
   CeedInt strides_q_data_small[3] = {1, q, q};
   CeedElemRestrictionCreateStrided(ceed, num_elem, q, 1, q * num_elem, strides_q_data_small, &elem_restriction_q_data_small);
@@ -55,9 +55,9 @@ int main(int argc, char **argv) {
 
   // Bases
   CeedBasisCreateTensorH1Lagrange(ceed, 1, 1, 2, q, CEED_GAUSS, &basis_x_small);
-  CeedBasisCreateTensorH1Lagrange(ceed, 1, 2, p, q, CEED_GAUSS, &basis_u_small);
+  CeedBasisCreateTensorH1Lagrange(ceed, 1, num_comp, p, q, CEED_GAUSS, &basis_u_small);
   CeedBasisCreateTensorH1Lagrange(ceed, 1, 1, 2, q * scale, CEED_GAUSS, &basis_x_large);
-  CeedBasisCreateTensorH1Lagrange(ceed, 1, 2, p, q * scale, CEED_GAUSS, &basis_u_large);
+  CeedBasisCreateTensorH1Lagrange(ceed, 1, num_comp, p, q * scale, CEED_GAUSS, &basis_u_large);
 
   // QFunctions
   CeedQFunctionCreateInterior(ceed, 1, setup, setup_loc, &qf_setup);
@@ -67,8 +67,8 @@ int main(int argc, char **argv) {
 
   CeedQFunctionCreateInterior(ceed, 1, mass, mass_loc, &qf_mass);
   CeedQFunctionAddInput(qf_mass, "rho", 1, CEED_EVAL_NONE);
-  CeedQFunctionAddInput(qf_mass, "u", 2, CEED_EVAL_INTERP);
-  CeedQFunctionAddOutput(qf_mass, "v", 2, CEED_EVAL_INTERP);
+  CeedQFunctionAddInput(qf_mass, "u", num_comp, CEED_EVAL_INTERP);
+  CeedQFunctionAddOutput(qf_mass, "v", num_comp, CEED_EVAL_INTERP);
 
   // 'Small' Operators
   CeedOperatorCreate(ceed, qf_setup, CEED_QFUNCTION_NONE, CEED_QFUNCTION_NONE, &op_setup_small);
@@ -101,8 +101,8 @@ int main(int argc, char **argv) {
 
     CeedVectorGetArrayWrite(u, CEED_MEM_HOST, &u_array);
     for (int i = 0; i < num_nodes_u; i++) {
-      u_array[2 * i]     = 1.0;
-      u_array[2 * i + 1] = 2.0;
+      u_array[num_comp * i]     = 1.0;
+      u_array[num_comp * i + 1] = 2.0;
     }
     CeedVectorRestoreArray(u, &u_array);
   }
@@ -117,12 +117,12 @@ int main(int argc, char **argv) {
 
     CeedVectorGetArrayRead(v, CEED_MEM_HOST, &v_array);
     for (CeedInt i = 0; i < num_nodes_u; i++) {
-      sum_1 += v_array[2 * i];
-      sum_2 += v_array[2 * i + 1];
+      sum_1 += v_array[num_comp * i];
+      sum_2 += v_array[num_comp * i + 1];
     }
     CeedVectorRestoreArrayRead(v, &v_array);
-    if (fabs(sum_1 - 1.) > 1000. * CEED_EPSILON) printf("Computed Area: %f != True Area: 1.0\n", sum_1);
-    if (fabs(sum_2 - 2.) > 1000. * CEED_EPSILON) printf("Computed Area: %f != True Area: 2.0\n", sum_2);
+    if (fabs(sum_1 - 1.) > 1000. * CEED_EPSILON) printf("Small Problem, Component 1: Computed Area %f != True Area 1.0\n", sum_1);
+    if (fabs(sum_2 - 2.) > 1000. * CEED_EPSILON) printf("Small Problem, Component 2: Computed Area %f != True Area 2.0\n", sum_2);
   }
 
   // 'Large' operator
@@ -135,13 +135,13 @@ int main(int argc, char **argv) {
 
     CeedVectorGetArrayRead(v, CEED_MEM_HOST, &v_array);
     for (CeedInt i = 0; i < num_nodes_u; i++) {
-      sum_1 += v_array[2 * i];
-      sum_2 += v_array[2 * i + 1];
+      sum_1 += v_array[num_comp * i];
+      sum_2 += v_array[num_comp * i + 1];
     }
     CeedVectorRestoreArrayRead(v, &v_array);
 
-    if (fabs(sum_1 - 1.) > 1000. * CEED_EPSILON) printf("Computed Area: %f != True Area: 1.0\n", sum_1);
-    if (fabs(sum_2 - 2.) > 1000. * CEED_EPSILON) printf("Computed Area: %f != True Area: 2.0\n", sum_2);
+    if (fabs(sum_1 - 1.) > 1000. * CEED_EPSILON) printf("Large Problem, Component 1: Computed Area %f != True Area 1.0\n", sum_1);
+    if (fabs(sum_2 - 2.) > 1000. * CEED_EPSILON) printf("Large Problem, Component 2: Computed Area %f != True Area 2.0\n", sum_2);
   }
 
   CeedVectorDestroy(&x);
