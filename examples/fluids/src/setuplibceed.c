@@ -414,6 +414,7 @@ PetscErrorCode SetupLibceed(Ceed ceed, CeedData ceed_data, DM dm, User user, App
                                       NULL));
     PetscCall(OperatorApplyContextCreate(dm, dm, ceed, op_rhs, user->q_ceed, user->g_ceed, user->Q_loc, NULL, &user->op_rhs_ctx));
     PetscCallCeed(ceed, CeedOperatorDestroy(&op_rhs));
+    PetscCheck(app_ctx->sgs_model_type == SGS_MODEL_NONE, user->comm, PETSC_ERR_SUP, "SGS modeling not implemented for explicit timestepping");
   } else {  // IFunction
     CeedOperator op_ijacobian = NULL;
 
@@ -425,10 +426,10 @@ PetscErrorCode SetupLibceed(Ceed ceed, CeedData ceed_data, DM dm, User user, App
       PetscCallCeed(ceed, CeedOperatorGetContextFieldLabel(op_ijacobian, "ijacobian time shift", &user->phys->ijacobian_time_shift_label));
       PetscCallCeed(ceed, CeedOperatorDestroy(&op_ijacobian));
     }
-    if (problem->use_strong_bc_ceed) PetscCall(SetupStrongBC_Ceed(ceed, ceed_data, dm, user, problem, bc));
     if (app_ctx->sgs_model_type == SGS_MODEL_DATA_DRIVEN) PetscCall(SgsDDSetup(ceed, user, ceed_data, problem));
   }
 
+  if (problem->use_strong_bc_ceed) PetscCall(SetupStrongBC_Ceed(ceed, ceed_data, dm, user, problem, bc));
   if (app_ctx->turb_spanstats_enable) PetscCall(TurbulenceStatisticsSetup(ceed, user, ceed_data, problem));
   if (app_ctx->diff_filter_monitor && !user->diff_filter) PetscCall(DifferentialFilterSetup(ceed, user, ceed_data, problem));
   if (app_ctx->sgs_train_enable) PetscCall(SGS_DD_TrainingSetup(ceed, user, ceed_data, problem));
