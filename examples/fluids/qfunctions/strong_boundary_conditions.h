@@ -9,15 +9,12 @@
 #include "setupgeo_helpers.h"
 
 CEED_QFUNCTION(SetupStrongBC)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
-  // Inputs
   const CeedScalar(*coords)[CEED_Q_VLA]       = (const CeedScalar(*)[CEED_Q_VLA])in[0];
   const CeedScalar(*dxdX_q)[3][CEED_Q_VLA]    = (const CeedScalar(*)[3][CEED_Q_VLA])in[1];
   const CeedScalar(*multiplicity)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[2];
-
-  // Outputs
-  CeedScalar(*coords_stored)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA])out[0];
-  CeedScalar(*scale_stored)              = out[1];
-  CeedScalar(*dXdx_q)[CEED_Q_VLA]        = (CeedScalar(*)[CEED_Q_VLA])out[2];
+  CeedScalar(*coords_stored)[CEED_Q_VLA]      = (CeedScalar(*)[CEED_Q_VLA])out[0];
+  CeedScalar(*scale_stored)                   = out[1];
+  CeedScalar(*dXdx_q)[CEED_Q_VLA]             = (CeedScalar(*)[CEED_Q_VLA])out[2];
 
   CeedPragmaSIMD for (CeedInt i = 0; i < Q; i++) {
     for (int j = 0; j < 3; j++) coords_stored[j][i] = coords[j][i];

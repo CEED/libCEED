@@ -220,20 +220,16 @@ CEED_QFUNCTION(RiemannOutflow_Prim)(void *ctx, CeedInt Q, const CeedScalar *cons
 // *****************************************************************************
 CEED_QFUNCTION_HELPER int RiemannOutflow_Jacobian(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out,
                                                   StateVariable state_var) {
-  // Inputs
   const CeedScalar(*dq)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[0];
   const CeedScalar(*Grad_dq)        = in[1];
   const CeedScalar(*q_data_sur)     = in[2];
   const CeedScalar(*jac_data_sur)   = in[4];
-
-  // Outputs
-  CeedScalar(*v)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA])out[0];
+  CeedScalar(*v)[CEED_Q_VLA]        = (CeedScalar(*)[CEED_Q_VLA])out[0];
 
   const OutflowContext           outflow     = (OutflowContext)ctx;
   const NewtonianIdealGasContext gas         = &outflow->gas;
   const bool                     is_implicit = gas->is_implicit;
 
-  // Quadrature Point Loop
   CeedPragmaSIMD for (CeedInt i = 0; i < Q; i++) {
     CeedScalar wdetJb, dXdx[2][3], norm[3];
     QdataBoundaryUnpack_3D(Q, i, q_data_sur, &wdetJb, dXdx, norm);
@@ -279,7 +275,7 @@ CEED_QFUNCTION_HELPER int RiemannOutflow_Jacobian(void *ctx, CeedInt Q, const Ce
     FluxTotal_RiemannBoundary(dF_inviscid_normal, dstress, dFe, norm, dFlux);
 
     for (int j = 0; j < 5; j++) v[j][i] = -wdetJb * dFlux[j];
-  }  // End Quadrature Point Loop
+  }
   return 0;
 }
 
@@ -357,20 +353,16 @@ CEED_QFUNCTION(PressureOutflow_Prim)(void *ctx, CeedInt Q, const CeedScalar *con
 // *****************************************************************************
 CEED_QFUNCTION_HELPER int PressureOutflow_Jacobian(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out,
                                                    StateVariable state_var) {
-  // Inputs
   const CeedScalar(*dq)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[0];
   const CeedScalar(*Grad_dq)        = in[1];
   const CeedScalar(*q_data_sur)     = in[2];
   const CeedScalar(*jac_data_sur)   = in[4];
-
-  // Outputs
-  CeedScalar(*v)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA])out[0];
+  CeedScalar(*v)[CEED_Q_VLA]        = (CeedScalar(*)[CEED_Q_VLA])out[0];
 
   const OutflowContext           outflow     = (OutflowContext)ctx;
   const NewtonianIdealGasContext gas         = &outflow->gas;
   const bool                     is_implicit = gas->is_implicit;
 
-  // Quadrature Point Loop
   CeedPragmaSIMD for (CeedInt i = 0; i < Q; i++) {
     CeedScalar wdetJb, dXdx[2][3], norm[3];
     QdataBoundaryUnpack_3D(Q, i, q_data_sur, &wdetJb, dXdx, norm);
@@ -403,7 +395,7 @@ CEED_QFUNCTION_HELPER int PressureOutflow_Jacobian(void *ctx, CeedInt Q, const C
     FluxTotal_Boundary(dF_inviscid, dstress, dFe, norm, dFlux);
 
     for (int j = 0; j < 5; j++) v[j][i] = -wdetJb * dFlux[j];
-  }  // End Quadrature Point Loop
+  }
   return 0;
 }
 
