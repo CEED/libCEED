@@ -21,17 +21,13 @@ PetscErrorCode SetupStrongSTG_Ceed(Ceed ceed, CeedData ceed_data, DM dm, Problem
   CeedQFunction       qf_setup, qf_strongbc, qf_stgdata;
   CeedOperator        op_setup, op_strong_bc_sub, op_stgdata;
   DMLabel             domain_label;
-  PetscInt            dm_field = 0;
+  PetscInt            dm_field = 0, height = 1;
 
   PetscFunctionBeginUser;
   PetscCall(DMGetLabel(dm, "Face Sets", &domain_label));
 
   // Basis
-  CeedInt height = 1;
   PetscCallCeed(ceed, CeedBasisCreateProjection(ceed_data->basis_x_sur, ceed_data->basis_q_sur, &basis_x_to_q_sur));
-  // --- Get number of quadrature points for the boundaries
-  CeedInt num_qpts_sur;
-  PetscCallCeed(ceed, CeedBasisGetNumQuadraturePoints(ceed_data->basis_q_sur, &num_qpts_sur));
 
   // Setup QFunction
   PetscCallCeed(ceed, CeedQFunctionCreateInterior(ceed, 1, SetupStrongBC, SetupStrongBC_loc, &qf_setup));
