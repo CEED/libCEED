@@ -17,20 +17,18 @@
 // *****************************************************************************
 CEED_QFUNCTION_HELPER int Freestream(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out, StateVariable state_var,
                                      RiemannFluxType flux_type) {
+  const FreestreamContext context  = (FreestreamContext)ctx;
   const CeedScalar(*q)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[0];
   const CeedScalar(*q_data_sur)    = in[2];
+  CeedScalar(*v)[CEED_Q_VLA]       = (CeedScalar(*)[CEED_Q_VLA])out[0];
+  CeedScalar(*jac_data_sur)        = context->newtonian_ctx.is_implicit ? out[1] : NULL;
 
-  CeedScalar(*v)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA])out[0];
-  CeedScalar(*jac_data_sur)  = out[1];
-
-  const FreestreamContext        context     = (FreestreamContext)ctx;
   const NewtonianIdealGasContext newt_ctx    = &context->newtonian_ctx;
   const bool                     is_implicit = newt_ctx->is_implicit;
-  const CeedScalar               zeros[6]    = {0.};
 
   CeedPragmaSIMD for (CeedInt i = 0; i < Q; i++) {
     const CeedScalar qi[5] = {q[0][i], q[1][i], q[2][i], q[3][i], q[4][i]};
-    State            s     = StateFromQ(newt_ctx, qi, state_var);
+    const State      s     = StateFromQ(newt_ctx, qi, state_var);
 
     CeedScalar wdetJb, norm[3];
     QdataBoundaryUnpack_3D(Q, i, q_data_sur, &wdetJb, NULL, norm);
@@ -49,8 +47,11 @@ CEED_QFUNCTION_HELPER int Freestream(void *ctx, CeedInt Q, const CeedScalar *con
     UnpackState_U(flux, Flux);
     for (CeedInt j = 0; j < 5; j++) v[j][i] = -wdetJb * Flux[j];
 
-    StoredValuesPack(Q, i, 0, 5, qi, jac_data_sur);
-    StoredValuesPack(Q, i, 5, 6, zeros, jac_data_sur);  // Every output value must be set
+    if (is_implicit) {
+      CeedScalar zeros[6] = {0.};
+      StoredValuesPack(Q, i, 0, 5, qi, jac_data_sur);
+      StoredValuesPack(Q, i, 5, 6, zeros, jac_data_sur);  // Every output value must be set
+    }
   }
   return 0;
 }
@@ -154,16 +155,13 @@ CEED_QFUNCTION_HELPER CeedScalar Softplus_fwd(CeedScalar x, CeedScalar dx, CeedS
 // little or no benefit in the tests we've run thus far, thus we recommend
 // skipping this feature and just allowing recirculation.
 CEED_QFUNCTION_HELPER int RiemannOutflow(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out, StateVariable state_var) {
-  // Inputs
+  const OutflowContext outflow     = (OutflowContext)ctx;
   const CeedScalar(*q)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[0];
   const CeedScalar(*Grad_q)        = in[1];
   const CeedScalar(*q_data_sur)    = in[2];
+  CeedScalar(*v)[CEED_Q_VLA]       = (CeedScalar(*)[CEED_Q_VLA])out[0];
+  CeedScalar(*jac_data_sur)        = outflow->gas.is_implicit ? out[1] : NULL;
 
-  // Outputs
-  CeedScalar(*v)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA])out[0];
-  CeedScalar(*jac_data_sur)  = out[1];
-
-  const OutflowContext           outflow     = (OutflowContext)ctx;
   const NewtonianIdealGasContext gas         = &outflow->gas;
   const bool                     is_implicit = gas->is_implicit;
 
@@ -172,7 +170,7 @@ CEED_QFUNCTION_HELPER int RiemannOutflow(void *ctx, CeedInt Q, const CeedScalar 
     QdataBoundaryUnpack_3D(Q, i, q_data_sur, &wdetJb, dXdx, norm);
     wdetJb *= is_implicit ? -1. : 1.;
     const CeedScalar qi[5] = {q[0][i], q[1][i], q[2][i], q[3][i], q[4][i]};
-    State            s_int = StateFromQ(gas, qi, state_var);
+    const State      s_int = StateFromQ(gas, qi, state_var);
 
     StatePrimitive y_ext      = s_int.Y;
     y_ext.pressure            = outflow->pressure;
@@ -201,8 +199,10 @@ CEED_QFUNCTION_HELPER int RiemannOutflow(void *ctx, CeedInt Q, const CeedScalar 
     for (CeedInt j = 0; j < 5; j++) v[j][i] = -wdetJb * Flux[j];
 
     // Save values for Jacobian
-    StoredValuesPack(Q, i, 0, 5, qi, jac_data_sur);
-    StoredValuesPack(Q, i, 5, 6, kmstress, jac_data_sur);
+    if (is_implicit) {
+      StoredValuesPack(Q, i, 0, 5, qi, jac_data_sur);
+      StoredValuesPack(Q, i, 5, 6, kmstress, jac_data_sur);
+    }
   }
   return 0;
 }
@@ -299,23 +299,17 @@ CEED_QFUNCTION(RiemannOutflow_Jacobian_Prim)(void *ctx, CeedInt Q, const CeedSca
 // acoustics, vortices, etc.
 // *****************************************************************************
 CEED_QFUNCTION_HELPER int PressureOutflow(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out, StateVariable state_var) {
-  // Inputs
+  const OutflowContext outflow     = (OutflowContext)ctx;
   const CeedScalar(*q)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[0];
   const CeedScalar(*Grad_q)        = in[1];
   const CeedScalar(*q_data_sur)    = in[2];
+  CeedScalar(*v)[CEED_Q_VLA]       = (CeedScalar(*)[CEED_Q_VLA])out[0];
+  CeedScalar(*jac_data_sur)        = outflow->gas.is_implicit ? out[1] : NULL;
 
-  // Outputs
-  CeedScalar(*v)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA])out[0];
-  CeedScalar(*jac_data_sur)  = out[1];
-
-  const OutflowContext           outflow     = (OutflowContext)ctx;
   const NewtonianIdealGasContext gas         = &outflow->gas;
   const bool                     is_implicit = gas->is_implicit;
 
-  // Quadrature Point Loop
   CeedPragmaSIMD for (CeedInt i = 0; i < Q; i++) {
-    // Setup
-    // -- Interp in
     const CeedScalar qi[5] = {q[0][i], q[1][i], q[2][i], q[3][i], q[4][i]};
     State            s     = StateFromQ(gas, qi, state_var);
     s.Y.pressure           = outflow->pressure;
@@ -342,9 +336,11 @@ CEED_QFUNCTION_HELPER int PressureOutflow(void *ctx, CeedInt Q, const CeedScalar
     for (CeedInt j = 0; j < 5; j++) v[j][i] = -wdetJb * Flux[j];
 
     // Save values for Jacobian
-    StoredValuesPack(Q, i, 0, 5, qi, jac_data_sur);
-    StoredValuesPack(Q, i, 5, 6, kmstress, jac_data_sur);
-  }  // End Quadrature Point Loop
+    if (is_implicit) {
+      StoredValuesPack(Q, i, 0, 5, qi, jac_data_sur);
+      StoredValuesPack(Q, i, 5, 6, kmstress, jac_data_sur);
+    }
+  }
   return 0;
 }
 
