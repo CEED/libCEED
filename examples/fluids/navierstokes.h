@@ -16,13 +16,8 @@
 #include "qfunctions/newtonian_types.h"
 #include "qfunctions/stabilization_types.h"
 
-#if PETSC_VERSION_LT(3, 20, 0)
-#error "PETSc v3.20 or later is required"
-#endif
-
 #if PETSC_VERSION_LT(3, 21, 0)
-#define DMSetCoordinateDisc(a, b, c) DMProjectCoordinates(a, b)
-#define DMPlexFilter(a, b, c, d, e, f, g) DMPlexFilter(a, b, c, g)
+#error "PETSc v3.21 or later is required"
 #endif
 
 // -----------------------------------------------------------------------------
