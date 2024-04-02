@@ -170,7 +170,6 @@ CEED_QFUNCTION_HELPER int Exact_Euler(CeedInt dim, CeedScalar time, const CeedSc
       q[4] = rho * (cv * T + (u[0] * u[0] + u[1] * u[1]) / 2.);
       break;
   }
-  // Return
   return 0;
 }
 
@@ -225,24 +224,18 @@ CEED_QFUNCTION_HELPER void Tau_spatial(CeedScalar Tau_x[3], const CeedScalar dXd
 // This QFunction sets the initial conditions for Euler traveling vortex
 // *****************************************************************************
 CEED_QFUNCTION(ICsEuler)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
-  // Inputs
   const CeedScalar(*X)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[0];
+  CeedScalar(*q0)[CEED_Q_VLA]      = (CeedScalar(*)[CEED_Q_VLA])out[0];
 
-  // Outputs
-  CeedScalar(*q0)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA])out[0];
-  const EulerContext context  = (EulerContext)ctx;
+  const EulerContext context = (EulerContext)ctx;
 
-  // Quadrature Point Loop
   CeedPragmaSIMD for (CeedInt i = 0; i < Q; i++) {
     const CeedScalar x[]  = {X[0][i], X[1][i], X[2][i]};
     CeedScalar       q[5] = {0.};
 
     Exact_Euler(3, context->curr_time, x, 5, q, ctx);
-
     for (CeedInt j = 0; j < 5; j++) q0[j][i] = q[j];
-  }  // End of Quadrature Point Loop
-
-  // Return
+  }
   return 0;
 }
 
@@ -271,20 +264,16 @@ CEED_QFUNCTION(ICsEuler)(void *ctx, CeedInt Q, const CeedScalar *const *in, Ceed
 //   gamma  = cp / cv,  Specific heat ratio
 // *****************************************************************************
 CEED_QFUNCTION(Euler)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
-  // Inputs
   const CeedScalar(*q)[CEED_Q_VLA]     = (const CeedScalar(*)[CEED_Q_VLA])in[0];
   const CeedScalar(*dq)[5][CEED_Q_VLA] = (const CeedScalar(*)[5][CEED_Q_VLA])in[1];
   const CeedScalar(*q_data)            = in[2];
-
-  // Outputs
-  CeedScalar(*v)[CEED_Q_VLA]     = (CeedScalar(*)[CEED_Q_VLA])out[0];
-  CeedScalar(*dv)[5][CEED_Q_VLA] = (CeedScalar(*)[5][CEED_Q_VLA])out[1];
+  CeedScalar(*v)[CEED_Q_VLA]           = (CeedScalar(*)[CEED_Q_VLA])out[0];
+  CeedScalar(*dv)[5][CEED_Q_VLA]       = (CeedScalar(*)[5][CEED_Q_VLA])out[1];
 
   EulerContext     context = (EulerContext)ctx;
   const CeedScalar c_tau   = context->c_tau;
   const CeedScalar gamma   = 1.4;
 
-  // Quadrature Point Loop
   CeedPragmaSIMD for (CeedInt i = 0; i < Q; i++) {
     // Setup
     // -- Interp in
@@ -387,10 +376,7 @@ CEED_QFUNCTION(Euler)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedSca
       case 2:  // SUPG is not implemented for explicit scheme
         break;
     }
-
-  }  // End Quadrature Point Loop
-
-  // Return
+  }
   return 0;
 }
 
@@ -398,23 +384,19 @@ CEED_QFUNCTION(Euler)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedSca
 // This QFunction implements the Euler equations with (mentioned above) with implicit time stepping method
 // *****************************************************************************
 CEED_QFUNCTION(IFunction_Euler)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
-  // Inputs
   const CeedScalar(*q)[CEED_Q_VLA]     = (const CeedScalar(*)[CEED_Q_VLA])in[0];
   const CeedScalar(*dq)[5][CEED_Q_VLA] = (const CeedScalar(*)[5][CEED_Q_VLA])in[1];
   const CeedScalar(*q_dot)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[2];
   const CeedScalar(*q_data)            = in[3];
-
-  // Outputs
-  CeedScalar(*v)[CEED_Q_VLA]     = (CeedScalar(*)[CEED_Q_VLA])out[0];
-  CeedScalar(*dv)[5][CEED_Q_VLA] = (CeedScalar(*)[5][CEED_Q_VLA])out[1];
-  CeedScalar *jac_data           = out[2];
+  CeedScalar(*v)[CEED_Q_VLA]           = (CeedScalar(*)[CEED_Q_VLA])out[0];
+  CeedScalar(*dv)[5][CEED_Q_VLA]       = (CeedScalar(*)[5][CEED_Q_VLA])out[1];
+  CeedScalar *jac_data                 = out[2];
 
   EulerContext     context   = (EulerContext)ctx;
   const CeedScalar c_tau     = context->c_tau;
   const CeedScalar gamma     = 1.4;
   const CeedScalar zeros[14] = {0.};
 
-  // Quadrature Point Loop
   CeedPragmaSIMD for (CeedInt i = 0; i < Q; i++) {
     // Setup
     // -- Interp in
@@ -532,9 +514,7 @@ CEED_QFUNCTION(IFunction_Euler)(void *ctx, CeedInt Q, const CeedScalar *const *i
         break;
     }
     StoredValuesPack(Q, i, 0, 14, zeros, jac_data);
-  }  // End Quadrature Point Loop
-
-  // Return
+  }
   return 0;
 }
 // *****************************************************************************
@@ -543,10 +523,9 @@ CEED_QFUNCTION(IFunction_Euler)(void *ctx, CeedInt Q, const CeedScalar *const *i
 //  Prescribed T_inlet and P_inlet are converted to conservative variables and applied weakly.
 // *****************************************************************************
 CEED_QFUNCTION(TravelingVortex_Inflow)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
-  // Inputs
   const CeedScalar(*q_data_sur) = in[2];
-  // Outputs
-  CeedScalar(*v)[CEED_Q_VLA]     = (CeedScalar(*)[CEED_Q_VLA])out[0];
+  CeedScalar(*v)[CEED_Q_VLA]    = (CeedScalar(*)[CEED_Q_VLA])out[0];
+
   EulerContext     context       = (EulerContext)ctx;
   const int        euler_test    = context->euler_test;
   const bool       is_implicit   = context->implicit;
@@ -565,7 +544,6 @@ CEED_QFUNCTION(TravelingVortex_Inflow)(void *ctx, CeedInt Q, const CeedScalar *c
   if (euler_test == 1 || euler_test == 2) T_inlet = P_inlet = .4;
   else T_inlet = P_inlet = 1.;
 
-  // Quadrature Point Loop
   CeedPragmaSIMD for (CeedInt i = 0; i < Q; i++) {
     CeedScalar wdetJb, norm[3];
     QdataBoundaryUnpack_3D(Q, i, q_data_sur, &wdetJb, NULL, norm);
@@ -595,8 +573,7 @@ CEED_QFUNCTION(TravelingVortex_Inflow)(void *ctx, CeedInt Q, const CeedScalar *c
       // -- Total Energy Density
       v[4][i] -= wdetJb * face_normal * (E_inlet + P_inlet);
     }
-
-  }  // End Quadrature Point Loop
+  }
   return 0;
 }
 
@@ -607,19 +584,16 @@ CEED_QFUNCTION(TravelingVortex_Inflow)(void *ctx, CeedInt Q, const CeedScalar *c
 //    The validity of the weak form of the governing equations is extended to the outflow.
 // *****************************************************************************
 CEED_QFUNCTION(Euler_Outflow)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
-  // Inputs
   const CeedScalar(*q)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[0];
   const CeedScalar(*q_data_sur)    = in[2];
+  CeedScalar(*v)[CEED_Q_VLA]       = (CeedScalar(*)[CEED_Q_VLA])out[0];
 
-  // Outputs
-  CeedScalar(*v)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA])out[0];
   EulerContext context       = (EulerContext)ctx;
   const bool   is_implicit   = context->implicit;
   CeedScalar  *mean_velocity = context->mean_velocity;
 
   const CeedScalar gamma = 1.4;
 
-  // Quadrature Point Loop
   CeedPragmaSIMD for (CeedInt i = 0; i < Q; i++) {
     // Setup
     // -- Interp in
@@ -652,6 +626,6 @@ CEED_QFUNCTION(Euler_Outflow)(void *ctx, CeedInt Q, const CeedScalar *const *in,
       // -- Total Energy Density
       v[4][i] -= wdetJb * u_normal * (E + P);
     }
-  }  // End Quadrature Point Loop
+  }
   return 0;
 }

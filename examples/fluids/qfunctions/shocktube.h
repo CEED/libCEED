@@ -102,7 +102,6 @@ CEED_QFUNCTION_HELPER CeedInt Exact_ShockTube(CeedInt dim, CeedScalar time, cons
   q[3] = rho * u[2];
   q[4] = P / (gamma - 1.0) + rho * (u[0] * u[0]) / 2.;
 
-  // Return
   return 0;
 }
 
@@ -178,24 +177,17 @@ CEED_QFUNCTION_HELPER void Tau_spatial(CeedScalar Tau_x[3], const CeedScalar dXd
 // This QFunction sets the initial conditions for shock tube
 // *****************************************************************************
 CEED_QFUNCTION(ICsShockTube)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
-  // Inputs
   const CeedScalar(*X)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[0];
+  CeedScalar(*q0)[CEED_Q_VLA]      = (CeedScalar(*)[CEED_Q_VLA])out[0];
 
-  // Outputs
-  CeedScalar(*q0)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA])out[0];
-
-  CeedPragmaSIMD
-      // Quadrature Point Loop
-      for (CeedInt i = 0; i < Q; i++) {
+  CeedPragmaSIMD for (CeedInt i = 0; i < Q; i++) {
     const CeedScalar x[] = {X[0][i], X[1][i], X[2][i]};
     CeedScalar       q[5];
 
     Exact_ShockTube(3, 0., x, 5, q, ctx);
 
     for (CeedInt j = 0; j < 5; j++) q0[j][i] = q[j];
-  }  // End of Quadrature Point Loop
-
-  // Return
+  }
   return 0;
 }
 
@@ -224,14 +216,11 @@ CEED_QFUNCTION(ICsShockTube)(void *ctx, CeedInt Q, const CeedScalar *const *in, 
 //   gamma  = cp / cv,  Specific heat ratio
 // *****************************************************************************
 CEED_QFUNCTION(EulerShockTube)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
-  // Inputs
   const CeedScalar(*q)[CEED_Q_VLA]     = (const CeedScalar(*)[CEED_Q_VLA])in[0];
   const CeedScalar(*dq)[5][CEED_Q_VLA] = (const CeedScalar(*)[5][CEED_Q_VLA])in[1];
   const CeedScalar(*q_data)            = in[2];
-
-  // Outputs
-  CeedScalar(*v)[CEED_Q_VLA]     = (CeedScalar(*)[CEED_Q_VLA])out[0];
-  CeedScalar(*dv)[5][CEED_Q_VLA] = (CeedScalar(*)[5][CEED_Q_VLA])out[1];
+  CeedScalar(*v)[CEED_Q_VLA]           = (CeedScalar(*)[CEED_Q_VLA])out[0];
+  CeedScalar(*dv)[5][CEED_Q_VLA]       = (CeedScalar(*)[5][CEED_Q_VLA])out[1];
 
   const CeedScalar gamma = 1.4;
 
@@ -240,9 +229,7 @@ CEED_QFUNCTION(EulerShockTube)(void *ctx, CeedInt Q, const CeedScalar *const *in
   const CeedScalar Byzb    = context->Byzb;
   const CeedScalar c_tau   = context->c_tau;
 
-  CeedPragmaSIMD
-      // Quadrature Point Loop
-      for (CeedInt i = 0; i < Q; i++) {
+  CeedPragmaSIMD for (CeedInt i = 0; i < Q; i++) {
     // Setup
     // -- Interp in
     const CeedScalar rho      = q[0][i];
@@ -377,9 +364,6 @@ CEED_QFUNCTION(EulerShockTube)(void *ctx, CeedInt Q, const CeedScalar *const *in
         }
         break;
     }
-
-  }  // End Quadrature Point Loop
-
-  // Return
+  }
   return 0;
 }

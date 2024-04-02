@@ -30,21 +30,16 @@ CEED_QFUNCTION_HELPER void InternalDampingLayer(const NewtonianIdealGasContext c
 // This QFunction sets a "still" initial condition for generic Newtonian IG problems
 // *****************************************************************************
 CEED_QFUNCTION_HELPER int ICsNewtonianIG(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out, StateVariable state_var) {
-  // Inputs
-
-  // Outputs
   CeedScalar(*q0)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA])out[0];
 
-  // Context
   const SetupContext context = (SetupContext)ctx;
 
-  // Quadrature Point Loop
   CeedPragmaSIMD for (CeedInt i = 0; i < Q; i++) {
     CeedScalar q[5] = {0.};
     State      s    = StateFromPrimitive(&context->gas, context->reference);
     StateToQ(&context->gas, s, q, state_var);
     for (CeedInt j = 0; j < 5; j++) q0[j][i] = q[j];
-  }  // End of Quadrature Point Loop
+  }
   return 0;
 }
 
@@ -101,21 +96,16 @@ CEED_QFUNCTION(ICsNewtonianIG_Conserv)(void *ctx, CeedInt Q, const CeedScalar *c
 // gradu )
 // *****************************************************************************
 CEED_QFUNCTION(RHSFunction_Newtonian)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
-  // Inputs
-  const CeedScalar(*q)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[0];
-  const CeedScalar(*Grad_q)        = in[1];
-  const CeedScalar(*q_data)        = in[2];
-
-  // Outputs
+  const CeedScalar(*q)[CEED_Q_VLA]   = (const CeedScalar(*)[CEED_Q_VLA])in[0];
+  const CeedScalar(*Grad_q)          = in[1];
+  const CeedScalar(*q_data)          = in[2];
   CeedScalar(*v)[CEED_Q_VLA]         = (CeedScalar(*)[CEED_Q_VLA])out[0];
   CeedScalar(*Grad_v)[5][CEED_Q_VLA] = (CeedScalar(*)[5][CEED_Q_VLA])out[1];
 
-  // Context
   NewtonianIdealGasContext context = (NewtonianIdealGasContext)ctx;
   const CeedScalar        *g       = context->g;
   const CeedScalar         dt      = context->dt;
 
-  // Quadrature Point Loop
   CeedPragmaSIMD for (CeedInt i = 0; i < Q; i++) {
     CeedScalar U[5], wdetJ, dXdx[3][3];
     for (int j = 0; j < 5; j++) U[j] = q[j][i];
@@ -154,9 +144,7 @@ CEED_QFUNCTION(RHSFunction_Newtonian)(void *ctx, CeedInt Q, const CeedScalar *co
     for (CeedInt j = 0; j < 5; j++) {
       for (CeedInt k = 0; k < 3; k++) Grad_v[k][j][i] -= wdetJ * (stab[j][0] * dXdx[k][0] + stab[j][1] * dXdx[k][1] + stab[j][2] * dXdx[k][2]);
     }
-  }  // End Quadrature Point Loop
-
-  // Return
+  }
   return 0;
 }
 
@@ -168,25 +156,20 @@ CEED_QFUNCTION(RHSFunction_Newtonian)(void *ctx, CeedInt Q, const CeedScalar *co
 //                                       (diffusive terms will be added later)
 // *****************************************************************************
 CEED_QFUNCTION_HELPER int IFunction_Newtonian(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out, StateVariable state_var) {
-  // Inputs
   const CeedScalar(*q)[CEED_Q_VLA]     = (const CeedScalar(*)[CEED_Q_VLA])in[0];
   const CeedScalar(*Grad_q)            = in[1];
   const CeedScalar(*q_dot)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[2];
   const CeedScalar(*q_data)            = in[3];
   const CeedScalar(*x)[CEED_Q_VLA]     = (const CeedScalar(*)[CEED_Q_VLA])in[4];
+  CeedScalar(*v)[CEED_Q_VLA]           = (CeedScalar(*)[CEED_Q_VLA])out[0];
+  CeedScalar(*Grad_v)[5][CEED_Q_VLA]   = (CeedScalar(*)[5][CEED_Q_VLA])out[1];
+  CeedScalar(*jac_data)                = out[2];
 
-  // Outputs
-  CeedScalar(*v)[CEED_Q_VLA]         = (CeedScalar(*)[CEED_Q_VLA])out[0];
-  CeedScalar(*Grad_v)[5][CEED_Q_VLA] = (CeedScalar(*)[5][CEED_Q_VLA])out[1];
-  CeedScalar(*jac_data)              = out[2];
-
-  // Context
   NewtonianIdealGasContext context = (NewtonianIdealGasContext)ctx;
   const CeedScalar        *g       = context->g;
   const CeedScalar         dt      = context->dt;
   const CeedScalar         P0      = context->P0;
 
-  // Quadrature Point Loop
   CeedPragmaSIMD for (CeedInt i = 0; i < Q; i++) {
     const CeedScalar qi[5]  = {q[0][i], q[1][i], q[2][i], q[3][i], q[4][i]};
     const CeedScalar x_i[3] = {x[0][i], x[1][i], x[2][i]};
@@ -244,10 +227,7 @@ CEED_QFUNCTION_HELPER int IFunction_Newtonian(void *ctx, CeedInt Q, const CeedSc
     StoredValuesPack(Q, i, 0, 5, qi, jac_data);
     StoredValuesPack(Q, i, 5, 6, kmstress, jac_data);
     StoredValuesPack(Q, i, 11, 3, Tau_d, jac_data);
-
-  }  // End Quadrature Point Loop
-
-  // Return
+  }
   return 0;
 }
 
@@ -263,21 +243,16 @@ CEED_QFUNCTION(IFunction_Newtonian_Prim)(void *ctx, CeedInt Q, const CeedScalar 
 // This QFunction implements the jacobian of the Navier-Stokes equations for implicit time stepping method.
 // *****************************************************************************
 CEED_QFUNCTION_HELPER int IJacobian_Newtonian(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out, StateVariable state_var) {
-  // Inputs
-  const CeedScalar(*dq)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[0];
-  const CeedScalar(*Grad_dq)        = in[1];
-  const CeedScalar(*q_data)         = in[2];
-  const CeedScalar(*jac_data)       = in[3];
-
-  // Outputs
+  const CeedScalar(*dq)[CEED_Q_VLA]  = (const CeedScalar(*)[CEED_Q_VLA])in[0];
+  const CeedScalar(*Grad_dq)         = in[1];
+  const CeedScalar(*q_data)          = in[2];
+  const CeedScalar(*jac_data)        = in[3];
   CeedScalar(*v)[CEED_Q_VLA]         = (CeedScalar(*)[CEED_Q_VLA])out[0];
   CeedScalar(*Grad_v)[5][CEED_Q_VLA] = (CeedScalar(*)[5][CEED_Q_VLA])out[1];
 
-  // Context
   NewtonianIdealGasContext context = (NewtonianIdealGasContext)ctx;
   const CeedScalar        *g       = context->g;
 
-  // Quadrature Point Loop
   CeedPragmaSIMD for (CeedInt i = 0; i < Q; i++) {
     CeedScalar wdetJ, dXdx[3][3];
     QdataUnpack_3D(Q, i, q_data, &wdetJ, dXdx);
@@ -334,7 +309,7 @@ CEED_QFUNCTION_HELPER int IJacobian_Newtonian(void *ctx, CeedInt Q, const CeedSc
     for (int j = 0; j < 5; j++) {
       for (int k = 0; k < 3; k++) Grad_v[k][j][i] += wdetJ * (dstab[j][0] * dXdx[k][0] + dstab[j][1] * dXdx[k][1] + dstab[j][2] * dXdx[k][2]);
     }
-  }  // End Quadrature Point Loop
+  }
   return 0;
 }
 
