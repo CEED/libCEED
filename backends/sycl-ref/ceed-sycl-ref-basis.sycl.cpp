@@ -290,23 +290,23 @@ static int CeedBasisApply_Sycl(CeedBasis basis, const CeedInt num_elem, CeedTran
 
   // Basis action
   switch (eval_mode) {
-    case CEED_EVAL_INTERP: {
+    case CEED_EVAL_INTERP:
       if (is_transpose) {
-        CeedCallBackend(CeedBasisApplyInterp_Sycl<CEED_TRANSPOSE>(data->sycl_queue, *impl->sycl_module, num_elem, impl, d_u, d_v));
+        CeedCallBackend(CeedBasisApplyInterp_Sycl<true>(data->sycl_queue, *impl->sycl_module, num_elem, impl, d_u, d_v));
       } else {
-        CeedCallBackend(CeedBasisApplyInterp_Sycl<CEED_NOTRANSPOSE>(data->sycl_queue, *impl->sycl_module, num_elem, impl, d_u, d_v));
+        CeedCallBackend(CeedBasisApplyInterp_Sycl<false>(data->sycl_queue, *impl->sycl_module, num_elem, impl, d_u, d_v));
       }
-    } break;
-    case CEED_EVAL_GRAD: {
+      break;
+    case CEED_EVAL_GRAD:
       if (is_transpose) {
-        CeedCallBackend(CeedBasisApplyGrad_Sycl<1>(data->sycl_queue, *impl->sycl_module, num_elem, impl, d_u, d_v));
+        CeedCallBackend(CeedBasisApplyGrad_Sycl<true>(data->sycl_queue, *impl->sycl_module, num_elem, impl, d_u, d_v));
       } else {
-        CeedCallBackend(CeedBasisApplyGrad_Sycl<0>(data->sycl_queue, *impl->sycl_module, num_elem, impl, d_u, d_v));
+        CeedCallBackend(CeedBasisApplyGrad_Sycl<false>(data->sycl_queue, *impl->sycl_module, num_elem, impl, d_u, d_v));
       }
-    } break;
-    case CEED_EVAL_WEIGHT: {
+      break;
+    case CEED_EVAL_WEIGHT:
       CeedCallBackend(CeedBasisApplyWeight_Sycl(data->sycl_queue, num_elem, impl, d_v));
-    } break;
+      break;
     case CEED_EVAL_NONE: /* handled separately below */
       break;
     // LCOV_EXCL_START
@@ -467,15 +467,15 @@ static int CeedBasisApplyNonTensor_Sycl(CeedBasis basis, const CeedInt num_elem,
 
   // Apply basis operation
   switch (eval_mode) {
-    case CEED_EVAL_INTERP: {
+    case CEED_EVAL_INTERP:
       CeedCallBackend(CeedBasisApplyNonTensorInterp_Sycl(data->sycl_queue, num_elem, is_transpose, impl, d_u, d_v));
-    } break;
-    case CEED_EVAL_GRAD: {
+      break;
+    case CEED_EVAL_GRAD:
       CeedCallBackend(CeedBasisApplyNonTensorGrad_Sycl(data->sycl_queue, num_elem, is_transpose, impl, d_u, d_v));
-    } break;
-    case CEED_EVAL_WEIGHT: {
+      break;
+    case CEED_EVAL_WEIGHT:
       CeedCallBackend(CeedBasisApplyNonTensorWeight_Sycl(data->sycl_queue, num_elem, impl, d_v));
-    } break;
+      break;
     case CEED_EVAL_NONE: /* handled separately below */
       break;
     // LCOV_EXCL_START

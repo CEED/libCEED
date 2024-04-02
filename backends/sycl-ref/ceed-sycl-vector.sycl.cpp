@@ -212,10 +212,11 @@ static int CeedVectorSetArrayDevice_Sycl(const CeedVector vec, const CeedCopyMod
 
   switch (copy_mode) {
     case CEED_COPY_VALUES: {
-      if (!impl->d_array_owned)
+      if (!impl->d_array_owned) {
         CeedCallSycl(ceed, impl->d_array_owned = sycl::malloc_device<CeedScalar>(length, data->sycl_device, data->sycl_context));
+      }
       if (array) {
-        sycl::event copy_event = data->sycl_queue.copy<CeedScalar>(array, impl->d_array, length, {e});
+        sycl::event copy_event = data->sycl_queue.copy<CeedScalar>(array, impl->d_array_owned, length, {e});
         // Wait for copy to finish and handle exceptions.
         CeedCallSycl(ceed, copy_event.wait_and_throw());
       }
