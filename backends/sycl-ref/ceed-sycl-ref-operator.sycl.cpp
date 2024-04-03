@@ -1092,7 +1092,7 @@ static int CeedSingleOperatorAssembleSetup_Sycl(CeedOperator op) {
 
       if (!sycl_data->sycl_queue.is_in_order()) e = {sycl_data->sycl_queue.ext_oneapi_submit_barrier()};
       sycl_data->sycl_queue.copy<CeedScalar>(grad_in, &asmb->d_B_in[mat_start], dim * elem_size * num_qpts, {e});
-      mat_start += dim * elem_size * num_qpts;      
+      mat_start += dim * elem_size * num_qpts;
     }
   }
 
