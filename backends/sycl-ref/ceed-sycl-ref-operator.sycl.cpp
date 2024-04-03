@@ -827,8 +827,8 @@ static int CeedOperatorLinearDiagonal_Sycl(sycl::queue &sycl_queue, const bool i
   if (!sycl_queue.is_in_order()) e = {sycl_queue.ext_oneapi_submit_barrier()};
 
   sycl_queue.parallel_for<CeedOperatorSyclLinearDiagonal>(kernel_range, e, [=](sycl::id<1> idx) {
-    const CeedInt tid = idx % nnodes;
-    const CeedInt e   = idx / nnodes;
+    const CeedInt tid = idx % num_nodes;
+    const CeedInt e   = idx / num_nodes;
 
     // Compute the diagonal of B^T D B
     // Each element
