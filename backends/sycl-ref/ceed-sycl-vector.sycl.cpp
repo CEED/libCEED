@@ -58,11 +58,11 @@ static inline int CeedVectorSyncH2D_Sycl(const CeedVector vec) {
     impl->d_array = impl->d_array_owned;
   }
 
-  sycl::event e = data->sycl_queue.ext_oneapi_submit_barrier();
   // Copy from host to device
-  sycl::event copy_event = data->sycl_queue.copy<CeedScalar>(impl->h_array, impl->d_array, length, {e});
-  // Wait for copy to finish and handle exceptions.
-  CeedCallSycl(ceed, copy_event.wait_and_throw());
+  std::vector<sycl::event> e;
+
+  if (!data->sycl_queue.is_in_order()) e = {data->sycl_queue.ext_oneapi_submit_barrier()};
+  CeedCallSycl(ceed, data->sycl_queue.copy<CeedScalar>(impl->h_array, impl->d_array, length, e).wait_and_throw());
   return CEED_ERROR_SUCCESS;
 }
 
@@ -91,12 +91,11 @@ static inline int CeedVectorSyncD2H_Sycl(const CeedVector vec) {
     impl->h_array = impl->h_array_owned;
   }
 
-  // Order queue
-  sycl::event e = data->sycl_queue.ext_oneapi_submit_barrier();
   // Copy from device to host
-  sycl::event copy_event = data->sycl_queue.copy<CeedScalar>(impl->d_array, impl->h_array, length, {e});
-  // Wait for copy to finish and handle exceptions.
-  CeedCallSycl(ceed, copy_event.wait_and_throw());
+  std::vector<sycl::event> e;
+
+  if (!data->sycl_queue.is_in_order()) e = {data->sycl_queue.ext_oneapi_submit_barrier()};
+  CeedCallSycl(ceed, data->sycl_queue.copy<CeedScalar>(impl->d_array, impl->h_array, length, e).wait_and_throw());
   return CEED_ERROR_SUCCESS;
 }
 
@@ -207,8 +206,10 @@ static int CeedVectorSetArrayDevice_Sycl(const CeedVector vec, const CeedCopyMod
   CeedCallBackend(CeedGetData(ceed, &data));
   CeedCallBackend(CeedVectorGetLength(vec, &length));
 
-  // Order queue
-  sycl::event e = data->sycl_queue.ext_oneapi_submit_barrier();
+  // Order queue if needed.
+  std::vector<sycl::event> e;
+
+  if (!data->sycl_queue.is_in_order()) e = {data->sycl_queue.ext_oneapi_submit_barrier()};
 
   switch (copy_mode) {
     case CEED_COPY_VALUES: {
@@ -216,9 +217,8 @@ static int CeedVectorSetArrayDevice_Sycl(const CeedVector vec, const CeedCopyMod
         CeedCallSycl(ceed, impl->d_array_owned = sycl::malloc_device<CeedScalar>(length, data->sycl_device, data->sycl_context));
       }
       if (array) {
-        sycl::event copy_event = data->sycl_queue.copy<CeedScalar>(array, impl->d_array_owned, length, {e});
         // Wait for copy to finish and handle exceptions.
-        CeedCallSycl(ceed, copy_event.wait_and_throw());
+        CeedCallSycl(ceed, data->sycl_queue.copy<CeedScalar>(array, impl->d_array_owned, length, e).wait_and_throw());
       }
       impl->d_array_borrowed = NULL;
       impl->d_array          = impl->d_array_owned;
@@ -278,9 +278,10 @@ static int CeedHostSetValue_Sycl(CeedScalar *h_array, CeedSize length, CeedScala
 // Set device array to value
 //------------------------------------------------------------------------------
 static int CeedDeviceSetValue_Sycl(sycl::queue &sycl_queue, CeedScalar *d_array, CeedSize length, CeedScalar val) {
-  // Order queue
-  sycl::event e = sycl_queue.ext_oneapi_submit_barrier();
-  sycl_queue.fill(d_array, val, length, {e});
+  std::vector<sycl::event> e;
+
+  if (!sycl_queue.is_in_order()) e = {sycl_queue.ext_oneapi_submit_barrier()};
+  sycl_queue.fill(d_array, val, length, e);
   return CEED_ERROR_SUCCESS;
 }
 
@@ -335,8 +336,8 @@ static int CeedVectorTakeArray_Sycl(CeedVector vec, CeedMemType mem_type, CeedSc
   CeedCallBackend(CeedVectorGetData(vec, &impl));
   CeedCallBackend(CeedGetData(ceed, &data));
 
-  // Order queue
-  data->sycl_queue.ext_oneapi_submit_barrier();
+  // Order queue if needed
+  if (!data->sycl_queue.is_in_order()) data->sycl_queue.ext_oneapi_submit_barrier();
 
   // Sync array to requested mem_type
   CeedCallBackend(CeedVectorSyncArray(vec, mem_type));
@@ -452,24 +453,26 @@ static int CeedVectorNorm_Sycl(CeedVector vec, CeedNormType type, CeedScalar *no
 
   // Compute norm
   CeedCallBackend(CeedVectorGetArrayRead(vec, CEED_MEM_DEVICE, &d_array));
+
+  std::vector<sycl::event> e;
+
+  if (!data->sycl_queue.is_in_order()) e = {data->sycl_queue.ext_oneapi_submit_barrier()};
+
   switch (type) {
     case CEED_NORM_1: {
       // Order queue
-      sycl::event e            = data->sycl_queue.ext_oneapi_submit_barrier();
-      auto        sumReduction = sycl::reduction(impl->reduction_norm, sycl::plus<>(), {sycl::property::reduction::initialize_to_identity{}});
-      data->sycl_queue.parallel_for(length, {e}, sumReduction, [=](sycl::id<1> i, auto &sum) { sum += abs(d_array[i]); }).wait_and_throw();
+      auto sumReduction = sycl::reduction(impl->reduction_norm, sycl::plus<>(), {sycl::property::reduction::initialize_to_identity{}});
+      data->sycl_queue.parallel_for(length, e, sumReduction, [=](sycl::id<1> i, auto &sum) { sum += abs(d_array[i]); }).wait_and_throw();
     } break;
     case CEED_NORM_2: {
       // Order queue
-      sycl::event e            = data->sycl_queue.ext_oneapi_submit_barrier();
-      auto        sumReduction = sycl::reduction(impl->reduction_norm, sycl::plus<>(), {sycl::property::reduction::initialize_to_identity{}});
-      data->sycl_queue.parallel_for(length, {e}, sumReduction, [=](sycl::id<1> i, auto &sum) { sum += (d_array[i] * d_array[i]); }).wait_and_throw();
+      auto sumReduction = sycl::reduction(impl->reduction_norm, sycl::plus<>(), {sycl::property::reduction::initialize_to_identity{}});
+      data->sycl_queue.parallel_for(length, e, sumReduction, [=](sycl::id<1> i, auto &sum) { sum += (d_array[i] * d_array[i]); }).wait_and_throw();
     } break;
     case CEED_NORM_MAX: {
       // Order queue
-      sycl::event e            = data->sycl_queue.ext_oneapi_submit_barrier();
-      auto        maxReduction = sycl::reduction(impl->reduction_norm, sycl::maximum<>(), {sycl::property::reduction::initialize_to_identity{}});
-      data->sycl_queue.parallel_for(length, {e}, maxReduction, [=](sycl::id<1> i, auto &max) { max.combine(abs(d_array[i])); }).wait_and_throw();
+      auto maxReduction = sycl::reduction(impl->reduction_norm, sycl::maximum<>(), {sycl::property::reduction::initialize_to_identity{}});
+      data->sycl_queue.parallel_for(length, e, maxReduction, [=](sycl::id<1> i, auto &max) { max.combine(abs(d_array[i])); }).wait_and_throw();
     } break;
   }
   // L2 norm - square root over reduced value
@@ -493,9 +496,10 @@ static int CeedHostReciprocal_Sycl(CeedScalar *h_array, CeedSize length) {
 // Take reciprocal of a vector on device
 //------------------------------------------------------------------------------
 static int CeedDeviceReciprocal_Sycl(sycl::queue &sycl_queue, CeedScalar *d_array, CeedSize length) {
-  // Order queue
-  sycl::event e = sycl_queue.ext_oneapi_submit_barrier();
-  sycl_queue.parallel_for(length, {e}, [=](sycl::id<1> i) {
+  std::vector<sycl::event> e;
+
+  if (!sycl_queue.is_in_order()) e = {sycl_queue.ext_oneapi_submit_barrier()};
+  sycl_queue.parallel_for(length, e, [=](sycl::id<1> i) {
     if (std::fabs(d_array[i]) > CEED_EPSILON) d_array[i] = 1. / d_array[i];
   });
   return CEED_ERROR_SUCCESS;
@@ -533,9 +537,10 @@ static int CeedHostScale_Sycl(CeedScalar *x_array, CeedScalar alpha, CeedSize le
 // Compute x = alpha x on device
 //------------------------------------------------------------------------------
 static int CeedDeviceScale_Sycl(sycl::queue &sycl_queue, CeedScalar *x_array, CeedScalar alpha, CeedSize length) {
-  // Order queue
-  sycl::event e = sycl_queue.ext_oneapi_submit_barrier();
-  sycl_queue.parallel_for(length, {e}, [=](sycl::id<1> i) { x_array[i] *= alpha; });
+  std::vector<sycl::event> e;
+
+  if (!sycl_queue.is_in_order()) e = {sycl_queue.ext_oneapi_submit_barrier()};
+  sycl_queue.parallel_for(length, e, [=](sycl::id<1> i) { x_array[i] *= alpha; });
   return CEED_ERROR_SUCCESS;
 }
 
@@ -571,9 +576,10 @@ static int CeedHostAXPY_Sycl(CeedScalar *y_array, CeedScalar alpha, CeedScalar *
 // Compute y = alpha x + y on device
 //------------------------------------------------------------------------------
 static int CeedDeviceAXPY_Sycl(sycl::queue &sycl_queue, CeedScalar *y_array, CeedScalar alpha, CeedScalar *x_array, CeedSize length) {
-  // Order queue
-  sycl::event e = sycl_queue.ext_oneapi_submit_barrier();
-  sycl_queue.parallel_for(length, {e}, [=](sycl::id<1> i) { y_array[i] += alpha * x_array[i]; });
+  std::vector<sycl::event> e;
+
+  if (!sycl_queue.is_in_order()) e = {sycl_queue.ext_oneapi_submit_barrier()};
+  sycl_queue.parallel_for(length, e, [=](sycl::id<1> i) { y_array[i] += alpha * x_array[i]; });
   return CEED_ERROR_SUCCESS;
 }
 
@@ -616,9 +622,10 @@ static int CeedHostPointwiseMult_Sycl(CeedScalar *w_array, CeedScalar *x_array, 
 // Compute the pointwise multiplication w = x .* y on device (impl in .cu file)
 //------------------------------------------------------------------------------
 static int CeedDevicePointwiseMult_Sycl(sycl::queue &sycl_queue, CeedScalar *w_array, CeedScalar *x_array, CeedScalar *y_array, CeedSize length) {
-  // Order queue
-  sycl::event e = sycl_queue.ext_oneapi_submit_barrier();
-  sycl_queue.parallel_for(length, {e}, [=](sycl::id<1> i) { w_array[i] = x_array[i] * y_array[i]; });
+  std::vector<sycl::event> e;
+
+  if (!sycl_queue.is_in_order()) e = {sycl_queue.ext_oneapi_submit_barrier()};
+  sycl_queue.parallel_for(length, e, [=](sycl::id<1> i) { w_array[i] = x_array[i] * y_array[i]; });
   return CEED_ERROR_SUCCESS;
 }
 

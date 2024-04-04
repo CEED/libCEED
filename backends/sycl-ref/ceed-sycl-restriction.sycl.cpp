@@ -34,9 +34,10 @@ static int CeedElemRestrictionStridedNoTranspose_Sycl(sycl::queue &sycl_queue, c
   const CeedInt  stride_elem  = impl->strides[2];
   sycl::range<1> kernel_range(num_elem * elem_size);
 
-  // Order queue
-  sycl::event e = sycl_queue.ext_oneapi_submit_barrier();
-  sycl_queue.parallel_for<CeedElemRestrSyclStridedNT>(kernel_range, {e}, [=](sycl::id<1> node) {
+  std::vector<sycl::event> e;
+
+  if (!sycl_queue.is_in_order()) e = {sycl_queue.ext_oneapi_submit_barrier()};
+  sycl_queue.parallel_for<CeedElemRestrSyclStridedNT>(kernel_range, e, [=](sycl::id<1> node) {
     const CeedInt loc_node = node % elem_size;
     const CeedInt elem     = node / elem_size;
 
@@ -60,9 +61,10 @@ static int CeedElemRestrictionOffsetNoTranspose_Sycl(sycl::queue &sycl_queue, co
 
   sycl::range<1> kernel_range(num_elem * elem_size);
 
-  // Order queue
-  sycl::event e = sycl_queue.ext_oneapi_submit_barrier();
-  sycl_queue.parallel_for<CeedElemRestrSyclOffsetNT>(kernel_range, {e}, [=](sycl::id<1> node) {
+  std::vector<sycl::event> e;
+
+  if (!sycl_queue.is_in_order()) e = {sycl_queue.ext_oneapi_submit_barrier()};
+  sycl_queue.parallel_for<CeedElemRestrSyclOffsetNT>(kernel_range, e, [=](sycl::id<1> node) {
     const CeedInt ind      = indices[node];
     const CeedInt loc_node = node % elem_size;
     const CeedInt elem     = node / elem_size;
@@ -88,9 +90,10 @@ static int CeedElemRestrictionStridedTranspose_Sycl(sycl::queue &sycl_queue, con
 
   sycl::range<1> kernel_range(num_elem * elem_size);
 
-  // Order queue
-  sycl::event e = sycl_queue.ext_oneapi_submit_barrier();
-  sycl_queue.parallel_for<CeedElemRestrSyclStridedT>(kernel_range, {e}, [=](sycl::id<1> node) {
+  std::vector<sycl::event> e;
+
+  if (!sycl_queue.is_in_order()) e = {sycl_queue.ext_oneapi_submit_barrier()};
+  sycl_queue.parallel_for<CeedElemRestrSyclStridedT>(kernel_range, e, [=](sycl::id<1> node) {
     const CeedInt loc_node = node % elem_size;
     const CeedInt elem     = node / elem_size;
 
@@ -117,9 +120,10 @@ static int CeedElemRestrictionOffsetTranspose_Sycl(sycl::queue &sycl_queue, cons
 
   sycl::range<1> kernel_range(num_nodes * num_comp);
 
-  // Order queue
-  sycl::event e = sycl_queue.ext_oneapi_submit_barrier();
-  sycl_queue.parallel_for<CeedElemRestrSyclOffsetT>(kernel_range, {e}, [=](sycl::id<1> id) {
+  std::vector<sycl::event> e;
+
+  if (!sycl_queue.is_in_order()) e = {sycl_queue.ext_oneapi_submit_barrier()};
+  sycl_queue.parallel_for<CeedElemRestrSyclOffsetT>(kernel_range, e, [=](sycl::id<1> id) {
     const CeedInt node    = id % num_nodes;
     const CeedInt comp    = id / num_nodes;
     const CeedInt ind     = l_vec_indices[node];
@@ -302,18 +306,19 @@ static int CeedElemRestrictionOffset_Sycl(const CeedElemRestriction rstr, const 
   // Copy data to device
   CeedCallBackend(CeedGetData(ceed, &data));
 
-  // Order queue
-  sycl::event e = data->sycl_queue.ext_oneapi_submit_barrier();
+  std::vector<sycl::event> e;
+
+  if (!data->sycl_queue.is_in_order()) e = {data->sycl_queue.ext_oneapi_submit_barrier()};
 
   // -- L-vector indices
   CeedCallSycl(ceed, impl->d_l_vec_indices = sycl::malloc_device<CeedInt>(num_nodes, data->sycl_device, data->sycl_context));
-  sycl::event copy_lvec = data->sycl_queue.copy<CeedInt>(l_vec_indices, impl->d_l_vec_indices, num_nodes, {e});
+  sycl::event copy_lvec = data->sycl_queue.copy<CeedInt>(l_vec_indices, impl->d_l_vec_indices, num_nodes, e);
   // -- Transpose offsets
   CeedCallSycl(ceed, impl->d_t_offsets = sycl::malloc_device<CeedInt>(size_offsets, data->sycl_device, data->sycl_context));
-  sycl::event copy_offsets = data->sycl_queue.copy<CeedInt>(t_offsets, impl->d_t_offsets, size_offsets, {e});
+  sycl::event copy_offsets = data->sycl_queue.copy<CeedInt>(t_offsets, impl->d_t_offsets, size_offsets, e);
   // -- Transpose indices
   CeedCallSycl(ceed, impl->d_t_indices = sycl::malloc_device<CeedInt>(size_indices, data->sycl_device, data->sycl_context));
-  sycl::event copy_indices = data->sycl_queue.copy<CeedInt>(t_indices, impl->d_t_indices, size_indices, {e});
+  sycl::event copy_indices = data->sycl_queue.copy<CeedInt>(t_indices, impl->d_t_indices, size_indices, e);
 
   // Wait for all copies to complete and handle exceptions
   CeedCallSycl(ceed, sycl::event::wait_and_throw({copy_lvec, copy_offsets, copy_indices}));

@@ -741,9 +741,13 @@ extern "C" int CeedOperatorBuildKernel_Sycl_gen(CeedOperator op) {
   code << "// -----------------------------------------------------------------------------\n\n";
 
   // Copy the struct (containing device addresses) from the host to the device
-  sycl::event copy_B       = sycl_data->sycl_queue.copy<Fields_Sycl>(&h_B, impl->B, 1);
-  sycl::event copy_G       = sycl_data->sycl_queue.copy<Fields_Sycl>(&h_G, impl->G, 1);
-  sycl::event copy_indices = sycl_data->sycl_queue.copy<FieldsInt_Sycl>(&h_indices, impl->indices, 1);
+  std::vector<sycl::event> e;
+
+  if (!sycl_data->sycl_queue.is_in_order()) e = {sycl_data->sycl_queue.ext_oneapi_submit_barrier()};
+
+  sycl::event copy_B       = sycl_data->sycl_queue.copy<Fields_Sycl>(&h_B, impl->B, 1, e);
+  sycl::event copy_G       = sycl_data->sycl_queue.copy<Fields_Sycl>(&h_G, impl->G, 1, e);
+  sycl::event copy_indices = sycl_data->sycl_queue.copy<FieldsInt_Sycl>(&h_indices, impl->indices, 1, e);
   // These copies can happen while the JIT is being done
   CeedCallSycl(ceed, sycl::event::wait_and_throw({copy_B, copy_G, copy_indices}));
 
