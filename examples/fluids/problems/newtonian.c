@@ -62,6 +62,60 @@ static PetscErrorCode UnitTests_Newtonian(User user, NewtonianIdealGasContext ga
   PetscFunctionReturn(PETSC_SUCCESS);
 }
 
+// @brief Create CeedOperator for stabilized mass KSP for explicit timestepping
+//
+// Only used for SUPG stabilization
+PetscErrorCode CreateKSPMassOperator_NewtonianStabilized(User user, CeedOperator *op_mass) {
+  Ceed                 ceed = user->ceed;
+  CeedInt              num_comp_q, q_data_size;
+  CeedQFunction        qf_mass;
+  CeedElemRestriction  elem_restr_q, elem_restr_qd_i;
+  CeedBasis            basis_q;
+  CeedVector           q_data;
+  CeedQFunctionContext qf_ctx = NULL;
+  PetscInt             dim    = 3;
+
+  PetscFunctionBeginUser;
+  {  // Get restriction and basis from the RHS function
+    CeedOperator     *sub_ops;
+    CeedOperatorField field;
+    PetscInt          sub_op_index = 0;  // will be 0 for the volume op
+
+    PetscCallCeed(ceed, CeedCompositeOperatorGetSubList(user->op_rhs_ctx->op, &sub_ops));
+    PetscCallCeed(ceed, CeedOperatorGetFieldByName(sub_ops[sub_op_index], "q", &field));
+    PetscCallCeed(ceed, CeedOperatorFieldGetElemRestriction(field, &elem_restr_q));
+    PetscCallCeed(ceed, CeedOperatorFieldGetBasis(field, &basis_q));
+
+    PetscCallCeed(ceed, CeedOperatorGetFieldByName(sub_ops[sub_op_index], "qdata", &field));
+    PetscCallCeed(ceed, CeedOperatorFieldGetElemRestriction(field, &elem_restr_qd_i));
+    PetscCallCeed(ceed, CeedOperatorFieldGetVector(field, &q_data));
+
+    PetscCallCeed(ceed, CeedOperatorGetContext(sub_ops[sub_op_index], &qf_ctx));
+  }
+
+  PetscCallCeed(ceed, CeedElemRestrictionGetNumComponents(elem_restr_q, &num_comp_q));
+  PetscCallCeed(ceed, CeedElemRestrictionGetNumComponents(elem_restr_qd_i, &q_data_size));
+
+  PetscCallCeed(ceed, CeedQFunctionCreateInterior(ceed, 1, MassFunction_Newtonian_Conserv, MassFunction_Newtonian_Conserv_loc, &qf_mass));
+
+  PetscCallCeed(ceed, CeedQFunctionSetContext(qf_mass, qf_ctx));
+  PetscCallCeed(ceed, CeedQFunctionSetUserFlopsEstimate(qf_mass, 0));
+  PetscCallCeed(ceed, CeedQFunctionAddInput(qf_mass, "q_dot", 5, CEED_EVAL_INTERP));
+  PetscCallCeed(ceed, CeedQFunctionAddInput(qf_mass, "q", 5, CEED_EVAL_INTERP));
+  PetscCallCeed(ceed, CeedQFunctionAddInput(qf_mass, "qdata", q_data_size, CEED_EVAL_NONE));
+  PetscCallCeed(ceed, CeedQFunctionAddOutput(qf_mass, "v", 5, CEED_EVAL_INTERP));
+  PetscCallCeed(ceed, CeedQFunctionAddOutput(qf_mass, "Grad_v", 5 * dim, CEED_EVAL_GRAD));
+
+  PetscCallCeed(ceed, CeedOperatorCreate(ceed, qf_mass, NULL, NULL, op_mass));
+  PetscCallCeed(ceed, CeedOperatorSetField(*op_mass, "q_dot", elem_restr_q, basis_q, CEED_VECTOR_ACTIVE));
+  PetscCallCeed(ceed, CeedOperatorSetField(*op_mass, "q", elem_restr_q, basis_q, user->q_ceed));
+  PetscCallCeed(ceed, CeedOperatorSetField(*op_mass, "qdata", elem_restr_qd_i, CEED_BASIS_NONE, q_data));
+  PetscCallCeed(ceed, CeedOperatorSetField(*op_mass, "v", elem_restr_q, basis_q, CEED_VECTOR_ACTIVE));
+  PetscCallCeed(ceed, CeedOperatorSetField(*op_mass, "Grad_v", elem_restr_q, basis_q, CEED_VECTOR_ACTIVE));
+
+  PetscCallCeed(ceed, CeedQFunctionDestroy(&qf_mass));
+  PetscFunctionReturn(PETSC_SUCCESS);
+}
 PetscErrorCode NS_NEWTONIAN_IG(ProblemData *problem, DM dm, void *ctx, SimpleBC bc) {
   SetupContext             setup_context;
   User                     user   = *(User *)ctx;
@@ -206,9 +260,6 @@ PetscErrorCode NS_NEWTONIAN_IG(ProblemData *problem, DM dm, void *ctx, SimpleBC 
   Kelvin = fabs(Kelvin);
 
   // -- Warnings
-  if (stab == STAB_SUPG && !implicit) {
-    PetscCall(PetscPrintf(comm, "Warning! Use -stab supg only with -implicit\n"));
-  }
   PetscCheck(!(state_var == STATEVAR_PRIMITIVE && !implicit), comm, PETSC_ERR_SUP,
              "RHSFunction is not provided for primitive variables (use -state_var primitive only with -implicit)\n");
 
@@ -219,6 +270,8 @@ PetscErrorCode NS_NEWTONIAN_IG(ProblemData *problem, DM dm, void *ctx, SimpleBC 
   PetscCall(PetscOptionsScalar("-idl_start", "Start of IDL in the x direction", NULL, idl_start, &idl_start, NULL));
   PetscCall(PetscOptionsScalar("-idl_length", "Length of IDL in the positive x direction", NULL, idl_length, &idl_length, NULL));
   PetscOptionsEnd();
+
+  if (stab == STAB_SUPG && !implicit) problem->create_mass_operator = CreateKSPMassOperator_NewtonianStabilized;
 
   // ------------------------------------------------------
   //           Set up the PETSc context
