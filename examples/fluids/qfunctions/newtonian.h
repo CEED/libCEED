@@ -153,8 +153,7 @@ CEED_QFUNCTION(RHSFunction_Newtonian)(void *ctx, CeedInt Q, const CeedScalar *co
   CeedPragmaSIMD for (CeedInt i = 0; i < Q; i++) {
     CeedScalar U[5], wdetJ, dXdx[3][3];
     for (int j = 0; j < 5; j++) U[j] = q[j][i];
-    StoredValuesUnpack(Q, i, 0, 1, q_data, &wdetJ);
-    StoredValuesUnpack(Q, i, 1, 9, q_data, (CeedScalar *)dXdx);
+    QdataUnpack_3D(Q, i, q_data, &wdetJ, dXdx);
     State s = StateFromU(context, U);
 
     State grad_s[3];
