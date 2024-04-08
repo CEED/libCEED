@@ -17,6 +17,69 @@
 #include "../qfunctions/setupgeo.h"
 #include "../qfunctions/setupgeo2d.h"
 
+// @brief Create CeedOperator for stabilized mass KSP for explicit timestepping
+//
+// Only used for SUPG stabilization
+PetscErrorCode CreateKSPMassOperator_AdvectionStabilized(User user, CeedOperator *op_mass) {
+  Ceed                 ceed = user->ceed;
+  CeedInt              num_comp_q, q_data_size;
+  CeedQFunction        qf_mass;
+  CeedElemRestriction  elem_restr_q, elem_restr_qd_i;
+  CeedBasis            basis_q;
+  CeedVector           q_data;
+  CeedQFunctionContext qf_ctx = NULL;
+  PetscInt             dim;
+
+  PetscFunctionBeginUser;
+  PetscCall(DMGetDimension(user->dm, &dim));
+  {  // Get restriction and basis from the RHS function
+    CeedOperator     *sub_ops;
+    CeedOperatorField field;
+    PetscInt          sub_op_index = 0;  // will be 0 for the volume op
+
+    PetscCallCeed(ceed, CeedCompositeOperatorGetSubList(user->op_rhs_ctx->op, &sub_ops));
+    PetscCallCeed(ceed, CeedOperatorGetFieldByName(sub_ops[sub_op_index], "q", &field));
+    PetscCallCeed(ceed, CeedOperatorFieldGetElemRestriction(field, &elem_restr_q));
+    PetscCallCeed(ceed, CeedOperatorFieldGetBasis(field, &basis_q));
+
+    PetscCallCeed(ceed, CeedOperatorGetFieldByName(sub_ops[sub_op_index], "qdata", &field));
+    PetscCallCeed(ceed, CeedOperatorFieldGetElemRestriction(field, &elem_restr_qd_i));
+    PetscCallCeed(ceed, CeedOperatorFieldGetVector(field, &q_data));
+
+    PetscCallCeed(ceed, CeedOperatorGetContext(sub_ops[sub_op_index], &qf_ctx));
+  }
+
+  PetscCallCeed(ceed, CeedElemRestrictionGetNumComponents(elem_restr_q, &num_comp_q));
+  PetscCallCeed(ceed, CeedElemRestrictionGetNumComponents(elem_restr_qd_i, &q_data_size));
+
+  switch (dim) {
+    case 2:
+      PetscCallCeed(ceed, CeedQFunctionCreateInterior(ceed, 1, MassFunction_Advection2D, MassFunction_Advection2D_loc, &qf_mass));
+      break;
+    case 3:
+      PetscCallCeed(ceed, CeedQFunctionCreateInterior(ceed, 1, MassFunction_Advection, MassFunction_Advection_loc, &qf_mass));
+      break;
+  }
+
+  PetscCallCeed(ceed, CeedQFunctionSetContext(qf_mass, qf_ctx));
+  PetscCallCeed(ceed, CeedQFunctionSetUserFlopsEstimate(qf_mass, 0));
+  PetscCallCeed(ceed, CeedQFunctionAddInput(qf_mass, "q_dot", 5, CEED_EVAL_INTERP));
+  PetscCallCeed(ceed, CeedQFunctionAddInput(qf_mass, "q", 5, CEED_EVAL_INTERP));
+  PetscCallCeed(ceed, CeedQFunctionAddInput(qf_mass, "qdata", q_data_size, CEED_EVAL_NONE));
+  PetscCallCeed(ceed, CeedQFunctionAddOutput(qf_mass, "v", 5, CEED_EVAL_INTERP));
+  PetscCallCeed(ceed, CeedQFunctionAddOutput(qf_mass, "Grad_v", 5 * dim, CEED_EVAL_GRAD));
+
+  PetscCallCeed(ceed, CeedOperatorCreate(ceed, qf_mass, NULL, NULL, op_mass));
+  PetscCallCeed(ceed, CeedOperatorSetField(*op_mass, "q_dot", elem_restr_q, basis_q, CEED_VECTOR_ACTIVE));
+  PetscCallCeed(ceed, CeedOperatorSetField(*op_mass, "q", elem_restr_q, basis_q, user->q_ceed));
+  PetscCallCeed(ceed, CeedOperatorSetField(*op_mass, "qdata", elem_restr_qd_i, CEED_BASIS_NONE, q_data));
+  PetscCallCeed(ceed, CeedOperatorSetField(*op_mass, "v", elem_restr_q, basis_q, CEED_VECTOR_ACTIVE));
+  PetscCallCeed(ceed, CeedOperatorSetField(*op_mass, "Grad_v", elem_restr_q, basis_q, CEED_VECTOR_ACTIVE));
+
+  PetscCallCeed(ceed, CeedQFunctionDestroy(&qf_mass));
+  PetscFunctionReturn(PETSC_SUCCESS);
+}
+
 PetscErrorCode NS_ADVECTION(ProblemData *problem, DM dm, void *ctx, SimpleBC bc) {
   WindType             wind_type;
   AdvectionICType      advectionic_type;
@@ -151,11 +214,9 @@ PetscErrorCode NS_ADVECTION(ProblemData *problem, DM dm, void *ctx, SimpleBC bc)
   if (stab == STAB_NONE && CtauS != 0) {
     PetscCall(PetscPrintf(comm, "Warning! Use -CtauS only with -stab su or -stab supg\n"));
   }
-  if (stab == STAB_SUPG && !implicit) {
-    PetscCall(PetscPrintf(comm, "Warning! Use -stab supg only with -implicit\n"));
-  }
-
   PetscOptionsEnd();
+
+  if (stab == STAB_SUPG) problem->create_mass_operator = CreateKSPMassOperator_AdvectionStabilized;
 
   // ------------------------------------------------------
   //           Set up the PETSc context

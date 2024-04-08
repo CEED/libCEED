@@ -250,6 +250,27 @@ CEED_QFUNCTION_HELPER void StatePhysicalGradientFromReference_ND(CeedInt N, Ceed
   }
 }
 
+// @brief Calculate the stabilization constant \tau
+CEED_QFUNCTION_HELPER CeedScalar Tau(AdvectionContext context, const State s, const CeedScalar *dXdx, CeedInt dim) {
+  switch (context->stabilization_tau) {
+    case STAB_TAU_CTAU: {
+      CeedScalar uX[3] = {0.};
+
+      MatVecNM(dXdx, s.Y.velocity, dim, dim, CEED_NOTRANSPOSE, uX);
+      return context->CtauS / sqrt(DotN(uX, uX, dim));
+    } break;
+    case STAB_TAU_ADVDIFF_SHAKIB: {
+      CeedScalar gijd_mat[9] = {0.}, gij_uj[3] = {0.};
+
+      MatMatN(dXdx, dXdx, dim, CEED_TRANSPOSE, CEED_NOTRANSPOSE, gijd_mat);
+      MatVecNM(gijd_mat, s.Y.velocity, dim, dim, CEED_NOTRANSPOSE, gij_uj);
+      return 1 / sqrt(Square(2 * context->Ctau_t / context->dt) + DotN(s.Y.velocity, gij_uj, dim) * context->Ctau_a);
+    } break;
+    default:
+      return 0.;
+  }
+}
+
 // *****************************************************************************
 // This QFunction implements Advection for implicit time stepping method
 // *****************************************************************************
@@ -264,7 +285,6 @@ CEED_QFUNCTION_HELPER void IFunction_AdvectionGeneric(void *ctx, CeedInt Q, cons
   CeedScalar *jac_data               = out[2];
 
   AdvectionContext                 context   = (AdvectionContext)ctx;
-  const CeedScalar                 CtauS     = context->CtauS;
   const CeedScalar                 zeros[14] = {0.};
   NewtonianIdealGasContext         gas;
   struct NewtonianIdealGasContext_ gas_struct = {0};
@@ -306,20 +326,7 @@ CEED_QFUNCTION_HELPER void IFunction_AdvectionGeneric(void *ctx, CeedInt Q, cons
       for (CeedInt j = 0; j < dim; j++) grad_v[j][4][i] = -wdetJ * s.U.E_total * uX[j];
     }
 
-    CeedScalar TauS = 0;
-    switch (context->stabilization_tau) {
-      case STAB_TAU_CTAU:
-        TauS = CtauS / sqrt(Dot3(uX, uX));
-        break;
-      case STAB_TAU_ADVDIFF_SHAKIB: {
-        CeedScalar gijd_mat[9] = {0.}, gij_uj[3] = {0.};
-        MatMatN(dXdx, dXdx, dim, CEED_TRANSPOSE, CEED_NOTRANSPOSE, gijd_mat);
-
-        MatVecNM(gijd_mat, s.Y.velocity, dim, dim, CEED_NOTRANSPOSE, gij_uj);
-        TauS = 1 / sqrt(Square(2 * context->Ctau_t / context->dt) + DotN(s.Y.velocity, gij_uj, dim) * context->Ctau_a);
-      } break;
-    }
-
+    const CeedScalar TauS = Tau(context, s, dXdx, dim);
     for (CeedInt j = 0; j < dim; j++) switch (context->stabilization) {
         case STAB_NONE:
           break;
@@ -344,6 +351,58 @@ CEED_QFUNCTION(IFunction_Advection2d)(void *ctx, CeedInt Q, const CeedScalar *co
   return 0;
 }
 
+CEED_QFUNCTION_HELPER void MassFunction_AdvectionGeneric(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out, CeedInt dim) {
+  const CeedScalar(*q_dot)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[0];
+  const CeedScalar(*q)[CEED_Q_VLA]     = (const CeedScalar(*)[CEED_Q_VLA])in[1];
+  const CeedScalar(*q_data)            = in[2];
+
+  CeedScalar(*v)[CEED_Q_VLA]         = (CeedScalar(*)[CEED_Q_VLA])out[0];
+  CeedScalar(*grad_v)[5][CEED_Q_VLA] = (CeedScalar(*)[5][CEED_Q_VLA])out[1];
+
+  AdvectionContext                 context    = (AdvectionContext)ctx;
+  struct NewtonianIdealGasContext_ gas_struct = {0};
+  NewtonianIdealGasContext         gas        = &gas_struct;
+
+  CeedPragmaSIMD for (CeedInt i = 0; i < Q; i++) {
+    const CeedScalar qi[5] = {q[0][i], q[1][i], q[2][i], q[3][i], q[4][i]};
+    const State      s     = StateFromU(gas, qi);
+    CeedScalar       wdetJ, dXdx[9];
+    QdataUnpack_ND(dim, Q, i, q_data, &wdetJ, dXdx);
+
+    for (CeedInt f = 0; f < 4; f++) {
+      for (CeedInt j = 0; j < dim; j++) grad_v[j][f][i] = 0;  // No Change in density or momentum
+      v[f][i] = wdetJ * q_dot[f][i];                          // K Mass/transient term
+    }
+
+    // Unstabilized mass term
+    v[4][i] = wdetJ * q_dot[4][i];
+
+    // Stabilized mass term
+    CeedScalar uX[3] = {0.};
+    MatVecNM(dXdx, s.Y.velocity, dim, dim, CEED_NOTRANSPOSE, uX);
+    const CeedScalar TauS = Tau(context, s, dXdx, dim);
+    for (CeedInt j = 0; j < dim; j++) switch (context->stabilization) {
+        case STAB_NONE:
+        case STAB_SU:
+          grad_v[j][4][i] = 0;
+          break;  // These should be run with the unstabilized mass matrix anyways
+        case STAB_SUPG:
+          grad_v[j][4][i] = wdetJ * TauS * q_dot[4][i] * uX[j];
+          break;
+      }
+  }
+}
+
+CEED_QFUNCTION(MassFunction_Advection)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
+  MassFunction_AdvectionGeneric(ctx, Q, in, out, 3);
+  return 0;
+}
+
+CEED_QFUNCTION(MassFunction_Advection2D)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
+  MassFunction_AdvectionGeneric(ctx, Q, in, out, 2);
+  return 0;
+}
+
 // *****************************************************************************
 // This QFunction implements Advection for explicit time stepping method
 // *****************************************************************************
@@ -355,11 +414,9 @@ CEED_QFUNCTION_HELPER void RHSFunction_AdvectionGeneric(void *ctx, CeedInt Q, co
   CeedScalar(*v)[CEED_Q_VLA]         = (CeedScalar(*)[CEED_Q_VLA])out[0];
   CeedScalar(*grad_v)[5][CEED_Q_VLA] = (CeedScalar(*)[5][CEED_Q_VLA])out[1];
 
-  AdvectionContext                 context = (AdvectionContext)ctx;
-  const CeedScalar                 CtauS   = context->CtauS;
-  NewtonianIdealGasContext         gas;
+  AdvectionContext                 context    = (AdvectionContext)ctx;
   struct NewtonianIdealGasContext_ gas_struct = {0};
-  gas                                         = &gas_struct;
+  NewtonianIdealGasContext         gas        = &gas_struct;
 
   CeedPragmaSIMD for (CeedInt i = 0; i < Q; i++) {
     const CeedScalar qi[5] = {q[0][i], q[1][i], q[2][i], q[3][i], q[4][i]};
@@ -396,7 +453,7 @@ CEED_QFUNCTION_HELPER void RHSFunction_AdvectionGeneric(void *ctx, CeedInt Q, co
       v[4][i] = 0.;
     }
 
-    const CeedScalar TauS = CtauS / sqrt(Dot3(uX, uX));
+    const CeedScalar TauS = Tau(context, s, dXdx, dim);
     for (CeedInt j = 0; j < dim; j++) switch (context->stabilization) {
         case STAB_NONE:
           break;
