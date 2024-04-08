@@ -59,8 +59,6 @@ CEED_QFUNCTION_HELPER int ComputeSGS_DDAnisotropicTrainingDataNodal(void *ctx, C
     v[3 + 6][i] = (velo_prod[DIFF_FILTER_VELOCITY_SQUARED_YZ][i] - s.Y.velocity[1] * s.Y.velocity[2]) * inv_multiplicity[i];
     v[4 + 6][i] = (velo_prod[DIFF_FILTER_VELOCITY_SQUARED_XZ][i] - s.Y.velocity[0] * s.Y.velocity[2]) * inv_multiplicity[i];
     v[5 + 6][i] = (velo_prod[DIFF_FILTER_VELOCITY_SQUARED_XY][i] - s.Y.velocity[0] * s.Y.velocity[1]) * inv_multiplicity[i];
-
-    for (int j = 0; j < 12; j++) v[j][i] = inv_multiplicity[i] * j;
   }
   return 0;
 }

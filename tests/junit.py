@@ -195,7 +195,7 @@ if __name__ == '__main__':
 
     # run tests
     if 'smartsim' in args.test:
-        has_smartsim: bool = args.smartredis_dir and Path(args.smartredis_dir).is_file()
+        has_smartsim: bool = args.smartredis_dir and Path(args.smartredis_dir).is_dir()
         test_cases = []
 
         if args.mode is RunMode.TAP:
