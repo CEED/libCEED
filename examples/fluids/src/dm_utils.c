@@ -457,7 +457,6 @@ PetscErrorCode DMSetupByOrderBegin_FEM(PetscBool setup_faces, PetscBool setup_co
     PetscCall(PetscFECreateLagrange(comm, dim, num_comp_coord, is_simplex, fe_coord_order, q_order, &fe_coord_new));
     if (setup_faces) PetscCall(PetscFEGetHeightSubspace(fe_coord_new, 1, &fe_coord_face_new));
     PetscCall(DMSetCoordinateDisc(dm, fe_coord_new, PETSC_TRUE));
-    PetscCall(DMLocalizeCoordinates(dm));  // Update CellCoordinateDM with projected coordinates
     PetscCall(PetscFEDestroy(&fe_coord_new));
   }
   PetscFunctionReturn(PETSC_SUCCESS);
@@ -486,10 +485,9 @@ PetscErrorCode DMSetupByOrderEnd_FEM(PetscBool setup_coords, DM dm) {
 
       PetscCall(DMGetCoordinateDM(dm, &dm_coord));
       PetscCall(DMPlexSetClosurePermutationTensor(dm_coord, PETSC_DETERMINE, NULL));
-      PetscCall(DMGetCellCoordinateDM(dm, &dm_coord));
-      if (dm_coord) PetscCall(DMPlexSetClosurePermutationTensor(dm_coord, PETSC_DETERMINE, NULL));
     }
   }
+  PetscCall(DMLocalizeCoordinates(dm));  // Must localize after tensor closure setting
   PetscFunctionReturn(PETSC_SUCCESS);
 }
 
