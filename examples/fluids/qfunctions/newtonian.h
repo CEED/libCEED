@@ -50,6 +50,50 @@ CEED_QFUNCTION(ICsNewtonianIG_Conserv)(void *ctx, CeedInt Q, const CeedScalar *c
   return ICsNewtonianIG(ctx, Q, in, out, STATEVAR_CONSERVATIVE);
 }
 
+CEED_QFUNCTION_HELPER void MassFunction_Newtonian(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out,
+                                                  StateVariable state_var) {
+  const CeedScalar(*q_dot)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[0];
+  const CeedScalar(*q)[CEED_Q_VLA]     = (const CeedScalar(*)[CEED_Q_VLA])in[1];
+  const CeedScalar(*q_data)            = in[2];
+  CeedScalar(*v)[CEED_Q_VLA]           = (CeedScalar(*)[CEED_Q_VLA])out[0];
+  CeedScalar(*Grad_v)[5][CEED_Q_VLA]   = (CeedScalar(*)[5][CEED_Q_VLA])out[1];
+
+  NewtonianIdealGasContext context = (NewtonianIdealGasContext)ctx;
+
+  CeedPragmaSIMD for (CeedInt i = 0; i < Q; i++) {
+    const CeedScalar qi[5]     = {q[0][i], q[1][i], q[2][i], q[3][i], q[4][i]};
+    const CeedScalar qi_dot[5] = {q_dot[0][i], q_dot[1][i], q_dot[2][i], q_dot[3][i], q_dot[4][i]};
+    const State      s         = StateFromQ(context, qi, state_var);
+    const State      s_dot     = StateFromQ(context, qi_dot, state_var);
+    CeedScalar       wdetJ, dXdx[3][3];
+    QdataUnpack_3D(Q, i, q_data, &wdetJ, dXdx);
+
+    // Standard mass matrix term
+    for (CeedInt f = 0; f < 5; f++) {
+      v[f][i] = wdetJ * qi_dot[f];
+    }
+
+    // Stabilization method: none (Galerkin), SU, or SUPG
+    State      grad_s[3] = {{{0.}}};
+    CeedScalar Tau_d[3], stab[5][3], body_force[5] = {0.}, U_dot[5];
+    UnpackState_U(s_dot.U, U_dot);
+    Tau_diagPrim(context, s, dXdx, context->dt, Tau_d);
+    Stabilization(context, s, Tau_d, grad_s, U_dot, body_force, stab);
+
+    // Stabilized mass term
+    for (CeedInt j = 0; j < 5; j++) {
+      for (CeedInt k = 0; k < 3; k++) {
+        Grad_v[k][j][i] = wdetJ * (stab[j][0] * dXdx[k][0] + stab[j][1] * dXdx[k][1] + stab[j][2] * dXdx[k][2]);
+      }
+    }
+  }
+}
+
+CEED_QFUNCTION(MassFunction_Newtonian_Conserv)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
+  MassFunction_Newtonian(ctx, Q, in, out, STATEVAR_CONSERVATIVE);
+  return 0;
+}
+
 // *****************************************************************************
 // This QFunction implements the following formulation of Navier-Stokes with explicit time stepping method
 //
@@ -109,8 +153,7 @@ CEED_QFUNCTION(RHSFunction_Newtonian)(void *ctx, CeedInt Q, const CeedScalar *co
   CeedPragmaSIMD for (CeedInt i = 0; i < Q; i++) {
     CeedScalar U[5], wdetJ, dXdx[3][3];
     for (int j = 0; j < 5; j++) U[j] = q[j][i];
-    StoredValuesUnpack(Q, i, 0, 1, q_data, &wdetJ);
-    StoredValuesUnpack(Q, i, 1, 9, q_data, (CeedScalar *)dXdx);
+    QdataUnpack_3D(Q, i, q_data, &wdetJ, dXdx);
     State s = StateFromU(context, U);
 
     State grad_s[3];
