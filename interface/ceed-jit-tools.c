@@ -61,27 +61,27 @@ int CeedCheckFilePath(Ceed ceed, const char *source_file_path, bool *is_valid) {
 }
 
 /**
-  @brief Trim all `/./` and `/../` out of filepath
+  @brief Normalize a filepath
 
-  @param[in]   ceed                     `Ceed` object for error handling
-  @param[in]   source_file_path         Absolute path to source file
-  @param[out]  trimmed_source_file_path Filepath trimmed of all `/./` and `/../`
+  @param[in]   ceed                        `Ceed` object for error handling
+  @param[in]   source_file_path            Absolute path to source file
+  @param[out]  normalized_source_file_path Normalized filepath
 
   @return An error code: 0 - success, otherwise - failure
 
   @ref Backend
 **/
-static int CeedTrimPath(Ceed ceed, const char *source_file_path, char **trimmed_source_file_path) {
-  CeedCall(CeedStringAllocCopy(source_file_path, trimmed_source_file_path));
+static int CeedNormalizePath(Ceed ceed, const char *source_file_path, char **normalized_source_file_path) {
+  CeedCall(CeedStringAllocCopy(source_file_path, normalized_source_file_path));
 
-  char *first_dot = strchr(*trimmed_source_file_path, '.');
+  char *first_dot = strchr(*normalized_source_file_path, '.');
 
   while (first_dot) {
     char *search_from = first_dot + 1;
     char  keyword[5]  = "";
 
     // -- Check for /./ and covert to /
-    if (first_dot != *trimmed_source_file_path && strlen(first_dot) > 2) memcpy(keyword, &first_dot[-1], 3);
+    if (first_dot != *normalized_source_file_path && strlen(first_dot) > 2) memcpy(keyword, &first_dot[-1], 3);
     bool is_here = !strcmp(keyword, "/./");
 
     if (is_here) {
@@ -89,14 +89,14 @@ static int CeedTrimPath(Ceed ceed, const char *source_file_path, char **trimmed_
       search_from = first_dot;
     } else {
       // -- Check for /foo/../ and convert to /
-      if (first_dot != *trimmed_source_file_path && strlen(first_dot) > 3) memcpy(keyword, &first_dot[-1], 4);
+      if (first_dot != *normalized_source_file_path && strlen(first_dot) > 3) memcpy(keyword, &first_dot[-1], 4);
       bool is_up_one = !strcmp(keyword, "/../");
 
       if (is_up_one) {
         char *last_slash = &first_dot[-2];
 
-        while (last_slash[0] != '/' && last_slash != *trimmed_source_file_path) last_slash--;
-        CeedCheck(last_slash != *trimmed_source_file_path, ceed, CEED_ERROR_MAJOR, "Malformed source path %s", source_file_path);
+        while (last_slash[0] != '/' && last_slash != *normalized_source_file_path) last_slash--;
+        CeedCheck(last_slash != *normalized_source_file_path, ceed, CEED_ERROR_MAJOR, "Malformed source path %s", source_file_path);
         for (CeedInt i = 0; first_dot[i - 1]; i++) last_slash[i] = first_dot[i + 2];
         search_from = last_slash;
       }
@@ -121,7 +121,7 @@ static int CeedTrimPath(Ceed ceed, const char *source_file_path, char **trimmed_
 
   @ref Backend
 **/
-int CeedLoadSourceToInitializedBuffer(Ceed ceed, const char *source_file_path, CeedInt *num_files, char ***file_paths, char **buffer) {
+int CeedLoadSourceToInitializedBuffer(Ceed ceed, const char *source_file_path, CeedInt *num_file_paths, char ***file_paths, char **buffer) {
   FILE *source_file;
   long  file_size, file_offset = 0;
   char *temp_buffer;
@@ -241,19 +241,19 @@ int CeedLoadSourceToInitializedBuffer(Ceed ceed, const char *source_file_path, C
           CeedCall(CeedFree(&ceed_relative_path));
         }
         // ---- Recursive call to load source to buffer
-        char *trimmed_include_source_path;
+        char *normalized_include_source_path;
 
-        CeedCall(CeedTrimPath(ceed, include_source_path, &trimmed_include_source_path));
-        for (CeedInt i = 0; i < *num_files; i++) is_included |= !strcmp(trimmed_include_source_path, (*file_paths)[i]);
+        CeedCall(CeedNormalizePath(ceed, include_source_path, &normalized_include_source_path));
+        for (CeedInt i = 0; i < *num_file_paths; i++) is_included |= !strcmp(normalized_include_source_path, (*file_paths)[i]);
         if (!is_included) {
-          CeedDebug256(ceed, CEED_DEBUG_COLOR_SUCCESS, "JiT Including: %s\n", trimmed_include_source_path);
-          CeedCall(CeedLoadSourceToInitializedBuffer(ceed, trimmed_include_source_path, num_files, file_paths, buffer));
-          CeedCall(CeedRealloc(*num_files + 1, file_paths));
-          CeedCall(CeedStringAllocCopy(trimmed_include_source_path, &(*file_paths)[*num_files]));
-          (*num_files)++;
+          CeedDebug256(ceed, CEED_DEBUG_COLOR_SUCCESS, "JiT Including: %s\n", normalized_include_source_path);
+          CeedCall(CeedLoadSourceToInitializedBuffer(ceed, normalized_include_source_path, num_file_paths, file_paths, buffer));
+          CeedCall(CeedRealloc(*num_file_paths + 1, file_paths));
+          CeedCall(CeedStringAllocCopy(normalized_include_source_path, &(*file_paths)[*num_file_paths]));
+          (*num_file_paths)++;
         }
         CeedCall(CeedFree(&include_source_path));
-        CeedCall(CeedFree(&trimmed_include_source_path));
+        CeedCall(CeedFree(&normalized_include_source_path));
       }
       file_offset = strchr(first_hash, '\n') - temp_buffer + 1;
     }

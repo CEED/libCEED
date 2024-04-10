@@ -300,6 +300,7 @@ int CeedFree(void *p) {
   @param[in]     source_array          Source data provided by user
   @param[in]     copy_mode             Copy mode for the data
   @param[in]     num_values            Number of values to handle
+  @param[in]     size_unit             Size of array element in bytes
   @param[in,out] target_array_owned    Pointer to location to allocated or hold owned data, may be freed if already allocated
   @param[out]    target_array_borrowed Pointer to location to hold borrowed data
   @param[out]    target_array          Pointer to location for data
