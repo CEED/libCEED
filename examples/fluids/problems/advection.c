@@ -147,13 +147,14 @@ PetscErrorCode NS_ADVECTION(ProblemData *problem, DM dm, void *ctx, SimpleBC bc)
   // ------------------------------------------------------
   //             Create the libCEED context
   // ------------------------------------------------------
-  CeedScalar rc          = 1000.;  // m (Radius of bubble)
-  CeedScalar CtauS       = 0.;     // dimensionless
-  PetscBool  strong_form = PETSC_FALSE;
-  CeedScalar E_wind      = 1.e6;  // J
-  CeedScalar Ctau_a      = PetscPowScalarInt(user->app_ctx->degree, 2);
-  CeedScalar Ctau_t      = 0.;
-  PetscReal  wind[3]     = {1., 0, 0};  // m/s
+  CeedScalar rc              = 1000.;  // m (Radius of bubble)
+  CeedScalar CtauS           = 0.;     // dimensionless
+  PetscBool  strong_form     = PETSC_FALSE;
+  CeedScalar E_wind          = 1.e6;  // J
+  CeedScalar Ctau_a          = PetscPowScalarInt(user->app_ctx->degree, 2);
+  CeedScalar Ctau_t          = 0.;
+  PetscReal  wind[3]         = {1., 0, 0};  // m/s
+  CeedScalar diffusion_coeff = 0.;
   PetscReal  domain_min[3], domain_max[3], domain_size[3];
   PetscCall(DMGetBoundingBox(dm, domain_min, domain_max));
   for (PetscInt i = 0; i < problem->dim; i++) domain_size[i] = domain_max[i] - domain_min[i];
@@ -178,6 +179,7 @@ PetscErrorCode NS_ADVECTION(ProblemData *problem, DM dm, void *ctx, SimpleBC bc)
   PetscInt  n = problem->dim;
   PetscBool user_wind;
   PetscCall(PetscOptionsRealArray("-wind_translation", "Constant wind vector", NULL, wind, &n, &user_wind));
+  PetscCall(PetscOptionsScalar("-diffusion_coeff", "Diffusion coefficient", NULL, diffusion_coeff, &diffusion_coeff, NULL));
   PetscCall(PetscOptionsScalar("-CtauS", "Scale coefficient for tau (nondimensional)", NULL, CtauS, &CtauS, NULL));
   PetscCall(PetscOptionsBool("-strong_form", "Strong (true) or weak/integrated by parts (false) advection residual", NULL, strong_form, &strong_form,
                              NULL));
@@ -264,6 +266,7 @@ PetscErrorCode NS_ADVECTION(ProblemData *problem, DM dm, void *ctx, SimpleBC bc)
   advection_ctx->stabilization_tau = stab_tau;
   advection_ctx->Ctau_a            = Ctau_a;
   advection_ctx->Ctau_t            = Ctau_t;
+  advection_ctx->diffusion_coeff   = diffusion_coeff;
 
   PetscCallCeed(ceed, CeedQFunctionContextCreate(user->ceed, &problem->ics.qfunction_context));
   PetscCallCeed(ceed,

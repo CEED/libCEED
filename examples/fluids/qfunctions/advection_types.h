@@ -41,6 +41,7 @@ struct AdvectionContext_ {
   CeedScalar           Ctau_a;
   CeedScalar           Ctau_t;
   CeedScalar           dt;
+  CeedScalar           diffusion_coeff;
 };
 
 typedef struct SetupContextAdv_ *SetupContextAdv;
