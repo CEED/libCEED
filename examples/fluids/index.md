@@ -505,15 +505,16 @@ The database may also be located on the same node as a MPI rank (collocated) or 
 It's necessary to know how many ranks are associated with each collocated database, which is set by `-smartsim_collocated_database_num_ranks`.
 
 (problem-advection)=
-## Advection
+## Advection-Diffusion
 
 A simplified version of system {eq}`eq-ns`, only accounting for the transport of total energy, is given by
 
 $$
-\frac{\partial E}{\partial t} + \nabla \cdot (\bm{u} E ) = 0 \, ,
+\frac{\partial E}{\partial t} + \nabla \cdot (\bm{u} E ) - \kappa \nabla E = 0 \, ,
 $$ (eq-advection)
 
-with $\bm{u}$ the vector velocity field. In this particular test case, a blob of total energy (defined by a characteristic radius $r_c$) is transported by two different wind types.
+with $\bm{u}$ the vector velocity field and $\kappa$ the diffusion coefficient.
+In this particular test case, a blob of total energy (defined by a characteristic radius $r_c$) is transported by two different wind types.
 
 - **Rotation**
 

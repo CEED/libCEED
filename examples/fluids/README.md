@@ -376,6 +376,11 @@ The following additional command-line options are available:
   - `1,0,0`
   -
 
+* - `-diffusion_coeff`
+  - Diffusion coefficient
+  - `0`
+  -
+
 * - `-E_wind`
   - Total energy of inflow wind when `-wind_type translation`
   - `1E6`

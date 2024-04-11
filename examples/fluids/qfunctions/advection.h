@@ -326,6 +326,14 @@ CEED_QFUNCTION_HELPER void IFunction_AdvectionGeneric(void *ctx, CeedInt Q, cons
       for (CeedInt j = 0; j < dim; j++) grad_v[j][4][i] = -wdetJ * s.U.E_total * uX[j];
     }
 
+    {  // Diffusion
+      CeedScalar Fe[3], Fe_dXdx[3] = {0.};
+
+      for (CeedInt i = 0; i < dim; i++) Fe[i] = -context->diffusion_coeff * grad_s[i].U.E_total;
+      MatVecNM(dXdx, Fe, dim, dim, CEED_NOTRANSPOSE, Fe_dXdx);
+      for (CeedInt k = 0; k < dim; k++) grad_v[k][4][i] -= wdetJ * Fe_dXdx[k];
+    }
+
     const CeedScalar TauS = Tau(context, s, dXdx, dim);
     for (CeedInt j = 0; j < dim; j++) switch (context->stabilization) {
         case STAB_NONE:
@@ -451,6 +459,14 @@ CEED_QFUNCTION_HELPER void RHSFunction_AdvectionGeneric(void *ctx, CeedInt Q, co
     } else {  // Weak Galerkin convection term: -dv \cdot (E u)
       for (CeedInt j = 0; j < dim; j++) grad_v[j][4][i] = wdetJ * s.U.E_total * uX[j];
       v[4][i] = 0.;
+    }
+
+    {  // Diffusion
+      CeedScalar Fe[3], Fe_dXdx[3] = {0.};
+
+      for (CeedInt i = 0; i < dim; i++) Fe[i] = -context->diffusion_coeff * grad_s[i].U.E_total;
+      MatVecNM(dXdx, Fe, dim, dim, CEED_NOTRANSPOSE, Fe_dXdx);
+      for (CeedInt k = 0; k < dim; k++) grad_v[k][4][i] += wdetJ * Fe_dXdx[k];
     }
 
     const CeedScalar TauS = Tau(context, s, dXdx, dim);
