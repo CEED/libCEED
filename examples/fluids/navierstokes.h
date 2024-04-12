@@ -211,6 +211,7 @@ typedef struct {
   PetscInt              field_prim_state, field_velo_prod;
   OperatorApplyContext  op_rhs_ctx;
   KSP                   ksp;
+  PetscObjectState      X_loc_state;
   PetscBool             do_mms_test;
   CeedContextFieldLabel filter_width_scaling_label;
 } *DiffFilterData;
