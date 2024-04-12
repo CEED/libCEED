@@ -14,8 +14,10 @@ PetscErrorCode SmartRedisVerifyPutTensor(void *c_client, const char *name, const
   bool does_exist = true;
 
   PetscFunctionBeginUser;
+  PetscCall(PetscLogEventBegin(FLUIDS_SmartRedis_Meta, 0, 0, 0, 0));
   PetscSmartRedisCall(tensor_exists(c_client, name, name_length, &does_exist));
   PetscCheck(does_exist, PETSC_COMM_SELF, -1, "Tensor of name '%s' was not written to the database successfully", name);
+  PetscCall(PetscLogEventEnd(FLUIDS_SmartRedis_Meta, 0, 0, 0, 0));
   PetscFunctionReturn(PETSC_SUCCESS);
 }
 
@@ -40,7 +42,6 @@ PetscErrorCode SmartSimTrainingSetup(User user) {
 
 PetscErrorCode SmartSimSetup(User user) {
   PetscMPIInt rank;
-  size_t      rank_id_name_len;
   PetscInt    num_orchestrator_nodes = 1;
 
   PetscFunctionBeginUser;
@@ -53,13 +54,12 @@ PetscErrorCode SmartSimSetup(User user) {
                             smartsim->collocated_database_num_ranks, &smartsim->collocated_database_num_ranks, NULL));
   PetscOptionsEnd();
 
-  PetscCall(PetscStrlen(smartsim->rank_id_name, &rank_id_name_len));
   // Create prefix to be put on tensor names
   PetscCallMPI(MPI_Comm_rank(user->comm, &rank));
-  PetscCall(PetscSNPrintf(smartsim->rank_id_name, sizeof smartsim->rank_id_name, "y.%d", rank));
+  PetscCall(PetscSNPrintf(smartsim->rank_id_name, sizeof(smartsim->rank_id_name), "y.%d", rank));
 
   PetscCall(PetscLogEventBegin(FLUIDS_SmartRedis_Init, 0, 0, 0, 0));
-  PetscSmartRedisCall(SmartRedisCClient(num_orchestrator_nodes != 1, smartsim->rank_id_name, rank_id_name_len, &smartsim->client));
+  PetscSmartRedisCall(SmartRedisCClient(num_orchestrator_nodes != 1, smartsim->rank_id_name, strlen(smartsim->rank_id_name), &smartsim->client));
   PetscCall(PetscLogEventEnd(FLUIDS_SmartRedis_Init, 0, 0, 0, 0));
 
   PetscCall(SmartSimTrainingSetup(user));
