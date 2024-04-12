@@ -52,6 +52,36 @@ def assert_equal(test, truth):
         raise Exception(f"Expected {truth}, but got {test}") from e
 
 
+def verify_training_data(database_array, correct_array, ceed_resource, atol=1e-8, rtol=1e-8):
+    """Verify the training data
+
+    Cannot just use np.allclose due to vorticity vector directionality.
+    Check whether the S-frame-oriented vorticity vector's second component is just flipped.
+    This can happen due to the eigenvector ordering changing based on whichever one is closest to the vorticity vector.
+    If two eigenvectors are very close to the vorticity vector, this can cause the ordering to flip.
+    This flipping of the vorticity vector is not incorrect, just a known sensitivity of the model.
+    """
+    if not np.allclose(database_array, correct_array, atol=atol, rtol=rtol):
+
+        total_tolerances = atol + rtol * np.abs(correct_array)  # mimic np.allclose tolerance calculation
+        idx_notclose = np.where(np.abs(database_array - correct_array) > total_tolerances)
+        if not np.all(idx_notclose[1] == 4):
+            # values other than vorticity are not close
+            test_fail = True
+        else:
+            database_vorticity = database_array[idx_notclose]
+            correct_vorticity = correct_array[idx_notclose]
+            test_fail = False if np.allclose(-database_vorticity, correct_vorticity,
+                                             atol=atol, rtol=rtol) else True
+
+        if test_fail:
+            database_output_path = Path(
+                f"./y0_database_values_{ceed_resource.replace('/', '_')}.npy").absolute()
+            np.save(database_output_path, database_array)
+            raise AssertionError(f"Array values in database max difference: {np.max(np.abs(correct_array - database_array))}\n"
+                                 f"Array saved to {database_output_path.as_posix()}")
+
+
 class SmartSimTest(object):
 
     def __init__(self, directory_path: Path):
@@ -89,12 +119,12 @@ class SmartSimTest(object):
                 '-options_file', (fluids_example_dir / 'blasius.yaml').as_posix(),
                 '-ts_max_steps', '2',
                 '-diff_filter_grid_based_width',
-                '-diff_filter_width_scaling', '1,0.7,1',
                 '-ts_monitor', '-snes_monitor',
                 '-diff_filter_ksp_max_it', '50', '-diff_filter_ksp_monitor',
                 '-degree', '1',
                 '-sgs_train_enable',
-                '-sgs_train_put_tensor_interval', '2',
+                '-sgs_train_write_data_interval', '2',
+                '-sgs_train_filter_width_scales', '1.2,3.1',
                 '-bc_symmetry_z',
                 '-dm_plex_shape', 'zbox',
                 '-dm_plex_box_bd', 'none,none,periodic',
@@ -120,40 +150,25 @@ class SmartSimTest(object):
             assert client.poll_tensor("tensor-ow", 250, 5)
             assert_equal(client.get_tensor("tensor-ow")[0], 1)
 
+            assert client.poll_tensor("num_filter_widths", 250, 5)
+            assert_equal(client.get_tensor("num_filter_widths")[0], 2)
+
             assert client.poll_tensor("step", 250, 5)
             assert_equal(client.get_tensor("step")[0], 2)
 
-            assert client.poll_tensor("y.0", 250, 5)
-            test_data_path = fluids_example_dir / "tests-output/y0_output.npy"
+            assert client.poll_tensor("y.0.0", 250, 5)
+            test_data_path = fluids_example_dir / "tests-output/y00_output.npy"
             assert test_data_path.is_file()
+            correct_value = np.load(test_data_path)
+            database_value = client.get_tensor("y.0.0")
+            verify_training_data(database_value, correct_value, ceed_resource)
 
-            y0_correct_value = np.load(test_data_path)
-            y0_database_value = client.get_tensor("y.0")
-            rtol = 1e-8
-            atol = 1e-8
-            if not np.allclose(y0_database_value, y0_correct_value, atol=atol, rtol=rtol):
-                # Check whether the S-frame-oriented vorticity vector's second component is just flipped.
-                # This can happen due to the eigenvector ordering changing based on whichever one is closest to the vorticity vector.
-                # If two eigenvectors are very close to the vorticity vector, this can cause the ordering to flip.
-                # This flipping of the vorticity vector is not incorrect, just a known sensitivity of the model.
-
-                total_tolerances = atol + rtol * np.abs(y0_correct_value)  # mimic np.allclose tolerance calculation
-                idx_notclose = np.where(np.abs(y0_database_value - y0_correct_value) > total_tolerances)
-                if not np.all(idx_notclose[1] == 4):
-                    # values other than vorticity are not close
-                    test_fail = True
-                else:
-                    database_vorticity = y0_database_value[idx_notclose]
-                    correct_vorticity = y0_correct_value[idx_notclose]
-                    test_fail = False if np.allclose(-database_vorticity, correct_vorticity,
-                                                     atol=atol, rtol=rtol) else True
-
-                if test_fail:
-                    database_output_path = Path(
-                        f"./y0_database_values_{ceed_resource.replace('/', '_')}.npy").absolute()
-                    np.save(database_output_path, y0_database_value)
-                    raise AssertionError(f"Array values in database max difference: {np.max(np.abs(y0_correct_value - y0_database_value))}\n"
-                                         f"Array saved to {database_output_path.as_posix()}")
+            assert client.poll_tensor("y.0.1", 250, 5)
+            test_data_path = fluids_example_dir / "tests-output/y01_output.npy"
+            assert test_data_path.is_file()
+            correct_value = np.load(test_data_path)
+            database_value = client.get_tensor("y.0.1")
+            verify_training_data(database_value, correct_value, ceed_resource)
 
             client.flush_db([os.environ["SSDB"]])
             output = (True, NoError(), exe_path + ' ' + ' '.join(arguments))

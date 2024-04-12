@@ -196,7 +196,8 @@ typedef struct {
 
 typedef struct {
   DM                   dm_dd_training;
-  PetscInt             num_comp_dd_inputs, write_data_interval;
+  PetscInt             num_comp_dd_inputs, write_data_interval, num_filter_widths;
+  PetscScalar          filter_widths[16];
   OperatorApplyContext op_training_data_calc_ctx;
   NodalProjectionData  filtered_grad_velo_proj;
   size_t               training_data_array_dims[2];
@@ -204,13 +205,14 @@ typedef struct {
 } *SGS_DD_TrainingData;
 
 typedef struct {
-  DM                   dm_filter;
-  PetscInt             num_filtered_fields;
-  CeedInt             *num_field_components;
-  PetscInt             field_prim_state, field_velo_prod;
-  OperatorApplyContext op_rhs_ctx;
-  KSP                  ksp;
-  PetscBool            do_mms_test;
+  DM                    dm_filter;
+  PetscInt              num_filtered_fields;
+  CeedInt              *num_field_components;
+  PetscInt              field_prim_state, field_velo_prod;
+  OperatorApplyContext  op_rhs_ctx;
+  KSP                   ksp;
+  PetscBool             do_mms_test;
+  CeedContextFieldLabel filter_width_scaling_label;
 } *DiffFilterData;
 
 typedef struct {

@@ -149,6 +149,7 @@ PetscErrorCode DifferentialFilterCreateOperators(Ceed ceed, User user, CeedData 
       PetscCallCeed(ceed, CeedQFunctionDestroy(&qf_lhs));
       PetscCallCeed(ceed, CeedOperatorDestroy(&op_lhs_sub));
     }
+    PetscCallCeed(ceed, CeedOperatorGetContextFieldLabel(op_lhs, "filter width scaling", &diff_filter->filter_width_scaling_label));
     PetscCall(MatCeedCreate(dm_filter, dm_filter, op_lhs, NULL, &mat_lhs));
 
     PetscCall(KSPCreate(PetscObjectComm((PetscObject)dm_filter), &diff_filter->ksp));
@@ -263,6 +264,9 @@ PetscErrorCode DifferentialFilterSetup(Ceed ceed, User user, CeedData ceed_data,
   PetscCallCeed(ceed, CeedQFunctionContextCreate(ceed, &diff_filter_qfctx));
   PetscCallCeed(ceed, CeedQFunctionContextSetData(diff_filter_qfctx, CEED_MEM_HOST, CEED_USE_POINTER, sizeof(*diff_filter_ctx), diff_filter_ctx));
   PetscCallCeed(ceed, CeedQFunctionContextSetDataDestroy(diff_filter_qfctx, CEED_MEM_HOST, FreeContextPetsc));
+  PetscCallCeed(ceed, CeedQFunctionContextRegisterDouble(
+                          diff_filter_qfctx, "filter width scaling", offsetof(struct DifferentialFilterContext_, width_scaling),
+                          sizeof(diff_filter_ctx->width_scaling) / sizeof(diff_filter_ctx->width_scaling[0]), "Filter width scaling"));
 
   // -- Setup Operators
   PetscCall(DifferentialFilterCreateOperators(ceed, user, ceed_data, diff_filter_qfctx));
