@@ -11,9 +11,9 @@
 #include <sr_enums.h>
 
 #if defined(__clang_analyzer__)
-void PetscSmartRedisCall(SRError);
+void PetscCallSmartRedis(SRError);
 #else
-#define PetscSmartRedisCall(...)                                                                                                   \
+#define PetscCallSmartRedis(...)                                                                                                   \
   do {                                                                                                                             \
     SRError   ierr_smartredis_call_q_;                                                                                             \
     PetscBool disable_calls = PETSC_FALSE;                                                                                         \
