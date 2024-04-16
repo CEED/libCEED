@@ -153,7 +153,7 @@ struct AppCtx_private {
 // libCEED data struct
 struct CeedData_private {
   CeedVector           x_coord, q_data;
-  CeedBasis            basis_x, basis_xc, basis_q, basis_x_sur, basis_q_sur, basis_xc_sur;
+  CeedBasis            basis_x, basis_xc, basis_q, basis_x_sur, basis_q_sur;
   CeedElemRestriction  elem_restr_x, elem_restr_q, elem_restr_qd_i;
   CeedOperator         op_setup_vol;
   OperatorApplyContext op_ics_ctx;

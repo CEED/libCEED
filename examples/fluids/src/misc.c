@@ -50,23 +50,30 @@ PetscErrorCode ICs_FixMultiplicity(DM dm, CeedData ceed_data, User user, Vec Q_l
 
 // Record boundary values from initial condition
 PetscErrorCode SetBCsFromICs(DM dm, Vec Q, Vec Q_loc) {
-  Vec Qbc, boundary_mask;
-
   PetscFunctionBeginUser;
-  PetscCall(DMGetNamedLocalVector(dm, "Qbc", &Qbc));
-  PetscCall(VecCopy(Q_loc, Qbc));
-  PetscCall(VecZeroEntries(Q_loc));
-  PetscCall(DMGlobalToLocal(dm, Q, INSERT_VALUES, Q_loc));
-  PetscCall(VecAXPY(Qbc, -1., Q_loc));
-  PetscCall(DMRestoreNamedLocalVector(dm, "Qbc", &Qbc));
+  {  // Capture initial condition values in Qbc
+    Vec Qbc;
+
+    PetscCall(DMGetNamedLocalVector(dm, "Qbc", &Qbc));
+    PetscCall(VecCopy(Q_loc, Qbc));
+    PetscCall(VecZeroEntries(Q_loc));
+    PetscCall(DMGlobalToLocal(dm, Q, INSERT_VALUES, Q_loc));
+    PetscCall(VecAXPY(Qbc, -1., Q_loc));
+    PetscCall(DMRestoreNamedLocalVector(dm, "Qbc", &Qbc));
+  }
   PetscCall(PetscObjectComposeFunction((PetscObject)dm, "DMPlexInsertBoundaryValues_C", DMPlexInsertBoundaryValues_FromICs));
 
-  PetscCall(DMGetNamedLocalVector(dm, "boundary mask", &boundary_mask));
-  PetscCall(DMGetGlobalVector(dm, &Q));
-  PetscCall(VecZeroEntries(boundary_mask));
-  PetscCall(VecSet(Q, 1.0));
-  PetscCall(DMGlobalToLocal(dm, Q, INSERT_VALUES, boundary_mask));
-  PetscCall(DMRestoreNamedLocalVector(dm, "boundary mask", &boundary_mask));
+  {  // Set boundary mask to zero out essential BCs
+    Vec boundary_mask, ones;
+
+    PetscCall(DMGetNamedLocalVector(dm, "boundary mask", &boundary_mask));
+    PetscCall(DMGetGlobalVector(dm, &ones));
+    PetscCall(VecZeroEntries(boundary_mask));
+    PetscCall(VecSet(ones, 1.0));
+    PetscCall(DMGlobalToLocal(dm, ones, INSERT_VALUES, boundary_mask));
+    PetscCall(DMRestoreNamedLocalVector(dm, "boundary mask", &boundary_mask));
+    PetscCall(DMRestoreGlobalVector(dm, &ones));
+  }
   PetscFunctionReturn(PETSC_SUCCESS);
 }
 

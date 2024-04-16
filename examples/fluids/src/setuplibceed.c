@@ -454,7 +454,6 @@ PetscErrorCode SetupLibceed(Ceed ceed, CeedData ceed_data, DM dm, User user, App
   PetscInt field   = 0;  // Still want the normal, default field
   PetscCall(CreateBasisFromPlex(ceed, dm, label, face_id, height, field, &ceed_data->basis_q_sur));
   PetscCall(CreateBasisFromPlex(ceed, dm_coord, label, face_id, height, field, &ceed_data->basis_x_sur));
-  PetscCallCeed(ceed, CeedBasisCreateProjection(ceed_data->basis_x_sur, ceed_data->basis_q_sur, &ceed_data->basis_xc_sur));
 
   // -----------------------------------------------------------------------------
   // CEED QFunctions

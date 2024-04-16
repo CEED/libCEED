@@ -280,12 +280,14 @@ int main(int argc, char **argv) {
   // Destroy QFunction contexts after using
   // ToDo: Simplify tracked libCEED objects, smaller struct
   {
+    PetscCallCeed(ceed, CeedQFunctionContextDestroy(&problem->apply_inflow.qfunction_context));
     PetscCallCeed(ceed, CeedQFunctionContextDestroy(&problem->apply_inflow_jacobian.qfunction_context));
-    PetscCallCeed(ceed, CeedQFunctionContextDestroy(&problem->apply_inflow_jacobian.qfunction_context));
+    PetscCallCeed(ceed, CeedQFunctionContextDestroy(&problem->apply_outflow.qfunction_context));
     PetscCallCeed(ceed, CeedQFunctionContextDestroy(&problem->apply_outflow_jacobian.qfunction_context));
-    PetscCallCeed(ceed, CeedQFunctionContextDestroy(&problem->apply_outflow_jacobian.qfunction_context));
+    PetscCallCeed(ceed, CeedQFunctionContextDestroy(&problem->apply_freestream.qfunction_context));
     PetscCallCeed(ceed, CeedQFunctionContextDestroy(&problem->apply_freestream_jacobian.qfunction_context));
-    PetscCallCeed(ceed, CeedQFunctionContextDestroy(&problem->apply_freestream_jacobian.qfunction_context));
+    PetscCallCeed(ceed, CeedQFunctionContextDestroy(&problem->apply_slip.qfunction_context));
+    PetscCallCeed(ceed, CeedQFunctionContextDestroy(&problem->apply_slip_jacobian.qfunction_context));
     PetscCallCeed(ceed, CeedQFunctionContextDestroy(&problem->setup_sur.qfunction_context));
     PetscCallCeed(ceed, CeedQFunctionContextDestroy(&problem->setup_vol.qfunction_context));
     PetscCallCeed(ceed, CeedQFunctionContextDestroy(&problem->ics.qfunction_context));
