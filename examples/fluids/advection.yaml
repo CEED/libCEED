@@ -1,4 +1,3 @@
-ceed: /cpu/self/memcheck/blocked
 problem: advection
 CtauS: .3
 stab: su
