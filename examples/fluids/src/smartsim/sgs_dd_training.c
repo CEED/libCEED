@@ -262,8 +262,12 @@ PetscErrorCode TSMonitor_SGS_DD_Training(TS ts, PetscInt step_num, PetscReal sol
   SGS_DD_TrainingData sgs_dd_train = user->sgs_dd_train;
   SmartSimData        smartsim     = user->smartsim;
   Vec                 TrainingData;
+  PetscMPIInt         rank;
 
   PetscFunctionBeginUser;
+
+  PetscCallMPI(MPI_Comm_rank(user->comm, &rank));
+
   if (step_num % sgs_dd_train->write_data_interval != 0) PetscFunctionReturn(PETSC_SUCCESS);
   PetscCall(DMGetGlobalVector(sgs_dd_train->dm_dd_training, &TrainingData));
 
@@ -312,11 +316,8 @@ PetscErrorCode TSMonitor_SGS_DD_Training(TS ts, PetscInt step_num, PetscReal sol
     PetscCall(PetscLogEventEnd(FLUIDS_TrainDataCompute, 0, 0, 0, 0));
 
     {  // -- Send training data to SmartSim
-      char        array_key[PETSC_MAX_PATH_LEN];
-      size_t      array_key_len;
-      PetscMPIInt rank;
-
-      PetscCallMPI(MPI_Comm_rank(user->comm, &rank));
+      char   array_key[PETSC_MAX_PATH_LEN];
+      size_t array_key_len;
 
       if (sgs_dd_train->overwrite_training_data) {
         PetscCall(PetscSNPrintf(array_key, sizeof array_key, "%s.%" PetscInt_FMT, smartsim->rank_id_name, filter_index));
@@ -334,18 +335,18 @@ PetscErrorCode TSMonitor_SGS_DD_Training(TS ts, PetscInt step_num, PetscReal sol
         PetscCall(PetscLogEventEnd(FLUIDS_SmartRedis_Train, 0, 0, 0, 0));
         PetscCall(VecRestoreArrayRead(TrainingData, &training_data));
       }
-
-      if (rank % smartsim->collocated_database_num_ranks == 0) {
-        const char tensor_name[] = "step";
-        size_t     dim_2[1]      = {2};
-        PetscInt64 step_array[2] = {step_num, step_num};
-
-        PetscCall(PetscLogEventBegin(FLUIDS_SmartRedis_Meta, 0, 0, 0, 0));
-        PetscCallSmartRedis(
-            put_tensor(smartsim->client, tensor_name, strlen(tensor_name), step_array, dim_2, 1, SRTensorTypeInt64, SRMemLayoutContiguous));
-        PetscCall(PetscLogEventEnd(FLUIDS_SmartRedis_Meta, 0, 0, 0, 0));
-      }
     }
+  }
+
+  if (rank % smartsim->collocated_database_num_ranks == 0) {
+    const char tensor_name[] = "step";
+    size_t     dim_2[1]      = {2};
+    PetscInt64 step_array[2] = {step_num, step_num};
+
+    PetscCall(PetscLogEventBegin(FLUIDS_SmartRedis_Meta, 0, 0, 0, 0));
+    PetscCallSmartRedis(
+        put_tensor(smartsim->client, tensor_name, strlen(tensor_name), step_array, dim_2, 1, SRTensorTypeInt64, SRMemLayoutContiguous));
+    PetscCall(PetscLogEventEnd(FLUIDS_SmartRedis_Meta, 0, 0, 0, 0));
   }
 
   PetscCall(DMRestoreGlobalVector(user->sgs_dd_train->dm_dd_training, &TrainingData));
