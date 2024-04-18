@@ -494,6 +494,8 @@ The model inputs are calculated as the same model inputs in the SGS Data-Driven 
 The model outputs (or targets in the case of training) are the subgrid stresses.
 Both the inputs and outputs are computed from a filtered velocity field, which is calculated via {ref}`differential-filtering`.
 The settings for the differential filtering used during training are described in {ref}`differential-filtering`.
+The training will create multiple sets of data per each filter width defined in `-sgs_train_filter_widths`.
+Those scalar filter widths correspond to the scaling correspond to $\bm{D} = c \bm{I}$, where $c$ is the scalar filter width.
 
 The SGS *in situ* training can be enabled using the `-sgs_train_enable` flag.
 Data can be processed and placed into the database periodically.

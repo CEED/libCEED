@@ -10,6 +10,7 @@
 #include "../qfunctions//differential_filter.h"
 
 #include <petscdmplex.h>
+#include <petsc/private/petscimpl.h>
 
 #include "../navierstokes.h"
 
@@ -149,6 +150,7 @@ PetscErrorCode DifferentialFilterCreateOperators(Ceed ceed, User user, CeedData 
       PetscCallCeed(ceed, CeedQFunctionDestroy(&qf_lhs));
       PetscCallCeed(ceed, CeedOperatorDestroy(&op_lhs_sub));
     }
+    PetscCallCeed(ceed, CeedOperatorGetContextFieldLabel(op_lhs, "filter width scaling", &diff_filter->filter_width_scaling_label));
     PetscCall(MatCeedCreate(dm_filter, dm_filter, op_lhs, NULL, &mat_lhs));
 
     PetscCall(KSPCreate(PetscObjectComm((PetscObject)dm_filter), &diff_filter->ksp));
@@ -263,6 +265,9 @@ PetscErrorCode DifferentialFilterSetup(Ceed ceed, User user, CeedData ceed_data,
   PetscCallCeed(ceed, CeedQFunctionContextCreate(ceed, &diff_filter_qfctx));
   PetscCallCeed(ceed, CeedQFunctionContextSetData(diff_filter_qfctx, CEED_MEM_HOST, CEED_USE_POINTER, sizeof(*diff_filter_ctx), diff_filter_ctx));
   PetscCallCeed(ceed, CeedQFunctionContextSetDataDestroy(diff_filter_qfctx, CEED_MEM_HOST, FreeContextPetsc));
+  PetscCallCeed(ceed, CeedQFunctionContextRegisterDouble(
+                          diff_filter_qfctx, "filter width scaling", offsetof(struct DifferentialFilterContext_, width_scaling),
+                          sizeof(diff_filter_ctx->width_scaling) / sizeof(diff_filter_ctx->width_scaling[0]), "Filter width scaling"));
 
   // -- Setup Operators
   PetscCall(DifferentialFilterCreateOperators(ceed, user, ceed_data, diff_filter_qfctx));
@@ -273,15 +278,24 @@ PetscErrorCode DifferentialFilterSetup(Ceed ceed, User user, CeedData ceed_data,
 
 // @brief Apply differential filter to the solution given by Q
 PetscErrorCode DifferentialFilterApply(User user, const PetscReal solution_time, const Vec Q, Vec Filtered_Solution) {
-  DiffFilterData diff_filter = user->diff_filter;
+  DiffFilterData   diff_filter = user->diff_filter;
+  PetscObjectState X_loc_state;
+  Vec              RHS;
 
   PetscFunctionBeginUser;
   PetscCall(PetscLogEventBegin(FLUIDS_DifferentialFilter, Q, Filtered_Solution, 0, 0));
+  PetscCall(DMGetNamedGlobalVector(diff_filter->dm_filter, "RHS", &RHS));
   PetscCall(UpdateBoundaryValues(user, diff_filter->op_rhs_ctx->X_loc, solution_time));
-  ApplyCeedOperatorGlobalToGlobal(Q, Filtered_Solution, diff_filter->op_rhs_ctx);
-  PetscCall(VecViewFromOptions(Filtered_Solution, NULL, "-diff_filter_rhs_view"));
+  PetscCall(PetscObjectStateGet((PetscObject)diff_filter->op_rhs_ctx->X_loc, &X_loc_state));
+  if (X_loc_state != diff_filter->X_loc_state) {
+    PetscCall(ApplyCeedOperatorGlobalToGlobal(Q, RHS, diff_filter->op_rhs_ctx));
+    PetscCall(PetscObjectStateGet((PetscObject)diff_filter->op_rhs_ctx->X_loc, &X_loc_state));
+    diff_filter->X_loc_state = X_loc_state;
+  }
+  PetscCall(VecViewFromOptions(RHS, NULL, "-diff_filter_rhs_view"));
 
-  PetscCall(KSPSolve(diff_filter->ksp, Filtered_Solution, Filtered_Solution));
+  PetscCall(KSPSolve(diff_filter->ksp, RHS, Filtered_Solution));
+  PetscCall(DMRestoreNamedGlobalVector(diff_filter->dm_filter, "RHS", &RHS));
   PetscCall(PetscLogEventEnd(FLUIDS_DifferentialFilter, Q, Filtered_Solution, 0, 0));
   PetscFunctionReturn(PETSC_SUCCESS);
 }

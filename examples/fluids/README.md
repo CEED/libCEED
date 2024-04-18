@@ -704,6 +704,11 @@ For the Density Current, Channel, and Blasius problems, the following common com
   - `true`
   - boolean
 
+* - `-sgs_train_filter_widths`
+  - List of scalar values for different filter widths to calculate for training data
+  -
+  - `m`
+
 * - `-smartsim_collocated_num_ranks`
   - Number of MPI ranks associated with each collocated database (i.e. ranks per node)
   - `1`

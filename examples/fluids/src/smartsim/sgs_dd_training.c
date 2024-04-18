@@ -154,11 +154,14 @@ PetscErrorCode SGS_DD_TrainingSetup(Ceed ceed, User user, CeedData ceed_data, Pr
 
   sgs_dd_train->overwrite_training_data = PETSC_TRUE;
   sgs_dd_train->write_data_interval     = 1;
+  sgs_dd_train->num_filter_widths       = sizeof(sgs_dd_train->filter_widths) / sizeof(sgs_dd_train->filter_widths[0]);
   PetscOptionsBegin(user->comm, NULL, "SGS Data-Driven Training Options", NULL);
   PetscCall(PetscOptionsInt("-sgs_train_write_data_interval", "Number of timesteps between writing data into database", NULL,
                             sgs_dd_train->write_data_interval, &sgs_dd_train->write_data_interval, NULL));
   PetscCall(PetscOptionsBool("-sgs_train_overwrite_data", "Overwrite old training data in the database", NULL, sgs_dd_train->overwrite_training_data,
                              &sgs_dd_train->overwrite_training_data, NULL));
+  PetscCall(PetscOptionsRealArray("-sgs_train_filter_width_scales", "Scales of each filter width put into training database", NULL,
+                                  sgs_dd_train->filter_widths, &sgs_dd_train->num_filter_widths, NULL));
   PetscOptionsEnd();
 
   // -- Create DM for storing training data
@@ -197,28 +200,48 @@ PetscErrorCode SGS_DD_TrainingSetup(Ceed ceed, User user, CeedData ceed_data, Pr
     }
 
     if (rank % smartsim->collocated_database_num_ranks == 0) {
-      size_t     array_info_dim = 6;
-      PetscInt64 array_info[6] = {0}, num_features = 6;
+      {  // Communicate info on simulation size
+        const char tensor_name[]  = "sizeInfo";
+        size_t     array_info_dim = 6;
+        PetscInt64 array_info[6] = {0}, num_features = 6;
 
-      array_info[0] = sgs_dd_train->training_data_array_dims[0];
-      array_info[1] = sgs_dd_train->training_data_array_dims[1];
-      array_info[2] = num_features;
-      array_info[3] = num_ranks;
-      array_info[4] = smartsim->collocated_database_num_ranks;
-      array_info[5] = rank;
+        array_info[0] = sgs_dd_train->training_data_array_dims[0];
+        array_info[1] = sgs_dd_train->training_data_array_dims[1];
+        array_info[2] = num_features;
+        array_info[3] = num_ranks;
+        array_info[4] = smartsim->collocated_database_num_ranks;
+        array_info[5] = rank;
 
-      PetscCall(PetscLogEventBegin(FLUIDS_SmartRedis_Meta, 0, 0, 0, 0));
-      PetscSmartRedisCall(put_tensor(smartsim->client, "sizeInfo", 8, array_info, &array_info_dim, 1, SRTensorTypeInt64, SRMemLayoutContiguous));
-      PetscCall(SmartRedisVerifyPutTensor(smartsim->client, "sizeInfo", 8));
-      PetscCall(PetscLogEventEnd(FLUIDS_SmartRedis_Meta, 0, 0, 0, 0));
+        PetscCall(PetscLogEventBegin(FLUIDS_SmartRedis_Meta, 0, 0, 0, 0));
+        PetscCallSmartRedis(
+            put_tensor(smartsim->client, tensor_name, strlen(tensor_name), array_info, &array_info_dim, 1, SRTensorTypeInt64, SRMemLayoutContiguous));
+        PetscCall(SmartRedisVerifyPutTensor(smartsim->client, tensor_name, strlen(tensor_name)));
+        PetscCall(PetscLogEventEnd(FLUIDS_SmartRedis_Meta, 0, 0, 0, 0));
+      }
 
-      // -- Send array that communicates if tensors are overwritten in database
-      PetscInt64 tensor_overwrite[2] = {sgs_dd_train->overwrite_training_data};
-      size_t     dim_2[1]            = {2};
-      PetscCall(PetscLogEventBegin(FLUIDS_SmartRedis_Meta, 0, 0, 0, 0));
-      PetscSmartRedisCall(put_tensor(smartsim->client, "tensor-ow", 9, tensor_overwrite, dim_2, 1, SRTensorTypeInt64, SRMemLayoutContiguous));
-      PetscCall(SmartRedisVerifyPutTensor(smartsim->client, "tensor-ow", 9));
-      PetscCall(PetscLogEventEnd(FLUIDS_SmartRedis_Meta, 0, 0, 0, 0));
+      {  // Send array that communicates if tensors are overwritten in database
+        const char tensor_name[]       = "tensor-ow";
+        PetscInt64 tensor_overwrite[2] = {sgs_dd_train->overwrite_training_data};
+        size_t     dim_2[1]            = {2};
+
+        PetscCall(PetscLogEventBegin(FLUIDS_SmartRedis_Meta, 0, 0, 0, 0));
+        PetscCallSmartRedis(
+            put_tensor(smartsim->client, tensor_name, strlen(tensor_name), tensor_overwrite, dim_2, 1, SRTensorTypeInt64, SRMemLayoutContiguous));
+        PetscCall(SmartRedisVerifyPutTensor(smartsim->client, tensor_name, strlen(tensor_name)));
+        PetscCall(PetscLogEventEnd(FLUIDS_SmartRedis_Meta, 0, 0, 0, 0));
+      }
+
+      {  // Communicate number of filter widths used
+        const char tensor_name[]     = "num_filter_widths";
+        PetscInt64 num_filter_widths = sgs_dd_train->num_filter_widths;
+        size_t     dim_2             = 1;
+
+        PetscCall(PetscLogEventBegin(FLUIDS_SmartRedis_Meta, 0, 0, 0, 0));
+        PetscCallSmartRedis(
+            put_tensor(smartsim->client, tensor_name, strlen(tensor_name), &num_filter_widths, &dim_2, 1, SRTensorTypeInt64, SRMemLayoutContiguous));
+        PetscCall(SmartRedisVerifyPutTensor(smartsim->client, tensor_name, strlen(tensor_name)));
+        PetscCall(PetscLogEventEnd(FLUIDS_SmartRedis_Meta, 0, 0, 0, 0));
+      }
     }
   }
 
@@ -239,77 +262,91 @@ PetscErrorCode TSMonitor_SGS_DD_Training(TS ts, PetscInt step_num, PetscReal sol
   SGS_DD_TrainingData sgs_dd_train = user->sgs_dd_train;
   SmartSimData        smartsim     = user->smartsim;
   Vec                 TrainingData;
+  PetscMPIInt         rank;
 
   PetscFunctionBeginUser;
+
+  PetscCallMPI(MPI_Comm_rank(user->comm, &rank));
+
   if (step_num % sgs_dd_train->write_data_interval != 0) PetscFunctionReturn(PETSC_SUCCESS);
   PetscCall(DMGetGlobalVector(sgs_dd_train->dm_dd_training, &TrainingData));
 
-  PetscCall(PetscLogEventBegin(FLUIDS_TrainDataCompute, 0, 0, 0, 0));
-  {  // -- Compute and assemble training data
-    Vec          FilteredVelocityGradient, FilteredFields, FilteredFields_loc;
-    PetscMemType filtered_fields_mem_type;
-    CeedVector   filtered_fields;
+  for (PetscInt filter_index = 0; filter_index < sgs_dd_train->num_filter_widths; filter_index++) {
+    PetscCall(PetscLogEventBegin(FLUIDS_TrainDataCompute, 0, 0, 0, 0));
+    {  // -- Compute and assemble training data
+      Vec          FilteredVelocityGradient, FilteredFields, FilteredFields_loc;
+      PetscMemType filtered_fields_mem_type;
+      CeedVector   filtered_fields;
 
-    PetscCall(DMGetGlobalVector(user->diff_filter->dm_filter, &FilteredFields));
-    PetscCall(DMGetLocalVector(user->diff_filter->dm_filter, &FilteredFields_loc));
+      {  // Set filter width for the current solve
+        double       filter_width_scaling[3];
+        CeedOperator op_mat;
+        Mat          A_mat;
 
-    PetscCall(DifferentialFilterApply(user, solution_time, Q, FilteredFields));
-    PetscCall(DMGlobalToLocal(user->diff_filter->dm_filter, FilteredFields, INSERT_VALUES, FilteredFields_loc));
+        for (int j = 0; j < 3; j++) filter_width_scaling[j] = sgs_dd_train->filter_widths[filter_index];
+        PetscCall(KSPGetOperators(user->diff_filter->ksp, &A_mat, NULL));
+        PetscCall(MatCeedGetCeedOperators(A_mat, &op_mat, NULL));
+        PetscCall(CeedOperatorSetContextDouble(op_mat, user->diff_filter->filter_width_scaling_label, filter_width_scaling));
+      }
 
-    PetscCall(DMGetGlobalVector(sgs_dd_train->filtered_grad_velo_proj->dm, &FilteredVelocityGradient));
-    PetscCall(VelocityGradientProjectionApply(sgs_dd_train->filtered_grad_velo_proj, FilteredFields_loc, FilteredVelocityGradient));
+      PetscCall(DMGetGlobalVector(user->diff_filter->dm_filter, &FilteredFields));
+      PetscCall(DMGetLocalVector(user->diff_filter->dm_filter, &FilteredFields_loc));
 
-    {
-      CeedOperatorField op_field;
-      PetscCallCeed(ceed, CeedOperatorGetFieldByName(sgs_dd_train->op_training_data_calc_ctx->op, "q", &op_field));
-      PetscCallCeed(ceed, CeedOperatorFieldGetVector(op_field, &filtered_fields));
+      PetscCall(DifferentialFilterApply(user, solution_time, Q, FilteredFields));
+      PetscCall(DMGlobalToLocal(user->diff_filter->dm_filter, FilteredFields, INSERT_VALUES, FilteredFields_loc));
+
+      PetscCall(DMGetGlobalVector(sgs_dd_train->filtered_grad_velo_proj->dm, &FilteredVelocityGradient));
+      PetscCall(VelocityGradientProjectionApply(sgs_dd_train->filtered_grad_velo_proj, FilteredFields_loc, FilteredVelocityGradient));
+
+      {
+        CeedOperatorField op_field;
+
+        PetscCallCeed(ceed, CeedOperatorGetFieldByName(sgs_dd_train->op_training_data_calc_ctx->op, "q", &op_field));
+        PetscCallCeed(ceed, CeedOperatorFieldGetVector(op_field, &filtered_fields));
+      }
+
+      PetscCall(VecPetscToCeed(FilteredFields_loc, &filtered_fields_mem_type, filtered_fields));  // filtered_fields is an implicit input
+      PetscCall(ApplyCeedOperatorGlobalToGlobal(FilteredVelocityGradient, TrainingData, sgs_dd_train->op_training_data_calc_ctx));
+      PetscCall(VecCeedToPetsc(filtered_fields, filtered_fields_mem_type, FilteredFields_loc));
+
+      PetscCall(DMRestoreGlobalVector(sgs_dd_train->filtered_grad_velo_proj->dm, &FilteredVelocityGradient));
+      PetscCall(DMRestoreGlobalVector(user->diff_filter->dm_filter, &FilteredFields));
+      PetscCall(DMRestoreLocalVector(user->diff_filter->dm_filter, &FilteredFields_loc));
     }
-    PetscCall(VecPetscToCeed(FilteredFields_loc, &filtered_fields_mem_type, filtered_fields));  // filtered_fields is an implicit input
+    PetscCall(PetscLogEventEnd(FLUIDS_TrainDataCompute, 0, 0, 0, 0));
 
-    PetscCall(ApplyCeedOperatorGlobalToGlobal(FilteredVelocityGradient, TrainingData, sgs_dd_train->op_training_data_calc_ctx));
+    {  // -- Send training data to SmartSim
+      char   array_key[PETSC_MAX_PATH_LEN];
+      size_t array_key_len;
 
-    PetscCall(VecCeedToPetsc(filtered_fields, filtered_fields_mem_type, FilteredFields_loc));
+      if (sgs_dd_train->overwrite_training_data) {
+        PetscCall(PetscSNPrintf(array_key, sizeof array_key, "%s.%" PetscInt_FMT, smartsim->rank_id_name, filter_index));
+      } else {
+        PetscCall(PetscSNPrintf(array_key, sizeof array_key, "%s.%" PetscInt_FMT "%" PetscInt_FMT, smartsim->rank_id_name, step_num, filter_index));
+      }
+      PetscCall(PetscStrlen(array_key, &array_key_len));
 
-    PetscCall(DMRestoreGlobalVector(sgs_dd_train->filtered_grad_velo_proj->dm, &FilteredVelocityGradient));
-    PetscCall(DMRestoreGlobalVector(user->diff_filter->dm_filter, &FilteredFields));
-    PetscCall(DMRestoreLocalVector(user->diff_filter->dm_filter, &FilteredFields_loc));
+      {
+        const PetscScalar *training_data;
+        PetscCall(VecGetArrayRead(TrainingData, &training_data));
+        PetscCall(PetscLogEventBegin(FLUIDS_SmartRedis_Train, 0, 0, 0, 0));
+        PetscCallSmartRedis(put_tensor(smartsim->client, array_key, array_key_len, (void *)training_data, sgs_dd_train->training_data_array_dims, 2,
+                                       SRTensorTypeDouble, SRMemLayoutContiguous));
+        PetscCall(PetscLogEventEnd(FLUIDS_SmartRedis_Train, 0, 0, 0, 0));
+        PetscCall(VecRestoreArrayRead(TrainingData, &training_data));
+      }
+    }
   }
-  PetscCall(PetscLogEventEnd(FLUIDS_TrainDataCompute, 0, 0, 0, 0));
 
-  {  // -- Send training data to SmartSim
-    char        array_key[PETSC_MAX_PATH_LEN];
-    size_t      array_key_len;
-    PetscMPIInt rank;
+  if (rank % smartsim->collocated_database_num_ranks == 0) {
+    const char tensor_name[] = "step";
+    size_t     dim_2[1]      = {2};
+    PetscInt64 step_array[2] = {step_num, step_num};
 
-    PetscCallMPI(MPI_Comm_rank(user->comm, &rank));
-
-    if (sgs_dd_train->overwrite_training_data) {
-      PetscCall(PetscSNPrintf(array_key, sizeof array_key, "%s", smartsim->rank_id_name));
-    } else {
-      PetscCall(PetscSNPrintf(array_key, sizeof array_key, "%s.%" PetscInt_FMT, smartsim->rank_id_name, step_num));
-    }
-    PetscCall(PetscStrlen(array_key, &array_key_len));
-
-    {
-      const PetscScalar *training_data;
-      PetscCall(VecGetArrayRead(TrainingData, &training_data));
-      PetscCall(PetscLogEventBegin(FLUIDS_SmartRedis_Train, 0, 0, 0, 0));
-      PetscSmartRedisCall(put_tensor(smartsim->client, array_key, array_key_len, (void *)training_data, sgs_dd_train->training_data_array_dims, 2,
-                                     SRTensorTypeDouble, SRMemLayoutContiguous));
-      PetscCall(PetscLogEventEnd(FLUIDS_SmartRedis_Train, 0, 0, 0, 0));
-      PetscCall(VecRestoreArrayRead(TrainingData, &training_data));
-    }
     PetscCall(PetscLogEventBegin(FLUIDS_SmartRedis_Meta, 0, 0, 0, 0));
-    PetscCall(SmartRedisVerifyPutTensor(smartsim->client, array_key, array_key_len));
+    PetscCallSmartRedis(
+        put_tensor(smartsim->client, tensor_name, strlen(tensor_name), step_array, dim_2, 1, SRTensorTypeInt64, SRMemLayoutContiguous));
     PetscCall(PetscLogEventEnd(FLUIDS_SmartRedis_Meta, 0, 0, 0, 0));
-
-    if (rank % smartsim->collocated_database_num_ranks == 0) {
-      size_t     dim_2[1]      = {2};
-      PetscInt64 step_array[2] = {step_num, step_num};
-      PetscCall(PetscLogEventBegin(FLUIDS_SmartRedis_Meta, 0, 0, 0, 0));
-      PetscSmartRedisCall(put_tensor(smartsim->client, "step", 4, step_array, dim_2, 1, SRTensorTypeInt64, SRMemLayoutContiguous));
-      PetscCall(PetscLogEventEnd(FLUIDS_SmartRedis_Meta, 0, 0, 0, 0));
-    }
   }
 
   PetscCall(DMRestoreGlobalVector(user->sgs_dd_train->dm_dd_training, &TrainingData));
@@ -329,7 +366,7 @@ PetscErrorCode TSPostStep_SGS_DD_Training(TS ts) {
   SmartSimData smartsim = user->smartsim;
 
   PetscCall(PetscLogEventBegin(FLUIDS_SmartRedis_Meta, 0, 0, 0, 0));
-  PetscSmartRedisCall(
+  PetscCallSmartRedis(
       unpack_tensor(smartsim->client, check_run_key, check_run_key_size, check_run, check_run_dims, 1, SRTensorTypeDouble, SRMemLayoutContiguous));
   PetscCall(PetscLogEventEnd(FLUIDS_SmartRedis_Meta, 0, 0, 0, 0));
   if (check_run[0] == 0) {
