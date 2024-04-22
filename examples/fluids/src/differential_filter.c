@@ -10,7 +10,6 @@
 #include "../qfunctions//differential_filter.h"
 
 #include <petscdmplex.h>
-#include <petsc/private/petscimpl.h>
 
 #include "../navierstokes.h"
 
@@ -286,10 +285,10 @@ PetscErrorCode DifferentialFilterApply(User user, const PetscReal solution_time,
   PetscCall(PetscLogEventBegin(FLUIDS_DifferentialFilter, Q, Filtered_Solution, 0, 0));
   PetscCall(DMGetNamedGlobalVector(diff_filter->dm_filter, "RHS", &RHS));
   PetscCall(UpdateBoundaryValues(user, diff_filter->op_rhs_ctx->X_loc, solution_time));
-  PetscCall(PetscObjectStateGet((PetscObject)diff_filter->op_rhs_ctx->X_loc, &X_loc_state));
+  PetscCall(VecGetState(diff_filter->op_rhs_ctx->X_loc, &X_loc_state));
   if (X_loc_state != diff_filter->X_loc_state) {
     PetscCall(ApplyCeedOperatorGlobalToGlobal(Q, RHS, diff_filter->op_rhs_ctx));
-    PetscCall(PetscObjectStateGet((PetscObject)diff_filter->op_rhs_ctx->X_loc, &X_loc_state));
+    PetscCall(VecGetState(diff_filter->op_rhs_ctx->X_loc, &X_loc_state));
     diff_filter->X_loc_state = X_loc_state;
   }
   PetscCall(VecViewFromOptions(RHS, NULL, "-diff_filter_rhs_view"));
