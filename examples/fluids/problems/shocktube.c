@@ -16,7 +16,7 @@
 #include "../navierstokes.h"
 #include "../qfunctions/setupgeo.h"
 
-PetscErrorCode NS_SHOCKTUBE(ProblemData *problem, DM dm, void *ctx, SimpleBC bc) {
+PetscErrorCode NS_SHOCKTUBE(ProblemData problem, DM dm, void *ctx, SimpleBC bc) {
   SetupContextShock    setup_context;
   User                 user = *(User *)ctx;
   MPI_Comm             comm = user->comm;
@@ -148,7 +148,7 @@ PetscErrorCode NS_SHOCKTUBE(ProblemData *problem, DM dm, void *ctx, SimpleBC bc)
   PetscFunctionReturn(PETSC_SUCCESS);
 }
 
-PetscErrorCode PRINT_SHOCKTUBE(User user, ProblemData *problem, AppCtx app_ctx) {
+PetscErrorCode PRINT_SHOCKTUBE(User user, ProblemData problem, AppCtx app_ctx) {
   MPI_Comm comm = user->comm;
 
   PetscFunctionBeginUser;

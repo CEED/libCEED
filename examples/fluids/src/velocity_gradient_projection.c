@@ -39,7 +39,7 @@ PetscErrorCode VelocityGradientProjectionCreateDM(NodalProjectionData grad_velo_
   PetscFunctionReturn(PETSC_SUCCESS);
 };
 
-PetscErrorCode VelocityGradientProjectionSetup(Ceed ceed, User user, CeedData ceed_data, ProblemData *problem, StateVariable state_var_input,
+PetscErrorCode VelocityGradientProjectionSetup(Ceed ceed, User user, CeedData ceed_data, ProblemData problem, StateVariable state_var_input,
                                                CeedElemRestriction elem_restr_input, CeedBasis basis_input, NodalProjectionData *pgrad_velo_proj) {
   NodalProjectionData grad_velo_proj;
   CeedOperator        op_rhs_assemble, op_mass;

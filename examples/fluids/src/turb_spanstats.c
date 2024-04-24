@@ -26,7 +26,7 @@ typedef struct {
   CeedVector          x_coord, q_data;
 } *SpanStatsSetupData;
 
-PetscErrorCode CreateStatsDM(User user, ProblemData *problem, PetscInt degree) {
+PetscErrorCode CreateStatsDM(User user, ProblemData problem, PetscInt degree) {
   user->spanstats.num_comp_stats = TURB_NUM_COMPONENTS;
   PetscReal     domain_min[3], domain_max[3];
   PetscSection  section;
@@ -181,7 +181,7 @@ PetscErrorCode GetQuadratureCoords(Ceed ceed, DM dm, CeedElemRestriction elem_re
   PetscFunctionReturn(PETSC_SUCCESS);
 }
 
-PetscErrorCode SpanStatsSetupDataCreate(Ceed ceed, User user, CeedData ceed_data, ProblemData *problem, SpanStatsSetupData *stats_data) {
+PetscErrorCode SpanStatsSetupDataCreate(Ceed ceed, User user, CeedData ceed_data, ProblemData problem, SpanStatsSetupData *stats_data) {
   DM       dm = user->spanstats.dm;
   PetscInt dim;
   CeedInt  num_comp_x, num_comp_stats = user->spanstats.num_comp_stats;
@@ -366,7 +366,7 @@ PetscErrorCode SetupL2ProjectionStats(Ceed ceed, User user, CeedData ceed_data, 
 }
 
 // Create CeedOperator for statistics collection
-PetscErrorCode CreateStatisticCollectionOperator(Ceed ceed, User user, CeedData ceed_data, SpanStatsSetupData stats_data, ProblemData *problem) {
+PetscErrorCode CreateStatisticCollectionOperator(Ceed ceed, User user, CeedData ceed_data, SpanStatsSetupData stats_data, ProblemData problem) {
   CeedInt                     num_comp_stats = user->spanstats.num_comp_stats, num_comp_x = problem->dim, num_comp_q;
   Turbulence_SpanStatsContext collect_ctx;
   NewtonianIdealGasContext    newtonian_ig_ctx;
@@ -476,7 +476,7 @@ PetscErrorCode SetupMMSErrorChecking(Ceed ceed, User user, CeedData ceed_data, S
 }
 
 // Setup for statistics collection
-PetscErrorCode TurbulenceStatisticsSetup(Ceed ceed, User user, CeedData ceed_data, ProblemData *problem) {
+PetscErrorCode TurbulenceStatisticsSetup(Ceed ceed, User user, CeedData ceed_data, ProblemData problem) {
   SpanStatsSetupData stats_data;
   PetscLogStage      stage_stats_setup;
 

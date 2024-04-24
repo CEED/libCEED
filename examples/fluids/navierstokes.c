@@ -71,7 +71,7 @@ int main(int argc, char **argv) {
   AppCtx app_ctx;
   PetscCall(PetscCalloc1(1, &app_ctx));
 
-  ProblemData *problem = NULL;
+  ProblemData problem;
   PetscCall(PetscCalloc1(1, &problem));
 
   User user;
@@ -164,7 +164,7 @@ int main(int argc, char **argv) {
   // Choose the problem from the list of registered problems
   // ---------------------------------------------------------------------------
   {
-    PetscErrorCode (*p)(ProblemData *, DM, void *, SimpleBC);
+    PetscErrorCode (*p)(ProblemData, DM, void *, SimpleBC);
     PetscCall(PetscFunctionListFind(app_ctx->problems, app_ctx->problem_name, &p));
     PetscCheck(p, PETSC_COMM_SELF, 1, "Problem '%s' not found", app_ctx->problem_name);
     PetscCall((*p)(problem, dm, &user, bc));
@@ -362,6 +362,7 @@ int main(int argc, char **argv) {
   PetscCall(PetscFree(phys_ctx));
   PetscCall(PetscFree(app_ctx));
   PetscCall(PetscFree(ceed_data));
+  PetscCall(PetscFree(problem));
 
   return PetscFinalize();
 }

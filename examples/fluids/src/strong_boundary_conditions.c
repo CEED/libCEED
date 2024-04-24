@@ -13,7 +13,7 @@
 #include "../navierstokes.h"
 #include "../problems/stg_shur14.h"
 
-PetscErrorCode SetupStrongSTG_Ceed(Ceed ceed, CeedData ceed_data, DM dm, ProblemData *problem, SimpleBC bc, Physics phys, CeedOperator op_strong_bc) {
+PetscErrorCode SetupStrongSTG_Ceed(Ceed ceed, CeedData ceed_data, DM dm, ProblemData problem, SimpleBC bc, Physics phys, CeedOperator op_strong_bc) {
   CeedInt             num_comp_x = problem->dim, num_comp_q = 5, stg_data_size = 1, dim_boundary = 2, dXdx_size = num_comp_x * dim_boundary;
   CeedVector          multiplicity, x_stored, scale_stored, stg_data, dXdx;
   CeedBasis           basis_x_to_q_sur;
@@ -139,7 +139,7 @@ PetscErrorCode DMPlexInsertBoundaryValues_StrongBCCeed(DM dm, PetscBool insert_e
   PetscFunctionReturn(PETSC_SUCCESS);
 }
 
-PetscErrorCode SetupStrongBC_Ceed(Ceed ceed, CeedData ceed_data, DM dm, User user, ProblemData *problem, SimpleBC bc) {
+PetscErrorCode SetupStrongBC_Ceed(Ceed ceed, CeedData ceed_data, DM dm, User user, ProblemData problem, SimpleBC bc) {
   CeedOperator op_strong_bc;
 
   PetscFunctionBeginUser;

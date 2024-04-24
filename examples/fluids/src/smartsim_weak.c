@@ -10,8 +10,8 @@
 
 #include "../navierstokes.h"
 
-PetscErrorCode SGS_DD_TrainingSetup(Ceed ceed, User user, CeedData ceed_data, ProblemData *problem) __attribute__((weak));
-PetscErrorCode SGS_DD_TrainingSetup(Ceed ceed, User user, CeedData ceed_data, ProblemData *problem) {
+PetscErrorCode SGS_DD_TrainingSetup(Ceed ceed, User user, CeedData ceed_data, ProblemData problem) __attribute__((weak));
+PetscErrorCode SGS_DD_TrainingSetup(Ceed ceed, User user, CeedData ceed_data, ProblemData problem) {
   PetscFunctionBeginUser;
   SETERRQ(PETSC_COMM_WORLD, PETSC_ERR_SUP, "Must build with SMARTREDIS_DIR set to run %s", __func__);
 };

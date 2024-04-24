@@ -52,7 +52,7 @@ static PetscErrorCode CreateKSPMassOperator_Unstabilized(User user, CeedOperator
 }
 
 // @brief Create KSP to solve the inverse mass operator for explicit time stepping schemes
-static PetscErrorCode CreateKSPMass(User user, ProblemData *problem) {
+static PetscErrorCode CreateKSPMass(User user, ProblemData problem) {
   Ceed         ceed = user->ceed;
   DM           dm   = user->dm;
   CeedOperator op_mass;
@@ -238,7 +238,7 @@ PetscErrorCode SetupBCQFunctions(Ceed ceed, PetscInt dim_sur, PetscInt num_comp_
   PetscFunctionReturn(PETSC_SUCCESS);
 }
 
-PetscErrorCode SetupLibceed(Ceed ceed, CeedData ceed_data, DM dm, User user, AppCtx app_ctx, ProblemData *problem, SimpleBC bc) {
+PetscErrorCode SetupLibceed(Ceed ceed, CeedData ceed_data, DM dm, User user, AppCtx app_ctx, ProblemData problem, SimpleBC bc) {
   PetscFunctionBeginUser;
   // *****************************************************************************
   // Set up CEED objects for the interior domain (volume)

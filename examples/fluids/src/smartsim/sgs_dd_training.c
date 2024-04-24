@@ -61,7 +61,7 @@ static PetscErrorCode SGS_DD_TrainingCreateDM(DM dm_source, DM *dm_dd_training, 
 };
 
 // @brief Create CeedOperator to calculate training data for data-drive SGS model at nodes
-static PetscErrorCode SetupTrainingDataCalculation(Ceed ceed, User user, CeedData ceed_data, ProblemData *problem,
+static PetscErrorCode SetupTrainingDataCalculation(Ceed ceed, User user, CeedData ceed_data, ProblemData problem,
                                                    SGS_DD_TrainingSetupData sgs_dd_train_setup_data) {
   SGS_DD_TrainingData sgs_dd_train = user->sgs_dd_train;
   CeedQFunction       qf_sgs_dd_train;
@@ -139,7 +139,7 @@ static PetscErrorCode SetupTrainingDataCalculation(Ceed ceed, User user, CeedDat
   PetscFunctionReturn(PETSC_SUCCESS);
 }
 
-PetscErrorCode SGS_DD_TrainingSetup(Ceed ceed, User user, CeedData ceed_data, ProblemData *problem) {
+PetscErrorCode SGS_DD_TrainingSetup(Ceed ceed, User user, CeedData ceed_data, ProblemData problem) {
   SGS_DDTrainingContext    sgsdd_train_qfctx;
   SGS_DD_TrainingSetupData sgs_dd_train_setup_data;
 

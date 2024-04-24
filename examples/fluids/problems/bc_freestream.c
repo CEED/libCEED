@@ -18,7 +18,7 @@
 
 static const char *const RiemannSolverTypes[] = {"hll", "hllc", "RiemannSolverTypes", "RIEMANN_", NULL};
 
-PetscErrorCode FreestreamBCSetup(ProblemData *problem, DM dm, void *ctx, NewtonianIdealGasContext newtonian_ig_ctx, const StatePrimitive *reference) {
+PetscErrorCode FreestreamBCSetup(ProblemData problem, DM dm, void *ctx, NewtonianIdealGasContext newtonian_ig_ctx, const StatePrimitive *reference) {
   User                 user = *(User *)ctx;
   MPI_Comm             comm = user->comm;
   Ceed                 ceed = user->ceed;
@@ -105,7 +105,7 @@ typedef enum {
   OUTFLOW_PRESSURE,
 } OutflowType;
 
-PetscErrorCode OutflowBCSetup(ProblemData *problem, DM dm, void *ctx, NewtonianIdealGasContext newtonian_ig_ctx, const StatePrimitive *reference) {
+PetscErrorCode OutflowBCSetup(ProblemData problem, DM dm, void *ctx, NewtonianIdealGasContext newtonian_ig_ctx, const StatePrimitive *reference) {
   User                 user = *(User *)ctx;
   Ceed                 ceed = user->ceed;
   OutflowContext       outflow_ctx;

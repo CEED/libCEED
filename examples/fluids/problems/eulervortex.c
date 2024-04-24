@@ -16,7 +16,7 @@
 #include "../navierstokes.h"
 #include "../qfunctions/setupgeo.h"
 
-PetscErrorCode NS_EULER_VORTEX(ProblemData *problem, DM dm, void *ctx, SimpleBC bc) {
+PetscErrorCode NS_EULER_VORTEX(ProblemData problem, DM dm, void *ctx, SimpleBC bc) {
   EulerTestType        euler_test;
   User                 user = *(User *)ctx;
   StabilizationType    stab;
@@ -148,7 +148,7 @@ PetscErrorCode NS_EULER_VORTEX(ProblemData *problem, DM dm, void *ctx, SimpleBC 
   PetscFunctionReturn(PETSC_SUCCESS);
 }
 
-PetscErrorCode PRINT_EULER_VORTEX(User user, ProblemData *problem, AppCtx app_ctx) {
+PetscErrorCode PRINT_EULER_VORTEX(User user, ProblemData problem, AppCtx app_ctx) {
   MPI_Comm     comm = user->comm;
   Ceed         ceed = user->ceed;
   EulerContext euler_ctx;
