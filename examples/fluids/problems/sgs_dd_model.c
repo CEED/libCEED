@@ -509,7 +509,7 @@ static PetscErrorCode SgsDDContextFill(MPI_Comm comm, char data_dir[PETSC_MAX_PA
   PetscFunctionReturn(PETSC_SUCCESS);
 }
 
-PetscErrorCode SgsDDSetup(Ceed ceed, User user, CeedData ceed_data, ProblemData *problem) {
+PetscErrorCode SgsDDSetup(Ceed ceed, User user, CeedData ceed_data, ProblemData problem) {
   PetscReal                alpha = 0;
   SgsDDContext             sgsdd_ctx;
   MPI_Comm                 comm                           = user->comm;

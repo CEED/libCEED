@@ -194,7 +194,7 @@ PetscErrorCode PrintError(CeedData ceed_data, DM dm, User user, Vec Q, PetscScal
 }
 
 // Post-processing
-PetscErrorCode PostProcess(TS ts, CeedData ceed_data, DM dm, ProblemData *problem, User user, Vec Q, PetscScalar final_time) {
+PetscErrorCode PostProcess(TS ts, CeedData ceed_data, DM dm, ProblemData problem, User user, Vec Q, PetscScalar final_time) {
   PetscInt          steps;
   TSConvergedReason reason;
 
@@ -397,7 +397,7 @@ PetscErrorCode RegisterLogEvents() {
 }
 
 // Print information about the given simulation run
-PetscErrorCode PrintRunInfo(User user, Physics phys_ctx, ProblemData *problem, MPI_Comm comm) {
+PetscErrorCode PrintRunInfo(User user, Physics phys_ctx, ProblemData problem, MPI_Comm comm) {
   Ceed ceed = user->ceed;
   PetscFunctionBeginUser;
   // Header and rank

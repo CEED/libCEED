@@ -14,7 +14,6 @@
 
 #include "./include/petsc_ops.h"
 #include "qfunctions/newtonian_types.h"
-#include "qfunctions/stabilization_types.h"
 
 #if PETSC_VERSION_LT(3, 21, 0)
 #error "PETSc v3.21 or later is required"
@@ -290,7 +289,7 @@ typedef struct {
 } ProblemQFunctionSpec;
 
 // Problem specific data
-typedef struct ProblemData_private ProblemData;
+typedef struct ProblemData_private *ProblemData;
 struct ProblemData_private {
   CeedInt              dim, q_data_size_vol, q_data_size_sur, jac_data_size_sur;
   CeedScalar           dm_scale;
@@ -298,7 +297,7 @@ struct ProblemData_private {
       apply_freestream, apply_slip, apply_inflow_jacobian, apply_outflow_jacobian, apply_freestream_jacobian, apply_slip_jacobian;
   bool      non_zero_time;
   PetscBool bc_from_ics, use_strong_bc_ceed, uses_newtonian;
-  PetscErrorCode (*print_info)(User, ProblemData *, AppCtx);
+  PetscErrorCode (*print_info)(User, ProblemData, AppCtx);
   PetscErrorCode (*create_mass_operator)(User, CeedOperator *);
 };
 
@@ -308,29 +307,29 @@ extern int FreeContextPetsc(void *);
 // Set up problems
 // -----------------------------------------------------------------------------
 // Set up function for each problem
-extern PetscErrorCode NS_TAYLOR_GREEN(ProblemData *problem, DM dm, void *ctx, SimpleBC bc);
-extern PetscErrorCode NS_GAUSSIAN_WAVE(ProblemData *problem, DM dm, void *ctx, SimpleBC bc);
-extern PetscErrorCode NS_CHANNEL(ProblemData *problem, DM dm, void *ctx, SimpleBC bc);
-extern PetscErrorCode NS_BLASIUS(ProblemData *problem, DM dm, void *ctx, SimpleBC bc);
-extern PetscErrorCode NS_NEWTONIAN_IG(ProblemData *problem, DM dm, void *ctx, SimpleBC bc);
-extern PetscErrorCode NS_DENSITY_CURRENT(ProblemData *problem, DM dm, void *ctx, SimpleBC bc);
-extern PetscErrorCode NS_EULER_VORTEX(ProblemData *problem, DM dm, void *ctx, SimpleBC bc);
-extern PetscErrorCode NS_SHOCKTUBE(ProblemData *problem, DM dm, void *ctx, SimpleBC bc);
-extern PetscErrorCode NS_ADVECTION(ProblemData *problem, DM dm, void *ctx, SimpleBC bc);
-extern PetscErrorCode NS_ADVECTION2D(ProblemData *problem, DM dm, void *ctx, SimpleBC bc);
+extern PetscErrorCode NS_TAYLOR_GREEN(ProblemData problem, DM dm, void *ctx, SimpleBC bc);
+extern PetscErrorCode NS_GAUSSIAN_WAVE(ProblemData problem, DM dm, void *ctx, SimpleBC bc);
+extern PetscErrorCode NS_CHANNEL(ProblemData problem, DM dm, void *ctx, SimpleBC bc);
+extern PetscErrorCode NS_BLASIUS(ProblemData problem, DM dm, void *ctx, SimpleBC bc);
+extern PetscErrorCode NS_NEWTONIAN_IG(ProblemData problem, DM dm, void *ctx, SimpleBC bc);
+extern PetscErrorCode NS_DENSITY_CURRENT(ProblemData problem, DM dm, void *ctx, SimpleBC bc);
+extern PetscErrorCode NS_EULER_VORTEX(ProblemData problem, DM dm, void *ctx, SimpleBC bc);
+extern PetscErrorCode NS_SHOCKTUBE(ProblemData problem, DM dm, void *ctx, SimpleBC bc);
+extern PetscErrorCode NS_ADVECTION(ProblemData problem, DM dm, void *ctx, SimpleBC bc);
+extern PetscErrorCode NS_ADVECTION2D(ProblemData problem, DM dm, void *ctx, SimpleBC bc);
 
 // Print function for each problem
-extern PetscErrorCode PRINT_NEWTONIAN(User user, ProblemData *problem, AppCtx app_ctx);
+extern PetscErrorCode PRINT_NEWTONIAN(User user, ProblemData problem, AppCtx app_ctx);
 
-extern PetscErrorCode PRINT_EULER_VORTEX(User user, ProblemData *problem, AppCtx app_ctx);
+extern PetscErrorCode PRINT_EULER_VORTEX(User user, ProblemData problem, AppCtx app_ctx);
 
-extern PetscErrorCode PRINT_SHOCKTUBE(User user, ProblemData *problem, AppCtx app_ctx);
+extern PetscErrorCode PRINT_SHOCKTUBE(User user, ProblemData problem, AppCtx app_ctx);
 
-extern PetscErrorCode PRINT_ADVECTION(User user, ProblemData *problem, AppCtx app_ctx);
+extern PetscErrorCode PRINT_ADVECTION(User user, ProblemData problem, AppCtx app_ctx);
 
-extern PetscErrorCode PRINT_ADVECTION2D(User user, ProblemData *problem, AppCtx app_ctx);
+extern PetscErrorCode PRINT_ADVECTION2D(User user, ProblemData problem, AppCtx app_ctx);
 
-PetscErrorCode PrintRunInfo(User user, Physics phys_ctx, ProblemData *problem, MPI_Comm comm);
+PetscErrorCode PrintRunInfo(User user, Physics phys_ctx, ProblemData problem, MPI_Comm comm);
 
 // -----------------------------------------------------------------------------
 // libCEED functions
@@ -355,7 +354,7 @@ PetscErrorCode CreateOperatorForDomain(Ceed ceed, DM dm, SimpleBC bc, CeedData c
                                        CeedOperator op_apply_ijacobian_vol, CeedInt height, CeedInt P_sur, CeedInt Q_sur, CeedInt q_data_size_sur,
                                        CeedInt jac_data_size_sur, CeedOperator *op_apply, CeedOperator *op_apply_ijacobian);
 
-PetscErrorCode SetupLibceed(Ceed ceed, CeedData ceed_data, DM dm, User user, AppCtx app_ctx, ProblemData *problem, SimpleBC bc);
+PetscErrorCode SetupLibceed(Ceed ceed, CeedData ceed_data, DM dm, User user, AppCtx app_ctx, ProblemData problem, SimpleBC bc);
 
 // -----------------------------------------------------------------------------
 // Time-stepping functions
@@ -379,10 +378,10 @@ PetscErrorCode UpdateBoundaryValues(User user, Vec Q_loc, PetscReal t);
 // Setup DM
 // -----------------------------------------------------------------------------
 // Create mesh
-PetscErrorCode CreateDM(MPI_Comm comm, ProblemData *problem, MatType, VecType, DM *dm);
+PetscErrorCode CreateDM(MPI_Comm comm, ProblemData problem, MatType, VecType, DM *dm);
 
 // Set up DM
-PetscErrorCode SetUpDM(DM dm, ProblemData *problem, PetscInt degree, PetscInt q_extra, SimpleBC bc, Physics phys);
+PetscErrorCode SetUpDM(DM dm, ProblemData problem, PetscInt degree, PetscInt q_extra, SimpleBC bc, Physics phys);
 PetscErrorCode DMSetupByOrderBegin_FEM(PetscBool setup_faces, PetscBool setup_coords, PetscInt degree, PetscInt coord_order, PetscInt q_extra,
                                        PetscInt num_fields, const PetscInt *field_sizes, DM dm);
 PetscErrorCode DMSetupByOrderEnd_FEM(PetscBool setup_coords, DM dm);
@@ -390,7 +389,7 @@ PetscErrorCode DMSetupByOrder_FEM(PetscBool setup_faces, PetscBool setup_coords,
                                   PetscInt num_fields, const PetscInt *field_sizes, DM dm);
 
 // Refine DM for high-order viz
-PetscErrorCode VizRefineDM(DM dm, User user, ProblemData *problem, SimpleBC bc, Physics phys);
+PetscErrorCode VizRefineDM(DM dm, User user, ProblemData problem, SimpleBC bc, Physics phys);
 
 // -----------------------------------------------------------------------------
 // Process command line options
@@ -419,7 +418,7 @@ PetscErrorCode RegressionTest(AppCtx app_ctx, Vec Q);
 PetscErrorCode PrintError(CeedData ceed_data, DM dm, User user, Vec Q, PetscScalar final_time);
 
 // Post-processing
-PetscErrorCode PostProcess(TS ts, CeedData ceed_data, DM dm, ProblemData *problem, User user, Vec Q, PetscScalar final_time);
+PetscErrorCode PostProcess(TS ts, CeedData ceed_data, DM dm, ProblemData problem, User user, Vec Q, PetscScalar final_time);
 
 // -- Gather initial Q values in case of continuation of simulation
 PetscErrorCode SetupICsFromBinary(MPI_Comm comm, AppCtx app_ctx, Vec Q);
@@ -448,7 +447,7 @@ PetscErrorCode PhastaDatFileReadToArrayReal(const MPI_Comm comm, const char path
 // Turbulence Statistics Collection Functions
 // -----------------------------------------------------------------------------
 
-PetscErrorCode TurbulenceStatisticsSetup(Ceed ceed, User user, CeedData ceed_data, ProblemData *problem);
+PetscErrorCode TurbulenceStatisticsSetup(Ceed ceed, User user, CeedData ceed_data, ProblemData problem);
 PetscErrorCode TSMonitor_TurbulenceStatistics(TS ts, PetscInt steps, PetscReal solution_time, Vec Q, void *ctx);
 PetscErrorCode TurbulenceStatisticsDestroy(User user, CeedData ceed_data);
 
@@ -456,10 +455,10 @@ PetscErrorCode TurbulenceStatisticsDestroy(User user, CeedData ceed_data);
 // Data-Driven Subgrid Stress (DD-SGS) Modeling Functions
 // -----------------------------------------------------------------------------
 
-PetscErrorCode SgsDDSetup(Ceed ceed, User user, CeedData ceed_data, ProblemData *problem);
+PetscErrorCode SgsDDSetup(Ceed ceed, User user, CeedData ceed_data, ProblemData problem);
 PetscErrorCode SgsDDDataDestroy(SgsDDData sgs_dd_data);
 PetscErrorCode SgsDDApplyIFunction(User user, const Vec Q_loc, Vec G_loc);
-PetscErrorCode VelocityGradientProjectionSetup(Ceed ceed, User user, CeedData ceed_data, ProblemData *problem, StateVariable state_var_input,
+PetscErrorCode VelocityGradientProjectionSetup(Ceed ceed, User user, CeedData ceed_data, ProblemData problem, StateVariable state_var_input,
                                                CeedElemRestriction elem_restr_input, CeedBasis basis_input, NodalProjectionData *pgrad_velo_proj);
 PetscErrorCode VelocityGradientProjectionApply(NodalProjectionData grad_velo_proj, Vec Q_loc, Vec VelocityGradient);
 PetscErrorCode GridAnisotropyTensorProjectionSetupApply(Ceed ceed, User user, CeedData ceed_data, CeedElemRestriction *elem_restr_grid_aniso,
@@ -472,28 +471,28 @@ PetscErrorCode GridAnisotropyTensorCalculateCollocatedVector(Ceed ceed, User use
 // -----------------------------------------------------------------------------
 
 // Setup StrongBCs that use QFunctions
-PetscErrorCode SetupStrongBC_Ceed(Ceed ceed, CeedData ceed_data, DM dm, User user, ProblemData *problem, SimpleBC bc);
+PetscErrorCode SetupStrongBC_Ceed(Ceed ceed, CeedData ceed_data, DM dm, User user, ProblemData problem, SimpleBC bc);
 
-PetscErrorCode FreestreamBCSetup(ProblemData *problem, DM dm, void *ctx, NewtonianIdealGasContext newtonian_ig_ctx, const StatePrimitive *reference);
-PetscErrorCode OutflowBCSetup(ProblemData *problem, DM dm, void *ctx, NewtonianIdealGasContext newtonian_ig_ctx, const StatePrimitive *reference);
-PetscErrorCode SlipBCSetup(ProblemData *problem, DM dm, void *ctx, CeedQFunctionContext newtonian_ig_qfctx);
+PetscErrorCode FreestreamBCSetup(ProblemData problem, DM dm, void *ctx, NewtonianIdealGasContext newtonian_ig_ctx, const StatePrimitive *reference);
+PetscErrorCode OutflowBCSetup(ProblemData problem, DM dm, void *ctx, NewtonianIdealGasContext newtonian_ig_ctx, const StatePrimitive *reference);
+PetscErrorCode SlipBCSetup(ProblemData problem, DM dm, void *ctx, CeedQFunctionContext newtonian_ig_qfctx);
 
 // -----------------------------------------------------------------------------
 // Differential Filtering Functions
 // -----------------------------------------------------------------------------
 
-PetscErrorCode DifferentialFilterSetup(Ceed ceed, User user, CeedData ceed_data, ProblemData *problem);
+PetscErrorCode DifferentialFilterSetup(Ceed ceed, User user, CeedData ceed_data, ProblemData problem);
 PetscErrorCode DifferentialFilterDataDestroy(DiffFilterData diff_filter);
 PetscErrorCode TSMonitor_DifferentialFilter(TS ts, PetscInt steps, PetscReal solution_time, Vec Q, void *ctx);
 PetscErrorCode DifferentialFilterApply(User user, const PetscReal solution_time, const Vec Q, Vec Filtered_Solution);
-PetscErrorCode DifferentialFilterMmsICSetup(ProblemData *problem);
+PetscErrorCode DifferentialFilterMmsICSetup(ProblemData problem);
 
 // -----------------------------------------------------------------------------
 // SGS Data-Driven Training via SmartSim
 // -----------------------------------------------------------------------------
 PetscErrorCode SmartSimSetup(User user);
 PetscErrorCode SmartSimDataDestroy(SmartSimData smartsim);
-PetscErrorCode SGS_DD_TrainingSetup(Ceed ceed, User user, CeedData ceed_data, ProblemData *problem);
+PetscErrorCode SGS_DD_TrainingSetup(Ceed ceed, User user, CeedData ceed_data, ProblemData problem);
 PetscErrorCode TSMonitor_SGS_DD_Training(TS ts, PetscInt step_num, PetscReal solution_time, Vec Q, void *ctx);
 PetscErrorCode TSPostStep_SGS_DD_Training(TS ts);
 PetscErrorCode SGS_DD_TrainingDataDestroy(SGS_DD_TrainingData sgs_dd_train);

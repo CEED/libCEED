@@ -172,7 +172,7 @@ PetscErrorCode ProcessCommandLineOptions(MPI_Comm comm, AppCtx app_ctx, SimpleBC
     }
   }
   app_ctx->wall_forces.num_wall = bc->num_wall;
-  PetscMalloc1(bc->num_wall, &app_ctx->wall_forces.walls);
+  PetscCall(PetscMalloc1(bc->num_wall, &app_ctx->wall_forces.walls));
   PetscCall(PetscArraycpy(app_ctx->wall_forces.walls, bc->walls, bc->num_wall));
 
   // Inflow BCs

@@ -229,7 +229,7 @@ static PetscErrorCode ModifyMesh(MPI_Comm comm, DM dm, PetscInt dim, PetscReal g
   PetscFunctionReturn(PETSC_SUCCESS);
 }
 
-PetscErrorCode NS_BLASIUS(ProblemData *problem, DM dm, void *ctx, SimpleBC bc) {
+PetscErrorCode NS_BLASIUS(ProblemData problem, DM dm, void *ctx, SimpleBC bc) {
   User                     user    = *(User *)ctx;
   MPI_Comm                 comm    = user->comm;
   Ceed                     ceed    = user->ceed;

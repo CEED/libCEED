@@ -172,7 +172,7 @@ PetscErrorCode DifferentialFilterCreateOperators(Ceed ceed, User user, CeedData 
 }
 
 // @brief Setup DM, operators, contexts, etc. for performing differential filtering
-PetscErrorCode DifferentialFilterSetup(Ceed ceed, User user, CeedData ceed_data, ProblemData *problem) {
+PetscErrorCode DifferentialFilterSetup(Ceed ceed, User user, CeedData ceed_data, ProblemData problem) {
   MPI_Comm                  comm = user->comm;
   NewtonianIdealGasContext  gas;
   DifferentialFilterContext diff_filter_ctx;
@@ -330,7 +330,7 @@ PetscErrorCode DifferentialFilterDataDestroy(DiffFilterData diff_filter) {
   PetscFunctionReturn(PETSC_SUCCESS);
 }
 
-PetscErrorCode DifferentialFilterMmsICSetup(ProblemData *problem) {
+PetscErrorCode DifferentialFilterMmsICSetup(ProblemData problem) {
   PetscFunctionBeginUser;
   problem->ics.qfunction     = DifferentialFilter_MMS_IC;
   problem->ics.qfunction_loc = DifferentialFilter_MMS_IC_loc;

@@ -15,7 +15,7 @@
 
 #include "../navierstokes.h"
 
-PetscErrorCode NS_CHANNEL(ProblemData *problem, DM dm, void *ctx, SimpleBC bc) {
+PetscErrorCode NS_CHANNEL(ProblemData problem, DM dm, void *ctx, SimpleBC bc) {
   User                     user = *(User *)ctx;
   MPI_Comm                 comm = user->comm;
   Ceed                     ceed = user->ceed;

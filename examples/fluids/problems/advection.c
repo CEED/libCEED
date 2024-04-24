@@ -80,7 +80,7 @@ PetscErrorCode CreateKSPMassOperator_AdvectionStabilized(User user, CeedOperator
   PetscFunctionReturn(PETSC_SUCCESS);
 }
 
-PetscErrorCode NS_ADVECTION(ProblemData *problem, DM dm, void *ctx, SimpleBC bc) {
+PetscErrorCode NS_ADVECTION(ProblemData problem, DM dm, void *ctx, SimpleBC bc) {
   WindType             wind_type;
   AdvectionICType      advectionic_type;
   BubbleContinuityType bubble_continuity_type;
@@ -284,7 +284,7 @@ PetscErrorCode NS_ADVECTION(ProblemData *problem, DM dm, void *ctx, SimpleBC bc)
   PetscFunctionReturn(PETSC_SUCCESS);
 }
 
-PetscErrorCode PRINT_ADVECTION(User user, ProblemData *problem, AppCtx app_ctx) {
+PetscErrorCode PRINT_ADVECTION(User user, ProblemData problem, AppCtx app_ctx) {
   MPI_Comm         comm = user->comm;
   Ceed             ceed = user->ceed;
   SetupContextAdv  setup_ctx;

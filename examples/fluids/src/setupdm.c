@@ -16,7 +16,7 @@
 #include "../problems/stg_shur14.h"
 
 // Create mesh
-PetscErrorCode CreateDM(MPI_Comm comm, ProblemData *problem, MatType mat_type, VecType vec_type, DM *dm) {
+PetscErrorCode CreateDM(MPI_Comm comm, ProblemData problem, MatType mat_type, VecType vec_type, DM *dm) {
   PetscFunctionBeginUser;
   // Create DMPLEX
   PetscCall(DMCreate(comm, dm));
@@ -42,7 +42,7 @@ PetscErrorCode CreateDM(MPI_Comm comm, ProblemData *problem, MatType mat_type, V
 }
 
 // Setup DM
-PetscErrorCode SetUpDM(DM dm, ProblemData *problem, PetscInt degree, PetscInt q_extra, SimpleBC bc, Physics phys) {
+PetscErrorCode SetUpDM(DM dm, ProblemData problem, PetscInt degree, PetscInt q_extra, SimpleBC bc, Physics phys) {
   PetscInt num_comp_q = 5;
   PetscFunctionBeginUser;
 
@@ -105,7 +105,7 @@ PetscErrorCode SetUpDM(DM dm, ProblemData *problem, PetscInt degree, PetscInt q_
 }
 
 // Refine DM for high-order viz
-PetscErrorCode VizRefineDM(DM dm, User user, ProblemData *problem, SimpleBC bc, Physics phys) {
+PetscErrorCode VizRefineDM(DM dm, User user, ProblemData problem, SimpleBC bc, Physics phys) {
   DM      dm_hierarchy[user->app_ctx->viz_refine + 1];
   VecType vec_type;
 

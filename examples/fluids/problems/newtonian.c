@@ -116,7 +116,7 @@ PetscErrorCode CreateKSPMassOperator_NewtonianStabilized(User user, CeedOperator
   PetscCallCeed(ceed, CeedQFunctionDestroy(&qf_mass));
   PetscFunctionReturn(PETSC_SUCCESS);
 }
-PetscErrorCode NS_NEWTONIAN_IG(ProblemData *problem, DM dm, void *ctx, SimpleBC bc) {
+PetscErrorCode NS_NEWTONIAN_IG(ProblemData problem, DM dm, void *ctx, SimpleBC bc) {
   SetupContext             setup_context;
   User                     user   = *(User *)ctx;
   CeedInt                  degree = user->app_ctx->degree;
@@ -376,7 +376,7 @@ PetscErrorCode NS_NEWTONIAN_IG(ProblemData *problem, DM dm, void *ctx, SimpleBC 
   PetscFunctionReturn(PETSC_SUCCESS);
 }
 
-PetscErrorCode PRINT_NEWTONIAN(User user, ProblemData *problem, AppCtx app_ctx) {
+PetscErrorCode PRINT_NEWTONIAN(User user, ProblemData problem, AppCtx app_ctx) {
   MPI_Comm                 comm = user->comm;
   Ceed                     ceed = user->ceed;
   NewtonianIdealGasContext newtonian_ctx;
