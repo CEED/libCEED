@@ -1,6 +1,6 @@
 /// @file
-/// Test 1D mass matrix operator at points with heterogeneous points per element
-/// \test Test 1D mass matrix operator at points with heterogeneous points per element
+/// Test diagonal assembly of mass matrix operator at points
+/// \test Test diagonal assembly of mass matrix operator at points
 #include <ceed.h>
 #include <math.h>
 #include <stdio.h>
@@ -13,8 +13,8 @@ int main(int argc, char **argv) {
   CeedInt    num_elem = 3, dim = 1, p = 3, q = 5;
   CeedInt    num_nodes_x = num_elem + 1, num_nodes_u = num_elem * (p - 1) + 1, num_points_per_elem = 4, num_points = num_elem * num_points_per_elem;
   CeedInt    ind_x[num_elem * 2], ind_u[num_elem * p], ind_x_points[num_elem + 1 + num_points];
-  CeedScalar x_array_mesh[num_nodes_x], x_array_points[num_points];
-  CeedVector x_points = NULL, x_elem = NULL, q_data = NULL, u = NULL, v = NULL;
+  CeedScalar x_array_mesh[num_nodes_x], x_array_points[num_points], assembled_true[num_nodes_u];
+  CeedVector x_points = NULL, x_elem = NULL, q_data = NULL, u = NULL, v = NULL, assembled = NULL;
   CeedElemRestriction elem_restriction_x_points, elem_restriction_q_data, elem_restriction_x, elem_restriction_u;
   CeedBasis           basis_x, basis_u;
   CeedQFunction       qf_setup, qf_mass;
@@ -116,18 +116,44 @@ int main(int argc, char **argv) {
   CeedVectorSetValue(u, 0.0);
   CeedVectorCreate(ceed, num_nodes_u, &v);
 
-  // Assemble QFunction
-  CeedOperatorApply(op_mass, u, v, CEED_REQUEST_IMMEDIATE);
+  // Assemble diagonal
+  CeedVectorCreate(ceed, num_nodes_u, &assembled);
+  CeedOperatorLinearAssembleDiagonal(op_mass, assembled, CEED_REQUEST_IMMEDIATE);
+
+  // Manually assemble diagonal
+  CeedVectorSetValue(u, 0.0);
+  for (CeedInt i = 0; i < num_nodes_u; i++) {
+    CeedScalar       *u_array;
+    const CeedScalar *v_array;
+
+    // Set input
+    CeedVectorGetArray(u, CEED_MEM_HOST, &u_array);
+    u_array[i] = 1.0;
+    if (i) u_array[i - 1] = 0.0;
+    CeedVectorRestoreArray(u, &u_array);
+
+    // Compute diag entry for DoF i
+    CeedOperatorApply(op_mass, u, v, CEED_REQUEST_IMMEDIATE);
+
+    // Retrieve entry
+    CeedVectorGetArrayRead(v, CEED_MEM_HOST, &v_array);
+    assembled_true[i] = v_array[i];
+    CeedVectorRestoreArrayRead(v, &v_array);
+  }
 
   // Check output
   {
-    const CeedScalar *v_array;
+    const CeedScalar *assembled_array;
 
-    CeedVectorGetArrayRead(v, CEED_MEM_HOST, &v_array);
+    CeedVectorGetArrayRead(assembled, CEED_MEM_HOST, &assembled_array);
     for (CeedInt i = 0; i < num_nodes_u; i++) {
-      if (fabs(v_array[i]) > 1e-14) printf("[%" CeedInt_FMT "] v %g != 0.0\n", i, v_array[i]);
+      if (fabs(assembled_array[i] - assembled_true[i]) > 100. * CEED_EPSILON) {
+        // LCOV_EXCL_START
+        printf("[%" CeedInt_FMT "] Error in assembly: %f != %f\n", i, assembled_array[i], assembled_true[i]);
+        // LCOV_EXCL_STOP
+      }
     }
-    CeedVectorRestoreArrayRead(v, &v_array);
+    CeedVectorRestoreArrayRead(assembled, &assembled_array);
   }
 
   // Cleanup
@@ -137,6 +163,7 @@ int main(int argc, char **argv) {
   CeedVectorDestroy(&x_points);
   CeedVectorDestroy(&q_data);
   CeedVectorDestroy(&x_elem);
+  CeedVectorDestroy(&assembled);
   CeedElemRestrictionDestroy(&elem_restriction_q_data);
   CeedElemRestrictionDestroy(&elem_restriction_x);
   CeedElemRestrictionDestroy(&elem_restriction_x_points);
