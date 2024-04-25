@@ -7,6 +7,7 @@
 #pragma once
 
 #include <ceed.h>
+#include <bc_definition.h>
 #include <log_events.h>
 #include <mat-ceed.h>
 #include <petsc-ceed-utils.h>
@@ -90,12 +91,13 @@ static const char *const DifferentialFilterDampingFunctions[] = {
 // Structs
 // -----------------------------------------------------------------------------
 // Structs declarations
-typedef struct AppCtx_private   *AppCtx;
-typedef struct CeedData_private *CeedData;
-typedef struct User_private     *User;
-typedef struct Units_private    *Units;
-typedef struct SimpleBC_private *SimpleBC;
-typedef struct Physics_private  *Physics;
+typedef struct AppCtx_private      *AppCtx;
+typedef struct CeedData_private    *CeedData;
+typedef struct User_private        *User;
+typedef struct Units_private       *Units;
+typedef struct SimpleBC_private    *SimpleBC;
+typedef struct Physics_private     *Physics;
+typedef struct ProblemData_private *ProblemData;
 
 // Application context from user command line options
 struct AppCtx_private {
@@ -255,12 +257,8 @@ struct Units_private {
 
 // Boundary conditions
 struct SimpleBC_private {
-  PetscInt num_wall,  // Number of faces with wall BCs
-      wall_comps[5],  // An array of constrained component numbers
-      num_comps,
-      num_symmetry[3],  // Number of faces with symmetry BCs
-      num_inflow, num_outflow, num_freestream, num_slip;
-  PetscInt walls[16], symmetries[3][16], inflows[16], outflows[16], freestreams[16], slips[16];
+  PetscInt num_inflow, num_outflow, num_freestream, num_slip;
+  PetscInt inflows[16], outflows[16], freestreams[16], slips[16];
 };
 
 // Struct that contains all enums and structs used for the physics of all problems
@@ -273,6 +271,8 @@ struct Physics_private {
   CeedContextFieldLabel ics_time_label;
 };
 
+PetscErrorCode BoundaryConditionSetUp(User user, ProblemData problem, AppCtx app_ctx, SimpleBC bc);
+
 typedef struct {
   CeedQFunctionUser    qfunction;
   const char          *qfunction_loc;
@@ -280,14 +280,15 @@ typedef struct {
 } ProblemQFunctionSpec;
 
 // Problem specific data
-typedef struct ProblemData_private *ProblemData;
 struct ProblemData_private {
   CeedInt              dim, q_data_size_vol, q_data_size_sur, jac_data_size_sur;
   CeedScalar           dm_scale;
   ProblemQFunctionSpec ics, apply_vol_rhs, apply_vol_ifunction, apply_vol_ijacobian, apply_inflow, apply_outflow, apply_freestream, apply_slip,
       apply_inflow_jacobian, apply_outflow_jacobian, apply_freestream_jacobian, apply_slip_jacobian;
-  bool      non_zero_time;
-  PetscBool bc_from_ics, use_strong_bc_ceed, uses_newtonian;
+  bool          non_zero_time;
+  PetscBool     bc_from_ics, use_strong_bc_ceed, uses_newtonian;
+  size_t        num_bc_defs;
+  BCDefinition *bc_defs;
   PetscErrorCode (*print_info)(User, ProblemData, AppCtx);
   PetscErrorCode (*create_mass_operator)(User, CeedOperator *);
 };

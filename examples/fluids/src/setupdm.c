@@ -52,24 +52,19 @@ PetscErrorCode SetUpDM(DM dm, ProblemData problem, PetscInt degree, PetscInt q_e
     DMLabel label;
     PetscCall(DMGetLabel(dm, "Face Sets", &label));
     PetscCall(DMPlexLabelComplete(dm, label));
-    // Set wall BCs
-    if (bc->num_wall > 0) {
-      PetscCall(DMAddBoundary(dm, DM_BC_ESSENTIAL, "wall", label, bc->num_wall, bc->walls, 0, bc->num_comps, bc->wall_comps, NULL, NULL, NULL, NULL));
-    }
-    // Set symmetry BCs in the x direction
-    if (bc->num_symmetry[0] > 0) {
-      PetscInt comps[1] = {1};
-      PetscCall(DMAddBoundary(dm, DM_BC_ESSENTIAL, "symmetry_x", label, bc->num_symmetry[0], bc->symmetries[0], 0, 1, comps, NULL, NULL, NULL, NULL));
-    }
-    // Set symmetry BCs in the y direction
-    if (bc->num_symmetry[1] > 0) {
-      PetscInt comps[1] = {2};
-      PetscCall(DMAddBoundary(dm, DM_BC_ESSENTIAL, "symmetry_y", label, bc->num_symmetry[1], bc->symmetries[1], 0, 1, comps, NULL, NULL, NULL, NULL));
-    }
-    // Set symmetry BCs in the z direction
-    if (bc->num_symmetry[2] > 0) {
-      PetscInt comps[1] = {3};
-      PetscCall(DMAddBoundary(dm, DM_BC_ESSENTIAL, "symmetry_z", label, bc->num_symmetry[2], bc->symmetries[2], 0, 1, comps, NULL, NULL, NULL, NULL));
+
+    for (PetscInt i = 0; i < problem->num_bc_defs; i++) {
+      BCDefinition    bc_def = problem->bc_defs[i];
+      PetscInt        num_essential_comps, num_label_values;
+      const PetscInt *essential_comps, *label_values;
+      const char     *name;
+
+      PetscCall(BCDefinitionGetEssential(bc_def, &num_essential_comps, &essential_comps));
+      if (essential_comps > 0) {
+        PetscCall(BCDefinitionGetInfo(bc_def, &name, &num_label_values, &label_values));
+        PetscCall(DMAddBoundary(dm, DM_BC_ESSENTIAL, name, label, num_label_values, label_values, 0, num_essential_comps, essential_comps, NULL, NULL,
+                                NULL, NULL));
+      }
     }
     {
       PetscBool use_strongstg = PETSC_FALSE;

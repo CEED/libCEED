@@ -107,6 +107,7 @@ int main(int argc, char **argv) {
   MPI_Comm comm = PETSC_COMM_WORLD;
   user->comm    = comm;
   PetscCall(ProcessCommandLineOptions(comm, app_ctx, bc));
+  PetscCall(BoundaryConditionSetUp(user, problem, app_ctx, bc));
 
   // ---------------------------------------------------------------------------
   // Initialize libCEED
@@ -334,6 +335,10 @@ int main(int argc, char **argv) {
   PetscCall(PetscViewerDestroy(&app_ctx->wall_forces.viewer));
 
   // -- Structs
+  for (PetscInt i = 0; i < problem->num_bc_defs; i++) {
+    PetscCall(BCDefinitionDestroy(&problem->bc_defs[i]));
+  }
+  PetscCall(PetscFree(problem->bc_defs));
   PetscCall(PetscFree(units));
   PetscCall(PetscFree(user));
   PetscCall(PetscFree(problem));

@@ -134,56 +134,6 @@ PetscErrorCode ProcessCommandLineOptions(MPI_Comm comm, AppCtx app_ctx, SimpleBC
     strncpy(app_ctx->problem_name, problem_name, 16);
   }
 
-  // Wall Boundary Conditions
-  bc->num_wall = 16;
-  PetscBool flg;
-  PetscCall(PetscOptionsIntArray("-bc_wall", "Face IDs to apply wall BC", NULL, bc->walls, &bc->num_wall, NULL));
-  bc->num_comps = 5;
-  PetscCall(PetscOptionsIntArray("-wall_comps", "An array of constrained component numbers", NULL, bc->wall_comps, &bc->num_comps, &flg));
-
-  {  // Symmetry Boundary Conditions
-    const char *deprecated[3] = {"-bc_slip_x", "-bc_slip_y", "-bc_slip_z"};
-    const char *flags[3]      = {"-bc_symmetry_x", "-bc_symmetry_y", "-bc_symmetry_z"};
-    PetscBool   flg, has_symmetry = PETSC_FALSE;
-
-    for (PetscInt j = 0; j < 3; j++) {
-      bc->num_symmetry[j] = 16;
-      PetscCall(PetscOptionsDeprecated(deprecated[j], flags[j], "libCEED 0.12.0",
-                                       "Use -bc_symmetry_[x,y,z] for direct equivalency, or -bc_slip for weak, Riemann-based, direction-invariant "
-                                       "slip/no-penatration boundary conditions"));
-      PetscCall(PetscOptionsIntArray(flags[j], "Face IDs to apply symmetry BC", NULL, bc->symmetries[j], &bc->num_symmetry[j], &flg));
-      if (bc->num_symmetry[j] > 0) has_symmetry = PETSC_TRUE;
-    }
-
-    // Error if wall and symmetry BCs are set on the same face
-    if (has_symmetry) {
-      for (PetscInt c = 0; c < 3; c++) {
-        for (PetscInt s = 0; s < bc->num_symmetry[c]; s++) {
-          for (PetscInt w = 0; w < bc->num_wall; w++) {
-            PetscCheck(bc->symmetries[c][s] != bc->walls[w], PETSC_COMM_SELF, PETSC_ERR_ARG_WRONG,
-                       "Boundary condition already set on face %" PetscInt_FMT "!\n", bc->walls[w]);
-          }
-        }
-      }
-    }
-  }
-  app_ctx->wall_forces.num_wall = bc->num_wall;
-  PetscCall(PetscMalloc1(bc->num_wall, &app_ctx->wall_forces.walls));
-  PetscCall(PetscArraycpy(app_ctx->wall_forces.walls, bc->walls, bc->num_wall));
-
-  // Inflow BCs
-  bc->num_inflow = 16;
-  PetscCall(PetscOptionsIntArray("-bc_inflow", "Face IDs to apply inflow BC", NULL, bc->inflows, &bc->num_inflow, NULL));
-  // Outflow BCs
-  bc->num_outflow = 16;
-  PetscCall(PetscOptionsIntArray("-bc_outflow", "Face IDs to apply outflow BC", NULL, bc->outflows, &bc->num_outflow, NULL));
-  // Freestream BCs
-  bc->num_freestream = 16;
-  PetscCall(PetscOptionsIntArray("-bc_freestream", "Face IDs to apply freestream BC", NULL, bc->freestreams, &bc->num_freestream, NULL));
-
-  bc->num_slip = 16;
-  PetscCall(PetscOptionsIntArray("-bc_slip", "Face IDs to apply slip BC", NULL, bc->slips, &bc->num_slip, NULL));
-
   // Statistics Options
   app_ctx->turb_spanstats_collect_interval = 1;
   PetscCall(PetscOptionsInt("-ts_monitor_turbulence_spanstats_collect_interval", "Number of timesteps between statistics collection", NULL,
