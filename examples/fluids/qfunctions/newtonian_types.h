@@ -32,11 +32,11 @@ struct NewtonianIdealGasContext_ {
   CeedScalar        dt;
   CeedScalar        time;
   CeedScalar        ijacobian_time_shift;
-  CeedScalar        P0;
   bool              is_implicit;
   StateVariable     state_var;
   StabilizationType stabilization;
   bool              idl_enable;
+  CeedScalar        idl_pressure;
   CeedScalar        idl_amplitude;
   CeedScalar        idl_start;
   CeedScalar        idl_length;
