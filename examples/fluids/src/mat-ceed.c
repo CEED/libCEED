@@ -270,6 +270,47 @@ static PetscErrorCode MatInvertVariableBlockDiagonal_Ceed(Mat mat_ceed, PetscInt
   PetscFunctionReturn(PETSC_SUCCESS);
 }
 
+/**
+  @brief View `MATCEED`.
+
+  Collective across MPI processes.
+
+  @param[in]   mat_ceed  `MATCEED` to view
+  @param[in]   viewer    The visualization context
+
+  @return An error code: 0 - success, otherwise - failure
+**/
+static PetscErrorCode MatView_Ceed(Mat mat_ceed, PetscViewer viewer) {
+  PetscBool         is_ascii;
+  PetscViewerFormat format;
+  PetscMPIInt       size;
+  MatCeedContext    ctx;
+
+  PetscFunctionBeginUser;
+  PetscValidHeaderSpecific(viewer, PETSC_VIEWER_CLASSID, 2);
+  PetscCall(MatShellGetContext(mat_ceed, &ctx));
+  if (!viewer) PetscCall(PetscViewerASCIIGetStdout(PetscObjectComm((PetscObject)mat_ceed), &viewer));
+
+  PetscCall(PetscViewerGetFormat(viewer, &format));
+  PetscCallMPI(MPI_Comm_size(PetscObjectComm((PetscObject)mat_ceed), &size));
+  if (size == 1 && format == PETSC_VIEWER_LOAD_BALANCE) PetscFunctionReturn(PETSC_SUCCESS);
+
+  PetscCall(PetscObjectTypeCompare((PetscObject)viewer, PETSCVIEWERASCII, &is_ascii));
+  {
+    FILE *file;
+
+    PetscCall(PetscViewerASCIIPrintf(viewer, "MatCEED:\n  Internal MatType:%s\n", ctx->internal_mat_type));
+    PetscCall(PetscViewerASCIIGetPointer(viewer, &file));
+    PetscCall(PetscViewerASCIIPrintf(viewer, " libCEED Operator:\n"));
+    PetscCallCeed(ctx->ceed, CeedOperatorView(ctx->op_mult, file));
+    if (ctx->op_mult_transpose) {
+      PetscCall(PetscViewerASCIIPrintf(viewer, "  libCEED Transpose Operator:\n"));
+      PetscCallCeed(ctx->ceed, CeedOperatorView(ctx->op_mult_transpose, file));
+    }
+  }
+  PetscFunctionReturn(PETSC_SUCCESS);
+}
+
 // -----------------------------------------------------------------------------
 // MatCeed
 // -----------------------------------------------------------------------------
@@ -438,6 +479,7 @@ PetscErrorCode MatCeedCreate(DM dm_x, DM dm_y, CeedOperator op_mult, CeedOperato
   }
   // -- Set mat operations
   PetscCall(MatShellSetContextDestroy(*mat, (PetscErrorCode(*)(void *))MatCeedContextDestroy));
+  PetscCall(MatShellSetOperation(*mat, MATOP_VIEW, (void (*)(void))MatView_Ceed));
   PetscCall(MatShellSetOperation(*mat, MATOP_MULT, (void (*)(void))MatMult_Ceed));
   if (op_mult_transpose) PetscCall(MatShellSetOperation(*mat, MATOP_MULT_TRANSPOSE, (void (*)(void))MatMultTranspose_Ceed));
   PetscCall(MatShellSetOperation(*mat, MATOP_GET_DIAGONAL, (void (*)(void))MatGetDiagonal_Ceed));
@@ -500,6 +542,7 @@ PetscErrorCode MatCeedCopy(Mat mat_ceed, Mat mat_other) {
     PetscCall(MatCeedContextReference(ctx));
     PetscCall(MatShellSetContext(mat_other, ctx));
     PetscCall(MatShellSetContextDestroy(mat_other, (PetscErrorCode(*)(void *))MatCeedContextDestroy));
+    PetscCall(MatShellSetOperation(mat_other, MATOP_VIEW, (void (*)(void))MatView_Ceed));
     PetscCall(MatShellSetOperation(mat_other, MATOP_MULT, (void (*)(void))MatMult_Ceed));
     if (ctx->op_mult_transpose) PetscCall(MatShellSetOperation(mat_other, MATOP_MULT_TRANSPOSE, (void (*)(void))MatMultTranspose_Ceed));
     PetscCall(MatShellSetOperation(mat_other, MATOP_GET_DIAGONAL, (void (*)(void))MatGetDiagonal_Ceed));

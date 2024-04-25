@@ -9,6 +9,7 @@
 #include <ceed.h>
 #include <petscdm.h>
 #include <petscmat.h>
+#include <petsc/private/petscimpl.h>
 
 #if defined(__clang_analyzer__)
 #define MATCEED_EXTERN extern
