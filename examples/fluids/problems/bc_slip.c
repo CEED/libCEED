@@ -16,9 +16,9 @@
 #include "../navierstokes.h"
 #include "../qfunctions/newtonian_types.h"
 
-PetscErrorCode SlipBCSetup(ProblemData problem, DM dm, void *ctx, CeedQFunctionContext newtonian_ig_qfctx) {
-  User user = *(User *)ctx;
-  Ceed ceed = user->ceed;
+PetscErrorCode SlipBCSetup(User user, ProblemData problem, DM dm) {
+  Ceed                 ceed               = user->ceed;
+  CeedQFunctionContext newtonian_ig_qfctx = problem->apply_vol_rhs.qfunction_context;
 
   PetscFunctionBeginUser;
   switch (user->phys->state_var) {

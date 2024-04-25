@@ -15,6 +15,12 @@ typedef enum {
   STATEVAR_PRIMITIVE    = 1,
 } StateVariable;
 
+typedef struct {
+  CeedScalar pressure;
+  CeedScalar velocity[3];
+  CeedScalar temperature;
+} StatePrimitive;
+
 typedef struct NewtonianIdealGasContext_ *NewtonianIdealGasContext;
 struct NewtonianIdealGasContext_ {
   CeedScalar        lambda;
@@ -34,6 +40,7 @@ struct NewtonianIdealGasContext_ {
   CeedScalar        ijacobian_time_shift;
   bool              is_implicit;
   StateVariable     state_var;
+  StatePrimitive    reference;
   StabilizationType stabilization;
   bool              idl_enable;
   CeedScalar        idl_pressure;
@@ -41,12 +48,6 @@ struct NewtonianIdealGasContext_ {
   CeedScalar        idl_start;
   CeedScalar        idl_length;
 };
-
-typedef struct {
-  CeedScalar pressure;
-  CeedScalar velocity[3];
-  CeedScalar temperature;
-} StatePrimitive;
 
 typedef struct SetupContext_ *SetupContext;
 struct SetupContext_ {

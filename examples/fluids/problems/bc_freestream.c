@@ -18,23 +18,24 @@
 
 static const char *const RiemannSolverTypes[] = {"hll", "hllc", "RiemannSolverTypes", "RIEMANN_", NULL};
 
-PetscErrorCode FreestreamBCSetup(ProblemData problem, DM dm, void *ctx, NewtonianIdealGasContext newtonian_ig_ctx, const StatePrimitive *reference) {
-  User                 user = *(User *)ctx;
-  MPI_Comm             comm = user->comm;
-  Ceed                 ceed = user->ceed;
-  FreestreamContext    freestream_ctx;
-  CeedQFunctionContext freestream_context;
-  RiemannFluxType      riemann = RIEMANN_HLLC;
-  PetscScalar          meter   = user->units->meter;
-  PetscScalar          second  = user->units->second;
-  PetscScalar          Kelvin  = user->units->Kelvin;
-  PetscScalar          Pascal  = user->units->Pascal;
+PetscErrorCode FreestreamBCSetup(User user, ProblemData problem, DM dm) {
+  MPI_Comm                 comm = user->comm;
+  Ceed                     ceed = user->ceed;
+  FreestreamContext        freestream_ctx;
+  CeedQFunctionContext     freestream_context;
+  RiemannFluxType          riemann          = RIEMANN_HLLC;
+  PetscScalar              meter            = user->units->meter;
+  PetscScalar              second           = user->units->second;
+  PetscScalar              Kelvin           = user->units->Kelvin;
+  PetscScalar              Pascal           = user->units->Pascal;
+  NewtonianIdealGasContext newtonian_ig_ctx = problem->newtonian_ig_ctx;
+  const StatePrimitive     reference        = newtonian_ig_ctx->reference;
 
   PetscFunctionBeginUser;
   // Freestream inherits reference state. We re-dimensionalize so the defaults
   // in -help will be visible in SI units.
-  StatePrimitive Y_inf = {.pressure = reference->pressure / Pascal, .velocity = {0}, .temperature = reference->temperature / Kelvin};
-  for (int i = 0; i < 3; i++) Y_inf.velocity[i] = reference->velocity[i] * second / meter;
+  StatePrimitive Y_inf = {.pressure = reference.pressure / Pascal, .velocity = {0}, .temperature = reference.temperature / Kelvin};
+  for (int i = 0; i < 3; i++) Y_inf.velocity[i] = reference.velocity[i] * second / meter;
 
   PetscOptionsBegin(comm, NULL, "Options for Freestream boundary condition", NULL);
   PetscCall(PetscOptionsEnum("-freestream_riemann", "Riemann solver to use in freestream boundary condition", NULL, RiemannSolverTypes,
@@ -105,18 +106,19 @@ typedef enum {
   OUTFLOW_PRESSURE,
 } OutflowType;
 
-PetscErrorCode OutflowBCSetup(ProblemData problem, DM dm, void *ctx, NewtonianIdealGasContext newtonian_ig_ctx, const StatePrimitive *reference) {
-  User                 user = *(User *)ctx;
-  Ceed                 ceed = user->ceed;
-  OutflowContext       outflow_ctx;
-  OutflowType          outflow_type = OUTFLOW_RIEMANN;
-  CeedQFunctionContext outflow_context;
-  const PetscScalar    Kelvin = user->units->Kelvin;
-  const PetscScalar    Pascal = user->units->Pascal;
+PetscErrorCode OutflowBCSetup(User user, ProblemData problem, DM dm) {
+  Ceed                     ceed = user->ceed;
+  OutflowContext           outflow_ctx;
+  OutflowType              outflow_type = OUTFLOW_RIEMANN;
+  CeedQFunctionContext     outflow_context;
+  const PetscScalar        Kelvin           = user->units->Kelvin;
+  const PetscScalar        Pascal           = user->units->Pascal;
+  NewtonianIdealGasContext newtonian_ig_ctx = problem->newtonian_ig_ctx;
+  const StatePrimitive     reference        = newtonian_ig_ctx->reference;
 
   PetscFunctionBeginUser;
-  CeedScalar pressure    = reference->pressure / Pascal;
-  CeedScalar temperature = reference->temperature / Kelvin;
+  CeedScalar pressure    = reference.pressure / Pascal;
+  CeedScalar temperature = reference.temperature / Kelvin;
   CeedScalar recirc = 1, softplus_velocity = 1e-2;
   PetscOptionsBegin(user->comm, NULL, "Options for Outflow boundary condition", NULL);
   PetscCall(

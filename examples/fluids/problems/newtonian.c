@@ -317,6 +317,7 @@ PetscErrorCode NS_NEWTONIAN_IG(ProblemData problem, DM dm, void *ctx, SimpleBC b
   newtonian_ig_ctx->Ctau_C        = Ctau_C;
   newtonian_ig_ctx->Ctau_M        = Ctau_M;
   newtonian_ig_ctx->Ctau_E        = Ctau_E;
+  newtonian_ig_ctx->reference     = reference;
   newtonian_ig_ctx->stabilization = stab;
   newtonian_ig_ctx->is_implicit   = implicit;
   newtonian_ig_ctx->state_var     = state_var;
@@ -326,6 +327,7 @@ PetscErrorCode NS_NEWTONIAN_IG(ProblemData problem, DM dm, void *ctx, SimpleBC b
   newtonian_ig_ctx->idl_length    = idl_length * meter;
   newtonian_ig_ctx->idl_pressure  = idl_pressure;
   PetscCall(PetscArraycpy(newtonian_ig_ctx->g, g, 3));
+  problem->newtonian_ig_ctx = newtonian_ig_ctx;
 
   // -- Setup Context
   setup_context->reference = reference;
@@ -360,9 +362,9 @@ PetscErrorCode NS_NEWTONIAN_IG(ProblemData problem, DM dm, void *ctx, SimpleBC b
   PetscCallCeed(ceed, CeedQFunctionContextReferenceCopy(newtonian_ig_context, &problem->apply_inflow.qfunction_context));
   PetscCallCeed(ceed, CeedQFunctionContextReferenceCopy(newtonian_ig_context, &problem->apply_inflow_jacobian.qfunction_context));
 
-  if (bc->num_freestream > 0) PetscCall(FreestreamBCSetup(problem, dm, ctx, newtonian_ig_ctx, &reference));
-  if (bc->num_outflow > 0) PetscCall(OutflowBCSetup(problem, dm, ctx, newtonian_ig_ctx, &reference));
-  if (bc->num_slip > 0) PetscCall(SlipBCSetup(problem, dm, ctx, newtonian_ig_context));
+  if (bc->num_freestream > 0) PetscCall(FreestreamBCSetup(user, problem, dm));
+  if (bc->num_outflow > 0) PetscCall(OutflowBCSetup(user, problem, dm));
+  if (bc->num_slip > 0) PetscCall(SlipBCSetup(user, problem, dm));
 
   if (unit_tests) {
     PetscCall(UnitTests_Newtonian(user, newtonian_ig_ctx));
