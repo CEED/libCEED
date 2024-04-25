@@ -21,10 +21,12 @@ PetscErrorCode CompressibleBlasiusResidual(SNES snes, Vec X, Vec R, void *ctx) {
   const BlasiusContext blasius = (BlasiusContext)ctx;
   const PetscScalar   *Tf, *Th;  // Chebyshev coefficients
   PetscScalar         *r, f[4], h[4];
-  PetscInt             N = blasius->n_cheb;
+  PetscInt             N       = blasius->n_cheb;
+  State                S_infty = blasius->S_infty;
+  CeedScalar           U_infty = sqrt(Dot3(S_infty.Y.velocity, S_infty.Y.velocity));
 
   PetscFunctionBeginUser;
-  PetscScalar Ma = Mach(&blasius->newtonian_ctx, blasius->T_inf, blasius->U_inf), Pr = Prandtl(&blasius->newtonian_ctx),
+  PetscScalar Ma = Mach(&blasius->newtonian_ctx, S_infty.Y.temperature, U_infty), Pr = Prandtl(&blasius->newtonian_ctx),
               gamma = HeatCapacityRatio(&blasius->newtonian_ctx);
 
   PetscCall(VecGetArrayRead(X, &Tf));
@@ -59,7 +61,7 @@ PetscErrorCode CompressibleBlasiusResidual(SNES snes, Vec X, Vec R, void *ctx) {
 
   // h - left end boundary condition
   ChebyshevEval(N - 1, Th, -1., blasius->eta_max, h);
-  r[N] = h[0] - blasius->T_wall / blasius->T_inf;
+  r[N] = h[0] - blasius->T_wall / S_infty.Y.temperature;
 
   // h - right end boundary condition
   ChebyshevEval(N - 1, Th, 1., blasius->eta_max, h);
@@ -252,7 +254,7 @@ PetscErrorCode NS_BLASIUS(ProblemData problem, DM dm, void *ctx, SimpleBC bc) {
   CeedScalar T_inf                                = 288.;         // K
   CeedScalar T_wall                               = 288.;         // K
   CeedScalar delta0                               = 4.2e-3;       // m
-  CeedScalar P0                                   = 1.01e5;       // Pa
+  CeedScalar P_inf                                = 1.01e5;       // Pa
   PetscInt   N                                    = 20;           // Number of Chebyshev terms
   PetscBool  weakT                                = PETSC_FALSE;  // weak density or temperature
   PetscReal  mesh_refine_height                   = 5.9e-4;       // m
@@ -260,14 +262,17 @@ PetscErrorCode NS_BLASIUS(ProblemData problem, DM dm, void *ctx, SimpleBC bc) {
   PetscInt   mesh_Ndelta                          = 45;           // [-]
   PetscReal  mesh_top_angle                       = 5;            // degrees
   char       mesh_ynodes_path[PETSC_MAX_PATH_LEN] = "";
+  PetscBool  flg;
 
   PetscOptionsBegin(comm, NULL, "Options for BLASIUS problem", NULL);
   PetscCall(PetscOptionsBool("-weakT", "Change from rho weak to T weak at inflow", NULL, weakT, &weakT, NULL));
   PetscCall(PetscOptionsScalar("-velocity_infinity", "Velocity at boundary layer edge", NULL, U_inf, &U_inf, NULL));
   PetscCall(PetscOptionsScalar("-temperature_infinity", "Temperature at boundary layer edge", NULL, T_inf, &T_inf, NULL));
+  PetscCall(PetscOptionsScalar("-pressure_infinity", "Pressure at boundary layer edge", NULL, P_inf, &P_inf, &flg));
+  PetscCall(PetscOptionsDeprecated("-P0", "-pressure_infinity", "libCEED 0.12.0", "Use -pressure_infinity to set pressure at boundary layer edge"));
+  if (!flg) PetscCall(PetscOptionsScalar("-P0", "Pressure at boundary layer edge", NULL, P_inf, &P_inf, &flg));
   PetscCall(PetscOptionsScalar("-temperature_wall", "Temperature at wall", NULL, T_wall, &T_wall, NULL));
   PetscCall(PetscOptionsScalar("-delta0", "Boundary layer height at inflow", NULL, delta0, &delta0, NULL));
-  PetscCall(PetscOptionsScalar("-P0", "Pressure at outflow", NULL, P0, &P0, NULL));
   PetscCall(PetscOptionsInt("-n_chebyshev", "Number of Chebyshev terms", NULL, N, &N, NULL));
   PetscCheck(3 <= N && N <= BLASIUS_MAX_N_CHEBYSHEV, comm, PETSC_ERR_ARG_OUTOFRANGE, "-n_chebyshev %" PetscInt_FMT " must be in range [3, %d]", N,
              BLASIUS_MAX_N_CHEBYSHEV);
@@ -293,7 +298,7 @@ PetscErrorCode NS_BLASIUS(ProblemData problem, DM dm, void *ctx, SimpleBC bc) {
 
   T_inf *= Kelvin;
   T_wall *= Kelvin;
-  P0 *= Pascal;
+  P_inf *= Pascal;
   U_inf *= meter / second;
   delta0 *= meter;
 
@@ -308,16 +313,20 @@ PetscErrorCode NS_BLASIUS(ProblemData problem, DM dm, void *ctx, SimpleBC bc) {
   // Some properties depend on parameters from NewtonianIdealGas
   PetscCallCeed(ceed, CeedQFunctionContextGetData(problem->apply_vol_rhs.qfunction_context, CEED_MEM_HOST, &newtonian_ig_ctx));
 
-  blasius_ctx->weakT         = weakT;
-  blasius_ctx->U_inf         = U_inf;
-  blasius_ctx->T_inf         = T_inf;
-  blasius_ctx->T_wall        = T_wall;
-  blasius_ctx->delta0        = delta0;
-  blasius_ctx->P0            = P0;
-  blasius_ctx->n_cheb        = N;
-  newtonian_ig_ctx->P0       = P0;
-  blasius_ctx->implicit      = user->phys->implicit;
-  blasius_ctx->newtonian_ctx = *newtonian_ig_ctx;
+  StatePrimitive Y_inf = {
+      .pressure = P_inf, .velocity = {U_inf, 0, 0},
+           .temperature = T_inf
+  };
+  State S_infty = StateFromPrimitive(newtonian_ig_ctx, Y_inf);
+
+  blasius_ctx->weakT             = weakT;
+  blasius_ctx->T_wall            = T_wall;
+  blasius_ctx->delta0            = delta0;
+  blasius_ctx->S_infty           = S_infty;
+  blasius_ctx->n_cheb            = N;
+  newtonian_ig_ctx->idl_pressure = P_inf;
+  blasius_ctx->implicit          = user->phys->implicit;
+  blasius_ctx->newtonian_ctx     = *newtonian_ig_ctx;
 
   {
     PetscReal domain_min[3], domain_max[3];
@@ -338,7 +347,7 @@ PetscErrorCode NS_BLASIUS(ProblemData problem, DM dm, void *ctx, SimpleBC bc) {
   PetscCallCeed(ceed, CeedQFunctionContextDestroy(&problem->ics.qfunction_context));
   problem->ics.qfunction_context = blasius_context;
   if (use_stg) {
-    PetscCall(SetupStg(comm, dm, problem, user, weakT, T_inf, P0));
+    PetscCall(SetupStg(comm, dm, problem, user, weakT, S_infty.Y.temperature, S_infty.Y.pressure));
   } else if (diff_filter_mms) {
     PetscCall(DifferentialFilterMmsICSetup(problem));
   } else {

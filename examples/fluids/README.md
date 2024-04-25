@@ -948,6 +948,11 @@ The Blasius problem has the following command-line options in addition to the Ne
   - `288`
   - `K`
 
+* - `-pressure_infinity`
+  - Atmospheric pressure, also sets IDL reference pressure
+  - `1.01E5`
+  - `Pa`
+
 * - `-temperature_wall`
   - Wall temperature
   - `288`
@@ -957,11 +962,6 @@ The Blasius problem has the following command-line options in addition to the Ne
   - Boundary layer height at the inflow
   - `4.2e-3`
   - `m`
-
-* - `-P0`
-  - Atmospheric pressure
-  - `1.01E5`
-  - `Pa`
 
 * - `-platemesh_modify_mesh`
   - Whether to modify the mesh using the given options below.
