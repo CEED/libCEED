@@ -297,10 +297,6 @@ int main(int argc, char **argv) {
   }
 
   // -- QFunctions
-  PetscCallCeed(ceed, CeedQFunctionDestroy(&ceed_data->qf_setup_vol));
-  PetscCallCeed(ceed, CeedQFunctionDestroy(&ceed_data->qf_ics));
-  PetscCallCeed(ceed, CeedQFunctionDestroy(&ceed_data->qf_rhs_vol));
-  PetscCallCeed(ceed, CeedQFunctionDestroy(&ceed_data->qf_ifunction_vol));
   PetscCallCeed(ceed, CeedQFunctionDestroy(&ceed_data->qf_setup_sur));
   PetscCallCeed(ceed, CeedQFunctionDestroy(&ceed_data->qf_apply_inflow));
   PetscCallCeed(ceed, CeedQFunctionDestroy(&ceed_data->qf_apply_inflow_jacobian));
@@ -308,7 +304,6 @@ int main(int argc, char **argv) {
   PetscCallCeed(ceed, CeedQFunctionDestroy(&ceed_data->qf_apply_freestream_jacobian));
 
   // -- Operators
-  PetscCallCeed(ceed, CeedOperatorDestroy(&ceed_data->op_setup_vol));
   PetscCall(OperatorApplyContextDestroy(ceed_data->op_ics_ctx));
   PetscCallCeed(ceed, CeedOperatorDestroy(&user->op_rhs_vol));
   PetscCallCeed(ceed, CeedOperatorDestroy(&user->op_ifunction_vol));
