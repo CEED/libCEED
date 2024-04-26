@@ -11,15 +11,17 @@
    @brief Create `BCDefinition`
 
    @param[in]  name             Name of the boundary condition
+   @param[in]  bc_type          `BCType` for the boundary condition
    @param[in]  num_label_values Number of `DMLabel` values
    @param[in]  label_values     Array of label values that define the boundaries controlled by the `BCDefinition`, size `num_label_values`
    @param[out] bc_def           The new `BCDefinition`
 **/
-PetscErrorCode BCDefinitionCreate(const char *name, PetscInt num_label_values, PetscInt label_values[], BCDefinition *bc_def) {
+PetscErrorCode BCDefinitionCreate(const char *name, BCType bc_type, PetscInt num_label_values, PetscInt label_values[], BCDefinition *bc_def) {
   PetscFunctionBeginUser;
   PetscCall(PetscNew(bc_def));
 
   PetscCall(PetscStrallocpy(name, &(*bc_def)->name));
+  (*bc_def)->bc_type          = bc_type;
   (*bc_def)->num_label_values = num_label_values;
   PetscCall(PetscMalloc1(num_label_values, &(*bc_def)->label_values));
   for (PetscInt i = 0; i < num_label_values; i++) (*bc_def)->label_values[i] = label_values[i];
@@ -92,13 +94,13 @@ PetscErrorCode BCDefinitionGetEssential(BCDefinition bc_def, PetscInt *num_essen
 
 // @brief See `PetscOptionsBCDefinition`
 PetscErrorCode PetscOptionsBCDefinition_Private(PetscOptionItems *PetscOptionsObject, const char opt[], const char text[], const char man[],
-                                                const char name[], BCDefinition *bc_def, PetscBool *set) {
+                                                const char name[], BCType bc_type, BCDefinition *bc_def, PetscBool *set) {
   PetscInt num_label_values = LABEL_ARRAY_SIZE, label_values[LABEL_ARRAY_SIZE] = {0};
 
   PetscFunctionBeginUser;
   PetscCall(PetscOptionsIntArray(opt, text, man, label_values, &num_label_values, set));
   if (num_label_values > 0) {
-    PetscCall(BCDefinitionCreate(name, num_label_values, label_values, bc_def));
+    PetscCall(BCDefinitionCreate(name, bc_type, num_label_values, label_values, bc_def));
   } else {
     *bc_def = NULL;
   }

@@ -107,7 +107,7 @@ int main(int argc, char **argv) {
   MPI_Comm comm = PETSC_COMM_WORLD;
   user->comm    = comm;
   PetscCall(ProcessCommandLineOptions(comm, app_ctx, bc));
-  PetscCall(BoundaryConditionSetUp(user, problem, app_ctx, bc));
+  PetscCall(BoundaryConditionInitialize(user, problem, app_ctx, bc));
 
   // ---------------------------------------------------------------------------
   // Initialize libCEED
@@ -174,6 +174,8 @@ int main(int argc, char **argv) {
 
   // -- Set up DM
   PetscCall(SetUpDM(dm, problem, app_ctx->degree, app_ctx->q_extra, bc, phys_ctx));
+
+  PetscCall(BoundaryConditionSetUp(user, problem, dm, problem->num_bc_defs, problem->bc_defs));
 
   // -- Refine DM for high-order viz
   if (app_ctx->viz_refine) PetscCall(VizRefineDM(dm, user, problem, bc, phys_ctx));

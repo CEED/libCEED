@@ -31,7 +31,7 @@ static PetscErrorCode AddBCDefinitionToSegBuffer(BCDefinition bc_def, PetscSegBu
    @param[in]     app_ctx `AppCtx`
    @param[in,out] bc      `SimpleBC`
 **/
-PetscErrorCode BoundaryConditionSetUp(User user, ProblemData problem, AppCtx app_ctx, SimpleBC bc) {
+PetscErrorCode BoundaryConditionInitialize(User user, ProblemData problem, AppCtx app_ctx, SimpleBC bc) {
   PetscSegBuffer bc_defs_seg;
   PetscBool      flg;
   BCDefinition   bc_def;
@@ -41,7 +41,7 @@ PetscErrorCode BoundaryConditionSetUp(User user, ProblemData problem, AppCtx app
 
   PetscOptionsBegin(user->comm, NULL, "Boundary Condition Options", NULL);
 
-  PetscCall(PetscOptionsBCDefinition("-bc_wall", "Face IDs to apply wall BC", NULL, "wall", &bc_def, NULL));
+  PetscCall(PetscOptionsBCDefinition("-bc_wall", "Face IDs to apply wall BC", NULL, "wall", BCTYPE_WALL, &bc_def, NULL));
   PetscCall(AddBCDefinitionToSegBuffer(bc_def, bc_defs_seg));
   if (bc_def) {
     PetscInt num_essential_comps = 16, essential_comps[16];
@@ -62,9 +62,9 @@ PetscErrorCode BoundaryConditionSetUp(User user, ProblemData problem, AppCtx app
       PetscCall(PetscOptionsDeprecated(deprecated[j], flags[j], "libCEED 0.12.0",
                                        "Use -bc_symmetry_[x,y,z] for direct equivalency, or -bc_slip for weak, Riemann-based, direction-invariant "
                                        "slip/no-penatration boundary conditions"));
-      PetscCall(PetscOptionsBCDefinition(flags[j], "Face IDs to apply symmetry BC", NULL, "symmetry", &bc_def, NULL));
+      PetscCall(PetscOptionsBCDefinition(flags[j], "Face IDs to apply symmetry BC", NULL, "symmetry", BCTYPE_SYMMETRY, &bc_def, NULL));
       if (!bc_def) {
-        PetscCall(PetscOptionsBCDefinition(deprecated[j], "Face IDs to apply symmetry BC", NULL, "symmetry", &bc_def, NULL));
+        PetscCall(PetscOptionsBCDefinition(deprecated[j], "Face IDs to apply symmetry BC", NULL, "symmetry", BCTYPE_SYMMETRY, &bc_def, NULL));
       }
       PetscCall(AddBCDefinitionToSegBuffer(bc_def, bc_defs_seg));
       if (bc_def) {
@@ -84,6 +84,8 @@ PetscErrorCode BoundaryConditionSetUp(User user, ProblemData problem, AppCtx app
   // Freestream BCs
   bc->num_freestream = 16;
   PetscCall(PetscOptionsIntArray("-bc_freestream", "Face IDs to apply freestream BC", NULL, bc->freestreams, &bc->num_freestream, NULL));
+  PetscCall(PetscOptionsBCDefinition("-bc_freestream", "Face IDs to apply freestream BC", NULL, "freestream", BCTYPE_FREESTREAM, &bc_def, NULL));
+  PetscCall(AddBCDefinitionToSegBuffer(bc_def, bc_defs_seg));
 
   bc->num_slip = 16;
   PetscCall(PetscOptionsIntArray("-bc_slip", "Face IDs to apply slip BC", NULL, bc->slips, &bc->num_slip, NULL));
@@ -96,5 +98,28 @@ PetscErrorCode BoundaryConditionSetUp(User user, ProblemData problem, AppCtx app
 
   //TODO: Verify that the BCDefinition don't have overlapping claims to boundary faces
 
+  PetscFunctionReturn(PETSC_SUCCESS);
+}
+
+// @brief Run setup functions on `BCDefinition`s based on their `BCType`
+//
+// Primary objective here is to create the ifunction and ijacobian QFunction defintions and any other setup tasks before (e.g. creation of static CeedVectors).
+PetscErrorCode BoundaryConditionSetUp(User user, ProblemData problem, DM dm, PetscInt num_bc_defs, BCDefinition *bc_defs) {
+  PetscFunctionBeginUser;
+
+  for (PetscInt i = 0; i < num_bc_defs; i++) {
+    switch (bc_defs[i]->bc_type) {
+      case BCTYPE_WALL:
+      case BCTYPE_SYMMETRY:
+        // Don't require additional setup
+        break;
+      case BCTYPE_FREESTREAM:
+        PetscCall(FreestreamBCSetup_BCDefinition(user, problem, dm, bc_defs[i]));
+        break;
+      default:
+        // TODO: probably should error here
+        break;
+    }
+  }
   PetscFunctionReturn(PETSC_SUCCESS);
 }

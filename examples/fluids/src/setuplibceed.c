@@ -218,6 +218,23 @@ static PetscErrorCode AddBCSubOperators(User user, Ceed ceed, DM dm, SimpleBC bc
 
   PetscCall(DMGetLabel(dm, "Face Sets", &face_sets_label));
 
+  // Create Sub-Operator for boundaries
+  for (PetscInt i = 0; i < problem->num_bc_defs; i++) {
+    CeedQFunction qf_apply_ifunction = NULL, qf_apply_ijacobian = NULL;
+    BCDefinition  bc_def = problem->bc_defs[i];
+
+    if (!bc_def->ifunction_spec.qfunction) continue;
+
+    PetscCall(SetupBCQFunctions(ceed, dim_sur, num_comp_x, num_comp_q, q_data_size_sur, jac_data_size_sur, bc_def->ifunction_spec,
+                                bc_def->ijacobian_spec, &qf_apply_ifunction, &qf_apply_ijacobian));
+    for (PetscInt j = 0; j < bc_def->num_label_values; j++) {
+      PetscCall(AddBCSubOperator(ceed, dm, ceed_data, face_sets_label, bc_def->label_values[j], height, Q_sur, q_data_size_sur, jac_data_size_sur,
+                                 basis_q_sur, basis_x_sur, qf_apply_ifunction, qf_apply_ijacobian, op_apply, op_apply_ijacobian));
+    }
+    PetscCallCeed(ceed, CeedQFunctionDestroy(&qf_apply_ifunction));
+    PetscCallCeed(ceed, CeedQFunctionDestroy(&qf_apply_ijacobian));
+  }
+
   {  // --- Create Sub-Operator for inflow boundaries
     CeedQFunction qf_apply_inflow = NULL, qf_apply_inflow_jacobian = NULL;
 
@@ -242,19 +259,6 @@ static PetscErrorCode AddBCSubOperators(User user, Ceed ceed, DM dm, SimpleBC bc
     }
     PetscCallCeed(ceed, CeedQFunctionDestroy(&qf_apply_outflow));
     PetscCallCeed(ceed, CeedQFunctionDestroy(&qf_apply_outflow_jacobian));
-  }
-
-  {  // --- Create Sub-Operator for freestream boundaries
-    CeedQFunction qf_apply_freestream = NULL, qf_apply_freestream_jacobian = NULL;
-
-    PetscCall(SetupBCQFunctions(ceed, dim_sur, num_comp_x, num_comp_q, q_data_size_sur, jac_data_size_sur, problem->apply_freestream,
-                                problem->apply_freestream_jacobian, &qf_apply_freestream, &qf_apply_freestream_jacobian));
-    for (CeedInt i = 0; i < bc->num_freestream; i++) {
-      PetscCall(AddBCSubOperator(ceed, dm, ceed_data, face_sets_label, bc->freestreams[i], height, Q_sur, q_data_size_sur, jac_data_size_sur,
-                                 basis_q_sur, basis_x_sur, qf_apply_freestream, qf_apply_freestream_jacobian, op_apply, op_apply_ijacobian));
-    }
-    PetscCallCeed(ceed, CeedQFunctionDestroy(&qf_apply_freestream));
-    PetscCallCeed(ceed, CeedQFunctionDestroy(&qf_apply_freestream_jacobian));
   }
 
   {  // --- Create Sub-Operator for slip boundaries

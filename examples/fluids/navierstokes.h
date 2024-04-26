@@ -271,13 +271,8 @@ struct Physics_private {
   CeedContextFieldLabel ics_time_label;
 };
 
-PetscErrorCode BoundaryConditionSetUp(User user, ProblemData problem, AppCtx app_ctx, SimpleBC bc);
-
-typedef struct {
-  CeedQFunctionUser    qfunction;
-  const char          *qfunction_loc;
-  CeedQFunctionContext qfunction_context;
-} ProblemQFunctionSpec;
+PetscErrorCode BoundaryConditionInitialize(User user, ProblemData problem, AppCtx app_ctx, SimpleBC bc);
+PetscErrorCode BoundaryConditionSetUp(User user, ProblemData problem, DM dm, PetscInt num_bc_defs, BCDefinition *bc_defs);
 
 // Problem specific data
 struct ProblemData_private {
@@ -470,6 +465,7 @@ PetscErrorCode SetupStrongBC_Ceed(Ceed ceed, CeedData ceed_data, DM dm, User use
 PetscErrorCode FreestreamBCSetup(User user, ProblemData problem, DM dm);
 PetscErrorCode OutflowBCSetup(User user, ProblemData problem, DM dm);
 PetscErrorCode SlipBCSetup(User user, ProblemData problem, DM dm);
+PetscErrorCode FreestreamBCSetup_BCDefinition(User user, ProblemData problem, DM dm, BCDefinition bc_def);
 
 // -----------------------------------------------------------------------------
 // Differential Filtering Functions

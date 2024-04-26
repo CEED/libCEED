@@ -13,6 +13,7 @@
 #include <ceed.h>
 #include <petscdm.h>
 
+#include <bc_definition.h>
 #include "../navierstokes.h"
 #include "../qfunctions/newtonian_types.h"
 
@@ -97,6 +98,88 @@ PetscErrorCode FreestreamBCSetup(User user, ProblemData problem, DM dm) {
   PetscCallCeed(ceed, CeedQFunctionContextSetDataDestroy(freestream_context, CEED_MEM_HOST, FreeContextPetsc));
   problem->apply_freestream.qfunction_context = freestream_context;
   PetscCallCeed(ceed, CeedQFunctionContextReferenceCopy(freestream_context, &problem->apply_freestream_jacobian.qfunction_context));
+  PetscFunctionReturn(PETSC_SUCCESS);
+}
+
+PetscErrorCode FreestreamBCSetup_BCDefinition(User user, ProblemData problem, DM dm, BCDefinition bc_def) {
+  MPI_Comm                 comm = user->comm;
+  Ceed                     ceed = user->ceed;
+  FreestreamContext        freestream_ctx;
+  CeedQFunctionContext     freestream_context;
+  RiemannFluxType          riemann          = RIEMANN_HLLC;
+  PetscScalar              meter            = user->units->meter;
+  PetscScalar              second           = user->units->second;
+  PetscScalar              Kelvin           = user->units->Kelvin;
+  PetscScalar              Pascal           = user->units->Pascal;
+  NewtonianIdealGasContext newtonian_ig_ctx = problem->newtonian_ig_ctx;
+  const StatePrimitive     reference        = newtonian_ig_ctx->reference;
+
+  PetscFunctionBeginUser;
+  // Freestream inherits reference state. We re-dimensionalize so the defaults
+  // in -help will be visible in SI units.
+  StatePrimitive Y_inf = {.pressure = reference.pressure / Pascal, .velocity = {0}, .temperature = reference.temperature / Kelvin};
+  for (int i = 0; i < 3; i++) Y_inf.velocity[i] = reference.velocity[i] * second / meter;
+
+  PetscOptionsBegin(comm, NULL, "Options for Freestream boundary condition", NULL);
+  PetscCall(PetscOptionsEnum("-freestream_riemann", "Riemann solver to use in freestream boundary condition", NULL, RiemannSolverTypes,
+                             (PetscEnum)riemann, (PetscEnum *)&riemann, NULL));
+  PetscCall(PetscOptionsScalar("-freestream_pressure", "Pressure at freestream condition", NULL, Y_inf.pressure, &Y_inf.pressure, NULL));
+  PetscInt narray = 3;
+  PetscCall(PetscOptionsScalarArray("-freestream_velocity", "Velocity at freestream condition", NULL, Y_inf.velocity, &narray, NULL));
+  PetscCall(PetscOptionsScalar("-freestream_temperature", "Temperature at freestream condition", NULL, Y_inf.temperature, &Y_inf.temperature, NULL));
+  PetscOptionsEnd();
+
+  switch (user->phys->state_var) {
+    case STATEVAR_CONSERVATIVE:
+      switch (riemann) {
+        case RIEMANN_HLL:
+          bc_def->ifunction_spec.qfunction     = Freestream_Conserv_HLL;
+          bc_def->ifunction_spec.qfunction_loc = Freestream_Conserv_HLL_loc;
+          bc_def->ijacobian_spec.qfunction     = Freestream_Jacobian_Conserv_HLL;
+          bc_def->ijacobian_spec.qfunction_loc = Freestream_Jacobian_Conserv_HLL_loc;
+          break;
+        case RIEMANN_HLLC:
+          bc_def->ifunction_spec.qfunction     = Freestream_Conserv_HLLC;
+          bc_def->ifunction_spec.qfunction_loc = Freestream_Conserv_HLLC_loc;
+          bc_def->ijacobian_spec.qfunction     = Freestream_Jacobian_Conserv_HLLC;
+          bc_def->ijacobian_spec.qfunction_loc = Freestream_Jacobian_Conserv_HLLC_loc;
+          break;
+      }
+      break;
+    case STATEVAR_PRIMITIVE:
+      switch (riemann) {
+        case RIEMANN_HLL:
+          bc_def->ifunction_spec.qfunction     = Freestream_Prim_HLL;
+          bc_def->ifunction_spec.qfunction_loc = Freestream_Prim_HLL_loc;
+          bc_def->ijacobian_spec.qfunction     = Freestream_Jacobian_Prim_HLL;
+          bc_def->ijacobian_spec.qfunction_loc = Freestream_Jacobian_Prim_HLL_loc;
+          break;
+        case RIEMANN_HLLC:
+          bc_def->ifunction_spec.qfunction     = Freestream_Prim_HLLC;
+          bc_def->ifunction_spec.qfunction_loc = Freestream_Prim_HLLC_loc;
+          bc_def->ijacobian_spec.qfunction     = Freestream_Jacobian_Prim_HLLC;
+          bc_def->ijacobian_spec.qfunction_loc = Freestream_Jacobian_Prim_HLLC_loc;
+          break;
+      }
+      break;
+  }
+
+  Y_inf.pressure *= Pascal;
+  for (int i = 0; i < 3; i++) Y_inf.velocity[i] *= meter / second;
+  Y_inf.temperature *= Kelvin;
+
+  State S_infty = StateFromPrimitive(newtonian_ig_ctx, Y_inf);
+
+  // -- Set freestream_ctx struct values
+  PetscCall(PetscCalloc1(1, &freestream_ctx));
+  freestream_ctx->newtonian_ctx = *newtonian_ig_ctx;
+  freestream_ctx->S_infty       = S_infty;
+
+  PetscCallCeed(ceed, CeedQFunctionContextCreate(user->ceed, &freestream_context));
+  PetscCallCeed(ceed, CeedQFunctionContextSetData(freestream_context, CEED_MEM_HOST, CEED_USE_POINTER, sizeof(*freestream_ctx), freestream_ctx));
+  PetscCallCeed(ceed, CeedQFunctionContextSetDataDestroy(freestream_context, CEED_MEM_HOST, FreeContextPetsc));
+  bc_def->ifunction_spec.qfunction_context = freestream_context;
+  PetscCallCeed(ceed, CeedQFunctionContextReferenceCopy(freestream_context, &bc_def->ijacobian_spec.qfunction_context));
   PetscFunctionReturn(PETSC_SUCCESS);
 }
 
