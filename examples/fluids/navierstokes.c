@@ -268,9 +268,6 @@ int main(int argc, char **argv) {
   // -- Bases
   PetscCallCeed(ceed, CeedBasisDestroy(&ceed_data->basis_q));
   PetscCallCeed(ceed, CeedBasisDestroy(&ceed_data->basis_x));
-  PetscCallCeed(ceed, CeedBasisDestroy(&ceed_data->basis_xc));
-  PetscCallCeed(ceed, CeedBasisDestroy(&ceed_data->basis_q_sur));
-  PetscCallCeed(ceed, CeedBasisDestroy(&ceed_data->basis_x_sur));
 
   // -- Restrictions
   PetscCallCeed(ceed, CeedElemRestrictionDestroy(&ceed_data->elem_restr_q));
@@ -298,10 +295,6 @@ int main(int argc, char **argv) {
 
   // -- QFunctions
   PetscCallCeed(ceed, CeedQFunctionDestroy(&ceed_data->qf_setup_sur));
-  PetscCallCeed(ceed, CeedQFunctionDestroy(&ceed_data->qf_apply_inflow));
-  PetscCallCeed(ceed, CeedQFunctionDestroy(&ceed_data->qf_apply_inflow_jacobian));
-  PetscCallCeed(ceed, CeedQFunctionDestroy(&ceed_data->qf_apply_freestream));
-  PetscCallCeed(ceed, CeedQFunctionDestroy(&ceed_data->qf_apply_freestream_jacobian));
 
   // -- Operators
   PetscCall(OperatorApplyContextDestroy(ceed_data->op_ics_ctx));

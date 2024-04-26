@@ -152,11 +152,10 @@ struct AppCtx_private {
 // libCEED data struct
 struct CeedData_private {
   CeedVector           x_coord, q_data;
-  CeedBasis            basis_x, basis_xc, basis_q, basis_x_sur, basis_q_sur;
+  CeedBasis            basis_x, basis_q;
   CeedElemRestriction  elem_restr_x, elem_restr_q, elem_restr_qd_i;
   OperatorApplyContext op_ics_ctx;
-  CeedQFunction        qf_setup_sur, qf_apply_inflow, qf_apply_inflow_jacobian, qf_apply_outflow, qf_apply_outflow_jacobian, qf_apply_freestream,
-      qf_apply_freestream_jacobian, qf_apply_slip, qf_apply_slip_jacobian;
+  CeedQFunction        qf_setup_sur;
 };
 
 typedef struct {
@@ -347,11 +346,6 @@ PetscErrorCode DMPlexCeedElemRestrictionCollocatedCreate(Ceed ceed, DM dm, DMLab
                                                          PetscInt q_data_size, CeedElemRestriction *restriction);
 
 PetscErrorCode CreateBasisFromPlex(Ceed ceed, DM dm, DMLabel domain_label, CeedInt label_value, CeedInt height, CeedInt dm_field, CeedBasis *basis);
-
-// Utility function to create CEED Composite Operator for the entire domain
-PetscErrorCode CreateOperatorForDomain(Ceed ceed, DM dm, SimpleBC bc, CeedData ceed_data, Physics phys, CeedOperator op_apply_vol,
-                                       CeedOperator op_apply_ijacobian_vol, CeedInt height, CeedInt P_sur, CeedInt Q_sur, CeedInt q_data_size_sur,
-                                       CeedInt jac_data_size_sur, CeedOperator *op_apply, CeedOperator *op_apply_ijacobian);
 
 PetscErrorCode SetupLibceed(Ceed ceed, CeedData ceed_data, DM dm, User user, AppCtx app_ctx, ProblemData problem, SimpleBC bc);
 
