@@ -268,9 +268,8 @@ PetscErrorCode NS_BLASIUS(ProblemData problem, DM dm, void *ctx, SimpleBC bc) {
   PetscCall(PetscOptionsBool("-weakT", "Change from rho weak to T weak at inflow", NULL, weakT, &weakT, NULL));
   PetscCall(PetscOptionsScalar("-velocity_infinity", "Velocity at boundary layer edge", NULL, U_inf, &U_inf, NULL));
   PetscCall(PetscOptionsScalar("-temperature_infinity", "Temperature at boundary layer edge", NULL, T_inf, &T_inf, NULL));
-  PetscCall(PetscOptionsScalar("-pressure_infinity", "Pressure at boundary layer edge", NULL, P_inf, &P_inf, &flg));
   PetscCall(PetscOptionsDeprecated("-P0", "-pressure_infinity", "libCEED 0.12.0", "Use -pressure_infinity to set pressure at boundary layer edge"));
-  if (!flg) PetscCall(PetscOptionsScalar("-P0", "Pressure at boundary layer edge", NULL, P_inf, &P_inf, &flg));
+  PetscCall(PetscOptionsScalar("-pressure_infinity", "Pressure at boundary layer edge", NULL, P_inf, &P_inf, &flg));
   PetscCall(PetscOptionsScalar("-temperature_wall", "Temperature at wall", NULL, T_wall, &T_wall, NULL));
   PetscCall(PetscOptionsScalar("-delta0", "Boundary layer height at inflow", NULL, delta0, &delta0, NULL));
   PetscCall(PetscOptionsInt("-n_chebyshev", "Number of Chebyshev terms", NULL, N, &N, NULL));
