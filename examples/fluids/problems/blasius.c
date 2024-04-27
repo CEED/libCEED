@@ -262,14 +262,17 @@ PetscErrorCode NS_BLASIUS(ProblemData problem, DM dm, void *ctx, SimpleBC bc) {
   PetscInt   mesh_Ndelta                          = 45;           // [-]
   PetscReal  mesh_top_angle                       = 5;            // degrees
   char       mesh_ynodes_path[PETSC_MAX_PATH_LEN] = "";
-  PetscBool  flg;
+  PetscBool  P0_set;
 
   PetscOptionsBegin(comm, NULL, "Options for BLASIUS problem", NULL);
   PetscCall(PetscOptionsBool("-weakT", "Change from rho weak to T weak at inflow", NULL, weakT, &weakT, NULL));
   PetscCall(PetscOptionsScalar("-velocity_infinity", "Velocity at boundary layer edge", NULL, U_inf, &U_inf, NULL));
   PetscCall(PetscOptionsScalar("-temperature_infinity", "Temperature at boundary layer edge", NULL, T_inf, &T_inf, NULL));
-  PetscCall(PetscOptionsDeprecated("-P0", "-pressure_infinity", "libCEED 0.12.0", "Use -pressure_infinity to set pressure at boundary layer edge"));
-  PetscCall(PetscOptionsScalar("-pressure_infinity", "Pressure at boundary layer edge", NULL, P_inf, &P_inf, &flg));
+  PetscCall(PetscOptionsHasName(NULL, NULL, "-P0", &P0_set));  // For maintaining behavior of -P0 flag (which is deprecated)
+  PetscCall(
+      PetscOptionsDeprecated("-P0", "-pressure_infinity", "libCEED 0.12.0",
+                             "Use -pressure_infinity to set pressure at boundary layer edge and -idl_pressure to set the IDL reference pressure"));
+  PetscCall(PetscOptionsScalar("-pressure_infinity", "Pressure at boundary layer edge", NULL, P_inf, &P_inf, NULL));
   PetscCall(PetscOptionsScalar("-temperature_wall", "Temperature at wall", NULL, T_wall, &T_wall, NULL));
   PetscCall(PetscOptionsScalar("-delta0", "Boundary layer height at inflow", NULL, delta0, &delta0, NULL));
   PetscCall(PetscOptionsInt("-n_chebyshev", "Number of Chebyshev terms", NULL, N, &N, NULL));
@@ -318,14 +321,14 @@ PetscErrorCode NS_BLASIUS(ProblemData problem, DM dm, void *ctx, SimpleBC bc) {
   };
   State S_infty = StateFromPrimitive(newtonian_ig_ctx, Y_inf);
 
-  blasius_ctx->weakT             = weakT;
-  blasius_ctx->T_wall            = T_wall;
-  blasius_ctx->delta0            = delta0;
-  blasius_ctx->S_infty           = S_infty;
-  blasius_ctx->n_cheb            = N;
-  newtonian_ig_ctx->idl_pressure = P_inf;
-  blasius_ctx->implicit          = user->phys->implicit;
-  blasius_ctx->newtonian_ctx     = *newtonian_ig_ctx;
+  blasius_ctx->weakT    = weakT;
+  blasius_ctx->T_wall   = T_wall;
+  blasius_ctx->delta0   = delta0;
+  blasius_ctx->S_infty  = S_infty;
+  blasius_ctx->n_cheb   = N;
+  blasius_ctx->implicit = user->phys->implicit;
+  if (P0_set) newtonian_ig_ctx->idl_pressure = P_inf;  // For maintaining behavior of -P0 flag (which is deprecated)
+  blasius_ctx->newtonian_ctx = *newtonian_ig_ctx;
 
   {
     PetscReal domain_min[3], domain_max[3];
