@@ -229,8 +229,6 @@ PetscErrorCode NS_NEWTONIAN_IG(ProblemData problem, DM dm, void *ctx, SimpleBC b
 
   PetscInt dim = problem->dim;
   PetscCall(PetscOptionsDeprecated("-g", "-gravity", "libCEED 0.11.1", NULL));
-  PetscCall(PetscOptionsRealArray("-g", "Gravitational acceleration vector", NULL, g, &dim, &given_option));
-  dim = problem->dim;
   PetscCall(PetscOptionsRealArray("-gravity", "Gravitational acceleration vector", NULL, g, &dim, &given_option));
   if (given_option) PetscCheck(dim == 3, comm, PETSC_ERR_ARG_SIZ, "Gravity vector must be size 3, %" PetscInt_FMT " values given", dim);
 
