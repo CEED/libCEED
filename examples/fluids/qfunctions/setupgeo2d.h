@@ -8,7 +8,6 @@
 /// @file
 /// Geometric factors (2D) for Navier-Stokes example using PETSc
 #include <ceed.h>
-#include <math.h>
 #include "setupgeo_helpers.h"
 #include "utils.h"
 
@@ -95,6 +94,60 @@ CEED_QFUNCTION(SetupBoundary2d)(void *ctx, CeedInt Q, const CeedScalar *const *i
 
     StoredValuesPack(Q, i, 0, 1, &wdetJ, q_data_sur);
     StoredValuesPack(Q, i, 1, 2, normal, q_data_sur);
+  }
+  return 0;
+}
+
+// *****************************************************************************
+// This QFunction sets up the geometric factor required for integration when reference coordinates are in 2D and the physical coordinates are in 3D
+//
+// Reference (parent) 2D coordinates: X
+// Physical (current) 3D coordinates: x
+// Change of coordinate matrix:
+//   dxdX_{i,j} = dx_i/dX_j (indicial notation) [3 * 2]
+// Inverse change of coordinate matrix:
+//   dXdx_{i,j} = dX_i/dx_j (indicial notation) [2 * 3]
+//
+// (J1,J2,J3) is given by the cross product of the columns of dxdX_{i,j}
+//
+// detJb is the magnitude of (J1,J2,J3)
+//
+// dXdx is calculated via Moore–Penrose inverse:
+//
+//   dX_i/dx_j = (dxdX^T dxdX)^(-1) dxdX
+//             = (dx_l/dX_i * dx_l/dX_k)^(-1) dx_j/dX_k
+//
+// All quadrature data is stored in 10 field vector of quadrature data.
+//
+// We require the determinant of the Jacobian to properly compute integrals of
+//   the form: int( u v )
+//
+// Stored: w detJb
+//   in q_data_sur[0]
+//
+// Normal vector = (J1,J2,J3) / detJb
+//
+// Stored: (J1,J2,J3) / detJb
+//
+// Stored: dXdx_{i,j}
+//   in q_data_sur[1:6] as
+//    [dXdx_11 dXdx_12 dXdx_13]
+//    [dXdx_21 dXdx_22 dXdx_23]
+// *****************************************************************************
+CEED_QFUNCTION(Setup2D_3Dcoords)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
+  const CeedScalar(*J)[3][CEED_Q_VLA] = (const CeedScalar(*)[3][CEED_Q_VLA])in[0];
+  const CeedScalar(*w)                = in[1];
+  CeedScalar(*q_data_sur)             = out[0];
+
+  CeedPragmaSIMD for (CeedInt i = 0; i < Q; i++) {
+    CeedScalar detJb, normal[3], dXdx[2][3];
+
+    NormalVectorFromdxdX_3D(Q, i, J, normal, &detJb);
+    InvertBoundaryMappingJacobian_3D(Q, i, J, dXdx);
+    const CeedScalar wdetJ = w[i] * detJb;
+
+    StoredValuesPack(Q, i, 0, 1, &wdetJ, q_data_sur);
+    StoredValuesPack(Q, i, 1, 6, (const CeedScalar *)dXdx, q_data_sur);
   }
   return 0;
 }

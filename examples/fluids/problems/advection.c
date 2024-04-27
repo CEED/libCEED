@@ -14,8 +14,6 @@
 #include <petscdm.h>
 
 #include "../navierstokes.h"
-#include "../qfunctions/setupgeo.h"
-#include "../qfunctions/setupgeo2d.h"
 
 // @brief Create CeedOperator for stabilized mass KSP for explicit timestepping
 //
@@ -106,12 +104,6 @@ PetscErrorCode NS_ADVECTION(ProblemData problem, DM dm, void *ctx, SimpleBC bc) 
   switch (dim) {
     case 2:
       problem->dim                               = 2;
-      problem->q_data_size_vol                   = 5;
-      problem->q_data_size_sur                   = 3;
-      problem->setup_vol.qfunction               = Setup2d;
-      problem->setup_vol.qfunction_loc           = Setup2d_loc;
-      problem->setup_sur.qfunction               = SetupBoundary2d;
-      problem->setup_sur.qfunction_loc           = SetupBoundary2d_loc;
       problem->ics.qfunction                     = ICsAdvection2d;
       problem->ics.qfunction_loc                 = ICsAdvection2d_loc;
       problem->apply_vol_rhs.qfunction           = RHS_Advection2d;
@@ -125,12 +117,6 @@ PetscErrorCode NS_ADVECTION(ProblemData problem, DM dm, void *ctx, SimpleBC bc) 
       break;
     case 3:
       problem->dim                               = 3;
-      problem->q_data_size_vol                   = 10;
-      problem->q_data_size_sur                   = 10;
-      problem->setup_vol.qfunction               = Setup;
-      problem->setup_vol.qfunction_loc           = Setup_loc;
-      problem->setup_sur.qfunction               = SetupBoundary;
-      problem->setup_sur.qfunction_loc           = SetupBoundary_loc;
       problem->ics.qfunction                     = ICsAdvection;
       problem->ics.qfunction_loc                 = ICsAdvection_loc;
       problem->apply_vol_rhs.qfunction           = RHS_Advection;

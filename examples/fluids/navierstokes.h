@@ -155,7 +155,6 @@ struct CeedData_private {
   CeedBasis            basis_x, basis_q;
   CeedElemRestriction  elem_restr_x, elem_restr_q, elem_restr_qd_i;
   OperatorApplyContext op_ics_ctx;
-  CeedQFunction        qf_setup_sur;
 };
 
 typedef struct {
@@ -291,8 +290,8 @@ typedef struct ProblemData_private *ProblemData;
 struct ProblemData_private {
   CeedInt              dim, q_data_size_vol, q_data_size_sur, jac_data_size_sur;
   CeedScalar           dm_scale;
-  ProblemQFunctionSpec setup_vol, setup_sur, ics, apply_vol_rhs, apply_vol_ifunction, apply_vol_ijacobian, apply_inflow, apply_outflow,
-      apply_freestream, apply_slip, apply_inflow_jacobian, apply_outflow_jacobian, apply_freestream_jacobian, apply_slip_jacobian;
+  ProblemQFunctionSpec ics, apply_vol_rhs, apply_vol_ifunction, apply_vol_ijacobian, apply_inflow, apply_outflow, apply_freestream, apply_slip,
+      apply_inflow_jacobian, apply_outflow_jacobian, apply_freestream_jacobian, apply_slip_jacobian;
   bool      non_zero_time;
   PetscBool bc_from_ics, use_strong_bc_ceed, uses_newtonian;
   PetscErrorCode (*print_info)(User, ProblemData, AppCtx);
@@ -349,6 +348,12 @@ PetscErrorCode CreateBasisFromPlex(Ceed ceed, DM dm, DMLabel domain_label, CeedI
 
 PetscErrorCode SetupLibceed(Ceed ceed, CeedData ceed_data, DM dm, User user, AppCtx app_ctx, ProblemData problem, SimpleBC bc);
 
+PetscErrorCode QDataGet(Ceed ceed, DM dm, DMLabel domain_label, PetscInt label_value, CeedElemRestriction elem_restr_x, CeedBasis basis_x,
+                        CeedVector x_coord, CeedElemRestriction *elem_restr_qd, CeedVector *q_data, CeedInt *q_data_size);
+PetscErrorCode QDataGetNumComponents(DM dm, CeedInt *q_data_size);
+PetscErrorCode QDataBoundaryGet(Ceed ceed, DM dm, DMLabel domain_label, PetscInt label_value, CeedElemRestriction elem_restr_x, CeedBasis basis_x,
+                                CeedVector x_coord, CeedElemRestriction *elem_restr_qd, CeedVector *q_data, CeedInt *q_data_size);
+PetscErrorCode QDataBoundaryGetNumComponents(DM dm, CeedInt *q_data_size);
 // -----------------------------------------------------------------------------
 // Time-stepping functions
 // -----------------------------------------------------------------------------

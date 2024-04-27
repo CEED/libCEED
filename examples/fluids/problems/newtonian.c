@@ -14,7 +14,6 @@
 #include <petscdm.h>
 
 #include "../navierstokes.h"
-#include "../qfunctions/setupgeo.h"
 
 // For use with PetscOptionsEnum
 static const char *const StateVariables[] = {"CONSERVATIVE", "PRIMITIVE", "StateVariable", "STATEVAR_", NULL};
@@ -136,17 +135,11 @@ PetscErrorCode NS_NEWTONIAN_IG(ProblemData problem, DM dm, void *ctx, SimpleBC b
   // ------------------------------------------------------
   //           Setup Generic Newtonian IG Problem
   // ------------------------------------------------------
-  problem->dim                     = 3;
-  problem->q_data_size_vol         = 10;
-  problem->q_data_size_sur         = 10;
-  problem->jac_data_size_sur       = 11;
-  problem->setup_vol.qfunction     = Setup;
-  problem->setup_vol.qfunction_loc = Setup_loc;
-  problem->setup_sur.qfunction     = SetupBoundary;
-  problem->setup_sur.qfunction_loc = SetupBoundary_loc;
-  problem->non_zero_time           = PETSC_FALSE;
-  problem->print_info              = PRINT_NEWTONIAN;
-  problem->uses_newtonian          = PETSC_TRUE;
+  problem->dim               = 3;
+  problem->jac_data_size_sur = 11;
+  problem->non_zero_time     = PETSC_FALSE;
+  problem->print_info        = PRINT_NEWTONIAN;
+  problem->uses_newtonian    = PETSC_TRUE;
 
   // ------------------------------------------------------
   //             Create the libCEED context

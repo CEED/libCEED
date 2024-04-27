@@ -14,7 +14,6 @@
 #include <petscdm.h>
 
 #include "../navierstokes.h"
-#include "../qfunctions/setupgeo.h"
 
 PetscErrorCode NS_SHOCKTUBE(ProblemData problem, DM dm, void *ctx, SimpleBC bc) {
   SetupContextShock    setup_context;
@@ -35,12 +34,6 @@ PetscErrorCode NS_SHOCKTUBE(ProblemData problem, DM dm, void *ctx, SimpleBC bc) 
   //               SET UP SHOCKTUBE
   // ------------------------------------------------------
   problem->dim                               = 3;
-  problem->q_data_size_vol                   = 10;
-  problem->q_data_size_sur                   = 4;
-  problem->setup_vol.qfunction               = Setup;
-  problem->setup_vol.qfunction_loc           = Setup_loc;
-  problem->setup_sur.qfunction               = SetupBoundary;
-  problem->setup_sur.qfunction_loc           = SetupBoundary_loc;
   problem->ics.qfunction                     = ICsShockTube;
   problem->ics.qfunction_loc                 = ICsShockTube_loc;
   problem->apply_vol_rhs.qfunction           = EulerShockTube;
