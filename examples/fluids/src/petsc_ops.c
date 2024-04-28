@@ -169,11 +169,10 @@ VecType DMReturnVecType(DM dm) {
  *
  * @param[in]  op       Operator to make the Vecs for
  * @param[in]  vec_type `VecType` for the new Vecs
- * @param[in]  comm     `MPI_Comm` for the new Vecs
  * @param[out] input    Vec for CeedOperator active input
  * @param[out] output   Vec for CeedOperator active output
  */
-PetscErrorCode CeedOperatorCreateLocalVecs(CeedOperator op, VecType vec_type, MPI_Comm comm, Vec *input, Vec *output) {
+PetscErrorCode CeedOperatorCreateLocalVecs(CeedOperator op, VecType vec_type, Vec *input, Vec *output) {
   CeedSize input_size, output_size;
   Ceed     ceed;
 
@@ -181,12 +180,12 @@ PetscErrorCode CeedOperatorCreateLocalVecs(CeedOperator op, VecType vec_type, MP
   PetscCall(CeedOperatorGetCeed(op, &ceed));
   PetscCallCeed(ceed, CeedOperatorGetActiveVectorLengths(op, &input_size, &output_size));
   if (input) {
-    PetscCall(VecCreate(comm, input));
+    PetscCall(VecCreate(PETSC_COMM_SELF, input));
     PetscCall(VecSetType(*input, vec_type));
     PetscCall(VecSetSizes(*input, input_size, input_size));
   }
   if (output) {
-    PetscCall(VecCreate(comm, output));
+    PetscCall(VecCreate(PETSC_COMM_SELF, output));
     PetscCall(VecSetType(*output, vec_type));
     PetscCall(VecSetSizes(*output, output_size, output_size));
   }

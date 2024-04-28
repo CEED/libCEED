@@ -26,7 +26,7 @@ PetscErrorCode OperatorApplyContextDestroy(OperatorApplyContext op_apply_ctx);
 PetscErrorCode DMGetGlobalVectorInfo(DM dm, PetscInt *local_size, PetscInt *global_size, VecType *vec_type);
 PetscErrorCode DMGetLocalVectorInfo(DM dm, PetscInt *local_size, PetscInt *global_size, VecType *vec_type);
 
-PetscErrorCode CeedOperatorCreateLocalVecs(CeedOperator op, VecType vec_type, MPI_Comm comm, Vec *input, Vec *output);
+PetscErrorCode CeedOperatorCreateLocalVecs(CeedOperator op, VecType vec_type, Vec *input, Vec *output);
 VecType        DMReturnVecType(DM dm);
 
 PetscErrorCode ApplyCeedOperatorGlobalToGlobal(Vec X, Vec Y, OperatorApplyContext ctx);
