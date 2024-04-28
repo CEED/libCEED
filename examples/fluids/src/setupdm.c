@@ -88,8 +88,8 @@ PetscErrorCode SetUpDM(DM *dm, ProblemData *problem, PetscInt degree, PetscInt q
       if(stepNumC >= 0) PetscCall(DMSetOutputSequenceNumber(new_dm, stepNumC, valc));
 
       PetscSF face_sf;
-      PetscCall(DMPlexGetIsoperiodicFaceSF(*dm, &face_sf));
-      PetscCall(DMPlexSetIsoperiodicFaceSF(new_dm, face_sf));
+      PetscCall(DMPlexGetIsoperiodicFaceSF(*dm, 1, &face_sf));
+      PetscCall(DMPlexSetIsoperiodicFaceSF(new_dm, 1, face_sf));
       old_dm = *dm;
       *dm    = new_dm;
     }

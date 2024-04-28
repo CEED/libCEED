@@ -164,7 +164,6 @@ CEED_QFUNCTION_HELPER int RiemannOutflow(void *ctx, CeedInt Q, const CeedScalar 
 
   const NewtonianIdealGasContext gas         = &outflow->gas;
   const bool                     is_implicit = gas->is_implicit;
-  CeedScalar(*jac_data_sur)                  = is_implicit ? out[1] : NULL;
 
   CeedPragmaSIMD for (CeedInt i = 0; i < Q; i++) {
     CeedScalar wdetJb, dXdx[2][3], norm[3];
