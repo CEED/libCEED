@@ -148,8 +148,6 @@ CEED_QFUNCTION(Blasius_Inflow)(void *ctx, CeedInt Q, const CeedScalar *const *in
   const CeedScalar               x0          = U_infty * rho_0 / (gas->mu * 25 / Square(context->delta0));
   const CeedScalar               zeros[11]   = {0.};
 
-  CeedScalar(*jac_data_sur) = is_implicit ? out[1] : NULL;
-
   CeedPragmaSIMD for (CeedInt i = 0; i < Q; i++) {
     CeedScalar wdetJb, norm[3];
     QdataBoundaryUnpack_3D(Q, i, q_data_sur, &wdetJb, NULL, norm);

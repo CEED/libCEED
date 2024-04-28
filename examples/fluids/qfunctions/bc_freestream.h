@@ -40,15 +40,7 @@ CEED_QFUNCTION_HELPER int Freestream(void *ctx, CeedInt Q, const CeedScalar *con
         flux = RiemannFlux_HLL(newt_ctx, s, context->S_infty, norm);
         break;
       case RIEMANN_HLLC:
-        //        flux = RiemannFlux_HLLC(newt_ctx, s, context->S_infty, norm);
-        {
-          CeedScalar       qb[3]    = {q[1][i], q[2][i], q[3][i]};
-          const CeedScalar q_normal = Dot3(qb, norm);
-          for (CeedInt j = 0; j < 3; j++) qb[j] -= 2. * norm[j] * q_normal;
-          const CeedScalar qr[5]     = {q[0][i], qb[0], qb[1], qb[2], q[4][i]};
-          State            s_reflect = StateFromQ(newt_ctx, qr, state_var);
-          flux                       = RiemannFlux_HLLC(newt_ctx, s, s_reflect, norm);
-        }
+        flux = RiemannFlux_HLLC(newt_ctx, s, context->S_infty, norm);
         break;
     }
     CeedScalar Flux[5];
@@ -110,21 +102,7 @@ CEED_QFUNCTION_HELPER int Freestream_Jacobian(void *ctx, CeedInt Q, const CeedSc
         dflux = RiemannFlux_HLL_fwd(newt_ctx, s, ds, context->S_infty, dS_infty, norm);
         break;
       case RIEMANN_HLLC:
-        //        dflux = RiemannFlux_HLLC_fwd(newt_ctx, s, ds, context->S_infty, dS_infty, norm);
-        {
-          CeedScalar qb[3]    = {qi[1], qi[2], qi[3]};
-          CeedScalar q_normal = Dot3(qb, norm);
-          for (CeedInt j = 0; j < 3; j++) qb[j] -= 2. * norm[j] * q_normal;
-          CeedScalar qr[5]     = {qi[0], qb[0], qb[1], qb[2], qi[4]};
-          State      s_reflect = StateFromQ(newt_ctx, qr, state_var);
-          // repeat for ds
-          CeedScalar dqb[3]    = {dqi[1], dqi[2], dqi[3]};
-          CeedScalar dq_normal = Dot3(dqb, norm);
-          for (CeedInt j = 0; j < 3; j++) dqb[j] -= 2. * norm[j] * dq_normal;
-          CeedScalar dqr[5]     = {dqi[0], dqb[0], dqb[1], dqb[2], dqi[4]};
-          State      ds_reflect = StateFromQ_fwd(newt_ctx, s_reflect, dqr, state_var);
-          dflux                 = RiemannFlux_HLLC_fwd(newt_ctx, s, ds, s_reflect, ds_reflect, norm);
-        }
+        dflux = RiemannFlux_HLLC_fwd(newt_ctx, s, ds, context->S_infty, dS_infty, norm);
         break;
     }
     CeedScalar dFlux[5];
@@ -247,8 +225,7 @@ CEED_QFUNCTION_HELPER int RiemannOutflow_Jacobian(void *ctx, CeedInt Q, const Ce
   const CeedScalar(*Grad_dq)        = in[1];
   const CeedScalar(*q_data_sur)     = in[2];
   const CeedScalar(*jac_data_sur)   = in[4];
-
-  CeedScalar(*v)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA])out[0];
+  CeedScalar(*v)[CEED_Q_VLA]        = (CeedScalar(*)[CEED_Q_VLA])out[0];
 
   const OutflowContext           outflow     = (OutflowContext)ctx;
   const NewtonianIdealGasContext gas         = &outflow->gas;
@@ -328,10 +305,8 @@ CEED_QFUNCTION_HELPER int PressureOutflow(void *ctx, CeedInt Q, const CeedScalar
 
   const NewtonianIdealGasContext gas         = &outflow->gas;
   const bool                     is_implicit = gas->is_implicit;
-  CeedScalar(*jac_data_sur)                  = is_implicit ? out[1] : NULL;
 
   CeedPragmaSIMD for (CeedInt i = 0; i < Q; i++) {
-
     const CeedScalar qi[5] = {q[0][i], q[1][i], q[2][i], q[3][i], q[4][i]};
     State            s     = StateFromQ(gas, qi, state_var);
     s.Y.pressure           = outflow->pressure;
