@@ -26,8 +26,21 @@ PetscErrorCode SetupStrongSTG_Ceed(Ceed ceed, CeedData ceed_data, DM dm, Problem
   PetscFunctionBeginUser;
   PetscCall(DMGetLabel(dm, "Face Sets", &domain_label));
 
-  // Basis
-  PetscCallCeed(ceed, CeedBasisCreateProjection(ceed_data->basis_x_sur, ceed_data->basis_q_sur, &basis_x_to_q_sur));
+  {  // Basis
+    CeedBasis basis_x_sur, basis_q_sur;
+    DM        dm_coord;
+
+    PetscCall(DMGetCoordinateDM(dm, &dm_coord));
+    DMLabel  label       = NULL;
+    PetscInt label_value = 0;
+    PetscCall(CreateBasisFromPlex(ceed, dm, label, label_value, height, dm_field, &basis_q_sur));
+    PetscCall(CreateBasisFromPlex(ceed, dm_coord, label, label_value, height, dm_field, &basis_x_sur));
+
+    PetscCallCeed(ceed, CeedBasisCreateProjection(basis_x_sur, basis_q_sur, &basis_x_to_q_sur));
+
+    PetscCallCeed(ceed, CeedBasisDestroy(&basis_q_sur));
+    PetscCallCeed(ceed, CeedBasisDestroy(&basis_x_sur));
+  }
 
   // Setup QFunction
   PetscCallCeed(ceed, CeedQFunctionCreateInterior(ceed, 1, SetupStrongBC, SetupStrongBC_loc, &qf_setup));

@@ -183,7 +183,6 @@ PetscErrorCode GetQuadratureCoords(Ceed ceed, DM dm, CeedElemRestriction elem_re
 
 PetscErrorCode SpanStatsSetupDataCreate(Ceed ceed, User user, CeedData ceed_data, ProblemData problem, SpanStatsSetupData *stats_data) {
   DM       dm = user->spanstats.dm;
-  PetscInt dim;
   CeedInt  num_comp_x, num_comp_stats = user->spanstats.num_comp_stats;
   Vec      X_loc;
   DMLabel  domain_label = NULL;
@@ -192,7 +191,6 @@ PetscErrorCode SpanStatsSetupDataCreate(Ceed ceed, User user, CeedData ceed_data
   PetscFunctionBeginUser;
   PetscCall(PetscNew(stats_data));
 
-  PetscCall(DMGetDimension(dm, &dim));
   PetscCall(DMPlexCeedElemRestrictionCreate(ceed, dm, domain_label, label_value, height, dm_field, &(*stats_data)->elem_restr_parent_stats));
   PetscCall(DMPlexCeedElemRestrictionCoordinateCreate(ceed, dm, domain_label, label_value, height, &(*stats_data)->elem_restr_parent_x));
   PetscCall(DMPlexCeedElemRestrictionQDataCreate(ceed, dm, domain_label, label_value, height, problem->q_data_size_sur,
