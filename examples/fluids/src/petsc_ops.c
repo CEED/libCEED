@@ -176,9 +176,12 @@ VecType DMReturnVecType(DM dm) {
 PetscErrorCode CeedOperatorCreateLocalVecs(CeedOperator op, VecType vec_type, MPI_Comm comm, Vec *input, Vec *output) {
   CeedSize input_size, output_size;
   Ceed     ceed;
+  int      comm_size;
 
   PetscFunctionBeginUser;
   PetscCall(CeedOperatorGetCeed(op, &ceed));
+  PetscCallMPI(MPI_Comm_size(comm, &comm_size));
+  PetscCheck(comm_size == 1, PETSC_COMM_WORLD, PETSC_ERR_ARG_SIZ, "MPI_Comm must be of size 1, recieved comm of size %d", comm_size);
   PetscCallCeed(ceed, CeedOperatorGetActiveVectorLengths(op, &input_size, &output_size));
   if (input) {
     PetscCall(VecCreate(comm, input));
