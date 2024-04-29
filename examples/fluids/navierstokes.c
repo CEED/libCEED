@@ -298,8 +298,6 @@ int main(int argc, char **argv) {
 
   // -- Operators
   PetscCall(OperatorApplyContextDestroy(ceed_data->op_ics_ctx));
-  PetscCallCeed(ceed, CeedOperatorDestroy(&user->op_rhs_vol));
-  PetscCallCeed(ceed, CeedOperatorDestroy(&user->op_ifunction_vol));
   PetscCall(OperatorApplyContextDestroy(user->op_rhs_ctx));
   PetscCall(OperatorApplyContextDestroy(user->op_strong_bc_ctx));
   PetscCallCeed(ceed, CeedOperatorDestroy(&user->op_ifunction));

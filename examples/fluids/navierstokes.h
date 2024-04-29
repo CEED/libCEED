@@ -231,7 +231,7 @@ struct User_private {
   Physics              phys;
   AppCtx               app_ctx;
   CeedVector           q_ceed, q_dot_ceed, g_ceed, x_ceed;
-  CeedOperator         op_rhs_vol, op_ifunction_vol, op_ifunction;
+  CeedOperator         op_ifunction;
   Mat                  mat_ijacobian;
   KSP                  mass_ksp;
   OperatorApplyContext op_rhs_ctx, op_strong_bc_ctx;
