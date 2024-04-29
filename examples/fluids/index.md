@@ -855,20 +855,17 @@ numerous terms in the STG formulation.
 
 #### Internal Damping Layer (IDL)
 The STG inflow boundary condition creates large amplitude acoustic waves.
-We use an internal damping layer (IDL) to damp them out without disrupting the synthetic structures developing into natural turbulent structures. This implementation was inspired from
-{cite}`shurSTG2014`, but is implemented here as a ramped volumetric forcing
-term, similar to a sponge layer (see 8.4.2.4 in {cite}`colonius2023turbBC` for example). It takes the following form:
+We use an internal damping layer (IDL) to damp them out without disrupting the synthetic structures developing into natural turbulent structures.
+This implementation was inspired by {cite}`shurSTG2014`, but is implemented here as a ramped volumetric forcing term, similar to a sponge layer (see 8.4.2.4 in {cite}`colonius2023turbBC` for example).
+It takes the following form:
 
 $$
 S(\bm{q}) = -\sigma(\bm{x})\left.\frac{\partial \bm{q}}{\partial \bm{Y}}\right\rvert_{\bm{q}} \bm{Y}'
 $$
 
-where $\bm{Y}' = [P - P_\mathrm{ref}, \bm{0}, 0]^T$, and $\sigma(\bm{x})$ is a
-linear ramp starting at `-idl_start` with length `-idl_length` and an amplitude
-of inverse `-idl_decay_rate`. The damping is defined in terms of a pressure-primitive
-anomaly $\bm Y'$ converted to conservative source using $\partial
-\bm{q}/\partial \bm{Y}\rvert_{\bm{q}}$, which is linearized about the current
-flow state. $P_\mathrm{ref}$ is defined via the `-reference_pressure` flag.
+where $\bm{Y}' = [P - P_\mathrm{ref}, \bm{0}, 0]^T$, and $\sigma(\bm{x})$ is a linear ramp starting at `-idl_start` with length `-idl_length` and an amplitude of inverse `-idl_decay_rate`.
+The damping is defined in terms of a pressure-primitive anomaly $\bm Y'$ converted to conservative source using $\partial \bm{q}/\partial \bm{Y}\rvert_{\bm{q}}$, which is linearized about the current flow state.
+$P_\mathrm{ref}$ has a default value equal to `-reference_pressure` flag, with an optional flag `-idl_pressure` to set it to a different value.
 
 ### Meshing
 

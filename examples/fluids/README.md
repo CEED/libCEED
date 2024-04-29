@@ -634,6 +634,11 @@ For the Density Current, Channel, and Blasius problems, the following common com
   - `0`
   - `m`
 
+* - `-idl_pressure`
+  - Pressure used for IDL reference pressure
+  -  `-reference_pressure`
+  - `Pa`
+
 * - `-sgs_model_type`
   - Type of subgrid stress model to use. Currently only `data_driven` is available
   - `none`

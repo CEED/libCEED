@@ -152,10 +152,6 @@ PetscErrorCode ProcessCommandLineOptions(MPI_Comm comm, AppCtx app_ctx, SimpleBC
                                        "Use -bc_symmetry_[x,y,z] for direct equivalency, or -bc_slip for weak, Riemann-based, direction-invariant "
                                        "slip/no-penatration boundary conditions"));
       PetscCall(PetscOptionsIntArray(flags[j], "Face IDs to apply symmetry BC", NULL, bc->symmetries[j], &bc->num_symmetry[j], &flg));
-      if (!flg) {
-        bc->num_symmetry[j] = 16;
-        PetscCall(PetscOptionsIntArray(deprecated[j], "Face IDs to apply slip BC", NULL, bc->symmetries[j], &bc->num_symmetry[j], &flg));
-      }
       if (bc->num_symmetry[j] > 0) has_symmetry = PETSC_TRUE;
     }
 
