@@ -686,7 +686,7 @@ ctc-% : $(ctests);@$(foreach tst,$(ctests),$(tst) /cpu/$*;)
 
 prove : $(matched)
 	$(info Testing backends: $(BACKENDS))
-	$(PROVE) $(PROVE_OPTS) --exec 'tests/junit.py --mode tap --ceed-backends $(BACKENDS) $(if $(SMARTREDIS_DIR),--smartredis_dir $(SMARTREDIS_DIR) )--nproc $(NPROC_TEST) --pool-size $(NPROC_POOL)' $(matched:$(OBJDIR)/%=%)
+	$(PROVE) $(PROVE_OPTS) --exec '$(PYTHON) tests/junit.py --mode tap --ceed-backends $(BACKENDS) $(if $(SMARTREDIS_DIR),--smartredis_dir $(SMARTREDIS_DIR) )--nproc $(NPROC_TEST) --pool-size $(NPROC_POOL)' $(matched:$(OBJDIR)/%=%)
 # Run prove target in parallel
 prv : ;@$(MAKE) $(MFLAGS) V=$(V) prove
 
