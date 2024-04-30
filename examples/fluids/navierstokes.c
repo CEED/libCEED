@@ -285,16 +285,11 @@ int main(int argc, char **argv) {
     PetscCallCeed(ceed, CeedQFunctionContextDestroy(&problem->apply_freestream_jacobian.qfunction_context));
     PetscCallCeed(ceed, CeedQFunctionContextDestroy(&problem->apply_slip.qfunction_context));
     PetscCallCeed(ceed, CeedQFunctionContextDestroy(&problem->apply_slip_jacobian.qfunction_context));
-    PetscCallCeed(ceed, CeedQFunctionContextDestroy(&problem->setup_sur.qfunction_context));
-    PetscCallCeed(ceed, CeedQFunctionContextDestroy(&problem->setup_vol.qfunction_context));
     PetscCallCeed(ceed, CeedQFunctionContextDestroy(&problem->ics.qfunction_context));
     PetscCallCeed(ceed, CeedQFunctionContextDestroy(&problem->apply_vol_rhs.qfunction_context));
     PetscCallCeed(ceed, CeedQFunctionContextDestroy(&problem->apply_vol_ifunction.qfunction_context));
     PetscCallCeed(ceed, CeedQFunctionContextDestroy(&problem->apply_vol_ijacobian.qfunction_context));
   }
-
-  // -- QFunctions
-  PetscCallCeed(ceed, CeedQFunctionDestroy(&ceed_data->qf_setup_sur));
 
   // -- Operators
   PetscCall(OperatorApplyContextDestroy(ceed_data->op_ics_ctx));
