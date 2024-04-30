@@ -1,6 +1,6 @@
 /// @file
 /// Test assembly of mass matrix operator QFunction at points
-/// \test Test assembly of mass matrix operator QFunction
+/// \test Test assembly of mass matrix operator QFunction at points
 #include <ceed.h>
 #include <math.h>
 #include <stdio.h>

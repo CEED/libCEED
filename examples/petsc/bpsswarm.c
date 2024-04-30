@@ -209,6 +209,7 @@ int main(int argc, char **argv) {
   PetscCall(MatCreateShell(comm, l_size, l_size, g_size, g_size, op_apply_ctx, &mat_O));
   PetscCall(MatSetDM(mat_O, dm_mesh));
   PetscCall(MatShellSetOperation(mat_O, MATOP_MULT, (void (*)(void))MatMult_Ceed));
+  PetscCall(MatShellSetOperation(mat_O, MATOP_GET_DIAGONAL, (void (*)(void))MatGetDiag));
 
   // Set up libCEED
   CeedInit(ceed_resource, &ceed);
@@ -302,14 +303,9 @@ int main(int argc, char **argv) {
     PetscCall(KSPGetPC(ksp, &pc));
     if (bp_choice == CEED_BP1 || bp_choice == CEED_BP2) {
       PetscCall(PCSetType(pc, PCJACOBI));
-      PetscCall(PCJacobiSetType(pc, PC_JACOBI_ROWSUM));
+      PetscCall(PCJacobiSetType(pc, PC_JACOBI_DIAGONAL));
     } else {
       PetscCall(PCSetType(pc, PCNONE));
-      MatNullSpace nullspace;
-
-      PetscCall(MatNullSpaceCreate(PETSC_COMM_WORLD, PETSC_TRUE, 0, 0, &nullspace));
-      PetscCall(MatSetNullSpace(mat_O, nullspace));
-      PetscCall(MatNullSpaceDestroy(&nullspace));
     }
     PetscCall(KSPSetType(ksp, KSPCG));
     PetscCall(KSPSetNormType(ksp, KSP_NORM_NATURAL));

@@ -89,7 +89,7 @@ int main(int argc, char **argv) {
 
   // Manually assemble diagonal
   CeedVectorSetValue(u, 0.0);
-  for (int i = 0; i < num_dofs; i++) {
+  for (CeedInt i = 0; i < num_dofs; i++) {
     CeedScalar       *u_array;
     const CeedScalar *v_array;
 
@@ -113,7 +113,7 @@ int main(int argc, char **argv) {
     const CeedScalar *assembled_array;
 
     CeedVectorGetArrayRead(assembled, CEED_MEM_HOST, &assembled_array);
-    for (int i = 0; i < num_dofs; i++) {
+    for (CeedInt i = 0; i < num_dofs; i++) {
       if (fabs(assembled_array[i] - assembled_true[i]) > 100. * CEED_EPSILON) {
         // LCOV_EXCL_START
         printf("[%" CeedInt_FMT "] Error in assembly: %f != %f\n", i, assembled_array[i], assembled_true[i]);
