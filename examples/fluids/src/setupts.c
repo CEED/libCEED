@@ -378,7 +378,7 @@ PetscErrorCode TSSolve_NS(DM dm, User user, AppCtx app_ctx, Physics phys, Proble
     PetscCall(TSSetPostStep(*ts, TSPostStep_SGS_DD_Training));
   }
 
-  if (app_ctx->test_type == TESTTYPE_NONE) PetscCall(PrintRunInfo(user, user->phys, problem, comm));
+  if (app_ctx->test_type == TESTTYPE_NONE) PetscCall(PrintRunInfo(user, user->phys, problem, *ts));
   // Solve
   PetscReal start_time;
   PetscInt  start_step;

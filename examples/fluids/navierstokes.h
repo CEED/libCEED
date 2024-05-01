@@ -325,7 +325,7 @@ extern PetscErrorCode PRINT_ADVECTION(User user, ProblemData problem, AppCtx app
 
 extern PetscErrorCode PRINT_ADVECTION2D(User user, ProblemData problem, AppCtx app_ctx);
 
-PetscErrorCode PrintRunInfo(User user, Physics phys_ctx, ProblemData problem, MPI_Comm comm);
+PetscErrorCode PrintRunInfo(User user, Physics phys_ctx, ProblemData problem, TS ts);
 
 // -----------------------------------------------------------------------------
 // libCEED functions

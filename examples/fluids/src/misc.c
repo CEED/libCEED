@@ -397,8 +397,10 @@ PetscErrorCode RegisterLogEvents() {
 }
 
 // Print information about the given simulation run
-PetscErrorCode PrintRunInfo(User user, Physics phys_ctx, ProblemData problem, MPI_Comm comm) {
-  Ceed ceed = user->ceed;
+PetscErrorCode PrintRunInfo(User user, Physics phys_ctx, ProblemData problem, TS ts) {
+  Ceed     ceed = user->ceed;
+  MPI_Comm comm = PetscObjectComm((PetscObject)ts);
+
   PetscFunctionBeginUser;
   // Header and rank
   char        host_name[PETSC_MAX_PATH_LEN];
@@ -427,22 +429,43 @@ PetscErrorCode PrintRunInfo(User user, Physics phys_ctx, ProblemData problem, MP
                         "    libCEED Backend MemType            : %s\n",
                         used_resource, CeedMemTypes[mem_type_backend]));
   // PETSc
-  char box_faces_str[PETSC_MAX_PATH_LEN] = "3,3,3";
+  VecType vec_type;
+  char    box_faces_str[PETSC_MAX_PATH_LEN] = "3,3,3";
   if (problem->dim == 2) box_faces_str[3] = '\0';
   PetscCall(PetscOptionsGetString(NULL, NULL, "-dm_plex_box_faces", box_faces_str, sizeof(box_faces_str), NULL));
-  MatType amat_type = user->app_ctx->amat_type, pmat_type;
-  VecType vec_type;
-  PetscCall(DMGetMatType(user->dm, &pmat_type));
-  if (!amat_type) amat_type = pmat_type;
   PetscCall(DMGetVecType(user->dm, &vec_type));
   PetscCall(PetscPrintf(comm,
                         "  PETSc:\n"
                         "    Box Faces                          : %s\n"
-                        "    A MatType                          : %s\n"
-                        "    P MatType                          : %s\n"
                         "    DM VecType                         : %s\n"
                         "    Time Stepping Scheme               : %s\n",
-                        box_faces_str, amat_type, pmat_type, vec_type, phys_ctx->implicit ? "implicit" : "explicit"));
+                        box_faces_str, vec_type, phys_ctx->implicit ? "implicit" : "explicit"));
+  {
+    char           pmat_type_str[PETSC_MAX_PATH_LEN];
+    MatType        amat_type, pmat_type;
+    Mat            Amat, Pmat;
+    TSIJacobianFn *ijacob_function;
+
+    PetscCall(TSGetIJacobian(ts, &Amat, &Pmat, &ijacob_function, NULL));
+    PetscCall(MatGetType(Amat, &amat_type));
+    PetscCall(MatGetType(Pmat, &pmat_type));
+
+    PetscCall(PetscStrncpy(pmat_type_str, pmat_type, sizeof(pmat_type_str)));
+    if (!strcmp(pmat_type, MATCEED)) {
+      MatType pmat_coo_type;
+      char    pmat_coo_type_str[PETSC_MAX_PATH_LEN];
+
+      PetscCall(MatCeedGetCOOMatType(Pmat, &pmat_coo_type));
+      PetscCall(PetscSNPrintf(pmat_coo_type_str, sizeof(pmat_coo_type_str), " (COO MatType: %s)", pmat_coo_type));
+      PetscCall(PetscStrlcat(pmat_type_str, pmat_coo_type_str, sizeof(pmat_type_str)));
+    }
+    if (ijacob_function) {
+      PetscCall(PetscPrintf(comm,
+                            "    IJacobian A MatType                : %s\n"
+                            "    IJacobian P MatType                : %s\n",
+                            amat_type, pmat_type_str));
+    }
+  }
   if (user->app_ctx->cont_steps) {
     PetscCall(PetscPrintf(comm,
                           "  Continue:\n"
