@@ -298,7 +298,7 @@ PetscErrorCode TSMonitor_NS(TS ts, PetscInt step_no, PetscReal time, Vec Q, void
 }
 
 // TS: Create, setup, and solve
-PetscErrorCode TSSolve_NS(DM dm, User user, AppCtx app_ctx, Physics phys, Vec *Q, PetscScalar *f_time, TS *ts) {
+PetscErrorCode TSSolve_NS(DM dm, User user, AppCtx app_ctx, Physics phys, ProblemData problem, Vec *Q, PetscScalar *f_time, TS *ts) {
   MPI_Comm    comm = user->comm;
   TSAdapt     adapt;
   PetscScalar final_time;
@@ -377,6 +377,8 @@ PetscErrorCode TSSolve_NS(DM dm, User user, AppCtx app_ctx, Physics phys, Vec *Q
     PetscCall(TSMonitorSet(*ts, TSMonitor_SGS_DD_Training, user, NULL));
     PetscCall(TSSetPostStep(*ts, TSPostStep_SGS_DD_Training));
   }
+
+  if (app_ctx->test_type == TESTTYPE_NONE) PetscCall(PrintRunInfo(user, user->phys, problem, comm));
   // Solve
   PetscReal start_time;
   PetscInt  start_step;
