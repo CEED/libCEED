@@ -468,7 +468,6 @@ PetscErrorCode SetupLibceed(Ceed ceed, CeedData ceed_data, DM dm, User user, App
     if (op_ijacobian) {
       PetscCall(MatCeedCreate(user->dm, user->dm, op_ijacobian, NULL, &user->mat_ijacobian));
       PetscCall(MatCeedSetLocalVectors(user->mat_ijacobian, user->Q_dot_loc, NULL));
-      PetscCallCeed(ceed, CeedOperatorGetContextFieldLabel(op_ijacobian, "ijacobian time shift", &user->phys->ijacobian_time_shift_label));
       PetscCallCeed(ceed, CeedOperatorDestroy(&op_ijacobian));
     }
     if (app_ctx->sgs_model_type == SGS_MODEL_DATA_DRIVEN) PetscCall(SgsDDSetup(ceed, user, ceed_data, problem));
