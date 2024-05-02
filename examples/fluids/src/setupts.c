@@ -154,8 +154,7 @@ PetscErrorCode IFunction_NS(TS ts, PetscReal t, Vec Q, Vec Q_dot, Vec G, void *u
 }
 
 PetscErrorCode FormIJacobian_NS(TS ts, PetscReal t, Vec Q, Vec Q_dot, PetscReal shift, Mat J, Mat J_pre, void *user_data) {
-  User      user         = *(User *)user_data;
-  double    shift_double = shift;
+  User      user = *(User *)user_data;
   PetscBool J_is_matceed, J_is_mffd, J_pre_is_matceed, J_pre_is_mffd;
 
   PetscFunctionBeginUser;
@@ -164,7 +163,7 @@ PetscErrorCode FormIJacobian_NS(TS ts, PetscReal t, Vec Q, Vec Q_dot, PetscReal 
   PetscCall(PetscObjectTypeCompare((PetscObject)J_pre, MATMFFD, &J_pre_is_mffd));
   PetscCall(PetscObjectTypeCompare((PetscObject)J_pre, MATCEED, &J_pre_is_matceed));
 
-  PetscCall(MatCeedSetContextDouble(user->mat_ijacobian, "ijacobian time shift", shift_double));
+  PetscCall(MatCeedSetContextReal(user->mat_ijacobian, "ijacobian time shift", shift));
 
   if (J_is_matceed || J_is_mffd) {
     PetscCall(MatAssemblyBegin(J, MAT_FINAL_ASSEMBLY));

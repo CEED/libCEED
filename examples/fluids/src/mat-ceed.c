@@ -710,6 +710,25 @@ PetscErrorCode MatCeedSetContextDouble(Mat mat, const char *name, double value) 
 }
 
 /**
+  @brief Set the current `PetscReal` value of a context field for a `MatCEED`.
+
+  Not collective across MPI processes.
+
+  @param[in,out]  mat    `MatCEED`
+  @param[in]      name   Name of the context field
+  @param[in]      value  New context field value
+
+  @return An error code: 0 - success, otherwise - failure
+**/
+PetscErrorCode MatCeedSetContextReal(Mat mat, const char *name, PetscReal value) {
+  double value_double = value;
+
+  PetscFunctionBeginUser;
+  PetscCall(MatCeedSetContextDouble(mat, name, value_double));
+  PetscFunctionReturn(PETSC_SUCCESS);
+}
+
+/**
   @brief Get the current value of a context field for a `MatCEED`.
 
   Not collective across MPI processes.
@@ -743,6 +762,26 @@ PetscErrorCode MatCeedGetContextDouble(Mat mat, const char *name, double *value)
       PetscCallCeed(ctx->ceed, CeedOperatorRestoreContextDoubleRead(op, label, &values_ceed));
     }
   }
+  PetscFunctionReturn(PETSC_SUCCESS);
+}
+
+/**
+  @brief Get the current `PetscReal` value of a context field for a `MatCEED`.
+
+  Not collective across MPI processes.
+
+  @param[in]   mat    `MatCEED`
+  @param[in]   name   Name of the context field
+  @param[out]  value  Current context field value
+
+  @return An error code: 0 - success, otherwise - failure
+**/
+PetscErrorCode MatCeedGetContextReal(Mat mat, const char *name, PetscReal *value) {
+  double value_double;
+
+  PetscFunctionBeginUser;
+  PetscCall(MatCeedGetContextDouble(mat, name, &value_double));
+  *value = value_double;
   PetscFunctionReturn(PETSC_SUCCESS);
 }
 

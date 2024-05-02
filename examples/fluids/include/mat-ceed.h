@@ -26,6 +26,8 @@ PETSC_CEED_INTERN PetscErrorCode MatCeedGetContextDouble(Mat mat, const char *na
 // Advanced functionality
 PETSC_CEED_EXTERN PetscErrorCode MatCeedSetContext(Mat mat, PetscErrorCode (*f)(void *), void *ctx);
 PETSC_CEED_EXTERN PetscErrorCode MatCeedGetContext(Mat mat, void *ctx);
+PETSC_CEED_EXTERN PetscErrorCode MatCeedSetContextReal(Mat mat, const char *name, PetscReal value);
+PETSC_CEED_EXTERN PetscErrorCode MatCeedGetContextReal(Mat mat, const char *name, PetscReal *value);
 
 PETSC_CEED_EXTERN PetscErrorCode MatCeedSetOperation(Mat mat, MatOperation op, void (*g)(void));
 PETSC_CEED_EXTERN PetscErrorCode MatCeedSetCOOMatType(Mat mat, MatType type);
