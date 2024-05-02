@@ -207,6 +207,7 @@ This backend can be run in serial or blocked mode and defaults to running in the
 
 The `/cpu/self/xsmm/*` backends rely upon the [LIBXSMM](https://github.com/libxsmm/libxsmm) package to provide vectorized CPU performance.
 If linking MKL and LIBXSMM is desired but the Makefile is not detecting `MKLROOT`, linking libCEED against MKL can be forced by setting the environment variable `MKL=1`.
+The LIBXSMM `main` development branch from 7 April 2024 or newer is required.
 
 The `/gpu/cuda/*` backends provide GPU performance strictly using CUDA.
 
