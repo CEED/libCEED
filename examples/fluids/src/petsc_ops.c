@@ -312,7 +312,7 @@ PetscErrorCode CreateSolveOperatorsFromMatCeed(KSP ksp, Mat mat_ceed, PetscBool 
   MatType   mat_ceed_inner_type;
 
   PetscFunctionBeginUser;
-  PetscCall(MatCeedGetInnerMatType(mat_ceed, &mat_ceed_inner_type));
+  PetscCall(MatCeedGetCOOMatType(mat_ceed, &mat_ceed_inner_type));
   {  // Determine if Amat should be MATCEED or assembled
     const char *ksp_prefix = NULL;
 

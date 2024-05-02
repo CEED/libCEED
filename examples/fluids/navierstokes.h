@@ -6,9 +6,9 @@
 // This file is part of CEED:  http://github.com/ceed
 #pragma once
 
-#include <ceed-utils.h>
 #include <ceed.h>
 #include <mat-ceed.h>
+#include <petsc-ceed-utils.h>
 #include <petscts.h>
 #include <stdbool.h>
 
