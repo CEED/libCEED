@@ -31,7 +31,7 @@ CFLAGS = -std=c99 \
 CPPFLAGS = $(call pkgconf, --cflags-only-I $(PETSc.pc) $(ceed.pc)) \
   $(call pkgconf, --variable=cflags_dep $(PETSc.pc))
 CXX = $(call pkgconf, --variable=cxxcompiler $(PETSc.pc) $(ceed.pc))
-CXXFLAGS = -std=c++14 -Wno-deprecated -Wno-tautological-compare
+CXXFLAGS = -std=c++17 -Wno-deprecated -Wno-tautological-compare
 LDFLAGS = $(call pkgconf, --libs-only-L --libs-only-other $(PETSc.pc) $(ceed.pc))
 LDFLAGS += $(patsubst -L%, $(call pkgconf, --variable=ldflag_rpath $(PETSc.pc))%, $(call pkgconf, --libs-only-L $(PETSc.pc) $(ceed.pc)))
 LDLIBS = $(call pkgconf, --libs-only-l $(PETSc.pc) $(ceed.pc)) -lm -lstdc++
