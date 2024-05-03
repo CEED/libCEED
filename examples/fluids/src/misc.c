@@ -365,9 +365,6 @@ PetscErrorCode PhastaDatFileReadToArrayReal(MPI_Comm comm, const char path[PETSC
 }
 
 PetscLogEvent       FLUIDS_CeedOperatorApply;
-PetscLogEvent       FLUIDS_CeedOperatorAssemble;
-PetscLogEvent       FLUIDS_CeedOperatorAssembleDiagonal;
-PetscLogEvent       FLUIDS_CeedOperatorAssemblePointBlockDiagonal;
 PetscLogEvent       FLUIDS_SmartRedis_Init;
 PetscLogEvent       FLUIDS_SmartRedis_Meta;
 PetscLogEvent       FLUIDS_SmartRedis_Train;
@@ -380,9 +377,6 @@ PetscErrorCode RegisterLogEvents() {
   PetscFunctionBeginUser;
   PetscCall(PetscClassIdRegister("libCEED", &libCEED_classid));
   PetscCall(PetscLogEventRegister("CeedOpApply", libCEED_classid, &FLUIDS_CeedOperatorApply));
-  PetscCall(PetscLogEventRegister("CeedOpAsm", libCEED_classid, &FLUIDS_CeedOperatorAssemble));
-  PetscCall(PetscLogEventRegister("CeedOpAsmD", libCEED_classid, &FLUIDS_CeedOperatorAssembleDiagonal));
-  PetscCall(PetscLogEventRegister("CeedOpAsmPBD", libCEED_classid, &FLUIDS_CeedOperatorAssemblePointBlockDiagonal));
 
   PetscCall(PetscClassIdRegister("onlineTrain", &onlineTrain_classid));
   PetscCall(PetscLogEventRegister("SmartRedis_Init", onlineTrain_classid, &FLUIDS_SmartRedis_Init));

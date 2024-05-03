@@ -42,3 +42,5 @@ PETSC_CEED_EXTERN PetscErrorCode MatCeedRestoreCeedOperators(Mat mat, CeedOperat
 
 PETSC_CEED_EXTERN PetscErrorCode MatCeedSetLogEvents(Mat mat, PetscLogEvent log_event_mult, PetscLogEvent log_event_mult_transpose);
 PETSC_CEED_EXTERN PetscErrorCode MatCeedGetLogEvents(Mat mat, PetscLogEvent *log_event_mult, PetscLogEvent *log_event_mult_transpose);
+PETSC_CEED_EXTERN PetscErrorCode MatCeedSetCeedOperatorLogEvents(Mat mat, PetscLogEvent log_event_mult, PetscLogEvent log_event_mult_transpose);
+PETSC_CEED_EXTERN PetscErrorCode MatCeedGetCeedOperatorLogEvents(Mat mat, PetscLogEvent *log_event_mult, PetscLogEvent *log_event_mult_transpose);

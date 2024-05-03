@@ -12,7 +12,9 @@
 #include <string.h>
 
 PetscClassId  MATCEED_CLASSID;
-PetscLogEvent MATCEED_MULT, MATCEED_MULT_TRANSPOSE;
+PetscLogEvent MATCEED_MULT, MATCEED_MULT_CEEDOP, MATCEED_MULT_TRANSPOSE, MATCEED_MULT_TRANSPOSE_CEEDOP, MATCEED_ASSEMBLE_DIAGONAL,
+    MATCEED_ASSEMBLE_DIAGONAL_CEEDOP, MATCEED_SETUP_PBDIAGONAL, MATCEED_SETUP_PBDIAGONAL_CEEDOP, MATCEED_ASSEMBLE_PBDIAGONAL,
+    MATCEED_ASSEMBLE_PBDIAGONAL_CEEDOP, MATCEED_SETUP_FULL, MATCEED_SETUP_FULL_CEEDOP, MATCEED_ASSEMBLE_FULL, MATCEED_ASSEMBLE_FULL_CEEDOP;
 
 /**
   @brief Register MATCEED log events.
@@ -26,9 +28,20 @@ static PetscErrorCode MatCeedRegisterLogEvents() {
 
   PetscFunctionBeginUser;
   if (registered) PetscFunctionReturn(PETSC_SUCCESS);
-  PetscCall(PetscClassIdRegister("MATCEED", &MATCEED_CLASSID));
-  PetscCall(PetscLogEventRegister("MATCEED Mult", MATCEED_CLASSID, &MATCEED_MULT));
-  PetscCall(PetscLogEventRegister("MATCEED Mult Transpose", MATCEED_CLASSID, &MATCEED_MULT_TRANSPOSE));
+  PetscCall(PetscClassIdRegister("MatCEED", &MATCEED_CLASSID));
+  PetscCall(PetscLogEventRegister("MatCEEDMul", MATCEED_CLASSID, &MATCEED_MULT));
+  PetscCall(PetscLogEventRegister("MatCEEDMulCeed", MATCEED_CLASSID, &MATCEED_MULT_CEEDOP));
+  PetscCall(PetscLogEventRegister("MatCEEDMulT", MATCEED_CLASSID, &MATCEED_MULT_TRANSPOSE));
+  PetscCall(PetscLogEventRegister("MatCEEDMulTCeed", MATCEED_CLASSID, &MATCEED_MULT_TRANSPOSE_CEEDOP));
+  PetscCall(PetscLogEventRegister("MatCEEDAsmDiag", MATCEED_CLASSID, &MATCEED_ASSEMBLE_DIAGONAL));
+  PetscCall(PetscLogEventRegister("MatCEEDAsmPBDSU", MATCEED_CLASSID, &MATCEED_SETUP_PBDIAGONAL));
+  PetscCall(PetscLogEventRegister("MatCEEDAsmPBDSUCeed", MATCEED_CLASSID, &MATCEED_SETUP_PBDIAGONAL_CEEDOP));
+  PetscCall(PetscLogEventRegister("MatCEEDAsmPBD", MATCEED_CLASSID, &MATCEED_ASSEMBLE_PBDIAGONAL));
+  PetscCall(PetscLogEventRegister("MatCEEDAsmPBDCeed", MATCEED_CLASSID, &MATCEED_ASSEMBLE_PBDIAGONAL_CEEDOP));
+  PetscCall(PetscLogEventRegister("MatCEEDAsmSU", MATCEED_CLASSID, &MATCEED_SETUP_FULL));
+  PetscCall(PetscLogEventRegister("MatCEEDAsmSUCeed", MATCEED_CLASSID, &MATCEED_SETUP_FULL_CEEDOP));
+  PetscCall(PetscLogEventRegister("MatCEEDAsm", MATCEED_CLASSID, &MATCEED_ASSEMBLE_FULL));
+  PetscCall(PetscLogEventRegister("MatCEEDAsmCeed", MATCEED_CLASSID, &MATCEED_ASSEMBLE_FULL_CEEDOP));
   registered = PETSC_TRUE;
   PetscFunctionReturn(PETSC_SUCCESS);
 }
@@ -65,12 +78,15 @@ static PetscErrorCode MatCeedAssemblePointBlockDiagonalCOO(Mat mat_ceed, Mat mat
       PetscLogStage stage_amg_setup;
 
       // -- Assemble sparsity pattern if mat hasn't been assembled before
-      PetscCall(PetscLogStageGetId("MATCEED Assembly Setup", &stage_amg_setup));
+      PetscCall(PetscLogStageGetId("MatCEED Asm Setup", &stage_amg_setup));
       if (stage_amg_setup == -1) {
-        PetscCall(PetscLogStageRegister("MATCEED Assembly Setup", &stage_amg_setup));
+        PetscCall(PetscLogStageRegister("MatCEED Asm Setup", &stage_amg_setup));
       }
       PetscCall(PetscLogStagePush(stage_amg_setup));
+      PetscCall(PetscLogEventBegin(MATCEED_SETUP_PBDIAGONAL, mat_ceed, mat_coo, NULL, NULL));
+      PetscCall(PetscLogEventBegin(MATCEED_SETUP_PBDIAGONAL_CEEDOP, mat_ceed, mat_coo, NULL, NULL));
       PetscCallCeed(ctx->ceed, CeedOperatorLinearAssemblePointBlockDiagonalSymbolic(ctx->op_mult, &num_entries, &rows_ceed, &cols_ceed));
+      PetscCall(PetscLogEventEnd(MATCEED_SETUP_PBDIAGONAL_CEEDOP, mat_ceed, mat_coo, NULL, NULL));
       PetscCall(IntArrayCeedToPetsc(num_entries, &rows_ceed, &rows_petsc));
       PetscCall(IntArrayCeedToPetsc(num_entries, &cols_ceed, &cols_petsc));
       PetscCall(MatSetPreallocationCOOLocal(mat_coo, num_entries, rows_petsc, cols_petsc));
@@ -79,11 +95,13 @@ static PetscErrorCode MatCeedAssemblePointBlockDiagonalCOO(Mat mat_ceed, Mat mat
       if (!ctx->coo_values_pbd) PetscCallCeed(ctx->ceed, CeedVectorCreate(ctx->ceed, num_entries, &ctx->coo_values_pbd));
       PetscCall(PetscRealloc(++ctx->num_mats_assembled_pbd * sizeof(Mat), &ctx->mats_assembled_pbd));
       ctx->mats_assembled_pbd[ctx->num_mats_assembled_pbd - 1] = mat_coo;
+      PetscCall(PetscLogEventEnd(MATCEED_SETUP_PBDIAGONAL, mat_ceed, mat_coo, NULL, NULL));
       PetscCall(PetscLogStagePop());
     }
   }
 
   // Assemble mat_ceed
+  PetscCall(PetscLogEventBegin(MATCEED_ASSEMBLE_PBDIAGONAL, mat_ceed, mat_coo, NULL, NULL));
   PetscCall(MatAssemblyBegin(mat_coo, MAT_FINAL_ASSEMBLY));
   {
     const CeedScalar *values;
@@ -96,7 +114,9 @@ static PetscErrorCode MatCeedAssemblePointBlockDiagonalCOO(Mat mat_ceed, Mat mat
     else if (strstr(mat_type, "kokkos")) mem_type = CEED_MEM_DEVICE;
     else mem_type = CEED_MEM_HOST;
 
+    PetscCall(PetscLogEventBegin(MATCEED_ASSEMBLE_PBDIAGONAL_CEEDOP, mat_ceed, mat_coo, NULL, NULL));
     PetscCallCeed(ctx->ceed, CeedOperatorLinearAssemblePointBlockDiagonal(ctx->op_mult, ctx->coo_values_pbd, CEED_REQUEST_IMMEDIATE));
+    PetscCall(PetscLogEventEnd(MATCEED_ASSEMBLE_PBDIAGONAL_CEEDOP, mat_ceed, mat_coo, NULL, NULL));
     PetscCallCeed(ctx->ceed, CeedVectorGetArrayRead(ctx->coo_values_pbd, mem_type, &values));
     PetscCall(MatSetValuesCOO(mat_coo, values, INSERT_VALUES));
     PetscCall(MatIsSPDKnown(mat_ceed, &is_spd_known, &is_spd));
@@ -104,6 +124,7 @@ static PetscErrorCode MatCeedAssemblePointBlockDiagonalCOO(Mat mat_ceed, Mat mat
     PetscCallCeed(ctx->ceed, CeedVectorRestoreArrayRead(ctx->coo_values_pbd, &values));
   }
   PetscCall(MatAssemblyEnd(mat_coo, MAT_FINAL_ASSEMBLY));
+  PetscCall(PetscLogEventEnd(MATCEED_ASSEMBLE_PBDIAGONAL, mat_ceed, mat_coo, NULL, NULL));
   PetscFunctionReturn(PETSC_SUCCESS);
 }
 
@@ -317,7 +338,8 @@ PetscErrorCode MatCeedCreate(DM dm_x, DM dm_y, CeedOperator op_mult, CeedOperato
       PetscCall(DMCreateLocalVector(dm_y, &Y_loc_transpose));
       PetscCall(VecZeroEntries(Y_loc_transpose));
     }
-    PetscCall(MatCeedContextCreate(dm_x, dm_y, X_loc, Y_loc_transpose, op_mult, op_mult_transpose, MATCEED_MULT, MATCEED_MULT_TRANSPOSE, &ctx));
+    PetscCall(MatCeedContextCreate(dm_x, dm_y, X_loc, Y_loc_transpose, op_mult, op_mult_transpose, MATCEED_MULT, MATCEED_MULT_TRANSPOSE,
+                                   MATCEED_MULT_CEEDOP, MATCEED_MULT_TRANSPOSE_CEEDOP, &ctx));
     PetscCall(VecDestroy(&X_loc));
     PetscCall(VecDestroy(&Y_loc_transpose));
   }
@@ -597,12 +619,15 @@ PetscErrorCode MatCeedSetPreallocationCOO(Mat mat_ceed, Mat mat_coo) {
     PetscLogStage stage_amg_setup;
 
     // -- Assemble sparsity pattern if mat hasn't been assembled before
-    PetscCall(PetscLogStageGetId("MATCEED Assembly Setup", &stage_amg_setup));
+    PetscCall(PetscLogStageGetId("MatCEED Asm Setup", &stage_amg_setup));
     if (stage_amg_setup == -1) {
-      PetscCall(PetscLogStageRegister("MATCEED Assembly Setup", &stage_amg_setup));
+      PetscCall(PetscLogStageRegister("MatCEED Asm Setup", &stage_amg_setup));
     }
     PetscCall(PetscLogStagePush(stage_amg_setup));
+    PetscCall(PetscLogEventBegin(MATCEED_SETUP_FULL, mat_ceed, mat_coo, NULL, NULL));
+    PetscCall(PetscLogEventBegin(MATCEED_SETUP_FULL_CEEDOP, mat_ceed, mat_coo, NULL, NULL));
     PetscCallCeed(ctx->ceed, CeedOperatorLinearAssembleSymbolic(ctx->op_mult, &num_entries, &rows_ceed, &cols_ceed));
+    PetscCall(PetscLogEventEnd(MATCEED_SETUP_FULL_CEEDOP, mat_ceed, mat_coo, NULL, NULL));
     PetscCall(IntArrayCeedToPetsc(num_entries, &rows_ceed, &rows_petsc));
     PetscCall(IntArrayCeedToPetsc(num_entries, &cols_ceed, &cols_petsc));
     PetscCall(MatSetPreallocationCOOLocal(mat_coo, num_entries, rows_petsc, cols_petsc));
@@ -611,6 +636,7 @@ PetscErrorCode MatCeedSetPreallocationCOO(Mat mat_ceed, Mat mat_coo) {
     if (!ctx->coo_values_full) PetscCallCeed(ctx->ceed, CeedVectorCreate(ctx->ceed, num_entries, &ctx->coo_values_full));
     PetscCall(PetscRealloc(++ctx->num_mats_assembled_full * sizeof(Mat), &ctx->mats_assembled_full));
     ctx->mats_assembled_full[ctx->num_mats_assembled_full - 1] = mat_coo;
+    PetscCall(PetscLogEventEnd(MATCEED_SETUP_FULL, mat_ceed, mat_coo, NULL, NULL));
     PetscCall(PetscLogStagePop());
   }
   PetscFunctionReturn(PETSC_SUCCESS);
@@ -645,6 +671,7 @@ PetscErrorCode MatCeedAssembleCOO(Mat mat_ceed, Mat mat_coo) {
   }
 
   // Assemble mat_ceed
+  PetscCall(PetscLogEventBegin(MATCEED_ASSEMBLE_FULL, mat_ceed, mat_coo, NULL, NULL));
   PetscCall(MatAssemblyBegin(mat_coo, MAT_FINAL_ASSEMBLY));
   {
     const CeedScalar *values;
@@ -657,7 +684,9 @@ PetscErrorCode MatCeedAssembleCOO(Mat mat_ceed, Mat mat_coo) {
     else if (strstr(mat_type, "kokkos")) mem_type = CEED_MEM_DEVICE;
     else mem_type = CEED_MEM_HOST;
 
+    PetscCall(PetscLogEventBegin(MATCEED_ASSEMBLE_FULL_CEEDOP, mat_ceed, mat_coo, NULL, NULL));
     PetscCallCeed(ctx->ceed, CeedOperatorLinearAssemble(ctx->op_mult, ctx->coo_values_full));
+    PetscCall(PetscLogEventEnd(MATCEED_ASSEMBLE_FULL_CEEDOP, mat_ceed, mat_coo, NULL, NULL));
     PetscCallCeed(ctx->ceed, CeedVectorGetArrayRead(ctx->coo_values_full, mem_type, &values));
     PetscCall(MatSetValuesCOO(mat_coo, values, INSERT_VALUES));
     PetscCall(MatIsSPDKnown(mat_ceed, &is_spd_known, &is_spd));
@@ -665,6 +694,7 @@ PetscErrorCode MatCeedAssembleCOO(Mat mat_ceed, Mat mat_coo) {
     PetscCallCeed(ctx->ceed, CeedVectorRestoreArrayRead(ctx->coo_values_full, &values));
   }
   PetscCall(MatAssemblyEnd(mat_coo, MAT_FINAL_ASSEMBLY));
+  PetscCall(PetscLogEventEnd(MATCEED_ASSEMBLE_FULL, mat_ceed, mat_coo, NULL, NULL));
   PetscFunctionReturn(PETSC_SUCCESS);
 }
 
@@ -1097,6 +1127,48 @@ PetscErrorCode MatCeedGetLogEvents(Mat mat, PetscLogEvent *log_event_mult, Petsc
   PetscFunctionReturn(PETSC_SUCCESS);
 }
 
+/**
+  @brief Set `CeedOperator` `PetscLogEvent` for `MATCEED` `MatMult()` and `MatMultTranspose()` operators.
+
+  Not collective across MPI processes.
+
+  @param[in,out]  mat                       MatCeed
+  @param[out]     log_event_mult            `PetscLogEvent` for forward `CeedOperator` evaluation, or NULL
+  @param[out]     log_event_mult_transpose  `PetscLogEvent` for transpose `CeedOperator` evaluation, or NULL
+
+  @return An error code: 0 - success, otherwise - failure
+**/
+PetscErrorCode MatCeedSetCeedOperatorLogEvents(Mat mat, PetscLogEvent log_event_mult, PetscLogEvent log_event_mult_transpose) {
+  MatCeedContext ctx;
+
+  PetscFunctionBeginUser;
+  PetscCall(MatShellGetContext(mat, &ctx));
+  if (log_event_mult) ctx->log_event_ceed_mult = log_event_mult;
+  if (log_event_mult_transpose) ctx->log_event_ceed_mult_transpose = log_event_mult_transpose;
+  PetscFunctionReturn(PETSC_SUCCESS);
+}
+
+/**
+  @brief Get `CeedOperator` `PetscLogEvent` for `MATCEED` `MatMult()` and `MatMultTranspose()` operators.
+
+  Not collective across MPI processes.
+
+  @param[in,out]  mat                       MatCeed
+  @param[out]     log_event_mult            `PetscLogEvent` for forward `CeedOperator` evaluation, or NULL
+  @param[out]     log_event_mult_transpose  `PetscLogEvent` for transpose `CeedOperator` evaluation, or NULL
+
+  @return An error code: 0 - success, otherwise - failure
+**/
+PetscErrorCode MatCeedGetCeedOperatorLogEvents(Mat mat, PetscLogEvent *log_event_mult, PetscLogEvent *log_event_mult_transpose) {
+  MatCeedContext ctx;
+
+  PetscFunctionBeginUser;
+  PetscCall(MatShellGetContext(mat, &ctx));
+  if (log_event_mult) *log_event_mult = ctx->log_event_ceed_mult;
+  if (log_event_mult_transpose) *log_event_mult_transpose = ctx->log_event_ceed_mult_transpose;
+  PetscFunctionReturn(PETSC_SUCCESS);
+}
+
 // -----------------------------------------------------------------------------
 // Operator context data
 // -----------------------------------------------------------------------------
@@ -1106,20 +1178,23 @@ PetscErrorCode MatCeedGetLogEvents(Mat mat, PetscLogEvent *log_event_mult, Petsc
 
   Collective across MPI processes.
 
-  @param[in]   dm_x                      Input `DM`
-  @param[in]   dm_y                      Output `DM`
-  @param[in]   X_loc                     Input PETSc local vector, or NULL
-  @param[in]   Y_loc_transpose           Input PETSc local vector for transpose operation, or NULL
-  @param[in]   op_mult                   `CeedOperator` for forward evaluation
-  @param[in]   op_mult_transpose         `CeedOperator` for transpose evaluation
-  @param[in]   log_event_mult            `PetscLogEvent` for forward evaluation
-  @param[in]   log_event_mult_transpose  `PetscLogEvent` for transpose evaluation
-  @param[out]  ctx                       Context data for operator evaluation
+  @param[in]   dm_x                           Input `DM`
+  @param[in]   dm_y                           Output `DM`
+  @param[in]   X_loc                          Input PETSc local vector, or NULL
+  @param[in]   Y_loc_transpose                Input PETSc local vector for transpose operation, or NULL
+  @param[in]   op_mult                        `CeedOperator` for forward evaluation
+  @param[in]   op_mult_transpose              `CeedOperator` for transpose evaluation
+  @param[in]   log_event_mult                 `PetscLogEvent` for forward evaluation
+  @param[in]   log_event_mult_transpose       `PetscLogEvent` for transpose evaluation
+  @param[in]   log_event_ceed_mult            `PetscLogEvent` for forward `CeedOperator` evaluation
+  @param[in]   log_event_ceed_mult_transpose  `PetscLogEvent` for transpose `CeedOperator` evaluation
+  @param[out]  ctx                            Context data for operator evaluation
 
   @return An error code: 0 - success, otherwise - failure
 **/
 PetscErrorCode MatCeedContextCreate(DM dm_x, DM dm_y, Vec X_loc, Vec Y_loc_transpose, CeedOperator op_mult, CeedOperator op_mult_transpose,
-                                    PetscLogEvent log_event_mult, PetscLogEvent log_event_mult_transpose, MatCeedContext *ctx) {
+                                    PetscLogEvent log_event_mult, PetscLogEvent log_event_mult_transpose, PetscLogEvent log_event_ceed_mult,
+                                    PetscLogEvent log_event_ceed_mult_transpose, MatCeedContext *ctx) {
   CeedSize x_loc_len, y_loc_len;
 
   PetscFunctionBeginUser;
@@ -1129,8 +1204,10 @@ PetscErrorCode MatCeedContextCreate(DM dm_x, DM dm_y, Vec X_loc, Vec Y_loc_trans
   (*ctx)->ref_count = 1;
 
   // Logging
-  (*ctx)->log_event_mult           = log_event_mult;
-  (*ctx)->log_event_mult_transpose = log_event_mult_transpose;
+  (*ctx)->log_event_mult                = log_event_mult;
+  (*ctx)->log_event_mult_transpose      = log_event_mult_transpose;
+  (*ctx)->log_event_ceed_mult           = log_event_ceed_mult;
+  (*ctx)->log_event_ceed_mult_transpose = log_event_ceed_mult_transpose;
 
   // PETSc objects
   PetscCall(DMReferenceCopy(dm_x, &(*ctx)->dm_x));
@@ -1302,11 +1379,14 @@ PetscErrorCode MatGetDiagonal_Ceed(Mat A, Vec D) {
   PetscCall(MatShellGetContext(A, &ctx));
 
   // Place PETSc vector in libCEED vector
+  PetscCall(PetscLogEventBegin(MATCEED_ASSEMBLE_DIAGONAL, A, D, NULL, NULL));
   PetscCall(DMGetLocalVector(ctx->dm_x, &D_loc));
   PetscCall(VecPetscToCeed(D_loc, &mem_type, ctx->x_loc));
 
   // Compute Diagonal
+  PetscCall(PetscLogEventBegin(MATCEED_ASSEMBLE_DIAGONAL_CEEDOP, A, D, NULL, NULL));
   PetscCallCeed(ctx->ceed, CeedOperatorLinearAssembleDiagonal(ctx->op_mult, ctx->x_loc, CEED_REQUEST_IMMEDIATE));
+  PetscCall(PetscLogEventEnd(MATCEED_ASSEMBLE_DIAGONAL_CEEDOP, A, D, NULL, NULL));
 
   // Restore PETSc vector
   PetscCall(VecCeedToPetsc(ctx->x_loc, mem_type, D_loc));
@@ -1315,6 +1395,7 @@ PetscErrorCode MatGetDiagonal_Ceed(Mat A, Vec D) {
   PetscCall(VecZeroEntries(D));
   PetscCall(DMLocalToGlobal(ctx->dm_x, D_loc, ADD_VALUES, D));
   PetscCall(DMRestoreLocalVector(ctx->dm_x, &D_loc));
+  PetscCall(PetscLogEventEnd(MATCEED_ASSEMBLE_DIAGONAL, A, D, NULL, NULL));
   PetscFunctionReturn(PETSC_SUCCESS);
 }
 
@@ -1334,7 +1415,7 @@ PetscErrorCode MatMult_Ceed(Mat A, Vec X, Vec Y) {
 
   PetscFunctionBeginUser;
   PetscCall(MatShellGetContext(A, &ctx));
-  PetscCall(PetscLogEventBegin(ctx->log_event_mult, A, X, Y, 0));
+  PetscCall(PetscLogEventBegin(ctx->log_event_mult, A, X, Y, NULL));
 
   {
     PetscMemType x_mem_type, y_mem_type;
@@ -1354,7 +1435,9 @@ PetscErrorCode MatMult_Ceed(Mat A, Vec X, Vec Y) {
 
     // Apply libCEED operator
     PetscCall(PetscLogGpuTimeBegin());
+    PetscCall(PetscLogEventBegin(ctx->log_event_ceed_mult, A, X, Y, NULL));
     PetscCallCeed(ctx->ceed, CeedOperatorApplyAdd(ctx->op_mult, ctx->x_loc, ctx->y_loc, CEED_REQUEST_IMMEDIATE));
+    PetscCall(PetscLogEventEnd(ctx->log_event_ceed_mult, A, X, Y, NULL));
     PetscCall(PetscLogGpuTimeEnd());
 
     // Restore PETSc vectors
@@ -1373,8 +1456,7 @@ PetscErrorCode MatMult_Ceed(Mat A, Vec X, Vec Y) {
   // Log flops
   if (PetscMemTypeDevice(ctx->mem_type)) PetscCall(PetscLogGpuFlops(ctx->flops_mult));
   else PetscCall(PetscLogFlops(ctx->flops_mult));
-
-  PetscCall(PetscLogEventEnd(ctx->log_event_mult, A, X, Y, 0));
+  PetscCall(PetscLogEventEnd(ctx->log_event_mult, A, X, Y, NULL));
   PetscFunctionReturn(PETSC_SUCCESS);
 }
 
@@ -1394,7 +1476,7 @@ PetscErrorCode MatMultTranspose_Ceed(Mat A, Vec Y, Vec X) {
 
   PetscFunctionBeginUser;
   PetscCall(MatShellGetContext(A, &ctx));
-  PetscCall(PetscLogEventBegin(ctx->log_event_mult_transpose, A, Y, X, 0));
+  PetscCall(PetscLogEventBegin(ctx->log_event_mult_transpose, A, Y, X, NULL));
 
   {
     PetscMemType x_mem_type, y_mem_type;
@@ -1414,7 +1496,9 @@ PetscErrorCode MatMultTranspose_Ceed(Mat A, Vec Y, Vec X) {
 
     // Apply libCEED operator
     PetscCall(PetscLogGpuTimeBegin());
+    PetscCall(PetscLogEventBegin(ctx->log_event_ceed_mult_transpose, A, Y, X, NULL));
     PetscCallCeed(ctx->ceed, CeedOperatorApplyAdd(ctx->op_mult_transpose, ctx->y_loc, ctx->x_loc, CEED_REQUEST_IMMEDIATE));
+    PetscCall(PetscLogEventEnd(ctx->log_event_ceed_mult_transpose, A, Y, X, NULL));
     PetscCall(PetscLogGpuTimeEnd());
 
     // Restore PETSc vectors
@@ -1433,7 +1517,6 @@ PetscErrorCode MatMultTranspose_Ceed(Mat A, Vec Y, Vec X) {
   // Log flops
   if (PetscMemTypeDevice(ctx->mem_type)) PetscCall(PetscLogGpuFlops(ctx->flops_mult_transpose));
   else PetscCall(PetscLogFlops(ctx->flops_mult_transpose));
-
-  PetscCall(PetscLogEventEnd(ctx->log_event_mult_transpose, A, Y, X, 0));
+  PetscCall(PetscLogEventEnd(ctx->log_event_mult_transpose, A, Y, X, NULL));
   PetscFunctionReturn(PETSC_SUCCESS);
 }
