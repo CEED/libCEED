@@ -20,7 +20,7 @@ struct MatCeedContext_private {
   PetscMemType   mem_type;
   PetscInt       ref_count, num_mats_assembled_full, num_mats_assembled_pbd;
   PetscBool      is_destroyed, is_ceed_pbd_valid, is_ceed_vpbd_valid;
-  PetscLogEvent  log_event_mult, log_event_mult_transpose;
+  PetscLogEvent  log_event_mult, log_event_mult_transpose, log_event_ceed_mult, log_event_ceed_mult_transpose;
   DM             dm_x, dm_y;
   Mat           *mats_assembled_full, *mats_assembled_pbd, mat_assembled_full_internal, mat_assembled_pbd_internal;
   Vec            X_loc, Y_loc_transpose;
@@ -32,7 +32,8 @@ struct MatCeedContext_private {
 // Context data
 PETSC_CEED_EXTERN PetscErrorCode MatCeedContextCreate(DM dm_x, DM dm_y, Vec X_loc, Vec Y_loc_transpose, CeedOperator op_mult,
                                                       CeedOperator op_mult_transpose, PetscLogEvent log_event_mult,
-                                                      PetscLogEvent log_event_mult_transpose, MatCeedContext *ctx);
+                                                      PetscLogEvent log_event_mult_transpose, PetscLogEvent log_event_ceed_mult,
+                                                      PetscLogEvent log_event_ceed_mult_transpose, MatCeedContext *ctx);
 PETSC_CEED_EXTERN PetscErrorCode MatCeedContextReference(MatCeedContext ctx);
 PETSC_CEED_EXTERN PetscErrorCode MatCeedContextReferenceCopy(MatCeedContext ctx, MatCeedContext *ctx_copy);
 PETSC_CEED_EXTERN PetscErrorCode MatCeedContextDestroy(MatCeedContext ctx);
