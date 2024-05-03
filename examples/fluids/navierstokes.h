@@ -6,9 +6,9 @@
 // This file is part of CEED:  http://github.com/ceed
 #pragma once
 
-#include <ceed-utils.h>
 #include <ceed.h>
 #include <mat-ceed.h>
+#include <petsc-ceed-utils.h>
 #include <petscts.h>
 #include <stdbool.h>
 
@@ -276,7 +276,6 @@ struct Physics_private {
   CeedContextFieldLabel stg_solution_time_label;
   CeedContextFieldLabel timestep_size_label;
   CeedContextFieldLabel ics_time_label;
-  CeedContextFieldLabel ijacobian_time_shift_label;
 };
 
 typedef struct {

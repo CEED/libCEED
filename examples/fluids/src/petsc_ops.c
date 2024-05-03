@@ -309,10 +309,8 @@ PetscErrorCode ApplyAddCeedOperatorLocalToLocal(Vec X_loc, Vec Y_loc, OperatorAp
  */
 PetscErrorCode CreateSolveOperatorsFromMatCeed(KSP ksp, Mat mat_ceed, PetscBool assemble, Mat *Amat, Mat *Pmat) {
   PetscBool use_matceed_pmat, assemble_amat = PETSC_FALSE;
-  MatType   mat_ceed_inner_type;
 
   PetscFunctionBeginUser;
-  PetscCall(MatCeedGetInnerMatType(mat_ceed, &mat_ceed_inner_type));
   {  // Determine if Amat should be MATCEED or assembled
     const char *ksp_prefix = NULL;
 
@@ -323,7 +321,7 @@ PetscErrorCode CreateSolveOperatorsFromMatCeed(KSP ksp, Mat mat_ceed, PetscBool 
   }
 
   if (assemble_amat) {
-    PetscCall(MatConvert(mat_ceed, mat_ceed_inner_type, MAT_INITIAL_MATRIX, Amat));
+    PetscCall(MatCeedCreateMatCOO(mat_ceed, Amat));
     if (assemble) PetscCall(MatCeedAssembleCOO(mat_ceed, *Amat));
 
     PetscCall(PetscObjectReference((PetscObject)*Amat));
@@ -347,7 +345,7 @@ PetscErrorCode CreateSolveOperatorsFromMatCeed(KSP ksp, Mat mat_ceed, PetscBool 
     PetscCall(PetscObjectReference((PetscObject)mat_ceed));
     *Pmat = mat_ceed;
   } else {
-    PetscCall(MatConvert(mat_ceed, mat_ceed_inner_type, MAT_INITIAL_MATRIX, Pmat));
+    PetscCall(MatCeedCreateMatCOO(mat_ceed, Pmat));
     if (assemble) PetscCall(MatCeedAssembleCOO(mat_ceed, *Pmat));
   }
   PetscFunctionReturn(PETSC_SUCCESS);

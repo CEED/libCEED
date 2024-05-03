@@ -9,17 +9,43 @@
 #include <ceed.h>
 #include <petscdm.h>
 
-#define PetscCallCeed(ceed, ...)                                    \
-  do {                                                              \
-    int ierr_q_;                                                    \
-    PetscStackUpdateLine;                                           \
-    ierr_q_ = __VA_ARGS__;                                          \
-    if (PetscUnlikely(ierr_q_ != CEED_ERROR_SUCCESS)) {             \
-      const char *error_message;                                    \
-      CeedGetErrorMessage(ceed, &error_message);                    \
-      SETERRQ(PETSC_COMM_SELF, PETSC_ERR_LIB, "%s", error_message); \
-    }                                                               \
-  } while (0)
+/**
+  @brief Copy the reference to a `Vec`.
+         Note: If `vec_copy` is non-null, it is assumed to be a valid pointer to a `Vec` and `VecDestroy()` will be called.
+
+  Collective across MPI processes.
+
+  @param[in]   vec       `Vec` to reference
+  @param[out]  vec_copy  Copy of reference
+
+  @return An error code: 0 - success, otherwise - failure
+**/
+static inline PetscErrorCode VecReferenceCopy(Vec vec, Vec *vec_copy) {
+  PetscFunctionBeginUser;
+  PetscCall(PetscObjectReference((PetscObject)vec));
+  PetscCall(VecDestroy(vec_copy));
+  *vec_copy = vec;
+  PetscFunctionReturn(PETSC_SUCCESS);
+}
+
+/**
+  @brief Copy the reference to a `DM`.
+         Note: If `dm_copy` is non-null, it is assumed to be a valid pointer to a `DM` and `DMDestroy()` will be called.
+
+  Collective across MPI processes.
+
+  @param[in]   dm       `DM` to reference
+  @param[out]  dm_copy  Copy of reference
+
+  @return An error code: 0 - success, otherwise - failure
+**/
+static inline PetscErrorCode DMReferenceCopy(DM dm, DM *dm_copy) {
+  PetscFunctionBeginUser;
+  PetscCall(PetscObjectReference((PetscObject)dm));
+  PetscCall(DMDestroy(dm_copy));
+  *dm_copy = dm;
+  PetscFunctionReturn(PETSC_SUCCESS);
+}
 
 /**
   @brief Translate PetscMemType to CeedMemType
