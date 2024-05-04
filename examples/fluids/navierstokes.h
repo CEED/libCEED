@@ -322,7 +322,7 @@ extern PetscErrorCode PRINT_ADVECTION(User user, ProblemData problem, AppCtx app
 
 extern PetscErrorCode PRINT_ADVECTION2D(User user, ProblemData problem, AppCtx app_ctx);
 
-PetscErrorCode PrintRunInfo(User user, Physics phys_ctx, ProblemData problem, MPI_Comm comm);
+PetscErrorCode PrintRunInfo(User user, Physics phys_ctx, ProblemData problem, TS ts);
 
 // -----------------------------------------------------------------------------
 // libCEED functions
@@ -363,7 +363,7 @@ PetscErrorCode IFunction_NS(TS ts, PetscReal t, Vec Q, Vec Q_dot, Vec G, void *u
 PetscErrorCode TSMonitor_NS(TS ts, PetscInt step_no, PetscReal time, Vec Q, void *ctx);
 
 // TS: Create, setup, and solve
-PetscErrorCode TSSolve_NS(DM dm, User user, AppCtx app_ctx, Physics phys, Vec *Q, PetscScalar *f_time, TS *ts);
+PetscErrorCode TSSolve_NS(DM dm, User user, AppCtx app_ctx, Physics phys, ProblemData problem, Vec *Q, PetscScalar *f_time, TS *ts);
 
 // Update Boundary Values when time has changed
 PetscErrorCode UpdateBoundaryValues(User user, Vec Q_loc, PetscReal t);

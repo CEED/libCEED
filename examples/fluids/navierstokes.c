@@ -229,9 +229,6 @@ int main(int argc, char **argv) {
     PetscCall(SetupICsFromBinary(comm, app_ctx, Q));
   }
 
-  // Print problem summary
-  if (app_ctx->test_type == TESTTYPE_NONE) PetscCall(PrintRunInfo(user, phys_ctx, problem, comm));
-
   // -- Zero Q_loc
   PetscCall(VecZeroEntries(user->Q_loc));
 
@@ -240,7 +237,7 @@ int main(int argc, char **argv) {
   // ---------------------------------------------------------------------------
   TS          ts;
   PetscScalar final_time;
-  PetscCall(TSSolve_NS(dm, user, app_ctx, phys_ctx, &Q, &final_time, &ts));
+  PetscCall(TSSolve_NS(dm, user, app_ctx, phys_ctx, problem, &Q, &final_time, &ts));
 
   // ---------------------------------------------------------------------------
   // Post-processing
