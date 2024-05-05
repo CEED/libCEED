@@ -308,7 +308,7 @@ PetscErrorCode ApplyAddCeedOperatorLocalToLocal(Vec X_loc, Vec Y_loc, OperatorAp
  * @param[out] Pmat     `Mat` to be used for the solver `Pmat`
  */
 PetscErrorCode CreateSolveOperatorsFromMatCeed(KSP ksp, Mat mat_ceed, PetscBool assemble, Mat *Amat, Mat *Pmat) {
-  PetscBool use_matceed_pmat, assemble_amat = PETSC_FALSE;
+  PetscBool use_matceed_pmat, use_assembled_amat = PETSC_FALSE;
 
   PetscFunctionBeginUser;
   {  // Determine if Amat should be MATCEED or assembled
@@ -316,11 +316,11 @@ PetscErrorCode CreateSolveOperatorsFromMatCeed(KSP ksp, Mat mat_ceed, PetscBool 
 
     PetscCall(KSPGetOptionsPrefix(ksp, &ksp_prefix));
     PetscOptionsBegin(PetscObjectComm((PetscObject)mat_ceed), ksp_prefix, "", NULL);
-    PetscCall(PetscOptionsBool("-matceed_assemble_amat", "Assemble the A matrix for KSP solve", NULL, assemble_amat, &assemble_amat, NULL));
+    PetscCall(PetscOptionsBool("-use_assembled_amat", "Assemble the A matrix for KSP solve", NULL, use_assembled_amat, &use_assembled_amat, NULL));
     PetscOptionsEnd();
   }
 
-  if (assemble_amat) {
+  if (use_assembled_amat) {
     PetscCall(MatCeedCreateMatCOO(mat_ceed, Amat));
     if (assemble) PetscCall(MatCeedAssembleCOO(mat_ceed, *Amat));
 
