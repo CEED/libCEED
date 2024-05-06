@@ -12,9 +12,10 @@ extern "C" {
 #endif
 
 typedef enum {
-  TORCH_DEVICE_CUDA,
-  TORCH_DEVICE_XPU,
   TORCH_DEVICE_CPU,
+  TORCH_DEVICE_CUDA,
+  TORCH_DEVICE_HIP,
+  TORCH_DEVICE_XPU,
 } TorchDeviceType;
 
 PetscErrorCode ModelInference_LibTorch(Vec DD_Inputs_loc, Vec DD_Outputs_loc);

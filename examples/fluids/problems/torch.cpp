@@ -5,9 +5,7 @@
 #include "../include/libtorch.h"
 
 torch::jit::script::Module model;
-// torch::DeviceType          device;
-torch::DeviceType device = torch::kXPU;
-// torch::DeviceType          device = torch::kCPU;
+torch::DeviceType          device;
 
 torch::DeviceType Enum2DeviceType(TorchDeviceType device_enum) {
   switch (device_enum) {
@@ -17,57 +15,19 @@ torch::DeviceType Enum2DeviceType(TorchDeviceType device_enum) {
       return torch::kXPU;
     case TORCH_DEVICE_CUDA:
       return torch::kCUDA;
+    case TORCH_DEVICE_HIP:
+      return torch::kHIP;
   }
 }
 
 PetscErrorCode LoadModel_LibTorch(const char *model_path, TorchDeviceType device_enum) {
   PetscFunctionBeginUser;
 
-  // PetscCallCXX(device = torch::Device(device_str));
-  // PetscCallCXX(device = Enum2DeviceType(device_enum));
-  // PetscCallCXX(device = torch::kXPU);
+  PetscCallCXX(device = Enum2DeviceType(device_enum));
 
   PetscCallCXX(model = torch::jit::load(model_path));
   PetscCallCXX(model.to(torch::Device(device)));
 
-  PetscFunctionReturn(PETSC_SUCCESS);
-}
-
-// Load and run model
-PetscErrorCode ModelInference_LibTorch_Host(Vec DD_Inputs_loc, Vec DD_Outputs_loc) {
-  torch::Tensor input_tensor, output_tensor;
-
-  PetscFunctionBeginUser;
-  // torch::NoGradGuard no_grad; // equivalent to "with torch.no_grad():" in PyTorch
-  {
-    PetscInt             input_size, num_nodes;
-    const PetscScalar   *dd_inputs_ptr;
-    torch::TensorOptions options;
-
-    PetscCall(VecGetLocalSize(DD_Inputs_loc, &input_size));
-    num_nodes = input_size / 6;
-    PetscCall(VecGetArrayRead(DD_Inputs_loc, &dd_inputs_ptr));
-
-    PetscCallCXX(options = torch::TensorOptions().dtype(torch::kFloat64).device(torch::kCPU));
-    PetscCallCXX(input_tensor = torch::from_blob((void *)dd_inputs_ptr, {num_nodes, 6}, options));
-    PetscCall(VecRestoreArrayRead(DD_Inputs_loc, &dd_inputs_ptr));
-  }
-
-  // Run model
-  PetscCallCXX(output_tensor = model.forward({input_tensor}).toTensor());
-
-  {
-    PetscInt     output_size;
-    PetscScalar *dd_outputs_ptr;
-    double      *output_tensor_ptr = (double *)output_tensor.contiguous().to(torch::kCPU).data_ptr();
-
-    PetscCall(VecGetLocalSize(DD_Outputs_loc, &output_size));
-    PetscCall(VecGetArray(DD_Outputs_loc, &dd_outputs_ptr));
-
-    PetscCall(PetscArraycpy(dd_outputs_ptr, output_tensor_ptr, output_size));
-
-    PetscCall(VecRestoreArray(DD_Outputs_loc, &dd_outputs_ptr));
-  }
   PetscFunctionReturn(PETSC_SUCCESS);
 }
 
@@ -128,9 +88,46 @@ PetscErrorCode ModelInference_LibTorch(Vec DD_Inputs_loc, Vec DD_Outputs_loc) {
 
     PetscCall(VecRestoreArrayAndMemType(DD_Outputs_loc, &dd_outputs_ptr));
   }
-
   PetscFunctionReturn(PETSC_SUCCESS);
 }
+
+// // Load and run model
+// PetscErrorCode ModelInference_LibTorch_Host(Vec DD_Inputs_loc, Vec DD_Outputs_loc) {
+//   torch::Tensor input_tensor, output_tensor;
+//
+//   PetscFunctionBeginUser;
+//   // torch::NoGradGuard no_grad; // equivalent to "with torch.no_grad():" in PyTorch
+//   {
+//     PetscInt             input_size, num_nodes;
+//     const PetscScalar   *dd_inputs_ptr;
+//     torch::TensorOptions options;
+//
+//     PetscCall(VecGetLocalSize(DD_Inputs_loc, &input_size));
+//     num_nodes = input_size / 6;
+//     PetscCall(VecGetArrayRead(DD_Inputs_loc, &dd_inputs_ptr));
+//
+//     PetscCallCXX(options = torch::TensorOptions().dtype(torch::kFloat64).device(torch::kCPU));
+//     PetscCallCXX(input_tensor = torch::from_blob((void *)dd_inputs_ptr, {num_nodes, 6}, options));
+//     PetscCall(VecRestoreArrayRead(DD_Inputs_loc, &dd_inputs_ptr));
+//   }
+//
+//   // Run model
+//   PetscCallCXX(output_tensor = model.forward({input_tensor}).toTensor());
+//
+//   {
+//     PetscInt     output_size;
+//     PetscScalar *dd_outputs_ptr;
+//     double      *output_tensor_ptr = (double *)output_tensor.contiguous().to(torch::kCPU).data_ptr();
+//
+//     PetscCall(VecGetLocalSize(DD_Outputs_loc, &output_size));
+//     PetscCall(VecGetArray(DD_Outputs_loc, &dd_outputs_ptr));
+//
+//     PetscCall(PetscArraycpy(dd_outputs_ptr, output_tensor_ptr, output_size));
+//
+//     PetscCall(VecRestoreArray(DD_Outputs_loc, &dd_outputs_ptr));
+//   }
+//   PetscFunctionReturn(PETSC_SUCCESS);
+// }
 
 PetscErrorCode CopyTest(Vec DD_Outputs_loc) {
   PetscMemType output_mem_type;

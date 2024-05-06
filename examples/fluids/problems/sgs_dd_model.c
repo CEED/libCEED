@@ -9,8 +9,8 @@
 
 #include <petscdmplex.h>
 
-#include "../navierstokes.h"
 #include "../include/libtorch.h"
+#include "../navierstokes.h"
 
 typedef struct {
   CeedElemRestriction  elem_restr_grid_aniso, elem_restr_sgs;
@@ -196,9 +196,18 @@ static PetscErrorCode SgsDDSetupNodalEvaluation_Sequential_LibTorch(Ceed ceed, S
                                                                     CeedElemRestriction elem_restr_dd_outputs,
                                                                     CeedElemRestriction elem_restr_inv_multiplicity, CeedVector inv_multiplicity,
                                                                     void **ctx) {
+  const char     *ceed_resource;
+  TorchDeviceType model_device_type;
+
   PetscFunctionBeginUser;
+  PetscCallCeed(ceed, CeedGetResource(ceed, &ceed_resource));
+  if (strstr(ceed_resource, "/gpu/cuda")) model_device_type = TORCH_DEVICE_CUDA;
+  else if (strstr(ceed_resource, "/gpu/hip")) model_device_type = TORCH_DEVICE_HIP;
+  else if (strstr(ceed_resource, "/gpu/sycl")) model_device_type = TORCH_DEVICE_XPU;
+  else model_device_type = TORCH_DEVICE_CPU;
+
   // PetscCall(LoadModel_LibTorch("NNmodel_jit_inf.pt"));
-  PetscCall(LoadModel_LibTorch("./examples/fluids/createPyTorchModel/NNModel_HIT_fp64_jit.pt", TORCH_DEVICE_XPU));
+  PetscCall(LoadModel_LibTorch("./examples/fluids/createPyTorchModel/NNModel_HIT_fp64_jit.pt", model_device_type));
   // PetscCall(LoadModel_LibTorch("./examples/fluids/createPyTorchModel/NNModel_HIT_fp64_jit.ptc"));
   // PetscCall(LoadModel_LibTorch("/gila/cfdml_aesp_CNDA/libCEED/MLInference/FlatPlate/test_case/NNmodel_jit_inf.pt"));
 
@@ -383,7 +392,7 @@ static PetscErrorCode SgsDDSetupNodalEvaluation_Sequential(Ceed ceed, User user,
     PetscCallCeed(ceed, CeedQFunctionDestroy(&qf_sgs_dd_outputs));
   }
 
-  sgs_dd_data->sgs_nodal_eval      = SgsDDNodalStressEval_Sequential;
+  sgs_dd_data->sgs_nodal_eval = SgsDDNodalStressEval_Sequential;
 
   if (false) {
     sgs_dd_data->sgs_nodal_inference = SgsDDNodalStressEval_Sequential_Internal;
