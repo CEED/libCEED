@@ -62,6 +62,7 @@ PetscErrorCode LoadModel_LibTorch(const char *model_path, TorchDeviceType device
 PetscErrorCode ModelInference_LibTorch(Vec DD_Inputs_loc, Vec DD_Outputs_loc) {
   torch::Tensor  input_tensor, output_tensor;
   const PetscInt num_input_comps = 6, num_output_comps = 6;
+  PetscBool      debug_tensor_output = PETSC_FALSE;
 
   PetscFunctionBeginUser;
   // torch::NoGradGuard no_grad; // equivalent to "with torch.no_grad():" in PyTorch
@@ -84,6 +85,16 @@ PetscErrorCode ModelInference_LibTorch(Vec DD_Inputs_loc, Vec DD_Outputs_loc) {
                            .to(device_model));
     } else {
       PetscCallCXX(input_tensor = torch::from_blob((void *)dd_inputs_ptr, {num_nodes, num_input_comps}, options));
+    }
+    if (debug_tensor_output) {
+      double *input_tensor_ptr;
+
+      PetscCall(VecGetLocalSize(DD_Inputs_loc, &input_size));
+      PetscCallCXX(input_tensor_ptr = (double *)input_tensor.contiguous().to(torch::kCPU).data_ptr());
+      printf("Input_Tensor_Pointer:\n");
+      for (PetscInt i = 0; i < input_size; i++) {
+        printf("%f\n", input_tensor_ptr[i]);
+      }
     }
     PetscCall(VecRestoreArrayReadAndMemType(DD_Inputs_loc, &dd_inputs_ptr));
   }
@@ -110,6 +121,12 @@ PetscErrorCode ModelInference_LibTorch(Vec DD_Inputs_loc, Vec DD_Outputs_loc) {
       PetscCall(VecGetLocalSize(DD_Outputs_loc, &output_size));
       PetscCall(VecGetArray(DD_Outputs_loc, &dd_outputs_ptr));
       PetscCallCXX(output_tensor_ptr = (double *)output_tensor.contiguous().to(torch::kCPU).data_ptr());
+      if (debug_tensor_output) {
+        printf("Output_Tensor_Pointer:\n");
+        for (PetscInt i = 0; i < output_size; i++) {
+          printf("%f\n", output_tensor_ptr[i]);
+        }
+      }
       PetscCall(PetscArraycpy(dd_outputs_ptr, output_tensor_ptr, output_size));
       PetscCall(VecRestoreArray(DD_Outputs_loc, &dd_outputs_ptr));
     } else {
