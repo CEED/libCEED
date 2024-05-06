@@ -214,10 +214,16 @@ static PetscErrorCode SgsDDSetupNodalEvaluation_Sequential_LibTorch(Ceed ceed, S
 
 // @brief Perform data-driven model inference using libtorch
 PetscErrorCode SgsDDNodalStressEval_Sequential_LibTorch(Vec DD_Inputs_loc, Vec DD_Outputs_loc, void *ctx) {
+  static PetscBool run_through = PETSC_FALSE;
   PetscFunctionBeginUser;
-
+  if (!run_through) {
+    PetscCall(VecViewFromOptions(DD_Inputs_loc, NULL, "-dd_inputs_loc_view"));
+  }
   PetscCall(ModelInference_LibTorch(DD_Inputs_loc, DD_Outputs_loc));
-
+  if (!run_through) {
+    PetscCall(VecViewFromOptions(DD_Outputs_loc, NULL, "-dd_outputs_loc_view"));
+    run_through = PETSC_TRUE;
+  }
   PetscFunctionReturn(PETSC_SUCCESS);
 }
 
