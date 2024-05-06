@@ -292,6 +292,7 @@ CEED_EXTERN int CeedElemRestrictionGetLLayout(CeedElemRestriction rstr, CeedInt 
 CEED_EXTERN int CeedElemRestrictionSetLLayout(CeedElemRestriction rstr, CeedInt layout[3]);
 CEED_EXTERN int CeedElemRestrictionGetELayout(CeedElemRestriction rstr, CeedInt layout[3]);
 CEED_EXTERN int CeedElemRestrictionSetELayout(CeedElemRestriction rstr, CeedInt layout[3]);
+CEED_EXTERN int CeedElemRestrictionGetAtPointsElementOffset(CeedElemRestriction rstr, CeedInt elem, CeedSize *elem_offset);
 CEED_EXTERN int CeedElemRestrictionGetData(CeedElemRestriction rstr, void *data);
 CEED_EXTERN int CeedElemRestrictionSetData(CeedElemRestriction rstr, void *data);
 CEED_EXTERN int CeedElemRestrictionReference(CeedElemRestriction rstr);

@@ -430,6 +430,45 @@ int CeedElemRestrictionSetELayout(CeedElemRestriction rstr, CeedInt layout[3]) {
 }
 
 /**
+
+  @brief Get the E-vector element offset of a `CeedElemRestriction` at points
+
+  @param[in]  rstr        `CeedElemRestriction`
+  @param[in]  elem        Element number index into E-vector for
+  @param[out] elem_offset Offset for element `elem` in the E-vector.
+                            The data for point `i`, component `j`, element `elem` in the E-vector is given by `i*e_layout[0] + j*e_layout[1] + elem_offset`.
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Backend
+**/
+int CeedElemRestrictionGetAtPointsElementOffset(CeedElemRestriction rstr, CeedInt elem, CeedSize *elem_offset) {
+  CeedInt             num_comp;
+  CeedRestrictionType rstr_type;
+
+  CeedCall(CeedElemRestrictionGetType(rstr, &rstr_type));
+  CeedCheck(rstr_type == CEED_RESTRICTION_POINTS, CeedElemRestrictionReturnCeed(rstr), CEED_ERROR_INCOMPATIBLE,
+            "Can only compute offset for a points CeedElemRestriction");
+
+  // Backend method
+  if (rstr->GetAtPointsElementOffset) {
+    CeedCall(rstr->GetAtPointsElementOffset(rstr, elem, elem_offset));
+    return CEED_ERROR_SUCCESS;
+  }
+
+  // Default layout (CPU)
+  *elem_offset = 0;
+  CeedCall(CeedElemRestrictionGetNumComponents(rstr, &num_comp));
+  for (CeedInt i = 0; i < elem; i++) {
+    CeedInt num_points;
+
+    CeedCall(CeedElemRestrictionGetNumPointsInElement(rstr, i, &num_points));
+    *elem_offset += num_points * num_comp;
+  }
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
   @brief Get the backend data of a `CeedElemRestriction`
 
   @param[in]  rstr `CeedElemRestriction`
