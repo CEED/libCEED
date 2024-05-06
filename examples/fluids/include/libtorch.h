@@ -10,10 +10,19 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+typedef enum {
+  TORCH_DEVICE_CUDA,
+  TORCH_DEVICE_XPU,
+  TORCH_DEVICE_CPU,
+} TorchDeviceType;
+
 PetscErrorCode ModelInference_LibTorch(Vec DD_Inputs_loc, Vec DD_Outputs_loc);
-PetscErrorCode LoadModel_LibTorch(const char *model_path);
+PetscErrorCode ModelInference_LibTorch_Host(Vec DD_Inputs_loc, Vec DD_Outputs_loc);
+// PetscErrorCode LoadModel_LibTorch(const char *model_path);
+PetscErrorCode LoadModel_LibTorch(const char *model_path, TorchDeviceType device_enum);
 PetscErrorCode CopyTest(Vec DD_Outputs_loc);
+
 #ifdef __cplusplus
 }
 #endif
-

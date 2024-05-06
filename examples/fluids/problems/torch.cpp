@@ -5,45 +5,98 @@
 #include "../include/libtorch.h"
 
 torch::jit::script::Module model;
+// torch::DeviceType          device;
 torch::DeviceType          device = torch::kXPU;
+// torch::DeviceType          device = torch::kCPU;
 
-PetscErrorCode LoadModel_LibTorch(const char *model_path) {
+torch::DeviceType Enum2DeviceType(TorchDeviceType device_enum) {
+  switch (device_enum) {
+    case TORCH_DEVICE_CPU:
+      return torch::kCPU;
+    case TORCH_DEVICE_XPU:
+      return torch::kXPU;
+    case TORCH_DEVICE_CUDA:
+      return torch::kCUDA;
+  }
+}
+
+PetscErrorCode LoadModel_LibTorch(const char *model_path, TorchDeviceType device_enum) {
   PetscFunctionBeginUser;
 
-  PetscCallCXX(model = torch::jit::load(model_path));
+  // PetscCallCXX(device = torch::Device(device_str));
+  // PetscCallCXX(device = Enum2DeviceType(device_enum));
+  // PetscCallCXX(device = torch::kXPU);
 
+  PetscCallCXX(model = torch::jit::load(model_path));
   PetscCallCXX(model.to(torch::Device(device)));
 
   PetscFunctionReturn(PETSC_SUCCESS);
 }
 
 // Load and run model
-PetscErrorCode ModelInference_LibTorch(Vec DD_Inputs_loc, Vec DD_Outputs_loc) {
-  PetscMemType       input_mem_type;
-  PetscInt           input_size, num_nodes;
-  const PetscScalar *dd_inputs_ptr;
+PetscErrorCode ModelInference_LibTorch_Host(Vec DD_Inputs_loc, Vec DD_Outputs_loc) {
+  torch::Tensor        gpu_tensor, output;
+
   PetscFunctionBeginUser;
+  // torch::NoGradGuard no_grad; // equivalent to "with torch.no_grad():" in PyTorch
+  {
+    PetscInt           input_size, num_nodes;
+    const PetscScalar *dd_inputs_ptr;
+    torch::TensorOptions options;
 
-  PetscCall(VecGetLocalSize(DD_Inputs_loc, &input_size));
-  num_nodes = input_size / 6;
-  PetscCall(VecGetArrayReadAndMemType(DD_Inputs_loc, &dd_inputs_ptr, &input_mem_type));
+    PetscCall(VecGetLocalSize(DD_Inputs_loc, &input_size));
+    num_nodes = input_size / 6;
+    PetscCall(VecGetArrayRead(DD_Inputs_loc, &dd_inputs_ptr));
 
-  torch::TensorOptions options;
-  torch::Tensor        gpu_tensor;
-
-  if (device == torch::kXPU) {  // XPU requires device-to-host-to-device transfer
-    PetscCallCXX(gpu_tensor = at::from_blob((void *)dd_inputs_ptr, {num_nodes, 6}, nullptr, at::device(device).dtype(torch::kFloat64), device).to(device));
-  } else {
-    PetscCallCXX(options = torch::TensorOptions().dtype(torch::kFloat64).device(device));
+    PetscCallCXX(options = torch::TensorOptions().dtype(torch::kFloat64).device(torch::kCPU));
     PetscCallCXX(gpu_tensor = torch::from_blob((void *)dd_inputs_ptr, {num_nodes, 6}, options));
+    PetscCall(VecRestoreArrayRead(DD_Inputs_loc, &dd_inputs_ptr));
   }
 
-  // PetscCallCXX(gpu_tensor = torch::rand({512,6}, options));
+  // Run model
+  PetscCallCXX(output = model.forward({gpu_tensor}).toTensor());
+
+  {
+    PetscInt     output_size;
+    PetscScalar *dd_outputs_ptr;
+    double       *tensor_output = (double *)output.contiguous().to(torch::kCPU).data_ptr();
+
+    PetscCall(VecGetLocalSize(DD_Outputs_loc, &output_size));
+    PetscCall(VecGetArray(DD_Outputs_loc, &dd_outputs_ptr));
+
+    PetscCall(PetscArraycpy(dd_outputs_ptr, tensor_output, output_size));
+
+    PetscCall(VecRestoreArray(DD_Outputs_loc, &dd_outputs_ptr));
+  }
+  PetscFunctionReturn(PETSC_SUCCESS);
+}
+
+// Load and run model
+PetscErrorCode ModelInference_LibTorch(Vec DD_Inputs_loc, Vec DD_Outputs_loc) {
+  torch::Tensor        gpu_tensor, output;
+  torch::TensorOptions options;
+  PetscFunctionBeginUser;
+  // torch::NoGradGuard no_grad; // equivalent to "with torch.no_grad():" in PyTorch
+  {
+    PetscMemType       input_mem_type;
+    PetscInt           input_size, num_nodes;
+    const PetscScalar *dd_inputs_ptr;
+
+    PetscCall(VecGetLocalSize(DD_Inputs_loc, &input_size));
+    num_nodes = input_size / 6;
+    PetscCall(VecGetArrayReadAndMemType(DD_Inputs_loc, &dd_inputs_ptr, &input_mem_type));
+
+    PetscCallCXX(options = torch::TensorOptions().dtype(torch::kFloat64).device(device));
+    if (device == torch::kXPU) {  // XPU requires device-to-host-to-device transfer
+      PetscCallCXX(gpu_tensor = at::from_blob((void *)dd_inputs_ptr, {num_nodes, 6}, nullptr, options, device).to(device));
+    } else {
+      PetscCallCXX(gpu_tensor = torch::from_blob((void *)dd_inputs_ptr, {num_nodes, 6}, options));
+    }
+    PetscCall(VecRestoreArrayReadAndMemType(DD_Inputs_loc, &dd_inputs_ptr));
+  }
 
   // Run model
-  torch::Tensor output;
   PetscCallCXX(output = model.forward({gpu_tensor}).toTensor());
-  PetscCall(VecRestoreArrayReadAndMemType(DD_Inputs_loc, &dd_inputs_ptr));
 
   if (device == torch::kXPU) {  // XPU requires device-to-host-to-device transfer
     PetscInt     output_size;
@@ -53,7 +106,6 @@ PetscErrorCode ModelInference_LibTorch(Vec DD_Inputs_loc, Vec DD_Outputs_loc) {
     PetscCall(VecGetLocalSize(DD_Outputs_loc, &output_size));
     PetscCall(VecGetArray(DD_Outputs_loc, &dd_outputs_ptr));
 
-    // for (PetscInt i = 0; i > output_size; i++) dd_outputs_ptr[i] = tensor_output[i];
     PetscCall(PetscArraycpy(dd_outputs_ptr, tensor_output, output_size));
 
     PetscCall(VecRestoreArray(DD_Outputs_loc, &dd_outputs_ptr));
@@ -64,7 +116,7 @@ PetscErrorCode ModelInference_LibTorch(Vec DD_Inputs_loc, Vec DD_Outputs_loc) {
     torch::Tensor DD_Outputs_tensor;
 
     PetscCall(VecGetLocalSize(DD_Outputs_loc, &output_size));
-    num_nodes = input_size / 6;
+    num_nodes = output_size / 6;
     PetscCall(VecGetArrayAndMemType(DD_Outputs_loc, &dd_outputs_ptr, &output_mem_type));
 
     PetscCallCXX(DD_Outputs_tensor = torch::from_blob((void *)dd_outputs_ptr, {num_nodes, 6}, options));
@@ -96,46 +148,4 @@ PetscErrorCode CopyTest(Vec DD_Outputs_loc) {
 
   PetscCall(VecRestoreArrayAndMemType(DD_Outputs_loc, &dd_outputs_ptr));
   PetscFunctionReturn(PETSC_SUCCESS);
-}
-
-// Load a model and return pointer to it
-void upload_model(void **model_ptr) {
-  std::string model_name = "./resnet50_jit.pt";
-  try {
-    //std::cout << "loading the model " << model_name << "\n" << std::flush;
-    auto                model_tmp = torch::jit::load(model_name);
-    torch::jit::Module *model     = new torch::jit::Module(model_tmp);
-    model->to(torch::Device(torch::kXPU));
-    std::cout << "loaded the model to GPU" << std::flush;
-    *model_ptr = NULL;
-    *model_ptr = reinterpret_cast<void *>(model);
-    //printf("%p\n", model);
-  } catch (const c10::Error &e) {
-    std::cerr << "error loading the model\n" << std::flush;
-  }
-}
-
-// Execute a model on data passed through the function
-//void torch_inf(void *model_ptr, void *inputs, void *outputs) {
-void torch_inf(void *model_ptr) {
-  // Convert input array to Torch tensor
-  auto          options      = torch::TensorOptions().dtype(torch::kFloat32).device(torch::kXPU);
-  torch::Tensor input_tensor = torch::rand({512, 6}, options);
-  //torch::Tensor input_tensor = torch::from_blob(inputs, {*batch,*channels,*pixels,*pixels}, torch::dtype(torch::kFloat32));
-  //input_tensor = input_tensor.to(torch::Device(torch::kCUDA, *myGPU));
-  //std::cout << "created the input vector\n" << std::flush;
-
-  // Convert Tensor to vector
-  //std::vector<torch::jit::IValue> model_inputs;
-  //model_inputs.push_back(input_tensor);
-  //std::cout << "prepared input vector for inference\n";
-
-  // Perform inference
-  torch::jit::Module *module = reinterpret_cast<torch::jit::Module *>(model_ptr);
-  //torch::Tensor output_tensor = module->forward(model_inputs).toTensor();
-  torch::Tensor output_tensor = module->forward({input_tensor}).toTensor();
-  std::cout << "performed inference\n" << std::flush;
-
-  // Extract predictions
-  //outputs = (void *) output_tensor.data_ptr<float>();
 }

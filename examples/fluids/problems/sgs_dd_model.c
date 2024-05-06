@@ -198,7 +198,7 @@ static PetscErrorCode SgsDDSetupNodalEvaluation_Sequential_LibTorch(Ceed ceed, S
                                                                     void **ctx) {
   PetscFunctionBeginUser;
   // PetscCall(LoadModel_LibTorch("NNmodel_jit_inf.pt"));
-  PetscCall(LoadModel_LibTorch("./examples/fluids/createPyTorchModel/NNModel_HIT_fp64_jit.pt"));
+  PetscCall(LoadModel_LibTorch("./examples/fluids/createPyTorchModel/NNModel_HIT_fp64_jit.pt", TORCH_DEVICE_XPU));
   // PetscCall(LoadModel_LibTorch("./examples/fluids/createPyTorchModel/NNModel_HIT_fp64_jit.ptc"));
   // PetscCall(LoadModel_LibTorch("/gila/cfdml_aesp_CNDA/libCEED/MLInference/FlatPlate/test_case/NNmodel_jit_inf.pt"));
 
