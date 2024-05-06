@@ -206,10 +206,7 @@ static PetscErrorCode SgsDDSetupNodalEvaluation_Sequential_LibTorch(Ceed ceed, S
   else if (strstr(ceed_resource, "/gpu/sycl")) model_device_type = TORCH_DEVICE_XPU;
   else model_device_type = TORCH_DEVICE_CPU;
 
-  // PetscCall(LoadModel_LibTorch("NNmodel_jit_inf.pt"));
   PetscCall(LoadModel_LibTorch("./examples/fluids/createPyTorchModel/NNModel_HIT_fp64_jit.pt", model_device_type));
-  // PetscCall(LoadModel_LibTorch("./examples/fluids/createPyTorchModel/NNModel_HIT_fp64_jit.ptc"));
-  // PetscCall(LoadModel_LibTorch("/gila/cfdml_aesp_CNDA/libCEED/MLInference/FlatPlate/test_case/NNmodel_jit_inf.pt"));
 
   PetscFunctionReturn(PETSC_SUCCESS);
 }

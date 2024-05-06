@@ -71,15 +71,17 @@ PetscErrorCode ModelInference_LibTorch(Vec DD_Inputs_loc, Vec DD_Outputs_loc) {
     PetscMemType       input_mem_type;
     PetscInt           input_size, num_nodes;
     const PetscScalar *dd_inputs_ptr;
+    torch::DeviceType  dd_input_device;
 
     PetscCall(VecGetLocalSize(DD_Inputs_loc, &input_size));
     num_nodes = input_size / num_input_comps;
     PetscCall(VecGetArrayReadAndMemType(DD_Inputs_loc, &dd_inputs_ptr, &input_mem_type));
+    PetscCall(PetscMemTypeToDeviceType(input_mem_type, &dd_input_device));
 
-    PetscCallCXX(options = torch::TensorOptions().dtype(torch::kFloat64).device(device_model));
-    if (device_model == torch::kXPU) {  // XPU requires device-to-host-to-device transfer
+    PetscCallCXX(options = torch::TensorOptions().dtype(torch::kFloat64).device(dd_input_device));
+    if (dd_input_device == torch::kXPU) {  // XPU requires device-to-host-to-device transfer
       PetscCallCXX(input_tensor =
-                       at::from_blob((void *)dd_inputs_ptr, {num_nodes, num_input_comps}, {num_input_comps, 1}, nullptr, options, device_model)
+                       at::from_blob((void *)dd_inputs_ptr, {num_nodes, num_input_comps}, {num_input_comps, 1}, nullptr, options, dd_input_device)
                            .to(device_model));
     } else {
       PetscCallCXX(input_tensor = torch::from_blob((void *)dd_inputs_ptr, {num_nodes, num_input_comps}, options));
@@ -90,7 +92,18 @@ PetscErrorCode ModelInference_LibTorch(Vec DD_Inputs_loc, Vec DD_Outputs_loc) {
   // Run model
   PetscCallCXX(output_tensor = model.forward({input_tensor}).toTensor());
 
-  if (device_model == torch::kXPU) {  // XPU requires device-to-host-to-device transfer
+  // Get DeviceType of DD_Outputs_loc
+  torch::DeviceType output_device;
+  {
+    PetscMemType  output_mem_type;
+    PetscScalar  *dd_outputs_ptr;
+
+    PetscCall(VecGetArrayAndMemType(DD_Outputs_loc, &dd_outputs_ptr, &output_mem_type));
+    PetscCall(PetscMemTypeToDeviceType(output_mem_type, &output_device));
+    PetscCall(VecRestoreArrayAndMemType(DD_Outputs_loc, &dd_outputs_ptr));
+  }
+
+  if (output_device == torch::kXPU) {  // XPU requires device-to-host-to-device transfer
     PetscInt     output_size;
     PetscScalar *dd_outputs_ptr;
     double      *output_tensor_ptr;
@@ -111,11 +124,8 @@ PetscErrorCode ModelInference_LibTorch(Vec DD_Inputs_loc, Vec DD_Outputs_loc) {
     PetscCall(VecGetLocalSize(DD_Outputs_loc, &output_size));
     num_nodes = output_size / num_output_comps;
     PetscCall(VecGetArrayAndMemType(DD_Outputs_loc, &dd_outputs_ptr, &output_mem_type));
-
     PetscCallCXX(DD_Outputs_tensor = torch::from_blob((void *)dd_outputs_ptr, {num_nodes, num_output_comps}, options));
-
     PetscCallCXX(DD_Outputs_tensor.copy_(output_tensor));
-
     PetscCall(VecRestoreArrayAndMemType(DD_Outputs_loc, &dd_outputs_ptr));
   }
   PetscFunctionReturn(PETSC_SUCCESS);
