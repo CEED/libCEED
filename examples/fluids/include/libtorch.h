@@ -17,10 +17,9 @@ typedef enum {
   TORCH_DEVICE_HIP,
   TORCH_DEVICE_XPU,
 } TorchDeviceType;
+static const char *const TorchDeviceTypes[] = {"cpu", "cuda", "hip", "xpu", "TorchDeviceType", "TORCH_DEVICE_", NULL};
 
 PetscErrorCode ModelInference_LibTorch(Vec DD_Inputs_loc, Vec DD_Outputs_loc);
-PetscErrorCode ModelInference_LibTorch_Host(Vec DD_Inputs_loc, Vec DD_Outputs_loc);
-// PetscErrorCode LoadModel_LibTorch(const char *model_path);
 PetscErrorCode LoadModel_LibTorch(const char *model_path, TorchDeviceType device_enum);
 PetscErrorCode CopyTest(Vec DD_Outputs_loc);
 

@@ -51,8 +51,7 @@ PetscErrorCode PetscMemTypeToDeviceType(PetscMemType mem_type, torch::DeviceType
 
 PetscErrorCode LoadModel_LibTorch(const char *model_path, TorchDeviceType device_enum) {
   PetscFunctionBeginUser;
-  // PetscCallCXX(device_model = EnumToDeviceType(device_enum));
-  PetscCall( EnumToDeviceType(device_enum, &device_model));
+  PetscCall(EnumToDeviceType(device_enum, &device_model));
 
   PetscCallCXX(model = torch::jit::load(model_path));
   PetscCallCXX(model.to(torch::Device(device_model)));
@@ -61,17 +60,17 @@ PetscErrorCode LoadModel_LibTorch(const char *model_path, TorchDeviceType device
 
 // Load and run model
 PetscErrorCode ModelInference_LibTorch(Vec DD_Inputs_loc, Vec DD_Outputs_loc) {
-  torch::Tensor        input_tensor, output_tensor;
-  torch::TensorOptions options;
-  const PetscInt       num_input_comps = 6, num_output_comps = 6;
+  torch::Tensor  input_tensor, output_tensor;
+  const PetscInt num_input_comps = 6, num_output_comps = 6;
 
   PetscFunctionBeginUser;
   // torch::NoGradGuard no_grad; // equivalent to "with torch.no_grad():" in PyTorch
-  {
-    PetscMemType       input_mem_type;
-    PetscInt           input_size, num_nodes;
-    const PetscScalar *dd_inputs_ptr;
-    torch::DeviceType  dd_input_device;
+  {  // Transfer DD_Inputs_loc into input_tensor
+    PetscMemType         input_mem_type;
+    PetscInt             input_size, num_nodes;
+    const PetscScalar   *dd_inputs_ptr;
+    torch::DeviceType    dd_input_device;
+    torch::TensorOptions options;
 
     PetscCall(VecGetLocalSize(DD_Inputs_loc, &input_size));
     num_nodes = input_size / num_input_comps;
@@ -92,82 +91,42 @@ PetscErrorCode ModelInference_LibTorch(Vec DD_Inputs_loc, Vec DD_Outputs_loc) {
   // Run model
   PetscCallCXX(output_tensor = model.forward({input_tensor}).toTensor());
 
-  // Get DeviceType of DD_Outputs_loc
-  torch::DeviceType output_device;
-  {
-    PetscMemType  output_mem_type;
-    PetscScalar  *dd_outputs_ptr;
+  {  // Transfer output_tensor to DD_Outputs_loc
+    torch::DeviceType    dd_output_device;
+    torch::TensorOptions options;
+    PetscInt             output_size;
+    PetscScalar         *dd_outputs_ptr;
+    PetscMemType         output_mem_type;
 
-    PetscCall(VecGetArrayAndMemType(DD_Outputs_loc, &dd_outputs_ptr, &output_mem_type));
-    PetscCall(PetscMemTypeToDeviceType(output_mem_type, &output_device));
-    PetscCall(VecRestoreArrayAndMemType(DD_Outputs_loc, &dd_outputs_ptr));
-  }
+    {  // Get DeviceType of DD_Outputs_loc
+      PetscCall(VecGetArrayAndMemType(DD_Outputs_loc, &dd_outputs_ptr, &output_mem_type));
+      PetscCall(PetscMemTypeToDeviceType(output_mem_type, &dd_output_device));
+      PetscCall(VecRestoreArrayAndMemType(DD_Outputs_loc, &dd_outputs_ptr));
+    }
 
-  if (output_device == torch::kXPU) {  // XPU requires device-to-host-to-device transfer
-    PetscInt     output_size;
-    PetscScalar *dd_outputs_ptr;
-    double      *output_tensor_ptr;
+    if (dd_output_device == torch::kXPU) {  // XPU requires device-to-host-to-device transfer
+      double *output_tensor_ptr;
 
-    PetscCall(VecGetLocalSize(DD_Outputs_loc, &output_size));
-    PetscCall(VecGetArray(DD_Outputs_loc, &dd_outputs_ptr));
-    PetscCallCXX(output_tensor_ptr = (double *)output_tensor.contiguous().to(torch::kCPU).data_ptr());
+      PetscCall(VecGetLocalSize(DD_Outputs_loc, &output_size));
+      PetscCall(VecGetArray(DD_Outputs_loc, &dd_outputs_ptr));
+      PetscCallCXX(output_tensor_ptr = (double *)output_tensor.contiguous().to(torch::kCPU).data_ptr());
+      PetscCall(PetscArraycpy(dd_outputs_ptr, output_tensor_ptr, output_size));
+      PetscCall(VecRestoreArray(DD_Outputs_loc, &dd_outputs_ptr));
+    } else {
+      PetscInt      num_nodes;
+      torch::Tensor DD_Outputs_tensor;
 
-    PetscCall(PetscArraycpy(dd_outputs_ptr, output_tensor_ptr, output_size));
-
-    PetscCall(VecRestoreArray(DD_Outputs_loc, &dd_outputs_ptr));
-  } else {
-    PetscMemType  output_mem_type;
-    PetscInt      output_size, num_nodes;
-    PetscScalar  *dd_outputs_ptr;
-    torch::Tensor DD_Outputs_tensor;
-
-    PetscCall(VecGetLocalSize(DD_Outputs_loc, &output_size));
-    num_nodes = output_size / num_output_comps;
-    PetscCall(VecGetArrayAndMemType(DD_Outputs_loc, &dd_outputs_ptr, &output_mem_type));
-    PetscCallCXX(DD_Outputs_tensor = torch::from_blob((void *)dd_outputs_ptr, {num_nodes, num_output_comps}, options));
-    PetscCallCXX(DD_Outputs_tensor.copy_(output_tensor));
-    PetscCall(VecRestoreArrayAndMemType(DD_Outputs_loc, &dd_outputs_ptr));
+      PetscCall(VecGetLocalSize(DD_Outputs_loc, &output_size));
+      num_nodes = output_size / num_output_comps;
+      PetscCall(VecGetArrayAndMemType(DD_Outputs_loc, &dd_outputs_ptr, &output_mem_type));
+      PetscCallCXX(options = torch::TensorOptions().dtype(torch::kFloat64).device(dd_output_device));
+      PetscCallCXX(DD_Outputs_tensor = torch::from_blob((void *)dd_outputs_ptr, {num_nodes, num_output_comps}, options));
+      PetscCallCXX(DD_Outputs_tensor.copy_(output_tensor));
+      PetscCall(VecRestoreArrayAndMemType(DD_Outputs_loc, &dd_outputs_ptr));
+    }
   }
   PetscFunctionReturn(PETSC_SUCCESS);
 }
-
-// // Load and run model
-// PetscErrorCode ModelInference_LibTorch_Host(Vec DD_Inputs_loc, Vec DD_Outputs_loc) {
-//   torch::Tensor input_tensor, output_tensor;
-//
-//   PetscFunctionBeginUser;
-//   // torch::NoGradGuard no_grad; // equivalent to "with torch.no_grad():" in PyTorch
-//   {
-//     PetscInt             input_size, num_nodes;
-//     const PetscScalar   *dd_inputs_ptr;
-//     torch::TensorOptions options;
-//
-//     PetscCall(VecGetLocalSize(DD_Inputs_loc, &input_size));
-//     num_nodes = input_size / 6;
-//     PetscCall(VecGetArrayRead(DD_Inputs_loc, &dd_inputs_ptr));
-//
-//     PetscCallCXX(options = torch::TensorOptions().dtype(torch::kFloat64).device(torch::kCPU));
-//     PetscCallCXX(input_tensor = torch::from_blob((void *)dd_inputs_ptr, {num_nodes, 6}, options));
-//     PetscCall(VecRestoreArrayRead(DD_Inputs_loc, &dd_inputs_ptr));
-//   }
-//
-//   // Run model
-//   PetscCallCXX(output_tensor = model.forward({input_tensor}).toTensor());
-//
-//   {
-//     PetscInt     output_size;
-//     PetscScalar *dd_outputs_ptr;
-//     double      *output_tensor_ptr = (double *)output_tensor.contiguous().to(torch::kCPU).data_ptr();
-//
-//     PetscCall(VecGetLocalSize(DD_Outputs_loc, &output_size));
-//     PetscCall(VecGetArray(DD_Outputs_loc, &dd_outputs_ptr));
-//
-//     PetscCall(PetscArraycpy(dd_outputs_ptr, output_tensor_ptr, output_size));
-//
-//     PetscCall(VecRestoreArray(DD_Outputs_loc, &dd_outputs_ptr));
-//   }
-//   PetscFunctionReturn(PETSC_SUCCESS);
-// }
 
 PetscErrorCode CopyTest(Vec DD_Outputs_loc) {
   PetscMemType output_mem_type;

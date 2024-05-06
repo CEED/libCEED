@@ -205,6 +205,7 @@ static PetscErrorCode SgsDDSetupNodalEvaluation_Sequential_LibTorch(Ceed ceed, S
   else if (strstr(ceed_resource, "/gpu/hip")) model_device_type = TORCH_DEVICE_HIP;
   else if (strstr(ceed_resource, "/gpu/sycl")) model_device_type = TORCH_DEVICE_XPU;
   else model_device_type = TORCH_DEVICE_CPU;
+  PetscCall(PetscOptionsGetEnum(NULL, NULL, "-sgs_model_pytorch_model_device", TorchDeviceTypes, (PetscEnum *)&model_device_type, NULL));
 
   PetscCall(LoadModel_LibTorch("./examples/fluids/createPyTorchModel/NNModel_HIT_fp64_jit.pt", model_device_type));
 
