@@ -33,6 +33,7 @@ int main(int argc, char **argv) {
   CeedElemRestrictionCreateAtPoints(ceed, num_elem, num_points, 1, num_points, CEED_MEM_HOST, CEED_USE_POINTER, ind, &elem_restriction);
 
   CeedElemRestrictionCreateVector(elem_restriction, &x, &y);
+  CeedVectorSetValue(y, 0.0);
   {
     CeedInt    point_index = num_elem;
     CeedScalar array[num_points];
