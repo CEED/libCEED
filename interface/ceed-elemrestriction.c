@@ -853,15 +853,16 @@ int CeedElemRestrictionCreateAtPoints(Ceed ceed, CeedInt num_elem, CeedInt num_p
 
   CeedCall(CeedCalloc(1, rstr));
   CeedCall(CeedReferenceCopy(ceed, &(*rstr)->ceed));
-  (*rstr)->ref_count  = 1;
-  (*rstr)->num_elem   = num_elem;
-  (*rstr)->num_points = num_points;
-  (*rstr)->num_comp   = num_comp;
-  (*rstr)->l_size     = l_size;
-  (*rstr)->e_size     = (CeedSize)num_points * (CeedSize)num_comp;
-  (*rstr)->num_block  = num_elem;
-  (*rstr)->block_size = 1;
-  (*rstr)->rstr_type  = CEED_RESTRICTION_POINTS;
+  (*rstr)->ref_count   = 1;
+  (*rstr)->num_elem    = num_elem;
+  (*rstr)->num_points  = num_points;
+  (*rstr)->num_comp    = num_comp;
+  (*rstr)->comp_stride = 1;
+  (*rstr)->l_size      = l_size;
+  (*rstr)->e_size      = (CeedSize)num_points * (CeedSize)num_comp;
+  (*rstr)->num_block   = num_elem;
+  (*rstr)->block_size  = 1;
+  (*rstr)->rstr_type   = CEED_RESTRICTION_POINTS;
   CeedCall(ceed->ElemRestrictionCreateAtPoints(mem_type, copy_mode, offsets, NULL, NULL, *rstr));
   return CEED_ERROR_SUCCESS;
 }
