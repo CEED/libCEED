@@ -928,7 +928,7 @@ static inline int CeedOperatorLinearAssembleQFunctionAtPointsCore_Ref(CeedOperat
           bool                is_at_points = false;
 
           CeedCallBackend(CeedOperatorFieldGetElemRestriction(op_input_fields[i], &elem_rstr));
-          CeedCallBackend(CeedElemRestrictionIsPoints(elem_rstr, &is_at_points));
+          CeedCallBackend(CeedElemRestrictionIsAtPoints(elem_rstr, &is_at_points));
           CeedCheck(!is_at_points, ceed, CEED_ERROR_BACKEND, "Cannot assemble QFunction with active input at points");
         }
         // Get size of active input
@@ -965,7 +965,7 @@ static inline int CeedOperatorLinearAssembleQFunctionAtPointsCore_Ref(CeedOperat
           bool                is_at_points = false;
 
           CeedCallBackend(CeedOperatorFieldGetElemRestriction(op_output_fields[i], &elem_rstr));
-          CeedCallBackend(CeedElemRestrictionIsPoints(elem_rstr, &is_at_points));
+          CeedCallBackend(CeedElemRestrictionIsAtPoints(elem_rstr, &is_at_points));
           CeedCheck(!is_at_points, ceed, CEED_ERROR_BACKEND, "Cannot assemble QFunction with active input at points");
         }
         // Get size of active output

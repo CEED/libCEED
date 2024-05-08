@@ -146,7 +146,7 @@ int CeedElemRestrictionIsStrided(CeedElemRestriction rstr, bool *is_strided) {
 
   @ref Backend
 **/
-int CeedElemRestrictionIsPoints(CeedElemRestriction rstr, bool *is_points) {
+int CeedElemRestrictionIsAtPoints(CeedElemRestriction rstr, bool *is_points) {
   *is_points = (rstr->rstr_type == CEED_RESTRICTION_POINTS);
   return CEED_ERROR_SUCCESS;
 }
