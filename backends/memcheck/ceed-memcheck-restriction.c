@@ -673,6 +673,21 @@ int CeedElemRestrictionCreate_Memcheck(CeedMemType mem_type, CeedCopyMode copy_m
     }
   }
 
+  // Expand E-vector size for AtPoints
+  if (rstr_type == CEED_RESTRICTION_POINTS) {
+    CeedSize max_points = 0, num_points_total = 0;
+
+    for (CeedInt i = 0; i < num_elem; i++) {
+      CeedInt num_points = offsets[i + 1] - offsets[i];
+
+      max_points = CeedIntMax(max_points, num_points);
+      num_points_total += num_points;
+    }
+    // -- Increase size for last element
+    num_points_total += (max_points - (offsets[num_elem] - offsets[num_elem - 1]));
+    CeedCallBackend(CeedElemRestrictionSetAtPointsEVectorSize(rstr, num_points_total * num_comp));
+  }
+
   // Offsets data
   if (rstr_type != CEED_RESTRICTION_STRIDED) {
     // Check indices

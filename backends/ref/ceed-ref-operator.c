@@ -556,7 +556,7 @@ static int CeedOperatorSetupFieldsAtPoints_Ref(CeedQFunction qf, CeedOperator op
                                                CeedVector *q_vecs, CeedInt start_e, CeedInt num_fields, CeedInt Q) {
   Ceed                ceed;
   CeedSize            e_size, q_size;
-  CeedInt             e_size_padding = 0, max_num_points, num_comp, size, P;
+  CeedInt             max_num_points, num_comp, size, P;
   CeedQFunctionField *qf_fields;
   CeedOperatorField  *op_fields;
 
@@ -600,26 +600,10 @@ static int CeedOperatorSetupFieldsAtPoints_Ref(CeedQFunction qf, CeedOperator op
     CeedCallBackend(CeedQFunctionFieldGetEvalMode(qf_fields[i], &eval_mode));
     if (eval_mode != CEED_EVAL_WEIGHT) {
       CeedElemRestriction elem_rstr;
-      CeedSize            e_size;
-      bool                is_at_points;
 
       CeedCallBackend(CeedOperatorFieldGetElemRestriction(op_fields[i], &elem_rstr));
-      CeedCallBackend(CeedElemRestrictionGetNumComponents(elem_rstr, &num_comp));
-      CeedCallBackend(CeedElemRestrictionIsPoints(elem_rstr, &is_at_points));
-      if (is_at_points) {
-        CeedCallBackend(CeedElemRestrictionGetEVectorSize(elem_rstr, &e_size));
-        if (e_size_padding == 0) {
-          CeedInt num_points, num_elem;
-
-          CeedCallBackend(CeedElemRestrictionGetNumElements(elem_rstr, &num_elem));
-          CeedCallBackend(CeedElemRestrictionGetNumPointsInElement(elem_rstr, num_elem - 1, &num_points));
-          e_size_padding = (max_num_points - num_points) * num_comp;
-        }
-        CeedCallBackend(CeedVectorCreate(ceed, e_size + e_size_padding, &e_vecs_full[i + start_e]));
-        CeedCallBackend(CeedVectorSetValue(e_vecs_full[i + start_e], 0.0));
-      } else {
-        CeedCallBackend(CeedElemRestrictionCreateVector(elem_rstr, NULL, &e_vecs_full[i + start_e]));
-      }
+      CeedCallBackend(CeedElemRestrictionCreateVector(elem_rstr, NULL, &e_vecs_full[i + start_e]));
+      CeedCallBackend(CeedVectorSetValue(e_vecs_full[i + start_e], 0.0));
     }
 
     switch (eval_mode) {

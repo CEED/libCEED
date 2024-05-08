@@ -503,7 +503,7 @@ int CeedElemRestrictionCreate_Hip(CeedMemType mem_type, CeedCopyMode copy_mode, 
                                   const CeedInt8 *curl_orients, CeedElemRestriction rstr) {
   Ceed                     ceed, ceed_parent;
   bool                     is_deterministic;
-  CeedInt                  num_elem, elem_size;
+  CeedInt                  num_elem, num_comp, elem_size;
   CeedRestrictionType      rstr_type;
   CeedElemRestriction_Hip *impl;
 
@@ -511,6 +511,7 @@ int CeedElemRestrictionCreate_Hip(CeedMemType mem_type, CeedCopyMode copy_mode, 
   CeedCallBackend(CeedGetParent(ceed, &ceed_parent));
   CeedCallBackend(CeedIsDeterministic(ceed_parent, &is_deterministic));
   CeedCallBackend(CeedElemRestrictionGetNumElements(rstr, &num_elem));
+  CeedCallBackend(CeedElemRestrictionGetNumComponents(rstr, &num_comp));
   CeedCallBackend(CeedElemRestrictionGetElementSize(rstr, &elem_size));
   CeedCallBackend(CeedElemRestrictionGetType(rstr, &rstr_type));
   // Use max number of points as elem size for AtPoints restrictions
@@ -568,9 +569,11 @@ int CeedElemRestrictionCreate_Hip(CeedMemType mem_type, CeedCopyMode copy_mode, 
     CeedCallHip(ceed, hipMemcpy((CeedInt **)impl->d_offsets_at_points_owned, impl->h_offsets_at_points, at_points_size * sizeof(CeedInt),
                                 hipMemcpyHostToDevice));
     impl->d_offsets_at_points = (CeedInt *)impl->d_offsets_at_points_owned;
+
     // -- Use padded offsets for the rest of the setup
     offsets   = (const CeedInt *)offsets_padded;
     copy_mode = CEED_OWN_POINTER;
+    CeedCallBackend(CeedElemRestrictionSetAtPointsEVectorSize(rstr, at_points_size * num_comp));
   }
 
   // Set up device offset/orientation arrays

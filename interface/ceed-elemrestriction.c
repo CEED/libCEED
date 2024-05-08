@@ -469,6 +469,29 @@ int CeedElemRestrictionGetAtPointsElementOffset(CeedElemRestriction rstr, CeedIn
 }
 
 /**
+
+  @brief Set the E-vector size of a `CeedElemRestriction` at points
+
+  @param[in,out]  rstr   `CeedElemRestriction`
+  @param[in]      e_size New E-vector size; must be longer than the current E-vector size
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Backend
+**/
+int CeedElemRestrictionSetAtPointsEVectorSize(CeedElemRestriction rstr, CeedSize e_size) {
+  CeedRestrictionType rstr_type;
+  Ceed                ceed;
+
+  CeedCall(CeedElemRestrictionGetCeed(rstr, &ceed));
+  CeedCall(CeedElemRestrictionGetType(rstr, &rstr_type));
+  CeedCheck(rstr_type == CEED_RESTRICTION_POINTS, ceed, CEED_ERROR_INCOMPATIBLE, "Can only compute offset for a points CeedElemRestriction");
+  CeedCheck(e_size >= rstr->e_size, ceed, CEED_ERROR_INCOMPATIBLE, "Can only increase the size of the E-vector for the CeedElemRestriction");
+  rstr->e_size = e_size;
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
   @brief Get the backend data of a `CeedElemRestriction`
 
   @param[in]  rstr `CeedElemRestriction`
