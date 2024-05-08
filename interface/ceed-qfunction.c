@@ -624,7 +624,7 @@ int CeedQFunctionCreateInterior(Ceed ceed, CeedInt vec_length, CeedQFunctionUser
     Ceed delegate;
 
     CeedCall(CeedGetObjectDelegate(ceed, &delegate, "QFunction"));
-    CeedCheck(delegate, ceed, CEED_ERROR_UNSUPPORTED, "Backend does not support CeedQFunctionCreateInterior");
+    CeedCheck(delegate, ceed, CEED_ERROR_UNSUPPORTED, "Backend does not implement CeedQFunctionCreateInterior");
     CeedCall(CeedQFunctionCreateInterior(delegate, vec_length, f, source, qf));
     return CEED_ERROR_SUCCESS;
   }

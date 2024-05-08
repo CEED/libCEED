@@ -243,7 +243,7 @@ int CeedElemRestrictionGetOffsets(CeedElemRestriction rstr, CeedMemType mem_type
     CeedCall(CeedElemRestrictionGetOffsets(rstr->rstr_base, mem_type, offsets));
   } else {
     CeedCheck(rstr->GetOffsets, CeedElemRestrictionReturnCeed(rstr), CEED_ERROR_UNSUPPORTED,
-              "Backend does not support CeedElemRestrictionGetOffsets");
+              "Backend does not implement CeedElemRestrictionGetOffsets");
     CeedCall(rstr->GetOffsets(rstr, mem_type, offsets));
     rstr->num_readers++;
   }
@@ -284,7 +284,7 @@ int CeedElemRestrictionRestoreOffsets(CeedElemRestriction rstr, const CeedInt **
 **/
 int CeedElemRestrictionGetOrientations(CeedElemRestriction rstr, CeedMemType mem_type, const bool **orients) {
   CeedCheck(rstr->GetOrientations, CeedElemRestrictionReturnCeed(rstr), CEED_ERROR_UNSUPPORTED,
-            "Backend does not support CeedElemRestrictionGetOrientations");
+            "Backend does not implement CeedElemRestrictionGetOrientations");
   CeedCall(rstr->GetOrientations(rstr, mem_type, orients));
   rstr->num_readers++;
   return CEED_ERROR_SUCCESS;
@@ -320,7 +320,7 @@ int CeedElemRestrictionRestoreOrientations(CeedElemRestriction rstr, const bool 
 **/
 int CeedElemRestrictionGetCurlOrientations(CeedElemRestriction rstr, CeedMemType mem_type, const CeedInt8 **curl_orients) {
   CeedCheck(rstr->GetCurlOrientations, CeedElemRestrictionReturnCeed(rstr), CEED_ERROR_UNSUPPORTED,
-            "Backend does not support CeedElemRestrictionGetCurlOrientations");
+            "Backend does not implement CeedElemRestrictionGetCurlOrientations");
   CeedCall(rstr->GetCurlOrientations(rstr, mem_type, curl_orients));
   rstr->num_readers++;
   return CEED_ERROR_SUCCESS;
@@ -1304,6 +1304,8 @@ int CeedElemRestrictionApplyAtPointsInElement(CeedElemRestriction rstr, CeedInt 
   Ceed     ceed;
 
   CeedCall(CeedElemRestrictionGetCeed(rstr, &ceed));
+  CeedCheck(rstr->ApplyAtPointsInElement, ceed, CEED_ERROR_UNSUPPORTED, "Backend does not implement CeedElemRestrictionApplyAtPointsInElement");
+
   if (t_mode == CEED_NOTRANSPOSE) {
     CeedInt num_points, num_comp;
 
