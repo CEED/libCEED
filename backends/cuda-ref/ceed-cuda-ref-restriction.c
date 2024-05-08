@@ -32,11 +32,15 @@ static inline int CeedElemRestrictionSetupCompile_Cuda(CeedElemRestriction rstr)
 
   CeedCallBackend(CeedElemRestrictionGetData(rstr, &impl));
   CeedCallBackend(CeedElemRestrictionGetCeed(rstr, &ceed));
+  CeedCallBackend(CeedElemRestrictionGetType(rstr, &rstr_type));
   CeedCallBackend(CeedElemRestrictionGetNumElements(rstr, &num_elem));
   CeedCallBackend(CeedElemRestrictionGetNumComponents(rstr, &num_comp));
-  CeedCallBackend(CeedElemRestrictionGetElementSize(rstr, &elem_size));
   CeedCallBackend(CeedElemRestrictionGetCompStride(rstr, &comp_stride));
-  CeedCallBackend(CeedElemRestrictionGetType(rstr, &rstr_type));
+  if (rstr_type == CEED_RESTRICTION_POINTS) {
+    CeedCallBackend(CeedElemRestrictionGetMaxPointsInElement(rstr, &elem_size));
+  } else {
+    CeedCallBackend(CeedElemRestrictionGetElementSize(rstr, &elem_size));
+  }
   is_deterministic = impl->d_l_vec_indices != NULL;
 
   // Compile CUDA kernels
@@ -60,6 +64,7 @@ static inline int CeedElemRestrictionSetupCompile_Cuda(CeedElemRestriction rstr)
       CeedCallBackend(CeedGetKernel_Cuda(ceed, impl->module, "StridedNoTranspose", &impl->ApplyNoTranspose));
       CeedCallBackend(CeedGetKernel_Cuda(ceed, impl->module, "StridedTranspose", &impl->ApplyTranspose));
     } break;
+    case CEED_RESTRICTION_POINTS:
     case CEED_RESTRICTION_STANDARD: {
       CeedCallBackend(CeedGetJitAbsolutePath(ceed, "ceed/jit-source/cuda/cuda-ref-restriction-offset.h", &restriction_kernel_path));
       CeedDebug256(ceed, CEED_DEBUG_COLOR_SUCCESS, "----- Loading Restriction Kernel Source -----\n");
@@ -119,11 +124,6 @@ static inline int CeedElemRestrictionSetupCompile_Cuda(CeedElemRestriction rstr)
       for (CeedInt i = 0; i < num_file_paths; i++) CeedCall(CeedFree(&file_paths[i]));
       CeedCall(CeedFree(&file_paths));
     } break;
-    case CEED_RESTRICTION_POINTS: {
-      // LCOV_EXCL_START
-      return CeedError(ceed, CEED_ERROR_UNSUPPORTED, "Backend does not implement restriction CeedElemRestrictionAtPoints");
-      // LCOV_EXCL_STOP
-    } break;
   }
   CeedCallBackend(CeedFree(&restriction_kernel_path));
   CeedCallBackend(CeedFree(&restriction_kernel_source));
@@ -175,6 +175,7 @@ static inline int CeedElemRestrictionApply_Cuda_Core(CeedElemRestriction rstr, C
 
         CeedCallBackend(CeedRunKernel_Cuda(ceed, impl->ApplyNoTranspose, grid, block_size, args));
       } break;
+      case CEED_RESTRICTION_POINTS:
       case CEED_RESTRICTION_STANDARD: {
         void *args[] = {&impl->d_offsets, &d_u, &d_v};
 
@@ -206,11 +207,6 @@ static inline int CeedElemRestrictionApply_Cuda_Core(CeedElemRestriction rstr, C
           CeedCallBackend(CeedRunKernel_Cuda(ceed, impl->ApplyUnorientedNoTranspose, grid, block_size, args));
         }
       } break;
-      case CEED_RESTRICTION_POINTS: {
-        // LCOV_EXCL_START
-        return CeedError(ceed, CEED_ERROR_UNSUPPORTED, "Backend does not implement restriction CeedElemRestrictionAtPoints");
-        // LCOV_EXCL_STOP
-      } break;
     }
   } else {
     // E-vector -> L-vector
@@ -224,6 +220,7 @@ static inline int CeedElemRestrictionApply_Cuda_Core(CeedElemRestriction rstr, C
 
         CeedCallBackend(CeedRunKernel_Cuda(ceed, impl->ApplyTranspose, grid, block_size, args));
       } break;
+      case CEED_RESTRICTION_POINTS:
       case CEED_RESTRICTION_STANDARD: {
         if (!is_deterministic) {
           void *args[] = {&impl->d_offsets, &d_u, &d_v};
@@ -291,11 +288,6 @@ static inline int CeedElemRestrictionApply_Cuda_Core(CeedElemRestriction rstr, C
           }
         }
       } break;
-      case CEED_RESTRICTION_POINTS: {
-        // LCOV_EXCL_START
-        return CeedError(ceed, CEED_ERROR_UNSUPPORTED, "Backend does not implement restriction CeedElemRestrictionAtPoints");
-        // LCOV_EXCL_STOP
-      } break;
     }
   }
 
@@ -335,14 +327,16 @@ static int CeedElemRestrictionApplyUnoriented_Cuda(CeedElemRestriction rstr, Cee
 //------------------------------------------------------------------------------
 static int CeedElemRestrictionGetOffsets_Cuda(CeedElemRestriction rstr, CeedMemType mem_type, const CeedInt **offsets) {
   CeedElemRestriction_Cuda *impl;
+  CeedRestrictionType       rstr_type;
 
   CeedCallBackend(CeedElemRestrictionGetData(rstr, &impl));
+  CeedCallBackend(CeedElemRestrictionGetType(rstr, &rstr_type));
   switch (mem_type) {
     case CEED_MEM_HOST:
-      *offsets = impl->h_offsets;
+      *offsets = rstr_type == CEED_RESTRICTION_POINTS ? impl->h_offsets_at_points : impl->h_offsets;
       break;
     case CEED_MEM_DEVICE:
-      *offsets = impl->d_offsets;
+      *offsets = rstr_type == CEED_RESTRICTION_POINTS ? impl->d_offsets_at_points : impl->d_offsets;
       break;
   }
   return CEED_ERROR_SUCCESS;
@@ -385,6 +379,17 @@ static int CeedElemRestrictionGetCurlOrientations_Cuda(CeedElemRestriction rstr,
 }
 
 //------------------------------------------------------------------------------
+// Get offset for padded AtPoints E-layout
+//------------------------------------------------------------------------------
+static int CeedElemRestrictionGetAtPointsElementOffset_Cuda(CeedElemRestriction rstr, CeedInt elem, CeedSize *elem_offset) {
+  CeedInt layout[3];
+
+  CeedCallBackend(CeedElemRestrictionGetELayout(rstr, layout));
+  *elem_offset = 0 * layout[0] + 0 * layout[1] + elem * layout[2];
+  return CEED_ERROR_SUCCESS;
+}
+
+//------------------------------------------------------------------------------
 // Destroy restriction
 //------------------------------------------------------------------------------
 static int CeedElemRestrictionDestroy_Cuda(CeedElemRestriction rstr) {
@@ -405,6 +410,8 @@ static int CeedElemRestrictionDestroy_Cuda(CeedElemRestriction rstr) {
   CeedCallCuda(ceed, cudaFree((bool *)impl->d_orients_owned));
   CeedCallBackend(CeedFree(&impl->h_curl_orients_owned));
   CeedCallCuda(ceed, cudaFree((CeedInt8 *)impl->d_curl_orients_owned));
+  CeedCallBackend(CeedFree(&impl->h_offsets_at_points_owned));
+  CeedCallCuda(ceed, cudaFree((CeedInt *)impl->d_offsets_at_points_owned));
   CeedCallBackend(CeedFree(&impl));
   return CEED_ERROR_SUCCESS;
 }
@@ -412,18 +419,19 @@ static int CeedElemRestrictionDestroy_Cuda(CeedElemRestriction rstr) {
 //------------------------------------------------------------------------------
 // Create transpose offsets and indices
 //------------------------------------------------------------------------------
-static int CeedElemRestrictionOffset_Cuda(const CeedElemRestriction rstr, const CeedInt *indices) {
+static int CeedElemRestrictionOffset_Cuda(const CeedElemRestriction rstr, const CeedInt elem_size, const CeedInt *indices) {
   Ceed                      ceed;
   bool                     *is_node;
   CeedSize                  l_size;
-  CeedInt                   num_elem, elem_size, num_comp, num_nodes = 0;
+  CeedInt                   num_elem, num_comp, num_nodes = 0;
   CeedInt                  *ind_to_offset, *l_vec_indices, *t_offsets, *t_indices;
+  CeedRestrictionType       rstr_type;
   CeedElemRestriction_Cuda *impl;
 
   CeedCallBackend(CeedElemRestrictionGetCeed(rstr, &ceed));
   CeedCallBackend(CeedElemRestrictionGetData(rstr, &impl));
   CeedCallBackend(CeedElemRestrictionGetNumElements(rstr, &num_elem));
-  CeedCallBackend(CeedElemRestrictionGetElementSize(rstr, &elem_size));
+  CeedCallBackend(CeedElemRestrictionGetType(rstr, &rstr_type));
   CeedCallBackend(CeedElemRestrictionGetLVectorSize(rstr, &l_size));
   CeedCallBackend(CeedElemRestrictionGetNumComponents(rstr, &num_comp));
   const CeedInt size_indices = num_elem * elem_size;
@@ -496,7 +504,7 @@ int CeedElemRestrictionCreate_Cuda(CeedMemType mem_type, CeedCopyMode copy_mode,
                                    const CeedInt8 *curl_orients, CeedElemRestriction rstr) {
   Ceed                      ceed, ceed_parent;
   bool                      is_deterministic;
-  CeedInt                   num_elem, elem_size;
+  CeedInt                   num_elem, num_comp, elem_size;
   CeedRestrictionType       rstr_type;
   CeedElemRestriction_Cuda *impl;
 
@@ -504,8 +512,18 @@ int CeedElemRestrictionCreate_Cuda(CeedMemType mem_type, CeedCopyMode copy_mode,
   CeedCallBackend(CeedGetParent(ceed, &ceed_parent));
   CeedCallBackend(CeedIsDeterministic(ceed_parent, &is_deterministic));
   CeedCallBackend(CeedElemRestrictionGetNumElements(rstr, &num_elem));
+  CeedCallBackend(CeedElemRestrictionGetNumComponents(rstr, &num_comp));
   CeedCallBackend(CeedElemRestrictionGetElementSize(rstr, &elem_size));
   CeedCallBackend(CeedElemRestrictionGetType(rstr, &rstr_type));
+  // Use max number of points as elem size for AtPoints restrictions
+  if (rstr_type == CEED_RESTRICTION_POINTS) {
+    CeedInt max_points = 0;
+
+    for (CeedInt i = 0; i < num_elem; i++) {
+      max_points = CeedIntMax(max_points, offsets[i + 1] - offsets[i]);
+    }
+    elem_size = max_points;
+  }
   const CeedInt size = num_elem * elem_size;
 
   CeedCallBackend(CeedCalloc(1, &impl));
@@ -526,6 +544,39 @@ int CeedElemRestrictionCreate_Cuda(CeedMemType mem_type, CeedCopyMode copy_mode,
     }
   }
 
+  // Pad AtPoints indices
+  if (rstr_type == CEED_RESTRICTION_POINTS) {
+    CeedSize offsets_len = elem_size * num_elem, at_points_size = num_elem + 1;
+    CeedInt  max_points = elem_size, *offsets_padded;
+
+    CeedCheck(mem_type == CEED_MEM_HOST, ceed, CEED_ERROR_BACKEND, "only MemType Host supported when creating AtPoints restriction");
+    CeedCallBackend(CeedMalloc(offsets_len, &offsets_padded));
+    for (CeedInt i = 0; i < num_elem; i++) {
+      CeedInt num_points = offsets[i + 1] - offsets[i];
+
+      at_points_size += num_points;
+      // -- Copy all points in element
+      for (CeedInt j = 0; j < num_points; j++) {
+        offsets_padded[i * max_points + j] = offsets[offsets[i] + j];
+      }
+      // -- Replicate out last point in element
+      for (CeedInt j = num_points; j < max_points; j++) {
+        offsets_padded[i * max_points + j] = offsets[offsets[i] + num_points - 1];
+      }
+    }
+    CeedCallBackend(CeedSetHostCeedIntArray(offsets, copy_mode, at_points_size, &impl->h_offsets_at_points_owned, &impl->h_offsets_at_points_borrowed,
+                                            &impl->h_offsets_at_points));
+    CeedCallCuda(ceed, cudaMalloc((void **)&impl->d_offsets_at_points_owned, at_points_size * sizeof(CeedInt)));
+    CeedCallCuda(ceed, cudaMemcpy((CeedInt **)impl->d_offsets_at_points_owned, impl->h_offsets_at_points, at_points_size * sizeof(CeedInt),
+                                  cudaMemcpyHostToDevice));
+    impl->d_offsets_at_points = (CeedInt *)impl->d_offsets_at_points_owned;
+
+    // -- Use padded offsets for the rest of the setup
+    offsets   = (const CeedInt *)offsets_padded;
+    copy_mode = CEED_OWN_POINTER;
+    CeedCallBackend(CeedElemRestrictionSetAtPointsEVectorSize(rstr, at_points_size * num_comp));
+  }
+
   // Set up device offset/orientation arrays
   if (rstr_type != CEED_RESTRICTION_STRIDED) {
     switch (mem_type) {
@@ -534,7 +585,7 @@ int CeedElemRestrictionCreate_Cuda(CeedMemType mem_type, CeedCopyMode copy_mode,
         CeedCallCuda(ceed, cudaMalloc((void **)&impl->d_offsets_owned, size * sizeof(CeedInt)));
         CeedCallCuda(ceed, cudaMemcpy((CeedInt *)impl->d_offsets_owned, impl->h_offsets, size * sizeof(CeedInt), cudaMemcpyHostToDevice));
         impl->d_offsets = (CeedInt *)impl->d_offsets_owned;
-        if (is_deterministic) CeedCallBackend(CeedElemRestrictionOffset_Cuda(rstr, offsets));
+        if (is_deterministic) CeedCallBackend(CeedElemRestrictionOffset_Cuda(rstr, elem_size, offsets));
       } break;
       case CEED_MEM_DEVICE: {
         CeedCallBackend(CeedSetDeviceCeedIntArray_Cuda(ceed, offsets, copy_mode, size, &impl->d_offsets_owned, &impl->d_offsets_borrowed,
@@ -542,7 +593,7 @@ int CeedElemRestrictionCreate_Cuda(CeedMemType mem_type, CeedCopyMode copy_mode,
         CeedCallBackend(CeedMalloc(size, &impl->h_offsets_owned));
         CeedCallCuda(ceed, cudaMemcpy((CeedInt *)impl->h_offsets_owned, impl->d_offsets, size * sizeof(CeedInt), cudaMemcpyDeviceToHost));
         impl->h_offsets = impl->h_offsets_owned;
-        if (is_deterministic) CeedCallBackend(CeedElemRestrictionOffset_Cuda(rstr, offsets));
+        if (is_deterministic) CeedCallBackend(CeedElemRestrictionOffset_Cuda(rstr, elem_size, offsets));
       } break;
     }
 
@@ -592,6 +643,10 @@ int CeedElemRestrictionCreate_Cuda(CeedMemType mem_type, CeedCopyMode copy_mode,
   CeedCallBackend(CeedSetBackendFunction(ceed, "ElemRestriction", rstr, "GetOffsets", CeedElemRestrictionGetOffsets_Cuda));
   CeedCallBackend(CeedSetBackendFunction(ceed, "ElemRestriction", rstr, "GetOrientations", CeedElemRestrictionGetOrientations_Cuda));
   CeedCallBackend(CeedSetBackendFunction(ceed, "ElemRestriction", rstr, "GetCurlOrientations", CeedElemRestrictionGetCurlOrientations_Cuda));
+  if (rstr_type == CEED_RESTRICTION_POINTS) {
+    CeedCallBackend(
+        CeedSetBackendFunction(ceed, "ElemRestriction", rstr, "GetAtPointsElementOffset", CeedElemRestrictionGetAtPointsElementOffset_Cuda));
+  }
   CeedCallBackend(CeedSetBackendFunction(ceed, "ElemRestriction", rstr, "Destroy", CeedElemRestrictionDestroy_Cuda));
   return CEED_ERROR_SUCCESS;
 }
