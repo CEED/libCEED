@@ -66,24 +66,19 @@ ifndef ($(USE_LIBTORCH))
 endif
 
 ifeq ($(USE_LIBTORCH),1)
-  LIBTORCH_INCPATH := $(shell python -c "import torch.utils.cpp_extension as C; print('-I' + str.join(' -I', C.include_paths()))")
-  LIBTORCH_LIBPATH := $(shell python -c "import torch.utils.cpp_extension as C; print(C.library_paths()[0])")
-  LIBTORCH_USE_CUDA := $(shell python -c "import torch; print(torch.cuda.is_available())")
-  ltorch := -ltorch -lc10 -ltorch_cpu
-
-  CPPFLAGS += $(LIBTORCH_INCPATH) -D_GLIBCXX_USE_CXX11_ABI=1
-  LDFLAGS += -L$(LIBTORCH_LIBPATH)
-  LDFLAGS += -Wl,-rpath,$(LIBTORCH_LIBPATH)
-  LDLIBS += $(ltorch)
+  libtorch.pc := $(shell python ./pytorch_pkgconfig.py)
+  CPPFLAGS += $(call pkgconf, --cflags-only-I $(libtorch.pc))
+  CXXFLAGS += $(call pkgconf, --cflags-only-other $(libtorch.pc))
+  LDFLAGS += $(call pkgconf, --libs-only-L --libs-only-other $(libtorch.pc))
+  LDFLAGS += $(patsubst -L%, $(call pkgconf, --variable=ldflag_rpath $(PETSc.pc))%, $(call pkgconf, --libs-only-L $(libtorch.pc)))
+  LDLIBS += $(call pkgconf, --libs-only-l $(libtorch.pc))
 
   # Intel extension for pytorch (IPEX)
   IPEX_DIR ?=
   ifdef IPEX_DIR
       LDFLAGS += -L$(IPEX_DIR)/lib/
       LDFLAGS += -Wl,-rpath,$(IPEX_DIR)/lib/
-      lipex = -lintel-ext-pt-gpu
-
-      LDLIBS += $(lipex)
+      LDLIBS += -lintel-ext-pt-gpu
   endif
 endif
 
