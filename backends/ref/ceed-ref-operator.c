@@ -1097,7 +1097,7 @@ static int CeedOperatorLinearAssembleQFunctionAtPointsUpdate_Ref(CeedOperator op
 //------------------------------------------------------------------------------
 static int CeedOperatorLinearAssembleAddDiagonalAtPoints_Ref(CeedOperator op, CeedVector assembled, CeedRequest *request) {
   bool                is_active_at_points = true;
-  CeedInt             num_points_offset = 0, num_input_fields, num_output_fields, num_elem, elem_size_active = 1, num_comp_active;
+  CeedInt             num_points_offset = 0, num_input_fields, num_output_fields, num_elem, elem_size_active = 1, num_comp_active = 1;
   CeedScalar         *e_data[2 * CEED_FIELD_MAX] = {0};
   Ceed                ceed;
   CeedVector          point_coords = NULL, in_vec, out_vec;
