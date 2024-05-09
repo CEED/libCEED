@@ -248,7 +248,7 @@ The backends which are capable of generating reproducible results, with the prop
 libCEED comes with several examples of its usage, ranging from standalone C codes in the `/examples/ceed` directory to examples based on external packages, such as MFEM, PETSc, and Nek5000.
 Nek5000 v18.0 or greater is required.
 
-To build the examples, set the `MFEM_DIR`, `PETSC_DIR` (and optionally the `PETSC_ARCH`), and `NEK5K_DIR` variables and run:
+To build the examples, set the `MFEM_DIR`, `PETSC_DIR` (and optionally `PETSC_ARCH`), and `NEK5K_DIR` variables and run:
 
 ```console
 $ cd examples/
