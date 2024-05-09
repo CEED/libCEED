@@ -977,7 +977,7 @@ int CeedBasisCreateTensorH1(Ceed ceed, CeedInt dim, CeedInt num_comp, CeedInt P_
     Ceed delegate;
 
     CeedCall(CeedGetObjectDelegate(ceed, &delegate, "Basis"));
-    CeedCheck(delegate, ceed, CEED_ERROR_UNSUPPORTED, "Backend does not support BasisCreateTensorH1");
+    CeedCheck(delegate, ceed, CEED_ERROR_UNSUPPORTED, "Backend does not implement BasisCreateTensorH1");
     CeedCall(CeedBasisCreateTensorH1(delegate, dim, num_comp, P_1d, Q_1d, interp_1d, grad_1d, q_ref_1d, q_weight_1d, basis));
     return CEED_ERROR_SUCCESS;
   }
@@ -1116,7 +1116,7 @@ int CeedBasisCreateH1(Ceed ceed, CeedElemTopology topo, CeedInt num_comp, CeedIn
     Ceed delegate;
 
     CeedCall(CeedGetObjectDelegate(ceed, &delegate, "Basis"));
-    CeedCheck(delegate, ceed, CEED_ERROR_UNSUPPORTED, "Backend does not support BasisCreateH1");
+    CeedCheck(delegate, ceed, CEED_ERROR_UNSUPPORTED, "Backend does not implement BasisCreateH1");
     CeedCall(CeedBasisCreateH1(delegate, topo, num_comp, num_nodes, num_qpts, interp, grad, q_ref, q_weight, basis));
     return CEED_ERROR_SUCCESS;
   }

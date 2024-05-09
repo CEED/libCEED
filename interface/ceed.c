@@ -948,6 +948,7 @@ int CeedInit(const char *resource, Ceed *ceed) {
       CEED_FTABLE_ENTRY(CeedElemRestriction, GetOffsets),
       CEED_FTABLE_ENTRY(CeedElemRestriction, GetOrientations),
       CEED_FTABLE_ENTRY(CeedElemRestriction, GetCurlOrientations),
+      CEED_FTABLE_ENTRY(CeedElemRestriction, GetAtPointsElementOffset),
       CEED_FTABLE_ENTRY(CeedElemRestriction, Destroy),
       CEED_FTABLE_ENTRY(CeedBasis, Apply),
       CEED_FTABLE_ENTRY(CeedBasis, ApplyAtPoints),

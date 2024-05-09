@@ -14,9 +14,6 @@ int main(int argc, char **argv) {
 
   CeedInit(argv[1], &ceed);
 
-  CeedVectorCreate(ceed, num_points, &x);
-  CeedVectorSetValue(x, 0.0);
-
   {
     CeedInt offset      = num_elem + 1;
     CeedInt point_index = num_elem;
@@ -35,6 +32,8 @@ int main(int argc, char **argv) {
   }
   CeedElemRestrictionCreateAtPoints(ceed, num_elem, num_points, 1, num_points, CEED_MEM_HOST, CEED_COPY_VALUES, ind, &elem_restriction);
 
+  CeedElemRestrictionCreateVector(elem_restriction, &x, NULL);
+  CeedVectorSetValue(x, 0.0);
   {
     CeedInt max_points;
 

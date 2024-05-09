@@ -163,7 +163,7 @@ int CeedVectorCreate(Ceed ceed, CeedSize length, CeedVector *vec) {
     Ceed delegate;
 
     CeedCall(CeedGetObjectDelegate(ceed, &delegate, "Vector"));
-    CeedCheck(delegate, ceed, CEED_ERROR_UNSUPPORTED, "Backend does not support VectorCreate");
+    CeedCheck(delegate, ceed, CEED_ERROR_UNSUPPORTED, "Backend does not implement VectorCreate");
     CeedCall(CeedVectorCreate(delegate, length, vec));
     return CEED_ERROR_SUCCESS;
   }

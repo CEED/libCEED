@@ -569,7 +569,7 @@ int CeedQFunctionContextCreate(Ceed ceed, CeedQFunctionContext *ctx) {
     Ceed delegate;
 
     CeedCall(CeedGetObjectDelegate(ceed, &delegate, "Context"));
-    CeedCheck(delegate, ceed, CEED_ERROR_UNSUPPORTED, "Backend does not support CeedQFunctionContextCreate");
+    CeedCheck(delegate, ceed, CEED_ERROR_UNSUPPORTED, "Backend does not implement CeedQFunctionContextCreate");
     CeedCall(CeedQFunctionContextCreate(delegate, ctx));
     return CEED_ERROR_SUCCESS;
   }

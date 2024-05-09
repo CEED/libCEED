@@ -34,7 +34,7 @@ int CeedTensorContractCreate(Ceed ceed, CeedTensorContract *contract) {
     Ceed delegate;
 
     CeedCall(CeedGetObjectDelegate(ceed, &delegate, "TensorContract"));
-    CeedCheck(delegate, ceed, CEED_ERROR_UNSUPPORTED, "Backend does not support CeedTensorContractCreate");
+    CeedCheck(delegate, ceed, CEED_ERROR_UNSUPPORTED, "Backend does not implement CeedTensorContractCreate");
     CeedCall(CeedTensorContractCreate(delegate, contract));
     return CEED_ERROR_SUCCESS;
   }

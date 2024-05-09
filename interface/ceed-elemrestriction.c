@@ -146,7 +146,7 @@ int CeedElemRestrictionIsStrided(CeedElemRestriction rstr, bool *is_strided) {
 
   @ref Backend
 **/
-int CeedElemRestrictionIsPoints(CeedElemRestriction rstr, bool *is_points) {
+int CeedElemRestrictionIsAtPoints(CeedElemRestriction rstr, bool *is_points) {
   *is_points = (rstr->rstr_type == CEED_RESTRICTION_POINTS);
   return CEED_ERROR_SUCCESS;
 }
@@ -243,7 +243,7 @@ int CeedElemRestrictionGetOffsets(CeedElemRestriction rstr, CeedMemType mem_type
     CeedCall(CeedElemRestrictionGetOffsets(rstr->rstr_base, mem_type, offsets));
   } else {
     CeedCheck(rstr->GetOffsets, CeedElemRestrictionReturnCeed(rstr), CEED_ERROR_UNSUPPORTED,
-              "Backend does not support CeedElemRestrictionGetOffsets");
+              "Backend does not implement CeedElemRestrictionGetOffsets");
     CeedCall(rstr->GetOffsets(rstr, mem_type, offsets));
     rstr->num_readers++;
   }
@@ -284,7 +284,7 @@ int CeedElemRestrictionRestoreOffsets(CeedElemRestriction rstr, const CeedInt **
 **/
 int CeedElemRestrictionGetOrientations(CeedElemRestriction rstr, CeedMemType mem_type, const bool **orients) {
   CeedCheck(rstr->GetOrientations, CeedElemRestrictionReturnCeed(rstr), CEED_ERROR_UNSUPPORTED,
-            "Backend does not support CeedElemRestrictionGetOrientations");
+            "Backend does not implement CeedElemRestrictionGetOrientations");
   CeedCall(rstr->GetOrientations(rstr, mem_type, orients));
   rstr->num_readers++;
   return CEED_ERROR_SUCCESS;
@@ -320,7 +320,7 @@ int CeedElemRestrictionRestoreOrientations(CeedElemRestriction rstr, const bool 
 **/
 int CeedElemRestrictionGetCurlOrientations(CeedElemRestriction rstr, CeedMemType mem_type, const CeedInt8 **curl_orients) {
   CeedCheck(rstr->GetCurlOrientations, CeedElemRestrictionReturnCeed(rstr), CEED_ERROR_UNSUPPORTED,
-            "Backend does not support CeedElemRestrictionGetCurlOrientations");
+            "Backend does not implement CeedElemRestrictionGetCurlOrientations");
   CeedCall(rstr->GetCurlOrientations(rstr, mem_type, curl_orients));
   rstr->num_readers++;
   return CEED_ERROR_SUCCESS;
@@ -426,6 +426,68 @@ int CeedElemRestrictionGetELayout(CeedElemRestriction rstr, CeedInt layout[3]) {
 **/
 int CeedElemRestrictionSetELayout(CeedElemRestriction rstr, CeedInt layout[3]) {
   for (CeedInt i = 0; i < 3; i++) rstr->e_layout[i] = layout[i];
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
+
+  @brief Get the E-vector element offset of a `CeedElemRestriction` at points
+
+  @param[in]  rstr        `CeedElemRestriction`
+  @param[in]  elem        Element number index into E-vector for
+  @param[out] elem_offset Offset for element `elem` in the E-vector.
+                            The data for point `i`, component `j`, element `elem` in the E-vector is given by `i*e_layout[0] + j*e_layout[1] + elem_offset`.
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Backend
+**/
+int CeedElemRestrictionGetAtPointsElementOffset(CeedElemRestriction rstr, CeedInt elem, CeedSize *elem_offset) {
+  CeedInt             num_comp;
+  CeedRestrictionType rstr_type;
+
+  CeedCall(CeedElemRestrictionGetType(rstr, &rstr_type));
+  CeedCheck(rstr_type == CEED_RESTRICTION_POINTS, CeedElemRestrictionReturnCeed(rstr), CEED_ERROR_INCOMPATIBLE,
+            "Can only compute offset for a points CeedElemRestriction");
+
+  // Backend method
+  if (rstr->GetAtPointsElementOffset) {
+    CeedCall(rstr->GetAtPointsElementOffset(rstr, elem, elem_offset));
+    return CEED_ERROR_SUCCESS;
+  }
+
+  // Default layout (CPU)
+  *elem_offset = 0;
+  CeedCall(CeedElemRestrictionGetNumComponents(rstr, &num_comp));
+  for (CeedInt i = 0; i < elem; i++) {
+    CeedInt num_points;
+
+    CeedCall(CeedElemRestrictionGetNumPointsInElement(rstr, i, &num_points));
+    *elem_offset += num_points * num_comp;
+  }
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
+
+  @brief Set the E-vector size of a `CeedElemRestriction` at points
+
+  @param[in,out]  rstr   `CeedElemRestriction`
+  @param[in]      e_size New E-vector size; must be longer than the current E-vector size
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Backend
+**/
+int CeedElemRestrictionSetAtPointsEVectorSize(CeedElemRestriction rstr, CeedSize e_size) {
+  CeedRestrictionType rstr_type;
+  Ceed                ceed;
+
+  CeedCall(CeedElemRestrictionGetCeed(rstr, &ceed));
+  CeedCall(CeedElemRestrictionGetType(rstr, &rstr_type));
+  CeedCheck(rstr_type == CEED_RESTRICTION_POINTS, ceed, CEED_ERROR_INCOMPATIBLE, "Can only compute offset for a points CeedElemRestriction");
+  CeedCheck(e_size >= rstr->e_size, ceed, CEED_ERROR_INCOMPATIBLE, "Can only increase the size of the E-vector for the CeedElemRestriction");
+  rstr->e_size = e_size;
   return CEED_ERROR_SUCCESS;
 }
 
@@ -814,15 +876,16 @@ int CeedElemRestrictionCreateAtPoints(Ceed ceed, CeedInt num_elem, CeedInt num_p
 
   CeedCall(CeedCalloc(1, rstr));
   CeedCall(CeedReferenceCopy(ceed, &(*rstr)->ceed));
-  (*rstr)->ref_count  = 1;
-  (*rstr)->num_elem   = num_elem;
-  (*rstr)->num_points = num_points;
-  (*rstr)->num_comp   = num_comp;
-  (*rstr)->l_size     = l_size;
-  (*rstr)->e_size     = (CeedSize)num_points * (CeedSize)num_comp;
-  (*rstr)->num_block  = num_elem;
-  (*rstr)->block_size = 1;
-  (*rstr)->rstr_type  = CEED_RESTRICTION_POINTS;
+  (*rstr)->ref_count   = 1;
+  (*rstr)->num_elem    = num_elem;
+  (*rstr)->num_points  = num_points;
+  (*rstr)->num_comp    = num_comp;
+  (*rstr)->comp_stride = 1;
+  (*rstr)->l_size      = l_size;
+  (*rstr)->e_size      = (CeedSize)num_points * (CeedSize)num_comp;
+  (*rstr)->num_block   = num_elem;
+  (*rstr)->block_size  = 1;
+  (*rstr)->rstr_type   = CEED_RESTRICTION_POINTS;
   CeedCall(ceed->ElemRestrictionCreateAtPoints(mem_type, copy_mode, offsets, NULL, NULL, *rstr));
   return CEED_ERROR_SUCCESS;
 }
@@ -1264,6 +1327,8 @@ int CeedElemRestrictionApplyAtPointsInElement(CeedElemRestriction rstr, CeedInt 
   Ceed     ceed;
 
   CeedCall(CeedElemRestrictionGetCeed(rstr, &ceed));
+  CeedCheck(rstr->ApplyAtPointsInElement, ceed, CEED_ERROR_UNSUPPORTED, "Backend does not implement CeedElemRestrictionApplyAtPointsInElement");
+
   if (t_mode == CEED_NOTRANSPOSE) {
     CeedInt num_points, num_comp;
 

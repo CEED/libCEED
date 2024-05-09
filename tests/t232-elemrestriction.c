@@ -13,22 +13,6 @@ int main(int argc, char **argv) {
 
   CeedInit(argv[1], &ceed);
 
-  CeedVectorCreate(ceed, num_points, &x);
-  {
-    CeedInt    point_index = num_elem;
-    CeedScalar array[num_points];
-
-    for (CeedInt i = 0; i < num_elem; i++) {
-      CeedInt num_points_in_elem = (i + 1) % num_elem + 1;
-
-      for (CeedInt j = 0; j < num_points_in_elem; j++) {
-        array[point_index] = i;
-        point_index        = (point_index + 1) % num_points;
-      }
-    }
-    CeedVectorSetArray(x, CEED_MEM_HOST, CEED_COPY_VALUES, array);
-  }
-
   {
     CeedInt offset      = num_elem + 1;
     CeedInt point_index = num_elem;
@@ -46,6 +30,22 @@ int main(int argc, char **argv) {
     ind[num_elem] = offset;
   }
   CeedElemRestrictionCreateAtPoints(ceed, num_elem, num_points, 1, num_points, CEED_MEM_HOST, CEED_USE_POINTER, ind, &elem_restriction);
+
+  CeedElemRestrictionCreateVector(elem_restriction, &x, NULL);
+  {
+    CeedInt    point_index = num_elem;
+    CeedScalar array[num_points];
+
+    for (CeedInt i = 0; i < num_elem; i++) {
+      CeedInt num_points_in_elem = (i + 1) % num_elem + 1;
+
+      for (CeedInt j = 0; j < num_points_in_elem; j++) {
+        array[point_index] = i;
+        point_index        = (point_index + 1) % num_points;
+      }
+    }
+    CeedVectorSetArray(x, CEED_MEM_HOST, CEED_COPY_VALUES, array);
+  }
 
   {
     CeedInt max_points;

@@ -278,7 +278,7 @@ typedef enum {
 
 CEED_EXTERN int CeedElemRestrictionGetType(CeedElemRestriction rstr, CeedRestrictionType *rstr_type);
 CEED_EXTERN int CeedElemRestrictionIsStrided(CeedElemRestriction rstr, bool *is_strided);
-CEED_EXTERN int CeedElemRestrictionIsPoints(CeedElemRestriction rstr, bool *is_points);
+CEED_EXTERN int CeedElemRestrictionIsAtPoints(CeedElemRestriction rstr, bool *is_points);
 CEED_EXTERN int CeedElemRestrictionAtPointsAreCompatible(CeedElemRestriction rstr_a, CeedElemRestriction rstr_b, bool *are_compatible);
 CEED_EXTERN int CeedElemRestrictionGetStrides(CeedElemRestriction rstr, CeedInt strides[3]);
 CEED_EXTERN int CeedElemRestrictionHasBackendStrides(CeedElemRestriction rstr, bool *has_backend_strides);
@@ -292,6 +292,8 @@ CEED_EXTERN int CeedElemRestrictionGetLLayout(CeedElemRestriction rstr, CeedInt 
 CEED_EXTERN int CeedElemRestrictionSetLLayout(CeedElemRestriction rstr, CeedInt layout[3]);
 CEED_EXTERN int CeedElemRestrictionGetELayout(CeedElemRestriction rstr, CeedInt layout[3]);
 CEED_EXTERN int CeedElemRestrictionSetELayout(CeedElemRestriction rstr, CeedInt layout[3]);
+CEED_EXTERN int CeedElemRestrictionGetAtPointsElementOffset(CeedElemRestriction rstr, CeedInt elem, CeedSize *elem_offset);
+CEED_EXTERN int CeedElemRestrictionSetAtPointsEVectorSize(CeedElemRestriction rstr, CeedSize e_size);
 CEED_EXTERN int CeedElemRestrictionGetData(CeedElemRestriction rstr, void *data);
 CEED_EXTERN int CeedElemRestrictionSetData(CeedElemRestriction rstr, void *data);
 CEED_EXTERN int CeedElemRestrictionReference(CeedElemRestriction rstr);

@@ -727,7 +727,7 @@ int CeedOperatorCreate(Ceed ceed, CeedQFunction qf, CeedQFunction dqf, CeedQFunc
     Ceed delegate;
 
     CeedCall(CeedGetObjectDelegate(ceed, &delegate, "Operator"));
-    CeedCheck(delegate, ceed, CEED_ERROR_UNSUPPORTED, "Backend does not support CeedOperatorCreate");
+    CeedCheck(delegate, ceed, CEED_ERROR_UNSUPPORTED, "Backend does not implement CeedOperatorCreate");
     CeedCall(CeedOperatorCreate(delegate, qf, dqf, dqfT, op));
     return CEED_ERROR_SUCCESS;
   }
@@ -770,7 +770,7 @@ int CeedOperatorCreateAtPoints(Ceed ceed, CeedQFunction qf, CeedQFunction dqf, C
     Ceed delegate;
 
     CeedCall(CeedGetObjectDelegate(ceed, &delegate, "Operator"));
-    CeedCheck(delegate, ceed, CEED_ERROR_UNSUPPORTED, "Backend does not support CeedOperatorCreateAtPoints");
+    CeedCheck(delegate, ceed, CEED_ERROR_UNSUPPORTED, "Backend does not implement CeedOperatorCreateAtPoints");
     CeedCall(CeedOperatorCreateAtPoints(delegate, qf, dqf, dqfT, op));
     return CEED_ERROR_SUCCESS;
   }

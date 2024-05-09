@@ -157,6 +157,7 @@ struct CeedElemRestriction_private {
   int (*ApplyUnoriented)(CeedElemRestriction, CeedTransposeMode, CeedVector, CeedVector, CeedRequest *);
   int (*ApplyAtPointsInElement)(CeedElemRestriction, CeedInt, CeedTransposeMode, CeedVector, CeedVector, CeedRequest *);
   int (*ApplyBlock)(CeedElemRestriction, CeedInt, CeedTransposeMode, CeedVector, CeedVector, CeedRequest *);
+  int (*GetAtPointsElementOffset)(CeedElemRestriction, CeedInt, CeedSize *);
   int (*GetOffsets)(CeedElemRestriction, CeedMemType, const CeedInt **);
   int (*GetOrientations)(CeedElemRestriction, CeedMemType, const bool **);
   int (*GetCurlOrientations)(CeedElemRestriction, CeedMemType, const CeedInt8 **);
