@@ -186,7 +186,13 @@ PetscErrorCode SgsDDNodalStressEval_Sequential_Ceed(Vec DD_Inputs_loc, Vec DD_Ou
   OperatorApplyContext op_context = *(OperatorApplyContext *)ctx;
 
   PetscFunctionBeginUser;
+  PetscCall(PetscLogEventBegin(FLUIDS_SgsModelDDData, DD_Inputs_loc, DD_Outputs_loc, NULL, NULL));
+  PetscCall(PetscLogEventBegin(FLUIDS_SgsModelDDInference, DD_Inputs_loc, DD_Outputs_loc, NULL, NULL));
+  PetscCall(PetscLogGpuTimeBegin());
   PetscCall(ApplyCeedOperatorLocalToLocal(DD_Inputs_loc, DD_Outputs_loc, op_context));
+  PetscCall(PetscLogGpuTimeEnd());
+  PetscCall(PetscLogEventEnd(FLUIDS_SgsModelDDInference, DD_Inputs_loc, DD_Outputs_loc, NULL, NULL));
+  PetscCall(PetscLogEventEnd(FLUIDS_SgsModelDDData, DD_Inputs_loc, DD_Outputs_loc, NULL, NULL));
   PetscFunctionReturn(PETSC_SUCCESS);
 }
 
@@ -475,6 +481,7 @@ PetscErrorCode SgsDDApplyIFunction(User user, const Vec Q_loc, Vec G_loc) {
   PetscMemType sgs_nodal_mem_type;
 
   PetscFunctionBeginUser;
+  PetscCall(PetscLogEventBegin(FLUIDS_SgsModel, Q_loc, G_loc, NULL, NULL));
   PetscCall(DMGetGlobalVector(user->grad_velo_proj->dm, &VelocityGradient));
   PetscCall(VelocityGradientProjectionApply(user->grad_velo_proj, Q_loc, VelocityGradient));
 
@@ -490,6 +497,7 @@ PetscErrorCode SgsDDApplyIFunction(User user, const Vec Q_loc, Vec G_loc) {
   PetscCall(VecCeedToPetsc(sgs_dd_data->sgs_nodal_ceed, sgs_nodal_mem_type, SGSNodal_loc));
   PetscCall(DMRestoreLocalVector(sgs_dd_data->dm_sgs, &SGSNodal_loc));
   PetscCall(DMRestoreGlobalVector(user->grad_velo_proj->dm, &VelocityGradient));
+  PetscCall(PetscLogEventEnd(FLUIDS_SgsModel, Q_loc, G_loc, NULL, NULL));
   PetscFunctionReturn(PETSC_SUCCESS);
 }
 

@@ -365,32 +365,6 @@ PetscErrorCode PhastaDatFileReadToArrayReal(MPI_Comm comm, const char path[PETSC
   PetscFunctionReturn(PETSC_SUCCESS);
 }
 
-PetscLogEvent       FLUIDS_CeedOperatorApply;
-PetscLogEvent       FLUIDS_SmartRedis_Init;
-PetscLogEvent       FLUIDS_SmartRedis_Meta;
-PetscLogEvent       FLUIDS_SmartRedis_Train;
-PetscLogEvent       FLUIDS_TrainDataCompute;
-PetscLogEvent       FLUIDS_DifferentialFilter;
-PetscLogEvent       FLUIDS_VelocityGradientProjection;
-static PetscClassId libCEED_classid, onlineTrain_classid, misc_classid;
-
-PetscErrorCode RegisterLogEvents() {
-  PetscFunctionBeginUser;
-  PetscCall(PetscClassIdRegister("libCEED", &libCEED_classid));
-  PetscCall(PetscLogEventRegister("CeedOpApply", libCEED_classid, &FLUIDS_CeedOperatorApply));
-
-  PetscCall(PetscClassIdRegister("onlineTrain", &onlineTrain_classid));
-  PetscCall(PetscLogEventRegister("SmartRedis_Init", onlineTrain_classid, &FLUIDS_SmartRedis_Init));
-  PetscCall(PetscLogEventRegister("SmartRedis_Meta", onlineTrain_classid, &FLUIDS_SmartRedis_Meta));
-  PetscCall(PetscLogEventRegister("SmartRedis_Train", onlineTrain_classid, &FLUIDS_SmartRedis_Train));
-  PetscCall(PetscLogEventRegister("TrainDataCompute", onlineTrain_classid, &FLUIDS_TrainDataCompute));
-
-  PetscCall(PetscClassIdRegister("Miscellaneous", &misc_classid));
-  PetscCall(PetscLogEventRegister("DiffFilter", misc_classid, &FLUIDS_DifferentialFilter));
-  PetscCall(PetscLogEventRegister("VeloGradProj", misc_classid, &FLUIDS_VelocityGradientProjection));
-  PetscFunctionReturn(PETSC_SUCCESS);
-}
-
 // Print information about the given simulation run
 PetscErrorCode PrintRunInfo(User user, Physics phys_ctx, ProblemData problem, TS ts) {
   Ceed     ceed = user->ceed;

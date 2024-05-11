@@ -7,6 +7,7 @@
 #pragma once
 
 #include <ceed.h>
+#include <log_events.h>
 #include <mat-ceed.h>
 #include <petsc-ceed-utils.h>
 #include <petscts.h>
@@ -84,18 +85,6 @@ static const char *const MeshTransformTypes[] = {"none", "platemesh", "MeshTrans
 
 static const char *const DifferentialFilterDampingFunctions[] = {
     "none", "van_driest", "mms", "DifferentialFilterDampingFunction", "DIFF_FILTER_DAMP_", NULL};
-
-// -----------------------------------------------------------------------------
-// Log Events
-// -----------------------------------------------------------------------------
-extern PetscLogEvent FLUIDS_CeedOperatorApply;
-extern PetscLogEvent FLUIDS_SmartRedis_Init;
-extern PetscLogEvent FLUIDS_SmartRedis_Meta;
-extern PetscLogEvent FLUIDS_SmartRedis_Train;
-extern PetscLogEvent FLUIDS_TrainDataCompute;
-extern PetscLogEvent FLUIDS_DifferentialFilter;
-extern PetscLogEvent FLUIDS_VelocityGradientProjection;
-PetscErrorCode       RegisterLogEvents();
 
 // -----------------------------------------------------------------------------
 // Structs
