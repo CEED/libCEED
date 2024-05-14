@@ -1240,7 +1240,7 @@ static int CeedOperatorLinearAssembleAddDiagonalAtPoints_Ref(CeedOperator op, Ce
         CeedBasis           basis;
 
         CeedCallBackend(CeedOperatorFieldGetVector(op_output_fields[i], &vec));
-        // ---- Skip non-active input
+        // ---- Skip non-active output
         is_active_output = vec == CEED_VECTOR_ACTIVE;
         if (!is_active_output) continue;
 
