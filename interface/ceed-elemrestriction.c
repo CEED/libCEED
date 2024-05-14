@@ -1490,10 +1490,10 @@ int CeedElemRestrictionGetElementSize(CeedElemRestriction rstr, CeedInt *elem_si
 
 /**
 
-  @brief Get the number of points in the l-vector for a points `CeedElemRestriction`
+  @brief Get the number of points in the offsets array for a points `CeedElemRestriction`
 
   @param[in]  rstr       `CeedElemRestriction`
-  @param[out] num_points The number of points in the l-vector
+  @param[out] num_points The number of points in the offsets array
 
   @return An error code: 0 - success, otherwise - failure
 
