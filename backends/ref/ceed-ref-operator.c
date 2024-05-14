@@ -1232,17 +1232,17 @@ static int CeedOperatorLinearAssembleAddDiagonalAtPoints_Ref(CeedOperator op, Ce
 
       // -- Grab diagonal value
       for (CeedInt i = 0; i < num_output_fields; i++) {
-        bool                is_active_input = false;
+        bool                is_active_output = false;
         CeedRestrictionType rstr_type;
         CeedEvalMode        eval_mode;
         CeedVector          vec;
         CeedElemRestriction elem_rstr;
         CeedBasis           basis;
 
-        CeedCallBackend(CeedOperatorFieldGetVector(op_input_fields[i], &vec));
+        CeedCallBackend(CeedOperatorFieldGetVector(op_output_fields[i], &vec));
         // ---- Skip non-active input
-        is_active_input = vec == CEED_VECTOR_ACTIVE;
-        if (!is_active_input) continue;
+        is_active_output = vec == CEED_VECTOR_ACTIVE;
+        if (!is_active_output) continue;
 
         // ---- Get elem_size, eval_mode, size
         CeedCallBackend(CeedOperatorFieldGetElemRestriction(op_output_fields[i], &elem_rstr));
