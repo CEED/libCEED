@@ -65,7 +65,7 @@ int main(int argc, char **argv) {
       for (CeedInt j = 0; j < num_points_in_elem; j++) {
         if (i != read_array[elem_offset + j * e_layout[0]]) {
           // LCOV_EXCL_START
-          printf("Error in restricted array y[%" CeedInt_FMT "] = %f\n != %f\n", (CeedInt)elem_offset + j * e_layout[0],
+          printf("Error in restricted array y[%" CeedInt_FMT "] = %f != %f\n", (CeedInt)elem_offset + j * e_layout[0],
                  (CeedScalar)read_array[elem_offset + j * e_layout[0]], (CeedScalar)i);
           // LCOV_EXCL_STOP
         }

@@ -63,7 +63,23 @@ static inline int CeedElemRestrictionSetupCompile_Hip(CeedElemRestriction rstr) 
       CeedCallBackend(CeedGetKernel_Hip(ceed, impl->module, "StridedNoTranspose", &impl->ApplyNoTranspose));
       CeedCallBackend(CeedGetKernel_Hip(ceed, impl->module, "StridedTranspose", &impl->ApplyTranspose));
     } break;
-    case CEED_RESTRICTION_POINTS:
+    case CEED_RESTRICTION_POINTS: {
+      const char *offset_kernel_path;
+      char      **file_paths     = NULL;
+      CeedInt     num_file_paths = 0;
+
+      CeedCallBackend(CeedGetJitAbsolutePath(ceed, "ceed/jit-source/hip/hip-ref-restriction-at-points.h", &restriction_kernel_path));
+      CeedDebug256(ceed, CEED_DEBUG_COLOR_SUCCESS, "----- Loading Restriction Kernel Source -----\n");
+      CeedCallBackend(CeedLoadSourceAndInitializeBuffer(ceed, restriction_kernel_path, &num_file_paths, &file_paths, &restriction_kernel_source));
+      CeedCallBackend(CeedGetJitAbsolutePath(ceed, "ceed/jit-source/hip/hip-ref-restriction-offset.h", &offset_kernel_path));
+      CeedCallBackend(CeedLoadSourceToInitializedBuffer(ceed, offset_kernel_path, &num_file_paths, &file_paths, &restriction_kernel_source));
+      CeedDebug256(ceed, CEED_DEBUG_COLOR_SUCCESS, "----- Loading Restriction Kernel Source Complete! -----\n");
+      CeedCallBackend(CeedCompile_Hip(ceed, restriction_kernel_source, &impl->module, 6, "RSTR_ELEM_SIZE", elem_size, "RSTR_NUM_ELEM", num_elem,
+                                      "RSTR_NUM_COMP", num_comp, "RSTR_NUM_NODES", impl->num_nodes, "RSTR_COMP_STRIDE", comp_stride,
+                                      "USE_DETERMINISTIC", is_deterministic ? 1 : 0));
+      CeedCallBackend(CeedGetKernel_Hip(ceed, impl->module, "OffsetNoTranspose", &impl->ApplyNoTranspose));
+      CeedCallBackend(CeedGetKernel_Hip(ceed, impl->module, "AtPointsTranspose", &impl->ApplyTranspose));
+    } break;
     case CEED_RESTRICTION_STANDARD: {
       CeedCallBackend(CeedGetJitAbsolutePath(ceed, "ceed/jit-source/hip/hip-ref-restriction-offset.h", &restriction_kernel_path));
       CeedDebug256(ceed, CEED_DEBUG_COLOR_SUCCESS, "----- Loading Restriction Kernel Source -----\n");
@@ -219,7 +235,17 @@ static inline int CeedElemRestrictionApply_Hip_Core(CeedElemRestriction rstr, Ce
 
         CeedCallBackend(CeedRunKernel_Hip(ceed, impl->ApplyTranspose, grid, block_size, args));
       } break;
-      case CEED_RESTRICTION_POINTS:
+      case CEED_RESTRICTION_POINTS: {
+        if (!is_deterministic) {
+          void *args[] = {&impl->d_offsets, &impl->d_points_per_elem, &d_u, &d_v};
+
+          CeedCallBackend(CeedRunKernel_Hip(ceed, impl->ApplyTranspose, grid, block_size, args));
+        } else {
+          void *args[] = {&impl->d_l_vec_indices, &impl->d_t_indices, &impl->d_points_per_elem, &impl->d_t_offsets, &d_u, &d_v};
+
+          CeedCallBackend(CeedRunKernel_Hip(ceed, impl->ApplyTranspose, grid, block_size, args));
+        }
+      } break;
       case CEED_RESTRICTION_STANDARD: {
         if (!is_deterministic) {
           void *args[] = {&impl->d_offsets, &d_u, &d_v};
@@ -411,6 +437,8 @@ static int CeedElemRestrictionDestroy_Hip(CeedElemRestriction rstr) {
   CeedCallHip(ceed, hipFree((CeedInt8 *)impl->d_curl_orients_owned));
   CeedCallBackend(CeedFree(&impl->h_offsets_at_points_owned));
   CeedCallHip(ceed, hipFree((CeedInt8 *)impl->d_offsets_at_points_owned));
+  CeedCallBackend(CeedFree(&impl->h_points_per_elem_owned));
+  CeedCallHip(ceed, hipFree((CeedInt *)impl->d_points_per_elem_owned));
   CeedCallBackend(CeedFree(&impl));
   return CEED_ERROR_SUCCESS;
 }
@@ -546,13 +574,15 @@ int CeedElemRestrictionCreate_Hip(CeedMemType mem_type, CeedCopyMode copy_mode, 
   // Pad AtPoints indices
   if (rstr_type == CEED_RESTRICTION_POINTS) {
     CeedSize offsets_len = elem_size * num_elem, at_points_size = num_elem + 1;
-    CeedInt  max_points = elem_size, *offsets_padded;
+    CeedInt  max_points = elem_size, *offsets_padded, *points_per_elem;
 
     CeedCheck(mem_type == CEED_MEM_HOST, ceed, CEED_ERROR_BACKEND, "only MemType Host supported when creating AtPoints restriction");
     CeedCallBackend(CeedMalloc(offsets_len, &offsets_padded));
+    CeedCallBackend(CeedMalloc(num_elem, &points_per_elem));
     for (CeedInt i = 0; i < num_elem; i++) {
       CeedInt num_points = offsets[i + 1] - offsets[i];
 
+      points_per_elem[i] = num_points;
       at_points_size += num_points;
       // -- Copy all points in element
       for (CeedInt j = 0; j < num_points; j++) {
@@ -574,6 +604,14 @@ int CeedElemRestrictionCreate_Hip(CeedMemType mem_type, CeedCopyMode copy_mode, 
     offsets   = (const CeedInt *)offsets_padded;
     copy_mode = CEED_OWN_POINTER;
     CeedCallBackend(CeedElemRestrictionSetAtPointsEVectorSize(rstr, at_points_size * num_comp));
+
+    // -- Points per element
+    CeedCallBackend(CeedSetHostCeedIntArray(points_per_elem, CEED_OWN_POINTER, num_elem, &impl->h_points_per_elem_owned,
+                                            &impl->h_points_per_elem_borrowed, &impl->h_points_per_elem));
+    CeedCallHip(ceed, hipMalloc((void **)&impl->d_points_per_elem_owned, num_elem * sizeof(CeedInt)));
+    CeedCallHip(ceed,
+                hipMemcpy((CeedInt **)impl->d_points_per_elem_owned, impl->h_points_per_elem, num_elem * sizeof(CeedInt), hipMemcpyHostToDevice));
+    impl->d_points_per_elem = (CeedInt *)impl->d_points_per_elem_owned;
   }
 
   // Set up device offset/orientation arrays
