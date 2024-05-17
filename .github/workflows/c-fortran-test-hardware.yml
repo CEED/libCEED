@@ -10,7 +10,7 @@ jobs:
   test:
     strategy:
       matrix:
-        os: [ubuntu-22.04]
+        os: [ubuntu-24.04]
         compiler: [gcc-13]
         arch: [aarch64, ppc64le]
         distro: [ubuntu22.04]

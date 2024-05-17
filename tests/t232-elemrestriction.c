@@ -1,7 +1,8 @@
 /// @file
-/// Test creation, use, and destruction of an element restriction at points for single elements
-/// \test Test creation, use, and destruction of an element restriction at points for single elements
+/// Test creation, use, and destruction of an element restriction at points
+/// \test Test creation, use, and destruction of an element restriction at points
 #include <ceed.h>
+#include <ceed/backend.h>
 #include <stdio.h>
 
 int main(int argc, char **argv) {
@@ -31,7 +32,8 @@ int main(int argc, char **argv) {
   }
   CeedElemRestrictionCreateAtPoints(ceed, num_elem, num_points, 1, num_points, CEED_MEM_HOST, CEED_USE_POINTER, ind, &elem_restriction);
 
-  CeedElemRestrictionCreateVector(elem_restriction, &x, NULL);
+  CeedElemRestrictionCreateVector(elem_restriction, &x, &y);
+  CeedVectorSetValue(y, 0.0);
   {
     CeedInt    point_index = num_elem;
     CeedScalar array[num_points];
@@ -47,30 +49,26 @@ int main(int argc, char **argv) {
     CeedVectorSetArray(x, CEED_MEM_HOST, CEED_COPY_VALUES, array);
   }
 
+  CeedElemRestrictionApply(elem_restriction, CEED_NOTRANSPOSE, x, y, CEED_REQUEST_IMMEDIATE);
+  CeedElemRestrictionApply(elem_restriction, CEED_TRANSPOSE, y, x, CEED_REQUEST_IMMEDIATE);
   {
-    CeedInt max_points;
+    CeedInt           point_index = num_elem;
+    const CeedScalar *read_array;
 
-    CeedElemRestrictionGetMaxPointsInElement(elem_restriction, &max_points);
-    CeedVectorCreate(ceed, max_points, &y);
-  }
-
-  {
+    CeedVectorGetArrayRead(x, CEED_MEM_HOST, &read_array);
     for (CeedInt i = 0; i < num_elem; i++) {
-      CeedInt           num_points_in_elem = (i + 1) % num_elem + 1;
-      const CeedScalar *read_array;
-
-      CeedElemRestrictionApplyAtPointsInElement(elem_restriction, i, CEED_NOTRANSPOSE, x, y, CEED_REQUEST_IMMEDIATE);
-      CeedVectorGetArrayRead(y, CEED_MEM_HOST, &read_array);
+      CeedInt num_points_in_elem = (i + 1) % num_elem + 1;
 
       for (CeedInt j = 0; j < num_points_in_elem; j++) {
-        if (i != read_array[j]) {
+        if (read_array[point_index] != 2 * i) {
           // LCOV_EXCL_START
-          printf("Error in restricted element array %" CeedInt_FMT " y[%" CeedInt_FMT "] = %f\n", i, j, (CeedScalar)read_array[j]);
+          printf("Error in restricted array x[%" CeedInt_FMT "] = %f != %f\n", point_index, read_array[point_index], 2.0 * i);
           // LCOV_EXCL_STOP
         }
+        point_index = (point_index + 1) % num_points;
       }
-      CeedVectorRestoreArrayRead(y, &read_array);
     }
+    CeedVectorRestoreArrayRead(x, &read_array);
   }
 
   CeedVectorDestroy(&x);

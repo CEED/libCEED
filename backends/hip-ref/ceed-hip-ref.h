@@ -58,6 +58,12 @@ typedef struct {
   const CeedInt  *d_offsets_at_points;
   const CeedInt  *d_offsets_at_points_borrowed;
   const CeedInt  *d_offsets_at_points_owned;
+  const CeedInt  *h_points_per_elem;
+  const CeedInt  *h_points_per_elem_borrowed;
+  const CeedInt  *h_points_per_elem_owned;
+  const CeedInt  *d_points_per_elem;
+  const CeedInt  *d_points_per_elem_borrowed;
+  const CeedInt  *d_points_per_elem_owned;
 } CeedElemRestriction_Hip;
 
 typedef struct {

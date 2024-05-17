@@ -381,7 +381,7 @@ static inline int CeedElemRestrictionApplyAtPointsInElement_Memcheck_Core(CeedEl
       }
     } else {
       for (CeedSize i = 0; i < num_points; i++) {
-        for (CeedSize j = 0; j < num_comp; j++) vv[impl->offsets[i + l_vec_offset] * num_comp + j] = uu[j * num_points + i + e_vec_offset];
+        for (CeedSize j = 0; j < num_comp; j++) vv[impl->offsets[i + l_vec_offset] * num_comp + j] += uu[j * num_points + i + e_vec_offset];
       }
     }
     e_vec_offset += num_points * (CeedSize)num_comp;
