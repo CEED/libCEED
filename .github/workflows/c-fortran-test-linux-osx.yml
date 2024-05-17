@@ -10,7 +10,7 @@ jobs:
   test:
     strategy:
       matrix:
-        os: [ubuntu-22.04, macos-13]
+        os: [ubuntu-24.04, macos-13]
         compiler: [gcc-13, clang]
 
     runs-on: ${{ matrix.os }}
