@@ -209,7 +209,8 @@ static PetscErrorCode SgsDDSetupNodalEvaluation_Sequential_Torch(Ceed ceed, SgsD
   PetscCallCeed(ceed, CeedGetResource(ceed, &ceed_resource));
   if (strstr(ceed_resource, "/gpu/cuda")) model_device_type = TORCH_DEVICE_CUDA;
   else if (strstr(ceed_resource, "/gpu/hip")) model_device_type = TORCH_DEVICE_HIP;
-  else if (strstr(ceed_resource, "/gpu/sycl")) model_device_type = TORCH_DEVICE_XPU;
+  // On-device XPU is not working reliably currently, default to CPU inference evaluation
+  // else if (strstr(ceed_resource, "/gpu/sycl")) model_device_type = TORCH_DEVICE_XPU;
   else model_device_type = TORCH_DEVICE_CPU;
   PetscCall(PetscOptionsGetEnum(NULL, NULL, "-sgs_model_dd_torch_model_device", TorchDeviceTypes, (PetscEnum *)&model_device_type, NULL));
   PetscCall(PetscOptionsGetString(NULL, NULL, "-sgs_model_dd_torch_model_path", model_path, sizeof(model_path), NULL));
