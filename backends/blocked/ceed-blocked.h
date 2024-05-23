@@ -26,7 +26,6 @@ typedef struct {
   CeedVector          *q_vecs_out;   /* Element block output Q-vectors */
   CeedInt              num_inputs, num_outputs;
   CeedInt              num_active_in, num_active_out;
-  CeedVector          *qf_active_in;
   CeedVector           qf_l_vec;
   CeedElemRestriction  qf_block_rstr;
 } CeedOperator_Blocked;

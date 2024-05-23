@@ -382,10 +382,8 @@ static int CeedOperatorApplyAdd_Ref(CeedOperator op, CeedVector in_vec, CeedVect
 static inline int CeedOperatorLinearAssembleQFunctionCore_Ref(CeedOperator op, bool build_objects, CeedVector *assembled, CeedElemRestriction *rstr,
                                                               CeedRequest *request) {
   Ceed                ceed, ceed_parent;
-  CeedSize            q_size;
-  CeedInt             num_active_in, num_active_out, Q, num_elem, num_input_fields, num_output_fields, size;
+  CeedInt             num_active_in, num_active_out, Q, num_elem, num_input_fields, num_output_fields;
   CeedScalar         *assembled_array, *e_data_full[2 * CEED_FIELD_MAX] = {NULL};
-  CeedVector         *active_in;
   CeedQFunctionField *qf_input_fields, *qf_output_fields;
   CeedQFunction       qf;
   CeedOperatorField  *op_input_fields, *op_output_fields;
@@ -394,8 +392,8 @@ static inline int CeedOperatorLinearAssembleQFunctionCore_Ref(CeedOperator op, b
   CeedCallBackend(CeedOperatorGetCeed(op, &ceed));
   CeedCallBackend(CeedOperatorGetFallbackParentCeed(op, &ceed_parent));
   CeedCallBackend(CeedOperatorGetData(op, &impl));
-  active_in     = impl->qf_active_in;
-  num_active_in = impl->num_active_in, num_active_out = impl->num_active_out;
+  num_active_in  = impl->num_active_in;
+  num_active_out = impl->num_active_out;
   CeedCallBackend(CeedOperatorGetQFunction(op, &qf));
   CeedCallBackend(CeedOperatorGetNumQuadraturePoints(op, &Q));
   CeedCallBackend(CeedOperatorGetNumElements(op, &num_elem));
@@ -412,50 +410,41 @@ static inline int CeedOperatorLinearAssembleQFunctionCore_Ref(CeedOperator op, b
   CeedCallBackend(CeedOperatorSetupInputs_Ref(num_input_fields, qf_input_fields, op_input_fields, NULL, true, e_data_full, impl, request));
 
   // Count number of active input fields
-  if (!num_active_in) {
+  if (num_active_in == 0) {
     for (CeedInt i = 0; i < num_input_fields; i++) {
-      CeedScalar *q_vec_array;
-      CeedVector  vec;
+      CeedInt    field_size;
+      CeedVector vec;
 
       // Get input vector
       CeedCallBackend(CeedOperatorFieldGetVector(op_input_fields[i], &vec));
       // Check if active input
       if (vec == CEED_VECTOR_ACTIVE) {
-        CeedCallBackend(CeedQFunctionFieldGetSize(qf_input_fields[i], &size));
+        CeedCallBackend(CeedQFunctionFieldGetSize(qf_input_fields[i], &field_size));
         CeedCallBackend(CeedVectorSetValue(impl->q_vecs_in[i], 0.0));
-        CeedCallBackend(CeedVectorGetArray(impl->q_vecs_in[i], CEED_MEM_HOST, &q_vec_array));
-        CeedCallBackend(CeedRealloc(num_active_in + size, &active_in));
-        for (CeedInt field = 0; field < size; field++) {
-          q_size = (CeedSize)Q;
-          CeedCallBackend(CeedVectorCreate(ceed_parent, q_size, &active_in[num_active_in + field]));
-          CeedCallBackend(CeedVectorSetArray(active_in[num_active_in + field], CEED_MEM_HOST, CEED_USE_POINTER, &q_vec_array[field * Q]));
-        }
-        num_active_in += size;
-        CeedCallBackend(CeedVectorRestoreArray(impl->q_vecs_in[i], &q_vec_array));
+        num_active_in += field_size;
       }
     }
+    CeedCheck(num_active_in > 0, ceed, CEED_ERROR_BACKEND, "Cannot assemble QFunction without active inputs and outputs");
     impl->num_active_in = num_active_in;
-    impl->qf_active_in  = active_in;
   }
 
   // Count number of active output fields
-  if (!num_active_out) {
+  if (num_active_out == 0) {
     for (CeedInt i = 0; i < num_output_fields; i++) {
+      CeedInt    field_size;
       CeedVector vec;
 
       // Get output vector
       CeedCallBackend(CeedOperatorFieldGetVector(op_output_fields[i], &vec));
       // Check if active output
       if (vec == CEED_VECTOR_ACTIVE) {
-        CeedCallBackend(CeedQFunctionFieldGetSize(qf_output_fields[i], &size));
-        num_active_out += size;
+        CeedCallBackend(CeedQFunctionFieldGetSize(qf_output_fields[i], &field_size));
+        num_active_out += field_size;
       }
     }
+    CeedCheck(num_active_out > 0, ceed, CEED_ERROR_BACKEND, "Cannot assemble QFunction without active inputs and outputs");
     impl->num_active_out = num_active_out;
   }
-
-  // Check sizes
-  CeedCheck(num_active_in > 0 && num_active_out > 0, ceed, CEED_ERROR_BACKEND, "Cannot assemble QFunction without active inputs and outputs");
 
   // Build objects if needed
   if (build_objects) {
@@ -478,37 +467,62 @@ static inline int CeedOperatorLinearAssembleQFunctionCore_Ref(CeedOperator op, b
     CeedCallBackend(CeedOperatorInputBasis_Ref(e, Q, qf_input_fields, op_input_fields, num_input_fields, true, e_data_full, impl));
 
     // Assemble QFunction
-    for (CeedInt in = 0; in < num_active_in; in++) {
+
+    for (CeedInt i = 0; i < num_input_fields; i++) {
+      CeedInt    field_size;
+      CeedVector vec;
+
       // Set Inputs
-      CeedCallBackend(CeedVectorSetValue(active_in[in], 1.0));
-      if (num_active_in > 1) {
-        CeedCallBackend(CeedVectorSetValue(active_in[(in + num_active_in - 1) % num_active_in], 0.0));
-      }
-      if (!impl->is_identity_qf) {
-        // Set Outputs
-        for (CeedInt out = 0; out < num_output_fields; out++) {
-          CeedVector vec;
+      CeedCallBackend(CeedOperatorFieldGetVector(op_input_fields[i], &vec));
+      if (vec != CEED_VECTOR_ACTIVE) continue;
+      CeedCallBackend(CeedQFunctionFieldGetSize(qf_input_fields[i], &field_size));
+      for (CeedInt field = 0; field < field_size; field++) {
+        // Set current portion of input to 1.0
+        {
+          CeedScalar *array;
 
-          // Get output vector
-          CeedCallBackend(CeedOperatorFieldGetVector(op_output_fields[out], &vec));
-          // Check if active output
-          if (vec == CEED_VECTOR_ACTIVE) {
-            CeedCallBackend(CeedVectorSetArray(impl->q_vecs_out[out], CEED_MEM_HOST, CEED_USE_POINTER, assembled_array));
-            CeedCallBackend(CeedQFunctionFieldGetSize(qf_output_fields[out], &size));
-            assembled_array += size * Q;  // Advance the pointer by the size of the output
-          }
+          CeedCallBackend(CeedVectorGetArray(impl->q_vecs_in[i], CEED_MEM_HOST, &array));
+          for (CeedInt j = 0; j < Q; j++) array[field * Q + j] = 1.0;
+          CeedCallBackend(CeedVectorRestoreArray(impl->q_vecs_in[i], &array));
         }
-        // Apply QFunction
-        CeedCallBackend(CeedQFunctionApply(qf, Q, impl->q_vecs_in, impl->q_vecs_out));
-      } else {
-        const CeedScalar *q_vec_array;
 
-        // Copy Identity Outputs
-        CeedCallBackend(CeedQFunctionFieldGetSize(qf_output_fields[0], &size));
-        CeedCallBackend(CeedVectorGetArrayRead(impl->q_vecs_out[0], CEED_MEM_HOST, &q_vec_array));
-        for (CeedInt i = 0; i < size * Q; i++) assembled_array[i] = q_vec_array[i];
-        CeedCallBackend(CeedVectorRestoreArrayRead(impl->q_vecs_out[0], &q_vec_array));
-        assembled_array += size * Q;
+        if (!impl->is_identity_qf) {
+          // Set Outputs
+          for (CeedInt out = 0; out < num_output_fields; out++) {
+            CeedVector vec;
+
+            // Get output vector
+            CeedCallBackend(CeedOperatorFieldGetVector(op_output_fields[out], &vec));
+            // Check if active output
+            if (vec == CEED_VECTOR_ACTIVE) {
+              CeedInt field_size;
+
+              CeedCallBackend(CeedVectorSetArray(impl->q_vecs_out[out], CEED_MEM_HOST, CEED_USE_POINTER, assembled_array));
+              CeedCallBackend(CeedQFunctionFieldGetSize(qf_output_fields[out], &field_size));
+              assembled_array += field_size * Q;  // Advance the pointer by the size of the output
+            }
+          }
+          // Apply QFunction
+          CeedCallBackend(CeedQFunctionApply(qf, Q, impl->q_vecs_in, impl->q_vecs_out));
+        } else {
+          CeedInt           field_size;
+          const CeedScalar *array;
+
+          // Copy Identity Outputs
+          CeedCallBackend(CeedQFunctionFieldGetSize(qf_output_fields[0], &field_size));
+          CeedCallBackend(CeedVectorGetArrayRead(impl->q_vecs_out[0], CEED_MEM_HOST, &array));
+          for (CeedInt j = 0; j < field_size * Q; j++) assembled_array[j] = array[j];
+          CeedCallBackend(CeedVectorRestoreArrayRead(impl->q_vecs_out[0], &array));
+          assembled_array += field_size * Q;
+        }
+        // Reset input to 0.0
+        {
+          CeedScalar *array;
+
+          CeedCallBackend(CeedVectorGetArray(impl->q_vecs_in[i], CEED_MEM_HOST, &array));
+          for (CeedInt j = 0; j < Q; j++) array[field * Q + j] = 0.0;
+          CeedCallBackend(CeedVectorRestoreArray(impl->q_vecs_in[i], &array));
+        }
       }
     }
   }
@@ -879,10 +893,9 @@ static int CeedOperatorApplyAddAtPoints_Ref(CeedOperator op, CeedVector in_vec, 
 static inline int CeedOperatorLinearAssembleQFunctionAtPointsCore_Ref(CeedOperator op, bool build_objects, CeedVector *assembled,
                                                                       CeedElemRestriction *rstr, CeedRequest *request) {
   Ceed                ceed;
-  CeedSize            q_size;
   CeedInt             num_active_in, num_active_out, max_num_points, num_elem, num_input_fields, num_output_fields, num_points_offset = 0;
   CeedScalar         *assembled_array, *e_data_full[2 * CEED_FIELD_MAX] = {NULL};
-  CeedVector         *active_in, point_coords                           = NULL;
+  CeedVector          point_coords = NULL;
   CeedQFunctionField *qf_input_fields, *qf_output_fields;
   CeedQFunction       qf;
   CeedOperatorField  *op_input_fields, *op_output_fields;
@@ -891,8 +904,8 @@ static inline int CeedOperatorLinearAssembleQFunctionAtPointsCore_Ref(CeedOperat
 
   CeedCallBackend(CeedOperatorGetCeed(op, &ceed));
   CeedCallBackend(CeedOperatorGetData(op, &impl));
-  active_in     = impl->qf_active_in;
-  num_active_in = impl->num_active_in, num_active_out = impl->num_active_out;
+  num_active_in  = impl->num_active_in;
+  num_active_out = impl->num_active_out;
   CeedCallBackend(CeedOperatorGetQFunction(op, &qf));
   CeedCallBackend(CeedOperatorGetNumElements(op, &num_elem));
   CeedCallBackend(CeedQFunctionGetFields(qf, NULL, &qf_input_fields, NULL, &qf_output_fields));
@@ -912,11 +925,10 @@ static inline int CeedOperatorLinearAssembleQFunctionAtPointsCore_Ref(CeedOperat
   CeedCallBackend(CeedOperatorSetupInputs_Ref(num_input_fields, qf_input_fields, op_input_fields, NULL, true, e_data_full, impl, request));
 
   // Count number of active input fields
-  if (!num_active_in) {
+  if (num_active_in == 0) {
     for (CeedInt i = 0; i < num_input_fields; i++) {
-      CeedScalar *q_vec_array;
-      CeedInt     field_size;
-      CeedVector  vec;
+      CeedInt    field_size;
+      CeedVector vec;
 
       // Get input vector
       CeedCallBackend(CeedOperatorFieldGetVector(op_input_fields[i], &vec));
@@ -933,27 +945,18 @@ static inline int CeedOperatorLinearAssembleQFunctionAtPointsCore_Ref(CeedOperat
         }
         // Get size of active input
         CeedCallBackend(CeedQFunctionFieldGetSize(qf_input_fields[i], &field_size));
-        CeedCallBackend(CeedVectorSetValue(impl->q_vecs_in[i], 0.0));
-        CeedCallBackend(CeedVectorGetArray(impl->q_vecs_in[i], CEED_MEM_HOST, &q_vec_array));
-        CeedCallBackend(CeedRealloc(num_active_in + field_size, &active_in));
-        for (CeedInt field = 0; field < field_size; field++) {
-          q_size = (CeedSize)max_num_points;
-          CeedCallBackend(CeedVectorCreate(ceed, q_size, &active_in[num_active_in + field]));
-          CeedCallBackend(CeedVectorSetArray(active_in[num_active_in + field], CEED_MEM_HOST, CEED_USE_POINTER, &q_vec_array[field * q_size]));
-        }
         num_active_in += field_size;
-        CeedCallBackend(CeedVectorRestoreArray(impl->q_vecs_in[i], &q_vec_array));
       }
     }
+    CeedCheck(num_active_in, ceed, CEED_ERROR_BACKEND, "Cannot assemble QFunction without active inputs and outputs");
     impl->num_active_in = num_active_in;
-    impl->qf_active_in  = active_in;
   }
 
   // Count number of active output fields
-  if (!num_active_out) {
+  if (num_active_out == 0) {
     for (CeedInt i = 0; i < num_output_fields; i++) {
-      CeedVector vec;
       CeedInt    field_size;
+      CeedVector vec;
 
       // Get output vector
       CeedCallBackend(CeedOperatorFieldGetVector(op_output_fields[i], &vec));
@@ -970,14 +973,13 @@ static inline int CeedOperatorLinearAssembleQFunctionAtPointsCore_Ref(CeedOperat
         }
         // Get size of active output
         CeedCallBackend(CeedQFunctionFieldGetSize(qf_output_fields[i], &field_size));
+        CeedCallBackend(CeedVectorSetValue(impl->q_vecs_in[i], 0.0));
         num_active_out += field_size;
       }
     }
+    CeedCheck(num_active_out > 0, ceed, CEED_ERROR_BACKEND, "Cannot assemble QFunction without active inputs and outputs");
     impl->num_active_out = num_active_out;
   }
-
-  // Check sizes
-  CeedCheck(num_active_in > 0 && num_active_out > 0, ceed, CEED_ERROR_BACKEND, "Cannot assemble QFunction without active inputs and outputs");
 
   // Build objects if needed
   if (build_objects) {
@@ -1013,39 +1015,62 @@ static inline int CeedOperatorLinearAssembleQFunctionAtPointsCore_Ref(CeedOperat
                                                        impl->point_coords_elem, true, e_data_full, impl, request));
 
     // Assemble QFunction
-    for (CeedInt in = 0; in < num_active_in; in++) {
-      // Set Inputs
-      CeedCallBackend(CeedVectorSetValue(active_in[in], 1.0));
-      if (num_active_in > 1) {
-        CeedCallBackend(CeedVectorSetValue(active_in[(in + num_active_in - 1) % num_active_in], 0.0));
-      }
-      if (!impl->is_identity_qf) {
-        // Set Outputs
-        for (CeedInt out = 0; out < num_output_fields; out++) {
-          CeedVector vec;
-          CeedInt    field_size;
+    for (CeedInt i = 0; i < num_input_fields; i++) {
+      CeedInt    field_size;
+      CeedVector vec;
 
-          // Get output vector
-          CeedCallBackend(CeedOperatorFieldGetVector(op_output_fields[out], &vec));
-          // Check if active output
-          if (vec == CEED_VECTOR_ACTIVE) {
-            CeedCallBackend(CeedVectorSetArray(impl->q_vecs_out[out], CEED_MEM_HOST, CEED_USE_POINTER, assembled_array));
-            CeedCallBackend(CeedQFunctionFieldGetSize(qf_output_fields[out], &field_size));
-            assembled_array += field_size * num_points;  // Advance the pointer by the size of the output
-          }
+      // Get input vector
+      CeedCallBackend(CeedOperatorFieldGetVector(op_input_fields[i], &vec));
+      // Check if active input
+      if (vec != CEED_VECTOR_ACTIVE) continue;
+      // Get size of active input
+      CeedCallBackend(CeedQFunctionFieldGetSize(qf_input_fields[i], &field_size));
+      for (CeedInt field = 0; field < field_size; field++) {
+        // Set current portion of input to 1.0
+        {
+          CeedScalar *array;
+
+          CeedCallBackend(CeedVectorGetArray(impl->q_vecs_in[i], CEED_MEM_HOST, &array));
+          for (CeedInt j = 0; j < num_points; j++) array[field * num_points + j] = 1.0;
+          CeedCallBackend(CeedVectorRestoreArray(impl->q_vecs_in[i], &array));
         }
-        // Apply QFunction
-        CeedCallBackend(CeedQFunctionApply(qf, num_points, impl->q_vecs_in, impl->q_vecs_out));
-      } else {
-        const CeedScalar *q_vec_array;
-        CeedInt           field_size;
 
-        // Copy Identity Outputs
-        CeedCallBackend(CeedQFunctionFieldGetSize(qf_output_fields[0], &field_size));
-        CeedCallBackend(CeedVectorGetArrayRead(impl->q_vecs_out[0], CEED_MEM_HOST, &q_vec_array));
-        for (CeedInt i = 0; i < field_size * num_points; i++) assembled_array[i] = q_vec_array[i];
-        CeedCallBackend(CeedVectorRestoreArrayRead(impl->q_vecs_out[0], &q_vec_array));
-        assembled_array += field_size * num_points;
+        if (!impl->is_identity_qf) {
+          // Set Outputs
+          for (CeedInt out = 0; out < num_output_fields; out++) {
+            CeedVector vec;
+            CeedInt    field_size;
+
+            // Get output vector
+            CeedCallBackend(CeedOperatorFieldGetVector(op_output_fields[out], &vec));
+            // Check if active output
+            if (vec == CEED_VECTOR_ACTIVE) {
+              CeedCallBackend(CeedVectorSetArray(impl->q_vecs_out[out], CEED_MEM_HOST, CEED_USE_POINTER, assembled_array));
+              CeedCallBackend(CeedQFunctionFieldGetSize(qf_output_fields[out], &field_size));
+              assembled_array += field_size * num_points;  // Advance the pointer by the size of the output
+            }
+          }
+          // Apply QFunction
+          CeedCallBackend(CeedQFunctionApply(qf, num_points, impl->q_vecs_in, impl->q_vecs_out));
+        } else {
+          const CeedScalar *array;
+          CeedInt           field_size;
+
+          // Copy Identity Outputs
+          CeedCallBackend(CeedQFunctionFieldGetSize(qf_output_fields[0], &field_size));
+          CeedCallBackend(CeedVectorGetArrayRead(impl->q_vecs_out[0], CEED_MEM_HOST, &array));
+          for (CeedInt j = 0; j < field_size * num_points; j++) assembled_array[j] = array[j];
+          CeedCallBackend(CeedVectorRestoreArrayRead(impl->q_vecs_out[0], &array));
+          assembled_array += field_size * num_points;
+        }
+        // Reset input to 0.0
+        {
+          CeedScalar *array;
+
+          CeedCallBackend(CeedVectorGetArray(impl->q_vecs_in[i], CEED_MEM_HOST, &array));
+          for (CeedInt j = 0; j < num_points; j++) array[field * num_points + j] = 0.0;
+          CeedCallBackend(CeedVectorRestoreArray(impl->q_vecs_in[i], &array));
+        }
       }
     }
     num_points_offset += num_points;
@@ -1327,12 +1352,6 @@ static int CeedOperatorDestroy_Ref(CeedOperator op) {
   CeedCallBackend(CeedFree(&impl->e_vecs_out));
   CeedCallBackend(CeedFree(&impl->q_vecs_out));
   CeedCallBackend(CeedVectorDestroy(&impl->point_coords_elem));
-
-  // QFunction assembly
-  for (CeedInt i = 0; i < impl->num_active_in; i++) {
-    CeedCallBackend(CeedVectorDestroy(&impl->qf_active_in[i]));
-  }
-  CeedCallBackend(CeedFree(&impl->qf_active_in));
 
   CeedCallBackend(CeedFree(&impl));
   return CEED_ERROR_SUCCESS;
