@@ -15,7 +15,7 @@
       integer bx,bu
       integer qf_setup,qf_diff,qf_diff_lin
       integer op_setup,op_diff,op_diff_lin
-      integer qdata,x,a,u,v
+      integer qdata,x,a,u,v,v_lin
       integer nelem,p,q,d
       integer row,col,offset
       parameter(nelem=6)
@@ -28,8 +28,8 @@
       parameter(ndofs=(nx*2+1)*(ny*2+1))
       parameter(nqpts=nelem*q*q)
       integer indx(nelem*p*p)
-      real*8 arrx(d*ndofs),vv(ndofs)
-      integer*8 xoffset,voffset
+      real*8 arrx(d*ndofs),uu(ndofs),vv(ndofs),vvlin(ndofs)
+      integer*8 xoffset,uoffset,voffset,vlinoffset
 
       character arg*32
 
@@ -42,13 +42,25 @@
 ! DoF Coordinates
       do i=0,nx*2
         do j=0,ny*2
-          arrx(i+j*(nx*2+1)+0*ndofs+1)=1.d0*i/(2*nx)
-          arrx(i+j*(nx*2+1)+1*ndofs+1)=1.d0*j/(2*ny)
+          arrx(i+j*(nx*2+1)+0*ndofs+1)=1.d0*i/(2*nx)+j*0.5
+          arrx(i+j*(nx*2+1)+1*ndofs+1)=1.d0*j/(2*ny)+i*0.5
         enddo
       enddo
       call ceedvectorcreate(ceed,d*ndofs,x,err)
       xoffset=0
       call ceedvectorsetarray(x,ceed_mem_host,ceed_use_pointer,arrx,xoffset,err)
+
+! Input, output arrays
+      do i=0,nx*2
+        do j=0,ny*2
+          uu(i+j*(nx*2+1)+1)=i*nx+j*ny
+        enddo
+      enddo
+      call ceedvectorcreate(ceed,ndofs,u,err)
+      uoffset=0
+      call ceedvectorsetarray(u,ceed_mem_host,ceed_use_pointer,uu,uoffset,err)
+      call ceedvectorcreate(ceed,ndofs,v,err)
+      call ceedvectorcreate(ceed,ndofs,v_lin,err)
 
 ! Qdata Vector
       call ceedvectorcreate(ceed,nqpts*d*(d+1)/2,qdata,err)
@@ -125,22 +137,7 @@
      & bu,ceed_vector_active,err)
 
 ! Apply original Poisson Operator
-      call ceedvectorcreate(ceed,ndofs,u,err)
-      call ceedvectorsetvalue(u,1.d0,err)
-      call ceedvectorcreate(ceed,ndofs,v,err)
-      call ceedvectorsetvalue(v,0.d0,err)
       call ceedoperatorapply(op_diff,u,v,ceed_request_immediate,err)
-
-! Check Output
-      call ceedvectorgetarrayread(v,ceed_mem_host,vv,voffset,err)
-      do i=1,ndofs
-      if (abs(vv(voffset+i))>1.0d-14) then
-! LCOV_EXCL_START
-        write(*,*) 'Error: Operator computed v[i] = ',vv(voffset+i),' != 0.0'
-! LCOV_EXCL_STOP
-      endif
-      enddo
-      call ceedvectorrestorearrayread(v,vv,voffset,err)
 
 ! Assemble QFunction
       call ceedoperatorlinearassembleqfunction(op_diff,a,erestrictlini,&
@@ -165,20 +162,21 @@
      & bu,ceed_vector_active,err)
 
 ! Apply linearized Poisson Operator
-      call ceedvectorsetvalue(v,0.d0,err)
-      call ceedoperatorapply(op_diff_lin,u,v,ceed_request_immediate,err)
+      call ceedoperatorapply(op_diff_lin,u,v_lin,ceed_request_immediate,err)
 
 ! Check Output
       call ceedvectorgetarrayread(v,ceed_mem_host,vv,voffset,err)
+      call ceedvectorgetarrayread(v_lin,ceed_mem_host,vvlin,vlinoffset,err)
       do i=1,ndofs
-      if (abs(vv(voffset+i))>1.0d-14) then
+      if (abs(vv(voffset+i)-vvlin(vlinoffset+i))>1.0d-14) then
 ! LCOV_EXCL_START
         write(*,*) 'Error: Linearized operator computed v[i] = ',vv(voffset+i),&
-     &   ' != 0.0'
+     &   ' != ',vvlin(vlinoffset+i)
 ! LCOV_EXCL_STOP
       endif
       enddo
       call ceedvectorrestorearrayread(v,vv,voffset,err)
+      call ceedvectorrestorearrayread(v_lin,vvlin,vlinoffset,err)
 
 ! Cleanup
       call ceedqfunctiondestroy(qf_setup,err)
@@ -198,6 +196,7 @@
       call ceedvectordestroy(a,err)
       call ceedvectordestroy(u,err)
       call ceedvectordestroy(v,err)
+      call ceedvectordestroy(v_lin,err)
       call ceedvectordestroy(qdata,err)
       call ceeddestroy(ceed,err)
       end
