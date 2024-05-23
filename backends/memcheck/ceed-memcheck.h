@@ -17,6 +17,7 @@ typedef struct {
   CeedScalar *array_owned;
   CeedScalar *array_borrowed;
   CeedScalar *array_read_only_copy;
+  CeedScalar *array_writable_copy;
 } CeedVector_Memcheck;
 
 typedef struct {
