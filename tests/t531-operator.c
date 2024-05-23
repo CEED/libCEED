@@ -14,7 +14,7 @@ int main(int argc, char **argv) {
   CeedBasis           basis_x, basis_u;
   CeedQFunction       qf_setup, qf_diff, qf_diff_assembled;
   CeedOperator        op_setup, op_diff, op_diff_assembled;
-  CeedVector          q_data, x, assembled = NULL, u, v;
+  CeedVector          q_data, x, assembled = NULL, u, v, v_assembled;
   CeedInt             num_elem = 6, p = 3, q = 4, dim = 2;
   CeedInt             nx = 3, ny = 2;
   CeedInt             num_dofs = (nx * 2 + 1) * (ny * 2 + 1), num_qpts = num_elem * q * q;
@@ -29,14 +29,26 @@ int main(int argc, char **argv) {
 
     for (CeedInt i = 0; i < nx * 2 + 1; i++) {
       for (CeedInt j = 0; j < ny * 2 + 1; j++) {
-        x_array[i + j * (nx * 2 + 1) + 0 * num_dofs] = (CeedScalar)i / (2 * nx);
-        x_array[i + j * (nx * 2 + 1) + 1 * num_dofs] = (CeedScalar)j / (2 * ny);
+        x_array[i + j * (nx * 2 + 1) + 0 * num_dofs] = (CeedScalar)i / (2 * nx) + 0.5 * j;
+        x_array[i + j * (nx * 2 + 1) + 1 * num_dofs] = (CeedScalar)j / (2 * ny) + 0.5 * i;
       }
     }
     CeedVectorSetArray(x, CEED_MEM_HOST, CEED_COPY_VALUES, x_array);
   }
   CeedVectorCreate(ceed, num_dofs, &u);
+  {
+    CeedScalar *u_array;
+
+    CeedVectorGetArrayWrite(u, CEED_MEM_HOST, &u_array);
+    for (CeedInt i = 0; i < nx * 2 + 1; i++) {
+      for (CeedInt j = 0; j < ny * 2 + 1; j++) {
+        u_array[i + j * (nx * 2 + 1)] = i * nx + j * ny;
+      }
+    }
+    CeedVectorRestoreArray(u, &u_array);
+  }
   CeedVectorCreate(ceed, num_dofs, &v);
+  CeedVectorCreate(ceed, num_dofs, &v_assembled);
   CeedVectorCreate(ceed, num_qpts * dim * (dim + 1) / 2, &q_data);
 
   // Restrictions
@@ -88,19 +100,7 @@ int main(int argc, char **argv) {
   CeedOperatorSetField(op_diff, "dv", elem_restriction_u, basis_u, CEED_VECTOR_ACTIVE);
 
   // Apply original Poisson Operator
-  CeedVectorSetValue(u, 1.0);
   CeedOperatorApply(op_diff, u, v, CEED_REQUEST_IMMEDIATE);
-
-  // Check output
-  {
-    const CeedScalar *v_array;
-
-    CeedVectorGetArrayRead(v, CEED_MEM_HOST, &v_array);
-    for (CeedInt i = 0; i < num_dofs; i++) {
-      if (fabs(v_array[i]) > 100. * CEED_EPSILON) printf("Error: Operator computed v[%" CeedInt_FMT "] = %f != 0.0\n", i, v_array[i]);
-    }
-    CeedVectorRestoreArrayRead(v, &v_array);
-  }
 
   // Assemble QFunction
   CeedOperatorSetQFunctionAssemblyReuse(op_diff, true);
@@ -122,18 +122,20 @@ int main(int argc, char **argv) {
   CeedOperatorSetField(op_diff_assembled, "dv", elem_restriction_u, basis_u, CEED_VECTOR_ACTIVE);
 
   // Apply new Poisson Operator
-  CeedVectorSetValue(v, 0.0);
-  CeedOperatorApply(op_diff_assembled, u, v, CEED_REQUEST_IMMEDIATE);
+  CeedOperatorApply(op_diff_assembled, u, v_assembled, CEED_REQUEST_IMMEDIATE);
 
   // Check output
   {
-    const CeedScalar *v_array;
+    const CeedScalar *v_array, *v_assembled_array;
 
     CeedVectorGetArrayRead(v, CEED_MEM_HOST, &v_array);
+    CeedVectorGetArrayRead(v_assembled, CEED_MEM_HOST, &v_assembled_array);
     for (CeedInt i = 0; i < num_dofs; i++) {
-      if (fabs(v_array[i]) > 100. * CEED_EPSILON) printf("Error: Linearized operator computed v[i] = %f != 0.0\n", v_array[i]);
+      if (fabs(v_array[i] - v_assembled_array[i]) > 100. * CEED_EPSILON)
+        printf("Error: Linearized operator computed v[i] = %f != %f\n", v_assembled_array[i], v_array[i]);
     }
     CeedVectorRestoreArrayRead(v, &v_array);
+    CeedVectorRestoreArrayRead(v_assembled, &v_assembled_array);
   }
 
   // Cleanup
@@ -142,6 +144,7 @@ int main(int argc, char **argv) {
   CeedVectorDestroy(&q_data);
   CeedVectorDestroy(&u);
   CeedVectorDestroy(&v);
+  CeedVectorDestroy(&v_assembled);
   CeedElemRestrictionDestroy(&elem_restriction_u);
   CeedElemRestrictionDestroy(&elem_restriction_x);
   CeedElemRestrictionDestroy(&elem_restriction_q_data);

@@ -28,8 +28,8 @@ CEED_QFUNCTION(setup)(void *ctx, const CeedInt Q, const CeedScalar *const *in, C
     const CeedScalar J22 = J[i + Q * 3];
     const CeedScalar w   = qw[i] / (J11 * J22 - J21 * J12);
     qd[i + Q * 0]        = w * (J12 * J12 + J22 * J22);
-    qd[i + Q * 2]        = w * (J11 * J11 + J21 * J21);
-    qd[i + Q * 1]        = -w * (J11 * J12 + J21 * J22);
+    qd[i + Q * 1]        = w * (J11 * J11 + J21 * J21);
+    qd[i + Q * 2]        = -w * (J11 * J12 + J21 * J22);
   }
 
   return 0;
@@ -50,7 +50,6 @@ CEED_QFUNCTION(diff)(void *ctx, const CeedInt Q, const CeedScalar *const *in, Ce
     dv[i + Q * 0]        = qd[i + Q * 0] * du0 + qd[i + Q * 2] * du1;
     dv[i + Q * 1]        = qd[i + Q * 2] * du0 + qd[i + Q * 1] * du1;
   }
-
   return 0;
 }
 
