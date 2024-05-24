@@ -96,9 +96,13 @@ noether-cpu:
 # Libraries for examples
 # -- PETSc with HIP (minimal)
     - export PETSC_DIR=/projects/petsc PETSC_ARCH=mpich-hip-int64 && git -C $PETSC_DIR -c safe.directory=$PETSC_DIR describe
-    - source /home/phypid/SmartSimTestingSoftware/bin/activate && export SMARTREDIS_DIR=/home/phypid/SmartSimTestingSoftware/smartredis/install
+    - source /home/phypid/spack/share/spack/setup-env.sh && spack load py-torch@2.3+cuda && export USE_TORCH=1
+    - export SMARTREDIS_DIR=/home/phypid/SmartSimTestingSoftware/smartredis/install
     - echo "-------------- PETSc ---------------" && make -C $PETSC_DIR info
-    - make -k -j$((NPROC_CPU / NPROC_POOL)) BACKENDS="$BACKENDS_CPU" JUNIT_BATCH="cpu" junit search="petsc fluids solids"
+    - make -k -j$((NPROC_CPU / NPROC_POOL)) BACKENDS="$BACKENDS_CPU" JUNIT_BATCH="cpu" junit search="petsc fluids-navierstokes solids"
+    - spack unload py-torch@2.3+cuda
+    - source /home/phypid/SmartSimTestingSoftware/bin/activate
+    - make -k -j$((NPROC_CPU / NPROC_POOL)) BACKENDS="$BACKENDS_CPU" JUNIT_BATCH="cpu" junit search="fluids-py-smartsim_regression_framework"
 # -- MFEM v4.6
     - cd .. && export MFEM_VERSION=mfem-4.6 && { [[ -d $MFEM_VERSION ]] || { git clone --depth 1 --branch v4.6 https://github.com/mfem/mfem.git $MFEM_VERSION && make -C $MFEM_VERSION -j$(nproc) serial CXXFLAGS="-O -std=c++11"; }; } && export MFEM_DIR=$PWD/$MFEM_VERSION && cd libCEED
     - echo "-------------- MFEM ----------------" && make -C $MFEM_DIR info
@@ -196,9 +200,13 @@ noether-cuda:
 # Libraries for examples
 # -- PETSc with CUDA (minimal)
     - export PETSC_DIR=/projects/petsc PETSC_ARCH=mpich-cuda-O PETSC_OPTIONS='-use_gpu_aware_mpi 0' && git -C $PETSC_DIR -c safe.directory=$PETSC_DIR describe
-    - source /home/phypid/SmartSimTestingSoftware/bin/activate && export SMARTREDIS_DIR=/home/phypid/SmartSimTestingSoftware/smartredis/install
+    - source /home/phypid/spack/share/spack/setup-env.sh && spack load py-torch@2.3+cuda && export USE_TORCH=1
+    - export SMARTREDIS_DIR=/home/phypid/SmartSimTestingSoftware/smartredis/install
     - echo "-------------- PETSc ---------------" && make -C $PETSC_DIR info
-    - make -k -j$((NPROC_GPU / NPROC_POOL)) JUNIT_BATCH="cuda" junit BACKENDS="$BACKENDS_GPU" search="petsc fluids solids"
+    - make -k -j$((NPROC_GPU / NPROC_POOL)) JUNIT_BATCH="cuda" junit BACKENDS="$BACKENDS_GPU" search="petsc fluids-navierstokes solids"
+    - spack unload py-torch@2.3+cuda
+    - source /home/phypid/SmartSimTestingSoftware/bin/activate
+    - make -k -j$((NPROC_CPU / NPROC_POOL)) BACKENDS="$BACKENDS_CPU" JUNIT_BATCH="cpu" junit search="fluids-py-smartsim_regression_framework"
 # Clang-tidy
     - echo "-------------- clang-tidy ----------" && clang-tidy --version
     - TIDY_OPTS="-fix-errors" make -j$NPROC_CPU tidy && git diff --color=always --exit-code

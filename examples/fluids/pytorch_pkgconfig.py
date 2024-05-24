@@ -5,6 +5,8 @@ import torch.utils as tutils
 import re
 
 build_dir = Path('./build')
+if not build_dir.is_dir():
+    build_dir.mkdir()
 pkgconfig_path = build_dir / 'libtorch.pc'
 
 variables = {}
