@@ -12,11 +12,6 @@
 #include <stdint.h>
 
 typedef struct {
-  CeedScalar *collo_grad_1d;
-  bool        has_collo_interp;
-} CeedBasis_Ref;
-
-typedef struct {
   CeedScalar *array;
   CeedScalar *array_borrowed;
   CeedScalar *array_owned;
@@ -35,6 +30,11 @@ typedef struct {
   int (*Apply)(CeedElemRestriction, CeedInt, CeedInt, CeedInt, CeedInt, CeedInt, CeedTransposeMode, bool, bool, CeedVector, CeedVector,
                CeedRequest *);
 } CeedElemRestriction_Ref;
+
+typedef struct {
+  CeedScalar *collo_grad_1d;
+  bool        has_collo_interp;
+} CeedBasis_Ref;
 
 typedef struct {
   const CeedScalar **inputs;
@@ -56,8 +56,8 @@ typedef struct {
   CeedVector *q_vecs_in;    /* Single element input Q-vectors  */
   CeedVector *q_vecs_out;   /* Single element output Q-vectors */
   CeedInt     num_inputs, num_outputs;
-  CeedInt     num_active_in, num_active_out;
-  CeedVector *qf_active_in, point_coords_elem;
+  CeedInt     qf_size_in, qf_size_out;
+  CeedVector  point_coords_elem;
 } CeedOperator_Ref;
 
 CEED_INTERN int CeedVectorCreate_Ref(CeedSize n, CeedVector vec);

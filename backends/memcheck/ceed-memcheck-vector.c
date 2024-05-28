@@ -102,13 +102,17 @@ static int CeedVectorTakeArray_Memcheck(CeedVector vec, CeedMemType mem_type, Ce
 // Vector Get Array
 //------------------------------------------------------------------------------
 static int CeedVectorGetArray_Memcheck(CeedVector vec, CeedMemType mem_type, CeedScalar **array) {
+  CeedSize             length;
   CeedVector_Memcheck *impl;
 
   CeedCallBackend(CeedVectorGetData(vec, &impl));
+  CeedCallBackend(CeedVectorGetLength(vec, &length));
 
   CeedCheck(mem_type == CEED_MEM_HOST, CeedVectorReturnCeed(vec), CEED_ERROR_BACKEND, "Can only provide HOST memory for this backend");
 
-  *array = impl->array;
+  CeedCallBackend(CeedCalloc(length, &impl->array_writable_copy));
+  memcpy(impl->array_writable_copy, impl->array, length * sizeof((impl->array)[0]));
+  *array = impl->array_writable_copy;
   return CEED_ERROR_SUCCESS;
 }
 
@@ -122,9 +126,10 @@ static int CeedVectorGetArrayRead_Memcheck(CeedVector vec, CeedMemType mem_type,
   CeedCallBackend(CeedVectorGetData(vec, &impl));
   CeedCallBackend(CeedVectorGetLength(vec, &length));
 
-  CeedCallBackend(CeedVectorGetArray_Memcheck(vec, mem_type, (CeedScalar **)array));
+  CeedCheck(mem_type == CEED_MEM_HOST, CeedVectorReturnCeed(vec), CEED_ERROR_BACKEND, "Can only provide HOST memory for this backend");
 
   // Make copy to verify no write occurred
+  *array = impl->array;
   if (!impl->array_read_only_copy) {
     CeedCallBackend(CeedCalloc(length, &impl->array_read_only_copy));
     memcpy(impl->array_read_only_copy, *array, length * sizeof((*array)[0]));
@@ -162,6 +167,8 @@ static int CeedVectorRestoreArray_Memcheck(CeedVector vec) {
   CeedCallBackend(CeedVectorGetLength(vec, &length));
   CeedCallBackend(CeedVectorGetCeed(vec, &ceed));
 
+  memcpy(impl->array, impl->array_writable_copy, length * sizeof((impl->array)[0]));
+  CeedCallBackend(CeedFree(&impl->array_writable_copy));
   if (impl->is_write_only_access) {
     for (CeedSize i = 0; i < length; i++) {
       if (isnan(impl->array[i]))

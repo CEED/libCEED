@@ -441,8 +441,7 @@ static inline int CeedOperatorLinearAssembleQFunctionCore_Opt(CeedOperator op, b
                                                               CeedRequest *request) {
   Ceed                ceed;
   Ceed_Opt           *ceed_impl;
-  CeedSize            q_size;
-  CeedInt             Q, num_input_fields, num_output_fields, num_elem, size;
+  CeedInt             qf_size_in, qf_size_out, Q, num_input_fields, num_output_fields, num_elem;
   CeedScalar         *l_vec_array, *e_data[2 * CEED_FIELD_MAX] = {0};
   CeedQFunctionField *qf_input_fields, *qf_output_fields;
   CeedQFunction       qf;
@@ -452,16 +451,17 @@ static inline int CeedOperatorLinearAssembleQFunctionCore_Opt(CeedOperator op, b
   CeedCallBackend(CeedOperatorGetCeed(op, &ceed));
   CeedCallBackend(CeedGetData(ceed, &ceed_impl));
   CeedCallBackend(CeedOperatorGetData(op, &impl));
+  qf_size_in  = impl->qf_size_in;
+  qf_size_out = impl->qf_size_out;
+
   CeedCallBackend(CeedOperatorGetNumElements(op, &num_elem));
   CeedCallBackend(CeedOperatorGetNumQuadraturePoints(op, &Q));
   CeedCallBackend(CeedOperatorGetQFunction(op, &qf));
   CeedCallBackend(CeedOperatorGetFields(op, &num_input_fields, &op_input_fields, &num_output_fields, &op_output_fields));
   CeedCallBackend(CeedQFunctionGetFields(qf, NULL, &qf_input_fields, NULL, &qf_output_fields));
-  const CeedInt       block_size    = ceed_impl->block_size;
-  const CeedInt       num_blocks    = (num_elem / block_size) + !!(num_elem % block_size);
-  CeedInt             num_active_in = impl->num_active_in, num_active_out = impl->num_active_out;
+  const CeedInt       block_size = ceed_impl->block_size;
+  const CeedInt       num_blocks = (num_elem / block_size) + !!(num_elem % block_size);
   CeedVector          l_vec      = impl->qf_l_vec;
-  CeedVector         *active_in  = impl->qf_active_in;
   CeedElemRestriction block_rstr = impl->qf_block_rstr;
 
   // Setup
@@ -474,55 +474,45 @@ static inline int CeedOperatorLinearAssembleQFunctionCore_Opt(CeedOperator op, b
   CeedCallBackend(CeedOperatorSetupInputs_Opt(num_input_fields, qf_input_fields, op_input_fields, NULL, e_data, impl, request));
 
   // Count number of active input fields
-  if (!num_active_in) {
+  if (qf_size_in == 0) {
     for (CeedInt i = 0; i < num_input_fields; i++) {
-      CeedScalar *q_vec_array;
-      CeedVector  vec;
+      CeedInt    field_size;
+      CeedVector vec;
 
       // Get input vector
       CeedCallBackend(CeedOperatorFieldGetVector(op_input_fields[i], &vec));
       // Check if active input
       if (vec == CEED_VECTOR_ACTIVE) {
-        CeedCallBackend(CeedQFunctionFieldGetSize(qf_input_fields[i], &size));
+        CeedCallBackend(CeedQFunctionFieldGetSize(qf_input_fields[i], &field_size));
         CeedCallBackend(CeedVectorSetValue(impl->q_vecs_in[i], 0.0));
-        CeedCallBackend(CeedVectorGetArray(impl->q_vecs_in[i], CEED_MEM_HOST, &q_vec_array));
-        CeedCallBackend(CeedRealloc(num_active_in + size, &active_in));
-        for (CeedInt field = 0; field < size; field++) {
-          q_size = (CeedSize)Q * block_size;
-          CeedCallBackend(CeedVectorCreate(ceed, q_size, &active_in[num_active_in + field]));
-          CeedCallBackend(
-              CeedVectorSetArray(active_in[num_active_in + field], CEED_MEM_HOST, CEED_USE_POINTER, &q_vec_array[field * Q * block_size]));
-        }
-        num_active_in += size;
-        CeedCallBackend(CeedVectorRestoreArray(impl->q_vecs_in[i], &q_vec_array));
+        qf_size_in += field_size;
       }
     }
-    impl->num_active_in = num_active_in;
-    impl->qf_active_in  = active_in;
+    CeedCheck(qf_size_in > 0, ceed, CEED_ERROR_BACKEND, "Cannot assemble QFunction without active inputs and outputs");
+    impl->qf_size_in = qf_size_in;
   }
 
   // Count number of active output fields
-  if (!num_active_out) {
+  if (qf_size_out == 0) {
     for (CeedInt i = 0; i < num_output_fields; i++) {
+      CeedInt    field_size;
       CeedVector vec;
 
       // Get output vector
       CeedCallBackend(CeedOperatorFieldGetVector(op_output_fields[i], &vec));
       // Check if active output
       if (vec == CEED_VECTOR_ACTIVE) {
-        CeedCallBackend(CeedQFunctionFieldGetSize(qf_output_fields[i], &size));
-        num_active_out += size;
+        CeedCallBackend(CeedQFunctionFieldGetSize(qf_output_fields[i], &field_size));
+        qf_size_out += field_size;
       }
     }
-    impl->num_active_out = num_active_out;
+    CeedCheck(qf_size_out > 0, ceed, CEED_ERROR_BACKEND, "Cannot assemble QFunction without active inputs and outputs");
+    impl->qf_size_out = qf_size_out;
   }
-
-  // Check sizes
-  CeedCheck(num_active_in > 0 && num_active_out > 0, ceed, CEED_ERROR_BACKEND, "Cannot assemble QFunction without active inputs and outputs");
 
   // Setup l_vec
   if (!l_vec) {
-    const CeedSize l_size = (CeedSize)block_size * Q * num_active_in * num_active_out;
+    const CeedSize l_size = (CeedSize)block_size * Q * qf_size_in * qf_size_out;
 
     CeedCallBackend(CeedVectorCreate(ceed, l_size, &l_vec));
     CeedCallBackend(CeedVectorSetValue(l_vec, 0.0));
@@ -531,21 +521,21 @@ static inline int CeedOperatorLinearAssembleQFunctionCore_Opt(CeedOperator op, b
 
   // Output blocked restriction
   if (!block_rstr) {
-    CeedInt strides[3] = {1, Q, num_active_in * num_active_out * Q};
+    CeedInt strides[3] = {1, Q, qf_size_in * qf_size_out * Q};
 
-    CeedCallBackend(CeedElemRestrictionCreateBlockedStrided(ceed, num_elem, Q, block_size, num_active_in * num_active_out,
-                                                            num_active_in * num_active_out * num_elem * Q, strides, &block_rstr));
+    CeedCallBackend(CeedElemRestrictionCreateBlockedStrided(ceed, num_elem, Q, block_size, qf_size_in * qf_size_out,
+                                                            qf_size_in * qf_size_out * num_elem * Q, strides, &block_rstr));
     impl->qf_block_rstr = block_rstr;
   }
 
   // Build objects if needed
   if (build_objects) {
-    const CeedSize l_size     = (CeedSize)num_elem * Q * num_active_in * num_active_out;
-    CeedInt        strides[3] = {1, Q, num_active_in * num_active_out * Q};
+    const CeedSize l_size     = (CeedSize)num_elem * Q * qf_size_in * qf_size_out;
+    CeedInt        strides[3] = {1, Q, qf_size_in * qf_size_out * Q};
 
     // Create output restriction
-    CeedCallBackend(CeedElemRestrictionCreateStrided(ceed, num_elem, Q, num_active_in * num_active_out, num_active_in * num_active_out * num_elem * Q,
-                                                     strides, rstr));
+    CeedCallBackend(
+        CeedElemRestrictionCreateStrided(ceed, num_elem, Q, qf_size_in * qf_size_out, qf_size_in * qf_size_out * num_elem * Q, strides, rstr));
     // Create assembled vector
     CeedCallBackend(CeedVectorCreate(ceed, l_size, assembled));
   }
@@ -560,41 +550,66 @@ static inline int CeedOperatorLinearAssembleQFunctionCore_Opt(CeedOperator op, b
         CeedOperatorInputBasis_Opt(e, Q, qf_input_fields, op_input_fields, num_input_fields, block_size, NULL, true, e_data, impl, request));
 
     // Assemble QFunction
-    for (CeedInt in = 0; in < num_active_in; in++) {
-      // Set Inputs
-      CeedCallBackend(CeedVectorSetValue(active_in[in], 1.0));
-      if (num_active_in > 1) {
-        CeedCallBackend(CeedVectorSetValue(active_in[(in + num_active_in - 1) % num_active_in], 0.0));
-      }
-      if (!impl->is_identity_qf) {
-        // Set Outputs
-        for (CeedInt out = 0; out < num_output_fields; out++) {
-          CeedVector vec;
+    for (CeedInt i = 0; i < num_input_fields; i++) {
+      CeedInt    field_size;
+      CeedVector vec;
 
-          // Get output vector
-          CeedCallBackend(CeedOperatorFieldGetVector(op_output_fields[out], &vec));
-          // Check if active output
-          if (vec == CEED_VECTOR_ACTIVE) {
-            CeedCallBackend(CeedVectorSetArray(impl->q_vecs_out[out], CEED_MEM_HOST, CEED_USE_POINTER, l_vec_array));
-            CeedCallBackend(CeedQFunctionFieldGetSize(qf_output_fields[out], &size));
-            l_vec_array += size * Q * block_size;  // Advance the pointer by the size of the output
-          }
+      // Get input vector
+      CeedCallBackend(CeedOperatorFieldGetVector(op_input_fields[i], &vec));
+      // Check if active input
+      if (vec != CEED_VECTOR_ACTIVE) continue;
+      CeedCallBackend(CeedQFunctionFieldGetSize(qf_input_fields[i], &field_size));
+      for (CeedInt field = 0; field < field_size; field++) {
+        // Set current portion of input to 1.0
+        {
+          CeedScalar *array;
+
+          CeedCallBackend(CeedVectorGetArray(impl->q_vecs_in[i], CEED_MEM_HOST, &array));
+          for (CeedInt j = 0; j < Q * block_size; j++) array[field * Q * block_size + j] = 1.0;
+          CeedCallBackend(CeedVectorRestoreArray(impl->q_vecs_in[i], &array));
         }
-        // Apply QFunction
-        CeedCallBackend(CeedQFunctionApply(qf, Q * block_size, impl->q_vecs_in, impl->q_vecs_out));
-      } else {
-        const CeedScalar *q_vec_array;
 
-        // Copy Identity Outputs
-        CeedCallBackend(CeedQFunctionFieldGetSize(qf_output_fields[0], &size));
-        CeedCallBackend(CeedVectorGetArrayRead(impl->q_vecs_out[0], CEED_MEM_HOST, &q_vec_array));
-        for (CeedInt i = 0; i < size * Q * block_size; i++) l_vec_array[i] = q_vec_array[i];
-        CeedCallBackend(CeedVectorRestoreArrayRead(impl->q_vecs_out[0], &q_vec_array));
-        l_vec_array += size * Q * block_size;
+        if (!impl->is_identity_qf) {
+          // Set Outputs
+          for (CeedInt out = 0; out < num_output_fields; out++) {
+            CeedVector vec;
+
+            // Get output vector
+            CeedCallBackend(CeedOperatorFieldGetVector(op_output_fields[out], &vec));
+            // Check if active output
+            if (vec == CEED_VECTOR_ACTIVE) {
+              CeedInt field_size;
+
+              CeedCallBackend(CeedVectorSetArray(impl->q_vecs_out[out], CEED_MEM_HOST, CEED_USE_POINTER, l_vec_array));
+              CeedCallBackend(CeedQFunctionFieldGetSize(qf_output_fields[out], &field_size));
+              l_vec_array += field_size * Q * block_size;  // Advance the pointer by the size of the output
+            }
+          }
+          // Apply QFunction
+          CeedCallBackend(CeedQFunctionApply(qf, Q * block_size, impl->q_vecs_in, impl->q_vecs_out));
+        } else {
+          CeedInt           field_size;
+          const CeedScalar *array;
+
+          // Copy Identity Outputs
+          CeedCallBackend(CeedQFunctionFieldGetSize(qf_output_fields[0], &field_size));
+          CeedCallBackend(CeedVectorGetArrayRead(impl->q_vecs_out[0], CEED_MEM_HOST, &array));
+          for (CeedInt j = 0; j < field_size * Q * block_size; j++) l_vec_array[j] = array[j];
+          CeedCallBackend(CeedVectorRestoreArrayRead(impl->q_vecs_out[0], &array));
+          l_vec_array += field_size * Q * block_size;
+        }
+        // Reset input to 0.0
+        {
+          CeedScalar *array;
+
+          CeedCallBackend(CeedVectorGetArray(impl->q_vecs_in[i], CEED_MEM_HOST, &array));
+          for (CeedInt j = 0; j < Q * block_size; j++) array[field * Q * block_size + j] = 0.0;
+          CeedCallBackend(CeedVectorRestoreArray(impl->q_vecs_in[i], &array));
+        }
       }
     }
 
-    // Assemble QFunction
+    // Un-set output Qvecs to prevent accidental overwrite of Assembled
     if (!impl->is_identity_qf) {
       for (CeedInt out = 0; out < num_output_fields; out++) {
         CeedVector vec;
@@ -613,7 +628,7 @@ static inline int CeedOperatorLinearAssembleQFunctionCore_Opt(CeedOperator op, b
     CeedCallBackend(CeedElemRestrictionApplyBlock(block_rstr, e / block_size, CEED_TRANSPOSE, l_vec, *assembled, request));
   }
 
-  // Un-set output Qvecs to prevent accidental overwrite of Assembled
+  // Reset output Qvecs
   for (CeedInt out = 0; out < num_output_fields; out++) {
     CeedVector vec;
 
@@ -672,10 +687,6 @@ static int CeedOperatorDestroy_Opt(CeedOperator op) {
   CeedCallBackend(CeedFree(&impl->q_vecs_out));
 
   // QFunction assembly data
-  for (CeedInt i = 0; i < impl->num_active_in; i++) {
-    CeedCallBackend(CeedVectorDestroy(&impl->qf_active_in[i]));
-  }
-  CeedCallBackend(CeedFree(&impl->qf_active_in));
   CeedCallBackend(CeedVectorDestroy(&impl->qf_l_vec));
   CeedCallBackend(CeedElemRestrictionDestroy(&impl->qf_block_rstr));
 
