@@ -33,7 +33,7 @@ outflow:
 freestream:
   velocity: 1,0,0
 # Small gravity vector to break symmetry so shedding can start
-g: 0,-.01,0
+gravity: 0,-.01,0
 
 # viscosity corresponds to Reynolds number 100
 mu: 0.01
@@ -44,11 +44,11 @@ degree: 3
 dm_plex_filename: examples/fluids/meshes/cylinder-q1-n08.msh
 
 # Boundary Settings
-bc_slip_z: 6
+bc_symmetry_z: 6
 bc_wall: 5
 bc_freestream: 1
 bc_outflow: 2
-bc_slip_y: 3,4
+bc_symmetry_y: 3,4
 wall_comps: 1,2,3
 
 # Primitive variables are preferred at low Mach number
