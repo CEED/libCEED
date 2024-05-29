@@ -13,7 +13,7 @@ __constant__ CeedScalar c_B[sizeMax*sizeMax];
 __constant__ CeedScalar c_G[sizeMax*sizeMax];
 
 //------------------------------------------------------------------------------
-// Interp device initalization
+// Interp device initialization
 //------------------------------------------------------------------------------
 extern "C" int CeedInit_CudaInterp(CeedScalar *d_B, CeedInt P_1d, CeedInt Q_1d,
                                   CeedScalar **c_B_ptr) {
@@ -25,7 +25,7 @@ extern "C" int CeedInit_CudaInterp(CeedScalar *d_B, CeedInt P_1d, CeedInt Q_1d,
 }
 
 //------------------------------------------------------------------------------
-// Grad device initalization
+// Grad device initialization
 //------------------------------------------------------------------------------
 extern "C" int CeedInit_CudaGrad(CeedScalar *d_B, CeedScalar *d_G,
     CeedInt P_1d, CeedInt Q_1d, CeedScalar **c_B_ptr, CeedScalar **c_G_ptr) {
@@ -39,7 +39,7 @@ extern "C" int CeedInit_CudaGrad(CeedScalar *d_B, CeedScalar *d_G,
 }
 
 //------------------------------------------------------------------------------
-// Collocated grad device initalization
+// Collocated grad device initialization
 //------------------------------------------------------------------------------
 extern "C" int CeedInit_CudaCollocatedGrad(CeedScalar *d_B, CeedScalar *d_G,
     CeedInt P_1d, CeedInt Q_1d, CeedScalar **c_B_ptr, CeedScalar **c_G_ptr) {
