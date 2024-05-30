@@ -84,6 +84,124 @@ int CeedBasisApply_Cuda(CeedBasis basis, const CeedInt num_elem, CeedTransposeMo
 }
 
 //------------------------------------------------------------------------------
+// Basis apply - tensor AtPoints
+//------------------------------------------------------------------------------
+int CeedBasisApplyAtPoints_Cuda(CeedBasis basis, const CeedInt num_elem, const CeedInt *num_points, CeedTransposeMode t_mode, CeedEvalMode eval_mode,
+                                CeedVector x_ref, CeedVector u, CeedVector v) {
+  Ceed              ceed;
+  CeedInt           Q_1d, dim, max_num_points = num_points[0];
+  const CeedInt     is_transpose   = t_mode == CEED_TRANSPOSE;
+  const int         max_block_size = 32;
+  const CeedScalar *d_x, *d_u;
+  CeedScalar       *d_v;
+  CeedBasis_Cuda   *data;
+
+  CeedCallBackend(CeedBasisGetCeed(basis, &ceed));
+  CeedCallBackend(CeedBasisGetData(basis, &data));
+  CeedCallBackend(CeedBasisGetNumQuadraturePoints1D(basis, &Q_1d));
+  CeedCallBackend(CeedBasisGetDimension(basis, &dim));
+
+  // Check uniform number of points per elem
+  for (CeedInt i = 1; i < num_elem; i++) {
+    CeedCheck(max_num_points == num_points[i], ceed, CEED_ERROR_BACKEND,
+              "BasisApplyAtPoints only supported for the same number of points in each element");
+  }
+
+  // Weight handled separately
+  if (eval_mode == CEED_EVAL_WEIGHT) {
+    CeedCall(CeedVectorSetValue(v, 1.0));
+    return CEED_ERROR_SUCCESS;
+  }
+
+  // Build kernels if needed
+  if (data->num_points != max_num_points) {
+    CeedInt P_1d;
+
+    CeedCallBackend(CeedBasisGetNumNodes1D(basis, &P_1d));
+    data->num_points = max_num_points;
+
+    // -- Create interp matrix to Chebyshev coefficients
+    if (!data->d_chebyshev_interp_1d) {
+      CeedSize    interp_bytes;
+      CeedScalar *chebyshev_interp_1d;
+
+      interp_bytes = P_1d * Q_1d * sizeof(CeedScalar);
+      CeedCallBackend(CeedCalloc(P_1d * Q_1d, &chebyshev_interp_1d));
+      CeedCall(CeedBasisGetChebyshevInterp1D(basis, chebyshev_interp_1d));
+      CeedCallCuda(ceed, cudaMalloc((void **)&data->d_chebyshev_interp_1d, interp_bytes));
+      CeedCallCuda(ceed, cudaMemcpy(data->d_chebyshev_interp_1d, chebyshev_interp_1d, interp_bytes, cudaMemcpyHostToDevice));
+      CeedCallBackend(CeedFree(&chebyshev_interp_1d));
+    }
+
+    // -- Compile kernels
+    char       *basis_kernel_source;
+    const char *basis_kernel_path;
+    CeedInt     num_comp;
+
+    if (data->moduleAtPoints) CeedCallCuda(ceed, cuModuleUnload(data->moduleAtPoints));
+    CeedCallBackend(CeedBasisGetNumComponents(basis, &num_comp));
+    CeedCallBackend(CeedGetJitAbsolutePath(ceed, "ceed/jit-source/cuda/cuda-ref-basis-tensor-at-points.h", &basis_kernel_path));
+    CeedDebug256(ceed, CEED_DEBUG_COLOR_SUCCESS, "----- Loading Basis Kernel Source -----\n");
+    CeedCallBackend(CeedLoadSourceToBuffer(ceed, basis_kernel_path, &basis_kernel_source));
+    CeedDebug256(ceed, CEED_DEBUG_COLOR_SUCCESS, "----- Loading Basis Kernel Source Complete! -----\n");
+    CeedCallBackend(CeedCompile_Cuda(ceed, basis_kernel_source, &data->moduleAtPoints, 9, "BASIS_Q_1D", Q_1d, "BASIS_P_1D", P_1d, "BASIS_BUF_LEN",
+                                     num_comp * CeedIntPow(Q_1d > P_1d ? Q_1d : P_1d, dim), "BASIS_DIM", dim, "BASIS_NUM_COMP", num_comp,
+                                     "BASIS_NUM_NODES", CeedIntPow(P_1d, dim), "BASIS_NUM_QPTS", CeedIntPow(Q_1d, dim), "BASIS_NUM_PTS",
+                                     max_num_points, "POINTS_BUFF_LEN",
+                                     max_num_points * CeedIntPow(Q_1d > max_num_points ? Q_1d : max_num_points, dim - 1)));
+    CeedCallBackend(CeedGetKernel_Cuda(ceed, data->moduleAtPoints, "InterpAtPoints", &data->InterpAtPoints));
+    CeedCallBackend(CeedGetKernel_Cuda(ceed, data->moduleAtPoints, "GradAtPoints", &data->GradAtPoints));
+    CeedCallBackend(CeedFree(&basis_kernel_path));
+    CeedCallBackend(CeedFree(&basis_kernel_source));
+  }
+
+  // Get read/write access to u, v
+  CeedCallBackend(CeedVectorGetArrayRead(x_ref, CEED_MEM_DEVICE, &d_x));
+  if (u != CEED_VECTOR_NONE) CeedCallBackend(CeedVectorGetArrayRead(u, CEED_MEM_DEVICE, &d_u));
+  else CeedCheck(eval_mode == CEED_EVAL_WEIGHT, ceed, CEED_ERROR_BACKEND, "An input vector is required for this CeedEvalMode");
+  CeedCallBackend(CeedVectorGetArrayWrite(v, CEED_MEM_DEVICE, &d_v));
+
+  // Clear v for transpose operation
+  if (is_transpose) {
+    CeedSize length;
+
+    CeedCallBackend(CeedVectorGetLength(v, &length));
+    CeedCallCuda(ceed, cudaMemset(d_v, 0, length * sizeof(CeedScalar)));
+  }
+
+  // Basis action
+  switch (eval_mode) {
+    case CEED_EVAL_INTERP: {
+      void         *interp_args[] = {(void *)&num_elem, (void *)&is_transpose, &data->d_chebyshev_interp_1d, &d_x, &d_u, &d_v};
+      const CeedInt block_size    = CeedIntMin(CeedIntPow(Q_1d, dim), max_block_size);
+
+      CeedCallBackend(CeedRunKernel_Cuda(ceed, data->InterpAtPoints, num_elem, block_size, interp_args));
+    } break;
+    case CEED_EVAL_GRAD: {
+      void         *grad_args[] = {(void *)&num_elem, (void *)&is_transpose, &data->d_chebyshev_interp_1d, &d_x, &d_u, &d_v};
+      const CeedInt block_size  = max_block_size;
+
+      CeedCallBackend(CeedRunKernel_Cuda(ceed, data->GradAtPoints, num_elem, block_size, grad_args));
+    } break;
+    case CEED_EVAL_WEIGHT:
+    case CEED_EVAL_NONE: /* handled separately below */
+      break;
+    // LCOV_EXCL_START
+    case CEED_EVAL_DIV:
+    case CEED_EVAL_CURL:
+      return CeedError(ceed, CEED_ERROR_BACKEND, "%s not supported", CeedEvalModes[eval_mode]);
+      // LCOV_EXCL_STOP
+  }
+
+  // Restore vectors, cover CEED_EVAL_NONE
+  CeedCallBackend(CeedVectorRestoreArrayRead(x_ref, &d_x));
+  CeedCallBackend(CeedVectorRestoreArray(v, &d_v));
+  if (eval_mode == CEED_EVAL_NONE) CeedCallBackend(CeedVectorSetArray(v, CEED_MEM_DEVICE, CEED_COPY_VALUES, (CeedScalar *)d_u));
+  if (eval_mode != CEED_EVAL_WEIGHT) CeedCallBackend(CeedVectorRestoreArrayRead(u, &d_u));
+  return CEED_ERROR_SUCCESS;
+}
+
+//------------------------------------------------------------------------------
 // Basis apply - non-tensor
 //------------------------------------------------------------------------------
 int CeedBasisApplyNonTensor_Cuda(CeedBasis basis, const CeedInt num_elem, CeedTransposeMode t_mode, CeedEvalMode eval_mode, CeedVector u,
@@ -184,9 +302,11 @@ static int CeedBasisDestroy_Cuda(CeedBasis basis) {
   CeedCallBackend(CeedBasisGetCeed(basis, &ceed));
   CeedCallBackend(CeedBasisGetData(basis, &data));
   CeedCallCuda(ceed, cuModuleUnload(data->module));
+  if (data->moduleAtPoints) CeedCallCuda(ceed, cuModuleUnload(data->moduleAtPoints));
   if (data->d_q_weight_1d) CeedCallCuda(ceed, cudaFree(data->d_q_weight_1d));
   CeedCallCuda(ceed, cudaFree(data->d_interp_1d));
   CeedCallCuda(ceed, cudaFree(data->d_grad_1d));
+  CeedCallCuda(ceed, cudaFree(data->d_chebyshev_interp_1d));
   CeedCallBackend(CeedFree(&data));
   return CEED_ERROR_SUCCESS;
 }
@@ -255,6 +375,7 @@ int CeedBasisCreateTensorH1_Cuda(CeedInt dim, CeedInt P_1d, CeedInt Q_1d, const 
 
   // Register backend functions
   CeedCallBackend(CeedSetBackendFunction(ceed, "Basis", basis, "Apply", CeedBasisApply_Cuda));
+  CeedCallBackend(CeedSetBackendFunction(ceed, "Basis", basis, "ApplyAtPoints", CeedBasisApplyAtPoints_Cuda));
   CeedCallBackend(CeedSetBackendFunction(ceed, "Basis", basis, "Destroy", CeedBasisDestroy_Cuda));
   return CEED_ERROR_SUCCESS;
 }
