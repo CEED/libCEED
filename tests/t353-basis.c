@@ -60,17 +60,18 @@ int main(int argc, char **argv) {
 
     CeedVectorSetArray(x_points, CEED_MEM_HOST, CEED_COPY_VALUES, x_array);
   }
-  CeedBasisApplyAtPoints(basis_u, num_points, CEED_NOTRANSPOSE, CEED_EVAL_INTERP, x_points, u, v);
+  CeedBasisApplyAtPoints(basis_u, 1, &num_points, CEED_NOTRANSPOSE, CEED_EVAL_INTERP, x_points, u, v);
 
   for (CeedInt i = 0; i < num_points; i++) {
-    CeedScalar        fx = 0.0;
+    const CeedInt     num_point[1] = {1};
+    CeedScalar        fx           = 0.0;
     const CeedScalar *x_array, *u_array, *v_array, *u_point_array;
 
     CeedVectorGetArrayRead(x_points, CEED_MEM_HOST, &x_array);
     CeedVectorGetArrayRead(u, CEED_MEM_HOST, &u_array);
     CeedVectorGetArrayRead(v, CEED_MEM_HOST, &v_array);
     CeedVectorSetValue(x_point, x_array[i]);
-    CeedBasisApplyAtPoints(basis_u, 1, CEED_TRANSPOSE, CEED_EVAL_INTERP, x_point, v_point, u_point);
+    CeedBasisApplyAtPoints(basis_u, 1, num_point, CEED_TRANSPOSE, CEED_EVAL_INTERP, x_point, v_point, u_point);
     CeedVectorGetArrayRead(u_point, CEED_MEM_HOST, &u_point_array);
     for (CeedInt j = 0; j < p; j++) fx += u_array[j] * u_point_array[j];
     if (fabs(v_array[i] - fx) > 100. * CEED_EPSILON) printf("%f != %f = f(%f)\n", v_array[i], fx, x_array[i]);
