@@ -125,11 +125,15 @@ PetscErrorCode IFunction_NS(TS ts, PetscReal t, Vec Q, Vec Q_dot, Vec G, void *u
 
   if (user->app_ctx->use_divFdiffproj) {
     Vec DivFDiff;
+    PetscReal norm;
     PetscCall(DMGetLocalVector(user->diff_flux_proj->dm, &DivFDiff_loc));
     PetscCall(DMGetGlobalVector(user->diff_flux_proj->dm, &DivFDiff));
 
     PetscCall(DiffFluxProjectionApply(user->diff_flux_proj, Q_loc, DivFDiff));
     PetscCall(DMGlobalToLocal(user->diff_flux_proj->dm, DivFDiff, INSERT_VALUES, DivFDiff_loc));
+
+    PetscCall(VecNorm(DivFDiff_loc, NORM_MAX, &norm));
+    // printf("%f\n", norm);
 
     PetscCall(DMRestoreGlobalVector(user->diff_flux_proj->dm, &DivFDiff));
   }

@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2023, Lawrence Livermore National Security, LLC and other CEED contributors.
+// Copyright (c) 2017-2024, Lawrence Livermore National Security, LLC and other CEED contributors.
 // All Rights Reserved. See the top-level LICENSE and NOTICE files for details.
 //
 // SPDX-License-Identifier: BSD-2-Clause
@@ -23,16 +23,20 @@ PetscErrorCode DiffFluxProjectionInitialize(User user, CeedElemRestriction *elem
   diff_flux_proj->num_comp = 4;
 
   PetscCall(DMClone(user->dm, &diff_flux_proj->dm));
-  PetscCall(PetscObjectSetName((PetscObject)diff_flux_proj->dm, "Divergence of Diffusive Flux Projection"));
+  // PetscCall(PetscObjectSetName((PetscObject)diff_flux_proj->dm, "Divergence of Diffusive Flux Projection"));
+  PetscCall(PetscObjectSetName((PetscObject)diff_flux_proj->dm, "DivDiffFluxProj"));
 
   PetscCall(
       DMSetupByOrder_FEM(PETSC_TRUE, PETSC_TRUE, user->app_ctx->degree, 1, user->app_ctx->q_extra, 1, &diff_flux_proj->num_comp, diff_flux_proj->dm));
 
   PetscCall(DMGetLocalSection(diff_flux_proj->dm, &section));
   PetscCall(PetscSectionSetFieldName(section, 0, ""));
-  PetscCall(PetscSectionSetComponentName(section, 0, 0, "DivergenceDiffusiveFlux_MomentumX"));
-  PetscCall(PetscSectionSetComponentName(section, 0, 1, "DivergenceDiffusiveFlux_MomentumY"));
-  PetscCall(PetscSectionSetComponentName(section, 0, 2, "DivergenceDiffusiveFlux_MomentumZ"));
+  // PetscCall(PetscSectionSetComponentName(section, 0, 0, "DivergenceDiffusiveFlux_MomentumX"));
+  // PetscCall(PetscSectionSetComponentName(section, 0, 1, "DivergenceDiffusiveFlux_MomentumY"));
+  // PetscCall(PetscSectionSetComponentName(section, 0, 2, "DivergenceDiffusiveFlux_MomentumZ"));
+  PetscCall(PetscSectionSetComponentName(section, 0, 0, "DivDiffusiveFlux_MomentumX"));
+  PetscCall(PetscSectionSetComponentName(section, 0, 1, "DivDiffusiveFlux_MomentumY"));
+  PetscCall(PetscSectionSetComponentName(section, 0, 2, "DivDiffusiveFlux_MomentumZ"));
   PetscCall(PetscSectionSetComponentName(section, 0, 3, "DivergenceDiffusiveFlux_Energy"));
 
   PetscCall(DMPlexCeedElemRestrictionCreate(user->ceed, diff_flux_proj->dm, domain_label, label_value, height, dm_field, elem_restr_diff_flux));
@@ -136,7 +140,9 @@ PetscErrorCode DiffFluxProjectionApply(NodalProjectionData diff_flux_proj, Vec Q
 
   PetscFunctionBeginUser;
   PetscCall(ApplyCeedOperatorLocalToGlobal(Q_loc, DivDiffFlux, l2_rhs_ctx));
+  PetscCall(VecViewFromOptions(DivDiffFlux, NULL, "-div_diff_flux_proj_rhs_view"));
 
   PetscCall(KSPSolve(diff_flux_proj->ksp, DivDiffFlux, DivDiffFlux));
+  PetscCall(VecViewFromOptions(DivDiffFlux, NULL, "-div_diff_flux_proj_view"));
   PetscFunctionReturn(PETSC_SUCCESS);
 }
