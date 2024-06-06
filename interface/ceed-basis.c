@@ -1499,9 +1499,9 @@ int CeedBasisApply(CeedBasis basis, CeedInt num_elem, CeedTransposeMode t_mode, 
   @brief Apply basis evaluation from nodes to arbitrary points
 
   @param[in]  basis      `CeedBasis` to evaluate
-  @param[in]  num_elem  The number of elements to apply the basis evaluation to;
+  @param[in]  num_elem   The number of elements to apply the basis evaluation to;
                           the backend will specify the ordering in @ref CeedElemRestrictionCreate()
-  @param[in]  num_points The number of points to apply the basis evaluation to in each element
+  @param[in]  num_points Array of the number of points to apply the basis evaluation to in each element, size `num_elem`
   @param[in]  t_mode     @ref CEED_NOTRANSPOSE to evaluate from nodes to points;
                            @ref CEED_TRANSPOSE to apply the transpose, mapping from points to nodes
   @param[in]  eval_mode  @ref CEED_EVAL_INTERP to use interpolated values,
