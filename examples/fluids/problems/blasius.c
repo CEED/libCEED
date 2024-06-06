@@ -353,6 +353,8 @@ PetscErrorCode NS_BLASIUS(ProblemData problem, DM dm, void *ctx, SimpleBC bc) {
   } else if (diff_filter_mms) {
     PetscCall(DifferentialFilterMmsICSetup(problem));
   } else {
+    PetscCheck((user->phys->state_var == STATEVAR_CONSERVATIVE) || (user->app_ctx->test_type == TESTTYPE_DIFF_FILTER), user->comm,
+               PETSC_ERR_ARG_INCOMP, "Can only use conservative variables with Blasius and weak inflow");
     problem->apply_inflow.qfunction              = Blasius_Inflow;
     problem->apply_inflow.qfunction_loc          = Blasius_Inflow_loc;
     problem->apply_inflow_jacobian.qfunction     = Blasius_Inflow_Jacobian;
