@@ -82,8 +82,8 @@ int main(int argc, char **argv) {
     }
 
     // Calculate G u at arbitrary points, G' * 1 at dofs
-    CeedBasisApplyAtPoints(basis_u, num_points, CEED_NOTRANSPOSE, CEED_EVAL_GRAD, x_points, u, u_points);
-    CeedBasisApplyAtPoints(basis_u, num_points, CEED_TRANSPOSE, CEED_EVAL_GRAD, x_points, ones, v);
+    CeedBasisApplyAtPoints(basis_u, 1, &num_points, CEED_NOTRANSPOSE, CEED_EVAL_GRAD, x_points, u, u_points);
+    CeedBasisApplyAtPoints(basis_u, 1, &num_points, CEED_TRANSPOSE, CEED_EVAL_GRAD, x_points, ones, v);
     {
       const CeedScalar *u_array, *v_array, *u_points_array;
 

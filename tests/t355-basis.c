@@ -62,7 +62,7 @@ int main(int argc, char **argv) {
 
     CeedVectorSetArray(x_points, CEED_MEM_HOST, CEED_COPY_VALUES, x_array);
   }
-  CeedBasisApplyAtPoints(basis_u, num_points, CEED_NOTRANSPOSE, CEED_EVAL_GRAD, x_points, u, v);
+  CeedBasisApplyAtPoints(basis_u, 1, &num_points, CEED_NOTRANSPOSE, CEED_EVAL_GRAD, x_points, u, v);
 
   {
     const CeedScalar *x_array, *v_array;

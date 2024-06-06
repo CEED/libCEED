@@ -436,8 +436,8 @@ function CeedBasisApply(basis, num_elem, t_mode, eval_mode, u, v)
     ccall((:CeedBasisApply, libceed), Cint, (CeedBasis, CeedInt, CeedTransposeMode, CeedEvalMode, CeedVector, CeedVector), basis, num_elem, t_mode, eval_mode, u, v)
 end
 
-function CeedBasisApplyAtPoints(basis, num_points, t_mode, eval_mode, x_ref, u, v)
-    ccall((:CeedBasisApplyAtPoints, libceed), Cint, (CeedBasis, CeedInt, CeedTransposeMode, CeedEvalMode, CeedVector, CeedVector, CeedVector), basis, num_points, t_mode, eval_mode, x_ref, u, v)
+function CeedBasisApplyAtPoints(basis, num_elem, num_points, t_mode, eval_mode, x_ref, u, v)
+    ccall((:CeedBasisApplyAtPoints, libceed), Cint, (CeedBasis, CeedInt, Ptr{CeedInt}, CeedTransposeMode, CeedEvalMode, CeedVector, CeedVector, CeedVector), basis, num_elem, num_points, t_mode, eval_mode, x_ref, u, v)
 end
 
 function CeedBasisGetCeed(basis, ceed)

@@ -289,23 +289,23 @@ CEED_EXTERN int  CeedElemRestrictionDestroy(CeedElemRestriction *rstr);
 //  \int_\Omega v^T f_0(u, \nabla u, qdata) + (\nabla v)^T f_1(u, \nabla u, qdata)
 // where gradients are with respect to the reference element.
 
-CEED_EXTERN int  CeedBasisCreateTensorH1Lagrange(Ceed ceed, CeedInt dim, CeedInt num_comp, CeedInt P, CeedInt Q, CeedQuadMode quad_mode,
-                                                 CeedBasis *basis);
-CEED_EXTERN int  CeedBasisCreateTensorH1(Ceed ceed, CeedInt dim, CeedInt num_comp, CeedInt P_1d, CeedInt Q_1d, const CeedScalar *interp_1d,
-                                         const CeedScalar *grad_1d, const CeedScalar *q_ref_1d, const CeedScalar *q_weight_1d, CeedBasis *basis);
-CEED_EXTERN int  CeedBasisCreateH1(Ceed ceed, CeedElemTopology topo, CeedInt num_comp, CeedInt num_nodes, CeedInt nqpts, const CeedScalar *interp,
-                                   const CeedScalar *grad, const CeedScalar *q_ref, const CeedScalar *q_weights, CeedBasis *basis);
-CEED_EXTERN int  CeedBasisCreateHdiv(Ceed ceed, CeedElemTopology topo, CeedInt num_comp, CeedInt num_nodes, CeedInt nqpts, const CeedScalar *interp,
-                                     const CeedScalar *div, const CeedScalar *q_ref, const CeedScalar *q_weights, CeedBasis *basis);
-CEED_EXTERN int  CeedBasisCreateHcurl(Ceed ceed, CeedElemTopology topo, CeedInt num_comp, CeedInt num_nodes, CeedInt nqpts, const CeedScalar *interp,
-                                      const CeedScalar *curl, const CeedScalar *q_ref, const CeedScalar *q_weights, CeedBasis *basis);
-CEED_EXTERN int  CeedBasisCreateProjection(CeedBasis basis_from, CeedBasis basis_to, CeedBasis *basis_project);
-CEED_EXTERN int  CeedBasisReferenceCopy(CeedBasis basis, CeedBasis *basis_copy);
-CEED_EXTERN int  CeedBasisView(CeedBasis basis, FILE *stream);
-CEED_EXTERN int  CeedBasisApply(CeedBasis basis, CeedInt num_elem, CeedTransposeMode t_mode, CeedEvalMode eval_mode, CeedVector u, CeedVector v);
-CEED_EXTERN int  CeedBasisApplyAtPoints(CeedBasis basis, CeedInt num_points, CeedTransposeMode t_mode, CeedEvalMode eval_mode, CeedVector x_ref,
-                                        CeedVector u, CeedVector v);
-CEED_EXTERN int  CeedBasisGetCeed(CeedBasis basis, Ceed *ceed);
+CEED_EXTERN int CeedBasisCreateTensorH1Lagrange(Ceed ceed, CeedInt dim, CeedInt num_comp, CeedInt P, CeedInt Q, CeedQuadMode quad_mode,
+                                                CeedBasis *basis);
+CEED_EXTERN int CeedBasisCreateTensorH1(Ceed ceed, CeedInt dim, CeedInt num_comp, CeedInt P_1d, CeedInt Q_1d, const CeedScalar *interp_1d,
+                                        const CeedScalar *grad_1d, const CeedScalar *q_ref_1d, const CeedScalar *q_weight_1d, CeedBasis *basis);
+CEED_EXTERN int CeedBasisCreateH1(Ceed ceed, CeedElemTopology topo, CeedInt num_comp, CeedInt num_nodes, CeedInt nqpts, const CeedScalar *interp,
+                                  const CeedScalar *grad, const CeedScalar *q_ref, const CeedScalar *q_weights, CeedBasis *basis);
+CEED_EXTERN int CeedBasisCreateHdiv(Ceed ceed, CeedElemTopology topo, CeedInt num_comp, CeedInt num_nodes, CeedInt nqpts, const CeedScalar *interp,
+                                    const CeedScalar *div, const CeedScalar *q_ref, const CeedScalar *q_weights, CeedBasis *basis);
+CEED_EXTERN int CeedBasisCreateHcurl(Ceed ceed, CeedElemTopology topo, CeedInt num_comp, CeedInt num_nodes, CeedInt nqpts, const CeedScalar *interp,
+                                     const CeedScalar *curl, const CeedScalar *q_ref, const CeedScalar *q_weights, CeedBasis *basis);
+CEED_EXTERN int CeedBasisCreateProjection(CeedBasis basis_from, CeedBasis basis_to, CeedBasis *basis_project);
+CEED_EXTERN int CeedBasisReferenceCopy(CeedBasis basis, CeedBasis *basis_copy);
+CEED_EXTERN int CeedBasisView(CeedBasis basis, FILE *stream);
+CEED_EXTERN int CeedBasisApply(CeedBasis basis, CeedInt num_elem, CeedTransposeMode t_mode, CeedEvalMode eval_mode, CeedVector u, CeedVector v);
+CEED_EXTERN int CeedBasisApplyAtPoints(CeedBasis basis, CeedInt num_elem, const CeedInt *num_points, CeedTransposeMode t_mode, CeedEvalMode eval_mode,
+                                       CeedVector x_ref, CeedVector u, CeedVector v);
+CEED_EXTERN int CeedBasisGetCeed(CeedBasis basis, Ceed *ceed);
 CEED_EXTERN Ceed CeedBasisReturnCeed(CeedBasis basis);
 CEED_EXTERN int  CeedBasisGetDimension(CeedBasis basis, CeedInt *dim);
 CEED_EXTERN int  CeedBasisGetTopology(CeedBasis basis, CeedElemTopology *topo);
