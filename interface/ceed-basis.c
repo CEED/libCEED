@@ -344,8 +344,8 @@ int CeedBasisGetChebyshevInterp1D(CeedBasis basis, CeedScalar *chebyshev_interp_
   CeedCall(CeedBasisGetNumQuadraturePoints1D(basis, &Q_1d));
 
   // Build coefficient matrix
-  // -- Note: Clang-tidy needs this check because it does not understand the is_tensor_basis check above
-  CeedCheck(P_1d > 0 && Q_1d > 0, ceed, CEED_ERROR_INCOMPATIBLE, "CeedBasis dimensions are malformed");
+  // -- Note: Clang-tidy needs this check
+  CeedCheck((P_1d > 0) && (Q_1d > 0), ceed, CEED_ERROR_INCOMPATIBLE, "CeedBasis dimensions are malformed");
   CeedCall(CeedCalloc(Q_1d * Q_1d, &C));
   CeedCall(CeedBasisGetQRef(basis, &q_ref_1d));
   for (CeedInt i = 0; i < Q_1d; i++) CeedCall(CeedChebyshevPolynomialsAtPoint(q_ref_1d[i], Q_1d, &C[i * Q_1d]));
