@@ -324,6 +324,47 @@ int CeedBasisGetCollocatedGrad(CeedBasis basis, CeedScalar *collo_grad_1d) {
 }
 
 /**
+  @brief Return 1D interpolation matrix to Chebyshev polynomial coefficients on quadrature space
+
+  @param[in]  basis               `CeedBasis`
+  @param[out] chebyshev_interp_1d Row-major (`P_1d * Q_1d`) matrix interpolating from basis nodes to Chebyshev polynomial coefficients
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Backend
+**/
+int CeedBasisGetChebyshevInterp1D(CeedBasis basis, CeedScalar *chebyshev_interp_1d) {
+  CeedInt           P_1d, Q_1d;
+  CeedScalar       *C, *chebyshev_coeffs_1d_inv;
+  const CeedScalar *interp_1d, *q_ref_1d;
+  Ceed              ceed;
+
+  CeedCall(CeedBasisGetCeed(basis, &ceed));
+  CeedCall(CeedBasisGetNumNodes1D(basis, &P_1d));
+  CeedCall(CeedBasisGetNumQuadraturePoints1D(basis, &Q_1d));
+
+  // Build coefficient matrix
+  // -- Note: Clang-tidy needs this check
+  CeedCheck((P_1d > 0) && (Q_1d > 0), ceed, CEED_ERROR_INCOMPATIBLE, "CeedBasis dimensions are malformed");
+  CeedCall(CeedCalloc(Q_1d * Q_1d, &C));
+  CeedCall(CeedBasisGetQRef(basis, &q_ref_1d));
+  for (CeedInt i = 0; i < Q_1d; i++) CeedCall(CeedChebyshevPolynomialsAtPoint(q_ref_1d[i], Q_1d, &C[i * Q_1d]));
+
+  // Compute C^+, pseudoinverse of coefficient matrix
+  CeedCall(CeedCalloc(Q_1d * Q_1d, &chebyshev_coeffs_1d_inv));
+  CeedCall(CeedMatrixPseudoinverse(ceed, C, Q_1d, Q_1d, chebyshev_coeffs_1d_inv));
+
+  // Build mapping from nodes to Chebyshev coefficients
+  CeedCall(CeedBasisGetInterp1D(basis, &interp_1d));
+  CeedCall(CeedMatrixMatrixMultiply(ceed, chebyshev_coeffs_1d_inv, interp_1d, chebyshev_interp_1d, Q_1d, P_1d, Q_1d));
+
+  // Cleanup
+  CeedCall(CeedFree(&C));
+  CeedCall(CeedFree(&chebyshev_coeffs_1d_inv));
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
   @brief Get tensor status for given `CeedBasis`
 
   @param[in]  basis     `CeedBasis`
@@ -1586,38 +1627,21 @@ int CeedBasisApplyAtPoints(CeedBasis basis, CeedInt num_elem, const CeedInt *num
     return CEED_ERROR_SUCCESS;
   }
   if (!basis->basis_chebyshev) {
-    // Build matrix mapping from quadrature point values to Chebyshev coefficients
-    CeedScalar       *C, *chebyshev_coeffs_1d_inv;
-    const CeedScalar *q_ref_1d;
-
-    // Build coefficient matrix
-    // -- Note: Clang-tidy needs this check because it does not understand the is_tensor_basis check above
-    CeedCheck(P_1d > 0 && Q_1d > 0, ceed, CEED_ERROR_INCOMPATIBLE, "CeedBasis dimensions are malformed");
-    CeedCall(CeedCalloc(Q_1d * Q_1d, &C));
-    CeedCall(CeedBasisGetQRef(basis, &q_ref_1d));
-    for (CeedInt i = 0; i < Q_1d; i++) CeedCall(CeedChebyshevPolynomialsAtPoint(q_ref_1d[i], Q_1d, &C[i * Q_1d]));
-
-    // Compute C^+, pseudoinverse of coefficient matrix
-    CeedCall(CeedCalloc(Q_1d * Q_1d, &chebyshev_coeffs_1d_inv));
-    CeedCall(CeedMatrixPseudoinverse(ceed, C, Q_1d, Q_1d, chebyshev_coeffs_1d_inv));
-
     // Build basis mapping from nodes to Chebyshev coefficients
     CeedScalar       *chebyshev_interp_1d, *chebyshev_grad_1d, *chebyshev_q_weight_1d;
-    const CeedScalar *interp_1d;
+    const CeedScalar *q_ref_1d;
 
     CeedCall(CeedCalloc(P_1d * Q_1d, &chebyshev_interp_1d));
     CeedCall(CeedCalloc(P_1d * Q_1d, &chebyshev_grad_1d));
     CeedCall(CeedCalloc(Q_1d, &chebyshev_q_weight_1d));
-    CeedCall(CeedBasisGetInterp1D(basis, &interp_1d));
-    CeedCall(CeedMatrixMatrixMultiply(ceed, chebyshev_coeffs_1d_inv, interp_1d, chebyshev_interp_1d, Q_1d, P_1d, Q_1d));
+    CeedCall(CeedBasisGetQRef(basis, &q_ref_1d));
+    CeedCall(CeedBasisGetChebyshevInterp1D(basis, chebyshev_interp_1d));
 
     CeedCall(CeedVectorCreate(ceed, num_comp * CeedIntPow(Q_1d, dim), &basis->vec_chebyshev));
     CeedCall(CeedBasisCreateTensorH1(ceed, dim, num_comp, P_1d, Q_1d, chebyshev_interp_1d, chebyshev_grad_1d, q_ref_1d, chebyshev_q_weight_1d,
                                      &basis->basis_chebyshev));
 
     // Cleanup
-    CeedCall(CeedFree(&C));
-    CeedCall(CeedFree(&chebyshev_coeffs_1d_inv));
     CeedCall(CeedFree(&chebyshev_interp_1d));
     CeedCall(CeedFree(&chebyshev_grad_1d));
     CeedCall(CeedFree(&chebyshev_q_weight_1d));
