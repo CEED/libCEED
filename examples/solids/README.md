@@ -103,7 +103,7 @@ The command line options just shown are the minimum requirements to run the mini
   -
 
 * - `-problem`
-  - Problem to solve (`Linear`, `SS-NH`, `FS-MR`, etc.)
+  - Problem to solve (`Linear`, `FS-NH`, `FS-MR`, etc.)
   - `Linear`
 
 * - `-forcing`

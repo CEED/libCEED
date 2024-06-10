@@ -14,7 +14,6 @@ PetscErrorCode RegisterProblems(ProblemFunctions problem_functions) {
   PetscFunctionBegin;
 
   SOLIDS_PROBLEM_REGISTER(problem_functions, "Linear", ElasLinear, NH);
-  SOLIDS_PROBLEM_REGISTER(problem_functions, "SS-NH", ElasSSNH, NH);
   SOLIDS_PROBLEM_REGISTER(problem_functions, "FS-NH", ElasFSNH, NH);
   SOLIDS_PROBLEM_REGISTER(problem_functions, "FS-MR", ElasFSMR, MR);
 

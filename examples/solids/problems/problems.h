@@ -35,6 +35,5 @@ PetscErrorCode RegisterProblems(ProblemFunctions problem_functions);
                                           PetscInt u_loc_size, CeedVector fine_mult, CeedData *data);
 
 SOLIDS_PROBLEM(ElasLinear);
-SOLIDS_PROBLEM(ElasSSNH);
 SOLIDS_PROBLEM(ElasFSNH);
 SOLIDS_PROBLEM(ElasFSMR);
