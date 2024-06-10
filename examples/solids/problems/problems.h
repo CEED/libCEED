@@ -36,8 +36,5 @@ PetscErrorCode RegisterProblems(ProblemFunctions problem_functions);
 
 SOLIDS_PROBLEM(ElasLinear);
 SOLIDS_PROBLEM(ElasSSNH);
-SOLIDS_PROBLEM(ElasFSCurrentNH1);
-SOLIDS_PROBLEM(ElasFSCurrentNH2);
-SOLIDS_PROBLEM(ElasFSInitialNH1);
-SOLIDS_PROBLEM(ElasFSInitialNH2);
-SOLIDS_PROBLEM(ElasFSInitialMR1);
+SOLIDS_PROBLEM(ElasFSNH);
+SOLIDS_PROBLEM(ElasFSMR);

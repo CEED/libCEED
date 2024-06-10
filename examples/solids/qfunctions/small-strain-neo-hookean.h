@@ -40,13 +40,13 @@ CEED_QFUNCTION_HELPER CeedScalar log1p_series(CeedScalar x) {
   y *= y2;
   sum += y / 7;
   return 2 * sum;
-};
+}
 #endif
 
 // -----------------------------------------------------------------------------
 // Residual evaluation for hyperelasticity, small strain
 // -----------------------------------------------------------------------------
-CEED_QFUNCTION(ElasSSNHF)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
+CEED_QFUNCTION(ElasSSResidual_NH)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
   // Inputs
   const CeedScalar(*ug)[3][CEED_Q_VLA] = (const CeedScalar(*)[3][CEED_Q_VLA])in[0], (*q_data)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[1];
 
@@ -140,13 +140,13 @@ CEED_QFUNCTION(ElasSSNHF)(void *ctx, CeedInt Q, const CeedScalar *const *in, Cee
     }
   }  // End of Quadrature Point Loop
 
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
 
 // -----------------------------------------------------------------------------
 // Jacobian evaluation for hyperelasticity, small strain
 // -----------------------------------------------------------------------------
-CEED_QFUNCTION(ElasSSNHdF)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
+CEED_QFUNCTION(ElasSSJacobian_NH)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
   // Inputs
   const CeedScalar(*deltaug)[3][CEED_Q_VLA] = (const CeedScalar(*)[3][CEED_Q_VLA])in[0],
         (*q_data)[CEED_Q_VLA]               = (const CeedScalar(*)[CEED_Q_VLA])in[1];
@@ -254,13 +254,13 @@ CEED_QFUNCTION(ElasSSNHdF)(void *ctx, CeedInt Q, const CeedScalar *const *in, Ce
     }
   }  // End of Quadrature Point Loop
 
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
 
 // -----------------------------------------------------------------------------
 // Strain energy computation for hyperelasticity, small strain
 // -----------------------------------------------------------------------------
-CEED_QFUNCTION(ElasSSNHEnergy)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
+CEED_QFUNCTION(ElasSSEnergy_NH)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
   // Inputs
   const CeedScalar(*ug)[3][CEED_Q_VLA] = (const CeedScalar(*)[3][CEED_Q_VLA])in[0], (*q_data)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[1];
 
@@ -322,13 +322,13 @@ CEED_QFUNCTION(ElasSSNHEnergy)(void *ctx, CeedInt Q, const CeedScalar *const *in
 
   }  // End of Quadrature Point Loop
 
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
 
 // -----------------------------------------------------------------------------
 // Nodal diagnostic quantities for hyperelasticity, small strain
 // -----------------------------------------------------------------------------
-CEED_QFUNCTION(ElasSSNHDiagnostic)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
+CEED_QFUNCTION(ElasSSDiagnostic_NH)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
   // Inputs
   const CeedScalar(*u)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[0], (*ug)[3][CEED_Q_VLA] = (const CeedScalar(*)[3][CEED_Q_VLA])in[1],
         (*q_data)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[2];
@@ -405,6 +405,6 @@ CEED_QFUNCTION(ElasSSNHDiagnostic)(void *ctx, CeedInt Q, const CeedScalar *const
         (lambda * (1 + strain_vol) * (llv - 1) + strain_vol * mu + (e[0][1] * e[0][1] + e[0][2] * e[0][2] + e[1][2] * e[1][2]) * 2 * mu);
   }  // End of Quadrature Point Loop
 
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
 // -----------------------------------------------------------------------------
