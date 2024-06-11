@@ -30,7 +30,7 @@ PetscErrorCode CreateDM(MPI_Comm comm, ProblemData problem, MatType mat_type, Ve
   PetscCall(DMSetVecType(*dm, vec_type));
 
   // Set Tensor elements
-  PetscCall(PetscOptionsSetValue(NULL, "-dm_plex_simplex", "0"));
+//  PetscCall(PetscOptionsSetValue(NULL, "-dm_plex_simplex", "1"));
   PetscCall(PetscOptionsSetValue(NULL, "-dm_sparse_localize", "0"));
   PetscCall(PetscOptionsSetValue(NULL, "-dm_localize", "0"));  // Localization done in DMSetupByOrderEnd_FEM
   PetscCall(PetscOptionsSetValue(NULL, "-dm_blocking_type", "field_node"));

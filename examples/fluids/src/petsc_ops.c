@@ -337,7 +337,7 @@ PetscErrorCode CreateSolveOperatorsFromMatCeed(KSP ksp, Mat mat_ceed, PetscBool 
 
     PetscCall(KSPGetPC(ksp, &pc));
     PetscCall(PCGetType(pc, &pc_type));
-    PetscCall(PetscStrcmpAny(pc_type, &use_matceed_pmat, PCJACOBI, PCVPBJACOBI, PCPBJACOBI, ""));
+    PetscCall(PetscStrcmpAny(pc_type, &use_matceed_pmat, PCNONE, PCJACOBI, PCVPBJACOBI, PCPBJACOBI, ""));
   }
 
   if (use_matceed_pmat) {
