@@ -221,7 +221,7 @@ PetscErrorCode SetupStg(const MPI_Comm comm, const DM dm, ProblemData problem, U
   char                     stg_inflow_path[PETSC_MAX_PATH_LEN] = "./STGInflow.dat";
   char                     stg_rand_path[PETSC_MAX_PATH_LEN]   = "./STGRand.dat";
   PetscBool                mean_only = PETSC_FALSE, use_stgstrong = PETSC_FALSE, use_fluctuating_IC = PETSC_FALSE, given_stg_dx = PETSC_FALSE;
-  CeedScalar               u0 = 0.0, alpha = 1.01, stg_dx = 1.0e-3;
+  CeedScalar               u0 = 0.0, alpha = 1.01, stg_dx = -1, stg_h_scale_factor = 1 / user->app_ctx->degree;
   CeedQFunctionContext     stg_context;
   NewtonianIdealGasContext newtonian_ig_ctx;
 
@@ -235,7 +235,11 @@ PetscErrorCode SetupStg(const MPI_Comm comm, const DM dm, ProblemData problem, U
   PetscCall(PetscOptionsBool("-stg_strong", "Enforce STG inflow strongly", NULL, use_stgstrong, &use_stgstrong, NULL));
   PetscCall(PetscOptionsBool("-stg_fluctuating_IC", "\"Extrude\" the fluctuations through the domain as an initial condition", NULL,
                              use_fluctuating_IC, &use_fluctuating_IC, NULL));
-  PetscCall(PetscOptionsReal("-stg_dx", "Element size in streamwise direction at inflow", NULL, stg_dx, &stg_dx, &given_stg_dx));
+  PetscCall(PetscOptionsReal("-stg_dx", "Element length in x direction at inflow", NULL, stg_dx, &stg_dx, &given_stg_dx));
+  PetscCall(PetscOptionsReal("-stg_h_scale_factor", "Scale element size for cutoff frequency calculation", NULL, stg_h_scale_factor,
+                             &stg_h_scale_factor, NULL));
+  PetscCall(PetscOptionsDeprecated("-stg_dyScale", NULL, "libCEED 0.12.0", "Use -stg_h_scale_factor to scale all the element dimensions"));
+  PetscCall(PetscOptionsDeprecated("-stg_dz", NULL, "libCEED 0.12.0", NULL));
   PetscOptionsEnd();
 
   PetscCall(PetscCalloc1(1, &global_stg_ctx));
@@ -247,6 +251,7 @@ PetscErrorCode SetupStg(const MPI_Comm comm, const DM dm, ProblemData problem, U
   global_stg_ctx->use_fluctuating_IC = use_fluctuating_IC;
   global_stg_ctx->theta0             = theta0;
   global_stg_ctx->P0                 = P0;
+  global_stg_ctx->h_scale_factor     = stg_h_scale_factor;
 
   {  // Calculate dx assuming constant spacing
     PetscReal domain_min[3], domain_max[3], domain_size[3];
@@ -256,6 +261,8 @@ PetscErrorCode SetupStg(const MPI_Comm comm, const DM dm, ProblemData problem, U
     PetscInt nmax = 3, faces[3];
     PetscCall(PetscOptionsGetIntArray(NULL, NULL, "-dm_plex_box_faces", faces, &nmax, NULL));
     global_stg_ctx->dx = given_stg_dx ? stg_dx : domain_size[0] / faces[0];
+    PetscCheck((global_stg_ctx->dx > 0) && PetscIsNormalReal((PetscReal)global_stg_ctx->dx), comm, PETSC_ERR_LIB,
+               "STG dx must be positive normal number, got %g", global_stg_ctx->dx);
   }
 
   PetscCallCeed(ceed, CeedQFunctionContextGetData(problem->apply_vol_rhs.qfunction_context, CEED_MEM_HOST, &newtonian_ig_ctx));

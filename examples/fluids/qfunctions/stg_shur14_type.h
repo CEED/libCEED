@@ -25,6 +25,7 @@ struct STGShur14Context_ {
   bool                             is_implicit;         // !< Whether using implicit time integration
   bool                             mean_only;           // !< Only apply the mean profile
   CeedScalar                       dx;                  // !< dx used for h calculation
+  CeedScalar                       h_scale_factor;      // !< Scales the element size
   bool                             prescribe_T;         // !< Prescribe temperature weakly
   bool                             use_fluctuating_IC;  // !< Only apply the mean profile
   struct NewtonianIdealGasContext_ newtonian_ctx;
