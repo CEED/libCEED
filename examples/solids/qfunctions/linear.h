@@ -23,7 +23,7 @@ struct Physics_private {
 // -----------------------------------------------------------------------------
 // Residual evaluation for linear elasticity
 // -----------------------------------------------------------------------------
-CEED_QFUNCTION(ElasLinearF)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
+CEED_QFUNCTION(ElasResidual_Linear)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
   // Inputs
   const CeedScalar(*ug)[3][CEED_Q_VLA] = (const CeedScalar(*)[3][CEED_Q_VLA])in[0], (*q_data)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[1];
 
@@ -113,13 +113,13 @@ CEED_QFUNCTION(ElasLinearF)(void *ctx, CeedInt Q, const CeedScalar *const *in, C
     }
   }  // End of Quadrature Point Loop
 
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
 
 // -----------------------------------------------------------------------------
 // Jacobian evaluation for linear elasticity
 // -----------------------------------------------------------------------------
-CEED_QFUNCTION(ElasLineardF)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
+CEED_QFUNCTION(ElasJacobian_Linear)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
   // Inputs
   const CeedScalar(*deltaug)[3][CEED_Q_VLA] = (const CeedScalar(*)[3][CEED_Q_VLA])in[0],
         (*q_data)[CEED_Q_VLA]               = (const CeedScalar(*)[CEED_Q_VLA])in[1];
@@ -208,13 +208,13 @@ CEED_QFUNCTION(ElasLineardF)(void *ctx, CeedInt Q, const CeedScalar *const *in, 
     }
   }  // End of Quadrature Point Loop
 
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
 
 // -----------------------------------------------------------------------------
 // Strain energy computation for linear elasticity
 // -----------------------------------------------------------------------------
-CEED_QFUNCTION(ElasLinearEnergy)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
+CEED_QFUNCTION(ElasEnergy_Linear)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
   // Inputs
   const CeedScalar(*ug)[3][CEED_Q_VLA] = (const CeedScalar(*)[3][CEED_Q_VLA])in[0], (*q_data)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[1];
 
@@ -275,13 +275,13 @@ CEED_QFUNCTION(ElasLinearEnergy)(void *ctx, CeedInt Q, const CeedScalar *const *
 
   }  // End of Quadrature Point Loop
 
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
 
 // -----------------------------------------------------------------------------
 // Nodal diagnostic quantities for linear elasticity
 // -----------------------------------------------------------------------------
-CEED_QFUNCTION(ElasLinearDiagnostic)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
+CEED_QFUNCTION(ElasDiagnostic_Linear)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
   // Inputs
   const CeedScalar(*u)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[0], (*ug)[3][CEED_Q_VLA] = (const CeedScalar(*)[3][CEED_Q_VLA])in[1],
         (*q_data)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[2];
@@ -357,6 +357,6 @@ CEED_QFUNCTION(ElasLinearDiagnostic)(void *ctx, CeedInt Q, const CeedScalar *con
         (lambda * strain_vol * strain_vol / 2. + strain_vol * mu + (e[0][1] * e[0][1] + e[0][2] * e[0][2] + e[1][2] * e[1][2]) * 2 * mu);
   }  // End of Quadrature Point Loop
 
-  return 0;
+  return CEED_ERROR_SUCCESS;
 }
 // -----------------------------------------------------------------------------

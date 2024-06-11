@@ -72,7 +72,7 @@ As an alternative example exploiting {code}`-dm_plex_box_faces`, we consider a {
 Sides 1 through 6 are rotated around $x$-axis:
 
 ```
-./elasticity -problem FSInitial-NH1 -E 1 -nu 0.3 -num_steps 40 -snes_linesearch_type cp -dm_plex_box_faces 4,4,4 -bc_clamp 1,2,3,4,5,6 -bc_clamp_1_rotate 0,0,1,0,.3 -bc_clamp_2_rotate 0,0,1,0,.3 -bc_clamp_3_rotate 0,0,1,0,.3 -bc_clamp_4_rotate 0,0,1,0,.3 -bc_clamp_5_rotate 0,0,1,0,.3 -bc_clamp_6_rotate 0,0,1,0,.3
+./elasticity -problem FS-NH -E 1 -nu 0.3 -num_steps 40 -snes_linesearch_type cp -dm_plex_box_faces 4,4,4 -bc_clamp 1,2,3,4,5,6 -bc_clamp_1_rotate 0,0,1,0,.3 -bc_clamp_2_rotate 0,0,1,0,.3 -bc_clamp_3_rotate 0,0,1,0,.3 -bc_clamp_4_rotate 0,0,1,0,.3 -bc_clamp_5_rotate 0,0,1,0,.3 -bc_clamp_6_rotate 0,0,1,0,.3
 ```
 
 :::{note}
@@ -103,7 +103,7 @@ The command line options just shown are the minimum requirements to run the mini
   -
 
 * - `-problem`
-  - Problem to solve (`Linear`, `SS-NH`, `FSInitial-NH1`, etc.)
+  - Problem to solve (`Linear`, `FS-NH`, `FS-MR`, etc.)
   - `Linear`
 
 * - `-forcing`

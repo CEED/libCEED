@@ -25,9 +25,9 @@
 //
 // Sample meshes can be found at https://github.com/jeremylt/ceedSampleMeshes
 //
-//TESTARGS(name="linear elasticity, MMS")                                 -ceed {ceed_resource} -test -degree 3 -nu 0.3 -E 1 -dm_plex_box_faces 3,3,3
-//TESTARGS(name="Neo-Hookean hyperelasticity, initial configuration 1")   -ceed {ceed_resource} -test -problem FSInitial-NH1 -E 2.8 -nu 0.4 -degree 2 -dm_plex_box_faces 2,2,2 -num_steps 1 -bc_clamp 6 -bc_traction 5 -bc_traction_5 0,0,-.5 -expect_final_strain_energy 2.124627916174e-01
-//TESTARGS(name="Mooney-Rivlin hyperelasticity, initial configuration 1") -ceed {ceed_resource} -test -problem FSInitial-MR1 -mu_1 .5 -mu_2 .5 -nu 0.4 -degree 2 -dm_plex_box_faces 2,2,2 -num_steps 1 -bc_clamp 6 -bc_traction 5 -bc_traction_5 0,0,-.5 -expect_final_strain_energy 2.339138880207e-01
+//TESTARGS(name="linear elasticity, MMS")        -ceed {ceed_resource} -test -degree 3 -nu 0.3 -E 1 -dm_plex_box_faces 3,3,3
+//TESTARGS(name="Neo-Hookean hyperelasticity")   -ceed {ceed_resource} -test -problem FS-NH -E 2.8 -nu 0.4 -degree 2 -dm_plex_box_faces 2,2,2 -num_steps 1 -bc_clamp 6 -bc_traction 5 -bc_traction_5 0,0,-.5 -expect_final_strain_energy 2.124627916174e-01
+//TESTARGS(name="Mooney-Rivlin hyperelasticity") -ceed {ceed_resource} -test -problem FS-MR -mu_1 .5 -mu_2 .5 -nu 0.4 -degree 2 -dm_plex_box_faces 2,2,2 -num_steps 1 -bc_clamp 6 -bc_traction 5 -bc_traction_5 0,0,-.5 -expect_final_strain_energy 2.339138880207e-01
 
 /// @file
 /// CEED elasticity example using PETSc with DMPlex
