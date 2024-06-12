@@ -28,6 +28,7 @@ def create_argparser() -> argparse.ArgumentParser:
     parser.add_argument('-b', '--junit-batch', type=str, default='', help='Name of JUnit batch for output file')
     parser.add_argument('-np', '--pool-size', type=int, default=1, help='Number of test cases to run in parallel')
     parser.add_argument('-s', '--smartredis_dir', type=str, default='', help='path to SmartSim library, if present')
+    parser.add_argument('--has_torch', type=bool, default=False, help='Whether to build with torch')
     parser.add_argument('test', help='Test executable', nargs='?')
 
     return parser
@@ -35,6 +36,9 @@ def create_argparser() -> argparse.ArgumentParser:
 
 # Necessary functions for running tests
 class CeedSuiteSpec(SuiteSpec):
+    def __init__(self, has_torch: bool):
+        self.has_torch: bool = has_torch
+
     def get_source_path(self, test: str) -> Path:
         """Compute path to test source file
 
@@ -110,6 +114,8 @@ class CeedSuiteSpec(SuiteSpec):
         for condition in spec.only:
             if (condition == 'cpu') and ('gpu' in resource):
                 return 'CPU only test with GPU backend'
+            if condition == 'torch' and not self.has_torch:
+                return 'PyTorch only test without USE_TORCH=1'
 
     def check_post_skip(self, test: str, spec: TestSpec, resource: str, stderr: str) -> Optional[str]:
         """Check if a test case should be allowed to fail, based on its stderr output
@@ -228,7 +234,7 @@ if __name__ == '__main__':
             args.ceed_backends,
             args.mode,
             args.nproc,
-            CeedSuiteSpec(),
+            CeedSuiteSpec(args.has_torch),
             args.pool_size)
 
     # write output and check for failures

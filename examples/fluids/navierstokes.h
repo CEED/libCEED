@@ -7,6 +7,7 @@
 #pragma once
 
 #include <ceed.h>
+#include <log_events.h>
 #include <mat-ceed.h>
 #include <petsc-ceed-utils.h>
 #include <petscts.h>
@@ -66,6 +67,15 @@ typedef enum {
 } SGSModelType;
 static const char *const SGSModelTypes[] = {"none", "data_driven", "SGSModelType", "SGS_MODEL_", NULL};
 
+// Subgrid-Stress mode type
+typedef enum {
+  SGS_MODEL_DD_FUSED           = 0,
+  SGS_MODEL_DD_SEQENTIAL_CEED  = 1,
+  SGS_MODEL_DD_SEQENTIAL_TORCH = 2,
+} SGSModelDDImplementation;
+static const char *const SGSModelDDImplementations[] = {"fused", "sequential_ceed", "sequential_torch", "SGSModelDDImplementation", "SGS_MODEL_DD_",
+                                                        NULL};
+
 // Mesh transformation type
 typedef enum {
   MESH_TRANSFORM_NONE      = 0,
@@ -75,18 +85,6 @@ static const char *const MeshTransformTypes[] = {"none", "platemesh", "MeshTrans
 
 static const char *const DifferentialFilterDampingFunctions[] = {
     "none", "van_driest", "mms", "DifferentialFilterDampingFunction", "DIFF_FILTER_DAMP_", NULL};
-
-// -----------------------------------------------------------------------------
-// Log Events
-// -----------------------------------------------------------------------------
-extern PetscLogEvent FLUIDS_CeedOperatorApply;
-extern PetscLogEvent FLUIDS_SmartRedis_Init;
-extern PetscLogEvent FLUIDS_SmartRedis_Meta;
-extern PetscLogEvent FLUIDS_SmartRedis_Train;
-extern PetscLogEvent FLUIDS_TrainDataCompute;
-extern PetscLogEvent FLUIDS_DifferentialFilter;
-extern PetscLogEvent FLUIDS_VelocityGradientProjection;
-PetscErrorCode       RegisterLogEvents();
 
 // -----------------------------------------------------------------------------
 // Structs

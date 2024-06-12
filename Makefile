@@ -100,6 +100,9 @@ endif
 # SmartSim testing
 SMARTREDIS_DIR ?=
 
+# PyTorch testing
+USE_TORCH ?=
+
 # Warning: SANTIZ options still don't run with /gpu/occa
 AFLAGS ?= -fsanitize=address #-fsanitize=undefined -fno-omit-frame-pointer
 
@@ -623,7 +626,7 @@ $(OBJDIR)/petsc-% : examples/petsc/%.c examples/petsc/libutils.a.PHONY $(libceed
 	  PETSC_DIR="$(abspath $(PETSC_DIR))" OPT="$(OPT)" $*
 	cp examples/petsc/$* $@
 
-$(OBJDIR)/fluids-% : examples/fluids/%.c examples/fluids/src/*.c examples/fluids/*.h examples/fluids/problems/*.c examples/fluids/qfunctions/*.h examples/fluids/src/smartsim/*.c $(libceed) $(ceed.pc) | $$(@D)/.DIR
+$(OBJDIR)/fluids-% : examples/fluids/%.c examples/fluids/src/*.c examples/fluids/*.h examples/fluids/problems/*.c examples/fluids/problems/torch/*.cpp examples/fluids/qfunctions/*.h examples/fluids/src/smartsim/*.c $(libceed) $(ceed.pc) examples/fluids/Makefile | $$(@D)/.DIR
 	+$(call quiet,MAKE) -C examples/fluids CEED_DIR=`pwd` \
 	  PETSC_DIR="$(abspath $(PETSC_DIR))" OPT="$(OPT)" $*
 	cp examples/fluids/$* $@
@@ -652,7 +655,7 @@ NPROC_POOL ?= 1
 export NPROC_POOL
 
 run-% : $(OBJDIR)/%
-	@$(PYTHON) tests/junit.py --mode tap --ceed-backends $(BACKENDS) $(if $(SMARTREDIS_DIR),--smartredis_dir $(SMARTREDIS_DIR) )--nproc $(NPROC_TEST) --pool-size $(NPROC_POOL) $(<:$(OBJDIR)/%=%)
+	@$(PYTHON) tests/junit.py --mode tap --ceed-backends $(BACKENDS) $(if $(SMARTREDIS_DIR),--smartredis_dir $(SMARTREDIS_DIR) ) $(if $(USE_TORCH),--has_torch $(USE_TORCH) )--nproc $(NPROC_TEST) --pool-size $(NPROC_POOL) $(<:$(OBJDIR)/%=%)
 
 external_examples := \
 	$(if $(MFEM_DIR),$(mfemexamples)) \
@@ -686,7 +689,7 @@ ctc-% : $(ctests);@$(foreach tst,$(ctests),$(tst) /cpu/$*;)
 
 prove : $(matched)
 	$(info Testing backends: $(BACKENDS))
-	$(PROVE) $(PROVE_OPTS) --exec '$(PYTHON) tests/junit.py --mode tap --ceed-backends $(BACKENDS) $(if $(SMARTREDIS_DIR),--smartredis_dir $(SMARTREDIS_DIR) )--nproc $(NPROC_TEST) --pool-size $(NPROC_POOL)' $(matched:$(OBJDIR)/%=%)
+	$(PROVE) $(PROVE_OPTS) --exec '$(PYTHON) tests/junit.py --mode tap --ceed-backends $(BACKENDS) $(if $(SMARTREDIS_DIR),--smartredis_dir $(SMARTREDIS_DIR) ) $(if $(USE_TORCH),--has_torch $(USE_TORCH) )--nproc $(NPROC_TEST) --pool-size $(NPROC_POOL)' $(matched:$(OBJDIR)/%=%)
 # Run prove target in parallel
 prv : ;@$(MAKE) $(MFLAGS) V=$(V) prove
 
@@ -694,7 +697,7 @@ prove-all :
 	+$(MAKE) prove realsearch=%
 
 junit-% : $(OBJDIR)/%
-	@printf "  %10s %s\n" TEST $(<:$(OBJDIR)/%=%); $(PYTHON) tests/junit.py --ceed-backends $(BACKENDS) $(if $(SMARTREDIS_DIR),--smartredis_dir $(SMARTREDIS_DIR) )--nproc $(NPROC_TEST) --pool-size $(NPROC_POOL) --junit-batch $(JUNIT_BATCH) $(<:$(OBJDIR)/%=%)
+	@printf "  %10s %s\n" TEST $(<:$(OBJDIR)/%=%); $(PYTHON) tests/junit.py --ceed-backends $(BACKENDS) $(if $(SMARTREDIS_DIR),--smartredis_dir $(SMARTREDIS_DIR) ) $(if $(USE_TORCH),--has_torch $(USE_TORCH) )--nproc $(NPROC_TEST) --pool-size $(NPROC_POOL) --junit-batch $(JUNIT_BATCH) $(<:$(OBJDIR)/%=%)
 
 junit : $(matched:$(OBJDIR)/%=junit-%)
 
@@ -852,7 +855,7 @@ print-% :
 CONFIG_VARS = CC CXX FC NVCC NVCC_CXX HIPCC \
   OPT CFLAGS CPPFLAGS CXXFLAGS FFLAGS NVCCFLAGS HIPCCFLAGS SYCLFLAGS \
   AR ARFLAGS LDFLAGS LDLIBS LIBCXX SED \
-  MAGMA_DIR OCCA_DIR XSMM_DIR CUDA_DIR CUDA_ARCH MFEM_DIR PETSC_DIR NEK5K_DIR ROCM_DIR HIP_ARCH SYCL_DIR SMARTREDIS_DIR
+  MAGMA_DIR OCCA_DIR XSMM_DIR CUDA_DIR CUDA_ARCH MFEM_DIR PETSC_DIR NEK5K_DIR ROCM_DIR HIP_ARCH SYCL_DIR SMARTREDIS_DIR USE_TORCH
 
 # $(call needs_save,CFLAGS) returns true (a nonempty string) if CFLAGS
 # was set on the command line or in config.mk (where it will appear as

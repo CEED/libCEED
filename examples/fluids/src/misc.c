@@ -148,6 +148,7 @@ PetscErrorCode RegressionTest(AppCtx app_ctx, Vec Q) {
   PetscFunctionBeginUser;
   // Read reference file
   PetscCall(VecDuplicate(Q, &Qref));
+  PetscCheck(strcmp(app_ctx->test_file_path, "") != 0, comm, PETSC_ERR_FILE_READ, "File for regression test not given");
   PetscCall(PetscViewerBinaryOpen(comm, app_ctx->test_file_path, FILE_MODE_READ, &viewer));
   PetscCall(LoadFluidsBinaryVec(comm, viewer, Qref, NULL, NULL));
 
@@ -361,32 +362,6 @@ PetscErrorCode PhastaDatFileReadToArrayReal(MPI_Comm comm, const char path[PETSC
   }
 
   PetscCall(PetscFClose(comm, fp));
-  PetscFunctionReturn(PETSC_SUCCESS);
-}
-
-PetscLogEvent       FLUIDS_CeedOperatorApply;
-PetscLogEvent       FLUIDS_SmartRedis_Init;
-PetscLogEvent       FLUIDS_SmartRedis_Meta;
-PetscLogEvent       FLUIDS_SmartRedis_Train;
-PetscLogEvent       FLUIDS_TrainDataCompute;
-PetscLogEvent       FLUIDS_DifferentialFilter;
-PetscLogEvent       FLUIDS_VelocityGradientProjection;
-static PetscClassId libCEED_classid, onlineTrain_classid, misc_classid;
-
-PetscErrorCode RegisterLogEvents() {
-  PetscFunctionBeginUser;
-  PetscCall(PetscClassIdRegister("libCEED", &libCEED_classid));
-  PetscCall(PetscLogEventRegister("CeedOpApply", libCEED_classid, &FLUIDS_CeedOperatorApply));
-
-  PetscCall(PetscClassIdRegister("onlineTrain", &onlineTrain_classid));
-  PetscCall(PetscLogEventRegister("SmartRedis_Init", onlineTrain_classid, &FLUIDS_SmartRedis_Init));
-  PetscCall(PetscLogEventRegister("SmartRedis_Meta", onlineTrain_classid, &FLUIDS_SmartRedis_Meta));
-  PetscCall(PetscLogEventRegister("SmartRedis_Train", onlineTrain_classid, &FLUIDS_SmartRedis_Train));
-  PetscCall(PetscLogEventRegister("TrainDataCompute", onlineTrain_classid, &FLUIDS_TrainDataCompute));
-
-  PetscCall(PetscClassIdRegister("Miscellaneous", &misc_classid));
-  PetscCall(PetscLogEventRegister("DiffFilter", misc_classid, &FLUIDS_DifferentialFilter));
-  PetscCall(PetscLogEventRegister("VeloGradProj", misc_classid, &FLUIDS_VelocityGradientProjection));
   PetscFunctionReturn(PETSC_SUCCESS);
 }
 

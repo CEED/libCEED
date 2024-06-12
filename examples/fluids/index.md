@@ -476,12 +476,20 @@ The current data-driven model parameters are not accurate and are for regression
 There are two different modes for using the data-driven model: fused and sequential.
 
 In fused mode, the input processing, model inference, and output handling were all done in a single CeedOperator.
-Conversely, sequential mode has separate function calls/CeedOperators for input creation, model inference, and output handling.
-By separating the three steps to the model evaluation, the sequential mode allows for functions calling external libraries to be used for the model inference step.
-This however is slower than the fused kernel, but this requires a native libCEED inference implementation.
+Fused mode is generally faster than the sequential mode, however fused mode requires that the model architecture be manually implemented into a libCEED QFunction.
+To use the fused mode, set `-sgs_model_dd_implementation fused`.
 
-To use the fused mode, set `-sgs_model_dd_use_fused true`.
-To use the sequential mode, set the same flag to `false`.
+Sequential mode has separate function calls/CeedOperators for input creation, model inference, and output handling.
+By separating the three steps of the model evaluation, the sequential mode allows for functions calling external libraries to be used for the model inference step.
+The use of these external libraries allows us to leverage the flexibility of those external libraries in their model architectures.
+
+PyTorch is currently the only external library implemented with the sequential mode.
+This is enabled with `USE_TORCH=1` during the build process, which will use the PyTorch accessible from the build environment's Python interpreter.
+To specify the path to the PyTorch model file, use `-sgs_model_dd_torch_model_path`.
+The hardware used to run the model inference is determined automatically from the libCEED backend chosen, but can be overridden with `-sgs_model_dd_torch_model_device`.
+Note that if you chose to run the inference on host while using a GPU libCEED backend (e.g. `/gpu/cuda`), then host-to-device transfers (and vice versa) will be done automatically.
+
+The sequential mode is available using a libCEED based inference evaluation via `-sgs_model_dd_implementation sequential_ceed`, but it is only for verification purposes.
 
 (differential-filtering)=
 ### Differential Filtering
