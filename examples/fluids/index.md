@@ -317,6 +317,112 @@ Note that this wave speed is specific to ideal gases as $\gamma$ is an ideal gas
 Currently, this demo provides three types of problems/physical models that can be selected at run time via the option `-problem`.
 {ref}`problem-advection`, the problem of the transport of energy in a uniform vector velocity field, {ref}`problem-euler-vortex`, the exact solution to the Euler equations, and the so called {ref}`problem-density-current` problem.
 
+### Statistics Collection
+For scale-resolving simulations (such as LES and DNS), statistics for a simulation are more often useful than time-instantaneous snapshots of the simulation itself.
+To make this process more computationally efficient, averaging in the spanwise direction, if physically correct, can help reduce the amount of simulation time needed to get converged statistics.
+
+First, let's more precisely define what we mean by spanwise average.
+Denote $\langle \phi \rangle$ as the Reynolds average of $\phi$, which in this case would be a average over the spanwise direction and time:
+
+$$
+\langle \phi \rangle(x,y) = \frac{1}{L_z + (T_f - T_0)}\int_0^{L_z} \int_{T_0}^{T_f} \phi(x, y, z, t) \mathrm{d}t \mathrm{d}z
+$$
+
+where $z$ is the spanwise direction, the domain has size $[0, L_z]$ in the spanwise direction, and $[T_0, T_f]$ is the range of time being averaged over.
+Note that here and in the code, **we assume the spanwise direction to be in the $z$ direction**.
+
+To discuss the details of the implementation we'll first discuss the spanwise integral, then the temporal integral, and lastly the statistics themselves.
+
+#### Spanwise Integral
+The function $\langle \phi \rangle (x,y)$ is represented on a 2-D finite element grid, taken from the full domain mesh itself.
+If isoperiodicity is set, the periodic face is extracted as the spanwise statistics mesh.
+Otherwise the negative z face is used.
+We'll refer to this mesh as the *parent grid*, as for every "parent" point in the parent grid, there are many "child" points in the full domain.
+Define a function space on the parent grid as $\mathcal{V}_p^\mathrm{parent} = \{ \bm v(\bm x) \in H^{1}(\Omega_e^\mathrm{parent}) \,|\, \bm v(\bm x_e(\bm X)) \in P_p(\bm{I}), e=1,\ldots,N_e \}$.
+We enforce that the order of the parent FEM space is equal to the full domain's order.
+
+Many statistics are the product of 2 or more solution functions, which results in functions of degree higher than the parent FEM space, $\mathcal{V}_p^\mathrm{parent}$.
+To represent these higher-order functions on the parent FEM space, we perform an $L^2$ projection.
+Define the spanwise averaged function as:
+
+$$
+\langle \phi \rangle_z(x,y,t) = \frac{1}{L_z} \int_0^{L_z} \phi(x, y, z, t) \mathrm{d}z
+$$
+
+where the function $\phi$ may be the product of multiple solution functions and $\langle \phi \rangle_z$ denotes the spanwise average.
+The projection of a function $u$ onto the parent FEM space would look like:
+
+$$
+\bm M u_N = \int_0^{L_x} \int_0^{L_y} u \psi^\mathrm{parent}_N \mathrm{d}y \mathrm{d}x
+$$
+where $\bm M$ is the mass matrix for $\mathcal{V}_p^\mathrm{parent}$, $u_N$ the coefficients of the projected function, and $\psi^\mathrm{parent}_N$ the basis functions of the parent FEM space.
+Substituting the spanwise average of $\phi$ for $u$, we get:
+
+$$
+\bm M [\langle \phi \rangle_z]_N = \int_0^{L_x} \int_0^{L_y} \left [\frac{1}{L_z} \int_0^{L_z} \phi(x,y,z,t) \mathrm{d}z \right ] \psi^\mathrm{parent}_N(x,y) \mathrm{d}y \mathrm{d}x
+$$
+
+The triple integral in the right hand side is just an integral over the full domain
+
+$$
+\bm M [\langle \phi \rangle_z]_N = \frac{1}{L_z} \int_\Omega \phi(x,y,z,t) \psi^\mathrm{parent}_N(x,y) \mathrm{d}\Omega
+$$
+
+We need to evaluate $\psi^\mathrm{parent}_N$ at quadrature points in the full domain.
+To do this efficiently, **we assume and exploit the full domain grid to be a tensor product in the spanwise direction**.
+This assumption means quadrature points in the full domain have the same $(x,y)$ coordinate location as quadrature points in the parent domain.
+This also allows the use of the full domain quadrature weights for the triple integral.
+
+#### Temporal Integral/Averaging
+To calculate the temporal integral, we do a running average using left-rectangle rule.
+At the beginning of each simulation, the time integral of a statistic is set to 0, $\overline{\phi} = 0$.
+Periodically, the integral is updated using left-rectangle rule:
+
+$$\overline{\phi}_\mathrm{new} = \overline{\phi}_{\mathrm{old}} + \phi(t_\mathrm{new}) \Delta T$$
+where $\phi(t_\mathrm{new})$ is the statistic at the current time and $\Delta T$ is the time since the last update.
+When stats are written out to file, this running sum is then divided by $T_f - T_0$ to get the time average.
+
+With this method of calculating the running time average, we can plug this into the $L^2$ projection of the spanwise integral:
+
+$$
+\bm M [\langle \phi \rangle]_N = \frac{1}{L_z + (T_f - T_0)} \int_\Omega \int_{T_0}^{T_f} \phi(x,y,z,t) \psi^\mathrm{parent}_N \mathrm{d}t \mathrm{d}\Omega
+$$
+where the integral $\int_{T_0}^{T_f} \phi(x,y,z,t) \mathrm{d}t$ is calculated on a running basis.
+
+
+#### Running
+As the simulation runs, it takes a running time average of the statistics at the full domain quadrature points.
+This running average is only updated at the interval specified by `-ts_monitor_turbulence_spanstats_collect_interval` as number of timesteps.
+The $L^2$ projection problem is only solved when statistics are written to file, which is controlled by `-ts_monitor_turbulence_spanstats_viewer_interval`.
+Note that the averaging is not reset after each file write.
+The average is always over the bounds $[T_0, T_f]$, where $T_f$ in this case would be the time the file was written at and $T_0$ is the solution time at the beginning of the run.
+
+#### Turbulent Statistics
+
+The focus here are those statistics that are relevant to turbulent flow.
+The terms collected are listed below, with the mathematical definition on the left and the label (present in CGNS output files) is on the right.
+
+| Math                           | Label                           |
+| -----------------              | --------                        |
+| $\langle \rho \rangle$         | MeanDensity                     |
+| $\langle p \rangle$            | MeanPressure                    |
+| $\langle p^2 \rangle$          | MeanPressureSquared             |
+| $\langle p u_i \rangle$        | MeanPressureVelocity[$i$]       |
+| $\langle \rho T \rangle$       | MeanDensityTemperature          |
+| $\langle \rho T u_i \rangle$   | MeanDensityTemperatureFlux[$i$] |
+| $\langle \rho u_i \rangle$     | MeanMomentum[$i$]               |
+| $\langle \rho u_i u_j \rangle$ | MeanMomentumFlux[$ij$]          |
+| $\langle u_i \rangle$          | MeanVelocity[$i$]               |
+
+where [$i$] are suffixes to the labels. So $\langle \rho u_x u_y \rangle$ would correspond to MeanMomentumFluxXY.
+This naming convention attempts to mimic the CGNS standard.
+
+To get second-order statistics from these terms, simply use the identity:
+
+$$
+\langle \phi' \theta' \rangle = \langle \phi \theta \rangle - \langle \phi \rangle \langle \theta \rangle
+$$
+
 ### Subgrid Stress Modeling
 
 When a fluid simulation is under-resolved (the smallest length scale resolved by the grid is much larger than the smallest physical scale, the [Kolmogorov length scale](https://en.wikipedia.org/wiki/Kolmogorov_microscales)), this is mathematically interpreted as filtering the Navier-Stokes equations.
