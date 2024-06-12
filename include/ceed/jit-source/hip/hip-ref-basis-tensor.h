@@ -47,14 +47,11 @@ extern "C" __global__ void Interp(const CeedInt num_elem, const CeedInt is_trans
       CeedInt           pre   = u_size;
       CeedInt           post  = 1;
 
-      for (CeedInt k = i; k < u_size; k += blockDim.x) {
-        s_buffer_1[k] = cur_u[k];
-      }
       for (CeedInt d = 0; d < BASIS_DIM; d++) {
         __syncthreads();
         // Update buffers used
         pre /= P;
-        const CeedScalar *in       = d % 2 ? s_buffer_2 : s_buffer_1;
+        const CeedScalar *in       = d == 0 ? cur_u : (d % 2 ? s_buffer_2 : s_buffer_1);
         CeedScalar       *out      = d == BASIS_DIM - 1 ? cur_v : (d % 2 ? s_buffer_1 : s_buffer_2);
         const CeedInt     writeLen = pre * post * Q;
 
