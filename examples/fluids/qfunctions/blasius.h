@@ -158,11 +158,9 @@ CEED_QFUNCTION(Blasius_Inflow)(void *ctx, CeedInt Q, const CeedScalar *const *in
     if (context->weakT) {  // density from the current solution
       s.U.density = s_int.U.density;
       s.Y         = StatePrimitiveFromConservative(gas, s.U);
-      s.V         = StateEntropyFromConservative(gas, s.U);
     } else {  // Total energy from current solution
       s.U.E_total = s_int.U.E_total;
       s.Y         = StatePrimitiveFromConservative(gas, s.U);
-      s.V         = StateEntropyFromConservative(gas, s.U);
     }
 
     StateConservative Flux_inviscid[3];
