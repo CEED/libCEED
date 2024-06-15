@@ -85,9 +85,9 @@ static PetscErrorCode TestState_fwd(StateVariable state_var_A, StateVariable sta
     {  // Calculate dB using State functions
       CeedScalar dA[5] = {0};
 
-      dA[i]    = A0[i];
-      State ds = StateFromQ_fwd(gas, state_0, dA, state_var_A);
-      StateToQ(gas, ds, dB, state_var_B);
+      dA[i]          = A0[i];
+      State dstate_0 = StateFromQ_fwd(gas, state_0, dA, state_var_A);
+      StateToQ_fwd(gas, state_0, dstate_0, dB, state_var_B);
     }
 
     {  // Calculate dB_fd via finite difference approximation
