@@ -373,8 +373,9 @@ PetscErrorCode CreateStatisticCollectionOperator(Ceed ceed, User user, CeedData 
     case STATEVAR_CONSERVATIVE:
       PetscCallCeed(ceed, CeedQFunctionCreateInterior(ceed, 1, ChildStatsCollection_Conserv, ChildStatsCollection_Conserv_loc, &qf_stats_collect));
       break;
-    default:
-      SETERRQ(PetscObjectComm((PetscObject)user->dm), PETSC_ERR_SUP, "No statisics collection available for chosen state variable");
+    case STATEVAR_ENTROPY:
+      PetscCallCeed(ceed, CeedQFunctionCreateInterior(ceed, 1, ChildStatsCollection_Entropy, ChildStatsCollection_Entropy_loc, &qf_stats_collect));
+      break;
   }
 
   if (user->spanstats.do_mms_test) {

@@ -304,6 +304,16 @@ PetscErrorCode NS_NEWTONIAN_IG(ProblemData problem, DM dm, void *ctx, SimpleBC b
       problem->apply_inflow_jacobian.qfunction_loc = BoundaryIntegral_Jacobian_Prim_loc;
       break;
     case STATEVAR_ENTROPY:
+      problem->ics.qfunction                       = ICsNewtonianIG_Entropy;
+      problem->ics.qfunction_loc                   = ICsNewtonianIG_Entropy_loc;
+      problem->apply_vol_ifunction.qfunction       = IFunction_Newtonian_Entropy;
+      problem->apply_vol_ifunction.qfunction_loc   = IFunction_Newtonian_Entropy_loc;
+      problem->apply_vol_ijacobian.qfunction       = IJacobian_Newtonian_Entropy;
+      problem->apply_vol_ijacobian.qfunction_loc   = IJacobian_Newtonian_Entropy_loc;
+      problem->apply_inflow.qfunction              = BoundaryIntegral_Entropy;
+      problem->apply_inflow.qfunction_loc          = BoundaryIntegral_Entropy_loc;
+      problem->apply_inflow_jacobian.qfunction     = BoundaryIntegral_Jacobian_Entropy;
+      problem->apply_inflow_jacobian.qfunction_loc = BoundaryIntegral_Jacobian_Entropy_loc;
       break;
   }
 

@@ -106,6 +106,10 @@ CEED_QFUNCTION(ComputeSgsDDNodal_Conserv)(void *ctx, CeedInt Q, const CeedScalar
   return ComputeSgsDDNodal_Fused(ctx, Q, in, out, STATEVAR_CONSERVATIVE);
 }
 
+CEED_QFUNCTION(ComputeSgsDDNodal_Entropy)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
+  return ComputeSgsDDNodal_Fused(ctx, Q, in, out, STATEVAR_ENTROPY);
+}
+
 // @brief Calculate inputs to anisotropic data-driven model
 CEED_QFUNCTION_HELPER int ComputeSgsDDNodal_Sequential_Inputs(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out,
                                                               StateVariable state_var) {
@@ -147,6 +151,10 @@ CEED_QFUNCTION(ComputeSgsDDNodal_Sequential_Inputs_Prim)(void *ctx, CeedInt Q, c
 
 CEED_QFUNCTION(ComputeSgsDDNodal_Sequential_Inputs_Conserv)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
   return ComputeSgsDDNodal_Sequential_Inputs(ctx, Q, in, out, STATEVAR_CONSERVATIVE);
+}
+
+CEED_QFUNCTION(ComputeSgsDDNodal_Sequential_Inputs_Entropy)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
+  return ComputeSgsDDNodal_Sequential_Inputs(ctx, Q, in, out, STATEVAR_ENTROPY);
 }
 
 // @brief Runs inference on the data-driven model, used predominantsly for testing and validation
@@ -244,4 +252,8 @@ CEED_QFUNCTION(IFunction_NodalSgs_Conserv)(void *ctx, CeedInt Q, const CeedScala
 
 CEED_QFUNCTION(IFunction_NodalSgs_Prim)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
   return IFunction_NodalSgs(ctx, Q, in, out, STATEVAR_PRIMITIVE);
+}
+
+CEED_QFUNCTION(IFunction_NodalSgs_Entropy)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
+  return IFunction_NodalSgs(ctx, Q, in, out, STATEVAR_ENTROPY);
 }

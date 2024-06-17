@@ -307,6 +307,11 @@ PetscErrorCode SetupStrongStg(DM dm, SimpleBC bc, ProblemData problem, Physics p
       // {1,2,3,4} for u, v, w, T
       for (int i = 0; i < 4; i++) comps[i] = i + 1;
       break;
+
+    case STATEVAR_ENTROPY:
+      // {1,2,3,4}
+      for (int i = 0; i < 4; i++) comps[i] = i + 1;
+      break;
   }
 
   PetscCall(DMGetLabel(dm, "Face Sets", &label));
