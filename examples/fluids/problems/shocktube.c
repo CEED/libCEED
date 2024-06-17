@@ -40,7 +40,7 @@ PetscErrorCode NS_SHOCKTUBE(ProblemData problem, DM dm, void *ctx, SimpleBC bc) 
   problem->apply_vol_rhs.qfunction_loc       = EulerShockTube_loc;
   problem->apply_vol_ifunction.qfunction     = NULL;
   problem->apply_vol_ifunction.qfunction_loc = NULL;
-  problem->non_zero_time                     = PETSC_FALSE;
+  problem->compute_exact_solution_error      = PETSC_FALSE;
   problem->print_info                        = PRINT_SHOCKTUBE;
 
   // ------------------------------------------------------

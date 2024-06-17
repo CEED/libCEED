@@ -285,8 +285,8 @@ struct ProblemData_private {
   CeedScalar           dm_scale;
   ProblemQFunctionSpec ics, apply_vol_rhs, apply_vol_ifunction, apply_vol_ijacobian, apply_inflow, apply_outflow, apply_freestream, apply_slip,
       apply_inflow_jacobian, apply_outflow_jacobian, apply_freestream_jacobian, apply_slip_jacobian;
-  bool          non_zero_time;
-  PetscBool     bc_from_ics, use_strong_bc_ceed, uses_newtonian;
+  bool          compute_exact_solution_error;
+  PetscBool     set_bc_from_ics, use_strong_bc_ceed, uses_newtonian;
   size_t        num_bc_defs;
   BCDefinition *bc_defs;
   PetscErrorCode (*print_info)(User, ProblemData, AppCtx);

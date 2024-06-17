@@ -90,10 +90,10 @@ int main(int argc, char **argv) {
   Units units;
   PetscCall(PetscCalloc1(1, &units));
 
-  user->app_ctx        = app_ctx;
-  user->units          = units;
-  user->phys           = phys_ctx;
-  problem->bc_from_ics = PETSC_TRUE;
+  user->app_ctx            = app_ctx;
+  user->units              = units;
+  user->phys               = phys_ctx;
+  problem->set_bc_from_ics = PETSC_TRUE;
 
   PetscCall(RegisterLogEvents());
 
@@ -210,7 +210,7 @@ int main(int argc, char **argv) {
   //    We use this for the main simulation DM because the reference DMPlexInsertBoundaryValues() is very slow on the GPU due to extra device-to-host
   //    communication. If we disable this, we should still get the same results due to the problem->bc function, but with potentially much slower
   //    execution.
-  if (problem->bc_from_ics) {
+  if (problem->set_bc_from_ics) {
     PetscCall(SetBCsFromICs(dm, Q, user->Q_loc));
   }
 
