@@ -278,7 +278,7 @@ PetscErrorCode SetupStg(const MPI_Comm comm, const DM dm, ProblemData problem, U
   if (use_stgstrong) {
     // Use default boundary integral QF (BoundaryIntegral) in newtonian.h
     problem->use_strong_bc_ceed = PETSC_TRUE;
-    problem->bc_from_ics        = PETSC_FALSE;
+    problem->set_bc_from_ics    = PETSC_FALSE;
   } else {
     problem->apply_inflow.qfunction              = StgShur14Inflow;
     problem->apply_inflow.qfunction_loc          = StgShur14Inflow_loc;
@@ -286,7 +286,7 @@ PetscErrorCode SetupStg(const MPI_Comm comm, const DM dm, ProblemData problem, U
     problem->apply_inflow_jacobian.qfunction_loc = StgShur14Inflow_Jacobian_loc;
     PetscCallCeed(ceed, CeedQFunctionContextReferenceCopy(stg_context, &problem->apply_inflow.qfunction_context));
     PetscCallCeed(ceed, CeedQFunctionContextReferenceCopy(stg_context, &problem->apply_inflow_jacobian.qfunction_context));
-    problem->bc_from_ics = PETSC_TRUE;
+    problem->set_bc_from_ics = PETSC_TRUE;
   }
   PetscFunctionReturn(PETSC_SUCCESS);
 }

@@ -201,7 +201,7 @@ PetscErrorCode PostProcess(TS ts, CeedData ceed_data, DM dm, ProblemData problem
 
   PetscFunctionBeginUser;
   // Print relative error
-  if (problem->non_zero_time && user->app_ctx->test_type == TESTTYPE_NONE) {
+  if (problem->compute_exact_solution_error && user->app_ctx->test_type == TESTTYPE_NONE) {
     PetscCall(PrintError(ceed_data, dm, user, Q, final_time));
   }
 

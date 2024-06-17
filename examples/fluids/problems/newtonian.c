@@ -136,11 +136,11 @@ PetscErrorCode NS_NEWTONIAN_IG(ProblemData problem, DM dm, void *ctx, SimpleBC b
   // ------------------------------------------------------
   //           Setup Generic Newtonian IG Problem
   // ------------------------------------------------------
-  problem->dim               = 3;
-  problem->jac_data_size_sur = 11;
-  problem->non_zero_time     = PETSC_FALSE;
-  problem->print_info        = PRINT_NEWTONIAN;
-  problem->uses_newtonian    = PETSC_TRUE;
+  problem->dim                          = 3;
+  problem->jac_data_size_sur            = 11;
+  problem->compute_exact_solution_error = PETSC_FALSE;
+  problem->print_info                   = PRINT_NEWTONIAN;
+  problem->uses_newtonian               = PETSC_TRUE;
 
   // ------------------------------------------------------
   //             Create the libCEED context
