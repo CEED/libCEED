@@ -615,7 +615,7 @@ For the Density Current, Channel, and Blasius problems, the following common com
   - boolean
 
 * - `-state_var`
-  - State variables to solve solution with. `conservative` ($\rho, \rho \bm{u}, \rho e$) or `primitive` ($P, \bm{u}, T$)
+  - State variables to solve solution with. `conservative` ($\rho, \rho \bm{u}, \rho e$), `primitive` ($P, \bm{u}, T$), or `entropy` ($\frac{\gamma - s}{\gamma - 1} - \frac{\rho}{P} (e - c_v T),\ \frac{\rho}{P} \bm{u},\ -\frac{\rho}{P}$) where  $s = \ln(P\rho^{-\gamma})$
   - `conservative`
   - string
 

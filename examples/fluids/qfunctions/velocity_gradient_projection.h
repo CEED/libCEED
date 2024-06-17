@@ -47,3 +47,7 @@ CEED_QFUNCTION(VelocityGradientProjectionRHS_Conserv)(void *ctx, CeedInt Q, cons
 CEED_QFUNCTION(VelocityGradientProjectionRHS_Prim)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
   return VelocityGradientProjectionRHS(ctx, Q, in, out, STATEVAR_PRIMITIVE);
 }
+
+CEED_QFUNCTION(VelocityGradientProjectionRHS_Entropy)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
+  return VelocityGradientProjectionRHS(ctx, Q, in, out, STATEVAR_ENTROPY);
+}

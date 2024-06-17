@@ -64,21 +64,14 @@ CEED_QFUNCTION(ICsChannel)(void *ctx, CeedInt Q, const CeedScalar *const *in, Ce
   const CeedScalar(*X)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[0];
   CeedScalar(*q0)[CEED_Q_VLA]      = (CeedScalar(*)[CEED_Q_VLA])out[0];
 
-  const ChannelContext context = (ChannelContext)ctx;
+  const ChannelContext           context = (ChannelContext)ctx;
+  const NewtonianIdealGasContext gas     = &context->newtonian_ctx;
 
   CeedPragmaSIMD for (CeedInt i = 0; i < Q; i++) {
     const CeedScalar x[]  = {X[0][i], X[1][i], X[2][i]};
     State            s    = Exact_Channel(3, 0., x, 5, ctx);
     CeedScalar       q[5] = {0};
-    switch (context->newtonian_ctx.state_var) {
-      case STATEVAR_CONSERVATIVE:
-        UnpackState_U(s.U, q);
-        break;
-      case STATEVAR_PRIMITIVE:
-        UnpackState_Y(s.Y, q);
-        break;
-    }
-
+    StateToQ(gas, s, q, gas->state_var);
     for (CeedInt j = 0; j < 5; j++) q0[j][i] = q[j];
   }
   return 0;
