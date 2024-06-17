@@ -282,7 +282,7 @@ int CeedBasisApplyAtPoints_Cuda_shared(CeedBasis basis, const CeedInt num_elem, 
     } break;
     case CEED_EVAL_GRAD: {
       void         *grad_args[] = {(void *)&num_elem, (void *)&is_transpose, &data->d_chebyshev_interp_1d, &d_x, &d_u, &d_v};
-      const CeedInt block_size  = max_block_size;
+      const CeedInt block_size  = CeedIntMin(CeedIntPow(Q_1d, dim), max_block_size);
 
       CeedCallBackend(CeedRunKernel_Cuda(ceed, data->GradAtPoints, num_elem, block_size, grad_args));
     } break;

@@ -80,7 +80,8 @@ extern "C" __global__ void InterpAtPoints(const CeedInt num_elem, const CeedInt 
         }
 
         // Map from point
-        for (CeedInt p = blockIdx.x; p < BASIS_NUM_PTS; p += gridDim.x) {
+        __syncthreads();
+        for (CeedInt p = threadIdx.x; p < BASIS_NUM_PTS; p += blockDim.x) {
           pre  = 1;
           post = 1;
           for (CeedInt d = 0; d < BASIS_DIM; d++) {
@@ -96,7 +97,7 @@ extern "C" __global__ void InterpAtPoints(const CeedInt num_elem, const CeedInt 
             for (CeedInt a = 0; a < pre; a++) {
               for (CeedInt c = 0; c < post; c++) {
                 if (d == BASIS_DIM - 1) {
-                  for (CeedInt j = 0; j < Q; j++) out[(a * Q + j) * post + c] += chebyshev_x[j] * in[a * post + c];
+                  for (CeedInt j = 0; j < Q; j++) atomicAdd(&out[(a * Q + j) * post + c], chebyshev_x[j] * in[a * post + c]);
                 } else {
                   for (CeedInt j = 0; j < Q; j++) out[(a * Q + j) * post + c] = chebyshev_x[j] * in[a * post + c];
                 }
@@ -163,7 +164,7 @@ extern "C" __global__ void InterpAtPoints(const CeedInt num_elem, const CeedInt 
 
         // Map to point
         __syncthreads();
-        for (CeedInt p = blockIdx.x; p < BASIS_NUM_PTS; p += gridDim.x) {
+        for (CeedInt p = threadIdx.x; p < BASIS_NUM_PTS; p += blockDim.x) {
           pre  = BASIS_NUM_QPTS;
           post = 1;
           for (CeedInt d = 0; d < BASIS_DIM; d++) {
@@ -233,7 +234,8 @@ extern "C" __global__ void GradAtPoints(const CeedInt num_elem, const CeedInt is
         }
 
         // Map from point
-        for (CeedInt p = blockIdx.x; p < BASIS_NUM_PTS; p += gridDim.x) {
+        __syncthreads();
+        for (CeedInt p = threadIdx.x; p < BASIS_NUM_PTS; p += blockDim.x) {
           for (CeedInt dim_1 = 0; dim_1 < BASIS_DIM; dim_1++) {
             const CeedScalar *cur_u = u + elem * u_stride + dim_1 * u_dim_stride + comp * u_comp_stride;
 
@@ -253,7 +255,7 @@ extern "C" __global__ void GradAtPoints(const CeedInt num_elem, const CeedInt is
               for (CeedInt a = 0; a < pre; a++) {
                 for (CeedInt c = 0; c < post; c++) {
                   if (dim_2 == BASIS_DIM - 1) {
-                    for (CeedInt j = 0; j < Q; j++) out[(a * Q + j) * post + c] += chebyshev_x[j] * in[a * post + c];
+                    for (CeedInt j = 0; j < Q; j++) atomicAdd(&out[(a * Q + j) * post + c], chebyshev_x[j] * in[a * post + c]);
                   } else {
                     for (CeedInt j = 0; j < Q; j++) out[(a * Q + j) * post + c] = chebyshev_x[j] * in[a * post + c];
                   }
@@ -320,7 +322,7 @@ extern "C" __global__ void GradAtPoints(const CeedInt num_elem, const CeedInt is
 
         // Map to point
         __syncthreads();
-        for (CeedInt p = blockIdx.x; p < BASIS_NUM_PTS; p += gridDim.x) {
+        for (CeedInt p = threadIdx.x; p < BASIS_NUM_PTS; p += blockDim.x) {
           for (CeedInt dim_1 = 0; dim_1 < BASIS_DIM; dim_1++) {
             CeedScalar *cur_v = v + elem * v_stride + dim_1 * v_dim_stride + comp * v_comp_stride;
 
