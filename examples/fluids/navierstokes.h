@@ -33,23 +33,22 @@ typedef enum {
   EULER_TEST_4                 = 4,
   EULER_TEST_5                 = 5,
 } EulerTestType;
-static const char *const EulerTestTypes[] = {"isentropic_vortex", "test_1",      "test_2", "test_3", "test_4", "test_5",
-                                             "EulerTestType",     "EULER_TEST_", NULL};
+static const char *const EulerTestTypes[] = {"ISENTROPIC_VORTEX", "1", "2", "3", "4", "5", "EulerTestType", "EULER_TEST_", NULL};
 
 // Advection - Wind types
-static const char *const WindTypes[] = {"rotation", "translation", "WindType", "WIND_", NULL};
+static const char *const WindTypes[] = {"ROTATION", "TRANSLATION", "WindType", "WIND_", NULL};
 
 // Advection - Initial Condition Types
-static const char *const AdvectionICTypes[] = {"sphere", "cylinder", "cosine_hill", "skew", "AdvectionICType", "ADVECTIONIC_", NULL};
+static const char *const AdvectionICTypes[] = {"SPHERE", "CYLINDER", "COSINE_HILL", "SKEW", "AdvectionICType", "ADVECTIONIC_", NULL};
 
 // Advection - Bubble Continuity Types
-static const char *const BubbleContinuityTypes[] = {"smooth", "back_sharp", "thick", "cosine", "BubbleContinuityType", "BUBBLE_CONTINUITY_", NULL};
+static const char *const BubbleContinuityTypes[] = {"SMOOTH", "BACK_SHARP", "THICK", "COSINE", "BubbleContinuityType", "BUBBLE_CONTINUITY_", NULL};
 
 // Stabilization methods
-static const char *const StabilizationTypes[] = {"none", "SU", "SUPG", "StabilizationType", "STAB_", NULL};
+static const char *const StabilizationTypes[] = {"NONE", "SU", "SUPG", "StabilizationType", "STAB_", NULL};
 
 // Stabilization tau constants
-static const char *const StabilizationTauTypes[] = {"Ctau", "AdvDiff_Shakib", "AdvDiff_Shakib_P", "StabilizationTauType", "STAB_TAU_", NULL};
+static const char *const StabilizationTauTypes[] = {"CTAU", "ADVDIFF_SHAKIB", "ADVDIFF_SHAKIB_P", "StabilizationTauType", "STAB_TAU_", NULL};
 
 // Test mode type
 typedef enum {
@@ -58,14 +57,14 @@ typedef enum {
   TESTTYPE_TURB_SPANSTATS = 2,
   TESTTYPE_DIFF_FILTER    = 3,
 } TestType;
-static const char *const TestTypes[] = {"none", "solver", "turb_spanstats", "diff_filter", "TestType", "TESTTYPE_", NULL};
+static const char *const TestTypes[] = {"NONE", "SOLVER", "TURB_SPANSTATS", "DIFF_FILTER", "TestType", "TESTTYPE_", NULL};
 
 // Subgrid-Stress mode type
 typedef enum {
   SGS_MODEL_NONE        = 0,
   SGS_MODEL_DATA_DRIVEN = 1,
 } SGSModelType;
-static const char *const SGSModelTypes[] = {"none", "data_driven", "SGSModelType", "SGS_MODEL_", NULL};
+static const char *const SGSModelTypes[] = {"NONE", "DATA_DRIVEN", "SGSModelType", "SGS_MODEL_", NULL};
 
 // Subgrid-Stress mode type
 typedef enum {
@@ -73,7 +72,7 @@ typedef enum {
   SGS_MODEL_DD_SEQENTIAL_CEED  = 1,
   SGS_MODEL_DD_SEQENTIAL_TORCH = 2,
 } SGSModelDDImplementation;
-static const char *const SGSModelDDImplementations[] = {"fused", "sequential_ceed", "sequential_torch", "SGSModelDDImplementation", "SGS_MODEL_DD_",
+static const char *const SGSModelDDImplementations[] = {"FUSED", "SEQUENTIAL_CEED", "SEQUENTIAL_TORCH", "SGSModelDDImplementation", "SGS_MODEL_DD_",
                                                         NULL};
 
 // Mesh transformation type
@@ -81,10 +80,10 @@ typedef enum {
   MESH_TRANSFORM_NONE      = 0,
   MESH_TRANSFORM_PLATEMESH = 1,
 } MeshTransformType;
-static const char *const MeshTransformTypes[] = {"none", "platemesh", "MeshTransformType", "MESH_TRANSFORM_", NULL};
+static const char *const MeshTransformTypes[] = {"NONE", "PLATEMESH", "MeshTransformType", "MESH_TRANSFORM_", NULL};
 
 static const char *const DifferentialFilterDampingFunctions[] = {
-    "none", "van_driest", "mms", "DifferentialFilterDampingFunction", "DIFF_FILTER_DAMP_", NULL};
+    "NONE", "VAN_DRIEST", "MMS", "DifferentialFilterDampingFunction", "DIFF_FILTER_DAMP_", NULL};
 
 // -----------------------------------------------------------------------------
 // Structs

@@ -16,7 +16,7 @@
 #include "../navierstokes.h"
 
 // For use with PetscOptionsEnum
-static const char *const StateVariables[] = {"conservative", "primitive", "entropy", "StateVariable", "STATEVAR_", NULL};
+static const char *const StateVariables[] = {"CONSERVATIVE", "PRIMITIVE", "ENTROPY", "StateVariable", "STATEVAR_", NULL};
 
 static PetscErrorCode CheckQWithTolerance(const CeedScalar Q_s[5], const CeedScalar Q_a[5], const CeedScalar Q_b[5], const char *name,
                                           PetscReal rtol_0, PetscReal rtol_u, PetscReal rtol_4) {
