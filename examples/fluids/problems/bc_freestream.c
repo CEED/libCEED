@@ -16,7 +16,7 @@
 #include "../navierstokes.h"
 #include "../qfunctions/newtonian_types.h"
 
-static const char *const RiemannSolverTypes[] = {"hll", "hllc", "RiemannSolverTypes", "RIEMANN_", NULL};
+static const char *const RiemannSolverTypes[] = {"HLL", "HLLC", "RiemannSolverTypes", "RIEMANN_", NULL};
 
 PetscErrorCode FreestreamBCSetup(ProblemData problem, DM dm, void *ctx, NewtonianIdealGasContext newtonian_ig_ctx, const StatePrimitive *reference) {
   User                 user = *(User *)ctx;
@@ -75,6 +75,22 @@ PetscErrorCode FreestreamBCSetup(ProblemData problem, DM dm, void *ctx, Newtonia
           problem->apply_freestream.qfunction_loc          = Freestream_Prim_HLLC_loc;
           problem->apply_freestream_jacobian.qfunction     = Freestream_Jacobian_Prim_HLLC;
           problem->apply_freestream_jacobian.qfunction_loc = Freestream_Jacobian_Prim_HLLC_loc;
+          break;
+      }
+      break;
+    case STATEVAR_ENTROPY:
+      switch (riemann) {
+        case RIEMANN_HLL:
+          problem->apply_freestream.qfunction              = Freestream_Entropy_HLL;
+          problem->apply_freestream.qfunction_loc          = Freestream_Entropy_HLL_loc;
+          problem->apply_freestream_jacobian.qfunction     = Freestream_Jacobian_Entropy_HLL;
+          problem->apply_freestream_jacobian.qfunction_loc = Freestream_Jacobian_Entropy_HLL_loc;
+          break;
+        case RIEMANN_HLLC:
+          problem->apply_freestream.qfunction              = Freestream_Entropy_HLLC;
+          problem->apply_freestream.qfunction_loc          = Freestream_Entropy_HLLC_loc;
+          problem->apply_freestream_jacobian.qfunction     = Freestream_Jacobian_Entropy_HLLC;
+          problem->apply_freestream_jacobian.qfunction_loc = Freestream_Jacobian_Entropy_HLLC_loc;
           break;
       }
       break;
@@ -148,6 +164,12 @@ PetscErrorCode OutflowBCSetup(ProblemData problem, DM dm, void *ctx, NewtonianId
           problem->apply_outflow_jacobian.qfunction     = RiemannOutflow_Jacobian_Prim;
           problem->apply_outflow_jacobian.qfunction_loc = RiemannOutflow_Jacobian_Prim_loc;
           break;
+        case STATEVAR_ENTROPY:
+          problem->apply_outflow.qfunction              = RiemannOutflow_Entropy;
+          problem->apply_outflow.qfunction_loc          = RiemannOutflow_Entropy_loc;
+          problem->apply_outflow_jacobian.qfunction     = RiemannOutflow_Jacobian_Entropy;
+          problem->apply_outflow_jacobian.qfunction_loc = RiemannOutflow_Jacobian_Entropy_loc;
+          break;
       }
       break;
     case OUTFLOW_PRESSURE:
@@ -163,6 +185,12 @@ PetscErrorCode OutflowBCSetup(ProblemData problem, DM dm, void *ctx, NewtonianId
           problem->apply_outflow.qfunction_loc          = PressureOutflow_Prim_loc;
           problem->apply_outflow_jacobian.qfunction     = PressureOutflow_Jacobian_Prim;
           problem->apply_outflow_jacobian.qfunction_loc = PressureOutflow_Jacobian_Prim_loc;
+          break;
+        case STATEVAR_ENTROPY:
+          problem->apply_outflow.qfunction              = PressureOutflow_Entropy;
+          problem->apply_outflow.qfunction_loc          = PressureOutflow_Entropy_loc;
+          problem->apply_outflow_jacobian.qfunction     = PressureOutflow_Jacobian_Entropy;
+          problem->apply_outflow_jacobian.qfunction_loc = PressureOutflow_Jacobian_Entropy_loc;
           break;
       }
       break;

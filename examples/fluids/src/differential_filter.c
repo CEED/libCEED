@@ -36,8 +36,9 @@ PetscErrorCode DifferentialFilterCreateOperators(Ceed ceed, User user, CeedData 
       case STATEVAR_CONSERVATIVE:
         PetscCallCeed(ceed, CeedQFunctionCreateInterior(ceed, 1, DifferentialFilter_RHS_Conserv, DifferentialFilter_RHS_Conserv_loc, &qf_rhs));
         break;
-      default:
-        SETERRQ(PetscObjectComm((PetscObject)user->dm), PETSC_ERR_SUP, "Differential filtering not available for chosen state variable");
+      case STATEVAR_ENTROPY:
+        PetscCallCeed(ceed, CeedQFunctionCreateInterior(ceed, 1, DifferentialFilter_RHS_Entropy, DifferentialFilter_RHS_Entropy_loc, &qf_rhs));
+        break;
     }
     if (diff_filter->do_mms_test) {
       PetscCallCeed(ceed, CeedQFunctionDestroy(&qf_rhs));

@@ -16,47 +16,138 @@
 #include "../navierstokes.h"
 
 // For use with PetscOptionsEnum
-static const char *const StateVariables[] = {"CONSERVATIVE", "PRIMITIVE", "StateVariable", "STATEVAR_", NULL};
+static const char *const StateVariables[] = {"CONSERVATIVE", "PRIMITIVE", "ENTROPY", "StateVariable", "STATEVAR_", NULL};
 
-// Compute relative error |a - b|/|s|
-static PetscErrorCode CheckPrimitiveWithTolerance(StatePrimitive sY, StatePrimitive aY, StatePrimitive bY, const char *name, PetscReal rtol_pressure,
-                                                  PetscReal rtol_velocity, PetscReal rtol_temperature) {
-  StatePrimitive eY;  // relative error
+static PetscErrorCode CheckQWithTolerance(const CeedScalar Q_s[5], const CeedScalar Q_a[5], const CeedScalar Q_b[5], const char *name,
+                                          PetscReal rtol_0, PetscReal rtol_u, PetscReal rtol_4) {
+  CeedScalar relative_error[5];  // relative error
+  CeedScalar divisor_threshold = 10 * CEED_EPSILON;
 
   PetscFunctionBeginUser;
-  eY.pressure   = (aY.pressure - bY.pressure) / sY.pressure;
-  PetscScalar u = sqrt(Square(sY.velocity[0]) + Square(sY.velocity[1]) + Square(sY.velocity[2]));
-  for (int j = 0; j < 3; j++) eY.velocity[j] = (aY.velocity[j] - bY.velocity[j]) / u;
-  eY.temperature = (aY.temperature - bY.temperature) / sY.temperature;
-  if (fabs(eY.pressure) > rtol_pressure) printf("%s: pressure error %g\n", name, eY.pressure);
-  for (int j = 0; j < 3; j++) {
-    if (fabs(eY.velocity[j]) > rtol_velocity) printf("%s: velocity[%d] error %g\n", name, j, eY.velocity[j]);
+  relative_error[0] = (Q_a[0] - Q_b[0]) / (fabs(Q_s[0]) > divisor_threshold ? Q_s[0] : 1);
+  relative_error[4] = (Q_a[4] - Q_b[4]) / (fabs(Q_s[4]) > divisor_threshold ? Q_s[4] : 1);
+
+  CeedScalar u_magnitude = sqrt(Square(Q_s[1]) + Square(Q_s[2]) + Square(Q_s[3]));
+  CeedScalar u_divisor   = u_magnitude > divisor_threshold ? u_magnitude : 1;
+  for (int i = 1; i < 4; i++) {
+    relative_error[i] = (Q_a[i] - Q_b[i]) / u_divisor;
   }
-  if (fabs(eY.temperature) > rtol_temperature) printf("%s: temperature error %g\n", name, eY.temperature);
+
+  if (fabs(relative_error[0]) >= rtol_0) {
+    printf("%s[0] error %g (expected %.10e, got %.10e)\n", name, relative_error[0], Q_s[0], Q_a[0]);
+  }
+  for (int i = 1; i < 4; i++) {
+    if (fabs(relative_error[i]) >= rtol_u) {
+      printf("%s[%d] error %g (expected %.10e, got %.10e)\n", name, i, relative_error[i], Q_s[i], Q_a[i]);
+    }
+  }
+  if (fabs(relative_error[4]) >= rtol_4) {
+    printf("%s[4] error %g (expected %.10e, got %.10e)\n", name, relative_error[4], Q_s[4], Q_a[4]);
+  }
   PetscFunctionReturn(PETSC_SUCCESS);
 }
 
+// @brief Verify `StateFromQ` by converting A0 -> B0 -> A0_test, where A0 should equal A0_test
+static PetscErrorCode TestState(StateVariable state_var_A, StateVariable state_var_B, NewtonianIdealGasContext gas, const CeedScalar A0[5],
+                                CeedScalar rtol_0, CeedScalar rtol_u, CeedScalar rtol_4) {
+  CeedScalar        B0[5], A0_test[5];
+  char              buf[128];
+  const char *const StateVariables_Initial[] = {"U", "Y", "V"};
+
+  PetscFunctionBeginUser;
+  const char *A_initial = StateVariables_Initial[state_var_A];
+  const char *B_initial = StateVariables_Initial[state_var_B];
+
+  State state_A0 = StateFromQ(gas, A0, state_var_A);
+  StateToQ(gas, state_A0, B0, state_var_B);
+  State state_B0 = StateFromQ(gas, B0, state_var_B);
+  StateToQ(gas, state_B0, A0_test, state_var_A);
+
+  snprintf(buf, sizeof buf, "%s->%s->%s: %s", A_initial, B_initial, A_initial, A_initial);
+  PetscCall(CheckQWithTolerance(A0, A0_test, A0, buf, rtol_0, rtol_u, rtol_4));
+  PetscFunctionReturn(PETSC_SUCCESS);
+}
+
+// @brief Verify `StateFromQ_fwd` via a finite difference approximation
+static PetscErrorCode TestState_fwd(StateVariable state_var_A, StateVariable state_var_B, NewtonianIdealGasContext gas, const CeedScalar A0[5],
+                                    CeedScalar rtol_0, CeedScalar rtol_u, CeedScalar rtol_4) {
+  CeedScalar        eps = 4e-7;  // Finite difference step
+  char              buf[128];
+  const char *const StateVariables_Initial[] = {"U", "Y", "V"};
+
+  PetscFunctionBeginUser;
+  const char *A_initial = StateVariables_Initial[state_var_A];
+  const char *B_initial = StateVariables_Initial[state_var_B];
+  State       state_0   = StateFromQ(gas, A0, state_var_A);
+
+  for (int i = 0; i < 5; i++) {
+    CeedScalar dB[5] = {0.}, dB_fd[5] = {0.};
+    {  // Calculate dB using State functions
+      CeedScalar dA[5] = {0};
+
+      dA[i]          = A0[i];
+      State dstate_0 = StateFromQ_fwd(gas, state_0, dA, state_var_A);
+      StateToQ_fwd(gas, state_0, dstate_0, dB, state_var_B);
+    }
+
+    {  // Calculate dB_fd via finite difference approximation
+      CeedScalar A1[5], B0[5], B1[5];
+
+      for (int j = 0; j < 5; j++) A1[j] = (1 + eps * (i == j)) * A0[j];
+      State state_1 = StateFromQ(gas, A1, state_var_A);
+      StateToQ(gas, state_0, B0, state_var_B);
+      StateToQ(gas, state_1, B1, state_var_B);
+      for (int j = 0; j < 5; j++) dB_fd[j] = (B1[j] - B0[j]) / eps;
+    }
+
+    snprintf(buf, sizeof buf, "d%s->d%s: StateFrom%s_fwd i=%d: d%s", A_initial, B_initial, A_initial, i, B_initial);
+    PetscCall(CheckQWithTolerance(dB_fd, dB, dB_fd, buf, rtol_0, rtol_u, rtol_4));
+  }
+  PetscFunctionReturn(PETSC_SUCCESS);
+}
+
+// @brief Test the Newtonian State transformation functions, `StateFrom*`
 static PetscErrorCode UnitTests_Newtonian(User user, NewtonianIdealGasContext gas) {
   Units            units = user->units;
-  const CeedScalar eps   = 1e-6;
-  const CeedScalar kg = units->kilogram, m = units->meter, sec = units->second, Pascal = units->Pascal;
+  const CeedScalar kg = units->kilogram, m = units->meter, sec = units->second, K = units->Kelvin;
+
   PetscFunctionBeginUser;
-  const CeedScalar rho = 1.2 * kg / (m * m * m), u = 40 * m / sec;
-  CeedScalar       U[5] = {rho, rho * u, rho * u * 1.1, rho * u * 1.2, 250e3 * Pascal + .5 * rho * u * u};
-  State            s    = StateFromU(gas, U);
-  for (int i = 0; i < 8; i++) {
-    CeedScalar dU[5] = {0};
-    if (i < 5) dU[i] = U[i];
-    State ds = StateFromU_fwd(gas, s, dU);
-    for (int j = 0; j < 5; j++) dU[j] = (1 + eps * (i == j)) * U[j];
-    State          t = StateFromU(gas, dU);
-    StatePrimitive dY;
-    dY.pressure = (t.Y.pressure - s.Y.pressure) / eps;
-    for (int j = 0; j < 3; j++) dY.velocity[j] = (t.Y.velocity[j] - s.Y.velocity[j]) / eps;
-    dY.temperature = (t.Y.temperature - s.Y.temperature) / eps;
-    char buf[128];
-    snprintf(buf, sizeof buf, "StateFromU_fwd i=%d", i);
-    PetscCall(CheckPrimitiveWithTolerance(dY, ds.Y, dY, buf, 5e-6, 1e-6, 1e-6));
+  const CeedScalar T          = 200 * K;
+  const CeedScalar rho        = 1.2 * kg / Cube(m);
+  const CeedScalar P          = (HeatCapacityRatio(gas) - 1) * rho * gas->cv * T;
+  const CeedScalar u_base     = 40 * m / sec;
+  const CeedScalar u[3]       = {u_base, u_base * 1.1, u_base * 1.2};
+  const CeedScalar e_kinetic  = 0.5 * Dot3(u, u);
+  const CeedScalar e_internal = gas->cv * T;
+  const CeedScalar e_total    = e_kinetic + e_internal;
+  const CeedScalar gamma      = HeatCapacityRatio(gas);
+  const CeedScalar entropy    = log(P) - gamma * log(rho);
+  const CeedScalar rho_div_p  = rho / P;
+  const CeedScalar Y0[5]      = {P, u[0], u[1], u[2], T};
+  const CeedScalar U0[5]      = {rho, rho * u[0], rho * u[1], rho * u[2], rho * e_total};
+  const CeedScalar V0[5]      = {(gamma - entropy) / (gamma - 1) - rho_div_p * (e_kinetic), rho_div_p * u[0], rho_div_p * u[1], rho_div_p * u[2],
+                                 -rho_div_p};
+
+  {
+    CeedScalar rtol = 20 * CEED_EPSILON;
+
+    PetscCall(TestState(STATEVAR_PRIMITIVE, STATEVAR_CONSERVATIVE, gas, Y0, rtol, rtol, rtol));
+    PetscCall(TestState(STATEVAR_PRIMITIVE, STATEVAR_ENTROPY, gas, Y0, rtol, rtol, rtol));
+    PetscCall(TestState(STATEVAR_CONSERVATIVE, STATEVAR_PRIMITIVE, gas, U0, rtol, rtol, rtol));
+    PetscCall(TestState(STATEVAR_CONSERVATIVE, STATEVAR_ENTROPY, gas, U0, rtol, rtol, rtol));
+    PetscCall(TestState(STATEVAR_ENTROPY, STATEVAR_CONSERVATIVE, gas, V0, rtol, rtol, rtol));
+    PetscCall(TestState(STATEVAR_ENTROPY, STATEVAR_PRIMITIVE, gas, V0, rtol, rtol, rtol));
+  }
+
+  {
+    CeedScalar rtol = 5e-6;
+
+    PetscCall(TestState_fwd(STATEVAR_PRIMITIVE, STATEVAR_CONSERVATIVE, gas, Y0, rtol, rtol, rtol));
+    PetscCall(TestState_fwd(STATEVAR_PRIMITIVE, STATEVAR_ENTROPY, gas, Y0, rtol, rtol, rtol));
+    PetscCall(TestState_fwd(STATEVAR_CONSERVATIVE, STATEVAR_PRIMITIVE, gas, U0, rtol, rtol, rtol));
+    PetscCall(TestState_fwd(STATEVAR_CONSERVATIVE, STATEVAR_ENTROPY, gas, U0, 10 * rtol, rtol, rtol));
+    PetscCall(TestState_fwd(STATEVAR_ENTROPY, STATEVAR_CONSERVATIVE, gas, V0, 5 * rtol, rtol, rtol));
+    PetscCall(TestState_fwd(STATEVAR_ENTROPY, STATEVAR_PRIMITIVE, gas, V0, 5 * rtol, 5 * rtol, 5 * rtol));
   }
   PetscFunctionReturn(PETSC_SUCCESS);
 }
@@ -211,6 +302,18 @@ PetscErrorCode NS_NEWTONIAN_IG(ProblemData problem, DM dm, void *ctx, SimpleBC b
       problem->apply_inflow.qfunction_loc          = BoundaryIntegral_Prim_loc;
       problem->apply_inflow_jacobian.qfunction     = BoundaryIntegral_Jacobian_Prim;
       problem->apply_inflow_jacobian.qfunction_loc = BoundaryIntegral_Jacobian_Prim_loc;
+      break;
+    case STATEVAR_ENTROPY:
+      problem->ics.qfunction                       = ICsNewtonianIG_Entropy;
+      problem->ics.qfunction_loc                   = ICsNewtonianIG_Entropy_loc;
+      problem->apply_vol_ifunction.qfunction       = IFunction_Newtonian_Entropy;
+      problem->apply_vol_ifunction.qfunction_loc   = IFunction_Newtonian_Entropy_loc;
+      problem->apply_vol_ijacobian.qfunction       = IJacobian_Newtonian_Entropy;
+      problem->apply_vol_ijacobian.qfunction_loc   = IJacobian_Newtonian_Entropy_loc;
+      problem->apply_inflow.qfunction              = BoundaryIntegral_Entropy;
+      problem->apply_inflow.qfunction_loc          = BoundaryIntegral_Entropy_loc;
+      problem->apply_inflow_jacobian.qfunction     = BoundaryIntegral_Jacobian_Entropy;
+      problem->apply_inflow_jacobian.qfunction_loc = BoundaryIntegral_Jacobian_Entropy_loc;
       break;
   }
 

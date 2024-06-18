@@ -43,11 +43,16 @@ CEED_QFUNCTION_HELPER int ICsNewtonianIG(void *ctx, CeedInt Q, const CeedScalar 
   return 0;
 }
 
+CEED_QFUNCTION(ICsNewtonianIG_Conserv)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
+  return ICsNewtonianIG(ctx, Q, in, out, STATEVAR_CONSERVATIVE);
+}
+
 CEED_QFUNCTION(ICsNewtonianIG_Prim)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
   return ICsNewtonianIG(ctx, Q, in, out, STATEVAR_PRIMITIVE);
 }
-CEED_QFUNCTION(ICsNewtonianIG_Conserv)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
-  return ICsNewtonianIG(ctx, Q, in, out, STATEVAR_CONSERVATIVE);
+
+CEED_QFUNCTION(ICsNewtonianIG_Entropy)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
+  return ICsNewtonianIG(ctx, Q, in, out, STATEVAR_ENTROPY);
 }
 
 CEED_QFUNCTION_HELPER void MassFunction_Newtonian(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out,
@@ -292,6 +297,10 @@ CEED_QFUNCTION(IFunction_Newtonian_Prim)(void *ctx, CeedInt Q, const CeedScalar 
   return IFunction_Newtonian(ctx, Q, in, out, STATEVAR_PRIMITIVE);
 }
 
+CEED_QFUNCTION(IFunction_Newtonian_Entropy)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
+  return IFunction_Newtonian(ctx, Q, in, out, STATEVAR_ENTROPY);
+}
+
 // *****************************************************************************
 // This QFunction implements the jacobian of the Navier-Stokes equations for implicit time stepping method.
 // *****************************************************************************
@@ -374,6 +383,10 @@ CEED_QFUNCTION(IJacobian_Newtonian_Prim)(void *ctx, CeedInt Q, const CeedScalar 
   return IJacobian_Newtonian(ctx, Q, in, out, STATEVAR_PRIMITIVE);
 }
 
+CEED_QFUNCTION(IJacobian_Newtonian_Entropy)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
+  return IJacobian_Newtonian(ctx, Q, in, out, STATEVAR_ENTROPY);
+}
+
 // *****************************************************************************
 // Compute boundary integral (ie. for strongly set inflows)
 // *****************************************************************************
@@ -426,6 +439,10 @@ CEED_QFUNCTION(BoundaryIntegral_Conserv)(void *ctx, CeedInt Q, const CeedScalar 
 
 CEED_QFUNCTION(BoundaryIntegral_Prim)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
   return BoundaryIntegral(ctx, Q, in, out, STATEVAR_PRIMITIVE);
+}
+
+CEED_QFUNCTION(BoundaryIntegral_Entropy)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
+  return BoundaryIntegral(ctx, Q, in, out, STATEVAR_ENTROPY);
 }
 
 // *****************************************************************************
@@ -482,4 +499,8 @@ CEED_QFUNCTION(BoundaryIntegral_Jacobian_Conserv)(void *ctx, CeedInt Q, const Ce
 
 CEED_QFUNCTION(BoundaryIntegral_Jacobian_Prim)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
   return BoundaryIntegral_Jacobian(ctx, Q, in, out, STATEVAR_PRIMITIVE);
+}
+
+CEED_QFUNCTION(BoundaryIntegral_Jacobian_Entropy)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
+  return BoundaryIntegral_Jacobian(ctx, Q, in, out, STATEVAR_ENTROPY);
 }

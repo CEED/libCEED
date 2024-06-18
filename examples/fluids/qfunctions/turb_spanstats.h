@@ -59,6 +59,10 @@ CEED_QFUNCTION(ChildStatsCollection_Prim)(void *ctx, CeedInt Q, const CeedScalar
   return ChildStatsCollection(ctx, Q, in, out, STATEVAR_PRIMITIVE);
 }
 
+CEED_QFUNCTION(ChildStatsCollection_Entropy)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
+  return ChildStatsCollection(ctx, Q, in, out, STATEVAR_ENTROPY);
+}
+
 // QFunctions for testing
 CEED_QFUNCTION_HELPER CeedScalar ChildStatsCollectionTest_Exact(const CeedScalar x_i[3]) { return x_i[0] + Square(x_i[1]); }
 

@@ -109,8 +109,9 @@ static PetscErrorCode SgsDDSetupNodalEvaluation_Fused(Ceed ceed, User user, Ceed
     case STATEVAR_CONSERVATIVE:
       PetscCallCeed(ceed, CeedQFunctionCreateInterior(ceed, 1, ComputeSgsDDNodal_Conserv, ComputeSgsDDNodal_Conserv_loc, &qf_sgs_dd_nodal));
       break;
-    default:
-      SETERRQ(PetscObjectComm((PetscObject)user->dm), PETSC_ERR_SUP, "Data-driven SGS nodal evaluation not available for chosen state variable");
+    case STATEVAR_ENTROPY:
+      PetscCallCeed(ceed, CeedQFunctionCreateInterior(ceed, 1, ComputeSgsDDNodal_Entropy, ComputeSgsDDNodal_Entropy_loc, &qf_sgs_dd_nodal));
+      break;
   }
 
   // Mesh/geometry order and solution basis order may differ, therefore must interpolate
@@ -347,9 +348,10 @@ static PetscErrorCode SgsDDSetupNodalEvaluation_Sequential(Ceed ceed, User user,
         PetscCallCeed(ceed, CeedQFunctionCreateInterior(ceed, 1, ComputeSgsDDNodal_Sequential_Inputs_Conserv,
                                                         ComputeSgsDDNodal_Sequential_Inputs_Conserv_loc, &qf_sgs_dd_inputs));
         break;
-      default:
-        SETERRQ(PetscObjectComm((PetscObject)user->dm), PETSC_ERR_SUP,
-                "Data-driven SGS nodal input evaluation not available for chosen state variable");
+      case STATEVAR_ENTROPY:
+        PetscCallCeed(ceed, CeedQFunctionCreateInterior(ceed, 1, ComputeSgsDDNodal_Sequential_Inputs_Entropy,
+                                                        ComputeSgsDDNodal_Sequential_Inputs_Entropy_loc, &qf_sgs_dd_inputs));
+        break;
     }
 
     PetscCallCeed(ceed, CeedQFunctionSetContext(qf_sgs_dd_inputs, sgs_dd_setup_data->sgsdd_qfctx));
@@ -451,8 +453,9 @@ static PetscErrorCode SgsSetupNodalIFunction(Ceed ceed, User user, CeedData ceed
     case STATEVAR_CONSERVATIVE:
       PetscCallCeed(ceed, CeedQFunctionCreateInterior(ceed, 1, IFunction_NodalSgs_Conserv, IFunction_NodalSgs_Conserv_loc, &qf_sgs_apply));
       break;
-    default:
-      SETERRQ(PetscObjectComm((PetscObject)user->dm), PETSC_ERR_SUP, "Nodal SGS evaluation not available for chosen state variable");
+    case STATEVAR_ENTROPY:
+      PetscCallCeed(ceed, CeedQFunctionCreateInterior(ceed, 1, IFunction_NodalSgs_Entropy, IFunction_NodalSgs_Entropy_loc, &qf_sgs_apply));
+      break;
   }
 
   PetscCallCeed(ceed, CeedQFunctionSetContext(qf_sgs_apply, sgs_dd_setup_data->ifunction_qfctx));

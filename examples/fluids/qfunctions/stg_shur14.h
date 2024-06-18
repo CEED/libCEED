@@ -279,15 +279,15 @@ CEED_QFUNCTION(ICsStg)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedSc
   const CeedScalar(*J)[3][CEED_Q_VLA] = (const CeedScalar(*)[3][CEED_Q_VLA])in[1];
   CeedScalar(*q0)[CEED_Q_VLA]         = (CeedScalar(*)[CEED_Q_VLA])out[0];
 
-  const StgShur14Context stg_ctx = (StgShur14Context)ctx;
-  CeedScalar             qn[STG_NMODES_MAX], u[3], ubar[3], cij[6], eps, lt;
-  const CeedScalar       dx     = stg_ctx->dx;
-  const CeedScalar       time   = stg_ctx->time;
-  const CeedScalar       theta0 = stg_ctx->theta0;
-  const CeedScalar       P0     = stg_ctx->P0;
-  const CeedScalar       cv     = stg_ctx->newtonian_ctx.cv;
-  const CeedScalar       rho    = P0 / (GasConstant(&stg_ctx->newtonian_ctx) * theta0);
-  const CeedScalar       nu     = stg_ctx->newtonian_ctx.mu / rho;
+  const StgShur14Context         stg_ctx = (StgShur14Context)ctx;
+  const NewtonianIdealGasContext gas     = &stg_ctx->newtonian_ctx;
+  CeedScalar                     qn[STG_NMODES_MAX], u[3], ubar[3], cij[6], eps, lt;
+  const CeedScalar               dx     = stg_ctx->dx;
+  const CeedScalar               time   = stg_ctx->time;
+  const CeedScalar               theta0 = stg_ctx->theta0;
+  const CeedScalar               P0     = stg_ctx->P0;
+  const CeedScalar               rho    = P0 / (GasConstant(gas) * theta0);
+  const CeedScalar               nu     = gas->mu / rho;
 
   CeedPragmaSIMD for (CeedInt i = 0; i < Q; i++) {
     const CeedScalar x_i[3] = {x[0][i], x[1][i], x[2][i]};
@@ -305,22 +305,11 @@ CEED_QFUNCTION(ICsStg)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedSc
       for (CeedInt j = 0; j < 3; j++) u[j] = ubar[j];
     }
 
-    switch (stg_ctx->newtonian_ctx.state_var) {
-      case STATEVAR_CONSERVATIVE:
-        q0[0][i] = rho;
-        q0[1][i] = u[0] * rho;
-        q0[2][i] = u[1] * rho;
-        q0[3][i] = u[2] * rho;
-        q0[4][i] = rho * (0.5 * Dot3(u, u) + cv * theta0);
-        break;
-
-      case STATEVAR_PRIMITIVE:
-        q0[0][i] = P0;
-        q0[1][i] = u[0];
-        q0[2][i] = u[1];
-        q0[3][i] = u[2];
-        q0[4][i] = theta0;
-        break;
+    CeedScalar Y[5] = {P0, u[0], u[1], u[2], theta0}, q[5];
+    State      s    = StateFromY(gas, Y);
+    StateToQ(gas, s, q, gas->state_var);
+    for (CeedInt j = 0; j < 5; j++) {
+      q0[j][i] = q[j];
     }
   }
   return 0;
@@ -477,15 +466,16 @@ CEED_QFUNCTION(StgShur14InflowStrongQF)(void *ctx, CeedInt Q, const CeedScalar *
   const CeedScalar(*inv_Ektotal)           = (const CeedScalar(*))in[3];
   CeedScalar(*bcval)[CEED_Q_VLA]           = (CeedScalar(*)[CEED_Q_VLA])out[0];
 
-  const StgShur14Context stg_ctx = (StgShur14Context)ctx;
-  CeedScalar             u[3], ubar[3], cij[6], eps, lt;
-  const bool             mean_only = stg_ctx->mean_only;
-  const CeedScalar       dx        = stg_ctx->dx;
-  const CeedScalar       time      = stg_ctx->time;
-  const CeedScalar       theta0    = stg_ctx->theta0;
-  const CeedScalar       P0        = stg_ctx->P0;
-  const CeedScalar       rho       = P0 / (GasConstant(&stg_ctx->newtonian_ctx) * theta0);
-  const CeedScalar       nu        = stg_ctx->newtonian_ctx.mu / rho;
+  const StgShur14Context         stg_ctx = (StgShur14Context)ctx;
+  const NewtonianIdealGasContext gas     = &stg_ctx->newtonian_ctx;
+  CeedScalar                     u[3], ubar[3], cij[6], eps, lt;
+  const bool                     mean_only = stg_ctx->mean_only;
+  const CeedScalar               dx        = stg_ctx->dx;
+  const CeedScalar               time      = stg_ctx->time;
+  const CeedScalar               theta0    = stg_ctx->theta0;
+  const CeedScalar               P0        = stg_ctx->P0;
+  const CeedScalar               rho       = P0 / (GasConstant(gas) * theta0);
+  const CeedScalar               nu        = gas->mu / rho;
 
   CeedPragmaSIMD for (CeedInt i = 0; i < Q; i++) {
     const CeedScalar x[]        = {coords[0][i], coords[1][i], coords[2][i]};
@@ -511,22 +501,22 @@ CEED_QFUNCTION(StgShur14InflowStrongQF)(void *ctx, CeedInt Q, const CeedScalar *
       for (CeedInt j = 0; j < 3; j++) u[j] = ubar[j];
     }
 
-    switch (stg_ctx->newtonian_ctx.state_var) {
+    CeedScalar Y[5] = {P0, u[0], u[1], u[2], theta0}, q[5];
+    State      s    = StateFromY(gas, Y);
+    StateToQ(gas, s, q, gas->state_var);
+    switch (gas->state_var) {
       case STATEVAR_CONSERVATIVE:
-        bcval[0][i] = scale[i] * rho;
-        bcval[1][i] = scale[i] * rho * u[0];
-        bcval[2][i] = scale[i] * rho * u[1];
-        bcval[3][i] = scale[i] * rho * u[2];
-        bcval[4][i] = 0.;
+        q[4] = 0.;  // Don't set energy
         break;
-
       case STATEVAR_PRIMITIVE:
-        bcval[0][i] = 0;
-        bcval[1][i] = scale[i] * u[0];
-        bcval[2][i] = scale[i] * u[1];
-        bcval[3][i] = scale[i] * u[2];
-        bcval[4][i] = scale[i] * theta0;
+        q[0] = 0;  // Don't set pressure
         break;
+      case STATEVAR_ENTROPY:
+        q[0] = 0;  // Don't set V_density
+        break;
+    }
+    for (CeedInt j = 0; j < 5; j++) {
+      bcval[j][i] = scale[i] * q[j];
     }
   }
   return 0;

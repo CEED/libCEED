@@ -17,12 +17,12 @@ CEED_QFUNCTION(ICsTaylorGreen)(void *ctx, CeedInt Q, const CeedScalar *const *in
 
   CeedScalar(*q0)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA])out[0];
 
-  const SetupContext                context   = (SetupContext)ctx;
-  struct NewtonianIdealGasContext_ *gas       = &context->gas;
-  CeedScalar                        R         = GasConstant(gas);
-  StatePrimitive                    reference = context->reference;
-  const CeedScalar                  V0        = sqrt(Dot3(reference.velocity, reference.velocity));
-  const CeedScalar                  density0  = reference.pressure / (reference.temperature * R);
+  const SetupContext             context   = (SetupContext)ctx;
+  const NewtonianIdealGasContext gas       = &context->gas;
+  CeedScalar                     R         = GasConstant(gas);
+  StatePrimitive                 reference = context->reference;
+  const CeedScalar               V0        = sqrt(Dot3(reference.velocity, reference.velocity));
+  const CeedScalar               density0  = reference.pressure / (reference.temperature * R);
 
   CeedPragmaSIMD for (CeedInt i = 0; i < Q; i++) {
     CeedScalar x[]  = {X[0][i], X[1][i], X[2][i]};
@@ -36,15 +36,7 @@ CEED_QFUNCTION(ICsTaylorGreen)(void *ctx, CeedInt Q, const CeedScalar *const *in
     Y[4] = reference.temperature;
 
     State s = StateFromY(gas, Y);
-    switch (gas->state_var) {
-      case STATEVAR_CONSERVATIVE:
-        UnpackState_U(s.U, q);
-        break;
-      case STATEVAR_PRIMITIVE:
-        UnpackState_Y(s.Y, q);
-        break;
-    }
-
+    StateToQ(gas, s, q, gas->state_var);
     for (CeedInt j = 0; j < 5; j++) q0[j][i] = q[j];
   }
   return 0;

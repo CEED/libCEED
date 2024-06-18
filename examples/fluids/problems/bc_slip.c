@@ -34,6 +34,12 @@ PetscErrorCode SlipBCSetup(ProblemData problem, DM dm, void *ctx, CeedQFunctionC
       problem->apply_slip_jacobian.qfunction     = Slip_Jacobian_Prim;
       problem->apply_slip_jacobian.qfunction_loc = Slip_Jacobian_Prim_loc;
       break;
+    case STATEVAR_ENTROPY:
+      problem->apply_slip.qfunction              = Slip_Entropy;
+      problem->apply_slip.qfunction_loc          = Slip_Entropy_loc;
+      problem->apply_slip_jacobian.qfunction     = Slip_Jacobian_Entropy;
+      problem->apply_slip_jacobian.qfunction_loc = Slip_Jacobian_Entropy_loc;
+      break;
   }
 
   PetscCallCeed(ceed, CeedQFunctionContextReferenceCopy(newtonian_ig_qfctx, &problem->apply_slip.qfunction_context));

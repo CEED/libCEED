@@ -56,6 +56,10 @@ CEED_QFUNCTION(Slip_Prim)(void *ctx, CeedInt Q, const CeedScalar *const *in, Cee
   return Slip(ctx, Q, in, out, STATEVAR_PRIMITIVE);
 }
 
+CEED_QFUNCTION(Slip_Entropy)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
+  return Slip(ctx, Q, in, out, STATEVAR_ENTROPY);
+}
+
 CEED_QFUNCTION_HELPER int Slip_Jacobian(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out, StateVariable state_var) {
   const CeedScalar(*dq)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[0];
   const CeedScalar(*q_data_sur)     = in[2];
@@ -103,4 +107,8 @@ CEED_QFUNCTION(Slip_Jacobian_Conserv)(void *ctx, CeedInt Q, const CeedScalar *co
 
 CEED_QFUNCTION(Slip_Jacobian_Prim)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
   return Slip_Jacobian(ctx, Q, in, out, STATEVAR_PRIMITIVE);
+}
+
+CEED_QFUNCTION(Slip_Jacobian_Entropy)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
+  return Slip_Jacobian(ctx, Q, in, out, STATEVAR_ENTROPY);
 }

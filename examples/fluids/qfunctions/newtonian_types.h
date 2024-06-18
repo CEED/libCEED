@@ -13,6 +13,7 @@
 typedef enum {
   STATEVAR_CONSERVATIVE = 0,
   STATEVAR_PRIMITIVE    = 1,
+  STATEVAR_ENTROPY      = 2,
 } StateVariable;
 
 typedef struct NewtonianIdealGasContext_ *NewtonianIdealGasContext;
@@ -47,6 +48,12 @@ typedef struct {
   CeedScalar velocity[3];
   CeedScalar temperature;
 } StatePrimitive;
+
+typedef struct {
+  CeedScalar S_density;
+  CeedScalar S_momentum[3];
+  CeedScalar S_energy;
+} StateEntropy;
 
 typedef struct SetupContext_ *SetupContext;
 struct SetupContext_ {

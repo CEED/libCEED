@@ -95,6 +95,14 @@ PetscErrorCode SetUpDM(DM dm, ProblemData problem, PetscInt degree, PetscInt q_e
       PetscCall(PetscSectionSetComponentName(section, 0, 3, "VelocityZ"));
       PetscCall(PetscSectionSetComponentName(section, 0, 4, "Temperature"));
       break;
+
+    case STATEVAR_ENTROPY:
+      PetscCall(PetscSectionSetComponentName(section, 0, 0, "EntropyDensity"));
+      PetscCall(PetscSectionSetComponentName(section, 0, 1, "EntropyMomentumX"));
+      PetscCall(PetscSectionSetComponentName(section, 0, 2, "EntropyMomentumY"));
+      PetscCall(PetscSectionSetComponentName(section, 0, 3, "EntropyMomentumZ"));
+      PetscCall(PetscSectionSetComponentName(section, 0, 4, "EntropyTotalEnergy"));
+      break;
   }
   PetscFunctionReturn(PETSC_SUCCESS);
 }
