@@ -51,6 +51,9 @@ CEED_QFUNCTION_HELPER CeedScalar DotN(const CeedScalar *u, const CeedScalar *v, 
 // @brief Dot product of 3 element vectors
 CEED_QFUNCTION_HELPER CeedScalar Dot3(const CeedScalar *u, const CeedScalar *v) { return u[0] * v[0] + u[1] * v[1] + u[2] * v[2]; }
 
+// @brief \ell^2 norm of 3 element vectors
+CEED_QFUNCTION_HELPER CeedScalar Norm3(const CeedScalar *u) { return sqrt(u[0] * u[0] + u[1] * u[1] + u[2] * u[2]); }
+
 // @brief Cross product of vectors with 3 elements
 CEED_QFUNCTION_HELPER void Cross3(const CeedScalar u[3], const CeedScalar v[3], CeedScalar w[3]) {
   w[0] = (u[1] * v[2]) - (u[2] * v[1]);
