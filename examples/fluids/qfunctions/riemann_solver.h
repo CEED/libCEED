@@ -108,7 +108,6 @@ CEED_QFUNCTION_HELPER void ComputeHLLSpeeds_Roe(NewtonianIdealGasContext gas, St
   // Stability requires that these speed estimates are *at least* as fast as the physical wave speeds.
   CeedScalar u_roe = RoeAverage(r, u_left, u_right);
 
-  // TODO: revisit this for gravity
   CeedScalar H_left  = TotalSpecificEnthalpy(gas, left);
   CeedScalar H_right = TotalSpecificEnthalpy(gas, right);
   CeedScalar H_roe   = RoeAverage(r, H_left, H_right);
