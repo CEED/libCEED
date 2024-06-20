@@ -55,14 +55,12 @@ CEED_QFUNCTION_HELPER CeedScalar SoundSpeed(NewtonianIdealGasContext gas, CeedSc
 CEED_QFUNCTION_HELPER CeedScalar Mach(NewtonianIdealGasContext gas, CeedScalar T, CeedScalar u) { return u / SoundSpeed(gas, T); }
 
 CEED_QFUNCTION_HELPER CeedScalar TotalSpecificEnthalpy(NewtonianIdealGasContext gas, const State s) {
-  // Ignoring potential energy
-  CeedScalar e_internal = gas->cv * s.Y.temperature;
   CeedScalar e_kinetic  = 0.5 * Dot3(s.Y.velocity, s.Y.velocity);
+  CeedScalar e_internal = gas->cv * s.Y.temperature;
   return e_internal + e_kinetic + s.Y.pressure / s.U.density;
 }
 
 CEED_QFUNCTION_HELPER CeedScalar TotalSpecificEnthalpy_fwd(NewtonianIdealGasContext gas, const State s, const State ds) {
-  // Ignoring potential energy
   CeedScalar de_kinetic  = Dot3(ds.Y.velocity, s.Y.velocity);
   CeedScalar de_internal = gas->cv * ds.Y.temperature;
   return de_internal + de_kinetic + ds.Y.pressure / s.U.density - s.Y.pressure / Square(s.U.density) * ds.U.density;

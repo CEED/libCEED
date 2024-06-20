@@ -84,13 +84,11 @@ CEED_QFUNCTION_HELPER StateConservative Flux_HLL_fwd(State left, State right, St
   UnpackState_U(dflux_left, dF_l);
   UnpackState_U(dflux_right, dF_r);
   for (int i = 0; i < 5; i++) {
-    const CeedScalar U_diff      = U_r[i] - U_l[i];
-    const CeedScalar S_diff      = S_r - S_l;
-    const CeedScalar F_hll_denom = S_r * F_l[i] - S_l * F_r[i] + S_l * S_r * U_diff;
+    const CeedScalar S_diff = S_r - S_l;
 
-    dF_hll[i] += ((F_l[i] + S_r * U_diff) * S_diff - F_hll_denom) / Square(S_diff) * dS_r;
-    dF_hll[i] += ((-F_r[i] + S_r * U_diff) * S_diff + F_hll_denom) / Square(S_diff) * dS_l;
-    dF_hll[i] += (S_r * dF_l[i] - S_l * dF_r[i] + S_r * S_l * dU_r[i] - S_r * S_l * dU_l[i]) / S_diff;
+    dF_hll[i] += (S_l * (-F_l[i] + F_r[i] + S_l * U_l[i] - S_l * U_r[i]) / Square(S_diff)) * dS_r;
+    dF_hll[i] += (S_r * (F_l[i] - F_r[i] - S_r * U_l[i] + S_r * U_r[i]) / Square(S_diff)) * dS_l;
+    dF_hll[i] += (S_r * dF_l[i] - S_l * dF_r[i] + S_r * S_l * (dU_r[i] - dU_l[i])) / S_diff;
   }
   StateConservative dF = {
       dF_hll[0],
@@ -110,7 +108,6 @@ CEED_QFUNCTION_HELPER void ComputeHLLSpeeds_Roe(NewtonianIdealGasContext gas, St
   // Stability requires that these speed estimates are *at least* as fast as the physical wave speeds.
   CeedScalar u_roe = RoeAverage(r, u_left, u_right);
 
-  // TODO: revisit this for gravity
   CeedScalar H_left  = TotalSpecificEnthalpy(gas, left);
   CeedScalar H_right = TotalSpecificEnthalpy(gas, right);
   CeedScalar H_roe   = RoeAverage(r, H_left, H_right);
@@ -142,7 +139,8 @@ CEED_QFUNCTION_HELPER void ComputeHLLSpeeds_Roe_fwd(NewtonianIdealGasContext gas
   CeedScalar H_roe  = RoeAverage(r, H_left, H_right);
   CeedScalar dH_roe = RoeAverage_fwd(r, dr, H_left, H_right, dH_left, dH_right);
   CeedScalar a_roe  = sqrt((gamma - 1) * (H_roe - 0.5 * Square(u_roe)));
-  CeedScalar da_roe = 0.5 * (gamma - 1) / sqrt(H_roe) * dH_roe - 0.5 * sqrt(gamma - 1) * u_roe / sqrt(H_roe - 0.5 * Square(u_roe)) * du_roe;
+  CeedScalar da_roe = 0.5 * sqrt((gamma - 1) / (H_roe - 0.5 * Square(u_roe))) * dH_roe;  // (da/dH) dH
+  da_roe -= 0.5 * sqrt(gamma - 1) * u_roe / sqrt(H_roe - 0.5 * Square(u_roe)) * du_roe;  // (da/du) du
 
   *s_left   = u_roe - a_roe;
   *ds_left  = du_roe - da_roe;
