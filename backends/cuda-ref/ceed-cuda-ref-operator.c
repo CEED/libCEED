@@ -492,7 +492,7 @@ static int CeedOperatorSetupAtPoints_Cuda(CeedOperator op) {
 }
 
 //------------------------------------------------------------------------------
-// Input Basis Action
+// Input Basis Action AtPoints
 //------------------------------------------------------------------------------
 static inline int CeedOperatorInputBasisAtPoints_Cuda(CeedInt num_elem, const CeedInt *num_points, CeedQFunctionField *qf_input_fields,
                                                       CeedOperatorField *op_input_fields, CeedInt num_input_fields, const bool skip_active,
@@ -536,7 +536,7 @@ static inline int CeedOperatorInputBasisAtPoints_Cuda(CeedInt num_elem, const Ce
 }
 
 //------------------------------------------------------------------------------
-// Apply and add to output
+// Apply and add to output AtPoints
 //------------------------------------------------------------------------------
 static int CeedOperatorApplyAddAtPoints_Cuda(CeedOperator op, CeedVector in_vec, CeedVector out_vec, CeedRequest *request) {
   CeedInt             max_num_points, num_elem, elem_size, num_input_fields, num_output_fields, size;
@@ -1500,7 +1500,7 @@ int CeedOperatorCreate_Cuda(CeedOperator op) {
 }
 
 //------------------------------------------------------------------------------
-// Create operator
+// Create operator AtPoints
 //------------------------------------------------------------------------------
 int CeedOperatorCreateAtPoints_Cuda(CeedOperator op) {
   Ceed               ceed;
