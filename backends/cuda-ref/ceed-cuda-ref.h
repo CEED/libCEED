@@ -134,7 +134,8 @@ typedef struct {
   CeedVector                *q_vecs_out;    // Output Q-vectors needed to apply operator
   CeedInt                    num_inputs, num_outputs;
   CeedInt                    num_active_in, num_active_out;
-  CeedVector                *qf_active_in;
+  CeedInt                    max_num_points;
+  CeedVector                *qf_active_in, point_coords_elem;
   CeedOperatorDiag_Cuda     *diag;
   CeedOperatorAssemble_Cuda *asmb;
 } CeedOperator_Cuda;
@@ -160,3 +161,4 @@ CEED_INTERN int CeedQFunctionCreate_Cuda(CeedQFunction qf);
 CEED_INTERN int CeedQFunctionContextCreate_Cuda(CeedQFunctionContext ctx);
 
 CEED_INTERN int CeedOperatorCreate_Cuda(CeedOperator op);
+CEED_INTERN int CeedOperatorCreateAtPoints_Cuda(CeedOperator op);
