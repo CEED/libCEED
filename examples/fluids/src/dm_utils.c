@@ -662,7 +662,10 @@ PetscErrorCode DMPlexCeedBasisCellToFaceCoordinateCreate(Ceed ceed, DM dm, DMLab
   DM dm_coord;
 
   PetscFunctionBeginUser;
-  PetscCall(DMGetCoordinateDM(dm, &dm_coord));
+  PetscCall(DMGetCellCoordinateDM(dm, &dm_coord));
+  if (!dm_coord) {
+    PetscCall(DMGetCoordinateDM(dm, &dm_coord));
+  }
   PetscCall(DMPlexCeedBasisCellToFaceCreate(ceed, dm_coord, domain_label, label_value, face, 0, basis));
   PetscFunctionReturn(PETSC_SUCCESS);
 }

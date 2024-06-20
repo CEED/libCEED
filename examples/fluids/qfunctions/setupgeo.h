@@ -121,7 +121,6 @@ CEED_QFUNCTION(SetupBoundary)(void *ctx, CeedInt Q, const CeedScalar *const *in,
   return 0;
 }
 
-
 /**
   @brief Compute geometric factors for integration, gradient transformations, and coordinate transformations on element faces.
 
@@ -144,19 +143,14 @@ CEED_QFUNCTION(SetupBoundary)(void *ctx, CeedInt Q, const CeedScalar *const *in,
   @return An error code: 0 - success, otherwise - failure
 **/
 CEED_QFUNCTION(SetupBoundaryGradient)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
-  // Inputs
   const CeedScalar(*J_cell)[3][CEED_Q_VLA] = (const CeedScalar(*)[3][CEED_Q_VLA])in[0];
   const CeedScalar(*J_face)[3][CEED_Q_VLA] = (const CeedScalar(*)[3][CEED_Q_VLA])in[1];
   const CeedScalar(*w)                     = in[2];
-
-  // Outputs
-  CeedScalar(*q_data)[CEED_Q_VLA] = (CeedScalar(*)[CEED_Q_VLA])out[0];
+  CeedScalar(*q_data_sur)                  = out[0];
 
   const CeedInt dim = 3;
 
-  // Quadrature Point Loop
   CeedPragmaSIMD for (CeedInt i = 0; i < Q; i++) {
-    // Setup
     // N_1, N_2, and N_3 are given by the cross product of the columns of dxdX
     CeedScalar normal[3];
 
@@ -166,27 +160,15 @@ CEED_QFUNCTION(SetupBoundaryGradient)(void *ctx, CeedInt Q, const CeedScalar *co
       normal[j] = J_face[0][(j + 1) % dim][i] * J_face[1][(j + 2) % dim][i] - J_face[0][(j + 2) % dim][i] * J_face[1][(j + 1) % dim][i];
     }
     const CeedScalar detJ_face = Norm3(normal);
-    // Gradient
-    CeedScalar dxdX[3][3];
-    RatelGradUnpack(Q, i, J_cell, dxdX);
+    ScaleN(normal, 1 / detJ_face, 3);
+    const CeedScalar wdetJ = w[i] * detJ_face;
 
-    const CeedScalar detJ_cell = RatelMatDetA(dxdX);
-    CeedScalar       dXdx[3][3];
+    CeedScalar dXdx[3][3];
+    InvertMappingJacobian_3D(Q, i, J_cell, dXdx, NULL);
 
-    RatelMatInverse(dxdX, detJ_cell, dXdx);
-
-    // Qdata
-    // -- Interp-to-Interp q_data
-    q_data[0][i] = w[i] * detJ_face;
-    for (CeedInt j = 0; j < 3; j++) {
-      for (CeedInt k = 0; k < 3; k++) {
-        q_data[j * 3 + k + 1][i] = dXdx[j][k];
-      }
-    }
-    // -- Normal vector
-    for (CeedInt j = 0; j < 3; j++) q_data[j + 10][i] = normal[j] / detJ_face;
-  }  // End of Quadrature Point Loop
+    StoredValuesPack(Q, i, 0, 1, &wdetJ, q_data_sur);
+    StoredValuesPack(Q, i, 1, 9, (CeedScalar *)dXdx, q_data_sur);
+    StoredValuesPack(Q, i, 10, 3, normal, q_data_sur);
+  }
   return CEED_ERROR_SUCCESS;
 }
-
-/// @}
