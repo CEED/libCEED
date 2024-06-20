@@ -144,10 +144,9 @@ int CeedBasisApplyAtPoints_Hip(CeedBasis basis, const CeedInt num_elem, const Ce
     CeedCallBackend(CeedLoadSourceToBuffer(ceed, basis_kernel_path, &basis_kernel_source));
     CeedDebug256(ceed, CEED_DEBUG_COLOR_SUCCESS, "----- Loading Basis Kernel Source Complete! -----\n");
     CeedCallBackend(CeedCompile_Hip(ceed, basis_kernel_source, &data->moduleAtPoints, 9, "BASIS_Q_1D", Q_1d, "BASIS_P_1D", P_1d, "BASIS_BUF_LEN",
-                                    num_comp * CeedIntPow(Q_1d > P_1d ? Q_1d : P_1d, dim), "BASIS_DIM", dim, "BASIS_NUM_COMP", num_comp,
+                                    Q_1d * CeedIntPow(Q_1d > P_1d ? Q_1d : P_1d, dim - 1), "BASIS_DIM", dim, "BASIS_NUM_COMP", num_comp,
                                     "BASIS_NUM_NODES", CeedIntPow(P_1d, dim), "BASIS_NUM_QPTS", CeedIntPow(Q_1d, dim), "BASIS_NUM_PTS",
-                                    max_num_points, "POINTS_BUFF_LEN",
-                                    max_num_points * CeedIntPow(Q_1d > max_num_points ? Q_1d : max_num_points, dim - 1)));
+                                    max_num_points, "POINTS_BUFF_LEN", CeedIntPow(Q_1d, dim - 1)));
     CeedCallBackend(CeedGetKernel_Hip(ceed, data->moduleAtPoints, "InterpAtPoints", &data->InterpAtPoints));
     CeedCallBackend(CeedGetKernel_Hip(ceed, data->moduleAtPoints, "GradAtPoints", &data->GradAtPoints));
     CeedCallBackend(CeedFree(&basis_kernel_path));
@@ -362,7 +361,7 @@ int CeedBasisCreateTensorH1_Hip(CeedInt dim, CeedInt P_1d, CeedInt Q_1d, const C
   CeedCallBackend(CeedLoadSourceToBuffer(ceed, basis_kernel_path, &basis_kernel_source));
   CeedDebug256(ceed, CEED_DEBUG_COLOR_SUCCESS, "----- Loading Basis Kernel Source Complete! -----\n");
   CeedCallBackend(CeedCompile_Hip(ceed, basis_kernel_source, &data->module, 7, "BASIS_Q_1D", Q_1d, "BASIS_P_1D", P_1d, "BASIS_BUF_LEN",
-                                  num_comp * CeedIntPow(Q_1d > P_1d ? Q_1d : P_1d, dim), "BASIS_DIM", dim, "BASIS_NUM_COMP", num_comp,
+                                  Q_1d * CeedIntPow(Q_1d > P_1d ? Q_1d : P_1d, dim - 1), "BASIS_DIM", dim, "BASIS_NUM_COMP", num_comp,
                                   "BASIS_NUM_NODES", CeedIntPow(P_1d, dim), "BASIS_NUM_QPTS", CeedIntPow(Q_1d, dim)));
   CeedCallBackend(CeedGetKernel_Hip(ceed, data->module, "Interp", &data->Interp));
   CeedCallBackend(CeedGetKernel_Hip(ceed, data->module, "Grad", &data->Grad));

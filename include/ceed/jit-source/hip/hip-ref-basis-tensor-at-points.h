@@ -47,7 +47,7 @@ extern "C" __global__ void InterpAtPoints(const CeedInt num_elem, const CeedInt 
                                           const CeedScalar *__restrict__ coords, const CeedScalar *__restrict__ u, CeedScalar *__restrict__ v) {
   const CeedInt i = threadIdx.x;
 
-  __shared__ CeedScalar s_mem[BASIS_Q_1D * BASIS_P_1D + 3 * BASIS_BUF_LEN];
+  __shared__ CeedScalar s_mem[BASIS_Q_1D * BASIS_P_1D + 2 * BASIS_BUF_LEN + POINTS_BUFF_LEN * BASIS_Q_1D];
   CeedScalar           *s_chebyshev_interp_1d = s_mem;
   CeedScalar           *s_buffer_1            = s_mem + BASIS_Q_1D * BASIS_P_1D;
   CeedScalar           *s_buffer_2            = s_buffer_1 + BASIS_BUF_LEN;
@@ -200,7 +200,7 @@ extern "C" __global__ void GradAtPoints(const CeedInt num_elem, const CeedInt is
                                         const CeedScalar *__restrict__ coords, const CeedScalar *__restrict__ u, CeedScalar *__restrict__ v) {
   const CeedInt i = threadIdx.x;
 
-  __shared__ CeedScalar s_mem[BASIS_Q_1D * BASIS_P_1D + 3 * BASIS_BUF_LEN];
+  __shared__ CeedScalar s_mem[BASIS_Q_1D * BASIS_P_1D + 2 * BASIS_BUF_LEN + POINTS_BUFF_LEN * BASIS_Q_1D];
   CeedScalar           *s_chebyshev_interp_1d = s_mem;
   CeedScalar           *s_buffer_1            = s_mem + BASIS_Q_1D * BASIS_P_1D;
   CeedScalar           *s_buffer_2            = s_buffer_1 + BASIS_BUF_LEN;
