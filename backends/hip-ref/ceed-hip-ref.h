@@ -138,7 +138,8 @@ typedef struct {
   CeedVector               *q_vecs_out;    // Output Q-vectors needed to apply operator
   CeedInt                   num_inputs, num_outputs;
   CeedInt                   num_active_in, num_active_out;
-  CeedVector               *qf_active_in;
+  CeedInt                   max_num_points;
+  CeedVector               *qf_active_in, point_coords_elem;
   CeedOperatorDiag_Hip     *diag;
   CeedOperatorAssemble_Hip *asmb;
 } CeedOperator_Hip;
@@ -164,3 +165,4 @@ CEED_INTERN int CeedQFunctionCreate_Hip(CeedQFunction qf);
 CEED_INTERN int CeedQFunctionContextCreate_Hip(CeedQFunctionContext ctx);
 
 CEED_INTERN int CeedOperatorCreate_Hip(CeedOperator op);
+CEED_INTERN int CeedOperatorCreateAtPoints_Hip(CeedOperator op);
