@@ -41,17 +41,69 @@ PetscErrorCode CreateDM(MPI_Comm comm, ProblemData problem, MatType mat_type, Ve
   PetscFunctionReturn(PETSC_SUCCESS);
 }
 
+static void evaluate_solution(PetscInt dim, PetscInt Nf, PetscInt NfAux, const PetscInt uOff[], const PetscInt uOff_x[], const PetscScalar u[],
+                              const PetscScalar u_t[], const PetscScalar u_x[], const PetscInt aOff[], const PetscInt aOff_x[], const PetscScalar a[],
+                              const PetscScalar a_t[], const PetscScalar a_x[], PetscReal t, const PetscReal X[], PetscInt numConstants,
+                              const PetscScalar constants[], PetscScalar new_u[]) {
+  for (PetscInt i = 0; i < 5; i++) new_u[i] = u[i];
+}
+
 // Setup DM
-PetscErrorCode SetUpDM(DM dm, ProblemData problem, PetscInt degree, PetscInt q_extra, SimpleBC bc, Physics phys) {
-  PetscInt num_comp_q = 5;
+PetscErrorCode SetUpDM(DM *dm, ProblemData problem, PetscInt degree, PetscInt q_extra, SimpleBC bc, Physics phys) {
+  PetscInt  num_comp_q     = 5;
+  DM        old_dm         = NULL;
+  PetscBool SkipProjection = PETSC_FALSE;
+
   PetscFunctionBeginUser;
+  //  Restore a NL vector if requested (same flag used in Distribute)
+  char vecName[PETSC_MAX_PATH_LEN] = "";
+  PetscOptionsBegin(PetscObjectComm((PetscObject)dm), NULL, "Option Named Vector", NULL);
+  PetscCall(PetscOptionsString("-named_local_vector_migrate", "Name of NamedLocalVector to migrate", NULL, vecName, vecName, sizeof(vecName), NULL));
+  PetscCall(PetscStrncmp(vecName, "SkipProjection", 14, &SkipProjection));
+  PetscOptionsEnd();
 
-  PetscCall(DMSetupByOrderBegin_FEM(PETSC_TRUE, PETSC_TRUE, degree, PETSC_DECIDE, q_extra, 1, &num_comp_q, dm));
+  PetscBool has_NL_vector, has_NL_vectord;
 
+  PetscCall(DMHasNamedLocalVector(*dm, vecName, &has_NL_vector));
+  if (has_NL_vector) {
+    PetscCall(PetscPrintf(PETSC_COMM_WORLD, "inside has_NL_vector condtional src/setupdm.c : \n"));
+    if (SkipProjection) {
+      PetscCall(DMClearFields(*dm));
+      PetscCall(DMSetLocalSection(*dm, NULL));
+      PetscCall(DMSetSectionSF(*dm, NULL));
+      PetscCall(PetscPrintf(PETSC_COMM_WORLD, "inside SkipProjection condtional src/setupdm.c : \n"));
+    } else {
+      char vecNamed[PETSC_MAX_PATH_LEN] = "";
+      PetscCall(PetscStrcpy(vecNamed, vecName));
+      PetscCall(PetscStrlcat(vecNamed, "d", PETSC_MAX_PATH_LEN));
+      PetscCall(DMHasNamedLocalVector(*dm, vecNamed, &has_NL_vectord));
+      if (has_NL_vectord) PetscCall(PetscStrcpy(vecName, vecNamed));  // distributed correction is the vector we should use
+      DM new_dm = NULL;
+
+      PetscScalar valc;
+      PetscInt    stepNumC;
+      PetscCall(DMGetOutputSequenceNumber(*dm, &stepNumC, &valc));
+
+      PetscCall(DMClone(*dm, &new_dm));
+      if (stepNumC >= 0) PetscCall(DMSetOutputSequenceNumber(new_dm, stepNumC, valc));
+
+      PetscSF  face_sf;
+      PetscInt nispf;
+      PetscCall(DMPlexGetIsoperiodicFaceSF(*dm, &nispf, &face_sf));
+      PetscCall(DMPlexSetIsoperiodicFaceSF(new_dm, nispf, face_sf));
+      old_dm = *dm;
+      *dm    = new_dm;
+    }
+  }
+
+  PetscCall(PetscPrintf(PETSC_COMM_WORLD, "Before DMSetupByOrderBegin in src/setupdm.c : \n"));
+
+  PetscCall(DMSetupByOrderBegin_FEM(PETSC_TRUE, PETSC_TRUE, degree, PETSC_DECIDE, q_extra, 1, &num_comp_q, *dm));
+  PetscCall(PetscPrintf(PETSC_COMM_WORLD, "Before bcwork in src/setupdm.c : \n"));
   {  // Add strong boundary conditions to DM
     DMLabel label;
-    PetscCall(DMGetLabel(dm, "Face Sets", &label));
-    PetscCall(DMPlexLabelComplete(dm, label));
+    PetscCall(DMGetLabel(*dm, "Face Sets", &label));
+    PetscCall(DMPlexLabelComplete(*dm, label));
 
     for (PetscInt i = 0; i < problem->num_bc_defs; i++) {
       BCDefinition    bc_def = problem->bc_defs[i];
@@ -62,22 +114,39 @@ PetscErrorCode SetUpDM(DM dm, ProblemData problem, PetscInt degree, PetscInt q_e
       PetscCall(BCDefinitionGetEssential(bc_def, &num_essential_comps, &essential_comps));
       if (essential_comps > 0) {
         PetscCall(BCDefinitionGetInfo(bc_def, &name, &num_label_values, &label_values));
-        PetscCall(DMAddBoundary(dm, DM_BC_ESSENTIAL, name, label, num_label_values, label_values, 0, num_essential_comps, essential_comps, NULL, NULL,
-                                NULL, NULL));
+        PetscCall(DMAddBoundary(*dm, DM_BC_ESSENTIAL, name, label, num_label_values, label_values, 0, num_essential_comps, essential_comps, NULL,
+                                NULL, NULL, NULL));
       }
     }
     {
       PetscBool use_strongstg = PETSC_FALSE;
       PetscCall(PetscOptionsGetBool(NULL, NULL, "-stg_strong", &use_strongstg, NULL));
-      if (use_strongstg) PetscCall(SetupStrongStg(dm, bc, problem, phys));
+      if (use_strongstg) PetscCall(SetupStrongStg(*dm, bc, problem, phys));
     }
   }
 
-  PetscCall(DMSetupByOrderEnd_FEM(PETSC_TRUE, dm));
+  PetscCall(DMSetupByOrderEnd_FEM(PETSC_TRUE, *dm));
+
+  if (has_NL_vector && !SkipProjection) {
+    Vec old_InitialCondition_loc, new_InitialCondition_loc;
+    PetscCall(DMGetNamedLocalVector(old_dm, vecName, &old_InitialCondition_loc));
+    PetscCall(DMGetNamedLocalVector(*dm, vecName, &new_InitialCondition_loc));
+    void (*funcs[])(PetscInt, PetscInt, PetscInt, const PetscInt[], const PetscInt[], const PetscScalar[], const PetscScalar[], const PetscScalar[],
+                    const PetscInt[], const PetscInt[], const PetscScalar[], const PetscScalar[], const PetscScalar[], PetscReal, const PetscReal[],
+                    PetscInt, const PetscScalar[], PetscScalar[]) = {evaluate_solution};
+
+    PetscCall(PetscPrintf(PETSC_COMM_WORLD, "Before DMProjectFieldLocal in src/setupdm.c : \n"));
+
+    PetscCall(DMProjectFieldLocal(*dm, 0.0, old_InitialCondition_loc, funcs, INSERT_ALL_VALUES, new_InitialCondition_loc));
+    PetscCall(DMRestoreNamedLocalVector(old_dm, vecName, &old_InitialCondition_loc));
+    PetscCall(DMRestoreNamedLocalVector(*dm, vecName, &new_InitialCondition_loc));
+    PetscCall(DMDestroy(&old_dm));
+  }
+  PetscCall(PetscPrintf(PETSC_COMM_WORLD, "After DMProjectFieldLocal in src/setupdm.c : \n"));
 
   // Empty name for conserved field (because there is only one field)
   PetscSection section;
-  PetscCall(DMGetLocalSection(dm, &section));
+  PetscCall(DMGetLocalSection(*dm, &section));
   PetscCall(PetscSectionSetFieldName(section, 0, ""));
   switch (phys->state_var) {
     case STATEVAR_CONSERVATIVE:
@@ -127,7 +196,7 @@ PetscErrorCode VizRefineDM(DM dm, User user, ProblemData problem, SimpleBC bc, P
     if (i + 1 == user->app_ctx->viz_refine) d = 1;
     PetscCall(DMGetVecType(dm, &vec_type));
     PetscCall(DMSetVecType(dm_hierarchy[i + 1], vec_type));
-    PetscCall(SetUpDM(dm_hierarchy[i + 1], problem, d, q_order, bc, phys));
+    PetscCall(SetUpDM(&dm_hierarchy[i + 1], problem, d, q_order, bc, phys));
     PetscCall(DMCreateInterpolation(dm_hierarchy[i], dm_hierarchy[i + 1], &interp_next, NULL));
     if (!i) user->interp_viz = interp_next;
     else {
