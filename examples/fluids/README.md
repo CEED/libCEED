@@ -1082,6 +1082,16 @@ Using the STG Inflow for the blasius problem adds the following command-line opt
   - `false`
   -
 
+* - `-stg_dx`
+  - Set the element size in the x direction. Default is calculated for box meshes, assuming equispaced elements.
+  -
+  - `m`
+
+* - `-stg_h_scale_factor`
+  - Scale element size for cutoff frequency calculation
+  - $1/p$
+  -
+
 :::
 
 This problem can be run with the `blasius.yaml` file via:
