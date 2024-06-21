@@ -150,9 +150,9 @@ int main(int argc, char **argv) {
 
     VerifyProjectedBasis(basis_project, dim, p_to_dim, p_from_dim, x_to, x_from, u_to, u_from, du_to);
 
-    // Test projection on non-tensor bases
+    // Create non-tensor bases
+    CeedBasis basis_from_nontensor, basis_to_nontensor;
     {
-      CeedBasis         basis_from_nontensor, basis_to_nontensor;
       CeedElemTopology  topo;
       CeedInt           num_comp, num_nodes, nqpts;
       const CeedScalar *interp, *grad;
@@ -172,14 +172,21 @@ int main(int argc, char **argv) {
       CeedBasisGetInterp(basis_to, &interp);
       CeedBasisGetGrad(basis_to, &grad);
       CeedBasisCreateH1(ceed, topo, num_comp, num_nodes, nqpts, interp, grad, NULL, NULL, &basis_to_nontensor);
-
-      CeedBasisDestroy(&basis_project);
-      CeedBasisCreateProjection(basis_from_nontensor, basis_to_nontensor, &basis_project);
-
-      CeedBasisDestroy(&basis_to_nontensor);
-      CeedBasisDestroy(&basis_from_nontensor);
     }
 
+    // Test projection on non-tensor bases
+    CeedBasisDestroy(&basis_project);
+    CeedBasisCreateProjection(basis_from_nontensor, basis_to_nontensor, &basis_project);
+    VerifyProjectedBasis(basis_project, dim, p_to_dim, p_from_dim, x_to, x_from, u_to, u_from, du_to);
+
+    // Test projection from non-tensor to tensor
+    CeedBasisDestroy(&basis_project);
+    CeedBasisCreateProjection(basis_from_nontensor, basis_to, &basis_project);
+    VerifyProjectedBasis(basis_project, dim, p_to_dim, p_from_dim, x_to, x_from, u_to, u_from, du_to);
+
+    // Test projection from tensor to non-tensor
+    CeedBasisDestroy(&basis_project);
+    CeedBasisCreateProjection(basis_from, basis_to_nontensor, &basis_project);
     VerifyProjectedBasis(basis_project, dim, p_to_dim, p_from_dim, x_to, x_from, u_to, u_from, du_to);
 
     CeedVectorDestroy(&x_corners);
@@ -189,7 +196,9 @@ int main(int argc, char **argv) {
     CeedVectorDestroy(&u_to);
     CeedVectorDestroy(&du_to);
     CeedBasisDestroy(&basis_from);
+    CeedBasisDestroy(&basis_from_nontensor);
     CeedBasisDestroy(&basis_to);
+    CeedBasisDestroy(&basis_to_nontensor);
     CeedBasisDestroy(&basis_project);
   }
   CeedDestroy(&ceed);
