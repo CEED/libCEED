@@ -1469,16 +1469,16 @@ int CeedOperatorSetName(CeedOperator op, const char *name) {
 }
 
 /**
-  @brief View a `CeedOperator`
+  @brief Core logic for viewing a `CeedOperator`
 
-  @param[in] op     `CeedOperator` to view
+  @param[in] op     `CeedOperator` to view brief summary
   @param[in] stream Stream to write; typically `stdout` or a file
 
   @return Error code: 0 - success, otherwise - failure
 
   @ref User
 **/
-int CeedOperatorView(CeedOperator op, FILE *stream) {
+int CeedOperatorView_Core(CeedOperator op, FILE *stream, bool is_full) {
   bool has_name = op->name, is_composite;
 
   CeedCall(CeedOperatorIsComposite(op, &is_composite));
@@ -1492,13 +1492,43 @@ int CeedOperatorView(CeedOperator op, FILE *stream) {
 
     for (CeedInt i = 0; i < num_suboperators; i++) {
       has_name = sub_operators[i]->name;
-      fprintf(stream, "  SubOperator %" CeedInt_FMT "%s%s:\n", i, has_name ? " - " : "", has_name ? sub_operators[i]->name : "");
-      CeedCall(CeedOperatorSingleView(sub_operators[i], 1, stream));
+      fprintf(stream, "  SubOperator %" CeedInt_FMT "%s%s%s\n", i, has_name ? " - " : "", has_name ? sub_operators[i]->name : "", is_full ? ":" : "");
+      if (is_full) CeedCall(CeedOperatorSingleView(sub_operators[i], 1, stream));
     }
   } else {
     fprintf(stream, "CeedOperator%s%s\n", has_name ? " - " : "", has_name ? op->name : "");
-    CeedCall(CeedOperatorSingleView(op, 0, stream));
+    if (is_full) CeedCall(CeedOperatorSingleView(op, 0, stream));
   }
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
+  @brief View a `CeedOperator`
+
+  @param[in] op     `CeedOperator` to view
+  @param[in] stream Stream to write; typically `stdout` or a file
+
+  @return Error code: 0 - success, otherwise - failure
+
+  @ref User
+**/
+int CeedOperatorView(CeedOperator op, FILE *stream) {
+  CeedCall(CeedOperatorView_Core(op, stream, true));
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
+  @brief View a brief summary `CeedOperator`
+
+  @param[in] op     `CeedOperator` to view brief summary
+  @param[in] stream Stream to write; typically `stdout` or a file
+
+  @return Error code: 0 - success, otherwise - failure
+
+  @ref User
+**/
+int CeedOperatorViewTerse(CeedOperator op, FILE *stream) {
+  CeedCall(CeedOperatorView_Core(op, stream, false));
   return CEED_ERROR_SUCCESS;
 }
 

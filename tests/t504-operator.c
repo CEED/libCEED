@@ -66,7 +66,11 @@ int main(int argc, char **argv) {
   CeedOperatorSetField(op_mass, "u", elem_restriction_u, basis_u, CEED_VECTOR_ACTIVE);
   CeedOperatorSetField(op_mass, "v", elem_restriction_u, basis_u, CEED_VECTOR_ACTIVE);
 
+  CeedOperatorSetName(op_setup, "setup");
+  CeedOperatorViewTerse(op_setup, stdout);
   CeedOperatorView(op_setup, stdout);
+  CeedOperatorSetName(op_mass, "mass");
+  CeedOperatorViewTerse(op_mass, stdout);
   CeedOperatorView(op_mass, stdout);
 
   CeedVectorDestroy(&q_data);

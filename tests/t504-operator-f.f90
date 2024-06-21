@@ -92,7 +92,9 @@
       call ceedoperatorsetfield(op_mass,'v',erestrictu,bu,&
      & ceed_vector_active,err)
 
+      call ceedoperatorsetname(op_setup,'setup',err)
       call ceedoperatorview(op_setup,err)
+      call ceedoperatorsetname(op_mass,'mass',err)
       call ceedoperatorview(op_mass,err)
 
       call ceedvectordestroy(qdata,err)

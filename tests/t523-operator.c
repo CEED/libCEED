@@ -164,7 +164,9 @@ int main(int argc, char **argv) {
   CeedCompositeOperatorAddSub(op_mass, op_mass_hex);
 
   // View
+  CeedOperatorViewTerse(op_setup, stdout);
   CeedOperatorView(op_setup, stdout);
+  CeedOperatorViewTerse(op_mass, stdout);
   CeedOperatorView(op_mass, stdout);
 
   // Cleanup
