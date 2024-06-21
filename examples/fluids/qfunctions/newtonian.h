@@ -256,8 +256,16 @@ CEED_QFUNCTION_HELPER int IFunction_Newtonian(void *ctx, CeedInt Q, const CeedSc
         Grad_v[k][j][i] = -wdetJ * (dXdx[k][0] * Flux[j][0] + dXdx[k][1] * Flux[j][1] + dXdx[k][2] * Flux[j][2]);
       }
     }
+// worked for exponential    const CeedScalar Amag=100.0;
+// worked for cubic    const CeedScalar Amag=200000.0;
+    const CeedScalar Amag=0*16000.0;
+//    const CeedScalar amsig = -1.0*(Amag - LinearRampCoefficient(Amag, 0.1, -0.1, x_i[0]))*Max(0.0,exp(-100.0*Min(0,qi[1]))-1.0);
+    const CeedScalar ux=qi[1];
+//cubic    const CeedScalar amsig = (Amag - LinearRampCoefficient(Amag, 0.1, -0.1, x_i[0]))*Min(0.0,ux*ux*ux);
+    const CeedScalar amsig = (Amag - LinearRampCoefficient(Amag, 0.1, -0.1, x_i[0]))*Min(0.0,ux);
+//    const CeedScalar amsig = 0.0;
 
-    const CeedScalar body_force[5] = {0, s.U.density * g[0], s.U.density * g[1], s.U.density * g[2], Dot3(s.U.momentum, g)};
+    const CeedScalar body_force[5] = {0, s.U.density * (g[0]-amsig), s.U.density * g[1], s.U.density * g[2], Dot3(s.U.momentum, g)};
 
     // -- Stabilization method: none (Galerkin), SU, or SUPG
     CeedScalar Tau_d[3], stab[5][3], U_dot[5] = {0}, qi_dot[5];
