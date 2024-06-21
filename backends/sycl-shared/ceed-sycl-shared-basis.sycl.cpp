@@ -106,6 +106,7 @@ int CeedBasisApplyTensor_Sycl_shared(CeedBasis basis, const CeedInt num_elem, Ce
       //-----------
       std::vector<sycl::event> e;
 
+      CeedCheck(impl->d_q_weight_1d, ceed, CEED_ERROR_BACKEND, "%s not supported; q_weight_1d not set", CeedEvalModes[eval_mode]);
       if (!ceed_Sycl->sycl_queue.is_in_order()) e = {ceed_Sycl->sycl_queue.ext_oneapi_submit_barrier()};
 
       ceed_Sycl->sycl_queue.submit([&](sycl::handler &cgh) {
@@ -143,7 +144,7 @@ static int CeedBasisDestroy_Sycl_shared(CeedBasis basis) {
   CeedCallBackend(CeedBasisGetData(basis, &impl));
   CeedCallBackend(CeedGetData(ceed, &data));
   CeedCallSycl(ceed, data->sycl_queue.wait_and_throw());
-  CeedCallSycl(ceed, sycl::free(impl->d_q_weight_1d, data->sycl_context));
+  if (impl->d_q_weight_1d) CeedCallSycl(ceed, sycl::free(impl->d_q_weight_1d, data->sycl_context));
   CeedCallSycl(ceed, sycl::free(impl->d_interp_1d, data->sycl_context));
   CeedCallSycl(ceed, sycl::free(impl->d_grad_1d, data->sycl_context));
   CeedCallSycl(ceed, sycl::free(impl->d_collo_grad_1d, data->sycl_context));
@@ -198,17 +199,23 @@ int CeedBasisCreateTensorH1_Sycl_shared(CeedInt dim, CeedInt P_1d, CeedInt Q_1d,
   if (!data->sycl_queue.is_in_order()) e = {data->sycl_queue.ext_oneapi_submit_barrier()};
 
   // Copy basis data to GPU
-  CeedCallSycl(ceed, impl->d_q_weight_1d = sycl::malloc_device<CeedScalar>(Q_1d, data->sycl_device, data->sycl_context));
-  sycl::event copy_weight = data->sycl_queue.copy<CeedScalar>(q_weight_1d, impl->d_q_weight_1d, Q_1d, e);
+  std::vector<sycl::event> copy_events;
+  if (q_weight_1d) {
+    CeedCallSycl(ceed, impl->d_q_weight_1d = sycl::malloc_device<CeedScalar>(Q_1d, data->sycl_device, data->sycl_context));
+    sycl::event copy_weight = data->sycl_queue.copy<CeedScalar>(q_weight_1d, impl->d_q_weight_1d, Q_1d, e);
+    copy_events.push_back(copy_weight);
+  }
 
   const CeedInt interp_length = Q_1d * P_1d;
   CeedCallSycl(ceed, impl->d_interp_1d = sycl::malloc_device<CeedScalar>(interp_length, data->sycl_device, data->sycl_context));
   sycl::event copy_interp = data->sycl_queue.copy<CeedScalar>(interp_1d, impl->d_interp_1d, interp_length, e);
+  copy_events.push_back(copy_interp);
 
   CeedCallSycl(ceed, impl->d_grad_1d = sycl::malloc_device<CeedScalar>(interp_length, data->sycl_device, data->sycl_context));
   sycl::event copy_grad = data->sycl_queue.copy<CeedScalar>(grad_1d, impl->d_grad_1d, interp_length, e);
+  copy_events.push_back(copy_grad);
 
-  CeedCallSycl(ceed, sycl::event::wait_and_throw({copy_weight, copy_interp, copy_grad}));
+  CeedCallSycl(ceed, sycl::event::wait_and_throw(copy_events));
 
   // Compute collocated gradient and copy to GPU
   impl->d_collo_grad_1d          = NULL;

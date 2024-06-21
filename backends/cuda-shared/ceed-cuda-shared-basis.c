@@ -148,6 +148,7 @@ int CeedBasisApplyTensor_Cuda_shared(CeedBasis basis, const CeedInt num_elem, Ce
       CeedInt Q_1d;
       CeedInt block_size = 32;
 
+      CeedCheck(data->d_q_weight_1d, ceed, CEED_ERROR_BACKEND, "%s not supported; q_weights_1d not set", CeedEvalModes[eval_mode]);
       CeedCallBackend(CeedBasisGetNumQuadraturePoints1D(basis, &Q_1d));
       void *weight_args[] = {(void *)&num_elem, (void *)&data->d_q_weight_1d, &d_v};
       if (dim == 1) {
@@ -195,7 +196,7 @@ static int CeedBasisDestroy_Cuda_shared(CeedBasis basis) {
   CeedCallBackend(CeedBasisGetCeed(basis, &ceed));
   CeedCallBackend(CeedBasisGetData(basis, &data));
   CeedCallCuda(ceed, cuModuleUnload(data->module));
-  CeedCallCuda(ceed, cudaFree(data->d_q_weight_1d));
+  if (data->d_q_weight_1d) CeedCallCuda(ceed, cudaFree(data->d_q_weight_1d));
   CeedCallCuda(ceed, cudaFree(data->d_interp_1d));
   CeedCallCuda(ceed, cudaFree(data->d_grad_1d));
   CeedCallCuda(ceed, cudaFree(data->d_collo_grad_1d));
@@ -220,8 +221,10 @@ int CeedBasisCreateTensorH1_Cuda_shared(CeedInt dim, CeedInt P_1d, CeedInt Q_1d,
   CeedCallBackend(CeedCalloc(1, &data));
 
   // Copy basis data to GPU
-  CeedCallCuda(ceed, cudaMalloc((void **)&data->d_q_weight_1d, q_bytes));
-  CeedCallCuda(ceed, cudaMemcpy(data->d_q_weight_1d, q_weight_1d, q_bytes, cudaMemcpyHostToDevice));
+  if (q_weight_1d) {
+    CeedCallCuda(ceed, cudaMalloc((void **)&data->d_q_weight_1d, q_bytes));
+    CeedCallCuda(ceed, cudaMemcpy(data->d_q_weight_1d, q_weight_1d, q_bytes, cudaMemcpyHostToDevice));
+  }
   CeedCallCuda(ceed, cudaMalloc((void **)&data->d_interp_1d, interp_bytes));
   CeedCallCuda(ceed, cudaMemcpy(data->d_interp_1d, interp_1d, interp_bytes, cudaMemcpyHostToDevice));
   CeedCallCuda(ceed, cudaMalloc((void **)&data->d_grad_1d, interp_bytes));

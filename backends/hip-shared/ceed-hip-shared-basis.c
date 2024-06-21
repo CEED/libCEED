@@ -205,6 +205,7 @@ int CeedBasisApplyTensor_Hip_shared(CeedBasis basis, const CeedInt num_elem, Cee
       CeedInt Q_1d;
       CeedInt block_size = data->block_sizes[2];
 
+      CeedCheck(data->d_q_weight_1d, ceed, CEED_ERROR_BACKEND, "%s not supported; q_weights_1d not set", CeedEvalModes[eval_mode]);
       CeedCallBackend(CeedBasisGetNumQuadraturePoints1D(basis, &Q_1d));
       void *weight_args[] = {(void *)&num_elem, (void *)&data->d_q_weight_1d, &d_v};
 
@@ -254,7 +255,7 @@ static int CeedBasisDestroy_Hip_shared(CeedBasis basis) {
   CeedCallBackend(CeedBasisGetCeed(basis, &ceed));
   CeedCallBackend(CeedBasisGetData(basis, &data));
   CeedCallHip(ceed, hipModuleUnload(data->module));
-  CeedCallHip(ceed, hipFree(data->d_q_weight_1d));
+  if (data->d_q_weight_1d) CeedCallHip(ceed, hipFree(data->d_q_weight_1d));
   CeedCallHip(ceed, hipFree(data->d_interp_1d));
   CeedCallHip(ceed, hipFree(data->d_grad_1d));
   CeedCallHip(ceed, hipFree(data->d_collo_grad_1d));
@@ -279,8 +280,10 @@ int CeedBasisCreateTensorH1_Hip_shared(CeedInt dim, CeedInt P_1d, CeedInt Q_1d, 
   CeedCallBackend(CeedCalloc(1, &data));
 
   // Copy basis data to GPU
-  CeedCallHip(ceed, hipMalloc((void **)&data->d_q_weight_1d, q_bytes));
-  CeedCallHip(ceed, hipMemcpy(data->d_q_weight_1d, q_weight_1d, q_bytes, hipMemcpyHostToDevice));
+  if (q_weight_1d) {
+    CeedCallHip(ceed, hipMalloc((void **)&data->d_q_weight_1d, q_bytes));
+    CeedCallHip(ceed, hipMemcpy(data->d_q_weight_1d, q_weight_1d, q_bytes, hipMemcpyHostToDevice));
+  }
   CeedCallHip(ceed, hipMalloc((void **)&data->d_interp_1d, interp_bytes));
   CeedCallHip(ceed, hipMemcpy(data->d_interp_1d, interp_1d, interp_bytes, hipMemcpyHostToDevice));
   CeedCallHip(ceed, hipMalloc((void **)&data->d_grad_1d, interp_bytes));

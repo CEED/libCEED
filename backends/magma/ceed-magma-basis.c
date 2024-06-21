@@ -199,6 +199,7 @@ static int CeedBasisApply_Magma(CeedBasis basis, CeedInt num_elem, CeedTranspose
     } break;
     case CEED_EVAL_WEIGHT: {
       CeedCheck(t_mode != CEED_TRANSPOSE, ceed, CEED_ERROR_BACKEND, "CEED_EVAL_WEIGHT incompatible with CEED_TRANSPOSE");
+      CeedCheck(impl->d_q_weight_1d, ceed, CEED_ERROR_BACKEND, "%s not supported; q_weight_1d not set", CeedEvalModes[e_mode]);
       CeedInt elem_dofs_size = CeedIntPow(Q, dim);
       CeedInt num_threads    = 1;
       CeedInt num_t_col      = 1;
@@ -414,6 +415,7 @@ static int CeedBasisApplyNonTensor_Magma(CeedBasis basis, CeedInt num_elem, Ceed
     }
   } else {
     CeedCheck(t_mode != CEED_TRANSPOSE, ceed, CEED_ERROR_BACKEND, "CEED_EVAL_WEIGHT incompatible with CEED_TRANSPOSE");
+    CeedCheck(impl->d_q_weight, ceed, CEED_ERROR_BACKEND, "%s not supported; q_weight not set", CeedEvalModes[e_mode]);
     CeedInt num_t_col  = MAGMA_BASIS_NTCOL(Q, MAGMA_MAXTHREADS_1D);
     CeedInt grid       = CeedDivUpInt(num_elem, num_t_col);
     CeedInt shared_mem = Q * sizeof(CeedScalar) + num_t_col * Q * sizeof(CeedScalar);
@@ -449,7 +451,7 @@ static int CeedBasisDestroy_Magma(CeedBasis basis) {
 #endif
   CeedCallBackend(magma_free(impl->d_interp_1d));
   CeedCallBackend(magma_free(impl->d_grad_1d));
-  CeedCallBackend(magma_free(impl->d_q_weight_1d));
+  if (impl->d_q_weight_1d) CeedCallBackend(magma_free(impl->d_q_weight_1d));
   CeedCallBackend(CeedFree(&impl));
   return CEED_ERROR_SUCCESS;
 }
@@ -476,7 +478,7 @@ static int CeedBasisDestroyNonTensor_Magma(CeedBasis basis) {
   CeedCallBackend(magma_free(impl->d_grad));
   CeedCallBackend(magma_free(impl->d_div));
   CeedCallBackend(magma_free(impl->d_curl));
-  CeedCallBackend(magma_free(impl->d_q_weight));
+  if (impl->d_q_weight) CeedCallBackend(magma_free(impl->d_q_weight));
   CeedCallBackend(CeedFree(&impl));
   return CEED_ERROR_SUCCESS;
 }
@@ -500,8 +502,10 @@ int CeedBasisCreateTensorH1_Magma(CeedInt dim, CeedInt P_1d, CeedInt Q_1d, const
   CeedCallBackend(CeedCalloc(1, &impl));
 
   // Copy basis data to GPU
-  CeedCallBackend(magma_malloc((void **)&impl->d_q_weight_1d, Q_1d * sizeof(q_weight_1d[0])));
-  magma_setvector(Q_1d, sizeof(q_weight_1d[0]), q_weight_1d, 1, impl->d_q_weight_1d, 1, data->queue);
+  if (q_weight_1d) {
+    CeedCallBackend(magma_malloc((void **)&impl->d_q_weight_1d, Q_1d * sizeof(q_weight_1d[0])));
+    magma_setvector(Q_1d, sizeof(q_weight_1d[0]), q_weight_1d, 1, impl->d_q_weight_1d, 1, data->queue);
+  }
   CeedCallBackend(magma_malloc((void **)&impl->d_interp_1d, Q_1d * P_1d * sizeof(interp_1d[0])));
   magma_setvector(Q_1d * P_1d, sizeof(interp_1d[0]), interp_1d, 1, impl->d_interp_1d, 1, data->queue);
   CeedCallBackend(magma_malloc((void **)&impl->d_grad_1d, Q_1d * P_1d * sizeof(grad_1d[0])));
@@ -594,8 +598,10 @@ int CeedBasisCreateH1_Magma(CeedElemTopology topo, CeedInt dim, CeedInt num_node
   CeedCallBackend(CeedCalloc(1, &impl));
 
   // Copy basis data to GPU
-  CeedCallBackend(magma_malloc((void **)&impl->d_q_weight, num_qpts * sizeof(q_weight[0])));
-  magma_setvector(num_qpts, sizeof(q_weight[0]), q_weight, 1, impl->d_q_weight, 1, data->queue);
+  if (q_weight) {
+    CeedCallBackend(magma_malloc((void **)&impl->d_q_weight, num_qpts * sizeof(q_weight[0])));
+    magma_setvector(num_qpts, sizeof(q_weight[0]), q_weight, 1, impl->d_q_weight, 1, data->queue);
+  }
   if (interp) {
     CeedInt q_comp_interp;
 
@@ -653,8 +659,10 @@ int CeedBasisCreateHdiv_Magma(CeedElemTopology topo, CeedInt dim, CeedInt num_no
   CeedCallBackend(CeedCalloc(1, &impl));
 
   // Copy basis data to GPU
-  CeedCallBackend(magma_malloc((void **)&impl->d_q_weight, num_qpts * sizeof(q_weight[0])));
-  magma_setvector(num_qpts, sizeof(q_weight[0]), q_weight, 1, impl->d_q_weight, 1, data->queue);
+  if (q_weight) {
+    CeedCallBackend(magma_malloc((void **)&impl->d_q_weight, num_qpts * sizeof(q_weight[0])));
+    magma_setvector(num_qpts, sizeof(q_weight[0]), q_weight, 1, impl->d_q_weight, 1, data->queue);
+  }
   if (interp) {
     CeedInt q_comp_interp;
 
@@ -712,8 +720,10 @@ int CeedBasisCreateHcurl_Magma(CeedElemTopology topo, CeedInt dim, CeedInt num_n
   CeedCallBackend(CeedCalloc(1, &impl));
 
   // Copy basis data to GPU
-  CeedCallBackend(magma_malloc((void **)&impl->d_q_weight, num_qpts * sizeof(q_weight[0])));
-  magma_setvector(num_qpts, sizeof(q_weight[0]), q_weight, 1, impl->d_q_weight, 1, data->queue);
+  if (q_weight) {
+    CeedCallBackend(magma_malloc((void **)&impl->d_q_weight, num_qpts * sizeof(q_weight[0])));
+    magma_setvector(num_qpts, sizeof(q_weight[0]), q_weight, 1, impl->d_q_weight, 1, data->queue);
+  }
   if (interp) {
     CeedInt q_comp_interp;
 
