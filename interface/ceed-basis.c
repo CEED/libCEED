@@ -195,7 +195,7 @@ static int CeedScalarView(const char *name, const char *fp_fmt, CeedInt m, CeedI
 **/
 static int CeedBasisCreateProjectionMatrices(CeedBasis basis_from, CeedBasis basis_to, CeedScalar **interp_project, CeedScalar **grad_project) {
   Ceed    ceed;
-  bool    is_tensor_to, is_tensor_from;
+  bool    are_both_tensor;
   CeedInt Q, Q_to, Q_from, P_to, P_from;
 
   CeedCall(CeedBasisGetCeed(basis_to, &ceed));
@@ -207,10 +207,14 @@ static int CeedBasisCreateProjectionMatrices(CeedBasis basis_from, CeedBasis bas
   Q = Q_to;
 
   // Check for matching tensor or non-tensor
-  CeedCall(CeedBasisIsTensor(basis_to, &is_tensor_to));
-  CeedCall(CeedBasisIsTensor(basis_from, &is_tensor_from));
-  CeedCheck(is_tensor_to == is_tensor_from, ceed, CEED_ERROR_MINOR, "Bases must both be tensor or non-tensor");
-  if (is_tensor_to) {
+  {
+    bool is_tensor_to, is_tensor_from;
+
+    CeedCall(CeedBasisIsTensor(basis_to, &is_tensor_to));
+    CeedCall(CeedBasisIsTensor(basis_from, &is_tensor_from));
+    are_both_tensor = is_tensor_to && is_tensor_from;
+  }
+  if (are_both_tensor) {
     CeedCall(CeedBasisGetNumNodes1D(basis_to, &P_to));
     CeedCall(CeedBasisGetNumNodes1D(basis_from, &P_from));
     CeedCall(CeedBasisGetNumQuadraturePoints1D(basis_from, &Q));
@@ -231,7 +235,7 @@ static int CeedBasisCreateProjectionMatrices(CeedBasis basis_from, CeedBasis bas
   const CeedScalar *interp_to_source = NULL, *interp_from_source = NULL, *grad_from_source = NULL;
 
   CeedCall(CeedBasisGetDimension(basis_to, &dim));
-  if (is_tensor_to) {
+  if (are_both_tensor) {
     CeedCall(CeedBasisGetInterp1D(basis_to, &interp_to_source));
     CeedCall(CeedBasisGetInterp1D(basis_from, &interp_from_source));
   } else {
@@ -246,19 +250,19 @@ static int CeedBasisCreateProjectionMatrices(CeedBasis basis_from, CeedBasis bas
   // projection basis will have a gradient operation (allocated even if not H^1 for the
   // basis construction later on)
   if (fe_space_to == CEED_FE_SPACE_H1) {
-    if (is_tensor_to) {
+    if (are_both_tensor) {
       CeedCall(CeedBasisGetGrad1D(basis_from, &grad_from_source));
     } else {
       CeedCall(CeedBasisGetGrad(basis_from, &grad_from_source));
     }
   }
-  CeedCall(CeedCalloc(P_to * P_from * (is_tensor_to ? 1 : dim), grad_project));
+  CeedCall(CeedCalloc(P_to * P_from * (are_both_tensor ? 1 : dim), grad_project));
 
   // Compute interp_to^+, pseudoinverse of interp_to
   CeedCall(CeedCalloc(Q * q_comp * P_to, &interp_to_inv));
   CeedCall(CeedMatrixPseudoinverse(ceed, interp_to_source, Q * q_comp, P_to, interp_to_inv));
   // Build matrices
-  CeedInt     num_matrices = 1 + (fe_space_to == CEED_FE_SPACE_H1) * (is_tensor_to ? 1 : dim);
+  CeedInt     num_matrices = 1 + (fe_space_to == CEED_FE_SPACE_H1) * (are_both_tensor ? 1 : dim);
   CeedScalar *input_from[num_matrices], *output_project[num_matrices];
 
   input_from[0]     = (CeedScalar *)interp_from_source;
@@ -1322,6 +1326,8 @@ int CeedBasisCreateHcurl(Ceed ceed, CeedElemTopology topo, CeedInt num_comp, Cee
   Note: `basis_project` will have the same number of components as `basis_from`, regardless of the number of components that `basis_to` has.
         If `basis_from` has 3 components and `basis_to` has 5 components, then `basis_project` will have 3 components.
 
+  Note: If either `basis_from` or `basis_to` are non-tensor, then `basis_project` will also be non-tensor
+
   @param[in]  basis_from    `CeedBasis` to prolong from
   @param[in]  basis_to      `CeedBasis` to prolong to
   @param[out] basis_project Address of the variable where the newly created `CeedBasis` will be stored
@@ -1332,7 +1338,7 @@ int CeedBasisCreateHcurl(Ceed ceed, CeedElemTopology topo, CeedInt num_comp, Cee
 **/
 int CeedBasisCreateProjection(CeedBasis basis_from, CeedBasis basis_to, CeedBasis *basis_project) {
   Ceed        ceed;
-  bool        is_tensor;
+  bool        create_tensor;
   CeedInt     dim, num_comp;
   CeedScalar *interp_project, *grad_project;
 
@@ -1342,10 +1348,16 @@ int CeedBasisCreateProjection(CeedBasis basis_from, CeedBasis basis_to, CeedBasi
   CeedCall(CeedBasisCreateProjectionMatrices(basis_from, basis_to, &interp_project, &grad_project));
 
   // Build basis
-  CeedCall(CeedBasisIsTensor(basis_to, &is_tensor));
+  {
+    bool is_tensor_to, is_tensor_from;
+
+    CeedCall(CeedBasisIsTensor(basis_to, &is_tensor_to));
+    CeedCall(CeedBasisIsTensor(basis_from, &is_tensor_from));
+    create_tensor = is_tensor_from && is_tensor_to;
+  }
   CeedCall(CeedBasisGetDimension(basis_to, &dim));
   CeedCall(CeedBasisGetNumComponents(basis_from, &num_comp));
-  if (is_tensor) {
+  if (create_tensor) {
     CeedInt P_1d_to, P_1d_from;
 
     CeedCall(CeedBasisGetNumNodes1D(basis_from, &P_1d_from));
