@@ -59,6 +59,7 @@ int CeedBasisApply_Hip(CeedBasis basis, const CeedInt num_elem, CeedTransposeMod
       CeedCallBackend(CeedRunKernel_Hip(ceed, data->Grad, num_elem, block_size, grad_args));
     } break;
     case CEED_EVAL_WEIGHT: {
+      CeedCheck(data->d_q_weight_1d, ceed, CEED_ERROR_BACKEND, "%s not supported; q_weights_1d not set", CeedEvalModes[eval_mode]);
       void     *weight_args[] = {(void *)&num_elem, (void *)&data->d_q_weight_1d, &d_v};
       const int block_size_x  = Q_1d;
       const int block_size_y  = dim >= 2 ? Q_1d : 1;
@@ -156,6 +157,7 @@ int CeedBasisApplyNonTensor_Hip(CeedBasis basis, const CeedInt num_elem, CeedTra
       }
     } break;
     case CEED_EVAL_WEIGHT: {
+      CeedCheck(data->d_q_weight, ceed, CEED_ERROR_BACKEND, "%s not supported; q_weights not set", CeedEvalModes[eval_mode]);
       void *weight_args[] = {(void *)&num_elem, (void *)&data->d_q_weight, &d_v};
 
       CeedCallBackend(CeedRunKernelDim_Hip(ceed, data->Weight, grid, num_qpts, 1, elems_per_block, weight_args));
@@ -181,7 +183,7 @@ static int CeedBasisDestroy_Hip(CeedBasis basis) {
   CeedCallBackend(CeedBasisGetCeed(basis, &ceed));
   CeedCallBackend(CeedBasisGetData(basis, &data));
   CeedCallHip(ceed, hipModuleUnload(data->module));
-  CeedCallHip(ceed, hipFree(data->d_q_weight_1d));
+  if (data->d_q_weight_1d) CeedCallHip(ceed, hipFree(data->d_q_weight_1d));
   CeedCallHip(ceed, hipFree(data->d_interp_1d));
   CeedCallHip(ceed, hipFree(data->d_grad_1d));
   CeedCallBackend(CeedFree(&data));
@@ -198,7 +200,7 @@ static int CeedBasisDestroyNonTensor_Hip(CeedBasis basis) {
   CeedCallBackend(CeedBasisGetCeed(basis, &ceed));
   CeedCallBackend(CeedBasisGetData(basis, &data));
   CeedCallHip(ceed, hipModuleUnload(data->module));
-  CeedCallHip(ceed, hipFree(data->d_q_weight));
+  if (data->d_q_weight) CeedCallHip(ceed, hipFree(data->d_q_weight));
   CeedCallHip(ceed, hipFree(data->d_interp));
   CeedCallHip(ceed, hipFree(data->d_grad));
   CeedCallHip(ceed, hipFree(data->d_div));
@@ -224,8 +226,10 @@ int CeedBasisCreateTensorH1_Hip(CeedInt dim, CeedInt P_1d, CeedInt Q_1d, const C
   CeedCallBackend(CeedCalloc(1, &data));
 
   // Copy data to GPU
-  CeedCallHip(ceed, hipMalloc((void **)&data->d_q_weight_1d, q_bytes));
-  CeedCallHip(ceed, hipMemcpy(data->d_q_weight_1d, q_weight_1d, q_bytes, hipMemcpyHostToDevice));
+  if (q_weight_1d) {
+    CeedCallHip(ceed, hipMalloc((void **)&data->d_q_weight_1d, q_bytes));
+    CeedCallHip(ceed, hipMemcpy(data->d_q_weight_1d, q_weight_1d, q_bytes, hipMemcpyHostToDevice));
+  }
   CeedCallHip(ceed, hipMalloc((void **)&data->d_interp_1d, interp_bytes));
   CeedCallHip(ceed, hipMemcpy(data->d_interp_1d, interp_1d, interp_bytes, hipMemcpyHostToDevice));
   CeedCallHip(ceed, hipMalloc((void **)&data->d_grad_1d, interp_bytes));
@@ -272,8 +276,10 @@ int CeedBasisCreateH1_Hip(CeedElemTopology topo, CeedInt dim, CeedInt num_nodes,
   // Copy basis data to GPU
   CeedCallBackend(CeedBasisGetNumQuadratureComponents(basis, CEED_EVAL_INTERP, &q_comp_interp));
   CeedCallBackend(CeedBasisGetNumQuadratureComponents(basis, CEED_EVAL_GRAD, &q_comp_grad));
-  CeedCallHip(ceed, hipMalloc((void **)&data->d_q_weight, q_bytes));
-  CeedCallHip(ceed, hipMemcpy(data->d_q_weight, q_weight, q_bytes, hipMemcpyHostToDevice));
+  if (q_weight) {
+    CeedCallHip(ceed, hipMalloc((void **)&data->d_q_weight, q_bytes));
+    CeedCallHip(ceed, hipMemcpy(data->d_q_weight, q_weight, q_bytes, hipMemcpyHostToDevice));
+  }
   if (interp) {
     const CeedInt interp_bytes = q_bytes * num_nodes * q_comp_interp;
 
@@ -329,8 +335,10 @@ int CeedBasisCreateHdiv_Hip(CeedElemTopology topo, CeedInt dim, CeedInt num_node
   // Copy basis data to GPU
   CeedCallBackend(CeedBasisGetNumQuadratureComponents(basis, CEED_EVAL_INTERP, &q_comp_interp));
   CeedCallBackend(CeedBasisGetNumQuadratureComponents(basis, CEED_EVAL_DIV, &q_comp_div));
-  CeedCallHip(ceed, hipMalloc((void **)&data->d_q_weight, q_bytes));
-  CeedCallHip(ceed, hipMemcpy(data->d_q_weight, q_weight, q_bytes, hipMemcpyHostToDevice));
+  if (q_weight) {
+    CeedCallHip(ceed, hipMalloc((void **)&data->d_q_weight, q_bytes));
+    CeedCallHip(ceed, hipMemcpy(data->d_q_weight, q_weight, q_bytes, hipMemcpyHostToDevice));
+  }
   if (interp) {
     const CeedInt interp_bytes = q_bytes * num_nodes * q_comp_interp;
 
@@ -386,8 +394,10 @@ int CeedBasisCreateHcurl_Hip(CeedElemTopology topo, CeedInt dim, CeedInt num_nod
   // Copy basis data to GPU
   CeedCallBackend(CeedBasisGetNumQuadratureComponents(basis, CEED_EVAL_INTERP, &q_comp_interp));
   CeedCallBackend(CeedBasisGetNumQuadratureComponents(basis, CEED_EVAL_CURL, &q_comp_curl));
-  CeedCallHip(ceed, hipMalloc((void **)&data->d_q_weight, q_bytes));
-  CeedCallHip(ceed, hipMemcpy(data->d_q_weight, q_weight, q_bytes, hipMemcpyHostToDevice));
+  if (q_weight) {
+    CeedCallHip(ceed, hipMalloc((void **)&data->d_q_weight, q_bytes));
+    CeedCallHip(ceed, hipMemcpy(data->d_q_weight, q_weight, q_bytes, hipMemcpyHostToDevice));
+  }
   if (interp) {
     const CeedInt interp_bytes = q_bytes * num_nodes * q_comp_interp;
 

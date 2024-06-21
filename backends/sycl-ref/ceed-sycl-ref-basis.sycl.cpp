@@ -312,6 +312,7 @@ static int CeedBasisApply_Sycl(CeedBasis basis, const CeedInt num_elem, CeedTran
       }
       break;
     case CEED_EVAL_WEIGHT:
+      CeedCheck(impl->d_q_weight_1d, ceed, CEED_ERROR_BACKEND, "%s not supported; q_weight_1d not set", CeedEvalModes[eval_mode]);
       CeedCallBackend(CeedBasisApplyWeight_Sycl(data->sycl_queue, num_elem, impl, d_v));
       break;
     case CEED_EVAL_NONE: /* handled separately below */
@@ -487,6 +488,7 @@ static int CeedBasisApplyNonTensor_Sycl(CeedBasis basis, const CeedInt num_elem,
       CeedCallBackend(CeedBasisApplyNonTensorGrad_Sycl(data->sycl_queue, num_elem, is_transpose, impl, d_u, d_v));
       break;
     case CEED_EVAL_WEIGHT:
+      CeedCheck(impl->d_q_weight, ceed, CEED_ERROR_BACKEND, "%s not supported; q_weights not set", CeedEvalModes[eval_mode]);
       CeedCallBackend(CeedBasisApplyNonTensorWeight_Sycl(data->sycl_queue, num_elem, impl, d_v));
       break;
     case CEED_EVAL_NONE: /* handled separately below */
@@ -520,7 +522,7 @@ static int CeedBasisDestroy_Sycl(CeedBasis basis) {
   // Wait for all work to finish before freeing memory
   CeedCallSycl(ceed, data->sycl_queue.wait_and_throw());
 
-  CeedCallSycl(ceed, sycl::free(impl->d_q_weight_1d, data->sycl_context));
+  if (impl->d_q_weight_1d) CeedCallSycl(ceed, sycl::free(impl->d_q_weight_1d, data->sycl_context));
   CeedCallSycl(ceed, sycl::free(impl->d_interp_1d, data->sycl_context));
   CeedCallSycl(ceed, sycl::free(impl->d_grad_1d, data->sycl_context));
 
@@ -542,7 +544,7 @@ static int CeedBasisDestroyNonTensor_Sycl(CeedBasis basis) {
   // Wait for all work to finish before freeing memory
   CeedCallSycl(ceed, data->sycl_queue.wait_and_throw());
 
-  CeedCallSycl(ceed, sycl::free(impl->d_q_weight, data->sycl_context));
+  if (impl->d_q_weight) CeedCallSycl(ceed, sycl::free(impl->d_q_weight, data->sycl_context));
   CeedCallSycl(ceed, sycl::free(impl->d_interp, data->sycl_context));
   CeedCallSycl(ceed, sycl::free(impl->d_grad, data->sycl_context));
 
@@ -581,17 +583,23 @@ int CeedBasisCreateTensorH1_Sycl(CeedInt dim, CeedInt P_1d, CeedInt Q_1d, const 
 
   if (!data->sycl_queue.is_in_order()) e = {data->sycl_queue.ext_oneapi_submit_barrier()};
 
-  CeedCallSycl(ceed, impl->d_q_weight_1d = sycl::malloc_device<CeedScalar>(Q_1d, data->sycl_device, data->sycl_context));
-  sycl::event copy_weight = data->sycl_queue.copy<CeedScalar>(q_weight_1d, impl->d_q_weight_1d, Q_1d, e);
+  std::vector<sycl::event> copy_events;
+  if (q_weight_1d) {
+    CeedCallSycl(ceed, impl->d_q_weight_1d = sycl::malloc_device<CeedScalar>(Q_1d, data->sycl_device, data->sycl_context));
+    sycl::event copy_weight = data->sycl_queue.copy<CeedScalar>(q_weight_1d, impl->d_q_weight_1d, Q_1d, e);
+    copy_events.push_back(copy_weight);
+  }
 
   const CeedInt interp_length = Q_1d * P_1d;
   CeedCallSycl(ceed, impl->d_interp_1d = sycl::malloc_device<CeedScalar>(interp_length, data->sycl_device, data->sycl_context));
   sycl::event copy_interp = data->sycl_queue.copy<CeedScalar>(interp_1d, impl->d_interp_1d, interp_length, e);
+  copy_events.push_back(copy_interp);
 
   CeedCallSycl(ceed, impl->d_grad_1d = sycl::malloc_device<CeedScalar>(interp_length, data->sycl_device, data->sycl_context));
   sycl::event copy_grad = data->sycl_queue.copy<CeedScalar>(grad_1d, impl->d_grad_1d, interp_length, e);
+  copy_events.push_back(copy_grad);
 
-  CeedCallSycl(ceed, sycl::event::wait_and_throw({copy_weight, copy_interp, copy_grad}));
+  CeedCallSycl(ceed, sycl::event::wait_and_throw(copy_events));
 
   std::vector<sycl::kernel_id> kernel_ids = {sycl::get_kernel_id<CeedBasisSyclInterp<1>>(), sycl::get_kernel_id<CeedBasisSyclInterp<0>>(),
                                              sycl::get_kernel_id<CeedBasisSyclGrad<1>>(), sycl::get_kernel_id<CeedBasisSyclGrad<0>>()};
@@ -636,18 +644,24 @@ int CeedBasisCreateH1_Sycl(CeedElemTopology topo, CeedInt dim, CeedInt num_nodes
 
   if (!data->sycl_queue.is_in_order()) e = {data->sycl_queue.ext_oneapi_submit_barrier()};
 
-  CeedCallSycl(ceed, impl->d_q_weight = sycl::malloc_device<CeedScalar>(num_qpts, data->sycl_device, data->sycl_context));
-  sycl::event copy_weight = data->sycl_queue.copy<CeedScalar>(q_weight, impl->d_q_weight, num_qpts, e);
+  std::vector<sycl::event> copy_events;
+  if (q_weight) {
+    CeedCallSycl(ceed, impl->d_q_weight = sycl::malloc_device<CeedScalar>(num_qpts, data->sycl_device, data->sycl_context));
+    sycl::event copy_weight = data->sycl_queue.copy<CeedScalar>(q_weight, impl->d_q_weight, num_qpts, e);
+    copy_events.push_back(copy_weight);
+  }
 
   const CeedInt interp_length = num_qpts * num_nodes;
   CeedCallSycl(ceed, impl->d_interp = sycl::malloc_device<CeedScalar>(interp_length, data->sycl_device, data->sycl_context));
   sycl::event copy_interp = data->sycl_queue.copy<CeedScalar>(interp, impl->d_interp, interp_length, e);
+  copy_events.push_back(copy_interp);
 
   const CeedInt grad_length = num_qpts * num_nodes * dim;
   CeedCallSycl(ceed, impl->d_grad = sycl::malloc_device<CeedScalar>(grad_length, data->sycl_device, data->sycl_context));
   sycl::event copy_grad = data->sycl_queue.copy<CeedScalar>(grad, impl->d_grad, grad_length, e);
+  copy_events.push_back(copy_grad);
 
-  CeedCallSycl(ceed, sycl::event::wait_and_throw({copy_weight, copy_interp, copy_grad}));
+  CeedCallSycl(ceed, sycl::event::wait_and_throw(copy_events));
 
   CeedCallBackend(CeedBasisSetData(basis, impl));
 

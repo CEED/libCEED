@@ -19,7 +19,7 @@
 //------------------------------------------------------------------------------
 static int CeedInit_Sycl_gen(const char *resource, Ceed ceed) {
   Ceed       ceed_shared;
-  Ceed_Sycl *data, *shared_data;
+  Ceed_Sycl *data;
   char      *resource_root;
   const char fallback_resource[] = "/gpu/sycl/ref";
 

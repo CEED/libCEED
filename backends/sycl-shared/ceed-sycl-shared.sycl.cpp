@@ -19,7 +19,7 @@
 //------------------------------------------------------------------------------
 static int CeedInit_Sycl_shared(const char *resource, Ceed ceed) {
   Ceed       ceed_ref;
-  Ceed_Sycl *data, *ref_data;
+  Ceed_Sycl *data;
   char      *resource_root;
 
   CeedCallBackend(CeedGetResourceRoot(ceed, resource, ":", &resource_root));

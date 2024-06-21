@@ -1334,7 +1334,7 @@ int CeedBasisCreateProjection(CeedBasis basis_from, CeedBasis basis_to, CeedBasi
   Ceed        ceed;
   bool        is_tensor;
   CeedInt     dim, num_comp;
-  CeedScalar *q_ref, *q_weight, *interp_project, *grad_project;
+  CeedScalar *interp_project, *grad_project;
 
   CeedCall(CeedBasisGetCeed(basis_to, &ceed));
 
@@ -1350,9 +1350,7 @@ int CeedBasisCreateProjection(CeedBasis basis_from, CeedBasis basis_to, CeedBasi
 
     CeedCall(CeedBasisGetNumNodes1D(basis_from, &P_1d_from));
     CeedCall(CeedBasisGetNumNodes1D(basis_to, &P_1d_to));
-    CeedCall(CeedCalloc(P_1d_to, &q_ref));
-    CeedCall(CeedCalloc(P_1d_to, &q_weight));
-    CeedCall(CeedBasisCreateTensorH1(ceed, dim, num_comp, P_1d_from, P_1d_to, interp_project, grad_project, q_ref, q_weight, basis_project));
+    CeedCall(CeedBasisCreateTensorH1(ceed, dim, num_comp, P_1d_from, P_1d_to, interp_project, grad_project, NULL, NULL, basis_project));
   } else {
     // Even if basis_to and basis_from are not H1, the resulting basis is H1 for interpolation to work
     CeedInt          num_nodes_to, num_nodes_from;
@@ -1361,16 +1359,12 @@ int CeedBasisCreateProjection(CeedBasis basis_from, CeedBasis basis_to, CeedBasi
     CeedCall(CeedBasisGetTopology(basis_to, &topo));
     CeedCall(CeedBasisGetNumNodes(basis_from, &num_nodes_from));
     CeedCall(CeedBasisGetNumNodes(basis_to, &num_nodes_to));
-    CeedCall(CeedCalloc(num_nodes_to * dim, &q_ref));
-    CeedCall(CeedCalloc(num_nodes_to, &q_weight));
-    CeedCall(CeedBasisCreateH1(ceed, topo, num_comp, num_nodes_from, num_nodes_to, interp_project, grad_project, q_ref, q_weight, basis_project));
+    CeedCall(CeedBasisCreateH1(ceed, topo, num_comp, num_nodes_from, num_nodes_to, interp_project, grad_project, NULL, NULL, basis_project));
   }
 
   // Cleanup
   CeedCall(CeedFree(&interp_project));
   CeedCall(CeedFree(&grad_project));
-  CeedCall(CeedFree(&q_ref));
-  CeedCall(CeedFree(&q_weight));
   return CEED_ERROR_SUCCESS;
 }
 
