@@ -816,6 +816,8 @@ PetscErrorCode DMPlexCreateFaceLabel(DM dm, PetscInt dm_face, PetscInt *num_labe
 
   // Find FE face number for all points in "Face Sets"
   PetscCall(DMPlexGetHeightStratum(dm, face_height, &first_face_point, &last_face_point));
+  //TODO: Possibly use `DMLabelGetStratumBounds` to get first_face_point and last_face_point
+  // Actually, should probably use DMGetStratumIS and loop only over the Face Set members with dm_face value
 
   for (PetscInt face_point = first_face_point; face_point < last_face_point; face_point++) {
     const PetscInt *face_support, *cell_cone;

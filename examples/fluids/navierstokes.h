@@ -339,7 +339,11 @@ PetscErrorCode DMPlexCeedElemRestrictionCollocatedCreate(Ceed ceed, DM dm, DMLab
                                                          PetscInt q_data_size, CeedElemRestriction *restriction);
 
 PetscErrorCode CreateBasisFromPlex(Ceed ceed, DM dm, DMLabel domain_label, CeedInt label_value, CeedInt height, CeedInt dm_field, CeedBasis *basis);
-PetscErrorCode DMPlexCeedBasisCellToFaceCoordinateCreate(Ceed ceed, DM dm, DMLabel domain_label, PetscInt label_value, PetscInt face, CeedBasis *basis);
+PetscErrorCode DMPlexCeedBasisCellToFaceCoordinateCreate(Ceed ceed, DM dm, DMLabel domain_label, PetscInt label_value, PetscInt face,
+                                                         CeedBasis *basis);
+PetscErrorCode DMPlexCeedBasisCellToFaceCreate(Ceed ceed, DM dm, DMLabel domain_label, PetscInt label_value, PetscInt face, PetscInt dm_field,
+                                               CeedBasis *basis);
+PetscErrorCode DMPlexCreateFaceLabel(DM dm, PetscInt dm_face, PetscInt *num_label_values, char **face_label_name);
 
 PetscErrorCode SetupLibceed(Ceed ceed, CeedData ceed_data, DM dm, User user, AppCtx app_ctx, ProblemData problem, SimpleBC bc);
 

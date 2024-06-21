@@ -460,7 +460,8 @@ CEED_QFUNCTION(StgShur14Inflow_Jacobian)(void *ctx, CeedInt Q, const CeedScalar 
  * through the native PETSc `DMAddBoundary` -> `bcFunc` method.
  */
 CEED_QFUNCTION(StgShur14InflowStrongQF)(void *ctx, CeedInt Q, const CeedScalar *const *in, CeedScalar *const *out) {
-  const CeedScalar(*dXdx_q)[3][CEED_Q_VLA] = (const CeedScalar(*)[3][CEED_Q_VLA])in[0];
+  // const CeedScalar(*dXdx_q)[3][CEED_Q_VLA] = (const CeedScalar(*)[3][CEED_Q_VLA])in[0];
+  const CeedScalar *dXdx_q = in[0];
   const CeedScalar(*coords)[CEED_Q_VLA]    = (const CeedScalar(*)[CEED_Q_VLA])in[1];
   const CeedScalar(*scale)                 = (const CeedScalar(*))in[2];
   const CeedScalar(*inv_Ektotal)           = (const CeedScalar(*))in[3];
@@ -479,14 +480,17 @@ CEED_QFUNCTION(StgShur14InflowStrongQF)(void *ctx, CeedInt Q, const CeedScalar *
 
   CeedPragmaSIMD for (CeedInt i = 0; i < Q; i++) {
     const CeedScalar x[]        = {coords[0][i], coords[1][i], coords[2][i]};
-    const CeedScalar dXdx[2][3] = {
-        {dXdx_q[0][0][i], dXdx_q[0][1][i], dXdx_q[0][2][i]},
-        {dXdx_q[1][0][i], dXdx_q[1][1][i], dXdx_q[1][2][i]},
-    };
+    // const CeedScalar dXdx[2][3] = {
+    //     {dXdx_q[0][0][i], dXdx_q[0][1][i], dXdx_q[0][2][i]},
+    //     {dXdx_q[1][0][i], dXdx_q[1][1][i], dXdx_q[1][2][i]},
+    // };
+    CeedScalar dXdx[3][3];
+    StoredValuesUnpack(Q, i, 0, 9, dXdx_q, (CeedScalar *)dXdx);
 
     CeedScalar h[3];
-    h[0] = dx;
-    for (CeedInt j = 1; j < 3; j++) h[j] = 2 / sqrt(Square(dXdx[0][j]) + Square(dXdx[1][j]));
+    // h[0] = dx;
+    // for (CeedInt j = 1; j < 3; j++) h[j] = 2 / sqrt(Square(dXdx[0][j]) + Square(dXdx[1][j]));
+    for (CeedInt j = 0; j < 3; j++) h[j] = 2 / sqrt(Square(dXdx[0][j]) + Square(dXdx[1][j] + Square(dXdx[2][j])));
 
     InterpolateProfile(coords[1][i], ubar, cij, &eps, &lt, stg_ctx);
     if (!mean_only) {

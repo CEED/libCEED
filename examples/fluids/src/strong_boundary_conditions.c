@@ -14,38 +14,42 @@
 #include "../problems/stg_shur14.h"
 
 PetscErrorCode SetupStrongSTG_Ceed(Ceed ceed, CeedData ceed_data, DM dm, ProblemData problem, SimpleBC bc, Physics phys, CeedOperator op_strong_bc) {
-  CeedInt             num_comp_x = problem->dim, num_comp_q = 5, stg_data_size = 1, dim_boundary = 2, dXdx_size = num_comp_x * dim_boundary;
+  CeedInt             num_comp_x = problem->dim, num_comp_q = 5, stg_data_size = 1, dXdx_size;
   CeedVector          multiplicity, x_stored, scale_stored, stg_data, dXdx;
-  CeedBasis           basis_x_to_q_sur;
-  CeedElemRestriction elem_restr_x_sur, elem_restr_q_sur, elem_restr_x_stored, elem_restr_scale, elem_restr_stgdata, elem_restr_dXdx;
+  CeedBasis           basis_x_to_q_face;
+  CeedElemRestriction elem_restr_x_face, elem_restr_q_face, elem_restr_x_stored, elem_restr_scale, elem_restr_stgdata, elem_restr_dXdx;
   CeedQFunction       qf_setup, qf_strongbc, qf_stgdata;
   CeedOperator        op_setup, op_strong_bc_sub, op_stgdata;
   DMLabel             domain_label;
-  PetscInt            dm_field = 0, height = 1;
+  const PetscInt      dm_field = 0, height_face = 1, height_cell = 0;
+  PetscInt dim;
+  MPI_Comm            comm = PetscObjectComm((PetscObject)dm);
 
   PetscFunctionBeginUser;
   PetscCall(DMGetLabel(dm, "Face Sets", &domain_label));
+  PetscCall(DMGetDimension(dm, &dim));
+  dXdx_size = num_comp_x * (dim - height_cell);
 
   {  // Basis
-    CeedBasis basis_x_sur, basis_q_sur;
+    CeedBasis basis_x_face, basis_q_face;
     DM        dm_coord;
 
     PetscCall(DMGetCoordinateDM(dm, &dm_coord));
     DMLabel  label       = NULL;
     PetscInt label_value = 0;
-    PetscCall(CreateBasisFromPlex(ceed, dm, label, label_value, height, dm_field, &basis_q_sur));
-    PetscCall(CreateBasisFromPlex(ceed, dm_coord, label, label_value, height, dm_field, &basis_x_sur));
+    PetscCall(CreateBasisFromPlex(ceed, dm, label, label_value, height_face, dm_field, &basis_q_face));
+    PetscCall(CreateBasisFromPlex(ceed, dm_coord, label, label_value, height_face, dm_field, &basis_x_face));
 
-    PetscCallCeed(ceed, CeedBasisCreateProjection(basis_x_sur, basis_q_sur, &basis_x_to_q_sur));
+    PetscCallCeed(ceed, CeedBasisCreateProjection(basis_x_face, basis_q_face, &basis_x_to_q_face));
 
-    PetscCallCeed(ceed, CeedBasisDestroy(&basis_q_sur));
-    PetscCallCeed(ceed, CeedBasisDestroy(&basis_x_sur));
+    PetscCallCeed(ceed, CeedBasisDestroy(&basis_q_face));
+    PetscCallCeed(ceed, CeedBasisDestroy(&basis_x_face));
   }
 
   // Setup QFunction
   PetscCallCeed(ceed, CeedQFunctionCreateInterior(ceed, 1, SetupStrongBC, SetupStrongBC_loc, &qf_setup));
   PetscCallCeed(ceed, CeedQFunctionAddInput(qf_setup, "x", num_comp_x, CEED_EVAL_INTERP));
-  PetscCallCeed(ceed, CeedQFunctionAddInput(qf_setup, "dxdX", num_comp_x * dim_boundary, CEED_EVAL_GRAD));
+  PetscCallCeed(ceed, CeedQFunctionAddInput(qf_setup, "dxdX", dXdx_size, CEED_EVAL_GRAD));
   PetscCallCeed(ceed, CeedQFunctionAddInput(qf_setup, "multiplicity", num_comp_q, CEED_EVAL_NONE));
   PetscCallCeed(ceed, CeedQFunctionAddOutput(qf_setup, "x stored", num_comp_x, CEED_EVAL_NONE));
   PetscCallCeed(ceed, CeedQFunctionAddOutput(qf_setup, "scale", 1, CEED_EVAL_NONE));
@@ -56,77 +60,119 @@ PetscErrorCode SetupStrongSTG_Ceed(Ceed ceed, CeedData ceed_data, DM dm, Problem
 
   // Compute contribution on each boundary face
   for (CeedInt i = 0; i < bc->num_inflow; i++) {
-    // -- Restrictions
-    PetscCall(DMPlexCeedElemRestrictionCreate(ceed, dm, domain_label, bc->inflows[i], height, dm_field, &elem_restr_q_sur));
-    PetscCall(DMPlexCeedElemRestrictionCoordinateCreate(ceed, dm, domain_label, bc->inflows[i], height, &elem_restr_x_sur));
-    PetscCallCeed(ceed, CeedElemRestrictionCreateVector(elem_restr_q_sur, &multiplicity, NULL));
-    PetscCallCeed(ceed, CeedElemRestrictionGetMultiplicity(elem_restr_q_sur, multiplicity));
+    PetscInt num_face_orientations;  // Ignored for now
+    char    *face_orientation_label_name;
+    PetscCall(DMPlexCreateFaceLabel(dm, bc->inflows[i], &num_face_orientations, &face_orientation_label_name));
 
-    PetscCall(DMPlexCeedElemRestrictionCollocatedCreate(ceed, dm, domain_label, bc->inflows[i], height, num_comp_x, &elem_restr_x_stored));
-    PetscCall(DMPlexCeedElemRestrictionCollocatedCreate(ceed, dm, domain_label, bc->inflows[i], height, 1, &elem_restr_scale));
-    PetscCall(DMPlexCeedElemRestrictionCollocatedCreate(ceed, dm, domain_label, bc->inflows[i], height, stg_data_size, &elem_restr_stgdata));
-    PetscCall(DMPlexCeedElemRestrictionCollocatedCreate(ceed, dm, domain_label, bc->inflows[i], height, dXdx_size, &elem_restr_dXdx));
-    PetscCallCeed(ceed, CeedElemRestrictionCreateVector(elem_restr_x_stored, &x_stored, NULL));
-    PetscCallCeed(ceed, CeedElemRestrictionCreateVector(elem_restr_scale, &scale_stored, NULL));
-    PetscCallCeed(ceed, CeedElemRestrictionCreateVector(elem_restr_stgdata, &stg_data, NULL));
-    PetscCallCeed(ceed, CeedElemRestrictionCreateVector(elem_restr_dXdx, &dXdx, NULL));
+    IS              is_orientation_values;
+    DMLabel         face_orientation_label;
+    PetscInt        num_orientations_local;
+    PetscInt        minmax_orientation_values[2];
+    const PetscInt *orientations_local;
+    PetscCall(DMGetLabel(dm, face_orientation_label_name, &face_orientation_label));
+    PetscCall(DMLabelGetValueIS(face_orientation_label, &is_orientation_values));
+    PetscCall(ISSort(is_orientation_values));
+    PetscCall(ISGetLocalSize(is_orientation_values, &num_orientations_local));
+    PetscCall(ISGetIndices(is_orientation_values, &orientations_local));
+    {
+      const PetscInt minmax_orientation_values_loc[2] = {orientations_local[0], orientations_local[num_orientations_local - 1]};
 
-    // -- Setup Operator
-    PetscCallCeed(ceed, CeedOperatorCreate(ceed, qf_setup, NULL, NULL, &op_setup));
-    PetscCallCeed(ceed, CeedOperatorSetName(op_setup, "Precomputed data for strong boundary conditions"));
-    PetscCallCeed(ceed, CeedOperatorSetField(op_setup, "x", elem_restr_x_sur, basis_x_to_q_sur, CEED_VECTOR_ACTIVE));
-    PetscCallCeed(ceed, CeedOperatorSetField(op_setup, "dxdX", elem_restr_x_sur, basis_x_to_q_sur, CEED_VECTOR_ACTIVE));
-    PetscCallCeed(ceed, CeedOperatorSetField(op_setup, "multiplicity", elem_restr_q_sur, CEED_BASIS_NONE, multiplicity));
-    PetscCallCeed(ceed, CeedOperatorSetField(op_setup, "x stored", elem_restr_x_stored, CEED_BASIS_NONE, x_stored));
-    PetscCallCeed(ceed, CeedOperatorSetField(op_setup, "scale", elem_restr_scale, CEED_BASIS_NONE, scale_stored));
-    PetscCallCeed(ceed, CeedOperatorSetField(op_setup, "dXdx", elem_restr_dXdx, CEED_BASIS_NONE, dXdx));
+      PetscCall(PetscGlobalMinMaxInt(comm, minmax_orientation_values_loc, minmax_orientation_values));
+    }
 
-    // -- Compute geometric factors
-    PetscCallCeed(ceed, CeedOperatorApply(op_setup, ceed_data->x_coord, CEED_VECTOR_NONE, CEED_REQUEST_IMMEDIATE));
+    for (PetscInt orientation = minmax_orientation_values[0]; orientation <= minmax_orientation_values[1]; orientation++) {
+      CeedBasis basis_x_to_q_cell;
+      CeedElemRestriction elem_restr_x_cell;
+      {  // Skip orientation if no process has this face with this orientation
+        PetscInt location_local, location_global = -1;
 
-    // -- Compute STGData
-    PetscCallCeed(ceed, CeedOperatorCreate(ceed, qf_stgdata, NULL, NULL, &op_stgdata));
-    PetscCallCeed(ceed, CeedOperatorSetField(op_stgdata, "dXdx", elem_restr_dXdx, CEED_BASIS_NONE, dXdx));
-    PetscCallCeed(ceed, CeedOperatorSetField(op_stgdata, "x", elem_restr_x_stored, CEED_BASIS_NONE, x_stored));
-    PetscCallCeed(ceed, CeedOperatorSetField(op_stgdata, "stg data", elem_restr_stgdata, CEED_BASIS_NONE, CEED_VECTOR_ACTIVE));
+        PetscCall(PetscFindInt(orientation, num_orientations_local, orientations_local, &location_local));
+        PetscCall(MPIU_Allreduce(&location_local, &location_global, 1, MPIU_INT, MPI_MAX, comm));
+        if (location_global < 0) continue;
+      }
 
-    PetscCallCeed(ceed, CeedOperatorApply(op_stgdata, CEED_VECTOR_NONE, stg_data, CEED_REQUEST_IMMEDIATE));
+      {
+        CeedBasis basis_x_cell_to_face, basis_q_face;
 
-    // -- Setup BC QFunctions
-    PetscCall(SetupStrongStg_QF(ceed, problem, num_comp_x, num_comp_q, stg_data_size, dXdx_size, &qf_strongbc));
-    PetscCallCeed(ceed, CeedOperatorCreate(ceed, qf_strongbc, NULL, NULL, &op_strong_bc_sub));
-    PetscCallCeed(ceed, CeedOperatorSetName(op_strong_bc_sub, "Strong STG"));
+        PetscCall(DMPlexCeedBasisCellToFaceCoordinateCreate(ceed, dm, face_orientation_label, orientation, orientation, &basis_x_cell_to_face));
+        PetscCall(CreateBasisFromPlex(ceed, dm, face_orientation_label, orientation, height_face, dm_field, &basis_q_face));
+        PetscCallCeed(ceed, CeedBasisCreateProjection(basis_x_cell_to_face, basis_q_face, &basis_x_to_q_cell));
+        PetscCallCeed(ceed, CeedBasisDestroy(&basis_x_cell_to_face));
+        PetscCallCeed(ceed, CeedBasisDestroy(&basis_q_face));
+      }
 
-    PetscCallCeed(ceed, CeedOperatorSetField(op_strong_bc_sub, "dXdx", elem_restr_dXdx, CEED_BASIS_NONE, dXdx));
-    PetscCallCeed(ceed, CeedOperatorSetField(op_strong_bc_sub, "x", elem_restr_x_stored, CEED_BASIS_NONE, x_stored));
-    PetscCallCeed(ceed, CeedOperatorSetField(op_strong_bc_sub, "scale", elem_restr_scale, CEED_BASIS_NONE, scale_stored));
-    PetscCallCeed(ceed, CeedOperatorSetField(op_strong_bc_sub, "stg data", elem_restr_stgdata, CEED_BASIS_NONE, stg_data));
-    PetscCallCeed(ceed, CeedOperatorSetField(op_strong_bc_sub, "q", elem_restr_q_sur, CEED_BASIS_NONE, CEED_VECTOR_ACTIVE));
+      PetscCall(DMPlexCeedElemRestrictionCreate(ceed, dm, domain_label, bc->inflows[i], height_face, dm_field, &elem_restr_q_face));
+      PetscCall(DMPlexCeedElemRestrictionCoordinateCreate(ceed, dm, domain_label, bc->inflows[i], height_face, &elem_restr_x_face));
+      PetscCall(DMPlexCeedElemRestrictionCoordinateCreate(ceed, dm, face_orientation_label, orientation, height_cell, &elem_restr_x_cell));
+      PetscCallCeed(ceed, CeedElemRestrictionCreateVector(elem_restr_q_face, &multiplicity, NULL));
+      PetscCallCeed(ceed, CeedElemRestrictionGetMultiplicity(elem_restr_q_face, multiplicity));
 
-    // -- Add to composite operator
-    PetscCallCeed(ceed, CeedCompositeOperatorAddSub(op_strong_bc, op_strong_bc_sub));
+      PetscCall(DMPlexCeedElemRestrictionCollocatedCreate(ceed, dm, domain_label, bc->inflows[i], height_face, num_comp_x, &elem_restr_x_stored));
+      PetscCall(DMPlexCeedElemRestrictionCollocatedCreate(ceed, dm, domain_label, bc->inflows[i], height_face, 1, &elem_restr_scale));
+      PetscCall(DMPlexCeedElemRestrictionCollocatedCreate(ceed, dm, domain_label, bc->inflows[i], height_face, stg_data_size, &elem_restr_stgdata));
+      PetscCall(DMPlexCeedElemRestrictionCollocatedCreate(ceed, dm, domain_label, bc->inflows[i], height_face, dXdx_size, &elem_restr_dXdx));
+      PetscCallCeed(ceed, CeedElemRestrictionCreateVector(elem_restr_x_stored, &x_stored, NULL));
+      PetscCallCeed(ceed, CeedElemRestrictionCreateVector(elem_restr_scale, &scale_stored, NULL));
+      PetscCallCeed(ceed, CeedElemRestrictionCreateVector(elem_restr_stgdata, &stg_data, NULL));
+      PetscCallCeed(ceed, CeedElemRestrictionCreateVector(elem_restr_dXdx, &dXdx, NULL));
 
-    PetscCallCeed(ceed, CeedVectorDestroy(&multiplicity));
-    PetscCallCeed(ceed, CeedVectorDestroy(&x_stored));
-    PetscCallCeed(ceed, CeedVectorDestroy(&scale_stored));
-    PetscCallCeed(ceed, CeedVectorDestroy(&stg_data));
-    PetscCallCeed(ceed, CeedVectorDestroy(&dXdx));
-    PetscCallCeed(ceed, CeedElemRestrictionDestroy(&elem_restr_x_sur));
-    PetscCallCeed(ceed, CeedElemRestrictionDestroy(&elem_restr_q_sur));
-    PetscCallCeed(ceed, CeedElemRestrictionDestroy(&elem_restr_x_stored));
-    PetscCallCeed(ceed, CeedElemRestrictionDestroy(&elem_restr_scale));
-    PetscCallCeed(ceed, CeedElemRestrictionDestroy(&elem_restr_stgdata));
-    PetscCallCeed(ceed, CeedElemRestrictionDestroy(&elem_restr_dXdx));
-    PetscCallCeed(ceed, CeedQFunctionDestroy(&qf_strongbc));
-    PetscCallCeed(ceed, CeedQFunctionDestroy(&qf_stgdata));
-    PetscCallCeed(ceed, CeedOperatorDestroy(&op_strong_bc_sub));
-    PetscCallCeed(ceed, CeedOperatorDestroy(&op_setup));
-    PetscCallCeed(ceed, CeedOperatorDestroy(&op_stgdata));
+      // -- Setup Operator
+      PetscCallCeed(ceed, CeedOperatorCreate(ceed, qf_setup, NULL, NULL, &op_setup));
+      PetscCallCeed(ceed, CeedOperatorSetName(op_setup, "Precomputed data for strong boundary conditions"));
+      PetscCallCeed(ceed, CeedOperatorSetField(op_setup, "x", elem_restr_x_face, basis_x_to_q_face, CEED_VECTOR_ACTIVE));
+      PetscCallCeed(ceed, CeedOperatorSetField(op_setup, "dxdX", elem_restr_x_face, basis_x_to_q_cell, CEED_VECTOR_ACTIVE));
+      PetscCallCeed(ceed, CeedOperatorSetField(op_setup, "multiplicity", elem_restr_q_face, CEED_BASIS_NONE, multiplicity));
+      PetscCallCeed(ceed, CeedOperatorSetField(op_setup, "x stored", elem_restr_x_stored, CEED_BASIS_NONE, x_stored));
+      PetscCallCeed(ceed, CeedOperatorSetField(op_setup, "scale", elem_restr_scale, CEED_BASIS_NONE, scale_stored));
+      PetscCallCeed(ceed, CeedOperatorSetField(op_setup, "dXdx", elem_restr_dXdx, CEED_BASIS_NONE, dXdx));
+
+      // -- Compute geometric factors
+      PetscCallCeed(ceed, CeedOperatorApply(op_setup, ceed_data->x_coord, CEED_VECTOR_NONE, CEED_REQUEST_IMMEDIATE));
+
+      // -- Compute STGData
+      PetscCallCeed(ceed, CeedOperatorCreate(ceed, qf_stgdata, NULL, NULL, &op_stgdata));
+      PetscCallCeed(ceed, CeedOperatorSetField(op_stgdata, "dXdx", elem_restr_dXdx, CEED_BASIS_NONE, dXdx));
+      PetscCallCeed(ceed, CeedOperatorSetField(op_stgdata, "x", elem_restr_x_stored, CEED_BASIS_NONE, x_stored));
+      PetscCallCeed(ceed, CeedOperatorSetField(op_stgdata, "stg data", elem_restr_stgdata, CEED_BASIS_NONE, CEED_VECTOR_ACTIVE));
+
+      PetscCallCeed(ceed, CeedOperatorApply(op_stgdata, CEED_VECTOR_NONE, stg_data, CEED_REQUEST_IMMEDIATE));
+
+      // -- Setup BC QFunctions
+      PetscCall(SetupStrongStg_QF(ceed, problem, num_comp_x, num_comp_q, stg_data_size, dXdx_size, &qf_strongbc));
+      PetscCallCeed(ceed, CeedOperatorCreate(ceed, qf_strongbc, NULL, NULL, &op_strong_bc_sub));
+      PetscCallCeed(ceed, CeedOperatorSetName(op_strong_bc_sub, "Strong STG"));
+
+      PetscCallCeed(ceed, CeedOperatorSetField(op_strong_bc_sub, "dXdx", elem_restr_dXdx, CEED_BASIS_NONE, dXdx));
+      PetscCallCeed(ceed, CeedOperatorSetField(op_strong_bc_sub, "x", elem_restr_x_stored, CEED_BASIS_NONE, x_stored));
+      PetscCallCeed(ceed, CeedOperatorSetField(op_strong_bc_sub, "scale", elem_restr_scale, CEED_BASIS_NONE, scale_stored));
+      PetscCallCeed(ceed, CeedOperatorSetField(op_strong_bc_sub, "stg data", elem_restr_stgdata, CEED_BASIS_NONE, stg_data));
+      PetscCallCeed(ceed, CeedOperatorSetField(op_strong_bc_sub, "q", elem_restr_q_face, CEED_BASIS_NONE, CEED_VECTOR_ACTIVE));
+
+      // -- Add to composite operator
+      PetscCallCeed(ceed, CeedCompositeOperatorAddSub(op_strong_bc, op_strong_bc_sub));
+
+      PetscCallCeed(ceed, CeedVectorDestroy(&multiplicity));
+      PetscCallCeed(ceed, CeedVectorDestroy(&x_stored));
+      PetscCallCeed(ceed, CeedVectorDestroy(&scale_stored));
+      PetscCallCeed(ceed, CeedVectorDestroy(&stg_data));
+      PetscCallCeed(ceed, CeedVectorDestroy(&dXdx));
+      PetscCallCeed(ceed, CeedElemRestrictionDestroy(&elem_restr_x_face));
+      PetscCallCeed(ceed, CeedElemRestrictionDestroy(&elem_restr_q_face));
+      PetscCallCeed(ceed, CeedElemRestrictionDestroy(&elem_restr_x_stored));
+      PetscCallCeed(ceed, CeedElemRestrictionDestroy(&elem_restr_scale));
+      PetscCallCeed(ceed, CeedElemRestrictionDestroy(&elem_restr_stgdata));
+      PetscCallCeed(ceed, CeedElemRestrictionDestroy(&elem_restr_dXdx));
+      PetscCallCeed(ceed, CeedQFunctionDestroy(&qf_strongbc));
+      PetscCallCeed(ceed, CeedQFunctionDestroy(&qf_stgdata));
+      PetscCallCeed(ceed, CeedOperatorDestroy(&op_strong_bc_sub));
+      PetscCallCeed(ceed, CeedOperatorDestroy(&op_setup));
+      PetscCallCeed(ceed, CeedOperatorDestroy(&op_stgdata));
+    }
   }
 
   PetscCallCeed(ceed, CeedOperatorGetContextFieldLabel(op_strong_bc, "solution time", &phys->stg_solution_time_label));
 
-  PetscCallCeed(ceed, CeedBasisDestroy(&basis_x_to_q_sur));
+  PetscCallCeed(ceed, CeedBasisDestroy(&basis_x_to_q_face));
   PetscCallCeed(ceed, CeedQFunctionDestroy(&qf_setup));
   PetscFunctionReturn(PETSC_SUCCESS);
 }

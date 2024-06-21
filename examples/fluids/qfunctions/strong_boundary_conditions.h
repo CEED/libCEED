@@ -14,19 +14,23 @@ CEED_QFUNCTION(SetupStrongBC)(void *ctx, CeedInt Q, const CeedScalar *const *in,
   const CeedScalar(*multiplicity)[CEED_Q_VLA] = (const CeedScalar(*)[CEED_Q_VLA])in[2];
   CeedScalar(*coords_stored)[CEED_Q_VLA]      = (CeedScalar(*)[CEED_Q_VLA])out[0];
   CeedScalar(*scale_stored)                   = out[1];
-  CeedScalar(*dXdx_q)[CEED_Q_VLA]             = (CeedScalar(*)[CEED_Q_VLA])out[2];
+  // CeedScalar(*dXdx_q)[CEED_Q_VLA]             = (CeedScalar(*)[CEED_Q_VLA])out[2];
+  CeedScalar *dXdx_q             = out[2];
 
   CeedPragmaSIMD for (CeedInt i = 0; i < Q; i++) {
     for (int j = 0; j < 3; j++) coords_stored[j][i] = coords[j][i];
     scale_stored[i] = 1.0 / multiplicity[0][i];
-    CeedScalar dXdx[2][3];
-    InvertBoundaryMappingJacobian_3D(Q, i, dxdX_q, dXdx);
-    dXdx_q[0][i] = dXdx[0][0];
-    dXdx_q[1][i] = dXdx[0][1];
-    dXdx_q[2][i] = dXdx[0][2];
-    dXdx_q[3][i] = dXdx[1][0];
-    dXdx_q[4][i] = dXdx[1][1];
-    dXdx_q[5][i] = dXdx[1][2];
+    CeedScalar dXdx[3][3];
+    // InvertBoundaryMappingJacobian_3D(Q, i, dxdX_q, dXdx);
+    InvertMappingJacobian_3D(Q, i, dxdX_q, dXdx, NULL);
+
+    StoredValuesPack(Q, i, 0, 9, (CeedScalar *)dXdx, dXdx_q);
+    // dXdx_q[0][i] = dXdx[0][0];
+    // dXdx_q[1][i] = dXdx[0][1];
+    // dXdx_q[2][i] = dXdx[0][2];
+    // dXdx_q[3][i] = dXdx[1][0];
+    // dXdx_q[4][i] = dXdx[1][1];
+    // dXdx_q[5][i] = dXdx[1][2];
   }
   return 0;
 }
