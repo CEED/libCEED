@@ -1,4 +1,7 @@
 Composite CeedOperator - setup
+  SubOperator 0 - triangle elements
+  SubOperator 1 - quadrilateral elements
+Composite CeedOperator - setup
   SubOperator 0 - triangle elements:
     6 elements with 4 quadrature points each
     3 fields
@@ -39,6 +42,9 @@ Composite CeedOperator - setup
         Size: 1
         EvalMode: none
         No basis
+Composite CeedOperator - mass
+  SubOperator 0 - triangle elements
+  SubOperator 1 - quadrilateral elements
 Composite CeedOperator - mass
   SubOperator 0 - triangle elements:
     6 elements with 4 quadrature points each

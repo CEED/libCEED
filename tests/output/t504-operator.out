@@ -1,4 +1,5 @@
-CeedOperator
+CeedOperator - setup
+CeedOperator - setup
   15 elements with 8 quadrature points each
   3 fields
   2 input fields:
@@ -19,7 +20,8 @@ CeedOperator
       EvalMode: none
       No basis
       Active vector
-CeedOperator
+CeedOperator - mass
+CeedOperator - mass
   15 elements with 8 quadrature points each
   3 fields
   2 input fields:
