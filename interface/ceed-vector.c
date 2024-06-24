@@ -202,13 +202,8 @@ int CeedVectorReferenceCopy(CeedVector vec, CeedVector *vec_copy) {
 /**
   @brief Copy a `CeedVector` into a different `CeedVector`.
 
-  Both pointers should be destroyed with @ref CeedVectorDestroy().
-
-  Note: If `*vec_copy` is non-`NULL`, then it is assumed that `*vec_copy` is a pointer to a `CeedVector`.
-        This `CeedVector` will be destroyed if `*vec_copy` is the only reference to this `CeedVector`.
-
   @param[in]     vec      `CeedVector` to copy
-  @param[in,out] vec_copy Variable to store copied `CeedVector` to
+  @param[in,out] vec_copy `CeedVector` to copy array into
 
   @return An error code: 0 - success, otherwise - failure
 
@@ -229,6 +224,15 @@ int CeedVectorCopy(CeedVector vec, CeedVector vec_copy) {
 
   // Check that both have same memory type
   if (mem_type != mem_type_copy) mem_type = CEED_MEM_HOST;
+
+  // Check compatible lengths
+  {
+    CeedSize length_vec, length_copy;
+
+    CeedCall(CeedVectorGetLength(vec, &length_vec));
+    CeedCall(CeedVectorGetLength(vec_copy, &length_copy));
+    CeedCheck(length_vec == length_copy, ceed, CEED_ERROR_INCOMPATIBLE, "CeedVectors must have the same length to copy");
+  }
 
   // Copy the values from vec to vec_copy
   CeedCall(CeedVectorGetArray(vec, mem_type, &array));
