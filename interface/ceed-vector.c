@@ -272,7 +272,7 @@ int CeedVectorCopyStrided(CeedVector vec, CeedSize start, CeedInt step, CeedVect
 
     CeedCall(CeedVectorGetLength(vec, &length_vec));
     CeedCall(CeedVectorGetLength(vec_copy, &length_copy));
-    length = length_vec > length_copy ? length_vec : length_copy;
+    length = length_vec < length_copy ? length_vec : length_copy;
   }
 
   // Copy
