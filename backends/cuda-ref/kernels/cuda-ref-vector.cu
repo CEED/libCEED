@@ -9,6 +9,30 @@
 #include <cuda.h>
 
 //------------------------------------------------------------------------------
+// Kernel for copy strided on device
+//------------------------------------------------------------------------------
+__global__ static void copyStridedK(CeedScalar * __restrict__ vec, CeedSize start, CeedSize step,
+                                    CeedSize size, CeedScalar * __restrict__ vec_copy) {
+  CeedSize index = threadIdx.x + (CeedSize)blockDim.x * blockIdx.x;
+  if (index >= size) return;
+  if ((index - start) % step == 0) vec_copy[index] = vec[index];
+}
+
+//------------------------------------------------------------------------------
+// Copy strided on device memory
+//------------------------------------------------------------------------------
+extern "C" int CeedDeviceCopyStrided_Cuda(CeedScalar* d_array, CeedSize start, CeedSize step,
+                                          CeedSize length, CeedScalar* d_copy_array) {
+  const int block_size = 512;
+  const CeedSize vec_size = length;
+  int grid_size = vec_size / block_size;
+
+  if (block_size * grid_size < vec_size) grid_size += 1;
+  copyStridedK<<<grid_size,block_size>>>(d_array, start, step, length, d_copy_array);
+  return 0;
+}
+
+//------------------------------------------------------------------------------
 // Kernel for set value on device
 //------------------------------------------------------------------------------
 __global__ static void setValueK(CeedScalar * __restrict__ vec, CeedSize size,
@@ -29,6 +53,30 @@ extern "C" int CeedDeviceSetValue_Cuda(CeedScalar* d_array, CeedSize length,
 
   if (block_size * grid_size < vec_size) grid_size += 1;
   setValueK<<<grid_size,block_size>>>(d_array, length, val);
+  return 0;
+}
+
+//------------------------------------------------------------------------------
+// Kernel for set value strided on device
+//------------------------------------------------------------------------------
+__global__ static void setValueStridedK(CeedScalar * __restrict__ vec, CeedSize start, CeedSize step,
+                                        CeedSize size, CeedScalar val) {
+  CeedSize index = threadIdx.x + (CeedSize)blockDim.x * blockIdx.x;
+  if (index >= size) return;
+  if ((index - start) % step == 0) vec[index] = val;
+}
+
+//------------------------------------------------------------------------------
+// Set value strided on device memory
+//------------------------------------------------------------------------------
+extern "C" int CeedDeviceSetValueStrided_Cuda(CeedScalar* d_array, CeedSize start, CeedSize step,
+                                              CeedSize length, CeedScalar val) {
+  const int block_size = 512;
+  const CeedSize vec_size = length;
+  int grid_size = vec_size / block_size;
+
+  if (block_size * grid_size < vec_size) grid_size += 1;
+  setValueStridedK<<<grid_size,block_size>>>(d_array, start, step, length, val);
   return 0;
 }
 
