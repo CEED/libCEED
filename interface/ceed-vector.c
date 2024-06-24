@@ -202,13 +202,8 @@ int CeedVectorReferenceCopy(CeedVector vec, CeedVector *vec_copy) {
 /**
   @brief Copy a `CeedVector` into a different `CeedVector`.
 
-  Both pointers should be destroyed with @ref CeedVectorDestroy().
-
-  Note: If `*vec_copy` is non-`NULL`, then it is assumed that `*vec_copy` is a pointer to a `CeedVector`.
-        This `CeedVector` will be destroyed if `*vec_copy` is the only reference to this `CeedVector`.
-
   @param[in]     vec      `CeedVector` to copy
-  @param[in,out] vec_copy Variable to store copied `CeedVector` to
+  @param[in,out] vec_copy `CeedVector` to copy array into
 
   @return An error code: 0 - success, otherwise - failure
 
@@ -230,11 +225,64 @@ int CeedVectorCopy(CeedVector vec, CeedVector vec_copy) {
   // Check that both have same memory type
   if (mem_type != mem_type_copy) mem_type = CEED_MEM_HOST;
 
+  // Check compatible lengths
+  {
+    CeedSize length_vec, length_copy;
+
+    CeedCall(CeedVectorGetLength(vec, &length_vec));
+    CeedCall(CeedVectorGetLength(vec_copy, &length_copy));
+    CeedCheck(length_vec == length_copy, ceed, CEED_ERROR_INCOMPATIBLE, "CeedVectors must have the same length to copy");
+  }
+
   // Copy the values from vec to vec_copy
   CeedCall(CeedVectorGetArray(vec, mem_type, &array));
   CeedCall(CeedVectorSetArray(vec_copy, mem_type, CEED_COPY_VALUES, array));
 
   CeedCall(CeedVectorRestoreArray(vec, &array));
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
+  @brief Copy a strided portion of `CeedVector` contents into a different `CeedVector`
+
+  @param[in]     vec      `CeedVector` to copy
+  @param[in]     start    First index to copy
+  @param[in]     step     Stride between indices to copy
+  @param[in,out] vec_copy `CeedVector` to copy values to
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref User
+**/
+int CeedVectorCopyStrided(CeedVector vec, CeedSize start, CeedInt step, CeedVector vec_copy) {
+  CeedSize          length;
+  const CeedScalar *array;
+  CeedScalar       *array_copy;
+
+  // Backend version
+  if (vec->CopyStrided && vec_copy->CopyStrided) {
+    CeedCall(vec->CopyStrided(vec, start, step, vec_copy));
+    vec_copy->state += 2;
+    return CEED_ERROR_SUCCESS;
+  }
+
+  // Get length
+  {
+    CeedSize length_vec, length_copy;
+
+    CeedCall(CeedVectorGetLength(vec, &length_vec));
+    CeedCall(CeedVectorGetLength(vec_copy, &length_copy));
+    length = length_vec < length_copy ? length_vec : length_copy;
+  }
+
+  // Copy
+  CeedCall(CeedVectorGetArrayRead(vec, CEED_MEM_HOST, &array));
+  CeedCall(CeedVectorGetArray(vec_copy, CEED_MEM_HOST, &array_copy));
+  for (CeedSize i = start; i < length; i += step) array_copy[i] = array[i];
+
+  // Cleanup
+  CeedCall(CeedVectorRestoreArrayRead(vec, &array));
+  CeedCall(CeedVectorRestoreArray(vec_copy, &array_copy));
   return CEED_ERROR_SUCCESS;
 }
 
@@ -288,6 +336,7 @@ int CeedVectorSetValue(CeedVector vec, CeedScalar value) {
 
   if (vec->SetValue) {
     CeedCall(vec->SetValue(vec, value));
+    vec->state += 2;
   } else {
     CeedSize    length;
     CeedScalar *array;
@@ -297,7 +346,42 @@ int CeedVectorSetValue(CeedVector vec, CeedScalar value) {
     for (CeedSize i = 0; i < length; i++) array[i] = value;
     CeedCall(CeedVectorRestoreArray(vec, &array));
   }
-  vec->state += 2;
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
+  @brief Set a portion of a `CeedVector` to a constant value.
+
+  Note: The `CeedVector` must already have valid data set via @ref CeedVectorSetArray() or similar.
+
+  @param[in,out] vec   `CeedVector`
+  @param[in]     start First index to set
+  @param[in]     step  Stride between indices to set
+  @param[in]     value Value to be used
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref User
+**/
+int CeedVectorSetValueStrided(CeedVector vec, CeedSize start, CeedInt step, CeedScalar value) {
+  Ceed ceed;
+
+  CeedCall(CeedVectorGetCeed(vec, &ceed));
+  CeedCheck(vec->state % 2 == 0, ceed, CEED_ERROR_ACCESS, "Cannot grant CeedVector array access, the access lock is already in use");
+  CeedCheck(vec->num_readers == 0, ceed, CEED_ERROR_ACCESS, "Cannot grant CeedVector array access, a process has read access");
+
+  if (vec->SetValueStrided) {
+    CeedCall(vec->SetValueStrided(vec, start, step, value));
+    vec->state += 2;
+  } else {
+    CeedSize    length;
+    CeedScalar *array;
+
+    CeedCall(CeedVectorGetArray(vec, CEED_MEM_HOST, &array));
+    CeedCall(CeedVectorGetLength(vec, &length));
+    for (CeedSize i = start; i < length; i += step) array[i] = value;
+    CeedCall(CeedVectorRestoreArray(vec, &array));
+  }
   return CEED_ERROR_SUCCESS;
 }
 
