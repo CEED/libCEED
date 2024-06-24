@@ -14,7 +14,7 @@ int main(int argc, char **argv) {
 
   CeedVectorCreate(ceed, len, &x);
   CeedVectorCreate(ceed, len, &y);
-  
+
   // Set strided
   CeedVectorSetValue(x, 1.0);
   CeedVectorSetValueStrided(x, start, step, 42.0);
@@ -33,7 +33,7 @@ int main(int argc, char **argv) {
     }
     CeedVectorRestoreArrayRead(x, &read_array);
   }
-  
+
   // Copy strided
   CeedVectorSetValue(y, 0.0);
   CeedVectorCopyStrided(x, start, step, y);

@@ -332,6 +332,7 @@ int CeedVectorSetValue(CeedVector vec, CeedScalar value) {
 
   if (vec->SetValue) {
     CeedCall(vec->SetValue(vec, value));
+    vec->state += 2;
   } else {
     CeedSize    length;
     CeedScalar *array;
@@ -341,7 +342,6 @@ int CeedVectorSetValue(CeedVector vec, CeedScalar value) {
     for (CeedSize i = 0; i < length; i++) array[i] = value;
     CeedCall(CeedVectorRestoreArray(vec, &array));
   }
-  vec->state += 2;
   return CEED_ERROR_SUCCESS;
 }
 
@@ -368,7 +368,7 @@ int CeedVectorSetValueStrided(CeedVector vec, CeedSize start, CeedInt step, Ceed
 
   if (vec->SetValueStrided) {
     CeedCall(vec->SetValueStrided(vec, start, step, value));
-    vec_copy->state += 2;
+    vec->state += 2;
   } else {
     CeedSize    length;
     CeedScalar *array;
