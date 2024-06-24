@@ -14,8 +14,7 @@
 __global__ static void setValueK(CeedScalar * __restrict__ vec, CeedSize size,
                                  CeedScalar val) {
   CeedSize index = threadIdx.x + (CeedSize)blockDim.x * blockIdx.x;
-  if (index >= size)
-    return;
+  if (index >= size) return;
   vec[index] = val;
 }
 
@@ -28,8 +27,7 @@ extern "C" int CeedDeviceSetValue_Cuda(CeedScalar* d_array, CeedSize length,
   const CeedSize vec_size = length;
   int grid_size = vec_size / block_size;
 
-  if (block_size * grid_size < vec_size)
-    grid_size += 1;
+  if (block_size * grid_size < vec_size) grid_size += 1;
   setValueK<<<grid_size,block_size>>>(d_array, length, val);
   return 0;
 }
@@ -39,10 +37,8 @@ extern "C" int CeedDeviceSetValue_Cuda(CeedScalar* d_array, CeedSize length,
 //------------------------------------------------------------------------------
 __global__ static void rcpValueK(CeedScalar * __restrict__ vec, CeedSize size) {
   CeedSize index = threadIdx.x + (CeedSize)blockDim.x * blockIdx.x;
-  if (index >= size)
-    return;
-  if (fabs(vec[index]) > 1E-16)
-    vec[index] = 1./vec[index];
+  if (index >= size) return;
+  if (fabs(vec[index]) > 1E-16) vec[index] = 1./vec[index];
 }
 
 //------------------------------------------------------------------------------
@@ -53,8 +49,7 @@ extern "C" int CeedDeviceReciprocal_Cuda(CeedScalar* d_array, CeedSize length) {
   const CeedSize vec_size = length;
   int grid_size = vec_size / block_size;
 
-  if (block_size * grid_size < vec_size)
-    grid_size += 1;
+  if (block_size * grid_size < vec_size) grid_size += 1;
   rcpValueK<<<grid_size,block_size>>>(d_array, length);
   return 0;
 }
@@ -65,8 +60,7 @@ extern "C" int CeedDeviceReciprocal_Cuda(CeedScalar* d_array, CeedSize length) {
 __global__ static void scaleValueK(CeedScalar * __restrict__ x, CeedScalar alpha,
     CeedSize size) {
   CeedSize index = threadIdx.x + (CeedSize)blockDim.x * blockIdx.x;
-  if (index >= size)
-    return;
+  if (index >= size) return;
   x[index] *= alpha;
 }
 
@@ -79,8 +73,7 @@ extern "C" int CeedDeviceScale_Cuda(CeedScalar *x_array, CeedScalar alpha,
   const CeedSize vec_size = length;
   int grid_size = vec_size / block_size;
 
-  if (block_size * grid_size < vec_size)
-    grid_size += 1;
+  if (block_size * grid_size < vec_size) grid_size += 1;
   scaleValueK<<<grid_size,block_size>>>(x_array, alpha, length);
   return 0;
 }
@@ -91,8 +84,7 @@ extern "C" int CeedDeviceScale_Cuda(CeedScalar *x_array, CeedScalar alpha,
 __global__ static void axpyValueK(CeedScalar * __restrict__ y, CeedScalar alpha,
     CeedScalar * __restrict__ x, CeedSize size) {
   CeedSize index = threadIdx.x + (CeedSize)blockDim.x * blockIdx.x;
-  if (index >= size)
-    return;
+  if (index >= size) return;
   y[index] += alpha * x[index];
 }
 
@@ -105,8 +97,7 @@ extern "C" int CeedDeviceAXPY_Cuda(CeedScalar *y_array, CeedScalar alpha,
   const CeedSize vec_size = length;
   int grid_size = vec_size / block_size;
 
-  if (block_size * grid_size < vec_size)
-    grid_size += 1;
+  if (block_size * grid_size < vec_size) grid_size += 1;
   axpyValueK<<<grid_size,block_size>>>(y_array, alpha, x_array, length);
   return 0;
 }
@@ -117,8 +108,7 @@ extern "C" int CeedDeviceAXPY_Cuda(CeedScalar *y_array, CeedScalar alpha,
 __global__ static void axpbyValueK(CeedScalar * __restrict__ y, CeedScalar alpha, CeedScalar beta,
     CeedScalar * __restrict__ x, CeedSize size) {
   CeedSize index = threadIdx.x + (CeedSize)blockDim.x * blockIdx.x;
-  if (index >= size)
-    return;
+  if (index >= size) return;
   y[index] = beta * y[index];
   y[index] += alpha * x[index];
 }
@@ -132,8 +122,7 @@ extern "C" int CeedDeviceAXPBY_Cuda(CeedScalar *y_array, CeedScalar alpha, CeedS
   const CeedSize vec_size = length;
   int grid_size = vec_size / block_size;
 
-  if (block_size * grid_size < vec_size)
-    grid_size += 1;
+  if (block_size * grid_size < vec_size) grid_size += 1;
   axpbyValueK<<<grid_size,block_size>>>(y_array, alpha, beta, x_array, length);
   return 0;
 }
@@ -144,8 +133,7 @@ extern "C" int CeedDeviceAXPBY_Cuda(CeedScalar *y_array, CeedScalar alpha, CeedS
 __global__ static void pointwiseMultValueK(CeedScalar * __restrict__ w,
     CeedScalar * x, CeedScalar * __restrict__ y, CeedSize size) {
   CeedSize index = threadIdx.x + (CeedSize)blockDim.x * blockIdx.x;
-  if (index >= size)
-    return;
+  if (index >= size) return;
   w[index] = x[index] * y[index];
 }
 
@@ -158,8 +146,7 @@ extern "C" int CeedDevicePointwiseMult_Cuda(CeedScalar *w_array, CeedScalar *x_a
   const CeedSize vec_size = length;
   int grid_size = vec_size / block_size;
 
-  if (block_size * grid_size < vec_size)
-    grid_size += 1;
+  if (block_size * grid_size < vec_size) grid_size += 1;
   pointwiseMultValueK<<<grid_size,block_size>>>(w_array, x_array, y_array, length);
   return 0;
 }
