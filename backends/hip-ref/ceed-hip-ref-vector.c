@@ -232,7 +232,7 @@ static int CeedHostCopyStrided_Hip(CeedScalar *h_array, CeedSize start, CeedSize
 }
 
 //------------------------------------------------------------------------------
-// Copy device array to value strided (impl in .hip.cc file)
+// Copy device array to value strided (impl in .hip.cpp file)
 //------------------------------------------------------------------------------
 int CeedDeviceCopyStrided_Hip(CeedScalar *d_array, CeedSize start, CeedSize step, CeedSize length, CeedScalar *d_copy_array);
 
@@ -320,7 +320,7 @@ static int CeedHostSetValueStrided_Hip(CeedScalar *h_array, CeedSize start, Ceed
 }
 
 //------------------------------------------------------------------------------
-// Set device array to value strided (impl in .hip.cc file)
+// Set device array to value strided (impl in .hip.cpp file)
 //------------------------------------------------------------------------------
 int CeedDeviceSetValueStrided_Hip(CeedScalar *d_array, CeedSize start, CeedSize step, CeedSize length, CeedScalar val);
 
@@ -582,7 +582,7 @@ static int CeedHostReciprocal_Hip(CeedScalar *h_array, CeedSize length) {
 }
 
 //------------------------------------------------------------------------------
-// Take reciprocal of a vector on device (impl in .cu file)
+// Take reciprocal of a vector on device (impl in .hip.cpp file)
 //------------------------------------------------------------------------------
 int CeedDeviceReciprocal_Hip(CeedScalar *d_array, CeedSize length);
 
@@ -610,7 +610,7 @@ static int CeedHostScale_Hip(CeedScalar *x_array, CeedScalar alpha, CeedSize len
 }
 
 //------------------------------------------------------------------------------
-// Compute x = alpha x on device (impl in .cu file)
+// Compute x = alpha x on device (impl in .hip.cpp file)
 //------------------------------------------------------------------------------
 int CeedDeviceScale_Hip(CeedScalar *x_array, CeedScalar alpha, CeedSize length);
 
@@ -638,7 +638,7 @@ static int CeedHostAXPY_Hip(CeedScalar *y_array, CeedScalar alpha, CeedScalar *x
 }
 
 //------------------------------------------------------------------------------
-// Compute y = alpha x + y on device (impl in .cu file)
+// Compute y = alpha x + y on device (impl in .hip.cpp file)
 //------------------------------------------------------------------------------
 int CeedDeviceAXPY_Hip(CeedScalar *y_array, CeedScalar alpha, CeedScalar *x_array, CeedSize length);
 
@@ -673,7 +673,7 @@ static int CeedHostAXPBY_Hip(CeedScalar *y_array, CeedScalar alpha, CeedScalar b
 }
 
 //------------------------------------------------------------------------------
-// Compute y = alpha x + beta y on device (impl in .cu file)
+// Compute y = alpha x + beta y on device (impl in .hip.cpp file)
 //------------------------------------------------------------------------------
 int CeedDeviceAXPBY_Hip(CeedScalar *y_array, CeedScalar alpha, CeedScalar beta, CeedScalar *x_array, CeedSize length);
 
@@ -708,7 +708,7 @@ static int CeedHostPointwiseMult_Hip(CeedScalar *w_array, CeedScalar *x_array, C
 }
 
 //------------------------------------------------------------------------------
-// Compute the pointwise multiplication w = x .* y on device (impl in .cu file)
+// Compute the pointwise multiplication w = x .* y on device (impl in .hip.cpp file)
 //------------------------------------------------------------------------------
 int CeedDevicePointwiseMult_Hip(CeedScalar *w_array, CeedScalar *x_array, CeedScalar *y_array, CeedSize length);
 
