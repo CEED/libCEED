@@ -239,6 +239,50 @@ int CeedVectorCopy(CeedVector vec, CeedVector vec_copy) {
 }
 
 /**
+  @brief Copy a strided portion of `CeedVector` contents into a different `CeedVector`
+
+  @param[in]     vec      `CeedVector` to copy
+  @param[in]     start    First index to copy
+  @param[in]     step     Stride between indices to copy
+  @param[in,out] vec_copy `CeedVector` to copy values to
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref User
+**/
+int CeedVectorCopyStrided(CeedVector vec, CeedSize start, CeedInt step, CeedVector vec_copy) {
+  CeedSize          length;
+  const CeedScalar *array;
+  CeedScalar       *array_copy;
+
+  // Backend version
+  if (vec->CopyStrided && vec_copy->CopyStrided) {
+    CeedCall(vec->CopyStrided(vec, start, step, vec_copy));
+    vec_copy->state += 2;
+    return CEED_ERROR_SUCCESS;
+  }
+
+  // Get length
+  {
+    CeedSize length_vec, length_copy;
+
+    CeedCall(CeedVectorGetLength(vec, &length_vec));
+    CeedCall(CeedVectorGetLength(vec_copy, &length_copy));
+    length = length_vec > length_copy ? length_vec : length_copy;
+  }
+
+  // Copy
+  CeedCall(CeedVectorGetArrayRead(vec, CEED_MEM_HOST, &array));
+  CeedCall(CeedVectorGetArray(vec_copy, CEED_MEM_HOST, &array_copy));
+  for (CeedSize i = start; i < length; i += step) array_copy[i] = array[i];
+
+  // Cleanup
+  CeedCall(CeedVectorRestoreArrayRead(vec, &array));
+  CeedCall(CeedVectorRestoreArray(vec_copy, &array_copy));
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
   @brief Set the array used by a `CeedVector`, freeing any previously allocated array if applicable.
 
   The backend may copy values to a different @ref CeedMemType, such as during @ref CeedOperatorApply().
@@ -298,6 +342,42 @@ int CeedVectorSetValue(CeedVector vec, CeedScalar value) {
     CeedCall(CeedVectorRestoreArray(vec, &array));
   }
   vec->state += 2;
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
+  @brief Set a portion of a `CeedVector` to a constant value.
+
+  Note: The `CeedVector` must already have valid data set via @ref CeedVectorSetArray() or similar.
+
+  @param[in,out] vec   `CeedVector`
+  @param[in]     start First index to set
+  @param[in]     step  Stride between indices to set
+  @param[in]     value Value to be used
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref User
+**/
+int CeedVectorSetValueStrided(CeedVector vec, CeedSize start, CeedInt step, CeedScalar value) {
+  Ceed ceed;
+
+  CeedCall(CeedVectorGetCeed(vec, &ceed));
+  CeedCheck(vec->state % 2 == 0, ceed, CEED_ERROR_ACCESS, "Cannot grant CeedVector array access, the access lock is already in use");
+  CeedCheck(vec->num_readers == 0, ceed, CEED_ERROR_ACCESS, "Cannot grant CeedVector array access, a process has read access");
+
+  if (vec->SetValueStrided) {
+    CeedCall(vec->SetValueStrided(vec, start, step, value));
+    vec_copy->state += 2;
+  } else {
+    CeedSize    length;
+    CeedScalar *array;
+
+    CeedCall(CeedVectorGetArray(vec, CEED_MEM_HOST, &array));
+    CeedCall(CeedVectorGetLength(vec, &length));
+    for (CeedSize i = start; i < length; i += step) array[i] = value;
+    CeedCall(CeedVectorRestoreArray(vec, &array));
+  }
   return CEED_ERROR_SUCCESS;
 }
 
