@@ -256,8 +256,8 @@ int CeedVectorCopy(CeedVector vec, CeedVector vec_copy) {
 **/
 int CeedVectorCopyStrided(CeedVector vec, CeedSize start, CeedInt step, CeedVector vec_copy) {
   CeedSize          length;
-  const CeedScalar *array;
-  CeedScalar       *array_copy;
+  const CeedScalar *array      = NULL;
+  CeedScalar       *array_copy = NULL;
 
   // Backend version
   if (vec->CopyStrided && vec_copy->CopyStrided) {
@@ -272,6 +272,7 @@ int CeedVectorCopyStrided(CeedVector vec, CeedSize start, CeedInt step, CeedVect
 
     CeedCall(CeedVectorGetLength(vec, &length_vec));
     CeedCall(CeedVectorGetLength(vec_copy, &length_copy));
+    if (length_vec <= 0 || length_copy <= 0) return CEED_ERROR_SUCCESS;
     length = length_vec < length_copy ? length_vec : length_copy;
   }
 
@@ -377,8 +378,9 @@ int CeedVectorSetValueStrided(CeedVector vec, CeedSize start, CeedInt step, Ceed
     CeedSize    length;
     CeedScalar *array;
 
-    CeedCall(CeedVectorGetArray(vec, CEED_MEM_HOST, &array));
     CeedCall(CeedVectorGetLength(vec, &length));
+    if (length <= 0) return CEED_ERROR_SUCCESS;
+    CeedCall(CeedVectorGetArray(vec, CEED_MEM_HOST, &array));
     for (CeedSize i = start; i < length; i += step) array[i] = value;
     CeedCall(CeedVectorRestoreArray(vec, &array));
   }
