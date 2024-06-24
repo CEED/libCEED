@@ -30,6 +30,7 @@ static int CeedOperatorDestroy_Hip(CeedOperator op) {
     CeedCallBackend(CeedVectorDestroy(&impl->e_vecs[i]));
   }
   CeedCallBackend(CeedFree(&impl->e_vecs));
+  CeedCallBackend(CeedFree(&impl->input_states));
 
   for (CeedInt i = 0; i < impl->num_inputs; i++) {
     CeedCallBackend(CeedVectorDestroy(&impl->q_vecs_in[i]));
@@ -200,6 +201,7 @@ static int CeedOperatorSetup_Hip(CeedOperator op) {
 
   // Allocate
   CeedCallBackend(CeedCalloc(num_input_fields + num_output_fields, &impl->e_vecs));
+  CeedCallBackend(CeedCalloc(CEED_FIELD_MAX, &impl->input_states));
   CeedCallBackend(CeedCalloc(CEED_FIELD_MAX, &impl->q_vecs_in));
   CeedCallBackend(CeedCalloc(CEED_FIELD_MAX, &impl->q_vecs_out));
   impl->num_inputs  = num_input_fields;
@@ -246,7 +248,13 @@ static inline int CeedOperatorSetupInputs_Hip(CeedInt num_input_fields, CeedQFun
         // No restriction for this field; read data directly from vec.
         CeedCallBackend(CeedVectorGetArrayRead(vec, CEED_MEM_DEVICE, (const CeedScalar **)&e_data[i]));
       } else {
-        CeedCallBackend(CeedElemRestrictionApply(elem_rstr, CEED_NOTRANSPOSE, vec, impl->e_vecs[i], request));
+        uint64_t state;
+
+        CeedCallBackend(CeedVectorGetState(vec, &state));
+        if (state != impl->input_states[i]) {
+          CeedCallBackend(CeedElemRestrictionApply(elem_rstr, CEED_NOTRANSPOSE, vec, impl->e_vecs[i], request));
+          impl->input_states[i] = state;
+        }
         // Get evec
         CeedCallBackend(CeedVectorGetArrayRead(impl->e_vecs[i], CEED_MEM_DEVICE, (const CeedScalar **)&e_data[i]));
       }
