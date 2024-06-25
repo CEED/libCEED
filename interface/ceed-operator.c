@@ -742,7 +742,6 @@ int CeedOperatorCreate(Ceed ceed, CeedQFunction qf, CeedQFunction dqf, CeedQFunc
   CeedCall(CeedQFunctionReferenceCopy(qf, &(*op)->qf));
   if (dqf && dqf != CEED_QFUNCTION_NONE) CeedCall(CeedQFunctionReferenceCopy(dqf, &(*op)->dqf));
   if (dqfT && dqfT != CEED_QFUNCTION_NONE) CeedCall(CeedQFunctionReferenceCopy(dqfT, &(*op)->dqfT));
-  CeedCall(CeedQFunctionAssemblyDataCreate(ceed, &(*op)->qf_assembled));
   CeedCall(CeedCalloc(CEED_FIELD_MAX, &(*op)->input_fields));
   CeedCall(CeedCalloc(CEED_FIELD_MAX, &(*op)->output_fields));
   CeedCall(ceed->OperatorCreate(*op));
@@ -786,7 +785,6 @@ int CeedOperatorCreateAtPoints(Ceed ceed, CeedQFunction qf, CeedQFunction dqf, C
   CeedCall(CeedQFunctionReferenceCopy(qf, &(*op)->qf));
   if (dqf && dqf != CEED_QFUNCTION_NONE) CeedCall(CeedQFunctionReferenceCopy(dqf, &(*op)->dqf));
   if (dqfT && dqfT != CEED_QFUNCTION_NONE) CeedCall(CeedQFunctionReferenceCopy(dqfT, &(*op)->dqfT));
-  CeedCall(CeedQFunctionAssemblyDataCreate(ceed, &(*op)->qf_assembled));
   CeedCall(CeedCalloc(CEED_FIELD_MAX, &(*op)->input_fields));
   CeedCall(CeedCalloc(CEED_FIELD_MAX, &(*op)->output_fields));
   CeedCall(ceed->OperatorCreateAtPoints(*op));
@@ -1411,7 +1409,10 @@ int CeedOperatorSetQFunctionAssemblyReuse(CeedOperator op, bool reuse_assembly_d
       CeedCall(CeedOperatorSetQFunctionAssemblyReuse(op->sub_operators[i], reuse_assembly_data));
     }
   } else {
-    CeedCall(CeedQFunctionAssemblyDataSetReuse(op->qf_assembled, reuse_assembly_data));
+    CeedQFunctionAssemblyData data;
+
+    CeedCall(CeedOperatorGetQFunctionAssemblyData(op, &data));
+    CeedCall(CeedQFunctionAssemblyDataSetReuse(data, reuse_assembly_data));
   }
   return CEED_ERROR_SUCCESS;
 }
@@ -1440,7 +1441,10 @@ int CeedOperatorSetQFunctionAssemblyDataUpdateNeeded(CeedOperator op, bool needs
       CeedCall(CeedOperatorSetQFunctionAssemblyDataUpdateNeeded(sub_operators[i], needs_data_update));
     }
   } else {
-    CeedCall(CeedQFunctionAssemblyDataSetUpdateNeeded(op->qf_assembled, needs_data_update));
+    CeedQFunctionAssemblyData data;
+
+    CeedCall(CeedOperatorGetQFunctionAssemblyData(op, &data));
+    CeedCall(CeedQFunctionAssemblyDataSetUpdateNeeded(data, needs_data_update));
   }
   return CEED_ERROR_SUCCESS;
 }
