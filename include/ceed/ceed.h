@@ -459,6 +459,7 @@ CEED_EXTERN int  CeedOperatorGetContextBooleanRead(CeedOperator op, CeedContextF
 CEED_EXTERN int  CeedOperatorRestoreContextBooleanRead(CeedOperator op, CeedContextFieldLabel field_label, const bool **values);
 CEED_EXTERN int  CeedOperatorApply(CeedOperator op, CeedVector in, CeedVector out, CeedRequest *request);
 CEED_EXTERN int  CeedOperatorApplyAdd(CeedOperator op, CeedVector in, CeedVector out, CeedRequest *request);
+CEED_EXTERN int  CeedOperatorAssemblyDataStrip(CeedOperator op);
 CEED_EXTERN int  CeedOperatorDestroy(CeedOperator *op);
 
 CEED_EXTERN int CeedOperatorGetFieldByName(CeedOperator op, const char *field_name, CeedOperatorField *op_field);

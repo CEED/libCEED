@@ -2111,6 +2111,35 @@ int CeedOperatorApplyAdd(CeedOperator op, CeedVector in, CeedVector out, CeedReq
 }
 
 /**
+  @brief Destroy temporary assembly data associated with a `CeedOperator`
+
+  @param[in,out] op `CeedOperator` whose assembly data to destroy
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref User
+**/
+int CeedOperatorAssemblyDataStrip(CeedOperator op) {
+  bool is_composite;
+
+  CeedCall(CeedQFunctionAssemblyDataDestroy(&op->qf_assembled));
+  CeedCall(CeedOperatorAssemblyDataDestroy(&op->op_assembled));
+  CeedCall(CeedOperatorIsComposite(op, &is_composite));
+  if (is_composite) {
+    CeedInt       num_suboperators;
+    CeedOperator *sub_operators;
+
+    CeedCall(CeedCompositeOperatorGetNumSub(op, &num_suboperators));
+    CeedCall(CeedCompositeOperatorGetSubList(op, &sub_operators));
+    for (CeedInt i = 0; i < num_suboperators; i++) {
+      CeedCall(CeedQFunctionAssemblyDataDestroy(&sub_operators[i]->qf_assembled));
+      CeedCall(CeedOperatorAssemblyDataDestroy(&sub_operators[i]->op_assembled));
+    }
+  }
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
   @brief Destroy a `CeedOperator`
 
   @param[in,out] op `CeedOperator` to destroy
