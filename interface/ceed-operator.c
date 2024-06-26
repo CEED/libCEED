@@ -2153,8 +2153,10 @@ int CeedOperatorDestroy(CeedOperator *op) {
     *op = NULL;
     return CEED_ERROR_SUCCESS;
   }
-  if ((*op)->Destroy) CeedCall((*op)->Destroy(*op));
-  CeedCall(CeedDestroy(&(*op)->ceed));
+  // Backend destroy
+  if ((*op)->Destroy) {
+    CeedCall((*op)->Destroy(*op));
+  }
   // Free fields
   for (CeedInt i = 0; i < (*op)->num_fields; i++) {
     if ((*op)->input_fields[i]) {
@@ -2184,16 +2186,21 @@ int CeedOperatorDestroy(CeedOperator *op) {
       CeedCall(CeedFree(&(*op)->output_fields[i]));
     }
   }
-  // AtPoints data
+  CeedCall(CeedFree(&(*op)->input_fields));
+  CeedCall(CeedFree(&(*op)->output_fields));
+  // Destroy AtPoints data
   CeedCall(CeedVectorDestroy(&(*op)->point_coords));
   CeedCall(CeedElemRestrictionDestroy(&(*op)->rstr_points));
   CeedCall(CeedElemRestrictionDestroy(&(*op)->first_points_rstr));
+  // Destroy assembly data
+  CeedCall(CeedOperatorAssemblyDataStrip(*op));
   // Destroy sub_operators
   for (CeedInt i = 0; i < (*op)->num_suboperators; i++) {
     if ((*op)->sub_operators[i]) {
       CeedCall(CeedOperatorDestroy(&(*op)->sub_operators[i]));
     }
   }
+  CeedCall(CeedFree(&(*op)->sub_operators));
   CeedCall(CeedQFunctionDestroy(&(*op)->qf));
   CeedCall(CeedQFunctionDestroy(&(*op)->dqf));
   CeedCall(CeedQFunctionDestroy(&(*op)->dqfT));
@@ -2209,14 +2216,8 @@ int CeedOperatorDestroy(CeedOperator *op) {
   // Destroy fallback
   CeedCall(CeedOperatorDestroy(&(*op)->op_fallback));
 
-  // Destroy assembly data
-  CeedCall(CeedQFunctionAssemblyDataDestroy(&(*op)->qf_assembled));
-  CeedCall(CeedOperatorAssemblyDataDestroy(&(*op)->op_assembled));
-
-  CeedCall(CeedFree(&(*op)->input_fields));
-  CeedCall(CeedFree(&(*op)->output_fields));
-  CeedCall(CeedFree(&(*op)->sub_operators));
   CeedCall(CeedFree(&(*op)->name));
+  CeedCall(CeedDestroy(&(*op)->ceed));
   CeedCall(CeedFree(op));
   return CEED_ERROR_SUCCESS;
 }
