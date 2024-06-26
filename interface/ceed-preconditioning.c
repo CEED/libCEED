@@ -160,7 +160,12 @@ static int CeedOperatorCreateFallback(CeedOperator op) {
       CeedCall(CeedOperatorFieldGetData(output_fields[i], &field_name, &rstr, &basis, &vec));
       CeedCall(CeedOperatorSetField(op_fallback, field_name, rstr, basis, vec));
     }
-    CeedCall(CeedQFunctionAssemblyDataReferenceCopy(op->qf_assembled, &op_fallback->qf_assembled));
+    {
+      CeedQFunctionAssemblyData data;
+
+      CeedCall(CeedOperatorGetQFunctionAssemblyData(op, &data));
+      CeedCall(CeedQFunctionAssemblyDataReferenceCopy(data, &op_fallback->qf_assembled));
+    }
     // Cleanup
     CeedCall(CeedQFunctionDestroy(&qf_fallback));
     CeedCall(CeedQFunctionDestroy(&dqf_fallback));
@@ -882,7 +887,12 @@ static int CeedSingleOperatorMultigridLevel(CeedOperator op_fine, CeedVector p_m
     CeedCall(CeedOperatorSetField(*op_coarse, field_name, rstr, basis, vec));
   }
   // -- Clone QFunctionAssemblyData
-  CeedCall(CeedQFunctionAssemblyDataReferenceCopy(op_fine->qf_assembled, &(*op_coarse)->qf_assembled));
+  {
+    CeedQFunctionAssemblyData fine_data;
+
+    CeedCall(CeedOperatorGetQFunctionAssemblyData(op_fine, &fine_data));
+    CeedCall(CeedQFunctionAssemblyDataReferenceCopy(fine_data, &(*op_coarse)->qf_assembled));
+  }
 
   // Multiplicity vector
   if (op_restrict || op_prolong) {
@@ -1126,6 +1136,27 @@ int CeedOperatorCreateActivePointBlockRestriction(CeedElemRestriction rstr, Ceed
 }
 
 /**
+  @brief Get `CeedQFunctionAssemblyData`
+
+  @param[in]  op   `CeedOperator` to assemble
+  @param[out] data `CeedQFunctionAssemblyData`
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Backend
+**/
+int CeedOperatorGetQFunctionAssemblyData(CeedOperator op, CeedQFunctionAssemblyData *data) {
+  if (!op->qf_assembled) {
+    CeedQFunctionAssemblyData data;
+
+    CeedCall(CeedQFunctionAssemblyDataCreate(op->ceed, &data));
+    op->qf_assembled = data;
+  }
+  *data = op->qf_assembled;
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
   @brief Create object holding `CeedQFunction` assembly data for `CeedOperator`
 
   @param[in]  ceed `Ceed` object used to create the `CeedQFunctionAssemblyData`
@@ -1304,7 +1335,7 @@ int CeedQFunctionAssemblyDataDestroy(CeedQFunctionAssemblyData *data) {
   @brief Get `CeedOperatorAssemblyData`
 
   @param[in]  op   `CeedOperator` to assemble
-  @param[out] data `CeedQFunctionAssemblyData`
+  @param[out] data `CeedOperatorAssemblyData`
 
   @return An error code: 0 - success, otherwise - failure
 
@@ -1868,22 +1899,24 @@ int CeedOperatorLinearAssembleQFunctionBuildOrUpdate(CeedOperator op, CeedVector
   // Assemble QFunction
   if (LinearAssembleQFunctionUpdate) {
     // Backend or fallback parent version
-    bool                qf_assembled_is_setup;
-    CeedVector          assembled_vec  = NULL;
-    CeedElemRestriction assembled_rstr = NULL;
+    CeedQFunctionAssemblyData data;
+    bool                      data_is_setup;
+    CeedVector                assembled_vec  = NULL;
+    CeedElemRestriction       assembled_rstr = NULL;
 
-    CeedCall(CeedQFunctionAssemblyDataIsSetup(op->qf_assembled, &qf_assembled_is_setup));
-    if (qf_assembled_is_setup) {
+    CeedCall(CeedOperatorGetQFunctionAssemblyData(op, &data));
+    CeedCall(CeedQFunctionAssemblyDataIsSetup(data, &data_is_setup));
+    if (data_is_setup) {
       bool update_needed;
 
-      CeedCall(CeedQFunctionAssemblyDataGetObjects(op->qf_assembled, &assembled_vec, &assembled_rstr));
-      CeedCall(CeedQFunctionAssemblyDataIsUpdateNeeded(op->qf_assembled, &update_needed));
+      CeedCall(CeedQFunctionAssemblyDataGetObjects(data, &assembled_vec, &assembled_rstr));
+      CeedCall(CeedQFunctionAssemblyDataIsUpdateNeeded(data, &update_needed));
       if (update_needed) CeedCall(LinearAssembleQFunctionUpdate(op_assemble, assembled_vec, assembled_rstr, request));
     } else {
       CeedCall(CeedOperatorLinearAssembleQFunction(op_assemble, &assembled_vec, &assembled_rstr, request));
-      CeedCall(CeedQFunctionAssemblyDataSetObjects(op->qf_assembled, assembled_vec, assembled_rstr));
+      CeedCall(CeedQFunctionAssemblyDataSetObjects(data, assembled_vec, assembled_rstr));
     }
-    CeedCall(CeedQFunctionAssemblyDataSetUpdateNeeded(op->qf_assembled, false));
+    CeedCall(CeedQFunctionAssemblyDataSetUpdateNeeded(data, false));
 
     // Copy reference from internally held copy
     CeedCall(CeedVectorReferenceCopy(assembled_vec, assembled));
