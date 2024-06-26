@@ -2192,7 +2192,7 @@ int CeedOperatorDestroy(CeedOperator *op) {
   CeedCall(CeedVectorDestroy(&(*op)->point_coords));
   CeedCall(CeedElemRestrictionDestroy(&(*op)->rstr_points));
   CeedCall(CeedElemRestrictionDestroy(&(*op)->first_points_rstr));
-  // Destroy assembly data
+  // Destroy assembly data (must happen before destroying sub_operators)
   CeedCall(CeedOperatorAssemblyDataStrip(*op));
   // Destroy sub_operators
   for (CeedInt i = 0; i < (*op)->num_suboperators; i++) {
