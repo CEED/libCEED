@@ -27,8 +27,6 @@ def create_argparser() -> argparse.ArgumentParser:
     parser.add_argument('-o', '--output', type=Optional[Path], default=None, help='Output file to write test')
     parser.add_argument('-b', '--junit-batch', type=str, default='', help='Name of JUnit batch for output file')
     parser.add_argument('-np', '--pool-size', type=int, default=1, help='Number of test cases to run in parallel')
-    parser.add_argument('-s', '--smartredis_dir', type=str, default='', help='path to SmartSim library, if present')
-    parser.add_argument('--has_torch', type=bool, default=False, help='Whether to build with torch')
     parser.add_argument('test', help='Test executable', nargs='?')
 
     return parser
@@ -36,8 +34,8 @@ def create_argparser() -> argparse.ArgumentParser:
 
 # Necessary functions for running tests
 class CeedSuiteSpec(SuiteSpec):
-    def __init__(self, has_torch: bool):
-        self.has_torch: bool = has_torch
+    def __init__(self):
+        pass
 
     def get_source_path(self, test: str) -> Path:
         """Compute path to test source file
@@ -114,8 +112,6 @@ class CeedSuiteSpec(SuiteSpec):
         for condition in spec.only:
             if (condition == 'cpu') and ('gpu' in resource):
                 return 'CPU only test with GPU backend'
-            if condition == 'torch' and not self.has_torch:
-                return 'PyTorch only test without USE_TORCH=1'
 
     def check_post_skip(self, test: str, spec: TestSpec, resource: str, stderr: str) -> Optional[str]:
         """Check if a test case should be allowed to fail, based on its stderr output
@@ -199,43 +195,13 @@ class CeedSuiteSpec(SuiteSpec):
 if __name__ == '__main__':
     args = create_argparser().parse_args()
 
-    # run tests
-    if 'smartsim' in args.test:
-        has_smartsim: bool = args.smartredis_dir and Path(args.smartredis_dir).is_dir()
-        test_cases = []
-
-        if args.mode is RunMode.TAP:
-            print(f'1..1')
-        if has_smartsim:
-            sys.path.insert(0, str(Path(__file__).parents[1] / "examples" / "fluids"))
-            from smartsim_regression_framework import SmartSimTest
-
-            test_framework = SmartSimTest(Path(__file__).parent / 'test_dir')
-            test_framework.setup()
-
-            is_new_subtest = True
-            subtest_ok = True
-            for i, backend in enumerate(args.ceed_backends):
-                test_cases.append(test_framework.test_junit(backend))
-                if is_new_subtest and args.mode == RunMode.TAP:
-                    is_new_subtest = False
-                    print(f'# Subtest: {test_cases[0].category}')
-                    print(f'    1..{len(args.ceed_backends)}')
-                print(test_case_output_string(test_cases[i], TestSpec("SmartSim Tests"), args.mode, backend, '', i))
-            if args.mode == RunMode.TAP:
-                print(f'{"" if subtest_ok else "not "}ok 1 - {test_cases[0].category}')
-            test_framework.teardown()
-        elif args.mode is RunMode.TAP:
-            print(f'ok 1 - # SKIP SmartSim not installed')
-        result: TestSuite = TestSuite('SmartSim Tests', test_cases)
-    else:
-        result: TestSuite = run_tests(
-            args.test,
-            args.ceed_backends,
-            args.mode,
-            args.nproc,
-            CeedSuiteSpec(args.has_torch),
-            args.pool_size)
+    result: TestSuite = run_tests(
+        args.test,
+        args.ceed_backends,
+        args.mode,
+        args.nproc,
+        CeedSuiteSpec(),
+        args.pool_size)
 
     # write output and check for failures
     if args.mode is RunMode.JUNIT:

@@ -18,8 +18,5 @@ extern PetscLogEvent FLUIDS_SmartRedis_Train;
 extern PetscLogEvent FLUIDS_TrainDataCompute;
 extern PetscLogEvent FLUIDS_DifferentialFilter;
 extern PetscLogEvent FLUIDS_VelocityGradientProjection;
-extern PetscLogEvent FLUIDS_SgsModel;
-extern PetscLogEvent FLUIDS_SgsModelDDInference;
-extern PetscLogEvent FLUIDS_SgsModelDDData;
 
 PetscErrorCode RegisterLogEvents();

@@ -30,11 +30,9 @@ CFLAGS = -std=c99 \
   $(OPT) $(OPT_EXAMPLES)
 CPPFLAGS = $(call pkgconf, --cflags-only-I $(PETSc.pc) $(ceed.pc)) \
   $(call pkgconf, --variable=cflags_dep $(PETSc.pc))
-CXX = $(call pkgconf, --variable=cxxcompiler $(PETSc.pc) $(ceed.pc))
-CXXFLAGS = -std=c++17 -Wno-deprecated -Wno-tautological-compare
 LDFLAGS = $(call pkgconf, --libs-only-L --libs-only-other $(PETSc.pc) $(ceed.pc))
 LDFLAGS += $(patsubst -L%, $(call pkgconf, --variable=ldflag_rpath $(PETSc.pc))%, $(call pkgconf, --libs-only-L $(PETSc.pc) $(ceed.pc)))
-LDLIBS = $(call pkgconf, --libs-only-l $(PETSc.pc) $(ceed.pc)) -lm -lstdc++
+LDLIBS = $(call pkgconf, --libs-only-l $(PETSc.pc) $(ceed.pc)) -lm
 
 # Address Sanitizer Setup
 # ASAN must be left empty if you don't want to use it
@@ -46,49 +44,13 @@ FFLAGS += $(if $(ASAN),$(AFLAGS))
 LDFLAGS += $(if $(ASAN),$(AFLAGS))
 CPPFLAGS += -I./include
 
-# LibTorch
-USE_TORCH ?=
-ifeq ($(USE_TORCH),1)
-  libtorch.pc := $(shell python ./pytorch_pkgconfig.py)
-  CPPFLAGS += $(call pkgconf, --cflags-only-I $(libtorch.pc))
-  CXXFLAGS += $(call pkgconf, --cflags-only-other $(libtorch.pc))
-  LDFLAGS += $(call pkgconf, --libs-only-L --libs-only-other $(libtorch.pc))
-  LDFLAGS += $(patsubst -L%, $(call pkgconf, --variable=ldflag_rpath $(PETSc.pc))%, $(call pkgconf, --libs-only-L $(libtorch.pc)))
-  LDLIBS += $(call pkgconf, --libs-only-l $(libtorch.pc))
-
-  src.cpp += $(sort $(wildcard $(PROBLEMDIR)/torch/*.cpp))
-  src.c += $(sort $(wildcard $(PROBLEMDIR)/torch/*.c))
-
-  # Intel Pytorch EXtension (IPEX)
-  IPEX_DIR ?=
-  ifdef IPEX_DIR
-      LDFLAGS += -L$(IPEX_DIR)/lib/
-      LDFLAGS += -Wl,-rpath,$(IPEX_DIR)/lib/
-      LDLIBS += -lintel-ext-pt-gpu
-  endif
-endif
-
 # Source Files
 OBJDIR := build
 SRCDIR := src
 PROBLEMDIR := problems
 
 src.c := navierstokes.c $(sort $(wildcard $(PROBLEMDIR)/*.c)) $(sort $(wildcard $(SRCDIR)/*.c))
-src.o = $(src.c:%.c=$(OBJDIR)/%.o) $(src.cpp:%.cpp=$(OBJDIR)/%.o)
-
-# Path to install directory for SmartRedis. Example: /software/smartredis/install
-SMARTREDIS_DIR ?=
-ifdef SMARTREDIS_DIR
-	hiredis.pc := $(SMARTREDIS_DIR)/lib/pkgconfig/hiredis.pc
-	lsmartredis:= -lsmartredis
-	redis++.pc = $(wildcard $(SMARTREDIS_DIR)/lib/pkgconfig/redis++.pc $(SMARTREDIS_DIR)/lib64/pkgconfig/redis++.pc)
-
-	CPPFLAGS += $(call pkgconf, --cflags-only-I $(hiredis.pc) $(redis++.pc))
-	LDFLAGS += $(call pkgconf, --libs-only-L --libs-only-other $(hiredis.pc) $(redis++.pc))
-	LDFLAGS += $(patsubst -L%, $(call pkgconf, --variable=ldflag_rpath $(PETSc.pc))%, $(call pkgconf, --libs-only-L $(hiredis.pc) $(redis++.pc)))
-	LDLIBS += $(call pkgconf, --libs-only-l $(hiredis.pc) $(redis++.pc)) $(lsmartredis)
-	src.c += $(sort $(wildcard $(SRCDIR)/smartsim/*.c))
-endif
+src.o = $(src.c:%.c=$(OBJDIR)/%.o)
 
 all: navierstokes
 
@@ -105,9 +67,6 @@ quiet ?= $($(1))
 
 $(OBJDIR)/%.o : %.c  Makefile | $$(@D)/.DIR
 	$(call quiet,CC) $(CPPFLAGS) $(CFLAGS) -c -o $@ $(abspath $<)
-
-$(OBJDIR)/%.o : %.cpp Makefile | $$(@D)/.DIR
-	$(call quiet,CXX) $(CPPFLAGS) $(CXXFLAGS) -c -o $@ $(abspath $<)
 
 print: $(PETSc.pc) $(ceed.pc)
 	$(info CC      : $(CC))

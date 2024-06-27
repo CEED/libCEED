@@ -423,74 +423,6 @@ $$
 \langle \phi' \theta' \rangle = \langle \phi \theta \rangle - \langle \phi \rangle \langle \theta \rangle
 $$
 
-### Subgrid Stress Modeling
-
-When a fluid simulation is under-resolved (the smallest length scale resolved by the grid is much larger than the smallest physical scale, the [Kolmogorov length scale](https://en.wikipedia.org/wiki/Kolmogorov_microscales)), this is mathematically interpreted as filtering the Navier-Stokes equations.
-This is known as large-eddy simulation (LES), as only the "large" scales of turbulence are resolved.
-This filtering operation results in an extra stress-like term, $\bm{\tau}^r$, representing the effect of unresolved (or "subgrid" scale) structures in the flow.
-Denoting the filtering operation by $\overline \cdot$, the LES governing equations are:
-
-$$
-\frac{\partial \bm{\overline q}}{\partial t} + \nabla \cdot \bm{\overline F}(\bm{\overline q}) -S(\bm{\overline q}) = 0 \, ,
-$$ (eq-vector-les)
-
-where
-
-$$
-\bm{\overline F}(\bm{\overline q}) =
-\bm{F} (\bm{\overline q}) +
-\begin{pmatrix}
-    0\\
-     \bm{\tau}^r \\
-     \bm{u}  \cdot \bm{\tau}^r
-\end{pmatrix}
-$$ (eq-les-flux)
-
-More details on deriving the above expression, filtering, and large eddy simulation can be found in {cite}`popeTurbulentFlows2000`.
-To close the problem, the subgrid stress must be defined.
-For implicit LES, the subgrid stress is set to zero and the numerical properties of the discretized system are assumed to account for the effect of subgrid scale structures on the filtered solution field.
-For explicit LES, it is defined by a subgrid stress model.
-
-(sgs-dd-model)=
-#### Data-driven SGS Model
-
-The data-driven SGS model implemented here uses a small neural network to compute the SGS term.
-The SGS tensor is calculated at nodes using an $L^2$ projection of the velocity gradient and grid anisotropy tensor, and then interpolated onto quadrature points.
-More details regarding the theoretical background of the model can be found in {cite}`prakashDDSGS2022` and {cite}`prakashDDSGSAnisotropic2022`.
-
-The neural network itself consists of 1 hidden layer and 20 neurons, using Leaky ReLU as its activation function.
-The slope parameter for the Leaky ReLU function is set via `-sgs_model_dd_leakyrelu_alpha`.
-The outputs of the network are assumed to be normalized on a min-max scale, so they must be rescaled by the original min-max bounds.
-Parameters for the neural network are put into files in a directory found in `-sgs_model_dd_parameter_dir`.
-These files store the network weights (`w1.dat` and `w2.dat`), biases (`b1.dat` and `b2.dat`), and scaling parameters (`OutScaling.dat`).
-The first row of each files stores the number of columns and rows in each file.
-Note that the weight coefficients are assumed to be in column-major order.
-This is done to keep consistent with legacy file compatibility.
-
-:::{note}
-The current data-driven model parameters are not accurate and are for regression testing only.
-:::
-
-##### Data-driven Model Using External Libraries
-
-There are two different modes for using the data-driven model: fused and sequential.
-
-In fused mode, the input processing, model inference, and output handling were all done in a single CeedOperator.
-Fused mode is generally faster than the sequential mode, however fused mode requires that the model architecture be manually implemented into a libCEED QFunction.
-To use the fused mode, set `-sgs_model_dd_implementation fused`.
-
-Sequential mode has separate function calls/CeedOperators for input creation, model inference, and output handling.
-By separating the three steps of the model evaluation, the sequential mode allows for functions calling external libraries to be used for the model inference step.
-The use of these external libraries allows us to leverage the flexibility of those external libraries in their model architectures.
-
-PyTorch is currently the only external library implemented with the sequential mode.
-This is enabled with `USE_TORCH=1` during the build process, which will use the PyTorch accessible from the build environment's Python interpreter.
-To specify the path to the PyTorch model file, use `-sgs_model_dd_torch_model_path`.
-The hardware used to run the model inference is determined automatically from the libCEED backend chosen, but can be overridden with `-sgs_model_dd_torch_model_device`.
-Note that if you chose to run the inference on host while using a GPU libCEED backend (e.g. `/gpu/cuda`), then host-to-device transfers (and vice versa) will be done automatically.
-
-The sequential mode is available using a libCEED based inference evaluation via `-sgs_model_dd_implementation sequential_ceed`, but it is only for verification purposes.
-
 (differential-filtering)=
 ### Differential Filtering
 
@@ -583,42 +515,6 @@ To account for this, we use $\beta$ to scale the filter tensor to the appropriat
 To match the "size" of a normal kernel to our differential kernel, we attempt to have them match second order moments with respect to the prescribed filter width.
 To match the box and Gaussian filters "sizes", we use $\beta = 1/10$ and $\beta = 1/6$, respectively.
 $\beta$ can be set via `-diff_filter_kernel_scaling`.
-
-### *In Situ* Machine-Learning Model Training
-Training machine-learning models normally uses *a priori* (already gathered) data stored on disk.
-This is computationally inefficient, particularly as the scale of the problem grows and the data that is saved to disk reduces to a small percentage of the total data generated by a simulation.
-One way of working around this to to train a model on data coming from an ongoing simulation, known as *in situ* (in place) learning.
-
-This is implemented in the code using [SmartSim](https://www.craylabs.org/docs/overview.html).
-Briefly, the fluid simulation will periodically place data for training purposes into a database that a separate process uses to train a model.
-The database used by SmartSim is [Redis](https://redis.com/modules/redis-ai/) and the library to connect to the database is called [SmartRedis](https://www.craylabs.org/docs/smartredis.html).
-More information about how to utilize this code in a SmartSim configuration can be found on [SmartSim's website](https://www.craylabs.org/docs/overview.html).
-
-To use this code in a SmartSim *in situ* setup, first the code must be built with SmartRedis enabled.
-This is done by specifying the installation directory of SmartRedis using the `SMARTREDIS_DIR` environment variable when building:
-
-```
-make SMARTREDIS_DIR=~/software/smartredis/install
-```
-
-#### SGS Data-Driven Model *In Situ* Training
-Currently the code is only setup to do *in situ* training for the SGS data-driven model.
-Training data is split into the model inputs and outputs.
-The model inputs are calculated as the same model inputs in the SGS Data-Driven model described {ref}`earlier<sgs-dd-model>`.
-The model outputs (or targets in the case of training) are the subgrid stresses.
-Both the inputs and outputs are computed from a filtered velocity field, which is calculated via {ref}`differential-filtering`.
-The settings for the differential filtering used during training are described in {ref}`differential-filtering`.
-The training will create multiple sets of data per each filter width defined in `-sgs_train_filter_widths`.
-Those scalar filter widths correspond to the scaling correspond to $\bm{D} = c \bm{I}$, where $c$ is the scalar filter width.
-
-The SGS *in situ* training can be enabled using the `-sgs_train_enable` flag.
-Data can be processed and placed into the database periodically.
-The interval between is controlled by `-sgs_train_write_data_interval`.
-There's also the choice of whether to add new training data on each database write or to overwrite the old data with new data.
-This is controlled by `-sgs_train_overwrite_data`.
-
-The database may also be located on the same node as a MPI rank (collocated) or located on a separate node (distributed).
-It's necessary to know how many ranks are associated with each collocated database, which is set by `-smartsim_collocated_database_num_ranks`.
 
 (problem-advection)=
 ## Advection-Diffusion

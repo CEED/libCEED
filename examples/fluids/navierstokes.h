@@ -60,22 +60,6 @@ typedef enum {
 } TestType;
 static const char *const TestTypes[] = {"NONE", "SOLVER", "TURB_SPANSTATS", "DIFF_FILTER", "TestType", "TESTTYPE_", NULL};
 
-// Subgrid-Stress mode type
-typedef enum {
-  SGS_MODEL_NONE        = 0,
-  SGS_MODEL_DATA_DRIVEN = 1,
-} SGSModelType;
-static const char *const SGSModelTypes[] = {"NONE", "DATA_DRIVEN", "SGSModelType", "SGS_MODEL_", NULL};
-
-// Subgrid-Stress mode type
-typedef enum {
-  SGS_MODEL_DD_FUSED           = 0,
-  SGS_MODEL_DD_SEQENTIAL_CEED  = 1,
-  SGS_MODEL_DD_SEQENTIAL_TORCH = 2,
-} SGSModelDDImplementation;
-static const char *const SGSModelDDImplementations[] = {"FUSED", "SEQUENTIAL_CEED", "SEQUENTIAL_TORCH", "SGSModelDDImplementation", "SGS_MODEL_DD_",
-                                                        NULL};
-
 // Mesh transformation type
 typedef enum {
   MESH_TRANSFORM_NONE      = 0,
@@ -137,9 +121,6 @@ struct AppCtx_private {
     PetscViewerFormat viewer_format;
     PetscBool         header_written;
   } wall_forces;
-  // Subgrid Stress Model
-  SGSModelType sgs_model_type;
-  PetscBool    sgs_train_enable;
   // Differential Filtering
   PetscBool         diff_filter_monitor;
   MeshTransformType mesh_transform_type;
@@ -173,29 +154,6 @@ typedef struct {
   KSP                  ksp;
 } *NodalProjectionData;
 
-typedef PetscErrorCode (*SgsDDNodalStressEval)(User user, Vec Q_loc, Vec VelocityGradient, Vec SGSNodal_loc);
-typedef PetscErrorCode (*SgsDDNodalStressInference)(Vec DD_Inputs_loc, Vec DD_Outputs_loc, void *ctx);
-typedef struct {
-  DM                        dm_sgs, dm_dd_inputs, dm_dd_outputs;
-  PetscInt                  num_comp_sgs, num_comp_inputs, num_comp_outputs;
-  OperatorApplyContext      op_nodal_evaluation_ctx, op_nodal_dd_inputs_ctx, op_nodal_dd_outputs_ctx, op_sgs_apply_ctx;
-  CeedVector                sgs_nodal_ceed, grad_velo_ceed;
-  SgsDDNodalStressEval      sgs_nodal_eval;
-  SgsDDNodalStressInference sgs_nodal_inference;
-  void                     *sgs_nodal_inference_ctx;
-  PetscErrorCode (*sgs_nodal_inference_ctx_destroy)(void *ctx);
-} *SgsDDData;
-
-typedef struct {
-  DM                   dm_dd_training;
-  PetscInt             num_comp_dd_inputs, write_data_interval, num_filter_widths;
-  PetscScalar          filter_widths[16];
-  OperatorApplyContext op_training_data_calc_ctx;
-  NodalProjectionData  filtered_grad_velo_proj;
-  size_t               training_data_array_dims[2];
-  PetscBool            overwrite_training_data;
-} *SGS_DD_TrainingData;
-
 typedef struct {
   DM                    dm_filter;
   PetscInt              num_filtered_fields;
@@ -207,12 +165,6 @@ typedef struct {
   PetscBool             do_mms_test;
   CeedContextFieldLabel filter_width_scaling_label;
 } *DiffFilterData;
-
-typedef struct {
-  void    *client;
-  char     rank_id_name[16];
-  PetscInt collocated_database_num_ranks;
-} *SmartSimData;
 
 // PETSc user data
 struct User_private {
@@ -233,10 +185,7 @@ struct User_private {
   CeedScalar           time_bc_set;
   SpanStatsData        spanstats;
   NodalProjectionData  grad_velo_proj;
-  SgsDDData            sgs_dd_data;
   DiffFilterData       diff_filter;
-  SmartSimData         smartsim;
-  SGS_DD_TrainingData  sgs_dd_train;
 };
 
 // Units
@@ -446,10 +395,6 @@ PetscErrorCode TurbulenceStatisticsDestroy(User user, CeedData ceed_data);
 // -----------------------------------------------------------------------------
 // Data-Driven Subgrid Stress (DD-SGS) Modeling Functions
 // -----------------------------------------------------------------------------
-
-PetscErrorCode SgsDDSetup(Ceed ceed, User user, CeedData ceed_data, ProblemData problem);
-PetscErrorCode SgsDDDataDestroy(SgsDDData sgs_dd_data);
-PetscErrorCode SgsDDApplyIFunction(User user, const Vec Q_loc, Vec G_loc);
 PetscErrorCode VelocityGradientProjectionSetup(Ceed ceed, User user, CeedData ceed_data, ProblemData problem, StateVariable state_var_input,
                                                CeedElemRestriction elem_restr_input, CeedBasis basis_input, NodalProjectionData *pgrad_velo_proj);
 PetscErrorCode VelocityGradientProjectionApply(NodalProjectionData grad_velo_proj, Vec Q_loc, Vec VelocityGradient);
@@ -478,13 +423,3 @@ PetscErrorCode DifferentialFilterDataDestroy(DiffFilterData diff_filter);
 PetscErrorCode TSMonitor_DifferentialFilter(TS ts, PetscInt steps, PetscReal solution_time, Vec Q, void *ctx);
 PetscErrorCode DifferentialFilterApply(User user, const PetscReal solution_time, const Vec Q, Vec Filtered_Solution);
 PetscErrorCode DifferentialFilterMmsICSetup(ProblemData problem);
-
-// -----------------------------------------------------------------------------
-// SGS Data-Driven Training via SmartSim
-// -----------------------------------------------------------------------------
-PetscErrorCode SmartSimSetup(User user);
-PetscErrorCode SmartSimDataDestroy(SmartSimData smartsim);
-PetscErrorCode SGS_DD_TrainingSetup(Ceed ceed, User user, CeedData ceed_data, ProblemData problem);
-PetscErrorCode TSMonitor_SGS_DD_Training(TS ts, PetscInt step_num, PetscReal solution_time, Vec Q, void *ctx);
-PetscErrorCode TSPostStep_SGS_DD_Training(TS ts);
-PetscErrorCode SGS_DD_TrainingDataDestroy(SGS_DD_TrainingData sgs_dd_train);
