@@ -3,6 +3,8 @@
 This page provides a description of the solid mechanics example for the libCEED library, based on PETSc.
 PETSc v3.17 or a development version of PETSc at commit 0e95d842 or later is required.
 
+Ratel, a more fully featured solid mechanics library, can be found on [GitLab](https://gitlab.com/micromorph/ratel).
+
 This code solves the steady-state static momentum balance equations using unstructured high-order finite/spectral element spatial discretizations.
 In this mini-app, we consider three formulations used in solid mechanics applications: linear elasticity, Neo-Hookean hyperelasticity at small strain, and Neo-Hookean hyperelasticity at finite strain.
 All three of these formulations are for compressible materials.
