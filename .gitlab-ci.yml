@@ -34,6 +34,7 @@ noether-asan:
     - BACKENDS_CPU=$(make info-backends-all | grep -o '/cpu[^ ]*' | tr '\n' ' ')
     - echo "-------------- libCEED -------------" && make info
     - echo "-------------- BACKENDS_CPU --------" && echo $BACKENDS_CPU
+    - make clean
     - make -j$NPROC_CPU
 # -- libCEED only tests
     - echo "-------------- core tests ----------"
@@ -85,6 +86,7 @@ noether-cpu:
     - BACKENDS_CPU=$(make info-backends-all | grep -o '/cpu[^ ]*' | tr '\n' ' ')
     - echo "-------------- libCEED -------------" && make info
     - echo "-------------- BACKENDS_CPU --------" && echo $BACKENDS_CPU
+    - make clean
     - OCCA_DIR= PEDANTIC=1 make -j$NPROC_CPU
     - make -j$NPROC_CPU
 # -- libCEED only tests
@@ -156,6 +158,7 @@ noether-sycl:
     - BACKENDS_SYCL=$(make info-backends-all | grep -o '/sycl[^ ]*' | tr '\n' ' ')
     - echo "-------------- libCEED -------------" && make info
     - echo "-------------- BACKENDS_SYCL -------" && echo $BACKENDS_SYCL
+    - make clean
     - make -j$NPROC_CPU
 # Report status
     - touch .SUCCESS
@@ -186,6 +189,7 @@ noether-cuda:
     - echo "-------------- libCEED -------------" && make info
     - BACKENDS_GPU=$(make info-backends | grep -o '/gpu[^ ]*' | tr '\n' ' ')
     - echo "-------------- BACKENDS_GPU --------" && echo $BACKENDS_GPU
+    - make clean
     - PEDANTIC=1 make -k -j$NPROC_CPU -l$NPROC_CPU
 # -- libCEED only tests
     - echo "-------------- core tests ----------"
@@ -196,7 +200,7 @@ noether-cuda:
 # -- PETSc with CUDA (minimal)
     - export PETSC_DIR=/projects/petsc PETSC_ARCH=mpich-cuda-O PETSC_OPTIONS='-use_gpu_aware_mpi 0' && git -C $PETSC_DIR -c safe.directory=$PETSC_DIR describe
     - echo "-------------- PETSc ---------------" && make -C $PETSC_DIR info
-    - make -k -j$((NPROC_GPU / NPROC_POOL)) JUNIT_BATCH="cuda" junit BACKENDS="$BACKENDS_GPU" search="petsc fluids-navierstokes solids"
+    - make -k -j$((NPROC_GPU / NPROC_POOL)) BACKENDS="$BACKENDS_GPU" JUNIT_BATCH="cuda" junit search="petsc fluids-navierstokes solids"
 # Clang-tidy
     - echo "-------------- clang-tidy ----------" && clang-tidy --version
     - TIDY_OPTS="-fix-errors" make -j$NPROC_CPU tidy && git diff --color=always --exit-code
@@ -248,6 +252,7 @@ noether-rocm:
     - BACKENDS_CPU=$(make info-backends-all | grep -o '/cpu[^ ]*' | tr '\n' ' ') && BACKENDS_GPU=$(make info-backends | grep -o '/gpu[^ ]*' | tr '\n' ' ')
     - echo "-------------- libCEED -------------" && make info
     - echo "-------------- BACKENDS_GPU --------" && echo $BACKENDS_GPU
+    - make clean
     - make -j$NPROC_CPU
 # -- libCEED only tests
     - echo "-------------- core tests ----------"
@@ -333,6 +338,7 @@ noether-float:
     - echo "-------------- libCEED -------------" && make info
     - echo "-------------- BACKENDS_CPU --------" && echo $BACKENDS_CPU
     - echo "-------------- BACKENDS_GPU --------" && echo $BACKENDS_GPU
+    - make clean
     - make -j$NPROC_CPU
 # -- libCEED only tests
     - echo "-------------- core tests ----------"

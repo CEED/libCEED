@@ -232,7 +232,6 @@ libceed.c += $(gallery.c)
 libceeds = $(libceed)
 BACKENDS_BUILTIN := /cpu/self/ref/serial /cpu/self/ref/blocked /cpu/self/opt/serial /cpu/self/opt/blocked
 BACKENDS_MAKE := $(BACKENDS_BUILTIN)
-TEST_BACKENDS := /cpu/self/tmpl /cpu/self/tmpl/sub
 
 # Tests
 tests.c   := $(sort $(wildcard tests/t[0-9][0-9][0-9]-*.c))
@@ -361,7 +360,7 @@ info-backends:
 	$(info make: 'lib' with optional backends: $(filter-out $(BACKENDS_BUILTIN),$(BACKENDS)))
 	@true
 info-backends-all:
-	$(info make: 'lib' with backends: $(filter-out $(TEST_BACKENDS),$(BACKENDS)))
+	$(info make: 'lib' with backends: $(BACKENDS))
 	@true
 
 $(libceed.so) : CEED_LDFLAGS += $(if $(DARWIN), -install_name @rpath/$(notdir $(libceed.so)))
@@ -703,7 +702,7 @@ allbenchmarks = petsc-bps
 bench_targets = $(addprefix bench-,$(allbenchmarks))
 .PHONY: $(bench_targets) benchmarks
 $(bench_targets): bench-%: $(OBJDIR)/%
-	cd benchmarks && ./benchmark.sh --ceed "$(BACKENDS_MAKE)" -r $(*).sh
+	cd benchmarks && ./benchmark.sh --ceed "$(BACKENDS)" -r $(*).sh
 benchmarks: $(bench_targets)
 
 $(ceed.pc) : pkgconfig-prefix = $(abspath .)
