@@ -17,10 +17,15 @@ typedef struct {
   CUfunction  Grad;
   CUfunction  GradTranspose;
   CUfunction  Weight;
+  CUmodule    moduleAtPoints;
+  CeedInt     num_points;
+  CUfunction  InterpAtPoints;
+  CUfunction  GradAtPoints;
   CeedScalar *d_interp_1d;
   CeedScalar *d_grad_1d;
   CeedScalar *d_collo_grad_1d;
   CeedScalar *d_q_weight_1d;
+  CeedScalar *d_chebyshev_interp_1d;
   CeedScalar *c_B;
   CeedScalar *c_G;
 } CeedBasis_Cuda_shared;

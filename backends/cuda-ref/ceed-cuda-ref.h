@@ -67,9 +67,14 @@ typedef struct {
   CUfunction  Interp;
   CUfunction  Grad;
   CUfunction  Weight;
+  CUmodule    moduleAtPoints;
+  CeedInt     num_points;
+  CUfunction  InterpAtPoints;
+  CUfunction  GradAtPoints;
   CeedScalar *d_interp_1d;
   CeedScalar *d_grad_1d;
   CeedScalar *d_q_weight_1d;
+  CeedScalar *d_chebyshev_interp_1d;
 } CeedBasis_Cuda;
 
 typedef struct {
