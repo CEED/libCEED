@@ -22,12 +22,6 @@ and run with:
 ./navierstokes -ceed [ceed] -problem [problem type] -degree [degree]
 ```
 
-If you want to do *in situ* machine-learning training, specify `SMARTREDIS_DIR` in the make command like:
-
-```
-make SMARTREDIS_DIR=~/software/smartredis/install
-```
-
 ## Runtime options
 
 % inclusion-fluids-marker
@@ -641,36 +635,6 @@ For the Density Current, Channel, and Blasius problems, the following common com
   -  `-reference_pressure`
   - `Pa`
 
-* - `-sgs_model_type`
-  - Type of subgrid stress model to use. Currently only `data_driven` is available
-  - `none`
-  - string
-
-* - `-sgs_model_dd_leakyrelu_alpha`
-  - Slope parameter for Leaky ReLU activation function. `0` corresponds to normal ReLU
-  - 0
-  -
-
-* - `-sgs_model_dd_parameter_dir`
-  - Path to directory with data-driven model parameters (weights, biases, etc.)
-  - `./dd_sgs_parameters`
-  - string
-
-* - `-sgs_model_dd_model_implementation`
-  - Which computational implementation to use for SGS DD model (`fused`, `sequential_ceed`, `sequential_torch`)
-  - `fused`
-  - string
-
-* - `-sgs_model_dd_torch_model_path`
-  - Path to the PyTorch `*.pt` file containing the DD inference model
-  -
-  - string
-
-* - `-sgs_model_dd_torch_model_device`
-  - What hardware to perform the model inference on (`cpu`, `cuda`, `hip`, `xpu`)
-  - Default matches the libCEED backend
-  - string
-
 * - `-diff_filter_monitor`
   - Enable differential filter TSMonitor
   - `false`
@@ -705,31 +669,6 @@ For the Density Current, Channel, and Blasius problems, the following common com
   - Friction length associated with the flow, $\delta_\nu$. Used in wall-damping functions
   - 0
   - `m`
-
-* - `-sgs_train_enable`
-  - Whether to enable *in situ* training of data-driven SGS model. Require building with SmartRedis.
-  - `false`
-  - boolean
-
-* - `-sgs_train_write_data_interval`
-  - Number of timesteps between writing training data into SmartRedis database
-  - `1`
-  -
-
-* - `-sgs_train_overwrite_data`
-  - Whether new training data should overwrite old data on database
-  - `true`
-  - boolean
-
-* - `-sgs_train_filter_widths`
-  - List of scalar values for different filter widths to calculate for training data
-  -
-  - `m`
-
-* - `-smartsim_collocated_num_ranks`
-  - Number of MPI ranks associated with each collocated database (i.e. ranks per node)
-  - `1`
-  -
 :::
 
 #### Gaussian Wave

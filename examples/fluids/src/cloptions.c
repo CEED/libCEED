@@ -149,11 +149,6 @@ PetscErrorCode ProcessCommandLineOptions(MPI_Comm comm, AppCtx app_ctx, SimpleBC
   PetscCall(PetscOptionsViewer("-ts_monitor_wall_force", "Viewer for force on each (no-slip) wall", NULL, &app_ctx->wall_forces.viewer,
                                &app_ctx->wall_forces.viewer_format, NULL));
 
-  // SGS Model Options
-  app_ctx->sgs_model_type = SGS_MODEL_NONE;
-  PetscCall(PetscOptionsEnum("-sgs_model_type", "Subgrid Stress Model type", NULL, SGSModelTypes, (PetscEnum)app_ctx->sgs_model_type,
-                             (PetscEnum *)&app_ctx->sgs_model_type, NULL));
-
   PetscCall(PetscOptionsBool("-diff_filter_monitor", "Enable differential filtering TSMonitor", NULL, app_ctx->diff_filter_monitor,
                              &app_ctx->diff_filter_monitor, NULL));
 
@@ -161,9 +156,6 @@ PetscErrorCode ProcessCommandLineOptions(MPI_Comm comm, AppCtx app_ctx, SimpleBC
   app_ctx->mesh_transform_type = MESH_TRANSFORM_NONE;
   PetscCall(PetscOptionsEnum("-mesh_transform", "Mesh transform to perform", NULL, MeshTransformTypes, (PetscEnum)app_ctx->mesh_transform_type,
                              (PetscEnum *)&app_ctx->mesh_transform_type, NULL));
-
-  PetscCall(
-      PetscOptionsBool("-sgs_train_enable", "Enable Data-Driven SGS training", NULL, app_ctx->sgs_train_enable, &app_ctx->sgs_train_enable, NULL));
 
   PetscOptionsEnd();
   PetscFunctionReturn(PETSC_SUCCESS);

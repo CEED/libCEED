@@ -140,10 +140,6 @@ PetscErrorCode IFunction_NS(TS ts, PetscReal t, Vec Q, Vec Q_dot, Vec G, void *u
   PetscCall(VecReadCeedToPetsc(user->q_dot_ceed, q_dot_mem_type, Q_dot_loc));
   PetscCall(VecCeedToPetsc(user->g_ceed, g_mem_type, G_loc));
 
-  if (user->app_ctx->sgs_model_type == SGS_MODEL_DATA_DRIVEN) {
-    PetscCall(SgsDDApplyIFunction(user, Q_loc, G_loc));
-  }
-
   // Local-to-Global
   PetscCall(VecZeroEntries(G));
   PetscCall(DMLocalToGlobal(user->dm, G_loc, ADD_VALUES, G));
@@ -372,11 +368,6 @@ PetscErrorCode TSSolve_NS(DM dm, User user, AppCtx app_ctx, Physics phys, Proble
                   CeedOperatorSetContextDouble(user->spanstats.op_stats_collect_ctx->op, user->spanstats.previous_time_label, &previous_time));
   }
   if (app_ctx->diff_filter_monitor) PetscCall(TSMonitorSet(*ts, TSMonitor_DifferentialFilter, user, NULL));
-
-  if (app_ctx->sgs_train_enable) {
-    PetscCall(TSMonitorSet(*ts, TSMonitor_SGS_DD_Training, user, NULL));
-    PetscCall(TSSetPostStep(*ts, TSPostStep_SGS_DD_Training));
-  }
 
   if (app_ctx->test_type == TESTTYPE_NONE) PetscCall(PrintRunInfo(user, user->phys, problem, *ts));
   // Solve
