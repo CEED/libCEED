@@ -18,7 +18,7 @@
 //
 //  ./dmswarm -dm_plex_dim 3 -dm_plex_box_faces 3,3,3 -dm_plex_box_lower -1.0,-1.0,-1.0 -dm_plex_simplex 0 -num_comp 2 -swarm gauss
 //
-//TESTARGS(name="Uniform swarm, CG projection") -ceed {ceed_resource} -test -dm_plex_dim 3 -dm_plex_box_faces 3,3,3 -dm_plex_box_lower -1.0,-1.0,-1.0 -dm_plex_simplex 0 -dm_plex_hash_location true -num_comp 2 -swarm uniform -solution_order 3 -points_per_cell 125
+//TESTARGS(name="Uniform swarm, CG projection") -ceed {ceed_resource} -test -dm_plex_dim 3 -dm_plex_box_faces 3,3,3 -dm_plex_box_lower -1.0,-1.0,-1.0 -dm_plex_simplex 0 -dm_plex_hash_location true -num_comp 2 -swarm uniform -solution_order 3 -q_extra 0 -points_per_cell 125
 //TESTARGS(name="Gauss swarm, lumped projection") -ceed {ceed_resource} -test -dm_plex_dim 3 -dm_plex_box_faces 3,3,3 -dm_plex_box_lower -1.0,-1.0,-1.0 -dm_plex_simplex 0 -dm_plex_hash_location true -num_comp 2 -swarm gauss -ksp_type preonly -pc_type jacobi -pc_jacobi_type rowsum -tolerance 9e-2
 
 /// @file
