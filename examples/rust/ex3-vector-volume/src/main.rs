@@ -27,7 +27,6 @@ mod transform;
 // ----------------------------------------------------------------------------
 // Example 3
 // ----------------------------------------------------------------------------
-#[cfg(not(tarpaulin_include))]
 fn main() -> libceed::Result<()> {
     let options = opt::Opt::parse();
     example_3(options)
