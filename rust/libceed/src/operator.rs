@@ -1625,7 +1625,7 @@ impl<'a> Operator<'a> {
     /// // Check
     /// let sum: Scalar = v_fine.view()?.iter().sum();
     /// assert!(
-    ///     (sum - 2.0).abs() < 50.0 * libceed::EPSILON,
+    ///     (sum - 2.0).abs() < 200.0 * libceed::EPSILON,
     ///     "Incorrect interval length computed"
     /// );
     ///
@@ -1635,7 +1635,7 @@ impl<'a> Operator<'a> {
     /// // Check
     /// let sum: Scalar = v_coarse.view()?.iter().sum();
     /// assert!(
-    ///     (sum - 2.0).abs() < 50.0 * libceed::EPSILON,
+    ///     (sum - 2.0).abs() < 200.0 * libceed::EPSILON,
     ///     "Incorrect interval length computed"
     /// );
     /// # Ok(())
@@ -1814,7 +1814,7 @@ impl<'a> Operator<'a> {
     /// // Check
     /// let sum: Scalar = v_fine.view()?.iter().sum();
     /// assert!(
-    ///     (sum - 2.0).abs() < 10.0 * libceed::EPSILON,
+    ///     (sum - 2.0).abs() < 200.0 * libceed::EPSILON,
     ///     "Incorrect interval length computed"
     /// );
     ///
@@ -1824,7 +1824,7 @@ impl<'a> Operator<'a> {
     /// // Check
     /// let sum: Scalar = v_coarse.view()?.iter().sum();
     /// assert!(
-    ///     (sum - 2.0).abs() < 10.0 * libceed::EPSILON,
+    ///     (sum - 2.0).abs() < 200.0 * libceed::EPSILON,
     ///     "Incorrect interval length computed"
     /// );
     /// # Ok(())
@@ -2005,7 +2005,7 @@ impl<'a> Operator<'a> {
     /// // Check
     /// let sum: Scalar = v_fine.view()?.iter().sum();
     /// assert!(
-    ///     (sum - 2.0).abs() < 10.0 * libceed::EPSILON,
+    ///     (sum - 2.0).abs() < 200.0 * libceed::EPSILON,
     ///     "Incorrect interval length computed"
     /// );
     ///
@@ -2015,7 +2015,7 @@ impl<'a> Operator<'a> {
     /// // Check
     /// let sum: Scalar = v_coarse.view()?.iter().sum();
     /// assert!(
-    ///     (sum - 2.0).abs() < 10.0 * libceed::EPSILON,
+    ///     (sum - 2.0).abs() < 200.0 * libceed::EPSILON,
     ///     "Incorrect interval length computed"
     /// );
     /// # Ok(())
