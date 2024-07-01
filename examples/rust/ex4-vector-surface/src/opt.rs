@@ -15,7 +15,6 @@ use clap::Parser;
     name = "libCEED Rust Example 4 - Vector Surface Area",
     about = "This example illustrates a simple usage of libCEED to compute the surface area of a body using matrix-free application of a 3 component vector diffusion operator."
 )]
-#[cfg(not(tarpaulin_include))]
 pub(crate) struct Opt {
     /// libCEED backend resource to use
     #[arg(name = "CEED", short, long = "ceed", default_value = "/cpu/self")]
