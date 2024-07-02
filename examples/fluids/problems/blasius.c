@@ -119,26 +119,33 @@ static PetscErrorCode GetYNodeLocs(const MPI_Comm comm, const char path[PETSC_MA
   FILE          *fp;
   const PetscInt char_array_len = 512;
   char           line[char_array_len];
-  char         **array;
   PetscReal     *node_locs;
 
   PetscFunctionBeginUser;
   PetscCall(PetscFOpen(comm, path, "r", &fp));
   PetscCall(PetscSynchronizedFGets(comm, fp, char_array_len, line));
-  PetscCall(PetscStrToArray(line, ' ', &ndims, &array));
 
-  for (PetscInt i = 0; i < ndims; i++) dims[i] = atoi(array[i]);
+  {
+    char **array;
+
+    PetscCall(PetscStrToArray(line, ' ', &ndims, &array));
+    for (PetscInt i = 0; i < ndims; i++) dims[i] = atoi(array[i]);
+    PetscCall(PetscStrToArrayDestroy(ndims, array));
+  }
   if (ndims < 2) dims[1] = 1;  // Assume 1 column of data is not otherwise specified
   *nynodes = dims[0];
   PetscCall(PetscMalloc1(*nynodes, &node_locs));
 
   for (PetscInt i = 0; i < dims[0]; i++) {
+    char **array;
+
     PetscCall(PetscSynchronizedFGets(comm, fp, char_array_len, line));
     PetscCall(PetscStrToArray(line, ' ', &ndims, &array));
     PetscCheck(ndims == dims[1], comm, PETSC_ERR_FILE_UNEXPECTED,
                "Line %" PetscInt_FMT " of %s does not contain correct number of columns (%d instead of %d)", i, path, ndims, dims[1]);
 
     node_locs[i] = (PetscReal)atof(array[0]);
+    PetscCall(PetscStrToArrayDestroy(ndims, array));
   }
   PetscCall(PetscFClose(comm, fp));
   *pynodes = node_locs;

@@ -8,6 +8,7 @@
 /// Functions for setting up and performing differential filtering
 
 #include "../qfunctions//differential_filter.h"
+#include <ceed.h>
 
 #include <petscdmplex.h>
 
@@ -70,6 +71,9 @@ PetscErrorCode DifferentialFilterCreateOperators(Ceed ceed, User user, CeedData 
 
       PetscCall(PetscSNPrintf(field_name, PETSC_MAX_PATH_LEN, "v%" PetscInt_FMT, dm_field));
       PetscCallCeed(ceed, CeedOperatorSetField(op_rhs, field_name, elem_restr_filter, basis_filter, CEED_VECTOR_ACTIVE));
+
+      PetscCallCeed(ceed, CeedElemRestrictionDestroy(&elem_restr_filter));
+      PetscCallCeed(ceed, CeedBasisDestroy(&basis_filter));
     }
 
     PetscCall(OperatorApplyContextCreate(user->dm, dm_filter, ceed, op_rhs, NULL, NULL, user->Q_loc, NULL, &diff_filter->op_rhs_ctx));
@@ -150,6 +154,9 @@ PetscErrorCode DifferentialFilterCreateOperators(Ceed ceed, User user, CeedData 
       PetscCallCeed(ceed, CeedQFunctionDestroy(&qf_lhs));
       PetscCallCeed(ceed, CeedOperatorDestroy(&op_lhs_sub));
     }
+    PetscCallCeed(ceed, CeedVectorDestroy(&grid_aniso_ceed));
+    PetscCallCeed(ceed, CeedElemRestrictionDestroy(&elem_restr_grid_aniso));
+
     PetscCallCeed(ceed, CeedOperatorGetContextFieldLabel(op_lhs, "filter width scaling", &diff_filter->filter_width_scaling_label));
     PetscCall(MatCeedCreate(dm_filter, dm_filter, op_lhs, NULL, &mat_lhs));
 

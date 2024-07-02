@@ -65,6 +65,7 @@ PetscErrorCode CreateStatsDM(User user, ProblemData problem, PetscInt degree) {
       for (PetscInt i = 0; i < nleaves; i++) {
         PetscCall(DMLabelSetValue(label, ilocal[i], 1));
       }
+      PetscCall(PetscSFDestroy(&inv_isoperiodicface));
     } else {
       PetscCall(DMGetLabel(user->dm, "Face Sets", &label));
     }

@@ -53,6 +53,7 @@ PetscErrorCode SetupStrongSTG_Ceed(Ceed ceed, CeedData ceed_data, DM dm, Problem
 
   // Setup STG Setup QFunction
   PetscCall(SetupStrongStg_PreProcessing(ceed, problem, num_comp_x, stg_data_size, dXdx_size, &qf_stgdata));
+  PetscCall(SetupStrongStg_QF(ceed, problem, num_comp_x, num_comp_q, stg_data_size, dXdx_size, &qf_strongbc));
 
   // Compute contribution on each boundary face
   for (CeedInt i = 0; i < bc->num_inflow; i++) {
@@ -92,8 +93,7 @@ PetscErrorCode SetupStrongSTG_Ceed(Ceed ceed, CeedData ceed_data, DM dm, Problem
 
     PetscCallCeed(ceed, CeedOperatorApply(op_stgdata, CEED_VECTOR_NONE, stg_data, CEED_REQUEST_IMMEDIATE));
 
-    // -- Setup BC QFunctions
-    PetscCall(SetupStrongStg_QF(ceed, problem, num_comp_x, num_comp_q, stg_data_size, dXdx_size, &qf_strongbc));
+    // -- Setup BC Sub Operator
     PetscCallCeed(ceed, CeedOperatorCreate(ceed, qf_strongbc, NULL, NULL, &op_strong_bc_sub));
     PetscCallCeed(ceed, CeedOperatorSetName(op_strong_bc_sub, "Strong STG"));
 
@@ -117,8 +117,6 @@ PetscErrorCode SetupStrongSTG_Ceed(Ceed ceed, CeedData ceed_data, DM dm, Problem
     PetscCallCeed(ceed, CeedElemRestrictionDestroy(&elem_restr_scale));
     PetscCallCeed(ceed, CeedElemRestrictionDestroy(&elem_restr_stgdata));
     PetscCallCeed(ceed, CeedElemRestrictionDestroy(&elem_restr_dXdx));
-    PetscCallCeed(ceed, CeedQFunctionDestroy(&qf_strongbc));
-    PetscCallCeed(ceed, CeedQFunctionDestroy(&qf_stgdata));
     PetscCallCeed(ceed, CeedOperatorDestroy(&op_strong_bc_sub));
     PetscCallCeed(ceed, CeedOperatorDestroy(&op_setup));
     PetscCallCeed(ceed, CeedOperatorDestroy(&op_stgdata));
@@ -127,6 +125,8 @@ PetscErrorCode SetupStrongSTG_Ceed(Ceed ceed, CeedData ceed_data, DM dm, Problem
   PetscCallCeed(ceed, CeedOperatorGetContextFieldLabel(op_strong_bc, "solution time", &phys->stg_solution_time_label));
 
   PetscCallCeed(ceed, CeedBasisDestroy(&basis_x_to_q_sur));
+  PetscCallCeed(ceed, CeedQFunctionDestroy(&qf_strongbc));
+  PetscCallCeed(ceed, CeedQFunctionDestroy(&qf_stgdata));
   PetscCallCeed(ceed, CeedQFunctionDestroy(&qf_setup));
   PetscFunctionReturn(PETSC_SUCCESS);
 }
@@ -181,5 +181,6 @@ PetscErrorCode SetupStrongBC_Ceed(Ceed ceed, CeedData ceed_data, DM dm, User use
   PetscCall(OperatorApplyContextCreate(NULL, NULL, ceed, op_strong_bc, CEED_VECTOR_NONE, NULL, NULL, NULL, &user->op_strong_bc_ctx));
 
   PetscCall(PetscObjectComposeFunction((PetscObject)dm, "DMPlexInsertBoundaryValues_C", DMPlexInsertBoundaryValues_StrongBCCeed));
+  PetscCallCeed(ceed, CeedOperatorDestroy(&op_strong_bc));
   PetscFunctionReturn(PETSC_SUCCESS);
 }

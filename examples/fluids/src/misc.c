@@ -341,24 +341,24 @@ PetscErrorCode PhastaDatFileGetNRows(const MPI_Comm comm, const char path[PETSC_
 
 PetscErrorCode PhastaDatFileReadToArrayReal(MPI_Comm comm, const char path[PETSC_MAX_PATH_LEN], PetscReal array[]) {
   PetscInt       dims[2];
-  int            ndims;
   FILE          *fp;
   const PetscInt char_array_len = 512;
   char           line[char_array_len];
-  char         **row_array;
 
   PetscFunctionBeginUser;
   PetscCall(PhastaDatFileOpen(comm, path, char_array_len, dims, &fp));
 
   for (PetscInt i = 0; i < dims[0]; i++) {
+    int    ndims;
+    char **row_array;
+
     PetscCall(PetscSynchronizedFGets(comm, fp, char_array_len, line));
     PetscCall(PetscStrToArray(line, ' ', &ndims, &row_array));
     PetscCheck(ndims == dims[1], comm, PETSC_ERR_FILE_UNEXPECTED,
                "Line %" PetscInt_FMT " of %s does not contain enough columns (%d instead of %" PetscInt_FMT ")", i, path, ndims, dims[1]);
 
-    for (PetscInt j = 0; j < dims[1]; j++) {
-      array[i * dims[1] + j] = (PetscReal)atof(row_array[j]);
-    }
+    for (PetscInt j = 0; j < dims[1]; j++) array[i * dims[1] + j] = (PetscReal)atof(row_array[j]);
+    PetscCall(PetscStrToArrayDestroy(ndims, row_array));
   }
 
   PetscCall(PetscFClose(comm, fp));

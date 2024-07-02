@@ -138,6 +138,7 @@ PetscErrorCode NS_EULER_VORTEX(ProblemData problem, DM dm, void *ctx, SimpleBC b
   PetscCallCeed(ceed, CeedQFunctionContextReferenceCopy(euler_context, &problem->apply_vol_ifunction.qfunction_context));
   PetscCallCeed(ceed, CeedQFunctionContextReferenceCopy(euler_context, &problem->apply_inflow.qfunction_context));
   PetscCallCeed(ceed, CeedQFunctionContextReferenceCopy(euler_context, &problem->apply_outflow.qfunction_context));
+  PetscCallCeed(ceed, CeedQFunctionContextDestroy(&euler_context));
   PetscFunctionReturn(PETSC_SUCCESS);
 }
 
