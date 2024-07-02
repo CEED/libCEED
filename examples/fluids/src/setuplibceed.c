@@ -81,7 +81,6 @@ static PetscErrorCode CreateKSPMass(User user, ProblemData problem) {
       PetscCall(KSPSetType(user->mass_ksp, KSPPREONLY));
     }
     PetscCall(KSPSetFromOptions_WithMatCeed(user->mass_ksp, mat_mass));
-    PetscCall(KSPSetFromOptions(user->mass_ksp));
     PetscCall(VecDestroy(&Zeros_loc));
     PetscCall(MatDestroy(&mat_mass));
   }

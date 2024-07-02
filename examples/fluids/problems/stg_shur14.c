@@ -99,6 +99,7 @@ static PetscErrorCode ReadStgInflow(const MPI_Comm comm, const char path[PETSC_M
     PetscCheck(wall_dist[i] >= 0, comm, PETSC_ERR_FILE_UNEXPECTED, "Distance to wall in %s cannot be negative", path);
     PetscCheck(lt[i] >= 0, comm, PETSC_ERR_FILE_UNEXPECTED, "Turbulent length scale in %s cannot be negative", path);
     PetscCheck(eps[i] >= 0, comm, PETSC_ERR_FILE_UNEXPECTED, "Turbulent dissipation in %s cannot be negative", path);
+    PetscCall(PetscStrToArrayDestroy(ndims, array));
   }
   CeedScalar(*cij)[stg_ctx->nprofs] = (CeedScalar(*)[stg_ctx->nprofs]) & stg_ctx->data[stg_ctx->offsets.cij];
   PetscCall(CalcCholeskyDecomp(comm, stg_ctx->nprofs, rij, cij));
@@ -144,6 +145,7 @@ static PetscErrorCode ReadStgRand(const MPI_Comm comm, const char path[PETSC_MAX
     sigma[0][i] = (CeedScalar)atof(array[4]);
     sigma[1][i] = (CeedScalar)atof(array[5]);
     sigma[2][i] = (CeedScalar)atof(array[6]);
+    PetscCall(PetscStrToArrayDestroy(ndims, array));
   }
   PetscCall(PetscFClose(comm, fp));
   PetscFunctionReturn(PETSC_SUCCESS);

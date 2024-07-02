@@ -328,7 +328,22 @@ int main(int argc, char **argv) {
 
   PetscCall(PetscFree(app_ctx->amat_type));
   PetscCall(PetscFree(app_ctx->wall_forces.walls));
-  PetscCall(PetscViewerDestroy(&app_ctx->wall_forces.viewer));
+  {
+    const char *filename  = NULL;
+    PetscBool   is_stdout = PETSC_FALSE;
+
+    if (app_ctx->wall_forces.viewer) {
+      PetscCall(PetscViewerFileGetName(app_ctx->wall_forces.viewer, &filename));
+      if (filename) PetscCall(PetscStrncmp(filename, "stdout", 7, &is_stdout));
+      if (!is_stdout) PetscCall(PetscViewerDestroy(&app_ctx->wall_forces.viewer));
+    }
+
+    if (app_ctx->turb_spanstats_viewer) {
+      PetscCall(PetscViewerFileGetName(app_ctx->turb_spanstats_viewer, &filename));
+      if (filename) PetscCall(PetscStrncmp(filename, "stdout", 7, &is_stdout));
+      if (!is_stdout) PetscCall(PetscViewerDestroy(&app_ctx->turb_spanstats_viewer));
+    }
+  }
 
   // -- Structs
   for (PetscInt i = 0; i < problem->num_bc_defs; i++) {
