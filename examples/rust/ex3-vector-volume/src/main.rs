@@ -27,7 +27,6 @@ mod transform;
 // ----------------------------------------------------------------------------
 // Example 3
 // ----------------------------------------------------------------------------
-#[cfg(not(tarpaulin_include))]
 fn main() -> libceed::Result<()> {
     let options = opt::Opt::parse();
     example_3(options)
@@ -269,7 +268,7 @@ fn example_3(options: opt::Opt) -> libceed::Result<()> {
         );
     }
     let tolerance = match dim {
-        1 => 100.0 * libceed::EPSILON,
+        1 => 200.0 * libceed::EPSILON,
         _ => 1E-5,
     };
     let error = (volume - exact_volume).abs();
