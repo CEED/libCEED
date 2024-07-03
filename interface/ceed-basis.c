@@ -1139,7 +1139,7 @@ cleanup:
   @brief Create a non tensor-product basis for \f$H^1\f$ discretizations
 
   @param[in]  ceed      `Ceed` object used to create the `CeedBasis`
-  @param[in]  topo      Topology of element, e.g. hypercube, simplex, ect
+  @param[in]  topo      Topology of element, e.g. hypercube, simplex, etc
   @param[in]  num_comp  Number of field components (1 for scalar fields)
   @param[in]  num_nodes Total number of nodes
   @param[in]  num_qpts  Total number of quadrature points
@@ -1368,7 +1368,7 @@ int CeedBasisCreateProjection(CeedBasis basis_from, CeedBasis basis_to, CeedBasi
     CeedInt          num_nodes_to, num_nodes_from;
     CeedElemTopology topo;
 
-    CeedCall(CeedBasisGetTopology(basis_to, &topo));
+    CeedCall(CeedBasisGetTopology(basis_from, &topo));
     CeedCall(CeedBasisGetNumNodes(basis_from, &num_nodes_from));
     CeedCall(CeedBasisGetNumNodes(basis_to, &num_nodes_to));
     CeedCall(CeedBasisCreateH1(ceed, topo, num_comp, num_nodes_from, num_nodes_to, interp_project, grad_project, NULL, NULL, basis_project));
