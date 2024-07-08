@@ -234,7 +234,7 @@ static int CeedBasisCreateProjectionMatrices(CeedBasis basis_from, CeedBasis bas
   CeedScalar       *interp_to_inv, *interp_from;
   const CeedScalar *interp_to_source = NULL, *interp_from_source = NULL, *grad_from_source = NULL;
 
-  CeedCall(CeedBasisGetDimension(basis_to, &dim));
+  CeedCall(CeedBasisGetDimension(basis_from, &dim));
   if (are_both_tensor) {
     CeedCall(CeedBasisGetInterp1D(basis_to, &interp_to_source));
     CeedCall(CeedBasisGetInterp1D(basis_from, &interp_from_source));

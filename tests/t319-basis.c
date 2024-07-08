@@ -1,6 +1,7 @@
 /// @file
 /// Test projection interp and grad in multiple dimensions
 /// \test Test projection interp and grad in multiple dimensions
+#include "t319-basis.h"
 #include <ceed.h>
 #include <math.h>
 #include <stdio.h>
@@ -200,6 +201,41 @@ int main(int argc, char **argv) {
     CeedBasisDestroy(&basis_to);
     CeedBasisDestroy(&basis_to_nontensor);
     CeedBasisDestroy(&basis_project);
+  }
+
+  // Test projection between basis of different topological dimension
+  {
+    CeedInt   face_dim = 2, P_1D = 2;
+    CeedBasis basis_face, basis_cell_to_face, basis_proj;
+
+    CeedScalar       *q_ref = NULL, *q_weights = NULL;
+    const CeedScalar *grad, *interp;
+    CeedInt           P, Q;
+    GetCellToFaceTabulation(CEED_GAUSS, &P, &Q, &interp, &grad);
+
+    CeedBasisCreateTensorH1Lagrange(ceed, face_dim, 1, 2, P_1D, CEED_GAUSS, &basis_face);
+    CeedBasisCreateH1(ceed, CEED_TOPOLOGY_HEX, 1, P, Q, (CeedScalar *)interp, (CeedScalar *)grad, q_ref, q_weights, &basis_cell_to_face);
+    CeedBasisCreateProjection(basis_cell_to_face, basis_face, &basis_proj);
+    const CeedScalar *interp_proj, *grad_proj, *interp_proj_ref, *grad_proj_ref;
+
+    GetCellToFaceTabulation(CEED_GAUSS_LOBATTO, NULL, NULL, &interp_proj_ref, &grad_proj_ref);
+    CeedBasisGetInterp(basis_proj, &interp_proj);
+    CeedBasisGetGrad(basis_proj, &grad_proj);
+    CeedScalar tol = 100 * CEED_EPSILON;
+
+    for (CeedInt i = 0; i < 4 * 8; i++) {
+      if (fabs(interp_proj[i] - ((CeedScalar *)interp_proj_ref)[i]) > tol)
+        printf("Mixed Topology Projection: interp[%" CeedInt_FMT "] expected %f, got %f\n", i, interp_proj[i], ((CeedScalar *)interp_proj_ref)[i]);
+    }
+
+    for (CeedInt i = 0; i < 3 * 4 * 8; i++) {
+      if (fabs(grad_proj[i] - ((CeedScalar *)grad_proj_ref)[i]) > tol)
+        printf("Mixed Topology Projection: grad[%" CeedInt_FMT "] expected %f, got %f\n", i, grad_proj[i], ((CeedScalar *)grad_proj_ref)[i]);
+    }
+
+    CeedBasisDestroy(&basis_face);
+    CeedBasisDestroy(&basis_cell_to_face);
+    CeedBasisDestroy(&basis_proj);
   }
   CeedDestroy(&ceed);
   return 0;
