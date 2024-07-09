@@ -1190,12 +1190,12 @@ static int CeedOperatorLinearAssemble_Sycl(sycl::queue &sycl_queue, const CeedOp
               result += B_out[b_out_index + j * num_nodes + i] * qf_array[qf_index + j] * B_in[b_in_index + j * num_nodes + l];
             }
           }  // end of  e_mode_out
-        }    // end of  e_mode_in
+        }  // end of  e_mode_in
         CeedSize val_index = comp_in_stride * comp_in + comp_out_stride * comp_out + e_stride * e + num_nodes * i + l;
 
         values_array[val_index] = result;
       }  // end of out component
-    }    // end of in component
+    }  // end of in component
   });
   return CEED_ERROR_SUCCESS;
 }
