@@ -62,7 +62,7 @@ extern "C" __launch_bounds__(BLOCK_SIZE) __global__
                 result += B_out[b_out_index + j * NUM_NODES_OUT + i] * qf_array[qf_index + j] * B_in[b_in_index + j * NUM_NODES_IN + l];
               }
             }  // end of out eval mode
-          }    // end of in eval mode
+          }  // end of in eval mode
           if (orients_in) {
             result *= orients_in[NUM_NODES_IN * e + l] ? -1.0 : 1.0;
           }
@@ -101,6 +101,6 @@ extern "C" __launch_bounds__(BLOCK_SIZE) __global__
           }
         }
       }  // end of out component
-    }    // end of in component
-  }      // end of element loop
+    }  // end of in component
+  }  // end of element loop
 }

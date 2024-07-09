@@ -37,7 +37,7 @@ struct BlasiusContext_ {
 CEED_QFUNCTION_HELPER void ChebyshevEval(int N, const double *Tf, double x, double eta_max, double *f) {
   double dX_deta     = 2 / eta_max;
   double table[4][3] = {
-  // Chebyshev polynomials T_0, T_1, T_2 of the first kind in (-1,1)
+      // Chebyshev polynomials T_0, T_1, T_2 of the first kind in (-1,1)
       {1, x, 2 * x * x - 1},
       {0, 1, 4 * x        },
       {0, 0, 4            },
