@@ -97,7 +97,7 @@ extern "C" __global__ void InterpAtPoints(const CeedInt num_elem, const CeedInt 
             for (CeedInt a = 0; a < pre; a++) {
               for (CeedInt c = 0; c < post; c++) {
                 if (d == BASIS_DIM - 1) {
-                  for (CeedInt j = 0; j < Q; j++) atomicAdd(&out[(a * Q + j) * post + c], chebyshev_x[j] * in[a * post + c]);
+                  for (CeedInt j = 0; j < Q; j++) atomicAdd(&out[(a * Q + (j + p) % Q) * post + c], chebyshev_x[(j + p) % Q] * in[a * post + c]);
                 } else {
                   for (CeedInt j = 0; j < Q; j++) out[(a * Q + j) * post + c] = chebyshev_x[j] * in[a * post + c];
                 }
@@ -255,7 +255,7 @@ extern "C" __global__ void GradAtPoints(const CeedInt num_elem, const CeedInt is
               for (CeedInt a = 0; a < pre; a++) {
                 for (CeedInt c = 0; c < post; c++) {
                   if (dim_2 == BASIS_DIM - 1) {
-                    for (CeedInt j = 0; j < Q; j++) atomicAdd(&out[(a * Q + j) * post + c], chebyshev_x[j] * in[a * post + c]);
+                    for (CeedInt j = 0; j < Q; j++) atomicAdd(&out[(a * Q + (j + p) % Q) * post + c], chebyshev_x[(j + p) % Q] * in[a * post + c]);
                   } else {
                     for (CeedInt j = 0; j < Q; j++) out[(a * Q + j) * post + c] = chebyshev_x[j] * in[a * post + c];
                   }
