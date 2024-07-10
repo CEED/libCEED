@@ -29,10 +29,8 @@ inline __device__ void ChebyshevDerivativeAtPoint(const CeedScalar x, CeedScalar
   chebyshev_dx[0] = 0.0;
   chebyshev_dx[1] = 2.0;
   for (CeedInt i = 2; i < Q_1D; i++) {
-    chebyshev_x[0]  = chebyshev_x[1];
-    chebyshev_x[1]  = chebyshev_x[2];
-    chebyshev_x[2]  = 2 * x * chebyshev_x[1] - chebyshev_x[0];
-    chebyshev_dx[i] = 2 * x * chebyshev_dx[i - 1] + 2 * chebyshev_x[1] - chebyshev_dx[i - 2];
+    chebyshev_x[(i + 1) % 3] = 2 * x * chebyshev_x[(i + 0) % 3] - chebyshev_x[(i + 2) % 3];
+    chebyshev_dx[i]          = 2 * x * chebyshev_dx[i - 1] + 2 * chebyshev_x[(i + 0) % 3] - chebyshev_dx[i - 2];
   }
 }
 
