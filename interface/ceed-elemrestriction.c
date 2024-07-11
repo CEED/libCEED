@@ -807,7 +807,8 @@ int CeedElemRestrictionCreateStrided(Ceed ceed, CeedInt num_elem, CeedInt elem_s
   CeedCheck(elem_size > 0, ceed, CEED_ERROR_DIMENSION, "Element size must be at least 1");
   CeedCheck(num_comp > 0, ceed, CEED_ERROR_DIMENSION, "CeedElemRestriction must have at least 1 component");
   CeedCheck(l_size >= (CeedSize)num_elem * (CeedSize)elem_size * (CeedSize)num_comp, ceed, CEED_ERROR_DIMENSION,
-            "L-vector size must be at least num_elem * elem_size * num_comp");
+            "L-vector size must be at least num_elem * elem_size * num_comp. Expected: > %" CeedSize_FMT " Found: %" CeedSize_FMT,
+            (CeedSize)num_elem * (CeedSize)elem_size * (CeedSize)num_comp, l_size);
 
   CeedCall(CeedCalloc(1, rstr));
   CeedCall(CeedReferenceCopy(ceed, &(*rstr)->ceed));
@@ -872,7 +873,9 @@ int CeedElemRestrictionCreateAtPoints(Ceed ceed, CeedInt num_elem, CeedInt num_p
   CeedCheck(num_elem >= 0, ceed, CEED_ERROR_DIMENSION, "Number of elements must be non-negative");
   CeedCheck(num_points >= 0, ceed, CEED_ERROR_DIMENSION, "Number of points must be non-negative");
   CeedCheck(num_comp > 0, ceed, CEED_ERROR_DIMENSION, "CeedElemRestriction must have at least 1 component");
-  CeedCheck(l_size >= (CeedSize)num_points * num_comp, ceed, CEED_ERROR_DIMENSION, "L-vector must be at least num_points * num_comp");
+  CeedCheck(l_size >= (CeedSize)num_points * num_comp, ceed, CEED_ERROR_DIMENSION,
+            "L-vector must be at least num_points * num_comp. Expected: > %" CeedSize_FMT " Found: %" CeedSize_FMT, (CeedSize)num_points * num_comp,
+            l_size);
 
   CeedCall(CeedCalloc(1, rstr));
   CeedCall(CeedReferenceCopy(ceed, &(*rstr)->ceed));
@@ -1137,7 +1140,8 @@ int CeedElemRestrictionCreateBlockedStrided(Ceed ceed, CeedInt num_elem, CeedInt
   CeedCheck(block_size > 0, ceed, CEED_ERROR_DIMENSION, "Block size must be at least 1");
   CeedCheck(num_comp > 0, ceed, CEED_ERROR_DIMENSION, "CeedElemRestriction must have at least 1 component");
   CeedCheck(l_size >= (CeedSize)num_elem * (CeedSize)elem_size * (CeedSize)num_comp, ceed, CEED_ERROR_DIMENSION,
-            "L-vector size must be at least num_elem * elem_size * num_comp");
+            "L-vector size must be at least num_elem * elem_size * num_comp. Expected: > %" CeedSize_FMT " Found: %" CeedSize_FMT,
+            (CeedSize)num_elem * (CeedSize)elem_size * (CeedSize)num_comp, l_size);
 
   CeedCall(CeedCalloc(1, rstr));
   CeedCall(CeedReferenceCopy(ceed, &(*rstr)->ceed));
