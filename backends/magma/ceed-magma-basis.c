@@ -249,6 +249,14 @@ static int CeedBasisApply_Magma(CeedBasis basis, CeedInt num_elem, CeedTranspose
 }
 
 //------------------------------------------------------------------------------
+// Basis apply - tensor AtPoints
+//------------------------------------------------------------------------------
+int CeedBasisApplyAtPoints_Magma(CeedBasis basis, const CeedInt num_elem, const CeedInt *num_points, CeedTransposeMode t_mode, CeedEvalMode eval_mode,
+                                 CeedVector x_ref, CeedVector u, CeedVector v) {
+  return CeedError(CeedBasisReturnCeed(basis), CEED_ERROR_BACKEND, "Backend does not implement CeedBasisApplyAtPoints");
+}
+
+//------------------------------------------------------------------------------
 // Basis apply - non-tensor
 //------------------------------------------------------------------------------
 static int CeedBasisApplyNonTensor_Magma(CeedBasis basis, CeedInt num_elem, CeedTransposeMode t_mode, CeedEvalMode e_mode, CeedVector u,
@@ -580,6 +588,7 @@ int CeedBasisCreateTensorH1_Magma(CeedInt dim, CeedInt P_1d, CeedInt Q_1d, const
   CeedCallBackend(CeedBasisSetData(basis, impl));
 
   CeedCallBackend(CeedSetBackendFunction(ceed, "Basis", basis, "Apply", CeedBasisApply_Magma));
+  CeedCallBackend(CeedSetBackendFunction(ceed, "Basis", basis, "ApplyAtPoints", CeedBasisApplyAtPoints_Magma));
   CeedCallBackend(CeedSetBackendFunction(ceed, "Basis", basis, "Destroy", CeedBasisDestroy_Magma));
   return CEED_ERROR_SUCCESS;
 }

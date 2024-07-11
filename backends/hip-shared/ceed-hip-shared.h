@@ -17,11 +17,16 @@ typedef struct {
   hipFunction_t Grad;
   hipFunction_t GradTranspose;
   hipFunction_t Weight;
+  hipModule_t   moduleAtPoints;
+  CeedInt       num_points;
+  hipFunction_t InterpAtPoints;
+  hipFunction_t GradAtPoints;
   CeedInt       block_sizes[3];  // interp, grad, weight thread block sizes
   CeedScalar   *d_interp_1d;
   CeedScalar   *d_grad_1d;
   CeedScalar   *d_collo_grad_1d;
   CeedScalar   *d_q_weight_1d;
+  CeedScalar   *d_chebyshev_interp_1d;
 } CeedBasis_Hip_shared;
 
 CEED_INTERN int CeedBasisCreateTensorH1_Hip_shared(CeedInt dim, CeedInt P_1d, CeedInt Q_1d, const CeedScalar *interp_1d, const CeedScalar *grad_1d,
