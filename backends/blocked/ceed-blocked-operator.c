@@ -530,8 +530,8 @@ static inline int CeedOperatorLinearAssembleQFunctionCore_Blocked(CeedOperator o
     const CeedInt  strides[3] = {1, Q, qf_size_in * qf_size_out * Q};
 
     // Create output restriction
-    CeedCallBackend(
-        CeedElemRestrictionCreateStrided(ceed, num_elem, Q, qf_size_in * qf_size_out, qf_size_in * qf_size_out * num_elem * Q, strides, rstr));
+    CeedCallBackend(CeedElemRestrictionCreateStrided(ceed, num_elem, Q, qf_size_in * qf_size_out,
+                                                     (CeedSize)qf_size_in * (CeedSize)qf_size_out * (CeedSize)num_elem * (CeedSize)Q, strides, rstr));
     // Create assembled vector
     CeedCallBackend(CeedVectorCreate(ceed, l_size, assembled));
   }

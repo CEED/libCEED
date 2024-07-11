@@ -2863,7 +2863,8 @@ int CeedOperatorCreateFDMElementInverse(CeedOperator op, CeedOperator *fdm_inv, 
   // -- Restriction
   {
     CeedInt strides[3] = {1, num_nodes, num_nodes * num_comp};
-    CeedCall(CeedElemRestrictionCreateStrided(ceed_parent, num_elem, num_nodes, num_comp, num_elem * num_comp * num_nodes, strides, &rstr_qd_i));
+    CeedCall(CeedElemRestrictionCreateStrided(ceed_parent, num_elem, num_nodes, num_comp,
+                                              (CeedSize)num_elem * (CeedSize)num_comp * (CeedSize)num_nodes, strides, &rstr_qd_i));
   }
 
   // -- QFunction
