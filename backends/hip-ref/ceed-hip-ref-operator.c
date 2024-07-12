@@ -731,7 +731,8 @@ static inline int CeedOperatorLinearAssembleQFunctionCore_Hip(CeedOperator op, b
 
     // Create output restriction
     CeedCallBackend(CeedElemRestrictionCreateStrided(ceed_parent, num_elem, Q, num_active_in * num_active_out,
-                                                     num_active_in * num_active_out * num_elem * Q, strides, rstr));
+                                                     (CeedSize)num_active_in * (CeedSize)num_active_out * (CeedSize)num_elem * (CeedSize)Q, strides,
+                                                     rstr));
     // Create assembled vector
     CeedCallBackend(CeedVectorCreate(ceed_parent, l_size, assembled));
   }
