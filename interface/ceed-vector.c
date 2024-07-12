@@ -735,7 +735,10 @@ int CeedVectorAXPY(CeedVector y, CeedScalar alpha, CeedVector x) {
   CeedCall(CeedVectorGetCeed(y, &ceed));
   CeedCall(CeedVectorGetLength(y, &length_y));
   CeedCall(CeedVectorGetLength(x, &length_x));
-  CeedCheck(length_x == length_y, ceed, CEED_ERROR_UNSUPPORTED, "Cannot add vector of different lengths");
+  CeedCheck(length_x == length_y, ceed, CEED_ERROR_UNSUPPORTED,
+            "Cannot add vector of different lengths."
+            " x length: %" CeedSize_FMT " y length: %" CeedSize_FMT,
+            length_x, length_y);
   CeedCheck(x != y, ceed, CEED_ERROR_UNSUPPORTED, "Cannot use same vector for x and y in CeedVectorAXPY");
 
   CeedCall(CeedVectorHasValidArray(x, &has_valid_array_x));
@@ -795,7 +798,10 @@ int CeedVectorAXPBY(CeedVector y, CeedScalar alpha, CeedScalar beta, CeedVector 
 
   CeedCall(CeedVectorGetLength(y, &length_y));
   CeedCall(CeedVectorGetLength(x, &length_x));
-  CeedCheck(length_x == length_y, ceed, CEED_ERROR_UNSUPPORTED, "Cannot add vector of different lengths");
+  CeedCheck(length_x == length_y, ceed, CEED_ERROR_UNSUPPORTED,
+            "Cannot add vector of different lengths."
+            " x length: %" CeedSize_FMT " y length: %" CeedSize_FMT,
+            length_x, length_y);
   CeedCheck(x != y, ceed, CEED_ERROR_UNSUPPORTED, "Cannot use same vector for x and y in CeedVectorAXPBY");
 
   CeedCall(CeedVectorHasValidArray(x, &has_valid_array_x));
@@ -856,7 +862,10 @@ int CeedVectorPointwiseMult(CeedVector w, CeedVector x, CeedVector y) {
   CeedCall(CeedVectorGetLength(w, &length_w));
   CeedCall(CeedVectorGetLength(x, &length_x));
   CeedCall(CeedVectorGetLength(y, &length_y));
-  CeedCheck(length_w == length_x && length_w == length_y, ceed, CEED_ERROR_UNSUPPORTED, "Cannot multiply vectors of different lengths");
+  CeedCheck(length_w == length_x && length_w == length_y, ceed, CEED_ERROR_UNSUPPORTED,
+            "Cannot multiply vectors of different lengths."
+            " x length: %" CeedSize_FMT " y length: %" CeedSize_FMT,
+            length_x, length_y);
 
   CeedCall(CeedGetParent(w->ceed, &ceed_parent_w));
   CeedCall(CeedGetParent(x->ceed, &ceed_parent_x));
