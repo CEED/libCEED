@@ -486,7 +486,10 @@ int CeedElemRestrictionSetAtPointsEVectorSize(CeedElemRestriction rstr, CeedSize
   CeedCall(CeedElemRestrictionGetCeed(rstr, &ceed));
   CeedCall(CeedElemRestrictionGetType(rstr, &rstr_type));
   CeedCheck(rstr_type == CEED_RESTRICTION_POINTS, ceed, CEED_ERROR_INCOMPATIBLE, "Can only compute offset for a points CeedElemRestriction");
-  CeedCheck(e_size >= rstr->e_size, ceed, CEED_ERROR_INCOMPATIBLE, "Can only increase the size of the E-vector for the CeedElemRestriction");
+  CeedCheck(e_size >= rstr->e_size, ceed, CEED_ERROR_INCOMPATIBLE,
+            "Can only increase the size of the E-vector for the CeedElemRestriction."
+            " Current size: %" CeedSize_FMT " New size: %" CeedSize_FMT,
+            rstr->e_size, e_size);
   rstr->e_size = e_size;
   return CEED_ERROR_SUCCESS;
 }

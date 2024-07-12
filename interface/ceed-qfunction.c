@@ -775,10 +775,12 @@ int CeedQFunctionAddInput(CeedQFunction qf, const char *field_name, CeedInt size
   CeedCheck(!is_immutable, ceed, CEED_ERROR_MAJOR, "QFunction cannot be changed after set as immutable");
   CeedCheck(eval_mode != CEED_EVAL_WEIGHT || size == 1, ceed, CEED_ERROR_DIMENSION, "CEED_EVAL_WEIGHT should have size 1");
   for (CeedInt i = 0; i < qf->num_input_fields; i++) {
-    CeedCheck(strcmp(field_name, qf->input_fields[i]->field_name), ceed, CEED_ERROR_MINOR, "CeedQFunction field names must be unique");
+    CeedCheck(strcmp(field_name, qf->input_fields[i]->field_name), ceed, CEED_ERROR_MINOR,
+              "CeedQFunction field names must be unique. Duplicate name: %s", field_name);
   }
   for (CeedInt i = 0; i < qf->num_output_fields; i++) {
-    CeedCheck(strcmp(field_name, qf->output_fields[i]->field_name), ceed, CEED_ERROR_MINOR, "CeedQFunction field names must be unique");
+    CeedCheck(strcmp(field_name, qf->output_fields[i]->field_name), ceed, CEED_ERROR_MINOR,
+              "CeedQFunction field names must be unique. Duplicate name: %s", field_name);
   }
   CeedCall(CeedQFunctionFieldSet(&qf->input_fields[qf->num_input_fields], field_name, size, eval_mode));
   qf->num_input_fields++;

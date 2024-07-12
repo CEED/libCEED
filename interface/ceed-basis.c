@@ -203,7 +203,10 @@ static int CeedBasisCreateProjectionMatrices(CeedBasis basis_from, CeedBasis bas
   // Check for compatible quadrature spaces
   CeedCall(CeedBasisGetNumQuadraturePoints(basis_to, &Q_to));
   CeedCall(CeedBasisGetNumQuadraturePoints(basis_from, &Q_from));
-  CeedCheck(Q_to == Q_from, ceed, CEED_ERROR_DIMENSION, "Bases must have compatible quadrature spaces");
+  CeedCheck(Q_to == Q_from, ceed, CEED_ERROR_DIMENSION,
+            "Bases must have compatible quadrature spaces."
+            " 'basis_from has %" CeedInt_FMT " points and 'basis_to' has %" CeedInt_FMT,
+            Q_from, Q_to);
   Q = Q_to;
 
   // Check for matching tensor or non-tensor
@@ -225,9 +228,13 @@ static int CeedBasisCreateProjectionMatrices(CeedBasis basis_from, CeedBasis bas
 
   // Check for matching FE space
   CeedFESpace fe_space_to, fe_space_from;
+
   CeedCall(CeedBasisGetFESpace(basis_to, &fe_space_to));
   CeedCall(CeedBasisGetFESpace(basis_from, &fe_space_from));
-  CeedCheck(fe_space_to == fe_space_from, ceed, CEED_ERROR_MINOR, "Bases must both be the same FE space type");
+  CeedCheck(fe_space_to == fe_space_from, ceed, CEED_ERROR_MINOR,
+            "Bases must both be the same FE space type."
+            " 'basis_from' is a %s and 'basis_to' is a %s",
+            CeedFESpaces[fe_space_from], CeedFESpaces[fe_space_to]);
 
   // Get source matrices
   CeedInt           dim, q_comp = 1;

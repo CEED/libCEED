@@ -472,7 +472,9 @@ static int CeedSingleOperatorAssembleSymbolic(CeedOperator op, CeedInt offset, C
   if (elem_rstr_in != elem_rstr_out) {
     CeedCall(CeedElemRestrictionGetNumElements(elem_rstr_out, &num_elem_out));
     CeedCheck(num_elem_in == num_elem_out, ceed, CEED_ERROR_UNSUPPORTED,
-              "Active input and output operator restrictions must have the same number of elements");
+              "Active input and output operator restrictions must have the same number of elements."
+              " Input has %" CeedInt_FMT " elements; output has %" CeedInt_FMT "elements.",
+              num_elem_in, num_elem_out);
     CeedCall(CeedElemRestrictionGetElementSize(elem_rstr_out, &elem_size_out));
     CeedCall(CeedElemRestrictionGetNumComponents(elem_rstr_out, &num_comp_out));
     CeedCall(CeedElemRestrictionGetELayout(elem_rstr_out, layout_er_out));
@@ -602,7 +604,7 @@ static int CeedSingleOperatorAssemble(CeedOperator op, CeedInt offset, CeedVecto
   CeedCall(CeedOperatorAssemblyDataGetEvalModes(data, &num_active_bases_in, &num_eval_modes_in, &eval_modes_in, NULL, &num_active_bases_out,
                                                 &num_eval_modes_out, &eval_modes_out, NULL, NULL));
 
-  CeedCheck(num_active_bases_in == num_active_bases_out && num_active_bases_in == 1, ceed, CEED_ERROR_UNSUPPORTED,
+  CeedCheck(num_active_bases_in == 1 && num_active_bases_out == 1, ceed, CEED_ERROR_UNSUPPORTED,
             "Cannot assemble operator with multiple active bases");
   CeedCheck(num_eval_modes_in[0] > 0 && num_eval_modes_out[0] > 0, ceed, CEED_ERROR_UNSUPPORTED, "Cannot assemble operator without inputs/outputs");
 
@@ -629,13 +631,17 @@ static int CeedSingleOperatorAssemble(CeedOperator op, CeedInt offset, CeedVecto
   if (elem_rstr_in != elem_rstr_out) {
     CeedCall(CeedElemRestrictionGetNumElements(elem_rstr_out, &num_elem_out));
     CeedCheck(num_elem_in == num_elem_out, ceed, CEED_ERROR_UNSUPPORTED,
-              "Active input and output operator restrictions must have the same number of elements");
+              "Active input and output operator restrictions must have the same number of elements."
+              " Input has %" CeedInt_FMT " elements; output has %" CeedInt_FMT "elements.",
+              num_elem_in, num_elem_out);
     CeedCall(CeedElemRestrictionGetElementSize(elem_rstr_out, &elem_size_out));
     CeedCall(CeedElemRestrictionGetNumComponents(elem_rstr_out, &num_comp_out));
     if (basis_out == CEED_BASIS_NONE) num_qpts_out = elem_size_out;
     else CeedCall(CeedBasisGetNumQuadraturePoints(basis_out, &num_qpts_out));
     CeedCheck(num_qpts_in == num_qpts_out, ceed, CEED_ERROR_UNSUPPORTED,
-              "Active input and output bases must have the same number of quadrature points");
+              "Active input and output bases must have the same number of quadrature points."
+              " Input has %" CeedInt_FMT " points; output has %" CeedInt_FMT "points.",
+              num_qpts_in, num_qpts_out);
 
     CeedCall(CeedElemRestrictionGetType(elem_rstr_out, &elem_rstr_type_out));
     if (elem_rstr_type_out == CEED_RESTRICTION_ORIENTED) {
@@ -802,7 +808,9 @@ static int CeedSingleOperatorAssemblyCountEntries(CeedOperator op, CeedSize *num
   if (rstr_in != rstr_out) {
     CeedCall(CeedElemRestrictionGetNumElements(rstr_out, &num_elem_out));
     CeedCheck(num_elem_in == num_elem_out, ceed, CEED_ERROR_UNSUPPORTED,
-              "Active input and output operator restrictions must have the same number of elements");
+              "Active input and output operator restrictions must have the same number of elements."
+              " Input has %" CeedInt_FMT " elements; output has %" CeedInt_FMT "elements.",
+              num_elem_in, num_elem_out);
     CeedCall(CeedElemRestrictionGetElementSize(rstr_out, &elem_size_out));
     CeedCall(CeedElemRestrictionGetNumComponents(rstr_out, &num_comp_out));
   } else {
@@ -2123,7 +2131,9 @@ int CeedOperatorLinearAssemblePointBlockDiagonalSymbolic(CeedOperator op, CeedSi
                   "Active element restrictions must have the same component stride: %d vs %d", comp_stride, comp_stride_sub);
         CeedCall(CeedElemRestrictionGetNumComponents(active_elem_rstrs[i], &num_active_components_sub));
         CeedCheck(num_active_components == num_active_components_sub, ceed, CEED_ERROR_INCOMPATIBLE,
-                  "All suboperators must have the same number of output components");
+                  "All suboperators must have the same number of output components."
+                  " Previous: %" CeedInt_FMT " Current: %" CeedInt_FMT,
+                  num_active_components, num_active_components_sub);
       }
     }
   }
@@ -2571,7 +2581,10 @@ int CeedOperatorMultigridLevelCreateTensorH1(CeedOperator op_fine, CeedVector p_
   CeedCall(CeedOperatorGetActiveBasis(op_fine, &basis_fine));
   CeedCall(CeedBasisGetNumQuadraturePoints(basis_fine, &Q_f));
   CeedCall(CeedBasisGetNumQuadraturePoints(basis_coarse, &Q_c));
-  CeedCheck(Q_f == Q_c, ceed, CEED_ERROR_DIMENSION, "Bases must have compatible quadrature spaces");
+  CeedCheck(Q_f == Q_c, ceed, CEED_ERROR_DIMENSION,
+            "Bases must have compatible quadrature spaces."
+            " Fine grid: %" CeedInt_FMT " points, Coarse grid: %" CeedInt_FMT " points",
+            Q_f, Q_c);
 
   // Create coarse to fine basis, if required
   if (op_prolong || op_restrict) {
