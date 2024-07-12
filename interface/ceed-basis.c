@@ -205,7 +205,7 @@ static int CeedBasisCreateProjectionMatrices(CeedBasis basis_from, CeedBasis bas
   CeedCall(CeedBasisGetNumQuadraturePoints(basis_from, &Q_from));
   CeedCheck(Q_to == Q_from, ceed, CEED_ERROR_DIMENSION,
             "Bases must have compatible quadrature spaces."
-            " 'basis_from has %" CeedInt_FMT " points and 'basis_to' has %" CeedInt_FMT,
+            " 'basis_from' has %" CeedInt_FMT " points and 'basis_to' has %" CeedInt_FMT,
             Q_from, Q_to);
   Q = Q_to;
 
