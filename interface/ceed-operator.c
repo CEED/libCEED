@@ -1476,13 +1476,12 @@ int CeedOperatorSetName(CeedOperator op, const char *name) {
   @brief Core logic for viewing a `CeedOperator`
 
   @param[in] op     `CeedOperator` to view brief summary
-  @param[in] stream Stream to write; typically `stdout` or a file
+  @param[in] stream  Stream to write; typically `stdout` or a file
+  @param[in] is_full Whether to write full operator view or terse
 
   @return Error code: 0 - success, otherwise - failure
-
-  @ref User
 **/
-int CeedOperatorView_Core(CeedOperator op, FILE *stream, bool is_full) {
+static int CeedOperatorView_Core(CeedOperator op, FILE *stream, bool is_full) {
   bool has_name = op->name, is_composite;
 
   CeedCall(CeedOperatorIsComposite(op, &is_composite));
