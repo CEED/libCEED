@@ -431,7 +431,8 @@ static int CeedOperatorBuildKernelQFunction_Cuda_gen(std::ostringstream &code, C
       }
     }
   } else {
-    code << "\n      // Note: Using full elements\n";
+    code << "\n    // Note: Using full elements\n";
+    code << "    {\n";
     code << "      // -- Input fields\n";
     for (CeedInt i = 0; i < num_input_fields; i++) {
       code << "      // ---- Input field " << i << "\n";
@@ -445,15 +446,17 @@ static int CeedOperatorBuildKernelQFunction_Cuda_gen(std::ostringstream &code, C
   }
 
   // Input and output buffers
-  code << "\n      // -- QFunction Inputs and outputs\n";
-  code << "      CeedScalar *in[" << num_input_fields << "];\n";
+  code << "\n      // -- QFunction inputs and outputs\n";
+  code << "      // ---- Inputs\n";
+  code << "      CeedScalar* in[" << num_input_fields << "];\n";
   for (CeedInt i = 0; i < num_input_fields; i++) {
-    code << "      // ---- Input field " << i << "\n";
+    code << "      // ------ Input field " << i << "\n";
     code << "      in[" << i << "] = r_s_in_" << i << ";\n";
   }
-  code << "      CeedScalar *out[" << num_output_fields << "];\n";
+  code << "      // ---- Outputs\n";
+  code << "      CeedScalar* out[" << num_output_fields << "];\n";
   for (CeedInt i = 0; i < num_output_fields; i++) {
-    code << "      // ---- Output field " << i << "\n";
+    code << "      // ------ Output field " << i << "\n";
     code << "      out[" << i << "] = r_s_out_" << i << ";\n";
   }
 
@@ -503,8 +506,8 @@ static int CeedOperatorBuildKernelQFunction_Cuda_gen(std::ostringstream &code, C
                   // LCOV_EXCL_STOP
       }
     }
-    code << "    }\n";
   }
+  code << "    }\n";
   return CEED_ERROR_SUCCESS;
 }
 
