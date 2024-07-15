@@ -29,7 +29,8 @@ static int CeedOperatorBuildKernelFieldData_Cuda_gen(std::ostringstream &code, C
                                                      CeedQFunctionField qf_field, CeedInt Q_1d, bool is_input, bool use_collograd_parallelization) {
   std::string            var_suffix = (is_input ? "_in_" : "_out_") + std::to_string(i);
   std::string            P_name = "P_1d" + var_suffix, Q_name = "Q_1d";
-  CeedEvalMode           eval_mode = CEED_EVAL_NONE;
+  std::string            option_name = (is_input ? "inputs" : "outputs");
+  CeedEvalMode           eval_mode   = CEED_EVAL_NONE;
   CeedInt                elem_size = 0, num_comp = 0, P_1d = 0;
   CeedElemRestriction    elem_rstr;
   CeedBasis_Cuda_shared *basis_data;
@@ -62,28 +63,32 @@ static int CeedOperatorBuildKernelFieldData_Cuda_gen(std::ostringstream &code, C
     case CEED_EVAL_NONE:
       break;
     case CEED_EVAL_INTERP:
-      data->B.inputs[i] = basis_data->d_interp_1d;
+      if (is_input) data->B.inputs[i] = basis_data->d_interp_1d;
+      else data->B.outputs[i] = basis_data->d_interp_1d;
       code << "  __shared__ CeedScalar s_B" << var_suffix << "[" << P_1d * Q_1d << "];\n";
-      code << "  loadMatrix<" << P_name << ", " << Q_name << ">(data, B.inputs[" << i << "], s_B" << var_suffix << ");\n";
+      code << "  loadMatrix<" << P_name << ", " << Q_name << ">(data, B." << option_name << "[" << i << "], s_B" << var_suffix << ");\n";
       break;
     case CEED_EVAL_GRAD:
-      data->B.inputs[i] = basis_data->d_interp_1d;
+      if (is_input) data->B.inputs[i] = basis_data->d_interp_1d;
+      else data->B.outputs[i] = basis_data->d_interp_1d;
       code << "  __shared__ CeedScalar s_B" << var_suffix << "[" << P_1d * Q_1d << "];\n";
-      code << "  loadMatrix<" << P_name << ", " << Q_name << ">(data, B.inputs[" << i << "], s_B" << var_suffix << ");\n";
+      code << "  loadMatrix<" << P_name << ", " << Q_name << ">(data, B." << option_name << "[" << i << "], s_B" << var_suffix << ");\n";
       if (use_collograd_parallelization) {
-        data->G.inputs[i] = basis_data->d_collo_grad_1d;
+        if (is_input) data->G.inputs[i] = basis_data->d_collo_grad_1d;
+        else data->G.outputs[i] = basis_data->d_collo_grad_1d;
         code << "  __shared__ CeedScalar s_G" << var_suffix << "[" << Q_1d * Q_1d << "];\n";
-        code << "  loadMatrix<" << Q_name << ", " << Q_name << ">(data, G.inputs[" << i << "], s_G" << var_suffix << ");\n";
+        code << "  loadMatrix<" << Q_name << ", " << Q_name << ">(data, G." << option_name << "[" << i << "], s_G" << var_suffix << ");\n";
       } else {
         bool has_collo_grad = basis_data->d_collo_grad_1d;
 
-        data->G.inputs[i] = has_collo_grad ? basis_data->d_collo_grad_1d : basis_data->d_grad_1d;
+        if (is_input) data->G.inputs[i] = has_collo_grad ? basis_data->d_collo_grad_1d : basis_data->d_grad_1d;
+        else data->G.outputs[i] = has_collo_grad ? basis_data->d_collo_grad_1d : basis_data->d_grad_1d;
         if (has_collo_grad) {
           code << "  __shared__ CeedScalar s_G" << var_suffix << "[" << Q_1d * Q_1d << "];\n";
-          code << "  loadMatrix<" << Q_name << ", " << Q_name << ">(data, G.inputs[" << i << "], s_G" << var_suffix << ");\n";
+          code << "  loadMatrix<" << Q_name << ", " << Q_name << ">(data, G." << option_name << "[" << i << "], s_G" << var_suffix << ");\n";
         } else {
           code << "  __shared__ CeedScalar s_G" << var_suffix << "[" << Q_1d * P_1d << "];\n";
-          code << "  loadMatrix<" << P_name << ", " << Q_name << ">(data, G.inputs[" << i << "], s_G" << var_suffix << ");\n";
+          code << "  loadMatrix<" << P_name << ", " << Q_name << ">(data, G." << option_name << "[" << i << "], s_G" << var_suffix << ");\n";
         }
       }
       break;
