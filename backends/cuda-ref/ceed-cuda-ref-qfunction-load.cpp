@@ -69,7 +69,7 @@ extern "C" int CeedQFunctionBuildKernel_Cuda_ref(CeedQFunction qf) {
     code << "  const CeedInt size_input_" << i << " = " << size << ";\n";
     code << "  CeedScalar input_" << i << "[size_input_" << i << "];\n";
   }
-  code << "  const CeedScalar* inputs[" << num_input_fields << "];\n";
+  code << "  const CeedScalar *inputs[" << CeedIntMax(num_input_fields, 1) << "];\n";
   for (CeedInt i = 0; i < num_input_fields; i++) {
     code << "  inputs[" << i << "] = input_" << i << ";\n";
   }
@@ -82,7 +82,7 @@ extern "C" int CeedQFunctionBuildKernel_Cuda_ref(CeedQFunction qf) {
     code << "  const CeedInt size_output_" << i << " = " << size << ";\n";
     code << "  CeedScalar output_" << i << "[size_output_" << i << "];\n";
   }
-  code << "  CeedScalar* outputs[" << num_output_fields << "];\n";
+  code << "  CeedScalar *outputs[" << CeedIntMax(num_output_fields, 1) << "];\n";
   for (CeedInt i = 0; i < num_output_fields; i++) {
     code << "  outputs[" << i << "] = output_" << i << ";\n";
   }
