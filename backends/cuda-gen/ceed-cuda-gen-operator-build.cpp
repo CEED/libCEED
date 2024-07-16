@@ -549,16 +549,16 @@ static int CeedOperatorBuildKernelQFunction_Cuda_gen(std::ostringstream &code, C
   // Input and output buffers
   code << "\n      // -- QFunction inputs and outputs\n";
   code << "      // ---- Inputs\n";
-  code << "      CeedScalar* in[" << num_input_fields << "];\n";
+  code << "      CeedScalar *inputs[" << CeedIntMax(num_input_fields, 1) << "];\n";
   for (CeedInt i = 0; i < num_input_fields; i++) {
     code << "      // ------ Input field " << i << "\n";
-    code << "      in[" << i << "] = r_s_in_" << i << ";\n";
+    code << "      inputs[" << i << "] = r_s_in_" << i << ";\n";
   }
   code << "      // ---- Outputs\n";
-  code << "      CeedScalar* out[" << num_output_fields << "];\n";
+  code << "      CeedScalar *outputs[" << CeedIntMax(num_output_fields, 1) << "];\n";
   for (CeedInt i = 0; i < num_output_fields; i++) {
     code << "      // ------ Output field " << i << "\n";
-    code << "      out[" << i << "] = r_s_out_" << i << ";\n";
+    code << "      outputs[" << i << "] = r_s_out_" << i << ";\n";
   }
 
   // Apply QFunction
@@ -569,7 +569,7 @@ static int CeedOperatorBuildKernelQFunction_Cuda_gen(std::ostringstream &code, C
   } else {
     code << "Q_1d";
   }
-  code << ", in, out);\n";
+  code << ", inputs, outputs);\n";
 
   // Copy or apply transpose grad, if needed
   if (use_3d_slices) {
