@@ -23,6 +23,100 @@
 #include "ceed-cuda-gen.h"
 
 //------------------------------------------------------------------------------
+// Determine type of operator
+//------------------------------------------------------------------------------
+static int CeedOperatorBuildKernelData_Cuda_gen(Ceed ceed, CeedInt num_input_fields, CeedOperatorField *op_input_fields,
+                                                CeedQFunctionField *qf_input_fields, CeedInt num_output_fields, CeedOperatorField *op_output_fields,
+                                                CeedQFunctionField *qf_output_fields, CeedInt *max_P_1d, CeedInt *Q_1d, CeedInt *dim, bool *is_tensor,
+                                                bool *use_3d_slices) {
+  // Find dim, P_1d, Q_1d
+  *max_P_1d  = 0;
+  *Q_1d      = 0;
+  *dim       = 0;
+  *is_tensor = true;
+  for (CeedInt i = 0; i < num_input_fields; i++) {
+    CeedBasis basis;
+
+    CeedCallBackend(CeedOperatorFieldGetBasis(op_input_fields[i], &basis));
+    if (basis != CEED_BASIS_NONE) {
+      bool    is_field_tensor;
+      CeedInt field_P_1d = 0, field_Q_1d = 0, field_dim = 0;
+
+      // Collect dim, P_1d, and Q_1d
+      CeedCallBackend(CeedBasisIsTensor(basis, &is_field_tensor));
+      CeedCheck(is_field_tensor, ceed, CEED_ERROR_BACKEND, "Backend does not implement operators with non-tensor basis");
+      *is_tensor = *is_tensor && is_field_tensor;
+      CeedCallBackend(CeedBasisGetNumNodes1D(basis, &field_P_1d));
+      *max_P_1d = CeedIntMax(*max_P_1d, field_P_1d);
+      CeedCallBackend(CeedBasisGetDimension(basis, &field_dim));
+      CeedCheck(*dim == 0 || field_dim == *dim, ceed, CEED_ERROR_BACKEND, "Quadrature spaces must be compatible");
+      *dim = field_dim;
+      CeedCallBackend(CeedBasisGetNumQuadraturePoints1D(basis, &field_Q_1d));
+      CeedCheck(*Q_1d == 0 || field_Q_1d == *Q_1d, ceed, CEED_ERROR_BACKEND, "Quadrature spaces must be compatible");
+      *Q_1d = field_Q_1d;
+    }
+  }
+  for (CeedInt i = 0; i < num_output_fields; i++) {
+    CeedBasis basis;
+
+    CeedCallBackend(CeedOperatorFieldGetBasis(op_output_fields[i], &basis));
+    if (basis != CEED_BASIS_NONE) {
+      bool    is_field_tensor;
+      CeedInt field_P_1d = 0, field_Q_1d = 0, field_dim = 0;
+
+      // Collect dim, P_1d, and Q_1d
+      CeedCallBackend(CeedBasisIsTensor(basis, &is_field_tensor));
+      CeedCheck(is_field_tensor, ceed, CEED_ERROR_BACKEND, "Backend does not implement operators with non-tensor basis");
+      *is_tensor = *is_tensor && is_field_tensor;
+      CeedCallBackend(CeedBasisGetNumNodes1D(basis, &field_P_1d));
+      *max_P_1d = CeedIntMax(*max_P_1d, field_P_1d);
+      CeedCallBackend(CeedBasisGetDimension(basis, &field_dim));
+      CeedCheck(*dim == 0 || field_dim == *dim, ceed, CEED_ERROR_BACKEND, "Quadrature spaces must be compatible");
+      *dim = field_dim;
+      CeedCallBackend(CeedBasisGetNumQuadraturePoints1D(basis, &field_Q_1d));
+      CeedCheck(*Q_1d == 0 || field_Q_1d == *Q_1d, ceed, CEED_ERROR_BACKEND, "Quadrature spaces must be compatible");
+      *Q_1d = field_Q_1d;
+    }
+  }
+
+  // Only use 3D collocated gradient parallelization strategy when gradient is computed
+  *use_3d_slices = false;
+  if (*dim == 3) {
+    bool was_grad_found = false;
+
+    for (CeedInt i = 0; i < num_input_fields; i++) {
+      CeedEvalMode eval_mode;
+
+      CeedCallBackend(CeedQFunctionFieldGetEvalMode(qf_input_fields[i], &eval_mode));
+      if (eval_mode == CEED_EVAL_GRAD) {
+        CeedBasis_Cuda_shared *basis_data;
+        CeedBasis              basis;
+
+        CeedCallBackend(CeedOperatorFieldGetBasis(op_input_fields[i], &basis));
+        CeedCallBackend(CeedBasisGetData(basis, &basis_data));
+        *use_3d_slices = basis_data->d_collo_grad_1d && (was_grad_found ? *use_3d_slices : true);
+        was_grad_found = true;
+      }
+    }
+    for (CeedInt i = 0; i < num_output_fields; i++) {
+      CeedEvalMode eval_mode;
+
+      CeedCallBackend(CeedQFunctionFieldGetEvalMode(qf_output_fields[i], &eval_mode));
+      if (eval_mode == CEED_EVAL_GRAD) {
+        CeedBasis_Cuda_shared *basis_data;
+        CeedBasis              basis;
+
+        CeedCallBackend(CeedOperatorFieldGetBasis(op_output_fields[i], &basis));
+        CeedCallBackend(CeedBasisGetData(basis, &basis_data));
+        *use_3d_slices = basis_data->d_collo_grad_1d && (was_grad_found ? *use_3d_slices : true);
+        was_grad_found = true;
+      }
+    }
+  }
+  return CEED_ERROR_SUCCESS;
+}
+
+//------------------------------------------------------------------------------
 // Setup fields
 //------------------------------------------------------------------------------
 static int CeedOperatorBuildKernelFieldData_Cuda_gen(std::ostringstream &code, CeedOperator_Cuda_gen *data, CeedInt i, CeedOperatorField op_field,
@@ -522,57 +616,76 @@ static int CeedOperatorBuildKernelQFunction_Cuda_gen(std::ostringstream &code, C
 // Build single operator kernel
 //------------------------------------------------------------------------------
 extern "C" int CeedOperatorBuildKernel_Cuda_gen(CeedOperator op) {
-  bool                    is_setup_done, is_identity_qf;
-  struct cudaDeviceProp   prop;
+  bool                    is_tensor = true, use_3d_slices = false;
   Ceed                    ceed;
-  Ceed_Cuda              *ceed_data;
-  CeedInt                 Q, P_1d = 0, Q_1d = 0, num_input_fields, num_output_fields, dim = 1;
-  CeedEvalMode            eval_mode;
-  CeedBasis               basis;
+  CeedInt                 Q_1d, num_input_fields, num_output_fields, dim = 1;
   CeedQFunctionField     *qf_input_fields, *qf_output_fields;
   CeedQFunction_Cuda_gen *qf_data;
   CeedQFunction           qf;
   CeedOperatorField      *op_input_fields, *op_output_fields;
   CeedOperator_Cuda_gen  *data;
+  std::ostringstream      code;
 
-  CeedCallBackend(CeedOperatorIsSetupDone(op, &is_setup_done));
-  if (is_setup_done) return CEED_ERROR_SUCCESS;
+  {
+    bool is_setup_done;
+
+    CeedCallBackend(CeedOperatorIsSetupDone(op, &is_setup_done));
+    if (is_setup_done) return CEED_ERROR_SUCCESS;
+  }
 
   CeedCallBackend(CeedOperatorGetCeed(op, &ceed));
   CeedCallBackend(CeedOperatorGetData(op, &data));
   CeedCallBackend(CeedOperatorGetQFunction(op, &qf));
   CeedCallBackend(CeedQFunctionGetData(qf, &qf_data));
-  CeedCallBackend(CeedOperatorGetNumQuadraturePoints(op, &Q));
-  Q_1d = Q;
   CeedCallBackend(CeedOperatorGetFields(op, &num_input_fields, &op_input_fields, &num_output_fields, &op_output_fields));
   CeedCallBackend(CeedQFunctionGetFields(qf, NULL, &qf_input_fields, NULL, &qf_output_fields));
 
-  // Check for restriction only identity operator
-  CeedCallBackend(CeedQFunctionIsIdentity(qf, &is_identity_qf));
-  if (is_identity_qf) {
-    CeedEvalMode eval_mode_in, eval_mode_out;
+  // Get operator data
+  CeedCallBackend(CeedOperatorBuildKernelData_Cuda_gen(ceed, num_input_fields, op_input_fields, qf_input_fields, num_output_fields, op_output_fields,
+                                                       qf_output_fields, &data->max_P_1d, &Q_1d, &dim, &is_tensor, &use_3d_slices));
+  if (dim == 0) dim = 1;
+  data->dim = dim;
+  if (Q_1d == 0) {
+    CeedInt Q;
 
-    CeedCallBackend(CeedQFunctionFieldGetEvalMode(qf_input_fields[0], &eval_mode_in));
-    CeedCallBackend(CeedQFunctionFieldGetEvalMode(qf_output_fields[0], &eval_mode_out));
-    CeedCheck(eval_mode_in != CEED_EVAL_NONE || eval_mode_out != CEED_EVAL_NONE, ceed, CEED_ERROR_BACKEND,
-              "Backend does not implement restriction only identity operators");
+    CeedCallBackend(CeedOperatorGetNumQuadraturePoints(op, &Q));
+    Q_1d = Q;
+  }
+  data->Q_1d = Q_1d;
+
+  // Check for restriction only identity operator
+  {
+    bool is_identity_qf;
+
+    CeedCallBackend(CeedQFunctionIsIdentity(qf, &is_identity_qf));
+    if (is_identity_qf) {
+      CeedEvalMode eval_mode_in, eval_mode_out;
+
+      CeedCallBackend(CeedQFunctionFieldGetEvalMode(qf_input_fields[0], &eval_mode_in));
+      CeedCallBackend(CeedQFunctionFieldGetEvalMode(qf_output_fields[0], &eval_mode_out));
+      CeedCheck(eval_mode_in != CEED_EVAL_NONE || eval_mode_out != CEED_EVAL_NONE, ceed, CEED_ERROR_BACKEND,
+                "Backend does not implement restriction only identity operators");
+    }
   }
 
-  std::ostringstream code;
-
   // Add atomicAdd function for old NVidia architectures
-  CeedCallBackend(CeedGetData(ceed, &ceed_data));
-  CeedCallBackend(cudaGetDeviceProperties(&prop, ceed_data->device_id));
-  if ((prop.major < 6) && (CEED_SCALAR_TYPE != CEED_SCALAR_FP32)) {
-    char       *atomic_add_source;
-    const char *atomic_add_path;
+  {
+    Ceed_Cuda            *ceed_data;
+    struct cudaDeviceProp prop;
 
-    CeedCallBackend(CeedGetJitAbsolutePath(ceed, "ceed/jit-source/cuda/cuda-atomic-add-fallback.h", &atomic_add_path));
-    CeedDebug256(ceed, CEED_DEBUG_COLOR_SUCCESS, "----- Loading Atomic Add Source -----\n");
-    CeedCallBackend(CeedLoadSourceToBuffer(ceed, atomic_add_path, &atomic_add_source));
-    code << atomic_add_source;
-    CeedCallBackend(CeedFree(&atomic_add_path));
-    CeedCallBackend(CeedFree(&atomic_add_source));
+    CeedCallBackend(CeedGetData(ceed, &ceed_data));
+    CeedCallBackend(cudaGetDeviceProperties(&prop, ceed_data->device_id));
+    if ((prop.major < 6) && (CEED_SCALAR_TYPE != CEED_SCALAR_FP32)) {
+      char       *atomic_add_source;
+      const char *atomic_add_path;
+
+      CeedCallBackend(CeedGetJitAbsolutePath(ceed, "ceed/jit-source/cuda/cuda-atomic-add-fallback.h", &atomic_add_path));
+      CeedDebug256(ceed, CEED_DEBUG_COLOR_SUCCESS, "----- Loading Atomic Add Source -----\n");
+      CeedCallBackend(CeedLoadSourceToBuffer(ceed, atomic_add_path, &atomic_add_source));
+      code << atomic_add_source;
+      CeedCallBackend(CeedFree(&atomic_add_path));
+      CeedCallBackend(CeedFree(&atomic_add_source));
+    }
   }
 
   // Load basis source files
@@ -600,68 +713,11 @@ extern "C" int CeedOperatorBuildKernel_Cuda_gen(CeedOperator op) {
     CeedCallBackend(CeedFree(&cuda_gen_template_source));
   }
 
-  // Get QFunction source and name
+  // Get QFunction name
   std::string qfunction_name(qf_data->qfunction_name);
   std::string operator_name;
 
   operator_name = "CeedKernelCudaGenOperator_" + qfunction_name;
-
-  // Find dim, P_1d, Q_1d
-  data->max_P_1d = 0;
-  for (CeedInt i = 0; i < num_input_fields; i++) {
-    CeedCallBackend(CeedOperatorFieldGetBasis(op_input_fields[i], &basis));
-    if (basis != CEED_BASIS_NONE) {
-      bool is_tensor;
-
-      // Collect dim, P_1d, and Q_1d
-      CeedCallBackend(CeedBasisIsTensor(basis, &is_tensor));
-      CeedCheck(is_tensor, ceed, CEED_ERROR_BACKEND, "Backend does not implement operators with non-tensor basis");
-      CeedCallBackend(CeedBasisGetNumNodes1D(basis, &P_1d));
-      data->max_P_1d = CeedIntMax(data->max_P_1d, P_1d);
-      CeedCallBackend(CeedBasisGetDimension(basis, &dim));
-      CeedCallBackend(CeedBasisGetNumQuadraturePoints1D(basis, &Q_1d));
-    }
-  }
-  // Check output bases for Q_1d, dim as well
-  for (CeedInt i = 0; i < num_output_fields; i++) {
-    CeedCallBackend(CeedOperatorFieldGetBasis(op_output_fields[i], &basis));
-    if (basis != CEED_BASIS_NONE) {
-      bool is_tensor;
-
-      // Check for tensor bases
-      CeedCallBackend(CeedBasisIsTensor(basis, &is_tensor));
-      CeedCheck(is_tensor, ceed, CEED_ERROR_BACKEND, "Backend does not implement operators with non-tensor basis");
-    }
-  }
-  data->dim  = dim;
-  data->Q_1d = Q_1d;
-
-  // Only use 3D collocated gradient parallelization strategy when gradient is computed
-  bool use_3d_slices = false;
-
-  if (dim == 3) {
-    bool                   was_grad_found = false;
-    CeedBasis_Cuda_shared *basis_data;
-
-    for (CeedInt i = 0; i < num_input_fields; i++) {
-      CeedCallBackend(CeedQFunctionFieldGetEvalMode(qf_input_fields[i], &eval_mode));
-      if (eval_mode == CEED_EVAL_GRAD) {
-        CeedCallBackend(CeedOperatorFieldGetBasis(op_input_fields[i], &basis));
-        CeedCallBackend(CeedBasisGetData(basis, &basis_data));
-        use_3d_slices  = basis_data->d_collo_grad_1d && (was_grad_found ? use_3d_slices : true);
-        was_grad_found = true;
-      }
-    }
-    for (CeedInt i = 0; i < num_output_fields; i++) {
-      CeedCallBackend(CeedQFunctionFieldGetEvalMode(qf_output_fields[i], &eval_mode));
-      if (eval_mode == CEED_EVAL_GRAD) {
-        CeedCallBackend(CeedOperatorFieldGetBasis(op_output_fields[i], &basis));
-        CeedCallBackend(CeedBasisGetData(basis, &basis_data));
-        use_3d_slices  = basis_data->d_collo_grad_1d && (was_grad_found ? use_3d_slices : true);
-        was_grad_found = true;
-      }
-    }
-  }
 
   // Define CEED_Q_VLA
   code << "\n#undef CEED_Q_VLA\n";
@@ -695,6 +751,8 @@ extern "C" int CeedOperatorBuildKernel_Cuda_gen(CeedOperator op) {
 
   // Scratch buffers
   for (CeedInt i = 0; i < num_input_fields; i++) {
+    CeedEvalMode eval_mode;
+
     CeedCallBackend(CeedQFunctionFieldGetEvalMode(qf_input_fields[i], &eval_mode));
     if (eval_mode != CEED_EVAL_WEIGHT) {  // Skip CEED_EVAL_WEIGHT
       code << "  const CeedScalar *d_in_" << i << " = fields.inputs[" << i << "];\n";
