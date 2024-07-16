@@ -118,7 +118,7 @@ extern "C" int CeedQFunctionBuildKernel_Sycl(CeedQFunction qf) {
   for (CeedInt i = 0; i < num_input_fields; ++i) {
     code << "  CeedScalar U_" << i << "[" << input_sizes[i] << "];\n";
   }
-  code << "  const CeedScalar *inputs[" << num_input_fields << "] = {U_0";
+  code << "  const CeedScalar *inputs[" << CeedIntMax(num_input_fields, 1) << "] = {U_0";
   for (CeedInt i = 1; i < num_input_fields; i++) {
     code << ", U_" << i << "\n";
   }
@@ -129,7 +129,7 @@ extern "C" int CeedQFunctionBuildKernel_Sycl(CeedQFunction qf) {
   for (CeedInt i = 0; i < num_output_fields; i++) {
     code << "  CeedScalar V_" << i << "[" << output_sizes[i] << "];\n";
   }
-  code << "  CeedScalar *outputs[" << num_output_fields << "] = {V_0";
+  code << "  CeedScalar *outputs[" << CeedIntMax(num_output_fields, 1) << "] = {V_0";
   for (CeedInt i = 1; i < num_output_fields; i++) {
     code << ", V_" << i << "\n";
   }
