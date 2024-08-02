@@ -1167,7 +1167,6 @@ static int CeedOperatorLinearAssembleAddDiagonalAtPoints_Ref(CeedOperator op, Ce
 
     CeedCallBackend(CeedOperatorFieldGetVector(op_input_fields[i], &vec));
     if (vec != CEED_VECTOR_ACTIVE) continue;
-    CeedCallBackend(CeedVectorSetValue(impl->e_vecs_in[i], 0.0));
     CeedCallBackend(CeedVectorSetValue(impl->q_vecs_in[i], 0.0));
   }
 
@@ -1215,6 +1214,7 @@ static int CeedOperatorLinearAssembleAddDiagonalAtPoints_Ref(CeedOperator op, Ce
         {
           CeedScalar *array;
 
+          if (s == 0) CeedCallBackend(CeedVectorSetValue(impl->e_vecs_in[i], 0.0));
           CeedCallBackend(CeedVectorGetArray(impl->e_vecs_in[i], CEED_MEM_HOST, &array));
           array[s] = 1.0;
           if (s > 0) array[s - 1] = 0.0;
@@ -1317,14 +1317,7 @@ static int CeedOperatorLinearAssembleAddDiagonalAtPoints_Ref(CeedOperator op, Ce
           }
         }
         // -- Reset unit vector
-        if (s == e_vec_size - 1) {
-          CeedScalar *array;
-
-          CeedCallBackend(CeedVectorGetArray(impl->e_vecs_in[i], CEED_MEM_HOST, &array));
-          array[s] = 0.0;
-          CeedCallBackend(CeedVectorRestoreArray(impl->e_vecs_in[i], &array));
-          CeedCallBackend(CeedVectorSetValue(impl->q_vecs_in[i], 0.0));
-        }
+        if (s == e_vec_size - 1) CeedCallBackend(CeedVectorSetValue(impl->q_vecs_in[i], 0.0));
       }
     }
     num_points_offset += num_points;

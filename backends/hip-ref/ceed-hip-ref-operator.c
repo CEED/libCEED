@@ -1510,7 +1510,6 @@ static int CeedOperatorLinearAssembleAddDiagonalAtPoints_Hip(CeedOperator op, Ce
 
     CeedCallBackend(CeedOperatorFieldGetVector(op_input_fields[i], &vec));
     if (vec != CEED_VECTOR_ACTIVE) continue;
-    CeedCallBackend(CeedVectorSetValue(impl->e_vecs[i], 0.0));
     CeedCallBackend(CeedVectorSetValue(impl->q_vecs_in[i], 0.0));
   }
 
@@ -1562,6 +1561,7 @@ static int CeedOperatorLinearAssembleAddDiagonalAtPoints_Hip(CeedOperator op, Ce
       if (!is_active_input) continue;
 
       // Update unit vector
+      if (s == 0) CeedCallBackend(CeedVectorSetValue(impl->e_vecs[i], 0.0));
       else CeedCallBackend(CeedVectorSetValueStrided(impl->e_vecs[i], s - 1, e_vec_size, 0.0));
       CeedCallBackend(CeedVectorSetValueStrided(impl->e_vecs[i], s, e_vec_size, 1.0));
 
@@ -1653,26 +1653,21 @@ static int CeedOperatorLinearAssembleAddDiagonalAtPoints_Hip(CeedOperator op, Ce
       }
 
       // Reset vec
-      if (s == e_vec_size - 1) {
-        CeedCallBackend(CeedVectorSetValueStrided(impl->e_vecs[i], s, e_vec_size, 0.0));
-        CeedCallBackend(CeedVectorSetValue(impl->q_vecs_in[i], 0.0));
-      }
+      if (s == e_vec_size - 1 && i != num_input_fields - 1) CeedCallBackend(CeedVectorSetValue(impl->q_vecs_in[i], 0.0));
     }
+  }
 
-    // Restore CEED_EVAL_NONE
-    for (CeedInt i = 0; i < num_output_fields; i++) {
-      CeedEvalMode        eval_mode;
-      CeedElemRestriction elem_rstr;
+  // Restore CEED_EVAL_NONE
+  for (CeedInt i = 0; i < num_output_fields; i++) {
+    CeedEvalMode eval_mode;
 
-      // Get eval_mode
-      CeedCallBackend(CeedOperatorFieldGetElemRestriction(op_output_fields[i], &elem_rstr));
-      CeedCallBackend(CeedQFunctionFieldGetEvalMode(qf_output_fields[i], &eval_mode));
+    // Get eval_mode
+    CeedCallBackend(CeedQFunctionFieldGetEvalMode(qf_output_fields[i], &eval_mode));
 
-      // Restore evec
-      CeedCallBackend(CeedQFunctionFieldGetEvalMode(qf_output_fields[i], &eval_mode));
-      if (eval_mode == CEED_EVAL_NONE) {
-        CeedCallBackend(CeedVectorRestoreArray(impl->e_vecs[i + impl->num_inputs], &e_data[i + num_input_fields]));
-      }
+    // Restore evec
+    CeedCallBackend(CeedQFunctionFieldGetEvalMode(qf_output_fields[i], &eval_mode));
+    if (eval_mode == CEED_EVAL_NONE) {
+      CeedCallBackend(CeedVectorRestoreArray(impl->e_vecs[i + impl->num_inputs], &e_data[i + num_input_fields]));
     }
   }
 
