@@ -1656,7 +1656,10 @@ static int CeedOperatorLinearAssembleAddDiagonalAtPoints_Cuda(CeedOperator op, C
       }
 
       // Reset vec
-      if (s == e_vec_size - 1) CeedCallBackend(CeedVectorSetValueStrided(impl->e_vecs[i], s, e_vec_size, 0.0));
+      if (s == e_vec_size - 1) {
+        CeedCallBackend(CeedVectorSetValueStrided(impl->e_vecs[i], s, e_vec_size, 0.0));
+        CeedCallBackend(CeedVectorSetValue(impl->q_vecs_in[i], 0.0));
+      }
     }
 
     // Restore CEED_EVAL_NONE

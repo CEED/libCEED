@@ -1162,7 +1162,14 @@ static int CeedOperatorLinearAssembleAddDiagonalAtPoints_Ref(CeedOperator op, Ce
   }
 
   // Clear input Qvecs
-  for (CeedInt i = 0; i < num_input_fields; i++) CeedCallBackend(CeedVectorSetValue(impl->e_vecs_in[i], 0.0));
+  for (CeedInt i = 0; i < num_input_fields; i++) {
+    CeedVector vec;
+
+    CeedCallBackend(CeedOperatorFieldGetVector(op_input_fields[i], &vec));
+    if (vec != CEED_VECTOR_ACTIVE) continue;
+    CeedCallBackend(CeedVectorSetValue(impl->e_vecs_in[i], 0.0));
+    CeedCallBackend(CeedVectorSetValue(impl->q_vecs_in[i], 0.0));
+  }
 
   // Input Evecs and Restriction
   CeedCallBackend(CeedOperatorSetupInputs_Ref(num_input_fields, qf_input_fields, op_input_fields, NULL, true, e_data, impl, request));
@@ -1241,7 +1248,7 @@ static int CeedOperatorLinearAssembleAddDiagonalAtPoints_Ref(CeedOperator op, Ce
                                                             num_output_fields, op, out_vec, impl->point_coords_elem, impl, request));
 
         // -- Grab diagonal value
-        for (CeedInt i = 0; i < num_output_fields; i++) {
+        for (CeedInt j = 0; j < num_output_fields; j++) {
           bool                is_active_output = false;
           CeedInt             elem_size        = 0;
           CeedRestrictionType rstr_type;
@@ -1250,13 +1257,13 @@ static int CeedOperatorLinearAssembleAddDiagonalAtPoints_Ref(CeedOperator op, Ce
           CeedElemRestriction elem_rstr;
           CeedBasis           basis;
 
-          CeedCallBackend(CeedOperatorFieldGetVector(op_output_fields[i], &vec));
+          CeedCallBackend(CeedOperatorFieldGetVector(op_output_fields[j], &vec));
           // ---- Skip non-active output
           is_active_output = vec == CEED_VECTOR_ACTIVE;
           if (!is_active_output) continue;
 
           // ---- Check if elem size matches
-          CeedCallBackend(CeedOperatorFieldGetElemRestriction(op_output_fields[i], &elem_rstr));
+          CeedCallBackend(CeedOperatorFieldGetElemRestriction(op_output_fields[j], &elem_rstr));
           CeedCallBackend(CeedElemRestrictionGetType(elem_rstr, &rstr_type));
           if (is_active_at_points && rstr_type != CEED_RESTRICTION_POINTS) continue;
           if (rstr_type == CEED_RESTRICTION_POINTS) {
@@ -1272,7 +1279,7 @@ static int CeedOperatorLinearAssembleAddDiagonalAtPoints_Ref(CeedOperator op, Ce
           }
 
           // ---- Basis action
-          CeedCallBackend(CeedQFunctionFieldGetEvalMode(qf_output_fields[i], &eval_mode));
+          CeedCallBackend(CeedQFunctionFieldGetEvalMode(qf_output_fields[j], &eval_mode));
           switch (eval_mode) {
             case CEED_EVAL_NONE:
               break;  // No action
@@ -1280,9 +1287,9 @@ static int CeedOperatorLinearAssembleAddDiagonalAtPoints_Ref(CeedOperator op, Ce
             case CEED_EVAL_GRAD:
             case CEED_EVAL_DIV:
             case CEED_EVAL_CURL:
-              CeedCallBackend(CeedOperatorFieldGetBasis(op_output_fields[i], &basis));
-              CeedCallBackend(CeedBasisApplyAtPoints(basis, 1, &num_points, CEED_TRANSPOSE, eval_mode, impl->point_coords_elem, impl->q_vecs_out[i],
-                                                     impl->e_vecs_out[i]));
+              CeedCallBackend(CeedOperatorFieldGetBasis(op_output_fields[j], &basis));
+              CeedCallBackend(CeedBasisApplyAtPoints(basis, 1, &num_points, CEED_TRANSPOSE, eval_mode, impl->point_coords_elem, impl->q_vecs_out[j],
+                                                     impl->e_vecs_out[j]));
               break;
             // LCOV_EXCL_START
             case CEED_EVAL_WEIGHT: {
@@ -1294,19 +1301,19 @@ static int CeedOperatorLinearAssembleAddDiagonalAtPoints_Ref(CeedOperator op, Ce
           {
             CeedScalar *array, current_value = 0.0;
 
-            CeedCallBackend(CeedVectorGetArray(impl->e_vecs_out[i], CEED_MEM_HOST, &array));
+            CeedCallBackend(CeedVectorGetArray(impl->e_vecs_out[j], CEED_MEM_HOST, &array));
             current_value = array[s];
-            CeedCallBackend(CeedVectorRestoreArray(impl->e_vecs_out[i], &array));
-            CeedCallBackend(CeedVectorSetValue(impl->e_vecs_out[i], 0.0));
-            CeedCallBackend(CeedVectorGetArray(impl->e_vecs_out[i], CEED_MEM_HOST, &array));
+            CeedCallBackend(CeedVectorRestoreArray(impl->e_vecs_out[j], &array));
+            CeedCallBackend(CeedVectorSetValue(impl->e_vecs_out[j], 0.0));
+            CeedCallBackend(CeedVectorGetArray(impl->e_vecs_out[j], CEED_MEM_HOST, &array));
             array[s] = current_value;
-            CeedCallBackend(CeedVectorRestoreArray(impl->e_vecs_out[i], &array));
+            CeedCallBackend(CeedVectorRestoreArray(impl->e_vecs_out[j], &array));
           }
           // ---- Restrict output block
           if (rstr_type == CEED_RESTRICTION_POINTS) {
-            CeedCallBackend(CeedElemRestrictionApplyAtPointsInElement(elem_rstr, e, CEED_TRANSPOSE, impl->e_vecs_out[i], assembled, request));
+            CeedCallBackend(CeedElemRestrictionApplyAtPointsInElement(elem_rstr, e, CEED_TRANSPOSE, impl->e_vecs_out[j], assembled, request));
           } else {
-            CeedCallBackend(CeedElemRestrictionApplyBlock(elem_rstr, e, CEED_TRANSPOSE, impl->e_vecs_out[i], assembled, request));
+            CeedCallBackend(CeedElemRestrictionApplyBlock(elem_rstr, e, CEED_TRANSPOSE, impl->e_vecs_out[j], assembled, request));
           }
         }
         // -- Reset unit vector
@@ -1316,6 +1323,7 @@ static int CeedOperatorLinearAssembleAddDiagonalAtPoints_Ref(CeedOperator op, Ce
           CeedCallBackend(CeedVectorGetArray(impl->e_vecs_in[i], CEED_MEM_HOST, &array));
           array[s] = 0.0;
           CeedCallBackend(CeedVectorRestoreArray(impl->e_vecs_in[i], &array));
+          CeedCallBackend(CeedVectorSetValue(impl->q_vecs_in[i], 0.0));
         }
       }
     }
