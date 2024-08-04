@@ -15,6 +15,8 @@
 //
 // ---------------------------------------------------------------------
 
+#include "bps.h"
+
 // deal.II includes
 #include <deal.II/base/conditional_ostream.h>
 #include <deal.II/base/mpi.h>
@@ -27,11 +29,8 @@
 #include <deal.II/dofs/dof_handler.h>
 #include <deal.II/dofs/dof_renumbering.h>
 
-#include <deal.II/fe/fe_nothing.h>
 #include <deal.II/fe/fe_q.h>
 #include <deal.II/fe/fe_system.h>
-#include <deal.II/fe/fe_tools.h>
-#include <deal.II/fe/fe_values.h>
 #include <deal.II/fe/mapping_q1.h>
 
 #include <deal.II/grid/grid_generator.h>
@@ -40,17 +39,20 @@
 #include <deal.II/lac/precondition.h>
 #include <deal.II/lac/solver_cg.h>
 
+#include <deal.II/matrix_free/fe_evaluation.h>
+#include <deal.II/matrix_free/matrix_free.h>
+#include <deal.II/matrix_free/tools.h>
+
 // boost
 #include <boost/algorithm/string.hpp>
 
 #include <sstream>
 
 // include operators
-#include "bps.h"
 
 // Test cases
-//TESTARGS(name="BP1") --resource {ceed_resource} --bp BP1 --fe_degree 2 --print_timings 0
-//TESTARGS(name="BP4") --resource {ceed_resource} --bp BP4 --fe_degree 3 --print_timings 0
+// TESTARGS(name="BP1") --resource {ceed_resource} --bp BP1 --fe_degree 2 --print_timings 0
+// TESTARGS(name="BP4") --resource {ceed_resource} --bp BP4 --fe_degree 3 --print_timings 0
 
 /**
  * Relevant parameters.
@@ -61,7 +63,7 @@ struct Parameters
   unsigned int n_global_refinements = 1;
   unsigned int fe_degree            = 2;
   bool         print_timings        = true;
-  std::string  libCEED_resource      = "/cpu/self/avx/blocked";
+  std::string  libCEED_resource     = "/cpu/self/avx/blocked";
 
   bool
   parse(int argc, char *argv[])
@@ -136,6 +138,183 @@ struct Parameters
 
 
 
+template <int dim, typename Number>
+class OperatorDealii : public OperatorBase<Number, MemorySpace::Host>
+{
+public:
+  using VectorType = typename OperatorBase<Number, MemorySpace::Host>::VectorType;
+
+  /**
+   * Constructor.
+   */
+  OperatorDealii(const Mapping<dim>              &mapping,
+                 const DoFHandler<dim>           &dof_handler,
+                 const AffineConstraints<Number> &constraints,
+                 const Quadrature<dim>           &quadrature,
+                 const BPType                    &bp)
+    : mapping(mapping)
+    , dof_handler(dof_handler)
+    , constraints(constraints)
+    , quadrature(quadrature)
+    , bp(bp)
+  {
+    reinit();
+  }
+
+  /**
+   * Destructor.
+   */
+  ~OperatorDealii() = default;
+
+  /**
+   * Initialized internal data structures, particularly, MatrixFree.
+   */
+  void
+  reinit() override
+  {
+    // configure MatrixFree
+    typename MatrixFree<dim, Number>::AdditionalData additional_data;
+    additional_data.tasks_parallel_scheme =
+      MatrixFree<dim, Number>::AdditionalData::TasksParallelScheme::none;
+
+    // create MatrixFree
+    matrix_free.reinit(mapping, dof_handler, constraints, quadrature, additional_data);
+  }
+
+  /**
+   * Matrix-vector product.
+   */
+  void
+  vmult(VectorType &dst, const VectorType &src) const override
+  {
+    if (dof_handler.get_fe().n_components() == 1)
+      {
+        matrix_free.cell_loop(&OperatorDealii::do_cell_integral_range<1>, this, dst, src, true);
+      }
+    else
+      {
+        AssertThrow(dof_handler.get_fe().n_components() == dim, ExcInternalError());
+
+        matrix_free.cell_loop(&OperatorDealii::do_cell_integral_range<dim>, this, dst, src, true);
+      }
+  }
+
+  /**
+   * Initialize vector.
+   */
+  void
+  initialize_dof_vector(VectorType &vec) const override
+  {
+    matrix_free.initialize_dof_vector(vec);
+  }
+
+  /**
+   * Compute inverse of diagonal.
+   */
+  void
+  compute_inverse_diagonal(VectorType &diagonal) const override
+  {
+    this->initialize_dof_vector(diagonal);
+
+    if (dof_handler.get_fe().n_components() == 1)
+      {
+        MatrixFreeTools::compute_diagonal(matrix_free,
+                                          diagonal,
+                                          &OperatorDealii::do_cell_integral_local<1>,
+                                          this);
+      }
+    else
+      {
+        AssertThrow(dof_handler.get_fe().n_components() == dim, ExcInternalError());
+
+        MatrixFreeTools::compute_diagonal(matrix_free,
+                                          diagonal,
+                                          &OperatorDealii::do_cell_integral_local<dim>,
+                                          this);
+      }
+
+    for (auto &i : diagonal)
+      i = (std::abs(i) > 1.0e-10) ? (1.0 / i) : 1.0;
+  }
+
+private:
+  /**
+   * Cell integral without vector access.
+   */
+  template <int n_components>
+  void
+  do_cell_integral_local(FEEvaluation<dim, -1, 0, n_components, Number> &phi) const
+  {
+    if (bp <= BPType::BP2) // mass matrix
+      {
+        phi.evaluate(EvaluationFlags::values);
+        for (const auto q : phi.quadrature_point_indices())
+          phi.submit_value(phi.get_value(q), q);
+        phi.integrate(EvaluationFlags::values);
+      }
+    else // Poisson operator
+      {
+        phi.evaluate(EvaluationFlags::gradients);
+        for (const auto q : phi.quadrature_point_indices())
+          phi.submit_gradient(phi.get_gradient(q), q);
+        phi.integrate(EvaluationFlags::gradients);
+      }
+  }
+
+  /**
+   * Cell integral on a range of cells.
+   */
+  template <int n_components>
+  void
+  do_cell_integral_range(const MatrixFree<dim, Number>               &matrix_free,
+                         VectorType                                  &dst,
+                         const VectorType                            &src,
+                         const std::pair<unsigned int, unsigned int> &range) const
+  {
+    FEEvaluation<dim, -1, 0, n_components, Number> phi(matrix_free, range);
+
+    for (unsigned cell = range.first; cell < range.second; ++cell)
+      {
+        phi.reinit(cell);
+        phi.read_dof_values(src);            // read source vector
+        do_cell_integral_local(phi);         // cell integral
+        phi.distribute_local_to_global(dst); // write to destination vector
+      }
+  }
+
+  /**
+   * Mapping object passed to the constructor.
+   */
+  const Mapping<dim> &mapping;
+
+  /**
+   * DoFHandler object passed to the constructor.
+   */
+  const DoFHandler<dim> &dof_handler;
+
+  /**
+   * Constraints object passed to the constructor.
+   */
+  const AffineConstraints<Number> &constraints;
+
+  /**
+   * Quadrature rule object passed to the constructor.
+   */
+  const Quadrature<dim> &quadrature;
+
+  /**
+   * Selected BP.
+   */
+  const BPType bp;
+
+  /**
+   * MatrixFree object.
+   */
+  MatrixFree<dim, Number> matrix_free;
+};
+
+
+
 int
 main(int argc, char *argv[])
 {
@@ -176,6 +355,8 @@ main(int argc, char *argv[])
   DoFHandler<dim> dof_handler(tria);
   dof_handler.distribute_dofs(fe);
 
+  DoFRenumbering::support_point_wise(dof_handler);
+
   AffineConstraints<Number> constraints;
 
   if (!(bp == BPType::BP1 || bp == BPType::BP2))
@@ -184,8 +365,6 @@ main(int argc, char *argv[])
       DoFTools::make_zero_boundary_constraints(dof_handler, constraints);
       constraints.close();
     }
-
-  DoFRenumbering::support_point_wise(dof_handler);
 
   const auto test = [&](const std::string &label, const auto &op) {
     (void)label;
