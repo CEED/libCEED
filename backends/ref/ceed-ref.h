@@ -49,8 +49,9 @@ typedef struct {
 
 typedef struct {
   bool        is_identity_qf, is_identity_rstr_op;
-  CeedVector *e_vecs_full;  /* Full E-vectors, inputs followed by outputs */
+  bool       *skip_rstr_in;
   uint64_t   *input_states; /* State counter of inputs */
+  CeedVector *e_vecs_full;  /* Full E-vectors, inputs followed by outputs */
   CeedVector *e_vecs_in;    /* Single element input E-vectors  */
   CeedVector *e_vecs_out;   /* Single element output E-vectors */
   CeedVector *q_vecs_in;    /* Single element input Q-vectors  */

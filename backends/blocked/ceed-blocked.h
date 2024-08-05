@@ -17,13 +17,14 @@ typedef struct {
 
 typedef struct {
   bool                 is_identity_qf, is_identity_rstr_op;
-  CeedElemRestriction *block_rstr;   /* Blocked versions of restrictions */
-  CeedVector          *e_vecs_full;  /* Full E-vectors, inputs followed by outputs */
+  bool                *skip_rstr_in;
   uint64_t            *input_states; /* State counter of inputs */
+  CeedVector          *e_vecs_full;  /* Full E-vectors, inputs followed by outputs */
   CeedVector          *e_vecs_in;    /* Element block input E-vectors  */
   CeedVector          *e_vecs_out;   /* Element block output E-vectors */
   CeedVector          *q_vecs_in;    /* Element block input Q-vectors  */
   CeedVector          *q_vecs_out;   /* Element block output Q-vectors */
+  CeedElemRestriction *block_rstr;   /* Blocked versions of restrictions */
   CeedInt              num_inputs, num_outputs;
   CeedInt              qf_size_in, qf_size_out;
   CeedVector           qf_l_vec;
