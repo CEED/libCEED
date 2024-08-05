@@ -128,8 +128,9 @@ typedef struct {
 } CeedOperatorAssemble_Cuda;
 
 typedef struct {
-  CeedVector                *e_vecs;        // E-vectors, inputs followed by outputs
+  bool                      *skip_rstr_in;
   uint64_t                  *input_states;  // State tracking for passive inputs
+  CeedVector                *e_vecs;        // E-vectors, inputs followed by outputs
   CeedVector                *q_vecs_in;     // Input Q-vectors needed to apply operator
   CeedVector                *q_vecs_out;    // Output Q-vectors needed to apply operator
   CeedInt                    num_inputs, num_outputs;
