@@ -186,6 +186,7 @@ struct CeedElemRestriction_private {
 struct CeedBasis_private {
   Ceed ceed;
   int (*Apply)(CeedBasis, CeedInt, CeedTransposeMode, CeedEvalMode, CeedVector, CeedVector);
+  int (*ApplyAdd)(CeedBasis, CeedInt, CeedTransposeMode, CeedEvalMode, CeedVector, CeedVector);
   int (*ApplyAtPoints)(CeedBasis, CeedInt, const CeedInt *, CeedTransposeMode, CeedEvalMode, CeedVector, CeedVector, CeedVector);
   int (*Destroy)(CeedBasis);
   int                ref_count;

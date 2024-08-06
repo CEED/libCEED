@@ -952,6 +952,7 @@ int CeedInit(const char *resource, Ceed *ceed) {
       CEED_FTABLE_ENTRY(CeedElemRestriction, GetAtPointsElementOffset),
       CEED_FTABLE_ENTRY(CeedElemRestriction, Destroy),
       CEED_FTABLE_ENTRY(CeedBasis, Apply),
+      CEED_FTABLE_ENTRY(CeedBasis, ApplyAdd),
       CEED_FTABLE_ENTRY(CeedBasis, ApplyAtPoints),
       CEED_FTABLE_ENTRY(CeedBasis, Destroy),
       CEED_FTABLE_ENTRY(CeedTensorContract, Apply),
