@@ -27,8 +27,8 @@ int CeedInit_CudaCollocatedGrad(CeedScalar *d_B, CeedScalar *d_G, CeedInt P_1d, 
 //------------------------------------------------------------------------------
 // Apply basis
 //------------------------------------------------------------------------------
-int CeedBasisApplyTensor_Cuda_shared(CeedBasis basis, const CeedInt num_elem, CeedTransposeMode t_mode, CeedEvalMode eval_mode, CeedVector u,
-                                     CeedVector v) {
+static int CeedBasisApplyTensorCore_Cuda_shared(CeedBasis basis, bool apply_add, const CeedInt num_elem, CeedTransposeMode t_mode,
+                                                CeedEvalMode eval_mode, CeedVector u, CeedVector v) {
   Ceed                   ceed;
   Ceed_Cuda             *ceed_Cuda;
   CeedInt                dim, num_comp;
@@ -45,7 +45,8 @@ int CeedBasisApplyTensor_Cuda_shared(CeedBasis basis, const CeedInt num_elem, Ce
   // Get read/write access to u, v
   if (u != CEED_VECTOR_NONE) CeedCallBackend(CeedVectorGetArrayRead(u, CEED_MEM_DEVICE, &d_u));
   else CeedCheck(eval_mode == CEED_EVAL_WEIGHT, ceed, CEED_ERROR_BACKEND, "An input vector is required for this CeedEvalMode");
-  CeedCallBackend(CeedVectorGetArrayWrite(v, CEED_MEM_DEVICE, &d_v));
+  if (apply_add) CeedCallBackend(CeedVectorGetArray(v, CEED_MEM_DEVICE, &d_v));
+  else CeedCallBackend(CeedVectorGetArrayWrite(v, CEED_MEM_DEVICE, &d_v));
 
   // Apply basis operation
   switch (eval_mode) {
@@ -66,7 +67,8 @@ int CeedBasisApplyTensor_Cuda_shared(CeedBasis basis, const CeedInt num_elem, Ce
         CeedInt shared_mem      = elems_per_block * thread_1d * sizeof(CeedScalar);
 
         if (t_mode == CEED_TRANSPOSE) {
-          CeedCallBackend(CeedRunKernelDimShared_Cuda(ceed, data->InterpTranspose, grid, thread_1d, 1, elems_per_block, shared_mem, interp_args));
+          CeedCallBackend(CeedRunKernelDimShared_Cuda(ceed, apply_add ? data->InterpTransposeAdd : data->InterpTranspose, grid, thread_1d, 1,
+                                                      elems_per_block, shared_mem, interp_args));
         } else {
           CeedCallBackend(CeedRunKernelDimShared_Cuda(ceed, data->Interp, grid, thread_1d, 1, elems_per_block, shared_mem, interp_args));
         }
@@ -78,8 +80,8 @@ int CeedBasisApplyTensor_Cuda_shared(CeedBasis basis, const CeedInt num_elem, Ce
         CeedInt shared_mem      = elems_per_block * thread_1d * thread_1d * sizeof(CeedScalar);
 
         if (t_mode == CEED_TRANSPOSE) {
-          CeedCallBackend(
-              CeedRunKernelDimShared_Cuda(ceed, data->InterpTranspose, grid, thread_1d, thread_1d, elems_per_block, shared_mem, interp_args));
+          CeedCallBackend(CeedRunKernelDimShared_Cuda(ceed, apply_add ? data->InterpTransposeAdd : data->InterpTranspose, grid, thread_1d, thread_1d,
+                                                      elems_per_block, shared_mem, interp_args));
         } else {
           CeedCallBackend(CeedRunKernelDimShared_Cuda(ceed, data->Interp, grid, thread_1d, thread_1d, elems_per_block, shared_mem, interp_args));
         }
@@ -89,8 +91,8 @@ int CeedBasisApplyTensor_Cuda_shared(CeedBasis basis, const CeedInt num_elem, Ce
         CeedInt shared_mem      = elems_per_block * thread_1d * thread_1d * sizeof(CeedScalar);
 
         if (t_mode == CEED_TRANSPOSE) {
-          CeedCallBackend(
-              CeedRunKernelDimShared_Cuda(ceed, data->InterpTranspose, grid, thread_1d, thread_1d, elems_per_block, shared_mem, interp_args));
+          CeedCallBackend(CeedRunKernelDimShared_Cuda(ceed, apply_add ? data->InterpTransposeAdd : data->InterpTranspose, grid, thread_1d, thread_1d,
+                                                      elems_per_block, shared_mem, interp_args));
         } else {
           CeedCallBackend(CeedRunKernelDimShared_Cuda(ceed, data->Interp, grid, thread_1d, thread_1d, elems_per_block, shared_mem, interp_args));
         }
@@ -116,7 +118,8 @@ int CeedBasisApplyTensor_Cuda_shared(CeedBasis basis, const CeedInt num_elem, Ce
         CeedInt shared_mem      = elems_per_block * thread_1d * sizeof(CeedScalar);
 
         if (t_mode == CEED_TRANSPOSE) {
-          CeedCallBackend(CeedRunKernelDimShared_Cuda(ceed, data->GradTranspose, grid, thread_1d, 1, elems_per_block, shared_mem, grad_args));
+          CeedCallBackend(CeedRunKernelDimShared_Cuda(ceed, apply_add ? data->GradTransposeAdd : data->GradTranspose, grid, thread_1d, 1,
+                                                      elems_per_block, shared_mem, grad_args));
         } else {
           CeedCallBackend(CeedRunKernelDimShared_Cuda(ceed, data->Grad, grid, thread_1d, 1, elems_per_block, shared_mem, grad_args));
         }
@@ -128,7 +131,8 @@ int CeedBasisApplyTensor_Cuda_shared(CeedBasis basis, const CeedInt num_elem, Ce
         CeedInt shared_mem      = elems_per_block * thread_1d * thread_1d * sizeof(CeedScalar);
 
         if (t_mode == CEED_TRANSPOSE) {
-          CeedCallBackend(CeedRunKernelDimShared_Cuda(ceed, data->GradTranspose, grid, thread_1d, thread_1d, elems_per_block, shared_mem, grad_args));
+          CeedCallBackend(CeedRunKernelDimShared_Cuda(ceed, apply_add ? data->GradTransposeAdd : data->GradTranspose, grid, thread_1d, thread_1d,
+                                                      elems_per_block, shared_mem, grad_args));
         } else {
           CeedCallBackend(CeedRunKernelDimShared_Cuda(ceed, data->Grad, grid, thread_1d, thread_1d, elems_per_block, shared_mem, grad_args));
         }
@@ -138,7 +142,8 @@ int CeedBasisApplyTensor_Cuda_shared(CeedBasis basis, const CeedInt num_elem, Ce
         CeedInt shared_mem      = elems_per_block * thread_1d * thread_1d * sizeof(CeedScalar);
 
         if (t_mode == CEED_TRANSPOSE) {
-          CeedCallBackend(CeedRunKernelDimShared_Cuda(ceed, data->GradTranspose, grid, thread_1d, thread_1d, elems_per_block, shared_mem, grad_args));
+          CeedCallBackend(CeedRunKernelDimShared_Cuda(ceed, apply_add ? data->GradTransposeAdd : data->GradTranspose, grid, thread_1d, thread_1d,
+                                                      elems_per_block, shared_mem, grad_args));
         } else {
           CeedCallBackend(CeedRunKernelDimShared_Cuda(ceed, data->Grad, grid, thread_1d, thread_1d, elems_per_block, shared_mem, grad_args));
         }
@@ -186,11 +191,23 @@ int CeedBasisApplyTensor_Cuda_shared(CeedBasis basis, const CeedInt num_elem, Ce
   return CEED_ERROR_SUCCESS;
 }
 
+static int CeedBasisApplyTensor_Cuda_shared(CeedBasis basis, const CeedInt num_elem, CeedTransposeMode t_mode, CeedEvalMode eval_mode, CeedVector u,
+                                            CeedVector v) {
+  CeedCallBackend(CeedBasisApplyTensorCore_Cuda_shared(basis, false, num_elem, t_mode, eval_mode, u, v));
+  return CEED_ERROR_SUCCESS;
+}
+
+static int CeedBasisApplyAddTensor_Cuda_shared(CeedBasis basis, const CeedInt num_elem, CeedTransposeMode t_mode, CeedEvalMode eval_mode,
+                                               CeedVector u, CeedVector v) {
+  CeedCallBackend(CeedBasisApplyTensorCore_Cuda_shared(basis, true, num_elem, t_mode, eval_mode, u, v));
+  return CEED_ERROR_SUCCESS;
+}
+
 //------------------------------------------------------------------------------
 // Basis apply - tensor AtPoints
 //------------------------------------------------------------------------------
-int CeedBasisApplyAtPoints_Cuda_shared(CeedBasis basis, const CeedInt num_elem, const CeedInt *num_points, CeedTransposeMode t_mode,
-                                       CeedEvalMode eval_mode, CeedVector x_ref, CeedVector u, CeedVector v) {
+static int CeedBasisApplyAtPoints_Cuda_shared(CeedBasis basis, const CeedInt num_elem, const CeedInt *num_points, CeedTransposeMode t_mode,
+                                              CeedEvalMode eval_mode, CeedVector x_ref, CeedVector u, CeedVector v) {
   Ceed                   ceed;
   CeedInt                Q_1d, dim, max_num_points = num_points[0];
   const CeedInt          is_transpose   = t_mode == CEED_TRANSPOSE;
@@ -374,8 +391,10 @@ int CeedBasisCreateTensorH1_Cuda_shared(CeedInt dim, CeedInt P_1d, CeedInt Q_1d,
                                    "BASIS_NUM_QPTS", CeedIntPow(Q_1d, dim), "BASIS_HAS_COLLOCATED_GRAD", has_collocated_grad));
   CeedCallBackend(CeedGetKernel_Cuda(ceed, data->module, "Interp", &data->Interp));
   CeedCallBackend(CeedGetKernel_Cuda(ceed, data->module, "InterpTranspose", &data->InterpTranspose));
+  CeedCallBackend(CeedGetKernel_Cuda(ceed, data->module, "InterpTransposeAdd", &data->InterpTransposeAdd));
   CeedCallBackend(CeedGetKernel_Cuda(ceed, data->module, "Grad", &data->Grad));
   CeedCallBackend(CeedGetKernel_Cuda(ceed, data->module, "GradTranspose", &data->GradTranspose));
+  CeedCallBackend(CeedGetKernel_Cuda(ceed, data->module, "GradTransposeAdd", &data->GradTransposeAdd));
   CeedCallBackend(CeedGetKernel_Cuda(ceed, data->module, "Weight", &data->Weight));
   CeedCallBackend(CeedFree(&basis_kernel_path));
   CeedCallBackend(CeedFree(&basis_kernel_source));
@@ -384,6 +403,7 @@ int CeedBasisCreateTensorH1_Cuda_shared(CeedInt dim, CeedInt P_1d, CeedInt Q_1d,
 
   // Register backend functions
   CeedCallBackend(CeedSetBackendFunction(ceed, "Basis", basis, "Apply", CeedBasisApplyTensor_Cuda_shared));
+  CeedCallBackend(CeedSetBackendFunction(ceed, "Basis", basis, "ApplyAdd", CeedBasisApplyAddTensor_Cuda_shared));
   CeedCallBackend(CeedSetBackendFunction(ceed, "Basis", basis, "ApplyAtPoints", CeedBasisApplyAtPoints_Cuda_shared));
   CeedCallBackend(CeedSetBackendFunction(ceed, "Basis", basis, "Destroy", CeedBasisDestroy_Cuda_shared));
   return CEED_ERROR_SUCCESS;

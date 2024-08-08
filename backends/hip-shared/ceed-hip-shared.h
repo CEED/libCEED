@@ -14,8 +14,10 @@ typedef struct {
   hipModule_t   module;
   hipFunction_t Interp;
   hipFunction_t InterpTranspose;
+  hipFunction_t InterpTransposeAdd;
   hipFunction_t Grad;
   hipFunction_t GradTranspose;
+  hipFunction_t GradTransposeAdd;
   hipFunction_t Weight;
   hipModule_t   moduleAtPoints;
   CeedInt       num_points;
