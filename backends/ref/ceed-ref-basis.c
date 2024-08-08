@@ -16,11 +16,11 @@
 //------------------------------------------------------------------------------
 // Basis Apply
 //------------------------------------------------------------------------------
-static int CeedBasisApply_Ref(CeedBasis basis, CeedInt num_elem, CeedTransposeMode t_mode, CeedEvalMode eval_mode, CeedVector U, CeedVector V) {
+static int CeedBasisApplyCore_Ref(CeedBasis basis, bool apply_add, CeedInt num_elem, CeedTransposeMode t_mode, CeedEvalMode eval_mode, CeedVector U,
+                                  CeedVector V) {
   Ceed               ceed;
-  bool               is_tensor_basis;
+  bool               is_tensor_basis, add = apply_add || (t_mode == CEED_TRANSPOSE);
   CeedInt            dim, num_comp, q_comp, num_nodes, num_qpts;
-  const CeedInt      add = (t_mode == CEED_TRANSPOSE);
   const CeedScalar  *u;
   CeedScalar        *v;
   CeedTensorContract contract;
@@ -36,13 +36,15 @@ static int CeedBasisApply_Ref(CeedBasis basis, CeedInt num_elem, CeedTransposeMo
   CeedCallBackend(CeedBasisGetTensorContract(basis, &contract));
   if (U != CEED_VECTOR_NONE) CeedCallBackend(CeedVectorGetArrayRead(U, CEED_MEM_HOST, &u));
   else CeedCheck(eval_mode == CEED_EVAL_WEIGHT, ceed, CEED_ERROR_BACKEND, "An input vector is required for this CeedEvalMode");
-  CeedCallBackend(CeedVectorGetArrayWrite(V, CEED_MEM_HOST, &v));
-
   // Clear v if operating in transpose
-  if (t_mode == CEED_TRANSPOSE) {
-    const CeedInt v_size = num_elem * num_comp * num_nodes;
+  if (apply_add) CeedCallBackend(CeedVectorGetArray(V, CEED_MEM_HOST, &v));
+  else CeedCallBackend(CeedVectorGetArrayWrite(V, CEED_MEM_HOST, &v));
 
-    for (CeedInt i = 0; i < v_size; i++) v[i] = (CeedScalar)0.0;
+  if (t_mode == CEED_TRANSPOSE && !apply_add) {
+    CeedSize len;
+
+    CeedCallBackend(CeedVectorGetLength(V, &len));
+    for (CeedInt i = 0; i < len; i++) v[i] = 0.0;
   }
 
   CeedCallBackend(CeedBasisIsTensor(basis, &is_tensor_basis));
@@ -101,8 +103,8 @@ static int CeedBasisApply_Ref(CeedBasis basis, CeedInt num_elem, CeedTransposeMo
           //  or Grad to quadrature points (Transpose)
           for (CeedInt d = 0; d < dim; d++) {
             CeedCallBackend(CeedTensorContractApply(contract, pre, P, post, Q, (t_mode == CEED_NOTRANSPOSE ? interp_1d : impl->collo_grad_1d), t_mode,
-                                                    add && (d > 0),
-                                                    (t_mode == CEED_NOTRANSPOSE ? (d == 0 ? u : tmp[d % 2]) : u + d * num_qpts * num_comp * num_elem),
+                                                    (t_mode == CEED_TRANSPOSE) && (d > 0),
+                                                    (t_mode == CEED_NOTRANSPOSE ? (d == 0 ? u : tmp[d % 2]) : &u[d * num_qpts * num_comp * num_elem]),
                                                     (t_mode == CEED_NOTRANSPOSE ? (d == dim - 1 ? interp : tmp[(d + 1) % 2]) : interp)));
             pre /= P;
             post *= Q;
@@ -117,9 +119,10 @@ static int CeedBasisApply_Ref(CeedBasis basis, CeedInt num_elem, CeedTransposeMo
           pre = num_comp * CeedIntPow(P, dim - 1), post = num_elem;
           for (CeedInt d = 0; d < dim; d++) {
             CeedCallBackend(CeedTensorContractApply(
-                contract, pre, P, post, Q, (t_mode == CEED_NOTRANSPOSE ? impl->collo_grad_1d : interp_1d), t_mode, add && (d == dim - 1),
+                contract, pre, P, post, Q, (t_mode == CEED_NOTRANSPOSE ? impl->collo_grad_1d : interp_1d), t_mode,
+                (t_mode == CEED_NOTRANSPOSE && apply_add) || (t_mode == CEED_TRANSPOSE && (d == dim - 1)),
                 (t_mode == CEED_NOTRANSPOSE ? interp : (d == 0 ? interp : tmp[d % 2])),
-                (t_mode == CEED_NOTRANSPOSE ? v + d * num_qpts * num_comp * num_elem : (d == dim - 1 ? v : tmp[(d + 1) % 2]))));
+                (t_mode == CEED_NOTRANSPOSE ? &v[d * num_qpts * num_comp * num_elem] : (d == dim - 1 ? v : tmp[(d + 1) % 2]))));
             pre /= P;
             post *= Q;
           }
@@ -133,8 +136,8 @@ static int CeedBasisApply_Ref(CeedBasis basis, CeedInt num_elem, CeedTransposeMo
 
           for (CeedInt d = 0; d < dim; d++) {
             CeedCallBackend(CeedTensorContractApply(contract, pre, P, post, Q, grad_1d, t_mode, add && (d > 0),
-                                                    t_mode == CEED_NOTRANSPOSE ? u : u + d * num_comp * num_qpts * num_elem,
-                                                    t_mode == CEED_TRANSPOSE ? v : v + d * num_comp * num_qpts * num_elem));
+                                                    t_mode == CEED_NOTRANSPOSE ? u : &u[d * num_comp * num_qpts * num_elem],
+                                                    t_mode == CEED_TRANSPOSE ? v : &v[d * num_comp * num_qpts * num_elem]));
             pre /= P;
             post *= Q;
           }
@@ -156,8 +159,8 @@ static int CeedBasisApply_Ref(CeedBasis basis, CeedInt num_elem, CeedTransposeMo
             for (CeedInt d = 0; d < dim; d++) {
               CeedCallBackend(CeedTensorContractApply(
                   contract, pre, P, post, Q, (p == d) ? grad_1d : interp_1d, t_mode, add && (d == dim - 1),
-                  (d == 0 ? (t_mode == CEED_NOTRANSPOSE ? u : u + p * num_comp * num_qpts * num_elem) : tmp[d % 2]),
-                  (d == dim - 1 ? (t_mode == CEED_TRANSPOSE ? v : v + p * num_comp * num_qpts * num_elem) : tmp[(d + 1) % 2])));
+                  (d == 0 ? (t_mode == CEED_NOTRANSPOSE ? u : &u[p * num_comp * num_qpts * num_elem]) : tmp[d % 2]),
+                  (d == dim - 1 ? (t_mode == CEED_TRANSPOSE ? v : &v[p * num_comp * num_qpts * num_elem]) : tmp[(d + 1) % 2])));
               pre /= P;
               post *= Q;
             }
@@ -249,6 +252,16 @@ static int CeedBasisApply_Ref(CeedBasis basis, CeedInt num_elem, CeedTransposeMo
   return CEED_ERROR_SUCCESS;
 }
 
+static int CeedBasisApply_Ref(CeedBasis basis, CeedInt num_elem, CeedTransposeMode t_mode, CeedEvalMode eval_mode, CeedVector U, CeedVector V) {
+  CeedCallBackend(CeedBasisApplyCore_Ref(basis, false, num_elem, t_mode, eval_mode, U, V));
+  return CEED_ERROR_SUCCESS;
+}
+
+static int CeedBasisApplyAdd_Ref(CeedBasis basis, CeedInt num_elem, CeedTransposeMode t_mode, CeedEvalMode eval_mode, CeedVector U, CeedVector V) {
+  CeedCallBackend(CeedBasisApplyCore_Ref(basis, true, num_elem, t_mode, eval_mode, U, V));
+  return CEED_ERROR_SUCCESS;
+}
+
 //------------------------------------------------------------------------------
 // Basis Destroy Tensor
 //------------------------------------------------------------------------------
@@ -297,6 +310,7 @@ int CeedBasisCreateTensorH1_Ref(CeedInt dim, CeedInt P_1d, CeedInt Q_1d, const C
   CeedCallBackend(CeedBasisSetTensorContract(basis, contract));
 
   CeedCallBackend(CeedSetBackendFunction(ceed, "Basis", basis, "Apply", CeedBasisApply_Ref));
+  CeedCallBackend(CeedSetBackendFunction(ceed, "Basis", basis, "ApplyAdd", CeedBasisApplyAdd_Ref));
   CeedCallBackend(CeedSetBackendFunction(ceed, "Basis", basis, "Destroy", CeedBasisDestroyTensor_Ref));
   return CEED_ERROR_SUCCESS;
 }
@@ -316,6 +330,7 @@ int CeedBasisCreateH1_Ref(CeedElemTopology topo, CeedInt dim, CeedInt num_nodes,
   CeedCallBackend(CeedBasisSetTensorContract(basis, contract));
 
   CeedCallBackend(CeedSetBackendFunction(ceed, "Basis", basis, "Apply", CeedBasisApply_Ref));
+  CeedCallBackend(CeedSetBackendFunction(ceed, "Basis", basis, "ApplyAdd", CeedBasisApplyAdd_Ref));
   return CEED_ERROR_SUCCESS;
 }
 
@@ -334,6 +349,7 @@ int CeedBasisCreateHdiv_Ref(CeedElemTopology topo, CeedInt dim, CeedInt num_node
   CeedCallBackend(CeedBasisSetTensorContract(basis, contract));
 
   CeedCallBackend(CeedSetBackendFunction(ceed, "Basis", basis, "Apply", CeedBasisApply_Ref));
+  CeedCallBackend(CeedSetBackendFunction(ceed, "Basis", basis, "ApplyAdd", CeedBasisApplyAdd_Ref));
   return CEED_ERROR_SUCCESS;
 }
 
@@ -352,6 +368,7 @@ int CeedBasisCreateHcurl_Ref(CeedElemTopology topo, CeedInt dim, CeedInt num_nod
   CeedCallBackend(CeedBasisSetTensorContract(basis, contract));
 
   CeedCallBackend(CeedSetBackendFunction(ceed, "Basis", basis, "Apply", CeedBasisApply_Ref));
+  CeedCallBackend(CeedSetBackendFunction(ceed, "Basis", basis, "ApplyAdd", CeedBasisApplyAdd_Ref));
   return CEED_ERROR_SUCCESS;
 }
 

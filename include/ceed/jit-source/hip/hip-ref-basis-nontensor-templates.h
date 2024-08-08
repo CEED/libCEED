@@ -56,6 +56,6 @@ inline __device__ void ContractTranspose(const CeedInt elem, const CeedInt strid
       U = d_U + elem * strides_elem_U + comp * strides_comp_U + d * strides_q_comp_U;
       for (CeedInt i = 0; i < Q; i++) r_V += d_B[t_id + i * P + d * P * Q] * U[i];
     }
-    d_V[elem * strides_elem_V + comp * strides_comp_V + t_id] = r_V;
+    d_V[elem * strides_elem_V + comp * strides_comp_V + t_id] += r_V;
   }
 }
