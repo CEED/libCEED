@@ -57,13 +57,14 @@ extern "C" __global__ void Interp(const CeedInt num_elem, const CeedInt is_trans
 
         // Contract along middle index
         for (CeedInt k = i; k < writeLen; k += blockDim.x) {
-          const CeedInt c  = k % post;
-          const CeedInt j  = (k / post) % Q;
-          const CeedInt a  = k / (post * Q);
-          CeedScalar    vk = 0;
+          const CeedInt c   = k % post;
+          const CeedInt j   = (k / post) % Q;
+          const CeedInt a   = k / (post * Q);
+          CeedScalar    v_k = 0;
 
-          for (CeedInt b = 0; b < P; b++) vk += s_interp_1d[j * stride_0 + b * stride_1] * in[(a * P + b) * post + c];
-          out[k] = vk;
+          for (CeedInt b = 0; b < P; b++) v_k += s_interp_1d[j * stride_0 + b * stride_1] * in[(a * P + b) * post + c];
+          if (is_transpose && d == BASIS_DIM - 1) out[k] += v_k;
+          else out[k] = v_k;
         }
         post *= Q;
       }

@@ -63,7 +63,8 @@ extern "C" __global__ void Interp(const CeedInt num_elem, const CeedInt is_trans
           CeedScalar    v_k = 0;
 
           for (CeedInt b = 0; b < P; b++) v_k += s_interp_1d[j * stride_0 + b * stride_1] * in[(a * P + b) * post + c];
-          out[k] = v_k;
+          if (is_transpose && d == BASIS_DIM - 1) out[k] += v_k;
+          else out[k] = v_k;
         }
         post *= Q;
       }
