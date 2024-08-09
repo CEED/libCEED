@@ -126,3 +126,48 @@ extern "C" __launch_bounds__(MAGMA_BASIS_BOUNDS(BASIS_MAX_P_Q, MAGMA_MAXTHREADS_
   // write V
   write_1d<CeedScalar, BASIS_P, BASIS_NUM_COMP>(sV, dV, cstrdV, tx);
 }
+
+////////////////////////////////////////////////////////////////////////////////
+extern "C" __launch_bounds__(MAGMA_BASIS_BOUNDS(BASIS_MAX_P_Q, MAGMA_MAXTHREADS_1D)) __global__
+    void magma_interpta_1d_kernel(const CeedScalar *dT, const CeedScalar *dU, const int estrdU, const int cstrdU, CeedScalar *dV, const int estrdV,
+                                  const int cstrdV, const int nelem) {
+  MAGMA_DEVICE_SHARED(CeedScalar, shared_data)
+
+  const int tx      = threadIdx.x;
+  const int ty      = threadIdx.y;
+  const int elem_id = (blockIdx.x * blockDim.y) + ty;
+
+  if (elem_id >= nelem) return;
+
+  CeedScalar *sU[BASIS_NUM_COMP];
+  CeedScalar *sV[BASIS_NUM_COMP];
+
+  // shift global memory pointers by elem stride
+  dU += elem_id * estrdU;
+  dV += elem_id * estrdV;
+
+  // assign shared memory pointers
+  CeedScalar *sT = (CeedScalar *)shared_data;
+  CeedScalar *sW = sT + BASIS_Q * BASIS_P;
+  sU[0]          = sW + ty * BASIS_NUM_COMP * (BASIS_Q + BASIS_P);
+  sV[0]          = sU[0] + (BASIS_NUM_COMP * 1 * BASIS_Q);
+  for (int comp = 1; comp < BASIS_NUM_COMP; comp++) {
+    sU[comp] = sU[comp - 1] + (1 * BASIS_Q);
+    sV[comp] = sV[comp - 1] + (1 * BASIS_P);
+  }
+
+  // read T
+  if (ty == 0) {
+    read_T_trans_gm2sm<BASIS_Q, BASIS_P>(tx, dT, sT);
+  }
+
+  // read U
+  read_1d<CeedScalar, BASIS_Q, BASIS_NUM_COMP>(dU, cstrdU, sU, tx);
+
+  __syncthreads();
+  magma_interp_1d_device<CeedScalar, BASIS_DIM, BASIS_NUM_COMP, BASIS_Q, BASIS_P>(sT, sU, sV, tx);
+  __syncthreads();
+
+  // sum into V
+  sum_1d<CeedScalar, BASIS_P, BASIS_NUM_COMP>(sV, dV, cstrdV, tx);
+}

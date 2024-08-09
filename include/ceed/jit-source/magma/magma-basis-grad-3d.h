@@ -225,3 +225,61 @@ extern "C" __launch_bounds__(MAGMA_BASIS_BOUNDS(BASIS_MAX_P_Q *BASIS_MAX_P_Q, MA
   // write V
   write_V_3d<CeedScalar, BASIS_P, 1, BASIS_NUM_COMP, BASIS_P, 0>(dV + (0 * dstrdV), cstrdV, rV, tx);
 }
+
+////////////////////////////////////////////////////////////////////////////////
+extern "C" __launch_bounds__(MAGMA_BASIS_BOUNDS(BASIS_MAX_P_Q *BASIS_MAX_P_Q, MAGMA_MAXTHREADS_3D)) __global__
+    void magma_gradta_3d_kernel(const CeedScalar *dinterp1d, const CeedScalar *dgrad1d, const CeedScalar *dU, const int estrdU, const int cstrdU,
+                                const int dstrdU, CeedScalar *dV, const int estrdV, const int cstrdV, const int dstrdV, const int nelem) {
+  MAGMA_DEVICE_SHARED(CeedScalar, shared_data)
+
+  const int tx      = threadIdx.x;
+  const int ty      = threadIdx.y;
+  const int elem_id = (blockIdx.x * blockDim.y) + ty;
+
+  if (elem_id >= nelem) return;
+
+  CeedScalar rU[1][BASIS_NUM_COMP][BASIS_Q] = {0.0};  // here DIM_U = 1, but might be different for a fused operator
+  CeedScalar rV[1][BASIS_NUM_COMP][BASIS_P] = {0.0};  // here DIM_V = 1, but might be different for a fused operator
+  CeedScalar rTmp                           = 0.0;
+
+  // shift global memory pointers by elem stride
+  dU += elem_id * estrdU;
+  dV += elem_id * estrdV;
+
+  // assign shared memory pointers
+  CeedScalar *sTinterp = (CeedScalar *)shared_data;
+  CeedScalar *sTgrad   = sTinterp + BASIS_Q * BASIS_P;
+  CeedScalar *sTmp     = sTgrad + BASIS_Q * BASIS_P;
+  sTmp += ty * (max(BASIS_Q * BASIS_Q * BASIS_Q, (BASIS_Q * BASIS_Q * BASIS_P) + (BASIS_Q * BASIS_P * BASIS_P)));
+
+  // read T
+  if (ty == 0) {
+    read_T_trans_gm2sm<BASIS_Q, BASIS_P>(tx, dinterp1d, sTinterp);
+    read_T_trans_gm2sm<BASIS_Q, BASIS_P>(tx, dgrad1d, sTgrad);
+  }
+  __syncthreads();
+
+  /* read U (idim = 0 for dU, i_DIM = 0 for rU) --
+     there is a sync at the end of this function */
+  read_U_3d<CeedScalar, BASIS_Q, 1, BASIS_NUM_COMP, BASIS_Q, 0>(dU + (0 * dstrdU), cstrdU, rU, sTmp, tx);
+  /* then first call (i_DIM = 0, i_DIM_U = 0, i_DIM_V = 0) */
+  magma_grad_3d_device<CeedScalar, 1, 1, BASIS_NUM_COMP, BASIS_Q, BASIS_P, BASIS_Q, BASIS_P, 0, 0, 0, true>(sTinterp, sTgrad, rU, rV, tx, rTmp, sTmp);
+  /* there is a sync at the end of magma_grad_3d_device */
+
+  /* read U (idim = 1 for dU, i_DIM = 0 for rU) --
+     there is a sync at the end of this function */
+  read_U_3d<CeedScalar, BASIS_Q, 1, BASIS_NUM_COMP, BASIS_Q, 0>(dU + (1 * dstrdU), cstrdU, rU, sTmp, tx);
+  /* then second call (i_DIM = 1, i_DIM_U = 0, i_DIM_V = 0) */
+  magma_grad_3d_device<CeedScalar, 1, 1, BASIS_NUM_COMP, BASIS_Q, BASIS_P, BASIS_Q, BASIS_P, 1, 0, 0, true>(sTinterp, sTgrad, rU, rV, tx, rTmp, sTmp);
+  /* there is a sync at the end of magma_grad_3d_device */
+
+  /* read U (idim = 2 for dU, i_DIM = 0 for rU) --
+     there is a sync at the end of this function */
+  read_U_3d<CeedScalar, BASIS_Q, 1, BASIS_NUM_COMP, BASIS_Q, 0>(dU + (2 * dstrdU), cstrdU, rU, sTmp, tx);
+  /* then third call (i_DIM = 2, i_DIM_U = 0, i_DIM_V = 0) */
+  magma_grad_3d_device<CeedScalar, 1, 1, BASIS_NUM_COMP, BASIS_Q, BASIS_P, BASIS_Q, BASIS_P, 2, 0, 0, true>(sTinterp, sTgrad, rU, rV, tx, rTmp, sTmp);
+  /* there is a sync at the end of magma_grad_3d_device */
+
+  // sum into V
+  sum_V_3d<CeedScalar, BASIS_P, 1, BASIS_NUM_COMP, BASIS_P, 0>(dV + (0 * dstrdV), cstrdV, rV, tx);
+}

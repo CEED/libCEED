@@ -47,8 +47,10 @@ typedef struct {
   CeedMagmaModule   module;
   CeedMagmaFunction Interp;
   CeedMagmaFunction InterpTranspose;
+  CeedMagmaFunction InterpTransposeAdd;
   CeedMagmaFunction Grad;
   CeedMagmaFunction GradTranspose;
+  CeedMagmaFunction GradTransposeAdd;
   CeedMagmaFunction Weight;
   CeedScalar       *d_interp_1d;
   CeedScalar       *d_grad_1d;
@@ -59,8 +61,10 @@ typedef struct {
   CeedMagmaModule   module[MAGMA_NONTENSOR_KERNEL_INSTANCES];
   CeedMagmaFunction Interp[MAGMA_NONTENSOR_KERNEL_INSTANCES];
   CeedMagmaFunction InterpTranspose[MAGMA_NONTENSOR_KERNEL_INSTANCES];
+  CeedMagmaFunction InterpTransposeAdd[MAGMA_NONTENSOR_KERNEL_INSTANCES];
   CeedMagmaFunction Deriv[MAGMA_NONTENSOR_KERNEL_INSTANCES];
   CeedMagmaFunction DerivTranspose[MAGMA_NONTENSOR_KERNEL_INSTANCES];
+  CeedMagmaFunction DerivTransposeAdd[MAGMA_NONTENSOR_KERNEL_INSTANCES];
   CeedMagmaFunction Weight;
   CeedInt           NB_interp[MAGMA_NONTENSOR_KERNEL_INSTANCES], NB_interp_t[MAGMA_NONTENSOR_KERNEL_INSTANCES];
   CeedInt           NB_deriv[MAGMA_NONTENSOR_KERNEL_INSTANCES], NB_deriv_t[MAGMA_NONTENSOR_KERNEL_INSTANCES];

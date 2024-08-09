@@ -105,6 +105,25 @@ static __device__ __inline__ void write_C_r2g_1D_nosync(const int tx, const int 
 }
 
 ////////////////////////////////////////////////////////////////////////////////
+// sum into C from reg. to global
+// C is (P x NB)
+// 1D thread config. with (P x 1) threads
+// no sync at the end of the function
+template <typename T, int P, int Q, int NB>
+static __device__ __inline__ void sum_C_r2g_1D_nosync(const int tx, const int n, T rC[NB], T *dC) {
+  if (n != NB) {
+    for (int i = 0; i < n; i++) {
+      dC[i * P + tx] += rC[i];
+    }
+  } else {
+#pragma unroll
+    for (int i = 0; i < NB; i++) {
+      dC[i * P + tx] += rC[i];
+    }
+  }
+}
+
+////////////////////////////////////////////////////////////////////////////////
 // multiply C = A x B using 1D threads in P x 1 config
 // A (P x Q)  in reg., one row per thread
 // B (Q x NB) in shared memory

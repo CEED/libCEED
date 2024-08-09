@@ -37,6 +37,18 @@ static __device__ __inline__ void write_1d(T *sBuffer[NUM_COMP], T *devptr, cons
 }
 
 ////////////////////////////////////////////////////////////////////////////////
+// sum into V of a 1D element into global memory from sV[][] --  for all components
+// the devptr is assumed to point directly to the element
+template <typename T, int LENGTH, int NUM_COMP>
+static __device__ __inline__ void sum_1d(T *sBuffer[NUM_COMP], T *devptr, const int compstride, const int tx) {
+  if (tx < LENGTH) {
+    for (int comp = 0; comp < NUM_COMP; comp++) {
+      devptr[comp * compstride + tx] += sBuffer[comp][tx];
+    }
+  }
+}
+
+////////////////////////////////////////////////////////////////////////////////
 // read U of a 2D element into registers rU[][][] --  for all components of a single dim
 // dU is assumed to be offset by elem-stride and dim-stride
 // register is assumed to be rU[DIM_U][NUM_COMP][rU_SIZE]
@@ -108,6 +120,23 @@ static __device__ __inline__ void write_V_2d(T *dV, const int compstride, T rV[D
 }
 
 ////////////////////////////////////////////////////////////////////////////////
+// sum into V of a 2D element from registers rV[][][] to global memory --  for all components of a single dim
+// dV is assumed to be offset by elem-stride and dim-stride
+// register is assumed to be rV[DIM_V][NUM_COMP][rV_SIZE]
+// i_DIM specifies which dimension is being written to in dV
+// rV_SIZE can be different from P (e.g. max(P, Q))
+template <typename T, int Q, int DIM_V, int NUM_COMP, int rV_SIZE, int i_DIM>
+static __device__ __inline__ void sum_V_2d(T *dV, const int compstride, T rV[DIM_V][NUM_COMP][rV_SIZE], const int tx) {
+  if (tx < Q) {
+    for (int comp = 0; comp < NUM_COMP; comp++) {
+      for (int j = 0; j < Q; j++) {
+        dV[comp * compstride + j * Q + tx] += rV[i_DIM][comp][j];
+      }
+    }
+  }
+}
+
+////////////////////////////////////////////////////////////////////////////////
 // read U of a 3D element into registers rU[][][] --  for all components of a single dim
 // dU is assumed to be offset by elem-stride and dim-stride
 // register is assumed to be rU[DIM_U][NUM_COMP][rU_SIZE]
@@ -173,6 +202,23 @@ static __device__ __inline__ void write_V_3d(T *dV, const int compstride, T rV[D
     for (int comp = 0; comp < NUM_COMP; comp++) {
       for (int j = 0; j < Q; j++) {
         dV[comp * compstride + j * (Q * Q) + tx] = rV[i_DIM][comp][j];
+      }
+    }
+  }
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// sum into V of a 3D element from registers rV[][][] to global memory --  for all components of a single dim
+// dV is assumed to point directly to the element (i.e. already offset by elem-stride)
+// register is assumed to be rV[DIM_V][NUM_COMP][rV_SIZE]
+// i_DIM specifies which dimension is being written to in dV
+// rV_SIZE can be different from P (e.g. max(P, Q))
+template <typename T, int Q, int DIM_V, int NUM_COMP, int rV_SIZE, int i_DIM>
+static __device__ __inline__ void sum_V_3d(T *dV, const int compstride, T rV[DIM_V][NUM_COMP][rV_SIZE], const int tx) {
+  if (tx < (Q * Q)) {
+    for (int comp = 0; comp < NUM_COMP; comp++) {
+      for (int j = 0; j < Q; j++) {
+        dV[comp * compstride + j * (Q * Q) + tx] += rV[i_DIM][comp][j];
       }
     }
   }
