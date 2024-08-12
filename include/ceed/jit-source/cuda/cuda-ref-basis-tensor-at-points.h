@@ -124,7 +124,8 @@ extern "C" __global__ void InterpAtPoints(const CeedInt num_elem, const CeedInt 
             CeedScalar    v_k = 0;
 
             for (CeedInt b = 0; b < Q; b++) v_k += s_chebyshev_interp_1d[j + b * BASIS_P_1D] * in[(a * Q + b) * post + c];
-            out[k] = v_k;
+            if (d == BASIS_DIM - 1) out[k] += v_k;
+            else out[k] = v_k;
           }
           post *= P;
         }
@@ -283,7 +284,8 @@ extern "C" __global__ void GradAtPoints(const CeedInt num_elem, const CeedInt is
             CeedScalar    v_k = 0;
 
             for (CeedInt b = 0; b < Q; b++) v_k += s_chebyshev_interp_1d[j + b * BASIS_P_1D] * in[(a * Q + b) * post + c];
-            out[k] = v_k;
+            if (d == BASIS_DIM - 1) out[k] += v_k;
+            else out[k] = v_k;
           }
           post *= P;
         }

@@ -1950,6 +1950,7 @@ int CeedBasisApplyAtPoints(CeedBasis basis, CeedInt num_elem, const CeedInt *num
 **/
 int CeedBasisApplyAddAtPoints(CeedBasis basis, CeedInt num_elem, const CeedInt *num_points, CeedTransposeMode t_mode, CeedEvalMode eval_mode,
                               CeedVector x_ref, CeedVector u, CeedVector v) {
+  CeedCheck(t_mode == CEED_TRANSPOSE, CeedBasisReturnCeed(basis), CEED_ERROR_UNSUPPORTED, "CeedBasisApplyAddAtPoints only supports CEED_TRANSPOSE");
   CeedCall(CeedBasisApplyAtPointsCheckDims(basis, num_elem, num_points, t_mode, eval_mode, x_ref, u, v));
   if (basis->ApplyAddAtPoints) {
     CeedCall(basis->ApplyAddAtPoints(basis, num_elem, num_points, t_mode, eval_mode, x_ref, u, v));
