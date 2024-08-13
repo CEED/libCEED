@@ -132,7 +132,7 @@ typedef struct {
 } CeedOperatorAssemble_Hip;
 
 typedef struct {
-  bool                     *skip_rstr_in;
+  bool                     *skip_rstr_in, *skip_rstr_out, *apply_add_basis_out;
   uint64_t                 *input_states;  // State tracking for passive inputs
   CeedVector               *e_vecs;        // E-vectors, inputs followed by outputs
   CeedVector               *q_vecs_in;     // Input Q-vectors needed to apply operator
