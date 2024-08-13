@@ -21,6 +21,7 @@ typedef struct {
 
 typedef struct {
   bool                 is_identity_qf, is_identity_rstr_op;
+  bool                *skip_rstr_in, *skip_rstr_out, *apply_add_basis_out;
   CeedElemRestriction *block_rstr;   /* Blocked versions of restrictions */
   CeedVector          *e_vecs_full;  /* Full E-vectors, inputs followed by outputs */
   uint64_t            *input_states; /* State counter of inputs */
