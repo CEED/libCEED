@@ -101,7 +101,7 @@ static __device__ __inline__ void magma_basis_nontensor_device_t(const int n, Ce
 
 ////////////////////////////////////////////////////////////////////////////////
 template <typename T, int Q_COMP, int P, int Q, int NB>
-static __device__ __inline__ void magma_basis_nontensor_device_ta(const int n, CeedScalar const *dA, CeedScalar const *dB, CeedScalar *dC,
+static __device__ __inline__ void magma_basis_nontensor_device_ta(const int n, const CeedScalar *dA, const CeedScalar *dB, CeedScalar *dC,
                                                                   CeedScalar *shared_data) {
   const int tx      = threadIdx.x;
   const int ty      = threadIdx.y;
