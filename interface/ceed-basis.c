@@ -1707,6 +1707,8 @@ static int CeedBasisApplyAtPoints_Core(CeedBasis basis, bool apply_add, CeedInt 
 
   CeedCall(CeedBasisGetCeed(basis, &ceed));
   CeedCall(CeedBasisGetDimension(basis, &dim));
+  // Inserting check because clang-tidy doesn't understand this cannot occur
+  CeedCheck(dim > 0, ceed, CEED_ERROR_UNSUPPORTED, "Malformed CeedBasis, dim > 0 is required");
   CeedCall(CeedBasisGetNumNodes1D(basis, &P_1d));
   CeedCall(CeedBasisGetNumQuadraturePoints1D(basis, &Q_1d));
   CeedCall(CeedBasisGetNumComponents(basis, &num_comp));
