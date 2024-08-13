@@ -90,7 +90,7 @@ extern "C" __global__ void InterpTransposeAdd(const CeedInt num_elem, const Ceed
   data.t_id_y = threadIdx.y;
   data.t_id_z = threadIdx.z;
   data.t_id   = threadIdx.x + threadIdx.y * blockDim.x + threadIdx.z * blockDim.y * blockDim.x;
-  data.slice  = &slice[data.t_id_z * T_1D * (BASIS_DIM > 1 ? T_1D : 1)];
+  data.slice  = slice + data.t_id_z * T_1D * (BASIS_DIM > 1 ? T_1D : 1);
 
   CeedScalar r_U[BASIS_NUM_COMP * (BASIS_DIM > 2 ? BASIS_Q_1D : 1)];
   CeedScalar r_V[BASIS_NUM_COMP * (BASIS_DIM > 2 ? BASIS_P_1D : 1)];
@@ -196,7 +196,7 @@ extern "C" __global__ void GradTransposeAdd(const CeedInt num_elem, const CeedSc
   data.t_id_y = threadIdx.y;
   data.t_id_z = threadIdx.z;
   data.t_id   = threadIdx.x + threadIdx.y * blockDim.x + threadIdx.z * blockDim.y * blockDim.x;
-  data.slice  = &slice[data.t_id_z * T_1D * (BASIS_DIM > 1 ? T_1D : 1)];
+  data.slice  = slice + data.t_id_z * T_1D * (BASIS_DIM > 1 ? T_1D : 1);
 
   CeedScalar r_U[BASIS_NUM_COMP * BASIS_DIM * (BASIS_DIM > 2 ? BASIS_Q_1D : 1)];
   CeedScalar r_V[BASIS_NUM_COMP * (BASIS_DIM > 2 ? BASIS_P_1D : 1)];

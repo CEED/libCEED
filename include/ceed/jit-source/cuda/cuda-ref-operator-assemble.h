@@ -24,7 +24,7 @@ extern "C" __launch_bounds__(BLOCK_SIZE) __global__
                         const CeedInt8 *curl_orients_in, const bool *orients_out, const CeedInt8 *curl_orients_out,
                         const CeedScalar *__restrict__ qf_array, CeedScalar *__restrict__ values_array) {
   extern __shared__ CeedScalar s_CT[];
-  CeedScalar                  *s_C = s_CT + NUM_NODES_OUT * NUM_NODES_IN;
+  CeedScalar                  *s_C = &s_CT[NUM_NODES_OUT * NUM_NODES_IN];
 
   const int l = threadIdx.x;  // The output column index of each B^T D B operation
                               // such that we have (Bout^T)_ij D_jk Bin_kl = C_il

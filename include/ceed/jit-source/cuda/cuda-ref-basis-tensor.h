@@ -42,8 +42,8 @@ extern "C" __global__ void Interp(const CeedInt num_elem, const CeedInt is_trans
   // Apply basis element by element
   for (CeedInt elem = blockIdx.x; elem < num_elem; elem += gridDim.x) {
     for (CeedInt comp = 0; comp < BASIS_NUM_COMP; comp++) {
-      const CeedScalar *cur_u = u + elem * u_stride + comp * u_comp_stride;
-      CeedScalar       *cur_v = v + elem * v_stride + comp * v_comp_stride;
+      const CeedScalar *cur_u = &u[elem * u_stride + comp * u_comp_stride];
+      CeedScalar       *cur_v = &v[elem * v_stride + comp * v_comp_stride];
       CeedInt           pre   = u_size;
       CeedInt           post  = 1;
 
@@ -107,8 +107,8 @@ extern "C" __global__ void Grad(const CeedInt num_elem, const CeedInt is_transpo
       for (CeedInt dim_1 = 0; dim_1 < BASIS_DIM; dim_1++) {
         CeedInt           pre   = is_transpose ? BASIS_NUM_QPTS : BASIS_NUM_NODES;
         CeedInt           post  = 1;
-        const CeedScalar *cur_u = u + elem * u_stride + dim_1 * u_dim_stride + comp * u_comp_stride;
-        CeedScalar       *cur_v = v + elem * v_stride + dim_1 * v_dim_stride + comp * v_comp_stride;
+        const CeedScalar *cur_u = &u[elem * u_stride + dim_1 * u_dim_stride + comp * u_comp_stride];
+        CeedScalar       *cur_v = &v[elem * v_stride + dim_1 * v_dim_stride + comp * v_comp_stride];
 
         for (CeedInt dim_2 = 0; dim_2 < BASIS_DIM; dim_2++) {
           __syncthreads();

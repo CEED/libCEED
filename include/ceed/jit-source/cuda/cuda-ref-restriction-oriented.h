@@ -40,7 +40,7 @@ extern "C" __global__ void OrientedTranspose(const CeedInt *__restrict__ indices
     const CeedInt elem     = node / RSTR_ELEM_SIZE;
 
     for (CeedInt comp = 0; comp < RSTR_NUM_COMP; comp++) {
-      atomicAdd(v + ind + comp * RSTR_COMP_STRIDE,
+      atomicAdd(&v[ind + comp * RSTR_COMP_STRIDE],
                 u[loc_node + comp * RSTR_ELEM_SIZE * RSTR_NUM_ELEM + elem * RSTR_ELEM_SIZE] * (orient ? -1.0 : 1.0));
     }
   }
