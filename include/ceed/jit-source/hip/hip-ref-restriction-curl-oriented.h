@@ -80,7 +80,7 @@ extern "C" __global__ void CurlOrientedTranspose(const CeedInt *__restrict__ ind
       value += u[loc_node + comp * RSTR_ELEM_SIZE * RSTR_NUM_ELEM + elem * RSTR_ELEM_SIZE] * curl_orient_d;
       value +=
           loc_node < (RSTR_ELEM_SIZE - 1) ? u[loc_node + 1 + comp * RSTR_ELEM_SIZE * RSTR_NUM_ELEM + elem * RSTR_ELEM_SIZE] * curl_orient_dl : 0.0;
-      atomicAdd(v + ind + comp * RSTR_COMP_STRIDE, value);
+      atomicAdd(&v[ind + comp * RSTR_COMP_STRIDE], value);
     }
   }
 }
@@ -138,7 +138,7 @@ extern "C" __global__ void CurlOrientedUnsignedTranspose(const CeedInt *__restri
       value += u[loc_node + comp * RSTR_ELEM_SIZE * RSTR_NUM_ELEM + elem * RSTR_ELEM_SIZE] * curl_orient_d;
       value +=
           loc_node < (RSTR_ELEM_SIZE - 1) ? u[loc_node + 1 + comp * RSTR_ELEM_SIZE * RSTR_NUM_ELEM + elem * RSTR_ELEM_SIZE] * curl_orient_dl : 0.0;
-      atomicAdd(v + ind + comp * RSTR_COMP_STRIDE, value);
+      atomicAdd(&v[ind + comp * RSTR_COMP_STRIDE], value);
     }
   }
 }

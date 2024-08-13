@@ -17,7 +17,8 @@
 //------------------------------------------------------------------------------
 // Basis apply - tensor
 //------------------------------------------------------------------------------
-int CeedBasisApply_Hip(CeedBasis basis, const CeedInt num_elem, CeedTransposeMode t_mode, CeedEvalMode eval_mode, CeedVector u, CeedVector v) {
+static int CeedBasisApplyCore_Hip(CeedBasis basis, bool apply_add, const CeedInt num_elem, CeedTransposeMode t_mode, CeedEvalMode eval_mode,
+                                  CeedVector u, CeedVector v) {
   Ceed              ceed;
   CeedInt           Q_1d, dim;
   const CeedInt     is_transpose   = t_mode == CEED_TRANSPOSE;
@@ -32,10 +33,11 @@ int CeedBasisApply_Hip(CeedBasis basis, const CeedInt num_elem, CeedTransposeMod
   // Get read/write access to u, v
   if (u != CEED_VECTOR_NONE) CeedCallBackend(CeedVectorGetArrayRead(u, CEED_MEM_DEVICE, &d_u));
   else CeedCheck(eval_mode == CEED_EVAL_WEIGHT, ceed, CEED_ERROR_BACKEND, "An input vector is required for this CeedEvalMode");
-  CeedCallBackend(CeedVectorGetArrayWrite(v, CEED_MEM_DEVICE, &d_v));
+  if (apply_add) CeedCallBackend(CeedVectorGetArray(v, CEED_MEM_DEVICE, &d_v));
+  else CeedCallBackend(CeedVectorGetArrayWrite(v, CEED_MEM_DEVICE, &d_v));
 
   // Clear v for transpose operation
-  if (is_transpose) {
+  if (is_transpose && !apply_add) {
     CeedSize length;
 
     CeedCallBackend(CeedVectorGetLength(v, &length));
@@ -82,11 +84,22 @@ int CeedBasisApply_Hip(CeedBasis basis, const CeedInt num_elem, CeedTransposeMod
   return CEED_ERROR_SUCCESS;
 }
 
+static int CeedBasisApply_Hip(CeedBasis basis, const CeedInt num_elem, CeedTransposeMode t_mode, CeedEvalMode eval_mode, CeedVector u, CeedVector v) {
+  CeedCallBackend(CeedBasisApplyCore_Hip(basis, false, num_elem, t_mode, eval_mode, u, v));
+  return CEED_ERROR_SUCCESS;
+}
+
+static int CeedBasisApplyAdd_Hip(CeedBasis basis, const CeedInt num_elem, CeedTransposeMode t_mode, CeedEvalMode eval_mode, CeedVector u,
+                                 CeedVector v) {
+  CeedCallBackend(CeedBasisApplyCore_Hip(basis, true, num_elem, t_mode, eval_mode, u, v));
+  return CEED_ERROR_SUCCESS;
+}
+
 //------------------------------------------------------------------------------
 // Basis apply - tensor AtPoints
 //------------------------------------------------------------------------------
-int CeedBasisApplyAtPoints_Hip(CeedBasis basis, const CeedInt num_elem, const CeedInt *num_points, CeedTransposeMode t_mode, CeedEvalMode eval_mode,
-                               CeedVector x_ref, CeedVector u, CeedVector v) {
+static int CeedBasisApplyAtPointsCore_Hip(CeedBasis basis, bool apply_add, const CeedInt num_elem, const CeedInt *num_points,
+                                          CeedTransposeMode t_mode, CeedEvalMode eval_mode, CeedVector x_ref, CeedVector u, CeedVector v) {
   Ceed              ceed;
   CeedInt           Q_1d, dim, max_num_points = num_points[0];
   const CeedInt     is_transpose   = t_mode == CEED_TRANSPOSE;
@@ -157,10 +170,11 @@ int CeedBasisApplyAtPoints_Hip(CeedBasis basis, const CeedInt num_elem, const Ce
   CeedCallBackend(CeedVectorGetArrayRead(x_ref, CEED_MEM_DEVICE, &d_x));
   if (u != CEED_VECTOR_NONE) CeedCallBackend(CeedVectorGetArrayRead(u, CEED_MEM_DEVICE, &d_u));
   else CeedCheck(eval_mode == CEED_EVAL_WEIGHT, ceed, CEED_ERROR_BACKEND, "An input vector is required for this CeedEvalMode");
-  CeedCallBackend(CeedVectorGetArrayWrite(v, CEED_MEM_DEVICE, &d_v));
+  if (apply_add) CeedCallBackend(CeedVectorGetArray(v, CEED_MEM_DEVICE, &d_v));
+  else CeedCallBackend(CeedVectorGetArrayWrite(v, CEED_MEM_DEVICE, &d_v));
 
   // Clear v for transpose operation
-  if (is_transpose) {
+  if (is_transpose && !apply_add) {
     CeedSize length;
 
     CeedCallBackend(CeedVectorGetLength(v, &length));
@@ -199,11 +213,23 @@ int CeedBasisApplyAtPoints_Hip(CeedBasis basis, const CeedInt num_elem, const Ce
   return CEED_ERROR_SUCCESS;
 }
 
+static int CeedBasisApplyAtPoints_Hip(CeedBasis basis, const CeedInt num_elem, const CeedInt *num_points, CeedTransposeMode t_mode,
+                                      CeedEvalMode eval_mode, CeedVector x_ref, CeedVector u, CeedVector v) {
+  CeedCallBackend(CeedBasisApplyAtPointsCore_Hip(basis, false, num_elem, num_points, t_mode, eval_mode, x_ref, u, v));
+  return CEED_ERROR_SUCCESS;
+}
+
+static int CeedBasisApplyAddAtPoints_Hip(CeedBasis basis, const CeedInt num_elem, const CeedInt *num_points, CeedTransposeMode t_mode,
+                                         CeedEvalMode eval_mode, CeedVector x_ref, CeedVector u, CeedVector v) {
+  CeedCallBackend(CeedBasisApplyAtPointsCore_Hip(basis, true, num_elem, num_points, t_mode, eval_mode, x_ref, u, v));
+  return CEED_ERROR_SUCCESS;
+}
+
 //------------------------------------------------------------------------------
 // Basis apply - non-tensor
 //------------------------------------------------------------------------------
-int CeedBasisApplyNonTensor_Hip(CeedBasis basis, const CeedInt num_elem, CeedTransposeMode t_mode, CeedEvalMode eval_mode, CeedVector u,
-                                CeedVector v) {
+static int CeedBasisApplyNonTensorCore_Hip(CeedBasis basis, bool apply_add, const CeedInt num_elem, CeedTransposeMode t_mode, CeedEvalMode eval_mode,
+                                           CeedVector u, CeedVector v) {
   Ceed                    ceed;
   CeedInt                 num_nodes, num_qpts;
   const CeedInt           is_transpose    = t_mode == CEED_TRANSPOSE;
@@ -221,10 +247,11 @@ int CeedBasisApplyNonTensor_Hip(CeedBasis basis, const CeedInt num_elem, CeedTra
   // Get read/write access to u, v
   if (u != CEED_VECTOR_NONE) CeedCallBackend(CeedVectorGetArrayRead(u, CEED_MEM_DEVICE, &d_u));
   else CeedCheck(eval_mode == CEED_EVAL_WEIGHT, ceed, CEED_ERROR_BACKEND, "An input vector is required for this CeedEvalMode");
-  CeedCallBackend(CeedVectorGetArrayWrite(v, CEED_MEM_DEVICE, &d_v));
+  if (apply_add) CeedCallBackend(CeedVectorGetArray(v, CEED_MEM_DEVICE, &d_v));
+  else CeedCallBackend(CeedVectorGetArrayWrite(v, CEED_MEM_DEVICE, &d_v));
 
   // Clear v for transpose operation
-  if (is_transpose) {
+  if (is_transpose && !apply_add) {
     CeedSize length;
 
     CeedCallBackend(CeedVectorGetLength(v, &length));
@@ -287,6 +314,18 @@ int CeedBasisApplyNonTensor_Hip(CeedBasis basis, const CeedInt num_elem, CeedTra
   CeedCallBackend(CeedVectorRestoreArray(v, &d_v));
   if (eval_mode == CEED_EVAL_NONE) CeedCallBackend(CeedVectorSetArray(v, CEED_MEM_DEVICE, CEED_COPY_VALUES, (CeedScalar *)d_u));
   if (eval_mode != CEED_EVAL_WEIGHT) CeedCallBackend(CeedVectorRestoreArrayRead(u, &d_u));
+  return CEED_ERROR_SUCCESS;
+}
+
+static int CeedBasisApplyNonTensor_Hip(CeedBasis basis, const CeedInt num_elem, CeedTransposeMode t_mode, CeedEvalMode eval_mode, CeedVector u,
+                                       CeedVector v) {
+  CeedCallBackend(CeedBasisApplyNonTensorCore_Hip(basis, false, num_elem, t_mode, eval_mode, u, v));
+  return CEED_ERROR_SUCCESS;
+}
+
+static int CeedBasisApplyAddNonTensor_Hip(CeedBasis basis, const CeedInt num_elem, CeedTransposeMode t_mode, CeedEvalMode eval_mode, CeedVector u,
+                                          CeedVector v) {
+  CeedCallBackend(CeedBasisApplyNonTensorCore_Hip(basis, true, num_elem, t_mode, eval_mode, u, v));
   return CEED_ERROR_SUCCESS;
 }
 
@@ -373,7 +412,9 @@ int CeedBasisCreateTensorH1_Hip(CeedInt dim, CeedInt P_1d, CeedInt Q_1d, const C
 
   // Register backend functions
   CeedCallBackend(CeedSetBackendFunction(ceed, "Basis", basis, "Apply", CeedBasisApply_Hip));
+  CeedCallBackend(CeedSetBackendFunction(ceed, "Basis", basis, "ApplyAdd", CeedBasisApplyAdd_Hip));
   CeedCallBackend(CeedSetBackendFunction(ceed, "Basis", basis, "ApplyAtPoints", CeedBasisApplyAtPoints_Hip));
+  CeedCallBackend(CeedSetBackendFunction(ceed, "Basis", basis, "ApplyAddAtPoints", CeedBasisApplyAddAtPoints_Hip));
   CeedCallBackend(CeedSetBackendFunction(ceed, "Basis", basis, "Destroy", CeedBasisDestroy_Hip));
   return CEED_ERROR_SUCCESS;
 }
@@ -433,6 +474,7 @@ int CeedBasisCreateH1_Hip(CeedElemTopology topo, CeedInt dim, CeedInt num_nodes,
 
   // Register backend functions
   CeedCallBackend(CeedSetBackendFunction(ceed, "Basis", basis, "Apply", CeedBasisApplyNonTensor_Hip));
+  CeedCallBackend(CeedSetBackendFunction(ceed, "Basis", basis, "ApplyAdd", CeedBasisApplyAddNonTensor_Hip));
   CeedCallBackend(CeedSetBackendFunction(ceed, "Basis", basis, "Destroy", CeedBasisDestroyNonTensor_Hip));
   return CEED_ERROR_SUCCESS;
 }
@@ -492,6 +534,7 @@ int CeedBasisCreateHdiv_Hip(CeedElemTopology topo, CeedInt dim, CeedInt num_node
 
   // Register backend functions
   CeedCallBackend(CeedSetBackendFunction(ceed, "Basis", basis, "Apply", CeedBasisApplyNonTensor_Hip));
+  CeedCallBackend(CeedSetBackendFunction(ceed, "Basis", basis, "ApplyAdd", CeedBasisApplyAddNonTensor_Hip));
   CeedCallBackend(CeedSetBackendFunction(ceed, "Basis", basis, "Destroy", CeedBasisDestroyNonTensor_Hip));
   return CEED_ERROR_SUCCESS;
 }
@@ -551,6 +594,7 @@ int CeedBasisCreateHcurl_Hip(CeedElemTopology topo, CeedInt dim, CeedInt num_nod
 
   // Register backend functions
   CeedCallBackend(CeedSetBackendFunction(ceed, "Basis", basis, "Apply", CeedBasisApplyNonTensor_Hip));
+  CeedCallBackend(CeedSetBackendFunction(ceed, "Basis", basis, "ApplyAdd", CeedBasisApplyAddNonTensor_Hip));
   CeedCallBackend(CeedSetBackendFunction(ceed, "Basis", basis, "Destroy", CeedBasisDestroyNonTensor_Hip));
   return CEED_ERROR_SUCCESS;
 }

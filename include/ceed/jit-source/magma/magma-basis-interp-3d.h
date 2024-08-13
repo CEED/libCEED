@@ -172,3 +172,44 @@ extern "C" __launch_bounds__(MAGMA_BASIS_BOUNDS(BASIS_MAX_P_Q *BASIS_MAX_P_Q, MA
   // write V
   write_V_3d<CeedScalar, BASIS_P, 1, BASIS_NUM_COMP, BASIS_P, 0>(dV, cstrdV, rV, tx);
 }
+
+////////////////////////////////////////////////////////////////////////////////
+extern "C" __launch_bounds__(MAGMA_BASIS_BOUNDS(BASIS_MAX_P_Q *BASIS_MAX_P_Q, MAGMA_MAXTHREADS_3D)) __global__
+    void magma_interpta_3d_kernel(const CeedScalar *dT, const CeedScalar *dU, const int estrdU, const int cstrdU, CeedScalar *dV, const int estrdV,
+                                  const int cstrdV, const int nelem) {
+  MAGMA_DEVICE_SHARED(CeedScalar, shared_data)
+
+  const int tx      = threadIdx.x;
+  const int ty      = threadIdx.y;
+  const int elem_id = (blockIdx.x * blockDim.y) + ty;
+
+  if (elem_id >= nelem) return;
+
+  CeedScalar rU[1][BASIS_NUM_COMP][BASIS_Q] = {0.0};  // for a non-fused operator BASIS_DIM is always 1
+  CeedScalar rV[1][BASIS_NUM_COMP][BASIS_P] = {0.0};  // for a non-fused operator BASIS_DIM is always 1
+  CeedScalar rTmp[BASIS_P]                  = {0.0};
+
+  // shift global memory pointers by elem stride
+  dU += elem_id * estrdU;
+  dV += elem_id * estrdV;
+
+  // assign shared memory pointers
+  CeedScalar *sT   = (CeedScalar *)shared_data;
+  CeedScalar *sTmp = sT + BASIS_Q * BASIS_P;
+  sTmp += ty * (max(BASIS_Q * BASIS_Q * BASIS_MAX_P_Q, BASIS_Q * BASIS_P * BASIS_P));
+
+  // read T
+  if (ty == 0) {
+    read_T_trans_gm2sm<BASIS_Q, BASIS_P>(tx, dT, sT);
+  }
+
+  // read U (idim = 0 for dU, i_DIM = 0 for rU, u_dimstride is always 0)
+  read_U_3d<CeedScalar, BASIS_Q, 1, BASIS_NUM_COMP, BASIS_Q, 0>(dU, cstrdU, rU, sTmp, tx);
+  // there is a sync at the end of this function
+
+  magma_interp_3d_device<CeedScalar, 1, 1, BASIS_NUM_COMP, BASIS_Q, BASIS_P, BASIS_Q, BASIS_P>(sT, rU, rV, tx, rTmp, sTmp);
+  __syncthreads();
+
+  // sum into V
+  sum_V_3d<CeedScalar, BASIS_P, 1, BASIS_NUM_COMP, BASIS_P, 0>(dV, cstrdV, rV, tx);
+}

@@ -46,6 +46,19 @@ inline __device__ void WriteElementStrided1d(SharedData_Cuda &data, const CeedIn
   }
 }
 
+template <int NUM_COMP, int P_1D>
+inline __device__ void SumElementStrided1d(SharedData_Cuda &data, const CeedInt elem, const CeedInt strides_node, const CeedInt strides_comp,
+                                           const CeedInt strides_elem, const CeedScalar *r_v, CeedScalar *d_v) {
+  if (data.t_id_x < P_1D) {
+    const CeedInt node = data.t_id_x;
+    const CeedInt ind  = node * strides_node + elem * strides_elem;
+
+    for (CeedInt comp = 0; comp < NUM_COMP; comp++) {
+      d_v[ind + comp * strides_comp] += r_v[comp];
+    }
+  }
+}
+
 //------------------------------------------------------------------------------
 // 2D
 //------------------------------------------------------------------------------
@@ -78,6 +91,19 @@ inline __device__ void WriteElementStrided2d(SharedData_Cuda &data, const CeedIn
 
     for (CeedInt comp = 0; comp < NUM_COMP; comp++) {
       d_v[ind + comp * strides_comp] = r_v[comp];
+    }
+  }
+}
+
+template <int NUM_COMP, int P_1D>
+inline __device__ void SumElementStrided2d(SharedData_Cuda &data, const CeedInt elem, const CeedInt strides_node, const CeedInt strides_comp,
+                                           const CeedInt strides_elem, const CeedScalar *r_v, CeedScalar *d_v) {
+  if (data.t_id_x < P_1D && data.t_id_y < P_1D) {
+    const CeedInt node = data.t_id_x + data.t_id_y * P_1D;
+    const CeedInt ind  = node * strides_node + elem * strides_elem;
+
+    for (CeedInt comp = 0; comp < NUM_COMP; comp++) {
+      d_v[ind + comp * strides_comp] += r_v[comp];
     }
   }
 }
@@ -117,6 +143,21 @@ inline __device__ void WriteElementStrided3d(SharedData_Cuda &data, const CeedIn
 
       for (CeedInt comp = 0; comp < NUM_COMP; comp++) {
         d_v[ind + comp * strides_comp] = r_v[z + comp * P_1D];
+      }
+    }
+  }
+}
+
+template <int NUM_COMP, int P_1D>
+inline __device__ void SumElementStrided3d(SharedData_Cuda &data, const CeedInt elem, const CeedInt strides_node, const CeedInt strides_comp,
+                                           const CeedInt strides_elem, const CeedScalar *r_v, CeedScalar *d_v) {
+  if (data.t_id_x < P_1D && data.t_id_y < P_1D) {
+    for (CeedInt z = 0; z < P_1D; z++) {
+      const CeedInt node = data.t_id_x + data.t_id_y * P_1D + z * P_1D * P_1D;
+      const CeedInt ind  = node * strides_node + elem * strides_elem;
+
+      for (CeedInt comp = 0; comp < NUM_COMP; comp++) {
+        d_v[ind + comp * strides_comp] += r_v[z + comp * P_1D];
       }
     }
   }

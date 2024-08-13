@@ -24,7 +24,7 @@ inline __device__ void Contract(const CeedInt elem, const CeedInt strides_elem_U
 
   for (CeedInt comp = 0; comp < NUM_COMP; comp++) {
     // Run with Q threads
-    U = d_U + elem * strides_elem_U + comp * strides_comp_U;
+    U = &d_U[elem * strides_elem_U + comp * strides_comp_U];
     for (CeedInt d = 0; d < Q_COMP; d++) r_V[d] = 0.0;
     for (CeedInt i = 0; i < P; i++) {
       const CeedScalar val = U[i];
@@ -53,9 +53,9 @@ inline __device__ void ContractTranspose(const CeedInt elem, const CeedInt strid
     // Run with P threads
     r_V = 0.0;
     for (CeedInt d = 0; d < Q_COMP; d++) {
-      U = d_U + elem * strides_elem_U + comp * strides_comp_U + d * strides_q_comp_U;
+      U = &d_U[elem * strides_elem_U + comp * strides_comp_U + d * strides_q_comp_U];
       for (CeedInt i = 0; i < Q; i++) r_V += d_B[t_id + i * P + d * P * Q] * U[i];
     }
-    d_V[elem * strides_elem_V + comp * strides_comp_V + t_id] = r_V;
+    d_V[elem * strides_elem_V + comp * strides_comp_V + t_id] += r_V;
   }
 }

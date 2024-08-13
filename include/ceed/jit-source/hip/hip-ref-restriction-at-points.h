@@ -23,7 +23,7 @@ extern "C" __global__ void AtPointsTranspose(const CeedInt *__restrict__ indices
 
     if (loc_node >= points_per_elem[elem]) continue;
     for (CeedInt comp = 0; comp < RSTR_NUM_COMP; comp++) {
-      atomicAdd(v + ind + comp * RSTR_COMP_STRIDE, u[loc_node + comp * RSTR_ELEM_SIZE * RSTR_NUM_ELEM + elem * RSTR_ELEM_SIZE]);
+      atomicAdd(&v[ind + comp * RSTR_COMP_STRIDE], u[loc_node + comp * RSTR_ELEM_SIZE * RSTR_NUM_ELEM + elem * RSTR_ELEM_SIZE]);
     }
   }
 }

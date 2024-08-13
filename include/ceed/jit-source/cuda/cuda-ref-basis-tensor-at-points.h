@@ -67,8 +67,8 @@ extern "C" __global__ void InterpAtPoints(const CeedInt num_elem, const CeedInt 
   if (is_transpose) {
     for (CeedInt elem = blockIdx.x; elem < num_elem; elem += gridDim.x) {
       for (CeedInt comp = 0; comp < BASIS_NUM_COMP; comp++) {
-        const CeedScalar *cur_u = u + elem * u_stride + comp * u_comp_stride;
-        CeedScalar       *cur_v = v + elem * v_stride + comp * v_comp_stride;
+        const CeedScalar *cur_u = &u[elem * u_stride + comp * u_comp_stride];
+        CeedScalar       *cur_v = &v[elem * v_stride + comp * v_comp_stride];
         CeedInt           pre   = 1;
         CeedInt           post  = 1;
 
@@ -85,7 +85,7 @@ extern "C" __global__ void InterpAtPoints(const CeedInt num_elem, const CeedInt 
           for (CeedInt d = 0; d < BASIS_DIM; d++) {
             // Update buffers used
             pre /= 1;
-            const CeedScalar *in  = d == 0 ? (cur_u + p) : (d % 2 ? buffer_2 : buffer_1);
+            const CeedScalar *in  = d == 0 ? (&cur_u[p]) : (d % 2 ? buffer_2 : buffer_1);
             CeedScalar       *out = d == BASIS_DIM - 1 ? s_chebyshev_coeffs : (d % 2 ? buffer_1 : buffer_2);
 
             // Build Chebyshev polynomial values
@@ -124,7 +124,8 @@ extern "C" __global__ void InterpAtPoints(const CeedInt num_elem, const CeedInt 
             CeedScalar    v_k = 0;
 
             for (CeedInt b = 0; b < Q; b++) v_k += s_chebyshev_interp_1d[j + b * BASIS_P_1D] * in[(a * Q + b) * post + c];
-            out[k] = v_k;
+            if (d == BASIS_DIM - 1) out[k] += v_k;
+            else out[k] = v_k;
           }
           post *= P;
         }
@@ -133,8 +134,8 @@ extern "C" __global__ void InterpAtPoints(const CeedInt num_elem, const CeedInt 
   } else {
     for (CeedInt elem = blockIdx.x; elem < num_elem; elem += gridDim.x) {
       for (CeedInt comp = 0; comp < BASIS_NUM_COMP; comp++) {
-        const CeedScalar *cur_u = u + elem * u_stride + comp * u_comp_stride;
-        CeedScalar       *cur_v = v + elem * v_stride + comp * v_comp_stride;
+        const CeedScalar *cur_u = &u[elem * u_stride + comp * u_comp_stride];
+        CeedScalar       *cur_v = &v[elem * v_stride + comp * v_comp_stride];
         CeedInt           pre   = u_size;
         CeedInt           post  = 1;
 
@@ -169,7 +170,7 @@ extern "C" __global__ void InterpAtPoints(const CeedInt num_elem, const CeedInt 
             // Update buffers used
             pre /= Q;
             const CeedScalar *in  = d == 0 ? s_chebyshev_coeffs : (d % 2 ? buffer_2 : buffer_1);
-            CeedScalar       *out = d == BASIS_DIM - 1 ? (cur_v + p) : (d % 2 ? buffer_1 : buffer_2);
+            CeedScalar       *out = d == BASIS_DIM - 1 ? (&cur_v[p]) : (d % 2 ? buffer_1 : buffer_2);
 
             // Build Chebyshev polynomial values
             ChebyshevPolynomialsAtPoint<BASIS_Q_1D>(coords[elem * v_stride + d * v_comp_stride + p], chebyshev_x);
@@ -222,7 +223,7 @@ extern "C" __global__ void GradAtPoints(const CeedInt num_elem, const CeedInt is
   if (is_transpose) {
     for (CeedInt elem = blockIdx.x; elem < num_elem; elem += gridDim.x) {
       for (CeedInt comp = 0; comp < BASIS_NUM_COMP; comp++) {
-        CeedScalar *cur_v = v + elem * v_stride + comp * v_comp_stride;
+        CeedScalar *cur_v = &v[elem * v_stride + comp * v_comp_stride];
         CeedInt     pre   = 1;
         CeedInt     post  = 1;
 
@@ -235,7 +236,7 @@ extern "C" __global__ void GradAtPoints(const CeedInt num_elem, const CeedInt is
         __syncthreads();
         for (CeedInt p = threadIdx.x; p < BASIS_NUM_PTS; p += blockDim.x) {
           for (CeedInt dim_1 = 0; dim_1 < BASIS_DIM; dim_1++) {
-            const CeedScalar *cur_u = u + elem * u_stride + dim_1 * u_dim_stride + comp * u_comp_stride;
+            const CeedScalar *cur_u = &u[elem * u_stride + dim_1 * u_dim_stride + comp * u_comp_stride];
 
             pre  = 1;
             post = 1;
@@ -283,7 +284,8 @@ extern "C" __global__ void GradAtPoints(const CeedInt num_elem, const CeedInt is
             CeedScalar    v_k = 0;
 
             for (CeedInt b = 0; b < Q; b++) v_k += s_chebyshev_interp_1d[j + b * BASIS_P_1D] * in[(a * Q + b) * post + c];
-            out[k] = v_k;
+            if (d == BASIS_DIM - 1) out[k] += v_k;
+            else out[k] = v_k;
           }
           post *= P;
         }
@@ -292,7 +294,7 @@ extern "C" __global__ void GradAtPoints(const CeedInt num_elem, const CeedInt is
   } else {
     for (CeedInt elem = blockIdx.x; elem < num_elem; elem += gridDim.x) {
       for (CeedInt comp = 0; comp < BASIS_NUM_COMP; comp++) {
-        const CeedScalar *cur_u = u + elem * u_stride + comp * u_comp_stride;
+        const CeedScalar *cur_u = &u[elem * u_stride + comp * u_comp_stride];
         CeedInt           pre   = u_size;
         CeedInt           post  = 1;
 
@@ -322,7 +324,7 @@ extern "C" __global__ void GradAtPoints(const CeedInt num_elem, const CeedInt is
         __syncthreads();
         for (CeedInt p = threadIdx.x; p < BASIS_NUM_PTS; p += blockDim.x) {
           for (CeedInt dim_1 = 0; dim_1 < BASIS_DIM; dim_1++) {
-            CeedScalar *cur_v = v + elem * v_stride + dim_1 * v_dim_stride + comp * v_comp_stride;
+            CeedScalar *cur_v = &v[elem * v_stride + dim_1 * v_dim_stride + comp * v_comp_stride];
 
             pre  = BASIS_NUM_QPTS;
             post = 1;

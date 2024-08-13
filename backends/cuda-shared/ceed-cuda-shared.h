@@ -14,8 +14,10 @@ typedef struct {
   CUmodule    module;
   CUfunction  Interp;
   CUfunction  InterpTranspose;
+  CUfunction  InterpTransposeAdd;
   CUfunction  Grad;
   CUfunction  GradTranspose;
+  CUfunction  GradTransposeAdd;
   CUfunction  Weight;
   CUmodule    moduleAtPoints;
   CeedInt     num_points;

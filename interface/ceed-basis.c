@@ -1486,7 +1486,7 @@ int CeedBasisView(CeedBasis basis, FILE *stream) {
 }
 
 /**
-  @brief Apply basis evaluation from nodes to quadrature points or vice versa
+  @brief Check input vector dimensions for CeedBasisApply[Add]
 
   @param[in]  basis     `CeedBasis` to evaluate
   @param[in]  num_elem  The number of elements to apply the basis evaluation to;
@@ -1504,9 +1504,9 @@ int CeedBasisView(CeedBasis basis, FILE *stream) {
 
   @return An error code: 0 - success, otherwise - failure
 
-  @ref User
+  @ref Developer
 **/
-int CeedBasisApply(CeedBasis basis, CeedInt num_elem, CeedTransposeMode t_mode, CeedEvalMode eval_mode, CeedVector u, CeedVector v) {
+static int CeedBasisApplyCheckDims(CeedBasis basis, CeedInt num_elem, CeedTransposeMode t_mode, CeedEvalMode eval_mode, CeedVector u, CeedVector v) {
   CeedInt  dim, num_comp, q_comp, num_nodes, num_qpts;
   CeedSize u_length = 0, v_length;
   Ceed     ceed;
@@ -1519,8 +1519,6 @@ int CeedBasisApply(CeedBasis basis, CeedInt num_elem, CeedTransposeMode t_mode, 
   CeedCall(CeedBasisGetNumQuadraturePoints(basis, &num_qpts));
   CeedCall(CeedVectorGetLength(v, &v_length));
   if (u) CeedCall(CeedVectorGetLength(u, &u_length));
-
-  CeedCheck(basis->Apply, ceed, CEED_ERROR_UNSUPPORTED, "Backend does not support CeedBasisApply");
 
   // Check compatibility of topological and geometrical dimensions
   CeedCheck((t_mode == CEED_TRANSPOSE && v_length % num_nodes == 0 && u_length % num_qpts == 0) ||
@@ -1544,13 +1542,68 @@ int CeedBasisApply(CeedBasis basis, CeedInt num_elem, CeedTransposeMode t_mode, 
       break;
   }
   CeedCheck(has_good_dims, ceed, CEED_ERROR_DIMENSION, "Input/output vectors too short for basis and evaluation mode");
+  return CEED_ERROR_SUCCESS;
+}
 
+/**
+  @brief Apply basis evaluation from nodes to quadrature points or vice versa
+
+  @param[in]  basis     `CeedBasis` to evaluate
+  @param[in]  num_elem  The number of elements to apply the basis evaluation to;
+                          the backend will specify the ordering in @ref CeedElemRestrictionCreate()
+  @param[in]  t_mode    @ref CEED_NOTRANSPOSE to evaluate from nodes to quadrature points;
+                          @ref CEED_TRANSPOSE to apply the transpose, mapping from quadrature points to nodes
+  @param[in]  eval_mode @ref CEED_EVAL_NONE to use values directly,
+                          @ref CEED_EVAL_INTERP to use interpolated values,
+                          @ref CEED_EVAL_GRAD to use gradients,
+                          @ref CEED_EVAL_DIV to use divergence,
+                          @ref CEED_EVAL_CURL to use curl,
+                          @ref CEED_EVAL_WEIGHT to use quadrature weights
+  @param[in]  u         Input `CeedVector`
+  @param[out] v         Output `CeedVector`
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref User
+**/
+int CeedBasisApply(CeedBasis basis, CeedInt num_elem, CeedTransposeMode t_mode, CeedEvalMode eval_mode, CeedVector u, CeedVector v) {
+  CeedCall(CeedBasisApplyCheckDims(basis, num_elem, t_mode, eval_mode, u, v));
+  CeedCheck(basis->Apply, CeedBasisReturnCeed(basis), CEED_ERROR_UNSUPPORTED, "Backend does not support CeedBasisApply");
   CeedCall(basis->Apply(basis, num_elem, t_mode, eval_mode, u, v));
   return CEED_ERROR_SUCCESS;
 }
 
 /**
-  @brief Apply basis evaluation from nodes to arbitrary points
+  @brief Apply basis evaluation from quadrature points to nodes and sum into target vector
+
+  @param[in]  basis     `CeedBasis` to evaluate
+  @param[in]  num_elem  The number of elements to apply the basis evaluation to;
+                          the backend will specify the ordering in @ref CeedElemRestrictionCreate()
+  @param[in]  t_mode    @ref CEED_TRANSPOSE to apply the transpose, mapping from quadrature points to nodes;
+                           @ref CEED_NOTRANSPOSE is not valid for `CeedBasisApplyAdd()`
+  @param[in]  eval_mode @ref CEED_EVAL_NONE to use values directly,
+                          @ref CEED_EVAL_INTERP to use interpolated values,
+                          @ref CEED_EVAL_GRAD to use gradients,
+                          @ref CEED_EVAL_DIV to use divergence,
+                          @ref CEED_EVAL_CURL to use curl,
+                          @ref CEED_EVAL_WEIGHT to use quadrature weights
+  @param[in]  u         Input `CeedVector`
+  @param[out] v         Output `CeedVector` to sum into
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref User
+**/
+int CeedBasisApplyAdd(CeedBasis basis, CeedInt num_elem, CeedTransposeMode t_mode, CeedEvalMode eval_mode, CeedVector u, CeedVector v) {
+  CeedCheck(t_mode == CEED_TRANSPOSE, CeedBasisReturnCeed(basis), CEED_ERROR_UNSUPPORTED, "CeedBasisApplyAdd only supports CEED_TRANSPOSE");
+  CeedCall(CeedBasisApplyCheckDims(basis, num_elem, t_mode, eval_mode, u, v));
+  CeedCheck(basis->ApplyAdd, CeedBasisReturnCeed(basis), CEED_ERROR_UNSUPPORTED, "Backend does not implement CeedBasisApplyAdd");
+  CeedCall(basis->ApplyAdd(basis, num_elem, t_mode, eval_mode, u, v));
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
+  @brief Check input vector dimensions for CeedBasisApply[Add]AtPoints
 
   @param[in]  basis      `CeedBasis` to evaluate
   @param[in]  num_elem   The number of elements to apply the basis evaluation to;
@@ -1567,11 +1620,10 @@ int CeedBasisApply(CeedBasis basis, CeedInt num_elem, CeedTransposeMode t_mode, 
 
   @return An error code: 0 - success, otherwise - failure
 
-  @ref User
+  @ref Developer
 **/
-int CeedBasisApplyAtPoints(CeedBasis basis, CeedInt num_elem, const CeedInt *num_points, CeedTransposeMode t_mode, CeedEvalMode eval_mode,
-                           CeedVector x_ref, CeedVector u, CeedVector v) {
-  bool     is_tensor_basis;
+static int CeedBasisApplyAtPointsCheckDims(CeedBasis basis, CeedInt num_elem, const CeedInt *num_points, CeedTransposeMode t_mode,
+                                           CeedEvalMode eval_mode, CeedVector x_ref, CeedVector u, CeedVector v) {
   CeedInt  dim, num_comp, num_q_comp, num_nodes, P_1d = 1, Q_1d = 1, total_num_points = 0;
   CeedSize x_length = 0, u_length = 0, v_length;
   Ceed     ceed;
@@ -1624,16 +1676,50 @@ int CeedBasisApplyAtPoints(CeedBasis basis, CeedInt num_elem, const CeedInt *num
       // LCOV_EXCL_STOP
   }
   CeedCheck(has_good_dims, ceed, CEED_ERROR_DIMENSION, "Input/output vectors too short for basis and evaluation mode");
+  return CEED_ERROR_SUCCESS;
+}
 
-  // Backend method
-  if (basis->ApplyAtPoints) {
-    CeedCall(basis->ApplyAtPoints(basis, num_elem, num_points, t_mode, eval_mode, x_ref, u, v));
-    return CEED_ERROR_SUCCESS;
-  }
+/**
+  @brief Default implimentation to apply basis evaluation from nodes to arbitrary points
+
+  @param[in]  basis      `CeedBasis` to evaluate
+  @param[in]  apply_add  Sum result into target vector or overwrite
+  @param[in]  num_elem   The number of elements to apply the basis evaluation to;
+                          the backend will specify the ordering in @ref CeedElemRestrictionCreate()
+  @param[in]  num_points Array of the number of points to apply the basis evaluation to in each element, size `num_elem`
+  @param[in]  t_mode     @ref CEED_NOTRANSPOSE to evaluate from nodes to points;
+                           @ref CEED_TRANSPOSE to apply the transpose, mapping from points to nodes
+  @param[in]  eval_mode  @ref CEED_EVAL_INTERP to use interpolated values,
+                           @ref CEED_EVAL_GRAD to use gradients,
+                           @ref CEED_EVAL_WEIGHT to use quadrature weights
+  @param[in]  x_ref      `CeedVector` holding reference coordinates of each point
+  @param[in]  u          Input `CeedVector`, of length `num_nodes * num_comp` for @ref CEED_NOTRANSPOSE
+  @param[out] v          Output `CeedVector`, of length `num_points * num_q_comp` for @ref CEED_NOTRANSPOSE with @ref CEED_EVAL_INTERP
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref Developer
+**/
+static int CeedBasisApplyAtPoints_Core(CeedBasis basis, bool apply_add, CeedInt num_elem, const CeedInt *num_points, CeedTransposeMode t_mode,
+                                       CeedEvalMode eval_mode, CeedVector x_ref, CeedVector u, CeedVector v) {
+  CeedInt dim, num_comp, P_1d = 1, Q_1d = 1, total_num_points = num_points[0];
+  Ceed    ceed;
+
+  CeedCall(CeedBasisGetCeed(basis, &ceed));
+  CeedCall(CeedBasisGetDimension(basis, &dim));
+  // Inserting check because clang-tidy doesn't understand this cannot occur
+  CeedCheck(dim > 0, ceed, CEED_ERROR_UNSUPPORTED, "Malformed CeedBasis, dim > 0 is required");
+  CeedCall(CeedBasisGetNumNodes1D(basis, &P_1d));
+  CeedCall(CeedBasisGetNumQuadraturePoints1D(basis, &Q_1d));
+  CeedCall(CeedBasisGetNumComponents(basis, &num_comp));
 
   // Default implementation
-  CeedCall(CeedBasisIsTensor(basis, &is_tensor_basis));
-  CeedCheck(is_tensor_basis, ceed, CEED_ERROR_UNSUPPORTED, "Evaluation at arbitrary points only supported for tensor product bases");
+  {
+    bool is_tensor_basis;
+
+    CeedCall(CeedBasisIsTensor(basis, &is_tensor_basis));
+    CeedCheck(is_tensor_basis, ceed, CEED_ERROR_UNSUPPORTED, "Evaluation at arbitrary points only supported for tensor product bases");
+  }
   CeedCheck(num_elem == 1, ceed, CEED_ERROR_UNSUPPORTED, "Evaluation at arbitrary  points only supported for a single element at a time");
   if (eval_mode == CEED_EVAL_WEIGHT) {
     CeedCall(CeedVectorSetValue(v, 1.0));
@@ -1805,9 +1891,73 @@ int CeedBasisApplyAtPoints(CeedBasis basis, CeedInt num_elem, const CeedInt *num
       CeedCall(CeedVectorRestoreArrayRead(u, &u_array));
 
       // -- Interpolate transpose from Chebyshev coefficients
-      CeedCall(CeedBasisApply(basis->basis_chebyshev, 1, CEED_TRANSPOSE, CEED_EVAL_INTERP, basis->vec_chebyshev, v));
+      if (apply_add) CeedCall(CeedBasisApplyAdd(basis->basis_chebyshev, 1, CEED_TRANSPOSE, CEED_EVAL_INTERP, basis->vec_chebyshev, v));
+      else CeedCall(CeedBasisApply(basis->basis_chebyshev, 1, CEED_TRANSPOSE, CEED_EVAL_INTERP, basis->vec_chebyshev, v));
       break;
     }
+  }
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
+  @brief Apply basis evaluation from nodes to arbitrary points
+
+  @param[in]  basis      `CeedBasis` to evaluate
+  @param[in]  num_elem   The number of elements to apply the basis evaluation to;
+                          the backend will specify the ordering in @ref CeedElemRestrictionCreate()
+  @param[in]  num_points Array of the number of points to apply the basis evaluation to in each element, size `num_elem`
+  @param[in]  t_mode     @ref CEED_NOTRANSPOSE to evaluate from nodes to points;
+                           @ref CEED_TRANSPOSE to apply the transpose, mapping from points to nodes
+  @param[in]  eval_mode  @ref CEED_EVAL_INTERP to use interpolated values,
+                           @ref CEED_EVAL_GRAD to use gradients,
+                           @ref CEED_EVAL_WEIGHT to use quadrature weights
+  @param[in]  x_ref      `CeedVector` holding reference coordinates of each point
+  @param[in]  u          Input `CeedVector`, of length `num_nodes * num_comp` for @ref CEED_NOTRANSPOSE
+  @param[out] v          Output `CeedVector`, of length `num_points * num_q_comp` for @ref CEED_NOTRANSPOSE with @ref CEED_EVAL_INTERP
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref User
+**/
+int CeedBasisApplyAtPoints(CeedBasis basis, CeedInt num_elem, const CeedInt *num_points, CeedTransposeMode t_mode, CeedEvalMode eval_mode,
+                           CeedVector x_ref, CeedVector u, CeedVector v) {
+  CeedCall(CeedBasisApplyAtPointsCheckDims(basis, num_elem, num_points, t_mode, eval_mode, x_ref, u, v));
+  if (basis->ApplyAtPoints) {
+    CeedCall(basis->ApplyAtPoints(basis, num_elem, num_points, t_mode, eval_mode, x_ref, u, v));
+  } else {
+    CeedCall(CeedBasisApplyAtPoints_Core(basis, false, num_elem, num_points, t_mode, eval_mode, x_ref, u, v));
+  }
+  return CEED_ERROR_SUCCESS;
+}
+
+/**
+  @brief Apply basis evaluation from nodes to arbitrary points and sum into target vector
+
+  @param[in]  basis      `CeedBasis` to evaluate
+  @param[in]  num_elem   The number of elements to apply the basis evaluation to;
+                          the backend will specify the ordering in @ref CeedElemRestrictionCreate()
+  @param[in]  num_points Array of the number of points to apply the basis evaluation to in each element, size `num_elem`
+  @param[in]  t_mode     @ref CEED_NOTRANSPOSE to evaluate from nodes to points;
+                           @ref CEED_NOTRANSPOSE is not valid for `CeedBasisApplyAddAtPoints()`
+  @param[in]  eval_mode  @ref CEED_EVAL_INTERP to use interpolated values,
+                           @ref CEED_EVAL_GRAD to use gradients,
+                           @ref CEED_EVAL_WEIGHT to use quadrature weights
+  @param[in]  x_ref      `CeedVector` holding reference coordinates of each point
+  @param[in]  u          Input `CeedVector`, of length `num_nodes * num_comp` for @ref CEED_NOTRANSPOSE
+  @param[out] v          Output `CeedVector`, of length `num_points * num_q_comp` for @ref CEED_NOTRANSPOSE with @ref CEED_EVAL_INTERP
+
+  @return An error code: 0 - success, otherwise - failure
+
+  @ref User
+**/
+int CeedBasisApplyAddAtPoints(CeedBasis basis, CeedInt num_elem, const CeedInt *num_points, CeedTransposeMode t_mode, CeedEvalMode eval_mode,
+                              CeedVector x_ref, CeedVector u, CeedVector v) {
+  CeedCheck(t_mode == CEED_TRANSPOSE, CeedBasisReturnCeed(basis), CEED_ERROR_UNSUPPORTED, "CeedBasisApplyAddAtPoints only supports CEED_TRANSPOSE");
+  CeedCall(CeedBasisApplyAtPointsCheckDims(basis, num_elem, num_points, t_mode, eval_mode, x_ref, u, v));
+  if (basis->ApplyAddAtPoints) {
+    CeedCall(basis->ApplyAddAtPoints(basis, num_elem, num_points, t_mode, eval_mode, x_ref, u, v));
+  } else {
+    CeedCall(CeedBasisApplyAtPoints_Core(basis, true, num_elem, num_points, t_mode, eval_mode, x_ref, u, v));
   }
   return CEED_ERROR_SUCCESS;
 }
