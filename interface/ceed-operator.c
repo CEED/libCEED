@@ -118,6 +118,9 @@ static int CeedOperatorFieldView(CeedOperatorField op_field, CeedQFunctionField 
   if (basis == CEED_BASIS_NONE) fprintf(stream, "%s      No basis\n", pre);
   if (vec == CEED_VECTOR_ACTIVE) fprintf(stream, "%s      Active vector\n", pre);
   else if (vec == CEED_VECTOR_NONE) fprintf(stream, "%s      No vector\n", pre);
+
+  CeedCall(CeedVectorDestroy(&vec));
+  CeedCall(CeedBasisDestroy(&basis));
   return CEED_ERROR_SUCCESS;
 }
 
@@ -160,7 +163,9 @@ int CeedOperatorSingleView(CeedOperator op, bool sub, FILE *stream) {
 }
 
 /**
-  @brief Find the active input vector `CeedBasis` for a non-composite `CeedOperator`
+  @brief Find the active input vector `CeedBasis` for a non-composite `CeedOperator`.
+
+  Note: Caller is responsible for destroying the `active_basis` with @ref CeedBasisDestroy().
 
   @param[in]  op           `CeedOperator` to find active `CeedBasis` for
   @param[out] active_basis `CeedBasis` for active input vector or `NULL` for composite operator
@@ -175,7 +180,9 @@ int CeedOperatorGetActiveBasis(CeedOperator op, CeedBasis *active_basis) {
 }
 
 /**
-  @brief Find the active input and output vector `CeedBasis` for a non-composite `CeedOperator`
+  @brief Find the active input and output vector `CeedBasis` for a non-composite `CeedOperator`.
+
+  Note: Caller is responsible for destroying the bases with @ref CeedBasisDestroy().
 
   @param[in]  op                  `CeedOperator` to find active `CeedBasis` for
   @param[out] active_input_basis  `CeedBasis` for active input vector or `NULL` for composite operator
@@ -207,8 +214,10 @@ int CeedOperatorGetActiveBases(CeedOperator op, CeedBasis *active_input_basis, C
 
           CeedCall(CeedOperatorFieldGetBasis(op_input_fields[i], &basis));
           CeedCheck(!*active_input_basis || *active_input_basis == basis, ceed, CEED_ERROR_MINOR, "Multiple active input CeedBases found");
-          *active_input_basis = basis;
+          if (!*active_input_basis) CeedCall(CeedBasisReferenceCopy(basis, active_input_basis));
+          CeedCall(CeedBasisDestroy(&basis));
         }
+        CeedCall(CeedVectorDestroy(&vec));
       }
       CeedCheck(*active_input_basis, ceed, CEED_ERROR_INCOMPLETE, "No active input CeedBasis found");
     }
@@ -225,8 +234,10 @@ int CeedOperatorGetActiveBases(CeedOperator op, CeedBasis *active_input_basis, C
 
           CeedCall(CeedOperatorFieldGetBasis(op_output_fields[i], &basis));
           CeedCheck(!*active_output_basis || *active_output_basis == basis, ceed, CEED_ERROR_MINOR, "Multiple active output CeedBases found");
-          *active_output_basis = basis;
+          if (!*active_output_basis) CeedCall(CeedBasisReferenceCopy(basis, active_output_basis));
+          CeedCall(CeedBasisDestroy(&basis));
         }
+        CeedCall(CeedVectorDestroy(&vec));
       }
       CeedCheck(*active_output_basis, ceed, CEED_ERROR_INCOMPLETE, "No active output CeedBasis found");
     }
@@ -235,7 +246,9 @@ int CeedOperatorGetActiveBases(CeedOperator op, CeedBasis *active_input_basis, C
 }
 
 /**
-  @brief Find the active vector `CeedElemRestriction` for a non-composite `CeedOperator`
+  @brief Find the active vector `CeedElemRestriction` for a non-composite `CeedOperator`.
+
+  Note: Caller is responsible for destroying the `active_rstr` with @ref CeedElemRestrictionDestroy().
 
   @param[in]  op          `CeedOperator` to find active `CeedElemRestriction` for
   @param[out] active_rstr `CeedElemRestriction` for active input vector or NULL for composite operator
@@ -250,7 +263,9 @@ int CeedOperatorGetActiveElemRestriction(CeedOperator op, CeedElemRestriction *a
 }
 
 /**
-  @brief Find the active input and output vector `CeedElemRestriction` for a non-composite `CeedOperator`
+  @brief Find the active input and output vector `CeedElemRestriction` for a non-composite `CeedOperator`.
+
+  Note: Caller is responsible for destroying the restrictions with @ref CeedElemRestrictionDestroy().
 
   @param[in]  op                 `CeedOperator` to find active `CeedElemRestriction` for
   @param[out] active_input_rstr  `CeedElemRestriction` for active input vector or NULL for composite operator
@@ -282,8 +297,10 @@ int CeedOperatorGetActiveElemRestrictions(CeedOperator op, CeedElemRestriction *
 
           CeedCall(CeedOperatorFieldGetElemRestriction(op_input_fields[i], &rstr));
           CeedCheck(!*active_input_rstr || *active_input_rstr == rstr, ceed, CEED_ERROR_MINOR, "Multiple active input CeedElemRestrictions found");
-          *active_input_rstr = rstr;
+          if (!*active_input_rstr) CeedCall(CeedElemRestrictionReferenceCopy(rstr, active_input_rstr));
+          CeedCall(CeedElemRestrictionDestroy(&rstr));
         }
+        CeedCall(CeedVectorDestroy(&vec));
       }
       CeedCheck(*active_input_rstr, ceed, CEED_ERROR_INCOMPLETE, "No active input CeedElemRestriction found");
     }
@@ -300,8 +317,10 @@ int CeedOperatorGetActiveElemRestrictions(CeedOperator op, CeedElemRestriction *
 
           CeedCall(CeedOperatorFieldGetElemRestriction(op_output_fields[i], &rstr));
           CeedCheck(!*active_output_rstr || *active_output_rstr == rstr, ceed, CEED_ERROR_MINOR, "Multiple active output CeedElemRestrictions found");
-          *active_output_rstr = rstr;
+          if (!*active_output_rstr) CeedCall(CeedElemRestrictionReferenceCopy(rstr, active_output_rstr));
+          CeedCall(CeedElemRestrictionDestroy(&rstr));
         }
+        CeedCall(CeedVectorDestroy(&vec));
       }
       CeedCheck(*active_output_rstr, ceed, CEED_ERROR_INCOMPLETE, "No active output CeedElemRestriction found");
     }
@@ -563,6 +582,7 @@ int CeedOperatorHasTensorBases(CeedOperator op, bool *has_tensor_bases) {
       CeedCall(CeedBasisIsTensor(basis, &is_tensor));
       *has_tensor_bases &= is_tensor;
     }
+    CeedCall(CeedBasisDestroy(&basis));
   }
   for (CeedInt i = 0; i < num_outputs; i++) {
     bool      is_tensor;
@@ -573,6 +593,7 @@ int CeedOperatorHasTensorBases(CeedOperator op, bool *has_tensor_bases) {
       CeedCall(CeedBasisIsTensor(basis, &is_tensor));
       *has_tensor_bases &= is_tensor;
     }
+    CeedCall(CeedBasisDestroy(&basis));
   }
   return CEED_ERROR_SUCCESS;
 }
@@ -1138,7 +1159,9 @@ int CeedOperatorFieldGetName(CeedOperatorField op_field, const char **field_name
 }
 
 /**
-  @brief Get the `CeedElemRestriction` of a `CeedOperator` Field
+  @brief Get the `CeedElemRestriction` of a `CeedOperator` Field.
+
+  Note: Caller is responsible for destroying the `rstr` with @ref CeedElemRestrictionDestroy().
 
   @param[in]  op_field `CeedOperator` Field
   @param[out] rstr     Variable to store `CeedElemRestriction`
@@ -1148,12 +1171,15 @@ int CeedOperatorFieldGetName(CeedOperatorField op_field, const char **field_name
   @ref Advanced
 **/
 int CeedOperatorFieldGetElemRestriction(CeedOperatorField op_field, CeedElemRestriction *rstr) {
-  *rstr = op_field->elem_rstr;
+  *rstr = NULL;
+  CeedCall(CeedElemRestrictionReferenceCopy(op_field->elem_rstr, rstr));
   return CEED_ERROR_SUCCESS;
 }
 
 /**
-  @brief Get the `CeedBasis` of a `CeedOperator` Field
+  @brief Get the `CeedBasis` of a `CeedOperator` Field.
+
+  Note: Caller is responsible for destroying the `basis` with @ref CeedBasisDestroy().
 
   @param[in]  op_field `CeedOperator` Field
   @param[out] basis    Variable to store `CeedBasis`
@@ -1163,12 +1189,15 @@ int CeedOperatorFieldGetElemRestriction(CeedOperatorField op_field, CeedElemRest
   @ref Advanced
 **/
 int CeedOperatorFieldGetBasis(CeedOperatorField op_field, CeedBasis *basis) {
-  *basis = op_field->basis;
+  *basis = NULL;
+  CeedCall(CeedBasisReferenceCopy(op_field->basis, basis));
   return CEED_ERROR_SUCCESS;
 }
 
 /**
-  @brief Get the `CeedVector` of a `CeedOperator` Field
+  @brief Get the `CeedVector` of a `CeedOperator` Field.
+
+  Note: Caller is responsible for destroying the `vec` with @ref CeedVectorDestroy().
 
   @param[in]  op_field `CeedOperator` Field
   @param[out] vec      Variable to store `CeedVector`
@@ -1178,14 +1207,17 @@ int CeedOperatorFieldGetBasis(CeedOperatorField op_field, CeedBasis *basis) {
   @ref Advanced
 **/
 int CeedOperatorFieldGetVector(CeedOperatorField op_field, CeedVector *vec) {
-  *vec = op_field->vec;
+  *vec = NULL;
+  CeedCall(CeedVectorReferenceCopy(op_field->vec, vec));
   return CEED_ERROR_SUCCESS;
 }
 
 /**
   @brief Get the data of a `CeedOperator` Field.
 
-  Any arguments set as `NULL` are ignored.
+  Any arguments set as `NULL` are ignored..
+
+  Note: Caller is responsible for destroying the `rstr`, `basis`, and `vec`.
 
   @param[in]  op_field   `CeedOperator` Field
   @param[out] field_name Variable to store the field name
@@ -1652,12 +1684,15 @@ int CeedOperatorGetFlopsEstimate(CeedOperator op, CeedSize *flops) {
 
         CeedCall(CeedOperatorFieldGetElemRestriction(op_input_fields[i], &rstr));
         CeedCall(CeedElemRestrictionGetFlopsEstimate(rstr, CEED_NOTRANSPOSE, &rstr_flops));
+        CeedCall(CeedElemRestrictionDestroy(&rstr));
         *flops += rstr_flops;
         CeedCall(CeedOperatorFieldGetBasis(op_input_fields[i], &basis));
         CeedCall(CeedQFunctionFieldGetEvalMode(qf_input_fields[i], &eval_mode));
         CeedCall(CeedBasisGetFlopsEstimate(basis, CEED_NOTRANSPOSE, eval_mode, &basis_flops));
+        CeedCall(CeedBasisDestroy(&basis));
         *flops += basis_flops * num_elem;
       }
+      CeedCall(CeedVectorDestroy(&vec));
     }
     // QF FLOPs
     {
@@ -1686,12 +1721,15 @@ int CeedOperatorGetFlopsEstimate(CeedOperator op, CeedSize *flops) {
 
         CeedCall(CeedOperatorFieldGetElemRestriction(op_output_fields[i], &rstr));
         CeedCall(CeedElemRestrictionGetFlopsEstimate(rstr, CEED_TRANSPOSE, &rstr_flops));
+        CeedCall(CeedElemRestrictionDestroy(&rstr));
         *flops += rstr_flops;
         CeedCall(CeedOperatorFieldGetBasis(op_output_fields[i], &basis));
         CeedCall(CeedQFunctionFieldGetEvalMode(qf_output_fields[i], &eval_mode));
         CeedCall(CeedBasisGetFlopsEstimate(basis, CEED_TRANSPOSE, eval_mode, &basis_flops));
+        CeedCall(CeedBasisDestroy(&basis));
         *flops += basis_flops * num_elem;
       }
+      CeedCall(CeedVectorDestroy(&vec));
     }
   }
   return CEED_ERROR_SUCCESS;
@@ -2036,6 +2074,7 @@ int CeedOperatorApply(CeedOperator op, CeedVector in, CeedVector out, CeedReques
           if (vec != CEED_VECTOR_ACTIVE && vec != CEED_VECTOR_NONE) {
             CeedCall(CeedVectorSetValue(vec, 0.0));
           }
+          CeedCall(CeedVectorDestroy(&vec));
         }
       }
       // Apply
@@ -2054,11 +2093,14 @@ int CeedOperatorApply(CeedOperator op, CeedVector in, CeedVector out, CeedReques
       CeedCall(CeedOperatorGetFields(op, NULL, NULL, &num_output_fields, &output_fields));
       // Zero all output vectors
       for (CeedInt i = 0; i < num_output_fields; i++) {
+        bool       is_active;
         CeedVector vec;
 
         CeedCall(CeedOperatorFieldGetVector(output_fields[i], &vec));
-        if (vec == CEED_VECTOR_ACTIVE) vec = out;
+        is_active = vec == CEED_VECTOR_ACTIVE;
+        if (is_active) vec = out;
         if (vec != CEED_VECTOR_NONE) CeedCall(CeedVectorSetValue(vec, 0.0));
+        if (!is_active) CeedCall(CeedVectorDestroy(&vec));
       }
       // Apply
       if (op->num_elem > 0) CeedCall(op->ApplyAdd(op, in, out, request));

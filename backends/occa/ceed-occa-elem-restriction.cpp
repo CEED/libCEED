@@ -200,10 +200,10 @@ ElemRestriction *ElemRestriction::from(CeedElemRestriction r) {
 
 ElemRestriction *ElemRestriction::from(CeedOperatorField operatorField) {
   CeedElemRestriction ceedElemRestriction;
-
   CeedCallOcca(CeedOperatorFieldGetElemRestriction(operatorField, &ceedElemRestriction));
-
-  return from(ceedElemRestriction);
+  ElemRestriction *elemRestriction = from(ceedElemRestriction);
+  CeedCallOcca(CeedElemRestrictionDestroy(&ceedElemRestriction));
+  return elemRestriction;
 }
 
 ElemRestriction *ElemRestriction::setupFrom(CeedElemRestriction r) {

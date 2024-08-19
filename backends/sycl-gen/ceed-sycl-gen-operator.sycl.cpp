@@ -73,12 +73,15 @@ static int CeedOperatorApplyAdd_Sycl_gen(CeedOperator op, CeedVector input_vec, 
     if (eval_mode == CEED_EVAL_WEIGHT) {  // Skip
       impl->fields->inputs[i] = NULL;
     } else {
+      bool       is_active;
       CeedVector vec;
 
       // Get input vector
       CeedCallBackend(CeedOperatorFieldGetVector(op_input_fields[i], &vec));
-      if (vec == CEED_VECTOR_ACTIVE) vec = input_vec;
+      is_active = vec == CEED_VECTOR_ACTIVE;
+      if (is_active) vec = input_vec;
       CeedCallBackend(CeedVectorGetArrayRead(vec, CEED_MEM_DEVICE, &impl->fields->inputs[i]));
+      if (!is_active) CeedCallBackend(CeedVectorDestroy(&vec));
     }
   }
 
@@ -88,11 +91,13 @@ static int CeedOperatorApplyAdd_Sycl_gen(CeedOperator op, CeedVector input_vec, 
     if (eval_mode == CEED_EVAL_WEIGHT) {  // Skip
       impl->fields->outputs[i] = NULL;
     } else {
+      bool       is_active;
       CeedVector vec;
 
       // Get output vector
       CeedCallBackend(CeedOperatorFieldGetVector(op_output_fields[i], &vec));
-      if (vec == CEED_VECTOR_ACTIVE) vec = output_vec;
+      is_active = vec == CEED_VECTOR_ACTIVE;
+      if (is_active) vec = output_vec;
       output_vecs[i] = vec;
       // Check for multiple output modes
       CeedInt index = -1;
@@ -102,6 +107,7 @@ static int CeedOperatorApplyAdd_Sycl_gen(CeedOperator op, CeedVector input_vec, 
           break;
         }
       }
+      if (!is_active) CeedCallBackend(CeedVectorDestroy(&vec));
       if (index == -1) {
         CeedCallBackend(CeedVectorGetArray(vec, CEED_MEM_DEVICE, &impl->fields->outputs[i]));
       } else {
@@ -152,11 +158,14 @@ static int CeedOperatorApplyAdd_Sycl_gen(CeedOperator op, CeedVector input_vec, 
     CeedCallBackend(CeedQFunctionFieldGetEvalMode(qf_input_fields[i], &eval_mode));
     if (eval_mode == CEED_EVAL_WEIGHT) {  // Skip
     } else {
+      bool       is_active;
       CeedVector vec;
 
       CeedCallBackend(CeedOperatorFieldGetVector(op_input_fields[i], &vec));
-      if (vec == CEED_VECTOR_ACTIVE) vec = input_vec;
+      is_active = vec == CEED_VECTOR_ACTIVE;
+      if (is_active) vec = input_vec;
       CeedCallBackend(CeedVectorRestoreArrayRead(vec, &impl->fields->inputs[i]));
+      if (!is_active) CeedCallBackend(CeedVectorDestroy(&vec));
     }
   }
 
@@ -165,10 +174,12 @@ static int CeedOperatorApplyAdd_Sycl_gen(CeedOperator op, CeedVector input_vec, 
     CeedCallBackend(CeedQFunctionFieldGetEvalMode(qf_output_fields[i], &eval_mode));
     if (eval_mode == CEED_EVAL_WEIGHT) {  // Skip
     } else {
+      bool       is_active;
       CeedVector vec;
 
       CeedCallBackend(CeedOperatorFieldGetVector(op_output_fields[i], &vec));
-      if (vec == CEED_VECTOR_ACTIVE) vec = output_vec;
+      is_active = vec == CEED_VECTOR_ACTIVE;
+      if (is_active) vec = output_vec;
       // Check for multiple output modes
       CeedInt index = -1;
 
@@ -178,6 +189,7 @@ static int CeedOperatorApplyAdd_Sycl_gen(CeedOperator op, CeedVector input_vec, 
           break;
         }
       }
+      if (!is_active) CeedCallBackend(CeedVectorDestroy(&vec));
       if (index == -1) {
         CeedCallBackend(CeedVectorRestoreArray(vec, &impl->fields->outputs[i]));
       }
