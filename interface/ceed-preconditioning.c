@@ -150,6 +150,9 @@ static int CeedOperatorCreateFallback(CeedOperator op) {
 
       CeedCall(CeedOperatorFieldGetData(input_fields[i], &field_name, &rstr, &basis, &vec));
       CeedCall(CeedOperatorSetField(op_fallback, field_name, rstr, basis, vec));
+      CeedCall(CeedVectorDestroy(&vec));
+      CeedCall(CeedElemRestrictionDestroy(&rstr));
+      CeedCall(CeedBasisDestroy(&basis));
     }
     for (CeedInt i = 0; i < num_output_fields; i++) {
       const char         *field_name;
@@ -159,6 +162,9 @@ static int CeedOperatorCreateFallback(CeedOperator op) {
 
       CeedCall(CeedOperatorFieldGetData(output_fields[i], &field_name, &rstr, &basis, &vec));
       CeedCall(CeedOperatorSetField(op_fallback, field_name, rstr, basis, vec));
+      CeedCall(CeedVectorDestroy(&vec));
+      CeedCall(CeedElemRestrictionDestroy(&rstr));
+      CeedCall(CeedBasisDestroy(&basis));
     }
     {
       CeedQFunctionAssemblyData data;
@@ -528,6 +534,8 @@ static int CeedSingleOperatorAssembleSymbolic(CeedOperator op, CeedInt offset, C
     CeedCall(CeedVectorRestoreArrayRead(elem_dof_out, &elem_dof_a_out));
     CeedCall(CeedVectorDestroy(&elem_dof_out));
   }
+  CeedCall(CeedElemRestrictionDestroy(&elem_rstr_in));
+  CeedCall(CeedElemRestrictionDestroy(&elem_rstr_out));
   return CEED_ERROR_SUCCESS;
 }
 
@@ -778,6 +786,8 @@ static int CeedSingleOperatorAssemble(CeedOperator op, CeedInt offset, CeedVecto
   }
   CeedCall(CeedVectorRestoreArrayRead(assembled_qf, &assembled_qf_array));
   CeedCall(CeedVectorDestroy(&assembled_qf));
+  CeedCall(CeedElemRestrictionDestroy(&elem_rstr_in));
+  CeedCall(CeedElemRestrictionDestroy(&elem_rstr_out));
   return CEED_ERROR_SUCCESS;
 }
 
@@ -818,6 +828,8 @@ static int CeedSingleOperatorAssemblyCountEntries(CeedOperator op, CeedSize *num
     elem_size_out = elem_size_in;
     num_comp_out  = num_comp_in;
   }
+  CeedCall(CeedElemRestrictionDestroy(&rstr_in));
+  CeedCall(CeedElemRestrictionDestroy(&rstr_out));
   *num_entries = (CeedSize)elem_size_in * num_comp_in * elem_size_out * num_comp_out * num_elem_in;
   return CEED_ERROR_SUCCESS;
 }
@@ -860,39 +872,45 @@ static int CeedSingleOperatorMultigridLevel(CeedOperator op_fine, CeedVector p_m
   for (CeedInt i = 0; i < num_input_fields; i++) {
     const char         *field_name;
     CeedVector          vec;
-    CeedElemRestriction rstr;
-    CeedBasis           basis;
+    CeedElemRestriction rstr  = NULL;
+    CeedBasis           basis = NULL;
 
     CeedCall(CeedOperatorFieldGetName(input_fields[i], &field_name));
     CeedCall(CeedOperatorFieldGetVector(input_fields[i], &vec));
     if (vec == CEED_VECTOR_ACTIVE) {
-      rstr  = rstr_coarse;
-      basis = basis_coarse;
-      CeedCall(CeedOperatorFieldGetElemRestriction(input_fields[i], &rstr_fine));
+      CeedCall(CeedElemRestrictionReferenceCopy(rstr_coarse, &rstr));
+      CeedCall(CeedBasisReferenceCopy(basis_coarse, &basis));
+      if (!rstr_fine) CeedCall(CeedOperatorFieldGetElemRestriction(input_fields[i], &rstr_fine));
     } else {
       CeedCall(CeedOperatorFieldGetElemRestriction(input_fields[i], &rstr));
       CeedCall(CeedOperatorFieldGetBasis(input_fields[i], &basis));
     }
     CeedCall(CeedOperatorSetField(*op_coarse, field_name, rstr, basis, vec));
+    CeedCall(CeedVectorDestroy(&vec));
+    CeedCall(CeedElemRestrictionDestroy(&rstr));
+    CeedCall(CeedBasisDestroy(&basis));
   }
   // -- Clone output fields
   for (CeedInt i = 0; i < num_output_fields; i++) {
     const char         *field_name;
     CeedVector          vec;
-    CeedElemRestriction rstr;
-    CeedBasis           basis;
+    CeedElemRestriction rstr  = NULL;
+    CeedBasis           basis = NULL;
 
     CeedCall(CeedOperatorFieldGetName(output_fields[i], &field_name));
     CeedCall(CeedOperatorFieldGetVector(output_fields[i], &vec));
     if (vec == CEED_VECTOR_ACTIVE) {
-      rstr  = rstr_coarse;
-      basis = basis_coarse;
-      CeedCall(CeedOperatorFieldGetElemRestriction(output_fields[i], &rstr_fine));
+      CeedCall(CeedElemRestrictionReferenceCopy(rstr_coarse, &rstr));
+      CeedCall(CeedBasisReferenceCopy(basis_coarse, &basis));
+      if (!rstr_fine) CeedCall(CeedOperatorFieldGetElemRestriction(output_fields[i], &rstr_fine));
     } else {
       CeedCall(CeedOperatorFieldGetElemRestriction(output_fields[i], &rstr));
       CeedCall(CeedOperatorFieldGetBasis(output_fields[i], &basis));
     }
     CeedCall(CeedOperatorSetField(*op_coarse, field_name, rstr, basis, vec));
+    CeedCall(CeedVectorDestroy(&vec));
+    CeedCall(CeedElemRestrictionDestroy(&rstr));
+    CeedCall(CeedBasisDestroy(&basis));
   }
   // -- Clone QFunctionAssemblyData
   {
@@ -1014,6 +1032,7 @@ static int CeedSingleOperatorMultigridLevel(CeedOperator op_fine, CeedVector p_m
 
   // Cleanup
   CeedCall(CeedVectorDestroy(&mult_vec));
+  CeedCall(CeedElemRestrictionDestroy(&rstr_fine));
   CeedCall(CeedElemRestrictionDestroy(&rstr_p_mult_fine));
   CeedCall(CeedBasisDestroy(&basis_c_to_f));
   return CEED_ERROR_SUCCESS;
@@ -1429,6 +1448,7 @@ int CeedOperatorAssemblyDataCreate(Ceed ceed, CeedOperator op, CeedOperatorAssem
         (*data)->active_elem_rstrs_in[num_active_bases_in] = NULL;
         CeedCall(CeedOperatorFieldGetElemRestriction(op_fields[i], &elem_rstr_in));
         CeedCall(CeedElemRestrictionReferenceCopy(elem_rstr_in, &(*data)->active_elem_rstrs_in[num_active_bases_in]));
+        CeedCall(CeedElemRestrictionDestroy(&elem_rstr_in));
         CeedCall(CeedRealloc(num_active_bases_in + 1, &num_eval_modes_in));
         num_eval_modes_in[index] = 0;
         CeedCall(CeedRealloc(num_active_bases_in + 1, &eval_modes_in));
@@ -1450,7 +1470,9 @@ int CeedOperatorAssemblyDataCreate(Ceed ceed, CeedOperator op, CeedOperatorAssem
         }
         num_eval_modes_in[index] += q_comp;
       }
+      CeedCall(CeedBasisDestroy(&basis_in));
     }
+    CeedCall(CeedVectorDestroy(&vec));
   }
 
   // Determine active output basis
@@ -1484,6 +1506,7 @@ int CeedOperatorAssemblyDataCreate(Ceed ceed, CeedOperator op, CeedOperatorAssem
         (*data)->active_elem_rstrs_out[num_active_bases_out] = NULL;
         CeedCall(CeedOperatorFieldGetElemRestriction(op_fields[i], &elem_rstr_out));
         CeedCall(CeedElemRestrictionReferenceCopy(elem_rstr_out, &(*data)->active_elem_rstrs_out[num_active_bases_out]));
+        CeedCall(CeedElemRestrictionDestroy(&elem_rstr_out));
         CeedCall(CeedRealloc(num_active_bases_out + 1, &num_eval_modes_out));
         num_eval_modes_out[index] = 0;
         CeedCall(CeedRealloc(num_active_bases_out + 1, &eval_modes_out));
@@ -1505,7 +1528,9 @@ int CeedOperatorAssemblyDataCreate(Ceed ceed, CeedOperator op, CeedOperatorAssem
         }
         num_eval_modes_out[index] += q_comp;
       }
+      CeedCall(CeedBasisDestroy(&basis_out));
     }
+    CeedCall(CeedVectorDestroy(&vec));
   }
   (*data)->num_active_bases_in   = num_active_bases_in;
   (*data)->num_eval_modes_in     = num_eval_modes_in;
@@ -2166,6 +2191,7 @@ int CeedOperatorLinearAssemblePointBlockDiagonalSymbolic(CeedOperator op, CeedSi
 
     CeedCall(CeedElemRestrictionRestoreOffsets(active_elem_rstr, &offsets));
     CeedCall(CeedElemRestrictionRestoreOffsets(point_block_active_elem_rstr, &point_block_offsets));
+    CeedCall(CeedElemRestrictionDestroy(&active_elem_rstr));
     CeedCall(CeedElemRestrictionDestroy(&point_block_active_elem_rstr));
   }
   return CEED_ERROR_SUCCESS;
@@ -2494,6 +2520,7 @@ int CeedCompositeOperatorGetMultiplicity(CeedOperator op, CeedInt num_skip_indic
     // -- Sub operator multiplicity
     CeedCall(CeedOperatorGetActiveElemRestriction(sub_operators[i], &elem_rstr));
     CeedCall(CeedElemRestrictionCreateUnorientedCopy(elem_rstr, &mult_elem_rstr));
+    CeedCall(CeedElemRestrictionDestroy(&elem_rstr));
     CeedCall(CeedElemRestrictionCreateVector(mult_elem_rstr, &sub_mult_l_vec, &ones_e_vec));
     CeedCall(CeedVectorSetValue(sub_mult_l_vec, 0.0));
     CeedCall(CeedElemRestrictionApply(mult_elem_rstr, CEED_NOTRANSPOSE, ones_l_vec, ones_e_vec, CEED_REQUEST_IMMEDIATE));
@@ -2542,6 +2569,7 @@ int CeedOperatorMultigridLevelCreate(CeedOperator op_fine, CeedVector p_mult_fin
 
     CeedCall(CeedOperatorGetActiveBasis(op_fine, &basis_fine));
     CeedCall(CeedBasisCreateProjection(basis_coarse, basis_fine, &basis_c_to_f));
+    CeedCall(CeedBasisDestroy(&basis_fine));
   }
 
   // Core code
@@ -2597,6 +2625,7 @@ int CeedOperatorMultigridLevelCreateTensorH1(CeedOperator op_fine, CeedVector p_
     CeedCall(CeedBasisGetDimension(basis_fine, &dim));
     CeedCall(CeedBasisGetNumComponents(basis_fine, &num_comp));
     CeedCall(CeedBasisGetNumNodes1D(basis_fine, &P_1d_f));
+    CeedCall(CeedBasisDestroy(&basis_fine));
     CeedCall(CeedElemRestrictionGetElementSize(rstr_coarse, &num_nodes_c));
     P_1d_c = dim == 1 ? num_nodes_c : dim == 2 ? sqrt(num_nodes_c) : cbrt(num_nodes_c);
     CeedCall(CeedCalloc(P_1d_f, &q_ref));
@@ -2660,6 +2689,7 @@ int CeedOperatorMultigridLevelCreateH1(CeedOperator op_fine, CeedVector p_mult_f
     CeedCall(CeedBasisGetDimension(basis_fine, &dim));
     CeedCall(CeedBasisGetNumComponents(basis_fine, &num_comp));
     CeedCall(CeedBasisGetNumNodes(basis_fine, &num_nodes_f));
+    CeedCall(CeedBasisDestroy(&basis_fine));
     CeedCall(CeedElemRestrictionGetElementSize(rstr_coarse, &num_nodes_c));
     CeedCall(CeedCalloc(num_nodes_f * dim, &q_ref));
     CeedCall(CeedCalloc(num_nodes_f, &q_weight));
@@ -2743,9 +2773,10 @@ int CeedOperatorCreateFDMElementInverse(CeedOperator op, CeedOperator *fdm_inv, 
       CeedCall(CeedQFunctionFieldGetEvalMode(qf_fields[i], &eval_mode));
       interp = interp || eval_mode == CEED_EVAL_INTERP;
       grad   = grad || eval_mode == CEED_EVAL_GRAD;
-      CeedCall(CeedOperatorFieldGetBasis(op_fields[i], &basis));
-      CeedCall(CeedOperatorFieldGetElemRestriction(op_fields[i], &rstr));
+      if (!basis) CeedCall(CeedOperatorFieldGetBasis(op_fields[i], &basis));
+      if (!rstr) CeedCall(CeedOperatorFieldGetElemRestriction(op_fields[i], &rstr));
     }
+    CeedCall(CeedVectorDestroy(&vec));
   }
   CeedCheck(basis, ceed, CEED_ERROR_BACKEND, "No active field set");
   CeedCall(CeedBasisGetNumNodes1D(basis, &P_1d));
@@ -2906,8 +2937,10 @@ int CeedOperatorCreateFDMElementInverse(CeedOperator op, CeedOperator *fdm_inv, 
 
   // Cleanup
   CeedCall(CeedVectorDestroy(&q_data));
-  CeedCall(CeedBasisDestroy(&fdm_basis));
+  CeedCall(CeedElemRestrictionDestroy(&rstr));
   CeedCall(CeedElemRestrictionDestroy(&rstr_qd_i));
+  CeedCall(CeedBasisDestroy(&basis));
+  CeedCall(CeedBasisDestroy(&fdm_basis));
   CeedCall(CeedQFunctionDestroy(&qf_fdm));
   return CEED_ERROR_SUCCESS;
 }

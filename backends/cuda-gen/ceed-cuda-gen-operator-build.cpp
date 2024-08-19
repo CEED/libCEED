@@ -55,6 +55,7 @@ static int CeedOperatorBuildKernelData_Cuda_gen(Ceed ceed, CeedInt num_input_fie
       CeedCheck(*Q_1d == 0 || field_Q_1d == *Q_1d, ceed, CEED_ERROR_BACKEND, "Quadrature spaces must be compatible");
       *Q_1d = field_Q_1d;
     }
+    CeedCallBackend(CeedBasisDestroy(&basis));
   }
   for (CeedInt i = 0; i < num_output_fields; i++) {
     CeedBasis basis;
@@ -77,6 +78,7 @@ static int CeedOperatorBuildKernelData_Cuda_gen(Ceed ceed, CeedInt num_input_fie
       CeedCheck(*Q_1d == 0 || field_Q_1d == *Q_1d, ceed, CEED_ERROR_BACKEND, "Quadrature spaces must be compatible");
       *Q_1d = field_Q_1d;
     }
+    CeedCallBackend(CeedBasisDestroy(&basis));
   }
 
   // Only use 3D collocated gradient parallelization strategy when gradient is computed
@@ -96,6 +98,7 @@ static int CeedOperatorBuildKernelData_Cuda_gen(Ceed ceed, CeedInt num_input_fie
         CeedCallBackend(CeedBasisGetData(basis, &basis_data));
         *use_3d_slices = basis_data->d_collo_grad_1d && (was_grad_found ? *use_3d_slices : true);
         was_grad_found = true;
+        CeedCallBackend(CeedBasisDestroy(&basis));
       }
     }
     for (CeedInt i = 0; i < num_output_fields; i++) {
@@ -110,6 +113,7 @@ static int CeedOperatorBuildKernelData_Cuda_gen(Ceed ceed, CeedInt num_input_fie
         CeedCallBackend(CeedBasisGetData(basis, &basis_data));
         *use_3d_slices = basis_data->d_collo_grad_1d && (was_grad_found ? *use_3d_slices : true);
         was_grad_found = true;
+        CeedCallBackend(CeedBasisDestroy(&basis));
       }
     }
   }
@@ -138,6 +142,7 @@ static int CeedOperatorBuildKernelFieldData_Cuda_gen(std::ostringstream &code, C
     CeedCallBackend(CeedElemRestrictionGetElementSize(elem_rstr, &elem_size));
     CeedCallBackend(CeedElemRestrictionGetNumComponents(elem_rstr, &num_comp));
   }
+  CeedCallBackend(CeedElemRestrictionDestroy(&elem_rstr));
   CeedCallBackend(CeedOperatorFieldGetBasis(op_field, &basis));
   if (basis != CEED_BASIS_NONE) {
     CeedCallBackend(CeedBasisGetData(basis, &basis_data));
@@ -150,6 +155,7 @@ static int CeedOperatorBuildKernelFieldData_Cuda_gen(std::ostringstream &code, C
     code << "  const CeedInt " << P_name << " = " << (basis == CEED_BASIS_NONE ? Q_1d : P_1d) << ";\n";
     code << "  const CeedInt num_comp" << var_suffix << " = " << num_comp << ";\n";
   }
+  CeedCallBackend(CeedBasisDestroy(&basis));
 
   // Load basis data
   code << "  // EvalMode: " << CeedEvalModes[eval_mode] << "\n";
@@ -224,6 +230,7 @@ static int CeedOperatorBuildKernelRestriction_Cuda_gen(std::ostringstream &code,
   if (basis != CEED_BASIS_NONE) {
     CeedCallBackend(CeedBasisGetNumNodes1D(basis, &P_1d));
   }
+  CeedCallBackend(CeedBasisDestroy(&basis));
   CeedCallBackend(CeedQFunctionFieldGetEvalMode(qf_field, &eval_mode));
 
   // Restriction
@@ -302,6 +309,7 @@ static int CeedOperatorBuildKernelRestriction_Cuda_gen(std::ostringstream &code,
            << strides[2] << ">(data, elem, r_e" << var_suffix << ", d" << var_suffix << ");\n";
     }
   }
+  CeedCallBackend(CeedElemRestrictionDestroy(&elem_rstr));
   return CEED_ERROR_SUCCESS;
 }
 
@@ -324,6 +332,7 @@ static int CeedOperatorBuildKernelBasis_Cuda_gen(std::ostringstream &code, CeedO
     CeedCallBackend(CeedElemRestrictionGetElementSize(elem_rstr, &elem_size));
     CeedCallBackend(CeedElemRestrictionGetNumComponents(elem_rstr, &num_comp));
   }
+  CeedCallBackend(CeedElemRestrictionDestroy(&elem_rstr));
   CeedCallBackend(CeedOperatorFieldGetBasis(op_field, &basis));
   if (basis != CEED_BASIS_NONE) {
     CeedCallBackend(CeedBasisGetNumNodes1D(basis, &P_1d));
@@ -401,6 +410,7 @@ static int CeedOperatorBuildKernelBasis_Cuda_gen(std::ostringstream &code, CeedO
                 // LCOV_EXCL_STOP
     }
   }
+  CeedCallBackend(CeedBasisDestroy(&basis));
   return CEED_ERROR_SUCCESS;
 }
 
@@ -489,6 +499,7 @@ static int CeedOperatorBuildKernelQFunction_Cuda_gen(std::ostringstream &code, C
             code << "      readSliceQuadsOffset3d<num_comp" << var_suffix << ", " << comp_stride << ", " << Q_name << ">(data, l_size" << var_suffix
                  << ", elem, q, indices.inputs[" << i << "], d" << var_suffix << ", r_s" << var_suffix << ");\n";
           }
+          CeedCallBackend(CeedElemRestrictionDestroy(&elem_rstr));
           break;
         case CEED_EVAL_INTERP:
           code << "      CeedScalar r_s" << var_suffix << "[num_comp" << var_suffix << "];\n";
@@ -809,6 +820,7 @@ extern "C" int CeedOperatorBuildKernel_Cuda_gen(CeedOperator op) {
     CeedCallBackend(CeedElemRestrictionGetNumComponents(elem_rstr, &num_comp));
     CeedCallBackend(CeedElemRestrictionGetElementSize(elem_rstr, &elem_size));
     max_rstr_buffer_size = CeedIntMax(max_rstr_buffer_size, num_comp * elem_size);
+    CeedCallBackend(CeedElemRestrictionDestroy(&elem_rstr));
   }
   for (CeedInt i = 0; i < num_output_fields; i++) {
     CeedInt             num_comp, elem_size;
@@ -818,6 +830,7 @@ extern "C" int CeedOperatorBuildKernel_Cuda_gen(CeedOperator op) {
     CeedCallBackend(CeedElemRestrictionGetNumComponents(elem_rstr, &num_comp));
     CeedCallBackend(CeedElemRestrictionGetElementSize(elem_rstr, &elem_size));
     max_rstr_buffer_size = CeedIntMax(max_rstr_buffer_size, num_comp * elem_size);
+    CeedCallBackend(CeedElemRestrictionDestroy(&elem_rstr));
   }
   code << "    // Scratch restriction buffer space\n";
   code << "    CeedScalar r_e_scratch[" << max_rstr_buffer_size << "];\n";
@@ -858,7 +871,11 @@ extern "C" int CeedOperatorBuildKernel_Cuda_gen(CeedOperator op) {
           input_field_order[curr_index] = j;
           curr_index++;
         }
+        CeedCallBackend(CeedVectorDestroy(&vec_j));
+        CeedCallBackend(CeedElemRestrictionDestroy(&rstr_j));
       }
+      CeedCallBackend(CeedVectorDestroy(&vec_i));
+      CeedCallBackend(CeedElemRestrictionDestroy(&rstr_i));
     }
   }
 
