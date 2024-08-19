@@ -30,12 +30,10 @@ static PetscErrorCode CreateKSPMassOperator_Unstabilized(User user, CeedOperator
 
     PetscCallCeed(ceed, CeedCompositeOperatorGetSubList(user->op_rhs_ctx->op, &sub_ops));
     PetscCallCeed(ceed, CeedOperatorGetFieldByName(sub_ops[sub_op_index], "q", &field));
-    PetscCallCeed(ceed, CeedOperatorFieldGetElemRestriction(field, &elem_restr_q));
-    PetscCallCeed(ceed, CeedOperatorFieldGetBasis(field, &basis_q));
+    PetscCallCeed(ceed, CeedOperatorFieldGetData(field, NULL, &elem_restr_q, &basis_q, NULL));
 
     PetscCallCeed(ceed, CeedOperatorGetFieldByName(sub_ops[sub_op_index], "qdata", &field));
-    PetscCallCeed(ceed, CeedOperatorFieldGetElemRestriction(field, &elem_restr_qd_i));
-    PetscCallCeed(ceed, CeedOperatorFieldGetVector(field, &q_data));
+    PetscCallCeed(ceed, CeedOperatorFieldGetData(field, NULL, &elem_restr_qd_i, NULL, &q_data));
   }
 
   PetscCallCeed(ceed, CeedElemRestrictionGetNumComponents(elem_restr_q, &num_comp_q));
@@ -47,6 +45,10 @@ static PetscErrorCode CreateKSPMassOperator_Unstabilized(User user, CeedOperator
   PetscCallCeed(ceed, CeedOperatorSetField(*op_mass, "qdata", elem_restr_qd_i, CEED_BASIS_NONE, q_data));
   PetscCallCeed(ceed, CeedOperatorSetField(*op_mass, "v", elem_restr_q, basis_q, CEED_VECTOR_ACTIVE));
 
+  PetscCallCeed(ceed, CeedVectorDestroy(&q_data));
+  PetscCallCeed(ceed, CeedElemRestrictionDestroy(&elem_restr_q));
+  PetscCallCeed(ceed, CeedElemRestrictionDestroy(&elem_restr_qd_i));
+  PetscCallCeed(ceed, CeedBasisDestroy(&basis_q));
   PetscCallCeed(ceed, CeedQFunctionDestroy(&qf_mass));
   PetscFunctionReturn(PETSC_SUCCESS);
 }
@@ -198,10 +200,12 @@ static PetscErrorCode AddBCSubOperators(User user, Ceed ceed, DM dm, SimpleBC bc
     PetscCallCeed(ceed, CeedOperatorGetFieldByName(sub_ops[sub_op_index], "q", &field));
     PetscCallCeed(ceed, CeedOperatorFieldGetElemRestriction(field, &elem_restr_q));
     PetscCallCeed(ceed, CeedElemRestrictionGetNumComponents(elem_restr_q, &num_comp_q));
+    PetscCallCeed(ceed, CeedElemRestrictionDestroy(&elem_restr_q));
 
     PetscCallCeed(ceed, CeedOperatorGetFieldByName(sub_ops[sub_op_index], "x", &field));
     PetscCallCeed(ceed, CeedOperatorFieldGetElemRestriction(field, &elem_restr_x));
     PetscCallCeed(ceed, CeedElemRestrictionGetNumComponents(elem_restr_x, &num_comp_x));
+    PetscCallCeed(ceed, CeedElemRestrictionDestroy(&elem_restr_x));
   }
 
   {  // Get bases

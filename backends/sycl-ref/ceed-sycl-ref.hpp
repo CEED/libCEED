@@ -86,16 +86,16 @@ typedef struct {
   CeedBasis           basis_in, basis_out;
   CeedElemRestriction diag_rstr, point_block_diag_rstr;
   CeedVector          elem_diag, point_block_elem_diag;
-  CeedInt             num_e_mode_in, num_e_mode_out, num_nodes;
+  CeedInt             num_eval_mode_in, num_eval_mode_out, num_nodes;
   CeedInt             num_qpts, num_comp;  // Kernel parameters
-  CeedEvalMode       *h_e_mode_in, *h_e_mode_out;
-  CeedEvalMode       *d_e_mode_in, *d_e_mode_out;
+  CeedEvalMode       *h_eval_mode_in, *h_eval_mode_out;
+  CeedEvalMode       *d_eval_mode_in, *d_eval_mode_out;
   CeedScalar         *d_identity, *d_interp_in, *d_interp_out, *d_grad_in, *d_grad_out;
 } CeedOperatorDiag_Sycl;
 
 typedef struct {
   CeedInt     num_elem, block_size_x, block_size_y, elems_per_block;
-  CeedInt     num_e_mode_in, num_e_mode_out, num_qpts, num_nodes, block_size, num_comp;  // Kernel parameters
+  CeedInt     num_eval_mode_in, num_eval_mode_out, num_qpts, num_nodes, block_size, num_comp;  // Kernel parameters
   bool        fallback;
   CeedScalar *d_B_in, *d_B_out;
 } CeedOperatorAssemble_Sycl;
