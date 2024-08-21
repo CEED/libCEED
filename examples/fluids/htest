@@ -1,0 +1,21 @@
+  cd /projects/tools/petsc/petsc_kjansenFork/petsc-kjansen-fork/
+  source /projects/tools/Spackv0.23/share/spack/setup-env.sh
+  spack load gcc@12.3
+  module load openmpi
+  python3 Cisco.py 
+  export PETSC_DIR=/projects/tools/petsc/petsc_kjansenFork/petsc-kjansen-fork; export PETSC_ARCH=Cisco
+  make all
+  cd ../../../libCEED/
+  git clone https://github.com/CEED/libCEED.git libCEED_cisco
+  cd libCEED_cisco/
+  git checkout origin/ken/ReadCGNS_RB240427 
+  make -j
+  cd examples/fluids/
+  make -j
+  cd blaResizedQ1wQ3mesh/
+  mpiexec -np 12 ../navierstokes -options_file blasiusGenIC.yaml 
+  $PETSC_DIR/$PETSC_ARCH/bin/cgnscheck flowCoarseBy3-0.cgns 
+  mpiexec -np 12 ../navierstokes -options_file blasiusCGNS_Q2.yaml  -dm_plex_box_label -dm_plex_filename flowCoarseBy3-0.cgns  -DtoPvec 0,0,-0.54
+  $PETSC_DIR/$PETSC_ARCH/bin/cgnscheck flowCGNSIn-0.cgns 
+  mpiexec -np 12 ../navierstokes -options_file blasiusCGNS_Q3.yaml  -dm_plex_box_label -dm_plex_filename flowCGNSQ2IC-2.cgns  -DtoPvec 0,0,-0.54 2>&1 |tee -a Q3longerNoStat.log
+  mpiexec -np 12 ../navierstokes -options_file blasiusCGNS_Q3.yaml  -dm_plex_box_label -dm_plex_filename flowCGNSIn-0.cgns  -DtoPvec 0,0,-0.54 2<&1 |tee -a Q3FromQ2.log
