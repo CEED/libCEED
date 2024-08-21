@@ -2,6 +2,7 @@
   source /projects/tools/Spackv0.23/share/spack/setup-env.sh
   spack load gcc@12.3
   module load openmpi
+  git checkout ReadCGNS_Squashed_RB240813
   python3 Cisco.py 
   export PETSC_DIR=/projects/tools/petsc/petsc_kjansenFork/petsc-kjansen-fork; export PETSC_ARCH=Cisco
   make all
