@@ -17,5 +17,7 @@
   $PETSC_DIR/$PETSC_ARCH/bin/cgnscheck flowCoarseBy3-0.cgns 
   mpiexec -np 12 ../navierstokes -options_file blasiusCGNS_Q2.yaml  -dm_plex_box_label -dm_plex_filename flowCoarseBy3-0.cgns  -DtoPvec 0,0,-0.54
   $PETSC_DIR/$PETSC_ARCH/bin/cgnscheck flowCGNSIn-0.cgns 
-  mpiexec -np 12 ../navierstokes -options_file blasiusCGNS_Q3.yaml  -dm_plex_box_label -dm_plex_filename flowCGNSQ2IC-2.cgns  -DtoPvec 0,0,-0.54 2>&1 |tee -a Q3longerNoStat.log
-  mpiexec -np 12 ../navierstokes -options_file blasiusCGNS_Q3.yaml  -dm_plex_box_label -dm_plex_filename flowCGNSIn-0.cgns  -DtoPvec 0,0,-0.54 2<&1 |tee -a Q3FromQ2.log
+mpiexec -np 12 ../navierstokes -options_file blasiusCGNS_Q3.yaml  -dm_plex_box_label -dm_plex_filename flowCGNSIn-0.cgns  -DtoPvec 0,0,-0.54 2>&1 |tee -a Q3_startFrom_Q2.log
+$PETSC_DIR/$PETSC_ARCH/bin/cgnscheck flowCGNSQ2IC-2.cgns  # confirmed good
+mpiexec -np 12 ../navierstokes -options_file blasiusCGNS_Q3.yaml  -dm_plex_box_label -dm_plex_filename flowCGNSQ2IC-2.cgns  -DtoPvec 0,0,-0.54 2>&1 |tee -a Q3_startFrom_Q3.log
+# all good until the last step which has large residual and won't solve startign from step 4 (both step 2 and step 4 written in flowCGNSQIC-2.cgns).
