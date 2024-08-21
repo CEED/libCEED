@@ -16,9 +16,9 @@
 //------------------------------------------------------------------------------
 // Setup Input/Output Fields
 //------------------------------------------------------------------------------
-static int CeedOperatorSetupFields_Opt(CeedQFunction qf, CeedOperator op, bool is_input, const CeedInt block_size, CeedElemRestriction *block_rstr,
-                                       CeedVector *e_vecs_full, CeedVector *e_vecs, CeedVector *q_vecs, CeedInt start_e, CeedInt num_fields,
-                                       CeedInt Q) {
+static int CeedOperatorSetupFields_Opt(CeedQFunction qf, CeedOperator op, bool is_input, bool *skip_rstr, bool *apply_add_basis,
+                                       const CeedInt block_size, CeedElemRestriction *block_rstr, CeedVector *e_vecs_full, CeedVector *e_vecs,
+                                       CeedVector *q_vecs, CeedInt start_e, CeedInt num_fields, CeedInt Q) {
   Ceed                ceed;
   CeedSize            e_size, q_size;
   CeedInt             num_comp, size, P;
@@ -139,7 +139,7 @@ static int CeedOperatorSetupFields_Opt(CeedQFunction qf, CeedOperator op, bool i
     // Initialize E-vec arrays
     if (e_vecs[i]) CeedCallBackend(CeedVectorSetValue(e_vecs[i], 0.0));
   }
-  // Drop duplicate input restrictions
+  // Drop duplicate restrictions
   if (is_input) {
     for (CeedInt i = 0; i < num_fields; i++) {
       CeedVector          vec_i;
@@ -155,8 +155,29 @@ static int CeedOperatorSetupFields_Opt(CeedQFunction qf, CeedOperator op, bool i
         CeedCallBackend(CeedOperatorFieldGetElemRestriction(op_fields[j], &rstr_j));
         if (vec_i == vec_j && rstr_i == rstr_j) {
           CeedCallBackend(CeedVectorReferenceCopy(e_vecs[i], &e_vecs[j]));
-          CeedCallBackend(CeedVectorReferenceCopy(e_vecs_full[i], &e_vecs_full[j]));
-          CeedCallBackend(CeedElemRestrictionDestroy(&block_rstr[j]));
+          CeedCallBackend(CeedVectorReferenceCopy(e_vecs_full[i + start_e], &e_vecs_full[j + start_e]));
+          skip_rstr[j] = true;
+        }
+      }
+    }
+  } else {
+    for (CeedInt i = num_fields - 1; i >= 0; i--) {
+      CeedVector          vec_i;
+      CeedElemRestriction rstr_i;
+
+      CeedCallBackend(CeedOperatorFieldGetVector(op_fields[i], &vec_i));
+      CeedCallBackend(CeedOperatorFieldGetElemRestriction(op_fields[i], &rstr_i));
+      for (CeedInt j = i - 1; j >= 0; j--) {
+        CeedVector          vec_j;
+        CeedElemRestriction rstr_j;
+
+        CeedCallBackend(CeedOperatorFieldGetVector(op_fields[j], &vec_j));
+        CeedCallBackend(CeedOperatorFieldGetElemRestriction(op_fields[j], &rstr_j));
+        if (vec_i == vec_j && rstr_i == rstr_j) {
+          CeedCallBackend(CeedVectorReferenceCopy(e_vecs[i], &e_vecs[j]));
+          CeedCallBackend(CeedVectorReferenceCopy(e_vecs_full[i + start_e], &e_vecs_full[j + start_e]));
+          skip_rstr[j]       = true;
+          apply_add_basis[i] = true;
         }
       }
     }
@@ -194,6 +215,9 @@ static int CeedOperatorSetup_Opt(CeedOperator op) {
   CeedCallBackend(CeedCalloc(num_input_fields + num_output_fields, &impl->block_rstr));
   CeedCallBackend(CeedCalloc(num_input_fields + num_output_fields, &impl->e_vecs_full));
 
+  CeedCallBackend(CeedCalloc(CEED_FIELD_MAX, &impl->skip_rstr_in));
+  CeedCallBackend(CeedCalloc(CEED_FIELD_MAX, &impl->skip_rstr_out));
+  CeedCallBackend(CeedCalloc(CEED_FIELD_MAX, &impl->apply_add_basis_out));
   CeedCallBackend(CeedCalloc(CEED_FIELD_MAX, &impl->input_states));
   CeedCallBackend(CeedCalloc(CEED_FIELD_MAX, &impl->e_vecs_in));
   CeedCallBackend(CeedCalloc(CEED_FIELD_MAX, &impl->e_vecs_out));
@@ -205,11 +229,11 @@ static int CeedOperatorSetup_Opt(CeedOperator op) {
 
   // Set up infield and outfield pointer arrays
   // Infields
-  CeedCallBackend(CeedOperatorSetupFields_Opt(qf, op, true, block_size, impl->block_rstr, impl->e_vecs_full, impl->e_vecs_in, impl->q_vecs_in, 0,
-                                              num_input_fields, Q));
+  CeedCallBackend(CeedOperatorSetupFields_Opt(qf, op, true, impl->skip_rstr_in, NULL, block_size, impl->block_rstr, impl->e_vecs_full,
+                                              impl->e_vecs_in, impl->q_vecs_in, 0, num_input_fields, Q));
   // Outfields
-  CeedCallBackend(CeedOperatorSetupFields_Opt(qf, op, false, block_size, impl->block_rstr, impl->e_vecs_full, impl->e_vecs_out, impl->q_vecs_out,
-                                              num_input_fields, num_output_fields, Q));
+  CeedCallBackend(CeedOperatorSetupFields_Opt(qf, op, false, impl->skip_rstr_out, impl->apply_add_basis_out, block_size, impl->block_rstr,
+                                              impl->e_vecs_full, impl->e_vecs_out, impl->q_vecs_out, num_input_fields, num_output_fields, Q));
 
   // Identity QFunctions
   if (impl->is_identity_qf) {
@@ -251,7 +275,7 @@ static inline int CeedOperatorSetupInputs_Opt(CeedInt num_input_fields, CeedQFun
       if (vec != CEED_VECTOR_ACTIVE) {
         // Restrict
         CeedCallBackend(CeedVectorGetState(vec, &state));
-        if (state != impl->input_states[i] && impl->block_rstr[i]) {
+        if (state != impl->input_states[i] && impl->block_rstr[i] && !impl->skip_rstr_in[i]) {
           CeedCallBackend(CeedElemRestrictionApply(impl->block_rstr[i], CEED_NOTRANSPOSE, vec, impl->e_vecs_full[i], request));
         }
         impl->input_states[i] = state;
@@ -327,8 +351,8 @@ static inline int CeedOperatorInputBasis_Opt(CeedInt e, CeedInt Q, CeedQFunction
 // Output Basis Action
 //------------------------------------------------------------------------------
 static inline int CeedOperatorOutputBasis_Opt(CeedInt e, CeedInt Q, CeedQFunctionField *qf_output_fields, CeedOperatorField *op_output_fields,
-                                              CeedInt block_size, CeedInt num_input_fields, CeedInt num_output_fields, CeedOperator op,
-                                              CeedVector out_vec, CeedOperator_Opt *impl, CeedRequest *request) {
+                                              CeedInt block_size, CeedInt num_input_fields, CeedInt num_output_fields, bool *apply_add_basis,
+                                              bool *skip_rstr, CeedOperator op, CeedVector out_vec, CeedOperator_Opt *impl, CeedRequest *request) {
   for (CeedInt i = 0; i < num_output_fields; i++) {
     CeedEvalMode        eval_mode;
     CeedVector          vec;
@@ -347,7 +371,11 @@ static inline int CeedOperatorOutputBasis_Opt(CeedInt e, CeedInt Q, CeedQFunctio
       case CEED_EVAL_DIV:
       case CEED_EVAL_CURL:
         CeedCallBackend(CeedOperatorFieldGetBasis(op_output_fields[i], &basis));
-        CeedCallBackend(CeedBasisApply(basis, block_size, CEED_TRANSPOSE, eval_mode, impl->q_vecs_out[i], impl->e_vecs_out[i]));
+        if (apply_add_basis[i]) {
+          CeedCallBackend(CeedBasisApplyAdd(basis, block_size, CEED_TRANSPOSE, eval_mode, impl->q_vecs_out[i], impl->e_vecs_out[i]));
+        } else {
+          CeedCallBackend(CeedBasisApply(basis, block_size, CEED_TRANSPOSE, eval_mode, impl->q_vecs_out[i], impl->e_vecs_out[i]));
+        }
         break;
       // LCOV_EXCL_START
       case CEED_EVAL_WEIGHT: {
@@ -356,6 +384,7 @@ static inline int CeedOperatorOutputBasis_Opt(CeedInt e, CeedInt Q, CeedQFunctio
       }
     }
     // Restrict output block
+    if (skip_rstr[i]) continue;
     // Get output vector
     CeedCallBackend(CeedOperatorFieldGetVector(op_output_fields[i], &vec));
     if (vec == CEED_VECTOR_ACTIVE) vec = out_vec;
@@ -448,8 +477,8 @@ static int CeedOperatorApplyAdd_Opt(CeedOperator op, CeedVector in_vec, CeedVect
     }
 
     // Output basis apply and restriction
-    CeedCallBackend(CeedOperatorOutputBasis_Opt(e, Q, qf_output_fields, op_output_fields, block_size, num_input_fields, num_output_fields, op,
-                                                out_vec, impl, request));
+    CeedCallBackend(CeedOperatorOutputBasis_Opt(e, Q, qf_output_fields, op_output_fields, block_size, num_input_fields, num_output_fields,
+                                                impl->apply_add_basis_out, impl->skip_rstr_out, op, out_vec, impl, request));
   }
 
   // Restore input arrays
@@ -694,6 +723,9 @@ static int CeedOperatorDestroy_Opt(CeedOperator op) {
   CeedCallBackend(CeedFree(&impl->block_rstr));
   CeedCallBackend(CeedFree(&impl->e_vecs_full));
   CeedCallBackend(CeedFree(&impl->input_states));
+  CeedCallBackend(CeedFree(&impl->skip_rstr_in));
+  CeedCallBackend(CeedFree(&impl->skip_rstr_out));
+  CeedCallBackend(CeedFree(&impl->apply_add_basis_out));
 
   for (CeedInt i = 0; i < impl->num_inputs; i++) {
     CeedCallBackend(CeedVectorDestroy(&impl->e_vecs_in[i]));
