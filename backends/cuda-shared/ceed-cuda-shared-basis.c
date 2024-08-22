@@ -229,7 +229,7 @@ static int CeedBasisApplyAtPointsCore_Cuda_shared(CeedBasis basis, bool apply_ad
 
   // Weight handled separately
   if (eval_mode == CEED_EVAL_WEIGHT) {
-    CeedCall(CeedVectorSetValue(v, 1.0));
+    CeedCallBackend(CeedVectorSetValue(v, 1.0));
     return CEED_ERROR_SUCCESS;
   }
 
@@ -247,7 +247,7 @@ static int CeedBasisApplyAtPointsCore_Cuda_shared(CeedBasis basis, bool apply_ad
 
       interp_bytes = P_1d * Q_1d * sizeof(CeedScalar);
       CeedCallBackend(CeedCalloc(P_1d * Q_1d, &chebyshev_interp_1d));
-      CeedCall(CeedBasisGetChebyshevInterp1D(basis, chebyshev_interp_1d));
+      CeedCallBackend(CeedBasisGetChebyshevInterp1D(basis, chebyshev_interp_1d));
       CeedCallCuda(ceed, cudaMalloc((void **)&data->d_chebyshev_interp_1d, interp_bytes));
       CeedCallCuda(ceed, cudaMemcpy(data->d_chebyshev_interp_1d, chebyshev_interp_1d, interp_bytes, cudaMemcpyHostToDevice));
       CeedCallBackend(CeedFree(&chebyshev_interp_1d));

@@ -247,8 +247,8 @@ static int CeedVectorCopyStrided_Cuda(CeedVector vec, CeedSize start, CeedSize s
   {
     CeedSize length_vec, length_copy;
 
-    CeedCall(CeedVectorGetLength(vec, &length_vec));
-    CeedCall(CeedVectorGetLength(vec_copy, &length_copy));
+    CeedCallBackend(CeedVectorGetLength(vec, &length_vec));
+    CeedCallBackend(CeedVectorGetLength(vec_copy, &length_copy));
     length = length_vec < length_copy ? length_vec : length_copy;
   }
   // Set value for synced device/host array

@@ -443,7 +443,9 @@ int CeedIsDebug(Ceed ceed, bool *is_debug) {
 }
 
 /**
-  @brief Get the root of the requested resource
+  @brief Get the root of the requested resource.
+
+  Note: Caller is responsible for calling @ref CeedFree() on the `resource_root`.
 
   @param[in]  ceed          `Ceed` context to get resource name of
   @param[in]  resource      Full user specified resource

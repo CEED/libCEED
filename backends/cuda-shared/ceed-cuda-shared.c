@@ -24,6 +24,7 @@ static int CeedInit_Cuda_shared(const char *resource, Ceed ceed) {
 
   CeedCallBackend(CeedGetResourceRoot(ceed, resource, ":", &resource_root));
   CeedCheck(!strcmp(resource_root, "/gpu/cuda/shared"), ceed, CEED_ERROR_BACKEND, "Cuda backend cannot use resource: %s", resource);
+  CeedCallBackend(CeedFree(&resource_root));
   CeedCallBackend(CeedSetDeterministic(ceed, true));
 
   CeedCallBackend(CeedCalloc(1, &data));

@@ -106,7 +106,7 @@ static int CeedLoadModule_Sycl(Ceed ceed, const sycl::context &sycl_context, con
 
     zeModuleBuildLogGetString(lz_log, &log_size, nullptr);
 
-    CeedCall(CeedCalloc(log_size, &log_message));
+    CeedCallBackend(CeedCalloc(log_size, &log_message));
     zeModuleBuildLogGetString(lz_log, &log_size, log_message);
 
     return CeedError(ceed, CEED_ERROR_BACKEND, "Failed to compile Level Zero module:\n%s", log_message);
