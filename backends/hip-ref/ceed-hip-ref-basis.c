@@ -121,7 +121,7 @@ static int CeedBasisApplyAtPointsCore_Hip(CeedBasis basis, bool apply_add, const
 
   // Weight handled separately
   if (eval_mode == CEED_EVAL_WEIGHT) {
-    CeedCall(CeedVectorSetValue(v, 1.0));
+    CeedCallBackend(CeedVectorSetValue(v, 1.0));
     return CEED_ERROR_SUCCESS;
   }
 
@@ -139,7 +139,7 @@ static int CeedBasisApplyAtPointsCore_Hip(CeedBasis basis, bool apply_add, const
 
       interp_bytes = P_1d * Q_1d * sizeof(CeedScalar);
       CeedCallBackend(CeedCalloc(P_1d * Q_1d, &chebyshev_interp_1d));
-      CeedCall(CeedBasisGetChebyshevInterp1D(basis, chebyshev_interp_1d));
+      CeedCallBackend(CeedBasisGetChebyshevInterp1D(basis, chebyshev_interp_1d));
       CeedCallHip(ceed, hipMalloc((void **)&data->d_chebyshev_interp_1d, interp_bytes));
       CeedCallHip(ceed, hipMemcpy(data->d_chebyshev_interp_1d, chebyshev_interp_1d, interp_bytes, hipMemcpyHostToDevice));
       CeedCallBackend(CeedFree(&chebyshev_interp_1d));

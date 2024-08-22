@@ -785,11 +785,11 @@ extern "C" int CeedOperatorBuildKernel_Hip_gen(CeedOperator op) {
   // Initialize constants, and matrices B and G
   code << "\n  // Input field constants and basis data\n";
   for (CeedInt i = 0; i < num_input_fields; i++) {
-    CeedCall(CeedOperatorBuildKernelFieldData_Hip_gen(code, data, i, op_input_fields[i], qf_input_fields[i], Q_1d, true, use_3d_slices));
+    CeedCallBackend(CeedOperatorBuildKernelFieldData_Hip_gen(code, data, i, op_input_fields[i], qf_input_fields[i], Q_1d, true, use_3d_slices));
   }
   code << "\n  // Output field constants and basis data\n";
   for (CeedInt i = 0; i < num_output_fields; i++) {
-    CeedCall(CeedOperatorBuildKernelFieldData_Hip_gen(code, data, i, op_output_fields[i], qf_output_fields[i], Q_1d, false, use_3d_slices));
+    CeedCallBackend(CeedOperatorBuildKernelFieldData_Hip_gen(code, data, i, op_output_fields[i], qf_output_fields[i], Q_1d, false, use_3d_slices));
   }
 
   // Loop over all elements

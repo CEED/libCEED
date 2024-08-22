@@ -112,8 +112,8 @@ static inline int CeedElemRestrictionSetupCompile_Cuda(CeedElemRestriction rstr)
       CeedCallBackend(CeedGetKernel_Cuda(ceed, impl->module, "OffsetTranspose", &impl->ApplyUnsignedTranspose));
       // Cleanup
       CeedCallBackend(CeedFree(&offset_kernel_path));
-      for (CeedInt i = 0; i < num_file_paths; i++) CeedCall(CeedFree(&file_paths[i]));
-      CeedCall(CeedFree(&file_paths));
+      for (CeedInt i = 0; i < num_file_paths; i++) CeedCallBackend(CeedFree(&file_paths[i]));
+      CeedCallBackend(CeedFree(&file_paths));
     } break;
     case CEED_RESTRICTION_CURL_ORIENTED: {
       const char *offset_kernel_path;
@@ -137,8 +137,8 @@ static inline int CeedElemRestrictionSetupCompile_Cuda(CeedElemRestriction rstr)
       CeedCallBackend(CeedGetKernel_Cuda(ceed, impl->module, "OffsetTranspose", &impl->ApplyUnorientedTranspose));
       // Cleanup
       CeedCallBackend(CeedFree(&offset_kernel_path));
-      for (CeedInt i = 0; i < num_file_paths; i++) CeedCall(CeedFree(&file_paths[i]));
-      CeedCall(CeedFree(&file_paths));
+      for (CeedInt i = 0; i < num_file_paths; i++) CeedCallBackend(CeedFree(&file_paths[i]));
+      CeedCallBackend(CeedFree(&file_paths));
     } break;
   }
   CeedCallBackend(CeedFree(&restriction_kernel_path));

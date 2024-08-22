@@ -369,8 +369,8 @@ static int CeedBasisApplyNonTensorCore_Magma(CeedBasis basis, bool apply_add, Ce
       }
       CeedCallBackend(CeedFree(&basis_kernel_path));
       CeedCallBackend(CeedFree(&basis_kernel_source));
-      for (CeedInt i = 0; i < num_file_paths; i++) CeedCall(CeedFree(&file_paths[i]));
-      CeedCall(CeedFree(&file_paths));
+      for (CeedInt i = 0; i < num_file_paths; i++) CeedCallBackend(CeedFree(&file_paths[i]));
+      CeedCallBackend(CeedFree(&file_paths));
     }
   }
 
@@ -617,8 +617,8 @@ int CeedBasisCreateTensorH1_Magma(CeedInt dim, CeedInt P_1d, CeedInt Q_1d, const
   CeedCallBackend(CeedFree(&grad_kernel_path));
   CeedCallBackend(CeedFree(&weight_kernel_path));
   CeedCallBackend(CeedFree(&basis_kernel_source));
-  for (CeedInt i = 0; i < num_file_paths; i++) CeedCall(CeedFree(&file_paths[i]));
-  CeedCall(CeedFree(&file_paths));
+  for (CeedInt i = 0; i < num_file_paths; i++) CeedCallBackend(CeedFree(&file_paths[i]));
+  CeedCallBackend(CeedFree(&file_paths));
 
   CeedCallBackend(CeedBasisSetData(basis, impl));
 

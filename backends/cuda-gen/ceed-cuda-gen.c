@@ -31,7 +31,7 @@ static int CeedInit_Cuda_gen(const char *resource, Ceed ceed) {
   CeedCallBackend(CeedSetData(ceed, data));
   CeedCallBackend(CeedInit_Cuda(ceed, resource));
 
-  CeedCall(CeedInit("/gpu/cuda/shared", &ceed_shared));
+  CeedCallBackend(CeedInit("/gpu/cuda/shared", &ceed_shared));
   CeedCallBackend(CeedSetDelegate(ceed, ceed_shared));
 
   CeedCallBackend(CeedSetOperatorFallbackResource(ceed, fallback_resource));
